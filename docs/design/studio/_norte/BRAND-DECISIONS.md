@@ -37,6 +37,39 @@ del Norte y a las cinco superficies. No cambia etiquetas ni contratos del negoci
 Esta enmienda prevalece sobre ejemplos anteriores que confunden espera con error.
 Se identifica por SDD para no ocupar un número BD del registro externo sin reservarlo.
 
+## Decisión local posterior · SDD-0505 · tipografía · 2026-10-13
+
+**Estado:** la primera parte (todo el sitio en Archivo) quedó **SUPERSEDED** el
+mismo día; vigente la segunda (fuentes del Brand Book servidas desde el repositorio).
+
+1. **Primera decisión (PR #197, SUPERSEDED):** Sam pidió «Ok, podemos cambiar la
+   fuente y usar una o dos fuentes máximo» y eligió «Archivo + JetBrains Mono».
+   Studio, Portal y calculadora pasaron a Archivo y BD-035 quedó marcada como
+   superada.
+2. **Segunda decisión (vigente):** tras verlo en producción, Sam pide volver
+   (chat del 2026-10-13, literal: «vamos a dejar como estaba el proyecto
+   anterior, que serían las fuentes como estaban. Lo que pasa es que los números
+   no me gustan; vamos a dejarlo como estaba en la tarde. Guarda todos los que
+   tengas que guardar como estaba en la tarde.»).
+   - **BD-035 vuelve a estar vigente:** Studio, Portal y calculadora en Nunito
+     Sans (cuerpo) + Sora (títulos), como manda el Brand Book v5.0 §04 («Capa
+     Producto: Sora · Nunito Sans · JetBrains Mono»).
+   - **Todas las fuentes latinas se sirven desde el repositorio**
+     (`lib/font-files/`, `next/font/local`): Archivo, Archivo Black, Sora,
+     Nunito Sans y JetBrains Mono. Motivo: `next/font/google` bajaba las
+     fuentes en cada build y ese día falló 5 veces entre GitHub y Vercel, horas
+     antes del corte al servidor propio.
+   - **Modifica BD-036 (se mantiene de la primera):** el chino deja de descargar
+     Noto Sans SC / Noto Serif SC y usa la fuente CJK del sistema; la regla de
+     uso (serif solo en documento formal `zh-CN`) sigue igual. Motivo: Google
+     reparte cada fuente china en ~100 archivos por bloque de caracteres; copiar
+     eso al repositorio pesa varios MB y no cabía antes del corte.
+- **Regla viva en:** `BRAND.md` §Tipografía y regla 2 del resumen ·
+  `lib/fonts.ts` · `app/globals.css` (`html.dtd-cjk-sistema`, wrappers de
+  superficie) · `__tests__/fuentes-locales.test.ts`.
+Se identifica por SDD, como la de SDD-0441, para no ocupar un número BD del
+registro externo sin reservarlo.
+
 ## 📌 Cómo se registra una decisión
 
 Cada entrada es un bloque con este formato. No se borran entradas: las decisiones revertidas se marcan `SUPERSEDED` y se enlaza la que las reemplaza.
@@ -487,8 +520,8 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-032 | Mockups del portal (T2) en Archivo, no Nunito/Sora | Excepción | Vigente — N/A en este repo |
 | BD-033 | Glass en superficies flotantes del ERP (scrim frosteado + panel ⌘K) | Normativo (extiende BD-031) | Vigente — `--scrim-blur` + ⌘K glass |
 | BD-034 | Fondos ERP: degradados tonales `--grad-*` + marca de agua "D" | Normativo (extiende BD-030) | Vigente — sidebar/hero/KPI/página |
-| BD-035 | Tipografía ERP → Nunito Sans + Sora (realiza la migración de 2026-06-11) | Normativo | Vigente — fix congelamiento `--f-sans`/`--f-display` |
-| BD-036 | Noto Serif SC solo para documento formal `zh-CN` | Excepción tipográfica | Vigente — V1 integrado; V2–V4 pendientes |
+| BD-035 | Tipografía ERP → Nunito Sans + Sora (realiza la migración de 2026-06-11) | Normativo | Vigente — desde el 2026-10-13 servidas desde el repositorio (SDD-0505); estuvo superada unas horas ese día |
+| BD-036 | Noto Serif SC solo para documento formal `zh-CN` | Excepción tipográfica | Regla de uso vigente; desde el 2026-10-13 con la serif CJK del sistema (SDD-0505), sin descargar Noto |
 
 ---
 

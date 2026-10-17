@@ -28,13 +28,15 @@ export type { TramoTerrestre };
  *  3. El recargo por densidad es CONTINUO, sin tope: siempre se auto-cotiza, no
  *     deriva al asesor. Tope ABSOLUTO de peso: 27.000 kg → deriva al asesor.
  *  4. Recargos: embalaje especial (madera/paleta) + ciudad fuera del casco central.
- *  5. Baterías: multiplican el flete (×recargoBateriaMult).
+ *  5. El piso mínimo completa primero el flete facturable; después las baterías
+ *     multiplican ese flete (×recargoBateriaMult).
  *  6. Carga especial / peligrosa → no cotiza, deriva al asesor.
  *  7. Descuento sede: -$ si la ciudad de destino es Valencia.
  *  8. LCL Consolidado por debajo de 1 m³ → no cotiza, deriva al asesor (el BL
  *     propio es un gasto fijo de hasta USD 300 y la carga chica termina
  *     abandonada en el almacén fiscal). Ver `CONSOLIDADO_CBM_MINIMO`.
- *  Orden: (base + ciudad + embalaje) × batería − descuento, luego piso.
+ *  Orden: max(base + peso + ciudad + embalaje, piso) × batería − descuento;
+ *  al final se conserva el piso normal, como antes.
  */
 
 // ────────────────────────────────────────────────────────────────────
@@ -374,7 +376,7 @@ export type Ciudad = {
   /**
    * Zona sin costo: el cliente paga **$0** de entrega.
    *
-   * Son 8 ciudades (founder, 1-ago-2026). DTD sí le paga ese tramo al fletero;
+   * Configurable por ciudad en Administración (SDD-0504). DTD paga al fletero;
    * es adquisición de clientes, no un descuento — por eso la tarifa real vive
    * igual en `carrier_tariffs` y sólo esta bandera la pone en cero de cara al
    * cliente.
@@ -541,9 +543,9 @@ export type EnvioCotizacion = {
   recargoExcedente: number; // recargo por densidad: kg que exceden pesoIncluidoKg/CBM × recargoExcedenteKg (founder 2026-06-20).
   recargoCiudad: number;    // entrega nacional: CBM × precio del tramo. 0 en la zona sin costo.
   recargoEmbalaje: number;  // 0 o recargoEmbalajeEspecial
-  recargoBateria: number;   // extra por el multiplicador de baterías (0 si no)
+  recargoBateria: number;   // extra sobre el flete facturable, incluido el piso mínimo (0 si no)
   descuentoSede: number;    // siempre negativo o 0
-  ajusteMinimo: number;     // ≥0 · cuánto sumó el piso mínimo (para que el desglose reconcilie)
+  ajusteMinimo: number;     // ≥0 · cuánto completó/restauró el piso (para que el desglose reconcilie)
   total: number;            // suma final, piso = min_charge real o CONFIG.minimoFacturable
 
   /** Si hay algún problema/alerta para mostrar al usuario. */
@@ -924,7 +926,8 @@ export function calcularEnvioLCL(
     input.tarifaCBMOverride && input.tarifaCBMOverride > 0
       ? input.tarifaCBMOverride
       : CONFIG.tarifaBaseCBM;
-  const precioBase = cbm * tarifaCBM;
+  const precioBaseSinRedondear = cbm * tarifaCBM;
+  const precioBase = roundUSD(precioBaseSinRedondear);
 
   // 5.6 — Recargo por exceso de densidad (peso por CBM). Founder 2026-06-20: se
   // REACTIVA (revierte la pausa del 2026-06-08). Se cobra sobre el peso que excede
@@ -949,7 +952,7 @@ export function calcularEnvioLCL(
   // El transportista cobra por metro cúbico y punto: sin kilómetros, sin peso,
   // sin valor declarado.
   //
-  // Las 8 ciudades de la ZONA SIN COSTO salen en $0 por el flag `casco`. No es
+  // Las ciudades con entrega incluida salen en $0 por el flag `casco`. No es
   // un descuento: DTD le paga ese tramo al fletero aparte y lo asume como
   // adquisición de clientes. La tarifa real de esas ciudades sigue viva en
   // `carrier_tariffs` para que el ERP no pierda de vista lo que cuesta.
@@ -980,54 +983,99 @@ export function calcularEnvioLCL(
 
   // 5.8 — Recargo por embalaje (especial = madera/paleta). Se computa desde
   // params (configurable), no desde EMBALAJES (que solo aporta labels al form).
-  const recargoEmbalaje =
+  const recargoEmbalajeSinRedondear =
     input.embalaje === "especial" ? params.recargoEmbalajeEspecial : 0;
+  const recargoEmbalaje = roundUSD(recargoEmbalajeSinRedondear);
 
-  // 5.9 — Flete antes de baterías (base + todos los recargos). `recargoExcedente`
-  // vuelve a cobrarse desde 2026-06-20 (ver 5.6); el comentario que decía "es 0
-  // siempre" quedó de la pausa del 2026-06-08 y ya no aplica.
-  const fleteAntesBateria =
-    precioBase + recargoExcedente + recargoCiudad + recargoEmbalaje;
+  // 5.9 — Flete previo al piso y a baterías (base + todos los recargos).
+  // `recargoExcedente` vuelve a cobrarse desde 2026-06-20 (ver 5.6); el
+  // comentario que decía "es 0 siempre" quedó de la pausa del 2026-06-08 y ya
+  // no aplica. La aritmética conserva los valores crudos hasta el total final,
+  // igual que antes de SDD-0502; los campos visibles se balancean a centavos al
+  // final para no mover cotizaciones que ya estaban sobre el piso.
+  const fleteAntesMinimo =
+    precioBaseSinRedondear +
+    recargoExcedente +
+    recargoCiudad +
+    recargoEmbalajeSinRedondear;
 
-  // 5.10 — Multiplicador por baterías (sobre el flete, antes del descuento)
-  const fleteConBateria = input.bateria
-    ? fleteAntesBateria * params.recargoBateriaMult
-    : fleteAntesBateria;
-  const recargoBateria = roundUSD(fleteConBateria - fleteAntesBateria);
-
-  // 5.11 — Descuento si es Valencia (solo si hay descuento configurado > 0;
-  // el guard evita -0 cuando descuentoValencia es 0).
-  const descuentoSede =
-    ciudad.id === "valencia" && params.descuentoValencia > 0
-      ? -params.descuentoValencia
-      : 0;
-
-  // 5.12 — Total antes del piso (Σ de los ítems del desglose)
-  const totalSinPiso = fleteConBateria + descuentoSede;
-
-  // Piso mínimo. Si la tarifa pública trae un min_charge real (mínimo LCL
-  // comercial, ej. $380), ese es el piso; si no, el piso trivial de CONFIG.
+  // 5.10 — Piso mínimo ANTES del multiplicador de baterías (SDD-0502).
+  // Si la tarifa pública trae un min_charge real, ese es el piso; si no, se usa
+  // el respaldo de CONFIG. El extra de litio se cobra sobre el flete facturable,
+  // no sobre un subtotal menor que luego vuelva a caer al mismo mínimo.
   const piso =
     input.minChargeOverride != null && input.minChargeOverride > 0
       ? input.minChargeOverride
       : CONFIG.minimoFacturable;
-  const total = Math.max(totalSinPiso, piso);
-  // Cuánto sumó el piso → el desglose reconcilia: Σ ítems + ajusteMinimo = total.
-  const ajusteMinimo = roundUSD(Math.max(0, total - totalSinPiso));
+  const fleteFacturable = Math.max(fleteAntesMinimo, piso);
+  const recargoBateriaSinRedondear = input.bateria
+    ? fleteFacturable * (params.recargoBateriaMult - 1)
+    : 0;
+
+  // 5.11 — Descuento si es Valencia (solo si hay descuento configurado > 0;
+  // el guard evita -0 cuando descuentoValencia es 0).
+  const descuentoSedeSinRedondear =
+    ciudad.id === "valencia" && params.descuentoValencia > 0
+      ? -params.descuentoValencia
+      : 0;
+  const descuentoSede = roundUSD(descuentoSedeSinRedondear);
+
+  // 5.12 — El descuento mantiene su orden histórico (después de batería). La
+  // protección final también conserva el piso NORMAL previo a SDD-0502: no se
+  // crea un segundo piso multiplicado que anule descuentos configurados.
+  const totalAntesPiso =
+    fleteFacturable + recargoBateriaSinRedondear + descuentoSedeSinRedondear;
+  const total = roundUSD(Math.max(totalAntesPiso, piso));
+
+  // Desglose visible a centavos. El ajuste base completa el piso antes de
+  // batería. Si el descuento deja todo por debajo del piso normal, el ajuste
+  // final restaura únicamente esa diferencia. El recargo de batería absorbe un
+  // posible centavo de redondeo para que las filas sumen el total sin alterar el
+  // total histórico de los casos que ya estaban sobre el piso.
+  const fleteVisibleAntesMinimo = roundUSD(
+    precioBase + recargoExcedente + recargoCiudad + recargoEmbalaje,
+  );
+  const ajusteMinimoBase = roundUSD(
+    Math.max(0, roundUSD(piso) - fleteVisibleAntesMinimo),
+  );
+  let recargoBateria = input.bateria
+    ? roundUSD(recargoBateriaSinRedondear)
+    : 0;
+  let ajusteMinimoFinal = 0;
+  if (totalAntesPiso < piso) {
+    const diferenciaVisible = roundUSD(
+      total -
+        (fleteVisibleAntesMinimo +
+          ajusteMinimoBase +
+          recargoBateria +
+          descuentoSede),
+    );
+    if (diferenciaVisible >= 0) {
+      ajusteMinimoFinal = diferenciaVisible;
+    } else if (input.bateria) {
+      recargoBateria = roundUSD(recargoBateria + diferenciaVisible);
+    }
+  } else if (input.bateria) {
+    recargoBateria = roundUSD(
+      total -
+        (fleteVisibleAntesMinimo + ajusteMinimoBase + descuentoSede),
+    );
+  }
+  const ajusteMinimo = roundUSD(ajusteMinimoBase + ajusteMinimoFinal);
 
   return {
     cbm,
     densidadKgM3: round(densidadKgM3),
     sinPeso,
     pesoMaxSinRecargoKg: sinPeso ? pesoMaxSinRecargo(cbm, params) : 0,
-    precioBase: roundUSD(precioBase),
+    precioBase,
     recargoExcedente: roundUSD(recargoExcedente),
     recargoCiudad: roundUSD(recargoCiudad),
-    recargoEmbalaje: roundUSD(recargoEmbalaje),
+    recargoEmbalaje,
     recargoBateria,
-    descuentoSede: roundUSD(descuentoSede),
+    descuentoSede,
     ajusteMinimo,
-    total: roundUSD(total),
+    total,
     alerta,
     avisoEntrega,
     cercana: null,

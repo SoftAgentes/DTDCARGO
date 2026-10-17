@@ -92,6 +92,11 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
           rec.eq.push([col, val]);
           return chain;
         },
+        // SDD-0509: clientsWithTier filtra eliminados; el filtro en sí lo
+        // prueba listados-sin-eliminados.test.ts con un doble que lo aplica.
+        is() {
+          return chain;
+        },
         or(expr: string) {
           rec.or.push(expr);
           return chain;

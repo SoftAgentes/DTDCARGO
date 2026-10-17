@@ -21,8 +21,13 @@ import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon } from "@/components/Icon";
 import { InvoiceRow } from "../../_components/InvoiceRow";
 import { InvoiceStatusBadge } from "../../_components/InvoiceStatusBadge";
+import { PendingAcceptanceCard } from "../_components/PendingAcceptanceCard";
 import { InvoiceCycleCard } from "./_components/InvoiceCycleCard";
 import { StatementLedgerTable } from "./_components/StatementLedgerTable";
+import {
+  loadPendingAcceptanceForClient,
+  totalPorAceptar,
+} from "@/lib/portal/pending-acceptance";
 
 export const metadata: Metadata = { title: "Mis facturas" };
 
@@ -68,11 +73,17 @@ export default async function PortalInvoicesPage({
   // el demo (clientes reales: misma página, sin queries extra).
   const client = await getPortalClient(supabase);
   const demo = showNortePortal(client?.markbox);
-  const [todasLasFacturas, shipments, estimates] = await Promise.all([
+  const [todasLasFacturas, shipments, estimates, porAceptar] = await Promise.all([
     listMyInvoices(supabase),
     demo ? listMyShipments(supabase) : Promise.resolve<PortalShipmentRow[]>([]),
     demo ? listMyEstimates(supabase) : Promise.resolve<PortalEstimateRow[]>([]),
+    // SDD-0543 · borradores DDP que esperan su aceptación de T&C: el portal los
+    // oculta de la lista, pero el cliente tiene que saber que existen y cuánto son.
+    client
+      ? loadPendingAcceptanceForClient({ clientId: client.id, markbox: client.markbox })
+      : Promise.resolve([]),
   ]);
+  const sumaPorAceptar = totalPorAceptar(porAceptar);
   // Los KPIs siguen midiendo TODO (el saldo total no cambia porque filtres la
   // vista); solo la lista se recorta.
   const invoices = soloConSaldo
@@ -146,6 +157,22 @@ export default async function PortalInvoicesPage({
         </div>
       ) : null}
 
+      {/* SDD-0543 · lo que está por aceptar va ANTES de la lista: el monto se ve
+          acá y en el estado de cuenta; el detalle se abre cuando acepte. */}
+      {porAceptar.length > 0 ? (
+        <div className="mt-6">
+          <PendingAcceptanceCard
+            pending={porAceptar}
+            heading={
+              // Con una sola, la tarjeta ya pinta su monto: no se repite en el título.
+              porAceptar.length === 1
+                ? "Tienes 1 factura por aceptar."
+                : `Tienes ${porAceptar.length} facturas por aceptar${sumaPorAceptar ? ` · ${formatInvoiceAmount(sumaPorAceptar.total, sumaPorAceptar.currency as InvoiceCurrency)}` : ""}.`
+            }
+          />
+        </div>
+      ) : null}
+
       {/* Card "ciclo" del Norte — GATEADA al demo (clientes reales no la ven). */}
       {demo ? (
         <InvoiceCycleCard
@@ -158,12 +185,19 @@ export default async function PortalInvoicesPage({
 
       {invoices.length === 0 ? (
         <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center">
+          {/* SDD-0543 · con borradores por aceptar arriba, «no tienes facturas» se
+              contradice: el vacío habla de facturas EMITIDAS y dice cuándo entran. */}
           <div className="text-[16px] font-bold text-ink">
-            Todavía no tienes facturas.
+            {porAceptar.length > 0 ? "Todavía no tienes facturas emitidas." : "Todavía no tienes facturas."}
           </div>
           <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
-            Cuando tu asesor emita una factura a tu nombre, va a aparecer acá con
-            su estado de pago.
+            {porAceptar.length > 0
+              ? `${porAceptar.length === 1 ? "La factura por aceptar que ves arriba" : `Las ${porAceptar.length} facturas por aceptar que ves arriba`}${
+                  sumaPorAceptar ? ` (${formatInvoiceAmount(sumaPorAceptar.total, sumaPorAceptar.currency as InvoiceCurrency)})` : ""
+                } ${porAceptar.length === 1 ? "entra" : "entran"} al estado de cuenta cuando ${porAceptar.length === 1 ? "la aceptes y se emita" : "las aceptes y se emitan"}; acá ${
+                  porAceptar.length === 1 ? "la" : "las"
+                } vas a ver con su estado de pago.`
+              : "Cuando tu asesor emita una factura a tu nombre, va a aparecer acá con su estado de pago."}
           </p>
           <a
             href={waLink}
@@ -198,6 +232,18 @@ export default async function PortalInvoicesPage({
             // esté puesto `?saldo=1`: un libro al que le faltan movimientos no
             // cuadra el saldo corrido, y eso es peor que no mostrarlo.
             <>
+              {porAceptar.length > 0 ? (
+                // Un borrador no es un cargo: entra al libro cuando se emite. Pero
+                // el cliente tiene que ver que viene, para que el saldo no lo
+                // sorprenda después (SDD-0543).
+                <p className="mt-6 text-[12.5px] text-grey-700 leading-[1.5] max-w-[64ch]">
+                  {porAceptar.length === 1 ? "Tienes 1 factura por aceptar" : `Tienes ${porAceptar.length} facturas por aceptar`}
+                  {sumaPorAceptar
+                    ? ` por ${formatInvoiceAmount(sumaPorAceptar.total, sumaPorAceptar.currency as InvoiceCurrency)}`
+                    : ""}
+                  {" "}que todavía no entran al estado de cuenta: entran cuando las aceptes y se emitan.
+                </p>
+              ) : null}
               <StatementLedgerTable invoices={todasLasFacturas} />
               {/* SDD-0287 · el documento que el cliente le pasa a su contador.
                   Sale del MISMO ledger que la tabla de arriba: si tuviera su

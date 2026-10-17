@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# Smoke sin sesión de la web de DTD Cargo servida por el VPS (SDD-0505, paso 2).
+#
+#   smoke-web.sh --host nuevo.dtdcargo.com          # ensayo (miércoles 14)
+#   smoke-web.sh --host dtdcargo.com --www          # corte (jueves 15, T+5 y T+20):
+#                                                   # además, www → 301 a la raíz
+#   smoke-web.sh --host dtdcargo.com --ip 1.2.3.4   # otro servidor
+#   smoke-web.sh --host prueba.dtdcargo.com --credenciales /srv/dtd-cargo-staging/secretos/clave-web.txt \
+#       --sin-ga --supabase-host supabase-prueba.dtdcargo.com
+#                                                   # entorno de prueba (SDD-0540): detrás de la clave del web,
+#                                                   # sin Google Analytics (SDD-0544) y con su propia API
+#
+# --sin-ga: al revés de producción, exige que NI la portada NI sus chunks traigan
+# Google Analytics, la etiqueta de Ads ni googletagmanager (la imagen de prueba
+# se construye con NEXT_PUBLIC_GA_ID=off). Sin la opción, exige que estén.
+# --supabase-host <host>: el host de la API que tiene que nombrar la CSP
+# (connect-src). Por defecto, supabase.dtdcargo.com.
+#
+# Pide todo a la IP del VPS con `--resolve`: mide el servidor aunque el DNS
+# público todavía apunte a Vercel o esté a mitad de propagarse. No inicia
+# sesión ni escribe nada: el smoke con usuarios (Studio, PWA, subida, Realtime)
+# lo hace Sam en el navegador. Sale 1 si algo FALLÓ.
+#
+# --credenciales <archivo>: una línea `usuario:clave` (la de clave-web-prueba.sh).
+# Opcional: sin ella el script hace exactamente lo de siempre. Con ella, cada
+# llamada de curl lleva `-K` con un archivo de configuración 600 que se borra al
+# salir; la clave nunca va por argumentos ni se imprime, y los `openssl s_client`
+# del certificado no la usan. Si el archivo falta, no se puede leer o está mal
+# formado, sale 2 sin pedir nada.
+#
+# Nació del ensayo del 2026-10-14 (runbook servidor-contabo §3.6): ahí se
+# encontraron dos diferencias con Vercel que este script vigila desde entonces,
+# Google Analytics apagado en la imagen y /_next/image sin optimizar.
+set -uo pipefail
+
+HOST=""
+IP="217.216.54.70"
+WWW=0
+GA_ID="G-25CD7BZH98"
+ADS_ID="AW-561290482"
+SIN_GA=0
+SUPABASE_HOST="supabase.dtdcargo.com"
+CREDENCIALES=""
+CON_CREDENCIALES=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --host) HOST="${2:-}"; shift 2 ;;
+    --ip) IP="${2:-}"; shift 2 ;;
+    --www) WWW=1; shift ;;
+    --sin-ga) SIN_GA=1; shift ;;
+    --supabase-host) SUPABASE_HOST="${2:-}"; shift; [ $# -gt 0 ] && shift ;;
+    --credenciales) CREDENCIALES="${2:-}"; CON_CREDENCIALES=1; shift; [ $# -gt 0 ] && shift ;;
+    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
+    *) echo "argumento desconocido: $1" >&2; exit 2 ;;
+  esac
+done
+[ -n "$HOST" ] || { echo "falta --host" >&2; exit 2; }
+[[ "$SUPABASE_HOST" =~ ^[a-z0-9.-]+$ ]] || { echo "--supabase-host inválido" >&2; exit 2; }
+
+# La clave del web pasa a curl en un archivo de configuración (`-K`), nunca por
+# argv: así no queda en `ps` ni en el historial. Solo con --credenciales.
+CRED_K=()
+if [ "$CON_CREDENCIALES" = 1 ]; then
+  { [ -n "$CREDENCIALES" ] && [ -f "$CREDENCIALES" ] && [ -r "$CREDENCIALES" ]; } \
+    || { echo "--credenciales: el archivo «${CREDENCIALES}» no existe o no se puede leer" >&2; exit 2; }
+  linea=""
+  IFS= read -r linea < "$CREDENCIALES" || true
+  linea="${linea%$'\r'}"
+  # usuario:clave en una línea, sin comillas ni barras (el formato de curl las interpretaría).
+  case "$linea" in
+    *[\"\\]*|:*|*:) echo "--credenciales: «${CREDENCIALES}» no tiene una línea usuario:clave válida" >&2; exit 2 ;;
+    ?*:?*) ;;
+    *) echo "--credenciales: «${CREDENCIALES}» no tiene una línea usuario:clave válida" >&2; exit 2 ;;
+  esac
+  CURL_CONFIG="$(umask 077 && mktemp "${TMPDIR:-/tmp}/smoke-web-curl.XXXXXX")" \
+    || { echo "--credenciales: no pude crear el archivo temporal de curl" >&2; exit 2; }
+  trap 'rm -f -- "$CURL_CONFIG"' EXIT
+  printf 'user = "%s"\n' "$linea" > "$CURL_CONFIG"
+  unset linea
+  CRED_K=(-K "$CURL_CONFIG")
+fi
+
+ok=0; mal=0
+pasa() { echo "PASÓ  $1"; ok=$((ok + 1)); }
+falla() { echo "FALLÓ $1"; mal=$((mal + 1)); }
+pedir() { curl -s --max-time 30 --resolve "${HOST}:443:${IP}" ${CRED_K[@]+"${CRED_K[@]}"} "$@"; }
+
+echo "== ${HOST} en ${IP} · $(date -u +%Y-%m-%dT%H:%M:%SZ) =="
+
+emisor=$(echo | openssl s_client -connect "${IP}:443" -servername "${HOST}" 2>/dev/null | openssl x509 -noout -issuer 2>/dev/null)
+case "$emisor" in
+  *"Let's Encrypt"*) pasa "certificado de Let's Encrypt para ${HOST}" ;;
+  *) falla "certificado: emisor «${emisor:-ninguno}» (¿router sin certificado todavía?)" ;;
+esac
+
+for p in / /tarifas /studio/login /entrar /m/ve/login /robots.txt /sitemap.xml; do
+  c=$(pedir -o /dev/null -w '%{http_code}' "https://${HOST}${p}")
+  [ "$c" = 200 ] && pasa "GET ${p} → 200" || falla "GET ${p} → ${c} (esperado 200)"
+done
+
+# Sin sesión, el Studio manda al login del MISMO host (si manda a otro, el
+# SITE_URL o el router están mal).
+# Con --credenciales, curl mete `usuario:clave@` en %{redirect_url}: se quita
+# SIEMPRE antes de comparar o imprimir (incidente del 2026-10-16: la clave del web
+# de prueba salió en un FALLÓ de esta línea y hubo que rotarla).
+sin_userinfo() { sed -E 's#://[^/@[:space:]]*@#://#g'; }
+r=$(pedir -o /dev/null -w '%{http_code} %{redirect_url}' "https://${HOST}/studio/dashboard" | sin_userinfo)
+case "$r" in
+  "307 https://${HOST}/studio/login"*) pasa "GET /studio/dashboard sin sesión → 307 al login de ${HOST}" ;;
+  *) falla "GET /studio/dashboard sin sesión → ${r}" ;;
+esac
+
+# next/image tiene que redimensionar y convertir: en Vercel el isologo a 48 px
+# pesa ~1,5 KB en WebP; sin libvips el VPS devolvía el PNG original de 38 KB.
+img=$(pedir -o /dev/null -H 'Accept: image/avif,image/webp,*/*' -w '%{http_code} %{content_type} %{size_download}' \
+  "https://${HOST}/_next/image?url=%2Fbrand%2Fdtdcargo-isologo-primary.png&w=48&q=75")
+read -r ic it is <<<"$img"
+if [ "$ic" = 200 ] && [ "$it" = image/webp ] && [ "${is:-999999}" -lt 5120 ]; then
+  pasa "/_next/image w=48 → webp de ${is} bytes"
+else
+  falla "/_next/image w=48 → ${img} (esperado 200 image/webp < 5120 bytes)"
+fi
+
+# Google Analytics y la etiqueta de Ads viajan en un chunk de JS, no en el HTML.
+html=$(pedir "https://${HOST}/")
+if [ "$SIN_GA" = 1 ]; then
+  # Prueba: ni en el HTML ni en ningún chunk de la portada.
+  en=""
+  printf '%s' "$html" | grep -qF -e "$GA_ID" -e "$ADS_ID" -e googletagmanager && en="el HTML"
+  for s in $(printf '%s' "$html" | grep -o '/_next/static/chunks/[^"]*\.js' | sort -u); do
+    if pedir "https://${HOST}${s}" | grep -qF -e "$GA_ID" -e "$ADS_ID"; then en="${en:+${en} y }${s##*/}"; break; fi
+  done
+  [ -z "$en" ] && pasa "sin Google Analytics ni Ads (--sin-ga)" || falla "Google Analytics o Ads en ${en} (--sin-ga)"
+else
+  ga=0
+  for s in $(printf '%s' "$html" | grep -o '/_next/static/chunks/[^"]*\.js' | sort -u); do
+    if pedir "https://${HOST}${s}" | grep -q "$GA_ID"; then ga=1; break; fi
+  done
+  [ "$ga" = 1 ] && pasa "Google Analytics ${GA_ID} en los chunks" || falla "Google Analytics ${GA_ID} no aparece en los chunks de la portada"
+fi
+
+csp=$(pedir -I "https://${HOST}/studio/login" | tr -d '\r' | grep -i '^content-security-policy:' | tr ';' '\n' | grep -i 'connect-src')
+printf '%s' "$csp" | grep -qF "$SUPABASE_HOST" && pasa "CSP connect-src con ${SUPABASE_HOST}" || falla "CSP connect-src sin ${SUPABASE_HOST}"
+
+# --www: `www.<host>` responde con su propio certificado y 301 a la raíz,
+# conservando ruta y query (como Vercel).
+if [ "$WWW" = 1 ]; then
+  wemisor=$(echo | openssl s_client -connect "${IP}:443" -servername "www.${HOST}" 2>/dev/null | openssl x509 -noout -issuer -ext subjectAltName 2>/dev/null | tr '\n' ' ')
+  case "$wemisor" in
+    *"Let's Encrypt"*"www.${HOST}"*) pasa "certificado de Let's Encrypt con www.${HOST}" ;;
+    *) falla "certificado de www.${HOST}: «${wemisor:-ninguno}»" ;;
+  esac
+  wr=$(curl -s --max-time 30 --resolve "www.${HOST}:443:${IP}" ${CRED_K[@]+"${CRED_K[@]}"} -o /dev/null -w '%{http_code} %{redirect_url}' "https://www.${HOST}/tarifas?x=1" | sin_userinfo)
+  [ "$wr" = "301 https://${HOST}/tarifas?x=1" ] && pasa "www.${HOST} → 301 a https://${HOST}/tarifas?x=1" || falla "www.${HOST}/tarifas?x=1 → ${wr} (esperado 301 a la raíz)"
+fi
+
+echo "== tiempos de la portada =="
+for _ in 1 2 3; do pedir -o /dev/null -w '  ttfb %{time_starttransfer}s total %{time_total}s\n' "https://${HOST}/"; done
+
+if [ "$CON_CREDENCIALES" = 1 ]; then
+  echo "RESUMEN: ${ok} PASÓ · ${mal} FALLÓ · con credenciales: sí"
+else
+  echo "RESUMEN: ${ok} PASÓ · ${mal} FALLÓ"
+fi
+[ "$mal" = 0 ]

@@ -31,6 +31,7 @@ import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import { revertReferralCreditsForInvoice } from "@/lib/studio/accounting/referral-credit-posting";
+import { voidReferralRevertWarning } from "@/lib/studio/fidelizacion/referral-revert-notice";
 import { registerCollectionFor } from "@/lib/studio/collections-actions";
 import { LEGAL_GATE_HARD_BLOCK } from "@/lib/studio/legal/gate-config";
 import { hasValidAcceptanceForMarkbox } from "@/lib/studio/legal/queries";
@@ -660,7 +661,7 @@ export async function registerPayment(
 export async function voidInvoice(
   id: string,
   reasonRaw: string,
-): Promise<{ ok?: boolean; error?: string }> {
+): Promise<{ ok?: boolean; error?: string; warning?: string }> {
   const reasonResult = validateAuditReason(reasonRaw);
   if (!reasonResult.ok) return { error: reasonResult.error };
 
@@ -702,22 +703,44 @@ export async function voidInvoice(
   // SDD-0137 §3.6: si esta factura tenía créditos de referido aplicados, se
   // revierten (crédito vuelve a 'acreditado' + asiento anulado) — el crédito no
   // se "quema" por una factura anulada. Best-effort: no bloquea la anulación.
+  // SDD-0496: la reversión va por la RPC revert_referral_credits (0471), con la
+  // factura FOR UPDATE, y corre con el cliente del usuario (ya pasó el gate de
+  // dinero de "invoices", que es el mismo accounting/admin que la RPC exige).
   const revert = await revertReferralCreditsForInvoice(
+    supabase,
     current.tenant_id,
     current.id,
   );
+  let warning: string | undefined;
   if (!revert.ok) {
     console.error(
       `[fidelizacion] no se pudieron revertir créditos de referido de la factura ${current.invoice_code}:`,
       revert.error,
     );
+    // SDD-0495: el log era lo ÚNICO que pasaba. Quien anulaba veía un éxito
+    // limpio mientras el crédito quedaba colgado de una factura anulada. Ahora
+    // el aviso sube con el ok, y las dos pantallas lo muestran (la de la factura
+    // y la de Fidelización) porque sus roles no se solapan.
+    //
+    // SDD-0496: el aviso se elige por QUÉ falló, no por cuántos se liberaron.
+    // Cuando la 0495 lo escribió, la reversión recorría los créditos de a uno y
+    // `reverted > 0` con `ok: false` quería decir «unos sí y otros no». Ahora es
+    // UNA transacción (revert_referral_credits, migr 0471): todos o ninguno. Lo
+    // que `reverted > 0` significa hoy con `ok: false` es lo CONTRARIO —la plata
+    // volvió entera y lo que quedó colgado es el asiento—, así que elegir por el
+    // conteo diría que hay créditos varados justo cuando no queda ninguno.
+    warning = voidReferralRevertWarning(revert.failure);
+    // La factura anulada pasa a mostrar el aviso durable, y Fidelización lista
+    // el crédito varado: las dos vistas dependen del estado que acaba de
+    // quedar inconsistente, así que las dos se revalidan.
+    revalidatePath("/studio/fidelizacion");
   } else if (revert.reverted > 0) {
     revalidatePath("/studio/fidelizacion");
   }
 
   revalidatePath("/studio/facturacion");
   revalidatePath(`/studio/facturacion/${current.invoice_code}`);
-  return { ok: true };
+  return warning ? { ok: true, warning } : { ok: true };
 }
 
 /**

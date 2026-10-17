@@ -19,17 +19,52 @@ const BASELINE = {
   // del borrador que se edita, con el cliente de sesión bajo RLS
   // (`invoices_accounting_select`: accounting/admin del tenant).
   "app/studio/(app)/facturacion/actions.ts": 12,
-  "app/studio/(app)/fidelizacion/actions.ts": 2,
+  // SDD-0496: −1. El UPDATE final de `applyReferralCredit` (paid_amount +
+  // status del abono no monetario) pasó a `apply_referral_credit` (0471), que
+  // toma la factura FOR UPDATE. Queda SÓLO la lectura previa de `invoiceId`
+  // (:425), con el cliente de sesión bajo RLS y detrás de
+  // moduleEditDenial("accounting") (:393): decide el mensaje de error, no la
+  // autoridad — la RPC revalida cliente, estado, moneda, compra nueva y saldo
+  // bajo el lock.
+  "app/studio/(app)/fidelizacion/actions.ts": 1,
   "lib/portal/portal-legal-queries.ts": 3,
   "lib/portal/portal-queries.ts": 2,
-  "lib/studio/accounting/referral-credit-posting.ts": 2,
+  // SDD-0496: aquí estaba `lib/studio/accounting/referral-credit-posting.ts`: 2.
+  // SALE del inventario. `revertReferralCreditsForInvoice` leía la factura y le
+  // escribía el pagado con guard optimista y relectura; las dos cosas pasaron a
+  // `revert_referral_credits` (0471). El módulo ya no nombra `invoices`: sólo
+  // llama a la RPC con el cliente del usuario y anula los asientos con el admin
+  // client. NO confundir con `lib/studio/fidelizacion/referral-credit-queries.ts`,
+  // de abajo, que es otro archivo y al que la 0495 le SUMÓ una lectura.
   // SDD-0488: −4. Las escrituras de la factura al cobrar, identificar y anular
   // pasaron a las RPC de 0467, y la anulación ya no lee la factura. Quedan las
   // dos lecturas previas del cobro y de la identificación (sólo mensajes).
   "lib/studio/collections-actions.ts": 2,
   "lib/studio/costing/queries.ts": 2,
   "lib/studio/dashboard/dashboard-kpi-queries.ts": 1,
-  "lib/studio/fidelizacion/referral-credit-queries.ts": 1,
+  // SDD-0495: +1 por `strandedReferralCredits`, que mira si las facturas donde
+  // se aplicó un crédito de referido quedaron 'anulada' (el crédito varado que
+  // avisa la pantalla de Fidelización).
+  //
+  // Es el ÚNICO caller de este inventario que lee con el CLIENTE ADMIN, y la
+  // razón es este mismo contrato: al exigir revisar «el guard y el tenant»
+  // apareció que `invoices_accounting_select` (migr 0414) niega el SELECT a
+  // `commercial` y `support`, que son justo los roles de esa pantalla — con el
+  // cliente de sesión el aviso devolvía cero filas y no se pintaba nunca. La
+  // matriz de módulos de `rbac.ts` y la RLS de la tabla NO dicen lo mismo.
+  //
+  // Candados, decididos por el Director el 2026-09-20: `tenant_id` explícito en
+  // la query, resuelto por la base con `get_user_tenant_id` y nunca recibido del
+  // llamador (sin sesión no se consulta nada); los ids salen de `referrals` del
+  // propio tenant, re-filtrados antes de ir al admin; se pide sólo `id`; y al
+  // cliente cruza únicamente el bit derivado, sin código, id, monto ni estado de
+  // factura. Los tres candados tienen prueba y mutante en
+  // `lib/studio/fidelizacion/__tests__/stranded-referral-credits.test.ts`.
+  //
+  // Seguimiento declarado en la SDD-0495: una RPC `security definer` que
+  // responda «de estos ids, cuáles están anuladas en mi tenant» es la forma
+  // correcta y quita el admin de acá. Exige migración y OK nominal de Sam.
+  "lib/studio/fidelizacion/referral-credit-queries.ts": 2,
   "lib/studio/fiscal/queries.ts": 1,
   // SDD-0487: `domicilioFiscalSellado` lee sólo `client_fiscal_address` de una
   // factura ya autorizada por su caller, con el cliente de sesión bajo RLS: el
@@ -111,8 +146,19 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
       if (count) actual[relative(process.cwd(), path).replaceAll("\\", "/")] = count;
     });
     expect(actual).toEqual(BASELINE);
-    expect(Object.keys(actual)).toHaveLength(19);
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(44);
+    // SDD-0496: 19 → 18 archivos. Sale `referral-credit-posting.ts` entero.
+    expect(Object.keys(actual)).toHaveLength(18);
+    // El total va aparte del mapa a propósito: si alguien «arregla» el mapa
+    // moviendo una llamada de un archivo a otro, el mapa vuelve a cuadrar y
+    // este número no.
+    // SDD-0495: 44 → 45 por la lectura de `strandedReferralCredits`.
+    // SDD-0496: −3 sobre eso (−1 en fidelizacion/actions, −2 al salir
+    // referral-credit-posting), las tres a las RPC de la 0471. Los dos cambios
+    // tocan archivos DISTINTOS y no se solapan: la lectura que sumó la 0495
+    // está en `fidelizacion/referral-credit-queries.ts`, y ninguna de las tres
+    // que quité está ahí. Número recalculado sobre el árbol fusionado, no
+    // deducido de la aritmética.
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(42);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {

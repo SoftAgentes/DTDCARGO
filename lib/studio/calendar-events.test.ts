@@ -127,7 +127,7 @@ function fakeClient(results: Record<string, FakeResult>): SupabaseClient {
     from(table: string) {
       const result = results[table] ?? { data: [], error: null };
       const builder: Record<string, unknown> = {};
-      for (const m of ["select", "or", "eq", "gte", "lte", "neq", "limit"]) {
+      for (const m of ["select", "or", "eq", "is", "gte", "lte", "neq", "limit"]) {
         builder[m] = () => builder;
       }
       builder.then = (resolve: (r: FakeResult) => unknown) => resolve(result);

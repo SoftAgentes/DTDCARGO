@@ -7,12 +7,20 @@
  * logica (dos statements seguidos). Si el insert del event falla, revertimos
  * el status manualmente — no hay RPC transaccional en MVP.
  *
- * Auth: sesion Supabase valida obligatoria. RLS filtra por tenant.
+ * Auth: sesion Supabase valida obligatoria + gate de EDICION del modulo
+ * "tracking". RLS filtra por tenant.
+ *
+ * SDD-0499 · este POST era el unico del recurso sin gate de modulo: pedia
+ * tenant y nada mas, mientras sus hermanos de `shipments/[id]/route.ts` ya
+ * usaban `moduleViewDenial`/`moduleEditDenial` con "tracking". Y es el POST que
+ * MUTA `shipments.status` e inserta en `shipment_events`, o sea el que mueve el
+ * estado del envio. Se aplica el mismo criterio que el PATCH de al lado.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { getUser, getUserTenantId } from "@/lib/auth/session";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { isValidStatusForService } from "@/lib/studio/shipment-state-machine";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
 
@@ -55,12 +63,17 @@ export async function POST(
     return NextResponse.json({ error: "Estado inválido." }, { status: 400 });
   }
 
+  const supabase = await createClient();
+
+  // Gate de modulo ANTES de leer el dominio: quien no puede editar "tracking"
+  // recibe la denegacion y NO el envio.
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return NextResponse.json({ error: denial }, { status: 403 });
+
   const tenantId = await getUserTenantId();
   if (!tenantId) {
     return NextResponse.json({ error: "Sin tenant asignado." }, { status: 403 });
   }
-
-  const supabase = await createClient();
 
   // 1. Leer el shipment para validar servicio + status actual
   const { data: shipment, error: readError } = await supabase

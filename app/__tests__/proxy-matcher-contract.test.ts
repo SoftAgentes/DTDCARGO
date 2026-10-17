@@ -1,24 +1,23 @@
 // @vitest-environment node
 /**
  * SDD-0302 · Toda pantalla que resuelva la sesión server-side tiene que estar
- * en el matcher del proxy.
+ * en las rutas con sesión del proxy. SDD-0505 · Todo lo que escribe tiene que
+ * pasar por el proxy, para que el modo mantenimiento lo pueda cortar.
  *
  * ## Qué protege, y por qué no se ve venir
  *
- * `proxy.ts` hace DOS cosas y sólo una es evidente: redirige `/studio` y
- * `/back` sin sesión (visible), y **refresca el access token en cookies**
- * (invisible). El refresco le hace falta a toda ruta que resuelva la sesión
- * server-side, tenga o no redirección.
+ * `proxy.ts` hace TRES cosas y sólo una es evidente: redirige `/studio` y
+ * `/back` sin sesión (visible), **refresca el access token en cookies**
+ * (invisible) y, con `MAINTENANCE_MODE`, **corta toda escritura** (invisible
+ * hasta el día del corte).
  *
- * Cuando una ruta queda fuera del matcher, **nada falla al desplegar**. Falla
- * una hora después, cuando el access token vence: la navegación server-side ve
- * la sesión muerta y echa al usuario aunque su refresh token siga vivo. Se
- * reporta como «me saca solo» y no lo reproduce nadie, porque hay que esperar.
+ * Cuando una ruta con sesión queda fuera de `RUTAS_CON_SESION`, **nada falla al
+ * desplegar**. Falla una hora después, cuando el access token vence: la
+ * navegación server-side ve la sesión muerta y echa al usuario aunque su
+ * refresh token siga vivo. Así estuvieron `/portal` y `/m/erp` (SDD-0301).
  *
- * Así estuvieron `/portal` y `/m/erp` desde que se crearon: el arreglo se
- * escribió el 2026-08-02 y quedó en una rama archivada que nunca se mergeó
- * (ver SDD-0301). Cuando se retomó, `/m/emp` —construido después— tenía el
- * mismo problema y no estaba en aquella lista.
+ * Cuando una ruta que escribe queda fuera del matcher, tampoco falla nada: el
+ * día del corte alguien guarda ahí durante la copia final y ese dato se pierde.
  *
  * ## Por qué el test escanea en vez de llevar una lista
  *
@@ -29,37 +28,41 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
+import { RUTAS_CON_SESION } from "@/lib/runtime/session-routes";
 
 const RAIZ = process.cwd();
 
 /**
- * Rutas que resuelven identidad SIN sesión de Supabase y por eso NO van al
- * matcher. Meterlas sólo agregaría un `getUser()` por request.
+ * Rutas que resuelven identidad SIN sesión de Supabase y por eso NO van a
+ * `RUTAS_CON_SESION`. Meterlas sólo agregaría un `getUser()` por request.
  */
 const SIN_SESION_SUPABASE = [
   "/m/cn", // operario entra con PIN (app/m/layout.tsx)
   "/m/ve", // idem
 ];
 
-/** Lee el array `matcher` de `proxy.ts` tal como está escrito. */
-function matcherDelProxy(): string[] {
+/** Las entradas de texto del `matcher` de `proxy.ts`, tal como están escritas. */
+function matcherDelProxy(): { textos: string[]; fuente: string } {
   const src = readFileSync(path.join(RAIZ, "proxy.ts"), "utf8");
-  const bloque = src.match(/matcher:\s*\[([\s\S]*?)\]/);
+  const bloque = src.match(/matcher:\s*\[([\s\S]*?)\n\s*\],/);
   if (!bloque) throw new Error("No se encontró el `matcher` en proxy.ts");
-  return [...bloque[1].matchAll(/["']([^"']+)["']/g)].map((m) => m[1]);
+  const sinObjetos = bloque[1].replace(/\{[\s\S]*?\}\s*\]\s*\}/g, "");
+  return { textos: [...sinObjetos.matchAll(/["']([^"']+)["']/g)].map((m) => m[1]), fuente: bloque[1] };
 }
 
 /** `"/studio/:path*"` → `"/studio"`. */
 const prefijoDe = (patron: string) => patron.replace(/\/:path\*$/, "");
+const cubre = (prefijos: readonly string[], ruta: string) =>
+  prefijos.some((p) => ruta === p || ruta.startsWith(p + "/"));
 
-/** Todos los `page.tsx` / `layout.tsx` bajo `app/`. */
-function pantallas(dir: string, out: string[] = []): string[] {
+/** Archivos con ese nombre bajo `app/`. */
+function archivos(dir: string, nombres: string[], out: string[] = []): string[] {
   for (const e of readdirSync(dir)) {
     const p = path.join(dir, e);
     if (statSync(p).isDirectory()) {
       if (e === "node_modules" || e === "__tests__") continue;
-      pantallas(p, out);
-    } else if (e === "page.tsx" || e === "layout.tsx") {
+      archivos(p, nombres, out);
+    } else if (nombres.includes(e)) {
       out.push(p);
     }
   }
@@ -67,7 +70,7 @@ function pantallas(dir: string, out: string[] = []): string[] {
 }
 
 /**
- * Ruta URL de una pantalla: quita `app/`, el archivo, y los segmentos de
+ * Ruta URL de un archivo de `app/`: quita `app/`, el archivo, y los segmentos de
  * agrupación `(app)` que Next no publica.
  */
 function rutaDe(archivo: string): string {
@@ -81,13 +84,9 @@ function rutaDe(archivo: string): string {
  * ¿La pantalla resuelve la sesión de Supabase server-side?
  *
  * 🔴 Buscar sólo `auth.getUser()` NO alcanza, y este test lo aprendió por
- * mutación: se le quitó `/portal` al matcher y **siguió verde**. El layout del
- * portal no llama a `getUser()` directo — crea el cliente y delega en
- * `getPortalClient()`. El contrato no protegía el caso que lo motivó.
- *
- * La señal correcta es **crear el cliente server-side de Supabase**: ese cliente
- * lleva la sesión del usuario y la RLS depende de ella, así que la ruta necesita
- * el refresco resuelva la identidad donde la resuelva.
+ * mutación: se le quitó `/portal` y **siguió verde**. El layout del portal no
+ * llama a `getUser()` directo — crea el cliente y delega en `getPortalClient()`.
+ * La señal correcta es **crear el cliente server-side de Supabase**.
  */
 function resuelveSesion(archivo: string): boolean {
   const t = readFileSync(archivo, "utf8");
@@ -95,47 +94,66 @@ function resuelveSesion(archivo: string): boolean {
   return /from\s+["']@\/lib\/db\/server["']/.test(t);
 }
 
-describe("contrato · matcher del proxy (SDD-0302)", () => {
-  const matcher = matcherDelProxy();
-  const prefijos = matcher.map(prefijoDe);
+/** ¿El route handler exporta un método que escribe? */
+function escribe(archivo: string): boolean {
+  return /export\s+(async\s+)?function\s+(POST|PUT|PATCH|DELETE)\b|export\s+const\s+(POST|PUT|PATCH|DELETE)\b/.test(
+    readFileSync(archivo, "utf8"),
+  );
+}
 
-  const conSesion = pantallas(path.join(RAIZ, "app"))
+describe("contrato · proxy: sesión y mantenimiento (SDD-0302, SDD-0505)", () => {
+  const { textos, fuente } = matcherDelProxy();
+  const prefijosMatcher = textos.map(prefijoDe);
+
+  const conSesion = archivos(path.join(RAIZ, "app"), ["page.tsx", "layout.tsx"])
     .filter(resuelveSesion)
     .map(rutaDe);
+  const queEscriben = archivos(path.join(RAIZ, "app"), ["route.ts"]).filter(escribe).map(rutaDe);
 
-  it("el matcher no está vacío y usa el patrón `:path*`", () => {
-    expect(matcher.length).toBeGreaterThan(0);
-    for (const m of matcher) expect(m).toMatch(/\/:path\*$/);
+  it("el matcher usa el patrón `:path*` en sus entradas de texto", () => {
+    expect(textos.length).toBeGreaterThan(0);
+    for (const m of textos) expect(m).toMatch(/\/:path\*$/);
   });
 
-  it("🔴 toda pantalla con `auth.getUser()` está cubierta por el matcher", () => {
-    const descubiertas = conSesion.filter(
-      (r) =>
-        !prefijos.some((p) => r === p || r.startsWith(p + "/")) &&
-        !SIN_SESION_SUPABASE.some((p) => r === p || r.startsWith(p + "/")),
-    );
-
+  it("🔴 toda pantalla con sesión de Supabase está en RUTAS_CON_SESION", () => {
+    const descubiertas = conSesion.filter((r) => !cubre(RUTAS_CON_SESION, r) && !cubre(SIN_SESION_SUPABASE, r));
     expect(
       descubiertas,
-      `Estas pantallas resuelven la sesión server-side y NO están en el matcher ` +
-        `de proxy.ts. Su access token va a vencer sin refrescarse y el usuario ` +
-        `va a ser expulsado ~1 h después de entrar, sin que nada falle al ` +
-        `desplegar. Agrega su prefijo al matcher, o —si entra con PIN y no con ` +
-        `sesión de Supabase— a SIN_SESION_SUPABASE en este test.\n  ` +
+      `Estas pantallas resuelven la sesión server-side y NO están en ` +
+        `RUTAS_CON_SESION (lib/runtime/session-routes.ts). Su access token va a ` +
+        `vencer sin refrescarse y el usuario va a ser expulsado ~1 h después de ` +
+        `entrar. Agrega su prefijo, o —si entra con PIN— a SIN_SESION_SUPABASE.\n  ` +
         [...new Set(descubiertas)].join("\n  "),
     ).toEqual([]);
   });
 
-  it("las rutas de PIN siguen FUERA del matcher", () => {
-    // Si alguna entrara, cada request del operario pagaría un getUser() que no
-    // necesita. La exclusión es deliberada, no un olvido.
-    for (const p of SIN_SESION_SUPABASE) {
-      expect(prefijos).not.toContain(p);
-    }
+  it("toda ruta con sesión pasa por el proxy (si no, el refresco nunca corre)", () => {
+    for (const r of RUTAS_CON_SESION) expect(cubre(prefijosMatcher, r), r).toBe(true);
   });
 
-  it("el escaneo encuentra pantallas de verdad (si no, el contrato no mide nada)", () => {
+  it("las rutas de PIN NO pagan el refresco de sesión", () => {
+    for (const p of SIN_SESION_SUPABASE) expect(cubre(RUTAS_CON_SESION, p), p).toBe(false);
+  });
+
+  it("🔴 toda ruta que escribe pasa por el proxy (el mantenimiento la tiene que poder cortar)", () => {
+    const fuera = queEscriben.filter((r) => !cubre(prefijosMatcher, r));
+    expect(
+      fuera,
+      `Estos route handlers escriben (POST/PUT/PATCH/DELETE) y NO están en el ` +
+        `matcher de proxy.ts: con MAINTENANCE_MODE seguirían aceptando escrituras ` +
+        `durante la copia final del corte. Agrega su prefijo al matcher.\n  ` +
+        fuera.join("\n  "),
+    ).toEqual([]);
+    expect(prefijosMatcher).toContain("/api");
+  });
+
+  it("las server actions de cualquier página pasan por el proxy (header Next-Action)", () => {
+    expect(fuente).toMatch(/source:\s*["']\/:path\*["']\s*,\s*has:\s*\[\s*\{\s*type:\s*["']header["']\s*,\s*key:\s*["']next-action["']/);
+  });
+
+  it("el escaneo encuentra rutas de verdad (si no, el contrato no mide nada)", () => {
     // Un test que no encuentra nada pasa siempre. Este es el seguro.
     expect(conSesion.length).toBeGreaterThan(3);
+    expect(queEscriben.length).toBeGreaterThan(3);
   });
 });

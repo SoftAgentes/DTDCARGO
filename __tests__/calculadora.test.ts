@@ -205,12 +205,12 @@ describe("calcularEnvioLCL", () => {
     expect(CIUDADES.find((c) => c.id === "casco-central")).toBeUndefined();
   });
 
-  // Las 8 de la zona sin costo pagan $0 de entrega. No es un descuento: DTD le
+  // Las zonas incluidas pagan $0 de entrega. No es un descuento: DTD le
   // paga ese tramo al fletero aparte y lo asume como adquisición de clientes.
-  it("la zona sin costo son 8 ciudades y todas entregan en $0", () => {
+  it("SDD-0504 conserva las otras siete ciudades con entrega incluida", () => {
     const sinCosto = CIUDADES.filter((c) => c.casco);
     expect(sinCosto.map((c) => c.id).sort()).toEqual([
-      "acarigua", "barquisimeto", "caracas", "guacara",
+      "barquisimeto", "caracas", "guacara",
       "maracay", "naguanagua", "san-diego", "valencia",
     ]);
 
@@ -470,7 +470,158 @@ describe("calcularEnvioLCL", () => {
       embalaje: "estandar",
       ciudadId: "caracas",
     });
+    expect(cot.precioBase).toBe(8.5);
+    expect(cot.recargoBateria).toBe(0);
+    expect(cot.ajusteMinimo).toBe(41.5);
     expect(cot.total).toBe(CONFIG.minimoFacturable); // 50
+  });
+
+  it.each([
+    { multiplicador: 1.5, recargo: 25, total: 75 },
+    { multiplicador: 2, recargo: 50, total: 100 },
+  ])(
+    "completa el mínimo antes de aplicar batería ×$multiplicador",
+    ({ multiplicador, recargo, total }) => {
+      const cot = calcularEnvioLCL(
+        {
+          cbmTotal: 0.01, // 0,01 × $850 = $8,50, por debajo del piso de $50.
+          pesoKg: 2,
+          embalaje: "estandar",
+          ciudadId: "caracas",
+          bateria: true,
+        },
+        { ...DEFAULT_PARAMS, recargoBateriaMult: multiplicador },
+      );
+
+      // El piso aporta $41,50 y recién entonces batería multiplica los $50.
+      // Si vuelve el orden anterior, el total cae a $50 y esta prueba falla.
+      expect(cot.precioBase).toBe(8.5);
+      expect(cot.ajusteMinimo).toBe(41.5);
+      expect(cot.recargoBateria).toBe(recargo);
+      expect(cot.total).toBe(total);
+
+      const suma =
+        cot.precioBase +
+        cot.recargoExcedente +
+        cot.recargoCiudad +
+        cot.recargoEmbalaje +
+        cot.recargoBateria +
+        cot.descuentoSede +
+        cot.ajusteMinimo;
+      expect(suma).toBe(cot.total);
+    },
+  );
+
+  it("mantiene el descuento después de batería y sólo protege el piso normal", () => {
+    const cot = calcularEnvioLCL(
+      {
+        cbmTotal: 0.01,
+        pesoKg: 2,
+        embalaje: "estandar",
+        ciudadId: "valencia",
+        bateria: true,
+      },
+      {
+        ...DEFAULT_PARAMS,
+        recargoBateriaMult: 1.5,
+        descuentoValencia: 10,
+      },
+    );
+
+    expect(cot.descuentoSede).toBe(-10);
+    expect(cot.recargoBateria).toBe(25);
+    // $41,50 completa el piso base; después batería suma $25 y el descuento
+    // conserva sus $10: $75 − $10 = $65. No existe un segundo piso ×1,5.
+    expect(cot.ajusteMinimo).toBe(41.5);
+    expect(cot.total).toBe(65);
+    expect(
+      cot.precioBase +
+        cot.recargoExcedente +
+        cot.recargoCiudad +
+        cot.recargoEmbalaje +
+        cot.recargoBateria +
+        cot.descuentoSede +
+        cot.ajusteMinimo,
+    ).toBe(cot.total);
+
+    const descuentoQuePerfora = calcularEnvioLCL(
+      {
+        cbmTotal: 0.01,
+        pesoKg: 2,
+        embalaje: "estandar",
+        ciudadId: "valencia",
+        bateria: true,
+      },
+      {
+        ...DEFAULT_PARAMS,
+        recargoBateriaMult: 1.5,
+        descuentoValencia: 40,
+      },
+    );
+    // $75 − $40 = $35: la protección histórica restaura sólo hasta $50.
+    expect(descuentoQuePerfora.descuentoSede).toBe(-40);
+    expect(descuentoQuePerfora.recargoBateria).toBe(25);
+    expect(descuentoQuePerfora.ajusteMinimo).toBe(56.5);
+    expect(descuentoQuePerfora.total).toBe(50);
+  });
+
+  it("reconcilia un subtotal con fracciones de centavo al completar el piso", () => {
+    const cot = calcularEnvioLCL(
+      {
+        cbmTotal: 0.011,
+        pesoKg: 2,
+        embalaje: "estandar",
+        ciudadId: "caracas",
+        bateria: true,
+        tarifaCBMOverride: 850.13, // subtotal crudo: $9,35143.
+      },
+      { ...DEFAULT_PARAMS, recargoBateriaMult: 1.5 },
+    );
+
+    expect(cot.precioBase).toBe(9.35);
+    expect(cot.ajusteMinimo).toBe(40.65);
+    expect(cot.recargoBateria).toBe(25);
+    expect(cot.total).toBe(75);
+    expect(cot.precioBase + cot.ajusteMinimo + cot.recargoBateria).toBe(cot.total);
+  });
+
+  it("no mueve ni un centavo del total previo cuando ya está sobre el piso", () => {
+    const cot = calcularEnvioLCL(
+      {
+        cbmTotal: 0.123,
+        pesoKg: 2,
+        embalaje: "estandar",
+        ciudadId: "caracas",
+        bateria: true,
+        tarifaCBMOverride: 850.13, // base cruda $104,56599; sobre el piso.
+      },
+      { ...DEFAULT_PARAMS, recargoBateriaMult: 1.5 },
+    );
+
+    // La fórmula anterior daba $156,85 al redondear el total final. Redondear
+    // la base antes de multiplicar lo movería a $156,86, que no está autorizado.
+    expect(cot.precioBase).toBe(104.57);
+    expect(cot.recargoBateria).toBe(52.28);
+    expect(cot.ajusteMinimo).toBe(0);
+    expect(cot.total).toBe(156.85);
+    expect(cot.precioBase + cot.recargoBateria).toBe(cot.total);
+  });
+
+  it("reconcilia la base fraccionaria sobre el piso también sin batería", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 0.123,
+      pesoKg: 2,
+      embalaje: "estandar",
+      ciudadId: "caracas",
+      bateria: false,
+      tarifaCBMOverride: 850.13, // base cruda $104,56599; sobre el piso.
+    });
+
+    expect(cot.precioBase).toBe(104.57);
+    expect(cot.recargoBateria).toBe(0);
+    expect(cot.ajusteMinimo).toBe(0);
+    expect(cot.total).toBe(104.57);
+    expect(cot.precioBase).toBe(cot.total);
   });
 
   it("minChargeOverride no muerde cuando el total ya lo supera", () => {

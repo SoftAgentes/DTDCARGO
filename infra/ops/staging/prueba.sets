@@ -1,0 +1,37 @@
+# infra/ops/staging/prueba.sets — valores fijos del .env de prueba (SDD-0540, Fase 1).
+#
+# NO es un .env: cada línea CLAVE=valor se pasa como `--set` a new-env.sh desde
+# env-prueba.sh. Aquí solo van valores que no son secretos. Los secretos
+# (POSTGRES_PASSWORD, JWT_SECRET, ANON_KEY, CRON_SECRET…) los genera new-env.sh en
+# el servidor, distintos de los de producción. Las claves de integración (Resend,
+# Telegram, VAPID, Kommo, Anthropic, SeaRates, R2…) NO van: en prueba no existen
+# (decisiones D8 y D9), y env-prueba.sh borra las líneas vacías, porque con ""
+# el `??` de la app no cae al respaldo (runbook servidor-contabo §3.6).
+#
+# Hosts de la decisión D3 de Sam (2026-10-16).
+
+APP_ENV=staging
+APP_URL=https://prueba.dtdcargo.com
+DTD_WEB_HOST=prueba.dtdcargo.com
+SUPABASE_PUBLIC_HOST=supabase-prueba.dtdcargo.com
+NEXT_PUBLIC_SITE_URL=https://prueba.dtdcargo.com
+NEXT_PUBLIC_SUPABASE_URL=https://supabase-prueba.dtdcargo.com
+SUPABASE_PUBLIC_URL=https://supabase-prueba.dtdcargo.com
+API_EXTERNAL_URL=https://supabase-prueba.dtdcargo.com/auth/v1
+SITE_URL=https://prueba.dtdcargo.com
+ADDITIONAL_REDIRECT_URLS=https://prueba.dtdcargo.com/portal/callback
+# Cookie de sesión propia: con la de producción, una sesión de un host podría
+# confundirse con la del otro (lib/db/session-cookie.ts).
+NEXT_PUBLIC_SUPABASE_AUTH_COOKIE=sb-prueba-auth-token
+# DTD_DATA_DIR no va aquí: env-prueba.sh lo fija en <carpeta del .env>/data
+# (en el servidor, /srv/dtd-cargo-staging/data), siempre dentro de prueba.
+# Sin registro público en GoTrue: las cuentas de prueba las crea la semilla.
+DISABLE_SIGNUP=true
+ENABLE_ANONYMOUS_USERS=false
+STUDIO_DEFAULT_PROJECT=dtd-cargo-staging
+POOLER_TENANT_ID=dtd-cargo-staging
+# Prueba no se respalda (la semilla se regenera desde el repo). Un remoto que no
+# existe hace fallar a cualquier backup.sh corrido aquí por error, en vez de
+# subir al bucket de producción.
+BACKUP_RCLONE_REMOTE=sin-respaldo-en-prueba:
+BACKUP_DB_CONFIG_VOLUME=dtd-cargo-staging_db-config

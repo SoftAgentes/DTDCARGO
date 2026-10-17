@@ -1,0 +1,162 @@
+# DTD Cargo en el servidor propio (SDD-0505 · Fase 0): la app y sus auxiliares.
+#
+#   web            → imagen de GHCR (Next standalone), detrás de Traefik.
+#   cron           → BusyBox crond + curl: reemplaza los 19 crons de vercel.json.
+#   auth-templates → nginx estático con las plantillas de correo de Auth.
+#
+# Supabase va en `compose.supabase.yml` (y `compose.supabase.s3.yml` para Storage
+# sobre R2/B2). Este archivo tiene que validar SOLO: así `web` puede correr
+# contra un Supabase externo (staging contra la copia, por ejemplo).
+#
+#   docker compose -f compose.yml -f compose.supabase.yml config
+#   docker compose -f compose.yml -f compose.supabase.yml up -d
+#
+# Aislamiento (spec §Compose y aislamiento):
+#   · `dtd_edge`     red EXTERNA que crea el runbook y comparte con Traefik.
+#                    Solo `web` (acá) y `api-gw` (en el overlay) la tocan.
+#   · `dtd_internal` red `internal: true`: sin salida a internet ni puerto
+#                    publicado. Todo lo demás vive ahí.
+#   · `dtd_egress`   bridge normal SIN Traefik: solo para los servicios que
+#                    necesitan salir a internet (Auth → SMTP, functions → Kommo,
+#                    Storage/imgproxy → R2). `web` sale por `dtd_edge`.
+#   · Ningún `ports:` y ningún `container_name`: los contenedores, redes y
+#     volúmenes de producción y staging no chocan en el mismo host. Tampoco los
+#     routers de Traefik: llevan el nombre del proyecto (`<proyecto>-web`,
+#     `<proyecto>-supabase`).
+#
+# El `.env` vive junto a este archivo (en el servidor, /srv/dtd-cargo/.env,
+# 0600). Compose lo carga solo para interpolar `${...}`; `web` lo recibe entero
+# por `env_file`. Las variables críticas llevan `:?`: sin ellas el compose se
+# niega a arrancar en vez de levantar una app a medias.
+
+name: dtd-cargo
+
+# Rotación de logs para todos los servicios: sin esto json-file crece sin tope
+# en un VPS de 200 GB. 10 MB × 5 archivos por contenedor.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  web:
+    # La construye CI (.github/workflows/build-image.yml): `sha-<sha>` por commit
+    # y `main` como alias móvil. Desplegar = fijar DTD_WEB_IMAGE en .env y
+    # `docker compose pull web && docker compose up -d web cron`.
+    image: ${DTD_WEB_IMAGE:-ghcr.io/hailuwaycom-sketch/dtdcargo:main}
+    restart: unless-stopped
+    logging: *logging
+    env_file:
+      # Todo el .env del servidor (integraciones de la app: Resend, Anthropic,
+      # SeaRates, R2…). `required: false` solo para que `config` valide con el
+      # `.env.example`; en producción las guardas `:?` de abajo exigen el archivo.
+      - path: ./.env
+        required: false
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+      # Entorno explícito (lib/runtime/app-env.ts): sin APP_ENV, NODE_ENV=production
+      # ya cierra el candado del bot de deploy, pero se declara igual.
+      APP_ENV: ${APP_ENV:?APP_ENV (production|staging) falta en .env}
+      APP_URL: ${APP_URL:?APP_URL (https://dtdcargo.com) falta en .env}
+      # Header con la IP real que fija Traefik (x-real-ip). Detrás de Cloudflare
+      # con proxy, cf-connecting-ip. Nunca vacío en el servidor: sin él la app
+      # confía en el primer x-forwarded-for, que el cliente puede falsificar.
+      REQUEST_IP_HEADER: ${REQUEST_IP_HEADER:-x-real-ip}
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?NEXT_PUBLIC_SUPABASE_URL falta en .env}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?NEXT_PUBLIC_SUPABASE_ANON_KEY falta en .env}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY falta en .env}
+      CRON_SECRET: ${CRON_SECRET:?CRON_SECRET falta en .env}
+    networks:
+      - dtd_edge
+      - dtd_internal
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    # Router, servicio y middleware llevan el nombre del proyecto de compose (`-p`):
+    # producción (dtd-cargo) y staging (dtd-cargo-staging) pueden ir detrás del
+    # mismo Traefik sin pisarse (con nombres fijos, los dos stacks declararían el
+    # mismo router y el mismo servicio). Va en forma de lista porque compose no
+    # interpola las CLAVES de un mapa: medido en el VPS con compose 5.6.0 el
+    # 2026-10-11.
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${DTD_EDGE_NETWORK:-dtd_edge}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.rule=Host(`${DTD_WEB_HOST:-dtdcargo.com}`) || Host(`www.${DTD_WEB_HOST:-dtdcargo.com}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.tls=true"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      # `www` → raíz con 301, conservando ruta y query: así lo hace hoy Vercel
+      # (medido el 2026-10-15) y así Google ve una sola versión del sitio. Un solo
+      # router (un certificado con los dos nombres) y el middleware solo actúa
+      # sobre los pedidos a `www.`; la raíz pasa intacta. `$${1}`: `$$` es el `$`
+      # literal para compose. Probado en el Traefik del VPS con un host `.test`.
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.middlewares=${COMPOSE_PROJECT_NAME}-www-a-raiz@docker"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-www-a-raiz.redirectregex.regex=^https://www\\.(.+)"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-www-a-raiz.redirectregex.replacement=https://$${1}"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-www-a-raiz.redirectregex.permanent=true"
+      # SIN middleware de `buffering` en el web, a propósito. Ese middleware también
+      # almacena la RESPUESTA entera antes de mandarla: medido el 2026-10-12 detrás
+      # de este Traefik, una página que manda 5 trozos en 5 s dio el primer byte a
+      # los 5,46 s con el middleware (0,60 s sin él). El Studio carga por partes
+      # (streaming de React) y en Vercel se ve así; con el middleware quedaría en
+      # blanco hasta el final. El tope de 12 MB de las server actions lo pone Next
+      # (`serverActions.bodySizeLimit` de next.config.ts).
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-web.loadbalancer.server.port=3000"
+      # Timeouts de 300 s: las rutas de importación y los crons declaran
+      # `maxDuration = 300`; con el default de Traefik (sin tope de respuesta
+      # pero 60 s de lectura en el entrypoint) un import largo moriría a mitad.
+      # El `readTimeout` del entrypoint es config estática de Traefik: ver README.
+      # El transporte vive en el proveedor de archivo (`slow-300s`,
+      # infra/ops/traefik/dynamic/middlewares.yml): Traefik no admite definir
+      # serversTransports con labels de Docker, y con `dtd-long@docker` la ruta
+      # quedaba rota (medido en el VPS el 2026-10-09).
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-web.loadbalancer.serverstransport=${TRAEFIK_SERVERS_TRANSPORT:-slow-300s@file}"
+
+  cron:
+    # Imagen local (alpine fijada + curl + envsubst); ver cron/Dockerfile. El
+    # crontab lo genera scripts/build-crontab.mjs: no se edita a mano.
+    build:
+      context: ./cron
+    image: dtd-cargo-cron:local
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?CRON_SECRET falta en .env}
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - dtd_internal
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+
+  auth-templates:
+    # Sirve supabase/templates/*.html en http://auth-templates/ (solo red
+    # interna): GoTrue los descarga al enviar cada correo (GOTRUE_MAILER_TEMPLATES_*
+    # en compose.supabase.yml). Declarado acá y no en el overlay porque es parte
+    # de "la app" (sus correos), y para que exista aunque Auth sea externo.
+    image: nginx:1.30.5-alpine
+    restart: unless-stopped
+    logging: *logging
+    volumes:
+      - ./supabase/templates:/usr/share/nginx/html:ro
+    networks:
+      - dtd_internal
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+
+networks:
+  dtd_edge:
+    external: true
+    name: ${DTD_EDGE_NETWORK:-dtd_edge}
+  dtd_internal:
+    internal: true
+  dtd_egress: {}

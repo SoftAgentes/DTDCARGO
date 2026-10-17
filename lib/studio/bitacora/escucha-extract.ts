@@ -9,7 +9,8 @@
  * Calca `extract.ts`: Anthropic directo con **tool-use FORZADO** (tool
  * `sugerencias`, su input_schema fuerza la estructura). Modelo por cascada
  * `BITACORA_ESCUCHA_MODEL ?? BITACORA_ACTA_MODEL ?? default` → puede apuntar a
- * Opus sin tocar código. Sin `ANTHROPIC_API_KEY` (o `LLM_FORCE_MOCK=1`) → mock
+ * Opus sin tocar código. Una variable vacía o con sólo espacios cuenta como sin
+ * definir (SDD-0525). Sin `ANTHROPIC_API_KEY` (o `LLM_FORCE_MOCK=1`) → mock
  * determinista (dev/tests/verify sin gastar tokens). NUNCA lanza al caller.
  */
 
@@ -23,6 +24,7 @@ import {
   TRANSCRIPT_MIN_CHARS,
   type EscuchaSugerencia,
 } from "./bitacora-types";
+import { firstConfiguredSetting } from "@/lib/runtime/server-setting";
 
 export interface EscuchaOpts {
   hoyISO: string;
@@ -107,9 +109,10 @@ export async function extractEscucha(
   try {
     const client = new Anthropic({ apiKey });
     const model =
-      process.env.BITACORA_ESCUCHA_MODEL ??
-      process.env.BITACORA_ACTA_MODEL ??
-      DEFAULT_MODEL;
+      firstConfiguredSetting(
+        process.env.BITACORA_ESCUCHA_MODEL,
+        process.env.BITACORA_ACTA_MODEL,
+      ) ?? DEFAULT_MODEL;
     const response = await client.messages.create({
       model,
       max_tokens: 3000,

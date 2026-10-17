@@ -1,0 +1,32 @@
+# Overlay: Storage de Supabase sobre un bucket S3 externo (Cloudflare R2 o
+# Backblaze B2) en vez del disco del VPS (SDD-0505).
+#
+#   docker compose -f compose.yml -f compose.supabase.yml -f compose.supabase.s3.yml up -d
+#
+# POR QUÉ: los 445 MB de Storage de producción (fotos de recepción, POD,
+# documentos de clientes) no pueden depender de un disco sin snapshots; el
+# runbook de backup (docs/runbooks/backup-restore-servidor.md §5) da por sentado
+# que los objetos viven en R2/B2 y se replican a un segundo proveedor.
+#
+# A diferencia del `docker-compose.s3.yml` del upstream (que levanta un MinIO
+# local), acá el bucket es externo: menos piezas en el servidor y el respaldo lo
+# hace el proveedor. Las credenciales viajan por .env (STORAGE_S3_*).
+#
+# El bind mount de `data/storage` del overlay base queda montado pero sin uso
+# con STORAGE_BACKEND=s3: compose no permite quitar un volumen desde un overlay
+# sin la etiqueta `!reset`, y así el archivo valida en cualquier Compose v2.
+# imgproxy no cambia: con backend S3, storage-api le pasa URLs firmadas del
+# bucket y las descarga por HTTPS (por eso está en dtd_egress en el overlay base).
+
+services:
+  storage:
+    environment:
+      STORAGE_BACKEND: s3
+      GLOBAL_S3_BUCKET: ${STORAGE_S3_BUCKET:?STORAGE_S3_BUCKET falta en .env}
+      GLOBAL_S3_ENDPOINT: ${STORAGE_S3_ENDPOINT:?STORAGE_S3_ENDPOINT falta en .env}
+      GLOBAL_S3_PROTOCOL: https
+      # R2 y B2 solo entienden path-style (bucket en la ruta, no en el host).
+      GLOBAL_S3_FORCE_PATH_STYLE: "true"
+      REGION: ${STORAGE_S3_REGION:-auto}
+      AWS_ACCESS_KEY_ID: ${STORAGE_S3_ACCESS_KEY_ID:?STORAGE_S3_ACCESS_KEY_ID falta en .env}
+      AWS_SECRET_ACCESS_KEY: ${STORAGE_S3_SECRET_ACCESS_KEY:?STORAGE_S3_SECRET_ACCESS_KEY falta en .env}

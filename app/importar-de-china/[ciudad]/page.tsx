@@ -83,7 +83,9 @@ export default async function ImportarCiudadPage({
     },
     {
       q: `¿El precio incluye la entrega en ${z.ciudad}?`,
-      a: `Sí. Con el servicio puerta a puerta (DDP) el flete, la aduana y los impuestos van incluidos, y coordinamos el last-mile hasta tu dirección en ${z.ciudad} — no tienes que ir a buscar la carga a ningún puerto.`,
+      a: z.slug === "acarigua"
+        ? `El servicio puerta a puerta incluye flete, aduana e impuestos. ${z.notaEntrega} Ese tramo se suma al estimado final.`
+        : `Sí. Con el servicio puerta a puerta (DDP) el flete, la aduana y los impuestos van incluidos, y coordinamos el last-mile hasta tu dirección en ${z.ciudad} — no tienes que ir a buscar la carga a ningún puerto.`,
     },
     {
       q: `¿Cómo calculo el costo de mi envío a ${z.ciudad}?`,

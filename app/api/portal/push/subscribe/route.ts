@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { parsePushSubscription } from "@/lib/studio/notify/push-subscription";
+import { userPushRebindDenial } from "@/lib/studio/notify/push-rebind";
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -63,6 +64,15 @@ export async function POST(req: Request) {
 
   // Upsert por endpoint (unique). Si el endpoint ya existía (otro user en el mismo
   // browser), se re-asigna al cliente actual con su tenant.
+  //
+  // SDD-0499 · "el mismo browser" era una AFIRMACIÓN del comentario, no una
+  // comprobación: el endpoint viene del cuerpo, así que un cliente del portal
+  // que conociera el de otro le apagaba las notificaciones — sin segundo tenant
+  // de por medio, o sea vivo hoy. El rebind se conserva (hay teléfonos
+  // compartidos de verdad) exigiendo posesión de la suscripción.
+  const denial = await userPushRebindDenial(admin, sub.endpoint, user.id, sub.keys.auth);
+  if (denial) return NextResponse.json({ error: denial }, { status: 409 });
+
   const { error } = await admin.from("user_push_subscriptions").upsert(
     {
       tenant_id: link.tenant_id,

@@ -1,0 +1,20 @@
+# /etc/systemd/system/dtd-cargo-publicar.service — publicación automática de la web (SDD-0541).
+# Lo dispara dtd-cargo-publicar.timer cada minuto; a mano: systemctl start dtd-cargo-publicar.service
+# Una vuelta: baja :publicable de GHCR y, si no es lo que corre, pasa las puertas
+# (migraciones en el ledger, compose y cron iguales al repo), publica solo `web`,
+# corre la prueba rápida y vuelve atrás si falla. Ver /srv/ops/web/publicar-web.sh.
+[Unit]
+Description=Publicación automática de la web de DTD Cargo (sigue :publicable)
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# Como root, igual que compose en este servidor: lee /srv/dtd-cargo/.env (600) y
+# usa el login de GHCR de /root/.docker/config.json.
+WorkingDirectory=/srv/dtd-cargo
+ExecStart=/srv/ops/web/publicar-web.sh vigilar
+# Pull + healthy + dos pruebas rápidas + vuelta atrás caben de sobra en 20 minutos.
+TimeoutStartSec=20min
+Nice=5

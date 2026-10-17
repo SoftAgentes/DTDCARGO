@@ -23,6 +23,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { apiError } from "@/lib/http/api-error";
+import { firstConfiguredSecret } from "@/lib/runtime/server-secret";
 import {
   resendGetReceivedEmail,
   verifyResendWebhookSignature,
@@ -41,8 +42,11 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   // Secret dedicado del webhook inbound (separado del de delivery/bounce para no
   // acoplar los dos endpoints; pueden compartir valor en el dashboard si quieres).
-  const secret =
-    process.env.RESEND_INBOUND_WEBHOOK_SECRET ?? process.env.RESEND_WEBHOOK_SECRET;
+  // Vacío o con sólo espacios cuenta como ausente y cae al de delivery (SDD-0523).
+  const secret = firstConfiguredSecret(
+    process.env.RESEND_INBOUND_WEBHOOK_SECRET,
+    process.env.RESEND_WEBHOOK_SECRET,
+  );
   if (!secret) {
     return NextResponse.json(
       { error: "Webhook inbound no configurado · ver runbooks/setup-resend-inbound.md" },

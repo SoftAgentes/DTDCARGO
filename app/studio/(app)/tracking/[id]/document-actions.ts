@@ -8,10 +8,18 @@
  * (app/studio/(app)/gastos/actions.ts): valida MIME/tamaño, sube al bucket
  * `shipment-docs` con el user client (storage RLS por tenant), indexa la fila y
  * limpia el object si el insert falla.
+ *
+ * Gate: `moduleEditGate(supabase, "tracking")` al tope de las dos mutaciones
+ * (SDD-0500). Es el espejo exacto de la RLS que la migr 0439 puso sobre
+ * `shipment_documents` y sobre el bucket: `document_entity_authorized('shipment',
+ * …, 'edit')` exige `role <> 'support'` y la misma fila de la matriz. Hasta la
+ * 0500 no había gate de aplicación ninguno — el borrado ni siquiera resolvía el
+ * tenant, y saca el objeto del bucket, que no vuelve.
  */
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditGate } from "@/lib/studio/rbac-guard";
 import {
   SHIPMENT_DOCS_BUCKET,
   SHIPMENT_DOC_MAX_BYTES,
@@ -32,14 +40,16 @@ export async function uploadShipmentDocumentAction(
   formData: FormData,
 ): Promise<DocActionState> {
   const supabase = await createClient();
-  const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Sesión expirada. Vuelve a entrar." };
-
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("tenant_id")
-    .maybeSingle<{ tenant_id: string }>();
-  if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
+  // El gate resuelve sesión, rol y tenant de la MISMA fila (SDD-0498). Antes
+  // acá había una relectura de `user_tenants` sin `user_id` ni `disabled_at`.
+  // Esa consulta NO prestaba el tenant de otro ni dejaba pasar a un suspendido:
+  // la policy de `user_tenants` en producción repite los dos filtros
+  // (`user_id = auth.uid() and disabled_at is null`, catálogo leído por el
+  // Director el 2026-09-21). Era redundancia perdida, no agujero. Se saca igual
+  // porque era la segunda forma de resolver el rol, y esa es la que se olvida
+  // de actualizar; lo que faltaba de verdad acá era el gate de MÓDULO.
+  const gate = await moduleEditGate(supabase, "tracking");
+  if (!gate.ok) return { error: gate.denied };
 
   // El envío debe ser del tenant (RLS) → traemos el markbox para denormalizar
   // en la fila (lo usa la RLS del portal).
@@ -64,7 +74,7 @@ export async function uploadShipmentDocumentAction(
   }
 
   const ext = extFromDocMime(raw.type);
-  const path = `${link.tenant_id}/${shipmentId}/${crypto.randomUUID()}.${ext}`;
+  const path = `${gate.tenantId}/${shipmentId}/${crypto.randomUUID()}.${ext}`;
 
   const { error: upErr } = await supabase.storage
     .from(SHIPMENT_DOCS_BUCKET)
@@ -72,7 +82,7 @@ export async function uploadShipmentDocumentAction(
   if (upErr) return { error: `No se pudo subir: ${upErr.message}` };
 
   const { error: insErr } = await supabase.from("shipment_documents").insert({
-    tenant_id: link.tenant_id,
+    tenant_id: gate.tenantId,
     shipment_id: shipmentId,
     client_markbox: shipment.client_markbox,
     doc_type: docType,
@@ -80,7 +90,7 @@ export async function uploadShipmentDocumentAction(
     file_name: raw.name.slice(0, 200),
     content_type: raw.type,
     size_bytes: raw.size,
-    uploaded_by: userResp.user.id,
+    uploaded_by: gate.userId,
   });
   if (insErr) {
     // rollback del object si no se pudo indexar
@@ -97,18 +107,25 @@ export async function deleteShipmentDocumentAction(
   docId: string,
 ): Promise<DocActionState> {
   const supabase = await createClient();
+  // El gate va ANTES de leer el documento: esta action no resolvía ni la
+  // sesión, así que el `remove()` del bucket —que no es borrado lógico— era lo
+  // primero que la aplicación no comprobaba.
+  const gate = await moduleEditGate(supabase, "tracking");
+  if (!gate.ok) return { error: gate.denied };
 
   const { data: doc } = await supabase
     .from("shipment_documents")
     .select("id, storage_path")
     .eq("id", docId)
+    .eq("tenant_id", gate.tenantId)
     .maybeSingle<{ id: string; storage_path: string }>();
   if (!doc?.id) return { error: "Documento no encontrado." };
 
   const { error } = await supabase
     .from("shipment_documents")
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", docId);
+    .eq("id", docId)
+    .eq("tenant_id", gate.tenantId);
   if (error) return { error: `No se pudo eliminar: ${error.message}` };
 
   // Best-effort: borrar el object del bucket (el soft-delete ya lo oculta).

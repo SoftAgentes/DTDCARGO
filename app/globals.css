@@ -75,14 +75,31 @@
   --radius-card: 18px;
   --radius-track: 24px;
 
-  /* Font families — completadas en layout.tsx con next/font/google */
+  /* Font families — completadas en app/layout.tsx con next/font/local
+     (lib/fonts.ts, tipografía SDD-0505); --font-noto-sc la redefine html.dtd-cjk-sistema. */
   --font-archivo: var(--font-archivo), "Archivo", system-ui, -apple-system, sans-serif;
   --font-archivo-black: var(--font-archivo-black), "Archivo Black", sans-serif;
   --font-noto-sc: var(--font-noto-sc), "Noto Sans SC", sans-serif;
 }
 
+/* Tipografía SDD-0505 (decisión de Sam 2026-10-13): el chino ya no carga fuentes
+   web. Las variables que antes llenaba next/font con Noto Sans SC / Noto Serif SC
+   apuntan a las fuentes CJK del sistema, en el orden en que suelen estar:
+   macOS/iOS (PingFang, Songti), Windows (Microsoft YaHei, SimSun), Android/Linux
+   (Noto CJK, Source Han). Los nombres se conservan para no tocar ~20 consumidores;
+   "Noto Sans SC"/"Noto Serif SC" siguen en la lista por si el equipo la tiene
+   instalada. `html.dtd-cjk-sistema` (lo pone app/layout.tsx) gana en especificidad
+   al :root que emite @theme, que se referencia a sí mismo. */
+html.dtd-cjk-sistema {
+  --font-noto-sc: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC",
+    "WenQuanYi Micro Hei", sans-serif;
+  --font-noto-serif-sc: "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC",
+    "Noto Serif SC", "Source Han Serif SC", serif;
+}
+
 /* VIS-02 · chino por contexto. El alias histórico --f-cn permanece en UI
-   y Noto Serif SC solo queda disponible para documento formal lang="zh-CN". */
+   y la serif solo queda para documento formal lang="zh-CN". */
 :root {
   /* SDD-0441: navy fijo aprobado BD-027, incluso cuando ink invierte por tema. */
   --on-warning: #0F1E3D;
@@ -365,7 +382,8 @@
    (--font-archivo / --font-archivo-black, y --font-sans para usos sueltos del
    Studio) → la superficie entera migra a Sora/Nunito sin tocar JSX. El wordmark
    <BrandMark> NO migra (usa --font-brand-display, inmune). Mono (JetBrains) y CJK
-   (Noto SC) quedan igual. Sin capas (@layer) → gana al body de @layer base.
+   (fuente del sistema) quedan igual. Sin capas (@layer) → gana al body de @layer base.
+   Las fuentes vienen del repositorio (lib/fonts.ts, tipografía SDD-0505).
    ────────────────────────────────────────────────────────────────── */
 .portal-sys,
 .calc-sys,
@@ -757,6 +775,67 @@
 @media (max-width: 439px) {
   .site-nav .brandmark-wordmark {
     display: none;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   AVISO «ENTORNO DE PRUEBA» — SDD-0544 (D11 de la SDD-0540).
+   (`components/AvisoEntornoPrueba.tsx`, sólo con APP_ENV=staging)
+
+   Una franja dorada de 4px pegada al borde de arriba y, colgando de ella al
+   centro, una pestaña con el texto. Es el tono «Atención» de BRAND.md (dorado
+   con texto navy): operar en prueba creyendo que es el sitio real, o al revés,
+   es un riesgo que pide atención, no un error.
+
+   Fijo y con `pointer-events: none`: se ve sobre el Studio, el Portal, la PWA y
+   el sitio público, también sobre sus modales, y ningún clic queda atrapado
+   debajo. Vive en el <body> del layout raíz, fuera de `#portal-shell` y del
+   wrapper del Studio, así que pinta siempre con los tokens de :root:
+   --color-status-warning (#b8893a) y --on-warning (navy fijo, BD-027). Medido:
+   5,24:1, AA para la letra de 12px en negrita.
+
+   La escala de espacios y radios (--s-1 y siguientes, --r-sm y siguientes) no
+   está en :root del sitio público ni del Portal (vive
+   en sus superficies), así que cada var() lleva el valor de la escala como
+   respaldo. El z-index pasa a los modales más altos del repo (1000).
+   ────────────────────────────────────────────────────────────────── */
+
+.entorno-prueba {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  right: 0;
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  border-top: var(--s-1, 4px) solid var(--color-status-warning);
+  pointer-events: none;
+}
+
+.entorno-prueba__etiqueta {
+  margin: 0;
+  padding: var(--s-1, 4px) var(--s-3, 12px);
+  border-radius: 0 0 var(--r-md, 7px) var(--r-md, 7px);
+  background: var(--color-status-warning);
+  color: var(--on-warning);
+  font-family: var(--font-archivo), "Archivo", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* En un teléfono la pestaña queda en «Entorno de prueba» para no tapar el
+   centro del encabezado; desde 640px suma la aclaración. */
+.entorno-prueba__detalle {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .entorno-prueba__detalle {
+    display: inline;
   }
 }
 

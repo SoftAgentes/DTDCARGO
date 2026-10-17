@@ -7,11 +7,26 @@
  *
  * NUNCA expone valores de env vars, solo booleans (active/mock/missing).
  * Safe para pasar al cliente vía server component.
+ *
+ * El entorno, el SHA y la URL del despliegue salen de `lib/runtime/app-env.ts`
+ * (SDD-0505): leer `VERCEL_ENV` directo hacía que el panel dijera «Local» en la
+ * imagen Docker de producción, justo al lado del botón del bot de deploy.
  */
+
+import {
+  resolveAppEnv,
+  resolveBuildSha,
+  resolveDeploymentUrl,
+  type AppEnv,
+} from "@/lib/runtime/app-env";
 
 export type IntegrationStatus = "active" | "mock" | "missing";
 
-export type EnvName = "local" | "preview" | "production";
+/**
+ * Alias de `AppEnv` (SDD-0505): los consumidores del Studio siguen importando
+ * `EnvName`; `staging` se suma a los tres valores históricos.
+ */
+export type EnvName = AppEnv;
 
 export type IntegrationKey =
   | "supabase"
@@ -74,6 +89,10 @@ const TRACKED_ENV_VARS = [
   "SEARATES_API_BASE",
   "SEARATES_PLATFORM_ID",
   "SEARATES_API_KEY",
+  // Runtime propio (SDD-0505): entorno, URL pública y header de IP del proxy.
+  "APP_ENV",
+  "APP_URL",
+  "REQUEST_IP_HEADER",
   "NEXT_PUBLIC_BUILD_SHA",
   "VERCEL_ENV",
   "VERCEL_URL",
@@ -90,25 +109,24 @@ function statusOf(envKey: string, isRequired = false): IntegrationStatus {
 }
 
 export function getEnvStatus(): EnvStatus {
-  const vercelEnv = process.env.VERCEL_ENV;
-  let env: EnvName = "local";
-  if (vercelEnv === "production") env = "production";
-  else if (vercelEnv === "preview") env = "preview";
-
-  const commitSha =
-    process.env.NEXT_PUBLIC_BUILD_SHA ??
-    process.env.VERCEL_GIT_COMMIT_SHA ??
-    null;
+  const env = resolveAppEnv();
+  const commitSha = resolveBuildSha();
+  // `vercelUrl` conserva su forma histórica (host sin esquema): la UI del panel
+  // le antepone `https://` al mostrarlo. `resolveDeploymentUrl` devuelve la URL
+  // completa (`APP_URL` o `https://VERCEL_URL`), así que acá se le quita.
+  const deploymentUrl = resolveDeploymentUrl();
 
   return {
     env,
-    vercelUrl: process.env.VERCEL_URL ?? null,
+    vercelUrl: deploymentUrl ? deploymentUrl.replace(/^https?:\/\//i, "") : null,
     branch: process.env.VERCEL_GIT_COMMIT_REF ?? null,
     commitSha,
     commitShaShort: commitSha ? commitSha.slice(0, 7) : null,
     integrations: {
       supabase: statusOf(INTEGRATION_ENV_MAP.supabase, true),
-      resend: statusOf(INTEGRATION_ENV_MAP.resend),
+      // SDD-0544: en staging `resendSend` no envía aunque haya llave
+      // (`lib/studio/mail/resend-api.ts`), así que el panel dice la verdad: mock.
+      resend: env === "staging" ? "mock" : statusOf(INTEGRATION_ENV_MAP.resend),
       resendWebhook: statusOf(INTEGRATION_ENV_MAP.resendWebhook),
       telegram: statusOf(INTEGRATION_ENV_MAP.telegram),
       telegramWebhook: statusOf(INTEGRATION_ENV_MAP.telegramWebhook),
@@ -149,6 +167,7 @@ export function integrationEnvVar(k: IntegrationKey): string {
 export function envLabel(e: EnvName): string {
   if (e === "local") return "Local";
   if (e === "preview") return "Preview";
+  if (e === "staging") return "Staging";
   return "Producción";
 }
 

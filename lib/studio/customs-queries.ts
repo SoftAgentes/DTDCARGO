@@ -267,12 +267,15 @@ export type EligibleShipment = {
 export async function listShipmentsEligibleForFiling(
   supabase: SupabaseClient,
 ): Promise<EligibleShipment[]> {
-  // Shipments en estados aduanales sin filing
+  // Shipments vivos en estados aduanales sin filing. SDD-0509: la RLS no
+  // excluye los eliminados, y sin el filtro se podía abrir un expediente
+  // aduanal sobre un envío eliminado.
   const { data: shipments, error: shipErr } = await supabase
     .from("shipments")
     .select(
       "id, code, client_name, client_markbox, destination, arrived_destination_at",
     )
+    .is("deleted_at", null)
     .in("status", ["in_customs", "arrived_destination"])
     .order("arrived_destination_at", { ascending: false })
     .limit(100);

@@ -1,0 +1,82 @@
+# syntax=docker/dockerfile:1.7
+#
+# infra/templates/proyecto/Dockerfile.next — imagen de una app Next.js con pnpm (SDD-0505).
+#
+# Copia este archivo como `Dockerfile` en la raíz del repo del proyecto y añade un
+# `.dockerignore` (node_modules, .next, .git, .env*). Requisitos del proyecto:
+#   · `output: "standalone"` en next.config (DTD Cargo lo condiciona a una variable
+#     de build para no alterar Vercel; un proyecto que solo vive en Docker puede
+#     fijarlo sin condición).
+#   · `pnpm-lock.yaml` comprometido (se instala con --frozen-lockfile).
+#   · Si usa `sharp` u otra dependencia nativa, `pnpm.onlyBuiltDependencies` en
+#     package.json tiene que listarla: pnpm 10+ no corre scripts de build sin eso.
+#
+# Tres etapas: deps (solo node_modules, cacheable), build (next build) y runner
+# (solo lo que `standalone` necesita, usuario no root). Las NEXT_PUBLIC_* se
+# inlinean en `next build`, por eso entran como ARG en la etapa build y NO como
+# variables de runtime: cambiarlas exige reconstruir la imagen.
+
+ARG NODE_IMAGE=node:24.21.0-bookworm-slim
+ARG PNPM_VERSION=11.19.0
+
+# ── deps ───────────────────────────────────────────────────────────────────
+FROM ${NODE_IMAGE} AS deps
+ARG PNPM_VERSION
+ENV NEXT_TELEMETRY_DISABLED=1
+# pnpm por npm y no por corepack: corepack dejó de venir con Node 25 y su descarga
+# en build depende de la red; `npm install -g pnpm@<versión>` es determinista.
+RUN npm install -g pnpm@${PNPM_VERSION}
+WORKDIR /app
+# Si el proyecto tiene .npmrc, añádelo a esta línea.
+COPY package.json pnpm-lock.yaml ./
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# ── build ──────────────────────────────────────────────────────────────────
+FROM deps AS build
+# Variables públicas que Next inlinea. Agrega las del proyecto con el mismo patrón
+# (ARG + ENV) y pásalas con --build-arg o desde el workflow de GHCR (vars del repo).
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_BUILD_SHA
+ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
+    NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL} \
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY} \
+    NEXT_PUBLIC_BUILD_SHA=${NEXT_PUBLIC_BUILD_SHA} \
+    NODE_ENV=production
+COPY . .
+RUN pnpm build
+# Si el proyecto tiene `sharp` (next/image), el tracer de Next copia el `.node`
+# pero no las `.so` de libvips (las abre por dlopen): sin esto, /_next/image
+# sirve el original sin optimizar. Visto en DTD Cargo el 2026-10-14 (ver el
+# Dockerfile de la raíz de DTD). Se copian los `@img/*` enteros y se prueba que
+# sharp convierte; si no, el build falla. Sin `sharp`, el paso no hace nada.
+RUN set -e; \
+    if [ -e node_modules/sharp ]; then \
+      for d in node_modules/.pnpm/@img+*; do \
+        [ -e "$d" ] || continue; \
+        mkdir -p ".next/standalone/$d"; \
+        cp -a "$d/." ".next/standalone/$d/"; \
+      done; \
+      cd .next/standalone && node -e "require('sharp')({create:{width:4,height:4,channels:3,background:'#ffffff'}}).webp().toBuffer().then((b)=>{if(!b.length)process.exit(1)}).catch((e)=>{console.error(e);process.exit(1)})"; \
+    fi
+
+# ── runner ─────────────────────────────────────────────────────────────────
+FROM ${NODE_IMAGE} AS runner
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
+WORKDIR /app
+# `node` (uid 1000) ya existe en la imagen oficial: no hace falta crear otro usuario.
+COPY --from=build --chown=node:node /app/public ./public
+COPY --from=build --chown=node:node /app/.next/standalone ./
+COPY --from=build --chown=node:node /app/.next/static ./.next/static
+USER node
+EXPOSE 3000
+# Sin curl en la imagen slim: Node 24 trae fetch. Cambia `/` por la ruta de salud
+# del proyecto si tiene una (DTD Cargo no tiene /api/health).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:3000/').then((r) => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
+CMD ["node", "server.js"]

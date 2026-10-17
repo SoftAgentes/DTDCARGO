@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Sitio web público de DTD Cargo — cliente del ERP HailuWay, totalmente aislado.",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -31,6 +34,7 @@
     "docs:check": "node scripts/build-docs-index.mjs --check",
     "sdd:next": "node scripts/next-number.mjs",
     "sdd:check": "node scripts/check-numbering.mjs",
+    "consolidados:lote": "tsx scripts/consolidados/generar-lote.ts",
     "edge:check": "node scripts/check-edge-functions.mjs",
     "guia:check": "tsx scripts/check-guia-alibaba.ts",
     "attachments:preflight": "node scripts/attachments-pilot-preflight.mjs",
@@ -42,6 +46,8 @@
     "build:packlist-template": "node scripts/build-packlist-template.mjs",
     "marketing:reader": "node scripts/build-marketing-reader.mjs",
     "verify": "node scripts/verify.mjs",
+    "docker:build": "docker build -t dtdcargo:local .",
+    "schema:rebuild:supabase": "node -e \"process.env.SQL_TEST_PG_IMAGE='supabase/postgres:17.6.1.136';import('./scripts/check-schema-rebuild.mjs')\"",
     "harness:status": "node scripts/director-status.mjs",
     "harness:test": "node scripts/tests/run-harness.mjs",
     "knowledge:status": "node scripts/knowledge-sync.mjs status",

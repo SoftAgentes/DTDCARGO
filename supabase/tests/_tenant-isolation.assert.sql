@@ -159,8 +159,16 @@ end
 $b_setup$;
 
 -- ── Sesión del usuario A ─────────────────────────────────────
+-- La identidad va en los tres lugares donde la buscan los `auth.uid()` que corren
+-- este contrato: `test.uid` (stub de `postgres:17`), `request.jwt.claim.sub` y
+-- `request.jwt.claims` (el `auth.uid()` real de `supabase/postgres`, modo Supabase
+-- de check-schema-rebuild · SDD-0505). Con solo `test.uid`, en la imagen real A
+-- era anónimo y el contrato fallaba por RLS de más, no por el aislamiento.
 set local role authenticated;
 select set_config('test.uid', 'aa000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.sub', 'aa000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claims',
+  '{"sub":"aa000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 
 do $b_tenant_a$
 declare
@@ -168,7 +176,9 @@ declare
   v_ajenos  int;
   v_tocadas int;
 begin
-  if public.get_user_tenant_id() <> '11110000-0000-4000-8000-00000000000a' then
+  -- `is distinct from` y no `<>`: si la identidad no llegó, el tenant sale null y
+  -- `null <> x` es null, así que el `if` no disparaba y el chequeo pasaba en falso.
+  if public.get_user_tenant_id() is distinct from '11110000-0000-4000-8000-00000000000a' then
     raise exception 'AISLAMIENTO B: get_user_tenant_id() no resolvió el tenant de A';
   end if;
 
@@ -209,6 +219,9 @@ reset role;
 -- ── Y el simétrico, desde B ──────────────────────────────────
 set local role authenticated;
 select set_config('test.uid', 'bb000000-0000-4000-8000-000000000002', true);
+select set_config('request.jwt.claim.sub', 'bb000000-0000-4000-8000-000000000002', true);
+select set_config('request.jwt.claims',
+  '{"sub":"bb000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
 
 do $b_tenant_b$
 declare

@@ -12,10 +12,37 @@
  * devuelven `{ ok: false, error: 'mock_no_key' }` y NO hacen HTTP request.
  * Esto permite developar local + en CI sin tocar el dashboard de Resend.
  *
+ * Entorno de prueba (SDD-0544, D9 de la SDD-0540): con `APP_ENV=staging` los
+ * ENVÍOS (`resendSend`, `resendBatchSend`) quedan en ese mismo modo simulado
+ * aunque haya llave. Prueba va a tener consolidados reales con correos de
+ * clientes reales: que nada les llegue no puede depender sólo de que alguien
+ * deje la llave vacía. Devuelve `mock_no_key` (el caso que los consumidores ya
+ * tratan como «registrado, no enviado») con `code: "app_env_staging"` para
+ * distinguirlo. Leer el correo entrante (`resendGetReceivedEmail`) no envía
+ * nada y no cambia.
+ *
  * Webhook events handled en `/api/webhooks/resend/route.ts`.
  */
 
+import { resolveAppEnv } from "@/lib/runtime/app-env";
+
 const RESEND_API_BASE = "https://api.resend.com";
+
+/** `code` del resultado simulado por `APP_ENV=staging` (SDD-0544). */
+export const RESEND_SIMULADO_PRUEBA = "app_env_staging";
+
+/**
+ * Resultado simulado de un envío, o `null` si se puede enviar. Sin llave →
+ * `mock_no_key` (como siempre); con `APP_ENV=staging` → `mock_no_key` con
+ * `code: "app_env_staging"`, aunque haya llave.
+ */
+function envioSimulado(): { ok: false; error: string; code?: string } | null {
+  if (!process.env.RESEND_API_KEY) return { ok: false, error: "mock_no_key" };
+  if (resolveAppEnv() === "staging") {
+    return { ok: false, error: "mock_no_key", code: RESEND_SIMULADO_PRUEBA };
+  }
+  return null;
+}
 
 export type ResendSendInput = {
   from: string;          // "DTD Cargo <noreply@dtdcargo.com>"
@@ -41,15 +68,15 @@ export type ResendBatchResult =
 /**
  * Envía un email via Resend API.
  *
- * Mock mode: si no hay RESEND_API_KEY, devuelve `{ok: false, error:'mock_no_key'}`
- * sin hacer HTTP request. El caller decide si trata eso como error real o
- * como "ok pero no enviado" (típico: insertar mail_log con status='queued').
+ * Mock mode: si no hay RESEND_API_KEY, o con APP_ENV=staging (SDD-0544),
+ * devuelve `{ok: false, error:'mock_no_key'}` sin hacer HTTP request. El caller
+ * decide si trata eso como error real o como "ok pero no enviado" (típico:
+ * insertar mail_log con status='queued').
  */
 export async function resendSend(input: ResendSendInput): Promise<ResendSendResult> {
+  const simulado = envioSimulado();
+  if (simulado) return simulado;
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    return { ok: false, error: "mock_no_key" };
-  }
 
   try {
     const res = await fetch(`${RESEND_API_BASE}/emails`, {
@@ -97,8 +124,9 @@ export async function resendBatchSend(
   if (inputs.length < 1 || inputs.length > 100) {
     return { ok: false, error: "El lote debe contener entre 1 y 100 correos." };
   }
+  const simulado = envioSimulado();
+  if (simulado) return simulado;
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return { ok: false, error: "mock_no_key" };
 
   try {
     const res = await fetch(`${RESEND_API_BASE}/emails/batch`, {

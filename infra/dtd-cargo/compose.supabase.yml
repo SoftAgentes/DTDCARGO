@@ -1,0 +1,611 @@
+# Supabase self-hosted para DTD Cargo (SDD-0505 · Fase 0). Overlay de compose.yml:
+#
+#   docker compose -f compose.yml -f compose.supabase.yml config
+#   docker compose -f compose.yml -f compose.supabase.yml up -d
+#   docker compose -f compose.yml -f compose.supabase.yml --profile studio up -d studio
+#
+# Derivado de `docker/docker-compose.yml` de supabase/supabase@4205c41
+# (2026-10-08). Las etiquetas de imagen son las de ese commit, fijas. Diferencias
+# a propósito respecto del upstream (el README lista cada una):
+#
+#   · Sin `container_name` (11 en el upstream) y sin `ports:` (api-gw, supavisor):
+#     dos proyectos conviven en el host y nada queda en la IP pública. Solo
+#     `api-gw` recibe tráfico, por Traefik, y solo en las rutas de la API.
+#   · Redes: todo en `dtd_internal` (internal: true); `api-gw` además en
+#     `dtd_edge`; Auth, functions, storage e imgproxy además en `dtd_egress`
+#     para SMTP, Kommo y R2.
+#   · Studio y postgres-meta bajo `--profile studio`: acceso por Tailscale,
+#     nunca por Traefik. Supavisor bajo `--profile pooler`: sin puertos
+#     publicados no tiene a quién servir; la app entra por PostgREST.
+#   · Postgres con `command:` que CONSERVA `config_file=/etc/postgresql/
+#     postgresql.conf` (sin él la imagen arranca con el conf de initdb: sin
+#     pg_cron, pg_net ni vault en shared_preload_libraries) y añade la memoria
+#     para 24 GB. Datos en bind mounts bajo ${DTD_DATA_DIR} (runbook: /srv/
+#     dtd-cargo/data), no en el árbol del repo.
+#   · Edge Functions: monta UNA carpeta, ${DTD_FUNCTIONS_DIR} (por defecto
+#     ./functions), armada al desplegar con el router `main` y el import map
+#     del upstream (./supabase/volumes/functions) más las funciones del repo
+#     (supabase/functions): ver README › Edge Functions. No se montan archivos
+#     dentro de una carpeta ya montada en solo lectura: Docker no puede crear
+#     ahí el punto de montaje y el contenedor no arranca (medido en el VPS el
+#     2026-10-09), y en el servidor no está el repo para `../../supabase/functions`.
+#   · Auth: plantillas de correo desde `auth-templates` y TTL de OTP de la casa.
+#   · Límites de memoria por servicio; con compose.yml suman ≤ 12 GB.
+#
+# Los volúmenes de init/config están en ./supabase/volumes/ (copia verbatim del
+# upstream, ver README). Las variables van en .env (plantilla: .env.example).
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  web:
+    # Con Supabase en el mismo compose, la app espera al gateway. El healthcheck
+    # de api-gw es TCP al 8000: suficiente para saber que Envoy cargó su config.
+    depends_on:
+      api-gw:
+        condition: service_healthy
+
+  studio:
+    image: supabase/studio:2026.09.07-sha-7996410
+    restart: unless-stopped
+    logging: *logging
+    profiles: ["studio"]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})\""
+        ]
+      timeout: 10s
+      interval: 5s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      meta:
+        condition: service_started
+    environment:
+      HOSTNAME: "0.0.0.0"
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD falta en .env}
+      POSTGRES_USER_READ_WRITE: postgres
+      PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY:?PG_META_CRYPTO_KEY falta en .env}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,graphql_public}
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
+      DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION:-DTD Cargo}
+      DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT:-dtd-cargo}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SUPABASE_URL: http://api-gw:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:?SUPABASE_PUBLIC_URL falta en .env}
+      SUPABASE_ANON_KEY: ${ANON_KEY:?ANON_KEY falta en .env}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY:?SERVICE_ROLE_KEY falta en .env}
+      AUTH_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET falta en .env}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+      ENABLED_FEATURES_LOGS_ALL: "false"
+      SNIPPETS_MANAGEMENT_FOLDER: /app/snippets
+      EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /app/edge-functions
+    volumes:
+      - studio-snippets:/app/snippets
+      - ${DTD_FUNCTIONS_DIR:-./functions}:/app/edge-functions:ro
+    networks:
+      - dtd_internal
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+
+  # Envoy es el gateway por defecto del upstream (alias `kong` para configs que
+  # aún lo nombran). Única puerta de Supabase hacia Traefik, y solo para las
+  # rutas de la API: la regla del router deja fuera `/` (Studio), `/pg/`
+  # (postgres-meta = acceso total a la base tras una sola basic auth), `/mcp`,
+  # `/api/mcp` y la API de administración de Realtime (`/realtime/v1/api`).
+  # La plantilla de Envoy se conserva verbatim (ver README).
+  api-gw:
+    image: envoyproxy/envoy:v1.39.1
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      dtd_edge: {}
+      dtd_internal:
+        aliases:
+          - envoy
+          - kong
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/127.0.0.1/8000'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./supabase/volumes/api/envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./supabase/volumes/api/envoy/cds.yaml:/etc/envoy/cds.yaml:ro
+      - ./supabase/volumes/api/envoy/lds.template.yaml:/etc/envoy/lds.template.yaml:ro
+      - ./supabase/volumes/api/envoy/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+    environment:
+      ANON_KEY: ${ANON_KEY:?ANON_KEY falta en .env}
+      SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?SERVICE_ROLE_KEY falta en .env}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+      ANON_KEY_ASYMMETRIC: ${ANON_KEY_ASYMMETRIC:-}
+      SERVICE_ROLE_KEY_ASYMMETRIC: ${SERVICE_ROLE_KEY_ASYMMETRIC:-}
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:?SUPABASE_PUBLIC_URL falta en .env}
+      # Basic auth de Studio/meta dentro de Envoy. Obligatorios aunque Studio no
+      # arranque: el entrypoint los usa para generar la config.
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME:?DASHBOARD_USERNAME falta en .env}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:?DASHBOARD_PASSWORD falta en .env}
+    entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    # Nombres con el proyecto de compose y en forma de lista: ver el comentario
+    # de `web` en compose.yml. `security-headers@file` (HSTS, nosniff,
+    # referrer-policy; infra/ops/traefik/dynamic/middlewares.yml) porque el
+    # gateway no los pone y Supabase Cloud sí.
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${DTD_EDGE_NETWORK:-dtd_edge}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.rule=Host(`${SUPABASE_PUBLIC_HOST:?SUPABASE_PUBLIC_HOST falta en .env}`) && (PathPrefix(`/auth/v1`) || PathPrefix(`/rest/v1`) || PathPrefix(`/graphql/v1`) || PathPrefix(`/storage/v1`) || PathPrefix(`/functions/v1`) || PathPrefix(`/realtime/v1`)) && !PathPrefix(`/realtime/v1/api`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.tls=true"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.middlewares=security-headers@file"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-supabase.loadbalancer.server.port=8000"
+      # Transporte largo (300 s de espera de respuesta): las subidas TUS a Storage
+      # y las Edge Functions de Kommo pueden pasar del minuto. Traefik NO admite
+      # definir serversTransports con labels de Docker (solo en el proveedor de
+      # archivo): con `dtd-long@docker` la ruta quedaba rota, «servers transport
+      # not found» (medido en el staging del VPS el 2026-10-09). Se usa el
+      # `slow-300s` de infra/ops/traefik/dynamic/middlewares.yml.
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-supabase.loadbalancer.serverstransport=${TRAEFIK_SERVERS_TRANSPORT:-slow-300s@file}"
+
+  auth:
+    # Misma versión de esquema que Supabase Cloud: el traslado copia los DATOS de
+    # auth, y si Cloud tiene tablas o columnas que esta versión no crea, el
+    # restore aborta (medido el 2026-10-12 con v2.196.0: «relation
+    # auth.mfa_recovery_code_sets does not exist»). v2.197.0 termina en la
+    # migración 20260831180000, la última de Cloud ese día. Antes de cambiarla,
+    # comparar con import-from-cloud.sh (paso 0, huella de auth y storage).
+    image: supabase/gotrue:v2.197.0
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    depends_on:
+      db:
+        condition: service_healthy
+      auth-templates:
+        condition: service_started
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL:?API_EXTERNAL_URL falta en .env}
+
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD falta en .env}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+
+      GOTRUE_SITE_URL: ${SITE_URL:?SITE_URL falta en .env}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-}
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET falta en .env}
+      # JWKs de firma y verificación (jwks-set.sh): el secreto HS256 firma y la
+      # clave pública ECC de Cloud verifica las sesiones abiertas antes del corte.
+      # Vacío = solo JWT_SECRET, como antes.
+      GOTRUE_JWT_KEYS: ${JWT_KEYS:-[]}
+      GOTRUE_JWT_ISSUER: ${API_EXTERNAL_URL:?API_EXTERNAL_URL falta en .env}
+
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP:-true}
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: ${ENABLE_ANONYMOUS_USERS:-false}
+      GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM:-false}
+
+      # Correo transaccional de Auth (magic-link del portal). Resend por SMTP;
+      # equivalencias GOTRUE_* ↔ dashboard en docs/runbooks/setup-portal-auth.md.
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-DTD Cargo}
+      # Un correo por minuto por destinatario: el cerrojo de /entrar ya limita
+      # por cuenta, esto frena reintentos del navegador.
+      GOTRUE_SMTP_MAX_FREQUENCY: ${GOTRUE_SMTP_MAX_FREQUENCY:-60s}
+      # TTL del enlace: 1 h (el default de GoTrue es 24 h). Es el valor que mide
+      # el runbook del portal.
+      GOTRUE_MAILER_OTP_EXP: ${MAILER_OTP_EXP:-3600}
+      GOTRUE_MAILER_URLPATHS_INVITE: ${MAILER_URLPATHS_INVITE:-/auth/v1/verify}
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: ${MAILER_URLPATHS_CONFIRMATION:-/auth/v1/verify}
+      GOTRUE_MAILER_URLPATHS_RECOVERY: ${MAILER_URLPATHS_RECOVERY:-/auth/v1/verify}
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: ${MAILER_URLPATHS_EMAIL_CHANGE:-/auth/v1/verify}
+
+      # Plantillas brandeadas (supabase/templates/, servidas por auth-templates)
+      # con los mismos asuntos que el dashboard de Cloud.
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: ${MAILER_TEMPLATES_MAGIC_LINK:-http://auth-templates/magic-link.html}
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: ${MAILER_TEMPLATES_CONFIRMATION:-http://auth-templates/confirmation.html}
+      GOTRUE_MAILER_TEMPLATES_INVITE: ${MAILER_TEMPLATES_INVITE:-http://auth-templates/invite.html}
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: ${MAILER_TEMPLATES_RECOVERY:-http://auth-templates/recovery.html}
+      GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE: ${MAILER_TEMPLATES_EMAIL_CHANGE:-http://auth-templates/email-change.html}
+      GOTRUE_MAILER_TEMPLATES_REAUTHENTICATION: ${MAILER_TEMPLATES_REAUTHENTICATION:-http://auth-templates/reauthentication.html}
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Tu enlace de acceso al portal · DTD Cargo"
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: "Confirma tu cuenta · DTD Cargo"
+      GOTRUE_MAILER_SUBJECTS_INVITE: "Te damos acceso a tu portal · DTD Cargo"
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: "Recupera el acceso a tu cuenta · DTD Cargo"
+      GOTRUE_MAILER_SUBJECTS_EMAIL_CHANGE: "Confirma tu nuevo correo · DTD Cargo"
+      GOTRUE_MAILER_SUBJECTS_REAUTHENTICATION: "Tu código de verificación · DTD Cargo"
+
+      # El portal no usa teléfono: apagado, a diferencia del upstream.
+      GOTRUE_EXTERNAL_PHONE_ENABLED: ${ENABLE_PHONE_SIGNUP:-false}
+      GOTRUE_SMS_AUTOCONFIRM: ${ENABLE_PHONE_AUTOCONFIRM:-false}
+    networks:
+      - dtd_internal
+      - dtd_egress
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  rest:
+    image: postgrest/postgrest:v14.17
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "postgrest", "--ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD falta en .env}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,graphql_public}
+      # 1000 como en Cloud: el ERP lo da por sentado (regla ESLint del `.limit`).
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_ADMIN_SERVER_PORT: 3001
+      PGRST_ADMIN_SERVER_HOST: localhost
+      PGRST_JWT_SECRET: ${JWT_JWKS:-${JWT_SECRET:?JWT_SECRET falta en .env}}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY:-3600}
+    command: ["postgrest"]
+    networks:
+      - dtd_internal
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+
+  realtime:
+    image: supabase/realtime:v2.134.10
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sSfL --head -o /dev/null -H \"Authorization: Bearer ${ANON_KEY}\" http://localhost:4000/api/tenants/realtime-dev/health"
+        ]
+      timeout: 5s
+      interval: 30s
+      retries: 3
+      start_period: 10s
+    environment:
+      PORT: 4000
+      DB_HOST: ${POSTGRES_HOST:-db}
+      DB_PORT: ${POSTGRES_PORT:-5432}
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD falta en .env}
+      DB_NAME: ${POSTGRES_DB:-postgres}
+      DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY:?REALTIME_DB_ENC_KEY falta en .env}
+      API_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET falta en .env}
+      # JWKS de verificación (jwks-set.sh); vacío = solo API_JWT_SECRET.
+      API_JWT_JWKS: ${JWT_JWKS:-{"keys":[]}}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?SECRET_KEY_BASE falta en .env}
+      METRICS_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET falta en .env}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      APP_NAME: realtime
+      SEED_SELF_HOST: "true"
+      RUN_JANITOR: "true"
+      DISABLE_HEALTHCHECK_LOGGING: "true"
+    networks:
+      dtd_internal:
+        # Realtime arma el tenant a partir del subdominio del hostname con el
+        # que lo llaman, y el cluster de Envoy (cds.yaml) apunta a este nombre.
+        # En el upstream lo daba el container_name; acá, el alias de red.
+        aliases:
+          - realtime-dev.supabase-realtime
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+
+  storage:
+    # Igual que auth: la versión de esquema de Cloud. v1.77.6 es el último parche
+    # que termina en la migración 0072 (la de Cloud el 2026-10-12); desde v1.77.7
+    # llega la 0073.
+    image: supabase/storage-api:v1.77.6
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+      imgproxy:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://storage:5000/status"]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+      start_period: 10s
+    environment:
+      ANON_KEY: ${ANON_KEY:?ANON_KEY falta en .env}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY:?SERVICE_ROLE_KEY falta en .env}
+      POSTGREST_URL: http://rest:3000
+      AUTH_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET falta en .env}
+      # JWKS de verificación (jwks-set.sh); vacío = solo AUTH_JWT_SECRET.
+      JWT_JWKS: ${JWT_JWKS:-{"keys":[]}}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD falta en .env}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+      STORAGE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:?SUPABASE_PUBLIC_URL falta en .env}
+      REQUEST_ALLOW_X_FORWARDED_PATH: "true"
+      FILE_SIZE_LIMIT: 52428800
+      # Backend en disco por defecto; compose.supabase.s3.yml lo cambia a R2/B2
+      # (lo que el runbook de backup da por sentado para producción).
+      STORAGE_BACKEND: file
+      GLOBAL_S3_BUCKET: ${GLOBAL_S3_BUCKET:-stub}
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: ${STORAGE_TENANT_ID:-stub}
+      REGION: ${REGION:-stub}
+      ENABLE_IMAGE_TRANSFORMATION: "true"
+      IMGPROXY_URL: http://imgproxy:5001
+      S3_PROTOCOL_ACCESS_KEY_ID: ${S3_PROTOCOL_ACCESS_KEY_ID:?S3_PROTOCOL_ACCESS_KEY_ID falta en .env}
+      S3_PROTOCOL_ACCESS_KEY_SECRET: ${S3_PROTOCOL_ACCESS_KEY_SECRET:?S3_PROTOCOL_ACCESS_KEY_SECRET falta en .env}
+    volumes:
+      - ${DTD_DATA_DIR:-./data}/storage:/var/lib/storage
+    networks:
+      - dtd_internal
+      - dtd_egress
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  imgproxy:
+    image: darthsim/imgproxy:v3.31.4
+    restart: unless-stopped
+    logging: *logging
+    volumes:
+      - ${DTD_DATA_DIR:-./data}/storage:/var/lib/storage
+    healthcheck:
+      test: ["CMD", "imgproxy", "health"]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    environment:
+      IMGPROXY_BIND: ":5001"
+      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
+      IMGPROXY_USE_ETAG: "true"
+      IMGPROXY_AUTO_WEBP: ${IMGPROXY_AUTO_WEBP:-true}
+      IMGPROXY_MAX_SRC_RESOLUTION: 16.8
+    networks:
+      - dtd_internal
+      - dtd_egress
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  meta:
+    image: supabase/postgres-meta:v0.99.0
+    restart: unless-stopped
+    logging: *logging
+    profiles: ["studio"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: ${POSTGRES_HOST:-db}
+      PG_META_DB_PORT: ${POSTGRES_PORT:-5432}
+      PG_META_DB_NAME: ${POSTGRES_DB:-postgres}
+      PG_META_DB_USER: postgres
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD falta en .env}
+      CRYPTO_KEY: ${PG_META_CRYPTO_KEY:?PG_META_CRYPTO_KEY falta en .env}
+    networks:
+      - dtd_internal
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  functions:
+    image: supabase/edge-runtime:v1.76.2
+    restart: unless-stopped
+    logging: *logging
+    volumes:
+      # Una sola carpeta, solo lectura: el router `main` y el import map del
+      # upstream junto a las funciones del repo (kommo-sync, kommo-writeback,
+      # kommo-push-client, kommo-webhook y _shared), como el router las espera
+      # en /home/deno/functions/<nombre>. Se arma al desplegar (README).
+      - ${DTD_FUNCTIONS_DIR:-./functions}:/home/deno/functions:ro
+      - deno-cache:/root/.cache/deno
+    depends_on:
+      api-gw:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/127.0.0.1/9000'"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET falta en .env}
+      SUPABASE_URL: http://api-gw:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:?SUPABASE_PUBLIC_URL falta en .env}
+      SUPABASE_ANON_KEY: ${ANON_KEY:?ANON_KEY falta en .env}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?SERVICE_ROLE_KEY falta en .env}
+      # JWKS de verificación (jwks-set.sh); solo cuenta con VERIFY_JWT=true.
+      SUPABASE_JWKS: ${JWT_JWKS:-{"keys":[]}}
+      SUPABASE_PUBLISHABLE_KEYS: "{\"default\":\"${SUPABASE_PUBLISHABLE_KEY:-}\"}"
+      SUPABASE_SECRET_KEYS: "{\"default\":\"${SUPABASE_SECRET_KEY:-}\"}"
+      SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD falta en .env}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+      # Aplica a TODAS las funciones. Las cuatro de Kommo corren en Cloud con
+      # verify_jwt=OFF y se autentican solas: kommo_run_sync() manda un
+      # `Bearer <kommo_cron_key>` que no es JWT y Kommo llama al webhook sin
+      # JWT. Con "true" el router las rechazaría antes de ejecutarlas.
+      VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT:-false}"
+      # Secretos propios de las funciones (en Cloud: `supabase secrets set`).
+      KOMMO_WEBHOOK_SECRET: ${KOMMO_WEBHOOK_SECRET:-}
+      KOMMO_PUSH_DRY_RUN: ${KOMMO_PUSH_DRY_RUN:-}
+    command:
+      [
+        "start",
+        "--user-worker-request-idle-timeout",
+        "150000",
+        "--main-service",
+        "/home/deno/functions/main"
+      ]
+    networks:
+      - dtd_internal
+      - dtd_egress
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+
+  db:
+    # 17.6.1.136: la etiqueta del upstream 4205c41. Producción Cloud corre
+    # 17.6.1.121 (misma major; sin salto de 18 porque esa imagen no existe).
+    image: supabase/postgres:17.6.1.136
+    restart: unless-stopped
+    logging: *logging
+    volumes:
+      - ./supabase/volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:ro
+      - ./supabase/volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:ro
+      - ./supabase/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
+      - ./supabase/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:ro
+      - ./supabase/volumes/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:ro
+      - ./supabase/volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:ro
+      - ./supabase/volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:ro
+      # PGDATA fuera del árbol del repo: en el servidor, /srv/dtd-cargo/data/db
+      # (runbook §1.9). Lo respalda backup-restore-servidor.md con pg_dump.
+      - ${DTD_DATA_DIR:-./data}/db:/var/lib/postgresql/data
+      # Clave de pgsodium entre reinicios (como el upstream).
+      - db-config:/etc/postgresql-custom
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      PGPORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD falta en .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD falta en .env}
+      PGDATABASE: ${POSTGRES_DB:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET falta en .env}
+      JWT_EXP: ${JWT_EXPIRY:-3600}
+    # Los dos primeros `-c` son del upstream y NO se quitan: sin `config_file`
+    # la imagen arranca con el postgresql.conf de initdb (shared_preload_libraries
+    # vacío: sin pg_cron, pg_net, pgsodium ni vault, y sin cron.database_name).
+    # Después van los parámetros de memoria para la VPS de 24 GB; el último `-c`
+    # gana sobre el archivo. Para subirlos (plan más grande): shared_buffers ≈ 25 %
+    # de la RAM asignada a la base, effective_cache_size ≈ 75 %, work_mem según
+    # consultas concurrentes (max_connections × work_mem × 2 tiene que caber), y
+    # el límite `deploy.resources` de abajo acompaña (shared_buffers + conexiones).
+    command:
+      [
+        "postgres",
+        "-c", "config_file=/etc/postgresql/postgresql.conf",
+        "-c", "log_min_messages=fatal",
+        "-c", "shared_buffers=1GB",
+        "-c", "effective_cache_size=3GB",
+        "-c", "work_mem=8MB",
+        "-c", "max_connections=100"
+      ]
+    networks:
+      - dtd_internal
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+
+  supavisor:
+    # Pooler del upstream. Sin puertos publicados no sirve a nadie externo (la
+    # app entra por PostgREST), así que queda bajo `--profile pooler` para no
+    # gastar ~700 MB. Si hace falta psql remoto: Tailscale + `docker compose
+    # exec db psql`, no un puerto público.
+    image: supabase/supavisor:2.9.12
+    restart: unless-stopped
+    logging: *logging
+    profiles: ["pooler"]
+    volumes:
+      - ./supabase/volumes/pooler/pooler.exs:/etc/pooler/pooler.exs:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sSfL", "--head", "-o", "/dev/null", "http://127.0.0.1:4000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD falta en .env}
+      DATABASE_URL: ecto://supabase_admin:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD falta en .env}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/_supabase
+      CLUSTER_POSTGRES: "true"
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?SECRET_KEY_BASE falta en .env}
+      VAULT_ENC_KEY: ${VAULT_ENC_KEY:?VAULT_ENC_KEY falta en .env}
+      API_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET falta en .env}
+      METRICS_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET falta en .env}
+      REGION: local
+      ERL_AFLAGS: -proto_dist inet_tcp
+      POOLER_TENANT_ID: ${POOLER_TENANT_ID:-dtd-cargo}
+      POOLER_DEFAULT_POOL_SIZE: ${POOLER_DEFAULT_POOL_SIZE:-20}
+      POOLER_MAX_CLIENT_CONN: ${POOLER_MAX_CLIENT_CONN:-100}
+      POOLER_POOL_MODE: transaction
+      DB_POOL_SIZE: ${POOLER_DB_POOL_SIZE:-5}
+    command:
+      [
+        "/bin/sh",
+        "-c",
+        "/app/bin/migrate && /app/bin/supavisor eval \"$$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"
+      ]
+    networks:
+      - dtd_internal
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+
+volumes:
+  db-config:
+  deno-cache:
+  studio-snippets:

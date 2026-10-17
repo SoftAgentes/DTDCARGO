@@ -5,6 +5,9 @@ import type { PortalNotificationHistoryItem } from "@/lib/studio/notifications/n
  * de las notificaciones ya despachadas de un envío (email/push). Reusa la piel
  * brand del portal (paper/wine/Archivo, tokens var(--*)). Si no hay avisos, no
  * renderiza nada (el caller decide el hueco).
+ *
+ * SDD-0526 · también lo usa el detalle de una compra: `descripcion` dice de
+ * qué es el historial (por defecto, de un envío).
  */
 
 /** Fecha ISO → "12 jun 2026 · 14:30" en es-VE, o null si no parseable. */
@@ -41,8 +44,10 @@ function channelLabel(channel: "email" | "push" | "both"): string {
 
 export function PortalNotificationHistory({
   items,
+  descripcion = "El historial de notificaciones de este envío.",
 }: {
   items: PortalNotificationHistoryItem[];
+  descripcion?: string;
 }) {
   if (items.length === 0) return null;
 
@@ -52,7 +57,7 @@ export function PortalNotificationHistory({
         Avisos que te enviamos
       </h2>
       <p className="text-[12px] text-grey-500 mb-6 leading-[1.5]">
-        El historial de notificaciones de este envío.
+        {descripcion}
       </p>
 
       <ul className="flex flex-col gap-4">

@@ -1,0 +1,18 @@
+# /etc/systemd/system/dtd-cargo-backup.timer — todos los días a las 06:00 UTC (SDD-0505).
+# 06:00 UTC = 02:00 en Caracas = 14:00 en Yiwu. Se escribe con la zona explícita
+# porque el reloj del VPS está en Europe/Berlin y un cron a secas correría a otra hora.
+# Instalar: cp a /etc/systemd/system, systemctl daemon-reload, systemctl enable --now dtd-cargo-backup.timer
+# Ver: systemctl list-timers dtd-cargo-backup.timer · journalctl -u dtd-cargo-backup.service
+[Unit]
+Description=Respaldo diario de DTD Cargo a las 06:00 UTC
+
+[Timer]
+OnCalendar=*-*-* 06:00:00 UTC
+# Si el servidor estaba apagado a esa hora, corre al arrancar.
+Persistent=true
+# Hasta 10 minutos de margen para no coincidir con otros timers.
+RandomizedDelaySec=10min
+Unit=dtd-cargo-backup.service
+
+[Install]
+WantedBy=timers.target

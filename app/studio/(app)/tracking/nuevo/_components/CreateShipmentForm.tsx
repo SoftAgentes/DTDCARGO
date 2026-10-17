@@ -11,6 +11,10 @@
  *
  * Cuando llegue el modulo Clientes (SDD futuro), el datalist se reemplaza por
  * un combo con search server-side. La UX queda igual para el operador.
+ *
+ * SDD-0531 · con `nombresOcultos` (región China, no admin) no hay buscador de
+ * clientes: buscaba por cédula y nombre y devolvía ambos. Queda el Shipping
+ * Mark, y el server completa el nombre al crear.
  */
 
 import Link from "next/link";
@@ -41,8 +45,10 @@ const hintStyle: React.CSSProperties = {
 
 export function CreateShipmentForm({
   existingClients,
+  nombresOcultos = false,
 }: {
   existingClients: string[];
+  nombresOcultos?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(
     createShipment,
@@ -169,47 +175,55 @@ export function CreateShipmentForm({
             Busca por cédula/nombre/Shipping Mark contra clientes reales; al
             elegir autocompleta nombre + markbox. Si el cliente aún no existe,
             el operador tipea libre (fallback manual) y se crea con el envío. */}
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14 }}>
-          <div>
-            <label htmlFor="client_name" className="studio-label">
-              Cliente
-            </label>
-            <ClientCombobox
-              id="client_name"
-              value={clientName}
-              onManualChange={(text) => setClientName(text)}
-              onSelect={(c: ClientSearchHit) => {
-                setClientName(c.name);
-                setClientMarkbox(c.markbox);
-              }}
-              placeholder="Cédula, nombre o Shipping Mark…"
-              disabled={isPending}
-            />
-            {/* El nombre viaja en el form vía hidden (el input visible es el combobox). */}
-            <input type="hidden" name="client_name" value={clientName} />
-            {clientIsKnown && (
-              <div
-                style={{
-                  ...hintStyle,
-                  color: "var(--success)",
-                  fontWeight: 600,
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: nombresOcultos ? "1fr" : "2fr 1fr",
+            gap: 14,
+          }}
+        >
+          {!nombresOcultos && (
+            <div>
+              <label htmlFor="client_name" className="studio-label">
+                Cliente
+              </label>
+              <ClientCombobox
+                id="client_name"
+                value={clientName}
+                onManualChange={(text) => setClientName(text)}
+                onSelect={(c: ClientSearchHit) => {
+                  setClientName(c.name);
+                  setClientMarkbox(c.markbox);
                 }}
-              >
-                Cliente existente
-              </div>
-            )}
-            {clientIsNew && (
-              <div
-                style={{
-                  ...hintStyle,
-                  color: "var(--warning)",
-                  fontWeight: 600,
-                }}
-              >
-                Cliente nuevo — se va a crear con este envío
-              </div>
-            )}
-          </div>
+                placeholder="Cédula, nombre o Shipping Mark…"
+                disabled={isPending}
+              />
+              {/* El nombre viaja en el form vía hidden (el input visible es el combobox). */}
+              <input type="hidden" name="client_name" value={clientName} />
+              {clientIsKnown && (
+                <div
+                  style={{
+                    ...hintStyle,
+                    color: "var(--success)",
+                    fontWeight: 600,
+                  }}
+                >
+                  Cliente existente
+                </div>
+              )}
+              {clientIsNew && (
+                <div
+                  style={{
+                    ...hintStyle,
+                    color: "var(--warning)",
+                    fontWeight: 600,
+                  }}
+                >
+                  Cliente nuevo — se va a crear con este envío
+                </div>
+              )}
+            </div>
+          )}
           <div>
             <label htmlFor="client_markbox" className="studio-label">
               Shipping Mark
@@ -224,6 +238,12 @@ export function CreateShipmentForm({
               disabled={isPending}
               className="studio-input studio-input-mono"
             />
+            {nombresOcultos && (
+              <div style={hintStyle}>
+                Por privacidad, el nombre del cliente no se muestra en tu
+                región. Lo completa el sistema a partir del Shipping Mark.
+              </div>
+            )}
           </div>
         </div>
 

@@ -152,11 +152,18 @@ escribe directo sobre los reportes, así que la 0422 no debería romper nada de 
    reporte»**. El botón gris «Cancelar» sólo cierra el diálogo.
    - Esperado: pasa a «Cancelado» y sigue así al recargar. **Nuevo:** el «Motivo: prueba de
      cancelación» también sigue visible después de recargar.
+   - **El reporte cancelado NO desaparece de la lista: se conserva por diseño**, con su chip
+     «Cancelado». A partir de aquí vas a ver ese reporte junto a los que crees después; eso es
+     correcto y no es una duplicación.
    - Antes el motivo desaparecía al recargar. Lo arregló la 0464, aplicada el 19-sep a las 01:00
      UTC. Si vuelve a desaparecer, anótalo en «Si algo falló».
 3. [ ] Segundo reporte, igual que el paso 1, con la nota «prueba 2». Esta vez pulsa «Reportar pago»
-   **dos veces seguidas, rápido**. Esperado: aparece **un solo** reporte nuevo y el equipo recibe un
-   solo aviso.
+   **dos veces seguidas, rápido**.
+   - Esperado: se crea **un solo** reporte nuevo y el equipo recibe un solo aviso.
+   - **En pantalla quedan dos reportes en total**, y eso es lo correcto: «prueba 1» con el chip
+     «Cancelado» (el del paso 2, que se conserva) y «prueba 2» con «Pago reportado».
+   - Sería falla ver **dos** «prueba 2», las dos como «Pago reportado», o que al equipo le lleguen
+     dos avisos de ese mismo reporte.
 4. [ ] Tercer reporte, igual que el paso 1, con la nota «prueba 3». Esperado: hay tres reportes, uno
    «Cancelado» y dos «Pago reportado».
 

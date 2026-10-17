@@ -26,6 +26,12 @@ import { prefixChain, type AliadoOption } from "@/lib/studio/aliados/aliado-type
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ActionMenu } from "@/app/studio/_components/ui/ActionMenu";
+import { AdjuntosConteo } from "@/app/studio/_components/documents/AdjuntosConteo";
+import {
+  desgloseCliente,
+  type ConteoCliente,
+  type ConteosPorId,
+} from "@/lib/studio/documents/adjuntos";
 import { ClientDrawer } from "./ClientDrawer";
 
 type DrawerState = null | { mode: "create" } | { mode: "edit"; client: Client };
@@ -37,6 +43,7 @@ export function ClientsClient({
   total,
   limite,
   topeAlcanzado,
+  adjuntos,
 }: {
   clients: Client[];
   filters: ClientFilters;
@@ -47,6 +54,8 @@ export function ClientsClient({
   limite: number;
   /** El techo de PostgREST impide seguir trayendo más. */
   topeAlcanzado: boolean;
+  /** SDD-0507: adjuntos por cliente (ficha + embarques). `null` = no se pudo contar. */
+  adjuntos: ConteosPorId<ConteoCliente>;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -285,7 +294,7 @@ export function ClientsClient({
         )
       ) : (
         <>
-          <ClientsTable clients={clients} aliados={aliados} />
+          <ClientsTable clients={clients} aliados={aliados} adjuntos={adjuntos} />
 
           {/* SDD-0265 · SGE-00.07: el estado tiene que ser visible Y verdadero.
               Antes se mostraban 200 de 451 sin decirlo en ninguna parte. */}
@@ -314,6 +323,13 @@ export function ClientsClient({
                   ? "1 cliente"
                   : `${total} clientes`}
               {hasActiveFilter ? " que coinciden con los filtros" : ""}
+              {/* SDD-0507: si no se pudo contar, se dice. La columna no se
+                  pinta: «Ninguno» sin haber contado sería mentir. */}
+              {adjuntos === null && (
+                <span style={{ display: "block", marginTop: 2 }}>
+                  No se pudieron contar los adjuntos.
+                </span>
+              )}
             </p>
 
             {hayMas &&
@@ -363,10 +379,19 @@ export function ClientsClient({
 function ClientsTable({
   clients,
   aliados,
+  adjuntos,
 }: {
   clients: Client[];
   aliados: AliadoOption[];
+  adjuntos: ConteosPorId<ConteoCliente>;
 }) {
+  // SDD-0507: la columna «Adjuntos» va entre Tier y Contacto, y sólo si se
+  // pudo contar.
+  const columnas =
+    adjuntos === null
+      ? "120px 120px 1.5fr 100px 1.2fr 140px"
+      : "120px 120px 1.5fr 100px 96px 1.2fr 140px";
+
   // SDD-0255 · índices por cliente-padre y por id. El aliado ES un cliente, así
   // que en el listado hay que poder distinguirlo de un vistazo: hoy se ven los
   // tier (VIP, Premium) pero nada decía que una ficha es un aliado.
@@ -395,7 +420,7 @@ function ClientsTable({
         role="row"
         style={{
           display: "grid",
-          gridTemplateColumns: "120px 120px 1.5fr 100px 1.2fr 140px",
+          gridTemplateColumns: columnas,
           gap: 12,
           padding: "var(--s-3) var(--s-5)",
           background: "var(--bg-elevated)",
@@ -410,6 +435,7 @@ function ClientsTable({
         <span role="columnheader">Cédula/RIF</span>
         <span role="columnheader">Nombre</span>
         <span role="columnheader">Tier</span>
+        {adjuntos !== null && <span role="columnheader">Adjuntos</span>}
         <span role="columnheader">Contacto</span>
         <span role="columnheader">Creado</span>
       </div>
@@ -431,7 +457,7 @@ function ClientsTable({
           aria-label={`${c.name} · Shipping Mark ${c.markbox}`}
           style={{
             display: "grid",
-            gridTemplateColumns: "120px 120px 1.5fr 100px 1.2fr 140px",
+            gridTemplateColumns: columnas,
             gap: 12,
             padding: "14px 20px",
             borderTop: i > 0 ? "1px solid var(--border)" : 0,
@@ -524,6 +550,11 @@ function ClientsTable({
               {tierLabel(c.tier)}
             </Badge>
           </span>
+          {adjuntos !== null && (
+            <span role="cell">
+              <AdjuntosDeCliente conteo={adjuntos[c.id]} />
+            </span>
+          )}
           <div
             role="cell"
             style={{
@@ -573,4 +604,10 @@ function ClientsTable({
       ))}
     </div>
   );
+}
+
+/** Celda «Adjuntos» de un cliente. Sin entrada cuenta como cero (ver `pasaFiltroAdjuntos`). */
+function AdjuntosDeCliente({ conteo }: { conteo: ConteoCliente | undefined }) {
+  const c = conteo ?? { ficha: 0, internosEmbarques: 0, portal: 0, total: 0 };
+  return <AdjuntosConteo total={c.total} desglose={desgloseCliente(c)} />;
 }

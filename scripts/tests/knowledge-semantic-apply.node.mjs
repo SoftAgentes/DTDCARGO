@@ -42,7 +42,9 @@ function fixture() {
   git('commit', '-m', 'fixture');
   const graph = { directed: false, nodes: [
     { id: 'source_example', source_file: 'source.py', _origin: 'ast', label: 'example', file_type: 'code' },
-    { id: 'docs_guide_knowledge', source_file: 'docs/guide.md', _origin: 'ast', label: 'Knowledge', file_type: 'document' },
+    // L4: where the pinned extractor puts `# Knowledge` after the frontmatter.
+    // inspect compares the stored heading layer against a fresh extraction.
+    { id: 'docs_guide_knowledge', source_file: 'docs/guide.md', _origin: 'ast', label: 'Knowledge', source_location: 'L4', file_type: 'document' },
   ], links: [], hyperedges: [] };
   const graphPath = path.join(out, 'graph.json');
   const manifestPath = path.join(out, 'manifest.json');

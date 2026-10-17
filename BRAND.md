@@ -214,33 +214,46 @@ superficie de BD-021 (web = "MARKBOX") queda **derogado**. El **valor** del regi
 
 ## 🔤 Tipografía
 
-Tres familias, **ninguna otra**:
+Las familias del Brand Book v5.0 (`/marca/brand-book`, §04), **ninguna otra**:
+
+| Capa | Familias | Dónde |
+|---|---|---|
+| Marca | **Archivo** (con su corte **Archivo Black**) | web pública, redes, piezas, wordmark |
+| Operación interna | **Sora** (títulos) + **Nunito Sans** (cuerpo), BD-035 | Studio, Portal, calculadora |
+| Códigos | **JetBrains Mono** | todas las capas |
+| Chino | fuente CJK **del sistema** | solo texto en mandarín |
+
+Desde el 2026-10-13 (tipografía de SDD-0505) las cinco fuentes latinas se sirven
+desde el repositorio (`lib/font-files/`, cargadas en `lib/fonts.ts` con
+`next/font/local`): el build no descarga fuentes de ningún lado. Una prueba
+(`__tests__/fuentes-locales.test.ts`) impide volver a `next/font/google`.
 
 ```
 --f-sans:    'Archivo', system-ui, sans-serif
 --f-display: 'Archivo Black', 'Archivo', sans-serif
 --f-mono:    'JetBrains Mono', ui-monospace, monospace
---f-cn:      'Noto Sans SC', 'Archivo', sans-serif   /* solo para chino mandarín */
---f-cn-document: 'Noto Serif SC', 'Noto Sans SC', serif /* excepción BD-036: solo documento formal zh-CN */
+--f-cn:      fuente CJK del sistema (PingFang SC, Microsoft YaHei, Noto Sans CJK SC…)
+--f-cn-document: serif CJK del sistema (Songti SC, SimSun, Noto Serif CJK SC…) /* solo documento formal zh-CN */
 ```
 
 ### Reglas
-- **Archivo Black** se usa SOLO para títulos y display (H1, H2 grandes, KPI values, codes destacados).
-- **Archivo regular** para todo el body, labels, buttons.
+- **Archivo Black** se usa SOLO para títulos y display (H1, H2 grandes, KPI values, codes destacados) y para el wordmark.
+- **Archivo regular** para todo el body, labels, buttons de la web pública.
+- **Studio, Portal y calculadora** (BD-035): **Nunito Sans** para cuerpo, labels y navegación; **Sora** para títulos y cifras. Se aplican por wrapper (`.studio-sys`, `.portal-sys`, `.calc-sys` en `app/globals.css`), que redefine `--font-archivo`/`--font-archivo-black`: los componentes no cambian. El wordmark `<BrandMark>` sigue en Archivo Black.
 - **JetBrains Mono** para códigos: Shipping Mark (`DTD-XXXX` — nombre visible "Shipping Mark", SDD-0065; `markbox` solo como identificador interno), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
-- **Noto Sans SC** SOLO para texto en chino mandarín (direcciones de almacén CN, nombres bilingües).
-- **Noto Serif SC** es una excepción documental estrecha (BD-036): solo para
-  bloques con `lang="zh-CN"` en cartas, contratos, transcripciones, correos
-  formales y PDF dirigidos a clientes/oficina en China. Nunca se usa en UI,
-  navegación, formularios, marketing, texto latino, títulos de marca o como
-  serif editorial general. Sin la fuente disponible, el fallback obligatorio
-  es Noto Sans SC y la estructura debe seguir siendo comprensible.
+- **Chino mandarín:** usa la fuente CJK **del sistema** del dispositivo, vía
+  `--font-noto-sc` / `--font-noto-serif-sc` (los nombres se conservaron; los
+  define `html.dtd-cjk-sistema` en `app/globals.css`). Ya no se descargan Noto
+  Sans SC ni Noto Serif SC (Google las parte en ~100 archivos por bloque de
+  caracteres; en Android y Linux la fuente del sistema ES Noto Sans CJK). La
+  regla de uso de BD-036 se mantiene: la serif solo en bloques `lang="zh-CN"`
+  de documento formal, nunca en UI.
 
 ### ❌ Fuentes PROHIBIDAS
 - Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Helvetica, Arial — son AI slop.
-- Fuentes serif: Fraunces, Playfair, Georgia y Times no van con el sistema.
-  Noto Serif SC es la única excepción y únicamente bajo BD-036.
+- Fuentes serif latinas: Fraunces, Playfair, Georgia y Times no van con el sistema.
 - Cualquier fuente cursiva o decorativa.
+- Cualquier fuente web nueva sin decisión de Sam registrada: cada familia es un archivo más y, si se carga de Google en el build, un punto de falla del despliegue.
 
 ---
 
@@ -354,7 +367,7 @@ El glassmorphism dejó de estar prohibido en bloque: se **permite acotado** a su
 - **Web/Portal:** calculadora flotante del portal (`PortalCalcFab`, panel de vidrio) · glow de fondo `--bg-glow` en el embed de la calculadora (BD-030).
 - **ERP Studio (BD-033):** *scrim frosteado* — `backdrop-filter: var(--scrim-blur)` (blur suave 4px) en el overlay de todos los modales/drawers (`DrawerShell`, `ConfirmDialog`, `GlobalSearchModal`) · *panel de vidrio* del buscador ⌘K (`GlobalSearchModal`). **No** en toasts, paneles de drawer, tablas, KPIs ni fondos. Token del scrim: `--scrim-blur` (`app/studio/tokens.css`), distinto del `--glass-blur` de paneles.
 - **ERP Studio · fondos (BD-034):** las superficies vino/navy llevan **degradado tonal `--grad-*`** (sidebar navy, hero vino, KPI destacado, fondo de página, cards) + **marca de agua del isotipo "D"** (`public/brand/dtdcargo-isologo-mono-light.png`, wallpaper, opacidad baja .05–.10). Extiende BD-030 (tonal, **nunca** rainbow ni textura).
-- **ERP Studio · tipografía (BD-035):** el ERP corre en **Nunito Sans** (cuerpo/nav) + **Sora** (títulos) vía `--f-sans`/`--f-display` scopeados a `.studio-sys` (`app/studio/tokens.css`) — alinea el ERP con su fuente de diseño del Norte (BD-001). El wordmark `<BrandMark>` no migra.
+- **ERP Studio · tipografía (BD-035):** el ERP corre en **Nunito Sans** (cuerpo/nav) + **Sora** (títulos) vía `--f-sans`/`--f-display` scopeados a `.studio-sys` (`app/studio/tokens.css`) — alinea el ERP con su fuente de diseño del Norte (BD-001). El wordmark `<BrandMark>` no migra. Desde el 2026-10-13 las dos fuentes se sirven desde el repositorio (SDD-0505).
 
 ---
 
@@ -413,7 +426,7 @@ prefieres la alternativa?
 ## 🔒 Resumen ejecutivo · 6 reglas que NO se rompen
 
 1. **Solo usar tokens CSS** (`var(--*)`). Cero hex inventados.
-2. **Solo fuentes Archivo + JetBrains Mono + Noto Sans SC**. Nada más.
+2. **Solo las fuentes del Brand Book**: Archivo (con Archivo Black) en la marca, Sora + Nunito Sans en Studio/Portal, JetBrains Mono para códigos; servidas desde el repositorio. El chino usa la fuente del sistema. Nada más.
 3. **Cero AI slop**: sin gradientes **coloridos** (el glow tonal navy→ink de fondo sí, BD-030), sin emojis decorativos, sin glassmorphism **como default** (Glass permitido solo en superficies elevadas/flotantes · BD-031), sin shadcn-defaults visibles.
 4. **Componentes del sistema** primero. Inventar solo con `/* TODO: brand-review */`.
 5. **Avisar antes de violar**. Formato `BRAND-CHECK` explícito.

@@ -1,12 +1,19 @@
 /**
  * Queries del módulo Operarios (admin Studio web · SDD-0028).
  *
- * RLS filtra por tenant_id del caller authenticated. El cliente
- * Supabase regular (`createClient`) lee directamente — no usa
- * service_role acá.
+ * RLS filtra por tenant_id del caller authenticated y, desde la migr 0475
+ * (SDD-0515), por el permiso de vista del módulo Operarios en la matriz
+ * (default de rbac.ts + desvíos de 0357). El cliente Supabase regular
+ * (`createClient`) lee directamente — no usa service_role acá.
+ *
+ * ⚠️ NOMBRA LAS COLUMNAS. Desde 0475 el SELECT de operario_pins es por
+ * columna y `pin_hash` no está concedido a nadie de la API: un `select("*")`
+ * o pedir `pin_hash` falla con 42501 (permission denied).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { OperarioRol } from "./operario-pin";
+import { parseOperarioRolesPorRegion, type OperarioRolesPorRegion } from "./operario-edicion";
 
 export type OperarioRow = {
   id: string;
@@ -15,7 +22,8 @@ export type OperarioRow = {
   region: "cn" | "ve";
   display_name: string;
   display_name_cn: string | null;
-  role: "operario" | "supervisor";
+  /** Los cuatro de operario_pins_role_check (0025): bodeguero y camionero son de Venezuela. */
+  role: OperarioRol;
   active: boolean;
   last_login_at: string | null;
   created_at: string;
@@ -71,4 +79,19 @@ export async function listOperarios(
       warehouse_name_es: wh?.hub_name_es ?? null,
     };
   });
+}
+
+/**
+ * Los roles de cada región para el selector de «Editar» (SDD-0529). Los da
+ * `operario_roles_por_region()` (migr 0480), la misma regla con que valida
+ * `admin_update_operario`: el Studio no tiene una lista propia. Si la base no
+ * responde, o responde algo con otra forma, devuelve `null` y el cajón no deja
+ * guardar; nunca se inventa una lista.
+ */
+export async function getOperarioRolesPorRegion(
+  supabase: SupabaseClient,
+): Promise<OperarioRolesPorRegion | null> {
+  const { data, error } = await supabase.rpc("operario_roles_por_region");
+  if (error) return null;
+  return parseOperarioRolesPorRegion(data);
 }

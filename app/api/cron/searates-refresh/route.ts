@@ -29,6 +29,7 @@ import {
   buildOceanRatesAlert,
 } from "@/lib/studio/searates/ocean-rates-alert";
 import { notifyOceanRatesHealth } from "@/lib/studio/searates/ocean-rates-notify";
+import { matchesBearerSecret } from "@/lib/http/secret-compare";
 
 export const dynamic = "force-dynamic";
 // La matriz (20 rutas, tope duro 20/corrida = WEEKLY_CALL_CAP) corre secuencial;
@@ -43,7 +44,7 @@ function authorize(req: NextRequest): { ok: boolean; reason?: string } {
   const secret = process.env.CRON_SECRET;
   if (!secret) return { ok: false, reason: "CRON_SECRET no configurado" };
   const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
+  if (matchesBearerSecret(auth, secret)) return { ok: true };
   return { ok: false, reason: "Forbidden" };
 }
 

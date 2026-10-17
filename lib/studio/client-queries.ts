@@ -81,11 +81,15 @@ function construirQuery(
   conTotal: boolean,
 ) {
   const base = supabase.from("clients");
+  // SDD-0509: la RLS NO oculta a los eliminados — "clients by tenant" (0456)
+  // solo compara tenant, igual que la policy FOR ALL que dejó la 0230. Este
+  // filtro es lo único que los saca del listado, del total y de los buscadores.
   let query = (
     conTotal
       ? base.select(CLIENT_COLUMNS, { count: "exact" })
       : base.select(CLIENT_COLUMNS)
   )
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(limite);
 
@@ -208,10 +212,11 @@ export async function getClientByCedula(
 }
 
 /**
- * Lista los shipments asociados a un MARKBOX. Lookup textual (sin FK).
+ * Lista los shipments vivos asociados a un MARKBOX. Lookup textual (sin FK).
  * Ordenados por created_at DESC. Hasta 200.
  *
  * Devuelve subset de campos suficientes para la tabla del histórico.
+ * SDD-0509: un envío eliminado no entra al historial; la RLS no lo oculta.
  */
 export async function listShipmentsByMarkbox(
   supabase: SupabaseClient,
@@ -222,6 +227,7 @@ export async function listShipmentsByMarkbox(
     .select(
       "id, code, origin, destination, shipment_service, status, created_at",
     )
+    .is("deleted_at", null)
     .eq("client_markbox", markbox)
     .order("created_at", { ascending: false })
     .limit(200);

@@ -160,12 +160,15 @@ const searchShipmentsByCustomerTool: ToolDef<
     const markbox = String(input.markbox ?? "").trim();
     if (!markbox) return [];
     const rows = await listShipmentsByMarkbox(ctx.supabase, markbox);
-    // Necesitamos campos extra → re-fetch con select más completo
+    // Necesitamos campos extra → re-fetch con select más completo. Repite el
+    // filtro de eliminados de listShipmentsByMarkbox (SDD-0509): sin él, esta
+    // relectura devolvía al LLM los envíos que la ficha ya no muestra.
     const { data } = await ctx.supabase
       .from("shipments")
       .select(
         "code, origin, destination, shipment_service, status, client_markbox, client_name, eta_estimated",
       )
+      .is("deleted_at", null)
       .eq("client_markbox", markbox)
       .order("created_at", { ascending: false })
       .limit(200);

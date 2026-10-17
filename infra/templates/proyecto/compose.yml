@@ -1,0 +1,547 @@
+# infra/templates/proyecto/compose.yml — plantilla por proyecto (SDD-0505).
+#
+# Derivada del compose oficial de Supabase self-hosted (supabase/supabase@4205c41,
+# docker/docker-compose.yml, leído el 2026-10-08) y del compose de DTD Cargo
+# (infra/dtd-cargo/). Recortada: queda lo que un proyecto nuevo (Loop 3D, Renta
+# Aguada) necesita para arrancar con Auth + REST + Storage. Realtime, Edge
+# Functions y Studio son perfiles opcionales (`--profile realtime|functions|studio`).
+# Supavisor (pooler) y Logflare/Vector quedan fuera: la app entra por REST y las
+# conexiones directas a Postgres se hacen con `docker compose exec db psql`.
+#
+# Reglas que no se negocian (las mismas que en DTD Cargo):
+#   · Sin `container_name`: el nombre lo pone `name:` y así dos copias de esta
+#     plantilla conviven en el mismo servidor sin chocar.
+#   · Sin `ports:` hacia Internet. Lo público entra por Traefik (red `edge`,
+#     externa, compartida solo con Traefik); todo lo demás vive en `internal`
+#     (`internal: true`, sin salida). La única excepción es Studio, que bajo su
+#     perfil se ata a loopback o a la IP de Tailscale, nunca a 0.0.0.0.
+#   · Imágenes fijadas por tag exacto. Nunca `latest`.
+#   · Secretos solo en `.env` (fuera de Git). `.env.example` lleva nombres y
+#     placeholders.
+#
+# Uso completo: README.md de esta carpeta.
+
+name: ${PROYECTO:?define PROYECTO en .env}
+
+# Logs acotados: sin esto `docker logs` crece sin tope y llena el disco del VPS.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+
+  # ── La app (Next.js standalone, imagen construida con Dockerfile.next) ──
+  web:
+    image: ${WEB_IMAGE:?define WEB_IMAGE en .env}
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      api-gw:
+        condition: service_healthy
+    networks:
+      - edge
+      - internal
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # Next standalone escucha en localhost si no se le dice lo contrario.
+      HOSTNAME: "0.0.0.0"
+      APP_ENV: ${APP_ENV:-production}
+      APP_URL: ${APP_URL:?define APP_URL en .env}
+      # Header que Traefik fija con la IP real del cliente (ver infra/ops/traefik).
+      # Detrás de Cloudflare: cf-connecting-ip.
+      REQUEST_IP_HEADER: ${REQUEST_IP_HEADER:-x-real-ip}
+      NEXT_PUBLIC_SITE_URL: ${APP_URL}
+      NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_PUBLIC_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      CRON_SECRET: ${CRON_SECRET:?define CRON_SECRET en .env}
+    healthcheck:
+      # La imagen slim no trae curl ni wget; Node 24 tiene fetch.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then((r) => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: ${WEB_MEMORY_LIMIT:-1g}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${EDGE_NETWORK}"
+      - "traefik.http.routers.${PROYECTO}-web.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.${PROYECTO}-web.entrypoints=websecure"
+      - "traefik.http.routers.${PROYECTO}-web.tls.certresolver=letsencrypt"
+      # Middlewares y transport vienen de infra/ops/traefik/dynamic/middlewares.yml.
+      # El límite de cuerpo (12 MB) lo aplica Next (serverActions.bodySizeLimit):
+      # `body-12mb@file` existe, pero `buffering` también almacena las respuestas y
+      # rompe el streaming de RSC; úsalo solo en un router aparte sin streaming.
+      - "traefik.http.routers.${PROYECTO}-web.middlewares=security-headers@file"
+      - "traefik.http.services.${PROYECTO}-web.loadbalancer.server.port=3000"
+      - "traefik.http.services.${PROYECTO}-web.loadbalancer.serverstransport=slow-300s@file"
+
+  # ── Cron: BusyBox crond + curl que llama a /api/cron/* de `web` ──
+  cron:
+    build:
+      context: ./cron
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - internal
+    environment:
+      # Las líneas del crontab usan ${CRON_SECRET}: lo expande `sh -c` en el contenedor.
+      CRON_SECRET: ${CRON_SECRET}
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+
+  # ── Supabase recortado ──────────────────────────────────────────────────
+
+  db:
+    image: supabase/postgres:17.6.1.136
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      - internal
+    volumes:
+      # Archivos de arranque copiados del upstream (ver README · paso 2).
+      - ./supabase/volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
+      - ./supabase/volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
+      - ./supabase/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
+      - ./supabase/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
+      - ./supabase/volumes/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:Z
+      - ./supabase/volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:Z
+      - ./supabase/volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
+      # Datos persistentes: lo que respalda backup.sh.
+      - ./supabase/volumes/db/data:/var/lib/postgresql/data:Z
+      # Llave de pgsodium entre reinicios.
+      - db-config:/etc/postgresql-custom
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      PGPORT: ${POSTGRES_PORT}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      POSTGRES_DB: ${POSTGRES_DB}
+      JWT_EXP: ${JWT_EXPIRY}
+    # Memoria de Postgres para un proyecto chico dentro de un VPS compartido (24 GB
+    # en total, varios proyectos). Regla práctica: shared_buffers ≈ 25 % de la RAM
+    # que le toque al proyecto, effective_cache_size ≈ 75 %. Se cambian en .env.
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      - -c
+      - log_min_messages=fatal
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-512MB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-1536MB}
+      - -c
+      - work_mem=${PG_WORK_MEM:-8MB}
+      - -c
+      - max_connections=${PG_MAX_CONNECTIONS:-100}
+    deploy:
+      resources:
+        limits:
+          memory: ${DB_MEMORY_LIMIT:-2g}
+
+  # Envoy es el gateway por defecto del upstream (sustituyó a Kong). Alias `kong`
+  # y `envoy` para que las configs internas que nombran cualquiera resuelvan.
+  api-gw:
+    image: envoyproxy/envoy:v1.39.1
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      edge: {}
+      internal:
+        aliases:
+          - envoy
+          - kong
+    healthcheck:
+      # Puerto TCP: la imagen no trae curl ni wget.
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/127.0.0.1/8000'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./supabase/volumes/api/envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./supabase/volumes/api/envoy/cds.yaml:/etc/envoy/cds.yaml:ro
+      - ./supabase/volumes/api/envoy/lds.template.yaml:/etc/envoy/lds.template.yaml:ro
+      - ./supabase/volumes/api/envoy/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+      ANON_KEY_ASYMMETRIC: ${ANON_KEY_ASYMMETRIC:-}
+      SERVICE_ROLE_KEY_ASYMMETRIC: ${SERVICE_ROLE_KEY_ASYMMETRIC:-}
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
+    entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${EDGE_NETWORK}"
+      - "traefik.http.routers.${PROYECTO}-supabase.rule=Host(`${SUPABASE_DOMAIN}`)"
+      - "traefik.http.routers.${PROYECTO}-supabase.entrypoints=websecure"
+      - "traefik.http.routers.${PROYECTO}-supabase.tls.certresolver=letsencrypt"
+      # El tope de 50 MB lo aplica Storage (FILE_SIZE_LIMIT); sin `buffering` aquí
+      # porque rompería los websockets de Realtime. 300 s para subidas lentas desde
+      # Venezuela (serverstransport de abajo).
+      - "traefik.http.routers.${PROYECTO}-supabase.middlewares=security-headers@file"
+      - "traefik.http.services.${PROYECTO}-supabase.loadbalancer.server.port=8000"
+      - "traefik.http.services.${PROYECTO}-supabase.loadbalancer.serverstransport=slow-300s@file"
+
+  auth:
+    image: supabase/gotrue:v2.197.0
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL}
+
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP}
+
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_ISSUER: ${API_EXTERNAL_URL}
+
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP}
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: ${ENABLE_ANONYMOUS_USERS}
+      GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM}
+
+      # Equivalencias con el panel de Supabase Cloud: docs/runbooks/setup-portal-auth.md
+      # (sección «Self-hosted»).
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT}
+      GOTRUE_SMTP_USER: ${SMTP_USER}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME}
+      GOTRUE_MAILER_URLPATHS_INVITE: ${MAILER_URLPATHS_INVITE}
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: ${MAILER_URLPATHS_CONFIRMATION}
+      GOTRUE_MAILER_URLPATHS_RECOVERY: ${MAILER_URLPATHS_RECOVERY}
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: ${MAILER_URLPATHS_EMAIL_CHANGE}
+
+      GOTRUE_EXTERNAL_PHONE_ENABLED: ${ENABLE_PHONE_SIGNUP}
+      GOTRUE_SMS_AUTOCONFIRM: ${ENABLE_PHONE_AUTOCONFIRM}
+      # OAuth, SMS, MFA, SAML y hooks: copia los bloques comentados del compose
+      # upstream (supabase/supabase@4205c41 · docker/docker-compose.yml) cuando el
+      # proyecto los necesite.
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  rest:
+    image: postgrest/postgrest:v14.17
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "postgrest", "--ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_ADMIN_SERVER_PORT: 3001
+      PGRST_ADMIN_SERVER_HOST: localhost
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY}
+    command: ["postgrest"]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  storage:
+    image: supabase/storage-api:v1.77.6
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+      imgproxy:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://storage:5000/status"]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+      start_period: 10s
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      STORAGE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      REQUEST_ALLOW_X_FORWARDED_PATH: "true"
+      FILE_SIZE_LIMIT: 52428800
+      # `file` guarda en ./supabase/volumes/storage (entra en el backup del disco).
+      # `s3` manda los objetos a R2/B2: define GLOBAL_S3_* y STORAGE_AWS_* en .env.
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-file}
+      GLOBAL_S3_BUCKET: ${GLOBAL_S3_BUCKET}
+      GLOBAL_S3_ENDPOINT: ${GLOBAL_S3_ENDPOINT:-}
+      GLOBAL_S3_PROTOCOL: ${GLOBAL_S3_PROTOCOL:-https}
+      GLOBAL_S3_FORCE_PATH_STYLE: ${GLOBAL_S3_FORCE_PATH_STYLE:-true}
+      AWS_ACCESS_KEY_ID: ${STORAGE_AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${STORAGE_AWS_SECRET_ACCESS_KEY:-}
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: ${STORAGE_TENANT_ID}
+      REGION: ${REGION}
+      ENABLE_IMAGE_TRANSFORMATION: "true"
+      IMGPROXY_URL: http://imgproxy:5001
+      S3_PROTOCOL_ACCESS_KEY_ID: ${S3_PROTOCOL_ACCESS_KEY_ID}
+      S3_PROTOCOL_ACCESS_KEY_SECRET: ${S3_PROTOCOL_ACCESS_KEY_SECRET}
+    volumes:
+      - ./supabase/volumes/storage:/var/lib/storage:z
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  imgproxy:
+    image: darthsim/imgproxy:v3.31.4
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      - internal
+    volumes:
+      - ./supabase/volumes/storage:/var/lib/storage:z
+    healthcheck:
+      test: ["CMD", "imgproxy", "health"]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    environment:
+      IMGPROXY_BIND: ":5001"
+      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
+      IMGPROXY_USE_ETAG: "true"
+      IMGPROXY_AUTO_WEBP: ${IMGPROXY_AUTO_WEBP:-true}
+      IMGPROXY_MAX_SRC_RESOLUTION: 16.8
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  meta:
+    image: supabase/postgres-meta:v0.99.0
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: ${POSTGRES_HOST}
+      PG_META_DB_PORT: ${POSTGRES_PORT}
+      PG_META_DB_NAME: ${POSTGRES_DB}
+      PG_META_DB_USER: postgres
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  # ── Perfiles opcionales ─────────────────────────────────────────────────
+
+  realtime:
+    profiles: ["realtime"]
+    image: supabase/realtime:v2.134.10
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      internal:
+        # El cluster `realtime` de Envoy (cds.yaml) apunta a este nombre, que en el
+        # upstream era el container_name: Realtime deriva el tenant del subdominio.
+        aliases:
+          - realtime-dev.supabase-realtime
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSfL --head -o /dev/null -H \"Authorization: Bearer ${ANON_KEY}\" http://localhost:4000/api/tenants/realtime-dev/health"]
+      timeout: 5s
+      interval: 30s
+      retries: 3
+      start_period: 10s
+    environment:
+      PORT: 4000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: ${POSTGRES_PORT}
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY}
+      API_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      METRICS_JWT_SECRET: ${JWT_SECRET}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      APP_NAME: realtime
+      SEED_SELF_HOST: "true"
+      RUN_JANITOR: "true"
+      DISABLE_HEALTHCHECK_LOGGING: "true"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  functions:
+    profiles: ["functions"]
+    image: supabase/edge-runtime:v1.76.2
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      - internal
+    volumes:
+      # `main/` es el router del upstream; cada función va en su carpeta al lado.
+      - ./supabase/volumes/functions:/home/deno/functions:z
+      - deno-cache:/root/.cache/deno
+    depends_on:
+      api-gw:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/127.0.0.1/9000'"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      SUPABASE_URL: http://api-gw:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_PUBLISHABLE_KEYS: "{\"default\":\"${SUPABASE_PUBLISHABLE_KEY:-}\"}"
+      SUPABASE_SECRET_KEYS: "{\"default\":\"${SUPABASE_SECRET_KEY:-}\"}"
+      SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT:-false}"
+    command: ["start", "--user-worker-request-idle-timeout", "150000", "--main-service", "/home/deno/functions/main"]
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  # Studio no se publica por Traefik. Bajo su perfil se ata a loopback (o a la IP
+  # de Tailscale si STUDIO_BIND_IP la define) y se entra por túnel SSH o Tailscale.
+  # Ojo: Envoy también sirve Studio en `/` de SUPABASE_DOMAIN con basic auth
+  # (DASHBOARD_USERNAME/PASSWORD); sin el perfil ese upstream responde 503.
+  studio:
+    profiles: ["studio"]
+    image: supabase/studio:2026.09.07-sha-7996410
+    restart: unless-stopped
+    logging: *logging
+    networks:
+      - internal
+    ports:
+      - "${STUDIO_BIND_IP:-127.0.0.1}:${STUDIO_PORT:-3100}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})\""]
+      timeout: 10s
+      interval: 5s
+      retries: 3
+      start_period: 20s
+    environment:
+      HOSTNAME: "0.0.0.0"
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER_READ_WRITE: postgres
+      PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
+      DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION}
+      DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SUPABASE_URL: http://api-gw:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+      ENABLED_FEATURES_LOGS_ALL: "false"
+      SNIPPETS_MANAGEMENT_FOLDER: /app/snippets
+      EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /app/edge-functions
+    volumes:
+      - ./supabase/volumes/snippets:/app/snippets:z
+      - ./supabase/volumes/functions:/app/edge-functions:ro,z
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+volumes:
+  db-config:
+  deno-cache:
+
+networks:
+  # Externa: la crea el operador una vez (`docker network create <nombre>`) y la
+  # comparte solo con Traefik (infra/ops/traefik). Una por proyecto.
+  edge:
+    name: ${EDGE_NETWORK:?define EDGE_NETWORK en .env}
+    external: true
+  # Sin salida a Internet ni al host: aquí viven db, auth, rest, storage, meta…
+  internal:
+    name: ${PROYECTO}_internal
+    internal: true

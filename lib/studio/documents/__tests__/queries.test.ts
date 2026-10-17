@@ -64,6 +64,7 @@ const DOC = (over: Partial<DocumentRow>): DocumentRow => ({
   doc_type: "BL",
   name: "doc",
   storage_path: "t1/shipment/s1/u.pdf",
+  bucket_id: "documents",
   content_type: "application/pdf",
   size_bytes: 100,
   status: "firmado",

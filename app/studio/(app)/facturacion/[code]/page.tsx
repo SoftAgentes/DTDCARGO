@@ -12,6 +12,10 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getInvoiceByCode } from "@/lib/studio/invoice-queries";
 import { getFiscalSettingsSafe } from "@/lib/studio/fiscal/queries";
+import {
+  strandedCreditsForInvoice,
+  type StrandedCreditOnInvoice,
+} from "@/lib/studio/fidelizacion/referral-credit-queries";
 import { listCashAccounts, listReceipts } from "@/lib/studio/payment-queries";
 import { listInvoiceReports } from "@/lib/portal/payment-report-queries";
 import { createProofSignedUrl } from "@/lib/portal/payment-proof";
@@ -35,6 +39,8 @@ import {
   paymentMethodLabel,
 } from "@/lib/studio/payment-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Icon } from "@/app/studio/_components/icons";
+import { fmtUsd } from "@/lib/money";
 import { InvoiceDetailClient } from "../_components/InvoiceDetailClient";
 
 export const metadata = { title: "Detalle factura" };
@@ -64,6 +70,22 @@ export default async function InvoiceDetailPage({
 
   // Recibos de cobranza de la factura (SDD-0068) — con link al imprimible.
   const receipts = await listReceipts(supabase, { invoiceId: invoice.id });
+
+  /**
+   * SDD-0495 · Créditos de referido que quedaron 'aplicado' colgados de esta
+   * factura anulada porque la reversión de `voidInvoice` no pudo hacerse.
+   *
+   * Sólo si está ANULADA: sobre una factura viva, un crédito 'aplicado' es el
+   * estado normal, no una anomalía.
+   *
+   * Gate: `facturacion/layout.tsx` ya exige `requireModuleView("invoices")`
+   * (accounting + admin), el mismo rol que anula. No hace falta —ni cabe— un
+   * gate propio: no es una action, es la misma lectura de la pantalla.
+   */
+  const strandedCredits: StrandedCreditOnInvoice[] =
+    invoice.status === "anulada"
+      ? await strandedCreditsForInvoice(supabase, invoice.id)
+      : [];
 
   // Reportes de pago del cliente (SDD-0134) + URL firmada del comprobante (admin).
   const reports = await listInvoiceReports(supabase, {
@@ -125,6 +147,8 @@ export default async function InvoiceDetailPage({
           name: a.name,
         }))}
       />
+
+      <StrandedCreditsNotice credits={strandedCredits} />
 
       {/* Header */}
       <div
@@ -518,6 +542,121 @@ export default async function InvoiceDetailPage({
         </section>
       )}
     </div>
+  );
+}
+
+/**
+ * SDD-0495 · Aviso DURABLE en la factura anulada.
+ *
+ * El aviso que devuelve `voidInvoice` se muestra en el momento, pero se va con
+ * la pantalla: si quien anuló no estaba mirando, o vuelve mañana, no queda nada.
+ * Esto se deriva del estado cada vez que la factura se abre, así que también
+ * alcanza a los casos que ya ocurrieron antes de este cambio.
+ *
+ * No nombra al referidor ni al referido: este módulo es accounting, y para
+ * coordinar alcanza el `referral_code`, que es el handle que el otro lado (que
+ * sí ve los nombres, en Fidelización) también tiene.
+ */
+function StrandedCreditsNotice({
+  credits,
+}: {
+  credits: StrandedCreditOnInvoice[];
+}) {
+  if (credits.length === 0) return null;
+  const uno = credits.length === 1;
+  const total = credits.reduce((s, c) => s + c.rewardUsd, 0);
+
+  return (
+    <section
+      role="alert"
+      style={{
+        margin: "0 0 var(--s-5)",
+        padding: "var(--s-3) var(--s-4)",
+        background: "var(--warning-bg)",
+        border: "1px solid var(--warning)",
+        borderRadius: "var(--r-md)",
+        display: "flex",
+        gap: "var(--s-3)",
+        alignItems: "flex-start",
+      }}
+    >
+      {/* El estado se entiende por icono Y texto, nunca sólo por color
+          (política de estados del founder, 2026-09-05). El dorado va en el
+          icono y el borde, que sólo necesitan 3:1; el cuerpo es tinta neutra. */}
+      <span
+        style={{
+          color: "var(--warning)",
+          display: "flex",
+          flexShrink: 0,
+          marginTop: 2,
+        }}
+      >
+        {Icon.warn(16)}
+      </span>
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            font: "700 13px/1.3 var(--f-sans)",
+            color: "var(--ink)",
+            marginBottom: "var(--s-2)",
+          }}
+        >
+          {uno
+            ? "El crédito de referido quedó sin liberar"
+            : `Quedaron ${credits.length} créditos de referido sin liberar`}
+        </div>
+        <p
+          style={{
+            font: "500 12.5px/1.55 var(--f-sans)",
+            color: "var(--ink-soft)",
+            margin: "0 0 var(--s-2)",
+            maxWidth: "76ch",
+          }}
+        >
+          {uno
+            ? "Esta factura se anuló, pero el crédito de referido que tenía aplicado sigue marcado como usado, así que el referidor no lo va a poder aprovechar en otra compra."
+            : "Esta factura se anuló, pero los créditos de referido que tenía aplicados siguen marcados como usados, así que los referidores no los van a poder aprovechar en otra compra."}{" "}
+          No se arregla desde esta pantalla: coordínalo con quien lleva el
+          programa de referidos, que también tiene el caso a la vista en
+          Fidelización.
+        </p>
+        <div
+          style={{
+            display: "flex",
+            gap: "var(--s-2)",
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          {credits.map((c) => (
+            <span
+              key={c.referralId}
+              style={{
+                font: "700 11.5px/1 var(--f-mono)",
+                color: "var(--ink)",
+                padding: "5px 9px",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-sm)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {c.referralCode} · {fmtUsd(c.rewardUsd)}
+            </span>
+          ))}
+          {!uno && (
+            <span
+              style={{
+                font: "600 11.5px/1 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              Total sin liberar: {fmtUsd(total)}
+            </span>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

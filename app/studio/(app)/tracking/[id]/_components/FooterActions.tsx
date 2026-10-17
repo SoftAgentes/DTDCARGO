@@ -5,8 +5,9 @@
  *
  * Doble confirmacion en ambos:
  * - Cancelar: razon obligatoria (>=10 chars) + checkbox de confirmacion explicita.
- * - Eliminar: tipear el codigo exacto del envio (estilo GitHub) — la fuente
- *   mas confiable de "estoy seguro" para acciones destructivas.
+ * - Eliminar: motivo obligatorio (4 a 1000, SDD-0522) + tipear el codigo exacto
+ *   del envio (estilo GitHub). Solo lo ve quien puede eliminar (admin,
+ *   `delete_shipments`); la RPC de la 0476 decide si se puede.
  *
  * Tooltips de hover en ambos botones del footer principal.
  *
@@ -16,7 +17,7 @@
 import { useState, useTransition, useRef } from "react";
 import { cancelShipment, deleteShipment } from "../actions";
 import { isTerminalStatus } from "@/lib/studio/shipment-actions";
-import type { ShipmentStatus } from "@/lib/studio/shipment-types";
+import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 const MODAL_BACKDROP: React.CSSProperties = {
@@ -43,19 +44,25 @@ export function FooterActions({
   shipmentId,
   shipmentCode,
   status,
+  canDelete = false,
 }: {
   shipmentId: string;
   shipmentCode: string;
   status: ShipmentStatus;
+  /** SDD-0522: sólo admin (`delete_shipments`). Sin él, «Eliminar envío» no se pinta. */
+  canDelete?: boolean;
 }) {
   const [modal, setModal] = useState<null | "cancel" | "delete">(null);
   const [reason, setReason] = useState("");
   const [cancelConfirmed, setCancelConfirmed] = useState(false);
   const [deleteTypedCode, setDeleteTypedCode] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const terminal = isTerminalStatus(status);
+  const deleteReady =
+    deleteTypedCode.trim() === shipmentCode && deleteReason.trim().length >= 4;
 
   // Resetea estados al cerrar el modal
   const closeModal = () => {
@@ -63,6 +70,7 @@ export function FooterActions({
     setReason("");
     setCancelConfirmed(false);
     setDeleteTypedCode("");
+    setDeleteReason("");
     setError(null);
   };
 
@@ -101,10 +109,18 @@ export function FooterActions({
       setError(`Escribe el código exacto del envío: ${shipmentCode}`);
       return;
     }
+    if (deleteReason.trim().length < 4) {
+      setError("Indica un motivo de al menos 4 caracteres.");
+      return;
+    }
     setError(null);
     startTransition(async () => {
-      await deleteShipment(shipmentId);
-      // deleteShipment redirige a /studio/tracking
+      // deleteShipment redirige a /studio/tracking cuando el borrado ocurre, así
+      // que esta línea sólo devuelve algo si no borró: permiso, motivo, lo que
+      // lo bloquea (factura, gasto, aduana…) o una falla. Antes redirigía en los
+      // tres casos y el operador se iba creyendo que había borrado (SDD-0497).
+      const result = await deleteShipment(shipmentId, deleteReason);
+      if (result?.error) setError(result.error);
     });
   };
 
@@ -135,14 +151,18 @@ export function FooterActions({
           <span />
         )}
 
-        <button
-          type="button"
-          onClick={() => setModal("delete")}
-          className="studio-btn studio-btn-ghost studio-btn-sm"
-          title="Oculta el envío y sus eventos del listado (soft delete). No se borra de la base de datos — puede recuperarse desde Supabase si hace falta. Pedirá escribir el código del envío para confirmar."
-        >
-          Eliminar envío
-        </button>
+        {canDelete ? (
+          <button
+            type="button"
+            onClick={() => setModal("delete")}
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            title="Lo saca de Embarques, Tracking, el Portal y el calendario. Pide un motivo y el código del envío. Solo se recupera desde la base de datos."
+          >
+            Eliminar envío
+          </button>
+        ) : (
+          <span />
+        )}
       </div>
 
       {/* Modal cancelar — doble confirmacion (razon + checkbox) */}
@@ -285,10 +305,30 @@ export function FooterActions({
                 margin: "0 0 16px",
               }}
             >
-              Esto <strong>oculta el envío</strong> y todos sus eventos del
-              listado (soft delete). No se borra de la base — puede recuperarse
-              desde Supabase si hace falta.
+              Lo <strong>saca de Embarques, Tracking, el Portal del cliente y
+              el calendario</strong>, y cancela sus avisos pendientes. El código
+              no se puede volver a usar y solo se recupera desde la base de
+              datos. Si tiene una factura, un gasto, aduana u otra dependencia
+              viva, no se elimina y te decimos qué lo bloquea.
             </p>
+
+            <label className="studio-label" htmlFor="delete-reason">
+              Motivo (obligatorio, sin datos personales)
+            </label>
+            <textarea
+              id="delete-reason"
+              className="studio-input"
+              rows={2}
+              value={deleteReason}
+              onChange={(e) => {
+                setDeleteReason(e.target.value);
+                if (error) setError(null);
+              }}
+              placeholder="p. ej. Embarque de prueba"
+              maxLength={1000}
+              autoFocus
+              style={{ resize: "vertical", marginBottom: 12 }}
+            />
 
             <label className="studio-label" htmlFor="delete-typed-code">
               Para confirmar, escribe el código del envío:{" "}
@@ -312,7 +352,6 @@ export function FooterActions({
                 if (error) setError(null);
               }}
               placeholder={shipmentCode}
-              autoFocus
               autoComplete="off"
               spellCheck={false}
               style={{ marginBottom: 12 }}
@@ -320,6 +359,7 @@ export function FooterActions({
 
             {error && (
               <p
+                role="alert"
                 style={{
                   color: "var(--danger)",
                   font: "500 12px/1.4 var(--f-sans)",
@@ -343,15 +383,8 @@ export function FooterActions({
                 type="button"
                 className="studio-btn studio-btn-danger studio-btn-sm"
                 onClick={handleDelete}
-                disabled={
-                  isPending || deleteTypedCode.trim() !== shipmentCode
-                }
-                style={{
-                  opacity:
-                    isPending || deleteTypedCode.trim() !== shipmentCode
-                      ? 0.6
-                      : 1,
-                }}
+                disabled={isPending || !deleteReady}
+                style={{ opacity: isPending || !deleteReady ? 0.6 : 1 }}
               >
                 {isPending ? "Eliminando…" : "Confirmar eliminación"}
               </button>

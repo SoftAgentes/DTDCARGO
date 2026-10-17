@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/db/admin";
 import { canonicalizeEmail } from "@/lib/studio/email-utils";
 import {
   unsubscribeSecret,
+  unsubscribeSecretSource,
   unsubscribeTokenFingerprint,
   verifyUnsubscribeToken,
 } from "@/lib/studio/mail/unsubscribe-token";
@@ -58,7 +59,10 @@ async function processUnsubscribe(
     console.warn(JSON.stringify({
       level: "warn",
       event: "email_unsubscribe_invalid",
-      requestId: req.headers.get("x-vercel-id"),
+      // Correlación con el log del proxy: `x-vercel-id` en Vercel; detrás de
+      // Traefik, el `X-Request-Id` que fija su middleware (SDD-0505). Sin
+      // ninguno queda null: la app no inventa IDs.
+      requestId: req.headers.get("x-vercel-id") ?? req.headers.get("x-request-id"),
       tokenTransport: transport,
       tokenPresent: tokenValue.length > 0,
       tokenLength: tokenValue.length,
@@ -66,9 +70,7 @@ async function processUnsubscribe(
       tokenFingerprint: tokenValue
         ? unsubscribeTokenFingerprint(tokenValue)
         : null,
-      secretSource: process.env.EMAIL_UNSUBSCRIBE_SECRET
-        ? "dedicated"
-        : "service_role",
+      secretSource: unsubscribeSecretSource(),
     }));
     return { status: 400, title: "Enlace inválido", body: "Este enlace de baja no es válido o está incompleto." };
   }

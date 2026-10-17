@@ -17,6 +17,16 @@ import type {
   ShipmentService,
   ShipmentStatus,
 } from "@/lib/studio/shipment-types";
+import { AdjuntosConteo } from "@/app/studio/_components/documents/AdjuntosConteo";
+import { etiquetaDelCliente } from "@/lib/studio/privacidad-cn";
+import {
+  FILTRO_ADJUNTOS_OPCIONES,
+  desgloseEmbarque,
+  pasaFiltroAdjuntos,
+  type ConteoEmbarque,
+  type ConteosPorId,
+  type FiltroAdjuntos,
+} from "@/lib/studio/documents/adjuntos";
 
 export type ActiveShipmentRow = {
   id: string;
@@ -34,6 +44,14 @@ export type ActiveShipmentRow = {
 type Props = {
   shipments: ActiveShipmentRow[];
   selectedId: string | null;
+  /** SDD-0507: adjuntos por embarque. `null` = no se pudo contar (se dice). */
+  adjuntos: ConteosPorId<ConteoEmbarque>;
+  /**
+   * SDD-0531: el usuario no puede ver nombres de clientes (región China). El
+   * server ya mandó `client_name` en null; acá sólo se decide qué decir en su
+   * lugar: el Shipping Mark, no «Sin cliente».
+   */
+  nombresOcultos?: boolean;
 };
 
 function formatEta(iso: string | null): string {
@@ -44,15 +62,25 @@ function formatEta(iso: string | null): string {
   });
 }
 
-export function ActiveShipmentList({ shipments, selectedId }: Props) {
+export function ActiveShipmentList({
+  shipments,
+  selectedId,
+  adjuntos,
+  nombresOcultos = false,
+}: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const [query, setQuery] = useState("");
+  const [filtroAdjuntos, setFiltroAdjuntos] = useState<FiltroAdjuntos>("todos");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return shipments;
-    return shipments.filter((s) => {
+    // SDD-0507: con / sin adjuntos. Sin conteo no filtra (y el select ni se pinta).
+    const conAdjuntos = shipments.filter((s) =>
+      pasaFiltroAdjuntos(filtroAdjuntos, adjuntos, s.id),
+    );
+    if (!q) return conAdjuntos;
+    return conAdjuntos.filter((s) => {
       return (
         s.code.toLowerCase().includes(q) ||
         (s.client_name?.toLowerCase().includes(q) ?? false) ||
@@ -61,7 +89,7 @@ export function ActiveShipmentList({ shipments, selectedId }: Props) {
         (s.destination?.toLowerCase().includes(q) ?? false)
       );
     });
-  }, [shipments, query]);
+  }, [shipments, query, filtroAdjuntos, adjuntos]);
 
   function selectShipment(id: string) {
     const next = new URLSearchParams(params.toString());
@@ -79,6 +107,41 @@ export function ActiveShipmentList({ shipments, selectedId }: Props) {
         onChange={(e) => setQuery(e.target.value)}
         className="studio-input"
       />
+
+      {adjuntos !== null ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <label
+            className="studio-label"
+            htmlFor="trk-adj"
+            style={{ margin: 0, flexShrink: 0 }}
+          >
+            Adjuntos
+          </label>
+          <select
+            id="trk-adj"
+            className="studio-input"
+            value={filtroAdjuntos}
+            onChange={(e) => setFiltroAdjuntos(e.target.value as FiltroAdjuntos)}
+          >
+            {FILTRO_ADJUNTOS_OPCIONES.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <p
+          role="status"
+          style={{
+            margin: 0,
+            font: "500 12px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          No se pudieron contar los adjuntos.
+        </p>
+      )}
 
       {/* Lista scrollable */}
       <div
@@ -104,7 +167,11 @@ export function ActiveShipmentList({ shipments, selectedId }: Props) {
           >
             {query
               ? "Ningún envío coincide con la búsqueda."
-              : "Sin envíos activos."}
+              : filtroAdjuntos === "con"
+                ? "Ningún envío activo tiene adjuntos."
+                : filtroAdjuntos === "sin"
+                  ? "Todos los envíos activos tienen adjuntos."
+                  : "Sin envíos activos."}
           </div>
         ) : (
           filtered.map((s) => {
@@ -161,7 +228,7 @@ export function ActiveShipmentList({ shipments, selectedId }: Props) {
                     color: "var(--ink)",
                   }}
                 >
-                  {s.client_name ?? "Sin cliente"}
+                  {etiquetaDelCliente(s, nombresOcultos)}
                 </div>
 
                 {(s.origin || s.destination) && (
@@ -204,12 +271,17 @@ export function ActiveShipmentList({ shipments, selectedId }: Props) {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 8,
                     marginTop: 6,
                     font: "600 10.5px/1 var(--f-mono)",
                     color: "var(--ink-soft)",
                   }}
                 >
                   <span>{progress}%</span>
+                  {adjuntos !== null && (
+                    <AdjuntosDeTarjeta conteo={adjuntos[s.id]} />
+                  )}
                   <span>ETA {formatEta(s.arrived_destination_at)}</span>
                 </div>
               </button>
@@ -219,4 +291,10 @@ export function ActiveShipmentList({ shipments, selectedId }: Props) {
       </div>
     </div>
   );
+}
+
+/** Indicador de la tarjeta. Sin entrada cuenta como cero (ver `pasaFiltroAdjuntos`). */
+function AdjuntosDeTarjeta({ conteo }: { conteo: ConteoEmbarque | undefined }) {
+  const c = conteo ?? { internos: 0, portal: 0, total: 0 };
+  return <AdjuntosConteo total={c.total} desglose={desgloseEmbarque(c)} variante="tarjeta" />;
 }

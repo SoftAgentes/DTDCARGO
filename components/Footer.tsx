@@ -3,6 +3,7 @@ import { BrandMark } from "./BrandMark";
 import { CookiePreferencesLink } from "./CookiePreferencesLink";
 import { TERMINOS_LIVE } from "@/lib/legal-public";
 import { CONTACT, buildGoogleMapsLink } from "@/lib/design-tokens";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 import {
   InstagramIcon,
   YoutubeIcon,
@@ -95,8 +96,14 @@ export function Footer() {
 
           {/* Enlaces rápidos */}
           <FooterCol title="Enlaces rápidos">
-            {/* Rastreo: el /track público se eliminó (vive dentro del portal). */}
-            <FooterLink href="/entrar">Rastrea tu envío</FooterLink>
+            {/* Rastreo: el /track público se eliminó (vive dentro del portal).
+                SDD-0521 · mientras el seguimiento esté en construcción
+                (SDD-0514), el enlace no promete rastreo: dice lo mismo que el
+                aviso del Portal y lleva al mismo lugar. No se renombra «Mi
+                portal», que ya está en Explora con el mismo destino. */}
+            <FooterLink href="/entrar">
+              {TRACKING_EN_CONSTRUCCION ? "Seguimiento en construcción" : "Rastrea tu envío"}
+            </FooterLink>
             <FooterLink href="/tarifas">Calculadora de envío</FooterLink>
             {/* SDD-0473 · Sólo con la bandera encendida: apagada, /cotizador es
                 404. El Footer es componente de servidor (ningún cliente lo

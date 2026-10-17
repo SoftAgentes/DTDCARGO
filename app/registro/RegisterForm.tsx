@@ -19,6 +19,7 @@ import {
   type RegisterFieldKey,
 } from "@/lib/portal/register-types";
 import type { RegisterCity } from "@/lib/portal/register-cities";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { buildMarkboxWhatsAppMessage } from "@/lib/public/markbox-whatsapp";
 import { trackLead } from "@/components/Analytics";
@@ -784,8 +785,16 @@ function StepContacto({
                 Registras a <strong className="text-ink">{companyName}</strong>.{" "}
               </>
             ) : null}
-            El WhatsApp es por donde te avisamos de tu carga: cuando llega a bodega en
-            China, cuando zarpa y cuando está lista para entrega.
+            {/* SDD-0517 · mientras el seguimiento esté en construcción (SDD-0514),
+                no se promete el aviso de llegada a bodega: la bodega de China
+                todavía registra en Excel. Tampoco zarpe ni entrega, porque los
+                avisos automáticos salen por correo o push, nunca por WhatsApp.
+                SDD-0524 · apagado ya no vuelve el texto viejo, que prometía esos
+                avisos POR WHATSAPP: dice el canal real (correo, y push si el
+                cliente activa las notificaciones del Portal). */}
+            {TRACKING_EN_CONSTRUCCION
+              ? "El WhatsApp es por donde hablamos contigo sobre tu carga."
+              : "El WhatsApp es por donde hablamos contigo sobre tu carga. Los avisos de cuando llega a bodega en China, cuando zarpa y cuando está lista para entrega te llegan por correo y, si activas las notificaciones en tu Portal, también en tu teléfono o tu computadora."}
           </>
         }
       />

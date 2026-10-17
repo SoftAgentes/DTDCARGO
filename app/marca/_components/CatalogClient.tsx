@@ -80,7 +80,7 @@ const TYPE = [
   { name: "Archivo Black", role: "Display · títulos, H1/H2, KPI", sample: "DTD Cargo", fontVar: "var(--font-archivo-black)", note: "Solo para títulos y números destacados." },
   { name: "Archivo", role: "Texto · cuerpo, labels, botones", sample: "Con Confianza.", fontVar: "var(--font-archivo)", note: "Pesos 300–900. Todo el cuerpo del sitio." },
   { name: "JetBrains Mono", role: "Códigos · Shipping Mark, contenedores, facturas", sample: "DTDU-000123", fontVar: "var(--font-jetbrains-mono)", note: "Para todo dato técnico o código de tracking." },
-  { name: "Noto Sans SC", role: "Chino mandarín · direcciones CN", sample: "义乌 · 门到门", fontVar: "var(--font-noto-sc)", note: "Solo para texto en chino." },
+  { name: "Chino · fuente del sistema", role: "Chino mandarín · direcciones CN", sample: "义乌 · 门到门", fontVar: "var(--font-noto-sc)", note: "Sin fuente web: cada equipo usa su fuente china (PingFang, Microsoft YaHei, Noto CJK)." },
 ];
 
 const DOS = [

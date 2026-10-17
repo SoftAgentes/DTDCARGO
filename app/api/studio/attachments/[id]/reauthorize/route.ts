@@ -1,5 +1,12 @@
+/**
+ * SDD-0499 · mismo criterio que `finalize`: el gate de "expenses" se agrega por
+ * uniformidad con `reserve`/`restore`/`download`. La RPC
+ * `reauthorize_document_upload` ya acota a `tenant_id` + `user_id = auth.uid()`,
+ * así que esto no cierra un hueco explotable — alinea las capas.
+ */
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { requireAttachmentsPilot } from "@/lib/studio/attachments/pilot-gate";
 import { createTusAuthorization, directTusEndpoint, reauthorizeAttachment } from "@/lib/studio/attachments/service";
 
@@ -11,6 +18,8 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   if (!UUID.test(id)) return NextResponse.json({ error: "Reserva inválida." }, { status: 400 });
   const client = await createClient();
   if (!(await client.auth.getUser()).data.user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  const denial = await moduleEditDenial(client, "expenses");
+  if (denial) return NextResponse.json({ error: denial }, { status: 403 });
   try {
     const reservation = await reauthorizeAttachment(client, id);
     const signature = await createTusAuthorization(reservation.objectKey);

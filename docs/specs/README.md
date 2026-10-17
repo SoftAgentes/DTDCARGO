@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 481 specs)
+### Índice de specs (generado · 531 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -519,6 +519,56 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0492 | Escribir cobros y cuentas por pagar queda para accounting y a… | in-progress | interno |
 | 0493 | Las pruebas que no tocan el DOM corren en el entorno node | in-progress | interno |
 | 0494 | Cobros y órdenes de pago anulados fuera de los lectores de Co… | in-progress | interno |
+| 0495 | Una reversión de crédito que falla deja de ser invisible | in-progress | interno |
+| 0496 | El crédito de referido se aplica y se revierte en una sola tr… | in-progress | interno |
+| 0497 | Gates de RBAC en ocho server actions del Studio que no los te… | done | interno |
+| 0498 | Cinco puertas del Studio que se saltaban el fail-closed por d… | in-progress | interno |
+| 0499 | Secretos que viajan mal y gates que faltan en app/api | in-progress | interno |
+| 0500 | El anti-drift de RBAC mide por acción, no por archivo | in-progress | interno |
+| 0502 | Mínimo facturable con batería según el multiplicador configur… | in-progress | interno |
+| 0503 | Carrusel de fotos de la empresa en la web pública | in-progress | interno |
+| 0504 | Entrega incluida desde Editar ciudad | done | interno |
+| 0505 | Dockerizar DTD Cargo para el servidor propio en Contabo (Fase 0) | in-progress | interno |
+| 0506 | Los adjuntos de Bitácora vuelven a pasar la validación de ent… | done | interno |
+| 0507 | Adjuntos visibles en el Studio: conteo por fila en Clientes, … | done | interno |
+| 0508 | El objeto de un documento se firma y se borra en el bucket qu… | done | interno |
+| 0509 | Clientes y embarques eliminados fuera de los listados del Studio | done | interno |
+| 0510 | El selector de «Generar Bill of Lading» filtra con las etique… | done | interno |
+| 0511 | Envíos y clientes eliminados fuera de los avisos, Kommo y el … | in-progress | interno |
+| 0512 | /back fuera de los buscadores: noindex en todo el back de con… | done | interno |
+| 0513 | Restablecer el PIN de un operario con uno generado y mostrarl… | done | interno |
+| 0514 | Portal: aviso de seguimiento en construcción | done | interno |
+| 0515 | PIN de operarios endurecido: matriz de módulos, «Ver PIN» con… | done | interno |
+| 0516 | Portal: el detalle de compra no promete avisos mientras el se… | done | interno |
+| 0517 | Registro público: sin promesa de aviso de bodega mientras el … | done | interno |
+| 0518 | Google Analytics y la etiqueta de Ads cargan aunque NEXT_PUBL… | done | interno |
+| 0519 | Servicios y marketing: sin promesa de aviso de bodega mientra… | done | interno |
+| 0520 | Operarios: columnas ajustables y botones compactos | done | interno |
+| 0521 | Tracking en construcción: «Te avisaremos apenas esté activo» … | done | interno |
+| 0522 | Borrado auditado de embarques y recepciones de prueba | in-progress | interno |
+| 0523 | Secretos de firma vacíos cuentan como ausentes: baja de corre… | in-progress | interno |
+| 0524 | Avisos de bodega confiables para el cliente | in-progress | interno |
+| 0525 | Modelos de Anthropic vacíos caen a su respaldo: acta, Escucha… | in-progress | interno |
+| 0526 | Portal: bandeja de avisos del cliente | in-progress | interno |
+| 0527 | Salud de Resend: una llave borrada deja de salir verde en /st… | in-progress | interno |
+| 0528 | Textos públicos de rastreo que quedan: /entrar, glosario, /se… | in-progress | interno |
+| 0529 | Editar operarios de Venezuela: rol de su región, sin almacén,… | in-progress | interno |
+| 0530 | Naviera: al zarpar el contenedor, los envíos de los clientes … | in-progress | interno |
+| 0531 | Ocultar nombres de clientes al equipo de China en Tracking y … | in-progress | interno |
+| 0532 | Autorizar una consolidación de Naviera deja de fallar siempre… | in-progress | interno |
+| 0533 | Salud del webhook de Resend: una llave borrada deja de salir … | in-progress | interno |
+| 0534 | Siete acciones R3 del Studio dejan de fallar siempre: correla… | in-progress | interno |
+| 0535 | Kommo: el cliente que vuelve a escribir llega a Recontacto, c… | in-progress | interno |
+| 0536 | Contrato 0480: el último evento se elige por guardado, no por… | in-progress | interno |
+| 0537 | Tarifario de transportistas editable por ciudad, con rutas y … | in-progress | interno |
+| 0538 | Contrato 0475: el bloque 5 lee el último restablecimiento por… | in-progress | interno |
+| 0539 | Transportistas: lote sin ids en la URL, escrituras honestas y… | in-progress | interno |
+| 0540 | Entorno de prueba de DTD Cargo con base separada en el VPS (d… | proposed | interno |
+| 0541 | Publicación automática de la web en el servidor propio | in-progress | interno |
+| 0542 | Dashboard: los enlaces internos llevan a una pantalla que existe | in-progress | interno |
+| 0543 | Consolidados en camino: carga de contenedores desde el packin… | in-progress | interno |
+| 0544 | Producto mínimo para el entorno de prueba: GA apagable, aviso… | proposed | interno |
+| 0545 | sdd:next --reserve: --expect, --number y aviso de hueco reciente | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

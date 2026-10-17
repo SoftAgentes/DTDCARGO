@@ -81,12 +81,16 @@ export function CobranzaDrawer({
     activities: CollectionActivity[];
   } | null>(null);
 
-  // Cargar historial al abrir.
+  // Cargar historial al abrir. Si el gate de VISTA deniega (SDD-0497), el motivo
+  // se muestra en el banner de error del drawer en vez de un historial vacío
+  // indistinguible de "esta factura no tiene cobros".
   useEffect(() => {
     let active = true;
     getReceivableHistory(inv.id)
       .then((h) => {
-        if (active) setHistory(h);
+        if (!active) return;
+        setHistory({ receipts: h.receipts, activities: h.activities });
+        if (h.error) setError(h.error);
       })
       .catch(() => {
         if (active) setHistory({ receipts: [], activities: [] });

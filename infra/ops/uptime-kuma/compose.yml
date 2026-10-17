@@ -1,0 +1,45 @@
+# infra/ops/uptime-kuma/compose.yml — monitor de disponibilidad (SDD-0505).
+#
+# Uptime Kuma vigila desde el propio VPS las URLs públicas de cada proyecto
+# (/, /api/cron/* con HEAD, el gateway de Supabase) y avisa por Telegram/correo.
+# Vive en la red edge para que Traefik lo publique en UPTIME_KUMA_HOST; no toca
+# el socket de Docker ni las redes internas. Los monitores se configuran en su
+# UI (primer arranque: crea el usuario admin de inmediato, antes de abrirlo a
+# Internet, o pon `tailscale-only@file` en los middlewares del router).
+
+name: ops-uptime-kuma
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:2.5.5
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - uptime-kuma-data:/app/data
+    networks:
+      - dtd_edge
+    environment:
+      UPTIME_KUMA_PORT: "3001"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dtd_edge"
+      - "traefik.http.routers.uptime-kuma.rule=Host(`${UPTIME_KUMA_HOST:?define UPTIME_KUMA_HOST en .env}`)"
+      - "traefik.http.routers.uptime-kuma.entrypoints=websecure"
+      - "traefik.http.routers.uptime-kuma.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.uptime-kuma.middlewares=security-headers@file"
+      - "traefik.http.services.uptime-kuma.loadbalancer.server.port=3001"
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+volumes:
+  uptime-kuma-data:
+
+networks:
+  dtd_edge:
+    external: true

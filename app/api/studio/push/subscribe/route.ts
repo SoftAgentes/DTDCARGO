@@ -14,6 +14,13 @@
  * Auth: caller logueado. La tabla tiene RLS self; el delete-por-endpoint del rebind
  * (que puede tocar la fila de OTRO user en un dispositivo compartido) usa el admin
  * client tras verificar la sesión.
+ *
+ * SDD-0499 · el rebind SE CONSERVA: el puesto compartido entre personal de
+ * almacén es una realidad operativa y quitarlo dejaría al segundo turno sin
+ * poder activar el push en su propia máquina. Lo que se agrega es la
+ * comprobación que faltaba — que quien reclama el endpoint pruebe que lo posee,
+ * presentando el `keys.auth` de esa suscripción. El mismo navegador lo presenta
+ * siempre; quien sólo conoce el endpoint, no.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -21,6 +28,7 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { apiError } from "@/lib/http/api-error";
 import { parsePushSubscription } from "@/lib/studio/notify/push-subscription";
+import { userPushRebindDenial } from "@/lib/studio/notify/push-rebind";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -72,6 +80,12 @@ export async function POST(request: NextRequest) {
   // Delete-then-insert por endpoint (rebind en dispositivo compartido: el endpoint
   // es único global). El admin client puede borrar la fila de otro user; el insert
   // va SIEMPRE con el user_id de la SESIÓN.
+  //
+  // El borrado sigue sin acotar a propósito: es el rebind, y el gate de acá
+  // arriba ya decidió si este llamador puede quedárselo.
+  const denial = await userPushRebindDenial(admin, sub.endpoint, userId, sub.keys.auth);
+  if (denial) return NextResponse.json({ error: denial }, { status: 409 });
+
   await admin.from("user_push_subscriptions").delete().eq("endpoint", sub.endpoint);
   const { error: insErr } = await admin.from("user_push_subscriptions").insert({
     tenant_id: link.tenant_id,

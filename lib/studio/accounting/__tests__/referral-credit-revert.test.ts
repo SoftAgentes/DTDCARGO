@@ -1,17 +1,31 @@
 // @vitest-environment node
 /**
- * Tests de la REVERSIÓN del crédito de referido (SDD-0137, huecos B y C).
+ * Tests de la REVERSIÓN del crédito de referido (SDD-0137 §3.6, SDD-0496).
  *
- * Cubren, con un stub in-memory de createAdminClient (sin red ni DB):
- *  - Fix B: la reversión anula el asiento barriendo por journal_entries.referral_id
- *    AUNQUE referrals.applied_entry_id sea NULL (crash entre claim y linkage) →
- *    no queda asiento huérfano y el crédito no se re-aplica con doble $80.
- *  - Fix C: al revertir se baja invoices.paid_amount en el monto del crédito
- *    (se deshace el abono no-monetario), manteniendo GL↔subledger consistentes.
- *  - Idempotencia: revertir dos veces = no-op (segunda pasada revierte 0).
- *  - SDD-0490: el pagado se baja con guard optimista (pagado y estado leídos),
- *    releyendo ante un conflicto; el estado sigue la regla de la 0467; si no se
- *    puede bajar, el crédito vuelve a 'aplicado' y el asiento sigue vivo.
+ * Desde la SDD-0496 el trabajo de DINERO no está acá: lo hace
+ * `revert_referral_credits` (migración 0471) en una transacción, con la factura
+ * tomada FOR UPDATE. Que esa transacción sea correcta lo prueban el contrato
+ * `supabase/tests/0471_credito_referido_atomico.test.sql` (en PGlite, con el
+ * .sql real) y la carrera de tres sesiones de
+ * `supabase/tests/0467_reversion_credito_carrera.test.sql`.
+ *
+ * Lo que se prueba acá es lo que queda en TypeScript:
+ *  - la RPC se llama UNA vez, con la factura y el crédito que se pidieron;
+ *  - Fix B: los asientos se barren por `journal_entries.referral_id` AUNQUE
+ *    `applied_entry_id` sea NULL (crash entre claim y linkage) → no queda
+ *    asiento huérfano;
+ *  - un `applied_entry_id` que el barrido no encontró se anula igual;
+ *  - idempotencia: si la RPC no devolvió créditos, no se toca ningún asiento;
+ *  - un fallo de la RPC se informa con el mensaje único y no revierte nada,
+ *    cualquiera sea su causa: contención (la factura tomada más de los 8 s de
+ *    `statement_timeout` del rol `authenticated`) o rol sin permiso;
+ *  - si la plata se revirtió pero un asiento no se pudo anular, se informa
+ *    igual, diciendo que la factura quedó bien;
+ *  - y los dos fallos se distinguen por `failure`, no por `reverted`: antes de
+ *    la SDD-0496, un `ok:false` con `reverted > 0` significaba «unos créditos sí
+ *    y otros no», porque la reversión los recorría de a uno. Con la 0471 eso ya
+ *    no puede pasar —es una transacción, todos o ninguno—, así que el campo dice
+ *    qué falló de verdad.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -19,20 +33,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 type Row = Record<string, unknown>;
 
 // Store mutable compartido entre el stub y las aserciones.
-const store: { referrals: Row[]; journal_entries: Row[]; invoices: Row[] } = {
-  referrals: [],
-  journal_entries: [],
-  invoices: [],
-};
-
-/**
- * Otro escritor que entra entre la lectura y un UPDATE (SDD-0490): se llama
- * antes de aplicar cada UPDATE, con la tabla, y puede mover el store como lo
- * haría void_collection_receipt al confirmar en otra sesión.
- */
-const hooks: { beforeUpdate: ((table: string) => void) | null } = { beforeUpdate: null };
-/** UPDATEs de invoices que intentó la reversión (con o sin filas). */
-let invoiceUpdates = 0;
+const store: { journal_entries: Row[] } = { journal_entries: [] };
+/** Errores inyectados en el admin client, por tabla y operación. */
+const adminFails: { select?: string; update?: string } = {};
 
 function matches(row: Row, filters: Row): boolean {
   return Object.entries(filters).every(([k, v]) => {
@@ -45,21 +48,10 @@ vi.mock("@/lib/db/admin", () => ({
   createAdminClient: () => ({
     from(table: keyof typeof store) {
       const filters: Row = {};
-      let op: "select" | "update" | "delete" = "select";
+      let op: "select" | "update" = "select";
       let payload: Row = {};
-
-      // UPDATE con los filtros de la cadena: aplica y devuelve las filas tocadas.
-      const applyUpdate = (): Row[] => {
-        if (table === "invoices") invoiceUpdates += 1;
-        hooks.beforeUpdate?.(table);
-        const rows = store[table].filter((r) => matches(r, filters));
-        for (const r of rows) Object.assign(r, payload);
-        return rows;
-      };
-
       const chain: Row = {
         select() {
-          // `.update(...).select("id")` sigue siendo un UPDATE (RETURNING).
           return chain;
         },
         update(p: Row) {
@@ -67,48 +59,27 @@ vi.mock("@/lib/db/admin", () => ({
           payload = p;
           return chain;
         },
-        delete() {
-          op = "delete";
-          return chain;
-        },
         eq(col: string, val: unknown) {
           filters[col] = val;
-          return chain;
-        },
-        neq(col: string, val: unknown) {
-          // solo se usa en posting; en revert no aparece. Guardamos como marca.
-          (filters as Row)[`__neq_${col}`] = val;
           return chain;
         },
         is(col: string, val: unknown) {
           filters[col] = val;
           return chain;
         },
-        order() {
-          return chain;
-        },
-        limit() {
-          return chain;
-        },
-        maybeSingle() {
+        then(resolve: (v: { data: unknown; error: unknown }) => unknown) {
           if (op === "update") {
-            const touched = applyUpdate();
-            return Promise.resolve({ data: touched[0] ? { ...touched[0] } : null, error: null });
-          }
-          const found = store[table].find((r) => matches(r, filters)) ?? null;
-          return Promise.resolve({ data: found ? { ...found } : null, error: null });
-        },
-        then(resolve: (v: { data: unknown; error: null }) => unknown) {
-          if (op === "update") {
-            applyUpdate();
+            if (adminFails.update) {
+              return Promise.resolve({ data: null, error: { message: adminFails.update } }).then(resolve);
+            }
+            for (const r of store[table].filter((r) => matches(r, filters))) Object.assign(r, payload);
             return Promise.resolve({ data: null, error: null }).then(resolve);
           }
-          // Copias, como PostgREST: lo leído no cambia si después se escribe el store.
+          if (adminFails.select) {
+            return Promise.resolve({ data: null, error: { message: adminFails.select } }).then(resolve);
+          }
+          // Copias, como PostgREST: lo leído no cambia si después se escribe.
           const rows = store[table].filter((r) => matches(r, filters)).map((r) => ({ ...r }));
-          if (op === "delete") {
-            store[table] = store[table].filter((r) => !matches(r, filters));
-            return Promise.resolve({ data: null, error: null }).then(resolve);
-          }
           return Promise.resolve({ data: rows, error: null }).then(resolve);
         },
       };
@@ -118,196 +89,202 @@ vi.mock("@/lib/db/admin", () => ({
 }));
 
 import {
-  REVERT_PAID_MAX_ATTEMPTS,
-  invoiceStatusAfterPaidDecrease,
+  REVERT_REFERRAL_CREDITS_ERROR,
   revertReferralCreditsForInvoice,
+  type RevertedReferralCredit,
 } from "../referral-credit-posting";
 
-beforeEach(() => {
-  hooks.beforeUpdate = null;
-  invoiceUpdates = 0;
-  store.referrals = [
-    {
-      id: "r1",
-      tenant_id: "t1",
-      applied_invoice_id: "inv1",
-      applied_entry_id: null, // ← crash entre claim y linkage: link NUNCA se seteó
-      reward_usd: 80,
-      status: "aplicado",
-      deleted_at: null,
+/** Lo que devolvió la RPC en cada llamada, y con qué argumentos se la llamó. */
+const rpcCalls: { fn: string; args: Record<string, unknown> }[] = [];
+let rpcResult: { data: unknown; error: { message: string } | null } = { data: null, error: null };
+
+const supabase = {
+  rpc(fn: string, args: Record<string, unknown>) {
+    rpcCalls.push({ fn, args });
+    return Promise.resolve(rpcResult);
+  },
+};
+
+/** El jsonb de `revert_referral_credits`, con lo que la app consume. */
+function reverted(credits: Partial<RevertedReferralCredit>[]) {
+  return {
+    data: {
+      count: credits.length,
+      reverted: credits.map((c) => ({
+        referral_id: "r1",
+        referral_code: "REF-2026-0001",
+        amount: 80,
+        applied_entry_id: null,
+        ...c,
+      })),
     },
-  ];
+    error: null,
+  };
+}
+
+const entry = (id: string) => store.journal_entries.find((e) => e.id === id)!;
+
+beforeEach(() => {
+  rpcCalls.length = 0;
+  rpcResult = { data: null, error: null };
+  delete adminFails.select;
+  delete adminFails.update;
   store.journal_entries = [
     {
       id: "e1",
       tenant_id: "t1",
-      referral_id: "r1", // ← pero el asiento vive con referral_id seteado
+      referral_id: "r1", // ← el asiento vive con referral_id seteado…
       source: "referral_credit",
       status: "asentado",
       deleted_at: null,
       invoice_id: "inv1",
     },
   ];
-  store.invoices = [
-    { id: "inv1", tenant_id: "t1", total_amount: 100, paid_amount: 80, status: "pagada" },
-  ];
 });
 
-describe("revertReferralCreditsForInvoice · Fix B (barre por referral_id)", () => {
-  it("anula el asiento aunque applied_entry_id sea NULL (no queda huérfano)", async () => {
-    const res = await revertReferralCreditsForInvoice("t1", "inv1");
+describe("revertReferralCreditsForInvoice · SDD-0496 (la plata la mueve la RPC)", () => {
+  it("llama a revert_referral_credits una vez, con la factura y sin filtro de crédito", async () => {
+    rpcResult = reverted([{ referral_id: "r1" }]);
+
+    const res = await revertReferralCreditsForInvoice(supabase, "t1", "inv1");
+
+    expect(rpcCalls).toEqual([
+      { fn: "revert_referral_credits", args: { p_invoice_id: "inv1", p_referral_id: null } },
+    ]);
     expect(res.ok).toBe(true);
     expect(res.reverted).toBe(1);
-
-    // El asiento se anuló pese a que el crédito nunca linkeó applied_entry_id.
-    const entry = store.journal_entries.find((e) => e.id === "e1")!;
-    expect(entry.status).toBe("anulado"); // no huérfano
   });
 
-  it("Fix C: baja el paid_amount de la factura en el monto del crédito", async () => {
-    await revertReferralCreditsForInvoice("t1", "inv1");
-    const inv = store.invoices.find((i) => i.id === "inv1")!;
-    expect(inv.paid_amount).toBe(0); // 80 − 80 (se deshace el abono no-monetario)
+  it("con un crédito nombrado lo pasa como filtro: es la compensación de la aplicación", async () => {
+    rpcResult = reverted([{ referral_id: "r1" }]);
+
+    await revertReferralCreditsForInvoice(supabase, "t1", "inv1", "r1");
+
+    expect(rpcCalls[0].args).toEqual({ p_invoice_id: "inv1", p_referral_id: "r1" });
   });
 
-  it("devuelve el crédito a 'acreditado' y limpia el rastro", async () => {
-    await revertReferralCreditsForInvoice("t1", "inv1");
-    const ref = store.referrals.find((r) => r.id === "r1")!;
-    expect(ref.status).toBe("acreditado");
-    expect(ref.applied_invoice_id).toBeNull();
-    expect(ref.applied_entry_id).toBeNull();
-    expect(ref.applied_at).toBeNull();
+  it("sin factura no llama a la RPC: es el no-op que ya tenía", async () => {
+    const res = await revertReferralCreditsForInvoice(supabase, "t1", "");
+    expect(rpcCalls).toEqual([]);
+    expect(res).toEqual({ ok: true, reverted: 0, credits: [] });
   });
 
-  it("es idempotente: revertir dos veces no re-anula ni re-descuenta (2ª pasada = 0)", async () => {
-    const first = await revertReferralCreditsForInvoice("t1", "inv1");
-    expect(first.reverted).toBe(1);
+  it("Fix B: anula el asiento aunque applied_entry_id sea NULL (no queda huérfano)", async () => {
+    // …pero el crédito nunca linkeó applied_entry_id (crash entre claim y linkage).
+    rpcResult = reverted([{ referral_id: "r1", applied_entry_id: null }]);
 
-    const second = await revertReferralCreditsForInvoice("t1", "inv1");
-    expect(second.reverted).toBe(0); // ya no hay créditos 'aplicado' a esta factura
+    const res = await revertReferralCreditsForInvoice(supabase, "t1", "inv1");
 
-    // El saldo no se descontó dos veces (sigue en 0, no negativo).
-    const inv = store.invoices.find((i) => i.id === "inv1")!;
-    expect(inv.paid_amount).toBe(0);
+    expect(res).toMatchObject({ ok: true, reverted: 1 });
+    expect(entry("e1").status).toBe("anulado");
+  });
+
+  it("anula también un applied_entry_id que el barrido por referral_id no encontró", async () => {
+    // Asiento viejo, de antes del Fix B: vive sin referral_id.
+    store.journal_entries.push({
+      id: "e0", tenant_id: "t1", referral_id: null, source: "referral_credit",
+      status: "asentado", deleted_at: null, invoice_id: "inv1",
+    });
+    rpcResult = reverted([{ referral_id: "r1", applied_entry_id: "e0" }]);
+
+    await revertReferralCreditsForInvoice(supabase, "t1", "inv1");
+
+    expect(entry("e0").status).toBe("anulado");
+    expect(entry("e1").status).toBe("anulado");
+  });
+
+  it("idempotente: si la RPC no devolvió créditos, no toca ningún asiento", async () => {
+    rpcResult = reverted([]);
+
+    const res = await revertReferralCreditsForInvoice(supabase, "t1", "inv1");
+
+    expect(res).toEqual({ ok: true, reverted: 0, credits: [] });
+    expect(entry("e1").status).toBe("asentado");
+  });
+
+  it("redondea a dos decimales el monto que devuelve la RPC", async () => {
+    rpcResult = reverted([{ referral_id: "r1", amount: 79.999 as unknown as number }]);
+
+    const res = await revertReferralCreditsForInvoice(supabase, "t1", "inv1");
+
+    expect(res.credits?.[0].amount).toBe(80);
   });
 });
 
-/**
- * SDD-0490. La reversión corre después de anular la factura (voidInvoice). Con
- * la factura anulada, el único otro escritor de su pagado es
- * void_collection_receipt (0467), que baja el pagado al anular un recibo. El
- * escenario de la spec: pagado 380 = recibo 300 + crédito 80. Si el recibo se
- * anula entre la lectura y el UPDATE de la reversión, lo correcto es 0; sin
- * guard quedaba 300.
- */
-describe("revertReferralCreditsForInvoice · SDD-0490 (guard, reintento y estado)", () => {
-  const invoice = () => store.invoices.find((i) => i.id === "inv1")!;
-  const referral = () => store.referrals.find((r) => r.id === "r1")!;
-  const entry = () => store.journal_entries.find((e) => e.id === "e1")!;
+describe("revertReferralCreditsForInvoice · los fallos se informan", () => {
+  /**
+   * Las causas VIVAS de `failure: "revert"` con la 0471 ya aplicada
+   * (2026-09-21). Se montan por su efecto —la RPC falla y no se movió nada—, no
+   * por el error concreto: el contrato es que se informe y no se toque ningún
+   * asiento, venga de donde venga.
+   *
+   * La contención va primera a propósito, y NO por frecuencia —nadie contó
+   * errores de producción—: la introdujo esta misma SDD y es la que menos se
+   * sospecha, porque quien ve `failure: "revert"` se va derecho a buscar un
+   * permiso. El `FOR UPDATE` hace esperar, y el rol `authenticated` —con el que
+   * corren las RPC, que son INVOKER— corta a los 8 s. Antes nadie esperaba y el
+   * defecto corrompía en silencio; ahora falla a la vista.
+   */
+  const CAUSAS_VIVAS: [string, string][] = [
+    ["contención: la factura tomada más de 8 s", "canceling statement due to statement timeout"],
+    ["rol sin permiso de dinero", "REFERRAL_CREDIT_FORBIDDEN"],
+    ["sin id de factura", "REFERRAL_CREDIT_INPUT"],
+    ["transporte caído", "TypeError: fetch failed"],
+  ];
+  for (const [nombre, mensaje] of CAUSAS_VIVAS) {
+    it(`${nombre}: no revierte nada, lo informa y no toca ningún asiento`, async () => {
+      rpcResult = { data: null, error: { message: mensaje } };
 
-  beforeEach(() => {
-    store.invoices = [
-      { id: "inv1", tenant_id: "t1", total_amount: 1000, paid_amount: 380, status: "anulada" },
-    ];
-    Object.assign(referral(), {
-      applied_entry_id: "e1",
-      applied_at: "2026-09-01T12:00:00+00:00",
+      const res = await revertReferralCreditsForInvoice(supabase, "t1", "inv1");
+
+      expect(res.ok).toBe(false);
+      expect(res.reverted).toBe(0);
+      expect(res.failure).toBe("revert");
+      // El mensaje único por delante, y la causa cruda detrás para el log.
+      expect(res.error).toContain(REVERT_REFERRAL_CREDITS_ERROR);
+      expect(res.error).toContain(mensaje);
+      // Ningún asiento se tocó: la plata no se movió.
+      expect(entry("e1").status).toBe("asentado");
     });
-  });
+  }
 
-  it("un recibo se anula entre la lectura y el UPDATE: relee y deja 0, no 300", async () => {
-    let fired = false;
-    hooks.beforeUpdate = (table) => {
-      if (table !== "invoices" || fired) return;
-      fired = true;
-      invoice().paid_amount = 80; // void_collection_receipt: 380 − 300
-    };
+  it("si la plata volvió pero el asiento no se pudo anular, lo dice sin negar la reversión", async () => {
+    rpcResult = reverted([{ referral_id: "r1" }]);
+    adminFails.update = "permission denied for table journal_entries";
 
-    const res = await revertReferralCreditsForInvoice("t1", "inv1");
-
-    expect(res).toEqual({ ok: true, reverted: 1 });
-    expect(invoice().paid_amount).toBe(0);
-    expect(invoice().status).toBe("anulada");
-    expect(invoiceUpdates).toBe(2); // el primero matcheó 0 filas; el segundo, releído
-    expect(referral().status).toBe("acreditado");
-    expect(entry().status).toBe("anulado");
-  });
-
-  it("una factura anulada conserva su estado (regla de la 0467)", async () => {
-    await revertReferralCreditsForInvoice("t1", "inv1");
-    expect(invoice()).toMatchObject({ paid_amount: 300, status: "anulada" });
-  });
-
-  it("no deja «pagada» con saldo pendiente: recalcula el estado con la regla de la 0467", async () => {
-    // Una aplicación en vuelo pudo revivir la factura anulada (el caso que el
-    // guard de estado de applyReferralCredit ahora corta).
-    store.invoices = [
-      { id: "inv1", tenant_id: "t1", total_amount: 80, paid_amount: 80, status: "pagada" },
-    ];
-    await revertReferralCreditsForInvoice("t1", "inv1");
-    expect(invoice()).toMatchObject({ paid_amount: 0, status: "emitida" });
-
-    expect(invoiceStatusAfterPaidDecrease("pagada", 20)).toBe("parcial");
-    expect(invoiceStatusAfterPaidDecrease("pagada", 0)).toBe("emitida");
-    expect(invoiceStatusAfterPaidDecrease("parcial", 0)).toBe("emitida");
-    expect(invoiceStatusAfterPaidDecrease("anulada", 0)).toBe("anulada");
-    expect(invoiceStatusAfterPaidDecrease("borrador", 0)).toBe("borrador");
-  });
-
-  it("si la factura se anula entre la lectura y el UPDATE, el guard de estado no la revive", async () => {
-    store.invoices = [
-      { id: "inv1", tenant_id: "t1", total_amount: 1000, paid_amount: 380, status: "parcial" },
-    ];
-    let fired = false;
-    hooks.beforeUpdate = (table) => {
-      if (table !== "invoices" || fired) return;
-      fired = true;
-      invoice().status = "anulada"; // anular no toca el pagado
-    };
-
-    const res = await revertReferralCreditsForInvoice("t1", "inv1");
-
-    expect(res.ok).toBe(true);
-    expect(invoice()).toMatchObject({ paid_amount: 300, status: "anulada" });
-    expect(invoiceUpdates).toBe(2);
-  });
-
-  it(`conflicto persistente: tras ${REVERT_PAID_MAX_ATTEMPTS} intentos compensa y no toca el asiento`, async () => {
-    hooks.beforeUpdate = (table) => {
-      if (table === "invoices") invoice().paid_amount = Number(invoice().paid_amount) - 1;
-    };
-
-    const res = await revertReferralCreditsForInvoice("t1", "inv1");
+    const res = await revertReferralCreditsForInvoice(supabase, "t1", "inv1");
 
     expect(res.ok).toBe(false);
-    expect(res.reverted).toBe(0);
-    expect(res.error).toMatch(/cambió de saldo o de estado/);
-    expect(invoiceUpdates).toBe(REVERT_PAID_MAX_ATTEMPTS);
-    // Nada quedó a medias: el crédito vuelve a 'aplicado' con su rastro...
-    expect(referral()).toMatchObject({
-      status: "aplicado",
-      applied_invoice_id: "inv1",
-      applied_entry_id: "e1",
-      applied_at: "2026-09-01T12:00:00+00:00",
-    });
-    // ...y su asiento sigue asentado: el mayor y la factura no divergen.
-    expect(entry().status).toBe("asentado");
-    // Sólo movió el pagado el otro escritor (una baja de 1 por intento).
-    expect(invoice().paid_amount).toBe(380 - REVERT_PAID_MAX_ATTEMPTS);
+    expect(res.reverted).toBe(1);
+    expect(res.error).toContain("El crédito volvió al cliente y la factura quedó bien");
+    expect(res.error).toContain("permission denied");
+    // `reverted` no alcanza para distinguirlo: el campo propio sí.
+    expect(res.failure).toBe("entries");
   });
 
-  it("si otra reversión ya devolvió el crédito, no baja el pagado otra vez", async () => {
-    hooks.beforeUpdate = (table) => {
-      // Entre la lectura de créditos y el claim, otra reversión lo reclamó.
-      if (table === "referrals" && referral().status === "aplicado") {
-        referral().status = "acreditado";
-      }
+  it("si no se pueden leer los asientos, lo informa con el crédito que los tenía", async () => {
+    rpcResult = reverted([{ referral_id: "r1" }]);
+    adminFails.select = "statement timeout";
+
+    const res = await revertReferralCreditsForInvoice(supabase, "t1", "inv1");
+
+    expect(res.ok).toBe(false);
+    expect(res.reverted).toBe(1);
+    expect(res.error).toContain("crédito r1");
+    expect(res.error).toContain("statement timeout");
+    expect(res.failure).toBe("entries");
+  });
+
+  it("una excepción del cliente se devuelve, no se propaga", async () => {
+    const roto = {
+      rpc() {
+        throw new Error("fetch failed");
+      },
     };
 
-    const res = await revertReferralCreditsForInvoice("t1", "inv1");
+    const res = await revertReferralCreditsForInvoice(roto, "t1", "inv1");
 
-    expect(res).toEqual({ ok: true, reverted: 0 });
-    expect(invoice().paid_amount).toBe(380);
-    expect(invoiceUpdates).toBe(0);
+    expect(res).toMatchObject({ ok: false, reverted: 0, failure: "revert" });
+    expect(res.error).toBe(`${REVERT_REFERRAL_CREDITS_ERROR}: fetch failed`);
   });
 });

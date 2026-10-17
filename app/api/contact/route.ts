@@ -1,15 +1,22 @@
 /**
- * ⚠️ DEPRECADO — 2026-07-20. NADIE LLAMA A ESTE ENDPOINT.
+ * ✅ VIVO. NO LO APAGUES.
  *
- * Motivo: /contacto se rehízo al diseño real de Cloud Design (variante C) y por
- * decisión del founder el formulario pasó a enviar SOLO por WhatsApp — arma el
- * mensaje en el cliente y abre el chat, sin correo intermedio. Con eso murió el
- * POST desde `components/ContactoForm.tsx`, y con él el honeypot y el límite por
- * IP de esa página (ya no hay endpoint que proteger).
+ * Lo llama `app/academia/_components/AcademiaLeadForm.tsx:45` con
+ * `topic: "academia"`, y ese form se monta en `app/academia/page.tsx:221`, una
+ * página pública sin bandera. Medido el 2026-09-21 con un grep del endpoint
+ * sobre TODO el repo (SDD-0499).
  *
- * Se CONSERVA a propósito, sin tocar la lógica, por si el founder revierte la
- * decisión: volver a usarlo es un `fetch` en el form, nada más. Mismo criterio
- * que se aplicó con `/api/public/estimacion`.
+ * Historia, porque este docblock llegó a decir lo contrario: el 2026-07-20
+ * /contacto se rehízo al diseño de Cloud Design (variante C) y por decisión del
+ * founder su formulario pasó a enviar SOLO por WhatsApp — arma el mensaje en el
+ * cliente y abre el chat, sin correo intermedio. Con eso murió el POST desde
+ * `components/ContactoForm.tsx`. De ahí se concluyó «nadie llama a este
+ * endpoint», y era falso: la Academia lo seguía usando. El error de método
+ * —mirar sólo al consumidor obvio en vez de barrer el árbol— está anotado en
+ * `docs/engineering/project-rules.md:145` como trampa conocida del repo.
+ *
+ * Sigue en pie que volver a usarlo desde /contacto es un `fetch` en el form,
+ * nada más. Mismo criterio que con `/api/public/estimacion`.
  */
 
 import { NextResponse, type NextRequest } from "next/server";

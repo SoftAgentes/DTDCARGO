@@ -2,7 +2,7 @@
  * Server actions del detalle de envio.
  *
  * - updateShipment: PATCH de campos editables (no toca code, service, status)
- * - deleteShipment: soft delete (deleted_at = now) + redirect a lista
+ * - deleteShipment: borrado auditado con motivo (RPC de la 0476, SDD-0522) + redirect a lista si borró
  * - cancelShipment: cancelar con razon obligatoria → status='cancelled' + event
  * - transitionShipment: cambio de estado por boton → update status + event
  * - addShipmentEvent: agregar evento manual (status + nota + occurred_at)
@@ -16,7 +16,14 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
+import {
+  mensajeResultadoEmbarques,
+  normalizarLote,
+  shipmentDeleteBlockReason,
+} from "@/lib/studio/borrado/reglas";
+import { RUTAS_EMBARQUES, eliminarEmbarques } from "@/lib/studio/borrado/servidor";
 import { createAdminClient } from "@/lib/db/admin";
 import { getUser, getUserTenantId } from "@/lib/auth/session";
 import { isValidStatusForService } from "@/lib/studio/shipment-state-machine";
@@ -162,25 +169,43 @@ export async function updateShipment(
 }
 
 /**
- * Soft delete del envio. El trigger cascade_soft_delete_events propaga a events.
- * Redirige al listado al terminar.
+ * Elimina el envío (SDD-0522): la misma RPC, regla y motivo que Embarques.
+ * Redirige al listado sólo cuando el borrado ocurrió de verdad.
+ *
+ * Antes (SDD-0497) ponía `deleted_at` con un UPDATE por RLS y el permiso de
+ * editar Tracking: sin motivo, sin evento de auditoría y sin mirar si el envío
+ * tenía facturas, gastos o aduana. Desde la 0476 la base rechaza ese UPDATE
+ * directo a `authenticated`; borrar es de admin (`delete_shipments`) por
+ * `soft_delete_shipments_with_audit_reason`, que escribe `shipment_deleted`,
+ * cancela los avisos pendientes y no borra si algo depende del envío.
  */
-export async function deleteShipment(id: string): Promise<void> {
+export async function deleteShipment(id: string, reason = ""): Promise<ActionState> {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("shipments")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
+  const denial = await capabilityDenial(supabase, "delete_shipments");
+  if (denial) return { error: denial };
 
-  if (error) {
-    // En soft-delete fallido devolvemos al detalle con el error en query string.
-    // Por simplicidad redirigimos a la lista — si rompe, el operador lo nota.
-    console.error("[deleteShipment] error", error);
+  const lote = normalizarLote([id]);
+  if (!lote.ok) return { error: "Este envío no es válido. Recarga la página." };
+
+  const motivo = validateAuditReason(reason);
+  if (!motivo.ok) return { error: motivo.error };
+
+  const resultado = await eliminarEmbarques(supabase, lote.ids, motivo.reason);
+  if (resultado.estado === "eliminado") {
+    for (const ruta of RUTAS_EMBARQUES) revalidatePath(ruta);
+    redirect("/studio/tracking");
   }
-
-  revalidatePath("/studio/tracking");
-  revalidatePath("/studio/resumen");
-  redirect("/studio/tracking");
+  if (resultado.estado === "rechazado") {
+    const fila = resultado.bloqueadas[0];
+    return {
+      error: fila
+        ? shipmentDeleteBlockReason({ bloqueos: fila.bloqueos, avisos: {} }) ?? "No se pudo eliminar el envío."
+        : "Este envío ya no existe o ya se eliminó. Recarga la página.",
+    };
+  }
+  if (resultado.tipo === "sin_confirmar") for (const ruta of RUTAS_EMBARQUES) revalidatePath(ruta);
+  const mensaje = mensajeResultadoEmbarques(resultado);
+  return { error: "error" in mensaje ? mensaje.error : "No se pudo eliminar el envío." };
 }
 
 /**

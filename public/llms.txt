@@ -49,7 +49,7 @@
 - Servicios: https://dtdcargo.com/servicios
 - Brochure (PDF): https://dtdcargo.com/brochure
 - Shipping Mark (cómo identificamos tu carga): https://dtdcargo.com/shipping-mark
-- Rastrear envío (dentro del portal del cliente): https://dtdcargo.com/portal
+- Portal del cliente: https://dtdcargo.com/portal
 - Glosario de términos de importación: https://dtdcargo.com/glosario
 - Noticias y guías de importación China-Venezuela: https://dtdcargo.com/noticias
 

@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalcIcon, ChatIcon, ShipIcon, WarningIcon } from "@/components/Icon";
+import { CalcIcon, ShipIcon, WarningIcon } from "@/components/Icon";
 import type { PortalSailing } from "@/lib/portal/next-sailing-queries";
+import type { PortalAviso } from "@/lib/portal/portal-avisos";
 import { PortalNextSailingCard } from "../(app)/_components/PortalNextSailingCard";
 import { PortalAccountMenu } from "./PortalAccountMenu";
+import { PortalAvisosBell } from "./PortalAvisosBell";
 import { PortalThemeToggle } from "./PortalThemeToggle";
 
 /**
@@ -22,8 +24,8 @@ import { PortalThemeToggle } from "./PortalThemeToggle";
  *     (`getProfileCompleteness`) y lleva a Mi perfil.
  *   · "Próxima salida" usa el zarpe abierto (SDD-0133) y despliega la misma card
  *     de cuenta regresiva del Inicio — sin duplicar lógica.
- *   · Avisos usa el último mensaje del equipo (SDD-0148); si no hay nada nuevo
- *     dice que estás al día, no inventa notificaciones.
+ *   · Avisos (SDD-0526): la bandeja con los avisos que el sistema ya le envió
+ *     al cliente y la respuesta del asesor (SDD-0148). Ver `PortalAvisosBell`.
  *   · El botón de la calculadora dispara `portal:open-calc` (la ventana flotante
  *     ya vive en `PortalCalcFab`); se pinta en vidrio (BD-031), que es
  *     justamente el caso permitido: control de una superficie flotante.
@@ -69,6 +71,7 @@ export function PortalTopbar({
   sailing,
   sailingDaysToCutoff,
   soporteDot,
+  avisos,
   onOpenMenu,
 }: {
   name: string;
@@ -79,6 +82,8 @@ export function PortalTopbar({
   sailing: PortalSailing | null;
   sailingDaysToCutoff: number | null;
   soporteDot: boolean;
+  /** Avisos enviados al cliente (SDD-0526), del más nuevo al más viejo. */
+  avisos: readonly PortalAviso[];
   onOpenMenu: () => void;
 }) {
   const pathname = usePathname() ?? "";
@@ -115,7 +120,7 @@ export function PortalTopbar({
           <SailingPill sailing={sailing} serverDays={sailingDaysToCutoff} />
         )}
         <CalcButton />
-        <NotificationsBell soporteDot={soporteDot} />
+        <PortalAvisosBell avisos={avisos} soporteDot={soporteDot} />
         {themed && <PortalThemeToggle initialTheme={theme} />}
         <PortalAccountMenu name={name} markbox={markbox} />
       </div>
@@ -261,118 +266,5 @@ function CalcButton() {
     >
       <CalcIcon size={17} />
     </button>
-  );
-}
-
-/**
- * Campana de avisos. Hoy la única señal REAL es la respuesta del asesor
- * (SDD-0148); cuando no hay nada, lo dice. Pendiente de backend: avisos por
- * envío/factura sin leer (no hay tabla de "leído" por cliente todavía).
- */
-function NotificationsBell({ soporteDot }: { soporteDot: boolean }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-label={soporteDot ? "Avisos · tienes uno nuevo" : "Avisos"}
-        className={`relative grid h-9 w-9 flex-shrink-0 place-items-center rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-          open ? "bg-grey-100 text-ink" : "text-grey-500 hover:text-ink hover:bg-grey-100"
-        }`}
-      >
-        <BellGlyph />
-        {soporteDot && (
-          <span
-            aria-hidden
-            className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full"
-            style={{
-              background: "var(--color-status-danger)",
-              border: "2px solid var(--color-white)",
-            }}
-          />
-        )}
-      </button>
-
-      {open && (
-        <div
-          className="absolute right-0 top-[calc(100%+8px)] z-50 w-[272px] overflow-hidden rounded-[12px] card-shadow"
-          style={{
-            background: "var(--color-white)",
-            border: "1px solid var(--color-grey-200)",
-          }}
-        >
-          <div className="border-b border-grey-200 px-4 py-3 text-[13px] font-extrabold text-ink">
-            Avisos
-          </div>
-          {soporteDot ? (
-            <Link
-              href="/portal/soporte"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-grey-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ink"
-            >
-              <span
-                className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-md"
-                style={{
-                  background: "color-mix(in srgb, var(--color-wine) 12%, transparent)",
-                  color: "var(--color-wine-text)",
-                }}
-              >
-                <ChatIcon size={15} />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[12.5px] font-bold text-ink">Soporte</span>
-                <span className="block text-[11px] text-grey-500">
-                  Tu asesor te respondió.
-                </span>
-              </span>
-            </Link>
-          ) : (
-            <p className="px-4 py-5 text-center text-[12.5px] text-grey-500">
-              Estás al día · sin novedades.
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Campana (no existe en el set de iconos del repo). */
-function BellGlyph() {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
-    </svg>
   );
 }

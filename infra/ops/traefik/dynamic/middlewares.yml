@@ -1,0 +1,48 @@
+# infra/ops/traefik/dynamic/middlewares.yml — piezas reutilizables por labels (SDD-0505).
+#
+# Se referencian como `<nombre>@file` desde los labels de cada proyecto, por ejemplo:
+#   traefik.http.routers.<p>-web.middlewares=security-headers@file
+#   traefik.http.services.<p>-web.loadbalancer.serverstransport=slow-300s@file
+
+http:
+  middlewares:
+    # Cabeceras que Next no pone por sí solo. HSTS un año; sin preload hasta que
+    # todos los subdominios sirvan TLS.
+    security-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: false
+        contentTypeNosniff: true
+        referrerPolicy: strict-origin-when-cross-origin
+        customResponseHeaders:
+          X-Powered-By: ""
+
+    # Límites de cuerpo. OJO: `buffering` también almacena las RESPUESTAS, así que
+    # rompe el streaming de RSC/SSE y los websockets. Aplícalos solo a routers de
+    # rutas concretas (p. ej. una importación por POST), no al router de toda la
+    # app ni al gateway de Supabase. El tope real lo ponen Next
+    # (serverActions.bodySizeLimit) y Storage (FILE_SIZE_LIMIT).
+    body-12mb:
+      buffering:
+        maxRequestBodyBytes: 12582912
+        memRequestBodyBytes: 1048576
+    body-50mb:
+      buffering:
+        maxRequestBodyBytes: 52428800
+        memRequestBodyBytes: 1048576
+
+    # Solo desde la red de Tailscale (CGNAT 100.64.0.0/10): para paneles internos.
+    tailscale-only:
+      ipAllowList:
+        sourceRange:
+          - 100.64.0.0/10
+
+  serversTransports:
+    # Espera hasta 300 s la primera cabecera de respuesta: importaciones y crons
+    # largos (maxDuration = 300 en la app).
+    slow-300s:
+      forwardingTimeouts:
+        dialTimeout: 30s
+        responseHeaderTimeout: 300s
+        idleConnTimeout: 90s

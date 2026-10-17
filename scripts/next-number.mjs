@@ -1,6 +1,12 @@
 /** Inventario global y reservas SDD en ramas: nunca publica ni modifica main.
  * --no-fetch es advisory y no permite reservar. --reserve <slug> crea refs
  * locales durables; --push publica exclusivamente la reserva canónica.
+ * --expect NNNN (SDD-0545) cancela la reserva, sin crear refs, si el número
+ * que tocaría no es el esperado. --reserve sigue tomando el máximo + 1, no el
+ * primer hueco: un hueco puede ser una reserva abandonada. Los huecos por
+ * encima de lo integrado en origin/main se avisan, no se usan solos.
+ * --number NNNN reserva el número que asignó el Director si está libre en
+ * todo el inventario y no pasa del siguiente; si no, no crea nada.
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -24,6 +30,81 @@ export function takenNumbers(kind, refs, lsTree) {
 }
 export function nextFree(taken) { return (taken.size ? Math.max(...taken) : 0) + 1; }
 const pad = (n) => String(n).padStart(4, "0");
+const INTEGRATED_REF = "refs/remotes/origin/main";
+
+/**
+ * Números libres por encima de lo integrado y por debajo del siguiente. Es el
+ * hueco que deja una reserva que salta (SDD-0545: la 0540 se reservó con la
+ * 0539 libre y la reserva siguiente sacó la 0541). Los huecos por debajo de lo
+ * integrado son historia y no se repiten en cada corrida.
+ */
+export function recentGaps(taken, integrated) {
+  if (!integrated) return [];
+  const gaps = [];
+  for (let n = nextFree(integrated); n < nextFree(taken); n++) if (!taken.has(n)) gaps.push(n);
+  return gaps;
+}
+
+/** Quién tiene cada número: `identidad (fuente)`, la primera fuente por identidad. */
+function holdersOf(found, n) {
+  return [...(found.holders?.specs?.get(pad(n)) ?? [])].map(([identity, source]) => `${identity} (${source})`).join("; ");
+}
+
+/**
+ * `null` si el número que tocaría es el esperado. Si no, por qué no: el
+ * esperado ya está ocupado (y por quién), es un hueco que --reserve no usa o
+ * es mayor que el siguiente, más quién tiene los números intermedios.
+ */
+export function expectedMismatch(expected, found) {
+  const next = nextFree(found.specs);
+  const want = Number(expected);
+  if (want === next) return null;
+  const detail = [];
+  if (found.specs.has(want)) detail.push(`${expected} ya está ocupada: ${holdersOf(found, want)}`);
+  else if (want < next) detail.push(`${expected} está libre, pero --reserve toma el máximo + 1, no el primer hueco`);
+  else detail.push(`${expected} es mayor que el siguiente libre`);
+  for (let n = want + 1; n < next; n++) if (found.specs.has(n)) detail.push(`${pad(n)}: ${holdersOf(found, n)}`);
+  return `Reserva cancelada: esperabas ${expected}, pero tocaría la ${pad(next)}. ${detail.join(". ")}. No se creó ninguna ref: confirma el número con el Director.`;
+}
+
+/**
+ * `null` si se puede reservar `number`, el que asignó el Director: tiene que
+ * estar libre en TODO el inventario (refs, ramas, reservas, PR abiertas, main
+ * y archivos sin commit de los worktrees) y no pasar del siguiente, porque un
+ * número por encima dejaría un hueco nuevo. Si no, por qué no.
+ */
+export function numberUnavailable(number, found) {
+  const want = Number(number);
+  const next = nextFree(found.specs);
+  if (found.specs.has(want))
+    return `Reserva cancelada: la ${number} ya está ocupada: ${holdersOf(found, want)}. No se creó ninguna ref.`;
+  if (want > next)
+    return `Reserva cancelada: la ${number} es mayor que la siguiente (${pad(next)}) y dejaría un hueco nuevo. No se creó ninguna ref.`;
+  return null;
+}
+
+const USAGE = "Uso: next-number.mjs [--no-fetch | --reserve <slug> [--expect NNNN | --number NNNN] [--push]]";
+
+export function parseArgs(argv) {
+  const out = { noFetch: false, push: false, slug: null, expect: null, number: null };
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--no-fetch" && !out.noFetch) out.noFetch = true;
+    else if (arg === "--push" && !out.push) out.push = true;
+    else if (arg === "--reserve" && out.slug === null) out.slug = argv[++i] ?? "";
+    else if (arg === "--expect" && out.expect === null) out.expect = argv[++i] ?? "";
+    else if (arg === "--number" && out.number === null) out.number = argv[++i] ?? "";
+    else throw new Error(USAGE);
+  }
+  const numero = (v) => /^\d{4}$/.test(v) && Number(v) > 0;
+  if ((out.slug !== null && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(out.slug)) ||
+      (out.expect !== null && !numero(out.expect)) ||
+      (out.number !== null && !numero(out.number)) ||
+      (out.expect !== null && out.number !== null) ||
+      ((out.push || out.expect !== null || out.number !== null) && out.slug === null))
+    throw new Error(USAGE);
+  return out;
+}
 
 function refresh() {
   git(["fetch", "--quiet", "origin", "+refs/heads/*:refs/remotes/origin/*"]);
@@ -62,10 +143,15 @@ export function inventory() {
     }
     sources.set(`worktree:${root}`, names);
   }
-  const result = { refs: refs.length, collisions: [] };
+  const result = { refs: refs.length, collisions: [], holders: {}, integrated: {} };
   for (const kind of ["specs", "migrations"]) {
     result[kind] = takenNumbers(kind, [...sources.keys()], (ref) => sources.get(ref));
+    // Lo integrado: sólo origin/main. Sin esa ref no hay base para hablar de huecos recientes.
+    result.integrated[kind] = sources.has(INTEGRATED_REF)
+      ? takenNumbers(kind, [INTEGRATED_REF], (ref) => sources.get(ref))
+      : null;
     const identities = new Map();
+    result.holders[kind] = identities;
     for (const [source, names] of sources) for (const name of names) {
       const match = name.match(pattern(kind));
       if (!match) continue;
@@ -108,14 +194,7 @@ export function publishReservation({ commit, remoteRef }) {
 }
 
 function main(argv) {
-  const noFetch = argv.includes("--no-fetch");
-  const push = argv.includes("--push");
-  const index = argv.indexOf("--reserve");
-  const slug = index < 0 ? null : argv[index + 1];
-  const allowed = argv.filter((_, i) => i !== index + 1 || index < 0);
-  if (allowed.some((a) => !["--no-fetch", "--push", "--reserve"].includes(a)) ||
-      (index >= 0 && (!slug || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug))) || (push && !slug))
-    throw new Error("Uso: next-number.mjs [--no-fetch | --reserve <slug> [--push]]");
+  const { noFetch, push, slug, expect, number } = parseArgs(argv);
   if (noFetch && slug) throw new Error("--no-fetch es advisory: no permite reservar");
   if (!noFetch) {
     try { refresh(); } catch (error) {
@@ -126,8 +205,25 @@ function main(argv) {
   const found = inventory();
   for (const collision of found.collisions) console.warn(`ADVISORY colisión entre fuentes (puede ser histórica): ${collision}`);
   console.log(`${found.refs} refs + worktrees; spec siguiente: ${pad(nextFree(found.specs))}; migración siguiente: ${pad(nextFree(found.migrations))}`);
+  const gaps = recentGaps(found.specs, found.integrated.specs);
+  if (gaps.length > 0) {
+    console.warn(`ADVISORY hueco reciente: ${gaps.map(pad).join(", ")} ${gaps.length === 1 ? "está libre" : "están libres"} ` +
+      `entre lo integrado en origin/main (${pad(nextFree(found.integrated.specs) - 1)}) y la siguiente (${pad(nextFree(found.specs))}). ` +
+      "--reserve no los usa: toma el máximo + 1. Si el Director te asignó uno de esos, resérvalo con --number NNNN; " +
+      "si te asignó el siguiente, usa --expect NNNN.");
+  }
   if (!slug) return;
-  const reservation = prepareReservation(pad(nextFree(found.specs)), slug);
+  if (expect !== null) {
+    const mismatch = expectedMismatch(expect, found);
+    if (mismatch) throw new Error(mismatch);
+  }
+  if (number !== null) {
+    const blocked = numberUnavailable(number, found);
+    if (blocked) throw new Error(blocked);
+  }
+  // El lock numérico de prepareReservation es create-only: si otra sesión
+  // tomó el mismo número después del inventario, esta reserva falla entera.
+  const reservation = prepareReservation(number ?? pad(nextFree(found.specs)), slug);
   console.log(`Reserva local durable: ${reservation.ref}\nCommit: ${reservation.commit}\nArchivo: ${reservation.rel}`);
   if (push) {
     publishReservation(reservation);

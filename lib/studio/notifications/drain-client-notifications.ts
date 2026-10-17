@@ -34,7 +34,20 @@ export interface DrainResult {
   delivered: number;
   skipped: number;
   failed: number;
+  /** SDD-0511: avisos cancelados porque su envío se eliminó después de programarlos. */
+  canceled: number;
 }
+
+const VACIO: DrainResult = {
+  processed: 0,
+  delivered: 0,
+  skipped: 0,
+  failed: 0,
+  canceled: 0,
+};
+
+/** Motivo que queda en la fila cancelada. */
+export const MOTIVO_ENVIO_ELIMINADO = "envío eliminado";
 
 export async function drainClientNotifications(
   admin: SupabaseClient,
@@ -51,16 +64,40 @@ export async function drainClientNotifications(
     .limit(MAX_BATCH);
 
   if (error || !rowsRaw || rowsRaw.length === 0) {
-    return { processed: 0, delivered: 0, skipped: 0, failed: 0 };
+    return { ...VACIO };
   }
 
   const rows = rowsRaw as ClientNotificationScheduleRow[];
+
+  // ── SDD-0511 · un aviso ya programado no sale si su envío se eliminó ──
+  //    después de programarlo (un aviso anclado al ETA puede esperar días).
+  //    Si no se puede saber, no se despacha a ciegas: el lote espera a la
+  //    próxima corrida, que el cron repite cada minuto.
+  const eliminados = await enviosEliminados(admin, rows);
+  if (eliminados === null) return { ...VACIO };
+
   let delivered = 0;
   let skipped = 0;
   let failed = 0;
+  let canceled = 0;
   let enqueuedPush = false;
 
   for (const row of rows) {
+    if (row.shipment_id && eliminados.has(row.shipment_id)) {
+      // Condicional como el claim: si otro worker ya la tomó, no se toca.
+      // 'canceled' libera el índice de idempotencia: si el envío se restaura,
+      // el evento se puede volver a programar.
+      const { data: cancelada } = await admin
+        .from("client_notification_schedule")
+        .update({ status: "canceled", error: MOTIVO_ENVIO_ELIMINADO })
+        .eq("id", row.id)
+        .eq("status", "scheduled")
+        .select("id")
+        .maybeSingle();
+      if (cancelada) canceled += 1;
+      continue;
+    }
+
     // ── Claim atómico: 'scheduled' → 'sent'. Si otro worker ya lo tomó, el
     //    UPDATE matchea 0 filas y lo saltamos. Revertimos si el envío falla.
     const { data: claimed } = await admin
@@ -111,7 +148,35 @@ export async function drainClientNotifications(
     });
   }
 
-  return { processed: rows.length, delivered, skipped, failed };
+  return { processed: rows.length, delivered, skipped, failed, canceled };
+}
+
+/**
+ * Los envíos del lote que están eliminados. `null` si la lectura falló: el
+ * llamador no despacha sin saberlo. Cliente admin: la RLS no filtra nada.
+ */
+async function enviosEliminados(
+  admin: SupabaseClient,
+  rows: ClientNotificationScheduleRow[],
+): Promise<Set<string> | null> {
+  const ids = [
+    ...new Set(rows.map((r) => r.shipment_id).filter((id): id is string => !!id)),
+  ];
+  if (ids.length === 0) return new Set();
+
+  const { data, error } = await admin
+    .from("shipments")
+    .select("id")
+    .in("id", ids)
+    .not("deleted_at", "is", null);
+  if (error) {
+    console.error(
+      "[client-notif-drain] no se pudo comprobar si los envíos siguen vivos:",
+      error.message,
+    );
+    return null;
+  }
+  return new Set(((data ?? []) as Array<{ id: string }>).map((s) => s.id));
 }
 
 interface RowDispatch {
@@ -208,6 +273,24 @@ async function dispatchEmail(
   return "transient_fail";
 }
 
+/**
+ * Push del aviso a los usuarios del Portal de ese cliente (SDD-0042, 0148).
+ *
+ * SDD-0524 · a TODOS los vínculos activos que tengan una suscripción, no a
+ * «el» vínculo. Antes era `.maybeSingle()`: con dos filas activas PostgREST
+ * devuelve PGRST116 y `data: null`, y el push se daba por «sin destino» en
+ * silencio. Hoy `client_users` es `unique (tenant_id, client_id)` (0080) y no
+ * puede haber dos; el despacho deja de depender de esa garantía, como la 0453.
+ *
+ * Y sólo a quien tiene suscripción: encolar para un usuario sin dispositivo
+ * dejaba el aviso como «enviado» sin que llegara nada (el outbox lo marca
+ * enviado por falta de destino). Si no se puede saber quién la tiene, se encola
+ * a todos y el outbox decide, como su propio `userHasAnySubscription`.
+ *
+ * Siempre por la cola durable `outbox_push_events` (`enqueueUserPush` →
+ * `enqueue_user_push`, 0216), nunca web-push directo. Su idempotencia es por
+ * usuario + tag, así que el mismo tag para todos no los pisa entre sí.
+ */
 async function dispatchPush(
   admin: SupabaseClient,
   row: ClientNotificationScheduleRow,
@@ -223,26 +306,81 @@ async function dispatchPush(
     .maybeSingle<{ id: string }>();
   if (!client) return "no_destination";
 
-  const { data: link } = await admin
+  const { data: links, error: linksErr } = await admin
     .from("client_users")
     .select("auth_user_id")
     .eq("tenant_id", row.tenant_id)
     .eq("client_id", client.id)
     .eq("status", "active")
-    .not("auth_user_id", "is", null)
-    .maybeSingle<{ auth_user_id: string | null }>();
+    .not("auth_user_id", "is", null);
+  if (linksErr) return "transient_fail";
 
-  const userId = link?.auth_user_id ?? null;
-  if (!userId) return "no_destination";
+  const userIds = [
+    ...new Set(
+      ((links ?? []) as Array<{ auth_user_id: string | null }>)
+        .map((l) => l.auth_user_id)
+        .filter((id): id is string => !!id),
+    ),
+  ];
+  if (userIds.length === 0) return "no_destination";
+
+  const conSuscripcion = await usuariosConSuscripcion(admin, userIds);
+  const destinatarios = conSuscripcion
+    ? userIds.filter((id) => conSuscripcion.has(id))
+    : userIds;
+  if (destinatarios.length === 0) return "no_destination";
 
   const destino = destinoDelAviso(row.payload);
-  const id = await enqueueUserPush(admin, row.tenant_id, userId, {
-    title: copy.title,
-    body: copy.body,
-    url: destino.path,
-    tag: `client-notif:${row.id}`,
-  });
-  return id ? "sent" : "transient_fail";
+  let encolados = 0;
+  for (const userId of destinatarios) {
+    const id = await enqueueUserPush(admin, row.tenant_id, userId, {
+      title: copy.title,
+      body: copy.body,
+      url: destino.path,
+      tag: `client-notif:${row.id}`,
+    });
+    if (id) encolados += 1;
+    else console.error(`[client-notif-drain] no se pudo encolar el push de ${row.id} a un usuario`);
+  }
+  // Uno encolado alcanza para «enviado», como un canal entregado alcanza para
+  // la fila. Reintentar la fila entera repetiría el push a los que ya lo tienen.
+  return encolados > 0 ? "sent" : "transient_fail";
+}
+
+/**
+ * De estos usuarios, quiénes tienen dónde recibir un push: una fila en
+ * `user_push_subscriptions` (donde se suscribe el Portal) o el jsonb viejo de
+ * `user_notification_prefs` con el push encendido, que `sendPushToUserDevices`
+ * también lee. `null` si no se pudo saber.
+ */
+async function usuariosConSuscripcion(
+  admin: SupabaseClient,
+  userIds: string[],
+): Promise<Set<string> | null> {
+  const [subs, prefs] = await Promise.all([
+    admin.from("user_push_subscriptions").select("user_id").in("user_id", userIds),
+    admin
+      .from("user_notification_prefs")
+      .select("user_id, channel_push, push_subscription")
+      .in("user_id", userIds),
+  ]);
+  if (subs.error || prefs.error) {
+    console.error(
+      "[client-notif-drain] no se pudo saber quién tiene suscripción push:",
+      subs.error?.message ?? prefs.error?.message,
+    );
+    return null;
+  }
+  const con = new Set<string>();
+  for (const s of (subs.data ?? []) as Array<{ user_id: string }>) con.add(s.user_id);
+  for (const p of (prefs.data ?? []) as Array<{
+    user_id: string;
+    channel_push: boolean | null;
+    push_subscription: unknown;
+  }>) {
+    if (p.channel_push && p.push_subscription) con.add(p.user_id);
+  }
+  return con;
 }
 
 function strFromPayload(

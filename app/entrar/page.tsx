@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getPortalClient } from "@/lib/portal/portal-queries";
+import { avisoDeMantenimiento } from "@/lib/runtime/maintenance-notice";
 import { EntrarForm } from "./EntrarForm";
 
 /**
@@ -69,12 +70,17 @@ export default async function EntrarPage({
     if (client) redirect("/portal");
   }
 
+  // Mantenimiento programado (SDD-0505): mismo aviso que arriba del Portal, para
+  // quien todavía no entró. Un aviso del propio login (error, sin portal) manda.
+  const mantenimiento = avisoDeMantenimiento();
   const notice =
     sp.status === "nohabilitado"
       ? "Iniciaste sesión, pero ese email todavía no tiene el portal habilitado. Pídele a tu asesor que te invite."
       : sp.error
         ? (NOTICE_POR_ERROR[sp.error] ?? NOTICE_POR_ERROR.enlace)
-        : null;
+        : mantenimiento
+          ? `${mantenimiento.titulo}. ${mantenimiento.texto}`
+          : null;
 
   // Email precargado desde el correo de invitación (`/entrar?email=…`). El 301
   // de `/portal/login` conserva el query string, así que los correos viejos
