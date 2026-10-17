@@ -40,7 +40,7 @@ final (§13): no lo uses para aplicar.
 `infra/ops/migraciones/aplicar.sh` o `infra/ops/lib/migracion.sh`; lo hace quien
 opera el servidor, con su OK): copiar esos dos archivos **desde `main`** a
 `/srv/ops/migraciones/aplicar.sh` y `/srv/ops/lib/migracion.sh`, con permisos
-`755` y `644`, y comparar `sha256sum` con el checkout. `aplicar-remoto.sh` se niega
+`755` y `644` (o `700`, porque solo root los usa: así quedó `lib/migracion.sh` el 2026-10-17), y comparar `sha256sum` con el checkout. `aplicar-remoto.sh` se niega
 a correr si no coinciden: así el servidor corre lo revisado, o no corre.
 
 En Windows, el ssh que usa la llave del agente es el de System32:
