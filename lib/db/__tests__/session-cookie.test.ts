@@ -52,6 +52,13 @@ describe("nombre de la cookie de sesión", () => {
   });
 });
 
+/**
+ * ⏱️ I/O: la última prueba lee todos los .ts/.tsx de app/ y lib/. Aislada tarda
+ * ~1,5 s; dentro de `pnpm verify` venció el tope global de 20 s (SDD-0550). El
+ * tope se sube sólo para ella.
+ */
+const RECORRE_EL_REPO = 120_000;
+
 describe("todos los clientes de @supabase/ssr pasan el nombre", () => {
   const raiz = join(__dirname, "..", "..", "..");
   const clientes = ["lib/db/client.ts", "lib/db/server.ts", "proxy.ts"];
@@ -77,5 +84,5 @@ describe("todos los clientes de @supabase/ssr pasan el nombre", () => {
       .map((f) => f.slice(raiz.length + 1).replace(/\\/g, "/"))
       .sort();
     expect(usan).toEqual([...clientes].sort());
-  });
+  }, RECORRE_EL_REPO);
 });

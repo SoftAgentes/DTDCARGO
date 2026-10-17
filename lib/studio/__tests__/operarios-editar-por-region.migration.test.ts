@@ -52,7 +52,14 @@ const CONTRACT = resolve(ROOT, "supabase/tests/0480_operarios_editar_por_region.
 const CONTRACT_0475 = resolve(ROOT, "supabase/tests/0475_pin_operarios_endurecer.test.sql");
 const M0480 = "0480_operarios_editar_por_region.sql";
 const read = (path: string) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
-const mig = (name: string) => read(resolve(MIGRATIONS, name));
+// Una lectura por migración en todo el archivo: la prueba (texto) del preflight
+// recorre las 485 migraciones tres veces y, sin caché, eran ~1.450 lecturas
+// (SDD-0550). Los archivos no cambian durante la corrida.
+const MIG_LEIDAS = new Map<string, string>();
+const mig = (name: string) => {
+  if (!MIG_LEIDAS.has(name)) MIG_LEIDAS.set(name, read(resolve(MIGRATIONS, name)));
+  return MIG_LEIDAS.get(name)!;
+};
 const FILE_0480 = mig(M0480);
 const FILE_CONTRACT = read(CONTRACT);
 const BASELINE = JSON.parse(read(resolve(ROOT, "supabase/migrations-baseline.json"))) as {
@@ -62,6 +69,13 @@ const DECLARATIONS = JSON.parse(read(resolve(ROOT, "supabase/pending-migration-s
   degradations: { id: string; migration: string; primarySymbol: string; symbols: { name: string; callSites: string[] }[] }[];
 };
 const SLOW = 240_000;
+/**
+ * ⏱️ I/O: las pruebas (texto) leen migraciones del disco. Aislada, la del
+ * preflight tardaba ~0,8 s; dentro de `pnpm verify` tardó 20,8 s contra el tope
+ * global de 20 s (SDD-0550). Con la caché de `mig` lee cada archivo una vez, y
+ * el bloque lleva su propio tope.
+ */
+const TEXTO = 120_000;
 
 const TRUE = /^(t|true|on|y|yes|1)$/i;
 const FALSE = /^(f|false|off|n|no|0)$/i;
@@ -210,7 +224,7 @@ function missingLines(haystack: string, needle: string): string[] {
   return missing;
 }
 
-describe("SDD-0529 · 0480 (texto)", () => {
+describe("SDD-0529 · 0480 (texto)", { timeout: TEXTO }, () => {
   it("las copias verbatim del contrato siguen iguales a sus archivos", () => {
     expect(block(FILE_CONTRACT, "get_user_tenant_id")).toBe(
       block(mig("0453_portal_helpers_principal_determinista.sql"), "get_user_tenant_id"));

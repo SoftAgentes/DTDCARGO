@@ -58,7 +58,14 @@ const MIGRATIONS = resolve(ROOT, "supabase/migrations");
 const CONTRACT = resolve(ROOT, "supabase/tests/0475_pin_operarios_endurecer.test.sql");
 const M0475 = "0475_pin_operarios_endurecer.sql";
 const read = (path: string) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
-const mig = (name: string) => read(resolve(MIGRATIONS, name));
+// Una lectura por migración en todo el archivo: la prueba (texto) del validador
+// recorre las 485 migraciones una vez por cada una de sus cinco funciones y, sin
+// caché, eran ~2.400 lecturas (SDD-0550). Los archivos no cambian durante la corrida.
+const MIG_LEIDAS = new Map<string, string>();
+const mig = (name: string) => {
+  if (!MIG_LEIDAS.has(name)) MIG_LEIDAS.set(name, read(resolve(MIGRATIONS, name)));
+  return MIG_LEIDAS.get(name)!;
+};
 const FILE_0475 = mig(M0475);
 const FILE_CONTRACT = read(CONTRACT);
 const BASELINE = JSON.parse(read(resolve(ROOT, "supabase/migrations-baseline.json"))) as {
@@ -68,6 +75,13 @@ const DECLARATIONS = JSON.parse(read(resolve(ROOT, "supabase/pending-migration-s
   degradations: { migration: string }[];
 };
 const SLOW = 240_000;
+/**
+ * ⏱️ I/O: las pruebas (texto) leen migraciones del disco. Aislada, la del
+ * validador tardaba ~1,2 s; dentro de `pnpm verify` tardó 20,98 s y 40,7 s
+ * contra el tope global de 20 s (SDD-0550). Con la caché de `mig` lee cada
+ * archivo una vez, y el bloque lleva su propio tope.
+ */
+const TEXTO = 120_000;
 
 const TRUE = /^(t|true|on|y|yes|1)$/i;
 const FALSE = /^(f|false|off|n|no|0)$/i;
@@ -259,7 +273,7 @@ function missingLines(haystack: string, needle: string): string[] {
   return missing;
 }
 
-describe("SDD-0515 · 0475 (texto)", () => {
+describe("SDD-0515 · 0475 (texto)", { timeout: TEXTO }, () => {
   it("las copias verbatim del contrato siguen iguales a sus archivos", () => {
     expect(block(FILE_CONTRACT, "get_user_tenant_id")).toBe(
       block(mig("0453_portal_helpers_principal_determinista.sql"), "get_user_tenant_id"));
@@ -1162,5 +1176,6 @@ describe("SDD-0515 · el motivo se valida igual en el Studio y en la base", () =
     } finally {
       await db.close();
     }
-  });
+    // Abre su propio PGlite, como las del bloque (PGlite): ~1 s aislada (SDD-0550).
+  }, SLOW);
 });
