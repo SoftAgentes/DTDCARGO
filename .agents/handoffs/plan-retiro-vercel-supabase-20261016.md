@@ -95,3 +95,14 @@ Con Cloud ya pausado y su dump guardado, y con el OK de Sam:
   - ajustar el panel de publicaciones del Studio, que lee Vercel (`lib/studio/vercel-deploys.ts`, `app/studio/(app)/debug/`);
   - los pasos con pago o producción del 28, del 30 y del 27 de noviembre, cada uno con el OK de Sam en su momento.
 - **Agregado:** Sam pidió esperar al lunes 19 para los contenedores 60 al 64 en prueba (SDD-0543, PR #262), porque no le llegaron los archivos. Hay un recordatorio local agendado para ese día a las 9:00 de Caracas.
+
+## Seguimiento del 2026-10-17, tarde (Director)
+
+- **Hecho:**
+  - El runbook `aplicar-migraciones-prod.md`, reescrito para el servidor propio: SDD-0546 y PR #266, fusionada a las 20:44:18Z. Sus scripts quedaron instalados en `/srv/ops` a las 20:47:05Z. Era condición de la Fase 4.
+  - El panel de publicaciones del Studio ya no lee Vercel: SDD-0547, PR #264 y #265, publicadas a las 19:22Z y a las 20:15Z.
+  - La #114 (SDD-0390/0397) quedó publicada a las 18:48Z.
+- **Sigue pendiente:**
+  - La revisión de respaldos del martes 20 y el restore de prueba del 21 al 22, en la sesión de Contabo.
+  - Los pasos con pago o producción del 28, del 30 y del 27 de noviembre, cada uno con el OK de Sam.
+  - **`VERCEL_API_TOKEN` ya no lo lee nadie:** se puede revocar antes del 30 si Sam quiere.
