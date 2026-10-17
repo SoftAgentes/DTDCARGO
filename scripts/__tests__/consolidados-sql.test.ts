@@ -88,8 +88,14 @@ describe("generarSql", () => {
     expect(s.aplicar).toContain("'NGB', 'Ningbo', 'LGU', 'La Guaira', 'VE',");
     expect(s.aplicar).toContain("'2026-08-11', '2026-08-10', '2026-08-11', '2026-10-19',");
     expect(s.aplicar).toContain("'40HC', 'Por confirmar', true, true, 'prueba', 'dtd'");
-    expect(s.aplicar).toContain("insert into lote_clientes values (1, 'DTD-J031', 'DTD-J031', 'PRUEBA O''HIGGINS', 'DTD', true, array['DTD-J031']::text[]);");
-    expect(s.aplicar).toContain("insert into lote_clientes values (3, 'MM-0041', 'MM-0041', 'ALIADO PRUEBA MM', 'MM', false, array['MM-0041', 'MM-41', 'MM-041']::text[]);");
+    expect(s.aplicar).toContain("insert into lote_clientes values (1, 'DTD-J031', 'DTD-J031', 'PRUEBA O''HIGGINS', 'DTD', true, false, array['DTD-J031']::text[]);");
+    expect(s.aplicar).toContain("insert into lote_clientes values (3, 'MM-0041', 'MM-0041', 'ALIADO PRUEBA MM', 'MM', false, false, array['MM-0041', 'MM-41', 'MM-041']::text[]);");
+    // ddp: ni dueño ni gasto.
+    expect(s.aplicar).toContain("create temp table lote_dueno (clave text, codigo text, servicio text, cbm numeric, kg numeric) on commit drop;");
+    expect(s.aplicar).not.toContain("insert into lote_dueno values");
+    expect(s.aplicar).not.toContain("insert into lote_gasto values");
+    expect(s.manifiesto.modalidad).toBe("ddp");
+    expect(s.manifiesto.dueno).toBeNull();
     expect(s.aplicar).toContain("insert into lote_envios values (3, 'MM-41', 'MM-0041', 8, 0, 0.96, 0.96);");
     expect(s.aplicar).toContain("insert into lote_envios values (1, 'DTD-J031-05', 'DTD-J031', 1, 137, 1.134, 1.134);");
     expect(s.aplicar).toContain("insert into lote_filas values (1, 4, 'DTD-J031-05', 'Máquina ''recta''', 1, 137, 1.134, 1.134);");
@@ -118,7 +124,7 @@ describe("generarSql", () => {
     expect(s.previa).not.toContain("('DC-01-ZUTANO', array");
     expect(s.previa).toContain("('DC-#4', array['DC-01-ZUTANO']::text[])");
     expect(s.previa.match(/^select m\.clave,$/gm)).toHaveLength(1);
-    expect(s.aplicar).toContain("insert into lote_clientes values (4, 'DC-01-ZUTANO', 'DC-#4', 'ALIADO PRUEBA DC', 'DC', false, array['DC-01-ZUTANO']::text[]);");
+    expect(s.aplicar).toContain("insert into lote_clientes values (4, 'DC-01-ZUTANO', 'DC-#4', 'ALIADO PRUEBA DC', 'DC', false, false, array['DC-01-ZUTANO']::text[]);");
     expect(s.manifiesto.clientes[3]).toMatchObject({ clave: "DC-01-ZUTANO", etiqueta: "DC-#4" });
     expect(s.manifiesto.clientes[0]).toMatchObject({ clave: "DTD-J031", etiqueta: "DTD-J031" });
   });
@@ -165,7 +171,8 @@ describe("generarSql", () => {
     expect(s.aplicar).toContain("select h.markbox from public.client_markbox_history h where h.tenant_id = v_tenant");
     expect(s.aplicar).toContain("values (v_tenant, v_markbox_nuevo, c.nombre_excel || ' · ' || c.clave, v_aliado,");
     expect(s.aplicar).not.toMatch(/values \(v_tenant, c\.candidatos\[1\], c\.nombre_excel \|\| ' · '/);
-    expect(s.aplicar.match(/public\.append_audit_event\(/g)?.length).toBe(4);
+    // envío DDP, recepción, FCL del dueño, factura y contenedor.
+    expect(s.aplicar.match(/public\.append_audit_event\(/g)?.length).toBe(5);
     // Ningún alias de tabla de una letra igual a una variable del bloque (c, e, f, r, m).
     const bloque = s.aplicar.slice(s.aplicar.indexOf("do $lote$"), s.aplicar.indexOf("$lote$;"));
     // El nombre de la tabla no lleva «(»: así una llamada a función con la variable m
@@ -231,6 +238,45 @@ describe("generarSql", () => {
     expect(s.purgar).not.toMatch(/set deleted_at/);
   });
 
+  it("fcl: sólo el envío FCL del dueño, sin recepciones ni facturas (61, 62, 63)", () => {
+    const r61: Rastreo = { ...RASTREO, numero: 61, etiqueta: "MG-019#61", modalidad: "FCL", contenedor: "MRSU9497682", naviera: "MSK", puertoLlegada: "Barranquilla", fechaCarga: "2026-09-08" };
+    const l = agruparLote(r61, [], { eta: "2026-10-25", modalidad: "fcl", dueno: "MG-019", cbmFcl: 60 });
+    expect(l.embarques).toHaveLength(0);
+    expect(l.dueno).toMatchObject({ codigo: "MG-019-FCL-61", servicio: "fcl_directo", cbm: 60, kg: null });
+    const s = generarSql(l, OPCIONES, FUENTES);
+    expect(s.aplicar).toContain("insert into lote_dueno values ('MG-0019', 'MG-019-FCL-61', 'fcl_directo', 60, null);");
+    expect(s.aplicar).toContain("insert into lote_clientes values (1, 'MG-0019', 'MG-0019', 'Dueño del contenedor MG-019', 'MG', false, false, array['MG-0019', 'MG-019']::text[]);");
+    expect(s.aplicar).not.toContain("insert into lote_envios values");
+    expect(s.aplicar).not.toContain("insert into lote_lineas values");
+    expect(s.aplicar).toContain("'Yiwu, China', cab.pod_nombre, d.servicio::public.shipment_service, 'in_warehouse'");
+    expect(s.aplicar).toContain("'BAQ', 'Barranquilla', 'CO'");
+    expect(s.aplicar).toContain("'Maersk', 'MAEU'");
+    expect(s.manifiesto.esperado).toEqual({ envios: 1, recepciones: 0, items: 0, cajas: 0, clientes: 1, facturas: 0, cbm: 60, kg: 0, base: 0 });
+    expect(s.manifiesto.dueno).toEqual({ etiqueta: "MG-0019", clave: "MG-0019", codigo: "MG-019-FCL-61", servicio: "fcl_directo", cbm: 60, kg: null });
+    expect(s.previa).toContain("('MG-0019', array['MG-0019', 'MG-019']::text[])");
+    expect(s.verificar).toContain("upper(code) in ('MG-019-FCL-61')");
+  });
+
+  it("mixto: el FCL del aliado dueño (insignia pelada) más los DDP facturados y el gasto por el espacio (60)", () => {
+    const r60: Rastreo = { ...RASTREO, numero: 60, etiqueta: "HR-DTD#60", modalidad: "FCL/DDP 5.70cbm", contenedor: "FFAU8030200", puertoLlegada: "Maracaibo", fechaCarga: "2026-08-20" };
+    const l = agruparLote(r60, FILAS, { eta: "2026-10-22", modalidad: "mixto", dueno: "HR", excesoPeso: false, gastoEspacio: { monto: 1200.5, usuarioEmail: "Admin@prueba.example.test" } });
+    expect(l.dueno).toMatchObject({ codigo: "HR-FCL-60", marca: { clave: "HR", prefijo: "HR", numero: "", candidatos: ["HR"] } });
+    expect(l.gastoEspacio).toEqual({ monto: 1200.5, usuarioEmail: "admin@prueba.example.test" });
+    const s = generarSql(l, OPCIONES, FUENTES);
+    expect(s.aplicar).toContain("insert into lote_clientes values (4, 'HR', 'HR', 'Aliado HR', 'HR', false, true, array['HR']::text[]);");
+    expect(s.aplicar).toContain("insert into lote_dueno values ('HR', 'HR-FCL-60', 'fcl_directo', null, null);");
+    expect(s.aplicar).toContain("insert into lote_gasto values (1200.5, 'admin@prueba.example.test');");
+    expect(s.aplicar).toContain("if c.es_raiz_aliado then");
+    expect(s.aplicar).toContain("insert into public.expenses");
+    expect(s.aplicar).toContain("'shipment', g.monto, 1.0");
+    expect(s.manifiesto.esperado).toMatchObject({ envios: 4, recepciones: 3, facturas: 3, clientes: 4, cbm: 2.107, kg: 278 });
+    expect(s.manifiesto.gastoEspacio).toEqual({ monto: 1200.5 });
+    expect(JSON.stringify(s.manifiesto)).not.toContain("admin@prueba.example.test");
+    expect(s.deshacer).toContain("update public.expenses set deleted_at = now()");
+    expect(s.purgar).toContain("delete from public.expenses where tenant_id = v_tenant and note like '%' || v_lote || '%';");
+    expect(s.purgar.indexOf("delete from public.expenses")).toBeLessThan(s.purgar.indexOf("delete from public.shipments where id = any(v_ships);"));
+  });
+
   it("rechaza textos que traigan el delimitador del bloque", () => {
     const sucio = [{ ...FILAS[0], descripcion: "x $lote$ y" }];
     expect(() => generarSql(agruparLote(RASTREO, sucio, { eta: "2026-10-19" }), OPCIONES, FUENTES)).toThrow(/delimitador/);
@@ -262,5 +308,16 @@ describe("parsearArgumentos", () => {
     expect(() => parsearArgumentos(base.slice(0, 8))).toThrow(/Falta --salida/);
     expect(() => parsearArgumentos([...base, "--eta"])).toThrow(/Falta el valor/);
     expect(() => parsearArgumentos([...base, "extra"])).toThrow(/inesperado/);
+  });
+  it("modalidades: fcl sin packing con dueño; mixto con packing, dueño y gasto completo", () => {
+    const fcl = ["--rastreo", "r.xlsx", "--contenedor", "61", "--eta", "2026-10-25", "--salida", "out", "--modalidad", "fcl", "--dueno", "MG-019", "--cbm-fcl", "60"];
+    expect(parsearArgumentos(fcl)).toMatchObject({ modalidad: "fcl", dueno: "MG-019", packing: undefined, servicioFcl: "fcl_directo", cbmFcl: 60 });
+    expect(() => parsearArgumentos([...fcl.slice(0, 8), "--modalidad", "fcl"])).toThrow(/exige --dueno/);
+    expect(() => parsearArgumentos([...fcl.slice(0, 8), "--modalidad", "mixto", "--dueno", "HR"])).toThrow(/exige --packing/);
+    expect(() => parsearArgumentos([...base, "--dueno", "HR"])).toThrow(/sólo aplica a fcl y mixto/);
+    expect(() => parsearArgumentos([...base, "--modalidad", "mixto", "--dueno", "HR", "--gasto-espacio", "100"])).toThrow(/van juntos/);
+    expect(() => parsearArgumentos([...base, "--gasto-espacio", "100", "--gasto-usuario", "a@b.test"])).toThrow(/sólo aplica a la modalidad mixto/);
+    expect(parsearArgumentos([...base, "--modalidad", "mixto", "--dueno", "HR", "--gasto-espacio", "1200,50", "--gasto-usuario", "a@b.test", "--ignorar-titulo-packing"])).toMatchObject({ modalidad: "mixto", dueno: "HR", gastoEspacio: 1200.5, gastoUsuario: "a@b.test", ignorarTituloPacking: true });
+    expect(() => parsearArgumentos([...base, "--modalidad", "lcl"])).toThrow(/ddp, fcl o mixto/);
   });
 });

@@ -122,8 +122,42 @@ export interface Totales {
   totalFacturadoExcel: number;
 }
 
+/**
+ * Modalidad del contenedor (decisión de Sam vía Director, 2026-10-17):
+ *  - `ddp`: contenedor nuestro; un envío DDP por Remitente del packing list y una
+ *    factura por cliente (59, 64).
+ *  - `fcl`: contenedor de un cliente; sólo su envío FCL con contenedor y zarpe,
+ *    sin recepciones ni factura (61, 62, 63).
+ *  - `mixto`: contenedor de un aliado con nuestros DDP adentro: el envío FCL del
+ *    dueño más los DDP del packing list, facturados; el espacio que el aliado nos
+ *    cobra entra como gasto (60).
+ */
+export type Modalidad = "ddp" | "fcl" | "mixto";
+
+export type ServicioFcl = "fcl_directo" | "fcl_bodega";
+
+export interface Dueno {
+  marca: Marca;
+  servicio: ServicioFcl;
+  /** Código del envío FCL del dueño, p. ej. `MG-019-FCL-61`. */
+  codigo: string;
+  cbm: number | null;
+  kg: number | null;
+}
+
+export interface GastoEspacio {
+  monto: number;
+  /** Correo del usuario del Studio a cuyo nombre se registra el gasto (expenses.user_id es obligatorio). */
+  usuarioEmail: string;
+}
+
 export interface Lote {
   rastreo: Rastreo;
+  modalidad: Modalidad;
+  /** Dueño del contenedor en `fcl` y `mixto`. */
+  dueno: Dueno | null;
+  /** Gasto por el espacio que el aliado nos cobra (`mixto`), si Sam dio el monto. */
+  gastoEspacio: GastoEspacio | null;
   fechaCarga: string;
   fechaRecepcion: string;
   etd: string;
@@ -147,6 +181,32 @@ export interface OpcionesLote {
   mapa?: Record<string, string>;
   /** Cobrar las líneas de «Exceso de peso». Por defecto sí. */
   excesoPeso?: boolean;
+  /** Por defecto `ddp`. */
+  modalidad?: Modalidad;
+  /** Marca del dueño del contenedor (`MG-019`, `DTD-9038`, o la insignia pelada `HR`). Obligatoria en fcl y mixto. */
+  dueno?: string;
+  servicioFcl?: ServicioFcl;
+  cbmFcl?: number | null;
+  kgFcl?: number | null;
+  gastoEspacio?: GastoEspacio | null;
+}
+
+/**
+ * Marca del dueño de un contenedor FCL: una marca normal (`MG-019`, `DTD-9038`)
+ * o la insignia pelada de un aliado (`HR`), cuya ficha ES el aliado (migr 0371).
+ */
+export function interpretarMarcaDueno(texto: string): Marca {
+  const t = normalizarCodigo(texto);
+  if (/^[A-Z]{2,4}$/.test(t)) {
+    if (t === "DTD") throw new Error("La casa no es dueña de un FCL: indica la marca del cliente");
+    return { clave: t, prefijo: t, numero: "", esCasa: false, candidatos: [t], nombreExcel: `Aliado ${t}` };
+  }
+  if (!/^[A-Z]{2,4}-[A-Z]?\d{1,5}$/.test(t)) {
+    throw new Error(`Marca del dueño sin forma PREFIJO o PREFIJO-numero: «${texto}»`);
+  }
+  const marca = interpretarMarca(t, `${t}-0`);
+  if (!marca.nombreExcel) marca.nombreExcel = `Dueño del contenedor ${t}`;
+  return marca;
 }
 
 export const ISO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
@@ -271,6 +331,40 @@ function normalizarMapa(mapa: Record<string, string> | undefined): Record<string
 export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: OpcionesLote): Lote {
   const avisos: string[] = [];
   const excesoPeso = opciones.excesoPeso ?? true;
+  const modalidad: Modalidad = opciones.modalidad ?? "ddp";
+  let dueno: Dueno | null = null;
+  if (modalidad === "fcl" || modalidad === "mixto") {
+    if (!opciones.dueno) throw new Error(`La modalidad ${modalidad} exige la marca del dueño del contenedor (--dueno)`);
+    const marca = interpretarMarcaDueno(opciones.dueno);
+    const mapaDueno = normalizarMapa(opciones.mapa);
+    const manual = mapaDueno[marca.clave] ?? mapaDueno[`${marca.prefijo}-${marca.numero}`];
+    if (manual) marca.candidatos = [manual, ...marca.candidatos.filter((x) => x !== manual)];
+    const cbm = opciones.cbmFcl ?? null;
+    const kg = opciones.kgFcl ?? null;
+    if (cbm != null && !(cbm > 0)) throw new Error("--cbm-fcl debe ser mayor que 0");
+    if (kg != null && !(kg > 0)) throw new Error("--kg-fcl debe ser mayor que 0");
+    dueno = {
+      marca,
+      servicio: opciones.servicioFcl ?? "fcl_directo",
+      codigo: `${normalizarCodigo(opciones.dueno)}-FCL-${rastreo.numero}`,
+      cbm: cbm == null ? null : round3(cbm),
+      kg: kg == null ? null : round2(kg),
+    };
+    if (cbm == null) avisos.push(`El envío FCL del dueño ${dueno.codigo} se carga sin m³ (no viene en la hoja de rastreo); se puede pasar con --cbm-fcl.`);
+  } else if (opciones.dueno) {
+    throw new Error("--dueno sólo aplica a las modalidades fcl y mixto");
+  }
+  let gastoEspacio: GastoEspacio | null = null;
+  if (opciones.gastoEspacio) {
+    if (modalidad !== "mixto") throw new Error("El gasto por espacio sólo aplica a la modalidad mixto");
+    if (!(opciones.gastoEspacio.monto > 0)) throw new Error("--gasto-espacio debe ser mayor que 0");
+    if (!/^[^@\s]+@[^@\s]+$/.test(opciones.gastoEspacio.usuarioEmail)) throw new Error("--gasto-usuario debe ser el correo de un usuario del Studio");
+    gastoEspacio = { monto: round2(opciones.gastoEspacio.monto), usuarioEmail: opciones.gastoEspacio.usuarioEmail.trim().toLowerCase() };
+  }
+  if (modalidad === "fcl" && filas.length > 0) {
+    avisos.push(`Modalidad fcl: se ignoran las ${filas.length} filas del packing list (un FCL de cliente no lleva recepciones ni facturas nuestras).`);
+    filas = [];
+  }
   const fechaCarga = opciones.fechaCarga ?? rastreo.fechaCarga;
   if (!fechaCarga || !ISO_FECHA.test(fechaCarga)) {
     throw new Error(`Falta la fecha de carga del contenedor ${rastreo.numero} (pásala con --fecha-carga YYYY-MM-DD)`);
@@ -411,7 +505,10 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
       );
     }
   }
-  if (embarques.length === 0) throw new Error("El packing list no trae filas con Remitente.");
+  if (embarques.length === 0 && modalidad !== "fcl") throw new Error("El packing list no trae filas con Remitente.");
+  if (dueno && clientes.some((c) => c.clave === dueno!.marca.clave)) {
+    throw new Error(`El dueño ${dueno.marca.clave} también aparece como cliente DDP del packing list; decide con Sam cómo cargarlo.`);
+  }
 
-  return { rastreo, fechaCarga, fechaRecepcion, etd, eta: opciones.eta, excesoPeso, clientes, embarques, filas: filasUtiles, totales, avisos };
+  return { rastreo, modalidad, dueno, gastoEspacio, fechaCarga, fechaRecepcion, etd, eta: opciones.eta, excesoPeso, clientes, embarques, filas: filasUtiles, totales, avisos };
 }

@@ -7,6 +7,7 @@ import {
   agruparLote,
   baseDeLineas,
   interpretarMarca,
+  interpretarMarcaDueno,
   litSql,
   normalizarCodigo,
   restarDias,
@@ -206,6 +207,41 @@ describe("agruparLote", () => {
     const lote = agruparLote({ ...RASTREO, fechaCarga: null }, filas, { eta: "2026-10-19", fechaCarga: "2026-09-01", etd: "2026-09-03" });
     expect(lote.fechaRecepcion).toBe("2026-08-31");
     expect(lote.etd).toBe("2026-09-03");
+  });
+});
+
+describe("modalidades fcl y mixto", () => {
+  it("interpreta la marca del dueño: insignia pelada o marca normal", () => {
+    expect(interpretarMarcaDueno("hr")).toMatchObject({ clave: "HR", prefijo: "HR", numero: "", esCasa: false, candidatos: ["HR"], nombreExcel: "Aliado HR" });
+    expect(interpretarMarcaDueno("MG-019")).toMatchObject({ clave: "MG-0019", prefijo: "MG", numero: "019", candidatos: ["MG-0019", "MG-019"], nombreExcel: "Dueño del contenedor MG-019" });
+    expect(interpretarMarcaDueno("DTD-9038")).toMatchObject({ clave: "DTD-9038", esCasa: true, candidatos: ["DTD-9038"] });
+    expect(() => interpretarMarcaDueno("DTD")).toThrow(/La casa/);
+    expect(() => interpretarMarcaDueno("MG019")).toThrow(/sin forma/);
+  });
+  it("fcl ignora el packing list y exige dueño; mixto exige dueño distinto de los clientes DDP", () => {
+    const filas: FilaPacking[] = [
+      fila({ filaExcel: 4, marcaTexto: "DTD-A116 UNO", remitente: "DTD-A116-06", cajas: 10, cbmFactura: 0.5, precioCbm: 750, totalFacturado: 375 }),
+      fila({ filaExcel: 5, marcaTexto: "DTD-J031 DOS", remitente: "DTD-J031-05", cbmFactura: 1.134, precioCbm: 800, totalFacturado: 907.2 }),
+      fila({ filaExcel: 6, marcaTexto: "ALIADO PRUEBA MM", remitente: "MM-41", cajas: 8, cbmFactura: 0.96, precioCbm: 630, totalFacturado: 604.8 }),
+      fila({ filaExcel: 7, marcaTexto: "DTD-A116 UNO", remitente: "DTD-A116-08", cbmFactura: 0.021, precioCbm: 750, totalFacturado: 15.75 }),
+      fila({ filaExcel: 8, marcaTexto: "DTD-J031 DOS", remitente: "DTD-J031-06", cbmFactura: 0.2, precioCbm: 800, totalFacturado: 160 }),
+      fila({ filaExcel: 9, marcaTexto: "ALIADO PRUEBA MM", remitente: "MM-42", cajas: 2, cbmFactura: 0.1, precioCbm: 630, totalFacturado: 63 }),
+    ];
+    const l = agruparLote(RASTREO, filas, { eta: "2026-10-19", modalidad: "fcl", dueno: "MG-019" });
+    expect(l.embarques).toHaveLength(0);
+    expect(l.clientes).toHaveLength(0);
+    expect(l.totales.cajas).toBe(0);
+    expect(l.dueno?.codigo).toBe("MG-019-FCL-59");
+    expect(l.avisos.some((a) => a.includes("se ignoran las 6 filas"))).toBe(true);
+    expect(l.avisos.some((a) => a.includes("sin m³"))).toBe(true);
+    expect(() => agruparLote(RASTREO, filas, { eta: "2026-10-19", modalidad: "fcl" })).toThrow(/exige la marca del dueño/);
+    expect(() => agruparLote(RASTREO, filas, { eta: "2026-10-19", dueno: "HR" })).toThrow(/sólo aplica/);
+    expect(() => agruparLote(RASTREO, filas, { eta: "2026-10-19", modalidad: "mixto", dueno: "DTD-A116" })).toThrow(/también aparece como cliente DDP/);
+    expect(() => agruparLote(RASTREO, filas, { eta: "2026-10-19", gastoEspacio: { monto: 10, usuarioEmail: "a@b.test" } })).toThrow(/sólo aplica a la modalidad mixto/);
+    expect(() => agruparLote(RASTREO, filas, { eta: "2026-10-19", modalidad: "mixto", dueno: "HR", gastoEspacio: { monto: 0, usuarioEmail: "a@b.test" } })).toThrow(/mayor que 0/);
+    const m = agruparLote(RASTREO, filas, { eta: "2026-10-19", modalidad: "mixto", dueno: "HR", cbmFcl: 61.3, kgFcl: 18000 });
+    expect(m.clientes.map((c) => c.clave)).toEqual(["DTD-A116", "DTD-J031", "MM-0041", "MM-0042"]);
+    expect(m.dueno).toMatchObject({ codigo: "HR-FCL-59", cbm: 61.3, kg: 18000, servicio: "fcl_directo" });
   });
 });
 

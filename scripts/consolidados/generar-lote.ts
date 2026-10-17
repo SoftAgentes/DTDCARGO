@@ -18,12 +18,13 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { leerPacking, leerRastreo } from "./leer-excel";
-import { agruparLote, ISO_FECHA, normalizarCodigo, type Lote } from "./modelo";
+import { agruparLote, ISO_FECHA, normalizarCodigo, type FilaPacking, type Lote, type Modalidad, type ServicioFcl } from "./modelo";
 import { generarSql, type OpcionesSql, type SalidaSql } from "./lote-sql";
 
 export interface Argumentos {
   rastreo: string;
-  packing: string;
+  /** Obligatorio en ddp y mixto; un FCL de cliente no lleva packing list. */
+  packing?: string;
   contenedor: number;
   eta: string;
   salida: string;
@@ -38,11 +39,23 @@ export interface Argumentos {
   polNombre: string;
   tipo: string;
   tenant: string;
+  modalidad: Modalidad;
+  dueno?: string;
+  servicioFcl: ServicioFcl;
+  cbmFcl?: number;
+  kgFcl?: number;
+  gastoEspacio?: number;
+  gastoUsuario?: string;
+  /** Sólo para pruebas locales: el título del packing list no tiene que coincidir con --contenedor. */
+  ignorarTituloPacking: boolean;
 }
 
-const USO = `Uso: generar-lote --rastreo <xlsx> --packing <xlsx> --contenedor <N> --eta YYYY-MM-DD --salida <dir>
+const USO = `Uso: generar-lote --rastreo <xlsx> [--packing <xlsx>] --contenedor <N> --eta YYYY-MM-DD --salida <dir>
+      [--modalidad ddp|fcl|mixto] [--dueno <marca>] [--servicio-fcl fcl_directo|fcl_bodega] [--cbm-fcl N] [--kg-fcl N]
+      [--gasto-espacio <monto USD> --gasto-usuario <correo del Studio>]
       [--etd YYYY-MM-DD] [--fecha-carga YYYY-MM-DD] [--entorno prueba|produccion]
-      [--crear-clientes-faltantes] [--sin-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json] [--pol NGB] [--tipo 40HC] [--tenant dtd]`;
+      [--crear-clientes-faltantes] [--sin-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json] [--pol NGB] [--tipo 40HC] [--tenant dtd]
+      [--ignorar-titulo-packing]`;
 
 export function parsearArgumentos(argv: string[]): Argumentos {
   const valores = new Map<string, string>();
@@ -51,7 +64,7 @@ export function parsearArgumentos(argv: string[]): Argumentos {
     const a = argv[i];
     if (!a.startsWith("--")) throw new Error(`Argumento inesperado: ${a}\n${USO}`);
     const k = a.slice(2);
-    if (["crear-clientes-faltantes", "sin-facturas", "sin-exceso-peso"].includes(k)) {
+    if (["crear-clientes-faltantes", "sin-facturas", "sin-exceso-peso", "ignorar-titulo-packing"].includes(k)) {
       banderas.add(k);
       continue;
     }
@@ -78,9 +91,29 @@ export function parsearArgumentos(argv: string[]): Argumentos {
     if (v && !ISO_FECHA.test(v)) throw new Error(`--${k} debe ser YYYY-MM-DD`);
   }
   const pol = normalizarCodigo(valores.get("pol") ?? "NGB");
+  const modalidad = (valores.get("modalidad") ?? "ddp") as Modalidad;
+  if (!["ddp", "fcl", "mixto"].includes(modalidad)) throw new Error("--modalidad debe ser ddp, fcl o mixto");
+  const dueno = valores.get("dueno");
+  if ((modalidad === "fcl" || modalidad === "mixto") && !dueno) throw new Error(`--modalidad ${modalidad} exige --dueno <marca>`);
+  if (modalidad === "ddp" && dueno) throw new Error("--dueno sólo aplica a fcl y mixto");
+  const servicioFcl = (valores.get("servicio-fcl") ?? "fcl_directo") as ServicioFcl;
+  if (!["fcl_directo", "fcl_bodega"].includes(servicioFcl)) throw new Error("--servicio-fcl debe ser fcl_directo o fcl_bodega");
+  const numOpc = (k: string): number | undefined => {
+    const v = valores.get(k);
+    if (v == null) return undefined;
+    const n = Number(v.replace(",", "."));
+    if (!Number.isFinite(n) || n <= 0) throw new Error(`--${k} debe ser un número mayor que 0`);
+    return n;
+  };
+  const gastoEspacio = numOpc("gasto-espacio");
+  const gastoUsuario = valores.get("gasto-usuario");
+  if ((gastoEspacio != null) !== (gastoUsuario != null)) throw new Error("--gasto-espacio y --gasto-usuario van juntos");
+  if (gastoEspacio != null && modalidad !== "mixto") throw new Error("--gasto-espacio sólo aplica a la modalidad mixto");
+  const packing = valores.get("packing");
+  if (modalidad !== "fcl" && !packing) throw new Error(`--modalidad ${modalidad} exige --packing <xlsx>`);
   return {
     rastreo: req("rastreo"),
-    packing: req("packing"),
+    packing,
     contenedor,
     eta,
     salida: req("salida"),
@@ -95,6 +128,14 @@ export function parsearArgumentos(argv: string[]): Argumentos {
     polNombre: pol === "NGB" ? "Ningbo" : pol,
     tipo: normalizarCodigo(valores.get("tipo") ?? "40HC"),
     tenant: valores.get("tenant") ?? "dtd",
+    modalidad,
+    dueno,
+    servicioFcl,
+    cbmFcl: numOpc("cbm-fcl"),
+    kgFcl: numOpc("kg-fcl"),
+    gastoEspacio,
+    gastoUsuario,
+    ignorarTituloPacking: banderas.has("ignorar-titulo-packing"),
   };
 }
 
@@ -125,7 +166,8 @@ export function resumenMarkdown(lote: Lote, salida: SalidaSql, avisosExcel: stri
   const avisos = [...avisosExcel, ...lote.avisos];
   return `# Lote ${m.lote} · contenedor DTD #${m.contenedor.numero} (${m.contenedor.container_no})
 
-- Entorno: **${m.entorno}** · facturas: ${m.opciones.facturas ? "sí (borrador, una por cliente)" : "no"} · exceso de peso: ${m.opciones.excesoPeso ? "se cobra en líneas aparte" : "NO se cobra"} · crear clientes faltantes: ${m.opciones.crearClientesFaltantes ? "sí (sólo prueba)" : "no"}
+- Modalidad: **${m.modalidad}**${m.dueno ? ` · dueño del contenedor: ${m.dueno.clave} (${m.dueno.etiqueta} en la evidencia) · envío FCL \`${m.dueno.codigo}\` (${m.dueno.servicio}${m.dueno.cbm != null ? `, ${m.dueno.cbm} m³` : ""}${m.dueno.kg != null ? `, ${m.dueno.kg} kg` : ""}), sin recepción ni factura` : ""}${m.gastoEspacio ? ` · gasto por el espacio: $${m.gastoEspacio.monto.toFixed(2)} (expenses, categoría otro, colgado del envío FCL)` : ""}
+- Entorno: **${m.entorno}** · facturas: ${m.opciones.facturas ? "sí (borrador, una por cliente DDP)" : "no"} · exceso de peso: ${m.opciones.excesoPeso ? "se cobra en líneas aparte" : "NO se cobra"} · crear clientes faltantes: ${m.opciones.crearClientesFaltantes ? "sí (sólo prueba)" : "no"}
 - Naviera ${m.contenedor.naviera} · ${m.contenedor.pol} → ${m.contenedor.pod} · carga ${m.contenedor.fechaCarga} · recepciones ${m.contenedor.fechaRecepcion} · ETD ${m.contenedor.etd} · ETA ${m.contenedor.eta} · ${m.opciones.containerType}
 - Fuentes: rastreo sha256 ${m.fuentes.rastreo.slice(0, 12)}… · packing sha256 ${m.fuentes.packing.slice(0, 12)}…
 - Generado ${m.generadoEn}
@@ -134,7 +176,7 @@ export function resumenMarkdown(lote: Lote, salida: SalidaSql, avisosExcel: stri
 
 | Entidad | Cantidad |
 |---|---|
-| Envíos (uno por remitente, en tránsito) | ${m.esperado.envios} |
+| Envíos (uno por remitente${m.dueno ? " + el FCL del dueño" : ""}, en tránsito) | ${m.esperado.envios} |
 | Recepciones en China (${m.contenedor.fechaRecepcion}, consolidadas) | ${m.esperado.recepciones} |
 | Items de recepción (filas del Excel) | ${m.esperado.items} |
 | Cajas (las crea el trigger) | ${m.esperado.cajas} |
@@ -168,18 +210,39 @@ ${avisos.length ? avisos.map((a) => `- ${a}`).join("\n") : "- Ninguno."}
 }
 
 export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: SalidaSql; archivos: string[] }> {
-  for (const ruta of [args.rastreo, args.packing]) {
+  for (const ruta of [args.rastreo, args.packing].filter((r): r is string => !!r)) {
     if (!existsSync(ruta)) throw new Error(`No existe el archivo ${ruta}`);
   }
   const rastreo = await leerRastreo(args.rastreo, args.contenedor);
-  const packing = await leerPacking(args.packing);
-  const avisosExcel = [...packing.avisos];
-  if (packing.numeroTitulo != null && packing.numeroTitulo !== args.contenedor) {
-    throw new Error(`El packing list dice contenedor #${packing.numeroTitulo} y pediste el #${args.contenedor}`);
+  let filas: FilaPacking[] = [];
+  const avisosExcel: string[] = [];
+  if (args.packing) {
+    const packing = await leerPacking(args.packing);
+    avisosExcel.push(...packing.avisos);
+    if (packing.numeroTitulo != null && packing.numeroTitulo !== args.contenedor) {
+      if (!args.ignorarTituloPacking) {
+        throw new Error(`El packing list dice contenedor #${packing.numeroTitulo} y pediste el #${args.contenedor}`);
+      }
+      avisosExcel.push(`El packing list dice contenedor #${packing.numeroTitulo} y el lote es del #${args.contenedor} (--ignorar-titulo-packing: sólo para pruebas locales).`);
+    }
+    filas = packing.filas;
   }
   const mapa = leerMapa(args.mapa);
-  const lote = agruparLote(rastreo, packing.filas, { eta: args.eta, etd: args.etd, fechaCarga: args.fechaCarga, mapa, excesoPeso: args.excesoPeso });
-  const fuentes = { rastreo: sha256(args.rastreo), packing: sha256(args.packing) };
+  const lote = agruparLote(rastreo, filas, {
+    eta: args.eta,
+    etd: args.etd,
+    fechaCarga: args.fechaCarga,
+    mapa,
+    excesoPeso: args.excesoPeso,
+    modalidad: args.modalidad,
+    dueno: args.dueno,
+    servicioFcl: args.servicioFcl,
+    cbmFcl: args.cbmFcl ?? null,
+    kgFcl: args.kgFcl ?? null,
+    gastoEspacio: args.gastoEspacio != null && args.gastoUsuario ? { monto: args.gastoEspacio, usuarioEmail: args.gastoUsuario } : null,
+  });
+  const fuentes = { rastreo: sha256(args.rastreo), packing: args.packing ? sha256(args.packing) : "" };
+  const huellaLote = (fuentes.packing || fuentes.rastreo).slice(0, 8);
   const opciones: OpcionesSql = {
     entorno: args.entorno,
     crearClientesFaltantes: args.crearClientesFaltantes,
@@ -188,7 +251,7 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
     polNombre: args.polNombre,
     containerType: args.tipo,
     vessel: "Por confirmar",
-    lote: `carga-consolidado:${args.contenedor}:${fuentes.packing.slice(0, 8)}`,
+    lote: `carga-consolidado:${args.contenedor}:${huellaLote}`,
     tenantSlug: args.tenant,
   };
   const salida = generarSql(lote, opciones, fuentes);
@@ -219,6 +282,7 @@ async function main(): Promise<void> {
   const { lote, salida, archivos } = await generar(args);
   const m = salida.manifiesto;
   console.log(`Lote ${m.lote} · contenedor DTD #${m.contenedor.numero} (${m.contenedor.container_no}) · ${m.entorno}`);
+  console.log(`  modalidad ${m.modalidad}${m.dueno ? ` · dueño ${m.dueno.clave} → ${m.dueno.codigo}` : ""}${m.gastoEspacio ? ` · gasto espacio $${m.gastoEspacio.monto}` : ""}`);
   console.log(`  ${m.esperado.envios} envíos · ${m.esperado.recepciones} recepciones · ${m.esperado.items} items · ${m.esperado.cajas} cajas · ${m.esperado.clientes} clientes · ${m.esperado.facturas} facturas`);
   console.log(`  ${m.esperado.cbm} m³ · ${m.esperado.kg} kg · base $${m.esperado.base.toFixed(2)} (Excel $${lote.totales.totalFacturadoExcel.toFixed(2)})`);
   console.log(`  avisos: ${lote.avisos.length} · archivos en ${args.salida}: ${archivos.join(", ")}`);

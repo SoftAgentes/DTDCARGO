@@ -21,7 +21,7 @@
  * `shipments.code` (= Remitente), `warehouse_receipts_cn.receipt_code`
  * (`WR-C<NN>-<remitente>`) y la marca del lote en `notes`.
  */
-import type { Lote } from "./modelo";
+import type { Lote, Marca } from "./modelo";
 import { litSql, normalizarCodigo } from "./modelo";
 
 export interface OpcionesSql {
@@ -84,8 +84,8 @@ export function naviera(texto: string | null): { name: string; scac: string | nu
 
 const DELIMITADORES = ["$lote$", "$undo$", "$v$", "$purga$"];
 
-/** Una marca con la forma PREFIJO-[letra]dígitos es un código; cualquier otra puede llevar texto de un nombre. */
-export const RE_MARCA_CODIGO = /^[A-Z]{2,4}-[A-Z]?\d{1,5}$/;
+/** Una marca con la forma PREFIJO-[letra]dígitos, o la insignia pelada de un aliado, es un código; cualquier otra puede llevar texto de un nombre. */
+export const RE_MARCA_CODIGO = /^[A-Z]{2,4}(?:-[A-Z]?\d{1,5})?$/;
 
 /**
  * Lo que de una marca puede salir en la evidencia del servidor: la clave si es
@@ -102,6 +102,8 @@ function revisarDelimitadores(lote: Lote): void {
   const textos: string[] = [];
   for (const f of lote.filas) textos.push(f.marcaTexto, f.remitente, f.descripcion, f.agente);
   for (const c of lote.clientes) textos.push(c.marca.nombreExcel, ...c.marca.candidatos);
+  if (lote.dueno) textos.push(lote.dueno.codigo, lote.dueno.marca.nombreExcel, ...lote.dueno.marca.candidatos);
+  if (lote.gastoEspacio) textos.push(lote.gastoEspacio.usuarioEmail);
   for (const t of textos) for (const d of DELIMITADORES) if (t.includes(d)) throw new Error(`El texto «${t}» contiene el delimitador ${d}.`);
 }
 
@@ -110,6 +112,12 @@ export interface Manifiesto {
   sdd: "0543";
   entorno: string;
   generadoEn: string;
+  /** ddp · fcl · mixto (decisión de Sam vía Director, 2026-10-17). */
+  modalidad: string;
+  /** Dueño del contenedor en fcl/mixto: su etiqueta en la evidencia, el código del envío FCL, el servicio y la medida. */
+  dueno: { etiqueta: string; clave: string; codigo: string; servicio: string; cbm: number | null; kg: number | null } | null;
+  /** Monto del gasto por espacio (mixto). El correo del usuario no va al manifiesto. */
+  gastoEspacio: { monto: number } | null;
   contenedor: { numero: number; etiqueta: string; container_no: string; naviera: string; pol: string; pod: string; fechaCarga: string; fechaRecepcion: string; etd: string; eta: string; modalidad: string | null };
   fuentes: { rastreo: string; packing: string };
   opciones: { crearClientesFaltantes: boolean; facturas: boolean; excesoPeso: boolean; containerType: string };
@@ -140,27 +148,75 @@ function cab(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string
     `  lote text, contenedor text, numero int, modalidad text, naviera text, naviera_scac text,`,
     `  pol text, pol_nombre text, pod text, pod_nombre text, pod_pais text,`,
     `  fecha_carga date, fecha_recepcion date, etd date, eta date,`,
-    `  container_type text, vessel text, crear_faltantes boolean, facturas boolean, entorno text, tenant_slug text`,
+    `  container_type text, vessel text, crear_faltantes boolean, facturas boolean, entorno text, tenant_slug text, modalidad text`,
     `) on commit drop;`,
     `insert into lote_cab values (`,
     `  ${litSql(o.lote)}, ${litSql(normalizarCodigo(r.contenedor))}, ${r.numero}, ${litSql(r.modalidad)}, ${litSql(nav.name)}, ${litSql(nav.scac)},`,
     `  ${litSql(o.pol)}, ${litSql(o.polNombre)}, ${litSql(pod.code)}, ${litSql(pod.name)}, ${litSql(pod.country)},`,
     `  ${litSql(lote.fechaCarga)}, ${litSql(lote.fechaRecepcion)}, ${litSql(lote.etd)}, ${litSql(lote.eta)},`,
-    `  ${litSql(o.containerType)}, ${litSql(o.vessel)}, ${o.crearClientesFaltantes ? "true" : "false"}, ${o.facturas ? "true" : "false"}, ${litSql(o.entorno)}, ${litSql(o.tenantSlug)}`,
+    `  ${litSql(o.containerType)}, ${litSql(o.vessel)}, ${o.crearClientesFaltantes ? "true" : "false"}, ${o.facturas ? "true" : "false"}, ${litSql(o.entorno)}, ${litSql(o.tenantSlug)}, ${litSql(lote.modalidad)}`,
     `);`,
   ].join("\n");
+}
+
+interface MarcaDelLote {
+  orden: number;
+  clave: string;
+  etiqueta: string;
+  marca: Marca;
+  /** `true` para el dueño de un FCL cuya marca es la insignia pelada de un aliado (`HR`). */
+  esRaizAliado: boolean;
+}
+
+/** Las marcas que el lote tiene que resolver: los clientes DDP y, si lo hay, el dueño del contenedor. */
+function marcasDelLote(lote: Lote): MarcaDelLote[] {
+  const out: MarcaDelLote[] = lote.clientes.map((c, i) => ({
+    orden: i + 1,
+    clave: c.clave,
+    etiqueta: etiquetaEvidencia(c.clave, c.marca.prefijo, i + 1),
+    marca: c.marca,
+    esRaizAliado: false,
+  }));
+  if (lote.dueno) {
+    const d = lote.dueno.marca;
+    out.push({
+      orden: out.length + 1,
+      clave: d.clave,
+      etiqueta: etiquetaEvidencia(d.clave, d.prefijo, out.length + 1),
+      marca: d,
+      esRaizAliado: d.numero === "",
+    });
+  }
+  return out;
+}
+
+/** Códigos de envío del lote: un DDP por Remitente y, si lo hay, el FCL del dueño. */
+export function codigosEnvio(lote: Lote): string[] {
+  const codigos = lote.embarques.map((e) => e.remitente);
+  if (lote.dueno) codigos.push(lote.dueno.codigo);
+  return codigos;
 }
 
 function datos(lote: Lote): string {
   const out: string[] = [];
   out.push(
-    `create temp table lote_clientes (orden int primary key, clave text unique, etiqueta text, nombre_excel text, prefijo text, es_casa boolean, candidatos text[]) on commit drop;`,
+    `create temp table lote_clientes (orden int primary key, clave text unique, etiqueta text, nombre_excel text, prefijo text, es_casa boolean, es_raiz_aliado boolean, candidatos text[]) on commit drop;`,
   );
-  lote.clientes.forEach((c, i) => {
+  for (const m of marcasDelLote(lote)) {
     out.push(
-      `insert into lote_clientes values (${i + 1}, ${litSql(c.clave)}, ${litSql(etiquetaEvidencia(c.clave, c.marca.prefijo, i + 1))}, ${litSql(c.marca.nombreExcel)}, ${litSql(c.marca.prefijo)}, ${c.marca.esCasa}, array[${c.marca.candidatos.map(litSql).join(", ")}]::text[]);`,
+      `insert into lote_clientes values (${m.orden}, ${litSql(m.clave)}, ${litSql(m.etiqueta)}, ${litSql(m.marca.nombreExcel)}, ${litSql(m.marca.prefijo)}, ${m.marca.esCasa}, ${m.esRaizAliado}, array[${m.marca.candidatos.map(litSql).join(", ")}]::text[]);`,
     );
-  });
+  }
+  out.push(`create temp table lote_dueno (clave text, codigo text, servicio text, cbm numeric, kg numeric) on commit drop;`);
+  if (lote.dueno) {
+    out.push(
+      `insert into lote_dueno values (${litSql(lote.dueno.marca.clave)}, ${litSql(lote.dueno.codigo)}, ${litSql(lote.dueno.servicio)}, ${lote.dueno.cbm ?? "null"}, ${lote.dueno.kg ?? "null"});`,
+    );
+  }
+  out.push(`create temp table lote_gasto (monto numeric, usuario_email text) on commit drop;`);
+  if (lote.gastoEspacio) {
+    out.push(`insert into lote_gasto values (${lote.gastoEspacio.monto}, ${litSql(lote.gastoEspacio.usuarioEmail)});`);
+  }
   out.push(
     `create temp table lote_envios (orden int primary key, remitente text unique, clave text, cajas int, peso numeric, cbm numeric, cbm_factura numeric) on commit drop;`,
   );
@@ -214,6 +270,13 @@ declare
   v_root_client uuid;
   v_chain text;
   v_markbox_nuevo text;
+  d record;
+  g record;
+  v_fcl_ship uuid;
+  v_n_fcl int := 0;
+  v_user uuid;
+  v_exp_code text;
+  v_n_gastos int := 0;
   v_fact_id uuid;
   v_ship uuid;
   v_receipt uuid;
@@ -261,9 +324,12 @@ begin
   -- Sólo conteos en los errores: un Remitente puede llevar texto del Excel y
   -- este mensaje termina en la evidencia del servidor. previa.sql los enumera
   -- en la PC con el resumen.
+  -- Códigos de envío del lote: los DDP (Remitente) y el FCL del dueño, si lo hay.
+  create temp table lote_codigos on commit drop as
+    select remitente as codigo from lote_envios union all select codigo from lote_dueno;
   select count(*) into v_n_dup
     from public.shipments s
-    join lote_envios l on upper(s.code) = upper(l.remitente)
+    join lote_codigos l on upper(s.code) = upper(l.codigo)
    where s.tenant_id = v_tenant and s.deleted_at is null;
   if v_n_dup > 0 then
     raise exception 'preflight: % envíos del lote ya existen con ese código (ver previa.sql y resumen.md)', v_n_dup;
@@ -273,7 +339,7 @@ begin
   -- código (corrida local 2026-10-16 23:23Z).
   select count(*) into v_n_dup
     from public.shipments s
-    join lote_envios l on upper(s.code) = upper(l.remitente)
+    join lote_codigos l on upper(s.code) = upper(l.codigo)
    where s.tenant_id = v_tenant and s.deleted_at is not null;
   if v_n_dup > 0 then
     raise exception 'preflight: % envíos del lote existen BORRADOS (deshacer previo) y ocupan el código; en prueba, purgar.sql; en otra base, decisión del Director', v_n_dup;
@@ -369,7 +435,24 @@ begin
 
     if v_client_id is null and cab.crear_faltantes then
       v_creado := true;
-      if c.es_casa then
+      if c.es_raiz_aliado then
+        -- El dueño de un FCL cuya marca es la insignia pelada: su ficha ES el aliado (migr 0371).
+        select a.id, a.client_id into v_aliado, v_root_client
+          from public.aliados a
+         where a.tenant_id = v_tenant and a.deleted_at is null and upper(a.prefix) = upper(c.prefijo)
+         limit 1;
+        if v_aliado is null then
+          insert into public.clients (tenant_id, markbox, name, notes)
+          values (v_tenant, upper(c.prefijo), c.nombre_excel || ' (aliado raíz)',
+                  'Creado por la carga ' || cab.lote || ' (prueba): aliado raíz ' || c.prefijo)
+          returning id into v_root_client;
+          insert into public.aliados (tenant_id, client_id, prefix, trade_name, status, agreement_notes)
+          values (v_tenant, v_root_client, upper(c.prefijo), c.nombre_excel, 'activo',
+                  'Creado por la carga ' || cab.lote || ' (prueba)')
+          returning id into v_aliado;
+        end if;
+        select id, markbox into v_client_id, v_markbox from public.clients where id = v_root_client;
+      elsif c.es_casa then
         insert into public.clients (tenant_id, markbox, name, notes)
         values (v_tenant, c.candidatos[1], c.nombre_excel,
                 'Creado por la carga ' || cab.lote || ' (prueba): la marca no existía en la base')
@@ -512,6 +595,42 @@ begin
       cab.lote, 1, 'internal');
   end loop;
 
+  -- ── El envío FCL del dueño del contenedor (modalidades fcl y mixto) ───────
+  -- Sin recepción en bodega ni factura: el contenedor es suyo; lo que ve es su
+  -- envío con el contenedor, la naviera y el ETA. fcl_directo no pasa por
+  -- «consolidating» (lib/studio/shipment-state-machine.ts); fcl_bodega sí.
+  for d in select * from lote_dueno loop
+    select * into r from lote_resueltos where clave = d.clave;
+    insert into public.shipments
+      (tenant_id, code, client_name, client_markbox, origin, destination, shipment_service, status,
+       weight_kg, volume_m3, vehicle_category, notes, created_at, updated_at)
+    values
+      (v_tenant, d.codigo, r.nombre, r.markbox, 'Yiwu, China', cab.pod_nombre, d.servicio::public.shipment_service, 'in_warehouse',
+       d.kg, d.cbm, 'contenedor_maritimo',
+       'Carga ' || cab.lote || ' · contenedor DTD #' || cab.numero::text || ' (' || cab.contenedor || ') · FCL del dueño',
+       v_ts_carga - interval '1 day', v_ts_carga)
+    returning id into v_fcl_ship;
+    update public.shipments set status = 'in_transit' where id = v_fcl_ship;
+    if d.servicio = 'fcl_bodega' then
+      insert into public.shipment_events (tenant_id, shipment_id, status, note, occurred_at) values
+        (v_tenant, v_fcl_ship, 'consolidating', 'Contenedor ' || cab.contenedor || ' cargado en bodega (' || v_ref || ')', v_ts_carga);
+    end if;
+    insert into public.shipment_events (tenant_id, shipment_id, status, note, occurred_at) values
+      (v_tenant, v_fcl_ship, 'shipped', 'Zarpó de ' || cab.pol_nombre || ' con ' || cab.naviera || ' · ETA ' || cab.eta::text, v_ts_carga + interval '1 hour'),
+      (v_tenant, v_fcl_ship, 'in_transit', 'En tránsito a ' || cab.pod_nombre, v_ts_carga + interval '2 hours');
+    insert into public.consolidation_items
+      (tenant_id, consolidation_id, shipment_id, client_markbox, client_name, cbm, weight_kg, pieces, created_at)
+    values
+      (v_tenant, v_cons, v_fcl_ship, r.markbox, r.nombre, coalesce(d.cbm, 0), coalesce(d.kg, 0), 0, v_ts_carga);
+    perform public.append_audit_event(
+      v_tenant, 'shipment', v_fcl_ship, 'system', null, 'shipment_imported', 'job', 'succeeded',
+      'Envío FCL del dueño del contenedor DTD #' || cab.numero::text || ' (SDD-0543)',
+      null, jsonb_build_object('code', d.codigo, 'status', 'in_transit', 'service', d.servicio, 'client_markbox', r.markbox),
+      jsonb_build_object('lote', cab.lote, 'contenedor', cab.contenedor, 'consolidation_ref', v_ref),
+      cab.lote, 1, 'internal');
+    v_n_fcl := v_n_fcl + 1;
+  end loop;
+
   -- ── Una factura por cliente, en borrador ─────────────────────────────────
   if cab.facturas then
     -- Alias de dos letras a propósito: e y r son variables del bloque y
@@ -558,16 +677,41 @@ begin
     end loop;
   end if;
 
+  -- ── El espacio que el aliado nos cobra (mixto), como gasto del envío FCL ──
+  -- expenses.user_id es obligatorio y next_expense_code exige sesión: el usuario
+  -- se resuelve por correo y el código se calcula acá con la misma regla.
+  for g in select * from lote_gasto loop
+    if v_fcl_ship is null then
+      raise exception 'lote: el gasto por espacio necesita el envío FCL del dueño';
+    end if;
+    select u.id into v_user from auth.users u where lower(u.email) = lower(g.usuario_email) limit 1;
+    if v_user is null then
+      raise exception 'lote: no existe un usuario con el correo indicado para registrar el gasto';
+    end if;
+    select 'EXP-' || to_char(now() at time zone 'America/Caracas', 'YYYY') || '-'
+           || lpad((coalesce(max((substring(x.expense_code from 'EXP-' || to_char(now() at time zone 'America/Caracas', 'YYYY') || '-(\d+)$'))::int), 0) + 1)::text, 4, '0')
+      into v_exp_code
+      from public.expenses x where x.tenant_id = v_tenant;
+    insert into public.expenses
+      (tenant_id, user_id, expense_code, amount, currency, category, method, shipment_id, note, location, billable,
+       occurred_at, scope, amount_usd, fx_rate)
+    values
+      (v_tenant, v_user, v_exp_code, g.monto, 'USD', 'otro', 'transfer', v_fcl_ship,
+       'Carga ' || cab.lote || ' · espacio en el contenedor ' || cab.contenedor || ' (DTD #' || cab.numero::text || ') vendido por el aliado dueño',
+       'Yiwu, CN', false, v_ts_carga, 'shipment', g.monto, 1.0);
+    v_n_gastos := v_n_gastos + 1;
+  end loop;
+
   perform public.append_audit_event(
     v_tenant, 'consolidation', v_cons, 'system', null, 'consolidation_imported', 'job', 'succeeded',
     'Carga del contenedor DTD #' || cab.numero::text || ' desde el packing list (SDD-0543)',
-    null, jsonb_build_object('ref', v_ref, 'container_no', cab.contenedor, 'status', 'zarpado', 'eta', cab.eta),
-    jsonb_build_object('lote', cab.lote, 'envios', v_n_envios, 'recepciones', v_n_recepciones, 'items', v_n_items,
-                       'facturas', v_n_facturas, 'clientes_creados', (select count(*) from lote_resueltos where creado)),
+    null, jsonb_build_object('ref', v_ref, 'container_no', cab.contenedor, 'status', 'zarpado', 'eta', cab.eta, 'modalidad', cab.modalidad),
+    jsonb_build_object('lote', cab.lote, 'envios', v_n_envios, 'envios_fcl', v_n_fcl, 'recepciones', v_n_recepciones, 'items', v_n_items,
+                       'facturas', v_n_facturas, 'gastos', v_n_gastos, 'clientes_creados', (select count(*) from lote_resueltos where creado)),
     cab.lote, 1, 'internal');
 
-  raise notice 'lote % · contenedor % (%) · % envíos · % recepciones · % items · % facturas · % clientes creados',
-    cab.lote, cab.contenedor, v_ref, v_n_envios, v_n_recepciones, v_n_items, v_n_facturas,
+  raise notice 'lote % · contenedor % (%) · % envíos · % FCL del dueño · % recepciones · % items · % facturas · % gastos · % clientes creados',
+    cab.lote, cab.contenedor, v_ref, v_n_envios, v_n_fcl, v_n_recepciones, v_n_items, v_n_facturas, v_n_gastos,
     (select count(*) from lote_resueltos where creado);
 end
 $lote$;
@@ -578,10 +722,11 @@ function cuerpoAplicar(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { na
 }
 
 function previa(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string; scac: string | null }): string {
-  const codigosEnvio = lote.embarques.map((e) => litSql(e.remitente)).join(", ");
-  const codigosRecepcion = lote.embarques.map((e) => litSql(`WR-C${lote.rastreo.numero}-${e.remitente}`)).join(", ");
-  const candidatos = lote.clientes
-    .map((c, i) => `(${litSql(etiquetaEvidencia(c.clave, c.marca.prefijo, i + 1))}, array[${c.marca.candidatos.map(litSql).join(", ")}]::text[])`)
+  const codigos = codigosEnvio(lote).map(litSql).join(", ") || "''";
+  const codigosRecepcion = lote.embarques.map((e) => litSql(`WR-C${lote.rastreo.numero}-${e.remitente}`)).join(", ") || "''";
+  const marcas = marcasDelLote(lote);
+  const candidatos = marcas
+    .map((m) => `(${litSql(m.etiqueta)}, array[${m.marca.candidatos.map(litSql).join(", ")}]::text[])`)
     .join(",\n  ");
   return `\\set ON_ERROR_STOP on
 -- SDD-0543 · lectura previa del lote ${o.lote} (contenedor DTD #${lote.rastreo.numero} · ${lote.rastreo.contenedor})
@@ -603,7 +748,7 @@ select
   (select count(*) from public.consolidations c join public.tenants t on t.id = c.tenant_id
      where t.slug = ${litSql(o.tenantSlug)} and c.deleted_at is null and c.notes like '%' || ${litSql(o.lote)} || '%') as lote_ya_aplicado,
   (select count(*) from public.shipments s join public.tenants t on t.id = s.tenant_id
-     where t.slug = ${litSql(o.tenantSlug)} and s.deleted_at is null and upper(s.code) in (${codigosEnvio})) as envios_repetidos,
+     where t.slug = ${litSql(o.tenantSlug)} and s.deleted_at is null and upper(s.code) in (${codigos})) as envios_repetidos,
   (select count(*) from public.warehouse_receipts_cn w join public.tenants t on t.id = w.tenant_id
      where t.slug = ${litSql(o.tenantSlug)} and w.deleted_at is null and upper(w.receipt_code) in (${codigosRecepcion})) as recepciones_repetidas,
   (select count(*) from public.invoices i join public.tenants t on t.id = i.tenant_id
@@ -631,7 +776,7 @@ select m.clave,
 
 \\echo === resumen de marcas
 with marcas(clave, candidatos) as (values
-  ${lote.clientes.map((c, i) => `(${litSql(etiquetaEvidencia(c.clave, c.marca.prefijo, i + 1))}, array[${c.marca.candidatos.map(litSql).join(", ")}]::text[])`).join(",\n  ")}
+  ${candidatos}
 ), tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)})
 select count(*) as marcas,
        count(*) filter (where exists (
@@ -647,7 +792,7 @@ rollback;
 }
 
 function verificar(lote: Lote, o: OpcionesSql, man: Manifiesto): string {
-  const codigosEnvio = lote.embarques.map((e) => litSql(e.remitente)).join(", ");
+  const codigosEnvioSql = codigosEnvio(lote).map(litSql).join(", ");
   const esperado = man.esperado;
   return `\\set ON_ERROR_STOP on
 -- SDD-0543 · verificación del lote ${o.lote}: recuenta y compara con manifiesto.json. Sólo lee.
@@ -669,7 +814,7 @@ begin
   select count(*), coalesce(sum(volume_m3), 0), coalesce(sum(weight_kg), 0)
     into n_envios, s_cbm, s_kg
     from public.shipments
-   where tenant_id = v_tenant and deleted_at is null and upper(code) in (${codigosEnvio}) and status = 'in_transit';
+   where tenant_id = v_tenant and deleted_at is null and upper(code) in (${codigosEnvioSql}) and status = 'in_transit';
   select count(*) into n_items_cons from public.consolidation_items where consolidation_id = v_cons;
   select count(*), coalesce(sum(boxes), 0) into n_recepciones, n_cajas
     from public.warehouse_receipts_cn
@@ -706,7 +851,7 @@ select c.ref, c.container_no, c.status, c.container_type, s.pol, s.pod, s.etd, s
 \\echo === envíos por cliente (sin nombres)
 select client_markbox, count(*) as envios, sum(volume_m3) as cbm, sum(weight_kg) as kg
   from public.shipments
- where deleted_at is null and upper(code) in (${codigosEnvio})
+ where deleted_at is null and upper(code) in (${codigosEnvioSql})
  group by client_markbox order by client_markbox;
 
 \\echo === facturas del lote (sin nombres ni códigos de embarque: un Remitente puede llevar texto del Excel)
@@ -773,6 +918,8 @@ begin
   update public.invoices set deleted_at = now()
    where tenant_id = v_tenant and deleted_at is null and notes like '%' || v_lote || '%' and status = 'borrador';
   get diagnostics n_inv = row_count;
+  update public.expenses set deleted_at = now()
+   where tenant_id = v_tenant and deleted_at is null and note like '%' || v_lote || '%';
   delete from public.consolidation_items where consolidation_id = v_cons;
   get diagnostics n_items = row_count;
   update public.warehouse_boxes set deleted_at = now() where receipt_id = any(v_rec_ids) and deleted_at is null;
@@ -849,6 +996,7 @@ begin
    where tenant_id = v_tenant and agreement_notes like 'Creado por la carga ' || v_lote || '%';
 
   -- Orden de dependencias. Lo ajeno al lote que apunte acá hace fallar la FK: a propósito.
+  delete from public.expenses where tenant_id = v_tenant and note like '%' || v_lote || '%';
   delete from public.invoices where id = any(v_invs);
   get diagnostics n_invs = row_count;
   delete from public.warehouse_receipts_cn where id = any(v_recs); -- cascada: items, eventos, cajas y sus posiciones
@@ -876,6 +1024,7 @@ begin
        + (select count(*) from public.sailings where tenant_id = v_tenant and notes like '%' || v_lote || '%')
        + (select count(*) from public.clients where tenant_id = v_tenant and notes like 'Creado por la carga ' || v_lote || '%')
        + (select count(*) from public.aliados where tenant_id = v_tenant and agreement_notes like 'Creado por la carga ' || v_lote || '%')
+       + (select count(*) from public.expenses where tenant_id = v_tenant and note like '%' || v_lote || '%')
     into resto;
   if resto <> 0 then
     raise exception 'purgar: quedaron % filas del lote %', resto, v_lote;
@@ -901,11 +1050,19 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
   const pod = puertoDestino(lote.rastreo.puertoLlegada);
   const nav = naviera(lote.rastreo.naviera);
   const items = lote.embarques.reduce((s, e) => s + e.filas.length, 0);
+  const marcas = marcasDelLote(lote);
+  const marcaDueno = lote.dueno ? marcas[marcas.length - 1] : null;
   const manifiesto: Manifiesto = {
     lote: o.lote,
     sdd: "0543",
     entorno: o.entorno,
     generadoEn: new Date().toISOString(),
+    modalidad: lote.modalidad,
+    dueno:
+      lote.dueno && marcaDueno
+        ? { etiqueta: marcaDueno.etiqueta, clave: lote.dueno.marca.clave, codigo: lote.dueno.codigo, servicio: lote.dueno.servicio, cbm: lote.dueno.cbm, kg: lote.dueno.kg }
+        : null,
+    gastoEspacio: lote.gastoEspacio ? { monto: lote.gastoEspacio.monto } : null,
     contenedor: {
       numero: lote.rastreo.numero,
       etiqueta: lote.rastreo.etiqueta,
@@ -922,14 +1079,14 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
     fuentes,
     opciones: { crearClientesFaltantes: o.crearClientesFaltantes, facturas: o.facturas, excesoPeso: lote.excesoPeso, containerType: o.containerType },
     esperado: {
-      envios: lote.embarques.length,
+      envios: lote.embarques.length + (lote.dueno ? 1 : 0),
       recepciones: lote.embarques.length,
       items,
       cajas: lote.totales.cajas,
-      clientes: lote.clientes.length,
+      clientes: lote.clientes.length + (lote.dueno ? 1 : 0),
       facturas: o.facturas ? lote.clientes.length : 0,
-      cbm: lote.totales.cbmFactura,
-      kg: lote.totales.pesoKg,
+      cbm: Math.round((lote.totales.cbmFactura + (lote.dueno?.cbm ?? 0)) * 1000) / 1000,
+      kg: Math.round((lote.totales.pesoKg + (lote.dueno?.kg ?? 0)) * 100) / 100,
       base: o.facturas ? lote.totales.base : 0,
     },
     embarques: lote.embarques.map((e) => ({ remitente: e.remitente, clave: e.clave, cajas: e.cajas, cbm: e.cbmFactura, kg: e.pesoKg, filas: e.filas.length })),
@@ -937,7 +1094,7 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
     avisos: lote.avisos,
   };
   const cuerpo = cuerpoAplicar(lote, o, pod, nav);
-  const cabecera = `-- SDD-0543 · lote ${o.lote} · contenedor DTD #${lote.rastreo.numero} (${manifiesto.contenedor.container_no}) · entorno ${o.entorno}\n-- generado ${manifiesto.generadoEn} · ${lote.embarques.length} envíos · ${items} items · ${lote.totales.cajas} cajas · ${lote.totales.cbmFactura} m³\n`;
+  const cabecera = `-- SDD-0543 · lote ${o.lote} · contenedor DTD #${lote.rastreo.numero} (${manifiesto.contenedor.container_no}) · entorno ${o.entorno} · modalidad ${lote.modalidad}\n-- generado ${manifiesto.generadoEn} · ${lote.embarques.length} envíos DDP${lote.dueno ? " + 1 FCL del dueño" : ""} · ${items} items · ${lote.totales.cajas} cajas · ${lote.totales.cbmFactura} m³\n`;
   return {
     previa: previa(lote, o, pod, nav),
     aplicar: `\\set ON_ERROR_STOP on\n${cabecera}-- UNA transacción: si algo falla, no queda nada.\nbegin;\n\n${cuerpo}\n\ncommit;\n`,
