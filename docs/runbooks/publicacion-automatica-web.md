@@ -21,6 +21,7 @@ OK de Sam para encender.
 | `dtd-cargo-publicar.timer` | VPS | Cada minuto, `publicar-web.sh vigilar`. |
 | `/srv/ops/web/publicar-web.sh` | VPS | Si `:publicable` no es lo que corre, pasa las puertas (migraciones, compose y cron, sharp), cambia solo `DTD_WEB_IMAGE`, `up -d --no-deps web`, healthy, prueba rápida y, si falla, vuelve atrás. Reemplaza al interino de la misma ruta y conserva su interfaz `publicar-web.sh <sha>`. |
 | `/srv/ops/web/huellas-fuera-de-imagen.sh` | GitHub y VPS | Las mismas huellas de los dos lados. |
+| `/srv/dtd-cargo/estado-publicacion/publicaciones.json` | VPS → Studio | Lo escribe `publicar-web.sh` al final de `vigilar`, `publicar`, `volver`, `congelar` y `descongelar` ([SDD-0547](../specs/0547-panel-publicaciones-servidor/spec.md) §4). El web lo ve en solo lectura y `/studio/debug` › Estado lo muestra. Ver [Estado para el Studio](#estado-para-el-studio-sdd-0547). |
 
 ## Plan de instalación
 
@@ -125,11 +126,49 @@ publicación del paso C9), o editando el `.env` a mano como antes.
 `systemctl disable --now dtd-cargo-publicar.timer`. El `.env` queda con lo último
 publicado y la web sigue igual. Se vuelve a publicar a mano como antes.
 
+## Estado para el Studio (SDD-0547)
+
+`publicar-web.sh` deja `publicaciones.json` en `/srv/dtd-cargo/estado-publicacion/`.
+El servicio `web` monta esa carpeta en `/var/lib/dtd-cargo/publicacion`, en solo
+lectura (`infra/dtd-cargo/compose.yml`). El contrato es el de la spec 0547, §4.
+
+| Qué | Cómo |
+|---|---|
+| Valores | Solo SHA de 40 hex, horas UTC, códigos de la lista de §4.4 y nombres de migración. El texto de cada negativa (rutas, errores de docker o de `psql`) sigue yendo al journal, a la evidencia y a los avisos: nunca al archivo. Cada `MOTIVO=` del script lleva su `CODIGO=` |
+| Escritura | Temporal en la misma carpeta, `chmod 644` y `mv -f`. Carpeta `755`. El web corre como `node` y solo lee. Si la escritura falla, el script lo dice en el journal y la publicación sigue igual: nunca cambia el código de salida |
+| Historial | `/srv/ops/web/estado/historial.jsonl`, con las 200 líneas más nuevas; el archivo lleva las 20 más nuevas. `retenida` se anota una vez por motivo, con la misma clave del aviso de Telegram |
+| Vigilante | El de la última vuelta, guardado en `estado/vigilante.json`. `publicar`, `volver`, `congelar` y `descongelar` lo reusan; con `CONGELADO` dice `congelado`, y al descongelar queda en `null` hasta la vuelta siguiente |
+| Congelado | `desde` es la hora del archivo `CONGELADO`. `automatico` es `true` solo si lo congeló el script al fallar una vuelta atrás (`estado/congelado-automatico`, no más viejo que `CONGELADO`) |
+| Prueba | Su compose monta su propia `./estado-publicacion`, vacía: la card de prueba dice «Sin datos» y nunca muestra el estado de producción |
+
+### Instalación (K5): en la misma ventana del merge
+
+`compose.yml` es huella **bloqueante**. Si el merge de la PR del escritor llega a
+`:publicable` sin que el servidor tenga su `compose.yml`, esa publicación queda
+retenida con motivo `huellas`. `.env.example` también es huella, pero solo avisa.
+Llamemos `M` al commit de merge. Antes de que `:publicable` llegue a `M` (unos 5 min):
+
+| # | Paso (root, en el VPS) | Comprobación |
+|---|---|---|
+| K5.1 | Guardar lo que hay: `cp -p /srv/ops/web/publicar-web.sh /srv/ops/evidencias/publicacion-automatica/publicar-web.sh.antes-0547-$(sha256sum /srv/ops/web/publicar-web.sh \| cut -c1-16)`, y lo mismo con `/srv/dtd-cargo/compose.yml` y `.env.example` | Las copias existen |
+| K5.2 | Copiar de `M`: `install -m 700 publicar-web.sh /srv/ops/web/` y `install -m 644 compose.yml .env.example /srv/dtd-cargo/` | `sha256sum` de los tres igual a `git show M:<ruta> \| sha256sum` |
+| K5.3 | `publicar-web.sh revisar` | Con `:publicable` todavía en el commit anterior, «PUERTAS: NO · … compose.yml» es lo esperado: el servidor ya tiene el de `M`. Con `:publicable` en `M`: «PUERTAS: pasan» |
+| K5.4 | Esperar la vuelta que publica `M`. Recrea el web con el montaje | `journalctl -u dtd-cargo-publicar.service -n 20` → «PUBLICADA <M>» |
+| K5.5 | El archivo | `ls -l /srv/dtd-cargo/estado-publicacion/` → `-rw-r--r-- root … publicaciones.json`; `docker exec dtd-cargo-web-1 node -e 'JSON.parse(require("fs").readFileSync("/var/lib/dtd-cargo/publicacion/publicaciones.json","utf8"))' && echo ok` → `ok` |
+| K5.6 | La pantalla | `/studio/debug` › Estado › «Publicaciones del servidor»: «Al día» y el commit `M` |
+
+Si el script nuevo falla en algo: restaurar la copia de K5.1 (`install -m 700`) y
+avisar al Director. La web no depende del archivo: sin él, la card dice «Sin datos».
+
 ## Pruebas
 
 - `bash infra/ops/tests/prueba-publicar-web.sh`: dobles de `docker`, `curl` y la
   prueba rápida, en Linux (en Windows, dentro de un contenedor; ver la cabecera del
-  script). Con `--mutantes` corre el control rojo y los mutantes.
+  script). Con `--mutantes` corre el control rojo y los mutantes. Las secciones
+  «estado para el Studio» prueban el archivo de la SDD-0547: formas, permisos, `mv`,
+  un evento por motivo, topes y fallas. Si `lib/studio/publicaciones-types.ts` está
+  en el árbol, también lo pasan por el parser del Studio; si no, lo marcan NO
+  VERIFICADO.
 - `pnpm vitest run infra/ops/tests/publicable.test.mjs`: la decisión de GitHub.
   Entra también en `pnpm test`.
 
