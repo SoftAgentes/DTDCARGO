@@ -168,7 +168,8 @@ avisar al Director. La web no depende del archivo: sin él, la card dice «Sin d
   «estado para el Studio» prueban el archivo de la SDD-0547: formas, permisos, `mv`,
   un evento por motivo, topes y fallas. Si `lib/studio/publicaciones-types.ts` está
   en el árbol, también lo pasan por el parser del Studio; si no, lo marcan NO
-  VERIFICADO.
+  VERIFICADO. Desde la SDD-0550 la corre el CI «Calidad continua» en cada PR, con
+  `infra/ops/tests/pruebas-linux.sh` (paso «Pruebas bash de operaciones»).
 - `pnpm vitest run infra/ops/tests/publicable.test.mjs`: la decisión de GitHub.
   Entra también en `pnpm test`.
 

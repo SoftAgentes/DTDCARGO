@@ -68,6 +68,11 @@ jobs:
       - name: Harness Director Worker
         run: pnpm harness:test
 
+      - name: Pruebas bash de operaciones
+        # Las que piden Linux (flock) y Vitest no corre: publicación de la web
+        # (SDD-0541) y carga de consolidados (SDD-0543), con dobles (SDD-0550).
+        run: bash infra/ops/tests/pruebas-linux.sh
+
       - name: Documentacion SDD
         run: pnpm docs:check
 

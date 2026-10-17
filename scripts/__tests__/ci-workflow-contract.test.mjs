@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -49,6 +49,7 @@ describe("SDD-0349 · CI de calidad sin secretos", () => {
       "pnpm edge:check",
       "pnpm test",
       "pnpm harness:test",
+      "bash infra/ops/tests/pruebas-linux.sh",
       "pnpm docs:check",
       "pnpm sdd:check",
       "node scripts/check-pending-migration-symbols.mjs",
@@ -185,5 +186,155 @@ describe("SDD-0450 · el check repo contra repo es obligatorio en CI", () => {
     const job = structuredClone(qualityJob);
     mutate(job);
     expect(() => assertRequiredPendingMigrationSymbols(job)).toThrow();
+  });
+});
+
+const OPS_BASH = "bash infra/ops/tests/pruebas-linux.sh";
+
+function assertRequiredOpsBash(job) {
+  if (!job || Object.hasOwn(job, "if") || Object.hasOwn(job, "continue-on-error")) {
+    throw new Error("El job de calidad debe ser obligatorio y propagar fallos");
+  }
+  const steps = job.steps?.filter((step) => step.run?.trim() === OPS_BASH) ?? [];
+  if (steps.length !== 1) {
+    throw new Error("Falta un único paso ejecutable para las pruebas bash de operaciones");
+  }
+  const step = steps[0];
+  if (Object.hasOwn(step, "if") || Object.hasOwn(step, "continue-on-error")) {
+    throw new Error("Las pruebas bash deben correr sin condición ni tolerancia de errores");
+  }
+  // PRUEBAS_LINUX_LISTA y PRUEBAS_LINUX_TOPE_S cambian la lista y el tope del
+  // runner: sólo los usa su propia prueba.
+  if (/PRUEBAS_LINUX_/.test(JSON.stringify([job.env ?? {}, step.env ?? {}]))) {
+    throw new Error("El CI no puede reemplazar la lista ni el tope de las pruebas bash");
+  }
+}
+
+describe("SDD-0550 · las pruebas bash de operaciones son obligatorias en CI", () => {
+  const parsed = loadYaml(workflow);
+  const qualityJob = parsed.jobs.quality;
+
+  it("corre el runner como paso propio, en ubuntu, y propaga su resultado", () => {
+    expect(() => assertRequiredOpsBash(qualityJob)).not.toThrow();
+    expect(qualityJob["runs-on"]).toBe("ubuntu-24.04");
+    expect(workflow).not.toContain("PRUEBAS_LINUX_");
+  });
+
+  it.each([
+    ["paso eliminado", (job) => {
+      job.steps = job.steps.filter((step) => step.run !== OPS_BASH);
+    }],
+    ["comando solo impreso", (job) => {
+      job.steps.find((step) => step.run === OPS_BASH).run = `echo ${OPS_BASH}`;
+    }],
+    ["fallo oculto por el shell", (job) => {
+      job.steps.find((step) => step.run === OPS_BASH).run += " || true";
+    }],
+    ["paso condicionado", (job) => {
+      job.steps.find((step) => step.run === OPS_BASH).if = "github.event_name == 'workflow_dispatch'";
+    }],
+    ["error ignorado", (job) => {
+      job.steps.find((step) => step.run === OPS_BASH)["continue-on-error"] = true;
+    }],
+    ["lista reemplazada en el paso", (job) => {
+      job.steps.find((step) => step.run === OPS_BASH).env = { PRUEBAS_LINUX_LISTA: "infra/ops/tests/prueba-prompt-trim.sh" };
+    }],
+    ["lista reemplazada en el job", (job) => {
+      job.env = { ...job.env, PRUEBAS_LINUX_LISTA: "infra/ops/tests/prueba-prompt-trim.sh" };
+    }],
+    ["tope cambiado en el paso", (job) => {
+      job.steps.find((step) => step.run === OPS_BASH).env = { PRUEBAS_LINUX_TOPE_S: "1" };
+    }],
+  ])("rechaza %s", (_name, mutate) => {
+    const job = structuredClone(qualityJob);
+    mutate(job);
+    expect(() => assertRequiredOpsBash(job)).toThrow();
+  });
+});
+
+/**
+ * Toda prueba bash de infra/ops/tests corre en algún lado o dice por qué no.
+ * Las de la 0541 y la 0543 quedaron fuera de Vitest y del CI sin que nada
+ * avisara: una prueba nueva sin clasificar rompe aquí.
+ */
+const EN_VITEST = {
+  "prueba-scripts-entorno-prueba.sh": "scripts/__tests__/entorno-prueba-scripts.test.mjs",
+  "prueba-aplicar-migracion.sh": "scripts/__tests__/entorno-prueba-scripts.test.mjs",
+  "prueba-smoke-web-credenciales.sh": "scripts/__tests__/entorno-prueba-scripts.test.mjs",
+  "prueba-migraciones-produccion.sh": "infra/ops/tests/migraciones.test.mjs",
+};
+const FUERA_DEL_CI = {
+  "prueba-aplicar-migracion-efimera.sh": "corrida pesada: Postgres efímero en Docker",
+  "prueba-resetear-base-efimera.sh": "corrida pesada: Postgres, GoTrue y storage efímeros en Docker",
+  "prueba-compose-prueba.sh": "pide Docker con compose v2",
+  "prueba-backup-dtd.sh": "en el VPS como root, con un contenedor de Docker",
+  "prueba-env-set.sh": "en el VPS: python3 y docker compose",
+  "prueba-jwks-sesiones.sh": "en el VPS, contra un stack de Supabase levantado",
+  "prueba-new-age-key.sh": "en el VPS, con un servidor tmux propio",
+  "prueba-respaldo-b2.sh": "contra el bucket real de respaldos",
+  "prueba-set-remote.sh": "en el VPS: S3 falso en Docker",
+  "prueba-storage-from-cloud.sh": "en el staging del VPS",
+  "prueba-traslado-y-respaldos.sh": "integración con contenedores de Docker",
+};
+
+function listaDelRunner(texto) {
+  const bloque = texto.match(/^PRUEBAS=\(\r?\n([\s\S]*?)^\)\r?$/m)?.[1];
+  if (!bloque) throw new Error("no encuentro la lista PRUEBAS=( … ) de pruebas-linux.sh");
+  return bloque
+    .split(/\r?\n/)
+    .map((linea) => linea.replace(/#.*/, "").trim())
+    .filter(Boolean);
+}
+
+/** Problemas de clasificación: sin destino, en dos destinos o destino inexistente. */
+function clasificar(todas, { vitest, linux, fuera }) {
+  const problemas = [];
+  const destinos = new Map();
+  for (const [lista, nombre] of [[Object.keys(vitest), "Vitest"], [linux, "CI Linux"], [Object.keys(fuera), "fuera del CI"]]) {
+    for (const script of lista) {
+      if (!todas.includes(script)) problemas.push(`${script}: figura en ${nombre} pero no existe`);
+      if (destinos.has(script)) problemas.push(`${script}: está en ${destinos.get(script)} y en ${nombre}`);
+      destinos.set(script, nombre);
+    }
+  }
+  for (const script of todas) if (!destinos.has(script)) problemas.push(`${script}: no corre en Vitest ni en el CI y no dice por qué`);
+  return problemas;
+}
+
+describe("SDD-0550 · toda prueba bash de infra/ops/tests tiene dónde correr", () => {
+  const todas = readdirSync(resolve("infra/ops/tests")).filter((f) => /^prueba-.+\.sh$/.test(f)).sort();
+  const linux = listaDelRunner(readFileSync(resolve("infra/ops/tests/pruebas-linux.sh"), "utf8"));
+  const linuxNombres = linux.map((ruta) => ruta.replace(/^infra\/ops\/tests\//, ""));
+
+  it("el CI Linux corre las de la 0541 y la 0543 por su ruta", () => {
+    expect(linux).toEqual(expect.arrayContaining([
+      "infra/ops/tests/prueba-publicar-web.sh",
+      "infra/ops/tests/prueba-aplicar-lote.sh",
+    ]));
+    for (const ruta of linux) expect(ruta).toMatch(/^infra\/ops\/tests\/prueba-[\w-]+\.sh$/);
+  });
+
+  it("cada una está en un solo destino y ninguna queda sin clasificar", () => {
+    // 19 el 2026-10-17: el piso impide que una lectura vacía pase por «todo clasificado».
+    expect(todas.length).toBeGreaterThanOrEqual(19);
+    expect(clasificar(todas, { vitest: EN_VITEST, linux: linuxNombres, fuera: FUERA_DEL_CI })).toEqual([]);
+  });
+
+  it("las de Vitest se ejecutan de verdad en el archivo que se nombra", () => {
+    for (const [script, archivo] of Object.entries(EN_VITEST)) {
+      const src = readFileSync(resolve(archivo), "utf8");
+      const corre = new RegExp(`(correr\\(|spawn\\(BASH, \\[)"infra/ops/tests/${script.replace(/\./g, "\\.")}"`);
+      expect(src, `${archivo} no ejecuta ${script}`).toMatch(corre);
+    }
+  });
+
+  it.each([
+    ["una prueba nueva sin clasificar", (c) => c.todas.push("prueba-nueva.sh"), /prueba-nueva\.sh: no corre en Vitest ni en el CI/],
+    ["una prueba en dos destinos", (c) => c.linux.push("prueba-aplicar-migracion.sh"), /prueba-aplicar-migracion\.sh: está en Vitest y en CI Linux/],
+    ["una entrada que ya no existe", (c) => { c.fuera["prueba-borrada.sh"] = "x"; }, /prueba-borrada\.sh: figura en fuera del CI pero no existe/],
+  ])("control: %s se detecta", (_caso, mutar, problema) => {
+    const c = { todas: [...todas], vitest: { ...EN_VITEST }, linux: [...linuxNombres], fuera: { ...FUERA_DEL_CI } };
+    mutar(c);
+    expect(clasificar(c.todas, c).join("\n")).toMatch(problema);
   });
 });
