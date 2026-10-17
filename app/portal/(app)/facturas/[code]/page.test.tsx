@@ -15,6 +15,7 @@ const h = vi.hoisted(() => ({
   factura: null as unknown,
   pendiente: null as unknown,
   cliente: null as unknown,
+  consultas: [] as unknown[][],
 }));
 
 vi.mock("next/navigation", () => ({
@@ -26,11 +27,17 @@ vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => ({}) }));
 vi.mock("@/lib/portal/portal-queries", () => ({
   getMyInvoice: async () => h.factura,
+  // SDD-0549: el borrador se busca con el principal de sesión. `getPortalClient`
+  // se deja para que una versión que volviera a usarlo corra y falle por la aserción.
+  getPortalClientPrincipal: async () => (h.cliente ? { userId: "u1", tenantId: "t1", client: h.cliente } : null),
   getPortalClient: async () => h.cliente,
 }));
 vi.mock("@/lib/portal/pending-acceptance", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/portal/pending-acceptance")>()),
-  loadPendingAcceptanceDetailForClient: async () => h.pendiente,
+  loadPendingAcceptanceDetailForClient: async (...args: unknown[]) => {
+    h.consultas.push(args);
+    return h.pendiente;
+  },
 }));
 vi.mock("@/lib/portal/payment-report-queries", () => ({ listMyInvoiceReports: async () => [] }));
 
@@ -65,6 +72,7 @@ afterEach(() => {
   h.factura = null;
   h.pendiente = null;
   h.cliente = null;
+  h.consultas = [];
 });
 
 describe("/portal/facturas/[code] con un borrador por aceptar (SDD-0543)", () => {
@@ -93,5 +101,16 @@ describe("/portal/facturas/[code] con un borrador por aceptar (SDD-0543)", () =>
   it("sin cliente en sesión no consulta borradores: 404", async () => {
     h.pendiente = PENDIENTE;
     await expect(abrir()).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(h.consultas).toEqual([]);
+  });
+
+  it("busca el borrador con el tenant y el Shipping Mark del principal de sesión (SDD-0549)", async () => {
+    h.cliente = CLIENTE;
+    h.pendiente = PENDIENTE;
+    await abrir();
+    expect(h.consultas).toHaveLength(1);
+    const [principal, code] = h.consultas[0];
+    expect(principal).toMatchObject({ tenantId: "t1", client: { markbox: "DTD-8001" } });
+    expect(code).toBe("F-2026-0007");
   });
 });

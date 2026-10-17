@@ -5,7 +5,7 @@ import {
   listMyInvoices,
   listMyShipments,
   listMyEstimates,
-  getPortalClient,
+  getPortalClientPrincipal,
 } from "@/lib/portal/portal-queries";
 import {
   formatInvoiceAmount,
@@ -71,16 +71,19 @@ export default async function PortalInvoicesPage({
   // Rediseño Norte (founder 2026-06-20) GATEADO al demo: la card "ciclo"
   // (Estimado→Aprobado→Facturado) necesita estimados + envíos; sólo se cargan para
   // el demo (clientes reales: misma página, sin queries extra).
-  const client = await getPortalClient(supabase);
-  const demo = showNortePortal(client?.markbox);
+  // SDD-0549 · un solo principal de sesión: su cliente decide el demo y su
+  // tenant + Shipping Mark acotan los borradores por aceptar (sin releer
+  // `clients.tenant_id` con el admin client).
+  const principal = await getPortalClientPrincipal(supabase);
+  const demo = showNortePortal(principal?.client.markbox);
   const [todasLasFacturas, shipments, estimates, porAceptar] = await Promise.all([
     listMyInvoices(supabase),
     demo ? listMyShipments(supabase) : Promise.resolve<PortalShipmentRow[]>([]),
     demo ? listMyEstimates(supabase) : Promise.resolve<PortalEstimateRow[]>([]),
     // SDD-0543 · borradores DDP que esperan su aceptación de T&C: el portal los
     // oculta de la lista, pero el cliente tiene que saber que existen y cuánto son.
-    client
-      ? loadPendingAcceptanceForClient({ clientId: client.id, markbox: client.markbox })
+    principal
+      ? loadPendingAcceptanceForClient(principal)
       : Promise.resolve([]),
   ]);
   const sumaPorAceptar = totalPorAceptar(porAceptar);

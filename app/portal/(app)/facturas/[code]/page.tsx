@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { getMyInvoice, getPortalClient } from "@/lib/portal/portal-queries";
+import { getMyInvoice, getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { loadPendingAcceptanceDetailForClient } from "@/lib/portal/pending-acceptance";
 import { listMyInvoiceReports } from "@/lib/portal/payment-report-queries";
 import { formatInvoiceAmount, invoiceBalance } from "@/lib/portal/portal-types";
@@ -28,11 +28,12 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
   // La RLS + el filtro por markbox sólo devuelven facturas del cliente logueado;
   // si no hay match (ajena, borrador o inexistente) → 404. Excepción (SDD-0543):
   // un borrador SUYO que espera su aceptación de T&C no es un 404 sino una puerta
-  // cerrada con el monto a la vista y el botón para aceptar.
+  // cerrada con el monto a la vista y el botón para aceptar. El borrador se
+  // busca con el tenant + Shipping Mark del principal de sesión (SDD-0549).
   if (!inv) {
-    const client = await getPortalClient(supabase);
-    const pendiente = client
-      ? await loadPendingAcceptanceDetailForClient({ clientId: client.id, markbox: client.markbox, code })
+    const principal = await getPortalClientPrincipal(supabase);
+    const pendiente = principal
+      ? await loadPendingAcceptanceDetailForClient(principal, code)
       : null;
     if (!pendiente) notFound();
     return <PendingInvoiceGate pendiente={pendiente} />;
