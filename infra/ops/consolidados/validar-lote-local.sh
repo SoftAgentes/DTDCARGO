@@ -35,10 +35,9 @@ log() { printf '%s %s\n' "$(date -u +%H:%M:%S)" "$*" | tee -a "${OUT}/corrida.lo
 tapar() { sed -E 's/«[^»]*»/«…»/g' | cut -c1-220; }
 fallos=0
 
-LEDGER_ONLY="$(node -e '
-const s=require("fs").readFileSync(process.argv[1],"utf8");
-const m=s.match(/const LEDGER_ONLY = new Set\(\[([\s\S]*?)\]\);/);
-console.log([...m[1].matchAll(/"([^"]+)"/g)].map(x=>x[1]).join(" "));' "${REPO}/scripts/check-schema-rebuild.mjs")"
+# La lista LEDGER_ONLY se lee con sed, no con node: con MSYS_NO_PATHCONV node no entiende /c/… .
+LEDGER_ONLY="$(sed -n '/const LEDGER_ONLY = new Set(\[/,/\]);/p' "${REPO}/scripts/check-schema-rebuild.mjs" | grep -oE '"[0-9]{4}_[^"]+\.sql"' | tr -d '"' | tr '\n' ' ')"
+[[ -n "${LEDGER_ONLY}" ]] || { echo "no pude leer LEDGER_ONLY de scripts/check-schema-rebuild.mjs" >&2; exit 5; }
 
 limpiar() { docker rm -fv "${C}" >/dev/null 2>&1 || true; }
 trap limpiar EXIT
