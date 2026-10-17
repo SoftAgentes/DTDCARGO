@@ -137,5 +137,34 @@ dobles_limpiar_log
 DOBLE_FALLA="ya está en el ledger" ej "${T}/vps" --md5 "${MD5A}" > "${T}/e7.log" 2>&1; rc=$?
 [[ ${rc} -eq 5 ]] && [[ "$(ls "${DOBLE_DIR}"/stdin-*.sql | wc -l | tr -d ' ')" == 1 ]] && ok "lectura previa que falla: sale 5 y no aplica" || ko "previa que falla rc=${rc}"
 
+echo "== evidencia: SHA256SUMS no depende del formato de sha256sum (SDD-0550)"
+# El sha256sum de Git para Windows escribe «hash *archivo» (modo binario). La
+# disposición infeliz: SHA256SUMS ya existe en la evidencia al cerrar, como
+# cuando el glob le gana a la redirección. Con el filtro « SHA256SUMS$» de antes,
+# la línea de SHA256SUMS se colaba y `sha256sum -c` fallaba.
+BIN="${T}/binario"; mkdir -p "${BIN}"
+REAL_SHA="$(command -v sha256sum)"
+cat > "${BIN}/sha256sum" <<EOF
+#!/usr/bin/env bash
+# Doble: modo binario, como el de Git para Windows. Al comprobar (-c) no aplica.
+for a in "\$@"; do case "\$a" in -c|--check) exec "${REAL_SHA}" "\$@" ;; esac; done
+exec "${REAL_SHA}" -b "\$@"
+EOF
+cat > "${BIN}/docker" <<EOF
+#!/usr/bin/env bash
+# Antes de cada llamada deja un SHA256SUMS vacío en la evidencia en curso.
+for d in "${T}"/evid-bin/apply-*/; do [[ -d "\$d" ]] && : > "\${d}SHA256SUMS"; done
+exec "${DOBLE_DIR}/bin/docker" "\$@"
+EOF
+chmod +x "${BIN}/sha256sum" "${BIN}/docker"
+dobles_limpiar_log
+PATH="${BIN}:${PATH}" bash "${AM}" --project "${P}" --sha "${SHA}" --file 0991_zz_buena.sql --ejecutar "${T}/vps" --md5 "${MD5A}" \
+  --evidence-dir "${T}/evid-bin" > "${T}/e8.log" 2>&1; rc=$?
+EVB="$(ls -d "${T}"/evid-bin/apply-0991-"${P}"-* 2>/dev/null | head -n1)"
+[[ ${rc} -eq 0 && -n "${EVB}" ]] && grep -q '^[0-9a-f]\{64\} \*aplicar\.out$' "${EVB}/SHA256SUMS" \
+  && ! grep -qE ' [ *]SHA256SUMS$' "${EVB}/SHA256SUMS" && ( cd "${EVB}" && sha256sum -c --quiet SHA256SUMS ) \
+  && ok "en modo binario («hash *archivo») SHA256SUMS no se lista a sí mismo y verifica" \
+  || { ko "evidencia en modo binario rc=${rc}"; cat "${T}/e8.log" "${EVB}/SHA256SUMS" 2>/dev/null; }
+
 echo "RESULTADO: ${pass} PASÓ · ${fail} FALLÓ"
 [[ "${fail}" == 0 ]]

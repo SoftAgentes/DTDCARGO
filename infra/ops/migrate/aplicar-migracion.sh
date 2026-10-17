@@ -212,7 +212,10 @@ fi
 mkdir -p -- "${EVID}" || die "no puedo crear ${EVID}"
 cp -- "${RUN_DIR}"/{migracion.sql,previa.sql,aplicar.sql,verificar.sql,IDENTIDAD.txt} "${EVID}/"
 log() { printf '%s %s\n' "$(date -u +%H:%M:%S.%3NZ)" "$*" | tee -a "${EVID}/registro.txt"; }
-cerrar() { ( cd "${EVID}" && sha256sum -- * 2>/dev/null | grep -v ' SHA256SUMS$' > SHA256SUMS ); }
+# SHA256SUMS no se lista a sí mismo. Se excluye por nombre, no filtrando la salida:
+# el sha256sum de Git para Windows escribe «hash *archivo» y un filtro por
+# « SHA256SUMS» lo dejaba pasar cuando el glob alcanzaba a verlo (SDD-0550).
+cerrar() { ( cd "${EVID}" && find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\n' | LC_ALL=C sort | xargs sha256sum -- > SHA256SUMS ); }
 correr() { # $1 nombre del script
   docker exec -i "${DB}" psql -U postgres -d postgres -X < "${RUN_DIR}/$1.sql" > "${EVID}/$1.out" 2> "${EVID}/$1.err"
 }
