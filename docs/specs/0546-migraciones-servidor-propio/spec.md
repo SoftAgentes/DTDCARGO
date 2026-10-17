@@ -277,3 +277,4 @@ Modificados:
 | Fecha | Qué | Evidencia |
 |---|---|---|
 | 2026-10-17 | Reserva y primera implementación del Worker; PR en borrador | handoff `0546-migraciones-servidor-propio.md` |
+| 2026-10-17 | `pnpm verify` sobre `a7448d6f`: exit 1 solo en `test`, por tiempo, en 3 pruebas que recorren el repo y son ajenas a esta rama. Aisladas, 26/26. `migrations-applied` NO DISPONIBLE (sin `.env`). Lo demás PASÓ | handoff § VALIDACIÓN |
