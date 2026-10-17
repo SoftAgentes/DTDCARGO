@@ -38,6 +38,11 @@ const FALLO_CON_0 = prueba("fallo-con-0.sh", 'echo "PASÓ  · uno"; echo "FALLÓ
 const VACIA = prueba("vacia.sh", "exit 0");
 const SIN_FLOCK = prueba("sin-flock.sh", 'echo "NO DISPONIBLE: falta flock (util-linux); corre esta prueba en Linux"; exit 1');
 const CUELGA = prueba("cuelga.sh", 'echo "PASÓ  · antes de colgarse"; sleep 60');
+// El FALLÓ queda a 60 líneas del final: el «tail» no lo alcanza.
+const FALLO_TEMPRANO = prueba(
+  "fallo-temprano.sh",
+  'echo "FALLÓ · la primera"; for i in $(seq 1 60); do echo "PASÓ  · relleno $i"; done; exit 1',
+);
 
 function correr(lista, extra = {}) {
   return new Promise((done) => {
@@ -87,10 +92,12 @@ describe("SDD-0550 · pruebas-linux.sh", () => {
     expect(linea(r.salida, PASA)).toMatch(/^PASÓ {2}· /);
   }, 60_000);
 
-  it("al fallar muestra las líneas FALLÓ y el final de la salida", async () => {
-    const r = await correr([FALLO_CON_0]);
-    expect(r.salida).toContain("    FALLÓ · dos");
+  it("al fallar muestra las líneas FALLÓ, aunque estén lejos del final, y el final de la salida", async () => {
+    const r = await correr([FALLO_TEMPRANO]);
+    expect(r.salida).toContain("    FALLÓ · la primera");
     expect(r.salida).toContain("    --- últimas líneas ---");
+    expect(r.salida).toContain("    PASÓ  · relleno 60");
+    expect(r.salida).not.toContain("    PASÓ  · relleno 1\n");
   }, 60_000);
 
   it("una lista sin pruebas no es verde", async () => {
