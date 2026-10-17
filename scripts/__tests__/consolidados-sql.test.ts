@@ -277,7 +277,9 @@ describe("generarSql", () => {
     expect(s.manifiesto.esperado).toMatchObject({ envios: 4, recepciones: 3, facturas: 3, clientes: 4, cbm: 2.107, kg: 278 });
     expect(s.manifiesto.gastoEspacio).toEqual({ monto: 1200.5 });
     expect(JSON.stringify(s.manifiesto)).not.toContain("admin@prueba.example.test");
-    expect(s.deshacer).toContain("update public.expenses set deleted_at = now()");
+    // expenses no admite deleted_at directo (void_expense_governed exige sesión): deshacer lo borra físico.
+    expect(s.deshacer).toContain("delete from public.expenses where tenant_id = v_tenant and note like '%' || v_lote || '%';");
+    expect(s.deshacer).not.toMatch(/update public\.expenses/);
     expect(s.purgar).toContain("delete from public.expenses where tenant_id = v_tenant and note like '%' || v_lote || '%';");
     expect(s.purgar.indexOf("delete from public.expenses")).toBeLessThan(s.purgar.indexOf("delete from public.shipments where id = any(v_ships);"));
   });

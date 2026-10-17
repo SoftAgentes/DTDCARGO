@@ -880,7 +880,7 @@ declare
   v_lote text := ${litSql(o.lote)};
   v_ship_ids uuid[];
   v_rec_ids uuid[];
-  n_inv int; n_items int; n_boxes int; n_rec int; n_ship int;
+  n_inv int; n_items int; n_boxes int; n_rec int; n_ship int; n_exp int := 0;
 begin
   select id into v_tenant from public.tenants where slug = ${litSql(o.tenantSlug)};
   select id, sailing_id into v_cons, v_sailing from public.consolidations
@@ -918,8 +918,11 @@ begin
   update public.invoices set deleted_at = now()
    where tenant_id = v_tenant and deleted_at is null and notes like '%' || v_lote || '%' and status = 'borrador';
   get diagnostics n_inv = row_count;
-  update public.expenses set deleted_at = now()
-   where tenant_id = v_tenant and deleted_at is null and note like '%' || v_lote || '%';
+  -- expenses no admite deleted_at directo (su trigger exige void_expense_governed,
+  -- que pide sesión): el gasto que creó el lote se borra físicamente, igual que
+  -- en purgar; el conteo queda en el evento de auditoría.
+  delete from public.expenses where tenant_id = v_tenant and note like '%' || v_lote || '%';
+  get diagnostics n_exp = row_count;
   delete from public.consolidation_items where consolidation_id = v_cons;
   get diagnostics n_items = row_count;
   update public.warehouse_boxes set deleted_at = now() where receipt_id = any(v_rec_ids) and deleted_at is null;
@@ -936,10 +939,10 @@ begin
     v_tenant, 'consolidation', v_cons, 'system', null, 'consolidation_import_undone', 'job', 'succeeded',
     'Deshacer la carga ' || v_lote || ' (SDD-0543)', null, null,
     jsonb_build_object('lote', v_lote, 'facturas', n_inv, 'items_contenedor', n_items, 'cajas', n_boxes,
-                       'recepciones', n_rec, 'envios', n_ship),
+                       'recepciones', n_rec, 'envios', n_ship, 'gastos_borrados', n_exp),
     v_lote, 1, 'internal');
-  raise notice 'deshacer: % facturas · % items del contenedor · % cajas · % recepciones · % envíos · contenedor y zarpe eliminados (borrado lógico: los códigos quedan ocupados; para recargar el mismo lote hace falta purgar)',
-    n_inv, n_items, n_boxes, n_rec, n_ship;
+  raise notice 'deshacer: % facturas · % items del contenedor · % cajas · % recepciones · % envíos · % gastos · contenedor y zarpe eliminados (borrado lógico: los códigos quedan ocupados; para recargar el mismo lote hace falta purgar)',
+    n_inv, n_items, n_boxes, n_rec, n_ship, n_exp;
 end
 $undo$;
 
