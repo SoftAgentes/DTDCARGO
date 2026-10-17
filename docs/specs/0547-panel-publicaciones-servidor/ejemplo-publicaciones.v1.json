@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "actualizado": "2026-10-17T17:40:02Z",
+  "corre": "03e0e078ef18b0c2c1a217a07c8d4e0eeb14d1c7",
+  "anterior": "8761618d5c0a4e2f9b7d3c1a0e9f8d7c6b5a4f3e",
+  "publicable": "c2fabdcc17e3ca28c62238764a82aa46ca515cca",
+  "congelado": null,
+  "vigilante": {
+    "estado": "retenida",
+    "motivo": "migraciones",
+    "faltan": ["0492_ejemplo_de_migracion"]
+  },
+  "historial": [
+    {
+      "hora": "2026-10-17T17:39:02Z",
+      "sha": "c2fabdcc17e3ca28c62238764a82aa46ca515cca",
+      "origen": "vigilante",
+      "resultado": "retenida",
+      "motivo": "migraciones",
+      "faltan": ["0492_ejemplo_de_migracion"]
+    },
+    {
+      "hora": "2026-10-16T13:39:41Z",
+      "sha": "03e0e078ef18b0c2c1a217a07c8d4e0eeb14d1c7",
+      "origen": "a-mano",
+      "resultado": "publicada",
+      "motivo": null
+    },
+    {
+      "hora": "2026-10-16T13:39:05Z",
+      "sha": "03e0e078ef18b0c2c1a217a07c8d4e0eeb14d1c7",
+      "origen": "a-mano",
+      "resultado": "vuelta-atras-a-mano",
+      "motivo": null
+    },
+    {
+      "hora": "2026-10-16T13:38:20Z",
+      "sha": "4f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c",
+      "origen": "vigilante",
+      "resultado": "vuelta-atras",
+      "motivo": "prueba-rapida"
+    }
+  ]
+}

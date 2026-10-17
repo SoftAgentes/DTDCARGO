@@ -3,9 +3,9 @@
 /**
  * DeployWebBot · botón "Push" + modal de confirmación.
  *
- * Vive en /studio/debug (card "Deploy actual"). Solo visible cuando estás
+ * Vive en /studio/debug (card "Esta instancia"). Solo visible cuando estás
  * en local (env === "local") porque las server actions de deploy requieren
- * acceso al filesystem · en Vercel no funcionan (gate explícito en el action).
+ * acceso al filesystem · en el servidor no funcionan (gate explícito en el action).
  *
  * Flow del modal:
  *   1. loading-status · llama a getDeployStatusAction() para leer git
@@ -35,7 +35,7 @@ export function DeployButton() {
         type="button"
         onClick={() => setOpen(true)}
         className="studio-btn studio-btn-primary studio-btn-sm"
-        title="Subir cambios pendientes a Vercel"
+        title="Subir cambios pendientes a GitHub"
         style={{ whiteSpace: "nowrap" }}
       >
         <span aria-hidden style={{ marginRight: 6 }}>↑</span>
@@ -199,7 +199,7 @@ function ReadyView({
             <div style={{ display: "flex", gap: "var(--s-2)" }}>
               <TypeButton
                 label="Preview"
-                desc="URL temporal"
+                desc="rama en GitHub"
                 active={type === "preview"}
                 onClick={() => setType("preview")}
               />
@@ -386,16 +386,28 @@ function ResultView({
           <div>Commit: <code style={{ fontFamily: "var(--f-mono)" }}>{result.commitShaShort}</code> · {result.scopeTag}</div>
           <div style={{ color: "var(--ink-soft)" }}>{result.commitMessage}</div>
         </div>
+        {/* SDD-0547: ya no publica Vercel. Lo que llega a main lo publica el
+            vigilante del servidor (SDD-0541); una rama no se publica sola. */}
         <p style={{ marginTop: "var(--s-3)", marginBottom: 0, color: "var(--ink-soft)" }}>
-          Vercel ya está deployando · revisa el progreso en{" "}
-          <Link
-            href="/studio/debug"
-            onClick={onClose}
-            style={{ color: "var(--info)", textDecoration: "underline" }}
-          >
-            /studio/debug
-          </Link>{" "}
-          (sección &quot;Deploys recientes&quot;).
+          {result.branch === "main" ? (
+            <>
+              GitHub construye la imagen y el servidor la publica sola en unos 5
+              minutos, si pasa sus puertas. Revisa el avance en{" "}
+              <Link
+                href="/studio/debug"
+                onClick={onClose}
+                style={{ color: "var(--info)", textDecoration: "underline" }}
+              >
+                /studio/debug
+              </Link>{" "}
+              (sección «Publicaciones del servidor»).
+            </>
+          ) : (
+            <>
+              La rama quedó en GitHub y no se publica sola: para llevarla a
+              producción, abre una PR.
+            </>
+          )}
         </p>
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>

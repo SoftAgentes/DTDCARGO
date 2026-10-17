@@ -90,14 +90,14 @@ function defaultCommitMessage(scopeTag: string): string {
  *   4. checkout -b (si preview) / checkout main + merge (si production)
  *   5. git push
  *
- * No hace polling de Vercel ni smoke test · esos se ven en /studio/debug
- * via la card "Deploys recientes" (que ya consulta la Vercel API).
+ * No espera la publicación ni corre la prueba rápida: lo que llega a `main`
+ * lo construye GitHub y lo publica el vigilante del servidor (SDD-0541), y su
+ * avance se ve en /studio/debug, card "Publicaciones del servidor" (SDD-0547).
  *
  * Lo que NO hace V1 (intencional):
- *   - Promover preview → producción (lo hace el .bat o git manual)
- *   - typecheck/lint pre-push (Vercel falla el build si hay errores TS)
- *   - Smoke test post-deploy (la card "Status de Producción" se actualiza
- *     sola cada 60s y muestra si el deploy quedó sano)
+ *   - Promover una rama `preview/*` a producción (eso va por PR)
+ *   - typecheck/lint pre-push (el build de la imagen falla si hay errores TS)
+ *   - Smoke test post-deploy (lo corre el vigilante; si falla, vuelve atrás)
  */
 export async function gitPushAction(
   input: GitPushInput,

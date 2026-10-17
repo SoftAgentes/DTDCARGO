@@ -4,7 +4,7 @@
  * Server actions de /studio/debug.
  *
  * Por ahora solo `recheckAllAction()` que invalida el cache de la página
- * (que abarca healthchecks de integraciones + deploys de Vercel) ·
+ * (que abarca healthchecks de integraciones + publicaciones del servidor) ·
  * útil para forzar un refresh inmediato sin esperar al revalidate
  * automático de 60s.
  */

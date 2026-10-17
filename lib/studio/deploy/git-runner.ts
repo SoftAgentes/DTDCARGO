@@ -2,7 +2,7 @@
  * git-runner.ts · wrapper de child_process para ejecutar git desde el server.
  *
  * Server-only. Usado por la server action `gitPushAction` del deploy web bot.
- * NUNCA se usa en producción (gate por VERCEL_ENV en el caller).
+ * NUNCA se usa en producción (gate `isLocalRuntime()` en el caller, SDD-0505).
  *
  * Razones de diseño:
  *  - Usamos `execFile` con array de args (no `exec` con string) para evitar
