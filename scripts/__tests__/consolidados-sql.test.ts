@@ -238,6 +238,11 @@ describe("generarSql", () => {
     }
     expect(s.purgar).toContain("notes like 'Creado por la carga ' || v_lote || '%'");
     expect(s.purgar).toContain("raise exception 'purgar: quedaron % filas del lote %'");
+    // Otro lote que dependa de este (aliado raíz o marca compartida) para antes del primer delete.
+    expect(s.purgar).toContain("cuelgan de un aliado creado por este lote: purga ese lote primero");
+    expect(s.purgar).toContain("usan la marca de un cliente creado por este lote: purga ese lote primero o reinicia prueba");
+    expect(s.purgar).toContain("substring(cl.notes from '(carga-consolidado:[0-9]+:[0-9a-f]+)')");
+    expect(s.purgar.indexOf("cuelgan de un aliado")).toBeLessThan(s.purgar.indexOf("delete from public.expenses"));
     expect(s.purgar).toContain("'consolidation_import_purged'");
     expect(s.purgar).not.toMatch(/delete from public\.entity_audit_log/);
     expect(s.purgar).not.toMatch(/set deleted_at/);

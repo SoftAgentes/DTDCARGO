@@ -972,8 +972,9 @@ declare
   v_tenant uuid;
   v_lote text := ${litSql(o.lote)};
   v_invs uuid[]; v_recs uuid[]; v_ships uuid[]; v_cons uuid[]; v_sails uuid[]; v_carriers uuid[];
-  v_clients uuid[]; v_aliados uuid[];
+  v_clients uuid[]; v_aliados uuid[]; v_markboxes text[];
   n_invs int; n_recs int; n_ships int; n_cons int; n_sails int; n_carriers int; n_clients int; n_aliados int;
+  n_dep int; v_dep text;
   resto int;
 begin
   select id into v_tenant from public.tenants where slug = ${litSql(o.tenantSlug)};
@@ -997,6 +998,34 @@ begin
    where tenant_id = v_tenant and notes like 'Creado por la carga ' || v_lote || '%';
   select coalesce(array_agg(id), '{}') into v_aliados from public.aliados
    where tenant_id = v_tenant and agreement_notes like 'Creado por la carga ' || v_lote || '%';
+
+  -- ── Otros lotes que dependen de este (prueba, 2026-10-17: el 62 colgó su
+  -- cliente del aliado raíz MG que creó el 61; purgar el 61 primero abortaba
+  -- por la FK clients.aliado_id). Se dice con conteos y el id del otro lote,
+  -- antes de tocar nada: purgar en orden inverso a la carga.
+  select coalesce(array_agg(markbox), '{}') into v_markboxes from public.clients where id = any(v_clients) and markbox is not null;
+  select count(*), string_agg(distinct coalesce(substring(cl.notes from '(carga-consolidado:[0-9]+:[0-9a-f]+)'), 'origen desconocido'), ', ')
+    into n_dep, v_dep
+    from public.clients cl
+   where cl.tenant_id = v_tenant and cl.aliado_id = any(v_aliados) and not (cl.id = any(v_clients));
+  if n_dep > 0 then
+    raise exception 'purgar: % cliente(s) de otro lote (%) cuelgan de un aliado creado por este lote: purga ese lote primero', n_dep, v_dep;
+  end if;
+  select count(*), string_agg(distinct coalesce(substring(x.notes from '(carga-consolidado:[0-9]+:[0-9a-f]+)'), 'origen desconocido'), ', ')
+    into n_dep, v_dep
+    from (
+      select s.notes from public.shipments s
+       where s.tenant_id = v_tenant and s.client_markbox = any(v_markboxes) and (s.notes is null or s.notes not like '%' || v_lote || '%')
+      union all
+      select w.notes from public.warehouse_receipts_cn w
+       where w.tenant_id = v_tenant and w.client_markbox = any(v_markboxes) and (w.notes is null or w.notes not like '%' || v_lote || '%')
+      union all
+      select i.notes from public.invoices i
+       where i.tenant_id = v_tenant and i.client_markbox = any(v_markboxes) and (i.notes is null or i.notes not like '%' || v_lote || '%')
+    ) x;
+  if n_dep > 0 then
+    raise exception 'purgar: % fila(s) de otro lote (%) usan la marca de un cliente creado por este lote: purga ese lote primero o reinicia prueba', n_dep, v_dep;
+  end if;
 
   -- Orden de dependencias. Lo ajeno al lote que apunte acá hace fallar la FK: a propósito.
   delete from public.expenses where tenant_id = v_tenant and note like '%' || v_lote || '%';
