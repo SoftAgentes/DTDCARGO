@@ -38,17 +38,40 @@
  * un gate ruidoso se ignora (así se perdió la 0228). En vez de eso: todo lo
  * histórico ya está en prod → se congela con un `cutoff`. El check solo exige lo
  * NUEVO (número > cutoff), donde rige la regla hacia adelante: una migración se
- * aplica con su basename EXACTO como `name`. `pendingBelowCutoff` cubre las
- * excepciones conocidas por debajo del corte (hoy: 0017 y 0257).
+ * aplica con su basename EXACTO como `name`. `pendingBelowCutoff` lista las
+ * esperas declaradas, por debajo o por encima del corte (el nombre se quedó corto:
+ * ver el `$doc` del baseline), y el gate imprime cada una en cada corrida. La
+ * lista no se copia aquí: este comentario decía «hoy: 0017 y 0257» cuando ya eran
+ * la 0422 y la 0423 (SDD-0548).
+ *
+ * DÓNDE MIDE (SDD-0548): SÓLO en producción, `https://supabase.dtdcargo.com`.
+ * Desde el corte del 2026-10-14 (02:00Z) producción es el Supabase del servidor
+ * propio (docs/runbooks/aplicar-migraciones-prod.md §0). Supabase Cloud
+ * (`xpfuzqombmjmxvprjgmi`) quedó como copia del corte y sigue respondiendo hasta la
+ * Fase 4 (servidor-contabo.md §4): su ledger está congelado. Medirlo daba rojos
+ * falsos (todo lo aplicado después del corte «falta») y verdes falsos (una
+ * huérfana del servidor no aparece), con la etiqueta «prod» y sin decir el host.
+ * Por eso, antes de tocar la red, `clasificarDestino` mira la URL configurada:
+ *   · producción            → mide, e imprime el origen medido (sin credenciales);
+ *   · Cloud (*.supabase.co) → SKIP sin consultarlo;
+ *   · cualquier otro host, http, un puerto o usuario/clave dentro de la URL →
+ *     SKIP sin consultarlo: el ledger de otra base no habla de producción, y la
+ *     clave service_role no sale hacia un host que no es el de producción.
+ * La petición no sigue redirecciones por la misma razón.
  *
  * DEGRADA, NO ROMPE (mismo criterio que el paso e2e de verify.mjs): sin
- * credenciales, sin red, o sin la RPC 0239 aplicada → SKIP, nunca rojo. El gate no
- * se cae por algo ajeno al cambio. La contra: en un worktree sin `.env.local` este
- * check no corre — es el mismo pitfall conocido del e2e.
+ * credenciales, con un destino que no es producción, sin red, o sin la RPC 0239
+ * aplicada → SKIP, nunca rojo. El gate no se cae por algo ajeno al cambio, y un
+ * SKIP no es verde: verify.mjs lo cuenta como crítico sin medir. La contra: en un
+ * worktree sin `.env.local` este check no corre — es el mismo pitfall conocido del
+ * e2e.
  *
  * Lee el ledger vía la RPC `applied_migration_names()` (migr 0239). No usa la CLI de
  * Supabase ni DATABASE_URL a propósito: la CLI exige un PAT, y guardar un PAT en el
- * árbol del proyecto está PROHIBIDO (AGENTS.md).
+ * árbol del proyecto está PROHIBIDO (AGENTS.md). La puerta de la publicación
+ * automática no pasa por aquí: el servidor lee el ledger con psql dentro de
+ * `dtd-cargo-db-1` (infra/ops/web/publicar-web.sh), e infra/ops/web/publicable.mjs
+ * solo reutiliza `findMissing` para armar la lista de la imagen.
  *
  * Uso:  node scripts/check-migrations-applied.mjs
  * Exit: 0 = al día (o skip) · 1 = hay migraciones nuevas sin aplicar · 2 = bug del check
@@ -271,6 +294,76 @@ export function findOrphans(ledger, files, cutoff, nowMs, graceHours = 24) {
   return { enVuelo, olvidadas };
 }
 
+/**
+ * El único origen donde este gate mide (SDD-0548): el Supabase del servidor
+ * propio, que es producción desde el corte del 2026-10-14. Es el mismo valor que
+ * `NEXT_PUBLIC_SUPABASE_URL` en infra/dtd-cargo/.env.example y que `PROD_HOST` en
+ * .github/workflows/build-image-prueba.yml. Si producción cambia de host, este
+ * gate da SKIP (crítico sin medir) hasta actualizarlo: falla hacia el lado seguro.
+ */
+export const ORIGEN_PRODUCCION = "https://supabase.dtdcargo.com";
+const HOST_PRODUCCION = new URL(ORIGEN_PRODUCCION).hostname;
+
+/**
+ * ¿Contra qué base mediría el gate con esta URL? Pura: no toca la red.
+ *
+ * `origen` es esquema + host + puerto, y NUNCA lleva usuario, clave, ruta ni
+ * query: es lo único de la URL que se imprime. Con una URL ilegible no se
+ * imprime nada de ella (podría ser una clave pegada en la variable equivocada).
+ *
+ * @param {unknown} url  el valor de NEXT_PUBLIC_SUPABASE_URL
+ * @returns {{tipo: "produccion"|"cloud"|"con-credenciales"|"otro"|"ilegible", origen: string|null}}
+ */
+export function clasificarDestino(url) {
+  let u;
+  try {
+    u = new URL(String(url ?? "").trim());
+  } catch {
+    return { tipo: "ilegible", origen: null };
+  }
+  // El punto final (`host.`) es el mismo host para el DNS: no debe colar a Cloud.
+  const host = u.hostname.toLowerCase().replace(/\.$/, "");
+  const origen = `${u.protocol}//${u.host}`;
+  if (u.username || u.password) return { tipo: "con-credenciales", origen };
+  if (host === "supabase.co" || host.endsWith(".supabase.co")) return { tipo: "cloud", origen };
+  if (u.protocol === "https:" && u.port === "" && host === HOST_PRODUCCION) {
+    return { tipo: "produccion", origen: ORIGEN_PRODUCCION };
+  }
+  return { tipo: "otro", origen };
+}
+
+/**
+ * Por qué NO se mide contra ese destino, o `null` si es producción. Cada motivo
+ * nombra el origen (sin credenciales) para que el SKIP diga qué estaba configurado.
+ *
+ * @param {{tipo: string, origen: string|null}} destino  salida de `clasificarDestino`
+ * @returns {string|null}
+ */
+export function motivoSinMedir(destino) {
+  switch (destino.tipo) {
+    case "produccion":
+      return null;
+    case "cloud":
+      return (
+        `NEXT_PUBLIC_SUPABASE_URL apunta a Supabase Cloud (${destino.origen}): desde el corte del ` +
+        `2026-10-14 es una copia congelada, no producción → no se consultó. Producción es ` +
+        `${ORIGEN_PRODUCCION} (servidor propio)`
+      );
+    case "con-credenciales":
+      return (
+        `NEXT_PUBLIC_SUPABASE_URL trae usuario o clave dentro de la URL (${destino.origen}) → no se ` +
+        `consultó. Quítalos: la clave va en SUPABASE_SERVICE_ROLE_KEY`
+      );
+    case "ilegible":
+      return "NEXT_PUBLIC_SUPABASE_URL no es una URL válida (no se imprime su valor) → no se consultó";
+    default:
+      return (
+        `NEXT_PUBLIC_SUPABASE_URL apunta a ${destino.origen}, que no es producción ` +
+        `(${ORIGEN_PRODUCCION}) → no se consultó: el ledger de otra base no dice nada de producción`
+      );
+  }
+}
+
 function readBaseline() {
   let b;
   try {
@@ -288,9 +381,15 @@ function readBaseline() {
   return { cutoff: b.cutoff, pending: b.pendingBelowCutoff ?? {} };
 }
 
-async function fetchLedger(url, key) {
-  const res = await fetch(`${url.replace(/\/$/, "")}/rest/v1/rpc/applied_migration_names`, {
+/**
+ * `origen` sale de `clasificarDestino`: ya es el de producción, sin ruta ni
+ * credenciales. `redirect: "manual"`: una redirección se reporta y no se sigue, así
+ * la clave service_role no viaja a otro host (SDD-0548).
+ */
+async function fetchLedger(origen, key) {
+  const res = await fetch(`${origen}/rest/v1/rpc/applied_migration_names`, {
     method: "POST",
+    redirect: "manual",
     headers: {
       apikey: key,
       Authorization: `Bearer ${key}`,
@@ -298,13 +397,16 @@ async function fetchLedger(url, key) {
     },
     body: "{}",
   });
+  if (res.status >= 300 && res.status < 400) {
+    skip(`${origen} respondió con una redirección (HTTP ${res.status}) → no se siguió: la clave no sale del host de producción`);
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     // PGRST202 = la función no existe → la 0239 todavía no se aplicó.
     if (res.status === 404 || body.includes("PGRST202")) {
-      skip("falta la RPC applied_migration_names en prod → aplicá la migración 0239 (este check queda inerte hasta entonces)");
+      skip(`falta la RPC applied_migration_names en ${origen} → aplica la migración 0239 (este check queda inerte hasta entonces)`);
     }
-    skip(`el ledger no respondió (HTTP ${res.status}) → ${body.slice(0, 160)}`);
+    skip(`el ledger de ${origen} no respondió (HTTP ${res.status}) → ${body.slice(0, 160)}`);
   }
   return res.json();
 }
@@ -316,6 +418,15 @@ async function main() {
   if (!url || !key) {
     skip("sin NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (¿worktree sin .env.local?)");
   }
+
+  // Antes de leer el baseline, de git y de la red: si no es producción, no se
+  // consulta nada (SDD-0548).
+  const destino = clasificarDestino(url);
+  const motivo = motivoSinMedir(destino);
+  if (motivo) skip(motivo);
+  const { origen } = destino;
+  const donde = `producción (${origen})`;
+  console.log(`${C.dim}   mide el ledger de ${donde}${C.nc}`);
 
   const { cutoff, pending } = readBaseline();
   const { files, sawMain } = collectMigrationFiles(mainMigrations(), diskMigrations());
@@ -329,10 +440,10 @@ async function main() {
 
   let ledger;
   try {
-    ledger = await fetchLedger(url, key);
+    ledger = await fetchLedger(origen, key);
   } catch (e) {
     if (e instanceof Exit) throw e; // un skip/fail ya decidido adentro; no re-envolver
-    skip(`no se pudo consultar el ledger (¿sin red?) → ${e.message}`);
+    skip(`no se pudo consultar el ledger de ${origen} (¿sin red?) → ${e.message}`);
   }
   const appliedNames = new Set((ledger ?? []).map((r) => r.name).filter(Boolean));
 
@@ -344,7 +455,7 @@ async function main() {
   const stalePending = Object.keys(pending).filter((n) => !files.includes(n));
 
   console.log(
-    `${C.dim}   ${files.length} archivos · ${appliedNames.size} en el ledger de prod · ` +
+    `${C.dim}   ${files.length} archivos · ${appliedNames.size} en el ledger de ${donde} ·` +
       `corte en ${String(cutoff).padStart(4, "0")} (solo se vigila lo posterior)${C.nc}`,
   );
 
@@ -359,13 +470,13 @@ async function main() {
 
   for (const o of enVuelo) {
     console.log(
-      `${C.yellow}   ⏳ '${o.name}' está en prod y su archivo no está en el repo — aplicada hace ${o.horas.toFixed(1)} h, probablemente todavía sin pushear${C.nc}`,
+      `${C.yellow}   ⏳ '${o.name}' está en ${donde} y su archivo no está en el repo — aplicada hace ${o.horas.toFixed(1)} h, probablemente todavía sin pushear${C.nc}`,
     );
   }
 
   if (olvidadas.length > 0) {
     console.log(
-      `${C.red}[FAIL]${C.nc} ${olvidadas.length} migración(es) APLICADA(s) en prod cuyo archivo NO está en el repo:`,
+      `${C.red}[FAIL]${C.nc} ${olvidadas.length} migración(es) APLICADA(s) en ${donde} cuyo archivo NO está en el repo:`,
     );
     for (const o of olvidadas) {
       const edad = Number.isFinite(o.horas) ? `${(o.horas / 24).toFixed(1)} días` : "fecha ilegible";
@@ -388,7 +499,7 @@ async function main() {
   }
 
   if (missing.length > 0) {
-    console.log(`${C.red}[FAIL]${C.nc} ${missing.length} migración(es) NUEVA(s) en el repo que NO están en prod:`);
+    console.log(`${C.red}[FAIL]${C.nc} ${missing.length} migración(es) NUEVA(s) en el repo que NO están en ${donde}:`);
     for (const m of missing) console.log(`${C.red}   🔴 ${m}${C.nc}`);
     console.log(
       `${C.dim}\n   Qué hacer, en este orden:\n` +
@@ -402,7 +513,7 @@ async function main() {
     throw new Exit(1);
   }
 
-  console.log(`${C.green}[OK]${C.nc}   migrations-applied: no hay migraciones nuevas sin aplicar`);
+  console.log(`${C.green}[OK]${C.nc}   migrations-applied: no hay migraciones nuevas sin aplicar en ${donde}`);
   throw new Exit(0);
 }
 
