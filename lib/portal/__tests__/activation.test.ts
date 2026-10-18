@@ -6,9 +6,11 @@
  *  - aprobado: clients.portal_approved_at set → { activated: true, reason: 'approved' }.
  *  - con-envíos: 0 approved pero ≥1 envío → { activated: true, reason: 'has_shipments' }.
  *
- * `getPortalActivation` resuelve el client_id del portal (helper aislada) para leer
- * `portal_approved_at`, y cuenta envíos por markbox. Stub mínimo encadenable, igual
- * criterio que el resto de la suite del portal.
+ * `getPortalActivation` resuelve el principal Portal de la sesión (SDD-0552:
+ * antes eran las RPC `get_portal_client_id` y `get_portal_client_markbox`) para
+ * leer `portal_approved_at` con su id, y cuenta envíos por su tenant y markbox.
+ * Stub mínimo encadenable, igual criterio que el resto de la suite del portal.
+ * El cruce entre tenants se prueba en `portal-queries-principal-scope.test.ts`.
  */
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -16,8 +18,9 @@ import { getPortalActivation } from "../portal-queries";
 
 /**
  * Stub para `getPortalActivation`.
- *  - rpc("get_portal_client_id") → portalClientId
- *  - rpc("get_portal_client_markbox") → markbox
+ *  - con `portalClientId`: `auth.getUser()` da un uid y `client_users` su vínculo
+ *    activo con el cliente `portalClientId` (Shipping Mark `markbox`) en
+ *    `tenant-1`, que resuelve en `.maybeSingle()`; sin él, sesión anónima.
  *  - from("clients")...maybeSingle() → { portal_approved_at }
  *  - from("shipments")...{count, head} → resuelve en `.is()` con { count }
  *
@@ -31,18 +34,47 @@ function stub(opts: {
   shipmentCount?: number;
 }): { supabase: SupabaseClient; touchedShipments: () => boolean } {
   let touchedShipments = false;
+  const membership = opts.portalClientId
+    ? {
+        client_id: opts.portalClientId,
+        tenant_id: "tenant-1",
+        clients: {
+          id: opts.portalClientId,
+          tenant_id: "tenant-1",
+          markbox: opts.markbox ?? "DTD-1007",
+          name: "Cliente demo",
+          email: null,
+          phone: null,
+          address: null,
+          rif: null,
+          doc_kind: null,
+          city: null,
+          state: null,
+          deleted_at: null,
+        },
+      }
+    : null;
 
   const supabase = {
-    rpc(fn: string) {
-      if (fn === "get_portal_client_id") {
-        return Promise.resolve({ data: opts.portalClientId, error: null });
-      }
-      if (fn === "get_portal_client_markbox") {
-        return Promise.resolve({ data: opts.markbox ?? null, error: null });
-      }
+    auth: {
+      getUser: () =>
+        Promise.resolve({
+          data: { user: opts.portalClientId ? { id: "user-1" } : null },
+          error: null,
+        }),
+    },
+    rpc() {
       return Promise.resolve({ data: null, error: null });
     },
     from(table: string) {
+      if (table === "client_users") {
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          maybeSingle: () => Promise.resolve({ data: membership, error: null }),
+        };
+        return chain;
+      }
       if (table === "shipments") {
         touchedShipments = true;
         // count query: select(...,{count,head}).eq().is() → resuelve en is()

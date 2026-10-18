@@ -119,15 +119,17 @@ describe("updatePrealertaDetalleAction · las dos puertas", () => {
     expect(updatedRows).toHaveLength(0);
   });
 
-  it("la consulta va scopeada por el markbox de la SESIÓN, no por el form", async () => {
+  it("la consulta va scopeada por el markbox y el tenant de la SESIÓN, no por el form", async () => {
     getPrealertaByCodeMock.mockResolvedValue(compra());
     const fd = form({ boxes: "2" });
     fd.set("markbox", "DTD-0001"); // markbox forjado en el body
+    fd.set("tenantId", "otro-tenant"); // tenant forjado en el body
     await updatePrealertaDetalleAction({}, fd);
+    // SDD-0552: `getPrealertaByCode` exige además el tenant del principal.
     expect(getPrealertaByCodeMock).toHaveBeenCalledWith(
       expect.anything(),
       CODE,
-      { markbox: MARKBOX },
+      { markbox: MARKBOX, tenantId: TENANT },
     );
   });
 

@@ -27,14 +27,19 @@ vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
 // Sin `from`: las lecturas con el admin client van en try/catch y caen a su
 // valor vacío, que es lo que la portada hace cuando fallan.
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => ({}) }));
+// SDD-0552: la portada resuelve el principal (cliente + tenant) de la sesión.
 vi.mock("@/lib/portal/portal-queries", () => ({
-  getPortalClient: async () => ({
-    id: "c1",
-    markbox: "DTD-TEST",
-    name: "Cliente Prueba",
-    email: null,
-    phone: null,
-    address: null,
+  getPortalClientPrincipal: async () => ({
+    userId: "u1",
+    tenantId: "t1",
+    client: {
+      id: "c1",
+      markbox: "DTD-TEST",
+      name: "Cliente Prueba",
+      email: null,
+      phone: null,
+      address: null,
+    },
   }),
   getPortalActivation: async () => ({ activated: true, reason: null }),
   getProfileCompleteness: async () => ({

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { listMyShipments, getPortalClient } from "@/lib/portal/portal-queries";
+import { listMyShipments, getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   listPrealertas,
   listSuppliers,
@@ -41,8 +41,9 @@ export const metadata: Metadata = { title: "Alertas · mis envíos" };
  */
 export default async function PortalShipmentsPage() {
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { client } = principal;
 
   const [rawShipments, prealertas, suppliers] = await Promise.all([
     listMyShipments(supabase),
@@ -132,9 +133,10 @@ export default async function PortalShipmentsPage() {
   ).catch(() => ({}));
   const trackGroups = groupTrackByContainer(track, consolidations);
 
-  // Banner del próximo consolidado (cut-off). Admin client scopeado por tenant (el
-  // cliente no tiene RLS sobre `sailings`); best-effort → null oculta el banner.
-  const banner = await loadConsolidadoBanner(client.id);
+  // Banner del próximo consolidado (cut-off). Admin client scopeado por el tenant
+  // del principal (el cliente no tiene RLS sobre `sailings`); best-effort → null
+  // oculta el banner. SDD-0552: ya no relee `clients.tenant_id` con el admin.
+  const banner = await loadConsolidadoBanner(principal.tenantId);
 
   return (
     <div>
@@ -178,19 +180,12 @@ function fmtDate(iso: string | null): string | null {
  * con los campos que existan (cut-off, ETD, ETA). Devuelve null si no hay salida.
  */
 async function loadConsolidadoBanner(
-  clientId: string,
+  tenantId: string,
 ): Promise<{ route: string; sentence: string } | null> {
   const todayIso = new Date().toISOString().slice(0, 10);
   let sailing: PortalSailing | null = null;
   try {
-    const admin = createAdminClient();
-    const { data: row } = await admin
-      .from("clients")
-      .select("tenant_id")
-      .eq("id", clientId)
-      .maybeSingle<{ tenant_id: string }>();
-    const tenantId = String(row?.tenant_id ?? "").trim();
-    if (tenantId) sailing = await getNextOpenSailing(admin, tenantId, todayIso);
+    sailing = await getNextOpenSailing(createAdminClient(), tenantId, todayIso);
   } catch {
     sailing = null;
   }

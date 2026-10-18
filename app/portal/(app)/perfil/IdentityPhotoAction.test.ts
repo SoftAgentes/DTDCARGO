@@ -2,6 +2,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+type Principal = {
+  userId: string;
+  tenantId: string;
+  client: { id: string; markbox: string; name: string };
+};
+
 const stubs = vi.hoisted(() => ({
   currentPath: null as string | null,
   quota: { remaining: 3 } as { remaining: number } | Error,
@@ -11,6 +17,12 @@ const stubs = vi.hoisted(() => ({
   upload: vi.fn(),
   remove: vi.fn(),
   revalidatePath: vi.fn(),
+  // SDD-0552: el principal Portal de la sesión (cliente, tenant y markbox).
+  principal: vi.fn<() => Promise<Principal | null>>(),
+}));
+
+vi.mock("@/lib/portal/portal-queries", () => ({
+  getPortalClientPrincipal: () => stubs.principal(),
 }));
 
 vi.mock("next/cache", () => ({
@@ -73,10 +85,12 @@ beforeEach(() => {
   stubs.admin = null;
   stubs.currentPath = null;
   stubs.quota = { remaining: 3 };
+  stubs.principal.mockResolvedValue({
+    userId: "u1",
+    tenantId: "tenant-1",
+    client: { id: "client-1", markbox: "DTD-5452", name: "Cliente sintético" },
+  });
   stubs.rpc.mockImplementation(async (name: string, args?: unknown) => {
-    if (name === "get_portal_client_id") {
-      return { data: "client-1", error: null };
-    }
     if (name === "get_my_portal_profile_edit_quota") {
       if (stubs.quota instanceof Error) {
         return { data: null, error: { message: stubs.quota.message } };
@@ -154,10 +168,7 @@ describe("uploadCedulaPhotoAction · reemplazo dentro del cupo · SDD-0481", () 
 describe("uploadCedulaPhotoAction · rollback de la carga nueva", () => {
 
   it("comprueba el resultado del rollback y pide soporte si Storage no retira el objeto", async () => {
-    stubs.rpc.mockImplementation(async (name: string) => {
-      if (name === "get_portal_client_id") {
-        return { data: "client-1", error: null };
-      }
+    stubs.rpc.mockImplementation(async () => {
       return { data: null, status: 400, error: { code: "P0001", message: "identity_photo_replacement_temporarily_disabled" } };
     });
     stubs.remove.mockResolvedValue({
@@ -189,8 +200,11 @@ describe("respuesta incierta · SDK Supabase real con transporte offline", () =>
     commit?: boolean; lost?: boolean; existing?: boolean; remaining?: number;
     rejected?: { code: string; message: string };
     status?: number;
-    read?: "error" | "throw" | "missing" | "other" | "tenant" | "mark" | "deleted";
-    identity?: "other" | "error";
+    read?: "error" | "throw" | "missing" | "other" | "deleted";
+    // SDD-0552: tenant y markbox salen del principal. Un tenant o un markbox que
+    // cambia durante la subida se ve al resolver el principal otra vez, ya no en
+    // la relectura de `clients` con el admin.
+    identity?: "other" | "error" | "tenant" | "mark";
     cleanup?: "error" | "throw";
   };
 
@@ -205,14 +219,27 @@ describe("respuesta incierta · SDK Supabase real con transporte offline", () =>
     const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
       status, headers: { "Content-Type": "application/json" },
     });
+    // El principal de sesión: la primera resolución es la de esta cuenta; la
+    // segunda (reconciliación) puede devolver otra cuenta, ninguna (fallo:
+    // `getPortalClientPrincipal` atrapa y responde null) o el mismo cliente con
+    // otro tenant u otro markbox.
+    stubs.principal.mockImplementation(async () => {
+      state.identities++;
+      const again = state.identities > 1;
+      if (again && options.identity === "error") return null;
+      return {
+        userId: "synthetic-user",
+        tenantId: again && options.identity === "tenant" ? "other-tenant" : "synthetic-tenant",
+        client: {
+          id: again && options.identity === "other" ? "other-client" : clientId,
+          markbox: again && options.identity === "mark" ? "OTHER-MARK" : "SYNTHETIC-MARK",
+          name: "Cliente sintético",
+        },
+      };
+    });
     const offline: typeof fetch = async (input, init) => {
       const url = new URL(String(input));
       expect(url.origin).toBe("https://photo-test.invalid");
-      if (url.pathname.endsWith("/rpc/get_portal_client_id")) {
-        state.identities++;
-        if (state.identities > 1 && options.identity === "error") throw new TypeError("synthetic identity failure");
-        return json(state.identities > 1 && options.identity === "other" ? "other-client" : clientId);
-      }
       if (url.pathname.endsWith("/rpc/get_my_portal_profile_edit_quota")) {
         state.quotaReads++;
         const remaining = options.remaining ?? 3;
@@ -228,9 +255,9 @@ describe("respuesta incierta · SDK Supabase real con transporte offline", () =>
         if (after && options.read === "error") return json({ code: "42501", message: "synthetic denied" }, 403);
         if (after && options.read === "throw") throw new TypeError("synthetic read failure");
         if (after && options.read === "missing") return json([]);
+        // Sólo las columnas que se piden: el admin ya no lee tenant ni markbox.
+        expect(url.searchParams.get("select")).toBe("cedula_photo_path,deleted_at");
         return json([{
-          tenant_id: after && options.read === "tenant" ? "other-tenant" : "synthetic-tenant",
-          markbox: after && options.read === "mark" ? "OTHER-MARK" : "SYNTHETIC-MARK",
           deleted_at: after && options.read === "deleted" ? "2026-01-01" : null,
           cedula_photo_path: after && options.read === "other" ? `${prefix}concurrent.png` : state.pointer,
         }]);
@@ -294,7 +321,7 @@ describe("respuesta incierta · SDK Supabase real con transporte offline", () =>
     expect(result).toEqual({ ok: true });
     expect(state.identities).toBe(2);
     expect(state.setters).toBe(1);
-    expect(state.reads[1].searchParams.get("select")).toBe("tenant_id,markbox,cedula_photo_path,deleted_at");
+    expect(state.reads[1].searchParams.get("select")).toBe("cedula_photo_path,deleted_at");
   });
   it("puntero null no prueba rollback: conserva ante commit posterior", async () => {
     const { state, run } = await setup({ lost: true });
@@ -306,7 +333,7 @@ describe("respuesta incierta · SDK Supabase real con transporte offline", () =>
     expect(result.error).toMatch(/soporte/i);
     expect(stubs.revalidatePath).not.toHaveBeenCalled();
   });
-  it.each(["error", "throw", "missing", "other", "tenant", "mark", "deleted"] as const)(
+  it.each(["error", "throw", "missing", "other", "deleted"] as const)(
     "conserva y no anuncia éxito ante lectura %s", async (read) => {
       const { state, run } = await setup({ lost: true, commit: true, read });
       const result = await run();
@@ -316,11 +343,15 @@ describe("respuesta incierta · SDK Supabase real con transporte offline", () =>
       expect(result.error).toMatch(/soporte/i);
     },
   );
-  it.each(["other", "error"] as const)("conserva ante identidad %s", async (identity) => {
+  it.each(["other", "error", "tenant", "mark"] as const)("conserva ante identidad %s", async (identity) => {
     const { state, run } = await setup({ lost: true, commit: true, identity });
     const result = await run();
     expect(state.removes).toEqual([]);
+    expect(state.objects.has(state.uploaded)).toBe(true);
     expect(result.ok).toBeUndefined();
+    expect(result.error).toMatch(/soporte/i);
+    // La reconciliación cortó en el principal: no volvió a leer `clients`.
+    expect(state.reads).toHaveLength(1);
   });
   it.each([rejection, { code: "P0001", message: "profile_edit_limit_reached" }])(
     "limpia sólo objeto nuevo ante rechazo $message", async (rejected) => {

@@ -21,9 +21,16 @@ vi.mock("@/lib/db/server", () => ({
   createClient: async () => ({
     rpc: async (name: string, args?: unknown) => {
       if (name === "portal_get_my_billing_profile") return { data: stubs.profile, error: stubs.profileError };
-      if (name === "get_portal_client_id") return { data: "client-1", error: null };
       return stubs.rpc(name, args);
     },
+  }),
+}));
+// SDD-0552: el aviso de bloqueo toma cliente, tenant, markbox y nombre del principal.
+vi.mock("@/lib/portal/portal-queries", () => ({
+  getPortalClientPrincipal: async () => ({
+    userId: "u1",
+    tenantId: "tenant-1",
+    client: { id: "client-1", markbox: "DTD-5452", name: "Carlos Pérez" },
   }),
 }));
 vi.mock("@/lib/db/admin", () => ({

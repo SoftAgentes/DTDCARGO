@@ -3,13 +3,13 @@
  * `SupabaseClient`.
  *
  * AISLAMIENTO (defensa en profundidad): además de la RLS del portal, estas
- * queries resuelven el MARKBOX del cliente logueado vía
- * `get_portal_client_markbox()` y filtran EXPLÍCITO por `client_markbox`. Sin ese
- * filtro, un principal que sea a la vez user de equipo y cliente del portal
- * (tiene row en `user_tenants` Y en `client_users`) recibiría TODO el tenant: la
- * policy "<tabla> by tenant" es permissive (OR) y, sola, no aísla. Mismo criterio
- * que el hardening de `getPortalClient` (resolver el principal del portal primero,
- * filtrar explícito por su identificador).
+ * queries resuelven el principal Portal de la sesión (`getPortalClientPrincipal`)
+ * y filtran EXPLÍCITO por su `tenant_id` y su `client_markbox`. Sin ese filtro,
+ * un principal que sea a la vez user de equipo y cliente del portal (tiene row en
+ * `user_tenants` Y en `client_users`) recibiría TODO el tenant: la policy
+ * "<tabla> by tenant" es permissive (OR) y, sola, no aísla. Y el Shipping Mark
+ * es único POR tenant (0006): sin el tenant, la sesión híbrida recibía además
+ * las filas del otro tenant con el mismo Shipping Mark (SDD-0552).
  *
  * FACTURAS (SDD-0462): el Shipping Mark es único POR TENANT y la policy Portal de
  * `invoices` (0085) compara sólo el Shipping Mark. Por eso los lectores de facturas
@@ -41,14 +41,23 @@ import {
 } from "./portal-types";
 
 /**
- * MARKBOX del cliente del portal logueado (helper aislada
- * `get_portal_client_markbox`), o null si el principal no es un cliente del
- * portal. Punto único de resolución para las queries que filtran por markbox.
+ * Tenant, Shipping Mark e id de cliente del principal Portal de la sesión, o null
+ * si la sesión no tiene un principal vivo y coherente. Punto único de resolución
+ * para envíos, documentos, activación y próximo arribo (SDD-0552).
+ *
+ * Reemplaza a la RPC `get_portal_client_markbox`: devolvía sólo el Shipping Mark,
+ * y filtrar sólo por él dejaba pasar las filas de otro tenant con el mismo valor.
  */
-async function portalMarkbox(supabase: SupabaseClient): Promise<string | null> {
-  const { data, error } = await supabase.rpc("get_portal_client_markbox");
-  if (error || !data) return null;
-  return data as string;
+async function portalScope(
+  supabase: SupabaseClient,
+): Promise<{ tenantId: string; markbox: string; clientId: string } | null> {
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  return {
+    tenantId: principal.tenantId,
+    markbox: principal.client.markbox,
+    clientId: principal.client.id,
+  };
 }
 
 export type PortalClientPrincipal = {
@@ -164,19 +173,21 @@ export async function getPortalAdvisor(
 }
 
 /**
- * Envíos del cliente logueado (filtrados EXPLÍCITO por su markbox), recientes
- * primero. Hasta 100; paginación real en una fase siguiente si hace falta.
+ * Envíos del cliente logueado (filtrados EXPLÍCITO por el tenant y el markbox
+ * del principal), recientes primero. Hasta 100; paginación real en una fase
+ * siguiente si hace falta.
  */
 export async function listMyShipments(
   supabase: SupabaseClient,
 ): Promise<PortalShipmentRow[]> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return [];
+  const scope = await portalScope(supabase);
+  if (!scope) return [];
 
   const { data, error } = await supabase
     .from("shipments")
     .select("id, code, shipment_service, status, origin, destination, updated_at")
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", scope.tenantId)
+    .eq("client_markbox", scope.markbox)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false })
     .limit(100);
@@ -196,15 +207,17 @@ export async function listMyShipments(
 
 /**
  * UN envío del cliente logueado por su `code` (Fase 2 · detalle read-only).
- * Filtra por code + markbox del cliente: si el `code` no es suyo (o no existe)
- * → null → la página llama `notFound()`.
+ * Filtra por code + tenant + markbox del principal: si el `code` no es suyo (o
+ * no existe) → null → la página llama `notFound()`. El código es único POR
+ * tenant (0002): sin el tenant, el mismo código en otro tenant con el mismo
+ * Shipping Mark devolvía dos filas y el envío propio daba 404 (SDD-0552).
  */
 export async function getMyShipment(
   supabase: SupabaseClient,
   code: string,
 ): Promise<PortalShipmentDetail | null> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return null;
+  const scope = await portalScope(supabase);
+  if (!scope) return null;
 
   const { data, error } = await supabase
     .from("shipments")
@@ -212,7 +225,8 @@ export async function getMyShipment(
       "id, code, shipment_service, status, origin, destination, volume_m3, weight_kg, arrived_destination_at, created_at, updated_at",
     )
     .eq("code", code)
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", scope.tenantId)
+    .eq("client_markbox", scope.markbox)
     .is("deleted_at", null)
     .maybeSingle();
 
@@ -346,21 +360,22 @@ export async function getMyInvoiceForPrincipal(
 /**
  * TODOS los documentos del cliente logueado (sección GLOBAL "Documentos" del
  * portal · SDD-0042 Fase 3b), recientes primero, con el código del envío al que
- * pertenecen (embed `shipments(code)`). Filtra EXPLÍCITO por markbox (defensa en
- * profundidad, como el resto del portal). Hasta 200.
+ * pertenecen (embed `shipments(code)`). Filtra EXPLÍCITO por tenant y markbox
+ * del principal (defensa en profundidad, como el resto del portal). Hasta 200.
  */
 export async function listMyDocuments(
   supabase: SupabaseClient,
 ): Promise<PortalDocument[]> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return [];
+  const scope = await portalScope(supabase);
+  if (!scope) return [];
 
   const { data, error } = await supabase
     .from("shipment_documents")
     .select(
       "id, doc_type, storage_path, file_name, content_type, size_bytes, created_at, shipment_id, shipments(code)",
     )
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", scope.tenantId)
+    .eq("client_markbox", scope.markbox)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -538,22 +553,21 @@ export function listMyCotizaciones(
  *   - el asesor aprobó su cuenta (`clients.portal_approved_at` != null), O
  *   - ya tiene ≥1 envío con su markbox (prueba de cliente real → auto-desbloqueo).
  *
- * Resuelve el client_id del portal vía la helper AISLADA (`get_portal_client_id`)
- * para leer `portal_approved_at`, y cuenta envíos por markbox (filtrado EXPLÍCITO,
- * como el resto del archivo). Si el principal no es cliente del portal → no activado.
+ * Resuelve el principal Portal UNA vez (SDD-0552): con su `client.id` lee
+ * `portal_approved_at`, y cuenta envíos por su tenant y su markbox (filtrado
+ * EXPLÍCITO, como el resto del archivo). Sin principal Portal → no activado.
  */
 export async function getPortalActivation(
   supabase: SupabaseClient,
 ): Promise<PortalActivation> {
-  const { data: portalClientId, error: idErr } =
-    await supabase.rpc("get_portal_client_id");
-  if (idErr || !portalClientId) return { activated: false, reason: null };
+  const scope = await portalScope(supabase);
+  if (!scope) return { activated: false, reason: null };
 
   // ¿Aprobado por un asesor?
   const { data: clientRow } = await supabase
     .from("clients")
     .select("portal_approved_at")
-    .eq("id", portalClientId as string)
+    .eq("id", scope.clientId)
     .maybeSingle();
 
   if (clientRow && (clientRow.portal_approved_at as string | null)) {
@@ -561,13 +575,11 @@ export async function getPortalActivation(
   }
 
   // ¿Tiene al menos 1 envío? (auto-desbloqueo por primera carga real)
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { activated: false, reason: null };
-
   const { count, error: countErr } = await supabase
     .from("shipments")
     .select("id", { count: "exact", head: true })
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", scope.tenantId)
+    .eq("client_markbox", scope.markbox)
     .is("deleted_at", null);
 
   if (!countErr && (count ?? 0) >= 1) {
@@ -634,7 +646,7 @@ function currentYearUtc(now: Date = new Date()): number {
 
 /**
  * Las 4 KPIs del dashboard (Fase 5.2). Calcula sobre la MISMA data que ya leen
- * `listMyShipments` / `listMyInvoices` (filtrado por markbox), pero agregando.
+ * `listMyShipments` / `listMyInvoices` (tenant + markbox del principal), pero agregando.
  * Reusa esas queries para no duplicar el filtrado de aislamiento.
  *
  * - Envíos activos: status NO terminal.
@@ -706,20 +718,22 @@ export async function getDashboardKpis(
  *
  * NOTA: `listMyShipments` no trae `created_at` (la ETA se estima sobre createdAt).
  * Hacemos una lectura puntual del envío elegido para obtener createdAt +
- * arrived_destination_at y estimar honestamente. Filtrado EXPLÍCITO por markbox.
+ * arrived_destination_at y estimar honestamente. Filtrado EXPLÍCITO por tenant y
+ * markbox del principal (SDD-0552).
  */
 export async function getNextArrival(
   supabase: SupabaseClient,
 ): Promise<PortalNextArrival | null> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return null;
+  const scope = await portalScope(supabase);
+  if (!scope) return null;
 
   const { data, error } = await supabase
     .from("shipments")
     .select(
       "id, code, shipment_service, status, origin, destination, arrived_destination_at, created_at",
     )
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", scope.tenantId)
+    .eq("client_markbox", scope.markbox)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false })
     .limit(50);

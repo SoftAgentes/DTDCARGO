@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { getMyShipment, getPortalClient } from "@/lib/portal/portal-queries";
+import {
+  getMyShipment,
+  getPortalClientPrincipal,
+  type PortalClientPrincipal,
+} from "@/lib/portal/portal-queries";
 import {
   listMyShipmentEvents,
   stepDatesFromEvents,
@@ -40,13 +44,14 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
   const code = decodeURIComponent(raw);
 
   const supabase = await createClient();
-  const [shipment, client] = await Promise.all([
+  const [shipment, principal] = await Promise.all([
     getMyShipment(supabase, code),
-    getPortalClient(supabase),
+    getPortalClientPrincipal(supabase),
   ]);
   // RLS sólo devuelve envíos del cliente logueado; si no hay match (ajeno o
   // inexistente) → 404, no exponemos la diferencia.
   if (!shipment) notFound();
+  const client = principal?.client ?? null;
 
   // Documentos del envío (SDD-0042 Fase 3b). El shipment ya viene verificado por
   // markbox (getMyShipment) y la RLS de shipment_documents filtra por markbox;
@@ -107,8 +112,8 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
   // que sin él el CTA saldría vivo para todos. Best-effort → un fallo del admin
   // client no rompe el detalle del envío (el card simplemente no aparece).
   const pendingAcceptance =
-    client && showShipmentAcceptanceCta(client.markbox)
-      ? await loadPendingAcceptance(admin, client.id, client.markbox, shipment.id)
+    principal && showShipmentAcceptanceCta(principal.client.markbox)
+      ? await loadPendingAcceptance(admin, principal, shipment.id)
       : null;
 
   return (
@@ -128,28 +133,20 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
 
 /**
  * La orden DDP de este envío que espera aceptación (SDD-0075 §1 · Slice A).
- * Resuelve el tenant del cliente (por su id, ya verificado por sesión vía
- * `getPortalClient`) y delega en la query, que scopea por tenant + markbox —
- * misma invariante que el dashboard. Best-effort: un fallo del admin client no
- * debe romper el detalle del envío → null (el card no se muestra).
+ * Toma tenant y Shipping Mark del principal de sesión (SDD-0552: ya no relee
+ * `clients.tenant_id` con el admin) y delega en la query, que scopea por tenant
+ * + markbox — misma invariante que el dashboard. Best-effort: un fallo del admin
+ * client no debe romper el detalle del envío → null (el card no se muestra).
  */
 async function loadPendingAcceptance(
   admin: SupabaseClient,
-  clientId: string,
-  markbox: string,
+  principal: PortalClientPrincipal,
   shipmentId: string,
 ): Promise<PendingAcceptanceInvoice | null> {
   try {
-    const { data: row } = await admin
-      .from("clients")
-      .select("tenant_id")
-      .eq("id", clientId)
-      .maybeSingle<{ tenant_id: string }>();
-    const tenantId = String(row?.tenant_id ?? "").trim();
-    if (!tenantId) return null;
     return await getPendingAcceptanceForShipment(admin, {
-      tenantId,
-      markbox,
+      tenantId: principal.tenantId,
+      markbox: principal.client.markbox,
       shipmentId,
     });
   } catch {
