@@ -130,7 +130,9 @@ lectura y en el UPDATE) también mueren.
   `a6b06205` y pasan con el nuevo.
 - [x] Mutantes de los filtros nuevos: 5 de 5 mueren.
 - [x] Sin migración, RLS, RPC ni UI nuevas.
-- [ ] `pnpm verify` en verde. Resultado en el handoff.
+- [x] `pnpm verify` sin fallos en lo medido: exit 0 sobre `5dc38d63`, 16 de 17 pasos. El que falta,
+  `migrations-applied`, quedó NO DISPONIBLE (sin credenciales; esta SDD no trae migración). Detalle
+  en el handoff.
 
 ## Gobernanza y datos
 
