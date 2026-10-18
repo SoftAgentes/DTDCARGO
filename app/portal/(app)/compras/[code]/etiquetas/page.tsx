@@ -53,6 +53,7 @@ export default async function PortalLabelsPage({
 
   const prealerta = await getPrealertaByCode(supabase, code, {
     markbox: client.markbox,
+    tenantId,
   });
   if (!prealerta || prealerta.tenant_id !== tenantId) notFound();
   const labelGate = await documentLabelGate(createAdminClient(),prealerta.id,tenantId);

@@ -669,9 +669,9 @@ export async function requestPrealertaServiceAction(
   if (!scope) return { error: "Tu sesión expiró. Vuelve a entrar." };
   const { tenantId, markbox } = scope;
 
-  // La compra (scopeada por Shipping Mark y comprobada contra el tenant del
-  // principal, como la página de etiquetas) → su id.
-  const pre = await getPrealertaByCode(supabase, code, { markbox });
+  // La compra (scopeada por tenant y Shipping Mark del principal, y comprobada
+  // otra vez contra el tenant, como la página de etiquetas) → su id.
+  const pre = await getPrealertaByCode(supabase, code, { markbox, tenantId });
   if (!pre || pre.tenant_id !== tenantId) return { error: "Esa compra no es válida." };
 
   // El servicio debe estar activo en el menú del tenant del principal (SDD-0402).
@@ -732,7 +732,7 @@ export async function updatePrealertaDetalleAction(
 
   // Scopeado por Shipping Mark y tenant del principal: una compra de otro
   // cliente, o del mismo Shipping Mark en otro tenant, no existe para esta sesión.
-  const pre = await getPrealertaByCode(supabase, code, { markbox });
+  const pre = await getPrealertaByCode(supabase, code, { markbox, tenantId });
   if (!pre || pre.tenant_id !== tenantId) return { error: "Esa compra no es válida." };
 
   // Sólo mientras nadie la haya tocado en bodega: una vez recibida, el detalle

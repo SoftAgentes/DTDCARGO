@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { getPrealertaByCode } from "@/lib/studio/prealertas/queries";
 import { PurchaseStepDetalle } from "../../nueva/PurchaseStepDetalle";
 
@@ -32,9 +32,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  *
  * ## Seguridad
  *
- * `getPrealertaByCode` corre con el cliente AUTENTICADO y filtra por
- * `client_markbox`: una compra ajena o inexistente devuelve null → 404, sin
- * revelar si el código existe. Misma puerta que usa `/portal/compras/[code]`.
+ * `getPrealertaByCode` corre con el cliente AUTENTICADO y filtra por el tenant y
+ * el `client_markbox` del principal (SDD-0552): una compra ajena, del mismo
+ * Shipping Mark en otro tenant o inexistente devuelve null → 404, sin revelar si
+ * el código existe. Misma puerta que usa `/portal/compras/[code]`.
  *
  * ## Por qué sólo `anunciada`
  *
@@ -48,11 +49,12 @@ export default async function CompletarDetalleCompraPage({ params }: Props) {
   const code = decodeURIComponent(raw);
 
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
 
   const prealerta = await getPrealertaByCode(supabase, code, {
-    markbox: client.markbox,
+    markbox: principal.client.markbox,
+    tenantId: principal.tenantId,
   });
   if (!prealerta) notFound();
 
