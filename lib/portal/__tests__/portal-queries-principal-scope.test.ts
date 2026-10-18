@@ -134,6 +134,21 @@ describe("SDD-0552 · envíos del Portal por principal y tenant", () => {
     const next = await getNextArrival(db);
     expect(next?.id).toBe("ship-a1");
   });
+
+  it("el próximo arribo tampoco es el de otro cliente del mismo tenant", async () => {
+    // El envío activo del otro cliente del tenant A va PRIMERO: sin el filtro
+    // por Shipping Mark, la consulta lo elige a él.
+    const { db } = portalDouble({
+      tables: tables({
+        shipments: [
+          shipment("ship-a-otro-cliente", TENANT_A, "DTD-0002-01", { client_markbox: OTRO_MARKBOX }),
+          shipment("ship-a1", TENANT_A, "DTD-0001-01"),
+        ],
+      }),
+      rpc: LEGACY_RPC,
+    });
+    expect((await getNextArrival(db))?.id).toBe("ship-a1");
+  });
 });
 
 describe("SDD-0552 · documentos del Portal por principal y tenant", () => {
