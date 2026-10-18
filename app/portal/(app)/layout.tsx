@@ -4,7 +4,7 @@ import { jetbrainsMonoUi } from "@/lib/fonts";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import {
-  getPortalClient,
+  getPortalClientPrincipal,
   getProfileCompleteness,
 } from "@/lib/portal/portal-queries";
 import { getPortalLastReplyAt } from "@/lib/portal/portal-conversation-queries";
@@ -29,9 +29,11 @@ import { avisoDeMantenimiento } from "@/lib/runtime/maintenance-notice";
 /**
  * Layout autenticado del portal (SDD-0042 Fase 1b).
  *
- * Guard: `getPortalClient()` resuelve el cliente vía la helper aislada
- * `get_portal_client_id()` — null si no hay sesión vinculada (incluye a un user
- * de equipo del Studio, que NO tiene row en client_users) → redirect al login.
+ * Guard: `getPortalClientPrincipal()` resuelve el principal Portal de la sesión
+ * (vínculo activo, cliente vivo del mismo tenant) — null si no hay sesión
+ * vinculada (incluye a un user de equipo del Studio, que NO tiene row en
+ * client_users) → redirect al login. Su tenant es el que usa la píldora del
+ * próximo zarpe (SDD-0552): ya no se relee `clients.tenant_id` con el admin.
  */
 export default async function PortalAppLayout({
   children,
@@ -39,8 +41,9 @@ export default async function PortalAppLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) redirect("/entrar");
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) redirect("/entrar");
+  const { client } = principal;
 
   // Dark mode + rediseño Norte del portal (founder 2026-06-20). `showNortePortal`
   // decide quién lo ve: con NORTE_PORTAL_LIVE=true es TODO cliente (formalizado); si
@@ -68,8 +71,9 @@ export default async function PortalAppLayout({
   const profile = await getProfileCompleteness(supabase).catch(() => null);
 
   // Próximo zarpe abierto (SDD-0133) → píldora "Próxima salida" de la topbar.
-  // Admin client scopeado por tenant (el cliente no tiene RLS sobre `sailings`).
-  const { sailing, sailingDaysToCutoff } = await loadSailing(client.id);
+  // Admin client scopeado por el tenant del principal (el cliente no tiene RLS
+  // sobre `sailings`).
+  const { sailing, sailingDaysToCutoff } = await loadSailing(principal.tenantId);
 
   // Bandeja de avisos de la campana (SDD-0526): los avisos ya enviados al
   // cliente, con su sesión (RPC 0479, frontera de tenant y Shipping Mark en la
@@ -109,24 +113,16 @@ export default async function PortalAppLayout({
 }
 
 /**
- * Próximo zarpe abierto del tenant del cliente. Best-effort: cualquier fallo
+ * Próximo zarpe abierto del tenant del principal. Best-effort: cualquier fallo
  * devuelve null → la píldora simplemente no aparece.
  */
-async function loadSailing(clientId: string): Promise<{
+async function loadSailing(tenantId: string): Promise<{
   sailing: PortalSailing | null;
   sailingDaysToCutoff: number | null;
 }> {
   const todayIso = new Date().toISOString().slice(0, 10);
   try {
-    const admin = createAdminClient();
-    const { data: row } = await admin
-      .from("clients")
-      .select("tenant_id")
-      .eq("id", clientId)
-      .maybeSingle<{ tenant_id: string }>();
-    const tenantId = String(row?.tenant_id ?? "").trim();
-    if (!tenantId) return { sailing: null, sailingDaysToCutoff: null };
-    const sailing = await getNextOpenSailing(admin, tenantId, todayIso);
+    const sailing = await getNextOpenSailing(createAdminClient(), tenantId, todayIso);
     return {
       sailing,
       sailingDaysToCutoff: sailing ? daysUntil(sailing.cutoff, todayIso) : null,

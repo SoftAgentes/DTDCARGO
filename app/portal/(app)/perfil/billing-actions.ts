@@ -14,6 +14,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   BILLING_MESSAGES,
   isBillingOutcome,
@@ -69,19 +70,23 @@ function translateRpcError(message: string): string {
   return BILLING_MESSAGES.failed;
 }
 
-/** Aviso al asesor tras un bloqueo. Best-effort: el cliente ve el mensaje igual. */
+/**
+ * Aviso al asesor tras un bloqueo. Best-effort: el cliente ve el mensaje igual.
+ * Tenant, markbox y nombre salen del principal de sesión; con el admin sólo se
+ * lee el asesor, que el principal no trae (SDD-0552).
+ */
 async function notifyBlocked(): Promise<void> {
   try {
     const supabase = await createClient();
-    const { data: clientId } = await supabase.rpc("get_portal_client_id");
-    const id = clientId as string | null;
-    if (!id) return;
+    const principal = await getPortalClientPrincipal(supabase);
+    if (!principal) return;
+    const id = principal.client.id;
     const admin = createAdminClient();
     const { data: row } = await admin
       .from("clients")
-      .select("tenant_id, markbox, name, advisor_id")
+      .select("advisor_id")
       .eq("id", id)
-      .maybeSingle<{ tenant_id: string; markbox: string; name: string | null; advisor_id: string | null }>();
+      .maybeSingle<{ advisor_id: string | null }>();
     if (!row) return;
     const { data: attempt } = await admin
       .from("client_profile_blocked_attempts")
@@ -102,9 +107,9 @@ async function notifyBlocked(): Promise<void> {
     const field: BlockedProfileField =
       attempt?.field === "personal_doc" ? "personal_doc" : "company_rif";
     await notifyBlockedProfileEditToAdmin(admin, {
-      tenantId: row.tenant_id,
-      markbox: row.markbox,
-      clientName: row.name ?? row.markbox,
+      tenantId: principal.tenantId,
+      markbox: principal.client.markbox,
+      clientName: principal.client.name,
       advisorId: row.advisor_id,
       field,
       conflictingMarkbox,

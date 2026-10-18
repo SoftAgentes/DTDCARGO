@@ -12,6 +12,11 @@
  * 'reportado') — el cliente no puede forjar una indemnización ni saltar la
  * evaluación. El embarque ajeno se ignora (no se vincula). El trigger
  * client_claims_check valida igual la coherencia de tenant.
+ *
+ * SDD-0552: cliente, tenant y usuario salen del principal de sesión
+ * (`getPortalClientPrincipal`); el admin ya no relee `clients.tenant_id`. El
+ * embarque se busca con el tenant del principal: uno de otro tenant con el
+ * mismo Shipping Mark no se vincula.
  */
 
 "use server";
@@ -19,7 +24,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { isClaimType } from "@/lib/studio/reclamos/claims-types";
 import {
   collectEvidenceFiles,
@@ -47,10 +52,11 @@ export async function createPortalClaimAction(
 ): Promise<PortalClaimState> {
   const supabase = await createClient();
 
-  const client = await getPortalClient(supabase);
-  if (!client) {
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) {
     return { error: "Tu sesión no está habilitada como cliente del portal." };
   }
+  const { client, tenantId } = principal;
 
   // ── Validación del input del cliente (solo tipo + descripción + embarque) ──
   const claimType = String(formData.get("claim_type") ?? "").trim();
@@ -70,19 +76,9 @@ export async function createPortalClaimAction(
 
   const admin = createAdminClient();
 
-  // Tenant del cliente (robusto: admin lee su fila por id; mismo criterio que
-  // getPortalAdvisor). El client.id ya viene del principal autenticado.
-  const { data: clientRow, error: tenantErr } = await admin
-    .from("clients")
-    .select("tenant_id")
-    .eq("id", client.id)
-    .maybeSingle<{ tenant_id: string }>();
-  if (tenantErr || !clientRow?.tenant_id) {
-    return { error: "No se pudo resolver tu cuenta. Intenta más tarde." };
-  }
-  const tenantId = clientRow.tenant_id;
-
-  // Embarque opcional: solo se vincula si es del propio cliente (markbox).
+  // Embarque opcional: solo se vincula si es del propio cliente (tenant del
+  // principal + markbox). El admin no tiene RLS: sin el tenant, un envío de otro
+  // tenant con el mismo Shipping Mark pasaba la comparación de abajo.
   let shipmentRefId: string | null = null;
   let shipmentCode: string | null = null;
   if (shipmentId) {
@@ -90,6 +86,7 @@ export async function createPortalClaimAction(
       .from("shipments")
       .select("id, code, client_markbox")
       .eq("id", shipmentId)
+      .eq("tenant_id", tenantId)
       .is("deleted_at", null)
       .maybeSingle<{ id: string; code: string; client_markbox: string | null }>();
     if (ship && ship.client_markbox === client.markbox) {
@@ -107,8 +104,6 @@ export async function createPortalClaimAction(
     return { error: "No se pudo generar el código del reclamo." };
   }
   const claimCode = String(codeData);
-
-  const { data: userResp } = await supabase.auth.getUser();
 
   // Insert con campos CONTROLADOS por el servidor (el cliente no los provee).
   const { data: inserted, error } = await admin
@@ -128,7 +123,7 @@ export async function createPortalClaimAction(
       insured: false,
       status: "reportado",
       source: "portal",
-      created_by: userResp.user?.id ?? null,
+      created_by: principal.userId,
     })
     .select("id")
     .maybeSingle<{ id: string }>();
@@ -149,7 +144,7 @@ export async function createPortalClaimAction(
       claimId: inserted.id,
       files,
       source: "portal",
-      uploadedBy: userResp.user?.id ?? null,
+      uploadedBy: principal.userId,
     });
     uploadedCount = r.uploaded;
   }
