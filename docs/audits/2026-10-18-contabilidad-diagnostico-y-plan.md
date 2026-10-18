@@ -119,7 +119,7 @@ ningún lado, el contenedor `C-` no tiene cliente y el portal no lo ve.
   lo fiscal (tarifa por CBM congelada, envío por cliente, embarques sin facturar)
   puede correr en paralelo desde la fase 2 si quieres verla antes.
 
-**Lo que necesito de ti y de la contadora** está en la sección 9: 16 decisiones,
+**Lo que necesito de ti y de la contadora** está en la sección 9: 18 decisiones,
 ordenadas por lo que bloquean. Las primeras: la moneda funcional y cómo se trata
 la diferencia en cambio, cómo se reparan los datos históricos (y tu autorización
 para medirlos), el dueño del cobro, el tratamiento de los anticipos, y si DTD es
@@ -147,8 +147,9 @@ Sujeto Pasivo Especial.
 
 ## 2. Lo que impide que los libros cuadren hoy
 
-Veintitrés problemas transversales: B1-B18 aparecieron en dos o más informes de
-área; B19-B23 los encontró el crítico de completitud y los verificó en código. De
+Veinticuatro problemas transversales: B1-B18 aparecieron en dos o más informes de
+área; B19-B24 los encontró el crítico de completitud y los verificaron en código
+cinco lectores extra. De
 los 168 hallazgos individuales de los 14 informes, los revisores escépticos
 (lente código y lente contable) **confirmaron 136 y no refutaron ninguno**; los 32
 restantes son de severidad baja o fortalezas, que por diseño no pasaron por
@@ -275,7 +276,9 @@ por embarque (no por CBM). No se deriva de los cargos del socio, las cuentas por
 pagar ni los gastos que sí llegan al mayor; `supplier_charges` no tiene
 `shipment_id` (las cuentas por pagar y los gastos sí lo tienen, pero nadie los
 suma al margen). El período filtra ingresos pero no costos (aparecen márgenes
-negativos falsos); el ingreso del margen incluye IVA. El socio China tiene dos
+negativos falsos); el ingreso del margen incluye IVA, y cuando una factura junta
+varios envíos (como las del lote SDD-0543) el costing le carga todo el ingreso al
+primero (`lib/studio/costing/queries.ts:153-200`). El socio China tiene dos
 pasivos en paralelo (2.1.1 y 2.1.7), no hay forma de pagarle contra 2.1.7, el
 libro bilateral no tiene productor (saldo siempre 0) y los cargos en RMB no se
 asientan porque la pantalla no pide tasa.
@@ -345,32 +348,58 @@ existen desde SDD-0105 y SDD-0079. SDD-0061/0072 adoptaron la «Orden de venta»
 del QuickBooks **Desktop** de la foto que mandaste; QuickBooks **Online** no la
 expone por API abierta (su flujo es Estimado → Factura).
 
-### Lo que encontró el crítico de completitud (cinco frentes que ningún lector cubría)
+### Lo que encontró el crítico de completitud (frentes que ningún lector cubría)
+
+El crítico propuso seis frentes; cinco lectores extra los revisaron a fondo en
+código (detalle en el anexo A, sección «Áreas extra»). Estos hallazgos están
+verificados por su lector, pero no pasaron por revisores escépticos.
 
 **B19. La plata que DTD pone por cuenta del cliente termina como costo propio.**
 Al recibir una compra asistida, `receivePurchaseOrder` crea la cuenta por pagar al
 proveedor contra una cuenta de costo 5.x (`lib/studio/purchase-orders/actions.ts:335-345`,
 spec 0071); del lado del cliente no nace nada por esa mercancía: ni factura, ni
-anticipo, ni cuenta por cobrar reembolsable. Lo mismo con los gastos marcados
-«cobrables»: la bandera existe y no genera cargo al cliente. Para un contador, un
-gasto reembolsable que no se refactura es margen perdido y un costo inflado.
+anticipo, ni cuenta por cobrar reembolsable, ni la comisión publicada en la web,
+que es el ingreso real del servicio. Peor: el formulario propone por defecto la
+primera cuenta que empieza con «5.», que es la 5.1 «Flete comprado a navieras»
+(`ordenes-compra/_components/PoDrawer.tsx:407-411`), así que el valor de la
+mercancía infla el costo del flete; ya existe la 5.10 «mercancía pagada a fábrica
+por cuenta del cliente», que usa Financiero China. El puente compra → cuenta por
+pagar no es atómico. Los gastos marcados «cobrables» son una etiqueta sin efecto:
+no generan cargo al cliente. Falta decidir si en la compra asistida DTD es
+**principal** (revende: factura completa con su IVA) o **agente** (compra por
+cuenta del cliente: cuentas de paso y factura solo de la comisión); cambia
+ingresos, IVA e ISLR (decisión 17).
 
-**B20. Créditos y descuentos al cliente que viven fuera de la factura.** Al
-referido se le promete un descuento de USD 60 en su primer embarque (correo,
-portal y valor por defecto en `lib/studio/fidelizacion/types.ts:119`); el crédito
-se asienta como gasto 6.11 «Publicidad», aunque el comentario del propio archivo
-dice «4.9 Descuentos sobre ventas» (`lib/studio/accounting/referral-credit-modes.ts`);
-y el comentario anuncia una reespecificación «Delayed Credit» al estilo QuickBooks
-(la promesa no toca los libros hasta que aterriza como línea en una factura
-futura), que la spec 0137 todavía no recoge. Las indemnizaciones por reclamo
-siguen otro camino. Hay que decidir si son contra-ingreso (descuento) o gasto, y
-que aterricen como línea o nota de crédito sobre la factura.
+**B20. Créditos y descuentos al cliente que viven fuera de la factura.**
+(a) Al referido se le promete un descuento de USD 60 en su primer embarque
+(correo, portal y valor por defecto en `lib/studio/fidelizacion/types.ts:119`) y
+ningún código lo aplica; como una línea de factura no puede ser negativa, hoy solo
+se podría dar bajando un precio sin dejar rastro. (b) **Riesgo alto:** el crédito de
+USD 80 del que refiere **puede nacer sin venta, renacer después de aplicado y
+aplicarse dos veces**: la máquina de estados de `referrals` no tiene candado
+(`app/studio/(app)/fidelizacion/actions.ts:220-260`), un crédito «aplicado» puede
+volver a «acreditado» y abonar una segunda factura sin asiento nuevo, y la RLS «for
+all» deja a cualquier rol del tenant cambiar estado y monto por la API. (c) El
+premio se asienta como gasto 6.11 «Publicidad» mientras la pantalla dice
+«descuento sobre la venta». (d) La indemnización por reclamo sale siempre de caja
+por el 100 % (`0485`): no admite compensarla contra una factura, ni registra el
+recupero del seguro o del transportista, ni moneda y tasa. Hay que decidir si estos
+créditos son contra-ingreso o gasto, y que aterricen como línea o nota de crédito
+sobre la factura (decisión 16).
 
-**B21. La contadora no ve parte de la contabilidad.** Con rol `accounting`,
-Dirección, Rendiciones y Financiero China son solo para administrador
-(`lib/studio/rbac.ts:111,118`), y Financiero China y Rendiciones exigen además ser
-administrador de plataforma. Si la contadora va a cerrar los libros, o se le abren
-(con separación de funciones) o alguien con permiso le entrega esos cierres.
+**B21. La contadora no ve parte de la contabilidad, y lo que no ve está abierto por
+la API.** Con rol `accounting`, Dirección, Rendiciones y Financiero China son solo
+para administrador (`lib/studio/rbac.ts:111,118`), y Financiero China y Rendiciones
+exigen además ser administrador de plataforma, aunque las specs 0059 y 0069 le
+asignan a Contabilidad esa conciliación y esa liquidación. Ella verá en el mayor
+los asientos de la 2.1.7 (Socio China), y podrá anularlos, sin ver su origen ni el
+detector de descuadres. A la inversa, **las siete tablas del Socio China dan
+lectura y escritura a cualquier empleado del tenant por la API** (policy «for all»
+solo por tenant, `0114:444-506`, sin auditoría): el candado existe solo en la app.
+Operaciones y almacén asientan gastos directo en el estado de resultados y en caja,
+sin borrador ni revisión de la contadora (`lib/studio/rbac.ts:114`,
+`gastos/actions.ts:199-208`). Tampoco existe un perfil de solo lectura para un
+contador externo.
 
 **B22. No hay arranque contable.** No existe forma de cargar saldos iniciales
 (la búsqueda de «saldo inicial» solo aparece en la conciliación bancaria) ni la
@@ -382,6 +411,20 @@ libro y lo primero que la contadora va a preguntar.
 contable» ni al confirmar ni al pagar (`app/studio/(app)/nomina/actions.ts:964-967`
 y `:1205-1206`); solo el finiquito asienta. El estado de resultados omite el mayor
 gasto fijo.
+
+**B24. La migración `0422` sigue pendiente en producción desde el 2026-09-13.** Es
+una de las dos únicas esperas declaradas (`supabase/migrations-baseline.json:40`;
+la otra es la `0423`). Mientras falte, la RPC heredada `confirm_payment_report`
+sigue ejecutable para accounting/admin y **suma el reporte a `paid_amount` sin mirar
+si la factura ya está pagada, si el monto excede el saldo o si la moneda
+coincide**, sin recibo ni auditoría (`0359:64-135`); las reglas nuevas solo viven
+en el comando de la `0464`, que lo admite en su propio texto. Además, la policy de
+`payment_reports` deja escribir reportes por la API sin pasar por los comandos
+auditados (`0195:96-109`). Hoy no hay reportes de pago en producción (radiografía
+del 2026-10-18), así que el daño es latente; pero hay que aplicarla antes de que el
+portal se use para reportar pagos y antes de la 2.7. Aparte: nada en el repo impide
+editar una migración ya aplicada (el md5 solo está fijado en pruebas para cinco
+archivos); queda como hallazgo de ingeniería para el Director.
 
 ---
 
@@ -784,12 +827,13 @@ aplicados y la conciliación subdiario contra mayor.
 | 2.4 | Candado del mayor: policies por rol en `accounts`, `journal_entries`, `journal_lines`; sin UPDATE/DELETE para `authenticated`; trigger Σ debe = Σ haber; asentado inmutable; `journal_lines` en la auditoría; historial de reapertura de período; `deleted_at` en el UPDATE de recibos (hueco de SDD-0494); pruebas en el arnés PGlite que ya corre en CI | B16 | M | sí |
 | 2.5 | Reverso al anular factura en la misma transacción (si el período está cerrado, fechado en el primer día del período abierto con memo); no se anula una factura con recibos vivos; reparación de las anuladas históricas: hoy 0 con asiento vivo (radiografía del 2026-10-18), pero hay 1 factura anulada con cobro registrado que se resuelve con 2.6 y 2.8 | B1 | M | sí |
 | 2.6 | Cobro en cualquier moneda con tasa del día y diferencia en cambio a 6.19, un recibo contra varias facturas, anticipos de clientes como pasivo con alerta fiscal al cierre si no tienen factura; el asiento del recibo nace **dentro** de la RPC; pago a proveedor con tasa del día | B9, B3 | L | sí |
-| 2.7 | Confirmar un reporte de pago crea el recibo y su asiento por la misma RPC que Cobranzas (el Slice C de SDD-0134); backfill de los confirmados sin recibo (hoy 0 reportes, según la radiografía del 2026-10-18); el `payment_status` de la recepción CN se deriva de la factura | B4 | M | sí |
+| 2.7 | Confirmar un reporte de pago crea el recibo y su asiento por la misma RPC que Cobranzas (el Slice C de SDD-0134); backfill de los confirmados sin recibo (hoy 0 reportes, según la radiografía del 2026-10-18); el `payment_status` de la recepción CN se deriva de la factura. **Requisito previo: aplicar la `0422` y después la `0423`**, pendientes desde el 2026-09-13 (B24), cada una con previa de solo lectura, el smoke del bloque 3 del guion L14 y OK nominal; las ejecuta el Director | B4, B24 | M | sí |
 | 2.8 | Notas de crédito y débito al cliente (`NC-`, `ND-`) con referencia obligatoria a la factura, motivo, asiento propio, aplicación al saldo y entrada al libro de ventas; **una NC no se anula, se compensa con una ND**; la retención de IVA que un cliente especial le practica a DTD se registra como documento que baja el saldo de la factura; el descuento de referido y la indemnización aterrizan como línea o NC sobre la factura según la decisión 16 | B5, B13, B20 | L | sí |
 | 2.9 | Factura emitida inmutable (solo cambian, por RPC, estado, saldo pagado y las columnas de sincronización); el log registra montos; quien anula no es quien emitió o pide segundo OK. **Se integra justo después de 2.8**, nunca antes, para no provocar anulaciones y reemisiones que dejen huecos | B16, B5 | S | sí |
 | 2.10 | Paquete del contador versión 1 (libro de ventas en Bs, auxiliar de clientes con antigüedad, pagos no aplicados y anticipos, conciliación subdiario contra mayor), en CSV limpio | B17, B8 | M | no |
+| 2.11 | Candado del crédito de referido: las transiciones de `referrals` pasan a la base con un trigger guardián («aplicado» solo sale por la reversión; «acreditado» solo nace de una venta real, por el trigger o por una RPC con motivo); el monto queda inmutable después de acreditar; se quita el UPDATE directo a `authenticated`; al anular la factura del referido, el crédito vuelve a espera si no se aplicó. Riesgo alto: hoy un crédito puede aplicarse dos veces | B20 | M | sí |
 
-Orden de integración a `main`: 2.1, 2.5, 2.2, 2.6, 2.3, 2.7, 2.8, 2.4, 2.9, 2.10.
+Orden de integración a `main`: 2.1, 2.5, 2.2, 2.6, 2.3, 2.7, 2.8, 2.4, 2.9, 2.10. La 2.11 es independiente (toca `fidelizacion` y `referrals`) y puede ir en paralelo desde el principio.
 
 ### Fase 3 — Fiscal SENIAT: factura válida, libros en bolívares y Diario/Mayor legales
 
@@ -844,7 +888,8 @@ la Operadora ya no aparece como ingreso propio.
 | 4.5 | Reporte «Embarques sin facturar» y tarjetas en Dirección | B17, B12 | S | no |
 | 4.6 | Costo por embarque derivado (cargos del socio con `shipment_id`, cuentas por pagar y gastos, prorrateo del contenedor por CBM), tres estados de costo con alerta de variación > 10 %, provisión mensual por embarque con reverso, devengo de ingreso en tránsito si la contadora lo adopta, margen sin IVA y período bien filtrado | B11 | L | sí |
 | 4.7 | Socio China por una sola puerta (según decisión 11) con «Pagar al socio» y tasa obligatoria en RMB; fondos de la Operadora como pasivo «por rendir» con asiento de rendición | B11, B10 | L | sí |
-| 4.8 | Compras asistidas y gastos cobrables generan su cargo al cliente: al recibir la compra nace la cuenta por cobrar reembolsable (o la línea en la factura del embarque) en vez de quedar como costo propio; la bandera «cobrable» del gasto produce el cargo | B19 | M | sí |
+| 4.8 | Compras asistidas y gastos cobrables generan su cargo al cliente: al recibir la compra nace la cuenta por cobrar reembolsable (o la línea en la factura del embarque) en vez de quedar como costo propio; la comisión publicada se factura como ingreso; la cuenta por defecto deja de ser la 5.1 (código explícito según la decisión 17); el puente compra → cuenta por pagar se vuelve atómico; la bandera «cobrable» del gasto produce el cargo | B19 | M | sí |
+| 4.9 | Indemnización con recupero y compensación: medio «crédito a la cuenta del cliente» que genera una NC aplicada a una factura abierta; cuenta «Recuperos por cobrar» (seguro o transportista) con su asiento al reconocerlo y al cobrarlo, en tabla aparte para no reabrir el pago inmutable; moneda y tasa en el pago | B20 | M | sí |
 
 ### Fase 5 — Perfil 360 del cliente y cierre mensual del ERP
 
@@ -862,7 +907,7 @@ rojo con la diferencia explicada.
 | 5.1 | Datos del cliente para contabilidad y crédito: condición fiscal, términos de pago, método, moneda, tipo, límite de crédito, vendedor, correo de facturas; contactos con roles; notas con fecha y autor; columnas preparadas para QuickBooks; pasa por `revisar-datos-ve` | B13 | M | sí |
 | 5.2 | Perfil del cliente completo con la cabecera y las ocho pestañas de la sección 7 (excepto Historial CRM, que llega en la fase 7); abonos por la fecha real del recibo (revierte la decisión del 2026-07-29 con tu OK); permisos por módulo; `/ui-check` | B13 | L | no |
 | 5.3 | Reportes del cierre: antigüedad por cliente y proveedor, saldos por cliente, pagos no aplicados, flujo de caja directo desde cuentas de caja y banco, balance a fecha de corte con cierre de ejercicio a 3.4, tablero mensual, checklist de cierre de diez pasos y los ocho cuadres como pantalla | B17 | L | no |
-| 5.4 | Permisos de la contadora con separación de funciones: según la decisión 15, abrirle Dirección, Rendiciones y Financiero China en lectura (o entregarle sus cierres), y separar emitir de anular, causar de pagar, y crear proveedor de pagarle | B21, B16 | S | no |
+| 5.4 | Permisos de la contadora con separación de funciones: según la decisión 15, abrirle Dirección, Rendiciones y Financiero China en lectura (o entregarle sus cierres), y separar emitir de anular, causar de pagar, y crear proveedor de pagarle; RLS por rol y auditoría en las siete tablas del Socio China (hoy abiertas por la API a cualquier empleado); gastos de operaciones y almacén como borrador que la contadora asienta, si así lo decide la decisión 18; perfil de solo lectura para un contador externo | B21, B16 | M | sí |
 
 ### Fase 6 — Conector QuickBooks Online (espejo)
 
@@ -898,7 +943,7 @@ la antigüedad de QuickBooks al lado de los del ERP, iguales.
 confiables:** fase 1, fase 2 completa, 3.1 a 3.6, 3.8, 3.9, 5.4 y fase 6. Lo demás mejora margen,
 operación y perfil, pero no es requisito del corte.
 
-**Volumen:** 44 SDD (5 + 10 + 9 + 8 + 4 + 6 + 2), 32 con migración. El Director serializa las que tocan
+**Volumen:** 46 SDD (5 + 11 + 9 + 9 + 4 + 6 + 2), 35 con migración, más la aplicación de las migraciones pendientes `0422` y `0423`. El Director serializa las que tocan
 `lib/studio/accounting`, `invoice-posting.ts` y las RPC `0467`/`0468`, y
 paraleliza portal, perfil, costing y el carril del embarque.
 
@@ -1002,6 +1047,18 @@ recomendación (⭐).
     factura del primer embarque (el modelo «Delayed Credit» de QuickBooks: la
     promesa no toca los libros hasta entonces); la indemnización, como nota de
     crédito si se compensa con la factura o como gasto si se paga aparte.
+
+17. **[Tú con la contadora · antes de 4.8] En la compra asistida, ¿DTD es
+    principal o agente?** Como principal revende: factura completa con su IVA y
+    costo en una cuenta de compra asistida. Como agente compra por cuenta del
+    cliente: cuentas de paso (anticipo y por cobrar reembolsable) y factura solo de
+    la comisión. ⭐ Agente en la modalidad «compramos por ti» y principal solo si
+    DTD revende con su propio proveedor; dejarlo escrito por modalidad en la spec,
+    y una sola cuenta para la mercancía por cuenta del cliente en los dos módulos.
+18. **[Tú con la contadora · antes de 5.4] Gastos de operaciones y almacén: ¿se
+    asientan al cargarlos o entran como borrador que la contadora revisa?** ⭐
+    Borrador que la contadora asienta, como la bandeja «For review» de
+    QuickBooks, al menos para los gastos por encima de un monto que tú fijes.
 
 **Radiografía 1.1: ya autorizada y corrida.** Sam la autorizó el 2026-10-18 («autorizo
 la radiografía 1.1 con conteos y sumas, sin datos personales») y el Director la

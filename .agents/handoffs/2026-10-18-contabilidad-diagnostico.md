@@ -29,11 +29,11 @@ precio por CBM queda para cuando Sam lo vuelva a mandar.
 ## COMPLETADO
 
 - **Diagnóstico y plan**: `docs/audits/2026-10-18-contabilidad-diagnostico-y-plan.md`
-  (resumen de una página; fortalezas; 18 problemas transversales B1-B18; ciclo del
+  (resumen de una página; fortalezas; 24 problemas transversales B1-B24; ciclo del
   embarque hoy y documento por hito; QuickBooks Online: edición, API, patrón de la
   industria y arquitectura recomendada; lo fiscal venezolano; reportes faltantes y
   los ocho cuadres; perfil del cliente con cabecera y 8 pestañas; plan en 7 fases
-  con 40 SDD propuestas, 29 con migración; 14 decisiones para Sam y la contadora,
+  con 46 SDD propuestas, 35 con migración; 18 decisiones para Sam y la contadora,
   con quién decide y antes de qué; qué no hacer).
 - Plan: síntesis del panel (ganó «integridad primero», 42/60, frente a 41 y 41),
   con injertos de los otros dos y un ajuste propio: adelantar 4.1, 4.2 y 4.5
@@ -96,10 +96,22 @@ precio por CBM queda para cuando Sam lo vuelva a mandar.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Respuestas de Sam y la contadora a las 14 decisiones de la sección 9 del
+- Respuestas de Sam y la contadora a las 18 decisiones de la sección 9 del
   documento. La fase 1 no depende de ninguna; las cuatro primeras (moneda
   funcional y diferencia en cambio, reparación histórica, dueño del cobro,
   anticipos) bloquean la fase 2.
+- **La `0422` y la `0423` siguen pendientes en producción** (únicas esperas del
+  baseline, desde el 2026-09-13). Mientras falte la 0422, la RPC heredada
+  `confirm_payment_report` confirma pagos sin tope, sin moneda y sin auditoría
+  (B24). Hoy no hay reportes de pago, así que el daño es latente, pero conviene
+  aplicarlas antes de que el portal se use para reportar pagos y antes de la 2.7;
+  cada una con previa, smoke del bloque 3 del guion L14 y OK nominal de Sam.
+- Las lecturas extra del crítico de completitud (anexo A, áreas extra) agregaron
+  B24 y profundizaron B19-B21: el crédito de referido puede aplicarse dos veces
+  (nueva SDD 2.11, riesgo alto), la indemnización sale siempre de caja (nueva 4.9),
+  las siete tablas del Socio China están abiertas por la API a cualquier empleado
+  (5.4) y la compra asistida usa por defecto la cuenta 5.1 de flete (4.8). Plan:
+  46 SDD, 35 con migración; 18 decisiones.
 - Radiografía 1.1: hecha el 2026-10-18 (ver VALIDACIÓN). Su lectura cambia
   prioridades: B1, B2 y B4 no tienen casos hoy (riesgos latentes); **B3 es el
   problema vivo** (5 de 5 facturas emitidas sin asiento) y conviene repararlo con
@@ -126,6 +138,11 @@ precio por CBM queda para cuando Sam lo vuelva a mandar.
   el accept de la bandeja de Kommo sale fuera de la cola.
 - Recuperación de Kommo lee contactos con tope 5.000 que PostgREST recorta a 1.000
   sin aviso (`lib/studio/kommo-recovery.ts`); la regla ESLint solo caza literales.
+- Nada en el repo impide editar una migración ya aplicada: el md5 solo está fijado
+  en pruebas para 0421, 0473, 0474, 0475 y 0491; la puerta del servidor compara
+  solo nombres. Propuesta del lector: un manifiesto con md5 y bytes de cada
+  migración aplicada posterior a la 0238 y una prueba que lo compare (anexo A,
+  MIG-05). Es ingeniería, no contabilidad.
 - Portal: fechas de solo día formateadas con `new Date(iso).toLocaleDateString`
   dependen de la zona horaria del servidor (inferido).
 
