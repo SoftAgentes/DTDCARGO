@@ -8,16 +8,21 @@
  * partida) y el asesor lo cotiza/cierra en `/studio/cotizador`. Idempotente: sólo
  * un estimado web elegible se puede avanzar; si ya está en la pista formal, no-op.
  *
- * SEGURIDAD: el dueño se resuelve por la SESIÓN (getPortalClient → markbox) y el
- * update va scopeado por `client_markbox` con admin client (el cliente no tiene RLS
- * de UPDATE sobre quotes). Un cliente no puede avanzar el estimado de otro.
+ * SEGURIDAD: el dueño se resuelve por la SESIÓN (`getPortalClientPrincipal`:
+ * vínculo activo, cliente vivo del mismo tenant), nunca del FormData. La lectura
+ * y el UPDATE corren con admin client (el cliente no tiene RLS de UPDATE sobre
+ * quotes), y por eso van scopeados EXPLÍCITO por el `tenant_id` y el Shipping
+ * Mark del principal. El Shipping Mark y el código son únicos POR tenant (0006,
+ * 0007): sin el tenant, un cliente de otro tenant con el mismo Shipping Mark
+ * avanzaba el estimado ajeno (SDD-0553). Un cliente no puede avanzar el estimado
+ * de otro.
  */
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { canAdvanceEstimate } from "@/lib/portal/cotizacion-request";
 import { notifyCotizacionRequestToAdmin } from "@/lib/studio/cotizacion-request-notify";
 import type { QuoteStatus } from "@/lib/studio/quote-types";
@@ -27,7 +32,6 @@ export type AdvanceEstimateState = { error?: string };
 
 type QuoteRow = {
   id: string;
-  tenant_id: string;
   quote_code: string;
   source: string;
   status: QuoteStatus;
@@ -45,12 +49,13 @@ export async function advanceEstimateToCotizacionAction(
   const code = String(formData.get("code") ?? "").trim();
   if (!code) return { error: "No pudimos identificar el estimado." };
 
-  // Dueño desde la SESIÓN (no del form).
+  // Dueño y tenant desde la SESIÓN (no del form ni de una relectura con admin).
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) {
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) {
     return { error: "Tu sesión expiró. Vuelve a entrar e intenta de nuevo." };
   }
+  const { client, tenantId } = principal;
 
   let admin;
   try {
@@ -59,12 +64,13 @@ export async function advanceEstimateToCotizacionAction(
     return { error: "No pudimos avanzar tu estimado ahora. Escríbele a tu asesor." };
   }
 
-  // Traer el estimado y CONFIRMAR que es del cliente logueado (por markbox).
+  // Traer el estimado y CONFIRMAR que es del cliente logueado (tenant + markbox).
   const { data: q, error: fetchErr } = await admin
     .from("quotes")
     .select(
-      "id, tenant_id, quote_code, source, status, service, origin, destination, nota, converted_to_shipment_id",
+      "id, quote_code, source, status, service, origin, destination, nota, converted_to_shipment_id",
     )
+    .eq("tenant_id", tenantId)
     .eq("quote_code", code)
     .eq("client_markbox", client.markbox)
     .is("deleted_at", null)
@@ -97,6 +103,7 @@ export async function advanceEstimateToCotizacionAction(
     .from("quotes")
     .update({ source: "studio", updated_at: new Date().toISOString() })
     .eq("id", q.id)
+    .eq("tenant_id", tenantId)
     .eq("client_markbox", client.markbox)
     .eq("source", "web")
     .select("id");
@@ -110,7 +117,7 @@ export async function advanceEstimateToCotizacionAction(
     const description = q.nota?.trim()
       ? `Avanzó su estimado ${q.quote_code} a cotización. Nota: ${q.nota.trim()}`
       : `Avanzó su estimado ${q.quote_code} a cotización formal.`;
-    await notifyCotizacionRequestToAdmin(admin, q.tenant_id, {
+    await notifyCotizacionRequestToAdmin(admin, tenantId, {
       code: q.quote_code,
       markbox: client.markbox,
       clientName: client.name,
