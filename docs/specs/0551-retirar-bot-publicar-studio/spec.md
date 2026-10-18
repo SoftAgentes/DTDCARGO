@@ -1,7 +1,7 @@
 ---
 sdd: "0551"
 title: "Retirar el botón «Publicar» (bot de deploy) del Studio local"
-status: in-progress
+status: done
 author: "Claude Worker (Sam)"
 created: 2026-10-18
 updated: 2026-10-18
@@ -136,7 +136,7 @@ El hallazgo de `deployActions.ts:200` es el mensaje «git push falló». La regl
 | 3 | Ningún camino de `app/`, `lib/`, `components/` ni `proxy.ts` lanza procesos ni ejecuta `git add -A` o `git push`, con la lista de excepciones vacía | Cumplido. `sin-git-desde-la-app.test.ts` |
 | 4 | Con el bot restaurado, el contrato falla y nombra el archivo | Cumplido. Control rojo (handoff) |
 | 5 | La documentación que decía que el bot existe queda al día | Cumplido. §2 y allowlist |
-| 6 | En local (`pnpm dev`, admin), `/studio/debug` › Estado › «Esta instancia» se ve sin el botón «Push» | **Pendiente.** No se puede en este worktree: no tiene `.env.local` y no se copian credenciales. Lo mira Sam o el Director en su copia local |
+| 6 | En local (`pnpm dev`, admin), `/studio/debug` › Estado › «Esta instancia» se ve sin el botón «Push» | Cumplido. Sam lo revisó en su Studio local el 2026-10-18 y lo dijo al Director: «ya revisé el Studio local, no aparece el botón» |
 
 ## 7 · Allowlist de archivos
 
@@ -162,3 +162,5 @@ El hallazgo de `deployActions.ts:200` es el mensaje «git push falló». La regl
 ## 9 · Seguimiento
 
 - 2026-10-18: reserva `codex/sdd-reserve-0551` (`f1dff3e1`). Implementación, contrato y pruebas en la rama `worktree-agent-a722a0de9ca4bb7a9`, PR en borrador. Sin fusionar.
+- 2026-10-18 04:49:53Z: **PR #272 integrada** por el Director. La revisión aprobó la cabeza `91901304`, que contenía main `d5ef42ea`, con el CI verde; el merge es `5e2b05c6`. Se publicó a las 04:55:59Z. En la vuelta del vigilante, el primer intento de la prueba rápida dio 9/5: 404 en las páginas mientras el router tomaba el contenedor nuevo, que tardó 36 s en `compose up`. El segundo intento, 21 s después, dio 14/0. El web quedó healthy y sin reinicios.
+- 2026-10-18: criterio 6 cumplido. Sam lo comprobó en su Studio local: «ya revisé el Studio local, no aparece el botón». La spec pasa a `done` y la reserva se borra.
