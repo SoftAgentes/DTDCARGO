@@ -72,7 +72,10 @@ precio por CBM queda para cuando Sam lo vuelva a mandar.
 | `node scripts/harness-worktree.mjs guard` | worktree propio, rama `claude/quizzical-lehmann-d70032` | PASÓ |
 | `node scripts/harness-worktree.mjs claim --owner contabilidad-2026-10-18` | sesión escritora | PASÓ (claim adquirido) |
 | `corepack pnpm docs:check` | índice de specs tras agregar los documentos en `docs/audits/` | PASÓ («índice sincronizado con 538 specs»), corrido sobre el árbol con el diagnóstico y el anexo B |
-| `pnpm verify` | — | NO EJECUTADO: cambio solo de documentación; el cierre canónico de docs es `docs:check` (regla «el cierre se elige por el diff») |
+| `git merge origin/main` | `a6b06205` en la rama (merge `e224a466`, sin rebase) | PASÓ, sin conflictos; el índice regenerado no cambió |
+| `corepack pnpm docs:check` tras el merge | 539 specs | PASÓ |
+| `corepack pnpm sdd:check` tras el merge | numeración de specs y migraciones | PASÓ («sin números repetidos»; avisa los choques históricos 0342, 0363 y 0394 ya aplicados, que no se renumeran) |
+| `pnpm verify` | — | NO EJECUTADO: cambio solo de documentación; el cierre canónico de docs es `docs:check` y `sdd:check` (regla «el cierre se elige por el diff», confirmada por el Director) |
 | Lectura de producción | — | NO EJECUTADO por diseño: prohibido sin autorización. Todo lo que depende de datos reales lleva etiqueta NO VERIFICADO en el documento |
 | Verificación escéptica de hallazgos | 14 áreas | Ver el anexo A: cada hallazgo trae su estado (confirmado, refutado o sin verificar) y el veredicto de cada lente. La corrida sufrió cortes por límite de uso y se relanzó desde caché cuatro veces; el anexo se genera de la última |
 | Panel de planes | 3 planes, 9 jueces, síntesis | PASÓ completo (13/13 agentes); errores de hecho de los jueces aplicados al documento |
