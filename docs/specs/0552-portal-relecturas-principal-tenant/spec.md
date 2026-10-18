@@ -229,7 +229,13 @@ mató.
 - [x] Para un cliente coherente, las pruebas existentes de portada, compra, perfil, activación,
   dashboard y facturas siguen verdes sin relajar aserciones.
 - [x] Sin migración, RLS, RPC ni UI nuevas.
-- [ ] `pnpm verify` sobre el head de producto (detalle en el handoff).
+- [ ] `pnpm verify` en verde. Sobre `d5d7e9a1` salió con exit 1: 16 de 17 pasos medidos y uno en
+  FALLÓ, `test`. La causa fue una prueba ajena al Portal que vence bajo la carga de la propia
+  corrida: `app/p/[token]/standard-format.test.tsx` › «starts guided…». Tardó 22,5 s y 23,6 s con
+  un tope de 20 s, y aislada tarda 1,41 s. Es el patrón de la SDD-0550. El resto de las 11.269
+  pruebas, e2e, SQL, rebuild y build pasaron. `migrations-applied` no se midió (sin credenciales;
+  esta SDD no trae migración). Detalle en el handoff. Queda abierta hasta que el Director decida
+  con este dato.
 
 ## Gobernanza y datos
 
