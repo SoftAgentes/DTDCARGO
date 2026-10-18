@@ -9,9 +9,12 @@
  * Shipping Mark siguen fuera del Portal.
  *
  * Misma defensa en profundidad que el resto del portal: identidad por SESIÓN
- * (`get_portal_client_id`, helper aislada) → escritura con ADMIN client
- * (service_role) scopeada EXPLÍCITO a ese id (la RLS del portal es read-only
- * para `clients`; el cliente nunca toca el bucket privado directo). Limpieza de
+ * (`getPortalClientPrincipal`: vínculo activo, cliente vivo del mismo tenant) →
+ * escritura con ADMIN client (service_role) scopeada EXPLÍCITO a ese id (la RLS
+ * del portal es read-only para `clients`; el cliente nunca toca el bucket
+ * privado directo). Tenant y Shipping Mark salen del principal, no de releer
+ * `clients` con el admin (SDD-0552): el admin sólo lee lo que el principal no
+ * trae (puntero de la foto, asesor). Limpieza de
  * la foto nueva sólo ante rechazo confirmado; una respuesta perdida exige
  * reconciliar el puntero autorizado antes de decidir. Reemplazar una foto ya
  * cargada consume uno de los 3 cambios (SDD-0439 · SDD-0481). La foto
@@ -22,6 +25,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   PHOTO_BUCKET,
   validatePhotoFile,
@@ -52,14 +56,15 @@ export async function uploadCedulaPhotoAction(
   _prev: CedulaPhotoActionState,
   formData: FormData,
 ): Promise<CedulaPhotoActionState> {
-  // 1. Identidad por SESIÓN: el client_id del portal logueado.
+  // 1. Identidad por SESIÓN: el principal Portal (cliente, tenant y markbox).
   const supabase = await createClient();
-  const { data: portalClientId, error: idErr } =
-    await supabase.rpc("get_portal_client_id");
-  if (idErr || !portalClientId) {
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) {
     return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
   }
-  const clientId = portalClientId as string;
+  const clientId = principal.client.id;
+  const { tenantId } = principal;
+  const { markbox } = principal.client;
 
   // 2. Validar la foto (obligatoria: esta action ES la subida de la foto).
   const v = validatePhotoFile(formData.get("cedula_photo"));
@@ -72,17 +77,16 @@ export async function uploadCedulaPhotoAction(
     return { error: "No está disponible ahora. Prueba de nuevo en un rato." };
   }
 
-  // 3. Estado actual (scopeado al id verificado por sesión): tenant + markbox
-  //    para construir el path privado. Un reemplazo consume cupo: si no queda,
-  //    se corta ANTES de subir para no crear otro objeto sensible que luego
-  //    dependa de un rollback. La RPC vuelve a imponer el límite con lock.
+  // 3. Estado actual (scopeado al id verificado por sesión): ¿ya tiene foto?
+  //    El path privado se arma con el tenant + markbox del principal. Un
+  //    reemplazo consume cupo: si no queda, se corta ANTES de subir para no
+  //    crear otro objeto sensible que luego dependa de un rollback. La RPC
+  //    vuelve a imponer el límite con lock.
   const { data: row, error: rowErr } = await admin
     .from("clients")
-    .select("tenant_id, markbox, cedula_photo_path, deleted_at")
+    .select("cedula_photo_path, deleted_at")
     .eq("id", clientId)
     .maybeSingle<{
-      tenant_id: string;
-      markbox: string;
       cedula_photo_path: string | null;
       deleted_at: string | null;
     }>();
@@ -99,7 +103,7 @@ export async function uploadCedulaPhotoAction(
     if (remaining <= 0) return { error: PROFILE_EDIT_LIMIT_REACHED };
   }
   // 4. Subir la foto nueva al bucket privado (path nuevo por subida).
-  const up = await uploadClientPhoto(admin, row.tenant_id, row.markbox, v.file);
+  const up = await uploadClientPhoto(admin, tenantId, markbox, v.file);
   if (up.error || !up.path) {
     console.error("[uploadCedulaPhotoAction] upload error:", up.error);
     return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
@@ -130,18 +134,22 @@ export async function uploadCedulaPhotoAction(
       };
     };
     // La sesión puede cambiar durante el upload. No reconciliar otra cuenta,
-    // un cliente retirado/fusionado ni un prefijo que cambió concurrentemente.
+    // un cliente retirado/fusionado ni un prefijo que cambió concurrentemente:
+    // el principal se resuelve otra vez y tiene que ser el mismo cliente, con
+    // el mismo tenant y el mismo markbox (SDD-0552: antes se comparaban contra
+    // lo que el admin releía de `clients`).
     let current;
     try {
-      const identity = await supabase.rpc("get_portal_client_id");
-      if (identity.error || identity.data !== clientId) return uncertain();
+      const again = await getPortalClientPrincipal(supabase);
+      if (
+        !again || again.client.id !== clientId ||
+        again.tenantId !== tenantId || again.client.markbox !== markbox
+      ) return uncertain();
       const result = await admin
         .from("clients")
-        .select("tenant_id, markbox, cedula_photo_path, deleted_at")
+        .select("cedula_photo_path, deleted_at")
         .eq("id", clientId)
         .maybeSingle<{
-          tenant_id: string;
-          markbox: string;
           cedula_photo_path: string | null;
           deleted_at: string | null;
         }>();
@@ -152,9 +160,7 @@ export async function uploadCedulaPhotoAction(
     }
     if (
       current.deleted_at != null ||
-      current.tenant_id !== row.tenant_id ||
-      current.markbox !== row.markbox ||
-      !up.path.startsWith(`${row.tenant_id}/${row.markbox}/`) ||
+      !up.path.startsWith(`${tenantId}/${markbox}/`) ||
       up.path.includes("..") || up.path.includes("/avatar/")
     ) return uncertain();
 
@@ -238,12 +244,11 @@ export async function updateMyProfileAction(
   formData: FormData,
 ): Promise<ChangeRequestActionState> {
   const supabase = await createClient();
-  const { data: portalClientId, error: idErr } =
-    await supabase.rpc("get_portal_client_id");
-  if (idErr || !portalClientId) {
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) {
     return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
   }
-  const clientId = portalClientId as string;
+  const clientId = principal.client.id;
 
   let admin;
   try {
@@ -252,23 +257,20 @@ export async function updateMyProfileAction(
     return { error: DIRECT_EDIT_MESSAGES.unavailable };
   }
 
-  // Sólo lo necesario para validar el tipo de documento y armar el aviso.
+  // Sólo lo necesario para armar el aviso. El tenant, el markbox, el nombre y el
+  // tipo de documento salen del principal; con el admin se lee únicamente el
+  // asesor, que el principal no trae (SDD-0552).
   const { data: row, error: rowErr } = await admin
     .from("clients")
-    .select("tenant_id, markbox, name, doc_kind, advisor_id")
+    .select("advisor_id")
     .eq("id", clientId)
-    .maybeSingle<{
-      tenant_id: string;
-      markbox: string;
-      name: string | null;
-      doc_kind: string | null;
-      advisor_id: string | null;
-    }>();
+    .maybeSingle<{ advisor_id: string | null }>();
   if (rowErr || !row) {
     return { error: "No pudimos cargar tu cuenta. Prueba de nuevo." };
   }
 
-  const kind: ClientDocKind = row.doc_kind === "empresa" ? "empresa" : "persona";
+  const kind: ClientDocKind =
+    principal.client.docKind === "empresa" ? "empresa" : "persona";
   const validation = validateDirectEdit(kind, {
     name: String(formData.get("name") ?? ""),
     doc: String(formData.get("doc") ?? ""),
@@ -349,9 +351,9 @@ export async function updateMyProfileAction(
       conflictingMarkbox = other?.markbox ?? null;
     }
     await notifyBlockedProfileEditToAdmin(admin, {
-      tenantId: row.tenant_id,
-      markbox: row.markbox,
-      clientName: row.name ?? row.markbox,
+      tenantId: principal.tenantId,
+      markbox: principal.client.markbox,
+      clientName: principal.client.name,
       advisorId: row.advisor_id,
       field: attempt?.field === "phone" ? "phone" : "document",
       conflictingMarkbox,

@@ -4,9 +4,10 @@
  *
  * No es más permisivo que la biblioteca (ver los tres modos en que miente un
  * doble de PostgREST):
- *  - APLICA de verdad `eq`, `neq`, `is(col, null)` e `in` sobre las filas, en
- *    lecturas, UPDATE y DELETE. Quitar un `.eq("tenant_id", …)` del código cambia
- *    lo que la consulta devuelve o toca, y la prueba lo ve.
+ *  - APLICA de verdad `eq`, `neq`, `is(col, null)`, `in` y `gte` sobre las filas,
+ *    en lecturas, UPDATE y DELETE. Quitar un `.eq("tenant_id", …)` del código
+ *    cambia lo que la consulta devuelve o toca, y la prueba lo ve. `gte` compara
+ *    con `>=` de JavaScript: sirve para números y fechas ISO (SDD-0552, zarpes).
  *  - `from()` sólo expone `select/insert/update/upsert/delete`, como supabase-js:
  *    un filtro antes de `select()` lanza `TypeError`.
  *  - Devuelve COPIAS: una escritura posterior no cambia lo ya leído.
@@ -21,7 +22,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type Row = Record<string, unknown>;
-type Op = "eq" | "neq" | "is" | "in";
+type Op = "eq" | "neq" | "is" | "in" | "gte";
 export type Filter = { column: string; op: Op; value: unknown };
 export type Kind = "select" | "insert" | "update" | "upsert" | "delete";
 
@@ -107,6 +108,9 @@ function matches(row: Row, filters: Filter[]): boolean {
         return actual === value;
       case "in":
         return Array.isArray(value) && actual !== null && value.includes(actual);
+      case "gte":
+        // `col >= x` con col NULL no es verdadero en SQL.
+        return actual !== null && (actual as string | number) >= (value as string | number);
     }
   });
 }
@@ -165,6 +169,10 @@ export function portalDouble(options: PortalDoubleOptions = {}): PortalDouble {
       },
       in(column: string, values: unknown[]) {
         operation.filters.push({ column, op: "in", value: [...values] });
+        return builder;
+      },
+      gte(column: string, value: unknown) {
+        operation.filters.push({ column, op: "gte", value });
         return builder;
       },
       order() {

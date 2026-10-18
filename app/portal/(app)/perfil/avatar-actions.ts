@@ -3,8 +3,10 @@
 /**
  * Avatar del cliente (SDD-0138 Slice D · SDD-0487). Foto de perfil COSMÉTICA,
  * editable cuando quiera y sin gastar cupo, separada de la foto de cédula
- * (verificación). Identidad por SESIÓN (`get_portal_client_id`) → ADMIN client
- * scopeado a ese id. Storage: bucket privado client-docs, sub-path avatar/.
+ * (verificación). Identidad por SESIÓN (`getPortalClientPrincipal`) → ADMIN
+ * client scopeado a ese id. Storage: bucket privado client-docs, sub-path
+ * avatar/, con el tenant y el markbox del principal (SDD-0552: ya no se releen
+ * de `clients` con el admin).
  *
  * SDD-0487: el navegador ya entrega un JPEG reducido (`prepareAvatar`). Aquí se
  * exige ese formato, se limita a 2 MB y se quitan los metadatos otra vez
@@ -16,6 +18,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import {
+  getPortalClientPrincipal,
+  type PortalClientPrincipal,
+} from "@/lib/portal/portal-queries";
 import { PHOTO_BUCKET, uploadClientAvatarJpeg } from "@/lib/portal/client-photo";
 import { AVATAR_MAX_BYTES, AVATAR_MESSAGES } from "@/lib/portal/avatar-image";
 import { stripJpegMetadata } from "@/lib/portal/jpeg-metadata";
@@ -25,11 +31,8 @@ export type AvatarActionState = { ok?: boolean; removed?: boolean; error?: strin
 const SESSION_EXPIRED = "Tu sesión expiró. Vuelve a entrar al portal.";
 const UNAVAILABLE = "No está disponible ahora. Prueba de nuevo en un rato.";
 
-async function sessionClientId(): Promise<string | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_portal_client_id");
-  if (error || !data) return null;
-  return data as string;
+async function sessionPrincipal(): Promise<PortalClientPrincipal | null> {
+  return getPortalClientPrincipal(await createClient());
 }
 
 export async function updateAvatarAction(
@@ -37,8 +40,9 @@ export async function updateAvatarAction(
   formData: FormData,
 ): Promise<AvatarActionState> {
   // 1. Identidad por sesión.
-  const clientId = await sessionClientId();
-  if (!clientId) return { error: SESSION_EXPIRED };
+  const principal = await sessionPrincipal();
+  if (!principal) return { error: SESSION_EXPIRED };
+  const clientId = principal.client.id;
 
   // 2. Sólo el JPEG que preparó el navegador, y sin metadatos.
   const raw = formData.get("avatar");
@@ -57,19 +61,24 @@ export async function updateAvatarAction(
     return { error: UNAVAILABLE };
   }
 
-  // 3. Estado actual, scopeado al id verificado por sesión.
+  // 3. Avatar actual, scopeado al id verificado por sesión.
   const { data: row, error: rowErr } = await admin
     .from("clients")
-    .select("tenant_id, markbox, avatar_path")
+    .select("avatar_path")
     .eq("id", clientId)
-    .maybeSingle<{ tenant_id: string; markbox: string; avatar_path: string | null }>();
+    .maybeSingle<{ avatar_path: string | null }>();
   if (rowErr || !row) {
     return { error: "La foto de perfil no está disponible todavía." };
   }
   const oldPath = String(row.avatar_path ?? "").trim() || null;
 
-  // 4. Subir el avatar nuevo.
-  const up = await uploadClientAvatarJpeg(admin, row.tenant_id, row.markbox, clean);
+  // 4. Subir el avatar nuevo, bajo el tenant y el markbox del principal.
+  const up = await uploadClientAvatarJpeg(
+    admin,
+    principal.tenantId,
+    principal.client.markbox,
+    clean,
+  );
   if (up.error || !up.path) {
     console.error("[updateAvatarAction] upload error:", up.error);
     return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
@@ -96,8 +105,9 @@ export async function updateAvatarAction(
 }
 
 export async function removeAvatarAction(): Promise<AvatarActionState> {
-  const clientId = await sessionClientId();
-  if (!clientId) return { error: SESSION_EXPIRED };
+  const principal = await sessionPrincipal();
+  if (!principal) return { error: SESSION_EXPIRED };
+  const clientId = principal.client.id;
 
   let admin;
   try {

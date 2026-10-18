@@ -52,8 +52,13 @@ vi.mock("@/lib/portal/portal-avisos-queries", () => ({
     return h.avisos;
   },
 }));
+// SDD-0552: la página resuelve el principal (cliente + tenant) de la sesión.
 vi.mock("@/lib/portal/portal-queries", () => ({
-  getPortalClient: async () => ({ id: "c1", markbox: "DTD-TEST", name: "Cliente Prueba" }),
+  getPortalClientPrincipal: async () => ({
+    userId: "u1",
+    tenantId: "t1",
+    client: { id: "c1", markbox: "DTD-TEST", name: "Cliente Prueba" },
+  }),
 }));
 vi.mock("@/lib/studio/prealertas/queries", () => ({
   getPrealertaByCode: async () => ({

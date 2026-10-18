@@ -37,9 +37,10 @@ export default async function PortalDocumentPage({
 
   const prealerta = await getPrealertaByCode(supabase, code, {
     markbox: client.markbox,
+    tenantId,
   });
-  // El chequeo de tenant es explícito aunque la consulta ya filtre por markbox:
-  // son dos vallas distintas y la de arriba depende de datos del cliente.
+  // La consulta ya filtra por tenant y markbox del principal (SDD-0552); el
+  // chequeo de tenant se conserva como segunda valla, igual que en etiquetas.
   if (!prealerta || prealerta.tenant_id !== tenantId) notFound();
 
   return (

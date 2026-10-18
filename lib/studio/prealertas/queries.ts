@@ -196,19 +196,27 @@ export async function cbmByPrealerta(
 }
 
 /**
- * UNA compra del cliente del portal por su `code`. Filtra por code + markbox: si
- * el code no es suyo (o no existe) → null → la página llama `notFound()`. Misma
- * defensa en profundidad que el resto del portal (markbox explícito + RLS).
+ * UNA compra del cliente del portal por su `code`. Filtra por code + tenant +
+ * markbox del principal Portal: si el code no es suyo (o no existe) → null → la
+ * página llama `notFound()`. Misma defensa en profundidad que el resto del portal
+ * (tenant y markbox explícitos + RLS).
+ *
+ * `tenantId` es obligatorio (SDD-0552). El código y el Shipping Mark son únicos
+ * POR tenant (0105, 0006) y la policy de equipo «by tenant» es permisiva: sin el
+ * tenant, una sesión híbrida recibía la compra del otro tenant (o las dos, y
+ * `maybeSingle` fallaba con la propia). Todos los llamadores son del Portal y ya
+ * resolvieron el principal; hacerlo opcional dejaría olvidarlo en silencio.
  */
 export async function getPrealertaByCode(
   supabase: SupabaseClient,
   code: string,
-  opts: { markbox: string },
+  opts: { markbox: string; tenantId: string },
 ): Promise<Prealerta | null> {
   const { data, error } = await supabase
     .from("prealertas")
     .select(PREALERTA_COLUMNS)
     .eq("code", code)
+    .eq("tenant_id", opts.tenantId)
     .eq("client_markbox", opts.markbox)
     .is("deleted_at", null)
     .maybeSingle();

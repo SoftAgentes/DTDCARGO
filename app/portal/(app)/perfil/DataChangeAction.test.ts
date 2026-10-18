@@ -18,6 +18,7 @@ const stubs = vi.hoisted(() => ({
     | { field: string; conflicting_client_id: string | null }
     | null,
   otherMarkbox: "DTD-7000",
+  signedIn: true,
 }));
 
 vi.mock("next/cache", () => ({
@@ -28,6 +29,28 @@ vi.mock("@/lib/db/server", () => ({
   createClient: async () => ({
     rpc: (...args: unknown[]) => stubs.rpc(...args),
   }),
+}));
+
+// SDD-0552: cliente, tenant, markbox, nombre y tipo de documento salen del
+// principal Portal de la sesión (antes: RPC `get_portal_client_id` + relectura
+// de `clients` con el admin). Refleja la misma ficha de `stubs.client`.
+vi.mock("@/lib/portal/portal-queries", () => ({
+  getPortalClientPrincipal: async () =>
+    stubs.signedIn
+      ? {
+          userId: "u1",
+          tenantId: stubs.client.tenant_id,
+          client: {
+            id: "client-1",
+            markbox: stubs.client.markbox,
+            name: stubs.client.name,
+            docKind:
+              stubs.client.doc_kind === "empresa" || stubs.client.doc_kind === "persona"
+                ? stubs.client.doc_kind
+                : null,
+          },
+        }
+      : null,
 }));
 
 vi.mock("@/lib/db/admin", () => ({
@@ -77,7 +100,6 @@ function form(values: Partial<Record<"name" | "doc" | "phone", string>>) {
 
 function rpcReturns(result: RpcResult) {
   stubs.rpc.mockImplementation(async (name: string) => {
-    if (name === "get_portal_client_id") return { data: "client-1", error: null };
     if (name === "portal_update_my_profile") return result;
     throw new Error(`rpc inesperada: ${name}`);
   });
@@ -85,6 +107,7 @@ function rpcReturns(result: RpcResult) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  stubs.signedIn = true;
   stubs.client.doc_kind = "persona";
   stubs.attempt = { field: "document", conflicting_client_id: "client-2" };
   rpcReturns({ data: [{ outcome: "applied", remaining_count: 2 }], error: null });
@@ -194,9 +217,11 @@ describe("updateMyProfileAction · SDD-0482", () => {
   });
 
   it("sin sesión no hace nada", async () => {
+    stubs.signedIn = false;
     stubs.rpc.mockImplementation(async () => ({ data: null, error: { message: "jwt" } }));
     expect(await updateMyProfileAction({}, form({ name: "Ana Pérez" }))).toEqual({
       error: "Tu sesión expiró. Vuelve a entrar al portal.",
     });
+    expect(stubs.rpc).not.toHaveBeenCalled();
   });
 });
