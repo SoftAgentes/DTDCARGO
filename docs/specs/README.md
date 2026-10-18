@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 538 specs)
+### Índice de specs (generado · 539 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -576,6 +576,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0549 | Portal: lecturas restantes por principal de sesión y tenant | done | interno |
 | 0550 | Pruebas que vencen bajo carga, pruebas bash en el CI y sha256… | in-progress | interno |
 | 0551 | Retirar el botón «Publicar» (bot de deploy) del Studio local | done | interno |
+| 0552 | Portal: relecturas de tenant con el admin, por principal de s… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
