@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 536 specs)
+### Índice de specs (generado · 537 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -525,6 +525,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0498 | Cinco puertas del Studio que se saltaban el fail-closed por d… | in-progress | interno |
 | 0499 | Secretos que viajan mal y gates que faltan en app/api | in-progress | interno |
 | 0500 | El anti-drift de RBAC mide por acción, no por archivo | in-progress | interno |
+| 0501 | Detectar el desfase de encabezados del grafo que el sello AST… | done | interno |
 | 0502 | Mínimo facturable con batería según el multiplicador configur… | in-progress | interno |
 | 0503 | Carrusel de fotos de la empresa en la web pública | in-progress | interno |
 | 0504 | Entrega incluida desde Editar ciudad | done | interno |
@@ -575,5 +576,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0549 | Portal: lecturas restantes por principal de sesión y tenant | done | interno |
 | 0550 | Pruebas que vencen bajo carga, pruebas bash en el CI y sha256… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
