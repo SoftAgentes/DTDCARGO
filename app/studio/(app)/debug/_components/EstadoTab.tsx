@@ -10,6 +10,10 @@
  * el vigilante de publicación (SDD-0541). «Deploy actual» pasa a «Esta
  * instancia» y ya no dice «(local)» en el servidor cuando falta un dato.
  *
+ * SDD-0551: «Esta instancia» ya no tiene el botón «Push» del bot local, que
+ * hacía `git add -A` y empujaba directo a `main`. Lo que llega a producción
+ * entra por una PR revisada; el Studio no ejecuta git.
+ *
  * Server component. NUNCA muestra valores de env vars, solo nombres.
  */
 
@@ -29,7 +33,6 @@ import {
   type IntegrationHealth,
 } from "@/lib/studio/integration-health";
 import { Badge } from "../../../_components/ui/Badge";
-import { DeployButton } from "../../../_components/deploy/DeployWebBot";
 import { PublicacionesServidor } from "./PublicacionesServidor";
 import { RecheckButton } from "./RecheckButton";
 
@@ -154,7 +157,7 @@ export function EstadoTab({
       </div>
 
       {/* Esta instancia · lo que el proceso sabe de sí mismo (SDD-0547) */}
-      <Card title="Esta instancia" action={isLocal ? <DeployButton /> : undefined}>
+      <Card title="Esta instancia">
         <KV
           k="URL"
           v={
@@ -205,8 +208,8 @@ export function EstadoTab({
                 )}
               </p>
               <p style={{ margin: "var(--s-2) 0 0 0", fontSize: 12 }}>
-                Razón típica: el endpoint <code style={{ fontFamily: "var(--f-mono)" }}>/api/debug/health</code> aún no está deployado a producción.
-                Sube los cambios pendientes con el bot y vuelve a recargar.
+                Razón típica: el endpoint <code style={{ fontFamily: "var(--f-mono)" }}>/api/debug/health</code> aún no está publicado en producción.
+                Llega cuando su PR se integra a <code style={{ fontFamily: "var(--f-mono)" }}>main</code> y el servidor publica la imagen; vuelve a recargar después.
               </p>
             </div>
           )}
