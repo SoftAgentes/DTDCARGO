@@ -76,7 +76,8 @@ precio por CBM queda para cuando Sam lo vuelva a mandar.
 | `corepack pnpm docs:check` tras el merge | 539 specs | PASÓ |
 | `corepack pnpm sdd:check` tras el merge | numeración de specs y migraciones | PASÓ («sin números repetidos»; avisa los choques históricos 0342, 0363 y 0394 ya aplicados, que no se renumeran) |
 | `pnpm verify` | — | NO EJECUTADO: cambio solo de documentación; el cierre canónico de docs es `docs:check` y `sdd:check` (regla «el cierre se elige por el diff», confirmada por el Director) |
-| Lectura de producción | — | NO EJECUTADO por diseño: prohibido sin autorización. Todo lo que depende de datos reales lleva etiqueta NO VERIFICADO en el documento |
+| Lectura de producción por esta sesión | — | NO EJECUTADO por diseño: esta sesión no leyó producción |
+| Radiografía 1.1 en producción | 1 tenant, solo lectura, conteos y sumas sin nombres ni RIF | **Medido por el Director el 2026-10-18 (~23:00Z)**, con la autorización de Sam: «autorizo la radiografía 1.1 con conteos y sumas, sin datos personales». Resultado: 6 facturas, todas en USD; 0 asientos vivos; 0 anuladas con asiento vivo; **5 de 5 facturas emitidas, parciales o pagadas sin asiento**; el único recibo apunta a un asiento anulado; 0 reportes de pago; 0 CxP; 1.1.2 = 0 en el mayor contra un saldo abierto mayor que cero en facturas; 2.1.1 cuadra en 0. En Git solo van conteos y comparaciones, no montos |
 | Verificación escéptica de hallazgos | 14 áreas | Ver el anexo A: cada hallazgo trae su estado (confirmado, refutado o sin verificar) y el veredicto de cada lente. La corrida sufrió cortes por límite de uso y se relanzó desde caché cuatro veces; el anexo se genera de la última |
 | Panel de planes | 3 planes, 9 jueces, síntesis | PASÓ completo (13/13 agentes); errores de hecho de los jueces aplicados al documento |
 | Investigación externa | 6 temas, 36 afirmaciones clave | 38/42 agentes; 4 verificadores sin correr por límite (sus afirmaciones quedan como «NO SOSTENIDA / sin resultado del verificador» en el anexo B) |
@@ -99,8 +100,12 @@ precio por CBM queda para cuando Sam lo vuelva a mandar.
   documento. La fase 1 no depende de ninguna; las cuatro primeras (moneda
   funcional y diferencia en cambio, reparación histórica, dueño del cobro,
   anticipos) bloquean la fase 2.
-- Autorización de Sam para la radiografía agregada de producción (solo conteos y
-  sumas, sin PII) que dimensiona B1-B4; la ejecuta el Director.
+- Radiografía 1.1: hecha el 2026-10-18 (ver VALIDACIÓN). Su lectura cambia
+  prioridades: B1, B2 y B4 no tienen casos hoy (riesgos latentes); **B3 es el
+  problema vivo** (5 de 5 facturas emitidas sin asiento) y conviene repararlo con
+  2.2 antes de cargar los consolidados en la base oficial. La próxima corrida debe
+  cruzar `paid_amount` contra recibos: 3 facturas tienen cobro registrado y solo
+  hay 1 recibo (inferencia, sin medir).
 - Excel de Yiwu con «precio venta CBM»: entra en la fase 1 carril B (tarifa por
   CBM trazable por embarque) cuando Sam lo mande.
 - Publicación de la rama y PR en borrador: pendiente del OK de Sam.
@@ -149,9 +154,9 @@ precio por CBM queda para cuando Sam lo vuelva a mandar.
   migraciones `0464`, `0466`, `0467`, `0468`, `0471`, `0477`, `0483`–`0489`,
   `0490` y `0491` confirmadas aplicadas contra el ledger (lectura de solo lectura
   del Director, ~22:40Z, 495 filas); siguiente migración libre `0492` (confirmar
-  con el Director antes de usarla); la radiografía 1.1 la presenta y ejecuta el
-  Director solo con autorización escrita de Sam; la reserva SDD-0483 es una tarea
-  planeada y se conserva.
+  con el Director antes de usarla); la radiografía 1.1 la ejecutó el Director el
+  2026-10-18 con autorización escrita de Sam (resultado en VALIDACIÓN); la reserva
+  SDD-0483 es una tarea planeada y se conserva.
 - **Sesiones consumidoras:** esta sesión «Contabilidad» sigue abierta para las
   instrucciones de Sam (incluido el Excel de Yiwu). Ownership del worktree: claim
   `contabilidad-2026-10-18` vigente mientras siga escribiendo.

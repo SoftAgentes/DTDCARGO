@@ -17,10 +17,12 @@
 > Los jueces encontraron errores de hecho en los tres planes; están corregidos aquí.
 > Todo lo que dice «hoy» se verificó en código y migraciones.
 >
-> **Límite.** **No se leyó producción** (está prohibido sin tu autorización). Cuando
-> algo depende de los datos reales —cuántas facturas anuladas tienen asiento vivo,
-> si se facturó en bolívares, cuántos reportes de pago se confirmaron sin recibo—
-> lo digo con la etiqueta **NO VERIFICADO**.
+> **Límite.** El análisis no leyó producción. Después, con tu autorización («autorizo
+> la radiografía 1.1 con conteos y sumas, sin datos personales»), el **Director
+> corrió la radiografía 1.1 el 2026-10-18 (~23:00Z)**: solo lectura, conteos y
+> sumas, sin nombres ni RIF. Sus resultados están en la sección 0 y en cada
+> problema, marcados «medido por el Director». Lo que sigue dependiendo de datos
+> que no se midieron lleva la etiqueta **NO VERIFICADO**.
 
 ---
 
@@ -53,6 +55,38 @@ QuickBooks todavía. Las fugas son concretas y verificadas en código:
    qué servicio vendieron.
 7. **Cualquier rol del equipo puede editar o borrar asientos** por la API, y una
    factura emitida sigue siendo editable en la base.
+
+**Lo que se midió en producción** (radiografía 1.1, medido por el Director el
+2026-10-18 ~23:00Z, un solo tenant):
+
+| Qué | Resultado |
+|---|---|
+| Tamaño | 6 facturas, 2 asientos (4 líneas), 1 recibo, 0 reportes de pago, 0 cuentas por pagar, 0 pagos a proveedor |
+| Facturas | **Todas en USD**, ninguna sin tasa: 3 emitidas, 1 parcial, 1 pagada, 1 anulada |
+| Asientos | Los 2 están anulados (uno de factura, uno de recibo). **0 asientos vivos** |
+| B1 · anuladas con asiento vivo | 0 |
+| B2 · facturas en otra moneda | 0 |
+| **B3 · documentos sin asiento** | **5 de 5 facturas emitidas, parciales o pagadas sin asiento**; el único recibo apunta a un asiento anulado |
+| B4 · reportes de pago confirmados sin recibo | 0 (no hay reportes) |
+| **Clientes (1.1.2)** | **1.1.2 = 0 en el mayor, contra un saldo abierto mayor que cero en facturas** |
+| Proveedores (2.1.1) | 2.1.1 = 0 en el mayor y 0 en cuentas por pagar: cuadra |
+| Ingresos 4.5 e IVA 2.1.5 | Sin movimiento vivo |
+| Asientos descuadrados vivos | 0 |
+| Facturas no borrador por año | 2026: 6 |
+
+En Git solo van conteos y comparaciones: los montos de la radiografía son datos
+financieros de clientes reales y no se escriben aquí.
+
+**Qué significa:** el mayor de producción está prácticamente vacío. B1, B2 y B4
+**no tienen casos hoy**: son riesgos latentes que hay que cerrar antes de que
+crezca el volumen. Lo que sí está vivo es **B3**: los asientos no se crean, o se
+anulan, y nadie lo ve. Con 6 facturas, la reparación es barata, y conviene hacerla
+**antes de cargar los consolidados en la base oficial**. Una inferencia mía que
+falta medir: 3 facturas tienen cobro registrado (la parcial, la pagada y la
+anulada) y solo existe 1 recibo, así que al menos parte de esos cobros no vino de
+un recibo; y la factura anulada tiene cobro registrado (el caso «anulada con abono»
+de B13). La próxima corrida de la radiografía debe cruzar `paid_amount` contra los
+recibos.
 
 **Cuando llega un embarque hoy no pasa nada** si no hubo orden de venta (el caso
 típico de Yiwu): la factura se hace a mano, el precio por CBM no queda guardado en
@@ -128,7 +162,9 @@ estado a `anulada` (`supabase/migrations/0294_audit_d2_human_reasons.sql:162-168
 la cuenta por pagar, el pago y el gasto sí la tienen. **Efecto:** cada anulación
 deja inflados Clientes (1.1.2), Ingresos (4.5) e IVA por pagar (2.1.5); el libro
 de ventas, que sí excluye anuladas, deja de cuadrar con el mayor. Es lo primero
-que detecta cualquier contador cruzando libro de ventas contra mayor.
+que detecta cualquier contador cruzando libro de ventas contra mayor. **Medido por
+el Director (2026-10-18): 0 anuladas con asiento vivo.** Riesgo latente, sin
+reparación histórica que hacer.
 
 ### B2. La factura en bolívares, yuanes o USDT se asienta sin convertir a dólares
 `InvoicePostingInput` no recibe moneda ni tasa (`invoice-posting.ts:28-37`); el
@@ -138,9 +174,10 @@ debita 36.000 «USD»; el cobro acredita 1.000 → quedan 35.000 USD fantasma en
 Clientes y el ingreso se multiplica por 36. Además, cuando falta la tasa, recibo,
 cuenta por pagar y pago asientan el monto nominal, y dos pruebas defienden ese
 comportamiento (`lib/studio/__tests__/payment.test.ts:326-328`,
-`lib/studio/treasury/__tests__/treasury.test.ts:332-334`). **NO VERIFICADO** si
-existen facturas en VES o CNY en producción; si no las hay, el efecto es cero hoy
-y el riesgo es latente.
+`lib/studio/treasury/__tests__/treasury.test.ts:332-334`). **Medido por el
+Director (2026-10-18): las 6 facturas de producción están en USD y ninguna sin
+tasa.** El efecto hoy es cero y el riesgo es latente; la reclasificación histórica
+de 2.3 no tiene casos.
 
 ### B3. Los asientos son «best-effort» y nadie ve los que fallan
 El documento se escribe en su transacción; el asiento se intenta después con el
@@ -154,6 +191,10 @@ cerrado, el trigger lo rechaza y el asiento queda vivo sin aviso. Detalle: el
 vínculo documento ↔ asiento va al revés en casi todos los casos (`journal_entries`
 solo tiene `invoice_id`; recibos, cuentas por pagar y pagos guardan su
 `journal_entry_id`), así que la unicidad por origen hay que ponerla de ese lado.
+**Medido por el Director (2026-10-18): es el problema vivo.** 5 de 5 facturas
+emitidas, parciales o pagadas no tienen asiento; el único recibo apunta a un
+asiento anulado; hay 0 asientos vivos, y Clientes (1.1.2) da 0 en el mayor contra
+un saldo abierto mayor que cero en facturas.
 
 ### B4. Confirmar un reporte de pago del portal da la factura por pagada sin recibo ni asiento
 `payment_private.run_report_command 'confirm'` (migración `0464:305-318`) suma
@@ -163,7 +204,9 @@ marca»; el «Slice C» contable quedó diferido y nunca se construyó). Resulta
 dos caminos para cobrar una factura y solo uno (Cobranzas) alimenta el auxiliar de
 recibos, el mayor, el flujo de caja, la separación de fondos, la rendición y la
 conciliación. Si se conectara QuickBooks así, esos cobros no tendrían un Payment
-que sincronizar.
+que sincronizar. **Medido por el Director (2026-10-18): 0 reportes de pago en
+producción**, así que no hay backfill histórico; el defecto hay que cerrarlo antes
+de que el portal se use para reportar pagos.
 
 ### B5. Sin notas de crédito ni número de control; correlativo con huecos y reinicio anual
 El código `F-YYYY-NNNN` se asigna al crear el borrador (borrar un borrador deja un
@@ -705,7 +748,7 @@ primer mes.
 
 | # | SDD propuesta | Cierra | Tamaño | Migración |
 |---|---|---|---|---|
-| 1.1 | Radiografía de integridad repetible: script de solo lectura probado en Docker local que da conteos y sumas por tenant, sin nombres ni RIF (anuladas con asiento vivo y cuántas tienen abonos; facturas por moneda sin tasa; recibos, CxP y pagos sin asiento; reportes confirmados sin recibo; 1.1.2 contra saldos de facturas; 2.1.1 contra `supplier_bills`; asientos descuadrados; facturas emitidas por año para dimensionar el lote de números de control). Se corre contra producción solo con tu autorización escrita, ahora y antes de cada migración de reparación | dimensiona B1-B5, B16 (no cierra nada) | S | no |
+| 1.1 | Radiografía de integridad repetible. **Primera corrida ya hecha: medido por el Director el 2026-10-18 (~23:00Z)** con la autorización de Sam («autorizo la radiografía 1.1 con conteos y sumas, sin datos personales»): solo lectura, sin nombres ni RIF; resultado en la sección 0 (0 asientos vivos, 5 de 5 facturas emitidas sin asiento, 1.1.2 = 0 en el mayor contra un saldo abierto mayor que cero en facturas, todas en USD). La SDD convierte esa consulta del Director en script versionado y probado en Docker local con fixtures: anuladas con asiento vivo y cuántas tienen abonos; facturas por moneda sin tasa; recibos, CxP y pagos sin asiento; **`paid_amount` contra recibos** (falta en la primera corrida); reportes confirmados sin recibo; 1.1.2 contra saldos de facturas; 2.1.1 contra `supplier_bills`; asientos descuadrados; facturas emitidas por año. Se vuelve a correr solo con autorización escrita de Sam, antes de cada migración de reparación. En Git solo van conteos y comparaciones, nunca montos | dimensiona B1-B5, B16 (no cierra nada) | S | no |
 | 1.2 | Portal que dice la verdad: anuladas fuera en lista, KPI, saldo, ledger, PDF y comprobante; lectura completa sin el recorte de 100; identidad fiscal del emisor en el PDF del estado de cuenta; aviso al cliente al confirmar o rechazar su reporte de pago | B14 | M | no |
 | 1.3 | Saldo único por cliente (función SQL `client_outstanding` usada por Cobranzas, Conversaciones, el job de Kommo y la ficha, por el conjunto de códigos del cliente) y cabecera del perfil versión 1 (saldo, vencido, último pago, embarques en curso); el botón de estado de cuenta respeta roles | B13, B15 | M | sí (solo función) |
 | 1.4 | Reportes sin migración: una sola función de ingreso; balance de comprobación; diario completo con CSV; «documentos sin asiento»; «subdiario contra mayor»; «Cashflow» pasa a llamarse «Facturado contra cobrado» | B17 | M | no |
@@ -736,12 +779,12 @@ aplicados y la conciliación subdiario contra mayor.
 | # | SDD propuesta | Cierra | Tamaño | Migración |
 |---|---|---|---|---|
 | 2.1 | Tasa BCV única: tabla `fx_rates` (8 decimales, fuente BCV / manual / operación, fecha de valor, quién) con carga diaria automática y respaldo; conversor canónico `to_usd` que falla cerrado (nunca cero ni el monto tal cual) y reemplaza las seis copias y las constantes; hora de Caracas para fechas de emisión y asiento; política USDT = USD 1:1 con el diferencial a 6.19 | B8 | L | sí |
-| 2.2 | Asientos sin fallos silenciosos: tabla de fallos con pantalla «Asientos no creados» y «asentar pendientes»; lock en `next_entry_code`; unicidad por origen (par `source`/`source_id` e índices sobre los `journal_entry_id` de los documentos); guard de período visible en Cobranzas y Tesorería | B3 | M | sí |
-| 2.3 | Moneda funcional en el mayor y **bolívares por asiento**: `journal_lines` con moneda, monto original, tasa y monto en Bs; la factura no pasa a emitida sin tasa si no es USD; las dos pruebas que defienden asentar sin tasa se reescriben con su spec; reclasificación de las facturas VES/CNY ya asentadas (ensayo en seco, radiografía, OK nominal) | B2, B8 | L | sí |
+| 2.2 | Asientos sin fallos silenciosos: tabla de fallos con pantalla «Asientos no creados» y «asentar pendientes»; lock en `next_entry_code`; unicidad por origen (par `source`/`source_id` e índices sobre los `journal_entry_id` de los documentos); guard de período visible en Cobranzas y Tesorería. **Es la que tiene casos reales** (radiografía del 2026-10-18: 5 de 5 facturas emitidas sin asiento): incluye «asentar pendientes» para esas facturas y el recibo cuyo asiento está anulado, con ensayo en seco, nueva radiografía y OK nominal, antes de cargar los consolidados en la base oficial | B3 | M | sí |
+| 2.3 | Moneda funcional en el mayor y **bolívares por asiento**: `journal_lines` con moneda, monto original, tasa y monto en Bs; la factura no pasa a emitida sin tasa si no es USD; las dos pruebas que defienden asentar sin tasa se reescriben con su spec; reclasificación de las facturas VES/CNY ya asentadas, que hoy no tiene casos (radiografía del 2026-10-18: todas en USD) y queda solo como control | B2, B8 | L | sí |
 | 2.4 | Candado del mayor: policies por rol en `accounts`, `journal_entries`, `journal_lines`; sin UPDATE/DELETE para `authenticated`; trigger Σ debe = Σ haber; asentado inmutable; `journal_lines` en la auditoría; historial de reapertura de período; `deleted_at` en el UPDATE de recibos (hueco de SDD-0494); pruebas en el arnés PGlite que ya corre en CI | B16 | M | sí |
-| 2.5 | Reverso al anular factura en la misma transacción (si el período está cerrado, fechado en el primer día del período abierto con memo); no se anula una factura con recibos vivos; reparación de las anuladas históricas (las que tienen abono parcial, después de 2.6) | B1 | M | sí |
+| 2.5 | Reverso al anular factura en la misma transacción (si el período está cerrado, fechado en el primer día del período abierto con memo); no se anula una factura con recibos vivos; reparación de las anuladas históricas: hoy 0 con asiento vivo (radiografía del 2026-10-18), pero hay 1 factura anulada con cobro registrado que se resuelve con 2.6 y 2.8 | B1 | M | sí |
 | 2.6 | Cobro en cualquier moneda con tasa del día y diferencia en cambio a 6.19, un recibo contra varias facturas, anticipos de clientes como pasivo con alerta fiscal al cierre si no tienen factura; el asiento del recibo nace **dentro** de la RPC; pago a proveedor con tasa del día | B9, B3 | L | sí |
-| 2.7 | Confirmar un reporte de pago crea el recibo y su asiento por la misma RPC que Cobranzas (el Slice C de SDD-0134); backfill de los confirmados sin recibo; el `payment_status` de la recepción CN se deriva de la factura | B4 | M | sí |
+| 2.7 | Confirmar un reporte de pago crea el recibo y su asiento por la misma RPC que Cobranzas (el Slice C de SDD-0134); backfill de los confirmados sin recibo (hoy 0 reportes, según la radiografía del 2026-10-18); el `payment_status` de la recepción CN se deriva de la factura | B4 | M | sí |
 | 2.8 | Notas de crédito y débito al cliente (`NC-`, `ND-`) con referencia obligatoria a la factura, motivo, asiento propio, aplicación al saldo y entrada al libro de ventas; **una NC no se anula, se compensa con una ND**; la retención de IVA que un cliente especial le practica a DTD se registra como documento que baja el saldo de la factura; el descuento de referido y la indemnización aterrizan como línea o NC sobre la factura según la decisión 16 | B5, B13, B20 | L | sí |
 | 2.9 | Factura emitida inmutable (solo cambian, por RPC, estado, saldo pagado y las columnas de sincronización); el log registra montos; quien anula no es quien emitió o pide segundo OK. **Se integra justo después de 2.8**, nunca antes, para no provocar anulaciones y reemisiones que dejen huecos | B16, B5 | S | sí |
 | 2.10 | Paquete del contador versión 1 (libro de ventas en Bs, auxiliar de clientes con antigüedad, pagos no aplicados y anticipos, conciliación subdiario contra mayor), en CSV limpio | B17, B8 | M | no |
@@ -960,9 +1003,11 @@ recomendación (⭐).
     promesa no toca los libros hasta entonces); la indemnización, como nota de
     crédito si se compensa con la factura o como gasto si se paga aparte.
 
-**Autorización puntual que necesito:** la radiografía 1.1 contra producción (solo
-conteos y sumas, sin nombres ni RIF). La ejecuta el Director; cualquier corrección
-masiva posterior es una migración con tu OK nominal.
+**Radiografía 1.1: ya autorizada y corrida.** Sam la autorizó el 2026-10-18 («autorizo
+la radiografía 1.1 con conteos y sumas, sin datos personales») y el Director la
+ejecutó ese día (~23:00Z). Cada nueva corrida, antes de una migración de
+reparación, necesita otra autorización escrita; cualquier corrección posterior es
+una migración con tu OK nominal y la ejecuta el Director.
 
 ---
 
