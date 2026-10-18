@@ -5,9 +5,10 @@
  * Cada caso está escrito para que una implementación "cómoda" lo rompa: un
  * default a `local` cuando falta señal, un `??` que trate la cadena vacía como
  * definida, un cast `as AppEnv` sin validar el valor, un `VERCEL_ENV=development`
- * que caiga a local, o un `https://` antepuesto a cualquier cosa. El módulo es
- * el candado del bot de deploy y del enlace de baja del newsletter: lo que no
- * esté fijado acá se puede perder en un refactor sin que lint ni typecheck lo vean.
+ * que caiga a local, o un `https://` antepuesto a cualquier cosa. El módulo fue
+ * el candado del bot de deploy (retirado en la SDD-0551) y es el del enlace de
+ * baja del newsletter: lo que no esté fijado acá se puede perder en un refactor
+ * sin que lint ni typecheck lo vean.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {

@@ -7,6 +7,10 @@
  * - Nada de la pestaña nombra a Vercel (estaba en pausa desde el 2026-10-16) ni
  *   pide sus variables.
  * - «Esta instancia» en el servidor no dice «(local)» cuando falta un dato.
+ *
+ * SDD-0551 · «Esta instancia» ya no tiene el botón «Push» del bot local (hacía
+ * `git add -A` y empujaba a `main`): ni en local ni en el servidor hay un
+ * botón para subir o publicar, y la ayuda ya no manda a «subir con el bot».
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
@@ -14,11 +18,8 @@ import type { EnvStatus, IntegrationKey } from "@/lib/studio/env-status";
 import type { IntegrationHealth } from "@/lib/studio/integration-health";
 import type { LecturaPublicaciones, MotivoSinDatos } from "@/lib/studio/publicaciones-types";
 
-// El bot de deploy y el botón de re-chequeo traen server actions y el router:
-// acá solo importa que la pestaña los coloque.
-vi.mock("../../../_components/deploy/DeployWebBot", () => ({
-  DeployButton: () => <button type="button">Push</button>,
-}));
+// El botón de re-chequeo trae una server action y el router: acá solo importa
+// que la pestaña lo coloque.
 vi.mock("../_components/RecheckButton", () => ({
   RecheckButton: () => <button type="button">Re-checkear ahora</button>,
 }));
@@ -146,19 +147,25 @@ describe("EstadoTab · Esta instancia", () => {
     expect(within(c).getByText(/la imagen no trae NEXT_PUBLIC_BUILD_SHA/)).toBeInTheDocument();
     // Sin rama conocida en el servidor, la fila no aparece.
     expect(within(c).queryByText("Rama")).not.toBeInTheDocument();
-    // El bot de deploy solo existe en local.
-    expect(within(c).queryByRole("button", { name: "Push" })).not.toBeInTheDocument();
+    // SDD-0551: la card no tiene botones.
+    expect(within(c).queryAllByRole("button")).toEqual([]);
   });
 
-  it("en local conserva el bot de deploy y las marcas «(local)»", () => {
-    renderTab(
+  it("en local conserva las marcas «(local)» y no ofrece subir ni publicar (SDD-0551)", () => {
+    const { container } = renderTab(
       { ok: false, motivo: "sin-archivo", leidoEn: AHORA },
       status({ env: "local", vercelUrl: null, commitSha: null, commitShaShort: null }),
     );
     const c = card("Esta instancia");
-    expect(within(c).getByRole("button", { name: "Push" })).toBeInTheDocument();
     expect(within(c).getByText("Rama")).toBeInTheDocument();
     expect(within(c).getAllByText(/\(local\)/).length).toBeGreaterThan(0);
+    // Antes, en local, aquí estaba el botón «Push» del bot.
+    expect(within(c).queryAllByRole("button")).toEqual([]);
+    // En toda la pestaña, el único botón es el de re-chequear las integraciones.
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Re-checkear ahora"]);
+    // La ayuda de «Status de Producción» ya no manda a subir con el bot.
+    expect(container.textContent ?? "").not.toMatch(/con el bot/);
+    expect(screen.getByText(/su PR se integra a/)).toBeInTheDocument();
   });
 
   it("con datos muestra la URL y el commit completos", () => {

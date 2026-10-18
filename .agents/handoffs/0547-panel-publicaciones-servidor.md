@@ -161,6 +161,7 @@ Veredicto: OK para commit.
 
 - **El bot local de deploy** hace `git add -A` y `git push` directo a `main` (`deployActions.ts:164-195`). Desde la SDD-0541, eso publica en producción en ~5 min sin PR. Es la decisión 1 para Sam en la spec.
   - NO VERIFICADO: si el ruleset de `main` rechaza ese push.
+  - 2026-10-18: Sam decidió retirarlo. Lo retira la [SDD-0551](../../docs/specs/0551-retirar-bot-publicar-studio/spec.md) ([handoff](0551-retirar-bot-publicar-studio.md)).
 - **`app/studio/(app)/layout.tsx:42-47`** calcula el SHA del bug reporter con `??`. Un `NEXT_PUBLIC_BUILD_SHA=""` daría `""`; `resolveBuildSha` lo trata.
 - **`infra/dtd-cargo/.env.example:193`** sigue nombrando `VERCEL_API_TOKEN` entre las variables «para scripts locales». No rompe la prueba de deriva (solo exige raíz ⊆ infra). Es huella: lo corrige Contabo cuando toque el archivo.
 - **`scripts/__tests__/env-example-contract.test.ts:36`** sigue ignorando `VERCEL_(PROJECT_ID|TEAM_ID)`, que ya nadie lee. Es inofensivo; se puede podar.

@@ -16,8 +16,9 @@
  *      trata como `production`, que es el entorno con más candados.
  *      Excepción de fallo cerrado: `APP_ENV=local` NO gana cuando `VERCEL_ENV`
  *      está definida. Vercel la fija en todos sus despliegues, así que un
- *      `APP_ENV=local` puesto por error en el proyecto de Vercel abriría el bot
- *      de deploy en producción; en ese caso se ignora y decide `VERCEL_ENV`.
+ *      `APP_ENV=local` puesto por error en el proyecto de Vercel abriría en
+ *      producción lo que solo vale en local (hasta la SDD-0551, el bot de
+ *      deploy); en ese caso se ignora y decide `VERCEL_ENV`.
  *      `production`/`staging`/`preview` explícitos sí ganan sobre `VERCEL_ENV`.
  *   2. `VERCEL_ENV` — fallback mientras el despliegue siga en Vercel.
  *      `production` ⇒ production; cualquier otro valor (`preview`, y también
@@ -66,7 +67,13 @@ export function resolveAppEnv(env: EnvSource = process.env): AppEnv {
 
 /**
  * `true` solo cuando el runtime es la máquina de quien desarrolla (`pnpm dev`,
- * Vitest). Es lo que gatea las acciones que tocan el filesystem y el `.git`.
+ * Vitest).
+ *
+ * Lo usaba el candado del bot de deploy del Studio, retirado en la SDD-0551.
+ * Hoy no lo llama ningún camino de la app; se conserva como primitiva del
+ * módulo, con sus pruebas de fallo cerrado. No sirve para reabrir un camino que
+ * ejecute git: eso lo prohíbe `__tests__/sin-git-desde-la-app.test.ts`, en
+ * local y en el servidor.
  */
 export function isLocalRuntime(env: EnvSource = process.env): boolean {
   return resolveAppEnv(env) === "local";
