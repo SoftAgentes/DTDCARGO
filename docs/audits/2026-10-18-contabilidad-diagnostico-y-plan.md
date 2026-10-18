@@ -249,7 +249,7 @@ lo ven todos; abonos fechados al vencimiento y no al recibo real (decisión del
 dominante; una factura anulada con abono parcial desaparece; tras fusionar
 duplicados, la ficha no ve lo del código retirado (el vínculo es por texto); sin
 pestaña de conversaciones ni CRM; notas sin fecha ni autor; sin términos de pago,
-límite de crédito ni condición fiscal. La SDD-0483 (historial de cambios) sigue
+límite de crédito ni condición fiscal. La SDD-0483 (historial de cambios, tarea planeada y reservada) sigue
 como stub de reserva en una rama remota.
 
 ### B14. El portal muestra las facturas anuladas como deuda
@@ -1026,15 +1026,27 @@ masiva posterior es una migración con tu OK nominal.
   panel, los nueve juicios con errores de hecho e injertos, y la síntesis.
 - Handoff de la sesión: `.agents/handoffs/2026-10-18-contabilidad-diagnostico.md`.
 
-**Estado de las migraciones de las que depende el plan.** La cabecera «NO APLICADA
-A PRODUCCIÓN» la llevan 32 migraciones y no prueba nada: por regla del proyecto la
-cabecera de una migración aplicada no se corrige. Lo que sí dice el repositorio:
-`supabase/migrations-baseline.json` solo deja en espera la `0422` y la `0423`; el
-historial de `main` registra la `0466` aplicada (`b525d5e6`, 2026-09-18), la `0471`
-(`aab581a2`, 2026-09-21) y la `0490` (`22a40ecb`, 2026-10-15), y la `0477` y las
-`0483`–`0489` retiradas de las esperas para aplicarse (`4ca3b943`, `fb949002`,
-2026-10-15). Es evidencia del repositorio, no una lectura del ledger: el Director
-la confirma contra producción antes de cada SDD que dependa de ellas.
+**Estado de las migraciones de las que depende el plan — medido por el Director el
+2026-10-18 (~22:40Z)** con una consulta de solo lectura sobre
+`supabase_migrations.schema_migrations` en producción (495 filas, sin datos de
+negocio). Están aplicadas, con su versión en el ledger:
+
+| Migración | Versión en el ledger |
+|---|---|
+| `0464` | `20260919010007` |
+| `0466` | `20260919030533` |
+| `0467` | `20260919021949` |
+| `0468` | `20260920000508` |
+| `0471` | `20260921170338` |
+| `0477` | `20261015141547` |
+| `0483` a `0489` | entre `20261015202357` y `20261015202507` |
+| `0490` | `20261015225935` |
+| `0491` | `20261016081616` |
+
+La cabecera «NO APLICADA A PRODUCCIÓN» de esos archivos es histórica y no se
+corrige: editarla rompe la identidad por md5. La siguiente migración libre al
+2026-10-18 es la **`0492`**; cada SDD la confirma con el Director antes de usarla,
+porque puede haber otra sesión trabajando.
 
 **Pendiente que no se pudo cerrar sin ti:** todo lo etiquetado **NO VERIFICADO**
 depende de leer producción con tu autorización. El Excel de Yiwu queda para cuando

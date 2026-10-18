@@ -80,8 +80,9 @@ precio por CBM queda para cuando Sam lo vuelva a mandar.
 
 ## COMMITS
 
-- Commit que contiene este documento y los de `docs/audits/` (hash en la PR si se
-  autoriza publicar).
+- `9a9c2147` — diagnóstico, anexos A, B y C, y este handoff.
+- Commit que contiene esta versión del documento — respuestas del Director
+  (migraciones medidas contra el ledger, publicación por el VPS, reserva 0483).
 
 ## PR / BRANCH
 
@@ -115,15 +116,8 @@ precio por CBM queda para cuando Sam lo vuelva a mandar.
   Una pasada de estados del Director, sin tocar código.
 - SDD-0535 desplegada el 2026-10-15 con la prueba real pendiente (casos A y B);
   el accept de la bandeja de Kommo sale fuera de la cola.
-- El plan depende de migraciones cuyo estado en producción no se verificó (`0464`,
-  `0466`, `0467`, `0468`, `0477`, `0483`, entre otras). La cabecera «NO APLICADA A
-  PRODUCCIÓN» la llevan 32 migraciones y no prueba nada (regla: no se corrige al
-  aplicar); el Director confirma contra el ledger las que use cada SDD.
 - Recuperación de Kommo lee contactos con tope 5.000 que PostgREST recorta a 1.000
   sin aviso (`lib/studio/kommo-recovery.ts`); la regla ESLint solo caza literales.
-- Reserva de SDD-0483 (`origin/codex/sdd-reserve-0483-studio-historial-cambios-cliente`,
-  migración 0463 reservada que no existe en `main`): retomar con migración nueva o
-  borrar las refs.
 - Portal: fechas de solo día formateadas con `new Date(iso).toLocaleDateString`
   dependen de la zona horaria del servidor (inferido).
 
@@ -143,9 +137,18 @@ precio por CBM queda para cuando Sam lo vuelva a mandar.
 - **Cambios compartidos:** ninguno en código. Solo documentación nueva en
   `docs/audits/` y este handoff.
 - **Integración / publicación pendiente:** push de la rama y PR en borrador tras
-  el OK de Sam; merge por el Director. Un merge a `main` publica solo en ~5 min,
-  pero estos archivos son `docs/**` y el `ignoreCommand` cancela el build (confirmar
-  que el último commit del push sea solo docs).
+  el OK de Sam; merge por el Director. Vercel está en pausa y sin Git desde el
+  2026-10-16: publica el vigilante del VPS, que construye y publica cada merge a
+  `main` en ~5 min aunque sea solo docs (inofensivo, confirmado por el Director el
+  2026-10-18). Antes de la PR: `git fetch origin main` y `git merge origin/main`
+  sin rebase, regenerar el índice y cerrar con `docs:check` y `sdd:check`.
+- **Respuestas del Director (2026-10-18), registradas en el documento:**
+  migraciones `0464`, `0466`, `0467`, `0468`, `0471`, `0477`, `0483`–`0489`,
+  `0490` y `0491` confirmadas aplicadas contra el ledger (lectura de solo lectura
+  del Director, ~22:40Z, 495 filas); siguiente migración libre `0492` (confirmar
+  con el Director antes de usarla); la radiografía 1.1 la presenta y ejecuta el
+  Director solo con autorización escrita de Sam; la reserva SDD-0483 es una tarea
+  planeada y se conserva.
 - **Sesiones consumidoras:** esta sesión «Contabilidad» sigue abierta para las
   instrucciones de Sam (incluido el Excel de Yiwu). Ownership del worktree: claim
   `contabilidad-2026-10-18` vigente mientras siga escribiendo.
