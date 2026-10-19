@@ -14,7 +14,8 @@
  * el transporte corta por offset, como PostgREST. `rangeRoto` simula un orden
  * que no avanza (siempre las mismas filas) y `invoicesError` una base que no
  * responde: en los dos casos el lector tiene que decir «no sé», no devolver una
- * lista vacía con saldo 0.
+ * lista vacía con saldo 0. `emitirEntrePaginas` emite una factura entre la
+ * página con datos y la siguiente: la lista no puede repetir ninguna.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -198,6 +199,12 @@ type ArrangeOptions = {
   /** El `range` del transporte ignora el offset. */
   rangeRoto?: boolean;
   /**
+   * El asesor emite esta factura entre la primera lectura de `invoices` (la
+   * página con datos) y la siguiente. Entra ARRIBA de la lista, como una
+   * emitida hoy en el orden `issued_at desc`, y corre el offset.
+   */
+  emitirEntrePaginas?: Row;
+  /**
    * Sesión híbrida: el usuario es además del equipo de T2 (`user_tenants`) y
    * su RLS de equipo le deja ver la fila de T2 en `tenants`.
    */
@@ -213,6 +220,36 @@ function arrange(options: ArrangeOptions = {}) {
     const link = memberships.find((row) => row.auth_user_id === uid && row.status === "active");
     return ((link?.clients as Row | undefined)?.markbox as string | undefined) ?? null;
   };
+  // Copia propia: `emitirEntrePaginas` la cambia a mitad de la lectura.
+  const facturas = [...(options.invoices ?? INVOICES)];
+  const sesionFrom = transport(
+    "sesion",
+    {
+      client_users: memberships,
+      invoices: facturas,
+      user_tenants: [{ user_id: USER, tenant_id: T2 }],
+      tenants: TENANTS,
+    },
+    ops,
+    (table, rows) => {
+      if (table === "client_users") return rows.filter((row) => row.auth_user_id === uid);
+      if (table === "invoices") {
+        const mark = legacyMarkbox();
+        return rows.filter((row) =>
+          row.deleted_at === null && row.status !== "borrador" &&
+          row.client_markbox != null && row.client_markbox === mark);
+      }
+      if (options.equipoDeT2 && table === "user_tenants") return rows;
+      if (options.equipoDeT2 && table === "tenants") return rows.filter((row) => row.id === T2);
+      // Un cliente Portal puro no ve user_tenants, tenants ni datos de empresa.
+      return [];
+    },
+    {
+      failing: options.invoicesError ? "invoices" : undefined,
+      rangeRoto: options.rangeRoto,
+    },
+  );
+  let lecturasDeFacturas = 0;
   const session = {
     auth: {
       getUser: async () => {
@@ -224,33 +261,15 @@ function arrange(options: ArrangeOptions = {}) {
       ops.push({ client: "sesion", target: `rpc:${name}`, filters: [] });
       return { data: name === "get_portal_client_markbox" ? legacyMarkbox() : null, error: null };
     },
-    from: transport(
-      "sesion",
-      {
-        client_users: memberships,
-        invoices: options.invoices ?? INVOICES,
-        user_tenants: [{ user_id: USER, tenant_id: T2 }],
-        tenants: TENANTS,
-      },
-      ops,
-      (table, rows) => {
-        if (table === "client_users") return rows.filter((row) => row.auth_user_id === uid);
-        if (table === "invoices") {
-          const mark = legacyMarkbox();
-          return rows.filter((row) =>
-            row.deleted_at === null && row.status !== "borrador" &&
-            row.client_markbox != null && row.client_markbox === mark);
-        }
-        if (options.equipoDeT2 && table === "user_tenants") return rows;
-        if (options.equipoDeT2 && table === "tenants") return rows.filter((row) => row.id === T2);
-        // Un cliente Portal puro no ve user_tenants, tenants ni datos de empresa.
-        return [];
-      },
-      {
-        failing: options.invoicesError ? "invoices" : undefined,
-        rangeRoto: options.rangeRoto,
-      },
-    ),
+    from: (table: string) => {
+      if (table === "invoices" && options.emitirEntrePaginas) {
+        lecturasDeFacturas += 1;
+        // Ya se sirvió la primera página; antes de armar la segunda, entra la
+        // factura nueva arriba de todo.
+        if (lecturasDeFacturas === 2) facturas.unshift(options.emitirEntrePaginas);
+      }
+      return sesionFrom(table);
+    },
   } as unknown as SupabaseClient;
   state.session = session;
   state.admin = {
@@ -492,6 +511,34 @@ describe("SDD-0556 · lectura completa de las facturas del Portal", () => {
       name: "PortalInvoicesUnavailableError",
       motivo: "incompleta",
     });
+  });
+
+  it("si se emite una factura entre páginas, ninguna sale dos veces y el saldo no se infla", async () => {
+    // B (más nueva) y A, sin pagar. Después de servir la primera página [B, A],
+    // el asesor emite NUEVA, que entra arriba del orden `issued_at desc`. La
+    // página siguiente (offset 2) ya no está vacía: trae otra vez a A. Sin
+    // deduplicar, la lista salía [B, A, A] y el saldo 400 en vez de 300.
+    // NUEVA puede faltar hasta la próxima carga: es como haber leído justo
+    // antes de emitirla.
+    const facturas = () => [
+      invoice(T1, "F-T1-B", { issued_at: "2026-09-10", total_amount: 200, base_amount: 200 }),
+      invoice(T1, "F-T1-A", { issued_at: "2026-09-01", total_amount: 100, base_amount: 100 }),
+    ];
+    const nueva = invoice(T1, "F-T1-NUEVA", { issued_at: "2026-09-20", total_amount: 50, base_amount: 50 });
+
+    const { db, ops } = arrange({ invoices: facturas(), emitirEntrePaginas: nueva });
+    const rows = await listMyInvoices(db);
+    // La lectura sí pasó por la página que repite: [B, A], [A], [].
+    expect(ops.filter((op) => op.target === "invoices")).toHaveLength(3);
+    const ids = rows.map((row) => row.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(rows.map((row) => row.code)).toEqual(["F-T1-B", "F-T1-A"]);
+
+    const inicio = arrange({ invoices: facturas(), emitirEntrePaginas: nueva });
+    const kpis = await getDashboardKpis(inicio.db, new Date("2026-09-13T00:00:00Z"));
+    expect(kpis.invoicedTotal).toBe(300);
+    expect(kpis.outstandingBalance).toBe(300);
+    expect(kpis.pendingInvoiceCount).toBe(2);
   });
 
   it("una anulada que nunca se emitió queda fuera, como un borrador; la emitida se queda", async () => {

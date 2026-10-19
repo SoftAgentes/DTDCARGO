@@ -301,6 +301,8 @@ export async function listMyInvoices(
  *   suman estas filas, y una suma sobre una lista cortada miente.
  * - Si la lectura falla o queda incompleta, lanza
  *   `PortalInvoicesUnavailableError`. Nunca devuelve una lista vacía inventada.
+ * - Deduplica por `id`: una factura emitida entre dos páginas corre el offset
+ *   y repetiría una fila (ver el comentario de abajo).
  * - Saca, después de leer, las anuladas que nunca se emitieron: eran borradores
  *   anulados y el cliente nunca las recibió.
  */
@@ -330,7 +332,21 @@ export async function listMyInvoicesForPrincipal(
   }
   if (!leidas.complete) throw new PortalInvoicesUnavailableError("incompleta");
 
-  return leidas.rows
+  // Sin duplicados: cada página es una lectura aparte. Si el asesor emite una
+  // factura entre la página con datos y la siguiente, entra arriba del orden
+  // (`issued_at desc`), corre el offset y la página siguiente repite la última
+  // fila de la anterior. Se conserva la primera aparición de cada `id`, así
+  // ninguna factura sale dos veces ni infla el saldo. La factura nueva puede
+  // faltar hasta la próxima carga: lo leído equivale a una lectura hecha justo
+  // antes de emitirla.
+  const vistas = new Set<string>();
+  const unicas = leidas.rows.filter((r) => {
+    if (vistas.has(r.id)) return false;
+    vistas.add(r.id);
+    return true;
+  });
+
+  return unicas
     .map((r) => ({
       id: r.id,
       code: r.invoice_code,
