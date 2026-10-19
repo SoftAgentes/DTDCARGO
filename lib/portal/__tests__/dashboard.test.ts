@@ -4,7 +4,8 @@
  * Cubre los criterios de la spec §9.3:
  *  - `getDashboardKpis`: las 4 KPIs cuadran dado un set de envíos/facturas stub —
  *    envíos activos (status no terminal), entregados YTD (delivered del año),
- *    facturado (Σ total no-borrador, moneda dominante), saldo (Σ total − paid).
+ *    facturado (Σ total no-borrador, moneda dominante), saldo (Σ lo que falta
+ *    pagar, recortado a 0 por factura; SDD-0556).
  *  - `getNextArrival`: el próximo envío ACTIVO (degradado: code/ruta/estado/ETA),
  *    null si no hay activo; aislamiento sin markbox.
  *
@@ -176,7 +177,7 @@ describe("getDashboardKpis — las 4 KPIs", () => {
     expect(kpis.currency).toBe("USD");
   });
 
-  it("monedas mixtas → reporta la dominante (mayor total) y marca mixedCurrencies", async () => {
+  it("monedas mixtas → reporta la dominante (mayor saldo por pagar) y marca mixedCurrencies", async () => {
     const invoices = [
       inv({ id: "i1", currency: "USD", total_amount: 300, paid_amount: 0 }),
       inv({ id: "i2", currency: "VES", total_amount: 2000, paid_amount: 0 }),
@@ -186,9 +187,28 @@ describe("getDashboardKpis — las 4 KPIs", () => {
       stub({ markbox: "DTD-1007", invoices }).supabase,
       NOW,
     );
-    // VES domina (2000 > 400).
+    // VES domina porque es la que más debe (2000 > 400). Antes el comentario
+    // decía «mayor total»: con todo sin pagar da lo mismo (SDD-0556 cambió la
+    // razón, no este resultado; el caso de abajo es el que cambia).
     expect(kpis.currency).toBe("VES");
     expect(kpis.invoicedTotal).toBe(2000);
+    expect(kpis.mixedCurrencies).toBe(true);
+  });
+
+  it("SDD-0556 · con deuda en USD y una factura VES pagada, Inicio habla en USD y no dice «al día»", async () => {
+    // Antes ganaba VES por su total nominal (2000 > 400): «Saldo pendiente
+    // VES 0.00 · al día» con 1 factura pendiente en USD.
+    const invoices = [
+      inv({ id: "i1", currency: "USD", total_amount: 400, paid_amount: 100 }),
+      inv({ id: "i2", currency: "VES", total_amount: 2000, paid_amount: 2000 }),
+    ];
+    const kpis = await getDashboardKpis(
+      stub({ markbox: "DTD-1007", invoices }).supabase,
+      NOW,
+    );
+    expect(kpis.currency).toBe("USD");
+    expect(kpis.outstandingBalance).toBe(300);
+    expect(kpis.pendingInvoiceCount).toBe(1);
     expect(kpis.mixedCurrencies).toBe(true);
   });
 

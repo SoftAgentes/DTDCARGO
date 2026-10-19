@@ -6,7 +6,11 @@ import { getMyInvoice, getPortalClientPrincipal } from "@/lib/portal/portal-quer
 import { loadPendingAcceptanceDetailForClient } from "@/lib/portal/pending-acceptance";
 import { listMyInvoiceReports } from "@/lib/portal/payment-report-queries";
 import { formatInvoiceAmount } from "@/lib/portal/portal-types";
-import { esAnulada, saldoPorPagar } from "@/lib/portal/saldo-de-cuenta";
+import {
+  esAnulada,
+  indicacionPagosEnAnuladas,
+  saldoPorPagar,
+} from "@/lib/portal/saldo-de-cuenta";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { InvoiceStatusBadge } from "../../../_components/InvoiceStatusBadge";
@@ -147,8 +151,9 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
           {anulada ? (
             <p className="mt-4 text-[13.5px] text-grey-700 leading-[1.55]">
               Esta factura está anulada: no tienes nada que pagar por ella.
+              {/* La indicación sale de `saldo-de-cuenta.ts`: la misma en todo el portal. */}
               {inv.paid > 0
-                ? ` Recibimos ${formatInvoiceAmount(inv.paid, inv.currency)} en pagos de esta factura. Escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución.`
+                ? ` Recibimos ${formatInvoiceAmount(inv.paid, inv.currency)} en pagos de esta factura. ${indicacionPagosEnAnuladas({ inicioDeFrase: true })}.`
                 : ""}
             </p>
           ) : null}

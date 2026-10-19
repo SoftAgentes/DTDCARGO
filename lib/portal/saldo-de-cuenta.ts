@@ -19,7 +19,11 @@
  * - Una anulada que **nunca se emitió** (`issuedAt` vacío) era un borrador
  *   anulado: el cliente nunca la recibió, así que queda fuera del portal, igual
  *   que un borrador.
- * - Una anulada **no decide** la moneda dominante.
+ * - Una anulada **no decide** la moneda dominante. Si hay deuda, la moneda
+ *   dominante es la que la lleva (ver `monedaDominante`).
+ * - Un **sobrepago** no es deuda negativa: «Saldo pendiente» recorta cada
+ *   factura a 0, y el libro, que da el neto, explica la diferencia con
+ *   `notaSobrepagos`.
  */
 import {
   formatInvoiceAmount,
@@ -57,23 +61,49 @@ export function saldoPorPagar(
 }
 
 /**
- * La moneda DOMINANTE: la de mayor total facturado entre las facturas NO
- * anuladas. Sumar entre monedas es incorrecto, así que las cifras se dan en
- * una sola y se avisa si hay otras.
+ * Lo pagado de más en UNA factura vigente: `pagado − total` si es positivo; 0
+ * si no. Una anulada da 0: lo que se le pagó va en `pagosEnAnuladas`.
  *
- * - A igual peso gana la moneda que tenga facturas vigentes y, después, la
- *   que aparece primero en la lista.
+ * Con `saldoPorPagar` cuadra el libro: `total − pagado = saldoPorPagar −
+ * sobrepago` en cada factura vigente, así que el saldo neto del estado de
+ * cuenta es `porPagar − sobrepagos` (SDD-0556).
+ */
+export function sobrepago(
+  inv: Pick<PortalInvoiceRow, "status" | "total" | "paid">,
+): number {
+  if (esAnulada(inv)) return 0;
+  return Math.max(0, -invoiceBalance({ total_amount: inv.total, paid_amount: inv.paid }));
+}
+
+/**
+ * La moneda DOMINANTE. Sumar entre monedas es incorrecto, así que las cifras
+ * se dan en una sola y se avisa si hay otras. Se elige en este orden:
+ *
+ * 1. Entre las monedas con algo por pagar, la de mayor saldo por pagar. Así,
+ *    si hay deuda, la moneda de las cifras la lleva: Inicio no puede decir
+ *    «al día» en VES mientras el cliente debe en USD.
+ * 2. Si ninguna debe nada, la de mayor total facturado entre las NO anuladas.
+ * 3. A igual peso gana la moneda que tenga facturas vigentes y, después, la
+ *    que aparece primero en la lista.
+ *
  * - Si todas están anuladas, la de la primera fila; sin filas, USD.
  * - `mixed` cuenta sólo las monedas con facturas vigentes: una anulada en otra
  *   moneda no dispara el aviso de «otras monedas».
+ * - Los montos de dos monedas se comparan por su número, sin tasa: el portal
+ *   no tiene una tasa común para todas. Por eso el paso 1 importa: la moneda
+ *   elegida puede no ser «la más grande», pero nunca deja la deuda afuera.
  */
 export function monedaDominante(
-  invoices: Pick<PortalInvoiceRow, "status" | "currency" | "total">[],
+  invoices: Pick<PortalInvoiceRow, "status" | "currency" | "total" | "paid">[],
 ): { currency: InvoiceCurrency; mixed: boolean } {
-  const stats = new Map<InvoiceCurrency, { peso: number; vivas: number; orden: number }>();
+  const stats = new Map<
+    InvoiceCurrency,
+    { deuda: number; peso: number; vivas: number; orden: number }
+  >();
   for (const inv of invoices) {
-    const e = stats.get(inv.currency) ?? { peso: 0, vivas: 0, orden: stats.size };
+    const e = stats.get(inv.currency) ?? { deuda: 0, peso: 0, vivas: 0, orden: stats.size };
     if (!esAnulada(inv)) {
+      e.deuda += saldoPorPagar(inv);
       e.peso += inv.total;
       e.vivas += 1;
     }
@@ -81,6 +111,7 @@ export function monedaDominante(
   }
   const ranked = [...stats.entries()].sort(
     ([, a], [, b]) =>
+      b.deuda - a.deuda ||
       b.peso - a.peso ||
       Number(b.vivas > 0) - Number(a.vivas > 0) ||
       a.orden - b.orden,
@@ -117,12 +148,36 @@ export function pagosEnAnuladas(
 }
 
 /**
+ * Qué hacer con lo pagado en una anulada — UNA sola indicación para todo el
+ * portal (SDD-0556): la usan `notaPagosEnAnuladas` (Facturas, Finanzas, el
+ * estado de cuenta y su PDF), el detalle de la factura y su comprobante. Si
+ * cambia la regla (por ejemplo, si deja de ofrecerse la devolución), se cambia
+ * acá y en ningún otro lado; una prueba revisa que ninguna pantalla la escriba
+ * a mano.
+ *
+ * Hoy no hay saldo a favor ni nota de crédito para aplicar ese dinero (regla
+ * «estricta» del 2026-09-18): lo resuelve el asesor.
+ *
+ * - `singular`: «aplicarlo», cuando la frase habla de un pago («lo que
+ *   pagaste»); por omisión, «aplicarlos».
+ * - `inicioDeFrase`: con mayúscula inicial, cuando abre una oración.
+ */
+export function indicacionPagosEnAnuladas(
+  forma: { singular?: boolean; inicioDeFrase?: boolean } = {},
+): string {
+  const texto = `escríbele a tu asesor para ${
+    forma.singular ? "aplicarlo" : "aplicarlos"
+  } a otra factura o pedir su devolución`;
+  return forma.inicioDeFrase ? texto.charAt(0).toUpperCase() + texto.slice(1) : texto;
+}
+
+/**
  * La nota de los pagos en anuladas — UN solo texto para Facturas, Finanzas, el
  * estado de cuenta del portal y su PDF. `null` si no hay pagos que informar.
  *
  * Los montos se agrupan por moneda (nunca se suman entre monedas) y se citan
  * los códigos. No dice «saldo a favor»: hoy no existe (decisión del
- * 2026-09-18).
+ * 2026-09-18). La indicación final sale de `indicacionPagosEnAnuladas`.
  */
 export function notaPagosEnAnuladas(pagos: PagoEnAnulada[]): string | null {
   if (pagos.length === 0) return null;
@@ -136,7 +191,25 @@ export function notaPagosEnAnuladas(pagos: PagoEnAnulada[]): string | null {
   const codigos = [...new Set(pagos.map((p) => p.code))].join(", ");
   return (
     `Recibimos ${monto} en pagos de facturas que después se anularon (${codigos}). ` +
-    "No se descuentan de tu saldo pendiente: escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución."
+    `No se descuentan de tu saldo pendiente: ${indicacionPagosEnAnuladas()}.`
+  );
+}
+
+/**
+ * La nota de los sobrepagos — UN solo texto para el estado de cuenta del
+ * portal y su PDF. `null` si no hay nada pagado de más.
+ *
+ * Por qué existe: el KPI «Saldo pendiente» recorta cada factura a 0 (lo que
+ * falta pagar), y el libro da el neto (`total − pagado`), que resta lo pagado
+ * de más. Con un sobrepago las dos cifras difieren justo en `sobrepagos`, y
+ * esta nota lo dice al lado del libro en vez de dejar al cliente con dos
+ * saldos sin explicación (SDD-0556).
+ */
+export function notaSobrepagos(sobrepagos: number, currency: InvoiceCurrency): string | null {
+  if (!(sobrepagos > 0)) return null;
+  return (
+    `Incluye ${formatInvoiceAmount(sobrepagos, currency)} pagados de más en facturas ya pagadas; ` +
+    "tu asesor los aplica o te los devuelve."
   );
 }
 
@@ -152,6 +225,12 @@ export type ResumenDeCuenta = {
   /** Σ lo que falta pagar (recortado a 0 por factura) en la moneda dominante. */
   porPagar: number;
   /**
+   * Σ lo pagado de más (`sobrepago`) en las no anuladas de la moneda dominante.
+   * El saldo neto del libro es `porPagar − sobrepagos`; una prueba de contrato
+   * lo fija.
+   */
+  sobrepagos: number;
+  /**
    * Cuántas facturas no anuladas tienen algo por pagar, en TODAS las monedas
    * (es un conteo, no un monto: mismo criterio que tenía Inicio).
    */
@@ -162,8 +241,8 @@ export type ResumenDeCuenta = {
 
 /**
  * El resumen de la cuenta. El ledger (`buildStatementLedger`) usa los mismos
- * helpers, y una prueba de contrato ata `facturado`/`pagado` a su
- * `totalCargo`/`totalAbono`.
+ * helpers, y una prueba de contrato ata `facturado`/`pagado`/`sobrepagos` a su
+ * `totalCargo`/`totalAbono`/`sobrepagos`, y su saldo a `porPagar − sobrepagos`.
  */
 export function resumenDeCuenta(invoices: PortalInvoiceRow[]): ResumenDeCuenta {
   const { currency, mixed } = monedaDominante(invoices);
@@ -175,6 +254,7 @@ export function resumenDeCuenta(invoices: PortalInvoiceRow[]): ResumenDeCuenta {
     facturado: enMoneda.reduce((s, inv) => s + inv.total, 0),
     pagado: enMoneda.reduce((s, inv) => s + inv.paid, 0),
     porPagar: enMoneda.reduce((s, inv) => s + saldoPorPagar(inv), 0),
+    sobrepagos: enMoneda.reduce((s, inv) => s + sobrepago(inv), 0),
     facturasPorPagar: vigentes.filter((inv) => saldoPorPagar(inv) > 0).length,
     pagosEnAnuladas: pagosEnAnuladas(invoices),
   };

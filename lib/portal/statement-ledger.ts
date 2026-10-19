@@ -32,6 +32,7 @@ import {
   esAnulada,
   monedaDominante,
   pagosEnAnuladas,
+  sobrepago,
   type PagoEnAnulada,
 } from "./saldo-de-cuenta";
 
@@ -59,11 +60,21 @@ export type StatementLedger = {
   totalCargo: number;
   /** Σ pagado de las facturas NO anuladas de la moneda del ledger. */
   totalAbono: number;
-  /** `totalCargo − totalAbono`. Puede ser negativo si hubo sobrepago. */
+  /**
+   * `totalCargo − totalAbono`. Puede ser negativo si hubo sobrepago. Es
+   * `porPagar − sobrepagos` de `resumenDeCuenta` (prueba de contrato).
+   */
   balance: number;
   /**
-   * Moneda en la que está expresado TODO el ledger: la de mayor total facturado
-   * entre las no anuladas (`monedaDominante`). Sumar entre monedas es
+   * Σ lo pagado de más (`sobrepago`) en las NO anuladas de la moneda del
+   * ledger. El saldo neto ya lo resta; la pantalla y el PDF lo dicen con
+   * `notaSobrepagos` (SDD-0556).
+   */
+  sobrepagos: number;
+  /**
+   * Moneda en la que está expresado TODO el ledger (`monedaDominante`): la de
+   * mayor saldo por pagar y, si nada se debe, la de mayor total facturado
+   * entre las no anuladas. Es la misma de los KPIs. Sumar entre monedas es
    * incorrecto, y un saldo corrido que mezcla USD con EUR es peor que no
    * mostrarlo.
    */
@@ -165,12 +176,14 @@ export function buildStatementLedger(
 
   const totalCargo = vigentes.reduce((s, inv) => s + inv.total, 0);
   const totalAbono = vigentes.reduce((s, inv) => s + inv.paid, 0);
+  const sobrepagos = vigentes.reduce((s, inv) => s + sobrepago(inv), 0);
 
   return {
     moves,
     totalCargo,
     totalAbono,
     balance: totalCargo - totalAbono,
+    sobrepagos,
     currency,
     mixedCurrencies: mixed,
     voidedPayments: pagosEnAnuladas(invoices),

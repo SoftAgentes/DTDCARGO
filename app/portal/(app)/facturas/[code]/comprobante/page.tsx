@@ -29,6 +29,7 @@ import { createClient } from "@/lib/db/server";
 import { getMyInvoice, getPortalClient } from "@/lib/portal/portal-queries";
 import { formatInvoiceAmount } from "@/lib/portal/portal-types";
 import { buildComprobante, estadoDelComprobante } from "@/lib/portal/comprobante";
+import { indicacionPagosEnAnuladas } from "@/lib/portal/saldo-de-cuenta";
 import { CONTACT } from "@/lib/design-tokens";
 import { BrandMark } from "@/components/BrandMark";
 import { resolveBrandForPortal } from "@/lib/studio/aliados/brand-resolve";
@@ -350,7 +351,8 @@ export default async function PortalComprobantePage({ params }: Props) {
                 <TotalRow k="Pagado" v={formatInvoiceAmount(c.paid, inv.currency)} />
               ) : null}
               {/* SDD-0556 · lo pagado en una anulada no desaparece, pero tampoco
-                  es un abono a otra deuda: se dice, sin «saldo pendiente». */}
+                  es un abono a otra deuda: se dice, sin «saldo pendiente». La
+                  indicación sale de `saldo-de-cuenta.ts`, la misma del portal. */}
               {c.paidOnVoided > 0 ? (
                 <p
                   style={{
@@ -360,8 +362,7 @@ export default async function PortalComprobantePage({ params }: Props) {
                     color: "var(--doc-ink-soft)",
                   }}
                 >
-                  Esta factura está anulada: lo que pagaste no se descuenta de otra
-                  factura. Escríbele a tu asesor para aplicarlo o pedir su devolución.
+                  {`Esta factura está anulada: lo que pagaste en ella no se descuenta de tu saldo pendiente. ${indicacionPagosEnAnuladas({ singular: true, inicioDeFrase: true })}.`}
                 </p>
               ) : null}
               {c.hasBalance ? (

@@ -6,7 +6,7 @@ import {
   formatInvoiceAmount,
   type PortalInvoiceRow,
 } from "@/lib/portal/portal-types";
-import { notaPagosEnAnuladas } from "@/lib/portal/saldo-de-cuenta";
+import { notaPagosEnAnuladas, notaSobrepagos } from "@/lib/portal/saldo-de-cuenta";
 import { DocIcon, CheckIcon } from "@/components/Icon";
 
 /**
@@ -80,6 +80,9 @@ export function StatementLedgerTable({
   // ellas no entra al saldo, pero no se esconde: va en esta nota, con el MISMO
   // texto que los KPIs de Facturas y Finanzas y el PDF.
   const notaAnuladas = notaPagosEnAnuladas(ledger.voidedPayments);
+  // El libro da el neto y el KPI «Saldo pendiente» recorta cada factura a 0:
+  // con un sobrepago difieren justo en esto, y la nota lo dice (SDD-0556).
+  const notaDeMas = notaSobrepagos(ledger.sobrepagos, ledger.currency);
 
   return (
     <>
@@ -155,6 +158,12 @@ export function StatementLedgerTable({
           </div>
         </div>
       </div>
+
+      {notaDeMas ? (
+        <p className="mt-3 text-[12px] text-grey-700 leading-[1.5] max-w-[64ch]">
+          {notaDeMas}
+        </p>
+      ) : null}
 
       {notaAnuladas ? (
         <p className="mt-3 text-[12px] text-grey-700 leading-[1.5] max-w-[64ch]">

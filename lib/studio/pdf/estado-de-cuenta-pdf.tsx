@@ -31,6 +31,10 @@
  *  - **Pagos recibidos en facturas anuladas** (SDD-0556). La anulada sale en el
  *    libro con cargo 0; lo que se le pagó no entra al saldo, pero el papel lo
  *    dice con el MISMO texto que la pantalla (`notaPagosEnAnuladas`).
+ *  - **Pagado de más** (SDD-0556). El saldo del libro es el neto y ya resta los
+ *    sobrepagos; el «Saldo pendiente» del portal recorta cada factura a 0. Si
+ *    hay sobrepagos, el papel lo dice con `notaSobrepagos`. Como este documento
+ *    lo comparte el Studio, su PDF también lleva la nota.
  *
  * ## Identidad fiscal del emisor: apagada
  *
@@ -44,7 +48,7 @@
 
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import type { StatementLedger } from "@/lib/portal/statement-ledger";
-import { notaPagosEnAnuladas } from "@/lib/portal/saldo-de-cuenta";
+import { notaPagosEnAnuladas, notaSobrepagos } from "@/lib/portal/saldo-de-cuenta";
 import { PDF, Membrete } from "./pdf-doc";
 import { lineasDeEmisor } from "./factura-pdf";
 
@@ -143,6 +147,7 @@ export function EstadoDeCuentaDocument({
   const moneda = ledger.currency;
   const hayAbonos = ledger.moves.some((m) => m.kind === "abono");
   const notaAnuladas = notaPagosEnAnuladas(ledger.voidedPayments);
+  const notaDeMas = notaSobrepagos(ledger.sobrepagos, moneda);
 
   return (
     <Document title={`Estado de cuenta ${input.markbox}`} author="DTD Cargo">
@@ -223,6 +228,8 @@ export function EstadoDeCuentaDocument({
             las de {moneda}; el resto queda fuera de este saldo.
           </Text>
         ) : null}
+
+        {notaDeMas ? <Text style={styles.aviso}>{notaDeMas}</Text> : null}
 
         {notaAnuladas ? <Text style={styles.aviso}>{notaAnuladas}</Text> : null}
 

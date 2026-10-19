@@ -7,17 +7,24 @@
  * sumar en lo pagado lo de las anuladas tiene que dejar algún caso en rojo.
  *
  * El contrato con `buildStatementLedger` ata las dos lecturas: si los KPIs y el
- * libro se separan, el cliente ve un saldo arriba y otro abajo.
+ * libro se separan, el cliente ve un saldo arriba y otro abajo. Con un
+ * sobrepago sí difieren, y justo en `sobrepagos`: el libro da el neto
+ * (`porPagar − sobrepagos`) y lo explica con `notaSobrepagos`.
  */
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   esAnulada,
   esAnuladaSinEmitir,
+  indicacionPagosEnAnuladas,
   monedaDominante,
   notaPagosEnAnuladas,
+  notaSobrepagos,
   pagosEnAnuladas,
   resumenDeCuenta,
   saldoPorPagar,
+  sobrepago,
 } from "../saldo-de-cuenta";
 import { buildStatementLedger } from "../statement-ledger";
 import type { PortalInvoiceRow } from "../portal-types";
@@ -68,6 +75,16 @@ describe("saldoPorPagar", () => {
   });
 });
 
+describe("sobrepago", () => {
+  it("es lo pagado de más en una viva; 0 si no se pagó de más o si está anulada", () => {
+    expect(sobrepago(inv({ total: 1000, paid: 1200 }))).toBe(200);
+    expect(sobrepago(inv({ total: 1000, paid: 400 }))).toBe(0);
+    expect(sobrepago(inv({ total: 1000, paid: 1000 }))).toBe(0);
+    // Lo de una anulada va en `pagosEnAnuladas`, no acá.
+    expect(sobrepago(inv({ status: "anulada", total: 100, paid: 300 }))).toBe(0);
+  });
+});
+
 describe("monedaDominante", () => {
   it("una anulada VES de 9999 no le gana a un USD vivo de 500, ni dispara «otras monedas»", () => {
     const r = monedaDominante([
@@ -77,13 +94,46 @@ describe("monedaDominante", () => {
     expect(r).toEqual({ currency: "USD", mixed: false });
   });
 
-  it("dos monedas vigentes sí son mixtas, y gana la de mayor total", () => {
+  it("sin deuda en ninguna, una anulada VES de 9999 tampoco le gana a un USD pagado de 500", () => {
+    // El caso de arriba lo decide la deuda (USD debe 500). Acá nadie debe, así
+    // que decide el total facturado, y la anulada no pesa.
+    const r = monedaDominante([
+      inv({ currency: "VES", status: "anulada", total: 9999 }),
+      inv({ currency: "USD", total: 500, paid: 500 }),
+    ]);
+    expect(r).toEqual({ currency: "USD", mixed: false });
+  });
+
+  it("gana la moneda que tiene deuda, aunque otra tenga más facturado", () => {
+    // USD 400/100 debe 300; VES 2000/2000 está pagada. Antes ganaba VES por su
+    // total nominal (2000 > 400) y la portada decía «VES 0.00 · al día» con
+    // una factura en USD por pagar.
+    expect(
+      monedaDominante([
+        inv({ currency: "USD", total: 400, paid: 100 }),
+        inv({ currency: "VES", total: 2000, paid: 2000 }),
+      ]),
+    ).toEqual({ currency: "USD", mixed: true });
+  });
+
+  it("dos monedas vigentes con deuda son mixtas, y gana la de mayor saldo por pagar", () => {
+    // Antes este caso decía «gana la de mayor total». Con las dos sin pagar el
+    // resultado es el mismo (VES debe 900 y USD 100); lo que cambió es la razón.
     expect(
       monedaDominante([
         inv({ currency: "USD", total: 100 }),
         inv({ currency: "VES", total: 900 }),
       ]),
     ).toEqual({ currency: "VES", mixed: true });
+  });
+
+  it("si ninguna debe nada, gana la de mayor total facturado", () => {
+    expect(
+      monedaDominante([
+        inv({ currency: "USD", total: 100, paid: 100 }),
+        inv({ currency: "VES", total: 900, paid: 900 }),
+      ]).currency,
+    ).toBe("VES");
   });
 
   it("sólo anuladas: la moneda de la primera fila; sin filas: USD", () => {
@@ -162,6 +212,34 @@ describe("resumenDeCuenta", () => {
       inv({ code: "F-2", total: 500, paid: 0 }),
     ]);
     expect(r.porPagar).toBe(500);
+    // Los 200 pagados de más no se pierden: salen aparte.
+    expect(r.sobrepagos).toBe(200);
+  });
+
+  it("USD 400/100 más VES 2000/2000: las cifras van en USD y se deben 300", () => {
+    const r = resumenDeCuenta([
+      inv({ code: "F-USD", currency: "USD", total: 400, paid: 100 }),
+      inv({ code: "F-VES", currency: "VES", total: 2000, paid: 2000 }),
+    ]);
+    expect(r).toMatchObject({
+      currency: "USD",
+      mixedCurrencies: true,
+      facturado: 400,
+      pagado: 100,
+      porPagar: 300,
+      facturasPorPagar: 1,
+    });
+  });
+
+  it("los sobrepagos sólo cuentan las vigentes de la moneda dominante", () => {
+    const r = resumenDeCuenta([
+      inv({ code: "F-1", currency: "USD", total: 1000, paid: 1050 }),
+      inv({ code: "F-2", currency: "USD", total: 900, paid: 0 }),
+      inv({ code: "F-3", currency: "VES", total: 100, paid: 400 }),
+      inv({ code: "F-4", currency: "USD", status: "anulada", total: 100, paid: 500 }),
+    ]);
+    expect(r.currency).toBe("USD");
+    expect(r.sobrepagos).toBe(50);
   });
 });
 
@@ -176,6 +254,23 @@ describe("contrato: KPIs y ledger salen de la misma definición", () => {
     ],
     [inv({ code: "S1", status: "anulada", total: 10, paid: 10 })],
     [],
+    // Un sobrepago: el KPI recorta a 0 y el libro da el neto.
+    [
+      inv({ code: "P1", total: 100, paid: 120 }),
+      inv({ code: "P2", total: 200, paid: 0 }),
+    ],
+    // La moneda con deuda manda aunque otra tenga más facturado.
+    [
+      inv({ code: "A", currency: "USD", total: 400, paid: 100 }),
+      inv({ code: "B", currency: "VES", total: 2000, paid: 2000 }),
+    ],
+    // Céntimos, sobrepago, anulada con abono y otra moneda a la vez.
+    [
+      inv({ code: "C1", total: 1200.5, paid: 300.25 }),
+      inv({ code: "C2", total: 415.75, paid: 500 }),
+      inv({ code: "C3", status: "anulada", total: 880, paid: 400 }),
+      inv({ code: "C4", currency: "VES", total: 90, paid: 1 }),
+    ],
   ];
 
   it.each(FIXTURES.map((f, i) => [i, f] as const))("fixture %i", (_i, facturas) => {
@@ -185,7 +280,24 @@ describe("contrato: KPIs y ledger salen de la misma definición", () => {
     expect(r.mixedCurrencies).toBe(l.mixedCurrencies);
     expect(r.facturado).toBe(l.totalCargo);
     expect(r.pagado).toBe(l.totalAbono);
+    expect(r.sobrepagos).toBe(l.sobrepagos);
     expect(r.pagosEnAnuladas).toEqual(l.voidedPayments);
+    // El saldo neto del libro es lo que falta pagar menos lo pagado de más.
+    // `toBeCloseTo(·, 6)`: los dos lados suman céntimos en coma flotante por
+    // caminos distintos (por factura redondeada contra totales).
+    expect(l.balance).toBeCloseTo(r.porPagar - r.sobrepagos, 6);
+  });
+
+  it("con un sobrepago, KPI y libro difieren justo en lo pagado de más", () => {
+    const facturas = [
+      inv({ code: "P1", total: 100, paid: 120 }),
+      inv({ code: "P2", total: 200, paid: 0 }),
+    ];
+    const r = resumenDeCuenta(facturas);
+    const l = buildStatementLedger(facturas);
+    expect(r.porPagar).toBe(200);
+    expect(l.balance).toBe(180);
+    expect(r.sobrepagos).toBe(20);
   });
 });
 
@@ -210,5 +322,69 @@ describe("pagosEnAnuladas / notaPagosEnAnuladas", () => {
     ]);
     expect(nota).toMatch(/^Recibimos USD 150\.00 y VES 200\.00 en pagos de facturas que después se anularon \(F-1, F-2, F-3\)\./);
     expect(nota).not.toMatch(/saldo a favor/i);
+  });
+});
+
+describe("notaSobrepagos", () => {
+  it("dice cuánto se pagó de más y quién lo resuelve", () => {
+    expect(notaSobrepagos(20, "USD")).toBe(
+      "Incluye USD 20.00 pagados de más en facturas ya pagadas; tu asesor los aplica o te los devuelve.",
+    );
+  });
+
+  it("sin sobrepagos no hay nota", () => {
+    expect(notaSobrepagos(0, "USD")).toBeNull();
+  });
+});
+
+/** Los `.ts`/`.tsx` de producción (sin pruebas) bajo una carpeta del repo. */
+function fuentes(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = join(dir, e.name);
+    if (e.isDirectory()) return e.name === "__tests__" ? [] : fuentes(p);
+    return /\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name) ? [p] : [];
+  });
+}
+
+/** Quita comentarios: un docblock que cite la frase no la muestra en pantalla. */
+const sinComentarios = (src: string) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+describe("una sola indicación para lo pagado en anuladas (SDD-0556)", () => {
+  it("el texto de la indicación y sus variantes", () => {
+    expect(indicacionPagosEnAnuladas()).toBe(
+      "escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución",
+    );
+    expect(indicacionPagosEnAnuladas({ inicioDeFrase: true })).toBe(
+      "Escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución",
+    );
+    expect(indicacionPagosEnAnuladas({ singular: true, inicioDeFrase: true })).toBe(
+      "Escríbele a tu asesor para aplicarlo a otra factura o pedir su devolución",
+    );
+  });
+
+  it("la nota de Facturas, Finanzas, el libro y el PDF termina con esa indicación", () => {
+    const nota = notaPagosEnAnuladas(pagosEnAnuladas([ANULADA_CON_PAGO]));
+    expect(nota?.endsWith(`${indicacionPagosEnAnuladas()}.`)).toBe(true);
+  });
+
+  it("ninguna pantalla ni PDF la escribe a mano: sólo vive en saldo-de-cuenta.ts", () => {
+    const raiz = process.cwd();
+    const carpetas = ["app/portal", "lib/portal", "lib/studio/pdf"].map((d) => join(raiz, d));
+    const conLaFrase = carpetas
+      .flatMap(fuentes)
+      .filter((f) => /pedir su devoluci(o|ó)n/.test(sinComentarios(readFileSync(f, "utf8"))))
+      .map((f) => relative(raiz, f).replaceAll("\\", "/"));
+    expect(conLaFrase).toEqual(["lib/portal/saldo-de-cuenta.ts"]);
+  });
+
+  it("el detalle y el comprobante de la factura la toman de saldo-de-cuenta.ts", () => {
+    for (const pagina of [
+      "app/portal/(app)/facturas/[code]/page.tsx",
+      "app/portal/(app)/facturas/[code]/comprobante/page.tsx",
+    ]) {
+      const src = sinComentarios(readFileSync(join(process.cwd(), pagina), "utf8"));
+      expect(src, pagina).toMatch(/indicacionPagosEnAnuladas\(/);
+    }
   });
 });

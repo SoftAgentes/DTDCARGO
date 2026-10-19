@@ -63,3 +63,29 @@ describe("StatementLedgerTable · anuladas (SDD-0556)", () => {
     expect(screen.queryByText(/facturas que después se anularon/)).toBeNull();
   });
 });
+
+describe("StatementLedgerTable · sobrepagos (SDD-0556)", () => {
+  it("con un sobrepago, el saldo neto lleva la nota de lo pagado de más", () => {
+    // El KPI «Saldo pendiente» dice USD 200.00 (recorta P1 a 0) y el libro
+    // USD 180.00 (neto). La nota explica los 20 de diferencia.
+    render(
+      <StatementLedgerTable
+        invoices={[
+          inv({ id: "p1", code: "F-P1", status: "pagada", total: 100, paid: 120 }),
+          inv({ id: "p2", code: "F-P2", total: 200, paid: 0, issuedAt: "2026-07-05" }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Totales").parentElement).toHaveTextContent("USD 180.00");
+    expect(
+      screen.getByText(
+        "Incluye USD 20.00 pagados de más en facturas ya pagadas; tu asesor los aplica o te los devuelve.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("sin sobrepagos no hay nota", () => {
+    render(<StatementLedgerTable invoices={[inv({ total: 1000, paid: 400 })]} />);
+    expect(screen.queryByText(/pagados de más/)).toBeNull();
+  });
+});

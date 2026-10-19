@@ -170,4 +170,23 @@ describe("SDD-0556 · el papel con anuladas y la identidad del emisor", () => {
     const t = textos(documento([inv({ id: "a", code: "F-1", total: 1000 })]));
     expect(t.some((s) => s.includes("facturas que después se anularon"))).toBe(false);
   });
+
+  it("con un sobrepago, el papel explica lo pagado de más con el MISMO texto que la pantalla", () => {
+    const t = textos(
+      documento([
+        inv({ id: "a", code: "F-1", status: "pagada", total: 100, paid: 120 }),
+        inv({ id: "b", code: "F-2", total: 200 }),
+      ]),
+    );
+    // Saldo neto 180 y la nota de los 20.
+    expect(t).toContain("USD 180.00");
+    expect(t).toContain(
+      "Incluye USD 20.00 pagados de más en facturas ya pagadas; tu asesor los aplica o te los devuelve.",
+    );
+  });
+
+  it("sin sobrepagos no hay esa nota", () => {
+    const t = textos(documento([inv({ id: "a", code: "F-1", total: 1000, paid: 400 })]));
+    expect(t.some((s) => s.includes("pagados de más"))).toBe(false);
+  });
 });

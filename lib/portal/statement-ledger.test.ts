@@ -58,6 +58,16 @@ describe("buildStatementLedger · movimientos", () => {
     const led = buildStatementLedger([inv({ total: 1000, paid: 1200 })]);
     expect(led.balance).toBe(-200);
     expect(led.moves.at(-1)?.balance).toBe(-200);
+    // SDD-0556 · lo pagado de más sale aparte, para la nota bajo el libro.
+    expect(led.sobrepagos).toBe(200);
+  });
+
+  it("SDD-0556 · sin sobrepago, `sobrepagos` es 0 (no hay nota)", () => {
+    const led = buildStatementLedger([
+      inv({ total: 1000, paid: 400 }),
+      inv({ id: "2", code: "F-2", total: 500, paid: 500 }),
+    ]);
+    expect(led.sobrepagos).toBe(0);
   });
 
   it("el abono NO se emite cuando paid es 0", () => {
@@ -119,7 +129,9 @@ describe("buildStatementLedger · monedas", () => {
     expect(led.totalCargo).toBe(1500);
   });
 
-  it("dominante es la de MAYOR total facturado, no la más frecuente", () => {
+  it("dominante es la de MAYOR saldo por pagar, no la más frecuente", () => {
+    // SDD-0556 · antes el título decía «mayor total facturado». Con todo sin
+    // pagar el resultado no cambia (VES debe 5000, USD 200): cambió la razón.
     const led = buildStatementLedger([
       inv({ id: "u1", code: "F-2026-0001", currency: "USD", total: 100 }),
       inv({ id: "u2", code: "F-2026-0002", currency: "USD", total: 100 }),
@@ -127,6 +139,18 @@ describe("buildStatementLedger · monedas", () => {
     ]);
     expect(led.currency).toBe("VES");
     expect(led.moves).toHaveLength(1);
+  });
+
+  it("SDD-0556 · el libro va en la moneda que se debe, aunque otra tenga más facturado", () => {
+    // Es la misma moneda de los KPIs: USD 400/100 más VES 2000/2000 da un libro
+    // en USD con saldo 300, no uno en VES con saldo 0.
+    const led = buildStatementLedger([
+      inv({ id: "u", code: "F-USD", currency: "USD", total: 400, paid: 100 }),
+      inv({ id: "v", code: "F-VES", currency: "VES", total: 2000, paid: 2000 }),
+    ]);
+    expect(led.currency).toBe("USD");
+    expect(led.mixedCurrencies).toBe(true);
+    expect(led.balance).toBe(300);
   });
 
   it("una sola moneda NO marca mixedCurrencies", () => {

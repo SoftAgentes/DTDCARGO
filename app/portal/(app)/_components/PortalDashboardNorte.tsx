@@ -86,6 +86,10 @@ export function PortalDashboardNorte({
   // SDD-0556 · si las facturas no se pudieron leer, ningún KPI de facturas
   // muestra un 0: un «al día» inventado es peor que decir que no se sabe.
   const facturasOk = kpis.invoicesAvailable;
+  // SDD-0556 · con alguna factura por pagar no hay «al día» ni tono de éxito,
+  // aunque el monto de la moneda dominante diera 0: el conteo cuenta todas las
+  // monedas y es la otra mitad de la verdad.
+  const debe = kpis.outstandingBalance > 0 || kpis.pendingInvoiceCount > 0;
 
   return (
     <div>
@@ -147,12 +151,12 @@ export function PortalDashboardNorte({
               }
             />
             <NorteKpi
-              tone={kpis.outstandingBalance > 0 ? "warning" : "success"}
+              tone={debe ? "warning" : "success"}
               icon={<PaymentIcon size={18} />}
               label="Saldo pendiente"
               value={formatInvoiceAmount(kpis.outstandingBalance, kpis.currency)}
-              sub={kpis.outstandingBalance > 0 ? "por pagar" : "al día"}
-              highlight={kpis.outstandingBalance > 0}
+              sub={debe ? "por pagar" : "al día"}
+              highlight={debe}
             />
           </>
         ) : (
