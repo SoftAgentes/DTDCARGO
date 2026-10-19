@@ -32,6 +32,10 @@ import type {
   CarrierRow,
 } from "./types";
 import { vistaDelEstado } from "./types";
+import {
+  describirIngreso,
+  ETIQUETA_ESTADO_INGRESO,
+} from "@/lib/studio/accounting/ingreso-periodo";
 
 /** Un valor de celda admitido (los números van crudos; null/undefined → ""). */
 export type CsvValue = string | number | null | undefined;
@@ -195,6 +199,9 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
       // facturas en el período, igual exporta la cifra oficial.
       if (!inc || vistaDelEstado(inc) === "vacio") return null;
       const ing = inc.ingreso;
+      // El estado del control es el mismo que dice la pantalla: con «no
+      // comparable» la diferencia va vacía (B2, E1).
+      const estado = describirIngreso(ing).estado;
       return {
         slug: "contable-estado-resultados",
         headers: ["Concepto", "Monto USD", "% s/ingresos"],
@@ -202,9 +209,11 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
           ...inc.rows.map((r): CsvValue[] => [r.label, r.amount, r.pct ?? ""]),
           ["Ingreso facturado (sin IVA · USD · por emisión)", ing.facturado.total, ""],
           ["Fondos de terceros incluidos en el facturado", ing.facturado.terceros, ""],
-          ["En el mayor · cuenta 4.5", ing.mayor?.ventas ?? "", ""],
+          ["En el mayor · cuenta 4.5 · asientos de factura", ing.mayor?.ventas ?? "", ""],
           ["Diferencia facturado − mayor (4.5)", ing.diferenciaUsd ?? "", ""],
-          ["Otros ingresos del mayor (fuera de 4.5)", ing.mayor?.otrosIngresos ?? "", ""],
+          [`Control contra 4.5: ${ETIQUETA_ESTADO_INGRESO[estado]}`, "", ""],
+          ["Facturas del período en bolívares o yuanes (asentadas al nominal)", ing.enOtraMoneda, ""],
+          ["Otros ingresos del mayor (4.6 y manuales · también a 4.5)", ing.mayor?.otrosIngresos ?? "", ""],
           ["Facturas sin convertir (bolívares sin tasa o yuanes)", ing.sinConvertir, ""],
         ],
       };
@@ -249,7 +258,8 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
         // SDD-0557: la vista se llama «Facturado contra cobrado»; el slug
         // de la URL (`?rep=cashflow`) no cambia.
         slug: "contable-facturado-contra-cobrado",
-        headers: ["Mes", "Facturado USD", "Cobrado USD"],
+        // Con IVA: se compara contra lo cobrado, que también lo lleva.
+        headers: ["Mes", "Facturado con IVA USD", "Cobrado USD"],
         rows: cf.series.map((p) => [p.label, p.billed, p.collected]),
       };
     }

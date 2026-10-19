@@ -13,10 +13,17 @@ import {
   leerDiarioCompleto,
   reportesDelLibro,
 } from "../libro-control-queries";
-import { ESTADOS_DE_INGRESO } from "../ingreso-periodo";
+import { describirIngreso, ESTADOS_DE_INGRESO } from "../ingreso-periodo";
 import { countEntries } from "@/lib/studio/journal-queries";
 import { accountBalances, listAccounts } from "@/lib/studio/account-queries";
-import { ESPERADO, FACTURAS_DEL_MES, RANGO_MES } from "./ingreso-fixture";
+import {
+  ESPERADO,
+  ESPERADO_EN_USD,
+  FACTURAS_DEL_MES,
+  FACTURAS_EN_USD,
+  RANGO_MES,
+  control,
+} from "./ingreso-fixture";
 
 const SERVER_CAP = 1000;
 
@@ -55,52 +62,91 @@ const entrada = (id: string, entry_date: string, status = "asentado", extra: Fil
   deleted_at: null,
   ...extra,
 });
+const deFactura = (id: string, entry_date: string, status = "asentado", extra: Fila = {}): Fila =>
+  entrada(id, entry_date, status, { source: "invoice", ...extra });
 const linea = (id: string, entry_id: string, account_id: string, debit: number, credit: number): Fila => ({
   id, entry_id, account_id, debit, credit, line_memo: null,
 });
 
 describe("ingresoDelPeriodo", () => {
-  it("la cifra oficial y el filtro que baja a SQL", async () => {
+  it("la cifra oficial y el filtro que baja a SQL; con bolívares o yuanes, sin diferencia (E1)", async () => {
     const { client, filtros } = dobleListados({ invoices: FACTURAS_DEL_MES }, { serverCap: SERVER_CAP });
-    const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor: { ventas: 0, ingresos: 0 } });
+    const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor: control(0) });
     expect(i.facturado.total).toBe(ESPERADO.total);
     expect(i.sinConvertir).toBe(ESPERADO.sinConvertir);
-    expect(i.diferenciaUsd).toBe(2000);
+    expect(i.enOtraMoneda).toBe(ESPERADO.enOtraMoneda);
+    expect(i.diferenciaUsd).toBeNull();
+    expect(describirIngreso(i).estado).toBe("no_comparable");
     const deFacturas = filtros.filter((f) => f.table === "invoices");
     expect(deFacturas).toContainEqual({ table: "invoices", op: "is", col: "deleted_at", val: null });
-    expect(deFacturas).toContainEqual({ table: "invoices", op: "in", col: "status", val: [...ESTADOS_DE_INGRESO] });
+    // Las anuladas también bajan: no suman, pero una en VES o CNY puede
+    // conservar su asiento al nominal.
+    expect(deFacturas).toContainEqual({ table: "invoices", op: "in", col: "status", val: [...ESTADOS_DE_INGRESO, "anulada"] });
     expect(deFacturas).toContainEqual({ table: "invoices", op: "gte", col: "issued_at", val: "2025-03-01" });
     expect(deFacturas).toContainEqual({ table: "invoices", op: "lte", col: "issued_at", val: "2025-03-18" });
   });
 
-  it("sin mayor dado, lo calcula del mismo rango contra 4.5; el 4.6 va aparte", async () => {
-    const { client } = dobleListados(
+  it("una anulada en VES del período vuelve no comparable el control (llega desde SQL)", async () => {
+    const anuladaVes = { ...FACTURAS_DEL_MES[0], id: "fv", currency: "VES", fx_rate: 36.5, status: "anulada" };
+    const { client } = dobleListados({ invoices: [...FACTURAS_EN_USD, anuladaVes] }, { serverCap: SERVER_CAP });
+    const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor: control(1000) });
+    expect(i.facturado.total).toBe(ESPERADO_EN_USD.total);
+    expect(i.enOtraMoneda).toBe(1);
+    expect(describirIngreso(i).estado).toBe("no_comparable");
+  });
+
+  it("sin mayor dado: contra la 4.5 de los asientos de FACTURA; el 4.6 y un manual a 4.5 van a otros ingresos", async () => {
+    const { client, filtros } = dobleListados(
       {
-        invoices: FACTURAS_DEL_MES,
+        invoices: FACTURAS_EN_USD,
         accounts: PLAN,
         journal_entries: [
-          entrada("e1", "2025-03-05"),
-          entrada("e2", "2025-03-07"),
-          entrada("e3", "2025-02-20"), // fuera del rango
-          entrada("e4", "2025-03-08", "anulado"),
+          deFactura("e1", "2025-03-05"),
+          entrada("e2", "2025-03-07"), // manual a 4.6
+          entrada("e5", "2025-03-09"), // manual a la propia 4.5
+          deFactura("e3", "2025-02-20"), // fuera del rango
+          deFactura("e4", "2025-03-08", "anulado"),
+          deFactura("e6", "2025-03-10", "asentado", { deleted_at: "2025-03-11T00:00:00Z" }),
         ],
         journal_lines: [
-          linea("l1", "e1", "cxc", 1500, 0),
-          linea("l2", "e1", "ventas", 0, 1500),
+          linea("l1", "e1", "cxc", 600, 0),
+          linea("l2", "e1", "ventas", 0, 600),
           linea("l3", "e2", "banco", 200, 0),
           linea("l4", "e2", "forex", 0, 200),
+          linea("l9", "e5", "banco", 300, 0),
+          linea("l10", "e5", "ventas", 0, 300),
           linea("l5", "e3", "cxc", 900, 0),
           linea("l6", "e3", "ventas", 0, 900),
           linea("l7", "e4", "cxc", 400, 0),
           linea("l8", "e4", "ventas", 0, 400),
+          linea("l11", "e6", "cxc", 50, 0),
+          linea("l12", "e6", "ventas", 0, 50),
         ],
       },
       { serverCap: SERVER_CAP },
     );
     const i = await ingresoDelPeriodo(client, RANGO_MES);
-    expect(i.mayor).toEqual({ ventas: 1500, ingresos: 1700, otrosIngresos: 200 });
-    // Contra 4.5: 2000 − 1500. Contra todas las cuentas 4 daría 300.
-    expect(i.diferenciaUsd).toBe(500);
+    expect(i.mayor).toEqual({ ventas: 600, ventasConMovimiento: true, ingresos: 1100, otrosIngresos: 500 });
+    // 1000 − 600. Contra toda la 4.5 (con el manual) daría 100; contra todas
+    // las cuentas 4, −100.
+    expect(i.diferenciaUsd).toBe(400);
+    expect(describirIngreso(i).estado).toBe("mayor_menor");
+    expect(filtros).toContainEqual({ table: "journal_entries", op: "eq", col: "source", val: "invoice" });
+  });
+
+  it("sin facturas ni asientos de factura: «sin movimiento», aunque haya un manual a 4.5", async () => {
+    const { client } = dobleListados(
+      {
+        invoices: [],
+        accounts: PLAN,
+        journal_entries: [entrada("e5", "2025-03-09")],
+        journal_lines: [linea("l9", "e5", "banco", 300, 0), linea("l10", "e5", "ventas", 0, 300)],
+      },
+      { serverCap: SERVER_CAP },
+    );
+    const i = await ingresoDelPeriodo(client, RANGO_MES);
+    expect(i.mayor).toEqual({ ventas: 0, ventasConMovimiento: false, ingresos: 300, otrosIngresos: 300 });
+    expect(describirIngreso(i).estado).toBe("sin_movimiento");
   });
 });
 
@@ -108,12 +154,12 @@ describe("reportesDelLibro", () => {
   it("P&L del rango; balance y comprobación al corte; ingreso con el control del período", async () => {
     const { client, filtros } = dobleListados(
       {
-        invoices: FACTURAS_DEL_MES,
+        invoices: FACTURAS_EN_USD,
         accounts: PLAN,
-        journal_entries: [entrada("e1", "2025-03-05"), entrada("e0", "2025-02-10")],
+        journal_entries: [deFactura("e1", "2025-03-05"), entrada("e0", "2025-02-10")],
         journal_lines: [
-          linea("l1", "e1", "cxc", 1000, 0),
-          linea("l2", "e1", "ventas", 0, 1000),
+          linea("l1", "e1", "cxc", 600, 0),
+          linea("l2", "e1", "ventas", 0, 600),
           linea("l3", "e0", "g1", 300, 0),
           linea("l4", "e0", "banco", 0, 300),
         ],
@@ -121,20 +167,23 @@ describe("reportesDelLibro", () => {
       { serverCap: SERVER_CAP },
     );
     const r = await reportesDelLibro(client, RANGO_MES);
-    expect(r.pnl.income).toBe(1000);
+    expect(r.pnl.income).toBe(600);
     expect(r.pnl.expenses).toBe(0); // el gasto de febrero no es del período
-    expect(r.comprobacion.totalDebe).toBe(1300); // al corte sí entra
+    expect(r.comprobacion.totalDebe).toBe(900); // al corte sí entra
     expect(r.comprobacion.cuadra).toBe(true);
-    expect(r.balance.netIncome).toBe(700); // acumulado, sin cierre a 3.4
-    expect(r.ingreso.mayor?.ventas).toBe(1000);
-    expect(r.ingreso.diferenciaUsd).toBe(1000);
+    expect(r.balance.netIncome).toBe(300); // acumulado, sin cierre a 3.4
+    expect(r.ingreso.mayor?.ventas).toBe(600);
+    expect(r.ingreso.diferenciaUsd).toBe(400);
     const fechas = filtros.filter((f) => f.table === "journal_entries" && f.col === "entry_date");
     expect(fechas).toContainEqual({ table: "journal_entries", op: "gte", col: "entry_date", val: "2025-03-01" });
     expect(fechas.filter((f) => f.op === "lte").every((f) => f.val === "2025-03-18")).toBe(true);
   });
 });
 
-/** 1.200 asentados de dos líneas, 50 anulados y 1 borrador, del 1 al 18 de marzo. */
+/**
+ * 1.200 asentados de dos líneas, 50 anulados, 1 borrador y 1 asentado BORRADO
+ * (con su propio monto, 777), del 1 al 18 de marzo.
+ */
 function diarioGrande(): Record<string, Fila[]> {
   const entries: Fila[] = [];
   const lines: Fila[] = [];
@@ -226,8 +275,9 @@ describe("cuadreDelLibro", () => {
       ["R-1", "asiento_anulado"],
     ]);
     expect(c.documentos.anuladosConAsiento.map((h) => h.codigo)).toEqual(["F-3"]);
-    // El borrador no se revisa y la borrada no se lee.
-    expect(c.documentos.conteo.factura.revisados).toBe(3);
+    // El borrador no se revisa y la borrada no se lee. La anulada va aparte
+    // del denominador de «sin asiento».
+    expect(c.documentos.conteo.factura).toMatchObject({ revisados: 3, vivos: 2, anulados: 1 });
     expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 800, mayorUsd: 500, diferenciaUsd: 300, estado: "no_cuadra" });
     expect(c.subdiario.proveedores).toMatchObject({ mayorUsd: 0, estado: "sin_movimiento" });
     // Solo los orígenes documentales bajan a SQL (el cruce lo repite en memoria).

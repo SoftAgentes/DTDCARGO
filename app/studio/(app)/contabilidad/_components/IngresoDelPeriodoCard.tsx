@@ -3,9 +3,15 @@
  *
  * La misma presentación de la cifra oficial en Contabilidad › Reportes y en
  * Reportes › Estado de resultados: facturado sin IVA en USD por fecha de
- * emisión, el control contra la cuenta 4.5 del mayor y los avisos (fondos de
- * terceros, facturas sin convertir, otros ingresos del mayor). Los textos
- * salen de `describirIngreso`, que también usa Dirección.
+ * emisión, el control contra la cuenta 4.5 del mayor (solo asientos de
+ * factura) y los avisos (fondos de terceros, facturas sin convertir, otros
+ * ingresos del mayor). Los textos salen de `describirIngreso`, cuyo estado
+ * usan también Dirección y el CSV del P&L.
+ *
+ * El ícono del control sigue al estado: éxito solo cuando cuadra; «no
+ * comparable» y «sin movimiento» van neutros, porque ninguno de los dos es
+ * una verificación; y el enlace a Por contabilizar sale solo con una
+ * diferencia real.
  *
  * Componente de módulo, sin estado: no entra al registro de componentes del
  * sistema (CMP-01).
@@ -16,11 +22,29 @@ import { fmtUsd } from "@/lib/money";
 import {
   CUENTA_VENTAS,
   describirIngreso,
+  type EstadoDelIngreso,
   type IngresoPeriodo,
 } from "@/lib/studio/accounting/ingreso-periodo";
 
 /** A dónde mandar cuando el mayor no cuadra con lo facturado. */
 export const ENLACE_POR_CONTABILIZAR = "/studio/contabilidad?tab=subdiario";
+
+/** Tono del ícono del control por estado. */
+export const TONO_DEL_CONTROL: Record<EstadoDelIngreso, "success" | "warning" | "neutral"> = {
+  cuadra: "success",
+  mayor_menor: "warning",
+  mayor_mayor: "warning",
+  sin_cuenta: "warning",
+  no_comparable: "neutral",
+  sin_movimiento: "neutral",
+  sin_mayor: "neutral",
+};
+
+const COLOR_DEL_TONO = {
+  success: "var(--success)",
+  warning: "var(--warning)",
+  neutral: "var(--ink-soft)",
+} as const;
 
 export function IngresoDelPeriodoCard({
   ingreso,
@@ -31,6 +55,7 @@ export function IngresoDelPeriodoCard({
 }) {
   const d = describirIngreso(ingreso);
   const revisar = d.estado === "mayor_menor" || d.estado === "mayor_mayor";
+  const tono = TONO_DEL_CONTROL[d.estado];
   const linea = {
     display: "flex",
     alignItems: "flex-start",
@@ -75,14 +100,14 @@ export function IngresoDelPeriodoCard({
       </div>
 
       {ingreso.mayor && (
-        <p style={linea}>
+        <p style={linea} data-testid="ingreso-control" data-estado={d.estado} data-tono={tono}>
           <StatusIcon
-            tone={d.estado === "cuadra" ? "success" : "warning"}
+            tone={tono}
             size={15}
-            style={{ color: d.estado === "cuadra" ? "var(--success)" : "var(--warning)", marginTop: 1 }}
+            style={{ color: COLOR_DEL_TONO[tono], marginTop: 1 }}
           />
           <span>
-            En el mayor (cuenta {CUENTA_VENTAS}):{" "}
+            En el mayor (cuenta {CUENTA_VENTAS}, asientos de factura):{" "}
             <strong style={{ fontVariantNumeric: "tabular-nums" }}>
               {ingreso.mayor.ventas == null ? "—" : fmtUsd(ingreso.mayor.ventas)}
             </strong>

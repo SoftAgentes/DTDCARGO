@@ -110,14 +110,18 @@ export async function financeInvoiceKpis(
 
   const ytdCount = delAnio.facturas;
   const avgTicket = ytdCount > 0 ? delAnio.facturado.total / ytdCount : 0;
+  // La cifra INCLUYE los fondos de terceros (fund_class ≠ local_revenue, B10):
+  // cada pantalla lo dice cuando los hay (SDD-0557).
+  const deTerceros = (terceros: number) =>
+    terceros > 0 ? ` · incluye ${money(terceros)} de terceros` : "";
 
   return {
     monthRevenue: {
       value: money(monthRevenue),
       sub:
-        delMes.sinConvertir > 0
+        (delMes.sinConvertir > 0
           ? `facturado del mes sin IVA · ${delMes.sinConvertir} sin convertir`
-          : "facturado del mes sin IVA",
+          : "facturado del mes sin IVA") + deTerceros(delMes.facturado.terceros),
       tone: monthRevenue > 0 ? "success" : "neutral",
     },
     invoicesDue: {
@@ -132,7 +136,7 @@ export async function financeInvoiceKpis(
     },
     avgTicket: {
       value: money(avgTicket),
-      sub: `${ytdCount} factura(s) en el año · sin IVA`,
+      sub: `${ytdCount} factura(s) en el año · sin IVA${deTerceros(delAnio.facturado.terceros)}`,
       tone: "wine",
     },
   };

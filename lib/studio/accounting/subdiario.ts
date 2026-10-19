@@ -14,7 +14,10 @@
  *  - Proveedores: Σ (total − pagado) de las CxP no anuladas contra 2.1.1, con
  *    la MISMA regla del asiento (`billAmountUsd`: cualquier moneda con tasa se
  *    convierte, sin tasa va al nominal). Así una CxP en yuanes con tasa no
- *    fabrica una diferencia que el libro no tiene.
+ *    fabrica una diferencia que el libro no tiene. Las CxP con saldo en otra
+ *    moneda y SIN tasa se cuentan (`sinTasa`): suman su nominal, igual que su
+ *    asiento, y entonces el saldo ya no está en USD; la pantalla y el CSV lo
+ *    dicen.
  *
  * No reusa `receivablesQueue` ni `payablesQueue`: la primera incluye
  * borradores con saldo (que no se asientan por diseño) y las dos descartan
@@ -76,6 +79,12 @@ function convertibleCliente(currency: string, fx: unknown): boolean {
   return false;
 }
 
+/** Otra moneda sin tasa: `billAmountUsd` la deja en su nominal. */
+function sinTasaProveedor(currency: string, fx: unknown): boolean {
+  if (currency === "USD" || currency === "USDT") return false;
+  return !(num(fx) > 0);
+}
+
 function estadoDe(
   subdiario: number,
   mayor: SaldoDeCuenta | null,
@@ -123,11 +132,13 @@ export function cuadreSubdiario(e: EntradaSubdiario): SubdiarioContraMayor {
   // Proveedores: la regla del asiento.
   let subProv = 0;
   let docsProv = 0;
+  let sinTasa = 0;
   for (const b of e.cxp) {
     if (b.status === "anulada") continue;
     const saldo = round2(num(b.total_amount) - num(b.paid_amount));
     if (saldo === 0) continue;
     docsProv += 1;
+    if (sinTasaProveedor(b.currency, b.fx_rate)) sinTasa += 1;
     subProv += billAmountUsd(saldo, b.currency, b.fx_rate == null ? null : num(b.fx_rate));
   }
   subProv = round2(subProv);
@@ -141,6 +152,7 @@ export function cuadreSubdiario(e: EntradaSubdiario): SubdiarioContraMayor {
     r: { estado: EstadoCuadre; diferencia: number | null },
     documentos: number,
     sinConv: number,
+    alNominal: number,
   ): LadoCuadre => ({
     cuenta,
     nombre,
@@ -149,12 +161,13 @@ export function cuadreSubdiario(e: EntradaSubdiario): SubdiarioContraMayor {
     diferenciaUsd: r.diferencia,
     documentos,
     sinConvertir: sinConv,
+    sinTasa: alNominal,
     estado: r.estado,
   });
 
   return {
     fecha: e.fecha,
-    clientes: lado(CUENTA_CLIENTES, "Clientes", subClientes, e.mayorClientes, clientes, docsClientes, sinConvertir),
-    proveedores: lado(CUENTA_PROVEEDORES, "Proveedores", subProv, e.mayorProveedores, proveedores, docsProv, 0),
+    clientes: lado(CUENTA_CLIENTES, "Clientes", subClientes, e.mayorClientes, clientes, docsClientes, sinConvertir, 0),
+    proveedores: lado(CUENTA_PROVEEDORES, "Proveedores", subProv, e.mayorProveedores, proveedores, docsProv, 0, sinTasa),
   };
 }

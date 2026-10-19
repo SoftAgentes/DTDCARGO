@@ -100,7 +100,8 @@ describe("financeInvoiceKpis · SDD-0465", () => {
     expect(k.invoicesDue.value).toBe("1");
     expect(k.pendingCollect.value).toBe(money(800));
     expect(k.avgTicket.value).toBe(money(800));
-    expect(k.avgTicket.sub).toBe("1 factura(s) en el año · sin IVA");
+    // VIVA no trae fund_class: es de terceros (default de la 0122) y se dice.
+    expect(k.avgTicket.sub).toBe("1 factura(s) en el año · sin IVA · incluye $800 de terceros");
     expect(filtros).toContainEqual({ op: "is", col: "deleted_at", val: null });
   });
 
@@ -127,18 +128,30 @@ describe("financeInvoiceKpis · cifra oficial (SDD-0557)", () => {
     // de `hoy`, el mes sería otro y daría $0.
     const k = await financeInvoiceKpis(stub(FACTURAS_DEL_MES), HOY);
     expect(k.monthRevenue.value).toBe(money(2000));
-    expect(k.monthRevenue.sub).toBe("facturado del mes sin IVA · 2 sin convertir");
+    // F2 (1000) es de terceros: la cifra la incluye y el subtítulo lo dice.
+    expect(k.monthRevenue.sub).toBe("facturado del mes sin IVA · 2 sin convertir · incluye $1.0K de terceros");
   });
 
-  it("una factura con IVA aporta su base, no el total", async () => {
+  it("una factura con IVA aporta su base, no el total; si es propia, no hay aviso de terceros", async () => {
     const f1 = FACTURAS_DEL_MES.filter((f) => f.id === "f1");
     const k = await financeInvoiceKpis(stub(f1), HOY);
     expect(k.monthRevenue.value).toBe(money(1000));
+    expect(k.monthRevenue.sub).toBe("facturado del mes sin IVA");
+    expect(k.avgTicket.sub).toBe("1 factura(s) en el año · sin IVA");
+  });
+
+  it("una factura third_party: el mes y el ticket dicen cuánto es de terceros", async () => {
+    const terceros = { ...FACTURAS_DEL_MES[0], id: "f9", fund_class: "third_party", base_amount: 400 };
+    const k = await financeInvoiceKpis(stub([FACTURAS_DEL_MES[0], terceros]), HOY);
+    expect(k.monthRevenue.value).toBe(money(1400));
+    expect(k.monthRevenue.sub).toBe("facturado del mes sin IVA · incluye $400 de terceros");
+    expect(k.avgTicket.sub).toBe("2 factura(s) en el año · sin IVA · incluye $400 de terceros");
   });
 
   it("el ticket promedio usa la misma base: F1 + F2 + F5 en el año = 2300 / 3", async () => {
     const k = await financeInvoiceKpis(stub(FACTURAS_DEL_MES), HOY);
     expect(k.avgTicket.value).toBe(money(2300 / 3));
-    expect(k.avgTicket.sub).toBe("3 factura(s) en el año · sin IVA");
+    // Terceros del año: F2 (1000) + F5 (300, enero).
+    expect(k.avgTicket.sub).toBe("3 factura(s) en el año · sin IVA · incluye $1.3K de terceros");
   });
 });

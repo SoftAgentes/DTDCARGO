@@ -35,7 +35,7 @@ import {
   type JournalLine,
 } from "@/lib/studio/journal-types";
 import type { BalanceSheet, ProfitAndLoss } from "./reports";
-import type { IngresoPeriodo, RangoFechas } from "./ingreso-periodo";
+import { rangoDesdeParams, type IngresoPeriodo, type RangoFechas } from "./ingreso-periodo";
 import { isIsoDate } from "@/lib/studio/bitacora/dates";
 import {
   reportFilename,
@@ -224,7 +224,16 @@ export type HallazgoAsiento = {
 
 export type ConteoDocumentos = Record<
   TipoDocumento,
-  { revisados: number; sinAsiento: number; sinMonto: number; anuladosConAsiento: number }
+  {
+    /** vivos + anulados: todo lo que se leyó. */
+    revisados: number;
+    /** El denominador de «X sin asiento de N»: los anulados van aparte. */
+    vivos: number;
+    anulados: number;
+    sinAsiento: number;
+    sinMonto: number;
+    anuladosConAsiento: number;
+  }
 >;
 
 export type DocumentosSinAsiento = {
@@ -324,7 +333,7 @@ export function cruzarDocumentosConAsientos(
   const conteo = Object.fromEntries(
     TIPOS_DE_DOCUMENTO.map((t) => [
       t,
-      { revisados: 0, sinAsiento: 0, sinMonto: 0, anuladosConAsiento: 0 },
+      { revisados: 0, vivos: 0, anulados: 0, sinAsiento: 0, sinMonto: 0, anuladosConAsiento: 0 },
     ]),
   ) as ConteoDocumentos;
 
@@ -335,6 +344,8 @@ export function cruzarDocumentosConAsientos(
     const e = estado.get(clave(d.tipo, d.id)) ?? { vivos: 0, anulados: 0 };
     const c = conteo[d.tipo];
     c.revisados += 1;
+    if (d.vivo) c.vivos += 1;
+    else c.anulados += 1;
     const base = {
       tipo: d.tipo,
       codigo: d.codigo,
@@ -361,6 +372,28 @@ export function cruzarDocumentosConAsientos(
   sinAsiento.sort(ordenarHallazgos);
   anuladosConAsiento.sort(ordenarHallazgos);
   return { sinAsiento, anuladosConAsiento, conteo };
+}
+
+/** Género de cada tipo para «viva/vivo» y «anulada/anulado». */
+const FEMENINO: Record<TipoDocumento, boolean> = {
+  factura: true,
+  recibo: false,
+  cxp: true,
+  pago_proveedor: false,
+};
+
+/**
+ * «Factura: X sin asiento de N vivas»: el denominador son los documentos
+ * VIVOS, que son los que deberían tener asiento. Los anulados se leen para la
+ * lista inversa y se cuentan aparte, sin inflar la cobertura.
+ */
+export function textoDelConteo(tipo: TipoDocumento, c: ConteoDocumentos[TipoDocumento]): string {
+  const a = FEMENINO[tipo] ? "a" : "o";
+  const plural = (n: number, base: string) => `${base}${a}${n === 1 ? "" : "s"}`;
+  let t = `${ETIQUETA_TIPO[tipo]}: ${c.sinAsiento} sin asiento de ${c.vivos} ${plural(c.vivos, "viv")}`;
+  if (c.sinMonto > 0) t += ` · ${c.sinMonto} sin monto`;
+  if (c.anulados > 0) t += ` · ${c.anulados} ${plural(c.anulados, "anulad")} aparte`;
+  return t;
 }
 
 // ── Subdiario contra mayor (tipos; el cálculo vive en subdiario.ts) ──
@@ -393,6 +426,12 @@ export type LadoCuadre = {
   documentos: number;
   /** Documentos con saldo que no suman (VES sin tasa o CNY). */
   sinConvertir: number;
+  /**
+   * Documentos con saldo en otra moneda y SIN tasa que suman su nominal, como
+   * su asiento (solo proveedores: `billAmountUsd`). Con alguno, el saldo del
+   * lado no está en USD.
+   */
+  sinTasa: number;
   estado: EstadoCuadre;
 };
 
@@ -401,6 +440,33 @@ export type SubdiarioContraMayor = {
   clientes: LadoCuadre;
   proveedores: LadoCuadre;
 };
+
+/** Las notas que acompañan la tabla del subdiario (pantalla y prueba). */
+export function notasDelSubdiario(s: SubdiarioContraMayor): string[] {
+  const notas: string[] = [];
+  if (s.clientes.estado === "no_comparable") {
+    notas.push(
+      "Clientes no es comparable: hay facturas en bolívares o yuanes, que hoy se asientan por su monto nominal y el cobro las convierte.",
+    );
+  }
+  const sinConv = s.clientes.sinConvertir;
+  if (sinConv > 0) {
+    notas.push(
+      sinConv === 1
+        ? "1 factura con saldo no suma: está en bolívares sin tasa o en yuanes."
+        : `${sinConv} facturas con saldo no suman: están en bolívares sin tasa o en yuanes.`,
+    );
+  }
+  const sinTasa = s.proveedores.sinTasa;
+  if (sinTasa > 0) {
+    notas.push(
+      sinTasa === 1
+        ? "1 CxP sin tasa va al nominal, como su asiento: el saldo no está en USD."
+        : `${sinTasa} CxP sin tasa van al nominal, como su asiento: el saldo no está en USD.`,
+    );
+  }
+  return notas;
+}
 
 // ── Diario completo ────────────────────────────────────────────
 
@@ -550,14 +616,22 @@ export function nombreDelDiario(rango: RangoDelDiario, hoy: string): string {
   return `diario-${rango.from ?? "inicio"}-a-${rango.to ?? hoy}.csv`;
 }
 
+/** Rótulo del enlace y del botón de descarga del diario (pregunta abierta 3). */
+export const ROTULO_DIARIO_CSV = "Descargar el diario asentado (CSV)";
+
 /**
  * Aviso de la pantalla del diario cuando muestra menos asientos de los que hay.
- * null si se ven todos.
+ * null si se ven todos. El total cuenta todos los estados (`countEntries`) y
+ * el CSV baja solo los asentados: el aviso dice cuántos trae, para que nadie
+ * crea que le faltan los borradores y los anulados.
  */
-export function avisoDelDiario(mostrados: number, total: number): string | null {
+export function avisoDelDiario(mostrados: number, total: number, asentados: number): string | null {
   if (total <= mostrados) return null;
   const n = (x: number) => x.toLocaleString("es-VE");
-  return `Mostrando ${n(mostrados)} de ${n(total)} asientos (los más recientes).`;
+  return (
+    `Mostrando ${n(mostrados)} de ${n(total)} asientos (los más recientes).` +
+    ` El CSV trae solo ${asentados === 1 ? "1 asentado" : `los ${n(asentados)} asentados`}.`
+  );
 }
 
 // ── Enlaces y CSV de pantalla ──────────────────────────────────
@@ -625,6 +699,7 @@ export function subdiarioCsv(s: SubdiarioContraMayor, hoy?: Date): ViewCsv {
     l.diferenciaUsd ?? "",
     l.documentos,
     l.sinConvertir,
+    l.sinTasa,
     ETIQUETA_CUADRE[l.estado],
   ];
   return {
@@ -638,6 +713,7 @@ export function subdiarioCsv(s: SubdiarioContraMayor, hoy?: Date): ViewCsv {
         "Diferencia USD",
         "Documentos",
         "Sin convertir",
+        "Sin tasa (al nominal: no USD)",
         "Estado",
       ],
       [fila(s.clientes), fila(s.proveedores)],
@@ -649,6 +725,24 @@ export function subdiarioCsv(s: SubdiarioContraMayor, hoy?: Date): ViewCsv {
 
 /** Lo que muestra el formulario Desde/Hasta de Reportes (DAT-01). */
 export type FiltroReportes = { desde: string; hasta: string; error: string | null };
+
+/**
+ * La decisión de la página de Contabilidad › Reportes (DAT-01), pura: lo que
+ * muestra el formulario y el rango a calcular. Con un error (fecha inválida,
+ * una sola fecha o el rango al revés) el rango es null y NO se calcula nada:
+ * ni el mes en curso debajo del error.
+ */
+export function pedidoDeReportes(
+  desde: string | undefined,
+  hasta: string | undefined,
+  hoy: string,
+): { filtro: FiltroReportes; rango: RangoFechas | null } {
+  const f = rangoDesdeParams(desde, hasta, hoy);
+  return {
+    filtro: { ...f.valores, error: f.error },
+    rango: f.error ? null : f.rango,
+  };
+}
 
 export type ReportesDelLibro = {
   rango: RangoFechas;

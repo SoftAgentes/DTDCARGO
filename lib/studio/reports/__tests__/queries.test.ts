@@ -28,10 +28,11 @@ import {
   reportByRoute,
   reportByService,
 } from "../queries";
-import { ESTADOS_DE_INGRESO } from "@/lib/studio/accounting/ingreso-periodo";
+import { describirIngreso, ESTADOS_DE_INGRESO } from "@/lib/studio/accounting/ingreso-periodo";
 import {
   ESPERADO,
   FACTURAS_DEL_MES,
+  FACTURAS_EN_USD,
   RANGO_MES,
 } from "@/lib/studio/accounting/__tests__/ingreso-fixture";
 
@@ -533,33 +534,59 @@ describe("incomeStatement", () => {
     expect(byLabel["Utilidad neta"].amount).toBe(4000);
   });
 
-  it("SDD-0557 · trae la cifra oficial del MISMO período, con el control de la 4.5", async () => {
+  it("SDD-0557 · trae la cifra oficial del MISMO período; con bolívares o yuanes, el control no es comparable", async () => {
     const accounts = [
       { id: "i", code: "4", type: "I", parent_id: null, is_postable: false },
       { id: "v", code: "4.5", type: "I", parent_id: "i", is_postable: true },
       { id: "x", code: "4.6", type: "I", parent_id: "i", is_postable: true },
     ];
     const journal_lines = [
-      { account_id: "v", debit: 0, credit: 1500 },
-      { account_id: "x", debit: 0, credit: 200 },
+      { entry_id: "e1", account_id: "v", debit: 0, credit: 1500 },
+      { entry_id: "e1", account_id: "x", debit: 0, credit: 200 },
     ];
     // El doble no filtra: la borrada (F8), la de enero (F5), el borrador y la
     // anulada llegan igual, y es la regla en memoria la que las deja afuera.
     const { client, calls } = stub({
       accounts,
-      journal_entries: [{ id: "e1" }],
+      journal_entries: [{ id: "e1", status: "asentado", source: "invoice", deleted_at: null }],
       journal_lines,
       invoices: FACTURAS_DEL_MES,
     });
     const out = await incomeStatement(client, "MES", new Date("2025-03-18T12:00:00Z"));
     expect(out.range).toEqual(RANGO_MES);
     expect(out.ingreso.facturado.total).toBe(ESPERADO.total);
-    expect(out.ingreso.mayor).toEqual({ ventas: 1500, ingresos: out.income, otrosIngresos: 200 });
-    expect(out.ingreso.diferenciaUsd).toBe(500);
+    expect(out.ingreso.mayor).toEqual({ ventas: 1500, ventasConMovimiento: true, ingresos: out.income, otrosIngresos: 200 });
+    expect(out.ingreso.enOtraMoneda).toBe(ESPERADO.enOtraMoneda);
+    expect(out.ingreso.diferenciaUsd).toBeNull();
+    expect(describirIngreso(out.ingreso).estado).toBe("no_comparable");
     expect(calls.invoices.gte).toContainEqual(["issued_at", "2025-03-01"]);
     expect(calls.invoices.lte).toContainEqual(["issued_at", "2025-03-18"]);
-    expect(calls.invoices.in).toContainEqual(["status", [...ESTADOS_DE_INGRESO]]);
+    expect(calls.invoices.in).toContainEqual(["status", [...ESTADOS_DE_INGRESO, "anulada"]]);
     expect(calls.invoices.is).toContainEqual(["deleted_at", null]);
+    // El control lee solo los asientos de factura del mismo rango.
+    expect(calls.journal_entries.eq).toContainEqual(["source", "invoice"]);
+  });
+
+  it("SDD-0557 · solo USD: el control contra la 4.5 de los asientos de factura; un manual a 4.5 no es diferencia", async () => {
+    const accounts = [
+      { id: "i", code: "4", type: "I", parent_id: null, is_postable: false },
+      { id: "v", code: "4.5", type: "I", parent_id: "i", is_postable: true },
+    ];
+    const { client } = stub({
+      accounts,
+      journal_entries: [
+        { id: "e1", status: "asentado", source: "invoice", deleted_at: null },
+        { id: "e2", status: "asentado", source: "manual", deleted_at: null },
+      ],
+      journal_lines: [
+        { entry_id: "e1", account_id: "v", debit: 0, credit: 600 },
+        { entry_id: "e2", account_id: "v", debit: 0, credit: 300 },
+      ],
+      invoices: FACTURAS_EN_USD,
+    });
+    const out = await incomeStatement(client, "MES", new Date("2025-03-18T12:00:00Z"));
+    expect(out.ingreso.mayor).toEqual({ ventas: 600, ventasConMovimiento: true, ingresos: 900, otrosIngresos: 300 });
+    expect(out.ingreso.diferenciaUsd).toBe(400);
   });
 
   it("sin movimiento contable → income/netIncome 0 (EmptyState honesto)", async () => {

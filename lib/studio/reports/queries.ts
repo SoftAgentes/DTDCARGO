@@ -48,8 +48,10 @@ import {
 import type { InvoiceIvaMode } from "@/lib/studio/fiscal/config-types";
 import { listAccounts, accountBalances } from "@/lib/studio/account-queries";
 import { profitAndLoss } from "@/lib/studio/accounting/reports";
-import { controlDelMayor } from "@/lib/studio/accounting/ingreso-periodo";
-import { ingresoDelPeriodo } from "@/lib/studio/accounting/libro-control-queries";
+import {
+  controlDelPeriodo,
+  ingresoDelPeriodo,
+} from "@/lib/studio/accounting/libro-control-queries";
 import { receivablesQueue } from "@/lib/studio/payment-queries";
 import { payablesQueue } from "@/lib/studio/treasury/bill-queries";
 import { invoiceKpis } from "@/lib/studio/invoice-queries";
@@ -699,9 +701,10 @@ export async function commercialByAgent(
  * La vista solo formatea filas con % sobre ingresos (incomeStatementRows).
  *
  * SDD-0557: suma `ingreso`, la cifra oficial del MISMO rango
- * (`ingresoDelPeriodo`), con el control contra la 4.5 calculado sobre estos
- * mismos saldos. Hoy el mayor está incompleto: el P&L puede dar 0 con facturas
- * emitidas, y la vista lo dice en vez de mostrar el estado vacío.
+ * (`ingresoDelPeriodo`), con el control contra la 4.5 de los asientos de
+ * factura (`controlDelPeriodo`) y el total de ingresos de estos mismos saldos.
+ * Hoy el mayor está incompleto: el P&L puede dar 0 con facturas emitidas, y la
+ * vista lo dice en vez de mostrar el estado vacío.
  */
 export async function incomeStatement(
   supabase: SupabaseClient,
@@ -715,7 +718,7 @@ export async function incomeStatement(
   ]);
   const pl = profitAndLoss(accounts, balances);
   const ingreso = await ingresoDelPeriodo(supabase, range, {
-    mayor: controlDelMayor(accounts, balances),
+    mayor: await controlDelPeriodo(supabase, range, accounts, balances),
   });
   return {
     rows: incomeStatementRows(pl),

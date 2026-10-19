@@ -25,15 +25,15 @@ import {
 import { countEntries, listEntries } from "@/lib/studio/journal-queries";
 import { ledgerForAccount } from "@/lib/studio/journal-queries";
 import { getAccountingSettings } from "@/lib/studio/accounting/period-queries";
-import { rangoDesdeParams } from "@/lib/studio/accounting/ingreso-periodo";
 import {
   cuadreDelLibro,
   reportesDelLibro,
 } from "@/lib/studio/accounting/libro-control-queries";
-import type {
-  CuadreDelLibro,
-  FiltroReportes,
-  ReportesDelLibro,
+import {
+  pedidoDeReportes,
+  type CuadreDelLibro,
+  type FiltroReportes,
+  type ReportesDelLibro,
 } from "@/lib/studio/accounting/libro-control";
 import {
   listStatements,
@@ -114,12 +114,13 @@ export default async function ContabilidadPage({
       : null;
 
   // ── Reportes (SDD-0557): período explícito; sin rango válido no se calcula ──
+  // La decisión es pura (`pedidoDeReportes`, con prueba): acá solo se cablea.
   let reportes: ReportesDelLibro | null = null;
   let filtroReportes: FiltroReportes | null = null;
   if (tab === "reportes") {
-    const filtro = rangoDesdeParams(single("desde"), single("hasta"), hoy);
-    filtroReportes = { ...filtro.valores, error: filtro.error };
-    if (filtro.rango) reportes = await reportesDelLibro(supabase, filtro.rango);
+    const pedido = pedidoDeReportes(single("desde"), single("hasta"), hoy);
+    filtroReportes = pedido.filtro;
+    if (pedido.rango) reportes = await reportesDelLibro(supabase, pedido.rango);
   }
 
   // ── Por contabilizar (SDD-0557): sobre los saldos vivos ya leídos ──

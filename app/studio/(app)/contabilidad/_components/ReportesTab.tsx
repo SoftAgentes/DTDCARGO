@@ -45,7 +45,9 @@ export function ReportesTab({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       <FiltroDelPeriodo filtro={filtro} />
-      {reportes && (
+      {/* Con un error del filtro no se pinta nada, aunque llegaran reportes:
+          debajo del error no puede aparecer otro período (DAT-01). */}
+      {reportes && !filtro.error && (
         <>
           <IngresoDelPeriodoCard ingreso={reportes.ingreso} style={{ maxWidth: 760 }} />
           <div

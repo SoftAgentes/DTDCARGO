@@ -8,7 +8,10 @@
  *  - Derivación de alertas (vencidos / cut-off ≤3d / carga suelta >20 CBM / "Todo en orden").
  *  - Smoke de getDireccionData con stub de SupabaseClient.
  *  - SDD-0557: «Ingresos · mes» es la cifra oficial (facturado sin IVA) y el
- *    mayor queda como control contra la 4.5; utilidad y margen, del libro.
+ *    mayor queda como control contra la 4.5 de los asientos de factura;
+ *    utilidad y margen, del libro. Los textos de los dos KPI salen de
+ *    `textosFinancieros`, pura: «sin IVA», «libro», «en el libro: $X»,
+ *    «no comparable» y «sin movimiento».
  */
 
 import { describe, it, expect } from "vitest";
@@ -22,13 +25,17 @@ import {
   deriveAlerts,
   firstOfMonth,
   getDireccionData,
+  textosFinancieros,
   type ForecastBill,
 } from "../queries";
+import { resumirIngreso } from "@/lib/studio/accounting/ingreso-periodo";
 import {
   ESPERADO,
   FACTURAS_DEL_MES,
+  FACTURAS_EN_USD,
   HOY,
   RANGO_MES,
+  control,
 } from "@/lib/studio/accounting/__tests__/ingreso-fixture";
 
 describe("netPosition — posición neta", () => {
@@ -300,12 +307,13 @@ describe("getDireccionData — composición (smoke)", () => {
             { id: "caja", tenant_id: "t", code: "1.1.1", name: "Banco", type: "A", is_postable: true, qbo_type: "Bank" },
           ],
         },
-        // Asientos asentados (P&L del mes) + saldos vivos (caja).
-        journal_entries: { data: [{ id: "je1" }] },
+        // Asientos asentados (P&L del mes) + saldos vivos (caja). El asiento
+        // es de factura: su 4.5 es el control del ingreso.
+        journal_entries: { data: [{ id: "je1", status: "asentado", source: "invoice", deleted_at: null }] },
         journal_lines: {
           data: [
-            { account_id: "inc1", debit: 0, credit: 10000 }, // ingreso
-            { account_id: "caja", debit: 8000, credit: 0 }, // caja
+            { entry_id: "je1", account_id: "inc1", debit: 0, credit: 10000 }, // ingreso
+            { entry_id: "je1", account_id: "caja", debit: 8000, credit: 0 }, // caja
           ],
         },
         // Cobranzas: una factura con saldo (CxC) — receivablesQueue.
@@ -440,26 +448,26 @@ describe("getDireccionData — composición (smoke)", () => {
 });
 
 describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
-  it("con el fixture del mes da la misma cifra que los otros consumidores; 4.6 va aparte", async () => {
+  const PLAN_DIR = [
+    { id: "inc", tenant_id: "t", code: "4", name: "Ingresos", type: "I", is_postable: false },
+    { id: "ven", tenant_id: "t", code: "4.5", name: "Otros ingresos por servicios", type: "I", is_postable: true },
+    { id: "fx", tenant_id: "t", code: "4.6", name: "Ingreso por cambio de moneda", type: "I", is_postable: true },
+    { id: "g", tenant_id: "t", code: "6", name: "Gastos", type: "G", is_postable: false },
+    { id: "g1", tenant_id: "t", code: "6.1", name: "Gastos generales", type: "G", is_postable: true },
+  ];
+
+  it("con el fixture del mes da la misma cifra que los otros consumidores; con bolívares o yuanes, no comparable", async () => {
     // El stub NO filtra: llegan la borrada (F8), el borrador, la anulada y la de
     // enero. La que las deja afuera es la regla en memoria (resumirIngreso).
     const client = makeClient({
       tables: {
-        accounts: {
-          data: [
-            { id: "inc", tenant_id: "t", code: "4", name: "Ingresos", type: "I", is_postable: false },
-            { id: "ven", tenant_id: "t", code: "4.5", name: "Otros ingresos por servicios", type: "I", is_postable: true },
-            { id: "fx", tenant_id: "t", code: "4.6", name: "Ingreso por cambio de moneda", type: "I", is_postable: true },
-            { id: "g", tenant_id: "t", code: "6", name: "Gastos", type: "G", is_postable: false },
-            { id: "g1", tenant_id: "t", code: "6.1", name: "Gastos generales", type: "G", is_postable: true },
-          ],
-        },
-        journal_entries: { data: [{ id: "je1" }] },
+        accounts: { data: PLAN_DIR },
+        journal_entries: { data: [{ id: "je1", status: "asentado", source: "invoice", deleted_at: null }] },
         journal_lines: {
           data: [
-            { account_id: "ven", debit: 0, credit: 1500 },
-            { account_id: "fx", debit: 0, credit: 200 },
-            { account_id: "g1", debit: 700, credit: 0 },
+            { entry_id: "je1", account_id: "ven", debit: 0, credit: 1500 },
+            { entry_id: "je1", account_id: "fx", debit: 0, credit: 200 },
+            { entry_id: "je1", account_id: "g1", debit: 700, credit: 0 },
           ],
         },
         invoices: { data: FACTURAS_DEL_MES },
@@ -470,12 +478,93 @@ describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
     const { finance } = await getDireccionData(client, HOY);
     expect(finance.ingreso.facturado.total).toBe(ESPERADO.total);
     expect(finance.ingreso.rango).toEqual(RANGO_MES);
-    expect(finance.ingreso.mayor).toEqual({ ventas: 1500, ingresos: 1700, otrosIngresos: 200 });
-    // Contra 4.5: 2000 − 1500 = 500. Contra todas las cuentas 4 daría 300.
-    expect(finance.ingreso.diferenciaUsd).toBe(500);
+    expect(finance.ingreso.enOtraMoneda).toBe(ESPERADO.enOtraMoneda);
+    expect(finance.ingreso.diferenciaUsd).toBeNull();
+    expect(textosFinancieros(finance).ingreso.detalle).toBe(
+      "no comparable con el libro: hay facturas en bolívares o yuanes · incluye fondos de terceros · 2 sin convertir",
+    );
     // Utilidad y margen del libro: 1000 / 1700. Con el facturado daría 50 %.
     expect(finance.utilidad).toBe(1000);
     expect(finance.margenPct).toBe(netMarginPct(1700, 1000));
     expect(finance.margenPct).toBeCloseTo(58.82, 2);
+  });
+
+  it("solo USD: contra la 4.5 de los asientos de factura; el 4.6 y un manual a 4.5 son otros ingresos", async () => {
+    const client = makeClient({
+      tables: {
+        accounts: { data: PLAN_DIR },
+        journal_entries: {
+          data: [
+            { id: "je1", status: "asentado", source: "invoice", deleted_at: null },
+            { id: "je2", status: "asentado", source: "manual", deleted_at: null },
+          ],
+        },
+        journal_lines: {
+          data: [
+            { entry_id: "je1", account_id: "ven", debit: 0, credit: 600 },
+            { entry_id: "je2", account_id: "ven", debit: 0, credit: 300 }, // manual a 4.5
+            { entry_id: "je2", account_id: "fx", debit: 0, credit: 200 },
+          ],
+        },
+        invoices: { data: FACTURAS_EN_USD },
+      },
+      rpc: { shipments_dashboard_counts: null },
+    });
+
+    const { finance } = await getDireccionData(client, HOY);
+    expect(finance.ingreso.facturado.total).toBe(1000);
+    expect(finance.ingreso.mayor).toEqual({ ventas: 600, ventasConMovimiento: true, ingresos: 1100, otrosIngresos: 500 });
+    // 1000 − 600. Contra toda la 4.5 daría 100; contra todas las cuentas 4, −100.
+    expect(finance.ingreso.diferenciaUsd).toBe(400);
+    expect(textosFinancieros(finance).ingreso.detalle).toBe("en el libro: $600.00");
+  });
+});
+
+describe("textosFinancieros · los KPI de ingreso y utilidad (SDD-0557)", () => {
+  const ingreso = (facturas: Parameters<typeof resumirIngreso>[0], ctl: ReturnType<typeof control> | null) =>
+    resumirIngreso(facturas, RANGO_MES, ctl);
+  const textos = (i: ReturnType<typeof ingreso>, utilidad = 400, margenPct = 40) =>
+    textosFinancieros({ ingreso: i, utilidad, margenPct });
+
+  it("«sin IVA» con el rango y «libro» en la utilidad", () => {
+    const t = textos(ingreso(FACTURAS_EN_USD, control(1000)));
+    expect(t.ingreso).toEqual({
+      label: "Ingresos · mes",
+      valor: "$1,000.00",
+      periodo: "Facturado sin IVA · 2025-03-01 → 2025-03-18",
+      detalle: "cuadra con el libro",
+    });
+    expect(t.utilidad).toEqual({
+      label: "Utilidad neta · libro",
+      valor: "$400.00",
+      sub: "Margen 40.0% sobre los ingresos del libro",
+    });
+  });
+
+  it("el mayor tiene menos o más: «en el libro: $X»", () => {
+    expect(textos(ingreso(FACTURAS_EN_USD, control(600))).ingreso.detalle).toBe("en el libro: $600.00");
+    expect(textos(ingreso(FACTURAS_EN_USD, control(1600))).ingreso.detalle).toBe("en el libro: $1,600.00");
+  });
+
+  it("no comparable (K1) y sin movimiento (K2): nunca «cuadra con el libro»", () => {
+    const nc = textos(ingreso(FACTURAS_DEL_MES, control(2000))).ingreso.detalle;
+    expect(nc).toMatch(/^no comparable con el libro: hay facturas en bolívares o yuanes/);
+    expect(nc).not.toMatch(/cuadra/);
+    const sm = textos(ingreso([], control(0, 0, false))).ingreso;
+    expect(sm.detalle).toBe("sin movimiento en el libro");
+    expect(sm.valor).toBe("$0.00");
+  });
+
+  it("sin cuenta 4.5 y sin mayor", () => {
+    expect(textos(ingreso(FACTURAS_EN_USD, control(null, 500))).ingreso.detalle).toBe("sin cuenta 4.5 en el libro");
+    expect(textos(ingreso(FACTURAS_EN_USD, null)).ingreso.detalle).toBe("");
+  });
+
+  it("avisos de terceros y sin convertir, unidos al control", () => {
+    const f2 = FACTURAS_DEL_MES.filter((f) => f.id === "f1" || f.id === "f5");
+    // F1 propia y F5 fuera del mes: sin terceros. Con una de terceros en el mes, el aviso.
+    expect(textos(ingreso(f2, control(1000))).ingreso.detalle).toBe("cuadra con el libro");
+    const conTerceros = [...f2, { ...FACTURAS_DEL_MES[0], id: "f9", fund_class: "third_party", base_amount: 50 }];
+    expect(textos(ingreso(conTerceros, control(1050))).ingreso.detalle).toBe("cuadra con el libro · incluye fondos de terceros");
   });
 });

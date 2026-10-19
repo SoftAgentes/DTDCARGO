@@ -25,8 +25,10 @@ import {
   ETIQUETA_TIPO,
   LISTADO_POR_TIPO,
   TIPOS_DE_DOCUMENTO,
+  notasDelSubdiario,
   sinAsientoCsv,
   subdiarioCsv,
+  textoDelConteo,
   type CuadreDelLibro,
   type EstadoCuadre,
   type LadoCuadre,
@@ -161,20 +163,7 @@ export function PorContabilizarTab({ cuadre }: { cuadre: CuadreDelLibro }) {
     n: documentos.conteo[t].anuladosConAsiento,
   }));
   const totalAnulados = anulados.reduce((s, a) => s + a.n, 0);
-  const notas: string[] = [];
-  if (subdiario.clientes.estado === "no_comparable") {
-    notas.push(
-      "Clientes no es comparable: hay facturas en bolívares o yuanes, que hoy se asientan por su monto nominal y el cobro las convierte.",
-    );
-  }
-  const sinConv = subdiario.clientes.sinConvertir;
-  if (sinConv > 0) {
-    notas.push(
-      sinConv === 1
-        ? "1 factura con saldo no suma: está en bolívares sin tasa o en yuanes."
-        : `${sinConv} facturas con saldo no suman: están en bolívares sin tasa o en yuanes.`,
-    );
-  }
+  const notas = notasDelSubdiario(subdiario);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
@@ -218,7 +207,7 @@ export function PorContabilizarTab({ cuadre }: { cuadre: CuadreDelLibro }) {
         <Encabezado
           id="titulo-sin-asiento"
           titulo="Documentos sin asiento"
-          sub="Facturas, recibos, CxP y pagos vivos que no tienen un asiento asentado de su origen. El CSV incluye también los anulados con asiento vivo."
+          sub="Facturas, recibos, CxP y pagos vivos que no tienen un asiento asentado de su origen. Cada conteo es sobre los vivos; los anulados van aparte. El CSV incluye también los anulados con asiento vivo."
           accion={<BotonCsv csv={sinAsientoCsv(documentos)} vacio="No hay documentos que exportar." />}
         />
         <ul
@@ -226,12 +215,13 @@ export function PorContabilizarTab({ cuadre }: { cuadre: CuadreDelLibro }) {
           style={{ display: "flex", gap: "var(--s-4)", flexWrap: "wrap", margin: 0, padding: 0, listStyle: "none" }}
         >
           {TIPOS_DE_DOCUMENTO.map((t) => {
-            const c = documentos.conteo[t];
+            // «Factura: X sin asiento de N vivas…»: el rótulo en negrita, el resto igual.
+            const texto = textoDelConteo(t, documentos.conteo[t]);
+            const rotulo = ETIQUETA_TIPO[t];
             return (
-              <li key={t} style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
-                <strong style={{ color: "var(--ink)" }}>{ETIQUETA_TIPO[t]}</strong>: {c.sinAsiento} sin
-                asiento de {c.revisados}
-                {c.sinMonto > 0 ? ` · ${c.sinMonto} sin monto` : ""}
+              <li key={t} data-testid={`conteo-${t}`} style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+                <strong style={{ color: "var(--ink)" }}>{rotulo}</strong>
+                {texto.slice(rotulo.length)}
               </li>
             );
           })}

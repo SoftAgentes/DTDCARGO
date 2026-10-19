@@ -229,11 +229,11 @@ describe("buildViewCsv · Constructor (build) se autogestiona → null", () => {
 // ── SDD-0557 · Estado de resultados con la cifra oficial ──────
 describe("buildViewCsv · Estado de resultados (SDD-0557)", () => {
   const rango = { from: "2026-06-01", to: "2026-06-04" };
-  const ingreso = (base: number) =>
+  const ingreso = (base: number, currency = "USD") =>
     resumirIngreso(
-      base ? [{ status: "emitida", issued_at: "2026-06-02", currency: "USD", fx_rate: null, base_amount: base }] : [],
+      base ? [{ status: "emitida", issued_at: "2026-06-02", currency, fx_rate: currency === "VES" ? 36.5 : null, base_amount: base }] : [],
       rango,
-      { ventas: 0, ingresos: 0 },
+      { ventas: 0, ventasConMovimiento: false, ingresos: 0 },
     );
   const income = (over: Partial<IncomeStatement>): IncomeStatement => ({
     rows: [],
@@ -250,8 +250,19 @@ describe("buildViewCsv · Estado de resultados (SDD-0557)", () => {
     const lines = csv!.content.split("\r\n");
     expect(lines[0]).toBe("Concepto,Monto USD,% s/ingresos");
     expect(lines).toContain("Ingreso facturado (sin IVA · USD · por emisión),2000,");
-    expect(lines).toContain("En el mayor · cuenta 4.5,0,");
+    expect(lines).toContain("En el mayor · cuenta 4.5 · asientos de factura,0,");
     expect(lines).toContain("Diferencia facturado − mayor (4.5),2000,");
+    expect(lines).toContain("Control contra 4.5: El mayor tiene menos,,");
+    expect(lines).toContain("Facturas del período en bolívares o yuanes (asentadas al nominal),0,");
+    expect(lines).toContain("Otros ingresos del mayor (4.6 y manuales · también a 4.5),0,");
+  });
+
+  it("con una factura en bolívares: la diferencia va vacía y el control dice «No comparable»", () => {
+    const csv = buildViewCsv({ category: "con", rep: "income", income: income({ ingreso: ingreso(36500, "VES") }), today: TODAY });
+    const lines = csv!.content.split("\r\n");
+    expect(lines).toContain("Diferencia facturado − mayor (4.5),,");
+    expect(lines).toContain("Control contra 4.5: No comparable,,");
+    expect(lines).toContain("Facturas del período en bolívares o yuanes (asentadas al nominal),1,");
   });
 
   it("todo en 0 → null", () => {
@@ -268,5 +279,7 @@ describe("buildViewCsv · Estado de resultados (SDD-0557)", () => {
     };
     const csv = buildViewCsv({ category: "con", rep: "cashflow", cashflow, today: TODAY });
     expect(csv!.filename).toBe("reporte-contable-facturado-contra-cobrado-2026-06-04.csv");
+    // El facturado de esta vista lleva IVA (se compara con lo cobrado).
+    expect(csv!.content.split("\r\n")[0]).toBe("Mes,Facturado con IVA USD,Cobrado USD");
   });
 });

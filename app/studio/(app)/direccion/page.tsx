@@ -18,9 +18,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
-import { getDireccionData } from "@/lib/studio/direccion/queries";
+import { getDireccionData, textosFinancieros } from "@/lib/studio/direccion/queries";
 import { fmtUsd } from "@/lib/money";
-import { describirIngreso } from "@/lib/studio/accounting/ingreso-periodo";
 import { FinanceHealthCard } from "./_components/FinanceHealthCard";
 import { ForecastCard } from "./_components/ForecastCard";
 import { OpsCard } from "./_components/OpsCard";
@@ -57,13 +56,8 @@ export default async function DireccionPage() {
 
   const data = await getDireccionData(supabase);
   const { finance, health, ops, commercial, forecast, alerts } = data;
-  const ingreso = describirIngreso(finance.ingreso);
-  const enElLibro =
-    ingreso.estado === "cuadra"
-      ? "cuadra con el libro"
-      : finance.ingreso.mayor?.ventas != null
-        ? `en el libro: ${fmtUsd(finance.ingreso.mayor.ventas)}`
-        : "sin cuenta 4.5 en el libro";
+  // Los textos de los dos KPI salen de una función pura, con prueba.
+  const textos = textosFinancieros(finance);
 
   const today = new Date().toLocaleDateString("es-VE", {
     weekday: "long",
@@ -117,24 +111,25 @@ export default async function DireccionPage() {
         }}
       >
         <KpiCard
-          value={fmtUsd(finance.ingreso.facturado.total)}
-          label="Ingresos · mes"
+          value={textos.ingreso.valor}
+          label={textos.ingreso.label}
           sub={
             <>
-              Facturado sin IVA · {finance.ingreso.rango.from} → {finance.ingreso.rango.to}
-              <br />
-              {enElLibro}
-              {finance.ingreso.facturado.terceros > 0 && " · incluye fondos de terceros"}
-              {finance.ingreso.sinConvertir > 0 &&
-                ` · ${finance.ingreso.sinConvertir} sin convertir`}
+              {textos.ingreso.periodo}
+              {textos.ingreso.detalle && (
+                <>
+                  <br />
+                  {textos.ingreso.detalle}
+                </>
+              )}
             </>
           }
           valueColor="var(--success)"
         />
         <KpiCard
-          value={fmtUsd(finance.utilidad)}
-          label="Utilidad neta · libro"
-          sub={`Margen ${finance.margenPct.toFixed(1)}% sobre los ingresos del libro`}
+          value={textos.utilidad.valor}
+          label={textos.utilidad.label}
+          sub={textos.utilidad.sub}
           valueColor={finance.utilidad >= 0 ? "var(--ink)" : "var(--danger)"}
         />
         <KpiCard

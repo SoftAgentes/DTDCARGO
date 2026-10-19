@@ -18,10 +18,14 @@ import {
   enlaceDelDocumento,
   filasDelDiario,
   nombreDelDiario,
+  notasDelSubdiario,
   origenDelAsiento,
+  pedidoDeReportes,
   rangoDelDiario,
+  ROTULO_DIARIO_CSV,
   sinAsientoCsv,
   subdiarioCsv,
+  textoDelConteo,
   type AsientoDeDocumento,
   type DocumentoContable,
 } from "../libro-control";
@@ -144,7 +148,7 @@ describe("cruzarDocumentosConAsientos (definiciones canónicas de la SDD-0559)",
       ["factura", "sin_asiento"],
       ["recibo", "asiento_anulado"],
     ]);
-    expect(r.conteo.cxp).toEqual({ revisados: 1, sinAsiento: 0, sinMonto: 0, anuladosConAsiento: 0 });
+    expect(r.conteo.cxp).toEqual({ revisados: 1, vivos: 1, anulados: 0, sinAsiento: 0, sinMonto: 0, anuladosConAsiento: 0 });
   });
 
   it("el crédito de referido guarda invoice_id pero NO es el asiento de venta", () => {
@@ -193,7 +197,31 @@ describe("cruzarDocumentosConAsientos (definiciones canónicas de la SDD-0559)",
       ["F0", "sin_monto"],
       ["B0", "sin_monto"],
     ]);
-    expect(r.conteo.factura).toEqual({ revisados: 2, sinAsiento: 0, sinMonto: 1, anuladosConAsiento: 1 });
+    expect(r.conteo.factura).toEqual({ revisados: 2, vivos: 1, anulados: 1, sinAsiento: 0, sinMonto: 1, anuladosConAsiento: 1 });
+  });
+
+  it("«X sin asiento de N vivas»: el denominador son los vivos; los anulados van aparte", () => {
+    // 2 facturas vivas sin asiento y 3 anuladas: con los anulados en el
+    // denominador diría «2 sin asiento de 5», que se lee como 40 %.
+    const r = cruzarDocumentosConAsientos(
+      [
+        doc({ tipo: "factura", id: "f1" }),
+        doc({ tipo: "factura", id: "f2" }),
+        doc({ tipo: "factura", id: "f7", vivo: false }),
+        doc({ tipo: "factura", id: "f8", vivo: false }),
+        doc({ tipo: "factura", id: "f9", vivo: false }),
+        doc({ tipo: "recibo", id: "r1", journal_entry_id: "e-r1" }),
+        doc({ tipo: "pago_proveedor", id: "p9", vivo: false }),
+        doc({ tipo: "cxp", id: "b0", monto: 0 }),
+      ],
+      [asiento({ id: "e-r1", source: "receipt", receipt_id: "r1" })],
+    );
+    expect(textoDelConteo("factura", r.conteo.factura)).toBe("Factura: 2 sin asiento de 2 vivas · 3 anuladas aparte");
+    expect(textoDelConteo("recibo", r.conteo.recibo)).toBe("Recibo: 0 sin asiento de 1 vivo");
+    expect(textoDelConteo("pago_proveedor", r.conteo.pago_proveedor)).toBe(
+      "Pago a proveedor: 0 sin asiento de 0 vivos · 1 anulado aparte",
+    );
+    expect(textoDelConteo("cxp", r.conteo.cxp)).toBe("CxP: 0 sin asiento de 1 viva · 1 sin monto");
   });
 
   it("orden: tipo, fecha y código; enlaces al documento", () => {
@@ -306,6 +334,54 @@ describe("cuadreSubdiario", () => {
     expect(s.proveedores).toMatchObject({ cuenta: "2.1.1", subdiarioUsd: 300, diferenciaUsd: 0, documentos: 2, estado: "cuadra" });
   });
 
+  it("proveedores: una CxP en otra moneda SIN tasa suma su nominal y se cuenta aparte; la nota y el CSV lo dicen", () => {
+    const s = cuadreSubdiario({
+      fecha: "2025-03-18",
+      facturas: [],
+      cxp: [
+        saldo({ status: "pendiente", total_amount: 200 }),
+        saldo({ status: "pendiente", currency: "CNY", fx_rate: null, total_amount: 70000 }),
+        saldo({ status: "pendiente", currency: "VES", fx_rate: 0, total_amount: 500 }),
+        // Con tasa, sin saldo o anulada: no cuentan.
+        saldo({ status: "pendiente", currency: "CNY", fx_rate: 7, total_amount: 700 }),
+        saldo({ status: "pagada", currency: "CNY", fx_rate: null, total_amount: 90, paid_amount: 90 }),
+        saldo({ status: "anulada", currency: "CNY", fx_rate: null, total_amount: 999 }),
+      ],
+      recibosNoUsdConAsiento: 0,
+      mayorClientes: mayor(0),
+      mayorProveedores: mayor(70800),
+    });
+    // 200 + 70000 (nominal) + 500 (nominal) + 100 = 70800, como el asiento.
+    expect(s.proveedores).toMatchObject({ subdiarioUsd: 70800, documentos: 4, sinTasa: 2, estado: "cuadra" });
+    expect(s.clientes.sinTasa).toBe(0);
+    expect(notasDelSubdiario(s)).toContain("2 CxP sin tasa van al nominal, como su asiento: el saldo no está en USD.");
+    const una = cuadreSubdiario({
+      fecha: "2025-03-18",
+      facturas: [],
+      cxp: [saldo({ status: "pendiente", currency: "CNY", fx_rate: null, total_amount: 10 })],
+      recibosNoUsdConAsiento: 0,
+      mayorClientes: mayor(0),
+      mayorProveedores: mayor(10),
+    });
+    expect(notasDelSubdiario(una)).toEqual(["1 CxP sin tasa va al nominal, como su asiento: el saldo no está en USD."]);
+    expect(subdiarioCsv(s).content.split("\r\n")[2]).toBe("2.1.1,Proveedores,70800,70800,0,4,0,2,Cuadra");
+  });
+
+  it("notas del subdiario: no comparable y facturas sin convertir de clientes", () => {
+    const s = cuadreSubdiario({
+      fecha: "2025-03-18",
+      facturas: [saldo({ currency: "CNY", total_amount: 100 })],
+      cxp: [],
+      recibosNoUsdConAsiento: 0,
+      mayorClientes: mayor(0),
+      mayorProveedores: mayor(0),
+    });
+    expect(notasDelSubdiario(s)).toEqual([
+      "Clientes no es comparable: hay facturas en bolívares o yuanes, que hoy se asientan por su monto nominal y el cobro las convierte.",
+      "1 factura con saldo no suma: está en bolívares sin tasa o en yuanes.",
+    ]);
+  });
+
   it("0 contra 0 sin movimiento en la cuenta no es «cuadra»", () => {
     const s = cuadreSubdiario({
       fecha: "2025-03-18",
@@ -330,9 +406,9 @@ describe("cuadreSubdiario", () => {
     });
     const csv = subdiarioCsv(s, new Date("2025-03-18T12:00:00Z"));
     expect(csv.content.split("\r\n")).toEqual([
-      "Cuenta,Nombre,Subdiario USD,Mayor USD,Diferencia USD,Documentos,Sin convertir,Estado",
-      "1.1.2,Clientes,10,10,0,1,0,Cuadra",
-      "2.1.1,Proveedores,0,,,0,0,Cuenta no encontrada",
+      "Cuenta,Nombre,Subdiario USD,Mayor USD,Diferencia USD,Documentos,Sin convertir,Sin tasa (al nominal: no USD),Estado",
+      "1.1.2,Clientes,10,10,0,1,0,0,Cuadra",
+      "2.1.1,Proveedores,0,,,0,0,0,Cuenta no encontrada",
     ]);
     expect(csv.filename).toBe("reporte-contable-subdiario-contra-mayor-2025-03-18-2025-03-18.csv");
   });
@@ -396,9 +472,46 @@ describe("diario", () => {
     expect(nombreDelDiario({ from: "2025-03-01", to: "2025-03-10" }, "2025-03-18")).toBe("diario-2025-03-01-a-2025-03-10.csv");
   });
 
-  it("aviso de la pantalla", () => {
-    expect(avisoDelDiario(500, 1234)).toBe("Mostrando 500 de 1.234 asientos (los más recientes).");
-    expect(avisoDelDiario(10, 10)).toBeNull();
+  it("aviso de la pantalla: dice cuántos asentados trae el CSV", () => {
+    expect(avisoDelDiario(500, 1234, 900)).toBe(
+      "Mostrando 500 de 1.234 asientos (los más recientes). El CSV trae solo los 900 asentados.",
+    );
+    expect(avisoDelDiario(500, 501, 1)).toBe(
+      "Mostrando 500 de 501 asientos (los más recientes). El CSV trae solo 1 asentado.",
+    );
+    expect(avisoDelDiario(10, 10, 10)).toBeNull();
+    expect(ROTULO_DIARIO_CSV).toBe("Descargar el diario asentado (CSV)");
+  });
+});
+
+describe("pedidoDeReportes (la decisión de la página, DAT-01)", () => {
+  const HOY = "2025-03-18";
+
+  it("sin fechas: el mes en curso, y se calcula", () => {
+    expect(pedidoDeReportes(undefined, undefined, HOY)).toEqual({
+      filtro: { desde: "2025-03-01", hasta: "2025-03-18", error: null },
+      rango: { from: "2025-03-01", to: "2025-03-18" },
+    });
+  });
+
+  it("rango al revés, fecha inválida o una sola fecha: el error y NADA que calcular", () => {
+    for (const [d, h] of [
+      ["2025-03-10", "2025-03-01"],
+      ["2025-02-30", "2025-03-01"],
+      ["2025-03-01", ""],
+    ]) {
+      const p = pedidoDeReportes(d, h, HOY);
+      expect(p.rango).toBeNull();
+      expect(p.filtro.error).not.toBeNull();
+      expect(p.filtro.desde).toBe(d);
+    }
+  });
+
+  it("fechas válidas: ese rango, sin error", () => {
+    expect(pedidoDeReportes("2025-01-01", "2025-01-31", HOY)).toEqual({
+      filtro: { desde: "2025-01-01", hasta: "2025-01-31", error: null },
+      rango: { from: "2025-01-01", to: "2025-01-31" },
+    });
   });
 });
 

@@ -17,10 +17,22 @@
  * la tasa de la factura. VES sin tasa y CNY NO suman: se cuentan aparte como
  * «sin convertir». El IVA es un pasivo (2.1.5), no ingreso.
  *
- * El mayor queda como CONTROL, contra la cuenta 4.5 (la que acredita el
- * asiento de cada factura), no contra todas las cuentas 4: el 4.6 (spread del
- * Socio China) y los asientos manuales a 4.x son «otros ingresos del mayor» y
- * van aparte, sin contar como diferencia.
+ * El mayor queda como CONTROL, contra las líneas de la cuenta 4.5 de los
+ * asientos de FACTURA (`source = 'invoice'`, la que acredita el asiento de
+ * cada factura), no contra todas las cuentas 4. Todo lo demás que el mayor
+ * tiene en ingresos (el 4.6 del Socio China, los asientos manuales, también
+ * los que van a la propia 4.5, y cualquier otro origen) son «otros ingresos
+ * del mayor»: van aparte y no cuentan como diferencia.
+ *
+ * Estados del control (`describirIngreso`):
+ *  - «no comparable» (regla E1 de la SDD-0559): con alguna factura no borrador
+ *    del período en VES o CNY, convertida o no. Hoy esas facturas se asientan
+ *    en 4.5 por el NOMINAL en bolívares o yuanes (B2), así que la diferencia
+ *    no dice nada; vuelve con la tarea 2.3 del plan contable;
+ *  - «sin movimiento»: sin facturas que sumen, sin facturas sin convertir y
+ *    sin debe ni haber de asientos de factura en 4.5. Un 0 contra 0 no es una
+ *    verificación;
+ *  - «cuadra», «el mayor tiene menos», «el mayor tiene más», «sin cuenta 4.5».
  *
  * El desglose propio/terceros sale de `fund_class` (0122): la cifra INCLUYE
  * los fondos de terceros y cada pantalla lo dice. La decisión de si son
@@ -69,9 +81,14 @@ export type FacturaDeIngreso = {
 
 /** Lo que el mayor dice del mismo período. */
 export type ControlDelMayor = {
-  /** Saldo de 4.5 (con sus subcuentas) en el rango; null si el plan no tiene 4.5. */
+  /**
+   * Saldo de 4.5 (con sus subcuentas) en el rango, SOLO de los asientos de
+   * factura (`source = 'invoice'`); null si el plan no tiene 4.5.
+   */
   ventas: number | null;
-  /** Total de las cuentas de ingreso (raíz tipo I) en el rango. */
+  /** ¿Esas líneas de 4.5 tienen algún debe o haber en el rango? */
+  ventasConMovimiento: boolean;
+  /** Total de las cuentas de ingreso (raíz tipo I) en el rango, de cualquier origen. */
   ingresos: number;
 };
 
@@ -83,9 +100,23 @@ export type IngresoPeriodo = {
   facturas: number;
   /** Facturas del período que NO suman: VES sin tasa o CNY. */
   sinConvertir: number;
+  /**
+   * Facturas no borrador del período (también las anuladas) en VES o CNY,
+   * convertidas o no. Con alguna, el control es «no comparable» (E1, B2).
+   */
+  enOtraMoneda: number;
   /** Control del mayor; null cuando la pantalla no lo lee (Dashboard). */
-  mayor: { ventas: number | null; ingresos: number; otrosIngresos: number } | null;
-  /** facturado.total − mayor.ventas; null si no hay mayor o no hay cuenta 4.5. */
+  mayor: {
+    ventas: number | null;
+    ventasConMovimiento: boolean;
+    ingresos: number;
+    /** ingresos − ventas: 4.6, manuales (también a 4.5) y otros orígenes. */
+    otrosIngresos: number;
+  } | null;
+  /**
+   * facturado.total − mayor.ventas; null si no hay mayor, no hay cuenta 4.5 o
+   * no es comparable (alguna factura del período en VES o CNY).
+   */
   diferenciaUsd: number | null;
 };
 
@@ -151,16 +182,23 @@ export function rangoDesdeParams(
 }
 
 /**
- * Control del mayor sobre los saldos de un rango: el saldo de 4.5 (con
- * rollup de subcuentas) y el total de ingresos del P&L.
+ * Control del mayor sobre un rango.
+ *  - `balances`: los saldos del rango con TODOS los orígenes → el total de
+ *    ingresos del P&L.
+ *  - `deFacturas`: los saldos del mismo rango con SOLO las líneas de los
+ *    asientos de factura → el saldo de 4.5 (con rollup de subcuentas) y si
+ *    tiene movimiento. Un manual a 4.5 no está acá: queda en «otros ingresos».
  */
 export function controlDelMayor(
   accounts: AccountLike[],
   balances: AccountBalanceMap,
+  deFacturas: AccountBalanceMap,
 ): ControlDelMayor {
-  const ventas = accounts.find((a) => a.code === CUENTA_VENTAS);
+  const cuenta = accounts.find((a) => a.code === CUENTA_VENTAS);
+  const s = cuenta ? deFacturas[cuenta.id] : undefined;
   return {
-    ventas: ventas ? round2(balances[ventas.id]?.balance ?? 0) : null,
+    ventas: cuenta ? round2(s?.balance ?? 0) : null,
+    ventasConMovimiento: !!s && (s.debit !== 0 || s.credit !== 0),
     ingresos: profitAndLoss(accounts, balances).income,
   };
 }
@@ -179,9 +217,16 @@ function convertible(currency: string, fxRate: number | string | null): boolean 
   return false;
 }
 
+/** VES o CNY: la factura se asienta hoy por el nominal en esa moneda (B2). */
+function enOtraMonedaDelAsiento(currency: string): boolean {
+  return currency === "VES" || currency === "CNY";
+}
+
 /**
  * LA regla. Vuelve a filtrar borradas, estado y fecha en memoria, así que da
- * lo mismo aunque el lector traiga de más.
+ * lo mismo aunque el lector traiga de más. Cuenta además las facturas no
+ * borrador del período en VES o CNY (también las anuladas, que pueden
+ * conservar su asiento): con alguna, la comparación contra 4.5 no vale (E1).
  */
 export function resumirIngreso(
   facturas: readonly FacturaDeIngreso[],
@@ -192,13 +237,15 @@ export function resumirIngreso(
   let terceros = 0;
   let cuenta = 0;
   let sinConvertir = 0;
+  let enOtraMoneda = 0;
 
   for (const f of facturas) {
     if (f.deleted_at != null) continue;
-    if (!esDeIngreso(f.status)) continue;
     if (!f.issued_at) continue;
     const dia = f.issued_at.slice(0, 10);
     if (dia < rango.from || dia > rango.to) continue;
+    if (f.status !== "borrador" && enOtraMonedaDelAsiento(f.currency)) enOtraMoneda += 1;
+    if (!esDeIngreso(f.status)) continue;
     if (!convertible(f.currency, f.fx_rate)) {
       sinConvertir += 1;
       continue;
@@ -220,19 +267,24 @@ export function resumirIngreso(
   const control = mayor
     ? {
         ventas: mayor.ventas,
+        ventasConMovimiento: mayor.ventasConMovimiento,
         ingresos: round2(mayor.ingresos),
         otrosIngresos: round2(mayor.ingresos - (mayor.ventas ?? 0)),
       }
     : null;
+  const comparable = enOtraMoneda === 0;
 
   return {
     rango,
     facturado: { propio: round2(propio), terceros: round2(terceros), total },
     facturas: cuenta,
     sinConvertir,
+    enOtraMoneda,
     mayor: control,
     diferenciaUsd:
-      control && control.ventas != null ? round2(total - control.ventas) : null,
+      control && control.ventas != null && comparable
+        ? round2(total - control.ventas)
+        : null,
   };
 }
 
@@ -240,8 +292,21 @@ export type EstadoDelIngreso =
   | "cuadra"
   | "mayor_menor"
   | "mayor_mayor"
+  | "no_comparable"
+  | "sin_movimiento"
   | "sin_cuenta"
   | "sin_mayor";
+
+/** Rótulo corto del estado del control (CSV, insignias). */
+export const ETIQUETA_ESTADO_INGRESO: Record<EstadoDelIngreso, string> = {
+  cuadra: "Cuadra",
+  mayor_menor: "El mayor tiene menos",
+  mayor_mayor: "El mayor tiene más",
+  no_comparable: "No comparable",
+  sin_movimiento: "Sin movimiento",
+  sin_cuenta: "Sin cuenta 4.5",
+  sin_mayor: "Sin mayor",
+};
 
 export type DescripcionIngreso = {
   estado: EstadoDelIngreso;
@@ -251,27 +316,47 @@ export type DescripcionIngreso = {
   avisoSinConvertir: string | null;
   /** «Incluye $X de fondos de terceros.», o null si no hay. */
   avisoTerceros: string | null;
-  /** Otros ingresos del mayor (fuera de 4.5), o null si no hay. */
+  /** Otros ingresos del mayor (no salen del asiento de una factura), o null si no hay. */
   otrosIngresosTexto: string | null;
 };
 
-/** Los textos que muestran Contabilidad, Reportes, Dirección y el Dashboard. */
+/**
+ * Los textos del control que muestran Contabilidad › Reportes y Reportes ›
+ * Estado de resultados (`IngresoDelPeriodoCard`), y el estado que usan
+ * Dirección (`textosFinancieros`) y el CSV del P&L. El Dashboard no lee el
+ * mayor: arma su subtítulo en `financeInvoiceKpis`.
+ */
 export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
   let estado: EstadoDelIngreso = "sin_mayor";
   let diferenciaTexto: string | null = null;
   if (i.mayor) {
-    if (i.mayor.ventas == null || i.diferenciaUsd == null) {
+    if (i.mayor.ventas == null) {
       estado = "sin_cuenta";
       diferenciaTexto = `La cuenta ${CUENTA_VENTAS} no está en el plan de cuentas: no hay con qué comparar.`;
-    } else if (Math.abs(i.diferenciaUsd) < 0.005) {
-      estado = "cuadra";
-      diferenciaTexto = `Cuadra con el mayor (cuenta ${CUENTA_VENTAS}).`;
-    } else if (i.diferenciaUsd > 0) {
-      estado = "mayor_menor";
-      diferenciaTexto = `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(i.diferenciaUsd)} menos que lo facturado.`;
+    } else if (i.enOtraMoneda > 0) {
+      estado = "no_comparable";
+      const n = i.enOtraMoneda;
+      diferenciaTexto =
+        `No comparable: ${n === 1 ? "1 factura del período está" : `${n} facturas del período están`}` +
+        ` en bolívares o yuanes y hoy ${n === 1 ? "se asienta" : "se asientan"} en la cuenta ${CUENTA_VENTAS}` +
+        " por su nominal en esa moneda, no en USD. La comparación vuelve con la tarea 2.3 del plan" +
+        " contable (moneda funcional en el mayor).";
+    } else if (i.facturas === 0 && i.sinConvertir === 0 && !i.mayor.ventasConMovimiento) {
+      estado = "sin_movimiento";
+      diferenciaTexto = `Sin movimiento: no hay facturas del período ni asientos de factura en la cuenta ${CUENTA_VENTAS}. No hay nada que comparar.`;
     } else {
-      estado = "mayor_mayor";
-      diferenciaTexto = `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(-i.diferenciaUsd)} más que lo facturado.`;
+      // Con 4.5 en el plan y comparable, `resumirIngreso` siempre la calcula.
+      const dif = i.diferenciaUsd ?? 0;
+      if (Math.abs(dif) < 0.005) {
+        estado = "cuadra";
+        diferenciaTexto = `Cuadra con el mayor (cuenta ${CUENTA_VENTAS}).`;
+      } else if (dif > 0) {
+        estado = "mayor_menor";
+        diferenciaTexto = `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(dif)} menos que lo facturado.`;
+      } else {
+        estado = "mayor_mayor";
+        diferenciaTexto = `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(-dif)} más que lo facturado.`;
+      }
     }
   }
 
@@ -290,7 +375,7 @@ export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
 
   const otrosIngresosTexto =
     i.mayor && Math.abs(i.mayor.otrosIngresos) >= 0.005
-      ? `Otros ingresos del mayor, fuera de ${CUENTA_VENTAS}: ${fmtUsd(i.mayor.otrosIngresos)}. No cuentan como diferencia.`
+      ? `Otros ingresos del mayor que no salen del asiento de una factura (4.6 y asientos manuales, también a ${CUENTA_VENTAS}): ${fmtUsd(i.mayor.otrosIngresos)}. No cuentan como diferencia.`
       : null;
 
   return { estado, diferenciaTexto, avisoSinConvertir, avisoTerceros, otrosIngresosTexto };

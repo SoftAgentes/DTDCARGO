@@ -47,6 +47,29 @@ describe("PorContabilizarTab", () => {
     expect(screen.getByRole("link", { name: "F-2025-0001" })).toHaveAttribute("href", "/studio/facturacion/F-2025-0001");
     expect(screen.getByText("Sin asiento")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Factura: 1" })).toHaveAttribute("href", "/studio/facturacion");
+    // El denominador son las vivas: f1 viva sin asiento; f9 anulada, aparte.
+    // Con la anulada adentro diría «1 sin asiento de 2».
+    expect(screen.getByTestId("conteo-factura")).toHaveTextContent("Factura: 1 sin asiento de 1 viva · 1 anulada aparte");
+  });
+
+  it("proveedores con una CxP en yuanes sin tasa: la nota dice que el saldo no está en USD", () => {
+    const base = cuadre(false);
+    render(
+      <PorContabilizarTab
+        cuadre={{
+          ...base,
+          subdiario: cuadreSubdiario({
+            fecha: "2025-03-18",
+            facturas: [],
+            cxp: [{ status: "pendiente", currency: "CNY", fx_rate: null, total_amount: 70000, paid_amount: 0 }],
+            recibosNoUsdConAsiento: 0,
+            mayorClientes: { saldo: 0, debe: 0, haber: 0 },
+            mayorProveedores: { saldo: 70000, debe: 0, haber: 70000 },
+          }),
+        }}
+      />,
+    );
+    expect(screen.getByText(/1 CxP sin tasa va al nominal, como su asiento: el saldo no está en USD\./)).toBeInTheDocument();
   });
 
   it("sin hallazgos: estado vacío honesto y sin anulados con asiento", () => {

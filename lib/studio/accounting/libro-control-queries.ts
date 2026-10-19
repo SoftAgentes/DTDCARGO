@@ -11,6 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import {
   accountBalances,
+  computeBalances,
   listAccounts,
   type AccountBalanceMap,
 } from "@/lib/studio/account-queries";
@@ -65,9 +66,81 @@ const num = (v: unknown): number => {
 };
 
 /**
+ * Los saldos del rango con SOLO las líneas de los asientos de factura
+ * (`source = 'invoice'`), asentados y vivos. Es el lado del mayor que se
+ * compara con lo facturado: un asiento manual a 4.5, o de cualquier otro
+ * origen, no es una venta facturada y queda en «otros ingresos del mayor».
+ * El filtro va en SQL y se repite en memoria, también sobre las líneas.
+ */
+export async function saldosDeFacturas(
+  supabase: SupabaseClient,
+  rango: RangoFechas,
+  accounts: Account[],
+): Promise<AccountBalanceMap> {
+  const asientos = await leerCompleto<Fila>("Control del mayor · asientos de factura", (d, h) =>
+    supabase
+      .from("journal_entries")
+      .select("id, status, source, deleted_at")
+      .eq("status", "asentado")
+      .is("deleted_at", null)
+      .eq("source", ORIGEN_POR_TIPO.factura)
+      .gte("entry_date", rango.from)
+      .lte("entry_date", rango.to)
+      .order("id", { ascending: true })
+      .range(d, h),
+  );
+  const ids = asientos
+    .filter(
+      (a) =>
+        a.status === "asentado" && a.deleted_at == null && a.source === ORIGEN_POR_TIPO.factura,
+    )
+    .map((a) => str(a.id));
+  if (ids.length === 0) return computeBalances(accounts, []);
+
+  const { rows: lineas, complete } = await fetchAllByIds<Fila>(ids, (lote, d, h) =>
+    supabase
+      .from("journal_lines")
+      .select("id, entry_id, account_id, debit, credit")
+      .in("entry_id", lote)
+      .order("id", { ascending: true })
+      .range(d, h),
+  );
+  if (!complete) {
+    throw new Error(
+      "Control del mayor · líneas de factura: la lectura supera el tope; el control no se puede calcular completo.",
+    );
+  }
+  const deFactura = new Set(ids);
+  return computeBalances(
+    accounts,
+    lineas
+      .filter((l) => deFactura.has(str(l.entry_id)))
+      .map((l) => ({ account_id: str(l.account_id), debit: num(l.debit), credit: num(l.credit) })),
+  );
+}
+
+/**
+ * El control del mayor de un rango (ingreso-periodo.ts, `controlDelMayor`):
+ * `balances` son los saldos del rango con todos los orígenes, que el llamador
+ * ya leyó para su P&L; acá se leen los de los asientos de factura.
+ */
+export async function controlDelPeriodo(
+  supabase: SupabaseClient,
+  rango: RangoFechas,
+  accounts: Account[],
+  balances: AccountBalanceMap,
+): Promise<ControlDelMayor> {
+  const deFacturas = await saldosDeFacturas(supabase, rango, accounts);
+  return controlDelMayor(accounts, balances, deFacturas);
+}
+
+/**
  * La cifra oficial de ingreso del período (ingreso-periodo.ts). El filtro va en
- * SQL por eficiencia y la regla lo repite en memoria. `opts.mayor`:
- *  - un control ya calculado (Reportes y Dirección ya tienen los saldos);
+ * SQL por eficiencia y la regla lo repite en memoria. Trae también las
+ * anuladas: no suman, pero una anulada en VES o CNY puede conservar su asiento
+ * al nominal y vuelve «no comparable» el control (E1). `opts.mayor`:
+ *  - un control ya calculado (`controlDelPeriodo`: Reportes y Dirección ya
+ *    tienen los saldos del rango);
  *  - null para no leer el mayor;
  *  - sin pasar, se calcula con los saldos del mismo rango.
  */
@@ -83,7 +156,7 @@ export async function ingresoDelPeriodo(
         .from("invoices")
         .select("id, status, issued_at, currency, fx_rate, base_amount, fund_class, deleted_at")
         .is("deleted_at", null)
-        .in("status", [...ESTADOS_DE_INGRESO])
+        .in("status", [...ESTADOS_DE_INGRESO, "anulada"])
         .gte("issued_at", rango.from)
         .lte("issued_at", rango.to)
         .order("id", { ascending: true })
@@ -96,7 +169,7 @@ export async function ingresoDelPeriodo(
       listAccounts(supabase),
       accountBalances(supabase, { fromDate: rango.from, upToDate: rango.to }),
     ]);
-    mayor = controlDelMayor(accounts, balances);
+    mayor = await controlDelPeriodo(supabase, rango, accounts, balances);
   }
   return resumirIngreso(facturas, rango, mayor);
 }
@@ -115,7 +188,7 @@ export async function reportesDelLibro(
     accountBalances(supabase, { upToDate: rango.to }),
   ]);
   const ingreso = await ingresoDelPeriodo(supabase, rango, {
-    mayor: controlDelMayor(accounts, delPeriodo),
+    mayor: await controlDelPeriodo(supabase, rango, accounts, delPeriodo),
   });
   return {
     rango,

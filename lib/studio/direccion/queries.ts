@@ -24,13 +24,18 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { fmtUsd } from "@/lib/money";
 import { accountBalances, listAccounts } from "../account-queries";
 import { profitAndLoss } from "../accounting/reports";
 import {
-  controlDelMayor,
+  CUENTA_VENTAS,
+  describirIngreso,
   type IngresoPeriodo,
 } from "../accounting/ingreso-periodo";
-import { ingresoDelPeriodo } from "../accounting/libro-control-queries";
+import {
+  controlDelPeriodo,
+  ingresoDelPeriodo,
+} from "../accounting/libro-control-queries";
 import { isCashAccount } from "../payment-queries";
 import { collectionKpis } from "../payment-queries";
 import { listBills, treasuryKpis } from "../treasury/bill-queries";
@@ -150,6 +155,66 @@ export type DireccionData = {
 export function netMarginPct(ingresos: number, utilidad: number): number {
   if (!ingresos) return 0;
   return round2((utilidad / ingresos) * 100);
+}
+
+/** Los textos de los dos KPI de Dirección que vienen del libro y de la cifra oficial. */
+export type TextosFinancieros = {
+  ingreso: {
+    label: string;
+    valor: string;
+    /** «Facturado sin IVA · desde → hasta». */
+    periodo: string;
+    /** El control contra el libro y los avisos, unidos por « · ». */
+    detalle: string;
+  };
+  utilidad: { label: string; valor: string; sub: string };
+};
+
+/**
+ * Qué dice Dirección del ingreso y de la utilidad (SDD-0557), PURA. El control
+ * sigue al estado de `describirIngreso`:
+ *  - cuadra → «cuadra con el libro»;
+ *  - el mayor tiene más o menos → «en el libro: $X» (el saldo de 4.5 de los
+ *    asientos de factura, sin la diferencia: la diferencia la muestran
+ *    Contabilidad y Reportes);
+ *  - no comparable → lo dice, sin cifra del libro;
+ *  - sin movimiento → «sin movimiento en el libro», nunca «cuadra»;
+ *  - sin cuenta 4.5 → lo dice.
+ */
+export function textosFinancieros(
+  f: Pick<FinanceKpis, "ingreso" | "utilidad" | "margenPct">,
+): TextosFinancieros {
+  const i = f.ingreso;
+  const d = describirIngreso(i);
+  // Con «tiene más» o «tiene menos» la cuenta 4.5 existe: `ventas` no es null.
+  const enElLibro = `en el libro: ${fmtUsd(i.mayor?.ventas ?? 0)}`;
+  const libro: Record<typeof d.estado, string | null> = {
+    cuadra: "cuadra con el libro",
+    mayor_menor: enElLibro,
+    mayor_mayor: enElLibro,
+    no_comparable: "no comparable con el libro: hay facturas en bolívares o yuanes",
+    sin_movimiento: "sin movimiento en el libro",
+    sin_cuenta: `sin cuenta ${CUENTA_VENTAS} en el libro`,
+    sin_mayor: null,
+  };
+  const partes = [
+    libro[d.estado],
+    i.facturado.terceros > 0 ? "incluye fondos de terceros" : null,
+    i.sinConvertir > 0 ? `${i.sinConvertir} sin convertir` : null,
+  ].filter((p): p is string => p !== null);
+  return {
+    ingreso: {
+      label: "Ingresos · mes",
+      valor: fmtUsd(i.facturado.total),
+      periodo: `Facturado sin IVA · ${i.rango.from} → ${i.rango.to}`,
+      detalle: partes.join(" · "),
+    },
+    utilidad: {
+      label: "Utilidad neta · libro",
+      valor: fmtUsd(f.utilidad),
+      sub: `Margen ${f.margenPct.toFixed(1)}% sobre los ingresos del libro`,
+    },
+  };
 }
 
 /** Posición neta = caja + CxC − CxP. */
@@ -360,11 +425,10 @@ export async function getDireccionData(
   // P&L del mes (ingresos + utilidad) — reusa el cálculo de Contabilidad.
   const pl = profitAndLoss(accounts, monthBalances);
   const utilidad = pl.netIncome;
-  const ingreso = await ingresoDelPeriodo(
-    supabase,
-    { from: monthStart, to: today },
-    { mayor: controlDelMayor(accounts, monthBalances) },
-  );
+  const delMes = { from: monthStart, to: today };
+  const ingreso = await ingresoDelPeriodo(supabase, delMes, {
+    mayor: await controlDelPeriodo(supabase, delMes, accounts, monthBalances),
+  });
 
   // Caja consolidada = suma de saldos VIVOS de las cuentas de caja/banco.
   const caja = round2(

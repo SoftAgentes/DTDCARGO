@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   CUENTA_VENTAS,
   ESTADOS_DE_INGRESO,
+  ETIQUETA_ESTADO_INGRESO,
   controlDelMayor,
   describirIngreso,
   mesEnCurso,
@@ -16,7 +17,15 @@ import { SALE_STATUSES } from "@/lib/studio/fiscal/queries";
 import { SALES_INCOME_CODE } from "../invoice-posting";
 import { computeBalances } from "@/lib/studio/account-queries";
 import type { Account } from "@/lib/studio/account-types";
-import { ESPERADO, FACTURAS_DEL_MES, HOY, RANGO_MES } from "./ingreso-fixture";
+import {
+  ESPERADO,
+  ESPERADO_EN_USD,
+  FACTURAS_DEL_MES,
+  FACTURAS_EN_USD,
+  HOY,
+  RANGO_MES,
+  control,
+} from "./ingreso-fixture";
 
 const sinMayor = () => resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, null);
 
@@ -30,6 +39,7 @@ describe("resumirIngreso · la cifra oficial", () => {
     });
     expect(i.facturas).toBe(ESPERADO.facturas);
     expect(i.sinConvertir).toBe(ESPERADO.sinConvertir);
+    expect(i.enOtraMoneda).toBe(ESPERADO.enOtraMoneda);
     expect(i.rango).toEqual(RANGO_MES);
   });
 
@@ -106,33 +116,100 @@ describe("resumirIngreso · la cifra oficial", () => {
   });
 });
 
-describe("control contra el mayor (4.5, no todas las cuentas 4)", () => {
+describe("control contra el mayor (4.5 de los asientos de factura, no todas las cuentas 4)", () => {
   it("mayor en 0 → diferencia igual a lo facturado; sin mayor → null", () => {
-    const conCero = resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, { ventas: 0, ingresos: 0 });
-    expect(conCero.diferenciaUsd).toBe(2000);
+    const conCero = resumirIngreso(FACTURAS_EN_USD, RANGO_MES, control(0));
+    expect(conCero.diferenciaUsd).toBe(ESPERADO_EN_USD.total);
     expect(sinMayor().diferenciaUsd).toBeNull();
     expect(sinMayor().mayor).toBeNull();
   });
 
   it("los otros ingresos del mayor (4.6, manuales) van aparte y no son diferencia", () => {
-    const i = resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, { ventas: 1500, ingresos: 1700 });
-    expect(i.diferenciaUsd).toBe(500);
-    expect(i.mayor).toEqual({ ventas: 1500, ingresos: 1700, otrosIngresos: 200 });
+    const i = resumirIngreso(FACTURAS_EN_USD, RANGO_MES, control(600, 800));
+    expect(i.diferenciaUsd).toBe(400);
+    expect(i.mayor).toEqual({ ventas: 600, ventasConMovimiento: true, ingresos: 800, otrosIngresos: 200 });
   });
 
-  it("controlDelMayor toma el saldo de 4.5 con rollup y el total de ingresos del P&L", () => {
+  it("controlDelMayor: 4.5 con rollup SOLO de los asientos de factura; el total de ingresos, de todos", () => {
     const acc = (id: string, code: string, type: Account["type"]): Account => ({
       id, code, type, name: code, tenant_id: "t", parent_id: null, qbo_type: null,
       subtype: null, is_postable: true, notes: null, created_at: "", updated_at: "",
     });
     const accounts = [acc("i", "4", "I"), acc("v", "4.5", "I"), acc("v1", "4.5.1", "I"), acc("x", "4.6", "I")];
-    const saldos = computeBalances(accounts, [
+    // Asientos de factura: 1000 a 4.5 y 500 a su subcuenta.
+    const deFacturas = computeBalances(accounts, [
       { account_id: "v", debit: 0, credit: 1000 },
       { account_id: "v1", debit: 0, credit: 500 },
+    ]);
+    // Todos los orígenes: lo de factura, un MANUAL de 300 a la propia 4.5 y 200 a 4.6.
+    const todos = computeBalances(accounts, [
+      { account_id: "v", debit: 0, credit: 1000 },
+      { account_id: "v1", debit: 0, credit: 500 },
+      { account_id: "v", debit: 0, credit: 300 },
       { account_id: "x", debit: 0, credit: 200 },
     ]);
-    expect(controlDelMayor(accounts, saldos)).toEqual({ ventas: 1500, ingresos: 1700 });
-    expect(controlDelMayor(accounts.filter((a) => a.code !== "4.5"), saldos).ventas).toBeNull();
+    expect(controlDelMayor(accounts, todos, deFacturas)).toEqual({
+      ventas: 1500,
+      ventasConMovimiento: true,
+      ingresos: 2000,
+    });
+    // El manual a 4.5 queda en otros ingresos, junto con el 4.6.
+    const i = resumirIngreso(FACTURAS_EN_USD, RANGO_MES, controlDelMayor(accounts, todos, deFacturas));
+    expect(i.mayor?.otrosIngresos).toBe(500);
+    expect(controlDelMayor(accounts.filter((a) => a.code !== "4.5"), todos, deFacturas).ventas).toBeNull();
+  });
+
+  it("movimiento de 4.5: un debe y un haber que se anulan sí son movimiento", () => {
+    const accounts = [{ id: "v", code: "4.5", type: "I" as const }];
+    const ida = computeBalances(accounts as Account[], [
+      { account_id: "v", debit: 100, credit: 0 },
+      { account_id: "v", debit: 0, credit: 100 },
+    ]);
+    const vacio = computeBalances(accounts as Account[], []);
+    expect(controlDelMayor(accounts, vacio, ida)).toMatchObject({ ventas: 0, ventasConMovimiento: true });
+    expect(controlDelMayor(accounts, vacio, vacio)).toMatchObject({ ventas: 0, ventasConMovimiento: false });
+  });
+});
+
+describe("no comparable (E1 de la SDD-0559, B2)", () => {
+  const ves = (extra: Record<string, unknown> = {}) => ({
+    status: "emitida",
+    issued_at: "2025-03-05",
+    currency: "VES",
+    fx_rate: 36.5,
+    base_amount: 3650,
+    ...extra,
+  });
+
+  it("con el fixture del mes (F2, F6 y F7 en bolívares o yuanes): sin diferencia, aunque el mayor cuadre en número", () => {
+    const i = resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, control(2000));
+    expect(i.enOtraMoneda).toBe(3);
+    expect(i.diferenciaUsd).toBeNull();
+    const d = describirIngreso(i);
+    expect(d.estado).toBe("no_comparable");
+    expect(d.diferenciaTexto).toBe(
+      "No comparable: 3 facturas del período están en bolívares o yuanes y hoy se asientan en la cuenta 4.5 por su nominal en esa moneda, no en USD. La comparación vuelve con la tarea 2.3 del plan contable (moneda funcional en el mayor).",
+    );
+  });
+
+  it("una sola, aunque esté convertida: singular", () => {
+    const d = describirIngreso(resumirIngreso([ves()], RANGO_MES, control(37500)));
+    expect(d.estado).toBe("no_comparable");
+    expect(d.diferenciaTexto).toMatch(/^No comparable: 1 factura del período está en bolívares o yuanes y hoy se asienta /);
+  });
+
+  it("cuenta las anuladas y las CNY sin convertir; no cuenta borrador, borrada ni fuera del período", () => {
+    const n = (f: Record<string, unknown>) => resumirIngreso([ves(f)], RANGO_MES, control(0)).enOtraMoneda;
+    expect(n({ status: "anulada" })).toBe(1);
+    expect(n({ currency: "CNY", fx_rate: null })).toBe(1);
+    expect(n({ status: "borrador" })).toBe(0);
+    expect(n({ deleted_at: "2025-03-06T00:00:00Z" })).toBe(0);
+    expect(n({ issued_at: "2025-02-28" })).toBe(0);
+    expect(n({ currency: "USDT" })).toBe(0);
+  });
+
+  it("solo en USD vuelve a ser comparable", () => {
+    expect(describirIngreso(resumirIngreso(FACTURAS_EN_USD, RANGO_MES, control(1000))).estado).toBe("cuadra");
   });
 });
 
@@ -180,15 +257,15 @@ describe("período", () => {
 
 describe("describirIngreso · textos en tuteo", () => {
   const con = (ventas: number | null, ingresos = ventas ?? 0) =>
-    describirIngreso(resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, { ventas, ingresos }));
+    describirIngreso(resumirIngreso(FACTURAS_EN_USD, RANGO_MES, control(ventas, ingresos)));
 
   it("cuadra, mayor menor y mayor mayor", () => {
-    expect(con(2000)).toMatchObject({ estado: "cuadra" });
-    expect(con(2000).diferenciaTexto).toMatch(/^Cuadra con el mayor/);
-    expect(con(1500).estado).toBe("mayor_menor");
-    expect(con(1500).diferenciaTexto).toContain("$500.00 menos");
-    expect(con(2600).estado).toBe("mayor_mayor");
-    expect(con(2600).diferenciaTexto).toContain("$600.00 más");
+    expect(con(1000)).toMatchObject({ estado: "cuadra" });
+    expect(con(1000).diferenciaTexto).toMatch(/^Cuadra con el mayor/);
+    expect(con(500).estado).toBe("mayor_menor");
+    expect(con(500).diferenciaTexto).toContain("$500.00 menos");
+    expect(con(1600).estado).toBe("mayor_mayor");
+    expect(con(1600).diferenciaTexto).toContain("$600.00 más");
   });
 
   it("sin cuenta 4.5 y sin mayor", () => {
@@ -196,15 +273,37 @@ describe("describirIngreso · textos en tuteo", () => {
     expect(describirIngreso(sinMayor())).toMatchObject({ estado: "sin_mayor", diferenciaTexto: null });
   });
 
+  it("sin movimiento: sin facturas ni asientos de factura en 4.5 no es «cuadra»", () => {
+    const d = describirIngreso(resumirIngreso([], RANGO_MES, control(0, 0, false)));
+    expect(d.estado).toBe("sin_movimiento");
+    expect(d.diferenciaTexto).toBe(
+      "Sin movimiento: no hay facturas del período ni asientos de factura en la cuenta 4.5. No hay nada que comparar.",
+    );
+    expect(d.diferenciaTexto).not.toMatch(/Cuadra/);
+    // Control: con debe y haber que se anulan en 4.5 SÍ hay movimiento.
+    expect(describirIngreso(resumirIngreso([], RANGO_MES, control(0, 0, true))).estado).toBe("cuadra");
+    // Control: una factura anulada con su asiento vivo en 4.5 no es «sin movimiento».
+    expect(describirIngreso(resumirIngreso([], RANGO_MES, control(700))).estado).toBe("mayor_mayor");
+    // Control: con facturado y 4.5 en cero, el mayor tiene menos.
+    expect(describirIngreso(resumirIngreso(FACTURAS_EN_USD, RANGO_MES, control(0, 0, false))).estado).toBe("mayor_menor");
+  });
+
   it("avisos: sin convertir, terceros y otros ingresos solo cuando hay", () => {
-    const d = con(1500, 1700);
+    const d = describirIngreso(resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, control(1500, 1700)));
     expect(d.avisoSinConvertir).toBe("2 facturas no suman: están en bolívares sin tasa o en yuanes.");
     expect(d.avisoTerceros).toBe("Incluye $1,000.00 de fondos de terceros.");
-    expect(d.otrosIngresosTexto).toContain("$200.00");
+    expect(d.otrosIngresosTexto).toBe(
+      "Otros ingresos del mayor que no salen del asiento de una factura (4.6 y asientos manuales, también a 4.5): $200.00. No cuentan como diferencia.",
+    );
     const limpio = describirIngreso(
-      resumirIngreso(FACTURAS_DEL_MES.filter((f) => f.id === "f1"), RANGO_MES, { ventas: 1000, ingresos: 1000 }),
+      resumirIngreso(FACTURAS_DEL_MES.filter((f) => f.id === "f1"), RANGO_MES, control(1000)),
     );
     expect(limpio).toMatchObject({ avisoSinConvertir: null, avisoTerceros: null, otrosIngresosTexto: null });
+  });
+
+  it("cada estado tiene su rótulo corto", () => {
+    expect(ETIQUETA_ESTADO_INGRESO.no_comparable).toBe("No comparable");
+    expect(ETIQUETA_ESTADO_INGRESO.sin_movimiento).toBe("Sin movimiento");
   });
 });
 

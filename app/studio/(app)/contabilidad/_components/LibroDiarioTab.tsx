@@ -10,9 +10,11 @@
  * SDD-0557: la lista trae como mucho los 500 asientos más recientes
  * (`DIARIO_PANTALLA_MAX`). Los contadores salen de los totales REALES
  * (`countEntries`), no de la lista, y si hay más de los que se ven la pantalla
- * lo dice («Mostrando N de M») y enlaza el diario completo en CSV. La
- * exportación con Desde/Hasta vive acá; valida las fechas antes de navegar y la
- * ruta las vuelve a validar.
+ * lo dice («Mostrando N de M») y enlaza el diario en CSV. El CSV baja solo los
+ * asientos ASENTADOS (así cuadra con la comprobación; pregunta abierta 3 de la
+ * spec): el enlace, el botón y el aviso lo dicen. La exportación con
+ * Desde/Hasta vive acá; valida las fechas antes de navegar y la ruta las
+ * vuelve a validar.
  */
 
 import { useId, useState } from "react";
@@ -36,6 +38,7 @@ import {
   avisoDelDiario,
   enlaceDelDiario,
   rangoDelDiario,
+  ROTULO_DIARIO_CSV,
 } from "@/lib/studio/accounting/libro-control";
 import { fmtAmount } from "./format";
 import { EntryDrawer } from "./EntryDrawer";
@@ -68,7 +71,7 @@ export function LibroDiarioTab({
   const [voidPending, setVoidPending] = useState(false);
 
   const noAccounts = accountsCount === 0 || postableAccounts.length === 0;
-  const aviso = avisoDelDiario(entries.length, totalEntries);
+  const aviso = avisoDelDiario(entries.length, totalEntries, asentadosCount);
 
   if (totalEntries === 0) {
     return (
@@ -172,7 +175,7 @@ export function LibroDiarioTab({
                 href={enlaceDelDiario()}
                 style={{ color: "var(--wine-text)", fontWeight: 700 }}
               >
-                Descargar el diario completo (CSV)
+                {ROTULO_DIARIO_CSV}
               </a>
             </p>
           )}
@@ -445,7 +448,7 @@ function ExportarDiario() {
           />
         </label>
         <button type="submit" className="studio-btn studio-btn-ghost studio-btn-sm">
-          Exportar diario (CSV)
+          {ROTULO_DIARIO_CSV}
         </button>
       </div>
       {error && (

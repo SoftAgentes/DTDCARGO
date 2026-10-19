@@ -4,7 +4,11 @@
  * La pantalla trae como mucho 500 asientos. Antes mostraba `entries.length`
  * como total y contaba los asentados sobre esa misma lista: con 1.234 asientos
  * decía «500». Ahora los contadores salen de `countEntries` y, si se ven menos,
- * lo avisa y enlaza el diario completo.
+ * lo avisa y enlaza el diario en CSV.
+ *
+ * El CSV baja solo los asentados (pregunta abierta 3): el enlace y el botón
+ * dicen «diario asentado» y el aviso dice cuántos trae, así nadie cree que le
+ * faltan los borradores y los anulados del total.
  */
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -62,7 +66,7 @@ function montar(entries: JournalEntry[], totalEntries: number, asentadosCount: n
 }
 
 describe("LibroDiarioTab · totales reales", () => {
-  it("con más asientos que los de la pantalla: contador real, aviso y enlace al CSV completo", () => {
+  it("con más asientos que los de la pantalla: contador real, aviso y enlace al CSV de los asentados", () => {
     // Los dos de pantalla son borradores: si el contador se calculara sobre la
     // lista, diría «0 asentados».
     montar([asiento(1, "borrador"), asiento(2, "borrador")], 1234, 900);
@@ -70,11 +74,17 @@ describe("LibroDiarioTab · totales reales", () => {
     expect(contador).toHaveTextContent("1.234 asientos");
     expect(contador).toHaveTextContent("900 asentados");
     const aviso = screen.getByTestId("diario-aviso");
-    expect(aviso).toHaveTextContent("Mostrando 2 de 1.234 asientos (los más recientes).");
-    expect(within(aviso).getByRole("link", { name: "Descargar el diario completo (CSV)" })).toHaveAttribute(
+    expect(aviso).toHaveTextContent(
+      "Mostrando 2 de 1.234 asientos (los más recientes). El CSV trae solo los 900 asentados.",
+    );
+    expect(within(aviso).getByRole("link", { name: "Descargar el diario asentado (CSV)" })).toHaveAttribute(
       "href",
       "/api/studio/contabilidad/export?tipo=diario",
     );
+    // Ni el enlace ni el botón prometen «el diario completo».
+    expect(screen.queryByText(/diario completo/)).toBeNull();
+    const form = screen.getByRole("form", { name: "Exportar el diario a CSV" });
+    expect(within(form).getByRole("button", { name: "Descargar el diario asentado (CSV)" })).toHaveAttribute("type", "submit");
   });
 
   it("si se ven todos, no hay aviso", () => {

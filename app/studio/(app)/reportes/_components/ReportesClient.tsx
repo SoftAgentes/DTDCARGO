@@ -1674,7 +1674,12 @@ function MiniStat({ label, value, sub }: { label: string; value: string; sub?: s
 // ═══════════════════════════════════════════════════════════════
 // Slice B — Contables · Facturado contra cobrado (slug `cashflow`)
 // ═══════════════════════════════════════════════════════════════
-function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
+// SDD-0557: el «Facturado» de esta vista es el TOTAL CON IVA (se compara con lo
+// cobrado, que también lo lleva) y no la cifra oficial sin IVA del Estado de
+// resultados: el KPI, la leyenda y la nota lo dicen. Exportada para su prueba.
+export const ROTULO_FACTURADO_CON_IVA = "Facturado con IVA";
+
+export function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
   const hasData =
     cashflow.totalBilled > 0 ||
     cashflow.totalCollected > 0 ||
@@ -1701,7 +1706,7 @@ function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label="Facturado" sub="en el período" valueColor="var(--wine-text)" />
+        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label={ROTULO_FACTURADO_CON_IVA} sub="en el período" valueColor="var(--wine-text)" />
         <KpiCard value={fmtUsdCompact(cashflow.totalCollected)} label="Cobrado" sub="en el período" valueColor="var(--success)" />
         <KpiCard value={fmtUsdCompact(cashflow.outstanding)} label="Por cobrar" sub="saldo vivo total" />
         <KpiCard value={fmtUsdCompact(cashflow.overdue)} label="Vencido" sub="saldo vivo" valueColor="var(--danger)" />
@@ -1711,9 +1716,11 @@ function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
         <CashflowChart series={cashflow.series} />
       </Card>
 
-      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-        Facturado y cobrado del período se normalizan a USD (VES por fx de la
-        factura/recibo). <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
+      <p data-testid="facturado-cobrado-nota" style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+        Facturado con IVA y cobrado del período se normalizan a USD (VES por fx de la
+        factura/recibo). El facturado lleva el IVA porque se compara con lo cobrado; el
+        ingreso sin IVA está en el Estado de resultados.{" "}
+        <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
         Por cobrar y vencido son saldos vivos totales (no del rango). Diferencia
         facturado − cobrado del período: {fmtUsdCompact(pendiente)}.
       </p>
@@ -1742,7 +1749,7 @@ function CashflowChart({ series }: { series: CashflowReport["series"] }) {
 
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }} role="img" aria-label="Facturado vs cobrado por mes">
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }} role="img" aria-label="Facturado con IVA contra cobrado por mes">
         {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
           <line
             key={i}
@@ -1772,7 +1779,7 @@ function CashflowChart({ series }: { series: CashflowReport["series"] }) {
         })}
       </svg>
       <div style={{ display: "flex", gap: 18, marginTop: 8 }}>
-        <LegendDot color="var(--wine)" label="Facturado" />
+        <LegendDot color="var(--wine)" label={ROTULO_FACTURADO_CON_IVA} />
         <LegendDot color="var(--success)" label="Cobrado" />
       </div>
     </div>

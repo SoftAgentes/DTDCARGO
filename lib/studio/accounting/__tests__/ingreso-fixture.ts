@@ -17,7 +17,13 @@
  *  - F5 se CREÓ en el mes pero se EMITIÓ en enero: la fecha es `issued_at`.
  *  - F6 está en yuanes y F7 en bolívares sin tasa: no suman, son «sin convertir».
  *  - F8 está borrada y es la más grande: si entra, la cifra salta a 11000.
+ *
+ * F2, F6 y F7 están en bolívares o yuanes: con ellas el control contra 4.5 es
+ * «no comparable» (E1, B2) en los cuatro consumidores. Las pruebas que miden
+ * la DIFERENCIA usan `FACTURAS_EN_USD`, el mismo fixture sin esas tres.
  */
+
+import type { ControlDelMayor } from "../ingreso-periodo";
 
 export const HOY = "2025-03-18";
 export const RANGO_MES = { from: "2025-03-01", to: "2025-03-18" } as const;
@@ -65,4 +71,23 @@ export const ESPERADO = {
   terceros: 1000,
   facturas: 2,
   sinConvertir: 2,
+  /** F2, F6 y F7: no borrador, del período, en VES o CNY. */
+  enOtraMoneda: 3,
 } as const;
+
+/** El fixture sin F2, F6 ni F7: solo F1 suma (1000, propia). */
+export const FACTURAS_EN_USD: Factura[] = FACTURAS_DEL_MES.filter((f) => f.currency === "USD");
+
+export const ESPERADO_EN_USD = { total: 1000, facturas: 1 } as const;
+
+/**
+ * Un control del mayor para las pruebas puras. Por defecto, 4.5 tiene
+ * movimiento si su saldo no es 0.
+ */
+export function control(
+  ventas: number | null,
+  ingresos: number = ventas ?? 0,
+  ventasConMovimiento: boolean = ventas != null && ventas !== 0,
+): ControlDelMayor {
+  return { ventas, ventasConMovimiento, ingresos };
+}
