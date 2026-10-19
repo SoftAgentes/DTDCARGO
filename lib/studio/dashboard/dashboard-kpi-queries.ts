@@ -117,8 +117,8 @@ export async function financeInvoiceKpis(
   // El ticket es un promedio por factura: los terceros se dicen contra el
   // total del año del que sale, no colgados del promedio.
   const tercerosDelAnio =
-    delAnio.facturado.terceros > 0
-      ? ` · ${money(delAnio.facturado.terceros)} de los ${money(delAnio.facturado.total)} del año son de terceros`
+    delAnio.facturado.terceros > 0 && delAnio.facturado.total > 0
+      ? ` · ${Math.round((delAnio.facturado.terceros / delAnio.facturado.total) * 100)} % del facturado del año es de terceros`
       : "";
 
   return {

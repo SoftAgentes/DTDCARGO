@@ -565,6 +565,21 @@ describe("textosFinancieros · los KPI de ingreso y utilidad (SDD-0557)", () => 
     expect(t.detalle).toBe("sin asientos de factura en 4.5");
   });
 
+  it("4.5 con asientos de factura que suman 0 no es «sin asientos»: dice «4.5 de facturas: $0.00»", () => {
+    // El vacío se define por movimiento, no por saldo: un debe y un haber que
+    // se anulan son asientos de factura que existen.
+    const t = textos(ingreso(FACTURAS_EN_USD, control(0, 0, true))).ingreso;
+    expect(t.detalle).toBe("4.5 de facturas: $0.00");
+  });
+
+  it("no comparable: la utilidad avisa que el libro mezcla el nominal en bolívares o yuanes", () => {
+    const t = textos(ingreso(FACTURAS_DEL_MES, control(2000)));
+    expect(t.utilidad.sub).toBe(
+      "Margen 40.0% sobre los ingresos del libro · mezcla el nominal de facturas en bolívares o yuanes",
+    );
+    expect(textos(ingreso(FACTURAS_EN_USD, control(1000))).utilidad.sub).toBe("Margen 40.0% sobre los ingresos del libro");
+  });
+
   it("un manual a 4.5 sin facturas: el libro tiene ingresos y se dicen aparte, sin llamarlos «sin movimiento en el libro»", () => {
     const t = textos(ingreso([], control(0, 700, false)), 700, 100);
     expect(t.ingreso.detalle).toBe("sin asientos de factura en 4.5 · otros ingresos del libro: $700.00");

@@ -12,6 +12,7 @@ import {
   mesEnCurso,
   rangoDesdeParams,
   resumirIngreso,
+  notaDelMayorMezclado,
 } from "../ingreso-periodo";
 import { SALE_STATUSES } from "@/lib/studio/fiscal/queries";
 import { SALES_INCOME_CODE } from "../invoice-posting";
@@ -241,12 +242,27 @@ describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
   it("solo facturas sin convertir (CNY) y 4.5 vacía: el mayor tiene menos, no «sin movimiento»", () => {
     const cny = { ...vesSinAsiento, currency: "CNY", fx_rate: null, base_amount: 7200 };
     const i = resumirIngreso([cny], RANGO_MES, vacio);
-    expect(i).toMatchObject({ facturas: 0, sinConvertir: 1, enOtraMoneda: 1, diferenciaUsd: 0 });
+    // Falta el asiento, pero sin facturado en USD el monto de la diferencia no
+    // se conoce: va en null, no en 0 junto a «el mayor tiene menos».
+    expect(i).toMatchObject({ facturas: 0, sinConvertir: 1, enOtraMoneda: 1, diferenciaUsd: null });
     const d = describirIngreso(i);
     expect(d.estado).toBe("mayor_menor");
     expect(d.diferenciaTexto).toBe(
-      "El mayor (cuenta 4.5) no tiene ningún asiento de factura en el período, y las facturas sin convertir también deberían tenerlo.",
+      "El mayor (cuenta 4.5) no tiene ningún asiento de factura en el período; la factura del período (en bolívares sin tasa o en yuanes) debería tenerlo.",
     );
+    const dos = describirIngreso(resumirIngreso([cny, { ...cny }], RANGO_MES, vacio));
+    expect(dos.diferenciaTexto).toBe(
+      "El mayor (cuenta 4.5) no tiene ningún asiento de factura en el período; las 2 facturas del período (en bolívares sin tasa o en yuanes) deberían tenerlo.",
+    );
+  });
+
+  it("la nota del mayor mezclado sale solo con «no comparable»", () => {
+    const mezclado = resumirIngreso([vesSinAsiento], RANGO_MES, control(36500));
+    expect(notaDelMayorMezclado(mezclado)).toBe(
+      "Estas cifras salen del mayor y mezclan el nominal de facturas en bolívares o yuanes con montos en USD: no son todas USD. Vuelven a ser comparables cuando el asiento de venta se registre en USD (fase 2 del plan de trabajo de contabilidad).",
+    );
+    expect(notaDelMayorMezclado(resumirIngreso(FACTURAS_EN_USD, RANGO_MES, control(1000)))).toBeNull();
+    expect(notaDelMayorMezclado(resumirIngreso([vesSinAsiento], RANGO_MES, vacio))).toBeNull();
   });
 
   it("controles: con asientos de factura en 4.5 vuelve «no comparable»; una anulada en VES sola, con 4.5 vacía, es «sin movimiento»", () => {

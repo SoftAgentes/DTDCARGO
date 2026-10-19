@@ -285,6 +285,10 @@ export function resumirIngreso(
     : null;
   // El mayor vacío gana sobre «no comparable» (B3): cero no mezcla monedas.
   const comparable = enOtraMoneda === 0 || !control?.ventasConMovimiento;
+  // Contra 4.5 vacía y sin facturado en USD, lo único que hay son facturas sin
+  // convertir: falta el asiento, pero el monto en USD no se conoce.
+  const sinMontoConocido =
+    control != null && !control.ventasConMovimiento && Math.abs(total) < 0.005 && sinConvertir > 0;
 
   return {
     rango,
@@ -294,7 +298,7 @@ export function resumirIngreso(
     enOtraMoneda,
     mayor: control,
     diferenciaUsd:
-      control && control.ventas != null && comparable
+      control && control.ventas != null && comparable && !sinMontoConocido
         ? round2(total - control.ventas)
         : null,
   };
@@ -338,6 +342,21 @@ export type DescripcionIngreso = {
  * Dirección (`textosFinancieros`) y el CSV del P&L. El Dashboard no lee el
  * mayor: arma su subtítulo en `financeInvoiceKpis`.
  */
+/**
+ * La nota del estado de resultados que sale del mayor. Con «no comparable», el
+ * mayor tiene facturas en bolívares o yuanes asentadas por su nominal (B2):
+ * sus cifras mezclan monedas y la pantalla tiene que decirlo, no presentarlas
+ * como USD funcional. `null` si no hace falta.
+ */
+export function notaDelMayorMezclado(i: IngresoPeriodo): string | null {
+  if (describirIngreso(i).estado !== "no_comparable") return null;
+  return (
+    "Estas cifras salen del mayor y mezclan el nominal de facturas en bolívares o yuanes " +
+    "con montos en USD: no son todas USD. Vuelven a ser comparables cuando el asiento de venta " +
+    "se registre en USD (fase 2 del plan de trabajo de contabilidad)."
+  );
+}
+
 export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
   let estado: EstadoDelIngreso = "sin_mayor";
   let diferenciaTexto: string | null = null;
@@ -352,7 +371,11 @@ export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
       estado = "mayor_menor";
       diferenciaTexto = hayFacturado
         ? `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(i.facturado.total)} menos que lo facturado: no tiene ningún asiento de factura en el período.`
-        : `El mayor (cuenta ${CUENTA_VENTAS}) no tiene ningún asiento de factura en el período, y las facturas sin convertir también deberían tenerlo.`;
+        : `El mayor (cuenta ${CUENTA_VENTAS}) no tiene ningún asiento de factura en el período; ${
+            i.sinConvertir === 1
+              ? "la factura del período (en bolívares sin tasa o en yuanes) debería tenerlo"
+              : `las ${i.sinConvertir} facturas del período (en bolívares sin tasa o en yuanes) deberían tenerlo`
+          }.`;
     } else if (!conAsientos && i.facturas === 0) {
       estado = "sin_movimiento";
       diferenciaTexto = `Sin movimiento: no hay facturas del período ni asientos de factura en la cuenta ${CUENTA_VENTAS}. No hay nada que comparar.`;

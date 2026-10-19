@@ -219,7 +219,9 @@ export function textosFinancieros(
     utilidad: {
       label: "Utilidad neta · libro",
       valor: fmtUsd(f.utilidad),
-      sub: `Margen ${f.margenPct.toFixed(1)}% sobre los ingresos del libro`,
+      sub:
+        `Margen ${f.margenPct.toFixed(1)}% sobre los ingresos del libro` +
+        (d.estado === "no_comparable" ? " · mezcla el nominal de facturas en bolívares o yuanes" : ""),
     },
   };
 }

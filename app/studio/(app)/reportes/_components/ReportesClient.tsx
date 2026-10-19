@@ -47,6 +47,7 @@ import {
   type RouteRow,
   type ServiceRow,
 } from "@/lib/studio/reports/types";
+import { notaDelMayorMezclado } from "@/lib/studio/accounting/ingreso-periodo";
 import {
   type BuilderRow,
   type ReportSourceId,
@@ -1365,9 +1366,28 @@ function IncomeStatementView({ income }: { income: IncomeStatement }) {
   );
 }
 
-function IncomeStatementCard({ income }: { income: IncomeStatement }) {
+export function IncomeStatementCard({ income }: { income: IncomeStatement }) {
+  // SDD-0557 · con facturas en bolívares o yuanes asentadas por su nominal, el
+  // mayor mezcla monedas: la tarjeta lo dice en vez de llamarlo USD funcional.
+  const mezclado = notaDelMayorMezclado(income.ingreso);
   return (
     <Card eyebrow="Estado de resultados" title="Gerencial · USD funcional · desde el mayor" style={{ maxWidth: 680, padding: 0 }}>
+      {mezclado ? (
+        <p
+          role="note"
+          style={{
+            margin: "0 20px var(--s-3)",
+            padding: "var(--s-3) var(--s-4)",
+            background: "var(--warning-bg)",
+            border: "1px solid var(--warning)",
+            borderRadius: "var(--r-sm)",
+            font: "500 12.5px/1.5 var(--f-sans)",
+            color: "var(--ink)",
+          }}
+        >
+          {mezclado}
+        </p>
+      ) : null}
       <div style={{ padding: "0 0 var(--s-2)" }}>
         {income.rows.map((row) => (
           <div
