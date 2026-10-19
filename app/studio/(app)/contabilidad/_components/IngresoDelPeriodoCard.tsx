@@ -11,7 +11,8 @@
  * El ícono del control sigue al estado: éxito solo cuando cuadra; «no
  * comparable» y «sin movimiento» van neutros, porque ninguno de los dos es
  * una verificación; y el enlace a Por contabilizar sale solo con una
- * diferencia real.
+ * diferencia real (también con el mayor vacío, B3). Con «no comparable» el
+ * saldo de 4.5 no se pinta como dólares: es «nominal mixto (no USD)».
  *
  * Componente de módulo, sin estado: no entra al registro de componentes del
  * sistema (CMP-01).
@@ -45,6 +46,20 @@ const COLOR_DEL_TONO = {
   warning: "var(--warning)",
   neutral: "var(--ink-soft)",
 } as const;
+
+/** Lo que se lee en el mayor para «no comparable»: no es una cifra en USD. */
+export const NOMINAL_MIXTO = "nominal mixto (no USD)";
+
+/**
+ * El saldo de 4.5 de los asientos de factura como se pinta. Con «no
+ * comparable» ese saldo mezcla el nominal en bolívares o yuanes (B2): no se
+ * pinta con signo de dólar.
+ */
+function cifraDelMayor(estado: EstadoDelIngreso, ventas: number | null): string {
+  if (ventas == null) return "—";
+  if (estado === "no_comparable") return NOMINAL_MIXTO;
+  return fmtUsd(ventas);
+}
 
 export function IngresoDelPeriodoCard({
   ingreso,
@@ -108,8 +123,8 @@ export function IngresoDelPeriodoCard({
           />
           <span>
             En el mayor (cuenta {CUENTA_VENTAS}, asientos de factura):{" "}
-            <strong style={{ fontVariantNumeric: "tabular-nums" }}>
-              {ingreso.mayor.ventas == null ? "—" : fmtUsd(ingreso.mayor.ventas)}
+            <strong data-testid="ingreso-mayor-ventas" style={{ fontVariantNumeric: "tabular-nums" }}>
+              {cifraDelMayor(d.estado, ingreso.mayor.ventas)}
             </strong>
             . {d.diferenciaTexto}
           </span>

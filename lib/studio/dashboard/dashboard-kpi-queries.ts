@@ -114,6 +114,12 @@ export async function financeInvoiceKpis(
   // cada pantalla lo dice cuando los hay (SDD-0557).
   const deTerceros = (terceros: number) =>
     terceros > 0 ? ` · incluye ${money(terceros)} de terceros` : "";
+  // El ticket es un promedio por factura: los terceros se dicen contra el
+  // total del año del que sale, no colgados del promedio.
+  const tercerosDelAnio =
+    delAnio.facturado.terceros > 0
+      ? ` · ${money(delAnio.facturado.terceros)} de los ${money(delAnio.facturado.total)} del año son de terceros`
+      : "";
 
   return {
     monthRevenue: {
@@ -136,7 +142,7 @@ export async function financeInvoiceKpis(
     },
     avgTicket: {
       value: money(avgTicket),
-      sub: `${ytdCount} factura(s) en el año · sin IVA${deTerceros(delAnio.facturado.terceros)}`,
+      sub: `${ytdCount} factura(s) en el año · sin IVA${tercerosDelAnio}`,
       tone: "wine",
     },
   };

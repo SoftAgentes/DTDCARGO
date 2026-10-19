@@ -101,7 +101,7 @@ describe("financeInvoiceKpis · SDD-0465", () => {
     expect(k.pendingCollect.value).toBe(money(800));
     expect(k.avgTicket.value).toBe(money(800));
     // VIVA no trae fund_class: es de terceros (default de la 0122) y se dice.
-    expect(k.avgTicket.sub).toBe("1 factura(s) en el año · sin IVA · incluye $800 de terceros");
+    expect(k.avgTicket.sub).toBe("1 factura(s) en el año · sin IVA · $800 de los $800 del año son de terceros");
     expect(filtros).toContainEqual({ op: "is", col: "deleted_at", val: null });
   });
 
@@ -145,13 +145,15 @@ describe("financeInvoiceKpis · cifra oficial (SDD-0557)", () => {
     const k = await financeInvoiceKpis(stub([FACTURAS_DEL_MES[0], terceros]), HOY);
     expect(k.monthRevenue.value).toBe(money(1400));
     expect(k.monthRevenue.sub).toBe("facturado del mes sin IVA · incluye $400 de terceros");
-    expect(k.avgTicket.sub).toBe("2 factura(s) en el año · sin IVA · incluye $400 de terceros");
+    expect(k.avgTicket.sub).toBe("2 factura(s) en el año · sin IVA · $400 de los $1.4K del año son de terceros");
   });
 
   it("el ticket promedio usa la misma base: F1 + F2 + F5 en el año = 2300 / 3", async () => {
     const k = await financeInvoiceKpis(stub(FACTURAS_DEL_MES), HOY);
     expect(k.avgTicket.value).toBe(money(2300 / 3));
-    // Terceros del año: F2 (1000) + F5 (300, enero).
-    expect(k.avgTicket.sub).toBe("3 factura(s) en el año · sin IVA · incluye $1.3K de terceros");
+    // Terceros del año: F2 (1000) + F5 (300, enero), de los 2300 del año. Se
+    // dicen contra el total del que sale el promedio, no colgados del ticket.
+    expect(k.avgTicket.sub).toBe("3 factura(s) en el año · sin IVA · $1.3K de los $2.3K del año son de terceros");
+    expect(k.avgTicket.sub).not.toMatch(/incluye/);
   });
 });

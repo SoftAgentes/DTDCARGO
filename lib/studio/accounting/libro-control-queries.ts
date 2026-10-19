@@ -70,7 +70,9 @@ const num = (v: unknown): number => {
  * (`source = 'invoice'`), asentados y vivos. Es el lado del mayor que se
  * compara con lo facturado: un asiento manual a 4.5, o de cualquier otro
  * origen, no es una venta facturada y queda en «otros ingresos del mayor».
- * El filtro va en SQL y se repite en memoria, también sobre las líneas.
+ * Estado, borrado y origen van en SQL y se repiten en memoria, también sobre
+ * las líneas. El rango de fechas va solo en SQL, como en `accountBalances`:
+ * no se trae `entry_date`.
  */
 export async function saldosDeFacturas(
   supabase: SupabaseClient,

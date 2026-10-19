@@ -171,34 +171,41 @@ export type TextosFinancieros = {
 };
 
 /**
- * Qué dice Dirección del ingreso y de la utilidad (SDD-0557), PURA. El control
- * sigue al estado de `describirIngreso`:
- *  - cuadra → «cuadra con el libro»;
- *  - el mayor tiene más o menos → «en el libro: $X» (el saldo de 4.5 de los
- *    asientos de factura, sin la diferencia: la diferencia la muestran
- *    Contabilidad y Reportes);
- *  - no comparable → lo dice, sin cifra del libro;
- *  - sin movimiento → «sin movimiento en el libro», nunca «cuadra»;
+ * Qué dice Dirección del ingreso y de la utilidad (SDD-0557), PURA. El lado
+ * del libro que se compara se nombra: es la 4.5 de los asientos de factura,
+ * no todo el libro. El control sigue al estado de `describirIngreso`:
+ *  - cuadra → «cuadra con 4.5 de facturas: $X»;
+ *  - el mayor tiene más o menos → «4.5 de facturas: $X» (el saldo, sin la
+ *    diferencia: la diferencia la muestran Contabilidad y Reportes);
+ *  - 4.5 sin asientos de factura (sin movimiento, o el mayor vacío con
+ *    facturas, B3) → «sin asientos de factura en 4.5», nunca «cuadra»;
+ *  - no comparable → lo dice, sin cifra en dólares (es nominal mixto);
  *  - sin cuenta 4.5 → lo dice.
+ * Con otros ingresos del libro (4.6, manuales) se agrega «otros ingresos del
+ * libro: $Y». El margen se calcula sobre todos los ingresos del libro.
  */
 export function textosFinancieros(
   f: Pick<FinanceKpis, "ingreso" | "utilidad" | "margenPct">,
 ): TextosFinancieros {
   const i = f.ingreso;
   const d = describirIngreso(i);
-  // Con «tiene más» o «tiene menos» la cuenta 4.5 existe: `ventas` no es null.
-  const enElLibro = `en el libro: ${fmtUsd(i.mayor?.ventas ?? 0)}`;
+  // Con «tiene más», «tiene menos» o «cuadra» la cuenta 4.5 existe: `ventas` no es null.
+  const deFacturas = `${CUENTA_VENTAS} de facturas: ${fmtUsd(i.mayor?.ventas ?? 0)}`;
+  const sinAsientos = `sin asientos de factura en ${CUENTA_VENTAS}`;
+  const vacio = i.mayor != null && !i.mayor.ventasConMovimiento;
   const libro: Record<typeof d.estado, string | null> = {
-    cuadra: "cuadra con el libro",
-    mayor_menor: enElLibro,
-    mayor_mayor: enElLibro,
-    no_comparable: "no comparable con el libro: hay facturas en bolívares o yuanes",
-    sin_movimiento: "sin movimiento en el libro",
-    sin_cuenta: `sin cuenta ${CUENTA_VENTAS} en el libro`,
+    cuadra: `cuadra con ${deFacturas}`,
+    mayor_menor: vacio ? sinAsientos : deFacturas,
+    mayor_mayor: deFacturas,
+    no_comparable: `${CUENTA_VENTAS} de facturas: no comparable, hay facturas en bolívares o yuanes`,
+    sin_movimiento: sinAsientos,
+    sin_cuenta: `sin cuenta ${CUENTA_VENTAS} en el plan de cuentas`,
     sin_mayor: null,
   };
+  const otros = i.mayor?.otrosIngresos ?? 0;
   const partes = [
     libro[d.estado],
+    Math.abs(otros) >= 0.005 ? `otros ingresos del libro: ${fmtUsd(otros)}` : null,
     i.facturado.terceros > 0 ? "incluye fondos de terceros" : null,
     i.sinConvertir > 0 ? `${i.sinConvertir} sin convertir` : null,
   ].filter((p): p is string => p !== null);

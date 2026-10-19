@@ -24,15 +24,21 @@
  * los que van a la propia 4.5, y cualquier otro origen) son «otros ingresos
  * del mayor»: van aparte y no cuentan como diferencia.
  *
- * Estados del control (`describirIngreso`):
- *  - «no comparable» (regla E1 de la SDD-0559): con alguna factura no borrador
- *    del período en VES o CNY, convertida o no. Hoy esas facturas se asientan
- *    en 4.5 por el NOMINAL en bolívares o yuanes (B2), así que la diferencia
- *    no dice nada; vuelve con la tarea 2.3 del plan contable;
+ * Estados del control (`describirIngreso`), en este orden:
+ *  - «sin cuenta 4.5»: el plan no la tiene;
+ *  - el mayor VACÍO gana (B3): si las líneas de 4.5 de los asientos de factura
+ *    no tienen debe ni haber y hay facturado o facturas sin convertir, «el
+ *    mayor tiene menos» por todo lo facturado. Cero no mezcla monedas, así que
+ *    esta comparación vale aunque haya facturas en VES o CNY;
  *  - «sin movimiento»: sin facturas que sumen, sin facturas sin convertir y
  *    sin debe ni haber de asientos de factura en 4.5. Un 0 contra 0 no es una
  *    verificación;
- *  - «cuadra», «el mayor tiene menos», «el mayor tiene más», «sin cuenta 4.5».
+ *  - «no comparable» (regla E1 de la SDD-0559): 4.5 tiene asientos de factura
+ *    y hay alguna factura no borrador del período en VES o CNY, convertida o
+ *    no. Hoy esas facturas se asientan en 4.5 por el NOMINAL en bolívares o
+ *    yuanes (B2), así que la diferencia no dice nada; vuelve cuando el asiento
+ *    de venta se registre en USD (fase 2 del plan de trabajo de contabilidad);
+ *  - «cuadra», «el mayor tiene menos», «el mayor tiene más».
  *
  * El desglose propio/terceros sale de `fund_class` (0122): la cifra INCLUYE
  * los fondos de terceros y cada pantalla lo dice. La decisión de si son
@@ -102,7 +108,9 @@ export type IngresoPeriodo = {
   sinConvertir: number;
   /**
    * Facturas no borrador del período (también las anuladas) en VES o CNY,
-   * convertidas o no. Con alguna, el control es «no comparable» (E1, B2).
+   * convertidas o no. Con alguna, y con asientos de factura en 4.5, el control
+   * es «no comparable» (E1, B2). Con 4.5 vacía no importa: cero no mezcla
+   * monedas.
    */
   enOtraMoneda: number;
   /** Control del mayor; null cuando la pantalla no lo lee (Dashboard). */
@@ -115,7 +123,8 @@ export type IngresoPeriodo = {
   } | null;
   /**
    * facturado.total − mayor.ventas; null si no hay mayor, no hay cuenta 4.5 o
-   * no es comparable (alguna factura del período en VES o CNY).
+   * no es comparable (alguna factura del período en VES o CNY y asientos de
+   * factura en 4.5). Con 4.5 sin movimiento es todo lo facturado.
    */
   diferenciaUsd: number | null;
 };
@@ -226,7 +235,9 @@ function enOtraMonedaDelAsiento(currency: string): boolean {
  * LA regla. Vuelve a filtrar borradas, estado y fecha en memoria, así que da
  * lo mismo aunque el lector traiga de más. Cuenta además las facturas no
  * borrador del período en VES o CNY (también las anuladas, que pueden
- * conservar su asiento): con alguna, la comparación contra 4.5 no vale (E1).
+ * conservar su asiento): con alguna, la comparación contra 4.5 no vale (E1),
+ * salvo que 4.5 no tenga asientos de factura en el rango (B3): contra cero la
+ * diferencia es todo lo facturado, en cualquier moneda.
  */
 export function resumirIngreso(
   facturas: readonly FacturaDeIngreso[],
@@ -272,7 +283,8 @@ export function resumirIngreso(
         otrosIngresos: round2(mayor.ingresos - (mayor.ventas ?? 0)),
       }
     : null;
-  const comparable = enOtraMoneda === 0;
+  // El mayor vacío gana sobre «no comparable» (B3): cero no mezcla monedas.
+  const comparable = enOtraMoneda === 0 || !control?.ventasConMovimiento;
 
   return {
     rango,
@@ -330,20 +342,28 @@ export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
   let estado: EstadoDelIngreso = "sin_mayor";
   let diferenciaTexto: string | null = null;
   if (i.mayor) {
+    const conAsientos = i.mayor.ventasConMovimiento;
+    const hayFacturado = Math.abs(i.facturado.total) >= 0.005;
     if (i.mayor.ventas == null) {
       estado = "sin_cuenta";
       diferenciaTexto = `La cuenta ${CUENTA_VENTAS} no está en el plan de cuentas: no hay con qué comparar.`;
-    } else if (i.enOtraMoneda > 0) {
+    } else if (!conAsientos && (hayFacturado || i.sinConvertir > 0)) {
+      // B3 gana sobre «no comparable»: contra 4.5 vacía no hay monedas que mezclar.
+      estado = "mayor_menor";
+      diferenciaTexto = hayFacturado
+        ? `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(i.facturado.total)} menos que lo facturado: no tiene ningún asiento de factura en el período.`
+        : `El mayor (cuenta ${CUENTA_VENTAS}) no tiene ningún asiento de factura en el período, y las facturas sin convertir también deberían tenerlo.`;
+    } else if (!conAsientos && i.facturas === 0) {
+      estado = "sin_movimiento";
+      diferenciaTexto = `Sin movimiento: no hay facturas del período ni asientos de factura en la cuenta ${CUENTA_VENTAS}. No hay nada que comparar.`;
+    } else if (conAsientos && i.enOtraMoneda > 0) {
       estado = "no_comparable";
       const n = i.enOtraMoneda;
       diferenciaTexto =
         `No comparable: ${n === 1 ? "1 factura del período está" : `${n} facturas del período están`}` +
         ` en bolívares o yuanes y hoy ${n === 1 ? "se asienta" : "se asientan"} en la cuenta ${CUENTA_VENTAS}` +
-        " por su nominal en esa moneda, no en USD. La comparación vuelve con la tarea 2.3 del plan" +
-        " contable (moneda funcional en el mayor).";
-    } else if (i.facturas === 0 && i.sinConvertir === 0 && !i.mayor.ventasConMovimiento) {
-      estado = "sin_movimiento";
-      diferenciaTexto = `Sin movimiento: no hay facturas del período ni asientos de factura en la cuenta ${CUENTA_VENTAS}. No hay nada que comparar.`;
+        " por su nominal en esa moneda, no en USD. La comparación vuelve cuando el asiento de venta" +
+        " se registre en USD (fase 2 del plan de trabajo de contabilidad).";
     } else {
       // Con 4.5 en el plan y comparable, `resumirIngreso` siempre la calcula.
       const dif = i.diferenciaUsd ?? 0;

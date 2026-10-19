@@ -200,8 +200,13 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
       if (!inc || vistaDelEstado(inc) === "vacio") return null;
       const ing = inc.ingreso;
       // El estado del control es el mismo que dice la pantalla: con «no
-      // comparable» la diferencia va vacía (B2, E1).
+      // comparable» la diferencia va vacía (B2, E1) y el saldo de 4.5 no va
+      // bajo «Monto USD», porque mezcla el nominal en bolívares o yuanes.
       const estado = describirIngreso(ing).estado;
+      const filaDelMayor: CsvValue[] =
+        estado === "no_comparable"
+          ? ["En el mayor · cuenta 4.5 · asientos de factura: nominal mixto (no USD)", "", ""]
+          : ["En el mayor · cuenta 4.5 · asientos de factura", ing.mayor?.ventas ?? "", ""];
       return {
         slug: "contable-estado-resultados",
         headers: ["Concepto", "Monto USD", "% s/ingresos"],
@@ -209,10 +214,10 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
           ...inc.rows.map((r): CsvValue[] => [r.label, r.amount, r.pct ?? ""]),
           ["Ingreso facturado (sin IVA · USD · por emisión)", ing.facturado.total, ""],
           ["Fondos de terceros incluidos en el facturado", ing.facturado.terceros, ""],
-          ["En el mayor · cuenta 4.5 · asientos de factura", ing.mayor?.ventas ?? "", ""],
+          filaDelMayor,
           ["Diferencia facturado − mayor (4.5)", ing.diferenciaUsd ?? "", ""],
           [`Control contra 4.5: ${ETIQUETA_ESTADO_INGRESO[estado]}`, "", ""],
-          ["Facturas del período en bolívares o yuanes (asentadas al nominal)", ing.enOtraMoneda, ""],
+          ["Facturas del período en bolívares o yuanes (cantidad)", ing.enOtraMoneda, ""],
           ["Otros ingresos del mayor (4.6 y manuales · también a 4.5)", ing.mayor?.otrosIngresos ?? "", ""],
           ["Facturas sin convertir (bolívares sin tasa o yuanes)", ing.sinConvertir, ""],
         ],

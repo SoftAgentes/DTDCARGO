@@ -10,8 +10,10 @@
  *  - SDD-0557: «Ingresos · mes» es la cifra oficial (facturado sin IVA) y el
  *    mayor queda como control contra la 4.5 de los asientos de factura;
  *    utilidad y margen, del libro. Los textos de los dos KPI salen de
- *    `textosFinancieros`, pura: «sin IVA», «libro», «en el libro: $X»,
- *    «no comparable» y «sin movimiento».
+ *    `textosFinancieros`, pura: «sin IVA», «libro», el lado que se compara
+ *    con su nombre («4.5 de facturas: $X», «sin asientos de factura en
+ *    4.5»), «otros ingresos del libro: $Y», «no comparable» y el mayor vacío
+ *    (B3).
  */
 
 import { describe, it, expect } from "vitest";
@@ -481,7 +483,7 @@ describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
     expect(finance.ingreso.enOtraMoneda).toBe(ESPERADO.enOtraMoneda);
     expect(finance.ingreso.diferenciaUsd).toBeNull();
     expect(textosFinancieros(finance).ingreso.detalle).toBe(
-      "no comparable con el libro: hay facturas en bolívares o yuanes · incluye fondos de terceros · 2 sin convertir",
+      "4.5 de facturas: no comparable, hay facturas en bolívares o yuanes · otros ingresos del libro: $200.00 · incluye fondos de terceros · 2 sin convertir",
     );
     // Utilidad y margen del libro: 1000 / 1700. Con el facturado daría 50 %.
     expect(finance.utilidad).toBe(1000);
@@ -516,7 +518,7 @@ describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
     expect(finance.ingreso.mayor).toEqual({ ventas: 600, ventasConMovimiento: true, ingresos: 1100, otrosIngresos: 500 });
     // 1000 − 600. Contra toda la 4.5 daría 100; contra todas las cuentas 4, −100.
     expect(finance.ingreso.diferenciaUsd).toBe(400);
-    expect(textosFinancieros(finance).ingreso.detalle).toBe("en el libro: $600.00");
+    expect(textosFinancieros(finance).ingreso.detalle).toBe("4.5 de facturas: $600.00 · otros ingresos del libro: $500.00");
   });
 });
 
@@ -532,7 +534,7 @@ describe("textosFinancieros · los KPI de ingreso y utilidad (SDD-0557)", () => 
       label: "Ingresos · mes",
       valor: "$1,000.00",
       periodo: "Facturado sin IVA · 2025-03-01 → 2025-03-18",
-      detalle: "cuadra con el libro",
+      detalle: "cuadra con 4.5 de facturas: $1,000.00",
     });
     expect(t.utilidad).toEqual({
       label: "Utilidad neta · libro",
@@ -541,30 +543,49 @@ describe("textosFinancieros · los KPI de ingreso y utilidad (SDD-0557)", () => 
     });
   });
 
-  it("el mayor tiene menos o más: «en el libro: $X»", () => {
-    expect(textos(ingreso(FACTURAS_EN_USD, control(600))).ingreso.detalle).toBe("en el libro: $600.00");
-    expect(textos(ingreso(FACTURAS_EN_USD, control(1600))).ingreso.detalle).toBe("en el libro: $1,600.00");
+  it("el mayor tiene menos o más: «4.5 de facturas: $X», el lado que se compara con su nombre", () => {
+    expect(textos(ingreso(FACTURAS_EN_USD, control(600))).ingreso.detalle).toBe("4.5 de facturas: $600.00");
+    expect(textos(ingreso(FACTURAS_EN_USD, control(1600))).ingreso.detalle).toBe("4.5 de facturas: $1,600.00");
   });
 
-  it("no comparable (K1) y sin movimiento (K2): nunca «cuadra con el libro»", () => {
+  it("no comparable (K1) y sin movimiento (K2): nunca «cuadra», y 4.5 sin cifra en dólares", () => {
     const nc = textos(ingreso(FACTURAS_DEL_MES, control(2000))).ingreso.detalle;
-    expect(nc).toMatch(/^no comparable con el libro: hay facturas en bolívares o yuanes/);
+    expect(nc).toMatch(/^4\.5 de facturas: no comparable, hay facturas en bolívares o yuanes/);
     expect(nc).not.toMatch(/cuadra/);
+    expect(nc).not.toContain("$2,000.00");
     const sm = textos(ingreso([], control(0, 0, false))).ingreso;
-    expect(sm.detalle).toBe("sin movimiento en el libro");
+    expect(sm.detalle).toBe("sin asientos de factura en 4.5");
     expect(sm.valor).toBe("$0.00");
   });
 
+  it("el mayor vacío con una factura en VES (B3): «sin asientos de factura en 4.5», no «no comparable»", () => {
+    const ves = [{ status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, base_amount: 36500, fund_class: "local_revenue" }];
+    const t = textos(ingreso(ves, control(0, 0, false))).ingreso;
+    expect(t.valor).toBe("$1,000.00");
+    expect(t.detalle).toBe("sin asientos de factura en 4.5");
+  });
+
+  it("un manual a 4.5 sin facturas: el libro tiene ingresos y se dicen aparte, sin llamarlos «sin movimiento en el libro»", () => {
+    const t = textos(ingreso([], control(0, 700, false)), 700, 100);
+    expect(t.ingreso.detalle).toBe("sin asientos de factura en 4.5 · otros ingresos del libro: $700.00");
+    expect(t.ingreso.detalle).not.toMatch(/sin movimiento en el libro/);
+    expect(t.utilidad.sub).toBe("Margen 100.0% sobre los ingresos del libro");
+  });
+
   it("sin cuenta 4.5 y sin mayor", () => {
-    expect(textos(ingreso(FACTURAS_EN_USD, control(null, 500))).ingreso.detalle).toBe("sin cuenta 4.5 en el libro");
+    expect(textos(ingreso(FACTURAS_EN_USD, control(null, 500))).ingreso.detalle).toBe(
+      "sin cuenta 4.5 en el plan de cuentas · otros ingresos del libro: $500.00",
+    );
     expect(textos(ingreso(FACTURAS_EN_USD, null)).ingreso.detalle).toBe("");
   });
 
   it("avisos de terceros y sin convertir, unidos al control", () => {
     const f2 = FACTURAS_DEL_MES.filter((f) => f.id === "f1" || f.id === "f5");
     // F1 propia y F5 fuera del mes: sin terceros. Con una de terceros en el mes, el aviso.
-    expect(textos(ingreso(f2, control(1000))).ingreso.detalle).toBe("cuadra con el libro");
+    expect(textos(ingreso(f2, control(1000))).ingreso.detalle).toBe("cuadra con 4.5 de facturas: $1,000.00");
     const conTerceros = [...f2, { ...FACTURAS_DEL_MES[0], id: "f9", fund_class: "third_party", base_amount: 50 }];
-    expect(textos(ingreso(conTerceros, control(1050))).ingreso.detalle).toBe("cuadra con el libro · incluye fondos de terceros");
+    expect(textos(ingreso(conTerceros, control(1050))).ingreso.detalle).toBe(
+      "cuadra con 4.5 de facturas: $1,050.00 · incluye fondos de terceros",
+    );
   });
 });

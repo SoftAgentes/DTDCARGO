@@ -71,9 +71,9 @@ const linea = (id: string, entry_id: string, account_id: string, debit: number, 
 });
 
 describe("ingresoDelPeriodo", () => {
-  it("la cifra oficial y el filtro que baja a SQL; con bolívares o yuanes, sin diferencia (E1)", async () => {
+  it("la cifra oficial y el filtro que baja a SQL; con bolívares o yuanes y asientos de factura en 4.5, sin diferencia (E1)", async () => {
     const { client, filtros } = dobleListados({ invoices: FACTURAS_DEL_MES }, { serverCap: SERVER_CAP });
-    const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor: control(0) });
+    const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor: control(1500) });
     expect(i.facturado.total).toBe(ESPERADO.total);
     expect(i.sinConvertir).toBe(ESPERADO.sinConvertir);
     expect(i.enOtraMoneda).toBe(ESPERADO.enOtraMoneda);
@@ -149,6 +149,20 @@ describe("ingresoDelPeriodo", () => {
     const i = await ingresoDelPeriodo(client, RANGO_MES);
     expect(i.mayor).toEqual({ ventas: 0, ventasConMovimiento: false, ingresos: 300, otrosIngresos: 300 });
     expect(describirIngreso(i).estado).toBe("sin_movimiento");
+  });
+
+  it("una factura en VES sin ningún asiento: el mayor vacío gana sobre «no comparable» (B3)", async () => {
+    // 36500 Bs a 36,5 = 1000 USD, como hoy: facturas emitidas sin asiento.
+    const ves = { ...FACTURAS_DEL_MES[1], id: "fv", status: "emitida" };
+    const { client } = dobleListados(
+      { invoices: [ves], accounts: PLAN, journal_entries: [], journal_lines: [] },
+      { serverCap: SERVER_CAP },
+    );
+    const i = await ingresoDelPeriodo(client, RANGO_MES);
+    expect(i.enOtraMoneda).toBe(1);
+    expect(i.mayor).toMatchObject({ ventas: 0, ventasConMovimiento: false });
+    expect(i.diferenciaUsd).toBe(1000);
+    expect(describirIngreso(i).estado).toBe("mayor_menor");
   });
 });
 
