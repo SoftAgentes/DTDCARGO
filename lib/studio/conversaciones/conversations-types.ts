@@ -6,6 +6,7 @@
  * devuelven `{ input?, fieldErrors? }`.
  */
 
+import type { InvoiceCurrency } from "@/lib/studio/invoice-types";
 import type { BadgeTone } from "@/app/studio/_components/ui/Badge";
 
 // ─────────────────────────────────────────────────────────────
@@ -105,9 +106,12 @@ export type ConversationClientContext = {
   phone: string | null;
   /** Envíos activos (no terminales) del cliente. */
   activeShipments: { id: string; code: string; status: string }[];
-  /** Saldo CxC pendiente (excluye borradores/anuladas), moneda dominante. */
-  outstandingBalance: number;
-  outstandingCurrency: string;
+  /**
+   * SDD-0558 · Saldo abierto por moneda, sin mezclar ni convertir: una entrada
+   * por cada moneda con algo abierto; vacío = al día. `null` = no se pudo
+   * calcular (nunca se publica como 0).
+   */
+  outstanding: { currency: InvoiceCurrency; amount: number }[] | null;
 };
 
 // ─────────────────────────────────────────────────────────────

@@ -28,7 +28,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { syncKommoContactStatus } from "@/lib/studio/kommo-contact-status";
+import { soloLecturaKommo, syncKommoContactStatus } from "@/lib/studio/kommo-contact-status";
 import { matchesBearerSecret } from "@/lib/http/secret-compare";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +49,8 @@ export async function GET(req: NextRequest) {
   // `dry=1` recorre y cuenta SIN encolar. Sirve para responder "¿a cuántos
   // contactos les escribiría algo?" antes de escribirle a ninguno — que es
   // exactamente la pregunta que había que contestar antes de prender esto.
+  // SDD-0558: `soloLecturaKommo` neutraliza SOLO la RPC de encolado; el saldo,
+  // que ahora se lee por RPC, sale de la base real.
   const dry = new URL(req.url).searchParams.get("dry") === "1";
 
   const admin = createAdminClient();
@@ -63,7 +65,7 @@ export async function GET(req: NextRequest) {
   const resultados = [];
   for (const t of (tenants ?? []) as Array<{ id: string }>) {
     const r = dry
-      ? await syncKommoContactStatus(dryAdmin(admin), t.id)
+      ? await syncKommoContactStatus(soloLecturaKommo(admin), t.id)
       : await syncKommoContactStatus(admin, t.id);
     resultados.push({ tenant_id: t.id, ...r, dry });
   }
@@ -71,25 +73,6 @@ export async function GET(req: NextRequest) {
   const result = { ok: true, dry, tenants: resultados };
   console.log("[kommo-contact-status]", JSON.stringify(result));
   return NextResponse.json(result);
-}
-
-/**
- * Cliente que lee igual pero cuya única RPC (el encolado) no hace nada.
- *
- * Es un proxy sobre el admin real, no un stub: si fuera un stub habría que
- * mantener en paralelo la forma de todas las lecturas, y el `dry` terminaría
- * midiendo el stub en vez de la base — el error de "verificar un proxy en vez
- * de la cosa" metido justo en la herramienta que existe para medir.
- */
-function dryAdmin(admin: ReturnType<typeof createAdminClient>) {
-  return new Proxy(admin, {
-    get(target, prop, receiver) {
-      if (prop === "rpc") {
-        return async () => ({ data: null, error: null });
-      }
-      return Reflect.get(target, prop, receiver);
-    },
-  });
 }
 
 export async function POST(req: NextRequest) {
