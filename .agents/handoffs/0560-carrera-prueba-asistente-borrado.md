@@ -1,7 +1,8 @@
 # Handoff 0560 · seguimiento: la carrera de `AsistenteBorrado.test.tsx` y el montaje en StrictMode
 
-- Fecha: 2026-10-19. Estado de la tarea: **lista; PR en borrador**. Falta `pnpm verify` completo,
-  que espera el turno del Director.
+- Fecha: 2026-10-19. Estado de la tarea: **lista; PR en borrador**. `pnpm verify` completo corrido
+  con turno del Director: 16 de 17 pasos medidos, todos en verde; `migrations-applied` NO DISPONIBLE
+  (ver «Verify completo»).
 - Dos partes en la misma rama y PR: la carrera (lo que Sam pidió primero) y el montaje en StrictMode
   (el fuera de alcance que salió de la primera; Sam pidió hacerlo en esta misma sesión).
 - Owner/sesión: `claude-vigilant-hopper-2810dc` (Claude Opus 5.5, Worker, sesión «Arreglar la carrera
@@ -105,11 +106,56 @@ forzada: confirma la cascada.
 | Segunda parte, 20 vueltas del archivo final, `--maxWorkers=2` | PASÓ: `Test Files 20 passed (20)`, `Tests 320 passed (320)` |
 | Segunda parte, 20 vueltas con el planificador retrasado 10 ms | PASÓ: `Test Files 20 passed (20)`, `Tests 320 passed (320)` |
 | Segunda parte, `eslint`, `tsc` de los dos archivos y `git diff --check` | PASÓ |
-| `pnpm verify` completo | **NO EJECUTADO**: es corrida pesada y espera el turno del Director |
+| `pnpm verify` completo | Ver «Verify completo»: 16 de 17 pasos PASARON; `migrations-applied` NO DISPONIBLE |
 
 Las copias, los mutantes y las sondas se aplicaron y se revirtieron fuera de los commits; `git
 status` quedó limpio después de cada uno. Durante las 20 vueltas había otra sesión corriendo una
 prueba puntual de vitest (no un verify); por eso se limitaron a 2 workers.
+
+## Verify completo
+
+- **Turno:** lo dio el Director («Revisión de tareas en progreso») para una sola corrida pesada, a
+  pedido de Sam en esta sesión: «pídele al Director el turno para el pnpm verify completo de la PR
+  #292 y córrelo cuando te lo dé».
+- **Árbol medido:** `9fe45535`, el merge local de `origin/main` = `bd971821` (trae la 0563 y el sello
+  de la 0492) sobre `9aad2332`. El merge salió limpio, con el driver de main; no tocó el índice de
+  specs. Dependencias sin cambio.
+- **Entorno:** Docker Desktop 29.9.1 corriendo; sin `.env.local`. Corrida en segundo plano y sin
+  timeout, de 19:45:32Z a 20:13:26Z (28 min), `exit 0`. Al terminar, `tsconfig.json` restaurado y el
+  árbol limpio.
+- **Carga ajena:** el Director avisó que, desde cerca de las 19:55Z, otra sesión («Contabilidad»)
+  corrió pruebas puntuales de vitest y un contrato en Docker sin turno. Por eso los dos rojos de
+  primer intento de `e2e` se repitieron aislados antes de declarar el resultado.
+
+| Paso | Resultado |
+|---|---|
+| harness | PASÓ |
+| lint | PASÓ |
+| rsc-boundary | PASÓ |
+| typecheck | PASÓ |
+| edge-functions | PASÓ (4 funciones compilan) |
+| test | PASÓ: `Test Files 841 passed \| 1 skipped (842)`, `Tests 11974 passed \| 1 skipped (11975)` |
+| docs:check | PASÓ (551 specs · 486 migraciones) |
+| numbering | PASÓ |
+| feature-constants | PASÓ (6 banderas) |
+| components:check | PASÓ |
+| governance:check | PASÓ |
+| migrations-applied | **NO DISPONIBLE**: sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` (worktree sin `.env.local`). Esta PR no trae migración |
+| pending-migration-symbols | PASÓ (0 ROJO · 0 AMARILLO) |
+| sql-tests | PASÓ: 243 contratos, rollback total |
+| schema-rebuild | PASÓ: 486 migraciones (468 aplicadas desde cero, 18 solo-ledger) |
+| e2e | PASÓ con 2 flaky: `176 passed`, `2 flaky`, `20 skipped` |
+| build | PASÓ |
+
+**Los 2 flaky de `e2e`**, los dos del sitio público y ajenos a esta PR, pasaron en el retry #1:
+
+- `[chromium] e2e/company-photo-carousel.spec.ts:93`, «visual evidence at 390 and 1440 pixels»;
+- `[mobile-chrome] e2e/calculadora-semantic-colors.spec.ts:53`, «Selector combinado…»: en el primer
+  intento, `toHaveValue("mara")` después de `pressSequentially`.
+
+Repetidos aislados (20:14Z, `--retries=0 --workers=1`, en chromium y mobile-chrome): `5 passed`, `1
+skipped` (el carrusel no corre en mobile-chrome), exit 0. Son consistentes con la carga ajena y no con
+un fallo real.
 
 ## Clasificación
 
@@ -135,17 +181,19 @@ prueba puntual de vitest (no un verify); por eso se limitaron a 2 workers.
 - `4e7bc754` test(studio): SDD-0560 — revisar de nuevo caído también llega en un solo render
 - `5e21c064` docs(handoff): SDD-0560 — la carrera de AsistenteBorrado.test.tsx
 - `8db68751` fix(studio): SDD-0560 — el asistente vuelve a marcar el montaje (StrictMode)
-- el commit que actualiza este handoff
+- `9aad2332` docs(handoff): SDD-0560 — el montaje en StrictMode y su evidencia
+- `9fe45535` merge de `origin/main` (`bd971821`), el árbol que midió el verify
+- el commit que registra el verify en este handoff
 
 ## PR / BRANCH
 
 - Rama `claude/vigilant-hopper-2810dc` → `main`, PR en borrador
-  [#292](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/292). Las dos partes salen en el mismo
-  push.
+  [#292](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/292). El merge de main, el verify y este
+  handoff salen en un solo push.
 
 ## PENDIENTES DE ESTA TAREA
 
-- `pnpm verify` completo, con turno del Director.
+- `migrations-applied` queda NO DISPONIBLE en el worktree. Esta PR no trae migración.
 - La spec 0560 registra 13 casos para este archivo (evidencia de `b19e41f7`); ahora son 16. No se tocó
   la spec porque esa tabla es evidencia fechada.
 
@@ -176,7 +224,6 @@ prueba puntual de vitest (no un verify); por eso se limitaron a 2 workers.
 
 ## HANDOFF AL DIRECTOR
 
-1. Turno para el `pnpm verify` completo de esta rama, o correrlo en la integración.
+1. El turno de máquina se devuelve al terminar el verify (20:13Z) y las dos e2e aisladas (20:15Z).
 2. Confirmar la clasificación de las dos partes: correcciones dentro de la 0560, sin SDD nueva.
-3. La PR está `BEHIND` respecto a `main` (entró la 0563), sin conflicto en estos archivos. No se trajo
-   `main` para no disparar otra revisión; queda para la integración.
+3. La revisión y la fusión son del Director; el Worker no fusiona.
