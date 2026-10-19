@@ -1,7 +1,9 @@
-# Handoff 0560 · seguimiento: la carrera de `AsistenteBorrado.test.tsx`
+# Handoff 0560 · seguimiento: la carrera de `AsistenteBorrado.test.tsx` y el montaje en StrictMode
 
 - Fecha: 2026-10-19. Estado de la tarea: **lista; PR en borrador**. Falta `pnpm verify` completo,
   que espera el turno del Director.
+- Dos partes en la misma rama y PR: la carrera (lo que Sam pidió primero) y el montaje en StrictMode
+  (el fuera de alcance que salió de la primera; Sam pidió hacerlo en esta misma sesión).
 - Owner/sesión: `claude-vigilant-hopper-2810dc` (Claude Opus 5.5, Worker, sesión «Arreglar la carrera
   de AsistenteBorrado.test.tsx» [f1f39d]).
 - Worktree: `.claude/worktrees/vigilant-hopper-2810dc`, creado por la app de escritorio.
@@ -67,6 +69,19 @@ forzada: confirma la cascada.
   - caso nuevo, «si revisar de nuevo se cae…»: cubre la envoltura del `catch` de «revisar», que
     ninguna prueba cubría (su mutante sobrevivía).
 
+### Segunda parte: el montaje en StrictMode
+
+- **El bug** (anterior a esta rama): el efecto `useEffect(() => () => { montado.current = false },
+  [])` solo marcaba el desmontaje. Con `reactStrictMode: true` (`next.config`), en desarrollo React
+  monta, desmonta y vuelve a montar, así que `montado` quedaba en `false` para siempre. «Revisar» y
+  «confirmar» descartaban lo que respondía el servidor: el paso se ejecutaba en la base y el diálogo
+  seguía abierto sin decir nada. En producción no hay doble montaje.
+- **`AsistenteBorrado.tsx`:** el efecto pone `montado.current = true` al montar y `false` al desmontar.
+- **`AsistenteBorrado.test.tsx`** (14 → 16 casos), bloque «montado y desmontado»:
+  - dentro de `<StrictMode>`, un paso que sale bien cierra el diálogo y pinta «Listo: …» con el plan
+    nuevo. Con el código anterior dio rojo: `expected [ …(2) ] to have a length of 1 but got 2`;
+  - desmontado, una respuesta que llega tarde no llama a `onEliminado`: fija la otra mitad del efecto.
+
 ## VALIDACIÓN
 
 | Comprobación | Resultado |
@@ -83,6 +98,13 @@ forzada: confirma la cascada.
 | `eslint` de los dos archivos | PASÓ |
 | `tsc` de los dos archivos y lo que importan (tsconfig temporal, ya borrado) | PASÓ (exit 0). Control con un error de tipo a propósito: exit 2 |
 | `git diff --check` | PASÓ |
+| **Segunda parte**, caso StrictMode contra el código anterior | FALLÓ como se esperaba: `expected [ …(2) ] to have a length of 1 but got 2` |
+| Segunda parte, archivo final (16 casos), una vuelta | PASÓ: `Tests 16 passed (16)` |
+| Segunda parte, mutante «sin `montado.current = true`» (el código anterior) | Muerto, solo por el caso StrictMode |
+| Segunda parte, mutante «sin `montado.current = false`» | Muerto, solo por el caso del desmontado (`onEliminado` llamado 1 vez) |
+| Segunda parte, 20 vueltas del archivo final, `--maxWorkers=2` | PASÓ: `Test Files 20 passed (20)`, `Tests 320 passed (320)` |
+| Segunda parte, 20 vueltas con el planificador retrasado 10 ms | PASÓ: `Test Files 20 passed (20)`, `Tests 320 passed (320)` |
+| Segunda parte, `eslint`, `tsc` de los dos archivos y `git diff --check` | PASÓ |
 | `pnpm verify` completo | **NO EJECUTADO**: es corrida pesada y espera el turno del Director |
 
 Las copias, los mutantes y las sondas se aplicaron y se revirtieron fuera de los commits; `git
@@ -101,43 +123,51 @@ prueba puntual de vitest (no un verify); por eso se limitaron a 2 workers.
   transición, que la política pide evitar.
 - ERR-01 (errores y recuperación): **cumplimiento**. El error llega con el reintento disponible, y el
   candado anti doble envío del `ConfirmDialog` no cambia.
+- Segunda parte (StrictMode): **sin cambio de comportamiento en producción**, donde no hay doble
+  montaje. En desarrollo, el asistente vuelve a hacer lo que la 0560 ya especifica: «Éxito de un paso:
+  `role="status"`: «Listo: …», la lista «Ya hiciste» y el plan nuevo». SGE-00.07 (estado verdadero):
+  **cumplimiento**. Antes, en desarrollo, el paso quedaba hecho en la base sin que la pantalla lo
+  dijera.
 
 ## COMMITS
 
 - `5d88fefd` fix(studio): SDD-0560 — el resultado de un paso llega junto con el fin de la espera
 - `4e7bc754` test(studio): SDD-0560 — revisar de nuevo caído también llega en un solo render
-- el commit de este handoff
+- `5e21c064` docs(handoff): SDD-0560 — la carrera de AsistenteBorrado.test.tsx
+- `8db68751` fix(studio): SDD-0560 — el asistente vuelve a marcar el montaje (StrictMode)
+- el commit que actualiza este handoff
 
 ## PR / BRANCH
 
-- Rama `claude/vigilant-hopper-2810dc` → `main`, PR en borrador (el enlace queda en el reporte de la
-  sesión).
+- Rama `claude/vigilant-hopper-2810dc` → `main`, PR en borrador
+  [#292](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/292). Las dos partes salen en el mismo
+  push.
 
 ## PENDIENTES DE ESTA TAREA
 
 - `pnpm verify` completo, con turno del Director.
-- La spec 0560 registra 13 casos para este archivo (evidencia de `b19e41f7`); ahora son 14. No se tocó
+- La spec 0560 registra 13 casos para este archivo (evidencia de `b19e41f7`); ahora son 16. No se tocó
   la spec porque esa tabla es evidencia fechada.
 
 ## FUERA DE ALCANCE DETECTADO
 
-1. **En desarrollo, el asistente descarta todos sus resultados** (anterior a esta tarea). El efecto
-   `useEffect(() => () => { montado.current = false }, [])` no vuelve a poner `true` al montar. Con
-   `reactStrictMode: true` (`next.config`), React monta, desmonta y vuelve a montar en desarrollo:
-   `montado` queda en `false` y `revisar` y `confirmar` ignoran lo que responde el servidor. Sonda
-   (temporal, ya borrada): con el asistente dentro de `<StrictMode>`, el paso se ejecuta (`ejecutar`
-   llamado una vez), pero el diálogo nunca se cierra (`expected [ …(2) ] to have a length of 1 but got
-   2`). En producción no hay doble montaje, así que **NO VERIFICADO** que afecte a usuarios; sí afecta
-   a cualquier smoke en `next dev`, donde el paso se ejecuta en la base sin que la pantalla lo diga.
-2. **El mismo patrón en otras pantallas** (sin auditar): `startTransition(async` aparece en 47
-   archivos `.tsx` de `app/studio` (54 en `app/`). Los que actualizan estado después del `await` sin
-   volver a la transición pueden tener el mismo render intermedio y las mismas pruebas frágiles.
+1. **El mismo render intermedio en otras pantallas** (sin auditar): `startTransition(async` aparece
+   en 47 archivos `.tsx` de `app/studio` (54 en `app/`). Los que actualizan estado después del
+   `await` sin volver a la transición pueden tener el mismo render intermedio y las mismas pruebas
+   frágiles.
+2. **Guardias de montaje:** la búsqueda (`git grep` de refs `*.current = false` con nombre de montaje,
+   de `useRef` de montaje y de efectos `() => () => x.current =`) no encontró otro guardia como el del
+   asistente. Sí apareció un patrón parecido en `app/studio/(app)/dashboard/_components/DashboardClient.tsx`
+   (`const mounted = useRef(false)`, en el efecto «write-through a LS + autosave»): salta solo la
+   primera corrida del efecto. **Inferencia, NO VERIFICADO:** con StrictMode, en desarrollo, el
+   efecto corre dos veces al montar, la segunda pasa el salto y dispararía un autoguardado sin
+   cambios. Solo en desarrollo; no se probó.
 
 ## IMPACTO DOCUMENTAL
 
 - Documentos canónicos: ninguno cambia. Este handoff es nuevo.
-- `pnpm knowledge:status` (al cerrar, `4e7bc754`): `ok: false` por pendientes globales que ya
-  estaban. Este worktree no tiene `graphify-out/` (`graph_missing_or_invalid`). Estructural `INVALID`
+- `pnpm knowledge:status` (al cerrar la primera parte, `4e7bc754`; la segunda toca los mismos dos
+  archivos y este handoff): `ok: false` por pendientes globales que ya estaban. Este worktree no tiene `graphify-out/` (`graph_missing_or_invalid`). Estructural `INVALID`
   (4919 pendientes; entre ellos los dos archivos tocados), semántico `INVALID` (0 de 1302; ninguna
   fuente del piloto cambió), Archify `PENDING` (runtime ausente) y Obsidian `PENDING`.
 - No se reconstruyó Graphify en el worktree. La capa estructural la actualiza el Director desde
@@ -147,5 +177,6 @@ prueba puntual de vitest (no un verify); por eso se limitaron a 2 workers.
 ## HANDOFF AL DIRECTOR
 
 1. Turno para el `pnpm verify` completo de esta rama, o correrlo en la integración.
-2. Confirmar la clasificación: corrección dentro de la 0560, sin SDD nueva.
-3. Fuera de alcance 1 (StrictMode): merece su propia tarea, porque engaña a cualquier smoke local.
+2. Confirmar la clasificación de las dos partes: correcciones dentro de la 0560, sin SDD nueva.
+3. La PR está `BEHIND` respecto a `main` (entró la 0563), sin conflicto en estos archivos. No se trajo
+   `main` para no disparar otra revisión; queda para la integración.
