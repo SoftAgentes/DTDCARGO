@@ -129,7 +129,7 @@ Todo corrió en este worktree y en la rama de la tarea. La primera vuelta se rep
 |---|---|---|
 | `corepack pnpm exec vitest run scripts/__tests__/radiografia-integridad.test.ts` | la prueba, después de R1-R14 | PASÓ: `Test Files  1 passed (1)`, `Tests  82 passed (82)`, exit 0 (13 casos + 69 mutantes). En la primera vuelta: `Tests 49 passed (49)` |
 | Esperados | los 96 conteos y los 6 montos | recalculados a mano contra la fixture antes de correr; la primera corrida coincidió entera |
-| Mutantes | 69, dentro de la prueba (los 38 de la primera vuelta, varios con su mapa recalculado, y 31 nuevos) | los 69 MUERTOS, cada uno con su diferencia exacta de filas |
+| Mutantes | 69, dentro de la prueba: 37 de los 38 de la primera vuelta, varios con su mapa recalculado, y 32 nuevos. El 38.º, «sin el respaldo por factura», se reemplazó por dos, porque R3 cambió la regla | los 69 MUERTOS, cada uno con su diferencia exacta de filas |
 | Controles rojos en el lugar (`scratchpad/w0559/control-rojo-2.mjs`; restaura en `finally` y compara sha256) | ver la tabla siguiente | 8 de 9 en ROJO, todos con «restaurado: true». El de R6 queda verde a propósito (desvío 18) |
 | `corepack pnpm exec eslint --max-warnings=0` | `scripts/__tests__/radiografia-integridad.test.ts` y `scripts/check-schema-rebuild.mjs` | PASÓ (exit 0, sin salida) |
 | `node --check scripts/check-schema-rebuild.mjs` | sintaxis | PASÓ |
