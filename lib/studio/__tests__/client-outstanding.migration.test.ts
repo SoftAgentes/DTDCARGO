@@ -20,6 +20,7 @@
  *    (`buildReceivablesQueue`) sumada por los códigos del cliente y por moneda
  *    da `open_amount`, `overdue_amount` y sus conteos.
  */
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -290,6 +291,42 @@ describe("SDD-0558 · 0492 saldo único por cliente (PGlite)", () => {
       expect(result.error).toBe(m.fails);
     }, SLOW);
   }
+});
+
+describe("SDD-0558 · la espera y las huellas del preflight", () => {
+  const BASELINE = JSON.parse(readFileSync(resolve(ROOT, "supabase/migrations-baseline.json"), "utf8")) as {
+    pendingBelowCutoff: Record<string, string>;
+  };
+  const cuerpo = (archivo: string, firma: string) => {
+    const t = readFileSync(resolve(ROOT, "supabase/migrations", archivo), "utf8").replace(/\r\n/g, "\n");
+    const i = t.indexOf(firma);
+    expect(i).toBeGreaterThanOrEqual(0);
+    const a = t.indexOf("as $$", i) + "as $$".length;
+    return t.slice(a, t.indexOf("$$;", a));
+  };
+  const md5 = (s: string) => createHash("md5").update(s).digest("hex");
+
+  it("la 0492 espera en pendingBelowCutoff, MIGRATE-FIRST y con OK nominal de Sam", () => {
+    const espera = BASELINE.pendingBelowCutoff["0492_client_outstanding"];
+    expect(espera).toContain("MIGRATE-FIRST");
+    expect(espera).toContain("Requiere OK nominal de Sam");
+    expect(FILE_0492).toContain(
+      "⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en\n--    supabase/migrations-baseline.json › pendingBelowCutoff",
+    );
+  });
+
+  it("cada huella del preflight es el md5 del cuerpo que el árbol define por última vez", () => {
+    const huellas: [string, string, string][] = [
+      ["0453_portal_helpers_principal_determinista.sql", "function public.get_user_tenant_id()", "5ff0c51c26a49419c34abc78f1d95c37"],
+      ["0200_rbac_disabled_enforcement.sql", "create or replace function public.current_studio_role()", "b7157932457d04df4e8cf7621d212965"],
+      ["0444_unlinked_document_entity_rbac.sql", "create or replace function public.document_entity_authorized(", "4eb9fd08721e8f754087dddc5cb88953"],
+      ["0444_unlinked_document_entity_rbac.sql", "create or replace function public.document_entity_module_contract(", "9c78c98fb29c311926f93a1c28ce1c32"],
+    ];
+    for (const [archivo, firma, huella] of huellas) {
+      expect(md5(cuerpo(archivo, firma)), firma).toBe(huella);
+      expect(FILE_0492).toContain(`'${huella}'`);
+    }
+  });
 });
 
 describe("SDD-0558 · anti-deriva de los estados que cuentan", () => {
