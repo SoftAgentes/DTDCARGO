@@ -13,7 +13,8 @@
  *   que guarda Postgres, en funciones reales del repo; la lectura previa detecta
  *   cada estado de deriva y el preflight propio; el apply deja la fila del ledger;
  *   la verificación pasa y cae si el ledger o un cuerpo vivo difieren.
- * - retirar-espera.mjs sobre copias temporales.
+ * - retirar-espera.mjs sobre copias temporales, con el sello en el candado de la
+ *   SDD-0561 (supabase/migrations.lock.json).
  * - La prueba bash con dobles (infra/ops/tests/prueba-migraciones-produccion.sh):
  *   «0 FALLÓ». Nada de esto toca el servidor ni una base real.
  */
@@ -26,6 +27,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as P from "../migraciones/preparar.mjs";
 import { retirarEspera } from "../migraciones/retirar-espera.mjs";
+import { verificarRepo } from "../../../scripts/migrations-lock.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const MIGS = path.join(RAIZ, "supabase", "migrations");
@@ -371,20 +373,28 @@ describe("SDD-0546 · preparar.mjs sobre el repo real", () => {
 });
 
 describe("SDD-0546 · retirar-espera.mjs", () => {
-  const armar = (baseline, declaraciones) => {
+  // SDD-0561: retirar la espera sella la migración en el candado, así que el
+  // fixture trae los .sql y un candado (vacío) además del baseline.
+  const SQL = { "0901_zz_a": "select 'a';\n", "0902_zz_b": "select 'b';\r\n" };
+  const CANDADO_VACIO = { schemaVersion: 1, selladas: {} };
+  const armar = (baseline, declaraciones, { candado = CANDADO_VACIO } = {}) => {
     const d = tmp();
-    mkdirSync(path.join(d, "supabase"));
+    mkdirSync(path.join(d, "supabase", "migrations"), { recursive: true });
     writeFileSync(path.join(d, "supabase", "migrations-baseline.json"), typeof baseline === "string" ? baseline : JSON.stringify(baseline, null, 2) + "\n");
     if (declaraciones) writeFileSync(path.join(d, "supabase", "pending-migration-symbol-declarations.json"), JSON.stringify(declaraciones, null, 2) + "\n");
+    for (const [n, t] of Object.entries(SQL)) writeFileSync(path.join(d, "supabase", "migrations", `${n}.sql`), t);
+    if (candado) writeFileSync(path.join(d, "supabase", "migrations.lock.json"), JSON.stringify(candado, null, 2) + "\n");
     return d;
   };
   const leer = (d, f) => JSON.parse(readFileSync(path.join(d, "supabase", f), "utf8"));
+  const texto = (d, f) => readFileSync(path.join(d, "supabase", f), "utf8");
+  const md5De = (n) => P.md5(SQL[n]);
   const BASE = { $doc: ["x"], cutoff: 238, pendingBelowCutoff: { "0901_zz_a": "espera a", "0902_zz_b": "espera b" } };
   const DECL = { schemaVersion: 1, degradations: [{ migration: "0902_zz_b", symbol: "s" }, { migration: "0901_zz_a", symbol: "t" }] };
 
   it("quita la espera y sus declaraciones, y conserva el resto y el formato", () => {
     const d = armar(BASE, DECL);
-    const r = retirarEspera({ raiz: d, nombre: "0902_zz_b" });
+    const r = retirarEspera({ raiz: d, nombre: "0902_zz_b", md5: md5De("0902_zz_b") });
     expect(r).toMatchObject({ esperaRetirada: true, declaracionesQuitadas: 1, esperasQuedan: ["0901_zz_a"] });
     expect(leer(d, "migrations-baseline.json")).toEqual({ ...BASE, pendingBelowCutoff: { "0901_zz_a": "espera a" } });
     expect(leer(d, "pending-migration-symbol-declarations.json").degradations).toEqual([{ migration: "0901_zz_a", symbol: "t" }]);
@@ -392,19 +402,58 @@ describe("SDD-0546 · retirar-espera.mjs", () => {
     rmSync(d, { recursive: true, force: true });
   });
 
+  it("SDD-0561: sella la migración con la identidad del archivo y el candado queda verde", () => {
+    const d = armar(BASE, DECL);
+    const r = retirarEspera({ raiz: d, nombre: "0902_zz_b", md5: md5De("0902_zz_b") });
+    const id = { sha256: P.sha256(SQL["0902_zz_b"]), md5: md5De("0902_zz_b"), bytes: Buffer.byteLength(SQL["0902_zz_b"]) };
+    expect(r.sellada).toEqual(id);
+    // Nace marcada `ledger` exacta: el md5 es el que la verificación del apply comparó con el ledger.
+    expect(leer(d, "migrations.lock.json").selladas).toEqual({ "0902_zz_b": { ...id, ledger: { fecha: new Date().toISOString().slice(0, 10), forma: "exacta" } } });
+    expect(texto(d, "migrations.lock.json")).toBe(JSON.stringify(leer(d, "migrations.lock.json"), null, 2) + "\n");
+    const v = verificarRepo({ raiz: d, base: null });
+    expect(v.errores).toEqual([]);
+    expect(v.avisos.map((a) => `${a.tipo} ${a.nombre}`)).toEqual(["ESPERA 0901_zz_a"]);
+    rmSync(d, { recursive: true, force: true });
+  });
+
+  it("SDD-0561: con un md5 que no es el del archivo sale 3 y no escribe nada", () => {
+    const d = armar(BASE, DECL);
+    const antes = ["migrations-baseline.json", "pending-migration-symbol-declarations.json", "migrations.lock.json"].map((f) => texto(d, f));
+    expect(() => retirarEspera({ raiz: d, nombre: "0902_zz_b", md5: md5De("0901_zz_a") })).toThrow(expect.objectContaining({ codigo: 3 }));
+    expect(["migrations-baseline.json", "pending-migration-symbol-declarations.json", "migrations.lock.json"].map((f) => texto(d, f))).toEqual(antes);
+    rmSync(d, { recursive: true, force: true });
+  });
+
+  it("SDD-0561: sin --md5, sin candado o sin el archivo sale 2 sin tocar el baseline", () => {
+    const d = armar(BASE, DECL);
+    const antes = texto(d, "migrations-baseline.json");
+    expect(() => retirarEspera({ raiz: d, nombre: "0902_zz_b" })).toThrow(expect.objectContaining({ codigo: 2 }));
+    rmSync(path.join(d, "supabase", "migrations", "0902_zz_b.sql"));
+    expect(() => retirarEspera({ raiz: d, nombre: "0902_zz_b", md5: md5De("0902_zz_b") })).toThrow(expect.objectContaining({ codigo: 2 }));
+    expect(texto(d, "migrations-baseline.json")).toBe(antes);
+    rmSync(d, { recursive: true, force: true });
+    const e = armar(BASE, DECL, { candado: null });
+    expect(() => retirarEspera({ raiz: e, nombre: "0902_zz_b", md5: md5De("0902_zz_b") })).toThrow(expect.objectContaining({ codigo: 2 }));
+    expect(texto(e, "migrations-baseline.json")).toBe(JSON.stringify(BASE, null, 2) + "\n");
+    rmSync(e, { recursive: true, force: true });
+  });
+
   it("si no estaba en pendingBelowCutoff sale 3 sin tocar nada; en seco no escribe", () => {
     const d = armar(BASE, DECL);
     const antes = readFileSync(path.join(d, "supabase", "migrations-baseline.json"), "utf8");
-    expect(() => retirarEspera({ raiz: d, nombre: "0999_zz_no" })).toThrow(expect.objectContaining({ codigo: 3 }));
-    const r = retirarEspera({ raiz: d, nombre: "0901_zz_a", enSeco: true });
+    const candadoAntes = texto(d, "migrations.lock.json");
+    expect(() => retirarEspera({ raiz: d, nombre: "0999_zz_no", md5: md5De("0901_zz_a") })).toThrow(expect.objectContaining({ codigo: 3 }));
+    const r = retirarEspera({ raiz: d, nombre: "0901_zz_a", md5: md5De("0901_zz_a"), enSeco: true });
     expect(r.esperasQuedan).toEqual(["0902_zz_b"]);
+    expect(r.sellada.md5).toBe(md5De("0901_zz_a"));
     expect(readFileSync(path.join(d, "supabase", "migrations-baseline.json"), "utf8")).toBe(antes);
+    expect(texto(d, "migrations.lock.json")).toBe(candadoAntes);
     rmSync(d, { recursive: true, force: true });
   });
 
   it("no reescribe un baseline con otro formato (un diff de todo el archivo esconde el cambio)", () => {
     const d = armar('{"cutoff":238,"pendingBelowCutoff":{"0901_zz_a":"x"}}\n');
-    expect(() => retirarEspera({ raiz: d, nombre: "0901_zz_a" })).toThrow(expect.objectContaining({ codigo: 2 }));
+    expect(() => retirarEspera({ raiz: d, nombre: "0901_zz_a", md5: md5De("0901_zz_a") })).toThrow(expect.objectContaining({ codigo: 2 }));
     rmSync(d, { recursive: true, force: true });
   });
 
@@ -416,7 +465,7 @@ describe("SDD-0546 · retirar-espera.mjs", () => {
     const g = (args) => spawnSync("git", ["-C", d, ...args], { encoding: "utf8" });
     g(["init", "-q"]);
     g(["add", "-A"]);
-    expect(retirarEspera({ raiz: d, nombre: "0902_zz_b", enSeco: true }).revisarAMano).toEqual(["lib/afirma.test.ts"]);
+    expect(retirarEspera({ raiz: d, nombre: "0902_zz_b", md5: md5De("0902_zz_b"), enSeco: true }).revisarAMano).toEqual(["lib/afirma.test.ts"]);
     rmSync(d, { recursive: true, force: true });
   });
 });
