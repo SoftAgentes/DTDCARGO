@@ -1078,17 +1078,29 @@ Sam las dio al Director el 2026-10-19 a las 18:02Z, sobre el documento
 | Decisión 3: dueño del cobro | **Aceptada**, con un ajuste. El ERP registra y aplica todo cobro y pago. QuickBooks se lleva en paralelo solo mientras el ERP no esté listo, y después se deja. **No hay conector**: nada del ERP viaja a QuickBooks | «me gusta lo recomendado en la parte 3» · «QuickBooks solo está de paso; en cuanto nosotros podamos llevar las cosas bien en el ERP, dejaremos de usarlo» · «Lo demás se va a trabajar todo en el ERP; no nos interesa que viaje a QuickBooks después, ya que QuickBooks lo vamos a llevar de forma simultánea hasta que el ERP esté haciendo bien las cosas» |
 | Decisión 4: anticipos | **Aceptada**, la recomendación tal cual | «En el tema del anticipo, donde el cliente paga antes de la facturación, sí aplica lo que me estás recomendando» |
 | Impuestos | **Fuera por ahora.** No se aplican IVA, IGTF ni retenciones; se habilitan más adelante | «vamos a empezar todo sin temas de IVA ni nada de impuestos. Más adelante habilitaremos esa función y la arreglaremos en su debido momento, pero por ahora no nos interesa» |
-| Período cerrado (sobre la decisión 2) | **Propuesta de Sam:** como en QuickBooks, se puede cambiar un período cerrado tras una advertencia y con una superclave de autorización distinta de la clave del usuario. Queda abierta la opinión de la contadora | «cuando voy a hacer algo en un ciclo cerrado, te dice: "este ciclo ya cerró contablemente; si deseas cambiarlo..." y hace una advertencia» · «tiene una clave aparte de la del usuario que está trabajando: tiene una superclave de autorización» |
+| Período cerrado (sobre la decisión 2) | **Propuesta de Sam:** como en QuickBooks, se puede cambiar un período cerrado tras una advertencia y con una superclave de autorización distinta de la clave del usuario. Se construye en la SDD-0566 | «cuando voy a hacer algo en un ciclo cerrado, te dice: "este ciclo ya cerró contablemente; si deseas cambiarlo..." y hace una advertencia» · «tiene una clave aparte de la del usuario que está trabajando: tiene una superclave de autorización» |
 
-**Siguen abiertas:**
-- la decisión 1 (moneda funcional), de la contadora;
-- la decisión 2 (reparación de históricos), que ahora incluye la propuesta de la superclave.
+**Respuestas de Sam en el documento.** Más tarde, ese mismo día y antes de las 20:00Z,
+Sam contestó él mismo las cuatro preguntas en el documento «Preguntas para la
+contadora». Con eso, las decisiones 1 a 4 quedan tomadas:
+
+| Tema | Decisión | Texto de Sam |
+|---|---|---|
+| Decisión 1: moneda funcional | **Aceptada.** El mayor se lleva en USD (USDT = USD 1:1). Los bolívares aparecen solo en los reportes. La diferencia al cobrar en Bs va a ganancia o pérdida cambiaria | «Me parece bien que avancemos como lo tienes en USD. Todo el sistema tiene que estar en USDT y los libros están en USDT; solamente en reportes puede uno reversarlo si lo quiere en bolívares» · «Si hay una diferencia, hay una opción de ponerle pérdidas o ganancias cambiarias en las cuentas contables» · «Por ahora la recomendación está bien» |
+| Decisión 2: históricos | **No hay historia que reparar.** Lo que hoy está en el ERP son pruebas. Se abren cuentas nuevas a todos los clientes, y la recomendación (no reabrir períodos, corregir en el período abierto con nota) queda para adelante | «Realmente lo que ves en el sistema no es nada, simplemente eran pruebas, así que ignóralas. No hay nada en el sistema actualmente; tenemos que abrir cuentas nuevas a todos» · «El ERP no tiene nada, pero me gustó la recomendación de cómo lo van a hacer» |
+| Decisión 3, complemento | Las conciliaciones bancarias también se hacen en el ERP, y los ajustes de cierre no viajan a QuickBooks | «Los cobros y pagos serán totalmente en el ERP. Las conciliaciones no se harán en QuickBooks, más bien se harán en el ERP» · «Los ajustes de cierre que se carguen en el ERP tampoco van a viajar a QuickBooks» |
+| Decisión 4, complemento | La nota de crédito se ve en el estado de cuenta como un abono a favor del cliente | «La nota de crédito entraría como si fuera un recibo y aparecería en su estado de cuenta a favor de él» |
 
 **Cómo cambia el plan.** Es lectura del Director, revisable por Sam:
+- **La fase 2 queda desbloqueada:** 2.1, 2.2, 2.3, 2.5 y 2.6 ya no esperan decisiones.
+- **Las reparaciones de la 2.2 y la 2.5 no tienen casos reales.** Las 5 facturas emitidas sin asiento y la factura anulada con cobro de la radiografía del 2026-10-18 son datos de prueba. Igual se construye el mecanismo «asentar pendientes» y el reverso al anular. **Antes de borrar los datos de prueba de producción hace falta una decisión aparte de Sam**: borrar deja rastro en `entity_audit_log`.
+- **«Abrir cuentas nuevas a todos»** es el arranque contable (3.9), que deja de esperar a la fase 3.
+- **Los bolívares, solo en los reportes:** la 3.5 pasa a ser un reporte en Bs del Diario y el Mayor, no un libro aparte. Los libros legales en Bs vuelven con los impuestos.
+- **La conciliación bancaria** se hace en el ERP. Hoy solo aparece como parte del paquete del contador (3.5), así que necesita su propia SDD.
 - **La fase 6 (conector QuickBooks) y la 7.1 (corte del libro gerencial) salen del plan**, y con ellas las decisiones 12 y 13. El ERP es el único libro.
 - **De la fase 3 quedan en espera las partes de impuestos:** el IVA por concepto (3.2 y decisión 7), la posición de IVA de 3.4, el IGTF y las retenciones de 3.7, y la decisión 5. Siguen vigentes, porque no son impuestos:
   - el número de control y el correlativo (3.1, decisiones 6 y 8), salvo que Sam diga otra cosa;
-  - el Diario y el Mayor en bolívares (3.5);
+  - el Diario y el Mayor, como reporte en bolívares (3.5, ver arriba);
   - la revaluación (3.6);
   - la nómina en el libro (3.8);
   - el arranque contable (3.9).
