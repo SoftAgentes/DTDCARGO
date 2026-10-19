@@ -3,7 +3,9 @@
  * filtros (`listados-double.ts`) y corta cada respuesta en 1.000 filas como
  * `db-max-rows`. Los fixtures son infelices a propósito: borradas, anuladas,
  * borradores, asientos fuera del rango, un crédito de referido con
- * `invoice_id` y un asiento a 4.6.
+ * `invoice_id`, un asiento a 4.6, un manual a la propia 4.5, un asiento
+ * asentado y borrado, recibos y pagos anulados con su asiento vivo y lecturas
+ * que no terminan.
  */
 import { describe, expect, it } from "vitest";
 import { dobleListados, type Fila } from "@/lib/studio/__tests__/listados-double";
@@ -200,11 +202,13 @@ function diarioGrande(): Record<string, Fila[]> {
   }
   entries.push(entrada("b00001", "2025-03-05", "borrador"));
   lines.push(linea("b-d", "b00001", "cxc", 7, 0), linea("b-h", "b00001", "ventas", 0, 7));
+  entries.push(entrada("d00001", "2025-03-05", "asentado", { deleted_at: "2025-03-06T00:00:00Z" }));
+  lines.push(linea("d-d", "d00001", "cxc", 777, 0), linea("d-h", "d00001", "ventas", 0, 777));
   return { accounts: PLAN, journal_entries: entries, journal_lines: lines };
 }
 
 describe("leerDiarioCompleto", () => {
-  it("baja TODO: 1.200 asentados × 2 líneas, sin anulados ni borradores, con el tope de 1.000 por respuesta", async () => {
+  it("baja TODO: 1.200 asentados × 2 líneas, sin anulados, borradores ni borrados, con el tope de 1.000 por respuesta", async () => {
     const { client } = dobleListados(diarioGrande(), { serverCap: SERVER_CAP });
     const filas = await leerDiarioCompleto(client, {});
     expect(filas).toHaveLength(2400);
@@ -212,17 +216,28 @@ describe("leerDiarioCompleto", () => {
     expect(filas[0]).toMatchObject({ fecha: "2025-03-01", cuenta: "1.1.1", debe: 10, origen: "Manual" });
   });
 
+  it("un asiento asentado con deleted_at no aparece en el CSV", async () => {
+    const { client } = dobleListados(diarioGrande(), { serverCap: SERVER_CAP });
+    const filas = await leerDiarioCompleto(client, {});
+    expect(filas.some((f) => f.asiento === "A-d00001")).toBe(false);
+    expect(filas.some((f) => f.debe === 777 || f.haber === 777)).toBe(false);
+  });
+
   it("aplica desde y hasta sobre entry_date", async () => {
     const { client } = dobleListados(diarioGrande(), { serverCap: SERVER_CAP });
     const filas = await leerDiarioCompleto(client, { from: "2025-03-10", to: "2025-03-12" });
     const asientos = diarioGrande().journal_entries.filter(
-      (e) => e.status === "asentado" && (e.entry_date as string) >= "2025-03-10" && (e.entry_date as string) <= "2025-03-12",
+      (e) =>
+        e.status === "asentado" &&
+        e.deleted_at == null &&
+        (e.entry_date as string) >= "2025-03-10" &&
+        (e.entry_date as string) <= "2025-03-12",
     );
     expect(filas).toHaveLength(asientos.length * 2);
     expect(filas.every((f) => f.fecha >= "2025-03-10" && f.fecha <= "2025-03-12")).toBe(true);
   });
 
-  it("invariante: Σ debe del diario hasta el corte = total debe de la comprobación al corte", async () => {
+  it("invariante: Σ debe del diario hasta el corte = total debe de la comprobación al corte (con el borrado en la base)", async () => {
     const { client } = dobleListados(
       { ...diarioGrande(), invoices: [] },
       { serverCap: SERVER_CAP },
@@ -235,6 +250,31 @@ describe("leerDiarioCompleto", () => {
     const debe = Math.round(filas.reduce((s, f) => s + f.debe, 0) * 100) / 100;
     expect(debe).toBeGreaterThan(0);
     expect(debe).toBe(reportes.comprobacion.totalDebe);
+  });
+
+  it("ERR-01 · si los asientos no terminan de leerse, rechaza con su nombre (no devuelve un diario corto)", async () => {
+    // Con un tope de 1 fila por respuesta, 61 asientos superan MAX_PAGES (60).
+    const entries: Fila[] = [];
+    for (let n = 0; n < 61; n++) entries.push(entrada(`h${String(n).padStart(3, "0")}`, "2025-03-01"));
+    const { client } = dobleListados({ accounts: PLAN, journal_entries: entries, journal_lines: [] }, { serverCap: 1 });
+    await expect(leerDiarioCompleto(client, {})).rejects.toThrow(
+      /^Diario · asientos: la lectura supera el tope; el control no se puede calcular completo\.$/,
+    );
+  });
+
+  it("ERR-01 · si las líneas no terminan de leerse, rechaza con su nombre", async () => {
+    // 30 asientos se leen en 31 respuestas; sus 60 líneas, no.
+    const entries: Fila[] = [];
+    const lines: Fila[] = [];
+    for (let n = 0; n < 30; n++) {
+      const id = `k${String(n).padStart(3, "0")}`;
+      entries.push(entrada(id, "2025-03-01"));
+      lines.push(linea(`${id}-d`, id, "banco", 1, 0), linea(`${id}-h`, id, "ventas", 0, 1));
+    }
+    const { client } = dobleListados({ accounts: PLAN, journal_entries: entries, journal_lines: lines }, { serverCap: 1 });
+    await expect(leerDiarioCompleto(client, {})).rejects.toThrow(
+      /^Diario · líneas: la lectura supera el tope; el diario saldría incompleto\.$/,
+    );
   });
 });
 
@@ -288,6 +328,93 @@ describe("cuadreDelLibro", () => {
       val: ["invoice", "receipt", "supplier_bill", "supplier_payment"],
     });
     expect(filtros).toContainEqual({ table: "invoices", op: "is", col: "deleted_at", val: null });
+  });
+
+  /**
+   * E1 por el recibo: una factura en USD cobrada con un recibo en bolívares
+   * cuyo asiento `receipt` está vivo. La factura se asienta en USD, pero el
+   * recibo convierte: 1.1.2 deja de ser comparable.
+   */
+  function conReciboVes(recibo: { asiento: string; borrado?: boolean }) {
+    const tablas: Record<string, Fila[]> = {
+      accounts: PLAN,
+      invoices: [
+        { id: "f1", invoice_code: "F-1", status: "pagada", issued_at: "2025-03-05", currency: "USD", fx_rate: null, total_amount: 1160, paid_amount: 1160, deleted_at: null },
+      ],
+      payment_receipts: [
+        {
+          id: "r1", receipt_code: "R-1", received_at: "2025-03-10", currency: "VES", amount: 42340,
+          journal_entry_id: "e-r1", deleted_at: recibo.borrado ? "2025-03-11T00:00:00Z" : null,
+        },
+      ],
+      supplier_bills: [],
+      supplier_payments: [],
+      journal_entries: [
+        entrada("e-f1", "2025-03-05", "asentado", { source: "invoice", invoice_id: "f1" }),
+        entrada("e-r1", "2025-03-10", recibo.asiento, { source: "receipt", receipt_id: "r1" }),
+      ],
+      journal_lines: [],
+    };
+    return dobleListados(tablas, { serverCap: SERVER_CAP }).client;
+  }
+
+  it("E1 por el recibo: un recibo vivo en VES con asiento `receipt` asentado vuelve no comparable a clientes", async () => {
+    const client = conReciboVes({ asiento: "asentado" });
+    const accounts = await listAccounts(client);
+    const saldos = await accountBalances(client);
+    saldos.cxc = { debit: 1160, credit: 1160, balance: 0 };
+    const c = await cuadreDelLibro(client, { accounts, saldos, hoy: "2025-03-18" });
+    expect(c.subdiario.clientes).toMatchObject({ estado: "no_comparable", diferenciaUsd: null });
+  });
+
+  it("E1 por el recibo · controles: con el asiento anulado, o con el recibo anulado, no cuenta", async () => {
+    for (const recibo of [{ asiento: "anulado" }, { asiento: "asentado", borrado: true }]) {
+      const client = conReciboVes(recibo);
+      const accounts = await listAccounts(client);
+      const saldos = await accountBalances(client);
+      saldos.cxc = { debit: 1160, credit: 1160, balance: 0 };
+      const c = await cuadreDelLibro(client, { accounts, saldos, hoy: "2025-03-18" });
+      expect(c.subdiario.clientes).toMatchObject({ estado: "cuadra", diferenciaUsd: 0 });
+    }
+  });
+
+  it("recibos y pagos anulados (deleted_at) con asiento vivo, CxP viva sin asiento y CxP abierta en el subdiario", async () => {
+    const tablas: Record<string, Fila[]> = {
+      accounts: PLAN,
+      invoices: [],
+      payment_receipts: [
+        { id: "r9", receipt_code: "R-9", received_at: "2025-03-10", currency: "USD", amount: 100, journal_entry_id: "e-r9", deleted_at: "2025-03-11T00:00:00Z" },
+      ],
+      supplier_bills: [
+        { id: "b1", bill_code: "CXP-1", issue_date: "2025-03-02", currency: "USD", fx_rate: null, total_amount: 300, paid_amount: 0, status: "pendiente", journal_entry_id: null, deleted_at: null },
+        { id: "b2", bill_code: "CXP-2", issue_date: "2025-03-03", currency: "USD", fx_rate: null, total_amount: 700, paid_amount: 200, status: "parcial", journal_entry_id: "e-b2", deleted_at: null },
+      ],
+      supplier_payments: [
+        { id: "p9", payment_code: "PP-9", paid_at: "2025-03-12", currency: "USD", amount: 80, journal_entry_id: "e-p9", deleted_at: "2025-03-13T00:00:00Z" },
+      ],
+      journal_entries: [
+        entrada("e-r9", "2025-03-10", "asentado", { source: "receipt", receipt_id: "r9" }),
+        entrada("e-b2", "2025-03-03", "asentado", { source: "supplier_bill", bill_id: "b2" }),
+        entrada("e-p9", "2025-03-12", "asentado", { source: "supplier_payment", supplier_payment_id: "p9" }),
+      ],
+      journal_lines: [],
+    };
+    const { client } = dobleListados(tablas, { serverCap: SERVER_CAP });
+    const accounts = await listAccounts(client);
+    const saldos = await accountBalances(client);
+    saldos.cxp = { debit: 0, credit: 800, balance: 800 };
+    const c = await cuadreDelLibro(client, { accounts, saldos, hoy: "2025-03-18" });
+
+    expect(c.documentos.anuladosConAsiento.map((h) => [h.tipo, h.codigo])).toEqual([
+      ["recibo", "R-9"],
+      ["pago_proveedor", "PP-9"],
+    ]);
+    expect(c.documentos.sinAsiento.map((h) => [h.codigo, h.motivo])).toEqual([["CXP-1", "sin_asiento"]]);
+    expect(c.documentos.conteo.recibo).toMatchObject({ vivos: 0, anulados: 1, anuladosConAsiento: 1 });
+    expect(c.documentos.conteo.pago_proveedor).toMatchObject({ vivos: 0, anulados: 1, anuladosConAsiento: 1 });
+    expect(c.documentos.conteo.cxp).toMatchObject({ vivos: 2, sinAsiento: 1 });
+    // Saldo abierto: 300 + (700 − 200) = 800, contra 800 en 2.1.1.
+    expect(c.subdiario.proveedores).toMatchObject({ subdiarioUsd: 800, mayorUsd: 800, documentos: 2, estado: "cuadra" });
   });
 });
 

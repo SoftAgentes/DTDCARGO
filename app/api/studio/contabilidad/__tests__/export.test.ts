@@ -124,6 +124,26 @@ describe("el CSV del diario", () => {
   });
 });
 
+describe("ERR-01 · lectura incompleta", () => {
+  it("si el diario no termina de leerse, 500 con el mensaje seguro y sin un CSV corto", async () => {
+    // Un tope de 1 fila por respuesta con 61 asientos supera MAX_PAGES (60).
+    const entries: Fila[] = [];
+    for (let n = 0; n < 61; n++) entries.push(asiento(`h${String(n).padStart(3, "0")}`, "2025-03-01", "asentado", "x"));
+    h.client = dobleListados({ accounts: PLAN, journal_entries: entries, journal_lines: [] }, { serverCap: 1 }).client;
+    const errores = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const r = await pedir("?tipo=diario");
+      expect(r.status).toBe(500);
+      expect(r.headers.get("Content-Type")).not.toMatch(/text\/csv/);
+      const cuerpo = await r.json();
+      expect(cuerpo.error).toBe("No se pudo generar el CSV del diario.");
+      expect(cuerpo.detail).toMatch(/^Diario · asientos: la lectura supera el tope/);
+    } finally {
+      errores.mockRestore();
+    }
+  });
+});
+
 describe("validación", () => {
   it.each([
     ["?tipo=otro", /tipo/],

@@ -239,6 +239,18 @@ describe("cruzarDocumentosConAsientos (definiciones canónicas de la SDD-0559)",
     expect(enlaceDelDocumento("cxp", "CXP-1")).toBe("/studio/tesoreria");
   });
 
+  it("orden en la disposición infeliz: la fecha manda sobre el código", () => {
+    // F-1 es posterior a F-9: ordenar por código daría F-1 primero.
+    const r = cruzarDocumentosConAsientos(
+      [
+        doc({ tipo: "factura", id: "f1", codigo: "F-1", fecha: "2025-03-09" }),
+        doc({ tipo: "factura", id: "f9", codigo: "F-9", fecha: "2025-03-01" }),
+      ],
+      [],
+    );
+    expect(r.sinAsiento.map((h) => h.codigo)).toEqual(["F-9", "F-1"]);
+  });
+
   it("CSV de documentos: cabecera y las dos listas", () => {
     const r = cruzarDocumentosConAsientos(
       [doc({ tipo: "factura", id: "f1" }), doc({ tipo: "factura", id: "f9", vivo: false })],
@@ -419,6 +431,7 @@ describe("diario", () => {
     ["banco", { code: "1.1.1", name: "Banco" }],
     ["cxc", { code: "1.1.2", name: "Cuentas por cobrar" }],
     ["ventas", { code: "4.5", name: "Otros ingresos por servicios" }],
+    ["gasto", { code: "6.1", name: "Gastos generales" }],
   ]);
   const linea = (id: string, account_id: string, debit: number, credit: number, line_memo: string | null = null) => ({
     id, account_id, debit, credit, line_memo,
@@ -439,6 +452,24 @@ describe("diario", () => {
       ["A-2025-0002", "1.1.2", 0, 50],
     ]);
     expect(filas[0]).toMatchObject({ origen: "Factura", concepto: "Factura F-1", nombreCuenta: "Cuentas por cobrar" });
+  });
+
+  it("orden en la disposición infeliz: la fecha manda sobre el código y el debe va primero aunque su cuenta sea mayor", () => {
+    const filas = filasDelDiario(
+      [
+        // Código MENOR y fecha POSTERIOR: si se ordenara por código saldría primero.
+        { id: "e1", entry_code: "A-2025-0001", entry_date: "2025-03-20", memo: "Cargado tarde", source: "manual", lines: [linea("l1", "banco", 5, 0), linea("l2", "ventas", 0, 5)] },
+        // El debe va a 6.1 y el haber a 1.1.1: por código de cuenta, el haber iría antes.
+        { id: "e9", entry_code: "A-2025-0009", entry_date: "2025-03-02", memo: "Gasto", source: "manual", lines: [linea("l3", "banco", 0, 40), linea("l4", "gasto", 40, 0)] },
+      ],
+      cuentas,
+    );
+    expect(filas.map((f) => [f.asiento, f.cuenta, f.debe, f.haber])).toEqual([
+      ["A-2025-0009", "6.1", 40, 0],
+      ["A-2025-0009", "1.1.1", 0, 40],
+      ["A-2025-0001", "1.1.1", 5, 0],
+      ["A-2025-0001", "4.5", 0, 5],
+    ]);
   });
 
   it("origenDelAsiento no colapsa a «Manual» lo que no es manual", () => {
