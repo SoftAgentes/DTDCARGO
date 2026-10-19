@@ -49,7 +49,8 @@
   ⚠️ No confundir con **"DoorTuDoor Trading" / J-50220185**: esa es otra razón social y sigue
   **prohibida** en recibos y rendiciones (regla absoluta del handoff legal).
 - La **razón social y el RIF van SOLO en el schema** (`legalName`/`taxID`) — **nunca en texto
-  visible** del sitio.
+  visible** del sitio. Excepciones aprobadas por Sam, solo en documentos: la factura (SDD-0297,
+  2026-08-25) y el estado de cuenta en PDF (SDD-0556, 2026-10-18), bajo el membrete.
 - **RIF ÚNICO (decisión founder 2026-06-10): `J-50648869-8`.** Cualquier otro RIF de DTD que
   aparezca en material de marca/diseño/legal (`J-410322887`, `J-40558712-0`, `J-40551122-3`,
   `J-50220185-8` circulaban en el Norte) es **incorrecto → reemplazar** por el canónico. En

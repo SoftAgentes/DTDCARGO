@@ -8,8 +8,8 @@
 | Rama | `claude/sdd-0556-portal-dice-la-verdad`, base `a7a51ad7` (la reserva, sobre `origin/main` `77035907`); `origin/main` `cb9c62ae` fusionado en `d9038877` |
 | SDD | [0556](../../docs/specs/0556-portal-facturas-anuladas-fuera/spec.md), `in-progress`. Se conserva el slug de la reserva |
 | Commits | Primera vuelta: `e249396d` (definición única de deuda y pantallas), `f61bf702` (lectura completa, Inicio y PDF del estado de cuenta), `41159273` (aviso al cliente), `0b19e9b3` (spec, índice y handoff) y el merge `d9038877`. Correcciones de la revisión: `08f1b8db` (C1), `87e40774` (C5), `4df4b09d` (PDF de la anulada), `99ef144d` (C2, C3, C4, C6, C7), `b91b1b7e` (contrato exacto) y el commit de docs con esta actualización |
-| Estado | implementado, revisado y corregido en el worktree; **sin push** |
-| Permisos | Sam autorizó la fase 1 completa. Este encargo no incluye push, PR, merge, producción ni base de datos. `pnpm verify` necesita turno del Director |
+| Estado | implementado, revisado dos veces y corregido; lista para PR en borrador |
+| Permisos | Sam autorizó la fase 1 completa: commits selectivos, push de la rama propia y PR en borrador contra `main`, sin fusionar. Sin producción ni base de datos. `pnpm verify` necesita turno del Director. El 2026-10-18 Sam aprobó además la excepción de marca del estado de cuenta (ver «Decisiones de Sam») |
 
 ## OBJETIVO ORIGINAL
 
@@ -41,6 +41,19 @@ Tarea 1.2 de la fase 1 del plan contable (`docs/audits/2026-10-18-contabilidad-d
 - **C9 · Mutantes al día.** Corrida completa sobre `b91b1b7e`; la última línea del log es «Todos los mutantes murieron.» (78 de 78). Detalle abajo.
 - **C10 · Merge y entorno.** Ver «Merge y entorno» arriba; el inventario se volvió a correr al final.
 - **Fuera de las correcciones, hecho**: el PDF de una anulada ya no imprime «Datos para el pago» (una línea en `factura-pdf.tsx`, con prueba y mutante M66).
+
+### Tercera vuelta: decisión de Sam y revisión del delta
+
+La Worker revisó el delta de las correcciones con dos lentes y dos escépticos por hallazgo. No encontró defectos de cálculo y aplicó lo que valía la pena:
+
+- **Excepción de marca encendida.** La ruta del PDF del estado de cuenta del portal pasa `legalName` y `rif` del tenant del principal. La prueba de la frontera fija los del tenant correcto. Las reglas de identidad (`docs/engineering/project-rules.md` y `docs/marketing/identidad.md`) nombran las dos excepciones de documentos.
+- **Notas de sobrepagos según la cifra que acompañan.** `notaSobrepagos(monto, moneda, lugar)`:
+  - en el libro y su PDF dice cuánto falta pagar de verdad (`porPagar` = neto + sobrepagos), para que el cliente no pague de menos;
+  - bajo los KPIs de Facturas (fuera del estado de cuenta) y de Finanzas explica por qué facturado − pagado no da el saldo pendiente;
+  - las dos terminan con la indicación única.
+- **El contrato con el libro en céntimos enteros,** con fixtures de céntimos inexactos en coma flotante y un sobrepago en otra moneda, que ata la moneda en los dos lados.
+- **Inicio con varias monedas:** «Facturado» dice «solo USD · hay otras monedas», no «moneda dominante». El comentario del tipo dice que la moneda de las cifras sigue a la deuda.
+- **PDF de la factura anulada con abono:** el aviso agrega lo abonado y la indicación única, igual que el comprobante.
 
 ## DESVÍOS RESPECTO DEL PLAN Y LAS DECISIONES
 
@@ -75,7 +88,10 @@ Todo en este worktree y esta rama. Sin `pnpm verify`, sin vitest sin filtro y si
 | Inventario `invoice-read-boundary` | 42 llamadas / 18 archivos, sobre el árbol fusionado | PASÓ: `Tests  4 passed (4)` |
 | Allowlist exacta | 39 archivos contra `cb9c62ae` | PASÓ: 39 filas, 39 archivos en el diff, ninguno sobra ni falta |
 | `/ui-check` | portal (Facturas lista y estado de cuenta, Finanzas, detalle, comprobante, portada) en claro y oscuro | NO EJECUTADO: necesita navegador y datos; queda pendiente |
-| `corepack pnpm verify` | completo | NO EJECUTADO: sin turno del Director |
+| Tercera vuelta · `vitest run lib/portal app/portal "app/studio/(app)/facturacion" "app/studio/(app)/clientes" lib/studio/pdf lib/studio/mail lib/studio/__tests__/payment-report-resolution-notify.test.ts scripts/__tests__/invoice-read-boundary.test.mjs` | todas las carpetas que toca la tarea | PASÓ: `Test Files  147 passed (147)`, `Tests  1694 passed (1694)` |
+| Tercera vuelta · mutantes (`scratchpad/mutantes-0556-ajustes.mjs`, con `node` y sin `pnpm`) | 12 mutantes de los ajustes: la ruta sin razón social o sin RIF, el libro o el PDF con mal «lo que falta pagar», Facturas y Finanzas sin la nota, Facturas con la nota repetida en el estado de cuenta, la nota del libro sin el monto, sobrepagos de otra moneda en el libro, el rótulo viejo de Inicio, el PDF de la anulada callando lo abonado o hablando de abono sin él | PASÓ: «Todos los mutantes murieron.», 12 de 12 con exit 1 y línea `Tests … failed` |
+| Tercera vuelta · `corepack pnpm typecheck` y `eslint --max-warnings=0` (17 archivos tocados) | repo y archivos tocados | PASÓ (exit 0) |
+| `corepack pnpm verify` | completo | NO EJECUTADO: hay que pedirle el turno al Director |
 | Comprobación en el navegador | — | NO EJECUTADA |
 
 ### Control rojo, mutante por mutante
@@ -122,8 +138,12 @@ Las correcciones no cambian este flujo.
 
 1. `/ui-check` del portal en claro y oscuro: el gris del monto tachado (`text-grey-500`), las notas nuevas (pagos en anuladas y sobrepagos) y la nota del comprobante no se midieron en el portal oscuro; la tarjeta «No disponible» de la portada en móvil.
 2. `corepack pnpm verify` con turno del Director.
-3. Push de la rama y PR: no autorizados en este encargo. Si `main` avanza antes de integrar, recalcular el inventario de `invoice-read-boundary` y regenerar el índice.
-4. Preguntas para Sam (también en la spec): la excepción de marca para el estado de cuenta (hoy apagada), la indicación sobre lo pagado en anuladas (una sola función, seis lugares) y la nota de sobrepagos.
+3. Si `main` avanza antes de integrar: recalcular el inventario de `invoice-read-boundary` y regenerar el índice.
+4. Preguntas para Sam que siguen abiertas (también en la spec): el texto de la indicación sobre lo pagado en anuladas (una sola función, siete lugares) y las dos versiones de la nota de sobrepagos. La excepción de marca ya está decidida.
+
+## Decisiones de Sam
+
+- **2026-10-18, excepción de marca del estado de cuenta.** A la pregunta «En el PDF del estado de cuenta que el cliente descarga del portal, ¿pongo la razón social y el RIF de DTD bajo el logo, como ya los lleva la factura?», Sam eligió «Sí, como la factura (Recomendado)».
 
 ## FUERA DE ALCANCE DETECTADO
 

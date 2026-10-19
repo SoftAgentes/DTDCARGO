@@ -17,7 +17,7 @@ confidencialidad: interno
 
 ## Contexto
 
-Es la tarea 1.2 de la fase 1 del plan contable (`docs/audits/2026-10-18-contabilidad-diagnostico-y-plan.md`) y cierra el hallazgo **B14** («El portal muestra las facturas anuladas como deuda»). Sam autorizó la fase 1 completa; lo que necesita una decisión suya queda preparado pero apagado (ver «Preguntas para Sam»).
+Es la tarea 1.2 de la fase 1 del plan contable (`docs/audits/2026-10-18-contabilidad-diagnostico-y-plan.md`) y cierra el hallazgo **B14** («El portal muestra las facturas anuladas como deuda»). Sam autorizó la fase 1 completa. El 2026-10-18 respondió además la excepción de marca del estado de cuenta (ver «Decisiones de Sam»); lo demás que pide su criterio sigue en «Preguntas para Sam».
 
 Lo que se verificó en el código antes de cambiarlo:
 
@@ -42,9 +42,17 @@ Módulo puro nuevo, `lib/portal/saldo-de-cuenta.ts`. Lo usan Inicio, Facturas, F
 
 ### Sobrepagos: el KPI recorta, el libro da el neto y lo explica
 
-«Saldo pendiente» (KPIs de Inicio, Facturas y Finanzas) recorta cada factura a 0: es lo que falta pagar, la regla única. El libro del estado de cuenta da el neto (`total − pagado`), que resta lo pagado de más. Con un sobrepago las dos cifras difieren justo en `sobrepagos`. Para Facturas y Finanzas esa diferencia es **nueva** (antes sumaban `total − pagado` sin recorte, igual que el libro); para Inicio ya existía. Por eso, cuando `sobrepagos > 0`, la tabla del estado de cuenta y su PDF llevan la nota de `notaSobrepagos`:
+«Saldo pendiente» (KPIs de Inicio, Facturas y Finanzas) recorta cada factura a 0: es lo que falta pagar, la regla única. El libro del estado de cuenta da el neto (`total − pagado`), que resta lo pagado de más. Con un sobrepago las dos cifras difieren justo en `sobrepagos`. Para Facturas y Finanzas esa diferencia es **nueva** (antes sumaban `total − pagado` sin recorte, igual que el libro); para Inicio ya existía. Por eso, cuando `sobrepagos > 0`, cada lugar lleva la nota de `notaSobrepagos` con la versión que corresponde a la cifra que muestra:
 
-> Incluye USD 20.00 pagados de más en facturas ya pagadas; tu asesor los aplica o te los devuelve.
+- Bajo el libro del estado de cuenta y en su PDF (`donde: "libro"`, que muestran el neto), la nota dice cuánto falta pagar de verdad, para que el cliente no pague de menos:
+
+  > Este saldo ya descuenta USD 20.00 pagados de más en facturas ya pagadas. Mientras no se apliquen, lo que falta pagar es USD 200.00: escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución.
+
+- Bajo los KPIs de Facturas (fuera del estado de cuenta) y de Finanzas (`donde: "kpis"`), la nota explica por qué facturado − pagado no da el saldo pendiente:
+
+  > «Pagado» incluye USD 20.00 pagados de más en facturas ya pagadas, que no se descuentan de tu saldo pendiente: escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución.
+
+Las dos terminan con la misma indicación que lo pagado en anuladas (`indicacionPagosEnAnuladas`). El contrato con el libro se compara en céntimos enteros: `cents(ledger.balance) = cents(porPagar) − cents(sobrepagos)`, con fixtures de céntimos inexactos en coma flotante y un sobrepago en otra moneda que no entra a la moneda de las cifras.
 
 Hoy los cobros y las confirmaciones rechazan cobrar más que el saldo (0467, 0464), así que un sobrepago sólo puede venir de datos históricos.
 
@@ -78,11 +86,11 @@ La indicación de qué hacer con ese dinero («escríbele a tu asesor para aplic
 
 La ruta resuelve el principal **una vez**, lee las facturas con `listMyInvoicesForPrincipal` y, sólo después, el emisor con `getCompanyDataForTenant(createAdminClient(), principal.tenantId)`: el patrón de `facturas/[code]/pdf/route.ts` (SDD-0462). Sin principal responde 404 sin leer facturas ni construir el admin.
 
-**Razón social y RIF: apagados.** La regla de marca deja la razón social y el RIF sólo en el schema, nunca en texto visible (`docs/engineering/project-rules.md`, «Identidad pública, founder y trato»), y la excepción de SDD-0297 cubre sólo la factura. La ruta pasa `tradeName`, `email`, `phone` y `website`, no `legalName` ni `rif`. `EstadoDeCuentaEmisor` gana `legalName?` y `rif?` opcionales y el documento ya los imprime bajo el membrete con `lineasDeEmisor` si llegan (nunca los inventa). Encenderlo es agregar las dos líneas en la ruta (hay un comentario que lo dice) y cambiar la prueba que hoy fija que no se pasan. No hay bandera nueva.
+**Razón social y RIF: sí, bajo el membrete.** La regla de marca deja la razón social y el RIF sólo en el schema, nunca en texto visible (`docs/engineering/project-rules.md`, «Identidad pública, founder y trato»), con la excepción de la factura (SDD-0297, 2026-08-25). Sam la extendió al estado de cuenta en PDF el 2026-10-18 (ver «Decisiones de Sam»), y las dos reglas de identidad lo registran. La ruta pasa `tradeName`, `legalName`, `rif`, `email`, `phone` y `website` del tenant del principal. `EstadoDeCuentaEmisor` tiene `legalName?` y `rif?` opcionales y el documento los imprime con `lineasDeEmisor`, que nunca inventa un RIF. Una prueba de la frontera fija que salen los del tenant del principal. No hay bandera nueva. El PDF del estado de cuenta del Studio (`app/studio/(app)/clientes/[markbox]/estado-de-cuenta/pdf/route.ts`) es terreno de la SDD-0558 y queda como está aquí.
 
 ### PDF de la factura anulada
 
-`calcularTotales` da saldo 0 si la factura está anulada, el papel no imprime «Saldo pendiente» ni «Datos para el pago» (las cuentas del emisor) y muestra el aviso «Factura anulada: no hay saldo por pagar.». Lo comparten el portal y el Studio. Lo abonado se sigue imprimiendo.
+`calcularTotales` da saldo 0 si la factura está anulada, el papel no imprime «Saldo pendiente» ni «Datos para el pago» (las cuentas del emisor) y muestra el aviso «Factura anulada: no hay saldo por pagar.». Si se le abonó algo, el aviso sigue con lo abonado y la misma indicación que el comprobante: «Lo abonado (USD 720.00) no se descuenta de tu saldo pendiente: escríbele a tu asesor para aplicarlo a otra factura o pedir su devolución.». Lo comparten el portal y el Studio.
 
 ### Aviso al cliente al resolver su reporte de pago
 
@@ -110,17 +118,17 @@ La ruta resuelve el principal **una vez**, lee las facturas con `listMyInvoicesF
 | `lib/portal/saldo-de-cuenta.ts` | nuevo: la definición única de deuda, la moneda dominante (sigue a la deuda), los sobrepagos, la indicación única sobre lo pagado en anuladas y sus notas |
 | `lib/portal/statement-ledger.ts` | anulada en 0 sin abono; `voidedPayments`; `sobrepagos`; totales sin anuladas; moneda de `monedaDominante` |
 | `lib/portal/portal-queries.ts` | `PortalInvoicesUnavailableError`, `listMyInvoicesForPrincipal` paginada y sin duplicados por `id`, anulada sin emitir fuera de lista y detalle, `getDashboardKpis` con `resumenDeCuenta` e `invoicesAvailable` |
-| `lib/portal/portal-types.ts` | `PortalDashboardKpis.invoicesAvailable` y comentarios |
+| `lib/portal/portal-types.ts` | `PortalDashboardKpis.invoicesAvailable` y comentarios (la moneda de las cifras sigue a la deuda) |
 | `lib/portal/comprobante.ts` | `isVoided`, `paidOnVoided`, saldo con `saldoPorPagar`; `estadoDelComprobante` (el pill, antes privado en la página) |
-| `app/portal/(app)/_components/PortalDashboardNorte.tsx` | «No disponible» con `invoicesAvailable: false`; sin «al día» ni tono de éxito con facturas pendientes |
-| `app/portal/(app)/facturas/page.tsx` | KPIs con `resumenDeCuenta`, nota, `?saldo=1` con `saldoPorPagar`, «N facturas sin saldo ocultas», vacío «No tienes facturas por pagar», monto tachado |
-| `app/portal/(app)/finanzas/page.tsx` | KPIs con `resumenDeCuenta` y nota |
+| `app/portal/(app)/_components/PortalDashboardNorte.tsx` | «No disponible» con `invoicesAvailable: false`; sin «al día» ni tono de éxito con facturas pendientes; con varias monedas, «solo USD · hay otras monedas» en vez de «moneda dominante» |
+| `app/portal/(app)/facturas/page.tsx` | KPIs con `resumenDeCuenta`, notas de anuladas y de sobrepagos, `?saldo=1` con `saldoPorPagar`, «N facturas sin saldo ocultas», vacío «No tienes facturas por pagar», monto tachado |
+| `app/portal/(app)/finanzas/page.tsx` | KPIs con `resumenDeCuenta` y notas de anuladas y de sobrepagos |
 | `app/portal/_components/InvoiceRow.tsx` | sin «Saldo» en la anulada, total tachado, «Recibido» |
 | `app/portal/(app)/facturas/_components/StatementLedgerTable.tsx` | notas de sobrepagos y de pagos en anuladas bajo el libro |
-| `app/portal/(app)/facturas/estado-de-cuenta/pdf/route.ts` | principal único, lectura completa, 503, emisor del tenant con admin, sin razón social ni RIF |
+| `app/portal/(app)/facturas/estado-de-cuenta/pdf/route.ts` | principal único, lectura completa, 503, emisor del tenant con admin, razón social y RIF (excepción de marca del 2026-10-18) |
 | `app/portal/(app)/facturas/[code]/page.tsx` | saldo con `saldoPorPagar` y aviso de anulada con `indicacionPagosEnAnuladas` |
 | `app/portal/(app)/facturas/[code]/comprobante/page.tsx` | pill desde `estadoDelComprobante` y nota de lo pagado en la anulada con `indicacionPagosEnAnuladas` |
-| `lib/studio/pdf/factura-pdf.tsx` | saldo 0, aviso y sin «Datos para el pago» en la anulada (`facturaAnulada`); `lineasDeEmisor` acepta `Pick<…, "legalName" \| "rif">` |
+| `lib/studio/pdf/factura-pdf.tsx` | saldo 0, aviso (con lo abonado y la indicación única) y sin «Datos para el pago» en la anulada (`facturaAnulada`); `lineasDeEmisor` acepta `Pick<…, "legalName" \| "rif">` |
 | `lib/studio/pdf/estado-de-cuenta-pdf.tsx` | `legalName?`/`rif?` opcionales con `lineasDeEmisor`; notas de sobrepagos y de pagos en anuladas |
 | `lib/studio/mail/mail-rule-engine.ts` | `emailDelShippingMark` exportada, sin cambio de lógica |
 | `lib/studio/payment-report-resolution-notify.ts` | nuevo: el correo al cliente |
@@ -143,6 +151,8 @@ La ruta resuelve el principal **una vez**, lee las facturas con `listMyInvoicesF
 | `app/portal/(app)/_components/PortalDashboardNorte.test.tsx` | nuevo: no disponible con KPIs distintos de cero; nunca «al día» con algo por pagar |
 | `app/portal/_components/__tests__/InvoiceRow.test.tsx` | nuevo |
 | `app/portal/_components/__tests__/PortalTrackingEnConstruccion.test.tsx` | el fixture de KPIs gana `invoicesAvailable: true` (plomería del tipo) |
+| `docs/engineering/project-rules.md` | la regla de identidad nombra las dos excepciones de documentos (factura y estado de cuenta en PDF) |
+| `docs/marketing/identidad.md` | ídem, en la fuente única de identidad |
 | `docs/specs/0556-portal-facturas-anuladas-fuera/spec.md` | esta spec |
 | `docs/specs/README.md` | índice regenerado |
 | `.agents/handoffs/0556-portal-facturas-anuladas-fuera.md` | handoff |
@@ -184,11 +194,14 @@ El control rojo se hizo con un script de mutantes, uno por vez y restaurando en 
 - **Una factura emitida entre páginas puede faltar** hasta la próxima carga: la lista se deduplica, pero no relee. Con más de 1000 facturas, si una sale del conjunto entre dos páginas (un borrado lógico), la página siguiente se salta una fila y deduplicar no lo arregla; eso pide paginación por keyset en `lib/db/paginate.ts`, fuera de esta SDD.
 - No se leyó producción: no se puede afirmar cuántas anuladas con abono, sin emitir o con sobrepago existen hoy.
 
+## Decisiones de Sam
+
+- **2026-10-18, excepción de marca del estado de cuenta.** A la pregunta «En el PDF del estado de cuenta que el cliente descarga del portal, ¿pongo la razón social y el RIF de DTD bajo el logo, como ya los lleva la factura?», Sam eligió «Sí, como la factura (Recomendado)». Queda encendido en la ruta del portal (ver «PDF del estado de cuenta del portal»).
+
 ## Preguntas para Sam
 
-1. ¿Concedes para el estado de cuenta en PDF la misma excepción de marca que diste a la factura el 2026-08-25 (razón social y RIF bajo el membrete)? Hoy queda apagado; encenderlo son dos líneas en la ruta y una prueba.
-2. ¿Te sirve la indicación sobre lo pagado en anuladas («escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución») mientras siga la regla estricta? Vive en una sola función, `indicacionPagosEnAnuladas` (`lib/portal/saldo-de-cuenta.ts`), y la usan los seis lugares que la muestran: Facturas, Finanzas, el estado de cuenta, su PDF, el detalle de la factura y su comprobante. Cambiarla es cambiar esa función; una prueba impide que una pantalla la escriba a mano.
-3. ¿Te sirve la nota de sobrepagos («Incluye USD 20.00 pagados de más en facturas ya pagadas; tu asesor los aplica o te los devuelve.»)? Sale en el estado de cuenta del portal y en el PDF del estado de cuenta, también en el del Studio.
+1. ¿Te sirve la indicación sobre lo pagado en anuladas («escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución») mientras siga la regla estricta? Vive en una sola función, `indicacionPagosEnAnuladas` (`lib/portal/saldo-de-cuenta.ts`), y la usan los siete lugares que la muestran: Facturas, Finanzas, el estado de cuenta, su PDF, el detalle de la factura, su comprobante y el PDF de la factura anulada. También cierra las dos notas de sobrepagos. Cambiarla es cambiar esa función; una prueba impide que una pantalla la escriba a mano.
+2. ¿Te sirven las dos versiones de la nota de sobrepagos (ver «Sobrepagos: el KPI recorta, el libro da el neto y lo explica»)? La del libro sale en el estado de cuenta del portal y en el PDF del estado de cuenta, también en el del Studio; la de los KPIs, en Facturas y Finanzas. Hoy un sobrepago sólo puede venir de datos históricos.
 
 ## Gobernanza
 
