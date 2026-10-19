@@ -36,7 +36,12 @@ confidencialidad: interno
   - nómina (`nomina/actions.ts`);
   - el ERP móvil (`app/m/erp/actions.ts`);
   - los reclamos (`claim-posting.ts`, que se apoya en el disparador).
-- **Facturas, recibos, CxP y pagos a proveedor no lo miran en la app.** Su asiento automático (`*-posting.ts`, best-effort) choca con el disparador y falla en silencio. El documento queda sin asiento y aparece en «Por contabilizar».
+- **Facturas, recibos, CxP y pagos a proveedor no lo miran en la app.** Su asiento automático choca con el disparador y falla en silencio. El documento queda sin asiento y aparece en «Por contabilizar».
+
+  **Evidencia para la 2.2 del plan (B3, asientos sin fallos silenciosos)**, por pedido del Director. Se vio en esta rama, con `main` en `bd971821`:
+  - `git grep -n isPeriodClosed -- app lib` encuentra solo los flujos de la lista de arriba. No aparece en `facturacion/actions.ts`, `lib/studio/sales-orders/actions.ts`, `lib/studio/collections-actions.ts` ni `lib/studio/treasury/treasury-actions.ts`, que son quienes llaman a esos asientos.
+  - Cada asiento se declara best-effort en el comentario de cabecera, en la línea 15 de cada archivo: `lib/studio/accounting/invoice-posting.ts` («si algo falla, NO rompe la emisión (el caller logea y sigue)»), `receipt-posting.ts`, `bill-posting.ts` y `supplier-payment-posting.ts`. El `catch` está en `invoice-posting.ts:181`, `receipt-posting.ts:293`, `bill-posting.ts:211` y `supplier-payment-posting.ts:216`.
+  - Con fecha cerrada, el insert del asiento choca con `journal_entries_validate_closing` (0133). El `catch` lo convierte en un resultado: el documento se emite sin asiento y nadie ve el error.
 
 ### QuickBooks Online (referencia)
 
@@ -134,7 +139,15 @@ El reporte dice «usuario X, autorizado con superclave». Si la superclave la co
 | **A. Superclave compartida** (lo que pidió Sam, igual que QuickBooks) | quién hizo el cambio | bajo; se hace en esta SDD |
 | **B. El autorizador entra con su propia cuenta** (un admin confirma con su usuario y su clave) | quién hizo el cambio **y** quién lo autorizó | más alto: verificar la clave de otro usuario en el servidor y otra pantalla |
 
-**Recomendación: A en esta SDD**, que es lo que pidió Sam y lo que hace QuickBooks, con estas mitigaciones: el motivo es obligatorio, se registra quién hizo el cambio, la superclave se puede cambiar cuando alguien deja de deber conocerla, y los intentos se bloquean. **Decide Sam.** Si elige B, el mecanismo de las secciones 3 a 6 no cambia: solo cambia la verificación de `autorizar_excepcion_al_cierre`.
+**Decisión del Director, 2026-10-19:** «**A, la superclave compartida.** Es literalmente lo que pidió Sam: "una clave aparte de la del usuario que está trabajando". B queda escrita como alternativa. Yo le aviso a Sam y, si prefiere B, te lo digo.»
+
+Las mitigaciones de A:
+- el motivo es obligatorio;
+- se registra quién hizo el cambio;
+- la superclave se puede cambiar cuando alguien ya no debe conocerla;
+- los intentos fallidos se bloquean.
+
+Si Sam elige B, el mecanismo de las secciones 3 a 6 no cambia: solo cambia la verificación de `autorizar_excepcion_al_cierre`.
 
 ### 9. Cruce con la 2.4 (candado del mayor)
 
@@ -150,7 +163,8 @@ La 2.4 del plan pide un «historial de reapertura de período». Esta SDD crea `
 - Las dos funciones de validación del cierre se reescriben desde su última definición (la 0133, con el `search_path` de la 0210). Aceptan la excepción de la transacción y corrigen el «%s».
 - Un disparador nuevo en `accounting_settings` escribe el historial de la fecha y del modo.
 - **Preflight:** compara firma, seguridad, volatilidad, `search_path` y el md5 del cuerpo vigente de las dos funciones que reemplaza y de cuatro que invoca. Si en producción alguna difiere, aborta sin cambiar nada. Hay una prueba que lo hace abortar.
-- `lock_timeout` 5 s y `statement_timeout` 30 s.
+- `lock_timeout` 5 s y `statement_timeout` 30 s para aplicarla.
+- **Las ocho funciones que reciben la clave** (con un parámetro `p_clave`, `p_actual` o `p_nueva`) llevan `set lock_timeout = '1s'`, así que ninguna espera más de un segundo por un bloqueo. De la API, a las seis públicas las llama solo `authenticated`; a las dos internas, ningún rol. Ver la revisión de seguridad.
 - Se aplica antes de fusionar, con la previa de solo lectura, el OK nominal de Sam y el runbook. La aplica el Director. La espera está declarada en `supabase/migrations-baseline.json`, y los símbolos que usa la app, en `supabase/pending-migration-symbol-declarations.json`.
 
 **Sin la 0493, la app no se rompe:** la RPC de estado no existe y la página, las acciones y el cajón del cierre vuelven a lo de hoy, sin excepción, sin reporte y sin ajustes.
@@ -166,15 +180,18 @@ La 2.4 del plan pide un «historial de reapertura de período». Esta SDD crea `
 | Que no se filtre | ningún `raise`, evento, excepción, prueba ni log trae el texto; la app nunca lo registra | contrato §15; prueba de las acciones que revisa todos los `console.error` |
 | Permiso falsificado | sin la fila de la excepción no hay cambio; el nonce, el txid y el asiento se comparan | contrato §3 y §8; 4 mutantes |
 | Funciones internas | sin EXECUTE para la API | contrato §5; mutante |
-| **Riesgo residual** | si el Postgres del VPS registra los parámetros de las sentencias (`log_statement = 'all'`, o `log_min_duration_statement` con `log_parameter_max_length`), la superclave quedaría en ese log en texto plano | **para revisar en la previa, antes de aplicar** |
-| **Riesgo aceptado** | un editor puede bloquear la superclave 15 minutos con 5 intentos fallidos | el admin la restablece o reabre el período |
+| Quién llama a lo que recibe la clave | de la API, solo `authenticated`, que corta a los 8 s; nunca `anon` ni `service_role` (las internas, ningún rol) | contrato §16, como propiedad del catálogo; 2 mutantes (una RPC abierta a `service_role`, la verificación abierta a `anon`) |
+| Espera acotada | las ocho funciones que reciben la clave llevan `lock_timeout` de 1 s. Cada espera por un bloqueo se corta en 1 s, y cada operación toma pocos: la fila del asiento, la de la superclave y las líneas, si las toca. Queda lejos de los 8 s; bcrypt con costo 10 tarda milisegundos | contrato §16; mutante |
+| **Logs del servidor, medido por el Director el 2026-10-19** | Postgres **no** guarda los parámetros en los logs normales: `log_statement=ddl`, `log_min_duration_statement=-1`, `log_parameter_max_length_on_error=0` y `pgaudit.log=none`. **La excepción es `auto_explain`:** con `log_min_duration=10000` y `log_parameter_max_length=-1`, una sentencia que dure más de 10 s queda en el log con sus parámetros completos, y con ella la superclave. Hoy lo impide el `statement_timeout=8s` del rol `authenticated`, más las dos filas de arriba | ver la mitigación de fondo |
+| **Mitigación de fondo, fuera de esta SDD** | `auto_explain.log_parameter_max_length=0` en la configuración del servidor. Es un cambio aparte, que necesita el OK de Sam y lo hace el Director. Tampoco hay que subir `log_parameter_max_length_on_error`: hoy en 0, una sentencia con error queda en el log sin sus parámetros | **pendiente del OK de Sam** |
+| **Riesgo aceptado, por decisión del Director** | alguien con acceso puede bloquear la superclave del tenant 15 minutos con 5 intentos fallidos, y deja sin excepciones a los demás | cada intento registra el usuario (contrato §6) y «Excepciones al cierre» lo muestra en el historial, con su nombre; el admin la restablece o reabre el período |
 
 ## Allowlist exacta
 
 | Archivo | Cambio |
 |---|---|
 | `supabase/migrations/0493_cierre_contable_superclave.sql` | la migración |
-| `supabase/tests/0493_cierre_contable_superclave.test.sql` | contrato: 75 aserciones |
+| `supabase/tests/0493_cierre_contable_superclave.test.sql` | contrato: 78 aserciones |
 | `supabase/migrations-baseline.json` | la espera de la 0493 |
 | `supabase/pending-migration-symbol-declarations.json` | los 10 símbolos y su degradación |
 | `lib/studio/accounting/cierre-excepciones.ts` | lo puro: aviso, mensajes, etiquetas y CSV |
@@ -190,7 +207,7 @@ La 2.4 del plan pide un «historial de reapertura de período». Esta SDD crea `
 | `app/studio/(app)/contabilidad/_components/ExcepcionCierreDialog.tsx` | nuevo: el diálogo |
 | `app/studio/(app)/contabilidad/_components/AjustesDelCierre.tsx` | nuevo: el modo y la superclave |
 | `app/studio/(app)/contabilidad/_components/ExcepcionesCierreTab.tsx` | nuevo: el reporte |
-| `lib/studio/__tests__/cierre-contable-superclave.migration.test.ts` | el contrato en PGlite: control rojo, 18 mutantes, preflight y espera |
+| `lib/studio/__tests__/cierre-contable-superclave.migration.test.ts` | el contrato en PGlite: control rojo, 21 mutantes, preflight y espera |
 | `lib/studio/accounting/__tests__/cierre-excepciones.test.ts` | lo puro |
 | `app/studio/(app)/contabilidad/__tests__/cierre-excepcion-acciones.test.ts` | las acciones |
 | `app/studio/(app)/contabilidad/__tests__/cierre-excepcion-pantalla.test.tsx` | el diario, el reporte y los ajustes |
@@ -213,6 +230,7 @@ La 2.4 del plan pide un «historial de reapertura de período». Esta SDD crea `
 9. Sin la 0493, la app vuelve a lo de hoy y no se rompe.
 10. Control rojo: cada regla de la migración y de la app tiene un mutante que muere.
 11. Revisión de seguridad de la clave (tabla de arriba) antes de pedir el OK nominal.
+12. Toda función que recibe la clave espera un bloqueo 1 s como mucho, y ni `anon` ni `service_role` la pueden llamar. Es una propiedad del catálogo, así que vale también para una función nueva con esos parámetros.
 
 ## Gobernanza
 

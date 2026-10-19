@@ -457,5 +457,27 @@ select pg_temp.assert_true(not exists (
 select pg_temp.assert_true(not exists (
   select 1 from public.accounting_closing_secrets s where s.secret_hash ~ 'Clave-'), 'el hash no contiene la clave');
 
+-- ── 16. Lo que recibe la clave no espera ni se abre a otros roles ──
+-- El Postgres del VPS deja en el log, con sus parámetros, toda sentencia que
+-- pase de 10 s (auto_explain). Es una propiedad del catálogo: vale también
+-- para una función nueva que reciba la clave con esos nombres.
+create function pg_temp.funciones_con_clave() returns setof oid language plpgsql as $$
+begin
+  return query select p.oid from pg_proc p
+    where p.pronamespace = 'public'::regnamespace
+      and p.proargnames && array['p_clave', 'p_actual', 'p_nueva'];
+end;
+$$;
+select pg_temp.assert_true((select count(*) from pg_temp.funciones_con_clave()) = 8,
+  'son 8 las funciones que reciben la superclave');
+select pg_temp.assert_true(not exists (
+  select 1 from pg_temp.funciones_con_clave() f join pg_proc p on p.oid = f
+  where not coalesce(p.proconfig, '{}'::text[]) @> array['lock_timeout=1s']),
+  'toda función que recibe la superclave espera un bloqueo 1 s como mucho');
+select pg_temp.assert_true(not exists (
+  select 1 from pg_temp.funciones_con_clave() f
+  where has_function_privilege('anon', f, 'execute') or has_function_privilege('service_role', f, 'execute')),
+  'ni anon ni service_role llaman a una función que recibe la superclave');
+
 select 'TEST 0493 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 rollback;

@@ -35,6 +35,14 @@
 -- confirme el contador y el registro del intento. Si lanzara, el ROLLBACK se
 -- llevaría el contador y la fuerza bruta no tendría límite.
 --
+-- La clave entra como parámetro, y el Postgres del VPS guarda en el log, con
+-- sus parámetros completos, toda sentencia que pase de 10 s (auto_explain,
+-- medido por el Director el 2026-10-19). Por eso, las ocho funciones que
+-- reciben la clave (p_clave, p_actual, p_nueva) llevan `set lock_timeout =
+-- '1s'`: ninguna espera más de un segundo por un bloqueo. De la API, solo
+-- `authenticated` (que corta a los 8 s) llama a las seis públicas; nunca `anon`
+-- ni `service_role`. Las dos internas no tienen EXECUTE para ningún rol de API.
+--
 -- MIGRATE-FIRST: se aplica antes de fusionar, con la previa de solo lectura,
 -- el OK nominal de Sam y docs/runbooks/aplicar-migraciones-prod.md.
 -- ─────────────────────────────────────────────────────────────
@@ -299,6 +307,7 @@ language plpgsql
 volatile
 security definer
 set search_path = ''
+set lock_timeout = '1s'
 as $function$
 declare
   v_secret public.accounting_closing_secrets%rowtype;
@@ -371,6 +380,7 @@ language plpgsql
 volatile
 security definer
 set search_path = ''
+set lock_timeout = '1s'
 as $function$
 declare
   v_closing date := public.get_accounting_closing_date(p_tenant_id);
@@ -564,6 +574,7 @@ language plpgsql
 volatile
 security definer
 set search_path = ''
+set lock_timeout = '1s'
 as $function$
 declare
   v_tenant uuid := public.get_user_tenant_id();
@@ -622,6 +633,7 @@ language plpgsql
 volatile
 security definer
 set search_path = ''
+set lock_timeout = '1s'
 as $function$
 declare
   v_tenant uuid := public.get_user_tenant_id();
@@ -716,6 +728,7 @@ language plpgsql
 volatile
 security definer
 set search_path = ''
+set lock_timeout = '1s'
 as $function$
 declare
   v_tenant  uuid := public.get_user_tenant_id();
@@ -799,6 +812,7 @@ language plpgsql
 volatile
 security definer
 set search_path = ''
+set lock_timeout = '1s'
 as $function$
 declare
   v_tenant uuid := public.get_user_tenant_id();
@@ -852,6 +866,7 @@ language plpgsql
 volatile
 security definer
 set search_path = ''
+set lock_timeout = '1s'
 as $function$
 declare
   v_tenant uuid := public.get_user_tenant_id();
@@ -894,6 +909,7 @@ language plpgsql
 volatile
 security definer
 set search_path = ''
+set lock_timeout = '1s'
 as $function$
 declare
   v_tenant uuid := public.get_user_tenant_id();

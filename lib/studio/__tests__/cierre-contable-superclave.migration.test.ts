@@ -11,6 +11,8 @@
  * cada regla de seguridad del cierre, el contrato cae en la aserción de esa
  * regla. PGlite tiene UNA conexión: que el FOR UPDATE serialice dos intentos en
  * paralelo lo cuida el centinela textual del último caso, no una carrera real.
+ * Por lo mismo, la espera acotada (`lock_timeout` de 1 s) se prueba en el
+ * catálogo, §16 del contrato: cuánto espera Postgres con ese valor es suyo.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -224,6 +226,24 @@ describe("SDD-0566 · 0493 cierre contable con superclave (PGlite)", () => {
       from: "  if coalesce(public.journal_entry_is_closed(v_entry_id), false)\n     and not public.excepcion_al_cierre_vigente(v_entry_id) then",
       to: "  if coalesce(public.journal_entry_is_closed(v_entry_id), false) then",
       fails: "Período contable cerrado: no se pueden modificar las líneas de un asiento cerrado.",
+    },
+    {
+      name: "una función que recibe la clave sin espera acotada",
+      from: "create function public.anular_asiento_en_cierre(p_entry_id uuid, p_clave text, p_motivo text)\nreturns jsonb\nlanguage plpgsql\nvolatile\nsecurity definer\nset search_path = ''\nset lock_timeout = '1s'\n",
+      to: "create function public.anular_asiento_en_cierre(p_entry_id uuid, p_clave text, p_motivo text)\nreturns jsonb\nlanguage plpgsql\nvolatile\nsecurity definer\nset search_path = ''\n",
+      fails: "TEST 0493: toda función que recibe la superclave espera un bloqueo 1 s como mucho",
+    },
+    {
+      name: "una RPC que recibe la clave abierta a service_role",
+      from: "grant execute on function public.anular_asiento_en_cierre(uuid, text, text) to authenticated;",
+      to: "grant execute on function public.anular_asiento_en_cierre(uuid, text, text) to authenticated, service_role;",
+      fails: "TEST 0493: ni anon ni service_role llaman a una función que recibe la superclave",
+    },
+    {
+      name: "la verificación interna abierta a anon",
+      from: "revoke all on function public.cierre_verificar_superclave(uuid, text)\n  from public, anon, authenticated, service_role;",
+      to: "revoke all on function public.cierre_verificar_superclave(uuid, text)\n  from public, authenticated, service_role;\ngrant execute on function public.cierre_verificar_superclave(uuid, text) to anon;",
+      fails: "TEST 0493: ni anon ni service_role llaman a una función que recibe la superclave",
     },
   ];
   for (const m of MUTANTS) {

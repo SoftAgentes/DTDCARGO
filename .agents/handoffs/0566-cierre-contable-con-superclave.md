@@ -35,6 +35,17 @@ Decisión de Sam del 2026-10-19, registrada por el Director: el período cerrado
   - la espera en `supabase/migrations-baseline.json`;
   - los 10 símbolos en `supabase/pending-migration-symbol-declarations.json`;
   - el inventario de RBAC, de 435 a 438.
+- **Revisión del Director, 2026-10-19.** Aprobó el diseño, eligió A (la superclave compartida) y agregó requisitos de seguridad después de medir el servidor. Así quedó cada uno:
+
+  | Requisito del Director | Cómo quedó |
+  |---|---|
+  | La RPC que recibe la clave la llama solo `authenticated`, sin `service_role` ni `anon` | ya era así. Ahora el contrato lo prueba como propiedad del catálogo (§16), con 2 mutantes nuevos |
+  | La espera del `for update`, acotada | **nuevo:** `set lock_timeout = '1s'` en las ocho funciones que reciben la clave. Lo prueba el contrato (§16), con un mutante |
+  | En la spec, el riesgo de `auto_explain` y su mitigación de fondo (`auto_explain.log_parameter_max_length=0`), como cambio aparte con el OK de Sam | escrito en la revisión de seguridad; no lo toqué |
+  | Ningún error ni `raise` con la clave o su largo; la acción no registra el `formData`; nada de claves reales | ya era así: los `raise` dicen la regla, no el valor; los `console.error` registran el código y el mensaje de la base; las pruebas usan `Clave-Segura-1` y otras de fixture |
+  | Riesgo aceptado: el bloqueo por tenant, con el usuario de cada intento a la vista | ya era así: `intento_fallido` lleva `user_id` (contrato §6) y el historial del reporte muestra el nombre |
+  | Cuatro contratos con su control rojo: GUC falsificado, fila de otra transacción, fila de otro asiento, sin superclave definida | ya estaban: §3, §8 y §2, con los mutantes «sin mirar el nonce», «sin mirar el txid», «sin mirar el asiento» y «sin superclave definida se deja pasar» |
+  | El hallazgo de facturas, recibos, CxP y pagos, en la spec como evidencia para la 2.2 | escrito en *Lo que hay hoy*, con los archivos y las líneas |
 
 ## VALIDACIÓN
 
@@ -51,6 +62,16 @@ Decisión de Sam del 2026-10-19, registrada por el Director: el período cerrado
 | `/ui-check` | la UI nueva | OK con ajustes menores. El ⭐ (foco inicial del diálogo en el primer campo) quedó aplicado, con prueba. Los otros tres son de baja prioridad y se anotan abajo |
 | `pnpm verify` | completo | PENDIENTE: turno del Director |
 
+**Después de la revisión del Director** (la espera acotada y el §16 del contrato). Las filas de arriba son de antes. El turno de máquina lo tiene el Worker de la #292, así que esta vez solo corrió lo que no es pesado:
+
+| Comprobación | Alcance | Resultado |
+|---|---|---|
+| Contrato en PostgreSQL 17, ahora con 78 aserciones | la migración con `lock_timeout` y el §16 | NO EJECUTADO: sin turno de máquina (Docker) |
+| `cierre-contable-superclave.migration.test.ts`, ahora con 21 mutantes y 26 pruebas | lo mismo en PGlite, con los 3 mutantes nuevos | NO EJECUTADO: sin turno de máquina (vitest y PGlite) |
+| `check-pending-migration-symbols` | código alcanzable que usa la 0493 | PASÓ: «0 ROJO · 1 AMARILLO declarado(s)». La 0492 ya está sellada |
+| `migrations-lock verificar` | candado | PASÓ: «3 espera(s) sin sellar (0422…, 0423…, 0493_cierre_contable_superclave) · 0 nueva(s) sin sellar» |
+| `docs:check` (552 specs), `sdd:check` | documentación | PASÓ |
+
 ### Lo que destaparon las pruebas y se corrigió
 
 1. **El mensaje de la 0133 dice «modificars» en producción:** usa `%s` dentro de un `raise`. Lo vio el primer mutante del disparador.
@@ -64,17 +85,16 @@ La spec 0566 y el índice. **Cambia el esquema** (la 0493), así que el Director
 
 ## PENDIENTES DE ESTA TAREA
 
-1. **Decisión de Sam, A o B (spec §8):** superclave compartida o autorizador con su propia cuenta. Esta SDD hace A; si elige B, cambia solo la verificación.
-2. **La previa de producción, antes de aplicar** (la corre el Director):
-   - releer las seis huellas del preflight;
-   - **revisar si el Postgres del VPS registra los parámetros de las sentencias** (`log_statement`, `log_min_duration_statement`, `log_parameter_max_length`). Si los registra, la superclave quedaría en ese log en texto plano.
-3. `pnpm verify` con turno del Director.
+1. **A o B (spec §8):** el Director eligió A y se lo avisa a Sam. Si Sam prefiere B, cambia solo la verificación.
+2. **La previa de producción, antes de aplicar** (la corre el Director): releer las seis huellas del preflight. Los parámetros de log ya los midió el 2026-10-19 (spec, revisión de seguridad).
+3. **Con turno de máquina:** el contrato en Docker y la prueba en PGlite con el §16 y los 3 mutantes nuevos, y después `pnpm verify`.
 4. Aplicar la 0493 con el OK nominal de Sam NOMBRANDO `0493_cierre_contable_superclave`, hacer el smoke de la espera y después fusionar.
 
 ## FUERA DE ALCANCE DETECTADO (para el Director)
 
-1. **Los documentos que generan asientos (facturas, recibos, CxP, pagos y gastos) no pasan por la excepción.** Cada flujo necesita su RPC atómica con el mecanismo de esta SDD; se proponen como SDD de seguimiento, una por flujo. Además, **facturas, recibos, CxP y pagos ni siquiera miran el cierre en la app**: su asiento best-effort choca con el disparador y falla en silencio, y el documento queda en «Por contabilizar». El diseño de partida decía lo contrario; el `git grep` está en la spec.
+1. **Los documentos que generan asientos (facturas, recibos, CxP, pagos y gastos) no pasan por la excepción.** Cada flujo necesita su RPC atómica con el mecanismo de esta SDD; se proponen como SDD de seguimiento, una por flujo. Además, **facturas, recibos, CxP y pagos ni siquiera miran el cierre en la app**: su asiento best-effort choca con el disparador y falla en silencio, y el documento queda en «Por contabilizar». El diseño de partida decía lo contrario. La spec lo deja como evidencia para la 2.2 (B3), con el `git grep` y las líneas de cada archivo.
+6. **`auto_explain.log_parameter_max_length=0` en el servidor**, la mitigación de fondo del riesgo de logs. Es un cambio aparte, con el OK de Sam, y lo hace el Director. Mientras no esté, la protección es el `statement_timeout` de 8 s de `authenticated`, la espera acotada y que solo `authenticated` llame a estas funciones.
 2. **La sombra y el respaldo del fondo** del diálogo usan los mismos `rgba` del `ConfirmDialog` del sistema. Conviene pasar los dos a `var(--shadow-pop)` en una limpieza común (`/ui-check`, baja).
 3. **En los ajustes del cierre**, los errores no están ligados a sus campos con `aria-describedby` y los botones no dicen «Guardando…» mientras esperan (`/ui-check`, baja).
-4. **Riesgo aceptado:** un editor puede bloquear la superclave 15 minutos con 5 intentos fallidos. El admin la restablece o reabre el período.
+4. **Riesgo aceptado por el Director:** un editor puede bloquear la superclave 15 minutos con 5 intentos fallidos. Cada intento queda con su usuario y el reporte lo muestra; el admin la restablece o reabre el período.
 5. **Que el motivo llegue a `entity_audit_log`** por `dtd.audit_reason` es INFERIDO de la 0294: el contrato no aplica el escritor de auditoría.
