@@ -31,8 +31,9 @@ export default async function PortalSuppliersPage() {
   const { client, tenantId } = principal;
 
   const [suppliers, prealertas, addons] = await Promise.all([
-    listSuppliers(supabase, { markbox: client.markbox }),
-    listPrealertas(supabase, { markbox: client.markbox }),
+    // Tenant + Shipping Mark del principal (SDD-0554).
+    listSuppliers(supabase, { markbox: client.markbox, tenantId }),
+    listPrealertas(supabase, { markbox: client.markbox, tenantId }),
     listActivePrealertaAddons(supabase, { tenantId }),
   ]);
 
