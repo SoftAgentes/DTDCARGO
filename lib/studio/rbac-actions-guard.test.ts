@@ -274,8 +274,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // (432 → 433): cambio en lote del tarifario de transportistas; llama a
   // `resolveTenantAdmin` → `tenantAdminGate` antes de leer nada (el patrón del
   // resto del archivo) y la RLS de 0330 repite el candado de admin vivo.
+  // SDD-0560 sumó `embarques/actions.ts::leerPlanDeBorradoAction` y
+  // `embarques/actions.ts::ejecutarPasoDeBorradoAction` (433 → 435): el
+  // asistente de borrado. Las dos llaman a `capabilityDenial(…,
+  // "delete_shipments")` antes de leer nada y pasan el veredicto por acción sin
+  // entrar en ninguna lista; cada paso delega en la acción de su módulo, que
+  // repite su propio candado.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(433);
+    expect(reportes.length).toBe(435);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
