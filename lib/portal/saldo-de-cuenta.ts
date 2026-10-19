@@ -196,20 +196,46 @@ export function notaPagosEnAnuladas(pagos: PagoEnAnulada[]): string | null {
 }
 
 /**
- * La nota de los sobrepagos — UN solo texto para el estado de cuenta del
- * portal y su PDF. `null` si no hay nada pagado de más.
+ * Dónde sale la nota de sobrepagos, porque cada lugar muestra otra cifra:
+ * - `libro`: el estado de cuenta y su PDF dan el neto (`total − pagado`), que
+ *   ya resta lo pagado de más. La nota dice cuánto falta pagar de verdad
+ *   (`porPagar`), para que el cliente no pague de menos.
+ * - `kpis`: Facturas y Finanzas muestran «Pagado» con el sobrepago incluido y
+ *   «Saldo pendiente» recortado por factura. La nota explica por qué
+ *   facturado − pagado no da el saldo.
+ */
+export type DondeNotaSobrepagos =
+  | { donde: "libro"; porPagar: number }
+  | { donde: "kpis" };
+
+/**
+ * La nota de los sobrepagos — UN solo texto para Facturas, Finanzas, el
+ * estado de cuenta del portal y su PDF. `null` si no hay nada pagado de más.
  *
  * Por qué existe: el KPI «Saldo pendiente» recorta cada factura a 0 (lo que
- * falta pagar), y el libro da el neto (`total − pagado`), que resta lo pagado
- * de más. Con un sobrepago las dos cifras difieren justo en `sobrepagos`, y
- * esta nota lo dice al lado del libro en vez de dejar al cliente con dos
- * saldos sin explicación (SDD-0556).
+ * falta pagar) y el libro da el neto, que resta lo pagado de más. Con un
+ * sobrepago las cifras difieren justo en `sobrepagos`, y esta nota lo dice al
+ * lado de cada una en vez de dejar al cliente con dos saldos sin explicación
+ * (SDD-0556). Hoy no hay saldo a favor (decisión del 2026-09-18): la salida es
+ * la misma indicación que para lo pagado en anuladas.
  */
-export function notaSobrepagos(sobrepagos: number, currency: InvoiceCurrency): string | null {
+export function notaSobrepagos(
+  sobrepagos: number,
+  currency: InvoiceCurrency,
+  lugar: DondeNotaSobrepagos,
+): string | null {
   if (!(sobrepagos > 0)) return null;
+  const deMas = formatInvoiceAmount(sobrepagos, currency);
+  if (lugar.donde === "libro") {
+    return (
+      `Este saldo ya descuenta ${deMas} pagados de más en facturas ya pagadas. ` +
+      `Mientras no se apliquen, lo que falta pagar es ${formatInvoiceAmount(lugar.porPagar, currency)}: ` +
+      `${indicacionPagosEnAnuladas()}.`
+    );
+  }
   return (
-    `Incluye ${formatInvoiceAmount(sobrepagos, currency)} pagados de más en facturas ya pagadas; ` +
-    "tu asesor los aplica o te los devuelve."
+    `«Pagado» incluye ${deMas} pagados de más en facturas ya pagadas, que no se descuentan ` +
+    `de tu saldo pendiente: ${indicacionPagosEnAnuladas()}.`
   );
 }
 

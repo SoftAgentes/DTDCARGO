@@ -82,7 +82,10 @@ export function StatementLedgerTable({
   const notaAnuladas = notaPagosEnAnuladas(ledger.voidedPayments);
   // El libro da el neto y el KPI «Saldo pendiente» recorta cada factura a 0:
   // con un sobrepago difieren justo en esto, y la nota lo dice (SDD-0556).
-  const notaDeMas = notaSobrepagos(ledger.sobrepagos, ledger.currency);
+  const notaDeMas = notaSobrepagos(ledger.sobrepagos, ledger.currency, {
+    donde: "libro",
+    porPagar: ledger.balance + ledger.sobrepagos,
+  });
 
   return (
     <>

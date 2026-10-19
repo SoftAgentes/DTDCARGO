@@ -269,24 +269,39 @@ describe("contrato: KPIs y ledger salen de la misma definición", () => {
       inv({ code: "C1", total: 1200.5, paid: 300.25 }),
       inv({ code: "C2", total: 415.75, paid: 500 }),
       inv({ code: "C3", status: "anulada", total: 880, paid: 400 }),
-      inv({ code: "C4", currency: "VES", total: 90, paid: 1 }),
+      // Sobrepago en VES con USD como moneda de las cifras: no entra a
+      // los sobrepagos del libro en USD (ata la moneda en los dos lados).
+      inv({ code: "C4", currency: "VES", total: 90, paid: 150 }),
+    ],
+    // Céntimos habituales, que no son exactos en coma flotante.
+    [
+      inv({ code: "D1", total: 100.3, paid: 50.1 }),
+      inv({ code: "D2", total: 876.78, paid: 300 }),
+      inv({ code: "D3", status: "pagada", total: 120.1, paid: 150.2 }),
+    ],
+    // Solo la otra moneda tiene sobrepago: en la moneda de las cifras no hay.
+    [
+      inv({ code: "E1", currency: "USD", total: 1000, paid: 0 }),
+      inv({ code: "E2", currency: "VES", status: "pagada", total: 100, paid: 400 }),
     ],
   ];
+
+  /** Céntimos enteros: la comparación exacta que no depende de la coma flotante. */
+  const cents = (n: number) => Math.round(n * 100);
 
   it.each(FIXTURES.map((f, i) => [i, f] as const))("fixture %i", (_i, facturas) => {
     const r = resumenDeCuenta(facturas);
     const l = buildStatementLedger(facturas);
     expect(r.currency).toBe(l.currency);
     expect(r.mixedCurrencies).toBe(l.mixedCurrencies);
-    expect(r.facturado).toBe(l.totalCargo);
-    expect(r.pagado).toBe(l.totalAbono);
-    expect(r.sobrepagos).toBe(l.sobrepagos);
+    expect(cents(r.facturado)).toBe(cents(l.totalCargo));
+    expect(cents(r.pagado)).toBe(cents(l.totalAbono));
+    expect(cents(r.sobrepagos)).toBe(cents(l.sobrepagos));
     expect(r.pagosEnAnuladas).toEqual(l.voidedPayments);
-    // El saldo neto del libro es lo que falta pagar menos lo pagado de más.
-    // Igualdad estricta: los céntimos de estos fixtures son exactos en coma
-    // flotante. Un fixture nuevo con céntimos que no lo sean (0.1 + 0.2) tiene
-    // que comparar en céntimos, no aflojar el contrato.
-    expect(l.balance).toBe(r.porPagar - r.sobrepagos);
+    // El saldo neto del libro es lo que falta pagar menos lo pagado de más,
+    // exacto al céntimo (los fixtures D tienen céntimos inexactos en coma
+    // flotante: por eso se compara en céntimos enteros, no con tolerancia).
+    expect(cents(l.balance)).toBe(cents(r.porPagar) - cents(r.sobrepagos));
   });
 
   it("con un sobrepago, KPI y libro difieren justo en lo pagado de más", () => {
@@ -327,14 +342,27 @@ describe("pagosEnAnuladas / notaPagosEnAnuladas", () => {
 });
 
 describe("notaSobrepagos", () => {
-  it("dice cuánto se pagó de más y quién lo resuelve", () => {
-    expect(notaSobrepagos(20, "USD")).toBe(
-      "Incluye USD 20.00 pagados de más en facturas ya pagadas; tu asesor los aplica o te los devuelve.",
+  it("en el libro dice cuánto descuenta el saldo y cuánto falta pagar de verdad", () => {
+    expect(notaSobrepagos(20, "USD", { donde: "libro", porPagar: 200 })).toBe(
+      "Este saldo ya descuenta USD 20.00 pagados de más en facturas ya pagadas. Mientras no se apliquen, lo que falta pagar es USD 200.00: escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución.",
     );
   });
 
-  it("sin sobrepagos no hay nota", () => {
-    expect(notaSobrepagos(0, "USD")).toBeNull();
+  it("bajo los KPIs explica por qué facturado − pagado no da el saldo pendiente", () => {
+    expect(notaSobrepagos(20, "USD", { donde: "kpis" })).toBe(
+      "«Pagado» incluye USD 20.00 pagados de más en facturas ya pagadas, que no se descuentan de tu saldo pendiente: escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución.",
+    );
+  });
+
+  it("sin sobrepagos no hay nota, en ningún lugar", () => {
+    expect(notaSobrepagos(0, "USD", { donde: "kpis" })).toBeNull();
+    expect(notaSobrepagos(0, "USD", { donde: "libro", porPagar: 100 })).toBeNull();
+  });
+
+  it("termina con la MISMA indicación que lo pagado en anuladas", () => {
+    for (const lugar of [{ donde: "kpis" }, { donde: "libro", porPagar: 1 }] as const) {
+      expect(notaSobrepagos(5, "USD", lugar)?.endsWith(`${indicacionPagosEnAnuladas()}.`)).toBe(true);
+    }
   });
 });
 

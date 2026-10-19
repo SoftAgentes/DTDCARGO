@@ -79,7 +79,7 @@ describe("StatementLedgerTable · sobrepagos (SDD-0556)", () => {
     expect(screen.getByText("Totales").parentElement).toHaveTextContent("USD 180.00");
     expect(
       screen.getByText(
-        "Incluye USD 20.00 pagados de más en facturas ya pagadas; tu asesor los aplica o te los devuelve.",
+        "Este saldo ya descuenta USD 20.00 pagados de más en facturas ya pagadas. Mientras no se apliquen, lo que falta pagar es USD 200.00: escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución.",
       ),
     ).toBeInTheDocument();
   });

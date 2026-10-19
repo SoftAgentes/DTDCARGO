@@ -284,7 +284,11 @@ export type PortalDashboardKpis = {
   invoicedTotal: number;
   /** Lo que falta pagar: Σ max(0, total − pagado) de las no anuladas (moneda dominante). */
   outstandingBalance: number;
-  /** Moneda dominante de las facturas no anuladas (la de mayor total facturado); USD si no hay. */
+  /**
+   * Moneda de las cifras: entre las facturas no anuladas, la de mayor saldo por
+   * pagar; si nada se debe, la de mayor total facturado; USD si no hay facturas
+   * (`monedaDominante`, SDD-0556). No es «la moneda principal» del cliente.
+   */
   currency: InvoiceCurrency;
   /** ¿Hay facturas vigentes en más de una moneda? (los montos se muestran en la dominante). */
   mixedCurrencies: boolean;

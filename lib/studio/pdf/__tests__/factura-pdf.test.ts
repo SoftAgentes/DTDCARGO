@@ -210,6 +210,16 @@ describe("FacturaDocument de una anulada (SDD-0556)", () => {
     const t = textos(FacturaDocument({ invoice: mkFactura({ status: "anulada", paid: 720 }) }));
     expect(t).toContain("Factura anulada: no hay saldo por pagar.");
     expect(t).not.toContain("Saldo pendiente");
+    // Lo abonado no se esconde: el papel que llega al contador dice qué hacer.
+    expect(t.join("")).toContain(
+      "Lo abonado (USD 720.00) no se descuenta de tu saldo pendiente: escríbele a tu asesor para aplicarlo a otra factura o pedir su devolución.",
+    );
+  });
+
+  it("una anulada sin abono solo dice que no hay saldo", () => {
+    const t = textos(FacturaDocument({ invoice: mkFactura({ status: "anulada", paid: 0 }) }));
+    expect(t).toContain("Factura anulada: no hay saldo por pagar.");
+    expect(t.join("")).not.toContain("Lo abonado");
   });
 
   it("una vigente con saldo no lleva el aviso y sí su «Saldo pendiente»", () => {

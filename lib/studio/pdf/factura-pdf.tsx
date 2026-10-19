@@ -47,6 +47,7 @@ import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import { isInvoiceStatus, statusLabel } from "@/lib/studio/invoice-types";
 import { lineaDocumentoCliente } from "@/lib/studio/invoice-client-doc";
 import { PDF, Membrete } from "./pdf-doc";
+import { indicacionPagosEnAnuladas } from "@/lib/portal/saldo-de-cuenta";
 
 // ╔═══════════════════════════════════════════════════════════╗
 // ║ Entrada                                                   ║
@@ -467,7 +468,12 @@ export function FacturaDocument({
         {/* SDD-0556 · «Estado: Anulada» va en letra chica en el meta; con el
             total completo, el papel seguía pareciendo una factura vigente. */}
         {facturaAnulada(invoice) ? (
-          <Text style={styles.aviso}>Factura anulada: no hay saldo por pagar.</Text>
+          <Text style={styles.aviso}>
+            Factura anulada: no hay saldo por pagar.
+            {t.paid > 0
+              ? ` Lo abonado (${montoConMoneda(t.paid, invoice.currency)}) no se descuenta de tu saldo pendiente: ${indicacionPagosEnAnuladas({ singular: true })}.`
+              : ""}
+          </Text>
         ) : null}
 
         {/* El descuadre se DENUNCIA, no se corrige: el total que vale es el de

@@ -141,6 +141,9 @@ describe("PortalDashboardNorte · nunca «al día» con algo por pagar (SDD-0556
     expect(tarjeta("Saldo pendiente")).toHaveTextContent("por pagar");
     expect(screen.queryByText("al día")).toBeNull();
     expect(screen.getByText("1 factura por pagar")).toBeInTheDocument();
+    // Con varias monedas, «Facturado» no promete que USD sea la principal.
+    expect(tarjeta("Facturado")).toHaveTextContent("solo USD · hay otras monedas");
+    expect(screen.queryByText("moneda dominante")).toBeNull();
   });
 
   it("con una factura pendiente y el monto dominante en 0: ni «al día» ni tono de éxito", () => {

@@ -107,10 +107,23 @@ describe("/portal/finanzas · KPIs sin anuladas (SDD-0556)", () => {
     expect(screen.queryByText(/USD 0\.00/)).toBeNull();
   });
 
+  it("con un sobrepago, la nota explica por qué facturado − pagado no da el saldo pendiente", async () => {
+    h.facturas = [
+      factura({ code: "F-P1", status: "pagada", total: 100, paid: 120 }),
+      factura({ code: "F-P2", total: 200, paid: 0 }),
+    ];
+    await abrir();
+    expect(kpi("Total facturado")).toHaveTextContent("USD 300.00");
+    expect(kpi("Pagado")).toHaveTextContent("USD 120.00");
+    expect(kpi("Saldo pendiente")).toHaveTextContent("USD 200.00");
+    expect(screen.getByText("«Pagado» incluye USD 20.00 pagados de más en facturas ya pagadas, que no se descuentan de tu saldo pendiente: escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución.")).toBeInTheDocument();
+  });
+
   it("sin anuladas no hay nota", async () => {
     h.facturas = [factura({ code: "F-VIVA", total: 1000, paid: 400 })];
     await abrir();
     expect(screen.queryByText(/facturas que después se anularon/)).toBeNull();
+    expect(screen.queryByText(/pagados de más/)).toBeNull();
     expect(kpi("Saldo pendiente")).toHaveTextContent("USD 600.00");
   });
 });

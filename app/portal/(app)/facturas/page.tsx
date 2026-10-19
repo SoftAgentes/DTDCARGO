@@ -18,6 +18,7 @@ import {
 import {
   esAnulada,
   notaPagosEnAnuladas,
+  notaSobrepagos,
   resumenDeCuenta,
   saldoPorPagar,
 } from "@/lib/portal/saldo-de-cuenta";
@@ -112,6 +113,9 @@ export default async function PortalInvoicesPage({
   // anuladas no se resta: se informa aparte, en la nota de abajo.
   const r = resumenDeCuenta(todasLasFacturas);
   const notaAnuladas = notaPagosEnAnuladas(r.pagosEnAnuladas);
+  // Con un sobrepago, facturado − pagado no da el saldo pendiente: la nota lo
+  // explica bajo los KPIs. En el estado de cuenta va la versión del libro.
+  const notaDeMas = notaSobrepagos(r.sobrepagos, r.currency, { donde: "kpis" });
 
   return (
     <div>
@@ -227,6 +231,11 @@ export default async function PortalInvoicesPage({
           {notaAnuladas && !vistaCuenta ? (
             <p className="mt-3 text-[12.5px] text-grey-700 leading-[1.5] max-w-[64ch]">
               {notaAnuladas}
+            </p>
+          ) : null}
+          {notaDeMas && !vistaCuenta ? (
+            <p className="mt-3 text-[12.5px] text-grey-700 leading-[1.5] max-w-[64ch]">
+              {notaDeMas}
             </p>
           ) : null}
 

@@ -181,7 +181,7 @@ describe("SDD-0556 · el papel con anuladas y la identidad del emisor", () => {
     // Saldo neto 180 y la nota de los 20.
     expect(t).toContain("USD 180.00");
     expect(t).toContain(
-      "Incluye USD 20.00 pagados de más en facturas ya pagadas; tu asesor los aplica o te los devuelve.",
+      "Este saldo ya descuenta USD 20.00 pagados de más en facturas ya pagadas. Mientras no se apliquen, lo que falta pagar es USD 200.00: escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución.",
     );
   });
 

@@ -14,7 +14,7 @@ import {
   type PortalShipmentRow,
   type PortalEstimateRow,
 } from "@/lib/portal/portal-types";
-import { notaPagosEnAnuladas, resumenDeCuenta } from "@/lib/portal/saldo-de-cuenta";
+import { notaPagosEnAnuladas, notaSobrepagos, resumenDeCuenta } from "@/lib/portal/saldo-de-cuenta";
 import { showNortePortal } from "@/lib/portal/demo";
 import { ArrowIcon, DocIcon, QuoteIcon } from "@/components/Icon";
 import { InvoiceRow } from "../../_components/InvoiceRow";
@@ -53,6 +53,8 @@ export default async function PortalFinanzasPage() {
   // ellas se informa aparte sin restarlo.
   const r = resumenDeCuenta(invoices);
   const notaAnuladas = notaPagosEnAnuladas(r.pagosEnAnuladas);
+  // Con un sobrepago, facturado − pagado no da el saldo pendiente (SDD-0556).
+  const notaDeMas = notaSobrepagos(r.sobrepagos, r.currency, { donde: "kpis" });
 
   return (
     <div>
@@ -122,6 +124,11 @@ export default async function PortalFinanzasPage() {
           {notaAnuladas ? (
             <p className="mt-3 text-[12.5px] text-grey-700 leading-[1.5] max-w-[64ch]">
               {notaAnuladas}
+            </p>
+          ) : null}
+          {notaDeMas ? (
+            <p className="mt-3 text-[12.5px] text-grey-700 leading-[1.5] max-w-[64ch]">
+              {notaDeMas}
             </p>
           ) : null}
 

@@ -589,14 +589,15 @@ describe("SDD-0556 · estado de cuenta en PDF: principal único, emisor del tena
     }
   });
 
-  it("🔴 hoy NO pasa razón social ni RIF: la excepción de marca cubre sólo la factura (SDD-0297)", async () => {
-    // Si Sam extiende la excepción al estado de cuenta, este caso cambia junto
-    // con la ruta. Mientras tanto, el papel no imprime la identidad fiscal.
+  it("🔴 pasa razón social y RIF del tenant del principal (excepción de marca de Sam, 2026-10-18)", async () => {
+    // Sam extendió al estado de cuenta en PDF la excepción que la factura
+    // tiene desde SDD-0297. Los datos son los del tenant del principal (T1),
+    // nunca los de otro.
     arrange();
     await estadoDeCuentaPdf();
     const emisor = state.rendered[0].emisor as Record<string, unknown>;
-    expect(emisor).not.toHaveProperty("legalName");
-    expect(emisor).not.toHaveProperty("rif");
+    expect(emisor.legalName).toBe("Empresa sintética T1, C.A.");
+    expect(emisor.rif).toBe("J-11111111-1");
   });
 
   it("en una sesión híbrida (equipo de T2 + cliente de T1) el emisor es T1, no el tenant de equipo", async () => {

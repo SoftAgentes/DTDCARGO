@@ -146,7 +146,7 @@ export function PortalDashboardNorte({
               value={formatInvoiceAmount(kpis.invoicedTotal, kpis.currency)}
               sub={
                 kpis.mixedCurrencies
-                  ? "moneda dominante"
+                  ? `solo ${kpis.currency} · hay otras monedas`
                   : `${kpis.currency} acumulado`
               }
             />

@@ -79,17 +79,16 @@ export async function GET() {
       ledger,
       emitidoEl: new Date().toISOString().slice(0, 10),
     },
-    // ⚠️ Sin `legalName` ni `rif` a propósito. La regla de marca deja la razón
-    // social y el RIF sólo en el schema, nunca en texto visible
-    // (`docs/engineering/project-rules.md`, «Identidad pública»), y la
-    // excepción que dio Sam el 2026-08-25 (SDD-0297) cubre sólo la factura.
-    // Si Sam la extiende al estado de cuenta, encenderlo es agregar aquí
-    // `legalName: company.identity.legalName` y `rif: company.identity.rif`
-    // (el documento ya los imprime bajo el membrete) y cambiar la prueba que
-    // fija que hoy no se pasan. Ver `docs/specs/0556-portal-facturas-anuladas-fuera/spec.md`.
+    // Razón social y RIF bajo el membrete: excepción de marca que Sam extendió
+    // al estado de cuenta en PDF el 2026-10-18 (SDD-0556), igual que la de la
+    // factura del 2026-08-25 (SDD-0297). Fuera de estos papeles la regla sigue
+    // (`docs/engineering/project-rules.md`, «Identidad pública»).
+    // `lineasDeEmisor` nunca inventa un RIF: sin dato, no imprime el renglón.
     emisor: company
       ? {
           tradeName: company.identity.tradeName,
+          legalName: company.identity.legalName,
+          rif: company.identity.rif,
           email: company.identity.commercialEmail,
           phone: company.identity.phone,
           website: company.identity.website,

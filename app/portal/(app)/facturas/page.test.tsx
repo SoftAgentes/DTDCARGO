@@ -193,6 +193,21 @@ describe("/portal/facturas · las anuladas no son deuda (SDD-0556)", () => {
     h.facturas = [VIVA, PAGADA];
     await abrir();
     expect(screen.queryByText(/facturas que después se anularon/)).toBeNull();
+    expect(screen.queryByText(/pagados de más/)).toBeNull();
+  });
+
+  it("con un sobrepago, la nota bajo los KPIs explica la diferencia; en el estado de cuenta va la del libro", async () => {
+    h.facturas = [
+      factura({ code: "F-P1", status: "pagada", total: 100, paid: 120 }),
+      factura({ code: "F-P2", total: 200, paid: 0 }),
+    ];
+    await abrir();
+    expect(kpi("Saldo pendiente")).toHaveTextContent("USD 200.00");
+    expect(screen.getByText(/^«Pagado» incluye USD 20.00 pagados de más/)).toBeInTheDocument();
+    cleanup();
+    await abrir({ vista: "cuenta" });
+    expect(screen.queryByText(/^«Pagado» incluye/)).toBeNull();
+    expect(screen.getByText(/^Este saldo ya descuenta USD 20.00 pagados de más/)).toBeInTheDocument();
   });
 
   it("si las facturas no se pueden leer, la página deja subir el error (va a error.tsx), sin un vacío ni un 0", async () => {

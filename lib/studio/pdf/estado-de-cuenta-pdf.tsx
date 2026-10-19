@@ -147,7 +147,10 @@ export function EstadoDeCuentaDocument({
   const moneda = ledger.currency;
   const hayAbonos = ledger.moves.some((m) => m.kind === "abono");
   const notaAnuladas = notaPagosEnAnuladas(ledger.voidedPayments);
-  const notaDeMas = notaSobrepagos(ledger.sobrepagos, moneda);
+  const notaDeMas = notaSobrepagos(ledger.sobrepagos, moneda, {
+    donde: "libro",
+    porPagar: ledger.balance + ledger.sobrepagos,
+  });
 
   return (
     <Document title={`Estado de cuenta ${input.markbox}`} author="DTD Cargo">
