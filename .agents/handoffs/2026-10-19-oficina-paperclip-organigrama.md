@@ -73,8 +73,13 @@ cuentas, sin servicios, sin producción ni base de datos.**
 
 ## Fuera de alcance detectado
 
-- **`app/api/cron/ceo-brief`** se programaba con Vercel Cron y Vercel está en pausa desde el
-  2026-10-16. No verifiqué si el resumen diario al CEO sigue corriendo en el servidor propio.
+- **`app/api/cron/ceo-brief`: resuelto, ya no es un hallazgo.** La primera versión de este
+  handoff decía que se programaba con Vercel Cron y que no estaba verificado. El Director lo
+  corrigió el 2026-10-19: corre en el contenedor `cron` del servidor propio
+  (`infra/dtd-cargo/cron/crontab:9`, `0 11 * * *` contra `http://web:3000/api/cron/ceo-brief`;
+  la sesión confirmó esa línea) y, según su lectura del registro, en las últimas 72 h se
+  disparó 3 veces, una por día. Esa lectura solo prueba el disparo: **NO VERIFICADO** que el
+  envío haya salido bien.
 - **`lib/studio/privacidad-cn.ts`** oculta datos de clientes al personal en China solo en el
   servidor; el propio archivo advierte que no protege en la base (riesgo PIPL ya conocido).
 - **Hay una sesión «Migración Kommo a GoHighLevel».** Si el CRM cambia, las referencias a
@@ -92,3 +97,12 @@ cuentas, sin servicios, sin producción ni base de datos.**
   de Paperclip (ola 1)». Esa SDD cambia gobierno: quién puede actuar sobre el repositorio y con
   qué permisos.
 - Ownership: el claim `oficina-paperclip` se libera al cerrar esta escritura.
+
+## Respuesta del Director (2026-10-19)
+
+- Corrigió el dato del `ceo-brief` (arriba); corregido en el documento y en este handoff.
+- La fila de `docs/organizacion/` en `docs/README.md` la agrega él al integrar, junto con el
+  recibo semántico.
+- La #285 queda en borrador hasta que Sam conteste las 13 preguntas o le pida integrarla como
+  propuesta v1. Que esté lista no autoriza el merge.
+- El número de la SDD de instalación se le pide antes de reservarla, cuando Sam la autorice.

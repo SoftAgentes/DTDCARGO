@@ -167,7 +167,7 @@ Fuentes: `lib/studio/modules.ts`, `lib/studio/rbac.ts` (matriz `ROLE_MODULE_ACCE
 | Separación de poderes del dinero | candados en `0204`: Tesorería mueve, Operador de ERP verifica, segunda firma internacional y USDT | Base de «quién ejecuta, quién verifica, quién mueve» |
 | Política IA-01 (niveles I0–I4) | `docs/governance/policies/ia-01.md` | Qué puede hacer un agente sin pedir permiso |
 | Plataforma de agentes del Studio | `lib/studio/agents/` (SDD-0020): presupuesto por agente, pausa automática y ejecuciones auditadas | Los agentes que tocan datos de clientes viven aquí, dentro del ERP, no en Paperclip |
-| Resumen diario del CEO por Telegram | `app/api/cron/ceo-brief` | Antecedente del parte del CEO. **NO VERIFICADO** si sigue corriendo: se programaba con Vercel Cron y Vercel está en pausa desde el 2026-10-16 |
+| Resumen diario del CEO por Telegram | `app/api/cron/ceo-brief` | Antecedente del parte del CEO. Corre en el contenedor `cron` del servidor propio todos los días a las 11:00 UTC, 7:00 en Caracas (`infra/dtd-cargo/cron/crontab:9`). El Director midió el 2026-10-19 que en las últimas 72 h se disparó 3 veces, una por día. Esa lectura del registro solo confirma que el cron lo dispara: **NO VERIFICADO** que el mensaje haya llegado |
 | Ritual del viernes (30 min) | `docs/marketing/revision-del-motor.md` | El CEO agente le prepara la agenda |
 | Sesiones Director y Worker | `docs/runbooks/codex-engineering.md` | Ingeniería ya tiene su propio organigrama; Paperclip no lo reemplaza en la primera ola |
 
@@ -882,7 +882,8 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
 `0076-configuracion-servicios/assets/FASE-FUTURA-motor-flujo-interno-y-rbac.md`;
 `docs/design/studio/_norte/HANDOFF.md`, `backend/README.md`; `lib/studio/modules.ts`,
 `rbac.ts`, `user-types.ts`, `platform-admin.ts`, `privacidad-cn.ts`;
-`supabase/migrations/0204_nomina_positions.sql`; `app/api/cron/ceo-brief/route.ts`.
+`supabase/migrations/0204_nomina_positions.sql`; `app/api/cron/ceo-brief/route.ts`;
+`infra/dtd-cargo/cron/crontab`.
 
 **Paperclip** (consultado el 2026-10-19): github.com/paperclipai/paperclip (README, releases,
 `SECURITY.md`, `ROADMAP.md`, avisos de seguridad); registry.npmjs.org/paperclipai;
