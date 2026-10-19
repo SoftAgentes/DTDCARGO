@@ -266,6 +266,41 @@ Todo con dobles. Cero lecturas o escrituras en producción y en la base de prueb
   - FALLÓ `test`: 1 de 11391, ese inventario. Se corrigió después y la prueba pasa sola.
   - SKIP `migrations-applied`: sin `.env.local` en el worktree; esta PR no trae migración.
 
+## Corrección 2026-10-19 (PR #292)
+
+Dos defectos del componente que incumplían lo que esta spec ya promete. La promesa no cambia: sin SDD
+nueva, por decisión del Director. Detalle, reproducción y controles en el
+[handoff](../../../.agents/handoffs/0560-carrera-prueba-asistente-borrado.md).
+
+1. **Render intermedio, visible en producción.** En React 19, lo que `AsistenteBorrado.tsx`
+   actualizaba después del `await` salía de la transición y se pintaba un render antes del fin de la
+   espera. Se veía el error con el botón todavía en «Procesando…» (contra «Error del módulo … se puede
+   reintentar») y el plan nuevo junto a «Revisando…». Ahora el resultado vuelve a la transición y llega
+   en el mismo render que el fin de la espera. Era la causa de los rojos intermitentes de
+   `AsistenteBorrado.test.tsx` en el verify de la SDD-0563. El segundo de esos rojos era una cascada:
+   `vi.clearAllMocks()` deja en cola los `mockResolvedValueOnce` sin consumir; ahora la prueba usa
+   `vi.resetAllMocks()`.
+2. **`montado` en `false` después del remontaje de StrictMode, solo en desarrollo.** El efecto no lo
+   volvía a poner en `true`, y el panel descartaba lo que respondía el servidor: el paso se ejecutaba
+   en la base sin que la pantalla lo dijera.
+
+Evidencia:
+
+- `AsistenteBorrado.test.tsx` pasa de 13 a 16 casos, 16/16. Lo nuevo:
+  - cada render del diálogo o del panel queda anotado, así que un estado intermedio no pasa por azar;
+  - «revisar de nuevo se cae»;
+  - el asistente dentro de `<StrictMode>`;
+  - la respuesta tardía con el panel desmontado.
+- 20 vueltas: 320/320. Otras 20 con el planificador de React retrasado 10 ms (el orden que antes
+  fallaba siempre): 320/320.
+- Controles:
+  - la prueba nueva contra el componente anterior da rojo 30 de 30 (10 vueltas);
+  - el mutante en el que el botón no vuelve tras el error cae en el `findByRole`;
+  - 6 mutantes muertos, cada uno solo por su caso: las cuatro envolturas en la transición y las dos
+    mitades del efecto de montado.
+- `pnpm verify` completo de la #292 sobre `9fe45535` (con `main` = `bd971821`): 16 de 17 pasos
+  pasaron. `migrations-applied` quedó NO DISPONIBLE, sin `.env.local`.
+
 ## Datos personales (`revisar-datos-ve`)
 
 No es asesoría legal.

@@ -194,8 +194,10 @@ un fallo real.
 ## PENDIENTES DE ESTA TAREA
 
 - `migrations-applied` queda NO DISPONIBLE en el worktree. Esta PR no trae migración.
-- La spec 0560 registra 13 casos para este archivo (evidencia de `b19e41f7`); ahora son 16. No se tocó
-  la spec porque esa tabla es evidencia fechada.
+- La tabla de evidencia de la spec 0560 sigue diciendo 13 casos (de `b19e41f7`), porque es evidencia
+  fechada. A pedido del Director, la spec suma la sección «Corrección 2026-10-19 (PR #292)», con las
+  dos causas, el paso a 16 casos y la evidencia. El ítem 10 de aceptación (verify) no se marcó: lo
+  decide el Director.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -225,5 +227,6 @@ un fallo real.
 ## HANDOFF AL DIRECTOR
 
 1. El turno de máquina se devuelve al terminar el verify (20:13Z) y las dos e2e aisladas (20:15Z).
-2. Confirmar la clasificación de las dos partes: correcciones dentro de la 0560, sin SDD nueva.
+2. Clasificación **confirmada por el Director** al revisar `4bc4c026`: las dos partes son
+   correcciones dentro de la 0560, sin SDD nueva.
 3. La revisión y la fusión son del Director; el Worker no fusiona.
