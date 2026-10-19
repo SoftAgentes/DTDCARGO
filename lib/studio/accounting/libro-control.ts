@@ -249,6 +249,62 @@ export function asientoVivo(a: Pick<AsientoDeDocumento, "status" | "deleted_at">
   return a.status === "asentado" && a.deleted_at == null;
 }
 
+/**
+ * SDD-0562 · Un recibo, con lo que hace falta para decidir si toca 1.1.2.
+ * `asientosCobro` cuenta sus asientos `receipt` vivos y `reclasificaciones`,
+ * sus `receipt_reclass` vivos, unidos por cualquiera de los dos lados.
+ */
+export type ReciboDelSubdiario = {
+  vivo: boolean;
+  moneda: string;
+  conFactura: boolean;
+  identificado: boolean;
+  asientosCobro: number;
+  reclasificaciones: number;
+};
+
+/**
+ * SDD-0562 · ¿Este recibo vuelve «no comparable» el lado de clientes (1.1.2)?
+ *
+ * Solo si toca 1.1.2 con un asiento vivo en otra moneda. Es la definición
+ * canónica de la radiografía (`scripts/qa/radiografia-integridad.sql`, SDD-0559),
+ * por decisión del Director del 2026-10-19: «la definición canónica es la de la
+ * radiografía, la que cuenta solo los recibos que tocan 1.1.2».
+ * - El pago sin referencia (sin factura) se asienta a 2.1.8: no toca 1.1.2.
+ * - El identificado toca 1.1.2 solo con su reclasificación viva.
+ * Antes (K10 de la SDD-0557) contaba cualquier recibo VES o CNY con asiento.
+ */
+export function reciboVuelveNoComparable(r: ReciboDelSubdiario): boolean {
+  return (
+    r.vivo &&
+    (r.moneda === "VES" || r.moneda === "CNY") &&
+    r.conFactura &&
+    (!r.identificado || r.reclasificaciones > 0) &&
+    r.asientosCobro > 0
+  );
+}
+
+/**
+ * SDD-0562 · Reclasificaciones vivas (`receipt_reclass`, asentadas y no
+ * borradas) de cada recibo, unidas por `journal_entries.receipt_id` o por
+ * `payment_receipts.journal_entry_id`, sin contar dos veces el mismo asiento.
+ */
+export function reclasificacionesPorRecibo(
+  recibos: readonly Pick<DocumentoContable, "id" | "journal_entry_id">[],
+  asientos: readonly AsientoDeDocumento[],
+): Map<string, number> {
+  const vivas = asientos.filter((a) => a.source === "receipt_reclass" && asientoVivo(a));
+  const out = new Map<string, number>();
+  for (const r of recibos) {
+    const ids = new Set<string>();
+    for (const a of vivas) {
+      if (a.receipt_id === r.id || (r.journal_entry_id != null && a.id === r.journal_entry_id)) ids.add(a.id);
+    }
+    out.set(r.id, ids.size);
+  }
+  return out;
+}
+
 function fkDelAsiento(a: AsientoDeDocumento, tipo: TipoDocumento): string | null {
   if (tipo === "factura") return a.invoice_id;
   if (tipo === "recibo") return a.receipt_id;
