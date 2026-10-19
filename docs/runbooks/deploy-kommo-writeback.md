@@ -5,6 +5,25 @@
 > después se prende. Lo ejecuta la **ventana de coordinación / el founder** (toca prod). La ventana de
 > desarrollo NO deploya ni escribe en prod.
 
+> ⚠️ **Nota del 2026-10-19 · producción ya no es Supabase Cloud ni Vercel.** Desde el corte del
+> 2026-10-14 (02:00Z), la base, el Vault, pg_cron y las Edge Functions de Kommo viven en el Supabase del
+> servidor propio (VPS de Contabo) y, desde el 2026-10-16, también la web; Vercel está en pausa. El
+> proyecto de Cloud `xpfuzqombmjmxvprjgmi` que nombra este runbook es la copia del corte y se pausa el
+> 2026-10-28: no lo uses para operar. En el servidor:
+>
+> - **Migraciones:** con [`aplicar-migraciones-prod.md`](aplicar-migraciones-prod.md) (psql en
+>   `dtd-cargo-db-1`, OK nominal de Sam), nunca con `apply_migration` ni el editor SQL de Cloud.
+> - **URL:** `https://supabase.dtdcargo.com/functions/v1/kommo-writeback`. La base la llama con el
+>   secreto `functions_base_url` del Vault (migración 0472) y el job `kommo-writeback-drain-dtd` corre
+>   en el pg_cron del servidor (activo al 2026-10-16, según
+>   `.agents/handoffs/plan-retiro-vercel-supabase-20261016.md`).
+> - **Código:** la carpeta `functions/` del servidor se arma desde `supabase/functions/` del repo
+>   ([`infra/dtd-cargo/README.md`](../../infra/dtd-cargo/README.md) › Arrancar). Logs:
+>   `docker logs dtd-cargo-functions-1`.
+>
+> Lo opera la sesión de Contabo con el OK de Sam: [`servidor-contabo.md`](servidor-contabo.md) §3.6. Lo
+> de abajo queda como registro de cómo se hizo en Cloud.
+
 ## Qué es esto
 
 Cuando un estimado pasa a `sent`/`accepted`, el ERP **encola** un `patch_price` (su `total_usd` → el

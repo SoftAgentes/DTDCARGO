@@ -7,6 +7,22 @@
 Tiempo estimado: **20 minutos**. Costo: free tier de Resend cubre los
 primeros 3,000 emails/mes y 100/día. Perfecto para arranque.
 
+> ⚠️ **Nota del 2026-10-19 · la web ya no corre en Vercel.** Desde el
+> 2026-10-16 la web corre en el servidor propio (VPS de Contabo) y se publica
+> sola con el vigilante ([`publicacion-automatica-web.md`](publicacion-automatica-web.md),
+> SDD-0541); Vercel está en pausa. Donde abajo dice «Vercel»:
+>
+> - **Variables:** las del servidor viven en `/srv/dtd-cargo/.env` y se cargan
+>   con `infra/ops/migrate/env-set.sh`; las `NEXT_PUBLIC_*` van además como
+>   Variables del repo en GitHub, porque se fijan al construir la imagen
+>   ([`servidor-contabo.md`](servidor-contabo.md) §3.1, puntos 2 y 3).
+> - **Redeploy:** no existe. Un cambio del `.env` se aplica recreando el
+>   contenedor `web`; una `NEXT_PUBLIC_*` pide además una imagen nueva. Lo hace
+>   la sesión de Contabo con el OK de Sam.
+> - **Logs:** los del contenedor `web` del servidor (`docker logs dtd-cargo-web-1`).
+>
+> Lo de abajo queda como registro de cómo se hizo en Vercel.
+
 ---
 
 ## 1. Crear cuenta + verificar dominio

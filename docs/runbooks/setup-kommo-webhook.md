@@ -8,6 +8,32 @@
 > El **pull diario de pg_cron (`kommo_run_sync`) queda como backstop de
 > reconciliación** — si un webhook se pierde, la corrida diaria lo recupera.
 
+> ⚠️ **Nota del 2026-10-19 · producción ya no es Supabase Cloud.** Desde el corte
+> del 2026-10-14 (02:00Z), la función `kommo-webhook` corre en el Supabase del
+> servidor propio (VPS de Contabo). El proyecto de Cloud `xpfuzqombmjmxvprjgmi`
+> que nombra este runbook es la copia del corte y se pausa el 2026-10-28: no lo
+> uses para operar. En el servidor:
+>
+> - **URL del webhook en Kommo:**
+>   `https://supabase.dtdcargo.com/functions/v1/kommo-webhook?secret=<KOMMO_WEBHOOK_SECRET>`.
+>   Sam la cambió en Kommo el día del corte; el registro de
+>   [`servidor-contabo.md`](servidor-contabo.md) §3.6 cuenta cómo
+>   (`/srv/ops/kommo-webhook-url.sh` la deja en el portapapeles).
+> - **`KOMMO_WEBHOOK_SECRET`:** vive en el `.env` del servidor
+>   (`/srv/dtd-cargo/.env`; se carga con `infra/ops/migrate/env-set.sh
+>   --project dtd-cargo --name KOMMO_WEBHOOK_SECRET`, §3.1 del mismo runbook),
+>   no en «Edge Functions → Secrets» de Cloud. El servicio `functions` lo toma
+>   del `.env` al crearse (`infra/dtd-cargo/compose.supabase.yml`): rotarlo es
+>   cambiarlo ahí, recrear `functions` y actualizar la URL en Kommo a la vez.
+> - **Código y logs:** no hay dashboard ni MCP. La carpeta `functions/` del
+>   servidor se arma desde `supabase/functions/` del repo
+>   ([`infra/dtd-cargo/README.md`](../../infra/dtd-cargo/README.md) › Arrancar) y
+>   los logs salen con `docker logs dtd-cargo-functions-1`.
+> - **Migraciones:** [`aplicar-migraciones-prod.md`](aplicar-migraciones-prod.md).
+>
+> Lo opera la sesión de Contabo con el OK de Sam. Lo de abajo queda como registro
+> de cómo se configuró en Cloud.
+
 ## 0. Pre-requisitos (ya en prod)
 
 - Edge Function `kommo-sync` desplegada y funcionando (Alcance A).

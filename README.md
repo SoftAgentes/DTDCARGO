@@ -21,7 +21,10 @@ endpoints `*/api/public/*` que el ERP expone.
 
 - **Next.js 16** App Router + **TypeScript** + **Tailwind v4** + **React 19**
 - **pnpm** para packages
-- **Vercel** para deploy (proyecto independiente del ERP)
+- **Servidor propio** (VPS de Contabo) para deploy desde el 2026-10-16: cada merge
+  a `main` se publica solo cuando su imagen y el CI quedan en verde
+  ([`docs/runbooks/publicacion-automatica-web.md`](docs/runbooks/publicacion-automatica-web.md)).
+  Antes era Vercel, hoy en pausa.
 - Cero dependencias del repo HailuWay
 
 ## Estructura

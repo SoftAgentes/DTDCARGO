@@ -8,6 +8,15 @@
 Tiempo estimado: **20-30 minutos** (+ propagación DNS). Prerequisito: el dominio
 de **envío** ya verificado en Resend (ver `setup-resend.md`).
 
+> ⚠️ **Nota del 2026-10-19 · la web ya no corre en Vercel.** Desde el
+> 2026-10-16 la web corre en el servidor propio (VPS de Contabo) y se publica
+> sola con el vigilante ([`publicacion-automatica-web.md`](publicacion-automatica-web.md));
+> Vercel está en pausa. Donde abajo dice «Vercel (Production)», la variable va
+> en el `.env` del servidor (`/srv/dtd-cargo/.env`, con
+> `infra/ops/migrate/env-set.sh`) y se aplica recreando el contenedor `web`. Lo
+> hace la sesión de Contabo con el OK de Sam:
+> [`servidor-contabo.md`](servidor-contabo.md) §3.1, punto 2.
+
 > ⚠️ **Plan:** la recepción de email (Inbound) puede requerir un **plan de pago
 > de Resend** y/o tener la feature habilitada en tu cuenta. Confirmá en el
 > dashboard (sección **Receiving** / **Webhooks → email.received**) antes de
