@@ -28,6 +28,8 @@ import {
   textoDelConteo,
   type AsientoDeDocumento,
   type DocumentoContable,
+  reciboVuelveNoComparable,
+  reclasificacionesPorRecibo,
 } from "../libro-control";
 import { cuadreSubdiario, type FacturaDelSubdiario } from "../subdiario";
 import { SALES_AR_CODE } from "../invoice-posting";
@@ -669,5 +671,49 @@ describe("anti-deriva", () => {
   it("las cuentas de control son las del posting", () => {
     expect(CUENTA_CLIENTES).toBe(SALES_AR_CODE);
     expect(CUENTA_PROVEEDORES).toBe(PAYABLE_AP_CODE);
+  });
+});
+
+describe("SDD-0562 · el recibo que vuelve «no comparable» a clientes (definición de la radiografía)", () => {
+  const base = { vivo: true, moneda: "VES", conFactura: true, identificado: false, asientosCobro: 1, reclasificaciones: 0 };
+
+  it("cuenta el recibo vivo en VES o CNY, con factura y con su asiento de cobro vivo", () => {
+    expect(reciboVuelveNoComparable(base)).toBe(true);
+    expect(reciboVuelveNoComparable({ ...base, moneda: "CNY" })).toBe(true);
+  });
+
+  it("no cuenta: anulado, en USD o USDT, sin asiento, sin factura (pago sin referencia, va a 2.1.8)", () => {
+    expect(reciboVuelveNoComparable({ ...base, vivo: false })).toBe(false);
+    expect(reciboVuelveNoComparable({ ...base, moneda: "USD" })).toBe(false);
+    expect(reciboVuelveNoComparable({ ...base, moneda: "USDT" })).toBe(false);
+    expect(reciboVuelveNoComparable({ ...base, asientosCobro: 0 })).toBe(false);
+    expect(reciboVuelveNoComparable({ ...base, conFactura: false })).toBe(false);
+  });
+
+  it("el identificado toca 1.1.2 solo con su reclasificación viva", () => {
+    expect(reciboVuelveNoComparable({ ...base, identificado: true })).toBe(false);
+    expect(reciboVuelveNoComparable({ ...base, identificado: true, reclasificaciones: 1 })).toBe(true);
+  });
+
+  it("reclasificacionesPorRecibo: vivas, por los dos lados y sin contar dos veces el mismo asiento", () => {
+    const asiento = (id: string, status: string, extra: Partial<{ receipt_id: string; deleted_at: string; source: string }> = {}) => ({
+      id, status, source: extra.source ?? "receipt_reclass", deleted_at: extra.deleted_at ?? null,
+      invoice_id: null, receipt_id: extra.receipt_id ?? null, bill_id: null, supplier_payment_id: null,
+    });
+    const recibos = [
+      { id: "r1", journal_entry_id: "x1" }, // unido por los dos lados al mismo asiento: cuenta una vez
+      { id: "r2", journal_entry_id: "x2" }, // solo por el lado del documento
+      { id: "r3", journal_entry_id: null }, // solo por el lado del asiento, más uno anulado y uno borrado
+      { id: "r4", journal_entry_id: null }, // un asiento de cobro (no es reclasificación)
+    ];
+    const r = reclasificacionesPorRecibo(recibos, [
+      asiento("x1", "asentado", { receipt_id: "r1" }),
+      asiento("x2", "asentado"),
+      asiento("x3", "asentado", { receipt_id: "r3" }),
+      asiento("x4", "anulado", { receipt_id: "r3" }),
+      asiento("x5", "asentado", { receipt_id: "r3", deleted_at: "2025-03-01T00:00:00Z" }),
+      asiento("x6", "asentado", { receipt_id: "r4", source: "receipt" }),
+    ]);
+    expect(Object.fromEntries(r)).toEqual({ r1: 1, r2: 1, r3: 1, r4: 0 });
   });
 });
