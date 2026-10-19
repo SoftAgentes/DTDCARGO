@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 542 specs)
+### Índice de specs (generado · 543 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -579,7 +579,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0552 | Portal: relecturas de tenant con el admin, por principal de s… | in-progress | interno |
 | 0553 | Portal: avanzar estimado a cotización por principal y tenant | in-progress | interno |
 | 0554 | Portal: lecturas de compras por tenant del principal | in-progress | interno |
+| 0555 | El borrador de factura conserva el embarque de cada línea | in-progress | interno |
 | 0560 | Asistente de borrado de embarques: pasos en orden para poder … | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0555, 0556, 0557, 0558, 0559 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0556, 0557, 0558, 0559 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

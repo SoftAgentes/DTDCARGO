@@ -16,6 +16,7 @@ import {
   computeBalance,
   isInvoiceIvaMode,
   isOverdue,
+  lineShipmentCode,
   type Invoice,
   type InvoiceStatus,
 } from "./invoice-types";
@@ -44,11 +45,18 @@ function coerce(row: Record<string, unknown>): Invoice {
     return Number.isFinite(n) ? n : null;
   };
   const lines = Array.isArray(row.lines)
-    ? (row.lines as Invoice["lines"]).map((l) => ({
-        desc: String((l as { desc?: unknown }).desc ?? ""),
-        qty: num((l as { qty?: unknown }).qty),
-        unitPrice: num((l as { unitPrice?: unknown }).unitPrice),
-      }))
+    ? (row.lines as Invoice["lines"]).map((l) => {
+        const line = {
+          desc: String((l as { desc?: unknown }).desc ?? ""),
+          qty: num((l as { qty?: unknown }).qty),
+          unitPrice: num((l as { unitPrice?: unknown }).unitPrice),
+        };
+        // SDD-0555 · sin esto el drawer nunca ve el embarque de la línea.
+        const shipmentCode = lineShipmentCode(
+          (l as { shipmentCode?: unknown }).shipmentCode,
+        );
+        return shipmentCode ? { ...line, shipmentCode } : line;
+      })
     : [];
 
   return {
