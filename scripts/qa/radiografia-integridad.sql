@@ -171,9 +171,11 @@ mayor as (
 -- no_comparable (decisión 7): documentos fuera de USD/USDT CON asiento vivo de su origen. En
 -- 1.1.2 cuenta solo el recibo que toca 1.1.2: con factura y, si se identificó, con su
 -- reclasificación viva. El pago sin referencia se asienta contra 2.1.8 y la reclasificación es
--- la que lo pasa a 1.1.2 (receipt-posting.ts). La CxP anulada no cuenta: su asiento vivo es B1
+-- la que lo pasa a 1.1.2 (receipt-posting.ts). La factura borrador no cuenta, como en la
+-- SDD-0557: no se asienta por diseño (SDD-0563). La CxP anulada no cuenta: su asiento vivo es B1
 -- (fila 44) y queda como diferencia, igual que en la SDD-0557.
--- fuera: documentos abiertos fuera de USD/USDT que no entran en la suma.
+-- fuera: documentos abiertos fuera de USD/USDT que no entran en la suma. En 1.1.2 también vuelve
+-- el lado no comparable (en `cuadre`), con o sin asiento: SDD-0563, enmienda de la decisión 7.
 lado as (
   select m.tenant_id, c.cuenta, c.debe, c.haber, c.saldo_mayor, c.abiertos, c.saldo_docs, c.no_comparable, c.fuera
   from mov m
@@ -184,7 +186,7 @@ lado as (
         and f.total_amount <> f.paid_amount),
      (select coalesce(sum(f.total_amount - f.paid_amount), 0) from fac f where f.tenant_id = m.tenant_id
         and f.abierta and f.moneda in ('USD', 'USDT')),
-     exists (select 1 from fac f where f.tenant_id = m.tenant_id
+     exists (select 1 from fac f where f.tenant_id = m.tenant_id and f.estado <> 'borrador'
                and f.moneda not in ('USD', 'USDT') and f.asientos > 0)
        or exists (select 1 from rec r where r.tenant_id = m.tenant_id and r.vivo and r.con_factura
                     and (not r.identificado or r.reclasificaciones > 0)
@@ -205,10 +207,14 @@ lado as (
   ) c(cuenta, debe, haber, saldo_mayor, abiertos, saldo_docs, no_comparable, fuera)
 ),
 -- El estado de cada lado, en este orden: el primero que se cumple gana (decisiones 6 y 7).
+-- En 1.1.2, una factura abierta con saldo fuera de USD/USDT (`fuera`) vuelve el lado no
+-- comparable, con o sin asiento (enmienda de la decisión 7, SDD-0563): sin asiento le falta al
+-- mayor y asentada entra al nominal (B2). Por eso la fila 96 queda en 0, como control. En 2.1.1
+-- no cambia: la CxP sigue la regla de su asiento y su `fuera` es la fila 106.
 cuadre as (
   select cuenta, fuera,
          case when debe = 0 and haber = 0 and abiertos > 0 then 'sin movimiento en el mayor'
-              when no_comparable then 'no comparable'
+              when no_comparable or (cuenta = '1.1.2' and fuera) then 'no comparable'
               when debe = 0 and haber = 0 then 'sin movimiento en la cuenta'
               when round(saldo_mayor - saldo_docs, 2) = 0 then 'cuadra'
               when saldo_mayor > saldo_docs then 'mayor por encima'
@@ -328,7 +334,7 @@ filas (orden, seccion, indicador, n, monto) as (
     (select count(*) from cobro where paid_amount = 0 and fuentes = 0), null
   union all select 90, '8 · 1.1.2 mayor contra facturas abiertas', 'tenants sin movimiento en el mayor (facturas abiertas, 1.1.2 sin asientos vivos)',
     (select count(*) from cuadre where cuenta = '1.1.2' and estado = 'sin movimiento en el mayor'), null
-  union all select 91, '8 · 1.1.2 mayor contra facturas abiertas', 'tenants no comparables (factura, o recibo con factura, en VES/CNY con asiento vivo)',
+  union all select 91, '8 · 1.1.2 mayor contra facturas abiertas', 'tenants no comparables (factura abierta en VES/CNY, o factura no borrador o recibo con factura en VES/CNY con asiento vivo)',
     (select count(*) from cuadre where cuenta = '1.1.2' and estado = 'no comparable'), null
   union all select 92, '8 · 1.1.2 mayor contra facturas abiertas', 'tenants sin movimiento en la cuenta (0 contra 0)',
     (select count(*) from cuadre where cuenta = '1.1.2' and estado = 'sin movimiento en la cuenta'), null
