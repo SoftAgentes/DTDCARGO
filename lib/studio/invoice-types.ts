@@ -312,8 +312,62 @@ export type InvoiceActionState = {
 const VALID_CURRENCIES: InvoiceCurrency[] = ["USD", "VES", "USDT", "CNY"];
 
 /**
+ * SDD-0555 · El código de embarque de una línea cruda, recortado; `undefined`
+ * si no hay (o no es texto). Lo comparten la lectura (`coerce`), el drawer y
+ * la escritura (`normalizeLines`): si uno lo suelta, editar un borrador de
+ * varios embarques le borra al Portal la lista y la medida sumada (SDD-0543).
+ */
+export function lineShipmentCode(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const code = raw.trim();
+  return code ? code : undefined;
+}
+
+/**
+ * Línea editable del drawer: cantidad y precio como texto del input. El
+ * `shipmentCode` no se muestra ni se edita; viaja oculto para que guardar el
+ * borrador no lo borre (SDD-0555).
+ */
+export type DraftInvoiceLine = {
+  desc: string;
+  qty: string;
+  unitPrice: string;
+  shipmentCode?: string;
+};
+
+/** Líneas de la factura → líneas del drawer (una vacía si no hay ninguna). */
+export function linesToDraft(lines: InvoiceLine[]): DraftInvoiceLine[] {
+  if (!lines.length) return [{ desc: "", qty: "1", unitPrice: "" }];
+  return lines.map((l) => {
+    const draft = {
+      desc: l.desc,
+      qty: String(l.qty),
+      unitPrice: String(l.unitPrice),
+    };
+    const shipmentCode = lineShipmentCode(l.shipmentCode);
+    return shipmentCode ? { ...draft, shipmentCode } : draft;
+  });
+}
+
+/** Líneas del drawer → líneas que se envían (sin las de descripción vacía). */
+export function draftToLines(draft: DraftInvoiceLine[]): InvoiceLine[] {
+  return draft
+    .map((d) => {
+      const line = {
+        desc: d.desc.trim(),
+        qty: Number(d.qty) || 0,
+        unitPrice: Number(d.unitPrice) || 0,
+      };
+      const shipmentCode = lineShipmentCode(d.shipmentCode);
+      return shipmentCode ? { ...line, shipmentCode } : line;
+    })
+    .filter((l) => l.desc.length > 0);
+}
+
+/**
  * Normaliza líneas crudas (del client o del JSON) a InvoiceLine[] válidas.
- * Descarta líneas sin descripción. qty/unitPrice negativos → 0.
+ * Descarta líneas sin descripción. qty/unitPrice negativos → 0. Conserva el
+ * `shipmentCode` de la línea (SDD-0555).
  */
 export function normalizeLines(raw: unknown): InvoiceLine[] {
   if (!Array.isArray(raw)) return [];
@@ -325,7 +379,10 @@ export function normalizeLines(raw: unknown): InvoiceLine[] {
     if (!desc) continue;
     const qty = Math.max(0, Number(r.qty) || 0);
     const unitPrice = Math.max(0, Number(r.unitPrice) || 0);
-    out.push({ desc, qty, unitPrice });
+    const shipmentCode = lineShipmentCode(r.shipmentCode);
+    out.push(
+      shipmentCode ? { desc, qty, unitPrice, shipmentCode } : { desc, qty, unitPrice },
+    );
   }
   return out;
 }
