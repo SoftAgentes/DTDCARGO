@@ -24,28 +24,31 @@
  * ERP no están vinculados a ningún contacto de Kommo. O sea: este job hoy no le
  * escribiría nada a nadie. No es un defecto del job; es que el vínculo
  * cliente↔contacto casi no existe. Ese es el cuello, y está antes que esto.
+ *
+ * ── El saldo sale de la base (SDD-0558) ─────────────────────────────────────
+ * «Tiene saldo pendiente» ya no se calcula acá: lo da `listClientOutstanding`,
+ * la definición única del saldo por cliente (migración 0492). Cambia en tres
+ * cosas respecto del cálculo viejo, que sumaba Σ(total − pagado) por markbox:
+ *  - cada factura se recorta a 0, así que un sobrepago ya no compensa la deuda
+ *    de OTRA factura del mismo cliente;
+ *  - cuentan también las facturas de sus códigos retirados y de sus fichas
+ *    fusionadas, y la carga en tránsito de esos códigos;
+ *  - las monedas no se mezclan: «Sí» si ALGUNA tiene algo abierto.
+ * Borrador, anulada y eliminada siguen sin ser deuda: esa regla vive en la 0492
+ * y su contrato la prueba. Si la lectura falla, el job queda inerte y NO
+ * escribe «No»: un «No» con el saldo sin calcular sería un dato falso para el
+ * agente.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { enqueueKommoContactOp } from "./kommo-writeback";
-
-/** Estados de embarque que NO cuentan como carga en tránsito. */
-export const ESTADOS_NO_TRANSITO: readonly string[] = [
-  "draft", // todavía no salió del ERP
-  "delivered", // llegó
-  "cancelled", // no va a llegar
-] as const;
+import { tieneSaldoAbierto, type ClientOutstandingRow } from "./client-account";
+import { listClientOutstanding } from "./client-queries";
+import { INACTIVE_STATUSES } from "./shipment-queries";
 
 export type EstadoComercial = {
   tieneSaldo: boolean;
   tieneTransito: boolean;
-};
-
-export type FacturaLite = {
-  client_markbox: string | null;
-  status: string | null;
-  total_amount: number | string | null;
-  paid_amount: number | string | null;
 };
 
 export type EmbarqueLite = {
@@ -53,46 +56,74 @@ export type EmbarqueLite = {
   status: string | null;
 };
 
+/** Código normalizado como lo compara la 0492: `upper(btrim())`. */
+function clave(markbox: string | null | undefined): string {
+  return (markbox ?? "").trim().toUpperCase();
+}
+
 /**
- * Estado comercial por markbox. PURA.
+ * Estado comercial por CLIENTE (id). PURA.
  *
- * `saldo` = suma de (total − pagado) de las facturas vivas. Se excluyen
- * `anulada` (no se cobra) y `borrador` (todavía no es una deuda: decirle a un
- * cliente que debe algo que nadie le facturó es peor que no decirle nada).
- *
- * El redondeo a centavos evita que un residuo de coma flotante —0.0000001 tras
- * sumar y restar decimales— encienda "tiene saldo" en una factura pagada al
- * centavo.
+ * `tieneSaldo` = alguna moneda del cliente con algo abierto, según las filas de
+ * la 0492 (`tieneSaldoAbierto`). `tieneTransito` = algún embarque vivo bajo
+ * CUALQUIERA de sus códigos (los de `markboxes`: vigente, historial y fichas
+ * fusionadas) que no esté entregado, cancelado ni en borrador
+ * (`INACTIVE_STATUSES`, la misma lista del tracking operativo).
  */
 export function computeEstadoComercial(
-  facturas: FacturaLite[],
-  embarques: EmbarqueLite[],
+  saldos: readonly ClientOutstandingRow[],
+  embarques: readonly EmbarqueLite[],
 ): Record<string, EstadoComercial> {
   const out: Record<string, EstadoComercial> = {};
-  const saldoPorMarkbox = new Map<string, number>();
+  const filasPorCliente = new Map<string, ClientOutstandingRow[]>();
+  const clientePorCodigo = new Map<string, string>();
 
-  for (const f of facturas) {
-    const mb = (f.client_markbox ?? "").trim();
-    if (!mb) continue;
-    const st = String(f.status ?? "");
-    if (st === "anulada" || st === "borrador") continue;
-    const balance = (Number(f.total_amount) || 0) - (Number(f.paid_amount) || 0);
-    saldoPorMarkbox.set(mb, (saldoPorMarkbox.get(mb) ?? 0) + balance);
+  for (const r of saldos) {
+    const filas = filasPorCliente.get(r.client_id) ?? [];
+    filas.push(r);
+    filasPorCliente.set(r.client_id, filas);
+    for (const mb of r.markboxes) {
+      const k = clave(mb);
+      if (k && !clientePorCodigo.has(k)) clientePorCodigo.set(k, r.client_id);
+    }
   }
 
-  for (const [mb, total] of saldoPorMarkbox) {
-    (out[mb] ??= { tieneSaldo: false, tieneTransito: false }).tieneSaldo =
-      Math.round(total * 100) > 0;
+  for (const [clientId, filas] of filasPorCliente) {
+    out[clientId] = { tieneSaldo: tieneSaldoAbierto(filas), tieneTransito: false };
   }
 
   for (const e of embarques) {
-    const mb = (e.client_markbox ?? "").trim();
-    if (!mb) continue;
-    if (ESTADOS_NO_TRANSITO.includes(String(e.status ?? ""))) continue;
-    (out[mb] ??= { tieneSaldo: false, tieneTransito: false }).tieneTransito = true;
+    const clientId = clientePorCodigo.get(clave(e.client_markbox));
+    if (!clientId) continue;
+    if (INACTIVE_STATUSES.includes(String(e.status ?? ""))) continue;
+    out[clientId].tieneTransito = true;
   }
 
   return out;
+}
+
+/** La única RPC que escribe: el encolado del PATCH al contacto. */
+const RPC_DE_ENCOLADO = "enqueue_kommo_contact_writeback";
+
+/**
+ * Cliente admin que lee igual pero cuya RPC de ENCOLADO no hace nada — para
+ * `?dry=1` del cron. Antes neutralizaba TODA llamada `.rpc()` (suponía que la
+ * única era el encolado); con el saldo leído por RPC, dry=1 habría respondido
+ * «sin saldo» para todos. Es un proxy sobre el admin real, no un stub: el dry
+ * mide la base, no un doble.
+ */
+export function soloLecturaKommo<T extends SupabaseClient>(admin: T): T {
+  return new Proxy(admin, {
+    get(target, prop, receiver) {
+      if (prop === "rpc") {
+        return (fn: string, ...args: unknown[]) =>
+          fn === RPC_DE_ENCOLADO
+            ? Promise.resolve({ data: null, error: null })
+            : (target.rpc as (...a: unknown[]) => unknown).call(target, fn, ...args);
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
 }
 
 /** Cómo se escribe un booleano en un campo de texto de Kommo. */
@@ -194,58 +225,68 @@ export async function syncKommoContactStatus(
   // 2) Clientes vinculados a un contacto de Kommo.
   const { data: clientes, error: errClientes } = await admin
     .from("clients")
-    .select("markbox, kommo_contact_id")
+    .select("id, markbox, kommo_contact_id")
     .eq("tenant_id", tenantId)
     .is("deleted_at", null)
     .not("kommo_contact_id", "is", null)
     .limit(PAGINA);
   if (errClientes) return { ...vacio, inerte: `clients: ${errClientes.message}` };
 
-  const filas = (clientes as { markbox: string | null; kommo_contact_id: number }[] | null) ?? [];
+  const filas =
+    (clientes as { id: string; markbox: string | null; kommo_contact_id: number }[] | null) ?? [];
   if (filas.length === 0) {
     return { ...vacio, inerte: "Ningún cliente tiene contacto de Kommo vinculado." };
   }
 
-  // 3) Facturas y embarques de esos clientes. Se piden por markbox para no
-  //    barrer el ERP entero: con 32 vinculados esto es una lista corta.
-  //    SDD-0511 · solo VIVOS: un embarque eliminado no es carga en tránsito y
-  //    una factura eliminada no es saldo. Cliente admin: la RLS no filtra.
-  const markboxes = [...new Set(filas.map((c) => (c.markbox ?? "").trim()).filter(Boolean))];
+  // 3) El saldo de esos clientes, de la definición única (SDD-0558). Si falla,
+  //    el job queda inerte y no encola nada: nunca escribe un «No» sin saber.
+  let saldos: ClientOutstandingRow[];
+  try {
+    saldos = await listClientOutstanding(admin, filas.map((c) => c.id));
+  } catch (e) {
+    return {
+      ...vacio,
+      vinculados: filas.length,
+      inerte: e instanceof Error ? e.message : "saldo: no se pudo leer",
+    };
+  }
 
-  const [{ data: facturas }, { data: embarques }] = await Promise.all([
-    admin
-      .from("invoices")
-      .select("client_markbox, status, total_amount, paid_amount")
-      .eq("tenant_id", tenantId)
-      .in("client_markbox", markboxes)
-      .is("deleted_at", null)
-      .limit(PAGINA),
-    admin
-      .from("shipments")
-      .select("client_markbox, status")
-      .eq("tenant_id", tenantId)
-      .in("client_markbox", markboxes)
-      .is("deleted_at", null)
-      .limit(PAGINA),
-  ]);
+  // 4) Embarques de TODOS sus códigos (vigente, historial y fichas
+  //    fusionadas). Se piden por código para no barrer el ERP entero: con 32
+  //    vinculados esto es una lista corta. SDD-0511 · solo VIVOS: un embarque
+  //    eliminado no es carga en tránsito. Cliente admin: la RLS no filtra.
+  const markboxes = [
+    ...new Set(
+      [...saldos.flatMap((r) => r.markboxes), ...filas.map((c) => c.markbox ?? "")]
+        .map((m) => m.trim())
+        .filter(Boolean),
+    ),
+  ];
 
-  const facturasArr = (facturas as FacturaLite[] | null) ?? [];
+  const { data: embarques } = await admin
+    .from("shipments")
+    .select("client_markbox, status")
+    .eq("tenant_id", tenantId)
+    .in("client_markbox", markboxes)
+    .is("deleted_at", null)
+    .limit(PAGINA);
+
   const embarquesArr = (embarques as EmbarqueLite[] | null) ?? [];
 
-  // Si una lectura llegó justo al tope, el estado que se calcula es PARCIAL y
-  // podría decir "no debe nada" sobre datos truncados. Se dice, no se disimula.
-  const truncado = facturasArr.length >= PAGINA || embarquesArr.length >= PAGINA;
+  // Si la lectura llegó justo al tope, el estado que se calcula es PARCIAL y
+  // podría decir "no tiene carga" sobre datos truncados. Se dice, no se
+  // disimula. El saldo no se trunca: va en lotes de 200 clientes.
+  const truncado = embarquesArr.length >= PAGINA;
 
-  const estados = computeEstadoComercial(facturasArr, embarquesArr);
+  const estados = computeEstadoComercial(saldos, embarquesArr);
 
-  // 4) Encolar.
+  // 5) Encolar.
   let encoladas = 0;
   let conSaldo = 0;
   let conTransito = 0;
 
   for (const c of filas) {
-    const mb = (c.markbox ?? "").trim();
-    const estado = estados[mb] ?? { tieneSaldo: false, tieneTransito: false };
+    const estado = estados[c.id] ?? { tieneSaldo: false, tieneTransito: false };
     if (estado.tieneSaldo) conSaldo++;
     if (estado.tieneTransito) conTransito++;
 

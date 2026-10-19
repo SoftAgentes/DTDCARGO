@@ -37,8 +37,12 @@ const LIST_COLUMNS =
 const ACTIVE_LIST_COLUMNS =
   "id, code, client_name, client_markbox, origin, destination, shipment_service, status, created_at, arrived_destination_at";
 
-/** Status que se consideran "no activos" para el tracking operativo. */
-const INACTIVE_STATUSES = ["delivered", "cancelled", "draft"];
+/**
+ * Status que se consideran "no activos" para el tracking operativo.
+ * SDD-0558: también es «fuera de curso» para «Embarques en curso» de la ficha
+ * del cliente y para «Carga en tránsito» de Kommo: una sola lista.
+ */
+export const INACTIVE_STATUSES: readonly string[] = ["delivered", "cancelled", "draft"];
 
 /** Campos completos para la vista detalle. */
 const DETAIL_COLUMNS =

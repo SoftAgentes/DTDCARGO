@@ -160,6 +160,21 @@ describe("buildReceivablesQueue", () => {
 
   const queue = buildReceivablesQueue(invoices, new Map(), TODAY);
 
+  it("SDD-0558 · un BORRADOR con saldo, más vencido que todas, no entra a la cola", () => {
+    // Fixture infeliz: con 90 días vencido y el saldo más alto, si entrara
+    // quedaría primero. La regla es la de la 0492 (ESTADOS_FACTURA_CON_SALDO).
+    const conBorrador = buildReceivablesQueue(
+      [
+        ...invoices,
+        inv({ id: "i5", invoice_code: "F-2026-0005", total_amount: 9000, paid_amount: 0,
+          status: "borrador", due_date: "2026-03-03" }),
+      ],
+      new Map(),
+      TODAY,
+    );
+    expect(conBorrador.map((r) => r.invoice.invoice_code)).toEqual(["F-2026-0001", "F-2026-0003"]);
+  });
+
   it("excluye facturas sin saldo (pagadas) y anuladas", () => {
     const codes = queue.map((r) => r.invoice.invoice_code);
     expect(codes).toContain("F-2026-0001");

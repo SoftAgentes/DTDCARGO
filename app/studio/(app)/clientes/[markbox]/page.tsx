@@ -3,6 +3,12 @@
  *
  * SDD-0010. Server component lee cliente + shipments via lookup textual
  * (sin FK constraint). El botón "Editar" se maneja en ClientDetailClient.
+ *
+ * SDD-0558: la cabecera de cuenta (`ClientAccountHeader`) muestra saldo
+ * abierto, vencido, último pago y embarques en curso, con la definición única
+ * del saldo (`client_outstanding`, migración 0492). La ve todo el que ve
+ * clientes (decisión 14 de Sam, `puedeVerSaldoCliente`); el botón «Estado de
+ * cuenta», solo finanzas (`puedeVerEstadoDeCuenta`).
  */
 
 import Link from "next/link";
@@ -14,7 +20,9 @@ import {
   listShipmentsByMarkbox,
   getClientPortalAccess,
   getClientPortalApprovedAt,
+  getClientAccountState,
 } from "@/lib/studio/client-queries";
+import { puedeVerEstadoDeCuenta, puedeVerSaldoCliente } from "@/lib/studio/client-account";
 import { listTenantAdvisors } from "@/lib/studio/user-queries";
 import {
   clientCompleteness,
@@ -31,6 +39,7 @@ import { isAutoVerifyEnabled } from "@/lib/studio/identity";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import { ClientDetailClient } from "../_components/ClientDetailClient";
+import { ClientAccountHeader } from "../_components/ClientAccountHeader";
 import { PortalAccessCard } from "../_components/PortalAccessCard";
 import { AdvisorAssignCard } from "../_components/AdvisorAssignCard";
 import { AliadoCard } from "../_components/AliadoCard";
@@ -40,7 +49,7 @@ import { listPriceBooks } from "@/lib/studio/price-books/price-book-queries";
 import type { PriceBookOption } from "@/lib/studio/price-books/price-book-types";
 import { listMarkboxHistory } from "@/lib/studio/markbox-history-queries";
 import type { MarkboxHistoryEntry } from "@/lib/studio/markbox-history-types";
-import { getStudioRole } from "@/lib/studio/rbac-guard";
+import { getStudioAccess } from "@/lib/studio/rbac-guard";
 import { canEditModule } from "@/lib/studio/rbac";
 import { DeliveryAddressesCard } from "../_components/DeliveryAddressesCard";
 import { IdentityVerificationCard } from "../_components/IdentityVerificationCard";
@@ -116,11 +125,12 @@ export default async function ClienteDetallePage({
   // ESTE cliente (null si todavía no lo es); `aliadoOptions` son todos los del
   // tenant, y hacen falta para elegir aliado padre y para componer la cadena de
   // prefijos sin pagar un RPC por fila.
-  const [aliado, aliadoOptions, studioRole] = await Promise.all([
+  const [aliado, aliadoOptions, studioAccess] = await Promise.all([
     getAliadoByClientId(supabase, client.id),
     listAliadoOptions(supabase),
-    getStudioRole(supabase),
+    getStudioAccess(supabase),
   ]);
+  const studioRole = studioAccess.role;
   const puedeEditarClientes = canEditModule(studioRole, "clients");
 
   // Su lista de precios (SDD-0269). Best-effort igual que el histórico de
@@ -145,6 +155,14 @@ export default async function ClienteDetallePage({
   } catch {
     markboxHistory = [];
   }
+
+  // SDD-0558: la cuenta del cliente. No lanza: sin permiso no pide el saldo,
+  // y si el cálculo falla la cabecera lo dice con una referencia (ERR-01).
+  const cuentaCliente = await getClientAccountState(supabase, client, {
+    puedeVerSaldo: puedeVerSaldoCliente(studioRole, studioAccess.overrides),
+    codigosConocidos: markboxHistory.map((h) => h.markbox),
+  });
+  const puedeAbrirEstadoDeCuenta = puedeVerEstadoDeCuenta(studioRole);
 
   // SDD-0487: empresa o datos personales que el cliente cargó para facturar.
   // RLS de 0466: sólo accounting, admin y commercial la leen. Sin 0466 o sin
@@ -265,7 +283,7 @@ export default async function ClienteDetallePage({
         <span style={{ fontSize: 14 }}>←</span> Volver al listado
       </Link>
 
-      <ClientDetailClient client={client}>
+      <ClientDetailClient client={client} canViewStatement={puedeAbrirEstadoDeCuenta}>
         {/* Header con MARKBOX + nombre + tier badge */}
         <div style={{ marginBottom: 28 }}>
           <div
@@ -333,6 +351,9 @@ export default async function ClienteDetallePage({
             )}
           </div>
         </div>
+
+        {/* SDD-0558: saldo, vencido, último pago y embarques en curso. */}
+        <ClientAccountHeader estado={cuentaCliente} canViewStatement={puedeAbrirEstadoDeCuenta} />
 
         <div
           style={{

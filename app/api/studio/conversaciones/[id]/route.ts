@@ -49,7 +49,10 @@ export async function GET(
 
   const [messages, context, digests] = await Promise.all([
     listMessages(supabase, id),
-    getClientContext(supabase, conv.id),
+    // SDD-0558: el saldo se pide por el cliente del hilo, ya resuelto acá bajo
+    // RLS; el id del hilo solo hace falta si el rol no ve el saldo y hay que
+    // caer a la fachada de 0412.
+    getClientContext(supabase, conv.client_id, conv.id),
     // Histórico de resúmenes mensuales (SDD-0149 · Fase 2).
     listClientConversationDigests(supabase, conv.client_id),
   ]);

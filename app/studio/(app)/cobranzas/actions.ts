@@ -26,6 +26,7 @@ import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { receivablesQueue } from "@/lib/studio/payment-queries";
+import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
 import { contextoDeEnvio } from "@/lib/studio/collections/recordatorios-queries";
 import {
   intersectarPedido,
@@ -270,7 +271,8 @@ export async function previewRecordatorios(): Promise<PreviewRecordatorios> {
   if (denial) return { error: denial };
 
   try {
-    const hoy = new Date().toISOString().slice(0, 10);
+    // SDD-0558: la fecha de Caracas, la misma de la cola y de la 0492.
+    const hoy = todayCaracasISO();
     const cola = await receivablesQueue(supabase, hoy);
     const ctx = await contextoDeEnvio(supabase, cola);
     const sel = seleccionarParaRecordatorio(cola, hoy, ctx);
@@ -321,7 +323,8 @@ export async function enviarRecordatorios(
   if (pedidos.size === 0) return { error: "No se indicó ninguna factura." };
 
   try {
-    const hoy = new Date().toISOString().slice(0, 10);
+    // SDD-0558: la fecha de Caracas, la misma de la cola y de la 0492.
+    const hoy = todayCaracasISO();
     const cola = await receivablesQueue(supabase, hoy);
     const ctx = await contextoDeEnvio(supabase, cola);
     const { aEnviar } = seleccionarParaRecordatorio(cola, hoy, ctx);

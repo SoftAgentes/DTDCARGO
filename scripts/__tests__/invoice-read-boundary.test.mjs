@@ -98,7 +98,11 @@ const BASELINE = {
   // del Portal (getMyInvoiceForPrincipal + «invoices portal self read»).
   "lib/studio/invoice-client-doc.ts": 1,
   "lib/studio/invoice-queries.ts": 3,
-  "lib/studio/kommo-contact-status.ts": 1,
+  // SDD-0558: aquí estaba `lib/studio/kommo-contact-status.ts`: 1. SALE del
+  // inventario. El job de Kommo leía las facturas de los clientes vinculados
+  // con el cliente ADMIN y sumaba el saldo en TS; ahora lo pide a
+  // `client_outstanding` (0492), la definición única del saldo por cliente, por
+  // `listClientOutstanding` en `client-queries.ts`. No nombra `invoices`.
   "lib/studio/payment-queries.ts": 1,
   "lib/studio/renditions/queries.ts": 3,
   "lib/studio/reports/queries.ts": 4,
@@ -175,7 +179,8 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // SDD-0496: 19 → 18 archivos. Sale `referral-credit-posting.ts` entero.
     // SDD-0560: 18 → 19. Entra `lib/studio/borrado/asistente-servidor.ts`.
     // SDD-0557: 19 → 20. Entra `lib/studio/accounting/libro-control-queries.ts`.
-    expect(Object.keys(actual)).toHaveLength(20);
+    // SDD-0558: 20 → 19. Sale `lib/studio/kommo-contact-status.ts` entero.
+    expect(Object.keys(actual)).toHaveLength(19);
     // El total va aparte del mapa a propósito: si alguien «arregla» el mapa
     // moviendo una llamada de un archivo a otro, el mapa vuelve a cuadrar y
     // este número no.
@@ -188,7 +193,9 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // deducido de la aritmética.
     // SDD-0560: 42 → 43 por la lectura de `leerFacturas` (asistente de borrado).
     // SDD-0557: 43 → 45 por `ingresoDelPeriodo` y `cuadreDelLibro`.
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(45);
+    // SDD-0558: 45 → 44. La lectura de Kommo pasó a la 0492; recalculado sobre
+    // origin/main bb6bb3e4 con la 0555, la 0556, la 0557 y la 0560 ya fusionadas.
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(44);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {
