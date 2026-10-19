@@ -18,6 +18,10 @@
  * corte que queda es el filtro explícito de la aplicación, que es lo que se
  * prueba. Tampoco ordena (`order` no hace nada): las pruebas no dependen del
  * orden.
+ *
+ * `range(desde, hasta)` recorta como PostgREST (ambos extremos incluidos), para
+ * las lecturas paginadas con `fetchAllPaged` (SDD-0554). Cada espera vuelve a
+ * correr la consulta con el último `range`, como el builder de supabase-js.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -129,12 +133,13 @@ export function portalDouble(options: PortalDoubleOptions = {}): PortalDouble {
     const operation: Operation = { table, kind, filters: [], affected: 0 };
     operations.push(operation);
     let limit: number | null = null;
+    let offset = 0;
     let returning = kind === "select";
 
     const run = (): Row[] => {
       const hit = rows(table).filter((row) => matches(row, operation.filters));
       if (kind === "select") {
-        const out = limit === null ? hit : hit.slice(0, limit);
+        const out = limit === null ? hit.slice(offset) : hit.slice(offset, offset + limit);
         operation.affected = out.length;
         return out.map(clone);
       }
@@ -180,6 +185,11 @@ export function portalDouble(options: PortalDoubleOptions = {}): PortalDouble {
       },
       limit(n: number) {
         limit = n;
+        return builder;
+      },
+      range(from: number, to: number) {
+        offset = from;
+        limit = to - from + 1;
         return builder;
       },
       select() {

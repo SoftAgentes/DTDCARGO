@@ -21,11 +21,13 @@ import {
   INVOICE_CURRENCY_OPTIONS,
   IVA_RATE_DEFAULT,
   calcInvoiceTotals,
+  draftToLines,
+  linesToDraft,
+  type DraftInvoiceLine,
   type Invoice,
   type InvoiceActionState,
   type InvoiceCurrency,
   type InvoiceIvaMode,
-  type InvoiceLine,
 } from "@/lib/studio/invoice-types";
 import {
   INVOICE_IVA_MODES,
@@ -56,27 +58,6 @@ interface Props {
 }
 
 const initialState: InvoiceActionState = {};
-
-type DraftLine = { desc: string; qty: string; unitPrice: string };
-
-function toDraft(lines: InvoiceLine[]): DraftLine[] {
-  if (!lines.length) return [{ desc: "", qty: "1", unitPrice: "" }];
-  return lines.map((l) => ({
-    desc: l.desc,
-    qty: String(l.qty),
-    unitPrice: String(l.unitPrice),
-  }));
-}
-
-function draftToLines(draft: DraftLine[]): InvoiceLine[] {
-  return draft
-    .map((d) => ({
-      desc: d.desc.trim(),
-      qty: Number(d.qty) || 0,
-      unitPrice: Number(d.unitPrice) || 0,
-    }))
-    .filter((l) => l.desc.length > 0);
-}
 
 function fmt(n: number): string {
   return n.toLocaleString("en-US", {
@@ -116,7 +97,10 @@ export function InvoiceDrawer({
   );
   const [dueDate, setDueDate] = useState(invoice?.due_date ?? "");
   const [notes, setNotes] = useState(invoice?.notes ?? "");
-  const [lines, setLines] = useState<DraftLine[]>(toDraft(invoice?.lines ?? []));
+  const [lines, setLines] = useState<DraftInvoiceLine[]>(
+    // SDD-0555 · cada línea lleva oculto su embarque; guardar no lo borra.
+    linesToDraft(invoice?.lines ?? []),
+  );
   const [emitOnCreate, setEmitOnCreate] = useState(false);
   // SDD-0073 §8: modo de IVA por factura (solo visible/activo con el módulo ON).
   const [ivaMode, setIvaMode] = useState<InvoiceIvaMode>(
@@ -181,7 +165,7 @@ export function InvoiceDrawer({
     setLines((prev) =>
       prev.length === 1 ? prev : prev.filter((_, i) => i !== idx),
     );
-  const updateLine = (idx: number, patch: Partial<DraftLine>) =>
+  const updateLine = (idx: number, patch: Partial<DraftInvoiceLine>) =>
     setLines((prev) =>
       prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)),
     );
