@@ -5,7 +5,7 @@
 | Fecha | 2026-10-19, en Caracas de 11:10 a 11:40 aprox. (UTC 15:10 a 15:40) |
 | Task ID / owner | `contabilidad-2026-10-18` / sesión Worker «Contabilidad» |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\sdd-0563-subdiario-sin-conversion-y-borradores` |
-| Rama | `codex/sdd-0563-subdiario-sin-conversion-y-borradores`, desde `origin/codex/sdd-0562-subdiario-alineado` `997e9684`, porque necesita la prueba de paridad de la 0562, que no está en `main` |
+| Rama | `codex/sdd-0563-subdiario-sin-conversion-y-borradores`, desde `origin/codex/sdd-0562-subdiario-alineado` `997e9684`, porque necesita la prueba de paridad de la 0562, que no está en `main`. Después, con la base de la #287 mezclada en `8ca7f946` (`b059b8da`, que trae `main` con la 0558, `8d11ac77`), sin conflictos |
 | SDD | [0563](../../docs/specs/0563-subdiario-sin-conversion-y-borradores/spec.md), `in-progress`. La reserva es `codex/sdd-reserve-0563` (`a53331fb`) y entró por cherry-pick |
 | Estado | lista para revisión, con PR en borrador **apilada sobre la #287**; `pnpm verify` necesita turno del Director |
 | Permisos | El Director pidió la SDD el 2026-10-19 («Junta 1, 2 y 3 en una sola SDD de seguimiento, después de la #287»). Sam había pedido alinear la 0557 («4. Para la siguiente tarea, alinear la 0557»). Eso cubre commits selectivos, push de la rama propia y PR en borrador. No incluye producción ni base de datos |
@@ -49,7 +49,7 @@ Son las decisiones del Director del 2026-10-19 sobre lo que midió la paridad de
 | Control rojo, 7 mutantes, restaurados por copia con la huella sha256 igual antes y después | S1 vuelve a convertir la VES; S2 la abierta no vuelve no comparable; S3 «no comparable» antes que «cuenta no encontrada»; S4 la nota vieja; S5 el rollup sube la huérfana; R1 la radiografía cuenta el borrador; R2 la radiografía sin la enmienda | `MUERTOS 7/7 · restaurados 7/7`. R2 dio primero «no tests» (el archivo lanzaba al cargarse); se corrigió para que lo diga una aserción y repetido dio `Tests  4 failed | 6 passed (10)` |
 | `typecheck`, eslint `--max-warnings=0` (7 archivos), `check-rsc-boundary` | repo y archivos tocados | PASÓ |
 | `docs:check` (549 specs), `sdd:check`, `governance:check`, `components:check`, `migrations-lock verificar` | documentación y candado | PASÓ |
-| `pnpm verify` | completo | PENDIENTE: turno del Director |
+| `pnpm verify` sobre `ce4e8ee6` (turno del Director, 2026-10-19 desde las 15:36:53Z) | completo | NO CONCLUSIVO. Se apagó el equipo de Sam (lo confirmó el Director). Pasaron harness, lint, rsc-boundary, typecheck y edge-functions; el registro se corta a las 15:41Z dentro de `test`, sin ninguna línea FALLÓ. Se repite sobre la cabeza con la base `b059b8da` (`main` con la 0558) |
 
 ## Impacto documental y conocimiento
 
@@ -58,7 +58,7 @@ La spec 0563, la nota de la enmienda en las specs 0557 y 0559, y el índice. No 
 ## PENDIENTES DE ESTA TAREA
 
 1. `pnpm verify` con turno del Director.
-2. Integración: **primero la #287**. Después hay que cambiar la base de esta PR a `main`, porque el CI de quality solo corre contra `main`. No lleva migración; el merge publica por el VPS.
+2. Integración: **primero la #287**. Cuando se fusione, esta sesión cambia la base de la #288 a `main` (`gh pr edit 288 --base main`), como pidió el Director, porque el CI de quality solo corre contra `main`, y trae `main` si hace falta. No lleva migración; el merge publica por el VPS.
 
 ## FUERA DE ALCANCE DETECTADO (para el Director)
 
@@ -66,5 +66,8 @@ La spec 0563, la nota de la enmienda en las specs 0557 y 0559, y el índice. No 
    - Qué pasa: `validateAccountInput` (`lib/studio/account-types.ts`) no exige que exista la cuenta padre, y `buildAccountTree` sube las huérfanas a la raíz. Pero `computeBalances` (`lib/studio/account-queries.ts`) sube una cuenta solo a su padre directo. Con `1.1.2.9.1` sin `1.1.2.9`, el saldo no llega a 1.1.2.
    - Dónde se nota: en «Por contabilizar» (la prueba (h) lo fija) y, por la misma regla, en el total del grupo en Reportes.
    - Opciones: subir al ancestro más cercano (el mutante S5 lo hace y solo rompe la prueba que lo fija) o exigir la cuenta padre al crear.
+   - **Decidido por el Director (2026-10-19):** exigir la cuenta padre en `validateAccountInput`, en una SDD aparte y después de la #288. El rollup al ancestro no hace falta: midió producción, solo el catálogo y en solo lectura, y encontró 91 cuentas y 0 huérfanas. La prueba (h) se queda como documentación hasta que entre esa SDD.
+   - **Otro camino a la huérfana, para esa SDD:** `deleteAccount` (`app/studio/(app)/contabilidad/actions.ts`) deja eliminar una cuenta intermedia sin movimientos aunque tenga subcuentas. Las que no tienen `parent_id` (el cajón lo deja opcional) quedan huérfanas. Si esa SDD no lo cubre, va como FUERA DE ALCANCE.
+   - **Corrección:** un texto anterior decía que «el plan de cuentas permite» renombrar la 1.1.2. No es así: `updateAccount` no cambia el código. El escenario (g) lo hace con un `update` directo, que la base acepta, y por la pantalla lo que se puede es eliminar la 1.1.2 si no tiene movimientos. Corregido en la prueba y en la spec.
 2. **«Sin cuenta 1.1.2»:** «Por contabilizar» dice «cuenta no encontrada»; la radiografía no tiene ese estado y dice «sin movimiento en el mayor». Queda fijado en (g). Para la fila 91 no importa, porque ninguna de las dos lo cuenta como «no comparable».
 3. **Un mutante viejo quedó solo con su fila de documentos.** «Facturas abiertas sin "vencida"» ya no mueve el estado de A, que ahora es «no comparable»: sigue muriendo por la fila 50. Pasa lo mismo con cualquier cambio a la suma en USD de la radiografía: con una VES o CNY abierta gana «no comparable», así que ya no se ve en el estado.
