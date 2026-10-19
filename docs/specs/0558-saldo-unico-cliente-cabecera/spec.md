@@ -7,7 +7,7 @@ created: 2026-10-18
 updated: 2026-10-19
 supersedes: null
 superseded_by: null
-related: ["0041", "0246", "0252", "0256", "0258", "0281", "0287", "0297", "0355", "0465", "0511", "0556", "0557", "0561"]
+related: ["0041", "0246", "0252", "0256", "0258", "0281", "0287", "0297", "0355", "0465", "0511", "0556", "0557", "0559", "0561"]
 confidencialidad: interno
 ---
 
@@ -32,7 +32,7 @@ Citadas literalmente; mandan sobre el plan.
 - **Decisión 14 de Sam, 2026-10-18 (sesión «Contabilidad»).** A la pregunta «En la ficha del cliente del Studio, ¿quién puede ver cuánto debe, cuánto tiene vencido y la fecha de su último pago?», Sam eligió «Todo el que ve clientes (Recomendado)», con la descripción «También comercial, operaciones y soporte, para cobrar a tiempo. El detalle de facturas y recibos sigue solo para finanzas». Es la recomendación ⭐ de la decisión 14 del plan («Saldo abierto y vencido visibles para todo rol con acceso a clientes; detalle de facturas y recibos bajo el permiso de facturación»).
 - **Excepción de marca del estado de cuenta, Sam, 2026-10-18 (SDD-0556).** A la pregunta «En el PDF del estado de cuenta que el cliente descarga del portal, ¿pongo la razón social y el RIF de DTD bajo el logo, como ya los lleva la factura?», Sam eligió «Sí, como la factura (Recomendado)». Esta SDD la aplica también al PDF del estado de cuenta del Studio (F18).
 - **Director, 2026-10-19.** La migración es la **0492**: su espera va en `supabase/migrations-baseline.json › pendingBelowCutoff` con motivo, orden MIGRATE-FIRST y «Requiere OK nominal de Sam»; lleva su `*.migration.test.ts` en PGlite; no se aplica desde la sesión Worker, la aplica el Director con `infra/ops/migraciones/`; y «la 0492 NO se fusiona sin aplicar», porque una migración en `main` que no está en el ledger retiene todas las publicaciones.
-- **Decisiones 6 y 7 del Director (2026-10-19, revisables por Sam), adoptadas por la SDD-0557 y la SDD-0559.** «**6. Sí:** el mayor vacío también gana en el subdiario de clientes (regla E1 de la 0559)» y «**7. Sí:** "no comparable" cuenta solo las facturas VES o CNY **con asiento vivo**, porque esas son las que distorsionan 4.5 (B2)». La 0492 no lee asientos: de esas reglas toma la definición canónica de **facturas abiertas** («emitidas, parciales, pagadas o vencidas, sin borradores ni anuladas»; `vencida` por defensa) y la de documento vivo (`deleted_at` nulo). Por eso el saldo de la ficha y la radiografía cuentan las mismas facturas.
+- **Decisiones 6 y 7 del Director (2026-10-19, revisables por Sam), adoptadas por la SDD-0557 y la SDD-0559.** «**6. Sí:** el mayor vacío también gana en el subdiario de clientes (regla E1 de la 0559)» y «**7. Sí:** "no comparable" cuenta solo las facturas VES o CNY **con asiento vivo**, porque esas son las que distorsionan 4.5 (B2)». La 0492 no lee asientos, así que «asiento vivo» y «no comparable» no le aplican. Toma de la SDD-0559 (`docs/specs/0559-radiografia-integridad-repetible/spec.md:91`, integrada con la #284) la definición canónica de **facturas abiertas**, literal: «emitidas, parciales, pagadas o vencidas, sin borradores ni anuladas. Es el mismo conjunto que "documentos vivos" en "sin asiento". `vencida` se incluye por defensa: hoy nadie la escribe», con la factura viva (`deleted_at` nulo). Por eso el saldo de la ficha, la radiografía y el subdiario de la SDD-0557 cuentan las mismas facturas; el subdiario, además, suma con signo porque compara contra 1.1.2.
 
 ## Decisión
 
