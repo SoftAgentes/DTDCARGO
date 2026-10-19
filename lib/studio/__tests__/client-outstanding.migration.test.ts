@@ -293,7 +293,7 @@ describe("SDD-0558 · 0492 saldo único por cliente (PGlite)", () => {
   }
 });
 
-describe("SDD-0558 · la espera y las huellas del preflight", () => {
+describe("SDD-0558 · la 0492 aplicada y las huellas del preflight", () => {
   const BASELINE = JSON.parse(readFileSync(resolve(ROOT, "supabase/migrations-baseline.json"), "utf8")) as {
     pendingBelowCutoff: Record<string, string>;
   };
@@ -306,10 +306,8 @@ describe("SDD-0558 · la espera y las huellas del preflight", () => {
   };
   const md5 = (s: string) => createHash("md5").update(s).digest("hex");
 
-  it("la 0492 espera en pendingBelowCutoff, MIGRATE-FIRST y con OK nominal de Sam", () => {
-    const espera = BASELINE.pendingBelowCutoff["0492_client_outstanding"];
-    expect(espera).toContain("MIGRATE-FIRST");
-    expect(espera).toContain("Requiere OK nominal de Sam");
+  it("aplicada al servidor propio el 2026-10-19 con el OK nominal de Sam: ya no es una espera y la cabecera «NO APLICADA» no se corrige", () => {
+    expect(BASELINE.pendingBelowCutoff["0492_client_outstanding"]).toBeUndefined();
     expect(FILE_0492).toContain(
       "⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en\n--    supabase/migrations-baseline.json › pendingBelowCutoff",
     );
