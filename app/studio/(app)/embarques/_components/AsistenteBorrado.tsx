@@ -299,18 +299,17 @@ function TarjetaPaso({
   return (
     <li
       aria-current={actual ? "step" : undefined}
-      aria-labelledby={tituloId}
       style={{
         border: `1px solid ${actual ? "var(--ink)" : "var(--border)"}`,
         borderRadius: "var(--r-md)",
-        padding: "12px 14px",
+        padding: "var(--s-3) var(--s-4)",
         background: actual ? "var(--bg-surface)" : "var(--bg-elevated)",
         display: "flex",
         flexDirection: "column",
-        gap: 6,
+        gap: "var(--s-2)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "var(--s-2)", flexWrap: "wrap" }}>
         <span style={{ font: "700 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>Paso {numero}</span>
         <h4 id={tituloId} style={{ margin: 0, font: "700 13.5px/1.35 var(--f-sans)", color: "var(--ink)" }}>
           {paso.titulo}
@@ -325,7 +324,7 @@ function TarjetaPaso({
       </p>
 
       {actual ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+        <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", marginTop: "var(--s-1)" }}>
           {paso.tipo === "modulo" ? (
             <>
               {paso.enlace && <EnlaceNuevaPestana enlace={paso.enlace} />}
@@ -371,13 +370,13 @@ function PlanBloqueado({ bloqueos, onRevisar, pending }: { bloqueos: Bloqueo[]; 
           <li
             key={b.clave}
             style={{
-              border: "1px solid var(--border)",
-              borderLeft: "3px solid var(--danger)",
+              border: "1px solid var(--danger)",
+              background: "var(--danger-bg)",
               borderRadius: "var(--r-sm)",
-              padding: "10px 12px",
+              padding: "var(--s-2) var(--s-3)",
               display: "flex",
               flexDirection: "column",
-              gap: 4,
+              gap: "var(--s-1)",
             }}
           >
             <strong style={{ font: "700 13px/1.35 var(--f-sans)", color: "var(--ink)" }}>{b.titulo}</strong>
@@ -413,12 +412,12 @@ function SinPasos({ mensaje, onRevisar, pending }: { mensaje: string; onRevisar:
 function YaHecho({ hechos }: { hechos: string[] }) {
   return (
     <section aria-labelledby="asistente-hecho-titulo">
-      <h3 id="asistente-hecho-titulo" className="studio-eyebrow" style={{ margin: "0 0 6px", color: "var(--ink-soft)" }}>
+      <h3 id="asistente-hecho-titulo" className="studio-eyebrow" style={{ margin: "0 0 var(--s-2)", color: "var(--ink-soft)" }}>
         Ya hiciste
       </h3>
-      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "var(--s-1)" }}>
         {hechos.map((h, i) => (
-          <li key={`${i}-${h}`} style={{ display: "flex", gap: 6, alignItems: "center", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink)" }}>
+          <li key={`${i}-${h}`} style={{ display: "flex", gap: "var(--s-2)", alignItems: "center", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink)" }}>
             <span aria-hidden style={{ color: "var(--success)", display: "inline-flex" }}>
               {Icon.check(13)}
             </span>
@@ -456,7 +455,6 @@ function EnlaceNuevaPestana({ enlace }: { enlace: Enlace }) {
       target="_blank"
       rel="noopener noreferrer"
       className="studio-btn studio-btn-ghost studio-btn-sm"
-      style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
     >
       {enlace.etiqueta}
       <span aria-hidden style={{ display: "inline-flex" }}>

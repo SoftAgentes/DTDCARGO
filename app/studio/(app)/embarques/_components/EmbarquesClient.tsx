@@ -1162,7 +1162,7 @@ function GroupedTable({
                           {seleccionable?.guiable(s.id) && (
                             <button
                               type="button"
-                              className="studio-btn studio-btn-ghost studio-btn-xs"
+                              className="studio-btn studio-btn-ghost studio-btn-sm"
                               aria-label={`Ver los pasos para eliminar ${s.code}`}
                               onClick={() => seleccionable.onGuiar(s.id, s.code)}
                             >
