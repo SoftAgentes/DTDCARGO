@@ -7,7 +7,7 @@
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\sdd-0563-subdiario-sin-conversion-y-borradores` |
 | Rama | `codex/sdd-0563-subdiario-sin-conversion-y-borradores`, desde `origin/codex/sdd-0562-subdiario-alineado` `997e9684`, porque necesita la prueba de paridad de la 0562, que no está en `main`. Después, con la base de la #287 mezclada en `8ca7f946` (`b059b8da`, que trae `main` con la 0558, `8d11ac77`), sin conflictos |
 | SDD | [0563](../../docs/specs/0563-subdiario-sin-conversion-y-borradores/spec.md), `in-progress`. La reserva es `codex/sdd-reserve-0563` (`a53331fb`) y entró por cherry-pick |
-| Estado | lista para revisión, con PR en borrador **apilada sobre la #287**; `pnpm verify` necesita turno del Director |
+| Estado | lista para integrar: PR #288 en borrador, con base `main` desde que entró la #287 (17:40:55Z, `d06f50b4`); `verify` 14/17 sin fallos, y `sql-tests` y `schema-rebuild` corridos aparte, en verde |
 | Permisos | El Director pidió la SDD el 2026-10-19 («Junta 1, 2 y 3 en una sola SDD de seguimiento, después de la #287»). Sam había pedido alinear la 0557 («4. Para la siguiente tarea, alinear la 0557»). Eso cubre commits selectivos, push de la rama propia y PR en borrador. No incluye producción ni base de datos |
 
 ## OBJETIVO ORIGINAL
@@ -49,7 +49,18 @@ Son las decisiones del Director del 2026-10-19 sobre lo que midió la paridad de
 | Control rojo, 7 mutantes, restaurados por copia con la huella sha256 igual antes y después | S1 vuelve a convertir la VES; S2 la abierta no vuelve no comparable; S3 «no comparable» antes que «cuenta no encontrada»; S4 la nota vieja; S5 el rollup sube la huérfana; R1 la radiografía cuenta el borrador; R2 la radiografía sin la enmienda | `MUERTOS 7/7 · restaurados 7/7`. R2 dio primero «no tests» (el archivo lanzaba al cargarse); se corrigió para que lo diga una aserción y repetido dio `Tests  4 failed | 6 passed (10)` |
 | `typecheck`, eslint `--max-warnings=0` (7 archivos), `check-rsc-boundary` | repo y archivos tocados | PASÓ |
 | `docs:check` (549 specs), `sdd:check`, `governance:check`, `components:check`, `migrations-lock verificar` | documentación y candado | PASÓ |
-| `pnpm verify` sobre `ce4e8ee6` (turno del Director, 2026-10-19 desde las 15:36:53Z) | completo | NO CONCLUSIVO. Se apagó el equipo de Sam (lo confirmó el Director). Pasaron harness, lint, rsc-boundary, typecheck y edge-functions; el registro se corta a las 15:41Z dentro de `test`, sin ninguna línea FALLÓ. Se repite sobre la cabeza con la base `b059b8da` (`main` con la 0558) |
+| `pnpm verify` sobre `ce4e8ee6` (turno del Director, 2026-10-19 desde las 15:36:53Z) | completo | NO EJECUTADO: interrumpido por el apagón del equipo (lo informó Sam). El log se corta en `test` a las 15:41Z, sin VERIFY_EXIT |
+| `pnpm verify` sobre `8790c441` (turno del Director, 2026-10-19 de 17:18:54Z a 17:55:36Z) | completo, con la base `b059b8da` (`main` con la 0558) | `VERIFY_EXIT=0`: «CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied, sql-tests, schema-rebuild. No hubo fallos en lo medido (14/17)». Detalle abajo |
+| `node scripts/run-sql-tests.mjs` sobre `51337da5` (17:56:44Z a 17:58:43Z, con Docker ya arrancado) | el paso `sql-tests` del verify | PASÓ: «243 contrato(s) de SQL verificado(s) · rollback total» |
+| `node scripts/check-schema-rebuild.mjs` sobre `51337da5` (17:58:50Z a 17:59:24Z) | el paso `schema-rebuild` del verify, que corre la radiografía | PASÓ: «468 migraciones aplicadas desde cero · schema reconstruible», «aislamiento multi-tenant verificado (barrido de 219 tablas + 2 tenants reales)», «radiografía de integridad verificada sobre el esquema completo (63 filas, conteos)» |
+
+Detalle del `verify` sobre `8790c441`, copiado de su salida:
+- **PASÓ:** harness, lint, rsc-boundary, typecheck, edge-functions, test, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols («0 ROJO · 1 AMARILLO declarado(s)»: `client_outstanding`, la 0492, ya aplicada a las 17:07:48Z; la sella el Director en la #289), e2e y build.
+- **test:** la primera vuelta dio `Tests  5 failed | 11966 passed | 1 skipped (11972)`. Tres fueron topes de 20 s en `app/p/[token]/PackingListProductsStep.test.tsx` y `standard-format.test.tsx`. Dos fueron de `AsistenteBorrado.test.tsx` (embarques): no encontró el botón «Anular factura» ni el `role="alert"`. Ninguno es de contabilidad. El reintento dio `Tests  11971 passed | 1 skipped (11972)`.
+- **e2e:** `2 flaky` y `176 passed (10.4m)`, con el aviso de siempre del worker de WebKit, que no cierra en Windows.
+- **sql-tests y schema-rebuild:** el verify los saltó porque Docker no corría después del apagón. Se abrió Docker Desktop y se corrieron los dos scripts sobre `51337da5` (filas de arriba).
+- **NO DISPONIBLE:** migrations-applied (el worktree no tiene `.env.local`). Esta SDD no lleva migración.
+- **`51337da5`** mezcla `origin/main` (`d06f50b4`, con la #287 adentro). `git diff --stat 8790c441 51337da5` sale vacío: el árbol es el mismo que se verificó. `docs:check` (550 specs) y `sdd:check` dieron OK.
 
 ## Impacto documental y conocimiento
 
@@ -57,8 +68,8 @@ La spec 0563, la nota de la enmienda en las specs 0557 y 0559, y el índice. No 
 
 ## PENDIENTES DE ESTA TAREA
 
-1. `pnpm verify` con turno del Director.
-2. Integración: **primero la #287**. Cuando se fusione, esta sesión cambia la base de la #288 a `main` (`gh pr edit 288 --base main`), como pidió el Director, porque el CI de quality solo corre contra `main`, y trae `main` si hace falta. No lleva migración; el merge publica por el VPS.
+1. Integración por el Director. La base ya es `main` (la cambió él), y `main` está mezclado en `51337da5`. No lleva migración; el merge publica por el VPS.
+2. La SDD-0565 (la cuenta padre, al crear y al borrar) sigue después, en su propia rama.
 
 ## FUERA DE ALCANCE DETECTADO (para el Director)
 
