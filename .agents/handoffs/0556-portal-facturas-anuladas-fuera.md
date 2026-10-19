@@ -92,7 +92,7 @@ Todo en este worktree y esta rama. Sin `pnpm verify`, sin vitest sin filtro y si
 | Tercera vuelta · mutantes (`scratchpad/mutantes-0556-ajustes.mjs`, con `node` y sin `pnpm`) | 12 mutantes de los ajustes: la ruta sin razón social o sin RIF, el libro o el PDF con mal «lo que falta pagar», Facturas y Finanzas sin la nota, Facturas con la nota repetida en el estado de cuenta, la nota del libro sin el monto, sobrepagos de otra moneda en el libro, el rótulo viejo de Inicio, el PDF de la anulada callando lo abonado o hablando de abono sin él | PASÓ: «Todos los mutantes murieron.», 12 de 12 con exit 1 y línea `Tests … failed` |
 | Tercera vuelta · `corepack pnpm typecheck` y `eslint --max-warnings=0` (17 archivos tocados) | repo y archivos tocados | PASÓ (exit 0) |
 | Segundo merge de `origin/main` `3f3a52cc` (#279, SDD-0560), en `3d0133dc` | índice, numeración, tipos y pruebas sobre el árbol fusionado | PASÓ: sin conflictos de código; índice regenerado (544 specs); `sdd:check` sin repetidos; `typecheck` exit 0; `vitest run` de las carpetas de la tarea más `lib/studio/borrado` y el inventario: `Test Files  151 passed (151)`, `Tests  1795 passed (1795)` |
-| `corepack pnpm verify` | completo | NO EJECUTADO: hay que pedirle el turno al Director |
+| `corepack pnpm verify` | completo, sobre `42cf9cef`, con el turno que dio el Director; de 2026-10-19 04:15:29Z a 04:31:37Z; Docker Desktop encendido; antes de lanzarlo, sin procesos pesados y CPU al 14 % | exit 0, **16 de 17 pasos medidos y en verde**: `harness`, `lint`, `rsc-boundary`, `typecheck`, `edge-functions`, `test` (`Test Files  822 passed | 1 skipped (823)`, `Tests  11586 passed | 1 skipped (11587)`), `docs:check`, `numbering`, `feature-constants`, `components:check`, `governance:check`, `pending-migration-symbols` (0 rojo, 0 amarillo), `sql-tests`, `schema-rebuild`, `e2e` (175 passed, 20 skipped, 3 flaky) y `build`. **NO MEDIDO: `migrations-applied`**, porque el worktree no tiene `.env.local` (a propósito); el verify lo marca «CIERRE INCOMPLETO». Las 3 pruebas inestables son ajenas al diff y pasaron al reintento: `e2e/auth.spec.ts:81` (`page.goto: net::ERR_ABORTED` en `/acceso/<token>`, la misma de la #277) y `e2e/calculadora-semantic-colors.spec.ts:53` en claro y en oscuro (`toHaveValue`, la calculadora del sitio público). El registro quedó guardado desde la primera corrida en el scratchpad (`verify-0556.log`) |
 | Comprobación en el navegador | — | NO EJECUTADA |
 
 ### Control rojo, mutante por mutante
@@ -138,9 +138,8 @@ Las correcciones no cambian este flujo.
 ## PENDIENTES DE ESTA TAREA
 
 1. Ver en `prueba.dtdcargo.com`, en móvil, la tarjeta «No disponible» de la portada (el `/ui-check` la estimó, no la midió en navegador).
-2. `corepack pnpm verify` con turno del Director.
-3. Si `main` avanza antes de integrar: recalcular el inventario de `invoice-read-boundary` y regenerar el índice.
-4. Preguntas para Sam que siguen abiertas (también en la spec): el texto de la indicación sobre lo pagado en anuladas (una sola función, siete lugares) y las dos versiones de la nota de sobrepagos. La excepción de marca ya está decidida.
+2. Integración por el Director; sin migración, publica por el VPS en ~5 min. Si `main` avanza antes de integrar: recalcular el inventario de `invoice-read-boundary` y regenerar el índice.
+3. Preguntas para Sam que siguen abiertas (también en la spec): el texto de la indicación sobre lo pagado en anuladas (una sola función, siete lugares) y las dos versiones de la nota de sobrepagos. La excepción de marca ya está decidida.
 
 ## Decisiones de Sam
 
