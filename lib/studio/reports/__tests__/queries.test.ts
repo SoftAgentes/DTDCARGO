@@ -28,6 +28,12 @@ import {
   reportByRoute,
   reportByService,
 } from "../queries";
+import { ESTADOS_DE_INGRESO } from "@/lib/studio/accounting/ingreso-periodo";
+import {
+  ESPERADO,
+  FACTURAS_DEL_MES,
+  RANGO_MES,
+} from "@/lib/studio/accounting/__tests__/ingreso-fixture";
 
 /** Tope por request del doble: el `db-max-rows` de Supabase. */
 const SERVER_CAP = 1000;
@@ -525,6 +531,35 @@ describe("incomeStatement", () => {
     expect(byLabel["Utilidad bruta"].amount).toBe(6000);
     expect(byLabel["Costo de ventas"].pct).toBe(40);
     expect(byLabel["Utilidad neta"].amount).toBe(4000);
+  });
+
+  it("SDD-0557 · trae la cifra oficial del MISMO período, con el control de la 4.5", async () => {
+    const accounts = [
+      { id: "i", code: "4", type: "I", parent_id: null, is_postable: false },
+      { id: "v", code: "4.5", type: "I", parent_id: "i", is_postable: true },
+      { id: "x", code: "4.6", type: "I", parent_id: "i", is_postable: true },
+    ];
+    const journal_lines = [
+      { account_id: "v", debit: 0, credit: 1500 },
+      { account_id: "x", debit: 0, credit: 200 },
+    ];
+    // El doble no filtra: la borrada (F8), la de enero (F5), el borrador y la
+    // anulada llegan igual, y es la regla en memoria la que las deja afuera.
+    const { client, calls } = stub({
+      accounts,
+      journal_entries: [{ id: "e1" }],
+      journal_lines,
+      invoices: FACTURAS_DEL_MES,
+    });
+    const out = await incomeStatement(client, "MES", new Date("2025-03-18T12:00:00Z"));
+    expect(out.range).toEqual(RANGO_MES);
+    expect(out.ingreso.facturado.total).toBe(ESPERADO.total);
+    expect(out.ingreso.mayor).toEqual({ ventas: 1500, ingresos: out.income, otrosIngresos: 200 });
+    expect(out.ingreso.diferenciaUsd).toBe(500);
+    expect(calls.invoices.gte).toContainEqual(["issued_at", "2025-03-01"]);
+    expect(calls.invoices.lte).toContainEqual(["issued_at", "2025-03-18"]);
+    expect(calls.invoices.in).toContainEqual(["status", [...ESTADOS_DE_INGRESO]]);
+    expect(calls.invoices.is).toContainEqual(["deleted_at", null]);
   });
 
   it("sin movimiento contable → income/netIncome 0 (EmptyState honesto)", async () => {

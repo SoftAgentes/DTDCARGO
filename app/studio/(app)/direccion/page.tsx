@@ -5,6 +5,8 @@
  *   1. Auth + verifica rol `admin` (no-admin → redirect /studio/dashboard),
  *      mismo patrón que /studio/usuarios.
  *   2. Compone los agregados existentes vía getDireccionData (no recalcula).
+ *      «Ingresos · mes» es la cifra oficial (facturado sin IVA, SDD-0557) con
+ *      el mayor al lado; utilidad y margen son del libro.
  *   3. Render: KPIs financieros · salud financiera + forecast · operación +
  *      comercial · alertas. Solo lectura, sin mutaciones.
  *
@@ -18,6 +20,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { getDireccionData } from "@/lib/studio/direccion/queries";
 import { fmtUsd } from "@/lib/money";
+import { describirIngreso } from "@/lib/studio/accounting/ingreso-periodo";
 import { FinanceHealthCard } from "./_components/FinanceHealthCard";
 import { ForecastCard } from "./_components/ForecastCard";
 import { OpsCard } from "./_components/OpsCard";
@@ -42,7 +45,7 @@ export default async function DireccionPage() {
       <EmptyState
         eyebrow="Sin tenant"
         title="Tu cuenta no está vinculada a ningún tenant"
-        description="Pediles a un admin que te agregue al equipo."
+        description="Pídeles a un admin que te agregue al equipo."
       />
     );
   }
@@ -54,6 +57,13 @@ export default async function DireccionPage() {
 
   const data = await getDireccionData(supabase);
   const { finance, health, ops, commercial, forecast, alerts } = data;
+  const ingreso = describirIngreso(finance.ingreso);
+  const enElLibro =
+    ingreso.estado === "cuadra"
+      ? "cuadra con el libro"
+      : finance.ingreso.mayor?.ventas != null
+        ? `en el libro: ${fmtUsd(finance.ingreso.mayor.ventas)}`
+        : "sin cuenta 4.5 en el libro";
 
   const today = new Date().toLocaleDateString("es-VE", {
     weekday: "long",
@@ -107,15 +117,24 @@ export default async function DireccionPage() {
         }}
       >
         <KpiCard
-          value={fmtUsd(finance.ingresos)}
+          value={fmtUsd(finance.ingreso.facturado.total)}
           label="Ingresos · mes"
-          sub={`${ops.activos} ${ops.activos === 1 ? "embarque activo" : "embarques activos"}`}
+          sub={
+            <>
+              Facturado sin IVA · {finance.ingreso.rango.from} → {finance.ingreso.rango.to}
+              <br />
+              {enElLibro}
+              {finance.ingreso.facturado.terceros > 0 && " · incluye fondos de terceros"}
+              {finance.ingreso.sinConvertir > 0 &&
+                ` · ${finance.ingreso.sinConvertir} sin convertir`}
+            </>
+          }
           valueColor="var(--success)"
         />
         <KpiCard
           value={fmtUsd(finance.utilidad)}
-          label="Utilidad neta"
-          sub={`Margen ${finance.margenPct.toFixed(1)}%`}
+          label="Utilidad neta · libro"
+          sub={`Margen ${finance.margenPct.toFixed(1)}% sobre los ingresos del libro`}
           valueColor={finance.utilidad >= 0 ? "var(--ink)" : "var(--danger)"}
         />
         <KpiCard

@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { buildViewCsv, reportFilename, rowsToCsv } from "../export-csv";
+import { resumirIngreso } from "@/lib/studio/accounting/ingreso-periodo";
 import type {
   AgingReport,
+  CashflowReport,
+  IncomeStatement,
   CombinedReport,
   CommercialByClient,
   OperationalOverview,
@@ -220,5 +223,50 @@ describe("buildViewCsv · Combinados", () => {
 describe("buildViewCsv · Constructor (build) se autogestiona → null", () => {
   it("devuelve null para category build", () => {
     expect(buildViewCsv({ category: "build", rep: "", today: TODAY })).toBeNull();
+  });
+});
+
+// ── SDD-0557 · Estado de resultados con la cifra oficial ──────
+describe("buildViewCsv · Estado de resultados (SDD-0557)", () => {
+  const rango = { from: "2026-06-01", to: "2026-06-04" };
+  const ingreso = (base: number) =>
+    resumirIngreso(
+      base ? [{ status: "emitida", issued_at: "2026-06-02", currency: "USD", fx_rate: null, base_amount: base }] : [],
+      rango,
+      { ventas: 0, ingresos: 0 },
+    );
+  const income = (over: Partial<IncomeStatement>): IncomeStatement => ({
+    rows: [],
+    income: 0,
+    netIncome: 0,
+    range: rango,
+    ingreso: ingreso(0),
+    ...over,
+  });
+
+  it("mayor en 0 con facturado: igual exporta, con las filas de control al final", () => {
+    const csv = buildViewCsv({ category: "con", rep: "income", income: income({ ingreso: ingreso(2000) }), today: TODAY });
+    expect(csv).not.toBeNull();
+    const lines = csv!.content.split("\r\n");
+    expect(lines[0]).toBe("Concepto,Monto USD,% s/ingresos");
+    expect(lines).toContain("Ingreso facturado (sin IVA · USD · por emisión),2000,");
+    expect(lines).toContain("En el mayor · cuenta 4.5,0,");
+    expect(lines).toContain("Diferencia facturado − mayor (4.5),2000,");
+  });
+
+  it("todo en 0 → null", () => {
+    expect(buildViewCsv({ category: "con", rep: "income", income: income({}), today: TODAY })).toBeNull();
+  });
+
+  it("Facturado contra cobrado: el archivo ya no se llama cashflow", () => {
+    const cashflow: CashflowReport = {
+      series: [{ month: "2026-06", label: "JUN 26", billed: 100, collected: 50 }],
+      totalBilled: 100,
+      totalCollected: 50,
+      outstanding: 50,
+      overdue: 0,
+    };
+    const csv = buildViewCsv({ category: "con", rep: "cashflow", cashflow, today: TODAY });
+    expect(csv!.filename).toBe("reporte-contable-facturado-contra-cobrado-2026-06-04.csv");
   });
 });

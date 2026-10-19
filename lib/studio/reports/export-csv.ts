@@ -31,6 +31,7 @@ import type {
   ServiceRow,
   CarrierRow,
 } from "./types";
+import { vistaDelEstado } from "./types";
 
 /** Un valor de celda admitido (los números van crudos; null/undefined → ""). */
 export type CsvValue = string | number | null | undefined;
@@ -190,11 +191,22 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
   if (category === "con") {
     if (rep === "income") {
       const inc = input.income;
-      if (!inc || (inc.income === 0 && inc.netIncome === 0)) return null;
+      // SDD-0557: el CSV decide igual que la vista. Con el mayor vacío y
+      // facturas en el período, igual exporta la cifra oficial.
+      if (!inc || vistaDelEstado(inc) === "vacio") return null;
+      const ing = inc.ingreso;
       return {
         slug: "contable-estado-resultados",
         headers: ["Concepto", "Monto USD", "% s/ingresos"],
-        rows: inc.rows.map((r) => [r.label, r.amount, r.pct ?? ""]),
+        rows: [
+          ...inc.rows.map((r): CsvValue[] => [r.label, r.amount, r.pct ?? ""]),
+          ["Ingreso facturado (sin IVA · USD · por emisión)", ing.facturado.total, ""],
+          ["Fondos de terceros incluidos en el facturado", ing.facturado.terceros, ""],
+          ["En el mayor · cuenta 4.5", ing.mayor?.ventas ?? "", ""],
+          ["Diferencia facturado − mayor (4.5)", ing.diferenciaUsd ?? "", ""],
+          ["Otros ingresos del mayor (fuera de 4.5)", ing.mayor?.otrosIngresos ?? "", ""],
+          ["Facturas sin convertir (bolívares sin tasa o yuanes)", ing.sinConvertir, ""],
+        ],
       };
     }
     if (rep === "aging") {
@@ -234,7 +246,9 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
         return null;
       }
       return {
-        slug: "contable-cashflow",
+        // SDD-0557: la vista se llama «Facturado contra cobrado»; el slug
+        // de la URL (`?rep=cashflow`) no cambia.
+        slug: "contable-facturado-contra-cobrado",
         headers: ["Mes", "Facturado USD", "Cobrado USD"],
         rows: cf.series.map((p) => [p.label, p.billed, p.collected]),
       };

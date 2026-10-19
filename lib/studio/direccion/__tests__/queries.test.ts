@@ -7,6 +7,8 @@
  *  - Forecast simple por semana (CxP venciendo en 4 ventanas de 7 días).
  *  - Derivación de alertas (vencidos / cut-off ≤3d / carga suelta >20 CBM / "Todo en orden").
  *  - Smoke de getDireccionData con stub de SupabaseClient.
+ *  - SDD-0557: «Ingresos · mes» es la cifra oficial (facturado sin IVA) y el
+ *    mayor queda como control contra la 4.5; utilidad y margen, del libro.
  */
 
 import { describe, it, expect } from "vitest";
@@ -22,6 +24,12 @@ import {
   getDireccionData,
   type ForecastBill,
 } from "../queries";
+import {
+  ESPERADO,
+  FACTURAS_DEL_MES,
+  HOY,
+  RANGO_MES,
+} from "@/lib/studio/accounting/__tests__/ingreso-fixture";
 
 describe("netPosition — posición neta", () => {
   it("posición neta = caja + CxC − CxP", () => {
@@ -283,11 +291,12 @@ describe("getDireccionData — composición (smoke)", () => {
   it("compone finanzas, salud, operación, comercial, forecast y alertas", async () => {
     const client = makeClient({
       tables: {
-        // Plan de cuentas: ingreso (4), caja (1.1.1), CxC (1.1.2).
+        // Plan de cuentas: ingreso (4), ventas (4.5, la que acredita la
+        // factura), caja (1.1.1).
         accounts: {
           data: [
             { id: "inc", tenant_id: "t", code: "4", name: "Ingresos", type: "I", is_postable: false },
-            { id: "inc1", tenant_id: "t", code: "4.1", name: "Ventas", type: "I", is_postable: true },
+            { id: "inc1", tenant_id: "t", code: "4.5", name: "Otros ingresos por servicios", type: "I", is_postable: true },
             { id: "caja", tenant_id: "t", code: "1.1.1", name: "Banco", type: "A", is_postable: true, qbo_type: "Bank" },
           ],
         },
@@ -307,8 +316,10 @@ describe("getDireccionData — composición (smoke)", () => {
               tenant_id: "t",
               status: "emitida",
               currency: "USD",
+              base_amount: 4000,
               total_amount: 4000,
               paid_amount: 0,
+              issued_at: "2026-06-02",
               due_date: "2026-06-20",
             },
           ],
@@ -361,8 +372,14 @@ describe("getDireccionData — composición (smoke)", () => {
 
     const data = await getDireccionData(client, today);
 
-    // Finanzas.
-    expect(data.finance.ingresos).toBe(10000);
+    // Finanzas (SDD-0557): el ingreso es lo facturado (f1, 4000); el mayor
+    // (10000 en 4.5) queda al lado como control.
+    expect(data.finance.ingreso.facturado.total).toBe(4000);
+    expect(data.finance.ingreso.mayor?.ventas).toBe(10000);
+    expect(data.finance.ingreso.diferenciaUsd).toBe(-6000);
+    expect(data.finance.ingreso.rango).toEqual({ from: "2026-06-01", to: "2026-06-03" });
+    // Margen del libro: utilidad del mayor / ingresos del mayor.
+    expect(data.finance.margenPct).toBe(100);
     expect(data.finance.caja).toBe(8000);
     // posición neta = 8000 + 4000 − 6000 = 6000.
     expect(data.finance.posicionNeta).toBe(6000);
@@ -419,5 +436,46 @@ describe("getDireccionData — composición (smoke)", () => {
     expect(data.forecast.every((w) => w.usd === 0)).toBe(true);
     expect(data.alerts).toHaveLength(1);
     expect(data.alerts[0].tone).toBe("success");
+  });
+});
+
+describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
+  it("con el fixture del mes da la misma cifra que los otros consumidores; 4.6 va aparte", async () => {
+    // El stub NO filtra: llegan la borrada (F8), el borrador, la anulada y la de
+    // enero. La que las deja afuera es la regla en memoria (resumirIngreso).
+    const client = makeClient({
+      tables: {
+        accounts: {
+          data: [
+            { id: "inc", tenant_id: "t", code: "4", name: "Ingresos", type: "I", is_postable: false },
+            { id: "ven", tenant_id: "t", code: "4.5", name: "Otros ingresos por servicios", type: "I", is_postable: true },
+            { id: "fx", tenant_id: "t", code: "4.6", name: "Ingreso por cambio de moneda", type: "I", is_postable: true },
+            { id: "g", tenant_id: "t", code: "6", name: "Gastos", type: "G", is_postable: false },
+            { id: "g1", tenant_id: "t", code: "6.1", name: "Gastos generales", type: "G", is_postable: true },
+          ],
+        },
+        journal_entries: { data: [{ id: "je1" }] },
+        journal_lines: {
+          data: [
+            { account_id: "ven", debit: 0, credit: 1500 },
+            { account_id: "fx", debit: 0, credit: 200 },
+            { account_id: "g1", debit: 700, credit: 0 },
+          ],
+        },
+        invoices: { data: FACTURAS_DEL_MES },
+      },
+      rpc: { shipments_dashboard_counts: null },
+    });
+
+    const { finance } = await getDireccionData(client, HOY);
+    expect(finance.ingreso.facturado.total).toBe(ESPERADO.total);
+    expect(finance.ingreso.rango).toEqual(RANGO_MES);
+    expect(finance.ingreso.mayor).toEqual({ ventas: 1500, ingresos: 1700, otrosIngresos: 200 });
+    // Contra 4.5: 2000 − 1500 = 500. Contra todas las cuentas 4 daría 300.
+    expect(finance.ingreso.diferenciaUsd).toBe(500);
+    // Utilidad y margen del libro: 1000 / 1700. Con el facturado daría 50 %.
+    expect(finance.utilidad).toBe(1000);
+    expect(finance.margenPct).toBe(netMarginPct(1700, 1000));
+    expect(finance.margenPct).toBeCloseTo(58.82, 2);
   });
 });
