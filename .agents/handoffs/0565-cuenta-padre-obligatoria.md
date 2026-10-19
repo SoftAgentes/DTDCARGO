@@ -7,7 +7,7 @@
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\sdd-0565-cuenta-padre-obligatoria` |
 | Rama | `codex/sdd-0565-cuenta-padre-obligatoria`, desde `origin/main` `d06f50b4` |
 | SDD | [0565](../../docs/specs/0565-cuenta-padre-obligatoria/spec.md), `in-progress`. La reserva es `codex/sdd-reserve-0565` (`0eb673a7`, con `sdd:next --reserve cuenta-padre-obligatoria --number 0565 --push`) y entró por cherry-pick |
-| Estado | lista para revisión, con PR en borrador; `pnpm verify` necesita turno del Director |
+| Estado | lista para revisión: PR #291 en borrador, con `verify` 16/17 sin fallos sobre `4297bfbf` y `main` mezclado en `ea831aec` |
 | Permisos | El Director la asignó el 2026-10-19, como el paso 2 de la cola después de la #288. Eso cubre commits selectivos, push de la rama propia y PR en borrador. No incluye producción, base de datos ni migración |
 
 ## OBJETIVO ORIGINAL
@@ -37,7 +37,14 @@ Decisión del Director del 2026-10-19 (revisable por Sam), citada textual en la 
 | Control rojo, 8 mutantes, restaurados por copia con la huella sha256 igual antes y después | M1 no exige el padre; M2 `createAccount` valida como edición; M3 `deleteAccount` no mira las subcuentas; M4 sin `parent_id`; M5 prefijo sin punto; M6 un ancestro cuenta como padre; M7 se acepta el plan cortado; M8 el error muestra el texto de la base | `MUERTOS 8/8 · restaurados 8/8` |
 | `typecheck`, eslint `--max-warnings=0` (6 archivos), `check-rsc-boundary` | repo y archivos tocados | PASÓ |
 | `docs:check` (550 specs), `sdd:check`, `governance:check` | documentación | PASÓ |
-| `pnpm verify` | completo | PENDIENTE: turno del Director |
+| `pnpm verify` sobre `4297bfbf` (turno del Director, 2026-10-19 de 18:19:13Z a 18:50:29Z) | completo | `VERIFY_EXIT=0`: «CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied. No hubo fallos en lo medido (16/17)». Detalle abajo |
+
+Detalle del `verify`, copiado de su salida:
+- **PASÓ:** harness, lint, rsc-boundary, typecheck, edge-functions, test, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols («0 ROJO · 1 AMARILLO declarado(s)»: `client_outstanding`, la 0492, ya aplicada; la sella el Director en la #289), sql-tests («243 contrato(s) de SQL verificado(s) · rollback total»), schema-rebuild («radiografía de integridad verificada sobre el esquema completo (63 filas, conteos)»), e2e y build.
+- **test:** la primera vuelta dio `Tests  1 failed | 11969 passed | 1 skipped (11971)`. El rojo fue `scripts/__tests__/radiografia-integridad.test.ts` › «guarda de Git…», que llegó al tope de 20 s. Esta rama sale de un `main` sin el tope lento que trae la #288 (SDD-0563); se arregla cuando esa entre. El reintento dio `Tests  11970 passed | 1 skipped (11971)`.
+- **e2e:** `1 flaky`, `177 passed (5.0m)`.
+- **NO DISPONIBLE:** migrations-applied (el worktree no tiene `.env.local`). Esta SDD no lleva migración.
+- **`ea831aec`** mezcla `origin/main` (`b34c8d57`, la #285). Contra `4297bfbf` solo cambian 6 archivos de documentación: el organigrama, la spec 0564 y el índice. `docs:check` (551 specs) y `sdd:check` dieron OK. Por el criterio del Director, docs sin código no piden otro verify.
 
 ## Impacto documental y conocimiento
 
@@ -45,8 +52,8 @@ La spec 0565 y el índice. No hay cambios de esquema, RBAC ni pantallas. Graphif
 
 ## PENDIENTES DE ESTA TAREA
 
-1. `pnpm verify` con turno del Director.
-2. Integración por el Director. No lleva migración.
+1. Integración por el Director. No lleva migración.
+2. Si la #288 entra antes, traer `main` y hacer la corrección del punto 3 en el mismo commit.
 3. Cuando la #288 entre a `main`, traer `main` a esta rama y corregir la frase «por la pantalla, la 1.1.2 se puede eliminar mientras no tenga movimientos (`deleteAccount`)» en la prueba de paridad, la spec y el handoff de la 0563, porque hoy ninguna pantalla llama a `deleteAccount`. Va en la #291, por decisión del Director: no se empuja a la #288.
 
 ## FUERA DE ALCANCE DETECTADO (para el Director)
