@@ -958,8 +958,8 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
    de Operaciones? ¿Postventa sigue con rol `accounting` o pasa a `commercial`?
 3. **Junta y Dirección General.** ¿Quieres separar las dos cosas? ¿Hay una persona que
    pueda asumir la dirección del día a día? ⭐ Separarlas como meta del trimestre.
-4. **Presupuesto.** ¿Tope mensual de IA para la ola 1? ⭐ ≤ 100 USD con parada dura. ¿Se
-   paga con una llave de API nueva, solo para Paperclip, o con una suscripción?
+4. ~~**Presupuesto.**~~ **Respondida** (SDD-0564, 2026-10-19): 100 USD al mes con parada dura y llave
+   nueva de Anthropic, exclusiva y con límite en el proveedor.
 5. **Dónde corre.** ¿Compras el Cloud VPS 6 de Contabo en US East (sección 5.9), u otra opción?
    ⭐ VM o VPS aparte, nunca el servidor de producción.
 6. **Ola 1.** ¿Apruebas CEO, Jefe de gabinete, Puente de ingeniería y Editor de contenido,

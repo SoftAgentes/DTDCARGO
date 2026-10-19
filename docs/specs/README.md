@@ -585,7 +585,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0559 | Radiografía de integridad contable repetible | in-progress | interno |
 | 0560 | Asistente de borrado de embarques: pasos en orden para poder … | in-progress | interno |
 | 0561 | Candado de las migraciones aplicadas: una migración en produc… | in-progress | interno |
-| 0564 | Instalación piloto de Paperclip y Hermes en un VPS aislado | proposed | interno |
+| 0564 | Instalación piloto de Paperclip y Hermes en un VPS aislado | approved | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0558, 0562, 0563 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

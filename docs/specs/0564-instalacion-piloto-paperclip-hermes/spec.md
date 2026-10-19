@@ -1,7 +1,7 @@
 ---
 sdd: "0564"
 title: "Instalación piloto de Paperclip y Hermes en un VPS aislado"
-status: proposed
+status: approved
 author: "Claude Worker «Oficina Paperclip» (Sam)"
 created: 2026-10-19
 updated: 2026-10-19
@@ -149,7 +149,7 @@ de la §4.3 del organigrama. Son instrucciones, no candados: los candados reales
 
 ### D6 · Topes de gasto
 
-- **Tope de la empresa en Paperclip con parada dura:** ≤ 100 USD al mes (**D-B**, lo fija Sam).
+- **Tope de la empresa en Paperclip con parada dura:** 100 USD al mes (**D-B**, decidido por Sam el 2026-10-19).
 - **Topes por agente:** CEO 40 USD; Jefe de gabinete, Puente de ingeniería y Editor de
   contenido 20 USD cada uno.
 - **Límite en la consola del proveedor** de la llave A2, igual o menor al de la empresa. Así,
@@ -183,13 +183,19 @@ se declara así en la evidencia. Antes de cualquier acceso que toque datos de cl
 
 ## Decisiones para Sam
 
-| # | Decisión | Recomendación |
+Sam, 2026-10-19, literal: «Sí: apruebo A1 (llave de solo lectura de GitHub), A2 (llave nueva de
+Anthropic con límite), D-B (tope de 100 USD al mes) y D-H (Hermes como motor del Editor de
+contenido). A3 queda para después. Todavía no instales nada.»
+
+| # | Decisión | Estado |
 |---|---|---|
-| A1 | ¿Cómo leen los agentes el repositorio? | ⭐ Llave de despliegue de solo lectura, o A1-b: copia filtrada sin `.agents/handoffs/` (menos exposición, más trabajo manual). Ver §D1 |
-| A2 | Llave de modelos nueva y exclusiva, con límite en el proveedor | ⭐ Sí, de Anthropic |
-| A3 | Bot de Telegram nuevo para hablar con el CEO | ⭐ No en la primera semana; sí después si el parte por el panel no alcanza |
-| D-B | Tope mensual de la empresa | ⭐ ≤ 100 USD |
-| D-H | Papel de Hermes en la ola 1 | ⭐ Motor del Editor de contenido, con Docker y sin terminal |
+| A1 | ¿Cómo leen los agentes el repositorio? | **Decidida:** llave de despliegue de solo lectura de GitHub. La alternativa A1-b (copia sin `.agents/handoffs/`) queda descartada por ahora |
+| A2 | Llave de modelos nueva y exclusiva, con límite en el proveedor | **Decidida:** llave nueva de Anthropic con límite |
+| A3 | Bot de Telegram nuevo para hablar con el CEO | **Pospuesta** por Sam: la ola 1 arranca sin mensajería de Hermes |
+| D-B | Tope mensual de la empresa | **Decidida:** 100 USD al mes con parada dura |
+| D-H | Papel de Hermes en la ola 1 | **Decidida:** motor del Editor de contenido, con Docker y sin terminal |
+
+La instalación sigue sin autorizar: cada paso de §D9 necesita su propio OK.
 
 Siguen abiertas además las preguntas 2 a 14 del organigrama. Las que tocan esta SDD son la 7
 (adaptadores), la 8 (quién más entra) y la 10 (por dónde llega el parte).
@@ -242,3 +248,5 @@ comportamiento del Studio. No hay migraciones. Seguridad: D1, D2 y D7.
 
 - 2026-10-19: escrita por la sesión «Oficina Paperclip». Estado `proposed`; espera la revisión
   del Director y las decisiones de Sam. Nada instalado.
+- 2026-10-19: el Director revisó el diseño y Sam decidió A1, A2, D-B y D-H y pospuso A3.
+  Estado `approved` (aprueba el diseño, no la instalación). Nada instalado.
