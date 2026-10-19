@@ -30,16 +30,24 @@ import {
   type SaldoPorMoneda,
 } from "@/lib/studio/client-account";
 
+/**
+ * 260 px de mínimo, MEDIDO con la Sora real (900 30px, tabular-nums, −0.02em):
+ * «1,234,567.89» mide 201 px y «12,345,678.90», 220 px; con los 40 px de
+ * relleno de KpiCard, 260 px es el ancho en que la cifra más larga de un saldo
+ * en bolívares cabe sola en su renglón, con la moneda en el de arriba. Con
+ * menos, KpiCard (overflow: hidden) la cortaría sin avisar. «USD 12,345.00»
+ * (224 px) cabe en un renglón.
+ */
 const GRILLA = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-  gap: 14,
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: "var(--s-4)",
 } as const;
 
 const NOTA = {
   font: "500 12px/1.5 var(--f-sans)",
   color: "var(--ink-soft)",
-  margin: "10px 0 0",
+  margin: "var(--s-2) 0 0",
   maxWidth: "80ch",
 } as const;
 
@@ -160,7 +168,7 @@ function TarjetaUltimoPago({ cuenta }: { cuenta: ClientAccountSummary }) {
 
 function Seccion({ children, notas }: { children: ReactNode; notas?: ReactNode }) {
   return (
-    <section aria-label="Cuenta del cliente" style={{ marginBottom: 28 }}>
+    <section aria-label="Cuenta del cliente" style={{ marginBottom: "var(--s-6)" }}>
       <div style={GRILLA}>{children}</div>
       {notas}
     </section>
@@ -190,16 +198,15 @@ export function ClientAccountHeader({
           role="status"
           style={{
             gridColumn: "1 / -1",
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border)",
-            borderLeft: "3px solid var(--warning)",
+            background: "var(--warning-bg)",
+            border: "1px solid var(--warning)",
             borderRadius: "var(--r-lg)",
-            padding: "16px 20px",
+            padding: "var(--s-4) var(--s-5)",
             font: "500 13px/1.5 var(--f-sans)",
             color: "var(--ink)",
           }}
         >
-          <strong style={{ display: "block", marginBottom: 4 }}>No se pudo calcular el saldo.</strong>
+          <strong style={{ display: "block", marginBottom: "var(--s-1)" }}>No se pudo calcular el saldo.</strong>
           Recarga la página en unos minutos. Si sigue igual, avísale a soporte con la referencia{" "}
           <code style={{ font: "600 12px/1 var(--f-mono)" }}>{estado.referencia}</code>.
         </div>

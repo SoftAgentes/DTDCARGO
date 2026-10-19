@@ -197,9 +197,8 @@ export default async function EstadoDeCuentaPage({
         <div
           role="note"
           style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border)",
-            borderLeft: "3px solid var(--warning)",
+            background: "var(--warning-bg)",
+            border: "1px solid var(--warning)",
             borderRadius: "var(--r-sm)",
             padding: "10px 12px",
             margin: "0 0 20px",

@@ -46,7 +46,7 @@ export function SaldoPendienteContexto({
       ) : saldo.length === 0 ? (
         <span style={{ font: "800 18px/1 var(--f-display)", color: "var(--ink)" }}>Al día</span>
       ) : (
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 4 }}>
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: "var(--s-1)" }}>
           {saldo.map((s) => (
             <li
               key={s.currency}
@@ -64,7 +64,7 @@ export function SaldoPendienteContexto({
             display: "inline-block",
             font: "600 11px/1.4 var(--f-sans)",
             color: "var(--ink-soft)",
-            marginTop: 4,
+            marginTop: "var(--s-1)",
           }}
         >
           Ver en la ficha →
