@@ -837,6 +837,10 @@ Orden de integración a `main`: 2.1, 2.5, 2.2, 2.6, 2.3, 2.7, 2.8, 2.4, 2.9, 2.1
 
 ### Fase 3 — Fiscal SENIAT: factura válida, libros en bolívares y Diario/Mayor legales
 
+> **Impuestos en espera desde el 2026-10-19.** Sam decidió arrancar sin IVA ni impuestos. Quedan en
+> espera 3.2, la posición de IVA de 3.4 y 3.7. Las otras SDD de la fase siguen (§9, «Decisiones de
+> Sam del 2026-10-19»).
+
 Que cada factura, nota y libro cumpla la Providencia 0071/102 y el Reglamento, y
 que el ERP produzca de verdad el Diario y el Mayor en bolívares. Del 3.1 al 3.6 no
 dependen de si DTD es contribuyente especial (el número de control arranca en
@@ -910,6 +914,10 @@ rojo con la diferencia explicada.
 | 5.4 | Permisos de la contadora con separación de funciones: según la decisión 15, abrirle Dirección, Rendiciones y Financiero China en lectura (o entregarle sus cierres), y separar emitir de anular, causar de pagar, y crear proveedor de pagarle; RLS por rol y auditoría en las siete tablas del Socio China (hoy abiertas por la API a cualquier empleado); gastos de operaciones y almacén como borrador que la contadora asienta, si así lo decide la decisión 18; perfil de solo lectura para un contador externo | B21, B16 | M | sí |
 
 ### Fase 6 — Conector QuickBooks Online (espejo)
+
+> **Fuera del plan desde el 2026-10-19.** Sam decidió que QuickBooks es temporal y que nada del
+> ERP viaja a QuickBooks (§9, «Decisiones de Sam del 2026-10-19»). Esta fase y la 7.1 quedan
+> solo como registro.
 
 Documentos verdaderos en una sola dirección, idempotentes, con cola visible y
 cuadre mensual automatizado. Primero sandbox Plus Global, después la compañía real.
@@ -1059,6 +1067,32 @@ recomendación (⭐).
     asientan al cargarlos o entran como borrador que la contadora revisa?** ⭐
     Borrador que la contadora asienta, como la bandeja «For review» de
     QuickBooks, al menos para los gastos por encima de un monto que tú fijes.
+
+### Decisiones de Sam del 2026-10-19
+
+Sam las dio al Director el 2026-10-19 a las 18:02Z, sobre el documento
+«Preguntas para la contadora». Las citas son literales.
+
+| Tema | Decisión | Texto de Sam |
+|---|---|---|
+| Decisión 3: dueño del cobro | **Aceptada**, con un ajuste. El ERP registra y aplica todo cobro y pago. QuickBooks se lleva en paralelo solo mientras el ERP no esté listo, y después se deja. **No hay conector**: nada del ERP viaja a QuickBooks | «me gusta lo recomendado en la parte 3» · «QuickBooks solo está de paso; en cuanto nosotros podamos llevar las cosas bien en el ERP, dejaremos de usarlo» · «Lo demás se va a trabajar todo en el ERP; no nos interesa que viaje a QuickBooks después, ya que QuickBooks lo vamos a llevar de forma simultánea hasta que el ERP esté haciendo bien las cosas» |
+| Decisión 4: anticipos | **Aceptada**, la recomendación tal cual | «En el tema del anticipo, donde el cliente paga antes de la facturación, sí aplica lo que me estás recomendando» |
+| Impuestos | **Fuera por ahora.** No se aplican IVA, IGTF ni retenciones; se habilitan más adelante | «vamos a empezar todo sin temas de IVA ni nada de impuestos. Más adelante habilitaremos esa función y la arreglaremos en su debido momento, pero por ahora no nos interesa» |
+| Período cerrado (sobre la decisión 2) | **Propuesta de Sam:** como en QuickBooks, se puede cambiar un período cerrado tras una advertencia y con una superclave de autorización distinta de la clave del usuario. Queda abierta la opinión de la contadora | «cuando voy a hacer algo en un ciclo cerrado, te dice: "este ciclo ya cerró contablemente; si deseas cambiarlo..." y hace una advertencia» · «tiene una clave aparte de la del usuario que está trabajando: tiene una superclave de autorización» |
+
+**Siguen abiertas:**
+- la decisión 1 (moneda funcional), de la contadora;
+- la decisión 2 (reparación de históricos), que ahora incluye la propuesta de la superclave.
+
+**Cómo cambia el plan.** Es lectura del Director, revisable por Sam:
+- **La fase 6 (conector QuickBooks) y la 7.1 (corte del libro gerencial) salen del plan**, y con ellas las decisiones 12 y 13. El ERP es el único libro.
+- **De la fase 3 quedan en espera las partes de impuestos:** el IVA por concepto (3.2 y decisión 7), la posición de IVA de 3.4, el IGTF y las retenciones de 3.7, y la decisión 5. Siguen vigentes, porque no son impuestos:
+  - el número de control y el correlativo (3.1, decisiones 6 y 8), salvo que Sam diga otra cosa;
+  - el Diario y el Mayor en bolívares (3.5);
+  - la revaluación (3.6);
+  - la nómina en el libro (3.8);
+  - el arranque contable (3.9).
+- **Tarea nueva, antes de la 2.11:** el cierre contable con superclave y el reporte «Excepciones al cierre». Hoy la SDD-0080 (migración `0133`) bloquea los asientos con `entry_date <= closing_date`, y para corregir algo hay que mover o quitar la fecha, lo que reabre el período para todos. La referencia es QuickBooks Online: en «Close the books» se elige entre «Allow changes after viewing a warning» o «…and entering password» ([Intuit](https://quickbooks.intuit.com/learn-support/en-us/customer-company-settings/how-to-close-the-books/00/186384)), y cada cambio aparece en el reporte «Exceptions to Closing Date». Lleva migración.
 
 **Radiografía 1.1: ya autorizada y corrida.** Sam la autorizó el 2026-10-18 («autorizo
 la radiografía 1.1 con conteos y sumas, sin datos personales») y el Director la
