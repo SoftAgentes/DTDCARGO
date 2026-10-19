@@ -87,7 +87,7 @@ Todo en este worktree y esta rama. Sin `pnpm verify`, sin vitest sin filtro y si
 | `git diff --check a7a51ad7 HEAD` | diff | PASÓ (exit 0) |
 | Inventario `invoice-read-boundary` | 42 llamadas / 18 archivos, sobre el árbol fusionado | PASÓ: `Tests  4 passed (4)` |
 | Allowlist exacta | 39 archivos contra `cb9c62ae` | PASÓ: 39 filas, 39 archivos en el diff, ninguno sobra ni falta |
-| `/ui-check` | portal (Facturas lista y estado de cuenta, Finanzas, detalle, comprobante, portada) en claro y oscuro | NO EJECUTADO: necesita navegador y datos; queda pendiente |
+| `/ui-check` | diff del portal (Facturas, Finanzas, InvoiceRow, libro, detalle, comprobante, portada) | PASÓ con 3 hallazgos no bloqueantes. Contraste medido: el monto tachado da 5,11:1 en claro y 4,85:1 en oscuro sobre la tarjeta (`grey-500`), y las notas 12,1:1 y 7,3:1 (`grey-700`). La anulada no depende solo del color. Solo tokens, sin colores inventados; tuteo sin voseo. Queda ver en móvil la tarjeta «No disponible» de la portada en `prueba.dtdcargo.com`: cabe por estimación, unos 117 px contra unos 160 px |
 | Tercera vuelta · `vitest run lib/portal app/portal "app/studio/(app)/facturacion" "app/studio/(app)/clientes" lib/studio/pdf lib/studio/mail lib/studio/__tests__/payment-report-resolution-notify.test.ts scripts/__tests__/invoice-read-boundary.test.mjs` | todas las carpetas que toca la tarea | PASÓ: `Test Files  147 passed (147)`, `Tests  1694 passed (1694)` |
 | Tercera vuelta · mutantes (`scratchpad/mutantes-0556-ajustes.mjs`, con `node` y sin `pnpm`) | 12 mutantes de los ajustes: la ruta sin razón social o sin RIF, el libro o el PDF con mal «lo que falta pagar», Facturas y Finanzas sin la nota, Facturas con la nota repetida en el estado de cuenta, la nota del libro sin el monto, sobrepagos de otra moneda en el libro, el rótulo viejo de Inicio, el PDF de la anulada callando lo abonado o hablando de abono sin él | PASÓ: «Todos los mutantes murieron.», 12 de 12 con exit 1 y línea `Tests … failed` |
 | Tercera vuelta · `corepack pnpm typecheck` y `eslint --max-warnings=0` (17 archivos tocados) | repo y archivos tocados | PASÓ (exit 0) |
@@ -136,7 +136,7 @@ Las correcciones no cambian este flujo.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. `/ui-check` del portal en claro y oscuro: el gris del monto tachado (`text-grey-500`), las notas nuevas (pagos en anuladas y sobrepagos) y la nota del comprobante no se midieron en el portal oscuro; la tarjeta «No disponible» de la portada en móvil.
+1. Ver en `prueba.dtdcargo.com`, en móvil, la tarjeta «No disponible» de la portada (el `/ui-check` la estimó, no la midió en navegador).
 2. `corepack pnpm verify` con turno del Director.
 3. Si `main` avanza antes de integrar: recalcular el inventario de `invoice-read-boundary` y regenerar el índice.
 4. Preguntas para Sam que siguen abiertas (también en la spec): el texto de la indicación sobre lo pagado en anuladas (una sola función, siete lugares) y las dos versiones de la nota de sobrepagos. La excepción de marca ya está decidida.
