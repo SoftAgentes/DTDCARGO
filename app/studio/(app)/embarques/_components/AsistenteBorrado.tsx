@@ -71,16 +71,23 @@ export function AsistenteBorrado({
     [],
   );
 
+  // Lo que se actualiza después de un `await` ya no cuenta como parte de la
+  // transición (React 19) y se pintaría un render antes de que `revisando` o
+  // `ejecutando` vuelvan a false: el plan nuevo junto a «Revisando…», o el
+  // error con el botón todavía en «Procesando…». Por eso va dentro de otra
+  // llamada a la transición: el resultado y el fin de la espera llegan juntos.
   const revisar = useCallback(() => {
     setErrorPanel(null);
     startRevision(async () => {
       try {
         const r = await leerPlanDeBorradoAction(shipmentId);
         if (!montado.current) return;
-        if (r.ok) setCarga({ estado: "lista", plan: r.plan });
-        else setCarga({ estado: "error", mensaje: r.error });
+        startRevision(() => {
+          if (r.ok) setCarga({ estado: "lista", plan: r.plan });
+          else setCarga({ estado: "error", mensaje: r.error });
+        });
       } catch {
-        if (montado.current) setCarga({ estado: "error", mensaje: SIN_LECTURA });
+        if (montado.current) startRevision(() => setCarga({ estado: "error", mensaje: SIN_LECTURA }));
       }
     });
   }, [shipmentId]);
@@ -110,32 +117,35 @@ export function AsistenteBorrado({
       try {
         const r = await ejecutarPasoDeBorradoAction(shipmentId, paso.clave, motivo);
         if (!montado.current) return;
-        if (r.ok) {
-          setConfirmando(null);
-          if (r.eliminado) {
-            onEliminado(r.hecho);
+        // Como en `revisar`: el resultado entra en la transición.
+        startEjecucion(() => {
+          if (r.ok) {
+            setConfirmando(null);
+            if (r.eliminado) {
+              onEliminado(r.hecho);
+              return;
+            }
+            setHechos((prev) => [...prev, r.hecho]);
+            setAnuncio(r.hecho);
+            setAviso(r.aviso ?? null);
+            if (r.plan) setCarga({ estado: "lista", plan: r.plan });
             return;
           }
-          setHechos((prev) => [...prev, r.hecho]);
-          setAnuncio(r.hecho);
-          setAviso(r.aviso ?? null);
+          // Si el paso sigue siendo el siguiente, el error queda en el diálogo
+          // (motivo inválido, el módulo lo rechazó) y se puede reintentar. Si el
+          // plan cambió, el diálogo se cierra y el panel muestra el plan nuevo.
+          const sigue = r.plan?.estado === "en_curso" && r.plan.siguiente.clave === paso.clave;
           if (r.plan) setCarga({ estado: "lista", plan: r.plan });
-          return;
-        }
-        // Si el paso sigue siendo el siguiente, el error queda en el diálogo
-        // (motivo inválido, el módulo lo rechazó) y se puede reintentar. Si el
-        // plan cambió, el diálogo se cierra y el panel muestra el plan nuevo.
-        const sigue = r.plan?.estado === "en_curso" && r.plan.siguiente.clave === paso.clave;
-        if (r.plan) setCarga({ estado: "lista", plan: r.plan });
-        if (sigue) {
-          setErrorDialogo(r.error);
-        } else {
-          setConfirmando(null);
-          setAnuncio(null);
-          setErrorPanel(r.error);
-        }
+          if (sigue) {
+            setErrorDialogo(r.error);
+          } else {
+            setConfirmando(null);
+            setAnuncio(null);
+            setErrorPanel(r.error);
+          }
+        });
       } catch {
-        if (montado.current) setErrorDialogo(SIN_RESPUESTA);
+        if (montado.current) startEjecucion(() => setErrorDialogo(SIN_RESPUESTA));
       }
     });
   };

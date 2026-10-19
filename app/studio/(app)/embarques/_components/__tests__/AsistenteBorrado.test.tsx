@@ -4,8 +4,10 @@
  * Lo que mide: el plan en orden con un solo paso habilitado; la confirmación
  * (con motivo si es R3) antes de ejecutar; que después de cada paso se pinta
  * el plan que devuelve el servidor; que si el plan cambió, el diálogo se cierra
- * y lo dice; y que un plan bloqueado no ofrece nada. Las acciones son dobles:
- * la regla la deciden el servidor y su plan (probados aparte).
+ * y lo dice; que un plan bloqueado no ofrece nada; y que el resultado de un
+ * paso o de una revisión llega en el mismo render que el fin de la espera.
+ * Las acciones son dobles: la regla la deciden el servidor y su plan (probados
+ * aparte).
  */
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -52,8 +54,39 @@ function abrir() {
 const panel = () => screen.getAllByRole("dialog")[0];
 const pasos = () => within(panel()).getAllByRole("listitem").filter((li) => li.closest("ol"));
 
+/**
+ * Anota lo que se ve cada vez que el DOM del contenedor cambia: el observador
+ * corre al terminar cada tarea que lo tocó, así que un estado intermedio queda
+ * anotado aunque dure un solo render. Un `waitFor` no sirve para esto: se
+ * conforma con el primer render que cumple y el resto depende del reloj.
+ */
+function filmar(contenedor: HTMLElement, foto: () => string) {
+  const cuadros: string[] = [];
+  const observador = new MutationObserver(() => cuadros.push(foto()));
+  observador.observe(contenedor, { subtree: true, childList: true, attributes: true, characterData: true });
+  return {
+    cuadros,
+    parar: () => {
+      observador.disconnect();
+      return cuadros;
+    },
+  };
+}
+
+/** El error del diálogo y cómo está su botón de confirmar. */
+function fotoDialogo(dialogo: HTMLElement) {
+  return () => {
+    const alerta = dialogo.querySelector('[role="alert"]')?.textContent ?? "";
+    const boton = dialogo.querySelector<HTMLButtonElement>('button[type="submit"]');
+    return `${alerta} | ${boton?.textContent ?? "sin botón"}${boton?.disabled ? " (deshabilitado)" : ""}`;
+  };
+}
+
 beforeEach(() => {
-  vi.clearAllMocks();
+  // reset y no clear: `clearAllMocks` borra las llamadas pero deja en cola los
+  // `…Once` sin consumir. Si una prueba cae antes de usarlos, la siguiente los
+  // hereda y cae por otra razón.
+  vi.resetAllMocks();
   m.leer.mockResolvedValue({ ok: true, plan: conFactura() });
 });
 afterEach(cleanup);
@@ -175,11 +208,18 @@ describe("recálculo: dos personas a la vez", () => {
     await user.click(await within(panel()).findByRole("button", { name: "Anular factura…" }));
     const dialogo = screen.getAllByRole("dialog")[1];
     await user.type(within(dialogo).getByLabelText(/Motivo/), "Embarque de prueba");
+    const pelicula = filmar(dialogo, fotoDialogo(dialogo));
     await user.click(within(dialogo).getByRole("button", { name: "Anular factura" }));
     await waitFor(() => expect(within(dialogo).getByRole("alert").textContent).toBe("No se pudo anular la factura."));
     expect(screen.getAllByRole("dialog")[1]).toBe(dialogo);
+    const reintentar = await within(dialogo).findByRole("button", { name: "Anular factura" });
 
-    await user.click(within(dialogo).getByRole("button", { name: "Anular factura" }));
+    // El error llega con el reintento listo: ningún render lo muestra con el
+    // botón todavía en «Procesando…».
+    const conError = pelicula.parar().filter((c) => c.startsWith("No se pudo"));
+    expect([...new Set(conError)]).toEqual(["No se pudo anular la factura. | Anular factura"]);
+
+    await user.click(reintentar);
     await waitFor(() => expect(m.ejecutar).toHaveBeenCalledTimes(2));
   });
 
@@ -190,12 +230,14 @@ describe("recálculo: dos personas a la vez", () => {
     await user.click(await within(panel()).findByRole("button", { name: "Anular factura…" }));
     const dialogo = screen.getAllByRole("dialog")[1];
     await user.type(within(dialogo).getByLabelText(/Motivo/), "Embarque de prueba");
+    const pelicula = filmar(dialogo, fotoDialogo(dialogo));
     await user.click(within(dialogo).getByRole("button", { name: "Anular factura" }));
-    await waitFor(() =>
-      expect(within(dialogo).getByRole("alert").textContent).toBe(
-        "No se pudo confirmar el paso. Vuelve a revisar el plan para ver cómo quedó.",
-      ),
-    );
+    const sinRespuesta = "No se pudo confirmar el paso. Vuelve a revisar el plan para ver cómo quedó.";
+    await waitFor(() => expect(within(dialogo).getByRole("alert").textContent).toBe(sinRespuesta));
+    await within(dialogo).findByRole("button", { name: "Anular factura" });
+
+    const conError = pelicula.parar().filter((c) => c.startsWith("No se pudo"));
+    expect([...new Set(conError)]).toEqual([`${sinRespuesta} | Anular factura`]);
     expect(onEliminado).not.toHaveBeenCalled();
   });
 });
@@ -231,8 +273,18 @@ describe("lo que el asistente no resuelve", () => {
     // El paso del asistente espera: primero lo de TMS.
     expect(within(panel()).queryByRole("button", { name: "Anular factura…" })).toBeNull();
 
+    const p = panel();
+    const pelicula = filmar(p, () => {
+      const estado = p.querySelector('[role="status"]')?.textContent ?? "";
+      const boton = [...p.querySelectorAll("button")].find((b) => b.textContent === "Anular factura…");
+      return `${estado} | ${boton ? `Anular factura…${boton.disabled ? " (deshabilitado)" : ""}` : "-"}`;
+    });
     await user.click(within(panel()).getByRole("button", { name: "Ya lo hice: revisar de nuevo" }));
     expect(await within(panel()).findByRole("button", { name: "Anular factura…" })).toBeTruthy();
+    // El plan nuevo llega con la revisión terminada: ningún render lo muestra
+    // junto a «Revisando…» ni con su botón deshabilitado.
+    const conPlanNuevo = pelicula.parar().filter((c) => !c.endsWith("| -"));
+    expect([...new Set(conPlanNuevo)]).toEqual([" | Anular factura…"]);
     expect(m.leer).toHaveBeenCalledTimes(2);
     expect(m.ejecutar).not.toHaveBeenCalled();
   });
