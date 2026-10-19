@@ -28,7 +28,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getMyInvoice, getPortalClient } from "@/lib/portal/portal-queries";
 import { formatInvoiceAmount } from "@/lib/portal/portal-types";
-import { buildComprobante } from "@/lib/portal/comprobante";
+import { buildComprobante, estadoDelComprobante } from "@/lib/portal/comprobante";
+import { indicacionPagosEnAnuladas } from "@/lib/portal/saldo-de-cuenta";
 import { CONTACT } from "@/lib/design-tokens";
 import { BrandMark } from "@/components/BrandMark";
 import { resolveBrandForPortal } from "@/lib/studio/aliados/brand-resolve";
@@ -78,7 +79,7 @@ export default async function PortalComprobantePage({ params }: Props) {
   const brand = await resolveBrandForPortal(supabase);
 
   const c = buildComprobante(inv);
-  const pill = statusPill(c, inv.dueDate);
+  const pill = estadoDelComprobante(c, inv.dueDate);
   const generatedAt = formatDate(new Date().toISOString());
 
   return (
@@ -348,6 +349,21 @@ export default async function PortalComprobantePage({ params }: Props) {
               </div>
               {c.paid > 0 ? (
                 <TotalRow k="Pagado" v={formatInvoiceAmount(c.paid, inv.currency)} />
+              ) : null}
+              {/* SDD-0556 · lo pagado en una anulada no desaparece, pero tampoco
+                  es un abono a otra deuda: se dice, sin «saldo pendiente». La
+                  indicación sale de `saldo-de-cuenta.ts`, la misma del portal. */}
+              {c.paidOnVoided > 0 ? (
+                <p
+                  style={{
+                    margin: "6px 0 0",
+                    fontSize: 11.5,
+                    lineHeight: 1.5,
+                    color: "var(--doc-ink-soft)",
+                  }}
+                >
+                  {`Esta factura está anulada: lo que pagaste en ella no se descuenta de tu saldo pendiente. ${indicacionPagosEnAnuladas({ singular: true, inicioDeFrase: true })}.`}
+                </p>
               ) : null}
               {c.hasBalance ? (
                 <div
@@ -642,24 +658,8 @@ function TotalRow({ k, v }: { k: string; v: string }) {
   );
 }
 
-/* ── Estado visible del comprobante (pill) ── */
-
-function statusPill(
-  c: ReturnType<typeof buildComprobante>,
-  dueDate: string | null,
-): { label: string; color: string } {
-  if (c.isPaid) return { label: "Pagada", color: "var(--doc-success)" };
-  if (c.hasBalance && isPast(dueDate))
-    return { label: "Vencida", color: "var(--doc-danger)" };
-  if (c.hasBalance) return { label: "Pendiente", color: "var(--doc-warning)" };
-  return { label: "Emitida", color: "var(--doc-ink-soft)" };
-}
-
-function isPast(iso: string | null): boolean {
-  if (!iso) return false;
-  const t = new Date(iso).getTime();
-  return !Number.isNaN(t) && t < Date.now();
-}
+/* El pill de estado vive en `lib/portal/comprobante.ts` (`estadoDelComprobante`),
+   puro y probado: un page.tsx no puede exportar helpers (SDD-0556). */
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";

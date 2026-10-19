@@ -66,7 +66,8 @@ El repo sirve `/.well-known/assetlinks.json` desde
 [`app/api/well-known/assetlinks/route.ts`](../../app/api/well-known/assetlinks/route.ts)
 con el **package name** (`com.dtdcargo.twa`) y el **fingerprint del APK actual
 horneados por default**. O sea: tras deployar, el endpoint ya devuelve el JSON
-correcto y el APK abre chromeless. **No hay que setear nada en Vercel.**
+correcto y el APK abre chromeless. **No hay que setear ninguna variable** (ni
+en el servidor propio ni en Vercel, que está en pausa desde el 2026-10-16).
 
 Verificá:
 ```bash
@@ -75,8 +76,12 @@ curl https://dtdcargo.com/.well-known/assetlinks.json
 ```
 
 Solo si **rotás el keystore** (APK nuevo con otra firma): actualizá el
-fingerprint vía env `DTD_ANDROID_CERT_SHA256` en Vercel (coma-separado para
+fingerprint vía env `DTD_ANDROID_CERT_SHA256` (coma-separado para
 varias llaves), o editá `DEFAULT_SHA256` / `PACKAGE_NAME` en el route handler.
+*(Nota del 2026-10-19: desde el 2026-10-16 esa variable va en el `.env` del
+servidor propio, `/srv/dtd-cargo/.env`, y se aplica recreando el contenedor
+`web`; antes iba en Vercel. Lo hace la sesión de Contabo con el OK de Sam:
+[`servidor-contabo.md`](servidor-contabo.md).)*
 
 ---
 

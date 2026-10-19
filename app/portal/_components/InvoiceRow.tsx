@@ -1,9 +1,9 @@
 import Link from "next/link";
 import {
   formatInvoiceAmount,
-  invoiceBalance,
   type PortalInvoiceRow,
 } from "@/lib/portal/portal-types";
+import { esAnulada, saldoPorPagar } from "@/lib/portal/saldo-de-cuenta";
 import { ArrowIcon } from "@/components/Icon";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 
@@ -24,12 +24,13 @@ function formatDate(iso: string | null): string {
  * Fila read-only de "Mis facturas". Toda la card linkea al detalle
  * (`/portal/facturas/[code]`). Muestra total, saldo pendiente (si hay) y el
  * envío asociado (si la factura está ligada a uno).
+ *
+ * SDD-0556 · una anulada no tiene «Saldo»: su total va tachado y, si se le
+ * pagó algo, se dice cuánto se recibió (ese dinero no desaparece).
  */
 export function InvoiceRow({ invoice }: { invoice: PortalInvoiceRow }) {
-  const balance = invoiceBalance({
-    total_amount: invoice.total,
-    paid_amount: invoice.paid,
-  });
+  const balance = saldoPorPagar(invoice);
+  const anulada = esAnulada(invoice);
 
   return (
     <Link
@@ -49,9 +50,20 @@ export function InvoiceRow({ invoice }: { invoice: PortalInvoiceRow }) {
         </div>
         <div className="mt-1.5 text-[13.5px] text-grey-700">
           <span className="text-grey-500">Total</span>{" "}
-          <span className="font-semibold text-ink">
+          <span
+            className={`font-semibold ${anulada ? "line-through text-grey-500" : "text-ink"}`}
+          >
             {formatInvoiceAmount(invoice.total, invoice.currency)}
           </span>
+          {anulada && invoice.paid > 0 ? (
+            <>
+              {" · "}
+              <span className="text-grey-500">Recibido</span>{" "}
+              <span className="font-semibold text-ink">
+                {formatInvoiceAmount(invoice.paid, invoice.currency)}
+              </span>
+            </>
+          ) : null}
           {balance > 0 ? (
             <>
               {" · "}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildComprobante } from "../comprobante";
+import { buildComprobante, estadoDelComprobante } from "../comprobante";
 import type { PortalInvoiceDetail } from "../portal-types";
 
 /** Detalle de factura mínimo válido para el builder; override por test. */
@@ -85,6 +85,42 @@ describe("buildComprobante", () => {
     expect(c.linesTotal).toBe(0);
   });
 
+  it("SDD-0556 · anulada sin pagos: sin saldo, no «pagada», isVoided", () => {
+    const c = buildComprobante(inv({ status: "anulada", total: 1000, paid: 0 }));
+    expect(c).toMatchObject({
+      balance: 0,
+      hasBalance: false,
+      isPaid: false,
+      isVoided: true,
+      paidOnVoided: 0,
+    });
+  });
+
+  it("SDD-0556 · anulada con abono: sin saldo pendiente y lo pagado a la vista", () => {
+    // Antes: balance 700 y hasBalance true — el comprobante le cobraba al
+    // cliente una factura que ya no existe.
+    const c = buildComprobante(inv({ status: "anulada", total: 1000, paid: 300 }));
+    expect(c).toMatchObject({
+      balance: 0,
+      hasBalance: false,
+      isPaid: false,
+      isVoided: true,
+      paidOnVoided: 300,
+    });
+  });
+
+  it("SDD-0556 · anulada pagada entera tampoco es «pagada»", () => {
+    const c = buildComprobante(inv({ status: "anulada", total: 1000, paid: 1000 }));
+    expect(c.isPaid).toBe(false);
+    expect(c.paidOnVoided).toBe(1000);
+  });
+
+  it("una viva no es anulada ni tiene paidOnVoided", () => {
+    const c = buildComprobante(inv({ total: 1000, paid: 300 }));
+    expect(c.isVoided).toBe(false);
+    expect(c.paidOnVoided).toBe(0);
+  });
+
   it("normaliza qty/precio no numéricos a 0", () => {
     const c = buildComprobante(
       inv({
@@ -93,5 +129,26 @@ describe("buildComprobante", () => {
       }),
     );
     expect(c.lines[0].subtotal).toBe(0);
+  });
+});
+
+describe("estadoDelComprobante · el pill (SDD-0556)", () => {
+  const NOW = new Date("2026-10-18T12:00:00Z").getTime();
+  const VENCIDA = "2026-06-16";
+
+  it("una anulada vencida con saldo dice «Anulada», no «Vencida» ni «Pendiente»", () => {
+    const c = buildComprobante(inv({ status: "anulada", total: 1000, paid: 300, dueDate: VENCIDA }));
+    expect(estadoDelComprobante(c, VENCIDA, NOW)).toEqual({
+      label: "Anulada",
+      color: "var(--doc-ink-soft)",
+    });
+  });
+
+  it("los estados de una viva no cambian", () => {
+    const vencida = buildComprobante(inv({ total: 1000, paid: 300 }));
+    expect(estadoDelComprobante(vencida, VENCIDA, NOW).label).toBe("Vencida");
+    expect(estadoDelComprobante(vencida, "2026-12-31", NOW).label).toBe("Pendiente");
+    expect(estadoDelComprobante(buildComprobante(inv({ paid: 1000 })), VENCIDA, NOW).label).toBe("Pagada");
+    expect(estadoDelComprobante(buildComprobante(inv({ total: 0 })), null, NOW).label).toBe("Emitida");
   });
 });

@@ -5,6 +5,23 @@
 > Lo ejecuta la **ventana de coordinación / el founder** (toca prod). La ventana de desarrollo NO
 > deploya ni escribe en prod.
 
+> ⚠️ **Nota del 2026-10-19 · producción ya no es Supabase Cloud ni Vercel.** Desde el corte del
+> 2026-10-14 (02:00Z), las Edge Functions de Kommo corren en el Supabase del servidor propio (VPS de
+> Contabo) y, desde el 2026-10-16, también la web; Vercel está en pausa. El proyecto de Cloud
+> `xpfuzqombmjmxvprjgmi` que nombra este runbook es la copia del corte y se pausa el 2026-10-28: no lo
+> uses para operar. En el servidor:
+>
+> - **URL:** `https://supabase.dtdcargo.com/functions/v1/kommo-push-client`.
+> - **Código:** no hay `supabase functions deploy` ni MCP. La carpeta `functions/` del servidor se arma
+>   desde `supabase/functions/` del repo ([`infra/dtd-cargo/README.md`](../../infra/dtd-cargo/README.md) ›
+>   Arrancar) y se monta de solo lectura.
+> - **`KOMMO_PUSH_DRY_RUN`:** va en el `.env` del servidor (`/srv/dtd-cargo/.env`, lo lee el servicio
+>   `functions` de `infra/dtd-cargo/compose.supabase.yml`), no en los secretos de Cloud.
+> - **Logs:** `docker logs dtd-cargo-functions-1`.
+>
+> Lo opera la sesión de Contabo con el OK de Sam: [`servidor-contabo.md`](servidor-contabo.md) §3.6. Lo
+> de abajo queda como registro de cómo se hizo en Cloud.
+
 ## Qué es esto
 
 Cuando un cliente se da de alta en `/registro`, el alta invoca la Edge Function `kommo-push-client`

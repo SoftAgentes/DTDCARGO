@@ -19,6 +19,16 @@ tercero no es papeleo: es lo único que delimita quién responde.
 
 ## 1 · Los que reciben datos personales
 
+> ⚠️ **Nota del 2026-10-19 · la tabla es anterior al traslado.** Desde el corte
+> del 2026-10-14 (02:00Z), la base y el Storage de producción viven en el
+> servidor propio de Contabo (fila «Contabo GmbH»), y desde el 2026-10-16 la web
+> también; Vercel está en pausa. Supabase Cloud guarda la copia del momento del
+> corte hasta su pausa (2026-10-28) y su borrado posterior, que pide otro OK de
+> Sam; Vercel conserva sus logs hasta el retiro. Las filas de Supabase, Vercel y
+> Contabo no se reescriben en esta nota: su actualización es el hallazgo H14 de
+> [`revision-traslado-contabo-2026-10-09.md`](revision-traslado-contabo-2026-10-09.md),
+> pendiente. Fuente del corte: [`servidor-contabo.md`](../../runbooks/servidor-contabo.md) §3.6.
+
 | Proveedor | Qué recibe | País | Contrato | Evidencia |
 |---|---|---|---|---|
 | **Supabase** | **Todo**: tablas con campos de persona y buckets (documentos de identidad, comprobantes, POD, audio) | EE. UU. · `us-east-1`, verificado en Cloud 2026-09-04 | ❓ contrato, subprocesadores y retención | `lib/db/server.ts` |
