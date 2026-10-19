@@ -12,6 +12,14 @@
  *    tenant leídas de la misma PGlite: lo que la RLS le dejaría ver a una sesión del tenant.
  *  - Control: con la regla vieja del K10 (cualquier recibo vivo VES/CNY con asiento `receipt`
  *    vivo), el conteo difiere de la fila 91. Si diera igual, la paridad no probaría nada.
+ *
+ * SDD-0563 suma tres cosas:
+ *  - El estado COMPLETO de 1.1.2, tenant por tenant, con la equivalencia de su spec (`EQUIVALENTE`).
+ *    Control: con la regla anterior de la radiografía (sin la enmienda de la decisión 7), A y H
+ *    dejan de coincidir.
+ *  - Los dos casos teóricos de la SDD-0562, cada uno como escenario sobre la fixture dentro de una
+ *    transacción que se deshace (`escenario`): sin cuenta 1.1.2 y una subcuenta sin su cuenta
+ *    intermedia. La prueba deja escrito lo que hace cada definición.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -115,6 +123,31 @@ const ESTADOS_1_1_2: Record<number, string> = {
   95: "mayor por debajo",
 };
 const FILAS_1_1_2 = Object.keys(ESTADOS_1_1_2).map(Number);
+/** El tenant que no aparece en la sección 8: sin documentos ni asientos. */
+const SIN_MOVIMIENTO = "fuera de la radiografía (sin movimiento)";
+
+/**
+ * SDD-0563 · El estado de «Por contabilizar» que corresponde a cada estado de la radiografía. La
+ * radiografía no tiene «cuenta no encontrada» (`sin_cuenta`) y separa «no cuadra» en encima y
+ * debajo.
+ */
+const EQUIVALENTE: Record<string, EstadoCuadre> = {
+  "sin movimiento en el mayor": "mayor_sin_movimiento",
+  "no comparable": "no_comparable",
+  "sin movimiento en la cuenta": "sin_movimiento",
+  [SIN_MOVIMIENTO]: "sin_movimiento",
+  cuadra: "cuadra",
+  "mayor por encima": "no_cuadra",
+  "mayor por debajo": "no_cuadra",
+};
+
+/**
+ * La regla de 1.1.2 antes de la SDD-0563: la factura abierta fuera de USD/USDT no la volvía no
+ * comparable. Sin lanzar al cargar: si la enmienda faltara, el control (e) lo dice con su
+ * aserción, y (b) y (d) con la diferencia que de verdad aparece.
+ */
+const ENMIENDA = " or (cuenta = '1.1.2' and fuera) then";
+const SCRIPT_ANTERIOR = SCRIPT.split(ENMIENDA).join(" then");
 
 /** Lo que lee «Por contabilizar», tabla por tabla, filtrado por tenant (lo que dejaría la RLS). */
 const TABLAS_DEL_TENANT = [
@@ -151,16 +184,19 @@ describe("SDD-0562 · «Por contabilizar» y la radiografía cuentan igual los n
    * huérfanas y la radiografía no las ve, porque las une por el asiento vivo. El `rollback;` final
    * del propio script deshace el borrado; si algo falla antes, se deshace acá. La última prueba
    * comprueba que la base quedó intacta.
+   *
+   * `script` permite correr la regla anterior (control) y `escenario`, SQL que cambia la fixture
+   * antes de medir (los casos teóricos): los dos se deshacen con el mismo `rollback;`.
    */
-  async function radiografiaDe(tenant: Tenant): Promise<FilaRadiografia[]> {
+  async function radiografiaDe(tenant: Tenant, script = SCRIPT, escenario = ""): Promise<FilaRadiografia[]> {
     expect(tenant.id).toMatch(/^[0-9a-f-]{36}$/);
     const inicio = "begin transaction read only;\n";
-    const partes = SCRIPT.split(inicio);
+    const partes = script.split(inicio);
     expect(partes, "la primera sentencia de la radiografía").toHaveLength(2);
     const borrar = tablasConTenant
       .map((t) => `delete from public.${t} where tenant_id is distinct from '${tenant.id}';`)
       .join("\n");
-    const aislada = partes.join(`begin;\nset local session_replication_role = replica;\n${borrar}\n`);
+    const aislada = partes.join(`begin;\nset local session_replication_role = replica;\n${borrar}\n${escenario}\n`);
     try {
       return await correr(aislada);
     } catch (e) {
@@ -187,15 +223,51 @@ describe("SDD-0562 · «Por contabilizar» y la radiografía cuentan igual los n
 
   /** El estado de clientes (1.1.2) de «Por contabilizar», como lo calcula la página. */
   async function porContabilizar(tablas: Record<string, Fila[]>): Promise<EstadoCuadre> {
+    return (await cuadreDe(tablas)).subdiario.clientes.estado;
+  }
+
+  async function cuadreDe(tablas: Record<string, Fila[]>) {
     // `proyectar`: el doble devuelve solo las columnas del `select`, como PostgREST. Si el lector
     // dejara de pedir `invoice_id` o `identified_at`, el recibo llegaría sin ellos.
     const { client } = dobleListados(tablas, { proyectar: true });
     const [accounts, saldos] = await Promise.all([listAccounts(client), accountBalances(client)]);
-    const cuadre = await cuadreDelLibro(client, { accounts, saldos, hoy: HOY });
-    return cuadre.subdiario.clientes.estado;
+    return cuadreDelLibro(client, { accounts, saldos, hoy: HOY });
   }
 
-  let porTenant: { letra: string; radiografia: string; studio: EstadoCuadre; studioReglaVieja: EstadoCuadre }[] = [];
+  /**
+   * Un caso teórico: el mismo SQL sobre la fixture, medido por las dos definiciones. La radiografía
+   * lo corre dentro de su transacción aislada; «Por contabilizar» lee las filas del tenant dentro de
+   * otra transacción, que se deshace al terminar.
+   */
+  async function escenario(tenant: Tenant, sql: string) {
+    const filas = await radiografiaDe(tenant, SCRIPT, sql);
+    const estados = FILAS_1_1_2.filter((o) => porFila(filas, o) > 0);
+    expect(estados.length, `escenario en ${tenant.letra}: un estado de 1.1.2`).toBe(1);
+    await db.exec("begin;\n" + sql);
+    try {
+      const cuadre = await cuadreDe(await tablasDe(tenant));
+      return { radiografia: ESTADOS_1_1_2[estados[0]], cuadre };
+    } finally {
+      await db.exec("rollback;");
+    }
+  }
+
+  /** El estado de 1.1.2 de UN tenant en la radiografía: a lo sumo una fila de la sección 8. */
+  function estadoEnRadiografia(t: Tenant, filas: FilaRadiografia[]): string {
+    const estados = FILAS_1_1_2.filter((o) => porFila(filas, o) > 0);
+    expect(estados.length, `tenant ${t.letra}: a lo sumo un estado de 1.1.2`).toBeLessThanOrEqual(1);
+    expect(estados.every((o) => porFila(filas, o) === 1), `tenant ${t.letra}: un solo tenant`).toBe(true);
+    return estados.length ? ESTADOS_1_1_2[estados[0]] : SIN_MOVIMIENTO;
+  }
+
+  let porTenant: {
+    letra: string;
+    radiografia: string;
+    /** La radiografía con la regla de 1.1.2 anterior a la SDD-0563 (control). */
+    radiografiaAnterior: string;
+    studio: EstadoCuadre;
+    studioReglaVieja: EstadoCuadre;
+  }[] = [];
 
   beforeAll(async () => {
     db = new PGlite();
@@ -219,22 +291,15 @@ describe("SDD-0562 · «Por contabilizar» y la radiografía cuentan igual los n
 
     porTenant = [];
     for (const t of tenants) {
-      const filas = await radiografiaDe(t);
-      const estados = FILAS_1_1_2.filter((o) => porFila(filas, o) > 0);
-      expect(estados.length, `tenant ${t.letra}: a lo sumo un estado de 1.1.2`).toBeLessThanOrEqual(1);
-      expect(estados.every((o) => porFila(filas, o) === 1), `tenant ${t.letra}: un solo tenant`).toBe(true);
+      const radiografia = estadoEnRadiografia(t, await radiografiaDe(t));
+      const radiografiaAnterior = estadoEnRadiografia(t, await radiografiaDe(t, SCRIPT_ANTERIOR));
       const tablas = await tablasDe(t);
       regla.vieja = false;
       const studio = await porContabilizar(tablas);
       regla.vieja = true;
       const studioReglaVieja = await porContabilizar(tablas);
       regla.vieja = false;
-      porTenant.push({
-        letra: t.letra,
-        radiografia: estados.length ? ESTADOS_1_1_2[estados[0]] : "fuera de la radiografía (sin movimiento)",
-        studio,
-        studioReglaVieja,
-      });
+      porTenant.push({ letra: t.letra, radiografia, radiografiaAnterior, studio, studioReglaVieja });
     }
   }, SLOW);
 
@@ -262,15 +327,16 @@ describe("SDD-0562 · «Por contabilizar» y la radiografía cuentan igual los n
 
   it("(a) el número de tenants «no comparable» en clientes es la fila 91", () => {
     const fila91 = porFila(completa, 91);
-    expect(fila91).toBe(5);
+    expect(fila91).toBe(7);
     expect(letras((t) => t.studio === "no_comparable"), JSON.stringify(porTenant)).toHaveLength(fila91);
   });
 
   it("(b) tenant por tenant, «Por contabilizar» marca «no comparable» exactamente los de la fila 91", () => {
     const radiografia = letras((t) => t.radiografia === "no comparable");
-    // E (FE1), G (FG1), J (FJ2 anulada), N (RN1 con factura) y T (RT1 reclasificado): el comentario
-    // de la fila 91 en radiografia-integridad.test.ts.
-    expect(radiografia).toEqual(["E", "G", "J", "N", "T"]);
+    // E (FE1), G (FG1), J (FJ2 anulada), N (RN1 con factura) y T (RT1 reclasificado), y desde la
+    // SDD-0563 A (F19 F20) y H (FH2), abiertas en VES/CNY sin asiento: el comentario de la fila 91
+    // en radiografia-integridad.test.ts. P no: FP3 es un borrador.
+    expect(radiografia).toEqual(["A", "E", "G", "H", "J", "N", "T"]);
     expect(letras((t) => t.studio === "no_comparable"), JSON.stringify(porTenant)).toEqual(radiografia);
   });
 
@@ -282,8 +348,62 @@ describe("SDD-0562 · «Por contabilizar» y la radiografía cuentan igual los n
     // regla vieja de la nueva (las dos cuentan RT1); protege del otro lado: una regla que dejara
     // afuera a todo recibo identificado lo perdería. I también tiene un recibo así (RI1), pero su
     // 1.1.2 no tiene movimiento y «sin movimiento en el mayor» gana con las dos reglas.
-    expect(vieja).toEqual(["E", "G", "J", "K", "N", "T"]);
+    expect(vieja).toEqual(["A", "E", "G", "H", "J", "K", "N", "T"]);
     expect(porTenant.find((t) => t.letra === "I")?.studioReglaVieja).toBe("mayor_sin_movimiento");
+  });
+
+  it("(d) SDD-0563: el estado completo de 1.1.2 es el mismo en los dos lugares, tenant por tenant", () => {
+    const distintos = porTenant.filter((t) => EQUIVALENTE[t.radiografia] !== t.studio);
+    expect(distintos, JSON.stringify(porTenant)).toEqual([]);
+    // La fixture recorre todos los estados que tienen par, para que la equivalencia no quede sin probar.
+    expect(new Set(porTenant.map((t) => t.radiografia))).toEqual(new Set(Object.keys(EQUIVALENTE)));
+  });
+
+  it("(e) control: con la regla anterior de la radiografía, A y H dejan de coincidir", () => {
+    // Sin la enmienda, H (FH2 abierta en VES, sin asiento) cuadra y A (F19 F20) queda por debajo;
+    // «Por contabilizar» los marca no comparables. El resto no se mueve.
+    expect(SCRIPT.split(ENMIENDA), "la enmienda de la decisión 7 en la radiografía").toHaveLength(2);
+    const distintos = letras((t) => EQUIVALENTE[t.radiografiaAnterior] !== t.studio);
+    expect(distintos).toEqual(["A", "H"]);
+    expect(porTenant.find((t) => t.letra === "H")?.radiografiaAnterior).toBe("cuadra");
+    expect(porTenant.find((t) => t.letra === "A")?.radiografiaAnterior).toBe("mayor por debajo");
+  });
+
+  it("(f) SDD-0563: la misma factura cuenta en «sin asiento» y vuelve no comparable la 1.1.2", async () => {
+    // Decisión del Director: «sin asiento» habla del documento y «no comparable», de la cuenta.
+    const h = tenants.find((t) => t.letra === "H")!;
+    const cuadre = await cuadreDe(await tablasDe(h));
+    expect(cuadre.subdiario.clientes).toMatchObject({ estado: "no_comparable", sinConvertir: 1, diferenciaUsd: null });
+    // FH2, la que no suma, es la única factura de H en la lista de «sin asiento».
+    const facturasSinAsiento = cuadre.documentos.sinAsiento.filter((d) => d.tipo === "factura");
+    expect(facturasSinAsiento.map((d) => [d.codigo, d.moneda, d.motivo])).toEqual([["CENTINELA-F-FH2", "VES", "sin_asiento"]]);
+  });
+
+  it("(g) caso teórico: sin cuenta 1.1.2, «cuenta no encontrada» gana sobre «no comparable»; la radiografía no tiene ese estado", async () => {
+    // H, con FH2 abierta en VES, sería no comparable. Con su 1.1.2 renombrada (el plan de cuentas
+    // lo permite), «Por contabilizar» no encuentra la cuenta. La radiografía ve la 1.1.2 sin
+    // movimiento y facturas abiertas: gana el mayor vacío (decisión 6). Ninguna de las dos cuenta
+    // a H en la fila 91.
+    const h = tenants.find((t) => t.letra === "H")!;
+    const r = await escenario(h, `update public.accounts set code = '9.1.2' where tenant_id = '${h.id}' and code = '1.1.2';`);
+    expect(r.cuadre.subdiario.clientes).toMatchObject({ estado: "sin_cuenta", mayorUsd: null, diferenciaUsd: null });
+    expect(r.radiografia).toBe("sin movimiento en el mayor");
+  });
+
+  it("(h) caso teórico: una subcuenta sin su cuenta intermedia entra en la radiografía y no en «Por contabilizar» (divergencia fijada)", async () => {
+    // B cuadra. Un asiento manual vivo a 1.1.2.9.1, sin la 1.1.2.9 en el plan: la radiografía lo
+    // suma a 1.1.2 (`like '1.1.2.%'`) y queda por encima; `computeBalances` sube una cuenta solo a
+    // su padre directo y, si no está, no la sube: B sigue cuadrando. NO se corrige en la SDD-0563:
+    // queda para el Director. Si alguien la alinea, esta prueba lo dice.
+    const b = tenants.find((t) => t.letra === "B")!;
+    const r = await escenario(
+      b,
+      `insert into public.accounts (tenant_id, code, name, type, is_postable)
+         values ('${b.id}', '1.1.2.9.1', 'CENTINELA-SUBCUENTA', 'A', true);
+       select pg_temp.asiento('B', 'MB9', 'asentado', 'manual', '1.1.2.9.1', '4.5', 50.00);`,
+    );
+    expect(r.radiografia).toBe("mayor por encima");
+    expect(r.cuadre.subdiario.clientes).toMatchObject({ estado: "cuadra", diferenciaUsd: 0 });
   });
 
   it("la base quedó intacta: la radiografía completa da lo mismo que antes de aislar", async () => {

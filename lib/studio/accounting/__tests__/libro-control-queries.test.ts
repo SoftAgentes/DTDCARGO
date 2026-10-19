@@ -560,18 +560,24 @@ describe("cuadreDelLibro", () => {
 
   /**
    * Decisiones 6 y 7 del Director (2026-10-19, revisables por Sam) por el
-   * lector: una factura abierta en VES (36500 Bs a 36,5 = 1000 USD), con o sin
-   * su asiento `invoice` vivo, contra 1.1.2 con o sin movimiento. El asiento
-   * vivo sale del mismo cruce de «documentos sin asiento».
+   * lector: una factura en VES (36500 Bs a 36,5 = 1000 USD), abierta o pagada,
+   * con o sin su asiento `invoice` vivo, contra 1.1.2 con o sin movimiento. El
+   * asiento vivo sale del mismo cruce de «documentos sin asiento». Desde la
+   * SDD-0563 (enmienda de la decisión 7), la abierta es «no comparable» con
+   * asiento o sin él; el asiento vivo decide en la que ya no está abierta.
    */
   async function cuadreConVes(o: {
     asiento: boolean | "anulado" | "referido";
     cxc: { debit: number; credit: number; balance: number };
+    pagada?: boolean;
   }) {
     const tablas: Record<string, Fila[]> = {
       accounts: PLAN,
       invoices: [
-        { id: "fv", invoice_code: "F-V", status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, total_amount: 36500, paid_amount: 0, deleted_at: null },
+        {
+          id: "fv", invoice_code: "F-V", status: o.pagada ? "pagada" : "emitida", issued_at: "2025-03-05", currency: "VES",
+          fx_rate: 36.5, total_amount: 36500, paid_amount: o.pagada ? 36500 : 0, deleted_at: null,
+        },
       ],
       payment_receipts: [],
       supplier_bills: [],
@@ -598,23 +604,30 @@ describe("cuadreDelLibro", () => {
     expect(c.subdiario.clientes).toMatchObject({ estado: "no_comparable", diferenciaUsd: null });
   });
 
-  it("decisión 7 · con movimiento en 1.1.2 y la VES SIN asiento: la diferencia, no «no comparable»", async () => {
+  it("enmienda de la decisión 7 (SDD-0563) · con movimiento en 1.1.2 y la VES abierta SIN asiento: «no comparable», y la misma factura sigue en «sin asiento»", async () => {
     const c = await cuadreConVes({ asiento: false, cxc: { debit: 500, credit: 0, balance: 500 } });
-    expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 1000, mayorUsd: 500, diferenciaUsd: 500, estado: "no_cuadra" });
+    // No se convierte: no suma y vuelve no comparable la cuenta.
+    expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 0, mayorUsd: 500, diferenciaUsd: null, sinConvertir: 1, estado: "no_comparable" });
+    // «Sin asiento» habla del documento; «no comparable», de la cuenta: la factura está en los dos.
     expect(c.documentos.sinAsiento.map((h) => h.codigo)).toEqual(["F-V"]);
   });
 
-  it.each(["anulado", "referido"] as const)(
-    "decisión 7 · con movimiento en 1.1.2 y la VES con un asiento %s: no es vivo, da la diferencia (como en Reportes)",
+  it("decisión 7 · la VES pagada con su asiento vivo: «no comparable»", async () => {
+    const c = await cuadreConVes({ asiento: true, pagada: true, cxc: { debit: 500, credit: 0, balance: 500 } });
+    expect(c.subdiario.clientes).toMatchObject({ estado: "no_comparable", diferenciaUsd: null });
+  });
+
+  it.each([false, "anulado", "referido"] as const)(
+    "decisión 7 · la VES pagada con asiento %s: no es vivo, da la diferencia (como en Reportes)",
     async (asiento) => {
-      const c = await cuadreConVes({ asiento, cxc: { debit: 500, credit: 0, balance: 500 } });
-      expect(c.subdiario.clientes).toMatchObject({ diferenciaUsd: 500, estado: "no_cuadra" });
+      const c = await cuadreConVes({ asiento, pagada: true, cxc: { debit: 500, credit: 0, balance: 500 } });
+      expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 0, sinConvertir: 0, diferenciaUsd: -500, estado: "no_cuadra" });
     },
   );
 
   it("decisión 6 · 1.1.2 sin movimiento y la VES abierta: «sin movimiento en el mayor», sin diferencia", async () => {
     const c = await cuadreConVes({ asiento: false, cxc: { debit: 0, credit: 0, balance: 0 } });
-    expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 1000, mayorUsd: 0, diferenciaUsd: null, estado: "mayor_sin_movimiento" });
+    expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 0, sinConvertir: 1, mayorUsd: 0, diferenciaUsd: null, estado: "mayor_sin_movimiento" });
   });
 
   it("recibos y pagos anulados (deleted_at) con asiento vivo, CxP viva sin asiento y CxP abierta en el subdiario", async () => {
