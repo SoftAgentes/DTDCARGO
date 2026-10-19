@@ -104,8 +104,8 @@ const clave = (orden: number, indicador: string) => (GRUPOS.has(orden) ? `${orde
  */
 const ESPERADO: readonly [number, string, number][] = [
   [10, "tenants con movimiento", 16], // A-N, P, S y T menos F (P entra por sus asientos: FP1 está borrada)
-  [11, "facturas", 45], // A 23 (F21 borrada no) + B3 C2 E1 G1 H2 I2 J2 K2 M3 N1 S2 T1 (FP1 borrada no)
-  [12, "asientos asentados vivos", 80], // A 39 + B3 C1 D1 E5 G4 H1 I2 J9 K3 L2 N1 P3 S4 T2 (ver la fila 30)
+  [11, "facturas", 46], // A 23 (F21 borrada no) + B3 C2 E1 G1 H2 I2 J2 K2 M3 N1 P1 S2 T1 (FP3 borrador; FP1 borrada no)
+  [12, "asientos asentados vivos", 81], // A 39 + B3 C1 D1 E5 G4 H1 I2 J9 K3 L2 N1 P4 S4 T2 (ver la fila 30)
   [13, "recibos vivos", 25], // A 16 (R5 R9 R19 R20 anulados) + RB1 RB2 RG1 RI1 RJ1 RK1 RK2 RN1 RT1 (RS1 anulado)
   [14, "reportes de pago", 7], // P1 P2 P4 P5 P6 P7 P8 (P3 borrado)
   [15, "cuentas por pagar", 19], // BA1-BA5 (BA6 borrada), BB1-BB4, BE1, BG1 BG2, BI1, BJ1, BL1, BM1 BM2, BP1, BS1
@@ -115,22 +115,23 @@ const ESPERADO: readonly [number, string, number][] = [
   [20, "facturas · borrador · CNY", 1], // F23
   [20, "facturas · borrador · USD", 2], // F9 FM1
   [20, "facturas · borrador · USDT", 1], // F24
+  [20, "facturas · borrador · VES", 1], // FP3, con su asiento de venta vivo (SDD-0563)
   [20, "facturas · emitida · CNY", 1], // F19
-  [20, "facturas · emitida · USD", 9], // F1 F13 F25 FC1 FC2 FH1 FI1 FK1 FS1
+  [20, "facturas · emitida · USD", 10], // F1 F13 F25 FC1 FC2 FH1 FI1 FK1 FS1 FS2
   [20, "facturas · emitida · USDT", 1], // F8
-  [20, "facturas · emitida · VES", 4], // F20 FE1 FH2 FS2
+  [20, "facturas · emitida · VES", 3], // F20 FE1 FH2
   [20, "facturas · pagada · USD", 2], // F11 FM3
-  [20, "facturas · pagada · VES", 5], // F7 FB3 FG1 FK2 FT1
+  [20, "facturas · pagada · VES", 6], // F7 FB3 FG1 FK2 FN1 FT1
   [20, "facturas · parcial · USD", 9], // F2 F3 F10 F12 F14 F15 F18 FB1 FJ1
-  [20, "facturas · parcial · VES", 2], // FI2 FN1
+  [20, "facturas · parcial · VES", 1], // FI2
   [20, "facturas · vencida · USD", 1], // F6
   [21, "facturas no borrador en VES/CNY sin tasa", 3], // F7 (nula), F19 CNY (nula), F20 (0); F23 es borrador
   [22, "facturas no borrador en USDT sin tasa (informativa)", 1], // F8; F24 es borrador
-  [23, "facturas en VES/CNY con asiento de venta vivo", 4], // FE1 FG1 FI2 (AFI2, sin líneas) FJ2
+  [23, "facturas en VES/CNY con asiento de venta vivo", 5], // FE1 FG1 FI2 (AFI2, sin líneas) FJ2 FP3 (borrador)
   [24, "recibos vivos en VES/CNY con asiento de cobro vivo", 6], // RG1 RI1 RK1 RK2 RN1 RT1 (RS1 anulado; RB2 sin asiento)
   [30, "asientos · anulado · receipt", 3], // AR3 AR8 AR14V
   [30, "asientos · anulado · supplier_bill", 2], // ABA3 ABB2
-  [30, "asientos · asentado · invoice", 25], // A 12 + AFB1 AFC2 AFE1 AFG1 AFH1 AFI2 AFJ1A AFJ1B AFJ2 AFK1 AFP1 AFP2 AFS1 (AX13 borrado)
+  [30, "asientos · asentado · invoice", 26], // A 12 + AFB1 AFC2 AFE1 AFG1 AFH1 AFI2 AFJ1A AFJ1B AFJ2 AFK1 AFP1 AFP2 AFP3 AFS1 (AX13 borrado)
   [30, "asientos · asentado · manual", 8], // M1 U1 MBA1 MOP1 MD1 M2 ME2 ME3
   [30, "asientos · asentado · otro", 1], // U2, origen libre CENTINELA
   // A 12 (AR1 AR2 AR4 AR5 AR6 AR10 AR11 AR12 AR14 AR15 AR18 AR21) + ARB1 ARG1 ARI1 ARJ1A ARJ1B ARK1 ARK2 ARN1
@@ -182,14 +183,15 @@ const ESPERADO: readonly [number, string, number][] = [
   [84, "facturas con cobrado mayor que sus tres fuentes", 4], // F7 F11 F17 FM3
   [85, "facturas con cobrado menor que sus tres fuentes", 3], // F13 F16 F25
   [86, "facturas anuladas con cobrado", 2], // F4 F17
-  [87, "facturas sin cobrado ni fuentes", 22], // A 9 (F1 F5 F6 F8 F9 F19 F20 F23 F24) + FB2 FC1 FC2 FE1 FH1 FH2 FI1 FJ2 FK1 FM1 FM2 FS1 FS2
+  [87, "facturas sin cobrado ni fuentes", 23], // A 9 (F1 F5 F6 F8 F9 F19 F20 F23 F24) + FB2 FC1 FC2 FE1 FH1 FH2 FI1 FJ2 FK1 FM1 FM2 FP3 FS1 FS2
   [90, "tenants sin movimiento en el mayor (facturas abiertas, 1.1.2 sin asientos vivos)", 1], // I
-  [91, "tenants no comparables (factura, o recibo con factura, en VES/CNY con asiento vivo)", 5], // E G J N T
+  // A (F19 F20) y H (FH2), abiertas en VES/CNY sin asiento, desde la SDD-0563; P no, porque FP3 es borrador
+  [91, "tenants no comparables (factura abierta en VES/CNY, o factura no borrador o recibo con factura en VES/CNY con asiento vivo)", 7], // A E G H J N T
   [92, "tenants sin movimiento en la cuenta (0 contra 0)", 2], // L M
-  [93, "tenants que cuadran", 3], // B H K
-  [94, "tenants con el mayor por encima de las facturas abiertas", 2], // D (subcuenta 1.1.2.1) P (huérfanos)
-  [95, "tenants con el mayor por debajo de las facturas abiertas", 3], // A C S
-  [96, "  de los que cuadran o no, con facturas abiertas en VES/CNY fuera de la suma", 3], // A (F19 F20) H (FH2) S (FS2)
+  [93, "tenants que cuadran", 2], // B K
+  [94, "tenants con el mayor por encima de las facturas abiertas", 2], // D (subcuenta 1.1.2.1) P (huérfanos y el borrador FP3)
+  [95, "tenants con el mayor por debajo de las facturas abiertas", 2], // C S
+  [96, "  de los que cuadran o no, con facturas abiertas en VES/CNY fuera de la suma", 0], // control: desde la SDD-0563 son no comparables
   [97, "asientos manuales vivos que tocan 1.1.2", 4], // M1 MD1 M2 ME2 (MB1 en borrador)
   [100, "tenants sin movimiento en el mayor (cuentas por pagar abiertas, 2.1.1 sin asientos vivos)", 1], // I
   [101, "tenants no comparables (cuenta por pagar o pago en VES/CNY con asiento vivo)", 2], // E (BE1) L (OPL1)
@@ -203,14 +205,14 @@ const ESPERADO: readonly [number, string, number][] = [
   [120, "año 2025", 1], // F7
   [120, "año 2026", 39], // las 41 no borrador − F7 − F11
   [121, "sin fecha de emisión", 1], // F11
-  [130, "asientos vivos que tocan 4.5", 28], // 24 de factura (AFI2 no tiene líneas) + M1 U1 MD1 (4.5.1) ME2 (4.5 y 4.5.1, una vez)
+  [130, "asientos vivos que tocan 4.5", 29], // 25 de factura (AFI2 no tiene líneas) + M1 U1 MD1 (4.5.1) ME2 (4.5 y 4.5.1, una vez)
   [131, "asientos vivos que tocan 2.1.5", 2], // M2 (2.1.5.1) ME3 (2.1.5 y 2.1.5.1, una vez)
 ];
 
 /** Modo montos: las seis filas con monto, todas de documentos en USD o USDT. */
 const MONTOS_ESPERADOS: Record<string, string> = {
   "40": "850.85", // F5 + F16 + F17 (FJ2 en VES no suma)
-  "50": "1532.71", // F2 F3 F6 F13 FC1 FI1 FM3
+  "50": "1542.71", // F2 F3 F6 F13 FC1 FI1 FM3 FS2
   "51": "65.46", // R3 + R8 + R13 + R16 + R17
   "71": "127.46", // P1 + P6 + P8 (P5 en VES no suma)
   "84": "231.14", // F11 + F17 + FM3 (F7 en VES no suma)
@@ -306,7 +308,7 @@ const MUTANTES_DEL_DIRECTOR: Mutante[] = [
     a: "where je.deleted_at is null and je.status::text <> 'anulado'",
     // AF4 (borrador de F4), MB1 (borrador manual de B) y AR17 (borrador del cobro de R17) pasan a
     // vivos: A y B quedan por encima; R17 deja de estar sin asiento.
-    cambia: { "12": 83, "40": 5, "41": 3, "51": 5, "93": 2, "94": 4, "95": 2, "97": 5, "130": 30 },
+    cambia: { "12": 84, "40": 5, "41": 3, "51": 5, "93": 1, "94": 3, "97": 5, "130": 31 },
   },
   {
     nombre: "asiento de factura sin filtrar el origen",
@@ -336,7 +338,7 @@ const MUTANTES_DEL_DIRECTOR: Mutante[] = [
     de: "i.status::text in ('emitida', 'parcial', 'pagada', 'vencida') as abierta",
     a: "i.status::text in ('emitida', 'parcial', 'pagada') as abierta",
     // F6 sale de «sin asiento» y de la suma de A, que pasa a quedar por encima.
-    cambia: { "50": 15, "94": 3, "95": 2 },
+    cambia: { "50": 15 }, // F6 (A, por F19 y F20, ya es no comparable)
   },
   {
     nombre: "sin tasa cuenta USDT",
@@ -394,7 +396,7 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
     nombre: "cobrado igual a los recibos cuenta el 0 contra 0",
     de: "where paid_amount = recibos and (paid_amount > 0 or fuentes > 0))",
     a: "where paid_amount = recibos)",
-    cambia: { "80": 35 }, // las 22 de la fila 87
+    cambia: { "80": 36 }, // las 23 de la fila 87
   },
   {
     nombre: "cobrado igual a los recibos sin mirar las fuentes",
@@ -406,13 +408,13 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
     nombre: "cobrado igual a las tres fuentes cuenta el 0 contra 0",
     de: "where paid_amount = fuentes and paid_amount > 0)",
     a: "where paid_amount = fuentes)",
-    cambia: { "83": 38 }, // las 22 de la fila 87
+    cambia: { "83": 39 }, // las 23 de la fila 87
   },
   {
     nombre: "sin cobrado ni fuentes sin mirar las fuentes",
     de: "where paid_amount = 0 and fuentes = 0)",
     a: "where paid_amount = 0)",
-    cambia: { "87": 25 }, // F13 y F16, con un recibo vivo, y F25, con el reporte P8
+    cambia: { "87": 26 }, // F13 y F16, con un recibo vivo, y F25, con el reporte P8
   },
   {
     nombre: "1.1.2 sin subcuentas",
@@ -432,7 +434,7 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
     nombre: "4.5 sin subcuentas",
     de: "a.code = '4.5' or a.code like '4.5.%' as es_ingreso",
     a: "a.code = '4.5' as es_ingreso",
-    cambia: { "130": 27 }, // MD1 (4.5.1); ME2 sigue por su línea en 4.5
+    cambia: { "130": 28 }, // MD1 (4.5.1); ME2 sigue por su línea en 4.5
   },
   {
     nombre: "2.1.5 sin subcuentas",
@@ -450,7 +452,7 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
     nombre: "4.5 contado por línea",
     de: "(select count(distinct entry_id) from lin where es_ingreso)",
     a: "(select count(entry_id) from lin where es_ingreso)",
-    cambia: { "130": 29 }, // ME2 tiene dos líneas en 4.5
+    cambia: { "130": 30 }, // ME2 tiene dos líneas en 4.5
   },
   {
     nombre: "2.1.5 contado por línea",
@@ -463,7 +465,7 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
     de: "where j.source = 'receipt_reclass'",
     a: "where j.source in ('receipt', 'receipt_reclass')",
     // R5 y RS1 entran en la 43; R10, RI1 y RK2 salen de la 54, y RK2 vuelve no comparable a K.
-    cambia: { "43": 3, "54": 0, "91": 6, "93": 2 },
+    cambia: { "43": 3, "54": 0, "91": 8, "93": 1 },
   },
   {
     nombre: "reclasificación unida sólo por el lado del asiento",
@@ -480,7 +482,7 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
     a: "(select count(*) from je_vivo j where j.source = 'receipt_reclass'\n"
       + "           and j.id = r.journal_entry_id) as reclasificaciones",
     // R9 sale de la 43; R11 y RT1 entran en la 54, y T, sin su reclasificación, queda por debajo.
-    cambia: { "43": 0, "54": 5, "91": 4, "95": 4 },
+    cambia: { "43": 0, "54": 5, "91": 6, "95": 3 },
   },
   {
     nombre: "anuladas con abonos sin el recibo vivo",
@@ -538,7 +540,7 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
   },
   {
     nombre: "decisión 7: no comparable por saldo abierto en VES/CNY (regla del prototipo)",
-    de: "     exists (select 1 from fac f where f.tenant_id = m.tenant_id\n"
+    de: "     exists (select 1 from fac f where f.tenant_id = m.tenant_id and f.estado <> 'borrador'\n"
       + "               and f.moneda not in ('USD', 'USDT') and f.asientos > 0)\n"
       + "       or exists (select 1 from rec r where r.tenant_id = m.tenant_id and r.vivo and r.con_factura\n"
       + "                    and (not r.identificado or r.reclasificaciones > 0)\n"
@@ -546,16 +548,16 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
     a: "     exists (select 1 from fac f where f.tenant_id = m.tenant_id and f.abierta\n"
       + "               and f.moneda not in ('USD', 'USDT') and f.total_amount <> f.paid_amount),",
     // G (VES pagada, asentada al nominal) y J (FJ2 anulada ya no cuenta) salen por encima, y T
-    // (FT1 pagada) por debajo; A, H y S entran por su saldo VES/CNY sin asiento; N sigue no
-    // comparable por el saldo de FN1. La fila 91 queda en cinco, con otros tenants.
-    cambia: { "93": 2, "94": 4, "95": 2, "96": 0 },
+    // (FT1 pagada) y N (FN1 pagada, su recibo ya no cuenta) por debajo. Quedan A y H, que desde
+    // la SDD-0563 entran por `fuera`, y E por el saldo de FE1.
+    cambia: { "91": 3, "94": 4, "95": 4 },
   },
   {
     nombre: "decisión 7: no comparable sin exigir el asiento de la factura",
     de: "               and f.moneda not in ('USD', 'USDT') and f.asientos > 0)",
     a: "               and f.moneda not in ('USD', 'USDT'))",
-    // A (F7 F19 F20 F23), B (FB2 FB3), H (FH2), K (FK2) y S (FS2) pasan a no comparables.
-    cambia: { "91": 10, "93": 0, "95": 1, "96": 0 },
+    // B (FB2 FB3) y K (FK2) pasan a no comparables; A y H ya lo eran, y F23 y FP3 son borradores.
+    cambia: { "91": 9, "93": 0 },
   },
   {
     nombre: "decisión 7: no comparable sin los recibos",
@@ -564,60 +566,79 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
       + "                    and (not r.identificado or r.reclasificaciones > 0)\n"
       + "                    and r.moneda not in ('USD', 'USDT') and r.asientos > 0),",
     a: "               and f.moneda not in ('USD', 'USDT') and f.asientos > 0),",
-    // N y T quedan por debajo; N con FN1 fuera de la suma.
-    cambia: { "91": 3, "95": 5, "96": 4 },
+    // N y T quedan por debajo.
+    cambia: { "91": 5, "95": 4 },
   },
   {
     nombre: "decisión 7: no comparable sin exigir el asiento del recibo",
     de: "and r.moneda not in ('USD', 'USDT') and r.asientos > 0),",
     a: "and r.moneda not in ('USD', 'USDT')),",
-    cambia: { "91": 6, "93": 2 }, // B, por RB2: VES, vivo, con factura y sin asiento
+    cambia: { "91": 8, "93": 1 }, // B, por RB2: VES, vivo, con factura y sin asiento
   },
   {
     nombre: "decisión 7: no comparable con los recibos sin referencia",
     de: "r.tenant_id = m.tenant_id and r.vivo and r.con_factura\n",
     a: "r.tenant_id = m.tenant_id and r.vivo\n",
-    cambia: { "91": 6, "93": 2 }, // K, por RK1: su asiento va a 2.1.8
+    cambia: { "91": 8, "93": 1 }, // K, por RK1: su asiento va a 2.1.8
   },
   {
     nombre: "decisión 7: no comparable con el recibo identificado sin reclasificar",
     de: "\n                    and (not r.identificado or r.reclasificaciones > 0)",
     a: "",
-    cambia: { "91": 6, "93": 2 }, // K, por RK2: su asiento va a 2.1.8 (RI1 está en I, que no se mueve)
+    cambia: { "91": 8, "93": 1 }, // K, por RK2: su asiento va a 2.1.8 (RI1 está en I, que no se mueve)
   },
   {
     nombre: "decisión 7: no comparable sin los identificados ya reclasificados",
     de: "(not r.identificado or r.reclasificaciones > 0)",
     a: "(not r.identificado)",
-    cambia: { "91": 4, "95": 4 }, // T, cuyo único recibo VES se reclasificó a 1.1.2
+    cambia: { "91": 6, "95": 3 }, // T, cuyo único recibo VES se reclasificó a 1.1.2
   },
   {
     nombre: "decisión 7: no comparable sólo con los recibos reclasificados",
     de: "(not r.identificado or r.reclasificaciones > 0)",
     a: "(r.reclasificaciones > 0)",
-    cambia: { "91": 4, "95": 4, "96": 4 }, // N, cuyo recibo VES se aplicó al cobrar (G sigue por FG1)
+    cambia: { "91": 6, "95": 3 }, // N, cuyo recibo VES se aplicó al cobrar (G sigue por FG1)
   },
   {
     nombre: "decisión 7: no comparable con los recibos anulados",
     de: "r.tenant_id = m.tenant_id and r.vivo and r.con_factura\n",
     a: "r.tenant_id = m.tenant_id and r.con_factura\n",
-    cambia: { "91": 6, "95": 2, "96": 2 }, // S (RS1 anulado con su asiento vivo)
+    cambia: { "91": 8, "95": 1 }, // S (RS1 anulado con su asiento vivo)
   },
   {
     nombre: "decisión 7: no comparable sin las facturas anuladas",
-    de: "     exists (select 1 from fac f where f.tenant_id = m.tenant_id\n"
+    de: "     exists (select 1 from fac f where f.tenant_id = m.tenant_id and f.estado <> 'borrador'\n"
       + "               and f.moneda not in ('USD', 'USDT') and f.asientos > 0)",
-    a: "     exists (select 1 from fac f where f.tenant_id = m.tenant_id and f.estado <> 'anulada'\n"
+    a: "     exists (select 1 from fac f where f.tenant_id = m.tenant_id and f.estado <> 'borrador' and f.estado <> 'anulada'\n"
       + "               and f.moneda not in ('USD', 'USDT') and f.asientos > 0)",
-    cambia: { "91": 4, "94": 3 }, // J (FJ2 anulada al nominal) queda por encima
+    cambia: { "91": 6, "94": 3 }, // J (FJ2 anulada al nominal) queda por encima
+  },
+  {
+    nombre: "SDD-0563: el borrador con asiento de venta vivo vuelve no comparable la 1.1.2",
+    de: "where f.tenant_id = m.tenant_id and f.estado <> 'borrador'\n",
+    a: "where f.tenant_id = m.tenant_id\n",
+    cambia: { "91": 8, "94": 1 }, // P, por FP3: borrador VES con AFP3 vivo
+  },
+  {
+    nombre: "SDD-0563: la factura abierta en VES/CNY sin asiento no vuelve no comparable la 1.1.2 (regla anterior)",
+    de: " or (cuenta = '1.1.2' and fuera) then",
+    a: " then",
+    // H (FH2) vuelve a cuadrar y A (F19 F20) queda por debajo; los dos, con facturas fuera de la suma.
+    cambia: { "91": 5, "93": 3, "95": 3, "96": 2 },
+  },
+  {
+    nombre: "SDD-0563: la cuenta por pagar abierta en VES/CNY también vuelve no comparable la 2.1.1",
+    de: "(cuenta = '1.1.2' and fuera)",
+    a: "fuera",
+    cambia: { "101": 3, "105": 1, "106": 0 }, // A, por BA5: la enmienda es solo de 1.1.2
   },
   {
     nombre: "decisión 6: «no comparable» antes que el mayor vacío",
     de: "         case when debe = 0 and haber = 0 and abiertos > 0 then 'sin movimiento en el mayor'\n"
-      + "              when no_comparable then 'no comparable'\n",
-    a: "         case when no_comparable then 'no comparable'\n"
+      + "              when no_comparable or (cuenta = '1.1.2' and fuera) then 'no comparable'\n",
+    a: "         case when no_comparable or (cuenta = '1.1.2' and fuera) then 'no comparable'\n"
       + "              when debe = 0 and haber = 0 and abiertos > 0 then 'sin movimiento en el mayor'\n",
-    cambia: { "90": 0, "91": 6 }, // I: FI2, VES, tiene un asiento de venta vivo, sin líneas
+    cambia: { "90": 0, "91": 8 }, // I: FI2, VES, tiene un asiento de venta vivo, sin líneas
   },
   {
     nombre: "decisión 6: el mayor vacío sin exigir documentos abiertos",
@@ -653,7 +674,7 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
     nombre: "0 contra 0 cuenta como «cuadra»",
     de: "              when debe = 0 and haber = 0 then 'sin movimiento en la cuenta'\n",
     a: "",
-    cambia: { "92": 0, "93": 5, "102": 0, "103": 8 },
+    cambia: { "92": 0, "93": 4, "102": 0, "103": 8 },
   },
   {
     nombre: "fuera de la suma sin exigir que la factura esté abierta",
@@ -661,13 +682,13 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
       + "               and f.moneda not in ('USD', 'USDT') and f.total_amount <> f.paid_amount)),",
     a: "exists (select 1 from fac f where f.tenant_id = m.tenant_id\n"
       + "               and f.moneda not in ('USD', 'USDT') and f.total_amount <> f.paid_amount)),",
-    cambia: { "96": 4 }, // B, por FB2 anulada
+    cambia: { "91": 9, "93": 1, "94": 1 }, // B (FB2 anulada) y P (FP3, borrador con saldo)
   },
   {
     nombre: "fuera de la suma sin exigir saldo en la factura",
     de: "               and f.moneda not in ('USD', 'USDT') and f.total_amount <> f.paid_amount)),",
     a: "               and f.moneda not in ('USD', 'USDT'))),",
-    cambia: { "96": 5 }, // B (FB3) y K (FK2), pagadas
+    cambia: { "91": 9, "93": 0 }, // B (FB3) y K (FK2), pagadas
   },
   {
     nombre: "fuera de la suma sin exigir saldo en la cuenta por pagar",
@@ -813,7 +834,7 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
     a: "  from public.invoices i",
     // F21 (borrador) y FP1 (emitida, con su asiento AFP1): P sigue por encima.
     cambia: {
-      "11": 47, "20|facturas · borrador · USD": 3, "20|facturas · emitida · USD": 10, "87": 24, "120|año 2026": 40,
+      "11": 48, "20|facturas · borrador · USD": 3, "20|facturas · emitida · USD": 11, "87": 25, "120|año 2026": 40,
     },
   },
   {
@@ -828,7 +849,7 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
     a: "where je.status = 'asentado'",
     // AX13 da asiento a F13; AR15V es el segundo asiento de R15 y su vínculo deja de ser viejo;
     // AR16 da asiento a R16.
-    cambia: { "12": 83, "50": 15, "51": 5, "58": 2, "61": 2, "130": 29 },
+    cambia: { "12": 84, "50": 15, "51": 5, "58": 2, "61": 2, "130": 30 },
   },
 ];
 
@@ -1104,6 +1125,8 @@ describe("SDD-0559 · radiografía de integridad contable (PGlite)", () => {
     await expect(db.exec(guarda)).rejects.toThrow(/fixture rechazada/);
   });
 
+  // Lee todo docs/ y .agents/: bajo la carga de `pnpm verify` pasó del tope general de 20 s
+  // (20940ms en el verify de la #287, 2026-10-19). Lleva el de las pruebas lentas.
   it("guarda de Git: ninguna salida en modo montos en docs/ ni en .agents/", () => {
     const conMontos = ["docs", ".agents"]
       .flatMap((d) => archivosDeTexto(resolve(ROOT, d)))
@@ -1113,5 +1136,5 @@ describe("SDD-0559 · radiografía de integridad contable (PGlite)", () => {
     // Control: la misma función detecta una fila sintética en modo montos.
     expect(filasDeMontos("40|MONTOS-NO-VA-A-GIT · 3 · B1 documentos anulados con asiento vivo|x|1|1.00")).toHaveLength(1);
     expect(filasDeMontos("la marca `MONTOS-NO-VA-A-GIT · ` encabeza cada sección")).toHaveLength(0);
-  });
+  }, SLOW);
 });

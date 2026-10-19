@@ -218,7 +218,8 @@ from unnest(array['A', 'B', 'E', 'G', 'I', 'J', 'L', 'M', 'P', 'S']) t;
 -- Facturas. F4 anulada con asiento en BORRADOR; F5, F16 y F17 anuladas con asiento VIVO (F16 con
 -- un recibo vivo y cobrado 0, F17 con cobrado y sin recibo); F3 con solo crédito de referido;
 -- F6 vencida sin asiento; F7 VES y F19 CNY sin tasa, F20 VES con tasa 0 (sin asiento: van a
--- «sin asiento», no a «no comparable»); F8 USDT sin tasa; F11 pagada sin fuentes; F21 borrada;
+-- «sin asiento»; F19 y F20, abiertas con saldo, vuelven no comparable a A desde la SDD-0563,
+-- y F7, pagada, no); F8 USDT sin tasa; F11 pagada sin fuentes; F21 borrada;
 -- F23 borrador CNY sin tasa y con fecha de emisión, y F24 borrador USDT sin tasa (los borradores
 -- no entran en «sin tasa» ni en el año de emisión). F25 emitida con su asiento, sin cobrado ni
 -- recibos y con un reporte confirmado (P8): cobrado 0 «igual» a sus recibos, que la 87 no cuenta.
@@ -458,8 +459,9 @@ select pg_temp.asiento('G', 'ABG2', 'asentado', 'supplier_bill', '5.1', '2.1.1',
 select pg_temp.vincula_cxp('BG1', 'ABG1');
 select pg_temp.vincula_cxp('BG2', 'ABG2');
 
--- ════ H: factura VES SIN asiento junto a 1.1.2 con movimiento en dólares: cuadra, no es «no
--- comparable» (decisión 7); la VES queda fuera de la suma ════
+-- ════ H: factura VES abierta SIN asiento junto a 1.1.2 con movimiento en dólares. Desde la
+-- SDD-0563 (enmienda de la decisión 7) es «no comparable»: la VES no se suma ni se convierte, y
+-- tampoco se da por cuadrado lo demás. FH2 sigue en «sin asiento» (fila 50) ════
 select pg_temp.factura('H', 'FH1', 'emitida', 'USD', 200.00, 0, '2026-07-05');
 select pg_temp.asiento('H', 'AFH1', 'asentado', 'invoice', '1.1.2', '4.5', 200.00, 'FH1');
 select pg_temp.factura('H', 'FH2', 'emitida', 'VES', 3600.00, 0, '2026-07-05', 36);
@@ -530,8 +532,9 @@ select pg_temp.cxp('M', 'BM1', 'anulada', 'USD', 104.04, 0);
 select pg_temp.cxp('M', 'BM2', 'pagada', 'USD', 105.05, 105.05);
 
 -- ════ N: no comparable SOLO por un recibo VES aplicado a su factura, con asiento vivo: el recibo
--- convierte y su factura VES no tiene asiento ════
-select pg_temp.factura('N', 'FN1', 'parcial', 'VES', 720.00, 360.00, '2026-07-10', 36);
+-- convierte y su factura VES no tiene asiento. FN1 está pagada: con saldo, volvería no
+-- comparable a N por sí sola (SDD-0563) y taparía la trampa del recibo ════
+select pg_temp.factura('N', 'FN1', 'pagada', 'VES', 360.00, 360.00, '2026-07-10', 36);
 select pg_temp.recibo('N', 'RN1', 'FN1', 360.00, false, 'VES', 36);
 select pg_temp.asiento('N', 'ARN1', 'asentado', 'receipt', '1.1.1.1', '1.1.2', 10.00, 'RN1');
 select pg_temp.vincula_recibo('RN1', 'ARN1');
@@ -539,20 +542,25 @@ select pg_temp.vincula_recibo('RN1', 'ARN1');
 -- ════ P: el mayor por encima por asientos que ningún documento explica. En 1.1.2, dos asientos de
 -- venta vivos huérfanos: el de FP1, emitida y BORRADA, y uno sin invoice_id. En 2.1.1, la CxP
 -- CNY ANULADA SIN TASA, cuyo asiento vivo quedó al nominal (bill-posting.ts asienta tal cual sin
--- tasa): es B1 y queda como diferencia, no como «no comparable» ════
+-- tasa): es B1 y queda como diferencia, no como «no comparable». FP3, BORRADOR en VES con su
+-- asiento de venta vivo, sube el mayor al nominal y tampoco lo vuelve no comparable: el borrador
+-- no se asienta por diseño y la SDD-0557 no lo lee (trampa de la SDD-0563) ════
 select pg_temp.factura('P', 'FP1', 'emitida', 'USD', 107.07, 0, '2026-07-11', null, true);
 select pg_temp.asiento('P', 'AFP1', 'asentado', 'invoice', '1.1.2', '4.5', 107.07, 'FP1');
 select pg_temp.asiento('P', 'AFP2', 'asentado', 'invoice', '1.1.2', '4.5', 108.08);
+select pg_temp.factura('P', 'FP3', 'borrador', 'VES', 720.00, 0, null, 36);
+select pg_temp.asiento('P', 'AFP3', 'asentado', 'invoice', '1.1.2', '4.5', 720.00, 'FP3');
 select pg_temp.cxp('P', 'BP1', 'anulada', 'CNY', 359.59, 0);
 select pg_temp.asiento('P', 'ABP1', 'asentado', 'supplier_bill', '5.1', '2.1.1', 359.59, 'BP1');
 select pg_temp.vincula_cxp('BP1', 'ABP1');
 
 -- ════ S: un recibo VES ANULADO con su asiento de cobro vivo y un pago VES ANULADO con el suyo.
 -- Son B1 (filas 42 y 45), no vuelven no comparable al tenant: 1.1.2 y 2.1.1 quedan por debajo.
--- FS2, VES sin asiento, queda fuera de la suma ════
+-- FS2 está en USD, sin asiento, y RS1 la cobró en bolívares: una FS2 en VES volvería no
+-- comparable a S por su saldo (SDD-0563) y taparía la trampa de RS1 ════
 select pg_temp.factura('S', 'FS1', 'emitida', 'USD', 109.09, 0, '2026-07-12');
 select pg_temp.asiento('S', 'AFS1', 'asentado', 'invoice', '1.1.2', '4.5', 109.09, 'FS1');
-select pg_temp.factura('S', 'FS2', 'emitida', 'VES', 360.00, 0, '2026-07-12', 36);
+select pg_temp.factura('S', 'FS2', 'emitida', 'USD', 10.00, 0, '2026-07-12');
 select pg_temp.recibo('S', 'RS1', 'FS2', 360.00, true, 'VES', 36);
 select pg_temp.asiento('S', 'ARS1', 'asentado', 'receipt', '1.1.1.1', '1.1.2', 10.00, 'RS1');
 select pg_temp.vincula_recibo('RS1', 'ARS1');

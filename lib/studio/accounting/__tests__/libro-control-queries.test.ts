@@ -450,12 +450,14 @@ describe("cuadreDelLibro", () => {
     expect(c.documentos.conteo.factura).toMatchObject({ revisados: 3, vivos: 2, anulados: 1 });
     expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 800, mayorUsd: 500, diferenciaUsd: 300, estado: "no_cuadra" });
     expect(c.subdiario.proveedores).toMatchObject({ mayorUsd: 0, estado: "sin_movimiento" });
-    // Solo los orígenes documentales bajan a SQL (el cruce lo repite en memoria).
+    // Bajan a SQL los orígenes documentales y la reclasificación (SDD-0562); el
+    // cruce de «sin asiento» repite el filtro de origen en memoria.
     expect(filtros).toContainEqual({
       table: "journal_entries",
       op: "in",
       col: "source",
-      val: ["invoice", "receipt", "supplier_bill", "supplier_payment"],
+      // SDD-0562: más receipt_reclass, para saber si un recibo identificado ya toca 1.1.2.
+      val: ["invoice", "receipt", "supplier_bill", "supplier_payment", "receipt_reclass"],
     });
     expect(filtros).toContainEqual({ table: "invoices", op: "is", col: "deleted_at", val: null });
   });
@@ -466,7 +468,16 @@ describe("cuadreDelLibro", () => {
    * recibo convierte: 1.1.2 deja de ser comparable. Con un recibo en USD o
    * USDT, el caso normal, sigue siendo comparable.
    */
-  function conReciboVes(recibo: { asiento: string; borrado?: boolean; moneda?: string }) {
+  function conReciboVes(recibo: {
+    asiento: string;
+    borrado?: boolean;
+    moneda?: string;
+    /** SDD-0562: sin factura es un pago sin referencia (asentado a 2.1.8). */
+    sinFactura?: boolean;
+    identificado?: boolean;
+    /** Estado de su `receipt_reclass`, unido por receipt_id; sin él, no hay reclasificación. */
+    reclasificacion?: string;
+  }) {
     const moneda = recibo.moneda ?? "VES";
     const tablas: Record<string, Fila[]> = {
       accounts: PLAN,
@@ -478,6 +489,8 @@ describe("cuadreDelLibro", () => {
           id: "r1", receipt_code: "R-1", received_at: "2025-03-10", currency: moneda,
           amount: moneda === "VES" ? 42340 : 1160,
           journal_entry_id: "e-r1", deleted_at: recibo.borrado ? "2025-03-11T00:00:00Z" : null,
+          invoice_id: recibo.sinFactura ? null : "f1",
+          identified_at: recibo.identificado ? "2025-03-12T00:00:00Z" : null,
         },
       ],
       supplier_bills: [],
@@ -485,6 +498,9 @@ describe("cuadreDelLibro", () => {
       journal_entries: [
         entrada("e-f1", "2025-03-05", "asentado", { source: "invoice", invoice_id: "f1" }),
         entrada("e-r1", "2025-03-10", recibo.asiento, { source: "receipt", receipt_id: "r1" }),
+        ...(recibo.reclasificacion
+          ? [entrada("e-r1x", "2025-03-12", recibo.reclasificacion, { source: "receipt_reclass", receipt_id: "r1" })]
+          : []),
       ],
       journal_lines: [],
     };
@@ -511,6 +527,26 @@ describe("cuadreDelLibro", () => {
     }
   });
 
+  /** SDD-0562 · el estado de clientes con el recibo del caso, 1.1.2 en movimiento y cuadrado. */
+  async function estadoClientes(recibo: Parameters<typeof conReciboVes>[0]) {
+    const client = conReciboVes(recibo);
+    const accounts = await listAccounts(client);
+    const saldos = await accountBalances(client);
+    saldos.cxc = { debit: 1160, credit: 1160, balance: 0 };
+    const c = await cuadreDelLibro(client, { accounts, saldos, hoy: "2025-03-18" });
+    return c.subdiario.clientes.estado;
+  }
+
+  it("SDD-0562 · el pago sin referencia en VES (asentado a 2.1.8) no toca 1.1.2: clientes cuadra", async () => {
+    expect(await estadoClientes({ asiento: "asentado", sinFactura: true })).toBe("cuadra");
+  });
+
+  it("SDD-0562 · el identificado sin reclasificar no toca 1.1.2; con la reclasificación viva, sí", async () => {
+    expect(await estadoClientes({ asiento: "asentado", identificado: true })).toBe("cuadra");
+    expect(await estadoClientes({ asiento: "asentado", identificado: true, reclasificacion: "anulado" })).toBe("cuadra");
+    expect(await estadoClientes({ asiento: "asentado", identificado: true, reclasificacion: "asentado" })).toBe("no_comparable");
+  });
+
   it("E1 por el recibo · en positivo: un recibo vivo en USD, o en USDT, con asiento `receipt` asentado deja clientes en «cuadra»", async () => {
     for (const moneda of ["USD", "USDT"]) {
       const client = conReciboVes({ asiento: "asentado", moneda });
@@ -524,18 +560,24 @@ describe("cuadreDelLibro", () => {
 
   /**
    * Decisiones 6 y 7 del Director (2026-10-19, revisables por Sam) por el
-   * lector: una factura abierta en VES (36500 Bs a 36,5 = 1000 USD), con o sin
-   * su asiento `invoice` vivo, contra 1.1.2 con o sin movimiento. El asiento
-   * vivo sale del mismo cruce de «documentos sin asiento».
+   * lector: una factura en VES (36500 Bs a 36,5 = 1000 USD), abierta o pagada,
+   * con o sin su asiento `invoice` vivo, contra 1.1.2 con o sin movimiento. El
+   * asiento vivo sale del mismo cruce de «documentos sin asiento». Desde la
+   * SDD-0563 (enmienda de la decisión 7), la abierta es «no comparable» con
+   * asiento o sin él; el asiento vivo decide en la que ya no está abierta.
    */
   async function cuadreConVes(o: {
     asiento: boolean | "anulado" | "referido";
     cxc: { debit: number; credit: number; balance: number };
+    pagada?: boolean;
   }) {
     const tablas: Record<string, Fila[]> = {
       accounts: PLAN,
       invoices: [
-        { id: "fv", invoice_code: "F-V", status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, total_amount: 36500, paid_amount: 0, deleted_at: null },
+        {
+          id: "fv", invoice_code: "F-V", status: o.pagada ? "pagada" : "emitida", issued_at: "2025-03-05", currency: "VES",
+          fx_rate: 36.5, total_amount: 36500, paid_amount: o.pagada ? 36500 : 0, deleted_at: null,
+        },
       ],
       payment_receipts: [],
       supplier_bills: [],
@@ -562,23 +604,30 @@ describe("cuadreDelLibro", () => {
     expect(c.subdiario.clientes).toMatchObject({ estado: "no_comparable", diferenciaUsd: null });
   });
 
-  it("decisión 7 · con movimiento en 1.1.2 y la VES SIN asiento: la diferencia, no «no comparable»", async () => {
+  it("enmienda de la decisión 7 (SDD-0563) · con movimiento en 1.1.2 y la VES abierta SIN asiento: «no comparable», y la misma factura sigue en «sin asiento»", async () => {
     const c = await cuadreConVes({ asiento: false, cxc: { debit: 500, credit: 0, balance: 500 } });
-    expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 1000, mayorUsd: 500, diferenciaUsd: 500, estado: "no_cuadra" });
+    // No se convierte: no suma y vuelve no comparable la cuenta.
+    expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 0, mayorUsd: 500, diferenciaUsd: null, sinConvertir: 1, estado: "no_comparable" });
+    // «Sin asiento» habla del documento; «no comparable», de la cuenta: la factura está en los dos.
     expect(c.documentos.sinAsiento.map((h) => h.codigo)).toEqual(["F-V"]);
   });
 
-  it.each(["anulado", "referido"] as const)(
-    "decisión 7 · con movimiento en 1.1.2 y la VES con un asiento %s: no es vivo, da la diferencia (como en Reportes)",
+  it("decisión 7 · la VES pagada con su asiento vivo: «no comparable»", async () => {
+    const c = await cuadreConVes({ asiento: true, pagada: true, cxc: { debit: 500, credit: 0, balance: 500 } });
+    expect(c.subdiario.clientes).toMatchObject({ estado: "no_comparable", diferenciaUsd: null });
+  });
+
+  it.each([false, "anulado", "referido"] as const)(
+    "decisión 7 · la VES pagada con asiento %s: no es vivo, da la diferencia (como en Reportes)",
     async (asiento) => {
-      const c = await cuadreConVes({ asiento, cxc: { debit: 500, credit: 0, balance: 500 } });
-      expect(c.subdiario.clientes).toMatchObject({ diferenciaUsd: 500, estado: "no_cuadra" });
+      const c = await cuadreConVes({ asiento, pagada: true, cxc: { debit: 500, credit: 0, balance: 500 } });
+      expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 0, sinConvertir: 0, diferenciaUsd: -500, estado: "no_cuadra" });
     },
   );
 
   it("decisión 6 · 1.1.2 sin movimiento y la VES abierta: «sin movimiento en el mayor», sin diferencia", async () => {
     const c = await cuadreConVes({ asiento: false, cxc: { debit: 0, credit: 0, balance: 0 } });
-    expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 1000, mayorUsd: 0, diferenciaUsd: null, estado: "mayor_sin_movimiento" });
+    expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 0, sinConvertir: 1, mayorUsd: 0, diferenciaUsd: null, estado: "mayor_sin_movimiento" });
   });
 
   it("recibos y pagos anulados (deleted_at) con asiento vivo, CxP viva sin asiento y CxP abierta en el subdiario", async () => {
