@@ -236,6 +236,24 @@ Si una huella difiere, la 0492 aborta sola sin cambiar nada; aun así conviene n
 5. `GET /api/cron/kommo-contact-status?dry=1` con `CRON_SECRET`: `ok: true`, ningún tenant con `inerte` que empiece por «saldo:», `encoladas: 0`.
 6. Cobranzas: la cola no lista borradores.
 
+## CIERRE DEL DIRECTOR · la 0492 aplicada y la #286 fusionada (2026-10-19)
+
+- **OK nominal de Sam**, en dos tiempos (los dos quedan en `AUTORIZACION.txt` de la evidencia):
+  - En la sesión «Contabilidad», hacia las 15:44Z: «OK nominal: autorizo aplicar la migración 0492_client_outstanding en producción, con el runbook de migraciones y la previa que ya corrió el Director. Pásaselo al Director.»
+  - En la sesión del Director, a las 15:46:27Z, en respuesta al plan «aplico, sello, fusiono la #286 y te pido el smoke»: «si».
+- **Previa** repetida tras el apagón del equipo local: PASÓ a las 17:07:21Z (`/srv/ops/evidencias/previa-0492-dtd-cargo-20261019T170721Z`). La primera había pasado a las 13:36:41Z.
+- **Apply**: COMMIT a las 17:07:48.404Z, con la fila del ledger en la misma transacción. Evidencia: `/srv/ops/evidencias/apply-0492-dtd-cargo-20261019T170747Z`.
+  - Fila del ledger: `version` 20261019170748, `name` 0492_client_outstanding, `created_by` servidor-propio:psql:SDD-0558.
+  - md5 4ca60abd9d6e2d5ca37b8cea31bd58a9 y 21978 bytes, iguales al blob 32915dd8 de la cabeza e7c56de0.
+  - La verificación dio una sola fila con ese md5 y cuerpos vivos iguales al archivo. El ledger pasó de 495 a 496 filas.
+- **Merge** de la #286 a las 17:11:22Z (merge `8d11ac77`), con `--match-head-commit e7c56de0…`. Fueron 3 min 34 s después del COMMIT y no segundos, porque la PR seguía en borrador.
+- **Sello**: `retirar-espera.mjs 0492_client_outstanding --md5 4ca60abd…` hizo tres cosas:
+  - quitó la espera de `pendingBelowCutoff`;
+  - quitó una declaración de símbolos;
+  - selló la 0492 en el candado (sha256 5a72a4cd…, `ledger` exacta del 2026-10-19).
+  `migrations-lock.mjs`: 484 selladas; quedan dos esperas sin sellar, la 0422 y la 0423. La prueba que afirmaba la espera ahora afirma lo contrario. La cabecera «NO APLICADA» no se corrige.
+- **Smoke en el Studio real**: pendiente de Sam, con su sesión. Cubre la ficha de un cliente, el estado de cuenta con una factura anulada que tenga abono, el PDF con razón social y RIF, un hilo de Conversaciones y la cola de Cobranzas sin borradores.
+
 ## Impacto documental y conocimiento
 
 - Documentos canónicos actualizados: la spec 0558 y `docs/specs/README.md` (índice regenerado).
@@ -245,8 +263,8 @@ Si una huella difiere, la 0492 aborta sola sin cambiar nada; aun así conviene n
 
 1. Push de la rama y PR en **borrador** (no autorizados en este encargo).
 2. Hecho: `pnpm verify` con turno del Director, con el contrato 0492 en PostgreSQL con Docker y `schema-rebuild` en verde (ver VALIDACIÓN).
-3. OK nominal de Sam y aplicación de la 0492 por el Director (ver arriba), smoke, y recién entonces la fusión.
-4. Al aplicar: `retirar-espera.mjs`, y actualizar la prueba «la 0492 espera en pendingBelowCutoff» de `client-outstanding.migration.test.ts`, que la afirma.
+3. Hecho: OK nominal de Sam, 0492 aplicada y #286 fusionada (ver CIERRE DEL DIRECTOR). Falta el smoke de Sam en el Studio real.
+4. Hecho: `retirar-espera.mjs` y la prueba de `client-outstanding.migration.test.ts`, que ya no afirma la espera.
 
 ## FUERA DE ALCANCE DETECTADO
 
