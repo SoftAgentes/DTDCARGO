@@ -63,7 +63,8 @@ export default async function PortalLabelsPage({
     {prealerta.share_token&&<div className="mt-5"><ShareProviderButton token={prealerta.share_token}/></div>}
   </section>;
 
-  const suppliers = await listSuppliers(supabase, { markbox: client.markbox });
+  // Tenant + Shipping Mark del principal (SDD-0554).
+  const suppliers = await listSuppliers(supabase, { markbox: client.markbox, tenantId });
 
   // SDD-0336: la marca se resuelve por la sesión del Portal, sin aceptar ids ni
   // Shipping Marks y sin construir un service_role para esta lectura.
@@ -103,6 +104,7 @@ export default async function PortalLabelsPage({
   const docs = await listPrealertaDocuments(supabase, {
     prealertaId: prealerta.id,
     markbox: client.markbox,
+    tenantId,
   });
   let signedDocs: {
     id: string;

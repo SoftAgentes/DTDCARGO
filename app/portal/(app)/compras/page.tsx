@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   listPrealertas,
   listSuppliers,
@@ -21,15 +21,22 @@ export const metadata: Metadata = { title: "Mis compras" };
  * `PortalAlertasHub`: ícono por estado, filtro por estado con conteo y cards
  * theme-aware. Enfocado SOLO en compras (sin mezclar envíos). Cada card linkea a
  * sus etiquetas.
+ *
+ * Compras y proveedores se leen con el tenant y el Shipping Mark del principal
+ * de sesión (SDD-0554): el Shipping Mark es único por tenant, y con él solo una
+ * sesión híbrida recibía también las compras del otro tenant.
  */
 export default async function PortalPurchasesPage() {
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { client, tenantId } = principal;
+  const scope = { markbox: client.markbox, tenantId };
 
   const [prealertas, suppliers, serviceRequests] = await Promise.all([
-    listPrealertas(supabase, { markbox: client.markbox }),
-    listSuppliers(supabase, { markbox: client.markbox }),
+    listPrealertas(supabase, scope),
+    listSuppliers(supabase, scope),
+    // Ya filtra por el tenant del vínculo de sesión (SDD-0381).
     listPrealertaServiceRequests(supabase, { markbox: client.markbox }),
   ]);
 
