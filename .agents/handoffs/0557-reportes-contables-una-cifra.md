@@ -2,12 +2,12 @@
 
 | Campo | Valor |
 |---|---|
-| Fecha | 2026-10-19; en Caracas, de 01:15 a 02:05 aprox. (UTC 05:15 a 06:05) la primera pasada, y de 02:20 a 03:05 aprox. (UTC 06:20 a 07:05) las correcciones K1 a K15 |
-| Task ID / owner | `contabilidad-2026-10-18` / Worker «Contabilidad»; las dos pasadas las escribió un subagente escritor de esa Worker |
+| Fecha | 2026-10-19; en Caracas, de 01:15 a 02:05 aprox. (UTC 05:15 a 06:05) la primera pasada, de 02:20 a 03:05 aprox. (UTC 06:20 a 07:05) las correcciones K1 a K15, y de 03:15 a 04:00 aprox. (UTC 07:15 a 08:00) la tercera vuelta L1 a L10 |
+| Task ID / owner | `contabilidad-2026-10-18` / Worker «Contabilidad»; las tres pasadas las escribió un subagente escritor de esa Worker |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\sdd-0557-reportes-una-cifra` |
-| Rama | `codex/sdd-0557-reportes-una-cifra`, desde `origin/main` `3f3a52cc` (merge de la #279); `origin/main` `6c3f0a9f` mergeado en `da7f09f0` |
+| Rama | `codex/sdd-0557-reportes-una-cifra`, desde `origin/main` `3f3a52cc` (merge de la #279); `origin/main` `6c3f0a9f` mergeado en `da7f09f0` y `origin/main` `7fba5711` mergeado en `4770174b` |
 | SDD | [0557](../../docs/specs/0557-reportes-contables-una-cifra/spec.md), `in-progress`. La reserva entró por cherry-pick (`3030cd03`) |
-| Estado | correcciones de la revisión adversaria aplicadas (K1 a K15) y main mergeado; lista para la revisión de la Worker; sin push ni PR |
+| Estado | tercera vuelta aplicada (L1 a L10) y main mergeado otra vez; lista para la revisión de la Worker; sin push ni PR |
 | Permisos | commits selectivos en la rama propia, sin push. No incluye producción ni base de datos. `pnpm verify` necesita turno del Director |
 
 ## OBJETIVO ORIGINAL
@@ -19,7 +19,7 @@ Tarea 1.4 del plan contable (`docs/audits/2026-10-18-contabilidad-diagnostico-y-
 - documentos sin asiento y cuadre del subdiario contra el mayor;
 - «Cashflow» pasa a «Facturado contra cobrado».
 
-Mandan las decisiones `decisiones-0557.md` (G1 a G14) sobre el plan `3-plan-0557.json`, y las definiciones canónicas de la SDD-0559 (E7).
+Mandan las decisiones `decisiones-0557.md` (G1 a G14) sobre el plan `3-plan-0557.json`, y las definiciones canónicas de la SDD-0559 (E1 y E7). Encima, `correcciones-0557.md` (K1 a K15) y `correcciones-0557-b.md` (L1 a L10, tercera vuelta).
 
 ## COMPLETADO
 
@@ -30,7 +30,8 @@ Mandan las decisiones `decisiones-0557.md` (G1 a G14) sobre el plan `3-plan-0557
 - **Ruta** `GET /api/studio/contabilidad/export?tipo=diario`: sesión, `moduleViewDenial(supabase, "accounting")` antes de leer, 400 con fechas inválidas, lectura completa paginada, CSV con BOM, CRLF, fórmulas neutralizadas por `rowsToCsv` y `private, no-store` (G4, G5). Entra a `GUARDED` del contrato RBAC.
 - **Por contabilizar** (`?tab=subdiario`): subdiario contra mayor (clientes contra 1.1.2, con «no comparable» por B2 según E1 de la 0559; proveedores contra 2.1.1 con `billAmountUsd`, G8, y las CxP sin tasa contadas, K7), documentos sin asiento con motivo y enlace y el conteo «X sin asiento de N vivas» (K8), conteo de anulados con asiento vivo con enlace (G9), CSV.
 - **Reportes**: preset «Este mes» (G10); tarjeta de ingreso en el Estado de resultados; la decisión de la vista en `vistaDelEstado` (G11), que también usa el CSV; «Facturado contra cobrado» con `?rep=cashflow` intacto; `TABS_BY_CATEGORY` exportado donde estaba (G12).
-- **Dirección**: `finance.ingreso: IngresoPeriodo` (G12), «Utilidad neta · libro» con el margen sobre los ingresos del mayor, «Pídeles».
+- **Dirección**: `finance.ingreso: IngresoPeriodo` (G12), el lado comparado con su nombre («4.5 de facturas: $X», «sin asientos de factura en 4.5») y «otros ingresos del libro» (L2), «Utilidad neta · libro» con el margen sobre los ingresos del mayor, «Pídeles».
+- **El control del ingreso** (L1): con 4.5 sin asientos de factura, el mayor vacío gana sobre «no comparable» y la diferencia es todo lo facturado, con el enlace a Por contabilizar; «no comparable» pinta 4.5 como «nominal mixto (no USD)» (L3).
 
 ### Merge de main (2026-10-19)
 
@@ -39,7 +40,7 @@ Mandan las decisiones `decisiones-0557.md` (G1 a G14) sobre el plan `3-plan-0557
 
 ### Correcciones de la revisión adversaria (K1 a K15)
 
-Commits `bab54b96` (fix, K1 a K8, K14 y K15) y `6bc0c463` (test, K9 a K13).
+Commits `bab54b96` (fix, K1 a K8, K14 y K15) y `6bc0c463` (test, K9 a K13). La tercera vuelta cambia tres cosas de esta tabla: la precedencia de K1 (el mayor vacío gana, L1), el texto que citaba «la tarea 2.3» (L5) y los textos de Dirección de K2 y K15, que dejan de decir «el libro» para el lado comparado (L2).
 
 | # | Qué | Dónde |
 |---|---|---|
@@ -73,51 +74,88 @@ Lecturas y desvíos de esta pasada (ninguna corrección se dejó sin aplicar):
 10. **El commit del merge** (`da7f09f0`) lleva el mensaje por defecto de `git merge --no-edit`, sin la línea `Co-Authored-By`, como pedía el encargo.
 11. Los verificadores de la revisión refutaron varios de estos hallazgos por ser lo que la spec aprobada decía: los dos verificadores en la lente contable H0, H2, H3, H4 y H6 y en la lente corrección H0, y uno de los dos en la lente contable H5 y H7. Las correcciones los mandan aplicar, y la spec quedó actualizada para decir lo nuevo.
 
+### Merge de main, segundo (2026-10-19)
+
+- `git fetch origin main` y `git merge --no-edit origin/main` (sin rebase): `origin/main` en `7fba5711` (#282, SDD-0561, el candado de las migraciones aplicadas). Merge `4770174b`, **sin conflictos**: el índice de specs entró solo y no hubo que regenerarlo (`✓ docs:check — índice sincronizado con 546 specs`).
+- Candado sobre el árbol fusionado: `node scripts/migrations-lock.mjs verificar` → `migrations-lock: 483 selladas (la mayor: 0491) · 2 espera(s) sin sellar (0422_payment_report_command_boundary, 0423_payment_report_historical_identity) · 0 nueva(s) sin sellar · historia comparada contra 7fba57119535`, exit 0. Su prueba, `node --test scripts/tests/migrations-lock.node.mjs`: `ℹ pass 22`, `ℹ fail 0`. Esta SDD no lleva migración.
+- Inventario de lecturas (`invoice-read-boundary`) sobre el árbol fusionado: `Tests  4 passed (4)`. La tercera vuelta no agrega lecturas de `invoices`.
+- El commit del merge lleva el mensaje por defecto de `git merge --no-edit`, sin `Co-Authored-By`, como el primero.
+
+### Tercera vuelta (L1 a L10, revisión del delta K1 a K15)
+
+Pedido: `correcciones-0557-b.md`; hallazgos en `correccion-0557.json` → `revision`. Se aplicaron los diez.
+
+| # | Qué | Dónde | Mutantes |
+|---|---|---|---|
+| L1 | **El mayor vacío gana sobre «no comparable» (B3).** Si las líneas de 4.5 de los asientos de factura no tienen debe ni haber y hay facturado o facturas sin convertir, el estado es `mayor_menor`, `diferenciaUsd` = `facturado.total` y la tarjeta lleva el enlace a Por contabilizar: «El mayor (cuenta 4.5) tiene $X menos que lo facturado: no tiene ningún asiento de factura en el período.» «No comparable» queda solo con asientos de factura en 4.5 y alguna factura en VES o CNY. Orden de `describirIngreso`: sin cuenta → mayor vacío → sin movimiento → no comparable → diferencia. Pruebas con una factura VES sin ningún asiento en `ingreso-periodo`, en el lector (`libro-control-queries`), en la tarjeta (`reportes-tab`) y en el CSV | `ingreso-periodo.ts` (`resumirIngreso`, `describirIngreso`) | N52, N53, N54 |
+| L2 | **Dirección nombra lo que compara**: «cuadra con 4.5 de facturas: $X», «4.5 de facturas: $X», «4.5 de facturas: no comparable, hay facturas en bolívares o yuanes», «sin asientos de factura en 4.5» (sin movimiento o mayor vacío) y «sin cuenta 4.5 en el plan de cuentas». Con `mayor.otrosIngresos ≠ 0`, «otros ingresos del libro: $Y». El margen sigue «sobre los ingresos del libro». Casos nuevos: manual a 4.5 sin facturas (ingresos 700) y VES con el mayor vacío | `direccion/queries.ts` (`textosFinancieros`) | N55, N56, N57; N11, N50 y N51 cambiaron su texto de origen |
+| L3 | **Con «no comparable», 4.5 no se pinta como dólares**: la tarjeta muestra «nominal mixto (no USD)» (`NOMINAL_MIXTO`); en el CSV del P&L la fila pasa a «En el mayor · cuenta 4.5 · asientos de factura: nominal mixto (no USD)» con la celda vacía | `IngresoDelPeriodoCard.tsx`, `export-csv.ts` | N58, N59 |
+| L4 | **Ticket promedio**: «3 factura(s) en el año · sin IVA · $1.3K de los $2.3K del año son de terceros», en vez de colgarlo del ticket | `dashboard-kpi-queries.ts` | N60, N61; N17 cambió su texto de origen |
+| L5 | **Sin números internos en la pantalla**: «La comparación vuelve cuando el asiento de venta se registre en USD (fase 2 del plan de trabajo de contabilidad).» Era la única aparición visible; el encabezado de `ingreso-periodo.ts` decía lo mismo y también se corrigió. Después del cambio, `git grep -n -i "plan contable\|tarea [0-9]\.[0-9]"` en `lib`, `app` y `components`, sin pruebas, da una sola línea, un comentario sin número de tarea: `PorContabilizarTab.tsx:13: * No asienta nada: reparar el posting es la fase 2 del plan contable.` | `ingreso-periodo.ts` | N62 |
+| L6 | **K10 en positivo**: un recibo vivo en USD, y otro en USDT, con asiento `receipt` asentado deja el subdiario de clientes en `cuadra` | `libro-control-queries.test.ts` (`conReciboVes` con moneda) | N63 |
+| L7 | **El tope «hasta» del lector de asientos de factura**: un asiento `invoice` del 2025-03-25 (después del rango) en «sin mayor dado» y una prueba directa de los filtros de `saldosDeFacturas` (gte y lte por página). Se corrigió el comentario: estado, borrado y origen se repiten en memoria; el rango va solo en SQL, como en `accountBalances` | `libro-control-queries.ts` (comentario), su prueba | N64 |
+| L8 | **ERR-01 de `saldosDeFacturas`** con `serverCap: 1`: 61 asientos de factura en el rango rechazan con «Control del mayor · asientos de factura: …» y 30 asientos con 60 líneas, con «Control del mayor · líneas de factura: …» | `libro-control-queries.test.ts` | N65, N66 |
+| L9 | **El ícono que se pinta**: dentro de `ingreso-control`, el path del check (`m7 12 3 3 7-7`) no existe en «no comparable» ni en «sin movimiento» y sí en «cuadra» | `reportes-tab.test.tsx` | N67 |
+| L10 | **USDT no es «sin tasa»**: una CxP pendiente en USDT sin tasa no cuenta en `sinTasa` (suma 1:1) | `libro-control.test.ts` | N68 |
+
+Lecturas y desvíos de esta vuelta:
+
+1. **L1 cambia la precedencia que K1 había pedido.** Los dos verificadores de la revisión refutaron el hallazgo porque K1 y la spec decían «no comparable aunque no se haya convertido»; el pedido b lo manda aplicar y la spec quedó con la tabla de estados en orden. **El subdiario de clientes no cambia**: L1 habla de las líneas de 4.5 de los asientos de factura, y en `subdiario.ts` «no comparable» sigue antes de «sin movimiento» (E1 tal cual). Va como pregunta abierta 6 de la spec.
+2. **L1 con solo facturas sin convertir** (VES sin tasa o CNY) y 4.5 vacía: el facturado es 0, así que el estado es `mayor_menor` con diferencia 0 y un texto sin monto: «El mayor (cuenta 4.5) no tiene ningún asiento de factura en el período, y las facturas sin convertir también deberían tenerlo.» Tiene prueba y mutante (N54). Con eso, la condición «sin facturas sin convertir» de `sin_movimiento`, que en la segunda pasada no tenía mutante, queda cubierta.
+3. **L1, borde**: facturas que suman 0 con 4.5 vacía y ninguna sin convertir siguen comparándose 0 contra 0 («cuadra»), como antes. No tiene prueba propia.
+4. **L3, un poco más de lo pedido en el CSV**: la fila de conteo pasa de «(asentadas al nominal)» a «(cantidad)», porque con 4.5 vacía no están asentadas y la celda es un número de facturas, no un monto. Los rótulos nuevos no llevan coma para que no salgan entre comillas.
+5. **L7**: de las dos opciones se tomó corregir el comentario, sin traer `entry_date`. Así el mutante del `.lte` muere por el asiento posterior (4.5 subiría a 850) y por la prueba directa de los filtros. Repetir la fecha en memoria habría obligado a sembrar `entry_date` en los dobles de Reportes y Dirección, que no filtran.
+6. **L2, el margen**: el texto no cambia («Margen N% sobre los ingresos del libro»). Ahora el lado comparado se llama «4.5 de facturas» y lo demás «otros ingresos del libro», así que «los ingresos del libro» ya no tiene dos sentidos. Sin cuenta 4.5, todos los ingresos del mayor salen como otros ingresos.
+7. **Prueba ajustada, no debilitada**: la primera prueba de `ingresoDelPeriodo` pasaba `control(0)` (sin movimiento) con el fixture en VES y CNY y esperaba «no comparable». Con L1 eso es «el mayor tiene menos», así que pasa a `control(1500)` para seguir probando «no comparable» y los filtros SQL; el caso del mayor vacío tiene sus propias pruebas. En `export-csv.test.ts` pasa lo mismo con la factura en bolívares, y se agregó el caso con 4.5 vacía.
+8. **L8, la prueba de filtros**: el doble arma la consulta una vez por página (la de datos y la vacía del final), así que la prueba exige el par gte/lte en cada página y no una lista exacta de dos.
+
 ## VALIDACIÓN
 
-Todo sobre este worktree, en la rama de la tarea. Las filas son de la segunda pasada (correcciones K1 a K15, después del merge de main); las de la primera pasada quedan en el historial de este archivo (`2e901f98`).
+Todo sobre este worktree, en la rama de la tarea. Las filas son de la tercera vuelta (L1 a L10, después del segundo merge de main), sobre el código de `afe657c3`; las de las pasadas anteriores quedan en el historial de este archivo (`2e901f98` y `d0003efa`).
 
 | Comprobación | Alcance | Resultado |
 |---|---|---|
-| `vitest run` (binario del worktree) sobre accounting, contabilidad, reportes, la ruta, reports, dashboard, dirección, fiscal, los listados sin eliminados, borrado y los contratos `rbac-api-guard`, `studio-api-auth-guard`, `invoice-read-boundary` y `spec-migration-refs` | 44 archivos | PASÓ: `Test Files  44 passed (44)`, `Tests  700 passed (700)`, exit 0 |
-| `invoice-read-boundary` sobre el árbol fusionado | inventario | PASÓ: `Tests  4 passed (4)`; 20 archivos, 45 lecturas, sin cambios |
-| Mutantes (`mutantes-0557.cjs` en el scratchpad; uno por vez, restaura en `finally`; log `mutantes-0557.log`, el anterior en `mutantes-0557.antes-correcciones.log`) | los 43 de la primera pasada y 51 nuevos (K1 a K15) | `TOTAL: 94 mutantes · 94 MUERTOS · 0 SOBREVIVEN · 0 NO APLICADOS`, todos con exit 1 y la línea `Tests … failed` (tabla abajo). `git status` después: solo la spec y este handoff, sin commitear |
+| `vitest run` (binario del worktree) sobre accounting, contabilidad, reportes y dirección (app), la ruta, reports, dirección, dashboard, fiscal y los contratos `rbac-api-guard`, `studio-api-auth-guard`, `invoice-read-boundary` y `spec-migration-refs` | 38 archivos | PASÓ: `Test Files  38 passed (38)`, `Tests  591 passed (591)`, exit 0 (antes y después de la corrida de mutantes) |
+| El commit `287d264d` solo (sin las pruebas de L6, L7, L8 y L10) | accounting, contabilidad, reportes, la ruta, reports, dirección, dashboard | PASÓ: `Tests  419 passed (419)`; se armó la versión intermedia de `libro-control-queries.test.ts` y se restauró la final (sha256 igual) |
+| `invoice-read-boundary` sobre el árbol fusionado | inventario | PASÓ: `Tests  4 passed (4)` |
+| `node scripts/migrations-lock.mjs verificar` y `node --test scripts/tests/migrations-lock.node.mjs` sobre el árbol fusionado | candado de la SDD-0561 | PASÓ: exit 0 (línea literal en «Merge de main, segundo»); `ℹ pass 22`, `ℹ fail 0` |
+| Mutantes (`mutantes-0557.cjs` en el scratchpad; uno por vez, restaura en `finally`; log `mutantes-0557.log`, el anterior en `mutantes-0557.antes-l.log`) | los 94 anteriores y 17 nuevos (L1 a L10) | `TOTAL: 111 mutantes · 111 MUERTOS · 0 SOBREVIVEN · 0 NO APLICADOS`, todos con exit 1 y la línea `Tests … failed` (tabla abajo). Después, `check-mutantes-0557.cjs`: `111 mutantes, 0 que no aplican una vez` (el código quedó como estaba) |
 | `tsc --noEmit` (con `prune-next-types`, como `typecheck`) | repo completo | PASÓ (exit 0; `[tipos-de-ruta] sanos — nada que podar`) |
-| `eslint --max-warnings=0` | los 29 archivos tocados en las correcciones | PASÓ (exit 0, sin salida) |
+| `eslint --max-warnings=0` | los 13 archivos tocados en la tercera vuelta | PASÓ (exit 0, sin salida) |
 | `node scripts/check-rsc-boundary.mjs` | app, lib | PASÓ: `sin cruces server→client de valores ni client→node: transitivos` (1695 módulos) |
-| `docs:check` (`build-docs-index.mjs --check`) | índice | PASÓ: `✓ docs:check — índice sincronizado con 545 specs` |
+| `docs:check` (`build-docs-index.mjs --check`) | índice | PASÓ: `✓ docs:check — índice sincronizado con 546 specs` |
 | `sdd:check` (`check-numbering.mjs`) | numeración | PASÓ: `numbering: sin números repetidos` (avisa los choques históricos 0342, 0363 y 0394, ya aplicados) |
 | `governance:check` | cápsula | PASÓ: `Gobernanza: 28 política(s) aprobada(s) · cápsula vigente` |
 | `components:check` | registro CMP | PASÓ: `CMP-01 válido: 5 fuente(s), agregado reproducible y cero rutas rotas` |
-| `git diff --check da7f09f0 HEAD` | diff de las correcciones | PASÓ |
+| `git diff --check` | diff de la tercera vuelta | PASÓ |
 | `git grep -n "monthRevenue +=" -- lib app` | criterio 1 | sin resultados (exit 1) |
-| `/ui-check` | — | NO EJECUTADO en esta pasada. Los cambios de UI son textos, tonos de íconos ya del sistema (`StatusIcon` neutral) y el contador por vivas; el veredicto de la primera pasada (abajo) no se rehízo |
+| `/ui-check` | textos y tonos nuevos | PASÓ con hallazgos menores (abajo, «/ui-check, tercera vuelta») |
 | Comprobación en el navegador | — | NO EJECUTADA: el worktree no tiene `.env.local` (a propósito) y las pantallas necesitan sesión y base. Las pruebas montan los componentes en jsdom |
 | `pnpm verify` | — | NO EJECUTADO: necesita turno del Director |
 
 ### Mutantes
 
-Corrida del 2026-10-19 sobre `6bc0c463` (uno por vez; el script exige exit 1 y la línea `Tests … failed`). Línea final del log:
+Corrida del 2026-10-19, de 03:34 a 03:38 en Caracas (UTC 07:34 a 07:38), sobre el árbol de trabajo encima de `4770174b` con el mismo código que después quedó en `287d264d` y `afe657c3` (uno por vez; el script exige exit 1 y la línea `Tests … failed`). Línea final del log:
 
 ```
-TOTAL: 94 mutantes · 94 MUERTOS · 0 SOBREVIVEN · 0 NO APLICADOS
+TOTAL: 111 mutantes · 111 MUERTOS · 0 SOBREVIVEN · 0 NO APLICADOS
 ```
 
-M01 a M43 son los de la primera pasada; M07 y M30 cambiaron su texto de origen porque K1 y K5 cambiaron el código que mutan (M07 sigue siendo «contra todas las cuentas 4»; M30, «sin el texto del enlace»). N01 a N51 son los de K1 a K15.
+M01 a M43 son los de la primera pasada; M07 y M30 cambiaron su texto de origen porque K1 y K5 cambiaron el código que mutan (M07 sigue siendo «contra todas las cuentas 4»; M30, «sin el texto del enlace»). N01 a N51 son los de K1 a K15; en la tercera vuelta, N01, N02, N08, N11, N17, N50 y N51 cambiaron su texto de origen porque L1, L2 y L4 cambiaron el código que mutan, sin cambiar lo que miden. N52 a N68 son los de L1 a L10.
 
 | # | Regresión | Resultado |
 |---|---|---|
-| M01 | resumirIngreso suma total_amount (con IVA) en vez de base_amount | MUERTO · exit 1 · `Tests  9 failed \| 20 passed (29)` |
-| M02 | la fecha de la regla es created_at, no issued_at | MUERTO · exit 1 · `Tests  7 failed \| 22 passed (29)` |
-| M03 | sin filtro de estado en memoria | MUERTO · exit 1 · `Tests  7 failed \| 22 passed (29)` |
-| M04 | VES sin tasa cuenta como convertible | MUERTO · exit 1 · `Tests  3 failed \| 26 passed (29)` |
-| M05 | el extremo «hasta» deja de ser inclusivo | MUERTO · exit 1 · `Tests  1 failed \| 28 passed (29)` |
-| M06 | la regla no vuelve a filtrar borradas en memoria | MUERTO · exit 1 · `Tests  13 failed \| 51 passed (64)` |
-| M07 | el control compara contra todas las cuentas 4, no contra 4.5 | MUERTO · exit 1 · `Tests  4 failed \| 104 passed (108)` |
-| M08 | DAT-01: el rango inverso pasa en silencio | MUERTO · exit 1 · `Tests  1 failed \| 28 passed (29)` |
+| M01 | resumirIngreso suma total_amount (con IVA) en vez de base_amount | MUERTO · exit 1 · `Tests  11 failed \| 22 passed (33)` |
+| M02 | la fecha de la regla es created_at, no issued_at | MUERTO · exit 1 · `Tests  8 failed \| 25 passed (33)` |
+| M03 | sin filtro de estado en memoria | MUERTO · exit 1 · `Tests  9 failed \| 24 passed (33)` |
+| M04 | VES sin tasa cuenta como convertible | MUERTO · exit 1 · `Tests  3 failed \| 30 passed (33)` |
+| M05 | el extremo «hasta» deja de ser inclusivo | MUERTO · exit 1 · `Tests  1 failed \| 32 passed (33)` |
+| M06 | la regla no vuelve a filtrar borradas en memoria | MUERTO · exit 1 · `Tests  14 failed \| 56 passed (70)` |
+| M07 | el control compara contra todas las cuentas 4, no contra 4.5 | MUERTO · exit 1 · `Tests  4 failed \| 115 passed (119)` |
+| M08 | DAT-01: el rango inverso pasa en silencio | MUERTO · exit 1 · `Tests  1 failed \| 32 passed (33)` |
 | M09 | comprobación con el saldo acumulado (rollup) en vez del directo | MUERTO · exit 1 · `Tests  4 failed \| 26 passed (30)` |
-| M10 | el cruce empareja por FK sin mirar el source | MUERTO · exit 1 · `Tests  1 failed \| 45 passed (46)` |
-| M11 | un asiento anulado cuenta como vivo | MUERTO · exit 1 · `Tests  3 failed \| 43 passed (46)` |
+| M10 | el cruce empareja por FK sin mirar el source | MUERTO · exit 1 · `Tests  1 failed \| 50 passed (51)` |
+| M11 | un asiento anulado cuenta como vivo | MUERTO · exit 1 · `Tests  3 failed \| 48 passed (51)` |
 | M12 | el vínculo solo en un sentido (sin journal_entry_id del documento) | MUERTO · exit 1 · `Tests  1 failed \| 29 passed (30)` |
 | M13 | un documento con monto 0 sale como «sin asiento» | MUERTO · exit 1 · `Tests  2 failed \| 28 passed (30)` |
 | M14 | el aviso del diario aparece aunque se vean todos | MUERTO · exit 1 · `Tests  2 failed \| 32 passed (34)` |
@@ -126,11 +164,11 @@ M01 a M43 son los de la primera pasada; M07 y M30 cambiaron su texto de origen p
 | M17 | el subdiario descarta saldos negativos (max 0) | MUERTO · exit 1 · `Tests  1 failed \| 29 passed (30)` |
 | M18 | proveedores convierte con invoiceUsdAmount (CNY → 0), no con la regla del asiento | MUERTO · exit 1 · `Tests  2 failed \| 28 passed (30)` |
 | M19 | sin la regla «no comparable» de B2 (E1) | MUERTO · exit 1 · `Tests  2 failed \| 28 passed (30)` |
-| M20 | ingresoDelPeriodo sin .is(deleted_at) en SQL | MUERTO · exit 1 · `Tests  1 failed \| 15 passed (16)` |
-| M21 | el diario se lee de una sola vez (sin fetchAllPaged real) | MUERTO · exit 1 · `Tests  4 failed \| 12 passed (16)` |
-| M22 | el diario sin .eq(status, asentado) | MUERTO · exit 1 · `Tests  5 failed \| 21 passed (26)` |
-| M23 | el cruce sin .in(source, …) en SQL | MUERTO · exit 1 · `Tests  1 failed \| 15 passed (16)` |
-| M24 | countEntries cuenta borradores como asentados | MUERTO · exit 1 · `Tests  1 failed \| 15 passed (16)` |
+| M20 | ingresoDelPeriodo sin .is(deleted_at) en SQL | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
+| M21 | el diario se lee de una sola vez (sin fetchAllPaged real) | MUERTO · exit 1 · `Tests  4 failed \| 17 passed (21)` |
+| M22 | el diario sin .eq(status, asentado) | MUERTO · exit 1 · `Tests  5 failed \| 26 passed (31)` |
+| M23 | el cruce sin .in(source, …) en SQL | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
+| M24 | countEntries cuenta borradores como asentados | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
 | M25 | la ruta no corta con el gate | MUERTO · exit 1 · `Tests  1 failed \| 9 passed (10)` |
 | M26 | la ruta no valida las fechas | MUERTO · exit 1 · `Tests  2 failed \| 8 passed (10)` |
 | M27 | la ruta pide el módulo reports (equivalente en la matriz; lo fija el contrato AST) | MUERTO · exit 1 · `Tests  1 failed \| 16 passed (17)` |
@@ -138,34 +176,34 @@ M01 a M43 son los de la primera pasada; M07 y M30 cambiaron su texto de origen p
 | M29 | los asentados se cuentan sobre la lista de pantalla | MUERTO · exit 1 · `Tests  1 failed \| 3 passed (4)` |
 | M30 | sin el texto del enlace al diario (K5: el rótulo cambió a «asentado») | MUERTO · exit 1 · `Tests  1 failed \| 3 passed (4)` |
 | M31 | la exportación con fechas no valida antes de enviar | MUERTO · exit 1 · `Tests  1 failed \| 3 passed (4)` |
-| M32 | el diario junto a la comprobación lleva desde (no cuadra con la tabla) | MUERTO · exit 1 · `Tests  1 failed \| 7 passed (8)` |
+| M32 | el diario junto a la comprobación lleva desde (no cuadra con la tabla) | MUERTO · exit 1 · `Tests  1 failed \| 8 passed (9)` |
 | M33 | la pestaña vuelve a decir Cashflow | MUERTO · exit 1 · `Tests  3 failed \| 3 passed (6)` |
 | M34 | el eyebrow del estado vacío vuelve a decir Cashflow | MUERTO · exit 1 · `Tests  1 failed \| 5 passed (6)` |
 | M35 | el slug de la pestaña cambia sin alias | MUERTO · exit 1 · `Tests  1 failed \| 5 passed (6)` |
-| M36 | el CSV conserva el slug contable-cashflow | MUERTO · exit 1 · `Tests  2 failed \| 25 passed (27)` |
-| M37 | el CSV del P&L usa la condición vieja de vacío | MUERTO · exit 1 · `Tests  2 failed \| 19 passed (21)` |
+| M36 | el CSV conserva el slug contable-cashflow | MUERTO · exit 1 · `Tests  2 failed \| 26 passed (28)` |
+| M37 | el CSV del P&L usa la condición vieja de vacío | MUERTO · exit 1 · `Tests  3 failed \| 19 passed (22)` |
 | M38 | vistaDelEstado manda al vacío aunque haya facturado | MUERTO · exit 1 · `Tests  2 failed \| 43 passed (45)` |
 | M39 | sin el preset Este mes | MUERTO · exit 1 · `Tests  3 failed \| 70 passed (73)` |
 | M40 | Reportes calcula el ingreso sobre otro rango | MUERTO · exit 1 · `Tests  2 failed \| 26 passed (28)` |
-| M41 | Dirección calcula el margen con el facturado | MUERTO · exit 1 · `Tests  2 failed \| 33 passed (35)` |
+| M41 | Dirección calcula el margen con el facturado | MUERTO · exit 1 · `Tests  2 failed \| 35 passed (37)` |
 | M42 | Dashboard usa el reloj en vez de hoy | MUERTO · exit 1 · `Tests  3 failed \| 4 passed (7)` |
 | M43 | Dashboard: ticket promedio con otra base | MUERTO · exit 1 · `Tests  1 failed \| 6 passed (7)` |
-| N01 | K1: la diferencia se calcula aunque haya facturas en VES o CNY | MUERTO · exit 1 · `Tests  5 failed \| 132 passed (137)` |
-| N02 | K1: describirIngreso sin el estado no_comparable | MUERTO · exit 1 · `Tests  9 failed \| 100 passed (109)` |
-| N03 | K1: las anuladas en VES o CNY no cuentan (solo las de ingreso) | MUERTO · exit 1 · `Tests  2 failed \| 43 passed (45)` |
-| N04 | K1: un borrador en VES también vuelve no comparable | MUERTO · exit 1 · `Tests  1 failed \| 28 passed (29)` |
-| N05 | K1: el lector del ingreso no trae las anuladas | MUERTO · exit 1 · `Tests  3 failed \| 41 passed (44)` |
-| N06 | K1: la tarjeta pone «no comparable» con el ícono de éxito | MUERTO · exit 1 · `Tests  2 failed \| 6 passed (8)` |
-| N07 | K1: el CSV del P&L sin la fila del estado del control | MUERTO · exit 1 · `Tests  2 failed \| 19 passed (21)` |
-| N08 | K2: sin el estado sin_movimiento (0 contra 0 dice «cuadra») | MUERTO · exit 1 · `Tests  4 failed \| 84 passed (88)` |
-| N09 | K2: el movimiento de 4.5 se mide por el saldo y no por debe/haber | MUERTO · exit 1 · `Tests  1 failed \| 28 passed (29)` |
-| N10 | K2: la tarjeta pone «sin movimiento» con el ícono de éxito | MUERTO · exit 1 · `Tests  1 failed \| 7 passed (8)` |
-| N11 | K2: Dirección dice «cuadra con el libro» sin movimiento | MUERTO · exit 1 · `Tests  1 failed \| 34 passed (35)` |
-| N12 | K3: el control usa toda la 4.5 (también los manuales) | MUERTO · exit 1 · `Tests  4 failed \| 75 passed (79)` |
-| N13 | K3: el lector de asientos de factura sin .eq(source) en SQL | MUERTO · exit 1 · `Tests  2 failed \| 42 passed (44)` |
-| N14 | K3: sin repetir el origen en memoria (asientos) | MUERTO · exit 1 · `Tests  2 failed \| 61 passed (63)` |
-| N15 | K3: sin repetir el asiento en memoria (líneas) | MUERTO · exit 1 · `Tests  2 failed \| 61 passed (63)` |
-| N16 | K4: el Dashboard no dice cuánto es de terceros | MUERTO · exit 1 · `Tests  4 failed \| 3 passed (7)` |
+| N01 | K1: la diferencia se calcula aunque haya facturas en VES o CNY | MUERTO · exit 1 · `Tests  6 failed \| 144 passed (150)` |
+| N02 | K1: describirIngreso sin el estado no_comparable | MUERTO · exit 1 · `Tests  10 failed \| 112 passed (122)` |
+| N03 | K1: las anuladas en VES o CNY no cuentan (solo las de ingreso) | MUERTO · exit 1 · `Tests  3 failed \| 51 passed (54)` |
+| N04 | K1: un borrador en VES también vuelve no comparable | MUERTO · exit 1 · `Tests  1 failed \| 32 passed (33)` |
+| N05 | K1: el lector del ingreso no trae las anuladas | MUERTO · exit 1 · `Tests  3 failed \| 46 passed (49)` |
+| N06 | K1: la tarjeta pone «no comparable» con el ícono de éxito | MUERTO · exit 1 · `Tests  2 failed \| 7 passed (9)` |
+| N07 | K1: el CSV del P&L sin la fila del estado del control | MUERTO · exit 1 · `Tests  3 failed \| 19 passed (22)` |
+| N08 | K2: sin el estado sin_movimiento (0 contra 0 dice «cuadra») | MUERTO · exit 1 · `Tests  6 failed \| 94 passed (100)` |
+| N09 | K2: el movimiento de 4.5 se mide por el saldo y no por debe/haber | MUERTO · exit 1 · `Tests  1 failed \| 32 passed (33)` |
+| N10 | K2: la tarjeta pone «sin movimiento» con el ícono de éxito | MUERTO · exit 1 · `Tests  1 failed \| 8 passed (9)` |
+| N11 | K2: Dirección dice «cuadra con 4.5 de facturas» sin movimiento | MUERTO · exit 1 · `Tests  2 failed \| 35 passed (37)` |
+| N12 | K3: el control usa toda la 4.5 (también los manuales) | MUERTO · exit 1 · `Tests  4 failed \| 82 passed (86)` |
+| N13 | K3: el lector de asientos de factura sin .eq(source) en SQL | MUERTO · exit 1 · `Tests  2 failed \| 47 passed (49)` |
+| N14 | K3: sin repetir el origen en memoria (asientos) | MUERTO · exit 1 · `Tests  2 failed \| 63 passed (65)` |
+| N15 | K3: sin repetir el asiento en memoria (líneas) | MUERTO · exit 1 · `Tests  2 failed \| 63 passed (65)` |
+| N16 | K4: el Dashboard no dice cuánto es de terceros | MUERTO · exit 1 · `Tests  2 failed \| 5 passed (7)` |
 | N17 | K4: el ticket promedio dice los terceros del mes y no del año | MUERTO · exit 1 · `Tests  1 failed \| 6 passed (7)` |
 | N18 | K5: el rótulo vuelve a «el diario completo» | MUERTO · exit 1 · `Tests  2 failed \| 32 passed (34)` |
 | N19 | K5: el aviso no dice cuántos asentados trae el CSV | MUERTO · exit 1 · `Tests  2 failed \| 32 passed (34)` |
@@ -174,33 +212,50 @@ M01 a M43 son los de la primera pasada; M07 y M30 cambiaron su texto de origen p
 | N22 | K6: el KPI vuelve a «Facturado» | MUERTO · exit 1 · `Tests  1 failed \| 5 passed (6)` |
 | N23 | K6: la leyenda vuelve a «Facturado» | MUERTO · exit 1 · `Tests  1 failed \| 5 passed (6)` |
 | N24 | K6: la nota no dice «con IVA» | MUERTO · exit 1 · `Tests  1 failed \| 5 passed (6)` |
-| N25 | K6: la cabecera del CSV vuelve a «Facturado USD» | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
+| N25 | K6: la cabecera del CSV vuelve a «Facturado USD» | MUERTO · exit 1 · `Tests  1 failed \| 21 passed (22)` |
 | N26 | K7: no cuenta las CxP sin tasa | MUERTO · exit 1 · `Tests  2 failed \| 31 passed (33)` |
 | N27 | K7: cuenta también las que tienen tasa | MUERTO · exit 1 · `Tests  1 failed \| 29 passed (30)` |
 | N28 | K7: sin la nota de las CxP sin tasa | MUERTO · exit 1 · `Tests  2 failed \| 31 passed (33)` |
 | N29 | K7: el CSV del subdiario sin la columna de sin tasa | MUERTO · exit 1 · `Tests  2 failed \| 28 passed (30)` |
 | N30 | K8: el denominador vuelve a ser revisados (con anulados) | MUERTO · exit 1 · `Tests  2 failed \| 31 passed (33)` |
-| N31 | K8: los anulados se cuentan como vivos | MUERTO · exit 1 · `Tests  5 failed \| 44 passed (49)` |
-| N32 | K9: el diario completo sin .is(deleted_at) | MUERTO · exit 1 · `Tests  3 failed \| 23 passed (26)` |
-| N33 | K10: el conteo de recibos VES/CNY con asiento vale 0 | MUERTO · exit 1 · `Tests  1 failed \| 15 passed (16)` |
-| N34 | K10: cuenta también el recibo anulado | MUERTO · exit 1 · `Tests  1 failed \| 15 passed (16)` |
-| N35 | K10: cuenta el recibo aunque su asiento esté anulado | MUERTO · exit 1 · `Tests  1 failed \| 15 passed (16)` |
-| N36 | K11: los recibos se leen sin los anulados | MUERTO · exit 1 · `Tests  1 failed \| 15 passed (16)` |
-| N37 | K11: los pagos se leen sin los anulados | MUERTO · exit 1 · `Tests  1 failed \| 15 passed (16)` |
-| N38 | K11: el recibo anulado se mapea como vivo | MUERTO · exit 1 · `Tests  2 failed \| 14 passed (16)` |
-| N39 | K11: el pago anulado se mapea como vivo | MUERTO · exit 1 · `Tests  1 failed \| 15 passed (16)` |
-| N40 | K11: las CxP no llegan al subdiario | MUERTO · exit 1 · `Tests  1 failed \| 15 passed (16)` |
+| N31 | K8: los anulados se cuentan como vivos | MUERTO · exit 1 · `Tests  5 failed \| 49 passed (54)` |
+| N32 | K9: el diario completo sin .is(deleted_at) | MUERTO · exit 1 · `Tests  3 failed \| 28 passed (31)` |
+| N33 | K10: el conteo de recibos VES/CNY con asiento vale 0 | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
+| N34 | K10: cuenta también el recibo anulado | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
+| N35 | K10: cuenta el recibo aunque su asiento esté anulado | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
+| N36 | K11: los recibos se leen sin los anulados | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
+| N37 | K11: los pagos se leen sin los anulados | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
+| N38 | K11: el recibo anulado se mapea como vivo | MUERTO · exit 1 · `Tests  2 failed \| 19 passed (21)` |
+| N39 | K11: el pago anulado se mapea como vivo | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
+| N40 | K11: las CxP no llegan al subdiario | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
 | N41 | K12: el diario sin el criterio de fecha | MUERTO · exit 1 · `Tests  1 failed \| 29 passed (30)` |
 | N42 | K12: el diario sin «debe antes que haber» | MUERTO · exit 1 · `Tests  1 failed \| 29 passed (30)` |
 | N43 | K12: el cruce sin el criterio de fecha | MUERTO · exit 1 · `Tests  1 failed \| 29 passed (30)` |
-| N44 | K13: leerCompleto no lanza con la lectura incompleta | MUERTO · exit 1 · `Tests  2 failed \| 24 passed (26)` |
-| N45 | K13: las líneas del diario no lanzan con la lectura incompleta | MUERTO · exit 1 · `Tests  1 failed \| 15 passed (16)` |
+| N44 | K13: leerCompleto no lanza con la lectura incompleta | MUERTO · exit 1 · `Tests  3 failed \| 28 passed (31)` |
+| N45 | K13: las líneas del diario no lanzan con la lectura incompleta | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
 | N46 | K14: con error, la página cae al mes en curso | MUERTO · exit 1 · `Tests  1 failed \| 29 passed (30)` |
-| N47 | K14: la pestaña pinta reportes debajo del error | MUERTO · exit 1 · `Tests  1 failed \| 7 passed (8)` |
-| N48 | K15: la utilidad pierde «libro» | MUERTO · exit 1 · `Tests  1 failed \| 34 passed (35)` |
-| N49 | K15: el ingreso pierde «sin IVA» | MUERTO · exit 1 · `Tests  1 failed \| 34 passed (35)` |
-| N50 | K15: «en el libro» muestra la diferencia y no el saldo de 4.5 | MUERTO · exit 1 · `Tests  2 failed \| 33 passed (35)` |
-| N51 | K15: no comparable dice «cuadra con el libro» | MUERTO · exit 1 · `Tests  2 failed \| 33 passed (35)` |
+| N47 | K14: la pestaña pinta reportes debajo del error | MUERTO · exit 1 · `Tests  1 failed \| 8 passed (9)` |
+| N48 | K15: la utilidad pierde «libro» | MUERTO · exit 1 · `Tests  1 failed \| 36 passed (37)` |
+| N49 | K15: el ingreso pierde «sin IVA» | MUERTO · exit 1 · `Tests  1 failed \| 36 passed (37)` |
+| N50 | K15/L2: «4.5 de facturas» muestra la diferencia y no el saldo de 4.5 | MUERTO · exit 1 · `Tests  4 failed \| 33 passed (37)` |
+| N51 | K15: no comparable dice «cuadra con 4.5 de facturas» | MUERTO · exit 1 · `Tests  2 failed \| 35 passed (37)` |
+| N52 | L1: con 4.5 vacía y una factura en VES, la diferencia vuelve a null | MUERTO · exit 1 · `Tests  5 failed \| 117 passed (122)` |
+| N53 | L1: «no comparable» vuelve a ganar sobre el mayor vacío (el orden de K1) | MUERTO · exit 1 · `Tests  12 failed \| 110 passed (122)` |
+| N54 | L1: solo facturas sin convertir con 4.5 vacía caen a «sin movimiento» | MUERTO · exit 1 · `Tests  1 failed \| 32 passed (33)` |
+| N55 | L2: Dirección sin «otros ingresos del libro» | MUERTO · exit 1 · `Tests  4 failed \| 33 passed (37)` |
+| N56 | L2: con 4.5 vacía y facturas, Dirección dice «4.5 de facturas: $0.00» | MUERTO · exit 1 · `Tests  1 failed \| 36 passed (37)` |
+| N57 | L2: Dirección vuelve a decir «sin movimiento en el libro» | MUERTO · exit 1 · `Tests  3 failed \| 34 passed (37)` |
+| N58 | L3: la tarjeta pinta 4.5 con signo de dólar en «no comparable» | MUERTO · exit 1 · `Tests  2 failed \| 7 passed (9)` |
+| N59 | L3: el CSV del P&L pone 4.5 bajo «Monto USD» en «no comparable» | MUERTO · exit 1 · `Tests  1 failed \| 21 passed (22)` |
+| N60 | L4: el ticket vuelve a colgar «incluye $X de terceros» del promedio | MUERTO · exit 1 · `Tests  3 failed \| 4 passed (7)` |
+| N61 | L4: el ticket compara los terceros con el total del mes | MUERTO · exit 1 · `Tests  1 failed \| 6 passed (7)` |
+| N62 | L5: vuelve «la tarea 2.3 del plan contable» | MUERTO · exit 1 · `Tests  2 failed \| 40 passed (42)` |
+| N63 | L6: E1 por el recibo sin el predicado de moneda (USD y USDT vuelven no comparable) | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
+| N64 | L7: saldosDeFacturas sin .lte(entry_date) en SQL | MUERTO · exit 1 · `Tests  2 failed \| 84 passed (86)` |
+| N65 | L8: la lectura incompleta de asientos de factura se traga y da el mayor vacío | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
+| N66 | L8: las líneas de factura no lanzan con la lectura incompleta | MUERTO · exit 1 · `Tests  1 failed \| 20 passed (21)` |
+| N67 | L9: el ícono del control pinta el check de éxito en cualquier estado | MUERTO · exit 1 · `Tests  3 failed \| 6 passed (9)` |
+| N68 | L10: una CxP en USDT sin tasa cuenta como «sin tasa» | MUERTO · exit 1 · `Tests  1 failed \| 29 passed (30)` |
 
 Dos mutantes del plan no se pueden matar y se reemplazaron: «`issued_at ?? created_at`» es equivalente (la única factura sin `issued_at` es el borrador, que el estado ya excluye), así que M02 mide `created_at`; y «reports en lugar de accounting» es equivalente en la matriz (G4), así que lo fija el contrato AST (M27). Dos defensas redundantes se quitaron para que su mutante tuviera sentido: el chequeo de `source` repetido en `asientosPorDocumento` y el `continue` duplicado de borradores en `cuadreSubdiario`.
 
@@ -208,7 +263,22 @@ Cómo mueren los de las correcciones que tienen una sola salida:
 
 - N13 (sin `.eq(source)` en SQL) muere solo por la aserción sobre el filtro registrado, porque la regla lo repite en memoria; es el mismo caso de M20 y M23.
 - N14 y N15 (sin repetir el origen en memoria, en asientos y en líneas) mueren solo con los dobles de Reportes y Dirección, que no filtran: con el doble de listados, que sí filtra, el SQL ya deja afuera el manual.
-- La condición «sin facturas sin convertir» de `sin_movimiento` no tiene mutante: hoy toda factura que no suma está en VES o CNY, y esas vuelven «no comparable» antes. Se deja porque K2 la nombra.
+- La condición «sin facturas sin convertir», que en la segunda pasada no tenía mutante, ahora lo tiene: con L1, solo facturas sin convertir y 4.5 vacía dan «el mayor tiene menos», y N54 (quitarla) las manda a «sin movimiento».
+- N64 (sin el `.lte` de `saldosDeFacturas`) muere en dos pruebas, comprobado con `quien-mata-0557.cjs` del scratchpad: «sin mayor dado…» (el asiento del 2025-03-25 subiría 4.5) y «el rango baja a SQL sobre entry_date, con sus dos topes».
+- N65 (tragarse la lectura incompleta de los asientos de factura) muere solo por «ERR-01 · más de 60 asientos de factura…»: es el único fixture que no termina de leerse.
+
+### /ui-check, tercera vuelta (rápido, sobre los textos y tonos nuevos)
+
+🎨 UI-CHECK · tarjeta «Ingreso del período» (Contabilidad › Reportes y Reportes › Estado de resultados), KPI de Dirección y «Ticket promedio» del Dashboard.
+
+Hallazgos (2, menores, no bloqueantes; no se cambió nada por ellos):
+
+1 ⭐ [baja] `lib/studio/direccion/queries.ts` (`textosFinancieros`) · la segunda línea del KPI de ingresos puede juntar cuatro partes («4.5 de facturas: $600.00 · otros ingresos del libro: $500.00 · incluye fondos de terceros · 2 sin convertir»). El `sub` de `KpiCard` envuelve (11px, `line-height: 1.4`, sin `nowrap`), así que se lee en dos o tres renglones; no se midió en navegador.
+2 [baja] `lib/studio/dashboard/dashboard-kpi-queries.ts` · el subtítulo del ticket crece («3 factura(s) en el año · sin IVA · $1.3K de los $2.3K del año son de terceros») y también envuelve en la tarjeta. «factura(s)» viene de antes.
+
+✅ Lo que está bien: el tono sigue al estado con íconos del sistema (`StatusIcon`): `warning` y enlace con el mayor vacío, `neutral` en «no comparable» y «sin movimiento», el check solo con «cuadra» (ahora probado sobre el SVG); «nominal mixto (no USD)» ocupa el lugar de la cifra sin signo de dólar; sin hex ni tokens nuevos; sin números internos del plan en la pantalla; textos nuevos sin imperativos y sin voseo.
+
+Veredicto: OK para commit.
 
 ### /ui-check (rúbrica `.claude/commands/ui-check.md`), primera pasada
 
@@ -270,18 +340,17 @@ Fuera de alcance de esta revisión (abogado): la base de licitud de tratar los n
 
 ## Impacto documental y conocimiento
 
-- Documentos canónicos actualizados: la spec 0557 (estados del control, control contra la 4.5 de asientos de factura, criterios 2 a 8 y 10, gobernanza DAT-01 y ERR-01, allowlist con los símbolos nuevos, fuera de alcance y preguntas abiertas 1, 2, 3 y 5) y `docs/specs/README.md` (índice: el merge no lo cambió).
+- Documentos canónicos actualizados: la spec 0557 (tabla de estados del control en orden, con la precedencia del mayor vacío; textos de Dirección, del ticket y del CSV del P&L; criterios 2, 3 y 7; ERR-01 con `saldosDeFacturas`; allowlist con `NOMINAL_MIXTO`; validación con el total de mutantes; preguntas abiertas 1 y 6) y `docs/specs/README.md` (índice: los merges no lo cambiaron).
 - Desactualizado y no tocado: `docs/architecture/contabilidad-qbo-online.md` (no menciona la comprobación, Por contabilizar ni la exportación) y el Norte (`reports.jsx` dice «Facturado vs cobrado»; la UI dice «contra», que es la redacción del plan aprobado).
-- `knowledge:status`: no se volvió a correr en esta pasada. En la primera: exit 0, modo `integrated`, `ok: false` por motivos globales ya conocidos (estructural INVALID con 4.875 pendientes, semántico INVALID, Archify PENDING por `ARCHIFY_RUNTIME_MISSING`, publicación `MAIN_REQUIRED`). Nada propio de esta rama. Graphify y Archify los actualiza el Director desde main integrado.
-- `origin/main` `6c3f0a9f` (#280, SDD-0556, y #281) ya está mergeado (`da7f09f0`), sin conflictos.
+- `knowledge:status`: no se volvió a correr en la segunda ni en la tercera pasada. En la primera: exit 0, modo `integrated`, `ok: false` por motivos globales ya conocidos (estructural INVALID con 4.875 pendientes, semántico INVALID, Archify PENDING por `ARCHIFY_RUNTIME_MISSING`, publicación `MAIN_REQUIRED`). Nada propio de esta rama. Graphify y Archify los actualiza el Director desde main integrado.
+- `origin/main` `6c3f0a9f` (#280, SDD-0556, y #281) está mergeado en `da7f09f0`, y `origin/main` `7fba5711` (#282, SDD-0561) en `4770174b`, los dos sin conflictos.
 
 ## PENDIENTES DE ESTA TAREA
 
 1. `pnpm verify` con turno del Director.
-2. Push y PR cuando lo autorice el encargo. No lleva migración. Si `main` avanza otra vez, mergear y regenerar el índice (`node scripts/build-docs-index.mjs`).
-3. `/ui-check` de esta pasada, si la Worker lo pide: los cambios de UI son textos, el tono neutro del ícono en «no comparable» y «sin movimiento», y el contador por vivas.
-4. Nota para Sam (va también en la PR): Dirección y el Dashboard ahora muestran el facturado aunque el mayor esté en 0. Antes Dirección mostraba 0 (el mayor está vacío) y el Dashboard el total con IVA y sin convertir moneda. Contabilidad › Reportes pasa de acumulado a período (por defecto, el mes en curso). Mientras exista B3, la diferencia con el mayor no va a ser cero: es la señal, no un error de la pantalla. Con facturas en bolívares o yuanes en el período, el control dice «no comparable» en vez de una diferencia: hoy esas facturas se asientan por el nominal (B2). Un asiento manual a 4.5 ya no cuenta como diferencia: se ve en «otros ingresos del mayor».
-5. Las preguntas abiertas de la spec (cifra oficial, B10, diario con anulados, anuladas entre períodos, manuales a 4.5) para Sam y la contadora.
+2. Push y PR cuando lo autorice el encargo. No lleva migración. Si `main` avanza otra vez, mergear y regenerar el índice (`node scripts/build-docs-index.mjs`), y volver a correr `node scripts/migrations-lock.mjs verificar`.
+3. Nota para Sam (va también en la PR): Dirección y el Dashboard ahora muestran el facturado aunque el mayor esté en 0. Antes Dirección mostraba 0 (el mayor está vacío) y el Dashboard el total con IVA y sin convertir moneda. Contabilidad › Reportes pasa de acumulado a período (por defecto, el mes en curso). Mientras exista B3, la diferencia con el mayor no va a ser cero: es la señal, no un error de la pantalla. **Hoy (4.5 sin asientos de factura) el control dice cuánto le falta al mayor, también con facturas en bolívares o yuanes.** Cuando 4.5 tenga asientos de factura y haya facturas en bolívares o yuanes en el período, dirá «no comparable» en vez de una diferencia: esas facturas se asientan por el nominal (B2). Un asiento manual a 4.5 ya no cuenta como diferencia: se ve en «otros ingresos del mayor» (en Dirección, «otros ingresos del libro»).
+4. Las preguntas abiertas de la spec (cifra oficial, B10, diario con anulados, anuladas entre períodos, manuales a 4.5, y la 6: si la precedencia del mayor vacío se aplica también al subdiario de clientes) para Sam, la contadora o el Director.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -295,3 +364,4 @@ Fuera de alcance de esta revisión (abogado): la base de licitud de tratar los n
 8. **Las pestañas de Contabilidad** son botones sin `role="tab"` ni flechas (A11Y-01 §11), como antes; no cambia en esta tarea.
 9. **CxP en otra moneda sin tasa**: `billAmountUsd` (`lib/studio/accounting/bill-posting.ts`) la asienta en 2.1.1 por el nominal. Según la revisión, el formulario (`app/studio/(app)/tesoreria/_components/BillDrawer.tsx`) y `validateBillInput` (`lib/studio/treasury/types.ts:285`) la aceptan sin tasa; eso no se volvió a leer acá. Esta SDD solo la cuenta y lo dice (K7). Exigir la tasa o convertir en el asiento va con la conversión unificada (H08).
 10. **El facturado de Facturado contra cobrado** sigue por `issued_at ?? created_at` y con IVA (`cashflowReport`); se rotuló «con IVA» (K6) y quedó en el inventario de «otras cifras de facturado» de la spec.
+11. **El subdiario de clientes con 1.1.2 vacía** (`lib/studio/accounting/subdiario.ts`, `estadoDe`): con una factura abierta en VES o CNY dice «no comparable» aunque 1.1.2 no tenga movimiento, el mismo caso que L1 corrigió en el control del ingreso. No se tocó porque L1 nombra las líneas de 4.5 y cambiarlo reescribe la regla E1 de la SDD-0559; queda como pregunta abierta 6 de la spec.
