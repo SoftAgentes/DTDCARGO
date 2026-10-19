@@ -69,9 +69,20 @@ function comparar(a: unknown, b: unknown): number {
  * filas, pida lo que pida el lector (`range` o `limit`). Sin él, una lectura
  * sin paginar devuelve todo y el mutante «leer sin `fetchAllPaged`» sobrevive.
  * Es opcional para no cambiar las pruebas que ya usan el doble.
+ *
+ * `proyectar` (SDD-0557) devuelve solo las columnas que pide el `select`, como
+ * PostgREST: así una prueba falla si el lector deja de pedir una columna que
+ * después usa. Los filtros se aplican sobre la fila completa, como en la base.
+ * Un `select` con relaciones (`tabla(col)`) o `*` no se proyecta.
  */
 export interface OpcionesDoble {
   serverCap?: number;
+  proyectar?: boolean;
+}
+
+function columnasDe(cols: string | undefined): string[] | null {
+  if (!cols || cols.includes("*") || cols.includes("(")) return null;
+  return cols.split(",").map((c) => c.trim()).filter(Boolean);
 }
 
 export function dobleListados(
@@ -97,8 +108,11 @@ export function dobleListados(
         const registrar = (op: string, col: string, val: unknown) =>
           filtros.push({ table, op, col, val });
 
+        const columnas = opciones.proyectar ? columnasDe(_cols) : null;
+        const proyectada = (f: Fila): Fila =>
+          columnas ? Object.fromEntries(columnas.filter((c) => c in f).map((c) => [c, f[c]])) : f;
         const resolver = (filas: Fila[], total: number): Resultado => ({
-          data: head ? null : filas.map(copia),
+          data: head ? null : filas.map((f) => copia(proyectada(f))),
           error: null,
           count: contar ? total : null,
         });

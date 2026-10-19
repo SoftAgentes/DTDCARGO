@@ -190,9 +190,11 @@ describe("ingresoDelPeriodo", () => {
     if (asientoVes !== "ninguno") {
       lines.push(linea("l-v1", "e-v", "cxc", 36500, 0), linea("l-v2", "e-v", "ventas", 0, 36500));
     }
+    // `proyectar`: si el lector deja de pedir `invoice_id` en el select, el
+    // asiento de la VES no se puede cruzar y la decisión 7 deja de cumplirse.
     return dobleListados(
       { invoices: [usd, ves], accounts: PLAN, journal_entries: entries, journal_lines: lines },
-      { serverCap: SERVER_CAP },
+      { serverCap: SERVER_CAP, proyectar: true },
     ).client;
   }
 
@@ -526,7 +528,10 @@ describe("cuadreDelLibro", () => {
    * su asiento `invoice` vivo, contra 1.1.2 con o sin movimiento. El asiento
    * vivo sale del mismo cruce de «documentos sin asiento».
    */
-  async function cuadreConVes(o: { asiento: boolean; cxc: { debit: number; credit: number; balance: number } }) {
+  async function cuadreConVes(o: {
+    asiento: boolean | "anulado" | "referido";
+    cxc: { debit: number; credit: number; balance: number };
+  }) {
     const tablas: Record<string, Fila[]> = {
       accounts: PLAN,
       invoices: [
@@ -535,7 +540,14 @@ describe("cuadreDelLibro", () => {
       payment_receipts: [],
       supplier_bills: [],
       supplier_payments: [],
-      journal_entries: o.asiento ? [entrada("e-fv", "2025-03-05", "asentado", { source: "invoice", invoice_id: "fv" })] : [],
+      journal_entries:
+        o.asiento === true
+          ? [entrada("e-fv", "2025-03-05", "asentado", { source: "invoice", invoice_id: "fv" })]
+          : o.asiento === "anulado"
+            ? [entrada("e-fv", "2025-03-05", "anulado", { source: "invoice", invoice_id: "fv" })]
+            : o.asiento === "referido"
+              ? [entrada("e-fv", "2025-03-05", "asentado", { source: "referral_credit", invoice_id: "fv" })]
+              : [],
       journal_lines: [],
     };
     const { client } = dobleListados(tablas, { serverCap: SERVER_CAP });
@@ -555,6 +567,14 @@ describe("cuadreDelLibro", () => {
     expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 1000, mayorUsd: 500, diferenciaUsd: 500, estado: "no_cuadra" });
     expect(c.documentos.sinAsiento.map((h) => h.codigo)).toEqual(["F-V"]);
   });
+
+  it.each(["anulado", "referido"] as const)(
+    "decisión 7 · con movimiento en 1.1.2 y la VES con un asiento %s: no es vivo, da la diferencia (como en Reportes)",
+    async (asiento) => {
+      const c = await cuadreConVes({ asiento, cxc: { debit: 500, credit: 0, balance: 500 } });
+      expect(c.subdiario.clientes).toMatchObject({ diferenciaUsd: 500, estado: "no_cuadra" });
+    },
+  );
 
   it("decisión 6 · 1.1.2 sin movimiento y la VES abierta: «sin movimiento en el mayor», sin diferencia", async () => {
     const c = await cuadreConVes({ asiento: false, cxc: { debit: 0, credit: 0, balance: 0 } });

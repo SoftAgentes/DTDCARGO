@@ -100,13 +100,14 @@ describe("PorContabilizarTab", () => {
     // Saldo de documentos 1,000.00; mayor 0.00; diferencia «—».
     expect(within(filaClientes).getByText("1,000.00")).toBeInTheDocument();
     expect(within(filaClientes).getByText("—")).toBeInTheDocument();
-    // Es un aviso: el ícono que se pinta no es el check de éxito.
+    // Es un aviso: el ícono que se pinta es el triángulo de aviso, no el check.
     expect(filaClientes.querySelector(CHECK_DE_EXITO)).toBeNull();
+    expect(filaClientes.querySelector('path[d="M12 3 2 21h20L12 3Zm0 6v5m0 3h.01"]')).not.toBeNull();
     const filaProveedores = screen.getByRole("rowheader", { name: /Proveedores/ }).closest("tr")!;
     expect(within(filaProveedores).getByText("Cuadra")).toBeInTheDocument();
     expect(filaProveedores.querySelector(CHECK_DE_EXITO)).not.toBeNull();
     expect(
-      screen.getByText(/Sin movimiento en el mayor \(cuenta 1\.1\.2\): las facturas abiertas no tienen asiento\./),
+      screen.getByText(/Sin movimiento en el mayor \(cuenta 1\.1\.2\): las facturas abiertas no llegaron al mayor\./),
     ).toBeInTheDocument();
   });
 

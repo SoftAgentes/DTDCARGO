@@ -436,7 +436,7 @@ describe("cuadreSubdiario", () => {
         estado: "mayor_sin_movimiento",
       });
       expect(notasDelSubdiario(s)).toEqual([
-        "Sin movimiento en el mayor (cuenta 1.1.2): las facturas abiertas no tienen asiento.",
+        "Sin movimiento en el mayor (cuenta 1.1.2): las facturas abiertas no llegaron al mayor.",
       ]);
       // El CSV lleva el estado nuevo y la diferencia vacía.
       expect(subdiarioCsv(s).content.split("\r\n")[1]).toBe("1.1.2,Clientes,1000,0,,1,0,0,Sin movimiento en el mayor");
@@ -483,7 +483,7 @@ describe("cuadreSubdiario", () => {
       });
       expect(s.proveedores).toMatchObject({ subdiarioUsd: 300, diferenciaUsd: null, estado: "mayor_sin_movimiento" });
       expect(notasDelSubdiario(s)).toEqual([
-        "Sin movimiento en el mayor (cuenta 2.1.1): las CxP abiertas no tienen asiento.",
+        "Sin movimiento en el mayor (cuenta 2.1.1): las CxP abiertas no llegaron al mayor.",
       ]);
       expect(subdiarioCsv(s).content.split("\r\n")[2]).toBe("2.1.1,Proveedores,300,0,,1,0,0,Sin movimiento en el mayor");
     });

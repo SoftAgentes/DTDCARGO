@@ -452,12 +452,12 @@ export function notasDelSubdiario(s: SubdiarioContraMayor): string[] {
   const notas: string[] = [];
   if (s.clientes.estado === "mayor_sin_movimiento") {
     notas.push(
-      `Sin movimiento en el mayor (cuenta ${s.clientes.cuenta}): las facturas abiertas no tienen asiento.`,
+      `Sin movimiento en el mayor (cuenta ${s.clientes.cuenta}): las facturas abiertas no llegaron al mayor.`,
     );
   }
   if (s.proveedores.estado === "mayor_sin_movimiento") {
     notas.push(
-      `Sin movimiento en el mayor (cuenta ${s.proveedores.cuenta}): las CxP abiertas no tienen asiento.`,
+      `Sin movimiento en el mayor (cuenta ${s.proveedores.cuenta}): las CxP abiertas no llegaron al mayor.`,
     );
   }
   if (s.clientes.estado === "no_comparable") {
