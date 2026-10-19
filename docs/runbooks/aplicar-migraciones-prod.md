@@ -36,7 +36,7 @@ final (§13): no lo uses para aplicar.
 | `infra/ops/migraciones/aplicar.sh` | el VPS | Revisa el paquete y corre con psql la lectura previa, el apply y la verificación. Deja la evidencia |
 | `infra/ops/lib/migracion.sh` | el VPS (y el entorno de prueba) | El envoltorio: la migración y su fila del ledger en una sola transacción. Lo comparten el reset de prueba (SDD-0540) y estos scripts |
 | `infra/ops/migraciones/retirar-espera.mjs` | tu checkout | Después de aplicar, saca la migración de `pendingBelowCutoff` y de las declaraciones de símbolos, la **sella** en el candado con el md5 aplicado y lista las pruebas que afirman la espera |
-| `scripts/migrations-lock.mjs` | tu checkout y el CI | El candado de las migraciones aplicadas (`supabase/migrations.lock.json`, SDD-0561): falla si una migración sellada cambia, se borra o se renombra. Sella una nueva (`sellar`) y registra un cambio aceptado (`excepcion`) |
+| `scripts/migrations-lock.mjs` | tu checkout y el CI | El candado de las migraciones aplicadas (`supabase/migrations.lock.json`, SDD-0561): falla si una migración sellada cambia, se borra o se renombra. Sella una nueva (`sellar`), registra un cambio aceptado (`excepcion`) y marca contra un volcado del ledger cuáles coinciden con su fila (`ledger`, §7) |
 
 **Instalar en el servidor** (una vez después de cada merge que cambie
 `infra/ops/migraciones/aplicar.sh` o `infra/ops/lib/migracion.sh`; lo hace quien
@@ -194,7 +194,7 @@ fusiones sin aplicar: la puerta de migraciones frena toda publicación siguiente
    Quita la entrada de `pendingBelowCutoff` y sus declaraciones de
    `pending-migration-symbol-declarations.json`, sin reformatear los archivos, y
    **sella la migración** en `supabase/migrations.lock.json` (SDD-0561) con el
-   sha256, el md5 y los bytes del archivo. El `--md5` es el `blob_md5=` de
+   sha256, el md5 y los bytes del archivo, marcada `ledger` exacta. El `--md5` es el `blob_md5=` de
    `IDENTIDAD.txt` en la evidencia del apply, el que la verificación comparó con el
    ledger (código 0), copiado de ahí. Si el archivo no tiene ese md5, sale con 3 y no escribe nada: o el
    archivo cambió después del apply o el md5 es de otra migración. También lista las
@@ -207,7 +207,7 @@ fusiones sin aplicar: la puerta de migraciones frena toda publicación siguiente
    vuelve a correr `node scripts/migrations-lock.mjs sellar <nombre> --md5 <md5>`
    para la tuya. No edites los hashes a mano.
 2. **La cabecera «NO APLICADA A PRODUCCIÓN» del `.sql` no se corrige**: el ledger
-   guarda el texto exacto y la identidad se prueba por md5. Desde la SDD-0561 el
+   del servidor propio guarda el texto exacto y la identidad se prueba por md5. Desde la SDD-0561 el
    candado lo hace cumplir: cambiar un byte de una migración sellada hace caer
    `scripts/tests/migrations-lock.node.mjs` en el CI y en `pnpm verify`. Los
    comentarios de código en condicional («mientras X esté en pendingBelowCutoff…»)
@@ -225,6 +225,16 @@ fusiones sin aplicar: la puerta de migraciones frena toda publicación siguiente
 - `statements` = un solo elemento con el archivo exacto, **con** su salto final.
   En filas viejas de Cloud la convención varió (la 0471 sin el salto, la 0472 con
   él): calcula las dos variantes antes de declarar una diferencia.
+- **El candado no es el ledger.** `supabase/migrations.lock.json` fija el archivo del
+  repo. Su md5 y sus bytes son los de la fila del ledger solo en las entradas con
+  `ledger` ({ fecha, forma }). En el cruce del 2026-10-19 (lectura `READ ONLY` del
+  Director) fueron 143 de 483: 95 exactas, 28 sin el salto final y 20 con un CRLF
+  agregado. Las demás son filas de Cloud con otro texto (partido o sin comentarios)
+  o con otro nombre (SDD-0561 § Cruce con el ledger). Para medir otra vez, guarda la
+  salida de la consulta de la SDD-0561 como `[{ name, md5, bytes }]` **fuera del
+  repo** y corre `node scripts/migrations-lock.mjs ledger <archivo> --fecha AAAA-MM-DD`:
+  marca las coincidencias, no copia md5 del ledger y se niega si contradice una
+  marca anterior.
 - `created_by` = `servidor-propio:psql:SDD-NNNN` en producción y
   `servidor-propio:psql:prueba:SDD-NNNN` en prueba. Las filas de Cloud llevan el
   correo de la cuenta.
@@ -263,8 +273,9 @@ node scripts/migrations-lock.mjs excepcion 0464_algo \
 ```
 
 La excepción agrega a la entrada la fecha, el motivo, la autorización y la identidad
-nueva del archivo. La identidad sellada de la raíz no cambia y sigue siendo la que
-compara el ledger. Las excepciones solo se agregan. Reescribir un sello a mano o
+nueva del archivo. La identidad sellada de la raíz no cambia: es la del archivo al
+sellarlo y, si la entrada tiene `ledger`, también la de su fila del ledger (§7). Las
+excepciones solo se agregan. Reescribir un sello a mano o
 regenerar el candado no es una salida: la prueba lo detecta contra el conjunto
 sellado al crearlo y, con `origin/main` a mano, contra el merge-base (`HISTORIA`).
 
@@ -349,7 +360,7 @@ no se eximen»). Consecuencias:
 | `bash infra/ops/tests/prueba-migraciones-produccion.sh` | Con dobles de docker, ssh y scp: rechazos de `preparar.mjs`, guardas de `aplicar.sh`, en seco, el orden previa → apply → verificación, los códigos 5/6/7, la evidencia, el candado, la autorización nominal, el lote y ssh caído |
 | `bash … --mutantes` | Control rojo (scripts vacíos) y cada guarda quitada tiene que hacer caer la suite |
 | `pnpm vitest run infra/ops/tests/migraciones.test.mjs` | Las funciones de `preparar.mjs`; paridad byte a byte con `lib/migracion.sh`; contra PostgreSQL embebido (PGlite) la lectura previa, la deriva, el apply y la verificación; el cuerpo extraído igual al `prosrc` en funciones reales; `retirar-espera.mjs`, con el sello y su md5 |
-| `node --test scripts/tests/migrations-lock.node.mjs` (también en `pnpm harness:test`) | El candado sobre el repo real y su ancla de creación; cada regla (`FORMATO`, `FALTA`, `CAMBIADA`, `ESPERA`, `SIN_SELLO`, `HISTORIA`) sobre copias; `sellar`, `excepcion`, `crear` y los códigos de la CLI |
+| `node --test scripts/tests/migrations-lock.node.mjs` (también en `pnpm harness:test`) | El candado sobre el repo real y su ancla de creación; cada regla (`FORMATO`, `FALTA`, `CAMBIADA`, `ESPERA`, `SIN_SELLO`, `HISTORIA`) sobre copias; `sellar`, `excepcion`, `ledger` (exacta, variantes de Cloud, contradicciones), `crear` y los códigos de la CLI |
 
 Nada de esto se conecta al servidor ni a una base real.
 
