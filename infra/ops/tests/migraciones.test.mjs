@@ -407,7 +407,8 @@ describe("SDD-0546 · retirar-espera.mjs", () => {
     const r = retirarEspera({ raiz: d, nombre: "0902_zz_b", md5: md5De("0902_zz_b") });
     const id = { sha256: P.sha256(SQL["0902_zz_b"]), md5: md5De("0902_zz_b"), bytes: Buffer.byteLength(SQL["0902_zz_b"]) };
     expect(r.sellada).toEqual(id);
-    expect(leer(d, "migrations.lock.json").selladas).toEqual({ "0902_zz_b": id });
+    // Nace marcada `ledger` exacta: el md5 es el que la verificación del apply comparó con el ledger.
+    expect(leer(d, "migrations.lock.json").selladas).toEqual({ "0902_zz_b": { ...id, ledger: { fecha: new Date().toISOString().slice(0, 10), forma: "exacta" } } });
     expect(texto(d, "migrations.lock.json")).toBe(JSON.stringify(leer(d, "migrations.lock.json"), null, 2) + "\n");
     const v = verificarRepo({ raiz: d, base: null });
     expect(v.errores).toEqual([]);

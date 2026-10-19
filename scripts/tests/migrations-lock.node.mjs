@@ -344,8 +344,139 @@ test("sellar: agrega en orden con el md5 aplicado; se niega con espera, md5 dist
     L.sellar({ raiz: d, nombre: "0102_espera", md5: md5(M["0102_espera"]) });
     const c = leerCandado(d);
     assert.deepEqual(Object.keys(c.selladas), ["0100_dos_mismo_numero", "0100_uno", "0101b_letra", "0102_espera", "0103_ultima"]);
+    assert.deepEqual(c.selladas["0102_espera"], {
+      ...L.identidad(Buffer.from(M["0102_espera"])),
+      ledger: { fecha: new Date().toISOString().slice(0, 10), forma: "exacta" },
+    }, "el md5 aplicado es el que la verificación comparó con el ledger: nace marcada exacta");
     assert.equal(textoCandado(d), L.formato(c));
     assert.deepEqual(verif(d).errores, []);
+  } finally {
+    borrar(d);
+  }
+});
+
+test("FORMATO de la marca ledger: fecha, forma y claves", () => {
+  const d = armar();
+  try {
+    const c = leerCandado(d);
+    const id = c.selladas["0100_uno"];
+    for (const [ledger, n] of [
+      [{ fecha: "ayer", forma: "exacta" }, 1],
+      [{ fecha: "2026-10-19", forma: "parecida" }, 1],
+      [{ fecha: "2026-10-19", forma: "exacta", md5: id.md5 }, 1],
+      ["2026-10-19", 1],
+    ]) {
+      c.selladas["0100_uno"] = { ...id, ledger };
+      escribirCandado(d, c);
+      assert.equal(verif(d).errores.filter((e) => e.tipo === "FORMATO" && e.nombre === "0100_uno").length, n, JSON.stringify(ledger));
+    }
+    c.selladas["0100_uno"] = { ...id, ledger: { fecha: "2026-10-19", forma: "con-crlf-final" } };
+    escribirCandado(d, c);
+    assert.deepEqual(verif(d).errores, []);
+  } finally {
+    borrar(d);
+  }
+});
+
+test("ledger: marca exacta y las dos variantes de Cloud, sin tocar la identidad ni copiar md5 del ledger", () => {
+  const extra = {
+    "0096_variante_bytes_mal": "select 96;\n",
+    "0097_bytes_mal": "select 97;\n",
+    "0098_sin_fila": "select 98;\n",
+    "0099_sin_texto": "select 99;\n",
+  };
+  const d = armar({ archivos: { ...M, ...extra } });
+  try {
+    const antes = leerCandado(d);
+    const id = (n) => antes.selladas[n];
+    const filas = [
+      { name: "0096_variante_bytes_mal", md5: md5("select 96;"), bytes: 999 },
+      { name: "0097_bytes_mal", md5: id("0097_bytes_mal").md5, bytes: 999 },
+      { name: "0099_sin_texto", md5: null, bytes: null },
+      { name: "0100_dos_mismo_numero", md5: md5("create table dos ();"), bytes: 20 },
+      { name: "0100_uno", md5: id("0100_uno").md5, bytes: id("0100_uno").bytes },
+      { name: "0101b_letra", md5: md5("select 1;"), bytes: 9 }, // el archivo termina en CRLF: se quitan los dos
+      { name: "0102_espera", md5: md5(M["0102_espera"]), bytes: 10 },
+      { name: "0103_ultima", md5: md5("select 3;\n\r\n"), bytes: 12 },
+      { name: "0006b_solo_ledger", md5: md5("x"), bytes: 1 },
+    ];
+    const { nuevo, resumen } = L.cruzarLedger({ candado: antes, archivos: L.leerArchivos(d), filas, fecha: "2026-10-19" });
+    assert.deepEqual(resumen, {
+      exacta: ["0100_uno"],
+      "sin-salto-final": ["0100_dos_mismo_numero", "0101b_letra"],
+      "con-crlf-final": ["0103_ultima"],
+      distintas: ["0096_variante_bytes_mal", "0097_bytes_mal", "0099_sin_texto"],
+      sinTexto: ["0099_sin_texto"],
+      sinFila: ["0098_sin_fila"],
+      soloLedger: ["0102_espera", "0006b_solo_ledger"],
+    });
+    for (const n of Object.keys(antes.selladas)) {
+      const { ledger, ...resto } = nuevo.selladas[n];
+      assert.deepEqual(resto, antes.selladas[n], `${n}: la identidad no cambia`);
+      assert.equal(Boolean(ledger), ["0100_uno", "0100_dos_mismo_numero", "0101b_letra", "0103_ultima"].includes(n), n);
+    }
+    assert.deepEqual(nuevo.selladas["0100_dos_mismo_numero"].ledger, { fecha: "2026-10-19", forma: "sin-salto-final" });
+    assert.deepEqual(Object.keys(nuevo.selladas["0100_uno"]), ["sha256", "md5", "bytes", "ledger"]);
+    assert.ok(!L.formato(nuevo).includes(md5("create table dos ();")), "el md5 del ledger no entra al candado");
+  } finally {
+    borrar(d);
+  }
+});
+
+test("ledger: con excepción solo vale la identidad sellada; contradicción, filas repetidas o inválidas se rechazan", () => {
+  const d = armar();
+  try {
+    const filasDe = (c) => Object.entries(c.selladas).map(([n, e]) => ({ name: n, md5: e.md5, bytes: e.bytes }));
+    const sellado = leerCandado(d);
+    const crlf = { name: "0103_ultima", md5: md5("select 3;\n\r\n"), bytes: 12 };
+
+    fs.writeFileSync(mig(d, "0103_ultima"), "select 33;\n");
+    L.exceptuar({ raiz: d, nombre: "0103_ultima", motivo: "cambio aceptado de prueba", autorizacion: "prueba automatizada", fecha: "2026-10-19" });
+    const conExcepcion = leerCandado(d);
+    // La fila es una variante del archivo CAMBIADO: marcarla diría que el ledger guardó
+    // un texto distinto del sellado. Las variantes solo salen del archivo sellado.
+    const varianteDelCambiado = { name: "0103_ultima", md5: md5("select 33;\n\r\n"), bytes: 13 };
+    let r = L.cruzarLedger({ candado: conExcepcion, archivos: L.leerArchivos(d), filas: [varianteDelCambiado], fecha: "2026-10-19" });
+    assert.deepEqual(r.resumen.distintas, ["0103_ultima"], "la variante sale del archivo sellado, y este ya no lo es");
+    r = L.cruzarLedger({ candado: conExcepcion, archivos: L.leerArchivos(d), filas: filasDe(sellado), fecha: "2026-10-19" });
+    assert.deepEqual(r.resumen.exacta, Object.keys(sellado.selladas));
+    assert.deepEqual(Object.keys(r.nuevo.selladas["0103_ultima"]), ["sha256", "md5", "bytes", "ledger", "excepciones"]);
+    escribirCandado(d, r.nuevo);
+    assert.deepEqual(verif(d).errores, []);
+
+    const marcado = leerCandado(d);
+    const otraFecha = L.cruzarLedger({ candado: marcado, archivos: L.leerArchivos(d), filas: filasDe(sellado), fecha: "2026-11-01" });
+    assert.equal(otraFecha.nuevo.selladas["0100_uno"].ledger.fecha, "2026-11-01", "una medición nueva actualiza la fecha");
+
+    const contradice = filasDe(sellado).map((f) => (f.name === "0100_uno" ? { ...f, md5: md5("otro") } : f));
+    assert.throws(() => L.cruzarLedger({ candado: marcado, archivos: L.leerArchivos(d), filas: contradice, fecha: "2026-11-01" }), { codigo: 3 });
+    const sinFila = filasDe(sellado).filter((f) => f.name !== "0100_uno");
+    assert.throws(() => L.cruzarLedger({ candado: marcado, archivos: L.leerArchivos(d), filas: sinFila, fecha: "2026-11-01" }), { codigo: 3 });
+    assert.throws(() => L.cruzarLedger({ candado: sellado, archivos: L.leerArchivos(d), filas: [crlf, crlf], fecha: "2026-10-19" }), { codigo: 3 });
+    assert.throws(() => L.cruzarLedger({ candado: sellado, archivos: L.leerArchivos(d), filas: [{ name: "0100_uno", md5: "abc", bytes: 1 }], fecha: "2026-10-19" }), { codigo: 2 });
+    assert.throws(() => L.cruzarLedger({ candado: sellado, archivos: L.leerArchivos(d), filas: { name: "0100_uno" }, fecha: "2026-10-19" }), { codigo: 2 });
+    assert.throws(() => L.cruzarLedger({ candado: sellado, archivos: L.leerArchivos(d), filas: [], fecha: "19/10/2026" }), { codigo: 2 });
+  } finally {
+    borrar(d);
+  }
+});
+
+test("ledger por CLI: en seco no escribe; de verdad marca y la verificación sigue verde", () => {
+  const d = armar();
+  try {
+    const c = leerCandado(d);
+    const volcado = path.join(d, "filas.json");
+    fs.writeFileSync(volcado, JSON.stringify(Object.entries(c.selladas).map(([n, e]) => ({ name: n, md5: e.md5, bytes: e.bytes }))));
+    const antes = textoCandado(d);
+    const seco = cli("ledger", volcado, "--fecha", "2026-10-19", "--raiz", d, "--en-seco");
+    assert.equal(seco.status, 0, seco.stderr);
+    assert.equal(JSON.parse(seco.stdout).marcadas, 4);
+    assert.equal(textoCandado(d), antes);
+    assert.equal(cli("ledger", volcado, "--fecha", "2026-10-19", "--raiz", d).status, 0);
+    assert.equal(Object.values(leerCandado(d).selladas).filter((e) => e.ledger?.forma === "exacta").length, 4);
+    assert.equal(cli("verificar", "--raiz", d, "--sin-base").status, 0);
+    assert.equal(cli("ledger", volcado, "--raiz", d).status, 2, "sin --fecha");
+    assert.equal(cli("ledger", "--fecha", "2026-10-19", "--raiz", d).status, 2, "sin volcado");
   } finally {
     borrar(d);
   }

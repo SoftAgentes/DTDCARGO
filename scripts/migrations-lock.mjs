@@ -24,21 +24,30 @@
  *              excepción registrada se borró o se reescribió. Sin git, sin
  *              origin/main o sin candado en ese punto no se compara, y lo dice.
  *
+ * La identidad sellada es la del ARCHIVO del repo. Coincide con la fila del ledger de
+ * producción solo cuando la entrada lleva `ledger` ({ fecha, forma }): la era de
+ * Supabase Cloud guardó en `statements` otro texto (partido, sin comentarios) o con
+ * otro nombre. `ledger <filas.json>` clasifica un volcado del ledger contra el
+ * candado y marca las que coinciden; no guarda ningún md5 del ledger en el repo.
+ *
  * Una migración nueva entra al candado cuando se aplica: retirar-espera.mjs la sella
- * al retirar su espera, con el md5 que dio la verificación del apply. Un cambio
- * aceptado de un archivo sellado se registra con `excepcion`, con su motivo y su
- * autorización; la identidad sellada no se reescribe nunca.
+ * al retirar su espera, con el md5 que dio la verificación del apply, y la marca
+ * `ledger` exacta. Un cambio aceptado de un archivo sellado se registra con
+ * `excepcion`, con su motivo y su autorización; la identidad sellada no se reescribe.
  *
  * Uso:
  *   node scripts/migrations-lock.mjs [verificar] [--raiz <checkout>] [--base <ref> | --sin-base]
  *   node scripts/migrations-lock.mjs sellar <NNNN_nombre> --md5 <md5 del ledger> [--raiz <checkout>] [--en-seco]
  *   node scripts/migrations-lock.mjs excepcion <NNNN_nombre> --motivo "…" --autorizacion "…"
  *       [--fecha AAAA-MM-DD] [--raiz <checkout>] [--en-seco]
+ *   node scripts/migrations-lock.mjs ledger <filas.json> --fecha AAAA-MM-DD [--raiz <checkout>] [--en-seco]
+ *       (filas.json: [{ "name", "md5", "bytes" }], la salida de la consulta de solo
+ *       lectura de la SDD-0561; queda fuera del repo)
  *   node scripts/migrations-lock.mjs crear --hasta <NNNN> [--raiz <checkout>] [--en-seco]
  *
  * Códigos: 0 listo · 1 la verificación encontró errores · 2 uso inválido o archivo
  * ilegible · 3 rechazado (ya sellada, md5 distinto, espera sin retirar, candado ya
- * creado, excepción que no cambia nada).
+ * creado, excepción que no cambia nada, marca `ledger` que el volcado contradice).
  *
  * No se conecta a ninguna base. Pruebas: scripts/tests/migrations-lock.node.mjs.
  * Procedimiento: docs/runbooks/aplicar-migraciones-prod.md §6 y §8.
@@ -60,27 +69,42 @@ const FECHA_RE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 /** Un motivo o una autorización de menos caracteres no explica nada. */
 export const TEXTO_MINIMO = 10;
 const CLAVES_RAIZ = new Set(["$doc", "schemaVersion", "selladas"]);
-const CLAVES_ENTRADA = new Set(["sha256", "md5", "bytes", "excepciones"]);
+const CLAVES_ENTRADA = new Set(["sha256", "md5", "bytes", "ledger", "excepciones"]);
 const CLAVES_EXCEPCION = ["fecha", "motivo", "autorizacion", "sha256", "md5", "bytes"];
+/**
+ * Cómo coincide la fila del ledger con el archivo sellado. Las dos variantes son las
+ * convenciones de Supabase Cloud que el runbook §7 manda probar antes de declarar una
+ * diferencia: el texto sin su salto final, o con un CRLF agregado al final.
+ */
+export const FORMAS_LEDGER = ["exacta", "sin-salto-final", "con-crlf-final"];
 
 export const DOC = [
   "Candado de las migraciones aplicadas (SDD-0561). Lo verifica scripts/migrations-lock.mjs,",
   "que corre en scripts/tests/migrations-lock.node.mjs (pnpm harness:test, CI y pnpm verify).",
   "",
-  "Cada entrada de `selladas` es una migración ya aplicada en producción y la identidad de",
-  "su archivo: sha256, md5 y bytes de supabase/migrations/<nombre>.sql. Si el archivo",
-  "cambia, se borra o se renombra, la verificación falla. El md5 y los bytes son los mismos",
-  "que compara el ledger (md5 de statements): la identidad sellada no se reescribe nunca.",
+  "Cada entrada de `selladas` es una migración ya aplicada en producción y la identidad del",
+  "ARCHIVO del repo: sha256, md5 y bytes de supabase/migrations/<nombre>.sql. Si el archivo",
+  "cambia, se borra o se renombra, la verificación falla. La identidad sellada no se",
+  "reescribe nunca.",
+  "",
+  "EL LEDGER NO SIEMPRE GUARDA ESE TEXTO. La era de Supabase Cloud guardó en `statements`",
+  "otro texto (partido, sin comentarios) o registró la migración con otro nombre. Solo las",
+  "entradas con `ledger` ({ fecha, forma }) tienen comprobado que su fila del ledger de",
+  "producción es el mismo archivo: `exacta` (md5 y bytes iguales), `sin-salto-final` o",
+  "`con-crlf-final` (las convenciones de Cloud, runbook §7). Sin `ledger`, la entrada fija",
+  "el archivo del repo, no lo que guardó el ledger.",
   "",
   "QUÉ ENTRÓ AL CREARLO (2026-10-19, origin/main 3f3a52cc): todas las migraciones del repo",
   "hasta la 0491, menos las esperas de pendingBelowCutoff (0422 y 0423), que no están",
-  "aplicadas. Se sellaron los archivos tal como estaban en main; el candado no comparó",
-  "esos md5 contra el ledger de producción (motivo y alcance en la SDD-0561).",
+  "aplicadas. Se sellaron los archivos tal como estaban en main. El mismo día el Director",
+  "leyó el ledger de producción en solo lectura y se marcaron con `ledger` las que",
+  "coinciden (conteos y método en la SDD-0561).",
   "",
   "UNA MIGRACIÓN NUEVA se sella cuando se aplica, en la rama de cierre:",
   "infra/ops/migraciones/retirar-espera.mjs <NNNN_nombre> --md5 <md5 del ledger> retira la",
-  "espera y la sella; se niega si el archivo no tiene ese md5. Sin espera que retirar:",
-  "scripts/migrations-lock.mjs sellar <NNNN_nombre> --md5 <md5>.",
+  "espera, la sella y la marca `ledger` exacta, porque ese md5 es el que la verificación",
+  "del apply comparó con el ledger; se niega si el archivo no lo tiene. Sin espera que",
+  "retirar: scripts/migrations-lock.mjs sellar <NNNN_nombre> --md5 <md5>.",
   "",
   "UN CAMBIO ACEPTADO de una migración sellada (por ejemplo, un comentario corregido con",
   "decisión explícita) NO se tapa reescribiendo el sello: scripts/migrations-lock.mjs",
@@ -164,6 +188,15 @@ export function erroresDeFormato(candado, texto = null) {
     }
     for (const k of Object.keys(entrada)) if (!CLAVES_ENTRADA.has(k)) e(`clave desconocida: ${k}`, nombre);
     for (const m of erroresDeIdentidad(entrada, "identidad sellada")) e(m, nombre);
+    if (entrada.ledger !== undefined) {
+      const l = entrada.ledger;
+      if (!esObjeto(l) || Object.keys(l).some((k) => k !== "fecha" && k !== "forma")) {
+        e("ledger tiene que ser { fecha, forma }", nombre);
+      } else {
+        if (typeof l.fecha !== "string" || !FECHA_RE.test(l.fecha)) e("ledger: la fecha tiene que ser AAAA-MM-DD", nombre);
+        if (!FORMAS_LEDGER.includes(l.forma)) e(`ledger: la forma tiene que ser ${FORMAS_LEDGER.join(", ")}`, nombre);
+      }
+    }
     if (entrada.excepciones === undefined) continue;
     if (!Array.isArray(entrada.excepciones) || entrada.excepciones.length === 0) {
       e("excepciones tiene que ser una lista con al menos una", nombre);
@@ -289,13 +322,80 @@ export function crearCandado({ archivos, esperas = [], hasta, doc = DOC }) {
   return { $doc: doc, schemaVersion: ESQUEMA, selladas };
 }
 
+/** La entrada con su marca `ledger`, en el orden de claves del candado. */
+function conLedger(entrada, ledger) {
+  const { sha256, md5, bytes, excepciones } = entrada;
+  return excepciones === undefined ? { sha256, md5, bytes, ledger } : { sha256, md5, bytes, ledger, excepciones };
+}
+
 /** El candado con una migración más sellada, en orden. No escribe. */
-export function agregarSello(candado, nombre, ident) {
+export function agregarSello(candado, nombre, ident, ledger = null) {
   if (Object.hasOwn(candado.selladas, nombre)) {
     throw new Rechazo(`${nombre} ya está sellada: una migración aplicada se sella una sola vez`, 3);
   }
-  const entradas = [...Object.entries(candado.selladas), [nombre, { sha256: ident.sha256, md5: ident.md5, bytes: ident.bytes }]];
+  const entrada = { sha256: ident.sha256, md5: ident.md5, bytes: ident.bytes };
+  const entradas = [...Object.entries(candado.selladas), [nombre, ledger ? conLedger(entrada, ledger) : entrada]];
   return { ...candado, selladas: Object.fromEntries(entradas.sort(([a], [b]) => comparar(a, b))) };
+}
+
+/** El archivo con las dos convenciones de fin de texto que Cloud dejó en el ledger (runbook §7). */
+function variantesDeFin(buf) {
+  const fin = buf.subarray(-2).equals(Buffer.from("\r\n")) ? 2 : buf.subarray(-1).equals(Buffer.from("\n")) ? 1 : 0;
+  return [
+    ["sin-salto-final", buf.subarray(0, buf.length - fin)],
+    ["con-crlf-final", Buffer.concat([buf, Buffer.from("\r\n")])],
+  ];
+}
+
+/**
+ * Clasifica un volcado del ledger de producción contra el candado y marca `ledger`
+ * ({ fecha, forma }) en cada entrada cuya fila es el mismo archivo: exacta, o con una
+ * de las variantes de fin de texto, que se calculan solo si el archivo sigue siendo el
+ * sellado. No escribe y no copia ningún md5 del ledger al candado. Se niega si el
+ * volcado contradice una marca que ya estaba: eso se investiga, no se pisa.
+ * @param {object} p
+ * @param {Array<{name: string, md5: string, bytes: number}>} p.filas  la consulta de la SDD-0561
+ */
+export function cruzarLedger({ candado, archivos, filas, fecha }) {
+  if (typeof fecha !== "string" || !FECHA_RE.test(fecha)) throw new Rechazo("uso: --fecha AAAA-MM-DD, la de la lectura del ledger", 2);
+  if (!Array.isArray(filas)) throw new Rechazo("el volcado tiene que ser una lista de { name, md5, bytes }", 2);
+  const porNombre = new Map();
+  for (const f of filas) {
+    // Una fila sin `statements` da md5 nulo (o vacío en el JSON): es válida y no coincide con nada.
+    const sinTexto = esObjeto(f) && (f.md5 === null || f.md5 === "");
+    const conTexto = esObjeto(f) && typeof f.md5 === "string" && MD5_RE.test(f.md5) && Number.isSafeInteger(f.bytes) && f.bytes >= 0;
+    if (!esObjeto(f) || typeof f.name !== "string" || !(sinTexto || conTexto)) {
+      throw new Rechazo(`fila inválida en el volcado (tiene que ser { name, md5, bytes }): ${JSON.stringify(f).slice(0, 120)}`, 2);
+    }
+    if (porNombre.has(f.name)) throw new Rechazo(`el volcado repite ${f.name}: dos filas con ese nombre se investigan antes de marcar`, 3);
+    porNombre.set(f.name, f);
+  }
+  const resumen = { exacta: [], "sin-salto-final": [], "con-crlf-final": [], distintas: [], sinTexto: [], sinFila: [], soloLedger: [] };
+  const contradicen = [];
+  const selladas = {};
+  for (const [nombre, entrada] of Object.entries(candado.selladas)) {
+    const fila = porNombre.get(nombre);
+    let forma = null;
+    if (fila && fila.md5 === entrada.md5 && fila.bytes === entrada.bytes) {
+      forma = "exacta";
+    } else if (fila) {
+      const buf = archivos.get(nombre);
+      if (buf && mismaIdentidad(identidad(buf), entrada)) {
+        const igual = variantesDeFin(buf).find(([, b]) => b.length === fila.bytes && identidad(b).md5 === fila.md5);
+        if (igual) forma = igual[0];
+      }
+    }
+    if (forma) resumen[forma].push(nombre);
+    else resumen[fila ? "distintas" : "sinFila"].push(nombre);
+    if (fila && !fila.md5) resumen.sinTexto.push(nombre);
+    if (!forma && entrada.ledger !== undefined) contradicen.push(nombre);
+    selladas[nombre] = forma ? conLedger(entrada, { fecha, forma }) : entrada;
+  }
+  for (const n of porNombre.keys()) if (!Object.hasOwn(candado.selladas, n)) resumen.soloLedger.push(n);
+  if (contradicen.length) {
+    throw new Rechazo(`el volcado contradice la marca ledger de ${contradicen.join(", ")} (sin fila o distinta): investiga antes de marcar`, 3);
+  }
+  return { nuevo: { ...candado, selladas }, resumen };
 }
 
 /** El candado con una excepción más en la entrada `nombre`. No escribe. */
@@ -410,7 +510,9 @@ function leerMigracion(raiz, nombre) {
 
 /**
  * Lee el candado y el archivo y devuelve el candado con el sello nuevo, sin escribir.
- * Exige que el md5 del archivo sea el aplicado. Lo usa también retirar-espera.mjs.
+ * Exige que el md5 del archivo sea el aplicado, el que la verificación del apply
+ * comparó con el ledger: por eso la entrada nace con `ledger` exacta. Lo usa también
+ * retirar-espera.mjs.
  */
 export function prepararSello({ raiz = ".", nombre, md5 }) {
   validarNombre(nombre);
@@ -426,7 +528,7 @@ export function prepararSello({ raiz = ".", nombre, md5 }) {
       3,
     );
   }
-  return { nuevo: agregarSello(candado, nombre, ident), ident };
+  return { nuevo: agregarSello(candado, nombre, ident, { fecha: hoy(), forma: "exacta" }), ident };
 }
 
 export function sellar({ raiz = ".", nombre, md5, enSeco = false }) {
@@ -446,6 +548,28 @@ export function exceptuar({ raiz = ".", nombre, motivo, autorizacion, fecha = ho
   const nuevo = agregarExcepcion(candado, nombre, ident, { fecha, motivo, autorizacion });
   if (!enSeco) fs.writeFileSync(path.join(raiz, CANDADO), formato(nuevo));
   return { nombre, enSeco, anterior: identidadVigente(candado.selladas[nombre]), nueva: ident };
+}
+
+/** Cruza un volcado del ledger (archivo JSON fuera del repo) y marca las coincidencias. */
+export function marcarLedger({ raiz = ".", archivo, fecha, enSeco = false }) {
+  if (typeof archivo !== "string" || !archivo) throw new Rechazo("uso: ledger <filas.json> --fecha AAAA-MM-DD", 2);
+  const candado = leerCandadoParaEscribir(raiz);
+  const { valor: filas } = leerJson(archivo, archivo);
+  const { nuevo, resumen } = cruzarLedger({ candado, archivos: leerArchivos(raiz), filas, fecha });
+  if (!enSeco) fs.writeFileSync(path.join(raiz, CANDADO), formato(nuevo));
+  return {
+    enSeco,
+    fecha,
+    filas: filas.length,
+    marcadas: resumen.exacta.length + resumen["sin-salto-final"].length + resumen["con-crlf-final"].length,
+    exacta: resumen.exacta.length,
+    sinSaltoFinal: resumen["sin-salto-final"].length,
+    conCrlfFinal: resumen["con-crlf-final"].length,
+    distintas: resumen.distintas.length,
+    distintasSinTexto: resumen.sinTexto,
+    sinFila: resumen.sinFila.length,
+    soloLedger: resumen.soloLedger,
+  };
 }
 
 export function crear({ raiz = ".", hasta, enSeco = false }) {
@@ -487,7 +611,7 @@ function imprimirVerificacion(r) {
 }
 
 function principal(args) {
-  const comandos = new Set(["verificar", "sellar", "excepcion", "crear"]);
+  const comandos = new Set(["verificar", "sellar", "excepcion", "ledger", "crear"]);
   const comando = comandos.has(args[0]) ? args.shift() : "verificar";
   const o = { raiz: ".", enSeco: false, base: "auto" };
   for (let i = 0; i < args.length; i++) {
@@ -505,9 +629,10 @@ function principal(args) {
     else if (a === "--autorizacion") o.autorizacion = valor();
     else if (a === "--fecha") o.fecha = valor();
     else if (a === "--hasta") o.hasta = Number.parseInt(valor(), 10);
-    else if (!a.startsWith("--") && o.nombre === undefined) o.nombre = a.replace(/\.sql$/, "");
+    else if (!a.startsWith("--") && o.posicional === undefined) o.posicional = a;
     else throw new Rechazo(`uso: argumento desconocido ${a}`, 2);
   }
+  o.nombre = o.posicional?.replace(/\.sql$/, "");
   if (comando === "verificar") {
     const r = verificarRepo({ raiz: o.raiz, base: o.base });
     imprimirVerificacion(r);
@@ -516,6 +641,7 @@ function principal(args) {
   let r;
   if (comando === "sellar") r = sellar(o);
   else if (comando === "excepcion") r = exceptuar({ ...o, fecha: o.fecha ?? hoy() });
+  else if (comando === "ledger") r = marcarLedger({ raiz: o.raiz, archivo: o.posicional, fecha: o.fecha, enSeco: o.enSeco });
   else r = crear(o);
   console.log(JSON.stringify(r, null, 1));
   return 0;
