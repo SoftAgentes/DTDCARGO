@@ -256,6 +256,15 @@ Todo con dobles. Cero lecturas o escrituras en producción y en la base de prueb
     «ya eliminado» o sin la marca.
 - **Inventario RBAC:** `rbac-actions-guard` sube de 433 a 435 acciones. Las dos nuevas pasan el
   veredicto por acción, sin entrar en ninguna lista.
+- **Frontera de lectura de facturas (SDD-0357):** el lector es un caller nuevo de `invoices`. Lo
+  detectó `pnpm verify` y entró al inventario con la revisión de su candado (`delete_shipments`) y de
+  su tenant (cliente de sesión bajo `invoices_accounting_select`).
+- **`pnpm verify`** (una corrida, `b19e41f7`, 29 min): 16 de 17 pasos medidos.
+  - PASARON 15: harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering,
+    feature-constants, components, governance, pending-migration-symbols, sql-tests (242 contratos),
+    schema-rebuild (485 migraciones), e2e con aviso (177 pasaron, 1 flaky, el worker de WebKit) y build.
+  - FALLÓ `test`: 1 de 11391, ese inventario. Se corrigió después y la prueba pasa sola.
+  - SKIP `migrations-applied`: sin `.env.local` en el worktree; esta PR no trae migración.
 
 ## Datos personales (`revisar-datos-ve`)
 
@@ -310,6 +319,9 @@ auditoría» y «componente»): SGE-00, MP-01, BTN-01, AUD-01, CMP-01 y LNK-01.
 - `app/studio/(app)/tracking/__tests__/delete-shipment-gate.test.ts` (dos aserciones exactas con la
   marca y un caso nuevo)
 - `lib/studio/rbac-actions-guard.test.ts` (total 433 → 435, con su comentario)
+- `scripts/__tests__/invoice-read-boundary.test.mjs` (SDD-0357: el caller nuevo
+  `lib/studio/borrado/asistente-servidor.ts`, con la revisión de su candado y su tenant; 18 → 19
+  archivos, 42 → 43 lecturas)
 - esta spec, `docs/specs/README.md` (generado) y `.agents/handoffs/0560-asistente-borrado-embarques.md`
 
 ## Aceptación
@@ -328,7 +340,9 @@ auditoría» y «componente»): SGE-00, MP-01, BTN-01, AUD-01, CMP-01 y LNK-01.
 - [x] 8. Pruebas de la regla, del lector con doble que filtra, de las acciones y de la UI; control
       verde, control rojo y 39 de 39 mutantes muertos.
 - [x] 9. `/ui-check` advisory hecho y sus ajustes aplicados (`2ebb277b`).
-- [ ] 10. `pnpm verify` completo (ver handoff).
+- [ ] 10. `pnpm verify` completo en verde. La corrida única (`b19e41f7`) dio un solo rojo, el
+      inventario de la SDD-0357, ya corregido y probado aparte. Falta una corrida completa sobre la
+      cabeza final; el turno lo da el Director.
 - [ ] 11. Smoke de Sam en producción después de integrar (guion en el handoff).
 
 ## Riesgos
