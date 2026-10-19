@@ -139,7 +139,7 @@ El reporte dice «usuario X, autorizado con superclave». Si la superclave la co
 | **A. Superclave compartida** (lo que pidió Sam, igual que QuickBooks) | quién hizo el cambio | bajo; se hace en esta SDD |
 | **B. El autorizador entra con su propia cuenta** (un admin confirma con su usuario y su clave) | quién hizo el cambio **y** quién lo autorizó | más alto: verificar la clave de otro usuario en el servidor y otra pantalla |
 
-**Decisión del Director, 2026-10-19:** «**A, la superclave compartida.** Es literalmente lo que pidió Sam: "una clave aparte de la del usuario que está trabajando". B queda escrita como alternativa. Yo le aviso a Sam y, si prefiere B, te lo digo.»
+**Decisión: A, según el pedido literal de Sam del 2026-10-19; B ofrecida y no elegida.** El Director eligió A: «Es literalmente lo que pidió Sam: "una clave aparte de la del usuario que está trabajando". B queda escrita como alternativa.» Después se la planteó a Sam con la recomendación A, y Sam no pidió cambiarla.
 
 Las mitigaciones de A:
 - el motivo es obligatorio;

@@ -62,6 +62,10 @@ Decisión de Sam del 2026-10-19, registrada por el Director: el período cerrado
 | `/ui-check` | la UI nueva | OK con ajustes menores. El ⭐ (foco inicial del diálogo en el primer campo) quedó aplicado, con prueba. Los otros tres son de baja prioridad y se anotan abajo |
 | `pnpm verify` | completo | PENDIENTE: turno del Director |
 
+**Corrieron sin turno.** El contrato en Docker, las pruebas de vitest y los mutantes de arriba corrieron sin turno de máquina, mientras el Worker de la #292 tenía su `pnpm verify`, lanzado hacia las 19:55Z. Lo señaló el Director. El riesgo son rojos falsos en el verify de la #292, no un verde falso aquí: las corridas de esta tabla terminaron en verde. Se repiten con turno, en el orden que fijó el Director: el contrato en Docker, los mutantes en PGlite y el `pnpm verify` completo.
+
+**`ClosingDateDrawer.tsx` pasó de CRLF a LF.** En `main` estaba en CRLF, y al hacer el commit `.gitattributes` (`eol=lf`) lo normalizó a LF. Por eso `git diff --stat origin/main` marca 271 líneas agregadas y 250 quitadas. Con `--ignore-cr-at-eol`, el cambio real es de 34 agregadas y 13 quitadas.
+
 **Después de la revisión del Director** (la espera acotada y el §16 del contrato). Las filas de arriba son de antes. El turno de máquina lo tiene el Worker de la #292, así que esta vez solo corrió lo que no es pesado:
 
 | Comprobación | Alcance | Resultado |
@@ -85,7 +89,7 @@ La spec 0566 y el índice. **Cambia el esquema** (la 0493), así que el Director
 
 ## PENDIENTES DE ESTA TAREA
 
-1. **A o B (spec §8):** el Director eligió A y se lo avisa a Sam. Si Sam prefiere B, cambia solo la verificación.
+1. **Hecho, A o B (spec §8):** A, según el pedido literal de Sam del 2026-10-19; B ofrecida y no elegida. El Director se la planteó a Sam con la recomendación A, y Sam no pidió cambiarla.
 2. **La previa de producción, antes de aplicar** (la corre el Director): releer las seis huellas del preflight. Los parámetros de log ya los midió el 2026-10-19 (spec, revisión de seguridad).
 3. **Con turno de máquina:** el contrato en Docker y la prueba en PGlite con el §16 y los 3 mutantes nuevos, y después `pnpm verify`.
 4. Aplicar la 0493 con el OK nominal de Sam NOMBRANDO `0493_cierre_contable_superclave`, hacer el smoke de la espera y después fusionar.
@@ -93,8 +97,13 @@ La spec 0566 y el índice. **Cambia el esquema** (la 0493), así que el Director
 ## FUERA DE ALCANCE DETECTADO (para el Director)
 
 1. **Los documentos que generan asientos (facturas, recibos, CxP, pagos y gastos) no pasan por la excepción.** Cada flujo necesita su RPC atómica con el mecanismo de esta SDD; se proponen como SDD de seguimiento, una por flujo. Además, **facturas, recibos, CxP y pagos ni siquiera miran el cierre en la app**: su asiento best-effort choca con el disparador y falla en silencio, y el documento queda en «Por contabilizar». El diseño de partida decía lo contrario. La spec lo deja como evidencia para la 2.2 (B3), con el `git grep` y las líneas de cada archivo.
-6. **`auto_explain.log_parameter_max_length=0` en el servidor**, la mitigación de fondo del riesgo de logs. Es un cambio aparte, con el OK de Sam, y lo hace el Director. Mientras no esté, la protección es el `statement_timeout` de 8 s de `authenticated`, la espera acotada y que solo `authenticated` llame a estas funciones.
 2. **La sombra y el respaldo del fondo** del diálogo usan los mismos `rgba` del `ConfirmDialog` del sistema. Conviene pasar los dos a `var(--shadow-pop)` en una limpieza común (`/ui-check`, baja).
 3. **En los ajustes del cierre**, los errores no están ligados a sus campos con `aria-describedby` y los botones no dicen «Guardando…» mientras esperan (`/ui-check`, baja).
 4. **Riesgo aceptado por el Director:** un editor puede bloquear la superclave 15 minutos con 5 intentos fallidos. Cada intento queda con su usuario y el reporte lo muestra; el admin la restablece o reabre el período.
 5. **Que el motivo llegue a `entity_audit_log`** por `dtd.audit_reason` es INFERIDO de la 0294: el contrato no aplica el escritor de auditoría.
+6. **`auto_explain.log_parameter_max_length=0` en el servidor**, la mitigación de fondo del riesgo de logs. Es un cambio aparte, con el OK de Sam, y lo hace el Director. Mientras no esté, protegen tres cosas: el `statement_timeout` de 8 s de `authenticated`, la espera acotada y que solo `authenticated` llame a estas funciones.
+7. **La ficha de un cliente eliminado pide el saldo y muestra un error** (lo encontró el Director en el smoke de la 0558 en producción, 2026-10-19). No es de esta SDD. **Destino: «SDD chica de la ficha», después de la 2.11.**
+   - Abierta por URL directa (`/studio/clientes/DTD-XXXX`), la ficha de un cliente con `deleted_at` muestra «No se pudo calcular el saldo» con una referencia. El log dice `[saldo-cliente] ... la ficha no devolvió fila`.
+   - Causa: `client_outstanding` filtra `c.deleted_at is null` en `asked`, así que no devuelve fila, y la página lo trata como error.
+   - Lo correcto: que la ficha diga «cliente eliminado», o que no pida el saldo. El estado de cuenta del mismo cliente sí funciona y muestra bien la anulada con abono.
+   - Es chico y sin migración.
