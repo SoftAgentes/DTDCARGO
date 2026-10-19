@@ -182,3 +182,15 @@ me gustaría que analices con Contabo cuál sería el adecuado para comprar un V
   2026-10-19); Docker: misma máquina y contenedores separados para la ejecución (opción A);
   Codex solo con el bypass apagado; A3 aprobada; A4 (Kommo) pendiente con `revisar-datos-ve`.
 - Merge de main `d0b628d4` por conflicto del índice (sin conflictos manuales).
+
+## Ronda 6 · sin evaluaciones de personas en Git (2026-10-19)
+
+Pedido del Director sobre `251c28e4`: la §2.7 y el SVG traían evaluaciones de empleados
+identificables, que son dato personal de RR. HH. Además, con A1 y A2-b el repositorio viaja
+a Z.AI. Hecho:
+- la §2.7 y el SVG quedan por puestos, con titulares «por confirmar en Studio › Nómina»;
+- el README de la carpeta vuelve a «puestos, no personas»;
+- la SDD-0564 declara que el contenido del repositorio viaja a Z.AI con A1.
+
+La versión con nombres (análisis por persona y SVG) se le entregó a Sam en la sesión con
+SendUserFile, desde el scratchpad. No está en ninguna rama.

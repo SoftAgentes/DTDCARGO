@@ -11,7 +11,7 @@
   </style>
   <rect width="1400" height="980" fill="#FBFAF7"/>
   <text x="30" y="40" style="font-size:22px;font-weight:800;fill:#0F1E3D">DTD Cargo · organigrama propuesto</text>
-  <text x="30" y="62" class="s">Personas y agentes de IA · propuesta del 2026-10-19 sobre datos del repositorio (catálogo de puestos de julio); Sam confirma cada nombre</text>
+  <text x="30" y="62" class="s">Personas y agentes de IA · propuesta del 2026-10-19 · titulares por confirmar en Studio › Nómina</text>
 
   <!-- leyenda -->
   <rect x="1010" y="24" width="18" height="14" rx="3" fill="#FFFFFF" stroke="#D8D4CE"/>
@@ -34,13 +34,13 @@
   <!-- CEO -->
   <rect x="560" y="150" width="280" height="72" rx="8" fill="#7F0F1A"/>
   <text x="700" y="172" class="h" text-anchor="middle">CEO</text>
-  <text x="700" y="190" class="hs" text-anchor="middle">Dirección General: Sam → José</text>
+  <text x="700" y="190" class="hs" text-anchor="middle">Dirección General: Junta → titular</text>
   <text x="700" y="206" class="hs" text-anchor="middle">(meta del trimestre) + CEO agente</text>
 
   <!-- Staff -->
   <rect x="190" y="150" width="280" height="72" rx="8" fill="#FFFFFF" stroke="#D8D4CE"/>
   <text x="330" y="172" class="d" text-anchor="middle">Jefatura de Gabinete y Personas</text>
-  <text x="330" y="190" class="t" text-anchor="middle">Yolimar · PMO, manual y contratación</text>
+  <text x="330" y="190" class="t" text-anchor="middle">PMO, manual y contratación</text>
   <text x="330" y="207" class="ag" text-anchor="middle">+ agente Jefe de gabinete</text>
   <rect x="930" y="150" width="280" height="72" rx="8" fill="#FFFFFF" stroke="#D8D4CE"/>
   <text x="1070" y="172" class="d" text-anchor="middle">Cumplimiento y Riesgo</text>
@@ -51,16 +51,16 @@
   <g>
     <rect x="25" y="280" width="250" height="54" rx="8" fill="#0F1E3D"/>
     <text x="150" y="302" class="h" text-anchor="middle">Operaciones</text>
-    <text x="150" y="321" class="hs" text-anchor="middle">Alberto · de Yiwu a la puerta</text>
+    <text x="150" y="321" class="hs" text-anchor="middle">de Yiwu a la puerta (puesto nuevo)</text>
     <rect x="300" y="280" width="250" height="54" rx="8" fill="#0F1E3D"/>
     <text x="425" y="302" class="h" text-anchor="middle">Comercial y Clientes</text>
-    <text x="425" y="321" class="hs" text-anchor="middle">José · un solo punto de contacto</text>
+    <text x="425" y="321" class="hs" text-anchor="middle">un solo punto de contacto</text>
     <rect x="575" y="280" width="250" height="54" rx="8" fill="#0F1E3D"/>
     <text x="700" y="302" class="h" text-anchor="middle">Finanzas y Administración</text>
-    <text x="700" y="321" class="hs" text-anchor="middle">Yolimar · facturar, cobrar, cerrar</text>
+    <text x="700" y="321" class="hs" text-anchor="middle">facturar, cobrar, cerrar</text>
     <rect x="850" y="280" width="250" height="54" rx="8" fill="#0F1E3D"/>
     <text x="975" y="302" class="h" text-anchor="middle">Marketing y Crecimiento</text>
-    <text x="975" y="321" class="hs" text-anchor="middle">Sra. Fátima · leads calificados</text>
+    <text x="975" y="321" class="hs" text-anchor="middle">leads calificados</text>
     <rect x="1125" y="280" width="250" height="54" rx="8" fill="#0F1E3D"/>
     <text x="1250" y="302" class="h" text-anchor="middle">Tecnología y Datos</text>
     <text x="1250" y="321" class="hs" text-anchor="middle">Sam · dueño del producto</text>
@@ -71,13 +71,13 @@
     <rect x="25" y="350" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
     <text x="37" y="371" class="d">Origen China</text><text x="37" y="390" class="t">Sam + operador externo de Yiwu</text>
     <rect x="25" y="410" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="37" y="431" class="d">Tránsito y tracking</text><text x="37" y="450" class="t">Alejandro · dueño de transiciones</text>
+    <text x="37" y="431" class="d">Tránsito y tracking</text><text x="37" y="450" class="t">perfil operador de ERP</text>
     <rect x="25" y="470" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="37" y="491" class="d">Aduana Venezuela</text><text x="37" y="510" class="t">Alberto + agentes aduanales</text>
+    <text x="37" y="491" class="d">Aduana Venezuela</text><text x="37" y="510" class="t">titular + agentes aduanales</text>
     <rect x="25" y="530" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="37" y="551" class="d">Almacén VE y última milla</text><text x="37" y="570" class="t">Javier + bodeguero y camionero</text>
+    <text x="37" y="551" class="d">Almacén VE y última milla</text><text x="37" y="570" class="t">titular + bodeguero y camionero</text>
     <rect x="25" y="590" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="37" y="611" class="d">Calidad China↔VE</text><text x="37" y="630" class="t">Javier (Alejandro concilia)</text>
+    <text x="37" y="611" class="d">Calidad China↔VE</text><text x="37" y="630" class="t">titular · el operador de ERP concilia</text>
     <rect x="25" y="650" width="250" height="44" rx="6" fill="#FFFFFF" stroke="#7F0F1A" stroke-dasharray="5 4"/>
     <text x="37" y="677" class="ag">Vigía de tránsito y entrega · ola 2</text>
   </g>
@@ -87,13 +87,13 @@
     <rect x="300" y="350" width="250" height="52" rx="6" fill="#F2F0EC" stroke="#B8893A"/>
     <text x="312" y="371" class="d">Ventas y CRM (Kommo)</text><text x="312" y="390" class="t">Asesor comercial · VACANTE #1</text>
     <rect x="300" y="410" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="312" y="431" class="d">Servicio y postventa</text><text x="312" y="450" class="t">Yolimar → pasa al asesor</text>
+    <text x="312" y="431" class="d">Servicio y postventa</text><text x="312" y="450" class="t">pasa al asesor cuando entre</text>
     <rect x="300" y="470" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="312" y="491" class="d">Aliados y white-label</text><text x="312" y="510" class="t">José</text>
+    <text x="312" y="491" class="d">Aliados y white-label</text><text x="312" y="510" class="t">Dirección Comercial</text>
     <rect x="300" y="530" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="312" y="551" class="d">Tarifas y competencia</text><text x="312" y="570" class="t">Alberto, con la Junta</text>
+    <text x="312" y="551" class="d">Tarifas y competencia</text><text x="312" y="570" class="t">titular, con la Junta</text>
     <rect x="300" y="590" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="312" y="611" class="d">Compras, sourcing, trámites</text><text x="312" y="630" class="t">José (sourcing) · Yolimar (trámites)</text>
+    <text x="312" y="611" class="d">Compras, sourcing, trámites</text><text x="312" y="630" class="t">titulares por confirmar</text>
     <rect x="300" y="650" width="250" height="44" rx="6" fill="#FFFFFF" stroke="#7F0F1A" stroke-dasharray="5 4"/>
     <text x="312" y="677" class="ag">Analista de embudo · ola 2</text>
   </g>
@@ -101,15 +101,15 @@
   <!-- Finanzas -->
   <g>
     <rect x="575" y="350" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="587" y="371" class="d">Facturación y cobranza</text><text x="587" y="390" class="t">Yolimar</text>
+    <text x="587" y="371" class="d">Facturación y cobranza</text><text x="587" y="390" class="t">titular de Finanzas</text>
     <rect x="575" y="410" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="587" y="431" class="d">Tesorería</text><text x="587" y="450" class="t">Yolimar · 2ª firma Sam</text>
+    <text x="587" y="431" class="d">Tesorería</text><text x="587" y="450" class="t">titular de Finanzas · 2ª firma Sam</text>
     <rect x="575" y="470" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
     <text x="587" y="491" class="d">Contabilidad y fiscal</text><text x="587" y="510" class="t">Contadora externa</text>
     <rect x="575" y="530" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
     <text x="587" y="551" class="d">Socio China y rendiciones</text><text x="587" y="570" class="t">Sam</text>
     <rect x="575" y="590" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="587" y="611" class="d">Nómina · Verificación ERP</text><text x="587" y="630" class="t">Yolimar · Alejandro (verifica)</text>
+    <text x="587" y="611" class="d">Nómina · Verificación ERP</text><text x="587" y="630" class="t">Finanzas · operador de ERP (verifica)</text>
     <rect x="575" y="650" width="250" height="44" rx="6" fill="#FFFFFF" stroke="#7F0F1A" stroke-dasharray="5 4"/>
     <text x="587" y="677" class="ag">Controller de cobro y cuadres · ola 2</text>
   </g>
@@ -117,11 +117,11 @@
   <!-- Marketing -->
   <g>
     <rect x="850" y="350" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="862" y="371" class="d">Contenido y redes</text><text x="862" y="390" class="t">Fiorella</text>
+    <text x="862" y="371" class="d">Contenido y redes</text><text x="862" y="390" class="t">titular de contenido</text>
     <rect x="850" y="410" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="862" y="431" class="d">SEO, Ads y automatización</text><text x="862" y="450" class="t">Alejandro</text>
+    <text x="862" y="431" class="d">SEO, Ads y automatización</text><text x="862" y="450" class="t">titular de automatización</text>
     <rect x="850" y="470" width="250" height="52" rx="6" fill="#FFFFFF" stroke="#D8D4CE"/>
-    <text x="862" y="491" class="d">Academia, club y formación</text><text x="862" y="510" class="t">Alberto (contenido)</text>
+    <text x="862" y="491" class="d">Academia, club y formación</text><text x="862" y="510" class="t">titular de formación</text>
     <rect x="850" y="530" width="250" height="44" rx="6" fill="#FFFFFF" stroke="#7F0F1A" stroke-dasharray="5 4"/>
     <text x="862" y="557" class="ag">Editor de contenido · Hermes · ola 1</text>
     <rect x="850" y="582" width="250" height="44" rx="6" fill="#FFFFFF" stroke="#7F0F1A" stroke-dasharray="5 4"/>
@@ -146,10 +146,10 @@
   <rect x="25" y="730" width="1350" height="220" rx="8" fill="#FFFFFF" stroke="#E8E6E2"/>
   <text x="45" y="760" class="d">Cómo se lee</text>
   <text x="45" y="785" class="t">• La Junta (Sam) guarda dinero real, producción, contratos, precios y la contratación de personas. El CEO agente dirige solo a los agentes.</text>
-  <text x="45" y="808" class="t">• Meta del trimestre: José asume la Dirección General del día a día y Sam queda como Junta. Al pasar, la Dirección Comercial va al asesor nuevo.</text>
+  <text x="45" y="808" class="t">• Meta del trimestre: una persona del equipo asume la Dirección General del día a día y Sam queda como Junta.</text>
   <text x="45" y="831" class="t">• Vacante #1: asesor comercial. Hoy las ventas las cubre Sam como interino y la IA de Kommo está apagada por costo.</text>
-  <text x="45" y="854" class="t">• Carga a vigilar: Yolimar (Finanzas + Gabinete + Nómina) y José (Comercial + sourcing + aliados). El agente Jefe de gabinete toma el seguimiento.</text>
+  <text x="45" y="854" class="t">• Nadie con más de tres puestos operativos; donde se concentran, el agente Jefe de gabinete toma el seguimiento.</text>
   <text x="45" y="877" class="t">• Externos sin cuenta en el ERP ni en Paperclip: operador de Yiwu, proveedores, agentes aduanales, transportistas, contadora y abogada.</text>
-  <text x="45" y="900" class="t">• Separación de poderes: quien verifica (Alejandro) no mueve el dinero; quien mueve (Yolimar) tiene segunda firma de la Junta.</text>
-  <text x="45" y="930" class="s">Fuente: docs/organizacion/organigrama-paperclip.md · nomina_positions (migración 0204, jul-2026) · matriz de frentes de la SDD-0076 (jun-2026). Datos de personas fechados: confirmar con el ERP.</text>
+  <text x="45" y="900" class="t">• Separación de poderes: quien verifica no mueve el dinero; quien lo mueve tiene segunda firma de la Junta; quien dirige no es tesorero.</text>
+  <text x="45" y="930" class="s">Fuente: docs/organizacion/organigrama-paperclip.md (sección 2.7). Los titulares viven en Studio › Nómina, no en este gráfico.</text>
 </svg>

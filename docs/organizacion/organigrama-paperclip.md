@@ -5,7 +5,7 @@
 | Documento | Propuesta de organigrama: personas y agentes de IA |
 | Dueño | Sam (founder) |
 | Autor | Sesión Worker «Oficina Paperclip» (Claude Code) |
-| Estado | **borrador** · Sam respondió las 14 preguntas el 2026-10-19 (estructura, ola 1, GLM, datos de clientes con controles, Kommo primero) y pidió la versión gráfica y la asignación de personas (sección 2.7); falta que confirme los nombres; nada está instalado |
+| Estado | **borrador** · Sam respondió las 14 preguntas el 2026-10-19 (estructura, ola 1, GLM, datos de clientes con controles, Kommo primero) y pidió la versión gráfica y la asignación de personas (sección 2.7, por puestos; el análisis por persona se le entregó aparte); falta que confirme los titulares; nada está instalado |
 | Fecha | 2026-10-19 |
 | Base | `main` `bb6bb3e4` |
 | Confidencialidad | interno · cita el norte interno; no se publica |
@@ -215,7 +215,7 @@ Fuentes: `lib/studio/modules.ts`, `lib/studio/rbac.ts` (matriz `ROLE_MODULE_ACCE
 
 ### 2.2 Vista 1 · el organigrama de la empresa
 
-**Versión gráfica, con los nombres propuestos** (sección 2.7):
+**Versión gráfica, por puestos** (los titulares se confirman en Studio › Nómina; sección 2.7):
 
 ![Organigrama propuesto de DTD Cargo](assets/01-organigrama-dtd-cargo.svg)
 
@@ -636,79 +636,45 @@ modelo acceso a los contactos. Como el adaptador de Claude Code en Paperclip sal
 permisos también para los MCP conectados, **la máquina de Paperclip no puede tener
 configurado el MCP de GoHighLevel** ni ningún otro conector con datos de clientes (riesgo R11).
 
-### 2.7 Quién ocupa cada puesto: propuesta de asignación
+### 2.7 Quién ocupa cada puesto: criterios de asignación
 
-Pedido de Sam (2026-10-19): analizar la nómina, los perfiles y las funciones de los
-empleados y recomendar, «siendo un senior experto en recursos humanos y gestión de tareas y
-personal», quién va en cada puesto.
+Sam pidió (2026-10-19) recomendar quién va en cada puesto según la nómina y los perfiles.
+**El análisis por persona no está en el repositorio:** son evaluaciones de empleados
+identificables, y lo que entra al repositorio lo leen los agentes (A1) y viaja al proveedor
+del modelo. Sam lo recibe aparte, en la sesión. Aquí queda la lógica por puestos. El titular
+de cada puesto se confirma en Studio › Nómina (`nomina_positions`).
 
-**Fuentes y límite.** No se leyó la nómina de producción (datos de empleados: hace falta tu
-autorización). Se usó lo que el repositorio documenta: el catálogo de 18 puestos con sus
-titulares (`nomina_positions`, migración `0204`, 2026-07-03), la matriz de frentes de la
-SDD-0076 (2026-06-14), los usuarios del Studio de agosto y los dueños del Motor de
-Crecimiento. **Son fotos de junio a agosto: confirma cada nombre antes de cargarlo en
-Studio › Nómina.** Aquí van solo nombres de pila que ya están en el repositorio; ningún dato
-de contacto ni sueldo.
+**Criterios con los que se asignó:**
 
-**Lo que muestran las fuentes, persona por persona:**
+1. **Quien dirige no mueve el dinero.** La Dirección General sale de la tesorería; la
+   tesorería queda en Finanzas, con segunda firma de la Junta.
+2. **Quien verifica no mueve el dinero** (candado de la migración `0204`): el operador de ERP
+   no es tesorero ni `admin`.
+3. **La costura del Puerta a Puerta necesita dueño:** el puesto nuevo de Dirección de
+   Operaciones lo ocupa quien ya coordina transporte, aduana y recepción en Venezuela.
+4. **Las transiciones de tracking son trabajo de escritorio y datos:** van al perfil de
+   operador de ERP, que hoy no tiene ese puesto y que está libre.
+5. **Ventas necesita una persona dedicada:** vacante #1, asesor comercial. Hasta que llegue,
+   la Dirección Comercial cubre el puesto, y Postventa pasa al asesor cuando entre («un solo
+   punto de contacto»).
+6. **Meta del trimestre (respuesta 3):** la Dirección General del día a día pasa de la Junta
+   a una persona del equipo con rol de dirección; la Junta conserva las llaves.
+7. **Nadie con más de tres puestos operativos.** Donde la propuesta concentra puestos en una
+   misma persona, el agente Jefe de gabinete toma el seguimiento y se mide a las 4 semanas.
+8. **Los externos no se asignan:** operador de Yiwu, agentes aduanales, contadora y abogada.
 
-| Persona | Qué hace hoy según el repositorio | Rol del Studio | Lectura de RR. HH. |
-|---|---|---|---|
-| Sam | Dirección General, Coordinación China, Aduanas, Trámites, asesor comercial interino, suplente de Compras y de PMO; dueño de 9 de 20 servicios | `admin` + superadmin | Cuello de botella principal. Tiene que salir de lo operativo |
-| José | Representante legal y director (`admin` desde agosto); atención digital y CRM; sourcing y compras; tesorería en línea e internacional; en junio, dueño de Origen China (7 de 20 servicios) | `admin` | El segundo punto único de falla. Mezcla dirección, ventas y dinero |
-| Yolimar | Contabilidad, PMO, tesorería general, reclamos, RR. HH. (decidido el 18-jul), trámites | `accounting` | Responsable y con criterio de control, pero con demasiados sombreros |
-| Alberto | Atención presencial, inteligencia de tarifas, academia, recepción en Venezuela; en junio, transporte y aduana VE y «director de ruta» del Puerta a Puerta | `warehouse` / `commercial` | Ya hace la costura de la operación en Venezuela que hoy no tiene dueño |
-| Javier | Bodega Venezuela, última milla y calidad China↔VE (en junio figuraba en bodega CN) | `operations` / `warehouse` | Perfil físico y de campo |
-| Alejandro | Automatización con IA (marketing) y operador de ERP: verifica pagos y datos, concilia | `operations` | Perfil de datos y sistemas; el más cercano a operar agentes |
-| Fiorella | Producción de contenido y redes | `marketing` | Ejecutora de contenido |
-| Sra. Fátima | Dirección de marketing y crecimiento | sin usuario conocido | Estrategia de marketing |
-| Operador de Yiwu | Bodega y consolidación en China (externo) | sin cuenta (candado) | Se coordina, no se asigna |
-
-**Propuesta** (es la que muestra la versión gráfica):
-
-| Puesto | Titular propuesto | Respaldo | Por qué |
-|---|---|---|---|
-| Junta | Sam | — | Llaves, rumbo y personas |
-| Dirección General (día a día) | **Sam → José**, como meta del trimestre (respuesta 3) | Sam | José ya es director y representante legal. Al asumirla suelta la tesorería: quien dirige no mueve el dinero |
-| Jefatura de Gabinete y Personas | Yolimar | agente Jefe de gabinete | Ya es PMO y RR. HH.; el agente toma el seguimiento para quitarle carga |
-| Cumplimiento y Riesgo | contadora y abogada externas, coordinadas por Yolimar | Sam | Lo fiscal y lo legal son externos |
-| **Dirección de Operaciones** (puesto nuevo) | **Alberto** | Javier | Ya hace de «director de ruta» del Puerta a Puerta y conoce aduana y recepción en Venezuela |
-| Origen China | Sam, con el operador de Yiwu | José | Sam no sale todavía de aquí: la relación con China es suya. Meta siguiente |
-| Tránsito y tracking | **Alejandro** | Alberto | Las transiciones de tracking son trabajo de escritorio y datos, y no tenían dueño |
-| Aduana Venezuela | Alberto, con los agentes aduanales | Sam | Libera a Sam de un puesto operativo |
-| Almacén VE y última milla | Javier | Alberto | Su perfil |
-| Calidad China↔VE | Javier | Alejandro (concilia) | Igual que en el catálogo |
-| Dirección Comercial y Clientes | **José** | Sam | Ya llevaba la atención digital y el CRM |
-| Ventas y CRM | **asesor comercial: VACANTE #1** | José | Hoy lo cubre Sam como interino; sin persona dedicada, los leads se pierden |
-| Servicio y postventa | Yolimar ahora → el asesor nuevo después | Alberto (presencial) | Un solo punto de contacto con el cliente |
-| Aliados y white-label | José | Sam | Relación comercial de alto nivel |
-| Tarifas y competencia | Alberto, con la Junta | José | Ya era su puesto en el catálogo |
-| Compras, sourcing y trámites | José (sourcing) · Yolimar (trámites) | Sam | Igual que hoy |
-| Dirección de Finanzas y Administración | **Yolimar** | contadora externa | Ya lleva la contabilidad |
-| Facturación, cobranza, tesorería y nómina | Yolimar, con segunda firma de Sam | — | Tesorería sale de José |
-| Socio China y rendiciones | Sam | — | Solo `admin` |
-| Verificación y operador de ERP | Alejandro | Yolimar | Verifica, no mueve dinero (candado) |
-| Dirección de Marketing y Crecimiento | Sra. Fátima | Sam | Ya es su puesto |
-| Contenido y redes | Fiorella | agente Editor de contenido | Igual |
-| SEO, Ads y automatización | Alejandro | agente Analista de crecimiento | Su sombrero de IA |
-| Academia, club y formación | Alberto (contenido) | Fiorella | Igual; pasa a Marketing porque es captación |
-| Dirección de Tecnología y Datos | Sam | Alejandro (operación diaria de los agentes) | Sam es dueño del producto; Alejandro, el apoyo natural para cuidar a los agentes |
-
-**Carga resultante y alertas de RR. HH.:**
-
-- **Yolimar** concentra Finanzas, Gabinete, Nómina, Trámites y Postventa. Mitigación: el
-  agente Jefe de gabinete toma el seguimiento y Postventa pasa al asesor nuevo.
-- **José** concentra Comercial, Aliados y Sourcing, y tendrá la Dirección General. Al
-  asumirla, Comercial pasa al asesor y Sourcing necesita un segundo con conocimiento escrito
-  (era el riesgo de «bus factor» de junio).
-- **Alberto** suma Operaciones a Aduana y Tarifas. Mitigación: suelta la Academia en cuanto
-  haya material grabado y Javier es su segundo.
-- **Alejandro** queda en tres frentes de datos (tracking, verificación y automatización).
-  Encaja con su perfil, pero conviene medirlo a las 4 semanas.
-- **Vacante #1: asesor comercial.** Es la contratación que más mueve la meta de 2
-  contenedores al mes, y la decide la Junta.
-- **Contradicción por confirmar:** en junio Javier figuraba en la bodega de China y en julio
-  en la de Venezuela. La propuesta usa la de julio.
+| Puesto | Titular | Rol del Studio sugerido |
+|---|---|---|
+| Junta | Sam | `admin` + superadmin |
+| Dirección General (día a día) | por confirmar en Studio › Nómina (meta del trimestre) | `admin` |
+| Jefatura de Gabinete y Personas | por confirmar | `accounting` |
+| Dirección de Operaciones (nuevo) | por confirmar | `operations` (alcance `all`) |
+| Tránsito y tracking | por confirmar (perfil operador de ERP) | `operations` |
+| Dirección Comercial y Clientes | por confirmar | `commercial` |
+| Ventas y CRM | **vacante #1: asesor comercial** | `commercial` |
+| Dirección de Finanzas y Administración | por confirmar | `accounting` |
+| Dirección de Marketing y Crecimiento | por confirmar | `marketing` |
+| Dirección de Tecnología y Datos | Sam | `admin` |
 
 
 ---
@@ -1064,10 +1030,11 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
    sugiriendo, el organigrama». Queda tal como está: cinco direcciones y dos áreas de apoyo,
    Atención al cliente dentro de Comercial y la Aduana en Operaciones.
 2. ~~**Dueños humanos.**~~ **Respondida con propuesta** (2026-10-19): Sam pidió que se
-   analizaran la nómina y los perfiles para recomendar quién va en cada puesto. La propuesta
-   está en la sección 2.7 y en la versión gráfica. **Falta que Sam confirme los nombres.**
+   analizaran la nómina y los perfiles para recomendar quién va en cada puesto. Los criterios
+   están en la sección 2.7; el análisis por persona se le entregó a Sam fuera del
+   repositorio. **Falta que Sam confirme los titulares en Studio › Nómina.**
 3. ~~**Junta y Dirección General.**~~ **Respondida:** Sam, «sí separarla como meta
-   trimestral». Propuesta: José asume la Dirección General del día a día en el trimestre.
+   trimestral». Propuesta: una persona del equipo con rol de dirección asume la Dirección General del día a día en el trimestre.
 4. ~~**Presupuesto.**~~ **Respondida** (2026-10-19): Sam, «va a trabajar en un plan de una IA
    que se llama Z.AI, que es un GLM. Suscripción mensual que está activa: ahí vamos a poner a
    Hermes a trabajar con GLM y Paperclip. Podemos arrancarlo con Claude, pero realmente van a
@@ -1091,7 +1058,7 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
 14. ~~**CRM.**~~ **Respondida:** la transición va, pero después. Primero Kommo y la conexión de
     los agentes a Kommo; GoHighLevel en prueba gratis de 14 días (sección 2.6).
 
-**Queda abierto:** que Sam confirme los nombres de la sección 2.7.
+**Queda abierto:** que Sam confirme los titulares en Studio › Nómina.
 
 ---
 

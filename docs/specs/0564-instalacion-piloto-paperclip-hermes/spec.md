@@ -87,7 +87,7 @@ para un tablero de indicadores agregados); mensajería de Hermes hacia clientes;
 | Base de producción de DTD Cargo (Supabase del servidor propio) | **No** | No. Ni lectura | — |
 | Servidor de DTD Cargo (SSH, Docker, `.env`) | **No** | No. El VPS nuevo no guarda llaves SSH hacia él | — |
 | Supabase Cloud (copia congelada) | **No** | No | — |
-| GitHub | **No** | **A1:** llave de despliegue de **solo lectura** de este repositorio, para que los agentes lean una copia del código y la documentación. Sin escritura, sin `gh`, sin PAT. **Consideración (Director, 2026-10-19):** el repositorio trae handoffs con detalles operativos (IP y rutas del servidor de DTD Cargo, procedimientos de producción), aunque no secretos; si el VPS se compromete, esa copia queda expuesta, y una llave de despliegue da acceso al repositorio entero. **Alternativa A1-b:** una copia filtrada, solo `docs/` y el código, sin `.agents/handoffs/`, que Sam sube a mano (`git archive`) cada semana | Sam |
+| GitHub | **No** | **A1:** llave de despliegue de **solo lectura** de este repositorio, para que los agentes lean una copia del código y la documentación. Sin escritura, sin `gh`, sin PAT. **Transferencia (Director, 2026-10-19):** con A1 y el motor GLM (A2-b), **todo el contenido del repositorio que lean los agentes es dato que viaja a Z.AI**, incluidos los nombres de titulares de la migración `0204` y los handoffs; se declara como transferencia a un tercero. Es otra razón a favor de A1-b. **Consideración (Director, 2026-10-19):** el repositorio trae handoffs con detalles operativos (IP y rutas del servidor de DTD Cargo, procedimientos de producción), aunque no secretos; si el VPS se compromete, esa copia queda expuesta, y una llave de despliegue da acceso al repositorio entero. **Alternativa A1-b:** una copia filtrada, solo `docs/` y el código, sin `.agents/handoffs/`, que Sam sube a mano (`git archive`) cada semana | Sam |
 | Claves del ERP (service role, Resend, Telegram del ERP, Kommo, SeaRates) | **No** | No | — |
 | Proveedor de modelos | **No** | **A2 (decidida):** llave **nueva y exclusiva** de Anthropic para el arranque, con límite en su consola. **A2-b (decidida, motor principal):** la suscripción activa de **Z.AI (GLM)** de Sam, con una llave de Z.AI solo para esta máquina. Codex: una cuenta o llave propia para el VPS, nunca el inicio de sesión de ChatGPT de Sam con su correo conectado | Sam |
 | CRM, MCP o conectores con datos de clientes | **No** en la instalación | **A4 (pendiente):** conexión a Kommo, porque Sam decidió que los agentes trabajen primero con Kommo y que puedan ver datos de clientes. Se hace **después** de la instalación, con `revisar-datos-ve`, su propia SDD y la política de privacidad corregida. Hasta entonces, ningún MCP ni conector con datos de clientes (riesgo R11) | Sam |
@@ -213,7 +213,8 @@ cliente cuando la tarea lo pida. La instalación de esta SDD no conecta todavía
 fuente con datos de clientes, así que `revisar-datos-ve` no aplica a estos pasos. **Antes**
 de la conexión a Kommo (A4) o a cualquier otra fuente: se corre la skill sobre esa conexión,
 se corrige la política de privacidad (hoy dice que los datos se tratan en Venezuela), se
-declara la transferencia a Z.AI y a Anthropic, y responder a un cliente queda como I4 de
+declara la transferencia a Z.AI y a Anthropic (también la del contenido del repositorio, ver
+A1 en §D1), y responder a un cliente queda como I4 de
 IA-01 (prepara el agente, aprueba o envía una persona).
 
 ### D9 · Orden de ejecución, cada paso con OK de Sam
