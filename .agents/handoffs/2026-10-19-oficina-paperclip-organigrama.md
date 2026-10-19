@@ -166,3 +166,19 @@ me gustaría que analices con Contabo cuál sería el adecuado para comprar un V
   (rama `codex/sdd-reserve-0564`, commit del stub `d5f41026`, traído a esta rama con cherry-pick).
   Al integrar, borrar la rama y la ref de reserva.
 - `docs/specs/0564-instalacion-piloto-paperclip-hermes/spec.md` en estado `proposed`. Nada instalado.
+
+## Ronda 5 · respuestas de Sam, versión gráfica y asignación de personas (2026-10-19)
+
+- Sam respondió las 14 preguntas (citas literales en la sección 7 del organigrama y en el
+  pedido de la SDD-0564). Cambios de fondo: GLM (Z.AI) como motor principal; Codex y Claude
+  también; solo Sam como Owner; **datos de clientes permitidos en Paperclip con controles**;
+  el CEO crea agentes; Telegram y correo cuando haga falta; **Kommo primero**, GoHighLevel
+  en prueba de 14 días.
+- Nuevo: `docs/organizacion/assets/01-organigrama-dtd-cargo.svg` (versión gráfica, revisada
+  en el navegador integrado) y la sección 2.7 con la asignación de personas. Fuentes: la
+  migración 0204 (jul), la matriz de frentes de la SDD-0076 (jun) y los usuarios de agosto.
+  No se leyó la nómina de producción. Falta que Sam confirme los nombres.
+- SDD-0564: GLM por el endpoint de Z.AI para Claude Code (documentación de Z.AI consultada el
+  2026-10-19); Docker: misma máquina y contenedores separados para la ejecución (opción A);
+  Codex solo con el bypass apagado; A3 aprobada; A4 (Kommo) pendiente con `revisar-datos-ve`.
+- Merge de main `d0b628d4` por conflicto del índice (sin conflictos manuales).

@@ -5,7 +5,7 @@
 | Documento | Propuesta de organigrama: personas y agentes de IA |
 | Dueño | Sam (founder) |
 | Autor | Sesión Worker «Oficina Paperclip» (Claude Code) |
-| Estado | **borrador** · Sam pidió avanzar a la PR en borrador (2026-10-19, «listo avanza») y aprobó la estructura («Me gusta el plan»); suma la transición del CRM a GoHighLevel; quedan abiertas las preguntas 2 a 14 de la sección 7; nada está instalado |
+| Estado | **borrador** · Sam respondió las 14 preguntas el 2026-10-19 (estructura, ola 1, GLM, datos de clientes con controles, Kommo primero) y pidió la versión gráfica y la asignación de personas (sección 2.7); falta que confirme los nombres; nada está instalado |
 | Fecha | 2026-10-19 |
 | Base | `main` `bb6bb3e4` |
 | Confidencialidad | interno · cita el norte interno; no se publica |
@@ -48,12 +48,14 @@
 5. **Siempre tuyo:** dinero real, producción (base, migraciones, merges, despliegues),
    datos personales, contratos, precios y tarifas, contratación de personas, cuentas en
    servicios externos y el presupuesto total de IA.
-6. **El CRM pasa de Kommo a GoHighLevel y el organigrama no lo espera.** El CRM es una
-   herramienta, no un puesto. La transición entra como proyecto del CEO agente; solo el
-   agente que lee el embudo espera al corte (sección 2.6).
-7. **Regla de oro de datos:** *Paperclip ve el tablero, no al cliente.* En Paperclip solo
-   entran códigos (`DTD-NNNN`, `S-AAAA-NNNN`), conteos y enlaces al ERP; nunca nombres,
-   cédulas, RIF, teléfonos, direcciones ni montos por cliente.
+6. **Primero Kommo, después GoHighLevel.** Sam decidió el 2026-10-19 que la transición
+   espera: primero se hace funcionar Kommo y se conectan los agentes a él; GoHighLevel queda
+   en prueba gratis de 14 días (sección 2.6).
+7. **Datos de clientes: sí, con controles.** Sam decidió el 2026-10-19 que en Paperclip
+   pueden verse datos personales y montos por cliente cuando la tarea lo pida (por ejemplo,
+   preparar la respuesta a un cliente), manteniendo la seguridad acordada. Antes de conectar
+   cualquier fuente con datos de clientes se cumplen los controles de la sección 2.5 (nota de
+   la regla de datos).
 8. **Paperclip es joven y potente:** 104.000 estrellas, versiones casi semanales, varias
    fallas de seguridad graves ya corregidas en 2026, y sus adaptadores de Claude Code y
    Codex **saltan los permisos por defecto**. Por eso el arranque recomendado es pequeño:
@@ -213,7 +215,12 @@ Fuentes: `lib/studio/modules.ts`, `lib/studio/rbac.ts` (matriz `ROLE_MODULE_ACCE
 
 ### 2.2 Vista 1 · el organigrama de la empresa
 
-Leyenda: `[ ]` persona · `([ ])` agente · `{{ }}` área con dueño humano y agentes de apoyo.
+**Versión gráfica, con los nombres propuestos** (sección 2.7):
+
+![Organigrama propuesto de DTD Cargo](assets/01-organigrama-dtd-cargo.svg)
+
+Versión en texto (Mermaid). Leyenda: `[ ]` persona · `([ ])` agente · `{{ }}` área con dueño
+humano y agentes de apoyo.
 
 ```mermaid
 flowchart TD
@@ -335,10 +342,29 @@ Clases de datos que usan las fichas:
 | **LEG** | Contratos, evidencia legal, expedientes de reclamo |
 | **CN** | Datos tratados en China: proveedores, operador y personal de Yiwu (ley china PIPL) |
 
-> **Regla para todos los agentes:** máximo **PUB + INT + AGR**. Ningún agente de Paperclip
-> ve FIN por cliente, PII, EMP, LEG ni CN en crudo. Cuando un área necesita automatizar algo
-> con datos de clientes, se construye como agente del Studio (SDD-0020), dentro del ERP,
-> con permisos, tenant y auditoría, y Paperclip solo recibe el resultado agregado.
+> **Regla para todos los agentes (actualizada el 2026-10-19 por decisión de Sam).** Sam:
+> «En Paperclip no importa que haya datos personales y montos por cliente, eso puede verse.
+> Mientras mantengamos el tema de la seguridad y las precauciones de las que hablamos, no hay
+> ningún problema. Las tareas tienen que ser específicas (tal vez contestar a los clientes) y
+> para eso se requiere esa información.»
+>
+> Queda así: un agente puede ver **PII y FIN de clientes** cuando su tarea lo necesita. EMP
+> (datos de empleados) y LEG siguen fuera salvo decisión aparte. Lo que esa decisión **no
+> cambia**, porque son reglas aprobadas del repositorio:
+>
+> 1. **Antes de conectar** cualquier fuente con datos de clientes (Kommo, el ERP, correo), se
+>    corre `revisar-datos-ve` sobre esa conexión y se abre su SDD. Hoy la política de
+>    privacidad publicada dice que los datos se tratan en Venezuela y no nombra a estos
+>    proveedores; hay que corregirla antes (la política no puede prometer lo que el sistema
+>    no hace).
+> 2. **Contestar a un cliente es nivel I4 de IA-01:** el agente prepara la respuesta y una
+>    persona la aprueba o la envía. Que un agente escriba solo a clientes requiere cambiar
+>    IA-01 con su revisión; no se hace por defecto.
+> 3. **Proveedor del modelo:** si los datos de clientes viajan a GLM (Z.AI), es una
+>    transferencia internacional a un tercero nuevo; se declara en la revisión del punto 1.
+>    Dónde procesa Z.AI sus datos está **NO VERIFICADO**.
+> 4. **Mínimo necesario:** la tarea recibe solo los campos que usa; nunca cédula completa ni
+>    fotos de documentos.
 
 #### P-00 · Junta — Sam · persona
 
@@ -561,6 +587,14 @@ Detalle completo en la **sección 3**.
 
 ### 2.6 La transición del CRM a GoHighLevel: qué cambia y qué no
 
+> **Actualización del 2026-10-19 (Sam):** «El CRM, sí, confirmo que va a haber una
+> transición, pero no ahorita. Ahorita vamos a tratar de que funcione Kommo, y ya que veamos
+> que se conecta todo y que los AI y los agentes se puedan conectar a Kommo, vemos cómo
+> pasamos a GoHighLevel. […] Ya tenemos habilitado GoHighLevel con 14 días de free para hacer
+> pruebas.» Por eso el Analista de embudo y la conexión de agentes se hacen **contra Kommo**
+> primero, con los controles de la regla de datos (sección 2.5). La transición queda en
+> pausa; GoHighLevel se usa solo para pruebas durante su período gratis.
+
 **Decisión: no esperar la transición.** El organigrama se arma ya con lo que existe, y la
 transición entra como un **proyecto** dentro de él. Hay tres razones:
 
@@ -583,7 +617,7 @@ transición entra como un **proyecto** dentro de él. Hay tres razones:
 | Estructura, dueños y fichas | No | No dependen del CRM |
 | Ola 1 de Paperclip | No | No lee el CRM |
 | Seguimiento de la transición | No: es trabajo del CEO agente y del jefe de gabinete desde la ola 1 | Llevar las fases, recordar las 8 decisiones pendientes y preparar el lote del viernes no exige ver contactos |
-| Analista de embudo (P-21) | **Sí** | Se construye una sola vez contra el espejo neutro `crm_*` que propone el estudio, no contra Kommo |
+| Analista de embudo (P-21) | **No** (cambio del 2026-10-19) | Sam decidió conectar los agentes a Kommo primero. Para no hacerlo dos veces, se conecta a través del espejo de Kommo que ya guarda Studio, de modo que al pasar a GoHighLevel solo cambie la fuente del espejo |
 | IA conversacional | Sigue igual | Apagada en Kommo y encendida a mano. En GoHighLevel el estudio propone el bot de entrada en modo sugerido y con tope de gasto («Block AI at the limit») |
 | Integración de Studio con el CRM | Sí, con SDD | La sincronización, el webhook, la cola de escritura y el módulo CRM se reescriben para GoHighLevel; son tareas Worker |
 
@@ -601,6 +635,81 @@ transición entra como un **proyecto** dentro de él. Hay tres razones:
 modelo acceso a los contactos. Como el adaptador de Claude Code en Paperclip salta los
 permisos también para los MCP conectados, **la máquina de Paperclip no puede tener
 configurado el MCP de GoHighLevel** ni ningún otro conector con datos de clientes (riesgo R11).
+
+### 2.7 Quién ocupa cada puesto: propuesta de asignación
+
+Pedido de Sam (2026-10-19): analizar la nómina, los perfiles y las funciones de los
+empleados y recomendar, «siendo un senior experto en recursos humanos y gestión de tareas y
+personal», quién va en cada puesto.
+
+**Fuentes y límite.** No se leyó la nómina de producción (datos de empleados: hace falta tu
+autorización). Se usó lo que el repositorio documenta: el catálogo de 18 puestos con sus
+titulares (`nomina_positions`, migración `0204`, 2026-07-03), la matriz de frentes de la
+SDD-0076 (2026-06-14), los usuarios del Studio de agosto y los dueños del Motor de
+Crecimiento. **Son fotos de junio a agosto: confirma cada nombre antes de cargarlo en
+Studio › Nómina.** Aquí van solo nombres de pila que ya están en el repositorio; ningún dato
+de contacto ni sueldo.
+
+**Lo que muestran las fuentes, persona por persona:**
+
+| Persona | Qué hace hoy según el repositorio | Rol del Studio | Lectura de RR. HH. |
+|---|---|---|---|
+| Sam | Dirección General, Coordinación China, Aduanas, Trámites, asesor comercial interino, suplente de Compras y de PMO; dueño de 9 de 20 servicios | `admin` + superadmin | Cuello de botella principal. Tiene que salir de lo operativo |
+| José | Representante legal y director (`admin` desde agosto); atención digital y CRM; sourcing y compras; tesorería en línea e internacional; en junio, dueño de Origen China (7 de 20 servicios) | `admin` | El segundo punto único de falla. Mezcla dirección, ventas y dinero |
+| Yolimar | Contabilidad, PMO, tesorería general, reclamos, RR. HH. (decidido el 18-jul), trámites | `accounting` | Responsable y con criterio de control, pero con demasiados sombreros |
+| Alberto | Atención presencial, inteligencia de tarifas, academia, recepción en Venezuela; en junio, transporte y aduana VE y «director de ruta» del Puerta a Puerta | `warehouse` / `commercial` | Ya hace la costura de la operación en Venezuela que hoy no tiene dueño |
+| Javier | Bodega Venezuela, última milla y calidad China↔VE (en junio figuraba en bodega CN) | `operations` / `warehouse` | Perfil físico y de campo |
+| Alejandro | Automatización con IA (marketing) y operador de ERP: verifica pagos y datos, concilia | `operations` | Perfil de datos y sistemas; el más cercano a operar agentes |
+| Fiorella | Producción de contenido y redes | `marketing` | Ejecutora de contenido |
+| Sra. Fátima | Dirección de marketing y crecimiento | sin usuario conocido | Estrategia de marketing |
+| Operador de Yiwu | Bodega y consolidación en China (externo) | sin cuenta (candado) | Se coordina, no se asigna |
+
+**Propuesta** (es la que muestra la versión gráfica):
+
+| Puesto | Titular propuesto | Respaldo | Por qué |
+|---|---|---|---|
+| Junta | Sam | — | Llaves, rumbo y personas |
+| Dirección General (día a día) | **Sam → José**, como meta del trimestre (respuesta 3) | Sam | José ya es director y representante legal. Al asumirla suelta la tesorería: quien dirige no mueve el dinero |
+| Jefatura de Gabinete y Personas | Yolimar | agente Jefe de gabinete | Ya es PMO y RR. HH.; el agente toma el seguimiento para quitarle carga |
+| Cumplimiento y Riesgo | contadora y abogada externas, coordinadas por Yolimar | Sam | Lo fiscal y lo legal son externos |
+| **Dirección de Operaciones** (puesto nuevo) | **Alberto** | Javier | Ya hace de «director de ruta» del Puerta a Puerta y conoce aduana y recepción en Venezuela |
+| Origen China | Sam, con el operador de Yiwu | José | Sam no sale todavía de aquí: la relación con China es suya. Meta siguiente |
+| Tránsito y tracking | **Alejandro** | Alberto | Las transiciones de tracking son trabajo de escritorio y datos, y no tenían dueño |
+| Aduana Venezuela | Alberto, con los agentes aduanales | Sam | Libera a Sam de un puesto operativo |
+| Almacén VE y última milla | Javier | Alberto | Su perfil |
+| Calidad China↔VE | Javier | Alejandro (concilia) | Igual que en el catálogo |
+| Dirección Comercial y Clientes | **José** | Sam | Ya llevaba la atención digital y el CRM |
+| Ventas y CRM | **asesor comercial: VACANTE #1** | José | Hoy lo cubre Sam como interino; sin persona dedicada, los leads se pierden |
+| Servicio y postventa | Yolimar ahora → el asesor nuevo después | Alberto (presencial) | Un solo punto de contacto con el cliente |
+| Aliados y white-label | José | Sam | Relación comercial de alto nivel |
+| Tarifas y competencia | Alberto, con la Junta | José | Ya era su puesto en el catálogo |
+| Compras, sourcing y trámites | José (sourcing) · Yolimar (trámites) | Sam | Igual que hoy |
+| Dirección de Finanzas y Administración | **Yolimar** | contadora externa | Ya lleva la contabilidad |
+| Facturación, cobranza, tesorería y nómina | Yolimar, con segunda firma de Sam | — | Tesorería sale de José |
+| Socio China y rendiciones | Sam | — | Solo `admin` |
+| Verificación y operador de ERP | Alejandro | Yolimar | Verifica, no mueve dinero (candado) |
+| Dirección de Marketing y Crecimiento | Sra. Fátima | Sam | Ya es su puesto |
+| Contenido y redes | Fiorella | agente Editor de contenido | Igual |
+| SEO, Ads y automatización | Alejandro | agente Analista de crecimiento | Su sombrero de IA |
+| Academia, club y formación | Alberto (contenido) | Fiorella | Igual; pasa a Marketing porque es captación |
+| Dirección de Tecnología y Datos | Sam | Alejandro (operación diaria de los agentes) | Sam es dueño del producto; Alejandro, el apoyo natural para cuidar a los agentes |
+
+**Carga resultante y alertas de RR. HH.:**
+
+- **Yolimar** concentra Finanzas, Gabinete, Nómina, Trámites y Postventa. Mitigación: el
+  agente Jefe de gabinete toma el seguimiento y Postventa pasa al asesor nuevo.
+- **José** concentra Comercial, Aliados y Sourcing, y tendrá la Dirección General. Al
+  asumirla, Comercial pasa al asesor y Sourcing necesita un segundo con conocimiento escrito
+  (era el riesgo de «bus factor» de junio).
+- **Alberto** suma Operaciones a Aduana y Tarifas. Mitigación: suelta la Academia en cuanto
+  haya material grabado y Javier es su segundo.
+- **Alejandro** queda en tres frentes de datos (tracking, verificación y automatización).
+  Encaja con su perfil, pero conviene medirlo a las 4 semanas.
+- **Vacante #1: asesor comercial.** Es la contratación que más mueve la meta de 2
+  contenedores al mes, y la decide la Junta.
+- **Contradicción por confirmar:** en junio Javier figuraba en la bodega de China y en julio
+  en la de Venezuela. La propuesta usa la de julio.
+
 
 ---
 
@@ -781,7 +890,7 @@ Verificado en la documentación oficial y en el registro de vulnerabilidades el 
 |---|---|---|
 | R1 | Un agente con consola o credenciales toca producción | Paperclip corre en una máquina aparte, con un usuario sin SSH al servidor, sin `.env`, sin llaves de Supabase y sin token de GitHub con escritura. Salto de permisos apagado en todos los agentes. Solo Claude Code en la ola 1 |
 | R2 | Instrucciones maliciosas escondidas en contenido (correos, web, mensajes) | Los agentes de la ola 1 no leen contenido de terceros. Preset `low_trust_review` para cualquier agente que lo haga después. Ninguna herramienta de escritura externa |
-| R3 | Datos personales en un sistema nuevo (base de Paperclip, registros de actividad que se guardan para siempre) y en el proveedor del modelo | Regla «Paperclip ve el tablero, no al cliente». Pasar `revisar-datos-ve` antes de instalar. Las tareas solo llevan códigos y enlaces |
+| R3 | Datos personales en un sistema nuevo (base de Paperclip, registros de actividad que se guardan para siempre) y en el proveedor del modelo | Los datos de clientes se permiten por decisión de Sam (2026-10-19), con los cuatro controles de la sección 2.5: `revisar-datos-ve` y SDD antes de conectar cada fuente, persona que aprueba lo que va al cliente, transferencia a Z.AI declarada y mínimo necesario |
 | R4 | Gasto descontrolado por bucles o latidos | Tope por empresa y por agente con parada dura; latido solo en el CEO; un agente a la vez; revisión del gasto en el parte del viernes |
 | R5 | Un agente promete precio, plazo o condición | Ningún agente escribe hacia afuera. Todo texto para clientes es borrador para una persona |
 | R6 | Las aprobaciones vuelven a amontonarse en Sam | Un solo lote de decisiones por semana, con recomendación ⭐. Solo suben las I3 e I4 |
@@ -954,33 +1063,35 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
 1. ~~**Estructura.**~~ **Respondida:** Sam, 2026-10-19: «Me gusta el plan que me estás
    sugiriendo, el organigrama». Queda tal como está: cinco direcciones y dos áreas de apoyo,
    Atención al cliente dentro de Comercial y la Aduana en Operaciones.
-2. **Dueños humanos.** ¿Quién es el dueño de cada dirección y del puesto nuevo de Dirección
-   de Operaciones? ¿Postventa sigue con rol `accounting` o pasa a `commercial`?
-3. **Junta y Dirección General.** ¿Quieres separar las dos cosas? ¿Hay una persona que
-   pueda asumir la dirección del día a día? ⭐ Separarlas como meta del trimestre.
-4. ~~**Presupuesto.**~~ **Respondida** (SDD-0564, 2026-10-19): 100 USD al mes con parada dura y llave
-   nueva de Anthropic, exclusiva y con límite en el proveedor.
-5. **Dónde corre.** ¿Compras el Cloud VPS 6 de Contabo en US East (sección 5.9), u otra opción?
-   ⭐ VM o VPS aparte, nunca el servidor de producción.
-6. **Ola 1.** ¿Apruebas CEO, Jefe de gabinete, Puente de ingeniería y Editor de contenido,
-   solo lectura, 4 semanas?
-7. **Adaptadores.** ¿Solo Claude Code en la ola 1, o también Codex? ⭐ Solo Claude Code, con
-   el salto de permisos apagado.
-8. **Quién más entra.** ¿Solo tú como Owner en la ola 1, o también el director y la PMO
-   como Viewer?
-9. **Regla de datos.** ¿Confirmas «en Paperclip no entran datos personales ni montos por
-   cliente»?
-10. **Parte del CEO.** ¿Diario corto más el parte del viernes, o solo el viernes? ¿Por
-    dónde lo quieres: el panel de Paperclip, Telegram o correo?
-11. **Contratar agentes.** ¿El CEO puede proponer agentes nuevos (tú apruebas cada uno) o
-    la creación de agentes es solo tuya?
-12. **Metas.** ¿Las seis metas de la sección 3.2 son las correctas para arrancar?
-13. **SDD.** Este documento no la necesita. La instalación sí, porque cambia quién puede
-    actuar sobre el repositorio y con qué permisos. ¿Le pido el número al Director cuando
-    apruebes?
-14. **CRM.** ¿Confirmas que la transición a GoHighLevel avanza en paralelo, como proyecto
-    del organigrama, y que el analista de embudo espera al corte? ⭐ Sí, y que la sesión
-    dueña del estudio lo publique ya en su rama, antes de que se pierda (sección 2.6).
+2. ~~**Dueños humanos.**~~ **Respondida con propuesta** (2026-10-19): Sam pidió que se
+   analizaran la nómina y los perfiles para recomendar quién va en cada puesto. La propuesta
+   está en la sección 2.7 y en la versión gráfica. **Falta que Sam confirme los nombres.**
+3. ~~**Junta y Dirección General.**~~ **Respondida:** Sam, «sí separarla como meta
+   trimestral». Propuesta: José asume la Dirección General del día a día en el trimestre.
+4. ~~**Presupuesto.**~~ **Respondida** (2026-10-19): Sam, «va a trabajar en un plan de una IA
+   que se llama Z.AI, que es un GLM. Suscripción mensual que está activa: ahí vamos a poner a
+   Hermes a trabajar con GLM y Paperclip. Podemos arrancarlo con Claude, pero realmente van a
+   trabajar con GLM». El tope de 100 USD con parada dura sigue para lo que se pague por uso
+   (la llave de Anthropic del arranque). Ver la SDD-0564 §D6.
+5. ~~**Dónde corre.**~~ **Respondida:** Sam compró el VPS de Contabo. Pidió saber si Hermes y
+   Paperclip van en el mismo Docker: la respuesta está en la SDD-0564 §D2.
+6. ~~**Ola 1.**~~ **Respondida:** «Apruebo la ola 1, me gustó».
+7. ~~**Adaptadores.**~~ **Respondida:** «vamos a conectar Claude Code, Codex y también GLM,
+   pero principalmente GLM». Controles en la SDD-0564 §D5.
+8. ~~**Quién más entra.**~~ **Respondida:** «Ahora solo voy a entrar yo, que soy el owner».
+9. ~~**Regla de datos.**~~ **Respondida:** los datos de clientes pueden verse en Paperclip con
+   los controles de la sección 2.5.
+10. ~~**Parte del CEO.**~~ **Respondida:** «vamos a trabajar por Telegram y correo solamente
+    cuando sea necesario». La mensajería de Telegram (A3 de la SDD-0564) pasa a aprobada.
+11. ~~**Contratar agentes.**~~ **Respondida:** «la idea es que el CEO pueda contratar agentes
+    nuevos […] La creación de agente la puede hacer el CEO». Controles en la SDD-0564 §D5.
+12. ~~**Metas.**~~ **Respondida:** «Las metas están bien. Igual cuando ya estemos adentro las
+    revisamos bien».
+13. ~~**SDD.**~~ **Respondida:** es la SDD-0564.
+14. ~~**CRM.**~~ **Respondida:** la transición va, pero después. Primero Kommo y la conexión de
+    los agentes a Kommo; GoHighLevel en prueba gratis de 14 días (sección 2.6).
+
+**Queda abierto:** que Sam confirme los nombres de la sección 2.7.
 
 ---
 

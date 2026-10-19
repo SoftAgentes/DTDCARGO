@@ -29,6 +29,17 @@ confidencialidad: interno
   más seguridad. Recuerda tener esos temas de seguridad y pendientes.» Lo que se recomendó
   instalar es **Tailscale** (§D2).
 
+- 2026-10-19, respuestas a las preguntas del organigrama (literal, extractos): modelos —
+  «Z.AI, que es un GLM. Suscripción mensual que está activa: ahí vamos a poner a Hermes a
+  trabajar con GLM y Paperclip. Podemos arrancarlo con Claude, pero realmente van a trabajar
+  con GLM»; máquina — «ya compré el VPS en Contabo […] ¿No sé si ponemos a Hermes y a
+  Paperclip en el mismo Docker? Tienes que decirme qué es mejor aquí»; adaptadores — «vamos a
+  conectar Claude Code, Codex y también GLM, pero principalmente GLM»; personas — «Ahora solo
+  voy a entrar yo, que soy el owner»; datos — «En Paperclip no importa que haya datos
+  personales y montos por cliente […] Mientras mantengamos el tema de la seguridad»; parte —
+  «por Telegram y correo solamente cuando sea necesario»; agentes — «La creación de agente la
+  puede hacer el CEO»; CRM — «Ahorita vamos a tratar de que funcione Kommo».
+
 Número asignado por el Director el 2026-10-19 («Te asigno la 0564»), con estas condiciones,
 que esta SDD cumple: es otro servidor; por defecto ningún acceso a la base de producción, a
 GitHub ni a claves, y cada acceso propuesto se nombra, se justifica y lo aprueba Sam; los
@@ -78,9 +89,9 @@ para un tablero de indicadores agregados); mensajería de Hermes hacia clientes;
 | Supabase Cloud (copia congelada) | **No** | No | — |
 | GitHub | **No** | **A1:** llave de despliegue de **solo lectura** de este repositorio, para que los agentes lean una copia del código y la documentación. Sin escritura, sin `gh`, sin PAT. **Consideración (Director, 2026-10-19):** el repositorio trae handoffs con detalles operativos (IP y rutas del servidor de DTD Cargo, procedimientos de producción), aunque no secretos; si el VPS se compromete, esa copia queda expuesta, y una llave de despliegue da acceso al repositorio entero. **Alternativa A1-b:** una copia filtrada, solo `docs/` y el código, sin `.agents/handoffs/`, que Sam sube a mano (`git archive`) cada semana | Sam |
 | Claves del ERP (service role, Resend, Telegram del ERP, Kommo, SeaRates) | **No** | No | — |
-| Proveedor de modelos | **No** | **A2:** una llave de API **nueva y exclusiva** de Anthropic para Paperclip y Hermes, con límite de gasto puesto en la consola del proveedor. Si Hermes usa otro proveedor (OpenRouter), una llave propia con su propio límite | Sam |
-| CRM, MCP o conectores con datos de clientes | **No** | No. La máquina no tiene configurado ningún MCP (riesgo R11 del organigrama) | — |
-| Mensajería de Hermes (Telegram, WhatsApp…) | **No** | **A3 (opcional):** un bot de Telegram **nuevo**, solo para que Sam hable con el CEO o reciba el parte; lista de usuarios permitidos = Sam. Nunca el bot del ERP (`@dtdcargobot`) | Sam |
+| Proveedor de modelos | **No** | **A2 (decidida):** llave **nueva y exclusiva** de Anthropic para el arranque, con límite en su consola. **A2-b (decidida, motor principal):** la suscripción activa de **Z.AI (GLM)** de Sam, con una llave de Z.AI solo para esta máquina. Codex: una cuenta o llave propia para el VPS, nunca el inicio de sesión de ChatGPT de Sam con su correo conectado | Sam |
+| CRM, MCP o conectores con datos de clientes | **No** en la instalación | **A4 (pendiente):** conexión a Kommo, porque Sam decidió que los agentes trabajen primero con Kommo y que puedan ver datos de clientes. Se hace **después** de la instalación, con `revisar-datos-ve`, su propia SDD y la política de privacidad corregida. Hasta entonces, ningún MCP ni conector con datos de clientes (riesgo R11) | Sam |
+| Mensajería de Hermes (Telegram, WhatsApp…) | **No** | **A3 (aprobada el 2026-10-19):** un bot de Telegram **nuevo** y correo solo cuando haga falta, para que Sam reciba el parte y hable con el CEO; lista de usuarios permitidos = Sam. Nunca el bot del ERP (`@dtdcargobot`) ni WhatsApp | Sam |
 | Internet de salida | Sí | Solo lo que necesitan los modelos y la instalación; el Editor de contenido puede leer la web pública | — |
 
 Cada acceso de la columna «Propuesta» se activa solo con un OK de Sam que lo nombre.
@@ -99,6 +110,15 @@ Cada acceso de la columna «Propuesta» se activa solo con un OK de Sam que lo n
 5. **Usuario `agentes`** sin `sudo`, dueño de Paperclip y de Hermes. Ninguno corre como root
    (Paperclip lo exige y Hermes lo recomienda).
 6. **Docker** para el backend aislado de Hermes.
+
+   **¿Hermes y Paperclip en el mismo Docker?** Sam lo preguntó el 2026-10-19. Recomendación:
+   **misma máquina, pero no el mismo contenedor.**
+
+   | Opción | Cómo queda | Veredicto |
+   |---|---|---|
+   | ⭐ **A · Paperclip como servicio del sistema y Hermes llamado por `hermes_local`**, con los comandos de Hermes dentro de un contenedor Docker (su «backend Docker») | Es el camino que documentan los dos proyectos. Lo que ejecutan los agentes queda encerrado en Docker y no toca la máquina | Para la ola 1: menos piezas, menos cosas que fallen |
+   | B · Paperclip y Hermes cada uno en su propio contenedor, unidos por `hermes_gateway` en una red interna | Mejor separación: si Hermes se compromete, no ve la llave maestra de Paperclip | Para la ola 2, si el piloto crece. `hermes_gateway` fuera de `localhost` exige HTTPS, Tailscale o VPN: hay que probarlo |
+   | C · Los dos dentro de **un solo** contenedor | Una falla en uno expone al otro y se pierde la ventaja de Docker | **No** |
 7. **Actualizaciones de seguridad automáticas** del sistema (`unattended-upgrades`).
    Paperclip y Hermes **no** se actualizan solos: versión fijada y actualización a mano
    después de leer sus avisos de seguridad.
@@ -132,7 +152,8 @@ Cada acceso de la columna «Propuesta» se activa solo con un OK de Sam que lo n
 | Herramientas | Recortadas: archivos y web. Sin terminal en el host ni navegador en la ola 1 |
 | Servidor de API (puerto 8642) | Solo en `127.0.0.1` y con clave, o apagado si se usa `hermes_local` |
 | Mensajería | Apagada salvo A3 |
-| Uso en la ola 1 | **D-H:** motor del Editor de contenido a través de `hermes_local` (lo propone esta SDD), o solo instalado y sin agentes hasta la ola 2 |
+| Uso en la ola 1 | **D-H (decidida):** motor del Editor de contenido a través de `hermes_local` |
+| Modelo | GLM por la suscripción de Z.AI (A2-b); Claude solo si GLM no alcanza |
 
 ### D5 · Agentes de la ola 1
 
@@ -143,6 +164,24 @@ Cada acceso de la columna «Propuesta» se activa solo con un OK de Sam que lo n
 | Puente de ingeniería | Claude Code, salto apagado | Igual; lee la salida de `director-status` que Sam le pase | Al asignarle algo |
 | Editor de contenido | Hermes (`hermes_local`) o Claude Code, según D-H | Lee la copia del repositorio y la web pública | Al asignarle algo |
 
+**Modelos y adaptadores (decisión de Sam: «principalmente GLM»):**
+
+- **GLM a través de Claude Code:** Z.AI publica la conexión. Se apunta Claude Code a
+  `https://api.z.ai/api/anthropic` con la llave de Z.AI, y los modelos `glm-5.3` y
+  `glm-5.3-flash` ocupan los lugares de Claude (documentación de Z.AI, consultada el
+  2026-10-19). Así se usa el mismo adaptador `claude_local`, con el salto de permisos
+  apagado.
+- **Claude** con la llave A2, solo para arrancar o comparar.
+- **Codex** (`codex_local`) solo con `dangerouslyBypassApprovalsAndSandbox` apagado y con su
+  propia cuenta en el VPS. Si no se puede apagar en la versión instalada, Codex no entra en
+  la ola 1.
+- **Hermes** con GLM, igual que arriba.
+
+**El CEO crea agentes (decisión de Sam).** Se le da el permiso de crear agentes, con estos
+límites: cada agente nuevo hereda las reglas de la §4.3 del organigrama; nadie recibe
+accesos nuevos de la tabla D1 sin OK de Sam; el tope de la empresa no cambia; como máximo 8
+agentes activos en la ola 1; y cada alta aparece en el parte del viernes con su motivo.
+
 Ningún agente escribe en el repositorio, abre PRs, lanza sesiones de ingeniería ni escribe
 hacia afuera. Sus instrucciones (`AGENTS.md` de cada agente en Paperclip) copian las reglas
 de la §4.3 del organigrama. Son instrucciones, no candados: los candados reales son D1 y D2.
@@ -150,6 +189,10 @@ de la §4.3 del organigrama. Son instrucciones, no candados: los candados reales
 ### D6 · Topes de gasto
 
 - **Tope de la empresa en Paperclip con parada dura:** 100 USD al mes (**D-B**, decidido por Sam el 2026-10-19).
+- **GLM por suscripción:** el costo es fijo y sus límites son los del plan de Z.AI. Paperclip
+  puede calcular un costo «teórico» por tokens que no coincida con lo que se paga
+  (**NO VERIFICADO** cómo lo registra); el parte del viernes reporta el uso del plan aparte.
+  El tope de 100 USD protege lo que se paga por uso (Anthropic y Codex).
 - **Topes por agente:** CEO 40 USD; Jefe de gabinete, Puente de ingeniería y Editor de
   contenido 20 USD cada uno.
 - **Límite en la consola del proveedor** de la llave A2, igual o menor al de la empresa. Así,
@@ -165,9 +208,13 @@ nombra por variable y huella corta, nunca por valor.
 
 ### D8 · Datos personales
 
-En la ola 1 ningún agente lee datos de clientes, así que `revisar-datos-ve` **no aplica todavía**;
-se declara así en la evidencia. Antes de cualquier acceso que toque datos de clientes (ola 2 o
-3, o un MCP), se corre la skill y se abre su propia SDD.
+Sam decidió el 2026-10-19 que los agentes **pueden** ver datos personales y montos por
+cliente cuando la tarea lo pida. La instalación de esta SDD no conecta todavía ninguna
+fuente con datos de clientes, así que `revisar-datos-ve` no aplica a estos pasos. **Antes**
+de la conexión a Kommo (A4) o a cualquier otra fuente: se corre la skill sobre esa conexión,
+se corrige la política de privacidad (hoy dice que los datos se tratan en Venezuela), se
+declara la transferencia a Z.AI y a Anthropic, y responder a un cliente queda como I4 de
+IA-01 (prepara el agente, aprueba o envía una persona).
 
 ### D9 · Orden de ejecución, cada paso con OK de Sam
 
@@ -189,9 +236,12 @@ contenido). A3 queda para después. Todavía no instales nada.»
 
 | # | Decisión | Estado |
 |---|---|---|
+| A2-b | Motor principal | **Decidida:** GLM por la suscripción de Z.AI; Claude para arrancar; Codex con controles |
+| A4 | Conexión a Kommo con datos de clientes | **Pendiente:** después de la instalación, con `revisar-datos-ve` y su propia SDD |
+| A5 | El CEO crea agentes | **Decidida:** sí, con los límites de §D5 |
 | A1 | ¿Cómo leen los agentes el repositorio? | **Decidida:** llave de despliegue de solo lectura de GitHub. La alternativa A1-b (copia sin `.agents/handoffs/`) queda descartada por ahora |
 | A2 | Llave de modelos nueva y exclusiva, con límite en el proveedor | **Decidida:** llave nueva de Anthropic con límite |
-| A3 | Bot de Telegram nuevo para hablar con el CEO | **Pospuesta** por Sam: la ola 1 arranca sin mensajería de Hermes |
+| A3 | Bot de Telegram nuevo para hablar con el CEO | **Aprobada** el 2026-10-19: Telegram y correo solo cuando haga falta |
 | D-B | Tope mensual de la empresa | **Decidida:** 100 USD al mes con parada dura |
 | D-H | Papel de Hermes en la ola 1 | **Decidida:** motor del Editor de contenido, con Docker y sin terminal |
 
@@ -211,6 +261,9 @@ Siguen abiertas además las preguntas 2 a 14 del organigrama. Las que tocan esta
 - [ ] Llave maestra de Paperclip respaldada fuera de la máquina.
 - [ ] Versiones fijadas anotadas; revisión de avisos de seguridad antes de cada actualización.
 - [ ] Ninguna llave del servidor de DTD Cargo ni secreto del ERP en el VPS nuevo.
+- [ ] Codex con su bypass apagado y su propia cuenta, o fuera de la ola 1.
+- [ ] Bot de Telegram nuevo con lista de usuarios permitidos = Sam.
+- [ ] Antes de A4: `revisar-datos-ve`, política de privacidad corregida y SDD propia.
 
 ## Fuera de alcance
 
@@ -242,6 +295,8 @@ comportamiento del Studio. No hay migraciones. Seguridad: D1, D2 y D7.
 - `docs/specs/0564-instalacion-piloto-paperclip-hermes/spec.md`
 - `docs/specs/README.md` (índice generado)
 - `docs/organizacion/organigrama-paperclip.md`
+- `docs/organizacion/README.md`
+- `docs/organizacion/assets/01-organigrama-dtd-cargo.svg`
 - `.agents/handoffs/2026-10-19-oficina-paperclip-organigrama.md`
 
 ## Seguimiento
@@ -250,3 +305,6 @@ comportamiento del Studio. No hay migraciones. Seguridad: D1, D2 y D7.
   del Director y las decisiones de Sam. Nada instalado.
 - 2026-10-19: el Director revisó el diseño y Sam decidió A1, A2, D-B y D-H y pospuso A3.
   Estado `approved` (aprueba el diseño, no la instalación). Nada instalado.
+- 2026-10-19: Sam respondió las preguntas del organigrama. Se suman GLM como motor
+  principal, la recomendación sobre Docker, Codex con controles, A3 aprobada, el CEO que
+  crea agentes y la regla de datos con controles; A4 (Kommo) queda pendiente. Nada instalado.
