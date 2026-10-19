@@ -179,7 +179,10 @@ export async function updateShipment(
  * `soft_delete_shipments_with_audit_reason`, que escribe `shipment_deleted`,
  * cancela los avisos pendientes y no borra si algo depende del envío.
  */
-export async function deleteShipment(id: string, reason = ""): Promise<ActionState> {
+export async function deleteShipment(
+  id: string,
+  reason = "",
+): Promise<ActionState & { /** SDD-0560: lo bloquean dependencias vivas; la UI ofrece el asistente. */ bloqueado?: boolean }> {
   const supabase = await createClient();
   const denial = await capabilityDenial(supabase, "delete_shipments");
   if (denial) return { error: denial };
@@ -197,10 +200,11 @@ export async function deleteShipment(id: string, reason = ""): Promise<ActionSta
   }
   if (resultado.estado === "rechazado") {
     const fila = resultado.bloqueadas[0];
+    if (!fila) return { error: "Este envío ya no existe o ya se eliminó. Recarga la página." };
     return {
-      error: fila
-        ? shipmentDeleteBlockReason({ bloqueos: fila.bloqueos, avisos: {} }) ?? "No se pudo eliminar el envío."
-        : "Este envío ya no existe o ya se eliminó. Recarga la página.",
+      error: shipmentDeleteBlockReason({ bloqueos: fila.bloqueos, avisos: {} }) ?? "No se pudo eliminar el envío.",
+      // SDD-0560: «ya eliminado» no tiene pasos; el resto sí abre el asistente.
+      ...(fila.bloqueos.already_deleted ? {} : { bloqueado: true }),
     };
   }
   if (resultado.tipo === "sin_confirmar") for (const ruta of RUTAS_EMBARQUES) revalidatePath(ruta);

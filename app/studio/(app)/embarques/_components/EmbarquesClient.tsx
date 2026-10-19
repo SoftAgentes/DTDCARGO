@@ -11,6 +11,8 @@
  *   de las bloqueadas, una barra con la selección y un ConfirmDialog R3 con
  *   motivo obligatorio. La casilla vive FUERA del <button> de la fila: un
  *   control interactivo dentro de otro no es HTML válido ni accesible.
+ * - SDD-0560: junto al motivo de una fila bloqueada, «Ver los pasos» abre el
+ *   asistente de borrado de ese embarque (`AsistenteBorrado`).
  */
 
 import Link from "next/link";
@@ -50,6 +52,7 @@ import {
   type InfoBorradoEmbarque,
 } from "@/lib/studio/borrado/reglas";
 import { deleteShipmentsAction } from "../actions";
+import { AsistenteBorrado } from "./AsistenteBorrado";
 
 /**
  * SDD-0522 · Qué sabe la pantalla para ofrecer el borrado. `undefined` = quien
@@ -66,6 +69,9 @@ interface Seleccionable {
   motivo: (id: string) => string | null;
   onToggle: (id: string) => void;
   onToggleGrupo: (ids: string[]) => void;
+  /** SDD-0560: ¿el asistente tiene algo que mostrar para este bloqueado? */
+  guiable: (id: string) => boolean;
+  onGuiar: (id: string, code: string) => void;
 }
 
 const BORRADO_SIN_CONFIRMAR =
@@ -125,6 +131,8 @@ export function EmbarquesClient({
   eliminacion?: EliminacionEmbarques;
 }) {
   const [seleccion, setSeleccion] = useState<Set<string>>(() => new Set());
+  // SDD-0560: el embarque cuyo asistente de borrado está abierto.
+  const [guiando, setGuiando] = useState<{ id: string; code: string } | null>(null);
 
   const seleccionable: Seleccionable | null =
     eliminacion?.estado === "lista"
@@ -149,6 +157,12 @@ export function EmbarquesClient({
               }
               return next;
             }),
+          // Sin lectura no hay plan que mostrar, y uno ya eliminado tampoco.
+          guiable: (id) => {
+            const info = eliminacion.info[id];
+            return info !== undefined && !info.bloqueos.already_deleted;
+          },
+          onGuiar: (id, code) => setGuiando({ id, code }),
         }
       : null;
 
@@ -543,7 +557,57 @@ export function EmbarquesClient({
           onBorrado={() => setSeleccion(new Set())}
         />
       )}
+
+      {seleccionable && guiando && (
+        <AsistenteEnEmbarques
+          embarque={guiando}
+          onClose={() => setGuiando(null)}
+          onEliminado={() => {
+            setSeleccion((prev) => {
+              const next = new Set(prev);
+              next.delete(guiando.id);
+              return next;
+            });
+            setGuiando(null);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * SDD-0560 · El asistente montado desde la lista. Como el panel de borrado,
+ * sólo se monta cuando se abre: quien no puede borrar no depende del toast.
+ * El éxito final es UN aviso (AVS-01); la lista se revalida sola.
+ */
+function AsistenteEnEmbarques({
+  embarque,
+  onClose,
+  onEliminado,
+}: {
+  embarque: { id: string; code: string };
+  onClose: () => void;
+  onEliminado: () => void;
+}) {
+  const toast = useToast();
+  return (
+    <AsistenteBorrado
+      shipmentId={embarque.id}
+      shipmentCode={embarque.code}
+      onClose={onClose}
+      onEliminado={(hecho) => {
+        toast.show({
+          eventKey: "shipments:deleted",
+          tone: "success",
+          message: hecho,
+          priority: "normal",
+          scope: "module",
+          dedupeKey: `shipments:deleted:${embarque.code}`,
+        });
+        onEliminado();
+      }}
+    />
   );
 }
 
@@ -1073,17 +1137,39 @@ function GroupedTable({
                       {/* SDD-0522 · BTN-01 §6: el motivo de una casilla
                           deshabilitada se ve, no depende de enfocarla. */}
                       {motivo !== null && (
-                        <p
-                          id={motivoId}
+                        <div
                           style={{
                             gridColumn: "2 / -1",
                             margin: "var(--s-1) 0 0",
-                            font: "500 11.5px/1.4 var(--f-sans)",
-                            color: "var(--ink-soft)",
+                            display: "flex",
+                            alignItems: "baseline",
+                            gap: "var(--s-2)",
+                            flexWrap: "wrap",
                           }}
                         >
-                          {motivo}
-                        </p>
+                          <p
+                            id={motivoId}
+                            style={{
+                              margin: 0,
+                              font: "500 11.5px/1.4 var(--f-sans)",
+                              color: "var(--ink-soft)",
+                            }}
+                          >
+                            {motivo}
+                          </p>
+                          {/* SDD-0560: el motivo no deja a Sam trabado; el
+                              asistente le dice qué hacer y en qué orden. */}
+                          {seleccionable?.guiable(s.id) && (
+                            <button
+                              type="button"
+                              className="studio-btn studio-btn-ghost studio-btn-xs"
+                              aria-label={`Ver los pasos para eliminar ${s.code}`}
+                              onClick={() => seleccionable.onGuiar(s.id, s.code)}
+                            >
+                              Ver los pasos
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   );
