@@ -59,6 +59,16 @@ Aquella consulta fue un SQL escrito para la ocasión y tenía definiciones que d
 | R5 | Un recibo con asiento de cobro vivo cuyo vínculo apunta a un asiento anulado o borrado no salía en ninguna fila | Fila 58 | `collections-actions.ts:215-219`: el vínculo se guarda solo si el posting devuelve el id |
 | R6 | El desvío 3 decía que la CxP anulada se asienta convertida | Solo con tasa > 0; sin tasa queda al nominal y sigue como diferencia (ver «Decisiones del Director») | `bill-posting.ts:58-72` |
 
+### Lo que corrigió la vuelta final (2026-10-19)
+
+| # | Hallazgo | Ahora | Evidencia |
+|---|---|---|---|
+| S1 | La forma psql no veía un control detrás de un comentario de bloque (`/* nota */ commit;`) ni `set local transaction_read_only = off` | Los comentarios se quitan antes de partir el cuerpo, como los lee PostgreSQL: `--`, `/* … */` anidados y sin tocar las cadenas. La lista de controles suma `set [local\|session] transaction`, `set [local\|session] [default_]transaction_read_only` y `reset [default_]transaction_read_only` | En PGlite, `set local transaction_read_only = off`, `set local transaction read write` y `set session transaction read write` después de los `set local` de la cabecera dejan escribir, y `/* nota */ commit;` confirma lo que sigue |
+| S2 | La decisión 7 no tenía trampa para el recibo ni el pago **sin** asiento | B tiene un recibo VES vivo con factura (RB2) y un pago VES vivo (OPB1), los dos sin asiento: B sigue cuadrando en las dos cuentas | Mutantes del recibo, del pago y de la fila 24 sin `asientos > 0` |
+| S3 | La rama «de otro origen» de la fila 58 no tenía trampa | R21: su `journal_entry_id` apunta a su reclasificación viva. Ningún escritor lo produce hoy (ver «Vínculo en los dos sentidos»), así que la trampa es sintética | `collections-actions.ts:218` y `:317` |
+| S4 | En la fila 80, `or fuentes > 0` no tenía el caso que lo justifica | F25: emitida, cobrado 0, sin recibos y con un reporte confirmado. Va en la 80 y en la 85, no en la 87. En la 83 el disyunto sobraba y se quitó | La partición 80+81+82+87 = 11 falla sin él |
+| S5 | El recibo identificado sin reclasificar contaba para «no comparable» aunque su único asiento va a 2.1.8 | En 1.1.2 cuenta el recibo con factura y, si se identificó, solo con su `receipt_reclass` vivo | `receipt-posting.ts:458-497` (DR 2.1.8 / CR 1.1.2); `collections-actions.ts:442-464` (best-effort) |
+
 ## Definiciones canónicas
 
 La SDD-0557 (Reportes y «Por contabilizar» en el Studio) ya las adopta en su sección «Definiciones del cruce (canónicas de la SDD-0559)». La SDD-0558 (saldo único del cliente) tiene que adoptarlas para el lado «facturas». Con un mismo dato, los tres lugares tienen que contar igual.
@@ -74,7 +84,9 @@ La SDD-0557 (Reportes y «Por contabilizar» en el Studio) ya las adopta en su s
   Un `referral_credit` también guarda `invoice_id` y no es el asiento de venta. El `source` es texto libre (`0078_contabilidad.sql:51`), así que la salida lo reduce a 14 orígenes conocidos más «otro».
 - **Vínculo en los dos sentidos:** `doc.journal_entry_id = asiento.id` o `asiento.<doc>_id = doc.id`. Las facturas no tienen `journal_entry_id`. Un mismo asiento unido por los dos lados cuenta una vez.
   - Un recibo tiene el **vínculo viejo** cuando tiene asiento de cobro vivo pero su `journal_entry_id` apunta a otro asiento: anulado, borrado o de otro origen (fila 58).
-  - Dos ramas son defensivas: hoy ningún escritor las vuelve decisivas, pero se miden igual. La reclasificación unida por `payment_receipts.journal_entry_id`: ese vínculo solo lo escribe el cobro (`collections-actions.ts:218` y `:317`), y la identificación no lo toca. Y el filtro de origen de CxP y pagos: `bill_id` y `supplier_payment_id` solo los escriben sus postings (`bill-posting.ts:185-186`, `supplier-payment-posting.ts:189-190`). Este segundo filtro tiene trampa en la fixture: los manuales MBA1 y MOP1.
+  - Tres ramas son defensivas: hoy ningún escritor las vuelve decisivas, pero se miden igual y cada una tiene trampa en la fixture.
+    - El vínculo del recibo a un asiento vivo **de otro origen** (fila 58) y la reclasificación unida por `payment_receipts.journal_entry_id`: ese vínculo solo lo escriben los dos cobros, con el id de un asiento `receipt` (`collections-actions.ts:218`, el cobro, y `:317`, el pago sin referencia), y la identificación no lo toca (`collections-actions.ts:442-464`). La trampa es R21, sintética: su vínculo apunta a su reclasificación AR21X, que no lleva `receipt_id`.
+    - El filtro de origen de CxP y pagos: `bill_id` y `supplier_payment_id` solo los escriben sus postings (`bill-posting.ts:185-186`, `supplier-payment-posting.ts:189-190`). Las trampas son los manuales MBA1 y MOP1.
 - **Anulado:** la factura y la CxP, por `status = 'anulada'`; el recibo y el pago, por `deleted_at`. Las facturas y CxP borradas (`deleted_at`) no se leen como documentos. Sus asientos vivos sí se ven: la fila 47 cuenta los asientos de venta vivos cuya factura está borrada o no existe (`invoice_id` nulo).
 - **Facturas abiertas:** emitidas, parciales, pagadas o vencidas, sin borradores ni anuladas. Es el mismo conjunto que «documentos vivos» en «sin asiento». `vencida` se incluye por defensa: hoy nadie la escribe.
 - **Saldo:** `total_amount − paid_amount`, con signo y sin convertir. Solo entra en la suma el documento en USD o USDT.
@@ -87,18 +99,20 @@ La SDD-0557 (Reportes y «Por contabilizar» en el Studio) ya las adopta en su s
 
   El modelo de tres fuentes se sostiene porque los dos escritores de reportes los dejan en `confirmado`. Por eso ya no vale la invariante del comentario de `scripts/qa/cobro-factura-race.mjs:20-22` (recibos + reportes): le faltan los créditos.
 
-  Cada factura cae en una sola fila contra los recibos (80, 81, 82 u 87) y en una sola contra las tres fuentes (83, 84, 85 u 87). «Igual» exige algo que comparar: cobrado > 0 o fuentes > 0. La factura sin cobrado ni fuentes es un 0 contra 0 y va a la 87.
+  Cada factura cae en una sola fila contra los recibos (80, 81, 82 u 87) y en una sola contra las tres fuentes (83, 84, 85 u 87). «Igual» exige algo que comparar, y la factura sin cobrado ni fuentes es un 0 contra 0 que va a la 87. En la 80 eso es cobrado > 0 o fuentes > 0: la factura con cobrado 0, sin recibos y con un reporte confirmado o un crédito es «igual» a sus recibos (los dos en cero) y no es un 0 contra 0 (F25). En la 83 basta cobrado > 0, porque con cobrado = fuentes las dos condiciones son la misma.
 - **Crédito ↔ asiento:** un crédito aplicado tiene asiento si hay uno vivo de origen `referral_credit` unido por cualquiera de los dos lados. El lado del asiento es `journal_entries.referral_id`; el del documento, `referrals.applied_entry_id`. Este segundo lado es el que usa la reversión para los asientos viejos sin `referral_id` (`referral-credit-posting.ts:462-464`). La factura (`applied_invoice_id`) no sirve de vínculo: un asiento colgado y un crédito sin asiento en la misma factura se taparían entre sí. Esa columna se lee solo para el cobrado.
 - **Estados de 1.1.2 y 2.1.1, por tenant con movimiento:** se evalúan en este orden, y gana el primero que se cumple. Cada tenant cae en uno solo, y la prueba lo verifica.
 
 | # | Estado | Cuándo |
 |---|---|---|
 | 1 | Sin movimiento en el mayor | La cuenta, con sus subcuentas, no tiene debe ni haber de asientos vivos y hay documentos abiertos con saldo, en cualquier moneda (decisión 6). |
-| 2 | No comparable | En 1.1.2, una factura no borrada en VES o CNY con su asiento `invoice` vivo, o un recibo vivo **con factura** en VES o CNY con su asiento `receipt` vivo. En 2.1.1, una CxP no anulada o un pago vivo, fuera de USD/USDT, con su asiento vivo de origen (decisión 7). |
+| 2 | No comparable | En 1.1.2, una factura no borrada en VES o CNY con su asiento `invoice` vivo, o un recibo vivo **con factura** en VES o CNY con su asiento `receipt` vivo y, si se identificó, con su `receipt_reclass` vivo. En 2.1.1, una CxP no anulada o un pago vivo, fuera de USD/USDT, con su asiento vivo de origen (decisión 7). |
 | 3 | Sin movimiento en la cuenta | La cuenta no tiene debe ni haber y no hay documentos con saldo: es un 0 contra 0, no una verificación. Un borrador, una anulada o una pagada con total = cobrado no tienen saldo abierto (tenant M). |
-
-El recibo sin factura es el pago sin referencia: el CHECK `payment_receipts_sinref_invoice_check` de 0122 ata `recibido_sin_ref` a `invoice_id` nulo. Se asienta contra 2.1.8 y no toca 1.1.2 (`receipt-posting.ts:376-378`) hasta que se identifica. La identificación le escribe la factura (`0467_cobro_factura_atomico.sql:312-313`), así que el recibo identificado cuenta, aunque su asiento de cobro haya ido a 2.1.8 (tenant I).
 | 4 | Cuadra, mayor por encima, mayor por debajo | El saldo del mayor contra la suma en USD/USDT, con tolerancia cero (`round 2`). |
+
+**El recibo que vuelve «no comparable» a 1.1.2 es el que toca 1.1.2 (R2, S5).** El recibo sin factura es el pago sin referencia: el CHECK `payment_receipts_sinref_invoice_check` de 0122 ata `recibido_sin_ref` a `invoice_id` nulo. Se asienta contra 2.1.8 y no toca 1.1.2 (`receipt-posting.ts:376-378`). La identificación le escribe la factura (`0467_cobro_factura_atomico.sql:312-313`), pero el asiento de cobro sigue en 2.1.8: lo que lo lleva a 1.1.2 es la reclasificación, DR 2.1.8 / CR 1.1.2 (`receipt-posting.ts:458-497`), que es best-effort (`collections-actions.ts:442-464`). Por eso el identificado cuenta solo con su `receipt_reclass` vivo. Las trampas son K (RK1 sin referencia y RK2 identificado sin reclasificar: K cuadra) y T (RT1 identificado y reclasificado: T es no comparable).
+
+**El mayor vacío gana aunque haya un asiento vivo de su origen.** Con la regla de arriba, un documento VES o CNY «no comparable» casi siempre deja movimiento en 1.1.2. La excepción es un asiento vivo sin líneas en la cuenta. La trampa es FI2, del tenant I: su asiento de venta AFI2 quedó sin líneas, que es lo que deja `invoice-posting.ts:173-177` si fallan las líneas y también el borrado de compensación, cuyo error no se mira. AFI2 también cuenta en la fila 111.
 
 ### Decisiones del Director (2026-10-19)
 
@@ -119,7 +133,7 @@ En esta radiografía, las dos decisiones se aplican igual a 2.1.1, por simetría
 - **VES con tasa sin asiento.** El subdiario de la 0557 la convierte y la suma, así que puede decir «no cuadra». La radiografía no la suma y puede decir «cuadra». La fila 96 cuenta esos tenants, y la 106 hace lo mismo en 2.1.1. Las dos reglas coinciden cuando no hay documentos abiertos en VES/CNY.
 - **Borrador con asiento vivo.** La radiografía no filtra el estado de la factura para «no comparable», y la 0557 no lee los borradores. No llegan a diferir porque el asiento de venta nace al emitir (`facturacion/actions.ts:396`, `:565`). Esto es INFERIDO, sin un recorrido de todos los escritores.
 - **Subcuentas.** La 0557 hace el rollup por código y exige que exista la cuenta padre. La radiografía usa el prefijo. Con un plan de cuentas normal dan lo mismo.
-- **El recibo de «no comparable» (divergencia abierta, R2).** La 0557, ya en `main`, cuenta para su K10 cualquier recibo vivo en VES o CNY con asiento `receipt` vivo (`lib/studio/accounting/libro-control-queries.ts:341-347`), con o sin factura. La radiografía cuenta solo los que tienen factura, porque el pago sin referencia se asienta contra 2.1.8 y no toca 1.1.2. Con un pago VES sin referencia asentado, la 0557 dice «no comparable» y la radiografía compara (tenant K: cuadra). Mientras no se decida, rompe la regla de arriba («los tres lugares tienen que contar igual»). La decisión es del Director: alinear la 0557 en una SDD de seguimiento o aceptar la diferencia. Hoy no tiene efecto en producción: el §0 mide 0 asientos vivos.
+- **El recibo de «no comparable» (divergencia abierta, R2 y S5).** La 0557, ya en `main`, cuenta para su K10 cualquier recibo vivo en VES o CNY con asiento `receipt` vivo (`lib/studio/accounting/libro-control-queries.ts:341-347`), con o sin factura. La radiografía cuenta solo los que tocan 1.1.2: con factura y, si se identificaron, con su reclasificación viva. Difieren en dos casos, y los dos están en el tenant K, que cuadra: un pago VES sin referencia asentado (RK1) y un recibo VES identificado sin reclasificar (RK2). En los dos, la 0557 dice «no comparable» y la radiografía compara. Mientras no se decida, rompe la regla de arriba («los tres lugares tienen que contar igual»). La decisión es del Director: alinear la 0557 en una SDD de seguimiento o aceptar la diferencia. Hoy no tiene efecto en producción: el §0 mide 0 asientos vivos.
 - **El vínculo viejo del recibo.** La 0557 une por los dos lados y no distingue adónde apunta `journal_entry_id` cuando ya hay un asiento vivo (`libro-control.ts`). La fila 58 es nueva y no tiene par en la 0557.
 
 ## Salida
@@ -135,8 +149,8 @@ En el modo por defecto (conteos), `n` siempre es un conteo y `monto_usd` va vac�
 | 4 · B3 sin asiento vivo | 50 facturas abiertas; 51 recibos vivos; 52 de ellos con vínculo a un asiento anulado (un vínculo a un asiento borrado o en borrador queda solo en la 51); 53 recibos con asiento pero sin vínculo; 54 recibos identificados sin reclasificación; 55 CxP vivas; 56 pagos vivos; 57 créditos aplicados sin asiento; 58 recibos con asiento de cobro vivo y el vínculo a otro asiento (anulado, borrado o de otro origen) |
 | 5 · más de un asiento vivo de su origen | 60 facturas; 61 recibos; 62 CxP; 63 pagos (dimensionan el índice único de la 2.2) |
 | 6 · B4 reportes | 70 reportes · estado (con «cancelado»); 71 confirmados; 72 en otra moneda que su factura; 73 con un recibo vivo del mismo monto |
-| 7 · cobrado contra sus fuentes | 80-82 igual, mayor o menor que los recibos vivos; 83-85 igual, mayor o menor que las tres fuentes («igual» exige cobrado > 0 o fuentes > 0); 86 anuladas con cobrado; 87 sin cobrado ni fuentes |
-| 8 · 1.1.2 | 90 sin movimiento en el mayor; 91 no comparables; 92 sin movimiento en la cuenta; 93 cuadran; 94 mayor por encima; 95 mayor por debajo; 96 de los comparados, con facturas VES/CNY fuera de la suma; 97 asientos manuales vivos en 1.1.2 |
+| 7 · cobrado contra sus fuentes | 80-82 igual, mayor o menor que los recibos vivos; 83-85 igual, mayor o menor que las tres fuentes («igual» exige algo que comparar: cobrado > 0 o fuentes > 0 en la 80, cobrado > 0 en la 83); 86 anuladas con cobrado; 87 sin cobrado ni fuentes |
+| 8 · 1.1.2 | 90 sin movimiento en el mayor; 91 tenants no comparables (factura, o recibo con factura, en VES/CNY con asiento vivo); 92 sin movimiento en la cuenta; 93 cuadran; 94 mayor por encima; 95 mayor por debajo; 96 de los comparados, con facturas VES/CNY fuera de la suma; 97 asientos manuales vivos en 1.1.2 |
 | 9 · 2.1.1 | 100-105, los mismos estados; 106 de los comparados, con CxP VES/CNY fuera de la suma |
 | 10 · B16 partida doble | 110 debe ≠ haber; 111 menos de dos líneas |
 | 11 · B5 por año | 120 año de emisión de las no borrador; 121 sin fecha |
@@ -181,53 +195,57 @@ Esa salida es solo para la conversación. La prueba recorre `docs/` y `.agents/`
 - **La fixture** `scripts/qa/radiografia-integridad.fixture.sql`:
   - aplica con `\ir` las migraciones reales `0077_invoices.sql`, `0078_contabilidad.sql`, `0079_cobranzas.sql`, `0088_tesoreria.sql`, `0098_fidelizacion_referidos.sql`, `0122_recibos_cobranza.sql`, `0195_payment_reports.sql` y `0237_referral_credit_apply.sql`;
   - agrega las tres columnas y el CHECK de cancelación que `0421_payment_report_commands.sql:41-50` suma a `payment_reports`. El resto de esa migración pide auditoría, identidad y el bucket, y la radiografía no lo lee;
-  - siembra dieciséis tenants trampa (A-N, P y S), con CENTINELA en cada texto;
+  - siembra diecisiete tenants trampa (A-N, P, S y T), con CENTINELA en cada texto;
   - aborta si la base ya tiene objetos de aplicación.
 
   Las trampas por tenant:
   - **A** reúne la mayoría de las trampas por documento. Entre ellas:
     - el crédito unido por `applied_entry_id` (Q1) y el asiento de crédito colgado en la factura de un crédito sin asiento (AQ5 y Q2);
     - los recibos con vínculo viejo (R14 y R15), con vínculo a un asiento borrado o en borrador (R16 y R17) y con su asiento unido solo por el lado del documento (R18);
+    - el recibo identificado cuyo vínculo apunta a su reclasificación, viva y sin `receipt_id` (R21, sintético);
     - los recibos anulados de F5 y F10 (R19 y R20);
     - los borradores CNY y USDT sin tasa (F23 y F24);
+    - la factura con cobrado 0, sin recibos y con un reporte confirmado (F25 y P8);
     - los manuales con `bill_id` y `supplier_payment_id` (MBA1 y MOP1);
-  - **B** cuadra pese a un borrador, una CxP anulada y documentos VES/CNY sin saldo abierto (una anulada y dos pagadas);
+  - **B** cuadra pese a un borrador, una CxP anulada, documentos VES/CNY sin saldo abierto (una anulada y tres pagadas) y un recibo y un pago VES vivos sin asiento (RB2 y OPB1);
   - **C** y **D** tienen diferencias de signo contrario, en subcuentas;
   - **E** tiene VES y CNY con asiento, y dos manuales con dos líneas en la misma cuenta de control (ME2 y ME3);
   - **F** no tiene movimiento;
   - **G** es la trampa de B2: una factura VES pagada, asentada al nominal, con su recibo convertido;
   - **H** tiene una VES sin asiento junto a 1.1.2 en dólares;
-  - **I** prueba que el mayor vacío gana, aunque su recibo VES identificado lo volvería no comparable;
+  - **I** prueba que el mayor vacío gana, aunque su factura VES tiene un asiento de venta vivo sin líneas (AFI2);
   - **J** tiene documentos con dos asientos y una VES anulada con asiento;
-  - **K** tiene un pago VES sin referencia asentado contra 2.1.8 y cuadra (R2);
+  - **K** tiene un pago VES sin referencia y un recibo VES identificado sin reclasificar, los dos asentados contra 2.1.8, y cuadra (R2, S5);
   - **L** tiene solo proveedores;
   - **M** marca el límite de la decisión 6: sin asientos vivos y solo con documentos sin saldo abierto, da «sin movimiento en la cuenta» en las dos cuentas;
   - **N** es no comparable solo por un recibo VES con factura;
   - **P** tiene el mayor por encima por asientos que ningún documento explica: dos asientos de venta huérfanos y la CxP CNY anulada sin tasa;
-  - **S** tiene un recibo y un pago VES anulados con su asiento vivo, y sigue siendo comparable.
+  - **S** tiene un recibo y un pago VES anulados con su asiento vivo, y sigue siendo comparable;
+  - **T** es no comparable solo por un recibo VES identificado y reclasificado (S5).
 - **Casos:**
   - el esquema vacío da las 63 filas fijas en cero;
   - los 96 conteos esperados, revisados a mano contra la fixture;
   - cada tenant cae en un solo estado por cuenta;
-  - cada factura cae en una sola fila del cobrado, contra los recibos y contra las tres fuentes;
+  - cada factura cae en una sola fila del cobrado, contra los recibos y contra las tres fuentes (F25 es el caso que exige `fuentes > 0` en la 80);
   - la privacidad del modo conteos: exactamente las cinco columnas, `n` entero, monto nulo, ningún valor con forma de monto, vocabulario cerrado y ningún CENTINELA, ni siquiera el del origen libre;
   - el modo montos: la marca en cada sección, los mismos conteos y los seis montos. El número de la cabecera se deriva del mismo mapa de montos que se afirma.
-- **69 mutantes**, cada uno afirmado sobre todas las filas que cambia y solo sobre esas:
+- **79 mutantes**, cada uno afirmado sobre todas las filas que cambia y solo sobre esas:
   - 7 reproducen la consulta del Director: vivo = no anulado, factura sin filtrar el origen, recibo sin asiento = sin vínculo, CxP abiertas con las anuladas, sin `vencida`, USDT sin tasa y partida doble con join interno;
-  - 62 prueban las reglas nuevas. Entre ellas:
-    - la regla vieja de «no comparable» por saldo abierto (G y J), «no comparable» sin exigir el asiento (H), con los recibos sin referencia (K), con los recibos anulados y con los pagos anulados (S);
+  - 72 prueban las reglas nuevas. Entre ellas:
+    - la regla vieja de «no comparable» por saldo abierto (G, J y T), «no comparable» sin exigir el asiento de la factura (A, B, H, K y S), del recibo (B, RB2) y del pago (B, OPB1), con los recibos sin referencia (K), con los recibos anulados y con los pagos anulados (S);
+    - las tres formas de la condición del identificado (S5): sin ella (K, RK2), sin los reclasificados (T) y solo con los reclasificados (N);
     - el mayor vacío que no gana (I) y cada condición de los documentos «abiertos» (M);
-    - el 0 contra 0 como «cuadra» y como cobrado «igual»;
-    - los tres disyuntos de «con abonos», el recibo anulado del mismo monto que un reporte, el vínculo a cualquier asiento y el vínculo viejo;
-    - los dos lados del vínculo de recibos, CxP, pagos y créditos, el respaldo viejo por la factura, el asiento contado dos veces y el filtro de origen de CxP y pagos;
+    - el 0 contra 0 como «cuadra» y como cobrado «igual», y la 80 sin mirar las fuentes (F25);
+    - los tres disyuntos de «con abonos», el recibo anulado del mismo monto que un reporte, el vínculo a cualquier asiento y el vínculo viejo, también a un asiento vivo de otro origen (R21);
+    - los dos lados del vínculo de recibos, reclasificaciones, CxP, pagos y créditos, el respaldo viejo por la factura, el asiento contado dos veces y el filtro de origen de CxP y pagos;
     - los asientos de venta huérfanos, las subcuentas de las cuatro cuentas y el `distinct` de 97, 130 y 131;
-    - la tasa cero, la CNY sin tasa, los borradores de 21, 22 y 120, «fuera de la suma» sin abierta y sin saldo, los créditos borrados y la cancelación.
+    - la tasa cero, la CNY sin tasa, los borradores de 21, 22 y 120, la 24 sin el recibo vivo y sin el asiento, «fuera de la suma» sin abierta y sin saldo, los créditos borrados y la cancelación.
 - **Controles rojos de privacidad:**
   - proyectar `client_name` hace que aparezca CENTINELA;
   - quitar la máscara pone montos en el modo conteos;
   - una sexta columna `monto as monto_crudo` rompe la forma y trae montos.
 - **Revisión estática** sobre el SQL sin comentarios: el script no nombra ninguna columna de texto del negocio de la lista prohibida y no tiene ninguna palabra que escriba (`insert`, `update`, `delete`, `merge`, `into`, DDL, `nextval`, `setval`), sin exigir su forma completa. Un `update … as i set` o un `update only` se detectan. La fuga también se detecta antes de correr nada.
-- **Forma psql de solo lectura**: fallan las variantes con `begin;` al inicio o `commit;` al final, y cualquier control de transacción en el medio: `commit`, `end`, `abort`, `rollback`, `begin`, `start transaction`, `savepoint`, `release`, `prepare transaction`, `set transaction` y `set session characteristics`. Hay un control con el mutante de la revisión: un `commit;`, un `update … as i set` y un `start transaction read only;` después de los `set local`. También fallan una metaorden con sangría (`  \! …`) y una al final de una sentencia (`… \gexec`), que psql ejecuta igual.
+- **Forma psql de solo lectura**: fallan las variantes con `begin;` al inicio o `commit;` al final, y cualquier control de transacción en el medio: `commit`, `end`, `abort`, `rollback`, `begin`, `start transaction`, `savepoint`, `release`, `prepare transaction`, `set [local|session] transaction`, `set [local|session] session characteristics`, `set [local|session] [default_]transaction_read_only` y `reset [default_]transaction_read_only`. Los comentarios se quitan antes de partir el cuerpo, como los lee PostgreSQL (`--`, `/* … */` anidados, sin tocar las cadenas `'…'`, `E'…'`, `"…"` ni `$x$…$x$`), así que fallan también `/* nota */ commit;`, un comentario anidado o en dos líneas delante del control, y un control después de una cadena que parece abrir un comentario. Hay un control con el mutante de la revisión: un `commit;`, un `update … as i set` y un `start transaction read only;` después de los `set local`. También fallan una metaorden con sangría (`  \! …`) y una al final de una sentencia (`… \gexec`), que psql ejecuta igual.
 - **Guarda de Git**: ninguna fila con la marca de montos en `docs/` ni en `.agents/`. Un control sintético comprueba que la función la detecta.
 
 **`scripts/check-schema-rebuild.mjs`** corre la radiografía por stdin sobre las migraciones reconstruidas, después del contrato de aislamiento, una sola vez y en modo conteos. Exige exit 0 y la forma: cinco columnas, `n` entero y monto vacío. Así detecta un renombre de columna que la fixture de PGlite no ve. Necesita Docker, así que corre dentro de `verify` y no en el CI de calidad (`scripts/__tests__/ci-workflow-contract.test.mjs:65`). El control rojo es manual: una copia del script con una columna inexistente, pasada con `SCHEMA_REBUILD_RADIOGRAFIA`, tiene que salir 1 con «la radiografía de integridad no corre sobre el esquema completo».
@@ -259,7 +277,7 @@ El paso no toca `LEDGER_ONLY`. Sus consumidores leen solo ese bloque y no cambia
 2. Sin banderas devuelve una tabla de cinco columnas en la que `n` es siempre un conteo entero, `monto_usd` va vacío y ningún valor tiene forma de monto. Ninguna celda trae texto de una fila de negocio.
 3. Con `-v montos=on` trae montos en seis filas de documentos en USD/USDT y la marca en cada sección. Ninguna otra fila cambia su `n`.
 4. Aplica las definiciones canónicas de esta spec, con las decisiones 6 y 7.
-5. La prueba en PGlite pasa. Cada uno de los 69 mutantes, las tres fugas (`client_name`, la máscara y la sexta columna), las variantes `begin;` y `commit;`, cada control de transacción en el medio, las metaórdenes escondidas, la escritura con alias y la fila sintética con la marca la hacen fallar en su aserción.
+5. La prueba en PGlite pasa. Cada uno de los 79 mutantes, las tres fugas (`client_name`, la máscara y la sexta columna), las variantes `begin;` y `commit;`, cada control de transacción en el medio, las metaórdenes escondidas, la escritura con alias y la fila sintética con la marca la hacen fallar en su aserción.
 6. `check-schema-rebuild` corre la radiografía sobre el esquema completo y falla en rojo con una columna renombrada.
 7. No hay migración y no cambia `supabase/migrations-baseline.json`.
 8. Ni esta spec ni su handoff traen una salida en modo montos.
@@ -275,7 +293,7 @@ El paso no toca `LEDGER_ONLY`. Sus consumidores leen solo ese bloque y no cambia
 | Número de control: `invoices.control_number` no existe | Fase 3 (3.1) |
 | El pasivo paralelo 2.1.7 del socio China y los cargos de `supplier_charges` (B11). La comparación es solo 2.1.1 contra `supplier_bills` | Fase 4 (4.7) |
 | Los reportes del Studio | SDD-0557 |
-| Alinear el recibo de «no comparable» entre la 0557 (cualquier recibo VES/CNY con asiento) y esta radiografía (solo con factura), R2 | El Director: SDD de seguimiento o diferencia aceptada |
+| Alinear el recibo de «no comparable» entre la 0557 (cualquier recibo VES/CNY con asiento) y esta radiografía (con factura y, si se identificó, reclasificado), R2 y S5 | El Director: SDD de seguimiento o diferencia aceptada |
 | Recibos y pagos anulados fuera de USD/USDT, sin tasa y con asiento vivo: quedan al nominal (`receipt-posting.ts:81-84`, `supplier-payment-posting.ts:70-72`) y hoy salen como diferencia, igual que la CxP de P | El Director, si decide volverlos «no comparable» en los tres lugares a la vez |
 | Un envoltorio de shell con candado de autorización, un script en `package.json` o un runbook propio | No se hace: el comando vive en la cabecera |
 
@@ -291,4 +309,4 @@ El paso no toca `LEDGER_ONLY`. Sus consumidores leen solo ese bloque y no cambia
 
 ## Validación
 
-`corepack pnpm exec vitest run scripts/__tests__/radiografia-integridad.test.ts`, después de las correcciones R1-R14: «Test Files  1 passed (1)», «Tests  82 passed (82)». Son 13 casos más los 69 mutantes. El detalle, los controles rojos en el lugar y lo NO EJECUTADO están en el handoff `.agents/handoffs/0559-radiografia-integridad-repetible.md`.
+`corepack pnpm exec vitest run scripts/__tests__/radiografia-integridad.test.ts`, después de la vuelta final S1-S9, sobre `8ff66f19`: «Test Files  1 passed (1)», «Tests  92 passed (92)». Son 13 casos más los 79 mutantes, y los 79 mueren con su diferencia exacta de filas. Con el sobreviviente de cada hallazgo aplicado al SQL, la misma prueba sale en rojo (exit 1). El detalle, los controles rojos en el lugar y lo NO EJECUTADO están en el handoff `.agents/handoffs/0559-radiografia-integridad-repetible.md`.
