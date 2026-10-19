@@ -52,7 +52,7 @@ Todo sobre este worktree, en la rama de la tarea, después de la revisión adver
 | `corepack pnpm components:check` | registro CMP | PASÓ |
 | `git diff --check` | diff de la tarea | PASÓ |
 | `/ui-check` | — | NO APLICA: no cambia nada visible |
-| `pnpm verify` | completo | NO EJECUTADO: hay que pedirle el turno al Director |
+| `corepack pnpm verify` | completo, sobre `77e9e57f`, con el turno que dio el Director; de 2026-10-19 01:30:42Z a 01:51:54Z; Docker Desktop encendido; antes de lanzarlo, sin procesos pesados colgados, CPU al 20 % | exit 0, **16 de 17 pasos medidos y en verde**: `harness`, `lint`, `rsc-boundary`, `typecheck`, `edge-functions`, `test` (`Test Files 806 passed \| 1 skipped`, `Tests 11289 passed \| 1 skipped`), `docs:check`, `numbering`, `feature-constants`, `components:check`, `governance:check`, `pending-migration-symbols` (0 rojo, 0 amarillo), `sql-tests`, `schema-rebuild`, `e2e` (177 passed, 20 skipped, 1 flaky) y `build`. **NO MEDIDO: `migrations-applied`**, porque el worktree no tiene `.env.local`; es a propósito, no se copian secretos a los worktrees. El verify mismo lo marca como «CIERRE INCOMPLETO». La prueba inestable es `e2e/auth.spec.ts:81` («un token inválido renderiza el mismo error las dos veces»): en el primer intento, `page.goto: net::ERR_ABORTED` en `/acceso/<token>`; pasó en el reintento. Es ajena al diff (login, no facturas). El registro completo quedó guardado desde la primera corrida en el scratchpad de la sesión (`verify-0555.log`) |
 | Comprobación en el navegador | — | NO EJECUTADA: requiere un borrador con varios embarques en una base de prueba; la prueba del recorrido cubre el camino de datos, no el render |
 
 ## Impacto documental y conocimiento
@@ -63,8 +63,7 @@ Todo sobre este worktree, en la rama de la tarea, después de la revisión adver
 
 ## PENDIENTES DE ESTA TAREA
 
-1. `pnpm verify` con turno del Director.
-2. Integración por el Director. El merge publica por el VPS en unos 5 minutos; no lleva migración.
+1. Integración por el Director. El merge publica por el VPS en unos 5 minutos; no lleva migración. `migrations-applied` no se pudo medir desde el worktree; como esta tarea no trae migración, no cambia el ledger.
 
 ## FUERA DE ALCANCE DETECTADO
 
