@@ -235,7 +235,7 @@ Todo con dobles. Cero lecturas o escrituras en producción y en la base de prueb
   CxP anulada, ruta cancelada, consolidación y recepción eliminadas, compra cancelada).
   - **Control del doble:** con todo «vivo» (`todoVivo`) las listas no cuadran y el plan se bloquea.
 - **Control verde** de las 7 suites objetivo: 145 de 145.
-- **Control rojo y mutantes** (script en el handoff): 39 mutantes y **39 muertos**, cada uno con su
+- **Control rojo y mutantes** (lista y método en el handoff): 39 mutantes y **39 muertos**, cada uno con su
   suite. El primer pase dejó 1 vivo (`length !== n` → `length < n`). No era equivalente: faltaba la
   prueba «repetida que además sobra», que se agregó (`deaebf63`). Los 7 mutantes de la UI y la lista
   se repitieron después de los ajustes del `/ui-check` (`2ebb277b`): siguen muertos. Cubren:
