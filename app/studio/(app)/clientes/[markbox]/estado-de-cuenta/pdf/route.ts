@@ -5,8 +5,9 @@
  * cuando el cliente pregunta "¿cuánto debo?".
  *
  * Reusa `filasParaLedger` de la propia página: ese mapeo es el que descarta
- * borradores y anuladas, y duplicarlo acá sería abrir la puerta a que el papel y
- * la pantalla difieran en qué cuenta como deuda.
+ * borradores y anuladas sin emitir (las emitidas van al libro en 0, como en el
+ * portal: SDD-0558), y duplicarlo acá sería abrir la puerta a que el papel y la
+ * pantalla difieran en qué cuenta como deuda.
  *
  * Seguridad: la ruta vive bajo `/studio` (el proxy ya exigió sesión) y además
  * gatea el módulo `invoices` con el rol; las facturas salen por `listInvoices`
@@ -58,9 +59,16 @@ export async function GET(
       ledger,
       emitidoEl: new Date().toISOString().slice(0, 10),
     },
+    // SDD-0558: razón social y RIF bajo el membrete, como el PDF del portal.
+    // Es la excepción de marca que Sam extendió al estado de cuenta en PDF el
+    // 2026-10-18 (SDD-0556), igual que la de la factura (SDD-0297). Fuera de
+    // estos papeles la regla sigue (`docs/engineering/project-rules.md`).
+    // `lineasDeEmisor` nunca inventa un RIF: sin dato, no imprime el renglón.
     emisor: company
       ? {
           tradeName: company.identity.tradeName,
+          legalName: company.identity.legalName,
+          rif: company.identity.rif,
           email: company.identity.commercialEmail,
           phone: company.identity.phone,
           website: company.identity.website,

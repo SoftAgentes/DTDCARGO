@@ -18,6 +18,7 @@ import {
   listUnidentifiedReceipts,
   receivablesQueue,
 } from "@/lib/studio/payment-queries";
+import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
 import { CobranzasClient } from "./_components/CobranzasClient";
 
 export const metadata = { title: "Cobranzas" };
@@ -25,14 +26,16 @@ export const metadata = { title: "Cobranzas" };
 export default async function CobranzasPage() {
   const supabase = await createClient();
 
-  // Período de la card de separación: el mes en curso (1 → hoy).
-  const today = new Date().toISOString().slice(0, 10);
+  // SDD-0558: «hoy» es la fecha de Caracas, la misma de `client_outstanding`
+  // (0492). Decide qué está vencido en la cola y en los KPI, y el período de la
+  // card de separación: el mes en curso (1 → hoy), también en Caracas.
+  const today = todayCaracasISO();
   const monthStart = `${today.slice(0, 7)}-01`;
 
   const [queue, kpis, cashAccounts, unidentified, separation] =
     await Promise.all([
-      receivablesQueue(supabase),
-      collectionKpis(supabase),
+      receivablesQueue(supabase, today),
+      collectionKpis(supabase, today),
       listCashAccounts(supabase),
       listUnidentifiedReceipts(supabase),
       fundsSeparationSummary(supabase, { from: monthStart, to: today }),
