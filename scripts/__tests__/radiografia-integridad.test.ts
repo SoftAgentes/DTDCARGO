@@ -796,9 +796,12 @@ function formaPsql(sql: string): string[] {
   if (utiles[0] !== "\\set ON_ERROR_STOP on") problemas.push("primera línea útil");
   if (sentencias[0] !== "begin transaction read only;") problemas.push("primera sentencia");
   if (lineas.filter((l) => l.trim() !== "").at(-1) !== "rollback;") problemas.push("última línea");
-  for (const m of utiles.filter((l) => l.startsWith("\\"))) {
-    if (!/^\\(set|if|else|endif)\b/.test(m)) problemas.push("metaorden " + m.split(/\s/)[0]);
+  // Una metaorden con sangría también la ejecuta psql; aquí sólo valen las cuatro, en la columna 0.
+  for (const m of utiles.filter((l) => l.trim().startsWith("\\"))) {
+    if (!/^\\(set|if|else|endif)\b/.test(m)) problemas.push("metaorden " + m.trim().split(/\s/)[0]);
   }
+  // psql también lee una metaorden al final de una sentencia (`… \gexec`).
+  if (sentencias.some((l) => sinComentarios(l).includes("\\"))) problemas.push("metaorden dentro de una sentencia");
   // Entre la primera sentencia y el `rollback;` final, ningún control de transacción: un `commit;`
   // en el medio confirmaría lo que viene después fuera de la transacción de solo lectura.
   const cuerpo = sinComentarios(sentencias.join("\n")).split(";").map((s) => s.trim()).filter(Boolean);
@@ -944,6 +947,9 @@ describe("SDD-0559 · radiografía de integridad contable (PGlite)", () => {
       "control de transacción en el medio: commit", "control de transacción en el medio: start transaction",
     ]);
     expect(hallazgos(ESCRITURA, sinComentarios(mutante))).toEqual(["update"]);
+    // Metaórdenes escondidas: con sangría o al final de una sentencia.
+    expect(formaPsql(mutar(ANCLA, ANCLA + "  \\! echo x\n"))).toEqual(["metaorden \\!"]);
+    expect(formaPsql(mutar(ANCLA, "set local lock_timeout = '5s' \\gexec\n"))).toEqual(["metaorden dentro de una sentencia"]);
   });
 
   it("la fixture se niega a correr sobre una base con objetos de aplicación", async () => {
