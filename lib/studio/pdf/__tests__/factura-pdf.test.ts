@@ -12,17 +12,32 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { isValidElement, type ReactNode } from "react";
 import { calcInvoiceTotals } from "@/lib/studio/invoice-types";
 import {
   calcularTotales,
   construirFilas,
   estadoLabel,
+  facturaAnulada,
   fechaCorta,
+  FacturaDocument,
   lineasDeEmisor,
   montoConMoneda,
   type FacturaPdfEmisor,
   type FacturaPdfInput,
 } from "../factura-pdf";
+
+/**
+ * Los textos literales del árbol de elementos del documento. No renderiza el
+ * PDF (eso sólo probaría que react-pdf dibuja cajas): recorre lo que el
+ * componente DEVUELVE, sin expandir los subcomponentes.
+ */
+function textos(nodo: ReactNode): string[] {
+  if (typeof nodo === "string" || typeof nodo === "number") return [String(nodo)];
+  if (Array.isArray(nodo)) return nodo.flatMap(textos);
+  if (isValidElement<{ children?: ReactNode }>(nodo)) return textos(nodo.props.children);
+  return [];
+}
 
 function mkFactura(over: Partial<FacturaPdfInput> = {}): FacturaPdfInput {
   return {
@@ -84,6 +99,15 @@ describe("calcularTotales", () => {
   it("saca el saldo restando lo abonado del total", () => {
     const t = calcularTotales(mkFactura({ total: 2720, paid: 720 }));
     expect(t.balance).toBe(2000);
+  });
+
+  it("SDD-0556 · una anulada no tiene saldo, aunque se le haya abonado una parte", () => {
+    // Antes daba 2000 e imprimía «Saldo pendiente» en una factura anulada.
+    const t = calcularTotales(mkFactura({ status: "anulada", total: 2720, paid: 720 }));
+    expect(t.balance).toBe(0);
+    // Lo abonado se sigue imprimiendo.
+    expect(t.paid).toBe(720);
+    expect(t.total).toBe(2720);
   });
 
   it("con IVA reporta base, tasa y monto tal como los guardó la factura", () => {
@@ -180,6 +204,53 @@ describe("contrato con el cálculo real del servidor", () => {
   });
 });
 
+describe("FacturaDocument de una anulada (SDD-0556)", () => {
+  it("dice que está anulada y no imprime «Saldo pendiente»", () => {
+    expect(facturaAnulada({ status: "anulada" })).toBe(true);
+    const t = textos(FacturaDocument({ invoice: mkFactura({ status: "anulada", paid: 720 }) }));
+    expect(t).toContain("Factura anulada: no hay saldo por pagar.");
+    expect(t).not.toContain("Saldo pendiente");
+    // Lo abonado no se esconde: el papel que llega al contador dice qué hacer.
+    expect(t.join("")).toContain(
+      "Lo abonado (USD 720.00) no se descuenta de tu saldo pendiente: escríbele a tu asesor para aplicarlo a otra factura o pedir su devolución.",
+    );
+  });
+
+  it("una anulada sin abono solo dice que no hay saldo", () => {
+    const t = textos(FacturaDocument({ invoice: mkFactura({ status: "anulada", paid: 0 }) }));
+    expect(t).toContain("Factura anulada: no hay saldo por pagar.");
+    expect(t.join("")).not.toContain("Lo abonado");
+  });
+
+  it("una vigente con saldo no lleva el aviso y sí su «Saldo pendiente»", () => {
+    expect(facturaAnulada({ status: "emitida" })).toBe(false);
+    const t = textos(FacturaDocument({ invoice: mkFactura({ paid: 720 }) }));
+    expect(t).not.toContain("Factura anulada: no hay saldo por pagar.");
+    expect(t).toContain("Saldo pendiente");
+  });
+
+  it("una anulada no imprime «Datos para el pago»; una vigente sí", () => {
+    // Antes el papel de la anulada decía «no hay saldo por pagar» y, abajo,
+    // las cuentas para pagarla.
+    const emisor: FacturaPdfEmisor = {
+      tradeName: "Empresa Sintética",
+      legalName: "",
+      rif: "",
+      email: "",
+      phone: "",
+      website: "",
+      cuentas: [
+        { bankName: "Banco Sintético", accountType: "corriente", currency: "USD", accountNumber: "0000-SINTETICA" },
+      ],
+    };
+    const anulada = textos(FacturaDocument({ invoice: mkFactura({ status: "anulada", paid: 720 }), emisor }));
+    expect(anulada).not.toContain("Datos para el pago");
+    expect(anulada.join(" ")).not.toContain("0000-SINTETICA");
+    const vigente = textos(FacturaDocument({ invoice: mkFactura({ paid: 720 }), emisor }));
+    expect(vigente).toContain("Datos para el pago");
+  });
+});
+
 describe("estadoLabel", () => {
   it("usa la MISMA etiqueta que el badge de la app", () => {
     expect(estadoLabel("parcial")).toBe("Parcial");
@@ -245,5 +316,11 @@ describe("lineasDeEmisor · la identidad fiscal del emisor (SDD-0297)", () => {
     // lo que el contador necesita es la razón social registrada.
     const solo = lineasDeEmisor(mkEmisor({ legalName: "", rif: "" }));
     expect(solo.join("")).not.toContain("DTD Cargo");
+  });
+
+  it("SDD-0556 · acepta sólo razón social y RIF (lo que trae el estado de cuenta)", () => {
+    expect(lineasDeEmisor({ legalName: "Razón Sintética, C.A.", rif: "J-00000000-1" })).toEqual([
+      "Razón Sintética, C.A. · RIF J-00000000-1",
+    ]);
   });
 });

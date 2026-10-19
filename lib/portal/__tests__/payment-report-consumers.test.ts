@@ -1,13 +1,24 @@
 // @vitest-environment node
 /** SDD-0365: acciones, identidad, RBAC, transporte y upload REALES;
- * únicamente DB/Storage/Next/avisos son fronteras sintéticas. */
+ * únicamente DB/Storage/Next/avisos son fronteras sintéticas.
+ * SDD-0556: `after()` de Next se simula guardando el callback, para probar
+ * QUÉ se programa y CUÁNDO: el comando corre con la sesión, y el aviso al
+ * cliente (que es donde se construye el admin) se programa sólo después de un
+ * recibo ok que no es replay. */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-const mocks = vi.hoisted(() => ({ createClient: vi.fn(), createAdminClient: vi.fn(), notify: vi.fn(), revalidate: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  createClient: vi.fn(), createAdminClient: vi.fn(), notify: vi.fn(), revalidate: vi.fn(),
+  notifyClient: vi.fn(), after: vi.fn(), scheduled: [] as Array<() => unknown>,
+}));
 vi.mock("@/lib/db/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("@/lib/studio/payment-report-notify", () => ({ notifyPaymentReportToAdmin: mocks.notify }));
+vi.mock("@/lib/studio/payment-report-resolution-notify", () => ({
+  notifyPaymentReportResolutionToClient: mocks.notifyClient,
+}));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
+vi.mock("next/server", () => ({ after: mocks.after }));
 import { reportPaymentAction, cancelPaymentReportAction } from "@/app/portal/(app)/facturas/[code]/reportar/actions";
 import { resolvePaymentReport } from "@/app/studio/(app)/facturacion/payment-report-actions";
 
@@ -129,7 +140,16 @@ function io(options: { portal?: boolean; role?: string | null; disabled?: boolea
 }
 
 beforeEach(() => { vi.clearAllMocks(); vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-09-02T12:00:00Z")); mocks.notify.mockResolvedValue(undefined); });
+  vi.setSystemTime(new Date("2026-09-02T12:00:00Z")); mocks.notify.mockResolvedValue(undefined);
+  mocks.scheduled.length = 0;
+  mocks.after.mockImplementation((fn: () => unknown) => { mocks.scheduled.push(fn); });
+  // El aviso real construye el admin; el doble lo imita para que el orden se vea.
+  mocks.notifyClient.mockImplementation(async () => { mocks.createAdminClient(); }); });
+
+/** Corre lo que la acción programó con `after()`, como Next al responder. */
+async function correrAfter() {
+  for (const fn of mocks.scheduled.splice(0)) await fn();
+}
 afterEach(() => { vi.useRealTimers(); });
 
 describe("consumidores de comandos auditados", () => {
@@ -164,7 +184,46 @@ describe("consumidores de comandos auditados", () => {
     } }]);
     expect(state.legacy).toEqual([]);
     expect(state.dml).toEqual([]);
+    // SDD-0556: el comando y la respuesta corren SÓLO con la sesión. El aviso
+    // al cliente queda programado, todavía sin correr y sin admin.
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
+    expect(mocks.after).toHaveBeenCalledOnce();
+    expect(mocks.notifyClient).not.toHaveBeenCalled();
+    // Recién al correr lo programado se avisa —con la sesión y el recibo del
+    // comando— y es ahí, dentro del aviso, donde aparece el admin.
+    await correrAfter();
+    expect(mocks.notifyClient).toHaveBeenCalledOnce();
+    const [sesion, recibo] = mocks.notifyClient.mock.calls[0];
+    expect(sesion).toBe(await mocks.createClient.mock.results[0].value);
+    expect(recibo).toEqual(receipt(action));
+    expect(mocks.createAdminClient).toHaveBeenCalledOnce();
+  });
+
+  it("Studio: un replay del mismo intento no programa otro aviso", async () => {
+    io();
+    expect(await resolveAction(REPORT, "confirmado", REASON, REQUEST)).toMatchObject({ ok: true });
+    const replay = await resolveAction(REPORT, "confirmado", REASON, REQUEST);
+    expect(replay).toMatchObject({ ok: true, receipt: { ...receipt("confirmado"), replayed: true } });
+    expect(mocks.after).toHaveBeenCalledOnce();
+    await correrAfter();
+    expect(mocks.notifyClient).toHaveBeenCalledOnce();
+    expect(mocks.notifyClient.mock.calls[0][1]).toMatchObject({ replayed: false });
+  });
+
+  it("Studio: el aviso que falla no cambia el resultado, y `after()` fuera de un request tampoco", async () => {
+    io();
+    mocks.notifyClient.mockRejectedValueOnce(new Error(PRIVATE));
+    expect(await resolveAction(REPORT, "confirmado", REASON, REQUEST)).toMatchObject({ ok: true, receipt: receipt("confirmado") });
+    expect(mocks.revalidate).toHaveBeenCalled();
+    // Next corre el callback después de responder: su fallo ya no puede tocar
+    // el resultado. (El aviso real tampoco lanza; ver su prueba.)
+    await correrAfter().catch(() => {});
+    expect(mocks.notifyClient).toHaveBeenCalledOnce();
+
+    io();
+    const otro = "55000000-0000-4000-8000-0000000000aa";
+    mocks.after.mockImplementationOnce(() => { throw new Error("after fuera de request"); });
+    expect(await resolveAction(REPORT, "rechazado", REASON, otro)).toMatchObject({ ok: true });
   });
 });
 
@@ -204,6 +263,7 @@ describe("consumidores · permiso, entrada y preflight fail-closed", () => {
     expect(state.commands).toEqual([]);
     expect(state.legacy).toEqual([]);
     expect(mocks.revalidate).not.toHaveBeenCalled();
+    expect(mocks.after).not.toHaveBeenCalled();
   });
 
   it("Studio exige requestId y motivo antes de resolver", async () => {
@@ -248,6 +308,9 @@ describe("consumidores · resultado comprobable y recuperación", () => {
     expect(remove).not.toHaveBeenCalled();
     expect(mocks.notify).not.toHaveBeenCalled();
     expect(mocks.revalidate).not.toHaveBeenCalled();
+    // SDD-0556: un resultado incierto no avisa al cliente.
+    expect(mocks.after).not.toHaveBeenCalled();
+    expect(mocks.notifyClient).not.toHaveBeenCalled();
   });
 
   it("replay propio recupera recibo aun con factura pagada y cinco pendientes, sin otro aviso", async () => {

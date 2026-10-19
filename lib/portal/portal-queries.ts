@@ -35,10 +35,11 @@ import type {
 import {
   estimatePortalEta,
   isActiveShipmentStatus,
-  type InvoiceCurrency,
   type ShipmentService,
   type ShipmentStatus,
 } from "./portal-types";
+import { fetchAllPaged } from "@/lib/db/paginate";
+import { esAnuladaSinEmitir, resumenDeCuenta } from "./saldo-de-cuenta";
 
 /**
  * Tenant, Shipping Mark e id de cliente del principal Portal de la sesión, o null
@@ -248,43 +249,116 @@ export async function getMyShipment(
 }
 
 /**
+ * Las facturas del cliente no se pudieron leer completas (SDD-0556). Antes la
+ * lista volvía vacía y el saldo en 0 —«al día»— ante un error, y se cortaba en
+ * 100 facturas sin avisar: el mismo dato falso con otra cara. Ahora el lector
+ * lanza este error y quien lo llama decide: las páginas caen en `error.tsx`, el
+ * PDF responde 503 e Inicio marca sus KPIs de facturas como no disponibles.
+ *
+ * El mensaje es fijo y no trae nada de la base (ni el detalle de PostgREST).
+ */
+export class PortalInvoicesUnavailableError extends Error {
+  readonly motivo: "lectura" | "incompleta";
+  constructor(motivo: "lectura" | "incompleta") {
+    super("PORTAL_FACTURAS_NO_DISPONIBLES");
+    this.name = "PortalInvoicesUnavailableError";
+    this.motivo = motivo;
+  }
+}
+
+type InvoiceListRow = {
+  id: string;
+  invoice_code: string;
+  status: string;
+  currency: string;
+  total_amount: number | string | null;
+  paid_amount: number | string | null;
+  issued_at: string | null;
+  due_date: string | null;
+  shipment_code: string | null;
+};
+
+/**
  * Facturas del cliente logueado (SDD-0042 · Fase 3), recientes primero. La RLS
  * del portal ya excluye borradores; filtramos EXPLÍCITO por tenant y Shipping
  * Mark del principal y por `borrador` igualmente (defensa en profundidad,
- * SDD-0462). Hasta 100.
+ * SDD-0462). Lee TODAS, sin tope (SDD-0556); ver
+ * `listMyInvoicesForPrincipal`. Sin principal devuelve [] sin consultar.
  */
 export async function listMyInvoices(
   supabase: SupabaseClient,
 ): Promise<PortalInvoiceRow[]> {
   const principal = await getPortalClientPrincipal(supabase);
   if (!principal) return [];
+  return listMyInvoicesForPrincipal(supabase, principal);
+}
 
-  const { data, error } = await supabase
-    .from("invoices")
-    .select(
-      "id, invoice_code, status, currency, total_amount, paid_amount, issued_at, due_date, shipment_code",
-    )
-    .eq("tenant_id", principal.tenantId)
-    .eq("client_markbox", principal.client.markbox)
-    .neq("status", "borrador")
-    .is("deleted_at", null)
-    .order("issued_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false })
-    .limit(100);
+/**
+ * `listMyInvoices` para quien ya resolvió el principal (SDD-0556): el PDF del
+ * estado de cuenta usa UNA sola resolución para las facturas y el emisor.
+ *
+ * - Pagina con `fetchAllPaged` (orden estable hasta `id`): el ledger y los KPIs
+ *   suman estas filas, y una suma sobre una lista cortada miente.
+ * - Si la lectura falla o queda incompleta, lanza
+ *   `PortalInvoicesUnavailableError`. Nunca devuelve una lista vacía inventada.
+ * - Deduplica por `id`: una factura emitida entre dos páginas corre el offset
+ *   y repetiría una fila (ver el comentario de abajo).
+ * - Saca, después de leer, las anuladas que nunca se emitieron: eran borradores
+ *   anulados y el cliente nunca las recibió.
+ */
+export async function listMyInvoicesForPrincipal(
+  supabase: SupabaseClient,
+  principal: PortalClientPrincipal,
+): Promise<PortalInvoiceRow[]> {
+  let leidas: { rows: InvoiceListRow[]; complete: boolean };
+  try {
+    leidas = await fetchAllPaged<InvoiceListRow>((from, to) =>
+      supabase
+        .from("invoices")
+        .select(
+          "id, invoice_code, status, currency, total_amount, paid_amount, issued_at, due_date, shipment_code",
+        )
+        .eq("tenant_id", principal.tenantId)
+        .eq("client_markbox", principal.client.markbox)
+        .neq("status", "borrador")
+        .is("deleted_at", null)
+        .order("issued_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+  } catch {
+    throw new PortalInvoicesUnavailableError("lectura");
+  }
+  if (!leidas.complete) throw new PortalInvoicesUnavailableError("incompleta");
 
-  if (error || !data) return [];
+  // Sin duplicados: cada página es una lectura aparte. Si el asesor emite una
+  // factura entre la página con datos y la siguiente, entra arriba del orden
+  // (`issued_at desc`), corre el offset y la página siguiente repite la última
+  // fila de la anterior. Se conserva la primera aparición de cada `id`, así
+  // ninguna factura sale dos veces ni infla el saldo. La factura nueva puede
+  // faltar hasta la próxima carga: lo leído equivale a una lectura hecha justo
+  // antes de emitirla.
+  const vistas = new Set<string>();
+  const unicas = leidas.rows.filter((r) => {
+    if (vistas.has(r.id)) return false;
+    vistas.add(r.id);
+    return true;
+  });
 
-  return data.map((r) => ({
-    id: r.id as string,
-    code: r.invoice_code as string,
-    status: r.status as PortalInvoiceRow["status"],
-    currency: r.currency as PortalInvoiceRow["currency"],
-    total: Number(r.total_amount ?? 0),
-    paid: Number(r.paid_amount ?? 0),
-    issuedAt: (r.issued_at as string | null) ?? null,
-    dueDate: (r.due_date as string | null) ?? null,
-    shipmentCode: (r.shipment_code as string | null) ?? null,
-  }));
+  return unicas
+    .map((r) => ({
+      id: r.id,
+      code: r.invoice_code,
+      status: r.status as PortalInvoiceRow["status"],
+      currency: r.currency as PortalInvoiceRow["currency"],
+      total: Number(r.total_amount ?? 0),
+      paid: Number(r.paid_amount ?? 0),
+      issuedAt: r.issued_at ?? null,
+      dueDate: r.due_date ?? null,
+      shipmentCode: r.shipment_code ?? null,
+    }))
+    .filter((inv) => !esAnuladaSinEmitir(inv));
 }
 
 /**
@@ -326,6 +400,16 @@ export async function getMyInvoiceForPrincipal(
     .maybeSingle();
 
   if (error || !data) return null;
+  // SDD-0556: una anulada que nunca se emitió es un borrador anulado; el
+  // cliente nunca la recibió. Mismo 404 que un borrador, igual que en la lista.
+  if (
+    esAnuladaSinEmitir({
+      status: data.status as PortalInvoiceDetail["status"],
+      issuedAt: (data.issued_at as string | null) ?? null,
+    })
+  ) {
+    return null;
+  }
 
   return {
     id: data.id as string,
@@ -651,11 +735,13 @@ function currentYearUtc(now: Date = new Date()): number {
  *
  * - Envíos activos: status NO terminal.
  * - Entregados YTD: `delivered` con `updated_at` en el año actual.
- * - Facturado: Σ total_amount de facturas no-borrador (en la moneda dominante).
- * - Saldo pendiente: Σ (total − paid) de facturas no-borrador (moneda dominante).
+ * - Facturado / Saldo pendiente / facturas pendientes: `resumenDeCuenta`
+ *   (SDD-0556), la misma definición que Facturas y Finanzas. Las anuladas no
+ *   suman y la moneda dominante la deciden las vigentes.
  *
- * Sumar montos cruzando monedas sería incorrecto → agregamos por moneda y
- * reportamos la DOMINANTE (mayor total), igual criterio que la página de facturas.
+ * Si las facturas no se pueden leer completas, la portada no se cae entera: los
+ * KPIs de facturas salen con `invoicesAvailable: false` y la tarjeta dice «No
+ * disponible». Nunca un 0 que parezca «al día».
  */
 export async function getDashboardKpis(
   supabase: SupabaseClient,
@@ -663,7 +749,10 @@ export async function getDashboardKpis(
 ): Promise<PortalDashboardKpis> {
   const [shipments, invoices] = await Promise.all([
     listMyShipments(supabase),
-    listMyInvoices(supabase),
+    listMyInvoices(supabase).catch((e: unknown) => {
+      if (e instanceof PortalInvoicesUnavailableError) return null;
+      throw e;
+    }),
   ]);
 
   const year = currentYearUtc(now);
@@ -676,37 +765,29 @@ export async function getDashboardKpis(
     return !Number.isNaN(t.getTime()) && t.getUTCFullYear() === year;
   }).length;
 
-  // Agregar montos por moneda → elegir dominante.
-  const byCurrency = new Map<
-    InvoiceCurrency,
-    { total: number; balance: number }
-  >();
-  let pendingInvoiceCount = 0;
-  for (const inv of invoices) {
-    const e = byCurrency.get(inv.currency) ?? { total: 0, balance: 0 };
-    e.total += inv.total;
-    const bal = Math.max(0, inv.total - inv.paid);
-    e.balance += bal;
-    if (bal > 0) pendingInvoiceCount += 1;
-    byCurrency.set(inv.currency, e);
+  if (!invoices) {
+    return {
+      activeShipments,
+      deliveredYtd,
+      invoicesAvailable: false,
+      invoicedTotal: 0,
+      outstandingBalance: 0,
+      currency: "USD",
+      mixedCurrencies: false,
+      pendingInvoiceCount: 0,
+    };
   }
-  const currencies = [...byCurrency.keys()];
-  const currency =
-    currencies
-      .slice()
-      .sort(
-        (a, b) => (byCurrency.get(b)?.total ?? 0) - (byCurrency.get(a)?.total ?? 0),
-      )[0] ?? ("USD" as InvoiceCurrency);
-  const agg = byCurrency.get(currency) ?? { total: 0, balance: 0 };
 
+  const r = resumenDeCuenta(invoices);
   return {
     activeShipments,
     deliveredYtd,
-    invoicedTotal: agg.total,
-    outstandingBalance: agg.balance,
-    currency,
-    mixedCurrencies: currencies.length > 1,
-    pendingInvoiceCount,
+    invoicesAvailable: true,
+    invoicedTotal: r.facturado,
+    outstandingBalance: r.porPagar,
+    currency: r.currency,
+    mixedCurrencies: r.mixedCurrencies,
+    pendingInvoiceCount: r.facturasPorPagar,
   };
 }
 
