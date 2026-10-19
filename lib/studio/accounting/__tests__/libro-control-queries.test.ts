@@ -14,10 +14,12 @@ import {
   ingresoDelPeriodo,
   leerDiarioCompleto,
   reportesDelLibro,
+  saldosDeFacturas,
 } from "../libro-control-queries";
 import { describirIngreso, ESTADOS_DE_INGRESO } from "../ingreso-periodo";
 import { countEntries } from "@/lib/studio/journal-queries";
 import { accountBalances, listAccounts } from "@/lib/studio/account-queries";
+import type { Account } from "@/lib/studio/account-types";
 import {
   ESPERADO,
   ESPERADO_EN_USD,
@@ -106,7 +108,8 @@ describe("ingresoDelPeriodo", () => {
           deFactura("e1", "2025-03-05"),
           entrada("e2", "2025-03-07"), // manual a 4.6
           entrada("e5", "2025-03-09"), // manual a la propia 4.5
-          deFactura("e3", "2025-02-20"), // fuera del rango
+          deFactura("e3", "2025-02-20"), // antes del rango
+          deFactura("e7", "2025-03-25"), // después del rango: el tope «hasta»
           deFactura("e4", "2025-03-08", "anulado"),
           deFactura("e6", "2025-03-10", "asentado", { deleted_at: "2025-03-11T00:00:00Z" }),
         ],
@@ -119,6 +122,8 @@ describe("ingresoDelPeriodo", () => {
           linea("l10", "e5", "ventas", 0, 300),
           linea("l5", "e3", "cxc", 900, 0),
           linea("l6", "e3", "ventas", 0, 900),
+          linea("l13", "e7", "cxc", 250, 0),
+          linea("l14", "e7", "ventas", 0, 250),
           linea("l7", "e4", "cxc", 400, 0),
           linea("l8", "e4", "ventas", 0, 400),
           linea("l11", "e6", "cxc", 50, 0),
@@ -163,6 +168,46 @@ describe("ingresoDelPeriodo", () => {
     expect(i.mayor).toMatchObject({ ventas: 0, ventasConMovimiento: false });
     expect(i.diferenciaUsd).toBe(1000);
     expect(describirIngreso(i).estado).toBe("mayor_menor");
+  });
+});
+
+describe("saldosDeFacturas", () => {
+  it("el rango baja a SQL sobre entry_date, con sus dos topes", async () => {
+    const { client, filtros } = dobleListados(
+      { accounts: PLAN, journal_entries: [deFactura("e1", "2025-03-05")], journal_lines: [] },
+      { serverCap: SERVER_CAP },
+    );
+    await saldosDeFacturas(client, RANGO_MES, PLAN as unknown as Account[]);
+    // Cada página (la de datos y la vacía del final) lleva los dos topes.
+    const fechas = filtros.filter((f) => f.table === "journal_entries" && f.col === "entry_date");
+    const gte = { table: "journal_entries", op: "gte", col: "entry_date", val: "2025-03-01" };
+    const lte = { table: "journal_entries", op: "lte", col: "entry_date", val: "2025-03-18" };
+    expect(fechas.length).toBeGreaterThan(0);
+    expect(fechas.filter((f) => f.op === "gte")).toEqual(Array(fechas.length / 2).fill(gte));
+    expect(fechas.filter((f) => f.op === "lte")).toEqual(Array(fechas.length / 2).fill(lte));
+  });
+
+  it("ERR-01 · más de 60 asientos de factura en el rango con 1 fila por respuesta: rechaza con su nombre", async () => {
+    const entries: Fila[] = [];
+    for (let n = 0; n < 61; n++) entries.push(deFactura(`v${String(n).padStart(3, "0")}`, "2025-03-05"));
+    const { client } = dobleListados({ accounts: PLAN, journal_entries: entries, journal_lines: [] }, { serverCap: 1 });
+    await expect(saldosDeFacturas(client, RANGO_MES, PLAN as unknown as Account[])).rejects.toThrow(
+      /^Control del mayor · asientos de factura: la lectura supera el tope; el control no se puede calcular completo\.$/,
+    );
+  });
+
+  it("ERR-01 · 30 asientos de factura con 60 líneas y 1 fila por respuesta: rechaza con su nombre", async () => {
+    const entries: Fila[] = [];
+    const lines: Fila[] = [];
+    for (let n = 0; n < 30; n++) {
+      const id = `w${String(n).padStart(3, "0")}`;
+      entries.push(deFactura(id, "2025-03-05"));
+      lines.push(linea(`${id}-d`, id, "cxc", 1, 0), linea(`${id}-h`, id, "ventas", 0, 1));
+    }
+    const { client } = dobleListados({ accounts: PLAN, journal_entries: entries, journal_lines: lines }, { serverCap: 1 });
+    await expect(saldosDeFacturas(client, RANGO_MES, PLAN as unknown as Account[])).rejects.toThrow(
+      /^Control del mayor · líneas de factura: la lectura supera el tope; el control no se puede calcular completo\.$/,
+    );
   });
 });
 
@@ -347,9 +392,11 @@ describe("cuadreDelLibro", () => {
   /**
    * E1 por el recibo: una factura en USD cobrada con un recibo en bolívares
    * cuyo asiento `receipt` está vivo. La factura se asienta en USD, pero el
-   * recibo convierte: 1.1.2 deja de ser comparable.
+   * recibo convierte: 1.1.2 deja de ser comparable. Con un recibo en USD o
+   * USDT, el caso normal, sigue siendo comparable.
    */
-  function conReciboVes(recibo: { asiento: string; borrado?: boolean }) {
+  function conReciboVes(recibo: { asiento: string; borrado?: boolean; moneda?: string }) {
+    const moneda = recibo.moneda ?? "VES";
     const tablas: Record<string, Fila[]> = {
       accounts: PLAN,
       invoices: [
@@ -357,7 +404,8 @@ describe("cuadreDelLibro", () => {
       ],
       payment_receipts: [
         {
-          id: "r1", receipt_code: "R-1", received_at: "2025-03-10", currency: "VES", amount: 42340,
+          id: "r1", receipt_code: "R-1", received_at: "2025-03-10", currency: moneda,
+          amount: moneda === "VES" ? 42340 : 1160,
           journal_entry_id: "e-r1", deleted_at: recibo.borrado ? "2025-03-11T00:00:00Z" : null,
         },
       ],
@@ -389,6 +437,17 @@ describe("cuadreDelLibro", () => {
       saldos.cxc = { debit: 1160, credit: 1160, balance: 0 };
       const c = await cuadreDelLibro(client, { accounts, saldos, hoy: "2025-03-18" });
       expect(c.subdiario.clientes).toMatchObject({ estado: "cuadra", diferenciaUsd: 0 });
+    }
+  });
+
+  it("E1 por el recibo · en positivo: un recibo vivo en USD, o en USDT, con asiento `receipt` asentado deja clientes en «cuadra»", async () => {
+    for (const moneda of ["USD", "USDT"]) {
+      const client = conReciboVes({ asiento: "asentado", moneda });
+      const accounts = await listAccounts(client);
+      const saldos = await accountBalances(client);
+      saldos.cxc = { debit: 1160, credit: 1160, balance: 0 };
+      const c = await cuadreDelLibro(client, { accounts, saldos, hoy: "2025-03-18" });
+      expect(c.subdiario.clientes, moneda).toMatchObject({ estado: "cuadra", diferenciaUsd: 0 });
     }
   });
 

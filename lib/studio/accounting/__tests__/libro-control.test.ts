@@ -358,13 +358,15 @@ describe("cuadreSubdiario", () => {
         saldo({ status: "pendiente", currency: "CNY", fx_rate: 7, total_amount: 700 }),
         saldo({ status: "pagada", currency: "CNY", fx_rate: null, total_amount: 90, paid_amount: 90 }),
         saldo({ status: "anulada", currency: "CNY", fx_rate: null, total_amount: 999 }),
+        // USDT sin tasa tampoco: va 1:1, ya está en USD.
+        saldo({ status: "pendiente", currency: "USDT", fx_rate: null, total_amount: 40 }),
       ],
       recibosNoUsdConAsiento: 0,
       mayorClientes: mayor(0),
-      mayorProveedores: mayor(70800),
+      mayorProveedores: mayor(70840),
     });
-    // 200 + 70000 (nominal) + 500 (nominal) + 100 = 70800, como el asiento.
-    expect(s.proveedores).toMatchObject({ subdiarioUsd: 70800, documentos: 4, sinTasa: 2, estado: "cuadra" });
+    // 200 + 70000 (nominal) + 500 (nominal) + 100 + 40 (USDT) = 70840, como el asiento.
+    expect(s.proveedores).toMatchObject({ subdiarioUsd: 70840, documentos: 5, sinTasa: 2, estado: "cuadra" });
     expect(s.clientes.sinTasa).toBe(0);
     expect(notasDelSubdiario(s)).toContain("2 CxP sin tasa van al nominal, como su asiento: el saldo no está en USD.");
     const una = cuadreSubdiario({
@@ -376,7 +378,7 @@ describe("cuadreSubdiario", () => {
       mayorProveedores: mayor(10),
     });
     expect(notasDelSubdiario(una)).toEqual(["1 CxP sin tasa va al nominal, como su asiento: el saldo no está en USD."]);
-    expect(subdiarioCsv(s).content.split("\r\n")[2]).toBe("2.1.1,Proveedores,70800,70800,0,4,0,2,Cuadra");
+    expect(subdiarioCsv(s).content.split("\r\n")[2]).toBe("2.1.1,Proveedores,70840,70840,0,5,0,2,Cuadra");
   });
 
   it("notas del subdiario: no comparable y facturas sin convertir de clientes", () => {
