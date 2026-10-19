@@ -30,10 +30,12 @@ vi.setConfig({ testTimeout: 120_000 });
  * y tres de SeaRates que protegen la cuota mensual del plan.
  *
  * NO entran las que inyecta la plataforma ni los interruptores del harness: no
- * son configuración del proyecto y listarlas sólo haría ruido.
+ * son configuración del proyecto y listarlas sólo haría ruido. `SCHEMA_REBUILD_`
+ * (SDD-0559) es uno de esos: apunta `check-schema-rebuild.mjs` a otra radiografía
+ * para su control rojo y no se define en ningún entorno real.
  */
 const IGNORAR =
-  /^(NODE_ENV|LOCALAPPDATA|VERCEL_(ENV|URL|GIT_.*|PROJECT_ID|TEAM_ID)|VERIFY_|E2E_|STUDIO_E2E_|SQL_TEST_PG_IMAGE|PLAYWRIGHT_BROWSERS_PATH)/;
+  /^(NODE_ENV|LOCALAPPDATA|VERCEL_(ENV|URL|GIT_.*|PROJECT_ID|TEAM_ID)|VERIFY_|E2E_|STUDIO_E2E_|SQL_TEST_PG_IMAGE|SCHEMA_REBUILD_|PLAYWRIGHT_BROWSERS_PATH)/;
 
 const RAICES = ["lib", "app", "scripts", "components"];
 
