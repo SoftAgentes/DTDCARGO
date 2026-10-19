@@ -62,8 +62,24 @@ function comparar(a: unknown, b: unknown): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-export function dobleListados(tablas: Record<string, Fila[]>): DobleListados {
+/**
+ * Opciones del doble.
+ *
+ * `serverCap` (SDD-0557) emula `db-max-rows`: ninguna respuesta trae más de N
+ * filas, pida lo que pida el lector (`range` o `limit`). Sin él, una lectura
+ * sin paginar devuelve todo y el mutante «leer sin `fetchAllPaged`» sobrevive.
+ * Es opcional para no cambiar las pruebas que ya usan el doble.
+ */
+export interface OpcionesDoble {
+  serverCap?: number;
+}
+
+export function dobleListados(
+  tablas: Record<string, Fila[]>,
+  opciones: OpcionesDoble = {},
+): DobleListados {
   const filtros: FiltroVisto[] = [];
+  const cap = opciones.serverCap ?? Infinity;
 
   function from(table: string) {
     const lanzar = (metodo: string) => () => {
@@ -159,8 +175,9 @@ export function dobleListados(tablas: Record<string, Fila[]>): DobleListados {
             return chain;
           },
           range(desde: number, hasta: number) {
+            const fin = Math.min(hasta + 1, desde + cap);
             return Promise.resolve(
-              resolver(visibles.slice(desde, hasta + 1), visibles.length),
+              resolver(visibles.slice(desde, fin), visibles.length),
             );
           },
           maybeSingle() {
@@ -173,8 +190,8 @@ export function dobleListados(tablas: Record<string, Fila[]>): DobleListados {
             resolve: (v: Resultado) => unknown,
             reject?: (e: unknown) => unknown,
           ) {
-            const cortadas =
-              tope === Infinity ? visibles : visibles.slice(0, tope);
+            const n = Math.min(tope, cap);
+            const cortadas = n === Infinity ? visibles : visibles.slice(0, n);
             return Promise.resolve(resolver(cortadas, visibles.length)).then(
               resolve,
               reject,
