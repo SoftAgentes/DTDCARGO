@@ -18,7 +18,7 @@ compose (plantilla en `infra/templates/proyecto/`, DTD Cargo en `infra/dtd-cargo
 | `staging/destroy-staging.sh` | Borra los datos de un staging al cerrar el ensayo, con evidencia | — |
 | `staging/*-prueba.sh`, `staging/verificar-aislamiento.sh` | Entorno de prueba con datos sintéticos (SDD-0540): `.env`, clave del web, aislamiento, semilla, reset de la base, creación y despliegue. Procedimiento: `docs/runbooks/entorno-prueba.md` | las del compose del proyecto |
 | `migrate/aplicar-migracion.sh` · `lib/migracion.sh` | Una migración con su fila del ledger en una transacción (método del Director, SDD-0540 §2.6); solo en `*-staging` | `supabase/postgres` del proyecto |
-| `migraciones/` | Migraciones en **producción** (SDD-0546): `preparar.mjs` arma el paquete en un checkout, `aplicar-remoto.sh` lo lleva por ssh, `aplicar.sh` corre en el VPS la lectura previa, el apply (con `lib/migracion.sh`) y la verificación, y `retirar-espera.mjs` cierra. Procedimiento: `docs/runbooks/aplicar-migraciones-prod.md` | `supabase/postgres` del proyecto |
+| `migraciones/` | Migraciones en **producción** (SDD-0546): `preparar.mjs` arma el paquete en un checkout, `aplicar-remoto.sh` lo lleva por ssh, `aplicar.sh` corre en el VPS la lectura previa, el apply (con `lib/migracion.sh`) y la verificación, y `retirar-espera.mjs` cierra y sella la migración en el candado `supabase/migrations.lock.json` (SDD-0561). Procedimiento: `docs/runbooks/aplicar-migraciones-prod.md` | `supabase/postgres` del proyecto |
 
 Todas las imágenes van fijadas por tag exacto (verificado en Docker Hub y GitHub
 Releases el 2026-10-08). Nunca `latest`. Los procedimientos completos (fases del

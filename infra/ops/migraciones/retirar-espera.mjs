@@ -7,21 +7,29 @@
  * con su verificación PASÓ, en la rama de cierre (nunca en main):
  *   - quita su entrada de `supabase/migrations-baseline.json › pendingBelowCutoff`;
  *   - quita sus declaraciones de `supabase/pending-migration-symbol-declarations.json`;
+ *   - la sella en `supabase/migrations.lock.json` (SDD-0561) con la identidad del
+ *     archivo, después de comprobar que su md5 es el aplicado (`--md5`, el que dio
+ *     la verificación del apply): desde ahí, editar el archivo hace caer la prueba
+ *     scripts/tests/migrations-lock.node.mjs;
  *   - lista las pruebas y el código que nombran la migración junto con
  *     `pendingBelowCutoff`: pueden afirmar la espera y hay que cambiarlas a mano
  *     (como la de la 0491 en el commit 2bb0c817).
  * No toca el `.sql`: la cabecera «NO APLICADA» se conserva, porque el ledger
- * guarda el texto exacto y la identidad se prueba por md5.
+ * guarda el texto exacto y la identidad se prueba por md5. Calcula todo antes de
+ * escribir: si el md5 no cuadra, no cambia ningún archivo.
  *
  * Uso:
- *   node infra/ops/migraciones/retirar-espera.mjs <NNNN_nombre> [--raiz <checkout>] [--en-seco]
+ *   node infra/ops/migraciones/retirar-espera.mjs <NNNN_nombre> --md5 <md5 del ledger> [--raiz <checkout>] [--en-seco]
  *
- * Códigos: 0 listo · 2 uso inválido · 3 la migración no estaba en pendingBelowCutoff.
+ * Códigos: 0 listo · 2 uso inválido (también: sin --md5, sin candado o sin el
+ * archivo) · 3 la migración no estaba en pendingBelowCutoff, ya estaba sellada o su
+ * md5 no es el aplicado.
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CANDADO, formato as formatoCandado, prepararSello, Rechazo as RechazoCandado } from "../../../scripts/migrations-lock.mjs";
 
 export const BASELINE = "supabase/migrations-baseline.json";
 export const DECLARACIONES = "supabase/pending-migration-symbol-declarations.json";
@@ -56,7 +64,17 @@ export function pruebasQueNombranLaEspera(raiz, nombre) {
     .filter((f) => fs.readFileSync(path.join(raiz, f), "utf8").includes("pendingBelowCutoff"));
 }
 
-export function retirarEspera({ raiz = ".", nombre, enSeco = false }) {
+/** El candado con la migración sellada, sin escribir. Los rechazos del candado conservan su código. */
+function selloDe(raiz, nombre, md5) {
+  try {
+    return prepararSello({ raiz, nombre, md5 });
+  } catch (e) {
+    if (e instanceof RechazoCandado) throw new Rechazo(`candado: ${e.message}`, e.codigo);
+    throw e;
+  }
+}
+
+export function retirarEspera({ raiz = ".", nombre, md5, enSeco = false }) {
   if (!NOMBRE_RE.test(nombre || "")) throw new Rechazo("uso: el nombre tiene que ser el exacto, sin .sql (NNNN_nombre)", 2);
   const fb = path.join(raiz, BASELINE);
   const fd = path.join(raiz, DECLARACIONES);
@@ -77,9 +95,11 @@ export function retirarEspera({ raiz = ".", nombre, enSeco = false }) {
     declaraciones.degradations = (declaraciones.degradations ?? []).filter((d) => d.migration !== nombre);
     quitadas = antes - declaraciones.degradations.length;
   }
+  const sello = selloDe(raiz, nombre, md5);
   if (!enSeco) {
     fs.writeFileSync(fb, formato(baseline));
     if (declaraciones && quitadas) fs.writeFileSync(fd, formato(declaraciones));
+    fs.writeFileSync(path.join(raiz, CANDADO), formatoCandado(sello.nuevo));
   }
   const pruebas = pruebasQueNombranLaEspera(raiz, nombre);
   return {
@@ -87,6 +107,7 @@ export function retirarEspera({ raiz = ".", nombre, enSeco = false }) {
     enSeco,
     esperaRetirada: true,
     declaracionesQuitadas: quitadas,
+    sellada: sello.ident,
     esperasQuedan: Object.keys(baseline.pendingBelowCutoff),
     revisarAMano: pruebas,
   };
@@ -106,6 +127,7 @@ if (esPrincipal()) {
   try {
     for (let i = 0; i < args.length; i++) {
       if (args[i] === "--raiz") o.raiz = args[++i];
+      else if (args[i] === "--md5") o.md5 = args[++i];
       else if (args[i] === "--en-seco") o.enSeco = true;
       else if (!args[i].startsWith("--") && !o.nombre) o.nombre = args[i].replace(/\.sql$/, "");
       else throw new Rechazo(`uso: argumento desconocido ${args[i]}`, 2);
