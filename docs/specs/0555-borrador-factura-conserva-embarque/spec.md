@@ -36,6 +36,8 @@ Una corrección de precio en el Studio dejaba la factura sin saber qué embarque
 - Las funciones del drawer pasan a `lib/studio/invoice-types.ts` como `linesToDraft` y `draftToLines` (con el tipo `DraftInvoiceLine`) para poder probarlas sin montar el componente. El código viaja oculto: el drawer no lo muestra ni lo edita, y una línea nueva nace sin código.
 - No cambia nada visible, ni el esquema, ni las acciones del servidor.
 
+**Límite conocido.** Como el código no se ve, si el operador reutiliza una línea (le cambia la descripción para cobrar otra cosa) o pasa el borrador a otro Shipping Mark, el código viejo sigue en la línea. El Portal no filtra los códigos por Shipping Mark, así que sumaría ese embarque. Hoy solo se limpia borrando la línea. Esto lo resuelve mostrar el embarque por línea en el drawer (ver «Fuera»).
+
 ## Alcance
 
 Dentro: conservar el código en la lectura, el drawer y la escritura; pruebas de regresión con control rojo.
@@ -53,7 +55,9 @@ Fuera:
 | `lib/studio/invoice-types.ts` | `lineShipmentCode`, `DraftInvoiceLine`, `linesToDraft`, `draftToLines`; `normalizeLines` conserva el código |
 | `lib/studio/invoice-queries.ts` | `coerce` conserva el código de cada línea |
 | `app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx` | usa `linesToDraft`/`draftToLines` de `lib/` en lugar de las copias locales |
-| `lib/studio/__tests__/invoice-lines-shipment-code.test.ts` | prueba nueva: los tres puntos y el recorrido completo |
+| `lib/studio/__tests__/invoice-lines-shipment-code.test.ts` | prueba nueva: las funciones puras de los tres puntos y su encadenado |
+| `app/studio/(app)/facturacion/_components/InvoiceDrawer.conserva-embarque.test.tsx` | prueba nueva: el drawer montado en edición, leyendo el input oculto `lines` |
+| `app/studio/(app)/facturacion/__tests__/update-invoice-conserva-embarque.test.ts` | prueba nueva: lo que `updateInvoice` persiste |
 | `docs/specs/0555-borrador-factura-conserva-embarque/spec.md` | esta spec |
 | `docs/specs/README.md` | índice regenerado |
 | `.agents/handoffs/0555-borrador-factura-conserva-embarque.md` | handoff |
@@ -63,8 +67,13 @@ Fuera:
 1. `normalizeLines` devuelve el `shipmentCode` de cada línea, recortado. Si viene vacío, en blanco o no es texto, la línea no lleva la clave.
 2. `getInvoiceByCode` entrega cada línea con su código y no se lo inventa a la que no lo tiene.
 3. `draftToLines(linesToDraft(lines))` devuelve las mismas líneas. Cambiar la descripción o el precio no suelta el código, y una línea agregada nace sin él.
-4. En el recorrido completo (leer, editar un precio en el drawer, serializar al input `lines`, `normalizeLines` y `validateInvoiceInput`), lo que se persiste nombra los mismos embarques, en el mismo orden en que los junta el Portal.
-5. Control rojo: quitar la conservación del código en cualquiera de los cuatro puntos (`normalizeLines`, `coerce`, `linesToDraft`, `draftToLines`) hace fallar la prueba nueva.
+4. El drawer montado en edición pone en el input oculto `lines` el código de cada línea. Corregir un precio no lo suelta, y una línea agregada sale sin la clave.
+5. `updateInvoice` persiste en `invoices.lines` el código de cada línea, recortado. Los embarques que junta el Portal son los mismos y salen en el mismo orden: el exceso de peso de un embarque no suma un tercero.
+6. Control rojo: cada una de estas regresiones hace fallar alguna de las pruebas de la tarea:
+   - quitar la conservación del código en `normalizeLines`, `coerce`, `linesToDraft` o `draftToLines`;
+   - volver a un `toDraft` local en el drawer;
+   - que `parseLines` suelte el código;
+   - dejarle a una línea sin código la clave `shipmentCode: undefined`.
 
 ## Gobernanza
 
