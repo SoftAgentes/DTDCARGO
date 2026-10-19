@@ -232,6 +232,14 @@ describe("regla 1 · la lista tiene que cuadrar con el conteo de la base", () =>
     expect(plan.bloqueos[0].clave).toBe("sin_confirmar:invoices");
   });
 
+  it("una repetida que además sobra: el conteo de ids distintos cuadra, pero la lista no", () => {
+    // [F-1, F-1, F-2] contra 2: hay 2 ids distintos, pero vinieron 3 filas.
+    const plan = bloqueado(
+      calcularPlan(entrada({ invoices: 2 }, { facturas: [factura("F-1"), factura("F-1"), factura("F-2")] })),
+    );
+    expect(plan.bloqueos[0].clave).toBe("sin_confirmar:invoices");
+  });
+
   it.each([
     ["expenses", "gastos"],
     ["supplier_bills", "cxp"],
