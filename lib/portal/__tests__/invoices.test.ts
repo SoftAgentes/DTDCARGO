@@ -30,8 +30,9 @@ import { listMyInvoices, getMyInvoice, listMyShipments } from "../portal-queries
  * y `client_users` su vínculo activo con el cliente de ese Shipping Mark en
  * `tenant-1`. `rpc("get_portal_client_markbox")` → `{ data: markbox }` para los
  * lectores que siguen resolviendo por RPC (envíos). El query builder registra los
- * `.eq(col, val)` y las tablas tocadas, y resuelve en `.limit()` (listas) o
- * `.maybeSingle()` (vínculo y detalle).
+ * `.eq(col, val)` y las tablas tocadas, y resuelve en `.limit()` (envíos),
+ * `.range()` (facturas, paginadas desde SDD-0556) o `.maybeSingle()` (vínculo y
+ * detalle).
  */
 function stub(opts: {
   markbox: string | null;
@@ -72,6 +73,10 @@ function stub(opts: {
       is: () => b,
       order: () => b,
       limit: () => Promise.resolve({ data: opts.rows ?? [], error: null }),
+      // SDD-0556: la lista de facturas pagina; el doble corta por offset como
+      // PostgREST, o la lectura nunca encuentra su página vacía.
+      range: (from: number, to: number) =>
+        Promise.resolve({ data: (opts.rows ?? []).slice(from, to + 1), error: null }),
       maybeSingle: () =>
         Promise.resolve({
           data: table === "client_users" ? membership : (opts.row ?? null),

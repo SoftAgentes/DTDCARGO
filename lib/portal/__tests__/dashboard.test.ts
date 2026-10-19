@@ -22,11 +22,17 @@ import { getDashboardKpis, getNextArrival } from "../portal-queries";
  * `client_users`, que resuelve en `.maybeSingle()`), como exige `listMyInvoices`.
  * El query builder (`from(table).select().eq().is().order().limit()`) resuelve en
  * `.limit()` con las filas de esa tabla; `getNextArrival` también usa esta cadena.
+ *
+ * SDD-0556: las facturas se leen paginadas (`fetchAllPaged` → `.range(from, to)`).
+ * El `range` del doble CORTA por offset, como PostgREST: uno que devolviera
+ * siempre las mismas filas haría que la lectura no terminara nunca y se
+ * declarara incompleta. `invoicesError` simula que la base no responde.
  */
 function stub(opts: {
   markbox: string | null;
   shipments?: Record<string, unknown>[];
   invoices?: Record<string, unknown>[];
+  invoicesError?: boolean;
 }): { supabase: SupabaseClient; touched: () => string[] } {
   const touched: string[] = [];
   const membership = opts.markbox
@@ -49,7 +55,7 @@ function stub(opts: {
         },
       }
     : null;
-  function builder(rows: Record<string, unknown>[]) {
+  function builder(rows: Record<string, unknown>[], failing = false) {
     const b: Record<string, unknown> = {};
     Object.assign(b, {
       select: () => b,
@@ -58,6 +64,12 @@ function stub(opts: {
       is: () => b,
       order: () => b,
       limit: () => Promise.resolve({ data: rows, error: null }),
+      range: (from: number, to: number) =>
+        Promise.resolve(
+          failing
+            ? { data: null, error: { message: "synthetic_db_detail" } }
+            : { data: rows.slice(from, to + 1), error: null },
+        ),
       maybeSingle: () => Promise.resolve({ data: membership, error: null }),
     });
     return b;
@@ -76,7 +88,7 @@ function stub(opts: {
         : Promise.resolve({ data: null, error: null }),
     from: (table: string) => {
       touched.push(table);
-      if (table === "invoices") return builder(opts.invoices ?? []);
+      if (table === "invoices") return builder(opts.invoices ?? [], opts.invoicesError);
       return builder(opts.shipments ?? []);
     },
   } as unknown as SupabaseClient;
@@ -185,6 +197,71 @@ describe("getDashboardKpis — las 4 KPIs", () => {
     expect(kpis.activeShipments).toBe(0);
     expect(kpis.invoicedTotal).toBe(0);
     expect(kpis.currency).toBe("USD");
+    expect(kpis.invoicesAvailable).toBe(true);
+  });
+
+  it("SDD-0556 · las anuladas no suman: ni facturado, ni saldo, ni facturas pendientes", async () => {
+    // Antes: invoicedTotal 11999, outstandingBalance 11299 y 3 pendientes.
+    const invoices = [
+      inv({ id: "i1", total_amount: 1000, paid_amount: 400 }),
+      inv({ id: "i2", status: "anulada", total_amount: 9999, paid_amount: 0 }),
+      inv({ id: "i3", status: "anulada", total_amount: 1000, paid_amount: 300 }),
+    ];
+    const kpis = await getDashboardKpis(
+      stub({ markbox: "DTD-1007", invoices }).supabase,
+      NOW,
+    );
+    expect(kpis.invoicesAvailable).toBe(true);
+    expect(kpis.invoicedTotal).toBe(1000);
+    expect(kpis.outstandingBalance).toBe(600);
+    expect(kpis.pendingInvoiceCount).toBe(1);
+    expect(kpis.currency).toBe("USD");
+  });
+
+  it("SDD-0556 · el saldo pendiente es lo que falta pagar: un sobrepago no le resta a otra factura", async () => {
+    // El recorte por factura es lo que ya hacía Inicio (y lo que muestran
+    // Facturas y Finanzas ahora): 1000/1200 no deja «−200» que se coma los 500.
+    const invoices = [
+      inv({ id: "i1", total_amount: 1000, paid_amount: 1200 }),
+      inv({ id: "i2", total_amount: 500, paid_amount: 0 }),
+    ];
+    const kpis = await getDashboardKpis(
+      stub({ markbox: "DTD-1007", invoices }).supabase,
+      NOW,
+    );
+    expect(kpis.outstandingBalance).toBe(500);
+    expect(kpis.pendingInvoiceCount).toBe(1);
+  });
+
+  it("SDD-0556 · una anulada en otra moneda no decide la moneda dominante", async () => {
+    const invoices = [
+      inv({ id: "i1", currency: "USD", total_amount: 500, paid_amount: 0 }),
+      inv({ id: "i2", currency: "VES", status: "anulada", total_amount: 99999, paid_amount: 0 }),
+    ];
+    const kpis = await getDashboardKpis(
+      stub({ markbox: "DTD-1007", invoices }).supabase,
+      NOW,
+    );
+    expect(kpis.currency).toBe("USD");
+    expect(kpis.mixedCurrencies).toBe(false);
+    expect(kpis.invoicedTotal).toBe(500);
+  });
+
+  it("SDD-0556 · si las facturas no se pueden leer, Inicio no se cae y no dice «al día»", async () => {
+    const shipments = [ship({ id: "s1", status: "in_transit" })];
+    const kpis = await getDashboardKpis(
+      stub({
+        markbox: "DTD-1007",
+        shipments,
+        invoices: [inv({ id: "i1", total_amount: 1000 })],
+        invoicesError: true,
+      }).supabase,
+      NOW,
+    );
+    // Los envíos siguen; los KPIs de facturas quedan marcados como no
+    // disponibles (la tarjeta dice «No disponible», nunca un 0 «al día»).
+    expect(kpis.activeShipments).toBe(1);
+    expect(kpis.invoicesAvailable).toBe(false);
   });
 });
 

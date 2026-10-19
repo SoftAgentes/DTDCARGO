@@ -9,6 +9,12 @@
  * cruce: el cliente de T1 veía la lista, el detalle, los KPIs, el estado de
  * cuenta y el PDF de facturas de T2. El cliente admin (service_role) no tiene
  * RLS: sólo lo acotan los filtros del código.
+ *
+ * SDD-0556: la lista se lee paginada (`fetchAllPaged` → `.range(from, to)`) y
+ * el transporte corta por offset, como PostgREST. `rangeRoto` simula un orden
+ * que no avanza (siempre las mismas filas) y `invoicesError` una base que no
+ * responde: en los dos casos el lector tiene que decir «no sé», no devolver una
+ * lista vacía con saldo 0.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -52,7 +58,8 @@ vi.mock("@/lib/studio/pdf/estado-de-cuenta-pdf", () => ({
   EstadoDeCuentaDocument: () => null,
 }));
 
-const { getDashboardKpis, getMyInvoice, listMyInvoices } = await import("../portal-queries");
+const { getDashboardKpis, getMyInvoice, listMyInvoices, PortalInvoicesUnavailableError } =
+  await import("../portal-queries");
 const { GET: facturaPdf } = await import("@/app/portal/(app)/facturas/[code]/pdf/route");
 const { GET: estadoDeCuentaPdf } = await import(
   "@/app/portal/(app)/facturas/estado-de-cuenta/pdf/route"
@@ -116,17 +123,21 @@ const BANK_ACCOUNTS: Row[] = [T1, T2].map((tenant) => ({
   sort_order: 0, deleted_at: null, created_at: "2026-01-01T00:00:00Z",
 }));
 
+const PRIVATE = "synthetic_private_db_detail";
+
 /** Constructor encadenable que filtra de verdad y registra cada filtro. */
 function transport(
   client: Op["client"],
   tables: Record<string, Row[]>,
   ops: Op[],
   visible: (table: string, rows: Row[]) => Row[],
+  faults: { failing?: string; rangeRoto?: boolean } = {},
 ) {
   return (table: string) => {
     const op: Op = { client, target: table, filters: [] };
     ops.push(op);
     let rows = visible(table, [...(tables[table] ?? [])]);
+    const error = faults.failing === table ? { code: "57014", message: PRIVATE } : null;
     const builder = {
       select: () => builder,
       eq(key: string, value: unknown) {
@@ -144,20 +155,34 @@ function transport(
         rows = rows.filter((row) => row[key] === value);
         return builder;
       },
-      order: () => builder,
+      // No reordena (las filas ya vienen en orden), pero registra el orden
+      // pedido: paginar sin un orden estable repite o saltea filas.
+      order(key: string, opts?: { ascending?: boolean }) {
+        op.filters.push(["order", key, opts?.ascending ?? true]);
+        return builder;
+      },
       limit(count: number) {
         rows = rows.slice(0, count);
         return builder;
       },
+      // PostgREST corta por offset; `rangeRoto` ignora el offset y devuelve
+      // siempre lo mismo (la lectura nunca encuentra su página vacía).
+      range(from: number, to: number) {
+        if (!faults.rangeRoto) rows = rows.slice(from, to + 1);
+        return builder;
+      },
       // PostgREST: más de una fila en maybeSingle es error, no una elección.
-      maybeSingle: async () => rows.length > 1
-        ? { data: null, error: { code: "PGRST116", message: "multiple rows" } }
-        : { data: rows[0] ?? null, error: null },
+      maybeSingle: async () => error
+        ? { data: null, error }
+        : rows.length > 1
+          ? { data: null, error: { code: "PGRST116", message: "multiple rows" } }
+          : { data: rows[0] ?? null, error: null },
       then(
-        resolve: (value: { data: Row[]; error: null }) => unknown,
+        resolve: (value: { data: Row[] | null; error: typeof error }) => unknown,
         reject?: (reason: unknown) => unknown,
       ) {
-        return Promise.resolve({ data: rows, error: null }).then(resolve, reject);
+        return Promise.resolve(error ? { data: null, error } : { data: rows, error: null })
+          .then(resolve, reject);
       },
     };
     return builder;
@@ -168,6 +193,15 @@ type ArrangeOptions = {
   user?: string | null;
   memberships?: Row[];
   invoices?: Row[];
+  /** La lectura de `invoices` con la sesión devuelve error. */
+  invoicesError?: boolean;
+  /** El `range` del transporte ignora el offset. */
+  rangeRoto?: boolean;
+  /**
+   * Sesión híbrida: el usuario es además del equipo de T2 (`user_tenants`) y
+   * su RLS de equipo le deja ver la fila de T2 en `tenants`.
+   */
+  equipoDeT2?: boolean;
 };
 
 function arrange(options: ArrangeOptions = {}) {
@@ -192,7 +226,12 @@ function arrange(options: ArrangeOptions = {}) {
     },
     from: transport(
       "sesion",
-      { client_users: memberships, invoices: options.invoices ?? INVOICES },
+      {
+        client_users: memberships,
+        invoices: options.invoices ?? INVOICES,
+        user_tenants: [{ user_id: USER, tenant_id: T2 }],
+        tenants: TENANTS,
+      },
       ops,
       (table, rows) => {
         if (table === "client_users") return rows.filter((row) => row.auth_user_id === uid);
@@ -202,8 +241,14 @@ function arrange(options: ArrangeOptions = {}) {
             row.deleted_at === null && row.status !== "borrador" &&
             row.client_markbox != null && row.client_markbox === mark);
         }
+        if (options.equipoDeT2 && table === "user_tenants") return rows;
+        if (options.equipoDeT2 && table === "tenants") return rows.filter((row) => row.id === T2);
         // Un cliente Portal puro no ve user_tenants, tenants ni datos de empresa.
         return [];
+      },
+      {
+        failing: options.invoicesError ? "invoices" : undefined,
+        rangeRoto: options.rangeRoto,
       },
     ),
   } as unknown as SupabaseClient;
@@ -256,7 +301,11 @@ describe("SDD-0462 · lectores de facturas del Portal", () => {
     await listMyInvoices(db);
     await getMyInvoice(db, "F-T1-0001");
     const reads = ops.filter((op) => op.target === "invoices");
-    expect(reads).toHaveLength(2);
+    // SDD-0556: 3 lecturas, no 2. La lista pagina con `fetchAllPaged`, que sólo
+    // da por terminada la lectura al recibir una página VACÍA (lib/db/paginate):
+    // una página con la factura + la página vacía + el detalle. Cada lectura,
+    // la vacía incluida, lleva los mismos filtros; no es una prueba más floja.
+    expect(reads).toHaveLength(3);
     for (const read of reads) {
       expect(read.filters).toEqual(expect.arrayContaining([
         ["eq", "tenant_id", T1],
@@ -385,5 +434,166 @@ describe("SDD-0462 · estado de cuenta en PDF", () => {
     expect(input.markbox).toBe(MARK);
     expect(input.ledger.totalCargo).toBe(100);
     expect(input.ledger.moves.map((move) => move.concept)).toEqual(["Factura F-T1-0001"]);
+  });
+});
+
+/** 150 facturas propias de T1 (más que el viejo tope de 100) y una de T2. */
+function muchas(): Row[] {
+  const propias = Array.from({ length: 150 }, (_, i) =>
+    invoice(T1, `F-T1-${String(i + 1).padStart(4, "0")}`, {
+      total_amount: i + 1,
+      base_amount: i + 1,
+    }));
+  return [...propias, invoice(T2, "F-T2-0009", { base_amount: 777, total_amount: 777 })];
+}
+
+describe("SDD-0556 · lectura completa de las facturas del Portal", () => {
+  it("lee las 150 facturas propias, sin el tope de 100, y ninguna de T2", async () => {
+    const { db } = arrange({ invoices: muchas() });
+    const rows = await listMyInvoices(db);
+    expect(rows).toHaveLength(150);
+    expect(rows.some((row) => row.code.startsWith("F-T2"))).toBe(false);
+    const kpis = await getDashboardKpis(db, new Date("2026-09-13T00:00:00Z"));
+    expect(kpis.invoicedTotal).toBe((150 * 151) / 2);
+  });
+
+  it("cada página lleva los filtros del principal y un orden estable que termina en id", async () => {
+    const { db, ops } = arrange();
+    await listMyInvoices(db);
+    const paginas = ops.filter((op) => op.target === "invoices");
+    expect(paginas).toHaveLength(2); // la de datos y la vacía que cierra la lectura
+    for (const pagina of paginas) {
+      expect(pagina.filters).toEqual(expect.arrayContaining([
+        ["eq", "tenant_id", T1],
+        ["eq", "client_markbox", MARK],
+        ["neq", "status", "borrador"],
+        ["is", "deleted_at", null],
+      ]));
+      const orden = pagina.filters.filter(([kind]) => kind === "order");
+      expect(orden.at(-1)).toEqual(["order", "id", true]);
+    }
+  });
+
+  it("si la base no responde, rechaza con un error sin el detalle de la base", async () => {
+    const { db } = arrange({ invoicesError: true });
+    const error = await listMyInvoices(db).then(
+      () => null,
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(PortalInvoicesUnavailableError);
+    expect((error as Error).message).toBe("PORTAL_FACTURAS_NO_DISPONIBLES");
+    expect((error as Error).message).not.toContain(PRIVATE);
+    expect((error as InstanceType<typeof PortalInvoicesUnavailableError>).motivo).toBe("lectura");
+  });
+
+  it("si la lectura no termina (el orden no avanza), rechaza por incompleta", async () => {
+    const { db } = arrange({ rangeRoto: true });
+    await expect(listMyInvoices(db)).rejects.toMatchObject({
+      name: "PortalInvoicesUnavailableError",
+      motivo: "incompleta",
+    });
+  });
+
+  it("una anulada que nunca se emitió queda fuera, como un borrador; la emitida se queda", async () => {
+    const { db } = arrange({
+      invoices: [
+        invoice(T1, "F-T1-0001"),
+        invoice(T1, "F-T1-ANULADA-SIN-EMITIR", { status: "anulada", issued_at: null }),
+        invoice(T1, "F-T1-ANULADA", { status: "anulada" }),
+      ],
+    });
+    expect((await listMyInvoices(db)).map((row) => row.code)).toEqual([
+      "F-T1-0001",
+      "F-T1-ANULADA",
+    ]);
+    expect(await getMyInvoice(db, "F-T1-ANULADA-SIN-EMITIR")).toBeNull();
+    expect(await getMyInvoice(db, "F-T1-ANULADA")).toMatchObject({ status: "anulada" });
+  });
+});
+
+describe("SDD-0556 · estado de cuenta en PDF: principal único, emisor del tenant y fallas visibles", () => {
+  it("resuelve el principal antes de leer facturas, y construye el admin sólo después", async () => {
+    const { ops } = arrange();
+    const response = await estadoDeCuentaPdf();
+    expect(response.status).toBe(200);
+    const targets = ops.map((op) => op.target);
+    expect(targets.indexOf("client_users")).toBeGreaterThanOrEqual(0);
+    expect(targets.indexOf("client_users")).toBeLessThan(targets.indexOf("invoices"));
+    const primeraAdmin = ops.findIndex((op) => op.client === "admin");
+    expect(primeraAdmin).toBeGreaterThan(targets.lastIndexOf("invoices"));
+    expect(state.adminBuilds).toBe(1);
+    // Una sola resolución del principal (antes eran dos: getPortalClient + listMyInvoices).
+    expect(ops.filter((op) => op.target === "client_users")).toHaveLength(1);
+  });
+
+  it("el emisor sale del tenant del principal, leído con admin y acotado a T1", async () => {
+    const { ops } = arrange();
+    await estadoDeCuentaPdf();
+    const [props] = state.rendered;
+    expect(props.emisor).toMatchObject({ tradeName: "Empresa sintética T1" });
+    const adminReads = ops.filter((op) => op.client === "admin");
+    expect(adminReads.map((op) => op.target).sort()).toEqual([
+      "company_bank_accounts",
+      "company_offices",
+      "tenants",
+    ]);
+    for (const read of adminReads) {
+      expect(read.filters).toContainEqual(["eq", read.target === "tenants" ? "id" : "tenant_id", T1]);
+    }
+  });
+
+  it("🔴 hoy NO pasa razón social ni RIF: la excepción de marca cubre sólo la factura (SDD-0297)", async () => {
+    // Si Sam extiende la excepción al estado de cuenta, este caso cambia junto
+    // con la ruta. Mientras tanto, el papel no imprime la identidad fiscal.
+    arrange();
+    await estadoDeCuentaPdf();
+    const emisor = state.rendered[0].emisor as Record<string, unknown>;
+    expect(emisor).not.toHaveProperty("legalName");
+    expect(emisor).not.toHaveProperty("rif");
+  });
+
+  it("en una sesión híbrida (equipo de T2 + cliente de T1) el emisor es T1, no el tenant de equipo", async () => {
+    arrange({ equipoDeT2: true });
+    const response = await estadoDeCuentaPdf();
+    expect(response.status).toBe(200);
+    expect(state.rendered[0].emisor).toMatchObject({ tradeName: "Empresa sintética T1" });
+  });
+
+  it.each(INVALID_PRINCIPALS)("sin principal válido (%s) responde 404 sin leer facturas ni construir admin", async (_label, options) => {
+    const { ops } = arrange(options);
+    const response = await estadoDeCuentaPdf();
+    expect(response.status).toBe(404);
+    expect(ops.some((op) => op.target === "invoices")).toBe(false);
+    expect(state.adminBuilds).toBe(0);
+    expect(state.rendered).toEqual([]);
+  });
+
+  it("si las facturas no se pueden leer, responde 503 privado y no imprime un papel vacío", async () => {
+    arrange({ invoicesError: true });
+    const response = await estadoDeCuentaPdf();
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(await response.text()).not.toContain(PRIVATE);
+    expect(state.rendered).toEqual([]);
+    expect(state.adminBuilds).toBe(0);
+  });
+
+  it("la anulada sale en el libro en 0 y su pago se informa aparte", async () => {
+    arrange({
+      invoices: [
+        invoice(T1, "F-T1-0001"),
+        invoice(T1, "F-T1-ANULADA", { status: "anulada", total_amount: 500, paid_amount: 200 }),
+      ],
+    });
+    await estadoDeCuentaPdf();
+    const ledger = (state.rendered[0].input as {
+      ledger: { totalCargo: number; balance: number; moves: Array<{ concept: string; amount: number }>; voidedPayments: unknown[] };
+    }).ledger;
+    expect(ledger.totalCargo).toBe(100);
+    expect(ledger.balance).toBe(100);
+    expect(ledger.moves.find((m) => m.concept === "Factura F-T1-ANULADA · anulada")?.amount).toBe(0);
+    expect(ledger.voidedPayments).toEqual([
+      { code: "F-T1-ANULADA", reference: null, amount: 200, currency: "USD" },
+    ]);
   });
 });

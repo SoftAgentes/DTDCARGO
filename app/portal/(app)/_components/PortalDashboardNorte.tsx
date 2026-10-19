@@ -83,6 +83,9 @@ export function PortalDashboardNorte({
     kpis.activeShipments === 1 ? "envío activo" : "envíos activos";
   const pendingWord =
     kpis.pendingInvoiceCount === 1 ? "factura pendiente" : "facturas pendientes";
+  // SDD-0556 · si las facturas no se pudieron leer, ningún KPI de facturas
+  // muestra un 0: un «al día» inventado es peor que decir que no se sabe.
+  const facturasOk = kpis.invoicesAvailable;
 
   return (
     <div>
@@ -97,8 +100,10 @@ export function PortalDashboardNorte({
           Hola {firstName}.
         </h1>
         <p className="lead mt-2">
-          {kpis.activeShipments} {activeWord} · {kpis.pendingInvoiceCount}{" "}
-          {pendingWord}
+          {kpis.activeShipments} {activeWord} ·{" "}
+          {facturasOk
+            ? `${kpis.pendingInvoiceCount} ${pendingWord}`
+            : "facturas no disponibles por ahora"}
         </p>
       </div>
 
@@ -128,25 +133,48 @@ export function PortalDashboardNorte({
           value={String(kpis.deliveredYtd)}
           sub={`${new Date().getFullYear()} acumulado`}
         />
-        <NorteKpi
-          tone="info"
-          icon={<DocIcon size={18} />}
-          label="Facturado"
-          value={formatInvoiceAmount(kpis.invoicedTotal, kpis.currency)}
-          sub={
-            kpis.mixedCurrencies
-              ? "moneda dominante"
-              : `${kpis.currency} acumulado`
-          }
-        />
-        <NorteKpi
-          tone={kpis.outstandingBalance > 0 ? "warning" : "success"}
-          icon={<PaymentIcon size={18} />}
-          label="Saldo pendiente"
-          value={formatInvoiceAmount(kpis.outstandingBalance, kpis.currency)}
-          sub={kpis.outstandingBalance > 0 ? "por pagar" : "al día"}
-          highlight={kpis.outstandingBalance > 0}
-        />
+        {facturasOk ? (
+          <>
+            <NorteKpi
+              tone="info"
+              icon={<DocIcon size={18} />}
+              label="Facturado"
+              value={formatInvoiceAmount(kpis.invoicedTotal, kpis.currency)}
+              sub={
+                kpis.mixedCurrencies
+                  ? "moneda dominante"
+                  : `${kpis.currency} acumulado`
+              }
+            />
+            <NorteKpi
+              tone={kpis.outstandingBalance > 0 ? "warning" : "success"}
+              icon={<PaymentIcon size={18} />}
+              label="Saldo pendiente"
+              value={formatInvoiceAmount(kpis.outstandingBalance, kpis.currency)}
+              sub={kpis.outstandingBalance > 0 ? "por pagar" : "al día"}
+              highlight={kpis.outstandingBalance > 0}
+            />
+          </>
+        ) : (
+          <>
+            <NorteKpi
+              tone="info"
+              icon={<DocIcon size={18} />}
+              label="Facturado"
+              value="No disponible"
+              sub="intenta más tarde"
+              unavailable
+            />
+            <NorteKpi
+              tone="info"
+              icon={<PaymentIcon size={18} />}
+              label="Saldo pendiente"
+              value="No disponible"
+              sub="intenta más tarde"
+              unavailable
+            />
+          </>
+        )}
       </div>
 
       {/* ── Dos columnas: preview envíos + (saldo · WeChat · actividad) ── */}
@@ -208,7 +236,7 @@ export function PortalDashboardNorte({
               serverDaysToCutoff={sailingDaysToCutoff}
             />
           ) : null}
-          {kpis.outstandingBalance > 0 ? <SaldoCard kpis={kpis} /> : null}
+          {facturasOk && kpis.outstandingBalance > 0 ? <SaldoCard kpis={kpis} /> : null}
           {advisorCard}
           {/* El "texto para WeChat" (ChinaSupplierClip) vivía acá; se movió a
               `/portal/proveedores` para quedar junto a los datos de la web de
@@ -415,6 +443,7 @@ function NorteKpi({
   value,
   sub,
   highlight = false,
+  unavailable = false,
 }: {
   tone: KpiTone;
   icon: ReactNode;
@@ -422,6 +451,11 @@ function NorteKpi({
   value: string;
   sub: string;
   highlight?: boolean;
+  /**
+   * SDD-0556 · el dato no se pudo leer. El texto va más chico y en gris para
+   * que «No disponible» quepa en la tarjeta móvil y no se lea como una cifra.
+   */
+  unavailable?: boolean;
 }) {
   const color = TONE_COLOR[tone];
   return (
@@ -440,16 +474,22 @@ function NorteKpi({
           {icon}
         </span>
       </div>
-      <div
-        className="mt-3 text-[26px] leading-none text-ink"
-        style={{
-          fontFamily: "var(--font-archivo-black)",
-          letterSpacing: "-0.01em",
-          color: highlight ? color : undefined,
-        }}
-      >
-        {value}
-      </div>
+      {unavailable ? (
+        <div className="mt-3 text-[16px] leading-tight font-bold text-grey-700">
+          {value}
+        </div>
+      ) : (
+        <div
+          className="mt-3 text-[26px] leading-none text-ink"
+          style={{
+            fontFamily: "var(--font-archivo-black)",
+            letterSpacing: "-0.01em",
+            color: highlight ? color : undefined,
+          }}
+        >
+          {value}
+        </div>
+      )}
       <div className="mt-1.5 text-[11.5px] text-grey-500">{sub}</div>
     </div>
   );
