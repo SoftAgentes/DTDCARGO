@@ -384,8 +384,9 @@ describe("SDD-0562 · «Por contabilizar» y la radiografía cuentan igual los n
     // no encuentra la cuenta. La radiografía ve la 1.1.2 sin movimiento y facturas abiertas: gana el
     // mayor vacío (decisión 6). Ninguna de las dos cuenta a H en la fila 91. La pantalla no cambia
     // el código de una cuenta (`updateAccount`): el escenario lo hace con un `update` directo, que
-    // la base acepta porque `accounts` tiene grant de update para `authenticated`. Por la pantalla,
-    // la 1.1.2 se puede eliminar mientras no tenga movimientos (`deleteAccount`).
+    // la base acepta porque `accounts` tiene grant de update para `authenticated`. Tampoco hay una
+    // pantalla que la elimine: ninguna llama hoy a `deleteAccount` (SDD-0565), así que un borrado
+    // solo llega con un `delete` directo.
     const h = tenants.find((t) => t.letra === "H")!;
     const r = await escenario(h, `update public.accounts set code = '9.1.2' where tenant_id = '${h.id}' and code = '1.1.2';`);
     expect(r.cuadre.subdiario.clientes).toMatchObject({ estado: "sin_cuenta", mayorUsd: null, diferenciaUsd: null });

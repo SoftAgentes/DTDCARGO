@@ -55,6 +55,7 @@ Hoy es posible crearla: `validateAccountInput` (`lib/studio/account-types.ts`) n
 | `lib/studio/__tests__/account-types.test.ts` | pruebas puras; las llamadas viejas pasan el plan |
 | `lib/studio/__tests__/contabilidad-qbo.test.ts` | las dos llamadas pasan el plan |
 | `app/studio/(app)/contabilidad/__tests__/plan-de-cuentas-sin-huerfanas.test.ts` | nueva: la propiedad, por las acciones |
+| `scripts/__tests__/subdiario-radiografia-paridad.test.ts`, `docs/specs/0563-subdiario-sin-conversion-y-borradores/spec.md` y `.agents/handoffs/0563-subdiario-sin-conversion-y-borradores.md` | solo texto: decían que «por la pantalla» se podía eliminar la 1.1.2, y hoy ninguna pantalla llama a `deleteAccount` (decisión del Director: va en esta PR, después de que la #288 entró a `main`) |
 | `docs/specs/0565-cuenta-padre-obligatoria/spec.md` | esta spec |
 | `docs/specs/README.md` | índice regenerado |
 | `.agents/handoffs/0565-cuenta-padre-obligatoria.md` | handoff |

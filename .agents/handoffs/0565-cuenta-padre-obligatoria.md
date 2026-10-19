@@ -53,8 +53,7 @@ La spec 0565 y el índice. No hay cambios de esquema, RBAC ni pantallas. Graphif
 ## PENDIENTES DE ESTA TAREA
 
 1. Integración por el Director. No lleva migración.
-2. Si la #288 entra antes, traer `main` y hacer la corrección del punto 3 en el mismo commit.
-3. Cuando la #288 entre a `main`, traer `main` a esta rama y corregir la frase «por la pantalla, la 1.1.2 se puede eliminar mientras no tenga movimientos (`deleteAccount`)» en la prueba de paridad, la spec y el handoff de la 0563, porque hoy ninguna pantalla llama a `deleteAccount`. Va en la #291, por decisión del Director: no se empuja a la #288.
+2. **Hecho:** la #288 entró a `main` (`76021662`). `72a266a6` trae `main` y la corrección del texto va en el commit siguiente: la prueba de paridad, la spec y el handoff de la 0563 ya no dicen que «por la pantalla» se puede eliminar la 1.1.2. Es solo texto; con `main` también llegó el tope lento de la guarda de Git que hizo falta en el `verify`.
 
 ## FUERA DE ALCANCE DETECTADO (para el Director)
 
