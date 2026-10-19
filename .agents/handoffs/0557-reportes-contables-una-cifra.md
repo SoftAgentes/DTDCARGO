@@ -8,7 +8,7 @@
 | Rama | `codex/sdd-0557-reportes-una-cifra`, desde `origin/main` `3f3a52cc` (merge de la #279); `origin/main` `6c3f0a9f` mergeado en `da7f09f0` y `origin/main` `7fba5711` mergeado en `4770174b` |
 | SDD | [0557](../../docs/specs/0557-reportes-contables-una-cifra/spec.md), `in-progress`. La reserva entró por cherry-pick (`3030cd03`) |
 | Estado | la rama está publicada como la PR #283 con la cabeza `0b73e864`. Encima, las decisiones 6 y 7 del Director aplicadas (M1 a M3, `correcciones-0557-c.md`), en commits locales **sin push** |
-| Permisos | commits selectivos en la rama propia, sin push. No incluye producción ni base de datos. `pnpm verify` necesita turno del Director |
+| Permisos | Sam autorizó la fase 1 completa: commits selectivos, push de la rama propia y PR en borrador (#283), sin fusionar. No incluye producción ni base de datos. El `pnpm verify` corrió con el turno que dio el Director |
 
 ## OBJETIVO ORIGINAL
 
@@ -138,6 +138,7 @@ Todo sobre este worktree, en la rama de la tarea.
 
 | Comprobación | Alcance | Resultado |
 |---|---|---|
+| `corepack pnpm verify` | completo, sobre `34b3bc99`, con el turno que dio el Director; de 2026-10-19 08:52:20Z a 09:13:11Z; Docker encendido; antes de lanzarlo, sin corridas pesadas y CPU al 12 % | exit 0, **16 de 17 pasos medidos y en verde**: `harness`, `lint`, `rsc-boundary`, `typecheck`, `edge-functions`, `test` (`Test Files  831 passed | 1 skipped (832)`, `Tests  11758 passed | 1 skipped (11759)`), `docs:check`, `numbering`, `feature-constants`, `components:check`, `governance:check`, `pending-migration-symbols` (0 rojo, 0 amarillo), `sql-tests`, `schema-rebuild`, `e2e` (177 passed, 20 skipped, 1 flaky; el aviso conocido del worker de WebKit que no cierra en Windows, sin fallos) y `build`. **NO MEDIDO: `migrations-applied`**, porque el worktree no tiene `.env.local` (a propósito). La prueba inestable es `e2e/auth.spec.ts:81` (`page.goto: net::ERR_ABORTED` en `/acceso/<token>`), la misma de las #277 y #280, ajena al diff. El registro quedó guardado en el scratchpad (`verify-0557.log`) |
 | Sexta vuelta (revisor de M1/M2: «listo con ajustes menores») · vitest de las carpetas de la tarea, los 7 consumidores del doble de listados y los contratos | accounting, contabilidad, reportes, la ruta, reports, dirección, dashboard, fiscal, `rbac-api-guard`, `studio-api-auth-guard`, `invoice-read-boundary`, `spec-migration-refs` | PASÓ: `Test Files  43 passed (43)`, `Tests  661 passed (661)`. Ajustes: el doble de listados gana `proyectar` (devuelve solo las columnas del `select`, a pedido) y la prueba de la decisión 7 corre con él; en el subdiario, un asiento solo anulado o de referido no es vivo (da la diferencia, como en Reportes); el tono de aviso de «Sin movimiento en el mayor» se prueba por el triángulo que se pinta; la nota dice «no llegaron al mayor» (un asiento vivo sin líneas también deja la cuenta en 0, FUERA DE ALCANCE #12) |
 | Sexta vuelta · mutantes (`mutantes-0557-m.mjs`; log `mutantes-0557-m.log`) | Q1 (`invoice_id` fuera del select), Q2 (asiento anulado contado como vivo en el subdiario), Q3 (el aviso pasa a neutral) y Q4 (la nota vieja): los tres primeros son los que el revisor dejó vivos | PASÓ: «Todos los mutantes murieron.», 4 de 4 con exit 1 y la línea `Tests … failed` |
 | Sexta vuelta · `typecheck` y eslint `--max-warnings=0` (5 archivos) | repo y archivos tocados | PASÓ (exit 0) |
@@ -154,7 +155,7 @@ Todo sobre este worktree, en la rama de la tarea.
 | `node scripts/migrations-lock.mjs verificar` y `node --test scripts/tests/migrations-lock.node.mjs` | candado de la SDD-0561 | PASÓ: `migrations-lock: 483 selladas (la mayor: 0491) · 2 espera(s) sin sellar (0422_payment_report_command_boundary, 0423_payment_report_historical_identity) · 0 nueva(s) sin sellar · historia comparada contra 7fba57119535`, exit 0; `ℹ pass 22`, `ℹ fail 0` |
 | `/ui-check` rápido | la insignia y la nota nuevas de Por contabilizar | PASÓ, sin hallazgos (abajo, «/ui-check, quinta vuelta») |
 | Comprobación en el navegador | — | NO EJECUTADA: sin `.env.local` en el worktree, a propósito |
-| `pnpm verify` | — | NO EJECUTADO: necesita turno del Director |
+| `pnpm verify` | — | (en esa vuelta) NO EJECUTADO; ver la fila del verify completo sobre `34b3bc99` arriba |
 
 **Tercera vuelta (L1 a L10, después del segundo merge de main), sobre el código de `afe657c3`.** Las de las pasadas anteriores quedan en el historial de este archivo (`2e901f98` y `d0003efa`).
 
@@ -179,7 +180,7 @@ Todo sobre este worktree, en la rama de la tarea.
 | `git grep -n "monthRevenue +=" -- lib app` | criterio 1 | sin resultados (exit 1) |
 | `/ui-check` | textos y tonos nuevos | PASÓ con hallazgos menores (abajo, «/ui-check, tercera vuelta») |
 | Comprobación en el navegador | — | NO EJECUTADA: el worktree no tiene `.env.local` (a propósito) y las pantallas necesitan sesión y base. Las pruebas montan los componentes en jsdom |
-| `pnpm verify` | — | NO EJECUTADO: necesita turno del Director |
+| `pnpm verify` | — | (en esa vuelta) NO EJECUTADO; ver la fila del verify completo sobre `34b3bc99` arriba |
 
 ### Mutantes
 
@@ -427,11 +428,10 @@ Fuera de alcance de esta revisión (abogado): la base de licitud de tratar los n
 
 ## PENDIENTES DE ESTA TAREA
 
-1. `pnpm verify` con turno del Director.
-2. Push de los commits de esta vuelta a la PR #283 cuando lo autorice el encargo. No lleva migración. Si `main` avanza otra vez, mergear y regenerar el índice (`node scripts/build-docs-index.mjs`), y volver a correr `node scripts/migrations-lock.mjs verificar`.
+1. Integración por el Director (PR #283). No lleva migración. Si `main` avanza otra vez, mergear, regenerar el índice (`node scripts/build-docs-index.mjs`) y volver a correr `node scripts/migrations-lock.mjs verificar`.
 3. Nota para Sam (va también en la PR): Dirección y el Dashboard ahora muestran el facturado aunque el mayor esté en 0. Antes Dirección mostraba 0 (el mayor está vacío) y el Dashboard el total con IVA y sin convertir moneda. Contabilidad › Reportes pasa de acumulado a período (por defecto, el mes en curso). Mientras exista B3, la diferencia con el mayor no va a ser cero: es la señal, no un error de la pantalla. **Hoy (4.5 sin asientos de factura) el control dice cuánto le falta al mayor, también con facturas en bolívares o yuanes.** Cuando 4.5 tenga asientos de factura y alguna factura del período en bolívares o yuanes tenga el suyo, dirá «no comparable» en vez de una diferencia: esas facturas se asientan por el nominal (B2). Una en bolívares o yuanes sin asiento no lo dispara: ya sale en «sin asiento». En Por contabilizar, con 1.1.2 (o 2.1.1) en cero y documentos abiertos, dice «Sin movimiento en el mayor» en vez de una diferencia. Un asiento manual a 4.5 ya no cuenta como diferencia: se ve en «otros ingresos del mayor» (en Dirección, «otros ingresos del libro»).
 4. Las preguntas abiertas de la spec (cifra oficial, B10, diario con anulados, anuladas entre períodos, manuales a 4.5) para Sam o la contadora. Las 6 y 7 ya las respondió el Director (revisables por Sam).
-5. Director: revisar los desvíos de la quinta vuelta, sobre todo el 3 (el mayor vacío tiene forma distinta en el control del ingreso y en el subdiario) y el 2 («con asiento vivo» = en el rango del control).
+5. Desvíos de la quinta vuelta: el Director aceptó el 3 (el control del ingreso dice cuánto falta asentar y el subdiario describe el estado; son dos vistas del mismo hecho). Queda a su revisión el 2 («con asiento vivo» = en el rango del control).
 
 ## FUERA DE ALCANCE DETECTADO
 
