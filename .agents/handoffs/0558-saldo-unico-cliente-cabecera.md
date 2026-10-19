@@ -8,7 +8,7 @@
 | Rama | `codex/sdd-0558-saldo-unico-cabecera`, desde `origin/main` `bb6bb3e4`; con la reserva cherry-pickeada (`a1eae79b`) y `origin/main` `4728a8ca` (la #284, SDD-0559) fusionado sin conflictos (`b11ef862`) |
 | SDD | [0558](../../docs/specs/0558-saldo-unico-cliente-cabecera/spec.md), `in-progress` |
 | Estado | implementada y validada en lo liviano; **sin push**. La PR va en borrador y **no se fusiona sin aplicar la 0492** (MIGRATE-FIRST) |
-| Permisos | Sam autorizó la fase 1 completa. Este encargo no incluye push, producción ni base de datos: la 0492 la aplica el Director con OK nominal de Sam. `pnpm verify` y los `.test.sql` con Docker necesitan turno del Director |
+| Permisos | Sam autorizó la fase 1 completa: commits selectivos, push de la rama propia y PR en borrador (#286), sin fusionar. No incluye producción ni base de datos: la 0492 la aplica el Director con el OK nominal de Sam, que él le pide directamente nombrando `0492_client_outstanding`. El 2026-10-19 Sam escribió además, textual: «Decirle al director que él es quien puede hacer el merge a main, que yo lo apruebo.»; el Director lo registró a nombre de Sam y lo aplica después del apply y del smoke |
 
 ## OBJETIVO ORIGINAL
 
@@ -94,7 +94,7 @@ Todo en este worktree y esta rama. Sin `pnpm verify`, sin vitest sin filtro y si
 | `corepack pnpm components:check` | CMP-01 | PASÓ: `CMP-01 válido: 5 fuente(s), agregado reproducible y cero rutas rotas` |
 | `git diff --check bb6bb3e4` | diff de la tarea | PASÓ |
 | Criterio 1 de la spec | `git grep -n "total_amount" -- lib/studio/kommo-contact-status.ts lib/studio/conversaciones/conversations-queries.ts` | PASÓ: sin coincidencias (exit 1 de grep) |
-| `corepack pnpm verify` | completo | **NO EJECUTADO**: necesita turno del Director |
+| `corepack pnpm verify` | completo, sobre `81c66d90`, con el turno que dio el Director; de 2026-10-19 13:36:49Z a 14:00:33Z; Docker encendido; sin otra corrida en paralelo (la Worker solo editaba la 0562) | exit 0, **16 de 17 pasos medidos y en verde**: `harness`, `lint`, `rsc-boundary`, `typecheck`, `edge-functions`, `test` (`Test Files  840 passed | 1 skipped (841)`, `Tests  11947 passed | 1 skipped (11948)`), `docs:check`, `numbering`, `feature-constants`, `components:check`, `governance:check`, `pending-migration-symbols` (`0 ROJO · 1 AMARILLO declarado(s)`: la 0492, con su evidencia en `client-queries.ts:832`, `conversations-queries.ts:365` y `kommo-contact-status.ts:250`), `sql-tests` (incluye `✓ 0492_client_outstanding.test.sql` en PostgreSQL con Docker), `schema-rebuild`, `e2e` (176 passed, 20 skipped, 2 flaky) y `build`. **NO MEDIDO: `migrations-applied`** (sin `.env.local`, a propósito). Las 2 inestables son ajenas al diff y pasaron al reintento: `e2e/auth.spec.ts:81` (la misma de siempre) y `e2e/smoke.spec.ts:97` (redirecciones de la calculadora pública). El registro quedó guardado (`verify-0558.log`) |
 | `.test.sql` con Docker (`sql-tests`) | contrato 0492 en PostgreSQL 17 | **NO EJECUTADO**: Docker es corrida pesada; va en el verify |
 | `migrations-applied` | ledger de producción | **NO DISPONIBLE** en el worktree (sin `.env.local`, a propósito) |
 | Navegador | ficha, panel y estado de cuenta | **NO EJECUTADO**: sin la 0492 en una base de prueba la cabecera solo muestra el error. Va en el smoke posterior |
@@ -244,7 +244,7 @@ Si una huella difiere, la 0492 aborta sola sin cambiar nada; aun así conviene n
 ## PENDIENTES DE ESTA TAREA
 
 1. Push de la rama y PR en **borrador** (no autorizados en este encargo).
-2. `pnpm verify` con turno del Director (incluye el contrato 0492 en PostgreSQL 17 con Docker y `schema-rebuild`).
+2. Hecho: `pnpm verify` con turno del Director, con el contrato 0492 en PostgreSQL con Docker y `schema-rebuild` en verde (ver VALIDACIÓN).
 3. OK nominal de Sam y aplicación de la 0492 por el Director (ver arriba), smoke, y recién entonces la fusión.
 4. Al aplicar: `retirar-espera.mjs`, y actualizar la prueba «la 0492 espera en pendingBelowCutoff» de `client-outstanding.migration.test.ts`, que la afirma.
 
