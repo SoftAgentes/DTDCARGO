@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 550 specs)
+### Índice de specs (generado · 551 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -588,6 +588,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0561 | Candado de las migraciones aplicadas: una migración en produc… | in-progress | interno |
 | 0562 | «Por contabilizar» cuenta los recibos como la radiografía | in-progress | interno |
 | 0563 | La factura en bolívares o yuanes no se convierte para cuadrar… | in-progress | interno |
+| 0564 | Instalación piloto de Paperclip y Hermes en un VPS aislado | approved | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
