@@ -3024,6 +3024,15 @@
         "fecha": "2026-10-19",
         "forma": "exacta"
       }
+    },
+    "0492_client_outstanding": {
+      "sha256": "5a72a4cde7b8f3e01b741d788051e5b8bd5b43506d6a90c199d6a328d7c07c8b",
+      "md5": "4ca60abd9d6e2d5ca37b8cea31bd58a9",
+      "bytes": 21978,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
     }
   }
 }

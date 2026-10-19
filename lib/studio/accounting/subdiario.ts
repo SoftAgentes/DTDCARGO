@@ -6,13 +6,19 @@
  *
  *  - Clientes: Σ (total − pagado), con signo, de las facturas emitidas,
  *    parciales, pagadas o vencidas (sin borradores ni anuladas) contra 1.1.2.
- *    Convierte con `invoiceUsdAmount`: VES sin tasa y CNY no suman.
+ *    Solo suman USD y USDT, como en la radiografía (SDD-0563): una VES no se
+ *    convierte con su tasa.
  *    Regla «no comparable» de la SDD-0559 (E1): hoy la factura se asienta al
  *    NOMINAL (B2) y el recibo convierte, así que con una factura no borrador
- *    en VES o CNY CON su asiento `invoice` vivo, o un recibo vivo en esas
- *    monedas con su asiento `receipt` vivo, la diferencia no significa nada y
- *    no se muestra. Una VES o CNY sin asiento no cuenta: ya sale en
- *    «sin asiento» (decisión 7 del Director, 2026-10-19, revisable por Sam).
+ *    en VES o CNY CON su asiento `invoice` vivo, o un recibo que toca 1.1.2
+ *    en esas monedas (SDD-0562), la diferencia no significa nada y no se
+ *    muestra. Enmienda de la decisión 7 (Director, 2026-10-19, revisable por
+ *    Sam; SDD-0563): una factura abierta con saldo en VES o CNY también la
+ *    vuelve «no comparable», con o sin asiento. Sin asiento le falta al mayor;
+ *    asentada, entra al nominal. Convertirla para decir «cuadra» mezclaría una
+ *    cifra calculada con un mayor que no la tiene. La misma factura sigue
+ *    contando en «sin asiento»: esa lista habla del documento y este estado,
+ *    de la cuenta.
  *  - Proveedores: Σ (total − pagado) de las CxP no anuladas contra 2.1.1, con
  *    la MISMA regla del asiento (`billAmountUsd`: cualquier moneda con tasa se
  *    convierte, sin tasa va al nominal). Así una CxP en yuanes con tasa no
@@ -34,8 +40,6 @@
  * el cliente admin: ese archivo no debe llegar al bundle del navegador.
  */
 
-import { invoiceUsdAmount } from "@/lib/studio/fidelizacion/types";
-import type { InvoiceCurrency } from "@/lib/studio/invoice-types";
 import { billAmountUsd } from "./bill-posting";
 import { ESTADOS_DE_INGRESO } from "./ingreso-periodo";
 import {
@@ -83,11 +87,8 @@ const num = (v: unknown) => {
 
 const esDeIngreso = (s: string) => (ESTADOS_DE_INGRESO as readonly string[]).includes(s);
 
-function convertibleCliente(currency: string, fx: unknown): boolean {
-  if (currency === "USD" || currency === "USDT") return true;
-  if (currency === "VES") return num(fx) > 0;
-  return false;
-}
+/** Lo que suma en el subdiario de clientes sin convertir: USD y USDT (SDD-0563). */
+const sumaEnUsd = (currency: string) => currency === "USD" || currency === "USDT";
 
 /** Otra moneda sin tasa: `billAmountUsd` la deja en su nominal. */
 function sinTasaProveedor(currency: string, fx: unknown): boolean {
@@ -134,19 +135,16 @@ export function cuadreSubdiario(e: EntradaSubdiario): SubdiarioContraMayor {
     if (!abierta) continue;
     const saldo = round2(num(f.total_amount) - num(f.paid_amount));
     if (saldo === 0) continue;
-    if (!convertibleCliente(f.currency, f.fx_rate)) {
+    if (!sumaEnUsd(f.currency)) {
       sinConvertir += 1;
       continue;
     }
     docsClientes += 1;
-    subClientes += invoiceUsdAmount({
-      currency: f.currency as InvoiceCurrency,
-      total_amount: saldo,
-      fx_rate: f.fx_rate == null ? null : num(f.fx_rate),
-    });
+    subClientes += saldo;
   }
   subClientes = round2(subClientes);
-  const noComparable = enOtraMoneda || e.recibosNoUsdConAsiento > 0;
+  // La abierta con saldo en otra moneda (`sinConvertir`) también: enmienda de la decisión 7.
+  const noComparable = enOtraMoneda || sinConvertir > 0 || e.recibosNoUsdConAsiento > 0;
   const clientes = estadoDe(subClientes, docsClientes + sinConvertir, e.mayorClientes, noComparable);
 
   // Proveedores: la regla del asiento.

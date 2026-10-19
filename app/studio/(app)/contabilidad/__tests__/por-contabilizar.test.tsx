@@ -97,8 +97,9 @@ describe("PorContabilizarTab", () => {
     const filaClientes = screen.getByRole("rowheader", { name: /Clientes/ }).closest("tr")!;
     expect(within(filaClientes).getByText("Sin movimiento en el mayor")).toBeInTheDocument();
     expect(within(filaClientes).queryByText("No comparable")).toBeNull();
-    // Saldo de documentos 1,000.00; mayor 0.00; diferencia «—».
-    expect(within(filaClientes).getByText("1,000.00")).toBeInTheDocument();
+    // La VES no suma (SDD-0563): saldo de documentos 0.00 y mayor 0.00; diferencia «—».
+    expect(within(filaClientes).getAllByText("0.00")).toHaveLength(2);
+    expect(within(filaClientes).queryByText("1,000.00")).toBeNull();
     expect(within(filaClientes).getByText("—")).toBeInTheDocument();
     // Es un aviso: el ícono que se pinta es el triángulo de aviso, no el check.
     expect(filaClientes.querySelector(CHECK_DE_EXITO)).toBeNull();
@@ -109,6 +110,7 @@ describe("PorContabilizarTab", () => {
     expect(
       screen.getByText(/Sin movimiento en el mayor \(cuenta 1\.1\.2\): las facturas abiertas no llegaron al mayor\./),
     ).toBeInTheDocument();
+    expect(screen.getByText(/1 factura con saldo no suma: está en bolívares o en yuanes\./)).toBeInTheDocument();
   });
 
   it("sin hallazgos: estado vacío honesto y sin anulados con asiento", () => {
