@@ -44,11 +44,15 @@ export default async function PortalShipmentsPage() {
   const principal = await getPortalClientPrincipal(supabase);
   if (!principal) return null;
   const { client } = principal;
+  // Compras, proveedores y adjuntos con el tenant y el Shipping Mark del
+  // principal (SDD-0554). Los ids de compra que salen de acá acotan además la
+  // lectura de packing lists con el admin client.
+  const scope = { markbox: client.markbox, tenantId: principal.tenantId };
 
   const [rawShipments, prealertas, suppliers] = await Promise.all([
     listMyShipments(supabase),
-    listPrealertas(supabase, { markbox: client.markbox }),
-    listSuppliers(supabase, { markbox: client.markbox }),
+    listPrealertas(supabase, scope),
+    listSuppliers(supabase, scope),
   ]);
 
   // SDD-0156 · Slice D: si la config del tenant oculta un hito (ej. "en aduana"),
@@ -81,7 +85,7 @@ export default async function PortalShipmentsPage() {
       prealertasVivas.map(async (p) => {
         const docs = await listPrealertaDocuments(supabase, {
           prealertaId: p.id,
-          markbox: client.markbox,
+          ...scope,
         });
         const has = (t: string) => docs.some((d) => d.doc_type === t);
         // Se devuelve el id aparte de la clave: la clave lleva el prefijo `p:`
