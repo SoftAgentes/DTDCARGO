@@ -41,6 +41,16 @@ import {
   listPostableAccounts,
 } from "@/lib/studio/account-queries";
 import {
+  mensajeDeMotivo,
+  textoAvisoCierre,
+  type AvisoCierre,
+  type ExcepcionDelCierre,
+  type ModoCierre,
+  type OperacionCierre,
+  type ResultadoDeAsiento,
+} from "@/lib/studio/accounting/cierre-excepciones";
+import { avisoDe, getEstadoCierre } from "@/lib/studio/accounting/cierre-queries";
+import {
   getAccountingSettings,
   isPeriodClosed,
 } from "@/lib/studio/accounting/period-queries";
@@ -58,6 +68,76 @@ async function resolveTenant(
     return { error: "No se pudo resolver el tenant del usuario." };
   }
   return { tenantId: link.tenant_id };
+}
+
+// ── Excepción al cierre (SDD-0566) ────────────────────────────
+
+/** Lo que la persona escribió para pedir la excepción. La superclave no se guarda ni se registra. */
+function excepcionDelFormulario(formData: FormData): ExcepcionDelCierre | null {
+  const motivo = String(formData.get("cierre_motivo") ?? "").trim();
+  if (!motivo) return null;
+  const clave = String(formData.get("cierre_superclave") ?? "");
+  return { superclave: clave || null, motivo };
+}
+
+/**
+ * El aviso del cierre, o null si no se puede leer el estado (por ejemplo, sin
+ * la 0493): entonces cada acción vuelve a su mensaje de antes y no ofrece la
+ * excepción.
+ */
+async function avisoDelCierre(supabase: Supa): Promise<AvisoCierre | null> {
+  try {
+    return avisoDe(await getEstadoCierre(supabase));
+  } catch (e) {
+    console.error("[cierre-contable] estado no disponible:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+/**
+ * La respuesta de una RPC de 0493, en palabras de la persona. Los mensajes de
+ * validación y permiso (22023, 42501) son textos nuestros; cualquier otro error
+ * de la base no se muestra (ERR-01).
+ */
+function resultadoDelCierre(
+  data: unknown,
+  error: { code?: string; message?: string } | null,
+  operacion: OperacionCierre,
+): { ok: true; entryCode?: string } | { ok: false; error: string } {
+  if (error) {
+    if ((error.code === "22023" || error.code === "42501") && error.message) {
+      return { ok: false, error: error.message };
+    }
+    console.error("[cierre-contable] rpc:", error.code, error.message);
+    return { ok: false, error: mensajeDeMotivo("", operacion) };
+  }
+  const d = (data ?? {}) as { ok?: boolean; motivo?: string; entry_code?: string };
+  if (d.ok === true) return { ok: true, entryCode: d.entry_code };
+  return { ok: false, error: mensajeDeMotivo(d.motivo ?? "", operacion) };
+}
+
+/** Asentar, anular o eliminar en período cerrado: pide la excepción o la usa. */
+async function enPeriodoCerrado(
+  supabase: Supa,
+  operacion: OperacionCierre,
+  rpc: "asentar_asiento_en_cierre" | "anular_asiento_en_cierre" | "eliminar_borrador_en_cierre",
+  id: string,
+  excepcion: ExcepcionDelCierre | undefined,
+  mensajeSinExcepcion: string,
+): Promise<ResultadoDeAsiento> {
+  const aviso = await avisoDelCierre(supabase);
+  if (!aviso) return { error: mensajeSinExcepcion };
+  const motivo = excepcion?.motivo?.trim() ?? "";
+  if (!excepcion || !motivo) return { error: textoAvisoCierre(aviso), cierre: aviso };
+  const { data, error } = await supabase.rpc(rpc, {
+    p_entry_id: id,
+    p_clave: excepcion.superclave || null,
+    p_motivo: motivo,
+  });
+  const r = resultadoDelCierre(data, error, operacion);
+  if (!r.ok) return { error: r.error, cierre: aviso };
+  revalidatePath("/studio/contabilidad");
+  return { ok: true };
 }
 
 // ── Asientos ──────────────────────────────────────────────────
@@ -105,11 +185,36 @@ export async function createJournalEntry(
 
   // Guard de período cerrado (SDD-0080): no crear asientos con fecha cerrada.
   // El trigger de DB es la defensa dura; esto da un mensaje claro antes.
+  // SDD-0566: con la excepción (superclave y motivo) se crea por la RPC.
   const settings = await getAccountingSettings(supabase);
   if (isPeriodClosed(settings.closing_date, input!.entry_date)) {
-    return {
-      error: `Período contable cerrado al ${settings.closing_date}: no puedes crear asientos con esa fecha o anteriores.`,
-    };
+    const aviso = await avisoDelCierre(supabase);
+    if (!aviso) {
+      return {
+        error: `Período contable cerrado al ${settings.closing_date}: no puedes crear asientos con esa fecha o anteriores.`,
+      };
+    }
+    const excepcion = excepcionDelFormulario(formData);
+    if (!excepcion) return { error: textoAvisoCierre(aviso), cierre: aviso };
+    const { data, error } = await supabase.rpc("crear_asiento_en_cierre", {
+      p_entrada: {
+        entry_date: input!.entry_date,
+        memo: input!.memo,
+        asentar: String(formData.get("post_on_create") ?? "") === "true",
+        lineas: input!.lines.map((l) => ({
+          account_id: l.account_id,
+          debit: l.debit,
+          credit: l.credit,
+          line_memo: l.line_memo,
+        })),
+      },
+      p_clave: excepcion.superclave,
+      p_motivo: excepcion.motivo,
+    });
+    const r = resultadoDelCierre(data, error, "crear");
+    if (!r.ok) return { error: r.error, cierre: aviso };
+    revalidatePath("/studio/contabilidad");
+    return { ok: true, createdCode: r.entryCode };
   }
 
   const { data: codeData, error: codeErr } = await supabase.rpc(
@@ -164,7 +269,8 @@ export async function createJournalEntry(
 
 export async function postEntry(
   id: string,
-): Promise<{ ok?: boolean; error?: string }> {
+  excepcion?: ExcepcionDelCierre,
+): Promise<ResultadoDeAsiento> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "accounting");
   if (denial) return { error: denial };
@@ -185,12 +291,11 @@ export async function postEntry(
     return { error: "Solo los borradores pueden asentarse." };
   }
 
-  // Guard de período cerrado (SDD-0080).
+  // Guard de período cerrado (SDD-0080). SDD-0566: con la excepción, por la RPC.
   const settings = await getAccountingSettings(supabase);
   if (isPeriodClosed(settings.closing_date, entry.entry_date)) {
-    return {
-      error: `Período contable cerrado al ${settings.closing_date}: no puedes asentar en período cerrado.`,
-    };
+    return await enPeriodoCerrado(supabase, "asentar", "asentar_asiento_en_cierre", id, excepcion,
+      `Período contable cerrado al ${settings.closing_date}: no puedes asentar en período cerrado.`);
   }
 
   // Revalidar balanceado contra las líneas persistidas.
@@ -226,7 +331,8 @@ export async function postEntry(
 export async function voidEntry(
   id: string,
   reasonRaw: string,
-): Promise<{ ok?: boolean; error?: string }> {
+  superclave?: string | null,
+): Promise<ResultadoDeAsiento> {
   const reasonResult = validateAuditReason(reasonRaw);
   if (!reasonResult.ok) return { error: reasonResult.error };
 
@@ -252,11 +358,13 @@ export async function voidEntry(
   }
 
   // Guard de período cerrado (SDD-0080): no anular asientos de período cerrado.
+  // SDD-0566: el motivo de la anulación es también el de la excepción; con la
+  // superclave (o en modo advertencia) se anula por la RPC.
   const settings = await getAccountingSettings(supabase);
   if (isPeriodClosed(settings.closing_date, entry.entry_date)) {
-    return {
-      error: `Período contable cerrado al ${settings.closing_date}: no puedes anular asientos de período cerrado.`,
-    };
+    const pedida = superclave === undefined ? undefined : { superclave, motivo: reasonResult.reason };
+    return await enPeriodoCerrado(supabase, "anular", "anular_asiento_en_cierre", id, pedida,
+      `Período contable cerrado al ${settings.closing_date}: no puedes anular asientos de período cerrado.`);
   }
 
   const { data: changed, error } = await supabase.rpc(
@@ -275,7 +383,8 @@ export async function voidEntry(
 
 export async function softDeleteEntry(
   id: string,
-): Promise<{ ok?: boolean; error?: string }> {
+  excepcion?: ExcepcionDelCierre,
+): Promise<ResultadoDeAsiento> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "accounting");
   if (denial) return { error: denial };
@@ -290,12 +399,11 @@ export async function softDeleteEntry(
     return { error: "Solo los borradores pueden eliminarse." };
   }
 
-  // Guard de período cerrado (SDD-0080).
+  // Guard de período cerrado (SDD-0080). SDD-0566: con la excepción, por la RPC.
   const settings = await getAccountingSettings(supabase);
   if (isPeriodClosed(settings.closing_date, entry.entry_date)) {
-    return {
-      error: `Período contable cerrado al ${settings.closing_date}: no puedes eliminar asientos de período cerrado.`,
-    };
+    return await enPeriodoCerrado(supabase, "eliminar", "eliminar_borrador_en_cierre", id, excepcion,
+      `Período contable cerrado al ${settings.closing_date}: no puedes eliminar asientos de período cerrado.`);
   }
 
   const { error } = await supabase
@@ -350,6 +458,97 @@ export async function setClosingDateAction(
     return { error: `No se pudo guardar el cierre: ${error.message}` };
   }
 
+  revalidatePath("/studio/contabilidad");
+  return { ok: true };
+}
+
+// ── Modo del cierre y superclave (SDD-0566, admin-only) ───────
+
+/** Cambia cómo se toca un período cerrado. Queda en el historial (trigger de 0493). */
+export async function setClosingModeAction(
+  modo: ModoCierre,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (modo !== "superclave" && modo !== "advertencia") {
+    return { error: "Elige un modo del cierre." };
+  }
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase, { denied: CLOSING_ADMIN_MSG });
+  if (!gate.ok) return { error: gate.denied };
+
+  const { error } = await supabase.from("accounting_settings").upsert(
+    { tenant_id: gate.tenantId, closing_mode: modo, updated_by: gate.userId },
+    { onConflict: "tenant_id" },
+  );
+  if (error) {
+    console.error("[cierre-contable] modo:", error.code, error.message);
+    return { error: "No se pudo guardar el modo del cierre. Intenta de nuevo." };
+  }
+  revalidatePath("/studio/contabilidad");
+  return { ok: true };
+}
+
+const SUPERCLAVE_MOTIVO: Record<string, string> = {
+  incorrecta: "La superclave actual no es correcta. Después de 5 intentos fallidos se bloquea 15 minutos.",
+  bloqueada: "La superclave está bloqueada por intentos fallidos. Intenta de nuevo en 15 minutos o restablécela.",
+};
+
+/** Error de una RPC de la superclave: nuestros textos (22023, 42501) o uno genérico. Nunca el valor. */
+function errorDeSuperclave(error: { code?: string; message?: string }): string {
+  if ((error.code === "22023" || error.code === "42501") && error.message) return error.message;
+  console.error("[cierre-contable] superclave:", error.code);
+  return "No se pudo guardar la superclave. Intenta de nuevo.";
+}
+
+function validarNuevaSuperclave(nueva: string, confirmacion: string): string | null {
+  // bcrypt usa solo los primeros 72 bytes (como la 0493): más larga, dos claves serían la misma.
+  if (nueva.length < 8 || nueva.length > 64 || Buffer.byteLength(nueva, "utf8") > 72) {
+    return "La superclave debe tener entre 8 y 64 caracteres (con muchas tildes o eñes, menos).";
+  }
+  if (nueva !== confirmacion) return "La confirmación no coincide con la superclave nueva.";
+  return null;
+}
+
+/** Define la superclave (si no hay) o la cambia dando la actual. Se guarda solo como hash. */
+export async function fijarSuperclaveAction(
+  actual: string,
+  nueva: string,
+  confirmacion: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const invalida = validarNuevaSuperclave(nueva, confirmacion);
+  if (invalida) return { error: invalida };
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase, { denied: CLOSING_ADMIN_MSG });
+  if (!gate.ok) return { error: gate.denied };
+
+  const { data, error } = await supabase.rpc("fijar_superclave_de_cierre", {
+    p_actual: actual || null,
+    p_nueva: nueva,
+  });
+  if (error) return { error: errorDeSuperclave(error) };
+  const d = (data ?? {}) as { ok?: boolean; motivo?: string };
+  if (d.ok !== true) return { error: SUPERCLAVE_MOTIVO[d.motivo ?? ""] ?? "No se pudo guardar la superclave." };
+  revalidatePath("/studio/contabilidad");
+  return { ok: true };
+}
+
+/** Restablece la superclave sin la actual (olvido), con motivo. Queda en el historial. */
+export async function restablecerSuperclaveAction(
+  nueva: string,
+  confirmacion: string,
+  motivo: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const invalida = validarNuevaSuperclave(nueva, confirmacion);
+  if (invalida) return { error: invalida };
+  if (motivo.trim().length < 10) return { error: "Indica el motivo del restablecimiento (al menos 10 caracteres)." };
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase, { denied: CLOSING_ADMIN_MSG });
+  if (!gate.ok) return { error: gate.denied };
+
+  const { error } = await supabase.rpc("restablecer_superclave_de_cierre", {
+    p_nueva: nueva,
+    p_motivo: motivo.trim(),
+  });
+  if (error) return { error: errorDeSuperclave(error) };
   revalidatePath("/studio/contabilidad");
   return { ok: true };
 }
