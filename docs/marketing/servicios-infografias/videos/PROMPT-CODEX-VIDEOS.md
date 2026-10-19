@@ -220,7 +220,7 @@ Cada brief trae 3 secciones: **(a)** productor/diseñador — escenas, rótulos,
 
 - **Producción:** `https://dtdcargo.com/portal` — login en `/portal/login`, acceso por **magic link** (enlace mágico al correo).
 - **Local:** `pnpm dev` → `http://localhost:3000/portal`
-  ⚠️ **Advertencia crítica:** el entorno local de DTD apunta **SIEMPRE a la base de datos de producción en la nube** (`xpfuzqombmjmxvprjgmi`). **`pnpm dev` = PRODUCCIÓN.** No hay base local. Cualquier cosa que crees mientras grabas es un registro real. Por eso la cuenta demo es obligatoria — pídesela a Sam antes de grabar.
+  ⚠️ **Advertencia crítica:** el entorno local de DTD apunta **SIEMPRE a la base de datos de producción** (desde el corte del 2026-10-14, el Supabase del servidor propio, `https://supabase.dtdcargo.com`; antes, Supabase Cloud `xpfuzqombmjmxvprjgmi` · nota del 2026-10-19). **`pnpm dev` = PRODUCCIÓN.** No hay base local. Cualquier cosa que crees mientras grabas es un registro real. Por eso la cuenta demo es obligatoria — pídesela a Sam antes de grabar.
 
 ### 6.3 Rutas reales del portal (verificadas en el código)
 

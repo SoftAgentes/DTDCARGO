@@ -139,6 +139,12 @@ reescribe después los secretos de Vault, que llegan cifrados con la raíz de
 Cloud. `staging/destroy-staging.sh` borra los datos del staging al cerrar el
 ensayo. Procedimiento: `docs/runbooks/servidor-contabo.md` §2.2 y §2.6.
 
+> **Nota del 2026-10-19:** desde el corte del 2026-10-14 (02:00Z), producción es
+> el Supabase de este servidor (`dtd-cargo`), no Supabase Cloud. Cloud quedó como
+> copia congelada del corte y se pausa el 2026-10-28, así que
+> `import-from-cloud.sh` ya no copia producción: trae datos de esa fecha. Para
+> probar se usa el entorno de prueba (`docs/runbooks/entorno-prueba.md`).
+
 ### Pisar producción (solo con decisión de Sam)
 
 `restore.sh` se niega a restaurar sobre la base viva del proyecto de producción

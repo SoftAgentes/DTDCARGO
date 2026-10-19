@@ -131,6 +131,14 @@ aviso: ⬜.
 
 Detalle completo en [`inventario-terceros.md`](inventario-terceros.md).
 
+> ⚠️ **Nota del 2026-10-19:** desde el corte del 2026-10-14 (02:00Z) la base y
+> el Storage viven en el servidor propio de Contabo, no en Supabase Cloud, que
+> queda como copia del corte hasta su pausa (2026-10-28) y su borrado. Lo que
+> esta sección y la §9 dicen de Supabase `us-east-1` describe el sistema
+> anterior; su actualización es el hallazgo H14 de
+> [`revision-traslado-contabo-2026-10-09.md`](revision-traslado-contabo-2026-10-09.md),
+> pendiente.
+
 Los que faltan resolver: **Nominatim** (dirección del cliente, sin contrato) ·
 **Cloudflare Workers AI** (audio de reuniones) · **Supabase** (región Cloud
 `us-east-1`, verificada 2026-09-04; contratos y retención del proveedor
