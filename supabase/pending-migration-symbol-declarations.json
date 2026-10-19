@@ -9,37 +9,6 @@
   ],
   "degradations": [
     {
-      "id": "sdd-0558-client-outstanding",
-      "primarySymbol": "client_outstanding",
-      "migration": "0492_client_outstanding",
-      "symbols": [
-        {
-          "name": "client_outstanding",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/client-queries.ts:756"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/client-queries.ts:832",
-          "contains": "console.error(`[saldo-cliente] ref=${referencia}`, e instanceof Error ? e.message : e);",
-          "degradation": "Sin 0492 la RPC no existe y PostgREST responde PGRST202: listClientOutstanding lanza SaldoClienteError y getClientAccountState NO lanza: la cabecera de la ficha del cliente muestra «No se pudo calcular el saldo» con una referencia que queda en el log (ERR-01, sistema) y «Embarques en curso» con los códigos vigente e historial. No se pinta ningún saldo ni un 0. El resto de la ficha funciona igual. Orden previsto: MIGRATE-FIRST (0492 antes de fusionar y desplegar), con el que esta ventana no existe."
-        },
-        {
-          "site": "lib/studio/conversaciones/conversations-queries.ts:365",
-          "contains": "outstanding = esSinPermiso(e)",
-          "degradation": "Sin 0492 el error es PGRST202, no 42501: getClientContext NO cae a la fachada de 0412 y devuelve el contexto del hilo con el saldo en null; el panel dice «No se pudo calcular el saldo. Ábrelo en la ficha.», nunca 0. Cliente, envíos activos y resúmenes siguen saliendo. Hoy, con 0412, el panel muestra la moneda dominante: durante la ventana se pierde solo ese número. MIGRATE-FIRST la evita."
-        },
-        {
-          "site": "lib/studio/kommo-contact-status.ts:250",
-          "contains": "inerte: e instanceof Error ? e.message : \"saldo: no se pudo leer\",",
-          "degradation": "Sin 0492 syncKommoContactStatus queda inerte con «saldo: …», vinculados > 0 y encoladas 0: no encola ningún PATCH y NO escribe «No» en «Tiene saldo pendiente» ni en «Carga en tránsito», así el agente de Kommo no lee un dato falso. Los campos conservan el último valor escrito. El cron diario devuelve 200 con el motivo en el resultado de cada tenant. MIGRATE-FIRST la evita."
-        }
-      ]
-    },
-    {
       "id": "sdd-0566-cierre-superclave",
       "primarySymbol": "estado_cierre_contable",
       "migration": "0493_cierre_contable_superclave",
