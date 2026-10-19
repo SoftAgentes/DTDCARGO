@@ -218,6 +218,27 @@ describe("FacturaDocument de una anulada (SDD-0556)", () => {
     expect(t).not.toContain("Factura anulada: no hay saldo por pagar.");
     expect(t).toContain("Saldo pendiente");
   });
+
+  it("una anulada no imprime «Datos para el pago»; una vigente sí", () => {
+    // Antes el papel de la anulada decía «no hay saldo por pagar» y, abajo,
+    // las cuentas para pagarla.
+    const emisor: FacturaPdfEmisor = {
+      tradeName: "Empresa Sintética",
+      legalName: "",
+      rif: "",
+      email: "",
+      phone: "",
+      website: "",
+      cuentas: [
+        { bankName: "Banco Sintético", accountType: "corriente", currency: "USD", accountNumber: "0000-SINTETICA" },
+      ],
+    };
+    const anulada = textos(FacturaDocument({ invoice: mkFactura({ status: "anulada", paid: 720 }), emisor }));
+    expect(anulada).not.toContain("Datos para el pago");
+    expect(anulada.join(" ")).not.toContain("0000-SINTETICA");
+    const vigente = textos(FacturaDocument({ invoice: mkFactura({ paid: 720 }), emisor }));
+    expect(vigente).toContain("Datos para el pago");
+  });
 });
 
 describe("estadoLabel", () => {

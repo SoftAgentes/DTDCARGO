@@ -488,7 +488,8 @@ export function FacturaDocument({
           </View>
         ) : null}
 
-        {emisor && emisor.cuentas.length > 0 ? (
+        {/* SDD-0556 · una anulada no se paga: no lleva «Datos para el pago». */}
+        {emisor && emisor.cuentas.length > 0 && !facturaAnulada(invoice) ? (
           <View style={{ marginTop: 18 }}>
             <Text style={styles.bloqueTitulo}>Datos para el pago</Text>
             {emisor.cuentas.map((c) => (
