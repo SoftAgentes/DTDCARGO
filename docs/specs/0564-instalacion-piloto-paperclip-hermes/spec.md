@@ -76,7 +76,7 @@ para un tablero de indicadores agregados); mensajería de Hermes hacia clientes;
 | Base de producción de DTD Cargo (Supabase del servidor propio) | **No** | No. Ni lectura | — |
 | Servidor de DTD Cargo (SSH, Docker, `.env`) | **No** | No. El VPS nuevo no guarda llaves SSH hacia él | — |
 | Supabase Cloud (copia congelada) | **No** | No | — |
-| GitHub | **No** | **A1:** llave de despliegue de **solo lectura** de este repositorio, para que los agentes lean una copia del código y la documentación. Sin escritura, sin `gh`, sin PAT. Alternativa sin acceso: Sam sube a mano una copia empaquetada (`git archive`) cada semana | Sam |
+| GitHub | **No** | **A1:** llave de despliegue de **solo lectura** de este repositorio, para que los agentes lean una copia del código y la documentación. Sin escritura, sin `gh`, sin PAT. **Consideración (Director, 2026-10-19):** el repositorio trae handoffs con detalles operativos (IP y rutas del servidor de DTD Cargo, procedimientos de producción), aunque no secretos; si el VPS se compromete, esa copia queda expuesta, y una llave de despliegue da acceso al repositorio entero. **Alternativa A1-b:** una copia filtrada, solo `docs/` y el código, sin `.agents/handoffs/`, que Sam sube a mano (`git archive`) cada semana | Sam |
 | Claves del ERP (service role, Resend, Telegram del ERP, Kommo, SeaRates) | **No** | No | — |
 | Proveedor de modelos | **No** | **A2:** una llave de API **nueva y exclusiva** de Anthropic para Paperclip y Hermes, con límite de gasto puesto en la consola del proveedor. Si Hermes usa otro proveedor (OpenRouter), una llave propia con su propio límite | Sam |
 | CRM, MCP o conectores con datos de clientes | **No** | No. La máquina no tiene configurado ningún MCP (riesgo R11 del organigrama) | — |
@@ -185,7 +185,7 @@ se declara así en la evidencia. Antes de cualquier acceso que toque datos de cl
 
 | # | Decisión | Recomendación |
 |---|---|---|
-| A1 | ¿Cómo leen los agentes el repositorio? | ⭐ Llave de despliegue de solo lectura |
+| A1 | ¿Cómo leen los agentes el repositorio? | ⭐ Llave de despliegue de solo lectura, o A1-b: copia filtrada sin `.agents/handoffs/` (menos exposición, más trabajo manual). Ver §D1 |
 | A2 | Llave de modelos nueva y exclusiva, con límite en el proveedor | ⭐ Sí, de Anthropic |
 | A3 | Bot de Telegram nuevo para hablar con el CEO | ⭐ No en la primera semana; sí después si el parte por el panel no alcanza |
 | D-B | Tope mensual de la empresa | ⭐ ≤ 100 USD |
