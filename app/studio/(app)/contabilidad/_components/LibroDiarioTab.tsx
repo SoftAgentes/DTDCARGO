@@ -6,9 +6,16 @@
  * Lista de asientos con su total (debe=haber), fecha, origen y estado.
  * Acciones por asiento: asentar (borrador→asentado), anular (asentado→anulado),
  * eliminar (solo borrador). "Nuevo asiento" abre el EntryDrawer.
+ *
+ * SDD-0557: la lista trae como mucho los 500 asientos más recientes
+ * (`DIARIO_PANTALLA_MAX`). Los contadores salen de los totales REALES
+ * (`countEntries`), no de la lista, y si hay más de los que se ven la pantalla
+ * lo dice («Mostrando N de M») y enlaza el diario completo en CSV. La
+ * exportación con Desde/Hasta vive acá; valida las fechas antes de navegar y la
+ * ruta las vuelve a validar.
  */
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   entryStatusBadgeTone,
   entryStatusLabel,
@@ -24,12 +31,19 @@ import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { Icon } from "@/app/studio/_components/icons";
+import { StatusIcon } from "@/components/StatusIcon";
+import {
+  avisoDelDiario,
+  enlaceDelDiario,
+  rangoDelDiario,
+} from "@/lib/studio/accounting/libro-control";
 import { fmtAmount } from "./format";
 import { EntryDrawer } from "./EntryDrawer";
 import { postEntry, voidEntry, softDeleteEntry } from "../actions";
 
 export function LibroDiarioTab({
   entries,
+  totalEntries,
   postableAccounts,
   accountsCount,
   asentadosCount,
@@ -38,6 +52,8 @@ export function LibroDiarioTab({
   onCloseCreate,
 }: {
   entries: JournalEntry[];
+  /** Asientos vivos del diario, sin el tope de pantalla (countEntries). */
+  totalEntries: number;
   postableAccounts: Account[];
   accountsCount: number;
   asentadosCount: number;
@@ -52,8 +68,9 @@ export function LibroDiarioTab({
   const [voidPending, setVoidPending] = useState(false);
 
   const noAccounts = accountsCount === 0 || postableAccounts.length === 0;
+  const aviso = avisoDelDiario(entries.length, totalEntries);
 
-  if (entries.length === 0) {
+  if (totalEntries === 0) {
     return (
       <>
         <EmptyState
@@ -110,17 +127,57 @@ export function LibroDiarioTab({
       <div
         style={{
           display: "flex",
-          gap: 16,
-          marginBottom: 14,
-          font: "500 11.5px/1 var(--f-sans)",
-          color: "var(--ink-soft)",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: "var(--s-4)",
+          flexWrap: "wrap",
+          marginBottom: "var(--s-4)",
         }}
       >
-        <span>
-          {entries.length} asiento{entries.length === 1 ? "" : "s"}
-        </span>
-        <span>·</span>
-        <span>{asentadosCount} asentado{asentadosCount === 1 ? "" : "s"}</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
+          <div
+            data-testid="diario-contador"
+            style={{
+              display: "flex",
+              gap: "var(--s-3)",
+              font: "500 12px/1.2 var(--f-sans)",
+              color: "var(--ink-soft)",
+            }}
+          >
+            <span>
+              {totalEntries.toLocaleString("es-VE")} asiento{totalEntries === 1 ? "" : "s"}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              {asentadosCount.toLocaleString("es-VE")} asentado{asentadosCount === 1 ? "" : "s"}
+            </span>
+          </div>
+          {aviso && (
+            <p
+              role="status"
+              data-testid="diario-aviso"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--s-2)",
+                flexWrap: "wrap",
+                margin: 0,
+                font: "500 12px/1.4 var(--f-sans)",
+                color: "var(--ink)",
+              }}
+            >
+              <StatusIcon tone="warning" size={14} style={{ color: "var(--warning)" }} />
+              <span>{aviso}</span>
+              <a
+                href={enlaceDelDiario()}
+                style={{ color: "var(--wine-text)", fontWeight: 700 }}
+              >
+                Descargar el diario completo (CSV)
+              </a>
+            </p>
+          )}
+        </div>
+        <ExportarDiario />
       </div>
 
       <div
@@ -320,6 +377,95 @@ export function LibroDiarioTab({
         }}
       />
     </>
+  );
+}
+
+/**
+ * Exportación del diario con Desde/Hasta opcionales (SDD-0557). Es un GET a la
+ * ruta de exportación: la respuesta es un adjunto y el navegador la descarga
+ * sin salir de la pantalla. Las fechas se validan antes de enviar con la misma
+ * regla que usa la ruta (`rangoDelDiario`), para no mandar a nadie a una
+ * respuesta de error.
+ */
+function ExportarDiario() {
+  const id = useId();
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const errorId = `${id}-error`;
+
+  return (
+    <form
+      method="get"
+      action="/api/studio/contabilidad/export"
+      aria-label="Exportar el diario a CSV"
+      onSubmit={(e) => {
+        const r = rangoDelDiario(desde, hasta);
+        if (r.error) {
+          e.preventDefault();
+          setError(r.error);
+          return;
+        }
+        setError(null);
+      }}
+      style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}
+    >
+      <input type="hidden" name="tipo" value="diario" />
+      <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--s-2)", flexWrap: "wrap" }}>
+        <label style={{ display: "flex", flexDirection: "column" }}>
+          <span className="studio-label">Desde (opcional)</span>
+          <input
+            type="date"
+            name="desde"
+            className="studio-input"
+            value={desde}
+            onChange={(e) => {
+              setDesde(e.target.value);
+              if (error) setError(rangoDelDiario(e.target.value, hasta).error);
+            }}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+            style={{ minWidth: 160 }}
+          />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column" }}>
+          <span className="studio-label">Hasta (opcional)</span>
+          <input
+            type="date"
+            name="hasta"
+            className="studio-input"
+            value={hasta}
+            onChange={(e) => {
+              setHasta(e.target.value);
+              if (error) setError(rangoDelDiario(desde, e.target.value).error);
+            }}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+            style={{ minWidth: 160 }}
+          />
+        </label>
+        <button type="submit" className="studio-btn studio-btn-ghost studio-btn-sm">
+          Exportar diario (CSV)
+        </button>
+      </div>
+      {error && (
+        <p
+          id={errorId}
+          role="alert"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--s-2)",
+            margin: 0,
+            font: "500 12px/1.4 var(--f-sans)",
+            color: "var(--ink)",
+          }}
+        >
+          <StatusIcon tone="danger" size={14} style={{ color: "var(--danger-text)" }} />
+          {error}
+        </p>
+      )}
+    </form>
   );
 }
 
