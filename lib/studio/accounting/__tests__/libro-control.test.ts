@@ -406,9 +406,59 @@ describe("cuadreSubdiario", () => {
       mayorProveedores: mayor(0),
     });
     expect(notasDelSubdiario(s)).toEqual([
-      "Clientes no es comparable: hay facturas o recibos en bolívares o yuanes con su asiento vivo; hoy la factura se asienta por su monto nominal y el cobro la convierte.",
-      "1 factura con saldo no suma: está en bolívares sin tasa o en yuanes.",
+      "Clientes no es comparable: hay facturas abiertas en bolívares o yuanes, o documentos en esas monedas con su asiento vivo; hoy la factura se asienta por su monto nominal y el cobro la convierte.",
+      "1 factura con saldo no suma: está en bolívares o en yuanes.",
     ]);
+    const dos = cuadreSubdiario({
+      fecha: "2025-03-18",
+      facturas: [saldo({ currency: "CNY", total_amount: 100 }), saldo({ currency: "VES", fx_rate: 36, total_amount: 3600 })],
+      cxp: [],
+      recibosNoUsdConAsiento: 0,
+      mayorClientes: mayor(0),
+      mayorProveedores: mayor(0),
+    });
+    expect(notasDelSubdiario(dos)).toContain("2 facturas con saldo no suman: están en bolívares o en yuanes.");
+  });
+
+  /**
+   * SDD-0563 · Enmienda de la decisión 7 (Director, 2026-10-19, revisable por Sam): una factura
+   * abierta con saldo en VES o CNY vuelve «no comparable» la 1.1.2, con asiento o sin él, y no se
+   * convierte con su tasa para decir «cuadra».
+   */
+  describe("la factura abierta en VES o CNY no se convierte (enmienda de la decisión 7)", () => {
+    const base = { fecha: "2025-03-18", cxp: [], recibosNoUsdConAsiento: 0, mayorProveedores: null };
+
+    it("con tasa, sin tasa o en yuanes, y sin asiento: «no comparable», sin diferencia; solo suman USD y USDT", () => {
+      for (const otra of [
+        saldo({ currency: "VES", fx_rate: 36, total_amount: 3600 }),
+        saldo({ currency: "VES", fx_rate: null, total_amount: 3600 }),
+        saldo({ currency: "VES", fx_rate: 0, total_amount: 3600 }),
+        saldo({ currency: "CNY", fx_rate: 7.2, total_amount: 720 }),
+      ]) {
+        const s = cuadreSubdiario({ ...base, facturas: [...facturas, otra], mayorClientes: mayor(350) });
+        expect(s.clientes, JSON.stringify(otra)).toMatchObject({
+          subdiarioUsd: 350,
+          documentos: 3,
+          sinConvertir: 1,
+          diferenciaUsd: null,
+          estado: "no_comparable",
+        });
+      }
+    });
+
+    it("control: la misma VES con su tasa, ya pagada o anulada, no cambia nada: cuadra", () => {
+      for (const status of ["pagada", "anulada"]) {
+        const ves = saldo({ currency: "VES", fx_rate: 36, total_amount: 3600, paid_amount: status === "pagada" ? 3600 : 0, status });
+        const s = cuadreSubdiario({ ...base, facturas: [...facturas, ves], mayorClientes: mayor(350) });
+        expect(s.clientes, status).toMatchObject({ subdiarioUsd: 350, sinConvertir: 0, diferenciaUsd: 0, estado: "cuadra" });
+      }
+    });
+
+    it("con la cuenta de control fuera del plan, «cuenta no encontrada» gana sobre «no comparable»", () => {
+      const ves = saldo({ currency: "VES", fx_rate: 36, total_amount: 3600, asientoVivo: true });
+      const s = cuadreSubdiario({ ...base, facturas: [ves], recibosNoUsdConAsiento: 1, mayorClientes: null });
+      expect(s.clientes).toMatchObject({ estado: "sin_cuenta", mayorUsd: null, diferenciaUsd: null, sinConvertir: 1 });
+    });
   });
 
   /**
@@ -430,18 +480,21 @@ describe("cuadreSubdiario", () => {
         mayorClientes: VACIO,
         mayorProveedores: null,
       });
+      // La VES no suma (SDD-0563) pero es un documento abierto: el mayor vacío gana igual.
       expect(s.clientes).toMatchObject({
-        subdiarioUsd: 1000,
+        subdiarioUsd: 0,
         mayorUsd: 0,
         diferenciaUsd: null,
-        documentos: 1,
+        documentos: 0,
+        sinConvertir: 1,
         estado: "mayor_sin_movimiento",
       });
       expect(notasDelSubdiario(s)).toEqual([
         "Sin movimiento en el mayor (cuenta 1.1.2): las facturas abiertas no llegaron al mayor.",
+        "1 factura con saldo no suma: está en bolívares o en yuanes.",
       ]);
       // El CSV lleva el estado nuevo y la diferencia vacía.
-      expect(subdiarioCsv(s).content.split("\r\n")[1]).toBe("1.1.2,Clientes,1000,0,,1,0,0,Sin movimiento en el mayor");
+      expect(subdiarioCsv(s).content.split("\r\n")[1]).toBe("1.1.2,Clientes,0,0,,0,1,0,Sin movimiento en el mayor");
     });
 
     it("gana sobre «no comparable»: con la VES asentada o un recibo VES con asiento, igual dice «sin movimiento en el mayor»", () => {
@@ -493,13 +546,23 @@ describe("cuadreSubdiario", () => {
     it("controles: con movimiento en la cuenta vuelve la diferencia; sin documentos abiertos es «sin movimiento»", () => {
       const conMovimiento = cuadreSubdiario({
         fecha: "2025-03-18",
-        facturas: [vesAbierta],
+        facturas: [saldo({ total_amount: 1000 })],
         cxp: [saldo({ status: "pendiente", total_amount: 300 })],
         recibosNoUsdConAsiento: 0,
         mayorClientes: { saldo: 0, debe: 500, haber: 500 },
         mayorProveedores: { saldo: 0, debe: 100, haber: 100 },
       });
       expect(conMovimiento.clientes).toMatchObject({ estado: "no_cuadra", diferenciaUsd: 1000 });
+      // La misma cuenta con movimiento y la VES abierta ya no da diferencia: no es comparable (SDD-0563).
+      const conVes = cuadreSubdiario({
+        fecha: "2025-03-18",
+        facturas: [vesAbierta],
+        cxp: [],
+        recibosNoUsdConAsiento: 0,
+        mayorClientes: { saldo: 0, debe: 500, haber: 500 },
+        mayorProveedores: null,
+      });
+      expect(conVes.clientes).toMatchObject({ estado: "no_comparable", diferenciaUsd: null });
       expect(conMovimiento.proveedores).toMatchObject({ estado: "no_cuadra", diferenciaUsd: 300 });
       // Una pagada (sin saldo) no es un documento abierto.
       const sinAbiertas = cuadreSubdiario({

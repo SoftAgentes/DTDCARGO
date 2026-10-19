@@ -486,7 +486,11 @@ export type LadoCuadre = {
   diferenciaUsd: number | null;
   /** Documentos con saldo distinto de cero. */
   documentos: number;
-  /** Documentos con saldo que no suman (VES sin tasa o CNY). */
+  /**
+   * Documentos con saldo que no suman: en clientes, toda factura abierta en VES
+   * o CNY, con tasa o sin ella (SDD-0563). Con alguno, clientes es «no
+   * comparable», salvo que gane el mayor vacío (decisión 6).
+   */
   sinConvertir: number;
   /**
    * Documentos con saldo en otra moneda y SIN tasa que suman su nominal, como
@@ -518,15 +522,15 @@ export function notasDelSubdiario(s: SubdiarioContraMayor): string[] {
   }
   if (s.clientes.estado === "no_comparable") {
     notas.push(
-      "Clientes no es comparable: hay facturas o recibos en bolívares o yuanes con su asiento vivo; hoy la factura se asienta por su monto nominal y el cobro la convierte.",
+      "Clientes no es comparable: hay facturas abiertas en bolívares o yuanes, o documentos en esas monedas con su asiento vivo; hoy la factura se asienta por su monto nominal y el cobro la convierte.",
     );
   }
   const sinConv = s.clientes.sinConvertir;
   if (sinConv > 0) {
     notas.push(
       sinConv === 1
-        ? "1 factura con saldo no suma: está en bolívares sin tasa o en yuanes."
-        : `${sinConv} facturas con saldo no suman: están en bolívares sin tasa o en yuanes.`,
+        ? "1 factura con saldo no suma: está en bolívares o en yuanes."
+        : `${sinConv} facturas con saldo no suman: están en bolívares o en yuanes.`,
     );
   }
   const sinTasa = s.proveedores.sinTasa;
