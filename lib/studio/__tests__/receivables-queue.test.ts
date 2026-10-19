@@ -11,9 +11,14 @@
  * el lector deja de pedirlo, la factura borrada del fixture entra a la cola
  * (con más días vencidos que la viva, así que subiría al tope) y la aserción
  * lo delata.
+ *
+ * SDD-0558: la cola adopta la regla de estados del saldo por cliente (0492):
+ * un BORRADOR tampoco entra, ni a los KPI ni a los recordatorios. Y «hoy» por
+ * defecto es la fecha de Caracas: entre las 20:00 y las 24:00 de Caracas una
+ * factura que vence ese día NO está vencida, aunque en UTC ya sea mañana.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Invoice } from "../invoice-types";
 import { collectionKpis, receivablesQueue } from "../payment-queries";
@@ -126,8 +131,18 @@ function stub(
   } as unknown as SupabaseClient;
 }
 
+/** Borrador (SDD-0558): vencido 91 días y el saldo más alto — sin la regla subiría al tope. */
+const BORRADOR = inv({
+  id: "i-borrador",
+  invoice_code: "F-2026-0003",
+  client_markbox: "DTD-1003",
+  status: "borrador",
+  due_date: "2026-03-02",
+  total_amount: 9500,
+});
+
 const TABLAS = {
-  invoices: [VIVA, BORRADA] as unknown as Record<string, unknown>[],
+  invoices: [VIVA, BORRADA, BORRADOR] as unknown as Record<string, unknown>[],
   collection_activities: [
     // Una gestión sobre la borrada: tampoco debe leerse (no hay fila que enriquecer).
     {
@@ -154,11 +169,13 @@ describe("receivablesQueue · SDD-0465", () => {
     expect(cola[0].daysOverdue).toBe(31);
   });
 
-  it("pide `deleted_at is null` a la base, además de `status ≠ anulada`", async () => {
+  it("pide `deleted_at is null` a la base, además de los estados que cuentan (SDD-0558)", async () => {
     await receivablesQueue(stub(TABLAS), TODAY);
 
     expect(filtros).toContainEqual({ table: "invoices", op: "is", col: "deleted_at", val: null });
-    expect(filtros).toContainEqual({ table: "invoices", op: "neq", col: "status", val: "anulada" });
+    expect(filtros).toContainEqual({
+      table: "invoices", op: "in", col: "status", val: ["emitida", "parcial", "pagada", "vencida"],
+    });
   });
 
   it("no consulta las gestiones de la borrada", async () => {
@@ -188,6 +205,61 @@ describe("receivablesQueue · SDD-0465", () => {
     });
     const cola = await receivablesQueue(sinFiltro, TODAY);
     expect(cola.map((r) => r.invoice.invoice_code)).toEqual(["F-2026-0002", "F-2026-0001"]);
+  });
+});
+
+describe("receivablesQueue · un borrador no es deuda (SDD-0558)", () => {
+  it("no entra a la cola ni a los KPI, aunque sea el más vencido y el más grande", async () => {
+    const cola = await receivablesQueue(stub(TABLAS), TODAY);
+    expect(cola.map((r) => r.invoice.invoice_code)).toEqual(["F-2026-0001"]);
+    const kpis = await collectionKpis(stub(TABLAS), TODAY);
+    expect(kpis.casos).toBe(1);
+    expect(kpis.porCobrar).toBe(1000);
+  });
+
+  it("tampoco recibe recordatorio", async () => {
+    const cola = await receivablesQueue(stub(TABLAS), TODAY);
+    const sel = seleccionarParaRecordatorio(cola, TODAY, {
+      conCorreo: new Set(["DTD-1001", "DTD-1003"]),
+      marcaronSpam: new Set<string>(),
+      ultimoRecordatorio: new Map<string, string>(),
+    });
+    expect(sel.aEnviar.map((r) => r.invoice.invoice_code)).toEqual(["F-2026-0001"]);
+    expect(sel.omitidos.map((o) => o.code)).not.toContain("F-2026-0003");
+  });
+});
+
+describe("receivablesQueue · «hoy» es la fecha de Caracas (SDD-0558)", () => {
+  // 2026-06-02 02:00 UTC = 2026-06-01 22:00 en Caracas. En UTC ya es mañana.
+  const VENCE_HOY = inv({ id: "i-hoy", invoice_code: "F-2026-0009", due_date: "2026-06-01" });
+  const TABLA_HOY = { invoices: [VENCE_HOY] as unknown as Record<string, unknown>[] };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-02T02:00:00Z"));
+  });
+
+  it("sin `today`, lo que vence hoy en Caracas no está vencido, en la cola ni en los KPI", async () => {
+    try {
+      const cola = await receivablesQueue(stub(TABLA_HOY));
+      expect(cola[0].daysOverdue).toBe(0);
+      expect(cola[0].stage).toBe("al-dia");
+      const kpis = await collectionKpis(stub(TABLA_HOY));
+      expect(kpis.vencido).toBe(0);
+      expect(kpis.porCobrar).toBe(1000);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("con el día de UTC sí saldría vencida (control del reloj)", async () => {
+    try {
+      const cola = await receivablesQueue(stub(TABLA_HOY), "2026-06-02");
+      expect(cola[0].daysOverdue).toBe(1);
+      expect(cola[0].stage).toBe("vencido");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

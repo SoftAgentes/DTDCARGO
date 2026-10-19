@@ -206,6 +206,13 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
       context: { markbox: "DTD-0001" },
       digests: [],
     });
+    // SDD-0558: el saldo se pide por el CLIENTE del hilo (leído bajo RLS), no
+    // por el id del hilo; el hilo va aparte para la fachada de 0412.
+    expect(mocks.getClientContext).toHaveBeenCalledWith(
+      expect.anything(),
+      "client-1",
+      "conversation-1",
+    );
   });
 
   it("preserva la descarga de un adjunto limpio para Expenses", async () => {
