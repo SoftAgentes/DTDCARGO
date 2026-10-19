@@ -82,7 +82,7 @@ cuentas, sin servicios, sin producción ni base de datos.**
   envío haya salido bien.
 - **`lib/studio/privacidad-cn.ts`** oculta datos de clientes al personal en China solo en el
   servidor; el propio archivo advierte que no protege en la base (riesgo PIPL ya conocido).
-- **El estudio de GoHighLevel puede perderse.** `docs/marketing/crm-gohighlevel-transicion.md`
+- **El estudio de GoHighLevel puede perderse** (documento sin publicar). `docs/marketing/crm-gohighlevel-transicion.md`
   vive solo en el disco del worktree `DTD-worktrees/crm-ghl-evaluacion-20261013`, sin commit ni
   respaldo remoto, y su plan arranca la semana del 2026-10-19. Los tres documentos hermanos que
   cita (`crm-gohighlevel-configuracion.md`, `crm-gohighlevel-automatizaciones.md` y
@@ -121,7 +121,7 @@ que vaya ahorita trabajando con lo que está y que vaya estudiando y analizando 
 - Meta 6 del CEO; riesgos R11 (MCP de GoHighLevel con datos de clientes al alcance de un agente
   que salta permisos), R12 (dos CRM a la vez) y R13 (dos presupuestos de IA); pregunta 14.
 
-**Evidencia usada:** el estudio `docs/marketing/crm-gohighlevel-transicion.md` (520 líneas,
+**Evidencia usada:** el estudio `docs/marketing/crm-gohighlevel-transicion.md`, **documento sin publicar** (520 líneas,
 2026-10-13) en el worktree `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\crm-ghl-evaluacion-20261013`
 (rama `codex/crm-ghl-evaluacion-20261013`, sin commits sobre `main`). Se leyó sin tocarlo y
 **no se copió** a este worktree.
@@ -134,3 +134,11 @@ que vaya ahorita trabajando con lo que está y que vaya estudiando y analizando 
 - La #285 queda en borrador hasta que Sam conteste las 13 preguntas o le pida integrarla como
   propuesta v1. Que esté lista no autoriza el merge.
 - El número de la SDD de instalación se le pide antes de reservarla, cuando Sam la autorice.
+
+## Respuesta del Director a la ronda 2 (2026-10-19)
+
+Comprobó que el estudio de GoHighLevel es un solo archivo sin commit (35.850 bytes, del
+2026-10-13) y sin rama remota. Su publicación la coordina él con Sam y con la sesión dueña.
+Indicación: no copiarlo ni citarlo como fuente en Git hasta que esté en `main`; si se cita,
+marcarlo «documento sin publicar». Hecho: todas las citas del documento y de este handoff
+llevan esa etiqueta. La #285 sigue en borrador hasta que Sam conteste lo que falta.

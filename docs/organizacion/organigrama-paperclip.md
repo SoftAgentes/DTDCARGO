@@ -154,10 +154,11 @@ Fuentes: `lib/studio/modules.ts`, `lib/studio/rbac.ts` (matriz `ROLE_MODULE_ACCE
    (Sam, 2026-10-19). En la práctica la atención depende del asesor.
 6. **El CRM está en transición.** Sam decidió el 2026-10-13 pasar de Kommo a GoHighLevel:
    plan Starter, DTD primero, canal por canal (Instagram y Facebook primero, WhatsApp al
-   final), con fecha de corte por decidir. El estudio y el plan por fases existen, pero **no
-   están publicados**: viven sin commit en el worktree
-   `DTD-worktrees/crm-ghl-evaluacion-20261013`, archivo
-   `docs/marketing/crm-gohighlevel-transicion.md`. Mientras tanto Studio sigue integrado con
+   final), con fecha de corte por decidir. El estudio y el plan por fases existen en un
+   **documento sin publicar**: un solo archivo sin commit ni rama remota en el worktree
+   `DTD-worktrees/crm-ghl-evaluacion-20261013`
+   (`docs/marketing/crm-gohighlevel-transicion.md`). Su publicación la coordina el Director
+   con Sam y con la sesión dueña. Mientras tanto Studio sigue integrado con
    Kommo (sincronización, webhook, cola de escritura y el módulo CRM).
 7. **Ingeniería en paralelo con producción real.** Hay unos 40 worktrees y varias
    sesiones a la vez. El Director serializa la integración, y un merge a `main` se publica
@@ -182,7 +183,7 @@ Fuentes: `lib/studio/modules.ts`, `lib/studio/rbac.ts` (matriz `ROLE_MODULE_ACCE
 | Resumen diario del CEO por Telegram | `app/api/cron/ceo-brief` | Antecedente del parte del CEO. Corre en el contenedor `cron` del servidor propio todos los días a las 11:00 UTC, 7:00 en Caracas (`infra/dtd-cargo/cron/crontab:9`). El Director midió el 2026-10-19 que en las últimas 72 h se disparó 3 veces, una por día. Esa lectura del registro solo confirma que el cron lo dispara: **NO VERIFICADO** que el mensaje haya llegado |
 | Ritual del viernes (30 min) | `docs/marketing/revision-del-motor.md` | El CEO agente le prepara la agenda |
 | Sesiones Director y Worker | `docs/runbooks/codex-engineering.md` | Ingeniería ya tiene su propio organigrama; Paperclip no lo reemplaza en la primera ola |
-| Estudio de la transición a GoHighLevel | `docs/marketing/crm-gohighlevel-transicion.md` en el worktree `crm-ghl-evaluacion-20261013`, **sin commit** | No hay que volver a estudiar GoHighLevel: hay que publicar ese estudio y ejecutar su plan (sección 2.6) |
+| Estudio de la transición a GoHighLevel | **documento sin publicar**: `docs/marketing/crm-gohighlevel-transicion.md` en el worktree `crm-ghl-evaluacion-20261013` | No hay que volver a estudiar GoHighLevel: hay que publicar ese estudio y ejecutar su plan (sección 2.6) |
 
 ---
 
@@ -455,7 +456,7 @@ Detalle completo en la **sección 3**.
 
 - **P-21 Ventas y CRM** · asesor, la IA del CRM y agente «Analista de embudo» (ola 2).
   Hoy la IA de Kommo está apagada por costo y se enciende a mano cuando hace falta; en
-  GoHighLevel el estudio propone arrancar el bot de entrada en modo sugerido y con tope de
+  GoHighLevel el estudio (documento sin publicar) propone arrancar el bot de entrada en modo sugerido y con tope de
   gasto. El analista arma cada mañana la lista del asesor: leads sin atender, recompras
   vencidas, estimados sin respuesta. Se construye **después del corte**, leyendo el espejo
   neutro del CRM en Studio y no a Kommo, para no hacerlo dos veces. *Decide solo:* el orden
@@ -568,11 +569,12 @@ transición entra como un **proyecto** dentro de él. Hay tres razones:
    no la estructura. Ningún puesto aparece ni desaparece.
 2. **La ola 1 de Paperclip no toca el CRM**, por la regla de datos. Las dos cosas pueden
    avanzar en paralelo sin bloquearse.
-3. **GoHighLevel ya está estudiado.** El estudio del 2026-10-13 trae costos, estructura de
-   cuentas, cómo verlo dentro de Studio, migración, privacidad, un plan en 9 fases y 8
-   decisiones pendientes (sección 1.4, punto 6). No hace falta otro estudio: hace falta
-   **publicarlo**, porque hoy vive sin commit en un worktree y se puede perder, y ejecutar su
-   plan.
+3. **GoHighLevel ya está estudiado.** El estudio del 2026-10-13 (**documento sin
+   publicar**) trae costos, estructura de cuentas, cómo verlo dentro de Studio, migración,
+   privacidad, un plan en 9 fases y 8 decisiones pendientes (sección 1.4, punto 6). No hace
+   falta otro estudio: hace falta **publicarlo**, porque hoy no tiene commit ni respaldo
+   remoto, y ejecutar su plan. Lo que esta sección toma de él vale como referencia hasta que
+   esté en `main`.
 
 **Qué espera a la transición y qué no:**
 
@@ -949,7 +951,7 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
 `docs/design/studio/_norte/HANDOFF.md`, `backend/README.md`; `lib/studio/modules.ts`,
 `rbac.ts`, `user-types.ts`, `platform-admin.ts`, `privacidad-cn.ts`;
 `supabase/migrations/0204_nomina_positions.sql`; `app/api/cron/ceo-brief/route.ts`;
-`infra/dtd-cargo/cron/crontab`; el estudio de GoHighLevel del 2026-10-13 (`docs/marketing/crm-gohighlevel-transicion.md`, sin commit, en el worktree `DTD-worktrees/crm-ghl-evaluacion-20261013`).
+`infra/dtd-cargo/cron/crontab`; y, como **documento sin publicar**, el estudio de GoHighLevel del 2026-10-13 (`docs/marketing/crm-gohighlevel-transicion.md` en el worktree `DTD-worktrees/crm-ghl-evaluacion-20261013`; no está en `main`).
 
 **Paperclip** (consultado el 2026-10-19): github.com/paperclipai/paperclip (README, releases,
 `SECURITY.md`, `ROADMAP.md`, avisos de seguridad); registry.npmjs.org/paperclipai;
