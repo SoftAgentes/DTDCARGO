@@ -82,8 +82,13 @@ cuentas, sin servicios, sin producción ni base de datos.**
   envío haya salido bien.
 - **`lib/studio/privacidad-cn.ts`** oculta datos de clientes al personal en China solo en el
   servidor; el propio archivo advierte que no protege en la base (riesgo PIPL ya conocido).
-- **Hay una sesión «Migración Kommo a GoHighLevel».** Si el CRM cambia, las referencias a
-  Kommo y a sus 4 agentes en el organigrama (P-21) habrá que actualizarlas.
+- **El estudio de GoHighLevel puede perderse.** `docs/marketing/crm-gohighlevel-transicion.md`
+  vive solo en el disco del worktree `DTD-worktrees/crm-ghl-evaluacion-20261013`, sin commit ni
+  respaldo remoto, y su plan arranca la semana del 2026-10-19. Los tres documentos hermanos que
+  cita (`crm-gohighlevel-configuracion.md`, `crm-gohighlevel-automatizaciones.md` y
+  `docs/legal/privacidad/evaluacion-proveedor-gohighlevel.md`) **no se encontraron** en ningún
+  worktree ni en el checkout principal. Lo publica su sesión dueña, no esta.
+  (Las referencias a Kommo del organigrama ya se actualizaron en la ronda 2.)
 - **El catálogo `nomina_positions` (migración `0204`, julio) no tiene puesto de Dirección de
   Operaciones** ni dueño de las transiciones de tracking. Si Sam aprueba, se cargan desde
   Studio › Nómina; no hace falta código.
@@ -97,6 +102,29 @@ cuentas, sin servicios, sin producción ni base de datos.**
   de Paperclip (ola 1)». Esa SDD cambia gobierno: quién puede actuar sobre el repositorio y con
   qué permisos.
 - Ownership: el claim `oficina-paperclip` se libera al cerrar esta escritura.
+
+## Ronda 2 · transición del CRM a GoHighLevel (2026-10-19)
+
+**Sam, literal:** «Me gusta el plan que me estás sugiriendo, el organigrama […], agregando que
+vamos a hacer una transición del CRM de Kommo a un CRM que se llama GoHighLevel.com […] la IA de
+Kommo la tenemos apagada porque consume demasiados tokens; solo la activamos cuando es
+necesario. […] ver si vale la pena agregarlo en el organigrama […] y esperar la transición, o
+que vaya ahorita trabajando con lo que está y que vaya estudiando y analizando GoHighLevel».
+
+**Lo que se hizo:**
+- Pregunta 1 (estructura) marcada como respondida con esa cita.
+- Recomendación escrita en la sección 2.6 nueva: no esperar; el CRM es herramienta, no puesto;
+  la transición entra como proyecto del CEO agente; solo el Analista de embudo espera al corte y
+  se construye contra el espejo neutro `crm_*`.
+- Diagnóstico: IA de Kommo apagada por costo (punto 5) y CRM en transición (punto 6).
+- P-20, P-21, P-40 y la tabla 4.2 hablan del «CRM» con Kommo hoy y GoHighLevel después.
+- Meta 6 del CEO; riesgos R11 (MCP de GoHighLevel con datos de clientes al alcance de un agente
+  que salta permisos), R12 (dos CRM a la vez) y R13 (dos presupuestos de IA); pregunta 14.
+
+**Evidencia usada:** el estudio `docs/marketing/crm-gohighlevel-transicion.md` (520 líneas,
+2026-10-13) en el worktree `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\crm-ghl-evaluacion-20261013`
+(rama `codex/crm-ghl-evaluacion-20261013`, sin commits sobre `main`). Se leyó sin tocarlo y
+**no se copió** a este worktree.
 
 ## Respuesta del Director (2026-10-19)
 

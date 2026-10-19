@@ -5,7 +5,7 @@
 | Documento | Propuesta de organigrama: personas y agentes de IA |
 | Dueño | Sam (founder) |
 | Autor | Sesión Worker «Oficina Paperclip» (Claude Code) |
-| Estado | **borrador** · Sam pidió avanzar a la PR en borrador (2026-10-19, «listo avanza»); las 13 preguntas de la sección 7 siguen abiertas; nada está instalado |
+| Estado | **borrador** · Sam pidió avanzar a la PR en borrador (2026-10-19, «listo avanza») y aprobó la estructura («Me gusta el plan»); suma la transición del CRM a GoHighLevel; quedan abiertas las preguntas 2 a 14 de la sección 7; nada está instalado |
 | Fecha | 2026-10-19 |
 | Base | `main` `bb6bb3e4` |
 | Confidencialidad | interno · cita el norte interno; no se publica |
@@ -48,10 +48,13 @@
 5. **Siempre tuyo:** dinero real, producción (base, migraciones, merges, despliegues),
    datos personales, contratos, precios y tarifas, contratación de personas, cuentas en
    servicios externos y el presupuesto total de IA.
-6. **Regla de oro de datos:** *Paperclip ve el tablero, no al cliente.* En Paperclip solo
+6. **El CRM pasa de Kommo a GoHighLevel y el organigrama no lo espera.** El CRM es una
+   herramienta, no un puesto. La transición entra como proyecto del CEO agente; solo el
+   agente que lee el embudo espera al corte (sección 2.6).
+7. **Regla de oro de datos:** *Paperclip ve el tablero, no al cliente.* En Paperclip solo
    entran códigos (`DTD-NNNN`, `S-AAAA-NNNN`), conteos y enlaces al ERP; nunca nombres,
    cédulas, RIF, teléfonos, direcciones ni montos por cliente.
-7. **Paperclip es joven y potente:** 104.000 estrellas, versiones casi semanales, varias
+8. **Paperclip es joven y potente:** 104.000 estrellas, versiones casi semanales, varias
    fallas de seguridad graves ya corregidas en 2026, y sus adaptadores de Claude Code y
    Codex **saltan los permisos por defecto**. Por eso el arranque recomendado es pequeño:
    **CEO + 3 agentes que solo leen y redactan**, en una máquina aparte, sin ninguna
@@ -85,7 +88,7 @@
 
 ```mermaid
 flowchart LR
-  A["Captación<br/>web · Instagram · Kommo"] --> B["Estimado<br/>tarifas y calculadora"]
+  A["Captación<br/>web · Instagram · CRM"] --> B["Estimado<br/>tarifas y calculadora"]
   B --> C["Registro<br/>Shipping Mark"]
   C --> D["Compra y prealerta"]
   D --> E["Recepción en Yiwu<br/>CBM medido"]
@@ -107,7 +110,7 @@ flowchart LR
 | Operaciones China | Almacén CN, Cola de QR, Etiquetas CN, Inspecciones, app `/m/cn` | Coordinación China | `admin` · `operations` · `warehouse` |
 | Tránsito | Naviera y Consolidación, Tracking, Calendario, Embarques | — (las transiciones de tracking no tienen dueño) | `operations` |
 | Operaciones Venezuela | Almacén VE, Aduana SENIAT, TMS, Despacho, Rutas, Inventario, apps de bodeguero y camionero | Aduanas VE · Bodega VE · Transporte y última milla · QA China↔VE | `operations` · `warehouse` |
-| Comercial | Estimados, Clientes, CRM (espejo de Kommo), Conversaciones, Órdenes de venta, Tarifas, Servicios, PreAlertas, Compras asistidas | Atención al cliente y CRM · Sourcing · Inteligencia de tarifas | `commercial` |
+| Comercial | Estimados, Clientes, CRM (espejo de Kommo, que pasará a GoHighLevel), Conversaciones, Órdenes de venta, Tarifas, Servicios, PreAlertas, Compras asistidas | Atención al cliente y CRM · Sourcing · Inteligencia de tarifas | `commercial` |
 | Postventa | Reclamos, Fidelización, portal › soporte | Reclamos y postventa | `accounting` |
 | Finanzas | Facturación, Cobranzas, Gastos, Tesorería, Contabilidad, Fiscal, Costing, Reportes, Rendiciones, Financiero China | Tesorería · Administración y PMO · Operador de ERP | `accounting` (y solo `admin` en Rendiciones y Financiero China) |
 | Personas | Nómina y RRHH, app `/m/emp` | (lo cubre Administración y PMO) | `accounting` |
@@ -146,12 +149,21 @@ Fuentes: `lib/studio/modules.ts`, `lib/studio/rbac.ts` (matriz `ROLE_MODULE_ACCE
 5. **Las ventas se escapan.** Entran unos 16 leads al día. Del 7 al 10 de agosto los 4
    agentes de Kommo se detuvieron por falta de créditos: 63 leads sin atender y 18 perdidos.
    Instagram trae el 32 % de los contactos nuevos y ningún agente lo atiende
-   (`docs/marketing/agentes-ia-configuracion.md`).
-6. **Ingeniería en paralelo con producción real.** Hay unos 40 worktrees y varias
+   (`docs/marketing/agentes-ia-configuracion.md`). Hoy la IA de Kommo está **apagada por
+   decisión de Sam**, porque consume demasiados créditos, y solo se enciende cuando hace falta
+   (Sam, 2026-10-19). En la práctica la atención depende del asesor.
+6. **El CRM está en transición.** Sam decidió el 2026-10-13 pasar de Kommo a GoHighLevel:
+   plan Starter, DTD primero, canal por canal (Instagram y Facebook primero, WhatsApp al
+   final), con fecha de corte por decidir. El estudio y el plan por fases existen, pero **no
+   están publicados**: viven sin commit en el worktree
+   `DTD-worktrees/crm-ghl-evaluacion-20261013`, archivo
+   `docs/marketing/crm-gohighlevel-transicion.md`. Mientras tanto Studio sigue integrado con
+   Kommo (sincronización, webhook, cola de escritura y el módulo CRM).
+7. **Ingeniería en paralelo con producción real.** Hay unos 40 worktrees y varias
    sesiones a la vez. El Director serializa la integración, y un merge a `main` se publica
    solo en el servidor propio, también si es documentación (SDD-0541). La base de producción
    es real y no tiene red de seguridad automática para escrituras de agentes.
-7. **Ya hubo paradas por saldo o facturación:** los créditos de Kommo en agosto (medido) y
+8. **Ya hubo paradas por saldo o facturación:** los créditos de Kommo en agosto (medido) y
    GitHub Actions bloqueado por pago (`.agents/handoffs/0464-comentario-y-guia-l14.md`). La
    cuenta de Vercel también llegó a bloquearse por pago según el registro de sesiones
    (**NO VERIFICADO** en el repositorio). Cualquier sistema de agentes nuevo agrega otra
@@ -170,6 +182,7 @@ Fuentes: `lib/studio/modules.ts`, `lib/studio/rbac.ts` (matriz `ROLE_MODULE_ACCE
 | Resumen diario del CEO por Telegram | `app/api/cron/ceo-brief` | Antecedente del parte del CEO. Corre en el contenedor `cron` del servidor propio todos los días a las 11:00 UTC, 7:00 en Caracas (`infra/dtd-cargo/cron/crontab:9`). El Director midió el 2026-10-19 que en las últimas 72 h se disparó 3 veces, una por día. Esa lectura del registro solo confirma que el cron lo dispara: **NO VERIFICADO** que el mensaje haya llegado |
 | Ritual del viernes (30 min) | `docs/marketing/revision-del-motor.md` | El CEO agente le prepara la agenda |
 | Sesiones Director y Worker | `docs/runbooks/codex-engineering.md` | Ingeniería ya tiene su propio organigrama; Paperclip no lo reemplaza en la primera ola |
+| Estudio de la transición a GoHighLevel | `docs/marketing/crm-gohighlevel-transicion.md` en el worktree `crm-ghl-evaluacion-20261013`, **sin commit** | No hay que volver a estudiar GoHighLevel: hay que publicar ese estudio y ejecutar su plan (sección 2.6) |
 
 ---
 
@@ -283,7 +296,7 @@ Las olas se explican en la sección 4.4.
 | P-14 | Almacén VE y última milla | Dir. Operaciones | personas (bodega y transporte, app con PIN) | `warehouse` | 2 (el vigía de P-12) |
 | P-15 | Calidad China↔VE | Dir. Operaciones | persona + agente de conciliación | `operations` | 3 |
 | P-20 | Dirección Comercial y Clientes | CEO | persona (hoy Sam interino) | `commercial` | — |
-| P-21 | Ventas y CRM | Dir. Comercial | asesor + 4 agentes de Kommo + agente «Analista de embudo» | `commercial` | 2 |
+| P-21 | Ventas y CRM | Dir. Comercial | asesor + IA del CRM encendida solo cuando hace falta + agente «Analista de embudo» | `commercial` | 2, después del corte a GoHighLevel |
 | P-22 | Servicio al cliente y postventa | Dir. Comercial | persona dueña del caso | `accounting` hoy (ver pregunta 2) | 3, dentro del ERP |
 | P-23 | Aliados y white-label | Dir. Comercial | persona | `commercial` | 2 |
 | P-24 | Tarifas y competencia | Dir. Comercial, con la Junta | persona + agente | `commercial` | 2 |
@@ -431,7 +444,7 @@ Detalle completo en la **sección 3**.
 | | |
 |---|---|
 | Misión | Un solo punto de contacto para el cliente, de la primera pregunta a la recompra |
-| Funciones | Llevar el embudo de Kommo, cotizar con el estimado del sistema, recompra día 30/45, aliados, tarifas con la Junta, postventa |
+| Funciones | Llevar el embudo del CRM (Kommo hoy, GoHighLevel después del corte), cotizar con el estimado del sistema, recompra día 30/45, aliados, tarifas con la Junta, postventa |
 | Decide solo | Seguimiento, cadencias, asignación de leads, condiciones dentro del tarifario vigente |
 | Escala | A la Junta: precio fuera del tarifario, descuentos, acuerdos con aliados, indemnizaciones |
 | KPI | Primera respuesta en <5 min · 50 toques a la semana · 3–6 estimados a la semana · CBM en el pipeline contra 133/mes · recompra vencida = 0 |
@@ -440,11 +453,15 @@ Detalle completo en la **sección 3**.
 
 **Subpuestos Comerciales:**
 
-- **P-21 Ventas y CRM** · asesor, 4 agentes de Kommo y agente «Analista de embudo» (ola 2).
-  El analista arma cada mañana la lista del asesor: leads sin atender, recompras vencidas,
-  estimados sin respuesta. *Decide solo:* el orden de la lista. *Nunca:* escribirle al
-  cliente; eso lo hacen el asesor o los agentes de Kommo. *KPI:* los de P-20. *Datos del
-  analista:* AGR y códigos `DTD-NNNN`, sin nombres ni teléfonos.
+- **P-21 Ventas y CRM** · asesor, la IA del CRM y agente «Analista de embudo» (ola 2).
+  Hoy la IA de Kommo está apagada por costo y se enciende a mano cuando hace falta; en
+  GoHighLevel el estudio propone arrancar el bot de entrada en modo sugerido y con tope de
+  gasto. El analista arma cada mañana la lista del asesor: leads sin atender, recompras
+  vencidas, estimados sin respuesta. Se construye **después del corte**, leyendo el espejo
+  neutro del CRM en Studio y no a Kommo, para no hacerlo dos veces. *Decide solo:* el orden
+  de la lista. *Nunca:* escribirle al cliente; eso lo hacen el asesor o la IA del CRM.
+  *KPI:* los de P-20. *Datos del analista:* AGR y códigos `DTD-NNNN`, sin nombres ni
+  teléfonos.
 - **P-22 Servicio al cliente y postventa** · persona dueña del caso. *Misión:* cerrar cada
   reclamo con causa raíz, porque es el corazón de la marca «confianza». *Funciones:* abrir
   el caso, enrutarlo a bodega, transporte, aduana o tesorería, perseguirlo y cerrarlo.
@@ -500,7 +517,7 @@ Detalle completo en la **sección 3**.
 | Decide solo | Calendario editorial, piezas y pruebas dentro del presupuesto aprobado |
 | Escala | A la Junta: gasto en pauta, ofertas nuevas, cualquier promesa de precio o plazo |
 | KPI | Leads calificados al mes · costo por lead · % de contactos por Instagram atendidos |
-| Módulos y herramientas | Marketing, Noticias Web, CMS `/back`, Kommo (lectura), GA4, Search Console |
+| Módulos y herramientas | Marketing, Noticias Web, CMS `/back`, el CRM en lectura (Kommo hoy, GoHighLevel después), GA4, Search Console |
 | Datos | PUB, INT y AGR. Analítica fuera de rutas privadas |
 
 **Subpuestos de Marketing:**
@@ -540,6 +557,48 @@ Detalle completo en la **sección 3**.
   Paperclip tiene acceso al servidor.
 - **P-55 Datos y reportes** · agente «Analista de datos» (ola 2). Solo existe cuando haya un
   «tablero de indicadores agregados» de solo lectura, que necesita su propia SDD (sección 4.4).
+
+### 2.6 La transición del CRM a GoHighLevel: qué cambia y qué no
+
+**Decisión: no esperar la transición.** El organigrama se arma ya con lo que existe, y la
+transición entra como un **proyecto** dentro de él. Hay tres razones:
+
+1. **El organigrama es de puestos; el CRM es una herramienta.** Pasar a GoHighLevel cambia
+   la columna «módulos y herramientas» de tres puestos (Ventas y CRM, Postventa y Marketing),
+   no la estructura. Ningún puesto aparece ni desaparece.
+2. **La ola 1 de Paperclip no toca el CRM**, por la regla de datos. Las dos cosas pueden
+   avanzar en paralelo sin bloquearse.
+3. **GoHighLevel ya está estudiado.** El estudio del 2026-10-13 trae costos, estructura de
+   cuentas, cómo verlo dentro de Studio, migración, privacidad, un plan en 9 fases y 8
+   decisiones pendientes (sección 1.4, punto 6). No hace falta otro estudio: hace falta
+   **publicarlo**, porque hoy vive sin commit en un worktree y se puede perder, y ejecutar su
+   plan.
+
+**Qué espera a la transición y qué no:**
+
+| Pieza | ¿Espera al corte? | Por qué |
+|---|---|---|
+| Estructura, dueños y fichas | No | No dependen del CRM |
+| Ola 1 de Paperclip | No | No lee el CRM |
+| Seguimiento de la transición | No: es trabajo del CEO agente y del jefe de gabinete desde la ola 1 | Llevar las fases, recordar las 8 decisiones pendientes y preparar el lote del viernes no exige ver contactos |
+| Analista de embudo (P-21) | **Sí** | Se construye una sola vez contra el espejo neutro `crm_*` que propone el estudio, no contra Kommo |
+| IA conversacional | Sigue igual | Apagada en Kommo y encendida a mano. En GoHighLevel el estudio propone el bot de entrada en modo sugerido y con tope de gasto («Block AI at the limit») |
+| Integración de Studio con el CRM | Sí, con SDD | La sincronización, el webhook, la cola de escritura y el módulo CRM se reescriben para GoHighLevel; son tareas Worker |
+
+**Quién hace qué en la transición:**
+
+| Paso del plan del estudio | Puesto dueño | Papel de los agentes |
+|---|---|---|
+| Verificaciones, acuerdo con la agencia que entrega la subcuenta, Meta Business, fecha de corte | Junta | El CEO agente lleva la lista y la pone en el lote del viernes |
+| Política de privacidad que nombre a GoHighLevel, antes de cargar clientes reales | Cumplimiento y Riesgo + Worker con SDD | El Oficial de cumplimiento (ola 2) revisa que la política no prometa lo que el sistema no hace |
+| Configurar la subcuenta, el embudo y los canales | Dirección Comercial y Clientes | Ninguno: es configuración con datos reales |
+| Puente Studio → GoHighLevel y espejo `crm_*` | Dirección de Tecnología (Director y Workers) | El Puente de ingeniería convierte cada fase en un borrador de prompt Worker |
+| Corte de WhatsApp | Junta + Director | El CEO agente prepara la lista de comprobación del día |
+
+**Una advertencia nueva por GoHighLevel:** su conector oficial para Claude (MCP) le da al
+modelo acceso a los contactos. Como el adaptador de Claude Code en Paperclip salta los
+permisos también para los MCP conectados, **la máquina de Paperclip no puede tener
+configurado el MCP de GoHighLevel** ni ningún otro conector con datos de clientes (riesgo R11).
 
 ---
 
@@ -581,7 +640,7 @@ Junta. No dirige personas: dirige agentes y le prepara el trabajo a la Junta.
 | Escalar | Todo lo I3 o I4, y todo lo que toque dinero, producción, datos, precios, contratos o personas, sube a la Junta como propuesta lista | Aprobación `request_board_approval` |
 
 **Lo que el CEO agente no hace nunca:** hablar con clientes, proveedores o aliados; entrar
-al ERP, a Kommo o a la base de datos; publicar; aprobar o fusionar PRs; contratar, evaluar
+al ERP, al CRM (Kommo o GoHighLevel) o a la base de datos; publicar; aprobar o fusionar PRs; contratar, evaluar
 o despedir personas; tomar decisiones que solo existan dentro de Paperclip. Lo que se decide
 se escribe en el repositorio o en el ERP.
 
@@ -592,6 +651,8 @@ se escribe en el repositorio o en el ERP.
 3. Primeros 6 de los 18 SOP escritos y aprobados.
 4. Lista diaria del asesor funcionando; leads sin atender al cierre del día = 0.
 5. Ritual del viernes corriendo 4 semanas seguidas.
+6. Transición del CRM a GoHighLevel al día con su plan por fases, con las decisiones
+   pendientes en el lote del viernes y sin perder conversaciones en el corte.
 
 ### 3.3 Lo que queda siempre en manos de Sam
 
@@ -603,7 +664,7 @@ se escribe en el repositorio o en el ERP.
 | Contratos | Clientes, aliados, operador de Yiwu, socio China, contadora, abogada, proveedores de servicios |
 | Precios | Tarifario, mínimos, descuentos, promesas de plazo, condiciones del Puerta a Puerta |
 | Personas | Contratar, despedir, sueldos, evaluaciones, roles y accesos en el Studio |
-| Cuentas externas | Crear cuentas, aceptar términos, conectar OAuth, cambiar planes y pagar: Kommo, Anthropic, OpenAI, GitHub, Paperclip |
+| Cuentas externas | Crear cuentas, aceptar términos, conectar OAuth, cambiar planes y pagar: Kommo, GoHighLevel, Anthropic, OpenAI, GitHub, Paperclip |
 | Voz de la empresa | Todo mensaje a clientes, proveedores, redes o prensa en nombre de DTD |
 | Reglas | `AGENTS.md`, políticas de gobernanza aprobadas, este organigrama |
 | Agentes | Crear, pausar o terminar un agente y fijar el presupuesto total de IA |
@@ -633,7 +694,7 @@ se escribe en el repositorio o en el ERP.
 | Jefatura de Gabinete | Mixto | El agente redacta SOP y actas; la persona persigue y aprueba |
 | Cumplimiento | Mixto | El agente aplica listas de control; la decisión es de la contadora, la abogada y la Junta |
 | Dirección de Operaciones y subpuestos | Persona, con vigía | Presencia física, terceros y dinero. El agente solo vigila atrasos |
-| Ventas y CRM | Mixto | La conversación con el cliente la hacen el asesor y Kommo; el analista ordena el día |
+| Ventas y CRM | Mixto | La conversación con el cliente la hacen el asesor y, cuando se enciende, la IA del CRM; el analista ordena el día |
 | Postventa | Persona | Datos personales y confianza; la IA, cuando llegue, va dentro del ERP |
 | Tarifas | Mixto | El agente investiga; el precio lo decide la Junta |
 | Tesorería, Socio China, Nómina, Verificación | Solo persona | Dinero y datos de empleados |
@@ -655,7 +716,7 @@ se escribe en el repositorio o en el ERP.
 | Ola | Agentes | Qué necesitan | Condición para empezar |
 |---|---|---|---|
 | **1 · piloto, 4 semanas** | CEO · Jefe de gabinete · Puente de ingeniería · Editor de contenido | Una copia de solo lectura del repositorio y documentos públicos. Nada de producción | Tu aprobación de este documento y de la instalación |
-| **2** | Vigía de tránsito y entrega · Analista de embudo · Controller de cobro y cuadres · Analista de crecimiento · Oficial de cumplimiento · Analista de datos | Un **tablero de indicadores agregados** de solo lectura que el ERP exponga sin datos personales | Una SDD nueva para ese tablero (con `revisar-datos-ve`) y 4 semanas de la ola 1 dentro del presupuesto |
+| **2** | Vigía de tránsito y entrega · Analista de embudo · Controller de cobro y cuadres · Analista de crecimiento · Oficial de cumplimiento · Analista de datos | Un **tablero de indicadores agregados** de solo lectura que el ERP exponga sin datos personales | Una SDD nueva para ese tablero (con `revisar-datos-ve`) y 4 semanas de la ola 1 dentro del presupuesto. El Analista de embudo, además, espera al corte a GoHighLevel |
 | **3** | Gestor de casos de postventa · Asistente documental de aduana · Conciliación de calidad | Datos personales | Se construyen como **agentes del Studio** (SDD-0020) dentro del ERP. Paperclip solo ve su resultado |
 
 **Por qué estos cuatro primero:** atacan el cuello de botella del founder (el CEO y el jefe
@@ -726,6 +787,9 @@ Verificado en la documentación oficial y en el registro de vulnerabilidades el 
 | R8 | Dos fuentes de verdad | Git, PR, SDD, handoffs y el ERP siguen mandando (`AGENTS.md`). Ninguna decisión vive solo en Paperclip |
 | R9 | Choque con las sesiones de ingeniería | En la ola 1 los agentes de Paperclip no escriben en el repositorio ni lanzan sesiones |
 | R10 | Otra cuenta que se queda sin saldo | Aviso al 80 % que revisa la Junta; cada área conserva su forma manual de trabajar |
+| R11 | Un conector con datos de clientes, como el MCP de GoHighLevel, queda al alcance de un agente que salta permisos | La máquina de Paperclip no tiene configurado ningún MCP ni conector con datos de clientes; se revisa antes de cada ola |
+| R12 | Dos CRM a la vez durante la transición | La fuente de verdad de clientes sigue siendo Studio. El CEO agente reporta la fase en la que va cada canal |
+| R13 | Dos presupuestos de IA que crecen por separado: Paperclip y la IA del CRM | Cada uno con su tope duro. El parte del viernes muestra los dos gastos totales, sin detalle por cliente |
 
 ### 5.3 Permisos mínimos
 
@@ -828,10 +892,9 @@ probar y 20–100 USD o más al mes por empresa activa, más la máquina donde c
 
 Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo que bloquean:
 
-1. **Estructura.** ¿Apruebas cinco direcciones y dos áreas de apoyo? ¿O quieres Atención al
-   cliente como dirección propia, o la Aduana dentro de Cumplimiento?
-   ⭐ Tal como está: Atención al cliente dentro de Comercial («un solo punto de contacto») y
-   la Aduana en Operaciones, porque ejecutar y controlar van separados.
+1. ~~**Estructura.**~~ **Respondida:** Sam, 2026-10-19: «Me gusta el plan que me estás
+   sugiriendo, el organigrama». Queda tal como está: cinco direcciones y dos áreas de apoyo,
+   Atención al cliente dentro de Comercial y la Aduana en Operaciones.
 2. **Dueños humanos.** ¿Quién es el dueño de cada dirección y del puesto nuevo de Dirección
    de Operaciones? ¿Postventa sigue con rol `accounting` o pasa a `commercial`?
 3. **Junta y Dirección General.** ¿Quieres separar las dos cosas? ¿Hay una persona que
@@ -852,17 +915,20 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
     dónde lo quieres: el panel de Paperclip, Telegram o correo?
 11. **Contratar agentes.** ¿El CEO puede proponer agentes nuevos (tú apruebas cada uno) o
     la creación de agentes es solo tuya?
-12. **Metas.** ¿Las cinco metas de la sección 3.2 son las correctas para arrancar?
+12. **Metas.** ¿Las seis metas de la sección 3.2 son las correctas para arrancar?
 13. **SDD.** Este documento no la necesita. La instalación sí, porque cambia quién puede
     actuar sobre el repositorio y con qué permisos. ¿Le pido el número al Director cuando
     apruebes?
+14. **CRM.** ¿Confirmas que la transición a GoHighLevel avanza en paralelo, como proyecto
+    del organigrama, y que el analista de embudo espera al corte? ⭐ Sí, y que la sesión
+    dueña del estudio lo publique ya en su rama, antes de que se pierda (sección 2.6).
 
 ---
 
 ## 8. Qué pasa después de tu aprobación
 
-1. Ajusto este documento con tus respuestas y lo publico en una rama propia con una PR en
-   borrador (solo documentación).
+1. Ajusto este documento con tus respuestas en la misma PR en borrador (#285, solo
+   documentación). Integrarla es otra autorización.
 2. Con tu OK y un número de SDD del Director, se escribe la SDD de instalación: máquina,
    versión fijada, configuración de cada agente, reglas de datos y evidencia del piloto.
 3. La instalación y la creación de cuentas las autorizas tú, paso por paso. Nada de eso
@@ -883,7 +949,7 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
 `docs/design/studio/_norte/HANDOFF.md`, `backend/README.md`; `lib/studio/modules.ts`,
 `rbac.ts`, `user-types.ts`, `platform-admin.ts`, `privacidad-cn.ts`;
 `supabase/migrations/0204_nomina_positions.sql`; `app/api/cron/ceo-brief/route.ts`;
-`infra/dtd-cargo/cron/crontab`.
+`infra/dtd-cargo/cron/crontab`; el estudio de GoHighLevel del 2026-10-13 (`docs/marketing/crm-gohighlevel-transicion.md`, sin commit, en el worktree `DTD-worktrees/crm-ghl-evaluacion-20261013`).
 
 **Paperclip** (consultado el 2026-10-19): github.com/paperclipai/paperclip (README, releases,
 `SECURITY.md`, `ROADMAP.md`, avisos de seguridad); registry.npmjs.org/paperclipai;
