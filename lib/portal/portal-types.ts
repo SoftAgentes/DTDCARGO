@@ -274,15 +274,25 @@ export type PortalDashboardKpis = {
   activeShipments: number;
   /** Entregados (`delivered`) en el año calendario actual. */
   deliveredYtd: number;
-  /** Σ total_amount de facturas no-borrador (acumulado, moneda dominante). */
+  /**
+   * ¿Se pudieron leer TODAS las facturas? Con `false`, los cuatro campos de
+   * facturas de abajo no valen nada y la portada dice «No disponible» en vez de
+   * mostrar un 0 que parezca «al día» (SDD-0556).
+   */
+  invoicesAvailable: boolean;
+  /** Σ total_amount de facturas no anuladas (acumulado, moneda dominante). */
   invoicedTotal: number;
-  /** Σ (total_amount − paid_amount) de facturas no-borrador. */
+  /** Lo que falta pagar: Σ max(0, total − pagado) de las no anuladas (moneda dominante). */
   outstandingBalance: number;
-  /** Moneda dominante de las facturas (la de mayor total facturado); USD si no hay. */
+  /**
+   * Moneda de las cifras: entre las facturas no anuladas, la de mayor saldo por
+   * pagar; si nada se debe, la de mayor total facturado; USD si no hay facturas
+   * (`monedaDominante`, SDD-0556). No es «la moneda principal» del cliente.
+   */
   currency: InvoiceCurrency;
-  /** ¿Hay facturas en más de una moneda? (los montos se muestran en la dominante). */
+  /** ¿Hay facturas vigentes en más de una moneda? (los montos se muestran en la dominante). */
   mixedCurrencies: boolean;
-  /** Cuántas facturas tienen saldo pendiente (> 0). */
+  /** Cuántas facturas no anuladas tienen algo por pagar (> 0), en todas las monedas. */
   pendingInvoiceCount: number;
 };
 
