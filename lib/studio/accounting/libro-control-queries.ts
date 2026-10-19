@@ -34,6 +34,8 @@ import {
   CUENTA_PROVEEDORES,
   filasDelDiario,
   ORIGEN_POR_TIPO,
+  reciboVuelveNoComparable,
+  reclasificacionesPorRecibo,
   type AsientoDeDocumento,
   type AsientoDelDiario,
   type CuadreDelLibro,
@@ -252,7 +254,7 @@ export async function cuadreDelLibro(
     leerCompleto<Fila>("Por contabilizar · recibos", (d, h) =>
       supabase
         .from("payment_receipts")
-        .select("id, receipt_code, received_at, currency, amount, journal_entry_id, deleted_at")
+        .select("id, receipt_code, received_at, currency, amount, journal_entry_id, deleted_at, invoice_id, identified_at")
         .order("id", { ascending: true })
         .range(d, h),
     ),
@@ -279,7 +281,9 @@ export async function cuadreDelLibro(
         .select("id, status, source, invoice_id, receipt_id, bill_id, supplier_payment_id, deleted_at")
         .is("deleted_at", null)
         .in("status", ["asentado", "anulado"])
-        .in("source", Object.values(ORIGEN_POR_TIPO))
+        // SDD-0562: más `receipt_reclass`, para saber si un recibo identificado
+        // ya toca 1.1.2. El cruce de «sin asiento» no la usa: filtra por origen.
+        .in("source", [...Object.values(ORIGEN_POR_TIPO), "receipt_reclass"])
         .order("id", { ascending: true })
         .range(d, h),
     ),
@@ -338,13 +342,23 @@ export async function cuadreDelLibro(
   }));
 
   const porDocumento = asientosPorDocumento(docs, vinculos);
-  const recibosNoUsdConAsiento = docs.filter(
-    (d) =>
-      d.tipo === "recibo" &&
-      d.vivo &&
-      (d.moneda === "VES" || d.moneda === "CNY") &&
-      (porDocumento.get(`recibo:${d.id}`)?.vivos ?? 0) > 0,
-  ).length;
+  // SDD-0562 · Solo los recibos que tocan 1.1.2 (con factura y, si se
+  // identificaron, ya reclasificados): la definición canónica de la radiografía
+  // (SDD-0559), por decisión del Director del 2026-10-19.
+  const docsRecibo = docs.filter((d) => d.tipo === "recibo");
+  const reclasificaciones = reclasificacionesPorRecibo(docsRecibo, vinculos);
+  const filaRecibo = new Map(recibos.map((r) => [str(r.id), r]));
+  const recibosNoUsdConAsiento = docsRecibo.filter((d) => {
+    const r = filaRecibo.get(d.id);
+    return reciboVuelveNoComparable({
+      vivo: d.vivo,
+      moneda: d.moneda,
+      conFactura: strOrNull(r?.invoice_id) != null,
+      identificado: strOrNull(r?.identified_at) != null,
+      asientosCobro: porDocumento.get(`recibo:${d.id}`)?.vivos ?? 0,
+      reclasificaciones: reclasificaciones.get(d.id) ?? 0,
+    });
+  }).length;
 
   return {
     fecha: ctx.hoy,
