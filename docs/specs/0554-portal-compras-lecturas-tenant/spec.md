@@ -184,7 +184,11 @@ Mueren los 23.
 - [x] El Studio sin ámbito conserva su consulta; las pruebas de sus pantallas siguen verdes.
 - [x] `listPrealertaServiceRequests` comprobada: ya filtraba por tenant (SDD-0381), sin cambio.
 - [x] Sin migración, RLS, RPC ni UI nuevas.
-- [ ] `pnpm verify` en verde. Resultado en el handoff.
+- [ ] `pnpm verify` en verde. Sobre `104bb416` salió con exit 0: 14 de 17 pasos medidos y sin fallos
+  en lo medido. `test` pasó en el reintento: el flaky conocido `TransportistasPanel`, del Studio y
+  ajeno. Quedaron sin medir `sql-tests` y `schema-rebuild`, porque Docker estaba apagado, y
+  `migrations-applied`, porque no hay credenciales. El propio verify lo llama «CIERRE INCOMPLETO».
+  Esta SDD no trae SQL ni migración. Queda abierta hasta que el Director decida con este dato.
 
 ## Gobernanza y datos
 
