@@ -6,7 +6,7 @@
 | Owner | Worker (subagente del Director) · claim `worker-asistente-borrado-20261018` |
 | Ruta | `C:\Users\AKX generator\Desktop\Developer\DTDCARGO\.claude\worktrees\agent-a0dfdfa547efd84ef` |
 | Rama | `worktree-agent-a0dfdfa547efd84ef` |
-| Base | `origin/main` `77035907` |
+| Base | `origin/main` `77035907`; fusionada con `e8c68225` en `87b8ecb3` |
 | SDD | `docs/specs/0560-asistente-borrado-embarques/spec.md` (`in-progress`). Reserva `codex/sdd-reserve-0560` (commit `50cb7f57`, publicada) |
 | Migración | **Ninguna.** La 0493 que reservó el Director no se usa: queda libre |
 | Estado de la tarea | lista-para-revision (PR en borrador) |
@@ -73,7 +73,10 @@ el embarque. Aprobó la propuesta del Director: «sí, son todos demos, arranca 
 | `components:check` | `1edf50dc` | PASÓ (CMP-01 válido) |
 | `/ui-check` (advisory) | `e4df7c28` → ajustes en `2ebb277b` | Hecho; hallazgos corregidos (abajo) |
 | `pnpm verify` | `b19e41f7` | FALLÓ (exit 1): 1 rojo de 11391 en `test`, el inventario SDD-0357, corregido después (ver «Corrida de verify»). 15 pasos PASARON y 1 quedó SKIP (`migrations-applied`, sin migración) |
-| `invoice-read-boundary.test.mjs` después de corregirlo | árbol en la cabeza final | PASÓ (4/4) |
+| `invoice-read-boundary.test.mjs` después de corregirlo | `e6efa30c` | PASÓ (4/4) |
+| Merge de `origin/main` `e8c68225` (SDD-0554) en la rama | `87b8ecb3` | Sin conflictos; el driver resolvió el índice. `docs:check` (542 specs) y `sdd:check` PASARON |
+| typecheck del árbol fusionado | `87b8ecb3` | PASÓ |
+| Vitest focalizado del árbol fusionado: inventarios (SDD-0357, RBAC), borrado, Embarques, Tracking, pantallas, `prealertas`, `lib/portal` y las pantallas del portal que tocó la 0554 | `87b8ecb3` | PASÓ: 109 archivos, 1993 pruebas |
 | `knowledge:status` | `1edf50dc` | NO DISPONIBLE como medida útil: el worktree no tiene el grafo derivado (estructural INVALID con 3563 faltantes; semántico INVALID). Regenerarlo es una corrida pesada y Graphify lo publica el Director desde main |
 | `knowledge:visual:check` | `1edf50dc` | NO DISPONIBLE: `ARCHIFY_RUNTIME_MISSING` (falta el paquete Archify 2.16.0 en el worktree; descargarlo no estaba en el encargo) |
 | Prueba en navegador real | — | NO EJECUTADA: queda para el smoke de Sam |
@@ -145,7 +148,10 @@ Director.
 - `2ebb277b` fix(studio): SDD-0560 — ajustes del /ui-check del asistente de borrado.
 - `1edf50dc` docs(sdd): SDD-0560 — asistente de borrado de embarques (spec e índice).
 - `b19e41f7` docs(sdd): la evidencia de mutantes vive en el handoff (SHA de la corrida de verify).
-- El commit del inventario SDD-0357 y el que contiene este documento: hashes finales en la PR.
+- `e6efa30c` test(studio): el lector del asistente entra al inventario de lecturas de facturas.
+- `1895f507` docs(sdd): handoff, verify y allowlist del inventario de facturas.
+- `87b8ecb3` merge de `origin/main` (`e8c68225`, SDD-0554).
+- El commit que contiene este documento: el último de la rama (hash en la PR).
 
 ## PR / BRANCH
 
