@@ -988,7 +988,7 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
 
 1. Ajusto este documento con tus respuestas en la misma PR en borrador (#285, solo
    documentación). Integrarla es otra autorización.
-2. Con tu OK y un número de SDD del Director, se escribe la SDD de instalación: máquina,
+2. La SDD de instalación es la [SDD-0564](../specs/0564-instalacion-piloto-paperclip-hermes/spec.md) (propuesta el 2026-10-19): máquina,
    versión fijada, configuración de cada agente, reglas de datos y evidencia del piloto.
 3. La instalación y la creación de cuentas las autorizas tú, paso por paso. Nada de eso
    está hecho.

@@ -155,3 +155,14 @@ me gustaría que analices con Contabo cuál sería el adecuado para comprar un V
 - Recomendación en la sección 5.9 nueva: Cloud VPS 6, US East, Ubuntu 24.04, 100 GB NVMe,
   respaldo automático, mes a mes, sin imágenes de un clic. Pregunta 5 actualizada.
 - No se compró nada ni se entró al panel de Contabo. La compra es de Sam.
+
+## Ronda 4 · SDD-0564 de instalación (2026-10-19)
+
+- Sam: «Sí, arranca la SDD de instalación de Paperclip y Hermes en el VPS nuevo: pídele el
+  número al Director y escríbela. Todavía no instales nada.» Y después pidió no olvidar la
+  telemetría de Paperclip, Tailscale y los pendientes de seguridad.
+- El Director asignó la 0564 con sus condiciones. Reserva hecha con
+  `sdd:next --reserve instalacion-piloto-paperclip-hermes --number 0564 --push`
+  (rama `codex/sdd-reserve-0564`, commit del stub `d5f41026`, traído a esta rama con cherry-pick).
+  Al integrar, borrar la rama y la ref de reserva.
+- `docs/specs/0564-instalacion-piloto-paperclip-hermes/spec.md` en estado `proposed`. Nada instalado.
