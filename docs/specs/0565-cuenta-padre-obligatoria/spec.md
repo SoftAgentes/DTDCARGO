@@ -39,11 +39,11 @@ Hoy es posible crearla: `validateAccountInput` (`lib/studio/account-types.ts`) n
   - Si no se puede leer el plan, no crea ni borra, y el mensaje no trae el texto de la base (ERR-01).
 - No hay migración ni cambios de esquema o de pantalla. El error del código ya se pinta debajo del campo en el cajón de la cuenta.
 
-## Lo que no cubre: el candado en la base (propuesta para el Director)
+## Límite: la garantía cubre la acción, no la API directa
 
-`accounts` tiene `grant select, insert, update, delete ... to authenticated` (0078), con RLS por tenant. Una sesión autenticada puede insertar, cambiar el código o borrar por la API sin pasar por estas acciones. Además, **hoy ninguna pantalla llama a `deleteAccount`**: `git grep` encuentra solo su definición, así que en la práctica una cuenta solo se borra con un `delete` directo.
+`accounts` tiene `grant select, insert, update, delete on public.accounts to authenticated` (`0078_contabilidad.sql:137`), con RLS por tenant, y ninguna migración posterior lo revoca. `parent_id` es `references public.accounts(id) on delete cascade` (`0078_contabilidad.sql:28`). Una sesión autenticada puede insertar, cambiar el código o borrar por la API sin pasar por estas acciones. Además, **hoy ninguna pantalla llama a `deleteAccount`** (`git grep` encuentra solo su definición): en la práctica, una cuenta solo se borra con un `delete` directo.
 
-La garantía completa sería un disparador en la base, en una migración (la siguiente libre es la 0493): rechazar un insert o un update de `code` sin la cuenta padre, y un delete de una cuenta con subcuentas. **No se toma la 0493 sin la aprobación del Director**: sería migrate-first y necesita el OK nominal de Sam. Esta SDD no lo hace.
+**Decisión del Director, 2026-10-19:** el candado en la base no va en esta SDD y la 0493 no se toma ahora. El problema de fondo es ese grant, y eso es la **2.4 del plan (candado del mayor)**: policies por rol y nada de UPDATE ni DELETE para `authenticated`. La guarda de huérfanas en la base, y el `on delete cascade`, van con ella. También se cruza con la SDD del cierre contable con superclave, que toca los disparadores del mayor.
 
 ## Allowlist exacta
 
@@ -62,7 +62,7 @@ La garantía completa sería un disparador en la base, en una migración (la sig
 ## Criterios de aceptación
 
 1. `createAccount` no crea `1.1.2.9.1` sin `1.1.2.9` y dice cuál falta; crea el padre y después la hija.
-2. `deleteAccount` no borra una cuenta con subcuentas por código ni por `parent_id`; las dos quedan. Borra la hija y después el padre.
+2. `deleteAccount` no borra una cuenta con subcuentas por código ni por `parent_id`: **borrar el padre no se lleva a las hijas.** El doble de la prueba emula el `on delete cascade` de la base, así que, sin la regla, las hijas desaparecerían y la prueba lo vería. Borra la hija y después el padre.
 3. Una cuenta sin subcuentas ni movimientos se borra; una que no existe da «Cuenta no encontrada.».
 4. Un plan que no llega completo no se usa: `planDeCuentas` lanza.
 5. Si no se puede leer el plan, ni crea ni borra, y no muestra el texto de la base.

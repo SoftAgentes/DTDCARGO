@@ -44,7 +44,24 @@ vi.mock("@/lib/db/server", () => ({
           },
           delete: () => ({
             eq: async (col: string, val: unknown) => {
-              estado.tablas[t] = (estado.tablas[t] ?? []).filter((f) => f[col] !== val);
+              const filas = estado.tablas[t] ?? [];
+              const borrar = new Set(filas.filter((f) => f[col] === val).map((f) => f.id));
+              // Como la base: `parent_id ... on delete cascade` (0078_contabilidad.sql:28) se lleva,
+              // en cadena, a las cuentas que apuntan a una borrada. Sin la regla de la SDD-0565, la
+              // hija desaparece y la prueba lo ve.
+              if (t === "accounts") {
+                let crecio = true;
+                while (crecio) {
+                  crecio = false;
+                  for (const f of filas) {
+                    if (!borrar.has(f.id) && borrar.has(f.parent_id)) {
+                      borrar.add(f.id);
+                      crecio = true;
+                    }
+                  }
+                }
+              }
+              estado.tablas[t] = filas.filter((f) => !borrar.has(f.id));
               return { error: null };
             },
           }),
@@ -121,11 +138,22 @@ describe("SDD-0565 · el plan de cuentas no deja cuentas huérfanas", () => {
     expect(codigos()).toEqual(["1", "1.1", "1.1.2"]);
   });
 
-  it("no borra una cuenta que otra apunta por parent_id, aunque el código no lo diga (on delete cascade)", async () => {
-    estado.tablas.accounts.push(cuenta("a-57", "5.7"), cuenta("a-81", "8.1", "a-57"));
+  it("borrar el padre no se lleva a las hijas: ni por código ni por parent_id (on delete cascade)", async () => {
+    // 5.7 tiene una hija por código (5.7.1, que la apunta por parent_id) y otra solo por parent_id (8.1).
+    estado.tablas.accounts.push(cuenta("a-57", "5.7"), cuenta("a-571", "5.7.1", "a-57"), cuenta("a-81", "8.1", "a-57"));
     const r = await deleteAccount("a-57");
-    expect(r.error).toContain("tiene subcuentas (8.1)");
-    expect(codigos()).toEqual(expect.arrayContaining(["5.7", "8.1"]));
+    expect(r.error).toBe(
+      "No se puede eliminar la cuenta 5.7: tiene subcuentas (5.7.1, 8.1). Elimina primero las subcuentas.",
+    );
+    expect(codigos()).toEqual(expect.arrayContaining(["5.7", "5.7.1", "8.1"]));
+  });
+
+  it("control del doble: sin subcuentas propias, borrar sigue el cascade de la base", async () => {
+    // Una cuenta sin hijas se borra; el doble aplica el cascade como la base, así que la prueba
+    // de arriba sí vería desaparecer a 5.7.1 y 8.1 si la regla no estuviera.
+    estado.tablas.accounts.push(cuenta("a-61", "6.1"));
+    expect((await deleteAccount("a-61")).ok).toBe(true);
+    expect(codigos()).not.toContain("6.1");
   });
 
   it("con muchas subcuentas nombra tres y cuenta el resto", async () => {
