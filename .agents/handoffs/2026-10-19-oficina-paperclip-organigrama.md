@@ -142,3 +142,16 @@ Comprobó que el estudio de GoHighLevel es un solo archivo sin commit (35.850 by
 Indicación: no copiarlo ni citarlo como fuente en Git hasta que esté en `main`; si se cita,
 marcarlo «documento sin publicar». Hecho: todas las citas del documento y de este handoff
 llevan esa etiqueta. La #285 sigue en borrador hasta que Sam conteste lo que falta.
+
+## Ronda 3 · VPS de Contabo para Paperclip y Hermes (2026-10-19)
+
+Sam, literal: «analizando dónde podemos instalar Hermes para poder trabajar con esto también,
+me gustaría que analices con Contabo cuál sería el adecuado para comprar un VPS para arrancar».
+
+- Hermes = Hermes Agent de Nous Research; Paperclip lo trae de fábrica (`hermes_local`),
+  comprobado en docs.paperclip.ing.
+- Planes y precios del configurador oficial de Contabo (2026-10-19); la página de Paperclip de
+  Contabo, comprobada por esta sesión, recomienda el VPS 6/8/12.
+- Recomendación en la sección 5.9 nueva: Cloud VPS 6, US East, Ubuntu 24.04, 100 GB NVMe,
+  respaldo automático, mes a mes, sin imágenes de un clic. Pregunta 5 actualizada.
+- No se compró nada ni se entró al panel de Contabo. La compra es de Sam.

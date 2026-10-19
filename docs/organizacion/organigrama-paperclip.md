@@ -852,7 +852,64 @@ reglas de `AGENTS.md`, y en Paperclip esas reglas serían solo instrucciones, no
 |---|---|---|
 | ⭐ **Máquina virtual o VPS pequeño aparte**, Ubuntu 24.04, modo `authenticated` + `private` por Tailscale | Es el camino que documentan; separado de producción y de tu equipo | Un costo mensual más |
 | WSL2 en tu PC | Sin costo extra | La guía no cubre Windows ni WSL (**NO VERIFICADO** que funcione); compite por CPU con `verify` y las sesiones |
-| El VPS de producción (Contabo) | Ya existe | **No recomendado:** con el historial de ejecución remota, un fallo pondría en riesgo la base y la web |
+| El VPS de producción (Contabo) | Ya existe | **No recomendado:** con el historial de ejecución remota, un fallo pondría en riesgo la base y la web. Además ahí corren Loop 3D y Renta Aguada |
+
+### 5.9 El VPS de Contabo para la oficina de agentes (Paperclip + Hermes)
+
+Sam pidió el 2026-10-19 analizar qué VPS de Contabo comprar para arrancar con Paperclip y
+con **Hermes**. Hermes es **Hermes Agent, de Nous Research**: un agente de código abierto
+(licencia MIT, versión 0.22.2 del 2026-10-15) con memoria propia y conexión a Telegram,
+WhatsApp y otras mensajerías. Paperclip lo trae como adaptador de fábrica (`hermes_local`,
+que lo corre en la misma máquina, y `hermes_gateway`, que lo llama por HTTP). Verificado en
+la documentación de Paperclip y en el repositorio de Nous Research.
+
+**Lo que pesa de Hermes:** por defecto ejecuta comandos directo en la máquina, sin
+aislamiento, y con todas sus herramientas encendidas (terminal, archivos, web y navegador).
+Su propia guía de seguridad dice que la única frontera real es el sistema operativo y
+recomienda el backend Docker y no correr como root. No necesita GPU si usa modelos por API;
+correr un modelo Hermes dentro del VPS no conviene (16 GB o más de RAM y muy lento sin GPU).
+
+**Planes vigentes** (configurador oficial de contabo.com, 2026-10-19, precios netos sin IVA
+para Venezuela; se confirman en el pago):
+
+| Plan | vCPU | RAM | Disco | 1 mes | 12 meses | Recargo US East |
+|---|---|---|---|---|---|---|
+| Cloud VPS 4 | 4 | 8 GB | 100 GB SSD | 6,60 USD | 5,61 USD | +1,90 USD |
+| ⭐ **Cloud VPS 6** | 6 | 12 GB | 200 GB SSD o 100 GB NVMe | 9,00 USD | 7,65 USD | +3,00 USD |
+| Cloud VPS 8 | 8 | 24 GB | 300 GB SSD o 150 GB NVMe | 16,80 USD | 14,28 USD | +5,90 USD |
+
+Sin cargo de instalación en ningún plazo. Respaldo automático diario: 2 USD (VPS 4), 4 USD
+(VPS 6) o 6 USD (VPS 8) al mes. Contabo publica una
+página para Paperclip que recomienda el VPS 6 como «Power User» y el 8 para equipos, y otra
+para Hermes que arranca en el VPS 4.
+
+**Recomendación ⭐ Cloud VPS 6 en US East (New York), Ubuntu 24.04, con respaldo
+automático:** unos **16 USD al mes** (9 + 3 de región + 4 de respaldo) pagando mes a mes.
+
+- **Por qué el 6 y no el 4:** 8 GB alcanzan para Paperclip con 3–4 procesos de Claude Code,
+  pero Hermes con su backend Docker y la base embebida comen el margen. 12 GB dan holgura
+  para la ola 1 sin pagar el doble del VPS 8.
+- **Por qué US East:** es la región esperable con mejor latencia a Venezuela (**INFERIDO**;
+  se mide con los servidores de Speedtest de Contabo) y la misma del servidor de producción.
+- **Por qué mes a mes primero:** el piloto dura 4 semanas. Si funciona, se pasa a 12 meses
+  (15 % menos). El desistimiento de 14 días solo aplica a consumidores, no a empresas.
+- **Disco:** 100 GB NVMe en vez de 200 GB SSD; la base embebida agradece el disco rápido y
+  100 GB sobran.
+- **Imagen de un clic:** Contabo ofrece imágenes «Paperclip Server» y «Hermes Agent Server».
+  ⭐ **No usarlas** en el piloto: instalan una versión y una configuración que no controlamos
+  (salto de permisos, telemetría, modo de acceso). Ubuntu limpio y versiones fijadas en la
+  SDD de instalación.
+- **Día 1:** medir disco y CPU antes de instalar nada, como pide el runbook del servidor
+  propio, porque Contabo entrega nodos muy distintos entre sí.
+
+**Reglas de la máquina** (se escriben en la SDD de instalación): ningún puerto público;
+acceso solo por Tailscale; usuario sin root; Hermes con backend Docker y herramientas
+recortadas; sin llaves SSH al servidor de producción, sin `.env` de DTD, sin MCP ni
+conectores con datos de clientes (R11); y la llave maestra de Paperclip respaldada fuera
+de la máquina.
+
+**La compra la haces tú.** El panel de Contabo no abre en el navegador integrado y comprar
+es una acción tuya.
 
 ---
 
@@ -903,7 +960,7 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
    pueda asumir la dirección del día a día? ⭐ Separarlas como meta del trimestre.
 4. **Presupuesto.** ¿Tope mensual de IA para la ola 1? ⭐ ≤ 100 USD con parada dura. ¿Se
    paga con una llave de API nueva, solo para Paperclip, o con una suscripción?
-5. **Dónde corre.** ¿VM o VPS pequeño aparte, WSL2 en tu PC, u otra opción?
+5. **Dónde corre.** ¿Compras el Cloud VPS 6 de Contabo en US East (sección 5.9), u otra opción?
    ⭐ VM o VPS aparte, nunca el servidor de producción.
 6. **Ola 1.** ¿Apruebas CEO, Jefe de gabinete, Puente de ingeniería y Editor de contenido,
    solo lectura, 4 semanas?
