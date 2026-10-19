@@ -7,7 +7,7 @@
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\sdd-0562-subdiario-alineado` |
 | Rama | `codex/sdd-0562-subdiario-alineado`, desde `origin/main` `4728a8ca` (con la 0557 y la 0559 integradas) |
 | SDD | [0562](../../docs/specs/0562-subdiario-alineado-con-radiografia/spec.md), `in-progress`. La reserva es `codex/sdd-reserve-0562` (`78bdfe51`) y entró por cherry-pick |
-| Estado | lista para revisión, con PR en borrador; `pnpm verify` necesita turno del Director |
+| Estado | lista para revisión, con PR en borrador #287; `pnpm verify` PASÓ en lo medido (16/17) sobre `d9300e88` |
 | Permisos | Sam pidió el 2026-10-19 hacer esta alineación como la siguiente tarea, después de la 0558 («4. Para la siguiente tarea, alinear la 0557»). Eso cubre commits selectivos, push de la rama propia y PR en borrador. No incluye producción ni base de datos |
 
 ## OBJETIVO ORIGINAL
@@ -40,7 +40,13 @@ Es la decisión del Director del 2026-10-19 sobre la divergencia que encontró l
 | Control rojo de la paridad (8 mutantes, restaurados por copia, con la huella sha256 igual antes y después) | quitar `conFactura`; quitar la cláusula de identificado; «identificado nunca cuenta»; `asientosCobro > 0` → `true`; quitar `vivo`; no leer `invoice_id`, `identified_at` ni `receipt_reclass` | los 8 hacen fallar (a) y (b) de la paridad |
 | `typecheck`, eslint `--max-warnings=0` (5 archivos), `check-rsc-boundary` | repo y archivos tocados | PASÓ |
 | `docs:check` (548 specs), `sdd:check`, `governance:check`, `components:check`, `migrations-lock verificar` | documentación y candado | PASÓ |
-| `pnpm verify` | completo | PENDIENTE: turno del Director |
+| `pnpm verify` sobre `d9300e88` (turno del Director, 2026-10-19 14:26:39Z a 15:00:47Z) | completo | `VERIFY_EXIT=0`, «CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied. No hubo fallos en lo medido (16/17)». Detalle abajo |
+
+Detalle del `verify`, copiado de su salida:
+- **PASÓ:** harness, lint, rsc-boundary, typecheck, edge-functions, test, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols («0 ROJO · 0 AMARILLO»), sql-tests, schema-rebuild, e2e y build.
+- **test:** la primera vuelta dio `Tests  1 failed | 11860 passed | 1 skipped (11862)`. El rojo fue `scripts/__tests__/radiografia-integridad.test.ts` › «guarda de Git: ninguna salida en modo montos en docs/ ni en .agents/», con `Test timed out in 20000ms` (20940ms). El reintento dio `Tests  11861 passed | 1 skipped (11862)`. Esa prueba es de la SDD-0559, ya en `main`, y esta rama no la toca: es el tope de 20 s bajo la carga del `verify`.
+- **e2e:** `1 flaky` y `177 passed (7.3m)`. La inestable es `[chromium] › e2e\calculadora-semantic-colors.spec.ts:53:7 › Selector combinado: teclado, Escape, clic y cursor en light`, de la calculadora pública, ajena a esta rama.
+- **NO DISPONIBLE:** migrations-applied, porque el worktree no tiene `.env.local`. Esta SDD no lleva migración.
 
 ## Impacto documental y conocimiento
 
@@ -48,8 +54,8 @@ La spec de la 0562 y la de la 0557 (nota de alineación). No hay cambios de esqu
 
 ## PENDIENTES DE ESTA TAREA
 
-1. `pnpm verify` con turno del Director.
-2. Integración por el Director. No lleva migración; el merge publica por el VPS.
+1. Integración por el Director. No lleva migración; el merge publica por el VPS.
+2. Las decisiones del Director sobre los puntos 1 a 3 de abajo (2026-10-19) siguen en la SDD-0563. La #287 queda como está.
 
 ## FUERA DE ALCANCE DETECTADO (para el Director)
 
