@@ -12,6 +12,9 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPaged } from "@/lib/db/paginate";
+import { esSinPermiso, ORDEN_MONEDAS, resumirCuentaCliente } from "@/lib/studio/client-account";
+import type { InvoiceCurrency } from "@/lib/studio/invoice-types";
+import { listClientOutstanding } from "@/lib/studio/client-queries";
 import type {
   Conversation,
   ConversationAgent,
@@ -308,29 +311,66 @@ const TERMINAL_SHIPMENT_STATUSES = new Set([
   "arrived_destination",
 ]);
 
+type SaldoDelPanel = ConversationClientContext["outstanding"];
+
+/**
+ * El saldo de la fachada vieja de 0412, para un rol que no ve el saldo del
+ * cliente: es EXACTAMENTE lo que ese rol ve hoy (moneda dominante del cliente
+ * del hilo), sin ampliar nada. `null` si no responde, si responde por otro
+ * cliente o si el monto no es un número válido: nunca un 0 inventado.
+ */
+async function saldoDeLaFachadaVieja(
+  supabase: SupabaseClient,
+  conversationId: string,
+  clientId: string,
+): Promise<SaldoDelPanel> {
+  const { data, error } = await supabase
+    .rpc("conversation_client_outstanding", { p_conversation_id: conversationId })
+    .maybeSingle<{ client_id: string; balance: number | string; currency: string }>();
+  if (error || !data || data.client_id !== clientId) return null;
+  const balance = Number(data.balance);
+  if (!Number.isFinite(balance) || balance < 0) return null;
+  if (!(ORDEN_MONEDAS as readonly string[]).includes(data.currency)) return null;
+  return balance > 0 ? [{ currency: data.currency as InvoiceCurrency, amount: balance }] : [];
+}
+
 /**
  * Contexto del cliente para el panel del hilo: MARKBOX, envíos activos y saldo
  * CxC. No duplica data operativa — los envíos linkean al módulo y el saldo es un
- * agregado (link a Cobranzas en la UI). La RPC resuelve el cliente desde el hilo
- * y devuelve sólo saldo/moneda. Devuelve null si no hay contexto autorizado.
+ * agregado (link a la ficha en la UI).
+ *
+ * SDD-0558: el saldo sale de la definición única (`listClientOutstanding`,
+ * migración 0492), por moneda y sin mezclar, con los códigos anteriores y las
+ * fichas fusionadas. `clientId` es el del hilo, que la ruta ya leyó bajo RLS.
+ *  - Sin fila (ficha borrada o de otro tenant): no hay contexto (null).
+ *  - Si el rol no ve el saldo (42501), cae a la fachada vieja de 0412 con el
+ *    hilo: ve lo mismo que veía, sin ampliar nada.
+ *  - Si la lectura falla por otra razón, el contexto sale con el saldo en null
+ *    («no se pudo calcular»), nunca en 0.
  */
 export async function getClientContext(
   supabase: SupabaseClient,
+  clientId: string,
   conversationId: string,
 ): Promise<ConversationClientContext | null> {
-  const { data: outstanding, error: outstandingError } = await supabase
-    .rpc("conversation_client_outstanding", {
-      p_conversation_id: conversationId,
-    })
-    .maybeSingle<{ client_id: string; balance: number | string; currency: string }>();
-  if (outstandingError || !outstanding) return null;
-  const balance = Number(outstanding.balance);
-  if (!Number.isFinite(balance) || balance < 0) return null;
+  let outstanding: SaldoDelPanel;
+  try {
+    const filas = await listClientOutstanding(supabase, [clientId]);
+    const cuenta = resumirCuentaCliente(filas, clientId);
+    if (!cuenta) return null;
+    outstanding = cuenta.saldos
+      .filter((s) => s.abierto > 0)
+      .map((s) => ({ currency: s.currency, amount: s.abierto }));
+  } catch (e) {
+    outstanding = esSinPermiso(e)
+      ? await saldoDeLaFachadaVieja(supabase, conversationId, clientId)
+      : null;
+  }
 
   const { data: client, error } = await supabase
     .from("clients")
     .select("id, markbox, name, email, phone")
-    .eq("id", outstanding.client_id)
+    .eq("id", clientId)
     .is("deleted_at", null)
     .maybeSingle<{
       id: string;
@@ -361,7 +401,6 @@ export async function getClientContext(
     email: client.email,
     phone: client.phone,
     activeShipments,
-    outstandingBalance: balance,
-    outstandingCurrency: outstanding.currency,
+    outstanding,
   };
 }

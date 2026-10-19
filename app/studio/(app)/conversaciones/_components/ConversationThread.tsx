@@ -38,6 +38,7 @@ import {
   type ConversationStatus,
 } from "@/lib/studio/conversaciones/conversations-types";
 import type { ConversationDigest } from "@/lib/studio/conversaciones/conversations-queries";
+import { SaldoPendienteContexto } from "./SaldoPendienteContexto";
 
 const EMPTY_STATE: ConversationActionState = {};
 
@@ -620,43 +621,8 @@ function ClientContextPanel({
         )}
       </div>
 
-      {/* Saldo CxC */}
-      <div>
-        <div
-          style={{
-            font: "700 9.5px/1 var(--f-sans)",
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "var(--ink-soft)",
-            marginBottom: "var(--s-2)",
-          }}
-        >
-          Saldo pendiente
-        </div>
-        {loading ? (
-          <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>—</span>
-        ) : (
-          <Link
-            href="/studio/cobranzas"
-            style={{
-              font: "800 18px/1 var(--f-display)",
-              color:
-                context && context.outstandingBalance > 0 ? "var(--danger)" : "var(--ink)",
-              textDecoration: "none",
-            }}
-          >
-            {context
-              ? `${context.outstandingBalance.toLocaleString("es-VE", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} ${context.outstandingCurrency}`
-              : "—"}
-          </Link>
-        )}
-        <div style={{ font: "500 10.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 3 }}>
-          Ver en Cobranzas →
-        </div>
-      </div>
+      {/* Saldo CxC por moneda (SDD-0558) */}
+      <SaldoPendienteContexto context={context} loading={loading} />
 
       {/* Historial de resúmenes mensuales (SDD-0149 · Fase 2). Solo lectura; cada
           uno con su período. Vacío hasta que el cron mensual genere el primero. */}

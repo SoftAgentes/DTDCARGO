@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 547 specs)
+### Índice de specs (generado · 548 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -582,9 +582,10 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0555 | El borrador de factura conserva el embarque de cada línea | in-progress | interno |
 | 0556 | El portal dice la verdad: las facturas anuladas no son deuda | in-progress | interno |
 | 0557 | Reportes contables sin migración: una cifra de ingreso, compr… | in-progress | interno |
+| 0558 | Saldo único por cliente y cabecera del perfil v1 | in-progress | interno |
 | 0559 | Radiografía de integridad contable repetible | in-progress | interno |
 | 0560 | Asistente de borrado de embarques: pasos en orden para poder … | in-progress | interno |
 | 0561 | Candado de las migraciones aplicadas: una migración en produc… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0558 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

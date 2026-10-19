@@ -337,9 +337,39 @@ const KOMMO_BASE = {
     { tenant_id: "t1", contact_saldo_field_id: 11, contact_transito_field_id: 22 },
   ],
   clients: [
-    { tenant_id: "t1", markbox: "DTD-1001", kommo_contact_id: 501, deleted_at: null },
+    { tenant_id: "t1", id: "cli-1", markbox: "DTD-1001", kommo_contact_id: 501, deleted_at: null },
   ],
 };
+
+/**
+ * SDD-0558 · el saldo y los códigos del cliente salen de `client_outstanding`
+ * (0492). La RPC del doble registra los ids que recibe y responde una fila
+ * por moneda; la regla del saldo (borrador, anulada, eliminada) la prueba el
+ * contrato SQL, no este doble.
+ */
+function saldoDe(filas: Fila[], vistos: unknown[][] = []): Record<string, Rpc> {
+  return {
+    client_outstanding: (args) => {
+      vistos.push(args.p_client_ids as unknown[]);
+      return { data: filas, error: null };
+    },
+  };
+}
+
+function filaSaldo(abierto: number, markboxes = ["DTD-1001"]): Fila {
+  return {
+    client_id: "cli-1",
+    markboxes,
+    currency: "USD",
+    open_amount: abierto,
+    overdue_amount: 0,
+    open_invoices: abierto > 0 ? 1 : 0,
+    overdue_invoices: 0,
+    oldest_overdue_due_date: null,
+    last_payment_on: null,
+    as_of: "2026-10-19",
+  };
+}
 
 /** El campo que se le escribiría al contacto, por id de campo. */
 function camposEncolados(): Record<number, string> {
@@ -359,11 +389,10 @@ describe("syncKommoContactStatus · un envío eliminado no es carga en tránsito
       envio({ id: "s-entregado", status: "delivered" }),
       ENVIO_ELIMINADO,
     ],
-    invoices: [],
   };
 
   it("«Carga en tránsito» dice No", async () => {
-    const { client, filtros } = dobleLectores(tablas);
+    const { client, filtros } = dobleLectores(tablas, saldoDe([filaSaldo(0)]));
     const r = await syncKommoContactStatus(client, "t1");
 
     expect(r.conTransito).toBe(0);
@@ -372,7 +401,18 @@ describe("syncKommoContactStatus · un envío eliminado no es carga en tránsito
   });
 
   it("sin el filtro diría Sí (control del doble)", async () => {
-    const { client } = dobleLectores(todoVivo(tablas));
+    const { client } = dobleLectores(todoVivo(tablas), saldoDe([filaSaldo(0)]));
+    const r = await syncKommoContactStatus(client, "t1");
+
+    expect(r.conTransito).toBe(1);
+    expect(camposEncolados()[22]).toBe(SI);
+  });
+
+  it("SDD-0558 · un envío bajo un código fusionado o retirado SÍ es carga del cliente", async () => {
+    const { client } = dobleLectores(
+      { ...KOMMO_BASE, shipments: [envio({ id: "s-viejo", client_markbox: "DTD-0900" })] },
+      saldoDe([filaSaldo(0, ["DTD-1001", "DTD-0900"])]),
+    );
     const r = await syncKommoContactStatus(client, "t1");
 
     expect(r.conTransito).toBe(1);
@@ -380,39 +420,51 @@ describe("syncKommoContactStatus · un envío eliminado no es carga en tránsito
   });
 });
 
-describe("syncKommoContactStatus · una factura eliminada no es saldo (SDD-0511)", () => {
-  // Desde SDD-0465 solo se borran borradores, que ya no cuentan. Esta es la
-  // factura EMITIDA borrada antes de eso: sin el filtro, sería deuda.
+describe("syncKommoContactStatus · el saldo sale de la 0492 (SDD-0558)", () => {
+  // Antes el job leía `invoices` y sumaba en TS (SDD-0511 probaba acá que una
+  // factura eliminada no fuera saldo). Ahora esa regla vive en la 0492 y la
+  // prueba su contrato («una factura eliminada no es deuda»). Acá queda lo que
+  // es del job: qué ids pide, que no lee facturas y cómo degrada.
   const tablas = {
     ...KOMMO_BASE,
     shipments: [],
+    // Una factura viva con saldo en la tabla: si el job volviera a leer
+    // invoices y sumar, «Tiene saldo» diría Sí aunque la 0492 diga 0.
     invoices: [
-      {
-        tenant_id: "t1",
-        client_markbox: "DTD-1001",
-        status: "emitida",
-        total_amount: 100,
-        paid_amount: 0,
-        deleted_at: ELIMINADO_EL,
-      },
+      { tenant_id: "t1", client_markbox: "DTD-1001", status: "emitida",
+        total_amount: 100, paid_amount: 0, deleted_at: null },
     ],
   };
 
-  it("«Tiene saldo pendiente» dice No", async () => {
-    const { client, filtros } = dobleLectores(tablas);
+  it("pide el saldo de los clientes vinculados y no lee la tabla de facturas", async () => {
+    const vistos: unknown[][] = [];
+    const { client, filtros } = dobleLectores(tablas, saldoDe([filaSaldo(0)], vistos));
     const r = await syncKommoContactStatus(client, "t1");
 
+    expect(vistos).toEqual([["cli-1"]]);
+    expect(filtros.some((x) => x.table === "invoices")).toBe(false);
     expect(r.conSaldo).toBe(0);
     expect(camposEncolados()[11]).toBe(NO);
-    expect(filtros).toContainEqual(filtroDeBorrado("invoices"));
   });
 
-  it("sin el filtro diría Sí (control del doble)", async () => {
-    const { client } = dobleLectores(todoVivo(tablas));
+  it("con algo abierto en la 0492 escribe Sí", async () => {
+    const { client } = dobleLectores(tablas, saldoDe([filaSaldo(80)]));
     const r = await syncKommoContactStatus(client, "t1");
 
     expect(r.conSaldo).toBe(1);
     expect(camposEncolados()[11]).toBe(SI);
+  });
+
+  it("⭐ si la lectura del saldo falla, queda inerte y NO escribe «No»", async () => {
+    const { client } = dobleLectores(tablas, {
+      client_outstanding: () => ({ data: null, error: { code: "PGRST202", message: "no existe" } }),
+    });
+    const r = await syncKommoContactStatus(client, "t1");
+
+    expect(r.inerte).toBe("saldo: no existe");
+    expect(r.vinculados).toBe(1);
+    expect(r.encoladas).toBe(0);
+    expect(enqueueMock).not.toHaveBeenCalled();
   });
 });
 
