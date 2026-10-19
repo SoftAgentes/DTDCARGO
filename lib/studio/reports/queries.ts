@@ -48,6 +48,10 @@ import {
 import type { InvoiceIvaMode } from "@/lib/studio/fiscal/config-types";
 import { listAccounts, accountBalances } from "@/lib/studio/account-queries";
 import { profitAndLoss } from "@/lib/studio/accounting/reports";
+import {
+  controlDelPeriodo,
+  ingresoDelPeriodo,
+} from "@/lib/studio/accounting/libro-control-queries";
 import { receivablesQueue } from "@/lib/studio/payment-queries";
 import { payablesQueue } from "@/lib/studio/treasury/bill-queries";
 import { invoiceKpis } from "@/lib/studio/invoice-queries";
@@ -695,6 +699,12 @@ export async function commercialByAgent(
  * TAL CUAL sobre los saldos del rango: NO recalcula. Compone igual que Dirección
  * (0048): listAccounts + accountBalances({fromDate, upToDate}) → profitAndLoss.
  * La vista solo formatea filas con % sobre ingresos (incomeStatementRows).
+ *
+ * SDD-0557: suma `ingreso`, la cifra oficial del MISMO rango
+ * (`ingresoDelPeriodo`), con el control contra la 4.5 de los asientos de
+ * factura (`controlDelPeriodo`) y el total de ingresos de estos mismos saldos.
+ * Hoy el mayor está incompleto: el P&L puede dar 0 con facturas emitidas, y la
+ * vista lo dice en vez de mostrar el estado vacío.
  */
 export async function incomeStatement(
   supabase: SupabaseClient,
@@ -707,11 +717,15 @@ export async function incomeStatement(
     accountBalances(supabase, { fromDate: range.from, upToDate: range.to }),
   ]);
   const pl = profitAndLoss(accounts, balances);
+  const ingreso = await ingresoDelPeriodo(supabase, range, {
+    mayor: await controlDelPeriodo(supabase, range, accounts, balances),
+  });
   return {
     rows: incomeStatementRows(pl),
     income: pl.income,
     netIncome: pl.netIncome,
     range,
+    ingreso,
   };
 }
 
@@ -753,10 +767,12 @@ export async function agingReport(
   };
 }
 
-// ── Contables · Cashflow facturado vs cobrado ──────────────────
+// ── Contables · Facturado contra cobrado (antes «Cashflow») ────
 
 /**
- * Cashflow del período: serie mensual de FACTURADO vs COBRADO, ambos
+ * Facturado contra cobrado del período (SDD-0052; se llamaba «Cashflow», pero
+ * no es un flujo de caja: SDD-0557 le cambió el rótulo y conservó el slug
+ * `cashflow` y los identificadores): serie mensual de FACTURADO vs COBRADO, ambos
  * USD-normalizados vía invoiceUsdAmount (VES/fx; CNY → 0). KPIs por-cobrar/vencido
  * REUSAN `invoiceKpis` (Facturación 0021, saldos vivos · no del rango). NO
  * recalcula montos: solo agrega y normaliza. EmptyState honesto si la serie es plana.

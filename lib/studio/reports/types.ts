@@ -19,6 +19,10 @@ import {
   type ShipmentService,
 } from "@/lib/shared/shipment-public";
 import {
+  mesEnCurso,
+  type IngresoPeriodo,
+} from "@/lib/studio/accounting/ingreso-periodo";
+import {
   type QuoteStatus,
   statusLabel as quoteStatusLabel,
   statusBadgeTone as quoteStatusTone,
@@ -60,9 +64,12 @@ export type CombinedReport = {
 
 // ── Período ────────────────────────────────────────────────────
 
-export type ReportPeriod = "1M" | "3M" | "1A" | "YTD";
+export type ReportPeriod = "MES" | "1M" | "3M" | "1A" | "YTD";
 
 export const PERIOD_OPTIONS: { value: ReportPeriod; label: string }[] = [
+  // SDD-0557: el mes calendario, la misma ventana de Contabilidad, Dirección y
+  // el Dashboard. Las demás son ventanas móviles.
+  { value: "MES", label: "Este mes" },
   { value: "1M", label: "Último mes" },
   { value: "3M", label: "Últimos 3 meses" },
   { value: "1A", label: "Último año" },
@@ -71,7 +78,7 @@ export const PERIOD_OPTIONS: { value: ReportPeriod; label: string }[] = [
 
 export const DEFAULT_PERIOD: ReportPeriod = "1A";
 
-const VALID_PERIODS: ReportPeriod[] = ["1M", "3M", "1A", "YTD"];
+const VALID_PERIODS: ReportPeriod[] = ["MES", "1M", "3M", "1A", "YTD"];
 
 /** Normaliza un valor crudo del URL a un ReportPeriod válido (default 1A). */
 export function asPeriod(raw: unknown): ReportPeriod {
@@ -93,6 +100,7 @@ function iso(d: Date): string {
  *  - 3M  → trailing 3 meses
  *  - 1A  → trailing 12 meses
  *  - YTD → 1° de enero del año de `today` … today
+ *  - MES → 1° del mes de `today` … today (`mesEnCurso`, SDD-0557)
  *
  * Pensado para filtrar `created_at`/`issued_at` con `.gte(from).lte(to)`.
  * `today` default = ahora (UTC). Determinístico para tests.
@@ -107,6 +115,7 @@ export function periodRange(
     const year = today.getUTCFullYear();
     return { from: `${year}-01-01`, to };
   }
+  if (period === "MES") return mesEnCurso(to);
 
   // trailing N meses → restamos meses sobre una copia en UTC.
   // Clampeamos el día al último día válido del mes destino: si `today` cae en
@@ -514,7 +523,28 @@ export type IncomeStatement = {
   income: number;
   netIncome: number;
   range: DateRange;
+  /** SDD-0557: la cifra oficial del mismo rango, con el control de la 4.5. */
+  ingreso: IngresoPeriodo;
 };
+
+/**
+ * Qué muestra el Estado de resultados (SDD-0557). PURA: la usan la vista y el
+ * CSV, así las dos deciden igual.
+ *  - "vacio": ni el mayor ni las facturas tienen nada en el período.
+ *  - "solo-facturado": hay facturado pero el mayor no tiene movimiento (hoy,
+ *    por B3): se muestra la cifra oficial y se dice que el mayor está vacío,
+ *    en vez del estado vacío.
+ *  - "completo": la cifra oficial y el P&L del mayor.
+ */
+export function vistaDelEstado(
+  income: Pick<IncomeStatement, "income" | "netIncome" | "ingreso">,
+): "vacio" | "solo-facturado" | "completo" {
+  const mayorVacio = income.income === 0 && income.netIncome === 0;
+  const hayFacturado =
+    income.ingreso.facturado.total !== 0 || income.ingreso.sinConvertir > 0;
+  if (!mayorVacio) return "completo";
+  return hayFacturado ? "solo-facturado" : "vacio";
+}
 
 // ── Contables · Aging CxC/CxP ──────────────────────────────────
 
@@ -540,7 +570,7 @@ export type AgingReport = {
   cxp: AgingSide;
 };
 
-// ── Contables · Cashflow facturado vs cobrado ──────────────────
+// ── Contables · Facturado contra cobrado (antes «Cashflow») ────
 
 /** Un punto de la serie mensual facturado-vs-cobrado (USD). */
 export type CashflowPoint = {

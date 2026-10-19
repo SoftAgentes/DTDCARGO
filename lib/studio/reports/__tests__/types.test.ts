@@ -26,8 +26,10 @@ import {
   routeLabel,
   serviceLabel,
   transitDays,
+  vistaDelEstado,
   type ReportShipment,
 } from "../types";
+import { resumirIngreso } from "@/lib/studio/accounting/ingreso-periodo";
 import type { ShipmentService } from "@/lib/shared/shipment-public";
 
 // ── periodRange ───────────────────────────────────────────────
@@ -44,6 +46,11 @@ describe("periodRange", () => {
 
   it("1A = trailing 12 meses", () => {
     expect(periodRange("1A", today)).toEqual({ from: "2025-06-15", to: "2026-06-15" });
+  });
+
+  it("MES = el mes calendario en curso (SDD-0557, la ventana de los otros tres consumidores)", () => {
+    expect(periodRange("MES", today)).toEqual({ from: "2026-06-01", to: "2026-06-15" });
+    expect(asPeriod("MES")).toBe("MES");
   });
 
   it("YTD = 1° de enero del año de today", () => {
@@ -439,5 +446,37 @@ describe("monthlyCashflow", () => {
     expect(series).toHaveLength(1);
     expect(series[0].billed).toBe(400);
     expect(series[0].collected).toBe(0);
+  });
+});
+
+// ── vistaDelEstado (SDD-0557) ─────────────────────────────────
+describe("vistaDelEstado", () => {
+  const rango = { from: "2025-03-01", to: "2025-03-18" };
+  const ingreso = (base: number, extra: Record<string, unknown> = {}) =>
+    resumirIngreso(
+      base === 0 && !extra.currency
+        ? []
+        : [{ id: "f1", status: "emitida", issued_at: "2025-03-05", currency: "USD", fx_rate: null, base_amount: base, ...extra }],
+      rango,
+      { ventas: 0, ventasConMovimiento: false, ingresos: 0, facturasConAsiento: new Set<string>() },
+    );
+
+  it("mayor vacío y sin facturas → vacío", () => {
+    expect(vistaDelEstado({ income: 0, netIncome: 0, ingreso: ingreso(0) })).toBe("vacio");
+  });
+
+  it("mayor vacío pero con facturado → solo la cifra oficial (el caso de hoy, B3)", () => {
+    expect(vistaDelEstado({ income: 0, netIncome: 0, ingreso: ingreso(2000) })).toBe("solo-facturado");
+  });
+
+  it("mayor vacío con facturas que no se pudieron convertir → tampoco es vacío", () => {
+    expect(vistaDelEstado({ income: 0, netIncome: 0, ingreso: ingreso(0, { currency: "CNY", base_amount: 50 }) })).toBe(
+      "solo-facturado",
+    );
+  });
+
+  it("con movimiento en el mayor → completo", () => {
+    expect(vistaDelEstado({ income: 1000, netIncome: 400, ingreso: ingreso(2000) })).toBe("completo");
+    expect(vistaDelEstado({ income: 0, netIncome: -300, ingreso: ingreso(0) })).toBe("completo");
   });
 });

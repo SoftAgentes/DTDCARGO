@@ -17,6 +17,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPaged } from "@/lib/db/paginate";
 import { isOverdue, type InvoiceStatus } from "@/lib/studio/invoice-types";
+import {
+  mesEnCurso,
+  resumirIngreso,
+  type FacturaDeIngreso,
+} from "@/lib/studio/accounting/ingreso-periodo";
 import { costingRows, costingTotals } from "@/lib/studio/costing/queries";
 import { listEmployees } from "@/lib/studio/nomina/employee-queries";
 import { listLoansWithBalance } from "@/lib/studio/nomina/loan-queries";
@@ -40,8 +45,16 @@ export type FinanceInvoiceKpis = {
   avgTicket: KpiValue;
 };
 
+/**
+ * `hoy` (YYYY-MM-DD, UTC como se graban `issued_at`) fija el mes y el año:
+ * por defecto, hoy. «Ingresos del mes» y «Ticket promedio» usan la cifra
+ * oficial de ingreso (SDD-0557, `resumirIngreso`): base sin IVA en USD, por
+ * fecha de emisión. Antes sumaban `total_amount` crudo (con IVA y sin
+ * convertir moneda) por `issued_at ?? created_at` y mes local.
+ */
 export async function financeInvoiceKpis(
   supabase: SupabaseClient,
+  hoy: string = new Date().toISOString().slice(0, 10),
 ): Promise<FinanceInvoiceKpis> {
   // Paginado: KPI financiero del tablero — suma montos y cuenta estados.
   // Sin las borradas (SDD-0465): mismo universo que `invoiceKpis`.
@@ -49,7 +62,9 @@ export async function financeInvoiceKpis(
     (d, h) =>
       supabase
         .from("invoices")
-        .select("status, due_date, issued_at, total_amount, paid_amount, created_at")
+        .select(
+          "id, status, due_date, issued_at, total_amount, paid_amount, created_at, base_amount, currency, fx_rate, fund_class, deleted_at",
+        )
         .is("deleted_at", null)
         .order("id", { ascending: true })
         .range(d, h),
@@ -68,15 +83,14 @@ export async function financeInvoiceKpis(
     };
   }
 
-  const now = new Date();
-  const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const year = now.getFullYear();
+  // La regla oficial, sobre la misma lectura: sin otra consulta ni el mayor.
+  const facturas = data as unknown as FacturaDeIngreso[];
+  const delMes = resumirIngreso(facturas, mesEnCurso(hoy), null);
+  const delAnio = resumirIngreso(facturas, { from: `${hoy.slice(0, 4)}-01-01`, to: hoy }, null);
+  const monthRevenue = delMes.facturado.total;
 
-  let monthRevenue = 0;
   let dueCount = 0;
   let pending = 0;
-  let billedYtd = 0;
-  let ytdCount = 0;
 
   for (const raw of data as Record<string, unknown>[]) {
     const status = raw.status as InvoiceStatus;
@@ -85,14 +99,8 @@ export async function financeInvoiceKpis(
     const paid = Number(raw.paid_amount) || 0;
     const balance = total - paid;
     const due = (raw.due_date as string | null) ?? null;
-    const refDate = ((raw.issued_at as string | null) ?? (raw.created_at as string | null)) ?? "";
 
     if (status !== "borrador") {
-      if (refDate.slice(0, 7) === ym) monthRevenue += total;
-      if (refDate.slice(0, 4) === String(year)) {
-        billedYtd += total;
-        ytdCount += 1;
-      }
       if (balance > 0) {
         pending += balance;
         if (isOverdue({ due_date: due, status })) dueCount += 1;
@@ -100,12 +108,26 @@ export async function financeInvoiceKpis(
     }
   }
 
-  const avgTicket = ytdCount > 0 ? billedYtd / ytdCount : 0;
+  const ytdCount = delAnio.facturas;
+  const avgTicket = ytdCount > 0 ? delAnio.facturado.total / ytdCount : 0;
+  // La cifra INCLUYE los fondos de terceros (fund_class ≠ local_revenue, B10):
+  // cada pantalla lo dice cuando los hay (SDD-0557).
+  const deTerceros = (terceros: number) =>
+    terceros > 0 ? ` · incluye ${money(terceros)} de terceros` : "";
+  // El ticket es un promedio por factura: los terceros se dicen contra el
+  // total del año del que sale, no colgados del promedio.
+  const tercerosDelAnio =
+    delAnio.facturado.terceros > 0 && delAnio.facturado.total > 0
+      ? ` · ${Math.round((delAnio.facturado.terceros / delAnio.facturado.total) * 100)} % del facturado del año es de terceros`
+      : "";
 
   return {
     monthRevenue: {
       value: money(monthRevenue),
-      sub: "facturado este mes",
+      sub:
+        (delMes.sinConvertir > 0
+          ? `facturado del mes sin IVA · ${delMes.sinConvertir} sin convertir`
+          : "facturado del mes sin IVA") + deTerceros(delMes.facturado.terceros),
       tone: monthRevenue > 0 ? "success" : "neutral",
     },
     invoicesDue: {
@@ -120,7 +142,7 @@ export async function financeInvoiceKpis(
     },
     avgTicket: {
       value: money(avgTicket),
-      sub: `${ytdCount} factura(s) YTD`,
+      sub: `${ytdCount} factura(s) en el año · sin IVA${tercerosDelAnio}`,
       tone: "wine",
     },
   };

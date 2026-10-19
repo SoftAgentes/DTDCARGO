@@ -7,7 +7,10 @@
  * funciones puras + una función de composición que recibe el SupabaseClient.
  *
  * Agregados reusados (NO se recalcula cálculo financiero):
- *  - P&L: profitAndLoss(accounts, balances)  (accounting/reports.ts)
+ *  - P&L: profitAndLoss(accounts, balances)  (accounting/reports.ts) — del mayor
+ *  - Ingreso del período: ingresoDelPeriodo (accounting/libro-control-queries)
+ *    — la cifra OFICIAL (SDD-0557), la misma de Contabilidad, Reportes y el
+ *    Dashboard; el mayor queda al lado como control
  *  - Caja consolidada USD: suma de balances de cuentas isCashAccount (payment-queries)
  *  - CxC: collectionKpis (payment-queries · módulo Cobranzas)
  *  - CxP + caja: treasuryKpis (treasury/bill-queries) + listBills para el forecast
@@ -21,8 +24,18 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { fmtUsd } from "@/lib/money";
 import { accountBalances, listAccounts } from "../account-queries";
 import { profitAndLoss } from "../accounting/reports";
+import {
+  CUENTA_VENTAS,
+  describirIngreso,
+  type IngresoPeriodo,
+} from "../accounting/ingreso-periodo";
+import {
+  controlDelPeriodo,
+  ingresoDelPeriodo,
+} from "../accounting/libro-control-queries";
 import { isCashAccount } from "../payment-queries";
 import { collectionKpis } from "../payment-queries";
 import { listBills, treasuryKpis } from "../treasury/bill-queries";
@@ -45,11 +58,18 @@ function round2(n: number): number {
 
 /** KPIs financieros (4 cards superiores). */
 export type FinanceKpis = {
-  /** Ingresos del período (P&L). */
-  ingresos: number;
-  /** Utilidad neta del período (P&L). */
+  /**
+   * Ingreso facturado del mes (cifra oficial, ingreso-periodo.ts), con su
+   * rango, el desglose propio/terceros y el control contra la 4.5 del mayor.
+   */
+  ingreso: IngresoPeriodo;
+  /** Utilidad neta del mes, del LIBRO (P&L del mayor). */
   utilidad: number;
-  /** Margen neto % (utilidad / ingresos · 0 si no hay ingresos). */
+  /**
+   * Margen neto % del LIBRO: utilidad del mayor / ingresos del mayor. No se
+   * divide por el facturado: mezclar fuentes da un margen falso mientras el
+   * mayor no cuadre. 0 si el mayor no tiene ingresos.
+   */
   margenPct: number;
   /** Caja + bancos consolidado (USD funcional). */
   caja: number;
@@ -135,6 +155,75 @@ export type DireccionData = {
 export function netMarginPct(ingresos: number, utilidad: number): number {
   if (!ingresos) return 0;
   return round2((utilidad / ingresos) * 100);
+}
+
+/** Los textos de los dos KPI de Dirección que vienen del libro y de la cifra oficial. */
+export type TextosFinancieros = {
+  ingreso: {
+    label: string;
+    valor: string;
+    /** «Facturado sin IVA · desde → hasta». */
+    periodo: string;
+    /** El control contra el libro y los avisos, unidos por « · ». */
+    detalle: string;
+  };
+  utilidad: { label: string; valor: string; sub: string };
+};
+
+/**
+ * Qué dice Dirección del ingreso y de la utilidad (SDD-0557), PURA. El lado
+ * del libro que se compara se nombra: es la 4.5 de los asientos de factura,
+ * no todo el libro. El control sigue al estado de `describirIngreso`:
+ *  - cuadra → «cuadra con 4.5 de facturas: $X»;
+ *  - el mayor tiene más o menos → «4.5 de facturas: $X» (el saldo, sin la
+ *    diferencia: la diferencia la muestran Contabilidad y Reportes);
+ *  - 4.5 sin asientos de factura (sin movimiento, o el mayor vacío con
+ *    facturas, B3) → «sin asientos de factura en 4.5», nunca «cuadra»;
+ *  - no comparable → lo dice, sin cifra en dólares (es nominal mixto);
+ *  - sin cuenta 4.5 → lo dice.
+ * Con otros ingresos del libro (4.6, manuales) se agrega «otros ingresos del
+ * libro: $Y». El margen se calcula sobre todos los ingresos del libro.
+ */
+export function textosFinancieros(
+  f: Pick<FinanceKpis, "ingreso" | "utilidad" | "margenPct">,
+): TextosFinancieros {
+  const i = f.ingreso;
+  const d = describirIngreso(i);
+  // Con «tiene más», «tiene menos» o «cuadra» la cuenta 4.5 existe: `ventas` no es null.
+  const deFacturas = `${CUENTA_VENTAS} de facturas: ${fmtUsd(i.mayor?.ventas ?? 0)}`;
+  const sinAsientos = `sin asientos de factura en ${CUENTA_VENTAS}`;
+  const vacio = i.mayor != null && !i.mayor.ventasConMovimiento;
+  const libro: Record<typeof d.estado, string | null> = {
+    cuadra: `cuadra con ${deFacturas}`,
+    mayor_menor: vacio ? sinAsientos : deFacturas,
+    mayor_mayor: deFacturas,
+    no_comparable: `${CUENTA_VENTAS} de facturas: no comparable, hay facturas en bolívares o yuanes`,
+    sin_movimiento: sinAsientos,
+    sin_cuenta: `sin cuenta ${CUENTA_VENTAS} en el plan de cuentas`,
+    sin_mayor: null,
+  };
+  const otros = i.mayor?.otrosIngresos ?? 0;
+  const partes = [
+    libro[d.estado],
+    Math.abs(otros) >= 0.005 ? `otros ingresos del libro: ${fmtUsd(otros)}` : null,
+    i.facturado.terceros > 0 ? "incluye fondos de terceros" : null,
+    i.sinConvertir > 0 ? `${i.sinConvertir} sin convertir` : null,
+  ].filter((p): p is string => p !== null);
+  return {
+    ingreso: {
+      label: "Ingresos · mes",
+      valor: fmtUsd(i.facturado.total),
+      periodo: `Facturado sin IVA · ${i.rango.from} → ${i.rango.to}`,
+      detalle: partes.join(" · "),
+    },
+    utilidad: {
+      label: "Utilidad neta · libro",
+      valor: fmtUsd(f.utilidad),
+      sub:
+        `Margen ${f.margenPct.toFixed(1)}% sobre los ingresos del libro` +
+        (d.estado === "no_comparable" ? " · mezcla el nominal de facturas en bolívares o yuanes" : ""),
+    },
+  };
 }
 
 /** Posición neta = caja + CxC − CxP. */
@@ -306,8 +395,10 @@ export function firstOfMonth(
  * Arma el payload del tablero ejecutivo cruzando los agregados existentes.
  * RLS filtra por tenant en cada query. Read-only (no muta nada).
  *
- * El P&L del período usa el mes en curso (decisión §7.3 · selector = V2): los
- * ingresos/utilidad se computan sobre asientos `asentado` desde el 1° del mes.
+ * El P&L del período usa el mes en curso (decisión §7.3 · selector = V2): la
+ * utilidad y el margen salen de los asientos `asentado` desde el 1° del mes.
+ * El INGRESO es el facturado del mismo mes (SDD-0557), con el mayor como
+ * control: hoy el mayor está incompleto y daría 0.
  * Caja / CxC / CxP son saldos vivos (no se filtran por período).
  */
 export async function getDireccionData(
@@ -342,8 +433,11 @@ export async function getDireccionData(
 
   // P&L del mes (ingresos + utilidad) — reusa el cálculo de Contabilidad.
   const pl = profitAndLoss(accounts, monthBalances);
-  const ingresos = pl.income;
   const utilidad = pl.netIncome;
+  const delMes = { from: monthStart, to: today };
+  const ingreso = await ingresoDelPeriodo(supabase, delMes, {
+    mayor: await controlDelPeriodo(supabase, delMes, accounts, monthBalances),
+  });
 
   // Caja consolidada = suma de saldos VIVOS de las cuentas de caja/banco.
   const caja = round2(
@@ -361,9 +455,9 @@ export async function getDireccionData(
   const vencido = round2(cobranzas.vencidoUsd + tesoreria.vencidoUsd);
 
   const finance: FinanceKpis = {
-    ingresos,
+    ingreso,
     utilidad,
-    margenPct: netMarginPct(ingresos, utilidad),
+    margenPct: netMarginPct(pl.income, utilidad),
     caja,
     posicionNeta: netPosition(caja, cxc, cxp),
   };
