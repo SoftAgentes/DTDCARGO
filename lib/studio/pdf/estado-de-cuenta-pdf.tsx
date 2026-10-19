@@ -28,13 +28,25 @@
  *  - **Si el cliente tiene facturas en más de una moneda**, el ledger se queda
  *    con la dominante y el resto queda fuera del saldo corrido. Callarlo haría
  *    que el papel pareciera el total de la cuenta cuando es una parte.
+ *  - **Pagos recibidos en facturas anuladas** (SDD-0556). La anulada sale en el
+ *    libro con cargo 0; lo que se le pagó no entra al saldo, pero el papel lo
+ *    dice con el MISMO texto que la pantalla (`notaPagosEnAnuladas`).
+ *
+ * ## Identidad fiscal del emisor: apagada
+ *
+ * `legalName` y `rif` son opcionales y, si llegan, van bajo el membrete con
+ * `lineasDeEmisor` (nunca se inventan). Hoy ninguna ruta los pasa: la regla de
+ * marca los deja sólo en el schema y la excepción de SDD-0297 cubre sólo la
+ * factura. Encenderlo es pasarlos desde la ruta cuando Sam lo conceda.
  *
  * Colores hardcodeados a valores de luz: react-pdf no lee CSS vars.
  */
 
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import type { StatementLedger } from "@/lib/portal/statement-ledger";
+import { notaPagosEnAnuladas } from "@/lib/portal/saldo-de-cuenta";
 import { PDF, Membrete } from "./pdf-doc";
+import { lineasDeEmisor } from "./factura-pdf";
 
 /** Contacto del emisor para el pie. Todo opcional. */
 export type EstadoDeCuentaEmisor = {
@@ -42,6 +54,10 @@ export type EstadoDeCuentaEmisor = {
   email: string;
   phone: string;
   website: string;
+  /** Razón social. Sólo con la excepción de marca concedida (ver cabecera). */
+  legalName?: string;
+  /** RIF del emisor. Sólo con la excepción de marca concedida (ver cabecera). */
+  rif?: string;
 };
 
 export type EstadoDeCuentaPdfInput = {
@@ -126,6 +142,7 @@ export function EstadoDeCuentaDocument({
   const { ledger } = input;
   const moneda = ledger.currency;
   const hayAbonos = ledger.moves.some((m) => m.kind === "abono");
+  const notaAnuladas = notaPagosEnAnuladas(ledger.voidedPayments);
 
   return (
     <Document title={`Estado de cuenta ${input.markbox}`} author="DTD Cargo">
@@ -137,6 +154,9 @@ export function EstadoDeCuentaDocument({
             `Shipping Mark: ${input.markbox}`,
             `Emitido: ${fechaCorta(input.emitidoEl)}`,
           ]}
+          emisorLines={lineasDeEmisor(
+            emisor ? { legalName: emisor.legalName ?? "", rif: emisor.rif ?? "" } : undefined,
+          )}
         />
 
         <View style={styles.resumen}>
@@ -203,6 +223,8 @@ export function EstadoDeCuentaDocument({
             las de {moneda}; el resto queda fuera de este saldo.
           </Text>
         ) : null}
+
+        {notaAnuladas ? <Text style={styles.aviso}>{notaAnuladas}</Text> : null}
 
         {hayAbonos ? (
           <Text style={styles.aviso}>

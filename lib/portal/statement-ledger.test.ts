@@ -135,6 +135,66 @@ describe("buildStatementLedger · monedas", () => {
   });
 });
 
+describe("buildStatementLedger · anuladas (SDD-0556)", () => {
+  it("una anulada sin pagos deja una fila de cargo en 0 y no mueve el saldo", () => {
+    const led = buildStatementLedger([
+      inv({ id: "v", code: "F-2026-0001", total: 1000 }),
+      inv({ id: "a", code: "F-2026-0002", status: "anulada", total: 1000, issuedAt: "2026-07-05" }),
+    ]);
+    expect(led.moves).toHaveLength(2);
+    expect(led.moves[1]).toMatchObject({
+      kind: "cargo",
+      concept: "Factura F-2026-0002 · anulada",
+      amount: 0,
+      balance: 1000,
+    });
+    expect(led.totalCargo).toBe(1000);
+    expect(led.balance).toBe(1000);
+    expect(led.voidedPayments).toEqual([]);
+  });
+
+  it("lo pagado en una anulada no es abono: va a voidedPayments y no se resta del saldo", () => {
+    const led = buildStatementLedger([
+      inv({ id: "v", code: "F-2026-0001", total: 1000, paid: 0 }),
+      inv({ id: "a", code: "F-2026-0002", status: "anulada", total: 1000, paid: 300 }),
+    ]);
+    expect(led.moves.some((m) => m.kind === "abono")).toBe(false);
+    expect(led.voidedPayments).toEqual([
+      { code: "F-2026-0002", reference: "DTD-2026-0311", amount: 300, currency: "USD" },
+    ]);
+    expect(led.totalAbono).toBe(0);
+    expect(led.balance).toBe(1000);
+  });
+
+  it("una anulada grande en otra moneda no cambia la moneda ni dispara «otras monedas»", () => {
+    const led = buildStatementLedger([
+      inv({ id: "u", code: "F-2026-0001", currency: "USD", total: 500 }),
+      inv({ id: "e", code: "F-2026-0002", currency: "VES", status: "anulada", total: 999999, paid: 200 }),
+    ]);
+    expect(led.currency).toBe("USD");
+    expect(led.mixedCurrencies).toBe(false);
+    expect(led.moves.map((m) => m.concept)).toEqual(["Factura F-2026-0001"]);
+    // El pago de la anulada VES no desaparece por estar en otra moneda.
+    expect(led.voidedPayments).toEqual([
+      { code: "F-2026-0002", reference: "DTD-2026-0311", amount: 200, currency: "VES" },
+    ]);
+  });
+
+  it("invariante: saldo = Σ(total − paid) de las NO anuladas de la moneda, y el último saldo corrido es ése", () => {
+    const rows = [
+      inv({ id: "a", code: "F-1", total: 1200.5, paid: 300.25, issuedAt: "2026-06-02" }),
+      inv({ id: "b", code: "F-2", status: "anulada", total: 880, paid: 400, issuedAt: "2026-06-20" }),
+      inv({ id: "c", code: "F-3", total: 415.75, paid: 0, issuedAt: "2026-07-11" }),
+      inv({ id: "d", code: "F-4", currency: "VES", total: 90, paid: 1 }),
+    ];
+    const led = buildStatementLedger(rows);
+    const vivas = rows.filter((r) => r.currency === led.currency && r.status !== "anulada");
+    const esperado = vivas.reduce((s, r) => s + r.total - r.paid, 0);
+    expect(led.balance).toBeCloseTo(esperado, 6);
+    expect(led.moves.at(-1)?.balance).toBeCloseTo(esperado, 6);
+  });
+});
+
 describe("buildStatementLedger · invariante", () => {
   it("el saldo final CUADRA con Σ(total) − Σ(paid) de esa moneda", () => {
     const rows = [

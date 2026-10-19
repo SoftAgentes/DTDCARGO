@@ -9,7 +9,14 @@
  * NO HAY TABLA DE MOVIMIENTOS. El modelo del ERP guarda `total_amount` y
  * `paid_amount` en la factura, no un asiento por pago. El ledger es una LECTURA
  * de eso, no una fuente nueva: por construcción el saldo final cuadra con
- * Σ(total) − Σ(paid) de las facturas de esa moneda.
+ * Σ(total) − Σ(paid) de las facturas NO anuladas de esa moneda.
+ *
+ * ANULADAS (SDD-0556): siguen en el libro como una fila «Factura F-… · anulada»
+ * con cargo 0 y sin abono, así que no mueven el saldo. Lo que se pagó en ellas
+ * no desaparece: sale aparte en `voidedPayments`, de todas las monedas, y NO se
+ * descuenta del saldo (no hay saldo a favor; regla «estricta» del 2026-09-18).
+ * La moneda dominante sale de `saldo-de-cuenta.ts`, la misma definición que
+ * usan los KPIs.
  *
  * ⚠️ LA FECHA DEL ABONO ES LA DE VENCIMIENTO, NO LA DEL PAGO.
  * Es el modelo del Norte (`_norte/portal/app.jsx` · `StatementLedger`) y lo
@@ -21,13 +28,19 @@
  * se cambia el criterio, esa nota se va con él.
  */
 import type { InvoiceCurrency, PortalInvoiceRow } from "./portal-types";
+import {
+  esAnulada,
+  monedaDominante,
+  pagosEnAnuladas,
+  type PagoEnAnulada,
+} from "./saldo-de-cuenta";
 
 /** Un movimiento del estado de cuenta. */
 export type StatementMove = {
   /** `YYYY-MM-DD`, o `null` si la factura no tiene la fecha que corresponde. */
   date: string | null;
   kind: "cargo" | "abono";
-  /** "Factura F-2026-0007" / "Abono · F-2026-0007". */
+  /** "Factura F-2026-0007" / "Abono · F-2026-0007" / "Factura F-2026-0007 · anulada". */
   concept: string;
   /** Código de envío asociado, si lo hay. */
   reference: string | null;
@@ -37,37 +50,32 @@ export type StatementMove = {
   balance: number;
 };
 
+/** Un pago recibido en una factura anulada (ver `saldo-de-cuenta.ts`). */
+export type StatementVoidedPayment = PagoEnAnulada;
+
 export type StatementLedger = {
   moves: StatementMove[];
+  /** Σ total de las facturas NO anuladas de la moneda del ledger. */
   totalCargo: number;
+  /** Σ pagado de las facturas NO anuladas de la moneda del ledger. */
   totalAbono: number;
   /** `totalCargo − totalAbono`. Puede ser negativo si hubo sobrepago. */
   balance: number;
-  /** Moneda en la que está expresado TODO el ledger. */
+  /**
+   * Moneda en la que está expresado TODO el ledger: la de mayor total facturado
+   * entre las no anuladas (`monedaDominante`). Sumar entre monedas es
+   * incorrecto, y un saldo corrido que mezcla USD con EUR es peor que no
+   * mostrarlo.
+   */
   currency: InvoiceCurrency;
-  /** ¿Había facturas en otras monedas que quedaron fuera? */
+  /** ¿Había facturas vigentes en otras monedas que quedaron fuera? */
   mixedCurrencies: boolean;
+  /**
+   * Pagos recibidos en facturas anuladas, de TODAS las monedas, cada uno con la
+   * suya. No entran al saldo: se informan aparte.
+   */
+  voidedPayments: StatementVoidedPayment[];
 };
-
-/**
- * La moneda DOMINANTE = la de mayor total facturado. Mismo criterio que los KPIs
- * de `/portal/finanzas` y `/portal/facturas`: sumar entre monedas es incorrecto,
- * y un saldo corrido que mezcla USD con EUR es peor que no mostrarlo.
- */
-function dominantCurrency(invoices: PortalInvoiceRow[]): {
-  currency: InvoiceCurrency;
-  mixed: boolean;
-} {
-  const totals = new Map<InvoiceCurrency, number>();
-  for (const inv of invoices) {
-    totals.set(inv.currency, (totals.get(inv.currency) ?? 0) + inv.total);
-  }
-  const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]);
-  return {
-    currency: ranked[0]?.[0] ?? "USD",
-    mixed: ranked.length > 1,
-  };
-}
 
 /**
  * Orden de los movimientos: por fecha ascendente.
@@ -97,20 +105,36 @@ function compareMoves(a: StatementMove, b: StatementMove): number {
  *
  * Cada factura aporta un cargo (+ `total`, fechado en `issuedAt`) y, si tiene
  * algo pagado, un abono (− `paid`, fechado en `dueDate` — ver el ⚠️ de arriba).
+ * Una anulada aporta sólo su fila de cargo en 0 (SDD-0556).
  *
  * Se asume que `invoices` YA viene sin borradores ni borradas: `listMyInvoices`
- * filtra `status <> 'borrador'` y `deleted_at is null` en la query. Si algún día
- * entra un borrador acá, aparecería como cargo — el filtro vive en la query a
- * propósito (una sola definición de "factura del cliente"), no duplicado acá.
+ * filtra `status <> 'borrador'` y `deleted_at is null` en la query, y saca las
+ * anuladas que nunca se emitieron. Si algún día entra un borrador acá,
+ * aparecería como cargo — el filtro vive en la query a propósito (una sola
+ * definición de "factura del cliente"), no duplicado acá.
  */
 export function buildStatementLedger(
   invoices: PortalInvoiceRow[],
 ): StatementLedger {
-  const { currency, mixed } = dominantCurrency(invoices);
+  const { currency, mixed } = monedaDominante(invoices);
   const scoped = invoices.filter((inv) => inv.currency === currency);
+  const vigentes = scoped.filter((inv) => !esAnulada(inv));
 
   const moves: StatementMove[] = [];
   for (const inv of scoped) {
+    if (esAnulada(inv)) {
+      // Se ve en el libro, pero no es deuda: cargo 0 y sin abono. Lo pagado en
+      // ella va a `voidedPayments`, no a la columna Abono.
+      moves.push({
+        date: inv.issuedAt,
+        kind: "cargo",
+        concept: `Factura ${inv.code} · anulada`,
+        reference: inv.shipmentCode,
+        amount: 0,
+        balance: 0,
+      });
+      continue;
+    }
     moves.push({
       date: inv.issuedAt,
       kind: "cargo",
@@ -139,8 +163,8 @@ export function buildStatementLedger(
     m.balance = running;
   }
 
-  const totalCargo = scoped.reduce((s, inv) => s + inv.total, 0);
-  const totalAbono = scoped.reduce((s, inv) => s + inv.paid, 0);
+  const totalCargo = vigentes.reduce((s, inv) => s + inv.total, 0);
+  const totalAbono = vigentes.reduce((s, inv) => s + inv.paid, 0);
 
   return {
     moves,
@@ -149,5 +173,6 @@ export function buildStatementLedger(
     balance: totalCargo - totalAbono,
     currency,
     mixedCurrencies: mixed,
+    voidedPayments: pagosEnAnuladas(invoices),
   };
 }

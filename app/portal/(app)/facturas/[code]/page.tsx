@@ -5,7 +5,8 @@ import { createClient } from "@/lib/db/server";
 import { getMyInvoice, getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { loadPendingAcceptanceDetailForClient } from "@/lib/portal/pending-acceptance";
 import { listMyInvoiceReports } from "@/lib/portal/payment-report-queries";
-import { formatInvoiceAmount, invoiceBalance } from "@/lib/portal/portal-types";
+import { formatInvoiceAmount } from "@/lib/portal/portal-types";
+import { esAnulada, saldoPorPagar } from "@/lib/portal/saldo-de-cuenta";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { InvoiceStatusBadge } from "../../../_components/InvoiceStatusBadge";
@@ -39,7 +40,10 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
     return <PendingInvoiceGate pendiente={pendiente} />;
   }
 
-  const balance = invoiceBalance({ total_amount: inv.total, paid_amount: inv.paid });
+  // SDD-0556 · una anulada no tiene saldo pendiente, aunque se le haya pagado
+  // una parte: lo pagado se informa abajo, no se convierte en deuda.
+  const balance = saldoPorPagar(inv);
+  const anulada = esAnulada(inv);
   const ivaOn = inv.ivaRate > 0;
   const waLink = buildWhatsAppLink(
     `Hola DTD Cargo, tengo una consulta sobre mi factura ${inv.code}.`,
@@ -139,6 +143,15 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
               />
             ) : null}
           </dl>
+
+          {anulada ? (
+            <p className="mt-4 text-[13.5px] text-grey-700 leading-[1.55]">
+              Esta factura está anulada: no tienes nada que pagar por ella.
+              {inv.paid > 0
+                ? ` Recibimos ${formatInvoiceAmount(inv.paid, inv.currency)} en pagos de esta factura. Escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución.`
+                : ""}
+            </p>
+          ) : null}
 
           {inv.notes ? (
             <div className="mt-6 pt-5 border-t border-grey-200">
