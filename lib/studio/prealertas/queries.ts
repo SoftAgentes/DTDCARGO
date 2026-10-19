@@ -4,9 +4,12 @@
  *
  * Funciones PURAS que reciben un SupabaseClient. La RLS doble (migr 0105) decide
  * qué filas vuelven según el principal:
- *  - cliente del portal → SUS filas (por markbox). Pasar `markbox` igual = defensa
- *    en profundidad (el principal puede ser team + portal a la vez; la policy
- *    by-tenant del equipo es permissive OR y, sola, mostraría todo el tenant).
+ *  - cliente del portal → SUS filas (por tenant + markbox). Pasar el Shipping
+ *    Mark y el tenant del principal = defensa en profundidad (el principal puede
+ *    ser team + portal a la vez; la policy by-tenant del equipo es permissive OR
+ *    y, sola, mostraría todo el tenant). El Shipping Mark es único POR tenant: sin
+ *    el tenant, esa sesión recibía además las filas del otro tenant con el mismo
+ *    valor (SDD-0554, `PortalPurchaseScope`).
  *  - operador del tenant → todas las del tenant (filtro por status opcional).
  */
 
@@ -95,16 +98,52 @@ function coercePrealerta(r: Record<string, unknown>): Prealerta {
   };
 }
 
+// ── Ámbito Portal de las lecturas de compras (SDD-0554) ─────────
+
+/**
+ * Ámbito de una lectura de compras hecha por el Portal: Shipping Mark **y**
+ * tenant del principal de sesión (`getPortalClientPrincipal`).
+ *
+ * El Shipping Mark es único POR tenant (0006) y la policy de equipo «by tenant»
+ * es permisiva: con sólo el Shipping Mark, una sesión híbrida (equipo del tenant
+ * B y cliente Portal del tenant A) recibía también las compras y los
+ * proveedores del B con el mismo valor. Por eso el tenant va junto al Shipping
+ * Mark y no se puede omitir: pasar uno sin el otro es error de tipos.
+ */
+export type PortalPurchaseScope = { markbox: string; tenantId: string };
+
+/** Studio: sin ámbito Portal; corta la RLS de equipo por el tenant del operador. */
+type StudioPurchaseScope = { markbox?: never; tenantId?: never };
+
+/**
+ * `null` = modo Studio (sin `markbox` ni `tenantId` entre las opciones).
+ * `"invalid"` = se pidió el modo Portal sin un Shipping Mark y un tenant no
+ * vacíos: el llamador no consulta, para no caer al modo Studio y devolver el
+ * tenant entero (mismo criterio que `listPrealertaServiceRequests`, SDD-0381).
+ */
+function portalPurchaseScope(
+  opts: Partial<Record<keyof PortalPurchaseScope, unknown>>,
+): PortalPurchaseScope | "invalid" | null {
+  if (!("markbox" in opts) && !("tenantId" in opts)) return null;
+  const { markbox, tenantId } = opts;
+  if (typeof markbox !== "string" || !markbox.trim()) return "invalid";
+  if (typeof tenantId !== "string" || !tenantId.trim()) return "invalid";
+  return { markbox, tenantId };
+}
+
 // ── Suppliers ──────────────────────────────────────────────────
 
 /**
- * Lista los proveedores (vivos). Para el cliente del portal pasar `markbox` (sus
- * proveedores). El operador llama sin markbox → todos los del tenant (RLS).
+ * Lista los proveedores (vivos). El Portal pasa el Shipping Mark y el tenant del
+ * principal (`PortalPurchaseScope`, SDD-0554). El Studio llama sin opciones →
+ * todos los del tenant del operador (RLS).
  */
 export async function listSuppliers(
   supabase: SupabaseClient,
-  opts: { markbox?: string } = {},
+  opts: StudioPurchaseScope | PortalPurchaseScope = {},
 ): Promise<Supplier[]> {
+  const portal = portalPurchaseScope(opts);
+  if (portal === "invalid") return [];
   // Paginado: los proveedores se acumulan por cliente y esta lista alimenta el
   // selector de la prealerta — uno que no aparece no se puede elegir.
   const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
@@ -115,7 +154,11 @@ export async function listSuppliers(
         .is("deleted_at", null)
         .order("supplier_seq", { ascending: true })
         .order("id", { ascending: true });
-      if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
+      if (portal) {
+        query = query
+          .eq("tenant_id", portal.tenantId)
+          .eq("client_markbox", portal.markbox);
+      }
       return query.range(d, h);
     },
   );
@@ -128,21 +171,28 @@ export async function listSuppliers(
 // ── Prealertas ─────────────────────────────────────────────────
 
 /**
- * Lista las prealertas/compras (vivas), más recientes primero. Para el cliente
- * del portal pasar `markbox` (las suyas). El operador llama sin markbox → todas
- * las del tenant. Filtro por `status` opcional.
+ * Lista las prealertas/compras (vivas), más recientes primero. El Portal pasa el
+ * Shipping Mark y el tenant del principal (`PortalPurchaseScope`, SDD-0554). El
+ * operador llama sin ámbito → todas las del tenant (RLS). Filtro por `status`
+ * opcional en los dos modos.
  */
 export async function listPrealertas(
   supabase: SupabaseClient,
-  opts: { markbox?: string; status?: string } = {},
+  opts: { status?: string } & (StudioPurchaseScope | PortalPurchaseScope) = {},
 ): Promise<Prealerta[]> {
+  const portal = portalPurchaseScope(opts);
+  if (portal === "invalid") return [];
   let query = supabase
     .from("prealertas")
     .select(PREALERTA_COLUMNS)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .order("id", { ascending: true });
-  if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
+  if (portal) {
+    query = query
+      .eq("tenant_id", portal.tenantId)
+      .eq("client_markbox", portal.markbox);
+  }
   if (opts.status) query = query.eq("status", opts.status);
 
   // Paginado: las prealertas se acumulan con los meses.
@@ -384,24 +434,32 @@ function coercePrealertaDocument(r: Record<string, unknown>): PrealertaDocument 
 }
 
 /**
- * Adjuntos de UNA compra (más viejos primero). El cliente del portal pasa
- * `markbox` (defensa en profundidad + la policy "portal self read"). Defensivo:
- * si la tabla aún no existe (0118 sin aplicar en un env) devuelve [] en vez de
- * romper la página de etiquetas.
+ * Adjuntos de UNA compra (más viejos primero), con el Shipping Mark y el tenant
+ * del principal Portal (defensa en profundidad + la policy "portal self read").
+ *
+ * `markbox` y `tenantId` son obligatorios (SDD-0554): todos los llamadores son
+ * del Portal y ya resolvieron el principal, como en `getPrealertaByCode`. La base
+ * no ata el `tenant_id` del adjunto al de su compra (0118: FK sólo a
+ * `prealertas(id)`), así que el id de la compra no basta. Sin un ámbito no vacío
+ * devuelve [] sin consultar. Defensivo: si la tabla aún no existe (0118 sin
+ * aplicar en un env) devuelve [] en vez de romper la página de etiquetas.
  */
 export async function listPrealertaDocuments(
   supabase: SupabaseClient,
-  opts: { prealertaId: string; markbox?: string },
+  opts: { prealertaId: string } & PortalPurchaseScope,
 ): Promise<PrealertaDocument[]> {
+  const portal = portalPurchaseScope(opts);
+  if (!portal || portal === "invalid") return [];
   try {
-    let query = supabase
+    const query = supabase
       .from("prealerta_documents")
       .select(PREALERTA_DOC_COLUMNS)
       .eq("prealerta_id", opts.prealertaId)
+      .eq("tenant_id", portal.tenantId)
+      .eq("client_markbox", portal.markbox)
       .is("deleted_at", null)
       .order("created_at", { ascending: true })
       .limit(100);
-    if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
 
     const { data, error } = await query;
     if (error) throw error;

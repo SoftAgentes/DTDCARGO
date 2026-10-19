@@ -89,7 +89,9 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
 
   const [cajas, proveedores, servicios, recepcion, packing, avisos] = await Promise.all([
     listPredeclaredBoxes(supabase, prealerta.id),
-    listSuppliers(supabase, { markbox: client.markbox }),
+    // Tenant + Shipping Mark del principal (SDD-0554).
+    listSuppliers(supabase, { markbox: client.markbox, tenantId: principal.tenantId }),
+    // Ya filtra por el tenant del vínculo de sesión (SDD-0381).
     listPrealertaServiceRequests(supabase, { markbox: client.markbox }),
     // Propiedad ya probada arriba → recién ahora el admin client.
     listarRecepcionesDeCompra(createAdminClient(), prealerta.id),
