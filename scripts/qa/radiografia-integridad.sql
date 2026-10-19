@@ -82,8 +82,9 @@ fac as (
 -- Recibos, vivos y anulados (anular = deleted_at). El asiento del cobro es 'receipt'; la
 -- reclasificación al identificar un pago sin referencia es 'receipt_reclass'. con_factura: el
 -- pago sin referencia es el único sin invoice_id (CHECK de 0122); al identificarlo se le escribe
--- (0467), así que los identificados también cuentan como con factura. vinculo_vivo: el lado del
--- documento apunta a un asiento de cobro vivo (no a uno anulado, borrado o de otro origen).
+-- (0467), así que el identificado también tiene factura, aunque solo toca 1.1.2 con su
+-- reclasificación. vinculo_vivo: el lado del documento apunta a un asiento de cobro vivo (no a
+-- uno anulado, borrado o de otro origen).
 rec as (
   select r.id, r.tenant_id, r.amount, r.currency::text as moneda, r.deleted_at is null as vivo,
          r.invoice_id is not null as con_factura,
@@ -168,9 +169,10 @@ mayor as (
 ),
 -- Un lado por tenant y cuenta de control. saldo_docs suma solo USD/USDT (no convierte).
 -- no_comparable (decisión 7): documentos fuera de USD/USDT CON asiento vivo de su origen. En
--- 1.1.2, el recibo cuenta solo si tiene factura: el pago sin referencia se asienta contra 2.1.8
--- y no toca 1.1.2 (receipt-posting.ts). La CxP anulada no cuenta: su asiento vivo es B1 (fila
--- 44) y queda como diferencia, igual que en la SDD-0557.
+-- 1.1.2 cuenta solo el recibo que toca 1.1.2: con factura y, si se identificó, con su
+-- reclasificación viva. El pago sin referencia se asienta contra 2.1.8 y la reclasificación es
+-- la que lo pasa a 1.1.2 (receipt-posting.ts). La CxP anulada no cuenta: su asiento vivo es B1
+-- (fila 44) y queda como diferencia, igual que en la SDD-0557.
 -- fuera: documentos abiertos fuera de USD/USDT que no entran en la suma.
 lado as (
   select m.tenant_id, c.cuenta, c.debe, c.haber, c.saldo_mayor, c.abiertos, c.saldo_docs, c.no_comparable, c.fuera
@@ -185,6 +187,7 @@ lado as (
      exists (select 1 from fac f where f.tenant_id = m.tenant_id
                and f.moneda not in ('USD', 'USDT') and f.asientos > 0)
        or exists (select 1 from rec r where r.tenant_id = m.tenant_id and r.vivo and r.con_factura
+                    and (not r.identificado or r.reclasificaciones > 0)
                     and r.moneda not in ('USD', 'USDT') and r.asientos > 0),
      exists (select 1 from fac f where f.tenant_id = m.tenant_id and f.abierta
                and f.moneda not in ('USD', 'USDT') and f.total_amount <> f.paid_amount)),
@@ -303,6 +306,8 @@ filas (orden, seccion, indicador, n, monto) as (
   union all select 73, '6 · B4 reportes de pago', '  de ellos con un recibo vivo del mismo monto en su factura',
     (select count(*) from rep where estado = 'confirmado' and recibo_mismo_monto), null
   -- «Igual» exige algo que comparar: la factura sin cobrado ni fuentes (0 contra 0) va en la 87.
+  -- En la 80, cobrado 0 con un reporte o un crédito es «igual» a sus recibos (cero); en la 83,
+  -- con cobrado = fuentes, cobrado > 0 basta.
   union all select 80, '7 · cobrado contra sus fuentes', 'facturas con cobrado igual a sus recibos vivos',
     (select count(*) from cobro where paid_amount = recibos and (paid_amount > 0 or fuentes > 0)), null
   union all select 81, '7 · cobrado contra sus fuentes', 'facturas con cobrado mayor que sus recibos vivos',
@@ -310,7 +315,7 @@ filas (orden, seccion, indicador, n, monto) as (
   union all select 82, '7 · cobrado contra sus fuentes', 'facturas con cobrado menor que sus recibos vivos',
     (select count(*) from cobro where paid_amount < recibos), null
   union all select 83, '7 · cobrado contra sus fuentes', 'facturas con cobrado igual a recibos + reportes confirmados + créditos de referido',
-    (select count(*) from cobro where paid_amount = fuentes and (paid_amount > 0 or fuentes > 0)), null
+    (select count(*) from cobro where paid_amount = fuentes and paid_amount > 0), null
   union all select 84, '7 · cobrado contra sus fuentes', 'facturas con cobrado mayor que sus tres fuentes',
     count(*), sum(paid_amount - fuentes) filter (where moneda in ('USD', 'USDT'))
     from cobro where paid_amount > fuentes
@@ -323,7 +328,7 @@ filas (orden, seccion, indicador, n, monto) as (
     (select count(*) from cobro where paid_amount = 0 and fuentes = 0), null
   union all select 90, '8 · 1.1.2 mayor contra facturas abiertas', 'tenants sin movimiento en el mayor (facturas abiertas, 1.1.2 sin asientos vivos)',
     (select count(*) from cuadre where cuenta = '1.1.2' and estado = 'sin movimiento en el mayor'), null
-  union all select 91, '8 · 1.1.2 mayor contra facturas abiertas', 'tenants no comparables (factura o recibo en VES/CNY con asiento vivo)',
+  union all select 91, '8 · 1.1.2 mayor contra facturas abiertas', 'tenants no comparables (factura, o recibo con factura, en VES/CNY con asiento vivo)',
     (select count(*) from cuadre where cuenta = '1.1.2' and estado = 'no comparable'), null
   union all select 92, '8 · 1.1.2 mayor contra facturas abiertas', 'tenants sin movimiento en la cuenta (0 contra 0)',
     (select count(*) from cuadre where cuenta = '1.1.2' and estado = 'sin movimiento en la cuenta'), null

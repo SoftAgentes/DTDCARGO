@@ -3,8 +3,8 @@
 -- NUNCA contra una base de red: la guarda de abajo aborta si ya hay objetos de aplicación.
 -- Arma la plataforma mínima, aplica con \ir las migraciones REALES de las tablas que lee la
 -- radiografía (0077, 0078, 0079, 0088, 0098, 0122, 0195, 0237), agrega las tres columnas de
--- 0421 que lee (la migración entera pide auditoría, identidad y el bucket) y siembra dieciséis
--- tenants (A-N, P y S), cada uno con una trampa. Todo texto lleva CENTINELA y los montos tienen
+-- 0421 que lee (la migración entera pide auditoría, identidad y el bucket) y siembra diecisiete
+-- tenants (A-N, P, S y T), cada uno con una trampa. Todo texto lleva CENTINELA y los montos tienen
 -- centavos: la prueba exige que la salida de conteos traiga exactamente sus cinco columnas y
 -- ningún valor con forma de monto. La usa
 -- scripts/__tests__/radiografia-integridad.test.ts (PGlite); también corre con psql en un
@@ -189,15 +189,15 @@ create function pg_temp.credito(p_t text, p_l text, p_estado text, p_monto numer
     case when p_borrado then now() end)
 $$;
 
--- Tenants B..S con su propio plan de cuentas mínimo (A lo sembraron las migraciones reales).
+-- Tenants B..T con su propio plan de cuentas mínimo (A lo sembraron las migraciones reales).
 insert into public.tenants (id, slug, display_name)
 select pg_temp.t(t), 'centinela-' || lower(t), 'CENTINELA-TENANT-' || t
-from unnest(array['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'S']) t;
+from unnest(array['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'S', 'T']) t;
 insert into public.accounts (tenant_id, code, name, type, is_postable)
 select pg_temp.t(t), c.code, 'CENTINELA-CUENTA', c.type::acct_type, true
-from unnest(array['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'S']) t
+from unnest(array['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'S', 'T']) t
 cross join (values ('1.1.1.1', 'A'), ('1.1.2', 'A'), ('2.1.1', 'P'), ('4.5', 'I'), ('5.1', 'CGS')) c(code, type);
--- Subcuentas (D, E, J) y la cuenta puente 2.1.8 de los pagos sin referencia (I, K).
+-- Subcuentas (D, E, J) y la cuenta puente 2.1.8 de los pagos sin referencia (I, K, T).
 insert into public.accounts (tenant_id, code, name, type, is_postable) values
   (pg_temp.t('D'), '1.1.2.1', 'CENTINELA-SUBCUENTA', 'A', true),
   (pg_temp.t('D'), '4.5.1', 'CENTINELA-SUBCUENTA', 'I', true),
@@ -207,7 +207,8 @@ insert into public.accounts (tenant_id, code, name, type, is_postable) values
   (pg_temp.t('E'), '2.1.5.1', 'CENTINELA-SUBCUENTA', 'P', true),
   (pg_temp.t('J'), '2.1.1.1', 'CENTINELA-SUBCUENTA', 'P', true),
   (pg_temp.t('I'), '2.1.8', 'CENTINELA-CUENTA', 'P', true),
-  (pg_temp.t('K'), '2.1.8', 'CENTINELA-CUENTA', 'P', true);
+  (pg_temp.t('K'), '2.1.8', 'CENTINELA-CUENTA', 'P', true),
+  (pg_temp.t('T'), '2.1.8', 'CENTINELA-CUENTA', 'P', true);
 insert into public.suppliers (id, tenant_id, supplier_code, name, tax_id, contact_name, contact_phone, contact_email)
 select pg_temp.id('prov-' || t), pg_temp.t(t), 'CENTINELA-PRV-' || t, 'CENTINELA-PROVEEDOR', 'CENTINELA-RIF',
   'CENTINELA-CONTACTO', 'CENTINELA-TEL', 'centinela@correo.test'
@@ -219,9 +220,10 @@ from unnest(array['A', 'B', 'E', 'G', 'I', 'J', 'L', 'M', 'P', 'S']) t;
 -- F6 vencida sin asiento; F7 VES y F19 CNY sin tasa, F20 VES con tasa 0 (sin asiento: van a
 -- «sin asiento», no a «no comparable»); F8 USDT sin tasa; F11 pagada sin fuentes; F21 borrada;
 -- F23 borrador CNY sin tasa y con fecha de emisión, y F24 borrador USDT sin tasa (los borradores
--- no entran en «sin tasa» ni en el año de emisión).
+-- no entran en «sin tasa» ni en el año de emisión). F25 emitida con su asiento, sin cobrado ni
+-- recibos y con un reporte confirmado (P8): cobrado 0 «igual» a sus recibos, que la 87 no cuenta.
 select pg_temp.factura('A', 'F1', 'emitida', 'USD', 100.10, 0, '2026-01-10');
-select pg_temp.factura('A', 'F2', 'parcial', 'USD', 200.20, 50.05, '2026-02-10');
+select pg_temp.factura('A', 'F2', 'parcial', 'USD', 200.20, 71.26, '2026-02-10');
 select pg_temp.factura('A', 'F3', 'parcial', 'USD', 300.30, 100.00, '2026-03-10');
 select pg_temp.factura('A', 'F4', 'anulada', 'USD', 400.40, 40.04, '2026-04-10');
 select pg_temp.factura('A', 'F5', 'anulada', 'USD', 500.50, 0, '2026-05-10');
@@ -243,6 +245,7 @@ select pg_temp.factura('A', 'F20', 'emitida', 'VES', 210.00, 0, '2026-10-18', 0)
 select pg_temp.factura('A', 'F21', 'borrador', 'USD', 999.99, 0, null, null, true);
 select pg_temp.factura('A', 'F23', 'borrador', 'CNY', 230.23, 0, '2026-10-19');
 select pg_temp.factura('A', 'F24', 'borrador', 'USDT', 240.24, 0, null);
+select pg_temp.factura('A', 'F25', 'emitida', 'USD', 250.25, 0, '2026-10-19');
 
 -- Asientos de venta. AX13 está BORRADO (no da asiento a F13).
 select pg_temp.asiento('A', 'AF1', 'asentado', 'invoice', '1.1.2', '4.5', 100.10, 'F1');
@@ -258,6 +261,7 @@ select pg_temp.asiento('A', 'AF15', 'asentado', 'invoice', '1.1.2', '4.5', 160.1
 select pg_temp.asiento('A', 'AF16', 'asentado', 'invoice', '1.1.2', '4.5', 170.17, 'F16');
 select pg_temp.asiento('A', 'AF17', 'asentado', 'invoice', '1.1.2', '4.5', 180.18, 'F17');
 select pg_temp.asiento('A', 'AF18', 'asentado', 'invoice', '1.1.2', '4.5', 190.19, 'F18');
+select pg_temp.asiento('A', 'AF25', 'asentado', 'invoice', '1.1.2', '4.5', 250.25, 'F25');
 
 -- Créditos de referido. Q1 aplicado a F3 con su asiento AQ1, que es viejo: sin referral_id,
 -- unido solo por el lado del documento (referrals.applied_entry_id). Q2 aplicado a F15 SIN
@@ -309,7 +313,11 @@ from unnest(array['R1', 'R2', 'R3', 'R5', 'R6', 'R8', 'R10', 'R11', 'R12']) r;
 -- asiento anulado, AR14V, o borrado, AR15V); R16 y R17 no tienen asiento vivo y su vínculo
 -- apunta a uno borrado (AR16) o en borrador (AR17), que no son «anulado»; el asiento de R18 no
 -- lleva receipt_id: solo lo une el lado del documento. R19 (F5) y R20 (F10, del mismo monto que
--- el reporte P1) están anulados, sin asiento.
+-- el reporte P1) están anulados, sin asiento. R21, identificado contra F2, tiene su asiento de
+-- cobro (a 2.1.8) por receipt_id, y su journal_entry_id apunta a su reclasificación AR21X, viva y
+-- sin receipt_id: es el vínculo «de otro origen» de la fila 58 y la reclasificación unida solo por
+-- el lado del documento. Hoy ningún escritor lo produce (collections-actions.ts:218 y :317 guardan
+-- el id del asiento de cobro), así que es sintético.
 select pg_temp.recibo('A', 'R14', null, 14.14);
 select pg_temp.recibo('A', 'R15', null, 15.15);
 select pg_temp.recibo('A', 'R16', null, 16.16);
@@ -329,9 +337,14 @@ select pg_temp.vincula_recibo('R15', 'AR15V');
 select pg_temp.vincula_recibo('R16', 'AR16');
 select pg_temp.vincula_recibo('R17', 'AR17');
 select pg_temp.vincula_recibo('R18', 'AR18');
+select pg_temp.recibo('A', 'R21', 'F2', 21.21, false, 'USD', null, true);
+select pg_temp.asiento('A', 'AR21', 'asentado', 'receipt', '1.1.1.1', '2.1.8', 21.21, 'R21');
+select pg_temp.asiento('A', 'AR21X', 'asentado', 'receipt_reclass', '2.1.8', '1.1.2', 21.21);
+select pg_temp.vincula_recibo('R21', 'AR21X');
 
 -- Reportes: P1 confirmado (F10), P2 reportado, P3 confirmado BORRADO, P4 rechazado, P5
--- confirmado en VES (F10), P6 confirmado del mismo monto que R3 (F12), P7 cancelado (0421).
+-- confirmado en VES (F10), P6 confirmado del mismo monto que R3 (F12), P7 cancelado (0421), P8
+-- confirmado en F25, que tiene cobrado 0.
 select pg_temp.reporte('A', 'P1', 'F10', 90.09, 'confirmado');
 select pg_temp.reporte('A', 'P2', 'F10', 10.00, 'reportado');
 select pg_temp.reporte('A', 'P3', 'F10', 5.00, 'confirmado', 'USD', true);
@@ -339,6 +352,7 @@ select pg_temp.reporte('A', 'P4', 'F10', 3.00, 'rechazado');
 select pg_temp.reporte('A', 'P5', 'F10', 22.12, 'confirmado', 'VES');
 select pg_temp.reporte('A', 'P6', 'F12', 12.12, 'confirmado');
 select pg_temp.reporte('A', 'P7', 'F10', 4.00, 'reportado', 'USD', false, true);
+select pg_temp.reporte('A', 'P8', 'F25', 25.25, 'confirmado');
 
 -- Mayor: un manual vivo en 1.1.2, uno descuadrado (U1) y uno sin líneas con origen libre (U2).
 select pg_temp.asiento('A', 'M1', 'asentado', 'manual', '1.1.2', '4.5', 33.33);
@@ -376,8 +390,9 @@ update public.journal_entries set bill_id = pg_temp.id('BA1') where id = pg_temp
 update public.journal_entries set supplier_payment_id = pg_temp.id('OP1') where id = pg_temp.id('MOP1');
 
 -- ════ B · cuadra en 1.1.2 y 2.1.1 pese a un asiento en borrador, una CxP anulada y documentos
--- VES/CNY sin asiento que no están abiertos con saldo (FB2 anulada, FB3 y BB3 pagadas): no
--- quedan «fuera de la suma» ════
+-- VES/CNY sin asiento que no están abiertos con saldo (FB2 anulada, FB3, BB3 y BB4 pagadas): no
+-- quedan «fuera de la suma». El recibo VES RB2 de FB3 y el pago VES OPB1 de BB4 están vivos y
+-- SIN asiento: no vuelven no comparable a B (decisión 7) ════
 select pg_temp.factura('B', 'FB1', 'parcial', 'USD', 1000.00, 250.00, '2026-07-01');
 select pg_temp.factura('B', 'FB2', 'anulada', 'VES', 720.72, 0, '2026-07-01', 36);
 select pg_temp.factura('B', 'FB3', 'pagada', 'VES', 360.36, 360.36, '2026-07-01', 36);
@@ -393,6 +408,10 @@ select pg_temp.asiento('B', 'ABB1', 'asentado', 'supplier_bill', '5.1', '2.1.1',
 select pg_temp.asiento('B', 'ABB2', 'anulado', 'supplier_bill', '5.1', '2.1.1', 77.77, 'BB2');
 select pg_temp.vincula_cxp('BB1', 'ABB1');
 select pg_temp.vincula_cxp('BB2', 'ABB2');
+select pg_temp.recibo('B', 'RB2', 'FB3', 360.36, false, 'VES', 36);
+-- El pago hereda la moneda de su CxP (0468_pago_proveedor_atomico.sql:213-219).
+select pg_temp.cxp('B', 'BB4', 'pagada', 'VES', 360.00, 360.00, 36);
+select pg_temp.pago('B', 'OPB1', 'BB4', 360.00, false, 'VES', 36);
 
 -- ════ C: mayor 123.45 por debajo · D: 123.45 por encima, en subcuentas (se cancelan si se suma
 -- sin separar tenants) ════
@@ -446,10 +465,14 @@ select pg_temp.asiento('H', 'AFH1', 'asentado', 'invoice', '1.1.2', '4.5', 200.0
 select pg_temp.factura('H', 'FH2', 'emitida', 'VES', 3600.00, 0, '2026-07-05', 36);
 
 -- ════ I: el mayor vacío gana (decisión 6). 1.1.2 y 2.1.1 sin movimiento con documentos
--- abiertos, aunque un recibo VES identificado (FI2), cuyo asiento de cobro fue a 2.1.8 y al que
--- le falta la reclasificación, lo volvería no comparable ════
+-- abiertos, aunque FI2, VES, tiene un asiento de venta vivo que la volvería no comparable: AFI2
+-- quedó sin líneas, que es lo que deja invoice-posting.ts:173-177 si fallan las líneas y también
+-- el borrado de compensación, cuyo error no se mira. El recibo VES identificado RI1, con su
+-- asiento de cobro a 2.1.8 y sin reclasificación, no toca 1.1.2 ════
 select pg_temp.factura('I', 'FI1', 'emitida', 'USD', 75.00, 0, '2026-07-06');
 select pg_temp.factura('I', 'FI2', 'parcial', 'VES', 1440.00, 720.00, '2026-07-06', 36);
+insert into public.journal_entries (id, tenant_id, entry_code, memo, status, source, invoice_id)
+values (pg_temp.id('AFI2'), pg_temp.t('I'), 'CENTINELA-A-AFI2', 'CENTINELA-MEMO', 'asentado', 'invoice', pg_temp.id('FI2'));
 select pg_temp.recibo('I', 'RI1', 'FI2', 720.00, false, 'VES', 36, true);
 select pg_temp.asiento('I', 'ARI1', 'asentado', 'receipt', '1.1.1.1', '2.1.8', 20.00, 'RI1');
 select pg_temp.vincula_recibo('RI1', 'ARI1');
@@ -475,13 +498,18 @@ select pg_temp.asiento('J', 'AOPJ1A', 'asentado', 'supplier_payment', '2.1.1', '
 select pg_temp.asiento('J', 'AOPJ1B', 'asentado', 'supplier_payment', '2.1.1', '1.1.1.1', 5.00, 'OPJ1');
 select pg_temp.vincula_pago('OPJ1', 'AOPJ1A');
 
--- ════ K: un recibo VES SIN referencia con asiento vivo, contra 2.1.8, no toca 1.1.2: no lo
+-- ════ K: dos recibos VES con asiento vivo contra 2.1.8, que no tocan 1.1.2: RK1, SIN referencia,
+-- y RK2, identificado contra FK2 (VES pagada, sin asiento) y todavía sin reclasificar. Ninguno lo
 -- vuelve no comparable, y K cuadra ════
 select pg_temp.factura('K', 'FK1', 'emitida', 'USD', 100.00, 0, '2026-07-08');
 select pg_temp.asiento('K', 'AFK1', 'asentado', 'invoice', '1.1.2', '4.5', 100.00, 'FK1');
 select pg_temp.recibo('K', 'RK1', null, 360.00, false, 'VES', 36);
 select pg_temp.asiento('K', 'ARK1', 'asentado', 'receipt', '1.1.1.1', '2.1.8', 10.00, 'RK1');
 select pg_temp.vincula_recibo('RK1', 'ARK1');
+select pg_temp.factura('K', 'FK2', 'pagada', 'VES', 360.00, 360.00, '2026-07-08', 36);
+select pg_temp.recibo('K', 'RK2', 'FK2', 360.00, false, 'VES', 36, true);
+select pg_temp.asiento('K', 'ARK2', 'asentado', 'receipt', '1.1.1.1', '2.1.8', 10.00, 'RK2');
+select pg_temp.vincula_recibo('RK2', 'ARK2');
 
 -- ════ L: solo proveedores. 1.1.2 sin movimiento y sin facturas (0 contra 0); 2.1.1 no
 -- comparable SOLO por un pago VES con asiento vivo ════
@@ -534,3 +562,12 @@ select pg_temp.vincula_cxp('BS1', 'ABS1');
 select pg_temp.pago('S', 'OPS1', 'BS1', 360.00, true, 'VES', 36);
 select pg_temp.asiento('S', 'AOPS1', 'asentado', 'supplier_payment', '2.1.1', '1.1.1.1', 10.00, 'OPS1');
 select pg_temp.vincula_pago('OPS1', 'AOPS1');
+
+-- ════ T: no comparable SOLO por un recibo VES identificado Y reclasificado: su asiento de cobro
+-- fue a 2.1.8 y la reclasificación ART1X lleva el monto convertido a 1.1.2. FT1, VES pagada, no
+-- tiene asiento ════
+select pg_temp.factura('T', 'FT1', 'pagada', 'VES', 360.00, 360.00, '2026-07-13', 36);
+select pg_temp.recibo('T', 'RT1', 'FT1', 360.00, false, 'VES', 36, true);
+select pg_temp.asiento('T', 'ART1', 'asentado', 'receipt', '1.1.1.1', '2.1.8', 10.00, 'RT1');
+select pg_temp.asiento('T', 'ART1X', 'asentado', 'receipt_reclass', '2.1.8', '1.1.2', 10.00, 'RT1');
+select pg_temp.vincula_recibo('RT1', 'ART1');
