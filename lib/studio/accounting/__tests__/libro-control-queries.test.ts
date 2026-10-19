@@ -90,10 +90,10 @@ describe("ingresoDelPeriodo", () => {
     expect(deFacturas).toContainEqual({ table: "invoices", op: "lte", col: "issued_at", val: "2025-03-18" });
   });
 
-  it("una anulada en VES del período vuelve no comparable el control (llega desde SQL)", async () => {
+  it("una anulada en VES del período, con su asiento vivo, vuelve no comparable el control (llega desde SQL)", async () => {
     const anuladaVes = { ...FACTURAS_DEL_MES[0], id: "fv", currency: "VES", fx_rate: 36.5, status: "anulada" };
     const { client } = dobleListados({ invoices: [...FACTURAS_EN_USD, anuladaVes] }, { serverCap: SERVER_CAP });
-    const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor: control(1000) });
+    const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor: control(1000, 1000, true, ["f1", "fv"]) });
     expect(i.facturado.total).toBe(ESPERADO_EN_USD.total);
     expect(i.enOtraMoneda).toBe(1);
     expect(describirIngreso(i).estado).toBe("no_comparable");
@@ -164,10 +164,59 @@ describe("ingresoDelPeriodo", () => {
       { serverCap: SERVER_CAP },
     );
     const i = await ingresoDelPeriodo(client, RANGO_MES);
-    expect(i.enOtraMoneda).toBe(1);
+    // Sin asiento no cuenta en «no comparable» (decisión 7): ya falta en 4.5.
+    expect(i.enOtraMoneda).toBe(0);
     expect(i.mayor).toMatchObject({ ventas: 0, ventasConMovimiento: false });
     expect(i.diferenciaUsd).toBe(1000);
     expect(describirIngreso(i).estado).toBe("mayor_menor");
+  });
+
+  /**
+   * Decisión 7 del Director (2026-10-19, revisable por Sam), por el lector: la
+   * factura en VES cuenta en «no comparable» solo si tiene su asiento
+   * `invoice` vivo, y eso sale de la MISMA lectura de asientos de factura que
+   * arma 4.5 (`journal_entries.invoice_id`).
+   */
+  function conVes(asientoVes: "ninguno" | "vivo" | "anulado" | "referido") {
+    const usd = { ...FACTURAS_DEL_MES[0], id: "fu", base_amount: 600 };
+    const ves = { ...FACTURAS_DEL_MES[1], id: "fv", status: "emitida" };
+    const entries: Fila[] = [deFactura("e-u", "2025-03-05", "asentado", { invoice_id: "fu" })];
+    const lines: Fila[] = [linea("l-u1", "e-u", "cxc", 600, 0), linea("l-u2", "e-u", "ventas", 0, 600)];
+    if (asientoVes === "vivo") entries.push(deFactura("e-v", "2025-03-10", "asentado", { invoice_id: "fv" }));
+    if (asientoVes === "anulado") entries.push(deFactura("e-v", "2025-03-10", "anulado", { invoice_id: "fv" }));
+    if (asientoVes === "referido") {
+      entries.push(entrada("e-v", "2025-03-10", "asentado", { source: "referral_credit", invoice_id: "fv" }));
+    }
+    if (asientoVes !== "ninguno") {
+      lines.push(linea("l-v1", "e-v", "cxc", 36500, 0), linea("l-v2", "e-v", "ventas", 0, 36500));
+    }
+    return dobleListados(
+      { invoices: [usd, ves], accounts: PLAN, journal_entries: entries, journal_lines: lines },
+      { serverCap: SERVER_CAP },
+    ).client;
+  }
+
+  it("decisión 7 · una USD asentada y una VES SIN asiento, con 4.5 en movimiento: la diferencia normal", async () => {
+    const i = await ingresoDelPeriodo(conVes("ninguno"), RANGO_MES);
+    expect(i.enOtraMoneda).toBe(0);
+    // 600 + 1000 facturados contra los 600 de la USD en 4.5.
+    expect(i.diferenciaUsd).toBe(1000);
+    expect(describirIngreso(i).estado).toBe("mayor_menor");
+  });
+
+  it("decisión 7 · la misma VES CON su asiento `invoice` vivo: «no comparable»", async () => {
+    const i = await ingresoDelPeriodo(conVes("vivo"), RANGO_MES);
+    expect(i.enOtraMoneda).toBe(1);
+    expect(i.diferenciaUsd).toBeNull();
+    expect(describirIngreso(i).estado).toBe("no_comparable");
+  });
+
+  it("decisión 7 · controles: un asiento anulado o un crédito de referido de la VES no cuentan", async () => {
+    for (const caso of ["anulado", "referido"] as const) {
+      const i = await ingresoDelPeriodo(conVes(caso), RANGO_MES);
+      expect(i.enOtraMoneda, caso).toBe(0);
+      expect(describirIngreso(i).estado, caso).not.toBe("no_comparable");
+    }
   });
 });
 
@@ -185,6 +234,26 @@ describe("saldosDeFacturas", () => {
     expect(fechas.length).toBeGreaterThan(0);
     expect(fechas.filter((f) => f.op === "gte")).toEqual(Array(fechas.length / 2).fill(gte));
     expect(fechas.filter((f) => f.op === "lte")).toEqual(Array(fechas.length / 2).fill(lte));
+  });
+
+  it("las facturas con asiento salen de la misma lectura: solo asientos `invoice` vivos del rango (decisión 7)", async () => {
+    const { client } = dobleListados(
+      {
+        accounts: PLAN,
+        journal_entries: [
+          deFactura("e1", "2025-03-05", "asentado", { invoice_id: "f-viva" }),
+          deFactura("e2", "2025-03-06", "anulado", { invoice_id: "f-anulado" }),
+          deFactura("e3", "2025-03-07", "asentado", { invoice_id: "f-borrado", deleted_at: "2025-03-08T00:00:00Z" }),
+          deFactura("e4", "2025-03-25", "asentado", { invoice_id: "f-despues" }),
+          entrada("e5", "2025-03-09", "asentado", { source: "referral_credit", invoice_id: "f-referido" }),
+        ],
+        journal_lines: [linea("l1", "e1", "cxc", 10, 0), linea("l2", "e1", "ventas", 0, 10)],
+      },
+      { serverCap: SERVER_CAP },
+    );
+    const r = await saldosDeFacturas(client, RANGO_MES, PLAN as unknown as Account[]);
+    expect([...r.facturas]).toEqual(["f-viva"]);
+    expect(r.saldos.ventas).toMatchObject({ credit: 10 });
   });
 
   it("ERR-01 · más de 60 asientos de factura en el rango con 1 fila por respuesta: rechaza con su nombre", async () => {
@@ -449,6 +518,47 @@ describe("cuadreDelLibro", () => {
       const c = await cuadreDelLibro(client, { accounts, saldos, hoy: "2025-03-18" });
       expect(c.subdiario.clientes, moneda).toMatchObject({ estado: "cuadra", diferenciaUsd: 0 });
     }
+  });
+
+  /**
+   * Decisiones 6 y 7 del Director (2026-10-19, revisables por Sam) por el
+   * lector: una factura abierta en VES (36500 Bs a 36,5 = 1000 USD), con o sin
+   * su asiento `invoice` vivo, contra 1.1.2 con o sin movimiento. El asiento
+   * vivo sale del mismo cruce de «documentos sin asiento».
+   */
+  async function cuadreConVes(o: { asiento: boolean; cxc: { debit: number; credit: number; balance: number } }) {
+    const tablas: Record<string, Fila[]> = {
+      accounts: PLAN,
+      invoices: [
+        { id: "fv", invoice_code: "F-V", status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, total_amount: 36500, paid_amount: 0, deleted_at: null },
+      ],
+      payment_receipts: [],
+      supplier_bills: [],
+      supplier_payments: [],
+      journal_entries: o.asiento ? [entrada("e-fv", "2025-03-05", "asentado", { source: "invoice", invoice_id: "fv" })] : [],
+      journal_lines: [],
+    };
+    const { client } = dobleListados(tablas, { serverCap: SERVER_CAP });
+    const accounts = await listAccounts(client);
+    const saldos = await accountBalances(client);
+    saldos.cxc = o.cxc;
+    return cuadreDelLibro(client, { accounts, saldos, hoy: "2025-03-18" });
+  }
+
+  it("decisión 7 · con movimiento en 1.1.2 y la VES con su asiento vivo: «no comparable»", async () => {
+    const c = await cuadreConVes({ asiento: true, cxc: { debit: 36500, credit: 0, balance: 36500 } });
+    expect(c.subdiario.clientes).toMatchObject({ estado: "no_comparable", diferenciaUsd: null });
+  });
+
+  it("decisión 7 · con movimiento en 1.1.2 y la VES SIN asiento: la diferencia, no «no comparable»", async () => {
+    const c = await cuadreConVes({ asiento: false, cxc: { debit: 500, credit: 0, balance: 500 } });
+    expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 1000, mayorUsd: 500, diferenciaUsd: 500, estado: "no_cuadra" });
+    expect(c.documentos.sinAsiento.map((h) => h.codigo)).toEqual(["F-V"]);
+  });
+
+  it("decisión 6 · 1.1.2 sin movimiento y la VES abierta: «sin movimiento en el mayor», sin diferencia", async () => {
+    const c = await cuadreConVes({ asiento: false, cxc: { debit: 0, credit: 0, balance: 0 } });
+    expect(c.subdiario.clientes).toMatchObject({ subdiarioUsd: 1000, mayorUsd: 0, diferenciaUsd: null, estado: "mayor_sin_movimiento" });
   });
 
   it("recibos y pagos anulados (deleted_at) con asiento vivo, CxP viva sin asiento y CxP abierta en el subdiario", async () => {

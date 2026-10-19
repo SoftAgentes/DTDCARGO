@@ -229,10 +229,10 @@ describe("buildViewCsv · Constructor (build) se autogestiona → null", () => {
 // ── SDD-0557 · Estado de resultados con la cifra oficial ──────
 describe("buildViewCsv · Estado de resultados (SDD-0557)", () => {
   const rango = { from: "2026-06-01", to: "2026-06-04" };
-  const MAYOR_VACIO = { ventas: 0, ventasConMovimiento: false, ingresos: 0 };
+  const MAYOR_VACIO = { ventas: 0, ventasConMovimiento: false, ingresos: 0, facturasConAsiento: new Set<string>() };
   const ingreso = (base: number, currency = "USD", mayor = MAYOR_VACIO) =>
     resumirIngreso(
-      base ? [{ status: "emitida", issued_at: "2026-06-02", currency, fx_rate: currency === "VES" ? 36.5 : null, base_amount: base }] : [],
+      base ? [{ id: "f1", status: "emitida", issued_at: "2026-06-02", currency, fx_rate: currency === "VES" ? 36.5 : null, base_amount: base }] : [],
       rango,
       mayor,
     );
@@ -254,17 +254,18 @@ describe("buildViewCsv · Estado de resultados (SDD-0557)", () => {
     expect(lines).toContain("En el mayor · cuenta 4.5 · asientos de factura,0,");
     expect(lines).toContain("Diferencia facturado − mayor (4.5),2000,");
     expect(lines).toContain("Control contra 4.5: El mayor tiene menos,,");
-    expect(lines).toContain("Facturas del período en bolívares o yuanes (cantidad),0,");
+    expect(lines).toContain("Facturas del período en bolívares o yuanes con asiento de factura (cantidad),0,");
     expect(lines).toContain("Otros ingresos del mayor (4.6 y manuales · también a 4.5),0,");
   });
 
   it("con una factura en bolívares y asientos de factura en 4.5: diferencia vacía, «No comparable» y 4.5 fuera de «Monto USD»", () => {
-    const conAsiento = { ventas: 36500, ventasConMovimiento: true, ingresos: 36500 };
+    // La factura en bolívares con su asiento de factura vivo (decisión 7).
+    const conAsiento = { ventas: 36500, ventasConMovimiento: true, ingresos: 36500, facturasConAsiento: new Set(["f1"]) };
     const csv = buildViewCsv({ category: "con", rep: "income", income: income({ ingreso: ingreso(36500, "VES", conAsiento) }), today: TODAY });
     const lines = csv!.content.split("\r\n");
     expect(lines).toContain("Diferencia facturado − mayor (4.5),,");
     expect(lines).toContain("Control contra 4.5: No comparable,,");
-    expect(lines).toContain("Facturas del período en bolívares o yuanes (cantidad),1,");
+    expect(lines).toContain("Facturas del período en bolívares o yuanes con asiento de factura (cantidad),1,");
     // El nominal mixto no va bajo «Monto USD»: la fila lo dice y la celda va vacía.
     expect(lines).toContain("En el mayor · cuenta 4.5 · asientos de factura: nominal mixto (no USD),,");
     expect(lines.some((l) => l.includes("36500") && l.startsWith("En el mayor"))).toBe(false);
@@ -276,7 +277,8 @@ describe("buildViewCsv · Estado de resultados (SDD-0557)", () => {
     expect(lines).toContain("En el mayor · cuenta 4.5 · asientos de factura,0,");
     expect(lines).toContain("Diferencia facturado − mayor (4.5),1000,");
     expect(lines).toContain("Control contra 4.5: El mayor tiene menos,,");
-    expect(lines).toContain("Facturas del período en bolívares o yuanes (cantidad),1,");
+    // Sin asiento no cuenta (decisión 7): ya falta en 4.5.
+    expect(lines).toContain("Facturas del período en bolívares o yuanes con asiento de factura (cantidad),0,");
   });
 
   it("todo en 0 → null", () => {

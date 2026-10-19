@@ -20,8 +20,8 @@ vi.mock("next/navigation", () => ({
 
 import { IncomeStatementCard } from "../_components/ReportesClient";
 
-const VES = { status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, base_amount: 36500, fund_class: "local_revenue" };
-const USD = { status: "emitida", issued_at: "2025-03-05", currency: "USD", fx_rate: null, base_amount: 1000, fund_class: "local_revenue" };
+const VES = { id: "v1", status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, base_amount: 36500, fund_class: "local_revenue" };
+const USD = { id: "u1", status: "emitida", issued_at: "2025-03-05", currency: "USD", fx_rate: null, base_amount: 1000, fund_class: "local_revenue" };
 
 function estado(ingreso: IncomeStatement["ingreso"]): IncomeStatement {
   return {
@@ -37,12 +37,12 @@ afterEach(() => cleanup());
 
 describe("IncomeStatementCard · mayor mezclado (SDD-0557)", () => {
   it("con una factura en VES asentada al nominal, la tarjeta avisa que las cifras no son todas USD", () => {
-    render(createElement(IncomeStatementCard, { income: estado(resumirIngreso([VES], RANGO_MES, control(36500))) }));
+    render(createElement(IncomeStatementCard, { income: estado(resumirIngreso([VES], RANGO_MES, control(36500, 36500, true, ["v1"]))) }));
     expect(screen.getByRole("note")).toHaveTextContent(/mezclan el nominal de facturas en bolívares o yuanes/);
   });
 
   it("sin facturas en otra moneda no hay nota", () => {
-    render(createElement(IncomeStatementCard, { income: estado(resumirIngreso([USD], RANGO_MES, control(1000))) }));
+    render(createElement(IncomeStatementCard, { income: estado(resumirIngreso([USD], RANGO_MES, control(1000, 1000, true, ["u1"]))) }));
     expect(screen.queryByRole("note")).toBeNull();
   });
 });

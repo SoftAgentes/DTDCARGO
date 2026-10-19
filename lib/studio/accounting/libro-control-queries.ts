@@ -65,6 +65,14 @@ const num = (v: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
+/** Lo que el control del mayor lee de los asientos de factura de un rango. */
+export type AsientosDeFactura = {
+  /** Saldos con SOLO las líneas de esos asientos. */
+  saldos: AccountBalanceMap;
+  /** Las facturas que tienen uno de esos asientos (`journal_entries.invoice_id`). */
+  facturas: Set<string>;
+};
+
 /**
  * Los saldos del rango con SOLO las líneas de los asientos de factura
  * (`source = 'invoice'`), asentados y vivos. Es el lado del mayor que se
@@ -72,17 +80,18 @@ const num = (v: unknown): number => {
  * origen, no es una venta facturada y queda en «otros ingresos del mayor».
  * Estado, borrado y origen van en SQL y se repiten en memoria, también sobre
  * las líneas. El rango de fechas va solo en SQL, como en `accountBalances`:
- * no se trae `entry_date`.
+ * no se trae `entry_date`. De la MISMA lectura salen las facturas con asiento
+ * vivo, que deciden «no comparable» (decisión 7): sin otra consulta.
  */
 export async function saldosDeFacturas(
   supabase: SupabaseClient,
   rango: RangoFechas,
   accounts: Account[],
-): Promise<AccountBalanceMap> {
+): Promise<AsientosDeFactura> {
   const asientos = await leerCompleto<Fila>("Control del mayor · asientos de factura", (d, h) =>
     supabase
       .from("journal_entries")
-      .select("id, status, source, deleted_at")
+      .select("id, status, source, deleted_at, invoice_id")
       .eq("status", "asentado")
       .is("deleted_at", null)
       .eq("source", ORIGEN_POR_TIPO.factura)
@@ -91,13 +100,15 @@ export async function saldosDeFacturas(
       .order("id", { ascending: true })
       .range(d, h),
   );
-  const ids = asientos
-    .filter(
-      (a) =>
-        a.status === "asentado" && a.deleted_at == null && a.source === ORIGEN_POR_TIPO.factura,
-    )
-    .map((a) => str(a.id));
-  if (ids.length === 0) return computeBalances(accounts, []);
+  const vivos = asientos.filter(
+    (a) =>
+      a.status === "asentado" && a.deleted_at == null && a.source === ORIGEN_POR_TIPO.factura,
+  );
+  const facturas = new Set(
+    vivos.map((a) => strOrNull(a.invoice_id)).filter((id): id is string => id != null),
+  );
+  const ids = vivos.map((a) => str(a.id));
+  if (ids.length === 0) return { saldos: computeBalances(accounts, []), facturas };
 
   const { rows: lineas, complete } = await fetchAllByIds<Fila>(ids, (lote, d, h) =>
     supabase
@@ -113,18 +124,22 @@ export async function saldosDeFacturas(
     );
   }
   const deFactura = new Set(ids);
-  return computeBalances(
-    accounts,
-    lineas
-      .filter((l) => deFactura.has(str(l.entry_id)))
-      .map((l) => ({ account_id: str(l.account_id), debit: num(l.debit), credit: num(l.credit) })),
-  );
+  return {
+    saldos: computeBalances(
+      accounts,
+      lineas
+        .filter((l) => deFactura.has(str(l.entry_id)))
+        .map((l) => ({ account_id: str(l.account_id), debit: num(l.debit), credit: num(l.credit) })),
+    ),
+    facturas,
+  };
 }
 
 /**
  * El control del mayor de un rango (ingreso-periodo.ts, `controlDelMayor`):
  * `balances` son los saldos del rango con todos los orígenes, que el llamador
- * ya leyó para su P&L; acá se leen los de los asientos de factura.
+ * ya leyó para su P&L; acá se leen los de los asientos de factura y, de la
+ * misma lectura, qué facturas tienen el suyo.
  */
 export async function controlDelPeriodo(
   supabase: SupabaseClient,
@@ -133,7 +148,7 @@ export async function controlDelPeriodo(
   balances: AccountBalanceMap,
 ): Promise<ControlDelMayor> {
   const deFacturas = await saldosDeFacturas(supabase, rango, accounts);
-  return controlDelMayor(accounts, balances, deFacturas);
+  return controlDelMayor(accounts, balances, deFacturas.saldos, deFacturas.facturas);
 }
 
 /**
@@ -342,6 +357,8 @@ export async function cuadreDelLibro(
         fx_rate: (f.fx_rate as number | null) ?? null,
         total_amount: num(f.total_amount),
         paid_amount: num(f.paid_amount),
+        // El mismo cruce de «sin asiento»: asiento `invoice` vivo (decisión 7).
+        asientoVivo: (porDocumento.get(`factura:${str(f.id)}`)?.vivos ?? 0) > 0,
       })),
       cxp: cxp.map((b) => ({
         status: str(b.status),

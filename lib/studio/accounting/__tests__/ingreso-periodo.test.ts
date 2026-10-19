@@ -40,7 +40,9 @@ describe("resumirIngreso · la cifra oficial", () => {
     });
     expect(i.facturas).toBe(ESPERADO.facturas);
     expect(i.sinConvertir).toBe(ESPERADO.sinConvertir);
-    expect(i.enOtraMoneda).toBe(ESPERADO.enOtraMoneda);
+    // Sin control no se leyeron los asientos: ninguna cuenta como asentada.
+    expect(i.enOtraMoneda).toBe(0);
+    expect(resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, control(2000)).enOtraMoneda).toBe(ESPERADO.enOtraMoneda);
     expect(i.rango).toEqual(RANGO_MES);
   });
 
@@ -51,6 +53,7 @@ describe("resumirIngreso · la cifra oficial", () => {
 
   it("excluye borrador y anulada; incluye parcial y vencida", () => {
     const f = (status: string) => ({
+      id: status,
       status,
       issued_at: "2025-03-05",
       currency: "USD",
@@ -73,6 +76,7 @@ describe("resumirIngreso · la cifra oficial", () => {
 
   it("el rango es inclusivo en los dos extremos", () => {
     const en = (issued_at: string) => ({
+      id: issued_at,
       status: "emitida",
       issued_at,
       currency: "USD",
@@ -107,8 +111,8 @@ describe("resumirIngreso · la cifra oficial", () => {
   it("propio = local_revenue; cualquier otro fund_class es terceros (default 0122)", () => {
     const i = resumirIngreso(
       [
-        { status: "emitida", issued_at: "2025-03-02", currency: "USD", fx_rate: null, base_amount: 5, fund_class: "local_revenue" },
-        { status: "emitida", issued_at: "2025-03-02", currency: "USDT", fx_rate: null, base_amount: 7 },
+        { id: "p", status: "emitida", issued_at: "2025-03-02", currency: "USD", fx_rate: null, base_amount: 5, fund_class: "local_revenue" },
+        { id: "t", status: "emitida", issued_at: "2025-03-02", currency: "USDT", fx_rate: null, base_amount: 7 },
       ],
       RANGO_MES,
       null,
@@ -149,15 +153,17 @@ describe("control contra el mayor (4.5 de los asientos de factura, no todas las 
       { account_id: "v", debit: 0, credit: 300 },
       { account_id: "x", debit: 0, credit: 200 },
     ]);
-    expect(controlDelMayor(accounts, todos, deFacturas)).toEqual({
+    const asentadas = new Set(["f1"]);
+    expect(controlDelMayor(accounts, todos, deFacturas, asentadas)).toEqual({
       ventas: 1500,
       ventasConMovimiento: true,
       ingresos: 2000,
+      facturasConAsiento: asentadas,
     });
     // El manual a 4.5 queda en otros ingresos, junto con el 4.6.
-    const i = resumirIngreso(FACTURAS_EN_USD, RANGO_MES, controlDelMayor(accounts, todos, deFacturas));
+    const i = resumirIngreso(FACTURAS_EN_USD, RANGO_MES, controlDelMayor(accounts, todos, deFacturas, asentadas));
     expect(i.mayor?.otrosIngresos).toBe(500);
-    expect(controlDelMayor(accounts.filter((a) => a.code !== "4.5"), todos, deFacturas).ventas).toBeNull();
+    expect(controlDelMayor(accounts.filter((a) => a.code !== "4.5"), todos, deFacturas, asentadas).ventas).toBeNull();
   });
 
   it("movimiento de 4.5: un debe y un haber que se anulan sí son movimiento", () => {
@@ -167,13 +173,14 @@ describe("control contra el mayor (4.5 de los asientos de factura, no todas las 
       { account_id: "v", debit: 0, credit: 100 },
     ]);
     const vacio = computeBalances(accounts as Account[], []);
-    expect(controlDelMayor(accounts, vacio, ida)).toMatchObject({ ventas: 0, ventasConMovimiento: true });
-    expect(controlDelMayor(accounts, vacio, vacio)).toMatchObject({ ventas: 0, ventasConMovimiento: false });
+    expect(controlDelMayor(accounts, vacio, ida, new Set())).toMatchObject({ ventas: 0, ventasConMovimiento: true });
+    expect(controlDelMayor(accounts, vacio, vacio, new Set())).toMatchObject({ ventas: 0, ventasConMovimiento: false });
   });
 });
 
 describe("no comparable (E1 de la SDD-0559, B2)", () => {
   const ves = (extra: Record<string, unknown> = {}) => ({
+    id: "v",
     status: "emitida",
     issued_at: "2025-03-05",
     currency: "VES",
@@ -195,14 +202,17 @@ describe("no comparable (E1 de la SDD-0559, B2)", () => {
     expect(d.diferenciaTexto).not.toMatch(/tarea|plan contable/);
   });
 
+  // 4.5 con movimiento y la factura «v» con su asiento de factura vivo.
+  const conV = control(37500, 37500, true, ["v"]);
+
   it("una sola, aunque esté convertida: singular", () => {
-    const d = describirIngreso(resumirIngreso([ves()], RANGO_MES, control(37500)));
+    const d = describirIngreso(resumirIngreso([ves()], RANGO_MES, conV));
     expect(d.estado).toBe("no_comparable");
     expect(d.diferenciaTexto).toMatch(/^No comparable: 1 factura del período está en bolívares o yuanes y hoy se asienta /);
   });
 
   it("cuenta las anuladas y las CNY sin convertir; no cuenta borrador, borrada ni fuera del período", () => {
-    const n = (f: Record<string, unknown>) => resumirIngreso([ves(f)], RANGO_MES, control(0)).enOtraMoneda;
+    const n = (f: Record<string, unknown>) => resumirIngreso([ves(f)], RANGO_MES, conV).enOtraMoneda;
     expect(n({ status: "anulada" })).toBe(1);
     expect(n({ currency: "CNY", fx_rate: null })).toBe(1);
     expect(n({ status: "borrador" })).toBe(0);
@@ -214,16 +224,51 @@ describe("no comparable (E1 de la SDD-0559, B2)", () => {
   it("solo en USD vuelve a ser comparable", () => {
     expect(describirIngreso(resumirIngreso(FACTURAS_EN_USD, RANGO_MES, control(1000))).estado).toBe("cuadra");
   });
+
+  /**
+   * Decisión 7 del Director (2026-10-19, revisable por Sam): solo cuenta la
+   * factura en VES o CNY que tiene su asiento de factura vivo, porque es la
+   * que mete el nominal en 4.5. Una sin asiento ya está en «sin asiento».
+   */
+  describe("solo las que tienen su asiento de factura vivo (decisión 7)", () => {
+    const usd = { id: "u1", status: "emitida", issued_at: "2025-03-04", currency: "USD", fx_rate: null, base_amount: 600 };
+    const vesSola = { id: "v1", status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, base_amount: 36500 };
+
+    it("una USD asentada y una VES SIN asiento, con 4.5 en movimiento: la diferencia normal, no «no comparable»", () => {
+      // 4.5 tiene los 600 del asiento de la USD; la VES (1000 USD) no tiene asiento.
+      const i = resumirIngreso([usd, vesSola], RANGO_MES, control(600, 600, true, ["u1"]));
+      expect(i.enOtraMoneda).toBe(0);
+      expect(i.diferenciaUsd).toBe(1000);
+      const d = describirIngreso(i);
+      expect(d.estado).toBe("mayor_menor");
+      expect(d.diferenciaTexto).toBe("El mayor (cuenta 4.5) tiene $1,000.00 menos que lo facturado.");
+    });
+
+    it("la misma VES CON su asiento vivo: «no comparable», sin diferencia", () => {
+      const i = resumirIngreso([usd, vesSola], RANGO_MES, control(37100, 37100, true, ["u1", "v1"]));
+      expect(i.enOtraMoneda).toBe(1);
+      expect(i.diferenciaUsd).toBeNull();
+      expect(describirIngreso(i).estado).toBe("no_comparable");
+    });
+
+    it("sin control (Dashboard) ninguna cuenta: no se leyeron los asientos", () => {
+      expect(resumirIngreso([usd, vesSola], RANGO_MES, null).enOtraMoneda).toBe(0);
+    });
+  });
 });
 
 describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
   // 36500 Bs a 36,5 = 1000 USD. Sin ningún asiento de factura en 4.5.
-  const vesSinAsiento = { status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, base_amount: 36500 };
+  const vesSinAsiento = { id: "vs", status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, base_amount: 36500 };
+  // La misma factura, con su asiento de factura vivo y 4.5 en movimiento.
+  const vesAsentada = { ...vesSinAsiento, id: "va" };
+  const conVa = control(36500, 36500, true, ["va"]);
   const vacio = control(0, 0, false);
 
   it("una factura en VES sin ningún asiento: el mayor tiene menos por todo lo facturado, con diferencia", () => {
     const i = resumirIngreso([vesSinAsiento], RANGO_MES, vacio);
-    expect(i.enOtraMoneda).toBe(1);
+    // Sin asiento no cuenta en «no comparable» (decisión 7).
+    expect(i.enOtraMoneda).toBe(0);
     expect(i.diferenciaUsd).toBe(1000);
     const d = describirIngreso(i);
     expect(d.estado).toBe("mayor_menor");
@@ -231,6 +276,17 @@ describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
       "El mayor (cuenta 4.5) tiene $1,000.00 menos que lo facturado: no tiene ningún asiento de factura en el período.",
     );
     expect(d.diferenciaTexto).not.toMatch(/No comparable|se asienta/);
+  });
+
+  it("una VES con su asiento de factura vivo pero sin líneas en 4.5: el mayor vacío gana igual, con diferencia", () => {
+    // invoice-posting.ts inserta la cabecera y después las líneas, sin una
+    // transacción: si las líneas fallan y el rollback manual del header también,
+    // queda un asiento vivo sin líneas (B3). La factura cuenta como asentada,
+    // pero contra una 4.5 sin debe ni haber no hay monedas que mezclar.
+    const i = resumirIngreso([vesAsentada], RANGO_MES, control(0, 0, false, ["va"]));
+    expect(i.enOtraMoneda).toBe(1);
+    expect(i.diferenciaUsd).toBe(1000);
+    expect(describirIngreso(i).estado).toBe("mayor_menor");
   });
 
   it("con el fixture del mes (VES y CNY) y 4.5 vacía: la diferencia es todo lo facturado", () => {
@@ -244,7 +300,7 @@ describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
     const i = resumirIngreso([cny], RANGO_MES, vacio);
     // Falta el asiento, pero sin facturado en USD el monto de la diferencia no
     // se conoce: va en null, no en 0 junto a «el mayor tiene menos».
-    expect(i).toMatchObject({ facturas: 0, sinConvertir: 1, enOtraMoneda: 1, diferenciaUsd: null });
+    expect(i).toMatchObject({ facturas: 0, sinConvertir: 1, enOtraMoneda: 0, diferenciaUsd: null });
     const d = describirIngreso(i);
     expect(d.estado).toBe("mayor_menor");
     expect(d.diferenciaTexto).toBe(
@@ -257,7 +313,7 @@ describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
   });
 
   it("la nota del mayor mezclado sale solo con «no comparable»", () => {
-    const mezclado = resumirIngreso([vesSinAsiento], RANGO_MES, control(36500));
+    const mezclado = resumirIngreso([vesAsentada], RANGO_MES, conVa);
     expect(notaDelMayorMezclado(mezclado)).toBe(
       "Estas cifras salen del mayor y mezclan el nominal de facturas en bolívares o yuanes con montos en USD: no son todas USD. Vuelven a ser comparables cuando el asiento de venta se registre en USD (fase 2 del plan de trabajo de contabilidad).",
     );
@@ -266,11 +322,11 @@ describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
   });
 
   it("controles: con asientos de factura en 4.5 vuelve «no comparable»; una anulada en VES sola, con 4.5 vacía, es «sin movimiento»", () => {
-    const conAsiento = resumirIngreso([vesSinAsiento], RANGO_MES, control(36500));
+    const conAsiento = resumirIngreso([vesAsentada], RANGO_MES, conVa);
     expect(conAsiento.diferenciaUsd).toBeNull();
     expect(describirIngreso(conAsiento).estado).toBe("no_comparable");
     const anulada = resumirIngreso([{ ...vesSinAsiento, status: "anulada" }], RANGO_MES, vacio);
-    expect(anulada.enOtraMoneda).toBe(1);
+    expect(anulada.enOtraMoneda).toBe(0);
     expect(describirIngreso(anulada).estado).toBe("sin_movimiento");
   });
 });

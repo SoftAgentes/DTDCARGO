@@ -456,9 +456,9 @@ describe("vistaDelEstado", () => {
     resumirIngreso(
       base === 0 && !extra.currency
         ? []
-        : [{ status: "emitida", issued_at: "2025-03-05", currency: "USD", fx_rate: null, base_amount: base, ...extra }],
+        : [{ id: "f1", status: "emitida", issued_at: "2025-03-05", currency: "USD", fx_rate: null, base_amount: base, ...extra }],
       rango,
-      { ventas: 0, ventasConMovimiento: false, ingresos: 0 },
+      { ventas: 0, ventasConMovimiento: false, ingresos: 0, facturasConAsiento: new Set<string>() },
     );
 
   it("mayor vacío y sin facturas → vacío", () => {

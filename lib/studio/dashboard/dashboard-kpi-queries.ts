@@ -63,7 +63,7 @@ export async function financeInvoiceKpis(
       supabase
         .from("invoices")
         .select(
-          "status, due_date, issued_at, total_amount, paid_amount, created_at, base_amount, currency, fx_rate, fund_class, deleted_at",
+          "id, status, due_date, issued_at, total_amount, paid_amount, created_at, base_amount, currency, fx_rate, fund_class, deleted_at",
         )
         .is("deleted_at", null)
         .order("id", { ascending: true })

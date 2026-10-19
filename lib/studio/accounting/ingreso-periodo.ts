@@ -34,10 +34,13 @@
  *    sin debe ni haber de asientos de factura en 4.5. Un 0 contra 0 no es una
  *    verificación;
  *  - «no comparable» (regla E1 de la SDD-0559): 4.5 tiene asientos de factura
- *    y hay alguna factura no borrador del período en VES o CNY, convertida o
- *    no. Hoy esas facturas se asientan en 4.5 por el NOMINAL en bolívares o
- *    yuanes (B2), así que la diferencia no dice nada; vuelve cuando el asiento
- *    de venta se registre en USD (fase 2 del plan de trabajo de contabilidad);
+ *    y alguna factura no borrador del período en VES o CNY, convertida o no,
+ *    tiene su asiento `invoice` vivo en el rango (decisión 7 del Director,
+ *    2026-10-19, revisable por Sam). Esas son las que hoy se asientan en 4.5
+ *    por el NOMINAL en bolívares o yuanes (B2), así que la diferencia no dice
+ *    nada; vuelve cuando el asiento de venta se registre en USD (fase 2 del
+ *    plan de trabajo de contabilidad). Una VES o CNY SIN asiento no cuenta: ya
+ *    está en «sin asiento» (B3) y no mezcla nada en 4.5;
  *  - «cuadra», «el mayor tiene menos», «el mayor tiene más».
  *
  * El desglose propio/terceros sale de `fund_class` (0122): la cifra INCLUYE
@@ -74,6 +77,8 @@ export const CUENTA_VENTAS = "4.5";
 
 /** Lo mínimo que la regla necesita de una factura. */
 export type FacturaDeIngreso = {
+  /** Para saber si tiene su asiento de factura vivo (`ControlDelMayor.facturasConAsiento`). */
+  id: string;
   status: string;
   issued_at: string | null;
   currency: string;
@@ -96,6 +101,13 @@ export type ControlDelMayor = {
   ventasConMovimiento: boolean;
   /** Total de las cuentas de ingreso (raíz tipo I) en el rango, de cualquier origen. */
   ingresos: number;
+  /**
+   * Ids de las facturas con un asiento `invoice` vivo (asentado y sin borrar)
+   * en el rango, por `journal_entries.invoice_id`: los MISMOS asientos que
+   * forman `ventas`. Las facturas no tienen `journal_entry_id`, así que el
+   * vínculo solo existe de ese lado.
+   */
+  facturasConAsiento: ReadonlySet<string>;
 };
 
 export type IngresoPeriodo = {
@@ -108,9 +120,11 @@ export type IngresoPeriodo = {
   sinConvertir: number;
   /**
    * Facturas no borrador del período (también las anuladas) en VES o CNY,
-   * convertidas o no. Con alguna, y con asientos de factura en 4.5, el control
-   * es «no comparable» (E1, B2). Con 4.5 vacía no importa: cero no mezcla
-   * monedas.
+   * convertidas o no, CON su asiento `invoice` vivo en el rango (decisión 7):
+   * son las que meten el nominal en 4.5. Con alguna, y con asientos de factura
+   * en 4.5, el control es «no comparable» (E1, B2). Con 4.5 vacía no importa:
+   * cero no mezcla monedas. Sin control del mayor (Dashboard) es 0: no se
+   * leyeron los asientos.
    */
   enOtraMoneda: number;
   /** Control del mayor; null cuando la pantalla no lo lee (Dashboard). */
@@ -123,8 +137,9 @@ export type IngresoPeriodo = {
   } | null;
   /**
    * facturado.total − mayor.ventas; null si no hay mayor, no hay cuenta 4.5 o
-   * no es comparable (alguna factura del período en VES o CNY y asientos de
-   * factura en 4.5). Con 4.5 sin movimiento es todo lo facturado.
+   * no es comparable (alguna factura del período en VES o CNY con su asiento
+   * de factura vivo y asientos de factura en 4.5). Con 4.5 sin movimiento es
+   * todo lo facturado.
    */
   diferenciaUsd: number | null;
 };
@@ -197,11 +212,13 @@ export function rangoDesdeParams(
  *  - `deFacturas`: los saldos del mismo rango con SOLO las líneas de los
  *    asientos de factura → el saldo de 4.5 (con rollup de subcuentas) y si
  *    tiene movimiento. Un manual a 4.5 no está acá: queda en «otros ingresos».
+ *  - `facturasConAsiento`: las facturas de esos mismos asientos (decisión 7).
  */
 export function controlDelMayor(
   accounts: AccountLike[],
   balances: AccountBalanceMap,
   deFacturas: AccountBalanceMap,
+  facturasConAsiento: ReadonlySet<string>,
 ): ControlDelMayor {
   const cuenta = accounts.find((a) => a.code === CUENTA_VENTAS);
   const s = cuenta ? deFacturas[cuenta.id] : undefined;
@@ -209,6 +226,7 @@ export function controlDelMayor(
     ventas: cuenta ? round2(s?.balance ?? 0) : null,
     ventasConMovimiento: !!s && (s.debit !== 0 || s.credit !== 0),
     ingresos: profitAndLoss(accounts, balances).income,
+    facturasConAsiento,
   };
 }
 
@@ -235,9 +253,10 @@ function enOtraMonedaDelAsiento(currency: string): boolean {
  * LA regla. Vuelve a filtrar borradas, estado y fecha en memoria, así que da
  * lo mismo aunque el lector traiga de más. Cuenta además las facturas no
  * borrador del período en VES o CNY (también las anuladas, que pueden
- * conservar su asiento): con alguna, la comparación contra 4.5 no vale (E1),
- * salvo que 4.5 no tenga asientos de factura en el rango (B3): contra cero la
- * diferencia es todo lo facturado, en cualquier moneda.
+ * conservar su asiento) que tienen su asiento de factura vivo: con alguna, la
+ * comparación contra 4.5 no vale (E1), salvo que 4.5 no tenga asientos de
+ * factura en el rango (B3): contra cero la diferencia es todo lo facturado,
+ * en cualquier moneda.
  */
 export function resumirIngreso(
   facturas: readonly FacturaDeIngreso[],
@@ -249,13 +268,17 @@ export function resumirIngreso(
   let cuenta = 0;
   let sinConvertir = 0;
   let enOtraMoneda = 0;
+  // Sin control no se leyeron los asientos: ninguna cuenta como asentada.
+  const conAsiento = mayor?.facturasConAsiento ?? new Set<string>();
 
   for (const f of facturas) {
     if (f.deleted_at != null) continue;
     if (!f.issued_at) continue;
     const dia = f.issued_at.slice(0, 10);
     if (dia < rango.from || dia > rango.to) continue;
-    if (f.status !== "borrador" && enOtraMonedaDelAsiento(f.currency)) enOtraMoneda += 1;
+    if (f.status !== "borrador" && enOtraMonedaDelAsiento(f.currency) && conAsiento.has(f.id)) {
+      enOtraMoneda += 1;
+    }
     if (!esDeIngreso(f.status)) continue;
     if (!convertible(f.currency, f.fx_rate)) {
       sinConvertir += 1;

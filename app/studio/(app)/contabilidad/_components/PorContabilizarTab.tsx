@@ -42,6 +42,8 @@ const TONO_CUADRE: Record<EstadoCuadre, BadgeTone> = {
   no_comparable: "neutral",
   sin_cuenta: "danger",
   sin_movimiento: "neutral",
+  // Documentos abiertos sin asiento: es un aviso, como «No cuadra» (decisión 6).
+  mayor_sin_movimiento: "warning",
 };
 
 const TONO_MOTIVO: Record<MotivoHallazgo, BadgeTone> = {

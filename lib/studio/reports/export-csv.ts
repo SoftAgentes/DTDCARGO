@@ -217,7 +217,8 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
           filaDelMayor,
           ["Diferencia facturado − mayor (4.5)", ing.diferenciaUsd ?? "", ""],
           [`Control contra 4.5: ${ETIQUETA_ESTADO_INGRESO[estado]}`, "", ""],
-          ["Facturas del período en bolívares o yuanes (cantidad)", ing.enOtraMoneda, ""],
+          // Solo las que tienen su asiento de factura vivo (decisión 7).
+          ["Facturas del período en bolívares o yuanes con asiento de factura (cantidad)", ing.enOtraMoneda, ""],
           ["Otros ingresos del mayor (4.6 y manuales · también a 4.5)", ing.mayor?.otrosIngresos ?? "", ""],
           ["Facturas sin convertir (bolívares sin tasa o yuanes)", ing.sinConvertir, ""],
         ],

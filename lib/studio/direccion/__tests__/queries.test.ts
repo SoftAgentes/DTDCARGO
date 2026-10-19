@@ -32,6 +32,7 @@ import {
 } from "../queries";
 import { resumirIngreso } from "@/lib/studio/accounting/ingreso-periodo";
 import {
+  ASIENTOS_EN_OTRA_MONEDA,
   ESPERADO,
   FACTURAS_DEL_MES,
   FACTURAS_EN_USD,
@@ -464,7 +465,11 @@ describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
     const client = makeClient({
       tables: {
         accounts: { data: PLAN_DIR },
-        journal_entries: { data: [{ id: "je1", status: "asentado", source: "invoice", deleted_at: null }] },
+        // je1 trae las líneas; F2, F6 y F7 tienen su asiento de factura vivo
+        // (sin líneas), así cuentan en «no comparable» (decisión 7).
+        journal_entries: {
+          data: [{ id: "je1", status: "asentado", source: "invoice", deleted_at: null, invoice_id: "f1" }, ...ASIENTOS_EN_OTRA_MONEDA],
+        },
         journal_lines: {
           data: [
             { entry_id: "je1", account_id: "ven", debit: 0, credit: 1500 },
@@ -559,7 +564,7 @@ describe("textosFinancieros · los KPI de ingreso y utilidad (SDD-0557)", () => 
   });
 
   it("el mayor vacío con una factura en VES (B3): «sin asientos de factura en 4.5», no «no comparable»", () => {
-    const ves = [{ status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, base_amount: 36500, fund_class: "local_revenue" }];
+    const ves = [{ id: "v1", status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, base_amount: 36500, fund_class: "local_revenue" }];
     const t = textos(ingreso(ves, control(0, 0, false))).ingreso;
     expect(t.valor).toBe("$1,000.00");
     expect(t.detalle).toBe("sin asientos de factura en 4.5");

@@ -18,9 +18,11 @@
  *  - F6 está en yuanes y F7 en bolívares sin tasa: no suman, son «sin convertir».
  *  - F8 está borrada y es la más grande: si entra, la cifra salta a 11000.
  *
- * F2, F6 y F7 están en bolívares o yuanes: con ellas el control contra 4.5 es
- * «no comparable» (E1, B2) en los cuatro consumidores. Las pruebas que miden
- * la DIFERENCIA usan `FACTURAS_EN_USD`, el mismo fixture sin esas tres.
+ * F2, F6 y F7 están en bolívares o yuanes: con su asiento de factura vivo
+ * (`ASIENTOS_EN_OTRA_MONEDA`, o el `control()` por defecto) el control contra
+ * 4.5 es «no comparable» (E1, B2, decisión 7) en los consumidores que leen el
+ * mayor. Las pruebas que miden la DIFERENCIA usan `FACTURAS_EN_USD`, el mismo
+ * fixture sin esas tres.
  */
 
 import type { ControlDelMayor } from "../ingreso-periodo";
@@ -71,7 +73,7 @@ export const ESPERADO = {
   terceros: 1000,
   facturas: 2,
   sinConvertir: 2,
-  /** F2, F6 y F7: no borrador, del período, en VES o CNY. */
+  /** F2, F6 y F7: no borrador, del período, en VES o CNY, con su asiento de factura vivo. */
   enOtraMoneda: 3,
 } as const;
 
@@ -81,13 +83,36 @@ export const FACTURAS_EN_USD: Factura[] = FACTURAS_DEL_MES.filter((f) => f.curre
 export const ESPERADO_EN_USD = { total: 1000, facturas: 1 } as const;
 
 /**
+ * Los asientos `invoice` vivos de F2, F6 y F7, sin líneas: los consumidores
+ * que leen el mayor por un doble los suman a sus `journal_entries` para que
+ * esas tres cuenten en «no comparable» (decisión 7). Fecha dentro del período.
+ */
+export const ASIENTOS_EN_OTRA_MONEDA = ["f2", "f6", "f7"].map((id) => ({
+  id: `je-${id}`,
+  tenant_id: "t",
+  entry_code: `A-${id}`,
+  entry_date: "2025-03-10",
+  status: "asentado",
+  source: "invoice",
+  invoice_id: id,
+  deleted_at: null,
+}));
+
+/** Todas las facturas del fixture: con 4.5 en movimiento, el `control()` las da por asentadas. */
+const TODAS_ASENTADAS = FACTURAS_DEL_MES.map((f) => f.id);
+
+/**
  * Un control del mayor para las pruebas puras. Por defecto, 4.5 tiene
- * movimiento si su saldo no es 0.
+ * movimiento si su saldo no es 0 y, con movimiento, cada factura del fixture
+ * (F1 a F8) tiene su asiento de factura vivo; sin movimiento, ninguna. Una
+ * prueba con facturas propias, o que necesita otra cosa, pasa la lista
+ * `conAsiento` (decisión 7: solo esas cuentan en «no comparable»).
  */
 export function control(
   ventas: number | null,
   ingresos: number = ventas ?? 0,
   ventasConMovimiento: boolean = ventas != null && ventas !== 0,
+  conAsiento: readonly string[] = ventasConMovimiento ? TODAS_ASENTADAS : [],
 ): ControlDelMayor {
-  return { ventas, ventasConMovimiento, ingresos };
+  return { ventas, ventasConMovimiento, ingresos, facturasConAsiento: new Set(conAsiento) };
 }

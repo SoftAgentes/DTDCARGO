@@ -403,7 +403,9 @@ export type EstadoCuadre =
   | "no_cuadra"
   | "no_comparable"
   | "sin_cuenta"
-  | "sin_movimiento";
+  | "sin_movimiento"
+  /** La cuenta sin debe ni haber y documentos con saldo (decisión 6). */
+  | "mayor_sin_movimiento";
 
 export const ETIQUETA_CUADRE: Record<EstadoCuadre, string> = {
   cuadra: "Cuadra",
@@ -411,6 +413,7 @@ export const ETIQUETA_CUADRE: Record<EstadoCuadre, string> = {
   no_comparable: "No comparable",
   sin_cuenta: "Cuenta no encontrada",
   sin_movimiento: "Sin movimiento",
+  mayor_sin_movimiento: "Sin movimiento en el mayor",
 };
 
 export type LadoCuadre = {
@@ -420,7 +423,10 @@ export type LadoCuadre = {
   subdiarioUsd: number;
   /** Saldo natural de la cuenta en el mayor; null si no está en el plan. */
   mayorUsd: number | null;
-  /** subdiario − mayor; null si no es comparable o falta la cuenta. */
+  /**
+   * subdiario − mayor; null si no es comparable, falta la cuenta o la cuenta
+   * no tiene movimiento y hay documentos abiertos (decisión 6).
+   */
   diferenciaUsd: number | null;
   /** Documentos con saldo distinto de cero. */
   documentos: number;
@@ -444,9 +450,19 @@ export type SubdiarioContraMayor = {
 /** Las notas que acompañan la tabla del subdiario (pantalla y prueba). */
 export function notasDelSubdiario(s: SubdiarioContraMayor): string[] {
   const notas: string[] = [];
+  if (s.clientes.estado === "mayor_sin_movimiento") {
+    notas.push(
+      `Sin movimiento en el mayor (cuenta ${s.clientes.cuenta}): las facturas abiertas no tienen asiento.`,
+    );
+  }
+  if (s.proveedores.estado === "mayor_sin_movimiento") {
+    notas.push(
+      `Sin movimiento en el mayor (cuenta ${s.proveedores.cuenta}): las CxP abiertas no tienen asiento.`,
+    );
+  }
   if (s.clientes.estado === "no_comparable") {
     notas.push(
-      "Clientes no es comparable: hay facturas en bolívares o yuanes, que hoy se asientan por su monto nominal y el cobro las convierte.",
+      "Clientes no es comparable: hay facturas o recibos en bolívares o yuanes con su asiento vivo; hoy la factura se asienta por su monto nominal y el cobro la convierte.",
     );
   }
   const sinConv = s.clientes.sinConvertir;

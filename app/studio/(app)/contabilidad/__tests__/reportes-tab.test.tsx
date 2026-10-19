@@ -150,8 +150,9 @@ describe("IngresoDelPeriodoCard (Contabilidad › Reportes y Reportes › Estado
   });
 
   it("no comparable: neutro y sin enlace, aunque el número del mayor sea distinto", () => {
-    const una = [{ status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, base_amount: 36500 }];
-    render(<IngresoDelPeriodoCard ingreso={resumirIngreso(una, RANGO_MES, control(36500))} />);
+    const una = [{ id: "v1", status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, base_amount: 36500 }];
+    // La VES con su asiento de factura vivo: mete el nominal en 4.5 (decisión 7).
+    render(<IngresoDelPeriodoCard ingreso={resumirIngreso(una, RANGO_MES, control(36500, 36500, true, ["v1"]))} />);
     const linea = screen.getByTestId("ingreso-control");
     expect(linea).toHaveAttribute("data-tono", "neutral");
     expect(linea).toHaveTextContent(/No comparable: 1 factura del período está en bolívares o yuanes/);
@@ -161,7 +162,7 @@ describe("IngresoDelPeriodoCard (Contabilidad › Reportes y Reportes › Estado
   });
 
   it("una factura en VES sin ningún asiento (B3): el mayor tiene menos, con la cifra en USD y el enlace a Por contabilizar", () => {
-    const una = [{ status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, base_amount: 36500 }];
+    const una = [{ id: "v1", status: "emitida", issued_at: "2025-03-05", currency: "VES", fx_rate: 36.5, base_amount: 36500 }];
     render(<IngresoDelPeriodoCard ingreso={resumirIngreso(una, RANGO_MES, control(0, 0, false))} />);
     const linea = screen.getByTestId("ingreso-control");
     expect(linea).toHaveAttribute("data-estado", "mayor_menor");

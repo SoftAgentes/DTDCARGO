@@ -27,14 +27,18 @@ function cuadre(conHallazgos: boolean): CuadreDelLibro {
     documentos,
     subdiario: cuadreSubdiario({
       fecha: "2025-03-18",
-      facturas: [{ status: "emitida", currency: "USD", fx_rate: null, total_amount: 1160, paid_amount: 0 }],
+      facturas: [{ status: "emitida", currency: "USD", fx_rate: null, total_amount: 1160, paid_amount: 0, asientoVivo: false }],
       cxp: [],
       recibosNoUsdConAsiento: 0,
-      mayorClientes: { saldo: 0, debe: 0, haber: 0 },
+      // 1.1.2 con movimiento (un debe y un haber que se anulan): hay con qué comparar.
+      mayorClientes: { saldo: 0, debe: 300, haber: 300 },
       mayorProveedores: null,
     }),
   };
 }
+
+/** El trazo del check de éxito de `StatusIcon` (components/StatusIcon.tsx). */
+const CHECK_DE_EXITO = 'path[d="m7 12 3 3 7-7"]';
 
 describe("PorContabilizarTab", () => {
   it("subdiario contra mayor, documentos sin asiento con enlace y el conteo de anulados", () => {
@@ -70,6 +74,40 @@ describe("PorContabilizarTab", () => {
       />,
     );
     expect(screen.getByText(/1 CxP sin tasa va al nominal, como su asiento: el saldo no está en USD\./)).toBeInTheDocument();
+  });
+
+  it("1.1.2 sin movimiento con una factura abierta en VES (decisión 6): «Sin movimiento en el mayor», sin diferencia y con su nota", () => {
+    const base = cuadre(false);
+    render(
+      <PorContabilizarTab
+        cuadre={{
+          ...base,
+          subdiario: cuadreSubdiario({
+            fecha: "2025-03-18",
+            facturas: [{ status: "emitida", currency: "VES", fx_rate: 36.5, total_amount: 36500, paid_amount: 0, asientoVivo: false }],
+            cxp: [],
+            recibosNoUsdConAsiento: 0,
+            mayorClientes: { saldo: 0, debe: 0, haber: 0 },
+            // Control: 2.1.1 con movimiento y sin CxP abiertas cuadra, con su check.
+            mayorProveedores: { saldo: 0, debe: 50, haber: 50 },
+          }),
+        }}
+      />,
+    );
+    const filaClientes = screen.getByRole("rowheader", { name: /Clientes/ }).closest("tr")!;
+    expect(within(filaClientes).getByText("Sin movimiento en el mayor")).toBeInTheDocument();
+    expect(within(filaClientes).queryByText("No comparable")).toBeNull();
+    // Saldo de documentos 1,000.00; mayor 0.00; diferencia «—».
+    expect(within(filaClientes).getByText("1,000.00")).toBeInTheDocument();
+    expect(within(filaClientes).getByText("—")).toBeInTheDocument();
+    // Es un aviso: el ícono que se pinta no es el check de éxito.
+    expect(filaClientes.querySelector(CHECK_DE_EXITO)).toBeNull();
+    const filaProveedores = screen.getByRole("rowheader", { name: /Proveedores/ }).closest("tr")!;
+    expect(within(filaProveedores).getByText("Cuadra")).toBeInTheDocument();
+    expect(filaProveedores.querySelector(CHECK_DE_EXITO)).not.toBeNull();
+    expect(
+      screen.getByText(/Sin movimiento en el mayor \(cuenta 1\.1\.2\): las facturas abiertas no tienen asiento\./),
+    ).toBeInTheDocument();
   });
 
   it("sin hallazgos: estado vacío honesto y sin anulados con asiento", () => {
