@@ -29,6 +29,19 @@ const BASELINE = {
   "app/studio/(app)/fidelizacion/actions.ts": 1,
   "lib/portal/portal-legal-queries.ts": 3,
   "lib/portal/portal-queries.ts": 2,
+  // SDD-0560: +1 archivo y +1 lectura. `leerFacturas`, del asistente de borrado
+  // de embarques, lee `id, invoice_code, status, paid_amount` de las facturas
+  // vivas y no anuladas de UN embarque (el predicado de la guarda `invoices` de
+  // la 0476). Revisión del contrato:
+  //   · candado: sólo la llaman `leerPlanDeBorradoAction` y
+  //     `ejecutarPasoDeBorradoAction`, con `capabilityDenial(…, "delete_shipments")`
+  //     (admin) al tope, antes de leer nada;
+  //   · tenant: cliente de SESIÓN bajo `invoices_accounting_select` (0414,
+  //     accounting/admin del propio tenant); nunca el admin client;
+  //   · uso: decide qué paso ofrecer, no la autoridad: la lista tiene que cuadrar
+  //     con el conteo de la RPC de la 0476 y cada paso lo revalida la acción de
+  //     Facturación. Al cliente cruza sólo el código y el estado.
+  "lib/studio/borrado/asistente-servidor.ts": 1,
   // SDD-0496: aquí estaba `lib/studio/accounting/referral-credit-posting.ts`: 2.
   // SALE del inventario. `revertReferralCreditsForInvoice` leía la factura y le
   // escribía el pagado con guard optimista y relectura; las dos cosas pasaron a
@@ -147,7 +160,8 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     });
     expect(actual).toEqual(BASELINE);
     // SDD-0496: 19 → 18 archivos. Sale `referral-credit-posting.ts` entero.
-    expect(Object.keys(actual)).toHaveLength(18);
+    // SDD-0560: 18 → 19. Entra `lib/studio/borrado/asistente-servidor.ts`.
+    expect(Object.keys(actual)).toHaveLength(19);
     // El total va aparte del mapa a propósito: si alguien «arregla» el mapa
     // moviendo una llamada de un archivo a otro, el mapa vuelve a cuadrar y
     // este número no.
@@ -158,7 +172,8 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // está en `fidelizacion/referral-credit-queries.ts`, y ninguna de las tres
     // que quité está ahí. Número recalculado sobre el árbol fusionado, no
     // deducido de la aritmética.
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(42);
+    // SDD-0560: 42 → 43 por la lectura de `leerFacturas` (asistente de borrado).
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(43);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {
