@@ -27,6 +27,12 @@ const GUARDED: Record<string, GuardRule> = {
     moduleId: "bitacora",
     beforeCall: "listAssignableProfiles",
   },
+  // SDD-0557: el diario completo en CSV. Un solo módulo (accounting), así que
+  // va por moduleViewDenial y no por la allowlist.
+  "contabilidad/export/route.ts": {
+    moduleId: "accounting",
+    beforeCall: "leerDiarioCompleto",
+  },
   "conversaciones/[id]/route.ts": {
     moduleId: "conversaciones",
     beforeCall: "from",
@@ -304,7 +310,7 @@ const getRoutes = routes
   );
 
 describe("RBAC anti-drift · GET de la API Studio (SDD-0286)", () => {
-  it("clasifica exactamente los 15 GET actuales", () => {
+  it("clasifica exactamente los 16 GET actuales", () => {
     const overlap = Object.keys(GUARDED).filter((path) => path in ALLOWLIST);
     expect(overlap).toEqual([]);
     expect(getRoutes.map((entry) => relativeRoute(entry.file)).sort()).toEqual(
