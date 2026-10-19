@@ -15,6 +15,8 @@ const CLIENTE = { id: "c1", markbox: "DTD-8001", name: "Cliente Prueba", email: 
 
 const h = vi.hoisted(() => ({
   facturas: [] as unknown[],
+  /** Si está, `listMyInvoices` rechaza con este error (la base no respondió). */
+  errorFacturas: null as unknown,
   pendientes: [] as unknown[],
   principal: null as unknown,
   cargados: [] as unknown[],
@@ -23,12 +25,19 @@ const h = vi.hoisted(() => ({
 vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => ({}) }));
 vi.mock("@/lib/portal/demo", () => ({ showNortePortal: () => false }));
-vi.mock("@/lib/portal/portal-queries", () => ({
+vi.mock("@/lib/portal/portal-queries", async (importOriginal) => ({
+  // La clase real del error, para rechazar con lo mismo que lanza el lector.
+  PortalInvoicesUnavailableError: (
+    await importOriginal<typeof import("@/lib/portal/portal-queries")>()
+  ).PortalInvoicesUnavailableError,
   // SDD-0549: la página resuelve el principal UNA vez. `getPortalClient` se deja
   // para que una versión que volviera a usarlo corra y falle por la aserción.
   getPortalClientPrincipal: async () => h.principal,
   getPortalClient: async () => (h.principal as { client?: unknown } | null)?.client ?? null,
-  listMyInvoices: async () => h.facturas,
+  listMyInvoices: async () => {
+    if (h.errorFacturas) throw h.errorFacturas;
+    return h.facturas;
+  },
   listMyShipments: async () => [],
   listMyEstimates: async () => [],
 }));
@@ -43,6 +52,7 @@ vi.mock("../_components/PendingAcceptanceCard", () => ({
   PendingAcceptanceCard: (p: { heading?: string }) => <section aria-label="Por aceptar">{p.heading}</section>,
 }));
 
+import { PortalInvoicesUnavailableError } from "@/lib/portal/portal-queries";
 import PortalInvoicesPage from "./page";
 
 const PENDIENTE = { code: "F-2026-0007", baseAmount: 876.78, totalAmount: 876.78, currency: "USD", shipmentCode: "DTD-A116-06", cbm: 1.022, weightKg: 408.55 };
@@ -86,6 +96,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   h.facturas = [];
+  h.errorFacturas = null;
   h.pendientes = [];
   h.principal = null;
   h.cargados = [];
@@ -182,6 +193,21 @@ describe("/portal/facturas · las anuladas no son deuda (SDD-0556)", () => {
     h.facturas = [VIVA, PAGADA];
     await abrir();
     expect(screen.queryByText(/facturas que después se anularon/)).toBeNull();
+  });
+
+  it("si las facturas no se pueden leer, la página deja subir el error (va a error.tsx), sin un vacío ni un 0", async () => {
+    // Antes la lectura caída volvía como lista vacía: «Todavía no tienes
+    // facturas» o «Saldo pendiente USD 0.00». Ahora la página rechaza con el
+    // mismo error y Next pinta `app/portal/(app)/error.tsx`.
+    const error = new PortalInvoicesUnavailableError("lectura");
+    h.errorFacturas = error;
+    for (const searchParams of [{}, { saldo: "1" }, { vista: "cuenta" }]) {
+      await expect(
+        PortalInvoicesPage({ searchParams: Promise.resolve(searchParams) }),
+      ).rejects.toBe(error);
+    }
+    expect(screen.queryByText("Todavía no tienes facturas.")).toBeNull();
+    expect(screen.queryByText(/USD 0\.00/)).toBeNull();
   });
 
   it("en el estado de cuenta la nota sale una sola vez, bajo el libro", async () => {

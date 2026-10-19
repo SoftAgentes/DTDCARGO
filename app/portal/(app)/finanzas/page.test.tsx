@@ -8,17 +8,30 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 
-const h = vi.hoisted(() => ({ facturas: [] as unknown[] }));
+const h = vi.hoisted(() => ({
+  facturas: [] as unknown[],
+  /** Si está, `listMyInvoices` rechaza con este error (la base no respondió). */
+  errorFacturas: null as unknown,
+}));
 
 vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
+vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => ({}) }));
 vi.mock("@/lib/portal/demo", () => ({ showNortePortal: () => false }));
-vi.mock("@/lib/portal/portal-queries", () => ({
+vi.mock("@/lib/portal/portal-queries", async (importOriginal) => ({
+  // La clase real del error, para rechazar con lo mismo que lanza el lector.
+  PortalInvoicesUnavailableError: (
+    await importOriginal<typeof import("@/lib/portal/portal-queries")>()
+  ).PortalInvoicesUnavailableError,
   getPortalClient: async () => ({ id: "c1", markbox: "DTD-8001", name: "Cliente Prueba" }),
-  listMyInvoices: async () => h.facturas,
+  listMyInvoices: async () => {
+    if (h.errorFacturas) throw h.errorFacturas;
+    return h.facturas;
+  },
   listMyShipments: async () => [],
   listMyEstimates: async () => [],
 }));
 
+import { PortalInvoicesUnavailableError } from "@/lib/portal/portal-queries";
 import PortalFinanzasPage from "./page";
 
 function factura(over: Record<string, unknown>) {
@@ -46,6 +59,7 @@ async function abrir() {
 afterEach(() => {
   cleanup();
   h.facturas = [];
+  h.errorFacturas = null;
 });
 
 describe("/portal/finanzas · KPIs sin anuladas (SDD-0556)", () => {
@@ -83,6 +97,14 @@ describe("/portal/finanzas · KPIs sin anuladas (SDD-0556)", () => {
     const fila = screen.getByRole("link", { name: "Ver detalle de la factura F-ANULADA-2" });
     expect(within(fila).getByText("USD 500.00")).toHaveClass("line-through");
     expect(within(fila).queryByText("Saldo")).toBeNull();
+  });
+
+  it("si las facturas no se pueden leer, la página deja subir el error (va a error.tsx), sin un vacío ni un 0", async () => {
+    const error = new PortalInvoicesUnavailableError("incompleta");
+    h.errorFacturas = error;
+    await expect(PortalFinanzasPage()).rejects.toBe(error);
+    expect(screen.queryByText("Todavía no tienes facturas.")).toBeNull();
+    expect(screen.queryByText(/USD 0\.00/)).toBeNull();
   });
 
   it("sin anuladas no hay nota", async () => {
