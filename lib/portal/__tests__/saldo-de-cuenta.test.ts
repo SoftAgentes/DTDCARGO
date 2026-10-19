@@ -283,9 +283,10 @@ describe("contrato: KPIs y ledger salen de la misma definición", () => {
     expect(r.sobrepagos).toBe(l.sobrepagos);
     expect(r.pagosEnAnuladas).toEqual(l.voidedPayments);
     // El saldo neto del libro es lo que falta pagar menos lo pagado de más.
-    // `toBeCloseTo(·, 6)`: los dos lados suman céntimos en coma flotante por
-    // caminos distintos (por factura redondeada contra totales).
-    expect(l.balance).toBeCloseTo(r.porPagar - r.sobrepagos, 6);
+    // Igualdad estricta: los céntimos de estos fixtures son exactos en coma
+    // flotante. Un fixture nuevo con céntimos que no lo sean (0.1 + 0.2) tiene
+    // que comparar en céntimos, no aflojar el contrato.
+    expect(l.balance).toBe(r.porPagar - r.sobrepagos);
   });
 
   it("con un sobrepago, KPI y libro difieren justo en lo pagado de más", () => {
