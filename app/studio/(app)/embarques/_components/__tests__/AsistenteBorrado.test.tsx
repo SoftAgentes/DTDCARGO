@@ -9,6 +9,7 @@
  * Las acciones son dobles: la regla la deciden el servidor y su plan (probados
  * aparte).
  */
+import { StrictMode } from "react";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -333,5 +334,50 @@ describe("los textos", () => {
     expect(cerrar).toHaveLength(2);
     await user.click(cerrar[1]);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("montado y desmontado", () => {
+  /** Abre el paso de la factura y confirma con motivo. */
+  async function confirmarFactura(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await within(panel()).findByRole("button", { name: "Anular factura…" }));
+    const dialogo = screen.getAllByRole("dialog")[1];
+    await user.type(within(dialogo).getByLabelText(/Motivo/), "Embarque de prueba");
+    await user.click(within(dialogo).getByRole("button", { name: "Anular factura" }));
+  }
+
+  it("en desarrollo (StrictMode monta, desmonta y vuelve a montar) aplica lo que responde el servidor", async () => {
+    const user = userEvent.setup();
+    m.ejecutar.mockResolvedValue({ ok: true, hecho: "Factura F-2026-0007 anulada.", eliminado: false, plan: soloEmbarque() });
+    render(
+      <StrictMode>
+        <AsistenteBorrado shipmentId={S} shipmentCode={CODE} onClose={onClose} onEliminado={onEliminado} />
+      </StrictMode>,
+    );
+    await confirmarFactura(user);
+    expect(m.ejecutar).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => expect(screen.getAllByRole("dialog")).toHaveLength(1));
+    expect(within(panel()).getByRole("status").textContent).toBe("Listo: Factura F-2026-0007 anulada.");
+    expect(within(panel()).getByRole("heading", { name: "Ya no queda nada que lo bloquee" })).toBeTruthy();
+  });
+
+  it("desmontado, una respuesta que llega tarde no se aplica", async () => {
+    const user = userEvent.setup();
+    let responder: (r: unknown) => void = () => {};
+    m.ejecutar.mockReturnValue(new Promise((r) => (responder = r)));
+    const { unmount } = abrir();
+    await confirmarFactura(user);
+    expect(m.ejecutar).toHaveBeenCalledTimes(1);
+
+    unmount();
+    responder({
+      ok: true,
+      hecho: "Embarque S-2026-0042 eliminado. Ya no aparece en Embarques, Tracking ni el Portal.",
+      eliminado: true,
+      plan: null,
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(onEliminado).not.toHaveBeenCalled();
   });
 });

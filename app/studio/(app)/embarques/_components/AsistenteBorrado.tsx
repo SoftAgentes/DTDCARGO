@@ -63,13 +63,16 @@ export function AsistenteBorrado({
   const [errorDialogo, setErrorDialogo] = useState<string | undefined>(undefined);
   const [revisando, startRevision] = useTransition();
   const [ejecutando, startEjecucion] = useTransition();
+  // El efecto vuelve a marcar el montaje: en desarrollo, StrictMode monta,
+  // desmonta y vuelve a montar, y sin esto `montado` quedaba en false y el
+  // panel descartaba todo lo que respondía el servidor.
   const montado = useRef(true);
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    montado.current = true;
+    return () => {
       montado.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   // Lo que se actualiza después de un `await` ya no cuenta como parte de la
   // transición (React 19) y se pintaría un render antes de que `revisando` o
