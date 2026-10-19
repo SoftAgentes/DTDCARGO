@@ -39,9 +39,10 @@
  * ## Identidad fiscal del emisor: apagada
  *
  * `legalName` y `rif` son opcionales y, si llegan, van bajo el membrete con
- * `lineasDeEmisor` (nunca se inventan). Hoy ninguna ruta los pasa: la regla de
- * marca los deja sólo en el schema y la excepción de SDD-0297 cubre sólo la
- * factura. Encenderlo es pasarlos desde la ruta cuando Sam lo conceda.
+ * `lineasDeEmisor` (nunca se inventan). Los pasan las dos rutas del estado de
+ * cuenta, la del portal (SDD-0556) y la del Studio (SDD-0558): Sam extendió al
+ * estado de cuenta en PDF, el 2026-10-18, la excepción de marca de la factura
+ * (SDD-0297). Fuera de estos papeles la regla de marca sigue.
  *
  * Colores hardcodeados a valores de luz: react-pdf no lee CSS vars.
  */

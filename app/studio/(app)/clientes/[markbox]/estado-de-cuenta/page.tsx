@@ -20,10 +20,12 @@
  * ## La forma de la factura
  *
  * El Studio lee `Invoice` (todas las columnas) y el ledger espera
- * `PortalInvoiceRow` (la vista acotada del cliente). Se mapea acá, filtrando
- * borradores y anuladas: el portal ya las excluye en su query
- * (`neq status borrador`), así que la función asume que no llegan. Un borrador
- * colado aparecería como cargo — o sea, deuda inventada.
+ * `PortalInvoiceRow` (la vista acotada del cliente). Se mapea acá con el MISMO
+ * filtro que el portal (SDD-0558, igual que SDD-0556): fuera los borradores y
+ * las anuladas que nunca se emitieron (`esAnuladaSinEmitir`). Las anuladas
+ * emitidas SÍ llegan: el ledger compartido las pone en 0 y saca lo que se les
+ * pagó a `voidedPayments`, que la pantalla y el PDF informan aparte con
+ * `notaPagosEnAnuladas`. Descartarlas acá hacía desaparecer un abono real.
  */
 
 import type { Metadata } from "next";
@@ -34,6 +36,11 @@ import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { getClientByMarkbox } from "@/lib/studio/client-queries";
 import { listInvoices } from "@/lib/studio/invoice-queries";
 import { buildStatementLedger } from "@/lib/portal/statement-ledger";
+import {
+  esAnuladaSinEmitir,
+  notaPagosEnAnuladas,
+  notaSobrepagos,
+} from "@/lib/portal/saldo-de-cuenta";
 import type { PortalInvoiceRow } from "@/lib/portal/portal-types";
 import type { Invoice } from "@/lib/studio/invoice-types";
 
@@ -42,13 +49,15 @@ export const metadata: Metadata = { title: "Estado de cuenta" };
 /**
  * `Invoice` (Studio) → `PortalInvoiceRow` (lo que el ledger necesita).
  *
- * Se descartan borradores y anuladas: una factura en borrador no es deuda, y
- * una anulada dejó de serlo. Meterlas inflaría el saldo que el asesor le lee al
- * cliente por teléfono.
+ * Igual que el portal: se descartan los borradores (no son deuda: meterlos
+ * inflaría el saldo que el asesor le lee al cliente por teléfono) y las
+ * anuladas que nunca se emitieron, que el cliente nunca recibió. Las anuladas
+ * emitidas se conservan: no son deuda —el ledger las pone en 0— pero lo que se
+ * les pagó no desaparece (SDD-0558, regla de SDD-0556).
  */
 export function filasParaLedger(invoices: Invoice[]): PortalInvoiceRow[] {
   return invoices
-    .filter((i) => i.status !== "borrador" && i.status !== "anulada")
+    .filter((i) => i.status !== "borrador")
     .map((i) => ({
       id: i.id,
       code: i.invoice_code,
@@ -59,7 +68,8 @@ export function filasParaLedger(invoices: Invoice[]): PortalInvoiceRow[] {
       issuedAt: i.issued_at,
       dueDate: i.due_date,
       shipmentCode: i.shipment_code,
-    }));
+    }))
+    .filter((inv) => !esAnuladaSinEmitir(inv));
 }
 
 function monto(n: number, currency: string): string {
@@ -85,6 +95,12 @@ export default async function EstadoDeCuentaPage({
 
   const invoices = await listInvoices(supabase, { clientMarkbox: markbox });
   const ledger = buildStatementLedger(filasParaLedger(invoices));
+  // SDD-0558: las MISMAS dos notas que ve el cliente en su portal y en el PDF.
+  const notaAnuladas = notaPagosEnAnuladas(ledger.voidedPayments);
+  const notaDeMas = notaSobrepagos(ledger.sobrepagos, ledger.currency, {
+    donde: "libro",
+    porPagar: ledger.balance + ledger.sobrepagos,
+  });
 
   return (
     <div style={{ maxWidth: 1080 }}>
@@ -175,6 +191,41 @@ export default async function EstadoDeCuentaPage({
           Este cliente tiene facturas en más de una moneda. Acá sólo se muestran
           las de {ledger.currency}; el resto queda fuera del saldo corrido.
         </p>
+      ) : null}
+
+      {notaAnuladas || notaDeMas ? (
+        <div
+          role="note"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderLeft: "3px solid var(--warning)",
+            borderRadius: "var(--r-sm)",
+            padding: "10px 12px",
+            margin: "0 0 20px",
+            maxWidth: "80ch",
+          }}
+        >
+          <div
+            style={{
+              font: "700 9.5px/1 var(--f-sans)",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "var(--ink-soft)",
+              marginBottom: 6,
+            }}
+          >
+            Lo que el cliente ve en su portal y en el PDF
+          </div>
+          {[notaAnuladas, notaDeMas].filter(Boolean).map((nota) => (
+            <p
+              key={nota}
+              style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink)", margin: "0 0 4px" }}
+            >
+              {nota}
+            </p>
+          ))}
+        </div>
       ) : null}
 
       {ledger.moves.length === 0 ? (
