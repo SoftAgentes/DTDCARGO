@@ -82,6 +82,15 @@ function fotoDialogo(dialogo: HTMLElement) {
   };
 }
 
+/** El `role="status"` del panel y cómo está uno de sus botones («-» si no está). */
+function fotoPanel(p: HTMLElement, nombre: string) {
+  return () => {
+    const estado = p.querySelector('[role="status"]')?.textContent ?? "";
+    const boton = [...p.querySelectorAll("button")].find((b) => b.textContent === nombre);
+    return `${estado} | ${boton ? `${nombre}${boton.disabled ? " (deshabilitado)" : ""}` : "-"}`;
+  };
+}
+
 beforeEach(() => {
   // reset y no clear: `clearAllMocks` borra las llamadas pero deja en cola los
   // `…Once` sin consumir. Si una prueba cae antes de usarlos, la siguiente los
@@ -273,12 +282,7 @@ describe("lo que el asistente no resuelve", () => {
     // El paso del asistente espera: primero lo de TMS.
     expect(within(panel()).queryByRole("button", { name: "Anular factura…" })).toBeNull();
 
-    const p = panel();
-    const pelicula = filmar(p, () => {
-      const estado = p.querySelector('[role="status"]')?.textContent ?? "";
-      const boton = [...p.querySelectorAll("button")].find((b) => b.textContent === "Anular factura…");
-      return `${estado} | ${boton ? `Anular factura…${boton.disabled ? " (deshabilitado)" : ""}` : "-"}`;
-    });
+    const pelicula = filmar(panel(), fotoPanel(panel(), "Anular factura…"));
     await user.click(within(panel()).getByRole("button", { name: "Ya lo hice: revisar de nuevo" }));
     expect(await within(panel()).findByRole("button", { name: "Anular factura…" })).toBeTruthy();
     // El plan nuevo llega con la revisión terminada: ningún render lo muestra
@@ -287,6 +291,21 @@ describe("lo que el asistente no resuelve", () => {
     expect([...new Set(conPlanNuevo)]).toEqual([" | Anular factura…"]);
     expect(m.leer).toHaveBeenCalledTimes(2);
     expect(m.ejecutar).not.toHaveBeenCalled();
+  });
+
+  it("si revisar de nuevo se cae, lo dice y deja volver a intentar en el mismo render", async () => {
+    const user = userEvent.setup();
+    const enTms = plan({ tms_routes: 1 }, { rutas: [{ id: "r-1", codigo: "R-2026-0001", estado: "planificado" }] });
+    m.leer.mockResolvedValueOnce({ ok: true, plan: enTms }).mockRejectedValueOnce(new Error("red caída"));
+    abrir();
+    const revisarDeNuevo = await within(panel()).findByRole("button", { name: "Ya lo hice: revisar de nuevo" });
+    const pelicula = filmar(panel(), fotoPanel(panel(), "Volver a revisar"));
+    await user.click(revisarDeNuevo);
+    expect(
+      await within(panel()).findByText("No se pudo revisar qué depende de este embarque. Vuelve a intentar en un momento."),
+    ).toBeTruthy();
+    const conError = pelicula.parar().filter((c) => !c.endsWith("| -"));
+    expect([...new Set(conError)]).toEqual([" | Volver a revisar"]);
   });
 
   it("si no se pudo leer el plan, lo dice y deja volver a intentar", async () => {
