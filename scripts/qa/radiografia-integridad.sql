@@ -24,7 +24,8 @@
 --   · Nunca lee nombres, RIF, Shipping Mark, códigos de documento, memos, notas ni referencias;
 --     el origen libre de un asiento se reduce a una lista cerrada. No convierte monedas: lo que
 --     está en VES/CNY se cuenta aparte y no entra en las sumas en USD.
---   · Lee public.referrals sólo en id, status, reward_usd, applied_invoice_id y deleted_at.
+--   · Lee public.referrals sólo en id, status, reward_usd, applied_invoice_id, applied_entry_id y
+--     deleted_at.
 --
 -- PRODUCCIÓN: sólo con autorización escrita de Sam que nombre esta radiografía (y la migración
 -- de reparación que dimensiona, cuando la hay). La corre el Director, desde la raíz del checkout:
@@ -79,14 +80,19 @@ fac as (
   where i.deleted_at is null
 ),
 -- Recibos, vivos y anulados (anular = deleted_at). El asiento del cobro es 'receipt'; la
--- reclasificación al identificar un pago sin referencia es 'receipt_reclass'.
+-- reclasificación al identificar un pago sin referencia es 'receipt_reclass'. con_factura: el
+-- pago sin referencia es el único sin invoice_id (CHECK de 0122); al identificarlo se le escribe
+-- (0467), así que los identificados también cuentan como con factura. vinculo_vivo: el lado del
+-- documento apunta a un asiento de cobro vivo (no a uno anulado, borrado o de otro origen).
 rec as (
   select r.id, r.tenant_id, r.amount, r.currency::text as moneda, r.deleted_at is null as vivo,
+         r.invoice_id is not null as con_factura,
          r.journal_entry_id is not null as con_vinculo, r.identified_at is not null as identificado,
          (select count(*) from je_vivo j where j.source = 'receipt'
            and (j.id = r.journal_entry_id or j.receipt_id = r.id)) as asientos,
          (select count(*) from je_vivo j where j.source = 'receipt_reclass'
            and (j.id = r.journal_entry_id or j.receipt_id = r.id)) as reclasificaciones,
+         exists (select 1 from je_vivo j where j.source = 'receipt' and j.id = r.journal_entry_id) as vinculo_vivo,
          exists (select 1 from public.journal_entries e where e.id = r.journal_entry_id
                   and e.status = 'anulado') as vinculo_anulado
   from public.payment_receipts r
@@ -109,17 +115,18 @@ pag as (
 ),
 -- Créditos de referido no borrados; aplicado = abono no monetario en una factura (0471).
 cred as (
-  select c.id, c.status = 'aplicado' as aplicado, c.applied_invoice_id, c.reward_usd
+  select c.id, c.status = 'aplicado' as aplicado, c.applied_invoice_id, c.applied_entry_id, c.reward_usd
   from public.referrals c
   where c.deleted_at is null
 ),
--- Crédito aplicado ↔ su asiento vivo 'referral_credit': por journal_entries.referral_id o, en
--- los asientos viejos sin referral_id, por la factura donde se aplicó.
+-- Crédito aplicado ↔ su asiento vivo 'referral_credit', por los dos lados del vínculo: el del
+-- asiento (journal_entries.referral_id) y el del documento (referrals.applied_entry_id), que es
+-- el que la reversión usa para los asientos viejos sin referral_id (referral-credit-posting.ts).
 cred_asiento as (
   select c.id as credito, j.id as asiento
   from cred c
   join je_vivo j on j.source = 'referral_credit' and c.aplicado
-   and (j.referral_id = c.id or (j.referral_id is null and j.invoice_id = c.applied_invoice_id))
+   and (j.referral_id = c.id or j.id = c.applied_entry_id)
 ),
 -- Reportes de pago no borrados. «cancelado» se deriva de cancelled_at (0421): sigue en 'reportado'.
 rep as (
@@ -160,7 +167,10 @@ mayor as (
   group by tenant_id
 ),
 -- Un lado por tenant y cuenta de control. saldo_docs suma solo USD/USDT (no convierte).
--- no_comparable (decisión 7): documentos fuera de USD/USDT CON asiento vivo de su origen.
+-- no_comparable (decisión 7): documentos fuera de USD/USDT CON asiento vivo de su origen. En
+-- 1.1.2, el recibo cuenta solo si tiene factura: el pago sin referencia se asienta contra 2.1.8
+-- y no toca 1.1.2 (receipt-posting.ts). La CxP anulada no cuenta: su asiento vivo es B1 (fila
+-- 44) y queda como diferencia, igual que en la SDD-0557.
 -- fuera: documentos abiertos fuera de USD/USDT que no entran en la suma.
 lado as (
   select m.tenant_id, c.cuenta, c.debe, c.haber, c.saldo_mayor, c.abiertos, c.saldo_docs, c.no_comparable, c.fuera
@@ -174,7 +184,7 @@ lado as (
         and f.abierta and f.moneda in ('USD', 'USDT')),
      exists (select 1 from fac f where f.tenant_id = m.tenant_id
                and f.moneda not in ('USD', 'USDT') and f.asientos > 0)
-       or exists (select 1 from rec r where r.tenant_id = m.tenant_id and r.vivo
+       or exists (select 1 from rec r where r.tenant_id = m.tenant_id and r.vivo and r.con_factura
                     and r.moneda not in ('USD', 'USDT') and r.asientos > 0),
      exists (select 1 from fac f where f.tenant_id = m.tenant_id and f.abierta
                and f.moneda not in ('USD', 'USDT') and f.total_amount <> f.paid_amount)),
@@ -252,6 +262,9 @@ filas (orden, seccion, indicador, n, monto) as (
   union all select 46, '3 · B1 documentos anulados con asiento vivo', 'asientos de crédito de referido vivos sin crédito aplicado',
     (select count(*) from je_vivo j where j.source = 'referral_credit'
        and not exists (select 1 from cred_asiento k where k.asiento = j.id)), null
+  union all select 47, '3 · B1 documentos anulados con asiento vivo', 'asientos de venta vivos cuya factura está borrada o no existe',
+    (select count(*) from je_vivo j where j.source = 'invoice'
+       and not exists (select 1 from public.invoices i where i.id = j.invoice_id and i.deleted_at is null)), null
   union all select 50, '4 · B3 documentos sin asiento vivo', 'facturas emitidas, parciales, pagadas o vencidas sin asiento de venta vivo',
     count(*), sum(total_amount) filter (where moneda in ('USD', 'USDT'))
     from fac where abierta and asientos = 0
@@ -271,6 +284,8 @@ filas (orden, seccion, indicador, n, monto) as (
   union all select 57, '4 · B3 documentos sin asiento vivo', 'créditos de referido aplicados sin asiento vivo',
     (select count(*) from cred c where c.aplicado
        and not exists (select 1 from cred_asiento k where k.credito = c.id)), null
+  union all select 58, '4 · B3 documentos sin asiento vivo', 'recibos vivos con asiento de cobro vivo y el vínculo a otro asiento (anulado, borrado o de otro origen)',
+    (select count(*) from rec where vivo and asientos > 0 and con_vinculo and not vinculo_vivo), null
   union all select 60, '5 · documentos con más de un asiento vivo de su origen', 'facturas con más de un asiento de venta vivo',
     (select count(*) from fac where asientos > 1), null
   union all select 61, '5 · documentos con más de un asiento vivo de su origen', 'recibos con más de un asiento de cobro vivo',
@@ -287,14 +302,15 @@ filas (orden, seccion, indicador, n, monto) as (
     (select count(*) from rep where estado = 'confirmado' and otra_moneda), null
   union all select 73, '6 · B4 reportes de pago', '  de ellos con un recibo vivo del mismo monto en su factura',
     (select count(*) from rep where estado = 'confirmado' and recibo_mismo_monto), null
+  -- «Igual» exige algo que comparar: la factura sin cobrado ni fuentes (0 contra 0) va en la 87.
   union all select 80, '7 · cobrado contra sus fuentes', 'facturas con cobrado igual a sus recibos vivos',
-    (select count(*) from cobro where paid_amount = recibos), null
+    (select count(*) from cobro where paid_amount = recibos and (paid_amount > 0 or fuentes > 0)), null
   union all select 81, '7 · cobrado contra sus fuentes', 'facturas con cobrado mayor que sus recibos vivos',
     (select count(*) from cobro where paid_amount > recibos), null
   union all select 82, '7 · cobrado contra sus fuentes', 'facturas con cobrado menor que sus recibos vivos',
     (select count(*) from cobro where paid_amount < recibos), null
   union all select 83, '7 · cobrado contra sus fuentes', 'facturas con cobrado igual a recibos + reportes confirmados + créditos de referido',
-    (select count(*) from cobro where paid_amount = fuentes), null
+    (select count(*) from cobro where paid_amount = fuentes and (paid_amount > 0 or fuentes > 0)), null
   union all select 84, '7 · cobrado contra sus fuentes', 'facturas con cobrado mayor que sus tres fuentes',
     count(*), sum(paid_amount - fuentes) filter (where moneda in ('USD', 'USDT'))
     from cobro where paid_amount > fuentes
@@ -303,6 +319,8 @@ filas (orden, seccion, indicador, n, monto) as (
     from cobro where paid_amount < fuentes
   union all select 86, '7 · cobrado contra sus fuentes', 'facturas anuladas con cobrado',
     (select count(*) from cobro where estado = 'anulada' and paid_amount > 0), null
+  union all select 87, '7 · cobrado contra sus fuentes', 'facturas sin cobrado ni fuentes',
+    (select count(*) from cobro where paid_amount = 0 and fuentes = 0), null
   union all select 90, '8 · 1.1.2 mayor contra facturas abiertas', 'tenants sin movimiento en el mayor (facturas abiertas, 1.1.2 sin asientos vivos)',
     (select count(*) from cuadre where cuenta = '1.1.2' and estado = 'sin movimiento en el mayor'), null
   union all select 91, '8 · 1.1.2 mayor contra facturas abiertas', 'tenants no comparables (factura o recibo en VES/CNY con asiento vivo)',
