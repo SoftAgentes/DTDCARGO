@@ -224,7 +224,8 @@ El endpoint loggea errors no manejados a `console.error`:
 [/api/studio/agents/run] runtime error: ...
 ```
 
-Visible en `pnpm dev` stdout o en logs del deploy (Vercel/etc).
+Visible en `pnpm dev` stdout o en los logs del contenedor `web` del servidor
+propio (`docker logs dtd-cargo-web-1`; Vercel está en pausa desde el 2026-10-16).
 
 ### 4. Errores comunes
 

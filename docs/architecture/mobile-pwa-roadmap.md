@@ -4,6 +4,8 @@
 > **Relacionado:** [`mobile-audit.md`](./mobile-audit.md) (portal cliente, PASO 1.1) · [`stack-tecnico.md`](./stack-tecnico.md) · [`module-sdd-map.md`](./module-sdd-map.md) · runbooks [`setup-web-push.md`](../runbooks/setup-web-push.md) y [`setup-android-apk.md`](../runbooks/setup-android-apk.md) · diseño [`_norte/HANDOFF-MOBILE.md`](../design/studio/_norte/HANDOFF-MOBILE.md)
 >
 > No es una spec SDD ni compromete construir. Es el mapa de "qué tenemos / qué actualizar / qué hacer y en qué orden" para avanzar la app de celular.
+>
+> ⚠️ **Nota del 2026-10-19:** desde el 2026-10-16 la web corre en el servidor propio (VPS de Contabo) y Vercel está en pausa. Donde este documento dice «VAPID keys en Vercel», hoy es el `.env` del servidor, adonde las tres VAPID se copiaron antes del corte ([`servidor-contabo.md`](../runbooks/servidor-contabo.md) §3.1, punto 2). La nota del inicio de [`setup-web-push.md`](../runbooks/setup-web-push.md) dice cómo cambiarlas.
 
 ---
 

@@ -8,6 +8,18 @@
 > Detalle fino del drain del write-back → [`deploy-kommo-writeback.md`](deploy-kommo-writeback.md). Webhook
 > tiempo-real → [`setup-kommo-webhook.md`](setup-kommo-webhook.md). Push del alta → [`deploy-kommo-push-client.md`](deploy-kommo-push-client.md).
 
+> ⚠️ **Nota del 2026-10-19 · producción ya no es Supabase Cloud.** Desde el corte del 2026-10-14
+> (02:00Z), la base, el Vault, pg_cron y las Edge Functions de Kommo viven en el Supabase del servidor
+> propio (VPS de Contabo, `https://supabase.dtdcargo.com`). El proyecto de Cloud `xpfuzqombmjmxvprjgmi`
+> que nombra este runbook es la copia del corte y se pausa el 2026-10-28: no lo uses para operar. En el
+> servidor, las funciones responden en `https://supabase.dtdcargo.com/functions/v1/<función>`, la base
+> las llama con el secreto `functions_base_url` del Vault (migración 0472) y los jobs `kommo-sync-dtd` y
+> `kommo-writeback-drain-dtd` corren en su pg_cron (activos al 2026-10-16, según
+> `.agents/handoffs/plan-retiro-vercel-supabase-20261016.md`). Lo opera la sesión de Contabo con el OK de Sam:
+> [`servidor-contabo.md`](servidor-contabo.md) §3.6. Migraciones:
+> [`aplicar-migraciones-prod.md`](aplicar-migraciones-prod.md). Lo de abajo queda como registro de
+> cómo se hizo en Cloud.
+
 ## Estado real de prod (verificado 2026-06-29, MCP)
 
 | Pieza | Estado |

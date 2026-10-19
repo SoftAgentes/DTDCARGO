@@ -5,6 +5,25 @@ Runbook para activar las notificaciones push de las PWAs operario
 que `setup-resend.md` y `setup-telegram-bot.md`: el código ya está, falta
 el setup del founder (3 env vars + redeploy).
 
+> ⚠️ **Nota del 2026-10-19 · la web ya no corre en Vercel.** Desde el
+> 2026-10-16 la web corre en el servidor propio (VPS de Contabo) y se publica
+> sola con el vigilante ([`publicacion-automatica-web.md`](publicacion-automatica-web.md));
+> Vercel está en pausa. Donde abajo dice «Vercel»:
+>
+> - **Variables:** las tres VAPID se copiaron de Vercel al `.env` del servidor
+>   (`/srv/dtd-cargo/.env`) antes del corte, y `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+>   está además como Variable del repo en GitHub, porque se fija al construir
+>   la imagen ([`servidor-contabo.md`](servidor-contabo.md) §3.1, puntos 2 y 3).
+>   Un cambio se aplica recreando el contenedor `web` (y, para la pública, con
+>   una imagen nueva), no con un redeploy. Lo hace la sesión de Contabo con el
+>   OK de Sam.
+> - **Cron:** `vercel.json` sigue siendo la fuente de los horarios, pero los
+>   corre el contenedor `cron` del servidor (`infra/dtd-cargo/cron/crontab`,
+>   generado con `scripts/build-crontab.mjs`). El límite del plan Hobby de
+>   Vercel ya no aplica.
+>
+> Lo de abajo queda como registro de cómo se hizo en Vercel.
+
 ## Qué hace
 
 Cuando el bodeguero cierra una carga (OD → `lista`), el camionero asignado

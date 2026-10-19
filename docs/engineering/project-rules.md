@@ -52,6 +52,12 @@ la cápsula generada y cualquier plugin son derivados read-only.
 
 ### ⚠️ El último commit del push decide si hay deploy
 
+> **Histórico desde el 2026-10-16.** Vercel está en pausa y sin integración de
+> Git: ya no publica `main`. La web se publica sola en el servidor propio con el
+> vigilante (SDD-0541, [`publicacion-automatica-web.md`](../runbooks/publicacion-automatica-web.md)),
+> que construye una imagen por cada push a `main`, sin excluir documentación. No
+> redespliegues desde Vercel. Lo de abajo explica el comportamiento anterior.
+
 `vercel.json` trae un `ignoreCommand` que **cancela el build cuando el commit
 no toca nada fuera de `docs/**` y `*.md`**. Está bien pensado —evita
 desplegar por un cambio de documentación—, pero mira **sólo `HEAD^ HEAD`**, o

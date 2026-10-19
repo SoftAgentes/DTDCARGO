@@ -54,6 +54,19 @@ El cambio local no se puede considerar operativo hasta completar, en orden:
 Todos esos pasos son escrituras externas separadas y requieren autorización
 específica. No se ejecutan como parte de este commit.
 
+> **Nota del 2026-10-19 (Worker de documentación, sin cambiar el registro).**
+> Desde el 2026-10-16 Vercel está en pausa y la web corre en el servidor propio
+> (VPS de Contabo): los pasos de arriba que nombran Vercel ya no se ejecutan
+> ahí. En el corte, la sesión de Contabo corrió `setWebhook` con URL limpia y
+> `secret_token` desde el servidor (`infra/ops/web/telegram-webhook.sh set`, el
+> 2026-10-16 a las 07:06Z, según el registro de
+> `docs/runbooks/servidor-contabo.md` §3.6), con el `TELEGRAM_WEBHOOK_SECRET`
+> del `.env` del servidor. Hoy `app/api/telegram/webhook/route.ts` compara solo
+> ese secreto, en el header (SDD-0499). Si algo de este corte sigue pendiente,
+> se hace en el `.env` del servidor y con ese script. No comprobé
+> `getWebhookInfo` ni el flujo `/start` para esta nota: cerrar la spec pide esa
+> evidencia.
+
 ## Fuente del proveedor
 
 - [Telegram Bot API · setWebhook](https://core.telegram.org/bots/api#setwebhook),
