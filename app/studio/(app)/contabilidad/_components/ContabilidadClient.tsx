@@ -3,8 +3,8 @@
 /**
  * Orquestador client del módulo Contabilidad (SDD-0040 + SDD-0105).
  *
- * Header + 6 tabs (Plan de cuentas · Libro diario · Libro mayor · Reportes ·
- * Conciliación · Activos fijos). El tab activo y la cuenta del mayor / extracto
+ * Header + 7 tabs (Plan de cuentas · Libro diario · Libro mayor · Reportes ·
+ * Por contabilizar · Conciliación · Activos fijos). El tab activo y la cuenta del mayor / extracto
  * van por URL (?tab=, ?cuenta=, ?extracto=) para que sean linkeables y
  * sobrevivan a un refresh. Cada tab delega a su componente.
  */
@@ -15,7 +15,11 @@ import type { Account } from "@/lib/studio/account-types";
 import type { AccountBalanceMap } from "@/lib/studio/account-queries";
 import type { JournalEntry } from "@/lib/studio/journal-types";
 import type { AccountLedger } from "@/lib/studio/journal-queries";
-import type { ProfitAndLoss, BalanceSheet } from "@/lib/studio/accounting/reports";
+import type {
+  CuadreDelLibro,
+  FiltroReportes,
+  ReportesDelLibro,
+} from "@/lib/studio/accounting/libro-control";
 import type {
   BankStatement,
 } from "@/lib/studio/accounting/bank-statement-types";
@@ -25,17 +29,26 @@ import { PlanCuentasTab } from "./PlanCuentasTab";
 import { LibroDiarioTab } from "./LibroDiarioTab";
 import { LibroMayorTab } from "./LibroMayorTab";
 import { ReportesTab } from "./ReportesTab";
+import { PorContabilizarTab } from "./PorContabilizarTab";
 import { ConciliacionTab } from "./ConciliacionTab";
 import { ActivosFijosTab } from "./ActivosFijosTab";
 import { ClosingDateDrawer } from "./ClosingDateDrawer";
 
-type Tab = "plan" | "diario" | "mayor" | "reportes" | "conciliacion" | "activos";
+type Tab =
+  | "plan"
+  | "diario"
+  | "mayor"
+  | "reportes"
+  | "subdiario"
+  | "conciliacion"
+  | "activos";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "plan", label: "Plan de cuentas" },
   { value: "diario", label: "Libro diario" },
   { value: "mayor", label: "Libro mayor" },
   { value: "reportes", label: "Reportes" },
+  { value: "subdiario", label: "Por contabilizar" },
   { value: "conciliacion", label: "Conciliación" },
   { value: "activos", label: "Activos fijos" },
 ];
@@ -68,10 +81,12 @@ export function ContabilidadClient({
   accounts,
   balances,
   entries,
+  conteoDiario,
   ledger,
   ledgerAccountId,
-  pnl,
-  balanceSheet,
+  reportes,
+  filtroReportes,
+  cuadre,
   closingDate,
   canEditClosing,
   statements,
@@ -83,10 +98,13 @@ export function ContabilidadClient({
   accounts: Account[];
   balances: AccountBalanceMap;
   entries: JournalEntry[];
+  /** Totales reales del diario (solo en la pestaña Libro diario). */
+  conteoDiario: { total: number; asentados: number } | null;
   ledger: AccountLedger | null;
   ledgerAccountId: string | null;
-  pnl: ProfitAndLoss;
-  balanceSheet: BalanceSheet;
+  reportes: ReportesDelLibro | null;
+  filtroReportes: FiltroReportes | null;
+  cuadre: CuadreDelLibro | null;
   closingDate: string | null;
   canEditClosing: boolean;
   statements: BankStatement[];
@@ -125,7 +143,6 @@ export function ContabilidadClient({
   const postableAccounts = accounts.filter((a) => a.is_postable);
   const bankAccounts = bankAccountsFrom(accounts);
   const assetAccounts = assetAccountsFrom(accounts);
-  const asentados = entries.filter((e) => e.status === "asentado").length;
 
   return (
     <div style={{ maxWidth: 1280 }}>
@@ -157,8 +174,9 @@ export function ContabilidadClient({
             }}
           >
             Plan de cuentas, libro diario por doble partida, libro mayor por
-            cuenta y reportes P&amp;L / Balance. Conciliación bancaria contra el
-            diario y activos fijos con su depreciación. Libros en USD.
+            cuenta y reportes del período: P&amp;L, balance general y balance de
+            comprobación. El cuadre del libro contra facturas y CxP, conciliación
+            bancaria y activos fijos con su depreciación. Libros en USD.
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -272,12 +290,13 @@ export function ContabilidadClient({
           onCloseCreate={() => setShowCreateAccount(false)}
         />
       )}
-      {tab === "diario" && (
+      {tab === "diario" && conteoDiario && (
         <LibroDiarioTab
           entries={entries}
+          totalEntries={conteoDiario.total}
           postableAccounts={postableAccounts}
           accountsCount={accounts.length}
-          asentadosCount={asentados}
+          asentadosCount={conteoDiario.asentados}
           showCreate={showCreateEntry}
           onOpenCreate={() => setShowCreateEntry(true)}
           onCloseCreate={() => setShowCreateEntry(false)}
@@ -291,9 +310,10 @@ export function ContabilidadClient({
           ledgerAccountId={ledgerAccountId}
         />
       )}
-      {tab === "reportes" && (
-        <ReportesTab pnl={pnl} balanceSheet={balanceSheet} />
+      {tab === "reportes" && filtroReportes && (
+        <ReportesTab reportes={reportes} filtro={filtroReportes} />
       )}
+      {tab === "subdiario" && cuadre && <PorContabilizarTab cuadre={cuadre} />}
       {tab === "conciliacion" && (
         <ConciliacionTab
           statements={statements}
