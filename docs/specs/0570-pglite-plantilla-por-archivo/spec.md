@@ -97,19 +97,27 @@ del helper.
 1. **Indistinguible.** Con y sin pgcrypto, una instancia de `pgliteLimpio` da la misma huella que
    un `new PGlite()`: versión, sesión, bases, roles, extensiones, catálogo, esquemas, ajustes no
    default, txid y OID siguiente.
-2. **Aislada.** Lo que un caso crea (tabla, fila o rol) no aparece en la instancia siguiente.
+2. **Aislada.** Lo que un caso crea (tabla, fila o rol) no aparece en la instancia siguiente, y un
+   archivo no ve el estado que dejó otro: cada archivo arma su propia plantilla.
 3. **Un initdb por juego de extensiones y archivo**, no uno por caso. Una plantilla que falló no
    queda en el caché.
 4. **Sin debilitar.** Ningún caso, control rojo, mutante ni aserción se borra o se relaja. Los 33
    archivos de prueba afectados pasan con el mismo número de casos que antes.
 5. **Medido.** Antes y después, por archivo, en local (A/B) y en el CI.
+6. **Mismos resultados con y sin plantilla.** Por archivo, los mismos casos en verde en el CI de
+   `main` sin plantilla y en el CI de la PR con ella.
+7. **El control rojo sigue rojo.** Al menos un contrato PGlite corre su control rojo sobre la
+   plantilla, y el contrato falla donde debe.
+8. **Nunca un dump viejo.** La plantilla no se guarda entre corridas. Si cambia la versión de
+   PGlite, se regenera; si no puede regenerarse, el caso falla (ver «Si cambia la versión de
+   PGlite»).
 
 ## Validación
 
 | Criterio | Evidencia |
 |---|---|
-| 1, 2 y 3 | `vitest/pglite-limpio.test.ts`, 6 casos. |
-| 4 y 5 | Ver «Medición después del cambio». |
+| 1, 2, 3 y 8 | `vitest/pglite-limpio.test.ts`, 8 casos. |
+| 4, 5, 6 y 7 | Ver «Medición después del cambio». |
 
 Mutantes del helper, con reporter TAP (control sin mutar: 8 ok):
 
@@ -141,7 +149,26 @@ Pendiente: corrida de los 34 archivos (con turno del Director) y CI de la PR.
 
 - **Memoria.** Cada archivo guarda hasta dos dumps de 38,5 MiB mientras corre. Cada instancia carga
   su copia y la libera al cerrar, igual que antes.
-- **Versión de PGlite.** `loadDataDir` y `dumpDataDir` son API pública de PGlite 0.5.8. Si una
-  versión nueva cambia el initdb, la prueba de huella (criterio 1) cae antes que los contratos.
+- **Versión de PGlite.** Ver la sección siguiente.
 - **Reversión.** Revertir los commits de esta SDD; los contratos vuelven a `new PGlite()` sin otro
   cambio.
+
+## Si cambia la versión de PGlite
+
+**La plantilla no se guarda entre corridas.** Vive en la memoria del archivo de prueba y la arma el
+PGlite instalado en ese momento. No hay disco, `globalSetup` ni `globalThis`. Por eso no existe un
+dump de otra versión que se pueda cargar: al actualizar PGlite, la primera llamada de cada archivo
+hace el initdb con la versión nueva.
+
+**Falla cerrado.** Si la versión nueva rompe el initdb, `dumpDataDir` o `loadDataDir`, la llamada
+lanza el error y el caso falla. La plantilla rota no se queda en el caché, y no hay un camino que
+caiga en silencio a otra base.
+
+**La huella lo vigila.** Compara la plantilla con un `new PGlite()` de la misma versión. Si una
+versión nueva hace que el dump no reproduzca el cluster (versión, catálogo, txid u OID siguiente),
+cae la prueba del helper antes que cualquier contrato.
+
+**El candado.** `vitest/pglite-limpio.test.ts` falla si el helper importa `fs` u `os`, lee o
+escribe archivos, usa `globalSetup` o `globalThis`, o abre un PGlite con directorio de datos
+persistente. Un caché entre corridas tendría que llevar la versión de PGlite en la clave y negarse a
+cargar un dump de otra. Esa decisión va en una SDD nueva, no en un cambio de paso.
