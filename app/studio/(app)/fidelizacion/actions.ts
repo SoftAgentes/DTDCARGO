@@ -11,15 +11,17 @@
  *                                         next_referral_code y resuelve el
  *                                         referrer_client_id por MARKBOX (si el
  *                                         cliente existe en el tenant).
- *  - accreditReferral(id)              → acredita A MANO. Sigue existiendo, pero
- *                                         ⚠️ **desde la Fase 2 el caso normal es
+ *  - accreditReferral(id, motivo)      → acredita A MANO, sin venta: solo el
+ *                                         admin, con motivo (SDD-0567, RPC de la
+ *                                         0494). ⚠️ **El caso normal es
  *                                         AUTOMÁTICO**: el trigger
  *                                         `invoices_accredit_referral` (migr 0197,
- *                                         reescrito en 0250) acredita solo en la 1ª
- *                                         factura billable del referido. Esta acción
- *                                         quedó para los casos que el trigger no
- *                                         cubre. Contrato: SDD-0309.
- *  - updateReferralStatus(id, status)  → avanza estado manual (valida enum).
+ *                                         reescrito en 0250 y 0494) acredita en la 1ª
+ *                                         factura billable del referido y guarda
+ *                                         esa factura. Contrato: SDD-0309.
+ *  - updateReferralStatus(id, status, markbox?) → avanza a mano: invitado →
+ *                                         registrado (con el cliente) o registrado
+ *                                         → primer embarque (RPC de la 0494).
  *  - saveReferralSettingsAction(...)   → premio por tenant (`referral_settings`,
  *                                         migr 0250). Es de ahí que el trigger lee
  *                                         el monto; antes estaba fijo en 80.
@@ -36,7 +38,6 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
-  REFERRAL_STEPS,
   validateReferralInput,
   type ReferralActionState,
   type ReferralInput,
@@ -47,7 +48,6 @@ import {
   type ReferralSettingsActionState,
   type ReferralSettingsInput,
 } from "@/lib/studio/fidelizacion/referral-settings-types";
-import { getReferralSettings } from "@/lib/studio/fidelizacion/referral-settings-queries";
 import {
   applicableInvoicesForReferrer,
   isPurchaseAfterCredit,
@@ -110,7 +110,22 @@ function applyReferralCreditError(message: string, amount: number): string {
   }
 }
 
-const VALID_STATUS = new Set<string>(REFERRAL_STEPS);
+/**
+ * SDD-0567 · El mensaje de una RPC de la 0494, en palabras de la persona. Solo
+ * se muestran los mensajes propios (22023 o 42501 con hint 'dtd-referidos'): un
+ * 42501 nativo («permission denied …») tiene el mismo código y no se muestra,
+ * ni ningún otro error de la base (ERR-01).
+ */
+function errorDeReferido(
+  error: { code?: string; message?: string; hint?: string },
+  generico: string,
+): string {
+  if (error.hint === "dtd-referidos" && (error.code === "22023" || error.code === "42501") && error.message) {
+    return error.message;
+  }
+  console.error("[referidos] rpc:", error.code, error.message);
+  return generico;
+}
 
 /** Resuelve el tenant del usuario logueado (RLS). null si no se puede. */
 async function resolveTenant(
@@ -210,48 +225,59 @@ export async function registerReferral(
 }
 
 /**
- * Acredita el crédito al referidor (ADVISORY).
- * Marca status='acreditado' + setea reward_usd = el crédito configurado
- * (referral_settings.referrer_reward_usd, fallback $80 · SDD-0159). NO postea a
- * CxC/Facturación (decisión §3.6) — el operador aplica el crédito a mano en la
- * próxima factura. El monto queda CONGELADO en la fila: cambiar la config luego
- * no re-cotiza este crédito.
+ * Acredita a mano, SIN venta, el crédito al referidor (SDD-0567).
+ * Lo normal es que lo acredite la primera venta del referido (disparador de
+ * 0250). Esta acción es la excepción: solo el admin, con un motivo de 10 a 1000
+ * caracteres, y la base guarda el motivo y quién (`acreditar_referido_con_motivo`,
+ * migración 0494). El monto sale de la configuración (referral_settings, fallback
+ * $80 · SDD-0159) y queda CONGELADO: el guardián de la 0494 no deja cambiarlo.
  */
-export async function accreditReferral(id: string): Promise<Result> {
+export async function accreditReferral(id: string, motivo: string): Promise<Result> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "fidelizacion");
   if (denial) return { error: denial };
+  const reason = motivo.trim();
+  if (reason.length < 10 || reason.length > 1000) {
+    return { error: "El motivo debe tener entre 10 y 1000 caracteres." };
+  }
 
-  const settings = await getReferralSettings(supabase);
-  const { error } = await supabase
-    .from("referrals")
-    .update({
-      status: "acreditado" satisfies ReferralStatus,
-      reward_usd: settings.referrerRewardUsd,
-    })
-    .eq("id", id);
-  if (error) return { error: `No se pudo acreditar: ${error.message}` };
+  const { error } = await supabase.rpc("acreditar_referido_con_motivo", {
+    p_referral_id: id,
+    p_motivo: reason,
+  });
+  if (error) return { error: errorDeReferido(error, "No se pudo acreditar el referido. Intenta de nuevo.") };
   revalidate();
   return { ok: true };
 }
 
-/** Avanza/cambia el estado de un referido (manual; valida enum del PIPELINE). */
+/**
+ * Avanza a mano un referido (SDD-0567): invitado → registrado, con el markbox
+ * del cliente referido, o registrado → primer embarque. Nunca acredita ni
+ * retrocede: acreditar es de la venta (o de accreditReferral, con motivo). La
+ * regla vive en la base (`avanzar_referido` y el guardián de la 0494).
+ */
 export async function updateReferralStatus(
   id: string,
   status: ReferralStatus,
+  markbox?: string,
 ): Promise<Result> {
-  // VALID_STATUS = REFERRAL_STEPS → 'aplicado' NO es alcanzable por avance
-  // manual (es estado de dinero: pasa solo por applyReferralCredit con gate).
-  if (!VALID_STATUS.has(status)) return { error: "Estado de referido inválido." };
+  if (status !== "registrado" && status !== "primer-embarque") {
+    return { error: "Ese paso no se marca a mano." };
+  }
+  const cliente = markbox?.trim() ?? "";
+  if (status === "registrado" && !cliente) {
+    return { error: "Para marcarlo registrado, indica el markbox de un cliente activo." };
+  }
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "fidelizacion");
   if (denial) return { error: denial };
 
-  const { error } = await supabase
-    .from("referrals")
-    .update({ status })
-    .eq("id", id);
-  if (error) return { error: `No se pudo cambiar el estado: ${error.message}` };
+  const { error } = await supabase.rpc("avanzar_referido", {
+    p_referral_id: id,
+    p_estado: status,
+    p_markbox: status === "registrado" ? cliente : null,
+  });
+  if (error) return { error: errorDeReferido(error, "No se pudo cambiar el estado. Intenta de nuevo.") };
   revalidate();
   return { ok: true };
 }
@@ -518,11 +544,14 @@ export async function applyReferralCredit(
   // 5) Linkear el asiento creado al crédito (rastro + idempotencia del posting).
   //    El asiento ya trae referral_id → la reversión lo barre aunque este link
   //    quede NULL por un crash acá (hueco B cerrado en la reversión + UNIQUE DB).
+  //    SDD-0567: sin UPDATE directo de referrals, por la RPC que verifica que el
+  //    asiento sea el de este crédito y esta factura.
   if (posting.entryId) {
-    await supabase
-      .from("referrals")
-      .update({ applied_entry_id: posting.entryId })
-      .eq("id", referralId);
+    const { error: linkErr } = await supabase.rpc("vincular_asiento_del_credito", {
+      p_referral_id: referralId,
+      p_entry_id: posting.entryId,
+    });
+    if (linkErr) console.error("[referidos] enlace del asiento:", linkErr.code, linkErr.message);
   }
 
   revalidate();
