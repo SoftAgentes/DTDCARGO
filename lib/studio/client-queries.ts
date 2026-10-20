@@ -13,6 +13,7 @@ import type { Client, ClientTier } from "./client-types";
 import { CLIENTS_MAX, CLIENTS_PAGE } from "./client-types";
 import {
   coerceClientOutstandingRows,
+  diaDeCaracas,
   esSinPermiso,
   resumirCuentaCliente,
   SaldoClienteError,
@@ -799,7 +800,7 @@ function referenciaDeSoporte(): string {
  */
 export async function getClientAccountState(
   supabase: SupabaseClient,
-  client: { id: string; markbox: string },
+  client: { id: string; markbox: string; deleted_at?: string | null },
   opciones: { puedeVerSaldo: boolean; codigosConocidos: readonly string[] },
 ): Promise<EstadoCuentaCliente> {
   const conocidos = [...new Set([client.markbox, ...opciones.codigosConocidos])];
@@ -811,6 +812,18 @@ export async function getClientAccountState(
       return null;
     }
   };
+
+  // SDD-0568: un cliente eliminado no tiene saldo que calcular. client_outstanding
+  // (0492) filtra los clientes vivos y no devuelve fila; antes la ficha lo
+  // trataba como un error («No se pudo calcular el saldo»).
+  if (client.deleted_at) {
+    return {
+      tipo: "eliminado",
+      eliminadoEl: diaDeCaracas(client.deleted_at),
+      markboxes: conocidos,
+      embarquesEnCurso: await contar(conocidos),
+    };
+  }
 
   if (!opciones.puedeVerSaldo) {
     return { tipo: "sin-permiso", markboxes: conocidos, embarquesEnCurso: await contar(conocidos) };
