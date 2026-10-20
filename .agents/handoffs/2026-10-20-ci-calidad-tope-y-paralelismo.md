@@ -7,7 +7,7 @@
 | Worktree | `.claude/worktrees/sharp-ellis-7c6126` |
 | Rama | `claude/sharp-ellis-7c6126`, base `origin/main` 653802e2 |
 | SDD | no aplica: cambio de harness/CI, sin comportamiento de producto |
-| Estado | commits listos, PR en borrador; falta la medición del CI de la propia PR |
+| Estado | lista para revisión: PR #302 en borrador con el CI en verde y medido |
 | Permisos | commits selectivos, push de la rama propia y PR en borrador. Sin merge ni deploy. |
 
 ## OBJETIVO ORIGINAL
@@ -111,7 +111,25 @@ pared.
 | Contrato `ci-workflow-contract.test.mjs` en local | NO EJECUTADO. Había un `pnpm verify` ajeno en curso (`sdd-0569-conversor-usd-tasas`), y la regla es una corrida pesada a la vez, sin pruebas puntuales durante un verify. Lo corre el CI de la PR dentro de `pnpm test`. |
 | `pnpm verify` | NO APLICA: cambio solo de CI y de su contrato; no hay código de producto |
 | `pnpm harness:test` | NO APLICA: no cambian scripts del harness. El CI lo corre igual. |
-| CI de la PR (Calidad continua) | PENDIENTE: se registra abajo |
+| CI de la PR (Calidad continua) | PASÓ: run 39427642677 sobre `047c3626`, todos los pasos en verde |
+
+**Medición del CI con 2 workers** (run 39427642677):
+
+| Medida | Valor |
+|---|---|
+| Job | 21,7 min (13:06:48Z a 13:28:30Z) |
+| Unitarios | 16,3 min |
+| Vitest | `Duration 976.98s`, `tests 1442.62s` (acumulado / pared = 1,48) |
+| Pruebas | 847 archivos y 12.079 casos, todos verdes |
+| Build | 1,5 min |
+
+El acumulado supera a la pared, así que corrieron 2 workers en paralelo.
+
+El runner fue de la clase rápida (TypeScript en 49 s). Contra la mediana de esa clase el 20-oct
+(Unitarios 21,9 min y job 27,9), baja 26 % y 22 %. Contra la clase lenta (29,2 y 36,5), baja 44 % y
+41 %.
+
+La rama sale de `653802e2`, antes de la #298; por eso son 3 archivos menos que en el run cancelado.
 
 Criterio para dar por bueno el paralelismo:
 
@@ -130,18 +148,20 @@ Si sale rojo por memoria (OOM, «Failed to start forks worker») o por intermite
 
 ## PR / BRANCH
 
-Rama `claude/sharp-ellis-7c6126`, PR en borrador contra `main`. El número se registra al abrirla.
+Rama `claude/sharp-ellis-7c6126`, [PR #302](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/302) en borrador contra `main`.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Registrar la medición del CI de la PR (duración de Unitarios, acumulado contra pared, verde o
-  rojo) y decidir con esa evidencia si el paralelismo se queda.
+- Hecho: CI medido y en verde. Con esa evidencia el paralelismo se queda; no hace falta revertir
+  `b6469e48`.
 - Merge: lo decide el Director. Esta rama no toca migraciones ni producto. Al fusionarse dispara la
   publicación automática (SDD-0541), que reconstruye la imagen sin cambio funcional.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Crecimiento de las pruebas PGlite.** Cada `*.migration.test.*` levanta PGlite y aplica el
+- **Crecimiento de las pruebas PGlite.** Lo toma la SDD-0570 (rama `codex/pglite-snapshot-esquema`).
+  Hallazgo de esa tarea: casi todo el costo es el initdb de cada `new PGlite()` (~1,3 s), no las
+  migraciones. Lo que sigue es el análisis original. Cada `*.migration.test.*` levanta PGlite y aplica el
   historial de migraciones en muchos casos. Crece con cada migración nueva, y la #298 sola sumó
   104 s. Con el doble de workers se gana tiempo, pero la curva sigue. Propuesta (SDD de
   test-infra, no de producto): un snapshot del esquema base por worker (`dumpDataDir`/`loadDataDir`
