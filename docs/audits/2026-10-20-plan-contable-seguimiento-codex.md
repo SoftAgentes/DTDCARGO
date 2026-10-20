@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 6:48 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 7:01 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -78,10 +78,16 @@ Se adelanta trabajo local, se respalda cada rama y se preparan PR en borrador du
 - [x] Guardar y respaldar la corrección inicial en `220a2c3e`, con 58 archivos permitidos y las pruebas anteriores identificadas por esa versión.
 - [x] Investigar los dos fallos observados en la validación general: contratos de pruebas anteriores al filtro «Tasa» y a la eliminación de una lectura de facturas. Su actualización exacta queda autorizada.
 - [x] Reproducir los seis hallazgos nuevos antes de corregir: nueve archivos con 43 comprobaciones fallidas y 141 aprobadas, sin omisiones. Se ajustaron cuatro selectores de pruebas y se confirmaron los fallos funcionales de esas pantallas; no se confunden con defectos de arranque. Reparación en curso.
-- [ ] Corregir el contador al mezclar dos facturas distintas, una vinculada por identificador y otra por código.
-- [ ] Conservar estado y contador en Reportes/Mixto y CSV; no afirmar que no hay saldos cuando solo falta convertirlos.
-- [ ] Evitar que el constructor presente un importe sin conversión como cero definitivo, aunque se agrupe por cliente.
-- [ ] Mostrar la incompletitud de fondos en Cobranzas y contar los cobros por identificar aunque carezcan de tasa.
+- [x] Corregir y probar localmente el contador al mezclar dos facturas distintas, una vinculada por identificador y otra por código, conservando la pertenencia a cada embarque.
+- [x] Conservar y probar estado y contador en Reportes/Mixto y CSV; no afirmar que no hay saldos cuando solo falta convertirlos.
+- [x] Evitar y probar que el constructor presente un importe sin conversión como cero definitivo, aunque se agrupe por cliente; conservar el cero conocido y los conteos.
+- [x] Mostrar y probar la incompletitud de fondos en Cobranzas y contar los cobros por identificar aunque carezcan de tasa.
+- [x] Aprobar las nueve suites de los seis hallazgos nuevos: **184/184 pruebas**, sin omisiones, después de reproducirlos sobre la versión anterior.
+- [x] Ampliar la regresión nueva a **751/751 pruebas en 35 archivos**, sin omisiones, incluida la conservación del redondeo anterior del total de volumen.
+- [x] Detectar los **22 errores intencionales de las correcciones** y comprobar otra vez los **21 controles anteriores**, con archivos restaurados. Un caso de Aging se repitió con la suite que contiene sus tres escenarios; los recibos iniciales se conservan.
+- [x] Aprobar tipos y revisión estática de 61 archivos, sin advertencias; comprobar 65/65 rutas permitidas y respaldar el nuevo código y sus pruebas en `3c36a7b2`. Revisión independiente de esa versión activa.
+- [ ] Corregir la disposición estrecha de las tablas de Mixto y Constructor detectada en la revisión visible; conservar las columnas consultables y actualizar el pie que todavía decía «CNY → 0». Ajuste puntual dentro de los archivos permitidos, con una nueva versión antes de la validación general.
+- [ ] Completar la revisión visible y la revisión independiente de las correcciones sobre la versión final.
 - [ ] Completar la validación general local y registrar sus omisiones.
 - [ ] Abrir su PR en borrador con evidencia local.
 - [ ] Revalidar la base final después de las entregas anteriores, especialmente 0573, y aprobar sus comprobaciones de GitHub.
