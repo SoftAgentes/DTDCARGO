@@ -140,9 +140,21 @@ pausa hasta el corte** (producción apagada no late y avisaría cada día): el
 día del corte, al encender producción, se reanuda desde el panel («Reanudar»)
 y se comprueba que la primera corrida a mano lo deje en verde.
 
-Revisión semanal (2 minutos): `rclone lsl backups:dtdcargo-backups/db/daily/ | tail -7`
-muestra 7 archivos de fechas consecutivas y tamaño parecido. Un tamaño que cae
-a la mitad es un dump roto aunque el latido haya llegado.
+Revisión semanal (2 minutos), en el VPS. `rclone` no está instalado en el host:
+corre en el contenedor de `pg-dump-to-s3.sh`, con su configuración en solo lectura.
+La sección del `rclone.conf` es `[b2]` y el remoto por defecto de `backup.sh` es
+`b2:dtdcargo-respaldos/db` (`BACKUP_RCLONE_REMOTE`):
+
+```bash
+docker run --rm -v /srv/ops/backup/rclone:/config/rclone:ro rclone/rclone:1.75.1 \
+  lsl b2:dtdcargo-respaldos/db/dtd-cargo/ --include '*.dump.age' | sort -k2,3 | tail -7
+```
+
+Tiene que mostrar 7 archivos de fechas consecutivas y tamaño parecido. Un tamaño
+que cae a la mitad es un dump roto aunque el latido haya llegado. La
+configuración va aparte, en `b2:dtdcargo-respaldos/db/dtd-cargo-config/`. Hasta
+el 2026-10-20 este runbook decía `backups:dtdcargo-backups/db/daily/`, un remoto
+que no existe.
 
 ## 3 · Restore de prueba mensual (obligatorio)
 

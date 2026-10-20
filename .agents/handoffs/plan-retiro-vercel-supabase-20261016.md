@@ -43,7 +43,7 @@
 | Sábado 17 | Smokes de Sam pendientes: calculadora, borrar embarque, bandeja de avisos, «Zarpado», operarios de Venezuela, nombres ocultos a China, una de las siete acciones R3 y `/studio/debug` | Sam |
 | Sábado 17 | Regla «Recibido en bodega China» → «Correo + push» | Sam (Admin → Notificaciones) |
 | Domingo 18 – lunes 19 | Reescribir `docs/runbooks/aplicar-migraciones-prod.md` para el servidor propio (psql en `dtd-cargo-db-1` y fila del ledger en la misma transacción). Es condición de la Fase 4 | Director o Worker, con PR |
-| Martes 20 | Revisión semanal de respaldos: `rclone lsl … db/daily/ | tail -7` tiene que mostrar 7 dumps diarios seguidos (el respaldo diario se encendió el 2026-10-13) | Sesión de Contabo |
+| Martes 20 | Revisión semanal de respaldos: los últimos 7 dumps diarios tienen que ser seguidos (el respaldo diario se encendió el 2026-10-13). **Hecha por el Director el 2026-10-20 a las 10:50Z en solo lectura: PASÓ** (ver «Revisión de respaldos del 2026-10-20» abajo) | Sesión de Contabo → Director |
 | Miércoles 21 – jueves 22 | Restore de prueba mensual (`infra/ops/backup/restore-test.sh`) sobre un dump tomado en el servidor. Es condición de la Fase 4 | Sesión de Contabo |
 | Esta semana | Ajustar el panel de publicaciones y el estado del Studio, que leen Vercel (`deployActions.ts`, `vercel-deploys.ts`, `env-status.ts`) | Worker, con su SDD (sale del handoff de la 0541) |
 
@@ -106,3 +106,23 @@ Con Cloud ya pausado y su dump guardado, y con el OK de Sam:
   - La revisión de respaldos del martes 20 y el restore de prueba del 21 al 22, en la sesión de Contabo.
   - Los pasos con pago o producción del 28, del 30 y del 27 de noviembre, cada uno con el OK de Sam.
   - **`VERCEL_API_TOKEN` ya no lo lee nadie:** se puede revocar antes del 30 si Sam quiere.
+
+## Revisión de respaldos del 2026-10-20 (Director)
+
+Hecha en solo lectura en el VPS a las 10:50Z, con el `rclone` del contenedor de `pg-dump-to-s3.sh` (`rclone/rclone:1.75.1`, configuración montada en solo lectura). **PASÓ.**
+
+| Fecha (UTC) | Dump de la base (`.dump.age`) |
+|---|---|
+| 2026-10-14 06:07 | 6.366.767 bytes |
+| 2026-10-15 06:06 | 6.432.992 bytes |
+| 2026-10-16 06:03 | 6.582.883 bytes |
+| 2026-10-17 06:04 | 6.623.605 bytes |
+| 2026-10-18 06:03 | 6.640.248 bytes |
+| 2026-10-19 06:00 | 6.660.991 bytes |
+| 2026-10-20 06:06 | 6.719.435 bytes |
+
+- **7 dumps seguidos**, que crecen poco a poco; ninguno cae a la mitad. Cada uno trae su `-roles.sql.age`, su `-acl.sql.age` y su `.sha256`.
+- **La configuración también subió hoy:** `dtd-cargo-config-20261020T060621Z.tar.age`.
+- **`dtd-cargo-backup.service`** terminó bien todos los días del 14 al 20. Falló una vez el 14 a las 02:10 y se completó en el reintento de las 02:32.
+- **El runbook tenía un comando viejo** (`backups:dtdcargo-backups/db/daily/`, un remoto que no existe). Quedó corregido en `docs/runbooks/backup-restore-servidor.md` §2.
+- **Sigue:** el restore de prueba del 21 al 22 (`infra/ops/backup/restore-test.sh`) y las condiciones del miércoles 28.
