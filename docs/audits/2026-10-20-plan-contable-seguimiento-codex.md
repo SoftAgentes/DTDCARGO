@@ -37,7 +37,7 @@
 - [x] Aprobar GitHub de la versión final `5d84ec0a`: 12.278 pruebas aprobadas, construcción y controles aprobados; una unitaria y 31 controles Graphify omitidos declarados.
 - [x] Regenerar el paquete de `5d84ec0a` y pasar la revisión previa del servidor; renovada a las 5:10 p. m. Solo lectura; no se aplicó la migración.
 - [x] Preparar y revisar independientemente el procedimiento de aplicación e integración, con comprobación de la versión y del historial. Su ejecución sigue pendiente.
-- [ ] Recibir de Sam el OK nominal de `0495_fx_rates_conversor_usd` en producción.
+- [ ] Recibir de Sam el OK nominal de `0495_fx_rates_conversor_usd` en producción. Solicitud presentada a las 5:14 p. m.
 - [ ] Aplicar la migración autorizada e integrar la PR enseguida.
 - [ ] Comprobar la publicación y las pantallas permitidas de Studio.
 - [ ] Registrar el sello de la migración y su evidencia de cierre.
