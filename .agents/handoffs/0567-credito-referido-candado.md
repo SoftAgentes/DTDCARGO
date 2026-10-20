@@ -7,7 +7,7 @@
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\sdd-0567-credito-referido-candado` |
 | Rama | `codex/sdd-0567-credito-referido-candado`, desde `origin/main` `be746707`, con `main` mezclado después (`b3283623`) |
 | SDD | [0567](../../docs/specs/0567-credito-referido-candado/spec.md), `in-progress`. La reserva es `codex/sdd-reserve-0567` (`99957208`, con `sdd:next --reserve credito-referido-candado --number 0567 --push`) y entró por cherry-pick. El Director asignó la migración 0494 |
-| Estado | implementada y probada; `pnpm verify` con turno; la 0494 se aplica antes de fusionar (MIGRATE-FIRST), con el OK nominal de Sam |
+| Estado | lista para revisión: PR en borrador, `pnpm verify` 16/17 sin fallos sobre `dac24360`; la 0494 se aplica antes de fusionar (MIGRATE-FIRST), con la previa del Director y el OK nominal de Sam |
 | Permisos | El Director la asignó como la 2.11 del plan, en la cola después de la 0566, y aprobó el diseño el 2026-10-20. Eso cubre commits selectivos, push de la rama propia y PR en borrador. **No incluye aplicar la 0494 ni leer producción:** eso es del Director, con el OK nominal de Sam |
 
 ## OBJETIVO ORIGINAL
@@ -38,11 +38,21 @@ La 2.11 del plan contable: «las transiciones de `referrals` pasan a la base con
 | `check-pending-migration-symbols` | código alcanzable que usa la 0494 | PASÓ: «0 ROJO · 2 AMARILLO declarado(s)» (la 0493 y la 0494) |
 | `migrations-lock verificar` | candado | PASÓ: la 0494 figura como espera, «0 nueva(s) sin sellar» |
 | `docs:check` (554 specs) | documentación | PASÓ |
-| Contrato `supabase/tests/0494_credito_referido_candado.test.sql` en PostgreSQL 17 (turno del Director, 2026-10-20) | la migración | PASÓ: «TEST 0494 GREEN: 55 aserciones». Sin la 0494 (`apply_fix=false`): «TEST 0494: existe public.avanzar_referido(uuid,text,text)» |
+| Contrato en PostgreSQL 17, primera versión (`620cb2fd` y el ajuste de `search_path`) | la migración | PASÓ: «TEST 0494 GREEN: 55 aserciones». Sin la 0494 (`apply_fix=false`): «TEST 0494: existe public.avanzar_referido(uuid,text,text)» |
 | `vitest run` de `credito-referido-candado.migration.test.ts`, `radiografia-referidos.test.ts`, `app/studio/(app)/fidelizacion`, `lib/studio/fidelizacion`, `referral-link` y `rbac-actions-guard` | la migración en PGlite (contrato, control rojo, 24 mutantes, las derivas de la 0250 y de la policy, el preflight, la reaplicación y la espera), la radiografía (vacía, limpia, sucia, control rojo y solo lectura) y la app | PASÓ: `Test Files  13 passed (13)`, `Tests  638 passed (638)` |
 | Mutantes de la app, restaurados por copia con la huella sha256 | el hint sin mirar, el motivo corto, registrado sin markbox, acreditar marcado a mano y el enlace por UPDATE directo | `MUERTOS 5/5 · restaurados 5/5` |
 | `typecheck`, eslint `--max-warnings=0` (lo tocado) | repo y archivos tocados | PASÓ. El typecheck destapó el helper `ref` de `queries.test.ts` sin los dos campos nuevos; corregido, y esa prueba dio `14 passed` |
-| `pnpm verify` | completo | PENDIENTE: corre después de este commit |
+| `pnpm verify` sobre `89202323` | completo | NO EJECUTADO hasta el final: lo detuve al llegar la revisión de seguridad, porque cambiaba la migración |
+| Confirmación de la revisión, contra la 0494 sin corregir (`89202323`) | B1, B2 e I2 | se confirmaron los tres: `support` insertó un `registrado` con un cliente viejo y una venta acreditó 2 créditos; el premio en 0 hizo fallar la venta con 23514; anular falló con el cliente borrado |
+| Contrato en PostgreSQL 17 sobre `dac24360` (las correcciones de la revisión e I2 con `tenant_id`) | la migración | PASÓ: «TEST 0494 GREEN: 78 aserciones». Control rojo en la primera aserción |
+| `credito-referido-candado.migration.test.ts` (PGlite) sobre `dac24360` | el contrato, el control rojo, 41 mutantes, las derivas de la 0250 y de la policy, el disparador de 0098 distinto, el preflight, la reaplicación y la espera | PASÓ: `Tests  50 passed (50)` |
+| El bloque de la app y la radiografía sobre `5f7dfd23` | PGlite, radiografía, Fidelización, `referral-credit-*`, `referral-link` y `rbac-actions-guard` | PASÓ: `Test Files  15 passed (15)`, `Tests  675 passed (675)`; mutantes de la app `MUERTOS 5/5 · restaurados 5/5`; typecheck y eslint PASÓ |
+| **`pnpm verify` sobre `dac24360`** (de 2026-10-20T10:20:56Z a 10:40:23Z) | completo | `VERIFY_EXIT=0`: «CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied. No hubo fallos en lo medido (16/17)». Detalle abajo |
+
+Detalle del `verify` sobre `dac24360`, copiado de su salida:
+- **PASÓ a la primera:** harness, lint, rsc-boundary, typecheck, edge-functions, test (`Tests  12133 passed | 1 skipped (12134)`), docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols («[AMARILLO] … avanzar_referido (0494_credito_referido_candado)»), sql-tests («245 contrato(s) de SQL verificado(s) · rollback total», con `0494_credito_referido_candado.test.sql`), schema-rebuild («470 migraciones aplicadas desde cero», el aislamiento de 219 tablas, la radiografía de integridad en 63 filas y «radiografía de referidos verificada sobre el esquema completo (0 filas, conteos)»), e2e (`177 passed (4.3m)`) y build.
+- **e2e:** `1 flaky`, `auth.spec.ts:81` (el token inválido de Acceso), el mismo de otras corridas y ajeno a Fidelización.
+- **NO DISPONIBLE:** migrations-applied (el worktree no tiene `.env.local`). La 0494 es MIGRATE-FIRST y la aplica el Director.
 
 ## Impacto documental y conocimiento
 
