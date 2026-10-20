@@ -139,13 +139,13 @@ $$;
 select pg_temp.fila('public.tenants', jsonb_build_object('id', pg_temp.u('t1')));
 select pg_temp.fila('public.clients', jsonb_build_object('id', pg_temp.u('c' || n), 'tenant_id', pg_temp.u('t1'),
   'markbox', 'DTD-900' || n))
-from generate_series(0, 5) n;
+from generate_series(0, 6) n;
 
 -- Ventas: c1 emitida, c2 pagada, c5 solo anulada; c3 y c4 sin factura. La
 -- factura del referidor (c0), donde se aplican los créditos.
 select pg_temp.fila('public.invoices', jsonb_build_object('id', pg_temp.u('i' || x.k), 'tenant_id', pg_temp.u('t1'),
   'client_markbox', x.markbox, 'status', x.estado))
-from (values ('1', 'DTD-9001', 'emitida'), ('2', 'DTD-9002', 'pagada'), ('5', 'DTD-9005', 'anulada'),
+from (values ('1', 'DTD-9001', 'emitida'), ('2', 'DTD-9002', 'pagada'), ('5', 'DTD-9005', 'anulada'), ('6', 'DTD-9006', 'emitida'),
              ('ref', 'DTD-9000', 'emitida')) x(k, markbox, estado);
 
 -- Un referido: estado, cliente referido, monto y columnas de aplicación.
@@ -192,7 +192,8 @@ begin
   perform pg_temp.asiento('3', '5', 'ref', 'asentado');
   perform pg_temp.referido('6', 'aplicado', 'c2', 80, 'ref');
   perform pg_temp.asiento('4', '6', 'ref', 'asentado');
-  perform pg_temp.referido('7', 'acreditado', 'c1', 80, 'ref');
+  -- c6 y no c1: desde la 0494 hay un solo referido vivo por cliente.
+  perform pg_temp.referido('7', 'acreditado', 'c6', 80, 'ref');
   perform pg_temp.asiento('5', '7', 'ref', 'asentado');
   perform pg_temp.referido('8', 'acreditado', 'c5', 80);
 end;

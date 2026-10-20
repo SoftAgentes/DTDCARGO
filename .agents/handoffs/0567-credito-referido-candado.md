@@ -57,6 +57,6 @@ La spec 0567 y el índice. **Cambia el esquema** (la 0494), así que el Director
 ## FUERA DE ALCANCE DETECTADO (para el Director)
 
 1. **`referrals` no entra en `entity_audit_log`.** La acreditación manual guarda el motivo y el autor en la fila, pero los cambios de estado no quedan en la auditoría D2.
-2. **La reversión falsa por `service_role`**, como riesgo aceptado. El guardián no la distingue de la real: la 0471 actualiza el referido antes de bajar el pagado, y el asiento lo anula la app después, fuera de la transacción. El análisis y las dos mitigaciones posibles están en la spec (*Riesgos*).
+2. **La reversión falsa por `service_role`**, aceptada por el Director el 2026-10-20. El guardián no la distingue de la real: la 0471 actualiza el referido antes de bajar el pagado, y el asiento lo anula la app después, fuera de la transacción. El sentido inverso (`acreditado → aplicado` sin subir el pagado, también solo por `service_role`) entra en el mismo riesgo. **Destino: «revert con permiso o disparador diferido»**, para retomarlo cuando haga falta. El análisis y las dos mitigaciones están en la spec (*Riesgos*).
 3. **El descuento de USD 60 al referido** (B20 a) y si el premio es contra-ingreso o gasto (decisión 16) siguen en la 2.8.
 4. **La ficha de un cliente eliminado pide el saldo y muestra un error** (lo encontró el Director en el smoke de la 0558). Destino: «SDD chica de la ficha», después de la 2.11.

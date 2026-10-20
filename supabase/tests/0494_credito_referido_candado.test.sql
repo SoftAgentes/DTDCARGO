@@ -67,8 +67,9 @@ create table public.shipments (
   id uuid primary key, tenant_id uuid not null references public.tenants(id),
   shipment_service text, deleted_at timestamptz
 );
+-- En cascada, como las tablas reales: §17 borra un tenant entero.
 create table public.clients (
-  id uuid primary key, tenant_id uuid not null references public.tenants(id),
+  id uuid primary key, tenant_id uuid not null references public.tenants(id) on delete cascade,
   markbox text not null, name text, deleted_at timestamptz
 );
 create table public.fiscal_settings (
@@ -110,7 +111,7 @@ create function pg_temp.fixture_id(p_label text) returns uuid language sql immut
 $$;
 
 insert into auth.users (id)
-select pg_temp.fixture_id(u) from unnest(array['admin-A', 'accounting-A', 'commercial-A', 'support-A', 'accounting-B']) u;
+select pg_temp.fixture_id(u) from unnest(array['admin-A', 'accounting-A', 'commercial-A', 'support-A', 'accounting-B', 'admin-B']) u;
 insert into public.tenants (id, slug, display_name) values
   (pg_temp.fixture_id('tenant-A'), 'tenant-a-0494', 'Tenant A 0494'),
   (pg_temp.fixture_id('tenant-B'), 'tenant-b-0494', 'Tenant B 0494');
@@ -118,11 +119,11 @@ insert into public.user_tenants (user_id, tenant_id, role)
 select pg_temp.fixture_id(u), pg_temp.fixture_id(t), r from (values
   ('admin-A', 'tenant-A', 'admin'), ('accounting-A', 'tenant-A', 'accounting'),
   ('commercial-A', 'tenant-A', 'commercial'), ('support-A', 'tenant-A', 'support'),
-  ('accounting-B', 'tenant-B', 'accounting')) v(u, t, r);
+  ('accounting-B', 'tenant-B', 'accounting'), ('admin-B', 'tenant-B', 'admin')) v(u, t, r);
 -- El referidor (c0) y seis clientes referidos.
 insert into public.clients (id, tenant_id, markbox, name)
 select pg_temp.fixture_id('c' || n), pg_temp.fixture_id('tenant-A'), 'DTD-940' || n, 'Cliente ' || n
-from generate_series(0, 6) n;
+from generate_series(0, 9) n;
 -- La factura del referidor, donde se aplican los créditos.
 insert into public.invoices (id, tenant_id, invoice_code, client_markbox, client_name, currency,
   base_amount, total_amount, paid_amount, status, issued_at)
@@ -262,12 +263,32 @@ select pg_temp.assert_true(pg_temp.error_of('admin-A', format(
   || 'values (%L::uuid, ''REF-2099-0903'', ''DTD-9400'', ''X'', ''registrado'', 0) returning to_jsonb(id)',
   pg_temp.fixture_id('tenant-A')), 'service_role') = '23514|Un referido registrado tiene que tener su cliente.|dtd-referidos',
   'un referido no nace registrado sin su cliente, tampoco por service_role');
+select pg_temp.assert_true(split_part(pg_temp.error_of('support-A', format(
+  'insert into public.referrals (tenant_id, referral_code, referrer_markbox, referred_name, referred_client_id, status, reward_usd) '
+  || 'values (%L::uuid, ''REF-2099-0904'', ''DTD-9400'', ''X'', %L::uuid, ''registrado'', 0) returning to_jsonb(id)',
+  pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('c9'))), '|', 1) = '42501',
+  'la sesión no inserta un referido registrado con un cliente (B2)');
+select pg_temp.assert_true(split_part(pg_temp.error_of('commercial-A', format(
+  'insert into public.referrals (tenant_id, referral_code, referrer_markbox, referred_name, referred_client_id, status, reward_usd) '
+  || 'values (%L::uuid, ''REF-2099-0905'', ''DTD-9400'', ''X'', %L::uuid, ''invitado'', 0) returning to_jsonb(id)',
+  pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('c9'))), '|', 1) = '42501',
+  'la sesión tampoco invita con el cliente ya puesto');
 -- El camino del registro público (service_role): nace registrado con su cliente.
 select pg_temp.assert_true(pg_temp.error_of('admin-A', format(
   'insert into public.referrals (id, tenant_id, referral_code, referrer_markbox, referred_name, referred_client_id, status, reward_usd) '
   || 'values (%L::uuid, %L::uuid, ''REF-2099-0005'', ''DTD-9400'', ''R5'', %L::uuid, ''registrado'', 0) returning to_jsonb(id)',
   pg_temp.fixture_id('r5'), pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('c5')), 'service_role') = 'ok',
   'el registro público crea un referido registrado con su cliente');
+select pg_temp.assert_true(split_part(pg_temp.error_of('admin-A', format(
+  'insert into public.referrals (tenant_id, referral_code, referrer_markbox, referred_name, referred_client_id, status, reward_usd) '
+  || 'values (%L::uuid, ''REF-2099-0906'', ''DTD-9400'', ''R5 otra vez'', %L::uuid, ''registrado'', 0) returning to_jsonb(id)',
+  pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('c5')), 'service_role'), '|', 1) = '23505',
+  'un solo referido vivo por cliente: una venta no acredita dos créditos (B2)');
+select pg_temp.assert_true(pg_temp.error_of('admin-A', format(
+  'insert into public.referrals (tenant_id, referral_code, referrer_markbox, referred_name, referred_client_id, status, reward_usd) '
+  || 'values (%L::uuid, ''REF-2099-0907'', ''DTD-9400'', ''Yo mismo'', %L::uuid, ''registrado'', 0) returning to_jsonb(id)',
+  pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('c0')), 'service_role')
+  = '23514|Un cliente no se refiere a sí mismo.|dtd-referidos', 'un cliente no se refiere a sí mismo');
 
 -- ── 4. Avanzar a mano ──
 select pg_temp.assert_true(pg_temp.avanzar('support-A', 'r1', 'registrado', 'DTD-9401')
@@ -279,6 +300,12 @@ select pg_temp.assert_true(pg_temp.avanzar('commercial-A', 'r1', 'registrado', '
   'commercial lo marca registrado con el markbox del cliente');
 select pg_temp.assert_true((pg_temp.ref('r1')).status = 'registrado'
   and (pg_temp.ref('r1')).referred_client_id = pg_temp.fixture_id('c1'), 'queda registrado con su cliente');
+select pg_temp.invitar('r9', 9);
+select pg_temp.assert_true(pg_temp.avanzar('commercial-A', 'r9', 'registrado', 'DTD-9400')
+  = '22023|Ese cliente es el que refiere: un cliente no se refiere a sí mismo.|dtd-referidos',
+  'avanzar no registra al propio referidor (I1)');
+select pg_temp.assert_true(pg_temp.avanzar('commercial-A', 'r9', 'registrado', 'DTD-9401')
+  = '22023|Ese cliente ya tiene un referido.|dtd-referidos', 'avanzar no registra un cliente que ya tiene referido (I1)');
 select pg_temp.assert_true(pg_temp.avanzar('commercial-A', 'r1', 'acreditado')
   = '22023|Ese paso no se marca a mano.|dtd-referidos', 'acreditar no es un paso que se marque');
 select pg_temp.invitar('r2', 2);
@@ -341,6 +368,14 @@ select pg_temp.assert_true(pg_temp.error_directo(format(
 select pg_temp.assert_true(pg_temp.error_directo(format(
   'update public.referrals set deleted_at = now() where id = %L::uuid', pg_temp.fixture_id('r1')))
   = '23514|Un referido acreditado no se borra.|dtd-referidos', 'un acreditado no se borra a medias');
+select pg_temp.assert_true(pg_temp.error_directo(format(
+  'update public.referrals set status = ''registrado'' where id = %L::uuid', pg_temp.fixture_id('r1')))
+  = '23514|Un crédito vuelve a espera solo si se anuló la venta que lo acreditó.|dtd-referidos',
+  'con su venta viva, un crédito no vuelve a espera (M4)');
+select pg_temp.assert_true(pg_temp.error_directo(format(
+  'update public.referrals set status = ''registrado'' where id = %L::uuid', pg_temp.fixture_id('r2')))
+  = '23514|Un crédito vuelve a espera solo si se anuló la venta que lo acreditó.|dtd-referidos',
+  'un crédito acreditado a mano no vuelve a espera');
 select pg_temp.assert_true(pg_temp.error_directo(format(
   'update public.referrals set referrer_markbox = ''DTD-9499'' where id = %L::uuid', pg_temp.fixture_id('r2'))) = 'ok',
   'lo que no es del crédito (el markbox del referidor) sí cambia, como en rename_client_markbox');
@@ -410,8 +445,17 @@ select pg_temp.assert_true((pg_temp.ref('r1')).status = 'registrado' and (pg_tem
   'revertido, el crédito con la venta anulada vuelve a espera y no queda acreditado en el aire');
 select pg_temp.assert_true((select paid_amount from public.invoices where id = pg_temp.fixture_id('inv-ref')) = 0,
   'la reversión bajó el abono de la factura del referidor');
+-- Un aplicado cuya venta se anula, pero el referido tiene otra: pasa a la otra y no queda marcado (M1).
+select pg_temp.assert_true(pg_temp.error_of('accounting-A', format(
+  'select public.apply_referral_credit(%L::uuid, %L::uuid)', pg_temp.fixture_id('r4'), pg_temp.fixture_id('inv-ref'))) = 'ok',
+  'r4 se aplica');
+select pg_temp.vender('s4c', 4);
+update public.invoices set status = 'anulada' where id = pg_temp.fixture_id('s4b');
+select pg_temp.assert_true((pg_temp.ref('r4')).status = 'aplicado'
+  and (pg_temp.ref('r4')).accredited_invoice_id = pg_temp.fixture_id('s4c') and (pg_temp.ref('r4')).sale_voided_at is null,
+  'un aplicado cuya venta se anula pasa a otra venta viva del referido y no queda marcado (M1)');
 select pg_temp.assert_true(pg_temp.error_directo(format(
-  'update public.referrals set sale_voided_at = now() where id = %L::uuid', pg_temp.fixture_id('r4')))
+  'update public.referrals set sale_voided_at = now() where id = %L::uuid', pg_temp.fixture_id('r3')))
   = '23514|La marca de venta anulada solo se pone en un crédito aplicado.|dtd-referidos',
   'la marca de venta anulada no se pone a mano en un acreditado');
 
@@ -431,7 +475,8 @@ select pg_temp.assert_true(pg_temp.error_of('admin-A', format(
 select pg_temp.assert_true(not exists (
   select 1 from pg_proc p where p.oid in (
     'public.referrals_candado()'::regprocedure, 'public.referrals_venta_anulada()'::regprocedure,
-    'public.referido_venta_real(uuid,uuid,uuid)'::regprocedure, 'public.referido_otra_venta(uuid,uuid,uuid)'::regprocedure,
+    'public.referido_venta_real(uuid,uuid,uuid,timestamptz)'::regprocedure, 'public.referido_otra_venta(uuid,uuid,uuid,timestamptz)'::regprocedure,
+    'public.referido_es_el_referidor(uuid,uuid,text)'::regprocedure,
     'public.fidelizacion_edicion_autorizada(uuid)'::regprocedure)
   and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute')
        or has_function_privilege('service_role', p.oid, 'execute'))),
@@ -443,13 +488,77 @@ select pg_temp.assert_true(not exists (
   and (not has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute')
        or has_function_privilege('service_role', p.oid, 'execute'))),
   'las tres RPC son solo para authenticated');
-select pg_temp.assert_true(pg_temp.error_of('accounting-B', format(
+select pg_temp.assert_true(pg_temp.error_of('admin-B', format(
   'select public.avanzar_referido(%L::uuid, ''primer-embarque'', null)', pg_temp.fixture_id('r6')))
-  = '42501|No tienes permiso para editar Fidelización.|dtd-referidos'
-  and pg_temp.error_of('accounting-B', format(
+  = '22023|El referido no existe.|dtd-referidos', 'el admin de otro tenant no avanza un referido del tenant A (M7)');
+select pg_temp.assert_true(pg_temp.error_of('admin-B', format(
+  'select public.acreditar_referido_con_motivo(%L::uuid, %L)', pg_temp.fixture_id('r6'), 'Motivo desde otro tenant'))
+  = '22023|El referido no existe.|dtd-referidos', 'el admin de otro tenant no acredita un referido del tenant A (M7)');
+select pg_temp.assert_true(pg_temp.error_of('accounting-B', format(
   'select public.vincular_asiento_del_credito(%L::uuid, %L::uuid)', pg_temp.fixture_id('r1'), pg_temp.fixture_id('e-r1')))
   = '22023|El crédito no está aplicado.|dtd-referidos',
   'otro tenant no ve los referidos del tenant A');
+
+-- ── 12. Solo cuenta una venta posterior al alta del referido (I1) ──
+-- Un cliente viejo con una factura abierta: cobrarla después de registrarlo como
+-- referido no le acredita el crédito.
+insert into public.invoices (id, tenant_id, invoice_code, client_markbox, client_name, currency,
+  base_amount, total_amount, paid_amount, status, issued_at, created_at)
+values (pg_temp.fixture_id('s7-vieja'), pg_temp.fixture_id('tenant-A'), 'F-S7-VIEJA', 'DTD-9407', 'Cliente 7',
+  'USD', 500, 500, 0, 'emitida', date '2099-01-01', now() - interval '1 day');
+select pg_temp.as_actor('admin-A', format(
+  'insert into public.referrals (id, tenant_id, referral_code, referrer_markbox, referred_name, referred_client_id, status, reward_usd) '
+  || 'values (%L::uuid, %L::uuid, ''REF-2099-0007'', ''DTD-9400'', ''R7'', %L::uuid, ''registrado'', 0) returning to_jsonb(id)',
+  pg_temp.fixture_id('r7'), pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('c7')), 'service_role');
+update public.invoices set status = 'pagada', paid_amount = 500 where id = pg_temp.fixture_id('s7-vieja');
+select pg_temp.assert_true((pg_temp.ref('r7')).status = 'registrado',
+  'cobrar una factura vieja del cliente no acredita al referido (I1)');
+select pg_temp.assert_true(pg_temp.error_directo(format(
+  'update public.referrals set status = ''acreditado'', reward_usd = 80, accredited_invoice_id = %L::uuid where id = %L::uuid',
+  pg_temp.fixture_id('s7-vieja'), pg_temp.fixture_id('r7')))
+  = '23514|Un crédito de referido nace de una venta real del referido o de una acreditación con motivo.|dtd-referidos',
+  'una factura anterior al alta del referido no es su venta, ni por un UPDATE directo');
+select pg_temp.vender('s7', 7);
+select pg_temp.assert_true((pg_temp.ref('r7')).status = 'acreditado' and (pg_temp.ref('r7')).accredited_invoice_id = pg_temp.fixture_id('s7'),
+  'una venta nueva sí lo acredita');
+select pg_temp.assert_true(split_part(pg_temp.error_directo(format(
+  'delete from public.invoices where id = %L::uuid', pg_temp.fixture_id('s7'))), '|', 1) = '23503',
+  'la factura que acreditó un crédito no se borra en silencio (M3)');
+
+-- ── 13. Con el premio en 0, la venta del referido se emite igual (B1) ──
+insert into public.referral_settings (tenant_id, referrer_reward_usd) values (pg_temp.fixture_id('tenant-A'), 0)
+  on conflict (tenant_id) do update set referrer_reward_usd = 0;
+select pg_temp.as_actor('admin-A', format(
+  'insert into public.referrals (id, tenant_id, referral_code, referrer_markbox, referred_name, referred_client_id, status, reward_usd) '
+  || 'values (%L::uuid, %L::uuid, ''REF-2099-0008'', ''DTD-9400'', ''R8'', %L::uuid, ''registrado'', 0) returning to_jsonb(id)',
+  pg_temp.fixture_id('r8'), pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('c8')), 'service_role');
+select pg_temp.assert_true(pg_temp.error_directo('select pg_temp.vender(''s8'', 8)') = 'ok'
+  and (pg_temp.ref('r8')).status = 'registrado',
+  'con el premio en 0 la factura del referido se emite y no hay crédito que acreditar (B1)');
+
+-- ── 14. Anular la venta con el cliente borrado no falla (I2) ──
+update public.clients set deleted_at = now() where id = pg_temp.fixture_id('c3');
+select pg_temp.assert_true(pg_temp.error_directo(format(
+  'update public.invoices set status = ''anulada'' where id = %L::uuid', pg_temp.fixture_id('s3b'))) = 'ok'
+  and (pg_temp.ref('r3')).status = 'registrado',
+  'anular la venta de un referido con su cliente borrado no falla (I2)');
+
+-- ── 15. Borrar el tenant entero no choca con el guardián (M3) ──
+insert into public.tenants (id, slug, display_name) values (pg_temp.fixture_id('tenant-C'), 'tenant-c-0494', 'Tenant C 0494');
+insert into public.clients (id, tenant_id, markbox, name) values
+  (pg_temp.fixture_id('cC'), pg_temp.fixture_id('tenant-C'), 'DTD-9C01', 'Cliente C');
+insert into public.referrals (id, tenant_id, referral_code, referrer_markbox, referred_name, referred_client_id, status, reward_usd)
+values (pg_temp.fixture_id('rC'), pg_temp.fixture_id('tenant-C'), 'REF-2099-0C01', 'DTD-9C00', 'RC', pg_temp.fixture_id('cC'), 'registrado', 0);
+insert into public.invoices (id, tenant_id, invoice_code, client_markbox, client_name, currency,
+  base_amount, total_amount, paid_amount, status, issued_at)
+values (pg_temp.fixture_id('sC'), pg_temp.fixture_id('tenant-C'), 'F-SC', 'DTD-9C01', 'Cliente C', 'USD', 500, 500, 0, 'emitida', date '2099-01-01');
+select pg_temp.assert_true((pg_temp.ref('rC')).status = 'acreditado', 'el crédito del tenant C se acredita');
+select pg_temp.assert_true(pg_temp.error_directo(format(
+  'delete from public.tenants where id = %L::uuid', pg_temp.fixture_id('tenant-C'))) = 'ok',
+  'borrar el tenant entero con un crédito acreditado no choca con el guardián');
+-- En otra sentencia: la anterior lee con la foto de antes del borrado.
+select pg_temp.assert_true(not exists (select 1 from public.referrals where tenant_id = pg_temp.fixture_id('tenant-C')),
+  'y se lleva sus referidos');
 
 select 'TEST 0494 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 rollback;

@@ -146,7 +146,7 @@ Ninguna se rellena: hoy no hay filas.
 - `accredited_invoice_id uuid references public.invoices(id) on delete set null`: la venta que acreditó, que la escribe el disparador de 0250.
 - `accredited_reason text` y `accredited_by uuid`: los de la acreditación manual.
 
-### 5. El guardián: `referrals_candado` (BEFORE INSERT OR UPDATE, para todos los roles)
+### 5. El guardián: `referrals_candado` (BEFORE INSERT OR UPDATE OR DELETE, para todos los roles)
 
 Es una propiedad de la base, no un consejo de la app.
 - **INSERT:**
@@ -198,6 +198,35 @@ Se reescribe `accredit_referral_on_first_invoice` desde la 0250, con el prefligh
 - **La marca de un paso manual a `registrado`** se hace con el markbox del cliente, que el cajón pide.
 - **Los mensajes propios llevan `hint = 'dtd-referidos'`,** y la app muestra solo esos (ERR-01), como el `dtd-cierre` de la 0566.
 - **Sin la 0494, la lista no se rompe:** si la base no tiene las columnas nuevas, la consulta responde 42703 y se vuelve a leer sin ellas.
+
+## Revisión de seguridad del Director (2026-10-20, sobre `89202323`)
+
+Fue de solo lectura. **Antes de corregir, los escenarios se confirmaron con el contrato contra la 0494 sin cambios**: `support` insertó por la API un `registrado` con un cliente viejo, y una sola venta acreditó 2 créditos; con el premio en 0, la venta del referido falló con 23514; anular la venta falló con el cliente borrado.
+
+| # | Hallazgo | Corrección |
+|---|---|---|
+| B1 | Con el premio en 0 no se podía facturar al referido | la 0250 reescrita sale sin acreditar si el premio es 0 |
+| B2 | Cualquier rol creaba N créditos con una sola venta | la policy de INSERT de `authenticated` exige `invitado` sin cliente; un índice único parcial deja un solo referido vivo por `(tenant_id, referred_client_id)`; el guardián rechaza que el referido sea el referidor (por id o por markbox) |
+| I1 | `avanzar_referido` no rechazaba el autorreferido ni el duplicado, y así commercial rodeaba la decisión 2 | la RPC los rechaza con su mensaje; **solo cuenta como venta una factura creada desde el alta del referido**, en la 0250 y en `referido_venta_real` |
+| I2 | Anular la venta fallaba con el referidor o el referido borrados (la validación de 0098 corría en todo UPDATE) | el disparador de 0098 corre al insertar y cuando cambia un cliente; la función de 0098 no cambia |
+| M1 | Un aplicado cuya venta se anula se marcaba aunque hubiera otra venta | pasa primero a otra venta viva; solo sin ella queda marcado |
+| M2 | Carrera entre anular la venta A y emitir la A2 a la vez | documentada abajo |
+| M3 | Las FK con `on delete set null` chocaban con el guardián, y también el borrado en cascada del tenant | las dos FK son NO ACTION (un borrado directo falla; RESTRICT rompería la cascada del tenant, que se lleva también los referidos), y el guardián deja pasar el borrado cuando el tenant ya no existe |
+| M4 | `acreditado → registrado` por `service_role` con la venta viva | la vuelta a espera exige que la venta que acreditó ya no sea real; uno acreditado a mano no vuelve a espera |
+| M5 | Faltaba un postflight | `prosecdef` de apply y revert, la ACL de las 3 RPC y de las internas, los grants de `referrals`, los tres disparadores y que el dueño de las DEFINER salte la RLS |
+| M6 | El disparador de `invoices` corría en todo UPDATE de esas columnas | `when (old.status is distinct from new.status or old.deleted_at is distinct from new.deleted_at)` y un índice parcial en `accredited_invoice_id` |
+| M7 | La aserción de «otro tenant» fallaba por la guarda de rol | ahora con el admin de otro tenant, en avanzar y en acreditar, con un mutante por filtro |
+| M8 | La spec decía BEFORE INSERT OR UPDATE; `referral-credit-posting.ts` decía INVOKER | corregidos los dos; el archivo entró en la allowlist |
+
+**M2, la carrera documentada.** Si se anula la venta A mientras se emite la A2 del mismo referido, cada disparador ve la base sin el cambio del otro:
+1. al emitirse A2, el de la 0250 no acredita, porque el crédito ya está acreditado por A;
+2. al anularse A, el de la venta anulada no ve A2 sin confirmar, y el crédito vuelve a `registrado`.
+
+Queda en espera con una venta viva. Se acredita en el siguiente cambio de estado de A2: un cobro (emitida → parcial o pagada) o su vencimiento. No se pierde dinero ni se acredita de más.
+
+**La carrera de la 0467 (dblink) contra la versión DEFINER: no aplica.**
+- La 0494 solo cambia `prosecdef` de apply y revert, y el contrato afirma que su cuerpo (los `FOR UPDATE` y su orden: factura → crédito) es el mismo md5. El modo de seguridad no cambia cómo se toman los bloqueos.
+- El contrato 0467 carga las migraciones hasta la 0471, sin la 0494, y sus fases ANTES hacen UPDATE de `referrals` como `authenticated`, que la 0494 revoca. Para correrlo sobre la 0494 habría que reescribirlo, y probaría lo mismo.
 
 ## Riesgos
 
@@ -256,7 +285,7 @@ Se reescribe `accredit_referral_on_first_invoice` desde la 0250, con el prefligh
 |---|---|
 | `supabase/migrations/0494_credito_referido_candado.sql` | la migración |
 | `supabase/tests/0494_credito_referido_candado.test.sql` | el contrato |
-| `lib/studio/__tests__/credito-referido-candado.migration.test.ts` | el contrato en PGlite: control rojo, 24 mutantes, las derivas de la 0250 y de la 0098 (policy), el preflight, la reaplicación y la espera |
+| `lib/studio/__tests__/credito-referido-candado.migration.test.ts` | el contrato en PGlite: control rojo, 40 mutantes, las derivas de la 0250 y de la 0098 (policy), el preflight, la reaplicación y la espera |
 | `supabase/migrations-baseline.json` | la espera de la 0494 |
 | `supabase/pending-migration-symbol-declarations.json` | los 5 símbolos y su degradación |
 | `app/studio/(app)/fidelizacion/actions.ts` | acreditar, avanzar y enlazar el asiento por las RPC; `errorDeReferido` |
@@ -266,10 +295,11 @@ Se reescribe `accredit_referral_on_first_invoice` desde la 0250, con el prefligh
 | `lib/studio/fidelizacion/types.ts` | `accredited_reason` y `sale_voided_at` en `Referral` |
 | `lib/studio/fidelizacion/queries.ts` | las columnas de la 0494, con la lectura de respaldo |
 | `lib/studio/fidelizacion/__tests__/queries.test.ts` | el helper `ref` con los dos campos nuevos |
+| `lib/studio/accounting/referral-credit-posting.ts` | dos comentarios: las RPC pasan a DEFINER y la guarda mira el rol de quien llama |
 | `app/studio/(app)/fidelizacion/__tests__/apply-referral-credit.test.ts` | el enlace del asiento por la RPC |
 | `app/studio/(app)/fidelizacion/__tests__/referido-candado-acciones.test.ts` | nueva: acreditar y avanzar |
 | `scripts/qa/radiografia-referidos.sql` | la radiografía versionada |
-| `scripts/qa/radiografia-referidos.fixture.sql` | su fixture para PGlite |
+| `scripts/qa/radiografia-referidos.fixture.sql` | su fixture para PGlite (el r7 sucio con su propio cliente: desde la 0494, un referido vivo por cliente) |
 | `scripts/__tests__/radiografia-referidos.test.ts` | su prueba, con control rojo |
 | `scripts/check-schema-rebuild.mjs` | la radiografía de referidos sobre el esquema completo |
 | `docs/specs/0567-credito-referido-candado/spec.md` | esta spec |
@@ -287,6 +317,7 @@ Se reescribe `accredit_referral_on_first_invoice` desde la 0250, con el prefligh
 7. Un `acreditado` o `aplicado` no se borra, ni con DELETE ni con `deleted_at`.
 8. El preflight acepta el cuerpo del repo y el vivo del trigger de la 0250, y los dos `qual` de la policy de la 0098 (repo y vivo), y ningún otro; aplicada dos veces, aborta con «ya existe».
 12. Apply y revert conservan su `search_path` vacío, y su guarda sigue mirando el rol de quien llama: commercial no aplica un crédito.
+13. La revisión de seguridad del 2026-10-20 (B1, B2, I1, I2, M1, M3 a M8) tiene cada corrección con su aserción y su mutante, y el postflight aborta si la ACL o los disparadores no quedaron como se promete.
 9. La app usa las RPC, muestra solo los mensajes con `hint = 'dtd-referidos'` y, sin la 0494, no se rompe.
 10. La radiografía queda versionada, con su prueba (vacía, limpia y sucia, más el control rojo) y su corrida en `schema-rebuild`.
 11. Control rojo: cada regla tiene un mutante que muere.

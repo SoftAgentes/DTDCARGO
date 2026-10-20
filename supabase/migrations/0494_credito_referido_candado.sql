@@ -108,6 +108,11 @@ begin
      or to_regclass('public.user_tenants') is null or to_regprocedure('auth.uid()') is null then
     raise exception '0494 requiere referrals, invoices, clients, journal_entries, referral_settings, studio_role_module_overrides, user_tenants y auth.uid()';
   end if;
+  if not exists (select 1 from pg_catalog.pg_trigger
+      where tgrelid = 'public.referrals'::regclass and tgname = 'referrals_validate_clients_trg'
+        and tgfoid = 'public.referrals_validate_clients()'::regprocedure and not tgisinternal) then
+    raise exception '0494 requiere el disparador referrals_validate_clients_trg de 0098';
+  end if;
   if not exists (select 1 from pg_catalog.pg_constraint
       where conrelid = 'public.referrals'::regclass and conname = 'referrals_credit_applied_coherent') then
     raise exception '0494 requiere el CHECK referrals_credit_applied_coherent de 0237';
@@ -133,13 +138,28 @@ $preflight$;
 -- ║ 1. Columnas: la venta que acreditó y la acreditación a mano ║
 -- ╚═══════════════════════════════════════════════════════════╝
 
+-- Las dos FK sin «on delete set null»: limpiar en silencio la venta o el autor
+-- de un crédito acreditado chocaría con el guardián. Son NO ACTION (como
+-- RESTRICT, pero se comprueba al final de la sentencia): un borrado directo de
+-- esa factura o de ese usuario falla, y el borrado en cascada de un tenant
+-- entero, que se lleva también sus referidos, termina sin chocar.
 alter table public.referrals
-  add column accredited_invoice_id uuid references public.invoices(id) on delete set null,
+  add column accredited_invoice_id uuid references public.invoices(id) on delete no action,
   add column accredited_reason     text,
-  add column accredited_by         uuid references auth.users(id) on delete set null,
+  add column accredited_by         uuid references auth.users(id) on delete no action,
   add column sale_voided_at        timestamptz,
   add constraint referrals_accredited_reason_length check (
     accredited_reason is null or pg_catalog.char_length(pg_catalog.btrim(accredited_reason)) between 10 and 1000);
+
+-- Un solo referido vivo por cliente referido: con dos, una sola venta acreditaba
+-- dos créditos (revisión de seguridad del Director, 2026-10-20, B2).
+create unique index referrals_un_referido_por_cliente
+  on public.referrals (tenant_id, referred_client_id)
+  where referred_client_id is not null and deleted_at is null;
+-- El disparador de invoices busca por la venta que acreditó.
+create index referrals_accredited_invoice_idx
+  on public.referrals (accredited_invoice_id)
+  where accredited_invoice_id is not null;
 
 comment on column public.referrals.accredited_invoice_id is
   'SDD-0567: la factura del referido que acreditó el crédito (disparador de 0250). Null en una acreditación manual.';
@@ -162,9 +182,13 @@ drop policy "referrals by tenant" on public.referrals;
 create policy "referrals select by tenant" on public.referrals
   for select to authenticated
   using (tenant_id = public.get_user_tenant_id() and deleted_at is null);
+-- La sesión solo invita (registerReferral). Registrar con un cliente es del
+-- registro público (service_role) y de avanzar_referido: si no, cualquier rol
+-- insertaba un «registrado» con un cliente que ya tenía una factura abierta y el
+-- próximo cobro le acreditaba el crédito (B2).
 create policy "referrals insert by tenant" on public.referrals
   for insert to authenticated
-  with check (tenant_id = public.get_user_tenant_id());
+  with check (tenant_id = public.get_user_tenant_id() and status = 'invitado' and referred_client_id is null);
 
 -- ╔═══════════════════════════════════════════════════════════╗
 -- ║ 3. Aplicar y revertir: DEFINER, con el mismo cuerpo       ║
@@ -181,7 +205,7 @@ alter function public.revert_referral_credits(uuid,uuid) security definer;
 -- ║ 4. ¿Es una venta real del cliente referido?               ║
 -- ╚═══════════════════════════════════════════════════════════╝
 
-create function public.referido_venta_real(p_tenant_id uuid, p_client_id uuid, p_invoice_id uuid)
+create function public.referido_venta_real(p_tenant_id uuid, p_client_id uuid, p_invoice_id uuid, p_desde timestamptz)
 returns boolean
 language sql
 stable
@@ -197,16 +221,17 @@ as $function$
       and i.client_markbox = c.markbox
       and i.deleted_at is null
       and i.status::text in ('emitida', 'parcial', 'pagada', 'vencida')
+      and i.created_at >= p_desde
   )
 $function$;
 
-comment on function public.referido_venta_real(uuid, uuid, uuid) is
-  'SDD-0567: la factura es viva, facturable (emitida, parcial, pagada o vencida) y del cliente referido, en el tenant. Interna: sin EXECUTE para la API.';
-revoke all on function public.referido_venta_real(uuid, uuid, uuid) from public, anon, authenticated, service_role;
+comment on function public.referido_venta_real(uuid, uuid, uuid, timestamptz) is
+  'SDD-0567: la factura es viva, facturable (emitida, parcial, pagada o vencida), del cliente referido y creada desde p_desde (el alta del referido: una factura vieja no es la venta que trajo el referido), en el tenant. Interna: sin EXECUTE para la API.';
+revoke all on function public.referido_venta_real(uuid, uuid, uuid, timestamptz) from public, anon, authenticated, service_role;
 
 -- Otra venta viva y facturable del cliente referido, distinta de p_excluir: la
 -- más antigua. Null si no hay.
-create function public.referido_otra_venta(p_tenant_id uuid, p_client_id uuid, p_excluir uuid)
+create function public.referido_otra_venta(p_tenant_id uuid, p_client_id uuid, p_excluir uuid, p_desde timestamptz)
 returns uuid
 language sql
 stable
@@ -218,13 +243,34 @@ as $function$
   join public.clients c on c.id = p_client_id and c.tenant_id = p_tenant_id
   where i.tenant_id = p_tenant_id and i.id is distinct from p_excluir and i.client_markbox = c.markbox
     and i.deleted_at is null and i.status::text in ('emitida', 'parcial', 'pagada', 'vencida')
+    and i.created_at >= p_desde
   order by i.issued_at nulls last, i.id
   limit 1
 $function$;
 
-comment on function public.referido_otra_venta(uuid, uuid, uuid) is
-  'SDD-0567: otra venta viva y facturable del cliente referido (la más antigua), o null. Interna: sin EXECUTE para la API.';
-revoke all on function public.referido_otra_venta(uuid, uuid, uuid) from public, anon, authenticated, service_role;
+comment on function public.referido_otra_venta(uuid, uuid, uuid, timestamptz) is
+  'SDD-0567: otra venta viva y facturable del cliente referido, creada desde p_desde (la más antigua), o null. Interna: sin EXECUTE para la API.';
+revoke all on function public.referido_otra_venta(uuid, uuid, uuid, timestamptz) from public, anon, authenticated, service_role;
+
+-- ¿El cliente referido es el propio referidor? Por id o por su markbox (el
+-- referidor puede no tener referrer_client_id).
+create function public.referido_es_el_referidor(p_referred uuid, p_referrer uuid, p_referrer_markbox text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select p_referred is not null and (
+    p_referred = p_referrer
+    or exists (select 1 from public.clients c
+               where c.id = p_referred and pg_catalog.upper(c.markbox) = pg_catalog.upper(p_referrer_markbox))
+  )
+$function$;
+
+comment on function public.referido_es_el_referidor(uuid, uuid, text) is
+  'SDD-0567: el cliente referido es el referidor (por id o por markbox). Interna: sin EXECUTE para la API.';
+revoke all on function public.referido_es_el_referidor(uuid, uuid, text) from public, anon, authenticated, service_role;
 
 -- ╔═══════════════════════════════════════════════════════════╗
 -- ║ 5. El guardián                                            ║
@@ -246,7 +292,10 @@ declare
   v_espera_por_reversion boolean := false;
 begin
   if tg_op = 'DELETE' then
-    if old.status::text in ('acreditado', 'aplicado') then
+    -- Borrar el tenant entero se lleva sus referidos en cascada: ahí el tenant ya
+    -- no existe y el borrado pasa (M3).
+    if old.status::text in ('acreditado', 'aplicado')
+       and exists (select 1 from public.tenants t where t.id = old.tenant_id) then
       raise exception 'Un referido % no se borra.', old.status
         using errcode = 'check_violation', hint = 'dtd-referidos';
     end if;
@@ -269,6 +318,9 @@ begin
       raise exception 'Un referido registrado tiene que tener su cliente.'
         using errcode = 'check_violation', hint = 'dtd-referidos';
     end if;
+    if public.referido_es_el_referidor(new.referred_client_id, new.referrer_client_id, new.referrer_markbox) then
+      raise exception 'Un cliente no se refiere a sí mismo.' using errcode = 'check_violation', hint = 'dtd-referidos';
+    end if;
     return new;
   end if;
 
@@ -279,7 +331,7 @@ begin
   -- aplicado, así que vale la regla de la venta anulada. Pasa a otra venta viva
   -- del referido o vuelve a espera (registrado), sin quedar acreditado en el aire.
   if v_viejo = 'aplicado' and v_nuevo = 'acreditado' and old.sale_voided_at is not null then
-    v_otra := public.referido_otra_venta(old.tenant_id, old.referred_client_id, old.accredited_invoice_id);
+    v_otra := public.referido_otra_venta(old.tenant_id, old.referred_client_id, old.accredited_invoice_id, old.created_at);
     new.sale_voided_at := null;
     if v_otra is not null then
       new.accredited_invoice_id := v_otra;
@@ -317,6 +369,20 @@ begin
       using errcode = 'check_violation', hint = 'dtd-referidos';
   end if;
 
+  -- Volver a espera es SOLO por la venta anulada: si la venta que acreditó sigue
+  -- siendo real, o el crédito fue a mano (sin venta), no hay espera (M4).
+  if v_viejo = 'acreditado' and v_nuevo = 'registrado'
+     and (old.accredited_invoice_id is null
+          or public.referido_venta_real(old.tenant_id, old.referred_client_id, old.accredited_invoice_id, old.created_at)) then
+    raise exception 'Un crédito vuelve a espera solo si se anuló la venta que lo acreditó.'
+      using errcode = 'check_violation', hint = 'dtd-referidos';
+  end if;
+
+  if new.referred_client_id is distinct from old.referred_client_id
+     and public.referido_es_el_referidor(new.referred_client_id, new.referrer_client_id, new.referrer_markbox) then
+    raise exception 'Un cliente no se refiere a sí mismo.' using errcode = 'check_violation', hint = 'dtd-referidos';
+  end if;
+
   -- Volver a espera limpia la acreditación entera: la próxima venta la sella de nuevo.
   if v_viejo = 'acreditado' and v_nuevo = 'registrado' then
     new.reward_usd := 0;
@@ -341,7 +407,7 @@ begin
     end if;
     if not (
       (new.accredited_invoice_id is not null
-        and public.referido_venta_real(new.tenant_id, new.referred_client_id, new.accredited_invoice_id))
+        and public.referido_venta_real(new.tenant_id, new.referred_client_id, new.accredited_invoice_id, new.created_at))
       or (new.accredited_reason is not null and new.accredited_by is not null)
     ) then
       raise exception 'Un crédito de referido nace de una venta real del referido o de una acreditación con motivo.'
@@ -363,8 +429,8 @@ begin
     if new.accredited_invoice_id is distinct from old.accredited_invoice_id
        and not (
          old.accredited_invoice_id is not null and new.accredited_invoice_id is not null
-         and not public.referido_venta_real(old.tenant_id, old.referred_client_id, old.accredited_invoice_id)
-         and public.referido_venta_real(new.tenant_id, new.referred_client_id, new.accredited_invoice_id)
+         and not public.referido_venta_real(old.tenant_id, old.referred_client_id, old.accredited_invoice_id, old.created_at)
+         and public.referido_venta_real(new.tenant_id, new.referred_client_id, new.accredited_invoice_id, new.created_at)
        ) then
       raise exception 'La venta que acreditó un crédito no cambia.'
         using errcode = 'check_violation', hint = 'dtd-referidos';
@@ -460,10 +526,16 @@ begin
   from public.referral_settings rs
   where rs.tenant_id = new.tenant_id;
   v_reward := coalesce(v_reward, 80);
+  -- SDD-0567 (B1): con el premio en 0 no hay crédito que acreditar. Sin esto, el
+  -- guardián rechazaba el UPDATE y la factura del referido no se podía emitir ni cobrar.
+  if v_reward <= 0 then
+    return new;
+  end if;
 
   -- Acreditar idempotente por estado: solo referidos aún pendientes de este
   -- cliente. La 1ª factura los pasa a 'acreditado'; las siguientes no matchean.
-  -- SDD-0567: guarda la venta que acreditó, que el guardián exige.
+  -- SDD-0567: guarda la venta que acreditó, que el guardián exige, y solo cuenta
+  -- una factura creada desde el alta del referido (una vieja no es su venta).
   update public.referrals
      set status     = 'acreditado',
          reward_usd = v_reward,
@@ -472,7 +544,8 @@ begin
    where referred_client_id = v_client
      and tenant_id = new.tenant_id
      and status in ('registrado', 'primer-embarque')
-     and deleted_at is null;
+     and deleted_at is null
+     and created_at <= new.created_at;
 
   return new;
 end;
@@ -502,22 +575,28 @@ begin
   end if;
 
   for v_ref in
-    select r.id, r.status::text as estado, r.referred_client_id
+    select r.id, r.status::text as estado, r.referred_client_id, r.created_at
     from public.referrals r
     where r.tenant_id = new.tenant_id and r.accredited_invoice_id = new.id and r.deleted_at is null
     order by r.id
     for update
   loop
     if v_ref.estado = 'acreditado' then
-      v_otra := public.referido_otra_venta(new.tenant_id, v_ref.referred_client_id, new.id);
+      v_otra := public.referido_otra_venta(new.tenant_id, v_ref.referred_client_id, new.id, v_ref.created_at);
       if v_otra is not null then
         update public.referrals set accredited_invoice_id = v_otra where id = v_ref.id;
       else
         update public.referrals set status = 'registrado' where id = v_ref.id;
       end if;
     elsif v_ref.estado = 'aplicado' then
-      update public.referrals set sale_voided_at = pg_catalog.now()
-      where id = v_ref.id and sale_voided_at is null;
+      -- Primero, otra venta viva del referido (M1). Solo sin ella queda marcado.
+      v_otra := public.referido_otra_venta(new.tenant_id, v_ref.referred_client_id, new.id, v_ref.created_at);
+      if v_otra is not null then
+        update public.referrals set accredited_invoice_id = v_otra where id = v_ref.id;
+      else
+        update public.referrals set sale_voided_at = pg_catalog.now()
+        where id = v_ref.id and sale_voided_at is null;
+      end if;
     end if;
   end loop;
   return new;
@@ -530,7 +609,18 @@ revoke all on function public.referrals_venta_anulada() from public, anon, authe
 
 create trigger invoices_referral_sale_voided
   after update of status, deleted_at on public.invoices
-  for each row execute function public.referrals_venta_anulada();
+  for each row
+  when (old.status is distinct from new.status or old.deleted_at is distinct from new.deleted_at)
+  execute function public.referrals_venta_anulada();
+
+-- La validación de clientes de 0098 corría en TODO UPDATE y exige clientes no
+-- borrados: un UPDATE de estado (anular la venta) fallaba si el referidor o el
+-- referido estaban borrados (I2). Ahora corre al insertar y cuando cambia un
+-- cliente. La función de 0098 no cambia.
+drop trigger referrals_validate_clients_trg on public.referrals;
+create trigger referrals_validate_clients_trg
+  before insert or update of referrer_client_id, referred_client_id on public.referrals
+  for each row execute function public.referrals_validate_clients();
 
 -- ╔═══════════════════════════════════════════════════════════╗
 -- ║ 8. Quién edita Fidelización (la matriz de lib/studio/rbac.ts) ║
@@ -661,6 +751,15 @@ begin
       raise exception 'Para marcarlo registrado, indica el markbox de un cliente activo.'
         using errcode = '22023', hint = 'dtd-referidos';
     end if;
+    if public.referido_es_el_referidor(v_cliente, v_ref.referrer_client_id, v_ref.referrer_markbox) then
+      raise exception 'Ese cliente es el que refiere: un cliente no se refiere a sí mismo.'
+        using errcode = '22023', hint = 'dtd-referidos';
+    end if;
+    if exists (select 1 from public.referrals o
+               where o.tenant_id = v_tenant and o.referred_client_id = v_cliente
+                 and o.deleted_at is null and o.id <> v_ref.id) then
+      raise exception 'Ese cliente ya tiene un referido.' using errcode = '22023', hint = 'dtd-referidos';
+    end if;
     update public.referrals set status = 'registrado', referred_client_id = v_cliente where id = v_ref.id;
   elsif v_ref.status::text = 'registrado' and p_estado = 'primer-embarque' then
     update public.referrals set status = 'primer-embarque' where id = v_ref.id;
@@ -733,3 +832,69 @@ revoke all on function public.vincular_asiento_del_credito(uuid, uuid) from publ
 grant execute on function public.acreditar_referido_con_motivo(uuid, text) to authenticated;
 grant execute on function public.avanzar_referido(uuid, text, text) to authenticated;
 grant execute on function public.vincular_asiento_del_credito(uuid, uuid) to authenticated;
+
+-- ╔═══════════════════════════════════════════════════════════╗
+-- ║ 10. Postflight                                            ║
+-- ╚═══════════════════════════════════════════════════════════╝
+
+-- Como 0471: si algo de lo que esta migración promete no quedó así, aborta y
+-- deshace todo (la migración corre en una transacción).
+do $postflight$
+begin
+  if (select pg_catalog.count(*) from pg_catalog.pg_proc p
+      where p.oid in (pg_catalog.to_regprocedure('public.apply_referral_credit(uuid,uuid)'),
+                      pg_catalog.to_regprocedure('public.revert_referral_credits(uuid,uuid)'))
+        and p.prosecdef and p.proconfig = array['search_path=""']::text[]
+        and pg_catalog.has_function_privilege('authenticated', p.oid, 'EXECUTE')
+        and not pg_catalog.has_function_privilege('anon', p.oid, 'EXECUTE')
+        and not pg_catalog.has_function_privilege('service_role', p.oid, 'EXECUTE')) <> 2 then
+    raise exception '0494: postflight — apply y revert sin DEFINER, search_path o ACL esperados';
+  end if;
+  if (select pg_catalog.count(*) from pg_catalog.pg_proc p
+      where p.oid in (pg_catalog.to_regprocedure('public.acreditar_referido_con_motivo(uuid,text)'),
+                      pg_catalog.to_regprocedure('public.avanzar_referido(uuid,text,text)'),
+                      pg_catalog.to_regprocedure('public.vincular_asiento_del_credito(uuid,uuid)'))
+        and p.prosecdef and p.proconfig = array['search_path=""']::text[]
+        and pg_catalog.has_function_privilege('authenticated', p.oid, 'EXECUTE')
+        and not pg_catalog.has_function_privilege('anon', p.oid, 'EXECUTE')
+        and not pg_catalog.has_function_privilege('service_role', p.oid, 'EXECUTE')
+        and not exists (select 1 from pg_catalog.aclexplode(p.proacl) a
+          where a.grantee = 0 and a.privilege_type = 'EXECUTE')) <> 3 then
+    raise exception '0494: postflight — las tres RPC sin DEFINER, search_path o ACL esperados';
+  end if;
+  if exists (select 1 from pg_catalog.pg_proc p
+      where p.oid in (pg_catalog.to_regprocedure('public.referrals_candado()'),
+                      pg_catalog.to_regprocedure('public.referrals_venta_anulada()'),
+                      pg_catalog.to_regprocedure('public.referido_venta_real(uuid,uuid,uuid,timestamptz)'),
+                      pg_catalog.to_regprocedure('public.referido_otra_venta(uuid,uuid,uuid,timestamptz)'),
+                      pg_catalog.to_regprocedure('public.referido_es_el_referidor(uuid,uuid,text)'),
+                      pg_catalog.to_regprocedure('public.fidelizacion_edicion_autorizada(uuid)'))
+        and (pg_catalog.has_function_privilege('authenticated', p.oid, 'EXECUTE')
+             or pg_catalog.has_function_privilege('anon', p.oid, 'EXECUTE')
+             or pg_catalog.has_function_privilege('service_role', p.oid, 'EXECUTE'))) then
+    raise exception '0494: postflight — una función interna tiene EXECUTE para la API';
+  end if;
+  if pg_catalog.has_table_privilege('authenticated', 'public.referrals', 'UPDATE')
+     or pg_catalog.has_table_privilege('authenticated', 'public.referrals', 'DELETE')
+     or not pg_catalog.has_table_privilege('authenticated', 'public.referrals', 'INSERT')
+     or not pg_catalog.has_table_privilege('authenticated', 'public.referrals', 'SELECT') then
+    raise exception '0494: postflight — los grants de referrals para authenticated no son SELECT e INSERT';
+  end if;
+  if (select pg_catalog.count(*) from pg_catalog.pg_trigger tg
+      where not tg.tgisinternal and tg.tgname in ('referrals_candado_trg', 'invoices_referral_sale_voided', 'referrals_validate_clients_trg')) <> 3 then
+    raise exception '0494: postflight — faltan los disparadores del candado';
+  end if;
+  -- Las funciones DEFINER escriben referrals e invoices sin la RLS: su dueño la salta.
+  if exists (select 1 from pg_catalog.pg_proc p join pg_catalog.pg_roles r on r.oid = p.proowner
+      where p.oid in (pg_catalog.to_regprocedure('public.referrals_candado()'),
+                      pg_catalog.to_regprocedure('public.referrals_venta_anulada()'),
+                      pg_catalog.to_regprocedure('public.acreditar_referido_con_motivo(uuid,text)'),
+                      pg_catalog.to_regprocedure('public.avanzar_referido(uuid,text,text)'),
+                      pg_catalog.to_regprocedure('public.vincular_asiento_del_credito(uuid,uuid)'),
+                      pg_catalog.to_regprocedure('public.apply_referral_credit(uuid,uuid)'),
+                      pg_catalog.to_regprocedure('public.revert_referral_credits(uuid,uuid)'))
+        and not (r.rolbypassrls or r.rolsuper)) then
+    raise exception '0494: postflight — una función DEFINER del candado tiene un dueño que no salta la RLS';
+  end if;
+end;
+$postflight$;

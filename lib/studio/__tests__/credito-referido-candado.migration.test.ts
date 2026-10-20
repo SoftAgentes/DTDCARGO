@@ -139,13 +139,14 @@ describe("SDD-0567 · 0494 candado del crédito de referido (PGlite)", () => {
       name: "authenticated conserva el UPDATE y el DELETE",
       from: "revoke update, delete on public.referrals from authenticated;\n",
       to: "",
-      fails: "TEST 0494: authenticated conserva SELECT e INSERT, sin UPDATE ni DELETE",
+      // Lo ataja primero el postflight (la migración aborta entera); detrás, el §1 del contrato.
+      fails: "0494: postflight — los grants de referrals para authenticated no son SELECT e INSERT",
     },
     {
       name: "aplicar sigue INVOKER (sin el UPDATE, fallaría)",
       from: "alter function public.apply_referral_credit(uuid,uuid) security definer;\n",
       to: "",
-      fails: "TEST 0494: aplicar y revertir pasan a SECURITY DEFINER",
+      fails: "0494: postflight — apply y revert sin DEFINER, search_path o ACL esperados",
     },
     {
       name: "un referido nace acreditado",
@@ -197,8 +198,8 @@ describe("SDD-0567 · 0494 candado del crédito de referido (PGlite)", () => {
     },
     {
       name: "un acreditado se borra",
-      from: "  if tg_op = 'DELETE' then\n    if old.status::text in ('acreditado', 'aplicado') then",
-      to: "  if tg_op = 'DELETE' then\n    if false then",
+      from: "    if old.status::text in ('acreditado', 'aplicado')\n       and exists (select 1 from public.tenants t where t.id = old.tenant_id) then",
+      to: "    if false then",
       fails: "TEST 0494: un acreditado no se borra",
     },
     {
@@ -239,14 +240,14 @@ describe("SDD-0567 · 0494 candado del crédito de referido (PGlite)", () => {
     },
     {
       name: "borrada la venta, el crédito no pasa a otra venta viva",
-      from: "        update public.referrals set accredited_invoice_id = v_otra where id = v_ref.id;",
-      to: "        update public.referrals set status = 'registrado' where id = v_ref.id;",
+      from: "      if v_otra is not null then\n        update public.referrals set accredited_invoice_id = v_otra where id = v_ref.id;\n      else\n        update public.referrals set status = 'registrado' where id = v_ref.id;",
+      to: "      if false then\n        update public.referrals set accredited_invoice_id = v_otra where id = v_ref.id;\n      else\n        update public.referrals set status = 'registrado' where id = v_ref.id;",
       fails: "TEST 0494: borrada la venta, el crédito pasa a otra venta viva del referido",
     },
     {
       name: "un aplicado con la venta anulada no queda marcado",
-      from: "      update public.referrals set sale_voided_at = pg_catalog.now()\n      where id = v_ref.id and sale_voided_at is null;",
-      to: "      null;",
+      from: "        update public.referrals set sale_voided_at = pg_catalog.now()\n        where id = v_ref.id and sale_voided_at is null;",
+      to: "        null;",
       fails: "TEST 0494: un crédito aplicado cuya venta se anula no se revierte solo: queda marcado",
     },
     {
@@ -275,9 +276,106 @@ describe("SDD-0567 · 0494 candado del crédito de referido (PGlite)", () => {
     },
     {
       name: "una función interna abierta a la API",
-      from: "revoke all on function public.referido_venta_real(uuid, uuid, uuid) from public, anon, authenticated, service_role;",
-      to: "grant execute on function public.referido_venta_real(uuid, uuid, uuid) to authenticated;",
-      fails: "TEST 0494: las funciones internas no tienen EXECUTE para la API",
+      from: "revoke all on function public.referido_venta_real(uuid, uuid, uuid, timestamptz) from public, anon, authenticated, service_role;",
+      to: "grant execute on function public.referido_venta_real(uuid, uuid, uuid, timestamptz) to authenticated;",
+      fails: "0494: postflight — una función interna tiene EXECUTE para la API",
+    },
+    // ── Revisión de seguridad del Director, 2026-10-20 ──
+    {
+      name: "B1: con el premio en 0, la venta del referido falla",
+      from: "  if v_reward <= 0 then\n    return new;\n  end if;\n",
+      to: "",
+      fails: "TEST 0494: con el premio en 0 la factura del referido se emite y no hay crédito que acreditar (B1)",
+    },
+    {
+      name: "B2: la sesión inserta un registrado con cliente",
+      from: "with check (tenant_id = public.get_user_tenant_id() and status = 'invitado' and referred_client_id is null);",
+      to: "with check (tenant_id = public.get_user_tenant_id());",
+      fails: "TEST 0494: la sesión no inserta un referido registrado con un cliente (B2)",
+    },
+    {
+      name: "B2: dos referidos vivos del mismo cliente",
+      from: "create unique index referrals_un_referido_por_cliente",
+      to: "create index referrals_un_referido_por_cliente",
+      fails: "TEST 0494: un solo referido vivo por cliente: una venta no acredita dos créditos (B2)",
+    },
+    {
+      name: "B2: un cliente se refiere a sí mismo",
+      from: "    if public.referido_es_el_referidor(new.referred_client_id, new.referrer_client_id, new.referrer_markbox) then\n      raise exception 'Un cliente no se refiere a sí mismo.'",
+      to: "    if false then\n      raise exception 'Un cliente no se refiere a sí mismo.'",
+      fails: "TEST 0494: un cliente no se refiere a sí mismo",
+    },
+    {
+      name: "I1: avanzar registra al propio referidor",
+      from: "    if public.referido_es_el_referidor(v_cliente, v_ref.referrer_client_id, v_ref.referrer_markbox) then",
+      to: "    if false then",
+      fails: "TEST 0494: avanzar no registra al propio referidor (I1)",
+    },
+    {
+      name: "I1: avanzar registra un cliente que ya tiene referido",
+      from: "    if exists (select 1 from public.referrals o",
+      to: "    if false and exists (select 1 from public.referrals o",
+      fails: "TEST 0494: avanzar no registra un cliente que ya tiene referido (I1)",
+    },
+    {
+      name: "I1: una factura vieja es la venta del referido (0250)",
+      from: "\n     and created_at <= new.created_at;",
+      to: ";",
+      fails: "Un crédito de referido nace de una venta real del referido o de una acreditación con motivo.",
+    },
+    {
+      name: "I1: una factura vieja es la venta del referido (guardián)",
+      from: "      and i.created_at >= p_desde\n  )",
+      to: "  )",
+      fails: "TEST 0494: una factura anterior al alta del referido no es su venta, ni por un UPDATE directo",
+    },
+    {
+      name: "I2: la validación de clientes corre en todo UPDATE",
+      from: "  before insert or update of referrer_client_id, referred_client_id on public.referrals",
+      to: "  before insert or update on public.referrals",
+      fails: "TEST 0494: anular la venta de un referido con su cliente borrado no falla (I2)",
+    },
+    {
+      name: "M1: un aplicado cuya venta se anula queda marcado aunque haya otra venta",
+      from: "Solo sin ella queda marcado.\n      v_otra := public.referido_otra_venta(new.tenant_id, v_ref.referred_client_id, new.id, v_ref.created_at);",
+      to: "Solo sin ella queda marcado.\n      v_otra := null;",
+      fails: "TEST 0494: un aplicado cuya venta se anula pasa a otra venta viva del referido y no queda marcado (M1)",
+    },
+    {
+      name: "M3: el borrado del tenant entero choca con el guardián",
+      from: "    if old.status::text in ('acreditado', 'aplicado')\n       and exists (select 1 from public.tenants t where t.id = old.tenant_id) then",
+      to: "    if old.status::text in ('acreditado', 'aplicado') then",
+      fails: "TEST 0494: borrar el tenant entero con un crédito acreditado no choca con el guardián",
+    },
+    {
+      name: "M3: la venta que acreditó se borra en silencio (set null)",
+      from: "  add column accredited_invoice_id uuid references public.invoices(id) on delete no action,",
+      to: "  add column accredited_invoice_id uuid references public.invoices(id) on delete set null,",
+      fails: "TEST 0494: la factura que acreditó un crédito no se borra en silencio (M3)",
+    },
+    {
+      name: "M4: un crédito con su venta viva vuelve a espera",
+      from: "  if v_viejo = 'acreditado' and v_nuevo = 'registrado'\n     and (old.accredited_invoice_id is null",
+      to: "  if false and v_viejo = 'acreditado' and v_nuevo = 'registrado'\n     and (old.accredited_invoice_id is null",
+      fails: "TEST 0494: con su venta viva, un crédito no vuelve a espera (M4)",
+    },
+    {
+      name: "M7: avanzar sin el filtro de tenant",
+      from: "  where r.id = p_referral_id and r.tenant_id = v_tenant and r.deleted_at is null\n  for update;\n  if not found then\n    raise exception 'El referido no existe.' using errcode = '22023', hint = 'dtd-referidos';\n  end if;\n\n  if v_ref.status::text = 'invitado'",
+      to: "  where r.id = p_referral_id and r.deleted_at is null\n  for update;\n  if not found then\n    raise exception 'El referido no existe.' using errcode = '22023', hint = 'dtd-referidos';\n  end if;\n\n  if v_ref.status::text = 'invitado'",
+      fails: "TEST 0494: el admin de otro tenant no avanza un referido del tenant A (M7)",
+    },
+    {
+      name: "M7: acreditar sin el filtro de tenant",
+      from: "  where r.id = p_referral_id and r.tenant_id = v_tenant and r.deleted_at is null\n  for update;\n  if not found then\n    raise exception 'El referido no existe.' using errcode = '22023', hint = 'dtd-referidos';\n  end if;\n  if v_ref.status::text not in ('registrado', 'primer-embarque') then",
+      to: "  where r.id = p_referral_id and r.deleted_at is null\n  for update;\n  if not found then\n    raise exception 'El referido no existe.' using errcode = '22023', hint = 'dtd-referidos';\n  end if;\n  if v_ref.status::text not in ('registrado', 'primer-embarque') then",
+      fails: "TEST 0494: el admin de otro tenant no acredita un referido del tenant A (M7)",
+    },
+    {
+      name: "M5: el postflight detecta una RPC abierta a anon",
+      from: "grant execute on function public.avanzar_referido(uuid, text, text) to authenticated;",
+      to: "grant execute on function public.avanzar_referido(uuid, text, text) to authenticated, anon;",
+      fails: "0494: postflight — las tres RPC sin DEFINER, search_path o ACL esperados",
     },
   ];
   for (const m of MUTANTS) {
