@@ -98,6 +98,7 @@ create table public.rates (
   id uuid primary key, tenant_id uuid not null references public.tenants(id) on delete cascade,
   service public.shipment_service not null, origin text not null default 'Yiwu',
   destination text not null, per_cbm numeric(10,2), flat_rate numeric(10,2), min_charge numeric(10,2),
+  valid_until date,
   price_book_id uuid references public.price_books(id) on delete restrict, deleted_at timestamptz
 );
 create table public.quotes (

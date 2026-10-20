@@ -126,7 +126,7 @@ Crea objetos nuevos. Las FK nuevas toman SHARE ROW EXCLUSIVE breve sobre `tenant
 
 - `lib/studio/rate-snapshots/`: tipos y etiquetas (`types.ts`), lectura de las filas vivas por recepción con respaldo si la tabla no existe (`queries.ts`), la propuesta automática (`propuesta.ts`: estimado ligado → `resolveRateForClient`).
 - `app/studio/(app)/cn/rate-snapshot-actions.ts`: ver la propuesta, congelar, reemplazar y congelar en lote las pendientes (solo propuestas automáticas; las que no tienen propuesta se cuentan y se nombran).
-- Almacén CN: columna «Tarifa» con «$/m³ · a facturar», la fuente y el aviso si el CBM cambió; «Sin tarifa» en rojo. El cajón de la tarifa muestra la propuesta, permite elegir servicio y estimado, y (admin o contabilidad) fijarla a mano con motivo; abajo, el historial. En la barra de selección, «Congelar tarifas pendientes».
+- Almacén CN: columna «Tarifa · a facturar» con el $/m³, el monto, la fuente y el aviso si el CBM cambió; «Sin tarifa» en rojo. El cajón de la tarifa muestra la propuesta, permite elegir servicio y estimado, y (admin o contabilidad) fijarla a mano con motivo; abajo, el historial. En la barra de selección, «Congelar tarifas pendientes».
 - Textos en `es-VE` y `zh-CN` (el equipo de Yiwu usa el módulo en chino).
 - Sin la 0496 aplicada, la columna dice «No disponible» y las acciones responden con su mensaje; la lista no se rompe. Los símbolos se declaran en `supabase/pending-migration-symbol-declarations.json`.
 
@@ -141,23 +141,23 @@ Crea objetos nuevos. Las FK nuevas toman SHARE ROW EXCLUSIVE breve sobre `tenant
 | Archivo | Cambio |
 |---|---|
 | `supabase/migrations/0496_tarifa_congelada_por_embarque.sql` | la migración |
-| `supabase/tests/0496_tarifa_congelada_por_embarque.test.sql` | el contrato |
-| `lib/studio/__tests__/tarifa-congelada.migration.test.ts` | el contrato en PGlite, control rojo y mutantes |
+| `supabase/tests/0496_tarifa_congelada_por_embarque.test.sql` | el contrato (79 aserciones) |
+| `supabase/tests/_0496_tarifa_congelada_schema.sql` | su esquema mínimo, con los cuerpos exactos de los helpers |
+| `lib/studio/__tests__/tarifa-congelada.migration.test.ts` | el contrato en PGlite: control rojo, 30 mutantes, preflight, reaplicación y espera |
 | `supabase/migrations-baseline.json` | la espera de la 0496 |
-| `supabase/pending-migration-symbol-declarations.json` | los símbolos y su degradación |
-| `lib/studio/rate-snapshots/types.ts` | tipos, etiquetas y validación |
-| `lib/studio/rate-snapshots/queries.ts` | lectura |
-| `lib/studio/rate-snapshots/propuesta.ts` | propuesta automática |
-| `lib/studio/rate-snapshots/__tests__/*.test.ts` | pruebas |
+| `supabase/pending-migration-symbol-declarations.json` | los dos símbolos y su degradación |
+| `lib/studio/rate-snapshots/types.ts` | tipos, etiquetas, validación y errores propios |
+| `lib/studio/rate-snapshots/queries.ts` | lectura de las vivas y del historial |
+| `lib/studio/rate-snapshots/propuesta.ts` | propuesta automática y estimados aceptados |
+| `lib/studio/rate-snapshots/__tests__/types.test.ts` | reglas puras |
+| `lib/studio/rate-snapshots/__tests__/paridad-resolver.migration.test.ts` | paridad de la RPC con `resolveRateForClient`, con propiedad del descuento |
 | `app/studio/(app)/cn/rate-snapshot-actions.ts` | acciones |
-| `app/studio/(app)/cn/__tests__/rate-snapshot-actions.test.ts` | pruebas |
-| `app/studio/(app)/cn/page.tsx` | lee las tarifas vivas y el rol |
-| `app/studio/(app)/cn/_components/AlmacenCnClient.tsx` | columna «Tarifa» y acción en lote |
+| `app/studio/(app)/cn/__tests__/rate-snapshot-actions.test.ts` | pruebas de las acciones |
+| `app/studio/(app)/cn/page.tsx` | lee las tarifas vivas y quién congela en lote |
+| `app/studio/(app)/cn/_components/AlmacenCnClient.tsx` | columna «Tarifa · a facturar», cajón y acción en lote |
 | `app/studio/(app)/cn/_components/ReceiptRateCell.tsx` | celda de la tarifa |
+| `app/studio/(app)/cn/_components/ReceiptRateCell.test.tsx` | prueba de la celda |
 | `app/studio/(app)/cn/_components/RateSnapshotDrawer.tsx` | cajón de la tarifa |
-| `app/studio/(app)/cn/_components/__tests__/*.test.tsx` | pruebas de la UI |
-| `lib/studio/warehouse-cn-queries.ts` | `sales_order_id` en la fila de la lista |
-| `lib/studio/warehouse-cn-types.ts` | el tipo de la fila |
 | `lib/i18n/es-VE/warehouse.ts`, `lib/i18n/zh-CN/warehouse.ts` | textos |
 | `docs/specs/0571-tarifa-congelada-por-embarque/spec.md` | esta spec |
 | `docs/specs/README.md` | índice regenerado |

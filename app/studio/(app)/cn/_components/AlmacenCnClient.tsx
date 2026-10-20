@@ -41,6 +41,10 @@ import type { ReceiptFilters } from "@/lib/studio/warehouse-cn-queries";
 import { ReceiptStatusBadge } from "./ReceiptStatusBadge";
 import { ReceiptRowActions } from "./ReceiptRowActions";
 import { NewReceiptDrawer } from "./NewReceiptDrawer";
+import { ReceiptRateCell } from "./ReceiptRateCell";
+import { RateSnapshotDrawer } from "./RateSnapshotDrawer";
+import { freezePendingRatesAction } from "../rate-snapshot-actions";
+import type { RateSnapshot } from "@/lib/studio/rate-snapshots/types";
 import {
   bulkChangeReceiptPaymentStatusAction,
   bulkChangeReceiptStatusAction,
@@ -80,7 +84,17 @@ interface Props {
   canSeeClientNames?: boolean;
   /** SDD-0522: ver `EliminacionRecepciones`. */
   eliminacion?: EliminacionRecepciones;
+  /**
+   * SDD-0571: la tarifa viva de cada recepción. `disponible: false` = la 0496
+   * no está aplicada (la columna dice «No disponible»). Ausente = no se muestra.
+   */
+  tarifas?: TarifasCn;
+  /** SDD-0571: puede congelar en lote (admin, operations, warehouse, accounting). */
+  puedeCongelarTarifas?: boolean;
 }
+
+/** SDD-0571 · Lo que la tabla sabe de las tarifas congeladas. */
+export type TarifasCn = { disponible: boolean; porRecepcion: Record<string, RateSnapshot> };
 
 type FilterValues = {
   q?: string;
@@ -117,8 +131,12 @@ function AlmacenCnView({
   alertShipmentIds = [],
   canSeeClientNames = true,
   eliminacion,
+  tarifas,
+  puedeCongelarTarifas = false,
 }: Props) {
   const alertSet = new Set(alertShipmentIds);
+  // SDD-0571: el cajón de la tarifa de una recepción.
+  const [tarifaDe, setTarifaDe] = useState<{ id: string; code: string } | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -352,6 +370,19 @@ function AlmacenCnView({
           onToggleAll={() => toggleAll(receipts.map((r) => r.id))}
           showClientNames={showClientNames}
           alertSet={alertSet}
+          tarifas={tarifas}
+          onOpenRate={(id, code) => setTarifaDe({ id, code })}
+        />
+      )}
+
+      {tarifaDe && (
+        <RateSnapshotDrawer
+          receiptId={tarifaDe.id}
+          receiptCode={tarifaDe.code}
+          onClose={(changed) => {
+            setTarifaDe(null);
+            if (changed) router.refresh();
+          }}
         />
       )}
 
@@ -380,6 +411,7 @@ function AlmacenCnView({
             }}
             eliminacion={eliminacion}
             codigos={Object.fromEntries(receipts.map((r) => [r.id, r.receipt_code]))}
+            congelarTarifas={Boolean(puedeCongelarTarifas && tarifas?.disponible)}
           />
         </>
       )}
@@ -405,8 +437,9 @@ function AlmacenCnView({
 
 // Grid template compartido por header + rows (con checkbox 32px al inicio).
 // La columna "Items" se ensancha (min 200px) porque ahora muestra descripciones.
+// SDD-0571: «Tarifa» va después del peso (CBM real · tarifa · a facturar).
 const RECEIPT_GRID_COLS =
-  "32px 130px minmax(150px, 1.2fr) minmax(140px, 1.2fr) 88px 64px 78px 78px minmax(200px, 1.6fr) 150px 50px";
+  "32px 130px minmax(150px, 1.2fr) minmax(140px, 1.2fr) 88px 64px 78px 78px 118px minmax(200px, 1.6fr) 150px 50px";
 
 function ReceiptsTable({
   rows,
@@ -417,6 +450,8 @@ function ReceiptsTable({
   onToggleAll,
   showClientNames,
   alertSet,
+  tarifas,
+  onOpenRate,
 }: {
   rows: WarehouseReceiptRow[];
   lang: LangDisplay;
@@ -426,6 +461,8 @@ function ReceiptsTable({
   onToggleAll: () => void;
   showClientNames: boolean;
   alertSet: Set<string>;
+  tarifas?: TarifasCn;
+  onOpenRate: (id: string, code: string) => void;
 }) {
   const t = useT();
   const allVisibleSelected =
@@ -482,6 +519,7 @@ function ReceiptsTable({
         <span style={{ textAlign: "right" }}>{t("warehouse_cn.table.col_boxes")}</span>
         <span style={{ textAlign: "right" }}>{t("warehouse_cn.table.col_cbm")}</span>
         <span style={{ textAlign: "right" }}>{t("warehouse_cn.table.col_weight")}</span>
+        <span style={{ textAlign: "right" }}>{t("warehouse_cn.table.col_rate")}</span>
         <span>{t("warehouse_cn.table.col_products")}</span>
         <span>{t("warehouse_cn.table.col_status")}</span>
         <span style={{ textAlign: "right" }}>·</span>
@@ -498,6 +536,8 @@ function ReceiptsTable({
           onToggle={() => onToggleOne(r.id)}
           showClientNames={showClientNames}
           hasAlert={r.shipment_id ? alertSet.has(r.shipment_id) : false}
+          tarifas={tarifas}
+          onOpenRate={onOpenRate}
         />
       ))}
     </div>
@@ -513,6 +553,8 @@ function ReceiptRow({
   onToggle,
   showClientNames,
   hasAlert,
+  tarifas,
+  onOpenRate,
 }: {
   row: WarehouseReceiptRow;
   lang: LangDisplay;
@@ -522,6 +564,8 @@ function ReceiptRow({
   onToggle: () => void;
   showClientNames: boolean;
   hasAlert: boolean;
+  tarifas?: TarifasCn;
+  onOpenRate: (id: string, code: string) => void;
 }) {
   const tRow = useT();
   // Supplier bilingual display
@@ -779,6 +823,19 @@ function ReceiptRow({
         {weightDisplay}
       </span>
 
+      {/* Tarifa congelada (SDD-0571) */}
+      {tarifas ? (
+        <ReceiptRateCell
+          snapshot={tarifas.porRecepcion[row.id] ?? null}
+          disponible={tarifas.disponible}
+          currentCbm={row.total_cbm != null ? Number(row.total_cbm) : null}
+          receiptCode={row.receipt_code}
+          onOpen={() => onOpenRate(row.id, row.receipt_code)}
+        />
+      ) : (
+        <span aria-hidden />
+      )}
+
       {/* Items · descripciones (packing list) */}
       <ItemsCell items={row.items} totalCount={row.items_count} lang={lang} />
 
@@ -980,6 +1037,7 @@ function BulkBar({
   onAfter,
   eliminacion,
   codigos,
+  congelarTarifas = false,
 }: {
   count: number;
   ids: string[];
@@ -989,9 +1047,12 @@ function BulkBar({
   eliminacion?: EliminacionRecepciones;
   /** id → código de recepción, para nombrarlas en la barra y en el diálogo. */
   codigos: Record<string, string>;
+  /** SDD-0571: muestra «Congelar tarifas pendientes». */
+  congelarTarifas?: boolean;
 }) {
   const t = useT();
   const toast = useToast();
+  const routerBulk = useRouter();
   const [pending, startTransition] = useTransition();
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
   const [errorBorrado, setErrorBorrado] = useState<string | undefined>(undefined);
@@ -1097,6 +1158,41 @@ function BulkBar({
     });
   };
 
+  // SDD-0571 · Congela las elegidas que no tienen tarifa, con la propuesta
+  // automática. Las que no tienen propuesta se nombran con su motivo.
+  const congelarPendientes = () => {
+    setFeedback(null);
+    startTransition(async () => {
+      const r = await freezePendingRatesAction(ids);
+      if (!r.ok) {
+        setFeedback({
+          kind: "err",
+          msg: r.errorKey ? t(r.errorKey) : (r.error ?? t("warehouse_cn.bulk.feedback_error_generic")),
+        });
+        return;
+      }
+      const omitidas = r.skipped
+        .slice(0, BLOQUEADAS_VISIBLES)
+        .map((x) => `${x.code}: ${t(x.reasonKey)}`)
+        .join(" · ");
+      const resto = r.skipped.length > BLOQUEADAS_VISIBLES
+        ? ` ${t("warehouse_cn.rate.bulk.more", { count: r.skipped.length - BLOQUEADAS_VISIBLES })}`
+        : "";
+      const resumen = t("warehouse_cn.rate.bulk.done", {
+        frozen: r.frozen,
+        already: r.alreadyFrozen,
+        skipped: r.skipped.length,
+      });
+      setFeedback({
+        kind: r.skipped.length > 0 && r.frozen === 0 ? "err" : "ok",
+        msg: omitidas ? `${resumen} ${omitidas}${resto}` : resumen,
+      });
+      if (r.frozen > 0 && r.skipped.length === 0) setTimeout(onAfter, 700);
+      // Con omitidas, la barra queda abierta para leerlas; la tabla igual se refresca.
+      else if (r.frozen > 0) routerBulk.refresh();
+    });
+  };
+
   const handleClick = (action: BulkAction) => {
     if (count >= BULK_CONFIRM_THRESHOLD) {
       setConfirmAction(action);
@@ -1184,6 +1280,25 @@ function BulkBar({
             {t(BULK_LABEL_KEYS[a])}
           </button>
         ))}
+        {congelarTarifas && (
+          <button
+            type="button"
+            onClick={congelarPendientes}
+            disabled={pending}
+            style={{
+              padding: "6px 10px",
+              background: "transparent",
+              color: "var(--glass-ink)",
+              border: "1px solid var(--glass-border)",
+              borderRadius: "var(--r-sm)",
+              font: "600 11.5px/1 var(--f-sans)",
+              cursor: pending ? "wait" : "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {t("warehouse_cn.rate.bulk.freeze_pending")}
+          </button>
+        )}
         <button
           type="button"
           onClick={onClear}
