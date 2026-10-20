@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 5:38 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 5:59 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -10,9 +10,19 @@
 
 ## Ahora mismo
 
-- [ ] **Cerrar 2.1 · Tasa única.** Sam autorizó `0495_fx_rates_conversor_usd`; se aplicó y verificó a las 5:31 p. m. y la PR #301 se integró enseguida. **Falta publicar la web:** GitHub bloqueó el arranque por pago o límite de gasto. La web sigue en la versión anterior; el cierre permanece abierto.
+- [ ] **Cerrar 2.1 · Tasa única.** Sam autorizó `0495_fx_rates_conversor_usd`; se aplicó y verificó a las 5:31 p. m. y la PR #301 se integró enseguida. **Falta publicar la web:** GitHub bloqueó el arranque. Sam confirmó que el pago fue rechazado y debe esperar una revisión de 48 horas; ese plazo no garantiza todavía la habilitación. La web sigue en la versión anterior; el cierre permanece abierto.
 - [x] **Completar la comparación local de pruebas contables.** Los mismos 854 casos aprobaron por ambos lados. Tiempo medido: 10 min 42 s → 6 min 2 s. La mejora todavía espera integración.
 - [ ] **Completar tarifa congelada.** Las correcciones ya están publicadas en su rama y pasaron 62 pruebas locales; falta validarlas con la base final.
+
+### Trabajo durante la espera de GitHub
+
+- [x] Confirmar el motivo con Sam: pago rechazado, en revisión durante 48 horas. No se cambió ningún pago ni límite.
+- [x] Asignar la retoma local de **0572-a**: incorporar #301 y probar reportes, rankings, totales y exportaciones con facturas sin tasa. La implementación nueva y sus pruebas se marcarán por separado al comprobarse.
+- [ ] Completar y revisar esa entrega local; conservar sus comprobaciones de GitHub como pendientes mientras no arranquen.
+- [x] Revisar una alternativa de publicación: el comando manual requiere una imagen ya construida y admitida por GitHub. No se encontró una vía habilitada que sustituya esa comprobación; el prompt también condiciona publicar a recuperar GitHub. Ninguna alternativa ejecutada.
+- [ ] Recuperar la publicación normal de #301 cuando se habilite GitHub y comprobar la versión realmente servida. **La migración 0495 ya está aplicada y no se repite.**
+
+Se adelanta trabajo local durante la espera; la secuencia de integración de abajo se conserva. 0572 deberá volver a contrastarse con la base que incluya las entregas anteriores, especialmente el reverso de 0573.
 
 ## 2.1 · Conversión a dólares — EN CURSO
 
@@ -40,6 +50,7 @@
 - [x] Recibir de Sam el OK nominal de `0495_fx_rates_conversor_usd` en producción.
 - [x] Aplicar y verificar la migración: versión de historial `20261020213122`, archivo y funciones iguales a los aprobados; conteo anterior conservado 0 → 0.
 - [x] Integrar enseguida la PR #301: `d410ab2e`, a las 5:31:24 p. m.
+- [x] Comprobar el acceso básico de la web anterior después de aplicar: login disponible y acceso sin sesión al Dashboard redirigido al login. Esto no prueba aún las nuevas funciones.
 - [ ] Comprobar la publicación y las pantallas permitidas de Studio. GitHub bloqueó el arranque por pago o límite; la web todavía sirve `8e9e0f50`.
 - [ ] Registrar el sello de la migración y su evidencia de cierre.
 
@@ -50,7 +61,9 @@
 - [x] Guardar y publicar la implementación en su rama, versión `9c254107`.
 - [x] Aprobar 71 pruebas focales, tipos y revisión estática.
 - [x] Definir la retoma y las reglas de totales incompletos: subtotal y aviso visibles, sin certificar cuadre ni rentabilidad cuando falte una tasa. Su implementación y nuevas pruebas siguen pendientes.
-- [ ] Incorporar la tasa única corregida después de integrar #301.
+- [x] Activar el encargo de retoma después de integrar #301, con alcance y pruebas definidos; ejecución local durante la revisión del pago.
+- [x] Incorporar la tasa única corregida después de integrar #301: merge local `2df9d22d`, con `d410ab2e` como padre. Adopción, limpieza inicial y propiedad comprobadas; las funciones compartidas conservadas.
+- [x] Preparar diez escenarios y reproducir los problemas sobre el código anterior: 23 comprobaciones fallaron y 179 pasaron en 40 segundos, sin fallos de arranque ni de infraestructura. Las protecciones ante lecturas truncadas pasaron; la propagación del estado incompleto y su presentación requieren corrección.
 - [ ] Comprobar que el ranking, los totales y el control de ingreso no traten como completo un conjunto con facturas sin tasa; conservarlo también al exportar.
 - [ ] Terminar validación completa, controles de regresión y revisión visible.
 - [ ] Abrir, revisar e integrar su PR; comprobar la publicación.
@@ -142,7 +155,8 @@ Después seguimos: **0572 → hora Caracas → 2.2 → 2.6 → 2.3 → 2.7 → 2
 ## Lo que necesita Sam
 
 - [x] Resolver el pago o límite de GitHub Actions. Confirmado por Sam y por corridas reales.
-- [ ] Revisar el nuevo bloqueo de pago o límite de GitHub Actions: volvió a impedir el arranque y ahora retiene la publicación de #301. Solicitud presentada a Sam.
+- [x] Aclarar el nuevo bloqueo de GitHub Actions: Sam confirmó pago rechazado y revisión de 48 horas.
+- [ ] Confirmar la habilitación de Actions cuando termine la revisión del pago; el plazo informado no se presenta como resolución comprobada.
 - [ ] Dar el OK nominal de cada migración cuando se presente su versión revisada.
 - [ ] Definir la superclave del cierre.
 - [ ] Cargar la tasa BCV del día cuando se publique 0569, mientras llega la carga automática.

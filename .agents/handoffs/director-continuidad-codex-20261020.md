@@ -7,7 +7,7 @@
 | Objetivo | Retomar el plan contable y su carril de embarques sin perder trabajo ni omitir las fronteras de producción |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\director-continuidad-codex-20261020` |
 | Rama y base | `codex/director-continuidad-codex-20261020`, desde `origin/main` `8e9e0f505322cd57b3230cce6b16b45b5554cb8a` |
-| Estado | En progreso: tasa única validada localmente y en previa, CI final pendiente; tarifa corregida y A/B local en ejecución |
+| Estado | En progreso: 0495 aplicada/verificada y #301 integrada en d410ab2e; publicación retenida por facturación GitHub. Retoma local 0572 asignada durante las 48 horas de revisión informadas por Sam |
 | Alcance escritor del Director | Este handoff y `docs/audits/2026-10-20-plan-contable-seguimiento-codex.md`, vista resumida autorizada por Sam al pedir continuar con el plan abierto; ningún archivo de producto |
 | Autorización | Sam ordenó seguir `C:\tmp\director-traspaso-20261020\PROMPT-CODEX-DIRECTOR.md`. El prompt autoriza continuidad con Workers, commits y ramas propias/PR, y establece el orden de integración/publicación; cada migración y borrado siguen exigiendo aprobación nominal independiente |
 
@@ -24,7 +24,7 @@
 
 - Director coordina; el código lo cambia un Worker en la tarea y worktree asignados.
 - Una sola corrida local pesada a la vez, con turno del Director.
-- La aprobación nominal de `0495_fx_rates_conversor_usd`, `0496_tarifa_congelada_por_embarque` y `0497_reverso_al_anular_factura` NO está recibida en esta sesión. Los nombres corresponden a los archivos observados en sus ramas.
+- La aprobación nominal de `0495_fx_rates_conversor_usd` se recibió y su única aplicación/verificación quedó completada antes de integrar #301. **No reaplicar.** Las aprobaciones nominales de `0496_tarifa_congelada_por_embarque` y `0497_reverso_al_anular_factura` NO están recibidas. Cada autorización conserva su alcance propio.
 - Producción: no se autorizan lecturas de negocio/PII, radiografías nuevas, borrados ni migraciones por el mero traspaso.
 - Conservados todos los worktrees/ramas y los archivos preexistentes del checkout principal, incluida `.pnpm-store/`.
 - #262 permanece fuera del trabajo: espera Excel 60/64 y costo HR.
@@ -370,6 +370,28 @@ Captura local `github-bloqueo-pagos-39501055053.jpg`, SHA-256 `7265c18c3873361a9
 
 Main local se actualizó por fast-forward de 8e9 a d410, con árbol rastreado limpio; los dos elementos sin seguimiento previos permanecen. Se asignó al agente de conocimiento el único turno pesado para AST/piloto/Archify/publicación local según runbook, sin editar archivos rastreados de main. Recibo pendiente. #304 cambió a `8fb4edee602a933de852165aedaf643ad7548b4b`, merge de b28 con d410; PR draft/MERGEABLE/CLEAN, CI de esa cabeza bloqueado en arranque. No se le transfiere el verde anterior ni se invade su worktree; ownership actual no revalidado todavía.
 
+**Recuperación mínima preparada, NO EJECUTADA:** cuando Sam confirme resuelto el bloqueo, comprobar que main continúe en d410 y que no exista ya una corrida real de imagen sobre ese SHA. Despachar una vez `build-image.yml --ref main` y verificar que el job efectivamente arranque en d410; observar su resultado y la promoción/publicación normales. No repetir 0495, fabricar un verde ni mover etiquetas fuera del gate. Los flags `PUBLICABLE_CONGELADO` y `PUBLICABLE_SOLO_CI_DE_MAIN` no están configurados en la consulta de variables; no se cambiaron.
+
+**Acceso básico posterior al apply PASÓ:** GET sin cookies/sesión a `/studio/login` dio 200 y `/studio/dashboard` dio 307. Solo se leyeron códigos HTTP, sin seguir sesión ni consultar negocio. Confirma entrada/denegación de la web anterior mientras espera la publicación; no sustituye el recorrido funcional de 0569 ni el smoke 14/0 de la nueva versión. No existe `app/api/health/route.ts` en la fuente consultada; no se usó una ruta de salud supuesta.
+
+El gate integrado permite reutilizar CI de la PR si la rama estaba al día y el árbol coincide. Director confirmó los dos árboles d410/5d84 idénticos: `cbd17affa79c11875807c734746df5b7a65ec94e`; padres y ancestralidad ya medidos. `evaluarCommit` exige primero imagen exitosa y revalida esas condiciones antes de aceptar el CI de la PR. Por tanto, la recuperación mínima puede empezar por la imagen, sin repetir una suite completa para producir otro verde redundante. Si el gate no acepta la evidencia real, se investiga su motivo; no se fuerza. Esta es preparación de operación, no resultado ejecutado ni permiso para alterar pagos.
+
+### Revisión de pago de 48 horas · continuidad local de 0572
+
+Sam respondió al bloqueo: **«parece que me está rechazando el pago y tenemos que esperar 48 horas para una revisión»** y preguntó qué hacer. Es confirmación humana del rechazo/revisión, no habilitación comprobada ni autorización para cambiar facturación. Se mantiene web anterior `8e9e0f50`, main integrado `d410ab2e` y 0495 aplicada. La espera no es una solicitud de automatización y no se creó ninguna.
+
+Director activó la retoma de producto con `/root/worker_0572_cierre` a partir de las 5:51 p. m. Worktree/rama existentes de 0572; cabeza de partida `9c254107`, base integrada `d410ab2e`, owner `worker-0572-01a15a4e-ddf0-7d82-8656-d9dc56b58468`. Worker confirmó identidad/limpieza inicial, ausencia de consumidores explícitos y claim adquirido/guard aprobado; creó merge limpio `2df9d22dbcff3fbf77056b434494450faf33b88f`. Director verificó los dos padres, `9c254107` y `d410ab2e`, en Git. `tasaPersistible`, `usdOrNull` y `sumarEnUsd` conservados según reporte de Worker. El contrato aceptado arriba y las 58 rutas se incorporan a su spec/handoff antes de producto; T1–T10, ROJO funcional antes de reparación, verde/mutantes/verify/UI sintética después. Se autorizan commits selectivos, push de su rama y PR borrador después de validación; no merge, publicación, DB, SQL ni datos reales. La adopción explícita de las sesiones pausadas ya procede del mandato de Sam.
+
+La adaptación adelanta **ejecución local**, sin alterar la integración #301 → #304/#306 → #307 → 0573 → sellos ni la revalidación posterior de 0572 sobre la base final. Incorporar #301 ya es posible porque está integrada; no se atribuye publicación a esa incorporación. El turno pesado sigue en `/root/memoria_traspaso` hasta que entregue su recibo; 0572 puede preparar documentación/pruebas, sin ejecutarlas ni corregir producto antes de medir los rojos con turno expreso.
+
+**Turno transferido `21:58:10Z`:** conocimiento confirmó cero procesos propios/descendientes y ninguna etapa RUNNING; Director concedió exclusividad a 0572. Worker ya había preparado T1–T10 en ocho archivos de prueba, spec y handoff, sin corregir producto; Director comprobó el delta rastreado acotado a documentación/pruebas. Corrida ROJA iniciada con un solo worker de pruebas y log externo; todavía sin resultado. Lecturas truncadas se prueban mediante el paginador real y su límite, no fabricando un `complete=false` en el doble.
+
+**ROJO funcional comprobado `21:59:20Z`:** ocho archivos, 23 fallos/179 aprobadas, 39,94 s sobre producto `2df9d22d` y pruebas nuevas sin commit. Log `C:\tmp\director-traspaso-20261020\0572-codex-validation\retoma-red.log`; Director leyó resumen y evidencia del componente por ruta con $100/$10/$90 y margen verde sin subtotal. Worker confirmó fallos de contrato de ingreso/ranking/CSV/proyección por ruta, sin importación/mock/infra fallidos; guards de lectura incompleta/error pasaron. Reparación acotada en curso, todavía sin resultado VERDE ni cierre general. No son 23 defectos distintos ni una regresión introducida por la reparación: son aserciones de aceptación sobre el código previo.
+
+Se encargó a `/root/revision_validaciones` la viabilidad de una publicación durante el bloqueo, **solo lectura** de runbooks/scripts/workflows de d410; salida esperada `C:\tmp\director-traspaso-20261020\publicacion-durante-bloqueo-github.md`. No se presume que exista una alternativa aprobada: no build/Docker, dispatch, tags, SSH mutante, cuentas ni omisión del gate. Además, el prompt final §4 condiciona expresamente: «Hasta que Sam pague ... no se fusiona ni se publica nada»; §5.4 dice «Cuando GitHub corra». La pregunta de opciones no revoca por sí sola ese límite. La revisión no autoriza una excepción y ninguna se ejecutó.
+
+Informe final recibido y leído íntegro, SHA-256 `41e479898a2084d7d0a881a139649196a527235c4755f3adfc616c8561948c8c`. Director contrastó `publicar-web.sh` y `publicable.mjs:209–225` con la SDD0541:159–171: publicar a mano descarga/instala una imagen previa y conserva las puertas del servidor, pero no construye ni sustituye la admisión GitHub. «Imagen Docker» exitosa para el SHA sigue siendo requisito anterior al atajo de calidad de PR. Un build local histórico acredita posibilidad técnica, no un artefacto admisible de d410; no se consultó GHCR para afirmar ausencia del tag. No se encontró runner alternativo habilitado; el runner en el VPS productivo fue descartado por el diseño. **Revisión PASÓ; publicación alternativa no disponible bajo el procedimiento actual.** No se solicita excepción; continúan trabajo local y recuperación normal ya preparada.
+
 ## 4. Checklist vivo de continuidad
 
 Vista con checks para Sam: [Checklist del plan contable](../../docs/audits/2026-10-20-plan-contable-seguimiento-codex.md). Este §4 sigue siendo el registro vivo de coordinación; ambos documentos pertenecen al Director.
@@ -445,6 +467,20 @@ Fechas recibidas del traspaso; no se ha creado automatización.
 - Producción: lectura de metadatos de publicación PASÓ, main `8e9e0f50` y recibo de smoke automático 14/0 comprobados. Lecturas de negocio, migraciones y smoke funcional autenticado: NO EJECUTADOS.
 
 ## 8. Pendientes y handoff al Director
+
+### Conocimiento después de #301 · cierre comprobado `21:59:03Z`
+
+Recibo recibido y leído completo: `C:\tmp\director-traspaso-20261020\conocimiento-despues-301-d410ab2e.md`, SHA-256 `803345331fa38548cfe2eb97e4a58a55396825327a5c164931d0498e6fc5650f`; recibo JSON `edbdbce73a39feab327929791a4eb2c16e42de0a8562a6953b4e4464b9d88c81`. Sustituye como estado final las mediciones iniciales del §7; no borra su historia.
+
+- Git principal: cuatro refs iguales a d410, 0/0, rastreados limpios; los dos no rastreados previos conservados.
+- Graphify 0.9.61 AST CURRENT: cero pendientes/faltantes/retirados/deriva/issues. Límites declarados: dos extracciones TSX parciales de Legal, 41 archivos sin clasificación y 24 JSON de datos omitidos; CURRENT no implica comprensión íntegra.
+- Reclustering: 43.953 nodos/80.127 relaciones/2.723 comunidades. Piloto **15/16**, global **15/1.322**, 1.307 pendientes. El resultado intermedio APPLIED16 fue invalidado por el check final: grafo no dirigido colapsó dos relaciones recíprocas de Marketing; 111/111 nodos y 171/173 relaciones exactas preservados en el grafo, 17/17 referencias ajenas conservadas. Fragmento y cachés originales preservan todas las 173 y la hiperrelación.
+- Archify 2.16.0 CURRENT, validate/deliver/check PASARON 9/9.
+- Publicación local de bóveda **BLOQUEADA**, `SEMANTIC_PILOT_PENDING`; escritura **NO EJECUTADA**. Conserva `6da8aebc`, 1.256/1.256 archivos idénticos y cero añadidos. `knowledge:check` final FALLÓ exit1; Obsidian visible NO EJECUTADO. No se eludió la guarda ni se simuló vigencia.
+- Incidencia separada: el importador guardó cuatro cachés en temporal del inspector; copias verificadas fuera de Git y originales íntegros. No se corrigió script, caché canónico ni recibo para ocultarlo.
+- Respaldo inicial verificado de 3.413 archivos; turno devuelto `21:58:10Z` con cero procesos propios/descendientes y ninguna etapa RUNNING. 0572 recibió el turno exclusivo.
+
+Se encargó al mismo revisor una **propuesta de solo lectura** sobre representación fiel de las dos relaciones y persistencia de caché, sin editar fuentes/fragmento/caché/guardas/bóveda ni ejecutar análisis pesado. Destino `C:\tmp\director-traspaso-20261020\conocimiento-marketing-correccion-propuesta.md`. Su implementación futura requerirá tarea aislada y regresiones; el ciclo de conocimiento queda expresamente INCOMPLETO.
 
 **OBJETIVO ORIGINAL:** continuidad del plan hasta contabilidad completa en Studio.
 
