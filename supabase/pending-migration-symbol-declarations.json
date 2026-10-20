@@ -17,8 +17,9 @@
           "name": "journal_entries.reverses_entry_id",
           "kind": "column",
           "callSites": [
-            "lib/studio/accounting/libro-control-queries.ts:289",
-            "lib/studio/accounting/libro-control-queries.ts:352",
+            "lib/studio/accounting/libro-control-queries.ts:78",
+            "lib/studio/accounting/libro-control-queries.ts:80",
+            "lib/studio/accounting/libro-control-queries.ts:369",
             "lib/studio/accounting/libro-control.ts:201",
             "lib/studio/accounting/libro-control.ts:213"
           ]
@@ -26,9 +27,9 @@
       ],
       "evidence": [
         {
-          "site": "lib/db/paginate.ts:131",
-          "contains": "if (error) throw new Error(error.message);",
-          "degradation": "Sin 0497, journal_entries no tiene reverses_entry_id y PostgREST responde 42703: la lectura paginada de cuadreDelLibro lanza el error y Contabilidad › Por contabilizar no carga hasta que se aplique la 0497. Las demás pestañas de Contabilidad, que no leen la columna, siguen igual. Orden previsto: MIGRATE-FIRST (0497 antes de fusionar y desplegar), con el que la ventana es de segundos."
+          "site": "lib/studio/accounting/libro-control-queries.ts:80",
+          "contains": "if (!(e instanceof Error) || !/reverses_entry_id/.test(e.message)) throw e;",
+          "degradation": "Sin 0497, journal_entries no tiene reverses_entry_id y PostgREST responde 42703: leerAsientosDelCruce vuelve a leer sin esa columna y Contabilidad › Por contabilizar carga como antes de la 0497 (sin reconocer reversos, que tampoco existen). Orden previsto: MIGRATE-FIRST (0497 antes de fusionar y desplegar), con el que esta ventana no existe."
         }
       ]
     }

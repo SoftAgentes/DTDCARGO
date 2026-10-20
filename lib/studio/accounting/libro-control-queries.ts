@@ -50,6 +50,38 @@ type Fila = Record<string, unknown>;
 type Pagina = Parameters<typeof fetchAllPaged>[0];
 
 /** Lee completo o lanza con el nombre de lo que no se pudo leer. */
+/**
+ * Los asientos del cruce de «Por contabilizar». Solo los orígenes documentales:
+ * un `referral_credit` también guarda `invoice_id` y no es el asiento de venta.
+ * SDD-0562: más `receipt_reclass`, para saber si un recibo identificado ya toca
+ * 1.1.2 (el cruce de «sin asiento» no la usa: filtra por origen). SDD-0573: más
+ * `invoice_reversal` y su `reverses_entry_id`, para saber qué asiento de venta
+ * tiene su contra-asiento (cuenta como anulado).
+ *
+ * Sin la 0497 la columna no existe (42703): se vuelve a leer sin ella y la
+ * pantalla degrada a lo de antes (sin reversos), en vez de no cargar.
+ */
+async function leerAsientosDelCruce(supabase: SupabaseClient): Promise<Fila[]> {
+  const leer = (columnas: string) =>
+    leerCompleto<Fila>("Por contabilizar · asientos", (d, h) =>
+      supabase
+        .from("journal_entries")
+        .select(columnas)
+        .is("deleted_at", null)
+        .in("status", ["asentado", "anulado"])
+        .in("source", [...Object.values(ORIGEN_POR_TIPO), "receipt_reclass", "invoice_reversal"])
+        .order("id", { ascending: true })
+        .range(d, h),
+    );
+  const base = "id, status, source, invoice_id, receipt_id, bill_id, supplier_payment_id, deleted_at";
+  try {
+    return await leer(`${base}, reverses_entry_id`);
+  } catch (e) {
+    if (!(e instanceof Error) || !/reverses_entry_id/.test(e.message)) throw e;
+    return await leer(base);
+  }
+}
+
 async function leerCompleto<T>(nombre: string, page: Pagina): Promise<T[]> {
   const { rows, complete } = await fetchAllPaged<T>(page);
   if (!complete) {
@@ -281,22 +313,7 @@ export async function cuadreDelLibro(
         .order("id", { ascending: true })
         .range(d, h),
     ),
-    // Solo los orígenes documentales: un `referral_credit` también guarda
-    // `invoice_id` y no es el asiento de venta.
-    leerCompleto<Fila>("Por contabilizar · asientos", (d, h) =>
-      supabase
-        .from("journal_entries")
-        .select("id, status, source, invoice_id, receipt_id, bill_id, supplier_payment_id, deleted_at, reverses_entry_id")
-        .is("deleted_at", null)
-        .in("status", ["asentado", "anulado"])
-        // SDD-0562: más `receipt_reclass`, para saber si un recibo identificado
-        // ya toca 1.1.2. El cruce de «sin asiento» no la usa: filtra por origen.
-        // SDD-0573: más `invoice_reversal`, para saber qué asiento de venta
-        // tiene su contra-asiento (cuenta como anulado).
-        .in("source", [...Object.values(ORIGEN_POR_TIPO), "receipt_reclass", "invoice_reversal"])
-        .order("id", { ascending: true })
-        .range(d, h),
-    ),
+    leerAsientosDelCruce(supabase),
   ]);
 
   const docs: DocumentoContable[] = [

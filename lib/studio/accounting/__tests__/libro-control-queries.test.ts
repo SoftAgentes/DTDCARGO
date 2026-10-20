@@ -682,3 +682,57 @@ describe("countEntries", () => {
     expect(await countEntries(client)).toEqual({ total: 601, asentados: 600 });
   });
 });
+
+describe("cuadreDelLibro · el contra-asiento de la 0497 (SDD-0573)", () => {
+  const tablas = (): Record<string, Fila[]> => ({
+    accounts: PLAN,
+    invoices: [
+      { id: "f3", invoice_code: "F-3", status: "anulada", issued_at: "2025-03-07", currency: "USD", fx_rate: null, total_amount: 200, paid_amount: 0, deleted_at: null },
+    ],
+    payment_receipts: [],
+    supplier_bills: [],
+    supplier_payments: [],
+    journal_entries: [
+      entrada("e-f3", "2025-03-07", "asentado", { source: "invoice", invoice_id: "f3" }),
+      entrada("e-rev-f3", "2025-03-12", "asentado", { source: "invoice_reversal", invoice_id: "f3", reverses_entry_id: "e-f3" }),
+    ],
+    journal_lines: [],
+  });
+
+  it("la anulada con su reverso no sale como «anulada con asiento vivo»", async () => {
+    const { client } = dobleListados(tablas(), { serverCap: SERVER_CAP, proyectar: true });
+    const saldos = await accountBalances(client);
+    const accounts = await listAccounts(client);
+    const c = await cuadreDelLibro(client, { accounts, saldos, hoy: "2025-03-18" });
+    expect(c.documentos.anuladosConAsiento).toEqual([]);
+  });
+
+  it("sin la 0497 (42703 en reverses_entry_id) degrada a lo de antes en vez de no cargar", async () => {
+    const { client } = dobleListados(tablas(), { serverCap: SERVER_CAP, proyectar: true });
+    const sinColumna = {
+      ...client,
+      from(table: string) {
+        const q = client.from(table) as unknown as { select: (c?: string, o?: unknown) => unknown };
+        if (table !== "journal_entries") return q;
+        return {
+          ...q,
+          select(cols?: string, opts?: unknown) {
+            if (cols?.includes("reverses_entry_id")) {
+              const fallo = {
+                is: () => fallo, in: () => fallo, eq: () => fallo, order: () => fallo,
+                range: async () => ({ data: null, error: { code: "42703", message: "column journal_entries.reverses_entry_id does not exist" } }),
+              };
+              return fallo;
+            }
+            return q.select(cols, opts);
+          },
+        };
+      },
+    } as typeof client;
+    const saldos = await accountBalances(client);
+    const accounts = await listAccounts(client);
+    const c = await cuadreDelLibro(sinColumna, { accounts, saldos, hoy: "2025-03-18" });
+    // Sin saber del reverso, el par se ve como antes: la anulada con su asiento vivo.
+    expect(c.documentos.anuladosConAsiento.map((h) => h.codigo)).toEqual(["F-3"]);
+  });
+});

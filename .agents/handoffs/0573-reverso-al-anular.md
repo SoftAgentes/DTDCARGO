@@ -21,6 +21,7 @@ La 2.5 del plan contable (B1): anular una factura revierte su asiento de venta e
 - **La 0467 de carreras**, reescrita para el rechazo nuevo sin perder aserciones (spec, §5).
 - **La app:** `voidInvoice` (cobros vivos, crédito antes, mensajes con hint), el detalle de la factura, el libro diario, el libro de control, la radiografía de integridad y el asistente de borrado.
 - **El gobierno:** la espera de la 0497 y la declaración de `journal_entries.reverses_entry_id`.
+- **La degradación** que pidió el Director: sin la 0497 (42703 en `reverses_entry_id`), Contabilidad › Por contabilizar vuelve a leer sin la columna y carga como antes, en vez de no cargar. Sus dos pruebas (`libro-control-queries.test.ts`, «el contra-asiento de la 0497») y su mutante se corren con el turno.
 
 ## VALIDACIÓN
 
