@@ -17,6 +17,8 @@ confidencialidad: interno
 
 **Estado: DISEÑO con decisiones del Director registradas el 2026-10-20, revisables por Sam.** Este registro documental no aprueba ni completa la implementación. Antes de implementar faltan los contratos verificables, la allowlist exacta de cada PR y el número de migración, pendiente del inventario y la reserva del Director.
 
+La [propuesta de contrato transaccional](assets/contrato-transaccional-propuesto.md) conserva la revisión de código sobre `main` `8e9e0f505322cd57b3230cce6b16b45b5554cb8a`, sus referencias y límites. La dirección técnica resumida abajo fue revisada por el Director; las firmas, permisos finales, capacidades de origen, listas de archivos por PR y base integrada siguen propuestas que el Director cerrará con el Worker antes de producto. La incorporación documental queda sujeta a revisión de su diff.
+
 ## Qué cambia para Sam
 
 Hoy, cuando un documento no se asienta, nadie se entera. La factura, el cobro, la CxP o el pago se guardan, pero el asiento no se crea y el error se pierde en el log. Solo la pestaña «Por contabilizar» (SDD-0557) los encuentra después, sin decir por qué.
@@ -29,12 +31,12 @@ Con esta SDD:
    - «falta la cuenta 1.1.2»;
    - …
 2. **Contabilidad › «Por contabilizar» › sección «Asientos no creados»** lista cada documento sin asiento: tipo, código, fecha, monto, motivo del último intento y cuántas veces se intentó.
-3. Desde esa lista se puede **«Asentar»** uno o **«Asentar pendientes»** todos. Primero corre un **ensayo en seco** que muestra qué asientos se crearían, sin crear nada.
+3. Desde esa lista se puede **«Asentar»** uno o **«Asentar pendientes»** sobre una selección acotada. Primero corre un **ensayo en seco** que muestra qué asientos se crearían, sin efectos persistentes. Los límites y la concurrencia del lote quedan pendientes del contrato.
 4. **Cobranzas y Tesorería** avisan antes de guardar si la fecha cae en un período cerrado, como ya lo hacen Gastos y el Libro diario.
 
 ## Evidencia (lo que hay hoy)
 
-El inventario técnico siguiente procede del diseño del 2026-10-20 y de las SDD citadas. Sus rutas, líneas y dependencias se revalidarán contra los SHA que se usen al implementar cada PR; esta entrega documental no ejecutó producto ni comprobó producción. La corrección sobre los datos de prueba se contrastó con el §9 del plan en `origin/main` `8e9e0f505322cd57b3230cce6b16b45b5554cb8a`.
+El inventario técnico siguiente procede del diseño del 2026-10-20 y de las SDD citadas, con las correcciones verificadas en la revisión conservada en el asset sobre `main` `8e9e0f505322cd57b3230cce6b16b45b5554cb8a`. Sus rutas, líneas y dependencias se revalidarán contra los SHA que se usen al implementar cada PR; esta entrega documental no ejecutó producto ni comprobó producción. La corrección sobre los datos de prueba se contrastó con el §9 del plan en esa misma base.
 
 ### Los asientos son best-effort, del lado de la app
 
@@ -55,7 +57,7 @@ El inventario técnico siguiente procede del diseño del 2026-10-20 y de las SDD
 - **El código del asiento es max + 1, sin candado.** `next_entry_code` (`0078_contabilidad.sql:91-111`) calcula `max(...) + 1` y la app inserta en otra llamada.
   - Hay `unique (tenant_id, entry_code)` (`0078:58`). Si dos documentos se asientan a la vez, el segundo choca con `23505` y el `catch` lo pierde.
   - Un candado dentro de `next_entry_code` **no** lo arregla: la transacción de PostgREST termina al devolver el código, antes del insert.
-- **No hay unicidad por documento.** `journal_entries` ya tiene las columnas de origen (el plan decía lo contrario, B3):
+- **La unicidad por origen requiere inventario; no está ausente en todos los casos.** `journal_entries` ya tiene las columnas de origen (el plan decía lo contrario, B3):
   - `invoice_id` (0078);
   - `receipt_id` (0079);
   - `bill_id` y `supplier_payment_id` (0088);
@@ -63,11 +65,14 @@ El inventario técnico siguiente procede del diseño del 2026-10-20 y de las SDD
   - `expense_id` (0132);
   - `claim_id` (0157).
 
-  Pero el único índice único por origen es el del crédito de referido (`0237:95`).
+  Además del crédito de referido (`0237:95`), **gasto ya tiene** `je_one_live_entry_per_expense` (`0132_expense_posting.sql:36-42`): unicidad de `expense_id` cuando `status = 'asentado' and deleted_at is null`. El contrato de la 0575-a debe conciliar esa protección existente con sus índices propuestos; no duplicarla ni afirmar que falta.
+
+- **CxP persiste `source = 'supplier_bill'`.** Lo confirman `bill-posting.ts:177-190` y `0088_tesoreria.sql:61`. Ese valor de origen contable no implica renombrar indiscriminadamente un `kind` de UI o un discriminante de API llamado `bill`; el contrato debe declarar su mapeo.
 
 ### La idempotencia y el vínculo con el documento
 
 - **La idempotencia cuenta asientos anulados.** `invoice-posting.ts:62-71` y `receipt-posting.ts:203-211` dan por existente cualquier asiento no borrado, incluido el **anulado**, y la reclasificación repite el defecto (`:464-473`). Un documento cuyo asiento se anuló no se vuelve a asentar nunca (SDD-0559, fuera de alcance 1 y 2).
+- **Asiento vivo no equivale a cualquier cabecera no anulada.** La definición canónica de `libro-control.ts:247-250` exige `status = 'asentado'` y no borrado. `expense-posting.ts:117-126` ya usa ese estado. Un predicado de índice puede proteger también otras cabeceras, pero no permite responder «ya existente» como éxito contable si el asiento es borrador, está vacío o es inconsistente.
 - **El vínculo de vuelta no se comprueba.** `collections-actions.ts:215-219` no guarda `journal_entry_id` cuando el asiento ya existía, y los vínculos se escriben con el cliente de sesión sin mirar el error (0559, punto 3).
 - **El borrado de compensación no mira su error.** Si fallan las líneas, nueve lugares borran la cabecera sin comprobar el resultado. Si ese borrado falla, queda un asiento `asentado` sin líneas, que la idempotencia ya no rehace (0559, punto 7; trampa AFI2 de la fixture).
 
@@ -92,47 +97,54 @@ El inventario técnico siguiente procede del diseño del 2026-10-20 y de las SDD
 
 **La lista de pendientes se calcula, no se guarda.** Son los documentos vivos que deberían tener asiento y no tienen uno vivo, la misma regla de «Por contabilizar». Abarca los cinco tipos: factura, cobro (aplicado, sin identificar y su reclasificación), CxP, pago a proveedor y gasto. Así la lista no puede desincronizarse.
 
-**Una tabla nueva, `accounting_posting_attempts`, guarda solo el motivo del último intento:**
+**Nombre y campos propuestos para una tabla nueva, `accounting_posting_attempts`, que registre el motivo pendiente:**
 
 | Campo | Qué guarda |
 |---|---|
 | `tenant_id` | el tenant |
 | `doc_kind`, `doc_id` | el documento |
+| operación/origen, por cerrar | distingue el cobro inicial de su reclasificación; no deben pisarse el motivo por compartir `receipt_id` |
 | `motivo` | código cerrado: `sin_tasa`, `periodo_cerrado`, `falta_cuenta`, `choque_de_codigo`, `no_cuadra`, `otro` |
 | `detalle` | texto sin PII |
 | `intentos` | cuántas veces se intentó |
 | `primero_at`, `ultimo_at` | primer y último intento |
 
-El diseño prevé RLS por tenant y lectura para admin y contabilidad. La autoridad de escritura y el ciclo de vida del intento deben quedar cerrados en el contrato de la 0575-a. La propuesta es retirar el motivo pendiente cuando el asiento se cree correctamente. Falta resolver y probar cómo persiste un fallo sin dejar escrituras contables parciales; ese requisito se detalla abajo.
+El diseño prevé RLS por tenant y lectura para admin y contabilidad. La autoridad de escritura, la identidad de operación, el contador y el ciclo de vida del intento deben quedar cerrados en el contrato de la 0575-a. La propuesta es retirar el motivo pendiente cuando el asiento se cree correctamente. La dirección revisada para conservar el motivo se detalla abajo; aún requiere contrato y pruebas. La lista se deriva también del documento y del asiento: si el motivo no pudo guardarse, debe poder mostrar «motivo no disponible» sin ocultar el pendiente.
 
 ### 2. Una RPC atómica por documento que falle cerrado
 
 **Decisión del Director:** la contabilización se resuelve mediante una RPC atómica por documento. Ante un fallo no puede devolver éxito ni dejar cabecera, líneas o vínculos parciales. Incluye factura, cobro y su reclasificación, CxP, pago a proveedor y gasto desde el contrato de la 0575-a.
 
-La firma provisional es `asentar_documento(p_kind text, p_id uuid, p_ensayo boolean)`, con `SECURITY DEFINER` y acceso para admin y contabilidad. Firma, permisos, resultados y alcance de la transacción se fijarán en el contrato antes de implementar. El diseño debe cubrir:
+La firma provisional es `asentar_documento(p_kind text, p_id uuid, p_ensayo boolean)`, con `SECURITY DEFINER`. El reintento manual se limita a admin y contabilidad; el posting automático conserva los permisos vigentes de cada operación de negocio sin otorgar un reintento genérico a sus operadores. Firma, composición de entradas, permisos finales, resultados y alcance de la transacción se fijarán en el contrato antes de implementar. No se confía tenant/actor del cliente ni se concede una excepción de cierre por usar `service_role`. El diseño debe cubrir:
 
-1. **Candado por tenant:** `pg_advisory_xact_lock` sobre el tenant y el código.
-2. **Idempotencia:** un asiento **vivo** es uno no anulado y no borrado. Si ya existe, vuelve a apuntar el documento a ese asiento.
-3. **Validaciones:** tasa, período, cuentas y cuadre. Cada fallo devuelve un código cerrado y deja un motivo consultable conforme al contrato de persistencia pendiente.
+1. **Serialización:** el candado por tenant/ámbito del código y el candado del documento deben proteger la transacción real y coordinarse con los otros escritores. El diseño de `pg_advisory_xact_lock` es provisional: usarlo solo en la RPC de generación de código no protege un insert posterior, ni coordina escritores que no lo adopten.
+2. **Idempotencia:** para responder «ya existente», el asiento debe estar **asentado**, no borrado, ser íntegro y balanceado y corresponder al tenant, documento y origen correctos. El vínculo exigible se valida o se corrige atómicamente si su reparación está autorizada; un vínculo contradictorio bloquea. Factura y gasto no adquieren un backlink que su esquema no tenga.
+3. **Validaciones:** tasa, período, cuentas y cuadre. Un fallo registrable devuelve un código cerrado y deja un motivo consultable cuando el registro exterior y la transacción completa confirman; los demás casos no se presentan como éxito ni como motivo durable.
 4. **Inserción:** cabecera y líneas juntas, con el vínculo del documento. Si algo falla, se revierten todas las escrituras contables parciales de ese intento.
-5. **Ensayo:** con `p_ensayo = true`, devuelve el asiento que crearía y no escribe nada.
+5. **Ensayo:** con `p_ensayo = true`, devuelve un preview distinto de un resultado de escritura. No cambia documentos, intentos, asientos, líneas, auditoría, excepciones, correlativos ni contadores de superclave; no verifica la clave por un camino con efectos. Ejecutar y revertir al final no sustituye esta propiedad.
 
-**Requisito pendiente de contrato: persistencia del motivo frente al rollback.** Si el intento se escribe dentro de una transacción que después se revierte entera, también se pierde el motivo. El diseño debe resolver esa frontera sin debilitar la atomicidad contable. La aceptación verificable será: ante un fallo inducido durante la creación de líneas o del vínculo, no quedan cabeceras, líneas ni vínculos parciales de ese intento; el motivo del fallo permanece consultable por el tenant autorizado; y el ensayo en seco no modifica contabilidad ni intentos. Esta SDD no selecciona ni implementa todavía el mecanismo que cumpla esas propiedades.
+**Dirección técnica revisada: rollback del subbloque y motivo exterior condicionado al commit.** Las escrituras contables inseparables se proponen dentro de un subbloque transaccional que se revierte al capturar un fallo. El motivo se registra después, fuera del bloque fallido, sin relanzar un error que revierta también ese registro. La documentación oficial de PostgreSQL 17 y la propuesta completa están en el [asset de contrato](assets/contrato-transaccional-propuesto.md#4-frontera-transaccional-y-conservación-del-motivo). Es una dirección revisada, no SQL implementado ni contrato final aprobado.
+
+La aceptación verificable será: ante un fallo inducido durante líneas o vínculo, no quedan cabeceras, líneas ni vínculos parciales del intento; si confirma la transacción exterior, el motivo permanece consultable por el tenant autorizado; el ensayo no produce efectos. Si falla guardar el motivo, se cancela la llamada, se pierde la conexión o revierte la transacción exterior, **no se promete persistencia del intento**. La UI debe representar el resultado desconocido y reconciliar por identidad de operación antes de repetir.
+
+**Resultado contable separado del guardado:** `contabilizado`, `ya_existente`, `no_contabilizado` y `estado_desconocido`, con combinaciones válidas de asiento/motivo y preview diferenciado. Un HTTP 200 o `ok: true` del guardado no equivale a éxito contable. El resultado debe llegar a todos los consumidores, incluidos ventas, CN y gastos web/móvil; cambiar solo los cinco posters no elimina el silencio.
 
 Los cinco posters de la app pasarán a llamar esta RPC en la 0575-b. Las cuentas y las líneas se armarán en SQL con las reglas vigentes de las dependencias integradas, incluido el gasto desde la 0575-a, con contratos de paridad antes de sustituir cada `*-posting.ts`.
 
 ### 3. Unicidad por origen
 
-Índices únicos parciales en `journal_entries`, uno por par (`source`, columna de origen), con `status <> 'anulado' and deleted_at is null`:
+Se proponen índices únicos parciales en `journal_entries` por par (`source`, columna de origen). El predicado inicial `status <> 'anulado' and deleted_at is null` es **provisional**: puede proteger cabeceras que todavía no cuentan como contabilizadas. Debe conciliarse con el índice de gasto existente, cuyo predicado exige `asentado`, y con la definición de éxito de la sección 2.
+
+Valores de `source` persistidos que debe reconocer el contrato:
 
 - `invoice` → `invoice_id`;
 - `receipt` → `receipt_id`;
 - `receipt_reclass` → `receipt_id`;
-- `bill` → `bill_id`;
+- `supplier_bill` → `bill_id` (CxP; no implica renombrar un `kind` de UI `bill`);
 - `supplier_payment` → `supplier_payment_id`;
 - `expense` → `expense_id`.
 
-**Preflight previsto:** contar duplicados vivos por par y abortar la migración si hay alguno. El contrato y sus pruebas locales se definirán en la 0575-a; cualquier lectura de producción requiere su autorización específica y esta entrega no la realiza ni la concede.
+**Preflight previsto:** contar conflictos según el predicado final de cada índice y abortar la migración si existen, distinguiendo asiento contabilizado, borrador y otros estados. El contrato y sus pruebas locales se definirán en la 0575-a; cualquier lectura de producción requiere su autorización específica y esta entrega no la realiza ni la concede.
 
 ### 4. Período cerrado
 
@@ -140,13 +152,15 @@ Los cinco posters de la app pasarán a llamar esta RPC en la 0575-b. Las cuentas
 
 No se cambia silenciosamente la fecha al primer día abierto ni se importa la regla de fecha del reverso de la 0497. Los contratos deben demostrar el bloqueo sin excepción y la trazabilidad de la excepción admitida, conservando la fecha solicitada.
 
+**Dirección revisada: la guarda autoritativa debe abarcar la mutación de origen.** Los consumidores actuales confirman varias operaciones de negocio antes de llamar al poster; una RPC contable posterior no puede revertir ese guardado. La comprobación de app mejora el aviso, pero no cierra la carrera con un cambio de período. La [matriz por flujo](assets/contrato-transaccional-propuesto.md#83-matriz-de-la-transacción-necesaria-por-flujo) distingue entradas transaccionales nuevas de extensiones a RPC existentes. Sus capacidades, locks, permisos y callers siguen pendientes de contrato en 0575-a/b. La auto-facturación CN no convierte la consolidación de almacén en una operación contable ni autoriza una excepción de `service_role`.
+
 ### 5. Pantalla «Asientos no creados»
 
 **Decisión del Director:** será una sección dentro de «Por contabilizar». El diseño visual y sus estados se concretarán en el contrato y la allowlist de la 0575-c.
 
 - **Lista:** tipo, código con enlace, fecha, monto en su moneda, motivo y su texto con qué hacer, intentos y último intento.
-- **«Asentar»** por fila, y **«Asentar pendientes»** para todos: primero corre el ensayo en seco, con la lista de asientos que se crearían, y después la confirmación.
-- **Estados:** vacío («Todo asentado»), cargando, error, sin permiso.
+- **«Asentar»** por fila, y **«Asentar pendientes»** sobre una selección acotada: primero corre el ensayo en seco y después la confirmación. Cada ejecución revalida permiso y documento; los límites/concurrencia del lote se fijarán en el contrato, sin asumir aprobado el ejemplo del asset.
+- **Estados:** vacío («Todo asentado»), cargando, error, sin permiso y resultado desconocido. Un lote puede terminar parcialmente; se informa cada resultado y se reconcilian los desconocidos antes de reintentar.
 
 ### 6. Datos de prueba y operaciones posteriores
 
@@ -163,6 +177,8 @@ Las pruebas de la futura implementación usarán fixtures sintéticos locales. E
 | **0575-a** | Contrato de persistencia de intentos, índices únicos y preflight, RPC para factura, cobro y reclasificación, CxP, pago a proveedor **y gasto**, con contrato PGlite, contrato Docker y mutantes | sí; **número PENDIENTE** del inventario y la reserva del Director |
 | **0575-b** | Los cinco posters llaman la RPC, el aviso al guardar y el control de período gobernado por la 0566 en los consumidores afectados | no prevista; depende del contrato integrado de la 0575-a |
 | **0575-c** | Sección «Asientos no creados» dentro de «Por contabilizar», con «Asentar», «Asentar pendientes» y ensayo en seco para los cinco tipos | no prevista; depende de la 0575-b |
+
+La ausencia de migración prevista en 0575-b depende de que 0575-a deje integradas todas las capacidades de origen y cierre necesarias. La lista de rutas del asset es un inventario **provisional**, no una allowlist de implementación. El Director cerrará ese reparto con el Worker antes de producto.
 
 **Decisión del Director:** el orden es 0575-a → 0575-b → 0575-c, con revisión e integración seriales. Esta entrega registra el reparto; no abre las PR ni autoriza implementar, fusionar o aplicar una migración.
 
@@ -182,8 +198,8 @@ Estas decisiones se registran por encargo del Director bajo la delegación actua
 
 1. El Director inventaría y reserva el número de migración de la 0575-a; no se asigna uno desde este diseño.
 2. Cerrar contratos verificables y allowlist exacta por cada PR, con roles/tenant, atomicidad, idempotencia, concurrencia, vínculo, paridad de cuentas, ensayo y alcance del lote.
-3. Resolver en el contrato de la 0575-a la persistencia del motivo frente al rollback, cumpliendo las propiedades de la sección 2.
-4. Revalidar las dependencias 0557, 0559, 0566, 0572 y 0573 contra sus SHA integrados y coordinar los consumidores compartidos.
+3. Cerrar y probar en la 0575-a la composición de subbloque/motivo exterior, resultado desconocido, ensayo sin efectos, permisos y ciclo de vida de intentos. La dirección revisada no sustituye esas pruebas.
+4. Revalidar las dependencias 0557, 0559, 0566, 0569, 0572 y 0573 contra sus SHA integrados, identificar el contrato integrado de Caracas y coordinar los consumidores compartidos. Las refs del asset son evidencia de lectura fechada, no certificación de integración actual.
 5. Obtener el encargo de implementación acotado para cada PR. Lecturas, migraciones, operaciones sobre datos, merge y publicación productiva conservan sus permisos específicos.
 
 ## Qué NO cambia
