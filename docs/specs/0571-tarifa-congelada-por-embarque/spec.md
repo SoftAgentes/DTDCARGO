@@ -1,16 +1,195 @@
 ---
 sdd: "0571"
-title: "RESERVADO — tarifa-congelada-por-embarque"
-status: draft
-author: "Codex"
+title: "Tarifa congelada por embarque: el precio por CBM queda guardado al recibir en Yiwu"
+status: in-progress
+author: "founder + Claude Opus 5.5"
 created: 2026-10-20
 updated: 2026-10-20
 supersedes: null
 superseded_by: null
-related: []
+related: ["0008", "0016", "0061", "0072", "0269", "0476", "0543", "0567"]
 confidencialidad: interno
 ---
 
-# SDD-0571 — RESERVADO
+# SDD-0571 — Tarifa congelada por embarque
 
-Reserva del 2026-10-20. Completar en la rama de trabajo e integrar mediante PR.
+> Cada recepción en Yiwu guarda su precio por CBM, su mínimo, su CBM medido, de dónde salió el precio, cuándo y quién lo fijó. Ese registro no se edita: un cambio crea otro con motivo y deja el anterior a la vista. En Almacén CN cada fila dice «CBM real · tarifa · a facturar», o «Sin tarifa» en rojo.
+
+**Estado:** diseño propuesto e implementado en la rama `claude/peaceful-franklin-a3831e`. La migración `0496` espera la revisión de seguridad del Director y el OK nominal de Sam (MIGRATE-FIRST).
+
+## Contexto
+
+### El plan contable (`docs/audits/2026-10-18-contabilidad-diagnostico-y-plan.md`)
+
+- **4.1** (fase 4, adelantada al carril paralelo según «Mi ajuste» del §8): «Tarifa congelada por embarque (`shipment_rate_snapshots`: tarifa, mínimo, fuente estimado / lista del cliente / casa / manual / Excel de Yiwu, fecha, quién, motivo auditado) y cargos del embarque; importador del Excel con reporte "tarifa Excel ≠ tarifa ERP"; fila "CBM real · tarifa · a facturar" y alerta "embarque sin tarifa" en Almacén CN».
+- **B12 y §3:** «El precio por CBM no queda guardado en el embarque, ni en la recepción, ni en la orden de venta: solo existe en el estimado (si lo hubo), en el tarifario y en las listas de precios.» «Si al llegar el embarque no tiene tarifa congelada, el sistema **no factura**.»
+
+### Decisión 9, tomada por recomendación el 2026-10-20 (§9 del plan, PR #305)
+
+«**Tarifa por CBM:** se congela al recibir en Yiwu, con el CBM medido allí (500 kg/m³ es la regla y 1.000 la excepción). El orden es estimado aceptado → lista del cliente o aliado → tarifario. El mínimo se cobra. Hay pre-factura informativa al consolidar y la factura sale al llegar a Venezuela, con vencimiento inmediato.» El texto completo de la recomendación agrega: «el Excel se importa como fuente auditada y sus diferencias se aprueban una a una hasta retirarlo; […] exceso de peso según decidas por contenedor».
+
+### Lo que hay hoy (mapa en solo lectura, `main` `eafbd910`)
+
+| Dónde | Qué guarda | Qué falta |
+|---|---|---|
+| Cotizador público (`lib/calculadora.ts:788`, `calcularEnvioLCL`) | calcula con la tarifa pública (`public_cbm_rate`, 0458) o con `CONFIG.tarifaBaseCBM`; mínimo `min_charge` o `CONFIG.minimoFacturable`; peso incluido de `calculator_settings` (1.000 en producción desde 2026-07-06, `:105-117`) | nada se guarda |
+| Estimados `quotes` (`0007:9-36`) | `rate_per_cbm`, `flat_rate`, `rate_used_id`, `status` (`accepted`) | **sin mínimo**; `calcQuoteTotal` (`lib/studio/quote-types.ts:173-195`) es CBM × tarifa; al convertir a embarque la tarifa se pierde (`cotizador/actions.ts:375-438`) |
+| Listas de precios (`0382`, `0384`) | `price_books` (`is_house`, `discount_pct`, `base_per_cbm`), `rates.price_book_id`, `resolve_price_book(client)` | — |
+| Resolutor (`lib/studio/price-books/price-book-queries.ts:219`, `resolveRateForClient`) | propia → pactada → descuento → casa; devuelve `rateId` y `origen` | lo usa solo el cotizador del Studio |
+| Recepción CN `warehouse_receipts_cn` (`0008:52-80`, `0044`, `0127`) | `total_cbm`, `total_weight_kg`, `destination_city`, `sales_order_id`, `payment_status` manual | **sin precio** |
+| Consolidación (`cn/actions.ts:426-530` → `findOrCreateConsolidationShipment`) | crea el `C-YYYY-NNNN` **sin cliente ni CBM** | lo resuelve la 4.2 |
+| Orden de venta (`0125`, `0128`) | `subtotal_usd`, `total_usd`; la auto-factura prorratea por **cajas** | sin CBM ni tarifa |
+| Lote SDD-0543 (`scripts/consolidados/`) | el «precio venta CBM» del Excel, solo dentro de `invoices.lines` | sin entidad propia |
+
+**No existe** ninguna tabla ni columna que congele la tarifa de un embarque.
+
+## Decisiones de diseño (propuestas al Director)
+
+1. **La unidad es la recepción en Yiwu** (`warehouse_receipts_cn`): ahí se mide el CBM, y es por cliente. El contenedor `C-` de hoy mezcla clientes, así que no puede llevar un precio. La tabla conserva el nombre del plan (`shipment_rate_snapshots`) y trae `shipment_id` vacío: lo llena la 4.2 cuando nazca el envío por cliente.
+2. **La base deriva los números; la app solo elige la fuente.** La app propone un estimado (`quote_id`) o una fila del tarifario (`rate_id`) y la RPC lee de esas filas la tarifa y el mínimo, y clasifica la fuente (lista o casa, con su origen propia / pactada / descuento) con la misma regla que `resolveRateForClient`. Así nadie puede guardar «casa» con un número inventado. La búsqueda de la ruta por destino (ILIKE) sigue en la app (`resolveRateForClient`), que es quien sabe elegir la fila; la RPC verifica que la fila sea del tenant, esté viva, cobre por CBM, sea del servicio pedido y pertenezca a la lista del cliente o a la de la casa.
+3. **Fuentes** (`source`): `estimado` (un estimado aceptado del mismo cliente), `lista` (la lista del cliente o de su aliado raíz: `rate_origin` propia / pactada / descuento), `casa`, `manual` y `excel_yiwu`. Las dos últimas exigen motivo (10 a 1.000 caracteres) y las fija solo admin o contabilidad.
+4. **Inmutable.** Una fila no se edita ni se borra por la API. Cambiar el precio de una recepción que ya tiene tarifa crea una fila nueva con motivo (admin o contabilidad) y marca la anterior como reemplazada (`superseded_at`, `superseded_by_id`); el historial queda completo. Una sola fila viva por recepción (índice único parcial).
+5. **El CBM y el peso los lee la base de la recepción** al congelar, no la app. Si después se corrige el CBM, la fila conserva el congelado y la pantalla avisa «el CBM cambió desde que se fijó la tarifa»; volver a congelar es un reemplazo con motivo.
+6. **A facturar = máx(CBM × tarifa, mínimo)**, redondeado a centavos, como columna generada. El mínimo se cobra (decisión 9). Un estimado no guarda mínimo: se usa el `min_charge` de la fila del tarifario de la que salió (`rate_used_id`), o 0 si no la tiene.
+7. **Peso incluido: 500 kg/m³ por defecto; 1.000 es la excepción** y exige motivo y admin o contabilidad. El exceso de peso (`excess_weight_kg`) se calcula y se muestra, **pero no se suma a lo que se factura**: la decisión 9 deja el cobro del exceso «según decidas por contenedor», y eso no está decidido.
+8. **El servicio** lo elige quien congela (por defecto «Puerta a Puerta», `puerta_a_puerta_DDP`, el caso de Yiwu). La recepción no guarda servicio, así que congelar sola al recibir podría usar el servicio equivocado. Por eso, en esta SDD congela una persona: por fila o en lote («Congelar tarifas pendientes»), y la alerta «Sin tarifa» queda a la vista hasta hacerlo. Ver *Pendiente de decisión*.
+9. **Estimado aceptado primero.** La propuesta automática usa el estimado de la orden de venta ligada a la recepción (`sales_order_id → sales_orders.quote_id`) si está aceptado; si no, la lista del cliente o aliado, y si no, la casa (`resolveRateForClient`). Quien congela puede elegir otro estimado aceptado del mismo cliente.
+10. **El importador del Excel de Yiwu queda fuera** de esta SDD: el archivo todavía no llegó (§11 del plan: «El Excel de Yiwu queda para cuando lo mandes»). La fuente `excel_yiwu` ya existe en la tabla, para que el importador y su reporte «tarifa Excel ≠ tarifa ERP» entren después sin migración nueva.
+
+## Migración `0496_tarifa_congelada_por_embarque.sql` (MIGRATE-FIRST)
+
+### Tabla `public.shipment_rate_snapshots`
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id` | uuid | pk |
+| `tenant_id` | uuid | fk `tenants` on delete cascade |
+| `receipt_id` | uuid | fk `warehouse_receipts_cn` on delete cascade |
+| `shipment_id` | uuid null | fk `shipments` (no action); la llena la 4.2 |
+| `client_id` | uuid | fk `clients` (no action) |
+| `client_markbox` | text | el Shipping Mark al congelar |
+| `service` | `shipment_service` | |
+| `destination` | text null | la ciudad de la recepción |
+| `source` | text | `estimado`, `lista`, `casa`, `manual`, `excel_yiwu` |
+| `rate_origin` | text null | `propia`, `pactada`, `descuento`; solo con `lista` |
+| `rate_id`, `price_book_id`, `quote_id` | uuid null | fk (no action) |
+| `discount_pct` | numeric(5,2) null | solo con `descuento` |
+| `per_cbm` | numeric(12,2) | > 0 |
+| `min_charge` | numeric(12,2) | ≥ 0 |
+| `cbm` | numeric(12,3) | > 0, el de la recepción |
+| `weight_kg` | numeric(12,2) null | el de la recepción |
+| `included_kg_per_cbm` | integer | 500 o 1.000 |
+| `amount_to_invoice` | numeric(14,2) | generada: `greatest(round(cbm × per_cbm, 2), min_charge)` |
+| `excess_weight_kg` | numeric(14,2) | generada: `greatest(coalesce(weight_kg, 0) − cbm × included_kg_per_cbm, 0)` |
+| `reason` | text null | 10 a 1.000 caracteres |
+| `frozen_at`, `frozen_by` | timestamptz, uuid null | |
+| `superseded_at`, `superseded_by_id` | null | las dos juntas |
+
+CHECK de coherencia: `estimado` exige `quote_id`; `lista` y `casa` exigen `rate_id`; `lista` exige `rate_origin` y las demás no lo llevan; `descuento` exige `discount_pct`; `manual` y `excel_yiwu` exigen motivo y no llevan `rate_id` ni `quote_id`; 1.000 kg/m³ exige motivo; una fila no se reemplaza a sí misma.
+
+### Permisos
+
+- RLS: SELECT para `authenticated` del mismo tenant (`get_user_tenant_id()`) con rol admin, operations, warehouse, support, accounting o commercial. Ningún INSERT, UPDATE ni DELETE para `authenticated` ni `anon`.
+- Guardián `shipment_rate_snapshots_guard` (BEFORE UPDATE OR DELETE, para todos los roles): solo deja pasar marcar el reemplazo una vez (`superseded_at` y `superseded_by_id` de null a valor), llenar `shipment_id` de null a valor, y poner `shipment_id` en null si ese envío ya no existe. Un DELETE pasa solo si la recepción o el tenant ya no existen (borrado en cascada).
+
+### RPC `public.congelar_tarifa_recepcion(...)` (SECURITY DEFINER, `search_path` vacío)
+
+Parámetros: `p_receipt_id`, `p_source` (`estimado` | `tarifario` | `manual` | `excel_yiwu`), `p_rate_id`, `p_quote_id`, `p_per_cbm`, `p_min_charge`, `p_service`, `p_included_kg_per_cbm`, `p_reason`, `p_dry_run`. Devuelve una fila con lo que quedó (o quedaría) congelado.
+
+1. Bloquea la recepción (`FOR UPDATE`). Exige: del tenant de la sesión, viva, no huérfana, con CBM > 0 y con un Shipping Mark que corresponda a un cliente vivo del tenant.
+2. Deriva los números según la fuente:
+   - `estimado`: estimado aceptado, vivo, del tenant y del mismo Shipping Mark, con `rate_per_cbm > 0`. Servicio = el del estimado. Mínimo = `min_charge` de su `rate_used_id`, o 0.
+   - `tarifario`: fila viva del tenant, con `per_cbm`, del servicio pedido y de la lista del cliente (`resolve_price_book`) o de la casa. Si es de la lista del cliente → `lista`/`propia`; si es de la casa y la lista del cliente pacta `base_per_cbm` → `lista`/`pactada`; si pacta descuento → `lista`/`descuento` (`round(per_cbm × (1 − pct/100), 2)`; el mínimo no se descuenta, como en 0269); si no → `casa`.
+   - `manual` / `excel_yiwu`: tarifa > 0, mínimo ≥ 0 y motivo.
+3. Permisos por rol (`current_studio_role()`):
+   - ver (`p_dry_run`): admin, operations, warehouse, support, accounting;
+   - congelar desde estimado o tarifario una recepción sin tarifa, con 500 kg/m³: admin, operations, warehouse, accounting;
+   - `manual`, `excel_yiwu`, 1.000 kg/m³ o reemplazar una tarifa viva (con motivo): admin o accounting.
+4. Si ya hay una fila viva y no es un reemplazo con motivo, rechaza. Si es un reemplazo, inserta la nueva y marca la vieja en la misma transacción.
+5. Errores con `hint = 'dtd-tarifa'` (la app muestra solo esos, ERR-01): 42501 sin permiso, P0002 no encontrado, 22023 dato inválido, 23505 ya congelada.
+
+EXECUTE solo para `authenticated`.
+
+### Preflight y postflight
+
+Aborta sin cambiar nada si falta una tabla, una columna con su tipo, un valor de enum (`quote_status.accepted`, `shipment_service.puerta_a_puerta_DDP`), o si `get_user_tenant_id()`, `current_studio_role()` y `resolve_price_book(uuid)` no tienen el cuerpo, la seguridad, la volatilidad y el `search_path` del árbol (md5 del `prosrc`); también si la tabla ya existe. El postflight exige DEFINER y `search_path` vacío en la RPC y el guardián, la ACL prometida, RLS activa y los grants de la tabla.
+
+### Locks
+
+Crea objetos nuevos. Las FK nuevas toman SHARE ROW EXCLUSIVE breve sobre `tenants`, `warehouse_receipts_cn`, `shipments`, `clients`, `rates`, `price_books` y `quotes`; no toca filas. `lock_timeout` 5 s y `statement_timeout` 30 s.
+
+### Rollback
+
+`drop function` de la RPC y del guardián, y `drop table public.shipment_rate_snapshots`. Deja de ser seguro en cuanto haya tarifas congeladas que alguien vaya a facturar (4.3) o la PR esté desplegada.
+
+## App
+
+- `lib/studio/rate-snapshots/`: tipos y etiquetas (`types.ts`), lectura de las filas vivas por recepción con respaldo si la tabla no existe (`queries.ts`), la propuesta automática (`propuesta.ts`: estimado ligado → `resolveRateForClient`).
+- `app/studio/(app)/cn/rate-snapshot-actions.ts`: ver la propuesta, congelar, reemplazar y congelar en lote las pendientes (solo propuestas automáticas; las que no tienen propuesta se cuentan y se nombran).
+- Almacén CN: columna «Tarifa» con «$/m³ · a facturar», la fuente y el aviso si el CBM cambió; «Sin tarifa» en rojo. El cajón de la tarifa muestra la propuesta, permite elegir servicio y estimado, y (admin o contabilidad) fijarla a mano con motivo; abajo, el historial. En la barra de selección, «Congelar tarifas pendientes».
+- Textos en `es-VE` y `zh-CN` (el equipo de Yiwu usa el módulo en chino).
+- Sin la 0496 aplicada, la columna dice «No disponible» y las acciones responden con su mensaje; la lista no se rompe. Los símbolos se declaran en `supabase/pending-migration-symbol-declarations.json`.
+
+## Pendiente de decisión (no bloquea esta SDD)
+
+1. **Congelar sola al recibir.** Hace falta saber el servicio de la recepción. Propuesta: que la 4.2 (o la prealerta) lo guarde, y entonces congelar en la misma recepción.
+2. **El exceso de peso** sobre 500 (o 1.000) kg/m³: se muestra, no se cobra, hasta que Sam decida «por contenedor».
+3. **El importador del Excel de Yiwu** y su reporte «tarifa Excel ≠ tarifa ERP»: cuando llegue el archivo.
+
+## Allowlist exacta
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/0496_tarifa_congelada_por_embarque.sql` | la migración |
+| `supabase/tests/0496_tarifa_congelada_por_embarque.test.sql` | el contrato |
+| `lib/studio/__tests__/tarifa-congelada.migration.test.ts` | el contrato en PGlite, control rojo y mutantes |
+| `supabase/migrations-baseline.json` | la espera de la 0496 |
+| `supabase/pending-migration-symbol-declarations.json` | los símbolos y su degradación |
+| `lib/studio/rate-snapshots/types.ts` | tipos, etiquetas y validación |
+| `lib/studio/rate-snapshots/queries.ts` | lectura |
+| `lib/studio/rate-snapshots/propuesta.ts` | propuesta automática |
+| `lib/studio/rate-snapshots/__tests__/*.test.ts` | pruebas |
+| `app/studio/(app)/cn/rate-snapshot-actions.ts` | acciones |
+| `app/studio/(app)/cn/__tests__/rate-snapshot-actions.test.ts` | pruebas |
+| `app/studio/(app)/cn/page.tsx` | lee las tarifas vivas y el rol |
+| `app/studio/(app)/cn/_components/AlmacenCnClient.tsx` | columna «Tarifa» y acción en lote |
+| `app/studio/(app)/cn/_components/ReceiptRateCell.tsx` | celda de la tarifa |
+| `app/studio/(app)/cn/_components/RateSnapshotDrawer.tsx` | cajón de la tarifa |
+| `app/studio/(app)/cn/_components/__tests__/*.test.tsx` | pruebas de la UI |
+| `lib/studio/warehouse-cn-queries.ts` | `sales_order_id` en la fila de la lista |
+| `lib/studio/warehouse-cn-types.ts` | el tipo de la fila |
+| `lib/i18n/es-VE/warehouse.ts`, `lib/i18n/zh-CN/warehouse.ts` | textos |
+| `docs/specs/0571-tarifa-congelada-por-embarque/spec.md` | esta spec |
+| `docs/specs/README.md` | índice regenerado |
+| `.agents/handoffs/0571-tarifa-congelada-por-embarque.md` | handoff |
+
+No toca `lib/studio/accounting`, `invoices`, recibos ni tasas (sesión Contabilidad).
+
+## Criterios de aceptación
+
+1. Una recepción viva, de un cliente, con CBM, se congela desde un estimado aceptado del mismo cliente o desde una fila del tarifario, y la base guarda la tarifa, el mínimo, el CBM, el peso, la fuente, la fecha y quién.
+2. Los números de `estimado`, `lista` y `casa` salen de las filas de origen, no de la app: un número que no corresponde no se puede guardar con esas fuentes.
+3. La clasificación propia / pactada / descuento / casa coincide con `resolveRateForClient` para la misma fila y el mismo cliente.
+4. A facturar = máx(CBM × tarifa, mínimo); el exceso de peso se calcula y no se suma.
+5. `manual`, `excel_yiwu`, 1.000 kg/m³ y el reemplazo exigen motivo y admin o contabilidad; warehouse y operations solo congelan una pendiente desde estimado o tarifario.
+6. Una sola tarifa viva por recepción; el reemplazo deja la anterior marcada y visible.
+7. Nadie edita ni borra una fila por la API; el guardián rechaza todo cambio salvo marcar el reemplazo y llenar el envío.
+8. Otro tenant no ve ni congela; marketing no ve.
+9. Almacén CN muestra «CBM real · tarifa · a facturar» o «Sin tarifa», y el aviso de CBM cambiado; congelar en lote solo usa propuestas automáticas.
+10. Sin la 0496, la app no se rompe.
+11. Control rojo y un mutante por regla en el contrato.
+
+## Gobernanza
+
+| Política | Clasificación | Evidencia |
+|---|---|---|
+| Cambio de comportamiento Studio | cumplimiento | esta spec, con allowlist exacta |
+| AUD-01 | cumplimiento | cada fila guarda quién, cuándo, de dónde y por qué; no se edita, y el reemplazo deja la anterior |
+| ERR-01 | cumplimiento | la app muestra solo los mensajes con `hint = 'dtd-tarifa'` |
+| FRM-01, A11Y-01 | se valida con `/ui-check` | cajón con `<label>`, motivo con ayuda, aviso con `role="status"` |
+| Producción | cumplimiento | no se leyeron filas; la 0496 se aplica con OK nominal y el runbook |
+| Datos personales | no aplica | no se capturan ni mueven nombres, RIF ni contactos: solo el Shipping Mark que la recepción ya tiene |
+
+## Validación
+
+Ver el handoff `.agents/handoffs/0571-tarifa-congelada-por-embarque.md`.
