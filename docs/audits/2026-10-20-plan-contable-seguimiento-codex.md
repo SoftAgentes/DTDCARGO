@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 4:01 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 4:48 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -10,7 +10,7 @@
 
 ## Ahora mismo
 
-- [ ] **Cerrar 2.1 · Tasa única.** El aviso ya toma la tasa guardada en la factura: pasaron 37 pruebas específicas y dos controles de regresión. Falta la validación completa de la nueva versión antes de pedir la autorización de la migración.
+- [ ] **Cerrar 2.1 · Tasa única.** La corrección y la revisión independiente están aprobadas. La prueba general local terminó: 12.278 unitarias aprobadas al reintentar, 177 de navegación y construcción aprobada; tres pasos omitidos siguen declarados. El paquete final y la previa del servidor ya pasaron. Falta GitHub de la versión final antes de presentar el OK nominal de la migración.
 - [x] **Completar la comparación local de pruebas contables.** Los mismos 854 casos aprobaron por ambos lados. Tiempo medido: 10 min 42 s → 6 min 2 s. La mejora todavía espera integración.
 - [ ] **Completar tarifa congelada.** Las correcciones ya están publicadas en su rama y pasaron 62 pruebas locales; falta validarlas con la base final.
 
@@ -31,14 +31,17 @@
 - [x] Preparar el paquete y pasar la revisión de solo lectura del servidor sobre `eb22e2d4`, a las 3:29 p. m. **Esa revisión no aplicó la migración.**
 - [x] Corregir y probar localmente la tasa del aviso: 37 pruebas y dos controles de regresión aprobados. Si se emite con 40, el aviso muestra 40; una excepción expresa de 36 conserva 36.
 - [x] Guardar y publicar esa corrección en su rama: versión `6ff0f586`.
-- [ ] Aprobar las pruebas y GitHub de la nueva versión que incluya esa corrección.
-- [ ] Regenerar la identidad del paquete y su revisión previa para esa versión final.
+- [x] Cerrar la revisión independiente del aviso, sin hallazgos nuevos.
+- [x] Terminar la prueba general sobre `6ff0f586`: 14 de 17 pasos ejecutados aprobados, con 12.278 unitarias en el reintento y una omitida; navegación 177 aprobadas, una recuperada al reintentar y 20 omitidas; construcción aprobada.
+- [x] Publicar el cierre documental `5d84ec0a`, conservando idénticos el producto, sus pruebas y SQL.
+- [ ] Aprobar GitHub de la versión final `5d84ec0a`; está en curso.
+- [x] Regenerar el paquete de `5d84ec0a` y pasar la revisión previa del servidor, a las 4:45 p. m. Solo lectura; no se aplicó la migración.
 - [ ] Recibir de Sam el OK nominal de `0495_fx_rates_conversor_usd` en producción.
 - [ ] Aplicar la migración autorizada e integrar la PR enseguida.
 - [ ] Comprobar la publicación y las pantallas permitidas de Studio.
 - [ ] Registrar el sello de la migración y su evidencia de cierre.
 
-[Ver PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301). Las pruebas generales anteriores corresponden a `5f0d04ad`, documentado en `eb22e2d4`. La corrección del aviso `6ff0f586` tiene evidencia focal propia: 37 pruebas, dos controles, tipos y revisión estática. Su validación general y GitHub están en curso.
+[Ver PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301). La última prueba general corresponde a `6ff0f586`; `5d84ec0a` solo actualiza spec y handoff. El primer intento unitario falló al iniciar dos procesos de pruebas; el reintento canónico pasó sin cambiar límites. Los tres pasos omitidos fueron ledger productivo y SQL/reconstrucción con Docker detenido. Los 246 contratos SQL y la reconstrucción anteriores conservan su evidencia propia y el mismo SQL; no se presentan como ejecuciones nuevas. GitHub final sigue pendiente.
 
 ### B. Reemplazar las 13 conversiones · SDD-0572-a
 
@@ -124,7 +127,7 @@ La regla USD/USDT 1:1 ya está decidida. Los bolívares quedan para reportes. La
 ## Secuencia inmediata de entrega
 
 - [ ] **#301 · Tasa única:** aviso corregido localmente → comprobar versión final → previa → OK de 0495 → aplicar e integrar → publicación y cierre.
-- [ ] **#304 · Pruebas PGlite:** comparación local completa y revisada, 854/854 por lado; cierre documental publicado en `b28e9046`. Falta comprobar GitHub de esa versión e integrar después de #301.
+- [ ] **#304 · Pruebas PGlite:** comparación local completa y revisada, 854/854 por lado; cierre documental publicado en `b28e9046` y GitHub aprobado. Falta integrar después de #301.
 - [ ] **#306 · Oficina de agentes:** incorporar base final; GitHub aprobó `2f9b336c`. El aislamiento real entre perfiles sigue sin verificar.
 - [ ] **#307 · Tarifa congelada:** base y validación final → previa → OK de 0496 → aplicar e integrar → publicación y cierre.
 - [ ] **0573 · Reverso al anular:** reparar hallazgos → pruebas y PR → revisión y previa → OK de 0497 → aplicar e integrar.

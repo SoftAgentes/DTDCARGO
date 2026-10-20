@@ -65,11 +65,11 @@ El mandato de Sam de adoptar las sesiones Codex en los mismos worktrees incluye 
 
 | Tarea | Cabeza verificada | Estado | Siguiente paso / owner |
 |---|---|---|---|
-| #301 / 0569 / 0495 | `6ff0f586` | Aviso corregido y publicado en rama: 37 focales, dos mutantes, tipos y lint PASÓ; verify/CI actuales en curso | Cerrar revisión y validación completa; regenerar identidad/previa antes de pedir aprobación nominal |
+| #301 / 0569 / 0495 | `5d84ec0a` | Producto/pruebas/SQL idénticos a `6ff0f586`, verify 14/17 medidos PASÓ con reintento; revisión P2 cerrada. Paquete y previa viva de esta cabeza PASÓ; CI final en curso | Cerrar CI final antes de presentar el OK nominal de 0495; luego aplicar/integrar solo si Sam autoriza |
 | #307 / 0571 / 0496 | `ba43747a` | Tres P2 corregidos; 62 focales, siete controles, tipos/lint y UI local PASÓ. Árbol limpio, remoto igual y claim liberado; CI nuevo en curso | Actualizar base y ejecutar validación canónica final; después revisión/previa y aprobación nominal |
 | 0572-a | `9c254107` | Cierre parcial publicado, árbol limpio y claim liberado; 71 focales, typecheck y lint PASÓ | Retomar después de #301 corregida: ranking sin tasa, verify, mutantes y revisión visual |
 | 0573 / 0497 | `89f15a5d` | Implementada; B1, I1–I4 y M1–M9 pendientes según traspaso; sin verify | Worker posterior del carril contable, antes de consideración de integración |
-| #304 / 0570 | `b28e9046` | A/B completo aceptado y cierre documental publicado. Draft, limpio, remoto igual, claim liberado; CI de cabeza nueva en curso | Comprobar CI/base finales e integrar después de #301 |
+| #304 / 0570 | `b28e9046` | A/B completo aceptado y cierre documental publicado. Draft, limpio, remoto igual, claim liberado; CI de esta cabeza PASÓ `20:24:32Z` | Revalidar base final e integrar después de #301 |
 | #306 / oficina | `2f9b336c` | Correcciones documentales publicadas y revisadas; Draft. Árbol limpio, claim liberado; CI PASÓ | Director incorpora base y revalida después de #301; no confundir corrección documental con aislamiento del VPS |
 | 0574 / 4.5 | `18edcd81` | Implementada; preparación leída, 10/10 rutas propias en allowlist, sin dependencias locales instaladas; depende de #307 | Adopción posterior, instalación congelada, verify con turno y revisión visual |
 | 0575 / 2.2 | `8a614250` | Cinco decisiones y propuesta transaccional publicadas; revisión documental PASÓ, spec sigue draft. Árbol limpio y remoto igual | Antes de implementar: contratos, allowlists, base integrada con Caracas y reserva de migración; no iniciar código contable en paralelo |
@@ -298,6 +298,28 @@ Esta lectura y los focales no cierran la validación general del nuevo SHA. Comm
 
 #304 `b28e9046a7ea56a53a2c53f546f58be1ae3625a8`: cuatro documentos/assets, sin cambio persistente de producto/helper. Director revisó spec, TXT y datos de comparación; el recibo `documentacion-verificada.json` acredita las cuatro rutas, 36 fuentes intactas, remoto 0/0 y limpieza. Claim documental liberado `20:01:17.596Z`. CI `39488215063`, iniciado `20:00:07Z`, en curso. El verde de `1077ff21` sigue separado de esta cabeza.
 
+### Continuación de 2.1 y paquete final de 0495 · 20:48Z
+
+Sam pidió continuar 2.1 y actualizar el mismo checklist del panel derecho con cada avance. No se interpreta su «continúa» como el OK nominal de una migración.
+
+**Revisión/cierre 0569:** informe independiente `revision-p2-aviso-6ff0f586.md` leído: P2 cerrado, sin nuevos hallazgos materiales en el delta de cuatro rutas. El Director contrastó el cierre con los JSON y el log del verify: `6ff0f586` de `20:01:20Z` a `20:35:06Z`, exit 0, 14/17 pasos medidos aprobados. Unitario inicial FALLÓ por dos errores de arranque de workers —sin fallo de aserción informado—; reintento canónico PASÓ 12.278 casos, uno omitido. E2E PASÓ 177, un flaky recuperado y 20 omitidos; build PASÓ y restauró tsconfig. Tres SKIPs: ledger sin credenciales, SQL y rebuild con Docker detenido. No se eliminan esos SKIPs ni se inventa causa raíz de los arranques. Los suplementos anteriores SQL usan el mismo blob y conservan su fecha.
+
+Cabeza documental final `5d84ec0a9f374eac40545260c8887b72ec458261`: Director leyó spec/handoff y comparó el delta excluyéndolos, vacío. Producto, pruebas y SQL son idénticos a la cabeza validada. Git/remoto/PR comprobados; 0/0 y limpio, base actual `8e9e0f50` antecesora. Recibos externos `p2-final-receipt.json`, `p2-verify-result.json` y `p2-cleanup-result.json`; turno devuelto y claim liberado `20:38:46Z`. CI final `39493600656`, iniciado `20:37:56Z`, todavía en curso al cotejo de `20:44:22Z`. No se le atribuye verde de otra cabeza.
+
+**Paquete preparado desde `5d84ec0a`:** `C:\tmp\director-traspaso-20261020\0495-codex-5d84ec0a`, generado `20:44:52Z`. Archivo `0495_fx_rates_conversor_usd.sql`, SDD-0569 / PR #301; blob `c6d17d946d957a29791fec426a1213a05efa7bf4`, md5 `c0c9dac855a516179085950a187737d7`, 28.118 bytes; SHA-256 SQL `964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7`. MD5 aplicar `871eafcb1b6850e96d1eba112a62ede3`, previa `e255770e014366bc5d082c39b482d6c8`, verificar `7974ab6a4fbc947819fe81a42af3ed9b`. Created_by `servidor-propio:psql:SDD-0569`; preflight propio incluido y espera declarada. El paquete anterior eb22 queda solo como evidencia anterior.
+
+**Previa viva PASÓ `20:45:30Z`:** `/srv/ops/evidencias/previa-0495-dtd-cargo-20261020T204529Z`. El Director conservó y leyó salida/error mediante scp: 498 filas de ledger, última versión `20261020131949`, 0495 ausente, cero locks en espera y cero transacciones largas. Las seis funciones se informan nuevas, sin deriva aceptada; preflight propio aprobado. BEGIN READ ONLY / ROLLBACK, error vacío, ninguna aplicación ni lectura de filas de negocio. Los scripts remotos coincidieron por SHA-256. Copia local `previa-viva.out`, SHA-256 `395fdc95b70012b4b45034dea14a52a4c1cbd0d5c6caa1461a5069b5750614bc`.
+
+La aprobación se presentará al completar el CI de la cabeza exacta. Orden autorizado: aplicar 0495 solo tras OK nominal y fusionar #301 inmediatamente con match-head-commit; después publicación, verificaciones de alcance permitido y sello en PR propia. Antes de COMMIT el fallo revierte; después no se degrada la base automáticamente: rollback de web/congelación según runbook o migración nueva con aprobación. No existe todavía OK nominal de 0495.
+
+**Otros checks ya confirmados:** #304 `b28e9046` CI `39488215063` PASÓ `20:24:32Z`; #307 `ba43747a` CI `39484581257` PASÓ `20:11:08Z`, conservando base/integración final pendientes. Main remoto continúa `8e9e0f50`; no se fusionó ni publicó un nuevo producto en esta continuación.
+
+Se encargó al agente de apoyo un inventario de solo lectura de los restantes SQL, fechas de Caracas y alcance BCV de 2.1; sin números nuevos, escritura de producto ni pruebas. Esto prepara las tareas siguientes y conserva el orden humano de integración. 0572 no se retoma como escritor antes de #301 integrada.
+
+Preparación operativa fuera de Git: `aplicar-0495-y-fusionar-5d84ec0a.ps1` (SHA-256 `c9380423a326fa629e75a3005d0ae97dc4d9ee2c6a15f3735dc2fe65a315cbce`) y conteo de solo lectura `0495-tenant-fx-history-readonly.sql` (`6820d59f767546e570129fb1d6ffbe7a038204f182edd497982b8866e3c9936f`) en la carpeta de continuidad. Sintaxis PowerShell PASÓ por ParseFile, **NO EJECUTADO**. Comprueba consentimiento literal, identidad, base, cabeza, CI y PR lista/CLEAN; exige apply verificado antes de fusionar inmediatamente sin reintentos ni bypass. El archivo de autorización no existe. Revisión independiente del procedimiento encargada antes de usarlo. La solicitud preparada `solicitud-0495-5d84ec0a.md` no se presentó aún porque falta CI verde.
+
+Lectura de metadatos del respaldo: `Result=success`, `ExecMainStatus=0`, salida `2026-10-20 08:06:27 CEST` (= 02:06:27 Caracas). No se abrió dump ni se ejecutó un respaldo o restore nuevo. Estado de conocimiento repetido desde main, en `knowledge-21-continuacion-20261020.json`: estructura PENDING/453, piloto 12/16, global 12/1320, Archify/Obsidian PENDING. No se regeneraron derivados.
+
 ## 4. Checklist vivo de continuidad
 
 Vista con checks para Sam: [Checklist del plan contable](../../docs/audits/2026-10-20-plan-contable-seguimiento-codex.md). Este §4 sigue siendo el registro vivo de coordinación; ambos documentos pertenecen al Director.
@@ -316,6 +338,9 @@ El checklist histórico del §4 anterior conserva 36 tareas vivas, 6 hechas, 1 e
 - [x] Completar y revisar el par A/B local de #304, 854/854 casos por lado, restauración comprobada.
 - [x] Corregir y comprobar focalmente la tasa del aviso de factura, con controles de regresión.
 - [ ] Completar la validación y revisión de la nueva cabeza que incluye el aviso corregido.
+- [x] Cerrar revisión independiente del P2 y comprobar verify local con sus tres SKIPs; producto idéntico en el cierre documental `5d84ec0a`.
+- [x] Preparar el paquete `5d84ec0a` y comprobar su previa viva de solo lectura.
+- [ ] Confirmar CI verde de `5d84ec0a` antes de presentar aprobación nominal.
 - [ ] Cerrar el relevo y la validación de 0572-a.
 - [ ] Revisar/preparar #301 en su cabeza actual y con base actual.
 - [ ] Obtener OK nominal de 0495 cuando el paquete sea concreto y revisable.
