@@ -42,7 +42,10 @@ import {
 } from "@/lib/studio/accounting/libro-control";
 import { fmtAmount } from "./format";
 import { EntryDrawer } from "./EntryDrawer";
+import { ExcepcionCierreDialog } from "./ExcepcionCierreDialog";
 import { postEntry, voidEntry, softDeleteEntry } from "../actions";
+import { isPeriodClosed } from "@/lib/studio/accounting/period-queries";
+import type { AvisoCierre, ResultadoDeAsiento } from "@/lib/studio/accounting/cierre-excepciones";
 
 export function LibroDiarioTab({
   entries,
@@ -53,6 +56,7 @@ export function LibroDiarioTab({
   showCreate,
   onOpenCreate,
   onCloseCreate,
+  avisoCierre = null,
 }: {
   entries: JournalEntry[];
   /** Asientos vivos del diario, sin el tope de pantalla (countEntries). */
@@ -63,12 +67,21 @@ export function LibroDiarioTab({
   showCreate: boolean;
   onOpenCreate: () => void;
   onCloseCreate: () => void;
+  /** SDD-0566: el cierre del período, para ofrecer la excepción en sus asientos. */
+  avisoCierre?: AvisoCierre | null;
 }) {
   const toast = useToast();
   const flashClassFor = useRowHighlight();
   const [error, setError] = useState<string | null>(null);
   const [voidTarget, setVoidTarget] = useState<JournalEntry | null>(null);
   const [voidPending, setVoidPending] = useState(false);
+  // SDD-0566: asentar, anular o eliminar un asiento de período cerrado.
+  const [excepcionTarget, setExcepcionTarget] = useState<{
+    op: "asentar" | "anular" | "eliminar";
+    entry: JournalEntry;
+  } | null>(null);
+  const enCierre = (e: JournalEntry) =>
+    avisoCierre !== null && isPeriodClosed(avisoCierre.closingDate, e.entry_date);
 
   const noAccounts = accountsCount === 0 || postableAccounts.length === 0;
   const aviso = avisoDelDiario(entries.length, totalEntries, asentadosCount);
@@ -288,7 +301,32 @@ export function LibroDiarioTab({
                   alignItems: "center",
                 }}
               >
-                {entry.status === "borrador" && (
+                {entry.status === "borrador" && enCierre(entry) && (
+                  <>
+                    <button
+                      type="button"
+                      className="studio-btn studio-btn-dark studio-btn-xs"
+                      onClick={() => {
+                        setError(null);
+                        setExcepcionTarget({ op: "asentar", entry });
+                      }}
+                    >
+                      Asentar…
+                    </button>
+                    <button
+                      type="button"
+                      className="studio-btn studio-btn-ghost studio-btn-xs"
+                      style={{ color: "var(--danger)" }}
+                      onClick={() => {
+                        setError(null);
+                        setExcepcionTarget({ op: "eliminar", entry });
+                      }}
+                    >
+                      Eliminar…
+                    </button>
+                  </>
+                )}
+                {entry.status === "borrador" && !enCierre(entry) && (
                   <>
                     <ActionButton
                       variant="dark"
@@ -325,10 +363,11 @@ export function LibroDiarioTab({
                     style={{ color: "var(--danger)" }}
                     onClick={() => {
                       setError(null);
-                      setVoidTarget(entry);
+                      if (enCierre(entry)) setExcepcionTarget({ op: "anular", entry });
+                      else setVoidTarget(entry);
                     }}
                   >
-                    Anular
+                    {enCierre(entry) ? "Anular…" : "Anular"}
                   </button>
                 )}
                 {entry.status === "anulado" && (
@@ -349,6 +388,26 @@ export function LibroDiarioTab({
 
       {showCreate && (
         <EntryDrawer postableAccounts={postableAccounts} onClose={onCloseCreate} />
+      )}
+      {excepcionTarget && avisoCierre && (
+        <ExcepcionCierreDialog
+          aviso={avisoCierre}
+          operacion={excepcionTarget.op}
+          entryCode={excepcionTarget.entry.entry_code}
+          onCancel={() => setExcepcionTarget(null)}
+          onConfirm={async ({ superclave, motivo }) => {
+            const { op, entry } = excepcionTarget;
+            let r: ResultadoDeAsiento;
+            if (op === "asentar") r = await postEntry(entry.id, { superclave, motivo });
+            else if (op === "eliminar") r = await softDeleteEntry(entry.id, { superclave, motivo });
+            else r = await voidEntry(entry.id, motivo, superclave);
+            if (!r.ok) return r.error ?? "No se pudo guardar el cambio.";
+            const hecho = op === "asentar" ? "asentado" : op === "eliminar" ? "eliminado" : "anulado";
+            toast.success(`Asiento ${entry.entry_code} ${hecho} con excepción al cierre`);
+            setExcepcionTarget(null);
+            return null;
+          }}
+        />
       )}
       <ConfirmDialog
         open={voidTarget !== null}

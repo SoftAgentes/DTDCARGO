@@ -280,8 +280,13 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // "delete_shipments")` antes de leer nada y pasan el veredicto por acción sin
   // entrar en ninguna lista; cada paso delega en la acción de su módulo, que
   // repite su propio candado.
+  // SDD-0566 sumó `contabilidad/actions.ts::setClosingModeAction`,
+  // `fijarSuperclaveAction` y `restablecerSuperclaveAction` (435 → 438): el modo
+  // del cierre y la superclave. Las tres llaman a `tenantAdminGate` antes de
+  // tocar nada, como `setClosingDateAction`; la RLS admin-only de 0133
+  // (accounting_settings) y las RPC de 0493 (`cierre_es_admin`) repiten el candado.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(435);
+    expect(reportes.length).toBe(438);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
