@@ -7,5 +7,96 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "sdd-0569-conversor-usd-tasas",
+      "primarySymbol": "fx_rate_on",
+      "migration": "0495_fx_rates_conversor_usd",
+      "symbols": [
+        {
+          "name": "fx_rate_on",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/fx-rates.ts:40"
+          ]
+        },
+        {
+          "name": "registrar_tasa_de_cambio",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/admin/exchange-rates-actions.ts:31"
+          ]
+        },
+        {
+          "name": "fx_rates",
+          "kind": "table",
+          "callSites": [
+            "lib/studio/fx-rates.ts:94"
+          ]
+        },
+        {
+          "name": "invoices.fx_rate_source",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/facturacion/actions.ts:106"
+          ]
+        },
+        {
+          "name": "invoices.fx_rate_valid_on",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/facturacion/actions.ts:106"
+          ]
+        },
+        {
+          "name": "supplier_bills.fx_rate_source",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/facturacion/actions.ts:106",
+            "lib/studio/treasury/treasury-actions.ts:169"
+          ]
+        },
+        {
+          "name": "supplier_bills.fx_rate_valid_on",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/facturacion/actions.ts:106",
+            "lib/studio/treasury/treasury-actions.ts:169"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/fx-rates.ts:45",
+          "contains": "if (error) return null;",
+          "degradation": "Sin 0495, fx_rate_on no existe (PGRST202): tasaVigente devuelve null y tasaDelDocumento pide la tasa con «Falta la tasa de … escríbela aquí o cárgala en Admin › Tasas.»; no se guarda ninguna factura ni CxP en VES o CNY con una tasa inventada. Orden previsto: MIGRATE-FIRST (0495 antes de fusionar y desplegar), con el que esta ventana no existe."
+        },
+        {
+          "site": "lib/studio/fx-rates.ts:101",
+          "contains": "if (error || !data) return null;",
+          "degradation": "Sin 0495, fx_rates no existe (42P01): ultimaTasa devuelve null; Admin › Tasas muestra «sin tasa cargada» y gastos y el móvil abren sin la tasa precargada (se escribe a mano)."
+        },
+        {
+          "site": "app/studio/(app)/admin/exchange-rates-actions.ts:40",
+          "contains": "if (dbError.hint === \"dtd-fx\" && dbError.message) return { error: dbError.message };",
+          "degradation": "Sin 0495, registrar_tasa_de_cambio no existe (PGRST202, sin el hint dtd-fx): Admin › Tasas devuelve «No se pudo guardar la tasa. Intenta de nuevo.» y no escribe nada."
+        },
+        {
+          "site": "app/studio/(app)/facturacion/actions.ts:407",
+          "contains": "if (error || !inserted) {",
+          "degradation": "Sin 0495, una factura en VES o CNY nombra fx_rate_source y fx_rate_valid_on (PGRST204): createInvoice devuelve «No se pudo crear la factura» y no inserta. En USD y USDT columnasDeTasa no nombra las columnas y la factura se crea como hoy."
+        },
+        {
+          "site": "app/studio/(app)/facturacion/actions.ts:489",
+          "contains": "if (error) return { error: `No se pudo guardar: ${error.message}` };",
+          "degradation": "Sin 0495, guardar un borrador en VES o CNY falla igual que crearlo (PGRST204) y el borrador queda como estaba; en USD y USDT se guarda como hoy."
+        },
+        {
+          "site": "lib/studio/treasury/treasury-actions.ts:181",
+          "contains": "if (insErr || !insertedBill) {",
+          "degradation": "Sin 0495, una CxP en VES o CNY nombra fx_rate_source y fx_rate_valid_on (PGRST204): createBill devuelve «No se pudo crear la CxP» y no inserta; en USD y USDT se crea como hoy."
+        }
+      ]
+    }
+  ]
 }

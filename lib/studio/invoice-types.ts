@@ -417,11 +417,15 @@ export function validateInvoiceInput(input: Partial<InvoiceInput>): {
     errors.due_date = "Fecha de vencimiento inválida (YYYY-MM-DD).";
   }
 
-  // VES requiere fx_rate (BCV) para que el monto tenga sentido fiscal.
-  if (currency === "VES") {
+  // VES y CNY requieren tasa (SDD-0569): sin ella no se convierten a USD. La
+  // acción la precarga con la vigente (fx_rates) si no se escribió.
+  if (currency === "VES" || currency === "CNY") {
     const fx = Number(input.fx_rate);
     if (!Number.isFinite(fx) || fx <= 0) {
-      errors.fx_rate = "Indica la tasa BCV para facturar en bolívares.";
+      errors.fx_rate =
+        currency === "VES"
+          ? "Indica la tasa BCV para facturar en bolívares."
+          : "Indica la tasa para facturar en yuanes.";
     }
   }
 

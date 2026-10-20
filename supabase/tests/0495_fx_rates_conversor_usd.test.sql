@@ -1,0 +1,277 @@
+\set ON_ERROR_STOP on
+-- SDD-0569 · Contrato de 0495: el conversor a USD que falla cerrado y la tabla de
+-- tasas. Fixture sintético aislado; no ejecutar sobre una DB real. Aplica con
+-- \ir las migraciones REALES de la auditoría (0267, 0294), facturas (0077),
+-- contabilidad (0078) y tesorería (0088), y después 0495. Termina en ROLLBACK.
+-- RED: psql -v apply_fix=false -f /sb/tests/0495_fx_rates_conversor_usd.test.sql
+\if :{?apply_fix}
+\else
+\set apply_fix true
+\endif
+begin;
+do $fixture_guard$
+begin
+  if to_regclass('public.entity_audit_log') is not null or to_regclass('public.invoices') is not null then
+    raise exception 'TEST 0495: fixture rechazada, la base ya contiene objetos de aplicación';
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if;
+end;
+$fixture_guard$;
+grant usage on schema public to anon, authenticated, service_role;
+create schema auth;
+grant usage on schema auth to anon, authenticated, service_role;
+create table auth.users (id uuid primary key, email text);
+create function auth.uid() returns uuid language sql stable set search_path = ''
+as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+grant execute on function auth.uid() to anon, authenticated, service_role;
+create table public.tenants (id uuid primary key, slug text unique not null, display_name text not null);
+
+-- La auditoría, como el contrato 0491.
+create table public.audit_entity_types (
+  entity_type text primary key,
+  status text not null check (status in ('active', 'deprecated')),
+  domain_code text, contract_version integer, introduced_by_ref text
+);
+-- El tipo exchange_rate lo siembra 0293 en producción.
+insert into public.audit_entity_types values ('exchange_rate', 'active', 'configuration', 1, 'migration:0293');
+create table public.entity_audit_log (
+  id uuid primary key default gen_random_uuid(), tenant_id uuid not null,
+  entity_type text not null, entity_id uuid not null, actor_type text not null,
+  actor_id uuid, event_type text not null, payload jsonb not null default '{}'::jsonb,
+  occurred_at timestamptz not null default now(),
+  constraint entity_audit_log_tenant_id_fkey foreign key (tenant_id) references public.tenants(id) on delete cascade,
+  constraint entity_audit_log_entity_type_fkey foreign key (entity_type)
+    references public.audit_entity_types(entity_type) on update restrict on delete restrict,
+  constraint entity_audit_log_actor_type_check check (actor_type in ('user', 'operario', 'system'))
+);
+alter table public.entity_audit_log enable row level security;
+create policy entity_audit_log_tenant_select on public.entity_audit_log for select to authenticated using (true);
+create policy entity_audit_log_service_role_all on public.entity_audit_log for all to service_role using (true) with check (true);
+grant select on public.entity_audit_log to authenticated;
+grant all on public.entity_audit_log to service_role;
+create publication supabase_realtime;
+alter publication supabase_realtime add table public.entity_audit_log;
+\ir ../migrations/0267_audit_contract_append_only.sql
+\ir ../migrations/0294_audit_d2_human_reasons.sql
+
+create table public.user_tenants (
+  user_id uuid not null references auth.users(id), tenant_id uuid not null references public.tenants(id),
+  role text not null, disabled_at timestamptz, primary key (user_id, tenant_id)
+);
+alter table public.user_tenants enable row level security;
+grant select on public.user_tenants to authenticated;
+create policy "users see their own user_tenants" on public.user_tenants
+  for select to authenticated using (user_id = (select auth.uid()) and disabled_at is null);
+create function public.get_user_tenant_id() returns uuid
+language sql stable security definer set search_path = '' as $$
+  select (pg_catalog.array_agg(ut.tenant_id))[1] from public.user_tenants as ut
+  where ut.user_id = (select auth.uid()) and ut.disabled_at is null
+  having pg_catalog.count(*) = 1;
+$$;
+grant execute on function public.get_user_tenant_id() to authenticated;
+create function public.current_studio_role() returns text
+language sql stable security definer set search_path = '' as $$
+  select ut.role from public.user_tenants ut where ut.user_id = (select auth.uid()) and ut.disabled_at is null limit 1
+$$;
+create function public.touch_updated_at() returns trigger language plpgsql as $$
+begin new.updated_at = now(); return new; end;
+$$;
+create table public.shipments (
+  id uuid primary key, tenant_id uuid not null references public.tenants(id), shipment_service text, deleted_at timestamptz
+);
+-- 0074 crea tenant_fx_history; acá basta su forma para el conteo del preflight.
+create table public.tenant_fx_history (
+  id uuid primary key default gen_random_uuid(), tenant_id uuid not null references public.tenants(id),
+  currency_pair text not null, rate numeric not null check (rate > 0), set_at timestamptz default now(),
+  set_by uuid, expense_id uuid
+);
+
+\ir ../migrations/0077_invoices.sql
+\ir ../migrations/0078_contabilidad.sql
+\ir ../migrations/0088_tesoreria.sql
+\if :apply_fix
+\ir ../migrations/0495_fx_rates_conversor_usd.sql
+\endif
+
+create function pg_temp.fixture_id(p_label text) returns uuid language sql immutable as $$
+  select md5('0495-synthetic-' || p_label)::uuid
+$$;
+insert into auth.users (id) select pg_temp.fixture_id(u) from unnest(array['admin-A', 'accounting-A', 'commercial-A', 'admin-B']) u;
+insert into public.tenants (id, slug, display_name) values
+  (pg_temp.fixture_id('tenant-A'), 'tenant-a-0495', 'Tenant A 0495'),
+  (pg_temp.fixture_id('tenant-B'), 'tenant-b-0495', 'Tenant B 0495');
+insert into public.user_tenants (user_id, tenant_id, role)
+select pg_temp.fixture_id(u), pg_temp.fixture_id(t), r from (values
+  ('admin-A', 'tenant-A', 'admin'), ('accounting-A', 'tenant-A', 'accounting'),
+  ('commercial-A', 'tenant-A', 'commercial'), ('admin-B', 'tenant-B', 'admin')) v(u, t, r);
+
+create temporary sequence assertion_count;
+create function pg_temp.assert_true(p_value boolean, p_label text) returns void language plpgsql as $$
+begin
+  if p_value is distinct from true then raise exception 'TEST 0495: %', p_label; end if;
+  perform nextval('pg_temp.assertion_count');
+end;
+$$;
+create function pg_temp.as_actor(p_actor text, p_sql text, p_role text default 'authenticated')
+returns jsonb language plpgsql as $$
+declare v_result jsonb;
+begin
+  perform set_config('request.jwt.claim.sub', coalesce(pg_temp.fixture_id(p_actor)::text, ''), true);
+  execute format('set local role %I', p_role);
+  execute p_sql into v_result;
+  reset role;
+  return v_result;
+exception when others then
+  reset role;
+  raise;
+end;
+$$;
+create function pg_temp.error_of(p_actor text, p_sql text, p_role text default 'authenticated')
+returns text language plpgsql as $$
+declare v_state text; v_message text; v_hint text;
+begin
+  perform pg_temp.as_actor(p_actor, p_sql, p_role);
+  return 'ok';
+exception when others then
+  get stacked diagnostics v_state = returned_sqlstate, v_message = message_text, v_hint = pg_exception_hint;
+  return v_state || '|' || v_message || '|' || coalesce(v_hint, '');
+end;
+$$;
+create function pg_temp.err(p_sql text) returns text language plpgsql as $$
+declare v_state text; v_message text; v_hint text;
+begin
+  execute p_sql;
+  return 'ok';
+exception when others then
+  get stacked diagnostics v_state = returned_sqlstate, v_message = message_text, v_hint = pg_exception_hint;
+  return v_state || '|' || v_message || '|' || coalesce(v_hint, '');
+end;
+$$;
+create function pg_temp.usd(p_amount numeric, p_currency text, p_rate numeric) returns numeric language plpgsql as $$
+begin
+  return public.to_usd(p_amount, p_currency, p_rate);
+end;
+$$;
+
+-- ── 0. La migración está (control rojo: sin 0495 falla acá) ──
+select pg_temp.assert_true(to_regprocedure('public.to_usd(numeric,text,numeric)') is not null,
+  'existe public.to_usd(numeric,text,numeric)');
+
+-- ── 1. El conversor: USDT = USD 1:1, VES y CNY con tasa ──
+select pg_temp.assert_true(pg_temp.usd(100, 'USD', null) = 100 and pg_temp.usd(100, 'usdt', null) = 100,
+  'USD y USDT valen 1:1, sin tasa (decisión 1 de Sam)');
+select pg_temp.assert_true(pg_temp.usd(36500, 'VES', 36.5) = 1000, 'VES se divide por la tasa');
+select pg_temp.assert_true(pg_temp.usd(718, 'CNY', 7.18) = 100 and pg_temp.usd(718, 'RMB', 7.18) = 100,
+  'CNY se divide por la tasa, y RMB es CNY');
+select pg_temp.assert_true(pg_temp.usd(10, 'VES', 3) = 3.33, 'redondea a 2 decimales al final');
+select pg_temp.assert_true(pg_temp.usd(null, 'VES', 36) is null, 'un monto nulo sigue nulo');
+
+-- ── 2. Falla cerrado: nunca 0 ni el monto tal cual ──
+select pg_temp.assert_true(pg_temp.err('select public.to_usd(500, ''VES'', null)') = '22023|FX_RATE_MISSING|dtd-fx',
+  'VES sin tasa falla cerrado (no el nominal)');
+select pg_temp.assert_true(pg_temp.err('select public.to_usd(500, ''CNY'', null)') = '22023|FX_RATE_MISSING|dtd-fx',
+  'CNY sin tasa falla cerrado (no 0)');
+select pg_temp.assert_true(pg_temp.err('select public.to_usd(500, ''VES'', 0)') = '22023|FX_RATE_MISSING|dtd-fx'
+  and pg_temp.err('select public.to_usd(500, ''VES'', -1)') = '22023|FX_RATE_MISSING|dtd-fx',
+  'una tasa 0 o negativa falla cerrado');
+select pg_temp.assert_true(pg_temp.err('select public.to_usd(500, ''VES'', ''NaN''::numeric)') = '22023|FX_RATE_MISSING|dtd-fx'
+  and pg_temp.err('select public.to_usd(500, ''VES'', ''Infinity''::numeric)') = '22023|FX_RATE_MISSING|dtd-fx',
+  'NaN e Infinity no son una tasa');
+select pg_temp.assert_true(pg_temp.err('select public.to_usd(''NaN''::numeric, ''USD'', null)') = '22023|FX_AMOUNT_INVALID|dtd-fx',
+  'NaN no es un monto');
+select pg_temp.assert_true(pg_temp.err('select public.to_usd(500, ''EUR'', 1.1)') = '22023|FX_CURRENCY_UNKNOWN|dtd-fx',
+  'una moneda desconocida falla cerrado');
+select pg_temp.assert_true(
+  (select p.provolatile from pg_proc p where p.oid = 'public.to_usd(numeric,text,numeric)'::regprocedure) = 'i'
+  and (select p.provolatile from pg_proc p where p.oid = 'public.fx_rate_on(uuid,text,date)'::regprocedure) = 's',
+  'to_usd es IMMUTABLE (recibe la tasa) y fx_rate_on es STABLE (lee la tabla)');
+
+-- ── 3. La tabla: solo se lee por la API ──
+select pg_temp.assert_true(has_table_privilege('authenticated', 'public.fx_rates', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.fx_rates', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.fx_rates', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.fx_rates', 'DELETE'),
+  'authenticated solo lee fx_rates');
+select pg_temp.assert_true(split_part(pg_temp.error_of('admin-A', format(
+  'insert into public.fx_rates (tenant_id, currency, rate, valid_on, source) values (%L::uuid, ''VES'', 36, ''2026-10-01'', ''bcv'') returning to_jsonb(id)',
+  pg_temp.fixture_id('tenant-A'))), '|', 1) = '42501', 'ni el admin escribe la tabla a mano');
+
+-- ── 4. Registrar una tasa: admin o accounting, con fecha y validada ──
+select pg_temp.assert_true(pg_temp.error_of('commercial-A',
+  'select public.registrar_tasa_de_cambio(''VES'', 36.5, ''2026-10-01'', null)')
+  = '42501|Solo admin o contabilidad registran una tasa de cambio.|dtd-fx', 'commercial no registra tasas');
+select pg_temp.assert_true(pg_temp.error_of('admin-A',
+  'select public.registrar_tasa_de_cambio(''USD'', 1, ''2026-10-01'', null)')
+  = '22023|La tasa se registra para bolívares (VES) o yuanes (CNY).|dtd-fx', 'no se registra una tasa de USD');
+select pg_temp.assert_true(pg_temp.error_of('admin-A',
+  'select public.registrar_tasa_de_cambio(''VES'', 0, ''2026-10-01'', null)')
+  = '22023|La tasa tiene que ser un número mayor que 0.|dtd-fx', 'una tasa 0 no se registra');
+select pg_temp.assert_true(pg_temp.error_of('admin-A',
+  'select public.registrar_tasa_de_cambio(''VES'', ''NaN''::numeric, ''2026-10-01'', null)')
+  = '22023|La tasa tiene que ser un número mayor que 0.|dtd-fx', 'NaN no se registra');
+select pg_temp.assert_true(pg_temp.error_of('admin-A', format(
+  'select public.registrar_tasa_de_cambio(''VES'', 36, %L::date, null)', (now() at time zone 'America/Caracas')::date + 1))
+  = '22023|La fecha de la tasa no puede ser posterior a hoy.|dtd-fx', 'una tasa no se registra con fecha futura');
+select pg_temp.assert_true((pg_temp.as_actor('admin-A',
+  'select public.registrar_tasa_de_cambio(''VES'', 36.5, ''2026-10-01'', ''BCV del día'')') ->> 'ok')::boolean
+  and (pg_temp.as_actor('accounting-A',
+  'select public.registrar_tasa_de_cambio(''rmb'', 7.18, ''2026-10-01'', null)') ->> 'currency') = 'CNY',
+  'admin y accounting registran; rmb queda como CNY');
+select pg_temp.assert_true((select source = 'manual' and set_by = pg_temp.fixture_id('admin-A') and rate = 36.5
+  from public.fx_rates where tenant_id = pg_temp.fixture_id('tenant-A') and currency = 'VES' and valid_on = '2026-10-01'),
+  'la tasa queda como manual, con quién');
+
+-- ── 5. La segunda del mismo día la reemplaza, y la auditoría guarda la anterior ──
+select pg_temp.as_actor('accounting-A', 'select public.registrar_tasa_de_cambio(''VES'', 36.7, ''2026-10-01'', ''Corrección'')');
+select pg_temp.assert_true((select count(*) from public.fx_rates
+  where tenant_id = pg_temp.fixture_id('tenant-A') and currency = 'VES' and valid_on = '2026-10-01') = 1
+  and (select rate from public.fx_rates where tenant_id = pg_temp.fixture_id('tenant-A') and currency = 'VES' and valid_on = '2026-10-01') = 36.7,
+  'la segunda tasa manual del mismo día reemplaza a la primera');
+select pg_temp.assert_true(exists (select 1 from public.entity_audit_log
+  where entity_type = 'exchange_rate' and event_type = 'exchange_rate_corrected'
+    and (before_data ->> 'rate')::numeric = 36.5 and (after_data ->> 'rate')::numeric = 36.7),
+  'la auditoría D2 guarda la tasa anterior y la nueva');
+select pg_temp.assert_true((select count(*) from public.entity_audit_log
+  where entity_type = 'exchange_rate' and event_type = 'exchange_rate_recorded') = 2,
+  'cada tasa nueva queda registrada en la auditoría');
+
+-- ── 6. La tasa vigente: la fecha más reciente, y ese día bcv > manual > operacion ──
+insert into public.fx_rates (tenant_id, currency, rate, valid_on, source) values
+  (pg_temp.fixture_id('tenant-A'), 'VES', 37.0, '2026-10-05', 'operacion'),
+  (pg_temp.fixture_id('tenant-A'), 'VES', 36.9, '2026-10-05', 'manual'),
+  (pg_temp.fixture_id('tenant-A'), 'VES', 36.8, '2026-10-05', 'bcv'),
+  (pg_temp.fixture_id('tenant-B'), 'VES', 99.0, '2026-10-05', 'bcv');
+create function pg_temp.vigente(p_actor text, p_currency text, p_on date) returns text language plpgsql as $$
+begin
+  return (pg_temp.as_actor(p_actor, format(
+    'select to_jsonb(r) from public.fx_rate_on(%L::uuid, %L, %L::date) r', pg_temp.fixture_id('tenant-A'), p_currency, p_on)))::text;
+end;
+$$;
+select pg_temp.assert_true((pg_temp.vigente('accounting-A', 'VES', '2026-10-05'))::jsonb
+  = '{"rate": 36.80000000, "source": "bcv", "valid_on": "2026-10-05"}'::jsonb, 'ese día gana la del BCV');
+select pg_temp.assert_true((pg_temp.vigente('accounting-A', 'VES', '2026-10-03'))::jsonb
+  = '{"rate": 36.70000000, "source": "manual", "valid_on": "2026-10-01"}'::jsonb, 'sin tasa ese día, la más reciente anterior');
+select pg_temp.assert_true(pg_temp.error_of('accounting-A', format(
+  'select to_jsonb(r) from public.fx_rate_on(%L::uuid, ''VES'', ''2026-09-30'') r', pg_temp.fixture_id('tenant-A')))
+  = '22023|FX_RATE_MISSING|dtd-fx', 'sin ninguna tasa anterior, falla cerrado');
+select pg_temp.assert_true(pg_temp.error_of('admin-B', format(
+  'select to_jsonb(r) from public.fx_rate_on(%L::uuid, ''VES'', ''2026-10-05'') r', pg_temp.fixture_id('tenant-A')))
+  = '22023|FX_RATE_MISSING|dtd-fx', 'otro tenant no ve las tasas del tenant A');
+
+-- ── 7. El documento guarda la fuente y la fecha de su tasa ──
+select pg_temp.assert_true(
+  (select count(*) from information_schema.columns where table_schema = 'public'
+     and table_name in ('invoices', 'supplier_bills') and column_name in ('fx_rate_source', 'fx_rate_valid_on')) = 4,
+  'facturas y CxP guardan la fuente y la fecha de su tasa');
+select pg_temp.assert_true(pg_temp.err(format(
+  'insert into public.invoices (tenant_id, invoice_code, client_markbox, client_name, currency, fx_rate, fx_rate_source, base_amount, total_amount, paid_amount, status) '
+  || 'values (%L::uuid, ''F-1'', ''DTD-1'', ''C'', ''VES'', 36, ''paralela'', 100, 100, 0, ''borrador'')', pg_temp.fixture_id('tenant-A'))) like '23514|%',
+  'la fuente de la tasa del documento es bcv, manual u operacion');
+
+-- ── 8. El preflight: tenant_fx_history vacía y aplicada una sola vez ──
+select pg_temp.assert_true((select count(*) from public.tenant_fx_history) = 0, 'tenant_fx_history sigue vacía');
+
+select 'TEST 0495 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
+rollback;

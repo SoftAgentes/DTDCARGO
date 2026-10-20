@@ -1,7 +1,7 @@
 ---
 sdd: "0569"
 title: "Un solo conversor a USD, que falla cerrado, y una tabla de tasas con fuente y fecha"
-status: draft
+status: in-progress
 author: "founder"
 created: 2026-10-20
 updated: 2026-10-20
@@ -15,7 +15,15 @@ confidencialidad: interno
 
 > La 2.1 del plan contable, primera parte: la tabla `fx_rates` y el conversor canónico (`to_usd` en SQL y `toUsd` en `lib/shared`), que nunca devuelve 0 ni el monto tal cual cuando falta la tasa. USDT = USD 1:1.
 
-**Estado: DISEÑO para revisión del Director.** Todavía no hay migración ni código. La propuesta de partir la 2.1 y las preguntas están al final.
+**Estado: IMPLEMENTADA, en PR en borrador.** El Director aprobó el diseño el 2026-10-20 y respondió las cinco preguntas (ver *Decisiones del Director*). La 0495 espera el OK nominal de Sam (MIGRATE-FIRST).
+
+## Decisiones del Director, 2026-10-20 (respuesta a las preguntas del diseño)
+
+1. **`tenant_fx_history`:** el Director midió **0 filas** en producción. No hay copia: `fx_rates` arranca vacía, y el preflight de la 0495 aborta si `tenant_fx_history` tiene alguna fila al aplicar. La tabla vieja no se borra, pero la app deja de escribirla y de leerla.
+2. **Dos tasas manuales del mismo día:** la segunda reemplaza a la primera por la RPC, y la auditoría D2 guarda la anterior y la nueva.
+3. **Preferencia de la fuente:** `bcv`, después `manual` y después `operacion`. De acuerdo.
+4. **El gasto móvil en VES o CNY:** se precarga la última tasa y se muestra, editable.
+5. **La partición:** aprobada. Los 13 reemplazos van en su propia SDD, con número al empezarla.
 
 ## Contexto
 
@@ -60,90 +68,137 @@ confidencialidad: interno
   - CNY = 0: `fidelizacion/types.test.ts:270-274` y `alerts.test.ts:101-115`;
   - CNY dividido por la tasa: `treasury.test.ts:328-330` y `renditions.test.ts:213, 249`.
 
-## Propuesta: partir la 0569 en dos PR
+## La partición (aprobada)
 
-Reemplazar las 13 implementaciones cambia cifras visibles en reportes, cobranzas, CxP, costing, el dashboard y el móvil, y reescribe unas diez pruebas. Junto con la tabla y la migración, no entra en una PR revisable. **Propongo:**
+Reemplazar las 13 implementaciones cambia cifras visibles en reportes, cobranzas, CxP, costing, el dashboard y el móvil, y reescribe unas diez pruebas. Junto con la tabla y la migración, no entra en una PR revisable. Por eso:
 
-- **0569 (esta PR):**
-  - la tabla `fx_rates`;
-  - `to_usd` en SQL y `toUsd` en `lib/shared/fx.ts`;
-  - la tasa vigente (`fx_rate_on`);
-  - la captura con tasa obligatoria (factura en CNY, CxP);
-  - Admin › Tasas escribe en `fx_rates`.
+- **0569 (esta PR):** la tabla `fx_rates`, `to_usd` en SQL y `toUsd` en `lib/shared/fx.ts`, la tasa vigente (`fx_rate_on`), la captura con tasa obligatoria y congelada en el documento, y Admin › Tasas, gastos y el móvil sobre `fx_rates`. **Ningún reporte cambia todavía.**
+- **La SDD siguiente:** reemplaza las 13 implementaciones y las constantes por `toUsd`, con la lista de pantallas que cambian de cifra, y reescribe las pruebas que fijan lo de hoy, cada una citando la decisión 1.
 
-  Ningún reporte cambia todavía.
-- **0569-b (SDD siguiente):** reemplaza las 13 implementaciones y las constantes por `toUsd`, con la lista de pantallas que cambian de cifra, y reescribe las pruebas que fijan lo de hoy, cada una citando la decisión 1.
+## Implementación
 
-## Diseño (esta PR)
+### 1. La migración `0495_fx_rates_conversor_usd.sql` (MIGRATE-FIRST)
 
-### 1. La tabla `fx_rates` (migración 0495, MIGRATE-FIRST)
+- **Preflight:** aborta si `fx_rates` o `to_usd` ya existen, o si `tenant_fx_history` tiene filas. Exige `append_audit_event` SECURITY DEFINER con `search_path` vacío y el tipo de entidad de auditoría `exchange_rate`.
+- **La tabla `fx_rates`:**
 
-| Columna | Tipo | Qué es |
-|---|---|---|
-| `id` | `uuid` | |
-| `tenant_id` | `uuid` | en cascada, como el resto |
-| `currency` | `text` | `VES` o `CNY` (`RMB` se normaliza a `CNY`); un CHECK |
-| `rate` | `numeric(20,8)` | unidades de esa moneda por 1 USD, mayor que 0 |
-| `valid_on` | `date` | la fecha de valor, el día de Caracas |
-| `source` | `text` | `bcv`, `manual` u `operacion`; un CHECK |
-| `set_by` | `uuid` | quién, o null si la cargó un proceso |
-| `set_at` | `timestamptz` | cuándo |
-| `note` | `text` | opcional |
+  | Columna | Tipo | Qué es |
+  |---|---|---|
+  | `id` | `uuid` | |
+  | `tenant_id` | `uuid` | en cascada, como el resto |
+  | `currency` | `text` | `VES` o `CNY`; un CHECK (`RMB` se normaliza antes) |
+  | `rate` | `numeric(20,8)` | unidades de esa moneda por 1 USD; mayor que 0 y menor que 1e12 (eso descarta NaN e Infinity) |
+  | `valid_on` | `date` | la fecha de valor, el día de Caracas |
+  | `source` | `text` | `bcv`, `manual` u `operacion`; un CHECK |
+  | `set_by` | `uuid` | quién, o null si la cargó un proceso |
+  | `set_at` | `timestamptz` | cuándo |
+  | `note` | `text` | opcional, hasta 500 caracteres |
 
-- **Unicidad:** `(tenant_id, currency, valid_on, source)`. Una corrección del mismo día crea una fila nueva con otra fuente, o reemplaza la manual por la RPC con su historial (pregunta 2).
-- **Permisos:** RLS de lectura por tenant. La escritura va solo por una RPC DEFINER, para admin y accounting, y por `service_role`, que es la futura carga del BCV.
-- **`tenant_fx_history` no se borra.** Sus filas pasan a `fx_rates` con `source = 'manual'` y `valid_on` = el día de Caracas de `set_at` (pregunta 1).
+  Única por `(tenant_id, currency, valid_on, source)`. RLS de lectura por tenant; `authenticated` solo lee. La escritura va por la RPC o por `service_role`, que es la futura carga del BCV.
+- **`fx_normalizar_moneda` y `to_usd(amount, currency, rate)`:** IMMUTABLE, sin acceso a tablas; la tasa llega ya resuelta. USD y USDT 1:1. VES y CNY divididos por la tasa, con `RMB` = CNY. Redondeo a 2 decimales al final. Un monto null devuelve null. **Falla cerrado** con hint `dtd-fx`:
+  - `FX_RATE_MISSING` sin una tasa finita y mayor que 0;
+  - `FX_CURRENCY_UNKNOWN` con otra moneda;
+  - `FX_AMOUNT_INVALID` con un monto fuera de ±1e12, o NaN.
+- **`fx_rate_on(tenant, currency, date)`:** STABLE e INVOKER, así que la RLS filtra por tenant. Devuelve la tasa, su fuente y su fecha: la de la fecha más reciente menor o igual a `date`, y ese día la de `bcv`, después `manual` y después `operacion`. Sin ninguna, `FX_RATE_MISSING`.
+- **`registrar_tasa_de_cambio(currency, rate, valid_on, note)`:** SECURITY DEFINER, solo admin o accounting del tenant. Valida la moneda, la tasa y que la fecha no sea posterior a hoy en Caracas. Una segunda tasa manual del mismo día y moneda reemplaza a la primera.
+- **La auditoría D2:** un disparador sobre `fx_rates` llama a `append_audit_event` con `exchange_rate_recorded`, `exchange_rate_corrected` o `exchange_rate_deleted`, y guarda la tasa anterior y la nueva en `before_data` y `after_data`.
+- **`invoices` y `supplier_bills`:** dos columnas nuevas, `fx_rate_source` (CHECK `bcv`, `manual` u `operacion`) y `fx_rate_valid_on`. El documento congela la tasa que usó: una corrección posterior de `fx_rates` no lo cambia (decisión 1: la factura toma «la tasa BCV del día de emisión»).
+- **Postflight:** las volatilidades, que `authenticated` solo lee `fx_rates`, la ACL de la RPC y de la auditoría, y el disparador.
 
-### 2. El conversor: `to_usd` (SQL) y `toUsd` (`lib/shared/fx.ts`)
+**Por qué `to_usd` es IMMUTABLE y `fx_rate_on` STABLE:** el conversor no lee tablas, así que puede ir en índices, CHECK y columnas generadas. La tasa vigente sí lee `fx_rates`, que cambia entre transacciones.
 
-Las dos versiones siguen la misma regla, la de `amountToUsd`:
-- **USD y USDT:** el monto, 1:1.
-- **VES y CNY (y `RMB`, que se normaliza a CNY):** el monto dividido por la tasa. **Sin una tasa finita y mayor que 0, falla cerrado:**
-  - en SQL lanza `FX_RATE_MISSING` (22023, con hint);
-  - en TS devuelve `{ ok: false, reason: "missing-fx-rate" }`.
-- **Una moneda desconocida:** falla cerrado, con `FX_CURRENCY_UNKNOWN`.
-- **El redondeo** es a 2 decimales al final, nunca en el medio.
+### 2. `lib/shared/fx.ts`
 
-`to_usd` es `immutable` y sin acceso a tablas. Recibe la tasa ya resuelta.
+`normalizarMoneda`, `necesitaTasa`, `tasaValida` y `toUsd`, con la misma regla que `to_usd`: devuelve `{ ok: true, usd }` o `{ ok: false, reason }`, con las razones `missing-fx-rate`, `unknown-currency` e `invalid-amount`. Vive en `lib/shared` porque la SDD siguiente lo usa también fuera del Studio.
 
-### 3. La tasa vigente: `fx_rate_on(tenant, currency, date)`
+### 3. `lib/studio/fx-rates.ts`
 
-Devuelve la tasa de la fecha más reciente que sea menor o igual a `date`. Si ese día hay varias, el orden de preferencia es `bcv`, después `manual` y después `operacion` (pregunta 3). Sin ninguna, falla cerrado con `FX_RATE_MISSING`. Los documentos siguen congelando su propia tasa (`invoices.fx_rate` y las demás); `fx_rate_on` es para precargarla y para los reportes en Bs.
+- `tasaVigente`: llama a `fx_rate_on`; null si no hay tasa o si la base todavía no tiene la 0495.
+- `tasaDelDocumento`: la tasa que congela un documento. En USD y USDT no hay tasa y no se llama a la base. La tasa escrita es `manual` y del día del documento. Sin ella, la vigente, con su fuente y su fecha. Sin ninguna, el error «Falta la tasa de {bolívares|yuanes} para el {fecha}: escríbela aquí o cárgala en Admin › Tasas.»
+- `ultimaTasa`: la última tasa de una moneda, para precargar gastos, Admin y el móvil.
 
 ### 4. La captura con tasa obligatoria
 
-- **Factura:** exige la tasa también en CNY (`invoice-types.ts:420-426`).
-- **CxP:** exige la tasa si la moneda no es USD ni USDT (`treasury/types.ts:327-330`).
-- **Gastos:** ya la exigen.
-- **Gasto móvil:** el formulario no manda `fx_rate`. La 0569 lo precarga desde `fx_rate_on`, o el móvil deja de ofrecer VES y CNY (pregunta 4).
+- **Factura** (`invoice-types.ts`, `facturacion/actions.ts`): exige la tasa también en CNY. `createInvoice` y `updateInvoice` resuelven la tasa antes de validar y guardan `fx_rate`, `fx_rate_source` y `fx_rate_valid_on`. En USD y USDT no nombran las columnas nuevas. El día del documento es hoy en UTC; la hora de Caracas es la 0570.
+- **CxP** (`treasury/types.ts`, `treasury-actions.ts`): exige la tasa fuera de USD y USDT. `createBillFor` la resuelve al día de emisión.
+- **Gastos de escritorio:** ya exigían la tasa. Dejan de copiarla a `tenant_fx_history`, y la precarga sale de `fx_rates` (`getLastFxRate` usa `ultimaTasa`; `setAt` pasa a ser la fecha de valor).
+- **Gasto móvil:** el formulario de crear y el de editar muestran la tasa en VES o CNY, precargada con la última del Studio y editable (`CampoTasaGasto`); la acción la manda. Sin tasa, el validador lo rechaza como en escritorio.
 
 ### 5. Admin › Tasas
 
-Escribe en `fx_rates` por la RPC, con la fuente y la fecha de valor. La pantalla deja de prometer «configuración de qué tasa usa cada flujo» (`admin/page.tsx:176`), que no existe.
+Registra por la RPC, con la fecha de la tasa (por defecto hoy en Caracas, sin fechas futuras) y una nota. Muestra la última por par con su fecha y su fuente. Muestra solo los mensajes de la 0495 (hint `dtd-fx`); cualquier otro error de la base se cambia por uno genérico. La descripción de la pantalla deja de prometer «configuración de qué tasa usa cada flujo».
 
 ## Qué NO cambia en esta PR
 
-- Ninguna cifra de los reportes, cobranzas, CxP, costing ni el dashboard. Eso es la 0569-b.
+- Ninguna cifra de los reportes, cobranzas, CxP, costing ni el dashboard. Eso es la SDD siguiente.
 - El asiento de la venta, que es la 2.3 y el B2.
 - La hora de Caracas, que es la 0570.
 - La carga del BCV, que es la tercera.
+- `tenant_fx_history` no se borra.
 
-## Preguntas para el Director
+## Riesgos
 
-1. **`tenant_fx_history`:** ¿se copia a `fx_rates` como `manual`, o arranca vacía? Por la decisión 2 son datos de prueba. Propongo copiar sin borrar la vieja, y que el Director mida antes cuántas filas hay (un conteo).
-2. **Dos tasas manuales del mismo día:** ¿la segunda reemplaza a la primera, guardando el historial en la auditoría, o se rechaza? Propongo reemplazar por la RPC y que quede en la auditoría D2.
-3. **El orden de preferencia de la fuente** (`bcv`, después `manual` y después `operacion`): ¿de acuerdo? La de `operacion` es la que un gasto trae de su propia transacción.
-4. **El gasto móvil en VES o CNY:** ¿se precarga la tasa vigente o se quitan esas monedas del móvil? Propongo precargarla y que se muestre.
-5. **¿Partimos la 0569 como propongo** (tabla y conversor ahora, los 13 reemplazos en la 0569-b)?
+- **Entre aplicar la 0495 y desplegar la PR:** ninguno. La migración es aditiva y la app desplegada no la nota.
+- **La PR desplegada sin la 0495:** una factura o una CxP en VES o CNY falla al guardar, porque nombra las columnas nuevas, y Admin › Tasas no guarda. En USD y USDT todo sigue igual. Está declarado en `pending-migration-symbol-declarations.json`, y el orden MIGRATE-FIRST lo evita.
+- **Un documento en VES o CNY sin tasa cargada:** ya no se guarda con una tasa inventada; pide la tasa. Es el comportamiento buscado (falla cerrado).
+
+## Allowlist exacta
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/0495_fx_rates_conversor_usd.sql` | la migración |
+| `supabase/tests/0495_fx_rates_conversor_usd.test.sql` | el contrato |
+| `lib/studio/__tests__/fx-rates-conversor.migration.test.ts` | el contrato en PGlite: control rojo, 13 mutantes, el preflight con una fila en `tenant_fx_history`, la reaplicación y la espera |
+| `supabase/migrations-baseline.json` | la espera de la 0495 |
+| `supabase/pending-migration-symbol-declarations.json` | los 7 símbolos y su degradación |
+| `lib/shared/fx.ts` | nuevo: el conversor canónico en TS |
+| `lib/shared/__tests__/fx.test.ts` | nueva |
+| `lib/studio/fx-rates.ts` | nuevo: la tasa vigente, la del documento y la última |
+| `lib/studio/__tests__/fx-rates.test.ts` | nueva: la tasa del documento y los validadores |
+| `lib/studio/invoice-types.ts` | la tasa obligatoria también en CNY |
+| `app/studio/(app)/facturacion/actions.ts` | la tasa congelada al crear y al guardar un borrador |
+| `app/studio/(app)/facturacion/__tests__/factura-congela-la-tasa.test.ts` | nueva |
+| `lib/studio/treasury/types.ts` | la tasa obligatoria fuera de USD y USDT |
+| `lib/studio/treasury/treasury-actions.ts` | la tasa congelada al crear la CxP |
+| `lib/studio/treasury/__tests__/cxp-congela-la-tasa.test.ts` | nueva |
+| `lib/studio/exchange-rates-types.ts` | fecha y nota; fuente y fecha de valor en la última tasa |
+| `lib/studio/exchange-rates-queries.ts` | lee `fx_rates` |
+| `app/studio/(app)/admin/exchange-rates-actions.ts` | registra por la RPC |
+| `app/studio/(app)/admin/__tests__/exchange-rates-actions.test.ts` | nueva |
+| `app/studio/(app)/admin/_components/ExchangeRatesSection.tsx` | fecha de la tasa, fuente y textos nuevos |
+| `app/studio/(app)/admin/page.tsx` | la descripción de la sección |
+| `lib/studio/expense-queries.ts` | la precarga sale de `fx_rates` |
+| `app/studio/(app)/gastos/actions.ts` | deja de escribir `tenant_fx_history` |
+| `app/m/erp/_components/MobileErpClient.tsx` | el campo de la tasa en el gasto móvil |
+| `app/m/erp/actions.ts` | manda la tasa al crear y al editar |
+| `app/m/erp/page.tsx` | la precarga de la tasa |
+| `docs/specs/0569-conversor-usd-tasas/spec.md` | esta spec |
+| `docs/specs/README.md` | índice regenerado |
+| `.agents/handoffs/0569-conversor-usd-tasas.md` | handoff |
+
+## Criterios de aceptación
+
+1. `to_usd` y `toUsd` dan lo mismo: USD y USDT 1:1, VES y CNY divididos por la tasa, `RMB` = CNY, redondeo al final. Sin tasa válida, con moneda desconocida o con un monto inválido, fallan cerrado: nunca 0 ni el monto tal cual.
+2. `fx_rate_on` devuelve la tasa vigente con su fuente y su fecha, prefiere `bcv`, después `manual` y después `operacion`, y falla cerrado sin tasa.
+3. Solo admin o accounting registran una tasa, nunca con fecha futura; la segunda manual del día reemplaza a la primera, y la auditoría guarda las dos.
+4. `authenticated` solo lee `fx_rates`, y solo las de su tenant.
+5. Una factura o una CxP en VES o CNY guarda la tasa que usó, con su fuente y su fecha; sin ninguna tasa, no se guarda y el error dice qué hacer. En USD y USDT no cambia nada.
+6. Admin › Tasas, gastos y el móvil leen y escriben `fx_rates`; nada escribe `tenant_fx_history`.
+7. El preflight aborta si `tenant_fx_history` tiene filas; aplicada dos veces, aborta con «ya existe».
+8. Control rojo: sin la 0495 el contrato falla en la primera aserción, y cada regla tiene un mutante que muere en su aserción.
+9. Ninguna cifra de reportes cambia.
 
 ## Gobernanza
 
 | Política | Clasificación | Evidencia |
 |---|---|---|
-| Cambio de comportamiento Studio | por cumplir | la allowlist exacta va con la implementación |
-| Producción | cumplimiento | la 0495 se aplica con el OK nominal de Sam y el runbook; el conteo de `tenant_fx_history` lo mide el Director |
-| AUD-01 | por cumplir | la tasa guarda quién, cuándo y la fuente; `fx_rates` entra en la auditoría D2 |
+| Cambio de comportamiento Studio | cumplimiento | esta spec, con allowlist exacta |
+| AUD-01 | cumplimiento | la tasa guarda quién, cuándo y la fuente, y cada alta, corrección o borrado entra en la auditoría D2 con la tasa anterior y la nueva |
+| ERR-01 | cumplimiento | Admin › Tasas muestra solo los mensajes con `hint = 'dtd-fx'`; el resto, un mensaje genérico (prueba de la acción) |
+| FRM-01, A11Y-01 | cumplimiento | la fecha y la tasa del móvil con `<label>`; la ayuda de la tasa con `aria-describedby` |
+| Producción | cumplimiento | el conteo de `tenant_fx_history` lo midió el Director; la 0495 se aplica con el OK nominal de Sam y el runbook |
+| Datos personales | no aplica | las tasas no son datos personales |
 
 ## Validación
 
-Pendiente.
+Ver el handoff `.agents/handoffs/0569-conversor-usd-tasas.md`.

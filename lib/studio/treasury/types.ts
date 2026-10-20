@@ -320,6 +320,18 @@ export function validateBillInput(input: Partial<BillInput>): {
     ? (input.currency as InvoiceCurrency)
     : "USD";
 
+  // SDD-0569: fuera de USD y USDT, la CxP necesita tasa para pasar a USD. La
+  // acción la precarga con la vigente (fx_rates) si no se escribió.
+  if (currency !== "USD" && currency !== "USDT") {
+    const fx = Number(input.fxRate);
+    if (input.fxRate == null || !Number.isFinite(fx) || fx <= 0) {
+      errors.fxRate =
+        currency === "VES"
+          ? "Indica la tasa para registrar la cuenta por pagar en bolívares."
+          : "Indica la tasa para registrar la cuenta por pagar en yuanes.";
+    }
+  }
+
   if (Object.keys(errors).length > 0) {
     return { fieldErrors: errors };
   }

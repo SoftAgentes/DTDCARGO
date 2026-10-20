@@ -54,6 +54,7 @@ import {
   type InvoiceLine,
 } from "@/lib/studio/invoice-types";
 import { createAdminClient } from "@/lib/db/admin";
+import { tasaDelDocumento, type TasaDelDocumento } from "@/lib/studio/fx-rates";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { varsDeFacturaEmitida } from "@/lib/studio/invoice-mail-vars";
 import { getFiscalSettingsSafe } from "@/lib/studio/fiscal/queries";
@@ -95,6 +96,14 @@ function parseLines(formData: FormData): InvoiceLine[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * SDD-0569 · Las columnas de la tasa congelada (0495). Solo en VES o CNY: en USD
+ * y USDT no hay tasa, y no se nombran las columnas nuevas.
+ */
+function columnasDeTasa(tasa: TasaDelDocumento): Record<string, unknown> {
+  return tasa.fxRateSource ? { fx_rate_source: tasa.fxRateSource, fx_rate_valid_on: tasa.fxRateValidOn } : {};
 }
 
 function inputFromFormData(formData: FormData): Partial<InvoiceInput> {
@@ -310,12 +319,19 @@ export async function createInvoice(
   if (denial) return { error: denial };
 
   const partial = inputFromFormData(formData);
+  const { tenantId, error: tErr } = await resolveTenant(supabase);
+  if (tErr || !tenantId) return { error: tErr };
+
+  // SDD-0569: en VES o CNY, la tasa escrita o la vigente de fx_rates.
+  const tasa = await tasaDelDocumento(
+    supabase, tenantId, partial.currency ?? "USD", partial.fx_rate, new Date().toISOString().slice(0, 10),
+  );
+  if (!tasa.ok) return { fieldErrors: { fx_rate: tasa.error } };
+  if (tasa.tasa.fxRate !== null) partial.fx_rate = tasa.tasa.fxRate;
+
   const { input, fieldErrors } = validateInvoiceInput(partial);
   if (fieldErrors) return { fieldErrors };
   const billTo = parseBillToKind(formData);
-
-  const { tenantId, error: tErr } = await resolveTenant(supabase);
-  if (tErr || !tenantId) return { error: tErr };
 
   const iva = await resolveIva(supabase, tenantId, input!.iva_mode);
   const totals = calcInvoiceTotals({
@@ -367,6 +383,7 @@ export async function createInvoice(
       shipment_code: input!.shipment_code,
       currency: input!.currency,
       fx_rate: input!.fx_rate,
+      ...columnasDeTasa(tasa.tasa),
       iva_rate: iva.ivaRate,
       iva_mode: iva.ivaMode,
       base_amount: totals.base,
@@ -428,6 +445,12 @@ export async function updateInvoice(
   }
 
   const partial = inputFromFormData(formData);
+  // SDD-0569: en VES o CNY, la tasa escrita o la vigente de fx_rates.
+  const tasa = await tasaDelDocumento(
+    supabase, current.tenant_id, partial.currency ?? "USD", partial.fx_rate, new Date().toISOString().slice(0, 10),
+  );
+  if (!tasa.ok) return { fieldErrors: { fx_rate: tasa.error } };
+  if (tasa.tasa.fxRate !== null) partial.fx_rate = tasa.tasa.fxRate;
   const { input, fieldErrors } = validateInvoiceInput(partial);
   if (fieldErrors) return { fieldErrors };
   const billTo = parseBillToKind(formData);
@@ -448,6 +471,7 @@ export async function updateInvoice(
       shipment_code: input!.shipment_code,
       currency: input!.currency,
       fx_rate: input!.fx_rate,
+      ...columnasDeTasa(tasa.tasa),
       iva_rate: iva.ivaRate,
       iva_mode: iva.ivaMode,
       base_amount: totals.base,

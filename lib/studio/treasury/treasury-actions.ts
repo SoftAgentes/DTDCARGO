@@ -40,6 +40,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
+import { tasaDelDocumento } from "@/lib/studio/fx-rates";
 import {
   postBillJournalEntry,
   voidBillJournalEntry,
@@ -119,11 +120,20 @@ export async function createBillFor(
   supabase: SupabaseClient,
   raw: Partial<BillInput>,
 ): Promise<CreateBillResult> {
-  const { input, fieldErrors } = validateBillInput(raw);
-  if (fieldErrors) return { fieldErrors };
-
   const tenantId = await resolveTenantId(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  // SDD-0569: fuera de USD y USDT, la tasa escrita o la vigente de fx_rates,
+  // congelada en la CxP con su fuente y su fecha.
+  const tasa = await tasaDelDocumento(
+    supabase, tenantId, raw.currency ?? "USD", raw.fxRate ?? null,
+    raw.issueDate || new Date().toISOString().slice(0, 10),
+  );
+  if (!tasa.ok) return { fieldErrors: { fxRate: tasa.error } };
+  const { input, fieldErrors } = validateBillInput(
+    tasa.tasa.fxRate !== null ? { ...raw, fxRate: tasa.tasa.fxRate } : raw,
+  );
+  if (fieldErrors) return { fieldErrors };
 
   // Snapshot del proveedor (nombre) + validar que existe en el tenant.
   const { data: supplier, error: supErr } = await supabase
@@ -154,6 +164,10 @@ export async function createBillFor(
       expense_account_id: input!.expenseAccountId,
       currency: input!.currency,
       fx_rate: input!.fxRate,
+      // Solo en VES o CNY: en USD y USDT no se nombran las columnas de la 0495.
+      ...(tasa.tasa.fxRateSource
+        ? { fx_rate_source: tasa.tasa.fxRateSource, fx_rate_valid_on: tasa.tasa.fxRateValidOn }
+        : {}),
       total_amount: input!.totalAmount,
       status: "pendiente",
       issue_date: input!.issueDate,
