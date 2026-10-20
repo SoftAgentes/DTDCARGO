@@ -10,7 +10,7 @@ Director liberó el claim anterior. Codex reclamó
 `3d0c9028` a `e6579944c5bfdc5c4addf23a59fa477f3219db7b`.
 `node_modules` es local, sin junction; no se copiaron secretos.
 
-Estado actual: **reparación implementada, validación canónica pendiente**, con la allowlist de **39 rutas** de la spec:
+Estado actual: **reparación implementada y validada localmente, lista para revisión del Director**, con la allowlist de **39 rutas** de la spec:
 38 originales y la prueba `update-invoice-conserva-embarque.test.ts`, ampliación
 autorizada por el Director para representar la confirmación del UPDATE
 condicional sin perder sus aserciones de embarques ni totales.
@@ -37,8 +37,9 @@ requiere una tasa cuya fecha sea exactamente la de emisión. Un catálogo con
 una tasa anterior no basta. CNY, borradores y CxP conservan el resolver histórico.
 El override documental explícito se mantiene. §9 del plan ya fija BCV oficial,
 carga diaria y respaldo manual; implementar la carga y concretar su operación
-queda fuera de esta tarea. La reparación cambia SQL de 0495: el paquete deberá
-reconstruirse y revisarse antes de solicitar el OK nominal de Sam.
+queda fuera de esta tarea. La reparación cambia SQL de 0495. El Director
+comunicó que reconstruyó el paquete desde `5f0d04ad`; conserva a su cargo la
+previa vigente y el OK nominal de Sam. El Worker no aplicó la migración.
 
 ### Evidencia de la reparación actual
 
@@ -59,18 +60,89 @@ mientras se añadían las regresiones. Los diez archivos preparados fuera del
 | Recuperación visual del drawer | **FALLÓ y corregido:** con una tasa faltante, React reiniciaba el selector visible a USD aunque el estado seguía en CNY. Reproducido también en Vitest. Se cancela el reset con listener nativo local del formulario; `onReset` sintético no bastó durante el commit de React. Focal final: 89/89 |
 | Typecheck y lint | **PASÓ:** typecheck completo; ESLint de archivos TS/TSX modificados con cero warnings. Se repitieron después de la corrección visible del drawer |
 | Gates documentales y símbolos | **PASÓ:** índice regenerado/sincronizado con 556 specs, numeración sin colisiones nuevas, candado 486 selladas/3 esperas/0 nueva sin sellar, diff-check limpio. Símbolos: 0 rojo, 1 amarillo declarado (0495), 3 homónimos descartados |
-| `pnpm verify` canónico | **NO EJECUTADO** todavía; se correrá sobre el SHA de implementación publicado por instrucción del Director |
-| UI visible del drawer | **PASÓ en alcance local:** Chrome, componente y CSS reales, datos sintéticos y acciones mock. VES→CNY limpia la tasa; al guardar sin tasa, mensaje junto al campo y selector CNY conservado. Captura `drawer-cny-error-local.png` fuera de Git. No certifica persistencia real ni fidelidad tipográfica de la app completa |
-| Graphify, Archify y preview Obsidian | **NO EJECUTADO** todavía para esta reparación; se medirán por separado |
+| `corepack pnpm verify` sobre `5f0d04ad0749df5aa79c3a3f4635e83ce2c1eeae` | **PASÓ lo medido, cierre canónico incompleto explícito:** exit 0, 14/17 pasos, del 2026-10-20 18:44:21Z al 19:15:07Z. `migrations-applied`, `sql-tests` y `schema-rebuild` se omitieron; los dos últimos se ejecutaron después y se detallan abajo. Incluyó build de producción |
+| Unitarios dentro de verify | Primera corrida **FALLÓ:** timeout de 20 s en `supplier-flow.test.tsx` («supports correction and append-only resubmission without clearing the form»), 12.276 aprobados/1 fallo/1 omitido. Reintento automático **PASÓ:** 12.277 aprobados/1 omitido, 860 archivos aprobados/1 omitido. No se cambió el portal ni su timeout |
+| Navegación dentro de verify | **PASÓ:** 176 aprobados, 2 flaky recuperados (carrusel visual Chromium y selector calculadora mobile-chrome), 20 omitidos. Servicio Supabase sintético deny-only local; no prueba de datos reales |
+| Contratos SQL posteriores sobre el mismo SHA | **PASÓ:** PostgreSQL 17 local, 246 contratos incluida 0495, rollback total. Del 19:15:50Z al 19:18:06Z; `sql-tests-5f0d04ad.log` y `sql-tests-result.json` |
+| Reconstrucción posterior sobre el mismo SHA | **PASÓ:** 471 migraciones desde cero, 18 sólo-ledger verificadas, aislamiento de 219 tablas con dos tenants sintéticos y radiografías de integridad/referidos. Del 19:18:19Z al 19:18:57Z; `schema-rebuild-5f0d04ad.log` y `schema-rebuild-result.json` |
+| Ledger productivo | **NO DISPONIBLE** en el Worker: sin URL/key de producción. Es validación de release del Director; no se aplica DB para poner verde la PR |
+| UI visible del drawer | **PASÓ en alcance local:** Chrome y revisión independiente IAB del Director, componente y CSS reales, datos sintéticos y acciones mock. VES→CNY limpia la tasa; al guardar sin tasa, mensaje junto al campo y selector CNY conservado. Capturas `drawer-cny-error-local.png` y `director-cny-error-local.png` fuera de Git. No certifica persistencia real ni fidelidad tipográfica de la app completa |
+| Graphify, Archify y preview Obsidian | **NO EJECUTADO** para esta reparación, por coordinación expresa del Director al devolver el turno a 0571. Sólo se consultó `knowledge:status` en lectura; los derivados se cerrarán coordinadamente desde main después de integración |
+| Diagnóstico `knowledge:status --preview` | **FALLÓ como estado de conocimiento (`ok: false`):** Graphify 0.9.61 sin `graph.json`, estructura INVALID/4.974 fuentes pendientes, semántica local 0/16 del piloto y 0/1.322 global; Archify y preview PENDING. No es una pérdida medida del grafo de main, sino ausencia de derivados en este worktree |
 | Producción, migración aplicada, merge y despliegue | **NO EJECUTADO**, fuera de autorización Worker |
 
 Los logs y el runner reproducible de los mutantes se conservan fuera de Git en
-`C:/tmp/director-traspaso-20261020/0569-codex-validation/`. El contrato SQL
-normal ejecutado por `verify` queda pendiente hasta esa corrida; PGlite no se
-presenta como evidencia del servidor de producción. La precisión de VES usa
+`C:/tmp/director-traspaso-20261020/0569-codex-validation/`. El verify original
+conserva sus tres SKIPs: las corridas SQL complementarias no reescriben ese
+resultado. La evidencia conjunta cubre los 16 pasos locales; el ledger sigue
+separado como release. La omisión unitaria corresponde al corpus real externo
+de proformas; las 20 omisiones E2E son escenarios que requieren seed/credenciales
+de prueba. No se solicitaron datos comerciales ni secretos para ejecutarlos.
+Lint canónico pasó con 15 warnings generales; el lint focal de los archivos
+modificados pasó con cero warnings.
+
+Docker estaba instalado (Desktop 4.96.0, motor 29.9.1), pero apagado y sin el
+pipe `dockerDesktopLinuxEngine`. Se inició oculto sólo después de verify,
+con autorización del Director. Imagen local `postgres:17`, digest
+`sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675`.
+Los contenedores propios `dtd_sqltest_242b7664` y `dtd_rebuild_242b7664`
+fueron retirados; los cuatro ajenos permanecieron detenidos y sin cambios.
+Docker volvió a estado detenido con su CLI oficial, exit 0; se comprobaron
+cero procesos de prueba y cero procesos Desktop/backend/proxy antes de devolver
+el turno. Evidencias: `docker-start.json`, `docker-cleanup.json`, `docker-stop.log`.
+
+Ninguna de esas pruebas constituye evidencia del servidor de producción. La precisión de VES usa
 la fecha de emisión actual de la app (UTC); no certifica aún la futura
 unificación a Caracas. Se corrigieron los comentarios de la migración para
 no afirmar esa unificación.
+
+### Cierre actual y entrega al Director
+
+**OBJETIVO ORIGINAL:** reparar procedencia, carreras guardar/emitir y bordes de
+captura de la SDD-0569, conservando la separación de 0572 y MIGRATE-FIRST.
+
+**COMPLETADO:** los dos P1 y los bordes asignados, pruebas de regresión,
+mutantes, contrato SQL, validación local y revisión visible sintética. El
+commit de implementación es `5f0d04ad0749df5aa79c3a3f4635e83ce2c1eeae`;
+este cierre documental no modifica producto, pruebas ni SQL.
+
+**VALIDACIÓN:** matriz anterior; evidencia exacta por SHA y por corrida fuera de
+Git. Ninguna omisión se presenta como una prueba aprobada.
+
+**COMMITS:** implementación `5f0d04ad` sobre `e6579944`; el commit documental
+que contiene este cierre conserva el mismo blob SQL
+`c6d17d946d957a29791fec426a1213a05efa7bf4` y SHA-256
+`964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7`.
+
+**PR / BRANCH:** [#301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301),
+en borrador; `codex/sdd-0569-conversor-usd-tasas`. El SHA documental final se
+confirma al Director después del push explícito a la misma rama.
+
+**PENDIENTES DE ESTA TAREA:** revisión y CI del SHA documental final;
+previa vigente, OK nominal de Sam y secuencia MIGRATE-FIRST a cargo del
+Director; posterior integración/despliegue y recorrido real según sus permisos.
+No queda una reparación de producto conocida pendiente dentro de la asignación.
+
+**Impacto documental y conocimiento:** spec y este handoff guardan las decisiones
+autorizadas y la evidencia. La integración en main sigue pendiente. La estructura
+Graphify, cobertura semántica, mapa Archify 2.16.0 y exportación preview no se
+actualizaron en este turno por instrucción del Director. Ninguna de las 16 fuentes
+del piloto semántico cambió en esta reparación; eso no certifica un grafo ausente
+ni la semántica global. `knowledge-status-before.json` conserva el diagnóstico
+en lectura. Publicación compartida y revisión visible en Obsidian:
+**NO EJECUTADO**. El Director coordina esas capas después de integrar; el Worker
+no escribió la bóveda compartida.
+
+**FUERA DE ALCANCE DETECTADO:** intermitencias observadas del portal y de los dos
+casos E2E recuperados, sin causa raíz nueva demostrada ni cambios en sus áreas.
+La carga automática BCV, hora Caracas y reemplazos de reportes 0572 permanecen
+entregas separadas; no se reabre la decisión de fuente BCV ya fijada en §9.
+
+**HANDOFF AL DIRECTOR:** turno pesado devuelto explícitamente tras limpiar los
+recursos propios. La escritura se limita al cierre documental autorizado; al
+terminar push y comprobación de estado se libera el claim
+`codex-0569-01a15a4e-ddf0` y se comunica el resultado. No se aplicó 0495, no se
+fusionó main ni se desplegó.
 
 ## Antecedente fechado de la sesión anterior
 
