@@ -270,4 +270,20 @@ export type EstadoCuentaCliente =
   /** Sin permiso para el saldo: la cabecera no pinta dinero (ERR-01, seguridad). */
   | { tipo: "sin-permiso"; markboxes: string[]; embarquesEnCurso: number | null }
   /** Falló el cálculo: mensaje recuperable con referencia (ERR-01, sistema). */
-  | { tipo: "error"; referencia: string; markboxes: string[]; embarquesEnCurso: number | null };
+  | { tipo: "error"; referencia: string; markboxes: string[]; embarquesEnCurso: number | null }
+  /**
+   * SDD-0568 · El cliente está eliminado (`deleted_at`): la ficha no pide el
+   * saldo, que `client_outstanding` calcula solo para clientes vivos, y lo dice.
+   * `eliminadoEl` es el día de Caracas (AAAA-MM-DD).
+   */
+  | { tipo: "eliminado"; eliminadoEl: string; markboxes: string[]; embarquesEnCurso: number | null };
+
+/**
+ * El día de Caracas (UTC−4, sin horario de verano) de un timestamptz, como
+ * AAAA-MM-DD, sin depender de la zona del servidor. Si no se puede leer, "".
+ */
+export function diaDeCaracas(timestamp: string): string {
+  const t = Date.parse(timestamp);
+  if (!Number.isFinite(t)) return "";
+  return new Date(t - 4 * 3600 * 1000).toISOString().slice(0, 10);
+}

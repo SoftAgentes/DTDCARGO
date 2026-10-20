@@ -308,6 +308,28 @@ describe("getClientAccountState · nunca lanza ni inventa un 0", () => {
     expect(inCol).toHaveBeenCalledWith("client_markbox", ["DTD-0001", "DTD-0100"]);
   });
 
+  it("SDD-0568 · un cliente eliminado no pide el saldo: lo dice, con el día de Caracas", async () => {
+    const { client, rpc } = cliente({ embarques: { count: 0, error: null } });
+    const estado = await getClientAccountState(
+      client,
+      { ...CLIENTE, deleted_at: "2026-10-20T02:30:00+00:00" },
+      { puedeVerSaldo: true, codigosConocidos: [] },
+    );
+    expect(rpc).not.toHaveBeenCalled();
+    // 02:30 UTC del 20 es todavía el 19 en Caracas.
+    expect(estado).toEqual({ tipo: "eliminado", eliminadoEl: "2026-10-19", markboxes: ["DTD-0001"], embarquesEnCurso: 0 });
+  });
+
+  it("SDD-0568 · eliminado gana también sin permiso para el saldo", async () => {
+    const { client } = cliente({});
+    const estado = await getClientAccountState(
+      client,
+      { ...CLIENTE, deleted_at: "2026-10-20T15:00:00Z" },
+      { puedeVerSaldo: false, codigosConocidos: [] },
+    );
+    expect(estado.tipo).toBe("eliminado");
+  });
+
   it("un 42501 de la base tampoco pinta dinero", async () => {
     const { client } = cliente({ rpc: () => ({ data: null, error: { message: "no", code: "42501" } }) });
     const estado = await getClientAccountState(client, CLIENTE, { puedeVerSaldo: true, codigosConocidos: [] });
