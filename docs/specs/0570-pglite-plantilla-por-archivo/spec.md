@@ -143,7 +143,39 @@ A/B local de un archivo (dos corridas de cada lado):
 
 ### Medición después del cambio
 
-Pendiente: corrida de los 34 archivos (con turno del Director) y CI de la PR.
+CI de GitHub, misma clase de runner (TypeScript en 1,2 min) y un worker en los dos lados:
+
+- **sin plantilla:** `main` `d50aa3e7`, run 39429472606;
+- **con plantilla:** `8a13412c`, run 39436611054, que es `main` + la #300 + esta SDD.
+
+| Medida | Sin plantilla | Con plantilla | Cambio |
+|---|---|---|---|
+| 33 archivos afectados (suma) | 21,7 min | 9,5 min | −56 % |
+| Unitarios | 33,9 min | 21,6 min | −36 % |
+| Job | 41,6 min | 29,3 min | −30 % |
+| `borrado-embarques-recepciones` | 169 s | 74 s | |
+| `pin-operarios-endurecer` | 153 s | 72 s | |
+| `portal-bandeja-avisos` | 72 s | 24 s | |
+
+El detalle por archivo está en [assets/comparacion-ci.txt](assets/comparacion-ci.txt).
+
+**Criterio 6 · mismos resultados.**
+- Los 33 archivos afectados tienen el mismo número de casos y todos en verde en los dos lados.
+- En toda la suite, solo dos archivos cambian de conteo, y los dos son de la #300 (SDD-0568), no de
+  esta SDD: `client-account.test.ts` (33 → 35) y `ClientAccountHeader.test.tsx` (11 → 13).
+- Del resto, 12.133 casos sin plantilla y 12.145 con ella: la diferencia son los 4 casos de la #300
+  y los 8 de `vitest/pglite-limpio.test.ts`.
+- El único archivo omitido (`corpus.test.ts`) se omite igual en los dos lados.
+
+**Criterio 7 · el control rojo sigue rojo.** Con plantilla corrieron en verde los 40 casos
+llamados «control rojo» de los archivos afectados. Cada uno afirma que el contrato cae sin su
+migración; por ejemplo, «sin 0476 el equipo borra físicamente un embarque por la API» y «sin 0493
+falla en la primera aserción». Corrieron en verde también los 375 mutantes impresos, cada uno
+muerto donde debe.
+
+**Pendiente.** El A/B local completo de los 34 archivos queda para Codex, cuando el Director dé
+turno de máquina. El CI de la punta `e6311891` no arrancó por un bloqueo de facturación de GitHub
+Actions (run 39453136909, 3 s, sin pasos); hay que relanzarlo cuando se resuelva el pago.
 
 ## Riesgos y reversión
 

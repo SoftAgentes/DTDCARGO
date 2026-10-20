@@ -7,7 +7,7 @@
 | Worktree | `DTD-worktrees/pglite-snapshot-esquema` |
 | Rama | `codex/pglite-snapshot-esquema`, base `origin/main` `d50aa3e7` (incluye la #298) |
 | SDD | [0570](../../docs/specs/0570-pglite-plantilla-por-archivo/spec.md), `in-progress` |
-| Estado | implementado y probado en local por archivo; falta la corrida completa (turno del Director) y el CI |
+| Estado | **pausa ordenada por el Director** (2026-10-20, Codex continúa). Criterios 1 a 8 cumplidos con CI; pendientes: el A/B local completo y el rerun del CI de la punta (bloqueo de facturación) |
 | Permisos | commits selectivos, push de la rama propia y PR en borrador. Sin merge. |
 
 ## Autorizaciones (literales)
@@ -69,7 +69,10 @@ cluster nuevo de cada caso. `new PGlite()` hace el initdb en otra instancia, la 
 | Corrida local de los 34 archivos afectados | NO EJECUTADO: el Director no dio turno (la máquina la usa Contabilidad) |
 | `pnpm typecheck` | NO EJECUTADO en local por la misma razón; lo corre el CI |
 | `pnpm verify` | NO EJECUTADO: es un cambio de prueba, sin código de producto. Lo cubren el CI de calidad (lint, typecheck, test, build) y la corrida local cuando haya turno. |
-| CI de la PR | PENDIENTE |
+| CI con plantilla, run 39436611054 sobre `8a13412c` | PASÓ: Unitarios 21,6 min contra 33,9 sin plantilla (run 39429472606); los 33 archivos afectados, 9,5 min contra 21,7. Detalle en la spec y en `assets/comparacion-ci.txt`. |
+| Criterio 6: mismos resultados | PASÓ: mismo conteo y todos en verde en los 33 archivos afectados; los dos conteos que cambian son de la #300 |
+| Criterio 7: control rojo | PASÓ: 40 controles rojos y 375 mutantes en verde con plantilla |
+| CI de la punta `e6311891` (merge de main del Director) | NO EJECUTADO: GitHub no arrancó el job por facturación (run 39453136909). Relanzar con `gh run rerun 39453136909` cuando se pague. |
 
 Con qué se compara el CI: la rama no trae la #302 (2 workers), así que su CI corre en serie, igual
 que el run 39417924823. Los tiempos por archivo de los dos runs se comparan directo:
@@ -93,9 +96,11 @@ esta PR.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Registrar el CI de la PR: verde, tiempos por archivo y total contra el run 39417924823. Pasar la
-  tabla a «Medición después del cambio» de la spec.
-- Corrida local de los 34 archivos cuando el Director dé turno.
+- Hecho: CI medido y criterios 6 y 7 registrados en la spec.
+- Relanzar el CI de la punta cuando se resuelva el pago de GitHub Actions; si sale verde, sacar la
+  #304 de borrador y avisarle al Director, que la fusiona (va en cola detrás de la #303).
+- **Para Codex:** A/B local de los 34 archivos cuando el Director dé turno de máquina (lista en
+  `git diff --name-only d50aa3e7 -- "*.test.*"` más los 7 de las R3 y el del helper).
 - Al integrarse con la #302 (2 workers), medir el efecto combinado en el primer CI de `main`.
 
 ## FUERA DE ALCANCE DETECTADO
