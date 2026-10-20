@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 5:14 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 5:38 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -10,7 +10,7 @@
 
 ## Ahora mismo
 
-- [ ] **Cerrar 2.1 · Tasa única.** La corrección, la revisión independiente, las pruebas locales y GitHub final ya aprobaron, con sus omisiones declaradas. El paquete final y la previa del servidor también pasaron. **Lista para el OK nominal de `0495_fx_rates_conversor_usd`.** Aplicación, integración y publicación siguen pendientes.
+- [ ] **Cerrar 2.1 · Tasa única.** Sam autorizó `0495_fx_rates_conversor_usd`; se aplicó y verificó a las 5:31 p. m. y la PR #301 se integró enseguida. **Falta publicar la web:** GitHub bloqueó el arranque por pago o límite de gasto. La web sigue en la versión anterior; el cierre permanece abierto.
 - [x] **Completar la comparación local de pruebas contables.** Los mismos 854 casos aprobaron por ambos lados. Tiempo medido: 10 min 42 s → 6 min 2 s. La mejora todavía espera integración.
 - [ ] **Completar tarifa congelada.** Las correcciones ya están publicadas en su rama y pasaron 62 pruebas locales; falta validarlas con la base final.
 
@@ -36,10 +36,11 @@
 - [x] Publicar el cierre documental `5d84ec0a`, conservando idénticos el producto, sus pruebas y SQL.
 - [x] Aprobar GitHub de la versión final `5d84ec0a`: 12.278 pruebas aprobadas, construcción y controles aprobados; una unitaria y 31 controles Graphify omitidos declarados.
 - [x] Regenerar el paquete de `5d84ec0a` y pasar la revisión previa del servidor; renovada a las 5:10 p. m. Solo lectura; no se aplicó la migración.
-- [x] Preparar y revisar independientemente el procedimiento de aplicación e integración, con comprobación de la versión y del historial. Su ejecución sigue pendiente.
-- [ ] Recibir de Sam el OK nominal de `0495_fx_rates_conversor_usd` en producción. Solicitud presentada a las 5:14 p. m.
-- [ ] Aplicar la migración autorizada e integrar la PR enseguida.
-- [ ] Comprobar la publicación y las pantallas permitidas de Studio.
+- [x] Preparar y revisar independientemente el procedimiento de aplicación e integración, con comprobación de la versión y del historial.
+- [x] Recibir de Sam el OK nominal de `0495_fx_rates_conversor_usd` en producción.
+- [x] Aplicar y verificar la migración: versión de historial `20261020213122`, archivo y funciones iguales a los aprobados; conteo anterior conservado 0 → 0.
+- [x] Integrar enseguida la PR #301: `d410ab2e`, a las 5:31:24 p. m.
+- [ ] Comprobar la publicación y las pantallas permitidas de Studio. GitHub bloqueó el arranque por pago o límite; la web todavía sirve `8e9e0f50`.
 - [ ] Registrar el sello de la migración y su evidencia de cierre.
 
 [Ver PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301). La última prueba general local corresponde a `6ff0f586`; `5d84ec0a` solo actualiza spec y handoff. El primer intento unitario local falló al iniciar dos procesos de pruebas; el reintento canónico pasó sin cambiar límites. Los tres pasos omitidos fueron ledger productivo y SQL/reconstrucción con Docker detenido. Los 246 contratos SQL y la reconstrucción anteriores conservan su evidencia propia y el mismo SQL; no se presentan como ejecuciones nuevas. [GitHub final aprobó](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/39493600656) a las 5:11 p. m. con una unitaria omitida y 31 pruebas del arnés no disponibles por falta del entorno Graphify; la corrida local del arnés había aprobado las 237. CI verde no equivale a prueba de producción.
@@ -129,8 +130,8 @@ La regla USD/USDT 1:1 ya está decidida. Los bolívares quedan para reportes. La
 
 ## Secuencia inmediata de entrega
 
-- [ ] **#301 · Tasa única:** revisión, validación final y previa aprobadas → OK de 0495 → aplicar e integrar → publicación y cierre.
-- [ ] **#304 · Pruebas PGlite:** comparación local completa y revisada, 854/854 por lado; cierre documental publicado en `b28e9046` y GitHub aprobado. Falta integrar después de #301.
+- [ ] **#301 · Tasa única:** migración autorizada, aplicada y verificada; PR integrada. Publicación retenida por GitHub; cierre pendiente.
+- [ ] **#304 · Pruebas PGlite:** comparación local completa y revisada, 854/854 por lado; el verde de `b28e9046` es anterior. La rama incorporó #301 en `8fb4edee`; su nuevo arranque quedó bloqueado por GitHub. Revalidar esa cabeza antes de integrar y esperar la publicación de #301.
 - [ ] **#306 · Oficina de agentes:** incorporar base final; GitHub aprobó `2f9b336c`. El aislamiento real entre perfiles sigue sin verificar.
 - [ ] **#307 · Tarifa congelada:** base y validación final → previa → OK de 0496 → aplicar e integrar → publicación y cierre.
 - [ ] **0573 · Reverso al anular:** reparar hallazgos → pruebas y PR → revisión y previa → OK de 0497 → aplicar e integrar.
@@ -141,6 +142,7 @@ Después seguimos: **0572 → hora Caracas → 2.2 → 2.6 → 2.3 → 2.7 → 2
 ## Lo que necesita Sam
 
 - [x] Resolver el pago o límite de GitHub Actions. Confirmado por Sam y por corridas reales.
+- [ ] Revisar el nuevo bloqueo de pago o límite de GitHub Actions: volvió a impedir el arranque y ahora retiene la publicación de #301. Solicitud presentada a Sam.
 - [ ] Dar el OK nominal de cada migración cuando se presente su versión revisada.
 - [ ] Definir la superclave del cierre.
 - [ ] Cargar la tasa BCV del día cuando se publique 0569, mientras llega la carga automática.

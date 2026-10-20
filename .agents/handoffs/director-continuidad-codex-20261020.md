@@ -354,6 +354,22 @@ Se aceptan exactamente tres ampliaciones a las 55 rutas de la spec `9c254107`, t
 
 La retoma futura deberá medir los diez fixtures propuestos y los controles de regresión pertinentes con rojos reales, no fallos de infraestructura; conservar tasa persistible, override, CAS y tasa persistida del aviso; completar verify/revisión visible con turnos. No se inició ninguna prueba, claim ni escritura de producto. El Director fijará base integrada y ownership después de #301; se mantiene la integración #301 → #304/#306 → #307 → 0573 y luego la cola contable. La aceptación de diseño no es un OK de migración ni producción.
 
+### 0495 aplicada y #301 integrada · 21:31Z; publicación retenida
+
+Sam respondió literalmente a la solicitud sobre producción `dtd-cargo`, VPS `217.216.54.70`, cabeza `5d84ec0a`: **«autorizo aplicar la migración 0495_fx_rates_conversor_usd en producción»**. Al retomar, reloj `21:30:43Z`. La respuesta se conservó fuera de Git en `0495-autorizacion-sam-5d84ec0a.txt`. No autoriza 0496/0497, otras migraciones ni lecturas/escrituras de negocio fuera del SQL aprobado.
+
+Director releyó el procedimiento y confirmó SHA-256 `6a76b200d69c78569a3c5577c071cf749b855eeffb646968719c0eab1a770232`; se ejecutó una vez, exit 0. Sus guardas reconfirmaron base `8e9e0f50`, cabeza exacta, PR lista/CLEAN, CI aprobado e identidad. Previa repetida PASÓ `21:31:22.380Z`; **COMMIT `21:31:22.712Z`**, verificación `21:31:22.949Z`. Evidencia `/srv/ops/evidencias/apply-0495-dtd-cargo-20261020T213121Z`; ledger versión `20261020213122`, 499 filas, md5 `c0c9dac855a516179085950a187737d7`, 28.118 bytes, una fila de 0495. Las seis funciones vivas coinciden con el archivo y los permisos comprobados; cero locks en espera. Historial heredado conservado **0 → 0**. Aplicación/verificación sin error.
+
+**Merge confirmado `21:31:24Z`:** #301 MERGED, cabeza `5d84ec0a`, merge `d410ab2e23e74e5bcf7fdc7cc595371b24cc03a8`, con `--match-head-commit`, sin bypass ni eliminación de rama. Copias descargadas y leídas: carpeta `0495-aplicacion-verificada-213121`; IDENTIDAD SHA-256 `908a63cadc5086af4f4bdf21da30210682ea39589ec05540b01c262faf2c8231`, verificar.out `067321be66e1adc1eb7bf4f87b664aaeb5d02dc0acb886a3f130f2cde2659f79`, ambos errores vacíos. `0495-merge-5d84ec0a.json` y conteos antes/después permanecen fuera de Git.
+
+**Publicación NO COMPLETADA:** el servidor todavía informa corre/publicable `8e9e0f50`, sin congelación ni versiones rechazadas. Run posterior al merge `39501055053`: startup_failure, cero jobs. En Chrome autenticado, Annotations informa pagos recientes fallidos **o** límite de gasto; no distingue cuál. La CLI solo ofrece una sospecha genérica de workflow. Actions está enabled/allowed-all y los cuatro workflows tienen los mismos blobs en 8e9/5d/d410. El primer fallo hallado en la muestra es `20:53:49Z`, anterior al apply/merge; la CI verde había empezado antes. No se atribuye un defecto YAML a #301. Informe independiente leído: `diagnostico-arranque-github-2131.md`, SHA-256 `9a33d9091a6b1ff7ea366023b645a24643c3b60f3366b17d7c74eb9fb727fcee`.
+
+Captura local `github-bloqueo-pagos-39501055053.jpg`, SHA-256 `7265c18c3873361a9825b7d88306c92923c1c87589cae76a0836eb8d33f926bb`. Se presentó a Sam la revisión del pago/límite y se conservó la pestaña de evidencia. No se modificó la cuenta ni se reintentaron workflows antes de esa respuesta; no se repite 0495. Las nuevas integraciones esperan recuperar publicación y sus comprobaciones. Recorrido productivo Studio NO EJECUTADO; la autorización conserva el límite de catálogo/conteos, sin abrir filas de negocio/PII por el layout.
+
+**Preparación del cierre:** `retirar-espera.mjs ... --md5 c0c9... --en-seco` PASÓ desde main d410. Resultado guardado en `0495-sello-plan-en-seco.txt`; propone retirar una espera y una declaración, sellar el mismo SHA-256/MD5/bytes y revisar `lib/studio/__tests__/fx-rates-conversor.migration.test.ts`. No escribió archivos ni creó un sello/PR; se respetan publicación, base, orden y cierre separado. Se conserva intacto el SQL aplicado.
+
+Main local se actualizó por fast-forward de 8e9 a d410, con árbol rastreado limpio; los dos elementos sin seguimiento previos permanecen. Se asignó al agente de conocimiento el único turno pesado para AST/piloto/Archify/publicación local según runbook, sin editar archivos rastreados de main. Recibo pendiente. #304 cambió a `8fb4edee602a933de852165aedaf643ad7548b4b`, merge de b28 con d410; PR draft/MERGEABLE/CLEAN, CI de esa cabeza bloqueado en arranque. No se le transfiere el verde anterior ni se invade su worktree; ownership actual no revalidado todavía.
+
 ## 4. Checklist vivo de continuidad
 
 Vista con checks para Sam: [Checklist del plan contable](../../docs/audits/2026-10-20-plan-contable-seguimiento-codex.md). Este §4 sigue siendo el registro vivo de coordinación; ambos documentos pertenecen al Director.
@@ -378,7 +394,9 @@ El checklist histórico del §4 anterior conserva 36 tareas vivas, 6 hechas, 1 e
 - [x] Confirmar CI verde de `5d84ec0a` antes de presentar aprobación nominal.
 - [ ] Cerrar el relevo y la validación de 0572-a.
 - [x] Revisar/preparar #301 en su cabeza actual y con base actual.
-- [ ] Obtener OK nominal de 0495 cuando el paquete sea concreto y revisable.
+- [x] Obtener OK nominal de 0495 cuando el paquete sea concreto y revisable.
+- [x] Aplicar/verificar 0495 e integrar #301 inmediatamente, preservando historial y registrando identidad.
+- [ ] Recuperar arranque de GitHub/publicación de #301 tras resolver pago o límite; no repetir la migración.
 - [ ] Integrar en orden #301 → #304/#306 → #307 → 0573; cada migración exige su OK, previa y aplicación antes del merge.
 - [ ] Verificar publicación 14/0 y recorrido Studio después de cada integración, con su alcance de lectura autorizado.
 - [ ] Crear los sellos mediante PR separadas.
