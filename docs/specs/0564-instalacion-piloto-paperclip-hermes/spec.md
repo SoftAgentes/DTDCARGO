@@ -309,3 +309,8 @@ comportamiento del Studio. No hay migraciones. Seguridad: D1, D2 y D7.
 - 2026-10-19: Sam respondió las preguntas del organigrama. Se suman GLM como motor
   principal, la recomendación sobre Docker, Codex con controles, A3 aprobada, el CEO que
   crea agentes y la regla de datos con controles; A4 (Kommo) queda pendiente. Nada instalado.
+- 2026-10-19/20: pasos 1 y 2 de §D9 hechos con OK de Sam. Ficha, medición y blindaje en
+  [`.agents/handoffs/2026-10-20-sdd-0564-vps-pasos-1-2.md`](../../../.agents/handoffs/2026-10-20-sdd-0564-vps-pasos-1-2.md).
+  Tailscale queda pendiente del lado de la PC de Sam (sus VPN comerciales lo bloquean), así
+  que se trabaja por SSH público solo con llave, firewall y fail2ban. Paperclip y Hermes
+  siguen sin instalarse.
