@@ -69,8 +69,9 @@ congelación y vuelta atrás. Reutiliza la
   previas autorizadas, congelación, respaldo, hashes, mismo lock, reemplazo
   atómico y reversión. **Procedimiento operativo NO EJECUTADO**.
 - Revisión independiente de lectura del Director y memoria_traspaso sobre los
-  blobs de producto y pruebas: sin hallazgos bloqueantes. El cotejo del cierre
-  documental y del SHA final se registra por separado.
+  blobs de producto y pruebas: sin hallazgos bloqueantes. El revisor también
+  cotejó el cierre documental incluido en 097f4241 sin bloqueantes; la metadata
+  posterior de PR y el SHA final se cotejan por separado.
 
 ## VALIDACIÓN
 
@@ -134,18 +135,23 @@ descendientes quedó vacío.
 - 297d566a1335de0f9fcf07363774495e2c71c723: checkpoint de preparación, respaldado
   antes del ROJO. Cuatro rutas; publicador original intacto.
 - b6af34a3c88c835d50a8dc40c95b608da0d1f3f8: reparación mínima y controles de identidad.
+- 097f4241b1eafc7daa583a4d008308475237990c: cierre documental revisado y respaldado;
+  docs/numbering/diff y ocho enlaces/anclas locales pasaron después de ese cambio.
 - El commit documental que contiene este cierre conserva los dos blobs validados.
   Su SHA final y la igualdad con la rama remota se entregan al Director.
 
 ## PR / BRANCH
 
-Rama propia: codex/0541-publicacion-identidad-softagentes. Base: main.
-PR borrador en preparación de entrega; URL y SHA final se registrarán al crearla.
+Rama propia: codex/0541-publicacion-identidad-softagentes. Base: main,
+d410ab2e23e74e5bcf7fdc7cc595371b24cc03a8, comprobada al abrir la PR.
+[PR #309](https://github.com/SoftAgentes/DTDCARGO/pull/309): OPEN y borrador.
+Creada sobre 097f4241 y adjuntada a la tarea. El SHA final de esta metadata y la
+igualdad local/remota quedan en el recibo externo de entrega.
 No se autoriza integración ni instalación por abrir una PR o pasar pruebas locales.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Cotejo del cierre documental y del SHA final publicado; PR en borrador.
+1. Aprobación del Director sobre el SHA final publicado; conservar la PR en borrador.
 2. CI del SHA candidato cuando se recupere Actions; revisión e integración por
    el Director, con la restricción de Sam y el orden de integración preservados.
 3. Revisión y eventual ejecución autorizada del procedimiento de solo script.
