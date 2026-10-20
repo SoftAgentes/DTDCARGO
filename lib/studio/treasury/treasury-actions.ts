@@ -40,6 +40,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
+import { tasaDelDocumento } from "@/lib/studio/fx-rates";
 import {
   postBillJournalEntry,
   voidBillJournalEntry,
@@ -119,11 +120,20 @@ export async function createBillFor(
   supabase: SupabaseClient,
   raw: Partial<BillInput>,
 ): Promise<CreateBillResult> {
-  const { input, fieldErrors } = validateBillInput(raw);
-  if (fieldErrors) return { fieldErrors };
-
   const tenantId = await resolveTenantId(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  // SDD-0569: fuera de USD y USDT, la tasa escrita o la vigente de fx_rates,
+  // congelada en la CxP con su fuente y su fecha.
+  const tasa = await tasaDelDocumento(
+    supabase, tenantId, raw.currency ?? "USD", raw.fxRate ?? null,
+    raw.issueDate || new Date().toISOString().slice(0, 10),
+  );
+  if (!tasa.ok) return { fieldErrors: { fxRate: tasa.error } };
+  const { input, fieldErrors } = validateBillInput(
+    tasa.tasa.fxRate !== null ? { ...raw, fxRate: tasa.tasa.fxRate } : raw,
+  );
+  if (fieldErrors) return { fieldErrors };
 
   // Snapshot del proveedor (nombre) + validar que existe en el tenant.
   const { data: supplier, error: supErr } = await supabase
@@ -154,6 +164,10 @@ export async function createBillFor(
       expense_account_id: input!.expenseAccountId,
       currency: input!.currency,
       fx_rate: input!.fxRate,
+      // Solo en VES o CNY: en USD y USDT no se nombran las columnas de la 0495.
+      ...(tasa.tasa.fxRateSource
+        ? { fx_rate_source: tasa.tasa.fxRateSource, fx_rate_valid_on: tasa.tasa.fxRateValidOn }
+        : {}),
       total_amount: input!.totalAmount,
       status: "pendiente",
       issue_date: input!.issueDate,
@@ -162,11 +176,14 @@ export async function createBillFor(
       shipment_id: input!.shipmentId,
       notes: input!.notes,
     })
-    .select("id")
-    .single();
+    // SDD-0569 (revisión, hallazgo 6): la tasa que quedó guardada (numeric(20,8)),
+    // para que el asiento y el documento usen la misma.
+    .select("id, fx_rate")
+    .single<{ id: string; fx_rate: number | string | null }>();
   if (insErr || !insertedBill) {
     return { error: `No se pudo crear la CxP: ${insErr?.message}` };
   }
+  const tasaGuardada = insertedBill.fx_rate == null ? null : Number(insertedBill.fx_rate);
 
   // Asiento de causación (best-effort) — DR gasto / CR 2.1.1.
   try {
@@ -177,7 +194,7 @@ export async function createBillFor(
       expenseAccountId: input!.expenseAccountId,
       amount: input!.totalAmount,
       currency: input!.currency,
-      fxRate: input!.fxRate,
+      fxRate: tasaGuardada,
       entryDate: input!.issueDate,
     });
     if (posting.ok && posting.entryId) {
