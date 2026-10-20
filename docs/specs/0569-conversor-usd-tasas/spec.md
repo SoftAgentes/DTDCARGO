@@ -15,7 +15,7 @@ confidencialidad: interno
 
 > La 2.1 del plan contable, primera parte: la tabla `fx_rates` y el conversor canónico (`to_usd` en SQL y `toUsd` en `lib/shared`), que nunca devuelve 0 ni el monto tal cual cuando falta la tasa. USDT = USD 1:1.
 
-**Estado: P2 DEL AVISO CORREGIDO CON FOCAL VERDE; verify de la nueva cabeza pendiente. PR #301 permanece en borrador.** La revisión independiente sobre `eb22e2d4b414deb7d0983fa2e6524e0c99697fc8` detectó que `emitInvoice` guardaba la tasa nueva pero entregaba al evento `invoice_emitted` la tasa anterior del borrador. La corrección usa la tasa devuelta por el UPDATE condicional. En el turno exclusivo concedido tras A/B304, el control rojo detectó 36/— frente a 40; la focal pasó 37 pruebas y dos mutantes murieron por aserción con restauración exacta. La aprobación nominal de 0495 espera cierre canónico, revisión de la nueva cabeza e identidad/previa actualizadas del paquete.
+**Estado: P2 DEL AVISO CORREGIDO Y PUBLICADO EN `6ff0f586`; verify terminó con 14/17 pasos medidos aprobados y tres SKIPs explícitos. PR #301 permanece en borrador.** La revisión independiente sobre `eb22e2d4b414deb7d0983fa2e6524e0c99697fc8` detectó que `emitInvoice` guardaba la tasa nueva pero entregaba al evento `invoice_emitted` la tasa anterior del borrador. La corrección usa la tasa devuelta por el UPDATE condicional. En el turno exclusivo concedido tras A/B304, el control rojo detectó 36/— frente a 40; la focal pasó 37 pruebas y dos mutantes murieron por aserción con restauración exacta. Verify tuvo exit 0, sin certificar los pasos omitidos: ledger productivo sin credenciales y SQL/reconstrucción con Docker detenido. La aprobación nominal de 0495 espera revisión/CI de la cabeza documental final e identidad/previa actualizadas del paquete.
 
 **Evidencia anterior, conservada por SHA:** el Director aprobó el diseño el 2026-10-20 y respondió las cinco preguntas (ver *Decisiones del Director*). El relevo Codex sobre `e6579944` corrigió procedencia y concurrencia. Sobre `5f0d04ad`, la focal pasó 89 casos de app y 32 de SQL/PGlite, incluidos 26 mutantes SQL; los 13 mutantes adicionales de app murieron por aserción. El verify pasó sus 14 pasos medidos, incluido build, con reintento unitario aprobado y tres SKIPs explícitos. Después pasaron por separado 246 contratos SQL y la reconstrucción de 471 migraciones más 18 sólo-ledger sobre PostgreSQL local; el ledger productivo continúa como validación de release del Director. El handoff conserva cada corrida, omisión y límite. El cierre documental `eb22e2d4` no cambió producto ni SQL frente a `5f0d04ad`; esa evidencia no acredita todavía la corrección P2. Graphify, Archify y preview siguen aplazados por coordinación expresa del Director.
 
@@ -37,11 +37,21 @@ confidencialidad: interno
   37/37 entre emisión, variables de correo y conservación de embarque. Mutantes:
   volver a `current.fx_rate` y omitir la tasa en SELECT fallan por aserción; se
   restauró el archivo exacto después de cada uno. Typecheck y lint focal
-  **PASARON**, este último con cero warnings; verify permanece pendiente.
-  SQL0495 y formulario
-  permanecen idénticos; no se repiten SQL/Docker/UI por instrucción del Director.
+  **PASARON**, este último con cero warnings.
+  SQL0495 y formulario permanecen idénticos; no se repiten los suplementos
+  SQL/Docker ni la revisión visual focal por instrucción del Director.
   Tras los controles focales, autorizó commit/push de estas cuatro rutas y verify
   sobre la nueva cabeza, sin merge, migración ni despliegue.
+- Verify canónico sobre `6ff0f586e1bdabf40accea5b00fcdd90adafc0e4`, de
+  `2026-10-20T20:01:20Z` a `20:35:06Z`: **14/17 medidos aprobados, exit 0**.
+  La primera corrida unitaria **FALLÓ** por dos errores de arranque de workers
+  (12.226 casos aprobados, uno omitido); el reintento automático **PASÓ**:
+  12.278 casos aprobados y uno omitido. E2E: 177 aprobados, un flaky recuperado
+  y 20 omitidos. Build **PASÓ**; restauró `tsconfig.json` y dejó el árbol limpio.
+  No se cambiaron timeouts ni reintentos. Los tres SKIPs siguen sin medir en
+  esta corrida; los 246 contratos y 471 migraciones más 18 sólo-ledger son
+  evidencia anterior sobre `5f0d04ad`, con SQL idéntico. El handoff registra
+  causas observadas, logs, limpieza de recursos y devolución del turno pesado.
 
 ### Precisiones autorizadas por el Director · revisión del 2026-10-20
 

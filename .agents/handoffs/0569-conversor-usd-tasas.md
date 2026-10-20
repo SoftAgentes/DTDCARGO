@@ -1,6 +1,6 @@
 # Handoff · SDD-0569 · Un solo conversor a USD, que falla cerrado, y una tabla de tasas con fuente y fecha
 
-## Reapertura P2 del aviso · corrección y controles focales · 2026-10-20
+## Reapertura P2 del aviso · cierre de validación sobre 6ff0f586 · 2026-10-20
 
 Esta sección es el estado vigente. Los cierres y permisos históricos siguientes
 no sustituyen el encargo acotado nuevo del Director.
@@ -56,43 +56,72 @@ problema de herramienta, no como control rojo. Con Node y Vitest local:
 | Mutante SELECT sin `fx_rate` | **PASÓ:** detectado con 3 fallos de aserción; prueba de que el doble no inventa la columna; restauración exacta |
 | Typecheck | **PASÓ:** `corepack pnpm typecheck`, exit 0 |
 | Lint focal | **PASÓ:** ESLint local de las dos rutas TS modificadas, exit 0 y cero warnings |
-| Verify nuevo | **NO EJECUTADO todavía:** se ejecutará sobre el commit publicado después de lint |
-| SQL/Docker/UI | **NO EJECUTADO en P2**, por instrucción del Director: no cambia SQL ni formulario. El diff frente a `eb22e2d4` está vacío en supabase, InvoiceDrawer y helper de correo; SQL0495 mantiene SHA-256 `964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7` |
+| Verify sobre `6ff0f586` | **PASÓ en los 14/17 pasos medidos**, exit 0. De `2026-10-20T20:01:20.4115354Z` a `20:35:06.6546683Z`. El propio cierre advierte que los tres SKIPs impiden atribuir cobertura completa |
+| Unitario, primera corrida | **FALLÓ:** dos errores de arranque de workers, `Failed to start forks worker` / `Timeout waiting for worker to respond`, en congelación de factura y supplier-flow. 858 archivos y 12.226 casos aprobados; uno omitido; no se informó fallo de aserción. Duración 601,08 s |
+| Unitario, reintento canónico 1/1 | **PASÓ:** 860 archivos y 12.278 casos aprobados; un archivo/caso omitido; cero errores. Duración 562,97 s. No se cambiaron timeout, pool ni política de reintento |
+| E2E canónico | **PASÓ:** 177 casos aprobados, un flaky recuperado y 20 omitidos; 5,4 min. El intento inicial Chromium de `e2e/auth.spec.ts:81` dio `page.goto net::ERR_ABORTED` al probar token inválido; el reintento pasó. Entorno Supabase sintético deny-only, sin DB real |
+| Build canónico | **PASÓ:** compilación y comprobaciones finales completas. El wrapper restituyó `tsconfig.json` después de los includes temporales de Next; árbol limpio al acabar |
+| Otros pasos canónicos | **PASÓ:** harness 237/237, lint global con 0 errores/15 warnings, rsc-boundary, typecheck, cuatro edge-functions, docs (556 specs), numbering, feature-constants, components, governance y pending-migration-symbols (0 ROJO, 1 AMARILLO declarado) |
+| `migrations-applied` | **NO DISPONIBLE / SKIP:** sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`. Es validación de release; no se copiaron secretos ni se aplicó DB |
+| `sql-tests` y `schema-rebuild` canónicos | **NO DISPONIBLE / SKIP:** Docker detenido. No ejecutaron contratos ni reconstrucción en esta corrida |
+| Suplementos SQL/Docker y revisión visual focal | **NO EJECUTADO en P2**, por instrucción del Director: no cambia SQL ni formulario. El diff frente a `eb22e2d4` está vacío en supabase, InvoiceDrawer y helper de correo; SQL0495 mantiene SHA-256 `964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7`. El E2E canónico sí se ejecutó, como consta arriba |
 
 Evidencia nueva fuera de Git: `p2-red.log`, `p2-green.log`,
 `p2-mutant-stale-rate.log`, `p2-mutant-missing-projection.log`,
-`p2-typecheck.log` y sus resultados JSON en la carpeta de validación.
-Los resultados previos de `5f0d04ad` no se atribuyen a esta corrección.
+`p2-typecheck.log`, `p2-lint.log`, `p2-verify-6ff0f586.log`,
+`p2-verify-result.json`, `p2-cleanup-result.json` y sus demás resultados JSON en
+`C:/tmp/director-traspaso-20261020/0569-codex-validation/`.
+Los resultados previos de `5f0d04ad` no se atribuyen a esta corrección. Los
+suplementos históricos de 246 contratos PostgreSQL y 471 migraciones más 18
+sólo-ledger conservan su alcance y el mismo blob SQL
+`c6d17d946d957a29791fec426a1213a05efa7bf4`; no eliminan los SKIPs nuevos.
 
-**COMMITS:** pendiente el commit que contiene esta corrección y su evidencia.
-El Director autorizó commit/push selectivos de las cuatro rutas al pasar focal,
-mutantes, tipos y lint; verify correrá después sobre esa cabeza. No autoriza
-merge, migración, datos reales, secretos ni despliegue.
+**COMMITS:** `6ff0f586e1bdabf40accea5b00fcdd90adafc0e4`,
+`fix(studio): SDD-0569 — avisa con la tasa persistida al emitir`, publicado por
+push explícito de la rama a sí misma. Sus cuatro rutas autorizadas contienen
+la corrección, regresiones, spec y handoff. Este cierre posterior modifica
+únicamente spec/handoff; el SHA documental final se comunica en el recibo
+externo y al Director después del push, con producto, pruebas y SQL idénticos
+al SHA validado. No autoriza merge, migración, datos reales ni despliegue.
 
-**PR / BRANCH:** PR #301 existente, en borrador según el encargo; rama y HEAD
-anteriores. No hubo nueva consulta remota ni publicación en esta preparación.
+**PR / BRANCH:** [#301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301),
+en borrador; `codex/sdd-0569-conversor-usd-tasas`. La publicación de `6ff0f586`
+y el cuerpo mediante archivo quedaron confirmados; el Director cotejó
+HEAD/remoto/PR, 0/0 y árbol limpio. La revisión y el CI de la cabeza documental
+final se confirman por separado; esta evidencia local no los sustituye.
 
-**PENDIENTES DE ESTA TAREA:** fijar/publicar SHA y actualizar el
-body de #301; ejecutar verify canónico secuencial, clasificar cada resultado y
-omisión, y entregar revisión exacta al Director. Los contratos SQL no cambiaron;
-no se repetirá SQL/Docker ni UI en esta reapertura por instrucción expresa.
-La aprobación de 0495 queda diferida hasta corregir, validar, revisar nueva
-cabeza y renovar identidad/previa por el Director.
+**PENDIENTES DE ESTA TAREA:** revisión y CI de la cabeza documental final;
+renovación de identidad/previa del paquete por el Director y aprobación nominal
+de Sam para 0495. El ledger productivo se mide en release. No queda reparación
+conocida del aviso pendiente dentro de las cuatro rutas autorizadas. Los
+suplementos SQL/Docker y la revisión visual focal no se repiten por instrucción
+expresa. Integración, aplicación y despliegue conservan permisos separados.
 
 **Impacto documental y conocimiento:** spec y handoff guardan esta reapertura y
 su aceptación. Integración pendiente; Graphify estructural/semántico, Archify,
 preview y revisión visible/publicación Obsidian: **NO EJECUTADO** por coordinación,
-sin atribuir actualización a ninguna capa. No cambia UI ni plantilla, por lo que
-una nueva captura visual no demuestra el valor del evento: se requiere su prueba.
+sin atribuir actualización a ninguna capa. El diagnóstico de cierre en lectura
+se conserva en `p2-knowledge-status.log`; no equivale a actualización de derivados.
+El comando terminó con exit 0 pero informó `ok=false`: Graphify estructural y
+semántico **INVALID** (grafo local ausente; 4.974 y 1.322 pendientes,
+respectivamente; piloto 0/16), Archify **PENDING** (runtime 2.16.0 ausente)
+y Obsidian **PENDING**. No se ejecutó extracción, build de mapa ni publicación.
+No cambia UI ni plantilla, por lo que una nueva captura visual no demuestra el
+valor del evento: se requiere su prueba.
 
 **FUERA DE ALCANCE DETECTADO:** no se abrió auditoría general. El Norte backend
 ausente se registra como referencia documental no disponible, sin reparación
-de organización. Los hallazgos ajenos históricos conservan sus destinos.
+de organización. Quedan registrados los dos fallos de arranque de workers y
+el intento E2E con `ERR_ABORTED`; sus reintentos pasaron, pero no se demostró
+causa raíz ni se modificaron sus áreas o políticas. Los hallazgos ajenos
+históricos conservan sus destinos.
 
-**HANDOFF AL DIRECTOR:** focal y mutantes comunicados; conserva el Worker el turno
-exclusivo hasta terminar verify y su limpieza. El informe y evidencia de
-diff/identidad quedan fuera de Git en la carpeta de validación. Ownership sigue
-reclamado durante implementación/validación y se liberará al acabar la escritura.
+**HANDOFF AL DIRECTOR:** turno pesado devuelto explícitamente después del cierre.
+A `2026-10-20T20:35:29Z` no había procesos Node consumidores explícitos del
+worktree/verify, listeners en 3259/13259 ni procesos Docker Desktop/backend;
+árbol limpio y `tsconfig.json` restituido. Solo continúa la escritura documental
+autorizada; el claim `codex-0569-01a15a4e-ddf0` se libera después del push y su
+recibo se comunica al Director. No se aplicó SQL, fusionó main ni desplegó.
 
 ## Relevo Codex y reparación de revisión · 2026-10-20
 
