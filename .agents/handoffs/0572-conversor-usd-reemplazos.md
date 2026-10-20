@@ -318,8 +318,9 @@ coordinado, preservar el ledger como validación de release, revisar CI cuando
 esté disponible y revalidar producto contra la base que incluya 0573 antes de
 integrar. Quedan las capas de conocimiento indicadas abajo. No hay nueva
 reparación financiera F1–F6 identificada por la revisión; la PR sigue en draft.
-Actions está retenido por rechazo de pago/revisión
-de 48 horas según Sam/Director: no se presume verde. Antes de integrar se exige
+Actions sigue sin verde remoto. Sam informó el rechazo de pago y aclaró que las
+48 horas son la espera para cambiar la tarjeta, sin garantía de habilitación de
+Actions. Antes de integrar se exige
 revalidación contra la base que incluya 0573. Orden Director: 301 → 304/306 →
 307 → 0573 → sellos. GitHub redirige a `SoftAgentes/DTDCARGO` según comprobación
 del Director; no se alteraron origin, workflows ni referencias de publicación.
