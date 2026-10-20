@@ -36,6 +36,10 @@ La 2.1 del plan contable, primera parte: la tabla `fx_rates` (fuente, fecha de v
 | `typecheck` y eslint `--max-warnings=0` | `tsc=0`, `eslint=0` |
 | pending-migration-symbols | «0 ROJO · 2 AMARILLO declarado(s)» (0494 y 0495) |
 | migrations-lock, docs:check | 4 esperas, «0 nueva(s) sin sellar»; índice con 555 specs |
+| **`pnpm verify` sobre `27d17587`** (de 13:56:06Z a 14:35:05Z) | `VERIFY_EXIT=1`: «1 fallo(s) → test», más migrations-applied NO DISPONIBLE (sin `.env.local`). Los demás pasos, PASÓ: sql-tests «246 contrato(s) de SQL verificado(s)», schema-rebuild «471 migraciones aplicadas desde cero», e2e `177 passed`, `1 flaky`, y build. El paso test dio 2 rojos en las dos corridas: `env-example-contract` (`expected [ 'TZ' ] to deeply equal []`) y un timeout de 20 s en `app/p/[token]/supplier-flow.test.tsx`, una prueba distinta en cada corrida |
+| La causa de `env-example-contract` | **MÍA:** `ExpenseDrawer.fecha-tasa.test.ts` leía `process.env.TZ`, y el contrato exige documentar toda variable que el código lee. Corregido en `bc8f4a62` con `vi.stubEnv("TZ", …)`; el mutante de la fecha sigue muriendo (`Tests  1 failed | 1 passed (2)`, archivo restaurado por huella) |
+| `supplier-flow.test.tsx` sola | `Tests  23 passed (23)`. La rama no toca `app/p` (`git diff --stat origin/main -- app/p` vacío): es un timeout del portal bajo carga, ajeno |
+| **`vitest run` completo sobre `bc8f4a62`** (de 14:37:28Z a 14:46:44Z) | `Tests  1 failed | 12215 passed | 1 skipped (12217)`. `env-example-contract` ya pasa. El único rojo es otro timeout de 20 s del portal, ahora en `app/p/[token]/standard-format.test.tsx`; sola da `Tests  7 passed (7)` |
 
 **Antes de la revisión:**
 
@@ -99,6 +103,9 @@ La spec 0569 y el índice. **Cambia el esquema** (la 0495), así que el Director
 3. La previa de producción del Director (`tenant_fx_history` en 0 y `fx_rates`/`to_usd` ausentes) y el OK nominal de Sam NOMBRANDO `0495_fx_rates_conversor_usd`. Después, aplicar, hacer el smoke de la espera y fusionar.
 
 ## FUERA DE ALCANCE DETECTADO (para el Director)
+
+- **Timeouts del portal de proveedores bajo carga** (`app/p/[token]/supplier-flow.test.tsx`, `standard-format.test.tsx`): con la suite completa, una prueba distinta pasa los 20 s en cada corrida; solas pasan. Hay que subirles el timeout o aliviar su montaje, como ya se hizo en otros archivos.
+- **Fidelización › Referidos, estado vacío** (el Director, 2026-10-20): dice «El crédito se acredita a mano cuando hace su primer embarque». Con la 0250 y la 0494, se acredita **solo** con la primera venta real posterior al alta, y a mano únicamente el admin, con motivo. Va en una SDD chica de Fidelización, o en la próxima que toque esa pantalla.
 
 1. **El día del documento es hoy en UTC** en `createInvoice` y `updateInvoice` (`new Date().toISOString().slice(0, 10)`): entre las 20:00 y la medianoche de Caracas toma la tasa del día siguiente. Es la 0570.
 2. **`tenant_fx_history` queda sin uso.** Ni se lee ni se escribe; borrarla es una migración aparte, cuando el Director lo decida.
