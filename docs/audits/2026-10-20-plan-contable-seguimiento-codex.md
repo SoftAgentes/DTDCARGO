@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 7:32 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 7:49 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -17,9 +17,9 @@
 ### Trabajo durante la espera de GitHub
 
 - [x] Confirmar el motivo con Sam: tarjeta rechazada y espera de 48 horas para cambiarla por otra. No se cambió ningún pago ni límite.
-- [x] **Comprobar que el push sí funciona.** GitHub conserva reportes `4dbdb21b`, publicador `021e96cd` y seguimiento `54d25c92`, además de la PR #309 creada durante el bloqueo. El bloqueo observado afecta a Actions; el código puede seguir respaldándose y las entregas revisables pueden quedar en PR en borrador.
+- [x] **Comprobar que el push sí funciona.** GitHub conserva reportes `a30d8585`, publicador `021e96cd` y este seguimiento en la PR #308, además de las PR #309 y #310 creadas durante el bloqueo. El bloqueo observado afecta a Actions; el código puede seguir respaldándose y las entregas revisables pueden quedar en PR en borrador.
 - [x] Asignar la retoma local de **0572-a**: incorporar #301 y probar reportes, rankings, totales y exportaciones con facturas sin tasa. La implementación nueva y sus pruebas se marcarán por separado al comprobarse.
-- [ ] Completar y revisar esa entrega local; conservar sus comprobaciones de GitHub como pendientes mientras no arranquen.
+- [ ] Completar la cobertura pendiente de esa entrega local y aprobar sus comprobaciones de GitHub cuando arranquen. La implementación y su revisión local ya están respaldadas en la PR #310; los límites de la corrida se detallan abajo.
 - [x] Revisar una alternativa de publicación: el comando manual requiere una imagen ya construida y admitida por GitHub. No se encontró una vía habilitada que sustituya esa comprobación; el prompt también condiciona publicar a recuperar GitHub. Ninguna alternativa ejecutada.
 - [x] Aclarar el cambio de GitHub: Sam cambió el nombre del perfil. GitHub confirma el mismo repositorio bajo `SoftAgentes/DTDCARGO`, en una cuenta de usuario, y los enlaces anteriores redirigen. La compatibilidad del publicador con ese nombre se está revisando por separado.
 - [x] Comprobar que el publicador instalado todavía espera el nombre anterior y asignar un ajuste aislado que reconozca el nuevo y conserve las imágenes históricas.
@@ -89,9 +89,10 @@ Se adelanta trabajo local, se respalda cada rama y se preparan PR en borrador du
 - [x] Corregir la disposición estrecha de Mixto, CBM y Constructor y el pie que todavía decía «CNY → 0»: `4dbdb21b` respaldada en GitHub. Última columna consultable en contenedor de 390 píxeles y sin desborde de página, con datos ficticios; 18 pruebas de los tres componentes, tipos y revisión estática aprobados. No certifica teléfono físico ni Studio autenticado.
 - [x] Completar la revisión visible y la revisión independiente de `4dbdb21b`: sin hallazgos materiales adicionales. Los seis hallazgos financieros quedaron corregidos; el delta visual conserva sus cálculos y las otras 61 rutas. Dictamen local condicionado a la prueba general pendiente.
 - [x] Aprobar las pruebas generales de la aplicación sobre `4dbdb21b`: **12.378 aprobadas y una omitida**, sin reintento, en 9 min 42 s. El control auxiliar terminó dentro de su límite y sus archivos conservan los mismos bytes de la base.
-- [ ] Completar la validación general local y registrar sus omisiones. Iniciada a las **7:10 p. m. sobre `4dbdb21b`**, con árbol limpio. Navegación ejecutó sus casos y un acceso pasó al reintentar, pero la herramienta todavía no cerró ni emitió su resumen final; construcción pendiente. Historial productivo, SQL y reconstrucción se omitieron por falta de credenciales o Docker. El resultado global sigue pendiente; se conserva el límite de tiempo existente.
-- [x] Abrir la [PR #310](https://github.com/SoftAgentes/DTDCARGO/pull/310) en borrador, cabeza `4dbdb21b` y base `d410ab2e`, con evidencia local y prueba general expresamente en curso. Su creación no requiere esperar el pago; las comprobaciones remotas siguen pendientes.
-- [ ] Revalidar la base final después de las entregas anteriores, especialmente 0573, y aprobar sus comprobaciones de GitHub.
+- [x] Registrar el cierre de navegación: **177 aprobadas, una recuperada al reintentar y 20 omitidas**, en 10,3 minutos. Playwright forzó el cierre de un proceso; el verificador aceptó el paso **con aviso**, bajo su política existente. El log queda conservado; no se presenta como una ejecución sin incidencias ni se atribuye una causa no demostrada.
+- [x] **Terminar y documentar la corrida general local sobre `4dbdb21b`:** de 7:10 a 7:37 p. m., **14 de 17 pasos medidos sin fallos y construcción aprobada**. El verificador declara **CIERRE INCOMPLETO**: historial productivo, SQL y reconstrucción quedaron sin medir por falta de credenciales o Docker. Conserva también el aviso de navegación y sus omisiones. La salida 0 no significa validación verde completa.
+- [x] Abrir la [PR #310](https://github.com/SoftAgentes/DTDCARGO/pull/310) en borrador y completar su documentación: cabeza final `a30d8585`, producto y pruebas idénticos a `4dbdb21b`, base `d410ab2e`. Director comprobó el delta documental, rama remota, descripción, alcance 65/65 y árbol limpio; procesos cerrados y propiedad de escritura liberada. Su creación y sus push funcionaron durante el bloqueo. La ejecución remota de la versión final volvió a fallar antes de arrancar.
+- [ ] Completar las comprobaciones pendientes para el cierre íntegro, revalidar la base final después de las entregas anteriores, especialmente 0573, y aprobar sus comprobaciones de GitHub.
 - [ ] Integrar su PR y comprobar la publicación.
 
 La primera validación general de `220a2c3e` quedó **interrumpida e incompleta** después de observar los dos fallos y recibir los hallazgos independientes. No hay resultado global aprobado. Las pruebas focales y la revisión visible anteriores conservan su evidencia de esa versión; las correcciones nuevas requieren pruebas y revisión propias.
