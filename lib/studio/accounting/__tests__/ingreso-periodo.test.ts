@@ -31,7 +31,7 @@ import {
 const sinMayor = () => resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, null);
 
 describe("resumirIngreso · la cifra oficial", () => {
-  it("con el fixture del mes: 2000 facturados, 2 facturas y 2 sin convertir", () => {
+  it("con el fixture del mes: 3000 facturados, 3 facturas y 2 sin convertir", () => {
     const i = sinMayor();
     expect(i.facturado).toEqual({
       propio: ESPERADO.propio,
@@ -92,11 +92,12 @@ describe("resumirIngreso · la cifra oficial", () => {
     expect(i.facturado.total).toBe(20);
   });
 
-  it("VES con tasa se convierte; VES sin tasa y CNY no suman y van a sin convertir", () => {
+  it("VES y CNY con tasa se convierten; sin tasa no suman y van a sin convertir (SDD-0572)", () => {
     const solo = (ids: string[]) =>
       resumirIngreso(FACTURAS_DEL_MES.filter((f) => ids.includes(f.id)), RANGO_MES, null);
     expect(solo(["f2"]).facturado.total).toBe(1000);
-    expect(solo(["f6", "f7"])).toMatchObject({
+    expect(solo(["f6"]).facturado.total).toBe(1000);
+    expect(solo(["f7", "f9"])).toMatchObject({
       facturas: 0,
       sinConvertir: 2,
       facturado: { total: 0 },
@@ -189,14 +190,14 @@ describe("no comparable (E1 de la SDD-0559, B2)", () => {
     ...extra,
   });
 
-  it("con el fixture del mes (F2, F6 y F7 en bolívares o yuanes): sin diferencia, aunque el mayor cuadre en número", () => {
+  it("con el fixture del mes (F2, F6, F7 y F9 en bolívares o yuanes): sin diferencia, aunque el mayor cuadre en número", () => {
     const i = resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, control(2000));
-    expect(i.enOtraMoneda).toBe(3);
+    expect(i.enOtraMoneda).toBe(4);
     expect(i.diferenciaUsd).toBeNull();
     const d = describirIngreso(i);
     expect(d.estado).toBe("no_comparable");
     expect(d.diferenciaTexto).toBe(
-      "No comparable: 3 facturas del período están en bolívares o yuanes y hoy se asientan en la cuenta 4.5 por su nominal en esa moneda, no en USD. La comparación vuelve cuando el asiento de venta se registre en USD (fase 2 del plan de trabajo de contabilidad).",
+      "No comparable: 4 facturas del período están en bolívares o yuanes y hoy se asientan en la cuenta 4.5 por su nominal en esa moneda, no en USD. La comparación vuelve cuando el asiento de venta se registre en USD (fase 2 del plan de trabajo de contabilidad).",
     );
     // Sin números internos del plan: «la tarea 2.3» se leía como una cuenta.
     expect(d.diferenciaTexto).not.toMatch(/tarea|plan contable/);
@@ -304,11 +305,11 @@ describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
     const d = describirIngreso(i);
     expect(d.estado).toBe("mayor_menor");
     expect(d.diferenciaTexto).toBe(
-      "El mayor (cuenta 4.5) no tiene ningún asiento de factura en el período; la factura del período (en bolívares sin tasa o en yuanes) debería tenerlo.",
+      "El mayor (cuenta 4.5) no tiene ningún asiento de factura en el período; la factura del período (en bolívares o yuanes sin tasa) debería tenerlo.",
     );
     const dos = describirIngreso(resumirIngreso([cny, { ...cny }], RANGO_MES, vacio));
     expect(dos.diferenciaTexto).toBe(
-      "El mayor (cuenta 4.5) no tiene ningún asiento de factura en el período; las 2 facturas del período (en bolívares sin tasa o en yuanes) deberían tenerlo.",
+      "El mayor (cuenta 4.5) no tiene ningún asiento de factura en el período; las 2 facturas del período (en bolívares o yuanes sin tasa) deberían tenerlo.",
     );
   });
 
@@ -408,8 +409,8 @@ describe("describirIngreso · textos en tuteo", () => {
 
   it("avisos: sin convertir, terceros y otros ingresos solo cuando hay", () => {
     const d = describirIngreso(resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, control(1500, 1700)));
-    expect(d.avisoSinConvertir).toBe("2 facturas no suman: están en bolívares sin tasa o en yuanes.");
-    expect(d.avisoTerceros).toBe("Incluye $1,000.00 de fondos de terceros.");
+    expect(d.avisoSinConvertir).toBe("2 facturas no suman: están en bolívares o yuanes sin tasa.");
+    expect(d.avisoTerceros).toBe("Incluye $2,000.00 de fondos de terceros.");
     expect(d.otrosIngresosTexto).toBe(
       "Otros ingresos del mayor que no salen del asiento de una factura (4.6 y asientos manuales, también a 4.5): $200.00. No cuentan como diferencia.",
     );

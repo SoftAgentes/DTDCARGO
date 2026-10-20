@@ -13,7 +13,8 @@
  *  - Embarques: Revenue USD = join existente por shipment_code (lo enriquece la
  *    query, igual que el resto de Reportes); CBM = volume_m3.
  *  - Facturas: Monto USD = invoiceUsdAmount; Saldo USD = (total − pagado)
- *    normalizado a USD. Ambos campos existen en `invoices`.
+ *    normalizado a USD. Ambos campos existen en `invoices`. SDD-0572: la que no
+ *    convierte (sin tasa) no suma en USD; la dimensión «Tasa» la muestra.
  *
  * La query produce filas ya "aplanadas" a esta forma (dims resueltas a labels,
  * métricas a número, filtros a string) → `buildReport` es PURO y testeable sin DB.
@@ -76,6 +77,8 @@ export const REPORT_SOURCES: Record<ReportSourceId, ReportSource> = {
       { key: "route", label: "Ruta" },
       { key: "status", label: "Estado" },
       { key: "service", label: "Servicio" },
+      // SDD-0572: si alguna factura del embarque no convierte (sin tasa).
+      { key: "tasa", label: "Tasa" },
     ],
     metrics: [
       { key: "count", label: "Cantidad", agg: "count" },
@@ -86,6 +89,7 @@ export const REPORT_SOURCES: Record<ReportSourceId, ReportSource> = {
     filters: [
       { key: "status", label: "Estado" },
       { key: "service", label: "Servicio" },
+      { key: "tasa", label: "Tasa" },
     ],
   },
   invoices: {
@@ -95,6 +99,8 @@ export const REPORT_SOURCES: Record<ReportSourceId, ReportSource> = {
       { key: "client", label: "Cliente" },
       { key: "status", label: "Estado" },
       { key: "currency", label: "Moneda" },
+      // SDD-0572: la factura sin tasa no suma en USD; con este corte se ve.
+      { key: "tasa", label: "Tasa" },
     ],
     metrics: [
       { key: "count", label: "Cantidad", agg: "count" },
@@ -104,6 +110,7 @@ export const REPORT_SOURCES: Record<ReportSourceId, ReportSource> = {
     filters: [
       { key: "status", label: "Estado" },
       { key: "currency", label: "Moneda" },
+      { key: "tasa", label: "Tasa" },
     ],
   },
 };

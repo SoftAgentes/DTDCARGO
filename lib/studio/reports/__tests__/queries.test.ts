@@ -549,7 +549,7 @@ describe("incomeStatement", () => {
     // anulada llegan igual, y es la regla en memoria la que las deja afuera.
     const { client, calls } = stub({
       accounts,
-      // e1 trae las líneas; F2, F6 y F7 tienen su asiento de factura vivo
+      // e1 trae las líneas; F2, F6, F7 y F9 tienen su asiento de factura vivo
       // (sin líneas), así cuentan en «no comparable» (decisión 7).
       journal_entries: [{ id: "e1", status: "asentado", source: "invoice", deleted_at: null, invoice_id: "f1" }, ...ASIENTOS_EN_OTRA_MONEDA],
       journal_lines,

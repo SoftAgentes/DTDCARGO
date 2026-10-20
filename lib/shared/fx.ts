@@ -106,3 +106,35 @@ export function toUsd(
     ),
   };
 }
+
+/**
+ * SDD-0572 · El monto en USD, o null si no se puede convertir (sin tasa, moneda
+ * desconocida, monto inválido). Para los que suman: null va a «sin convertir»,
+ * nunca a 0 ni al monto tal cual.
+ */
+export function usdOrNull(
+  amount: number | string | null | undefined,
+  currency: string | null | undefined,
+  rate?: number | string | null,
+): number | null {
+  const r = toUsd(amount, currency, rate);
+  return r.ok ? r.usd : null;
+}
+
+/**
+ * SDD-0572 · Suma en USD exacta (en centavos) de varios montos. Los que no
+ * convierten no suman: se cuentan en `sinConvertir` para que la pantalla diga
+ * «N sin tasa» al lado del total.
+ */
+export function sumarEnUsd(
+  items: Iterable<{ amount: number | string | null | undefined; currency: string | null | undefined; rate?: number | string | null }>,
+): { usd: number; sinConvertir: number } {
+  let centavosTotales = 0;
+  let sinConvertir = 0;
+  for (const it of items) {
+    const usd = usdOrNull(it.amount, it.currency, it.rate);
+    if (usd === null) sinConvertir += 1;
+    else centavosTotales += Math.round(usd * 100);
+  }
+  return { usd: centavosTotales / 100, sinConvertir };
+}

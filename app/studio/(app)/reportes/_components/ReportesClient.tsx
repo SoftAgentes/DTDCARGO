@@ -572,6 +572,8 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
   // cuando hay algo que reportar (no ensuciar la vista limpia).
   const showUnassigned = overview.unassigned.count > 0;
   const showOrphan = overview.orphanRevenueUsd > 0;
+  // SDD-0572: facturas que no convierten a USD (sin tasa), fuera del revenue.
+  const sinTasa = overview.facturasSinTasa ?? 0;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div
@@ -587,7 +589,7 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
         <KpiCard value={fmtNum(overview.active)} label="Activos" sub="en curso ahora" />
       </div>
 
-      {(showUnassigned || showOrphan) && (
+      {(showUnassigned || showOrphan || sinTasa > 0) && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: -10 }}>
           {showUnassigned && (
             <span
@@ -626,6 +628,24 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
               <strong style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)" }}>
                 {fmtUsdCompact(overview.orphanRevenueUsd)}
               </strong>
+            </span>
+          )}
+          {sinTasa > 0 && (
+            <span
+              data-testid="overview-sin-tasa"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "7px 12px",
+                borderRadius: "var(--r-md)",
+                border: "1px solid var(--border)",
+                background: "var(--bg-surface)",
+                font: "500 12px/1 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              {`Sin tasa · ${fmtNum(sinTasa)} ${sinTasa === 1 ? "factura" : "facturas"} fuera del revenue (cárgala en Contabilidad › Tasas de cambio)`}
             </span>
           )}
         </div>
@@ -767,6 +787,11 @@ function RoutesView({ routes }: { routes: RouteRow[] }) {
             <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
               {fmtUsdCompact(r.revenue)}
             </span>
+            {(r.facturasSinTasa ?? 0) > 0 && (
+              <span style={{ display: "block", marginTop: 3, font: "500 10.5px/1.2 var(--f-sans)", color: "var(--ink-soft)" }}>
+                {`+${r.facturasSinTasa} sin tasa`}
+              </span>
+            )}
             <div style={{ marginTop: 5 }}>
               <Progress value={(r.revenue / max) * 100} tone="var(--wine)" height={3} />
             </div>
@@ -874,6 +899,7 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
               <div style={{ marginTop: 5, font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                 {s.count} {s.count === 1 ? "embarque" : "embarques"} · {fmtNum(s.cbm)} CBM
                 {s.avgTransit != null ? ` · ${s.avgTransit} días prom.` : ""}
+                {(s.facturasSinTasa ?? 0) > 0 ? ` · ${s.facturasSinTasa} sin tasa fuera del revenue` : ""}
               </div>
             </div>
           ))}
@@ -1470,8 +1496,12 @@ function AgingView({ aging }: { aging: AgingReport }) {
         />
       </div>
       <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-        Saldos normalizados a USD (VES por fx del documento).{" "}
-        <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
+        Saldos normalizados a USD (VES y CNY por la tasa del documento).{" "}
+        {(aging.cxc.sinTasa ?? 0) + (aging.cxp.sinTasa ?? 0) > 0 && (
+          <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>
+            {`Sin tasa, fuera de los buckets: ${aging.cxc.sinTasa ?? 0} por cobrar y ${aging.cxp.sinTasa ?? 0} por pagar.`}
+          </strong>
+        )}{" "}
         Vencido por días (≥1 día desde el vencimiento); Cobranzas pondera además
         las promesas de pago vigentes, por eso su vencido puede ser menor.
       </p>
@@ -1737,10 +1767,14 @@ export function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
       </Card>
 
       <p data-testid="facturado-cobrado-nota" style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-        Facturado con IVA y cobrado del período se normalizan a USD (VES por fx de la
-        factura/recibo). El facturado lleva el IVA porque se compara con lo cobrado; el
-        ingreso sin IVA está en el Estado de resultados.{" "}
-        <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
+        Facturado con IVA y cobrado del período se normalizan a USD (VES y CNY por la
+        tasa de la factura o del recibo). El facturado lleva el IVA porque se compara
+        con lo cobrado; el ingreso sin IVA está en el Estado de resultados.{" "}
+        {(cashflow.facturasSinTasa ?? 0) + (cashflow.recibosSinTasa ?? 0) > 0 && (
+          <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>
+            {`Sin tasa, fuera de los totales: ${cashflow.facturasSinTasa ?? 0} factura(s) y ${cashflow.recibosSinTasa ?? 0} recibo(s).`}
+          </strong>
+        )}{" "}
         Por cobrar y vencido son saldos vivos totales (no del rango). Diferencia
         facturado − cobrado del período: {fmtUsdCompact(pendiente)}.
       </p>

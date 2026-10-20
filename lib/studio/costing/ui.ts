@@ -7,6 +7,7 @@
  * funciones. Mantiene la lógica fuera del JSX para poder testearla.
  */
 
+import { tasaValida } from "@/lib/shared/fx";
 import type { CostingRow, CostingTotals } from "./queries";
 import {
   matchTemplate,
@@ -18,22 +19,14 @@ import {
 import type { Quote } from "@/lib/studio/quote-types";
 
 // ── Tasa BCV de display (USD↔VES, display-only) ───────────────
-/**
- * Fallback de la tasa BCV cuando no hay ninguna factura en VES con fx_rate
- * (todavía no existe la pantalla de Tasas, SDD-0030). Mismo número que el mock
- * del Norte (`costing.jsx`), para no inventar otro.
- */
-export const DEFAULT_VES_RATE = 36.45;
 
 /**
- * Resuelve la tasa BCV a usar para el toggle VES (display-only). Toma el
- * `fx_rate` más reciente provisto (el de la última factura en VES), o el
- * fallback si no hay ninguno válido. NUNCA persiste — solo convierte para
- * mostrar (los costos viven en USD canónico).
+ * Resuelve la tasa a usar para el toggle VES (display-only). SDD-0572: la tasa
+ * vigente de `fx_rates` (`ultimaTasa("VES")`); sin ella, null y el selector de
+ * bolívares se apaga (antes caía a 36,45 fijos). NUNCA persiste.
  */
-export function resolveDisplayRate(rawRate: number | null | undefined): number {
-  const n = Number(rawRate);
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_VES_RATE;
+export function resolveDisplayRate(rawRate: number | null | undefined): number | null {
+  return tasaValida(rawRate);
 }
 
 // ── Orden del Ranking ─────────────────────────────────────────

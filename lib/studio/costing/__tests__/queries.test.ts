@@ -86,14 +86,17 @@ describe("revenueByShipment", () => {
       { shipment_id: "S2", shipment_code: "DTDU-2", currency: "USD", total_amount: 4000, fx_rate: null, status: "anulada", issued_at: "2026-02-01", created_at: "2026-02-01" },
       // sin shipment_id pero con code: vencida VES 36500 / fx 36.5 = 1000 → solo byCode
       { shipment_id: null, shipment_code: "DTDU-3", currency: "VES", total_amount: 36500, fx_rate: 36.5, status: "vencida", issued_at: "2026-02-01", created_at: "2026-02-01" },
-      // CNY → 0 (omitida)
+      // SDD-0572 (decisión 1 de Sam; el Director, 2026-10-20): sin tasa no se convierte, null; nunca 0. CNY sin tasa → no suma; se cuenta en sinTasa.
       { shipment_id: "S4", shipment_code: "DTDU-4", currency: "CNY", total_amount: 7000, fx_rate: null, status: "emitida", issued_at: "2026-02-01", created_at: "2026-02-01" },
     ];
-    const { byId, byCode } = await revenueByShipment(stub({ invoices }));
+    const { byId, byCode, sinTasaById, sinTasaByCode } = await revenueByShipment(stub({ invoices }));
 
     expect(byId.get("S1")).toBe(6000); // borrador excluido
     expect(byId.has("S2")).toBe(false); // anulada excluida
-    expect(byId.has("S4")).toBe(false); // CNY → 0
+    expect(byId.has("S4")).toBe(false); // CNY sin tasa no suma
+    expect(sinTasaById?.get("S4")).toBe(1);
+    expect(sinTasaByCode?.get("DTDU-4")).toBe(1);
+    expect(sinTasaById?.has("S1")).toBe(false);
     expect(byCode.get("DTDU-1")).toBe(6000);
     expect(byCode.get("DTDU-3")).toBe(1000); // VES normalizado
     expect(byId.has("DTDU-3")).toBe(false); // no había shipment_id

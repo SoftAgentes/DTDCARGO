@@ -87,6 +87,8 @@ export type FinanceHealth = {
   vencido: number;
   /** Cobertura de pagos con caja: caja / CxP * 100 (100 si no hay CxP). */
   coberturaPct: number;
+  /** SDD-0572: documentos con saldo sin tasa, fuera de CxC, CxP y vencido. */
+  sinTasa?: number;
 };
 
 /** Operación (embarques + naviera). */
@@ -467,6 +469,8 @@ export async function getDireccionData(
     cxp,
     vencido,
     coberturaPct: paymentCoveragePct(caja, cxp),
+    // SDD-0572: lo que no convierte (sin tasa) no suma; se dice cuántos son.
+    sinTasa: cobranzas.casosSinTasa + tesoreria.cxpSinTasa,
   };
 
   // Próximo cut-off: el sailing abierto con cutoff más cercano (futuro o hoy).

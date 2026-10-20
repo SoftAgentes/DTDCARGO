@@ -109,6 +109,9 @@ export type RevenueMaps = {
   byId: Map<string, number>;
   /** revenue USD por shipment_code (fallback cuando shipment_id es null). */
   byCode: Map<string, number>;
+  /** SDD-0572: facturas sin tasa (no suman), por shipment_id y por shipment_code. */
+  sinTasaById?: Map<string, number>;
+  sinTasaByCode?: Map<string, number>;
 };
 
 type RevenueRow = {
@@ -139,7 +142,8 @@ function inPeriod(refDate: string | null, period?: Period): boolean {
  *   0052: nunca `.neq('anulada')` solo).
  * - EXCLUYE las borradas (`deleted_at`, SDD-0465): la RLS no las oculta (0230)
  *   y una factura eliminada no es ingreso del embarque.
- * - Normaliza cada factura a USD vía `invoiceUsdAmount` (VES/fx_rate; CNY → 0).
+ * - Normaliza cada factura a USD vía `invoiceUsdAmount` (SDD-0572: VES y CNY por
+ *   su tasa; sin tasa no suma y se cuenta en `sinTasaById`/`sinTasaByCode`).
  * - Acumula en dos mapas: por `shipment_id` (preferido) y por `shipment_code`
  *   (fallback cuando el FK es null). Una sola query (sin N+1).
  */
@@ -166,6 +170,8 @@ export async function revenueByShipment(
 
   const byId = new Map<string, number>();
   const byCode = new Map<string, number>();
+  const sinTasaById = new Map<string, number>();
+  const sinTasaByCode = new Map<string, number>();
 
   const rows = data.map(
     (r): RevenueRow => ({
@@ -191,6 +197,12 @@ export async function revenueByShipment(
     if (!inPeriod(refDate, period)) continue;
 
     const usd = invoiceUsdAmount(r);
+    // SDD-0572: sin tasa no suma (antes un CNY daba 0 y el embarque salía en pérdida).
+    if (usd === null) {
+      if (r.shipment_id) sinTasaById.set(r.shipment_id, (sinTasaById.get(r.shipment_id) ?? 0) + 1);
+      if (r.shipment_code) sinTasaByCode.set(r.shipment_code, (sinTasaByCode.get(r.shipment_code) ?? 0) + 1);
+      continue;
+    }
     if (usd <= 0) continue;
 
     if (r.shipment_id) {
@@ -201,7 +213,14 @@ export async function revenueByShipment(
     }
   }
 
-  return { byId, byCode };
+  return { byId, byCode, sinTasaById, sinTasaByCode };
+}
+
+/** SDD-0572: cuántas facturas sin tasa tiene el embarque (por id, o por code). */
+function resolveSinTasa(shipment: Pick<Shipment, "id" | "code">, rev: RevenueMaps): number {
+  const porId = rev.sinTasaById?.get(shipment.id) ?? 0;
+  if (porId > 0) return porId;
+  return shipment.code ? (rev.sinTasaByCode?.get(shipment.code) ?? 0) : 0;
 }
 
 /** Resuelve el revenue de un embarque: por id, fallback por code. */
@@ -223,6 +242,11 @@ export type CostingRow = {
   shipment: Shipment;
   costs: ShipmentCosts | null;
   eco: ShipmentEconomics;
+  /**
+   * SDD-0572: facturas del embarque sin tasa, fuera del revenue. Con alguna, el
+   * margen está incompleto: el embarque se marca «sin tasa», no «en pérdida».
+   */
+  facturasSinTasa?: number;
 };
 
 /**
@@ -257,7 +281,7 @@ export async function costingRows(
       const costs = costsMap.get(shipment.id) ?? null;
       const revenueUsd = resolveRevenue(shipment, rev);
       const eco = shipmentEconomics({ revenueUsd, costs });
-      return { shipment, costs, eco };
+      return { shipment, costs, eco, facturasSinTasa: resolveSinTasa(shipment, rev) };
     });
 }
 
@@ -269,6 +293,8 @@ export type CostingTotals = {
   avgMarginPct: number;
   profitable: number;
   losing: number;
+  /** SDD-0572: embarques con alguna factura sin tasa (no cuentan como rentables ni en pérdida). */
+  sinTasa: number;
   catTotals: Record<CostCategoryKey, number>;
 };
 
@@ -290,11 +316,13 @@ export function costingTotals(rows: CostingRow[]): CostingTotals {
   let cost = 0;
   let profitable = 0;
   let losing = 0;
+  let sinTasa = 0;
 
-  for (const { eco } of rows) {
+  for (const { eco, facturasSinTasa } of rows) {
     revenue += eco.revenue;
     cost += eco.totalCost;
-    if (eco.margin > 0) profitable += 1;
+    if ((facturasSinTasa ?? 0) > 0) sinTasa += 1;
+    else if (eco.margin > 0) profitable += 1;
     else if (eco.margin < 0) losing += 1;
     for (const k of COST_KEYS) catTotals[k] += eco[k];
   }
@@ -302,7 +330,7 @@ export function costingTotals(rows: CostingRow[]): CostingTotals {
   const margin = revenue - cost;
   const avgMarginPct = revenue > 0 ? (margin / revenue) * 100 : 0;
 
-  return { revenue, cost, margin, avgMarginPct, profitable, losing, catTotals };
+  return { revenue, cost, margin, avgMarginPct, profitable, losing, sinTasa, catTotals };
 }
 
 export type RouteMarginRow = {
@@ -500,31 +528,6 @@ export async function listRouteCostTemplates(
   return ((data as Record<string, unknown>[] | null) ?? []).map(coerceTemplate);
 }
 
-/**
- * Tasa BCV más reciente para el toggle VES de la UI (display-only · Slice B).
- * Toma el `fx_rate` de la última factura en VES (real). null si no hay ninguna →
- * la UI cae a `DEFAULT_VES_RATE`. No hay aún pantalla de Tasas (SDD-0030); usar
- * la factura más reciente es la mejor fuente real disponible.
- */
-export async function latestVesFxRate(
-  supabase: SupabaseClient,
-): Promise<number | null> {
-  const { data, error } = await supabase
-    .from("invoices")
-    .select("fx_rate, issued_at, created_at")
-    .eq("currency", "VES")
-    .not("fx_rate", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  if (error) throw error;
-
-  for (const r of (data as Record<string, unknown>[] | null) ?? []) {
-    const n = Number(r.fx_rate);
-    if (Number.isFinite(n) && n > 0) return n;
-  }
-  return null;
-}
 
 // ── Forecast del pipeline (Slice C) ───────────────────────────
 /**

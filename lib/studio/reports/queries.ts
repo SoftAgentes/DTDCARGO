@@ -224,10 +224,13 @@ async function fetchShipments(
  * y no cuadraba con Facturación/Dirección (fix del bug detectado en la
  * verificación adversarial de SDD-0052).
  */
+/** SDD-0572: el USD por embarque y, aparte, cuántas facturas no convierten (sin tasa). */
+type RevenueByCode = { usd: Map<string, number>; sinTasa: Map<string, number> };
+
 async function fetchRevenueByCode(
   supabase: SupabaseClient,
   range: DateRange,
-): Promise<Map<string, number>> {
+): Promise<RevenueByCode> {
   const data = await filasDelReporte<Record<string, unknown>>(
     "Facturación del período",
     (from, to) =>
@@ -244,6 +247,7 @@ async function fetchRevenueByCode(
   );
 
   const map = new Map<string, number>();
+  const sinTasa = new Map<string, number>();
   for (const row of data) {
     const code = (row.shipment_code as string | null) ?? null;
     if (!code) continue;
@@ -252,6 +256,11 @@ async function fetchRevenueByCode(
       total_amount: num(row.total_amount),
       fx_rate: numOrNull(row.fx_rate),
     });
+    // SDD-0572: la que no convierte no suma 0 en silencio: se cuenta aparte.
+    if (usd === null) {
+      sinTasa.set(code, (sinTasa.get(code) ?? 0) + 1);
+      continue;
+    }
     map.set(code, (map.get(code) ?? 0) + usd);
   }
   // Redondear cada total por code a 2 decimales (centavo entero) para que el KPI
@@ -262,7 +271,14 @@ async function fetchRevenueByCode(
   for (const [code, usd] of map) {
     map.set(code, Math.round(usd * 100) / 100);
   }
-  return map;
+  return { usd: map, sinTasa };
+}
+
+/** Cuántas facturas sin tasa tienen los embarques dados. */
+function sinTasaDe(codes: Iterable<string>, sinTasa: Map<string, number>): number {
+  let n = 0;
+  for (const c of codes) n += sinTasa.get(c) ?? 0;
+  return n;
 }
 
 // ── Overview ───────────────────────────────────────────────────
@@ -295,7 +311,9 @@ export async function operationalOverview(
   // Decisión semántica: el Overview operacional mide la operación de embarques; el
   // revenue huérfano pertenece a las vistas Contables/Comerciales (que miran TODAS
   // las facturas), no a esta.
-  const revenueUsd = revenueOf(shipments, revenueByCode);
+  const revenueUsd = revenueOf(shipments, revenueByCode.usd);
+  // SDD-0572: las facturas de estos embarques que no convierten (sin tasa).
+  const facturasSinTasa = sinTasaDe(shipments.map((s) => s.code), revenueByCode.sinTasa);
 
   // Revenue HUÉRFANO = facturado del rango que no cae en ningún embarque del rango
   // (factura cuyo shipment_code no matchea un embarque del período). = Σ(todo el
@@ -305,7 +323,7 @@ export async function operationalOverview(
   // hay huérfanas. NO entra al KPI revenueUsd (a propósito): este chip lo expone al
   // lado para que ese dinero no quede oculto.
   let totalInvoiced = 0;
-  for (const usd of revenueByCode.values()) totalInvoiced += usd;
+  for (const usd of revenueByCode.usd.values()) totalInvoiced += usd;
   const orphanRevenueUsd =
     Math.round((totalInvoiced - revenueUsd) * 100) / 100;
 
@@ -341,6 +359,7 @@ export async function operationalOverview(
     transitByPort,
     orphanRevenueUsd,
     unassigned,
+    facturasSinTasa,
   };
 }
 
@@ -400,7 +419,7 @@ export async function reportByRoute(
     fetchShipments(supabase, range),
     fetchRevenueByCode(supabase, range),
   ]);
-  return groupByRoute(shipments, revenueByCode);
+  return groupByRoute(shipments, revenueByCode.usd, revenueByCode.sinTasa);
 }
 
 export async function reportByService(
@@ -413,7 +432,7 @@ export async function reportByService(
     fetchShipments(supabase, range),
     fetchRevenueByCode(supabase, range),
   ]);
-  return groupByService(shipments, revenueByCode);
+  return groupByService(shipments, revenueByCode.usd, revenueByCode.sinTasa);
 }
 
 // ── Por naviera (bookings/sailings, 0096) ──────────────────────
@@ -737,7 +756,8 @@ export async function incomeStatement(
  * (corriente / 1-30 / 31-60 / 60+) se COMPUTAN del `daysOverdue` que cada cola
  * provee (buildAgingSide, puro), sumando el saldo NORMALIZADO a USD
  * (`balanceUsd`, decisión SDD-0052 r2) — el `balance` nativo es multi-moneda y
- * NO se puede sumar como si fuera USD. CNY → 0 (consistente con cashflow).
+ * NO se puede sumar como si fuera USD). SDD-0572: VES y CNY por su tasa; sin tasa,
+ * fuera de los buckets y contado en `sinTasa`.
  * EmptyState honesto: si vacío, buckets en 0.
  *
  * `today` (YYYY-MM-DD) determinístico para tests.
@@ -751,19 +771,18 @@ export async function agingReport(
     payablesQueue(supabase, today),
   ]);
 
-  // Bucketiza por el SALDO EN USD (no el balance multi-moneda).
-  const cxcItems: AgingItem[] = cxcQueue.map((r) => ({
-    balance: r.balanceUsd,
-    daysOverdue: r.daysOverdue,
-  }));
-  const cxpItems: AgingItem[] = cxpQueue.map((p) => ({
-    balance: p.balanceUsd,
-    daysOverdue: p.daysOverdue,
-  }));
+  // Bucketiza por el SALDO EN USD (no el balance multi-moneda). SDD-0572: el
+  // saldo sin tasa no entra a los buckets; se cuenta aparte.
+  const cxcItems: AgingItem[] = cxcQueue.flatMap((r) =>
+    r.balanceUsd === null ? [] : [{ balance: r.balanceUsd, daysOverdue: r.daysOverdue }],
+  );
+  const cxpItems: AgingItem[] = cxpQueue.flatMap((p) =>
+    p.balanceUsd === null ? [] : [{ balance: p.balanceUsd, daysOverdue: p.daysOverdue }],
+  );
 
   return {
-    cxc: buildAgingSide(cxcItems),
-    cxp: buildAgingSide(cxpItems),
+    cxc: { ...buildAgingSide(cxcItems), sinTasa: cxcQueue.filter((r) => r.balanceUsd === null).length },
+    cxp: { ...buildAgingSide(cxpItems), sinTasa: cxpQueue.filter((p) => p.balanceUsd === null).length },
   };
 }
 
@@ -832,6 +851,8 @@ export async function cashflowReport(
   // (refDate ∈ [from, to]), de modo que el total cuadra con la suma de las barras.
   const billed: FlowItem[] = [];
   let totalBilled = 0;
+  let facturasSinTasa = 0;
+  let recibosSinTasa = 0;
   for (const row of (invRes.data as Record<string, unknown>[] | null) ?? []) {
     const status = String(row.status ?? "");
     if (status === "anulada" || status === "borrador") continue;
@@ -846,6 +867,11 @@ export async function cashflowReport(
       total_amount: num(row.total_amount),
       fx_rate: numOrNull(row.fx_rate),
     });
+    // SDD-0572: sin tasa no suma: se cuenta aparte.
+    if (usd === null) {
+      facturasSinTasa += 1;
+      continue;
+    }
     if (usd <= 0) continue;
     billed.push({ dateIso: refDate, usd });
     totalBilled += usd;
@@ -860,6 +886,11 @@ export async function cashflowReport(
       total_amount: num(row.amount),
       fx_rate: numOrNull(row.fx_rate),
     });
+    // SDD-0572: el mismo conversor que Cobranzas; sin tasa no suma.
+    if (usd === null) {
+      recibosSinTasa += 1;
+      continue;
+    }
     if (usd <= 0) continue;
     collected.push({ dateIso: (row.received_at as string | null) ?? null, usd });
     totalCollected += usd;
@@ -871,6 +902,8 @@ export async function cashflowReport(
     totalCollected: Math.round(totalCollected * 100) / 100,
     outstanding: kpis.outstanding,
     overdue: kpis.overdue,
+    facturasSinTasa,
+    recibosSinTasa,
   };
 }
 
@@ -1036,6 +1069,8 @@ async function shipmentBuilderRows(
   ]);
 
   return shipments.map((s) => {
+    // SDD-0572: el embarque con alguna factura sin tasa se marca, para filtrarlo.
+    const tasa = (revenueByCode.sinTasa.get(s.code) ?? 0) > 0 ? TASA_INCOMPLETA : TASA_COMPLETA;
     const statusKnown = STATUS_LABELS[s.status as ShipmentStatus];
     const clientName = (s.client_name ?? "").trim() || EMPTY_LABEL;
     return {
@@ -1044,19 +1079,27 @@ async function shipmentBuilderRows(
         route: routeLabel(s.origin, s.destination),
         status: statusKnown ?? s.status,
         service: serviceLabel(s.shipment_service),
+        tasa,
       },
       metrics: {
         cbm: Number(s.cbm) || 0,
-        revenue: revenueByCode.get(s.code) ?? 0,
+        revenue: revenueByCode.usd.get(s.code) ?? 0,
       },
       // Los filtros usan el MISMO label que la dimensión (filtrar por lo que se ve).
       filters: {
         status: statusKnown ?? s.status,
         service: serviceLabel(s.shipment_service),
+        tasa,
       },
     };
   });
 }
+
+/** SDD-0572: la dimensión «Tasa» del constructor. */
+const TASA_CON = "Con tasa";
+const TASA_SIN = "Sin tasa";
+const TASA_COMPLETA = "Todas con tasa";
+const TASA_INCOMPLETA = "Alguna sin tasa";
 
 const INVOICE_BUILDER_COLUMNS =
   "client_name, currency, fx_rate, total_amount, paid_amount, status, issued_at, created_at";
@@ -1114,6 +1157,12 @@ async function invoiceBuilderRows(
       total_amount: balanceMoney,
       fx_rate: fx,
     });
+    // SDD-0572: sin tasa, sus métricas en USD no suman (ni 0 ni el nominal): la
+    // fila queda con «Tasa: Sin tasa», para verla con el filtro.
+    const tasa = amountUsd === null ? TASA_SIN : TASA_CON;
+    const metrics: Record<string, number> = amountUsd === null || balanceUsd === null
+      ? {}
+      : { amount: Math.round(amountUsd * 100) / 100, balance: Math.round(balanceUsd * 100) / 100 };
 
     const clientName = (r.client_name as string | null)?.trim() || EMPTY_LABEL;
     rows.push({
@@ -1121,12 +1170,11 @@ async function invoiceBuilderRows(
         client: clientName,
         status: invoiceStatusLabel(statusVal),
         currency: currencyLabel(currency),
+        tasa,
       },
-      metrics: {
-        amount: Math.round(amountUsd * 100) / 100,
-        balance: Math.round(balanceUsd * 100) / 100,
-      },
+      metrics,
       filters: {
+        tasa,
         status: invoiceStatusLabel(statusVal),
         currency: currencyLabel(currency),
       },

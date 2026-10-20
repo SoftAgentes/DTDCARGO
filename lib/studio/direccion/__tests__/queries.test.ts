@@ -465,7 +465,7 @@ describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
     const client = makeClient({
       tables: {
         accounts: { data: PLAN_DIR },
-        // je1 trae las líneas; F2, F6 y F7 tienen su asiento de factura vivo
+        // je1 trae las líneas; F2, F6, F7 y F9 tienen su asiento de factura vivo
         // (sin líneas), así cuentan en «no comparable» (decisión 7).
         journal_entries: {
           data: [{ id: "je1", status: "asentado", source: "invoice", deleted_at: null, invoice_id: "f1" }, ...ASIENTOS_EN_OTRA_MONEDA],

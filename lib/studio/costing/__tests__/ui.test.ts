@@ -3,26 +3,22 @@
  * módulo Costing & Margen (SDD-0053 · Slice B).
  *
  * Cubre Acceptance §5 Slice B:
- *  - resolveDisplayRate / DEFAULT_VES_RATE: fallback cuando no hay fx_rate.
+ *  - resolveDisplayRate: SDD-0572, sin tasa válida null (el selector de VES se apaga).
  *  - asRankingSort / sortRanking: orden por margen %, margen $ y revenue.
  *  - topAndWorst: top·peores sin solaparse; ignora revenue 0.
  *  - breakdownRows: % sobre costo total (0 si costo 0, sin NaN).
  *  - costPctOfRevenue: clamp 0..100, 0 si revenue 0.
- *  - latestVesFxRate: toma el fx_rate más reciente de una factura en VES.
  */
 
 import { describe, it, expect } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   asRankingSort,
   breakdownRows,
   costPctOfRevenue,
-  DEFAULT_VES_RATE,
   resolveDisplayRate,
   sortRanking,
   topAndWorst,
 } from "../ui";
-import { latestVesFxRate } from "../queries";
 import { shipmentEconomics, type CostAmounts } from "../types";
 import type { CostingRow, CostingTotals } from "../queries";
 import type { Shipment } from "@/lib/studio/shipment-types";
@@ -80,12 +76,14 @@ describe("resolveDisplayRate", () => {
     expect(resolveDisplayRate(40.5)).toBe(40.5);
   });
 
-  it("cae al default con null / 0 / negativo / NaN", () => {
-    expect(resolveDisplayRate(null)).toBe(DEFAULT_VES_RATE);
-    expect(resolveDisplayRate(undefined)).toBe(DEFAULT_VES_RATE);
-    expect(resolveDisplayRate(0)).toBe(DEFAULT_VES_RATE);
-    expect(resolveDisplayRate(-5)).toBe(DEFAULT_VES_RATE);
-    expect(resolveDisplayRate(Number.NaN)).toBe(DEFAULT_VES_RATE);
+  // SDD-0572 (decisión 1 de Sam y del Director, 2026-10-20): sin tasa, nunca un
+  // valor fijo. Antes caía a 36,45.
+  it("sin tasa válida (null / 0 / negativo / NaN) devuelve null", () => {
+    expect(resolveDisplayRate(null)).toBeNull();
+    expect(resolveDisplayRate(undefined)).toBeNull();
+    expect(resolveDisplayRate(0)).toBeNull();
+    expect(resolveDisplayRate(-5)).toBeNull();
+    expect(resolveDisplayRate(Number.NaN)).toBeNull();
   });
 });
 
@@ -224,50 +222,5 @@ describe("costPctOfRevenue", () => {
   });
   it("clamp a 100 cuando el costo supera el revenue", () => {
     expect(costPctOfRevenue(totals({ revenue: 1000, cost: 2000 }))).toBe(100);
-  });
-});
-
-// ── latestVesFxRate ───────────────────────────────────────────
-function stubInvoices(rows: Record<string, unknown>[]): SupabaseClient {
-  return {
-    from() {
-      const chain: Record<string, unknown> = {
-        select: () => chain,
-        eq: () => chain,
-        not: () => chain,
-        order: () => chain,
-        limit: () => chain,
-        then: (resolve: (v: { data: unknown; error: null }) => unknown) =>
-          Promise.resolve({ data: rows, error: null }).then(resolve),
-      };
-      return chain;
-    },
-  } as unknown as SupabaseClient;
-}
-
-describe("latestVesFxRate", () => {
-  it("devuelve el primer fx_rate positivo (más reciente primero)", async () => {
-    const rate = await latestVesFxRate(
-      stubInvoices([
-        { fx_rate: 41.2, issued_at: "2026-05-10", created_at: "2026-05-10" },
-        { fx_rate: 38.0, issued_at: "2026-04-10", created_at: "2026-04-10" },
-      ]),
-    );
-    expect(rate).toBe(41.2);
-  });
-
-  it("salta fx_rate 0/negativo/no-numérico y toma el primero válido", async () => {
-    const rate = await latestVesFxRate(
-      stubInvoices([
-        { fx_rate: 0 },
-        { fx_rate: "abc" },
-        { fx_rate: 39.5 },
-      ]),
-    );
-    expect(rate).toBe(39.5);
-  });
-
-  it("sin facturas VES → null (la UI cae al default)", async () => {
-    expect(await latestVesFxRate(stubInvoices([]))).toBeNull();
   });
 });

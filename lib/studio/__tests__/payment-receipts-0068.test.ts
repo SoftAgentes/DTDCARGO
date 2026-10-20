@@ -190,6 +190,17 @@ describe("validateUnidentifiedPaymentInput", () => {
     expect(ok.input?.fxRate).toBe(36.5);
   });
 
+  // SDD-0572 (decisiones 1 y 2 del Director por delegación de Sam, 2026-10-20): el cobro en yuanes exige tasa, como el de bolívares.
+  it("CNY sin tasa ⇒ fieldError fxRate; con tasa pasa", () => {
+    expect(
+      validateUnidentifiedPaymentInput({ ...valid, currency: "CNY", fxRate: null })
+        .fieldErrors?.fxRate,
+    ).toBe("Indica la tasa para registrar un pago en yuanes.");
+    const ok = validateUnidentifiedPaymentInput({ ...valid, currency: "CNY", fxRate: 7.2 });
+    expect(ok.fieldErrors).toBeUndefined();
+    expect(ok.input?.fxRate).toBe(7.2);
+  });
+
   it("moneda desconocida cae a USD · fecha inválida es error · default hoy", () => {
     const r = validateUnidentifiedPaymentInput({
       ...valid,
@@ -294,6 +305,22 @@ describe("computeFundsSeparation", () => {
     expect(s.receiptCount).toBe(4);
     expect(s.from).toBe("2026-06-01");
     expect(s.to).toBe("2026-06-30");
+  });
+
+  // SDD-0572 (decisiones 1 y 2 del Director por delegación de Sam, 2026-10-20): un cobro sin tasa ya no suma su nominal como dólares.
+  it("un cobro sin tasa no suma y se cuenta en sinTasaCount", () => {
+    const s = computeFundsSeparation(
+      [
+        { amount: 1000, currency: "USD", fx_rate: null, fund_class: "third_party", application_status: "aplicado" },
+        { amount: 18000, currency: "VES", fx_rate: null, fund_class: "third_party", application_status: "aplicado" },
+        { amount: 700, currency: "CNY", fx_rate: 7, fund_class: "local_revenue", application_status: "aplicado" },
+      ],
+      range,
+    );
+    expect(s.thirdPartyUsd).toBe(1000); // antes 19000
+    expect(s.localRevenueUsd).toBe(100); // CNY 700/7
+    expect(s.sinTasaCount).toBe(1);
+    expect(s.receiptCount).toBe(3);
   });
 
   it("vacío ⇒ todo en cero", () => {

@@ -114,7 +114,7 @@ describe("ReportesTab", () => {
     const linea = screen.getByTestId("ingreso-control");
     expect(linea).toHaveAttribute("data-estado", "no_comparable");
     expect(linea).toHaveAttribute("data-tono", "neutral");
-    expect(linea).toHaveTextContent(/No comparable: 3 facturas del período están en bolívares o yuanes/);
+    expect(linea).toHaveTextContent(/No comparable: 4 facturas del período están en bolívares o yuanes/);
     expect(linea).toHaveTextContent(/fase 2 del plan de trabajo de contabilidad/);
     expect(linea).not.toHaveTextContent(/tarea 2\.3|plan contable/);
     expect(linea).not.toHaveTextContent(/más que lo facturado|menos que lo facturado/);

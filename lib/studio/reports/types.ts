@@ -144,6 +144,8 @@ export type RouteRow = {
   avgTransit: number | null; // días promedio (null si ninguno medible)
   revenue: number; // USD facturado cruzado por shipment_code
   rate: number; // USD por CBM (revenue / cbm, 0 si cbm≤0)
+  /** SDD-0572: facturas del grupo sin tasa, fuera del revenue. */
+  facturasSinTasa?: number;
 };
 
 /** Una fila agregada por servicio (shipment_service). */
@@ -155,6 +157,8 @@ export type ServiceRow = {
   avgTransit: number | null;
   revenue: number;
   rate: number;
+  /** SDD-0572: facturas del grupo sin tasa, fuera del revenue. */
+  facturasSinTasa?: number;
 };
 
 /** Una fila por naviera (desde bookings/sailings de la migración 0096). */
@@ -211,6 +215,11 @@ export type OperationalOverview = {
    * sin dueño" que igual se despachan. Informativo, no alarma.
    */
   unassigned: { count: number; cbm: number };
+  /**
+   * SDD-0572: facturas de los embarques del rango que no convierten a USD (sin
+   * tasa). No suman al revenue (ni 0 ni el nominal): la pantalla lo dice al lado.
+   */
+  facturasSinTasa?: number;
 };
 
 // ── Forma mínima de un shipment para los helpers ───────────────
@@ -395,6 +404,7 @@ function cbmOf(rows: ReportShipment[]): number {
 export function groupByRoute(
   shipments: ReportShipment[],
   revenueByCode: Map<string, number>,
+  sinTasaByCode: Map<string, number> = new Map(),
 ): RouteRow[] {
   const groups = new Map<string, ReportShipment[]>();
   for (const s of shipments) {
@@ -415,6 +425,7 @@ export function groupByRoute(
       destination: (first.destination ?? "").trim(),
       label: routeLabel(first.origin, first.destination),
       count: list.length,
+      facturasSinTasa: list.reduce((n, s) => n + (sinTasaByCode.get(s.code) ?? 0), 0),
       cbm,
       avgTransit: avgTransitOf(list),
       revenue,
@@ -432,6 +443,7 @@ export function groupByRoute(
 export function groupByService(
   shipments: ReportShipment[],
   revenueByCode: Map<string, number>,
+  sinTasaByCode: Map<string, number> = new Map(),
 ): ServiceRow[] {
   const groups = new Map<ShipmentService, ReportShipment[]>();
   for (const s of shipments) {
@@ -448,6 +460,7 @@ export function groupByService(
       service,
       label: serviceLabel(service),
       count: list.length,
+      facturasSinTasa: list.reduce((n, s) => n + (sinTasaByCode.get(s.code) ?? 0), 0),
       cbm,
       avgTransit: avgTransitOf(list),
       revenue,
@@ -562,6 +575,8 @@ export type AgingSide = {
   total: number;
   overdue: number;
   buckets: AgingBucket[];
+  /** SDD-0572: documentos con saldo sin tasa, fuera de los buckets. */
+  sinTasa?: number;
 };
 
 /** Payload del aging: CxC + CxP. */
@@ -587,6 +602,9 @@ export type CashflowReport = {
   totalCollected: number; // cobrado del período (USD)
   outstanding: number; // por cobrar (saldo vivo, invoiceKpis)
   overdue: number; // vencido (saldo vivo, invoiceKpis)
+  /** SDD-0572: facturas y recibos del período sin tasa, fuera de los totales. */
+  facturasSinTasa?: number;
+  recibosSinTasa?: number;
 };
 
 // ── Helpers puros (testeables) ─────────────────────────────────

@@ -13,9 +13,9 @@
  *   `emitida | parcial | pagada | vencida`, con `issued_at` en [desde, hasta]
  *   (los dos extremos entran).
  *
- * La conversión es la vigente (`invoiceUsdAmount`): USD y USDT 1:1, VES entre
- * la tasa de la factura. VES sin tasa y CNY NO suman: se cuentan aparte como
- * «sin convertir». El IVA es un pasivo (2.1.5), no ingreso.
+ * La conversión es la canónica (`invoiceUsdAmount` sobre `toUsd`, SDD-0572): USD y
+ * USDT 1:1, VES y CNY entre la tasa de la factura. Sin tasa NO suman: se cuentan
+ * aparte como «sin convertir». El IVA es un pasivo (2.1.5), no ingreso.
  *
  * El mayor queda como CONTROL, contra las líneas de la cuenta 4.5 de los
  * asientos de FACTURA (`source = 'invoice'`, la que acredita el asiento de
@@ -116,7 +116,7 @@ export type IngresoPeriodo = {
   facturado: { propio: number; terceros: number; total: number };
   /** Facturas que suman. */
   facturas: number;
-  /** Facturas del período que NO suman: VES sin tasa o CNY. */
+  /** Facturas del período que NO suman: VES o CNY sin tasa (SDD-0572). */
   sinConvertir: number;
   /**
    * Facturas no borrador del período (también las anuladas) en VES o CNY,
@@ -234,15 +234,6 @@ function esDeIngreso(status: string): boolean {
   return (ESTADOS_DE_INGRESO as readonly string[]).includes(status);
 }
 
-/** ¿La regla vigente sabe pasar esta moneda a USD? */
-function convertible(currency: string, fxRate: number | string | null): boolean {
-  if (currency === "USD" || currency === "USDT") return true;
-  if (currency === "VES") {
-    const fx = Number(fxRate);
-    return Number.isFinite(fx) && fx > 0;
-  }
-  return false;
-}
 
 /** VES o CNY: la factura se asienta hoy por el nominal en esa moneda (B2). */
 function enOtraMonedaDelAsiento(currency: string): boolean {
@@ -280,18 +271,19 @@ export function resumirIngreso(
       enOtraMoneda += 1;
     }
     if (!esDeIngreso(f.status)) continue;
-    if (!convertible(f.currency, f.fx_rate)) {
+    // SDD-0572: el conversor canónico. VES y CNY por su tasa; sin tasa (o con
+    // una moneda que no se convierte), a «sin convertir».
+    const base = Number(f.base_amount);
+    const enUsd = invoiceUsdAmount({
+      currency: f.currency as InvoiceCurrency,
+      total_amount: Number.isFinite(base) ? base : 0,
+      fx_rate: f.fx_rate == null ? null : Number(f.fx_rate),
+    });
+    if (enUsd === null) {
       sinConvertir += 1;
       continue;
     }
-    const base = Number(f.base_amount);
-    const usd = round2(
-      invoiceUsdAmount({
-        currency: f.currency as InvoiceCurrency,
-        total_amount: Number.isFinite(base) ? base : 0,
-        fx_rate: f.fx_rate == null ? null : Number(f.fx_rate),
-      }),
-    );
+    const usd = round2(enUsd);
     cuenta += 1;
     if (f.fund_class === "local_revenue") propio += usd;
     else terceros += usd;
@@ -396,8 +388,8 @@ export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
         ? `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(i.facturado.total)} menos que lo facturado: no tiene ningún asiento de factura en el período.`
         : `El mayor (cuenta ${CUENTA_VENTAS}) no tiene ningún asiento de factura en el período; ${
             i.sinConvertir === 1
-              ? "la factura del período (en bolívares sin tasa o en yuanes) debería tenerlo"
-              : `las ${i.sinConvertir} facturas del período (en bolívares sin tasa o en yuanes) deberían tenerlo`
+              ? "la factura del período (en bolívares o yuanes sin tasa) debería tenerlo"
+              : `las ${i.sinConvertir} facturas del período (en bolívares o yuanes sin tasa) deberían tenerlo`
           }.`;
     } else if (!conAsientos && i.facturas === 0) {
       estado = "sin_movimiento";
@@ -431,8 +423,8 @@ export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
     n === 0
       ? null
       : n === 1
-        ? "1 factura no suma: está en bolívares sin tasa o en yuanes."
-        : `${n} facturas no suman: están en bolívares sin tasa o en yuanes.`;
+        ? "1 factura no suma: está en bolívares o yuanes sin tasa."
+        : `${n} facturas no suman: están en bolívares o yuanes sin tasa.`;
 
   const avisoTerceros =
     i.facturado.terceros > 0

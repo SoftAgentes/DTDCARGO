@@ -15,7 +15,7 @@ confidencialidad: interno
 
 > La 2.1 del plan contable, segunda parte. La SDD-0569 creó el conversor canónico (`toUsd` en `lib/shared/fx.ts` y `to_usd` en la 0495) y la tabla `fx_rates`. Esta reemplaza las 13 implementaciones y las tasas fijas del código por ese conversor. **Aquí sí cambian cifras visibles.**
 
-**Estado: DISEÑO APROBADO por el Director el 2026-10-20** (sobre `da23a77f`), con las cinco propuestas. No hay código todavía: la 0572-a arranca cuando la SDD-0569 esté en main, porque usa `toUsd`.
+**Estado: 0572-a IMPLEMENTADA** (la app, reglas A a F), apilada sobre la cabeza de la #301 (SDD-0569, `3d0c9028`) por instrucción del Director: «crea su rama desde la cabeza de la #301 (`3d0c9028`), porque necesita `toUsd`». Pasa a main cuando entre la #301. El diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). La regla G queda para la 2.3 (ver *Implementación*). La 0572-b (SQL de 0404 y 0411) no ha arrancado.
 
 ## Decisiones del Director, por la delegación de Sam del 2026-10-20
 
@@ -137,14 +137,111 @@ También el correo «Factura emitida» pone `{{total_usd}}` con el monto en bol�
 4. **El nivel del cliente con facturas en yuanes:** ¿cuentan con su tasa (propuesta) o siguen fuera? Cambia el nivel y los «faltan $X» del portal.
 5. **Las sumas sin conversión de varias monedas** (KPIs de Facturación, Cobranzas, Tesorería, Dashboard, Dirección, el `{{total_usd}}` del correo y el estado de cuenta de Financiero China): ¿entran en esta SDD o van en una aparte? Propongo una aparte: son otros 6 sitios con su propia lista de pantallas, y aquí ya hay muchas cifras que cambian.
 
+## Implementación (0572-a)
+
+Todas las conversiones pasan por `toUsd` (`lib/shared/fx.ts`) a través de dos ayudantes nuevos: `usdOrNull(monto, moneda, tasa)` (`null` sin tasa) y `sumarEnUsd(items)` (`{ usd, sinConvertir }`, en centavos).
+
+| Regla | Qué quedó |
+|---|---|
+| **A** | `invoiceUsdAmount`, `balanceToUsd` y `billBalanceToUsd` devuelven `null` sin tasa. Reportes (resumen, rutas, servicios, flujo de caja, armador y antigüedad), Cobranzas, Tesorería, Dirección, Costing, Financiero China y el ingreso del período cuentan aparte las «sin tasa» y lo dicen. En Costing, un embarque con una factura sin tasa no es «rentable» ni «en pérdida»: dice «Sin tasa». |
+| **B** | `receiptAmountUsd`, `billAmountUsd` y `paymentAmountUsd` devuelven `null` sin tasa. Los cinco asientos (cobro aplicado, sin identificar, reclasificación, CxP y pago) devuelven `{ ok: false, skipped: "missing-fx-rate" }` **antes** de buscar cuentas o insertar (decisión 1). El cobro sin identificar en CNY exige tasa. La separación de fondos cuenta `sinTasaCount`. La rendición: la previa marca la línea «sin tasa» (`RenditionPreviewLine`; la emitida, `RenditionLine`, siempre trae USD), el botón se apaga y `emitRenditionFor` rechaza (decisión 2). La regla también cuenta las **facturas locales** sin tasa del período, porque restan del saldo a favor de la Operadora. |
+| **C** | `amountToUsd` de Financiero China usa `usdOrNull`: misma semántica, cuenta exacta. |
+| **D** | `toAmountUsd` de gastos usa `usdOrNull` (`null` sin tasa) y el validador falla cerrado. Se borró la copia muerta `toUsd` de `lib/i18n/format.ts` y su reexportación. |
+| **E** | «Gastos hoy» (`sumMyExpensesTodayUsd`) y el brief del CEO suman `expenses.amount_usd`; desaparecen 36, 36,5 y 7,18. |
+| **F** | Costing toma la tasa de `ultimaTasa("VES")`; sin ella el selector de VES se apaga con «Sin tasa de bolívares en Admin › Tasas». Desaparecen `DEFAULT_VES_RATE` (36,45) y `latestVesFxRate`. |
+| **G** | **Diferida a la 2.3.** El subdiario de clientes se cuadra contra el asiento de venta, que sigue al nominal (B2): convertir solo el subdiario abriría una diferencia falsa. |
+
+**Subdiario de proveedores:** sigue sumando al nominal la CxP sin tasa (`billAmountUsd(...) ?? saldo`, con comentario). Desde la 0569 toda CxP nueva en otra moneda trae tasa; las sin tasa son históricas y se asentaron al nominal, así que el subdiario cuadra con su asiento.
+
+**Pruebas reescritas**, cada una citando la decisión 1:
+- el fixture compartido `ingreso-fixture.ts`: F6 (yuanes con tasa) ahora suma 1000 y entra F9 (yuanes sin tasa). `ESPERADO` pasa a 3000, 3 facturas, 2 sin convertir y 4 en otra moneda; se ajustan sus consumidores (Contabilidad, Reportes, Dirección, Dashboard y `reportes-tab`);
+- `fidelizacion/types`, `alerts`, `costing/queries`, `costing/ui`, `payment` y `treasury`.
+
+**Pruebas nuevas:**
+- `accounting/__tests__/asiento-sin-tasa.test.ts`: los cinco asientos, sin tocar la base;
+- `__tests__/gastos-y-pagos-en-usd-0572.test.ts`: reglas B, C, D y E;
+- `EmitDrawer.sin-tasa.test.tsx`;
+- casos nuevos en `renditions`, `emit-void` y `payment-receipts-0068`.
+
+**Texto corregido:** el aviso del ingreso decía «en bolívares sin tasa o en yuanes»; ahora dice «en bolívares o yuanes sin tasa», porque un yuan con tasa ya suma. De paso se corrigió un voseo de Costing («Identificá»).
+
+### Allowlist
+
+```text
+app/studio/(app)/contabilidad/__tests__/reportes-tab.test.tsx
+app/studio/(app)/costing/_components/CostingClient.tsx
+app/studio/(app)/costing/page.tsx
+app/studio/(app)/direccion/_components/FinanceHealthCard.tsx
+app/studio/(app)/financiero-china/_components/PartnerAlertsBanner.tsx
+app/studio/(app)/rendiciones/_components/EmitDrawer.sin-tasa.test.tsx
+app/studio/(app)/rendiciones/_components/EmitDrawer.tsx
+app/studio/(app)/reportes/_components/ReportesClient.tsx
+docs/specs/0572-conversor-usd-reemplazos/spec.md
+.agents/handoffs/0572-conversor-usd-reemplazos.md
+lib/i18n/format.ts
+lib/i18n/index.ts
+lib/news/ceo-brief.ts
+lib/shared/fx.ts
+lib/studio/__tests__/gastos-y-pagos-en-usd-0572.test.ts
+lib/studio/__tests__/payment-receipts-0068.test.ts
+lib/studio/__tests__/payment.test.ts
+lib/studio/accounting/__tests__/asiento-sin-tasa.test.ts
+lib/studio/accounting/__tests__/ingreso-fixture.ts
+lib/studio/accounting/__tests__/ingreso-periodo.test.ts
+lib/studio/accounting/bill-posting.ts
+lib/studio/accounting/ingreso-periodo.ts
+lib/studio/accounting/receipt-posting.ts
+lib/studio/accounting/subdiario.ts
+lib/studio/accounting/supplier-payment-posting.ts
+lib/studio/costing/__tests__/queries.test.ts
+lib/studio/costing/__tests__/ui.test.ts
+lib/studio/costing/queries.ts
+lib/studio/costing/ui.ts
+lib/studio/dashboard/__tests__/dashboard-kpi-queries.test.ts
+lib/studio/direccion/__tests__/queries.test.ts
+lib/studio/direccion/queries.ts
+lib/studio/expense-queries.ts
+lib/studio/expense-types.ts
+lib/studio/fidelizacion/__tests__/types.test.ts
+lib/studio/fidelizacion/types.ts
+lib/studio/partner-finance/__tests__/alerts.test.ts
+lib/studio/partner-finance/alerts-queries.ts
+lib/studio/partner-finance/types.ts
+lib/studio/payment-queries.ts
+lib/studio/payment-types.ts
+lib/studio/renditions/__tests__/emit-void.test.ts
+lib/studio/renditions/__tests__/renditions.test.ts
+lib/studio/renditions/actions-helpers.ts
+lib/studio/renditions/queries.ts
+lib/studio/renditions/types.ts
+lib/studio/reports/__tests__/queries.test.ts
+lib/studio/reports/builder-types.ts
+lib/studio/reports/queries.ts
+lib/studio/reports/types.ts
+lib/studio/treasury/__tests__/treasury.test.ts
+lib/studio/treasury/bill-queries.ts
+```
+
+### Lo que queda abierto
+
+- **Cobro aplicado a una factura sin tasa:** el cobro hereda la moneda y la tasa de la factura (RPC 0467). Si la factura no la tiene, el cobro se guarda pero no se asienta y queda en «Por contabilizar». La pantalla de «asentar pendientes» es de la 2.2.
+- **«Gastos hoy»** calcula «hoy» con la hora del servidor (`setHours(0, 0, 0, 0)`), no la de Caracas. Va en la SDD de la hora de Caracas.
+- **0572-b:** el SQL de 0404 y 0411, con su número del Director y el OK nominal de Sam.
+
 ## Gobernanza
 
 | Política | Clasificación | Evidencia |
 |---|---|---|
-| Cambio de comportamiento Studio | por cumplir | la allowlist exacta va con la implementación |
-| Producción | por cumplir | la migración de 0404 y 0411 con el OK nominal de Sam y el runbook |
-| ERR-01 | por cumplir | «sin tasa» y «sin convertir» con un mensaje que dice qué hacer |
+| Cambio de comportamiento Studio | cumplimiento | SDD aprobada + allowlist exacta (arriba) |
+| Producción | no aplica a la 0572-a | la 0572-a no tiene migración; la 0572-b sí |
+| ERR-01 | cumplimiento | cada «sin tasa» dice dónde cargarla («Contabilidad › Tasas de cambio», «Admin › Tasas») o qué falta para emitir |
 
 ## Validación
 
-Pendiente.
+| Comprobación | Resultado |
+|---|---|
+| Pruebas puntuales, un archivo a la vez (sin turno de máquina) | PASÓ: los 31 archivos tocados o que leen el fixture |
+| `tsc` / typecheck | NO EJECUTADO con turno (ver handoff) |
+| eslint | NO EJECUTADO |
+| `pnpm verify` | NO EJECUTADO: espera el turno del Director |
+| Mutantes de app | NO EJECUTADO |

@@ -102,16 +102,22 @@ export function CostingClient({
 
   const rate = resolveDisplayRate(vesRate);
   // Formateador de display según el toggle (USD passthrough · VES × tasa).
-  const money = (usd: number) => fmtMoney(usd, currency, rate);
+  // SDD-0572: sin tasa vigente, siempre USD.
+  const money = (usd: number) =>
+    rate === null ? fmtMoney(usd, "USD", 0) : fmtMoney(usd, currency, rate);
 
+  // SDD-0572: con alguna factura sin tasa el margen está incompleto: ni
+  // rentable ni en pérdida, «sin tasa».
+  const sinTasa = (r: CostingRow) => (r.facturasSinTasa ?? 0) > 0;
   const profitable = useMemo(
-    () => rows.filter((r) => r.eco.margin > 0).length,
+    () => rows.filter((r) => !sinTasa(r) && r.eco.margin > 0).length,
     [rows],
   );
   const losing = useMemo(
-    () => rows.filter((r) => r.eco.margin < 0).length,
+    () => rows.filter((r) => !sinTasa(r) && r.eco.margin < 0).length,
     [rows],
   );
+  const conSinTasa = useMemo(() => rows.filter(sinTasa).length, [rows]);
 
   const hasRows = rows.length > 0;
   const exportCsv = () =>
@@ -163,7 +169,10 @@ export function CostingClient({
           <KpiCard
             value={`${profitable}/${rows.length}`}
             label="Embarques OK"
-            sub={losing > 0 ? `${losing} en pérdida` : "ninguno en pérdida"}
+            sub={
+              (losing > 0 ? `${losing} en pérdida` : "ninguno en pérdida")
+              + (conSinTasa > 0 ? ` · ${conSinTasa} sin tasa` : "")
+            }
             valueColor={losing > 0 ? "var(--danger)" : "var(--success)"}
           />
         </div>
@@ -267,7 +276,7 @@ function Header({
 }: {
   currency: DisplayCurrency;
   onCurrency: (c: DisplayCurrency) => void;
-  rate: number;
+  rate: number | null;
   hasRows: boolean;
   onEdit?: () => void;
   onExport?: () => void;
@@ -300,7 +309,7 @@ function Header({
           }}
         >
           Rentabilidad real por embarque: desglose de costos vs revenue
-          facturado. Identificá los rentables y los que dejan plata sobre la
+          facturado. Identifica los rentables y los que dejan dinero sobre la
           mesa.
         </p>
       </div>
@@ -315,16 +324,16 @@ function Header({
               textTransform: "uppercase",
             }}
           >
-            Moneda · BCV {rate}
+            {rate === null ? "Moneda · Sin tasa de bolívares en Admin › Tasas" : `Moneda · BCV ${rate}`}
           </span>
           <SegmentedControl<DisplayCurrency>
             variant="pills"
             ariaLabel="Moneda de display"
-            value={currency}
+            value={rate === null ? "USD" : currency}
             onChange={onCurrency}
             options={[
               { value: "USD", label: "USD" },
-              { value: "VES", label: "VES" },
+              { value: "VES", label: "VES", disabled: rate === null },
             ]}
           />
         </div>
@@ -639,7 +648,8 @@ function RankingView({
       </div>
 
       {sorted.map((r) => {
-        const isLoss = r.eco.margin < 0;
+        const incompleto = (r.facturasSinTasa ?? 0) > 0;
+        const isLoss = !incompleto && r.eco.margin < 0;
         const tone = marginTone(r.eco.marginPct);
         const routeLabel =
           r.shipment.origin && r.shipment.destination
@@ -695,9 +705,15 @@ function RankingView({
               {money(r.eco.margin)}
             </span>
             <div style={{ textAlign: "right" }}>
-              <Badge tone={tone} size="md">
-                {r.eco.marginPct.toFixed(1)}%
-              </Badge>
+              {incompleto ? (
+                <Badge tone="neutral" size="md">
+                  Sin tasa
+                </Badge>
+              ) : (
+                <Badge tone={tone} size="md">
+                  {r.eco.marginPct.toFixed(1)}%
+                </Badge>
+              )}
             </div>
             <div style={{ textAlign: "right" }}>
               <button

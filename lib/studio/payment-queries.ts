@@ -289,6 +289,8 @@ export type FundsSeparation = {
   receiptCount: number;
   from: string; // YYYY-MM-DD inclusive
   to: string; // YYYY-MM-DD inclusive
+  /** SDD-0572: recibos sin tasa, fuera de los totales. */
+  sinTasaCount?: number;
 };
 
 /**
@@ -307,9 +309,15 @@ export function computeFundsSeparation(
   let localRevenueUsd = 0;
   let unidentifiedUsd = 0;
   let unidentifiedCount = 0;
+  let sinTasaCount = 0;
 
   for (const r of receipts) {
     const usd = receiptAmountUsd(r.amount, r.currency, r.fx_rate);
+    // SDD-0572: sin tasa no suma (antes se tomaba el nominal como dólares).
+    if (usd === null) {
+      sinTasaCount += 1;
+      continue;
+    }
     if (r.fund_class === "local_revenue") {
       localRevenueUsd += usd;
     } else {
@@ -326,6 +334,7 @@ export function computeFundsSeparation(
     localRevenueUsd: round2(localRevenueUsd),
     unidentifiedUsd: round2(unidentifiedUsd),
     unidentifiedCount,
+    sinTasaCount,
     receiptCount: receipts.length,
     from: range.from,
     to: range.to,
@@ -390,12 +399,12 @@ export type Receivable = {
   /** Saldo pendiente (total − pagado), en la MONEDA DE OPERACIÓN de la factura. */
   balance: number;
   /**
-   * Saldo pendiente normalizado a USD (decisión SDD-0052 r2): USD/USDT → 1:1 ·
-   * VES → /fx_rate (si fx_rate>0, sino 0) · CNY → 0. Misma normalización que
-   * `invoiceUsdAmount`. Para sumar/bucketizar aging y KPIs en USD real (el
-   * `balance` nativo es multi-moneda y NO se puede sumar como si fuera USD).
+   * Saldo pendiente en USD con el conversor canónico (SDD-0572): USD/USDT 1:1,
+   * VES y CNY por la tasa de la factura. **null sin tasa**: no suma (ni 0 ni el
+   * nominal); los KPIs lo cuentan en `casosSinTasa`. Para sumar/bucketizar aging
+   * y KPIs en USD real (el `balance` nativo es multi-moneda).
    */
-  balanceUsd: number;
+  balanceUsd: number | null;
   /** Días vencido (>0 = vencido, <0 = faltan ese tanto, 0 = vence hoy). null sin due_date. */
   daysOverdue: number | null;
   /** Stage derivado para la cola. */
@@ -419,18 +428,23 @@ export function daysOverdue(
 
 /**
  * Normaliza un saldo (en la moneda de la factura) a USD, con la MISMA
- * convención que `invoiceUsdAmount` (decisión SDD-0052 r2): USD/USDT → 1:1 ·
- * VES → /fx_rate (si fx_rate>0, sino 0) · CNY → 0. PURA.
+ * convención que `invoiceUsdAmount` (SDD-0572: el conversor canónico): null sin
+ * tasa. PURA.
  */
 export function balanceToUsd(
   balance: number,
   invoice: Pick<Invoice, "currency" | "fx_rate">,
-): number {
+): number | null {
   return invoiceUsdAmount({
     currency: invoice.currency,
     total_amount: balance,
     fx_rate: invoice.fx_rate,
   });
+}
+
+/** Redondea a centavos, o deja null (sin tasa). */
+function usdRedondeado(usd: number | null): number | null {
+  return usd === null ? null : round2(usd);
 }
 
 /**
@@ -508,7 +522,7 @@ export function buildReceivablesQueue(
     out.push({
       invoice: inv,
       balance,
-      balanceUsd: round2(balanceToUsd(balance, inv)),
+      balanceUsd: usdRedondeado(balanceToUsd(balance, inv)),
       daysOverdue: daysOverdue(inv.due_date, today),
       stage,
       lastActivity: activities[0] ?? null, // listActivities devuelve desc por created_at
@@ -610,6 +624,8 @@ export type CollectionKpis = {
   porCobrarUsd: number;
   /** Saldo vencido normalizado a USD real. */
   vencidoUsd: number;
+  /** SDD-0572: casos sin tasa, fuera de `porCobrarUsd` y `vencidoUsd`. */
+  casosSinTasa: number;
   /** Cantidad de casos abiertos (facturas con saldo). */
   casos: number;
   /** Tasa de cobro: % al día sobre el total por cobrar (0-100). */
@@ -623,16 +639,18 @@ export function computeCollectionKpis(queue: Receivable[]): CollectionKpis {
   let enPromesa = 0;
   let porCobrarUsd = 0;
   let vencidoUsd = 0;
+  let casosSinTasa = 0;
   for (const r of queue) {
     porCobrar += r.balance;
-    porCobrarUsd += r.balanceUsd;
+    if (r.balanceUsd === null) casosSinTasa += 1;
+    else porCobrarUsd += r.balanceUsd;
     const esVencido =
       r.stage === "vencido" ||
       r.stage === "contactado" ||
       ((r.daysOverdue ?? 0) > 0 && r.stage !== "promesa");
     if (esVencido) {
       vencido += r.balance;
-      vencidoUsd += r.balanceUsd;
+      if (r.balanceUsd !== null) vencidoUsd += r.balanceUsd;
     }
     if (r.stage === "promesa") enPromesa += r.balance;
   }
@@ -647,6 +665,7 @@ export function computeCollectionKpis(queue: Receivable[]): CollectionKpis {
     porCobrar,
     vencido,
     enPromesa,
+    casosSinTasa,
     porCobrarUsd,
     vencidoUsd,
     casos: queue.length,

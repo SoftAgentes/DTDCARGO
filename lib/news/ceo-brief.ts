@@ -90,7 +90,7 @@ export async function fetchCeoBriefKpis(
     // Gastos del día
     supabase
       .from("expenses")
-      .select("amount, currency", { count: "exact" })
+      .select("amount_usd", { count: "exact" })
       .eq("tenant_id", tenantId)
       .is("deleted_at", null)
       .gte("created_at", startIso)
@@ -124,21 +124,11 @@ export async function fetchCeoBriefKpis(
   const odBreakdown: Record<string, number> = {};
   for (const row of odRows) odBreakdown[row.status] = (odBreakdown[row.status] ?? 0) + 1;
 
-  // Aggregate expenses (convertir todo a USD)
-  // Tasas hardcoded V1 — para producción mejor leer de mail_config o un settings.
-  const VES_TO_USD = 1 / 36.5;
-  const CNY_TO_USD = 1 / 7.18;
-  const expenses = (expensesRes.data ?? []) as {
-    amount: number;
-    currency: string;
-  }[];
+  // SDD-0572: sumar `amount_usd`, que cada gasto guarda con su tasa (antes se
+  // convertía con 36,5 y 7,18 fijos).
+  const expenses = (expensesRes.data ?? []) as { amount_usd: number | string | null }[];
   const expensesCount = expensesRes.count ?? expenses.length;
-  const expensesUsd = expenses.reduce((s, e) => {
-    if (e.currency === "USD") return s + e.amount;
-    if (e.currency === "VES") return s + e.amount * VES_TO_USD;
-    if (e.currency === "CNY") return s + e.amount * CNY_TO_USD;
-    return s;
-  }, 0);
+  const expensesUsd = expenses.reduce((s, e) => s + (Number(e.amount_usd) || 0), 0);
 
   return {
     tenant_id: tenantId,

@@ -20,6 +20,7 @@
  *    el amount tal cual (cobro en USD).
  */
 
+import { usdOrNull } from "@/lib/shared/fx";
 import { createAdminClient } from "@/lib/db/admin";
 
 /** Cuenta destino del crédito del cobro (CxC clientes, SDD-0040 §5). */
@@ -70,18 +71,16 @@ function round2(n: number): number {
  * Deriva el monto USD funcional del cobro. PURA — testeable sin DB.
  * - USD / USDT → el amount tal cual.
  * - otra moneda con fx_rate>0 → amount / fx_rate (fx_rate = <moneda>/USD).
- * - sin fx_rate → amount tal cual (mejor que 0; el caller ya guarda currency).
+ * - SDD-0572: sin tasa, null (antes, el monto tal cual).
  */
 export function receiptAmountUsd(
   amount: number,
   currency: string,
   fxRate?: number | null,
-): number {
-  const a = Number(amount) || 0;
-  if (currency === "USD" || currency === "USDT") return round2(a);
-  const fx = Number(fxRate);
-  if (Number.isFinite(fx) && fx > 0) return round2(a / fx);
-  return round2(a);
+): number | null {
+  // SDD-0572: el conversor canónico. Sin tasa, null: el cobro no se asienta (antes
+  // se asentaba el nominal como si fueran dólares) y queda en «Por contabilizar».
+  return usdOrNull(Number(amount) || 0, currency, fxRate);
 }
 
 /** Una línea del asiento del cobro (debe XOR haber). */
@@ -215,6 +214,7 @@ export async function postReceiptJournalEntry(
       input.currency,
       input.fxRate,
     );
+    if (amountUsd === null) return { ok: false, skipped: "missing-fx-rate" };
     if (amountUsd <= 0) {
       return { ok: true, skipped: "zero-amount" };
     }
@@ -396,6 +396,7 @@ export async function postUnidentifiedReceiptJournalEntry(
     }
 
     const amountUsd = receiptAmountUsd(input.amount, input.currency, input.fxRate);
+    if (amountUsd === null) return { ok: false, skipped: "missing-fx-rate" };
     if (amountUsd <= 0) return { ok: true, skipped: "zero-amount" };
 
     const bridgeId = await resolveAccountIdByCode(
@@ -473,6 +474,7 @@ export async function postReceiptReclassEntry(
     }
 
     const amountUsd = receiptAmountUsd(input.amount, input.currency, input.fxRate);
+    if (amountUsd === null) return { ok: false, skipped: "missing-fx-rate" };
     if (amountUsd <= 0) return { ok: true, skipped: "zero-amount" };
 
     const [bridgeId, arId] = await Promise.all([
