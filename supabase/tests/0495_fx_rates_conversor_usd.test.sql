@@ -335,6 +335,10 @@ select pg_temp.assert_true(pg_temp.err(format(
 -- En otra sentencia: la misma no ve lo que insertó la función.
 select pg_temp.assert_true((select fx_rate from public.invoices where invoice_code = 'F-2') = 36.12345678,
   'la factura guarda la tasa con sus 8 decimales');
+select pg_temp.assert_true(
+  0.000000001::numeric(20,8) = 0 and 0.000000004999999::numeric(20,8) = 0
+  and 0.000000005::numeric(20,8) = 0.00000001 and 0.000000015::numeric(20,8) = 0.00000002,
+  'la captura debe rechazar tasas que numeric(20,8) redondea a cero y respetar la mitad');
 -- El lock que toma la 0495 sobre las dos tablas (dura lo que la transacción).
 select pg_temp.assert_true((select count(*) from pg_locks l
   where l.locktype = 'relation' and l.granted and l.mode = 'AccessExclusiveLock'
@@ -345,6 +349,62 @@ select pg_temp.assert_true((select c.relrowsecurity from pg_class c where c.oid 
   'fx_rates tiene RLS activa y anon no la lee');
 
 -- ── 8. El preflight: tenant_fx_history vacía y aplicada una sola vez ──
+-- Revisión Codex: source=manual del catálogo no implica override documental.
+select pg_temp.assert_true(
+  (select count(*) from information_schema.columns where table_schema = 'public'
+    and table_name in ('invoices', 'supplier_bills') and column_name = 'fx_rate_is_override'
+    and data_type = 'boolean' and is_nullable = 'NO' and column_default = 'false') = 2,
+  'facturas y CxP distinguen override explícito, false por defecto');
+update public.invoices set fx_rate_source = 'manual', fx_rate_valid_on = '2026-10-19'
+  where invoice_code = 'F-2';
+select pg_temp.assert_true((select not fx_rate_is_override from public.invoices where invoice_code = 'F-2'),
+  'source manual del catálogo no se convierte en override documental');
+update public.invoices set fx_rate_is_override = true where invoice_code = 'F-2';
+select pg_temp.assert_true((select fx_rate_is_override from public.invoices where invoice_code = 'F-2'),
+  'el override documental explícito queda persistido');
+
+-- Todas las sentencias de este contrato viven en una transacción: updated_at
+-- no cambia, pero write_version sí, incluso si el cliente intenta asignarla.
+select pg_temp.assert_true((select write_version = 2 from public.invoices where invoice_code = 'F-2'),
+  'la versión distingue dos escrituras dentro de la misma transacción');
+update public.invoices set client_name = 'Otro destinatario sintético', total_amount = 101,
+  write_version = 999 where invoice_code = 'F-2';
+select pg_temp.assert_true((select write_version = 3 from public.invoices where invoice_code = 'F-2'),
+  'cualquier cambio de factura incrementa versión e ignora la versión propuesta');
+with cambiado as (
+  update public.invoices set status = 'emitida' where invoice_code = 'F-2'
+    and write_version = 2 and status = 'borrador' and currency = 'VES'
+    returning id
+)
+select pg_temp.assert_true((select count(*) from cambiado) = 0,
+  'una emisión con versión obsoleta no afecta filas');
+with cambiado as (
+  update public.invoices set status = 'emitida' where invoice_code = 'F-2'
+    and write_version = 3 and status = 'borrador' and currency = 'VES'
+    returning id
+)
+select pg_temp.assert_true((select count(*) from cambiado) = 1,
+  'la emisión con versión vigente afecta exactamente una fila');
+with cambiado as (
+  update public.invoices set currency = 'USD' where invoice_code = 'F-2'
+    and write_version = 3 and status = 'borrador' and currency = 'VES'
+    returning id
+)
+select pg_temp.assert_true((select count(*) from cambiado) = 0,
+  'una edición pendiente no cambia la factura ya emitida');
+select pg_temp.assert_true((select status = 'emitida' and currency = 'VES' and write_version = 4
+  from public.invoices where invoice_code = 'F-2'),
+  'la carrera conserva estado moneda y versión de la emisión ganadora');
+select pg_temp.assert_true(
+  not has_function_privilege('authenticated', 'public.increment_invoice_write_version()', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.increment_invoice_write_version()', 'EXECUTE'),
+  'el disparador de versión no expone una RPC ejecutable');
+select pg_temp.assert_true(pg_temp.error_of('accounting-A',
+  'update public.invoices set notes = ''nota sintética'' where invoice_code = ''F-2'' returning to_jsonb(id)') = 'ok',
+  'authenticated actualiza la factura por RLS sin permiso EXECUTE directo del trigger');
+select pg_temp.assert_true((select write_version = 5 from public.invoices where invoice_code = 'F-2'),
+  'la actualización autenticada también aumenta la versión');
+
 select pg_temp.assert_true((select count(*) from public.tenant_fx_history) = 0, 'tenant_fx_history sigue vacía');
 
 select 'TEST 0495 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;

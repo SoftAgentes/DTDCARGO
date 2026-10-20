@@ -49,6 +49,29 @@ export function tasaValida(rate: number | string | null | undefined): number | n
   return Number.isFinite(r) && r > 0 && r < TOPE ? r : null;
 }
 
+/**
+ * Captura de documentos: valor que numeric(20,8) realmente conservará.
+ * Redondea en decimal, mitad lejos de cero. Una entrada positiva que terminaría
+ * en cero se rechaza; nunca se sustituye por otra tasa silenciosamente.
+ * El conversor puro mantiene su dominio original mediante tasaValida.
+ */
+export function tasaPersistible(rate: number | string | null | undefined): number | null {
+  if (tasaValida(rate) === null) return null;
+  const decimal = aDecimal(rate as number | string);
+  if (!decimal || decimal.entero <= BigInt(0)) return null;
+  const diez = BigInt(10);
+  let unidades: bigint;
+  if (decimal.escala <= 8) {
+    unidades = decimal.entero * diez ** BigInt(8 - decimal.escala);
+  } else {
+    const divisor = diez ** BigInt(decimal.escala - 8);
+    unidades = decimal.entero / divisor;
+    if ((decimal.entero % divisor) * BigInt(2) >= divisor) unidades += BigInt(1);
+  }
+  if (unidades <= BigInt(0) || unidades >= diez ** BigInt(20)) return null;
+  return tasaValida(Number(unidades) / 100_000_000);
+}
+
 /** Un decimal exacto: valor = entero / 10^escala. */
 type Decimal = { entero: bigint; escala: number };
 

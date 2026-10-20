@@ -66,6 +66,24 @@ const BORRADOR: Invoice = {
 afterEach(() => cleanup());
 
 describe("InvoiceDrawer · la tasa en VES y en CNY", () => {
+  it.each([["VES", "CNY"], ["CNY", "VES"]] as const)("cambiar %s a %s limpia la tasa y pide catálogo", async (origen, destino) => {
+    const user = userEvent.setup();
+    render(<InvoiceDrawer mode="edit" invoice={{ ...BORRADOR, currency: origen, fx_rate: 36 }} ivaOn={false} onClose={vi.fn()} />);
+    await user.selectOptions(screen.getByLabelText("Moneda"), destino);
+    expect((document.querySelector('[name="fx_rate"]') as HTMLInputElement).value).toBe("");
+    expect((document.querySelector('[name="fx_rate_intent"]') as HTMLInputElement)?.value).toBe("catalog");
+  });
+
+  it("precargar preserva intención y volver a escribir la misma cifra elige manual", async () => {
+    const user = userEvent.setup();
+    render(<InvoiceDrawer mode="edit" invoice={{ ...BORRADOR, currency: "VES", fx_rate: 36 }} ivaOn={false} onClose={vi.fn()} />);
+    expect((document.querySelector('[name="fx_rate_intent"]') as HTMLInputElement)?.value).toBe("preserve");
+    const campo = screen.getByLabelText("Tasa (1 USD = ? VES)");
+    await user.clear(campo);
+    await user.type(campo, "36");
+    expect((document.querySelector('[name="fx_rate_intent"]') as HTMLInputElement)?.value).toBe("manual");
+  });
+
   it("en CNY se ve el campo de la tasa, con su ayuda", () => {
     render(<InvoiceDrawer mode="edit" invoice={BORRADOR} ivaOn={false} onClose={vi.fn()} />);
     const campo = screen.getByLabelText("Tasa (1 USD = ? CNY)");
@@ -93,5 +111,7 @@ describe("InvoiceDrawer · la tasa en VES y en CNY", () => {
     await user.click(screen.getByRole("button", { name: /^Guardar/ }));
     expect(await screen.findByText(FALTA)).toBeTruthy();
     expect(screen.getByLabelText("Tasa (1 USD = ? CNY)").getAttribute("aria-invalid")).toBe("true");
+    expect((screen.getByLabelText("Moneda") as HTMLSelectElement).value).toBe("CNY");
+    expect((document.querySelector('[name="currency"]') as HTMLInputElement).value).toBe("CNY");
   });
 });

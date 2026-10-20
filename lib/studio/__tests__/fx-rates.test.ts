@@ -50,7 +50,7 @@ describe("tasaDelDocumento · la tasa que congela una factura o una CxP", () => 
     for (const moneda of ["USD", "USDT"]) {
       const { client, llamadas } = doble({ data: null, error: null });
       const r = await tasaDelDocumento(client, "t1", moneda, 36, "2026-10-20");
-      expect(r).toEqual({ ok: true, tasa: { fxRate: null, fxRateSource: null, fxRateValidOn: null } });
+      expect(r).toEqual({ ok: true, tasa: { fxRate: null, fxRateSource: null, fxRateValidOn: null, fxRateIsOverride: false } });
       expect(llamadas).toHaveLength(0);
     }
   });
@@ -58,7 +58,7 @@ describe("tasaDelDocumento · la tasa que congela una factura o una CxP", () => 
   it("la tasa escrita es manual y del día del documento, sin consultar la vigente", async () => {
     const { client, llamadas } = doble({ data: null, error: null });
     const r = await tasaDelDocumento(client, "t1", "VES", 40.5, "2026-10-20");
-    expect(r).toEqual({ ok: true, tasa: { fxRate: 40.5, fxRateSource: "manual", fxRateValidOn: "2026-10-20" } });
+    expect(r).toEqual({ ok: true, tasa: { fxRate: 40.5, fxRateSource: "manual", fxRateValidOn: "2026-10-20", fxRateIsOverride: true } });
     expect(llamadas).toHaveLength(0);
   });
 
@@ -68,29 +68,39 @@ describe("tasaDelDocumento · la tasa que congela una factura o una CxP", () => 
       error: null,
     });
     const r = await tasaDelDocumento(client, "t1", "RMB", null, "2026-10-20");
-    expect(r).toEqual({ ok: true, tasa: { fxRate: 7.18, fxRateSource: "bcv", fxRateValidOn: "2026-10-18" } });
+    expect(r).toEqual({ ok: true, tasa: { fxRate: 7.18, fxRateSource: "bcv", fxRateValidOn: "2026-10-18", fxRateIsOverride: false } });
     // RMB se pide como CNY, al día del documento y del tenant.
     expect(llamadas).toEqual([
       { rpc: "fx_rate_on", args: { p_tenant_id: "t1", p_currency: "CNY", p_on: "2026-10-20" } },
     ]);
   });
 
-  it("al editar, la tasa igual a la guardada conserva su fuente y su fecha (revisión, hallazgo 3)", async () => {
+  it("preservar el campo precargado conserva procedencia e intención sin comparar números", async () => {
     const { client, llamadas } = doble({ data: null, error: null });
-    const guardada = { fxRate: 7.18, fxRateSource: "bcv" as const, fxRateValidOn: "2026-10-18" };
-    expect(await tasaDelDocumento(client, "t1", "CNY", 7.18, "2026-10-20", guardada)).toEqual({ ok: true, tasa: guardada });
+    const guardada = { fxRate: 7.18, fxRateSource: "bcv" as const, fxRateValidOn: "2026-10-18", fxRateIsOverride: false };
+    expect(await tasaDelDocumento(client, "t1", "CNY", 7.18, "2026-10-20", guardada, "preserve")).toEqual({ ok: true, tasa: guardada });
     expect(llamadas).toHaveLength(0);
     // Otra tasa escrita sí es manual del día.
     expect(await tasaDelDocumento(client, "t1", "CNY", 7.2, "2026-10-20", guardada)).toEqual({
       ok: true,
-      tasa: { fxRate: 7.2, fxRateSource: "manual", fxRateValidOn: "2026-10-20" },
+      tasa: { fxRate: 7.2, fxRateSource: "manual", fxRateValidOn: "2026-10-20", fxRateIsOverride: true },
+    });
+    expect(await tasaDelDocumento(client, "t1", "CNY", 7.18, "2026-10-20", guardada, "manual")).toEqual({
+      ok: true,
+      tasa: { fxRate: 7.18, fxRateSource: "manual", fxRateValidOn: "2026-10-20", fxRateIsOverride: true },
     });
   });
 
-  it("una tasa escrita en 0 o vacía no cuenta: se busca la vigente", async () => {
+  it("vacía busca catálogo, pero una entrada explícita inválida falla sin sustituirla", async () => {
     const { client, llamadas } = doble({ data: [{ rate: 36.5, source: "manual", valid_on: "2026-10-19" }], error: null });
-    const r = await tasaDelDocumento(client, "t1", "VES", 0, "2026-10-20");
-    expect(r).toEqual({ ok: true, tasa: { fxRate: 36.5, fxRateSource: "manual", fxRateValidOn: "2026-10-19" } });
+    const r = await tasaDelDocumento(client, "t1", "VES", null, "2026-10-20");
+    expect(r).toEqual({ ok: true, tasa: { fxRate: 36.5, fxRateSource: "manual", fxRateValidOn: "2026-10-19", fxRateIsOverride: false } });
+    expect(llamadas).toHaveLength(1);
+    for (const rate of [0, 1e-9, -1, Number.NaN]) {
+      expect(await tasaDelDocumento(client, "t1", "VES", rate, "2026-10-20")).toEqual({
+        ok: false, error: expect.stringMatching(/8 decimales/),
+      });
+    }
     expect(llamadas).toHaveLength(1);
   });
 
@@ -205,6 +215,11 @@ describe("captura con tasa obligatoria", () => {
     expect(validateBillInput({ ...cxp, currency: "CNY", fxRate: 7.2 }).input?.fxRate).toBe(7.2);
     expect(validateBillInput({ ...cxp, currency: "USD", fxRate: null }).fieldErrors).toBeUndefined();
     expect(validateBillInput({ ...cxp, currency: "USDT", fxRate: null }).fieldErrors).toBeUndefined();
+  });
+
+  it.each([1e-9, 0.000000004999999, 1e12])("los validadores rechazan la tasa no persistible %s", (rate) => {
+    expect(validateInvoiceInput({ ...factura, currency: "VES", fx_rate: rate }).fieldErrors?.fx_rate).toBeTruthy();
+    expect(validateBillInput({ ...cxp, currency: "CNY", fxRate: rate }).fieldErrors?.fxRate).toBeTruthy();
   });
 });
 

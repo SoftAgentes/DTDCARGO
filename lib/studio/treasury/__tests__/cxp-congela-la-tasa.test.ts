@@ -77,6 +77,26 @@ beforeEach(() => {
 });
 
 describe("createBillFor · la tasa congelada", () => {
+  it.each([1e-9, 0.000000004999999])("rechaza %s porque numeric(20,8) la convertiría en cero", async (rate) => {
+    vigente = { data: [{ rate: 40, source: "bcv", valid_on: cxp.issueDate }], error: null };
+    expect(await createBillFor(makeClient(), { ...cxp, currency: "VES", fxRate: rate })).toEqual({
+      fieldErrors: { fxRate: expect.stringMatching(/8 decimales/) },
+    });
+    expect(inserts).toHaveLength(0);
+    expect(rpcs).toHaveLength(0);
+    expect(asientos).toHaveLength(0);
+  });
+
+  it.each([[0.000000005, 0.00000001], [0.0000000149999, 0.00000001], [0.000000015, 0.00000002]])(
+    "normaliza %s a %s con mitad lejos de cero antes de guardar",
+    async (rate, persisted) => {
+      guardada = { id: "b1", fx_rate: persisted };
+      expect(await createBillFor(makeClient(), { ...cxp, currency: "CNY", fxRate: rate })).toMatchObject({ ok: true });
+      expect(inserts[0]).toMatchObject({ fx_rate: persisted, fx_rate_is_override: true });
+      expect(asientos[0].fxRate).toBe(persisted);
+    },
+  );
+
   it("CNY sin tasa escrita: toma la vigente al día de emisión y guarda su fuente y su fecha", async () => {
     vigente = { data: [{ rate: 7.18, source: "manual", valid_on: "2026-10-14" }], error: null };
     await createBillFor(makeClient(), { ...cxp, currency: "CNY", fxRate: null });

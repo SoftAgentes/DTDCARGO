@@ -166,7 +166,10 @@ export async function createBillFor(
       fx_rate: input!.fxRate,
       // Solo en VES o CNY: en USD y USDT no se nombran las columnas de la 0495.
       ...(tasa.tasa.fxRateSource
-        ? { fx_rate_source: tasa.tasa.fxRateSource, fx_rate_valid_on: tasa.tasa.fxRateValidOn }
+        ? {
+            fx_rate_source: tasa.tasa.fxRateSource, fx_rate_valid_on: tasa.tasa.fxRateValidOn,
+            fx_rate_is_override: tasa.tasa.fxRateIsOverride,
+          }
         : {}),
       total_amount: input!.totalAmount,
       status: "pendiente",

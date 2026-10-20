@@ -1,5 +1,277 @@
 # Handoff · SDD-0569 · Un solo conversor a USD, que falla cerrado, y una tabla de tasas con fuente y fecha
 
+## Reapertura P2 del aviso · cierre de validación sobre 6ff0f586 · 2026-10-20
+
+Esta sección es el estado vigente. Los cierres y permisos históricos siguientes
+no sustituyen el encargo acotado nuevo del Director.
+
+**OBJETIVO ORIGINAL:** el evento `invoice_emitted` debe usar la tasa efectivamente
+persistida por el CAS exitoso, no la tasa anterior leída del borrador. Se mantiene
+el rechazo sin fila afectada antes de cualquier asiento o correo.
+
+**Adopción y ownership:** raíz
+`C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0569-conversor-usd-tasas`,
+rama `codex/sdd-0569-conversor-usd-tasas`, base/HEAD
+`eb22e2d4b414deb7d0983fa2e6524e0c99697fc8`; árbol limpio al retomar y sin procesos
+consumidores explícitos del worktree en la inspección. Guard, claim
+`codex-0569-01a15a4e-ddf0` y guard con owner pasaron. Se adoptaron AGENTS, Worker,
+runbook, reglas técnicas, AGENT-BRIEF y políticas SGE-00/ERR-01 aplicables.
+`node_modules` sigue siendo directorio local sin junction; no hubo instalaciones
+ni copia de secretos. `_norte/backend/README.md` no está disponible en este
+worktree ni en el checkout principal; no se reconstruyó ni cambió esa referencia.
+
+**COMPLETADO:** lectura del informe independiente
+`C:/tmp/director-traspaso-20261020/0569-codex-validation/revision-independiente-final.md`;
+regresiones en `factura-congela-la-tasa.test.ts` para automático 36→40,
+override 36 y borrador VES sin tasa. El doble respeta la proyección de cada
+SELECT y conserva los filtros/versiones de concurrencia; se mantienen las
+aserciones existentes de cero asiento y cero correo cuando pierde el CAS.
+El producto permaneció en la versión base para capturar primero el rojo y se
+aplicó después el cambio mínimo de tres líneas.
+
+Parche preparado fuera de Git y aplicado después del rojo:
+`C:/tmp/director-traspaso-20261020/0569-codex-validation/p2-invoice-emitted-prepared-actions.ts`.
+Contiene solo tres sustituciones dentro de `emitInvoice`: SELECT `id, fx_rate`,
+tipo de fila devuelta y `fx_rate: emitted.fx_rate` al construir las variables.
+SHA-256 base del archivo:
+`4ce222a9c963c27b224fd146bd42d016499b8524012b2811abe1862303d9fcf8`;
+preparado:
+`7de32ab476cb96219a588f60103158ac3fcf4629cac76e88d6c09fc6ed87db02`.
+
+**Alcance autorizado:** solo `app/studio/(app)/facturacion/actions.ts`,
+`app/studio/(app)/facturacion/__tests__/factura-congela-la-tasa.test.ts`,
+`docs/specs/0569-conversor-usd-tasas/spec.md` y este handoff. No SQL, helper de
+correo, RBAC u otras rutas. El blob de 0495 conserva su identidad anterior.
+
+**VALIDACIÓN:** el Director concedió el turno exclusivo después de A/B304.
+Identidad/guard y diff-check: **PASÓ**. El primer lanzador corepack falló antes de
+ejecutar tests por el tratamiento de paréntesis en Windows; se conserva como
+problema de herramienta, no como control rojo. Con Node y Vitest local:
+
+| Comprobación P2 | Resultado |
+|---|---|
+| Rojo sobre producto `eb22e2d4` + regresiones | **PASÓ como control rojo:** 2 fallos de aserción, 27 casos aprobados. El aviso devolvió 36 y —, respectivamente, frente al 40 esperado; sin fallos de importación ni doble roto |
+| Verde focal | **PASÓ:** 37/37 en 3 archivos: congelación/emisión, variables del correo y guardar conserva embarque |
+| Mutante `current.fx_rate` | **PASÓ:** detectado con 2 fallos de aserción; producto restaurado por SHA-256 |
+| Mutante SELECT sin `fx_rate` | **PASÓ:** detectado con 3 fallos de aserción; prueba de que el doble no inventa la columna; restauración exacta |
+| Typecheck | **PASÓ:** `corepack pnpm typecheck`, exit 0 |
+| Lint focal | **PASÓ:** ESLint local de las dos rutas TS modificadas, exit 0 y cero warnings |
+| Verify sobre `6ff0f586` | **PASÓ en los 14/17 pasos medidos**, exit 0. De `2026-10-20T20:01:20.4115354Z` a `20:35:06.6546683Z`. El propio cierre advierte que los tres SKIPs impiden atribuir cobertura completa |
+| Unitario, primera corrida | **FALLÓ:** dos errores de arranque de workers, `Failed to start forks worker` / `Timeout waiting for worker to respond`, en congelación de factura y supplier-flow. 858 archivos y 12.226 casos aprobados; uno omitido; no se informó fallo de aserción. Duración 601,08 s |
+| Unitario, reintento canónico 1/1 | **PASÓ:** 860 archivos y 12.278 casos aprobados; un archivo/caso omitido; cero errores. Duración 562,97 s. No se cambiaron timeout, pool ni política de reintento |
+| E2E canónico | **PASÓ:** 177 casos aprobados, un flaky recuperado y 20 omitidos; 5,4 min. El intento inicial Chromium de `e2e/auth.spec.ts:81` dio `page.goto net::ERR_ABORTED` al probar token inválido; el reintento pasó. Entorno Supabase sintético deny-only, sin DB real |
+| Build canónico | **PASÓ:** compilación y comprobaciones finales completas. El wrapper restituyó `tsconfig.json` después de los includes temporales de Next; árbol limpio al acabar |
+| Otros pasos canónicos | **PASÓ:** harness 237/237, lint global con 0 errores/15 warnings, rsc-boundary, typecheck, cuatro edge-functions, docs (556 specs), numbering, feature-constants, components, governance y pending-migration-symbols (0 ROJO, 1 AMARILLO declarado) |
+| `migrations-applied` | **NO DISPONIBLE / SKIP:** sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`. Es validación de release; no se copiaron secretos ni se aplicó DB |
+| `sql-tests` y `schema-rebuild` canónicos | **NO DISPONIBLE / SKIP:** Docker detenido. No ejecutaron contratos ni reconstrucción en esta corrida |
+| Suplementos SQL/Docker y revisión visual focal | **NO EJECUTADO en P2**, por instrucción del Director: no cambia SQL ni formulario. El diff frente a `eb22e2d4` está vacío en supabase, InvoiceDrawer y helper de correo; SQL0495 mantiene SHA-256 `964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7`. El E2E canónico sí se ejecutó, como consta arriba |
+
+Evidencia nueva fuera de Git: `p2-red.log`, `p2-green.log`,
+`p2-mutant-stale-rate.log`, `p2-mutant-missing-projection.log`,
+`p2-typecheck.log`, `p2-lint.log`, `p2-verify-6ff0f586.log`,
+`p2-verify-result.json`, `p2-cleanup-result.json` y sus demás resultados JSON en
+`C:/tmp/director-traspaso-20261020/0569-codex-validation/`.
+Los resultados previos de `5f0d04ad` no se atribuyen a esta corrección. Los
+suplementos históricos de 246 contratos PostgreSQL y 471 migraciones más 18
+sólo-ledger conservan su alcance y el mismo blob SQL
+`c6d17d946d957a29791fec426a1213a05efa7bf4`; no eliminan los SKIPs nuevos.
+
+**COMMITS:** `6ff0f586e1bdabf40accea5b00fcdd90adafc0e4`,
+`fix(studio): SDD-0569 — avisa con la tasa persistida al emitir`, publicado por
+push explícito de la rama a sí misma. Sus cuatro rutas autorizadas contienen
+la corrección, regresiones, spec y handoff. Este cierre posterior modifica
+únicamente spec/handoff; el SHA documental final se comunica en el recibo
+externo y al Director después del push, con producto, pruebas y SQL idénticos
+al SHA validado. No autoriza merge, migración, datos reales ni despliegue.
+
+**PR / BRANCH:** [#301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301),
+en borrador; `codex/sdd-0569-conversor-usd-tasas`. La publicación de `6ff0f586`
+y el cuerpo mediante archivo quedaron confirmados; el Director cotejó
+HEAD/remoto/PR, 0/0 y árbol limpio. La revisión y el CI de la cabeza documental
+final se confirman por separado; esta evidencia local no los sustituye.
+
+**PENDIENTES DE ESTA TAREA:** revisión y CI de la cabeza documental final;
+renovación de identidad/previa del paquete por el Director y aprobación nominal
+de Sam para 0495. El ledger productivo se mide en release. No queda reparación
+conocida del aviso pendiente dentro de las cuatro rutas autorizadas. Los
+suplementos SQL/Docker y la revisión visual focal no se repiten por instrucción
+expresa. Integración, aplicación y despliegue conservan permisos separados.
+
+**Impacto documental y conocimiento:** spec y handoff guardan esta reapertura y
+su aceptación. Integración pendiente; Graphify estructural/semántico, Archify,
+preview y revisión visible/publicación Obsidian: **NO EJECUTADO** por coordinación,
+sin atribuir actualización a ninguna capa. El diagnóstico de cierre en lectura
+se conserva en `p2-knowledge-status.log`; no equivale a actualización de derivados.
+El comando terminó con exit 0 pero informó `ok=false`: Graphify estructural y
+semántico **INVALID** (grafo local ausente; 4.974 y 1.322 pendientes,
+respectivamente; piloto 0/16), Archify **PENDING** (runtime 2.16.0 ausente)
+y Obsidian **PENDING**. No se ejecutó extracción, build de mapa ni publicación.
+No cambia UI ni plantilla, por lo que una nueva captura visual no demuestra el
+valor del evento: se requiere su prueba.
+
+**FUERA DE ALCANCE DETECTADO:** no se abrió auditoría general. El Norte backend
+ausente se registra como referencia documental no disponible, sin reparación
+de organización. Quedan registrados los dos fallos de arranque de workers y
+el intento E2E con `ERR_ABORTED`; sus reintentos pasaron, pero no se demostró
+causa raíz ni se modificaron sus áreas o políticas. Los hallazgos ajenos
+históricos conservan sus destinos.
+
+**HANDOFF AL DIRECTOR:** turno pesado devuelto explícitamente después del cierre.
+A `2026-10-20T20:35:29Z` no había procesos Node consumidores explícitos del
+worktree/verify, listeners en 3259/13259 ni procesos Docker Desktop/backend;
+árbol limpio y `tsconfig.json` restituido. Solo continúa la escritura documental
+autorizada; el claim `codex-0569-01a15a4e-ddf0` se libera después del push y su
+recibo se comunica al Director. No se aplicó SQL, fusionó main ni desplegó.
+
+## Relevo Codex y reparación de revisión · 2026-10-20
+
+El Director asignó esta reparación después de pausar formalmente 0572-a en
+`9c254107`. Sam autorizó pausar Claude y adoptar el worktree existente. Se
+comprobaron raíz, rama, árbol limpio y ausencia de procesos consumidores; el
+Director liberó el claim anterior. Codex reclamó
+`codex-0569-01a15a4e-ddf0`, validó guard y avanzó exclusivamente con ff-only de
+`3d0c9028` a `e6579944c5bfdc5c4addf23a59fa477f3219db7b`.
+`node_modules` es local, sin junction; no se copiaron secretos.
+
+Estado actual: **reparación implementada y validada localmente, lista para revisión del Director**, con la allowlist de **39 rutas** de la spec:
+38 originales y la prueba `update-invoice-conserva-embarque.test.ts`, ampliación
+autorizada por el Director para representar la confirmación del UPDATE
+condicional sin perder sus aserciones de embarques ni totales.
+La evidencia histórica de abajo no valida estos cambios. El Director autorizó
+ajustar la 0495 todavía no aplicada, sus contratos/símbolos/espera y documentación.
+Commits selectivos, push de esta rama y actualización del borrador #301 están
+autorizados. Merge, deploy, DB real y lecturas de negocio: **NO AUTORIZADOS**.
+
+Alcance: distinguir fuente del catálogo de override documental explícito;
+detectar ediciones concurrentes antes de emitir o guardar; limpiar tasa al
+cambiar moneda; rechazar tasas que redondeen a cero en numeric(20,8). Este
+último es un borde preexistente, no un defecto atribuido al merge.
+La referencia histórica a “0570 = hora de Caracas” queda corregida: 0570 es
+PGlite; hora de Caracas sigue sin número asignado.
+
+Diseño de concurrencia: `write_version` de factura se incrementa en cada UPDATE
+por trigger; la acción compara la versión leída y comprueba una fila afectada
+antes de asiento/correo. Esto cubre todos los datos usados por esas operaciones.
+`updated_at` usa `now()` de transacción y no garantiza distinguir dos UPDATE
+dentro de la misma transacción.
+
+Precisión autorizada por delegación del Director: la emisión automática VES
+requiere una tasa cuya fecha sea exactamente la de emisión. Un catálogo con
+una tasa anterior no basta. CNY, borradores y CxP conservan el resolver histórico.
+El override documental explícito se mantiene. §9 del plan ya fija BCV oficial,
+carga diaria y respaldo manual; implementar la carga y concretar su operación
+queda fuera de esta tarea. La reparación cambia SQL de 0495. El Director
+comunicó que reconstruyó el paquete desde `5f0d04ad`; conserva a su cargo la
+previa vigente y el OK nominal de Sam. El Worker no aplicó la migración.
+
+### Evidencia de la reparación actual
+
+El Director devolvió el turno exclusivo después de terminar la medición de #304.
+Se comprobaron guard/HEAD, ausencia de procesos pesados previos y ausencia de
+`.env.local`, URL Supabase y service key. El producto permaneció en `e6579944`
+mientras se añadían las regresiones. Los diez archivos preparados fuera del
+árbol se aplicaron solo después del rojo, comprobando antes sus SHA-256.
+
+| Comprobación | Resultado actual |
+|---|---|
+| Rojo de app sobre producto `e6579944` | **PASÓ como control rojo:** 24 fallos de aserción y 19 casos que ya pasaban, en facturas, drawer y CxP. Ningún fallo de importación/setup |
+| Rojo SQL con 0495 anterior y contrato nuevo | **PASÓ como control rojo:** falla en «facturas y CxP distinguen override explícito, false por defecto» |
+| Primera focal verde | **FALLÓ:** 87 pasaron y dos cambios de moneda conservaron el valor interno de NumericInput. Corregido con `key={currency}` en el campo del drawer, sin cambiar el componente compartido |
+| Focal corregida de app | **PASÓ:** 6 archivos, 89 pruebas, incluidas intercalaciones reales guardar/emitir en ambos sentidos, edición de importes/destinatario sin cambiar moneda, catálogo manual frente a override y límites de captura |
+| SQL en PGlite | **PASÓ:** 32 pruebas; contrato, control sin 0495, 26 mutantes, preflights de historia/instalación parcial y reaplicación. El contrato prueba dos UPDATE en una transacción, versión enviada por cliente y escritura RLS autenticada |
+| Mutantes adicionales de app | **PASÓ:** 13/13 muertos por aserciones; 13/13 archivos restaurados y comprobados por SHA-256 |
+| Recuperación visual del drawer | **FALLÓ y corregido:** con una tasa faltante, React reiniciaba el selector visible a USD aunque el estado seguía en CNY. Reproducido también en Vitest. Se cancela el reset con listener nativo local del formulario; `onReset` sintético no bastó durante el commit de React. Focal final: 89/89 |
+| Typecheck y lint | **PASÓ:** typecheck completo; ESLint de archivos TS/TSX modificados con cero warnings. Se repitieron después de la corrección visible del drawer |
+| Gates documentales y símbolos | **PASÓ:** índice regenerado/sincronizado con 556 specs, numeración sin colisiones nuevas, candado 486 selladas/3 esperas/0 nueva sin sellar, diff-check limpio. Símbolos: 0 rojo, 1 amarillo declarado (0495), 3 homónimos descartados |
+| `corepack pnpm verify` sobre `5f0d04ad0749df5aa79c3a3f4635e83ce2c1eeae` | **PASÓ lo medido, cierre canónico incompleto explícito:** exit 0, 14/17 pasos, del 2026-10-20 18:44:21Z al 19:15:07Z. `migrations-applied`, `sql-tests` y `schema-rebuild` se omitieron; los dos últimos se ejecutaron después y se detallan abajo. Incluyó build de producción |
+| Unitarios dentro de verify | Primera corrida **FALLÓ:** timeout de 20 s en `supplier-flow.test.tsx` («supports correction and append-only resubmission without clearing the form»), 12.276 aprobados/1 fallo/1 omitido. Reintento automático **PASÓ:** 12.277 aprobados/1 omitido, 860 archivos aprobados/1 omitido. No se cambió el portal ni su timeout |
+| Navegación dentro de verify | **PASÓ:** 176 aprobados, 2 flaky recuperados (carrusel visual Chromium y selector calculadora mobile-chrome), 20 omitidos. Servicio Supabase sintético deny-only local; no prueba de datos reales |
+| Contratos SQL posteriores sobre el mismo SHA | **PASÓ:** PostgreSQL 17 local, 246 contratos incluida 0495, rollback total. Del 19:15:50Z al 19:18:06Z; `sql-tests-5f0d04ad.log` y `sql-tests-result.json` |
+| Reconstrucción posterior sobre el mismo SHA | **PASÓ:** 471 migraciones desde cero, 18 sólo-ledger verificadas, aislamiento de 219 tablas con dos tenants sintéticos y radiografías de integridad/referidos. Del 19:18:19Z al 19:18:57Z; `schema-rebuild-5f0d04ad.log` y `schema-rebuild-result.json` |
+| Ledger productivo | **NO DISPONIBLE** en el Worker: sin URL/key de producción. Es validación de release del Director; no se aplica DB para poner verde la PR |
+| UI visible del drawer | **PASÓ en alcance local:** Chrome y revisión independiente IAB del Director, componente y CSS reales, datos sintéticos y acciones mock. VES→CNY limpia la tasa; al guardar sin tasa, mensaje junto al campo y selector CNY conservado. Capturas `drawer-cny-error-local.png` y `director-cny-error-local.png` fuera de Git. No certifica persistencia real ni fidelidad tipográfica de la app completa |
+| Graphify, Archify y preview Obsidian | **NO EJECUTADO** para esta reparación, por coordinación expresa del Director al devolver el turno a 0571. Sólo se consultó `knowledge:status` en lectura; los derivados se cerrarán coordinadamente desde main después de integración |
+| Diagnóstico `knowledge:status --preview` | **FALLÓ como estado de conocimiento (`ok: false`):** Graphify 0.9.61 sin `graph.json`, estructura INVALID/4.974 fuentes pendientes, semántica local 0/16 del piloto y 0/1.322 global; Archify y preview PENDING. No es una pérdida medida del grafo de main, sino ausencia de derivados en este worktree |
+| Producción, migración aplicada, merge y despliegue | **NO EJECUTADO**, fuera de autorización Worker |
+
+Los logs y el runner reproducible de los mutantes se conservan fuera de Git en
+`C:/tmp/director-traspaso-20261020/0569-codex-validation/`. El verify original
+conserva sus tres SKIPs: las corridas SQL complementarias no reescriben ese
+resultado. La evidencia conjunta cubre los 16 pasos locales; el ledger sigue
+separado como release. La omisión unitaria corresponde al corpus real externo
+de proformas; las 20 omisiones E2E son escenarios que requieren seed/credenciales
+de prueba. No se solicitaron datos comerciales ni secretos para ejecutarlos.
+Lint canónico pasó con 15 warnings generales; el lint focal de los archivos
+modificados pasó con cero warnings.
+
+Docker estaba instalado (Desktop 4.96.0, motor 29.9.1), pero apagado y sin el
+pipe `dockerDesktopLinuxEngine`. Se inició oculto sólo después de verify,
+con autorización del Director. Imagen local `postgres:17`, digest
+`sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675`.
+Los contenedores propios `dtd_sqltest_242b7664` y `dtd_rebuild_242b7664`
+fueron retirados; los cuatro ajenos permanecieron detenidos y sin cambios.
+Docker volvió a estado detenido con su CLI oficial, exit 0; se comprobaron
+cero procesos de prueba y cero procesos Desktop/backend/proxy antes de devolver
+el turno. Evidencias: `docker-start.json`, `docker-cleanup.json`, `docker-stop.log`.
+
+Ninguna de esas pruebas constituye evidencia del servidor de producción. La precisión de VES usa
+la fecha de emisión actual de la app (UTC); no certifica aún la futura
+unificación a Caracas. Se corrigieron los comentarios de la migración para
+no afirmar esa unificación.
+
+### Cierre actual y entrega al Director
+
+**OBJETIVO ORIGINAL:** reparar procedencia, carreras guardar/emitir y bordes de
+captura de la SDD-0569, conservando la separación de 0572 y MIGRATE-FIRST.
+
+**COMPLETADO:** los dos P1 y los bordes asignados, pruebas de regresión,
+mutantes, contrato SQL, validación local y revisión visible sintética. El
+commit de implementación es `5f0d04ad0749df5aa79c3a3f4635e83ce2c1eeae`;
+este cierre documental no modifica producto, pruebas ni SQL.
+
+**VALIDACIÓN:** matriz anterior; evidencia exacta por SHA y por corrida fuera de
+Git. Ninguna omisión se presenta como una prueba aprobada.
+
+**COMMITS:** implementación `5f0d04ad` sobre `e6579944`; el commit documental
+que contiene este cierre conserva el mismo blob SQL
+`c6d17d946d957a29791fec426a1213a05efa7bf4` y SHA-256
+`964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7`.
+
+**PR / BRANCH:** [#301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301),
+en borrador; `codex/sdd-0569-conversor-usd-tasas`. El SHA documental final se
+confirma al Director después del push explícito a la misma rama.
+
+**PENDIENTES DE ESTA TAREA:** revisión y CI del SHA documental final;
+previa vigente, OK nominal de Sam y secuencia MIGRATE-FIRST a cargo del
+Director; posterior integración/despliegue y recorrido real según sus permisos.
+No queda una reparación de producto conocida pendiente dentro de la asignación.
+
+**Impacto documental y conocimiento:** spec y este handoff guardan las decisiones
+autorizadas y la evidencia. La integración en main sigue pendiente. La estructura
+Graphify, cobertura semántica, mapa Archify 2.16.0 y exportación preview no se
+actualizaron en este turno por instrucción del Director. Ninguna de las 16 fuentes
+del piloto semántico cambió en esta reparación; eso no certifica un grafo ausente
+ni la semántica global. `knowledge-status-before.json` conserva el diagnóstico
+en lectura. Publicación compartida y revisión visible en Obsidian:
+**NO EJECUTADO**. El Director coordina esas capas después de integrar; el Worker
+no escribió la bóveda compartida.
+
+**FUERA DE ALCANCE DETECTADO:** intermitencias observadas del portal y de los dos
+casos E2E recuperados, sin causa raíz nueva demostrada ni cambios en sus áreas.
+La carga automática BCV, hora Caracas y reemplazos de reportes 0572 permanecen
+entregas separadas; no se reabre la decisión de fuente BCV ya fijada en §9.
+
+**HANDOFF AL DIRECTOR:** turno pesado devuelto explícitamente tras limpiar los
+recursos propios. La escritura se limita al cierre documental autorizado; al
+terminar push y comprobación de estado se libera el claim
+`codex-0569-01a15a4e-ddf0` y se comunica el resultado. No se aplicó 0495, no se
+fusionó main ni se desplegó.
+
+## Antecedente fechado de la sesión anterior
+
+El siguiente registro conserva lo medido antes del relevo; sus SHAs y resultados
+no cubren la reparación actual ni constituyen autorización de producción.
+
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-10-20 |
@@ -12,7 +284,7 @@
 
 ## OBJETIVO ORIGINAL
 
-La 2.1 del plan contable, primera parte: la tabla `fx_rates` (fuente, fecha de valor, quién) y un conversor canónico a USD que falla cerrado (nunca 0 ni el monto tal cual), con USDT = USD 1:1 (decisión 1 de Sam). Los 13 reemplazos van en la SDD siguiente; la hora de Caracas es la 0570; la carga del BCV, la tercera.
+La 2.1 del plan contable, primera parte: la tabla `fx_rates` (fuente, fecha de valor, quién) y un conversor canónico a USD que falla cerrado (nunca 0 ni el monto tal cual), con USDT = USD 1:1 (decisión 1 de Sam). Los 13 reemplazos van en la SDD siguiente; la hora Caracas continúa sin número asignado (0570 es PGlite); la carga BCV es otra entrega.
 
 ## COMPLETADO
 
@@ -109,6 +381,6 @@ La spec 0569 y el índice. **Cambia el esquema** (la 0495), así que el Director
 - **Timeouts del portal de proveedores bajo carga** (`app/p/[token]/supplier-flow.test.tsx`, `standard-format.test.tsx`): con la suite completa, una prueba distinta pasa los 20 s en cada corrida; solas pasan. Hay que subirles el timeout o aliviar su montaje, como ya se hizo en otros archivos.
 - **Fidelización › Referidos, estado vacío** (el Director, 2026-10-20): dice «El crédito se acredita a mano cuando hace su primer embarque». Con la 0250 y la 0494, se acredita **solo** con la primera venta real posterior al alta, y a mano únicamente el admin, con motivo. Va en una SDD chica de Fidelización, o en la próxima que toque esa pantalla.
 
-1. **El día del documento es hoy en UTC** en `createInvoice` y `updateInvoice` (`new Date().toISOString().slice(0, 10)`): entre las 20:00 y la medianoche de Caracas toma la tasa del día siguiente. Es la 0570.
+1. **El día del documento es hoy en UTC** en `createInvoice` y `updateInvoice` (`new Date().toISOString().slice(0, 10)`): entre las 20:00 y la medianoche de Caracas toma la tasa del día siguiente. La unificación de hora Caracas sigue sin número asignado; 0570 corresponde a PGlite.
 2. **`tenant_fx_history` queda sin uso.** Ni se lee ni se escribe; borrarla es una migración aparte, cuando el Director lo decida.
 3. **`createInvoice` y `createBillFor` devuelven el texto de la base** en su error de insert («No se pudo crear la factura: …», «No se pudo crear la CxP: …»). Es anterior a esta SDD y choca con ERR-01.
