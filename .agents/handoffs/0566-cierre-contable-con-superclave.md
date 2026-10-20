@@ -93,7 +93,15 @@ Detalle del `verify`, copiado de su salida:
 | Mutantes de la app, restaurados por copia con la huella sha256 | se muestra cualquier 22023/42501 sin mirar el hint; el historial no dice cuánto duró el bloqueo | `MUERTOS 2/2 · restaurados 2/2` |
 | `typecheck`, eslint `--max-warnings=0` (los 6 .ts/.tsx tocados) | repo y archivos tocados | PASÓ |
 | `check-pending-migration-symbols` | las líneas de `actions.ts` se corrieron 5; las 12 referencias se actualizaron | PASÓ: «0 ROJO · 1 AMARILLO declarado(s)» |
-| `pnpm verify` | completo | PENDIENTE: corre después de este commit |
+| `pnpm verify` sobre `2d9238f4` (de 2026-10-20T07:17:31Z a 07:55:26Z) | completo | **FALLÓ** en `test`, `VERIFY_EXIT=1`: «[FAIL] verify: 1 fallo(s) → test». Todo lo demás medido pasó: sql-tests («244 contrato(s)»), schema-rebuild (469 migraciones), e2e (`178 passed`) y build. migrations-applied: NO DISPONIBLE. Detalle abajo |
+
+Detalle del `test` que falló, copiado de la salida:
+- **Primera vuelta:** «Failed to start forks worker … Timeout waiting for worker to respond», con 3 errores y sin ningún test rojo (`844 passed`). Es falta de memoria del equipo.
+- **Reintento:** `Tests  2 failed | 12063 passed`. Los dos rojos son ajenos a contabilidad:
+  - `document-entity-bitacora-task.migration.test.ts`, «Test timed out in 20000ms»;
+  - `EmbarquesClient.borrado.test.tsx`, «Unable to find … "Eliminar embarques"». Es la carrera que arregla la #292.
+- **Aislados,** los dos archivos pasaron dos veces seguidas: `Tests  37 passed (37)`.
+- **Después** entraron a `main` la #292 y la #295. Mezclé `origin/main` `5af1e933` sin conflictos; el gate, `docs:check` y el candado dieron OK. El `pnpm verify` completo se repite sobre esa cabeza.
 
 ### Lo que destaparon las pruebas y se corrigió
 
