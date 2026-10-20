@@ -10,7 +10,7 @@ El [registro del Director, §4](../../.agents/handoffs/director-continuidad-code
 
 ## Dónde estamos
 
-**GitHub volvió a funcionar.** Pasaron las verificaciones de `main` y de las versiones anteriores de #301, #304 y #307. La revisión de tasa única encontró dos problemas; sus correcciones ya están publicadas en #301 y se está ejecutando una validación completa nueva. Los resultados anteriores no certifican este código nuevo.
+**GitHub volvió a funcionar.** Pasaron las verificaciones de `main` y de las versiones anteriores de #301, #304 y #307. La tasa única ya tiene sus correcciones y su evidencia local cerradas en #301; GitHub está comprobando la cabeza final `eb22e2d4`. Los resultados de otra cabeza se conservan como antecedentes.
 
 Las cabezas actuales de #304 (`1077ff21`) y #306 (`2f9b336c`) también aprobaron GitHub. En #301, la primera pasada local tuvo un tiempo de espera agotado en una prueba del portal de proveedores; el reintento pasó sin cambios, con 12.277 pruebas aprobadas y una omitida. La construcción también pasó. La revisión canónica ejecutó 14 de 17 pasos. Las dos comprobaciones omitidas por Docker se completaron después: 246 contratos SQL y reconstrucción de 471 migraciones más 18 registros de historial, todo aprobado. La consulta del ledger de producción permanece separada como validación de publicación; el worktree no tiene esas credenciales.
 
@@ -24,7 +24,7 @@ La 2.1 sigue **en curso**. Está dividida para poder revisar cada cambio y compr
 
 | Parte | Avance comprobado | Próximo paso |
 |---|---|---|
-| **Tasa única y conversor · 0569** | Correcciones publicadas en la [PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301), versión `5f0d04ad`: distinguen tasa de tabla y excepción documental, y detectan ediciones simultáneas. Pasaron las pruebas específicas, el reintento general, navegación, construcción, 246 contratos SQL y reconstrucción completa. Revisión local visible y previa de solo lectura en el servidor: PASÓ | Cierre documental, revisión de la cabeza final, paquete/previa actuales y CI. Después se pide el OK nominal de `0495_fx_rates_conversor_usd`; todavía no se ha aplicado |
+| **Tasa única y conversor · 0569** | Cabeza final `eb22e2d4` en la [PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301), revisada; conserva el producto probado en `5f0d04ad`. Pasaron las pruebas específicas, el reintento general, construcción, 246 contratos SQL y reconstrucción completa. Revisión local visible y previa definitiva de solo lectura a las 3:29 p. m.: PASÓ | Esperar CI verde de esa cabeza y pedir el OK nominal de `0495_fx_rates_conversor_usd`. Paquete definitivo preparado; todavía no se ha aplicado |
 | **Reemplazar las 13 conversiones · 0572-a** | Avance guardado y publicado. Pasaron 71 pruebas focales, revisión de tipos y revisión estática. Se repararon formatos y datos de prueba incompletos | Incorporar la dependencia 0569 corregida, comprobar el ranking de embarques sin tasa y terminar prueba completa, mutantes y revisión visual. La PR espera a #301 integrada |
 | **Conversiones pendientes en SQL · 0572-b** | Identificadas y separadas del cambio anterior | Encargo propio, número de migración coordinado y OK nominal antes de producción |
 | **Hora de Caracas** | Pendiente de implementación y de número de tarea | Unificar emisión, asientos, cobros y pagos después del cierre del conversor |
@@ -36,11 +36,11 @@ La 2.1 sigue **en curso**. Está dividida para poder revisar cada cambio y compr
 
 | Frente | Estado actual | Qué falta |
 |---|---|---|
-| **0571 · Tarifa congelada**, #307 | Correcciones y regresiones preparadas en ocho archivos para los tres problemas de búsqueda y actualización del formulario. Ya recibió el turno para probarlas; la validación anterior no cubre el código nuevo | Cerrar pruebas focales y revisión visual; luego actualizar base, validación final, nueva previa, OK nominal de `0496_tarifa_congelada_por_embarque`, integración y prueba en el servidor |
+| **0571 · Tarifa congelada**, #307 | Cierre publicado y revisado en `ba43747a`: 62 pruebas focales aprobadas y siete controles de regresión detectados. Tipos, revisión estática y revisión visible local: PASÓ. El formulario descarta cálculos antiguos y bloquea confirmar mientras espera o si falla | Actualizar base, validación final, nueva previa, OK nominal de `0496_tarifa_congelada_por_embarque`, integración y prueba en el servidor |
 | **0573 · Reverso al anular**, 2.5 | Implementación publicada. Se recuperó y guardó el informe completo de revisión; sus hallazgos siguen pendientes | Corregir los controles de anulación, concurrencia, tenant y comparación entre meses; prueba completa y PR. Después revisión, previa y OK nominal de `0497_reverso_al_anular_factura` |
 | **0574 · Embarques sin facturar**, 4.5 | Ya implementada sobre 0571. Hay evidencia anterior de diez pruebas y tres mutantes | Preparar dependencias locales y ejecutar la prueba completa con turno. Se integra después de 0571 |
 | **0575 · Asientos sin fallos silenciosos**, 2.2 | Cinco decisiones y propuesta transaccional guardadas, publicadas y revisadas en `8a614250`. El diseño distingue documento guardado, asiento contabilizado y resultado desconocido; todavía no está implementado | Cerrar firmas, permisos, control del cierre en cada operación y base integrada; archivos exactos de cada entrega y número de migración; tres PR sucesivas |
-| **0570 · Pruebas PGlite**, #304 | La primera mitad de la comparación local se detuvo por su límite de 20 minutos: 26 de 34 archivos y 649 casos informados sin fallas. La segunda mitad no se ejecutó. Archivos originales restaurados y evidencia parcial publicada en `1077ff21`; GitHub PASÓ a las 3:01 p. m. | Repetir la comparación completa con un tiempo suficiente, después de 0569 y las pruebas focales de 0571. El criterio de velocidad local sigue pendiente |
+| **0570 · Pruebas PGlite**, #304 | Primer intento parcial, archivos originales restaurados y evidencia publicada en `1077ff21`; GitHub PASÓ a las 3:01 p. m. Segundo intento en ejecución, con los mismos 854 casos por lado y 45 minutos de límite por fase | Completar ambos lados, comparar identidad de casos y tiempos y comprobar la restauración. El criterio de velocidad local sigue pendiente |
 | **Oficina de agentes**, #306 | Correcciones documentales guardadas, publicadas y revisadas; GitHub PASÓ sobre `2f9b336c` a las 2:47 p. m. | Actualizar base después de #301. El aislamiento real entre perfiles y la copia filtrada del servidor siguen sin verificar |
 
 Se ejecuta una sola prueba pesada a la vez en la máquina. El carril de embarques puede avanzar en paralelo cuando no compite por ese turno ni cambia contratos del carril contable.
@@ -93,6 +93,6 @@ El [plan de Claude](https://claude.ai/artifact/A1hEYVry1GXFZJdnj2ui1z#d53c897e-f
 - 0572 y 0574 ya tienen implementación; no están solo empezando el diseño.
 - La prueba final de la versión anterior de 0571 ya terminó; las correcciones de la revisión nueva requieren pruebas propias.
 - Las decisiones delegadas de 0575 ya quedaron registradas.
-- #301 necesita cerrar los hallazgos nuevos antes de solicitar la aprobación de su migración.
+- #301 ya cerró los hallazgos y la evidencia local; falta el CI de su cabeza final antes de solicitar la aprobación de su migración.
 
 Las verificaciones periódicas, restauraciones del 21 y 22 de octubre y pendientes de la oficina conservan su registro en el handoff del Director. Este seguimiento no crea nuevas autorizaciones ni una automatización.
