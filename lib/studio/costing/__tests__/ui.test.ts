@@ -163,6 +163,7 @@ function totals(over: Partial<CostingTotals> = {}): CostingTotals {
     avgMarginPct: 0,
     profitable: 0,
     losing: 0,
+    sinTasa: 0,
     catTotals: {
       freight: 0,
       customs: 0,

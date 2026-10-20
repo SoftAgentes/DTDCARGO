@@ -1,7 +1,7 @@
 ---
 sdd: "0572"
 title: "Los 13 conversores a USD pasan a uno solo, que falla cerrado"
-status: draft
+status: in-progress
 author: "founder"
 created: 2026-10-20
 updated: 2026-10-20
@@ -16,6 +16,10 @@ confidencialidad: interno
 > La 2.1 del plan contable, segunda parte. La SDD-0569 creó el conversor canónico (`toUsd` en `lib/shared/fx.ts` y `to_usd` en la 0495) y la tabla `fx_rates`. Esta reemplaza las 13 implementaciones y las tasas fijas del código por ese conversor. **Aquí sí cambian cifras visibles.**
 
 **Estado: 0572-a IMPLEMENTADA** (la app, reglas A a F), apilada sobre la cabeza de la #301 (SDD-0569, `3d0c9028`) por instrucción del Director: «crea su rama desde la cabeza de la #301 (`3d0c9028`), porque necesita `toUsd`». Pasa a main cuando entre la #301. El diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). La regla G queda para la 2.3 (ver *Implementación*). La 0572-b (SQL de 0404 y 0411) no ha arrancado.
+
+El cierre local de 0572-a se retomó en Codex el 2026-10-20 con turno exclusivo de validación y autorización para commits selectivos y push a la misma rama. La PR se abrirá únicamente después de que el Director confirme la integración de #301. El estado general permanece `in-progress` porque 0572-b sigue diferida.
+
+El Director pidió entregar este avance antes del cierre canónico: #301 requiere corregir la distinción entre tasa manual del catálogo y override manual del documento. `verify` y mutantes de 0572-a se ejecutarán después de recibir esa corrección. No se afirma que 0572-a esté lista para integrar.
 
 ## Decisiones del Director, por la delegación de Sam del 2026-10-20
 
@@ -163,6 +167,8 @@ Todas las conversiones pasan por `toUsd` (`lib/shared/fx.ts`) a través de dos a
 - `EmitDrawer.sin-tasa.test.tsx`;
 - casos nuevos en `renditions`, `emit-void` y `payment-receipts-0068`.
 
+En el cierre parcial de Codex se agregaron cinco casos: mezcla USD/USDT/VES/CNY/RMB, suma exacta en centavos y distinción entre cero y falta de tasa, además del bloqueo por factura local sin tasa tanto en servidor como en el drawer. El typecheck detectó y permitió restaurar los tres formateadores de `lib/i18n/format.ts` que habían sido eliminados accidentalmente junto al conversor duplicado.
+
 **Texto corregido:** el aviso del ingreso decía «en bolívares sin tasa o en yuanes»; ahora dice «en bolívares o yuanes sin tasa», porque un yuan con tasa ya suma. De paso se corrigió un voseo de Costing («Identificá»).
 
 ### Allowlist
@@ -176,7 +182,9 @@ app/studio/(app)/financiero-china/_components/PartnerAlertsBanner.tsx
 app/studio/(app)/rendiciones/_components/EmitDrawer.sin-tasa.test.tsx
 app/studio/(app)/rendiciones/_components/EmitDrawer.tsx
 app/studio/(app)/reportes/_components/ReportesClient.tsx
+app/studio/(app)/tesoreria/_components/TesoreriaClient.cxp-saldada.test.tsx
 docs/specs/0572-conversor-usd-reemplazos/spec.md
+docs/specs/README.md
 .agents/handoffs/0572-conversor-usd-reemplazos.md
 lib/i18n/format.ts
 lib/i18n/index.ts
@@ -215,12 +223,17 @@ lib/studio/renditions/actions-helpers.ts
 lib/studio/renditions/queries.ts
 lib/studio/renditions/types.ts
 lib/studio/reports/__tests__/queries.test.ts
+lib/studio/reports/__tests__/export-csv.test.ts
 lib/studio/reports/builder-types.ts
 lib/studio/reports/queries.ts
 lib/studio/reports/types.ts
 lib/studio/treasury/__tests__/treasury.test.ts
 lib/studio/treasury/bill-queries.ts
 ```
+
+`docs/specs/README.md` se incorporó a la allowlist por autorización acotada del Director el 2026-10-20: es el índice generado necesario para reflejar el estado de esta spec, sin ampliar el alcance de producto.
+
+En el mismo cierre, el Director autorizó sumar únicamente `TesoreriaClient.cxp-saldada.test.tsx` y `reports/__tests__/export-csv.test.ts` para completar sus fixtures con `cxpSinTasa: 0` y `sinTasa: 0`. El typecheck detectó esos consumidores; se conservan sus aserciones y los contadores siguen siendo obligatorios.
 
 ### Lo que queda abierto
 
@@ -241,7 +254,11 @@ lib/studio/treasury/bill-queries.ts
 | Comprobación | Resultado |
 |---|---|
 | Pruebas puntuales, un archivo a la vez (sin turno de máquina) | PASÓ: los 31 archivos tocados o que leen el fixture |
-| `tsc` / typecheck | NO EJECUTADO con turno (ver handoff) |
-| eslint | NO EJECUTADO |
-| `pnpm verify` | NO EJECUTADO: espera el turno del Director |
-| Mutantes de app | NO EJECUTADO |
+| Pruebas focales del cierre Codex | PASÓ: 6 archivos, 71 pruebas sobre las reparaciones y los cinco casos adicionales |
+| `corepack pnpm typecheck` | FALLÓ inicialmente; PASÓ después de restaurar formatos y completar fixtures con contadores obligatorios |
+| eslint del diff | PASÓ: 52 archivos, cero errores; la única advertencia propia se corrigió y el lint puntual posterior pasó sin advertencias |
+| `pnpm verify` | NO EJECUTADO: diferido por el Director hasta recibir la corrección de la dependencia #301 |
+| Mutantes de app | NO EJECUTADO: diferidos por la misma dependencia |
+| Revisión visual con navegador/fixtures | NO EJECUTADO en este cierre parcial |
+
+Pendiente propio detectado durante la revisión: comprobar con un fixture si `topAndWorst` de Costing incluye entre mejores/peores una fila con ingreso parcial y facturas sin tasa. La clasificación del Ranking ya muestra «Sin tasa», pero esa comprobación del Overview sigue abierta y no se da por resuelta.

@@ -12,10 +12,42 @@
 
 import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { sumarEnUsd } from "@/lib/shared/fx";
 import { paymentAmountUsd } from "../accounting/supplier-payment-posting";
 import { amountToUsd } from "../partner-finance/types";
 import { CATEGORIES_BY_SCOPE, toAmountUsd, validateExpenseInput } from "../expense-types";
 import { sumMyExpensesTodayUsd } from "../expense-queries";
+
+describe("sumarEnUsd · mezcla de monedas y centavos", () => {
+  it("suma las conversiones y separa los documentos sin tasa", () => {
+    expect(sumarEnUsd([
+      { amount: 100, currency: "USD" },
+      { amount: 20, currency: "USDT" },
+      { amount: 3600, currency: "VES", rate: 36 },
+      { amount: 15.66, currency: "CNY", rate: 7.2 },
+      { amount: 700, currency: "RMB", rate: 7 },
+      { amount: 700, currency: "CNY", rate: null },
+      { amount: 3600, currency: "VES", rate: 0 },
+    ])).toEqual({ usd: 322.18, sinConvertir: 2 });
+  });
+
+  it("suma en centavos y conserva el redondeo simétrico del conversor", () => {
+    expect(sumarEnUsd([
+      { amount: "0.10", currency: "USD" },
+      { amount: "0.20", currency: "USDT" },
+      { amount: "15.66", currency: "CNY", rate: "7.2" },
+      { amount: "-15.66", currency: "CNY", rate: "7.2" },
+    ])).toEqual({ usd: 0.3, sinConvertir: 0 });
+  });
+
+  it("distingue cero convertido de documento sin tasa y no inventa un total nominal", () => {
+    expect(sumarEnUsd([
+      { amount: 0, currency: "USD" },
+      { amount: 18000, currency: "VES", rate: null },
+      { amount: 700, currency: "CNY" },
+    ])).toEqual({ usd: 0, sinConvertir: 2 });
+  });
+});
 
 describe("regla B · paymentAmountUsd", () => {
   it("USD y USDT 1:1; VES y CNY por su tasa; sin tasa, null", () => {

@@ -188,7 +188,7 @@ describe("buildViewCsv · Contables · aging", () => {
 
 describe("buildViewCsv · Combinados", () => {
   const combined = (over: Partial<CombinedReport>): CombinedReport => ({
-    totals: { revenue: 0, cost: 0, margin: 0, avgMarginPct: 0, profitable: 0, losing: 0, catTotals: {} as never },
+    totals: { revenue: 0, cost: 0, margin: 0, avgMarginPct: 0, profitable: 0, losing: 0, sinTasa: 0, catTotals: {} as never },
     byRoute: [
       { origin: "Yiwu", destination: "Pto Cabello", count: 2, revenue: 8000, cost: 5000, margin: 3000, marginPct: 37, tone: "good" as never },
     ],

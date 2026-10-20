@@ -9,7 +9,6 @@ import { EXPENSE_CATEGORY_ACCOUNT_CODE } from "./expense-types";
 import type {
   Expense,
   ExpenseCategory,
-  ExpenseCurrency,
   ExpenseScope,
 } from "./expense-types";
 

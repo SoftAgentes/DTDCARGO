@@ -61,4 +61,14 @@ describe("EmitDrawer · cobros sin tasa", () => {
     expect(screen.queryByTestId("rendicion-sin-tasa")).toBeNull();
     expect(screen.getByRole("button", { name: /Emitir rendición/ })).toBeEnabled();
   });
+
+  it("una factura local sin tasa también explica el bloqueo y apaga el botón", () => {
+    const conFacturaSinTasa = card(100, 0);
+    conFacturaSinTasa.preview.facturasLocalesSinTasa = 1;
+    render(createElement(EmitDrawer, { card: conFacturaSinTasa, onClose: vi.fn(), onEmitted: vi.fn() }));
+    expect(screen.getByTestId("rendicion-sin-tasa")).toHaveTextContent(
+      "No se puede emitir: 0 cobro(s) y 1 factura(s) local(es) no tienen tasa.",
+    );
+    expect(screen.getByRole("button", { name: /Emitir rendición/ })).toBeDisabled();
+  });
 });
