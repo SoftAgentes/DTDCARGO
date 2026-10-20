@@ -189,6 +189,24 @@ describe("SDD-0569 · 0495 conversor a USD y tabla de tasas (PGlite)", () => {
       to: "alter table public.invoices\n  add column fx_rate_source   text,",
       fails: "TEST 0495: la fuente de la tasa del documento es bcv, manual u operacion",
     },
+    {
+      name: "fx_rate_on sin filtro de tenant en la consulta",
+      from: "    where f.tenant_id = p_tenant_id and f.currency = v_moneda and f.valid_on <= p_on",
+      to: "    where f.currency = v_moneda and f.valid_on <= p_on",
+      fails: "TEST 0495: fx_rate_on filtra por el tenant pedido también sin RLS",
+    },
+    {
+      name: "la RLS de fx_rates no filtra por tenant",
+      from: "  for select to authenticated using (tenant_id = public.get_user_tenant_id());",
+      to: "  for select to authenticated using (true);",
+      fails: "TEST 0495: otro tenant no ve las tasas del tenant A",
+    },
+    {
+      name: "la auditoría guarda la nota",
+      from: "'valid_on', v_new->'valid_on', 'source', v_new->'source') end;",
+      to: "'valid_on', v_new->'valid_on', 'source', v_new->'source', 'note', v_new->'note') end;",
+      fails: "TEST 0495: la auditoría D2 de fx_rates no guarda datos personales: solo moneda, tasa, día y fuente",
+    },
   ];
   for (const m of MUTANTS) {
     it(`mutante ${m.name}: muere donde debe`, async () => {

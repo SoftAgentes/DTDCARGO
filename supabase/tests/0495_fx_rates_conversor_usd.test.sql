@@ -91,6 +91,9 @@ create table public.tenant_fx_history (
 \ir ../migrations/0077_invoices.sql
 \ir ../migrations/0078_contabilidad.sql
 \ir ../migrations/0088_tesoreria.sql
+-- 0077, 0078 y 0088 vuelven a crear la lista cerrada (CHECK) de entity_type, que
+-- en producción retiró la 0261: desde entonces manda la FK a audit_entity_types.
+alter table public.entity_audit_log drop constraint entity_audit_log_entity_type_check;
 \if :apply_fix
 \ir ../migrations/0495_fx_rates_conversor_usd.sql
 \endif
@@ -149,9 +152,13 @@ exception when others then
   return v_state || '|' || v_message || '|' || coalesce(v_hint, '');
 end;
 $$;
+-- Si to_usd lanza, devuelve -999999 (ningún caso feliz da eso): un mutante que
+-- lanza muere en la aserción con su etiqueta, no con el mensaje crudo.
 create function pg_temp.usd(p_amount numeric, p_currency text, p_rate numeric) returns numeric language plpgsql as $$
 begin
   return public.to_usd(p_amount, p_currency, p_rate);
+exception when others then
+  return -999999;
 end;
 $$;
 
@@ -236,13 +243,28 @@ select pg_temp.assert_true(exists (select 1 from public.entity_audit_log
 select pg_temp.assert_true((select count(*) from public.entity_audit_log
   where entity_type = 'exchange_rate' and event_type = 'exchange_rate_recorded') = 2,
   'cada tasa nueva queda registrada en la auditoría');
+-- Pedido del Director (2026-10-20): la auditoría de fx_rates solo guarda la
+-- moneda, la tasa, el día y la fuente. Ni la nota (texto libre, puede traer un
+-- nombre) ni set_by. El actor queda en actor_id, como en toda la D2 (AUD-01).
+select pg_temp.assert_true(not exists (
+  select 1 from public.entity_audit_log a
+  where a.entity_type = 'exchange_rate' and (
+    exists (select 1 from jsonb_object_keys(coalesce(a.before_data, '{}'::jsonb)) k
+            where k not in ('currency', 'rate', 'valid_on', 'source'))
+    or exists (select 1 from jsonb_object_keys(coalesce(a.after_data, '{}'::jsonb)) k
+            where k not in ('currency', 'rate', 'valid_on', 'source'))
+    or to_jsonb(a)::text like '%Corrección%'
+    or coalesce(a.before_data::text, '') || coalesce(a.after_data::text, '') || coalesce(a.payload::text, '')
+       like '%' || pg_temp.fixture_id('accounting-A')::text || '%')),
+  'la auditoría D2 de fx_rates no guarda datos personales: solo moneda, tasa, día y fuente');
 
 -- ── 6. La tasa vigente: la fecha más reciente, y ese día bcv > manual > operacion ──
 insert into public.fx_rates (tenant_id, currency, rate, valid_on, source) values
   (pg_temp.fixture_id('tenant-A'), 'VES', 37.0, '2026-10-05', 'operacion'),
   (pg_temp.fixture_id('tenant-A'), 'VES', 36.9, '2026-10-05', 'manual'),
   (pg_temp.fixture_id('tenant-A'), 'VES', 36.8, '2026-10-05', 'bcv'),
-  (pg_temp.fixture_id('tenant-B'), 'VES', 99.0, '2026-10-05', 'bcv');
+  (pg_temp.fixture_id('tenant-B'), 'VES', 99.0, '2026-10-05', 'bcv'),
+  (pg_temp.fixture_id('tenant-B'), 'VES', 98.0, '2026-10-06', 'bcv');
 create function pg_temp.vigente(p_actor text, p_currency text, p_on date) returns text language plpgsql as $$
 begin
   return (pg_temp.as_actor(p_actor, format(
@@ -256,6 +278,13 @@ select pg_temp.assert_true((pg_temp.vigente('accounting-A', 'VES', '2026-10-03')
 select pg_temp.assert_true(pg_temp.error_of('accounting-A', format(
   'select to_jsonb(r) from public.fx_rate_on(%L::uuid, ''VES'', ''2026-09-30'') r', pg_temp.fixture_id('tenant-A')))
   = '22023|FX_RATE_MISSING|dtd-fx', 'sin ninguna tasa anterior, falla cerrado');
+-- Pedido del Director: el filtro por tenant va en la consulta (acá) Y en la RLS
+-- (abajo). service_role no tiene RLS que lo corte: con la tasa del tenant B más
+-- reciente, fx_rate_on(A) tiene que seguir devolviendo la de A.
+select pg_temp.assert_true((pg_temp.as_actor(null, format(
+  'select to_jsonb(r) from public.fx_rate_on(%L::uuid, ''VES'', ''2026-10-06'') r', pg_temp.fixture_id('tenant-A')),
+  'service_role'))::jsonb = '{"rate": 36.80000000, "source": "bcv", "valid_on": "2026-10-05"}'::jsonb,
+  'fx_rate_on filtra por el tenant pedido también sin RLS');
 select pg_temp.assert_true(pg_temp.error_of('admin-B', format(
   'select to_jsonb(r) from public.fx_rate_on(%L::uuid, ''VES'', ''2026-10-05'') r', pg_temp.fixture_id('tenant-A')))
   = '22023|FX_RATE_MISSING|dtd-fx', 'otro tenant no ve las tasas del tenant A');

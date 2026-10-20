@@ -103,6 +103,7 @@ Reemplazar las 13 implementaciones cambia cifras visibles en reportes, cobranzas
 - **`registrar_tasa_de_cambio(currency, rate, valid_on, note)`:** SECURITY DEFINER, solo admin o accounting del tenant. Valida la moneda, la tasa y que la fecha no sea posterior a hoy en Caracas. Una segunda tasa manual del mismo día y moneda reemplaza a la primera.
 - **La auditoría D2:** un disparador sobre `fx_rates` llama a `append_audit_event` con `exchange_rate_recorded`, `exchange_rate_corrected` o `exchange_rate_deleted`, y guarda la tasa anterior y la nueva en `before_data` y `after_data`.
 - **`invoices` y `supplier_bills`:** dos columnas nuevas, `fx_rate_source` (CHECK `bcv`, `manual` u `operacion`) y `fx_rate_valid_on`. El documento congela la tasa que usó: una corrección posterior de `fx_rates` no lo cambia (decisión 1: la factura toma «la tasa BCV del día de emisión»).
+- **El contrato** (`supabase/tests/0495_fx_rates_conversor_usd.test.sql`) replica la 0261: retira el CHECK legacy de `entity_type` que las migraciones viejas de facturas vuelven a crear en el fixture; en producción manda la FK a `audit_entity_types`.
 - **Postflight:** las volatilidades, que `authenticated` solo lee `fx_rates`, la ACL de la RPC y de la auditoría, y el disparador.
 
 **Por qué `to_usd` es IMMUTABLE y `fx_rate_on` STABLE:** el conversor no lee tablas, así que puede ir en índices, CHECK y columnas generadas. La tasa vigente sí lee `fx_rates`, que cambia entre transacciones.
@@ -148,7 +149,7 @@ Registra por la RPC, con la fecha de la tasa (por defecto hoy en Caracas, sin fe
 |---|---|
 | `supabase/migrations/0495_fx_rates_conversor_usd.sql` | la migración |
 | `supabase/tests/0495_fx_rates_conversor_usd.test.sql` | el contrato |
-| `lib/studio/__tests__/fx-rates-conversor.migration.test.ts` | el contrato en PGlite: control rojo, 13 mutantes, el preflight con una fila en `tenant_fx_history`, la reaplicación y la espera |
+| `lib/studio/__tests__/fx-rates-conversor.migration.test.ts` | el contrato en PGlite: control rojo, 16 mutantes, el preflight con una fila en `tenant_fx_history`, la reaplicación y la espera |
 | `supabase/migrations-baseline.json` | la espera de la 0495 |
 | `supabase/pending-migration-symbol-declarations.json` | los 7 símbolos y su degradación |
 | `lib/shared/fx.ts` | nuevo: el conversor canónico en TS |
@@ -181,7 +182,8 @@ Registra por la RPC, con la fecha de la tasa (por defecto hoy en Caracas, sin fe
 1. `to_usd` y `toUsd` dan lo mismo: USD y USDT 1:1, VES y CNY divididos por la tasa, `RMB` = CNY, redondeo al final. Sin tasa válida, con moneda desconocida o con un monto inválido, fallan cerrado: nunca 0 ni el monto tal cual.
 2. `fx_rate_on` devuelve la tasa vigente con su fuente y su fecha, prefiere `bcv`, después `manual` y después `operacion`, y falla cerrado sin tasa.
 3. Solo admin o accounting registran una tasa, nunca con fecha futura; la segunda manual del día reemplaza a la primera, y la auditoría guarda las dos.
-4. `authenticated` solo lee `fx_rates`, y solo las de su tenant.
+4. `authenticated` solo lee `fx_rates`, y solo las de su tenant. `fx_rate_on` filtra por tenant en la consulta **y** en la RLS: sin RLS (`service_role`) sigue devolviendo solo la tasa del tenant pedido (pedido del Director).
+10. La auditoría D2 de `fx_rates` guarda solo la moneda, la tasa, el día y la fuente: ni la nota ni `set_by`. Quién la cargó queda en `actor_id`, como en toda la D2 (pedido del Director).
 5. Una factura o una CxP en VES o CNY guarda la tasa que usó, con su fuente y su fecha; sin ninguna tasa, no se guarda y el error dice qué hacer. En USD y USDT no cambia nada.
 6. Admin › Tasas, gastos y el móvil leen y escriben `fx_rates`; nada escribe `tenant_fx_history`.
 7. El preflight aborta si `tenant_fx_history` tiene filas; aplicada dos veces, aborta con «ya existe».
