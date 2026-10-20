@@ -345,6 +345,7 @@ export const warehouse: WarehouseDict = {
   "warehouse_cn.rate.err.rate_other_service": "该运价属于其他服务。",
   "warehouse_cn.rate.err.rate_other_book": "该运价既不在客户价目表中，也不是公司标准运价。",
   "warehouse_cn.rate.err.already_frozen": "该收货已有运价。如需更改，请填写原因。",
+  "warehouse_cn.rate.err.not_elevated": "这不是例外运价：请在中国仓库中冻结。",
   "warehouse_cn.rate.err.rate_expired": "该运价已过期。",
   "warehouse_cn.rate.err.rate_other_destination": "该运价属于其他目的地。",
   "warehouse_cn.rate.err.rate_not_applicable": "客户价目表中有该线路的专属运价，请使用该运价。",

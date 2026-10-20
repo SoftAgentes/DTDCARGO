@@ -17,14 +17,14 @@
           "name": "congelar_tarifa_recepcion",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/cn/rate-snapshot-actions.ts:54"
+            "app/studio/(app)/cn/rate-snapshot-actions.ts:60"
           ]
         },
         {
           "name": "shipment_rate_snapshots",
           "kind": "table",
           "callSites": [
-            "app/studio/(app)/cn/rate-snapshot-actions.ts:259",
+            "app/studio/(app)/cn/rate-snapshot-actions.ts:282",
             "lib/studio/rate-snapshots/queries.ts:31",
             "lib/studio/rate-snapshots/queries.ts:53"
           ]
@@ -42,7 +42,7 @@
           "degradation": "listRateHistory devuelve null con la tabla ausente, y loadRateDrawerAction responde «no disponible» antes de pedir la propuesta: el cajón no llama a congelar_tarifa_recepcion."
         },
         {
-          "site": "app/studio/(app)/cn/rate-snapshot-actions.ts:57",
+          "site": "app/studio/(app)/cn/rate-snapshot-actions.ts:63",
           "contains": "if (isMissingRateSchema(error)) return { ok: false, errorKey: \"warehouse_cn.rate.unavailable\" };",
           "degradation": "Si se llega a llamar a la RPC o a leer la tabla sin 0496 (42883/PGRST202 o 42P01/PGRST205), la acción responde el mensaje traducido «La tarifa congelada todavía no está disponible» en vez de un error crudo; congelar en lote corta en la primera."
         }

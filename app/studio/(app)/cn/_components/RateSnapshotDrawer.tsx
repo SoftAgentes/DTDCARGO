@@ -33,6 +33,7 @@ import {
 } from "@/lib/studio/rate-snapshots/types";
 import type { PropuestaTarifa } from "@/lib/studio/rate-snapshots/propuesta";
 import {
+  freezeElevatedRateAction,
   freezeRateAction,
   loadRateDrawerAction,
   previewRateAction,
@@ -227,7 +228,9 @@ export function RateSnapshotDrawer({
     setSubmitError(null);
     setFieldErrors({});
     startSaving(async () => {
-      const r = await freezeRateAction(e);
+      // La vía elevada (a mano, Excel, 1.000 kg/m³, reemplazo con motivo) va por
+      // su acción, con la capability `fix_frozen_rate`; lo demás, por `cn`.
+      const r = await (motivoObligatorio ? freezeElevatedRateAction(e) : freezeRateAction(e));
       if (r.ok) {
         setChanged(true);
         toast.show({

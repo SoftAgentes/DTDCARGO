@@ -145,7 +145,7 @@ Cada escenario se confirmó con una prueba que fallaba sin la corrección (el mu
 |---|---|---|
 | 1 | La #307 apuntaba a `239abca4`, no a lo revisado | un solo push con la cabeza final, después del verify |
 | 2 | La RPC aceptaba filas que `resolveRateForClient` nunca elegiría | vigente con la fecha de Caracas, del destino de la recepción por el mismo ILIKE, y la de la casa rechazada si la lista del cliente tiene su fila para la ruta. Un mutante por regla y la paridad prueba también el rechazo |
-| 3 | Contabilidad no llegaba a la vía elevada por la UI (la matriz da `cn` a operations, warehouse y support) | **decisión del Director: la matriz de `cn` no cambia.** Las acciones admiten admin o accounting por rol en la vía elevada (a mano, Excel, 1.000 kg/m³, reemplazo con motivo); la vía común sigue con `cn`. Prueba de RBAC por rol |
+| 3 | Contabilidad no llegaba a la vía elevada por la UI (la matriz da `cn` a operations, warehouse y support) | **decisión del Director: la matriz de `cn` no cambia.** Capability nueva `fix_frozen_rate` (accounting + admin implícito) en `lib/studio/rbac.ts`, y dos acciones elevadas (`freezeElevatedRateAction`, `previewElevatedRateAction`) que la exigen al tope y solo admiten entradas elevadas (a mano, Excel, 1.000 kg/m³, reemplazo con motivo); la vía común sigue con `cn`. Así el contrato de RBAC (`rbac-actions-guard`) ve un candado incondicional en cada acción. Prueba de RBAC por rol |
 | 4 | La spec decía que `shipment_id` podía volver a null; el guardián no lo deja | spec alineada con el guardián; la FK a `shipments` se resuelve en la 4.2 |
 | 5 | TRUNCATE salta los disparadores | `revoke truncate` a todos, en el postflight; el esquema de prueba trae los privilegios por defecto de Supabase para que el caso mida |
 | 6 | `FOR UPDATE` también en la vista previa | solo al congelar |
@@ -183,7 +183,10 @@ Cada escenario se confirmó con una prueba que fallaba sin la corrección (el mu
 | `lib/studio/rate-snapshots/__tests__/types.test.ts` | reglas puras |
 | `lib/studio/rate-snapshots/__tests__/paridad-resolver.migration.test.ts` | paridad de la RPC con `resolveRateForClient` (también el rechazo), con propiedad del descuento |
 | `lib/studio/rate-snapshots/__tests__/propuesta.test.ts` | propuesta automática y Shipping Mark comparado como la RPC |
-| `app/studio/(app)/cn/rate-snapshot-actions.ts` | acciones |
+| `app/studio/(app)/cn/rate-snapshot-actions.ts` | acciones (vía común con `cn`, vía elevada con `fix_frozen_rate`) |
+| `lib/studio/rbac.ts` | la capability `fix_frozen_rate` |
+| `lib/studio/rbac.test.ts` | su prueba |
+| `lib/studio/rbac-actions-guard.test.ts` | inventario (77 archivos, 444 acciones) y las dos lecturas en EXCEPCIONES, con su motivo |
 | `app/studio/(app)/cn/__tests__/rate-snapshot-actions.test.ts` | pruebas de las acciones |
 | `app/studio/(app)/cn/page.tsx` | lee las tarifas vivas y quién congela en lote |
 | `app/studio/(app)/cn/_components/AlmacenCnClient.tsx` | columna «Tarifa · a facturar», cajón y acción en lote |

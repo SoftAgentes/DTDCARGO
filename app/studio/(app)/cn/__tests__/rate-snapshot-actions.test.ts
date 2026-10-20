@@ -26,6 +26,11 @@ vi.mock("@/lib/studio/rbac-guard", () => ({
   moduleEditDenial: vi.fn(async () => estado.editDenial),
   moduleViewDenial: vi.fn(async () => estado.viewDenial),
   getStudioAccess: vi.fn(async () => ({ role: estado.role })),
+  // La regla real de capabilities (rbac.ts), con el rol del escenario.
+  capabilityDenial: vi.fn(async (_s: unknown, cap: "fix_frozen_rate") => {
+    const { canSpecial } = await import("@/lib/studio/rbac");
+    return canSpecial(estado.role as never, cap) ? null : "No tienes permiso para realizar esta acción.";
+  }),
 }));
 vi.mock("@/lib/studio/rate-snapshots/propuesta", () => ({
   proponerTarifa: vi.fn(async (_s: unknown, receipt: { client_markbox: string }) =>
@@ -57,9 +62,11 @@ vi.mock("@/lib/db/server", () => ({
 
 import { revalidatePath } from "next/cache";
 import {
+  freezeElevatedRateAction,
   freezePendingRatesAction,
   freezeRateAction,
   loadRateDrawerAction,
+  previewElevatedRateAction,
   previewRateAction,
 } from "../rate-snapshot-actions";
 
@@ -130,45 +137,49 @@ describe("freezeRateAction", () => {
 
 describe("RBAC de la vía elevada (revisión de seguridad 3: la matriz de cn no cambia)", () => {
   const MOTIVO = "Precio negociado por WhatsApp";
+  const NEGADO = "No tienes permiso para realizar esta acción.";
 
-  it("accounting sin cn congela a mano: la acción la deja pasar por rol", async () => {
+  it("accounting sin cn congela a mano por la acción elevada (capability fix_frozen_rate)", async () => {
     estado.role = "accounting";
     estado.editDenial = "No tienes permiso para editar esto.";
-    const r = await freezeRateAction({ receiptId: RID(1), source: "manual", perCbm: "900", reason: MOTIVO });
+    const r = await freezeElevatedRateAction({ receiptId: RID(1), source: "manual", perCbm: "900", reason: MOTIVO });
     expect(r.ok).toBe(true);
-    expect(estado.rpcCalls).toEqual([expect.objectContaining({ p_source: "manual", p_reason: MOTIVO })]);
+    expect(estado.rpcCalls).toEqual([expect.objectContaining({ p_source: "manual", p_reason: MOTIVO, p_dry_run: false })]);
   });
 
-  it("admin sin cn reemplaza con motivo y fija 1.000 kg/m³", async () => {
+  it("admin reemplaza con motivo y fija 1.000 kg/m³ por la acción elevada", async () => {
     estado.role = "admin";
-    estado.editDenial = "No tienes permiso para editar esto.";
-    expect((await freezeRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE, reason: MOTIVO })).ok).toBe(true);
-    expect((await freezeRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE, includedKgPerCbm: 1000, reason: MOTIVO })).ok).toBe(true);
+    expect((await freezeElevatedRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE, reason: MOTIVO })).ok).toBe(true);
+    expect((await freezeElevatedRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE, includedKgPerCbm: 1000, reason: MOTIVO })).ok).toBe(true);
     expect(estado.rpcCalls).toHaveLength(2);
   });
 
-  it("accounting sin cn NO congela por la vía común: sigue mandando cn", async () => {
+  it("la acción elevada no sirve para la vía común: para eso manda cn", async () => {
     estado.role = "accounting";
+    const r = await freezeElevatedRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE });
+    expect(r).toEqual({ ok: false, errorKey: "warehouse_cn.rate.err.not_elevated" });
     estado.editDenial = "No tienes permiso para editar esto.";
-    const r = await freezeRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE });
-    expect(r).toEqual({ ok: false, error: "No tienes permiso para editar esto." });
+    expect(await freezeRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE }))
+      .toEqual({ ok: false, error: "No tienes permiso para editar esto." });
     expect(estado.rpcCalls).toHaveLength(0);
   });
 
-  it("otro rol sin cn tampoco entra por la vía elevada", async () => {
+  it("ningún otro rol entra por la vía elevada, tenga o no cn", async () => {
     for (const role of ["warehouse", "operations", "support", "commercial", "marketing"]) {
       estado.role = role;
-      estado.editDenial = "No tienes permiso para editar esto.";
-      const r = await freezeRateAction({ receiptId: RID(1), source: "manual", perCbm: "900", reason: MOTIVO });
-      expect(r).toEqual({ ok: false, error: "No tienes permiso para editar esto." });
+      const r = await freezeElevatedRateAction({ receiptId: RID(1), source: "manual", perCbm: "900", reason: MOTIVO });
+      expect(r, role).toEqual({ ok: false, error: NEGADO });
+      expect(await previewElevatedRateAction({ receiptId: RID(1), source: "manual", perCbm: "900" }), role)
+        .toEqual({ ok: false, error: NEGADO });
     }
     expect(estado.rpcCalls).toHaveLength(0);
   });
 
-  it("la vista previa elevada también: accounting sin ver cn la pide", async () => {
+  it("la vista previa elevada: accounting sin cn la pide (p_dry_run)", async () => {
     estado.role = "accounting";
     estado.viewDenial = "No tienes permiso para ver esto.";
-    expect((await previewRateAction({ receiptId: RID(1), source: "manual", perCbm: "900" })).ok).toBe(true);
+    expect((await previewElevatedRateAction({ receiptId: RID(1), source: "manual", perCbm: "900" })).ok).toBe(true);
+    expect(estado.rpcCalls).toEqual([expect.objectContaining({ p_dry_run: true })]);
     expect(await previewRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE }))
       .toEqual({ ok: false, error: "No tienes permiso para ver esto." });
   });

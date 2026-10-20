@@ -18,7 +18,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { getStudioAccess, moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
+import {
+  capabilityDenial,
+  getStudioAccess,
+  moduleEditDenial,
+  moduleViewDenial,
+} from "@/lib/studio/rbac-guard";
+import { canSpecial } from "@/lib/studio/rbac";
 import type { I18nKey } from "@/lib/i18n";
 import type { ShipmentService } from "@/lib/studio/shipment-types";
 import { isShipmentService } from "@/lib/studio/shipment-types";
@@ -76,6 +82,15 @@ async function leerRecepcion(
 /**
  * ¿Es la vía elevada? A mano, Excel de Yiwu, 1.000 kg/m³ o con motivo (el
  * reemplazo de una tarifa viva). La RPC la reserva a admin y accounting.
+ *
+ * Por eso hay dos pares de acciones, cada una con su candado incondicional al
+ * tope (revisión de seguridad del Director, punto 3):
+ *   · la vía común (`previewRateAction`, `freezeRateAction`) la manda el
+ *     módulo `cn`, ver o editar;
+ *   · la vía elevada (`previewElevatedRateAction`, `freezeElevatedRateAction`)
+ *     la manda la capability `fix_frozen_rate` (accounting + admin), aunque la
+ *     matriz no les dé `cn`: la matriz de `cn` no se cambia. Solo admite
+ *     entradas elevadas; para lo demás sigue mandando `cn`.
  */
 function esElevada(input: FreezeInput): boolean {
   return (
@@ -84,26 +99,6 @@ function esElevada(input: FreezeInput): boolean {
     input.includedKgPerCbm === 1000 ||
     input.reason != null
   );
-}
-
-/**
- * Quién llega a la RPC. La vía común la manda el módulo `cn` (editar). La vía
- * elevada la admiten admin o accounting por rol, igual que la RPC, aunque la
- * matriz no les dé `cn` (decisión del Director, 2026-10-20, revisión de
- * seguridad punto 3: la matriz de `cn` no se cambia).
- */
-async function denegacion(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  input: FreezeInput,
-  tipo: "ver" | "editar",
-): Promise<string | null> {
-  const denial = tipo === "ver" ? await moduleViewDenial(supabase, "cn") : await moduleEditDenial(supabase, "cn");
-  if (!denial) return null;
-  if (esElevada(input)) {
-    const { role } = await getStudioAccess(supabase);
-    if (role === "admin" || role === "accounting") return null;
-  }
-  return denial;
 }
 
 /** La fuente que la propuesta automática le pasa a la RPC. */
@@ -192,7 +187,7 @@ export async function loadRateDrawerAction(
     preview,
     previewErrorKey,
     acceptedQuotes,
-    canElevate: role === "admin" || role === "accounting",
+    canElevate: canSpecial(role, "fix_frozen_rate"),
     canFreeze: !editDenied && (role === "admin" || role === "operations" || role === "warehouse" || role === "accounting"),
   };
 }
@@ -201,11 +196,11 @@ export async function previewRateAction(
   raw: Record<string, unknown>,
 ): Promise<{ ok: true; snapshot: RateSnapshot } | ErrorResult> {
   const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "cn");
+  if (denial) return { ok: false, error: denial };
   // La vista previa no exige motivo: la base tampoco lo pide sin escribir.
   const { input, fieldErrors } = validateFreezeInput(raw, { requireReason: false });
   if (!input) return { ok: false, fieldErrors };
-  const denial = await denegacion(supabase, input, "ver");
-  if (denial) return { ok: false, error: denial };
   return llamarRpc(supabase, input, true);
 }
 
@@ -213,10 +208,38 @@ export async function freezeRateAction(
   raw: Record<string, unknown>,
 ): Promise<{ ok: true; snapshot: RateSnapshot } | ErrorResult> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "cn");
+  if (denial) return { ok: false, error: denial };
   const { input, fieldErrors } = validateFreezeInput(raw);
   if (!input) return { ok: false, fieldErrors };
-  const denial = await denegacion(supabase, input, "editar");
+  const result = await llamarRpc(supabase, input, false);
+  if (result.ok) revalidatePath("/studio/cn");
+  return result;
+}
+
+/** Vista previa de la vía elevada: capability `fix_frozen_rate`, solo entradas elevadas. */
+export async function previewElevatedRateAction(
+  raw: Record<string, unknown>,
+): Promise<{ ok: true; snapshot: RateSnapshot } | ErrorResult> {
+  const supabase = await createClient();
+  const denial = await capabilityDenial(supabase, "fix_frozen_rate");
   if (denial) return { ok: false, error: denial };
+  const { input, fieldErrors } = validateFreezeInput(raw, { requireReason: false });
+  if (!input) return { ok: false, fieldErrors };
+  if (!esElevada(input)) return { ok: false, errorKey: "warehouse_cn.rate.err.not_elevated" };
+  return llamarRpc(supabase, input, true);
+}
+
+/** La vía elevada: capability `fix_frozen_rate`, solo entradas elevadas. */
+export async function freezeElevatedRateAction(
+  raw: Record<string, unknown>,
+): Promise<{ ok: true; snapshot: RateSnapshot } | ErrorResult> {
+  const supabase = await createClient();
+  const denial = await capabilityDenial(supabase, "fix_frozen_rate");
+  if (denial) return { ok: false, error: denial };
+  const { input, fieldErrors } = validateFreezeInput(raw);
+  if (!input) return { ok: false, fieldErrors };
+  if (!esElevada(input)) return { ok: false, errorKey: "warehouse_cn.rate.err.not_elevated" };
   const result = await llamarRpc(supabase, input, false);
   if (result.ok) revalidatePath("/studio/cn");
   return result;
