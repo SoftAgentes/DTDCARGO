@@ -3,15 +3,15 @@
  * (revisión de seguridad, hallazgo 8). La fecha de valor es un día (AAAA-MM-DD):
  * leída como instante UTC, en Caracas (UTC−4) salía un día antes.
  */
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { formatDateShort } from "./ExpenseDrawer";
 
-const zonaOriginal = process.env.TZ;
+// stubEnv cambia la zona del proceso (Node relee TZ al asignarla) y la restaura.
 beforeEach(() => {
-  process.env.TZ = "America/Caracas";
+  vi.stubEnv("TZ", "America/Caracas");
 });
 afterEach(() => {
-  process.env.TZ = zonaOriginal;
+  vi.unstubAllEnvs();
 });
 
 describe("formatDateShort", () => {
