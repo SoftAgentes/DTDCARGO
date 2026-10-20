@@ -118,7 +118,7 @@ ponerse al día. Mientras está congelado, `volver` funciona igual, y
 
 ### Compatibilidad de identidad · preparación del 2026-10-20
 
-**Estado: contrato local aceptado; pruebas, instalación y publicación pendientes.**
+**Estado: corrección y pruebas locales completadas; integración, instalación y publicación pendientes.**
 Sam aclaró un cambio de nombre del perfil, no un traslado de propietario. La API
 del 2026-10-20 a las 22:06:28Z identifica `SoftAgentes/DTDCARGO`, repo `1246490707`,
 owner `User`/`SoftAgentes`/`285193249`; la referencia antigua sigue resolviendo al
@@ -126,7 +126,7 @@ mismo repo. El Director comprobó a las 22:07:19Z que el script del VPS aún exi
 el origen antiguo y que servido/publicable siguen en `8e9e0f50…`. Son observaciones
 fechadas, no una garantía sobre el estado que tendrá el servidor al instalar.
 
-La continuación de SDD-0541 prepara el origen canónico
+La continuación de SDD-0541 admite en el script candidato el origen canónico
 `https://github.com/SoftAgentes/DTDCARGO` junto al alias histórico exacto
 `https://github.com/hailuwaycom-sketch/DTDCARGO`. La comparación conserva igualdad
 sin distinguir mayúsculas, con un conjunto cerrado de dos fuentes. No se elimina
@@ -134,10 +134,18 @@ el gate ni se resuelven redirecciones para decidir confianza. El build conservar
 su origen canónico natural; el paquete sigue en el namespace GHCR existente.
 Su acceso efectivo tras el cambio de nombre está **NO VERIFICADO**.
 
+El candidato del commit `b6af34a3c88c835d50a8dc40c95b608da0d1f3f8` pasó 190
+comprobaciones del harness local, seis mutantes de identidad y 30 pruebas del
+promotor, con dobles y sin registro/VPS/DB real. Eso no certifica el script
+instalado ni un nuevo deploy; los hashes y límites están en el handoff enlazado.
+
 Procedimiento revisable para **reemplazar solo el script**, todavía no ejecutado:
 
-1. El Director debe haber levantado la restricción de producción y aprobado la
-   revisión, el SHA y la ventana de instalación. Coordinar una ventana con la
+1. GitHub Actions debe haberse recuperado conforme al prompt final de Sam y debe
+   existir autorización vigente para esta instalación concreta. El Director
+   comprueba esas condiciones y aprueba la revisión, el SHA y la ventana; no puede
+   revocar por sí solo la prohibición de Sam. Cualquier excepción exige una
+   autorización explícita de Sam. Coordinar una ventana con la
    publicación congelada y sin trabajo operativo activo; documentar ese estado.
    Esta preparación no activa congelación, cambia timers ni reanuda publicaciones.
    La congelación evita que instalar el nuevo validador publique de inmediato una

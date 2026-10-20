@@ -500,7 +500,7 @@ Modificados:
 
 ## Continuación acotada · identidad del repositorio (2026-10-20)
 
-Estado: **contrato aprobado por el Director; preparación local antes de ROJO**.
+Estado: **implementado y validado localmente; PR borrador, integración e instalación pendientes**.
 Las casillas de aceptación anteriores corresponden al trabajo inicial, no
 certifican esta continuación. Registro propio:
 [handoff de identidad](../../../.agents/handoffs/0541-publicacion-identidad-softagentes.md).
@@ -542,21 +542,31 @@ preparación para una ventana posterior autorizada, no una acción ejecutada.
 
 ### Aceptación de la continuación
 
-1. [ ] ROJO funcional real contra el script original: el origen canónico nuevo
+1. [x] ROJO funcional real contra el script original: el origen canónico nuevo
    falla en las rutas automática y manual antes de cambiar el producto.
-2. [ ] Verde Linux con dobles: ambas fuentes exactas y sus variantes de mayúsculas
+2. [x] Verde Linux con dobles: ambas fuentes exactas y sus variantes de mayúsculas
    publican el SHA/digest esperado por `vigilar`, `publicar <sha>` y `<sha>`.
-3. [ ] Fuentes ajenas/vacías/ausentes, sufijos, barra final y `http` se rechazan
-   en esos caminos sin `up`, cambio del `.env` sintético ni cambio de contenedor.
-4. [ ] Smoke fallido de una imagen con origen nuevo vuelve a la imagen histórica;
+3. [x] Fuentes ajenas/vacías/ausentes, sufijos, barra final y `http` se rechazan
+   en esos caminos sin `up`, cambio del `.env` sintético ni cambio de contenedor;
+   el entorno tampoco puede autorizar una fuente ajena.
+4. [x] Smoke fallido de una imagen con origen nuevo vuelve a la imagen histórica;
    la vuelta manual conserva imágenes anteriores de ambas fuentes.
-5. [ ] Controles rojo/verde y mutantes de la identidad, incluido eliminar su
+5. [x] Controles rojo/verde y mutantes de la identidad, incluido eliminar su
    comprobación; regresiones previas conservadas, focal pertinente del promotor,
    `bash -n`, docs/SDD y diff sin debilitar comprobaciones.
-6. [ ] Procedimiento de respaldo/hash/instalación/reversión de solo script
+6. [x] Procedimiento de respaldo/hash/instalación/reversión de solo script
    revisable; handoff con resultados por SHA, pendientes de CI/release y conocimiento.
 7. [ ] Revisión del Director sobre el SHA publicado y PR borrador; instalación,
    CI de release, imagen/digest, recibo 14/0 y Studio se registran por separado.
+
+Evidencia local del 2026-10-20, asociada a los blobs del commit
+`b6af34a3c88c835d50a8dc40c95b608da0d1f3f8`: ROJO 177/10/0 contra el original;
+verde completo 190/0/0 (144 comprobaciones previas y 46 de identidad); control
+vacío con 165 fallos; seis mutantes pertinentes muertos/cero vivos; promotor
+30/30; sintaxis, docs/SDD y diff correctos. Detalle, hashes y límites en el
+handoff. Conocimiento derivado pendiente: lectura de status interrumpida sin
+JSON; no se regeneraron Graphify, Archify ni preview de Obsidian. La instalación
+operativa y el recibo real 14/0 permanecen **NO EJECUTADOS**.
 
 ### Allowlist exclusiva de esta continuación
 
