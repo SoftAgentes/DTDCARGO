@@ -135,7 +135,7 @@ En Windows:
 | Trabajo | Rama @ cabeza | Estado | Siguiente |
 |---|---|---|---|
 | **#301**: tasa única, **migración 0495** | `codex/sdd-0569-conversor-usd-tasas` @ `3d0c9028` | Revisión corregida, verify aceptado y previa PASÓ sobre `3d0c9028`. BEHIND con main | **OK nominal de Sam.** Después: integrar, rearmar el paquete, previa de nuevo, apply y merge, smoke y sello |
-| **#307**: tarifa congelada, **migración 0496** | `claude/peaceful-franklin-a3831e` @ `a81dbbd7` | Correcciones de seguridad empujadas por el Director. **Su `pnpm verify` corría desde las 16:49Z** | Lee el resultado en el handoff `0571-…`. Si no está, el verify es NO VERIFICADO: repítelo con turno. Después: revisar la diferencia, previa, OK nominal, apply y merge |
+| **#307**: tarifa congelada, **migración 0496** | `claude/peaceful-franklin-a3831e` @ `b70be5d7` | Correcciones de seguridad hechas. **El `pnpm verify` terminó a las 17:20Z sobre `a81dbbd7`: 16/17, sin fallos.** El e2e pasó con 2 flaky ajenos. Previa de los md5 hecha | Revisar la diferencia de las correcciones, repetir la previa, OK nominal de la 0496, apply y merge |
 | **0573**: reverso al anular, **migración 0497** | `codex/sdd-0573-reverso-al-anular` @ `89f15a5d`, sin PR | Implementación empujada por el Director. **Ningún hallazgo de la revisión está corregido (B1, I1–I4 y M1–M9); lo confirmó el Worker. Tampoco tiene typecheck ni verify** | Que un Worker lo compare con el informe del handoff, corrija, corra el verify con turno y publique la PR en borrador. Después: revisión corta, previa (md5 en vivo de `void_invoice_with_audit_reason` = `76644e17876d0caaa46e727de5946138`), OK nominal, apply y merge |
 | **0572-a**: reemplazos del conversor | `codex/sdd-0572-conversor-usd-reemplazos` @ `4f24a1db` (empujada) | Código terminado: 31 archivos de prueba en verde, uno por uno | Con turno: tsc, eslint, verify y mutantes. La PR va cuando la #301 esté en main |
 | **#304**: plantilla PGlite (solo pruebas) | `codex/pglite-snapshot-esquema` @ `59e8491b` | Borrador. Criterios 1–8 medidos: el CI baja de 41,6 a 29,3 min | Relanzar el run 39453136909, sacarla de borrador y fusionarla |
@@ -163,7 +163,7 @@ La #302 (tope del CI a 60 min) ya está en main; esa sesión no deja nada pendie
    - en cada worktree de la tabla: `git status` y `git rev-list --count origin/<rama>..HEAD`
 
    Además:
-   - mira si sigue vivo el `pnpm verify` de la #307: `Get-CimInstance Win32_Process -Filter "Name='node.exe'"`. Si sigue, **no lances otra corrida pesada**;
+   - al cierre no quedaba ninguna corrida pesada viva. Igual compruébalo con `Get-CimInstance Win32_Process -Filter "Name='node.exe'"` antes de dar turno;
    - compara todo con el §3.3-bis del handoff.
 2. **Asegura que no se pierda nada.** Ningún trabajo puede quedar solo en local. Si la 0572-a no subió, que un Worker la commitee (selectivo) y la empuje.
 3. **Mensaje a Sam**, corto y simple. Pregúntale:
