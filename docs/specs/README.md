@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 554 specs)
+### Índice de specs (generado · 555 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -592,6 +592,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0565 | Ninguna cuenta del plan queda huérfana | in-progress | interno |
 | 0566 | Cierre contable con superclave y reporte de excepciones | in-progress | interno |
 | 0567 | El crédito de referido no nace sin venta ni se aplica dos veces | in-progress | interno |
+| 0570 | Pruebas PGlite sin initdb por caso: plantilla del cluster rec… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0568, 0569 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
