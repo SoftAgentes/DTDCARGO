@@ -326,6 +326,12 @@ Lectura de metadatos del respaldo: `Result=success`, `ExecMainStatus=0`, salida 
 
 SQL0572-b: dos RPC, tres CASE; devolver y mostrar exclusiones exige adaptar sus consumidores y conservar fachadas/RBAC, no basta cambiar una división. El mapa anual actual pierde clientes con solo facturas sin tasa. Caracas: nueve fallbacks en ocho posters, cuatro puntos de factura, capturas y defaults/RPC; fecha de negocio debe coincidir en UI, aplicación, SQL y guard de cierre, preservando fechas expresas y sellos UTC. Las dos RPC anuales comparten cambios SQL/fechas y requieren serialización. BCV: respaldo manual existe en 0569; importador y agenda oficial siguen sin implementar. Intento del origen oficial falló por timeout y búsqueda restringida sin resultados: **NO DISPONIBLE**, sin formato/tasa actual verificados ni fuente tercera promovida a oficial. Política de publicación futura/días sin publicación requiere diseño compatible con la exigencia actual de tasa del día. No se añaden KPIs, mayor 2.3 o diferencias 2.6 a estos encargos.
 
+**Actualización de previa · 21:10Z:** repetida sobre el mismo paquete `5d84ec0a`, PASÓ `21:10:03.541Z`, evidencia `/srv/ops/evidencias/previa-0495-dtd-cargo-20261020T211002Z`. El Director descargó y leyó salida/error: ledger 498, última `20261020131949`, 0495 ausente, cero esperas/transacciones largas, seis funciones nuevas esperadas, preflight propio aprobado, ROLLBACK y error vacío. Copia `0495-codex-5d84ec0a/previa-viva-211002.out`, SHA-256 `9b3fdfa5d854fb53005ca947173337f88317b5928d58629bd795e59e2bec9dd1`. GitHub final ya aprobó unitarios y está construyendo; no se solicitó todavía el OK nominal ni se ejecutó apply/merge.
+
+**CI final confirmado · 21:12Z:** run `39493600656`, `5d84ec0a9f374eac40545260c8887b72ec458261`, COMPLETED/SUCCESS a `21:11:38Z` (33m42s). Director conservó y leyó el log `0569-codex-validation/github-final-5d84ec0a.log`: 860 archivos/12.278 unitarias aprobadas y una omitida; arnés 206 aprobadas/237, cero fallas y 31 omitidas por runtime Graphify NO DISPONIBLE; las 237 habían pasado localmente. Operaciones Linux 4 suites/204 comprobaciones, cero fallas; gate de símbolos 0 ROJO/1 AMARILLO declarado, únicamente `fx_rate_on` de 0495; build y árbol reproducible aprobados. No se equipara el check verde con cobertura completa ni producción. PR lista, MERGEABLE/CLEAN, cabeza 5d84 y base `8e9e0f50`; fetch sin prune y ancestralidad confirmados. Paquete/IDENTIDAD intactos; archivo de autorización ausente.
+
+La entrega queda lista para presentar el OK nominal concreto. Se repitió `knowledge:status` al cierre de esta preparación desde main integrado `8e9e0f50`: exit 0 con `ok=false`, estructura PENDING/453, semántica PENDING y Archify/Obsidian PENDING. Evidencia `knowledge-21-cierre-20261020.json`; no se actualizaron ni publicaron derivados compartidos.
+
 ### Decisión del Director para retomar 0572-a · preparación, sin escritor
 
 Preparación leída completa: `C:\tmp\director-traspaso-20261020\0572-retoma-despues-301.md`, SHA-256 `cde02f7dcc3f41f610e3278abf037c6124c6b44ad374c5d7d8fab419eb943991`. El Director contrastó en `9c254107` el filtro de `topAndWorst`, los cuatro órdenes del ranking y `resumirIngreso`/`describirIngreso`, incluido el conjunto de facturas con asiento vivo. Confirma la inferencia: una factura sin convertir y sin asiento puede no activar el aviso de mayor nominal mixto; no basta ese aviso para impedir «Cuadra». Es lectura de código, todavía no una reproducción ejecutada.
@@ -359,13 +365,13 @@ El checklist histórico del §4 anterior conserva 36 tareas vivas, 6 hechas, 1 e
 - [x] Completar revisión independiente de #301 sobre `eb22e2d4`; P2 nuevo documentado.
 - [x] Completar y revisar el par A/B local de #304, 854/854 casos por lado, restauración comprobada.
 - [x] Corregir y comprobar focalmente la tasa del aviso de factura, con controles de regresión.
-- [ ] Completar la validación y revisión de la nueva cabeza que incluye el aviso corregido.
+- [x] Completar la validación y revisión de la nueva cabeza que incluye el aviso corregido, conservando sus omisiones declaradas.
 - [x] Cerrar revisión independiente del P2 y comprobar verify local con sus tres SKIPs; producto idéntico en el cierre documental `5d84ec0a`.
 - [x] Preparar el paquete `5d84ec0a` y comprobar su previa viva de solo lectura.
 - [x] Preparar y revisar independientemente el procedimiento que verifica aplicación, merge y conservación del conteo histórico; no ejecutado.
-- [ ] Confirmar CI verde de `5d84ec0a` antes de presentar aprobación nominal.
+- [x] Confirmar CI verde de `5d84ec0a` antes de presentar aprobación nominal.
 - [ ] Cerrar el relevo y la validación de 0572-a.
-- [ ] Revisar/preparar #301 en su cabeza actual y con base actual.
+- [x] Revisar/preparar #301 en su cabeza actual y con base actual.
 - [ ] Obtener OK nominal de 0495 cuando el paquete sea concreto y revisable.
 - [ ] Integrar en orden #301 → #304/#306 → #307 → 0573; cada migración exige su OK, previa y aplicación antes del merge.
 - [ ] Verificar publicación 14/0 y recorrido Studio después de cada integración, con su alcance de lectura autorizado.

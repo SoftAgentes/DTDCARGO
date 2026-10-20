@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 5:05 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 5:14 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -10,7 +10,7 @@
 
 ## Ahora mismo
 
-- [ ] **Cerrar 2.1 · Tasa única.** La corrección y la revisión independiente están aprobadas. La prueba general local terminó: 12.278 unitarias aprobadas al reintentar, 177 de navegación y construcción aprobada; tres pasos omitidos siguen declarados. El paquete final y la previa del servidor ya pasaron. Falta GitHub de la versión final antes de presentar el OK nominal de la migración.
+- [ ] **Cerrar 2.1 · Tasa única.** La corrección, la revisión independiente, las pruebas locales y GitHub final ya aprobaron, con sus omisiones declaradas. El paquete final y la previa del servidor también pasaron. **Lista para el OK nominal de `0495_fx_rates_conversor_usd`.** Aplicación, integración y publicación siguen pendientes.
 - [x] **Completar la comparación local de pruebas contables.** Los mismos 854 casos aprobaron por ambos lados. Tiempo medido: 10 min 42 s → 6 min 2 s. La mejora todavía espera integración.
 - [ ] **Completar tarifa congelada.** Las correcciones ya están publicadas en su rama y pasaron 62 pruebas locales; falta validarlas con la base final.
 
@@ -34,15 +34,15 @@
 - [x] Cerrar la revisión independiente del aviso, sin hallazgos nuevos.
 - [x] Terminar la prueba general sobre `6ff0f586`: 14 de 17 pasos ejecutados aprobados, con 12.278 unitarias en el reintento y una omitida; navegación 177 aprobadas, una recuperada al reintentar y 20 omitidas; construcción aprobada.
 - [x] Publicar el cierre documental `5d84ec0a`, conservando idénticos el producto, sus pruebas y SQL.
-- [ ] Aprobar GitHub de la versión final `5d84ec0a`; está en curso.
-- [x] Regenerar el paquete de `5d84ec0a` y pasar la revisión previa del servidor, a las 4:45 p. m. Solo lectura; no se aplicó la migración.
+- [x] Aprobar GitHub de la versión final `5d84ec0a`: 12.278 pruebas aprobadas, construcción y controles aprobados; una unitaria y 31 controles Graphify omitidos declarados.
+- [x] Regenerar el paquete de `5d84ec0a` y pasar la revisión previa del servidor; renovada a las 5:10 p. m. Solo lectura; no se aplicó la migración.
 - [x] Preparar y revisar independientemente el procedimiento de aplicación e integración, con comprobación de la versión y del historial. Su ejecución sigue pendiente.
 - [ ] Recibir de Sam el OK nominal de `0495_fx_rates_conversor_usd` en producción.
 - [ ] Aplicar la migración autorizada e integrar la PR enseguida.
 - [ ] Comprobar la publicación y las pantallas permitidas de Studio.
 - [ ] Registrar el sello de la migración y su evidencia de cierre.
 
-[Ver PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301). La última prueba general corresponde a `6ff0f586`; `5d84ec0a` solo actualiza spec y handoff. El primer intento unitario falló al iniciar dos procesos de pruebas; el reintento canónico pasó sin cambiar límites. Los tres pasos omitidos fueron ledger productivo y SQL/reconstrucción con Docker detenido. Los 246 contratos SQL y la reconstrucción anteriores conservan su evidencia propia y el mismo SQL; no se presentan como ejecuciones nuevas. GitHub final sigue pendiente.
+[Ver PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301). La última prueba general local corresponde a `6ff0f586`; `5d84ec0a` solo actualiza spec y handoff. El primer intento unitario local falló al iniciar dos procesos de pruebas; el reintento canónico pasó sin cambiar límites. Los tres pasos omitidos fueron ledger productivo y SQL/reconstrucción con Docker detenido. Los 246 contratos SQL y la reconstrucción anteriores conservan su evidencia propia y el mismo SQL; no se presentan como ejecuciones nuevas. [GitHub final aprobó](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/39493600656) a las 5:11 p. m. con una unitaria omitida y 31 pruebas del arnés no disponibles por falta del entorno Graphify; la corrida local del arnés había aprobado las 237. CI verde no equivale a prueba de producción.
 
 ### B. Reemplazar las 13 conversiones · SDD-0572-a
 
@@ -129,7 +129,7 @@ La regla USD/USDT 1:1 ya está decidida. Los bolívares quedan para reportes. La
 
 ## Secuencia inmediata de entrega
 
-- [ ] **#301 · Tasa única:** aviso corregido localmente → comprobar versión final → previa → OK de 0495 → aplicar e integrar → publicación y cierre.
+- [ ] **#301 · Tasa única:** revisión, validación final y previa aprobadas → OK de 0495 → aplicar e integrar → publicación y cierre.
 - [ ] **#304 · Pruebas PGlite:** comparación local completa y revisada, 854/854 por lado; cierre documental publicado en `b28e9046` y GitHub aprobado. Falta integrar después de #301.
 - [ ] **#306 · Oficina de agentes:** incorporar base final; GitHub aprobó `2f9b336c`. El aislamiento real entre perfiles sigue sin verificar.
 - [ ] **#307 · Tarifa congelada:** base y validación final → previa → OK de 0496 → aplicar e integrar → publicación y cierre.
