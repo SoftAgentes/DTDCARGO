@@ -29,12 +29,14 @@ import {
   reportByService,
 } from "../queries";
 import { describirIngreso, ESTADOS_DE_INGRESO } from "@/lib/studio/accounting/ingreso-periodo";
+import { ingresoDelPeriodo } from "@/lib/studio/accounting/libro-control-queries";
 import {
   ASIENTOS_EN_OTRA_MONEDA,
   ESPERADO,
   FACTURAS_DEL_MES,
   FACTURAS_EN_USD,
   RANGO_MES,
+  control,
 } from "@/lib/studio/accounting/__tests__/ingreso-fixture";
 
 /** Tope por request del doble: el `db-max-rows` de Supabase. */
@@ -50,7 +52,7 @@ type Recorded = {
   in: [string, unknown][];
 };
 
-function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
+function stub(rowsByTable: Record<string, Record<string, unknown>[]>, options: { serverCap?: number; errorTable?: string } = {}): {
   client: SupabaseClient;
   calls: Record<string, Recorded>;
 } {
@@ -94,9 +96,10 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
         // más generoso que el servidor, el test sale verde con código que en
         // producción trunca — que es exactamente cómo este bug sobrevivió.
         range: (desde: number, hasta: number) => {
+          if (options.errorTable === table) return Promise.resolve({ data: null, error: { message: "lectura interrumpida" } });
           const pedido = hasta - desde + 1;
           const trozo = Array.isArray(rows)
-            ? rows.slice(desde, desde + Math.min(pedido, SERVER_CAP))
+            ? rows.slice(desde, desde + Math.min(pedido, options.serverCap ?? SERVER_CAP))
             : [];
           return {
             ...chain,
@@ -125,6 +128,33 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
 }
 
 const TODAY = new Date("2026-06-15T00:00:00Z");
+
+describe("0572 · lectura completa del ingreso con conversión incompleta", () => {
+  const usd = { id: "u1", status: "emitida", issued_at: "2025-03-04", currency: "USD", fx_rate: null, base_amount: 1000 };
+  const cny = { ...usd, id: "c1", currency: "CNY", base_amount: 700 };
+
+  it("lee la segunda página sin perder contador, monto oficial ni filtros", async () => {
+    const { client, calls } = stub({ invoices: [usd, cny] }, { serverCap: 1 });
+    const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor: control(1000, 1000, true, ["u1"]) });
+    expect(i).toMatchObject({ facturado: { total: 1000 }, sinConvertir: 1, diferenciaUsd: null });
+    expect(describirIngreso(i).estado).toBe("conversion_incompleta");
+    expect(calls.invoices.is).toContainEqual(["deleted_at", null]);
+    expect(calls.invoices.gte).toContainEqual(["issued_at", RANGO_MES.from]);
+    expect(calls.invoices.lte).toContainEqual(["issued_at", RANGO_MES.to]);
+    expect(calls.invoices.in).toContainEqual(["status", [...ESTADOS_DE_INGRESO, "anulada"]]);
+  });
+
+  it("rechaza complete=false del paginador real, no devuelve un subtotal truncado", async () => {
+    const invoices = Array.from({ length: 61 }, (_, n) => ({ ...usd, id: String(n) }));
+    const { client } = stub({ invoices }, { serverCap: 1 });
+    await expect(ingresoDelPeriodo(client, RANGO_MES, { mayor: null })).rejects.toThrow(/tope/i);
+  });
+
+  it("rechaza el error de lectura en lugar de convertirlo en cero", async () => {
+    const { client } = stub({}, { errorTable: "invoices" });
+    await expect(ingresoDelPeriodo(client, RANGO_MES, { mayor: null })).rejects.toThrow("lectura interrumpida");
+  });
+});
 
 // ── Rango por período ──────────────────────────────────────────
 describe("rango del período aplicado a las tablas", () => {

@@ -212,7 +212,7 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
         headers: ["Concepto", "Monto USD", "% s/ingresos"],
         rows: [
           ...inc.rows.map((r): CsvValue[] => [r.label, r.amount, r.pct ?? ""]),
-          ["Ingreso facturado (sin IVA · USD · por emisión)", ing.facturado.total, ""],
+          [`Ingreso facturado (${ing.sinConvertir > 0 ? "subtotal convertido · " : ""}sin IVA · USD · por emisión)`, ing.facturado.total, ""],
           ["Fondos de terceros incluidos en el facturado", ing.facturado.terceros, ""],
           filaDelMayor,
           ["Diferencia facturado − mayor (4.5)", ing.diferenciaUsd ?? "", ""],
@@ -220,7 +220,7 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
           // Solo las que tienen su asiento de factura vivo (decisión 7).
           ["Facturas del período en bolívares o yuanes con asiento de factura (cantidad)", ing.enOtraMoneda, ""],
           ["Otros ingresos del mayor (4.6 y manuales · también a 4.5)", ing.mayor?.otrosIngresos ?? "", ""],
-          ["Facturas sin convertir (bolívares sin tasa o yuanes)", ing.sinConvertir, ""],
+          ["Facturas sin convertir (bolívares o yuanes sin tasa)", ing.sinConvertir, ""],
         ],
       };
     }

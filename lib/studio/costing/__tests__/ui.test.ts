@@ -14,6 +14,8 @@ import { describe, it, expect } from "vitest";
 import {
   asRankingSort,
   breakdownRows,
+  buildCostingCsv,
+  costingCsvRow,
   costPctOfRevenue,
   resolveDisplayRate,
   sortRanking,
@@ -123,10 +125,33 @@ describe("sortRanking", () => {
     sortRanking(rows, "margin-pct-asc");
     expect(rows).toEqual(copy);
   });
+
+  it.each(["margin-pct-desc", "margin-pct-asc", "margin-abs-desc", "revenue-desc"] as const)(
+    "0572 · %s deja incompletos al final en su orden original",
+    (sort) => {
+      const partialHigh = { ...row("P", 100000, 1), facturasSinTasa: 1 };
+      const partialLow = { ...row("Q", 1, 20000), facturasSinTasa: 2 };
+      const input = [partialHigh, rows[1], partialLow, rows[0], rows[2]];
+      const before = [...input];
+      const sorted = sortRanking(input, sort);
+      expect(sorted.slice(0, 3)).toEqual(sortRanking(rows, sort));
+      expect(sorted.slice(3)).toEqual([partialHigh, partialLow]);
+      expect(input).toEqual(before);
+    },
+  );
 });
 
 // ── topAndWorst ───────────────────────────────────────────────
 describe("topAndWorst", () => {
+  it.each([10, 200])("0572 · no clasifica margen parcial con costo %s", (cost) => {
+    const partial = { ...row("P", 100, cost), facturasSinTasa: 1 };
+    const unknown = { ...row("Q", 0, 30), facturasSinTasa: 1 };
+    const a = row("A", 100, 50);
+    const b = row("B", 100, 110);
+    const { top, worst } = topAndWorst([partial, a, unknown, b], 1);
+    expect(top).toEqual([a]);
+    expect(worst).toEqual([b]);
+  });
   it("top = más rentables, worst = peores, sin solaparse", () => {
     const rows = [
       row("A", 10000, 5000), // margin 5000
@@ -151,6 +176,23 @@ describe("topAndWorst", () => {
     const { top, worst } = topAndWorst(rows, 3);
     const overlap = top.filter((t) => worst.includes(t));
     expect(overlap).toHaveLength(0);
+  });
+});
+
+describe("0572 · CSV conserva completitud", () => {
+  it("retiene subtotal y contador; margen desconocido vacío y cero conocido 0", () => {
+    const partial = { ...row("P", 100, 10), facturasSinTasa: 2 };
+    const zero = { ...row("Z", 0, 0), facturasSinTasa: 0 };
+    const cells = costingCsvRow(partial);
+    expect(cells[5]).toBe(100);
+    expect(cells[13]).toBe(10);
+    expect(cells.slice(14, 16)).toEqual(["", ""]);
+    expect(cells.slice(16)).toEqual(["Subtotal parcial", 2]);
+    expect(costingCsvRow(zero).slice(14)).toEqual([0, 0, "Completo", 0]);
+    const lines = buildCostingCsv([partial, zero]).split("\r\n");
+    expect(lines[0]).toContain("Estado de conversión,Facturas sin tasa");
+    expect(lines[1]).toMatch(/,10,,,Subtotal parcial,2$/);
+    expect(lines[2]).toMatch(/,0,0,0,Completo,0$/);
   });
 });
 

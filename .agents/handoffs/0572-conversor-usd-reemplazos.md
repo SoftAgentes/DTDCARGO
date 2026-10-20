@@ -1,5 +1,116 @@
 # Handoff · SDD-0572 · Los 13 conversores a USD pasan a uno solo, que falla cerrado (0572-a)
 
+## Retoma local autorizada después de #301 · 2026-10-20
+
+Esta sección es el estado vigente; el cierre parcial siguiente conserva su
+fecha y evidencia, sin sustituir la validación de esta retoma.
+
+**OBJETIVO ORIGINAL:** completar 0572-a con los contratos de incompletitud
+cambiaria aprobados, pruebas y validación local, conservando 2.3/G y SQL fuera.
+
+**Adopción:** worktree y rama de la tabla histórica, HEAD recibido
+`9c254107c7c1b9544bf91ebff177ab790b438f5f`. A `2026-10-20T21:51:58Z` el árbol
+estaba limpio, claim ausente y sin consumidores Node/Claude/Codex explícitos
+del worktree. Sam pausó las sesiones anteriores y autorizó la adopción.
+`node_modules` es local sin junction; no se copiaron secretos ni se instalaron
+dependencias. Guard y claim
+`worker-0572-01a15a4e-ddf0-7d82-8656-d9dc56b58468` pasaron.
+Fetch confirmó origin/main `d410ab2e23e74e5bcf7fdc7cc595371b24cc03a8`; merge
+limpio en la rama propia produjo `2df9d22dbcff3fbf77056b434494450faf33b88f`.
+Se preservaron `tasaPersistible`, `usdOrNull`, `sumarEnUsd` y la dependencia
+completa de 0569. El Director confirmó 0495 aplicada/verificada; no se reaplica.
+
+**Decisión autorizada antes de producto:** R1–R3/I1–I4/C1 y T1–T10 de
+`C:/tmp/director-traspaso-20261020/0572-retoma-despues-301.md`. Diferencia total
+null ante cualquier conversión faltante; subtotal y contador visibles; nunca
+Cuadra/éxito. Se mantienen ausencia de mayor/cuenta, B3 sin cuantificar el
+total incompleto y `no_comparable` de nominal mixto. Nuevo motivo
+`conversion_incompleta` solo cuando corresponde, preservando el futuro puente
+0573. El cambio de la aserción I2 fue aceptado por contrato, no para hacer
+pasar un test. Costing completo primero e incompleto al final estable;
+exclusión de top/peores, margen sin evaluación definitiva, propagación a
+totales/rutas y CSV con estado/contador y null vacío. Sin recalcular 4.5,
+facturado oficial ni KPIs globales. Truncamiento/error de lectura rechaza.
+
+**Allowlist y permisos:** 58 rutas exactas en la spec: las 55 previas más
+`IngresoDelPeriodoCard.tsx`, `CostingClient.sin-tasa.test.tsx` y
+`lib/studio/reports/export-csv.ts`. Ediciones reversibles, commits selectivos,
+push de esta rama y draft PR después de validación local autorizados.
+Cambios heredados al integrar 0569 no son autoría propia. No SQL, producción,
+merge a main, deploy, tags, pagos, datos de negocio ni cambios ajenos.
+
+**COMPLETADO:** T1–T10 reproducidos y contrato implementado. `topAndWorst`
+excluye incompletos positivos y negativos; los cuatro órdenes los dejan al
+final estable. Ranking, Overview, totales, rutas y CSV conservan subtotal,
+costos y contador sin certificar margen. `diferenciaUsd` es null si falta una
+conversión; el motivo nuevo no desplaza B3, mayor/cuenta ausentes ni nominal
+mixto. Se corrigió el texto CNY del CSV. Los filtros oficiales no cambiaron.
+T9 (paginación/dedup) ya pasaba a nivel de fila; la nueva proyección de rutas
+sí fallaba. T10 (truncamiento/error) ya pasaba y permanece como regresión.
+El Director aprobó además `overflowX:auto` solo en el ranking: el contenedor
+recortaba su nuevo contador a 390 px. No se rediseñaron columnas ni otras vistas.
+
+**VALIDACIÓN actual:** turno exclusivo concedido a `21:58:10Z`. Evidencia en
+`C:/tmp/director-traspaso-20261020/0572-codex-validation/`, fuera de Git.
+
+| Comprobación / alcance | Resultado y recibo |
+|---|---|
+| Base `2df9d22d` + regresiones, producto sin reparar | **FALLÓ esperado:** 23 aserciones funcionales / 179 PASÓ en 8 archivos, sin errores de import/mock/infra. `retoma-red.log`, 21:58:35Z–21:59:20Z |
+| Mismos 8 archivos sobre producto reparado | **PASÓ:** 202/202, sin SKIPs, `retoma-green-1.log` |
+| Regresión ampliada, incluidos captura/CAS/correo/CxP de 0569 | **PASÓ:** 29 archivos, 632/632, sin SKIPs, `retoma-focal-expanded.log`; inventario `retoma-focal-files.json` |
+| Mutantes funcionales | **PASÓ:** 21/21 detectados y fuentes restauradas por SHA256; `retoma-mutants-result.json` + logs individuales. Incluye cinco guards de asientos, dos de rendición, CNY, fallback fijo, ranking/CSV/completitud y tres lectores truncados |
+| `corepack pnpm typecheck` | **PASÓ**, exit 0, `retoma-typecheck.log` |
+| ESLint del diff propio TS/TSX | **PASÓ:** 55 archivos, cero warnings, `retoma-lint.log` |
+| Cambio final de scroll del ranking | **PASÓ:** 6/6 pruebas del componente y lint puntual; `retoma-ui-final-focal.log`, `retoma-ui-final-lint.log` |
+| UI sintética con componentes reales y tokens/fuentes locales | **PASÓ en el alcance observado:** incompletitud positiva/negativa, B3, nominal mixto, cero conocido, claro/oscuro y contenedor 390 px. Margen/contador visibles tras desplazamiento horizontal; escritorio sin desborde. No acredita dispositivo real ni Studio autenticado |
+| `pnpm verify`, build y E2E sobre commit revisable | **NO EJECUTADO todavía**; siguiente paso tras fijar SHA |
+| DB/producción/migraciones | **NO EJECUTADO:** fuera del encargo; diff SQL y captura/CAS/correo frente a `d410ab2e` vacío |
+
+La UI usa `CostingClient` e `IngresoDelPeriodoCard` reales; solo los dos
+editores inactivos se sustituyeron por null. Servidor estático propio en
+127.0.0.1:4802, sin credenciales, banco ni datos reales. Capturas
+`retoma-ui-ranking-ascending-light.png`, `retoma-ui-ranking-final-dark.png`,
+`retoma-ui-routes-dark.png`, `retoma-ui-b3-dark.png` y
+`retoma-ui-width390-scrolled-{light,dark}.png`. La captura anterior
+`retoma-ui-width390-light.png` documenta el recorte. Medida posterior:
+356 px visibles / 810 de contenido, scrollLeft 454; escritorio 1246/1246.
+Tab cerrada y PID 4880 detenido; puerto sin listener a 22:11:59Z, recibo
+`retoma-fixture-cleanup.json`. No se ejecutó auditoría integral de accesibilidad
+ni prueba de dispositivo físico. `/ui-check` se aplicó al diff: tokens,
+componentes existentes y estado textual neutral; sin nuevos anchos fijos.
+El aviso nuevo de rendición pasó de peligro a tinta neutral y el aviso de
+Reportes usa spacing de la escala. Hallazgo restante descrito abajo.
+
+**PENDIENTES DE ESTA TAREA:** verify canónico, revisión independiente,
+commit/push final y draft PR. Actions está retenido por rechazo de pago/revisión
+de 48 horas según Sam/Director: no se presume verde. Antes de integrar se exige
+revalidación contra la base que incluya 0573. Orden Director: 301 → 304/306 →
+307 → 0573 → sellos. GitHub redirige a `SoftAgentes/DTDCARGO` según comprobación
+del Director; no se alteraron origin, workflows ni referencias de publicación.
+
+**FUERA DE ALCANCE DETECTADO:** `CostingClient.tsx`, `OverviewView`, rama completa
+con revenue=0/costo=0: los KPIs muestran 0, pero el texto histórico «Por cada
+$100… quedan $100» usa `100 - costPct`. No es incompletitud cambiaria. El
+Director ordenó conservarlo como hallazgo y no absorberlo. Continúan 2.3/G,
+0572-b, KPIs globales, históricos y automatización BCV fuera del encargo.
+
+**CONOCIMIENTO / HANDOFF AL DIRECTOR:** decisiones y evidencia guardadas en
+spec/handoff propios; no integradas ni publicadas a la bóveda. Inspección
+`knowledge:status --preview` terminada exit 0 pero **ok=false**: Graphify
+0.9.61 estructural INVALID (grafo ausente), semántica 0/16 piloto y 0/1324
+global; Archify PENDING por runtime ausente y Obsidian PENDING. Recibo
+`retoma-knowledge-status-before.log`, sobre 2df9 más el diff previo al cierre.
+La preview **NO COMPLETADA**: se lanzó por error al devolver session_id la
+inspección anterior, solapando dos lecturas. Se detuvieron únicamente sus
+PIDs verificados 22780/40020/13460; status se dejó terminar. No hubo extracción,
+build ni publicación. Recibo `retoma-knowledge-preview-interruption.txt`.
+Director indicó no reintentar ni reconstruir ahora; coordinar derivados tras
+base 0573. Todos esos PIDs e inspección 40504/23600/32464 terminaron antes de
+verify. No se certifica Graphify/Archify/preview ni revisión en Obsidian.
+Claim activo hasta concluir escritura; se liberará con recibo al cierre.
+
+## Cierre parcial anterior · antecedente fechado
+
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-10-20 |

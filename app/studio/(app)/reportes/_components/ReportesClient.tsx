@@ -636,8 +636,8 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 8,
-                padding: "7px 12px",
+                gap: "var(--s-2)",
+                padding: "var(--s-2) var(--s-3)",
                 borderRadius: "var(--r-md)",
                 border: "1px solid var(--border)",
                 background: "var(--bg-surface)",

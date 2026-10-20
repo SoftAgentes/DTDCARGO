@@ -533,6 +533,17 @@ describe("textosFinancieros · los KPI de ingreso y utilidad (SDD-0557)", () => 
   const textos = (i: ReturnType<typeof ingreso>, utilidad = 400, margenPct = 40) =>
     textosFinancieros({ ingreso: i, utilidad, margenPct });
 
+  it("0572 · USD conocido y CNY sin tasa: conserva cifra oficial y avisa subtotal sin decir cuadra", () => {
+    const usd = { id: "u1", status: "emitida", issued_at: "2025-03-04", currency: "USD", fx_rate: null, base_amount: 1000 };
+    const cny = { ...usd, id: "c1", currency: "CNY", base_amount: 700 };
+    const t = textos(ingreso([usd, cny], control(1000, 1000, true, ["u1"])));
+    expect(t.ingreso.valor).toBe("$1,000.00");
+    expect(t.ingreso.periodo).toMatch(/subtotal/i);
+    expect(t.ingreso.detalle).toMatch(/1 sin convertir/);
+    expect(t.ingreso.detalle).not.toMatch(/cuadra|no comparable/);
+    expect(t.utilidad.sub).not.toMatch(/nominal/);
+  });
+
   it("«sin IVA» con el rango y «libro» en la utilidad", () => {
     const t = textos(ingreso(FACTURAS_EN_USD, control(1000)));
     expect(t.ingreso).toEqual({

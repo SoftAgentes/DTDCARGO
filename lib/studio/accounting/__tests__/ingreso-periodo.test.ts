@@ -290,10 +290,16 @@ describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
     expect(describirIngreso(i).estado).toBe("mayor_menor");
   });
 
-  it("con el fixture del mes (VES y CNY) y 4.5 vacía: la diferencia es todo lo facturado", () => {
+  // I2: decisión expresa del Director, 2026-10-20. La ausencia de asientos se
+  // conserva; un subtotal conocido no certifica la diferencia del conjunto.
+  it("0572 · fixture mixto y 4.5 vacía: conserva B3 sin cuantificar diferencia incompleta", () => {
     const i = resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, vacio);
-    expect(i.diferenciaUsd).toBe(ESPERADO.total);
+    expect(i.facturado.total).toBe(ESPERADO.total);
+    expect(i.sinConvertir).toBe(ESPERADO.sinConvertir);
+    expect(i.diferenciaUsd).toBeNull();
     expect(describirIngreso(i).estado).toBe("mayor_menor");
+    expect(describirIngreso(i).diferenciaTexto).toMatch(/no tiene ningún asiento de factura/);
+    expect(describirIngreso(i).diferenciaTexto).not.toMatch(/\$[\d,.]+ menos/);
   });
 
   it("solo facturas sin convertir (CNY) y 4.5 vacía: el mayor tiene menos, no «sin movimiento»", () => {
@@ -329,6 +335,45 @@ describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
     const anulada = resumirIngreso([{ ...vesSinAsiento, status: "anulada" }], RANGO_MES, vacio);
     expect(anulada.enOtraMoneda).toBe(0);
     expect(describirIngreso(anulada).estado).toBe("sin_movimiento");
+  });
+});
+
+describe("0572 · subtotal conocido no concilia un conjunto incompleto", () => {
+  const usd = { id: "u1", status: "emitida", issued_at: "2025-03-04", currency: "USD", fx_rate: null, base_amount: 1000 };
+  const cny = { ...usd, id: "c1", currency: "CNY", base_amount: 700 };
+
+  it("USD asentado más CNY sin tasa ni asiento: diferencia null y conversión incompleta", () => {
+    const i = resumirIngreso([usd, cny], RANGO_MES, control(1000, 1000, true, ["u1"]));
+    expect(i).toMatchObject({ facturado: { total: 1000 }, sinConvertir: 1, enOtraMoneda: 0, diferenciaUsd: null });
+    const d = describirIngreso(i);
+    expect(d.estado).toBe("conversion_incompleta");
+    expect(d.diferenciaTexto).toMatch(/falta convertir/i);
+    expect(d.diferenciaTexto).not.toMatch(/cuadra/i);
+    expect(notaDelMayorMezclado(i)).toBeNull();
+  });
+
+  it("mayor vacío: faltan asientos sin afirmar una diferencia USD total", () => {
+    const i = resumirIngreso([usd, cny], RANGO_MES, control(0, 0, false));
+    expect(i.diferenciaUsd).toBeNull();
+    const d = describirIngreso(i);
+    expect(d.estado).toBe("mayor_menor");
+    expect(d.diferenciaTexto).toMatch(/no tiene ningún asiento de factura/);
+    expect(d.diferenciaTexto).not.toMatch(/\$[\d,.]+ menos/);
+    expect(resumirIngreso([usd], RANGO_MES, control(0, 0, false)).diferenciaUsd).toBe(1000);
+  });
+
+  it("preserva ausencia de mayor/cuenta y nominal mixto como causas distintas", () => {
+    expect(describirIngreso(resumirIngreso([usd, cny], RANGO_MES, null)).estado).toBe("sin_mayor");
+    expect(describirIngreso(resumirIngreso([usd, cny], RANGO_MES, control(null))).estado).toBe("sin_cuenta");
+    const mixed = resumirIngreso([usd, cny], RANGO_MES, control(1700, 1700, true, ["u1", "c1"]));
+    expect(describirIngreso(mixed).estado).toBe("no_comparable");
+    expect(notaDelMayorMezclado(mixed)).not.toBeNull();
+  });
+
+  it("cero USD válido es conocido y comparable", () => {
+    const i = resumirIngreso([{ ...usd, base_amount: 0 }], RANGO_MES, control(0, 0, true, ["u1"]));
+    expect(i).toMatchObject({ facturas: 1, sinConvertir: 0, diferenciaUsd: 0 });
+    expect(describirIngreso(i).estado).toBe("cuadra");
   });
 });
 

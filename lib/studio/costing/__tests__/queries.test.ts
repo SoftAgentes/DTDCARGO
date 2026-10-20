@@ -31,7 +31,10 @@ import {
 const SERVER_CAP = 1000;
 
 // ── Stub de SupabaseClient ────────────────────────────────────
-function stub(rowsByTable: Record<string, Record<string, unknown>[]>): SupabaseClient {
+function stub(
+  rowsByTable: Record<string, Record<string, unknown>[]>,
+  options: { serverCap?: number; errorTable?: string } = {},
+): SupabaseClient {
   return {
     from(table: string) {
       // `is(col, null)` se APLICA sobre las filas, como PostgREST (SDD-0465):
@@ -59,8 +62,9 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): SupabaseC
         // PostgREST. Un doble más generoso que el servidor deja pasar código
         // que trunca en producción.
         range(desde: number, hasta: number) {
+          if (options.errorTable === table) return Promise.resolve({ data: null, error: { message: "lectura interrumpida" } });
           const pedido = hasta - desde + 1;
-          const trozo = rows.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+          const trozo = rows.slice(desde, desde + Math.min(pedido, options.serverCap ?? SERVER_CAP));
           return Promise.resolve({ data: trozo, error: null });
         },
         then(resolve: (v: { data: unknown; error: null }) => unknown) {
@@ -161,6 +165,30 @@ describe("listShipmentCosts", () => {
 
 // ── costingRows ───────────────────────────────────────────────
 describe("costingRows", () => {
+  it.each(["S1", null])("0572 · segunda página por id %s o code: contador sin duplicar", async (shipmentId) => {
+    const shipments = [{ id: "S1", code: "DTDU-1", origin: "YIW", destination: "PBL", deleted_at: null }];
+    const base = { shipment_id: shipmentId, shipment_code: "DTDU-1", status: "emitida", issued_at: "2026-02-01", fx_rate: null, deleted_at: null };
+    const invoices = [
+      { ...base, id: "i1", currency: "USD", total_amount: 100 },
+      { ...base, id: "i2", currency: "CNY", total_amount: 700 },
+    ];
+    const rows = await costingRows(stub({ shipments, invoices }, { serverCap: 1 }));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ eco: { revenue: 100 }, facturasSinTasa: 1 });
+    expect(costingTotals(rows)).toMatchObject({ revenue: 100, sinTasa: 1, profitable: 0, losing: 0 });
+    expect(marginByRoute(rows)[0]).toMatchObject({ revenue: 100, sinTasa: 1 });
+  });
+
+  it.each(["shipment_costs", "invoices", "shipments"])("0572 · rechaza lectura truncada de %s", async (table) => {
+    // 60 páginas no vacías alcanzan el límite real de fetchAllPaged. El tope
+    // del doble es uno: no reemplaza el lector ni fabrica complete=false.
+    const many = Array.from({ length: 61 }, (_, n) => ({ id: String(n), deleted_at: null }));
+    await expect(costingRows(stub({ [table]: many }, { serverCap: 1 }))).rejects.toThrow(/tope/i);
+  });
+
+  it("0572 · error de lectura rechaza, no devuelve cero ni solo un aviso de tasa", async () => {
+    await expect(costingRows(stub({}, { errorTable: "invoices" }))).rejects.toThrow("lectura interrumpida");
+  });
   it("cruza shipments + costos + revenue (id, fallback code)", async () => {
     const shipments = [
       // S1 tiene revenue por id + costos
@@ -190,6 +218,19 @@ describe("costingRows", () => {
     expect(s2.eco.revenue).toBe(2000); // resuelto por code
     expect(s2.eco.totalCost).toBe(0); // sin costos
     expect(s2.costs).toBeNull();
+  });
+});
+
+describe("0572 · completitud de totales y rutas", () => {
+  it("una ruta parcial conserva costos/subtotal y cuenta embarques incompletos", () => {
+    const partial = { ...row({ id: "P", origin: "CN", destination: "VE", revenue: 100, costs: { freight: 10 } }), facturasSinTasa: 2 };
+    const complete = row({ id: "A", origin: "CN", destination: "VE", revenue: 50, costs: { freight: 5 } });
+    const other = row({ id: "B", origin: "CN", destination: "US", revenue: 10, costs: { freight: 20 } });
+    expect(costingTotals([partial, complete, other])).toMatchObject({ revenue: 160, cost: 35, sinTasa: 1, profitable: 1, losing: 1 });
+    const routes = marginByRoute([partial, complete, other]);
+    expect(routes.map((r) => r.destination)).toEqual(["US", "VE"]);
+    expect(routes[0]).toMatchObject({ sinTasa: 0 });
+    expect(routes[1]).toMatchObject({ revenue: 150, cost: 15, count: 2, sinTasa: 1 });
   });
 });
 

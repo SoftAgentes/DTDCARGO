@@ -200,6 +200,7 @@ export function textosFinancieros(
     mayor_menor: vacio ? sinAsientos : deFacturas,
     mayor_mayor: deFacturas,
     no_comparable: `${CUENTA_VENTAS} de facturas: no comparable, hay facturas en bolívares o yuanes`,
+    conversion_incompleta: `conversión incompleta · ${deFacturas}`,
     sin_movimiento: sinAsientos,
     sin_cuenta: `sin cuenta ${CUENTA_VENTAS} en el plan de cuentas`,
     sin_mayor: null,
@@ -215,7 +216,7 @@ export function textosFinancieros(
     ingreso: {
       label: "Ingresos · mes",
       valor: fmtUsd(i.facturado.total),
-      periodo: `Facturado sin IVA · ${i.rango.from} → ${i.rango.to}`,
+      periodo: `${i.sinConvertir > 0 ? "Subtotal convertido" : "Facturado"} sin IVA · ${i.rango.from} → ${i.rango.to}`,
       detalle: partes.join(" · "),
     },
     utilidad: {

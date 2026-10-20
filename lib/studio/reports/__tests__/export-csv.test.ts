@@ -190,7 +190,7 @@ describe("buildViewCsv · Combinados", () => {
   const combined = (over: Partial<CombinedReport>): CombinedReport => ({
     totals: { revenue: 0, cost: 0, margin: 0, avgMarginPct: 0, profitable: 0, losing: 0, sinTasa: 0, catTotals: {} as never },
     byRoute: [
-      { origin: "Yiwu", destination: "Pto Cabello", count: 2, revenue: 8000, cost: 5000, margin: 3000, marginPct: 37, tone: "good" as never },
+      { origin: "Yiwu", destination: "Pto Cabello", count: 2, revenue: 8000, cost: 5000, margin: 3000, marginPct: 37, tone: "good" as never, sinTasa: 0 },
     ],
     byClient: [
       { client: "Acme", count: 2, revenue: 8000, cost: 5000, margin: 3000, marginPct: 37, tone: "good" as never },
@@ -243,6 +243,26 @@ describe("buildViewCsv · Estado de resultados (SDD-0557)", () => {
     range: rango,
     ingreso: ingreso(0),
     ...over,
+  });
+
+  it("0572 · exporta subtotal, estado, contador y diferencia vacía con una CNY sin tasa", () => {
+    const usd = { id: "u1", status: "emitida", issued_at: "2026-06-02", currency: "USD", fx_rate: null, base_amount: 1000 };
+    const cny = { ...usd, id: "c1", currency: "CNY", base_amount: 700 };
+    const i = resumirIngreso([usd, cny], rango, { ventas: 1000, ventasConMovimiento: true, ingresos: 1000, facturasConAsiento: new Set(["u1"]) });
+    const csv = buildViewCsv({ category: "con", rep: "income", income: income({ ingreso: i }), today: TODAY });
+    const lines = csv!.content.split("\r\n");
+    expect(lines).toContain("Ingreso facturado (subtotal convertido · sin IVA · USD · por emisión),1000,");
+    expect(lines).toContain("Diferencia facturado − mayor (4.5),,");
+    expect(lines).toContain("Control contra 4.5: Conversión incompleta,,");
+    expect(lines).toContain("Facturas sin convertir (bolívares o yuanes sin tasa),1,");
+    expect(csv!.content).not.toContain("Control contra 4.5: Cuadra");
+  });
+
+  it("0572 · CNY con tasa sí suma y no se describe como yuanes excluidos", () => {
+    const i = resumirIngreso([{ id: "c1", status: "emitida", issued_at: "2026-06-02", currency: "CNY", fx_rate: 7, base_amount: 700 }], rango, MAYOR_VACIO);
+    const csv = buildViewCsv({ category: "con", rep: "income", income: income({ ingreso: i }), today: TODAY });
+    expect(csv!.content).toContain("Ingreso facturado (sin IVA · USD · por emisión),100,");
+    expect(csv!.content).toContain("Facturas sin convertir (bolívares o yuanes sin tasa),0,");
   });
 
   it("mayor en 0 con facturado: igual exporta, con las filas de control al final", () => {

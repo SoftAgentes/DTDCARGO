@@ -84,7 +84,7 @@ export function EmitDrawer({
           <p
             role="status"
             data-testid="rendicion-sin-tasa"
-            style={{ margin: 0, font: "500 12.5px/1.45 var(--f-sans)", color: "var(--danger)" }}
+            style={{ margin: 0, font: "500 12.5px/1.45 var(--f-sans)", color: "var(--ink)" }}
           >
             {`No se puede emitir: ${preview.recibosSinTasa ?? 0} cobro(s) y ${preview.facturasLocalesSinTasa ?? 0} factura(s) local(es) no tienen tasa. Cárgala y vuelve a revisar.`}
           </p>

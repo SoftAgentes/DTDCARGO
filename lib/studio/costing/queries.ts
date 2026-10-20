@@ -287,6 +287,7 @@ export async function costingRows(
 
 // ── Agregados puros (sobre las filas ya cargadas) ─────────────
 export type CostingTotals = {
+  /** Suma conocida; con sinTasa > 0 es subtotal y margin/avgMarginPct no se certifican. */
   revenue: number;
   cost: number;
   margin: number;
@@ -339,6 +340,8 @@ export type RouteMarginRow = {
   count: number;
   revenue: number;
   cost: number;
+  /** Embarques con conversión incompleta: revenue es subtotal y el margen no se evalúa. */
+  sinTasa: number;
   margin: number;
   marginPct: number;
   tone: MarginTone;
@@ -346,24 +349,26 @@ export type RouteMarginRow = {
 
 /**
  * Margen por ruta (PURA): agrupa por `origin→destination`, suma revenue/cost,
- * deriva margen + %. Orden descendente por marginPct. Espejo de
+ * deriva margen + %. Las rutas completas van por marginPct; las incompletas
+ * quedan al final, en orden estable, con sinTasa y subtotal conocido. Espejo de
  * RoutesMarginSection en costing.jsx.
  */
 export function marginByRoute(rows: CostingRow[]): RouteMarginRow[] {
   const byRoute = new Map<
     string,
-    { origin: string; destination: string; count: number; revenue: number; cost: number }
+    { origin: string; destination: string; count: number; revenue: number; cost: number; sinTasa: number }
   >();
 
-  for (const { shipment, eco } of rows) {
+  for (const { shipment, eco, facturasSinTasa } of rows) {
     const origin = shipment.origin ?? "";
     const destination = shipment.destination ?? "";
     const key = `${origin}→${destination}`;
     const cur =
-      byRoute.get(key) ?? { origin, destination, count: 0, revenue: 0, cost: 0 };
+      byRoute.get(key) ?? { origin, destination, count: 0, revenue: 0, cost: 0, sinTasa: 0 };
     cur.count += 1;
     cur.revenue += eco.revenue;
     cur.cost += eco.totalCost;
+    if ((facturasSinTasa ?? 0) > 0) cur.sinTasa += 1;
     byRoute.set(key, cur);
   }
 
@@ -373,7 +378,10 @@ export function marginByRoute(rows: CostingRow[]): RouteMarginRow[] {
       const marginPct = r.revenue > 0 ? (margin / r.revenue) * 100 : 0;
       return { ...r, margin, marginPct, tone: marginTone(marginPct) };
     })
-    .sort((a, b) => b.marginPct - a.marginPct);
+    .sort((a, b) => {
+      if (a.sinTasa > 0 || b.sinTasa > 0) return Number(a.sinTasa > 0) - Number(b.sinTasa > 0);
+      return b.marginPct - a.marginPct;
+    });
 }
 
 // ── Margen por cliente (Reportes · Combinados) ────────────────

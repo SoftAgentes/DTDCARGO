@@ -15,11 +15,47 @@ confidencialidad: interno
 
 > La 2.1 del plan contable, segunda parte. La SDD-0569 creó el conversor canónico (`toUsd` en `lib/shared/fx.ts` y `to_usd` en la 0495) y la tabla `fx_rates`. Esta reemplaza las 13 implementaciones y las tasas fijas del código por ese conversor. **Aquí sí cambian cifras visibles.**
 
-**Estado: 0572-a IMPLEMENTADA** (la app, reglas A a F), apilada sobre la cabeza de la #301 (SDD-0569, `3d0c9028`) por instrucción del Director: «crea su rama desde la cabeza de la #301 (`3d0c9028`), porque necesita `toUsd`». Pasa a main cuando entre la #301. El diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). La regla G queda para la 2.3 (ver *Implementación*). La 0572-b (SQL de 0404 y 0411) no ha arrancado.
+**Estado: 0572-a EN RETOMA LOCAL** (reglas A a F y completitud cambiaria), después de integrar la #301 desde main `d410ab2e` en el merge local `2df9d22d`. La base original apilada fue `3d0c9028`; el diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). La regla G queda para la 2.3 y la 0572-b (SQL de 0404 y 0411) no ha arrancado. No se certifica todavía el cierre local ni la integración de 0572.
 
-El cierre local de 0572-a se retomó en Codex el 2026-10-20 con turno exclusivo de validación y autorización para commits selectivos y push a la misma rama. La PR se abrirá únicamente después de que el Director confirme la integración de #301. El estado general permanece `in-progress` porque 0572-b sigue diferida.
+El primer cierre parcial de 0572-a en Codex el 2026-10-20 recibió turno exclusivo de validación y autorización para commits selectivos y push a la misma rama; entonces la PR esperaba la integración de #301. La retoma vigente se rige por la decisión siguiente. El estado general permanece `in-progress` porque 0572-b sigue diferida.
 
-El Director pidió entregar este avance antes del cierre canónico: #301 requiere corregir la distinción entre tasa manual del catálogo y override manual del documento. `verify` y mutantes de 0572-a se ejecutarán después de recibir esa corrección. No se afirma que 0572-a esté lista para integrar.
+El cierre parcial anterior esperó la reparación de #301. El Director confirmó ahora su integración y la aplicación/verificación de 0495: la retoma no edita ni reaplica SQL. Sam confirmó que GitHub revisa el rechazo de pago durante 48 horas; los checks remotos no se presumen aprobados. La validación local y una PR en borrador están autorizadas; la integración final de 0572 debe revalidarse contra la base que incluya 0573 y conserva el orden coordinado por el Director.
+
+## Decisión del Director para la retoma local · 2026-10-20
+
+El Director aceptó expresamente la preparación externa
+`C:/tmp/director-traspaso-20261020/0572-retoma-despues-301.md`, sus contratos
+R1–R3/I1–I4/C1 y escenarios T1–T10. Se registra antes de editar producto:
+
+- Toda conversión faltante mantiene subtotal conocido y contador visible;
+  diferencia USD completa en `null`, nunca «Cuadra» o éxito.
+- Se conservan ausencia de mayor/cuenta, B3 (faltan asientos, sin cuantificar
+  una diferencia incompleta) y `no_comparable` del mayor nominal mixto.
+  `conversion_incompleta` es un motivo diferente; no recalcula 4.5 ni el
+  facturado oficial. Se acepta cambiar la aserción I2 por esta decisión,
+  conservando filtros de base sin IVA, emisión, estado, borrado y fondos.
+- Costing ordena primero los completos y deja los incompletos al final de
+  manera estable en los cuatro órdenes. Ningún incompleto entra en top/peores
+  ni recibe margen definitivo o color de rentabilidad. Conserva costos,
+  subtotal, contador y estado, también en totales y agregados por ruta de
+  **este Costing**. No incorpora los KPIs globales de otra SDD.
+- Los CSV conservan estado/contador y señalan el subtotal parcial; diferencia
+  o margen no certificados van vacíos, cero conocido sigue siendo 0. El texto
+  sobre CNY indica «bolívares o yuanes sin tasa».
+- Lectura truncada/errónea rechaza; lectura completa sin tasa produce
+  subtotal y contador. Segunda página y deduplicación se verifican sin
+  presuponer que fallen. Se preserva el futuro puente de 0573.
+- Se amplía exactamente la allowlist **55→58** con la tarjeta de ingreso,
+  una prueba del CostingClient real y el exportador CSV, enumerados abajo.
+  Captura/CAS/aviso/SQL recibidos de 0569 son dependencia, no autoría nueva.
+- Primero se preparan y capturan rojos funcionales; después se corrige
+  producto. Pruebas, tipos, build, verify, Docker e instalaciones esperan
+  el turno pesado expreso del Director. Ningún permiso incluye merge a main,
+  despliegue, DB real, históricos, 2.3/G, BCV o reloj Caracas.
+- Tras evidencia visual a contenedor 390 px, el Director aprobó cambiar
+  únicamente el overflow horizontal del ranking a auto: permite acceder al
+  nuevo contador/estado sin rediseñar columnas. La frase histórica del
+  Overview con revenue/costo cero queda fuera de alcance documentado.
 
 ## Decisiones del Director, por la delegación de Sam del 2026-10-20
 
@@ -175,7 +211,9 @@ En el cierre parcial de Codex se agregaron cinco casos: mezcla USD/USDT/VES/CNY/
 
 ```text
 app/studio/(app)/contabilidad/__tests__/reportes-tab.test.tsx
+app/studio/(app)/contabilidad/_components/IngresoDelPeriodoCard.tsx
 app/studio/(app)/costing/_components/CostingClient.tsx
+app/studio/(app)/costing/_components/CostingClient.sin-tasa.test.tsx
 app/studio/(app)/costing/page.tsx
 app/studio/(app)/direccion/_components/FinanceHealthCard.tsx
 app/studio/(app)/financiero-china/_components/PartnerAlertsBanner.tsx
@@ -225,6 +263,7 @@ lib/studio/renditions/types.ts
 lib/studio/reports/__tests__/queries.test.ts
 lib/studio/reports/__tests__/export-csv.test.ts
 lib/studio/reports/builder-types.ts
+lib/studio/reports/export-csv.ts
 lib/studio/reports/queries.ts
 lib/studio/reports/types.ts
 lib/studio/treasury/__tests__/treasury.test.ts
@@ -248,8 +287,44 @@ En el mismo cierre, el Director autorizó sumar únicamente `TesoreriaClient.cxp
 | Cambio de comportamiento Studio | cumplimiento | SDD aprobada + allowlist exacta (arriba) |
 | Producción | no aplica a la 0572-a | la 0572-a no tiene migración; la 0572-b sí |
 | ERR-01 | cumplimiento | cada «sin tasa» dice dónde cargarla («Contabilidad › Tasas de cambio», «Admin › Tasas») o qué falta para emitir |
+| DAT-01 / completitud | cumplimiento | subtotal conocido + contador; diferencia total null; lectura truncada rechaza; cero válido conservado |
+| VIS-01 / VIS-02 / CMP-01 | cumplimiento en el diff | componentes y tokens existentes; incompleto neutral, sin color de rentabilidad; ranking desplazable en ancho reducido |
+| A11Y-01 | cumplimiento parcial observado | estado textual junto al número, selector rotulado, VES deshabilitado sin tasa; fixture claro/oscuro y ancho390. Auditoría integral y dispositivo real NO EJECUTADOS |
 
 ## Validación
+
+### Retoma después de #301 · 2026-10-20
+
+Base `2df9d22dbcff3fbf77056b434494450faf33b88f` (merge 9c254107 + d410ab2e).
+Primero se escribieron las regresiones y después se corrigió producto.
+
+| Comprobación | Resultado |
+|---|---|
+| ROJO sobre base sin reparar | FALLÓ esperado: 23 aserciones funcionales / 179 PASÓ; 8 archivos, cero errores de harness/import/mock |
+| VERDE focal | PASÓ: 202/202, sin SKIPs |
+| Focal ampliado y contratos heredados 0569 | PASÓ: 632/632 en 29 archivos, sin SKIPs |
+| Mutantes de app | PASÓ: 21/21 detectados por aserciones y fuentes restauradas por SHA256 |
+| typecheck / lint | PASÓ: exit 0; ESLint 55 archivos, cero warnings |
+| Último ajuste de scroll | PASÓ: 6/6 pruebas existentes del componente y lint puntual |
+| Fixture real Costing + ingreso | PASÓ alcance sintético: parcial positivo/negativo, B3, mixto, cero, claro/oscuro, contenedor390 con desplazamiento. Studio real/dispositivo/a11y integral NO EJECUTADOS |
+| verify / build / E2E del commit revisable | NO EJECUTADO todavía; siguiente paso del cierre |
+| Conocimiento | status terminó pero ok=false; estructura INVALID, semántica 0/16 y 0/1324, Archify/Obsidian PENDING; preview interrumpida, no completada |
+
+Logs, mutantes, fixtures y capturas fuera de Git en
+`C:/tmp/director-traspaso-20261020/0572-codex-validation/retoma-*`.
+El handoff detalla límites, incidente de inspección duplicada y autorización
+del Director para diferir reconstrucción de derivados hasta la base 0573.
+No se alteró SQL ni la captura/procedencia/CAS/aviso persistido de 0569.
+El subtotal y margen aritmético interno de Costing conservan su tipo numérico;
+`sinTasa` califica completitud, y UI/CSV no los presentan como margen definitivo.
+
+El pendiente `topAndWorst` se reprodujo y quedó reparado: incompletos positivos
+y negativos fuera de top/peores, cuatro órdenes estables con completos primero,
+margen pendiente, propagación a totales/rutas y CSV. T9 ya preservaba paginación
+y deduplicación por fila; se completó la proyección del contador por ruta.
+T10 ya rechazaba lecturas incompletas/erróneas: se conserva esa regresión.
+
+### Cierre parcial anterior · evidencia histórica
 
 | Comprobación | Resultado |
 |---|---|
@@ -261,4 +336,5 @@ En el mismo cierre, el Director autorizó sumar únicamente `TesoreriaClient.cxp
 | Mutantes de app | NO EJECUTADO: diferidos por la misma dependencia |
 | Revisión visual con navegador/fixtures | NO EJECUTADO en este cierre parcial |
 
-Pendiente propio detectado durante la revisión: comprobar con un fixture si `topAndWorst` de Costing incluye entre mejores/peores una fila con ingreso parcial y facturas sin tasa. La clasificación del Ranking ya muestra «Sin tasa», pero esa comprobación del Overview sigue abierta y no se da por resuelta.
+En ese cierre anterior quedó pendiente comprobar `topAndWorst` con ingreso
+parcial. La retoma posterior de esta sección registra su reproducción y reparación.

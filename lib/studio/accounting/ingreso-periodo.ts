@@ -112,7 +112,7 @@ export type ControlDelMayor = {
 
 export type IngresoPeriodo = {
   rango: RangoFechas;
-  /** Facturado sin IVA en USD: propio (`local_revenue`), terceros y total. */
+  /** Facturado sin IVA convertido a USD; subtotal si sinConvertir > 0. */
   facturado: { propio: number; terceros: number; total: number };
   /** Facturas que suman. */
   facturas: number;
@@ -136,10 +136,9 @@ export type IngresoPeriodo = {
     otrosIngresos: number;
   } | null;
   /**
-   * facturado.total − mayor.ventas; null si no hay mayor, no hay cuenta 4.5 o
-   * no es comparable (alguna factura del período en VES o CNY con su asiento
-   * de factura vivo y asientos de factura en 4.5). Con 4.5 sin movimiento es
-   * todo lo facturado.
+   * facturado.total − mayor.ventas; null si falta alguna conversión, mayor o
+   * cuenta 4.5, o si el mayor mezcla nominales. Con 4.5 sin movimiento solo
+   * cuantifica todo lo facturado cuando el conjunto está convertido completo.
    */
   diferenciaUsd: number | null;
 };
@@ -246,8 +245,8 @@ function enOtraMonedaDelAsiento(currency: string): boolean {
  * borrador del período en VES o CNY (también las anuladas, que pueden
  * conservar su asiento) que tienen su asiento de factura vivo: con alguna, la
  * comparación contra 4.5 no vale (E1), salvo que 4.5 no tenga asientos de
- * factura en el rango (B3): contra cero la diferencia es todo lo facturado,
- * en cualquier moneda.
+ * factura en el rango (B3). La diferencia solo se cuantifica si se convirtió
+ * el conjunto completo; el subtotal conocido conserva la cifra oficial.
  */
 export function resumirIngreso(
   facturas: readonly FacturaDeIngreso[],
@@ -300,10 +299,6 @@ export function resumirIngreso(
     : null;
   // El mayor vacío gana sobre «no comparable» (B3): cero no mezcla monedas.
   const comparable = enOtraMoneda === 0 || !control?.ventasConMovimiento;
-  // Contra 4.5 vacía y sin facturado en USD, lo único que hay son facturas sin
-  // convertir: falta el asiento, pero el monto en USD no se conoce.
-  const sinMontoConocido =
-    control != null && !control.ventasConMovimiento && Math.abs(total) < 0.005 && sinConvertir > 0;
 
   return {
     rango,
@@ -313,7 +308,7 @@ export function resumirIngreso(
     enOtraMoneda,
     mayor: control,
     diferenciaUsd:
-      control && control.ventas != null && comparable && !sinMontoConocido
+      control && control.ventas != null && comparable && sinConvertir === 0
         ? round2(total - control.ventas)
         : null,
   };
@@ -324,6 +319,7 @@ export type EstadoDelIngreso =
   | "mayor_menor"
   | "mayor_mayor"
   | "no_comparable"
+  | "conversion_incompleta"
   | "sin_movimiento"
   | "sin_cuenta"
   | "sin_mayor";
@@ -334,6 +330,7 @@ export const ETIQUETA_ESTADO_INGRESO: Record<EstadoDelIngreso, string> = {
   mayor_menor: "El mayor tiene menos",
   mayor_mayor: "El mayor tiene más",
   no_comparable: "No comparable",
+  conversion_incompleta: "Conversión incompleta",
   sin_movimiento: "Sin movimiento",
   sin_cuenta: "Sin cuenta 4.5",
   sin_mayor: "Sin mayor",
@@ -384,8 +381,10 @@ export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
     } else if (!conAsientos && (hayFacturado || i.sinConvertir > 0)) {
       // B3 gana sobre «no comparable»: contra 4.5 vacía no hay monedas que mezclar.
       estado = "mayor_menor";
-      diferenciaTexto = hayFacturado
+      diferenciaTexto = hayFacturado && i.sinConvertir === 0
         ? `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(i.facturado.total)} menos que lo facturado: no tiene ningún asiento de factura en el período.`
+        : hayFacturado
+          ? `El mayor (cuenta ${CUENTA_VENTAS}) no tiene ningún asiento de factura en el período; falta convertir ${i.sinConvertir === 1 ? "1 factura" : `${i.sinConvertir} facturas`} para conocer la diferencia total en USD.`
         : `El mayor (cuenta ${CUENTA_VENTAS}) no tiene ningún asiento de factura en el período; ${
             i.sinConvertir === 1
               ? "la factura del período (en bolívares o yuanes sin tasa) debería tenerlo"
@@ -402,6 +401,9 @@ export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
         ` en bolívares o yuanes y hoy ${n === 1 ? "se asienta" : "se asientan"} en la cuenta ${CUENTA_VENTAS}` +
         " por su nominal en esa moneda, no en USD. La comparación vuelve cuando el asiento de venta" +
         " se registre en USD (fase 2 del plan de trabajo de contabilidad).";
+    } else if (i.sinConvertir > 0) {
+      estado = "conversion_incompleta";
+      diferenciaTexto = `Conversión incompleta: falta convertir ${i.sinConvertir === 1 ? "1 factura" : `${i.sinConvertir} facturas`} con su tasa para comparar el total con el mayor (cuenta ${CUENTA_VENTAS}).`;
     } else {
       // Con 4.5 en el plan y comparable, `resumirIngreso` siempre la calcula.
       const dif = i.diferenciaUsd ?? 0;

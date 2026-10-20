@@ -59,6 +59,11 @@ export function sortRanking(
 ): CostingRow[] {
   const copy = [...rows];
   copy.sort((a, b) => {
+    const incompleteA = (a.facturasSinTasa ?? 0) > 0;
+    const incompleteB = (b.facturasSinTasa ?? 0) > 0;
+    // Un subtotal no compite con un total. Entre incompletos se conserva el
+    // orden recibido, independientemente del criterio elegido.
+    if (incompleteA || incompleteB) return Number(incompleteA) - Number(incompleteB);
     if (sort === "margin-pct-asc") return a.eco.marginPct - b.eco.marginPct;
     if (sort === "margin-abs-desc") return b.eco.margin - a.eco.margin;
     if (sort === "revenue-desc") return b.eco.revenue - a.eco.revenue;
@@ -77,10 +82,10 @@ export type TopWorst = {
 /**
  * Top N más rentables (margen $ desc) y N peores (margen $ asc), sin solaparse
  * cuando hay pocas filas. Solo considera embarques con revenue > 0 (sin revenue
- * no hay "margen" significativo para rankear). PURA.
+ * no hay "margen" significativo para rankear) y conversión completa. PURA.
  */
 export function topAndWorst(rows: CostingRow[], n = 3): TopWorst {
-  const withRevenue = rows.filter((r) => r.eco.revenue > 0);
+  const withRevenue = rows.filter((r) => r.eco.revenue > 0 && (r.facturasSinTasa ?? 0) === 0);
   const byMargin = [...withRevenue].sort((a, b) => b.eco.margin - a.eco.margin);
   const top = byMargin.slice(0, n);
   const worst = [...byMargin]
@@ -298,6 +303,8 @@ export const COSTING_CSV_HEADERS = [
   "Costo total USD",
   "Margen USD",
   "Margen %",
+  "Estado de conversión",
+  "Facturas sin tasa",
 ] as const;
 
 /** Redondea a 2 decimales (números de plata estables en el CSV). */
@@ -309,6 +316,7 @@ function round2(n: number): number {
 export function costingCsvRow(row: CostingRow): (string | number)[] {
   const e = row.eco;
   const s = row.shipment;
+  const sinTasa = row.facturasSinTasa ?? 0;
   return [
     s.code ?? "",
     s.client_name ?? "",
@@ -324,8 +332,10 @@ export function costingCsvRow(row: CostingRow): (string | number)[] {
     round2(e.commission),
     round2(e.other),
     round2(e.totalCost),
-    round2(e.margin),
-    round2(e.marginPct),
+    sinTasa > 0 ? "" : round2(e.margin),
+    sinTasa > 0 ? "" : round2(e.marginPct),
+    sinTasa > 0 ? "Subtotal parcial" : "Completo",
+    sinTasa,
   ];
 }
 
