@@ -34,6 +34,8 @@ import { ConciliacionTab } from "./ConciliacionTab";
 import { ActivosFijosTab } from "./ActivosFijosTab";
 import { ClosingDateDrawer } from "./ClosingDateDrawer";
 import { ExcepcionesCierreTab } from "./ExcepcionesCierreTab";
+import { ExchangeRatesSection } from "../../admin/_components/ExchangeRatesSection";
+import type { ExchangeRatesOverview } from "@/lib/studio/exchange-rates-types";
 import type { AvisoCierre, EventoDelCierre, ExcepcionAlCierre } from "@/lib/studio/accounting/cierre-excepciones";
 import type { EstadoCierre } from "@/lib/studio/accounting/cierre-queries";
 
@@ -45,7 +47,8 @@ type Tab =
   | "subdiario"
   | "conciliacion"
   | "activos"
-  | "excepciones";
+  | "excepciones"
+  | "tasas";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "plan", label: "Plan de cuentas" },
@@ -56,6 +59,8 @@ const TABS: { value: Tab; label: string }[] = [
   { value: "conciliacion", label: "Conciliación" },
   { value: "activos", label: "Activos fijos" },
   { value: "excepciones", label: "Excepciones al cierre" },
+  // SDD-0569: las tasas con que se convierten facturas y CxP en VES o CNY.
+  { value: "tasas", label: "Tasas de cambio" },
 ];
 
 /** Cuentas de banco / caja postables (para cargar extractos): qbo_type Bank o code 1.1.1.x. */
@@ -83,6 +88,7 @@ function assetAccountsFrom(accounts: Account[]): Account[] {
 
 export function ContabilidadClient({
   tab,
+  tasas = null,
   accounts,
   balances,
   entries,
@@ -103,6 +109,8 @@ export function ContabilidadClient({
   historialCierre = [],
 }: {
   tab: Tab;
+  /** SDD-0569: la última tasa por par (solo en la pestaña Tasas de cambio). */
+  tasas?: ExchangeRatesOverview | null;
   accounts: Account[];
   balances: AccountBalanceMap;
   entries: JournalEntry[];
@@ -350,6 +358,8 @@ export function ContabilidadClient({
           onCloseCreate={() => setShowCreateAsset(false)}
         />
       )}
+
+      {tab === "tasas" && tasas && <ExchangeRatesSection data={tasas} />}
 
       {tab === "excepciones" && estadoCierre && (
         <ExcepcionesCierreTab excepciones={excepciones} historial={historialCierre} />

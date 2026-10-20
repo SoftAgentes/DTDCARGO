@@ -1,11 +1,15 @@
 "use server";
 
 /**
- * Tasas de cambio (SDD-0126, SDD-0569) — server action (admin only).
+ * Tasas de cambio (SDD-0126, SDD-0569) — server action (admin y accounting).
  *
  * Registra la tasa manual de un día en `fx_rates` por la RPC
  * `registrar_tasa_de_cambio` (migración 0495). Una segunda del mismo día y
  * moneda la reemplaza; la auditoría D2 guarda la anterior.
+ *
+ * El permiso es el del módulo de Contabilidad (admin y accounting), el mismo que
+ * exige la RPC: la contadora carga las tasas desde Contabilidad › Tasas de
+ * cambio, y el admin también desde Admin › Tasas.
  */
 
 import { revalidatePath } from "next/cache";
@@ -22,7 +26,7 @@ export async function recordExchangeRateAction(
   formData: FormData,
 ): Promise<ExchangeRateActionState> {
   const supabase = await createClient();
-  const denial = await moduleEditDenial(supabase, "admin");
+  const denial = await moduleEditDenial(supabase, "accounting");
   if (denial) return { error: denial };
 
   const { input, error } = validateExchangeRateInput(formData);
@@ -43,5 +47,6 @@ export async function recordExchangeRateAction(
   }
 
   revalidatePath("/studio/admin");
+  revalidatePath("/studio/contabilidad");
   return { ok: true };
 }

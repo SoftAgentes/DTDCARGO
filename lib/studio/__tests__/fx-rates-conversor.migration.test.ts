@@ -185,8 +185,8 @@ describe("SDD-0569 · 0495 conversor a USD y tabla de tasas (PGlite)", () => {
     },
     {
       name: "la fuente de la tasa de la factura acepta cualquier texto",
-      from: "alter table public.invoices\n  add column fx_rate_source   text check (fx_rate_source is null or fx_rate_source in ('bcv', 'manual', 'operacion')),",
-      to: "alter table public.invoices\n  add column fx_rate_source   text,",
+      from: "alter table public.invoices\n  alter column fx_rate type numeric(20,8),\n  add column fx_rate_source   text check (fx_rate_source is null or fx_rate_source in ('bcv', 'manual', 'operacion')),",
+      to: "alter table public.invoices\n  alter column fx_rate type numeric(20,8),\n  add column fx_rate_source   text,",
       fails: "TEST 0495: la fuente de la tasa del documento es bcv, manual u operacion",
     },
     {
@@ -206,6 +206,42 @@ describe("SDD-0569 · 0495 conversor a USD y tabla de tasas (PGlite)", () => {
       from: "'valid_on', v_new->'valid_on', 'source', v_new->'source') end;",
       to: "'valid_on', v_new->'valid_on', 'source', v_new->'source', 'note', v_new->'note') end;",
       fails: "TEST 0495: la auditoría D2 de fx_rates no guarda datos personales: solo moneda, tasa, día y fuente",
+    },
+    {
+      name: "borrar una tasa sin motivo (revisión, hallazgo 1)",
+      from: "\n    when 'DELETE' then 'Tasa de cambio eliminada de la base, fuera del Studio.' end;",
+      to: " end;",
+      fails: "TEST 0495: una tasa se puede borrar",
+    },
+    {
+      name: "la RPC acepta más de 8 decimales (hallazgo 14)",
+      from: "  if p_rate <> pg_catalog.round(p_rate, 8) then",
+      to: "  if false then",
+      fails: "TEST 0495: una tasa con más de 8 decimales se rechaza",
+    },
+    {
+      name: "la tasa de la factura sigue en numeric(14,4) (hallazgo 6)",
+      from: "alter table public.invoices\n  alter column fx_rate type numeric(20,8),\n",
+      to: "alter table public.invoices\n",
+      fails: "0495: postflight — fx_rate de invoices y supplier_bills no quedó en numeric(20,8)",
+    },
+    {
+      name: "fx_rates sin RLS (hallazgo 14)",
+      from: "alter table public.fx_rates enable row level security;\n",
+      to: "",
+      fails: "0495: postflight — fx_rates sin RLS o legible por anon",
+    },
+    {
+      name: "el tope de to_usd distinto del de TS (hallazgo 12)",
+      from: "p_amount >= 1000000000000 or p_amount <= -1000000000000",
+      to: "p_amount > 1000000000000 or p_amount < -1000000000000",
+      fails: "TEST 0495: el tope es el mismo que en TS: |monto| < 1e12",
+    },
+    {
+      name: "un monto nulo vuelve nulo (hallazgo 12)",
+      from: "  if p_amount is null or p_amount",
+      to: "  if p_amount",
+      fails: "TEST 0495: un monto nulo falla cerrado, como en TS",
     },
   ];
   for (const m of MUTANTS) {

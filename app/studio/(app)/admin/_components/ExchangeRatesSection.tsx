@@ -46,6 +46,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
   const [pair, setPair] = useState<FxPair>("CNY/USD");
   const [rate, setRate] = useState("");
   const [validOn, setValidOn] = useState(hoyEnCaracas);
+  const [note, setNote] = useState("");
 
   const handled = useRef<ExchangeRateActionState | null>(null);
   useEffect(() => {
@@ -130,6 +131,20 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
                 style={{ marginTop: 6 }}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="studio-label" htmlFor="fx-note">Nota (opcional)</label>
+            <input
+              id="fx-note"
+              name="note"
+              value={note}
+              maxLength={500}
+              onChange={(e) => setNote(e.target.value)}
+              className="studio-input"
+              placeholder="Ej.: BCV del día, o la cotización del banco"
+              style={{ marginTop: 6 }}
+            />
           </div>
 
           {outOfRange && (

@@ -6,8 +6,9 @@
 --    supabase/migrations-baseline.json › pendingBelowCutoff. Aplicar exige OK
 --    de Sam NOMBRANDO este archivo (docs/runbooks/aplicar-migraciones-prod.md);
 --    la aplica el Director con infra/ops/migraciones/. ORDEN: MIGRATE-FIRST. Se
---    aplica ANTES de fusionar la PR de SDD-0569. Es aditiva: la app desplegada
---    no la nota (no lee fx_rates ni las columnas nuevas).
+--    aplica ANTES de fusionar la PR de SDD-0569. La app desplegada no la nota
+--    (no lee fx_rates ni las columnas nuevas, y ampliar fx_rate no cambia ningún
+--    valor). La ventana entre aplicar y fusionar son segundos.
 --
 -- Decisión 1 de Sam (2026-10-19): el mayor va en USD, con USDT = USD 1:1; los
 -- bolívares solo en reportes; sin impuestos. El Director (2026-10-20): VES y
@@ -39,7 +40,11 @@
 -- ─────────────────────────────────────────────────────────────
 
 -- Locks: tabla y funciones nuevas; dos columnas nullable sin default en
--- invoices y en supplier_bills (sin reescritura, ACCESS EXCLUSIVE breve).
+-- invoices y en supplier_bills, y su fx_rate de numeric(14,4) a numeric(20,8):
+-- cambiar la escala REESCRIBE las dos tablas con ACCESS EXCLUSIVE hasta el
+-- COMMIT (medido en el contrato). Son chicas: en producción, 6 facturas de
+-- prueba (el Director, 2026-10-20). No se pierde nada: los enteros pasan de 10
+-- a 12 dígitos y los decimales de 4 a 8, así que cada valor cabe igual.
 set lock_timeout = '5s';
 set statement_timeout = '30s';
 
@@ -72,6 +77,20 @@ begin
   end if;
   if not exists (select 1 from public.audit_entity_types where entity_type = 'exchange_rate') then
     raise exception '0495 requiere el tipo de entidad exchange_rate (0293)';
+  end if;
+  -- La ampliación de fx_rate parte de numeric(14,4) (0077, 0088) y ninguna
+  -- vista ni regla depende de esa columna (ALTER TYPE fallaría a mitad).
+  if (select pg_catalog.format_type(a.atttypid, a.atttypmod) from pg_catalog.pg_attribute a
+      where a.attrelid = 'public.invoices'::regclass and a.attname = 'fx_rate' and not a.attisdropped) is distinct from 'numeric(14,4)'
+     or (select pg_catalog.format_type(a.atttypid, a.atttypmod) from pg_catalog.pg_attribute a
+      where a.attrelid = 'public.supplier_bills'::regclass and a.attname = 'fx_rate' and not a.attisdropped) is distinct from 'numeric(14,4)' then
+    raise exception '0495 requiere invoices.fx_rate y supplier_bills.fx_rate en numeric(14,4)';
+  end if;
+  if exists (select 1 from pg_catalog.pg_depend d
+      join pg_catalog.pg_attribute a on a.attrelid = d.refobjid and a.attnum = d.refobjsubid
+      where d.classid = 'pg_catalog.pg_rewrite'::regclass and a.attname = 'fx_rate'
+        and d.refobjid in ('public.invoices'::regclass, 'public.supplier_bills'::regclass)) then
+    raise exception '0495 abortado: una vista depende de fx_rate de invoices o supplier_bills';
   end if;
 end;
 $preflight$;
@@ -139,10 +158,9 @@ as $function$
 declare
   v_moneda text := public.fx_normalizar_moneda(p_currency);
 begin
-  if p_amount is null then
-    return null;
-  end if;
-  if p_amount > 1000000000000 or p_amount < -1000000000000 then
+  -- Los mismos bordes que toUsd (lib/shared/fx.ts): sin monto o con |monto| >= 1e12
+  -- (NaN incluido, que Postgres ordena por encima de todo número), falla cerrado.
+  if p_amount is null or p_amount >= 1000000000000 or p_amount <= -1000000000000 then
     raise exception 'FX_AMOUNT_INVALID' using errcode = '22023', hint = 'dtd-fx';
   end if;
   if v_moneda in ('USD', 'USDT') then
@@ -222,6 +240,10 @@ begin
   if p_rate is null or p_rate <= 0 or p_rate >= 1000000000000 then
     raise exception 'La tasa tiene que ser un número mayor que 0.' using errcode = '22023', hint = 'dtd-fx';
   end if;
+  -- fx_rates.rate es numeric(20,8): más decimales se redondearían en silencio.
+  if p_rate <> pg_catalog.round(p_rate, 8) then
+    raise exception 'La tasa admite hasta 8 decimales.' using errcode = '22023', hint = 'dtd-fx';
+  end if;
   if p_valid_on is null or p_valid_on > v_hoy then
     raise exception 'La fecha de la tasa no puede ser posterior a hoy.' using errcode = '22023', hint = 'dtd-fx';
   end if;
@@ -274,7 +296,9 @@ begin
   end if;
   v_event_type := case tg_op when 'INSERT' then 'exchange_rate_recorded'
     when 'UPDATE' then 'exchange_rate_corrected' else 'exchange_rate_deleted' end;
-  v_reason := case tg_op when 'UPDATE' then 'Tasa del mismo día y fuente reemplazada.' end;
+  -- append_audit_event exige motivo para los _deleted (0267), como en la 0491.
+  v_reason := case tg_op when 'UPDATE' then 'Tasa del mismo día y fuente reemplazada.'
+    when 'DELETE' then 'Tasa de cambio eliminada de la base, fuera del Studio.' end;
 
   perform public.append_audit_event(
     (v_row->>'tenant_id')::uuid, 'exchange_rate', (v_row->>'id')::uuid,
@@ -304,10 +328,14 @@ create trigger audit_fx_rates
 -- la tasa que usó (fx_rate, ya existía), su fuente y su fecha de valor. Una
 -- corrección posterior de fx_rates no lo cambia. Null en USD y USDT, y en los
 -- documentos anteriores a la 0495.
+-- fx_rate pasa a numeric(20,8), los mismos decimales que fx_rates.rate: el
+-- documento congela la tasa sin redondearla, y el asiento usa la guardada.
 alter table public.invoices
+  alter column fx_rate type numeric(20,8),
   add column fx_rate_source   text check (fx_rate_source is null or fx_rate_source in ('bcv', 'manual', 'operacion')),
   add column fx_rate_valid_on date;
 alter table public.supplier_bills
+  alter column fx_rate type numeric(20,8),
   add column fx_rate_source   text check (fx_rate_source is null or fx_rate_source in ('bcv', 'manual', 'operacion')),
   add column fx_rate_valid_on date;
 
@@ -347,6 +375,15 @@ begin
   if not exists (select 1 from pg_catalog.pg_trigger
       where tgrelid = 'public.fx_rates'::regclass and tgname = 'audit_fx_rates' and not tgisinternal and tgenabled = 'O') then
     raise exception '0495: postflight — falta el disparador audit_fx_rates';
+  end if;
+  if not (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = 'public.fx_rates'::regclass)
+     or pg_catalog.has_table_privilege('anon', 'public.fx_rates', 'SELECT') then
+    raise exception '0495: postflight — fx_rates sin RLS o legible por anon';
+  end if;
+  if (select pg_catalog.count(*) from pg_catalog.pg_attribute a
+      where a.attrelid in ('public.invoices'::regclass, 'public.supplier_bills'::regclass) and a.attname = 'fx_rate'
+        and pg_catalog.format_type(a.atttypid, a.atttypmod) = 'numeric(20,8)') <> 2 then
+    raise exception '0495: postflight — fx_rate de invoices y supplier_bills no quedó en numeric(20,8)';
   end if;
 end;
 $postflight$;

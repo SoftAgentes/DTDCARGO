@@ -6,13 +6,25 @@
  * El doble corta en el INSERT (devuelve error) para afirmar lo que se manda sin
  * correr el asiento de causación.
  */
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createBillFor } from "../treasury-actions";
+
+const asientos: { fxRate: unknown }[] = [];
+vi.mock("@/lib/studio/accounting/bill-posting", () => ({
+  postBillJournalEntry: vi.fn(async (input: { fxRate: unknown }) => {
+    asientos.push(input);
+    return { ok: true, entryId: "je-1" };
+  }),
+  voidBillJournalEntry: vi.fn(),
+}));
+
+const { createBillFor } = await import("../treasury-actions");
 
 let rpcs: { rpc: string; args: Record<string, unknown> }[] = [];
 let inserts: Record<string, unknown>[] = [];
 let vigente: { data: unknown; error: unknown } = { data: null, error: null };
+// Lo que devuelve el INSERT: null corta la prueba ahí (sin asiento).
+let guardada: { id: string; fx_rate: unknown } | null = null;
 
 function makeClient(): SupabaseClient {
   const client = {
@@ -34,7 +46,9 @@ function makeClient(): SupabaseClient {
           if (table === "suppliers") return { data: { id: "s1", name: "Proveedor de prueba" }, error: null };
           throw new Error(`lectura inesperada en ${table}`);
         },
-        single: async () => ({ data: null, error: { message: "corte de la prueba" } }),
+        update: () => chain,
+        then: (resolve: (v: { error: null }) => void) => resolve({ error: null }),
+        single: async () => (guardada ? { data: guardada, error: null } : { data: null, error: { message: "corte de la prueba" } }),
       };
       return chain;
     },
@@ -58,6 +72,8 @@ beforeEach(() => {
   rpcs = [];
   inserts = [];
   vigente = { data: null, error: null };
+  guardada = null;
+  asientos.length = 0;
 });
 
 describe("createBillFor · la tasa congelada", () => {
@@ -87,6 +103,17 @@ describe("createBillFor · la tasa congelada", () => {
     });
     expect(inserts).toHaveLength(0);
     expect(rpcs.map((r) => r.rpc)).toEqual(["fx_rate_on"]);
+  });
+
+  it("el asiento usa la tasa que quedó guardada, no la escrita (revisión, hallazgo 6)", async () => {
+    // La base redondea a 8 decimales (numeric(20,8)); el asiento tiene que usar esa.
+    guardada = { id: "b1", fx_rate: "7.12345679" };
+    expect(await createBillFor(makeClient(), { ...cxp, currency: "CNY", fxRate: 7.123456789 })).toEqual({
+      ok: true,
+      billCode: "CXP-2026-0001",
+    });
+    expect(asientos).toHaveLength(1);
+    expect(asientos[0].fxRate).toBe(7.12345679);
   });
 
   it("en USDT no hay tasa ni se nombran las columnas de la 0495", async () => {

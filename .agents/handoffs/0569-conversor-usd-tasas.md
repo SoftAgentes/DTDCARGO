@@ -5,7 +5,7 @@
 | Fecha | 2026-10-20 |
 | Task ID / owner | `contabilidad-2026-10-18` / sesión Worker «Contabilidad» |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\sdd-0569-conversor-usd-tasas` |
-| Rama | `codex/sdd-0569-conversor-usd-tasas`, desde `origin/main` `88b36c7a` |
+| Rama | `codex/sdd-0569-conversor-usd-tasas`, desde `origin/main` `88b36c7a`, con main mezclado después (`d50aa3e7`, la #298) |
 | SDD | [0569](../../docs/specs/0569-conversor-usd-tasas/spec.md), `in-progress`. La reserva (`d5e11670`, rama `codex/sdd-reserve-0569`) entró por cherry-pick. El Director asignó la migración 0495 |
 | Estado | lista para revisión: PR en borrador, `pnpm verify` 16/17 sin fallos sobre `2938439c`. La 0495 se aplica antes de fusionar (MIGRATE-FIRST), con la previa del Director y el OK nominal de Sam |
 | Permisos | El Director la asignó como la primera parte de la 2.1 del plan y aprobó el diseño (`88150bc9`) el 2026-10-20. Eso cubre commits selectivos, push de la rama propia y PR en borrador. **No incluye aplicar la 0495 ni leer producción:** eso es del Director, con el OK nominal de Sam |
@@ -24,6 +24,20 @@ La 2.1 del plan contable, primera parte: la tabla `fx_rates` (fuente, fecha de v
 - **El gobierno:** la espera de la 0495, los 7 símbolos declarados con sus 6 evidencias y el índice.
 
 ## VALIDACIÓN
+
+**Después de la revisión de seguridad** (turno de máquina del Director):
+
+| Comprobación | Resultado |
+|---|---|
+| Contrato 0495 en PostgreSQL 17 | «TEST 0495 GREEN: 45 aserciones» |
+| `fx-rates-conversor.migration.test.ts` (PGlite) | `Tests  27 passed (27)`, con 22 mutantes («mutantes: 22 · con from no único: 0») |
+| Mutantes de la app (`mutantes-0569-app.cjs`, restaurados por copia con la huella sha256) | `MUERTOS 19/19 · restaurados 19/19` |
+| Pruebas de las áreas tocadas (facturación, admin, contabilidad, gastos, tesorería, móvil, `lib/shared`, `fx-rates`, `invoice-types`, `NumericInput`, RBAC) | `Test Files  63 passed (63)`, `Tests  1319 passed (1319)` |
+| `typecheck` y eslint `--max-warnings=0` | `tsc=0`, `eslint=0` |
+| pending-migration-symbols | «0 ROJO · 2 AMARILLO declarado(s)» (0494 y 0495) |
+| migrations-lock, docs:check | 4 esperas, «0 nueva(s) sin sellar»; índice con 555 specs |
+
+**Antes de la revisión:**
 
 | Comprobación | Alcance | Resultado |
 |---|---|---|
@@ -44,6 +58,34 @@ Detalle del `verify` sobre `2938439c`, copiado de su salida:
 - **e2e, al reintento:** la primera corrida dio 2 rojos y 6 flaky en `company-photo-carousel.spec.ts`, `calculadora-semantic-colors.spec.ts` y `auth.spec.ts:81`, que no tocan nada de esta SDD; el reintento dio `175 passed`, `3 flaky` (calculadora y carrusel en mobile-chrome) y `20 skipped`.
 - **NO DISPONIBLE:** migrations-applied (el worktree no tiene `.env.local`). La 0495 es MIGRATE-FIRST y la aplica el Director.
 - **Lectura de catálogo del Director (producción, 2026-10-20, sin filas de negocio):** `exchange_rate` activo en `audit_entity_types` y ningún CHECK sobre `entity_type` en `entity_audit_log`. El preflight pasa y el ajuste del fixture refleja producción.
+
+## REVISIÓN DE SEGURIDAD DEL DIRECTOR (2026-10-20, sobre `cc6e7333`)
+
+El Director mandó 2 bloqueantes, 5 importantes, 7 menores y un NO VERIFICADO. **Cada escenario se confirmó con una prueba en rojo antes de corregirlo**, y cada corrección tiene su mutante. El detalle, hallazgo por hallazgo, está en la spec (*Revisión de seguridad del Director*).
+
+Rojos confirmados antes de corregir:
+- **Contrato en Docker**, uno por vuelta, en este orden:
+  - «el tope es el mismo que en TS: |monto| < 1e12» (12);
+  - «una tasa con más de 8 decimales se rechaza» (14);
+  - «una tasa se puede borrar» (B1: ningún DELETE funcionaba);
+  - «la tasa de facturas y CxP es numeric(20,8), como fx_rates» (6).
+  - Los casos espejo de medio centavo ya daban bien en SQL.
+- **`fx.test.ts`:**
+  - `expected { ok: true, usd: 2.17 } to deeply equal { ok: true, usd: 2.18 }` (5);
+  - un monto vacío daba `{ ok: true, usd: +0 }` (12).
+- **`fx-rates.test.ts`:** 3 rojos, la procedencia (3) y `ultimaTasa` (10). Después, otro por los 8 decimales (14).
+- **`factura-congela-la-tasa.test.ts`:** 6 rojos.
+  - editar: la procedencia y el paso a USD (3);
+  - emitir: re-resolver la tasa y no emitir sin ella (4);
+  - duplicar: la tasa propia y no consumir correlativo (4).
+- **`cxp-congela-la-tasa.test.ts`:** `expected 7.123456789 to be 7.12345679` (6).
+- **`InvoiceDrawer.tasa.test.tsx`:** 3 rojos (B2).
+- **Admin › Tasas:** 3 rojos, el módulo pedido (NO VERIFICADO), los 8 decimales (14) y la nota (11).
+- **`ExpenseDrawer.fecha-tasa.test.ts`:** 1 rojo (8).
+
+**La decisión sobre el NO VERIFICADO:** la acción pide el módulo de Contabilidad (admin y accounting), igual que la RPC, y la misma sección está también en Contabilidad › Tasas de cambio. La contadora no entra a Admin.
+
+**Lo que no lleva prueba propia:** `step="any"` del móvil (9) es un atributo; no hay prueba de render del gasto móvil.
 
 ## Impacto documental y conocimiento
 

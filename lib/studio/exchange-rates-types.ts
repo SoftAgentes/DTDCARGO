@@ -66,6 +66,10 @@ export function validateExchangeRateInput(fd: FormData): {
   if (!Number.isFinite(rate) || rate <= 0) {
     return { error: "La tasa debe ser un número mayor a 0." };
   }
+  // fx_rates.rate es numeric(20,8): la RPC rechaza más decimales (0495).
+  if (/[.,]\d{9,}$/.test(rateRaw)) {
+    return { error: "La tasa admite hasta 8 decimales." };
+  }
   const validOn = typeof fd.get("valid_on") === "string" ? (fd.get("valid_on") as string).trim() : "";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(validOn)) {
     return { error: "Indica la fecha de la tasa." };

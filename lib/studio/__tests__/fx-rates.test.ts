@@ -37,6 +37,7 @@ function doble(respuesta: { data: unknown; error: unknown }) {
         order: () => chain,
         limit: () => chain,
         maybeSingle: async () => respuesta,
+        then: (resolve: (v: unknown) => void) => resolve(respuesta),
       };
       return chain;
     },
@@ -72,6 +73,18 @@ describe("tasaDelDocumento · la tasa que congela una factura o una CxP", () => 
     expect(llamadas).toEqual([
       { rpc: "fx_rate_on", args: { p_tenant_id: "t1", p_currency: "CNY", p_on: "2026-10-20" } },
     ]);
+  });
+
+  it("al editar, la tasa igual a la guardada conserva su fuente y su fecha (revisión, hallazgo 3)", async () => {
+    const { client, llamadas } = doble({ data: null, error: null });
+    const guardada = { fxRate: 7.18, fxRateSource: "bcv" as const, fxRateValidOn: "2026-10-18" };
+    expect(await tasaDelDocumento(client, "t1", "CNY", 7.18, "2026-10-20", guardada)).toEqual({ ok: true, tasa: guardada });
+    expect(llamadas).toHaveLength(0);
+    // Otra tasa escrita sí es manual del día.
+    expect(await tasaDelDocumento(client, "t1", "CNY", 7.2, "2026-10-20", guardada)).toEqual({
+      ok: true,
+      tasa: { fxRate: 7.2, fxRateSource: "manual", fxRateValidOn: "2026-10-20" },
+    });
   });
 
   it("una tasa escrita en 0 o vacía no cuenta: se busca la vigente", async () => {
@@ -117,9 +130,30 @@ describe("tasaVigente · lo que devuelve la base", () => {
 
 describe("ultimaTasa · la precarga de gastos, Admin y el móvil", () => {
   it("lee fx_rates por moneda, con su fecha de valor y su fuente", async () => {
-    const { client, llamadas } = doble({ data: { rate: "36.50000000", valid_on: "2026-10-20", source: "manual" }, error: null });
+    const { client, llamadas } = doble({ data: [{ rate: "36.50000000", valid_on: "2026-10-20", source: "manual" }], error: null });
     expect(await ultimaTasa(client, "VES")).toEqual({ rate: 36.5, validOn: "2026-10-20", source: "manual" });
     expect(llamadas).toEqual([{ from: "fx_rates", eq: [["currency", "VES"]] }]);
+  });
+
+  it("el último día, con la misma preferencia que fx_rate_on: bcv > manual > operacion (revisión, hallazgo 10)", async () => {
+    const mismoDia = doble({
+      data: [
+        { rate: 37, valid_on: "2026-10-20", source: "operacion" },
+        { rate: 36.9, valid_on: "2026-10-20", source: "manual" },
+        { rate: 36.8, valid_on: "2026-10-20", source: "bcv" },
+      ],
+      error: null,
+    });
+    expect(await ultimaTasa(mismoDia.client, "VES")).toEqual({ rate: 36.8, validOn: "2026-10-20", source: "bcv" });
+    // Una del BCV de un día anterior no le gana a la manual del último día.
+    const diaAnterior = doble({
+      data: [
+        { rate: 36.9, valid_on: "2026-10-20", source: "manual" },
+        { rate: 36.1, valid_on: "2026-10-19", source: "bcv" },
+      ],
+      error: null,
+    });
+    expect(await ultimaTasa(diaAnterior.client, "VES")).toEqual({ rate: 36.9, validOn: "2026-10-20", source: "manual" });
   });
 
   it("sin la 0495 o sin tasas, null", async () => {
@@ -187,6 +221,15 @@ describe("Admin › Tasas · validación", () => {
       validateExchangeRateInput(fd({ pair: "VES/USD", rate: "36.5", valid_on: "2026-10-20", note: "  BCV del día " })),
     ).toEqual({ input: { pair: "VES/USD", rate: 36.5, validOn: "2026-10-20", note: "BCV del día" } });
     expect(validateExchangeRateInput(fd({ pair: "CNY/USD", rate: "7.18", valid_on: "2026-10-20" })).input?.note).toBeNull();
+  });
+
+  it("rechaza una tasa con más de 8 decimales, como la RPC (revisión, hallazgo 14)", () => {
+    expect(validateExchangeRateInput(fd({ pair: "VES/USD", rate: "36.123456789", valid_on: "2026-10-20" })).error).toBe(
+      "La tasa admite hasta 8 decimales.",
+    );
+    expect(validateExchangeRateInput(fd({ pair: "VES/USD", rate: "36.12345678", valid_on: "2026-10-20" })).input?.rate).toBe(
+      36.12345678,
+    );
   });
 
   it("rechaza una nota de más de 500 caracteres", () => {

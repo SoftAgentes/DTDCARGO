@@ -7,9 +7,13 @@
  *    tiene que estar en USDT»);
  *  - VES y CNY se dividen por la tasa (unidades de esa moneda por 1 USD). RMB es
  *    el nombre de Financiero China para CNY;
- *  - sin una tasa finita y mayor que 0, o con una moneda desconocida, FALLA
- *    CERRADO: nunca devuelve 0 ni el monto tal cual. Quien llama decide qué
- *    hacer (no asentar, mostrar «sin convertir», pedir la tasa).
+ *  - sin una tasa finita y mayor que 0, sin monto, con |monto| >= 1e12 o con una
+ *    moneda desconocida, FALLA CERRADO: nunca devuelve 0 ni el monto tal cual.
+ *    Quien llama decide qué hacer (no asentar, mostrar «sin convertir», pedir la
+ *    tasa);
+ *  - la cuenta es DECIMAL EXACTA (enteros escalados, BigInt), con el redondeo a 2
+ *    decimales al final y la mitad lejos de cero, como `round(numeric, 2)` de
+ *    Postgres. Con coma flotante, 15,66 CNY a 7,2 daba 2,17 y `to_usd` 2,18.
  *
  * Es puro y sin dependencias: lo pueden usar el Studio, el portal y el móvil.
  * Los 13 conversores de hoy se reemplazan por este en la SDD siguiente.
@@ -45,20 +49,60 @@ export function tasaValida(rate: number | string | null | undefined): number | n
   return Number.isFinite(r) && r > 0 && r < TOPE ? r : null;
 }
 
-const redondear2 = (n: number): number => Math.round((n + Number.EPSILON) * 100) / 100;
+/** Un decimal exacto: valor = entero / 10^escala. */
+type Decimal = { entero: bigint; escala: number };
+
+/**
+ * El número tal como se escribe (`String(15.66)` es «15.66», el decimal más
+ * corto que da ese double), sin pasar por la aritmética de coma flotante.
+ */
+function aDecimal(valor: number | string): Decimal | null {
+  const s = (typeof valor === "number" ? String(valor) : valor).trim();
+  const m = /^([+-]?)(\d*)(?:\.(\d*))?(?:e([+-]?\d+))?$/i.exec(s);
+  if (!m || (m[2] === "" && (m[3] ?? "") === "")) return null;
+  const decimales = m[3] ?? "";
+  let escala = decimales.length - Number(m[4] ?? 0);
+  let entero = BigInt((m[2] || "0") + decimales);
+  if (escala < 0) {
+    entero *= BigInt(10) ** BigInt(-escala);
+    escala = 0;
+  }
+  return { entero: m[1] === "-" ? -entero : entero, escala };
+}
+
+/** numerador / denominador en centavos, con la mitad lejos de cero (denominador > 0). */
+function centavos(numerador: bigint, denominador: bigint): number {
+  const negativo = numerador < BigInt(0);
+  const n = negativo ? -numerador : numerador;
+  let q = n / denominador;
+  if ((n % denominador) * BigInt(2) >= denominador) q += BigInt(1);
+  return (negativo ? -Number(q) : Number(q)) / 100;
+}
 
 /** El monto en USD, o por qué no se puede convertir. Redondea a 2 decimales al final. */
 export function toUsd(
-  amount: number | string,
+  amount: number | string | null | undefined,
   currency: string | null | undefined,
   rate?: number | string | null,
 ): ResultadoUsd {
-  const a = Number(amount);
-  if (!Number.isFinite(a) || Math.abs(a) >= TOPE) return { ok: false, reason: "invalid-amount" };
+  const a = amount == null ? null : Number(amount);
+  const monto = amount == null || a === null || !Number.isFinite(a) || Math.abs(a) >= TOPE ? null : aDecimal(amount);
+  if (monto === null) return { ok: false, reason: "invalid-amount" };
   const m = normalizarMoneda(currency);
   if (m === null) return { ok: false, reason: "unknown-currency" };
-  if (m === "USD" || m === "USDT") return { ok: true, usd: redondear2(a) };
+  const diez = BigInt(10);
+  if (m === "USD" || m === "USDT") {
+    return { ok: true, usd: centavos(monto.entero * BigInt(100), diez ** BigInt(monto.escala)) };
+  }
   const r = tasaValida(rate);
-  if (r === null) return { ok: false, reason: "missing-fx-rate" };
-  return { ok: true, usd: redondear2(a / r) };
+  const tasa = r === null ? null : aDecimal(rate as number | string);
+  if (tasa === null || tasa.entero <= BigInt(0)) return { ok: false, reason: "missing-fx-rate" };
+  // (monto / 10^ea) / (tasa / 10^et) en centavos = monto·10^et·100 / (tasa·10^ea).
+  return {
+    ok: true,
+    usd: centavos(
+      monto.entero * diez ** BigInt(tasa.escala) * BigInt(100),
+      tasa.entero * diez ** BigInt(monto.escala),
+    ),
+  };
 }

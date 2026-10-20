@@ -173,7 +173,17 @@ select pg_temp.assert_true(pg_temp.usd(36500, 'VES', 36.5) = 1000, 'VES se divid
 select pg_temp.assert_true(pg_temp.usd(718, 'CNY', 7.18) = 100 and pg_temp.usd(718, 'RMB', 7.18) = 100,
   'CNY se divide por la tasa, y RMB es CNY');
 select pg_temp.assert_true(pg_temp.usd(10, 'VES', 3) = 3.33, 'redondea a 2 decimales al final');
-select pg_temp.assert_true(pg_temp.usd(null, 'VES', 36) is null, 'un monto nulo sigue nulo');
+-- Revisión de seguridad (2026-10-20), hallazgos 5 y 12: los mismos casos que
+-- lib/shared/__tests__/fx.test.ts. Medio centavo lejos de cero, como round(numeric).
+select pg_temp.assert_true(pg_temp.usd(15.66, 'CNY', 7.2) = 2.18 and pg_temp.usd(-15.66, 'CNY', 7.2) = -2.18,
+  'el medio centavo se redondea lejos de cero (CNY)');
+select pg_temp.assert_true(pg_temp.usd(10.075, 'USD', null) = 10.08 and pg_temp.usd(-10.075, 'USDT', null) = -10.08
+  and pg_temp.usd(0.005, 'USD', null) = 0.01, 'el medio centavo se redondea lejos de cero (USD)');
+select pg_temp.assert_true(pg_temp.usd(999999999999.99, 'USD', null) = 999999999999.99
+  and pg_temp.usd(1000000000000, 'USD', null) = -999999 and pg_temp.usd(-1000000000000, 'USD', null) = -999999,
+  'el tope es el mismo que en TS: |monto| < 1e12');
+select pg_temp.assert_true(pg_temp.err('select public.to_usd(null, ''VES'', 36)') = '22023|FX_AMOUNT_INVALID|dtd-fx',
+  'un monto nulo falla cerrado, como en TS');
 
 -- ── 2. Falla cerrado: nunca 0 ni el monto tal cual ──
 select pg_temp.assert_true(pg_temp.err('select public.to_usd(500, ''VES'', null)') = '22023|FX_RATE_MISSING|dtd-fx',
@@ -221,6 +231,9 @@ select pg_temp.assert_true(pg_temp.error_of('admin-A',
 select pg_temp.assert_true(pg_temp.error_of('admin-A', format(
   'select public.registrar_tasa_de_cambio(''VES'', 36, %L::date, null)', (now() at time zone 'America/Caracas')::date + 1))
   = '22023|La fecha de la tasa no puede ser posterior a hoy.|dtd-fx', 'una tasa no se registra con fecha futura');
+select pg_temp.assert_true(pg_temp.error_of('admin-A',
+  'select public.registrar_tasa_de_cambio(''VES'', 36.123456789, ''2026-10-01'', null)')
+  = '22023|La tasa admite hasta 8 decimales.|dtd-fx', 'una tasa con más de 8 decimales se rechaza');
 select pg_temp.assert_true((pg_temp.as_actor('admin-A',
   'select public.registrar_tasa_de_cambio(''VES'', 36.5, ''2026-10-01'', ''BCV del día'')') ->> 'ok')::boolean
   and (pg_temp.as_actor('accounting-A',
@@ -288,6 +301,15 @@ select pg_temp.assert_true((pg_temp.as_actor(null, format(
 select pg_temp.assert_true(pg_temp.error_of('admin-B', format(
   'select to_jsonb(r) from public.fx_rate_on(%L::uuid, ''VES'', ''2026-10-05'') r', pg_temp.fixture_id('tenant-A')))
   = '22023|FX_RATE_MISSING|dtd-fx', 'otro tenant no ve las tasas del tenant A');
+-- Revisión, hallazgo 1: borrar una tasa (service_role, la futura carga o una
+-- limpieza) deja exchange_rate_deleted con su motivo y la tasa anterior.
+select pg_temp.assert_true(pg_temp.error_of(null, format(
+  'delete from public.fx_rates where tenant_id = %L::uuid and valid_on = ''2026-10-05'' and source = ''operacion'' returning to_jsonb(id)',
+  pg_temp.fixture_id('tenant-A')), 'service_role') = 'ok', 'una tasa se puede borrar');
+select pg_temp.assert_true(exists (select 1 from public.entity_audit_log
+  where entity_type = 'exchange_rate' and event_type = 'exchange_rate_deleted'
+    and (before_data ->> 'rate')::numeric = 37.0 and after_data is null and reason is not null),
+  'borrar una tasa queda en la auditoría con su motivo y la tasa anterior');
 
 -- ── 7. El documento guarda la fuente y la fecha de su tasa ──
 select pg_temp.assert_true(
@@ -298,6 +320,29 @@ select pg_temp.assert_true(pg_temp.err(format(
   'insert into public.invoices (tenant_id, invoice_code, client_markbox, client_name, currency, fx_rate, fx_rate_source, base_amount, total_amount, paid_amount, status) '
   || 'values (%L::uuid, ''F-1'', ''DTD-1'', ''C'', ''VES'', 36, ''paralela'', 100, 100, 0, ''borrador'')', pg_temp.fixture_id('tenant-A'))) like '23514|%',
   'la fuente de la tasa del documento es bcv, manual u operacion');
+
+-- Revisión, hallazgo 6: la tasa del documento tiene los mismos 8 decimales que
+-- fx_rates. Ampliar numeric(14,4) a numeric(20,8) no pierde nada: los enteros
+-- pasan de 10 a 12 dígitos y los decimales de 4 a 8, así que cada valor cabe igual.
+select pg_temp.assert_true((select count(*) from information_schema.columns
+  where table_schema = 'public' and table_name in ('invoices', 'supplier_bills') and column_name = 'fx_rate'
+    and numeric_precision = 20 and numeric_scale = 8) = 2,
+  'la tasa de facturas y CxP es numeric(20,8), como fx_rates');
+select pg_temp.assert_true(pg_temp.err(format(
+  'insert into public.invoices (tenant_id, invoice_code, client_markbox, client_name, currency, fx_rate, base_amount, total_amount, paid_amount, status) '
+  || 'values (%L::uuid, ''F-2'', ''DTD-1'', ''C'', ''VES'', 36.12345678, 100, 100, 0, ''borrador'')', pg_temp.fixture_id('tenant-A'))) = 'ok',
+  'una factura acepta una tasa con 8 decimales');
+-- En otra sentencia: la misma no ve lo que insertó la función.
+select pg_temp.assert_true((select fx_rate from public.invoices where invoice_code = 'F-2') = 36.12345678,
+  'la factura guarda la tasa con sus 8 decimales');
+-- El lock que toma la 0495 sobre las dos tablas (dura lo que la transacción).
+select pg_temp.assert_true((select count(*) from pg_locks l
+  where l.locktype = 'relation' and l.granted and l.mode = 'AccessExclusiveLock'
+    and l.relation in ('public.invoices'::regclass, 'public.supplier_bills'::regclass)) = 2,
+  'el lock medido: ACCESS EXCLUSIVE sobre invoices y supplier_bills');
+select pg_temp.assert_true((select c.relrowsecurity from pg_class c where c.oid = 'public.fx_rates'::regclass)
+  and not has_table_privilege('anon', 'public.fx_rates', 'SELECT'),
+  'fx_rates tiene RLS activa y anon no la lee');
 
 -- ── 8. El preflight: tenant_fx_history vacía y aplicada una sola vez ──
 select pg_temp.assert_true((select count(*) from public.tenant_fx_history) = 0, 'tenant_fx_history sigue vacía');

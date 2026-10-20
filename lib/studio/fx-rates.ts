@@ -25,6 +25,12 @@ export type TasaDelDocumento = {
 
 const NOMBRE: Record<"VES" | "CNY", string> = { VES: "bolívares", CNY: "yuanes" };
 
+/** «bolívares» o «yuanes», para los mensajes. */
+export function nombreDeLaMoneda(currency: string): string {
+  const m = normalizarMoneda(currency);
+  return m === "VES" || m === "CNY" ? NOMBRE[m] : currency;
+}
+
 /**
  * La tasa vigente al día `onDate` (AAAA-MM-DD). null si no hay ninguna (la base
  * lanza FX_RATE_MISSING) o si la base todavía no tiene la 0495 (PGRST202).
@@ -56,6 +62,10 @@ export async function tasaVigente(
  * La tasa que congela un documento en `currency`, fechado `onDate`. Con la tasa
  * escrita, `manual` y ese día. Sin ella, la vigente. Si no hay ninguna, el error
  * dice qué hacer (ERR-01).
+ *
+ * Al editar un borrador, `guardada` es la tasa que ya tiene: si la escrita es la
+ * misma, conserva su fuente y su fecha (el formulario la trae precargada, y
+ * guardar sin tocarla no la vuelve «manual de hoy»).
  */
 export async function tasaDelDocumento(
   supabase: SupabaseClient,
@@ -63,12 +73,16 @@ export async function tasaDelDocumento(
   currency: string,
   tecleada: number | null | undefined,
   onDate: string,
+  guardada: TasaDelDocumento | null = null,
 ): Promise<{ ok: true; tasa: TasaDelDocumento } | { ok: false; error: string }> {
   if (!necesitaTasa(currency)) {
     return { ok: true, tasa: { fxRate: null, fxRateSource: null, fxRateValidOn: null } };
   }
   const moneda = normalizarMoneda(currency) as Exclude<MonedaConvertible, "USD" | "USDT">;
   const escrita = tasaValida(tecleada ?? null);
+  if (escrita !== null && guardada?.fxRateSource && guardada.fxRateValidOn && tasaValida(guardada.fxRate) === escrita) {
+    return { ok: true, tasa: { fxRate: escrita, fxRateSource: guardada.fxRateSource, fxRateValidOn: guardada.fxRateValidOn } };
+  }
   if (escrita !== null) {
     return { ok: true, tasa: { fxRate: escrita, fxRateSource: "manual", fxRateValidOn: onDate } };
   }
@@ -82,9 +96,13 @@ export async function tasaDelDocumento(
   return { ok: true, tasa: { fxRate: vigente.rate, fxRateSource: vigente.source, fxRateValidOn: vigente.validOn } };
 }
 
+const PREFERENCIA: Record<FuenteTasa, number> = { bcv: 0, manual: 1, operacion: 2 };
+
 /**
  * La última tasa de un par para precargar un formulario (gastos, Admin, el
- * móvil). Lee `fx_rates`; sin la 0495, o sin tasas, devuelve null.
+ * móvil). Lee `fx_rates`; sin la 0495, o sin tasas, devuelve null. Del último
+ * día, la misma preferencia que `fx_rate_on`: bcv > manual > operacion. Hay a lo
+ * sumo una fila por fuente y día (la unicidad de la 0495), así que tres bastan.
  */
 export async function ultimaTasa(
   supabase: SupabaseClient,
@@ -95,10 +113,13 @@ export async function ultimaTasa(
     .select("rate, valid_on, source")
     .eq("currency", currency)
     .order("valid_on", { ascending: false })
-    .order("set_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<{ rate: number | string; valid_on: string; source: FuenteTasa }>();
-  if (error || !data) return null;
-  const rate = tasaValida(data.rate);
-  return rate === null ? null : { rate, validOn: data.valid_on, source: data.source };
+    .limit(3);
+  const filas = (data ?? []) as { rate: number | string; valid_on: string; source: FuenteTasa }[];
+  if (error || filas.length === 0) return null;
+  const dia = filas[0].valid_on;
+  const fila = filas
+    .filter((f) => f.valid_on === dia)
+    .sort((a, b) => (PREFERENCIA[a.source] ?? 9) - (PREFERENCIA[b.source] ?? 9))[0];
+  const rate = tasaValida(fila.rate);
+  return rate === null ? null : { rate, validOn: fila.valid_on, source: fila.source };
 }

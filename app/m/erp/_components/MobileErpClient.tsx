@@ -1703,7 +1703,7 @@ function CampoTasaGasto({
         name="fx_rate"
         type="number"
         inputMode="decimal"
-        step="0.0001"
+        step="any"
         min="0"
         required
         value={value}

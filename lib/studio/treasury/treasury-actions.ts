@@ -176,11 +176,14 @@ export async function createBillFor(
       shipment_id: input!.shipmentId,
       notes: input!.notes,
     })
-    .select("id")
-    .single();
+    // SDD-0569 (revisión, hallazgo 6): la tasa que quedó guardada (numeric(20,8)),
+    // para que el asiento y el documento usen la misma.
+    .select("id, fx_rate")
+    .single<{ id: string; fx_rate: number | string | null }>();
   if (insErr || !insertedBill) {
     return { error: `No se pudo crear la CxP: ${insErr?.message}` };
   }
+  const tasaGuardada = insertedBill.fx_rate == null ? null : Number(insertedBill.fx_rate);
 
   // Asiento de causación (best-effort) — DR gasto / CR 2.1.1.
   try {
@@ -191,7 +194,7 @@ export async function createBillFor(
       expenseAccountId: input!.expenseAccountId,
       amount: input!.totalAmount,
       currency: input!.currency,
-      fxRate: input!.fxRate,
+      fxRate: tasaGuardada,
       entryDate: input!.issueDate,
     });
     if (posting.ok && posting.entryId) {

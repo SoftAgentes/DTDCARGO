@@ -54,7 +54,14 @@ import {
   type InvoiceLine,
 } from "@/lib/studio/invoice-types";
 import { createAdminClient } from "@/lib/db/admin";
-import { tasaDelDocumento, type TasaDelDocumento } from "@/lib/studio/fx-rates";
+import {
+  nombreDeLaMoneda,
+  tasaDelDocumento,
+  tasaVigente,
+  type FuenteTasa,
+  type TasaDelDocumento,
+} from "@/lib/studio/fx-rates";
+import { necesitaTasa, normalizarMoneda, tasaValida } from "@/lib/shared/fx";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { varsDeFacturaEmitida } from "@/lib/studio/invoice-mail-vars";
 import { getFiscalSettingsSafe } from "@/lib/studio/fiscal/queries";
@@ -382,7 +389,8 @@ export async function createInvoice(
       shipment_id: input!.shipment_id,
       shipment_code: input!.shipment_code,
       currency: input!.currency,
-      fx_rate: input!.fx_rate,
+      // SDD-0569: en USD y USDT, null aunque el campo oculto traiga una vieja.
+      fx_rate: tasa.tasa.fxRate,
       ...columnasDeTasa(tasa.tasa),
       iva_rate: iva.ivaRate,
       iva_mode: iva.ivaMode,
@@ -436,18 +444,31 @@ export async function updateInvoice(
 
   const { data: current, error: readErr } = await supabase
     .from("invoices")
-    .select("status, invoice_code, tenant_id")
+    .select("status, invoice_code, tenant_id, currency, fx_rate, fx_rate_source, fx_rate_valid_on")
     .eq("id", id)
-    .maybeSingle<{ status: string; invoice_code: string; tenant_id: string }>();
+    .maybeSingle<{
+      status: string;
+      invoice_code: string;
+      tenant_id: string;
+      currency: string;
+      fx_rate: number | string | null;
+      fx_rate_source: FuenteTasa | null;
+      fx_rate_valid_on: string | null;
+    }>();
   if (readErr || !current) return { error: "Factura no encontrada." };
   if (current.status !== "borrador") {
     return { error: "Solo las facturas en borrador pueden editarse." };
   }
 
   const partial = inputFromFormData(formData);
-  // SDD-0569: en VES o CNY, la tasa escrita o la vigente de fx_rates.
+  // SDD-0569: en VES o CNY, la tasa escrita o la vigente de fx_rates. La misma
+  // tasa que ya tenía, en la misma moneda, conserva su fuente y su fecha.
+  const mismaMoneda = normalizarMoneda(current.currency) === normalizarMoneda(partial.currency ?? "USD");
   const tasa = await tasaDelDocumento(
     supabase, current.tenant_id, partial.currency ?? "USD", partial.fx_rate, new Date().toISOString().slice(0, 10),
+    mismaMoneda
+      ? { fxRate: tasaValida(current.fx_rate), fxRateSource: current.fx_rate_source, fxRateValidOn: current.fx_rate_valid_on }
+      : null,
   );
   if (!tasa.ok) return { fieldErrors: { fx_rate: tasa.error } };
   if (tasa.tasa.fxRate !== null) partial.fx_rate = tasa.tasa.fxRate;
@@ -470,8 +491,10 @@ export async function updateInvoice(
       shipment_id: input!.shipment_id,
       shipment_code: input!.shipment_code,
       currency: input!.currency,
-      fx_rate: input!.fx_rate,
-      ...columnasDeTasa(tasa.tasa),
+      // SDD-0569: las tres siempre; en USD y USDT van a null (lo promete la 0495).
+      fx_rate: tasa.tasa.fxRate,
+      fx_rate_source: tasa.tasa.fxRateSource,
+      fx_rate_valid_on: tasa.tasa.fxRateValidOn,
       iva_rate: iva.ivaRate,
       iva_mode: iva.ivaMode,
       base_amount: totals.base,
@@ -509,7 +532,7 @@ export async function emitInvoice(
   const { data: current, error: readErr } = await supabase
     .from("invoices")
     .select(
-      "id, tenant_id, status, invoice_code, client_markbox, client_name, currency, fx_rate, shipment_id, shipment_code, due_date, base_amount, iva_amount, total_amount",
+      "id, tenant_id, status, invoice_code, client_markbox, client_name, currency, fx_rate, fx_rate_source, shipment_id, shipment_code, due_date, base_amount, iva_amount, total_amount",
     )
     .eq("id", id)
     .maybeSingle<{
@@ -521,6 +544,7 @@ export async function emitInvoice(
       client_name: string;
       currency: string;
       fx_rate: number | null;
+      fx_rate_source: FuenteTasa | null;
       shipment_id: string | null;
       shipment_code: string | null;
       due_date: string | null;
@@ -567,11 +591,28 @@ export async function emitInvoice(
   }
 
   const today = new Date().toISOString().slice(0, 10);
+
+  // SDD-0569 (revisión, hallazgo 4): la decisión 1 de Sam congela «la tasa BCV
+  // del día de emisión». En VES o CNY, una tasa manual se respeta; cualquier otra
+  // (o ninguna) se vuelve a resolver al día de emisión. Sin tasa, no se emite.
+  let tasaDeEmision: Record<string, unknown> = {};
+  if (necesitaTasa(current.currency)
+      && !(current.fx_rate_source === "manual" && tasaValida(current.fx_rate) !== null)) {
+    const vigente = await tasaVigente(supabase, current.tenant_id, current.currency, today);
+    if (!vigente) {
+      return {
+        error: `No se puede emitir: falta la tasa de ${nombreDeLaMoneda(current.currency)} para el ${today}. Cárgala en Admin › Tasas o escríbela en el borrador.`,
+      };
+    }
+    tasaDeEmision = { fx_rate: vigente.rate, fx_rate_source: vigente.source, fx_rate_valid_on: vigente.validOn };
+  }
+
   const { error } = await supabase
     .from("invoices")
     .update({
       status: "emitida",
       issued_at: today,
+      ...tasaDeEmision,
       due_date: current.due_date ?? addDaysISO(today, 30),
       // SDD-0068: re-derivar la clase de fondos al emitir (el shipment pudo
       // cambiar mientras era borrador). Solo escribe la columna — el asiento
@@ -883,6 +924,12 @@ export async function duplicateInvoice(
   if (!original) return { error: "No se encontró la factura a duplicar." };
 
   const tenantId = original.tenant_id as string;
+  // SDD-0569 (revisión, hallazgo 4): la copia es un documento nuevo; resuelve su
+  // tasa hoy, antes de consumir correlativo. No hereda la del original.
+  const tasa = await tasaDelDocumento(
+    supabase, tenantId, String(original.currency ?? "USD"), null, new Date().toISOString().slice(0, 10),
+  );
+  if (!tasa.ok) return { error: tasa.error };
   const { data: codeData, error: codeErr } = await supabase.rpc(
     "next_invoice_code",
     { p_tenant_id: tenantId },
@@ -901,7 +948,8 @@ export async function duplicateInvoice(
     shipment_id: shipmentId,
     shipment_code: original.shipment_code,
     currency: original.currency,
-    fx_rate: original.fx_rate,
+    fx_rate: tasa.tasa.fxRate,
+    ...columnasDeTasa(tasa.tasa),
     iva_rate: original.iva_rate,
     iva_mode: original.iva_mode,
     base_amount: original.base_amount,

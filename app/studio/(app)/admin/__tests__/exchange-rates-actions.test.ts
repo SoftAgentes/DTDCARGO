@@ -8,7 +8,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 let denial: string | null = null;
-vi.mock("@/lib/studio/rbac-guard", () => ({ moduleEditDenial: vi.fn(async () => denial) }));
+const moduloPedido: string[] = [];
+vi.mock("@/lib/studio/rbac-guard", () => ({
+  moduleEditDenial: vi.fn(async (_s: unknown, modulo: string) => {
+    moduloPedido.push(modulo);
+    return denial;
+  }),
+}));
 
 let llamadas: { rpc: string; args: Record<string, unknown> }[] = [];
 let respuesta: { data: unknown; error: unknown } = { data: null, error: null };
@@ -38,6 +44,7 @@ beforeEach(() => {
   llamadas = [];
   respuesta = { data: null, error: null };
   denial = null;
+  moduloPedido.length = 0;
 });
 
 describe("recordExchangeRateAction", () => {
@@ -65,6 +72,11 @@ describe("recordExchangeRateAction", () => {
     expect(await recordExchangeRateAction({}, form(TASA))).toEqual({
       error: "No se pudo guardar la tasa. Intenta de nuevo.",
     });
+  });
+
+  it("la contadora puede cargar tasas: la acción pide el módulo de Contabilidad (admin y accounting), como la RPC (revisión, NO VERIFICADO)", async () => {
+    await recordExchangeRateAction({}, form(TASA));
+    expect(moduloPedido).toEqual(["accounting"]);
   });
 
   it("sin permiso de edición, ni valida ni llama a la base", async () => {

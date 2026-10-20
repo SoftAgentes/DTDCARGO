@@ -5,7 +5,7 @@
  *
  * - Cliente: MARKBOX + nombre con lookup blando (no bloquea)
  * - Embarque opcional: código → prefill de cliente desde el shipment
- * - Moneda + fx_rate (BCV requerido si VES)
+ * - Moneda + fx_rate (en VES y CNY; vacía, la acción toma la vigente — SDD-0569)
  * - Editor de líneas: descripción / cantidad / precio unitario · subtotal por línea
  * - Total card navy LIVE con desglose Base / IVA 16% / Total cuando ivaOn
  * - Vencimiento opcional · checkbox "emitir al crear"
@@ -388,26 +388,36 @@ export function InvoiceDrawer({
                 ))}
               </select>
             </div>
-            {currency === "VES" && (
+            {/* SDD-0569 (revisión, hallazgo 2): la tasa en VES y en CNY, con su
+                error. Vacía, la acción toma la vigente de fx_rates. */}
+            {(currency === "VES" || currency === "CNY") && (
               <div>
                 <label className="studio-label" htmlFor="ivd-fx">
-                  Tasa BCV <span style={{ color: "var(--wine-text)" }}>*</span>
+                  {`Tasa (1 USD = ? ${currency})`}
                 </label>
                 <NumericInput
                   id="ivd-fx"
                   name="fx_rate"
                   type="decimal"
                   min={0}
-                  placeholder="36.50"
+                  placeholder={currency === "VES" ? "36.50" : "7.20"}
                   value={fxRate === "" ? null : Number(fxRate)}
                   onChange={(v) => setFxRate(v != null ? String(v) : "")}
+                  aria-invalid={Boolean(state.fieldErrors?.fx_rate)}
+                  aria-describedby="ivd-fx-ayuda"
                 />
+                <p
+                  id="ivd-fx-ayuda"
+                  style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)", margin: "var(--s-1) 0 0" }}
+                >
+                  Si la dejas vacía, se toma la vigente de Admin › Tasas.
+                </p>
                 {state.fieldErrors?.fx_rate && (
                   <FieldError msg={state.fieldErrors.fx_rate} />
                 )}
               </div>
             )}
-            {currency !== "VES" && (
+            {currency !== "VES" && currency !== "CNY" && (
               <input type="hidden" name="fx_rate" value={fxRate} />
             )}
           </div>
@@ -708,8 +718,8 @@ export function InvoiceDrawer({
                 }}
               >
                 {currency}
-                {currency === "VES" && fxRate
-                  ? ` · BCV ${fxRate}`
+                {(currency === "VES" || currency === "CNY") && fxRate
+                  ? ` · tasa ${fxRate}`
                   : ""}
               </div>
             </div>
