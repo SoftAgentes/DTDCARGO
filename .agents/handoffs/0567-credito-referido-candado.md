@@ -54,6 +54,19 @@ Detalle del `verify` sobre `dac24360`, copiado de su salida:
 - **e2e:** `1 flaky`, `auth.spec.ts:81` (el token inválido de Acceso), el mismo de otras corridas y ajeno a Fidelización.
 - **NO DISPONIBLE:** migrations-applied (el worktree no tiene `.env.local`). La 0494 es MIGRATE-FIRST y la aplica el Director.
 
+## CIERRE DEL DIRECTOR · la 0494 aplicada y la #298 fusionada (2026-10-20)
+
+- **OK nominal de Sam**, en la sesión del Director, hacia las 11:49Z: «ok autorizo aplicar la migración 0494_credito_referido_candado en producción». Queda en `AUTORIZACION.txt` de la evidencia. Antes de eso, Sam había escrito «avanza» y «ok», que no se tomaron como OK nominal.
+- **Sin deriva aceptada.** La previa genérica reconoce el cuerpo vivo de `accredit_referral_on_first_invoice`, que difiere de la 0250 solo en los comentarios. El preflight propio acepta los dos cuerpos y los dos `qual` de la policy de la 0098; en vivo falta `and deleted_at is null`.
+- **Previas:** PASÓ a las 10:42:09Z sobre `4d13d2b8` y a las 11:51:40Z sobre `82839142`, que es el mismo blob después de traer main con la #299.
+- **CI:** el primer intento sobre `82839142` se canceló por el tope de 45 min de `quality.yml`, en el build y sin fallos. La guarda del apply lo frenó. El segundo intento salió verde.
+- **Apply:** COMMIT a las 13:19:49Z, con la fila del ledger en la misma transacción. Evidencia: `/srv/ops/evidencias/apply-0494-dtd-cargo-20261020T131949Z`.
+  - Ledger `20261020131949`; el ledger pasó a 498 filas.
+  - md5 `f1db4e44e2b3e5407b2cc6f4b96cab64` y 49631 bytes, con cuerpos vivos iguales al archivo.
+- **Merge** de la #298 a las 13:19:53Z, 3 s después del COMMIT (merge `d50aa3e7`), con `--match-head-commit 82839142…`.
+- **Revisión de seguridad** (revisor de solo lectura del Director) sobre `89202323`: dos bloqueantes, B1 (el premio en 0) y B2 (N créditos con una venta); dos importantes, I1 y I2; y ocho menores. Todos están corregidos en `dac24360`, salvo M2, que quedó documentado.
+- **Sello:** `retirar-espera.mjs 0494_credito_referido_candado --md5 f1db4e44…` la sacó de `pendingBelowCutoff`, quitó una declaración y la selló con sha256 `c7047349…` y `ledger` exacta. `migrations-lock.mjs` da 486 selladas; quedan la 0422 y la 0423. La prueba que afirmaba la espera ahora afirma lo contrario.
+
 ## Impacto documental y conocimiento
 
 La spec 0567 y el índice. **Cambia el esquema** (la 0494), así que el Director tiene que publicar Graphify y Archify después de integrarla.
@@ -62,7 +75,7 @@ La spec 0567 y el índice. **Cambia el esquema** (la 0494), así que el Director
 
 1. Con turno de máquina: el contrato en Docker, PGlite con los mutantes, la radiografía, la app y después `pnpm verify`.
 2. **Hecho:** el Director confirmó la deriva del `qual` vivo (sin `deleted_at is null`). El preflight acepta los dos y la SELECT nueva la corrige (spec).
-3. La previa de producción del Director, con las cuatro huellas y la policy, y el OK nominal de Sam NOMBRANDO `0494_credito_referido_candado`. Después, aplicar, hacer el smoke de la espera y fusionar.
+3. Hecho: la previa, el OK nominal de Sam, el apply y el merge (ver CIERRE DEL DIRECTOR). El smoke de Fidelización › Referidos lo hace el Director después de la publicación.
 
 ## FUERA DE ALCANCE DETECTADO (para el Director)
 

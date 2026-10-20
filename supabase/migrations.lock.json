@@ -3042,6 +3042,15 @@
         "fecha": "2026-10-20",
         "forma": "exacta"
       }
+    },
+    "0494_credito_referido_candado": {
+      "sha256": "c7047349a7a8df3be6008cb377979606122bc9471a33b4470e4db015494c274e",
+      "md5": "f1db4e44e2b3e5407b2cc6f4b96cab64",
+      "bytes": 49631,
+      "ledger": {
+        "fecha": "2026-10-20",
+        "forma": "exacta"
+      }
     }
   }
 }
