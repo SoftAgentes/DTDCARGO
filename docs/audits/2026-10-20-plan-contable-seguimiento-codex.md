@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 7:16 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 7:32 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -88,8 +88,9 @@ Se adelanta trabajo local, se respalda cada rama y se preparan PR en borrador du
 - [x] Aprobar tipos y revisión estática de 61 archivos, sin advertencias; comprobar 65/65 rutas permitidas y respaldar el nuevo código y sus pruebas en `3c36a7b2`.
 - [x] Corregir la disposición estrecha de Mixto, CBM y Constructor y el pie que todavía decía «CNY → 0»: `4dbdb21b` respaldada en GitHub. Última columna consultable en contenedor de 390 píxeles y sin desborde de página, con datos ficticios; 18 pruebas de los tres componentes, tipos y revisión estática aprobados. No certifica teléfono físico ni Studio autenticado.
 - [x] Completar la revisión visible y la revisión independiente de `4dbdb21b`: sin hallazgos materiales adicionales. Los seis hallazgos financieros quedaron corregidos; el delta visual conserva sus cálculos y las otras 61 rutas. Dictamen local condicionado a la prueba general pendiente.
-- [ ] Completar la validación general local y registrar sus omisiones. Iniciada a las **7:10 p. m. sobre `4dbdb21b`**, con árbol limpio; sigue en curso y no se presenta como aprobada.
-- [ ] Abrir su PR en borrador con evidencia local.
+- [x] Aprobar las pruebas generales de la aplicación sobre `4dbdb21b`: **12.378 aprobadas y una omitida**, sin reintento, en 9 min 42 s. El control auxiliar terminó dentro de su límite y sus archivos conservan los mismos bytes de la base.
+- [ ] Completar la validación general local y registrar sus omisiones. Iniciada a las **7:10 p. m. sobre `4dbdb21b`**, con árbol limpio. Navegación ejecutó sus casos y un acceso pasó al reintentar, pero la herramienta todavía no cerró ni emitió su resumen final; construcción pendiente. Historial productivo, SQL y reconstrucción se omitieron por falta de credenciales o Docker. El resultado global sigue pendiente; se conserva el límite de tiempo existente.
+- [x] Abrir la [PR #310](https://github.com/SoftAgentes/DTDCARGO/pull/310) en borrador, cabeza `4dbdb21b` y base `d410ab2e`, con evidencia local y prueba general expresamente en curso. Su creación no requiere esperar el pago; las comprobaciones remotas siguen pendientes.
 - [ ] Revalidar la base final después de las entregas anteriores, especialmente 0573, y aprobar sus comprobaciones de GitHub.
 - [ ] Integrar su PR y comprobar la publicación.
 
