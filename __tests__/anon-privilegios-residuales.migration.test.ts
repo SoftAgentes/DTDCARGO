@@ -24,6 +24,7 @@ import { dirname, posix, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -128,7 +129,7 @@ function montarSb(db: PGlite, sql: string): void {
 
 async function run(...parts: string[]): Promise<string | null> {
   // pgcrypto: el fixture de 0421 la crea en el schema extensions.
-  const db = new PGlite({ extensions: { pgcrypto } });
+  const db = await pgliteLimpio({ pgcrypto });
   try {
     await db.waitReady;
     montarSb(db, parts.join("\n"));
@@ -241,7 +242,7 @@ describe("0465 · el preflight aborta sin tocar nada", () => {
   }
 
   it("sin transacción externa, un preflight que aborta deja el residuo como estaba", async () => {
-    const db = new PGlite();
+    const db = await pgliteLimpio();
     try {
       await db.exec(FIXTURE_AUTOCOMMIT);
       const antes = (await db.query<{ rels: string }>(RESIDUO_ANON)).rows[0].rels;
@@ -267,7 +268,7 @@ describe("0465 · el postflight atrapa un revoke que se pasa o se queda corto", 
       REVOKE,
       "revoke select, maintain, references, trigger on all tables in schema public from anon, authenticated;",
     );
-    const db = new PGlite();
+    const db = await pgliteLimpio();
     try {
       await db.exec(FIXTURE_AUTOCOMMIT);
       const antes = (await db.query<{ rels: string }>(RESIDUO_ANON)).rows[0].rels;

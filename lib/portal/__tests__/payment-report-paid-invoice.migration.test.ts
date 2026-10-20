@@ -23,6 +23,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -112,7 +113,7 @@ function psql(file: string, { vars = {}, inject = {}, replace = {} }: Options = 
 const contract = (name: string) => resolve(TESTS, name + ".test.sql");
 
 async function run(sql: string): Promise<{ error: string | null; notices: string[] }> {
-  const db = new PGlite({ extensions: { pgcrypto } });
+  const db = await pgliteLimpio({ pgcrypto });
   const notices: string[] = [];
   try {
     await db.exec(sql, { onNotice: (notice) => notices.push(notice.message ?? "") });
@@ -261,7 +262,7 @@ $after_l14$;
 describe("0464 · preflight y locks sobre la fixture de 0421 (PGlite)", () => {
   /** Un caso por transacción sobre la misma fixture confirmada; siempre rollback. */
   async function withFixture(check: (attempt: (sql: string) => Promise<string | null>, db: PGlite) => Promise<void>) {
-    const db = new PGlite({ extensions: { pgcrypto } });
+    const db = await pgliteLimpio({ pgcrypto });
     try {
       await db.exec(psql(contract("0421_payment_report_commands"), { vars: { fixture_only: "true" } }));
       const attempt = async (sql: string) => {

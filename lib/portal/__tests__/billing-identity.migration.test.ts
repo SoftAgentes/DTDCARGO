@@ -17,8 +17,8 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -101,7 +101,7 @@ function psql(file: string, { vars = {}, replace = {} }: Options = {}): string {
 }
 
 async function run(sql: string): Promise<{ error: string | null; notices: string[] }> {
-  const db = new PGlite({ extensions: { pgcrypto } });
+  const db = await pgliteLimpio({ pgcrypto });
   const notices: string[] = [];
   try {
     await db.exec(sql, { onNotice: (notice) => notices.push(notice.message ?? "") });
