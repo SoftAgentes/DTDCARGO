@@ -54,6 +54,15 @@ import {
   type InvoiceLine,
 } from "@/lib/studio/invoice-types";
 import { createAdminClient } from "@/lib/db/admin";
+import {
+  nombreDeLaMoneda,
+  tasaDelDocumento,
+  tasaVigente,
+  type FuenteTasa,
+  type IntencionTasa,
+  type TasaDelDocumento,
+} from "@/lib/studio/fx-rates";
+import { necesitaTasa, normalizarMoneda, tasaPersistible } from "@/lib/shared/fx";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { varsDeFacturaEmitida } from "@/lib/studio/invoice-mail-vars";
 import { getFiscalSettingsSafe } from "@/lib/studio/fiscal/queries";
@@ -95,6 +104,32 @@ function parseLines(formData: FormData): InvoiceLine[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * SDD-0569 · Las columnas de la tasa congelada (0495). Solo en VES o CNY: en USD
+ * y USDT no hay tasa, y no se nombran las columnas nuevas.
+ */
+function columnasDeTasa(tasa: TasaDelDocumento): Record<string, unknown> {
+  return tasa.fxRateSource ? {
+    fx_rate_source: tasa.fxRateSource,
+    fx_rate_valid_on: tasa.fxRateValidOn,
+    fx_rate_is_override: tasa.fxRateIsOverride,
+  } : {};
+}
+
+function intencionDeTasa(formData: FormData): IntencionTasa {
+  const intent = formData.get("fx_rate_intent");
+  if (intent === "preserve" || intent === "manual" || intent === "catalog") return intent;
+  // Otros consumidores que envían una cifra explícita también indican intención;
+  // una entrada inválida no debe desaparecer al parsearla ni consultar catálogo.
+  return String(formData.get("fx_rate") ?? "").trim() === "" ? "catalog" : "manual";
+}
+
+const CONFLICTO_FACTURA = "La factura cambió mientras trabajabas. Recarga y revisa los datos antes de volver a intentar.";
+
+function faltaTasaDeEmision(currency: string, today: string): string {
+  return `No se puede emitir: falta la tasa de ${nombreDeLaMoneda(currency)} para el ${today}. Cárgala en Admin › Tasas o escríbela en el borrador.`;
 }
 
 function inputFromFormData(formData: FormData): Partial<InvoiceInput> {
@@ -310,12 +345,25 @@ export async function createInvoice(
   if (denial) return { error: denial };
 
   const partial = inputFromFormData(formData);
+  const { tenantId, error: tErr } = await resolveTenant(supabase);
+  if (tErr || !tenantId) return { error: tErr };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const emitNowRequested = String(formData.get("emit_on_create") ?? "") === "true";
+  // SDD-0569: en VES o CNY, la tasa escrita o la vigente de fx_rates.
+  const tasa = await tasaDelDocumento(
+    supabase, tenantId, partial.currency ?? "USD", partial.fx_rate, today, null, intencionDeTasa(formData),
+  );
+  if (!tasa.ok) return { fieldErrors: { fx_rate: tasa.error } };
+  if (emitNowRequested && partial.currency === "VES" && !tasa.tasa.fxRateIsOverride
+      && tasa.tasa.fxRateValidOn !== today) {
+    return { fieldErrors: { fx_rate: faltaTasaDeEmision("VES", today) } };
+  }
+  if (tasa.tasa.fxRate !== null) partial.fx_rate = tasa.tasa.fxRate;
+
   const { input, fieldErrors } = validateInvoiceInput(partial);
   if (fieldErrors) return { fieldErrors };
   const billTo = parseBillToKind(formData);
-
-  const { tenantId, error: tErr } = await resolveTenant(supabase);
-  if (tErr || !tenantId) return { error: tErr };
 
   const iva = await resolveIva(supabase, tenantId, input!.iva_mode);
   const totals = calcInvoiceTotals({
@@ -333,9 +381,6 @@ export async function createInvoice(
     return { error: "No se pudo generar el código de factura." };
   }
   const invoice_code = String(codeData);
-
-  const emitNowRequested = String(formData.get("emit_on_create") ?? "") === "true";
-  const today = new Date().toISOString().slice(0, 10);
 
   // Gate legal AUT-04 (SDD-0054). Se evalúa ANTES del insert para decidir si el
   // create-and-emit de un DDP puede realmente emitir.
@@ -366,7 +411,9 @@ export async function createInvoice(
       shipment_id: input!.shipment_id,
       shipment_code: input!.shipment_code,
       currency: input!.currency,
-      fx_rate: input!.fx_rate,
+      // SDD-0569: en USD y USDT, null aunque el campo oculto traiga una vieja.
+      fx_rate: tasa.tasa.fxRate,
+      ...columnasDeTasa(tasa.tasa),
       iva_rate: iva.ivaRate,
       iva_mode: iva.ivaMode,
       base_amount: totals.base,
@@ -419,15 +466,40 @@ export async function updateInvoice(
 
   const { data: current, error: readErr } = await supabase
     .from("invoices")
-    .select("status, invoice_code, tenant_id")
+    .select("status, invoice_code, tenant_id, currency, fx_rate, fx_rate_source, fx_rate_valid_on, fx_rate_is_override, write_version")
     .eq("id", id)
-    .maybeSingle<{ status: string; invoice_code: string; tenant_id: string }>();
+    .maybeSingle<{
+      status: string;
+      invoice_code: string;
+      tenant_id: string;
+      currency: string;
+      fx_rate: number | string | null;
+      fx_rate_source: FuenteTasa | null;
+      fx_rate_valid_on: string | null;
+      fx_rate_is_override: boolean;
+      write_version: number | string;
+    }>();
   if (readErr || !current) return { error: "Factura no encontrada." };
   if (current.status !== "borrador") {
     return { error: "Solo las facturas en borrador pueden editarse." };
   }
 
   const partial = inputFromFormData(formData);
+  // SDD-0569: preservar es una intención expresa del formulario precargado.
+  // Cambiar moneda invalida esa preservación, aunque el número coincida.
+  const mismaMoneda = normalizarMoneda(current.currency) === normalizarMoneda(partial.currency ?? "USD");
+  const tasa = await tasaDelDocumento(
+    supabase, current.tenant_id, partial.currency ?? "USD", partial.fx_rate, new Date().toISOString().slice(0, 10),
+    mismaMoneda
+      ? {
+          fxRate: tasaPersistible(current.fx_rate), fxRateSource: current.fx_rate_source,
+          fxRateValidOn: current.fx_rate_valid_on, fxRateIsOverride: current.fx_rate_is_override,
+        }
+      : null,
+    !mismaMoneda && intencionDeTasa(formData) === "preserve" ? "catalog" : intencionDeTasa(formData),
+  );
+  if (!tasa.ok) return { fieldErrors: { fx_rate: tasa.error } };
+  if (tasa.tasa.fxRate !== null) partial.fx_rate = tasa.tasa.fxRate;
   const { input, fieldErrors } = validateInvoiceInput(partial);
   if (fieldErrors) return { fieldErrors };
   const billTo = parseBillToKind(formData);
@@ -439,7 +511,7 @@ export async function updateInvoice(
     ivaOn: iva.ivaOn,
   });
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("invoices")
     .update({
       client_markbox: input!.client_markbox,
@@ -447,7 +519,11 @@ export async function updateInvoice(
       shipment_id: input!.shipment_id,
       shipment_code: input!.shipment_code,
       currency: input!.currency,
-      fx_rate: input!.fx_rate,
+      // SDD-0569: las tres siempre; en USD y USDT van a null (lo promete la 0495).
+      fx_rate: tasa.tasa.fxRate,
+      fx_rate_source: tasa.tasa.fxRateSource,
+      fx_rate_valid_on: tasa.tasa.fxRateValidOn,
+      fx_rate_is_override: tasa.tasa.fxRateIsOverride,
       iva_rate: iva.ivaRate,
       iva_mode: iva.ivaMode,
       base_amount: totals.base,
@@ -460,9 +536,17 @@ export async function updateInvoice(
       // del cliente). Sólo si el selector estaba en pantalla.
       ...billToUpdatePatch(billTo),
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("tenant_id", current.tenant_id)
+    .eq("write_version", current.write_version)
+    .eq("status", "borrador")
+    .eq("currency", current.currency)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle<{ id: string }>();
 
   if (error) return { error: `No se pudo guardar: ${error.message}` };
+  if (!updated) return { error: CONFLICTO_FACTURA };
 
   revalidatePath("/studio/facturacion");
   revalidatePath(`/studio/facturacion/${current.invoice_code}`);
@@ -485,7 +569,7 @@ export async function emitInvoice(
   const { data: current, error: readErr } = await supabase
     .from("invoices")
     .select(
-      "id, tenant_id, status, invoice_code, client_markbox, client_name, currency, fx_rate, shipment_id, shipment_code, due_date, base_amount, iva_amount, total_amount",
+      "id, tenant_id, status, invoice_code, client_markbox, client_name, currency, fx_rate, fx_rate_source, fx_rate_valid_on, fx_rate_is_override, write_version, shipment_id, shipment_code, due_date, base_amount, iva_amount, total_amount",
     )
     .eq("id", id)
     .maybeSingle<{
@@ -497,6 +581,10 @@ export async function emitInvoice(
       client_name: string;
       currency: string;
       fx_rate: number | null;
+      fx_rate_source: FuenteTasa | null;
+      fx_rate_valid_on: string | null;
+      fx_rate_is_override: boolean;
+      write_version: number | string;
       shipment_id: string | null;
       shipment_code: string | null;
       due_date: string | null;
@@ -543,11 +631,34 @@ export async function emitInvoice(
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const { error } = await supabase
+
+  // Solo un override documental expreso se conserva. La fuente manual del
+  // catálogo no significa override. VES automática exige fecha exacta; CNY
+  // conserva la regla histórica <= día, por decisión del Director.
+  let tasaDeEmision: Record<string, unknown> = {};
+  if (necesitaTasa(current.currency)) {
+    if (current.fx_rate_is_override) {
+      if (current.fx_rate_source !== "manual" || !current.fx_rate_valid_on || tasaPersistible(current.fx_rate) === null) {
+        return { error: "No se puede emitir: revisa la tasa manual del borrador; debe conservar un valor mayor que 0 con 8 decimales." };
+      }
+    } else {
+      const vigente = await tasaVigente(supabase, current.tenant_id, current.currency, today);
+      if (!vigente || (normalizarMoneda(current.currency) === "VES" && vigente.validOn !== today)) {
+        return { error: faltaTasaDeEmision(current.currency, today) };
+      }
+      tasaDeEmision = {
+        fx_rate: vigente.rate, fx_rate_source: vigente.source, fx_rate_valid_on: vigente.validOn,
+        fx_rate_is_override: false,
+      };
+    }
+  }
+
+  const { data: emitted, error } = await supabase
     .from("invoices")
     .update({
       status: "emitida",
       issued_at: today,
+      ...tasaDeEmision,
       due_date: current.due_date ?? addDaysISO(today, 30),
       // SDD-0068: re-derivar la clase de fondos al emitir (el shipment pudo
       // cambiar mientras era borrador). Solo escribe la columna — el asiento
@@ -556,9 +667,17 @@ export async function emitInvoice(
       // SDD-0298/0487: el titular lo sella la base en este UPDATE (trigger
       // 0466): borrador → emitida. Desde ahora el papel ya no cambia.
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("tenant_id", current.tenant_id)
+    .eq("write_version", current.write_version)
+    .eq("status", "borrador")
+    .eq("currency", current.currency)
+    .is("deleted_at", null)
+    .select("id, fx_rate")
+    .maybeSingle<{ id: string; fx_rate: number | null }>();
 
   if (error) return { error: error.message };
+  if (!emitted) return { error: CONFLICTO_FACTURA };
 
   // SDD-0040: asiento automático de venta (DR Clientes / CR Ingresos [+ IVA]).
   // Best-effort: si la contabilidad falla, la factura se emite igual.
@@ -584,7 +703,7 @@ export async function emitInvoice(
     await fireMailEvent(createAdminClient(), current.tenant_id, {
       event: "invoice_emitted",
       vars: varsDeFacturaEmitida(
-        current,
+        { ...current, fx_rate: emitted.fx_rate },
         today,
         current.due_date ?? addDaysISO(today, 30),
       ),
@@ -859,6 +978,12 @@ export async function duplicateInvoice(
   if (!original) return { error: "No se encontró la factura a duplicar." };
 
   const tenantId = original.tenant_id as string;
+  // SDD-0569 (revisión, hallazgo 4): la copia es un documento nuevo; resuelve su
+  // tasa hoy, antes de consumir correlativo. No hereda la del original.
+  const tasa = await tasaDelDocumento(
+    supabase, tenantId, String(original.currency ?? "USD"), null, new Date().toISOString().slice(0, 10),
+  );
+  if (!tasa.ok) return { error: tasa.error };
   const { data: codeData, error: codeErr } = await supabase.rpc(
     "next_invoice_code",
     { p_tenant_id: tenantId },
@@ -877,7 +1002,8 @@ export async function duplicateInvoice(
     shipment_id: shipmentId,
     shipment_code: original.shipment_code,
     currency: original.currency,
-    fx_rate: original.fx_rate,
+    fx_rate: tasa.tasa.fxRate,
+    ...columnasDeTasa(tasa.tasa),
     iva_rate: original.iva_rate,
     iva_mode: original.iva_mode,
     base_amount: original.base_amount,
