@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 6:06 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 6:36 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -17,15 +17,18 @@
 ### Trabajo durante la espera de GitHub
 
 - [x] Confirmar el motivo con Sam: tarjeta rechazada y espera de 48 horas para cambiarla por otra. No se cambió ningún pago ni límite.
+- [x] **Comprobar que el push sí funciona.** GitHub conserva las ramas de reportes `220a2c3e`, preparación del publicador `297d566a` y seguimiento `29b3dcce`, verificadas a las 6:31 p. m. El bloqueo observado afecta a Actions; el código puede seguir respaldándose y las entregas revisables pueden quedar en PR en borrador.
 - [x] Asignar la retoma local de **0572-a**: incorporar #301 y probar reportes, rankings, totales y exportaciones con facturas sin tasa. La implementación nueva y sus pruebas se marcarán por separado al comprobarse.
 - [ ] Completar y revisar esa entrega local; conservar sus comprobaciones de GitHub como pendientes mientras no arranquen.
 - [x] Revisar una alternativa de publicación: el comando manual requiere una imagen ya construida y admitida por GitHub. No se encontró una vía habilitada que sustituya esa comprobación; el prompt también condiciona publicar a recuperar GitHub. Ninguna alternativa ejecutada.
 - [x] Aclarar el cambio de GitHub: Sam cambió el nombre del perfil. GitHub confirma el mismo repositorio bajo `SoftAgentes/DTDCARGO`, en una cuenta de usuario, y los enlaces anteriores redirigen. La compatibilidad del publicador con ese nombre se está revisando por separado.
 - [x] Comprobar que el publicador instalado todavía espera el nombre anterior y asignar un ajuste aislado que reconozca el nuevo y conserve las imágenes históricas.
+- [x] Preparar 43 combinaciones de prueba del publicador y respaldarlas en su rama, `297d566a`. Su script de producción todavía no cambió en ese punto; la ejecución local tiene ahora el turno.
+- [x] Reproducir la incompatibilidad y aprobar la reparación local del publicador: primero 10 fallos de aceptación y después **190/190 controles aprobados**, sin omisiones, con datos simulados y red deshabilitada. Falta cerrar sus controles de regresión y su PR; el servidor sigue sin cambios.
 - [ ] Validar ese ajuste y dejar su PR preparada. No se modificó el publicador del servidor; la recuperación requerirá comprobarlo además del pago.
 - [ ] Recuperar la publicación normal de #301 cuando se habilite GitHub y comprobar la versión realmente servida. **La migración 0495 ya está aplicada y no se repite.**
 
-Se adelanta trabajo local durante la espera; la secuencia de integración de abajo se conserva. 0572 deberá volver a contrastarse con la base que incluya las entregas anteriores, especialmente el reverso de 0573.
+Se adelanta trabajo local, se respalda cada rama y se preparan PR en borrador durante la espera; la secuencia de integración de abajo se conserva. GitHub documenta que el uso de Actions puede quedar bloqueado al agotar la cuota sin un medio de pago válido; no se confunde ese servicio con el respaldo de código. [Documentación oficial de Actions](https://docs.github.com/en/billing/concepts/product-billing/github-actions). 0572 deberá volver a contrastarse con la base que incluya las entregas anteriores, especialmente el reverso de 0573.
 
 ## 2.1 · Conversión a dólares — EN CURSO
 
@@ -69,8 +72,19 @@ Se adelanta trabajo local durante la espera; la secuencia de integración de aba
 - [x] Preparar diez escenarios y reproducir los problemas sobre el código anterior: 23 comprobaciones fallaron y 179 pasaron en 40 segundos, sin fallos de arranque ni de infraestructura. Las protecciones ante lecturas truncadas pasaron; la propagación del estado incompleto y su presentación requieren corrección.
 - [x] Aprobar la comprobación focal de ranking, totales, control de ingreso y exportación con facturas sin tasa: **202/202 pruebas**, sin omisiones. Las mismas 23 comprobaciones que fallaban ahora pasan; validación general todavía pendiente.
 - [x] Ampliar la regresión a **632/632 pruebas**, sin omisiones; detectar los **21 errores intencionales**, restaurar los archivos y aprobar tipos y revisión estática.
-- [ ] Terminar validación completa, controles de regresión y revisión visible.
-- [ ] Abrir, revisar e integrar su PR; comprobar la publicación.
+- [x] Revisar los componentes reales con datos ficticios en claro y oscuro, incluido ingreso incompleto, mayor vacío y nominal mixto. El ranking permite consultar sus columnas en un contenedor de 390 píxeles; no se certifica con ello un teléfono real.
+- [x] Guardar y respaldar la corrección inicial en `220a2c3e`, con 58 archivos permitidos y las pruebas anteriores identificadas por esa versión.
+- [x] Investigar los dos fallos observados en la validación general: contratos de pruebas anteriores al filtro «Tasa» y a la eliminación de una lectura de facturas. Su actualización exacta queda autorizada.
+- [ ] Corregir el contador al mezclar dos facturas distintas, una vinculada por identificador y otra por código.
+- [ ] Conservar estado y contador en Reportes/Mixto y CSV; no afirmar que no hay saldos cuando solo falta convertirlos.
+- [ ] Evitar que el constructor presente un importe sin conversión como cero definitivo, aunque se agrupe por cliente.
+- [ ] Mostrar la incompletitud de fondos en Cobranzas y contar los cobros por identificar aunque carezcan de tasa.
+- [ ] Completar la validación general local y registrar sus omisiones.
+- [ ] Abrir su PR en borrador con evidencia local.
+- [ ] Revalidar la base final después de las entregas anteriores, especialmente 0573, y aprobar sus comprobaciones de GitHub.
+- [ ] Integrar su PR y comprobar la publicación.
+
+La primera validación general de `220a2c3e` quedó **interrumpida e incompleta** después de observar los dos fallos y recibir los hallazgos independientes. No hay resultado global aprobado. Las pruebas focales y la revisión visible anteriores conservan su evidencia de esa versión; las correcciones nuevas requieren pruebas y revisión propias.
 
 ### C. Resto de la 2.1
 
