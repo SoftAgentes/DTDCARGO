@@ -53,7 +53,7 @@ describe("SDD-0077 · cuenta: cascada Tipo→Subtipo", () => {
       name: "Test",
       type: "G",
       subtype: "alquiler",
-    });
+    }, [{ code: "6" }]);
     expect(ok.input?.subtype).toBe("alquiler");
 
     const mismatched = validateAccountInput({
@@ -61,7 +61,7 @@ describe("SDD-0077 · cuenta: cascada Tipo→Subtipo", () => {
       name: "Test",
       type: "G",
       subtype: "capital", // de PT → se descarta, no bloquea
-    });
+    }, [{ code: "6" }]);
     expect(mismatched.input?.subtype).toBeNull();
   });
 });

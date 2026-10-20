@@ -256,13 +256,52 @@ export type AccountActionState = {
   createdCode?: string;
 };
 
+/** SDD-0565 · Lo que hace falta del plan para que ninguna cuenta quede huérfana. */
+export type CuentaDelPlan = Pick<Account, "id" | "code" | "parent_id">;
+
+/**
+ * SDD-0565 · La cuenta padre que falta para crear `code`: su código sin el
+ * último segmento, si no está en el plan. null si es una cuenta raíz o si el
+ * padre ya existe. Sin esto, `1.1.2.9.1` sin `1.1.2.9` no sube su saldo a
+ * 1.1.2 (`computeBalances` sube una cuenta solo a su padre directo).
+ */
+export function cuentaPadreFaltante(code: string, plan: readonly Pick<Account, "code">[]): string | null {
+  const padre = parentCode(code);
+  if (!padre) return null;
+  return plan.some((a) => a.code === padre) ? null : padre;
+}
+
+/**
+ * SDD-0565 · Las subcuentas de una cuenta, ordenadas: las que tienen su código
+ * como prefijo (código y punto) y las que la apuntan por `parent_id`, aunque su
+ * código no lo diga. Borrar una cuenta con subcuentas las deja huérfanas, y por
+ * `parent_id ... on delete cascade` (0078) se llevaría en silencio las que la
+ * apuntan.
+ */
+export function subcuentasDe(cuenta: CuentaDelPlan, plan: readonly CuentaDelPlan[]): string[] {
+  const prefijo = cuenta.code + ".";
+  return plan
+    .filter((a) => a.id !== cuenta.id && (a.code.startsWith(prefijo) || a.parent_id === cuenta.id))
+    .map((a) => a.code)
+    .sort(compareCodes);
+}
+
+/**
+ * Contra qué plan se valida una cuenta (SDD-0565): al crear, el plan completo
+ * del tenant, para exigir la cuenta padre; al editar, `"edicion"`, porque la
+ * edición no cambia el código (`updateAccount` no lo escribe). Es obligatorio:
+ * quien cree cuentas por otro camino tiene que decidir.
+ */
+export type PlanParaValidar = readonly Pick<Account, "code">[] | "edicion";
+
 /**
  * Validación manual del input de cuenta (sin zod, patrón del repo).
- * - code: requerido, formato jerárquico (segmentos numéricos separados por ".").
+ * - code: requerido, formato jerárquico (segmentos numéricos separados por ".")
+ *   y, al crear, con su cuenta padre en el plan (SDD-0565).
  * - name: requerido.
  * - type: uno de los 6 tipos.
  */
-export function validateAccountInput(input: Partial<AccountInput>): {
+export function validateAccountInput(input: Partial<AccountInput>, plan: PlanParaValidar): {
   input?: AccountInput;
   fieldErrors?: AccountActionState["fieldErrors"];
 } {
@@ -273,6 +312,9 @@ export function validateAccountInput(input: Partial<AccountInput>): {
     errors.code = "Indica el código de la cuenta (ej. 6.20).";
   } else if (!/^\d+(\.\d+)*$/.test(code)) {
     errors.code = "El código debe ser numérico jerárquico (ej. 6.20).";
+  } else if (plan !== "edicion") {
+    const padre = cuentaPadreFaltante(code, plan);
+    if (padre) errors.code = `Primero crea la cuenta ${padre}: es la cuenta padre de ${code}.`;
   }
 
   const name = (input.name ?? "").trim();
