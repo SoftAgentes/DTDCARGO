@@ -18,7 +18,9 @@ confidencialidad: interno
 > en un VPS nuevo de Contabo, **separado del servidor de DTD Cargo**, para la ola 1: el CEO
 > agente y tres agentes que solo leen y redactan. Esta SDD **no instala nada**. Describe la
 > máquina, el aislamiento, la configuración, los topes de gasto, la evidencia y la aceptación.
-> La instalación se ejecuta después, paso por paso, con el OK de Sam.
+> Los apartados iniciales conservan el diseño histórico; D10 y D11 registran decisiones y
+> operaciones autorizadas posteriores. No autorizan repetirlas. La revisión documental del
+> 2026-10-20 no consultó el VPS ni certifica su estado actual.
 
 ## Pedido de Sam
 
@@ -286,6 +288,11 @@ sigue disponible si Sam la prefiere.
 
 ### D11 · El motor pasa a Hermes con GLM; la oficina queda montada (2026-10-20)
 
+**Registro fechado, no inventario vivo.** La fuente es el
+[handoff de instalación](../../../.agents/handoffs/2026-10-20-sdd-0564-vps-opencode.md),
+incluido su cierre hasta las 14:48 UTC. Los estados y las comprobaciones siguientes pertenecen
+a esa evidencia; su vigencia actual es **NO VERIFICADA** en la revisión documental de #306.
+
 **Decisiones de Sam, literales:**
 
 1. «Sí, instala OpenCode con versión fija, el envoltorio dtd-opencode y conecta Z.AI Coding Plan.
@@ -306,7 +313,7 @@ sigue disponible si Sam la prefiere.
 | A2-b en suspenso: Z.AI respondía 1113 | **Resuelto.** El 1113 venía de usar llaves «Standard». Las del Coding Plan se crean en la pestaña «Personal Coding Plan» y funcionan. El motor de todos los agentes es **Hermes v0.22.2 con `glm-5.3`** (proveedor `zai`, `coding/paas/v4`) |
 | Agentes con Claude Code y Codex (§D5) | Agentes `hermes_local`. Diseño en [`docs/organizacion/hermes-oficina.md`](../../organizacion/hermes-oficina.md). OpenCode 1.19.3 queda instalado **como respaldo** (`dtd-opencode`). Codex y Claude Code siguen instalados y sin uso |
 | D-H: Hermes solo como Editor, con Docker y sin terminal | Hermes en **todos** los puestos, con terminal **local**, corriendo como `agentes-run` (sin Docker para ese usuario). El aislamiento es el usuario aparte, no el contenedor |
-| A1 (llave de solo lectura de GitHub) y A1-b descartada | Los agentes leen **la copia A1-b** en `/srv/oficina/repo`: `origin/main` sin `.agents/handoffs/`, de root y solo lectura, actualizada a mano. La llave de despliegue sigue en `~agentes` y los agentes no llegan a ella |
+| A1 (llave de solo lectura de GitHub) y A1-b descartada | El handoff registra **la copia A1-b** en `/srv/oficina/repo`: `fa79394d` sin `.agents/handoffs/`, de root y solo lectura, actualizada a mano. La prueba histórica separa a `agentes-run` de la llave de despliegue de `agentes`. Sin manifiesto de la copia, el cumplimiento de todas las exclusiones del diseño queda **NO VERIFICADO** |
 
 **Cómo corre un agente:**
 
@@ -324,6 +331,10 @@ sigue disponible si Sam la prefiere.
 - el `cwd` va **siempre** en la configuración: sin él, el adaptador usa
   `file-sync/live` dentro de `agentes`.
 
+La lista del envoltorio no es una lista de perfiles disponibles para contratar. Los perfiles
+ordinarios corresponden a un único agente y no se comparten. `director` queda fuera de la
+contratación ordinaria: es el perfil privilegiado de configuración, no un agente de Paperclip.
+
 **Controles del aprendizaje:**
 - skills con aprobación (`skills.write_approval`);
 - memoria con aprobación solo en contenido;
@@ -339,7 +350,7 @@ sigue disponible si Sam la prefiere.
   repositorio, sin nombres, montos ni la dirección completa de la bodega;
 - identidades en [`docs/organizacion/oficina-agentes/`](../../organizacion/oficina-agentes/README.md).
 
-**Estado montado:**
+**Estado registrado en el handoff:**
 - empresa «DTD Oficina» con tope de 100 USD y `requireBoardApprovalForNewAgents=true`;
 - meta de empresa;
 - 8 agentes Hermes activos, cada uno aprobado a mano por Sam;
@@ -351,6 +362,11 @@ sigue disponible si Sam la prefiere.
   2026-10-27 a las 13:37 UTC**.
 - Vive en `profiles/director/paperclip.env` (600, `agentes-run`), y `dtd-agente-run` la carga
   solo en el perfil `director`.
+- **Límite no demostrado:** los demás perfiles también corren como `agentes-run`. El modo
+  `600` y la carga selectiva del entorno no impiden por sí solos que otro proceso de ese
+  usuario lea el archivo. Las pruebas históricas de «Permission denied» contra los secretos
+  de `agentes` no prueban esta separación entre perfiles. No se ha leído la llave ni probado
+  ese acceso en esta revisión; el aislamiento efectivo queda **NO VERIFICADO**.
 - **Una llave de Junta en manos de un agente puede aprobar sus propias contrataciones, y eso anula
   `requireBoardApprovalForNewAgents`, el control que Sam pidió.**
 - Lo único que lo frena es una **instrucción** (`SOUL` del director: no aprueba, no sube topes, no
@@ -358,6 +374,9 @@ sigue disponible si Sam la prefiere.
 - El director no es un agente de Paperclip y no tiene rutinas (comprobado el 2026-10-20 a las
   14:48 UTC: las únicas rutinas son las dos de ALFRED).
 - **Se revoca apenas termine la configuración**, sin esperar al vencimiento.
+- La aceptación histórica del riesgo para el Director no se extiende a otros agentes. Esta
+  revisión no propone ni aplica una arquitectura nueva; deja la comprobación de aislamiento y
+  de vigencia/revocación como pendientes separados.
 - Las dos llaves «paperclipai cli (board)» que creó `paperclipai connect` se revocaron el
   2026-10-20: `de189091` por la CLI y `e619f8d0` por `DELETE /board-api-keys/:id` a las 14:48 UTC.
 
@@ -366,7 +385,8 @@ sigue disponible si Sam la prefiere.
 - 4 contrataciones de ALFRED salieron así y quedaron **pausadas** sin haber corrido.
 - Toda contratación debe usar la plantilla de
   [`plan-maestro-oficina.md`](../../organizacion/plan-maestro-oficina.md) §2, y la aprobación
-  obligatoria se mantiene.
+  obligatoria se mantiene. Las cuatro contrataciones correctas ya están registradas en el
+  cierre del handoff; no volver a solicitarlas por seguir un plan antiguo.
 
 **Hallazgo de seguridad de Paperclip.**
 - `hermes_local` arma el entorno con `...process.env`, así que hereda todo el entorno del servidor.
@@ -385,23 +405,30 @@ contenido). A3 queda para después. Todavía no instales nada.»
 | A4 | Conexión a Kommo con datos de clientes | **Pendiente:** después de la instalación, con `revisar-datos-ve` y su propia SDD |
 | A5 | El CEO crea agentes | **Decidida:** sí, con los límites de §D5 |
 | A1 | ¿Cómo leen los agentes el repositorio? | **Cambiada el 2026-10-20 (§D11):** los agentes leen la copia A1-b (`/srv/oficina/repo`, sin `.agents/handoffs/`). La llave de despliegue solo la usa `agentes` para actualizarla |
-| A2 | Llave de modelos nueva y exclusiva, con límite en el proveedor | **Cambiada el 2026-10-20 (§D10):** suscripciones de ChatGPT (Codex) y de Claude, no llaves de API |
+| A2 | Llave de modelos nueva y exclusiva, con límite en el proveedor | **Histórico (§D10):** se conectaron suscripciones para Codex y Claude. **D11:** ambos quedan instalados sin uso; el motor registrado es Hermes con la llave Z.AI de A2-b |
 | A3 | Bot de Telegram nuevo para hablar con el CEO | **Aprobada** el 2026-10-19: Telegram y correo solo cuando haga falta |
 | D-B | Tope mensual de la empresa | **Decidida:** 100 USD al mes con parada dura |
 | D-H | Papel de Hermes en la ola 1 | **Cambiada el 2026-10-20 (§D11):** motor de todos los agentes, con terminal local como `agentes-run` y un perfil por puesto |
 | D-J | Llave de Junta para el Hermes director | **Aceptada por Sam el 2026-10-20 (§D11)**, con riesgo escrito; se revoca al terminar la configuración. Vence el 2026-10-27 |
 
-La instalación sigue sin autorizar: cada paso de §D9 necesita su propio OK.
+Las autorizaciones de D10 y D11 conservan su alcance y sus fechas. La lista original de D9 no
+autoriza repetir operaciones; cualquier continuación parte de un encargo vigente de Sam.
 
 Siguen abiertas además las preguntas 2 a 14 del organigrama. Las que tocan esta SDD son la 7
 (adaptadores), la 8 (quién más entra) y la 10 (por dónde llega el parte).
 
-## Pendientes de seguridad (lista viva)
+## Pendientes de seguridad por contrastar
+
+La lista conserva controles del diseño original. D10 y D11 registran cambios de motor y
+aislamiento; cada comprobación requiere evidencia de la configuración que se use. Las casillas
+sin marcar no son un inventario actual del VPS ni una orden de instalar o repetir pasos.
 
 - [ ] Telemetría de Paperclip apagada y comprobada.
 - [ ] Tailscale instalado; panel y SSH solo por la red privada; SSH público cerrado.
 - [ ] Salto de permisos apagado en cada agente de Claude Code.
-- [ ] Hermes con backend Docker y sin terminal en el host.
+- [ ] Hermes conforme a D11: envoltorio, usuario `agentes-run`, entorno y perfil propio.
+  La exigencia original de Docker fue sustituida por D-H; la separación efectiva de la llave
+  de Junta entre perfiles sigue **NO VERIFICADA**.
 - [ ] Ningún MCP ni conector con datos de clientes en la máquina.
 - [ ] Llave de modelos exclusiva, con límite en el proveedor y topes en Paperclip.
 - [ ] Llave maestra de Paperclip respaldada fuera de la máquina.
@@ -427,8 +454,10 @@ comportamiento del Studio. No hay migraciones. Seguridad: D1, D2 y D7.
 1. La evidencia de D9 existe, con fecha y sin secretos, en el handoff de la tarea que ejecute.
 2. Desde fuera de Tailscale, el panel de Paperclip y el SSH no responden (prueba con fecha).
 3. La telemetría de Paperclip consta apagada en la configuración del servicio.
-4. Cada agente de Claude Code consta con `dangerouslySkipPermissions: false`; Hermes consta
-   con backend Docker.
+4. Contrastar la configuración utilizada con D10/D11 y sus controles. El criterio original
+   de Hermes con Docker fue sustituido por D-H de D11; eso no certifica aislamiento entre
+   perfiles. Claude Code queda registrado sin uso; si se retoma, conserva el control
+   `dangerouslySkipPermissions: false` del diseño.
 5. Los topes existen en Paperclip y en el proveedor; una prueba controlada con un tope bajo
    muestra que el agente se detiene.
 6. En el VPS no hay llaves ni secretos del servidor de DTD Cargo ni del ERP (inventario con

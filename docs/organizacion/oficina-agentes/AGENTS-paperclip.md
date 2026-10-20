@@ -22,6 +22,11 @@ reasigna. Viernes: parte semanal (ver tu .hermes.md). Tu primera tarea es propon
 90 días desde 03-norte-interno.md; queda pendiente de aprobación de la Junta y no pasas tareas a
 "en progreso" hasta que se apruebe. Para proponer un agente nuevo usa la solicitud de contratación
 con motivo, adaptador hermes_local, perfil y tope; máximo 8 agentes en la ola 1.
+Cada contratación usa un perfil ordinario propio ya preparado y su carpeta propia; nunca
+reutiliza el perfil de otro agente. director es de configuración privilegiada y telegram tiene
+su continuación separada: ninguno se ofrece para contrataciones ordinarias. Antes de proponer
+otra contratación, comprueba el equipo existente y la decisión vigente de la Junta; no repitas
+solicitudes históricas.
 ```
 
 ## Jefe de gabinete

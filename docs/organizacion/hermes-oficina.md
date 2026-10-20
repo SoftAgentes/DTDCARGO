@@ -1,6 +1,11 @@
 # La oficina de agentes con Hermes y Paperclip
 
-> Estado: **propuesta para Sam** (2026-10-20). Nada de esto está creado todavía.
+> **Diseño histórico del 2026-10-20**, aprobado por etapas H1–H4 según el
+> [handoff de instalación](../../.agents/handoffs/2026-10-20-sdd-0564-vps-opencode.md).
+> Conserva las propuestas y el futuro verbal de su redacción original; no es una lista de
+> operaciones pendientes ni certifica el estado vivo del VPS. La transición de motor, perfiles
+> y llave temporal está en [SDD-0564 D11](../specs/0564-instalacion-piloto-paperclip-hermes/spec.md#d11--el-motor-pasa-a-hermes-con-glm-la-oficina-queda-montada-2026-10-20).
+> Para continuar usa el [plan maestro](plan-maestro-oficina.md) y la [guía para Sam](guia-continuar-con-hermes.md).
 > Base: SDD-0564, organigrama `organigrama-paperclip.md` (ola 1) y lectura del código instalado en el
 > VPS: Hermes Agent v0.22.2 (commit d923a5eb) y Paperclip 2026.1012.0. Lo inferido va marcado
 > **INFERIDO** o **NO VERIFICADO**.
@@ -194,6 +199,13 @@ extractos filtrados de documentos que ya existen: no se inventa nada nuevo.
 - Los montos de `motor-crecimiento.md` y de `docs/marketing/README.md`.
 - Cualquier secreto, `.env`, dato de clientes o del ERP.
 
+**Límite de la evidencia de la copia (revisión documental, 2026-10-20):** el handoff registra
+una copia de `fa79394d` y menciona la exclusión de `.agents/handoffs/`; no aporta un manifiesto
+que pruebe todas las exclusiones anteriores. Los archivos de prospectos, marketing y runbooks
+existen en esa base local. La conformidad de la copia del VPS con este filtro queda
+**NO VERIFICADA**, sin afirmar que se hayan transferido esos archivos. La revisión del manifiesto
+queda pendiente; esta corrección documental no accede al VPS ni cambia su copia.
+
 ## 4. Cada agente: identidad, potencial y configuración
 
 Todos usan:
@@ -282,7 +294,7 @@ Todos usan:
 
 | Riesgo | Fuente | Control |
 |---|---|---|
-| Hermes corre siempre con `--yolo` (no pide aprobación antes de comandos peligrosos) | Paperclip, `hermes-paperclip-adapter/dist/server/execute.js` | Corre como `agentes-run`, que no puede leer los secretos de Paperclip ni las sesiones; sin `sudo`; trabaja en su carpeta |
+| Hermes corre siempre con `--yolo` (no pide aprobación antes de comandos peligrosos) | Paperclip, `hermes-paperclip-adapter/dist/server/execute.js` | La prueba histórica negó acceso a secretos del usuario `agentes`. No demuestra aislamiento entre procesos y perfiles de `agentes-run`; trabajar en la carpeta propia es una instrucción |
 | Hermes heredaría todo el entorno del servidor de Paperclip | El mismo archivo: arma el entorno con `...process.env` | `dtd-hermes` pasa por `sudo` con `env_reset`; solo cruzan `PAPERCLIP_*` y el nombre del perfil |
 | Todos los agentes compartirían memoria y sesiones | No hay perfil por agente por defecto | `dtd-hermes` elige `HERMES_HOME` según el perfil del agente, con una lista cerrada |
 | Paperclip no sabe instalar sus skills en un perfil de otro usuario | Las instala como enlaces en el `~/.hermes` de `agentes` | Copia de la skill `paperclip` en cada perfil al crearlo. **NO VERIFICADO** si hace falta más |
@@ -290,7 +302,15 @@ Todos usan:
 | El costo no se registra en Paperclip | El adaptador lo busca en el texto de salida; **NO VERIFICADO** que Hermes lo imprima | El límite real es el plan de Z.AI; el CEO reporta el uso del plan en el parte |
 | GLM a veces dice «lo guardé» sin guardar | Documentación de Hermes (memory.md) | Hermes activa solo `tool_use_enforcement` con GLM; la revisión del viernes mira los archivos reales |
 | Envenenamiento de memoria desde internet | Solo aplica al editor | Memoria con aprobación en su perfil; web solo para él |
-| Todos los agentes ven las carpetas de los demás | Mismo usuario `agentes-run` | Aceptado en la ola 1: no manejan datos de clientes. En la ola 2, un usuario por agente |
+| Todos los agentes ven las carpetas de los demás | Mismo usuario `agentes-run` | Límite conocido del diseño inicial, sin datos de clientes. Perfiles separados no son una barrera de permisos. La llave de Junta añadida después en D11 exige revisar este riesgo; no se presume aceptado para todos los agentes |
+
+**Llave temporal y perfiles:** D11 registra `profiles/director/paperclip.env` con modo `600`
+y dueño `agentes-run`. Ese modo no separa procesos del mismo usuario. Cargarla solo en el
+entorno de `director` no demuestra que otro perfil no pueda leer el archivo. La separación
+efectiva de esa llave queda **NO VERIFICADA**; no se ha leído su valor ni probado acceso en esta
+revisión. `director` no es un perfil para contratar agentes ordinarios. La continuación de
+Telegram y su revisión de aislamiento se tratan por separado después de #306, sin incorporar
+su configuración aquí.
 
 ## 7. Decisiones para Sam
 

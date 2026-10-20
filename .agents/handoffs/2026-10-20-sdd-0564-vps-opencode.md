@@ -1,5 +1,9 @@
 # Handoff · SDD-0564 · OpenCode en el VPS de la oficina (2026-10-20)
 
+> Registro histórico de la instalación y sus autorizaciones. Las secciones originales conservan
+> su secuencia y no certifican el estado vivo del VPS. La adopción y el cierre documental de #306
+> se registran al final; los pendientes antiguos deben leerse con ese cierre.
+
 Autorización de Sam, literal: «Sí, instala OpenCode con versión fija, el envoltorio dtd-opencode y conecta Z.AI Coding Plan. No borres Codex ni Claude todavía.»
 
 ## Hecho (VPS 13.140.227.228)
@@ -164,3 +168,108 @@ OpenCode no trae sandbox del sistema operativo: su herramienta bash corre como `
 
 - **Fuga de entorno en el adaptador Hermes de Paperclip** (`hermes-paperclip-adapter/dist/server/execute.js`): arma `env` con `...process.env` antes de `runChildProcess`, así que la limpieza de `PAPERCLIP_*` no aplica. Aquí se mitiga con `dtd-hermes`. Hay que decidir si se reporta en privado a los mantenedores.
 - **Contrataciones que hace el CEO:** heredan solo las instrucciones, no el comando ni el perfil. Cualquier contratación de un agente sale sin aislamiento si no copia la plantilla de `plan-maestro-oficina.md` §2. Por eso la aprobación obligatoria debe seguir encendida.
+
+## Adopción Worker documental de #306 · 2026-10-20 18:02 UTC
+
+- **Owner:** `codex-0564-docs-01a15a4e`; subagente `revision_validaciones` del Director Codex.
+- **Transferencia:** el Director transmite la pausa explícita de Sam a la sesión Oficina
+  Paperclip y la adopción de sus mismos worktrees. No se transfiere trabajo a otra rama.
+- **Worktree:** `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/oficina-hermes-diseno`.
+- **Rama:** `codex/oficina-hermes-diseno`; HEAD inicial
+  `033eea50b8477cef72d987bd18de139053734041`, idéntico a su respaldo remoto.
+- **Base de revisión:** `8e9e0f505322cd57b3230cce6b16b45b5554cb8a`; ancestro común
+  `fa79394dd3eb20c086242475765d12f32744d5e1`. La rama tiene 14 commits de esa main pendientes
+  y 2 propios; la integración de base queda a cargo del Director, después de #301.
+- **Antes de editar — PASÓ:** árbol limpio, sin staged/unstaged; guard válido; claim disponible
+  y adquirido con ese owner. No se encontraron procesos cuya línea de comandos contuviera
+  esta ruta; ese inventario no prueba por sí solo ausencia de consumidores. La adopción se
+  sustenta en la pausa explícita transmitida por el Director.
+- **Objetivo y aceptación:** excluir perfiles privilegiados de contrataciones ordinarias; no
+  compartir perfiles ni repetir contrataciones ya documentadas; distinguir historia de estado
+  vivo; precisar el aislamiento entre usuarios y el no demostrado entre perfiles; declarar
+  NO VERIFICADA la copia filtrada sin manifiesto.
+- **SDD/alcance:** SDD-0564 y únicamente las rutas ya incluidas en #306 y en su allowlist.
+- **Permisos:** correcciones documentales, validaciones ligeras, commits selectivos y push
+  explícito de esta rama a sí misma. Sin merge, despliegue, VPS, secretos, cuentas, llaves,
+  servicios ni contactos. El anexo Telegram se conserva fuera de esta PR.
+- **PR:** [#306](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/306), convertida a borrador
+  al adoptar: `isDraft` era `false`; el cierre y la integración de base seguían pendientes.
+- **Estado al adoptar:** en progreso. El carril de pruebas pesadas pertenece a SDD-0569;
+  este Worker no lo utiliza.
+
+## Cierre del Worker documental · 2026-10-20
+
+**OBJETIVO ORIGINAL:** corregir la documentación de #306 sin configurar la oficina: perfiles
+privilegiados fuera de contratación ordinaria, un perfil propio por agente, ninguna orden de
+repetir contrataciones, fuentes fechadas y límites de aislamiento/copias visibles.
+
+**COMPLETADO:** las guías de continuación reemplazan las órdenes ya ejecutadas por comprobaciones
+del estado existente. La plantilla y las instrucciones del CEO excluyen `director` y `telegram`
+de contratación ordinaria y prohíben reutilizar perfiles. D11 y las guías distinguen el aislamiento
+históricamente probado frente a `agentes` del no demostrado entre perfiles de `agentes-run`.
+La copia filtrada queda NO VERIFICADA respecto de todas sus exclusiones mientras falte un
+manifiesto. El diseño original se conserva como histórico, con sus propuestas identificadas.
+No se incorpora la configuración ni el anexo de Telegram; su continuación va después de #306.
+
+Rutas modificadas en esta adopción, todas dentro de las 23 ya incluidas en #306:
+
+- `.agents/handoffs/2026-10-20-sdd-0564-vps-opencode.md`
+- `docs/organizacion/README.md`
+- `docs/organizacion/guia-continuar-con-hermes.md`
+- `docs/organizacion/hermes-oficina.md`
+- `docs/organizacion/oficina-agentes/AGENTS-paperclip.md`
+- `docs/organizacion/plan-maestro-oficina.md`
+- `docs/specs/0564-instalacion-piloto-paperclip-hermes/spec.md`
+
+**VALIDACIÓN** sobre el árbol de trabajo de esta corrección, que parte de `033eea50`:
+
+| Comprobación | Resultado | Evidencia y límite |
+|---|---|---|
+| Guard y claim | PASÓ | Owner `codex-0564-docs-01a15a4e`, rama y ruta comprobadas |
+| Índice documental | PASÓ | `node scripts/build-docs-index.mjs --check`: índice sincronizado con 555 specs |
+| Numeración | PASÓ | `node scripts/check-numbering.mjs`: 555 specs, 488 migraciones, sin números repetidos nuevos; conserva las excepciones históricas que enumera el verificador |
+| Diff y alcance | PASÓ | `git diff --check`; siete rutas autorizadas, sin cambios de producto ni dependencias |
+| Enlaces locales | PASÓ | Lectura de los siete documentos: 24 enlaces locales, rutas y ancla comprobadas, ninguno roto. No comprueba URLs externas |
+| Revisión de permisos y vigencia | PASÓ | Retiradas la oferta de `director`, la alternativa de perfiles compartidos y las órdenes de repetir contrataciones; estado del VPS marcado como no verificado |
+| `pnpm docs:check` / `pnpm sdd:check` | NO EJECUTADO | El lanzador de pnpm inició instalación automática antes del verificador. Se interrumpieron solo esos procesos propios; los verificadores se ejecutaron después directamente con Node |
+| Producto, SQL, build, VPS y bot | NO EJECUTADO | Fuera de este encargo documental y sin turno de pruebas pesadas |
+
+**Incidencia de entorno:** las dos invocaciones de pnpm iniciaron automáticamente la instalación
+de 817 paquetes desde su caché. Se detuvieron los árboles de procesos propios, verificando sus
+PIDs, parentesco y hora de inicio. No cambiaron `package.json` ni `pnpm-lock.yaml`. Puede quedar
+`node_modules` ignorado parcialmente preparado en este worktree; se conserva, sin limpieza ni
+nuevo intento de instalación. No se ejecutaron verify, build, Vitest ni Docker.
+
+**Impacto documental y conocimiento:**
+
+- Los siete documentos anteriores son las fuentes actualizadas; ninguno pertenece a los 16
+  documentos de `semanticPilot` de `scripts/knowledge-policy.json`.
+- `node scripts/knowledge-sync.mjs status` terminó: Graphify `0.9.61`, `ok=false`,
+  estado estructural `INVALID`. Exit 0 del comando de inventario no implica conocimiento vigente.
+- Actualización estructural/semántica Graphify: **NO EJECUTADA**. No se certifica cobertura.
+- Archify build/check, JSON y evidencia visual nuevos: **NO EJECUTADOS**.
+- Preview local de Obsidian, publicación compartida y revisión visible: **NO EJECUTADAS**.
+- Los derivados quedan pendientes del carril de conocimiento del Director; no se amplía el
+  encargo ni se ocupa el turno de pruebas pesadas. Guardado en la rama no significa integración,
+  actualización del VPS ni publicación de la bóveda.
+
+**COMMITS:** commit que contiene este cierre, con las siete rutas y únicamente la corrección
+documental. El SHA final se entrega al Director después de commit/push, sin autorreferencia.
+
+**PR / BRANCH:** #306, base `main`, rama `codex/oficina-hermes-diseno`, mismo worktree adoptado.
+Se mantiene en borrador. Publicación autorizada solo de esta rama a sí misma; no merge/deploy.
+
+**PENDIENTES DE ESTA TAREA:** revisión del nuevo SHA por el Director e integración de base después
+de #301, con las comprobaciones afectadas. No hay correcciones de contenido conocidas pendientes
+dentro de este alcance. Los derivados de conocimiento anteriores siguen visibles como pendientes;
+la SDD del piloto conserva su estado y no se declara terminada por este cierre documental.
+
+**FUERA DE ALCANCE DETECTADO:** estado vivo de agentes, llaves, servicios y presupuestos;
+aislamiento efectivo entre perfiles; manifiesto de la copia del VPS; continuación y prueba de
+Telegram en otra PR; actualización de instrucciones en Paperclip/VPS; revocaciones, limpieza,
+Kommo v7 y reporte privado a mantenedores. Ninguna de esas operaciones se ejecutó.
+
+**HANDOFF AL DIRECTOR:** revisar el diff documental y conservar el orden después de #301.
+La sesión Oficina Paperclip permanece pausada según el encargo recibido; no se solicita que
+retome ni se le envían mensajes. Este owner libera el claim al concluir commit, push y
+comprobación remota; la respuesta de cierre confirma la liberación. Conservar worktree y rama.

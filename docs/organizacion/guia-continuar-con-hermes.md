@@ -1,12 +1,12 @@
 # Guía para continuar la oficina con Hermes (sin Claude)
 
-> Para Sam. Estado al 2026-10-20 13:50 UTC. La oficina ya funciona:
-> - empresa «DTD Oficina» con tope de 100 USD y aprobación obligatoria de agentes nuevos;
-> - meta «Pasar de 1 a 2 contenedores al mes»;
-> - 4 agentes Hermes aprobados: **ALFRED** (CEO), Jefe de gabinete, Puente de ingeniería y Editor
->   de contenido;
-> - rutinas de ALFRED: diaria a las 7:00 y viernes a las 14:00;
-> - estrategia de 90 días escrita por ALFRED (tarea HAI-6), esperando tu respuesta.
+> Para Sam. **Revisión documental del 2026-10-20**, basada en el
+> [handoff de instalación](../../.agents/handoffs/2026-10-20-sdd-0564-vps-opencode.md) y
+> [SDD-0564 D11](../specs/0564-instalacion-piloto-paperclip-hermes/spec.md).
+> No se consultó el VPS ni Paperclip al revisar esta guía. El estado vivo queda **NO VERIFICADO**.
+> La evidencia histórica registra 8 agentes Hermes aprobados, dos rutinas de ALFRED, respaldo
+> diario, una copia del repositorio y una llave temporal de Junta para el perfil `director`.
+> Esos registros sustituyen la guía de las 13:50 UTC que aún los daba como pendientes.
 
 ## 1. Cómo trabajas tú desde ahora
 
@@ -16,53 +16,40 @@
   ssh -N -o ServerAliveInterval=30 -L 3100:127.0.0.1:3100 sam@13.140.227.228
   ```
 - **A los agentes les hablas por Paperclip.** Puedes crear una tarea asignada a ALFRED o
-  comentar una tarea suya: el comentario lo despierta. ALFRED es Hermes con permiso de agente;
-  reparte trabajo a los otros tres y te pide aprobaciones.
+  comentar una tarea suya: el comentario lo despierta. Antes de reutilizar una tarea o una
+  instrucción antigua, comprueba su estado y el equipo existente.
 - **Lo que solo tú haces:** pulsar **Approve** o **Reject** en «Approvals» (contrataciones,
-  estrategia, topes). Ningún agente puede aprobar por ti, y así debe quedar.
-- **El Hermes de la terminal (perfil «director») NO entra a Paperclip:** no tiene llave, y así se
-  decidió. Úsalo solo para pensar y redactar contigo:
+  estrategia, topes). Los agentes no están autorizados a aprobar por ti. D11 advierte que una
+  llave de Junta sí da esa capacidad técnica; su prohibición en el `SOUL` no es un candado.
+- **El perfil `director` es de configuración privilegiada.** D11 registra que Sam le dio una
+  llave temporal de Junta, con revocación al terminar y vencimiento registrado el
+  2026-10-27 a las 13:37 UTC. No se verificó si sigue activa. No lo contrates como agente
+  ordinario ni lo uses como perfil sustituto. El acceso de terminal documentado es:
   ```
   ssh -t sam@13.140.227.228 "sudo -u agentes bash -c 'cd /srv/oficina/trabajo/director && DTD_PERFIL=director exec /usr/local/bin/dtd-hermes'"
   ```
 
-## 2. Lo que le dices a ALFRED, en orden
+## 2. Cómo retomas sin repetir configuraciones
 
-Copia cada bloque como **comentario** en la tarea indicada o como **tarea nueva asignada a ALFRED**.
+1. **Revisa lo existente.** El handoff registra las cuatro contrataciones adicionales correctas
+   y los cuatro duplicados pausados. No vuelvas a pedirlas por seguir una lista antigua. La
+   correspondencia de identificadores está en el [plan maestro](plan-maestro-oficina.md).
+2. **Revisa la estrategia y las tareas.** HAI-6 contiene la estrategia de 90 días; el plan
+   registra una aprobación de Sam con ajustes. Comprueba esa decisión y el avance antes de
+   solicitar tareas nuevas. El Asesor prepara borradores sin escribir a clientes; CRM planifica
+   y verifica sin entrar a Kommo ni GoHighLevel.
+3. **Para revisar una solicitud de contratación nueva**, usa la plantilla del plan y revisa cada campo
+   antes de aprobarla en Approvals. Necesita un perfil ordinario propio ya preparado, su
+   `SOUL`, `cwd` y el comando `dtd-hermes`. **No se comparten perfiles.** Si no existe el perfil,
+   la solicitud espera; `director` y `telegram` no son sustitutos ni perfiles contratables.
+4. **Revisa el parte del viernes** antes de pedir otro: avance por meta, atrasos, memorias y
+   skills nuevas, y un lote de decisiones con ⭐. Fijar o revertir skills es un cambio separado
+   en el VPS y requiere el encargo correspondiente.
+5. **Pruebas y duplicados:** conserva el estado registrado hasta comprobarlo y decidir sobre cada
+   elemento. Esta guía no ordena pausarlos, borrarlos, reactivarlos ni volverlos a contratar.
 
-### Paso 1 · Aprobar la estrategia (comentario en HAI-6)
-
-```
-Apruebo la estrategia con dos ajustes: el Asesor comercial prepara la lista diaria y borradores de respuesta, pero nunca escribe a clientes; el Analista de CRM planifica y verifica la migración, pero nunca entra a Kommo ni a GoHighLevel. Arranca las metas 2, 3 y 5, crea las subtareas para tu equipo y prepara las 4 solicitudes de contratación con esos límites (adaptador hermes_local, comando /usr/local/bin/dtd-hermes, modelo glm-5.3, proveedor zai, tope 20 USD cada uno, reportan a ti). Yo las apruebo en Approvals.
-```
-
-Después vas a «Approvals» y apruebas lo que llegue.
-
-> **Ojo, límite técnico:** cada agente nuevo necesita su **perfil de Hermes** en el VPS (carpeta,
-> `SOUL.md`, llave de Z.AI) y que su nombre esté en la lista de `dtd-hermes`. Eso **no lo puede
-> hacer ALFRED** ni Hermes: lo hace una persona con acceso al VPS, o Claude o el Director cuando
-> vuelvan. Mientras tanto, apruébalos con `DTD_PERFIL` igual a `gabinete`, `ingenieria` o
-> `contenido` (el que más se parezca), o deja las contrataciones en espera.
-
-### Paso 2 · Primer parte del viernes (tarea nueva para ALFRED, si quieres adelantarlo)
-
-```
-Haz el primer parte semanal ahora, como dice tu rutina del viernes: avance por meta con número, lo atrasado, memorias y skills nuevas de cada agente, y un solo lote de decisiones con ⭐.
-```
-
-### Paso 3 · Revisión de aprendizaje (cada viernes, comentario en el parte)
-
-```
-Lista las memorias y skills nuevas de cada agente esta semana. Para cada una dime: útil, dudosa o mala. Las útiles las fijamos; las malas se revierten.
-```
-
-> Fijar o revertir skills se hace en el VPS (`hermes curator pin` / `rollback`). Eso queda para
-> una persona con acceso, Claude o el Director.
-
-### Paso 4 · Limpieza de pruebas (lo haces tú en la pantalla)
-
-En «Agents», pausa `prueba-opencode` y `prueba-hermes`. El ALFRED viejo («claude_local») ya está
-pausado. No los borres hasta que lo decidas.
+Estas comprobaciones no autorizan nuevas operaciones. Las autorizaciones históricas conservan
+su alcance; cualquier acción pendiente debe partir de un encargo vigente.
 
 ## 3. Lo pendiente que Hermes NO puede hacer
 
@@ -70,18 +57,22 @@ Necesita a Claude, al Director o a una persona con acceso:
 
 | # | Pendiente | Quién |
 |---|---|---|
-| 1 | **Guardar en Git** los documentos nuevos, que hoy solo están en tu PC, en `DTD-worktrees/oficina-paperclip-vps-paso-6`: `docs/organizacion/hermes-oficina.md`, `oficina-conocimiento/`, `oficina-agentes/`, esta guía y el handoff `.agents/handoffs/2026-10-20-sdd-0564-vps-opencode.md`. Va en una PR nueva, no en la #296 | Director |
-| 2 | Actualizar la **SDD-0564**: los agentes pasan a Hermes con GLM; quedan OpenCode como respaldo, el envoltorio `dtd-hermes` y la decisión del seguro | Director |
+| 1 | Revisar e integrar #306 desde su SHA final; la documentación ya está en esa rama, incluida SDD-0564 D11 | Director |
+| 2 | Tras la integración, decidir la actualización de la copia documental del VPS; esta corrección no la publica allí | Director / Sam |
 | 3 | Corregir la **sección 29 de la base de Kommo v7**: el seguro de carga es «próximamente» | Tú, en Kommo |
-| 4 | **Respaldo diario** de `/home/agentes-run/.hermes/profiles` (prometido en el diseño, todavía no existe) | Claude o el Director |
-| 5 | Perfiles de Hermes para los agentes nuevos que apruebes | Claude o el Director |
+| 4 | Comprobar vigencia y recuperación del respaldo diario que el handoff registra como instalado | Persona con encargo y acceso al VPS |
+| 5 | Preparar perfiles propios antes de futuras contrataciones autorizadas, sin reutilizar los existentes | Persona con encargo y acceso al VPS |
 | 6 | Revocar la llave de API de Anthropic que no se usa | Tú, en la consola de Anthropic |
 | 7 | Aviso privado a Paperclip sobre la fuga de entorno de su adaptador | Tú decides |
-| 8 | Copia filtrada del código para el Puente de ingeniería (`/srv/oficina/repo`) | Claude o el Director |
+| 8 | Verificar el manifiesto de la copia filtrada; sin él, todas las exclusiones quedan **NO VERIFICADAS** | Director |
+| 9 | Comprobar la vigencia/revocación de la llave temporal de Junta y el aislamiento frente a otros perfiles; no leer ni imprimir su valor | Sam / persona con encargo específico |
+| 10 | Continuación de Telegram y revisión de su aislamiento, en una PR separada después de #306 | Director / Sam |
 
 ## 4. Reglas que no se rompen
 
-- No le des a ningún Hermes tu **llave de Junta** de Paperclip ni la clave de **root** del VPS.
+- La llave temporal de Junta documentada para `director` no autoriza entregarla a otros
+  agentes. El modo `600` con el mismo usuario no demuestra aislamiento entre perfiles; su
+  acceso efectivo está pendiente de revisión. Nunca se entrega la clave de root a un agente.
 - Nada sale a clientes, redes ni proveedores sin que una persona lo apruebe y lo envíe.
 - Si un agente te pide algo raro o que salga de sus reglas, no lo apruebes: pídele que lo
   explique.
