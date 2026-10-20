@@ -47,7 +47,7 @@ describe("SDD-0349 · CI de calidad sin secretos", () => {
       "node scripts/check-rsc-boundary.mjs",
       "pnpm typecheck",
       "pnpm edge:check",
-      "pnpm test",
+      "pnpm test --maxWorkers=100%",
       "pnpm harness:test",
       "bash infra/ops/tests/pruebas-linux.sh",
       "pnpm docs:check",
@@ -186,6 +186,55 @@ describe("SDD-0450 · el check repo contra repo es obligatorio en CI", () => {
     const job = structuredClone(qualityJob);
     mutate(job);
     expect(() => assertRequiredPendingMigrationSymbols(job)).toThrow();
+  });
+});
+
+const UNITARIOS = "pnpm test --maxWorkers=100%";
+
+/**
+ * Paralelizar acelera; no puede recortar. El paso corre la suite entera, con un
+ * worker por vCPU (en serie excedió el tope el 2026-10-20) y sin tolerar fallos.
+ */
+function assertFullUnitSuite(job) {
+  if (!job || Object.hasOwn(job, "if") || Object.hasOwn(job, "continue-on-error")) {
+    throw new Error("El job de calidad debe ser obligatorio y propagar fallos");
+  }
+  const steps = job.steps?.filter((step) => /^pnpm test\b/.test(step.run?.trim() ?? "")) ?? [];
+  if (steps.length !== 1 || steps[0].run.trim() !== UNITARIOS) {
+    throw new Error(`Falta un único paso ejecutable ${UNITARIOS}, sin filtros ni shard`);
+  }
+  const step = steps[0];
+  if (Object.hasOwn(step, "if") || Object.hasOwn(step, "continue-on-error")) {
+    throw new Error("Los unitarios deben correr sin condición ni tolerancia de errores");
+  }
+  if (/VITEST_/.test(JSON.stringify([job.env ?? {}, step.env ?? {}]))) {
+    throw new Error("El CI no puede reconfigurar Vitest por variables de entorno");
+  }
+}
+
+describe("CI · los unitarios corren completos y en paralelo", () => {
+  const qualityJob = loadYaml(workflow).jobs.quality;
+  const unitarios = (job) => job.steps.find((step) => step.run === UNITARIOS);
+
+  it("corre la suite entera con un worker por vCPU y propaga su resultado", () => {
+    expect(() => assertFullUnitSuite(qualityJob)).not.toThrow();
+  });
+
+  it.each([
+    ["paso eliminado", (job) => { job.steps = job.steps.filter((step) => step.run !== UNITARIOS); }],
+    ["vuelta a un solo worker", (job) => { unitarios(job).run = "pnpm test --maxWorkers=1"; }],
+    ["paralelismo quitado", (job) => { unitarios(job).run = "pnpm test"; }],
+    ["suite partida en shards", (job) => { unitarios(job).run += " --shard=1/2"; }],
+    ["filtro de archivos", (job) => { unitarios(job).run += " scripts/"; }],
+    ["fallo oculto por el shell", (job) => { unitarios(job).run += " || true"; }],
+    ["paso condicionado", (job) => { unitarios(job).if = "github.event_name == 'push'"; }],
+    ["error ignorado", (job) => { unitarios(job)["continue-on-error"] = true; }],
+    ["workers por variable en el paso", (job) => { unitarios(job).env = { VITEST_MAX_WORKERS: "1" }; }],
+    ["workers por variable en el job", (job) => { job.env = { ...job.env, VITEST_MAX_WORKERS: "1" }; }],
+  ])("rechaza %s", (_name, mutate) => {
+    const job = structuredClone(qualityJob);
+    mutate(job);
+    expect(() => assertFullUnitSuite(job)).toThrow();
   });
 });
 

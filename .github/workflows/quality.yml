@@ -66,7 +66,12 @@ jobs:
         run: pnpm edge:check
 
       - name: Unitarios
-        run: pnpm test
+        # Vitest usa por defecto availableParallelism() - 1 workers. El runner
+        # de repo privado trae 2 vCPU, así que la suite corría en serie: el
+        # 2026-10-20 sumó 1.743 s de pruebas en 2.237 s de pared. 100 % = un
+        # worker por vCPU. Corren los mismos archivos y aserciones; en local la
+        # suite ya corre en paralelo.
+        run: pnpm test --maxWorkers=100%
 
       - name: Harness Director Worker
         run: pnpm harness:test
