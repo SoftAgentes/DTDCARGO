@@ -24,6 +24,7 @@ import { createClient } from "@/lib/db/server";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { moduleEditDenial, tenantAdminGate } from "@/lib/studio/rbac-guard";
 import {
+  subcuentasDe,
   validateAccountInput,
   type AccountActionState,
   type AccountInput,
@@ -39,6 +40,7 @@ import {
 import {
   accountHasMovements,
   listPostableAccounts,
+  planDeCuentas,
 } from "@/lib/studio/account-queries";
 import {
   getAccountingSettings,
@@ -356,6 +358,16 @@ export async function setClosingDateAction(
 
 // ── Plan de cuentas ───────────────────────────────────────────
 
+/**
+ * SDD-0565 · El motivo que se le muestra a la persona cuando no se pudo leer
+ * el plan: el del tope, que es nuestro, o uno genérico. Nunca el texto de la
+ * base (ERR-01).
+ */
+function errorDelPlan(e: unknown): string {
+  if (e instanceof Error && e.message.startsWith("El plan de cuentas supera el tope")) return e.message;
+  return "no se pudo leer el plan de cuentas. Intenta de nuevo.";
+}
+
 function accountInputFromFormData(
   formData: FormData,
 ): Partial<AccountInput> {
@@ -379,8 +391,15 @@ export async function createAccount(
   const denial = await moduleEditDenial(supabase, "accounting");
   if (denial) return { error: denial };
 
+  // SDD-0565: la cuenta padre tiene que existir; sin el plan completo no se crea.
+  let plan;
+  try {
+    plan = await planDeCuentas(supabase);
+  } catch (e) {
+    return { error: `No se pudo crear la cuenta: ${errorDelPlan(e)}` };
+  }
   const partial = accountInputFromFormData(formData);
-  const { input, fieldErrors } = validateAccountInput(partial);
+  const { input, fieldErrors } = validateAccountInput(partial, plan);
   if (fieldErrors) return { fieldErrors };
 
   const { tenantId, error: tErr } = await resolveTenant(supabase);
@@ -430,7 +449,8 @@ export async function updateAccount(
   if (readErr || !current) return { error: "Cuenta no encontrada." };
 
   const partial = accountInputFromFormData(formData);
-  const { input, fieldErrors } = validateAccountInput(partial);
+  // La edición no escribe el código: la cuenta padre se exigió al crearla (SDD-0565).
+  const { input, fieldErrors } = validateAccountInput(partial, "edicion");
   if (fieldErrors) return { fieldErrors };
 
   // Si se intenta volver no-postable una cuenta con movimientos, bloquear.
@@ -467,6 +487,24 @@ export async function deleteAccount(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "accounting");
   if (denial) return { error: denial };
+
+  // SDD-0565: una cuenta con subcuentas no se borra; las dejaría huérfanas, y
+  // `on delete cascade` se llevaría las que la apuntan por parent_id.
+  let plan;
+  try {
+    plan = await planDeCuentas(supabase);
+  } catch (e) {
+    return { error: `No se pudo eliminar la cuenta: ${errorDelPlan(e)}` };
+  }
+  const cuenta = plan.find((a) => a.id === id);
+  if (!cuenta) return { error: "Cuenta no encontrada." };
+  const subcuentas = subcuentasDe(cuenta, plan);
+  if (subcuentas.length > 0) {
+    const lista = subcuentas.length > 3 ? `${subcuentas.slice(0, 3).join(", ")} y ${subcuentas.length - 3} más` : subcuentas.join(", ");
+    return {
+      error: `No se puede eliminar la cuenta ${cuenta.code}: tiene subcuentas (${lista}). Elimina primero las subcuentas.`,
+    };
+  }
 
   const hasMov = await accountHasMovements(supabase, id);
   if (hasMov) {

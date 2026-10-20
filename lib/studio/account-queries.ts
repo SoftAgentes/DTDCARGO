@@ -11,6 +11,7 @@ import {
   normalSide,
   parentCode,
   type Account,
+  type CuentaDelPlan,
 } from "./account-types";
 
 const ACCOUNT_COLUMNS =
@@ -47,6 +48,26 @@ export async function listAccounts(
     coerceAccount,
   );
   return rows.sort((a, b) => compareCodes(a.code, b.code));
+}
+
+/**
+ * SDD-0565 · El plan completo del tenant (id, código y padre), paginado.
+ * Es la base de las dos reglas que impiden una cuenta huérfana: un plan
+ * cortado dejaría pasar una (`listAccounts` se corta en 1000 sin avisar), así
+ * que si no llega completo, lanza.
+ */
+export async function planDeCuentas(supabase: SupabaseClient): Promise<CuentaDelPlan[]> {
+  const { rows, complete } = await fetchAllPaged<Record<string, unknown>>((d, h) =>
+    supabase.from("accounts").select("id, code, parent_id").order("id", { ascending: true }).range(d, h),
+  );
+  if (!complete) {
+    throw new Error("El plan de cuentas supera el tope de lectura; no se puede comprobar la cuenta padre.");
+  }
+  return rows.map((r) => ({
+    id: String(r.id),
+    code: String(r.code),
+    parent_id: (r.parent_id as string | null) ?? null,
+  }));
 }
 
 /** Solo las cuentas postables (hojas) — para el selector del editor de asiento. */
