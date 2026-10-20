@@ -15,7 +15,7 @@ confidencialidad: interno
 
 > La 2.1 del plan contable, segunda parte. La SDD-0569 creó el conversor canónico (`toUsd` en `lib/shared/fx.ts` y `to_usd` en la 0495) y la tabla `fx_rates`. Esta reemplaza las 13 implementaciones y las tasas fijas del código por ese conversor. **Aquí sí cambian cifras visibles.**
 
-**Estado: 0572-a EN RETOMA LOCAL** (reglas A a F y completitud cambiaria), después de integrar la #301 desde main `d410ab2e` en el merge local `2df9d22d`. La base original apilada fue `3d0c9028`; el diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). La regla G queda para la 2.3 y la 0572-b (SQL de 0404 y 0411) no ha arrancado. No se certifica todavía el cierre local ni la integración de 0572.
+**Estado: 0572-a IMPLEMENTADA Y REVISADA LOCALMENTE; COBERTURA CANÓNICA INCOMPLETA** (reglas A a F y completitud cambiaria). Producto `4dbdb21b`, [PR #310 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/310), después de integrar #301 desde main `d410ab2e` en `2df9d22d`. Verify terminó exit 0 con 14/17 controles medidos y tres omisiones críticas; no equivale a cierre verde completo ni a integración aprobada. La base original apilada fue `3d0c9028`; el diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). G queda para 2.3 y 0572-b (SQL 0404/0411) no ha arrancado.
 
 El primer cierre parcial de 0572-a en Codex el 2026-10-20 recibió turno exclusivo de validación y autorización para commits selectivos y push a la misma rama; entonces la PR esperaba la integración de #301. La retoma vigente se rige por la decisión siguiente. El estado general permanece `in-progress` porque 0572-b sigue diferida.
 
@@ -329,12 +329,44 @@ En el mismo cierre, el Director autorizó sumar únicamente `TesoreriaClient.cxp
 | Cambio de comportamiento Studio | cumplimiento | SDD aprobada + allowlist exacta (arriba) |
 | Producción | no aplica a la 0572-a | la 0572-a no tiene migración; la 0572-b sí |
 | ERR-01 | cumplimiento | cada «sin tasa» dice dónde cargarla («Contabilidad › Tasas de cambio», «Admin › Tasas») o qué falta para emitir |
-| Contrato Director / SGE-00.07 / NUM-01 | cumplimiento local en regresiones; revisión independiente nueva pendiente | F1–F6 reparados: subtotal conocido + contador; diferencia total null; cero válido distinto de importe desconocido; CSV y consumidores conservan estado |
+| Contrato Director / SGE-00.07 / NUM-01 | cumplimiento local revisado; cobertura canónica incompleta | F1–F6 reparados y revisados sobre4dbd: subtotal conocido + contador; diferencia total null; cero válido distinto de importe desconocido; CSV y consumidores conservan estado |
 | DAT-01 | no aplica al delta de fechas/rangos | no se modifica selección de fechas, rango ni Caracas; DAT-01 no gobierna completitud financiera |
 | VIS-01 / VIS-02 / CMP-01 | cumplimiento en el diff | componentes y tokens existentes; incompleto neutral, sin color de rentabilidad; ranking desplazable en ancho reducido |
 | A11Y-01 | cumplimiento parcial observado | estado textual junto al número, selector rotulado, VES deshabilitado sin tasa; fixture claro/oscuro y ancho390. Auditoría integral y dispositivo real NO EJECUTADOS |
 
 ## Validación
+
+### Cierre de corrida canónica sobre 4dbdb21b · 2026-10-20
+
+`corepack pnpm verify` finalizó exit 0: **CIERRE INCOMPLETO — 14/17 controles
+medidos; críticos sin medir migrations-applied, sql-tests y schema-rebuild**.
+Inicio 23:10:17Z, fin 23:37:18Z, 1621.265s. El handoff registra los 17 controles
+individuales y los recibos externos; no se infiere cobertura de exit0.
+
+- **PASÓ:** harness 237/237, lint 0 errores/15 warnings generales previos, RSC,
+  tipos, 4 edge, unitarios 12378/1 omitida en 868 archivos (867 aprobados), docs 557,
+  numbering, 6 feature-constants, 5 fuentes CMP, 28 políticas y símbolos pendientes
+  (0 rojo/1 amarillo 0495/3 homónimos).
+- **PASÓ con aviso según runner:** E2E 177 aprobados, 1 flaky, 20 omitidos, 10.3min;
+  error inicial de navegación con token ficticio aprobado al reintentar y
+  cierre forzado de worker tras 300000ms. Se aplicó la regla heredada sin
+  alterarla; no venció watchdog. JSONoriginal NO DISPONIBLE porque el runner
+  lo elimina al iniciar build; log y dictamen emitido sí conservados. No se
+  atribuye causa WebKit solo por el texto del mensaje.
+- **PASÓ build:** compile 27.4s, TypeScript 108s, 162 páginas en 1.128s, tsconfig restaurado.
+- **NO EJECUTADO:** ledger por credenciales ausentes (release); SQL/rebuild por
+  Docker NO DISPONIBLE. La omisión unitaria es corpus real no configurado;
+  E2E omite 18 casos de credenciales/seed y 2 capturas exclusivas de Chromium.
+- **PASÓ limpieza:** árbol 4dbd limpio y cero procesos/listeners propios a 23:38:13Z.
+  Revisión independiente de 4dbd sin hallazgos nuevos, condicionada a cobertura.
+
+Knowledge: inspección de solo lectura finalizada exit 0 pero **ok=false**;
+Graphify 0.9.61 INVALID por grafo ausente, piloto 0/16 y global 0/1324; Archify 2.16.0
+NO DISPONIBLE (runtime ausente), Obsidian PENDING, preview nueva NO EJECUTADA.
+No regeneración ni publicación; turno devuelto a 23:41:30Z con procesos cero.
+El cierre documental posterior conserva runtime/pruebas idénticos a 4dbd.
+La PR permanece en borrador; cobertura pendiente, CI y base 0573 se coordinan
+antes de integrar. No SQL nuevo, merge, despliegue ni datos reales.
 
 ### Ajuste visual posterior al checkpoint 3c36 · 2026-10-20
 

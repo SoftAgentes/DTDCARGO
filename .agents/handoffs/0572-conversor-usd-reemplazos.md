@@ -5,6 +5,13 @@
 Esta sección es el estado vigente; el cierre parcial siguiente conserva su
 fecha y evidencia, sin sustituir la validación de esta retoma.
 
+**Estado al cierre local:** producto revisado en `4dbdb21b3d8017d0c60c6d70291e86347f020233`,
+respaldado en [PR #310, borrador](https://github.com/SoftAgentes/DTDCARGO/pull/310).
+Implementación y revisión local completadas; `verify` terminó con **CIERRE
+INCOMPLETO, 14/17 controles medidos y exit 0**. No equivale a cobertura completa
+ni a preparación para integrar. El commit que contiene este cierre solo cambia
+spec/handoff; producto y pruebas permanecen idénticos a 4dbd.
+
 **OBJETIVO ORIGINAL:** completar 0572-a con los contratos de incompletitud
 cambiaria aprobados, pruebas y validación local, conservando 2.3/G y SQL fuera.
 
@@ -238,8 +245,79 @@ certifican. No hubo credenciales, lecturas de negocio ni conexión a base.
   no certifica esas superficies. No se repitieron 751 pruebas ni 43 mutantes
   por este delta exclusivo de disposición/texto, por decisión del Director.
 
-**PENDIENTES DE ESTA TAREA:** validación canónica sobre nueva cabeza estable,
-revisión independiente, cierre y draft PR.
+**VALIDACIÓN canónica final sobre 4dbdb21b:** `corepack pnpm verify`, sesión63809,
+desde `2026-10-20T23:10:17.5474501Z` hasta `23:37:18.8128386Z`, 1621.265s.
+Salida real **exit 0**, con veredicto literal **CIERRE INCOMPLETO — CRÍTICOS SIN
+MEDIR: migrations-applied, sql-tests, schema-rebuild**. No se cambiaron límites,
+políticas ni exclusiones. El runner no mide el tiempo individual de todos los
+controles; se conservan únicamente las duraciones emitidas.
+
+| Control | Resultado y alcance |
+|---|---|
+| harness | **PASÓ:** 237/237, sin omisiones, 114.567s |
+| lint | **PASÓ con advertencias:** 0 errores y 15 warnings generales previos; lint propio sin warnings |
+| rsc-boundary | **PASÓ:** 1706 módulos, sin cruces prohibidos |
+| typecheck | **PASÓ:** sin errores |
+| edge-functions | **PASÓ:** 4 funciones |
+| test | **PASÓ con omisión:** 12378 pruebas / 867 archivos aprobados; 1 prueba / 1 archivo omitido, 582.44s, sin reintento de suite |
+| docs:check | **PASÓ:** 557 specs, índice sincronizado |
+| numbering | **PASÓ:** 557 specs / 489 migraciones, colisiones históricas declaradas |
+| feature-constants | **PASÓ:** 6 banderas |
+| components:check | **PASÓ:** 5 fuentes, agregado reproducible |
+| governance:check | **PASÓ:** 28 políticas, cápsula vigente |
+| migrations-applied | **NO EJECUTADO:** sin credenciales; validación de release, no motivo para aplicar DB |
+| pending-migration-symbols | **PASÓ con aviso:** 0 rojo, 1 amarillo declarado 0495 y 3 homónimos descartados |
+| sql-tests | **NO EJECUTADO:** Docker NO DISPONIBLE |
+| schema-rebuild | **NO EJECUTADO:** Docker NO DISPONIBLE |
+| e2e | **PASÓ con aviso según runner:** 177 aprobados, 1 flaky, 20 omitidos; 10.3min. Salida no-cero de Playwright aceptada por regla heredada, con cierre forzado de un worker |
+| build | **PASÓ:** compile27.4s, TypeScript108s, 162 páginas en1.128s; tsconfig restaurado |
+
+La prueba unitaria omitida pertenece al corpus real de proformas:
+`DOCUMENT_IMPORT_CORPUS` no configurado y `corpus.test.ts:31` usa skipIf. No se
+leyó ese corpus. La prueba auxiliar de scripts terminó dentro de su límite
+600000ms; sus dos fuentes son idénticas a d410 y no se repararon por hipótesis.
+Las duraciones individuales restantes son **NO DISPONIBLES**, no cero.
+
+E2E omitió 18 casos por credenciales/seed y dos capturas limitadas a Chromium.
+`auth.spec.ts:81` tuvo `page.goto: net::ERR_ABORTED` con el token ficticio:
+primer intento23.0s, retry aprobado9.7s. Después Playwright informó
+`worker-17 process did not exit within 300000ms after stop, force-killed it`
+y un error fuera de tests. No venció el watchdog. La regla existente emitió
+`[OK] e2e (con aviso)`; no se repitió la suite ni se alteró el absolver. La
+atribución a WebKit en ese mensaje heredado no es diagnóstico causal propio.
+El JSON original E2E es **NO DISPONIBLE**: no se preservó antes de build y
+`verify.mjs:554–556,616` lo borra antes de cada intento de cada gate. No se
+regeneró un reporte para presentarlo como original. Log y clasificación
+emitida conservados. Nota independiente `0572-e2e-cierre-lectura.md`, SHA256
+`406b5bc02e58b89cadc6bf6e994b26ee9f837deaea6749bf359d3fc84f9b27d1`.
+
+Recibos externos: `revision-verify-4dbdb21b-{start,end,cleanup}.json`, log del
+mismo prefijo, `revision-unit-summary.json` y `revision-validacion-4dbdb21b.md`
+con la matriz completa. A23:38:13Z el árbol estaba limpio y no quedaban procesos
+con identidades previas, consumidores explícitos ni listeners3569/13569/4802.
+
+**Revisión independiente:** F1–F6 y delta visual 4dbd sin hallazgos nuevos,
+aprobación local condicionada a la cobertura del gate. Informe
+`0572-revision-independiente-3c36a7b2.md`, addendum4dbd, SHA256
+`4fe01633c2cadda248a6fed4f7ed53a2895e53a55c23834aada59e2b8e50af58`.
+La inspección no sustituye los tres controles omitidos ni la base futura.
+
+**COMMITS:** `2df9d22d` integra d410 en la rama propia; `220a2c3e` conserva el
+primer candidato y su revisión fallida; `3c36a7b2` repara F1–F6 con regresiones;
+`4dbdb21b` corrige disposición/texto de dos TSX con evidencia visual. El commit
+que contiene este documento registra el cierre sin alterar runtime/pruebas.
+Todos los candidatos de producto están respaldados en la misma rama remota.
+
+**PR / BRANCH:** [#310](https://github.com/SoftAgentes/DTDCARGO/pull/310), abierta
+y en borrador contra main d410; rama y worktree propios de esta sección.
+Se creó durante verify con la ejecución declarada EN CURSO, por autorización
+expresa, y se adjuntó al chat. La descripción se actualiza con este cierre.
+
+**PENDIENTES DE ESTA TAREA:** resolver cobertura SQL/rebuild en el entorno
+coordinado, preservar el ledger como validación de release, revisar CI cuando
+esté disponible y revalidar producto contra la base que incluya 0573 antes de
+integrar. Quedan las capas de conocimiento indicadas abajo. No hay nueva
+reparación financiera F1–F6 identificada por la revisión; la PR sigue en draft.
 Actions está retenido por rechazo de pago/revisión
 de 48 horas según Sam/Director: no se presume verde. Antes de integrar se exige
 revalidación contra la base que incluya 0573. Orden Director: 301 → 304/306 →
@@ -253,7 +331,20 @@ Director ordenó conservarlo como hallazgo y no absorberlo. Continúan 2.3/G,
 0572-b, KPIs globales, históricos y automatización BCV fuera del encargo.
 
 **CONOCIMIENTO / HANDOFF AL DIRECTOR:** decisiones y evidencia guardadas en
-spec/handoff propios; no integradas ni publicadas a la bóveda. Inspección
+spec/handoff propios; no integradas ni publicadas a la bóveda. Inspección actual
+`corepack pnpm knowledge:status` sobre4dbd terminó exit0, **ok=false**, a23:41:07Z
+(159.146s), después de verify y con autorización de solo lectura. Graphify0.9.61
+estructural **INVALID** por graph.json ausente/vacío; piloto0/16 **PENDING**,
+global0/1324 **INVALID**, 1308 fuentes pendientes fuera del piloto. Archify2.16.0
+**NO DISPONIBLE** en este worktree: `ARCHIFY_RUNTIME_MISSING`; Obsidian **PENDING**.
+Preview nueva **NO EJECUTADA**: faltan los prerrequisitos estructurales/semánticos
+y Director difirió regeneración/publicación. No hubo bypass ni publicación.
+Recibos `revision-knowledge-status{,-start,-end}` y `revision-heavy-turn-return.json`.
+La sesión72759 cerró efectivamente; node18648/python7492/22288 ausentes. A23:41:30Z
+knownRemaining=[], explicitConsumers=[] y árbol limpio; turno pesado
+**DEVUELTO explícitamente** al Director antes del cierre documental.
+
+Antecedente preservado: inspección
 `knowledge:status --preview` terminada exit 0 pero **ok=false**: Graphify
 0.9.61 estructural INVALID (grafo ausente), semántica 0/16 piloto y 0/1324
 global; Archify PENDING por runtime ausente y Obsidian PENDING. Recibo
@@ -265,7 +356,13 @@ build ni publicación. Recibo `retoma-knowledge-preview-interruption.txt`.
 Director indicó no reintentar ni reconstruir ahora; coordinar derivados tras
 base 0573. Todos esos PIDs e inspección 40504/23600/32464 terminaron antes de
 verify. No se certifica Graphify/Archify/preview ni revisión en Obsidian.
-Claim activo hasta concluir escritura; se liberará con recibo al cierre.
+Claim conservado durante la escritura documental y publicación selectiva;
+el protocolo lo libera después de confirmar push. El recibo externo de entrega
+y el informe final al Director registran la liberación efectiva, sin crear un
+commit recursivo solo para incluir su propio SHA. No se deja proceso pesado ni
+servidor a otra sesión y no se elimina el worktree. El siguiente paso de producto
+pertenece al Director: cobertura pendiente, base0573 y orden de integración;
+este cierre no autoriza merge, deploy, DB ni lectura de datos reales.
 
 ## Cierre parcial anterior · antecedente fechado
 
