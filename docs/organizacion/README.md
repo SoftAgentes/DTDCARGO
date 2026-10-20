@@ -7,6 +7,11 @@
 |---|---|---|
 | [`organigrama-paperclip.md`](organigrama-paperclip.md) | Propuesta de organigrama (personas y agentes) para Paperclip: diagnóstico, puestos, asignación de personas, el CEO, riesgos y respuestas de Sam | borrador · faltan los titulares por confirmar |
 | [`assets/01-organigrama-dtd-cargo.svg`](assets/01-organigrama-dtd-cargo.svg) | Organigrama gráfico por puestos | borrador |
+| [`hermes-oficina.md`](hermes-oficina.md) | Diseño de la oficina de agentes con Hermes y Paperclip: perfiles, memoria, skills, controles, fases H1–H5 | aprobado por Sam (2026-10-20) |
+| [`plan-maestro-oficina.md`](plan-maestro-oficina.md) | Estado montado, plantilla obligatoria para contratar agentes, fases pendientes y reglas para el Hermes director | vigente |
+| [`guia-continuar-con-hermes.md`](guia-continuar-con-hermes.md) | Cómo sigue Sam trabajando con los agentes sin Claude | vigente |
+| [`oficina-conocimiento/`](oficina-conocimiento/README.md) | Biblioteca de la empresa para los agentes (se publica en solo lectura en el VPS) | vigente |
+| [`oficina-agentes/`](oficina-agentes/README.md) | Identidades (`SOUL`), contexto e instrucciones de Paperclip por puesto | vigente |
 
 ## Reglas de esta carpeta
 
