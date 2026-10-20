@@ -16,9 +16,11 @@ import {
   accountDepth,
   buildAccountTree,
   compareCodes,
+  cuentaPadreFaltante,
   flattenTree,
   normalSide,
   parentCode,
+  subcuentasDe,
   validateAccountInput,
   type Account,
 } from "../account-types";
@@ -115,12 +117,15 @@ describe("buildAccountTree", () => {
 
 describe("validateAccountInput", () => {
   it("acepta input válido", () => {
-    const r = validateAccountInput({
+    const r = validateAccountInput(
+      {
       code: " 6.20 ",
       name: " Gastos varios ",
       type: "G",
       is_postable: true,
-    });
+      },
+      [{ code: "6" }],
+    );
     expect(r.fieldErrors).toBeUndefined();
     expect(r.input?.code).toBe("6.20");
     expect(r.input?.name).toBe("Gastos varios");
@@ -128,13 +133,13 @@ describe("validateAccountInput", () => {
   });
 
   it("exige código y nombre", () => {
-    const r = validateAccountInput({ code: "", name: "", type: "G" });
+    const r = validateAccountInput({ code: "", name: "", type: "G" }, []);
     expect(r.fieldErrors?.code).toBeDefined();
     expect(r.fieldErrors?.name).toBeDefined();
   });
 
   it("rechaza código no numérico jerárquico", () => {
-    const r = validateAccountInput({ code: "6-20", name: "X", type: "G" });
+    const r = validateAccountInput({ code: "6-20", name: "X", type: "G" }, []);
     expect(r.fieldErrors?.code).toBeDefined();
   });
 
@@ -143,8 +148,57 @@ describe("validateAccountInput", () => {
       code: "6.20",
       name: "X",
       type: "ZZ" as Account["type"],
-    });
+    }, [{ code: "6" }]);
     expect(r.fieldErrors?.type).toBeDefined();
+  });
+});
+
+/**
+ * SDD-0565 · Ninguna cuenta queda huérfana (decisión del Director, 2026-10-19):
+ * no se crea una subcuenta sin su cuenta padre y no se borra una cuenta con
+ * subcuentas. La propiedad, por las acciones, está en
+ * app/studio/(app)/contabilidad/__tests__/plan-de-cuentas-sin-huerfanas.test.ts.
+ */
+describe("SDD-0565 · ninguna cuenta queda huérfana", () => {
+  const PLAN = ["1", "1.1", "1.1.2", "1.1.20"].map((code) => ({ code }));
+
+  it("cuentaPadreFaltante: la raíz no tiene padre; una subcuenta, el código sin su último segmento", () => {
+    expect(cuentaPadreFaltante("9", PLAN)).toBeNull();
+    expect(cuentaPadreFaltante("1.1.2.9.1", PLAN)).toBe("1.1.2.9");
+    expect(cuentaPadreFaltante("1.1.2.9", PLAN)).toBeNull();
+    // «1.1.20» no es el padre de «1.1.2.9»: compara el código entero.
+    expect(cuentaPadreFaltante("1.1.200.1", PLAN)).toBe("1.1.200");
+  });
+
+  it("validateAccountInput exige la cuenta padre al crear y dice cuál falta", () => {
+    const sinPadre = validateAccountInput({ code: "1.1.2.9.1", name: "X", type: "A" }, PLAN);
+    expect(sinPadre.input).toBeUndefined();
+    expect(sinPadre.fieldErrors?.code).toBe("Primero crea la cuenta 1.1.2.9: es la cuenta padre de 1.1.2.9.1.");
+    const conPadre = validateAccountInput({ code: "1.1.2.9", name: "X", type: "A" }, PLAN);
+    expect(conPadre.fieldErrors).toBeUndefined();
+    expect(conPadre.input?.code).toBe("1.1.2.9");
+    // Una raíz nueva no necesita padre.
+    expect(validateAccountInput({ code: "9", name: "X", type: "A" }, []).fieldErrors).toBeUndefined();
+  });
+
+  it("al editar no exige el padre: la edición no cambia el código", () => {
+    const r = validateAccountInput({ code: "1.1.2.9.1", name: "X", type: "A" }, "edicion");
+    expect(r.fieldErrors).toBeUndefined();
+  });
+
+  it("subcuentasDe: por el código (prefijo y punto) y por parent_id, sin la propia cuenta", () => {
+    const plan = [
+      { id: "a", code: "1.1.2", parent_id: null },
+      { id: "b", code: "1.1.2.1", parent_id: "a" },
+      { id: "c", code: "1.1.2.9.1", parent_id: null },
+      { id: "d", code: "1.1.20", parent_id: null },
+      { id: "e", code: "9.9", parent_id: "a" },
+      { id: "f", code: "1.1.3", parent_id: null },
+    ];
+    expect(subcuentasDe(plan[0], plan)).toEqual(["1.1.2.1", "1.1.2.9.1", "9.9"]);
+    expect(subcuentasDe(plan[5], plan)).toEqual([]);
+    // «1.1.20» no es subcuenta de «1.1.2».
+    expect(subcuentasDe(plan[0], plan)).not.toContain("1.1.20");
   });
 });
 

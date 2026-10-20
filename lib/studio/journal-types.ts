@@ -7,6 +7,8 @@
  * (status='asentado') si balancea. Cada línea tiene debe XOR haber.
  */
 
+import type { AvisoCierre } from "./accounting/cierre-excepciones";
+
 export type EntryStatus = "borrador" | "asentado" | "anulado";
 
 export type EntrySource =
@@ -180,6 +182,8 @@ export type JournalActionState = {
   error?: string;
   fieldErrors?: Partial<Record<keyof JournalEntryInput | "lines", string>>;
   createdCode?: string;
+  /** SDD-0566: la fecha cae en período cerrado y se puede pedir la excepción. */
+  cierre?: AvisoCierre;
 };
 
 /**
