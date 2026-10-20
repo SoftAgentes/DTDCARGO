@@ -1,5 +1,91 @@
 # Handoff · SDD-0571 · Tarifa congelada por embarque (4.1 del plan contable)
 
+> **Adopción Codex, 2026-10-20:** el Director asignó el cierre acotado de tres P2
+> sobre `b70be5d792ca4ee0417426266301a9e2e7fd9ffc`, después de la pausa explícita
+> de la sesión anterior por Sam. Owner escritor: `codex-0571-cierre-01a15a4e`,
+> mismo worktree y rama de la tabla. Se comprobaron raíz/rama, árbol limpio,
+> respaldo remoto en ese SHA, guard y claim disponible antes de adquirirlo.
+> La segunda consulta de procesos no encontró consumidores que nombraran este
+> worktree; esa ausencia no sustituye la autorización de adopción.
+>
+> **Estado del cierre:** VALIDADO LOCALMENTE, ACEPTACIÓN FINAL PENDIENTE. Paginación
+> normalizada y vigencia de carga/vista previa pasaron el focal y siete controles
+> rojos. **La aceptación final requiere la validación canónica posterior sobre
+> la base final.** La preparación respetó los turnos de #304 y #301 (SDD-0569);
+> el Director asignó después el turno exclusivo a 0571. No se instalaron dependencias.
+> Commit selectivo y push a la misma rama/PR #307 en borrador autorizados después
+> del focal. Sin SQL, RBAC, DB, producción, cambios de dependencias ni junction.
+> La UI visible del Worker y la revisión independiente del Director pasaron
+> con datos sintéticos. El servidor quedó detenido, sin procesos propios,
+> y se devolvió expresamente el turno pesado. La actualización del conocimiento
+> permanece pendiente para el cierre del Director sobre la integración.
+>
+> Allowlist de esta adopción: `lib/studio/rate-snapshots/propuesta.ts`,
+> `lib/studio/rate-snapshots/__tests__/propuesta.test.ts`,
+> `app/studio/(app)/cn/_components/RateSnapshotDrawer.tsx`,
+> `app/studio/(app)/cn/_components/RateSnapshotDrawer.test.tsx` (nuevo),
+> la spec 0571 y este handoff; `docs/specs/README.md` solo si lo exige el generador;
+> los dos diccionarios `warehouse.ts` solo para estados que necesite la reparación.
+> La evidencia de la sesión anterior se conserva como histórica, separada del cierre actual.
+
+## Cierre acotado Codex: validación local del 2026-10-20
+
+Cambios preparados sobre el SHA de adopción, validados antes del commit selectivo:
+
+- `propuesta.ts`: clientes en páginas de 50, con orden por `id`, buscando todas las coincidencias exactas normalizadas para detectar ambigüedad; estimados en páginas de 20, con orden por `accepted_at` e `id`, hasta reunir 20 coincidencias exactas válidas o agotar candidatos. No se cambia el resolutor ni la precedencia de fuentes.
+- `RateSnapshotDrawer.tsx`: cada carga conserva recepción, servicio y generación; una respuesta anterior se descarta. La vista previa remota conserva la clave de la entrada y su edición; cambiarla oculta inmediatamente el importe previo e impide enviar tanto desde el botón como desde el formulario. La edición distingue A → B → A. Los errores y rechazos de promesas dejan el envío bloqueado hasta una respuesta válida vigente.
+- En la lectura de `useT` se observó que devuelve una función nueva por render. Se quitó esa identidad de las dependencias de carga guardando datos de error y traduciéndolos al renderizar en el cajón. **La regresión pasó y el mutante que vuelve a depender del traductor falló por ciclo de render**, con una cota explícita de 100 renders para no bloquear el proceso. No se modifica i18n compartido.
+- Mensaje de cálculo pendiente en los diccionarios `warehouse.ts` es-VE y zh-CN, con `aria-busy` en la vista previa. Se conservan los controles, tokens, distribución y permisos existentes.
+- `propuesta.test.ts`: cuatro regresiones nuevas, sin quitar las anteriores; 11 casos en total. El doble ejecuta filtros, orden y rangos, con coincidencias exactas detrás de 50/20 parciales y duplicados en páginas distintas.
+- `RateSnapshotDrawer.test.tsx`: 14 casos con promesas controladas y temporizadores; montan el campo numérico real y sustituyen las acciones. Cubren debounce, respuestas fuera de orden, A → B → A, fallo y recuperación, cambio de estimado/recepción/servicio, motivo y estabilidad frente a la identidad del traductor. También cruzan respuestas de preview por recepción y servicio. No usan DB.
+- La spec incorpora la prueba nueva en su allowlist y los criterios 12–14. `docs:check` confirmó el índice sincronizado; no fue necesario modificar `docs/specs/README.md`.
+
+| Comprobación del cierre actual | Estado |
+|---|---|
+| Raíz, rama, SHA de adopción, árbol inicial limpio, respaldo remoto y guard/claim | PASÓ |
+| Lectura del diff y de las secuencias | Realizada; lectura preliminar del Director sin otro defecto observado |
+| Focal final: propuesta, cajón, types, acciones y ReceiptRateCell | PASÓ: 62/62, cinco archivos, un worker y sin paralelismo entre archivos; `C:/tmp/worker-0571-cierre-20261020/focal-final.log` |
+| Controles rojos/mutantes | PASÓ: 7/7 detectados; detalle debajo. Inyección solo al transformar el código en Vitest; SHA-256 de las cuatro fuentes idéntico antes/después |
+| Typecheck | PASÓ: tipos de ruta sanos y `tsc --noEmit` exit 0; `typecheck.log` en la carpeta de evidencia |
+| Lint de los seis archivos TS/TSX tocados | PASÓ: exit 0, cero warnings; `lint.log` |
+| `docs:check`, numbering y `git diff --check` | PASÓ; 556 specs, 489 migraciones; las colisiones históricas ya exceptuadas permanecen |
+| `pnpm verify` sobre la base final | NO EJECUTADO: lo coordina el Director después de las dependencias |
+| Revisión visible del Worker | PASÓ en fixture sintética: estados, recuperación, confirmación, ancho móvil, chino, oscuro/solo lectura y teclado. Límites debajo |
+| Revisión visible independiente del Director | PASÓ en IAB: 900 conserva la entrada, oculta el importe durante la espera y después muestra $1,800.00; 999 elimina ese resultado, bloquea enviar y conserva el error sintético. Captura `director-error-sintetico.png` |
+| Servidor, procesos y turno de pruebas | PASÓ: fixture detenida, 0 procesos propios en `processes-final.json`; turno pesado devuelto expresamente antes del cierre documental |
+| Commit/push y estado de la PR | El commit que contiene este cierre se publica selectivamente en la misma rama; SHA exacto y respaldo se registran en la PR y entrega final. PR #307 permanece en borrador |
+| Integración, conocimiento compartido, merge, despliegue o SQL0496 | NO EJECUTADO; fuera de este cierre |
+
+Controles rojos reproducibles con `node C:/tmp/worker-0571-cierre-20261020/run-mutants.mjs`, sin modificar archivos del producto:
+
+| Control | Resultado esperado observado |
+|---|---|
+| `propuesta.ts` original de `b70be5d7` | Cuatro fallos: exacto detrás de 50, duplicado en otra página, exacto detrás de 20 y tope posterior al filtro |
+| Preview sin comprobar clave vigente | Falla porque continúa visible el importe $1,600.00 anterior |
+| Submit sin exigir `puedeEnviar` | Falla porque el evento del formulario llama a congelar con la preview pendiente, aunque el botón esté deshabilitado |
+| Carga sin generación | Fallan los cruces por servicio y recepción: la respuesta anterior desplaza la actual |
+| Preview sin descarte de respuesta anterior | Fallan precio y cruces de recepción/servicio: desaparece la preview vigente |
+| Preview sin generación de edición | Falla A → B → A por reutilizar el importe anterior |
+| Carga dependiente del traductor | Falla por ciclo de render; el código corregido carga una sola vez ante los renders del formulario |
+
+`mutants-summary.json` conserva nombres, errores, exit codes y hashes. El focal inicial pasó 23/23; después se añadieron dos cruces explícitos de preview por recepción/servicio y el focal final pasó 62/62 con las regresiones existentes. No se cambió lógica de producto para acomodar una prueba fallida.
+
+### UI visible y fixture local
+
+Fixture en `http://127.0.0.1:4571/`, iniciable con `node C:/tmp/worker-0571-cierre-20261020/server.mjs`. Archivos temporales fuera del repo. Monta `RateSnapshotDrawer`, `DrawerShell`, `NumericInput`, i18n, `ToastProvider`, CSS y fuentes locales reales; reemplaza únicamente las acciones por datos sintéticos y los adaptadores de navegación de Next. La carga de `.env` está deshabilitada y los imports de Supabase/server-only se rechazan. Ninguna fila, credencial ni sesión de negocio se usó en esta revisión.
+
+- `?delay=5000`: permite observar el cálculo pendiente. Precio 999 provoca un error sintético; 900 recupera. LCL tarda 1.600 ms y DDP 200 ms para revisar respuestas cruzadas. `?lang=cn`, `?theme=dark` y `?role=support` habilitan los otros escenarios.
+- Observado: 800 → 900 elimina $1,600.00 de inmediato, muestra «Calculando la tarifa…» y bloquea enviar; el error 999 conserva el bloqueo; recuperación a 900 habilita confirmar y la acción sintética muestra tarifa vigente y aviso por $1,800.00.
+- A 390 × 844, etiquetas e importes legibles, scroll dentro del cajón y footer fijo. Viewport restaurado al terminar. En chino se observó la nueva traducción de cálculo; oscuro/solo lectura conserva el bloqueo y oculta las vías elevadas.
+- Foco inicial en el diálogo, Tab/Shift+Tab dentro, Escape cierra y devuelve el foco al botón de apertura. Cero errores de consola observados. No sustituye cobertura completa de lector de pantalla, navegadores/dispositivos reales ni integración con el backend.
+- Capturas locales en la carpeta de evidencia: `ui-inicial.jpg`, `ui-pendiente.jpg`, `ui-error.jpg`, `ui-movil.jpg`, `ui-movil-recuperada.jpg`, `ui-confirmada-sintetica.jpg`, `ui-zh-CN.jpg`, `ui-oscuro-solo-lectura.jpg`. El Director revisó por separado en IAB los estados pendiente, válido ($1,800.00) y error sintético, y guardó `director-error-sintetico.png`.
+- La fixture y las pestañas propias de revisión quedaron cerradas. `processes-final.json` registra 0 procesos propios; no se dejó ninguna prueba, compilación ni contenedor ejecutándose por esta tarea. El turno pesado se devolvió al Director antes de completar documentación, commit y push. Graphify, Archify, cobertura semántica y publicación/revisión visible en Obsidian siguen pendientes del Director, separados de la evidencia guardada en esta tarea.
+- `/ui-check` del alcance: sin hallazgos nuevos bloqueantes; se reutilizan componentes, fuentes, tokens, labels y estados. **FUERA DE ALCANCE DETECTADO:** las opciones compartidas de servicio siguen en español bajo zh-CN, comportamiento preexistente en `SERVICE_OPTIONS`; requiere una tarea de traducción compartida, no un cambio en este cierre.
+
+Se conservan como límites históricos la ausencia del módulo `cn` en accounting, la fecha UTC del resolutor frente a Caracas y el mínimo mutable del estimado. No se reparan ni se presentan como aprobados por este cierre. La reparación preparada no cambia SQL0496 ni la matriz RBAC.
+
+La evidencia de la sesión anterior continúa a continuación.
+
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-10-20 |

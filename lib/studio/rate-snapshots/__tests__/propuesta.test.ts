@@ -2,7 +2,7 @@
  * SDD-0571 · La propuesta automática (estimado aceptado → lista o casa) y la
  * comparación del Shipping Mark como la RPC: `upper(btrim())` (revisión de
  * seguridad, punto 8). El doble filtra de verdad: `eq`, `is`, `ilike` (sin
- * mayúsculas, con `%` y escapes) y `limit`; devuelve copias.
+ * mayúsculas, con `%` y escapes), orden y páginas; devuelve copias.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -38,7 +38,23 @@ function doble(): SupabaseClient {
     from: (tabla: string) => {
       const filtros: ((r: Fila) => boolean)[] = [];
       let tope = Infinity;
-      const filas = () => (tablas[tabla] ?? []).filter((r) => filtros.every((f) => f(r))).slice(0, tope).map((r) => ({ ...r }));
+      let desde = 0;
+      const orden: { col: string; ascending: boolean; nullsFirst: boolean }[] = [];
+      const filas = () => (tablas[tabla] ?? [])
+        .filter((r) => filtros.every((f) => f(r)))
+        .sort((a, b) => {
+          for (const o of orden) {
+            const av = a[o.col], bv = b[o.col];
+            if (av == null && bv == null) continue;
+            if (av == null) return o.nullsFirst ? -1 : 1;
+            if (bv == null) return o.nullsFirst ? 1 : -1;
+            const comparacion = String(av).localeCompare(String(bv));
+            if (comparacion) return o.ascending ? comparacion : -comparacion;
+          }
+          return 0;
+        })
+        .slice(desde, desde + tope)
+        .map((r) => ({ ...r }));
       const c: Record<string, unknown> = {};
       c.select = () => c;
       c.eq = (col: string, v: unknown) => (filtros.push((r) => r[col] === v), c);
@@ -49,8 +65,11 @@ function doble(): SupabaseClient {
         return c;
       };
       c.ilike = (col: string, p: string) => (filtros.push((r) => ilike(r[col], p)), c);
-      c.order = () => c;
+      c.order = (col: string, options?: { ascending?: boolean; nullsFirst?: boolean }) => (
+        orden.push({ col, ascending: options?.ascending ?? true, nullsFirst: options?.nullsFirst ?? false }), c
+      );
       c.limit = (n: number) => ((tope = n), c);
+      c.range = (inicio: number, fin: number) => ((desde = inicio), (tope = fin - inicio + 1), c);
       c.maybeSingle = async () => ({ data: filas()[0] ?? null, error: null });
       c.then = (ok: (v: unknown) => unknown) => ok({ data: filas(), error: null });
       return c;
@@ -97,6 +116,28 @@ describe("proponerTarifa", () => {
     expect(await proponerTarifa(doble(), recepcion("DTD-0001"), "puerta_a_puerta_DDP")).toEqual({ kind: "ninguna", motivo: "sin_cliente" });
   });
 
+  it("encuentra el cliente exacto después de 50 candidatos parciales", async () => {
+    tablas.clients = Array.from({ length: 50 }, (_, i) => ({
+      id: `a-${String(i).padStart(3, "0")}`, markbox: `DTD-0001-${i}`, deleted_at: null,
+    }));
+    tablas.clients.push({ id: "z-exacto", markbox: " dtd-0001 ", deleted_at: null });
+    expect((await proponerTarifa(doble(), recepcion("DTD-0001"), "puerta_a_puerta_DDP")).kind).toBe("tarifario");
+    expect(resolver.ultimo).toMatchObject({ clientId: "z-exacto" });
+  });
+
+  it("una segunda coincidencia exacta en otra página sigue siendo ambigua", async () => {
+    tablas.clients = [
+      { id: "a-exacto", markbox: "DTD-0001", deleted_at: null },
+      ...Array.from({ length: 50 }, (_, i) => ({
+        id: `b-${String(i).padStart(3, "0")}`, markbox: `DTD-0001-${i}`, deleted_at: null,
+      })),
+      { id: "z-duplicado", markbox: " dtd-0001 ", deleted_at: null },
+    ];
+    expect(await proponerTarifa(doble(), recepcion("DTD-0001"), "puerta_a_puerta_DDP"))
+      .toEqual({ kind: "ninguna", motivo: "sin_cliente" });
+    expect(resolver.ultimo).toBeNull();
+  });
+
   it("un comodín en el Shipping Mark se busca tal cual", async () => {
     expect(await proponerTarifa(doble(), recepcion("DTD-000_"), "puerta_a_puerta_DDP")).toEqual({ kind: "ninguna", motivo: "sin_cliente" });
   });
@@ -121,5 +162,38 @@ describe("listAcceptedQuotesForMarkbox", () => {
     const qs = await listAcceptedQuotesForMarkbox(doble(), "dtd-0001");
     expect(qs.map((q) => q.id)).toEqual(["q1"]);
     expect(qs[0].rate_per_cbm).toBe(820);
+  });
+
+  it("encuentra el estimado exacto aunque haya 20 parciales más recientes", async () => {
+    tablas.quotes = Array.from({ length: 20 }, (_, i) => ({
+      id: `parcial-${i}`, quote_code: `EST-P-${i}`, client_markbox: "DTD-00012",
+      service: "puerta_a_puerta_DDP", rate_per_cbm: 900, status: "accepted",
+      deleted_at: null, accepted_at: "2026-10-20T15:00:00Z",
+    }));
+    tablas.quotes.push({
+      id: "exacto", quote_code: "EST-E", client_markbox: " dtd-0001 ",
+      service: "puerta_a_puerta_DDP", rate_per_cbm: 820, status: "accepted",
+      deleted_at: null, accepted_at: "2026-10-19T15:00:00Z",
+    });
+    expect((await listAcceptedQuotesForMarkbox(doble(), "DTD-0001")).map((q) => q.id)).toEqual(["exacto"]);
+  });
+
+  it("el tope cuenta 20 estimados exactos válidos, ordenados con desempate estable", async () => {
+    const exactos = Array.from({ length: 25 }, (_, i) => ({
+      id: `e-${String(i).padStart(2, "0")}`, quote_code: `EST-E-${i}`, client_markbox: "DTD-0001",
+      service: "puerta_a_puerta_DDP", rate_per_cbm: 800 + i, status: "accepted",
+      deleted_at: null, accepted_at: "2026-10-19T15:00:00Z",
+    }));
+    tablas.quotes = [
+      ...exactos.slice().reverse(),
+      ...Array.from({ length: 21 }, (_, i) => ({
+        id: `p-${i}`, quote_code: `EST-P-${i}`, client_markbox: "DTD-00012",
+        service: "puerta_a_puerta_DDP", rate_per_cbm: 900, status: "accepted",
+        deleted_at: null, accepted_at: "2026-10-20T15:00:00Z",
+      })),
+      { ...exactos[0], id: "cero", rate_per_cbm: 0, accepted_at: "2026-10-21T15:00:00Z" },
+    ];
+    expect((await listAcceptedQuotesForMarkbox(doble(), "DTD-0001")).map((q) => q.id))
+      .toEqual(exactos.slice(0, 20).map((q) => q.id));
   });
 });

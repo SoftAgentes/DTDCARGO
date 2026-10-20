@@ -13,7 +13,7 @@
  * previa de la misma RPC que congela.
  */
 
-import { useCallback, useEffect, useId, useState, useTransition } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { Badge } from "@/app/studio/_components/ui/Badge";
@@ -41,6 +41,9 @@ import {
 } from "../rate-snapshot-actions";
 
 type Modo = "propuesta" | "estimado" | "manual" | "excel_yiwu";
+type CargaTarifa = { receiptId: string; service: ShipmentService; requestId: number; data: RateDrawerData };
+type ErrorTarifa = { errorKey?: I18nKey; error?: string };
+type VistaPrevia = { key: string; snapshot: RateSnapshot | null; error: ErrorTarifa | null };
 
 const NONE_KEYS: Record<Extract<PropuestaTarifa, { kind: "ninguna" }>["motivo"], I18nKey> = {
   sin_cliente: "warehouse_cn.rate.none.sin_cliente",
@@ -117,8 +120,9 @@ export function RateSnapshotDrawer({
   const t = useT();
   const toast = useToast();
   const formId = useId();
-  const [data, setData] = useState<RateDrawerData | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [carga, setCarga] = useState<CargaTarifa | null>(null);
+  const cargaId = useRef(0);
+  const [loadError, setLoadError] = useState<ErrorTarifa | null>(null);
   const [service, setService] = useState<ShipmentService>(SERVICIO_POR_DEFECTO);
   const [modo, setModo] = useState<Modo>("propuesta");
   const [quoteId, setQuoteId] = useState("");
@@ -126,38 +130,52 @@ export function RateSnapshotDrawer({
   const [minCharge, setMinCharge] = useState<number | null>(null);
   const [kg, setKg] = useState<500 | 1000>(500);
   const [reason, setReason] = useState("");
-  const [preview, setPreview] = useState<RateSnapshot | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<VistaPrevia | null>(null);
+  const [revisionEntrada, setRevisionEntrada] = useState(0);
   const [fieldErrors, setFieldErrors] = useState<FreezeFieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [changed, setChanged] = useState(false);
   const [loading, startLoading] = useTransition();
   const [saving, startSaving] = useTransition();
+  // Se puede seguir leyendo la recepción mientras cambia el servicio, pero
+  // sus datos anteriores no son una propuesta confirmable para la selección.
+  const data = carga?.receiptId === receiptId ? carga.data : null;
+  const cargaVigente = data !== null && carga?.service === service && !loading && !loadError;
+  const cambiarEntrada = (actualizar: () => void) => {
+    setRevisionEntrada((revision) => revision + 1);
+    actualizar();
+  };
 
-  const mensaje = useCallback(
-    (r: { errorKey?: I18nKey; error?: string }) =>
-      r.errorKey ? t(r.errorKey) : (r.error ?? t("warehouse_cn.rate.err.generic")),
-    [t],
-  );
+  // useT devuelve una función nueva en cada render. Las peticiones conservan
+  // datos de error; traducirlos aquí evita reiniciar la carga por esa identidad.
+  const mensaje = (r: ErrorTarifa) =>
+    r.errorKey ? t(r.errorKey) : (r.error ?? t("warehouse_cn.rate.err.generic"));
 
   const cargar = useCallback(
     (svc: ShipmentService) => {
+      const requestId = ++cargaId.current;
       startLoading(async () => {
-        const r = await loadRateDrawerAction(receiptId, svc);
-        if (r.ok) {
-          setData(r);
-          setLoadError(null);
-        } else {
-          setLoadError(mensaje(r));
+        setLoadError(null);
+        try {
+          const r = await loadRateDrawerAction(receiptId, svc);
+          if (requestId !== cargaId.current) return;
+          if (r.ok) {
+            setCarga({ receiptId, service: svc, requestId, data: r });
+          } else {
+            setLoadError(r);
+          }
+        } catch {
+          if (requestId === cargaId.current) setLoadError({});
         }
       });
     },
-    [mensaje, receiptId],
+    [receiptId],
   );
 
   useEffect(() => {
-    cargar(SERVICIO_POR_DEFECTO);
-  }, [cargar]);
+    cargar(service);
+    return () => { cargaId.current += 1; };
+  }, [cargar, service]);
 
   const live = data?.live ?? null;
   const reemplazo = live != null;
@@ -165,7 +183,7 @@ export function RateSnapshotDrawer({
   const motivoObligatorio = reemplazo || aMano || kg === 1000;
 
   const entrada = useCallback((): Record<string, unknown> | null => {
-    if (!data) return null;
+    if (!data || !cargaVigente) return null;
     const base = { receiptId, service, includedKgPerCbm: kg, reason };
     if (modo === "propuesta") {
       const p = data.propuesta;
@@ -175,34 +193,49 @@ export function RateSnapshotDrawer({
     }
     if (modo === "estimado") return quoteId ? { ...base, source: "estimado", quoteId } : null;
     return { ...base, source: modo, perCbm, minCharge };
-  }, [data, kg, minCharge, modo, perCbm, quoteId, reason, receiptId, service]);
+  }, [cargaVigente, data, kg, minCharge, modo, perCbm, quoteId, reason, receiptId, service]);
 
   // Vista previa: la misma RPC, sin escribir. Con la propuesta y 500 kg/m³, ya
   // vino con la carga; para lo demás se pide al cambiar los datos.
   const usaPrevistaDeCarga = modo === "propuesta" && kg === 500;
-  const hayEntrada = entrada() != null;
-  const previewMostrada = !data ? null : usaPrevistaDeCarga ? data.preview : hayEntrada ? preview : null;
-  const previewErrorMostrado = !data
+  const entradaActual = entrada();
+  // El motivo no cambia los números. La generación de carga sí: una recarga
+  // puede traer otra medición o fuente aunque los controles no hayan cambiado.
+  // Cada edición invalida también el caso A → B → A: volver al mismo precio
+  // no permite confirmar una respuesta conservada de la edición anterior.
+  const previewKey = entradaActual
+    ? JSON.stringify([carga?.requestId, revisionEntrada, { ...entradaActual, reason: undefined }])
+    : null;
+  const previewVigente = previewKey !== null && preview?.key === previewKey;
+  const previewMostrada = !cargaVigente || !data
+    ? null
+    : usaPrevistaDeCarga
+      ? data.preview
+      : previewVigente ? preview?.snapshot ?? null : null;
+  const previewErrorMostrado = !cargaVigente || !data
     ? null
     : usaPrevistaDeCarga
       ? (data.previewErrorKey ? t(data.previewErrorKey) : null)
-      : hayEntrada
-        ? previewError
+      : previewVigente && preview?.error
+        ? mensaje(preview.error)
         : null;
+  const previewPendiente = loading || (!!previewKey && !usaPrevistaDeCarga && !previewVigente);
   useEffect(() => {
-    if (!data || usaPrevistaDeCarga) return;
+    if (!previewKey || usaPrevistaDeCarga) return;
     const e = entrada();
     if (!e) return;
     let vigente = true;
     const timer = setTimeout(async () => {
-      const r = await previewRateAction(e);
-      if (!vigente) return;
-      if (r.ok) {
-        setPreview(r.snapshot);
-        setPreviewError(null);
-      } else {
-        setPreview(null);
-        setPreviewError(r.fieldErrors ? null : mensaje(r));
+      try {
+        const r = await previewRateAction(e);
+        if (!vigente) return;
+        setPreview({
+          key: previewKey,
+          snapshot: r.ok ? r.snapshot : null,
+          error: r.ok || r.fieldErrors ? null : r,
+        });
+      } catch {
+        if (vigente) setPreview({ key: previewKey, snapshot: null, error: {} });
       }
     }, 300);
     return () => {
@@ -211,12 +244,15 @@ export function RateSnapshotDrawer({
     };
     // `reason` no cambia los números: no se vuelve a pedir la vista previa por él.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, modo, quoteId, perCbm, minCharge, kg, service, usaPrevistaDeCarga]);
+  }, [previewKey, usaPrevistaDeCarga]);
 
   const puedeEnviar =
     !!data &&
     !saving &&
     !loading &&
+    cargaVigente &&
+    previewMostrada !== null &&
+    !previewErrorMostrado &&
     (reemplazo || aMano || kg === 1000 ? data.canElevate : data.canFreeze) &&
     entrada() != null &&
     (!motivoObligatorio || reason.trim().length >= MOTIVO_MIN);
@@ -224,7 +260,7 @@ export function RateSnapshotDrawer({
   const onSubmit = (ev: React.FormEvent) => {
     ev.preventDefault();
     const e = entrada();
-    if (!e) return;
+    if (!e || !puedeEnviar || carga?.requestId !== cargaId.current) return;
     setSubmitError(null);
     setFieldErrors({});
     startSaving(async () => {
@@ -288,7 +324,7 @@ export function RateSnapshotDrawer({
       >
         {loadError && (
           <p role="alert" style={{ margin: 0, font: "600 12.5px/1.4 var(--f-sans)", color: "var(--danger)" }}>
-            {loadError}
+            {mensaje(loadError)}
           </p>
         )}
         {!data && !loadError && (
@@ -357,8 +393,7 @@ export function RateSnapshotDrawer({
                   value={service}
                   onChange={(e) => {
                     const svc = e.target.value as ShipmentService;
-                    setService(svc);
-                    cargar(svc);
+                    cambiarEntrada(() => setService(svc));
                   }}
                 >
                   {SERVICE_OPTIONS.map((o) => (
@@ -370,26 +405,28 @@ export function RateSnapshotDrawer({
               <fieldset style={{ border: 0, padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
                 <legend className="studio-label">{t("warehouse_cn.rate.drawer.source")}</legend>
                 <label style={{ display: "flex", gap: 8, alignItems: "flex-start", font: "500 12.5px/1.4 var(--f-sans)" }}>
-                  <input type="radio" name="modo" checked={modo === "propuesta"} onChange={() => setModo("propuesta")} />
+                  <input type="radio" name="modo" checked={modo === "propuesta"} onChange={() => cambiarEntrada(() => setModo("propuesta"))} />
                   <span>
                     {t("warehouse_cn.rate.drawer.mode_proposal")}
-                    <span style={{ display: "block", color: "var(--ink-soft)" }}>{propuestaTexto(data.propuesta)}</span>
+                    <span style={{ display: "block", color: "var(--ink-soft)" }}>
+                      {cargaVigente ? propuestaTexto(data.propuesta) : loadError ? mensaje(loadError) : t("warehouse_cn.rate.drawer.loading")}
+                    </span>
                   </span>
                 </label>
                 {data.acceptedQuotes.length > 0 && (
                   <label style={{ display: "flex", gap: 8, alignItems: "center", font: "500 12.5px/1.4 var(--f-sans)" }}>
-                    <input type="radio" name="modo" checked={modo === "estimado"} onChange={() => setModo("estimado")} />
+                    <input type="radio" name="modo" checked={modo === "estimado"} onChange={() => cambiarEntrada(() => setModo("estimado"))} />
                     <span>{t("warehouse_cn.rate.drawer.mode_quote")}</span>
                   </label>
                 )}
                 {data.canElevate && (
                   <>
                     <label style={{ display: "flex", gap: 8, alignItems: "center", font: "500 12.5px/1.4 var(--f-sans)" }}>
-                      <input type="radio" name="modo" checked={modo === "manual"} onChange={() => setModo("manual")} />
+                      <input type="radio" name="modo" checked={modo === "manual"} onChange={() => cambiarEntrada(() => setModo("manual"))} />
                       <span>{t("warehouse_cn.rate.drawer.mode_manual")}</span>
                     </label>
                     <label style={{ display: "flex", gap: 8, alignItems: "center", font: "500 12.5px/1.4 var(--f-sans)" }}>
-                      <input type="radio" name="modo" checked={modo === "excel_yiwu"} onChange={() => setModo("excel_yiwu")} />
+                      <input type="radio" name="modo" checked={modo === "excel_yiwu"} onChange={() => cambiarEntrada(() => setModo("excel_yiwu"))} />
                       <span>{t("warehouse_cn.rate.drawer.mode_excel")}</span>
                     </label>
                   </>
@@ -406,7 +443,7 @@ export function RateSnapshotDrawer({
                     id={`${formId}-estimado`}
                     className="studio-input"
                     value={quoteId}
-                    onChange={(e) => setQuoteId(e.target.value)}
+                    onChange={(e) => cambiarEntrada(() => setQuoteId(e.target.value))}
                   >
                     <option value="">{t("warehouse_cn.rate.drawer.quote_pick")}</option>
                     {data.acceptedQuotes.map((q) => (
@@ -425,14 +462,14 @@ export function RateSnapshotDrawer({
                     <label className="studio-label" htmlFor={`${formId}-per`}>
                       {t("warehouse_cn.rate.drawer.per_cbm")}
                     </label>
-                    <NumericInput id={`${formId}-per`} type="currency" min={0} value={perCbm} onChange={setPerCbm} />
+                    <NumericInput id={`${formId}-per`} type="currency" min={0} value={perCbm} onChange={(value) => cambiarEntrada(() => setPerCbm(value))} />
                     {fieldError("perCbm")}
                   </div>
                   <div>
                     <label className="studio-label" htmlFor={`${formId}-min`}>
                       {t("warehouse_cn.rate.drawer.min")}
                     </label>
-                    <NumericInput id={`${formId}-min`} type="currency" min={0} value={minCharge} onChange={setMinCharge} />
+                    <NumericInput id={`${formId}-min`} type="currency" min={0} value={minCharge} onChange={(value) => cambiarEntrada(() => setMinCharge(value))} />
                     {fieldError("minCharge")}
                   </div>
                 </div>
@@ -446,7 +483,7 @@ export function RateSnapshotDrawer({
                   id={`${formId}-kg`}
                   className="studio-input"
                   value={kg}
-                  onChange={(e) => setKg(Number(e.target.value) === 1000 ? 1000 : 500)}
+                  onChange={(e) => cambiarEntrada(() => setKg(Number(e.target.value) === 1000 ? 1000 : 500))}
                   aria-describedby={`${formId}-kg-ayuda`}
                 >
                   <option value={500}>{t("warehouse_cn.rate.drawer.kg_rule")}</option>
@@ -484,6 +521,7 @@ export function RateSnapshotDrawer({
               <div
                 role="status"
                 aria-live="polite"
+                aria-busy={previewPendiente}
                 style={{
                   border: "1px solid var(--border)",
                   borderRadius: "var(--r-md)",
@@ -499,7 +537,9 @@ export function RateSnapshotDrawer({
                   <Resumen s={previewMostrada} />
                 ) : (
                   <span style={{ font: "500 12.5px/1.4 var(--f-sans)", color: previewErrorMostrado ? "var(--danger)" : "var(--ink-soft)" }}>
-                    {previewErrorMostrado ?? t("warehouse_cn.rate.drawer.preview_empty")}
+                    {previewErrorMostrado ?? t(previewPendiente
+                      ? "warehouse_cn.rate.drawer.preview_loading"
+                      : "warehouse_cn.rate.drawer.preview_empty")}
                   </span>
                 )}
               </div>

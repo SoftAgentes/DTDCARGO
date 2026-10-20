@@ -320,6 +320,7 @@ export const warehouse = {
   "warehouse_cn.rate.drawer.reason": "Motivo",
   "warehouse_cn.rate.drawer.reason_help": "Obligatorio para reemplazar, fijar a mano o usar 1.000 kg por m³. Mínimo {min} caracteres.",
   "warehouse_cn.rate.drawer.preview": "Quedaría así",
+  "warehouse_cn.rate.drawer.preview_loading": "Calculando la tarifa…",
   "warehouse_cn.rate.drawer.preview_empty": "Elige de dónde sale el precio para ver lo que se congelaría.",
   "warehouse_cn.rate.drawer.history": "Tarifas anteriores",
   "warehouse_cn.rate.drawer.replaced_at": "reemplazada el {date}",

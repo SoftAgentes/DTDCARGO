@@ -35,24 +35,39 @@ function sinComodines(texto: string): string {
   return texto.replace(/[\\%_]/g, (c) => "\\" + c);
 }
 
+const PAGINA_CLIENTES = 50;
+const PAGINA_ESTIMADOS = 20;
+const MAX_ESTIMADOS = 20;
+
 /**
  * El cliente del Shipping Mark, comparado como la RPC (`upper(btrim())`). El
  * ILIKE con `%…%` trae candidatos sin importar mayúsculas ni espacios; la
  * comparación exacta se hace aquí, así `DTD-0001` no encuentra a `DTD-00012`.
+ * Se recorren todas las páginas: limitar candidatos antes de normalizarlos
+ * puede ocultar al cliente correcto o una segunda ficha ambigua.
  * Más de uno o ninguno = sin cliente (la RPC exige exactamente uno).
  */
 async function clientePorShippingMark(supabase: SupabaseClient, markbox: string): Promise<string | null> {
   const key = clave(markbox);
   if (!key) return null;
-  const { data, error } = await supabase
-    .from("clients")
-    .select("id, markbox")
-    .ilike("markbox", `%${sinComodines(markbox.trim())}%`)
-    .is("deleted_at", null)
-    .limit(50);
-  if (error) throw error;
-  const iguales = ((data ?? []) as { id: string; markbox: string }[]).filter((c) => clave(c.markbox) === key);
-  return iguales.length === 1 ? iguales[0].id : null;
+  let clientId: string | null = null;
+  for (let desde = 0; ; desde += PAGINA_CLIENTES) {
+    const { data, error } = await supabase
+      .from("clients")
+      .select("id, markbox")
+      .ilike("markbox", `%${sinComodines(markbox.trim())}%`)
+      .is("deleted_at", null)
+      .order("id", { ascending: true })
+      .range(desde, desde + PAGINA_CLIENTES - 1);
+    if (error) throw error;
+    const candidatos = (data ?? []) as { id: string; markbox: string }[];
+    for (const cliente of candidatos) {
+      if (clave(cliente.markbox) !== key) continue;
+      if (clientId !== null) return null;
+      clientId = cliente.id;
+    }
+    if (candidatos.length < PAGINA_CLIENTES) return clientId;
+  }
 }
 
 /**
@@ -137,24 +152,32 @@ export async function listAcceptedQuotesForMarkbox(
   const codigo = markbox.trim();
   if (!codigo) return [];
   const key = clave(codigo);
-  const { data, error } = await supabase
-    .from("quotes")
-    .select("id, quote_code, client_markbox, rate_per_cbm, service, accepted_at")
-    .ilike("client_markbox", `%${sinComodines(codigo)}%`)
-    .eq("status", "accepted")
-    .is("deleted_at", null)
-    .not("rate_per_cbm", "is", null)
-    .order("accepted_at", { ascending: false, nullsFirst: false })
-    .limit(20);
-  if (error) throw error;
-  return ((data ?? []) as {
+  type Candidato = {
     id: string;
     quote_code: string;
     client_markbox: string | null;
     rate_per_cbm: number | string;
     service: ShipmentService;
-  }[])
-    .filter((q) => clave(q.client_markbox) === key)
-    .map((q) => ({ id: q.id, quote_code: q.quote_code, rate_per_cbm: Number(q.rate_per_cbm), service: q.service }))
-    .filter((q) => q.rate_per_cbm > 0);
+  };
+  const encontrados: { id: string; quote_code: string; rate_per_cbm: number; service: ShipmentService }[] = [];
+  for (let desde = 0; ; desde += PAGINA_ESTIMADOS) {
+    const { data, error } = await supabase
+      .from("quotes")
+      .select("id, quote_code, client_markbox, rate_per_cbm, service, accepted_at")
+      .ilike("client_markbox", `%${sinComodines(codigo)}%`)
+      .eq("status", "accepted")
+      .is("deleted_at", null)
+      .not("rate_per_cbm", "is", null)
+      .order("accepted_at", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(desde, desde + PAGINA_ESTIMADOS - 1);
+    if (error) throw error;
+    const candidatos = (data ?? []) as Candidato[];
+    for (const q of candidatos) {
+      if (clave(q.client_markbox) !== key || !(Number(q.rate_per_cbm) > 0)) continue;
+      encontrados.push({ id: q.id, quote_code: q.quote_code, rate_per_cbm: Number(q.rate_per_cbm), service: q.service });
+      if (encontrados.length === MAX_ESTIMADOS) return encontrados;
+    }
+    if (candidatos.length < PAGINA_ESTIMADOS) return encontrados;
+  }
 }

@@ -308,6 +308,7 @@ export const warehouse: WarehouseDict = {
   "warehouse_cn.rate.drawer.reason": "原因",
   "warehouse_cn.rate.drawer.reason_help": "替换、手动定价或使用每立方米 1000 公斤时必填。至少 {min} 个字符。",
   "warehouse_cn.rate.drawer.preview": "预览",
+  "warehouse_cn.rate.drawer.preview_loading": "正在计算运价…",
   "warehouse_cn.rate.drawer.preview_empty": "选择价格来源以查看将冻结的内容。",
   "warehouse_cn.rate.drawer.history": "以往运价",
   "warehouse_cn.rate.drawer.replaced_at": "替换于 {date}",

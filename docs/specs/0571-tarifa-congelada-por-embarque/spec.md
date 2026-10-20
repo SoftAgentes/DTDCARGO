@@ -193,6 +193,7 @@ Cada escenario se confirmó con una prueba que fallaba sin la corrección (el mu
 | `app/studio/(app)/cn/_components/ReceiptRateCell.tsx` | celda de la tarifa |
 | `app/studio/(app)/cn/_components/ReceiptRateCell.test.tsx` | prueba de la celda |
 | `app/studio/(app)/cn/_components/RateSnapshotDrawer.tsx` | cajón de la tarifa |
+| `app/studio/(app)/cn/_components/RateSnapshotDrawer.test.tsx` | regresiones del estado de carga y vista previa, con promesas controladas |
 | `lib/i18n/es-VE/warehouse.ts`, `lib/i18n/zh-CN/warehouse.ts` | textos |
 | `docs/specs/0571-tarifa-congelada-por-embarque/spec.md` | esta spec |
 | `docs/specs/README.md` | índice regenerado |
@@ -213,6 +214,13 @@ No toca `lib/studio/accounting`, `invoices`, recibos ni tasas (sesión Contabili
 9. Almacén CN muestra «CBM real · tarifa · a facturar» o «Sin tarifa», y el aviso de CBM cambiado; congelar en lote solo usa propuestas automáticas.
 10. Sin la 0496, la app no se rompe.
 11. Control rojo y un mutante por regla en el contrato.
+12. La búsqueda del cliente recorre las páginas de candidatos y compara el Shipping Mark normalizado antes de resolver: un cliente exacto después de 50 coincidencias parciales aparece y dos clientes exactos, aun en páginas distintas, son ambiguos. Los estimados aceptados se paginan en orden estable; el límite de 20 se aplica a coincidencias exactas válidas, de modo que 20 parciales más recientes no ocultan el estimado del cliente.
+13. La carga del cajón pertenece a una recepción, un servicio y una generación de petición. Una respuesta anterior no reemplaza la selección vigente. La identidad cambiante de la función de traducción no reinicia la carga; los mensajes se traducen al renderizar.
+14. Cambiar una entrada numérica o su fuente invalida la vista previa anterior inmediatamente, incluso en una secuencia A → B → A. La propuesta incluida en la carga solo se usa con esa carga vigente; las otras vistas previas se vinculan a la edición actual. El botón y el manejador del formulario impiden congelar con una vista previa fallida, obsoleta o pendiente. Cambiar solo el motivo no vuelve a calcular los números.
+
+### Validación local del cierre P2 del 2026-10-20
+
+Los criterios 12–14 y sus regresiones se prepararon sobre `b70be5d792ca4ee0417426266301a9e2e7fd9ffc`, por adopción autorizada del mismo worktree. **PASÓ:** focal de 62/62 casos en cinco archivos, siete controles rojos detectados, typecheck, lint focal, docs/numbering y revisión visible del Worker con el cajón y campo numérico reales, sobre datos sintéticos sin DB. La revisión independiente del Director en IAB también pasó: entrada 900 conserva los datos y retira el importe durante la espera, luego muestra $1,800.00 y habilita confirmar; entrada 999 elimina el resultado, bloquea confirmar y conserva el error sintético. Evidencia y límites en el handoff. **NO EJECUTADO** todavía: validación canónica sobre la base final, integración, actualización del conocimiento compartido y producción. Fixture detenida, sin procesos propios, y turno pesado devuelto. El cierre se limita a paginación y vigencia del estado en la app; no cambia SQL0496, RBAC ni las limitaciones históricas documentadas en el handoff.
 
 ## Gobernanza
 
