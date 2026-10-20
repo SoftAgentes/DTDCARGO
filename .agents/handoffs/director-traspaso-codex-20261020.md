@@ -136,7 +136,7 @@ También en main: #299 (respaldos), #302 (tope del CI a 60 min), #305 (decisione
 | `codex/sdd-0572-conversor-usd-reemplazos` | 0572, los 13 reemplazos del conversor | Diseño aprobado con 5 decisiones; la 0572-a está apilada sobre la #301 | Implementar la 0572-a cuando la #301 esté en main. La 0572-b lleva migración: pedir número |
 | rama de la 2.2 | Asientos sin fallos silenciosos | Diseño en curso | Revisar la spec |
 | 0574 (reserva) | 4.5, «Embarques sin facturar» | Diseño en lectura | Seguir con el Worker del embarque |
-| **#304** `codex/pglite-snapshot-esquema` @ `e6311891` | 0570, plantilla PGlite (solo test-infra) | CI verde sobre `8a13412c`; sobre `e6311891` falló por facturación | Relanzar el run 39453136909, integrar y fusionar. El A/B local está pendiente |
+| **#304** `codex/pglite-snapshot-esquema` @ `59e8491b` | 0570, plantilla PGlite (solo test-infra) | CI verde sobre `8a13412c`; sobre `e6311891` falló por facturación | Relanzar el run 39453136909, integrar y fusionar. El A/B local está pendiente |
 | **#306** `codex/oficina-hermes-diseno` @ `033eea50` | 0564, D11 de la oficina de agentes | Revisada, solo docs | Integrar y fusionar |
 | #262 | 0543, contenedores 60 y 64 | Borrador | Espera los Excel del 60 y del 64 y el costo de HR. No tocar |
 
@@ -144,6 +144,28 @@ También en main: #299 (respaldos), #302 (tope del CI a 60 min), #305 (decisione
 - SDD hasta la 0574: la 0570 es PGlite, la 0571 la tarifa, la 0572 los reemplazos, la 0573 el reverso y la 0574 la 4.5.
 - Migraciones hasta la 0497: la 0495 es la #301, la 0496 la #307 y la 0497 la 0573.
 - Antes de asignar números corre `node scripts/next-number.mjs`. El script no deja saltar números.
+
+### 3.6 Respuestas a la PAUSA ORDENADA (2026-10-20)
+
+- **PGlite (#304):** pausa cumplida. Punta `59e8491b` empujada, en borrador, con los criterios 1 a 8 medidos en el CI.
+  - En el CI, los 33 archivos bajan de 21,7 a 9,5 min y el job de 41,6 a 29,3 min. Detalle en `docs/specs/0570-.../assets/comparacion-ci.txt`.
+  - Pendiente: relanzar el run 39453136909 cuando se pague. Si sale verde, sacarla de borrador y fusionarla. El A/B local de los 34 archivos, con turno de máquina.
+  - **La cabeza ya no es `e6311891`:** usa `59e8491b`.
+- **Oficina Paperclip:** pausa cumplida, sin cambios en el VPS. Todo lo del repo va en la #306. El anexo de Telegram está fuera de Git, en `C:/tmp/handoff-oficina-telegram-2026-10-20.md`; necesita una PR nueva con su línea en la D11.
+  - **Servicio nuevo `dtd-hermes-telegram`:** activo, con el perfil `telegram`, sin llave de Junta y solo con el ID de Sam.
+  - **Pendientes de Sam:**
+    - probar el bot (`/sethome`);
+    - revocar la llave de Anthropic que no se usa;
+    - en Kommo §29, el seguro va como «próximamente»;
+    - decidir si borra los agentes pausados;
+    - decidir si envía el reporte de la fuga.
+  - Tailscale y cerrar el 22: primero la VNC, y con el OK de Sam.
+- **Contabilidad:** **no había pausado.** Seguía con la 0572-a local y sin push:
+  - reglas A–F aplicadas y G diferida a la 2.3;
+  - faltan unas 23 pruebas.
+
+  Además corrió un `tsc` completo sin turno. Se le pidió un commit WIP, el push de `codex/sdd-0572-conversor-usd-reemplazos`, el handoff con el SHA y que se detenga. **Comprueba con `git ls-remote` que la rama llegó.** Si no llegó, el trabajo está solo en su worktree local.
+- **Embarque (#307):** sin respuesta al cierre. Revisa su handoff `0571-…` y la cabeza de la PR.
 
 ### 3.4 Orden de integración recomendado (cuando GitHub vuelva)
 
