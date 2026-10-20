@@ -112,6 +112,30 @@ describe("SDD-0569 · 0495 conversor a USD y tabla de tasas (PGlite)", () => {
 
   const MUTANTS: { name: string; from: string; to: string; fails: string }[] = [
     {
+      name: "la versión no cambia al actualizar",
+      from: "  new.write_version := old.write_version + 1;",
+      to: "  new.write_version := old.write_version;",
+      fails: "TEST 0495: la versión distingue dos escrituras dentro de la misma transacción",
+    },
+    {
+      name: "la versión enviada por el cliente se acepta",
+      from: "  new.write_version := old.write_version + 1;",
+      to: "  new.write_version := new.write_version + 1;",
+      fails: "TEST 0495: cualquier cambio de factura incrementa versión e ignora la versión propuesta",
+    },
+    {
+      name: "el trigger solo protege cambios de moneda",
+      from: "  before update on public.invoices\n  for each row execute function public.increment_invoice_write_version();",
+      to: "  before update of currency on public.invoices\n  for each row execute function public.increment_invoice_write_version();",
+      fails: "0495: postflight — falta el trigger de versión en todo UPDATE de invoices",
+    },
+    {
+      name: "los documentos nacen como override sin decisión expresa",
+      from: "  add column fx_rate_is_override boolean not null default false;",
+      to: "  add column fx_rate_is_override boolean not null default true;",
+      fails: "0495: postflight — intención de tasa o versión sin tipo/default esperado",
+    },
+    {
       name: "sin tasa devuelve null en vez de fallar cerrado",
       from: "    if p_rate is null or p_rate <= 0 or p_rate >= 1000000000000 then\n      raise exception 'FX_RATE_MISSING'",
       to: "    if false then\n      raise exception 'FX_RATE_MISSING'",
@@ -269,6 +293,15 @@ describe("SDD-0569 · 0495 conversor a USD y tabla de tasas (PGlite)", () => {
   it("aplicada dos veces, la segunda aborta con «ya existe»", async () => {
     const result = await contract({ migration: FILE_0495 + "\n" + FILE_0495 });
     expect(result.error).toBe("0495 abortado: la tabla de tasas ya existe");
+  }, SLOW);
+
+  it("el preflight aborta ante una instalación parcial de la versión de factura", async () => {
+    const contrato = readFileSync(CONTRACT, "utf8");
+    const antes = "\\if :apply_fix\n\\ir ../migrations/0495_fx_rates_conversor_usd.sql";
+    expect(contrato.split(antes)).toHaveLength(2);
+    const parcial = contrato.replace(antes, "alter table public.invoices add column write_version bigint;\n" + antes);
+    const result = await contract({ replace: { [CONTRACT_NAME]: parcial } });
+    expect(result.error).toBe("0495 abortado: intención de tasa o versión de factura ya existe; revisar instalación parcial");
   }, SLOW);
 
   it("la 0495 espera en pendingBelowCutoff, MIGRATE-FIRST y con OK nominal de Sam", () => {

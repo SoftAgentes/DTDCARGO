@@ -15,7 +15,43 @@ confidencialidad: interno
 
 > La 2.1 del plan contable, primera parte: la tabla `fx_rates` y el conversor canónico (`to_usd` en SQL y `toUsd` en `lib/shared`), que nunca devuelve 0 ni el monto tal cual cuando falta la tasa. USDT = USD 1:1.
 
-**Estado: IMPLEMENTADA, en PR en borrador.** El Director aprobó el diseño el 2026-10-20 y respondió las cinco preguntas (ver *Decisiones del Director*). La 0495 espera el OK nominal de Sam (MIGRATE-FIRST).
+**Estado: REPARACIÓN IMPLEMENTADA, VALIDACIÓN CANÓNICA PENDIENTE; PR #301 en borrador.** El Director aprobó el diseño el 2026-10-20 y respondió las cinco preguntas (ver *Decisiones del Director*). El relevo Codex sobre `e6579944` corrige procedencia y concurrencia. La focal actual pasa 89 casos de app y 32 de SQL/PGlite, incluidos 26 mutantes SQL; los 13 mutantes adicionales de app mueren por aserción. El handoff separa esa evidencia de la anterior y del `verify` pendiente. La 0495 sigue sin aplicar y espera un paquete actualizado y el OK nominal de Sam (MIGRATE-FIRST).
+
+### Precisiones autorizadas por el Director · revisión del 2026-10-20
+
+- La fuente del catálogo (`manual`, `bcv`, `operacion`) y la elección expresa del
+  operador son datos distintos. `fx_rate_is_override` guarda esa elección y es
+  `false` por defecto. La igualdad numérica no demuestra intención. Guardar un
+  campo precargado conserva su intención; editarlo, aunque termine con el mismo
+  número, la vuelve explícita. Vaciarlo o cambiar moneda vuelve al catálogo.
+- El cambio VES↔CNY reinicia también el valor interno del campo numérico.
+  Ante un error recuperable se conserva el estado del formulario: el selector
+  visible y la moneda enviada no se desincronizan por el reset automático.
+- Al emitir un borrador automático se resuelve nuevamente su tasa, incluso si la
+  fuente del catálogo era `manual`. La copia de una factura inicia como automática.
+  Un override documental explícito conserva tasa, fuente y fecha.
+- **Solo para emisión automática VES** (`emitInvoice` y crear-y-emitir),
+  `valid_on` tiene que coincidir con la fecha de emisión. Una tasa anterior no
+  permite emitir: así se aplica §9 del plan maestro de Sam, «si un día no hay tasa,
+  la factura en bolívares no se emite». `fx_rate_on` conserva su búsqueda `<= día`
+  para borradores/CxP; esta exigencia no se extiende a CNY. No se definen reglas
+  de fines de semana, autocarga ni una nueva política de hora.
+- `write_version` de factura aumenta por trigger en **cada UPDATE**, ignorando
+  cualquier valor enviado por el cliente. Guardar y emitir comparan versión,
+  estado, moneda y tenant, y exigen una fila devuelta. Si otra operación gana,
+  devuelven un conflicto recuperable antes de asiento o correo. La versión cubre
+  también importes, destinatario, embarque y demás datos leídos.
+- La captura de factura/CxP normaliza a ocho decimales con mitad lejos de cero.
+  Si el resultado no es positivo o no cabe en `numeric(20,8)`, rechaza la entrada,
+  sin sustituirla por una tasa del catálogo. `1e-9 → 0` es un borde preexistente
+  detectado durante revisión, no atribuible al merge.
+- La reparación tiene **39 rutas**: las 38 originales más una ampliación de prueba
+  autorizada por el Director: `update-invoice-conserva-embarque.test.ts`, cuyo
+  doble debe representar moneda/versión/fila afectada del UPDATE condicional,
+  conservando las aserciones de embarques y totales. El Director autorizó
+  ajustar la **0495 no aplicada**, contratos, símbolos pendientes, espera y
+  documentación. La numeración se conserva; 0570 corresponde a PGlite y la
+  unificación de hora Caracas sigue sin número asignado.
 
 ## Decisiones del Director, 2026-10-20 (respuesta a las preguntas del diseño)
 
@@ -38,8 +74,12 @@ confidencialidad: interno
 - **Decisión 2 de Sam:** lo que hay son datos de prueba. Según la radiografía, todo está en USD en producción.
 - **El Director, 2026-10-20:** la 2.1 se parte en tres.
   - **SDD-0569** es esta: el conversor y la tabla, con la migración 0495.
-  - **SDD-0570** es la hora de Caracas.
-  - **La carga automática del BCV** va en una tercera, que necesita que Sam decida la fuente y la salida a internet.
+  - La hora de Caracas sigue sin número asignado; **SDD-0570** corresponde a PGlite.
+  - **La carga automática del BCV** va en otra entrega. La redacción inicial
+    del 2026-10-20 dejaba la fuente por decidir; queda superada por §9 del plan
+    maestro: fuente oficial BCV, carga diaria y respaldo manual. Lo pendiente
+    es implementar y concretar la salida a internet y su operación, sin volver
+    a solicitar a Sam la decisión de fuente. La automatización no pertenece a 0569.
   - El Director agregó: «CNY y VES siempre con tasa, fallando cerrado. Toma de modelo el `amountToUsd` de Financiero China, con `RMB` y `CNY` normalizados a un solo código.»
 
 ## Lo que hay hoy (mapa del 2026-10-20, sobre `9b932095`)
@@ -102,9 +142,9 @@ Reemplazar las 13 implementaciones cambia cifras visibles en reportes, cobranzas
 - **`fx_rate_on(tenant, currency, date)`:** STABLE e INVOKER, así que la RLS filtra por tenant. Devuelve la tasa, su fuente y su fecha: la de la fecha más reciente menor o igual a `date`, y ese día la de `bcv`, después `manual` y después `operacion`. Sin ninguna, `FX_RATE_MISSING`.
 - **`registrar_tasa_de_cambio(currency, rate, valid_on, note)`:** SECURITY DEFINER, solo admin o accounting del tenant. Valida la moneda, la tasa (hasta 8 decimales, como la columna) y que la fecha no sea posterior a hoy en Caracas. Una segunda tasa manual del mismo día y moneda reemplaza a la primera.
 - **La auditoría D2:** un disparador sobre `fx_rates` llama a `append_audit_event` con `exchange_rate_recorded`, `exchange_rate_corrected` o `exchange_rate_deleted`, y guarda la tasa anterior y la nueva en `before_data` y `after_data`. El borrado lleva un motivo fijo, porque `append_audit_event` lo exige para los `_deleted` (0267), como en la 0491.
-- **`invoices` y `supplier_bills`:** dos columnas nuevas, `fx_rate_source` (CHECK `bcv`, `manual` u `operacion`) y `fx_rate_valid_on`, y su `fx_rate` pasa de `numeric(14,4)` a `numeric(20,8)`, los decimales de `fx_rates`. Cambiar la escala reescribe las dos tablas con ACCESS EXCLUSIVE hasta el COMMIT (medido en el contrato); son chicas (6 facturas de prueba en producción). No se pierde nada: los enteros pasan de 10 a 12 dígitos y los decimales de 4 a 8. El preflight exige el tipo de hoy y que ninguna vista dependa de la columna. El documento congela la tasa que usó: una corrección posterior de `fx_rates` no lo cambia (decisión 1: la factura toma «la tasa BCV del día de emisión»).
+- **`invoices` y `supplier_bills`:** `fx_rate_source` (CHECK `bcv`, `manual` u `operacion`), `fx_rate_valid_on` y `fx_rate_is_override boolean NOT NULL DEFAULT false`; `invoices` además tiene `write_version bigint NOT NULL DEFAULT 0`, incrementado en todo UPDATE por `increment_invoice_write_version`. La función de trigger es INVOKER, con `search_path` vacío y sin EXECUTE para roles API. `fx_rate` pasa de `numeric(14,4)` a `numeric(20,8)`. Cambiar la escala reescribe las dos tablas con ACCESS EXCLUSIVE hasta COMMIT; los valores del tipo anterior caben sin pérdida. El preflight exige el tipo anterior, ausencia de columnas/trigger de esta reparación y ausencia de vistas dependientes. El documento emitido congela su tasa; la fuente manual del catálogo no se interpreta como override documental.
 - **El contrato** (`supabase/tests/0495_fx_rates_conversor_usd.test.sql`) replica la 0261: retira el CHECK legacy de `entity_type` que las migraciones viejas de facturas vuelven a crear en el fixture; en producción manda la FK a `audit_entity_types`. **Lo confirmó el Director en producción el 2026-10-20, leyendo solo el catálogo:** `entity_audit_log` no tiene ningún CHECK que mencione `entity_type` (0 constraints), y `audit_entity_types` tiene `exchange_rate` con `status = active`, que es lo que exige el preflight.
-- **Postflight:** las volatilidades, que `authenticated` solo lee `fx_rates`, la ACL de la RPC y de la auditoría, el disparador, que `fx_rates` tenga RLS activa y `anon` no la lea, y que `fx_rate` quedó en `numeric(20,8)`.
+- **Postflight:** volatilidades, lectura exclusiva de `fx_rates` para `authenticated`, ACL de RPC/auditoría, disparador de auditoría, RLS, tipo `numeric(20,8)`, columnas de intención/versión y disparador de versión en todo UPDATE con su función y ACL.
 
 **Por qué `to_usd` es IMMUTABLE y `fx_rate_on` STABLE:** el conversor no lee tablas, así que puede ir en índices, CHECK y columnas generadas. La tasa vigente sí lee `fx_rates`, que cambia entre transacciones.
 
@@ -115,12 +155,12 @@ Reemplazar las 13 implementaciones cambia cifras visibles en reportes, cobranzas
 ### 3. `lib/studio/fx-rates.ts`
 
 - `tasaVigente`: llama a `fx_rate_on`; null si no hay tasa o si la base todavía no tiene la 0495.
-- `tasaDelDocumento`: la tasa que congela un documento. En USD y USDT no hay tasa y no se llama a la base. La tasa escrita es `manual` y del día del documento, salvo al editar: si es igual a la que ya tenía el documento, conserva su fuente y su fecha. Sin ella, la vigente, con su fuente y su fecha. Sin ninguna, el error «Falta la tasa de {bolívares|yuanes} para el {fecha}: escríbela aquí o cárgala en Admin › Tasas.»
+- `tasaDelDocumento`: la tasa que congela un documento, incluida su intención (`fxRateIsOverride`). En USD/USDT deja tasa/fuente/fecha en null e intención false. `preserve` conserva la tasa guardada y su intención sin inferir por igualdad; `manual` normaliza una entrada explícita a ocho decimales e indica override; `catalog` consulta la vigente y marca false aunque su fuente sea manual. Una entrada no persistible falla cerrada. Sin tasa, el error explica cómo cargarla.
 - `ultimaTasa`: la última tasa de una moneda, para precargar gastos, Admin y el móvil. Del último día, la misma preferencia que `fx_rate_on`.
 
 ### 4. La captura con tasa obligatoria
 
-- **Factura** (`invoice-types.ts`, `facturacion/actions.ts`): exige la tasa también en CNY. `createInvoice` y `updateInvoice` resuelven la tasa antes de validar y guardan `fx_rate`, `fx_rate_source` y `fx_rate_valid_on`. Al editar, la misma tasa conserva su procedencia, y al pasar a USD o USDT las tres van a null. **Emitir** exige la tasa en VES o CNY: una `manual` se respeta; cualquier otra se vuelve a resolver al día de emisión (decisión 1: «la tasa BCV del día de emisión»), y sin tasa no se emite ni se asienta. **Duplicar** resuelve la tasa de la copia hoy, antes de consumir correlativo. El drawer muestra el campo en VES y en CNY, con su ayuda y su error. El día del documento es hoy en UTC; la hora de Caracas es la 0570.
+- **Factura** (`invoice-types.ts`, `facturacion/actions.ts`): exige tasa persistible en VES/CNY. Guarda fuente, fecha e intención explícita; en USD/USDT vacía esos datos. Al emitir conserva solo un override documental; las tasas automáticas se resuelven de nuevo, y VES exige la del día. Duplicar resuelve automáticamente hoy, antes del correlativo. Drawer limpia la tasa al cambiar VES↔CNY y transporta la intención. Guardar/emitir usan la versión completa de la fila para impedir carreras. El día del documento sigue siendo hoy UTC; la unificación Caracas queda sin número y fuera de este alcance.
 - **CxP** (`treasury/types.ts`, `treasury-actions.ts`): exige la tasa fuera de USD y USDT. `createBillFor` la resuelve al día de emisión, y el asiento de causación usa la tasa que quedó guardada (la que devuelve el INSERT), no la escrita.
 - **Gastos de escritorio:** ya exigían la tasa. Dejan de copiarla a `tenant_fx_history`, y la precarga sale de `fx_rates` (`getLastFxRate` usa `ultimaTasa`; `setAt` pasa a ser la fecha de valor, que el drawer muestra como día y no como instante).
 - **Gasto móvil:** el formulario de crear y el de editar muestran la tasa en VES o CNY, precargada con la última del Studio y editable (`CampoTasaGasto`); la acción la manda. Sin tasa, el validador lo rechaza como en escritorio.
@@ -133,14 +173,14 @@ La misma sección en los dos lugares: la contadora entra por Contabilidad y el a
 
 - Ninguna cifra de los reportes, cobranzas, CxP, costing ni el dashboard. Eso es la SDD siguiente.
 - El asiento de la venta, que es la 2.3 y el B2.
-- La hora de Caracas, que es la 0570.
+- La unificación de hora Caracas, todavía sin número asignado (0570 es PGlite).
 - La carga del BCV, que es la tercera.
 - `tenant_fx_history` no se borra.
 
 ## Riesgos
 
 - **Entre aplicar la 0495 y desplegar la PR:** la migración es aditiva salvo la ampliación de `fx_rate`, que la app desplegada no nota. La ventana entre aplicar y fusionar son segundos, y el Director vuelve a contar `tenant_fx_history` justo antes del apply y después del merge.
-- **La PR desplegada sin la 0495:** una factura o una CxP en VES o CNY falla al guardar, porque nombra las columnas nuevas; editar y emitir cualquier borrador fallan, porque leen `fx_rate_source`; y Admin › Tasas no guarda. En USD y USDT todo sigue igual. Está declarado en `pending-migration-symbol-declarations.json`, y el orden MIGRATE-FIRST lo evita.
+- **La PR desplegada sin la 0495:** factura/CxP en VES o CNY falla al guardar por las columnas nuevas; editar y emitir cualquier borrador, incluso USD/USDT, requiere además `write_version` y falla antes de escribir si falta. Admin › Tasas tampoco guarda. Crear/duplicar en USD/USDT conserva el comportamiento anterior. El contrato está declarado en `pending-migration-symbol-declarations.json`; se requiere MIGRATE-FIRST con el paquete reparado.
 - **Un documento en VES o CNY sin tasa cargada:** ya no se guarda con una tasa inventada; pide la tasa. Es el comportamiento buscado (falla cerrado).
 
 ## El smoke de la espera (Director, 2026-10-20)
@@ -155,8 +195,8 @@ Cada hallazgo se confirmó con su prueba en rojo antes de corregirlo, y tiene su
 |---|---|---|
 | B1 | Ningún DELETE de `fx_rates` funcionaba: `exchange_rate_deleted` iba sin motivo y la 0267 lo exige | motivo fijo para el DELETE; aserción y mutante |
 | B2 | Factura CNY: el campo de tasa iba oculto y el error no se veía | el campo en VES y en CNY, con ayuda, `aria-invalid` y su error; `NumericInput` acepta un `aria-describedby` propio |
-| I3 | Editar un borrador reescribía la procedencia; al pasar a USD quedaba la tasa | la misma tasa conserva fuente y fecha; en USD y USDT las tres a null |
-| I4 | Duplicar y emitir esquivaban la tasa | duplicar resuelve la tasa antes del correlativo; emitir la exige y la re-resuelve al día de emisión salvo la manual |
+| I3 | Editar un borrador reescribía la procedencia; al pasar a USD quedaba la tasa | corrección original por igualdad, sustituida en el relevo por intención explícita; USD/USDT limpia tasa/fuente/fecha y override |
+| I4 | Duplicar y emitir esquivaban la tasa | duplicar resuelve antes del correlativo; la revisión actual distingue override documental de fuente manual y exige fecha exacta solo para VES automática |
 | I5 | `toUsd` y `to_usd` no daban lo mismo (2,17 contra 2,18) | aritmética decimal exacta en TS; casos espejo en las dos pruebas |
 | I6 | La tasa del documento perdía decimales (`numeric(14,4)`) | `fx_rate` a `numeric(20,8)` en la 0495, con el lock medido; el asiento de la CxP usa la tasa guardada |
 | I7 | El smoke y la ventana | escritos arriba y en la espera |
@@ -175,9 +215,9 @@ Cada hallazgo se confirmó con su prueba en rojo antes de corregirlo, y tiene su
 |---|---|
 | `supabase/migrations/0495_fx_rates_conversor_usd.sql` | la migración |
 | `supabase/tests/0495_fx_rates_conversor_usd.test.sql` | el contrato |
-| `lib/studio/__tests__/fx-rates-conversor.migration.test.ts` | el contrato en PGlite: control rojo, 22 mutantes, el preflight con una fila en `tenant_fx_history`, la reaplicación y la espera |
+| `lib/studio/__tests__/fx-rates-conversor.migration.test.ts` | contrato PGlite: control rojo, 26 mutantes, preflight con filas y con instalación parcial, reaplicación y espera |
 | `supabase/migrations-baseline.json` | la espera de la 0495 |
-| `supabase/pending-migration-symbol-declarations.json` | los 7 símbolos y sus 8 evidencias de degradación |
+| `supabase/pending-migration-symbol-declarations.json` | símbolos alcanzables y evidencias de degradación, incluida intención documental y versión |
 | `lib/shared/fx.ts` | nuevo: el conversor canónico en TS |
 | `lib/shared/__tests__/fx.test.ts` | nueva |
 | `lib/studio/fx-rates.ts` | nuevo: la tasa vigente, la del documento y la última |
@@ -188,6 +228,7 @@ Cada hallazgo se confirmó con su prueba en rojo antes de corregirlo, y tiene su
 | `app/studio/(app)/facturacion/_components/InvoiceDrawer.tasa.test.tsx` | nueva |
 | `app/studio/_components/ui/NumericInput.tsx` | un `aria-describedby` propio, sumado al de la vista previa |
 | `app/studio/(app)/facturacion/__tests__/factura-congela-la-tasa.test.ts` | nueva |
+| `app/studio/(app)/facturacion/__tests__/update-invoice-conserva-embarque.test.ts` | ampliación autorizada: doble de UPDATE condicional, conserva embarques y totales |
 | `lib/studio/treasury/types.ts` | la tasa obligatoria fuera de USD y USDT |
 | `lib/studio/treasury/treasury-actions.ts` | la tasa congelada al crear la CxP; el asiento usa la guardada |
 | `lib/studio/treasury/__tests__/cxp-congela-la-tasa.test.ts` | nueva |
@@ -221,11 +262,15 @@ Cada hallazgo se confirmó con su prueba en rojo antes de corregirlo, y tiene su
 10. La auditoría D2 de `fx_rates` guarda solo la moneda, la tasa, el día y la fuente: ni la nota ni `set_by`. Quién la cargó queda en `actor_id`, como en toda la D2 (pedido del Director).
 5. Una factura o una CxP en VES o CNY guarda la tasa que usó, con su fuente y su fecha; sin ninguna tasa, no se guarda y el error dice qué hacer. En USD y USDT no cambia nada.
 6. Admin › Tasas, Contabilidad › Tasas de cambio, gastos y el móvil leen y escriben `fx_rates`; nada escribe `tenant_fx_history`. La contadora puede cargar tasas.
-11. Emitir en VES o CNY exige la tasa del día de emisión (salvo la manual); duplicar resuelve la suya; editar conserva la procedencia; al pasar a USD o USDT la tasa va a null.
+11. Emitir en VES/CNY reconsulta el catálogo salvo override documental explícito. VES automática exige fecha exacta de emisión; CNY admite la última vigente `<= día`. Duplicar inicia como automática. Guardar conserva intención expresa sin inferir por igualdad; USD/USDT limpia tasa y metadatos.
 12. Borrar una tasa queda en la auditoría con su motivo. La tasa del documento tiene 8 decimales, y el asiento de la CxP usa la guardada.
 7. El preflight aborta si `tenant_fx_history` tiene filas; aplicada dos veces, aborta con «ya existe».
 8. Control rojo: sin la 0495 el contrato falla en la primera aserción, y cada regla tiene un mutante que muere en su aserción.
 9. Ninguna cifra de reportes cambia.
+13. Un borrador automático creado el día 19 con catálogo `source=manual, rate=36` usa 40 al emitir el día 20; un override explícito conserva tasa y fecha, y la duplicación vuelve a resolver al emitir otro día.
+14. Las dos intercalaciones editar/emitir rechazan la escritura perdedora; cambios de importes o destinatario en la misma moneda también se detectan. Cero filas afectadas significa cero asiento/correo de esa operación.
+15. `write_version` aumenta en todo UPDATE, incluso en una misma transacción, e ignora el valor enviado por cliente. El contrato comprueba ejecución bajo `authenticated` aunque la función no exponga EXECUTE directo.
+16. Drawer limpia la tasa al cambiar VES↔CNY; una cifra explícita igual a la anterior se distingue de conservar el campo precargado. Factura/CxP rechazan `1e-9` y los valores que redondean a cero, y comparten con PostgreSQL los límites de mitad a ocho decimales.
 
 ## Gobernanza
 

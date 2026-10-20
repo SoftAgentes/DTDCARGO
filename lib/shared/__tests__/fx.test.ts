@@ -2,7 +2,26 @@
  * SDD-0569 · `toUsd`: la misma regla que `public.to_usd` (0495). Falla cerrado.
  */
 import { describe, expect, it } from "vitest";
-import { necesitaTasa, normalizarMoneda, tasaValida, toUsd } from "../fx";
+import { necesitaTasa, normalizarMoneda, tasaPersistible, tasaValida, toUsd } from "../fx";
+
+describe("tasaPersistible · captura con numeric(20,8)", () => {
+  it.each([null, 0, -1, Number.NaN, Number.POSITIVE_INFINITY, 1e12, 1e-9, 0.000000004999999])(
+    "rechaza %s sin convertirla en cero",
+    (rate) => expect(tasaPersistible(rate)).toBeNull(),
+  );
+  it.each([
+    ["0.000000005", 0.00000001],
+    ["0.000000014999999", 0.00000001],
+    ["0.000000015", 0.00000002],
+    ["7.123456789", 7.12345679],
+    ["36.12345678", 36.12345678],
+  ])("redondea %s a %s como PostgreSQL", (rate, expected) => {
+    expect(tasaPersistible(rate)).toBe(expected);
+  });
+  it("el conversor puro conserva su dominio; el límite de persistencia pertenece a captura", () => {
+    expect(toUsd(1e-9, "VES", 1e-9)).toEqual({ ok: true, usd: 1 });
+  });
+});
 
 describe("toUsd · el conversor canónico", () => {
   it("USD y USDT valen 1:1, sin tasa (decisión 1 de Sam)", () => {

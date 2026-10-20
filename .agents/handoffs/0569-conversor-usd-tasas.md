@@ -1,5 +1,82 @@
 # Handoff · SDD-0569 · Un solo conversor a USD, que falla cerrado, y una tabla de tasas con fuente y fecha
 
+## Relevo Codex y reparación de revisión · 2026-10-20
+
+El Director asignó esta reparación después de pausar formalmente 0572-a en
+`9c254107`. Sam autorizó pausar Claude y adoptar el worktree existente. Se
+comprobaron raíz, rama, árbol limpio y ausencia de procesos consumidores; el
+Director liberó el claim anterior. Codex reclamó
+`codex-0569-01a15a4e-ddf0`, validó guard y avanzó exclusivamente con ff-only de
+`3d0c9028` a `e6579944c5bfdc5c4addf23a59fa477f3219db7b`.
+`node_modules` es local, sin junction; no se copiaron secretos.
+
+Estado actual: **reparación implementada, validación canónica pendiente**, con la allowlist de **39 rutas** de la spec:
+38 originales y la prueba `update-invoice-conserva-embarque.test.ts`, ampliación
+autorizada por el Director para representar la confirmación del UPDATE
+condicional sin perder sus aserciones de embarques ni totales.
+La evidencia histórica de abajo no valida estos cambios. El Director autorizó
+ajustar la 0495 todavía no aplicada, sus contratos/símbolos/espera y documentación.
+Commits selectivos, push de esta rama y actualización del borrador #301 están
+autorizados. Merge, deploy, DB real y lecturas de negocio: **NO AUTORIZADOS**.
+
+Alcance: distinguir fuente del catálogo de override documental explícito;
+detectar ediciones concurrentes antes de emitir o guardar; limpiar tasa al
+cambiar moneda; rechazar tasas que redondeen a cero en numeric(20,8). Este
+último es un borde preexistente, no un defecto atribuido al merge.
+La referencia histórica a “0570 = hora de Caracas” queda corregida: 0570 es
+PGlite; hora de Caracas sigue sin número asignado.
+
+Diseño de concurrencia: `write_version` de factura se incrementa en cada UPDATE
+por trigger; la acción compara la versión leída y comprueba una fila afectada
+antes de asiento/correo. Esto cubre todos los datos usados por esas operaciones.
+`updated_at` usa `now()` de transacción y no garantiza distinguir dos UPDATE
+dentro de la misma transacción.
+
+Precisión autorizada por delegación del Director: la emisión automática VES
+requiere una tasa cuya fecha sea exactamente la de emisión. Un catálogo con
+una tasa anterior no basta. CNY, borradores y CxP conservan el resolver histórico.
+El override documental explícito se mantiene. §9 del plan ya fija BCV oficial,
+carga diaria y respaldo manual; implementar la carga y concretar su operación
+queda fuera de esta tarea. La reparación cambia SQL de 0495: el paquete deberá
+reconstruirse y revisarse antes de solicitar el OK nominal de Sam.
+
+### Evidencia de la reparación actual
+
+El Director devolvió el turno exclusivo después de terminar la medición de #304.
+Se comprobaron guard/HEAD, ausencia de procesos pesados previos y ausencia de
+`.env.local`, URL Supabase y service key. El producto permaneció en `e6579944`
+mientras se añadían las regresiones. Los diez archivos preparados fuera del
+árbol se aplicaron solo después del rojo, comprobando antes sus SHA-256.
+
+| Comprobación | Resultado actual |
+|---|---|
+| Rojo de app sobre producto `e6579944` | **PASÓ como control rojo:** 24 fallos de aserción y 19 casos que ya pasaban, en facturas, drawer y CxP. Ningún fallo de importación/setup |
+| Rojo SQL con 0495 anterior y contrato nuevo | **PASÓ como control rojo:** falla en «facturas y CxP distinguen override explícito, false por defecto» |
+| Primera focal verde | **FALLÓ:** 87 pasaron y dos cambios de moneda conservaron el valor interno de NumericInput. Corregido con `key={currency}` en el campo del drawer, sin cambiar el componente compartido |
+| Focal corregida de app | **PASÓ:** 6 archivos, 89 pruebas, incluidas intercalaciones reales guardar/emitir en ambos sentidos, edición de importes/destinatario sin cambiar moneda, catálogo manual frente a override y límites de captura |
+| SQL en PGlite | **PASÓ:** 32 pruebas; contrato, control sin 0495, 26 mutantes, preflights de historia/instalación parcial y reaplicación. El contrato prueba dos UPDATE en una transacción, versión enviada por cliente y escritura RLS autenticada |
+| Mutantes adicionales de app | **PASÓ:** 13/13 muertos por aserciones; 13/13 archivos restaurados y comprobados por SHA-256 |
+| Recuperación visual del drawer | **FALLÓ y corregido:** con una tasa faltante, React reiniciaba el selector visible a USD aunque el estado seguía en CNY. Reproducido también en Vitest. Se cancela el reset con listener nativo local del formulario; `onReset` sintético no bastó durante el commit de React. Focal final: 89/89 |
+| Typecheck y lint | **PASÓ:** typecheck completo; ESLint de archivos TS/TSX modificados con cero warnings. Se repitieron después de la corrección visible del drawer |
+| Gates documentales y símbolos | **PASÓ:** índice regenerado/sincronizado con 556 specs, numeración sin colisiones nuevas, candado 486 selladas/3 esperas/0 nueva sin sellar, diff-check limpio. Símbolos: 0 rojo, 1 amarillo declarado (0495), 3 homónimos descartados |
+| `pnpm verify` canónico | **NO EJECUTADO** todavía; se correrá sobre el SHA de implementación publicado por instrucción del Director |
+| UI visible del drawer | **PASÓ en alcance local:** Chrome, componente y CSS reales, datos sintéticos y acciones mock. VES→CNY limpia la tasa; al guardar sin tasa, mensaje junto al campo y selector CNY conservado. Captura `drawer-cny-error-local.png` fuera de Git. No certifica persistencia real ni fidelidad tipográfica de la app completa |
+| Graphify, Archify y preview Obsidian | **NO EJECUTADO** todavía para esta reparación; se medirán por separado |
+| Producción, migración aplicada, merge y despliegue | **NO EJECUTADO**, fuera de autorización Worker |
+
+Los logs y el runner reproducible de los mutantes se conservan fuera de Git en
+`C:/tmp/director-traspaso-20261020/0569-codex-validation/`. El contrato SQL
+normal ejecutado por `verify` queda pendiente hasta esa corrida; PGlite no se
+presenta como evidencia del servidor de producción. La precisión de VES usa
+la fecha de emisión actual de la app (UTC); no certifica aún la futura
+unificación a Caracas. Se corrigieron los comentarios de la migración para
+no afirmar esa unificación.
+
+## Antecedente fechado de la sesión anterior
+
+El siguiente registro conserva lo medido antes del relevo; sus SHAs y resultados
+no cubren la reparación actual ni constituyen autorización de producción.
+
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-10-20 |
@@ -12,7 +89,7 @@
 
 ## OBJETIVO ORIGINAL
 
-La 2.1 del plan contable, primera parte: la tabla `fx_rates` (fuente, fecha de valor, quién) y un conversor canónico a USD que falla cerrado (nunca 0 ni el monto tal cual), con USDT = USD 1:1 (decisión 1 de Sam). Los 13 reemplazos van en la SDD siguiente; la hora de Caracas es la 0570; la carga del BCV, la tercera.
+La 2.1 del plan contable, primera parte: la tabla `fx_rates` (fuente, fecha de valor, quién) y un conversor canónico a USD que falla cerrado (nunca 0 ni el monto tal cual), con USDT = USD 1:1 (decisión 1 de Sam). Los 13 reemplazos van en la SDD siguiente; la hora Caracas continúa sin número asignado (0570 es PGlite); la carga BCV es otra entrega.
 
 ## COMPLETADO
 
@@ -109,6 +186,6 @@ La spec 0569 y el índice. **Cambia el esquema** (la 0495), así que el Director
 - **Timeouts del portal de proveedores bajo carga** (`app/p/[token]/supplier-flow.test.tsx`, `standard-format.test.tsx`): con la suite completa, una prueba distinta pasa los 20 s en cada corrida; solas pasan. Hay que subirles el timeout o aliviar su montaje, como ya se hizo en otros archivos.
 - **Fidelización › Referidos, estado vacío** (el Director, 2026-10-20): dice «El crédito se acredita a mano cuando hace su primer embarque». Con la 0250 y la 0494, se acredita **solo** con la primera venta real posterior al alta, y a mano únicamente el admin, con motivo. Va en una SDD chica de Fidelización, o en la próxima que toque esa pantalla.
 
-1. **El día del documento es hoy en UTC** en `createInvoice` y `updateInvoice` (`new Date().toISOString().slice(0, 10)`): entre las 20:00 y la medianoche de Caracas toma la tasa del día siguiente. Es la 0570.
+1. **El día del documento es hoy en UTC** en `createInvoice` y `updateInvoice` (`new Date().toISOString().slice(0, 10)`): entre las 20:00 y la medianoche de Caracas toma la tasa del día siguiente. La unificación de hora Caracas sigue sin número asignado; 0570 corresponde a PGlite.
 2. **`tenant_fx_history` queda sin uso.** Ni se lee ni se escribe; borrarla es una migración aparte, cuando el Director lo decida.
 3. **`createInvoice` y `createBillFor` devuelven el texto de la base** en su error de insert («No se pudo crear la factura: …», «No se pudo crear la CxP: …»). Es anterior a esta SDD y choca con ERR-01.

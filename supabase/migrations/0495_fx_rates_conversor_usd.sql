@@ -29,6 +29,10 @@
 --      con el valor anterior.
 --   5. invoices y supplier_bills guardan la fuente y la fecha de la tasa que se
 --      usó: una corrección posterior de fx_rates no cambia un documento emitido.
+--      fx_rate_is_override distingue la decisión expresa de usar una tasa
+--      documental de una tasa tomada del catálogo cuya source sea manual.
+--   6. invoices.write_version aumenta en todo UPDATE; permite guardar/emitir
+--      solo sobre la versión leída, sin efectos derivados de una escritura perdida.
 --
 -- tenant_fx_history: el Director midió 0 filas en producción el 2026-10-20 (solo
 -- un conteo). No hay backfill; el preflight aborta si tiene filas, para que
@@ -39,12 +43,15 @@
 -- el OK nominal de Sam y docs/runbooks/aplicar-migraciones-prod.md.
 -- ─────────────────────────────────────────────────────────────
 
--- Locks: tabla y funciones nuevas; dos columnas nullable sin default en
+-- Locks: tabla y funciones nuevas; dos columnas nullable y un boolean default false en
 -- invoices y en supplier_bills, y su fx_rate de numeric(14,4) a numeric(20,8):
 -- cambiar la escala REESCRIBE las dos tablas con ACCESS EXCLUSIVE hasta el
 -- COMMIT (medido en el contrato). Son chicas: en producción, 6 facturas de
 -- prueba (el Director, 2026-10-20). No se pierde nada: los enteros pasan de 10
 -- a 12 dígitos y los decimales de 4 a 8, así que cada valor cabe igual.
+-- invoices agrega además write_version bigint default 0 y su trigger por fila.
+-- Los defaults constantes no requieren backfill semántico: no se inventa un
+-- override a partir de tasas anteriores y la versión comienza en 0.
 set lock_timeout = '5s';
 set statement_timeout = '30s';
 
@@ -70,6 +77,15 @@ begin
      or pg_catalog.to_regprocedure('public.get_user_tenant_id()') is null
      or pg_catalog.to_regprocedure('auth.uid()') is null then
     raise exception '0495 requiere invoices, supplier_bills, user_tenants, audit_entity_types, get_user_tenant_id() y auth.uid()';
+  end if;
+  if exists (select 1 from pg_catalog.pg_attribute a
+      where a.attrelid in ('public.invoices'::regclass, 'public.supplier_bills'::regclass)
+        and a.attname in ('fx_rate_source', 'fx_rate_valid_on', 'fx_rate_is_override', 'write_version')
+        and not a.attisdropped)
+     or pg_catalog.to_regprocedure('public.increment_invoice_write_version()') is not null
+     or exists (select 1 from pg_catalog.pg_trigger
+       where tgrelid = 'public.invoices'::regclass and tgname = 'invoices_write_version') then
+    raise exception '0495 abortado: intención de tasa o versión de factura ya existe; revisar instalación parcial';
   end if;
   if v_writer is null or not exists (select 1 from pg_catalog.pg_proc p
       where p.oid = v_writer and p.prosecdef and p.proconfig @> array['search_path=""']) then
@@ -333,20 +349,46 @@ create trigger audit_fx_rates
 alter table public.invoices
   alter column fx_rate type numeric(20,8),
   add column fx_rate_source   text check (fx_rate_source is null or fx_rate_source in ('bcv', 'manual', 'operacion')),
-  add column fx_rate_valid_on date;
+  add column fx_rate_valid_on date,
+  add column fx_rate_is_override boolean not null default false,
+  add column write_version bigint not null default 0;
 alter table public.supplier_bills
   alter column fx_rate type numeric(20,8),
   add column fx_rate_source   text check (fx_rate_source is null or fx_rate_source in ('bcv', 'manual', 'operacion')),
-  add column fx_rate_valid_on date;
+  add column fx_rate_valid_on date,
+  add column fx_rate_is_override boolean not null default false;
 
 comment on column public.invoices.fx_rate_source is
-  'SDD-0569: de dónde salió la fx_rate de la factura (bcv, manual u operacion). Manual cuando la escribió quien factura.';
+  'SDD-0569: fuente de fx_rate (bcv, manual u operacion); manual también puede venir del catálogo y no significa override documental.';
 comment on column public.invoices.fx_rate_valid_on is
-  'SDD-0569: la fecha de valor de la fx_rate de la factura (día de Caracas).';
+  'SDD-0569: fecha de valor de la tasa usada en la factura; la unificación del reloj de emisión a Caracas queda en otra entrega.';
 comment on column public.supplier_bills.fx_rate_source is
   'SDD-0569: de dónde salió la fx_rate de la CxP (bcv, manual u operacion).';
 comment on column public.supplier_bills.fx_rate_valid_on is
-  'SDD-0569: la fecha de valor de la fx_rate de la CxP (día de Caracas).';
+  'SDD-0569: fecha de valor de la tasa usada en la CxP, conservada desde el catálogo o desde la captura documental.';
+comment on column public.invoices.fx_rate_is_override is
+  'SDD-0569: true solo al elegir explícitamente la tasa del documento. False para catálogo, aunque su fuente sea manual. No se infiere por igualdad numérica.';
+comment on column public.supplier_bills.fx_rate_is_override is
+  'SDD-0569: elección expresa de una tasa documental; false para una tasa del catálogo.';
+comment on column public.invoices.write_version is
+  'SDD-0569: versión de toda la fila; aumenta en cada UPDATE para impedir carreras al guardar o emitir.';
+
+create function public.increment_invoice_write_version()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $version$
+begin
+  -- OLD es la fuente: un cliente no puede conservar ni adelantar la versión.
+  new.write_version := old.write_version + 1;
+  return new;
+end;
+$version$;
+revoke all on function public.increment_invoice_write_version() from public, anon, authenticated, service_role;
+create trigger invoices_write_version
+  before update on public.invoices
+  for each row execute function public.increment_invoice_write_version();
 
 -- ╔═══════════════════════════════════════════════════════════╗
 -- ║ 7. Postflight                                             ║
@@ -384,6 +426,33 @@ begin
       where a.attrelid in ('public.invoices'::regclass, 'public.supplier_bills'::regclass) and a.attname = 'fx_rate'
         and pg_catalog.format_type(a.atttypid, a.atttypmod) = 'numeric(20,8)') <> 2 then
     raise exception '0495: postflight — fx_rate de invoices y supplier_bills no quedó en numeric(20,8)';
+  end if;
+  if (select pg_catalog.count(*) from pg_catalog.pg_attribute a
+      join pg_catalog.pg_attrdef d on d.adrelid = a.attrelid and d.adnum = a.attnum
+      where a.attrelid in ('public.invoices'::regclass, 'public.supplier_bills'::regclass)
+        and a.attname = 'fx_rate_is_override' and a.atttypid = 'boolean'::regtype
+        and a.attnotnull and pg_catalog.pg_get_expr(d.adbin, d.adrelid) = 'false') <> 2
+     or not exists (select 1 from pg_catalog.pg_attribute a
+      join pg_catalog.pg_attrdef d on d.adrelid = a.attrelid and d.adnum = a.attnum
+      where a.attrelid = 'public.invoices'::regclass and a.attname = 'write_version'
+        and a.atttypid = 'bigint'::regtype and a.attnotnull
+        and pg_catalog.pg_get_expr(d.adbin, d.adrelid) = '0') then
+    raise exception '0495: postflight — intención de tasa o versión sin tipo/default esperado';
+  end if;
+  if not exists (select 1 from pg_catalog.pg_trigger t
+      where t.tgrelid = 'public.invoices'::regclass and t.tgname = 'invoices_write_version'
+        and t.tgfoid = pg_catalog.to_regprocedure('public.increment_invoice_write_version()')
+        and t.tgtype = 19 and t.tgattr = ''::pg_catalog.int2vector
+        and not t.tgisinternal and t.tgenabled = 'O') then
+    raise exception '0495: postflight — falta el trigger de versión en todo UPDATE de invoices';
+  end if;
+  if not exists (select 1 from pg_catalog.pg_proc p
+      where p.oid = pg_catalog.to_regprocedure('public.increment_invoice_write_version()')
+        and not p.prosecdef and p.proconfig @> array['search_path=""'])
+     or pg_catalog.has_function_privilege('anon', 'public.increment_invoice_write_version()', 'EXECUTE')
+     or pg_catalog.has_function_privilege('authenticated', 'public.increment_invoice_write_version()', 'EXECUTE')
+     or pg_catalog.has_function_privilege('service_role', 'public.increment_invoice_write_version()', 'EXECUTE') then
+    raise exception '0495: postflight — función de versión sin aislamiento/ACL esperados';
   end if;
 end;
 $postflight$;

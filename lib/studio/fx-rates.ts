@@ -10,9 +10,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { necesitaTasa, normalizarMoneda, tasaValida, type MonedaConvertible } from "@/lib/shared/fx";
+import { necesitaTasa, normalizarMoneda, tasaPersistible, type MonedaConvertible } from "@/lib/shared/fx";
 
 export type FuenteTasa = "bcv" | "manual" | "operacion";
+export type IntencionTasa = "preserve" | "manual" | "catalog";
 
 export type TasaVigente = { rate: number; source: FuenteTasa; validOn: string };
 
@@ -21,6 +22,8 @@ export type TasaDelDocumento = {
   fxRate: number | null;
   fxRateSource: FuenteTasa | null;
   fxRateValidOn: string | null;
+  /** Decisión explícita en el documento; source=manual del catálogo no la implica. */
+  fxRateIsOverride: boolean;
 };
 
 const NOMBRE: Record<"VES" | "CNY", string> = { VES: "bolívares", CNY: "yuanes" };
@@ -53,7 +56,7 @@ export async function tasaVigente(
     | { rate: number | string; source: FuenteTasa; valid_on: string }
     | null
     | undefined;
-  const rate = tasaValida(fila?.rate ?? null);
+  const rate = tasaPersistible(fila?.rate ?? null);
   if (!fila || rate === null) return null;
   return { rate, source: fila.source, validOn: fila.valid_on };
 }
@@ -63,9 +66,9 @@ export async function tasaVigente(
  * escrita, `manual` y ese día. Sin ella, la vigente. Si no hay ninguna, el error
  * dice qué hacer (ERR-01).
  *
- * Al editar un borrador, `guardada` es la tasa que ya tiene: si la escrita es la
- * misma, conserva su fuente y su fecha (el formulario la trae precargada, y
- * guardar sin tocarla no la vuelve «manual de hoy»).
+ * Al editar, la intención del campo decide si conservar la tasa o sustituirla:
+ * no se infiere una decisión por igualdad numérica. Una cifra explícita inválida
+ * falla cerrada antes de consultar catálogo.
  */
 export async function tasaDelDocumento(
   supabase: SupabaseClient,
@@ -74,17 +77,22 @@ export async function tasaDelDocumento(
   tecleada: number | null | undefined,
   onDate: string,
   guardada: TasaDelDocumento | null = null,
+  intencion: IntencionTasa = tecleada == null ? "catalog" : "manual",
 ): Promise<{ ok: true; tasa: TasaDelDocumento } | { ok: false; error: string }> {
   if (!necesitaTasa(currency)) {
-    return { ok: true, tasa: { fxRate: null, fxRateSource: null, fxRateValidOn: null } };
+    return { ok: true, tasa: { fxRate: null, fxRateSource: null, fxRateValidOn: null, fxRateIsOverride: false } };
   }
   const moneda = normalizarMoneda(currency) as Exclude<MonedaConvertible, "USD" | "USDT">;
-  const escrita = tasaValida(tecleada ?? null);
-  if (escrita !== null && guardada?.fxRateSource && guardada.fxRateValidOn && tasaValida(guardada.fxRate) === escrita) {
-    return { ok: true, tasa: { fxRate: escrita, fxRateSource: guardada.fxRateSource, fxRateValidOn: guardada.fxRateValidOn } };
+  if (intencion === "preserve" && guardada?.fxRateSource && guardada.fxRateValidOn) {
+    const conservada = tasaPersistible(guardada.fxRate);
+    if (conservada !== null) return { ok: true, tasa: { ...guardada, fxRate: conservada } };
   }
-  if (escrita !== null) {
-    return { ok: true, tasa: { fxRate: escrita, fxRateSource: "manual", fxRateValidOn: onDate } };
+  if (intencion === "manual" || (intencion === "preserve" && guardada?.fxRateIsOverride)) {
+    const escrita = tasaPersistible(intencion === "preserve" ? guardada?.fxRate : tecleada);
+    if (escrita === null) {
+      return { ok: false, error: "La tasa debe ser mayor que 0 al guardarse con 8 decimales y menor que 1.000.000.000.000." };
+    }
+    return { ok: true, tasa: { fxRate: escrita, fxRateSource: "manual", fxRateValidOn: onDate, fxRateIsOverride: true } };
   }
   const vigente = await tasaVigente(supabase, tenantId, moneda, onDate);
   if (!vigente) {
@@ -93,7 +101,7 @@ export async function tasaDelDocumento(
       error: `Falta la tasa de ${NOMBRE[moneda]} para el ${onDate}: escríbela aquí o cárgala en Admin › Tasas.`,
     };
   }
-  return { ok: true, tasa: { fxRate: vigente.rate, fxRateSource: vigente.source, fxRateValidOn: vigente.validOn } };
+  return { ok: true, tasa: { fxRate: vigente.rate, fxRateSource: vigente.source, fxRateValidOn: vigente.validOn, fxRateIsOverride: false } };
 }
 
 const PREFERENCIA: Record<FuenteTasa, number> = { bcv: 0, manual: 1, operacion: 2 };
@@ -120,6 +128,6 @@ export async function ultimaTasa(
   const fila = filas
     .filter((f) => f.valid_on === dia)
     .sort((a, b) => (PREFERENCIA[a.source] ?? 9) - (PREFERENCIA[b.source] ?? 9))[0];
-  const rate = tasaValida(fila.rate);
+  const rate = tasaPersistible(fila.rate);
   return rate === null ? null : { rate, validOn: fila.valid_on, source: fila.source };
 }
