@@ -15,7 +15,19 @@ confidencialidad: interno
 
 > La 2.1 del plan contable, segunda parte. La SDD-0569 creó el conversor canónico (`toUsd` en `lib/shared/fx.ts` y `to_usd` en la 0495) y la tabla `fx_rates`. Esta reemplaza las 13 implementaciones y las tasas fijas del código por ese conversor. **Aquí sí cambian cifras visibles.**
 
-**Estado: DISEÑO para revisión del Director.** No hay código todavía. Depende de que la SDD-0569 esté en main, porque usa `toUsd`. Las preguntas están al final.
+**Estado: DISEÑO APROBADO por el Director el 2026-10-20** (sobre `da23a77f`), con las cinco propuestas. No hay código todavía: la 0572-a arranca cuando la SDD-0569 esté en main, porque usa `toUsd`.
+
+## Decisiones del Director, por la delegación de Sam del 2026-10-20
+
+Sam pidió avanzar de forma continua y delegó en el Director las decisiones pendientes. Estas cinco son **decisión del Director, por la delegación de Sam del 2026-10-20**:
+
+1. **El asiento sin tasa no se crea** y queda en «Por contabilizar». **El cobro en CNY exige tasa**, igual que en VES.
+2. **Una rendición con un cobro sin tasa no se emite.**
+3. **Dos PR:**
+   - **0572-a:** la app (reglas A a G) y las pruebas;
+   - **0572-b:** la migración de 0404 y 0411. Su número se le pide al Director al arrancarla.
+4. **El nivel del cliente** cuenta las facturas en yuanes con su tasa.
+5. **Las sumas multimoneda con «$» sin convertir** van en otra SDD, con destino «SDD de KPIs multimoneda» (ver *Fuera de alcance*).
 
 ## Contexto
 
@@ -103,7 +115,18 @@ También el correo «Factura emitida» pone `{{total_usd}}` con el monto en bol�
 - La carga automática del BCV.
 - Los datos históricos (decisión 2).
 
-## Preguntas para el Director
+## Fuera de alcance
+
+- **SDD de KPIs multimoneda** (decisión 5): las sumas de varias monedas que se muestran con «$» sin convertir:
+  - los KPIs de Facturación (`invoiceKpis`, que también alimenta «Por cobrar» y «Vencido» del flujo de caja);
+  - Cobranzas («Por cobrar», «Vencido», «En promesa»);
+  - Tesorería («Por pagar», «Vencido», «Pagado del mes»);
+  - Dashboard («Por cobrar»);
+  - Dirección (pronóstico);
+  - el `{{total_usd}}` del correo «Factura emitida» (`invoice-mail-vars.ts:59`);
+  - el `total_usd` del estado de cuenta de Financiero China (`ImportStatementDrawer.tsx:143-145`, que cuenta VES 1:1).
+
+## Preguntas que se hicieron al Director (respondidas el 2026-10-20: ver *Decisiones*)
 
 1. **Asiento sin tasa (regla B):** ¿no se crea y queda en «Por contabilizar», como propongo, o se rechaza el cobro, la CxP o el pago? Hoy las CxP nuevas ya exigen tasa (0569); los cobros en CNY no.
 2. **Rendición con un cobro sin tasa:** ¿se bloquea la emisión, como propongo, o se emite excluyendo ese cobro, con aviso?
