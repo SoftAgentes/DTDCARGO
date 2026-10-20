@@ -10,15 +10,20 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { setClosingDateAction } from "../actions";
 import { Icon } from "@/app/studio/_components/icons";
-import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
+import type { EstadoCierre } from "@/lib/studio/accounting/cierre-queries";
+import { AjustesDelCierre } from "./AjustesDelCierre";
 
 export function ClosingDateDrawer({
   currentClosingDate,
   onClose,
+  estadoCierre = null,
 }: {
   currentClosingDate: string | null;
   onClose: () => void;
+  /** SDD-0566: el modo y la superclave. Sin la 0493 no llega y el cajón queda como antes. */
+  estadoCierre?: EstadoCierre | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -113,13 +118,7 @@ export function ClosingDateDrawer({
           </button>
         </header>
 
-        <form
-          id="closing-drawer-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!date || pending) return;
-            submit(date, `Período cerrado hasta el ${date}`);
-          }}
+        <div
           style={{
             flex: 1,
             overflow: "auto",
@@ -128,6 +127,15 @@ export function ClosingDateDrawer({
             flexDirection: "column",
             gap: 16,
           }}
+        >
+        <form
+          id="closing-drawer-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!date || pending) return;
+            submit(date, `Período cerrado hasta el ${date}`);
+          }}
+          style={{ display: "flex", flexDirection: "column", gap: 16 }}
         >
           <p
             style={{
@@ -140,10 +148,22 @@ export function ClosingDateDrawer({
               borderRadius: "var(--r-md)",
             }}
           >
-            Los asientos con fecha igual o anterior a la de cierre quedan{" "}
-            <strong>de solo lectura</strong>: no se pueden crear, asentar, anular
-            ni borrar. Para corregir algo de un período cerrado, reabre primero
-            (mueve la fecha hacia atrás).
+            {estadoCierre ? (
+              <>
+                Los asientos con fecha igual o anterior a la de cierre quedan{" "}
+                <strong>cerrados</strong>. Para cambiar uno hacen falta el aviso y
+                el motivo{estadoCierre.modo === "superclave" ? ", y la superclave" : ""};
+                cada cambio queda en el reporte «Excepciones al cierre». Reabrir
+                (mover la fecha hacia atrás) abre el período para todos.
+              </>
+            ) : (
+              <>
+                Los asientos con fecha igual o anterior a la de cierre quedan{" "}
+                <strong>de solo lectura</strong>: no se pueden crear, asentar, anular
+                ni borrar. Para corregir algo de un período cerrado, reabre primero
+                (mueve la fecha hacia atrás).
+              </>
+            )}
           </p>
 
           <div>
@@ -198,8 +218,9 @@ export function ClosingDateDrawer({
             </p>
           )}
 
-          <div style={{ flex: 1, minHeight: 8 }} />
         </form>
+        {estadoCierre && <AjustesDelCierre estado={estadoCierre} />}
+        </div>
 
         <footer
           style={{

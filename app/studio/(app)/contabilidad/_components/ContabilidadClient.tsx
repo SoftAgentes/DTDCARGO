@@ -33,6 +33,9 @@ import { PorContabilizarTab } from "./PorContabilizarTab";
 import { ConciliacionTab } from "./ConciliacionTab";
 import { ActivosFijosTab } from "./ActivosFijosTab";
 import { ClosingDateDrawer } from "./ClosingDateDrawer";
+import { ExcepcionesCierreTab } from "./ExcepcionesCierreTab";
+import type { AvisoCierre, EventoDelCierre, ExcepcionAlCierre } from "@/lib/studio/accounting/cierre-excepciones";
+import type { EstadoCierre } from "@/lib/studio/accounting/cierre-queries";
 
 type Tab =
   | "plan"
@@ -41,7 +44,8 @@ type Tab =
   | "reportes"
   | "subdiario"
   | "conciliacion"
-  | "activos";
+  | "activos"
+  | "excepciones";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "plan", label: "Plan de cuentas" },
@@ -51,6 +55,7 @@ const TABS: { value: Tab; label: string }[] = [
   { value: "subdiario", label: "Por contabilizar" },
   { value: "conciliacion", label: "Conciliación" },
   { value: "activos", label: "Activos fijos" },
+  { value: "excepciones", label: "Excepciones al cierre" },
 ];
 
 /** Cuentas de banco / caja postables (para cargar extractos): qbo_type Bank o code 1.1.1.x. */
@@ -93,6 +98,9 @@ export function ContabilidadClient({
   activeStatement,
   candidates,
   assets,
+  estadoCierre = null,
+  excepciones = [],
+  historialCierre = [],
 }: {
   tab: Tab;
   accounts: Account[];
@@ -111,6 +119,10 @@ export function ContabilidadClient({
   activeStatement: BankStatement | null;
   candidates: EntryCandidate[];
   assets: FixedAsset[];
+  /** SDD-0566: el cierre con superclave. null sin la 0493: sin excepción ni reporte. */
+  estadoCierre?: EstadoCierre | null;
+  excepciones?: ExcepcionAlCierre[];
+  historialCierre?: EventoDelCierre[];
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -120,6 +132,10 @@ export function ContabilidadClient({
   const [showSetClosing, setShowSetClosing] = useState(false);
   const [showCreateStatement, setShowCreateStatement] = useState(false);
   const [showCreateAsset, setShowCreateAsset] = useState(false);
+  // SDD-0566: el aviso del cierre para los asientos de período cerrado.
+  const avisoCierre: AvisoCierre | null = estadoCierre?.closingDate
+    ? { closingDate: estadoCierre.closingDate, modo: estadoCierre.modo, superclaveDefinida: estadoCierre.superclaveDefinida }
+    : null;
 
   const goToTab = (next: Tab) => {
     const s = new URLSearchParams();
@@ -257,7 +273,7 @@ export function ContabilidadClient({
           transition: "opacity var(--dur-fast) var(--ease)",
         }}
       >
-        {TABS.map((t) => {
+        {TABS.filter((t) => t.value !== "excepciones" || estadoCierre).map((t) => {
           const active = tab === t.value;
           return (
             <button
@@ -292,6 +308,7 @@ export function ContabilidadClient({
       )}
       {tab === "diario" && conteoDiario && (
         <LibroDiarioTab
+          avisoCierre={avisoCierre}
           entries={entries}
           totalEntries={conteoDiario.total}
           postableAccounts={postableAccounts}
@@ -334,9 +351,14 @@ export function ContabilidadClient({
         />
       )}
 
+      {tab === "excepciones" && estadoCierre && (
+        <ExcepcionesCierreTab excepciones={excepciones} historial={historialCierre} />
+      )}
+
       {showSetClosing && (
         <ClosingDateDrawer
           currentClosingDate={closingDate}
+          estadoCierre={estadoCierre}
           onClose={() => setShowSetClosing(false)}
         />
       )}

@@ -25,6 +25,15 @@ import {
 import { countEntries, listEntries } from "@/lib/studio/journal-queries";
 import { ledgerForAccount } from "@/lib/studio/journal-queries";
 import { getAccountingSettings } from "@/lib/studio/accounting/period-queries";
+import type { EventoDelCierre, ExcepcionAlCierre } from "@/lib/studio/accounting/cierre-excepciones";
+import {
+  getEstadoCierre,
+  listExcepcionesAlCierre,
+  listHistorialDelCierre,
+  nombresDeUsuarios,
+} from "@/lib/studio/accounting/cierre-queries";
+import { listTenantAdvisors } from "@/lib/studio/user-queries";
+import { createAdminClient } from "@/lib/db/admin";
 import {
   cuadreDelLibro,
   reportesDelLibro,
@@ -55,7 +64,8 @@ type Tab =
   | "reportes"
   | "subdiario"
   | "conciliacion"
-  | "activos";
+  | "activos"
+  | "excepciones";
 
 export default async function ContabilidadPage({
   searchParams,
@@ -75,7 +85,8 @@ export default async function ContabilidadPage({
     tabRaw === "reportes" ||
     tabRaw === "subdiario" ||
     tabRaw === "conciliacion" ||
-    tabRaw === "activos"
+    tabRaw === "activos" ||
+    tabRaw === "excepciones"
       ? tabRaw
       : "plan";
   const ledgerAccountId = single("cuenta") ?? null;
@@ -105,6 +116,22 @@ export default async function ContabilidadPage({
       .maybeSingle<{ tenant_id: string; role: string }>();
     canEditClosing = roleRow?.role === "admin";
     tenantId = roleRow?.tenant_id ?? null;
+  }
+
+  // ── Cierre con superclave (SDD-0566): el estado, sin el hash. Sin la 0493 la
+  // RPC no existe: la pantalla vuelve a la de antes (sin excepción ni reporte).
+  const estadoCierre = await getEstadoCierre(supabase).catch((e: unknown) => {
+    console.error("[cierre-contable] estado no disponible:", e instanceof Error ? e.message : e);
+    return null;
+  });
+  let excepciones: ExcepcionAlCierre[] = [];
+  let historialCierre: EventoDelCierre[] = [];
+  if (tab === "excepciones" && estadoCierre && tenantId) {
+    const nombreDe = nombresDeUsuarios(await listTenantAdvisors(createAdminClient(), tenantId));
+    [excepciones, historialCierre] = await Promise.all([
+      listExcepcionesAlCierre(supabase, nombreDe),
+      listHistorialDelCierre(supabase, nombreDe),
+    ]);
   }
 
   // Libro mayor de la cuenta seleccionada (si hay una y existe).
@@ -167,6 +194,9 @@ export default async function ContabilidadPage({
       cuadre={cuadre}
       closingDate={accSettings.closing_date}
       canEditClosing={canEditClosing}
+      estadoCierre={estadoCierre}
+      excepciones={excepciones}
+      historialCierre={historialCierre}
       statements={statements}
       activeStatement={activeStatement}
       candidates={candidates}
