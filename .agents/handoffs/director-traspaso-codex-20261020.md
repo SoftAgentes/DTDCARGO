@@ -142,7 +142,7 @@ También en main: #299 (respaldos), #302 (tope del CI a 60 min), #305 (decisione
 5. Sí: el gasto entra en la RPC.
 
 Registra las decisiones en la spec |
-| 0574 (reserva) | 4.5, «Embarques sin facturar» | Diseño en lectura | Seguir con el Worker del embarque |
+| `codex/sdd-0574-embarques-sin-facturar` @ `18edcd81` | 0574 = 4.5, «Embarques sin facturar» (apilada sobre la #307) | Implementada sobre la 0571, con pruebas: 10 de regla y lectura, 3 mutantes muertos, BASELINE de invoices, tsc y lint. Tiene handoff propio. Contabilidad confirmó que la 0572 y la 0573 no le cambian nada. **Falta su verify y su PR** | Con turno: verify. Después, la PR, que se fusiona después de la #307 |
 | **#304** `codex/pglite-snapshot-esquema` @ `59e8491b` | 0570, plantilla PGlite (solo test-infra) | CI verde sobre `8a13412c`; sobre `e6311891` falló por facturación | Relanzar el run 39453136909, integrar y fusionar. El A/B local está pendiente |
 | **#306** `codex/oficina-hermes-diseno` @ `033eea50` | 0564, D11 de la oficina de agentes | Revisada, solo docs | Integrar y fusionar |
 | #262 | 0543, contenedores 60 y 64 | Borrador | Espera los Excel del 60 y del 64 y el costo de HR. No tocar |
@@ -159,7 +159,7 @@ El Director lo comprobó con `git fetch`, `git worktree list` y `gh pr list`. **
 | Rama | Worktree | Cabeza local | En origin | Estado al cierre |
 |---|---|---|---|---|
 | `codex/sdd-0569-conversor-usd-tasas` (#301) | `DTD-worktrees/sdd-0569-conversor-usd-tasas` | `3d0c9028` | igual | Limpia. BEHIND con main |
-| `claude/peaceful-franklin-a3831e` (#307) | `DTDCARGO/.claude/worktrees/peaceful-franklin-a3831e` | `a81dbbd7` | `a81dbbd7`; **el Director empujó los 5 commits de las correcciones de seguridad** (`38198401`..`a81dbbd7`, con `2e94bccc` incluido) | **El verify terminó a las 17:20Z: 16/17 PASÓ, sin fallos** (e2e 176 passed, con 2 flaky ajenos). Está anotado en el handoff `0571-…`; cabeza final `b70be5d7`, empujada y limpia |
+| `claude/peaceful-franklin-a3831e` (#307) | `DTDCARGO/.claude/worktrees/peaceful-franklin-a3831e` | `a81dbbd7` | `a81dbbd7`; **el Director empujó los 5 commits de las correcciones de seguridad** (`38198401`..`a81dbbd7`, con `2e94bccc` incluido) | **El verify terminó a las 17:20Z: 16/17 PASÓ, sin fallos** (e2e 176 passed, con 2 flaky ajenos). Está anotado en el handoff `0571-…`; cabeza final `b70be5d7`, empujada y limpia. `migrations-applied` dio SKIP porque el worktree no tiene `.env.local`. Revisión de seguridad: puntos 1–8 corregidos; el 9 queda FUERA DE ALCANCE, para la SDD de RBAC multitenant |
 | `codex/sdd-0573-reverso-al-anular` @ `89f15a5d` (sin PR) | `DTD-worktrees/sdd-0573-reverso-al-anular` | `89f15a5d` | `89f15a5d`; **el Director empujó los 3 commits de la implementación** | Implementada. **Confirmado por el Worker: NINGÚN hallazgo de la revisión está corregido** (B1, I1–I4 y M1–M9). Tampoco corrió typecheck, eslint ni verify. Lo siguiente es un Worker que corrija todos contra el informe del handoff `0573-…` |
 | `codex/sdd-0572-conversor-usd-reemplazos` (sin PR) | `DTD-worktrees/sdd-0572-conversor-usd-reemplazos` | `9c864da5` (merge de la #301) | `0c06d482` (13 commits detrás) | **Actualizado a las 17:30Z.**
 
@@ -168,7 +168,7 @@ El Director lo comprobó con `git fetch`, `git worktree list` y `gh pr list`. **
 - **Cambio de fixture:** `ingreso-fixture` con F6 y F9. Lo esperado: 3000 en total, 3 facturas, 2 sin convertir y 4 en otra moneda.
 - **Rendición:** bloquea también con una factura local sin tasa, y el texto no es literal de la spec. **Recomendación:** aceptar el texto del Worker.
 - El respaldo viejo en `C:/tmp/.../respaldo-0572/` ya no hace falta. |
-| `codex/sdd-0574-embarques-sin-facturar` | `DTD-worktrees/sdd-0574-embarques-sin-facturar` | `18edcd81` | igual | Diseño publicado, sin PR. Su claim ya está liberado |
+| `codex/sdd-0574-embarques-sin-facturar` | `DTD-worktrees/sdd-0574-embarques-sin-facturar` | `18edcd81` | igual | Implementada sobre la 0571, con pruebas: 10 de regla y lectura, 3 mutantes muertos, BASELINE de invoices, tsc y lint. Tiene handoff propio. Contabilidad confirmó que la 0572 y la 0573 no le cambian nada. **Falta su verify y su PR** |
 | `codex/pglite-snapshot-esquema` (#304) | `DTD-worktrees/pglite-snapshot-esquema` | `59e8491b` | igual | Borrador. Criterios 1–8 medidos en el CI: el job baja de 41,6 a 29,3 min. Hay que relanzar el run 39453136909 cuando se pague, sacar la PR de borrador y fusionarla. El A/B local de 34 archivos queda para cuando haya turno |
 | `codex/oficina-hermes-diseno` (#306) | — | `033eea50` | igual | Solo docs, revisada |
 
@@ -207,7 +207,7 @@ Ya asignada:
 14. 3.9, arranque contable: «abrir cuentas nuevas a todos».
 15. 5.4, permisos de la contadora.
 
-El carril del embarque va en paralelo: 4.1 = 0571, después la 4.5 = 0574 y la 4.2.
+El carril del embarque va en paralelo: 4.1 = 0571 (con verify PASÓ), la 4.5 = 0574 (implementada; falta el verify) y la 4.2 (sin empezar).
 
 ## 4. Copia del checklist «Plan contable: avance y pendientes»
 

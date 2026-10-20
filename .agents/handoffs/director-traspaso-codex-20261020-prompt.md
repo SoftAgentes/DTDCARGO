@@ -140,7 +140,7 @@ En Windows:
 | **0572-a**: reemplazos del conversor | `codex/sdd-0572-conversor-usd-reemplazos` @ `4f24a1db` (empujada) | Código terminado: 31 archivos de prueba en verde, uno por uno | Con turno: tsc, eslint, verify y mutantes. La PR va cuando la #301 esté en main |
 | **#304**: plantilla PGlite (solo pruebas) | `codex/pglite-snapshot-esquema` @ `59e8491b` | Borrador. Criterios 1–8 medidos: el CI baja de 41,6 a 29,3 min | Relanzar el run 39453136909, sacarla de borrador y fusionarla |
 | **#306**: docs de la oficina de agentes | `codex/oficina-hermes-diseno` @ `033eea50` | Revisada, solo docs | Integrar y fusionar. Después, una PR nueva con el anexo de Telegram |
-| **0574**: embarques sin facturar (4.5) | `codex/sdd-0574-embarques-sin-facturar` @ `18edcd81` | Diseño publicado, sin PR | Seguir con el carril del embarque |
+| **0574**: embarques sin facturar (4.5) | `codex/sdd-0574-embarques-sin-facturar` @ `18edcd81`, apilada sobre la #307 | Implementada sobre la 0571, con pruebas: 10 de regla y lectura, 3 mutantes muertos, BASELINE de invoices, tsc y lint. Tiene handoff propio. Contabilidad confirmó que la 0572 y la 0573 no le cambian nada. **Falta su verify y su PR** | Con turno, el verify. Después, su PR, que se fusiona después de la #307 |
 | **2.2 = SDD-0575**: asientos sin fallos silenciosos | `codex/sdd-0575-asientos-sin-fallos-silenciosos` @ `3f5b7bdc` | Diseño publicado, con 5 preguntas abiertas | Decide por delegación con la recomendación del §3.3 del handoff y regístralo en la spec |
 
 Numeración: SDD hasta la 0575 (la 2.2) y migraciones hasta la 0497. **Antes de asignar, corre `node scripts/next-number.mjs`.** No deja saltar números.
@@ -196,7 +196,7 @@ La #302 (tope del CI a 60 min) ya está en main; esa sesión no deja nada pendie
    - 3.9;
    - 5.4.
 
-   En paralelo, el carril del embarque: la 4.5 (0574) y la 4.2.
+   En paralelo, el carril del embarque: la 4.5 (0574: verify y PR) y la 4.2, sin empezar.
 6. **Fechas:**
    - **21 y 22 de octubre:** restore de prueba (`infra/ops/backup/restore-test.sh`).
    - **27 de octubre:** vence la llave de Junta `hermes-director` de Paperclip. **Revócala antes**, con el OK de Sam: una llave de Junta permite a un agente aprobarse sus propias contrataciones.
