@@ -7,5 +7,30 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "sdd-0573-reverso-al-anular",
+      "primarySymbol": "journal_entries.reverses_entry_id",
+      "migration": "0497_reverso_al_anular_factura",
+      "symbols": [
+        {
+          "name": "journal_entries.reverses_entry_id",
+          "kind": "column",
+          "callSites": [
+            "lib/studio/accounting/libro-control-queries.ts:289",
+            "lib/studio/accounting/libro-control-queries.ts:352",
+            "lib/studio/accounting/libro-control.ts:201",
+            "lib/studio/accounting/libro-control.ts:213"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/db/paginate.ts:131",
+          "contains": "if (error) throw new Error(error.message);",
+          "degradation": "Sin 0497, journal_entries no tiene reverses_entry_id y PostgREST responde 42703: la lectura paginada de cuadreDelLibro lanza el error y Contabilidad › Por contabilizar no carga hasta que se aplique la 0497. Las demás pestañas de Contabilidad, que no leen la columna, siguen igual. Orden previsto: MIGRATE-FIRST (0497 antes de fusionar y desplegar), con el que la ventana es de segundos."
+        }
+      ]
+    }
+  ]
 }

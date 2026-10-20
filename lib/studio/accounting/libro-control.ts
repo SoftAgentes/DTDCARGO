@@ -197,7 +197,23 @@ export type AsientoDeDocumento = {
   receipt_id: string | null;
   bill_id: string | null;
   supplier_payment_id: string | null;
+  /** SDD-0573: el asiento que este revierte (contra-asiento `invoice_reversal`). */
+  reverses_entry_id?: string | null;
 };
+
+/**
+ * SDD-0573 · Los asientos que tienen un contra-asiento vivo (`invoice_reversal`,
+ * migr 0497). El original queda `asentado` —en un período cerrado no se puede
+ * tocar—, pero con su reverso el par suma cero: para el cruce cuenta como
+ * anulado, no como vivo.
+ */
+export function asientosRevertidos(asientos: readonly AsientoDeDocumento[]): Set<string> {
+  const out = new Set<string>();
+  for (const a of asientos) {
+    if (a.source === "invoice_reversal" && a.reverses_entry_id && asientoVivo(a)) out.add(a.reverses_entry_id);
+  }
+  return out;
+}
 
 export type MotivoHallazgo =
   | "sin_asiento"
@@ -324,6 +340,7 @@ export function asientosPorDocumento(
 ): Map<string, { vivos: number; anulados: number }> {
   const porId = new Map<string, AsientoDeDocumento>();
   for (const a of asientos) porId.set(a.id, a);
+  const revertidos = asientosRevertidos(asientos);
 
   const out = new Map<string, { vivos: number; anulados: number }>();
   const contados = new Map<string, Set<string>>();
@@ -335,8 +352,8 @@ export function asientosPorDocumento(
     vistos.add(a.id);
     contados.set(k, vistos);
     const slot = out.get(k) ?? { vivos: 0, anulados: 0 };
-    if (asientoVivo(a)) slot.vivos += 1;
-    else if (a.status === "anulado") slot.anulados += 1;
+    if (asientoVivo(a) && !revertidos.has(a.id)) slot.vivos += 1;
+    else if (a.status === "anulado" || revertidos.has(a.id)) slot.anulados += 1;
     out.set(k, slot);
   };
 

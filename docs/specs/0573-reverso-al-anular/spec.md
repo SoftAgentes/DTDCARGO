@@ -76,7 +76,7 @@ confidencialidad: interno
 - `void-invoice-referral-warning.test.ts` espera una sola RPC con `{p_id, p_reason}` y devuelve el error crudo de la base (ERR-01);
 - los lectores del libro de control (`libro-control.ts:321-418`, `libro-control-queries.ts:88-138`), la radiografía de integridad (`scripts/qa/radiografia-integridad.sql:77, :258-262`) y la regla `asiento_vivo` del asistente de borrado (`lib/studio/borrado/asistente.ts:628`, SDD-0560) consideran «vivo» todo asiento `asentado` de la factura.
 
-## Propuesta
+## Propuesta (aprobada; así quedó implementada)
 
 ### 1. El reverso es un contra-asiento, no un «anulado»
 
@@ -124,23 +124,34 @@ Pasos:
 - que la función es DEFINER y su ACL (solo `authenticated`);
 - la columna nueva y su índice único.
 
+### 3b. Lo que se ajustó al implementar
+
+- **El contrato** (`supabase/tests/0497_reverso_al_anular_factura.test.sql`) usa el fixture del contrato 0467 atómico (facturas, cobranzas, D2 con 0290 y 0294) más la 0133 y la 0493. Prueba el pedido del Director: el reverso de un asiento de enero cerrado pasa por el cierre sin usar ninguna excepción y el cierre no cambia, y un reverso a mano dentro del período cerrado lo rechaza el cierre (23514).
+- **El filtro «sin reverso»** del asiento vivo se quitó de la RPC: un asiento con reverso solo existe en una factura ya anulada, que sale antes. Era código sin prueba posible.
+- **Con crédito de referido aplicado:** `revert_referral_credits` (0471) no exige la factura anulada, así que `voidInvoice` revierte el crédito ANTES de anular. Si el crédito no vuelve, la factura no se anula. Si la plata volvió pero su asiento quedó vivo (`failure: "entries"`, SDD-0496), anula con su aviso.
+
 ### 4. La app
 
 - `voidInvoice` deja sus comprobaciones previas a la RPC y muestra solo los mensajes con hint `dtd-anular` (ERR-01): hoy devuelve el error crudo.
 - El detalle de la factura deshabilita «Anular» cuando hay cobros vivos, con el motivo a la vista.
 - `canVoid` (`invoice-types.ts:300-302`) mira también `paid_amount`.
-- El libro diario muestra el reverso con su etiqueta («Reverso de factura») y un enlace al original.
+- El libro diario muestra el reverso con su etiqueta («Reverso de factura»); el memo cita la factura, el asiento original y su fecha.
 - **Los lectores que hoy tratan como vivo todo asiento `asentado` de la factura** cuentan el par original + reverso como anulado:
   - el libro de control;
   - `saldosDeFacturas`;
   - la radiografía de integridad;
-  - la regla `asiento_vivo` del asistente de borrado de la 0560.
+  - la regla `asiento_vivo` del asistente de borrado de la 0560: una factura **emitida** con asiento ya se anula (la 0497 lo revierte); un **borrador** con asiento vivo, o sin poder comprobarlo, sigue bloqueado, porque el asistente lo elimina y eliminar no revierte nada.
+- La radiografía de integridad (`scripts/qa/radiografia-integridad.sql`) excluye del B1 el asiento de venta con su contra-asiento, y cuenta el origen `invoice_reversal`. Su fixture suma el tenant U (una anulada con su par).
 
 ### 5. Lo que se reescribe en las pruebas
 
-- `0467_reversion_credito_carrera.test.sql`, escenarios 1, 3 y 5: anulan una factura con un recibo vivo, que desde ahora se rechaza. Se reescriben anulando antes el recibo, y se agrega el escenario «con recibo vivo, no anula».
-- `void-invoice-referral-warning.test.ts`: el error crudo pasa a mensaje con hint; la llamada sigue siendo una sola RPC.
-- `0294_audit_d2_human_reasons.test.sql`: la RPC nueva necesita en su fixture `journal_entries`, `journal_lines`, `payment_receipts` y `accounting_settings`, o un contrato propio.
+- `0467_reversion_credito_carrera.test.sql`: **todos** sus escenarios arrancan con un cobro de 300, así que no solo el 1, el 3 y el 5 anulaban con un recibo vivo: también el 2, el 4 y el 6. El fixture aplica ahora la 0133 y la 0497.
+  - Los «después» 1, 2, 5 y 6 exigen primero el rechazo nuevo; después anulan el recibo (y en el 1 revierten el crédito) y corren la misma carrera, con la misma propiedad.
+  - El 3: la anulación espera al cobro en curso, lo ve y sale rechazada por los dos recibos vivos. Es la misma regla (no ignorar un cobro en vuelo), con su consecuencia nueva.
+  - Las fases «antes» y el 4 (la generación 0490) anulan con `anular_como_0294`, la copia de la 0294 en el fixture, como las otras sentencias viejas.
+  - 19 aserciones, las mismas que el original; sin la 0497 fallan los «después» 1, 2, 3, 5 y 6.
+- `void-invoice-referral-warning.test.ts`: reescrita para el orden nuevo (cobros vivos, revertir el crédito, anular), con las mismas categorías: el aviso sin el texto crudo, el log, la revalidación y el éxito limpio.
+- `0294_audit_d2_human_reasons.test.sql` no cambia: aplica la 0294 sola, y la RPC nueva tiene su contrato propio.
 
 ### 6. Reparación histórica
 
@@ -152,7 +163,7 @@ Ninguna. El Director midió 0 anuladas con asiento vivo el 2026-10-18, y la deci
 - El asiento de venta sigue en moneda nominal (B2, la 2.3).
 - Las notas de crédito y débito (2.8).
 
-## Preguntas para el Director
+## Preguntas que se hicieron al Director (respondidas el 2026-10-20: ver *Decisiones*)
 
 1. **`paid_amount > 0` sin recibos vivos** (crédito de referido aplicado, o reporte de pago confirmado): ¿se rechaza la anulación? Propongo rechazar, con el mensaje «La factura tiene USD X aplicados sin recibo (crédito de referido o reporte de pago): revierte el crédito o espera a la 2.7». Hoy la reversión del crédito corre después de anular (SDD-0567). Con esta regla, quien anula una factura con crédito aplicado tiene que revertir antes. La otra opción es que la RPC revierta el crédito en la misma transacción, pero el asiento del crédito lo escribe la app.
 2. **Reescribir `void_invoice_with_audit_reason` con la misma firma** (propuesta), o una RPC nueva que reemplace la de la 0294, revocándole el EXECUTE.
@@ -165,15 +176,59 @@ Ninguna. El Director midió 0 anuladas con asiento vivo el 2026-10-18, y la deci
 - **El contra-asiento en la misma transacción para recibo, CxP y pago a proveedor**, que hoy marcan su asiento `anulado`, best-effort, y en un período cerrado fallan en silencio. Destino: la 2.2 («asientos sin fallos silenciosos») o una SDD propia.
 - **La idempotencia de `postInvoiceJournalEntry`** cuenta cualquier asiento con el `invoice_id` (incluido el del crédito de referido) sin filtrar por `source`. No afecta esta SDD, porque una anulada no se vuelve a emitir, pero conviene acotarla a `source='invoice'`.
 
+## Allowlist exacta
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/0497_reverso_al_anular_factura.sql` | la migración |
+| `supabase/tests/0497_reverso_al_anular_factura.test.sql` | el contrato |
+| `lib/studio/__tests__/reverso-al-anular-factura.migration.test.ts` | el contrato en PGlite: control rojo, 20 mutantes, el preflight con otro cuerpo, la reaplicación y la espera |
+| `supabase/tests/0467_reversion_credito_carrera.test.sql` | los escenarios con el rechazo nuevo |
+| `supabase/migrations-baseline.json` | la espera de la 0497 |
+| `supabase/pending-migration-symbol-declarations.json` | `journal_entries.reverses_entry_id` y su degradación |
+| `app/studio/(app)/facturacion/actions.ts` | `voidInvoice`: cobros vivos, crédito antes, mensajes con hint |
+| `app/studio/(app)/facturacion/__tests__/void-invoice-referral-warning.test.ts` | reescrita para el orden nuevo |
+| `app/studio/(app)/facturacion/[code]/page.tsx` | pasa los cobros vivos al detalle |
+| `app/studio/(app)/facturacion/_components/InvoiceDetailClient.tsx` | «Anular» deshabilitado con cobros vivos; el diálogo nombra el reverso |
+| `app/studio/(app)/facturacion/_components/InvoiceDetailClient.anular.test.tsx` | nueva |
+| `lib/studio/journal-types.ts` | el origen `invoice_reversal` y su etiqueta |
+| `app/studio/(app)/contabilidad/_components/LibroDiarioTab.tsx` | el reverso con el tono de la factura |
+| `lib/studio/accounting/libro-control.ts` | `asientosRevertidos`: el par cuenta como anulado |
+| `lib/studio/accounting/libro-control-queries.ts` | el cruce lee los reversos; `saldosDeFacturas` suma el reverso |
+| `lib/studio/accounting/__tests__/libro-control-queries.test.ts` | los filtros nuevos |
+| `lib/studio/accounting/__tests__/libro-control-reverso.test.ts` | nueva |
+| `lib/studio/borrado/asistente.ts` | la emitida con asiento se anula; el borrador sigue bloqueado |
+| `lib/studio/borrado/__tests__/asistente.test.ts`, `asistente-servidor.test.ts` | la regla nueva |
+| `app/studio/(app)/embarques/__tests__/asistente-borrado-action.test.ts`, `app/studio/(app)/embarques/_components/__tests__/AsistenteBorrado.test.tsx` | la regla nueva |
+| `scripts/qa/radiografia-integridad.sql` | el B1 sin los revertidos; el origen `invoice_reversal` |
+| `scripts/qa/radiografia-integridad.fixture.sql` | la columna de la 0497 y el tenant U |
+| `scripts/__tests__/radiografia-integridad.test.ts` | los esperados con U y un mutante nuevo |
+| `scripts/__tests__/subdiario-radiografia-paridad.test.ts` | los dieciocho tenants |
+| `docs/specs/0573-reverso-al-anular/spec.md` | esta spec |
+| `docs/specs/README.md` | índice regenerado |
+| `.agents/handoffs/0573-reverso-al-anular.md` | handoff |
+
+## Criterios de aceptación
+
+1. Anular una factura con su asiento de venta crea, en la misma transacción, el contra-asiento con las líneas al revés: el par suma cero en cada cuenta y el original no se toca.
+2. El reverso va fechado `greatest(hoy en Caracas, closing_date + 1)` y nunca entra a un período cerrado; pasa por el cierre (0133/0493) sin usar ninguna excepción.
+3. El memo cita la factura, el asiento original, su fecha y el motivo, y dice cuando el original está en un período cerrado.
+4. No se anula con recibos vivos, con abono sin recibo, con dos asientos de venta vivos o con uno que no cuadra; los rechazos llevan hint `dtd-anular` y no cambian nada.
+5. Solo admin o accounting del tenant de la sesión anulan. La anulación queda en la auditoría D2 con su motivo.
+6. Un asiento tiene a lo sumo un reverso, el original no se borra mientras exista, y solo un `invoice_reversal` revierte.
+7. La app revierte el crédito de referido antes de anular, y no anula si no vuelve; muestra solo los mensajes con hint.
+8. El libro de control, la radiografía y el asistente de borrado tratan el par como anulado.
+9. Control rojo, y cada regla con su mutante (20 en la 0497, 12 en la app).
+
 ## Gobernanza
 
 | Política | Clasificación | Evidencia |
 |---|---|---|
-| Cambio de comportamiento Studio | por cumplir | la allowlist exacta va con la implementación |
-| AUD-01 | por cumplir | el reverso guarda quién, cuándo, el motivo y el original; la anulación sigue en la auditoría D2 |
-| ERR-01 | por cumplir | mensajes propios con hint `dtd-anular` |
+| Cambio de comportamiento Studio | cumplimiento | esta spec, con allowlist exacta |
+| AUD-01 | cumplimiento | la anulación sigue en la auditoría D2 con su motivo (contrato); el reverso nace asentado (D2 `journal_entry_posted`) y su memo guarda el motivo y el original |
+| ERR-01 | cumplimiento | la app muestra solo los mensajes con hint `dtd-anular` (prueba de `voidInvoice`) |
 | Producción | por cumplir | la migración con el OK nominal de Sam y el runbook; sin reparación histórica (0 casos) |
 
 ## Validación
 
-Pendiente.
+Ver el handoff `.agents/handoffs/0573-reverso-al-anular.md`.

@@ -310,9 +310,9 @@ describe("SDD-0562 · «Por contabilizar» y la radiografía cuentan igual los n
 
   const letras = (pred: (t: (typeof porTenant)[number]) => boolean) => porTenant.filter(pred).map((t) => t.letra).sort();
 
-  it("la fixture tiene sus diecisiete tenants y la radiografía aislada suma lo mismo que la completa", () => {
+  it("la fixture tiene sus dieciocho tenants y la radiografía aislada suma lo mismo que la completa", () => {
     expect(tenants.map((t) => t.letra)).toEqual(
-      ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "P", "S", "T"],
+      ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "P", "S", "T", "U"],
     );
     // El aislamiento vacía, por lo menos, todo lo que lee «Por contabilizar» (más referidos y
     // reportes de pago, que la radiografía también lee).

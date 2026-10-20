@@ -90,13 +90,16 @@ export async function saldosDeFacturas(
   rango: RangoFechas,
   accounts: Account[],
 ): Promise<AsientosDeFactura> {
+  // SDD-0573: con su contra-asiento (`invoice_reversal`), que resta en la fecha
+  // en que se anuló. El par suma cero; si el original cae en un período y el
+  // reverso en otro, cada uno muestra lo que pasó en el suyo.
   const asientos = await leerCompleto<Fila>("Control del mayor · asientos de factura", (d, h) =>
     supabase
       .from("journal_entries")
       .select("id, status, source, deleted_at, invoice_id")
       .eq("status", "asentado")
       .is("deleted_at", null)
-      .eq("source", ORIGEN_POR_TIPO.factura)
+      .in("source", [ORIGEN_POR_TIPO.factura, "invoice_reversal"])
       .gte("entry_date", rango.from)
       .lte("entry_date", rango.to)
       .order("id", { ascending: true })
@@ -104,10 +107,15 @@ export async function saldosDeFacturas(
   );
   const vivos = asientos.filter(
     (a) =>
-      a.status === "asentado" && a.deleted_at == null && a.source === ORIGEN_POR_TIPO.factura,
+      a.status === "asentado" && a.deleted_at == null
+      && (a.source === ORIGEN_POR_TIPO.factura || a.source === "invoice_reversal"),
   );
+  // Las facturas con asiento de venta: el reverso no hace comparable a una.
   const facturas = new Set(
-    vivos.map((a) => strOrNull(a.invoice_id)).filter((id): id is string => id != null),
+    vivos
+      .filter((a) => a.source === ORIGEN_POR_TIPO.factura)
+      .map((a) => strOrNull(a.invoice_id))
+      .filter((id): id is string => id != null),
   );
   const ids = vivos.map((a) => str(a.id));
   if (ids.length === 0) return { saldos: computeBalances(accounts, []), facturas };
@@ -278,12 +286,14 @@ export async function cuadreDelLibro(
     leerCompleto<Fila>("Por contabilizar · asientos", (d, h) =>
       supabase
         .from("journal_entries")
-        .select("id, status, source, invoice_id, receipt_id, bill_id, supplier_payment_id, deleted_at")
+        .select("id, status, source, invoice_id, receipt_id, bill_id, supplier_payment_id, deleted_at, reverses_entry_id")
         .is("deleted_at", null)
         .in("status", ["asentado", "anulado"])
         // SDD-0562: más `receipt_reclass`, para saber si un recibo identificado
         // ya toca 1.1.2. El cruce de «sin asiento» no la usa: filtra por origen.
-        .in("source", [...Object.values(ORIGEN_POR_TIPO), "receipt_reclass"])
+        // SDD-0573: más `invoice_reversal`, para saber qué asiento de venta
+        // tiene su contra-asiento (cuenta como anulado).
+        .in("source", [...Object.values(ORIGEN_POR_TIPO), "receipt_reclass", "invoice_reversal"])
         .order("id", { ascending: true })
         .range(d, h),
     ),
@@ -339,6 +349,7 @@ export async function cuadreDelLibro(
     receipt_id: strOrNull(a.receipt_id),
     bill_id: strOrNull(a.bill_id),
     supplier_payment_id: strOrNull(a.supplier_payment_id),
+    reverses_entry_id: strOrNull(a.reverses_entry_id),
   }));
 
   const porDocumento = asientosPorDocumento(docs, vinculos);

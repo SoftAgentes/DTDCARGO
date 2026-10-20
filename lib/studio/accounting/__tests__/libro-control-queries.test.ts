@@ -138,7 +138,8 @@ describe("ingresoDelPeriodo", () => {
     // las cuentas 4, −100.
     expect(i.diferenciaUsd).toBe(400);
     expect(describirIngreso(i).estado).toBe("mayor_menor");
-    expect(filtros).toContainEqual({ table: "journal_entries", op: "eq", col: "source", val: "invoice" });
+    // SDD-0573: con su contra-asiento, que resta en la fecha en que se anuló.
+    expect(filtros).toContainEqual({ table: "journal_entries", op: "in", col: "source", val: ["invoice", "invoice_reversal"] });
   });
 
   it("sin facturas ni asientos de factura: «sin movimiento», aunque haya un manual a 4.5", async () => {
@@ -457,7 +458,8 @@ describe("cuadreDelLibro", () => {
       op: "in",
       col: "source",
       // SDD-0562: más receipt_reclass, para saber si un recibo identificado ya toca 1.1.2.
-      val: ["invoice", "receipt", "supplier_bill", "supplier_payment", "receipt_reclass"],
+      // SDD-0573: más invoice_reversal, para saber qué asiento de venta tiene su contra-asiento.
+      val: ["invoice", "receipt", "supplier_bill", "supplier_payment", "receipt_reclass", "invoice_reversal"],
     });
     expect(filtros).toContainEqual({ table: "invoices", op: "is", col: "deleted_at", val: null });
   });

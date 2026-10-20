@@ -54,7 +54,7 @@ with
 -- de journal_entries (invoice_id, receipt_id, bill_id, supplier_payment_id).
 je_vivo as not materialized (
   select je.id, je.tenant_id, je.source, je.invoice_id, je.receipt_id, je.bill_id, je.supplier_payment_id,
-         je.referral_id
+         je.referral_id, je.reverses_entry_id
   from public.journal_entries je
   where je.deleted_at is null and je.status = 'asentado'
 ),
@@ -74,7 +74,9 @@ fac as (
   select i.id, i.tenant_id, i.status::text as estado, i.currency::text as moneda, i.fx_rate,
          i.total_amount, i.paid_amount, i.issued_at,
          i.status::text in ('emitida', 'parcial', 'pagada', 'vencida') as abierta,
-         (select count(*) from je_vivo j where j.source = 'invoice' and j.invoice_id = i.id) as asientos,
+         -- SDD-0573: el asiento de venta con su contra-asiento (invoice_reversal, 0497) ya no está vivo.
+         (select count(*) from je_vivo j where j.source = 'invoice' and j.invoice_id = i.id
+            and not exists (select 1 from je_vivo r where r.source = 'invoice_reversal' and r.reverses_entry_id = j.id)) as asientos,
          exists (select 1 from public.payment_receipts r where r.invoice_id = i.id and r.deleted_at is null) as con_recibo
   from public.invoices i
   where i.deleted_at is null
@@ -249,7 +251,7 @@ filas (orden, seccion, indicador, n, monto) as (
     (select count(*) from rec where vivo and moneda not in ('USD', 'USDT') and asientos > 0), null
   union all select 30, '2 · asientos por estado y origen', 'asientos · ' || x.estado || ' · ' || x.origen, count(*), null
     from (select je.status::text as estado,
-                 case when je.source in ('manual', 'invoice', 'receipt', 'receipt_reclass', 'supplier_bill',
+                 case when je.source in ('manual', 'invoice', 'invoice_reversal', 'receipt', 'receipt_reclass', 'supplier_bill',
                         'supplier_payment', 'expense', 'claim', 'depreciacion', 'referral_credit',
                         'nomina_settlement', 'supplier_charge', 'currency_conversion', 'supplier_claim_offset')
                       then je.source else 'otro' end as origen

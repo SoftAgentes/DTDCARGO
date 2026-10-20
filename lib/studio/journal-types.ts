@@ -14,6 +14,7 @@ export type EntryStatus = "borrador" | "asentado" | "anulado";
 export type EntrySource =
   | "manual"
   | "invoice"
+  | "invoice_reversal"
   | "receipt"
   | "supplier_bill"
   | "supplier_payment"
@@ -109,6 +110,7 @@ export function entryStatusBadgeTone(
 
 export function entrySourceLabel(source: EntrySource): string {
   if (source === "invoice") return "Factura";
+  if (source === "invoice_reversal") return "Reverso de factura";
   if (source === "receipt") return "Cobro";
   if (source === "supplier_bill") return "Causación CxP";
   if (source === "supplier_payment") return "Pago a proveedor";

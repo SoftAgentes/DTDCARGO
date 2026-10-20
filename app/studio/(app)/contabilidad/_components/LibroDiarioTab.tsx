@@ -273,7 +273,7 @@ export function LibroDiarioTab({
               </span>
               <span>
                 <Badge
-                  tone={entry.source === "invoice" ? "info" : "neutral"}
+                  tone={entry.source === "invoice" || entry.source === "invoice_reversal" ? "info" : "neutral"}
                   size="sm"
                 >
                   {entrySourceLabel(entry.source)}
