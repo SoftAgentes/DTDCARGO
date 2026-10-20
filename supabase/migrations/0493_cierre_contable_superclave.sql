@@ -59,25 +59,52 @@ declare
   v_md5 text;
   v_md5_normalized text;
 begin
+  -- Primero: si el cierre con superclave ya existe, la 0493 ya se aplicó. Va
+  -- antes que las huellas, porque los triggers de 0133 ya son los de 0493 y
+  -- abortaría con «otro cuerpo», que confunde.
+  if to_regclass('public.accounting_closing_secrets') is not null
+     or to_regclass('public.accounting_closing_exceptions') is not null
+     or to_regclass('public.accounting_closing_events') is not null
+     or exists (
+       select 1 from information_schema.columns
+       where table_schema = 'public' and table_name = 'accounting_settings' and column_name = 'closing_mode'
+     ) then
+    raise exception '0493 abortado: el cierre con superclave ya existe';
+  end if;
+
   -- Las funciones que se reemplazan (los triggers de 0133) y las que se
   -- invocan: firma, seguridad, volatilidad, search_path y cuerpo vigentes (md5
   -- del prosrc con CRLF→LF, o sin espacios). Otro cuerpo aborta sin cambiar
   -- nada: reemplazar un trigger que en producción es otro sería perder lo que
   -- tiene. Los search_path de los triggers son los de 0210 (y 0275/0284/0287/0288).
+  --
+  -- DERIVA DE 0133, medida por el Director en producción el 2026-10-20 (solo
+  -- el catálogo): los dos triggers vivos son el cuerpo del repo SIN sus
+  -- comentarios internos y SIN tildes en los mensajes («Periodo», «periodo»,
+  -- «lineas»). El archivo 0133 se editó después de aplicarse, en la época de
+  -- Cloud; la lógica es idéntica, también el «%s». Por eso cada trigger acepta
+  -- dos cuerpos conocidos: el del repo (el que reconstruyen las pruebas) y el
+  -- vivo. Cualquier otro sigue abortando. La 0133 no se toca: está sellada.
   for v_expected in select * from (values
     ('public.journal_entries_validate_closing()', false, 'v', 'search_path=public',
-     'bba82f1ee57c6a32f186a2b9dbeda94a', '59e9825c471c993e2f4856e0207c7a71'),           -- 0133
+     array['bba82f1ee57c6a32f186a2b9dbeda94a',     -- 0133 del repo
+           '26b81a55480d3bafb57450efc17663a6'],    -- vivo en producción (903 caracteres)
+     array['59e9825c471c993e2f4856e0207c7a71',
+           '1dd58682fc49a595900ff03d5030ba21']),
     ('public.journal_lines_validate_closing()', false, 'v', 'search_path=public',
-     '007f258ea5596a49999f772fea17b152', 'd8554d69c2e659b8c36ee081346b9471'),           -- 0133
+     array['007f258ea5596a49999f772fea17b152',     -- 0133 del repo
+           '5e7e21f09f53520aba46c5bbf10c2cfc'],    -- vivo en producción (408 caracteres)
+     array['d8554d69c2e659b8c36ee081346b9471',
+           '7c2b64a2a68194420ff4d2fe0e672274']),
     ('public.get_accounting_closing_date(uuid)', true, 's', 'search_path=public',
-     '7e5d5609120f003e2c21b89601cbc5a5', '30b1f37e5cd45a428dd39ed8054e21a2'),           -- 0133
+     array['7e5d5609120f003e2c21b89601cbc5a5'], array['30b1f37e5cd45a428dd39ed8054e21a2']),   -- 0133
     ('public.journal_entry_is_closed(uuid)', true, 's', 'search_path=public',
-     '8114d6c6b43a00dea3731722c9bc7208', 'e616e73575bce4960468518af3971e23'),           -- 0133
+     array['8114d6c6b43a00dea3731722c9bc7208'], array['e616e73575bce4960468518af3971e23']),   -- 0133
     ('public.next_entry_code(uuid)', true, 'v', 'search_path=public',
-     '6954cb3efb9db4ca131266964d4ed524', '30ce8b9d8606d79b2f20bc07f3a6ac73'),           -- 0078
+     array['6954cb3efb9db4ca131266964d4ed524'], array['30ce8b9d8606d79b2f20bc07f3a6ac73']),   -- 0078
     ('public.get_user_tenant_id()', true, 's', 'search_path=""',
-     '5ff0c51c26a49419c34abc78f1d95c37', '4ce5acd04a577f91ca77b74ebc622c49')            -- 0453
-  ) e(signature, definer, volatility, config, body_md5, body_md5_normalized) loop
+     array['5ff0c51c26a49419c34abc78f1d95c37'], array['4ce5acd04a577f91ca77b74ebc622c49'])    -- 0453
+  ) e(signature, definer, volatility, config, body_md5s, body_md5s_normalized) loop
     select pg_catalog.md5(pg_catalog.replace(p.prosrc, E'\r\n', E'\n')),
            pg_catalog.md5(pg_catalog.regexp_replace(p.prosrc, '\s', '', 'g'))
       into v_md5, v_md5_normalized
@@ -90,8 +117,8 @@ begin
       raise exception '0493: dependencia ausente o con otra firma, seguridad, volatilidad o search_path: %',
         v_expected.signature;
     end if;
-    if v_md5 <> v_expected.body_md5
-       and v_md5_normalized is distinct from v_expected.body_md5_normalized then
+    if not (v_md5 = any (v_expected.body_md5s))
+       and not coalesce(v_md5_normalized = any (v_expected.body_md5s_normalized), false) then
       raise exception '0493 abortado: % tiene otro cuerpo (md5 %, sin espacios %); revisar antes de aplicar',
         v_expected.signature, v_md5, v_md5_normalized;
     end if;
@@ -113,15 +140,6 @@ begin
      or to_regprocedure('extensions.gen_salt(text,integer)') is null
      or to_regprocedure('extensions.gen_random_bytes(integer)') is null then
     raise exception '0493 abortado: falta pgcrypto en el esquema extensions';
-  end if;
-  if to_regclass('public.accounting_closing_secrets') is not null
-     or to_regclass('public.accounting_closing_exceptions') is not null
-     or to_regclass('public.accounting_closing_events') is not null
-     or exists (
-       select 1 from information_schema.columns
-       where table_schema = 'public' and table_name = 'accounting_settings' and column_name = 'closing_mode'
-     ) then
-    raise exception '0493 abortado: el cierre con superclave ya existe';
   end if;
 end;
 $preflight$;
@@ -299,8 +317,9 @@ revoke all on function public.cierre_es_admin(uuid)
 -- Devuelve null si la clave es la correcta, o el motivo: 'sin_superclave',
 -- 'bloqueada' o 'incorrecta'. Toma la fila con FOR UPDATE: dos intentos en
 -- paralelo no se saltan el contador. Sin fila compara igual contra un hash
--- recién hecho, para tardar lo mismo. Cinco fallidos seguidos bloquean 15
--- minutos. NO lanza: quien la llama confirma la transacción con el contador.
+-- recién hecho, para tardar lo mismo. Cada cinco fallidos seguidos bloquean, y
+-- cada bloqueo dura el doble que el anterior (15 minutos, 30, 1 hora… hasta 24
+-- horas). NO lanza: quien la llama confirma la transacción con el contador.
 create function public.cierre_verificar_superclave(p_tenant_id uuid, p_clave text)
 returns text
 language plpgsql
@@ -310,8 +329,10 @@ set search_path = ''
 set lock_timeout = '1s'
 as $function$
 declare
-  v_secret public.accounting_closing_secrets%rowtype;
-  v_ok     boolean;
+  v_secret   public.accounting_closing_secrets%rowtype;
+  v_ok       boolean;
+  v_fallidos integer;
+  v_minutos  integer;
 begin
   select * into v_secret
   from public.accounting_closing_secrets s
@@ -340,15 +361,26 @@ begin
   insert into public.accounting_closing_events (tenant_id, kind, user_id)
   values (p_tenant_id, 'intento_fallido', (select auth.uid()));
 
-  if v_secret.failed_attempts + 1 >= 5 then
+  -- Cada 5 fallidos seguidos, un bloqueo que dura el doble que el anterior: 15
+  -- minutos, 30, 1 hora… hasta 24 horas. El contador NO vuelve a 0 al bloquear:
+  -- solo un acierto o restablecer lo limpian. Con 15 minutos fijos salían unos
+  -- 480 intentos por día contra una clave de 8 caracteres.
+  v_fallidos := v_secret.failed_attempts + 1;
+  if v_fallidos % 5 = 0 then
+    v_minutos := least(15 * (2 ^ least(v_fallidos / 5 - 1, 7))::integer, 1440);
     update public.accounting_closing_secrets
-    set failed_attempts = 0, locked_until = pg_catalog.now() + interval '15 minutes'
+    set failed_attempts = v_fallidos,
+        locked_until = pg_catalog.now() + pg_catalog.make_interval(mins => v_minutos)
     where tenant_id = p_tenant_id;
     insert into public.accounting_closing_events (tenant_id, kind, new_value, user_id)
-    values (p_tenant_id, 'superclave_bloqueada', '15 minutos', (select auth.uid()));
+    values (p_tenant_id, 'superclave_bloqueada',
+      case when v_minutos < 60 then v_minutos || ' minutos'
+           when v_minutos = 60 then '1 hora'
+           else (v_minutos / 60) || ' horas' end,
+      (select auth.uid()));
   else
     update public.accounting_closing_secrets
-    set failed_attempts = v_secret.failed_attempts + 1
+    set failed_attempts = v_fallidos
     where tenant_id = p_tenant_id;
   end if;
   return 'incorrecta';
@@ -356,7 +388,7 @@ end;
 $function$;
 
 comment on function public.cierre_verificar_superclave(uuid, text) is
-  'SDD-0566: verifica la superclave con bcrypt, FOR UPDATE, contador y bloqueo (5 fallidos = 15 min). Devuelve null o el motivo; no lanza. Sin EXECUTE para roles de API.';
+  'SDD-0566: verifica la superclave con bcrypt, FOR UPDATE, contador y bloqueo que escala (cada 5 fallidos: 15 min, 30, 1 h… hasta 24 h; el contador solo vuelve a 0 con un acierto o restablecer). Devuelve null o el motivo; no lanza. Sin EXECUTE para roles de API.';
 
 revoke all on function public.cierre_verificar_superclave(uuid, text)
   from public, anon, authenticated, service_role;
@@ -393,7 +425,7 @@ begin
   end if;
   -- El motivo, antes que la clave: uno inválido no gasta un intento.
   if p_reason is null or pg_catalog.char_length(pg_catalog.btrim(p_reason)) not between 4 and 1000 then
-    raise exception 'El motivo debe tener entre 4 y 1000 caracteres.' using errcode = '22023';
+    raise exception 'El motivo debe tener entre 4 y 1000 caracteres.' using errcode = '22023', hint = 'dtd-cierre';
   end if;
 
   select s.closing_mode into v_mode
@@ -503,6 +535,14 @@ as $$
 declare
   v_entry_id uuid := case when tg_op = 'DELETE' then old.entry_id else new.entry_id end;
 begin
+  -- Una línea no cambia de asiento. En 0133 el UPDATE solo miraba new.entry_id:
+  -- mover una línea de un asiento cerrado a uno abierto sacaba la línea del
+  -- período cerrado sin excepción. Ningún código cambia entry_id: se borra la
+  -- línea y se crea en el otro asiento.
+  if tg_op = 'UPDATE' and new.entry_id is distinct from old.entry_id then
+    raise exception 'Una línea no cambia de asiento: bórrala y créala en el otro.'
+      using errcode = 'check_violation';
+  end if;
   if coalesce(public.journal_entry_is_closed(v_entry_id), false)
      and not public.excepcion_al_cierre_vigente(v_entry_id) then
     raise exception
@@ -517,7 +557,7 @@ end;
 $$;
 
 comment on function public.journal_lines_validate_closing() is
-  'SDD-0080 + SDD-0566: bloquea INSERT/UPDATE/DELETE de líneas de un asiento en período cerrado, salvo con la excepción de la transacción.';
+  'SDD-0080 + SDD-0566: bloquea INSERT/UPDATE/DELETE de líneas de un asiento en período cerrado, salvo con la excepción de la transacción. Una línea nunca cambia de entry_id.';
 
 -- ╔═══════════════════════════════════════════════════════════╗
 -- ║ 7. Historial de la fecha y el modo                        ║
@@ -542,6 +582,23 @@ begin
     return new;
   end if;
 
+  -- Borrar la fila reabre el período (y el modo vuelve a 'superclave'). Queda
+  -- en el historial, salvo cuando se borra el tenant entero: ahí el historial
+  -- se va con él en cascada y escribirle un evento violaría su FK.
+  if tg_op = 'DELETE' then
+    if exists (select 1 from public.tenants t where t.id = old.tenant_id) then
+      if old.closing_date is not null then
+        insert into public.accounting_closing_events (tenant_id, kind, old_value, new_value, user_id)
+        values (old.tenant_id, 'fecha_cambiada', old.closing_date::text, null, (select auth.uid()));
+      end if;
+      if old.closing_mode is distinct from 'superclave' then
+        insert into public.accounting_closing_events (tenant_id, kind, old_value, new_value, user_id)
+        values (old.tenant_id, 'modo_cambiado', old.closing_mode, 'superclave', (select auth.uid()));
+      end if;
+    end if;
+    return old;
+  end if;
+
   if new.closing_date is distinct from old.closing_date then
     insert into public.accounting_closing_events (tenant_id, kind, old_value, new_value, user_id)
     values (new.tenant_id, 'fecha_cambiada', old.closing_date::text, new.closing_date::text, (select auth.uid()));
@@ -555,12 +612,12 @@ end;
 $function$;
 
 comment on function public.accounting_settings_historial() is
-  'SDD-0566: escribe en accounting_closing_events cada cambio de la fecha de cierre y del modo, con auth.uid().';
+  'SDD-0566: escribe en accounting_closing_events cada cambio de la fecha de cierre y del modo, con auth.uid(), también al borrar la fila (salvo con el tenant entero).';
 
 revoke all on function public.accounting_settings_historial() from public, anon, authenticated, service_role;
 
 create trigger accounting_settings_historial_trg
-  after insert or update on public.accounting_settings
+  after insert or update or delete on public.accounting_settings
   for each row execute function public.accounting_settings_historial();
 
 -- ╔═══════════════════════════════════════════════════════════╗
@@ -583,13 +640,13 @@ declare
 begin
   if v_tenant is null or not public.cierre_es_admin(v_tenant) then
     raise exception 'Solo el admin del tenant define la superclave del cierre.'
-      using errcode = '42501';
+      using errcode = '42501', hint = 'dtd-cierre';
   end if;
   -- bcrypt usa solo los primeros 72 bytes: más larga, dos claves distintas serían la misma.
   if p_nueva is null or pg_catalog.char_length(p_nueva) not between 8 and 64
      or pg_catalog.octet_length(p_nueva) > 72 then
     raise exception 'La superclave debe tener entre 8 y 64 caracteres (con muchas tildes o eñes, menos).'
-      using errcode = '22023';
+      using errcode = '22023', hint = 'dtd-cierre';
   end if;
 
   select true into v_existe
@@ -641,17 +698,17 @@ declare
 begin
   if v_tenant is null or not public.cierre_es_admin(v_tenant) then
     raise exception 'Solo el admin del tenant restablece la superclave del cierre.'
-      using errcode = '42501';
+      using errcode = '42501', hint = 'dtd-cierre';
   end if;
   -- bcrypt usa solo los primeros 72 bytes: más larga, dos claves distintas serían la misma.
   if p_nueva is null or pg_catalog.char_length(p_nueva) not between 8 and 64
      or pg_catalog.octet_length(p_nueva) > 72 then
     raise exception 'La superclave debe tener entre 8 y 64 caracteres (con muchas tildes o eñes, menos).'
-      using errcode = '22023';
+      using errcode = '22023', hint = 'dtd-cierre';
   end if;
   if v_reason is null or pg_catalog.char_length(v_reason) not between 10 and 1000 then
     raise exception 'El motivo del restablecimiento debe tener entre 10 y 1000 caracteres.'
-      using errcode = '22023';
+      using errcode = '22023', hint = 'dtd-cierre';
   end if;
 
   insert into public.accounting_closing_secrets (tenant_id, secret_hash, set_by)
@@ -738,6 +795,9 @@ declare
   v_lineas  jsonb := p_entrada -> 'lineas';
   v_debe    numeric := 0;
   v_haber   numeric := 0;
+  v_validas jsonb := '[]'::jsonb;
+  v_guardado_debe  numeric;
+  v_guardado_haber numeric;
   v_linea   jsonb;
   v_d       numeric;
   v_c       numeric;
@@ -746,38 +806,51 @@ declare
   v_motivo  text;
 begin
   if v_tenant is null or not public.contabilidad_edicion_autorizada(v_tenant) then
-    raise exception 'No tienes permiso para editar la contabilidad.' using errcode = '42501';
+    raise exception 'No tienes permiso para editar la contabilidad.' using errcode = '42501', hint = 'dtd-cierre';
   end if;
   begin
     v_date := (p_entrada ->> 'entry_date')::date;
   exception when others then
-    raise exception 'La fecha del asiento no es válida.' using errcode = '22023';
+    raise exception 'La fecha del asiento no es válida.' using errcode = '22023', hint = 'dtd-cierre';
   end;
   if v_date is null then
-    raise exception 'La fecha del asiento no es válida.' using errcode = '22023';
+    raise exception 'La fecha del asiento no es válida.' using errcode = '22023', hint = 'dtd-cierre';
   end if;
   if pg_catalog.jsonb_typeof(v_lineas) is distinct from 'array' or pg_catalog.jsonb_array_length(v_lineas) < 2 then
-    raise exception 'Un asiento necesita al menos 2 líneas.' using errcode = '22023';
+    raise exception 'Un asiento necesita al menos 2 líneas.' using errcode = '22023', hint = 'dtd-cierre';
   end if;
   for v_linea in select * from pg_catalog.jsonb_array_elements(v_lineas) loop
     v_d := coalesce((v_linea ->> 'debit')::numeric, 0);
     v_c := coalesce((v_linea ->> 'credit')::numeric, 0);
+    -- Antes de cualquier comparación: en Postgres 'NaN' > 0 y NaN = NaN son
+    -- verdaderos, y numeric(14,2) redondea al guardar. Un importe que no es un
+    -- número finito con hasta 2 decimales no entra: 0.005 + 0.005 contra 0.01
+    -- cuadraba aquí y se guardaba como 0.02 contra 0.01. El tope de
+    -- numeric(14,2) deja afuera a Infinity y también a NaN, que Postgres ordena
+    -- por encima de todo número. Los negativos los ataja la regla siguiente.
+    if v_d > 999999999999.99 or v_c > 999999999999.99
+       or v_d <> pg_catalog.round(v_d, 2) or v_c <> pg_catalog.round(v_c, 2) then
+      raise exception 'Cada importe es un número de hasta 2 decimales.'
+        using errcode = '22023', hint = 'dtd-cierre';
+    end if;
     if v_d < 0 or v_c < 0 or (v_d > 0 and v_c > 0) or (v_d = 0 and v_c = 0) then
-      raise exception 'Cada línea lleva debe o haber, positivo, y no los dos.' using errcode = '22023';
+      raise exception 'Cada línea lleva debe o haber, positivo, y no los dos.' using errcode = '22023', hint = 'dtd-cierre';
     end if;
     if not exists (
       select 1 from public.accounts a
       where a.id = (v_linea ->> 'account_id')::uuid and a.tenant_id = v_tenant and a.is_postable
     ) then
-      raise exception 'Una cuenta del asiento no existe o no recibe asientos.' using errcode = '22023';
+      raise exception 'Una cuenta del asiento no existe o no recibe asientos.' using errcode = '22023', hint = 'dtd-cierre';
     end if;
     v_debe := v_debe + v_d;
     v_haber := v_haber + v_c;
+    -- Se inserta lo que se validó, no el JSON de entrada.
+    v_validas := v_validas || pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+      'account_id', (v_linea ->> 'account_id')::uuid, 'debit', v_d, 'credit', v_c,
+      'line_memo', nullif(pg_catalog.btrim(v_linea ->> 'line_memo'), '')));
   end loop;
-  v_debe := pg_catalog.round(v_debe, 2);
-  v_haber := pg_catalog.round(v_haber, 2);
   if v_debe <= 0 or v_debe <> v_haber then
-    raise exception 'El asiento no balancea.' using errcode = '22023';
+    raise exception 'El asiento no balancea.' using errcode = '22023', hint = 'dtd-cierre';
   end if;
 
   v_code := public.next_entry_code(v_tenant);
@@ -796,9 +869,17 @@ begin
     case when v_asentar then pg_catalog.now() end);
 
   insert into public.journal_lines (entry_id, account_id, debit, credit, line_memo)
-  select v_id, (l ->> 'account_id')::uuid, coalesce((l ->> 'debit')::numeric, 0),
-    coalesce((l ->> 'credit')::numeric, 0), nullif(pg_catalog.btrim(l ->> 'line_memo'), '')
-  from pg_catalog.jsonb_array_elements(v_lineas) l;
+  select v_id, (l ->> 'account_id')::uuid, (l ->> 'debit')::numeric, (l ->> 'credit')::numeric,
+    l ->> 'line_memo'
+  from pg_catalog.jsonb_array_elements(v_validas) l;
+
+  -- Defensa en profundidad: lo guardado tiene que cuadrar igual que lo validado.
+  select coalesce(sum(jl.debit), 0), coalesce(sum(jl.credit), 0)
+    into v_guardado_debe, v_guardado_haber
+  from public.journal_lines jl where jl.entry_id = v_id;
+  if v_guardado_debe <> v_debe or v_guardado_haber <> v_haber then
+    raise exception 'El asiento guardado no balancea.' using errcode = '22023', hint = 'dtd-cierre';
+  end if;
 
   perform pg_catalog.set_config('dtd.excepcion_cierre', '', true);
   return pg_catalog.jsonb_build_object('ok', true, 'entry_id', v_id, 'entry_code', v_code);
@@ -823,7 +904,7 @@ declare
   v_motivo text;
 begin
   if v_tenant is null or not public.contabilidad_edicion_autorizada(v_tenant) then
-    raise exception 'No tienes permiso para editar la contabilidad.' using errcode = '42501';
+    raise exception 'No tienes permiso para editar la contabilidad.' using errcode = '42501', hint = 'dtd-cierre';
   end if;
   select * into v_entry from public.journal_entries e
   where e.id = p_entry_id and e.tenant_id = v_tenant and e.deleted_at is null
@@ -875,7 +956,7 @@ declare
   v_motivo text;
 begin
   if v_tenant is null or not public.contabilidad_edicion_autorizada(v_tenant) then
-    raise exception 'No tienes permiso para editar la contabilidad.' using errcode = '42501';
+    raise exception 'No tienes permiso para editar la contabilidad.' using errcode = '42501', hint = 'dtd-cierre';
   end if;
   select * into v_entry from public.journal_entries e
   where e.id = p_entry_id and e.tenant_id = v_tenant and e.deleted_at is null
@@ -918,7 +999,7 @@ declare
   v_motivo text;
 begin
   if v_tenant is null or not public.contabilidad_edicion_autorizada(v_tenant) then
-    raise exception 'No tienes permiso para editar la contabilidad.' using errcode = '42501';
+    raise exception 'No tienes permiso para editar la contabilidad.' using errcode = '42501', hint = 'dtd-cierre';
   end if;
   select * into v_entry from public.journal_entries e
   where e.id = p_entry_id and e.tenant_id = v_tenant and e.deleted_at is null

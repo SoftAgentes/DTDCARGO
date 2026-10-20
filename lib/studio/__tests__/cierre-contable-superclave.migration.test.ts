@@ -14,6 +14,7 @@
  * Por lo mismo, la espera acotada (`lock_timeout` de 1 s) se prueba en el
  * catálogo, §16 del contrato: cuánto espera Postgres con ese valor es suyo.
  */
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -100,6 +101,45 @@ async function contract(options: { applyFix?: boolean; migration?: string; repla
   }
 }
 
+const CONTRACT_NAME = "0493_cierre_contable_superclave.test.sql";
+
+/** El prosrc de una función de 0133 (entre `as $$` y `$$;`), con LF. */
+function cuerpoDe(sql: string, nombre: string): string {
+  const texto = sql.replace(/\r\n/g, "\n");
+  const desde = texto.indexOf(`create or replace function public.${nombre}()`);
+  const inicio = texto.indexOf("as $$", desde) + "as $$".length;
+  return texto.slice(inicio, texto.indexOf("$$;", inicio));
+}
+const md5DelCuerpo = (sql: string, nombre: string) => createHash("md5").update(cuerpoDe(sql, nombre), "utf8").digest("hex");
+
+/**
+ * 0133 como está viva en producción (medido por el Director, 2026-10-20): los dos
+ * triggers sin sus comentarios internos y sin tildes en los mensajes.
+ */
+function vivo0133(): string {
+  let texto = readFileSync(resolve(ROOT, "supabase/migrations/0133_period_close.sql"), "utf8").replace(/\r\n/g, "\n");
+  for (const nombre of ["journal_entries_validate_closing", "journal_lines_validate_closing"]) {
+    const repo = cuerpoDe(texto, nombre);
+    const vivo = repo
+      .split("\n")
+      .filter((linea) => !/^\s*--/.test(linea))
+      .join("\n")
+      .replace(/Período/g, "Periodo")
+      .replace(/período/g, "periodo")
+      .replace(/líneas/g, "lineas");
+    expect(texto.split(repo)).toHaveLength(2);
+    texto = texto.split(repo).join(vivo);
+  }
+  return texto;
+}
+
+/** De `create function public.anular_asiento_en_cierre(` a su primer mensaje propio (el 42501). */
+const INICIO_DE_ANULAR = (() => {
+  const desde = FILE_0493.indexOf("create function public.anular_asiento_en_cierre(");
+  const marca = ", hint = 'dtd-cierre';";
+  return FILE_0493.slice(desde, FILE_0493.indexOf(marca, desde) + marca.length);
+})();
+
 /** 0493 con un único cambio; falla si el texto a cambiar no aparece una sola vez. */
 function mutant(from: string, to: string): string {
   expect(FILE_0493.split(from)).toHaveLength(2);
@@ -157,15 +197,15 @@ describe("SDD-0566 · 0493 cierre contable con superclave (PGlite)", () => {
     },
     {
       name: "la clave mala lanza (el ROLLBACK se lleva el contador)",
-      from: "    set failed_attempts = v_secret.failed_attempts + 1\n    where tenant_id = p_tenant_id;\n  end if;\n  return 'incorrecta';",
-      to: "    set failed_attempts = v_secret.failed_attempts + 1\n    where tenant_id = p_tenant_id;\n  end if;\n  raise exception 'incorrecta';",
+      from: "    set failed_attempts = v_fallidos\n    where tenant_id = p_tenant_id;\n  end if;\n  return 'incorrecta';",
+      to: "    set failed_attempts = v_fallidos\n    where tenant_id = p_tenant_id;\n  end if;\n  raise exception 'incorrecta';",
       fails: "incorrecta",
     },
     {
       name: "sin el bloqueo tras cinco fallidos",
-      from: "  if v_secret.failed_attempts + 1 >= 5 then",
-      to: "  if v_secret.failed_attempts + 1 >= 500 then",
-      fails: "TEST 0493: el quinto fallido bloquea",
+      from: "  if v_fallidos % 5 = 0 then",
+      to: "  if v_fallidos % 500 = 0 then",
+      fails: "TEST 0493: el quinto fallido bloquea 15 minutos, y el contador no vuelve a 0",
     },
     {
       name: "bloqueada, igual verifica",
@@ -181,7 +221,7 @@ describe("SDD-0566 · 0493 cierre contable con superclave (PGlite)", () => {
     },
     {
       name: "el motivo se valida después de la clave (gasta un intento)",
-      from: "  -- El motivo, antes que la clave: uno inválido no gasta un intento.\n  if p_reason is null or pg_catalog.char_length(pg_catalog.btrim(p_reason)) not between 4 and 1000 then\n    raise exception 'El motivo debe tener entre 4 y 1000 caracteres.' using errcode = '22023';\n  end if;\n",
+      from: "  -- El motivo, antes que la clave: uno inválido no gasta un intento.\n  if p_reason is null or pg_catalog.char_length(pg_catalog.btrim(p_reason)) not between 4 and 1000 then\n    raise exception 'El motivo debe tener entre 4 y 1000 caracteres.' using errcode = '22023', hint = 'dtd-cierre';\n  end if;\n",
       to: "",
       fails: "TEST 0493: un motivo inválido se rechaza antes de mirar la clave",
     },
@@ -240,6 +280,54 @@ describe("SDD-0566 · 0493 cierre contable con superclave (PGlite)", () => {
       fails: "TEST 0493: ni anon ni service_role llaman a una función que recibe la superclave",
     },
     {
+      name: "un importe con más de 2 decimales entra (lo atrapa recién el recálculo)",
+      from: "\n       or v_d <> pg_catalog.round(v_d, 2) or v_c <> pg_catalog.round(v_c, 2) then",
+      to: " then",
+      fails: "TEST 0493: un importe con más de 2 decimales no entra (el redondeo descuadraba)",
+    },
+    {
+      name: "sin el tope, NaN entra como importe",
+      from: "    if v_d > 999999999999.99 or v_c > 999999999999.99\n       or v_d <> pg_catalog.round(v_d, 2)",
+      to: "    if v_d <> pg_catalog.round(v_d, 2)",
+      fails: "TEST 0493: NaN no entra como importe",
+    },
+    {
+      name: "el bloqueo vuelve el contador a 0",
+      from: "    set failed_attempts = v_fallidos,\n        locked_until",
+      to: "    set failed_attempts = 0,\n        locked_until",
+      fails: "TEST 0493: el quinto fallido bloquea 15 minutos, y el contador no vuelve a 0",
+    },
+    {
+      name: "el bloqueo no se duplica",
+      from: "    v_minutos := least(15 * (2 ^ least(v_fallidos / 5 - 1, 7))::integer, 1440);",
+      to: "    v_minutos := 15;",
+      fails: "TEST 0493: el segundo bloqueo seguido dura 30 minutos",
+    },
+    {
+      name: "el bloqueo sin techo de 24 horas",
+      from: "    v_minutos := least(15 * (2 ^ least(v_fallidos / 5 - 1, 7))::integer, 1440);",
+      to: "    v_minutos := 15 * (2 ^ least(v_fallidos / 5 - 1, 7))::integer;",
+      fails: "TEST 0493: ningún bloqueo dura más de 24 horas",
+    },
+    {
+      name: "una línea puede cambiar de asiento (sale del período cerrado)",
+      from: "  if tg_op = 'UPDATE' and new.entry_id is distinct from old.entry_id then",
+      to: "  if false then",
+      fails: "TEST 0493: una línea no sale de un asiento cerrado cambiándole el asiento",
+    },
+    {
+      name: "borrar la fila del cierre no queda en el historial",
+      from: "  after insert or update or delete on public.accounting_settings",
+      to: "  after insert or update on public.accounting_settings",
+      fails: "TEST 0493: borrar la fila del cierre queda como reapertura",
+    },
+    {
+      name: "un mensaje propio sin el hint dtd-cierre (la app no lo mostraría)",
+      from: INICIO_DE_ANULAR,
+      to: INICIO_DE_ANULAR.replace(", hint = 'dtd-cierre';", ";"),
+      fails: "TEST 0493: los mensajes propios llevan el hint dtd-cierre, que la app usa para mostrarlos",
+    },
+    {
       name: "la verificación interna abierta a anon",
       from: "revoke all on function public.cierre_verificar_superclave(uuid, text)\n  from public, anon, authenticated, service_role;",
       to: "revoke all on function public.cierre_verificar_superclave(uuid, text)\n  from public, authenticated, service_role;\ngrant execute on function public.cierre_verificar_superclave(uuid, text) to anon;",
@@ -263,6 +351,57 @@ describe("SDD-0566 · 0493 cierre contable con superclave (PGlite)", () => {
     expect(result.error).toMatch(
       /^0493 abortado: public\.journal_entries_validate_closing\(\) tiene otro cuerpo \(md5 [0-9a-f]{32}, sin espacios [0-9a-f]{32}\); revisar antes de aplicar$/,
     );
+  }, SLOW);
+
+  it("deriva de 0133: con el cuerpo vivo de producción de los dos triggers, la 0493 aplica", async () => {
+    // Medido por el Director el 2026-10-20: el vivo es el del repo sin comentarios internos ni tildes.
+    const vivo = vivo0133();
+    expect(md5DelCuerpo(vivo, "journal_entries_validate_closing")).toBe("26b81a55480d3bafb57450efc17663a6");
+    expect(md5DelCuerpo(vivo, "journal_lines_validate_closing")).toBe("5e7e21f09f53520aba46c5bbf10c2cfc");
+    const result = await contract({ replace: { "0133_period_close.sql": vivo } });
+    expect(result.error).toBeNull();
+    expect(result.green).toMatch(/^TEST 0493 GREEN: \d+ aserciones$/);
+  }, SLOW);
+
+  it("control rojo de la deriva: sin la huella viva en la lista, ese cuerpo aborta", async () => {
+    const sinVivo = mutant(
+      "     array['bba82f1ee57c6a32f186a2b9dbeda94a',     -- 0133 del repo\n" +
+        "           '26b81a55480d3bafb57450efc17663a6'],    -- vivo en producción (903 caracteres)\n" +
+        "     array['59e9825c471c993e2f4856e0207c7a71',\n" +
+        "           '1dd58682fc49a595900ff03d5030ba21']),",
+      "     array['bba82f1ee57c6a32f186a2b9dbeda94a'],\n     array['59e9825c471c993e2f4856e0207c7a71']),",
+    );
+    const result = await contract({ migration: sinVivo, replace: { "0133_period_close.sql": vivo0133() } });
+    expect(result.error).toBe(
+      "0493 abortado: public.journal_entries_validate_closing() tiene otro cuerpo " +
+        "(md5 26b81a55480d3bafb57450efc17663a6, sin espacios 1dd58682fc49a595900ff03d5030ba21); revisar antes de aplicar",
+    );
+  }, SLOW);
+
+  it("aplicada dos veces, la segunda aborta con «ya existe» y no con «otro cuerpo»", async () => {
+    const result = await contract({ migration: FILE_0493 + "\n" + FILE_0493 });
+    expect(result.error).toBe("0493 abortado: el cierre con superclave ya existe");
+  }, SLOW);
+
+  it("defensa en profundidad: sin la regla de los 2 decimales, el recálculo de lo guardado atrapa el redondeo", async () => {
+    const sinDecimales = mutant(
+      "\n       or v_d <> pg_catalog.round(v_d, 2) or v_c <> pg_catalog.round(v_c, 2) then",
+      " then",
+    );
+    const contrato = readFileSync(CONTRACT, "utf8");
+    const esperado = "= '22023|Cada importe es un número de hasta 2 decimales.|dtd-cierre',\n  'un importe con más de 2 decimales no entra";
+    expect(contrato.split(esperado)).toHaveLength(2);
+    const conRecalculo = contrato.split(esperado).join(
+      "= '22023|El asiento guardado no balancea.|dtd-cierre',\n  'un importe con más de 2 decimales no entra",
+    );
+    const verde = await contract({ migration: sinDecimales, replace: { [CONTRACT_NAME]: conRecalculo } });
+    expect(verde.error).toBeNull();
+    // Control rojo: sin el recálculo tampoco, el asiento descuadrado se guarda.
+    const sinNinguna = sinDecimales.split(
+      "  if v_guardado_debe <> v_debe or v_guardado_haber <> v_haber then",
+    ).join("  if false then");
+    const rojo = await contract({ migration: sinNinguna, replace: { [CONTRACT_NAME]: conRecalculo } });
+    expect(rojo.error).toBe("TEST 0493: un importe con más de 2 decimales no entra (el redondeo descuadraba)");
   }, SLOW);
 
   it("la 0493 espera en pendingBelowCutoff, MIGRATE-FIRST y con OK nominal de Sam", () => {

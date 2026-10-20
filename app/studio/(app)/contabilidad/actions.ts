@@ -95,17 +95,22 @@ async function avisoDelCierre(supabase: Supa): Promise<AvisoCierre | null> {
 }
 
 /**
- * La respuesta de una RPC de 0493, en palabras de la persona. Los mensajes de
- * validación y permiso (22023, 42501) son textos nuestros; cualquier otro error
- * de la base no se muestra (ERR-01).
+ * La respuesta de una RPC de 0493, en palabras de la persona. Solo se muestran
+ * los mensajes propios de la 0493, que llevan `hint = 'dtd-cierre'`: un 42501
+ * nativo («permission denied for function …») tiene el mismo código y no se
+ * muestra. Cualquier otro error de la base tampoco (ERR-01).
  */
+const esMensajeDelCierre = (error: { code?: string; message?: string; hint?: string }): boolean =>
+  error.hint === "dtd-cierre" && (error.code === "22023" || error.code === "42501") && Boolean(error.message);
+
+/** La respuesta de una RPC de 0493 (ver esMensajeDelCierre). */
 function resultadoDelCierre(
   data: unknown,
-  error: { code?: string; message?: string } | null,
+  error: { code?: string; message?: string; hint?: string } | null,
   operacion: OperacionCierre,
 ): { ok: true; entryCode?: string } | { ok: false; error: string } {
   if (error) {
-    if ((error.code === "22023" || error.code === "42501") && error.message) {
+    if (esMensajeDelCierre(error) && error.message) {
       return { ok: false, error: error.message };
     }
     console.error("[cierre-contable] rpc:", error.code, error.message);
@@ -488,13 +493,13 @@ export async function setClosingModeAction(
 }
 
 const SUPERCLAVE_MOTIVO: Record<string, string> = {
-  incorrecta: "La superclave actual no es correcta. Después de 5 intentos fallidos se bloquea 15 minutos.",
-  bloqueada: "La superclave está bloqueada por intentos fallidos. Intenta de nuevo en 15 minutos o restablécela.",
+  incorrecta: "La superclave actual no es correcta. Cada 5 intentos fallidos se bloquea, y cada bloqueo dura el doble que el anterior.",
+  bloqueada: "La superclave está bloqueada por intentos fallidos. Intenta de nuevo más tarde o restablécela.",
 };
 
-/** Error de una RPC de la superclave: nuestros textos (22023, 42501) o uno genérico. Nunca el valor. */
-function errorDeSuperclave(error: { code?: string; message?: string }): string {
-  if ((error.code === "22023" || error.code === "42501") && error.message) return error.message;
+/** Error de una RPC de la superclave: nuestros textos (con su hint) o uno genérico. Nunca el valor. */
+function errorDeSuperclave(error: { code?: string; message?: string; hint?: string }): string {
+  if (esMensajeDelCierre(error) && error.message) return error.message;
   console.error("[cierre-contable] superclave:", error.code);
   return "No se pudo guardar la superclave. Intenta de nuevo.";
 }

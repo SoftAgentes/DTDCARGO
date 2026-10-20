@@ -55,7 +55,7 @@ describe("SDD-0566 · el aviso del período cerrado", () => {
 describe("SDD-0566 · qué decir con cada motivo de la RPC", () => {
   it("clave mala, bloqueada y sin superclave dicen qué hacer", () => {
     expect(mensajeDeMotivo("incorrecta", "anular")).toBe(
-      "La superclave no es correcta. Revísala e intenta de nuevo: después de 5 intentos fallidos se bloquea 15 minutos.",
+      "La superclave no es correcta. Revísala e intenta de nuevo: cada 5 intentos fallidos se bloquea, y cada bloqueo dura el doble que el anterior.",
     );
     expect(mensajeDeMotivo("bloqueada", "anular")).toContain("bloqueada por intentos fallidos");
     expect(mensajeDeMotivo("sin_superclave", "crear")).toContain("pídele al admin");
@@ -119,6 +119,13 @@ describe("SDD-0566 · el reporte", () => {
       "Cambió el modo: de «Advertencia y superclave» a «Solo advertencia»",
     );
     expect(describirEvento({ kind: "superclave_cambiada", oldValue: null, newValue: null })).toBe("Cambió la superclave");
+    // Cada bloqueo seguido dura el doble: el historial dice cuánto.
+    expect(describirEvento({ kind: "superclave_bloqueada", oldValue: null, newValue: "30 minutos" })).toBe(
+      "La superclave se bloqueó 30 minutos por intentos fallidos",
+    );
+    expect(describirEvento({ kind: "superclave_bloqueada", oldValue: null, newValue: null })).toBe(
+      "La superclave se bloqueó por intentos fallidos",
+    );
     const csv = historialCsv([
       { id: "h1", kind: "superclave_restablecida", oldValue: null, newValue: null, reason: "La olvidamos", userName: "Admin", createdAt: "2026-02-03T14:05:00Z" },
     ]);

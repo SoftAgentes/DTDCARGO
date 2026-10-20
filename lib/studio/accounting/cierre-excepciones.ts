@@ -75,9 +75,9 @@ const QUE: Record<OperacionCierre, string> = {
 export function mensajeDeMotivo(motivo: string, operacion: OperacionCierre): string {
   switch (motivo as MotivoCierre) {
     case "incorrecta":
-      return "La superclave no es correcta. Revísala e intenta de nuevo: después de 5 intentos fallidos se bloquea 15 minutos.";
+      return "La superclave no es correcta. Revísala e intenta de nuevo: cada 5 intentos fallidos se bloquea, y cada bloqueo dura el doble que el anterior.";
     case "bloqueada":
-      return "La superclave está bloqueada por intentos fallidos. Intenta de nuevo en 15 minutos o pídele al admin que la restablezca.";
+      return "La superclave está bloqueada por intentos fallidos. Intenta de nuevo más tarde o pídele al admin que la restablezca.";
     case "sin_superclave":
       return "La superclave del cierre todavía no está definida: pídele al admin que la defina en Contabilidad › Cierre.";
     case "no_cerrado":
@@ -168,7 +168,10 @@ export function describirEvento(e: Pick<EventoDelCierre, "kind" | "oldValue" | "
     case "intento_fallido":
       return "Intento con una superclave incorrecta";
     case "superclave_bloqueada":
-      return "La superclave se bloqueó 15 minutos por intentos fallidos";
+      // newValue: cuánto dura este bloqueo («15 minutos», «1 hora»… «24 horas»).
+      return e.newValue
+        ? `La superclave se bloqueó ${e.newValue} por intentos fallidos`
+        : "La superclave se bloqueó por intentos fallidos";
   }
 }
 

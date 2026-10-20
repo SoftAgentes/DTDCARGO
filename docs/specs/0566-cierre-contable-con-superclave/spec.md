@@ -67,7 +67,11 @@ La migración no debilita nada: todos los tenants quedan en `superclave` sin cla
 - **Tiene entre 8 y 64 caracteres, y no más de 72 bytes.** bcrypt usa solo los primeros 72 bytes: con un tope más alto, dos superclaves distintas que comparten ese comienzo serían la misma. Lo valida la base y lo valida la app.
 - Para cambiarla hay que dar la actual.
 - **Si se olvida:** el admin la restablece sin la actual, con un motivo de al menos 10 caracteres, y queda en el historial como «superclave restablecida». El admin igual puede reabrir el período moviendo la fecha, así que el restablecimiento no le da más poder del que ya tiene. Lo que protege la superclave es que alguien sin rol de admin cambie un período cerrado.
-- **Intentos:** 5 fallidos seguidos bloquean la superclave 15 minutos. Cada intento fallido queda en el historial, sin el valor. Un acierto pone el contador en 0.
+- **Intentos, con un bloqueo que escala** (decisión del Director, 2026-10-20, tras la revisión de seguridad):
+  - cada 5 fallidos seguidos se bloquea la superclave, y cada bloqueo seguido dura el doble que el anterior: 15 minutos, 30, 1 hora, 2, 4, 8, 16 y, desde ahí, siempre 24 horas, que es el techo;
+  - el contador **no** vuelve a 0 al bloquear: solo lo limpian un acierto o un restablecimiento;
+  - cada intento fallido queda en el historial, sin el valor, y cada bloqueo queda con su duración.
+  - **Por qué:** con 15 minutos fijos y el contador en 0, salían unos 480 intentos por día contra una clave de 8 caracteres como mínimo.
 - **Un intento fallido no lanza un error:** la RPC devuelve `{ok: false, motivo}` para que la transacción confirme el contador y el registro del intento. Si lanzara, el ROLLBACK se llevaría el contador y la fuerza bruta no tendría límite. Hay un mutante que lo prueba.
 - **Sin carreras ni pistas de tiempo:**
   - la verificación toma la fila con `for update`, así que dos intentos en paralelo no se saltan el contador;
@@ -90,6 +94,8 @@ PostgREST corre cada llamada en su propia transacción, así que el permiso solo
 
 Cualquiera puede llamar a `set_config`, así que el GUC solo no alcanza. Lo que no se puede falsificar es la fila: la tabla no tiene escritura para ningún rol de API, y sin la fila el disparador rechaza. Así, **todo cambio en período cerrado queda en el reporte**: si no hay fila, no hay cambio. Nada queda en la sesión ni en cookies.
 
+**Una línea no cambia de asiento.** En la 0133, un UPDATE de `journal_lines` miraba solo `new.entry_id`. Por eso, un `PATCH` que le cambiaba el `entry_id` a una línea de un asiento cerrado, poniéndole el de un borrador abierto, pasaba la RLS y pasaba el disparador. El asiento cerrado perdía una línea sin excepción. Lo podía hacer cualquier miembro del tenant, porque `authenticated` tiene UPDATE (`0078:139`). La revisión de seguridad del 2026-10-20 lo encontró y el contrato lo confirmó antes de corregirlo. Ahora el disparador rechaza todo cambio de `entry_id`. Ningún código lo hace: la app y los asientos automáticos solo insertan y leen líneas.
+
 ### 4. Alcance de esta SDD: los asientos manuales
 
 Las cuatro operaciones de `contabilidad/actions.ts` que hoy se niegan por el cierre pasan a ofrecer la excepción:
@@ -100,6 +106,13 @@ Las cuatro operaciones de `contabilidad/actions.ts` que hoy se niegan por el cie
 | Asentar un borrador de fecha cerrada | `asentar_asiento_en_cierre` (al menos 2 líneas y balanceado) | 0 → total del debe |
 | Anular un asiento de fecha cerrada | `anular_asiento_en_cierre` (el motivo de la anulación es el de la excepción) | total → 0 |
 | Eliminar un borrador de fecha cerrada | `eliminar_borrador_en_cierre` | total → 0 |
+
+**Los importes de `crear_asiento_en_cierre`:**
+- cada uno es un número finito con hasta 2 decimales;
+- se insertan los valores ya validados, no el JSON de entrada;
+- después del insert, lo guardado se vuelve a sumar desde `journal_lines`, y si no cuadra, la RPC lanza.
+
+Antes, la validación sumaba antes de redondear, y `journal_lines` es `numeric(14,2)`. Un debe de 0.005 + 0.005 contra un haber de 0.01 cuadraba al validar y quedaba guardado 0.02 contra 0.01: un asiento asentado y descuadrado en un período cerrado. Además, en Postgres `'NaN' > 0` y `NaN = NaN` son verdaderos, así que NaN pasaba las guardas. El tope de `numeric(14,2)` deja afuera a NaN, que Postgres ordena por encima de todo número, y también a Infinity. La revisión de seguridad lo encontró y el contrato lo confirmó antes de corregirlo.
 
 **Las RPC son SECURITY DEFINER**, con las guardas de tenant (`get_user_tenant_id`) y de edición de `accounting` (`contabilidad_edicion_autorizada`, la matriz de `lib/studio/rbac.ts`, como la 0477). La spec decía INVOKER; al implementar se cambió por dos razones: así la función interna de autorización no queda expuesta a la API, y además las RPC siguen funcionando cuando la 2.4 quite UPDATE y DELETE a `authenticated`.
 
@@ -161,8 +174,26 @@ La 2.4 del plan pide un «historial de reapertura de período». Esta SDD crea `
   - de uso interno, sin EXECUTE para los roles de API: las guardas, la verificación, la autorización y el total del asiento;
   - para `authenticated`: las de la superclave (con la guarda de admin), la del estado y las cuatro operaciones.
 - Las dos funciones de validación del cierre se reescriben desde su última definición (la 0133, con el `search_path` de la 0210). Aceptan la excepción de la transacción y corrigen el «%s».
-- Un disparador nuevo en `accounting_settings` escribe el historial de la fecha y del modo.
-- **Preflight:** compara firma, seguridad, volatilidad, `search_path` y el md5 del cuerpo vigente de las dos funciones que reemplaza y de cuatro que invoca. Si en producción alguna difiere, aborta sin cambiar nada. Hay una prueba que lo hace abortar.
+- Un disparador nuevo en `accounting_settings` escribe el historial de la fecha y del modo, **también al borrar la fila**: borrarla reabre el período, y `service_role` puede hacerlo. Queda como «fecha de X a nada» y, si el modo era `advertencia`, como vuelta a `superclave`. Hay una excepción: cuando se borra el tenant entero, su historial se va en cascada, y escribirle un evento violaría su FK.
+- **Los mensajes propios** (22023 y 42501) llevan `hint = 'dtd-cierre'`, y la app muestra solo esos. Un `permission denied for function …` nativo de Postgres también es 42501 y no se muestra (ERR-01).
+- **Preflight:**
+  - primero comprueba que el cierre con superclave no exista ya. Si existe, aborta con «ya existe», y no con «otro cuerpo», que confunde al reaplicar;
+  - después compara firma, seguridad, volatilidad, `search_path` y el md5 del cuerpo vigente de las dos funciones que reemplaza y de cuatro que invoca. Si en producción alguna difiere, aborta sin cambiar nada. Hay una prueba que lo hace abortar.
+
+### La deriva de la 0133 en producción
+
+La primera previa de la 0493 **falló en producción sin aplicar nada** (el Director, 2026-10-20T06:36:04Z). Los dos triggers de la 0133 tienen otro cuerpo. Lo midió en el catálogo, sin datos de negocio:
+
+| Función | md5 vivo (CRLF→LF) | md5 vivo sin espacios | Del repo |
+|---|---|---|---|
+| `journal_entries_validate_closing()` | `26b81a55480d3bafb57450efc17663a6` (903 caracteres) | `1dd58682fc49a595900ff03d5030ba21` | `bba82f1e…` / `59e9825c…` |
+| `journal_lines_validate_closing()` | `5e7e21f09f53520aba46c5bbf10c2cfc` (408 caracteres) | `7c2b64a2a68194420ff4d2fe0e672274` | `007f258e…` / `d8554d69…` |
+
+- **Causa:** el archivo `0133_period_close.sql` del repo se editó después de aplicarse, en la época de Cloud. El cuerpo vivo no tiene los comentarios internos («Chequea OLD *y* NEW…») y sus mensajes no llevan tildes («Periodo contable cerrado…», «las lineas»). **La lógica es idéntica**, también el «%s». Las otras cuatro dependencias coinciden.
+- **Evidencia reproducible:** el cuerpo del repo, quitándole las líneas de comentario y las tildes de «Período», «período» y «líneas», da **exactamente** los dos md5 vivos. Lo comprueba la prueba en PGlite, que además corre el contrato entero con esa 0133.
+- **Lo que hace la 0493:** el preflight acepta **dos cuerpos conocidos** por trigger, el del repo (el que reconstruyen las pruebas) y el vivo. Cualquier otro sigue abortando. Hay control rojo: sin la huella viva en la lista, el cuerpo vivo aborta.
+- **La 0133 no se toca:** está sellada.
+- **La previa genérica** de `preparar.mjs` también marca la deriva. Esa la resuelve el Director con `--acepta-deriva` sobre esas dos funciones, con el OK de Sam nombrando la deriva.
 - `lock_timeout` 5 s y `statement_timeout` 30 s para aplicarla.
 - **Las ocho funciones que reciben la clave** (con un parámetro `p_clave`, `p_actual` o `p_nueva`) llevan `set lock_timeout = '1s'`, así que ninguna espera más de un segundo por un bloqueo. De la API, a las seis públicas las llama solo `authenticated`; a las dos internas, ningún rol. Ver la revisión de seguridad.
 - Se aplica antes de fusionar, con la previa de solo lectura, el OK nominal de Sam y el runbook. La aplica el Director. La espera está declarada en `supabase/migrations-baseline.json`, y los símbolos que usa la app, en `supabase/pending-migration-symbol-declarations.json`.
@@ -175,7 +206,7 @@ La 2.4 del plan pide un «historial de reapertura de período». Esta SDD crea `
 |---|---|---|
 | Hash | bcrypt, costo 10; el texto nunca se guarda | contrato, aserción «la superclave queda como hash bcrypt» |
 | Largo | 8 a 64 caracteres y hasta 72 bytes (el límite de bcrypt) | contrato («más de 72 bytes se rechaza») y prueba de la acción |
-| Intentos | 5 seguidos bloquean 15 minutos; `for update`; un acierto limpia el contador; el fallo no lanza | contrato §11 y 4 mutantes |
+| Intentos | cada 5 seguidos bloquean, y cada bloqueo dura el doble (15 minutos… 24 horas como techo); el contador no vuelve a 0 al bloquear, solo con un acierto o restablecer; `for update`; el fallo no lanza | contrato §11 y §12; 7 mutantes |
 | Pistas de tiempo | bcrypt también sin fila; el motivo antes que la clave | código de `cierre_verificar_superclave`; mutante del motivo |
 | Que no se filtre | ningún `raise`, evento, excepción, prueba ni log trae el texto; la app nunca lo registra | contrato §15; prueba de las acciones que revisa todos los `console.error` |
 | Permiso falsificado | sin la fila de la excepción no hay cambio; el nonce, el txid y el asiento se comparan | contrato §3 y §8; 4 mutantes |
@@ -184,16 +215,17 @@ La 2.4 del plan pide un «historial de reapertura de período». Esta SDD crea `
 | Espera acotada | las ocho funciones que reciben la clave llevan `lock_timeout` de 1 s. Cada espera por un bloqueo se corta en 1 s, y cada operación toma pocos: la fila del asiento, la de la superclave y las líneas, si las toca. Queda lejos de los 8 s; bcrypt con costo 10 tarda milisegundos | contrato §16; mutante |
 | **Logs del servidor, medido por el Director el 2026-10-19** | Postgres **no** guarda los parámetros en los logs normales: `log_statement=ddl`, `log_min_duration_statement=-1`, `log_parameter_max_length_on_error=0` y `pgaudit.log=none`. **La excepción es `auto_explain`:** con `log_min_duration=10000` y `log_parameter_max_length=-1`, una sentencia que dure más de 10 s queda en el log con sus parámetros completos, y con ella la superclave. Hoy lo impide el `statement_timeout=8s` del rol `authenticated`, más las dos filas de arriba | ver la mitigación de fondo |
 | **Mitigación de fondo, fuera de esta SDD** | `auto_explain.log_parameter_max_length=0` en la configuración del servidor. Es un cambio aparte, que necesita el OK de Sam y lo hace el Director. Tampoco hay que subir `log_parameter_max_length_on_error`: hoy en 0, una sentencia con error queda en el log sin sus parámetros | **pendiente del OK de Sam** |
-| **Riesgo aceptado, por decisión del Director** | alguien con acceso puede bloquear la superclave del tenant 15 minutos con 5 intentos fallidos, y deja sin excepciones a los demás | cada intento registra el usuario (contrato §6) y «Excepciones al cierre» lo muestra en el historial, con su nombre; el admin la restablece o reabre el período |
+| **Revisión de seguridad del Director, 2026-10-20** (sobre `9016eadf`, solo lectura) | no encontró cómo saltar el cierre con la excepción. Señaló dos hallazgos importantes y cuatro menores. **Los dos importantes se confirmaron con el contrato antes de corregirlos**: el redondeo dejó guardado 0.02 contra 0.01, y NaN y el cambio de asiento de una línea pasaron | importantes: los importes de `crear_asiento_en_cierre` (§4) y la línea que no cambia de asiento (§3). Menores: el borrado de `accounting_settings` en el historial, el bloqueo que escala (§2), el hint de ERR-01 y la reaplicación. Cada uno con su aserción y su mutante |
+| **Riesgo aceptado, por decisión del Director** | alguien con acceso puede bloquear la superclave del tenant con 5 intentos fallidos, y deja sin excepciones a los demás; con el bloqueo que escala, cada vez por más tiempo | cada intento registra el usuario (contrato §6) y «Excepciones al cierre» lo muestra en el historial, con su nombre; el admin la restablece o reabre el período |
 
 ## Allowlist exacta
 
 | Archivo | Cambio |
 |---|---|
 | `supabase/migrations/0493_cierre_contable_superclave.sql` | la migración |
-| `supabase/tests/0493_cierre_contable_superclave.test.sql` | contrato: 78 aserciones |
+| `supabase/tests/0493_cierre_contable_superclave.test.sql` | contrato: 100 aserciones |
 | `supabase/migrations-baseline.json` | la espera de la 0493 |
-| `supabase/pending-migration-symbol-declarations.json` | los 10 símbolos y su degradación |
+| `supabase/pending-migration-symbol-declarations.json` | los 10 símbolos y su degradación (las líneas de `actions.ts`, al día) |
 | `lib/studio/accounting/cierre-excepciones.ts` | lo puro: aviso, mensajes, etiquetas y CSV |
 | `lib/studio/accounting/cierre-queries.ts` | el estado, las excepciones y el historial |
 | `lib/studio/journal-types.ts` | `cierre` en `JournalActionState` |
@@ -207,7 +239,7 @@ La 2.4 del plan pide un «historial de reapertura de período». Esta SDD crea `
 | `app/studio/(app)/contabilidad/_components/ExcepcionCierreDialog.tsx` | nuevo: el diálogo |
 | `app/studio/(app)/contabilidad/_components/AjustesDelCierre.tsx` | nuevo: el modo y la superclave |
 | `app/studio/(app)/contabilidad/_components/ExcepcionesCierreTab.tsx` | nuevo: el reporte |
-| `lib/studio/__tests__/cierre-contable-superclave.migration.test.ts` | el contrato en PGlite: control rojo, 21 mutantes, preflight y espera |
+| `lib/studio/__tests__/cierre-contable-superclave.migration.test.ts` | el contrato en PGlite: control rojo, 29 mutantes, preflight, la deriva de la 0133, la reaplicación, el recálculo y la espera |
 | `lib/studio/accounting/__tests__/cierre-excepciones.test.ts` | lo puro |
 | `app/studio/(app)/contabilidad/__tests__/cierre-excepcion-acciones.test.ts` | las acciones |
 | `app/studio/(app)/contabilidad/__tests__/cierre-excepcion-pantalla.test.tsx` | el diario, el reporte y los ajustes |
@@ -223,7 +255,7 @@ La 2.4 del plan pide un «historial de reapertura de período». Esta SDD crea `
 2. Con la superclave correcta y un motivo, cada una de las cuatro operaciones funciona en período cerrado y deja su excepción con el antes y el después. Con la clave mala, no cambia nada.
 3. Un `update` directo, o un `set_config` hecho a mano con cualquier valor, no abre el período: sin la fila de la excepción en la misma transacción, el disparador rechaza.
 4. El permiso no sobrevive a la transacción ni sirve para otro asiento.
-5. Cinco intentos fallidos bloquean la superclave 15 minutos; los intentos quedan registrados sin el valor.
+5. Cada cinco intentos fallidos seguidos bloquean la superclave, y cada bloqueo dura el doble que el anterior (15 minutos, 30, 1 hora… con un techo de 24 horas). El contador vuelve a 0 solo con un acierto o un restablecimiento. Los intentos quedan registrados sin el valor, y cada bloqueo, con su duración.
 6. La superclave solo existe como hash bcrypt y no pasa de 72 bytes. Ningún log, error, prueba ni evidencia trae su texto.
 7. Mover la fecha de cierre, cambiar el modo y definir, cambiar o restablecer la superclave quedan en el historial con quién y cuándo.
 8. El reporte muestra las excepciones y el historial, con su CSV.
@@ -231,6 +263,11 @@ La 2.4 del plan pide un «historial de reapertura de período». Esta SDD crea `
 10. Control rojo: cada regla de la migración y de la app tiene un mutante que muere.
 11. Revisión de seguridad de la clave (tabla de arriba) antes de pedir el OK nominal.
 12. Toda función que recibe la clave espera un bloqueo 1 s como mucho, y ni `anon` ni `service_role` la pueden llamar. Es una propiedad del catálogo, así que vale también para una función nueva con esos parámetros.
+13. Un asiento creado en período cerrado no queda descuadrado: cada importe es un número finito con hasta 2 decimales (ni NaN ni Infinity), se guarda lo validado y lo guardado se vuelve a sumar.
+14. Una línea nunca cambia de asiento.
+15. Borrar la fila del cierre queda en el historial como reapertura; borrar el tenant entero no falla.
+16. La app muestra solo los mensajes propios de la 0493 (con `hint = 'dtd-cierre'`), no un 42501 nativo.
+17. El preflight acepta el cuerpo del repo y el vivo de producción de los triggers de la 0133, y ningún otro; aplicada dos veces, la segunda aborta con «ya existe».
 
 ## Gobernanza
 
@@ -238,7 +275,7 @@ La 2.4 del plan pide un «historial de reapertura de período». Esta SDD crea `
 |---|---|---|
 | Cambio de comportamiento Studio | cumplimiento | esta spec |
 | AUD-01 | cumplimiento | la excepción (un *override* contable) y su cambio son una sola transacción; los cambios de período y de credenciales quedan en el historial. Que el motivo llegue también a `entity_audit_log` (por `dtd.audit_reason`, como la anulación de la 0294) es **INFERIDO** de leer la 0294: el contrato no aplica el escritor de auditoría |
-| ERR-01 | cumplimiento | cada mensaje dice qué pasó y qué hacer; un error de la base no llega a la pantalla (prueba y mutante); el error queda dentro del diálogo, no en un toast |
+| ERR-01 | cumplimiento | cada mensaje dice qué pasó y qué hacer; un error de la base no llega a la pantalla (prueba y mutante); el error queda dentro del diálogo, no en un toast; solo se muestran los mensajes con `hint = 'dtd-cierre'`, y un 42501 nativo no (prueba y mutante) |
 | FRM-01, A11Y-01 | cumplimiento | etiquetas reales, ayuda con `aria-describedby` (una prueba lo destapó), foco atrapado y devuelto con `useDialogA11y`, campo de clave sin autocompletar |
 | VIS-01, BTN-01 | cumplimiento | tokens del sistema; botones «…» para lo que abre un paso más; `/ui-check` en el handoff |
 | Datos personales | no aplica | la superclave no es un dato personal; los nombres de usuarios internos ya estaban en la app |

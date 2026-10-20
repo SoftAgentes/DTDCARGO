@@ -126,7 +126,7 @@ describe("SDD-0566 · asentar, anular y eliminar en período cerrado", () => {
     const r = await postEntry("e-borrador", { superclave: CLAVE, motivo: "Faltaba asentar" });
     expect(r.ok).toBeUndefined();
     expect(r.error).toBe(
-      "La superclave no es correcta. Revísala e intenta de nuevo: después de 5 intentos fallidos se bloquea 15 minutos.",
+      "La superclave no es correcta. Revísala e intenta de nuevo: cada 5 intentos fallidos se bloquea, y cada bloqueo dura el doble que el anterior.",
     );
     expect(r.cierre?.closingDate).toBe("2026-01-31");
   });
@@ -140,12 +140,27 @@ describe("SDD-0566 · asentar, anular y eliminar en período cerrado", () => {
     expect(r.error).not.toContain("accounting_closing_secrets");
   });
 
-  it("los mensajes de validación de la RPC (22023, 42501) sí se muestran: son nuestros", async () => {
+  it("los mensajes propios de la 0493 (22023 o 42501, con hint dtd-cierre) sí se muestran", async () => {
     estado.rpc = rpcCon({
-      anular_asiento_en_cierre: { data: null, error: { code: "42501", message: "No tienes permiso para editar la contabilidad." } },
+      anular_asiento_en_cierre: {
+        data: null,
+        error: { code: "42501", message: "No tienes permiso para editar la contabilidad.", hint: "dtd-cierre" },
+      },
     });
     const r = await voidEntry("e-asentado", "Corrección de enero", CLAVE);
     expect(r.error).toBe("No tienes permiso para editar la contabilidad.");
+  });
+
+  it("un 42501 nativo de Postgres, sin el hint, no se muestra (ERR-01)", async () => {
+    estado.rpc = rpcCon({
+      anular_asiento_en_cierre: {
+        data: null,
+        error: { code: "42501", message: "permission denied for function anular_asiento_en_cierre" },
+      },
+    });
+    const r = await voidEntry("e-asentado", "Corrección de enero", CLAVE);
+    expect(r.error).toBe("No se pudo anular el asiento. Intenta de nuevo.");
+    expect(r.error).not.toContain("permission denied");
   });
 
   it("anular: el primer intento pide la excepción; el segundo usa el motivo de la anulación", async () => {
@@ -244,10 +259,23 @@ describe("SDD-0566 · el modo y la superclave (admin)", () => {
     expect(estado.llamadas).toEqual([{ fn: "fijar_superclave_de_cierre", args: { p_actual: null, p_nueva: CLAVE } }]);
   });
 
+  it("de la RPC de la superclave se muestra solo el mensaje propio (con hint), no el 42501 nativo", async () => {
+    estado.rpc = async () => ({
+      data: null,
+      error: { code: "42501", message: "Solo el admin del tenant define la superclave del cierre.", hint: "dtd-cierre" },
+    });
+    expect((await fijarSuperclaveAction("", CLAVE, CLAVE)).error).toBe("Solo el admin del tenant define la superclave del cierre.");
+    estado.rpc = async () => ({
+      data: null,
+      error: { code: "42501", message: "permission denied for function fijar_superclave_de_cierre" },
+    });
+    expect((await fijarSuperclaveAction("", CLAVE, CLAVE)).error).toBe("No se pudo guardar la superclave. Intenta de nuevo.");
+  });
+
   it("cambiarla con la actual mala dice que no es correcta", async () => {
     estado.rpc = async () => ({ data: { ok: false, motivo: "incorrecta" }, error: null });
     const r = await fijarSuperclaveAction("mala-actual-1", CLAVE, CLAVE);
-    expect(r.error).toBe("La superclave actual no es correcta. Después de 5 intentos fallidos se bloquea 15 minutos.");
+    expect(r.error).toBe("La superclave actual no es correcta. Cada 5 intentos fallidos se bloquea, y cada bloqueo dura el doble que el anterior.");
   });
 
   it("restablecer pide un motivo de al menos 10 caracteres", async () => {

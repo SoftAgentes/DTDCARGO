@@ -153,6 +153,18 @@ exception when others then
   return v_state;
 end;
 $$;
+-- 'código|mensaje|hint' de un intento que tiene que fallar ('ok' si no falló):
+-- la app muestra solo los mensajes con hint 'dtd-cierre' (ERR-01).
+create function pg_temp.error_of(p_actor text, p_sql text) returns text language plpgsql as $$
+declare v_state text; v_message text; v_hint text;
+begin
+  perform pg_temp.as_actor(p_actor, p_sql);
+  return 'ok';
+exception when others then
+  get stacked diagnostics v_state = returned_sqlstate, v_message = message_text, v_hint = pg_exception_hint;
+  return v_state || '|' || v_message || '|' || coalesce(v_hint, '');
+end;
+$$;
 create function pg_temp.status_of(p_entry text) returns text language sql as $$
   select status::text from public.journal_entries where id = pg_temp.fixture_id(p_entry)
 $$;
@@ -200,6 +212,18 @@ select pg_temp.assert_true(pg_temp.sqlstate_of('accounting-A', format(
   || 'update public.journal_entries set memo = ''x'' from g where id = %L::uuid returning to_jsonb(id)',
   pg_temp.fixture_id('e-asentado'))) = '23514', 'un set_config a mano no alcanza');
 select set_config('dtd.excepcion_cierre', '', true);
+-- Una línea no cambia de asiento: moverla de un asiento cerrado a uno abierto
+-- la sacaba del período cerrado sin excepción (0133 solo miraba new.entry_id).
+select pg_temp.assert_true(pg_temp.error_of('accounting-A', format(
+  'update public.journal_lines set entry_id = %L::uuid '
+  || 'where id = (select id from public.journal_lines where entry_id = %L::uuid limit 1) returning to_jsonb(id)',
+  pg_temp.fixture_id('e-abierto'), pg_temp.fixture_id('e-asentado')))
+  = '23514|Una línea no cambia de asiento: bórrala y créala en el otro.|',
+  'una línea no sale de un asiento cerrado cambiándole el asiento');
+select pg_temp.assert_true(
+  (select count(*) from public.journal_lines where entry_id = pg_temp.fixture_id('e-asentado')) = 2
+  and (select count(*) from public.journal_lines where entry_id = pg_temp.fixture_id('e-abierto')) = 2,
+  'las líneas siguen en su asiento');
 
 -- ── 4. Definir la superclave: solo admin, solo hash ──
 select pg_temp.assert_true(pg_temp.sqlstate_of('accounting-A',
@@ -351,10 +375,45 @@ select pg_temp.assert_true(pg_temp.sqlstate_of('accounting-A', format(
     jsonb_build_object('account_id', pg_temp.fixture_id('grupo-A'), 'debit', 5),
     jsonb_build_object('account_id', pg_temp.fixture_id('ventas-A'), 'credit', 5))),
   'Clave-Segura-1', 'Cuenta de grupo')) = '22023', 'una cuenta de grupo no recibe asientos');
+-- numeric(14,2) redondea al guardar: 0.005 + 0.005 contra 0.01 cuadraba al
+-- validar y quedaba guardado 0.02 contra 0.01. Y en Postgres 'NaN' > 0 y
+-- NaN = NaN son verdaderos. Cada importe tiene hasta 2 decimales y es finito.
+select pg_temp.assert_true(pg_temp.error_of('accounting-A', format(
+  'select public.crear_asiento_en_cierre(%L::jsonb, %L, %L)',
+  jsonb_build_object('entry_date', '2026-01-21', 'asentar', true, 'lineas', jsonb_build_array(
+    jsonb_build_object('account_id', pg_temp.fixture_id('caja-A'), 'debit', 0.005),
+    jsonb_build_object('account_id', pg_temp.fixture_id('caja-A'), 'debit', 0.005),
+    jsonb_build_object('account_id', pg_temp.fixture_id('ventas-A'), 'credit', 0.01))),
+  'Clave-Segura-1', 'Redondeo')) = '22023|Cada importe es un número de hasta 2 decimales.|dtd-cierre',
+  'un importe con más de 2 decimales no entra (el redondeo descuadraba)');
+select pg_temp.assert_true(pg_temp.error_of('accounting-A', format(
+  'select public.crear_asiento_en_cierre(%L::jsonb, %L, %L)',
+  jsonb_build_object('entry_date', '2026-01-21', 'asentar', true, 'lineas', jsonb_build_array(
+    jsonb_build_object('account_id', pg_temp.fixture_id('caja-A'), 'debit', 'NaN'),
+    jsonb_build_object('account_id', pg_temp.fixture_id('ventas-A'), 'credit', 'NaN'))),
+  'Clave-Segura-1', 'NaN')) = '22023|Cada importe es un número de hasta 2 decimales.|dtd-cierre',
+  'NaN no entra como importe');
+select pg_temp.assert_true(pg_temp.error_of('accounting-A', format(
+  'select public.crear_asiento_en_cierre(%L::jsonb, %L, %L)',
+  jsonb_build_object('entry_date', '2026-01-21', 'asentar', true, 'lineas', jsonb_build_array(
+    jsonb_build_object('account_id', pg_temp.fixture_id('caja-A'), 'debit', 5),
+    jsonb_build_object('account_id', pg_temp.fixture_id('ventas-A'), 'credit', 'Infinity'))),
+  'Clave-Segura-1', 'Infinito')) = '22023|Cada importe es un número de hasta 2 decimales.|dtd-cierre',
+  'Infinity no entra como importe');
+select pg_temp.assert_true(not exists (
+  select 1 from public.journal_entries e
+  where e.tenant_id = pg_temp.fixture_id('tenant-A')
+    and (select coalesce(sum(l.debit), 0) - coalesce(sum(l.credit), 0) from public.journal_lines l where l.entry_id = e.id) <> 0),
+  'ningún asiento del tenant queda descuadrado');
 select pg_temp.assert_true(pg_temp.sqlstate_of('commercial-A', format(
   'select public.anular_asiento_en_cierre(%L::uuid, %L, %L)',
   pg_temp.fixture_id('e-borrador'), 'Clave-Segura-1', 'Sin permiso de edición')) = '42501',
   'quien no edita contabilidad no usa la excepción');
+select pg_temp.assert_true(pg_temp.error_of('commercial-A', format(
+  'select public.anular_asiento_en_cierre(%L::uuid, %L, %L)',
+  pg_temp.fixture_id('e-borrador'), 'Clave-Segura-1', 'Sin permiso de edición'))
+  = '42501|No tienes permiso para editar la contabilidad.|dtd-cierre',
+  'los mensajes propios llevan el hint dtd-cierre, que la app usa para mostrarlos');
 select pg_temp.assert_true(
   pg_temp.as_actor('accounting-B', format(
     'select public.anular_asiento_en_cierre(%L::uuid, %L, %L)',
@@ -367,11 +426,13 @@ select pg_temp.assert_true(
   'un asiento de período abierto no usa la excepción');
 select pg_temp.assert_true(pg_temp.status_of('e-abierto') = 'asentado', 'el asiento abierto no cambia');
 
--- ── 11. Cinco fallidos bloquean 15 minutos ──
-do $bloqueo$
+-- ── 11. Cada cinco fallidos bloquean, y cada bloqueo dura el doble ──
+-- Con 15 minutos fijos y el contador en 0 salían unos 480 intentos por día.
+-- now() es el de la transacción: el bloqueo se compara exacto.
+create function pg_temp.fallar(p_desde integer, p_hasta integer) returns void language plpgsql as $$
 declare i integer;
 begin
-  for i in 1..5 loop
+  for i in p_desde..p_hasta loop
     perform pg_temp.assert_true(
       pg_temp.as_actor('accounting-A', format(
         'select public.asentar_asiento_en_cierre(%L::uuid, %L, %L)',
@@ -379,17 +440,40 @@ begin
       'el intento ' || i || ' es incorrecto');
   end loop;
 end;
-$bloqueo$;
-select pg_temp.assert_true((select locked_until > now() from public.accounting_closing_secrets
-  where tenant_id = pg_temp.fixture_id('tenant-A')), 'el quinto fallido bloquea');
-select pg_temp.assert_true(exists (select 1 from public.accounting_closing_events where kind = 'superclave_bloqueada'),
-  'el bloqueo queda en el historial');
+$$;
+create function pg_temp.bloqueo() returns interval language plpgsql as $$
+begin
+  return (select locked_until - now() from public.accounting_closing_secrets
+          where tenant_id = pg_temp.fixture_id('tenant-A'));
+end;
+$$;
+select pg_temp.fallar(1, 5);
+select pg_temp.assert_true(pg_temp.bloqueo() = interval '15 minutes' and pg_temp.attempts() = 5,
+  'el quinto fallido bloquea 15 minutos, y el contador no vuelve a 0');
+select pg_temp.assert_true(exists (select 1 from public.accounting_closing_events
+  where kind = 'superclave_bloqueada' and new_value = '15 minutos'), 'el bloqueo queda en el historial con su duración');
 select pg_temp.assert_true(
   pg_temp.as_actor('accounting-A', format(
     'select public.asentar_asiento_en_cierre(%L::uuid, %L, %L)',
     pg_temp.fixture_id('e-bloqueo'), 'Clave-Segura-1', 'Ya con la buena')) ->> 'motivo' = 'bloqueada',
   'bloqueada, ni la clave buena entra');
 select pg_temp.assert_true(pg_temp.status_of('e-bloqueo') = 'borrador', 'bloqueada no se asienta');
+-- Pasa el primer bloqueo: cinco fallidos más bloquean el doble.
+update public.accounting_closing_secrets set locked_until = now() - interval '1 second'
+where tenant_id = pg_temp.fixture_id('tenant-A');
+select pg_temp.fallar(6, 10);
+select pg_temp.assert_true(pg_temp.bloqueo() = interval '30 minutes' and pg_temp.attempts() = 10,
+  'el segundo bloqueo seguido dura 30 minutos');
+select pg_temp.assert_true(exists (select 1 from public.accounting_closing_events
+  where kind = 'superclave_bloqueada' and new_value = '30 minutos'), 'el segundo bloqueo queda con sus 30 minutos');
+-- El techo: el décimo bloqueo seguido no pasa de 24 horas.
+update public.accounting_closing_secrets set failed_attempts = 49, locked_until = null
+where tenant_id = pg_temp.fixture_id('tenant-A');
+select pg_temp.fallar(50, 50);
+select pg_temp.assert_true(pg_temp.bloqueo() = interval '24 hours',
+  'ningún bloqueo dura más de 24 horas');
+select pg_temp.assert_true(exists (select 1 from public.accounting_closing_events
+  where kind = 'superclave_bloqueada' and new_value = '24 horas'), 'el bloqueo de 24 horas queda en el historial');
 update public.accounting_closing_secrets set locked_until = now() - interval '1 second'
 where tenant_id = pg_temp.fixture_id('tenant-A');
 select pg_temp.assert_true(
@@ -397,6 +481,7 @@ select pg_temp.assert_true(
     'select public.asentar_asiento_en_cierre(%L::uuid, %L, %L)',
     pg_temp.fixture_id('e-bloqueo'), 'Clave-Segura-1', 'Pasó el bloqueo')) ->> 'ok')::boolean,
   'pasado el bloqueo, la clave buena entra');
+select pg_temp.assert_true(pg_temp.attempts() = 0, 'un acierto pone el contador en 0');
 
 -- ── 12. Cambiar y restablecer la superclave ──
 select pg_temp.assert_true(
@@ -413,9 +498,13 @@ select pg_temp.assert_true(pg_temp.sqlstate_of('admin-A',
 select pg_temp.assert_true(pg_temp.sqlstate_of('accounting-A',
   'select public.restablecer_superclave_de_cierre(''Clave-Tercera-3'', ''La olvidamos todos'')') = '42501',
   'solo el admin restablece');
+update public.accounting_closing_secrets set failed_attempts = 7, locked_until = now() + interval '1 hour'
+where tenant_id = pg_temp.fixture_id('tenant-A');
 select pg_temp.assert_true(
   (pg_temp.as_actor('admin-A', 'select public.restablecer_superclave_de_cierre(''Clave-Tercera-3'', ''La olvidamos todos'')') ->> 'ok')::boolean,
   'el admin la restablece sin la actual');
+select pg_temp.assert_true(pg_temp.attempts() = 0 and pg_temp.bloqueo() is null,
+  'restablecer limpia el contador y el bloqueo');
 select pg_temp.assert_true(exists (select 1 from public.accounting_closing_events
   where kind = 'superclave_restablecida' and reason = 'La olvidamos todos'), 'restablecer queda con su motivo');
 
@@ -478,6 +567,26 @@ select pg_temp.assert_true(not exists (
   select 1 from pg_temp.funciones_con_clave() f
   where has_function_privilege('anon', f, 'execute') or has_function_privilege('service_role', f, 'execute')),
   'ni anon ni service_role llaman a una función que recibe la superclave');
+
+-- ── 17. Borrar la fila del cierre reabre el período y queda en el historial ──
+-- service_role puede borrarla; antes no dejaba rastro. Al final del contrato
+-- el cierre está al 2026-02-28 y en modo advertencia.
+delete from public.accounting_settings where tenant_id = pg_temp.fixture_id('tenant-A');
+select pg_temp.assert_true(exists (select 1 from public.accounting_closing_events
+  where tenant_id = pg_temp.fixture_id('tenant-A') and kind = 'fecha_cambiada'
+    and old_value = '2026-02-28' and new_value is null), 'borrar la fila del cierre queda como reapertura');
+select pg_temp.assert_true(exists (select 1 from public.accounting_closing_events
+  where tenant_id = pg_temp.fixture_id('tenant-A') and kind = 'modo_cambiado'
+    and old_value = 'advertencia' and new_value = 'superclave'), 'y el modo vuelve a superclave en el historial');
+-- Borrar el tenant entero no falla: su historial se va en cascada y el
+-- disparador no le escribe un evento a un tenant que ya no existe.
+insert into public.tenants (id, slug, display_name)
+values (pg_temp.fixture_id('tenant-C'), 'tenant-c-0493', 'Tenant C 0493');
+insert into public.accounting_settings (tenant_id, closing_date, closing_mode)
+values (pg_temp.fixture_id('tenant-C'), '2026-01-31', 'advertencia');
+delete from public.tenants where id = pg_temp.fixture_id('tenant-C');
+select pg_temp.assert_true(not exists (select 1 from public.accounting_closing_events
+  where tenant_id = pg_temp.fixture_id('tenant-C')), 'borrar el tenant entero se lleva su historial sin fallar');
 
 select 'TEST 0493 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 rollback;

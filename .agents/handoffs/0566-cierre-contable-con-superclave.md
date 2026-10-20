@@ -83,12 +83,60 @@ Detalle del `verify`, copiado de su salida:
 | `migrations-lock verificar` | candado | PASÓ: «3 espera(s) sin sellar (0422…, 0423…, 0493_cierre_contable_superclave) · 0 nueva(s) sin sellar» |
 | `docs:check` (552 specs), `sdd:check` | documentación | PASÓ |
 
+**Segunda vuelta (la deriva de la 0133 y la revisión de seguridad, 2026-10-20),** con turno de máquina del Director. Las filas de arriba son de antes:
+
+| Comprobación | Alcance | Resultado |
+|---|---|---|
+| Contrato en PostgreSQL 17 | la migración con las seis correcciones y el preflight nuevo | PASÓ: «TEST 0493 GREEN: 100 aserciones». Sin la 0493: «TEST 0493: existe public.anular_asiento_en_cierre(uuid,text,text)» |
+| `cierre-contable-superclave.migration.test.ts` (PGlite) | el contrato, el control rojo, 29 mutantes, el aborto del preflight, la 0133 viva y su control rojo, la reaplicación, el recálculo, la espera y el centinela | PASÓ: `Tests  38 passed (38)` |
+| `vitest run` de `app/studio/(app)/contabilidad`, `cierre-excepciones` y `rbac-actions-guard` | la app | PASÓ: `Test Files  9 passed (9)`, `Tests  506 passed (506)` |
+| Mutantes de la app, restaurados por copia con la huella sha256 | se muestra cualquier 22023/42501 sin mirar el hint; el historial no dice cuánto duró el bloqueo | `MUERTOS 2/2 · restaurados 2/2` |
+| `typecheck`, eslint `--max-warnings=0` (los 6 .ts/.tsx tocados) | repo y archivos tocados | PASÓ |
+| `check-pending-migration-symbols` | las líneas de `actions.ts` se corrieron 5; las 12 referencias se actualizaron | PASÓ: «0 ROJO · 1 AMARILLO declarado(s)» |
+| `pnpm verify` | completo | PENDIENTE: corre después de este commit |
+
 ### Lo que destaparon las pruebas y se corrigió
 
 1. **El mensaje de la 0133 dice «modificars» en producción:** usa `%s` dentro de un `raise`. Lo vio el primer mutante del disparador.
 2. **La ayuda del motivo estaba dentro del `<label>`:** el nombre accesible del campo era «Motivo del cambioQueda en el reporte…». Ahora la ayuda va con `aria-describedby`.
 3. **bcrypt usa solo 72 bytes:** con el tope de 200 caracteres, dos superclaves que comparten esos 72 bytes eran la misma. Ahora el tope es de 8 a 64 caracteres y 72 bytes, en la base y en la app.
 4. **El control rojo fallaba antes de su primera aserción:** un ayudante `language sql` del contrato se valida al crearse. Pasó a plpgsql.
+
+## Segunda vuelta: la previa falló por deriva y la revisión de seguridad (2026-10-20)
+
+### La previa de la 0493 falló en producción sin aplicar nada (el Director, 06:36:04Z)
+
+- **Qué pasó:** los dos triggers de la 0133 tienen en producción otro cuerpo que en el repo. El archivo se editó después de aplicarse, en la época de Cloud: el vivo no tiene los comentarios internos y no lleva tildes en los mensajes. La lógica es idéntica.
+- **Reproducido aquí:** el cuerpo del repo sin sus líneas de comentario y sin las tildes de «Período», «período» y «líneas» da **exactamente** los md5 vivos que midió el Director: `26b81a55…` (903 caracteres) y `5e7e21f0…` (408).
+- **Corrección:**
+  - el preflight acepta dos cuerpos conocidos por trigger, el del repo y el vivo;
+  - la prueba en PGlite corre el contrato entero con esa 0133 viva, y su control rojo aborta sin la huella viva;
+  - la 0133 no se tocó;
+  - la causa y la evidencia están en la spec y en la espera.
+
+### Hallazgos de la revisión de seguridad (sobre `9016eadf`)
+
+Los dos importantes venían deducidos, sin ejecutar. **Antes de corregir, los confirmé con el contrato contra la 0493 sin cambios,** en postgres:17. «ok» quiere decir que el ataque pasó:
+
+```
+H1a redondeo 0.005+0.005 contra 0.01: ok
+H1a saldo guardado (debe/haber): 0.02/0.01
+H1b NaN: ok
+H2 sacar una línea de un asiento cerrado: ok
+H3 eventos antes del DELETE: 2
+H3 eventos después del DELETE: 2
+```
+
+| # | Hallazgo | Corrección | Prueba |
+|---|---|---|---|
+| 1 | IMPORTANTE: `crear_asiento_en_cierre` validaba antes de redondear y aceptaba NaN | cada importe con hasta 2 decimales y por debajo del tope de `numeric(14,2)`, que deja afuera a NaN e Infinity; se insertan los valores validados; lo guardado se vuelve a sumar | 4 aserciones (redondeo, NaN, Infinity y que ningún asiento del tenant descuadre); 2 mutantes; una prueba de la defensa en profundidad con su control rojo |
+| 2 | IMPORTANTE: una línea se podía sacar de un asiento cerrado cambiándole `entry_id` | el disparador de líneas rechaza todo cambio de `entry_id`; ningún código lo hace, porque la app y los asientos automáticos solo insertan y leen líneas | 2 aserciones; 1 mutante |
+| 3 | El DELETE de `accounting_settings` no dejaba evento | el disparador pasa a `after insert or update or delete`: la fecha va a nada y el modo vuelve a `superclave`, salvo cuando se borra el tenant entero | 3 aserciones, una de ellas con el borrado del tenant entero; 1 mutante |
+| 4 | El bloqueo no escalaba | cada 5 fallidos, el doble que el anterior: 15 min, 30… con techo de 24 h; el contador no vuelve a 0 al bloquear; los textos de la app ya no dicen «15 minutos» | 8 aserciones (§11 y §12); 3 mutantes nuevos y 2 ajustados; 1 mutante de la app (la duración en el historial) |
+| 5 | ERR-01: la app mostraba cualquier 22023 o 42501 | los 18 mensajes propios llevan `hint = 'dtd-cierre'`, y la app muestra solo esos | 1 aserción en el contrato y 1 mutante; 2 pruebas de las acciones y 1 mutante de la app |
+| 6 | Al reaplicar decía «otro cuerpo» | la comprobación de que ya existe va antes que las huellas | prueba en PGlite: aplicada dos veces, aborta con «ya existe» |
+
+Sobre el NaN: la comparación explícita `= 'NaN'` sobraba. Su mutante sobrevivía, porque el tope ya rechaza NaN: Postgres lo ordena por encima de todo número. Quedó solo el tope, con el comentario de por qué.
 
 ## Impacto documental y conocimiento
 
@@ -97,8 +145,8 @@ La spec 0566 y el índice. **Cambia el esquema** (la 0493), así que el Director
 ## PENDIENTES DE ESTA TAREA
 
 1. **Hecho, A o B (spec §8):** A, según el pedido literal de Sam del 2026-10-19; B ofrecida y no elegida. El Director se la planteó a Sam con la recomendación A, y Sam no pidió cambiarla.
-2. **La previa de producción, antes de aplicar** (la corre el Director): releer las seis huellas del preflight. Los parámetros de log ya los midió el 2026-10-19 (spec, revisión de seguridad).
-3. **Hecho, con turno de máquina:** el contrato en Docker (78 aserciones), la prueba en PGlite (26 de 26, con los 21 mutantes) y `pnpm verify` (16/17 sin fallos).
+2. **La previa de producción, antes de aplicar** (la corre el Director). La primera, del 2026-10-20, falló por la deriva de la 0133; esta versión la acepta. Falta repetirla, y la previa genérica de `preparar.mjs` con `--acepta-deriva` sobre las dos funciones, con el OK de Sam nombrando la deriva. Los parámetros de log ya los midió el 2026-10-19.
+3. **Con turno de máquina:** la segunda vuelta, en la tabla de VALIDACIÓN de abajo.
 4. Aplicar la 0493 con el OK nominal de Sam NOMBRANDO `0493_cierre_contable_superclave`, hacer el smoke de la espera y después fusionar.
 
 ## FUERA DE ALCANCE DETECTADO (para el Director)

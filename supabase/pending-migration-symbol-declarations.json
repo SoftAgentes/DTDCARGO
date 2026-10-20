@@ -24,52 +24,52 @@
           "name": "crear_asiento_en_cierre",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:199"
+            "app/studio/(app)/contabilidad/actions.ts:204"
           ]
         },
         {
           "name": "asentar_asiento_en_cierre",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:123",
-            "app/studio/(app)/contabilidad/actions.ts:297"
+            "app/studio/(app)/contabilidad/actions.ts:128",
+            "app/studio/(app)/contabilidad/actions.ts:302"
           ]
         },
         {
           "name": "anular_asiento_en_cierre",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:123",
-            "app/studio/(app)/contabilidad/actions.ts:366"
+            "app/studio/(app)/contabilidad/actions.ts:128",
+            "app/studio/(app)/contabilidad/actions.ts:371"
           ]
         },
         {
           "name": "eliminar_borrador_en_cierre",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:123",
-            "app/studio/(app)/contabilidad/actions.ts:405"
+            "app/studio/(app)/contabilidad/actions.ts:128",
+            "app/studio/(app)/contabilidad/actions.ts:410"
           ]
         },
         {
           "name": "fijar_superclave_de_cierre",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:523"
+            "app/studio/(app)/contabilidad/actions.ts:528"
           ]
         },
         {
           "name": "restablecer_superclave_de_cierre",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:547"
+            "app/studio/(app)/contabilidad/actions.ts:552"
           ]
         },
         {
           "name": "accounting_settings.closing_mode",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:479",
+            "app/studio/(app)/contabilidad/actions.ts:484",
             "lib/studio/accounting/cierre-queries.ts:43"
           ]
         },
@@ -100,12 +100,12 @@
           "degradation": "En las acciones del diario, avisoDelCierre atrapa el mismo PGRST202 y devuelve null: crear, asentar, anular y eliminar en período cerrado devuelven el mensaje de antes («Período contable cerrado al …: no puedes …»), sin cierre ni excepción. Es lo que hace hoy la app con 0133."
         },
         {
-          "site": "app/studio/(app)/contabilidad/actions.ts:129",
+          "site": "app/studio/(app)/contabilidad/actions.ts:134",
           "contains": "if (!aviso) return { error: mensajeSinExcepcion };",
           "degradation": "Las RPC asentar_asiento_en_cierre, anular_asiento_en_cierre y eliminar_borrador_en_cierre solo se llaman después de leer el estado: sin 0493 la acción vuelve antes con el mensaje de siempre y nunca las llama."
         },
         {
-          "site": "app/studio/(app)/contabilidad/actions.ts:192",
+          "site": "app/studio/(app)/contabilidad/actions.ts:197",
           "contains": "    if (!aviso) {",
           "degradation": "createJournalEntry tampoco llama a crear_asiento_en_cierre sin el estado: devuelve el mensaje de siempre para una fecha cerrada."
         },

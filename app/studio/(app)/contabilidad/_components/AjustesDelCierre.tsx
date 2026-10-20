@@ -199,7 +199,7 @@ export function AjustesDelCierre({ estado }: { estado: EstadoCierre }) {
           </label>
         )}
         <span style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
-          Entre 8 y 64 caracteres. Después de 5 intentos fallidos se bloquea 15 minutos.
+          Entre 8 y 64 caracteres. Cada 5 intentos fallidos se bloquea: 15 minutos, después el doble cada vez, hasta 24 horas.
         </span>
         <MensajeError id={`${id}-clave-error`} msg={errorClave} />
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
