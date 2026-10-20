@@ -543,6 +543,15 @@ select pg_temp.assert_true(pg_temp.error_directo(format(
   and (pg_temp.ref('r3')).status = 'registrado',
   'anular la venta de un referido con su cliente borrado no falla (I2)');
 
+select pg_temp.assert_true((select pg_get_triggerdef(t.oid) from pg_trigger t
+  where t.tgrelid = 'public.referrals'::regclass and t.tgname = 'referrals_validate_clients_trg')
+  like '%BEFORE INSERT OR UPDATE OF referrer_client_id, referred_client_id, tenant_id ON public.referrals%',
+  'la validación de clientes corre al insertar y al cambiar un cliente o el tenant (I2)');
+select pg_temp.assert_true(split_part(pg_temp.error_of('admin-A', format(
+  'update public.referrals set tenant_id = %L::uuid where id = %L::uuid returning to_jsonb(id)',
+  pg_temp.fixture_id('tenant-B'), pg_temp.fixture_id('r6')), 'service_role'), '|', 1) = '23514',
+  'un referido no se pasa a otro tenant, ni por service_role');
+
 -- ── 15. Borrar el tenant entero no choca con el guardián (M3) ──
 insert into public.tenants (id, slug, display_name) values (pg_temp.fixture_id('tenant-C'), 'tenant-c-0494', 'Tenant C 0494');
 insert into public.clients (id, tenant_id, markbox, name) values

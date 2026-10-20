@@ -331,7 +331,7 @@ describe("SDD-0567 · 0494 candado del crédito de referido (PGlite)", () => {
     },
     {
       name: "I2: la validación de clientes corre en todo UPDATE",
-      from: "  before insert or update of referrer_client_id, referred_client_id on public.referrals",
+      from: "  before insert or update of referrer_client_id, referred_client_id, tenant_id on public.referrals",
       to: "  before insert or update on public.referrals",
       fails: "TEST 0494: anular la venta de un referido con su cliente borrado no falla (I2)",
     },
@@ -376,6 +376,12 @@ describe("SDD-0567 · 0494 candado del crédito de referido (PGlite)", () => {
       from: "grant execute on function public.avanzar_referido(uuid, text, text) to authenticated;",
       to: "grant execute on function public.avanzar_referido(uuid, text, text) to authenticated, anon;",
       fails: "0494: postflight — las tres RPC sin DEFINER, search_path o ACL esperados",
+    },
+    {
+      name: "I2: la validación de clientes no mira el cambio de tenant",
+      from: "  before insert or update of referrer_client_id, referred_client_id, tenant_id on public.referrals",
+      to: "  before insert or update of referrer_client_id, referred_client_id on public.referrals",
+      fails: "TEST 0494: la validación de clientes corre al insertar y al cambiar un cliente o el tenant (I2)",
     },
   ];
   for (const m of MUTANTS) {
@@ -435,6 +441,15 @@ describe("SDD-0567 · 0494 candado del crédito de referido (PGlite)", () => {
     expect(otra.error).toBe(
       "0494 abortado: la policy «referrals by tenant» no es la de 0098 ni la viva de producción; revisar antes de aplicar",
     );
+  }, SLOW);
+
+  it("el preflight aborta si el disparador de validación de 0098 es otro", async () => {
+    const m0098 = readFileSync(resolve(ROOT, "supabase/migrations/0098_fidelizacion_referidos.sql"), "utf8").replace(/\r\n/g, "\n");
+    const desde = "create trigger referrals_validate_clients_trg\n  before insert or update on public.referrals";
+    expect(m0098.split(desde)).toHaveLength(2);
+    const otro = m0098.split(desde).join("create trigger referrals_validate_clients_trg\n  before insert on public.referrals");
+    const result = await contract({ replace: { "0098_fidelizacion_referidos.sql": otro } });
+    expect(result.error).toBe("0494 abortado: el disparador referrals_validate_clients_trg no es el de 0098; revisar antes de aplicar");
   }, SLOW);
 
   it("aplicada dos veces, la segunda aborta con «ya existe»", async () => {

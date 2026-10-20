@@ -208,7 +208,7 @@ Fue de solo lectura. **Antes de corregir, los escenarios se confirmaron con el c
 | B1 | Con el premio en 0 no se podía facturar al referido | la 0250 reescrita sale sin acreditar si el premio es 0 |
 | B2 | Cualquier rol creaba N créditos con una sola venta | la policy de INSERT de `authenticated` exige `invitado` sin cliente; un índice único parcial deja un solo referido vivo por `(tenant_id, referred_client_id)`; el guardián rechaza que el referido sea el referidor (por id o por markbox) |
 | I1 | `avanzar_referido` no rechazaba el autorreferido ni el duplicado, y así commercial rodeaba la decisión 2 | la RPC los rechaza con su mensaje; **solo cuenta como venta una factura creada desde el alta del referido**, en la 0250 y en `referido_venta_real` |
-| I2 | Anular la venta fallaba con el referidor o el referido borrados (la validación de 0098 corría en todo UPDATE) | el disparador de 0098 corre al insertar y cuando cambia un cliente; la función de 0098 no cambia |
+| I2 | Anular la venta fallaba con el referidor o el referido borrados (la validación de 0098 corría en todo UPDATE) | el disparador de 0098 corre al insertar y cuando cambia un cliente o el `tenant_id` (la validación ata los clientes al tenant). La función de 0098 no cambia; el preflight compara la definición viva del disparador (`pg_get_triggerdef`, leída por el Director el 2026-10-20), que es la del repo |
 | M1 | Un aplicado cuya venta se anula se marcaba aunque hubiera otra venta | pasa primero a otra venta viva; solo sin ella queda marcado |
 | M2 | Carrera entre anular la venta A y emitir la A2 a la vez | documentada abajo |
 | M3 | Las FK con `on delete set null` chocaban con el guardián, y también el borrado en cascada del tenant | las dos FK son NO ACTION (un borrado directo falla; RESTRICT rompería la cascada del tenant, que se lleva también los referidos), y el guardián deja pasar el borrado cuando el tenant ya no existe |
@@ -224,7 +224,7 @@ Fue de solo lectura. **Antes de corregir, los escenarios se confirmaron con el c
 
 Queda en espera con una venta viva. Se acredita en el siguiente cambio de estado de A2: un cobro (emitida → parcial o pagada) o su vencimiento. No se pierde dinero ni se acredita de más.
 
-**La carrera de la 0467 (dblink) contra la versión DEFINER: no aplica.**
+**La carrera de la 0467 (dblink) contra la versión DEFINER: no aplica** (de acuerdo el Director, 2026-10-20).
 - La 0494 solo cambia `prosecdef` de apply y revert, y el contrato afirma que su cuerpo (los `FOR UPDATE` y su orden: factura → crédito) es el mismo md5. El modo de seguridad no cambia cómo se toman los bloqueos.
 - El contrato 0467 carga las migraciones hasta la 0471, sin la 0494, y sus fases ANTES hacen UPDATE de `referrals` como `authenticated`, que la 0494 revoca. Para correrlo sobre la 0494 habría que reescribirlo, y probaría lo mismo.
 
@@ -285,7 +285,7 @@ Queda en espera con una venta viva. Se acredita en el siguiente cambio de estado
 |---|---|
 | `supabase/migrations/0494_credito_referido_candado.sql` | la migración |
 | `supabase/tests/0494_credito_referido_candado.test.sql` | el contrato |
-| `lib/studio/__tests__/credito-referido-candado.migration.test.ts` | el contrato en PGlite: control rojo, 40 mutantes, las derivas de la 0250 y de la 0098 (policy), el preflight, la reaplicación y la espera |
+| `lib/studio/__tests__/credito-referido-candado.migration.test.ts` | el contrato en PGlite: control rojo, 41 mutantes, las derivas de la 0250 y de la 0098 (policy), el preflight, la reaplicación y la espera |
 | `supabase/migrations-baseline.json` | la espera de la 0494 |
 | `supabase/pending-migration-symbol-declarations.json` | los 5 símbolos y su degradación |
 | `app/studio/(app)/fidelizacion/actions.ts` | acreditar, avanzar y enlazar el asiento por las RPC; `errorDeReferido` |

@@ -108,10 +108,14 @@ begin
      or to_regclass('public.user_tenants') is null or to_regprocedure('auth.uid()') is null then
     raise exception '0494 requiere referrals, invoices, clients, journal_entries, referral_settings, studio_role_module_overrides, user_tenants y auth.uid()';
   end if;
-  if not exists (select 1 from pg_catalog.pg_trigger
-      where tgrelid = 'public.referrals'::regclass and tgname = 'referrals_validate_clients_trg'
-        and tgfoid = 'public.referrals_validate_clients()'::regprocedure and not tgisinternal) then
-    raise exception '0494 requiere el disparador referrals_validate_clients_trg de 0098';
+  -- El disparador de 0098 que se recrea: el vivo de producción (pg_get_triggerdef,
+  -- leído por el Director el 2026-10-20) es el mismo que el del repo.
+  if not exists (select 1 from pg_catalog.pg_trigger tg
+      where tg.tgrelid = 'public.referrals'::regclass and tg.tgname = 'referrals_validate_clients_trg'
+        and tg.tgfoid = 'public.referrals_validate_clients()'::regprocedure and not tg.tgisinternal
+        and pg_catalog.regexp_replace(pg_catalog.pg_get_triggerdef(tg.oid), '\s', '', 'g') =
+            'CREATETRIGGERreferrals_validate_clients_trgBEFOREINSERTORUPDATEONpublic.referralsFOREACHROWEXECUTEFUNCTIONreferrals_validate_clients()') then
+    raise exception '0494 abortado: el disparador referrals_validate_clients_trg no es el de 0098; revisar antes de aplicar';
   end if;
   if not exists (select 1 from pg_catalog.pg_constraint
       where conrelid = 'public.referrals'::regclass and conname = 'referrals_credit_applied_coherent') then
@@ -616,10 +620,11 @@ create trigger invoices_referral_sale_voided
 -- La validación de clientes de 0098 corría en TODO UPDATE y exige clientes no
 -- borrados: un UPDATE de estado (anular la venta) fallaba si el referidor o el
 -- referido estaban borrados (I2). Ahora corre al insertar y cuando cambia un
--- cliente. La función de 0098 no cambia.
+-- cliente o el tenant (la validación ata los clientes al tenant). La función de
+-- 0098 no cambia: el preflight compara la definición viva del disparador.
 drop trigger referrals_validate_clients_trg on public.referrals;
 create trigger referrals_validate_clients_trg
-  before insert or update of referrer_client_id, referred_client_id on public.referrals
+  before insert or update of referrer_client_id, referred_client_id, tenant_id on public.referrals
   for each row execute function public.referrals_validate_clients();
 
 -- ╔═══════════════════════════════════════════════════════════╗
