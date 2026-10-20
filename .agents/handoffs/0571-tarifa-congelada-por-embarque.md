@@ -44,7 +44,29 @@ La 4.1 del plan (`docs/audits/2026-10-18-contabilidad-diagnostico-y-plan.md` §8
 | `pnpm verify` sobre `38198401` | completo | INTERRUMPIDO: lo detuve al llegar la revisión de seguridad. Desde `edge-functions` todos los pasos salieron con 3221225794 (0xC0000142, la DLL no inicializó): efecto de la interrupción, no del código; harness, lint, rsc-boundary y typecheck alcanzaron a pasar |
 | `pnpm verify` sobre `b6d19138` (16:00Z–16:32Z) | completo | FALLÓ en `test`: `rbac-actions-guard.test.ts`, 5 casos (la vía elevada decidía el candado con un `if`). Pasaron lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols («0 ROJO · 1 AMARILLO»), sql-tests («246 contrato(s)»), schema-rebuild («471 migraciones»), e2e (177 passed, 1 flaky de WebKit) y build. `migrations-applied`: SKIP (sin `.env.local`). Corregido en `2e94bccc` |
 | Puntual sobre `2e94bccc` | migración, paridad, propuesta, acciones, celda, `rbac.test.ts`, `rbac-actions-guard.test.ts` | PASÓ: 630/630; tsc y eslint limpios; símbolos 0 ROJO |
-| `pnpm verify` sobre la cabeza final | completo | pendiente de turno del Director |
+| **`pnpm verify` sobre `a81dbbd7`** (= código de `2e94bccc` + este handoff), 16:49:56Z–17:20:04Z | completo | `VERIFY_EXIT=0`: «CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied. No hubo fallos en lo medido (16/17)». Detalle abajo |
+
+Detalle del verify final, copiado de su salida:
+
+| Paso | Resultado |
+|---|---|
+| harness | PASÓ |
+| lint | PASÓ |
+| rsc-boundary | PASÓ |
+| typecheck | PASÓ |
+| edge-functions | PASÓ (4 funciones) |
+| test | PASÓ: `Test Files 856 passed \| 1 skipped (857)`, `Tests 12242 passed \| 1 skipped (12243)` |
+| docs:check | PASÓ |
+| numbering | PASÓ |
+| feature-constants | PASÓ (6 banderas) |
+| components:check | PASÓ |
+| governance:check | PASÓ |
+| migrations-applied | NO DISPONIBLE: SKIP, el worktree no tiene `.env.local`. La 0496 es MIGRATE-FIRST y la aplica el Director |
+| pending-migration-symbols | PASÓ: «0 ROJO · 1 AMARILLO declarado(s)» (la 0496) |
+| sql-tests | PASÓ: «246 contrato(s) de SQL verificado(s)», con `0496_tarifa_congelada_por_embarque.test.sql` |
+| schema-rebuild | PASÓ: «471 migraciones aplicadas desde cero» |
+| e2e | PASÓ con aviso: `176 passed (11.7m)`, 2 flaky ajenos (`auth.spec.ts:81`, el token inválido de Acceso, el mismo de otras corridas; `company-photo-carousel.spec.ts:93`, evidencia visual), proceso ≠0 por el worker de WebKit en Windows |
+| build | PASÓ |
 
 Las corridas puntuales usaron el `node_modules` de main por junction (`node node_modules/vitest/vitest.mjs`, nunca `pnpm exec`). Se quita con `cmd /c rmdir` antes de borrar el worktree.
 
@@ -59,11 +81,19 @@ Las corridas puntuales usaron el `node_modules` de main por junction (`node node
 
 Rama `claude/peaceful-franklin-a3831e`, base `main`. PR en borrador: ver la PR de esta rama.
 
+## PAUSA ORDENADA (2026-10-20, ~17:20Z)
+
+El Director ordenó pausar: a Sam se le acaba el saldo de Claude y **Codex continúa**. Estado al pausar:
+- **SDD-0571 / PR #307:** rama `claude/peaceful-franklin-a3831e`, cabeza = el commit que contiene esta sección. Diseño aprobado; revisión de seguridad: puntos 1 a 8 corregidos (`38198401`, `fa5f14e2`, `2e94bccc`), el 9 en FUERA DE ALCANCE; verify final sin fallos en lo medido (16/17). La PR sigue en borrador.
+- **SDD-0574 (4.5):** rama `codex/sdd-0574-embarques-sin-facturar` (`18edcd81`), empujada sin PR, apilada sobre esta. Contabilidad confirmó (2026-10-20) que la 0572 y la 0573 no cambian las columnas, los estados ni el sentido de borrador y anulada que lee; con la 0573 una factura con cobros vivos ya no se anula, sin efecto en el reporte. Verify pendiente.
+- **4.2:** no empezada; pedir al Director SDD y migración.
+- El CI de GitHub sigue bloqueado por facturación (dos corridas de «Calidad local sin secretos» sin arrancar).
+
 ## PENDIENTES DE ESTA TAREA
 
-1. `pnpm verify` completo (turno del Director).
-2. Revisión de diseño y seguridad del Director (las 7 decisiones de la spec).
-3. Previa del Director en producción: md5 vivos de los tres helpers del preflight; luego OK nominal de Sam nombrando `0496_tarifa_congelada_por_embarque` y aplicación por el runbook (MIGRATE-FIRST); smoke en Almacén CN.
+1. ~~`pnpm verify`~~ hecho sobre `a81dbbd7` (16/17, sin fallos). ~~Revisión de diseño y seguridad~~ hechas y corregidas. ~~Previa de los md5~~ hecha (deriva de `resolve_price_book` aceptada).
+2. Que el Director confirme la cabeza de la #307 y cierre la revisión de seguridad sobre ella.
+3. OK nominal de Sam nombrando `0496_tarifa_congelada_por_embarque`, aplicación por el runbook (MIGRATE-FIRST) y smoke en Almacén CN; recién después, fusionar la #307. El CI de GitHub, al regularizar la facturación: `gh run rerun` de «Calidad local sin secretos».
 4. Pendiente de decisión (no bloquea): congelar sola al recibir (falta el servicio en la recepción), cobro del exceso de peso por contenedor, importador del Excel de Yiwu cuando llegue el archivo.
 
 ## FUERA DE ALCANCE DETECTADO
