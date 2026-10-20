@@ -126,10 +126,38 @@ pared.
 El acumulado supera a la pared, así que corrieron 2 workers en paralelo.
 
 El runner fue de la clase rápida (TypeScript en 49 s). Contra la mediana de esa clase el 20-oct
-(Unitarios 21,9 min y job 27,9), baja 26 % y 22 %. Contra la clase lenta (29,2 y 36,5), baja 44 % y
-41 %.
+(Unitarios 21,9 min y job 27,9), baja 26 % y 22 %.
 
 La rama sale de `653802e2`, antes de la #298; por eso son 3 archivos menos que en el run cancelado.
+
+**Segunda corrida, en la clase lenta** (run 39434038001 sobre `6ad01bd2`, TypeScript en 70 s):
+
+| Medida | Valor |
+|---|---|
+| Job | 35,3 min |
+| Unitarios | 27,9 min |
+| Vitest | `Duration 1672.86s`, `tests 2505.46s` (1,50) |
+| Pruebas | 12.144 casos, todos verdes |
+
+Se compara con `main` `d50aa3e7` (run 39429472606): un solo worker, la misma clase de runner y la
+misma hora. Ahí el job tardó 41,6 min y Unitarios 33,9 (`Duration 2030.72s`, `tests 1514.45s`).
+
+| | Un worker (`main`) | Dos workers (#302) | Cambio |
+|---|---|---|---|
+| Unitarios | 33,9 min | 27,9 min | −18 % |
+| Job | 41,6 min | 35,3 min | −15 % |
+
+**Corrección.** La versión anterior de este handoff decía «−44 %» en la clase lenta. Ese número
+comparaba una corrida de la clase rápida contra la mediana de la lenta, y medido es −18 %.
+
+Con 2 workers cada caso se hace más lento: el acumulado pasa de 1.514 a 2.505 s. Los 2 vCPU no rinden
+como dos núcleos enteros. El paralelismo ahorra 15 a 26 %. El que protege es el tope de 60 (la peor
+corrida medida queda en 35,3) y el cambio de fondo es la SDD-0570.
+
+El mismo día, sin este cambio, se cortaron o casi se cortan por el tope de 45:
+- la #298, cancelada a los 45 min;
+- `main` `d50aa3e7`, que cerró en 41,6;
+- según el Director, la #303 (`0d87fd03`), que llevaba 42 min a las 14:49Z.
 
 Criterio para dar por bueno el paralelismo:
 
