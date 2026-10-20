@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 4:48 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 5:01 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -36,6 +36,7 @@
 - [x] Publicar el cierre documental `5d84ec0a`, conservando idénticos el producto, sus pruebas y SQL.
 - [ ] Aprobar GitHub de la versión final `5d84ec0a`; está en curso.
 - [x] Regenerar el paquete de `5d84ec0a` y pasar la revisión previa del servidor, a las 4:45 p. m. Solo lectura; no se aplicó la migración.
+- [x] Preparar y revisar independientemente el procedimiento de aplicación e integración, con comprobación de la versión y del historial. Su ejecución sigue pendiente.
 - [ ] Recibir de Sam el OK nominal de `0495_fx_rates_conversor_usd` en producción.
 - [ ] Aplicar la migración autorizada e integrar la PR enseguida.
 - [ ] Comprobar la publicación y las pantallas permitidas de Studio.
@@ -54,6 +55,7 @@
 
 ### C. Resto de la 2.1
 
+- [x] Delimitar los reemplazos SQL, las fechas de Caracas y la carga BCV que faltan, con sus dependencias y criterios de prueba. Es preparación; su implementación sigue pendiente.
 - [ ] Reemplazar las conversiones pendientes en SQL, con una entrega separada.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [ ] Implementar la carga diaria desde el BCV oficial y el respaldo manual.
