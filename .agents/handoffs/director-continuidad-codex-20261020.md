@@ -65,7 +65,7 @@ El mandato de Sam de adoptar las sesiones Codex en los mismos worktrees incluye 
 
 | Tarea | Cabeza verificada | Estado | Siguiente paso / owner |
 |---|---|---|---|
-| #301 / 0569 / 0495 | `eb22e2d4` | Cierre local y revisión del producto PASÓ; dos SKIPs Docker resueltos por SQL/rebuild suplementarios. Paquete final y previa viva PASÓ; CI de cabeza final en curso | CI y revisión independiente final antes de pedir aprobación nominal |
+| #301 / 0569 / 0495 | `eb22e2d4` | Pruebas anteriores documentadas; revisión independiente encontró un P2 en la tasa del correo. Esta cabeza deja de ser candidata a aprobación; reparación asignada | Corregir payload, validar y revisar nuevo SHA; regenerar identidad/previa antes de pedir aprobación nominal |
 | #307 / 0571 / 0496 | `ba43747a` | Tres P2 corregidos; 62 focales, siete controles, tipos/lint y UI local PASÓ. Árbol limpio, remoto igual y claim liberado; CI nuevo en curso | Actualizar base y ejecutar validación canónica final; después revisión/previa y aprobación nominal |
 | 0572-a | `9c254107` | Cierre parcial publicado, árbol limpio y claim liberado; 71 focales, typecheck y lint PASÓ | Retomar después de #301 corregida: ranking sin tasa, verify, mutantes y revisión visual |
 | 0573 / 0497 | `89f15a5d` | Implementada; B1, I1–I4 y M1–M9 pendientes según traspaso; sin verify | Worker posterior del carril contable, antes de consideración de integración |
@@ -226,7 +226,7 @@ Validación de ese cierre documental: generador/índice de 556 specs, numbering 
 
 Los contratos de 0574 conservan `shipment_id`, `client_markbox` y `status`; el único solapamiento de archivos propios con 0572/0573 es el índice de specs. Aun así, 0572 modifica otros componentes de Dirección y Reportes: hace falta revisión combinada de la pantalla, no afirmar que no toca esos módulos.
 
-Turno de máquina actual: **A/B304**, después de que 0569 y luego 0571 devolvieran expresamente sus turnos y retiraran los recursos propios. No iniciar otra corrida pesada, Graphify update ni Archify build hasta que A/B304 complete ambos lados y compruebe restauración/ausencia de procesos. La revisión independiente de 0569 y la preparación del encargo 0573 son solo lectura, sin pruebas ni edición de producto.
+Turno de máquina actual: **0569, reparación del aviso de tasa**, concedido después de recibir la devolución explícita de A/B304 a `19:54:13Z`, con restauración y procesos comprobados. No iniciar otra corrida pesada, Graphify update ni Archify build hasta su devolución. El cierre de #304 continúa solo con documentos.
 
 El A/B usa los mismos 34 archivos, 2 workers y semilla/entorno/lockfile iguales. A restaura temporalmente solo imports/constructores previos; B usa los bytes de la cabeza original, con respaldos y hashes. Conserva aserciones y mutantes. Un preflight del comprobador falló antes de lanzar pruebas y restituyó 36/36 archivos; quedó separado. Duración inicialmente estimada 10–18 minutos, revisada a 25–30 al observar los primeros archivos; el Director autorizó completar hasta 35 minutos con aviso si necesita más. No hay resultado de aceptación todavía.
 
@@ -248,9 +248,37 @@ Revisión visible independiente del Director en IAB: formulario real con Numeric
 
 **Cierre 0571 respaldado:** `ba43747a803ea9aec3b8750d1b461d69795834a5`, rama/remoto/PR coincidentes y ahead/behind 0/0; ocho archivos permitidos, ningún SQL/RBAC y claim ausente. Director leyó el cierre documental y cotejó las pruebas/captura; CI nuevo `39484581257`, iniciado `19:34:18Z`. GitHub informa base `f9b86db1` de la PR; `origin/main` sigue `8e9e0f50`, comprobado por fetch sin prune. Debe incorporar la base final después de #301; no se considera listo para merge por este cierre focal.
 
+### Checklist visible solicitado por Sam y revisión final · 19:47Z
+
+Sam pidió un checklist del segundo documento trabajado con Claude, para seguir los avances con checks en el panel derecho. Se conservó el archivo propio de seguimiento y se amplió a todas las fases del plan: pasos terminados, tareas abiertas, 2.1 desglosada, secuencia de entrega, pendientes de Sam, controles periódicos y partes en pausa. Se interpretó el documento como «Plan contable: avance y pendientes», usando el contenido ya recuperado y el plan maestro. El enlace Claude no pudo reabrirse al no haber una pestaña disponible; no se presenta esta actualización como una nueva lectura de la interfaz.
+
+Los seis puntos originales y cinco extras se cotejaron con las PR fusionadas #277, #280, #283, #286, #284, #298, #287, #288, #291, #293 y #300; sus once commits son antecesores de `origin/main` `8e9e0f50`. Metadatos del VPS a `19:40:32Z`: corre/publicable `8e9e0f50`, vigilancia al día; recibo de publicación ya comprobado 14 PASÓ / 0 FALLÓ. Esto sustenta «integrado y publicado», no una nueva comprobación funcional de los once recorridos.
+
+El archivo Markdown se envió al panel derecho con `open_in_codex`; la app devolvió `queued`, no confirmación de visualización. Se conserva enlace directo para Sam. Ninguna tarea se marca completada por el solo hecho de crear el checklist.
+
+Revisión documental independiente del checklist contra plan maestro y handoff: **PASÓ**, sin puntos activos omitidos ni cierres materiales sin sustento. Se comprobó que permanecen 7.2, conciliación bancaria, saldos iniciales, permisos, alcance Excel de 4.1, pausas fiscales y exclusión del conector/corte QuickBooks. El revisor no volvió a abrir Claude ni revalidó los once merges; esas comprobaciones siguen atribuidas al Director.
+
+**P2 nuevo de 0569:** el informe independiente `C:\tmp\director-traspaso-20261020\0569-codex-validation\revision-independiente-final.md` revisó las 39 rutas sobre `eb22e2d4`/base `8e9e0f50`, sin nuevos P1. En `emitInvoice`, el CAS persiste la tasa vigente, pero el correo toma `current.fx_rate` previo: un borrador 36 emitido a 40 podría entregar `bcv_rate="36"` si una regla de correo usa esa variable. Confirmado también por lectura del Director; no se consultaron reglas ni datos productivos. Prueba roja nueva NO EJECUTADA. La cabeza `eb22e2d4` y su previa quedan como evidencia anterior; no procede pedir aún la aprobación de 0495.
+
+Reparación asignada al Worker de 0569 en su worktree/ramal propios, con guard y claim previos. Allowlist exacta de esta corrección: `app/studio/(app)/facturacion/actions.ts`, `app/studio/(app)/facturacion/__tests__/factura-congela-la-tasa.test.ts`, `docs/specs/0569-conversor-usd-tasas/spec.md` y `.agents/handoffs/0569-conversor-usd-tasas.md`. Debe usar la tasa persistida devuelta por el CAS, cubrir 36→40, override, tasa antes ausente y cero correo/asiento al perder carrera. Sin SQL, RBAC, helper de correo ni otras rutas. Preparación autorizada; tests, commit y push esperan instrucción posterior. A/B304 conserva su turno.
+
+**0573, propuesta entregada:** `C:\tmp\director-traspaso-20261020\0573-encargo-reparacion-codex.md`, SHA-256 `2b8e62ff71098e812d9e29804530884f152c4ffee2e179c667e1199372f8e2ef`. Matriz de 14 hallazgos B1, I1–I4 y M1–M9, pruebas propuestas y dependencias; 29 rutas existentes, ocho ampliaciones propuestas y cinco condicionadas a I2. No se concedió escritura en esas ampliaciones ni se ejecutaron pruebas. I2 sigue como propuesta; el Director aún debe cerrar el encargo antes de una reparación. Conserva 0497, sin renumerar/aplicar.
+
+### Comparación local completa de #304 y traspaso de turno · 19:56Z
+
+Par `20261020T193515078Z` sobre `1077ff216956d2062f3ce281971f68d084fe0a92`: A `19:35:16.406Z`–`19:45:57.971Z`, B `19:45:59.674Z`–`19:52:01.424Z`. Cada fase terminó exit 0, 34/34 archivos y 854/854 casos, cero fallos/omitidos y firmas iguales por archivo. El Director leyó reporte TXT, manifest, resúmenes JSON, restauraciones y criterio 5 de la spec; acepta la comparación local completa.
+
+Pared A/B: 641,565 → 361,750 s, reducción observada 43,614 %. Suma de los 33 archivos afectados: 1.212,711 → 630,722 s, reducción 47,991 %; no equivale a pared con dos workers. El helper intacto fue 16,675 → 20,909 s y se excluye del agregado de afectados. Un solo par A→B, sin repeticiones AB/BA ni intervalo de confianza; no extrapolar al CI ni afirmar mejora garantizada bajo otra carga. No se mezcla el intento parcial anterior.
+
+Evidencia: `C:\tmp\director-traspaso-20261020\0570-ab-local-reintento\runs\20261020T193515078Z\`; `comparacion-local.json` SHA-256 `c96139535505af4f6d6373c2909e21fcaea0313933636e0160c29eb17cca2f69`, TXT `a87741d0a68e8d0fa3972a8540f54045061e850b3b98c2316ccecc016bbabb1a`. Restauración intermedia y final 36/36 hashes, seis configuraciones y tres entradas de runtime iguales; árbol limpio, cero procesos propios/consumidores visibles y claim liberado según recibo `liberacion.json`, `19:54:13Z`. Turno devuelto expresamente.
+
+Criterio 5 aceptado sin excepción. Worker autorizado a reclamar solo para spec/handoff y evidencias documentales previstas, commit selectivo, push y actualización de #304. Producto/helper intactos; cabeza y CI nuevos pendientes de revisión. El turno pesado pasó a 0569 para rojo/verde, control del P2, tipos/lint y verify canónico sobre su nuevo SHA. Commit/push de sus cuatro rutas autorizado tras los controles focales; sin SQL/Docker/UI repetidos si se acredita identidad intacta.
+
+`knowledge:status` de lectura repetido desde main `8e9e0f50`; resultado en `C:\tmp\director-traspaso-20261020\knowledge-checklist-20261020.json`: estructura PENDING/453, piloto 12/16, global 12/1320, Archify/Obsidian PENDING. Sin actualización ni publicación de derivados mientras el turno está ocupado.
+
 ## 4. Checklist vivo de continuidad
 
-Vista resumida para Sam: [Plan contable: avance y pendientes](../../docs/audits/2026-10-20-plan-contable-seguimiento-codex.md). Este §4 sigue siendo el registro vivo de coordinación.
+Vista con checks para Sam: [Checklist del plan contable](../../docs/audits/2026-10-20-plan-contable-seguimiento-codex.md). Este §4 sigue siendo el registro vivo de coordinación; ambos documentos pertenecen al Director.
 
 El checklist histórico del §4 anterior conserva 36 tareas vivas, 6 hechas, 1 en curso y 29 pendientes; esos conteos no se vuelven a afirmar como medición actual sin reconciliar cada entrega.
 
@@ -261,6 +289,10 @@ El checklist histórico del §4 anterior conserva 36 tareas vivas, 6 hechas, 1 e
 - [x] Obtener de Sam el estado de facturación y relanzar CI vigente.
 - [x] Confirmar Calidad de main/#301/#304/#307 y publicación automática del main pendiente con evidencia 14/0.
 - [x] Leer memoria Claude completa mediante revisor.
+- [x] Crear el checklist visible de todas las fases y cotejar los seis puntos y cinco extras integrados.
+- [x] Completar revisión independiente de #301 sobre `eb22e2d4`; P2 nuevo documentado.
+- [x] Completar y revisar el par A/B local de #304, 854/854 casos por lado, restauración comprobada.
+- [ ] Corregir la tasa del aviso de factura y validar/revisar su nueva cabeza.
 - [ ] Cerrar el relevo y la validación de 0572-a.
 - [ ] Revisar/preparar #301 en su cabeza actual y con base actual.
 - [ ] Obtener OK nominal de 0495 cuando el paquete sea concreto y revisable.
@@ -306,7 +338,7 @@ Fechas recibidas del traspaso; no se ha creado automatización.
 - Graphify `0.9.61`: estructura PENDING, 453 pendientes. Semántica global: 12/1320 verificadas, 1308 pendientes; piloto: 12/16, cuatro pendientes (`README.md`, reglas técnicas, marketing y runbook de ingeniería). No se infiere semántica a partir del AST.
 - Archify PENDING por `ARCHIFY_STALE_REVISION`; Obsidian PENDING. Publicación, regeneración y revisión visible de Obsidian: NO EJECUTADAS. No se alteraron derivados compartidos para simular vigencia.
 - Piloto semántico: completadas y revisadas las cuatro fuentes pendientes de main `8e9e0f50`, 1.016 líneas completas, ninguna con YAML. Fragmento y recibo fuera de Git en `C:\tmp\director-traspaso-20261020\knowledge-pilot-20261020\`: `pilot-four-sources.fragment.json` SHA-256 `57ad9db2e3207c3e304daca436b95b666ef33aa6846a89f19b9ea9948e165218`; `pilot-four-sources.review.json` SHA-256 `dda113a95949e5d936201286af111f9e633c0df11d9d69fa01b10d6231d4d28a`. 111 nodos, 173 relaciones (158 EXTRACTED, 11 INFERRED, 4 AMBIGUOUS) y una hiperrelación. El Director leyó fuentes, nodos, relaciones no extraídas y recibo; revisión semántica PASÓ. Los conteos de tokens están marcados como no disponibles, no como consumo cero.
-- Se conservan tres IDs con referencias semánticas externas y 14 anclas estructurales externas del snapshot examinado. Los seis IDs anteriores retirados no tienen referencias entrantes de otras fuentes. El README dice Pre-MVP: queda atribuido como afirmación histórica en conflicto, sin promoverlo a estado actual. Los hashes de fuentes y grafo no cambiaron durante la preparación. El `--check` del importador exige antes AST CURRENT; importación, reagrupación y publicación **NO EJECUTADAS** mientras 0569 conserva el turno pesado. Obsidian reportó cero conflictos y 42 advertencias de enlaces en el estado guardado; no 42 conflictos.
+- Se conservan tres IDs con referencias semánticas externas y 14 anclas estructurales externas del snapshot examinado. Los seis IDs anteriores retirados no tienen referencias entrantes de otras fuentes. El README dice Pre-MVP: queda atribuido como afirmación histórica en conflicto, sin promoverlo a estado actual. Los hashes de fuentes y grafo no cambiaron durante la preparación. El `--check` del importador exige antes AST CURRENT; importación, reagrupación y publicación **NO EJECUTADAS** mientras otro Worker conserva el turno pesado, actualmente 0569. Obsidian reportó cero conflictos y 42 advertencias de enlaces en el estado guardado; no 42 conflictos.
 - Vista interactiva 2.1 creada fuera de Git: `C:\Users\AKX generator\.codex\visualizations\2026\10\20\01a15a4e-ddf0-7d82-8656-d9dc56b58468\plan-contable-21.html`. Navegación entre tasa única y reemplazos comprobada en navegador, captura `C:\tmp\director-traspaso-20261020\plan-contable-21-preview.png`. Servidor local de preview cerrado al terminar. El documento Markdown de seguimiento permanece como registro versionado; el artefacto no declara tareas implementadas o desplegadas sin evidencia.
 - Pruebas de producto propias del Director: NO EJECUTADO; es recepción/coordinación documental.
 - Producción: lectura de metadatos de publicación PASÓ, main `8e9e0f50` y recibo de smoke automático 14/0 comprobados. Lecturas de negocio, migraciones y smoke funcional autenticado: NO EJECUTADOS.

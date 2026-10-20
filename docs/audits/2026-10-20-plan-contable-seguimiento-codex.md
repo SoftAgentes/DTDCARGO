@@ -1,98 +1,170 @@
-# Plan contable: avance y pendientes
+# DTD Cargo · Checklist del plan contable
 
-**Dueño:** Director Codex, para Sam. **Estado:** seguimiento en curso.
+**Actualizado:** 20 de octubre de 2026, 3:56 p. m. (Caracas). **Responsable:** Director Codex.
 
-**Fecha de actualización:** 20 de octubre de 2026. **Clasificación:** interno.
+**Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
-La prioridad sigue siendo llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo. Este documento presenta el avance comprobado de la continuación; las decisiones de negocio permanecen en el [plan maestro](2026-10-18-contabilidad-diagnostico-y-plan.md).
+**Dónde vamos:** seis puntos del plan original y cinco mejoras adicionales ya están integrados y publicados. La **2.1 sigue en curso**. La tarifa congelada pasó su revisión local; todavía espera la validación final y su publicación.
 
-El [registro del Director, §4](../../.agents/handoffs/director-continuidad-codex-20261020.md#4-checklist-vivo-de-continuidad) conserva el checklist vivo y la evidencia de cada cambio. Esta es su vista resumida para Sam.
+**Cómo leerlo:** una casilla marcada significa que se terminó exactamente el paso escrito. En el checklist general, significa integrado y publicado. Dentro de una tarea abierta, una prueba aprobada puede tener ✓ aunque su publicación siga pendiente. Los resultados locales no se presentan como prueba de producción.
 
-## Dónde estamos
+## Ahora mismo
 
-**GitHub volvió a funcionar.** Pasaron las verificaciones de `main` y de las versiones anteriores de #301, #304 y #307. La tasa única ya tiene sus correcciones y su evidencia local cerradas en #301; GitHub está comprobando la cabeza final `eb22e2d4`. Los resultados de otra cabeza se conservan como antecedentes.
+- [ ] **Cerrar 2.1 · Tasa única.** La revisión final encontró que el aviso de factura podría mostrar la tasa anterior del borrador. Corregirlo, comprobarlo y volver a cerrar la versión final antes de pedir la autorización de la migración.
+- [x] **Completar la comparación local de pruebas contables.** Los mismos 854 casos aprobaron por ambos lados. Tiempo medido: 10 min 42 s → 6 min 2 s. La mejora todavía espera integración.
+- [ ] **Completar tarifa congelada.** Las correcciones ya están publicadas en su rama y pasaron 62 pruebas locales; falta validarlas con la base final.
 
-Las cabezas actuales de #304 (`1077ff21`) y #306 (`2f9b336c`) también aprobaron GitHub. En #301, la primera pasada local tuvo un tiempo de espera agotado en una prueba del portal de proveedores; el reintento pasó sin cambios, con 12.277 pruebas aprobadas y una omitida. La construcción también pasó. La revisión canónica ejecutó 14 de 17 pasos. Las dos comprobaciones omitidas por Docker se completaron después: 246 contratos SQL y reconstrucción de 471 migraciones más 18 registros de historial, todo aprobado. La consulta del ledger de producción permanece separada como validación de publicación; el worktree no tiene esas credenciales.
+## 2.1 · Conversión a dólares — EN CURSO
 
-**El main que estaba pendiente ya quedó publicado**, a la 1:28 p. m., con 14 comprobaciones automáticas aprobadas y cero fallas. La lectura del servidor confirmó que sigue en esa versión. Todavía no se ha integrado ninguna PR nueva de este Director: 0569 y 0572 continúan en sus ramas.
+### A. Tasa única y conversor · SDD-0569 · PR #301
 
-El corte anterior reportaba seis tareas del plan terminadas y cinco extras en producción; ese antecedente se conserva fechado. La comprobación de publicación no sustituye la prueba funcional de cada recorrido dentro de Studio.
+- [x] Crear la tabla y una sola regla de conversión, con ocho decimales.
+- [x] Distinguir la tasa del catálogo de una excepción elegida expresamente en la factura.
+- [x] Exigir tasa del día para emitir automáticamente una factura en bolívares.
+- [x] Proteger la factura contra dos ediciones simultáneas.
+- [x] Corregir el formulario al cambiar entre bolívares y yuanes.
+- [x] Aprobar 89 pruebas específicas de aplicación, 32 de SQL local y 39 controles de regresión.
+- [x] Completar la prueba general local: 12.277 aprobadas en el reintento y una omitida; construcción aprobada.
+- [x] Completar las pruebas de navegación: 176 aprobadas, 20 omitidas y dos aprobadas al reintentar.
+- [x] Completar 246 contratos SQL y reconstruir 471 migraciones más 18 registros de historial en una base local desechable.
+- [x] Comprobar el formulario visible con datos ficticios.
+- [x] Preparar el paquete y pasar la revisión de solo lectura del servidor sobre `eb22e2d4`, a las 3:29 p. m. **Esa revisión no aplicó la migración.**
+- [ ] Corregir la tasa del aviso de factura: si se emite con 40, el aviso no puede conservar 36 del borrador.
+- [ ] Aprobar las pruebas y GitHub de la nueva versión que incluya esa corrección.
+- [ ] Regenerar la identidad del paquete y su revisión previa para esa versión final.
+- [ ] Recibir de Sam el OK nominal de `0495_fx_rates_conversor_usd` en producción.
+- [ ] Aplicar la migración autorizada e integrar la PR enseguida.
+- [ ] Comprobar la publicación y las pantallas permitidas de Studio.
+- [ ] Registrar el sello de la migración y su evidencia de cierre.
 
-## 2.1 · Una sola regla para convertir a dólares
+[Ver PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301). Las pruebas marcadas corresponden al producto de `5f0d04ad`, documentado en `eb22e2d4`; la corrección nueva necesita su propia evidencia.
 
-La 2.1 sigue **en curso**. Está dividida para poder revisar cada cambio y comprobar las cifras.
+### B. Reemplazar las 13 conversiones · SDD-0572-a
 
-| Parte | Avance comprobado | Próximo paso |
-|---|---|---|
-| **Tasa única y conversor · 0569** | Cabeza final `eb22e2d4` en la [PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301), revisada; conserva el producto probado en `5f0d04ad`. Pasaron las pruebas específicas, el reintento general, construcción, 246 contratos SQL y reconstrucción completa. Revisión local visible y previa definitiva de solo lectura a las 3:29 p. m.: PASÓ | Esperar CI verde de esa cabeza y pedir el OK nominal de `0495_fx_rates_conversor_usd`. Paquete definitivo preparado; todavía no se ha aplicado |
-| **Reemplazar las 13 conversiones · 0572-a** | Avance guardado y publicado. Pasaron 71 pruebas focales, revisión de tipos y revisión estática. Se repararon formatos y datos de prueba incompletos | Incorporar la dependencia 0569 corregida, comprobar el ranking de embarques sin tasa y terminar prueba completa, mutantes y revisión visual. La PR espera a #301 integrada |
-| **Conversiones pendientes en SQL · 0572-b** | Identificadas y separadas del cambio anterior | Encargo propio, número de migración coordinado y OK nominal antes de producción |
-| **Hora de Caracas** | Pendiente de implementación y de número de tarea | Unificar emisión, asientos, cobros y pagos después del cierre del conversor |
-| **Carga diaria del BCV** | Decisión tomada: fuente oficial, carga diaria y respaldo manual. La automatización no está implementada en 0569 | Preparar la tarea y la salida a la fuente oficial. Registrar claramente qué ocurre cuando falta una tasa vigente; no declarar operativa la carga automática |
+- [x] Guardar y publicar la implementación en su rama, versión `9c254107`.
+- [x] Aprobar 71 pruebas focales, tipos y revisión estática.
+- [ ] Incorporar la tasa única corregida después de integrar #301.
+- [ ] Comprobar que el ranking no trate como completo el ingreso de embarques con facturas sin tasa.
+- [ ] Terminar validación completa, controles de regresión y revisión visible.
+- [ ] Abrir, revisar e integrar su PR; comprobar la publicación.
 
-**USD y USDT se tratan 1:1.** Los bolívares quedan para reportes. La conversión de ventas en el mayor pertenece a 2.3; no se da por resuelta con estos reemplazos.
+### C. Resto de la 2.1
 
-## Los otros frentes abiertos
+- [ ] Reemplazar las conversiones pendientes en SQL, con una entrega separada.
+- [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
+- [ ] Implementar la carga diaria desde el BCV oficial y el respaldo manual.
+- [ ] Comprobar el comportamiento cuando no exista una tasa vigente.
 
-| Frente | Estado actual | Qué falta |
-|---|---|---|
-| **0571 · Tarifa congelada**, #307 | Cierre publicado y revisado en `ba43747a`: 62 pruebas focales aprobadas y siete controles de regresión detectados. Tipos, revisión estática y revisión visible local: PASÓ. El formulario descarta cálculos antiguos y bloquea confirmar mientras espera o si falla | Actualizar base, validación final, nueva previa, OK nominal de `0496_tarifa_congelada_por_embarque`, integración y prueba en el servidor |
-| **0573 · Reverso al anular**, 2.5 | Implementación publicada. Se recuperó y guardó el informe completo de revisión; sus hallazgos siguen pendientes | Corregir los controles de anulación, concurrencia, tenant y comparación entre meses; prueba completa y PR. Después revisión, previa y OK nominal de `0497_reverso_al_anular_factura` |
-| **0574 · Embarques sin facturar**, 4.5 | Ya implementada sobre 0571. Hay evidencia anterior de diez pruebas y tres mutantes | Preparar dependencias locales y ejecutar la prueba completa con turno. Se integra después de 0571 |
-| **0575 · Asientos sin fallos silenciosos**, 2.2 | Cinco decisiones y propuesta transaccional guardadas, publicadas y revisadas en `8a614250`. El diseño distingue documento guardado, asiento contabilizado y resultado desconocido; todavía no está implementado | Cerrar firmas, permisos, control del cierre en cada operación y base integrada; archivos exactos de cada entrega y número de migración; tres PR sucesivas |
-| **0570 · Pruebas PGlite**, #304 | Primer intento parcial, archivos originales restaurados y evidencia publicada en `1077ff21`; GitHub PASÓ a las 3:01 p. m. Segundo intento en ejecución, con los mismos 854 casos por lado y 45 minutos de límite por fase | Completar ambos lados, comparar identidad de casos y tiempos y comprobar la restauración. El criterio de velocidad local sigue pendiente |
-| **Oficina de agentes**, #306 | Correcciones documentales guardadas, publicadas y revisadas; GitHub PASÓ sobre `2f9b336c` a las 2:47 p. m. | Actualizar base después de #301. El aislamiento real entre perfiles y la copia filtrada del servidor siguen sin verificar |
+La regla USD/USDT 1:1 ya está decidida. Los bolívares quedan para reportes. La conversión del mayor pertenece a **2.3** y no se marca terminada al cerrar estos reemplazos.
 
-Se ejecuta una sola prueba pesada a la vez en la máquina. El carril de embarques puede avanzar en paralelo cuando no compite por ese turno ni cambia contratos del carril contable.
+## Checklist general del plan
 
-## Secuencia que seguimos
+### Fase 1 · Base visible — INTEGRADA
 
-La integración inmediata conserva este orden: **#301 → #304 y #306 → #307 → 0573 → sellos de migración**. Cada integración requiere sus comprobaciones actuales y, cuando cambia la base de datos, la aprobación nominal correspondiente.
+- [x] **1.1 · Radiografía repetible de integridad.** SDD-0559, [PR #284](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/284). Una nueva radiografía de producción necesita autorización propia.
+- [x] **1.2 · Portal sin facturas anuladas presentadas como deuda.** SDD-0556, [PR #280](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/280).
+- [x] **1.3 · Saldo único por cliente y cabecera de su ficha.** SDD-0558, [PR #286](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/286).
+- [x] **1.4 · Reportes contables con una cifra de ingreso, diario y comprobación.** SDD-0557, [PR #283](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/283).
+- [x] **1.5 · El borrador de factura conserva el embarque.** SDD-0555, [PR #277](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/277).
 
-Después del conversor, la cola contable sigue así:
+### Fase 2 · Integridad contable
 
-1. Hora de Caracas.
-2. Asientos sin fallos silenciosos, 2.2.
-3. Cobro multimoneda, anticipos y recibo para varias facturas, 2.6.
-4. Mayor en USD y bolívares en reportes, 2.3.
-5. Reporte de pago del portal que crea recibo y asiento, 2.7. Antes: previa y OK nominal para 0422 y 0423.
-6. Notas de crédito y débito, 2.8.
-7. Candado del mayor, 2.4.
-8. Factura emitida inmutable, 2.9.
-9. Paquete de la contadora y conciliación de auxiliares, 2.10.
-10. Conciliación bancaria en el ERP.
-11. Saldos iniciales y arranque contable, 3.9.
-12. Permisos de la contadora y separación de funciones, 5.4.
+- [ ] **2.1 · Tasa única y conversión a dólares.** EN CURSO; pasos detallados arriba.
+- [ ] **2.2 · Asientos sin fallos silenciosos.** DISEÑO REVISADO: SDD-0575. Cinco decisiones y contrato propuesto guardados en `8a614250`; implementación pendiente.
+- [ ] **2.3 · Mayor en USD y equivalentes en bolívares para reportes.** PENDIENTE.
+- [ ] **2.4 · Candado del mayor, cuentas y asientos.** PENDIENTE.
+- [ ] **2.5 · Reverso contable al anular una factura.** EN REVISIÓN: SDD-0573, implementación guardada y propuesta de reparación de los 14 hallazgos preparada. Las correcciones y sus pruebas siguen pendientes.
+- [ ] **2.6 · Cobros multimoneda, anticipos, un recibo para varias facturas y pagos al proveedor.** PENDIENTE.
+- [ ] **2.7 · Reporte de pago del portal que genera recibo y asiento.** PENDIENTE; antes requiere las migraciones 0422 y 0423, cada una autorizada.
+- [ ] **2.8 · Notas de crédito y débito, abonos y compensaciones del cliente.** PENDIENTE; la parte de impuestos conserva su pausa.
+- [ ] **2.9 · Factura emitida inmutable y segunda aprobación para anular.** PENDIENTE; va después de 2.8.
+- [ ] **2.10 · Paquete de la contadora y conciliación de auxiliares.** PENDIENTE.
+- [x] **2.11 · Candado del crédito de referido.** SDD-0567, [PR #298](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/298), migración 0494 sellada.
 
-El carril de embarques continúa con 4.5/0574 y después 4.2.
+### Fase 3 · Documentos, reportes y arranque
 
-## Decisiones que tomé por tu delegación
+- [ ] **3.1 · Número de control y correlativo al emitir.** PENDIENTE; captura manual y lotes decididos.
+- [ ] **3.3 · Líneas reales de factura y cuenta de ingreso por servicio.** PENDIENTE.
+- [ ] **3.4 · Libros y exportaciones en bolívares.** PENDIENTE; la posición de IVA sigue EN PAUSA.
+- [ ] **3.5 · Reportes del Diario y Mayor en bolívares y paquete ampliado de la contadora.** PENDIENTE; el libro del ERP sigue en USD.
+- [ ] **3.6 · Revaluación mensual y diferencia cambiaria.** PENDIENTE.
+- [ ] **3.8 · Nómina reflejada en el libro contable.** PENDIENTE.
+- [ ] **3.9 · Saldos iniciales, cuentas de apertura y fecha de arranque.** PENDIENTE; adelantado a la puesta en marcha del ERP.
+- [ ] **Conciliación bancaria dentro del ERP.** PENDIENTE; requiere tarea propia.
 
-Para **0575**: cada documento se contabiliza en una operación atómica; un período cerrado bloquea salvo la excepción gobernada existente; los fallos se muestran dentro de «Por contabilizar»; el trabajo se entrega en tres PR sucesivas; los gastos entran en el contrato desde la primera parte.
+### Fase 4 · Operación de embarques
 
-La propuesta revisada revierte las escrituras contables incompletas y registra el motivo después, dentro de la misma llamada. Su conservación depende de que esa llamada termine confirmada: una pérdida de conexión exige comprobar el resultado antes de repetirlo. Además, un documento guardado antes de contabilizarse necesita su propio control de período cerrado. Estos límites quedaron documentados; todavía requieren contratos finales y pruebas de implementación.
+- [ ] **4.1 · Tarifa congelada por embarque.** VALIDADA LOCALMENTE: SDD-0571, [PR #307](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/307), `ba43747a`. Pasaron 62 pruebas, siete controles y revisión visible. Faltan base final, validación completa, OK de 0496 y publicación; el alcance completo conserva la comparación/importación de Excel del plan maestro.
+- [ ] **4.2 · Envío por cliente al consolidar y llegada gobernada.** PENDIENTE; sigue a la tarifa congelada.
+- [ ] **4.3 · Aviso y factura al llegar desde cargos confirmados.** PENDIENTE; depende también del número de control.
+- [ ] **4.4 · Pre-factura al zarpar, cargos posteriores y cierre al entregar.** PENDIENTE.
+- [ ] **4.5 · Embarques sin facturar y tarjetas de Dirección.** IMPLEMENTADO EN RAMA: SDD-0574, `18edcd81`; faltan validación completa y PR después de 0571.
+- [ ] **4.6 · Costo y margen real por embarque.** PENDIENTE.
+- [ ] **4.7 · Cuenta corriente del socio China y fondos por rendir de la Operadora.** PENDIENTE; revisión de la contadora antes de construir.
+- [ ] **4.8 · Compras asistidas y gastos cobrables generan su cargo al cliente.** PENDIENTE.
+- [ ] **4.9 · Indemnización, recupero y compensación al cliente.** PENDIENTE.
 
-Para **0569**: la tasa automática de una factura en bolívares debe corresponder al día de emisión. Tener una tasa de un día anterior no basta para emitir. Una excepción elegida expresamente en el documento conserva su identificación y fecha; esa excepción no se deduce del simple hecho de que alguien haya cargado la tasa del catálogo a mano.
+### Fase 5 y relación con clientes
 
-Tus decisiones anteriores del plan se conservan: fuente oficial BCV, USD/USDT 1:1, impuestos en pausa y sin conector con QuickBooks.
+- [ ] **5.1 · Datos contables, contactos y condiciones de crédito del cliente.** PENDIENTE.
+- [ ] **5.2 · Perfil completo del cliente, transacciones, documentos y abonos por fecha real.** PENDIENTE.
+- [ ] **5.3 · Reportes y checklist del cierre mensual, con los ocho cuadres.** PENDIENTE.
+- [ ] **5.4 · Permisos de la contadora y separación de funciones.** PENDIENTE; adelantado al arranque contable.
+- [ ] **7.2 · Historial CRM en la ficha con resumen y enlace a Kommo.** PENDIENTE; sin copiar el chat por defecto.
 
-## Lo que solo puedes aportar tú
+## Mejoras adicionales ya integradas
 
-- El OK nominal de cada migración, cuando se presente su paquete revisado y su previa.
-- La superclave del cierre.
-- La carga de tasas BCV del día cuando entre 0569, mientras se completa la automatización.
-- La decisión expresa sobre los datos de prueba y la primera fecha de cierre del mes real.
-- Los Excel 60 y 64 para la tarea #262, que permanece aparte.
+- [x] «Por contabilizar» alineado con los recibos y la radiografía. SDD-0562, #287.
+- [x] El cuadre conserva las monedas y excluye borradores. SDD-0563, #288.
+- [x] Cuenta padre obligatoria: ninguna cuenta queda huérfana. SDD-0565, #291.
+- [x] Cierre contable con superclave y reporte de excepciones. SDD-0566, #293. La función existe; Sam todavía debe definir su superclave.
+- [x] La ficha de un cliente eliminado muestra correctamente ese estado. SDD-0568, #300.
 
-## Diferencias con el documento abierto en Claude
+## Secuencia inmediata de entrega
 
-El [plan de Claude](https://claude.ai/artifact/A1hEYVry1GXFZJdnj2ui1z#d53c897e-ffb6), leído directamente el 20 de octubre, conserva un corte de la 1:10 p. m. de Caracas. Se reconcilió con ramas, pruebas y handoffs:
+- [ ] **#301 · Tasa única:** corregir aviso de tasa → comprobar versión final → previa → OK de 0495 → aplicar e integrar → publicación y cierre.
+- [ ] **#304 · Pruebas PGlite:** comparación local completa y revisada, 854/854 por lado; guardar el cierre documental, comprobar su versión final e integrar después de #301. GitHub aprobó la versión anterior `1077ff21`.
+- [ ] **#306 · Oficina de agentes:** incorporar base final; GitHub aprobó `2f9b336c`. El aislamiento real entre perfiles sigue sin verificar.
+- [ ] **#307 · Tarifa congelada:** base y validación final → previa → OK de 0496 → aplicar e integrar → publicación y cierre.
+- [ ] **0573 · Reverso al anular:** reparar hallazgos → pruebas y PR → revisión y previa → OK de 0497 → aplicar e integrar.
+- [ ] **Sellos de migraciones:** cada uno mediante una PR propia, después de comprobar su aplicación.
 
-- El pago ya está resuelto.
-- Los trece reemplazos son **0572**, aunque una lista todavía los llama 0571.
-- 0572 y 0574 ya tienen implementación; no están solo empezando el diseño.
-- La prueba final de la versión anterior de 0571 ya terminó; las correcciones de la revisión nueva requieren pruebas propias.
-- Las decisiones delegadas de 0575 ya quedaron registradas.
-- #301 ya cerró los hallazgos y la evidencia local; falta el CI de su cabeza final antes de solicitar la aprobación de su migración.
+Después seguimos: **0572 → hora Caracas → 2.2 → 2.6 → 2.3 → 2.7 → 2.8 → 2.4 → 2.9 → 2.10 → conciliación bancaria → 3.9 → 5.4**. Carril de embarques: **4.5 y luego 4.2**, respetando sus dependencias.
 
-Las verificaciones periódicas, restauraciones del 21 y 22 de octubre y pendientes de la oficina conservan su registro en el handoff del Director. Este seguimiento no crea nuevas autorizaciones ni una automatización.
+## Lo que necesita Sam
+
+- [x] Resolver el pago o límite de GitHub Actions. Confirmado por Sam y por corridas reales.
+- [ ] Dar el OK nominal de cada migración cuando se presente su versión revisada.
+- [ ] Definir la superclave del cierre.
+- [ ] Cargar la tasa BCV del día cuando se publique 0569, mientras llega la carga automática.
+- [ ] Decidir expresamente qué hacer con los datos de prueba; este checklist no autoriza borrarlos.
+- [ ] Fijar la primera fecha de cierre del mes real.
+- [ ] Entregar los Excel 60 y 64 para #262, que sigue aparte.
+
+## Controles periódicos — cada ejecución se registra aparte
+
+- [ ] Nueva radiografía de integridad, únicamente con autorización escrita.
+- [ ] Revisar «Por contabilizar» y resolver lo pendiente.
+- [ ] Cuadrar subdiario contra mayor y revisar excepciones al cierre.
+- [ ] Revisar respaldos semanales y registrar la evidencia del período.
+- [ ] Restore de prueba del **21 de octubre**.
+- [ ] Restore de prueba del **22 de octubre**.
+- [ ] Ejecutar los ocho cuadres del próximo cierre mensual.
+
+El servicio de respaldo diario del 20 de octubre terminó con código 0 a las 2:06 a. m. Eso no marca como realizado un restore de prueba.
+
+## En pausa o fuera del alcance actual
+
+- **3.2, posición de IVA de 3.4 y 3.7:** impuestos en pausa por decisión de Sam.
+- **Fase 6 y 7.1:** conector y corte hacia QuickBooks fuera del plan; el ERP será el libro único.
+- **Oficina:** anexo de Telegram en PR posterior a #306; reporte Paperclip preparado, sin enviar. Sus pendientes operativos siguen en el handoff.
+
+## Evidencia y mantenimiento
+
+Este es el checklist que el Director actualiza a medida que verifica cada avance. Los detalles técnicos y las autorizaciones viven en el [registro de continuidad](../../.agents/handoffs/director-continuidad-codex-20261020.md#4-checklist-vivo-de-continuidad); el alcance completo permanece en el [plan maestro](2026-10-18-contabilidad-diagnostico-y-plan.md).
+
+Los seis puntos originales y las cinco mejoras marcadas se contrastaron con sus PR fusionadas y se comprobó que sus commits son antecesores de `origin/main` `8e9e0f50`. El servidor informó esa misma versión publicada en su estado de las **3:40 p. m.**; el recibo general de publicación tiene **14 comprobaciones aprobadas y cero fallas**. No se volvió a probar cada recorrido autenticado en producción durante esta actualización.
+
+Fuente de continuidad: [Plan contable de Claude](https://claude.ai/artifact/A1hEYVry1GXFZJdnj2ui1z#d53c897e-ffb6), leído el 20 de octubre y reconciliado con ramas, pruebas y handoffs. No se reutiliza como cifra actual su antiguo conteo de «36 tareas» sin reconciliar cambios de alcance, partes en pausa y la conciliación bancaria añadida.
+
+El seguimiento queda guardado en esta rama y respaldado mediante la [PR documental #308](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/308). Que este archivo esté publicado en la PR no significa que sus tareas pendientes estén desplegadas.
