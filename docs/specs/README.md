@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 555 specs)
+### Índice de specs (generado · 556 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -593,6 +593,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0566 | Cierre contable con superclave y reporte de excepciones | in-progress | interno |
 | 0567 | El crédito de referido no nace sin venta ni se aplica dos veces | in-progress | interno |
 | 0568 | La ficha de un cliente eliminado dice que está eliminado y no… | in-progress | interno |
+| 0575 | Asientos sin fallos silenciosos: lo que no se asienta se ve, … | draft | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0569, 0570, 0571, 0572, 0573, 0574 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
