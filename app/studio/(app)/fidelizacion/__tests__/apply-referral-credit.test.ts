@@ -171,9 +171,12 @@ describe("applyReferralCredit · SDD-0496 (el dinero lo mueve la RPC)", () => {
     expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({ tenantId: "tenant-1", invoiceCode: "F-100", amountUsd: 80 }),
     );
-    expect(writes).toEqual([
-      { table: "referrals", values: { applied_entry_id: "entry-1" }, filters: { id: "ref-1" } },
-    ]);
+    // SDD-0567: el enlace va por la RPC que verifica el asiento; ya no hay UPDATE directo de referrals.
+    expect(writes).toEqual([]);
+    expect(rpcCalls.find((c) => c.fn === "vincular_asiento_del_credito")?.args).toEqual({
+      p_referral_id: "ref-1",
+      p_entry_id: "entry-1",
+    });
     expect(revertSpy).not.toHaveBeenCalled();
   });
 

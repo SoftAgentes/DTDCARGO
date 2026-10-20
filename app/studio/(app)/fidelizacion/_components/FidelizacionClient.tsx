@@ -78,6 +78,7 @@ export function FidelizacionClient({
   stats,
   topReferrers,
   canApplyCredit,
+  canAccreditManually,
   referralSettings,
   canConfigure,
   strandedCredits,
@@ -90,6 +91,8 @@ export function FidelizacionClient({
   topReferrers: TopReferrer[];
   /** ¿El rol puede APLICAR créditos? (accounting/admin — SDD-0137, mueve plata). */
   canApplyCredit: boolean;
+  /** ¿El rol acredita SIN venta? Solo el admin (SDD-0567). */
+  canAccreditManually: boolean;
   /** Montos vigentes del programa (para poblar el drawer de configuración). */
   referralSettings: ReferralSettingsInput;
   /** ¿El rol edita el módulo Fidelización? Muestra "Configurar referidos" (SDD-0159). */
@@ -266,6 +269,7 @@ export function FidelizacionClient({
         <ReferralDrawer
           referral={selectedReferral}
           canApplyCredit={canApplyCredit}
+          canAccreditManually={canAccreditManually}
           onClose={() => setSelectedReferral(null)}
         />
       )}
