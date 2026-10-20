@@ -131,9 +131,9 @@ También en main: #299 (respaldos), #302 (tope del CI a 60 min), #305 (decisione
 | PR / rama | SDD | Estado | Próximo paso |
 |---|---|---|---|
 | **#301** `codex/sdd-0569-conversor-usd-tasas` @ `3d0c9028` | 0569, tasa única. **Migración 0495** | Revisión de seguridad corregida (2 bloqueantes, 5 importantes y 7 menores), verify aceptado y previa PASÓ el 2026-10-20 a las 14:57Z sobre `3d0c9028` (blob `eb07813a`, md5 `409aca3756233d41afaf831b96394657`). Está BEHIND con main | **Pedir a Sam el OK nominal:** «autorizo aplicar la migración 0495_fx_rates_conversor_usd en producción». Después: integrar, rearmar el paquete desde la cabeza nueva (mismo blob), repetir la previa, aplicar y fusionar enseguida. Smoke: Contabilidad › Tasas de cambio abre, y un borrador VES sin tasa muestra el error sin guardarse. Al final, el sello |
-| **#307** `claude/peaceful-franklin-a3831e` | 0571, tarifa congelada (carril del embarque). **Migración 0496** | Revisión de seguridad hecha y sus 8 hallazgos corregidos; el verify final corrió sobre `2e94bccc`. **Comprueba que la cabeza publicada sea la final** | Lee la tabla del verify en el handoff `0571-…`. Revisa la diferencia de las correcciones, haz la previa (`resolve_price_book` con deriva aceptada por su preflight), pide el OK nominal de la 0496, aplica y fusiona. Smoke: Almacén CN, columna «Tarifa · a facturar» |
-| `codex/sdd-0573-reverso-al-anular` (sin PR) | 0573, reverso al anular. **Migración 0497** | Implementada. La revisión de seguridad dio 1 bloqueante (B1: anular desde el libro diario rompe el par) y 4 importantes (I1: tenant en la DEFINER; I2: descuadre entre meses; I3: carrera emitir/anular; I4: verify). El Worker los estaba corrigiendo: **mira su handoff para ver qué quedó** | Que el Worker termine las correcciones, corra el verify y publique la PR en borrador. Después: una revisión corta de la diferencia, la previa (`void_invoice_with_audit_reason` vivo md5 `76644e17876d0caaa46e727de5946138`, sin espacios `c76c80e7…`, INVOKER, `search_path=""`), el OK de Sam, el apply y el merge |
-| `codex/sdd-0572-conversor-usd-reemplazos` | 0572, los 13 reemplazos del conversor | Diseño aprobado con 5 decisiones; la 0572-a está apilada sobre la #301 | Implementar la 0572-a cuando la #301 esté en main. La 0572-b lleva migración: pedir número |
+| **#307** `claude/peaceful-franklin-a3831e` @ `a81dbbd7` | 0571, tarifa congelada (carril del embarque). **Migración 0496** | Revisión de seguridad hecha y sus 8 hallazgos corregidos; el verify final corría sobre `a81dbbd7` (ver el §3.6). La cabeza publicada ya es `a81dbbd7` | Lee la tabla del verify en el handoff `0571-…`. Revisa la diferencia de las correcciones, haz la previa (`resolve_price_book` con deriva aceptada por su preflight), pide el OK nominal de la 0496, aplica y fusiona. Smoke: Almacén CN, columna «Tarifa · a facturar» |
+| `codex/sdd-0573-reverso-al-anular` @ `89f15a5d` (sin PR) | 0573, reverso al anular. **Migración 0497** | Implementada. La revisión de seguridad dio 1 bloqueante (B1: anular desde el libro diario rompe el par) y 4 importantes (I1: tenant en la DEFINER; I2: descuadre entre meses; I3: carrera emitir/anular; I4: verify). El Worker los estaba corrigiendo: **mira su handoff para ver qué quedó** | Que el Worker termine las correcciones, corra el verify y publique la PR en borrador. Después: una revisión corta de la diferencia, la previa (`void_invoice_with_audit_reason` vivo md5 `76644e17876d0caaa46e727de5946138`, sin espacios `c76c80e7…`, INVOKER, `search_path=""`), el OK de Sam, el apply y el merge |
+| `codex/sdd-0572-conversor-usd-reemplazos` | 0572, los 13 reemplazos del conversor | Diseño aprobado con 5 decisiones. **La 0572-a está casi implementada pero SIN COMMIT** (ver el §3.6) y apilada sobre la #301 | Reescribir las ~23 pruebas, corriendo un archivo a la vez, y la PR cuando la #301 esté en main. La 0572-b lleva migración: pedir número |
 | rama de la 2.2 | Asientos sin fallos silenciosos | Diseño en curso | Revisar la spec |
 | 0574 (reserva) | 4.5, «Embarques sin facturar» | Diseño en lectura | Seguir con el Worker del embarque |
 | **#304** `codex/pglite-snapshot-esquema` @ `59e8491b` | 0570, plantilla PGlite (solo test-infra) | CI verde sobre `8a13412c`; sobre `e6311891` falló por facturación | Relanzar el run 39453136909, integrar y fusionar. El A/B local está pendiente |
@@ -145,27 +145,27 @@ También en main: #299 (respaldos), #302 (tope del CI a 60 min), #305 (decisione
 - Migraciones hasta la 0497: la 0495 es la #301, la 0496 la #307 y la 0497 la 0573.
 - Antes de asignar números corre `node scripts/next-number.mjs`. El script no deja saltar números.
 
-### 3.6 Respuestas a la PAUSA ORDENADA (2026-10-20)
+### 3.3-bis Inventario verificado de ramas al cierre (2026-10-20 17:05Z)
 
-- **PGlite (#304):** pausa cumplida. Punta `59e8491b` empujada, en borrador, con los criterios 1 a 8 medidos en el CI.
-  - En el CI, los 33 archivos bajan de 21,7 a 9,5 min y el job de 41,6 a 29,3 min. Detalle en `docs/specs/0570-.../assets/comparacion-ci.txt`.
-  - Pendiente: relanzar el run 39453136909 cuando se pague. Si sale verde, sacarla de borrador y fusionarla. El A/B local de los 34 archivos, con turno de máquina.
-  - **La cabeza ya no es `e6311891`:** usa `59e8491b`.
-- **Oficina Paperclip:** pausa cumplida, sin cambios en el VPS. Todo lo del repo va en la #306. El anexo de Telegram está fuera de Git, en `C:/tmp/handoff-oficina-telegram-2026-10-20.md`; necesita una PR nueva con su línea en la D11.
-  - **Servicio nuevo `dtd-hermes-telegram`:** activo, con el perfil `telegram`, sin llave de Junta y solo con el ID de Sam.
-  - **Pendientes de Sam:**
-    - probar el bot (`/sethome`);
-    - revocar la llave de Anthropic que no se usa;
-    - en Kommo §29, el seguro va como «próximamente»;
-    - decidir si borra los agentes pausados;
-    - decidir si envía el reporte de la fuga.
-  - Tailscale y cerrar el 22: primero la VNC, y con el OK de Sam.
-- **Contabilidad:** **no había pausado.** Seguía con la 0572-a local y sin push:
-  - reglas A–F aplicadas y G diferida a la 2.3;
-  - faltan unas 23 pruebas.
+El Director lo comprobó con `git fetch`, `git worktree list` y `gh pr list`. **Vuelve a medirlo antes de actuar.**
 
-  Además corrió un `tsc` completo sin turno. Se le pidió un commit WIP, el push de `codex/sdd-0572-conversor-usd-reemplazos`, el handoff con el SHA y que se detenga. **Comprueba con `git ls-remote` que la rama llegó.** Si no llegó, el trabajo está solo en su worktree local.
-- **Embarque (#307):** sin respuesta al cierre. Revisa su handoff `0571-…` y la cabeza de la PR.
+| Rama | Worktree | Cabeza local | En origin | Estado al cierre |
+|---|---|---|---|---|
+| `codex/sdd-0569-conversor-usd-tasas` (#301) | `DTD-worktrees/sdd-0569-conversor-usd-tasas` | `3d0c9028` | igual | Limpia. BEHIND con main |
+| `claude/peaceful-franklin-a3831e` (#307) | `DTDCARGO/.claude/worktrees/peaceful-franklin-a3831e` | `a81dbbd7` | `a81dbbd7`; **el Director empujó los 5 commits de las correcciones de seguridad** (`38198401`..`a81dbbd7`, con `2e94bccc` incluido) | **Su `pnpm verify` final corría desde las 16:49Z** (PID 48200) sobre `a81dbbd7`. El Worker anota el resultado en el handoff `0571-…` y empuja. Si la sesión murió sin anotarlo, el verify es NO VERIFICADO: repítelo con turno |
+| `codex/sdd-0573-reverso-al-anular` @ `89f15a5d` (sin PR) | `DTD-worktrees/sdd-0573-reverso-al-anular` | `89f15a5d` | `89f15a5d`; **el Director empujó los 3 commits de la implementación** | Implementada. **No consta que B1 e I1–I4 de la revisión estén corregidos:** revisa la diferencia contra el informe del handoff `0573-…` antes de la PR |
+| `codex/sdd-0572-conversor-usd-reemplazos` (sin PR) | `DTD-worktrees/sdd-0572-conversor-usd-reemplazos` | `9c864da5` (merge de la #301) | `0c06d482` (13 commits detrás) | **0572-a SIN COMMIT: 49 archivos modificados y 2 sin rastrear.** Se le pidió al Worker Contabilidad un commit WIP y el push. **Respaldo del Director:** `C:/tmp/director-traspaso-20261020/respaldo-0572/`, con el parche (`git apply`) y los 2 archivos nuevos. Si la rama remota sigue en `0c06d482`, recupera desde el worktree o desde el respaldo, **sin pisar el worktree** |
+| `codex/sdd-0574-embarques-sin-facturar` | `DTD-worktrees/sdd-0574-embarques-sin-facturar` | `18edcd81` | igual | Diseño publicado, sin PR. Su claim ya está liberado |
+| `codex/pglite-snapshot-esquema` (#304) | `DTD-worktrees/pglite-snapshot-esquema` | `59e8491b` | igual | Borrador. Criterios 1–8 medidos en el CI: el job baja de 41,6 a 29,3 min. Hay que relanzar el run 39453136909 cuando se pague, sacar la PR de borrador y fusionarla. El A/B local de 34 archivos queda para cuando haya turno |
+| `codex/oficina-hermes-diseno` (#306) | — | `033eea50` | igual | Solo docs, revisada |
+
+**Respuestas de las sesiones a la pausa:**
+- **«Revisar el tope de 45 min del CI de calidad»:** cumplió. La #302 está en main y la #304 es lo de arriba. No tiene nada más pendiente.
+- **«Oficina Paperclip»:** cumplió y no tocó más el VPS. Detalle en el §5.
+- **«Carril del embarque»:** dejó el verify en curso. Ver la fila de la #307.
+- **«Contabilidad»:** **no había pausado.** Estaba reescribiendo las pruebas de la 0572-a y corrió un `tsc` completo sin turno.
+  - Aplicó las reglas A–F; la G queda diferida a la 2.3. Faltan unos 23 archivos de prueba.
+  - Al nuevo Director le toca confirmar con `git ls-remote` que la rama subió.
 
 ### 3.4 Orden de integración recomendado (cuando GitHub vuelva)
 
@@ -223,7 +223,17 @@ El carril del embarque va en paralelo: 4.1 = 0571, después la 4.5 = 0574 y la 4
 - **Aislamiento:** las CLI corren como `agentes-run`, que no puede leer los secretos de `agentes`. Hay una copia filtrada del repo en `/srv/oficina/repo`.
 - **Llave de Junta `hermes-director`:** vence el **2026-10-27T13:37:35Z**. **Riesgo:** un agente con una llave de Junta puede aprobar sus propias contrataciones. Se revoca al terminar la configuración, sin esperar al vencimiento. La suelta `e619f8d0` ya está revocada.
 - **Contrataciones pausadas:** 4 de ALFRED sin `hermesCommand` (sin aislamiento). Nunca corrieron.
-- **Pendientes:**
+- **Pausa del 2026-10-20:**
+  - Sin cambios en el VPS.
+  - Servicio nuevo `dtd-hermes-telegram`, activo, con el perfil `telegram`, sin llave de Junta y solo con el ID de Sam.
+  - El anexo está fuera de Git, en `C:/tmp/handoff-oficina-telegram-2026-10-20.md`. Hay que llevarlo a una PR nueva, con su línea en la D11.
+  - Pausados: las 4 contrataciones de ALFRED, prueba-opencode, prueba-hermes y el ALFRED viejo `claude_local`.
+- **Pendientes de Sam:**
+  - probar el bot (`/sethome`);
+  - revocar la llave de Anthropic que no se usa;
+  - en Kommo §29, el seguro va como «próximamente»;
+  - decidir si borra los agentes pausados.
+- **Pendientes técnicos:**
   - Tailscale en la PC de Sam, que choca con CyberGhost;
   - cerrar el puerto 22, con la consola VNC confirmada y OK de Sam;
   - el reporte privado a los mantenedores de Paperclip sobre la fuga de variables de entorno. El borrador está en `C:/tmp/reporte-paperclip-fuga-env.md` y lo envía Sam.
@@ -238,10 +248,48 @@ El carril del embarque va en paralelo: 4.1 = 0571, después la 4.5 = 0574 y la 4
 | 30 oct | Dominio de Vercel |
 | 27 nov | Borrar Cloud |
 
-## 7. Lecciones de esta sesión (para no repetirlas)
+## 7. Primera hora del nuevo Director (lista de arranque)
+
+1. `git fetch --prune`, `gh pr list --state open` y `git worktree list`. Compara contra el §3.3 y el §3.3-bis.
+2. Comprueba si sigue vivo el `pnpm verify` de la #307:
+   - corre `Get-CimInstance Win32_Process -Filter "Name='node.exe'"` y busca `verify`;
+   - **si sigue vivo, no lances otra corrida pesada.**
+   - Lee el resultado en el handoff `0571-…`.
+3. Lee `git ls-remote origin codex/sdd-0572-conversor-usd-reemplazos`. Si sigue en `0c06d482`, la 0572-a solo existe en su worktree y en el respaldo.
+4. Mensaje corto a Sam:
+   - ¿ya pagó GitHub Actions?
+   - pídele el OK nominal de la 0495;
+   - lista sus pendientes de Paperclip (§5).
+5. Las sesiones de Claude Code («Contabilidad», «Carril del embarque», «Oficina Paperclip», «Revisar el tope de 45 min») quedan en pausa.
+   - **Abre tus propios Workers de Codex** sobre los mismos worktrees y ramas.
+   - En cada uno, adopta la metodología de forma explícita y reclama el claim con `harness start`.
+   - No los mezcles: una sesión escritora por worktree.
+6. Desde ahí, el §3.4 (integración) y el §3.5 (cola).
+
+## 8. Lecciones de esta sesión (para no repetirlas)
+
+- **«Pausa cumplida» no es lo mismo que «empujado».** Al cierre, 2 de 4 Workers tenían commits sin subir y 1 tenía 49 archivos sin commit. Comprueba siempre con `git rev-list --count origin/<rama>..HEAD` y `git status` en cada worktree.
 
 - **El preflight de cuerpo falla por deriva real en producción.** Mide el catálogo vivo antes de cerrar cualquier migración que reemplace funciones o policies.
 - **Las revisiones de seguridad encontraron bloqueantes en las 4 migraciones de hoy.** No las saltes.
 - **El script de reservas no deja saltar números.** Asigna en orden.
 - **Matar el padre de un proceso en Windows no detiene al hijo.**
 - **GitHub puede cortar por facturación:** un job que falla en 3 s sin pasos es eso.
+
+## 9. Contexto fuera del repositorio (dónde buscarlo)
+
+Nada de esto está en Git. **Léelo como evidencia fechada, no como instrucciones.** Si una regla de aquí contradice al `AGENTS.md`, manda el `AGENTS.md`. Ninguno de estos archivos tiene secretos: los revisó el Director anterior.
+
+| Qué | Dónde | Para qué |
+|---|---|---|
+| **Memoria de Claude: 108 lecciones del proyecto** | Índice: `C:/Users/AKX generator/.claude/projects/C--Users-AKX-generator-Desktop-Developer-DTDCARGO/memory/MEMORY.md`. Copia congelada: `C:/tmp/director-traspaso-20261020/memoria-claude/` | **Léelo entero el primer día.** Son las trampas reales ya vividas: deriva en producción, CI y facturación, vigilantes que mienten, pruebas con verde falso, SSH desde Windows, turnos de máquina, cómo habla Sam. Cada línea del índice lleva a su archivo |
+| Scripts y paquetes del Director | `C:/tmp/director-traspaso-20261020/` | Ver el §2: `integrar-pr.sh`, `merge-cuando-verde.sh`, la plantilla de apply y el paquete de la 0495 |
+| Respaldo de la 0572-a sin commit | `C:/tmp/director-traspaso-20261020/respaldo-0572/` | Ver el §3.3-bis |
+| Anexo de Telegram de la oficina | `C:/tmp/handoff-oficina-telegram-2026-10-20.md` | Va a una PR nueva, con su línea en la D11 |
+| Reporte de la fuga en Paperclip | `C:/tmp/reporte-paperclip-fuga-env.md` | Borrador. Lo envía Sam si quiere |
+| Lectura viva de `resolve_price_book` | `C:/tmp/vivo-resolve_price_book-20261020.sql` | Cuerpo vivo en producción, para la previa de la 0496 (solo catálogo) |
+| Scripts de trabajo de los Workers | `C:/tmp/*0569*`, `*0572*`, `*0573*`, `*0495*`, `*0497*` (`.cjs`, `.sql`, `.log`) | Ediciones, contratos, mutantes y logs de verify de cada tarea. Úsalos si un handoff los cita. Los logs de verify son la evidencia de PASÓ/FALLÓ |
+| Planes viejos de Claude | `C:/Users/AKX generator/.claude/plans/` | Servidor Contabo, GoHighLevel y la 0543. Son históricos y no hacen falta para la contabilidad |
+| Transcripciones completas (JSONL) | Director: `C:/Users/AKX generator/.claude/projects/C--Users-AKX-generator-Desktop-Developer-DTDCARGO/267f5ded-5bbc-4289-a807-7248e4322009.jsonl`. Contabilidad: `…/C--Users-AKX-generator-Desktop-Developer-DTDCARGO--claude-worktrees-quizzical-lehmann-d70032/fe1cdefd-….jsonl`. Embarque: `…--claude-worktrees-peaceful-franklin-a3831e/e35a16e7-….jsonl`. Paperclip: `…--claude-worktrees-upbeat-sutherland-4cb3a5/32688be0-….jsonl`. Tope del CI: `…--claude-worktrees-sharp-ellis-7c6126/d29b2730-….jsonl` | Solo si un handoff no alcanza. Son muy grandes: busca con `rg` y no los leas enteros |
+| Configuración de Claude en el repo | `.claude/agents`, `.claude/commands` y `.claude/skills` **sí están en Git**. `.claude/settings.local.json` está ignorado y solo tiene permisos locales | Codex usa `.agents/skills/` (director/worker). Las skills de `.claude/skills/` (`revisar-datos-ve`, `ui-pro`) siguen siendo normativas, según el AGENTS |
+| Docs de Sam en Claude Docs | Checklist: https://claude.ai/code/artifact/48fb0aef-6e1f-4268-b065-2525a69b20ad · Contadora: https://claude.ai/code/artifact/d80e4c94-c7f9-4f8b-a769-a385e0c545f8 | Codex no los abre. Su contenido está en el §4 y en el §9 del plan |
