@@ -1,21 +1,21 @@
 /**
- * Tasas de cambio (SDD-0126) — queries server-side.
+ * Tasas de cambio (SDD-0126, SDD-0569) — queries server-side.
  *
- * Reusa `getLastFxRate` (expense-queries) para leer la última tasa por par
- * desde `tenant_fx_history`. RLS filtra por tenant.
+ * La última tasa por moneda desde `fx_rates` (migración 0495), con su fecha de
+ * valor y su fuente. RLS filtra por tenant. Sin la 0495, «sin tasa cargada».
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getLastFxRate } from "./expense-queries";
-import { FX_PAIRS, type ExchangeRatesOverview, type FxRateLatest } from "./exchange-rates-types";
+import { ultimaTasa } from "./fx-rates";
+import { FX_PAIRS, fxPairCurrency, type ExchangeRatesOverview, type FxRateLatest } from "./exchange-rates-types";
 
 export async function getExchangeRatesOverview(
   supabase: SupabaseClient,
 ): Promise<ExchangeRatesOverview> {
   const latest: FxRateLatest[] = await Promise.all(
     FX_PAIRS.map(async (pair): Promise<FxRateLatest> => {
-      const last = await getLastFxRate(supabase, pair);
-      return { pair, rate: last?.rate ?? null, setAt: last?.setAt ?? null };
+      const last = await ultimaTasa(supabase, fxPairCurrency(pair));
+      return { pair, rate: last?.rate ?? null, validOn: last?.validOn ?? null, source: last?.source ?? null };
     }),
   );
   return { latest };

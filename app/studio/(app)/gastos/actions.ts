@@ -8,7 +8,7 @@
  * de 0074) decide qué ve/crea cada rol. Auth normal (auth.uid()).
  *
  * Diferencia vs mobile m/erp: maneja scope (shipment/external) + moneda
- * dual (amount_usd + fx_rate) + tenant_fx_history. Reusa next_expense_code
+ * dual (amount_usd + fx_rate); desde la SDD-0569 ya no escribe tenant_fx_history. Reusa next_expense_code
  * RPC + bucket expense-receipts.
  */
 
@@ -35,7 +35,6 @@ import {
 } from "@/lib/studio/accounting/period-queries";
 import {
   validateExpenseInput,
-  currencyPair,
   categoryLabel,
   METHOD_LABEL_KEYS,
   type CreateExpenseInput,
@@ -208,16 +207,9 @@ export async function createExpenseAction(
     entryDate: String(insertedExp.occurred_at).slice(0, 10),
   });
 
-  // Registrar el fx usado en el historial del tenant (prefill futuro).
-  const pair = currencyPair(input!.currency);
-  if (pair && input!.fx_rate > 0) {
-    await supabase.from("tenant_fx_history").insert({
-      tenant_id: link.tenant_id,
-      currency_pair: pair,
-      rate: input!.fx_rate,
-      set_by: userResp.user.id,
-    });
-  }
+  // SDD-0569: la tasa de un gasto queda en el gasto. Ya no se copia a
+  // tenant_fx_history: mezclaba tasas operativas con la del admin, y las tasas
+  // del tenant viven en fx_rates (Admin › Tasas).
 
   // Auto-cerrar la alerta del contenedor: la contadora cargó un gasto del
   // shipment → su parte está hecha (SDD-0039 B.8, cierre 'auto'). Side-effect
