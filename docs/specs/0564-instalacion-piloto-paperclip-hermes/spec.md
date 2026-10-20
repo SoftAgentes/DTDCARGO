@@ -229,6 +229,61 @@ IA-01 (prepara el agente, aprueba o envía una persona).
 8. Empresa, meta y los cuatro agentes; primera estrategia del CEO, que Sam aprueba.
 9. Cuatro semanas de piloto; parte cada viernes.
 
+### D10 · Cambio de A2: suscripciones en vez de llaves de API (2026-10-20)
+
+**Decisión de Sam, con sus literales:**
+
+1. Arranque del paso 6: «Sí, arranca el paso 6 de la SDD-0564: guíame para crear y cargar yo mismo
+   las llaves de Z.AI (GLM) y de Anthropic con límite, y configura los topes de gasto.»
+2. «Ahora sí vamos a trabajar con Claude Code, prefiero que sea con la suscripción y no con la API.»
+3. «Quiero conectar OpenAI. Ábreme lo mismo que hicimos ahorita con la suscripción. Tengo OpenAI.»
+4. «Por ahora solo Codex; Claude lo conecto después.»
+
+**Qué cambia:**
+
+| Antes | Ahora |
+|---|---|
+| A2: llave nueva de Anthropic con límite en su consola | **Suscripciones**: Codex con la cuenta de ChatGPT de Sam (conectado el 2026-10-20) y Claude Code con la suscripción de Sam (pendiente de que inicie sesión) |
+| A2-b: GLM de Z.AI como motor principal | **En suspenso.** Z.AI responde con el error 1113 con dos llaves del plan válido de Sam; su FAQ dice que el plan solo vale en herramientas soportadas. Se retoma cuando Sam sepa cómo lo usa su amigo. No se disfraza a Hermes de otra herramienta |
+| §D1: «Codex: una cuenta o llave propia para el VPS, **nunca** el inicio de sesión de ChatGPT de Sam con su correo conectado» | **Sam lo cambió a sabiendas** el 2026-10-20 al pedir conectar «lo mismo» con su suscripción. Se le advirtió del aviso GHSA-gqqj-85qm-8qhf (Codex heredaba los conectores de ChatGPT, como Gmail) y se le recomendó revisar los conectores de su cuenta |
+
+**Riesgo que se acepta y queda escrito:**
+
+- El archivo de sesión de Codex (`~agentes/.paperclip/instances/default/ai-local-logins/<id>/auth.json`),
+  y después el de Claude, **no es una llave de API con tope: es la sesión de la cuenta personal
+  de Sam**.
+- Un agente que pueda leer ese archivo y tenga salida a internet puede llevársela.
+- Un error de un agente gasta del plan personal de Sam, no de un presupuesto aparte. El límite
+  real es el del plan de cada suscripción; **NO VERIFICADO** cómo cuenta Paperclip el costo de una
+  suscripción contra su tope.
+
+**Transferencias con A1 activo.** Antes, el contenido del repositorio iba a Z.AI. Ahora el que
+leen los agentes viaja a **OpenAI** (Codex, con la suscripción de Sam) y, cuando se conecte, a
+**Anthropic** (Claude Code). Eso incluye los handoffs con detalles del servidor de DTD y los nombres
+de titulares de la migración `0204`. La alternativa A1-b, la copia filtrada sin `.agents/handoffs/`,
+sigue disponible si Sam la prefiere.
+
+**Verificación del aislamiento (2026-10-20, solo lectura, código de Hermes v0.22.2 y estado del VPS):**
+
+| Comprobación | Resultado |
+|---|---|
+| Montajes del Docker de Hermes | Solo monta en solo lectura archivos de credenciales **relativos a `~/.hermes`**; rechaza rutas absolutas y salidas hacia arriba (`tools/credential_files.py`) y **nunca** monta sus propios almacenes (`.env`, `auth.json`, `mcp-tokens/`). No puede ver `~agentes/.codex`, `~agentes/.claude`, `~agentes/.paperclip` ni `~agentes/.config/paperclip`. `docker_mount_cwd_to_workspace: false`; ninguna `docker_forward_env` configurada |
+| Herramienta `file` de Hermes | Opera **dentro del contenedor**: usa el mismo entorno configurado que la terminal (`tools/file_tools.py`, `_create_terminal_env_for_file_ops`), con Docker sin privilegios |
+| Codex con el sandbox y el bypass apagado | **NO VERIFICABLE todavía**: aún no hay agentes. Se fija al crearlos (paso 8) y se comprueba en su configuración |
+| **Hueco encontrado** | Codex y Claude Code corren **en la máquina** como el usuario `agentes`, que también es dueño de los secretos de Paperclip (`paperclip.env`, `master.key`), de la sesión de la suscripción de Sam y de las llaves en `~/.config/llaves/`. Con el sandbox de Codex encendido, la escritura y la red quedan limitadas, pero **la lectura de esos archivos no**. **No se avanza al paso 8** hasta que Sam decida cómo cerrarlo |
+
+**Opciones para cerrar el hueco** (para decidir antes del paso 8):
+
+- ⭐ **Usuario aparte para los agentes.** Los adaptadores de Paperclip corren como un usuario sin
+  acceso a los secretos de Paperclip ni a las llaves. Las sesiones de las suscripciones quedan
+  legibles solo por ese usuario. Hay que comprobar si Paperclip permite lanzar adaptadores con otro
+  usuario.
+- **Sacar los secretos de Paperclip a un archivo de root** leído por un servicio del sistema
+  (`systemd` con `User=agentes`). Así no quedan en disco al alcance de `agentes`, pero siguen en el
+  entorno del proceso: hay que comprobar qué entorno heredan los hijos.
+- Borrar del VPS las llaves que no se usan: la de Anthropic (Sam además la revoca en su consola) y
+  la de Z.AI mientras GLM esté en suspenso.
+
 ## Decisiones para Sam
 
 Sam, 2026-10-19, literal: «Sí: apruebo A1 (llave de solo lectura de GitHub), A2 (llave nueva de
@@ -237,11 +292,11 @@ contenido). A3 queda para después. Todavía no instales nada.»
 
 | # | Decisión | Estado |
 |---|---|---|
-| A2-b | Motor principal | **Decidida:** GLM por la suscripción de Z.AI; Claude para arrancar; Codex con controles |
+| A2-b | Motor principal | **En suspenso (§D10):** GLM no funciona fuera de herramientas soportadas (error 1113); hoy el motor es Codex |
 | A4 | Conexión a Kommo con datos de clientes | **Pendiente:** después de la instalación, con `revisar-datos-ve` y su propia SDD |
 | A5 | El CEO crea agentes | **Decidida:** sí, con los límites de §D5 |
 | A1 | ¿Cómo leen los agentes el repositorio? | **Decidida:** llave de despliegue de solo lectura de GitHub. La alternativa A1-b (copia sin `.agents/handoffs/`) queda descartada por ahora |
-| A2 | Llave de modelos nueva y exclusiva, con límite en el proveedor | **Decidida:** llave nueva de Anthropic con límite |
+| A2 | Llave de modelos nueva y exclusiva, con límite en el proveedor | **Cambiada el 2026-10-20 (§D10):** suscripciones de ChatGPT (Codex) y de Claude, no llaves de API |
 | A3 | Bot de Telegram nuevo para hablar con el CEO | **Aprobada** el 2026-10-19: Telegram y correo solo cuando haga falta |
 | D-B | Tope mensual de la empresa | **Decidida:** 100 USD al mes con parada dura |
 | D-H | Papel de Hermes en la ola 1 | **Decidida:** motor del Editor de contenido, con Docker y sin terminal |
@@ -309,3 +364,8 @@ comportamiento del Studio. No hay migraciones. Seguridad: D1, D2 y D7.
 - 2026-10-19: Sam respondió las preguntas del organigrama. Se suman GLM como motor
   principal, la recomendación sobre Docker, Codex con controles, A3 aprobada, el CEO que
   crea agentes y la regla de datos con controles; A4 (Kommo) queda pendiente. Nada instalado.
+- 2026-10-20: pasos 6 y 7. Sam cambió A2 por suscripciones (§D10, con sus literales); Codex
+  conectado con su cuenta de ChatGPT; GLM en suspenso; llave de GitHub de solo lectura. La
+  verificación del aislamiento encontró que los adaptadores corren como `agentes`, dueño de los
+  secretos: **el paso 8 espera la decisión de Sam**. Pendientes: revocar la llave de Anthropic (Sam,
+  en su consola), los topes del paso 8 y Claude por suscripción cuando Sam inicie sesión.
