@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 3:56 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 4:01 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -10,7 +10,7 @@
 
 ## Ahora mismo
 
-- [ ] **Cerrar 2.1 · Tasa única.** La revisión final encontró que el aviso de factura podría mostrar la tasa anterior del borrador. Corregirlo, comprobarlo y volver a cerrar la versión final antes de pedir la autorización de la migración.
+- [ ] **Cerrar 2.1 · Tasa única.** El aviso ya toma la tasa guardada en la factura: pasaron 37 pruebas específicas y dos controles de regresión. Falta la validación completa de la nueva versión antes de pedir la autorización de la migración.
 - [x] **Completar la comparación local de pruebas contables.** Los mismos 854 casos aprobaron por ambos lados. Tiempo medido: 10 min 42 s → 6 min 2 s. La mejora todavía espera integración.
 - [ ] **Completar tarifa congelada.** Las correcciones ya están publicadas en su rama y pasaron 62 pruebas locales; falta validarlas con la base final.
 
@@ -29,7 +29,8 @@
 - [x] Completar 246 contratos SQL y reconstruir 471 migraciones más 18 registros de historial en una base local desechable.
 - [x] Comprobar el formulario visible con datos ficticios.
 - [x] Preparar el paquete y pasar la revisión de solo lectura del servidor sobre `eb22e2d4`, a las 3:29 p. m. **Esa revisión no aplicó la migración.**
-- [ ] Corregir la tasa del aviso de factura: si se emite con 40, el aviso no puede conservar 36 del borrador.
+- [x] Corregir y probar localmente la tasa del aviso: 37 pruebas y dos controles de regresión aprobados. Si se emite con 40, el aviso muestra 40; una excepción expresa de 36 conserva 36.
+- [x] Guardar y publicar esa corrección en su rama: versión `6ff0f586`.
 - [ ] Aprobar las pruebas y GitHub de la nueva versión que incluya esa corrección.
 - [ ] Regenerar la identidad del paquete y su revisión previa para esa versión final.
 - [ ] Recibir de Sam el OK nominal de `0495_fx_rates_conversor_usd` en producción.
@@ -37,7 +38,7 @@
 - [ ] Comprobar la publicación y las pantallas permitidas de Studio.
 - [ ] Registrar el sello de la migración y su evidencia de cierre.
 
-[Ver PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301). Las pruebas marcadas corresponden al producto de `5f0d04ad`, documentado en `eb22e2d4`; la corrección nueva necesita su propia evidencia.
+[Ver PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301). Las pruebas generales anteriores corresponden a `5f0d04ad`, documentado en `eb22e2d4`. La corrección del aviso `6ff0f586` tiene evidencia focal propia: 37 pruebas, dos controles, tipos y revisión estática. Su validación general y GitHub están en curso.
 
 ### B. Reemplazar las 13 conversiones · SDD-0572-a
 
@@ -73,7 +74,7 @@ La regla USD/USDT 1:1 ya está decidida. Los bolívares quedan para reportes. La
 - [ ] **2.2 · Asientos sin fallos silenciosos.** DISEÑO REVISADO: SDD-0575. Cinco decisiones y contrato propuesto guardados en `8a614250`; implementación pendiente.
 - [ ] **2.3 · Mayor en USD y equivalentes en bolívares para reportes.** PENDIENTE.
 - [ ] **2.4 · Candado del mayor, cuentas y asientos.** PENDIENTE.
-- [ ] **2.5 · Reverso contable al anular una factura.** EN REVISIÓN: SDD-0573, implementación guardada y propuesta de reparación de los 14 hallazgos preparada. Las correcciones y sus pruebas siguen pendientes.
+- [ ] **2.5 · Reverso contable al anular una factura.** EN REVISIÓN: SDD-0573, implementación guardada y reparación de los 14 hallazgos definida. Se conservará la cifra oficial facturada y se mostrará el ajuste por anulaciones al comparar meses; un asiento borrador debe revisarse antes de anular. Las correcciones y sus pruebas siguen pendientes.
 - [ ] **2.6 · Cobros multimoneda, anticipos, un recibo para varias facturas y pagos al proveedor.** PENDIENTE.
 - [ ] **2.7 · Reporte de pago del portal que genera recibo y asiento.** PENDIENTE; antes requiere las migraciones 0422 y 0423, cada una autorizada.
 - [ ] **2.8 · Notas de crédito y débito, abonos y compensaciones del cliente.** PENDIENTE; la parte de impuestos conserva su pausa.
@@ -122,8 +123,8 @@ La regla USD/USDT 1:1 ya está decidida. Los bolívares quedan para reportes. La
 
 ## Secuencia inmediata de entrega
 
-- [ ] **#301 · Tasa única:** corregir aviso de tasa → comprobar versión final → previa → OK de 0495 → aplicar e integrar → publicación y cierre.
-- [ ] **#304 · Pruebas PGlite:** comparación local completa y revisada, 854/854 por lado; guardar el cierre documental, comprobar su versión final e integrar después de #301. GitHub aprobó la versión anterior `1077ff21`.
+- [ ] **#301 · Tasa única:** aviso corregido localmente → comprobar versión final → previa → OK de 0495 → aplicar e integrar → publicación y cierre.
+- [ ] **#304 · Pruebas PGlite:** comparación local completa y revisada, 854/854 por lado; cierre documental publicado en `b28e9046`. Falta comprobar GitHub de esa versión e integrar después de #301.
 - [ ] **#306 · Oficina de agentes:** incorporar base final; GitHub aprobó `2f9b336c`. El aislamiento real entre perfiles sigue sin verificar.
 - [ ] **#307 · Tarifa congelada:** base y validación final → previa → OK de 0496 → aplicar e integrar → publicación y cierre.
 - [ ] **0573 · Reverso al anular:** reparar hallazgos → pruebas y PR → revisión y previa → OK de 0497 → aplicar e integrar.

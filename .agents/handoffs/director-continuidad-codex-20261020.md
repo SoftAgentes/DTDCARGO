@@ -65,11 +65,11 @@ El mandato de Sam de adoptar las sesiones Codex en los mismos worktrees incluye 
 
 | Tarea | Cabeza verificada | Estado | Siguiente paso / owner |
 |---|---|---|---|
-| #301 / 0569 / 0495 | `eb22e2d4` | Pruebas anteriores documentadas; revisión independiente encontró un P2 en la tasa del correo. Esta cabeza deja de ser candidata a aprobación; reparación asignada | Corregir payload, validar y revisar nuevo SHA; regenerar identidad/previa antes de pedir aprobación nominal |
+| #301 / 0569 / 0495 | `6ff0f586` | Aviso corregido y publicado en rama: 37 focales, dos mutantes, tipos y lint PASÓ; verify/CI actuales en curso | Cerrar revisión y validación completa; regenerar identidad/previa antes de pedir aprobación nominal |
 | #307 / 0571 / 0496 | `ba43747a` | Tres P2 corregidos; 62 focales, siete controles, tipos/lint y UI local PASÓ. Árbol limpio, remoto igual y claim liberado; CI nuevo en curso | Actualizar base y ejecutar validación canónica final; después revisión/previa y aprobación nominal |
 | 0572-a | `9c254107` | Cierre parcial publicado, árbol limpio y claim liberado; 71 focales, typecheck y lint PASÓ | Retomar después de #301 corregida: ranking sin tasa, verify, mutantes y revisión visual |
 | 0573 / 0497 | `89f15a5d` | Implementada; B1, I1–I4 y M1–M9 pendientes según traspaso; sin verify | Worker posterior del carril contable, antes de consideración de integración |
-| #304 / 0570 | `1077ff21` | Draft; CI PASÓ. Segundo A/B autorizado y empezado tras devolver 0571 el turno; criterio 5 pendiente | Worker completa ambas fases, comprueba identidad/restauración y entrega al Director antes de publicar evidencia |
+| #304 / 0570 | `b28e9046` | A/B completo aceptado y cierre documental publicado. Draft, limpio, remoto igual, claim liberado; CI de cabeza nueva en curso | Comprobar CI/base finales e integrar después de #301 |
 | #306 / oficina | `2f9b336c` | Correcciones documentales publicadas y revisadas; Draft. Árbol limpio, claim liberado; CI PASÓ | Director incorpora base y revalida después de #301; no confundir corrección documental con aislamiento del VPS |
 | 0574 / 4.5 | `18edcd81` | Implementada; preparación leída, 10/10 rutas propias en allowlist, sin dependencias locales instaladas; depende de #307 | Adopción posterior, instalación congelada, verify con turno y revisión visual |
 | 0575 / 2.2 | `8a614250` | Cinco decisiones y propuesta transaccional publicadas; revisión documental PASÓ, spec sigue draft. Árbol limpio y remoto igual | Antes de implementar: contratos, allowlists, base integrada con Caracas y reserva de migración; no iniciar código contable en paralelo |
@@ -276,6 +276,28 @@ Criterio 5 aceptado sin excepción. Worker autorizado a reclamar solo para spec/
 
 `knowledge:status` de lectura repetido desde main `8e9e0f50`; resultado en `C:\tmp\director-traspaso-20261020\knowledge-checklist-20261020.json`: estructura PENDING/453, piloto 12/16, global 12/1320, Archify/Obsidian PENDING. Sin actualización ni publicación de derivados mientras el turno está ocupado.
 
+### Decisiones para el futuro Worker de 0573 · 19:58Z
+
+Después de leer la propuesta y los lectores/cálculo de ingreso, posting y SQL actuales de `89f15a5d`, el Director acepta por delegación **I2**: conservar la cifra oficial facturada y mostrar un ajuste explícito por anulaciones con par íntegro. Base de comparación = facturado oficial + base documental anulada cuya emisión cae en el rango − base documental cuyo reverso cae en el rango. El ajuste nunca se copia del mayor: una venta registrada por 90 frente a base 100 debe mantener diferencia 10. Un par inválido, lectura incompleta o error conserva su señal de inconsistencia aunque los saldos netos den cero. Leer metadata de todos los movimientos relevantes, incluidos reversos de facturas emitidas fuera del período; VES/CNY nominal sigue no comparable, sin adelantar 2.3.
+
+Se acepta **M2**: asiento de venta borrador vivo bloquea recuperablemente la anulación bajo lock; no se borra ni completa en silencio. Factura borrador sin asiento conserva su flujo. Se acepta la ampliación propuesta a 42 rutas para preparar el encargo; no se inicia aún un Worker ni se concede escritura/turno operativo hasta fijar base y ownership.
+
+Se mantiene el orden humano de integración: #301 → #304/#306 → #307 → 0573. La sugerencia de integrar toda 0572 antes de 0573 no se adopta; 0573 incorporará la 0569 corregida y 0572 deberá conservar después el nuevo contrato del control. MIGRATE-FIRST debe probar también al helper anterior de cabecera/líneas separadas; una cabecera incompleta no habilita anulación ni se presenta como un asiento balanceado.
+
+Documento completo fuera de Git: `C:\tmp\director-traspaso-20261020\0573-decision-director-codex.md`, SHA-256 `280de69537a315f98abd6a4082af8e0a79f236403b1e7b1617141969bba1d8fe`. El futuro Worker debe trasladar decisiones y allowlist a su spec antes de implementar. No se concede aplicación de 0497, acceso a filas, radiografía ni corrección histórica.
+
+### P2 del aviso de factura: focal y controles aprobados · 20:01Z
+
+El Director leyó el diff de acción/prueba, los JSON de resultados y los logs: rojo con dos fallos reales (`"36"`/`"—"` frente a `"40"`) y 27 casos aprobados sobre producto `eb22e2d4`; verde 37/37 en tres archivos. Los dos mutantes —volver a la tasa anterior y retirar la columna de la proyección— murieron por aserción y restauraron exactamente SHA-256 `7de32ab476cb96219a588f60103158ac3fcf4629cac76e88d6c09fc6ed87db02` de `actions.ts`. Tipos y lint de las dos rutas TS PASÓ; sin advertencias de lint.
+
+Producto: solo devolver `id, fx_rate` del CAS, tipar ese resultado y pasar `emitted.fx_rate` al helper. El doble de prueba respeta las columnas seleccionadas y conserva los filtros/intercalaciones. SQL0495 mantiene SHA-256 `964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7`; sin cambios en SQL, Drawer ni helper de correo. Evidencia `p2-*.json/log` en la carpeta de validación 0569. El fallo previo del wrapper Windows se registra aparte y no se cuenta como control rojo.
+
+Esta lectura y los focales no cierran la validación general del nuevo SHA. Commit/push y verify ya están autorizados al Worker; cabeza, CI, paquete/previa y revisión final quedan pendientes de constatar. No se pidió ni recibió aprobación de 0495.
+
+**Cabezas publicadas comprobadas a `20:01:35Z`:** #301 `6ff0f586e1bdabf40accea5b00fcdd90adafc0e4`, rama/remoto coincidentes 0/0, árbol limpio, cuatro rutas y diff leído íntegramente por el Director; revisión independiente acotada encargada sobre ese SHA. CI `39488345120`, iniciado `20:01:35Z`, en curso; Worker inicia verify canónico sobre el mismo SHA y conserva turno/claim. No hay cambio en SQL0495. El informe externo de validación previo al push conserva por ahora texto «publicación pendiente»; Git y la PR ya acreditan la publicación en rama, sin integración.
+
+#304 `b28e9046a7ea56a53a2c53f546f58be1ae3625a8`: cuatro documentos/assets, sin cambio persistente de producto/helper. Director revisó spec, TXT y datos de comparación; el recibo `documentacion-verificada.json` acredita las cuatro rutas, 36 fuentes intactas, remoto 0/0 y limpieza. Claim documental liberado `20:01:17.596Z`. CI `39488215063`, iniciado `20:00:07Z`, en curso. El verde de `1077ff21` sigue separado de esta cabeza.
+
 ## 4. Checklist vivo de continuidad
 
 Vista con checks para Sam: [Checklist del plan contable](../../docs/audits/2026-10-20-plan-contable-seguimiento-codex.md). Este §4 sigue siendo el registro vivo de coordinación; ambos documentos pertenecen al Director.
@@ -292,7 +314,8 @@ El checklist histórico del §4 anterior conserva 36 tareas vivas, 6 hechas, 1 e
 - [x] Crear el checklist visible de todas las fases y cotejar los seis puntos y cinco extras integrados.
 - [x] Completar revisión independiente de #301 sobre `eb22e2d4`; P2 nuevo documentado.
 - [x] Completar y revisar el par A/B local de #304, 854/854 casos por lado, restauración comprobada.
-- [ ] Corregir la tasa del aviso de factura y validar/revisar su nueva cabeza.
+- [x] Corregir y comprobar focalmente la tasa del aviso de factura, con controles de regresión.
+- [ ] Completar la validación y revisión de la nueva cabeza que incluye el aviso corregido.
 - [ ] Cerrar el relevo y la validación de 0572-a.
 - [ ] Revisar/preparar #301 en su cabeza actual y con base actual.
 - [ ] Obtener OK nominal de 0495 cuando el paquete sea concreto y revisable.
