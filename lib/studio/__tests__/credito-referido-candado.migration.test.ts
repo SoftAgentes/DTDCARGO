@@ -457,13 +457,11 @@ describe("SDD-0567 · 0494 candado del crédito de referido (PGlite)", () => {
     expect(result.error).toBe("0494 abortado: el candado de referidos ya existe");
   }, SLOW);
 
-  it("la 0494 espera en pendingBelowCutoff, MIGRATE-FIRST y con OK nominal de Sam", () => {
+  it("aplicada al servidor propio el 2026-10-20 con el OK nominal de Sam: ya no es una espera y la cabecera «NO APLICADA» no se corrige", () => {
     const baseline = JSON.parse(readFileSync(resolve(ROOT, "supabase/migrations-baseline.json"), "utf8")) as {
       pendingBelowCutoff: Record<string, string>;
     };
-    const espera = baseline.pendingBelowCutoff["0494_credito_referido_candado"];
-    expect(espera).toContain("MIGRATE-FIRST");
-    expect(espera).toContain("Requiere OK nominal de Sam");
+    expect(baseline.pendingBelowCutoff["0494_credito_referido_candado"]).toBeUndefined();
     expect(FILE_0494).toContain(
       "⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en\n--    supabase/migrations-baseline.json › pendingBelowCutoff",
     );
