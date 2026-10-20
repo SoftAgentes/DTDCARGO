@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 7:01 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 7:16 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -17,7 +17,7 @@
 ### Trabajo durante la espera de GitHub
 
 - [x] Confirmar el motivo con Sam: tarjeta rechazada y espera de 48 horas para cambiarla por otra. No se cambió ningún pago ni límite.
-- [x] **Comprobar que el push sí funciona.** GitHub conserva las ramas de reportes `220a2c3e`, preparación del publicador `297d566a` y seguimiento `29b3dcce`, verificadas a las 6:31 p. m. El bloqueo observado afecta a Actions; el código puede seguir respaldándose y las entregas revisables pueden quedar en PR en borrador.
+- [x] **Comprobar que el push sí funciona.** GitHub conserva reportes `4dbdb21b`, publicador `021e96cd` y seguimiento `54d25c92`, además de la PR #309 creada durante el bloqueo. El bloqueo observado afecta a Actions; el código puede seguir respaldándose y las entregas revisables pueden quedar en PR en borrador.
 - [x] Asignar la retoma local de **0572-a**: incorporar #301 y probar reportes, rankings, totales y exportaciones con facturas sin tasa. La implementación nueva y sus pruebas se marcarán por separado al comprobarse.
 - [ ] Completar y revisar esa entrega local; conservar sus comprobaciones de GitHub como pendientes mientras no arranquen.
 - [x] Revisar una alternativa de publicación: el comando manual requiere una imagen ya construida y admitida por GitHub. No se encontró una vía habilitada que sustituya esa comprobación; el prompt también condiciona publicar a recuperar GitHub. Ninguna alternativa ejecutada.
@@ -68,7 +68,7 @@ Se adelanta trabajo local, se respalda cada rama y se preparan PR en borrador du
 
 - [x] Guardar y publicar la implementación en su rama, versión `9c254107`.
 - [x] Aprobar 71 pruebas focales, tipos y revisión estática.
-- [x] Definir la retoma y las reglas de totales incompletos: subtotal y aviso visibles, sin certificar cuadre ni rentabilidad cuando falte una tasa. Su implementación y nuevas pruebas siguen pendientes.
+- [x] Definir la retoma y las reglas de totales incompletos: subtotal y aviso visibles, sin certificar cuadre ni rentabilidad cuando falte una tasa. Su implementación y sus pruebas se comprobaron en los pasos posteriores.
 - [x] Activar el encargo de retoma después de integrar #301, con alcance y pruebas definidos; ejecución local durante la revisión del pago.
 - [x] Incorporar la tasa única corregida después de integrar #301: merge local `2df9d22d`, con `d410ab2e` como padre. Adopción, limpieza inicial y propiedad comprobadas; las funciones compartidas conservadas.
 - [x] Preparar diez escenarios y reproducir los problemas sobre el código anterior: 23 comprobaciones fallaron y 179 pasaron en 40 segundos, sin fallos de arranque ni de infraestructura. Las protecciones ante lecturas truncadas pasaron; la propagación del estado incompleto y su presentación requieren corrección.
@@ -77,7 +77,7 @@ Se adelanta trabajo local, se respalda cada rama y se preparan PR en borrador du
 - [x] Revisar los componentes reales con datos ficticios en claro y oscuro, incluido ingreso incompleto, mayor vacío y nominal mixto. El ranking permite consultar sus columnas en un contenedor de 390 píxeles; no se certifica con ello un teléfono real.
 - [x] Guardar y respaldar la corrección inicial en `220a2c3e`, con 58 archivos permitidos y las pruebas anteriores identificadas por esa versión.
 - [x] Investigar los dos fallos observados en la validación general: contratos de pruebas anteriores al filtro «Tasa» y a la eliminación de una lectura de facturas. Su actualización exacta queda autorizada.
-- [x] Reproducir los seis hallazgos nuevos antes de corregir: nueve archivos con 43 comprobaciones fallidas y 141 aprobadas, sin omisiones. Se ajustaron cuatro selectores de pruebas y se confirmaron los fallos funcionales de esas pantallas; no se confunden con defectos de arranque. Reparación en curso.
+- [x] Reproducir los seis hallazgos nuevos antes de corregir: nueve archivos con 43 comprobaciones fallidas y 141 aprobadas, sin omisiones. Se ajustaron cuatro selectores de pruebas y se confirmaron los fallos funcionales de esas pantallas; no se confunden con defectos de arranque. Reparaciones comprobadas en los pasos siguientes.
 - [x] Corregir y probar localmente el contador al mezclar dos facturas distintas, una vinculada por identificador y otra por código, conservando la pertenencia a cada embarque.
 - [x] Conservar y probar estado y contador en Reportes/Mixto y CSV; no afirmar que no hay saldos cuando solo falta convertirlos.
 - [x] Evitar y probar que el constructor presente un importe sin conversión como cero definitivo, aunque se agrupe por cliente; conservar el cero conocido y los conteos.
@@ -85,10 +85,10 @@ Se adelanta trabajo local, se respalda cada rama y se preparan PR en borrador du
 - [x] Aprobar las nueve suites de los seis hallazgos nuevos: **184/184 pruebas**, sin omisiones, después de reproducirlos sobre la versión anterior.
 - [x] Ampliar la regresión nueva a **751/751 pruebas en 35 archivos**, sin omisiones, incluida la conservación del redondeo anterior del total de volumen.
 - [x] Detectar los **22 errores intencionales de las correcciones** y comprobar otra vez los **21 controles anteriores**, con archivos restaurados. Un caso de Aging se repitió con la suite que contiene sus tres escenarios; los recibos iniciales se conservan.
-- [x] Aprobar tipos y revisión estática de 61 archivos, sin advertencias; comprobar 65/65 rutas permitidas y respaldar el nuevo código y sus pruebas en `3c36a7b2`. Revisión independiente de esa versión activa.
-- [ ] Corregir la disposición estrecha de las tablas de Mixto y Constructor detectada en la revisión visible; conservar las columnas consultables y actualizar el pie que todavía decía «CNY → 0». Ajuste puntual dentro de los archivos permitidos, con una nueva versión antes de la validación general.
-- [ ] Completar la revisión visible y la revisión independiente de las correcciones sobre la versión final.
-- [ ] Completar la validación general local y registrar sus omisiones.
+- [x] Aprobar tipos y revisión estática de 61 archivos, sin advertencias; comprobar 65/65 rutas permitidas y respaldar el nuevo código y sus pruebas en `3c36a7b2`.
+- [x] Corregir la disposición estrecha de Mixto, CBM y Constructor y el pie que todavía decía «CNY → 0»: `4dbdb21b` respaldada en GitHub. Última columna consultable en contenedor de 390 píxeles y sin desborde de página, con datos ficticios; 18 pruebas de los tres componentes, tipos y revisión estática aprobados. No certifica teléfono físico ni Studio autenticado.
+- [x] Completar la revisión visible y la revisión independiente de `4dbdb21b`: sin hallazgos materiales adicionales. Los seis hallazgos financieros quedaron corregidos; el delta visual conserva sus cálculos y las otras 61 rutas. Dictamen local condicionado a la prueba general pendiente.
+- [ ] Completar la validación general local y registrar sus omisiones. Iniciada a las **7:10 p. m. sobre `4dbdb21b`**, con árbol limpio; sigue en curso y no se presenta como aprobada.
 - [ ] Abrir su PR en borrador con evidencia local.
 - [ ] Revalidar la base final después de las entregas anteriores, especialmente 0573, y aprobar sus comprobaciones de GitHub.
 - [ ] Integrar su PR y comprobar la publicación.
