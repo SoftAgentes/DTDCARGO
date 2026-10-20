@@ -288,6 +288,23 @@ describe("buildReclassLines (DR puente / CR 1.1.2)", () => {
 describe("computeFundsSeparation", () => {
   const range = { from: "2026-06-01", to: "2026-06-30" };
 
+  it.each(["third_party", "local_revenue"] as const)("0572 revisión · cuenta sin identificar %s aunque su importe no convierta", (fund_class) => {
+    const s = computeFundsSeparation([
+      { amount: 20, currency: "USD", fx_rate: null, fund_class: "third_party", application_status: "aplicado" },
+      { amount: 700, currency: "CNY", fx_rate: null, fund_class, application_status: "recibido_sin_ref" },
+    ], range);
+    expect(s).toMatchObject({ thirdPartyUsd: 20, localRevenueUsd: 0, unidentifiedUsd: 0, unidentifiedCount: 1, receiptCount: 2, sinTasaCount: 1 });
+  });
+
+  it("0572 revisión · solo faltantes y cero conocido conservan conteos independientes", () => {
+    const s = computeFundsSeparation([
+      { amount: 700, currency: "CNY", fx_rate: null, fund_class: "third_party", application_status: "recibido_sin_ref" },
+      { amount: 360, currency: "VES", fx_rate: null, fund_class: "local_revenue", application_status: "aplicado" },
+      { amount: 0, currency: "USD", fx_rate: null, fund_class: "local_revenue", application_status: "recibido_sin_ref" },
+    ], range);
+    expect(s).toMatchObject({ thirdPartyUsd: 0, localRevenueUsd: 0, unidentifiedUsd: 0, unidentifiedCount: 2, receiptCount: 3, sinTasaCount: 2 });
+  });
+
   it("suma por clase normalizando a USD (VES via fx)", () => {
     const s = computeFundsSeparation(
       [

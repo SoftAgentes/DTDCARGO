@@ -15,6 +15,7 @@
 
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { costingCsvRow, COSTING_CSV_HEADERS } from "../ui";
 import {
   costingRows,
   costingTotals,
@@ -165,6 +166,33 @@ describe("listShipmentCosts", () => {
 
 // ── costingRows ───────────────────────────────────────────────
 describe("costingRows", () => {
+  it.each(["DTDU-1", null])("0572 revisión · combina FK con code %s y otra factura solo-code en páginas distintas", async (codeForFk) => {
+    const shipments = [{ id: "S1", code: "DTDU-1", origin: "CN", destination: "VE", deleted_at: null }];
+    const base = { status: "emitida", issued_at: "2026-02-01", fx_rate: null, deleted_at: null };
+    const invoices = [
+      { ...base, id: "i-known", shipment_id: "S1", shipment_code: "DTDU-1", currency: "USD", total_amount: 100 },
+      { ...base, id: "i-fk", shipment_id: "S1", shipment_code: codeForFk, currency: "CNY", total_amount: 700 },
+      { ...base, id: "i-code", shipment_id: null, shipment_code: "DTDU-1", currency: "VES", total_amount: 3600 },
+    ];
+    const rows = await costingRows(stub({ shipments, invoices }, { serverCap: 1 }));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].eco.revenue).toBe(100); // no cambia la selección histórica del subtotal
+    expect.soft(rows[0].facturasSinTasa).toBe(2); // i-fk cuenta una vez, i-code es otra factura
+    const csv = Object.fromEntries(COSTING_CSV_HEADERS.map((header, index) => [header, costingCsvRow(rows[0])[index]]));
+    expect(csv).toMatchObject({ "Facturas sin tasa": 2, "Margen USD": "", "Margen %": "", "Estado de conversión": "Subtotal parcial" });
+  });
+
+  it("0572 revisión · el code no reasigna una factura cuyo FK pertenece a otro embarque", async () => {
+    const shipments = [
+      { id: "S1", code: "DTDU-1", deleted_at: null },
+      { id: "S2", code: "DTDU-2", deleted_at: null },
+    ];
+    const invoices = [{ id: "i-owner", shipment_id: "S2", shipment_code: "DTDU-1", currency: "CNY", total_amount: 700, fx_rate: null, status: "emitida", issued_at: "2026-02-01" }];
+    const rows = await costingRows(stub({ shipments, invoices }, { serverCap: 1 }));
+    expect(rows.find((r) => r.shipment.id === "S1")?.facturasSinTasa).toBe(0);
+    expect(rows.find((r) => r.shipment.id === "S2")?.facturasSinTasa).toBe(1);
+  });
+
   it.each(["S1", null])("0572 · segunda página por id %s o code: contador sin duplicar", async (shipmentId) => {
     const shipments = [{ id: "S1", code: "DTDU-1", origin: "YIW", destination: "PBL", deleted_at: null }];
     const base = { shipment_id: shipmentId, shipment_code: "DTDU-1", status: "emitida", issued_at: "2026-02-01", fx_rate: null, deleted_at: null };
@@ -377,6 +405,14 @@ function crow(p: {
 }
 
 describe("marginByClient", () => {
+  it("0572 revisión · propaga incompletitud al cliente, conserva costos y ordena completos primero", () => {
+    const partial = { ...crow({ id: "P", client: "Parcial", revenue: 100, costs: { freight: 10 } }), facturasSinTasa: 2 };
+    const complete = crow({ id: "C", client: "Completo", revenue: 20, costs: { freight: 30 } });
+    const out = marginByClient([partial, complete]);
+    expect(out.map((r) => r.client)).toEqual(["Completo", "Parcial"]);
+    expect(out[1]).toMatchObject({ revenue: 100, cost: 10, sinTasa: 1 });
+    expect(out[0]).toMatchObject({ revenue: 20, cost: 30, sinTasa: 0 });
+  });
   it("agrupa por client_name, agrega revenue/cost/margin, ordena desc por margen", () => {
     const rows = [
       // Globex: 2 envíos → rev 9000, cost 4000 → margen 5000
@@ -437,6 +473,10 @@ describe("marginByClient", () => {
 
 // ── costPerCbmByRoute (pura) · Reportes Combinados ────────────
 describe("costPerCbmByRoute", () => {
+  it("0572 revisión · costo/CBM sigue conocido aunque falte conversión del ingreso", () => {
+    const row = { ...crow({ id: "P", revenue: 100, cbm: 10, costs: { freight: 20 } }), facturasSinTasa: 2 };
+    expect(costPerCbmByRoute([row])[0]).toMatchObject({ revenue: 100, cost: 20, cbm: 10, costPerCbm: 2, sinTasa: 1 });
+  });
   it("agrupa por ruta, deriva $/CBM ingreso y costo, ordena desc por revenuePerCbm", () => {
     const rows = [
       // YIW→PBL: 2 envíos, cbm 10+5=15, rev 15000, cost 9000

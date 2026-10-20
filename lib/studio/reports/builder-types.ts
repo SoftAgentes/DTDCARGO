@@ -14,7 +14,7 @@
  *    query, igual que el resto de Reportes); CBM = volume_m3.
  *  - Facturas: Monto USD = invoiceUsdAmount; Saldo USD = (total − pagado)
  *    normalizado a USD. Ambos campos existen en `invoices`. SDD-0572: la que no
- *    convierte (sin tasa) no suma en USD; la dimensión «Tasa» la muestra.
+ *    convierte conserva null y contador por métrica, además de la dimensión Tasa.
  *
  * La query produce filas ya "aplanadas" a esta forma (dims resueltas a labels,
  * métricas a número, filtros a string) → `buildReport` es PURO y testeable sin DB.
@@ -30,7 +30,9 @@
  */
 export type BuilderRow = {
   dims: Record<string, string>;
-  metrics: Record<string, number>;
+  metrics: Record<string, number | null>;
+  /** Documentos excluidos de cada métrica monetaria, aun si hay subtotal conocido. */
+  metricSinTasa?: Record<string, number>;
   filters: Record<string, string>;
 };
 
@@ -127,13 +129,17 @@ export function asSourceId(raw: unknown): ReportSourceId {
 /** Una fila del resultado agregado (label de grupo + valor de la métrica + #filas). */
 export type ReportResultRow = {
   label: string;
-  value: number;
+  value: number | null;
   count: number; // cantidad de filas en el grupo
+  subtotal: number; // suma conocida; no convierte un desconocido en cero definitivo
+  sinTasa: number;
 };
 
 export type ReportResult = {
   rows: ReportResultRow[];
-  total: number; // suma de los valores (para count/sum) o promedio global (avg)
+  total: number | null; // null si solo desconocido, o promedio monetario incompleto
+  subtotal: number;
+  sinTasa: number;
   agg: AggKind;
   money: boolean;
 };
@@ -184,49 +190,65 @@ export function buildReport(
       : rows;
 
   // 2. Agrupar por dimensión.
-  const groups = new Map<string, { sum: number; count: number }>();
+  type Acc = { sum: number; count: number; known: number; sinTasa: number };
+  const groups = new Map<string, Acc>();
   let globalSum = 0;
   let globalCount = 0;
+  let globalKnown = 0;
+  let globalSinTasa = 0;
   for (const r of filtered) {
     const key = (r.dims[dim.key] ?? "").trim() || EMPTY_GROUP_LABEL;
-    const g = groups.get(key) ?? { sum: 0, count: 0 };
-    const v = isCount ? 0 : finite(r.metrics[metric.key]);
+    const g = groups.get(key) ?? { sum: 0, count: 0, known: 0, sinTasa: 0 };
+    const raw = r.metrics[metric.key];
+    const known = typeof raw === "number" && Number.isFinite(raw);
+    const missing = !isCount && metric.money
+      ? Math.max(known ? 0 : 1, finite(r.metricSinTasa?.[metric.key]))
+      : 0;
+    const v = isCount ? 0 : finite(raw);
     g.sum += v;
     g.count += 1;
+    g.known += Number(known);
+    g.sinTasa += missing;
     groups.set(key, g);
     globalSum += v;
     globalCount += 1;
+    globalKnown += Number(known);
+    globalSinTasa += missing;
   }
 
-  // 3. Valor por grupo según la agregación.
+  // 3. Una suma parcial puede mostrarse como subtotal. Un promedio incompleto
+  // o un grupo solo desconocido no tiene valor certificable. Count/CBM no
+  // dependen de la conversión del ingreso.
+  const valueOf = (g: Acc): number | null => {
+    if (isCount) return g.count;
+    if (metric.money && g.sinTasa > 0 && (metric.agg === "avg" || g.known === 0)) return null;
+    const value = metric.agg === "avg" ? (g.count > 0 ? g.sum / g.count : 0) : g.sum;
+    return metric.money || metric.agg === "avg" ? round2(value) : value;
+  };
   const resultRows: ReportResultRow[] = [...groups.entries()].map(
     ([label, g]) => {
-      let value: number;
-      if (isCount) value = g.count;
-      else if (metric.agg === "avg") value = g.count > 0 ? g.sum / g.count : 0;
-      else value = g.sum; // sum
       return {
         label,
-        value: metric.money || metric.agg === "avg" ? round2(value) : value,
+        value: valueOf(g),
         count: g.count,
+        subtotal: isCount ? g.count : round2(g.sum),
+        sinTasa: g.sinTasa,
       };
     },
   );
 
   // 4. Orden desc por valor, label como desempate (orden estable y testeable).
   resultRows.sort((a, b) => {
-    if (b.value !== a.value) return b.value - a.value;
+    if (a.sinTasa > 0 || b.sinTasa > 0) return Number(a.sinTasa > 0) - Number(b.sinTasa > 0);
+    if (b.value !== a.value) return (b.value ?? 0) - (a.value ?? 0);
     return a.label.localeCompare(b.label);
   });
 
   // 5. Total.
-  let total: number;
-  if (isCount) total = globalCount;
-  else if (metric.agg === "avg")
-    total = globalCount > 0 ? round2(globalSum / globalCount) : 0;
-  else total = round2(globalSum);
-
-  return { rows: resultRows, total, agg: metric.agg, money: !!metric.money };
+  const globalValue = valueOf({ sum: globalSum, count: globalCount, known: globalKnown, sinTasa: globalSinTasa });
+  // La suma global conserva su redondeo histórico incluso para medidas físicas.
+  const total = globalValue === null ? null : round2(globalValue);
+  return { rows: resultRows, total, subtotal: isCount ? globalCount : round2(globalSum), sinTasa: globalSinTasa, agg: metric.agg, money: !!metric.money };
 }
 
 // ── Export CSV (PURO, sin lib externa) ─────────────────────────
@@ -260,15 +282,18 @@ export function buildReportCsv(
   headers: { dim: string; metric: string },
 ): string {
   const cols = [headers.dim, "Registros", headers.metric];
+  if (result.money) cols.push("Estado de conversión", "Documentos sin tasa", "Subtotal conocido USD");
   const lines: string[] = [cols.map(csvCell).join(",")];
   for (const r of result.rows) {
     const value =
-      result.money
+      r.value === null ? "" : result.money
         ? Math.round(r.value)
         : result.agg === "avg"
           ? r.value.toFixed(2)
           : r.value;
-    lines.push([r.label, r.count, value].map(csvCell).join(","));
+    const cells: unknown[] = [r.label, r.count, value];
+    if (result.money) cells.push(r.sinTasa > 0 ? "Conversión incompleta" : "Completo", r.sinTasa, r.subtotal);
+    lines.push(cells.map(csvCell).join(","));
   }
   return lines.join("\r\n");
 }

@@ -180,9 +180,9 @@ export function BuilderView({
     [rows, dim, metric, filterField, filterVal],
   );
 
-  const maxV = Math.max(...result.rows.map((r) => r.value), 1);
-  const fmtV = (v: number) =>
-    result.money
+  const maxV = Math.max(...result.rows.filter((r) => r.sinTasa === 0).map((r) => r.value ?? 0), 1);
+  const fmtV = (v: number | null) =>
+    v === null ? "—" : result.money
       ? fmtUsd(v)
       : result.agg === "avg"
         ? v.toFixed(1)
@@ -442,8 +442,11 @@ export function BuilderView({
                 }}
               >
                 {result.rows.length}{" "}
-                {result.rows.length === 1 ? "grupo" : "grupos"} · total {fmtV(result.total)}
+                {result.rows.length === 1 ? "grupo" : "grupos"} · {result.sinTasa > 0 ? "subtotal conocido" : "total"} {fmtV(result.total)}
               </div>
+              {result.sinTasa > 0 && <div style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
+                Conversión incompleta · {result.sinTasa} documento{result.sinTasa === 1 ? "" : "s"} sin tasa
+              </div>}
             </div>
             <Badge tone="wine" size="md">
               {aggLabel}
@@ -481,11 +484,11 @@ export function BuilderView({
               >
                 {r.label}
               </span>
-              <Progress
-                value={(r.value / maxV) * 100}
+              {r.sinTasa > 0 ? <span style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>Subtotal conocido · {r.sinTasa} documento{r.sinTasa === 1 ? "" : "s"} sin tasa</span> : <Progress
+                value={((r.value ?? 0) / maxV) * 100}
                 tone={i === 0 ? "var(--wine)" : "var(--wine-soft)"}
                 height={18}
-              />
+              />}
               <span
                 style={{
                   font: "500 11px/1 var(--f-mono)",
@@ -611,6 +614,7 @@ export function BuilderView({
                 <th>{dim.label}</th>
                 <th className="rpt-num">Conteo</th>
                 <th className="rpt-num">{metric.label}</th>
+                {result.money && <th>Estado de conversión</th>}
               </tr>
             </thead>
             <tbody>
@@ -619,20 +623,23 @@ export function BuilderView({
                   <td>{r.label}</td>
                   <td className="rpt-num">{r.count}</td>
                   <td className="rpt-num">{fmtV(r.value)}</td>
+                  {result.money && <td>{r.sinTasa > 0 ? `Subtotal conocido · ${r.sinTasa} documento(s) sin tasa` : "Completo"}</td>}
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr>
-                <td>Total</td>
+                <td>{result.sinTasa > 0 ? "Subtotal conocido" : "Total"}</td>
                 <td className="rpt-num">—</td>
                 <td className="rpt-num">{fmtV(result.total)}</td>
+                {result.money && <td>{result.sinTasa > 0 ? `Conversión incompleta · ${result.sinTasa} documento(s) sin tasa` : "Completo"}</td>}
               </tr>
             </tfoot>
           </table>
           <div className="rpt-foot">
             Datos reales del período. Revenue de embarques y montos de facturas
-            normalizados a USD (VES por fx; CNY → 0). Generado desde DTD Studio.
+            normalizados a USD por la tasa del documento. Los montos sin tasa se
+            identifican por separado. Generado desde DTD Studio.
           </div>
         </div>
       )}

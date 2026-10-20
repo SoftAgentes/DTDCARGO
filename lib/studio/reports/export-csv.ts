@@ -106,8 +106,8 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
       if (rows.length === 0) return null;
       return {
         slug: "operacional-por-ruta",
-        headers: ["Origen → Destino", "Envíos", "CBM", "Días prom.", "Revenue USD", "USD/CBM"],
-        rows: rows.map((r) => [r.label, r.count, r.cbm, r.avgTransit ?? "", r.revenue, r.rate]),
+        headers: ["Origen → Destino", "Envíos", "CBM", "Días prom.", "Revenue USD (subtotal conocido)", "USD/CBM", "Estado de conversión", "Facturas sin tasa"],
+        rows: rows.map((r) => [r.label, r.count, r.cbm, r.avgTransit ?? "", r.revenue, (r.facturasSinTasa ?? 0) > 0 ? null : r.rate, (r.facturasSinTasa ?? 0) > 0 ? "Conversión incompleta" : "Completo", r.facturasSinTasa ?? 0]),
       };
     }
     if (rep === "carriers") {
@@ -124,8 +124,8 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
       if (rows.length === 0) return null;
       return {
         slug: "operacional-por-servicio",
-        headers: ["Servicio", "Envíos", "CBM", "Días prom.", "Revenue USD", "USD/CBM"],
-        rows: rows.map((s) => [s.label, s.count, s.cbm, s.avgTransit ?? "", s.revenue, s.rate]),
+        headers: ["Servicio", "Envíos", "CBM", "Días prom.", "Revenue USD (subtotal conocido)", "USD/CBM", "Estado de conversión", "Facturas sin tasa"],
+        rows: rows.map((s) => [s.label, s.count, s.cbm, s.avgTransit ?? "", s.revenue, (s.facturasSinTasa ?? 0) > 0 ? null : s.rate, (s.facturasSinTasa ?? 0) > 0 ? "Conversión incompleta" : "Completo", s.facturasSinTasa ?? 0]),
       };
     }
     return null;
@@ -226,12 +226,12 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
     }
     if (rep === "aging") {
       const ag = input.aging;
-      if (!ag || (ag.cxc.total === 0 && ag.cxp.total === 0)) return null;
+      if (!ag || (ag.cxc.total === 0 && ag.cxp.total === 0 && !(ag.cxc.sinTasa || ag.cxp.sinTasa))) return null;
       const side = (lado: string, s: AgingReport["cxc"]): CsvValue[][] =>
-        s.buckets.map((b) => [lado, b.label, b.amount, b.count, b.pct]);
+        s.buckets.map((b) => [lado, b.label, b.amount, b.count, (s.sinTasa ?? 0) > 0 ? null : b.pct, (s.sinTasa ?? 0) > 0 ? "Conversión incompleta" : "Completo", s.sinTasa ?? 0]);
       return {
         slug: "contable-aging-cxc-cxp",
-        headers: ["Lado", "Tramo", "Monto USD", "Documentos", "%"],
+        headers: ["Lado", "Tramo", "Monto USD (subtotal conocido)", "Documentos", "%", "Estado de conversión", "Documentos sin tasa del lado"],
         rows: [...side("CxC", ag.cxc), ...side("CxP", ag.cxp)],
       };
     }
@@ -257,7 +257,7 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
     }
     if (rep === "cashflow") {
       const cf = input.cashflow;
-      if (!cf || (cf.totalBilled === 0 && cf.totalCollected === 0 && cf.outstanding === 0)) {
+      if (!cf || (cf.totalBilled === 0 && cf.totalCollected === 0 && cf.outstanding === 0 && !(cf.facturasSinTasa || cf.recibosSinTasa))) {
         return null;
       }
       return {
@@ -265,8 +265,8 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
         // de la URL (`?rep=cashflow`) no cambia.
         slug: "contable-facturado-contra-cobrado",
         // Con IVA: se compara contra lo cobrado, que también lo lleva.
-        headers: ["Mes", "Facturado con IVA USD", "Cobrado USD"],
-        rows: cf.series.map((p) => [p.label, p.billed, p.collected]),
+        headers: ["Mes", "Facturado con IVA USD (subtotal conocido)", "Cobrado USD (subtotal conocido)", "Estado de conversión", "Facturas sin tasa", "Recibos sin tasa"],
+        rows: cf.series.map((p) => [p.label, p.billed, p.collected, (p.facturasSinTasa ?? 0) + (p.recibosSinTasa ?? 0) > 0 ? "Conversión incompleta" : "Completo", p.facturasSinTasa ?? 0, p.recibosSinTasa ?? 0]),
       };
     }
     return null;
@@ -275,13 +275,13 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
   // Combinados (rentabilidad real, según el rep activo)
   if (category === "mix") {
     const c = input.combined;
-    if (!c || c.withCosts === 0) return null;
+    if (!c || (c.withCosts === 0 && c.totals.sinTasa === 0)) return null;
     if (rep === "margin-client") {
       if (c.byClient.length === 0) return null;
       return {
         slug: "combinado-margen-por-cliente",
-        headers: ["Cliente", "Envíos", "Ingreso USD", "Costo USD", "Margen USD", "Margen %"],
-        rows: c.byClient.map((r) => [r.client, r.count, r.revenue, r.cost, r.margin, r.marginPct]),
+        headers: ["Cliente", "Envíos", "Ingreso USD (subtotal conocido)", "Costo USD", "Margen USD", "Margen %", "Estado de conversión", "Embarques sin tasa"],
+        rows: c.byClient.map((r) => [r.client, r.count, r.revenue, r.cost, r.sinTasa > 0 ? null : r.margin, r.sinTasa > 0 ? null : r.marginPct, r.sinTasa > 0 ? "Conversión incompleta" : "Completo", r.sinTasa]),
       };
     }
     if (rep === "cost-cbm") {
@@ -289,13 +289,16 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
       if (rows.length === 0) return null;
       return {
         slug: "combinado-costo-por-cbm",
-        headers: ["Ruta", "CBM", "$/CBM ingreso", "$/CBM costo", "Margen/CBM USD"],
+        headers: ["Ruta", "CBM", "$/CBM ingreso", "$/CBM costo", "Margen/CBM USD", "Ingreso USD (subtotal conocido)", "Estado de conversión", "Embarques sin tasa"],
         rows: rows.map((r) => [
           routeLabelOf(r.origin, r.destination),
           r.cbm,
-          r.revenuePerCbm,
+          r.sinTasa > 0 ? null : r.revenuePerCbm,
           r.costPerCbm,
-          r.marginPerCbm,
+          r.sinTasa > 0 ? null : r.marginPerCbm,
+          r.revenue,
+          r.sinTasa > 0 ? "Conversión incompleta" : "Completo",
+          r.sinTasa,
         ]),
       };
     }
@@ -303,14 +306,16 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
     if (c.byRoute.length === 0) return null;
     return {
       slug: "combinado-rentabilidad-por-ruta",
-      headers: ["Ruta", "Embarques", "Ingreso USD", "Costo USD", "Margen USD", "Margen %"],
+      headers: ["Ruta", "Embarques", "Ingreso USD (subtotal conocido)", "Costo USD", "Margen USD", "Margen %", "Estado de conversión", "Embarques sin tasa"],
       rows: c.byRoute.map((r) => [
         routeLabelOf(r.origin, r.destination),
         r.count,
         r.revenue,
         r.cost,
-        r.margin,
-        r.marginPct,
+        r.sinTasa > 0 ? null : r.margin,
+        r.sinTasa > 0 ? null : r.marginPct,
+        r.sinTasa > 0 ? "Conversión incompleta" : "Completo",
+        r.sinTasa,
       ]),
     };
   }

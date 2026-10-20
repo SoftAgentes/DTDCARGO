@@ -88,4 +88,3 @@ export function formatCurrency(
     maximumFractionDigits: 2,
   }).format(amount);
 }
-

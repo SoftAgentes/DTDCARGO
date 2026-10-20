@@ -792,7 +792,8 @@ export async function agingReport(
  * Facturado contra cobrado del período (SDD-0052; se llamaba «Cashflow», pero
  * no es un flujo de caja: SDD-0557 le cambió el rótulo y conservó el slug
  * `cashflow` y los identificadores): serie mensual de FACTURADO vs COBRADO, ambos
- * USD-normalizados vía invoiceUsdAmount (VES/fx; CNY → 0). KPIs por-cobrar/vencido
+ * USD-normalizados vía invoiceUsdAmount (VES/CNY por su tasa; sin tasa, subtotal
+ * conocido y contador mensual). KPIs por-cobrar/vencido
  * REUSAN `invoiceKpis` (Facturación 0021, saldos vivos · no del rango). NO
  * recalcula montos: solo agrega y normaliza. EmptyState honesto si la serie es plana.
  *
@@ -870,6 +871,7 @@ export async function cashflowReport(
     // SDD-0572: sin tasa no suma: se cuenta aparte.
     if (usd === null) {
       facturasSinTasa += 1;
+      billed.push({ dateIso: refDate, usd: null });
       continue;
     }
     if (usd <= 0) continue;
@@ -889,6 +891,7 @@ export async function cashflowReport(
     // SDD-0572: el mismo conversor que Cobranzas; sin tasa no suma.
     if (usd === null) {
       recibosSinTasa += 1;
+      collected.push({ dateIso: (row.received_at as string | null) ?? null, usd: null });
       continue;
     }
     if (usd <= 0) continue;
@@ -1070,7 +1073,8 @@ async function shipmentBuilderRows(
 
   return shipments.map((s) => {
     // SDD-0572: el embarque con alguna factura sin tasa se marca, para filtrarlo.
-    const tasa = (revenueByCode.sinTasa.get(s.code) ?? 0) > 0 ? TASA_INCOMPLETA : TASA_COMPLETA;
+    const sinTasa = revenueByCode.sinTasa.get(s.code) ?? 0;
+    const tasa = sinTasa > 0 ? TASA_INCOMPLETA : TASA_COMPLETA;
     const statusKnown = STATUS_LABELS[s.status as ShipmentStatus];
     const clientName = (s.client_name ?? "").trim() || EMPTY_LABEL;
     return {
@@ -1083,8 +1087,9 @@ async function shipmentBuilderRows(
       },
       metrics: {
         cbm: Number(s.cbm) || 0,
-        revenue: revenueByCode.usd.get(s.code) ?? 0,
+        revenue: revenueByCode.usd.get(s.code) ?? (sinTasa > 0 ? null : 0),
       },
+      metricSinTasa: { revenue: sinTasa },
       // Los filtros usan el MISMO label que la dimensión (filtrar por lo que se ve).
       filters: {
         status: statusKnown ?? s.status,
@@ -1110,7 +1115,7 @@ const INVOICE_BUILDER_COLUMNS =
  *  - dims: client (client_name) · status · currency.
  *  - metrics: count · amount (total USD) · balance (saldo = total − pagado, USD).
  * Excluye `anulada` (no representa monto vivo). El saldo USD escala el pendiente
- * en moneda por la misma tasa USD que el total (fx del documento; CNY → 0).
+ * en moneda por la misma tasa USD que el total. VES/CNY sin tasa conserva null.
  */
 async function invoiceBuilderRows(
   supabase: SupabaseClient,
@@ -1157,12 +1162,9 @@ async function invoiceBuilderRows(
       total_amount: balanceMoney,
       fx_rate: fx,
     });
-    // SDD-0572: sin tasa, sus métricas en USD no suman (ni 0 ni el nominal): la
-    // fila queda con «Tasa: Sin tasa», para verla con el filtro.
+    // La incompletitud acompaña cada métrica, incluso al agrupar por otra dimensión.
     const tasa = amountUsd === null ? TASA_SIN : TASA_CON;
-    const metrics: Record<string, number> = amountUsd === null || balanceUsd === null
-      ? {}
-      : { amount: Math.round(amountUsd * 100) / 100, balance: Math.round(balanceUsd * 100) / 100 };
+    const metrics = { amount: amountUsd, balance: balanceUsd };
 
     const clientName = (r.client_name as string | null)?.trim() || EMPTY_LABEL;
     rows.push({
@@ -1173,6 +1175,7 @@ async function invoiceBuilderRows(
         tasa,
       },
       metrics,
+      metricSinTasa: { amount: Number(amountUsd === null), balance: Number(balanceUsd === null) },
       filters: {
         tasa,
         status: invoiceStatusLabel(statusVal),

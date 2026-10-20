@@ -66,7 +66,10 @@ const BASELINE = {
   //     `accounting`). Al cliente cruzan código, fecha, moneda y monto; sin
   //     nombre ni RIF del cliente.
   "lib/studio/accounting/libro-control-queries.ts": 2,
-  "lib/studio/costing/queries.ts": 2,
+  // SDD-0572: −1 al eliminar latestVesFxRate (display desde facturas).
+  // Revenue conserva cliente de sesión, candados de Costing y RLS del tenant.
+  // El display usa ultimaTasa/fx_rates con ese mismo cliente, nunca admin.
+  "lib/studio/costing/queries.ts": 1,
   "lib/studio/dashboard/dashboard-kpi-queries.ts": 1,
   // SDD-0495: +1 por `strandedReferralCredits`, que mira si las facturas donde
   // se aplicó un crédito de referido quedaron 'anulada' (el crédito varado que
@@ -195,7 +198,9 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // SDD-0557: 43 → 45 por `ingresoDelPeriodo` y `cuadreDelLibro`.
     // SDD-0558: 45 → 44. La lectura de Kommo pasó a la 0492; recalculado sobre
     // origin/main bb6bb3e4 con la 0555, la 0556, la 0557 y la 0560 ya fusionadas.
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(44);
+    // SDD-0572: 44 → 43, solo sale la lectura de display latestVesFxRate.
+    // Se mantienen 19 rutas y comparación exacta de todo el inventario.
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(43);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {

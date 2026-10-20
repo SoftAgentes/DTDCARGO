@@ -107,6 +107,13 @@ const CATEGORIES: {
 
 const fmtNum = (n: number) => Math.round(n).toLocaleString("en-US");
 
+function ConversionNote({ count, unit = "documento" }: { count: number; unit?: "documento" | "factura" | "embarque" }) {
+  if (count <= 0) return null;
+  return <div style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
+    Conversión incompleta · subtotal conocido · {count} {unit}{count === 1 ? "" : "s"} sin tasa
+  </div>;
+}
+
 // Resuelve el rep activo dentro de la categoría (default = primer tab).
 // El Constructor no tiene tabs nivel-2 → "" (la vista no depende del rep).
 function resolveRep(category: Category, raw: string | undefined): string {
@@ -789,15 +796,15 @@ function RoutesView({ routes }: { routes: RouteRow[] }) {
             </span>
             {(r.facturasSinTasa ?? 0) > 0 && (
               <span style={{ display: "block", marginTop: 3, font: "500 10.5px/1.2 var(--f-sans)", color: "var(--ink-soft)" }}>
-                {`+${r.facturasSinTasa} sin tasa`}
+                {`Subtotal conocido · ${r.facturasSinTasa} factura(s) sin tasa`}
               </span>
             )}
             <div style={{ marginTop: 5 }}>
-              <Progress value={(r.revenue / max) * 100} tone="var(--wine)" height={3} />
+              {(r.facturasSinTasa ?? 0) === 0 && <Progress value={(r.revenue / max) * 100} tone="var(--wine)" height={3} />}
             </div>
           </div>
           <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)", textAlign: "right" }}>
-            ${r.rate}/CBM
+            {(r.facturasSinTasa ?? 0) > 0 ? "—" : `$${r.rate}/CBM`}
           </span>
         </div>
       ))}
@@ -891,15 +898,15 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
                   {fmtUsdCompact(s.revenue)}
                 </span>
               </div>
-              <Progress
+              {(s.facturasSinTasa ?? 0) === 0 && <Progress
                 value={(s.revenue / maxRev) * 100}
                 tone={palette[i % palette.length]}
                 height={10}
-              />
+              />}
               <div style={{ marginTop: 5, font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                 {s.count} {s.count === 1 ? "embarque" : "embarques"} · {fmtNum(s.cbm)} CBM
                 {s.avgTransit != null ? ` · ${s.avgTransit} días prom.` : ""}
-                {(s.facturasSinTasa ?? 0) > 0 ? ` · ${s.facturasSinTasa} sin tasa fuera del revenue` : ""}
+                {(s.facturasSinTasa ?? 0) > 0 ? ` · Subtotal conocido · ${s.facturasSinTasa} factura(s) sin tasa` : ""}
               </div>
             </div>
           ))}
@@ -1468,7 +1475,7 @@ export function IncomeStatementCard({ income }: { income: IncomeStatement }) {
 // Slice B — Contables · Aging CxC/CxP
 // ═══════════════════════════════════════════════════════════════
 function AgingView({ aging }: { aging: AgingReport }) {
-  const empty = aging.cxc.total === 0 && aging.cxp.total === 0;
+  const empty = aging.cxc.total === 0 && aging.cxp.total === 0 && !(aging.cxc.sinTasa || aging.cxp.sinTasa);
   if (empty) {
     return (
       <EmptyState
@@ -1531,7 +1538,7 @@ function AgingSideCard({
 
   return (
     <Card eyebrow={eyebrow} title={title}>
-      {side.total === 0 ? (
+      {side.total === 0 && !(side.sinTasa ?? 0) ? (
         <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
           {emptyLabel}
         </div>
@@ -1543,7 +1550,7 @@ function AgingSideCard({
                 {fmtUsd(side.total)}
               </div>
               <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
-                Total
+                {(side.sinTasa ?? 0) > 0 ? "Subtotal conocido" : "Total"}
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -1569,15 +1576,16 @@ function AgingSideCard({
                     {b.label}
                   </span>
                   <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
-                    {fmtUsd(b.amount)} · {b.pct}%
+                    {fmtUsd(b.amount)}{(side.sinTasa ?? 0) > 0 ? " · subtotal" : ` · ${b.pct}%`}
                   </span>
                 </div>
-                <Progress value={b.pct} tone={tones[b.id]} height={8} />
+                {(side.sinTasa ?? 0) === 0 && <Progress value={b.pct} tone={tones[b.id]} height={8} />}
               </div>
             ))}
           </div>
         </>
       )}
+      <ConversionNote count={side.sinTasa ?? 0} />
     </Card>
   );
 }
@@ -1730,10 +1738,11 @@ function MiniStat({ label, value, sub }: { label: string; value: string; sub?: s
 export const ROTULO_FACTURADO_CON_IVA = "Facturado con IVA";
 
 export function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
+  const sinTasa = (cashflow.facturasSinTasa ?? 0) + (cashflow.recibosSinTasa ?? 0);
   const hasData =
     cashflow.totalBilled > 0 ||
     cashflow.totalCollected > 0 ||
-    cashflow.outstanding > 0;
+    cashflow.outstanding > 0 || sinTasa > 0;
   if (!hasData) {
     return (
       <EmptyState
@@ -1756,13 +1765,14 @@ export function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label={ROTULO_FACTURADO_CON_IVA} sub="en el período" valueColor="var(--wine-text)" />
-        <KpiCard value={fmtUsdCompact(cashflow.totalCollected)} label="Cobrado" sub="en el período" valueColor="var(--success)" />
+        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label={ROTULO_FACTURADO_CON_IVA} sub={(cashflow.facturasSinTasa ?? 0) > 0 ? "subtotal conocido del período" : "en el período"} valueColor="var(--ink)" />
+        <KpiCard value={fmtUsdCompact(cashflow.totalCollected)} label="Cobrado" sub={(cashflow.recibosSinTasa ?? 0) > 0 ? "subtotal conocido del período" : "en el período"} valueColor="var(--ink)" />
         <KpiCard value={fmtUsdCompact(cashflow.outstanding)} label="Por cobrar" sub="saldo vivo total" />
         <KpiCard value={fmtUsdCompact(cashflow.overdue)} label="Vencido" sub="saldo vivo" valueColor="var(--danger)" />
       </div>
 
       <Card eyebrow="Facturado contra cobrado" title="Serie mensual · USD">
+        <ConversionNote count={sinTasa} />
         <CashflowChart series={cashflow.series} />
       </Card>
 
@@ -1776,7 +1786,7 @@ export function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
           </strong>
         )}{" "}
         Por cobrar y vencido son saldos vivos totales (no del rango). Diferencia
-        facturado − cobrado del período: {fmtUsdCompact(pendiente)}.
+        facturado − cobrado del período: {sinTasa > 0 ? "pendiente por conversión incompleta" : fmtUsdCompact(pendiente)}.
       </p>
     </div>
   );
@@ -1823,6 +1833,7 @@ function CashflowChart({ series }: { series: CashflowReport["series"] }) {
           const bw = gw * 0.32;
           return (
             <g key={p.month}>
+              <title>{`${p.label}: facturado ${fmtUsd(p.billed)}, cobrado ${fmtUsd(p.collected)}${(p.facturasSinTasa ?? 0) + (p.recibosSinTasa ?? 0) > 0 ? ` · subtotales conocidos · ${p.facturasSinTasa ?? 0} factura(s) y ${p.recibosSinTasa ?? 0} recibo(s) sin tasa` : ""}`}</title>
               <rect x={x + gw * 0.14} y={H - 24 - bh} width={bw} height={Math.max(0, bh)} fill="var(--wine)" rx="2" />
               <rect x={x + gw * 0.14 + bw + 3} y={H - 24 - ch} width={bw} height={Math.max(0, ch)} fill="var(--success)" rx="2" />
               <text x={x + gw / 2} y={H - 8} fontFamily="var(--f-sans)" fontSize="9" fontWeight="600" fill="var(--ink-soft)" textAnchor="middle">
@@ -1872,7 +1883,7 @@ function CombinedView({
   rep: string;
 }) {
   // Sin costos cargados en el período → EmptyState honesto (regla §3.2).
-  if (combined.withCosts === 0) {
+  if (combined.withCosts === 0 && combined.totals.sinTasa === 0) {
     return (
       <EmptyState
         eyebrow="Combinados"
@@ -1907,16 +1918,17 @@ function CombinedKpis({ combined }: { combined: CombinedReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsdCompact(t.revenue)} label="Ingreso" sub="facturado · USD" valueColor="var(--success)" />
-        <KpiCard value={fmtUsdCompact(t.cost)} label="Costo directo" sub={`${t.revenue > 0 ? Math.round((t.cost / t.revenue) * 100) : 0}% sobre ingreso`} valueColor="var(--warning)" />
-        <KpiCard value={fmtUsd(t.margin)} label="Margen bruto" sub={`${fmtPct(t.avgMarginPct)} margen`} valueColor="var(--wine-text)" />
+        <KpiCard value={fmtUsdCompact(t.revenue)} label={t.sinTasa > 0 ? "Ingreso · subtotal conocido" : "Ingreso"} sub="facturado · USD" valueColor="var(--ink)" />
+        <KpiCard value={fmtUsdCompact(t.cost)} label="Costo directo" sub={t.sinTasa > 0 ? "costo conocido · USD" : `${t.revenue > 0 ? Math.round((t.cost / t.revenue) * 100) : 0}% sobre ingreso`} valueColor="var(--warning)" />
+        <KpiCard value={t.sinTasa > 0 ? "—" : fmtUsd(t.margin)} label="Margen bruto" sub={t.sinTasa > 0 ? "Conversión incompleta" : `${fmtPct(t.avgMarginPct)} margen`} valueColor={t.sinTasa > 0 ? "var(--ink)" : "var(--wine-text)"} />
         <KpiCard value={fmtNum(combined.withCosts)} label="Con costos" sub={`${coveragePct}% de ${fmtNum(combined.shipments)} embarques`} />
       </div>
+      <ConversionNote count={t.sinTasa} unit="embarque" />
       {combined.withCosts < combined.shipments && (
         <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
           {fmtNum(combined.shipments - combined.withCosts)} embarque
           {combined.shipments - combined.withCosts === 1 ? "" : "s"} del período
-          sin costos cargados cuentan como costo 0 (margen = ingreso completo).
+          sin costos cargados cuentan como costo 0. El margen requiere ingreso completo.
           Cárgalos en /studio/costing para una rentabilidad fiel. Costo real, sin
           estimaciones.
         </p>
@@ -1941,6 +1953,7 @@ function MarginTable({
     margin: number;
     marginPct: number;
     tone: RouteMarginRow["tone"];
+    sinTasa: number;
   }[];
 }) {
   return (
@@ -1972,6 +1985,7 @@ function MarginTable({
                 {r.sub}
               </div>
             )}
+            <ConversionNote count={r.sinTasa} unit="embarque" />
           </div>
           <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
             {fmtUsdCompact(r.revenue)}
@@ -1979,12 +1993,12 @@ function MarginTable({
           <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
             {fmtUsdCompact(r.cost)}
           </span>
-          <span style={{ font: "800 13px/1 var(--f-mono)", textAlign: "right", color: marginColor(r.margin) }}>
-            {fmtUsd(r.margin)}
+          <span style={{ font: "800 13px/1 var(--f-mono)", textAlign: "right", color: r.sinTasa > 0 ? "var(--ink)" : marginColor(r.margin) }}>
+            {r.sinTasa > 0 ? "—" : fmtUsd(r.margin)}
           </span>
           <span style={{ textAlign: "right" }}>
-            <Badge tone={r.tone as BadgeTone} size="sm">
-              {fmtPct(r.marginPct)}
+            <Badge tone={r.sinTasa > 0 ? "neutral" : r.tone as BadgeTone} size="sm">
+              {r.sinTasa > 0 ? "—" : fmtPct(r.marginPct)}
             </Badge>
           </span>
         </div>
@@ -2005,6 +2019,7 @@ function RentRouteView({ combined }: { combined: CombinedReport }) {
     margin: r.margin,
     marginPct: r.marginPct,
     tone: r.tone,
+    sinTasa: r.sinTasa,
   }));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -2034,6 +2049,7 @@ function MarginClientView({ combined }: { combined: CombinedReport }) {
     margin: r.margin,
     marginPct: r.marginPct,
     tone: r.tone,
+    sinTasa: r.sinTasa,
   }));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -2067,7 +2083,7 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
     );
   }
 
-  const maxMargin = Math.max(1, ...rows.map((r) => r.marginPerCbm));
+  const maxMargin = Math.max(1, ...rows.filter((r) => r.sinTasa === 0).map((r) => r.marginPerCbm));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -2087,6 +2103,7 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
         />
         {rows.map((r: RouteCbmRow) => {
           const m = r.marginPerCbm;
+          const incomplete = r.sinTasa > 0;
           return (
             <div
               key={`${r.origin}→${r.destination}`}
@@ -2099,35 +2116,37 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
                 borderTop: "1px solid var(--border)",
               }}
             >
-              <span style={{ font: "600 12.5px/1.3 var(--f-sans)", color: "var(--ink)" }}>
+              <div style={{ font: "600 12.5px/1.3 var(--f-sans)", color: "var(--ink)" }}>
                 {r.origin || "—"} → {r.destination || "—"}
-              </span>
+                <ConversionNote count={r.sinTasa} unit="embarque" />
+                {incomplete && <span>Ingreso conocido: {fmtUsd(r.revenue)}</span>}
+              </div>
               <span style={{ font: "600 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
                 {r.cbm.toFixed(1)}
               </span>
               <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
-                {fmtUsdCompact(r.revenuePerCbm)}
+                {incomplete ? "—" : fmtUsdCompact(r.revenuePerCbm)}
               </span>
               <span style={{ font: "600 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
                 {fmtUsdCompact(r.costPerCbm)}
               </span>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ flex: 1 }}>
+                {!incomplete && <div style={{ flex: 1 }}>
                   <Progress
                     value={(Math.max(0, m) / maxMargin) * 100}
                     tone={m < 0 ? "var(--danger)" : "var(--wine)"}
                     height={8}
                   />
-                </div>
+                </div>}
                 <span
                   style={{
                     font: "800 12px/1 var(--f-mono)",
-                    color: m < 0 ? "var(--danger)" : "var(--success)",
+                    color: incomplete ? "var(--ink)" : m < 0 ? "var(--danger)" : "var(--success)",
                     minWidth: 56,
                     textAlign: "right",
                   }}
                 >
-                  {fmtUsd(m)}
+                  {incomplete ? "—" : fmtUsd(m)}
                 </span>
               </div>
             </div>

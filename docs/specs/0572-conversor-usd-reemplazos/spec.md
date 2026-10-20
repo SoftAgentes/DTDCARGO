@@ -56,6 +56,41 @@ R1–R3/I1–I4/C1 y escenarios T1–T10. Se registra antes de editar producto:
   únicamente el overflow horizontal del ranking a auto: permite acceder al
   nuevo contador/estado sin rediseñar columnas. La frase histórica del
   Overview con revenue/costo cero queda fuera de alcance documentado.
+- A 22:25Z, el Director autorizó ampliar exactamente **58→60** con
+  `lib/studio/reports/__tests__/builder.test.ts` y
+  `scripts/__tests__/invoice-read-boundary.test.mjs`. El constructor debe
+  conservar igualdades exactas incluyendo `tasa` y verificar su proyección
+  real para ambas fuentes. El inventario pasa costing 2→1 y total 44→43 por
+  retirar `latestVesFxRate`; mantiene 19 rutas y toda la comparación exacta.
+  Revenue conserva cliente de sesión/guards/RLS; display usa `ultimaTasa`
+  sobre `fx_rates`, sin nueva lectura de facturas ni cliente admin.
+  Se detuvo verify220a con evidencia parcial: dos asserts fallidos y un
+  subconteo descubierto en revisión. Antes de reparar se reproducirá la mezcla
+  de dos facturas distintas, una por ID+code y otra solo code, en páginas
+  diferentes. No se cambiará el subtotal histórico por inferencia. Se prepara
+  mientras el turno pesado está cedido al Worker del publicador.
+- El Director amplió después **60→65**, únicamente con `BuilderView.tsx`,
+  `CobranzasClient.tsx` y las pruebas reales `ReportesClient.sin-tasa.test.tsx`,
+  `BuilderView.sin-tasa.test.tsx`, `CobranzasClient.sin-tasa.test.tsx` (rutas
+  exactas en allowlist). Aceptación: todas las salidas de estas conversiones
+  conservan subtotal parcial + estado/contador, incluido Mixto y CSV de
+  rutas/servicios/aging/cashflow. Solo excluidas no significa «sin saldos» ni
+  permite omitir CSV. Constructor propaga completitud por métrica, grupo y
+  total además del filtro Tasa; suma monetaria parcial visible, promedio
+  monetario incompleto no certificado, desconocido distinto de cero válido.
+  Cantidad, medidas físicas y costo por CBM siguen calculables. Fondos conserva
+  su clasificación y subtotal; muestra incompletitud y cuenta los cobros sin
+  identificar independientemente de su tasa. Sin KPIs globales, ledger, SQL,
+  históricos ni IVA. Regresiones funcionales sobre220a antes de reparar,
+  cuando se devuelva expresamente el turno pesado.
+- Precisión F5 aprobada por el Director: conservar la columna monetaria
+  histórica del CSV del Constructor, redondeada a entero y cubierta por su
+  prueba; añadir subtotal conocido con centavos, estado/contador y null vacío.
+  Revisar globalmente ese formato histórico queda fuera del alcance de0572-a.
+- Conservación posterior acordada: el total global de sumas físicas (CBM)
+  mantiene round2 histórico y sus filas conservan precisión sin redondear.
+  El promedio monetario incompleto está cubierto en helper/CSV con null y
+  subtotal conocido; el catálogo UI no ofrece esa métrica, y no se amplía.
 
 ## Decisiones del Director, por la delegación de Sam del 2026-10-20
 
@@ -212,6 +247,8 @@ En el cierre parcial de Codex se agregaron cinco casos: mezcla USD/USDT/VES/CNY/
 ```text
 app/studio/(app)/contabilidad/__tests__/reportes-tab.test.tsx
 app/studio/(app)/contabilidad/_components/IngresoDelPeriodoCard.tsx
+app/studio/(app)/cobranzas/_components/CobranzasClient.tsx
+app/studio/(app)/cobranzas/_components/CobranzasClient.sin-tasa.test.tsx
 app/studio/(app)/costing/_components/CostingClient.tsx
 app/studio/(app)/costing/_components/CostingClient.sin-tasa.test.tsx
 app/studio/(app)/costing/page.tsx
@@ -220,6 +257,9 @@ app/studio/(app)/financiero-china/_components/PartnerAlertsBanner.tsx
 app/studio/(app)/rendiciones/_components/EmitDrawer.sin-tasa.test.tsx
 app/studio/(app)/rendiciones/_components/EmitDrawer.tsx
 app/studio/(app)/reportes/_components/ReportesClient.tsx
+app/studio/(app)/reportes/_components/ReportesClient.sin-tasa.test.tsx
+app/studio/(app)/reportes/_components/BuilderView.tsx
+app/studio/(app)/reportes/_components/BuilderView.sin-tasa.test.tsx
 app/studio/(app)/tesoreria/_components/TesoreriaClient.cxp-saldada.test.tsx
 docs/specs/0572-conversor-usd-reemplazos/spec.md
 docs/specs/README.md
@@ -262,12 +302,14 @@ lib/studio/renditions/queries.ts
 lib/studio/renditions/types.ts
 lib/studio/reports/__tests__/queries.test.ts
 lib/studio/reports/__tests__/export-csv.test.ts
+lib/studio/reports/__tests__/builder.test.ts
 lib/studio/reports/builder-types.ts
 lib/studio/reports/export-csv.ts
 lib/studio/reports/queries.ts
 lib/studio/reports/types.ts
 lib/studio/treasury/__tests__/treasury.test.ts
 lib/studio/treasury/bill-queries.ts
+scripts/__tests__/invoice-read-boundary.test.mjs
 ```
 
 `docs/specs/README.md` se incorporó a la allowlist por autorización acotada del Director el 2026-10-20: es el índice generado necesario para reflejar el estado de esta spec, sin ampliar el alcance de producto.
@@ -287,11 +329,37 @@ En el mismo cierre, el Director autorizó sumar únicamente `TesoreriaClient.cxp
 | Cambio de comportamiento Studio | cumplimiento | SDD aprobada + allowlist exacta (arriba) |
 | Producción | no aplica a la 0572-a | la 0572-a no tiene migración; la 0572-b sí |
 | ERR-01 | cumplimiento | cada «sin tasa» dice dónde cargarla («Contabilidad › Tasas de cambio», «Admin › Tasas») o qué falta para emitir |
-| DAT-01 / completitud | cumplimiento | subtotal conocido + contador; diferencia total null; lectura truncada rechaza; cero válido conservado |
+| Contrato Director / SGE-00.07 / NUM-01 | cumplimiento local en regresiones; revisión independiente nueva pendiente | F1–F6 reparados: subtotal conocido + contador; diferencia total null; cero válido distinto de importe desconocido; CSV y consumidores conservan estado |
+| DAT-01 | no aplica al delta de fechas/rangos | no se modifica selección de fechas, rango ni Caracas; DAT-01 no gobierna completitud financiera |
 | VIS-01 / VIS-02 / CMP-01 | cumplimiento en el diff | componentes y tokens existentes; incompleto neutral, sin color de rentabilidad; ranking desplazable en ancho reducido |
 | A11Y-01 | cumplimiento parcial observado | estado textual junto al número, selector rotulado, VES deshabilitado sin tasa; fixture claro/oscuro y ancho390. Auditoría integral y dispositivo real NO EJECUTADOS |
 
 ## Validación
+
+### Reparación F1–F6 sobre 220a · checkpoint local 2026-10-20
+
+Allowlist 65, turno pesado concedido a las 22:43:12Z. El ROJO sobre producto 220a
+reprodujo 43 fallos/184; cuatro negativos UI se repitieron con selector preciso
+(14 fallos funcionales/1 PASÓ en esas dos suites), antes de reparar producto.
+VERDE 184/184 y focal ampliado 35 archivos/751 PASÓ, sin SKIPs. Además se reprodujo
+el total CBM 0.3579 frente al 0.36 histórico y se conservó round2 global.
+
+F1 une el contador propio por FK con solo-code sin duplicar ni reasignar un FK
+ajeno; subtotal revenue histórico no cambia. F2 propaga el contador a cliente
+y CBM de Mixto, conserva costo/CBM y omite márgenes definitivos. F3/F4 preservan
+Aging solo excluidas y sus CSV; rutas/servicios/cashflow exportan estado y
+contador (mensual para cashflow). F5 conserva null/subtotal/completitud por
+métrica, grupo y total, sin invalidar count/CBM. F6 muestra incompletitud de
+fondos y cuenta sin identificar independientemente del FX.
+
+Mutantes nuevos 22/22 detectados entre corrida inicial 21/22 y suplemento único
+de Aging 11 con la suite que contiene sus tres casos solo excluidas. Los 21
+mutantes originales también se detectaron; todas las fuentes se restauraron
+por SHA256. Tipos PASÓ. Alcance 65 y diff-check completo contra d410 PASÓ.
+ESLint de 61 archivos PASÓ sin advertencias; la espera del efecto de Builder
+en pruebas pasó 4/4 sin avisos React. Fixture F1–F6, verify y revisión nueva permanecen pendientes en este
+checkpoint. Recibos `revision-*` en la carpeta externa de validación; el
+handoff conserva cada corrida, selección corregida y límite de cobertura.
 
 ### Retoma después de #301 · 2026-10-20
 
@@ -307,7 +375,7 @@ Primero se escribieron las regresiones y después se corrigió producto.
 | typecheck / lint | PASÓ: exit 0; ESLint 55 archivos, cero warnings |
 | Último ajuste de scroll | PASÓ: 6/6 pruebas existentes del componente y lint puntual |
 | Fixture real Costing + ingreso | PASÓ alcance sintético: parcial positivo/negativo, B3, mixto, cero, claro/oscuro, contenedor390 con desplazamiento. Studio real/dispositivo/a11y integral NO EJECUTADOS |
-| verify / build / E2E del commit revisable | NO EJECUTADO todavía; siguiente paso del cierre |
+| verify sobre220a2c3e | INTERRUMPIDO/INCOMPLETO por Director a22:25Z: harness237, lint, rsc, tipos y edge PASÓ; dos asserts unitarios fallaron. La suite no terminó; build/E2E/gates posteriores NO EJECUTADOS |
 | Conocimiento | status terminó pero ok=false; estructura INVALID, semántica 0/16 y 0/1324, Archify/Obsidian PENDING; preview interrumpida, no completada |
 
 Logs, mutantes, fixtures y capturas fuera de Git en

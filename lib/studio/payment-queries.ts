@@ -312,6 +312,8 @@ export function computeFundsSeparation(
   let sinTasaCount = 0;
 
   for (const r of receipts) {
+    // La existencia del cobro pendiente de identificar no depende de su FX.
+    if (r.application_status === "recibido_sin_ref") unidentifiedCount += 1;
     const usd = receiptAmountUsd(r.amount, r.currency, r.fx_rate);
     // SDD-0572: sin tasa no suma (antes se tomaba el nominal como dólares).
     if (usd === null) {
@@ -325,7 +327,6 @@ export function computeFundsSeparation(
     }
     if (r.application_status === "recibido_sin_ref") {
       unidentifiedUsd += usd;
-      unidentifiedCount += 1;
     }
   }
 

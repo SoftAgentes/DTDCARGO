@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { buildViewCsv, reportFilename, rowsToCsv } from "../export-csv";
 import { resumirIngreso } from "@/lib/studio/accounting/ingreso-periodo";
+import { costingTotals, marginByRoute, marginByClient, costPerCbmByRoute, type CostingRow } from "@/lib/studio/costing/queries";
+import { shipmentEconomics } from "@/lib/studio/costing/types";
+import { groupByRoute, groupByService, type ReportShipment } from "../types";
 import type {
   AgingReport,
   CashflowReport,
@@ -12,6 +15,57 @@ import type {
 } from "../types";
 
 const TODAY = new Date("2026-06-04T12:00:00Z");
+
+describe("0572 revisión · CSV conserva completitud de sus agregadores reales", () => {
+  const shipment = { id: "s1", code: "SH-1", origin: "CN", destination: "VE", shipment_service: "consolidado_lcl", cbm: 10, client_name: "Acme", created_at: "2026-06-01", arrived_destination_at: null, delivered_at: null } as ReportShipment;
+
+  it.each(["routes", "services"])("operacional %s declara subtotal y omite tasa por CBM incompleta", (rep) => {
+    const revenue = new Map([["SH-1", 100]]);
+    const missing = new Map([["SH-1", 2]]);
+    const csv = buildViewCsv({ category: "op", rep, routes: groupByRoute([shipment], revenue, missing), services: groupByService([shipment], revenue, missing), today: TODAY });
+    const [head, row] = csv!.content.split("\r\n").map((line) => line.split(","));
+    expect(head).toContain("Revenue USD (subtotal conocido)");
+    expect(head.slice(-2)).toEqual(["Estado de conversión", "Facturas sin tasa"]);
+    expect(row.slice(-2)).toEqual(["Conversión incompleta", "2"]);
+    expect(row[head.indexOf("Revenue USD (subtotal conocido)")]).toBe("100");
+    expect(row[head.indexOf("USD/CBM")]).toBe("");
+  });
+
+  it.each([0, 1])("ruta con subtotal cero y faltantes=%s conserva el estado y cero conocido", (sinTasa) => {
+    const csv = buildViewCsv({ category: "op", rep: "routes", routes: groupByRoute([shipment], new Map([["SH-1", 0]]), new Map([["SH-1", sinTasa]])), today: TODAY });
+    const [head, row] = csv!.content.split("\r\n").map((line) => line.split(","));
+    expect(row[head.indexOf("Revenue USD (subtotal conocido)")]).toBe("0");
+    expect(row[head.indexOf("USD/CBM")]).toBe(sinTasa ? "" : "0");
+    expect(row.slice(-2)).toEqual([sinTasa ? "Conversión incompleta" : "Completo", String(sinTasa)]);
+  });
+
+  it.each(["rent-route", "margin-client", "cost-cbm"])("mixto %s conserva costos y no certifica margen", (rep) => {
+    const rows: CostingRow[] = [{ shipment: { ...shipment, volume_m3: 10 } as unknown as CostingRow["shipment"], costs: null, facturasSinTasa: 2, eco: shipmentEconomics({ revenueUsd: 100, costs: { freight: 20, customs: 0, transport: 0, handling: 0, insurance: 0, commission: 0, other: 0 } }) }];
+    const combined: CombinedReport = { totals: costingTotals(rows), byRoute: marginByRoute(rows), byClient: marginByClient(rows), byCbm: costPerCbmByRoute(rows), withCosts: 1, shipments: 1 };
+    const csv = buildViewCsv({ category: "mix", rep, combined, today: TODAY });
+    const [head, row] = csv!.content.split("\r\n").map((line) => line.split(","));
+    expect(head.slice(-2)).toEqual(["Estado de conversión", "Embarques sin tasa"]);
+    expect(row.slice(-2)).toEqual(["Conversión incompleta", "1"]);
+    if (rep === "cost-cbm") {
+      expect(row[head.indexOf("$/CBM costo")]).toBe("2");
+      expect(row[head.indexOf("$/CBM ingreso")]).toBe("");
+      expect(row[head.indexOf("Margen/CBM USD")]).toBe("");
+      expect(row[head.indexOf("Ingreso USD (subtotal conocido)")]).toBe("100");
+    } else {
+      expect(row[head.indexOf("Ingreso USD (subtotal conocido)")]).toBe("100");
+      expect(row[head.indexOf("Costo USD")]).toBe("20");
+      expect(row[head.indexOf("Margen USD")]).toBe("");
+      expect(row[head.indexOf("Margen %")]).toBe("");
+    }
+  });
+
+  it("facturado/cobrado exporta solo excluidas en vez de null", () => {
+    const cashflow: CashflowReport = { series: [{ month: "2026-06", label: "JUN 26", billed: 0, collected: 0, facturasSinTasa: 1, recibosSinTasa: 1 }], totalBilled: 0, totalCollected: 0, outstanding: 0, overdue: 0, facturasSinTasa: 1, recibosSinTasa: 1 };
+    const csv = buildViewCsv({ category: "con", rep: "cashflow", cashflow, today: TODAY });
+    expect(csv).not.toBeNull();
+    expect(csv!.content).toContain("JUN 26,0,0,Conversión incompleta,1,1");
+  });
+});
 
 describe("rowsToCsv", () => {
   it("une headers + filas con CRLF y celdas escapadas", () => {
@@ -99,10 +153,10 @@ describe("buildViewCsv · Operacionales · por ruta", () => {
     expect(csv).not.toBeNull();
     expect(csv!.filename).toBe("reporte-operacional-por-ruta-2026-06-04.csv");
     const lines = csv!.content.split("\r\n");
-    expect(lines[0]).toBe("Origen → Destino,Envíos,CBM,Días prom.,Revenue USD,USD/CBM");
-    expect(lines[1]).toBe("Yiwu → Pto Cabello,3,12.5,41,9000,720");
+    expect(lines[0]).toBe("Origen → Destino,Envíos,CBM,Días prom.,Revenue USD (subtotal conocido),USD/CBM,Estado de conversión,Facturas sin tasa");
+    expect(lines[1]).toBe("Yiwu → Pto Cabello,3,12.5,41,9000,720,Completo,0");
     // avgTransit null → celda vacía
-    expect(lines[2]).toBe("Ningbo → La Guaira,3,12.5,,9000,720");
+    expect(lines[2]).toBe("Ningbo → La Guaira,3,12.5,,9000,720,Completo,0");
   });
 
   it("rutas vacías → null", () => {
@@ -172,9 +226,9 @@ describe("buildViewCsv · Contables · aging", () => {
     const aging: AgingReport = { cxc: side(1000), cxp: side(500) };
     const csv = buildViewCsv({ category: "con", rep: "aging", aging, today: TODAY });
     const lines = csv!.content.split("\r\n");
-    expect(lines[0]).toBe("Lado,Tramo,Monto USD,Documentos,%");
-    expect(lines[1]).toBe("CxC,Corriente,1000,1,100");
-    expect(lines[5]).toBe("CxP,Corriente,500,1,100");
+    expect(lines[0]).toBe("Lado,Tramo,Monto USD (subtotal conocido),Documentos,%,Estado de conversión,Documentos sin tasa del lado");
+    expect(lines[1]).toBe("CxC,Corriente,1000,1,100,Completo,0");
+    expect(lines[5]).toBe("CxP,Corriente,500,1,100,Completo,0");
     expect(lines).toHaveLength(9); // header + 4 CxC + 4 CxP
   });
 
@@ -193,7 +247,7 @@ describe("buildViewCsv · Combinados", () => {
       { origin: "Yiwu", destination: "Pto Cabello", count: 2, revenue: 8000, cost: 5000, margin: 3000, marginPct: 37, tone: "good" as never, sinTasa: 0 },
     ],
     byClient: [
-      { client: "Acme", count: 2, revenue: 8000, cost: 5000, margin: 3000, marginPct: 37, tone: "good" as never },
+      { client: "Acme", count: 2, revenue: 8000, cost: 5000, margin: 3000, marginPct: 37, tone: "good" as never, sinTasa: 0 },
     ],
     byCbm: [],
     withCosts: 2,
@@ -205,14 +259,14 @@ describe("buildViewCsv · Combinados", () => {
     const csv = buildViewCsv({ category: "mix", rep: "rent-route", combined: combined({}), today: TODAY });
     expect(csv!.filename).toBe("reporte-combinado-rentabilidad-por-ruta-2026-06-04.csv");
     const lines = csv!.content.split("\r\n");
-    expect(lines[0]).toBe("Ruta,Embarques,Ingreso USD,Costo USD,Margen USD,Margen %");
-    expect(lines[1]).toBe("Yiwu → Pto Cabello,2,8000,5000,3000,37");
+    expect(lines[0]).toBe("Ruta,Embarques,Ingreso USD (subtotal conocido),Costo USD,Margen USD,Margen %,Estado de conversión,Embarques sin tasa");
+    expect(lines[1]).toBe("Yiwu → Pto Cabello,2,8000,5000,3000,37,Completo,0");
   });
 
   it("rep margin-client usa byClient", () => {
     const csv = buildViewCsv({ category: "mix", rep: "margin-client", combined: combined({}), today: TODAY });
     expect(csv!.filename).toBe("reporte-combinado-margen-por-cliente-2026-06-04.csv");
-    expect(csv!.content.split("\r\n")[1]).toBe("Acme,2,8000,5000,3000,37");
+    expect(csv!.content.split("\r\n")[1]).toBe("Acme,2,8000,5000,3000,37,Completo,0");
   });
 
   it("sin costos cargados (withCosts 0) → null", () => {
@@ -316,6 +370,6 @@ describe("buildViewCsv · Estado de resultados (SDD-0557)", () => {
     const csv = buildViewCsv({ category: "con", rep: "cashflow", cashflow, today: TODAY });
     expect(csv!.filename).toBe("reporte-contable-facturado-contra-cobrado-2026-06-04.csv");
     // El facturado de esta vista lleva IVA (se compara con lo cobrado).
-    expect(csv!.content.split("\r\n")[0]).toBe("Mes,Facturado con IVA USD,Cobrado USD");
+    expect(csv!.content.split("\r\n")[0]).toBe("Mes,Facturado con IVA USD (subtotal conocido),Cobrado USD (subtotal conocido),Estado de conversión,Facturas sin tasa,Recibos sin tasa");
   });
 });

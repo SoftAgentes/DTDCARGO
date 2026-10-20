@@ -112,6 +112,8 @@ export type RevenueMaps = {
   /** SDD-0572: facturas sin tasa (no suman), por shipment_id y por shipment_code. */
   sinTasaById?: Map<string, number>;
   sinTasaByCode?: Map<string, number>;
+  /** Solo facturas legadas SIN FK: se unen al FK propio sin duplicar ni reasignar. */
+  sinTasaOnlyCode?: Map<string, number>;
 };
 
 type RevenueRow = {
@@ -172,6 +174,7 @@ export async function revenueByShipment(
   const byCode = new Map<string, number>();
   const sinTasaById = new Map<string, number>();
   const sinTasaByCode = new Map<string, number>();
+  const sinTasaOnlyCode = new Map<string, number>();
 
   const rows = data.map(
     (r): RevenueRow => ({
@@ -201,6 +204,7 @@ export async function revenueByShipment(
     if (usd === null) {
       if (r.shipment_id) sinTasaById.set(r.shipment_id, (sinTasaById.get(r.shipment_id) ?? 0) + 1);
       if (r.shipment_code) sinTasaByCode.set(r.shipment_code, (sinTasaByCode.get(r.shipment_code) ?? 0) + 1);
+      if (!r.shipment_id && r.shipment_code) sinTasaOnlyCode.set(r.shipment_code, (sinTasaOnlyCode.get(r.shipment_code) ?? 0) + 1);
       continue;
     }
     if (usd <= 0) continue;
@@ -213,14 +217,13 @@ export async function revenueByShipment(
     }
   }
 
-  return { byId, byCode, sinTasaById, sinTasaByCode };
+  return { byId, byCode, sinTasaById, sinTasaByCode, sinTasaOnlyCode };
 }
 
-/** SDD-0572: cuántas facturas sin tasa tiene el embarque (por id, o por code). */
+/** SDD-0572: FK propio más facturas solo-code. Un FK ajeno nunca se reasigna. */
 function resolveSinTasa(shipment: Pick<Shipment, "id" | "code">, rev: RevenueMaps): number {
   const porId = rev.sinTasaById?.get(shipment.id) ?? 0;
-  if (porId > 0) return porId;
-  return shipment.code ? (rev.sinTasaByCode?.get(shipment.code) ?? 0) : 0;
+  return porId + (shipment.code ? (rev.sinTasaOnlyCode?.get(shipment.code) ?? 0) : 0);
 }
 
 /** Resuelve el revenue de un embarque: por id, fallback por code. */
@@ -396,6 +399,8 @@ export type ClientMarginRow = {
   margin: number;
   marginPct: number;
   tone: MarginTone;
+  /** Embarques con ingreso incompleto; revenue conserva el subtotal conocido. */
+  sinTasa: number;
 };
 
 /**
@@ -410,16 +415,17 @@ export type ClientMarginRow = {
 export function marginByClient(rows: CostingRow[]): ClientMarginRow[] {
   const byClient = new Map<
     string,
-    { client: string; count: number; revenue: number; cost: number }
+    { client: string; count: number; revenue: number; cost: number; sinTasa: number }
   >();
 
-  for (const { shipment, eco } of rows) {
+  for (const { shipment, eco, facturasSinTasa } of rows) {
     const name = (shipment.client_name ?? "").trim();
     const client = name || NO_CLIENT_LABEL;
-    const cur = byClient.get(client) ?? { client, count: 0, revenue: 0, cost: 0 };
+    const cur = byClient.get(client) ?? { client, count: 0, revenue: 0, cost: 0, sinTasa: 0 };
     cur.count += 1;
     cur.revenue += eco.revenue;
     cur.cost += eco.totalCost;
+    if ((facturasSinTasa ?? 0) > 0) cur.sinTasa += 1;
     byClient.set(client, cur);
   }
 
@@ -429,7 +435,10 @@ export function marginByClient(rows: CostingRow[]): ClientMarginRow[] {
       const marginPct = r.revenue > 0 ? (margin / r.revenue) * 100 : 0;
       return { ...r, margin, marginPct, tone: marginTone(marginPct) };
     })
-    .sort((a, b) => b.margin - a.margin);
+    .sort((a, b) => {
+      if (a.sinTasa > 0 || b.sinTasa > 0) return Number(a.sinTasa > 0) - Number(b.sinTasa > 0);
+      return b.margin - a.margin;
+    });
 }
 
 // ── Costo por CBM (Reportes · Combinados) ─────────────────────
@@ -446,6 +455,8 @@ export type RouteCbmRow = {
   revenuePerCbm: number;
   /** Margen unitario por CBM (revenuePerCbm − costPerCbm). */
   marginPerCbm: number;
+  /** Embarques con ingreso incompleto; costo/CBM permanece conocido. */
+  sinTasa: number;
 };
 
 /** CBM de un embarque (vive en `volume_m3`); 0 si nulo/no finito. */
@@ -471,20 +482,22 @@ export function costPerCbmByRoute(rows: CostingRow[]): RouteCbmRow[] {
       cbm: number;
       revenue: number;
       cost: number;
+      sinTasa: number;
     }
   >();
 
-  for (const { shipment, eco } of rows) {
+  for (const { shipment, eco, facturasSinTasa } of rows) {
     const origin = shipment.origin ?? "";
     const destination = shipment.destination ?? "";
     const key = `${origin}→${destination}`;
     const cur =
       byRoute.get(key) ??
-      { origin, destination, count: 0, cbm: 0, revenue: 0, cost: 0 };
+      { origin, destination, count: 0, cbm: 0, revenue: 0, cost: 0, sinTasa: 0 };
     cur.count += 1;
     cur.cbm += shipmentCbm(shipment);
     cur.revenue += eco.revenue;
     cur.cost += eco.totalCost;
+    if ((facturasSinTasa ?? 0) > 0) cur.sinTasa += 1;
     byRoute.set(key, cur);
   }
 
@@ -500,7 +513,10 @@ export function costPerCbmByRoute(rows: CostingRow[]): RouteCbmRow[] {
         marginPerCbm: revenuePerCbm - costPerCbm,
       };
     })
-    .sort((a, b) => b.revenuePerCbm - a.revenuePerCbm);
+    .sort((a, b) => {
+      if (a.sinTasa > 0 || b.sinTasa > 0) return Number(a.sinTasa > 0) - Number(b.sinTasa > 0);
+      return b.revenuePerCbm - a.revenuePerCbm;
+    });
 }
 
 // ── Templates por ruta ────────────────────────────────────────

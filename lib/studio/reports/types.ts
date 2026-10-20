@@ -593,6 +593,9 @@ export type CashflowPoint = {
   label: string; // "ENE 26"
   billed: number; // facturado en el mes (USD)
   collected: number; // cobrado en el mes (USD)
+  /** Excluidas del subtotal de este mes, no contadores repetidos del período. */
+  facturasSinTasa?: number;
+  recibosSinTasa?: number;
 };
 
 /** Payload del cashflow: serie mensual + KPIs. */
@@ -702,7 +705,7 @@ export function incomeStatementRows(pl: {
 }
 
 /** Mínimo que el cashflow necesita de un movimiento (factura o cobro). */
-export type FlowItem = { dateIso: string | null; usd: number };
+export type FlowItem = { dateIso: string | null; usd: number | null };
 
 /**
  * Serie mensual facturado-vs-cobrado (USD) sobre el rango, alineada a los meses
@@ -731,23 +734,31 @@ export function monthlyCashflow(
 
   const billedByMonth = new Map<string, number>();
   const collectedByMonth = new Map<string, number>();
-  const tally = (items: FlowItem[], into: Map<string, number>) => {
+  const billedMissing = new Map<string, number>();
+  const collectedMissing = new Map<string, number>();
+  const tally = (items: FlowItem[], into: Map<string, number>, missing: Map<string, number>) => {
     for (const it of items) {
       if (!it.dateIso) continue;
       const t = new Date(it.dateIso);
       if (Number.isNaN(t.getTime())) continue;
       const key = monthKey(t);
+      if (it.usd === null) {
+        missing.set(key, (missing.get(key) ?? 0) + 1);
+        continue;
+      }
       into.set(key, (into.get(key) ?? 0) + (Number(it.usd) || 0));
     }
   };
-  tally(billed, billedByMonth);
-  tally(collected, collectedByMonth);
+  tally(billed, billedByMonth, billedMissing);
+  tally(collected, collectedByMonth, collectedMissing);
 
   return months.map((key) => ({
     month: key,
     label: monthLabel(key),
     billed: Math.round((billedByMonth.get(key) ?? 0) * 100) / 100,
     collected: Math.round((collectedByMonth.get(key) ?? 0) * 100) / 100,
+    facturasSinTasa: billedMissing.get(key) ?? 0,
+    recibosSinTasa: collectedMissing.get(key) ?? 0,
   }));
 }
 

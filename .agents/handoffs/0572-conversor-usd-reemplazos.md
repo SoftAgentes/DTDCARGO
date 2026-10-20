@@ -32,7 +32,7 @@ exclusión de top/peores, margen sin evaluación definitiva, propagación a
 totales/rutas y CSV con estado/contador y null vacío. Sin recalcular 4.5,
 facturado oficial ni KPIs globales. Truncamiento/error de lectura rechaza.
 
-**Allowlist y permisos:** 58 rutas exactas en la spec: las 55 previas más
+**Allowlist y permisos iniciales:** 58 rutas exactas en la spec: las 55 previas más
 `IngresoDelPeriodoCard.tsx`, `CostingClient.sin-tasa.test.tsx` y
 `lib/studio/reports/export-csv.ts`. Ediciones reversibles, commits selectivos,
 push de esta rama y draft PR después de validación local autorizados.
@@ -63,7 +63,7 @@ recortaba su nuevo contador a 390 px. No se rediseñaron columnas ni otras vista
 | ESLint del diff propio TS/TSX | **PASÓ:** 55 archivos, cero warnings, `retoma-lint.log` |
 | Cambio final de scroll del ranking | **PASÓ:** 6/6 pruebas del componente y lint puntual; `retoma-ui-final-focal.log`, `retoma-ui-final-lint.log` |
 | UI sintética con componentes reales y tokens/fuentes locales | **PASÓ en el alcance observado:** incompletitud positiva/negativa, B3, nominal mixto, cero conocido, claro/oscuro y contenedor 390 px. Margen/contador visibles tras desplazamiento horizontal; escritorio sin desborde. No acredita dispositivo real ni Studio autenticado |
-| `pnpm verify`, build y E2E sobre commit revisable | **NO EJECUTADO todavía**; siguiente paso tras fijar SHA |
+| `pnpm verify` sobre220a, build y E2E | **INTERRUMPIDO / NO ACEPTADO:** dos aserciones fallidas y revisión F1–F6; sin resultado global. Build/E2E posteriores NO EJECUTADOS. Recibo de parada abajo |
 | DB/producción/migraciones | **NO EJECUTADO:** fuera del encargo; diff SQL y captura/CAS/correo frente a `d410ab2e` vacío |
 
 La UI usa `CostingClient` e `IngresoDelPeriodoCard` reales; solo los dos
@@ -81,8 +81,113 @@ componentes existentes y estado textual neutral; sin nuevos anchos fijos.
 El aviso nuevo de rendición pasó de peligro a tinta neutral y el aviso de
 Reportes usa spacing de la escala. Hallazgo restante descrito abajo.
 
-**PENDIENTES DE ESTA TAREA:** verify canónico, revisión independiente,
-commit/push final y draft PR. Actions está retenido por rechazo de pago/revisión
+**Checkpoint 22:25Z / decisión Director:** producto publicado en
+`220a2c3e30b0b070a5dc6d44ad8131021f2a0d2c`, local/remoto iguales y árbol limpio
+al detener. La corrida `corepack pnpm verify` comenzó a22:16:18Z y se
+**INTERRUMPIÓ por orden expresa, INCOMPLETA**: harness237/237, lint0errores/
+15warnings globales, rsc-boundary, tipos y cuatro edge functions PASÓ.
+Se observaron dos asserts unitarios fallidos (builder e inventario de lecturas);
+no se completó la suite ni se atribuyen conteos globales. Los gates posteriores,
+build y E2E NO EJECUTADOS. Logs `retoma-verify-220a2c3e.log` y recibos
+`retoma-verify-220a2c3e-{start,process-tree-before-stop,process-tree-stop,stop}.json`.
+Parada solo del árbol propio25392, 34procesos identificados con CreationDate;
+sesión45345 cerróexit-1 y limpieza53275exit0. Cero descendientes/consumidores y
+puerto4802 libre a22:25:17Z, `retoma-heavy-turn-return.json`. Turno pesado
+**DEVUELTO temporalmente** al Director; no ejecutar antes de nueva concesión.
+
+La revisión independiente detectó subconteo de `resolveSinTasa` si un embarque
+tiene simultáneamente dos facturas sin tasa, una con ID+code y otra solo code.
+T9 anterior separaba esas alternativas y no cubría la mezcla simultánea.
+Nuevo ROJO pendiente con IDs documentales distintos y segunda página, sin
+cambiar subtotal conocido. La reparación de producto espera esa reproducción
+y la precisión del revisor sobre consumidores de márgenes de Reportes/Mixto.
+
+**Ampliación aprobada antes de editar:** allowlist **58→60**, solo
+`lib/studio/reports/__tests__/builder.test.ts` y
+`scripts/__tests__/invoice-read-boundary.test.mjs`. No se relajan pruebas:
+catálogo exacto incluye `tasa` y proyección real de completos/incompletos para
+facturas/embarques; inventario exacto mantiene19rutas, costing2→1/total44→43
+por eliminación de `latestVesFxRate`. La lectura restante de revenue conserva
+cliente de sesión, guards y RLS; display lee `fx_rates` con `ultimaTasa` y el
+mismo cliente, sin añadir acceso admin ni lecturas de facturas.
+
+**Ampliación posterior aprobada 60→65:** `BuilderView.tsx`,
+`CobranzasClient.tsx` y tres pruebas reales de ReportesClient, BuilderView y
+CobranzasClient (rutas exactas en spec). Hallazgos agrupados para ROJO sobre220a:
+Mixto pierde completitud de los agregados Costing; CSV rutas/servicios/aging/
+cashflow pierde contador/estado; Aging solo excluidas declara vacío y omite CSV;
+Constructor convierte métrica ausente en cero y no protege agrupaciones por
+cliente; fondos no muestra `sinTasaCount` y omite un no identificado sin tasa.
+Contrato aprobado: subtotal parcial, estado y contador en esas salidas; nunca
+margen/promedio monetario definitivo si incompleto; solo desconocido distinto
+de cero conocido. Cantidad/medidas físicas/costo por CBM siguen calculables.
+Clasificación de fondos no cambia, y no identificado se cuenta sin depender
+de la tasa. No amplía a KPIs globales/SQL/ledger/IVA. Preparar docs/pruebas sin
+ejecución ni corrección de producto hasta recuperar turno del publicador.
+
+**Preparación de reparación F1–F6:** informe externo
+`C:/tmp/director-traspaso-20261020/0572-revision-independiente-220a2c3e.md`,
+SHA256 `a8bcdd053a85909c3ecb9fb1f537989365b5aa61228c0c8d9f13aca8cf19a980`.
+Se prepararon nueve archivos focales de pruebas sobre producto220a intacto:
+queries Costing; queries/Builder/CSV Reportes; payment-receipts; tres componentes
+reales y el inventario de invoices. Incluyen mezcla simultánea ID+code/solo-code
+con documentos distintos y segunda página, FK ajeno no reasignado por code,
+Aging CxC sola/CxP sola/ambas/parcial/vacío, Mixto con signo positivo/negativo,
+costo/CBM preservado, Constructor por Cliente/Estado/filtro, cero conocido y
+fondos sin identificar independientes del FX. No se simula el agregador probado.
+Ese checkpoint de preparación conservó producto 220a intacto; el turno pesado
+se devolvió expresamente a 0572 a las 22:43:12Z y se ejecutó la secuencia siguiente.
+La precisión de gobernanza en spec se corrigió: contrato Director, SGE-00.07 y
+NUM-01 para estado verdadero/precisión; DAT-01 no aplica al delta de fechas.
+El whitespace EOF de format.ts quedó corregido; `git diff --check d410ab2e`
+PASÓ sobre el rango completo y el árbol reparado.
+El Director confirmó conservar el formato histórico entero de la columna
+monetaria del CSV Constructor y su prueba, añadiendo subtotal conocido con
+centavos/estado/contador y null vacío. La revisión global de ese formato se
+clasifica **FUERA DE ALCANCE DETECTADO**, no como pendiente F5.
+
+**Checkpoint reparado F1–F6, antes de la revisión independiente nueva:**
+
+- F1 cuenta FK propio más documentos sin FK por code, con identificadores
+  documentales distintos, mezcla simultánea, segunda página y FK ajeno. No
+  se modificó la selección histórica del subtotal revenue por mapas.
+- F2 conserva incompletitud en cliente/CBM de Mixto, sus totales y CSV;
+  margen e ingreso/CBM quedan pendientes, costo y costo/CBM permanecen válidos.
+- F3/F4 Aging con CxC sola/CxP sola/ambas sin tasa conserva existencia, subtotal
+  y exportación. Rutas/servicios/cashflow exportan estado y contador; el
+  cashflow cuenta los documentos excluidos por mes, conservando sus filtros.
+- F5 propaga completitud monetaria por métrica/grupo/total, además del filtro;
+  solo desconocido conserva null, suma parcial conserva subtotal y promedio
+  incompleto conserva null más subtotal conocido en helper/CSV. El catálogo
+  UI vigente solo ofrece sumas monetarias: no se añadió promedio monetario.
+  Cantidad/CBM siguen calculables. El total global físico conserva round2
+  histórico, sin redondear las filas de suma CBM.
+- F6 muestra el contador de fondos y cuenta el cobro sin identificar antes
+  del descarte por FX. Se conserva clasificación propios/terceros y subtotal.
+
+| Comprobación nueva (producto posterior a 220a, aún sin SHA de cierre) | Resultado / evidencia externa |
+|---|---|
+| ROJO funcional sobre producto220a | **FALLÓ esperado:** 43/184 inicialmente, 141 PASÓ. Cuatro negativos UI dieron selector ambiguo por valores erróneos duplicados; se precisaron con queryAll y se repitieron las dos suites sin tocar producto: 14 fallos funcionales/1 PASÓ. `revision-f1-f6-red*` y `revision-f1-f6-red-ui-selectors*`; no error de import/mock/infra |
+| Verde inicial F1–F6 | **PASÓ:** 184/184 en 9 archivos, sin SKIPs, `revision-f1-f6-green-2.log`. La primera verde dejó 182/184: un texto genérico de pie de impresión confundía el estado completo; se corrigió ese texto, no las aserciones |
+| Redondeo físico histórico | **FALLÓ esperado:** total 0.3579 vs 0.36 en nueva regresión; 30 pruebas no seleccionadas. Reparado antes del focal ampliado, `revision-cbm-red.log` |
+| Focal ampliado, incluido contrato heredado 0569 | **PASÓ:** 751/751, 35 archivos, sin SKIPs, `revision-expanded-focal.log/.json` |
+| Mutantes nuevos | **PASÓ combinado:** 22/22 detectados con fallos funcionales y restauración SHA256. La primera selección produjo 21/22: Aging 11 sobrevivió al correr suite CSV sin los casos solo excluidas. Su suplemento con queries detectó los 3 casos; no se reescribe el resultado inicial. `revision-mutants-result.json`, `revision-recheck-mutants-result.json` |
+| Mutantes originales repetidos | **PASÓ:** 21/21 detectados/restaurados, `revision-original-mutants-result.json` |
+| Tipos | **PASÓ:** corepack pnpm typecheck, `revision-typecheck.log` |
+| Alcance y whitespace | **PASÓ:** 65 rutas contra d410, ninguna fuera; full-range diff-check limpio. `revision-scope.json` |
+| ESLint | **PASÓ:** 61 archivos TS/TSX, cero advertencias; `revision-lint.log` y manifest `revision-lint-files.json` |
+| Espera del efecto de Builder en la prueba | **PASÓ:** 4/4, sin avisos React, `revision-builder-act-green.log` |
+| UI nueva, verify y revisión nueva | **PENDIENTES al preparar este checkpoint**; se registrarán con recibo al finalizar |
+
+Los efectos de lectura de reportes guardados del Builder se esperan con act en
+la prueba; no se alteró ese comportamiento de producto. La revisión React se
+limita al delta de TSX, sin refactor ni bibliotecas nuevas. La fixture F1–F6
+está preparada fuera de Git con componentes/agregadores reales y adaptadores
+de navegación/toast/editores inactivos; todavía no acredita validación visual.
+
+**PENDIENTES DE ESTA TAREA:** UI sintética nueva, validación
+canónica sobre nueva cabeza, revisión independiente, cierre y draft PR.
+Actions está retenido por rechazo de pago/revisión
 de 48 horas según Sam/Director: no se presume verde. Antes de integrar se exige
 revalidación contra la base que incluya 0573. Orden Director: 301 → 304/306 →
 307 → 0573 → sellos. GitHub redirige a `SoftAgentes/DTDCARGO` según comprobación
