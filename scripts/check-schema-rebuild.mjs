@@ -392,6 +392,35 @@ try {
     process.exit(1);
   }
   console.log(`${C.dim}   radiografía de integridad verificada sobre el esquema completo (${filasRadio.length} filas, conteos)${C.nc}`);
+
+  // SDD-0567 · La radiografía de referidos (la que el Director corrió en producción el
+  // 2026-10-20) sobre el esquema completo: un renombre futuro de una columna que lee la
+  // rompe acá. Sobre la base vacía no devuelve filas; si devuelve, son tres columnas con
+  // dos conteos. SCHEMA_REBUILD_RADIOGRAFIA_REFERIDOS apunta a otro archivo para el control rojo.
+  const REFERIDOS = resolve(
+    process.cwd(),
+    process.env.SCHEMA_REBUILD_RADIOGRAFIA_REFERIDOS || "scripts/qa/radiografia-referidos.sql",
+  );
+  const refs = docker(
+    [
+      "exec", "-i", container,
+      "psql", "-U", "postgres", "-X", "-q", "-A", "-t", "-F", "|",
+      "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=terse", "-v", "SHOW_CONTEXT=never",
+    ],
+    { input: readFileSync(REFERIDOS, "utf8") },
+  );
+  const filasRefs = (refs.stdout || "").split("\n").filter(Boolean);
+  const formaRefs = filasRefs.every((f) => {
+    const c = f.split("|");
+    return c.length === 3 && /^\d+$/.test(c[1]) && /^\d+$/.test(c[2]);
+  });
+  if (refs.status !== 0 || !formaRefs) {
+    const err = `${refs.stdout || ""}${refs.stderr || ""}`.split("\n").find((l) => l.includes("ERROR:"));
+    console.log(`${C.red}[FAIL]${C.nc} la radiografía de referidos no corre sobre el esquema completo:`);
+    console.log(`${C.dim}   ${err ?? "salida con otra forma (se esperan 3 columnas y dos conteos)"}${C.nc}`);
+    process.exit(1);
+  }
+  console.log(`${C.dim}   radiografía de referidos verificada sobre el esquema completo (${filasRefs.length} filas, conteos)${C.nc}`);
 } finally {
   docker(["rm", "-f", container], { stdio: "ignore" });
 }

@@ -4,8 +4,9 @@
  * Drawer de detalle de un referido (SDD-0051, Slice B).
  *
  * Timeline de estados (REFERRAL_STEPS) + datos + tarjetas de crédito/descuento +
- * acciones manuales: avanzar estado (updateReferralStatus) y acreditar el
- * crédito al referidor (accreditReferral · ADVISORY, no postea a Facturación).
+ * acciones manuales: avanzar estado (updateReferralStatus; a registrado, con el
+ * markbox del cliente) y, solo el admin, acreditar SIN venta con un motivo
+ * (accreditReferral · SDD-0567). Lo normal es que acredite la venta.
  *
  * Solo lectura/acciones; el alta vive en RegisterReferralDrawer.
  */
@@ -37,15 +38,24 @@ import {
 export function ReferralDrawer({
   referral,
   canApplyCredit,
+  canAccreditManually,
   onClose,
 }: {
   referral: Referral;
   canApplyCredit: boolean;
+  /** Solo el admin acredita sin venta (SDD-0567). */
+  canAccreditManually: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
+  // SDD-0567 · registrado exige el cliente; acreditar sin venta, un motivo.
+  const [markbox, setMarkbox] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const motivoValido = motivo.trim().length >= 10 && motivo.trim().length <= 1000;
+  const puedeAcreditarSinVenta =
+    canAccreditManually && (referral.status === "registrado" || referral.status === "primer-embarque");
 
   const stt = REFERRAL_STATUS[referral.status];
   const shareCode = referralShareCode(referral.referrer_markbox);
@@ -337,52 +347,102 @@ export function ReferralDrawer({
                 : ""}
               . Se registró como descuento sobre la venta.
             </div>
+            {referral.sale_voided_at && (
+              <div
+                role="status"
+                style={{
+                  marginTop: 8,
+                  font: "600 12px/1.5 var(--f-sans)",
+                  color: "var(--warning)",
+                }}
+              >
+                La venta del referido que acreditó este crédito se anuló el{" "}
+                {referral.sale_voided_at.slice(0, 10)}. El crédito no se revirtió
+                solo: revísalo con contabilidad.
+              </div>
+            )}
           </div>
         )}
 
         {/* Acciones manuales */}
         {referral.status !== "acreditado" && referral.status !== "aplicado" && (
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {nextStatus && nextStatus !== "acreditado" && (
-              <ActionButton
-                variant="dark"
-                size="sm"
-                idleLabel={`Marcar ${REFERRAL_STATUS[nextStatus].label}`}
-                loadingLabel="Actualizando…"
-                successLabel="Actualizado"
-                onAction={() =>
-                  updateReferralStatus(referral.id, nextStatus)
-                }
-                onSuccess={() =>
-                  afterMutation(
-                    `Referido ${referral.referral_code} → ${REFERRAL_STATUS[nextStatus].label}`,
-                  )
-                }
-                onError={setError}
-              />
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+                {nextStatus === "registrado" && (
+                  <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px" }}>
+                    <span style={{ font: "600 11.5px/1.3 var(--f-sans)", color: "var(--ink)" }}>
+                      Markbox del cliente referido
+                    </span>
+                    <input
+                      className="studio-input"
+                      value={markbox}
+                      onChange={(e) => setMarkbox(e.target.value)}
+                      placeholder="DTD-0000"
+                      autoComplete="off"
+                    />
+                  </label>
+                )}
+                <ActionButton
+                  variant="dark"
+                  size="sm"
+                  idleLabel={`Marcar ${REFERRAL_STATUS[nextStatus].label}`}
+                  loadingLabel="Actualizando…"
+                  successLabel="Actualizado"
+                  disabled={nextStatus === "registrado" && !markbox.trim()}
+                  onAction={() => updateReferralStatus(referral.id, nextStatus, markbox)}
+                  onSuccess={() =>
+                    afterMutation(
+                      `Referido ${referral.referral_code} → ${REFERRAL_STATUS[nextStatus].label}`,
+                    )
+                  }
+                  onError={setError}
+                />
+              </div>
             )}
-            <ActionButton
-              variant="primary"
-              size="sm"
-              idleLabel={`Acreditar ${fmtUsd(REFERRAL_RULES.referrerReward)}`}
-              loadingLabel="Acreditando…"
-              successLabel="Acreditado"
-              idleIcon={Icon.check(13)}
-              onAction={() => accreditReferral(referral.id)}
-              onSuccess={() =>
-                afterMutation(
-                  `Crédito de ${fmtUsd(REFERRAL_RULES.referrerReward)} acreditado a ${referral.referrer_markbox} · aplícalo a mano en la próxima factura`,
-                )
-              }
-              onError={setError}
-            />
+            {puedeAcreditarSinVenta && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span style={{ font: "600 11.5px/1.3 var(--f-sans)", color: "var(--ink)" }}>
+                    Motivo de la acreditación sin venta
+                  </span>
+                  <textarea
+                    className="studio-input"
+                    value={motivo}
+                    onChange={(e) => setMotivo(e.target.value)}
+                    rows={2}
+                    maxLength={1000}
+                    aria-describedby={`acreditar-sin-venta-${referral.id}`}
+                    style={{ resize: "vertical", minHeight: 52 }}
+                  />
+                </label>
+                <span
+                  id={`acreditar-sin-venta-${referral.id}`}
+                  style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}
+                >
+                  Lo normal es que el crédito lo acredite la primera venta del referido. Sin venta, solo el
+                  admin, con un motivo de al menos 10 caracteres: queda registrado quién y por qué.
+                </span>
+                <div>
+                  <ActionButton
+                    variant="primary"
+                    size="sm"
+                    idleLabel="Acreditar sin venta"
+                    loadingLabel="Acreditando…"
+                    successLabel="Acreditado"
+                    idleIcon={Icon.check(13)}
+                    disabled={!motivoValido}
+                    onAction={() => accreditReferral(referral.id, motivo)}
+                    onSuccess={() =>
+                      afterMutation(
+                        `Crédito acreditado a ${referral.referrer_markbox} sin venta · aplícalo en la próxima factura`,
+                      )
+                    }
+                    onError={setError}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

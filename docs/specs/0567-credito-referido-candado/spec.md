@@ -1,7 +1,7 @@
 ---
 sdd: "0567"
 title: "El crédito de referido no nace sin venta ni se aplica dos veces"
-status: draft
+status: in-progress
 author: "founder"
 created: 2026-10-20
 updated: 2026-10-20
@@ -15,7 +15,29 @@ confidencialidad: interno
 
 > Las transiciones de `referrals` pasan a la base: un crédito de referido nace solo de una venta real o de una acreditación manual con motivo, su monto no cambia después de acreditarse, sale de «aplicado» solo por la reversión, y vuelve a espera si se anula la venta que lo acreditó.
 
-**Estado: DISEÑO para revisión del Director.** Todavía no hay migración ni código. Las preguntas abiertas están al final.
+**Estado:** diseño aprobado por el Director el 2026-10-20 (las seis preguntas, con la propuesta; ver *Decisiones*), e implementado. La migración 0494 espera el OK nominal de Sam (MIGRATE-FIRST).
+
+## Decisiones del Director, 2026-10-20
+
+«Revisé el diseño de la 0567 en `c1190ae3`. **Aprobado.** Las seis preguntas van con tu propuesta»:
+1. la «espera» es `registrado`;
+2. la acreditación manual con motivo la hace solo el admin;
+3. un `aplicado` cuya venta se anula se muestra y **no** se revierte solo;
+4. DEFINER, no UPDATE por columna;
+5. un `acreditado` o `aplicado` no se borra;
+6. `registrado` exige `referred_client_id`.
+
+El Director se lo avisa a Sam: si quiere cambiar alguna, se corrige.
+
+### La previa de catálogo del Director (producción, 2026-10-20, sin leer filas)
+
+| Función | md5 vivo (CRLF→LF) | md5 sin espacios | Largo | Contra el repo |
+|---|---|---|---|---|
+| `accredit_referral_on_first_invoice()` | `4d3026c55e3507024cc3b44e57f0dca9` | `c808193448382b4908fd3543cbaa4fcb` | 994 | **deriva**: la última definición es la 0250 (1306 caracteres); el vivo es ese cuerpo **sin sus líneas de comentario**, y da exactamente este md5. La lógica es idéntica |
+| `apply_referral_credit(uuid,uuid)` | `8c32487e62bc23c16def30cc4e3c343b` | `63b7e0eab68c60f5aa5d12796b16d66e` | 4455 | coincide con la 0471 |
+| `revert_referral_credits(uuid,uuid)` | `256c1331a53ab794af184f8bb90a1ca4` | `0bc1e5497316176f03dadefb7cb9897f` | 3344 | coincide con la 0471 |
+
+Policies vivas de `referrals`: `referrals by tenant` (`*`, `authenticated`, `(tenant_id = get_user_tenant_id())`) y `referrals service_role all`. Grants vivos: `authenticated` DELETE, INSERT, SELECT y UPDATE; `service_role` todo. **Pendiente de confirmar con el Director:** si el `qual` vivo no tiene el `and deleted_at is null` de la 0098, es otra deriva (ver *Riesgos*).
 
 ## Contexto
 
@@ -95,6 +117,9 @@ Ningún test cubre `accreditReferral`, `updateReferralStatus` ni `registerReferr
 
 ### 2. Las dos RPC de 0471 pasan a SECURITY DEFINER
 
+**Implementado con `alter function … security definer`, sin reescribir el cuerpo.** El cuerpo de la 0471 ya filtra cada lectura por el tenant de la sesión (`get_user_tenant_id`) y exige admin o accounting antes de tocar nada, así que no dependía de la RLS para el alcance. Su md5 vivo no cambia, y el contrato lo afirma. El texto de abajo era el diseño:
+
+
 Sin el UPDATE, `apply_referral_credit` y `revert_referral_credits` dejarían de funcionar. Se reescriben **desde su última definición (0471)**, con un preflight que compara el md5 del cuerpo vigente.
 - Conservan las mismas guardas: rol admin o accounting, `FOR UPDATE` y los mismos códigos de error.
 - Agregan **el filtro de tenant explícito**: como DEFINER ya no las cubre la RLS.
@@ -115,6 +140,7 @@ Todas son SECURITY DEFINER, con `search_path` vacío, guarda de tenant y guarda 
 ### 4. Columnas nuevas
 
 Ninguna se rellena: hoy no hay filas.
+- `sale_voided_at timestamptz`: cuándo se anuló o borró la venta que acreditó un crédito **ya aplicado** (pregunta 3: no se revierte solo, se muestra). La app pinta un aviso en el cajón del referido.
 - `accredited_invoice_id uuid references public.invoices(id) on delete set null`: la venta que acreditó, que la escribe el disparador de 0250.
 - `accredited_reason text` y `accredited_by uuid`: los de la acreditación manual.
 
@@ -162,6 +188,20 @@ Se reescribe `accredit_referral_on_first_invoice` desde la 0250, con el prefligh
 
 `scripts/qa/radiografia-referidos.sql` es la consulta de hoy. Lleva su prueba de forma sobre el esquema completo, en `schema-rebuild`, como la radiografía de integridad. También lleva el fixture limpio y el sucio como prueba, para repetirla después de aplicar la 0494.
 
+## Lo que se agregó al implementar
+
+- **Si se revierte un aplicado cuya venta ya se anuló,** ya no está aplicado y vale la regla de la venta anulada. Pasa a otra venta viva del referido o vuelve a `registrado`, y no queda acreditado sin una venta real. El guardián lo resuelve en la misma escritura de `revert_referral_credits`, sin tocar su cuerpo.
+- **El cliente se exige al entrar en `registrado`, no al quedarse ahí.** Borrar el cliente pone `referred_client_id` en null (`on delete set null`), y eso no tiene que trabar el borrado.
+- **El guardián es SECURITY DEFINER,** igual que el disparador de la 0250. Sus ayudantes no tienen EXECUTE para la API, y así responden igual para cualquier rol.
+- **La marca de un paso manual a `registrado`** se hace con el markbox del cliente, que el cajón pide.
+- **Los mensajes propios llevan `hint = 'dtd-referidos'`,** y la app muestra solo esos (ERR-01), como el `dtd-cierre` de la 0566.
+- **Sin la 0494, la lista no se rompe:** si la base no tiene las columnas nuevas, la consulta responde 42703 y se vuelve a leer sin ellas.
+
+## Riesgos
+
+- **Aceptado:** el guardián permite `aplicado → acreditado` con el rastro limpio, porque es la reversión. Una reversión falsa, que no baja el pagado de la factura, ya **no** se puede hacer por la API, porque `authenticated` no tiene UPDATE (lo prueba el contrato). La podría hacer código con `service_role`, y hoy ninguno lo hace. Cerrarla del todo exige reescribir el cuerpo de `revert_referral_credits` para que deje un permiso, y eso cambia su md5. Queda para el Director.
+- **Por confirmar:** la policy de SELECT nueva lleva `deleted_at is null`, como la 0098. Si en producción la policy viva no lo tiene, desde la 0494 los referidos borrados dejarían de verse por la API. La radiografía midió 0 referidos.
+
 ## App
 
 - `accreditReferral(id, motivo)` llama a la RPC. El cajón del referido pide el motivo y dice que la acreditación manual queda registrada.
@@ -186,7 +226,7 @@ Se reescribe `accredit_referral_on_first_invoice` desde la 0250, con el prefligh
 - La carrera de 0467 (dblink) contra la versión DEFINER, para confirmar que el `FOR UPDATE` sigue cubriendo las mismas ventanas.
 - Acciones de Fidelización: el motivo, los mensajes y lo que pasa sin la 0494.
 
-## Preguntas para el Director
+## Preguntas para el Director (respondidas el 2026-10-20: ver *Decisiones*)
 
 1. **«Espera» es `registrado`**, con el monto en 0 y `accredited_*` en null, ¿o se vuelve al estado anterior, que puede ser `primer-embarque`? Propongo `registrado`: no hay columna que guarde el estado anterior, y `primer-embarque` hoy solo se marca a mano.
 2. **La acreditación manual con motivo, ¿quién la hace?** Hoy son los editores de Fidelización (admin y commercial). Propongo solo admin, porque crea un crédito en dinero sin venta. ¿O admin y accounting?
@@ -195,15 +235,56 @@ Se reescribe `accredit_referral_on_first_invoice` desde la 0250, con el prefligh
 5. **Borrar un referido** (`deleted_at`): hoy nadie lo hace, pero la API lo permite. Propongo que no se pueda en `acreditado` ni en `aplicado`, sin RPC de borrado por ahora.
 6. **`registrado` sin `referred_client_id`:** el avance manual del Studio, de `invitado` a `registrado`, no fija el cliente, y sin cliente el disparador nunca acredita. ¿El guardián exige el cliente para entrar en `registrado`? Propongo que sí: `avanzar_referido` pediría elegir el cliente.
 
+## Allowlist exacta
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/0494_credito_referido_candado.sql` | la migración |
+| `supabase/tests/0494_credito_referido_candado.test.sql` | el contrato |
+| `lib/studio/__tests__/credito-referido-candado.migration.test.ts` | el contrato en PGlite: control rojo, 24 mutantes, la deriva de la 0250, el preflight, la reaplicación y la espera |
+| `supabase/migrations-baseline.json` | la espera de la 0494 |
+| `supabase/pending-migration-symbol-declarations.json` | los 5 símbolos y su degradación |
+| `app/studio/(app)/fidelizacion/actions.ts` | acreditar, avanzar y enlazar el asiento por las RPC; `errorDeReferido` |
+| `app/studio/(app)/fidelizacion/page.tsx` | `canAccreditManually` (solo admin) |
+| `app/studio/(app)/fidelizacion/_components/FidelizacionClient.tsx` | pasa `canAccreditManually` |
+| `app/studio/(app)/fidelizacion/_components/ReferralDrawer.tsx` | el markbox para registrado, el motivo para acreditar sin venta, el aviso de la venta anulada |
+| `lib/studio/fidelizacion/types.ts` | `accredited_reason` y `sale_voided_at` en `Referral` |
+| `lib/studio/fidelizacion/queries.ts` | las columnas de la 0494, con la lectura de respaldo |
+| `app/studio/(app)/fidelizacion/__tests__/apply-referral-credit.test.ts` | el enlace del asiento por la RPC |
+| `app/studio/(app)/fidelizacion/__tests__/referido-candado-acciones.test.ts` | nueva: acreditar y avanzar |
+| `scripts/qa/radiografia-referidos.sql` | la radiografía versionada |
+| `scripts/qa/radiografia-referidos.fixture.sql` | su fixture para PGlite |
+| `scripts/__tests__/radiografia-referidos.test.ts` | su prueba, con control rojo |
+| `scripts/check-schema-rebuild.mjs` | la radiografía de referidos sobre el esquema completo |
+| `docs/specs/0567-credito-referido-candado/spec.md` | esta spec |
+| `docs/specs/README.md` | índice regenerado |
+| `.agents/handoffs/0567-credito-referido-candado.md` | handoff |
+
+## Criterios de aceptación
+
+1. `authenticated` no tiene UPDATE ni DELETE sobre `referrals`. La «reversión falsa» por la API se rechaza.
+2. Un crédito nace solo de una venta real del cliente referido (el disparador de la 0250, que guarda la factura) o de `acreditar_referido_con_motivo`: solo el admin, con un motivo de 10 a 1000 caracteres, y queda quién.
+3. Las transiciones fuera de la lista se rechazan para todos los roles. Un referido nace invitado o registrado, sin monto. `registrado` exige el cliente.
+4. El monto, la fecha, el motivo y el autor de una acreditación no cambian. La venta que acreditó cambia solo si ya no es real.
+5. `aplicado` entra con su factura y su fecha, y sale solo con el rastro limpio. Su factura no cambia, y el asiento se enlaza una sola vez, y solo el del crédito.
+6. Anulada o borrada la venta que acreditó: sin aplicar, pasa a otra venta viva o vuelve a `registrado` limpio; aplicado, queda marcado y no se revierte solo. Revertido después, no queda acreditado sin venta.
+7. Un `acreditado` o `aplicado` no se borra, ni con DELETE ni con `deleted_at`.
+8. El preflight acepta el cuerpo del repo y el vivo del trigger de la 0250, y ningún otro; aplicada dos veces, aborta con «ya existe».
+9. La app usa las RPC, muestra solo los mensajes con `hint = 'dtd-referidos'` y, sin la 0494, no se rompe.
+10. La radiografía queda versionada, con su prueba (vacía, limpia y sucia, más el control rojo) y su corrida en `schema-rebuild`.
+11. Control rojo: cada regla tiene un mutante que muere.
+
 ## Gobernanza
 
 | Política | Clasificación | Evidencia |
 |---|---|---|
-| Cambio de comportamiento Studio | cumplimiento (cuando haya allowlist) | esta spec; la allowlist exacta va con la implementación |
-| AUD-01 | por definir | la acreditación manual guarda motivo y autor en la fila; falta decidir si `referrals` entra en `entity_audit_log` |
+| Cambio de comportamiento Studio | cumplimiento | esta spec, con allowlist exacta |
+| AUD-01 | cumplimiento parcial | la acreditación manual guarda el motivo y el autor en la fila, y no cambian (guardián). `referrals` todavía no entra en `entity_audit_log`: queda en FUERA DE ALCANCE del handoff |
+| ERR-01 | cumplimiento | la app muestra solo los mensajes con `hint = 'dtd-referidos'`; un 42501 nativo o un error de la base no (pruebas de las acciones) |
+| FRM-01, A11Y-01 | cumplimiento | el markbox y el motivo con `<label>`; la ayuda del motivo con `aria-describedby`; el aviso de la venta anulada con `role="status"` |
 | Producción | cumplimiento | la radiografía corrió con la autorización literal de Sam, solo conteos; la 0494 se aplica con su OK nominal y el runbook |
 | Datos personales | no aplica | no se leen ni se mueven nombres, correos ni teléfonos del referido |
 
 ## Validación
 
-Pendiente. Va en el handoff `.agents/handoffs/0567-credito-referido-candado.md`.
+Ver el handoff `.agents/handoffs/0567-credito-referido-candado.md`.
