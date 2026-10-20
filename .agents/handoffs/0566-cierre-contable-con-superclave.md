@@ -146,6 +146,23 @@ H3 eventos después del DELETE: 2
 
 Sobre el NaN: la comparación explícita `= 'NaN'` sobraba. Su mutante sobrevivía, porque el tope ya rechaza NaN: Postgres lo ordena por encima de todo número. Quedó solo el tope, con el comentario de por qué.
 
+## CIERRE DEL DIRECTOR · la 0493 aplicada y la #293 fusionada (2026-10-20)
+
+- **OK nominal de Sam**, en la sesión del Director, hacia las 08:18Z: «autorizo aplicar la migración 0493_cierre_contable_superclave en producción, aceptando la deriva de los dos triggers del cierre». Queda en `AUTORIZACION.txt` de la evidencia.
+- **La deriva aceptada:** `journal_entries_validate_closing` y `journal_lines_validate_closing`, con `preparar.mjs --acepta-deriva`. En vivo difieren de la 0133 del repo solo en comentarios y tildes de los mensajes (md5 vivos `26b81a55…` y `5e7e21f0…`). El preflight propio de la 0493 acepta los dos cuerpos.
+- **Previas:**
+  - 06:36Z: FALLÓ por esa deriva, sin aplicar nada;
+  - 07:58Z: PASÓ, sobre `cd7c006c`;
+  - 08:23:46Z: PASÓ, sobre `c3e5b9d9`. Es el mismo blob después de traer main con la #294, que se fusionó a las 08:21:32Z y dejó la PR BEHIND un minuto antes del primer intento de aplicar; la guarda lo frenó sin aplicar.
+- **Apply:** COMMIT a las 09:06:45Z, con la fila del ledger en la misma transacción. Evidencia: `/srv/ops/evidencias/apply-0493-dtd-cargo-20261020T090644Z`.
+  - Fila del ledger: `version` 20261020090645, `name` 0493_cierre_contable_superclave, `created_by` servidor-propio:psql:SDD-0566. El ledger pasó a 497 filas.
+  - md5 `b5ca301e14f3bec8401bdf0dc229393c` y 51754 bytes. La verificación dio cuerpos vivos iguales al archivo en las 16 funciones.
+- **Merge** de la #293 a las 09:06:49Z, 3 s después del COMMIT (merge `b3283623`), con `--match-head-commit c3e5b9d9…`.
+- **Verify** sobre `cd7c006c`: 16 de 17 sin fallos y sin reintentos; `migrations-applied` NO DISPONIBLE. CI de GitHub verde sobre `cd7c006c` y sobre `c3e5b9d9`.
+- **Revisión de seguridad** (revisor de solo lectura del Director) sobre `9016eadf`: dos hallazgos importantes (el redondeo o NaN, y la línea movida de un asiento cerrado) y cuatro menores. Los seis están corregidos en `cd7c006c` (ver «Segunda vuelta»).
+- **Sello:** `retirar-espera.mjs 0493_cierre_contable_superclave --md5 b5ca301e…` sacó la 0493 de `pendingBelowCutoff` y quitó una declaración de símbolos. La selló en el candado con sha256 `603a78db…` y `ledger` exacta. `migrations-lock.mjs` da 485 selladas y quedan la 0422 y la 0423. La prueba que afirmaba la espera ahora afirma lo contrario. La cabecera «NO APLICADA» no se corrige.
+- **Superclave:** la define Sam cuando quiera, desde Contabilidad › Cierre. Mientras no la defina, el período cerrado sigue bloqueado como antes.
+
 ## Impacto documental y conocimiento
 
 La spec 0566 y el índice. **Cambia el esquema** (la 0493), así que el Director tiene que publicar Graphify y Archify después de integrarla. El plan (§9 del diagnóstico) lo actualiza el Director en su PR; aquí no se tocó.
@@ -155,7 +172,7 @@ La spec 0566 y el índice. **Cambia el esquema** (la 0493), así que el Director
 1. **Hecho, A o B (spec §8):** A, según el pedido literal de Sam del 2026-10-19; B ofrecida y no elegida. El Director se la planteó a Sam con la recomendación A, y Sam no pidió cambiarla.
 2. **La previa de producción, antes de aplicar** (la corre el Director). La primera, del 2026-10-20, falló por la deriva de la 0133; esta versión la acepta. Falta repetirla, y la previa genérica de `preparar.mjs` con `--acepta-deriva` sobre las dos funciones, con el OK de Sam nombrando la deriva. Los parámetros de log ya los midió el 2026-10-19.
 3. **Con turno de máquina:** la segunda vuelta, en la tabla de VALIDACIÓN de abajo.
-4. Aplicar la 0493 con el OK nominal de Sam NOMBRANDO `0493_cierre_contable_superclave`, hacer el smoke de la espera y después fusionar.
+4. Hecho: la 0493 aplicada con el OK nominal de Sam y la #293 fusionada (ver CIERRE DEL DIRECTOR). Falta que Sam defina la superclave y el smoke de esa parte con su sesión.
 
 ## FUERA DE ALCANCE DETECTADO (para el Director)
 

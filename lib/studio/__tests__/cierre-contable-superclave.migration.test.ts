@@ -404,13 +404,11 @@ describe("SDD-0566 · 0493 cierre contable con superclave (PGlite)", () => {
     expect(rojo.error).toBe("TEST 0493: un importe con más de 2 decimales no entra (el redondeo descuadraba)");
   }, SLOW);
 
-  it("la 0493 espera en pendingBelowCutoff, MIGRATE-FIRST y con OK nominal de Sam", () => {
+  it("aplicada al servidor propio el 2026-10-20 con el OK nominal de Sam: ya no es una espera y la cabecera «NO APLICADA» no se corrige", () => {
     const baseline = JSON.parse(readFileSync(resolve(ROOT, "supabase/migrations-baseline.json"), "utf8")) as {
       pendingBelowCutoff: Record<string, string>;
     };
-    const espera = baseline.pendingBelowCutoff["0493_cierre_contable_superclave"];
-    expect(espera).toContain("MIGRATE-FIRST");
-    expect(espera).toContain("Requiere OK nominal de Sam");
+    expect(baseline.pendingBelowCutoff["0493_cierre_contable_superclave"]).toBeUndefined();
     expect(FILE_0493).toContain(
       "⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en\n--    supabase/migrations-baseline.json › pendingBelowCutoff",
     );
