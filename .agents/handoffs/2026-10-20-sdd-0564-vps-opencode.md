@@ -132,7 +132,7 @@ Autorización de Sam, literal: «Sí, arranca H4: meta, los 4 agentes con Hermes
   - `dtd-cargar-llave` tiene el caso `director` (respaldo en `.antes-director`): escribe `profiles/director/paperclip.env` (600, agentes-run).
   - `dtd-agente-run` carga ese archivo solo cuando el perfil es `director`.
   - Sam creó la llave `hermes-director` (097cf0a2…, vence en 7 días) y la cargó él mismo.
-  - El paso `paperclipai connect` creó además dos llaves «paperclipai cli (board)». Claude revocó `de189091`; `e619f8d0` **sigue activa** y la revoca el director o Sam.
+  - El paso `paperclipai connect` creó además dos llaves «paperclipai cli (board)». Claude revocó `de189091` (por la CLI) y `e619f8d0` (2026-10-20 14:48 UTC, `DELETE /board-api-keys/:id` con la llave del director, respuesta 200 `ok:true`, a pedido del Director). Única llave de Junta activa: `hermes-director`, que **vence el 2026-10-27 13:37 UTC** y se revoca apenas termine la configuración. El director no tiene rutinas.
 - **Perfil `director`:** su `SOUL` prohíbe aprobar, subir topes, apagar la aprobación de agentes nuevos y borrar. El diseño se publicó en `/srv/oficina/diseno/`: plan maestro, organigrama, SVG, `sdd-0564.md`, agentes y guía.
 - **Duplicados.** ALFRED pidió 4 contrataciones sin `hermesCommand` ni perfil, que habrían corrido como `agentes` y sin aislamiento, con 40 USD cada una. Sam las aprobó antes del aviso. Después el director creó las 4 correctas: Asesor 3ad1b6a9, Operaciones 7714d984, CRM 7e1b14c0 y Community d07161e2, con perfiles `asesor`, `operaciones`, `crm` y `community`, que Claude creó con su `SOUL` de límites. Claude **pausó** las 4 malas (2c4e223f, 88f167e4, 6035783c y 1a6b7d65), que nunca corrieron.
 - **Túnel propio de Sam:** `C:\Users\AKX generator\tunel-paperclip.ps1`, en la pestaña «Túnel Paperclip», con reconexión. El túnel de la sesión de Claude se cerró (PID 11964 terminado).
@@ -150,7 +150,7 @@ Autorización de Sam, literal: «Sí, arranca H4: meta, los 4 agentes con Hermes
 
 1. **Push y PR** de la rama `codex/oficina-hermes-diseno`. Pedirle autorización al Director, que serializa la integración. Esta rama no se ha publicado.
 2. **SDD-0564, D11:** el motor pasa a Hermes con GLM, con OpenCode de respaldo; envoltorio `dtd-hermes`, perfiles, llave del director, respaldo y copia A1-b. A2-b deja de estar en suspenso. Va en una PR del Director.
-3. **Llaves de Junta:** revocar `e619f8d0` y, al terminar la configuración, `hermes-director`. Revocar la llave de Anthropic que no se usa, en su consola.
+3. **Llave de Junta:** revocar `hermes-director` apenas termine la configuración (vence el 2026-10-27 13:37 UTC). Revocar la llave de Anthropic que no se usa, en su consola.
 4. **Kommo v7 §29:** el seguro es «próximamente». Lo corrige Sam.
 5. **Borrar o terminar** los 4 duplicados, los 2 agentes de prueba y el ALFRED viejo: solo con OK de Sam por elemento.
 6. **Fijar o revertir skills** (`hermes curator`) según la revisión del viernes: alguien con acceso al VPS.
