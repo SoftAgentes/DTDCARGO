@@ -118,7 +118,7 @@ del helper.
 |---|---|
 | 1, 2, 3 y 8 | `vitest/pglite-limpio.test.ts`, 8 casos. |
 | 4, 6 y 7 | Ver «Medición después del cambio». |
-| 5 | CI medido; A/B local completo **PENDIENTE**. Intento del 2026-10-20 parcial por el watchdog del arnés temporal. |
+| 5 | **PASÓ, revisado y aceptado por el Director el 2026-10-20.** A/B local completo por los 34 archivos, mismas firmas y 854 casos aprobados por lado; comparación CI conservada con sus propias condiciones. El primer intento parcial permanece como histórico. |
 
 Mutantes del helper, con reporter TAP (control sin mutar: 8 ok):
 
@@ -174,7 +174,57 @@ migración; por ejemplo, «sin 0476 el equipo borra físicamente un embarque por
 falla en la primera aserción». Corrieron en verde también los 375 mutantes impresos, cada uno
 muerto donde debe.
 
-### Intento A/B local de 34 archivos · 2026-10-20 · PARCIAL
+### A/B local completo de 34 archivos · 2026-10-20 · aceptado
+
+El Director autorizó el segundo intento después de la devolución del turno de 0571. Se ejecutó
+un único par A → B sobre `1077ff216956d2062f3ce281971f68d084fe0a92`, con **33 archivos afectados
+(846 casos) más el helper intacto (8 casos): 34 archivos / 854 casos por lado**. El control A
+revirtió temporalmente solo los imports y los 36 constructores del commit `4b05a262` en 27
+archivos. Los cuerpos normalizados fueron iguales; no cambiaron aserciones, casos, SQL ni
+extensiones. B usó los bytes originales después de restaurarlos.
+
+Condiciones idénticas: Node `v24.20.0`, Vitest `4.1.7`, PGlite `0.5.8`, Windows x64, dos
+workers/forks, aislamiento por archivo, caché desactivado, semilla `570`, `CI=true`, `TZ=UTC`
+y `NO_COLOR=1`. El entorno de runtime se congeló para ambos lados, sin variables de aplicación
+ni credenciales y sin lectura de `.env`. El watchdog de **45 minutos por fase** quedó definido
+antes de iniciar; no se activó y no hubo reintentos.
+
+| Medida local | A, instancia nueva | B, plantilla | Resultado |
+|---|---|---|---|
+| Archivos y casos | 34/34; 854/854 | 34/34; 854/854 | Todos aprobados, cero fallidos u omitidos |
+| Firmas por archivo: ancestros, título, nombre y estado | 34 archivos | 34 archivos | **34/34 iguales** |
+| Tiempo de pared | 641,565 s | 361,750 s | −43,61 % en este par |
+| Suma de los 33 afectados | 1.212,711 s | 630,722 s | −47,99 % en este par |
+| Suma de los 34 con helper | 1.229,385 s | 651,630 s | Distinta del tiempo de pared con dos workers |
+| Helper intacto, 8 casos | 16,675 s | 20,909 s | Fue más lento; excluido del agregado de 33 afectados |
+
+Se respaldaron los bytes de **36/36 archivos protegidos**. La restauración después de A y la
+final comprobaron los 36 SHA-256 originales sin discrepancias. La comprobación independiente
+confirmó también seis archivos de configuración/lockfile y tres entradas de runtime iguales,
+HEAD intacto, árbol limpio y cero procesos propios o consumidores visibles del worktree. El
+claim se liberó y el turno se devolvió explícitamente a las `19:54:13.609Z`.
+
+El [resumen por archivo](assets/comparacion-local.txt) y el
+[JSON sanitizado](assets/comparacion-local.json) conservan las 34 filas, conteos, tiempos,
+firmas SHA-256, argumentos exactos, condiciones y hashes de la evidencia cruda. Los logs, JSON
+crudos, respaldos y arnés temporal permanecen fuera de Git, identificados por la corrida
+`20261020T193515078Z`. Los mismos assets conservan el primer intento como histórico, con sus
+hashes originales; sus resultados no se mezclan con este par.
+
+**Límites.** Es una sola A seguida de una B, sin repeticiones AB/BA ni intervalo de confianza.
+La carga incidental, las cachés del sistema, la temperatura y el antivirus no se eliminan; la
+variación del helper intacto es una señal visible de ese límite. La misma semilla con dos workers
+no garantiza el mismo orden temporal. Los porcentajes locales no se generalizan a CI ni a otras
+máquinas. La comparación CI histórica, en Linux con un worker, conserva su propia evidencia.
+
+**Criterio 5 completo.** El Director revisó y aceptó los reportes, firmas, condiciones, restauración
+y límites el 2026-10-20. El check `Calidad local sin secretos` sobre la cabeza medida `1077ff21`
+también **PASÓ**, run [39476193413](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/39476193413/job/118812654825),
+de `18:36:19Z` a `19:01:29Z`. Ese check no se atribuye al commit documental posterior. Se
+mantiene la separación entre aceptación de la medición, revisión final de la PR e integración;
+este bloque no autoriza merge, despliegue ni base real.
+
+### Histórico: primer intento A/B local · 2026-10-20 · PARCIAL
 
 Codex retomó el worktree `pglite-snapshot-esquema` por delegación del Director, con la sesión
 Claude pausada por Sam, sobre `59e8491b4842e92678509ca7d1b4788718f7243d`. El turno pesado fue
@@ -208,7 +258,7 @@ la corrida y, si cortaba, documentar el parcial sin reiniciar. No se observó fa
 los archivos terminados. Los ocho archivos sin resultado completo no se cuentan como aprobados
 ni fallidos. El corte impidió emitir el JSON final de Vitest.
 
-El detalle de las 34 rutas, casos previstos y tiempos A disponibles está en
+El detalle histórico de las 34 rutas, casos previstos y tiempos A disponibles se conserva en
 [assets/comparacion-local.txt](assets/comparacion-local.txt); el manifiesto, hashes de integridad
 y límites están en [assets/comparacion-local.json](assets/comparacion-local.json).
 Logs, respaldo y orquestador quedan fuera de Git en
@@ -216,11 +266,12 @@ Logs, respaldo y orquestador quedan fuera de Git en
 de un import relativo `.mjs`, antes de ejecutar pruebas; restauró 36/36 hashes y se corrigió solo
 el comprobador. El segundo preflight pasó.
 
-**Criterio 5 local PENDIENTE.** Este intento no prueba mejora de rendimiento. Un nuevo turno debe
-definir el límite del arnés antes de iniciar un par A/B comparable; no queda una corrida en segundo
-plano. No se repitió la suite completa ni un ciclo separado de mutantes.
+**Estado al cerrar este primer intento: criterio 5 local PENDIENTE.** Ese resultado parcial no
+prueba mejora de rendimiento. El segundo intento descrito arriba cerró el criterio con un nuevo
+turno y límite definido antes de iniciar. No se dejó una corrida en segundo plano ni se repitió
+la suite completa o un ciclo separado de mutantes.
 
-**CI vigente del código observado:** `Calidad local sin secretos` **PASÓ** sobre `59e8491b`,
+**CI observado al cerrar el primer intento:** `Calidad local sin secretos` **PASÓ** sobre `59e8491b`,
 run [39460332474](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/39460332474/job/118776457014),
 de `17:23:59Z` a `17:48:05Z`. El bloqueo de facturación del run histórico `39453136909` ya no
 describe esta punta. El A/B histórico del CI conserva sus propias condiciones y evidencia.

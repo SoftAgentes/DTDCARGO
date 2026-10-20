@@ -1,19 +1,52 @@
 {
-  "schemaVersion": 1,
-  "status": "PARCIAL",
-  "criterion5Local": "PENDIENTE",
-  "performanceImprovementConclusion": "NO DISPONIBLE; no se completó el par A/B",
-  "head": "59e8491b4842e92678509ca7d1b4788718f7243d",
-  "owner": "codex-0570-ab-01a15a4e",
+  "schemaVersion": 2,
+  "status": "COMPLETE_VALID_PAIR",
+  "criterion5Local": "COMPLETO_REVISADO_DIRECTOR",
+  "directorReview": {
+    "date": "2026-10-20",
+    "decision": "Aceptada la medición A/B local completa y cerrado el criterio 5, con los límites explícitos.",
+    "scope": "Medición local por archivo más evidencia CI ya documentada; no merge ni generalización a otras máquinas."
+  },
+  "head": "1077ff216956d2062f3ce281971f68d084fe0a92",
+  "runId": "20261020T193515078Z",
+  "measuredAt": "2026-10-20T19:52:02.167Z",
+  "runtime": {
+    "node": "v24.20.0",
+    "vitest": "4.1.7",
+    "pglite": "0.5.8",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "conditions": {
+    "workers": 2,
+    "pool": "forks",
+    "isolate": true,
+    "cache": false,
+    "fileShuffleSeed": 570,
+    "explicitNonSecretEnvironment": {
+      "CI": "true",
+      "TZ": "UTC",
+      "NO_COLOR": "1"
+    },
+    "environmentPolicy": "Mismo entorno de runtime congelado en A/B; sin variables de aplicación, credenciales ni lectura de .env.",
+    "environmentFingerprintSha256": "df85241ee1607f445d380244faedb0fb5fb0b865174f3cd615b65b7d7d42a3b7",
+    "phaseTimeoutMinutes": 45,
+    "automaticRetry": false
+  },
   "method": {
-    "intendedAffectedFiles": 33,
-    "intendedTotalFiles": 34,
-    "intendedAffectedCases": 846,
-    "intendedTotalCases": 854,
-    "A": "Reversión temporal solo de los imports/constructores de 4b05a262: new PGlite por caso, sin cambiar aserciones ni SQL",
-    "B": "Previsto: bytes originales de 59e8491b con pgliteLimpio. NO EJECUTADO",
-    "helper": "8 pruebas del helper intacto se incluyeron en A y estaban previstas sin cambios en B",
-    "constructorFiles": [
+    "A": "Instancia PGlite nueva por caso; reversión temporal exclusiva de imports y constructores del commit de adopción.",
+    "B": "Bytes originales de la cabeza medida; pgliteLimpio desde plantilla post-initdb.",
+    "controlCommit": "4b05a2622ed400695cff70deccde60f523cf49da",
+    "constructorFiles": 27,
+    "constructorSites": 36,
+    "affectedFiles": 33,
+    "totalFiles": 34,
+    "affectedCases": 846,
+    "totalCases": 854,
+    "helper": "Ocho casos intactos en ambos lados; su tiempo no pertenece a la mejora de los 33 afectados.",
+    "assertionsAndSqlUnmodified": true,
+    "normalizedBodiesEqual": true,
+    "changedSources": [
       {
         "file": "__tests__/anon-privilegios-residuales.migration.test.ts",
         "originalSha256": "0c07a23090aedac9b93b33498ffe43108f6137194c338ac6ff1f1f4d90982139",
@@ -188,7 +221,6 @@
       "vitest/pglite-limpio.test.ts",
       "vitest/pglite-limpio.ts"
     ],
-    "normalizedSourceBodiesEqual": true,
     "originalHashes": {
       "__tests__/anon-privilegios-residuales.migration.test.ts": "0c07a23090aedac9b93b33498ffe43108f6137194c338ac6ff1f1f4d90982139",
       "app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts": "c99ff15142eb42a25a156b082dbc3f46e221571c9439fff976d1732546d8d204",
@@ -227,521 +259,1552 @@
       "vitest/pglite-limpio.ts": "9c69674f67988b68b8c5c37ddf84c1250e6639589a9e6104d270386f0fa27570",
       "lib/studio/__tests__/r3-correlation-contract.ts": "8480ae761b1968c0a3c58699cd9635a503379f231f4573fc0ab972b23021c535"
     },
-    "restoration": {
-      "filesChecked": 36,
-      "mismatches": []
+    "backupBytesFiles": 36,
+    "lockAndConfigurationHashes": {
+      "pnpm-lock.yaml": "51550316928cf4ee17696eaa4c87f4e9e944146d2c2c9ca229f82caed4051608",
+      "package.json": "b3f8a4feb66fea436215d17632a4951ef880ee0f096183afe87bb94cf5d2e1d5",
+      "vitest.config.ts": "58df1081febf2baa1148b36f9b74bb05795f962f90ee679e29f12843bf68dc66",
+      "vitest.setup.ts": "9b328c4843431fa76d8de00008fc159e95f99a840211085ff3b8f25e53d14409",
+      "vitest/server-only.stub.ts": "b22d842beb3abd24df1be7db7bcf012da8a35271466f9bc205bb5e72f840ecf5",
+      "tsconfig.json": "75e593c22c3848fe530d5fcb373f9ad30d1a67dfa930dffe20a8833389d1ad67"
     },
-    "concurrency": {
-      "workers": 2,
-      "pool": "forks",
-      "isolate": true,
-      "cache": false,
-      "fileShuffleSeed": 570
-    },
-    "explicitEnvironment": {
-      "CI": "true",
-      "TZ": "UTC",
-      "NO_COLOR": "1"
-    },
-    "environmentPolicy": "Windows runtime allowlist only; no inherited application, Supabase or credential variables; no env-file import",
-    "command": "node node_modules/vitest/vitest.mjs run <los 34 paths de rows> --maxWorkers=2 --pool=forks --isolate --no-cache --sequence.shuffle.files --sequence.seed=570 --reporter=default --reporter=json --outputFile.json=<A-fresco.json o B-plantilla.json>"
+    "restorations": [
+      {
+        "at": "2026-10-20T19:45:58.146Z",
+        "reason": "after-A-before-B",
+        "filesChecked": 36,
+        "rewritten": 27,
+        "mismatches": []
+      },
+      {
+        "at": "2026-10-20T19:52:01.508Z",
+        "reason": "finally-after-success-or-failure",
+        "filesChecked": 36,
+        "rewritten": 0,
+        "mismatches": []
+      }
+    ]
   },
-  "runtime": {
-    "node": "v24.20.0",
-    "vitest": "4.1.7",
-    "pglite": "0.5.8",
-    "platform": "win32",
-    "arch": "x64",
-    "cpu": "Intel(R) Core(TM) Ultra 7 155H"
-  },
-  "result": {
-    "completedFilesA": 26,
-    "completedAffectedFilesA": 25,
-    "completedCasesA": 649,
-    "completedAffectedCasesA": 641,
-    "unfinishedFilesA": [
+  "reproduction": {
+    "program": "node",
+    "entrypoint": "node_modules/vitest/vitest.mjs",
+    "commonArgs": [
+      "run",
+      "__tests__/anon-privilegios-residuales.migration.test.ts",
       "app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts",
+      "app/studio/(app)/naviera/__tests__/autorizar-correlation-id.migration.test.ts",
       "infra/ops/tests/migraciones.test.mjs",
+      "lib/portal/__tests__/billing-identity.migration.test.ts",
+      "lib/portal/__tests__/identity-photo-replacement.migration.test.ts",
+      "lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts",
+      "lib/portal/__tests__/portal-bandeja-avisos.migration.test.ts",
+      "lib/portal/__tests__/profile-direct-edit.migration.test.ts",
       "lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts",
       "lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts",
+      "lib/studio/__tests__/cierre-contable-superclave.migration.test.ts",
+      "lib/studio/__tests__/client-outstanding.migration.test.ts",
       "lib/studio/__tests__/cobro-factura-atomico.migration.test.ts",
+      "lib/studio/__tests__/credito-referido-atomico.migration.test.ts",
+      "lib/studio/__tests__/credito-referido-candado.migration.test.ts",
       "lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts",
+      "lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts",
+      "lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts",
+      "lib/studio/__tests__/financiero-china-pago-correlation-id.migration.test.ts",
       "lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts",
-      "lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts"
+      "lib/studio/__tests__/inspecciones-retirar-reporte-correlation-id.migration.test.ts",
+      "lib/studio/__tests__/kommo-functions-base-url.migration.test.ts",
+      "lib/studio/__tests__/naviera-zarpe-avanza-envios.migration.test.ts",
+      "lib/studio/__tests__/operarios-editar-por-region.migration.test.ts",
+      "lib/studio/__tests__/pago-proveedor-atomico.migration.test.ts",
+      "lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts",
+      "lib/studio/__tests__/reclamos-pagar-indemnizacion-correlation-id.migration.test.ts",
+      "lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts",
+      "lib/studio/__tests__/seniat-liberar-correlation-id.migration.test.ts",
+      "lib/studio/__tests__/tms-completar-ruta-correlation-id.migration.test.ts",
+      "lib/studio/__tests__/ve-confirmar-entrega-correlation-id.migration.test.ts",
+      "scripts/__tests__/radiografia-referidos.test.ts",
+      "vitest/pglite-limpio.test.ts",
+      "--maxWorkers=2",
+      "--pool=forks",
+      "--isolate",
+      "--no-cache",
+      "--sequence.shuffle.files",
+      "--sequence.seed=570",
+      "--reporter=default",
+      "--reporter=json"
     ],
-    "failedCompletedFileIndicators": [],
-    "finalVitestJsonAAvailable": false,
-    "B": "NO EJECUTADO",
-    "stopReason": "Watchdog de 20 minutos por fase del arnés temporal; límite configurado antes de la extensión del turno a 35 minutos. No es un fallo de aserción de producto.",
-    "runs": [
-      {
-        "label": "A-fresco",
-        "startedAt": "2026-10-20T18:11:47.770Z",
-        "endedAt": "2026-10-20T18:31:48.616Z",
-        "wallMs": 1200846,
-        "exitCode": 1
-      }
+    "phaseSpecificArg": "--outputFile.json=<directorio de evidencia>/<A-fresco o B-plantilla>.json",
+    "controlSteps": [
+      "Comprobar la cabeza y los hashes; adquirir turno y ownership; respaldar bytes de las 36 rutas.",
+      "Obtener el diff 4b05a262^..4b05a262 solo para method.changedSources; comprobar y aplicar su reversión temporal.",
+      "Comparar cuerpos normalizados permitiendo únicamente imports y constructores conocidos antes de ejecutar A.",
+      "Restaurar los 36 originales y verificar hashes antes de B; ejecutar los mismos argumentos/entorno.",
+      "Restaurar/comprobar 36/36 al salir, incluso ante fallo; verificar firmas completas y cero procesos antes de liberar."
     ],
-    "visibleNodeProcessesAfterRestoration": 0,
-    "heavyTurnReturnedTo": "SDD-0569"
+    "reproducibilityLimit": "El arnés temporal permanece fuera de Git; sus hashes identifican los bytes revisados. Una nueva corrida requiere turno y revisión de la base."
   },
+  "reportCounts": {
+    "A": {
+      "total": 854,
+      "passed": 854,
+      "failed": 0,
+      "pending": 0,
+      "success": true
+    },
+    "B": {
+      "total": 854,
+      "passed": 854,
+      "failed": 0,
+      "pending": 0,
+      "success": true
+    }
+  },
+  "identicalCaseSignatureFiles": 34,
+  "totalsAffected": {
+    "files": 33,
+    "testsA": 846,
+    "testsB": 846,
+    "millisecondsA": 1212710.5708007812,
+    "millisecondsB": 630721.6538085938,
+    "improvementPercent": 47.99075154493677,
+    "durationMeaning": "Suma de endTime-startTime por archivo; no equivale a tiempo de pared con dos workers."
+  },
+  "totalsWithHelper": {
+    "files": 34,
+    "testsA": 854,
+    "testsB": 854,
+    "millisecondsA": 1229385.1296386719,
+    "millisecondsB": 651630.39453125,
+    "improvementPercent": 46.99542244156065,
+    "durationMeaning": "Suma de endTime-startTime por archivo; no equivale a tiempo de pared con dos workers."
+  },
+  "wallTime": {
+    "millisecondsA": 641565,
+    "millisecondsB": 361750,
+    "differenceMilliseconds": 279815,
+    "improvementPercent": 43.6144428078215
+  },
+  "runs": [
+    {
+      "label": "A-fresco",
+      "startedAt": "2026-10-20T19:35:16.406Z",
+      "endedAt": "2026-10-20T19:45:57.971Z",
+      "wallMs": 641565,
+      "exitCode": 0,
+      "stopReason": null,
+      "watchdogDeadline": "2026-10-20T20:20:16.406Z"
+    },
+    {
+      "label": "B-plantilla",
+      "startedAt": "2026-10-20T19:45:59.674Z",
+      "endedAt": "2026-10-20T19:52:01.424Z",
+      "wallMs": 361750,
+      "exitCode": 0,
+      "stopReason": null,
+      "watchdogDeadline": "2026-10-20T20:30:59.674Z"
+    }
+  ],
   "rows": [
     {
       "file": "__tests__/anon-privilegios-residuales.migration.test.ts",
       "affected": true,
       "expectedTests": 26,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 26,
-      "millisecondsA": 87932,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 26,
+      "testsB": 26,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "aac8eb47325bb65592e83a2f0dfce031228278d5bd02db38ce92f06b92a1f8aa",
+      "signaturesSha256B": "aac8eb47325bb65592e83a2f0dfce031228278d5bd02db38ce92f06b92a1f8aa",
+      "millisecondsA": 36334.273193359375,
+      "millisecondsB": 18482.02197265625,
+      "improvementPercent": 49.133365419748884
     },
     {
       "file": "app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts",
       "affected": true,
       "expectedTests": 9,
-      "statusA": "NO COMPLETADO / sin resultado final por archivo",
-      "testsCompletedA": null,
-      "millisecondsA": null,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 9,
+      "testsB": 9,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "dd9bda8421957ae4c6a537c5358d7886fdc576166860edf5cd56f6c28b7b83a0",
+      "signaturesSha256B": "dd9bda8421957ae4c6a537c5358d7886fdc576166860edf5cd56f6c28b7b83a0",
+      "millisecondsA": 11046.70849609375,
+      "millisecondsB": 4876.8408203125,
+      "improvementPercent": 55.85254356954372
     },
     {
       "file": "app/studio/(app)/naviera/__tests__/autorizar-correlation-id.migration.test.ts",
       "affected": true,
       "expectedTests": 26,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 26,
-      "millisecondsA": 64924,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 26,
+      "testsB": 26,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "c448968c6ef3fafa70702c2ca62607fcf97776723a3038ffe72eaecc8ca99f89",
+      "signaturesSha256B": "c448968c6ef3fafa70702c2ca62607fcf97776723a3038ffe72eaecc8ca99f89",
+      "millisecondsA": 23276.47021484375,
+      "millisecondsB": 9255.49365234375,
+      "improvementPercent": 60.23669582666626
     },
     {
       "file": "infra/ops/tests/migraciones.test.mjs",
       "affected": true,
       "expectedTests": 30,
-      "statusA": "NO COMPLETADO / sin resultado final por archivo",
-      "testsCompletedA": null,
-      "millisecondsA": null,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 30,
+      "testsB": 30,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "4592caa671e6fbb47faa505f1ae2608917110021445ba8f790027c7b57b80538",
+      "signaturesSha256B": "4592caa671e6fbb47faa505f1ae2608917110021445ba8f790027c7b57b80538",
+      "millisecondsA": 86661.3984375,
+      "millisecondsB": 79643.53393554688,
+      "improvementPercent": 8.098028220735898
     },
     {
       "file": "lib/portal/__tests__/billing-identity.migration.test.ts",
       "affected": true,
       "expectedTests": 12,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 12,
-      "millisecondsA": 49460,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 12,
+      "testsB": 12,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "4b9dc8a08c754e7d35673658e1bb0f4b013b2dbc45129d8becb432b277141c8f",
+      "signaturesSha256B": "4b9dc8a08c754e7d35673658e1bb0f4b013b2dbc45129d8becb432b277141c8f",
+      "millisecondsA": 19352.00146484375,
+      "millisecondsB": 11482.69775390625,
+      "improvementPercent": 40.664030153332966
     },
     {
       "file": "lib/portal/__tests__/identity-photo-replacement.migration.test.ts",
       "affected": true,
       "expectedTests": 4,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 4,
-      "millisecondsA": 11813,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 4,
+      "testsB": 4,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "74956f94c4f94fb09438bc8083f2ce01e8fe6a84577247f2ab07a1095106fa0f",
+      "signaturesSha256B": "74956f94c4f94fb09438bc8083f2ce01e8fe6a84577247f2ab07a1095106fa0f",
+      "millisecondsA": 5087.99951171875,
+      "millisecondsB": 3207.551025390625,
+      "improvementPercent": 36.95850367117863
     },
     {
       "file": "lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts",
       "affected": true,
       "expectedTests": 15,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 15,
-      "millisecondsA": 55463,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 15,
+      "testsB": 15,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "b4876d25bfafb5c238600188438adfc68a76e567021aa4976dc0bc71f59a82b3",
+      "signaturesSha256B": "b4876d25bfafb5c238600188438adfc68a76e567021aa4976dc0bc71f59a82b3",
+      "millisecondsA": 24615.4580078125,
+      "millisecondsB": 19791.007568359375,
+      "improvementPercent": 19.59927147372976
     },
     {
       "file": "lib/portal/__tests__/portal-bandeja-avisos.migration.test.ts",
       "affected": true,
       "expectedTests": 48,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 48,
-      "millisecondsA": 157482,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 48,
+      "testsB": 48,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "9e2b1a64848ed58e0fcc210f020f8e4be8da371f0eae338ffda944c1dedb0d77",
+      "signaturesSha256B": "9e2b1a64848ed58e0fcc210f020f8e4be8da371f0eae338ffda944c1dedb0d77",
+      "millisecondsA": 61922.740478515625,
+      "millisecondsB": 24119.8701171875,
+      "improvementPercent": 61.04844531944449
     },
     {
       "file": "lib/portal/__tests__/profile-direct-edit.migration.test.ts",
       "affected": true,
       "expectedTests": 10,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 10,
-      "millisecondsA": 31430,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 10,
+      "testsB": 10,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "98535e33c4cd28161b81c5520e5d4bb24eabea654296023400c0f7c38374d190",
+      "signaturesSha256B": "98535e33c4cd28161b81c5520e5d4bb24eabea654296023400c0f7c38374d190",
+      "millisecondsA": 13073.58349609375,
+      "millisecondsB": 5495.74755859375,
+      "improvementPercent": 57.9629597329927
     },
     {
       "file": "lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts",
       "affected": true,
       "expectedTests": 87,
-      "statusA": "NO COMPLETADO / sin resultado final por archivo",
-      "testsCompletedA": null,
-      "millisecondsA": null,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 87,
+      "testsB": 87,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "be89dda0edafb594d665e0539068fd21e80caf182b2b6fe753ee4f80a04c9819",
+      "signaturesSha256B": "be89dda0edafb594d665e0539068fd21e80caf182b2b6fe753ee4f80a04c9819",
+      "millisecondsA": 153919.99682617188,
+      "millisecondsB": 72989.03979492188,
+      "improvementPercent": 52.57988481032041
     },
     {
       "file": "lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts",
       "affected": true,
       "expectedTests": 15,
-      "statusA": "NO COMPLETADO / sin resultado final por archivo",
-      "testsCompletedA": null,
-      "millisecondsA": null,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 15,
+      "testsB": 15,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "680886afd0dbdde9be808419d7bd8be0b57d05df15e7ccf23b4495d908ab74e6",
+      "signaturesSha256B": "680886afd0dbdde9be808419d7bd8be0b57d05df15e7ccf23b4495d908ab74e6",
+      "millisecondsA": 16646.2509765625,
+      "millisecondsB": 6414.113525390625,
+      "improvementPercent": 61.46811955183462
     },
     {
       "file": "lib/studio/__tests__/cierre-contable-superclave.migration.test.ts",
       "affected": true,
       "expectedTests": 38,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 38,
-      "millisecondsA": 155262,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 38,
+      "testsB": 38,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "b3696f37614c5a615e7ac33a7a63d911f6a5436d39c29d783daf74822abbefb8",
+      "signaturesSha256B": "b3696f37614c5a615e7ac33a7a63d911f6a5436d39c29d783daf74822abbefb8",
+      "millisecondsA": 91873.14038085938,
+      "millisecondsB": 59441.2333984375,
+      "improvementPercent": 35.30074932453127
     },
     {
       "file": "lib/studio/__tests__/client-outstanding.migration.test.ts",
       "affected": true,
       "expectedTests": 25,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 25,
-      "millisecondsA": 75208,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 25,
+      "testsB": 25,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "b4d29cdff09576e67d0ba66153b015c27f973c7a73a50a4e46fa336b50d4c22a",
+      "signaturesSha256B": "b4d29cdff09576e67d0ba66153b015c27f973c7a73a50a4e46fa336b50d4c22a",
+      "millisecondsA": 29458.769287109375,
+      "millisecondsB": 14205.327392578125,
+      "improvementPercent": 51.77895161155249
     },
     {
       "file": "lib/studio/__tests__/cobro-factura-atomico.migration.test.ts",
       "affected": true,
       "expectedTests": 7,
-      "statusA": "NO COMPLETADO / sin resultado final por archivo",
-      "testsCompletedA": null,
-      "millisecondsA": null,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 7,
+      "testsB": 7,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "61e3dac601ab6dbe3ddffc0a3db674a1919a73190451ca22b46aabc55aeb53e5",
+      "signaturesSha256B": "61e3dac601ab6dbe3ddffc0a3db674a1919a73190451ca22b46aabc55aeb53e5",
+      "millisecondsA": 11200.23681640625,
+      "millisecondsB": 7224.6533203125,
+      "improvementPercent": 35.49553068619286
     },
     {
       "file": "lib/studio/__tests__/credito-referido-atomico.migration.test.ts",
       "affected": true,
       "expectedTests": 12,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 12,
-      "millisecondsA": 47316,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 12,
+      "testsB": 12,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "384de8bcbe27a0e14ff9cffb549cb8bf3e438e3cf104a9025f23b1e28884226d",
+      "signaturesSha256B": "384de8bcbe27a0e14ff9cffb549cb8bf3e438e3cf104a9025f23b1e28884226d",
+      "millisecondsA": 18325.466796875,
+      "millisecondsB": 10637.923583984375,
+      "improvementPercent": 41.950053977351146
     },
     {
       "file": "lib/studio/__tests__/credito-referido-candado.migration.test.ts",
       "affected": true,
       "expectedTests": 50,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 50,
-      "millisecondsA": 198186,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 50,
+      "testsB": 50,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "193391082d03a260418f79b80fc0f4b13f494bc454f357d52152f3772ae0783d",
+      "signaturesSha256B": "193391082d03a260418f79b80fc0f4b13f494bc454f357d52152f3772ae0783d",
+      "millisecondsA": 75815.09252929688,
+      "millisecondsB": 42235.122802734375,
+      "improvementPercent": 44.291932656530555
     },
     {
       "file": "lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts",
       "affected": true,
       "expectedTests": 26,
-      "statusA": "NO COMPLETADO / sin resultado final por archivo",
-      "testsCompletedA": null,
-      "millisecondsA": null,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 26,
+      "testsB": 26,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "90e4dcd526e33c028a17f4aecb99a501c2448e8a591179e62e00e1915c450f43",
+      "signaturesSha256B": "90e4dcd526e33c028a17f4aecb99a501c2448e8a591179e62e00e1915c450f43",
+      "millisecondsA": 24660.979248046875,
+      "millisecondsB": 11032.262939453125,
+      "improvementPercent": 55.264294947546055
     },
     {
       "file": "lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts",
       "affected": true,
       "expectedTests": 20,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 20,
-      "millisecondsA": 41673,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 20,
+      "testsB": 20,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "7d882e1fb5320b73c45a0bfd4301a3649f9cbd986eb1f6c3af1572dacb98329e",
+      "signaturesSha256B": "7d882e1fb5320b73c45a0bfd4301a3649f9cbd986eb1f6c3af1572dacb98329e",
+      "millisecondsA": 17028.2880859375,
+      "millisecondsB": 6565.204345703125,
+      "improvementPercent": 61.445306113156036
     },
     {
       "file": "lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts",
       "affected": true,
       "expectedTests": 14,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 14,
-      "millisecondsA": 31565,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 14,
+      "testsB": 14,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "cc4ce25042ab32bd625e08107c75c22254df35b679102105c753a8e291ee78d0",
+      "signaturesSha256B": "cc4ce25042ab32bd625e08107c75c22254df35b679102105c753a8e291ee78d0",
+      "millisecondsA": 11984.898193359375,
+      "millisecondsB": 5007.95361328125,
+      "improvementPercent": 58.21446680242916
     },
     {
       "file": "lib/studio/__tests__/financiero-china-pago-correlation-id.migration.test.ts",
       "affected": true,
       "expectedTests": 26,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 26,
-      "millisecondsA": 62629,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 26,
+      "testsB": 26,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "e6f83cc88de3141953d51bbf252ae1bf2cebb615a3dfafe78a6ba4f458768c46",
+      "signaturesSha256B": "e6f83cc88de3141953d51bbf252ae1bf2cebb615a3dfafe78a6ba4f458768c46",
+      "millisecondsA": 24147.721923828125,
+      "millisecondsB": 10187.164794921875,
+      "improvementPercent": 57.81314350456579
     },
     {
       "file": "lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts",
       "affected": true,
       "expectedTests": 19,
-      "statusA": "NO COMPLETADO / sin resultado final por archivo",
-      "testsCompletedA": null,
-      "millisecondsA": null,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 19,
+      "testsB": 19,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "6474b5cb639fba01288efadd70cf4dde8b7b8d869c25f73b328a724b24cd9212",
+      "signaturesSha256B": "6474b5cb639fba01288efadd70cf4dde8b7b8d869c25f73b328a724b24cd9212",
+      "millisecondsA": 24117.237060546875,
+      "millisecondsB": 10449.547119140625,
+      "improvementPercent": 56.671872930938164
     },
     {
       "file": "lib/studio/__tests__/inspecciones-retirar-reporte-correlation-id.migration.test.ts",
       "affected": true,
       "expectedTests": 26,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 26,
-      "millisecondsA": 68988,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 26,
+      "testsB": 26,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "8367b7c3253688891ff59387e94452e410b6897ba8fa37a374f98202e1c0056d",
+      "signaturesSha256B": "8367b7c3253688891ff59387e94452e410b6897ba8fa37a374f98202e1c0056d",
+      "millisecondsA": 24530.516845703125,
+      "millisecondsB": 8941.353759765625,
+      "improvementPercent": 63.55008002478417
     },
     {
       "file": "lib/studio/__tests__/kommo-functions-base-url.migration.test.ts",
       "affected": true,
       "expectedTests": 12,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 12,
-      "millisecondsA": 9794,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 12,
+      "testsB": 12,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "59f9b8f61bb395164ed3b6842e7ecb4e26a93c3907988292cac1d683ce7e61c7",
+      "signaturesSha256B": "59f9b8f61bb395164ed3b6842e7ecb4e26a93c3907988292cac1d683ce7e61c7",
+      "millisecondsA": 14564.527587890625,
+      "millisecondsB": 3557.912841796875,
+      "improvementPercent": 75.57138176761032
     },
     {
       "file": "lib/studio/__tests__/naviera-zarpe-avanza-envios.migration.test.ts",
       "affected": true,
       "expectedTests": 25,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 25,
-      "millisecondsA": 77676,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 25,
+      "testsB": 25,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "32fbda77fba7919a32ddd64ff5f4b522464efb24eea2852a72812da800799a1a",
+      "signaturesSha256B": "32fbda77fba7919a32ddd64ff5f4b522464efb24eea2852a72812da800799a1a",
+      "millisecondsA": 31451.230712890625,
+      "millisecondsB": 14896.6904296875,
+      "improvementPercent": 52.63558820424178
     },
     {
       "file": "lib/studio/__tests__/operarios-editar-por-region.migration.test.ts",
       "affected": true,
       "expectedTests": 46,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 46,
-      "millisecondsA": 171771,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 46,
+      "testsB": 46,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "5531219320f1872fcbc63e4eb5fefe2775c6cde1fddf982f92c50178a9760d20",
+      "signaturesSha256B": "5531219320f1872fcbc63e4eb5fefe2775c6cde1fddf982f92c50178a9760d20",
+      "millisecondsA": 68588.8798828125,
+      "millisecondsB": 36902.45751953125,
+      "improvementPercent": 46.19760873398001
     },
     {
       "file": "lib/studio/__tests__/pago-proveedor-atomico.migration.test.ts",
       "affected": true,
       "expectedTests": 10,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 10,
-      "millisecondsA": 43869,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 10,
+      "testsB": 10,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "beb8ac1a96bea70d85a72612c0b2c8e8d03e387038a1804a63135c3089e6c6fd",
+      "signaturesSha256B": "beb8ac1a96bea70d85a72612c0b2c8e8d03e387038a1804a63135c3089e6c6fd",
+      "millisecondsA": 17616.22021484375,
+      "millisecondsB": 10161.692138671875,
+      "improvementPercent": 42.31627434976405
     },
     {
       "file": "lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts",
       "affected": true,
       "expectedTests": 87,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 87,
-      "millisecondsA": 343543,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 87,
+      "testsB": 87,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "21e61d64538870938ca640223a0c9ce86f1f1d7259247a365120081d9d8a0cdf",
+      "signaturesSha256B": "21e61d64538870938ca640223a0c9ce86f1f1d7259247a365120081d9d8a0cdf",
+      "millisecondsA": 145718.17822265625,
+      "millisecondsB": 71767.85498046875,
+      "improvementPercent": 50.74886616355578
     },
     {
       "file": "lib/studio/__tests__/reclamos-pagar-indemnizacion-correlation-id.migration.test.ts",
       "affected": true,
       "expectedTests": 26,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 26,
-      "millisecondsA": 64217,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 26,
+      "testsB": 26,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "6994ee5bada54074c354566790b5dea61007139ae1e4664d43366168b1384b24",
+      "signaturesSha256B": "6994ee5bada54074c354566790b5dea61007139ae1e4664d43366168b1384b24",
+      "millisecondsA": 23574.732666015625,
+      "millisecondsB": 9615.655029296875,
+      "improvementPercent": 59.21202939807495
     },
     {
       "file": "lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts",
       "affected": true,
       "expectedTests": 12,
-      "statusA": "NO COMPLETADO / sin resultado final por archivo",
-      "testsCompletedA": null,
-      "millisecondsA": null,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 12,
+      "testsB": 12,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "fcf2e2dbca42ca1833460db67c25d7316c93a5434ecf5264c18b9e53e76c57a1",
+      "signaturesSha256B": "fcf2e2dbca42ca1833460db67c25d7316c93a5434ecf5264c18b9e53e76c57a1",
+      "millisecondsA": 19045.060546875,
+      "millisecondsB": 10938.4560546875,
+      "improvementPercent": 42.56539102217592
     },
     {
       "file": "lib/studio/__tests__/seniat-liberar-correlation-id.migration.test.ts",
       "affected": true,
       "expectedTests": 26,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 26,
-      "millisecondsA": 64911,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 26,
+      "testsB": 26,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "cf3e47dd504a73b03f737d161f27dba02b6161d68959e75cf5e258e0e42ee08c",
+      "signaturesSha256B": "cf3e47dd504a73b03f737d161f27dba02b6161d68959e75cf5e258e0e42ee08c",
+      "millisecondsA": 24117.76611328125,
+      "millisecondsB": 8405.085205078125,
+      "improvementPercent": 65.14981874523784
     },
     {
       "file": "lib/studio/__tests__/tms-completar-ruta-correlation-id.migration.test.ts",
       "affected": true,
       "expectedTests": 26,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 26,
-      "millisecondsA": 66179,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 26,
+      "testsB": 26,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "e224318372d8043b3dd905180a18e585b88010d55234fdd7f9f61532357dbdf1",
+      "signaturesSha256B": "e224318372d8043b3dd905180a18e585b88010d55234fdd7f9f61532357dbdf1",
+      "millisecondsA": 30662.214111328125,
+      "millisecondsB": 8579.856689453125,
+      "improvementPercent": 72.01814370514325
     },
     {
       "file": "lib/studio/__tests__/ve-confirmar-entrega-correlation-id.migration.test.ts",
       "affected": true,
       "expectedTests": 26,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 26,
-      "millisecondsA": 65943,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 26,
+      "testsB": 26,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "37ff0d1de06f49402ce049311259be723a4456e88e5dc1c630f77ab626cc4826",
+      "signaturesSha256B": "37ff0d1de06f49402ce049311259be723a4456e88e5dc1c630f77ab626cc4826",
+      "millisecondsA": 26338.131103515625,
+      "millisecondsB": 8865.253662109375,
+      "improvementPercent": 66.34061229604087
     },
     {
       "file": "scripts/__tests__/radiografia-referidos.test.ts",
       "affected": true,
       "expectedTests": 5,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 5,
-      "millisecondsA": 15307,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 5,
+      "testsB": 5,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "1c4a878e97e3fa0448461edb13c4a542e7e23978086fed8beb4f17c9829d3a4f",
+      "signaturesSha256B": "1c4a878e97e3fa0448461edb13c4a542e7e23978086fed8beb4f17c9829d3a4f",
+      "millisecondsA": 5954.4013671875,
+      "millisecondsB": 5345.074462890625,
+      "improvementPercent": 10.233218534018373
     },
     {
       "file": "vitest/pglite-limpio.test.ts",
       "affected": false,
       "expectedTests": 8,
-      "statusA": "PASÓ por archivo; corrida incompleta",
-      "testsCompletedA": 8,
-      "millisecondsA": 18745,
-      "statusB": "NO EJECUTADO",
-      "testsCompletedB": null,
-      "millisecondsB": null,
-      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+      "testsA": 8,
+      "testsB": 8,
+      "statusA": "passed",
+      "statusB": "passed",
+      "identicalCaseSignatures": true,
+      "allCasesPassed": true,
+      "signaturesSha256A": "4e697ef0ee5b136c5e75dc73dd0706f37725c2fd21dbb415038817146583b471",
+      "signaturesSha256B": "4e697ef0ee5b136c5e75dc73dd0706f37725c2fd21dbb415038817146583b471",
+      "millisecondsA": 16674.558837890625,
+      "millisecondsB": 20908.74072265625,
+      "improvementPercent": -25.39306692267045
     }
   ],
-  "ci": {
-    "currentCodeHead": "59e8491b4842e92678509ca7d1b4788718f7243d",
-    "status": "PASÓ",
-    "checkName": "Calidad local sin secretos",
-    "runId": 39460332474,
-    "jobId": 118776457014,
-    "startedAt": "2026-10-20T17:23:59Z",
-    "completedAt": "2026-10-20T17:48:05Z",
-    "url": "https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/39460332474/job/118776457014",
-    "source": "gh pr view 304 --json number,url,isDraft,headRefOid,baseRefName,statusCheckRollup, consultado 2026-10-20",
-    "historicalAB": "comparacion-ci.txt conserva la comparación de los runs 39429472606 y 39436611054; este intento no la reemplaza",
-    "draftUnchanged": true
+  "closure": {
+    "originalHashesVerified": 36,
+    "configurationHashesVerified": 6,
+    "runtimeEntriesVerified": 3,
+    "worktreeClean": true,
+    "ownProcesses": 0,
+    "visibleWorktreeConsumers": 0,
+    "claimReleased": true,
+    "resourceTurnReturnedAt": "2026-10-20T19:54:13.609Z"
   },
-  "incidents": [
-    "Preflight inicial rechazó el import relativo de infra/ops/tests/migraciones.test.mjs porque el normalizador solo contemplaba alias; ningún test fue lanzado. Restauró 36/36 hashes. Se corrigió solo el comprobador y se repitió el preflight con éxito.",
-    "knowledge:status corrió durante el control A y terminó por sí solo con exit 0, ok=false, estructura INVALID. No es evidencia del estado final restaurado. El intento posterior de detener su espera no encontró el proceso y no terminó ninguno.",
-    "El watchdog por fase permaneció en 20 minutos aunque el Director amplió el turno total a 35. El Director ordenó conservar ese límite y no reiniciar automáticamente si cortaba."
-  ],
-  "limitations": [
-    "No comparación de tiempos A/B ni inferencia de mejora local: A incompleto y B no ejecutado.",
-    "Los tiempos A solo corresponden a los 26 archivos terminados, extraídos de sus líneas verdes del reporter; no hay JSON final ni resumen global de Vitest.",
-    "No se atribuye resultado a casos o archivos interrumpidos, aunque pudieran haber ejecutado parte de sus pruebas.",
-    "La identidad completa de casos entre A y B queda sin comprobar; los cuerpos fuente sí se verificaron iguales salvo imports/constructores.",
-    "Concurrencia prevista de dos workers en Windows; no comparar estos tiempos absolutos directamente con CI Linux de un worker.",
-    "No suite completa, nuevo ciclo de mutantes separado, producto, base real, migraciones, merge, deploy ni publicación de conocimiento."
-  ],
-  "evidenceDirectory": "C:/tmp/director-traspaso-20261020/0570-ab-local",
+  "ciObservedBeforeThisDocumentation": {
+    "head": "1077ff216956d2062f3ce281971f68d084fe0a92",
+    "check": "Calidad local sin secretos",
+    "conclusion": "SUCCESS",
+    "completedAt": "2026-10-20T19:01:29Z",
+    "runId": 39476193413,
+    "url": "https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/39476193413/job/118812654825",
+    "limit": "Este check corresponde a la cabeza medida. El nuevo commit documental tiene sus propios checks."
+  },
   "evidence": [
     {
       "file": "A-fresco.log",
-      "sha256": "9a47dec73abafbbe72c565da6cebb71dfaad2c775e6b63963aa7af2638d49914"
+      "sha256": "44fd0e9bf6d7b92de2a4e141ed30d1e7c45852f13c7cd3c5775a7487856fbdb0"
     },
     {
-      "file": "manifest.json",
-      "sha256": "8730873bd8b24dc1f693443d40176e87cc49eb75bbedd4b6f3faad2b9cf610b2"
+      "file": "A-fresco.json",
+      "sha256": "4076c2c3c30e254ba62090ed620c033922e6b13f25739157574979e684e33fd9"
     },
     {
-      "file": "constructors-original.patch",
+      "file": "B-plantilla.log",
+      "sha256": "ec15aaf7a469496c7262d81dcdf1b8de57600dbe7a99fa435c5cb5f957d71716"
+    },
+    {
+      "file": "B-plantilla.json",
+      "sha256": "e347052397d002ca51b782bd310a41894d92c4b702966fc099170ae839500cb3"
+    },
+    {
+      "file": "constructors-control.patch",
       "sha256": "72b9705adedb1bae9eb45dce17b6b1981b854439834956c616c45e8c63160891"
-    },
-    {
-      "file": "run-ab.cjs",
-      "sha256": "cc3c0487d9b5c0a5cfbc7dca7d6d3671b6eda766a9c6bf53ea76932ec5be5f39"
-    },
-    {
-      "file": "preflight-restaurado.json",
-      "sha256": "3daab7f70cf71bfd90de98e91a423f7d6c83c71499726f80c197064c376c3aae"
     }
-  ]
+  ],
+  "provenance": [
+    {
+      "archive": "20261020T193515078Z",
+      "file": "manifest.json",
+      "sha256": "381baad61af33013d3bf47b64be225e62d2bb7ff9b4b8f8b1ea4f12d2be8ff21"
+    },
+    {
+      "archive": "20261020T193515078Z",
+      "file": "comparacion-local.json",
+      "sha256": "c96139535505af4f6d6373c2909e21fcaea0313933636e0160c29eb17cca2f69"
+    },
+    {
+      "archive": "20261020T193515078Z",
+      "file": "comparacion-local.txt",
+      "sha256": "a87741d0a68e8d0fa3972a8540f54045061e850b3b98c2316ccecc016bbabb1a"
+    },
+    {
+      "archive": "20261020T193515078Z",
+      "file": "verificacion-final.json",
+      "sha256": "f8462c121ddbc5e092335a09eb4169690ec2b145b7a7b2d9bf8cbe117958bc3e"
+    },
+    {
+      "archive": "20261020T193515078Z",
+      "file": "procesos-final.json",
+      "sha256": "1bc0ad20a0fc75cd97f189933fd980059f6b9f7879e772bf9923429896d52f4c"
+    },
+    {
+      "archive": "20261020T193515078Z",
+      "file": "liberacion.json",
+      "sha256": "e32fdf5ef971b538871daa9802809eccc38a31977d41e2cd5f3505c3bfd7dc60"
+    },
+    {
+      "archive": "0570-ab-local-reintento",
+      "file": "run-ab.cjs",
+      "sha256": "e1bb7d394bae09a87e62ca28f18fad3bd4ec97810a14b55a9dc55ca89e10e9fe"
+    },
+    {
+      "archive": "0570-ab-local-reintento",
+      "file": "compare-ab.cjs",
+      "sha256": "85c6ea978a08cf1d59a0906387665fe7d95d77a2308289d0118b1e4113ff5e8a"
+    },
+    {
+      "archive": "0570-ab-local-reintento",
+      "file": "plan.json",
+      "sha256": "8208dcf6dadf0fc7e7031e1dd33235f6034f7aec5cdd8cd3e7d817598884df9c"
+    },
+    {
+      "archive": "0570-ab-local-reintento",
+      "file": "execution-authorization.json",
+      "sha256": "da9dc6514706de4ca874972625bcc363e9ab07990ca1ce2e09c94a13888f242c"
+    }
+  ],
+  "limitations": [
+    "Una fase A seguida de una B; sin repeticiones AB/BA ni intervalo de confianza estadístico.",
+    "Misma máquina Windows y dos workers; las duraciones absolutas no son comparables directamente con CI histórico en Linux.",
+    "Semilla y argumentos iguales no garantizan el mismo orden temporal de ejecución entre dos workers.",
+    "Cachés del sistema, antivirus, temperatura y carga incidental no se eliminan; el turno pesado debe ser exclusivo.",
+    "Los hashes de archivos de entrada y versiones instaladas no certifican cada byte transitivo de node_modules.",
+    "Un resultado parcial, firmas diferentes o fallo de restauración impide publicar porcentajes de mejora.",
+    "La comparación no ejecuta SQL real ni prueba producción; no autoriza merge, despliegue ni cierre automático de criterios.",
+    "Los 33 archivos afectados mejoraron en este par; el helper intacto pasó de 16,675 a 20,909 s. Ese ruido observable impide convertir un solo par en una garantía general.",
+    "El A/B histórico de CI usa Linux y un worker; se conserva como evidencia independiente. No se mezclan porcentajes ni tiempos absolutos con este par Windows de dos workers."
+  ],
+  "historicalAttempt": {
+    "originalHeadContainingAssets": "1077ff216956d2062f3ce281971f68d084fe0a92",
+    "originalJsonSha256": "d92d2279d3c1d9cfc8670290d7ad29d8cceff282769646b41161505af9f63e26",
+    "originalTxtSha256": "c9b7a413bf93e85ffc722f884f4e53d9f3ed2cf2d9b2e1c1d08a6d819a6805c9",
+    "classification": "HISTORICO_PARCIAL; no se combina con el segundo intento ni prueba mejora local por sí solo.",
+    "summary": {
+      "schemaVersion": 1,
+      "status": "PARCIAL",
+      "criterion5Local": "PENDIENTE",
+      "performanceImprovementConclusion": "NO DISPONIBLE; no se completó el par A/B",
+      "head": "59e8491b4842e92678509ca7d1b4788718f7243d",
+      "owner": "codex-0570-ab-01a15a4e",
+      "method": {
+        "intendedAffectedFiles": 33,
+        "intendedTotalFiles": 34,
+        "intendedAffectedCases": 846,
+        "intendedTotalCases": 854,
+        "A": "Reversión temporal solo de los imports/constructores de 4b05a262: new PGlite por caso, sin cambiar aserciones ni SQL",
+        "B": "Previsto: bytes originales de 59e8491b con pgliteLimpio. NO EJECUTADO",
+        "helper": "8 pruebas del helper intacto se incluyeron en A y estaban previstas sin cambios en B",
+        "constructorFiles": [
+          {
+            "file": "__tests__/anon-privilegios-residuales.migration.test.ts",
+            "originalSha256": "0c07a23090aedac9b93b33498ffe43108f6137194c338ac6ff1f1f4d90982139",
+            "controlSha256": "4fa2072fcc90372f50c0a51f6b4b079536515ceda1d7729a2b17496871a84a2c",
+            "normalizedSha256": "4c492f73a6a1c27a20cc4c8c9b2174c06491d71144702c4f22c9a9e0b8cb645e"
+          },
+          {
+            "file": "app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts",
+            "originalSha256": "c99ff15142eb42a25a156b082dbc3f46e221571c9439fff976d1732546d8d204",
+            "controlSha256": "a68aeb8d01739ad98f204fa1195506e1c026bea90996541c7a94155c4e702d3b",
+            "normalizedSha256": "3857700d02ad9784dc66feb747d746155e496707332c8678bb44520b61cea0bb"
+          },
+          {
+            "file": "app/studio/(app)/naviera/__tests__/autorizar-correlation-id.migration.test.ts",
+            "originalSha256": "8b665ff18981842653b252f5f6fa8fb4f400531916a5b033ec0a4f9e72fad38c",
+            "controlSha256": "4f00f65b835e318779a5505fb6a94656b25a992dfa624b6f1df842632b6172e3",
+            "normalizedSha256": "b2b0b028e0c426f31b72d3ca9d3f57f12f81de1338e0cf07697615c8e3f0d287"
+          },
+          {
+            "file": "infra/ops/tests/migraciones.test.mjs",
+            "originalSha256": "3cda2ad439d90c97cd6266e973a855ca41437833a06355f1b67fd2b4cce4dba4",
+            "controlSha256": "b8861428a4499805c72239b6dc4f2875c6388a994b9f120df3a8c9c2524cb159",
+            "normalizedSha256": "36974c41991265073d79509b9448087bf57862f3af46499d627b070b258bc81a"
+          },
+          {
+            "file": "lib/portal/__tests__/billing-identity.migration.test.ts",
+            "originalSha256": "d9b1c0aaa75d4496a136c330a35e90589993ecac007fc1bd8e7d281f989ee26a",
+            "controlSha256": "b72837d81c33117e1c7978219dc5c28685332d82ef3d0c9a39a57e5260179417",
+            "normalizedSha256": "000b7659b99cce2003824adcdba9efb8b9d1406d38041343360609d4b9a10432"
+          },
+          {
+            "file": "lib/portal/__tests__/identity-photo-replacement.migration.test.ts",
+            "originalSha256": "824256d94ab1903bacec3a842e525d85517711b90b51a864e25b3de7b0551e17",
+            "controlSha256": "0f0f032a2650bbf374d6957bc93d48441750cf6c1c1823bbb94cb9038135cd81",
+            "normalizedSha256": "5f24a43b12e88e2fd21e37220395dd5e8bfc88315116120e80483b7812d0b4bf"
+          },
+          {
+            "file": "lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts",
+            "originalSha256": "bc8c4b4f4148a032f2a807a7e4b2a1fe1954f2167d50d16d8dc58786c464534f",
+            "controlSha256": "f2de141969f0e483ddf63574fb3a5d1742072c7dca21b379ee48cacfc868861a",
+            "normalizedSha256": "d1a7fd9743850e77918eb9b438199b0ef5e449ee56b40ee60b5a8e80c94ef249"
+          },
+          {
+            "file": "lib/portal/__tests__/portal-bandeja-avisos.migration.test.ts",
+            "originalSha256": "58b79d22fdb784abc2e88360a7b212e08c010a2fa3f83ebeb2bd7032d9e52863",
+            "controlSha256": "38e3ec96c9cf21eb3ab2f7188f97408d453b6350889fe19d95d6302d595e1886",
+            "normalizedSha256": "2c3c00b04a26ae2035d444502db2a48f998e6e5c5f1a1b88684779476aa39c2a"
+          },
+          {
+            "file": "lib/portal/__tests__/profile-direct-edit.migration.test.ts",
+            "originalSha256": "27243f4392b4d003bc1b6d57be7aef03c3a45c3d52274a3dd34de2f25d822d6a",
+            "controlSha256": "43370ecaec26c8c64633ea9b0dd8916dd67022c520d711cc70d66c73eabd6313",
+            "normalizedSha256": "b9a27af87890de964c000c4810b1376c8dc7142e04954b3a548a51d6ea3581f6"
+          },
+          {
+            "file": "lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts",
+            "originalSha256": "2b3fecaa9c3f52ecc708c91ce83cb09f8cb1bf5c29ccc909eee38f9da09cb484",
+            "controlSha256": "55e69209bcbca960f969b833d2fca894267921146e53bc1af13e2c86b575a7ca",
+            "normalizedSha256": "d6d98e40f8f52215d498b2a36e6646bdd4b1ab63539f8ee58413862b4e11f3eb"
+          },
+          {
+            "file": "lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts",
+            "originalSha256": "9f1c3e885931a6e74a129c97574fbb8d1a10e2f6fbbde4e5c01e2d52e01d5f43",
+            "controlSha256": "4b30521f47625ac64b2e5f64e8cef98210cdbe83dfd5919f0f37e110aaf31793",
+            "normalizedSha256": "c85b10624b63a2990b2e8a560c824401f163462dab202be95e5f2f9702942556"
+          },
+          {
+            "file": "lib/studio/__tests__/cierre-contable-superclave.migration.test.ts",
+            "originalSha256": "65adbf508d2ff545521d3a5802134329669d19383b62559d6f928edbb387dd3d",
+            "controlSha256": "67c20761ba597eb5c2ee01a949e1cb3495d08e2fc7428ff6715b8c8d394b74c1",
+            "normalizedSha256": "ba64f9388ae2ce5b1f0682f92ba9b42315d993fe487c75c80ff5dd9499e6f170"
+          },
+          {
+            "file": "lib/studio/__tests__/client-outstanding.migration.test.ts",
+            "originalSha256": "0922d89a61b010e0334f41f35d55d0c52c97b13ae2488c752d7283d5c533ea20",
+            "controlSha256": "b2814a6bf4279ce7470841170e5470782caa1f229568b34e84fbea8069ae864e",
+            "normalizedSha256": "81f8c991f00cecb691fd603a6dff3a8cb3d29ad1fd10bec13df10b0e94e08c05"
+          },
+          {
+            "file": "lib/studio/__tests__/cobro-factura-atomico.migration.test.ts",
+            "originalSha256": "62633bc4d2a4f0b3aa79de26cf088841cb74dd6ef4effa74a31a5a7007a9a54a",
+            "controlSha256": "be0c6e50985037bcaf7a46d6687decc23c607bb57d2153e9402421015aed760f",
+            "normalizedSha256": "42bac70aa7ceea878823c70129fac8744eab661d5a98840c42a5c2d7247388f2"
+          },
+          {
+            "file": "lib/studio/__tests__/credito-referido-atomico.migration.test.ts",
+            "originalSha256": "8e74924e4de40c85d33d05e29d657054938b243bfdb4a19cdb604aba14eb1e8a",
+            "controlSha256": "51941a6c3e086b78b432a3b9db0dccb58ccc226f81f264f8dd16587efe4b1052",
+            "normalizedSha256": "71112288800c5ea6aa1341c14019ac9699ef574a15339cf9b2104045eff9bb7b"
+          },
+          {
+            "file": "lib/studio/__tests__/credito-referido-candado.migration.test.ts",
+            "originalSha256": "c8493d1ce2797cf83e2c3aaefef2dccd18cbb93f1233e2a003a1654bca6ff25f",
+            "controlSha256": "d98565fc5d48a0843f59c580ba790c4410adc9a22539fe087b6892930308dbe5",
+            "normalizedSha256": "0eb03a94b51f81914211fdb2a3064e6aeb796ec6952778014a064257e9ebe062"
+          },
+          {
+            "file": "lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts",
+            "originalSha256": "6736f29a7b9a84000f72d538a6cc91c4600de5e0f4a3efa02637b5ff212f2021",
+            "controlSha256": "4b84e8fa97bc1880ade3b26c9b6cbaa87efc04441d0bcb0f8470e31dfc9dc143",
+            "normalizedSha256": "d77cc9ff16ab90f1de7292f501c3f458c6cdb684dc52ae1e05e816fab8fab53d"
+          },
+          {
+            "file": "lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts",
+            "originalSha256": "b51b0d1a2bf4b624c7ebc9f97d12bb9e3eb92c2a258b34183a3e72e7ef921a21",
+            "controlSha256": "ad8fb38f1013ef6b158589893a34e8c83812a209df3bbc02f4ae5151b96a38ad",
+            "normalizedSha256": "57ff6a939c37ee7446c4c9d579e7a807cbb55704cdd4c60555fc6bc6339126d5"
+          },
+          {
+            "file": "lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts",
+            "originalSha256": "61c070731176c60753ce302a3f93aa916f3b7cd909488227c3e068b75ea7b820",
+            "controlSha256": "2ad4a10cc85dcf606113584947c4518a06d8ef7104c527940a24cbae71b62bef",
+            "normalizedSha256": "2aecbfa1fefb97a71732b304e09e193e94e0facd9ce59b662a5e9e2d33b9dc47"
+          },
+          {
+            "file": "lib/studio/__tests__/kommo-functions-base-url.migration.test.ts",
+            "originalSha256": "07d94fdf1fd590fc251bd060745e8c878fa4847725ed7ad7d5f4343800280216",
+            "controlSha256": "e707bf9d98f4fd9d4111030d71ce2bf89dd3ec00c8d56e37612129a718394673",
+            "normalizedSha256": "cdb1d31ca7a5e705ae164c3855e7338f5a38102152398b2db97ada9bc8428c49"
+          },
+          {
+            "file": "lib/studio/__tests__/naviera-zarpe-avanza-envios.migration.test.ts",
+            "originalSha256": "0d1692c531d840e8de84c878b6e62c37036d4ff519209fdb2acff3ba65dd23fe",
+            "controlSha256": "d9a6d2f4913146e2fc61e67599d89719ce61cdb542533dc2a293fc0a2d2c7e02",
+            "normalizedSha256": "8bc7a19835062e125d83191a9ecee02f83252bd83c4318af147e78c1e46b1758"
+          },
+          {
+            "file": "lib/studio/__tests__/operarios-editar-por-region.migration.test.ts",
+            "originalSha256": "2524413b686dfbb6761ba45ba19ab3529037f6fdf3bdb81290254f3c721b4e72",
+            "controlSha256": "dfe03fb5d26b771eca8931a900a3b93b228a7c796870e7bbb4315ed11fc0f847",
+            "normalizedSha256": "ee482f8937cabc4e9f175874017fe7d1848ac43598275948cb2ae928b330fdee"
+          },
+          {
+            "file": "lib/studio/__tests__/pago-proveedor-atomico.migration.test.ts",
+            "originalSha256": "d77528e2d50acc6c7956cfe9122485c95b2d520a3a10dcbf6c8f383c9c277e44",
+            "controlSha256": "0fe5e1039dfaf8f0e5de0dccd548058c5378efb428eb4c19c532b53bb1ce0044",
+            "normalizedSha256": "bc38f359fbf76ec58733d04fad5eb916baeccae4dd69c2cc93b985931deafac0"
+          },
+          {
+            "file": "lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts",
+            "originalSha256": "6f2d3c526e3fc9760abbc87da6bd5cd057944bc56f83152fb973da111156e990",
+            "controlSha256": "e24a7cea7399e8f1f0550790d12c19b5440b7ac76a0c89e5c40217fe43e67ce5",
+            "normalizedSha256": "297dec56a099d3bcd022f791ca8107a44865876d6ff4964b564f8c24ae8250f4"
+          },
+          {
+            "file": "lib/studio/__tests__/r3-correlation-contract.ts",
+            "originalSha256": "8480ae761b1968c0a3c58699cd9635a503379f231f4573fc0ab972b23021c535",
+            "controlSha256": "a2971bfdd87e2a44f78e85773b95ad371152aaa3ff0226d91b07c1ae19ac7c29",
+            "normalizedSha256": "c74b7d7c8e31b67032d624ddcc26280ea0b0df08ee4e72b5e57f0ab912c4dafa"
+          },
+          {
+            "file": "lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts",
+            "originalSha256": "27bff0069d1e671f70640b91a6df28dd581ef7e092a90844211e5f85b1512242",
+            "controlSha256": "e3394b74d8e752f63d55ec5199521ba5a5fd62dd8a4800c23ad307fa3be00e14",
+            "normalizedSha256": "eae2482b59273b6857b7439f804a6f3b4db777e639e9e7c7d1e6760c807d4047"
+          },
+          {
+            "file": "scripts/__tests__/radiografia-referidos.test.ts",
+            "originalSha256": "b265ca37a614b234af516c373b85bba6e216781887692c1c7f080e1bfa77223e",
+            "controlSha256": "8ee522879d47f6b246df94da654516dcb5969ba7f1ed7ea240ec314f2bb25d6b",
+            "normalizedSha256": "3bc77f690afa7e5b920893f1b2cca384f2be83c04df65e3d1e064f3e8799c7d6"
+          }
+        ],
+        "unchangedProtectedFiles": [
+          "lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts",
+          "lib/studio/__tests__/financiero-china-pago-correlation-id.migration.test.ts",
+          "lib/studio/__tests__/inspecciones-retirar-reporte-correlation-id.migration.test.ts",
+          "lib/studio/__tests__/reclamos-pagar-indemnizacion-correlation-id.migration.test.ts",
+          "lib/studio/__tests__/seniat-liberar-correlation-id.migration.test.ts",
+          "lib/studio/__tests__/tms-completar-ruta-correlation-id.migration.test.ts",
+          "lib/studio/__tests__/ve-confirmar-entrega-correlation-id.migration.test.ts",
+          "vitest/pglite-limpio.test.ts",
+          "vitest/pglite-limpio.ts"
+        ],
+        "normalizedSourceBodiesEqual": true,
+        "originalHashes": {
+          "__tests__/anon-privilegios-residuales.migration.test.ts": "0c07a23090aedac9b93b33498ffe43108f6137194c338ac6ff1f1f4d90982139",
+          "app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts": "c99ff15142eb42a25a156b082dbc3f46e221571c9439fff976d1732546d8d204",
+          "app/studio/(app)/naviera/__tests__/autorizar-correlation-id.migration.test.ts": "8b665ff18981842653b252f5f6fa8fb4f400531916a5b033ec0a4f9e72fad38c",
+          "infra/ops/tests/migraciones.test.mjs": "3cda2ad439d90c97cd6266e973a855ca41437833a06355f1b67fd2b4cce4dba4",
+          "lib/portal/__tests__/billing-identity.migration.test.ts": "d9b1c0aaa75d4496a136c330a35e90589993ecac007fc1bd8e7d281f989ee26a",
+          "lib/portal/__tests__/identity-photo-replacement.migration.test.ts": "824256d94ab1903bacec3a842e525d85517711b90b51a864e25b3de7b0551e17",
+          "lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts": "bc8c4b4f4148a032f2a807a7e4b2a1fe1954f2167d50d16d8dc58786c464534f",
+          "lib/portal/__tests__/portal-bandeja-avisos.migration.test.ts": "58b79d22fdb784abc2e88360a7b212e08c010a2fa3f83ebeb2bd7032d9e52863",
+          "lib/portal/__tests__/profile-direct-edit.migration.test.ts": "27243f4392b4d003bc1b6d57be7aef03c3a45c3d52274a3dd34de2f25d822d6a",
+          "lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts": "2b3fecaa9c3f52ecc708c91ce83cb09f8cb1bf5c29ccc909eee38f9da09cb484",
+          "lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts": "9f1c3e885931a6e74a129c97574fbb8d1a10e2f6fbbde4e5c01e2d52e01d5f43",
+          "lib/studio/__tests__/cierre-contable-superclave.migration.test.ts": "65adbf508d2ff545521d3a5802134329669d19383b62559d6f928edbb387dd3d",
+          "lib/studio/__tests__/client-outstanding.migration.test.ts": "0922d89a61b010e0334f41f35d55d0c52c97b13ae2488c752d7283d5c533ea20",
+          "lib/studio/__tests__/cobro-factura-atomico.migration.test.ts": "62633bc4d2a4f0b3aa79de26cf088841cb74dd6ef4effa74a31a5a7007a9a54a",
+          "lib/studio/__tests__/credito-referido-atomico.migration.test.ts": "8e74924e4de40c85d33d05e29d657054938b243bfdb4a19cdb604aba14eb1e8a",
+          "lib/studio/__tests__/credito-referido-candado.migration.test.ts": "c8493d1ce2797cf83e2c3aaefef2dccd18cbb93f1233e2a003a1654bca6ff25f",
+          "lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts": "7aeed5781f2f8de7f38441030aa9aea036498c8b1dd36b19e4780bbec4c12fbd",
+          "lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts": "6736f29a7b9a84000f72d538a6cc91c4600de5e0f4a3efa02637b5ff212f2021",
+          "lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts": "b51b0d1a2bf4b624c7ebc9f97d12bb9e3eb92c2a258b34183a3e72e7ef921a21",
+          "lib/studio/__tests__/financiero-china-pago-correlation-id.migration.test.ts": "6e6155f1e821b932b72f42a8506907c2f02897674ff1e1a6949e911365a8f6df",
+          "lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts": "61c070731176c60753ce302a3f93aa916f3b7cd909488227c3e068b75ea7b820",
+          "lib/studio/__tests__/inspecciones-retirar-reporte-correlation-id.migration.test.ts": "9f0676af273c7c188a6fc93d0e070e63e3ef278500522a1c78b5be89938ccf9e",
+          "lib/studio/__tests__/kommo-functions-base-url.migration.test.ts": "07d94fdf1fd590fc251bd060745e8c878fa4847725ed7ad7d5f4343800280216",
+          "lib/studio/__tests__/naviera-zarpe-avanza-envios.migration.test.ts": "0d1692c531d840e8de84c878b6e62c37036d4ff519209fdb2acff3ba65dd23fe",
+          "lib/studio/__tests__/operarios-editar-por-region.migration.test.ts": "2524413b686dfbb6761ba45ba19ab3529037f6fdf3bdb81290254f3c721b4e72",
+          "lib/studio/__tests__/pago-proveedor-atomico.migration.test.ts": "d77528e2d50acc6c7956cfe9122485c95b2d520a3a10dcbf6c8f383c9c277e44",
+          "lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts": "6f2d3c526e3fc9760abbc87da6bd5cd057944bc56f83152fb973da111156e990",
+          "lib/studio/__tests__/reclamos-pagar-indemnizacion-correlation-id.migration.test.ts": "566aded88b45e9be2272c1ee72cae69f2aaeadedd1c85742a5e53b65ac5b1fe9",
+          "lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts": "27bff0069d1e671f70640b91a6df28dd581ef7e092a90844211e5f85b1512242",
+          "lib/studio/__tests__/seniat-liberar-correlation-id.migration.test.ts": "d6d691ccf060f5b58f146e9fa438b31bab6a453b19e56574992e4f90f6b21763",
+          "lib/studio/__tests__/tms-completar-ruta-correlation-id.migration.test.ts": "a2b15c77631f66d0ba8db37e78b0739fbdadd889eb85d74195d2090bd035293a",
+          "lib/studio/__tests__/ve-confirmar-entrega-correlation-id.migration.test.ts": "8259ad5ccbc33b533891665208521775902fc4c3e29e3be07be329ec8d766a63",
+          "scripts/__tests__/radiografia-referidos.test.ts": "b265ca37a614b234af516c373b85bba6e216781887692c1c7f080e1bfa77223e",
+          "vitest/pglite-limpio.test.ts": "c93b05c49afd08cb31fbfd2826767e07df910789b2fee08943f619f607096f54",
+          "vitest/pglite-limpio.ts": "9c69674f67988b68b8c5c37ddf84c1250e6639589a9e6104d270386f0fa27570",
+          "lib/studio/__tests__/r3-correlation-contract.ts": "8480ae761b1968c0a3c58699cd9635a503379f231f4573fc0ab972b23021c535"
+        },
+        "restoration": {
+          "filesChecked": 36,
+          "mismatches": []
+        },
+        "concurrency": {
+          "workers": 2,
+          "pool": "forks",
+          "isolate": true,
+          "cache": false,
+          "fileShuffleSeed": 570
+        },
+        "explicitEnvironment": {
+          "CI": "true",
+          "TZ": "UTC",
+          "NO_COLOR": "1"
+        },
+        "environmentPolicy": "Windows runtime allowlist only; no inherited application, Supabase or credential variables; no env-file import",
+        "command": "node node_modules/vitest/vitest.mjs run <los 34 paths de rows> --maxWorkers=2 --pool=forks --isolate --no-cache --sequence.shuffle.files --sequence.seed=570 --reporter=default --reporter=json --outputFile.json=<A-fresco.json o B-plantilla.json>"
+      },
+      "runtime": {
+        "node": "v24.20.0",
+        "vitest": "4.1.7",
+        "pglite": "0.5.8",
+        "platform": "win32",
+        "arch": "x64",
+        "cpu": "Intel(R) Core(TM) Ultra 7 155H"
+      },
+      "result": {
+        "completedFilesA": 26,
+        "completedAffectedFilesA": 25,
+        "completedCasesA": 649,
+        "completedAffectedCasesA": 641,
+        "unfinishedFilesA": [
+          "app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts",
+          "infra/ops/tests/migraciones.test.mjs",
+          "lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts",
+          "lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts",
+          "lib/studio/__tests__/cobro-factura-atomico.migration.test.ts",
+          "lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts",
+          "lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts",
+          "lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts"
+        ],
+        "failedCompletedFileIndicators": [],
+        "finalVitestJsonAAvailable": false,
+        "B": "NO EJECUTADO",
+        "stopReason": "Watchdog de 20 minutos por fase del arnés temporal; límite configurado antes de la extensión del turno a 35 minutos. No es un fallo de aserción de producto.",
+        "runs": [
+          {
+            "label": "A-fresco",
+            "startedAt": "2026-10-20T18:11:47.770Z",
+            "endedAt": "2026-10-20T18:31:48.616Z",
+            "wallMs": 1200846,
+            "exitCode": 1
+          }
+        ],
+        "visibleNodeProcessesAfterRestoration": 0,
+        "heavyTurnReturnedTo": "SDD-0569"
+      },
+      "rows": [
+        {
+          "file": "__tests__/anon-privilegios-residuales.migration.test.ts",
+          "affected": true,
+          "expectedTests": 26,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 26,
+          "millisecondsA": 87932,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts",
+          "affected": true,
+          "expectedTests": 9,
+          "statusA": "NO COMPLETADO / sin resultado final por archivo",
+          "testsCompletedA": null,
+          "millisecondsA": null,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "app/studio/(app)/naviera/__tests__/autorizar-correlation-id.migration.test.ts",
+          "affected": true,
+          "expectedTests": 26,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 26,
+          "millisecondsA": 64924,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "infra/ops/tests/migraciones.test.mjs",
+          "affected": true,
+          "expectedTests": 30,
+          "statusA": "NO COMPLETADO / sin resultado final por archivo",
+          "testsCompletedA": null,
+          "millisecondsA": null,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/portal/__tests__/billing-identity.migration.test.ts",
+          "affected": true,
+          "expectedTests": 12,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 12,
+          "millisecondsA": 49460,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/portal/__tests__/identity-photo-replacement.migration.test.ts",
+          "affected": true,
+          "expectedTests": 4,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 4,
+          "millisecondsA": 11813,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts",
+          "affected": true,
+          "expectedTests": 15,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 15,
+          "millisecondsA": 55463,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/portal/__tests__/portal-bandeja-avisos.migration.test.ts",
+          "affected": true,
+          "expectedTests": 48,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 48,
+          "millisecondsA": 157482,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/portal/__tests__/profile-direct-edit.migration.test.ts",
+          "affected": true,
+          "expectedTests": 10,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 10,
+          "millisecondsA": 31430,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts",
+          "affected": true,
+          "expectedTests": 87,
+          "statusA": "NO COMPLETADO / sin resultado final por archivo",
+          "testsCompletedA": null,
+          "millisecondsA": null,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts",
+          "affected": true,
+          "expectedTests": 15,
+          "statusA": "NO COMPLETADO / sin resultado final por archivo",
+          "testsCompletedA": null,
+          "millisecondsA": null,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/cierre-contable-superclave.migration.test.ts",
+          "affected": true,
+          "expectedTests": 38,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 38,
+          "millisecondsA": 155262,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/client-outstanding.migration.test.ts",
+          "affected": true,
+          "expectedTests": 25,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 25,
+          "millisecondsA": 75208,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/cobro-factura-atomico.migration.test.ts",
+          "affected": true,
+          "expectedTests": 7,
+          "statusA": "NO COMPLETADO / sin resultado final por archivo",
+          "testsCompletedA": null,
+          "millisecondsA": null,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/credito-referido-atomico.migration.test.ts",
+          "affected": true,
+          "expectedTests": 12,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 12,
+          "millisecondsA": 47316,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/credito-referido-candado.migration.test.ts",
+          "affected": true,
+          "expectedTests": 50,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 50,
+          "millisecondsA": 198186,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts",
+          "affected": true,
+          "expectedTests": 26,
+          "statusA": "NO COMPLETADO / sin resultado final por archivo",
+          "testsCompletedA": null,
+          "millisecondsA": null,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts",
+          "affected": true,
+          "expectedTests": 20,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 20,
+          "millisecondsA": 41673,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts",
+          "affected": true,
+          "expectedTests": 14,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 14,
+          "millisecondsA": 31565,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/financiero-china-pago-correlation-id.migration.test.ts",
+          "affected": true,
+          "expectedTests": 26,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 26,
+          "millisecondsA": 62629,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts",
+          "affected": true,
+          "expectedTests": 19,
+          "statusA": "NO COMPLETADO / sin resultado final por archivo",
+          "testsCompletedA": null,
+          "millisecondsA": null,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/inspecciones-retirar-reporte-correlation-id.migration.test.ts",
+          "affected": true,
+          "expectedTests": 26,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 26,
+          "millisecondsA": 68988,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/kommo-functions-base-url.migration.test.ts",
+          "affected": true,
+          "expectedTests": 12,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 12,
+          "millisecondsA": 9794,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/naviera-zarpe-avanza-envios.migration.test.ts",
+          "affected": true,
+          "expectedTests": 25,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 25,
+          "millisecondsA": 77676,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/operarios-editar-por-region.migration.test.ts",
+          "affected": true,
+          "expectedTests": 46,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 46,
+          "millisecondsA": 171771,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/pago-proveedor-atomico.migration.test.ts",
+          "affected": true,
+          "expectedTests": 10,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 10,
+          "millisecondsA": 43869,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts",
+          "affected": true,
+          "expectedTests": 87,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 87,
+          "millisecondsA": 343543,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/reclamos-pagar-indemnizacion-correlation-id.migration.test.ts",
+          "affected": true,
+          "expectedTests": 26,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 26,
+          "millisecondsA": 64217,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts",
+          "affected": true,
+          "expectedTests": 12,
+          "statusA": "NO COMPLETADO / sin resultado final por archivo",
+          "testsCompletedA": null,
+          "millisecondsA": null,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/seniat-liberar-correlation-id.migration.test.ts",
+          "affected": true,
+          "expectedTests": 26,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 26,
+          "millisecondsA": 64911,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/tms-completar-ruta-correlation-id.migration.test.ts",
+          "affected": true,
+          "expectedTests": 26,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 26,
+          "millisecondsA": 66179,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "lib/studio/__tests__/ve-confirmar-entrega-correlation-id.migration.test.ts",
+          "affected": true,
+          "expectedTests": 26,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 26,
+          "millisecondsA": 65943,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "scripts/__tests__/radiografia-referidos.test.ts",
+          "affected": true,
+          "expectedTests": 5,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 5,
+          "millisecondsA": 15307,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        },
+        {
+          "file": "vitest/pglite-limpio.test.ts",
+          "affected": false,
+          "expectedTests": 8,
+          "statusA": "PASÓ por archivo; corrida incompleta",
+          "testsCompletedA": 8,
+          "millisecondsA": 18745,
+          "statusB": "NO EJECUTADO",
+          "testsCompletedB": null,
+          "millisecondsB": null,
+          "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+        }
+      ],
+      "ci": {
+        "currentCodeHead": "59e8491b4842e92678509ca7d1b4788718f7243d",
+        "status": "PASÓ",
+        "checkName": "Calidad local sin secretos",
+        "runId": 39460332474,
+        "jobId": 118776457014,
+        "startedAt": "2026-10-20T17:23:59Z",
+        "completedAt": "2026-10-20T17:48:05Z",
+        "url": "https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/39460332474/job/118776457014",
+        "source": "gh pr view 304 --json number,url,isDraft,headRefOid,baseRefName,statusCheckRollup, consultado 2026-10-20",
+        "historicalAB": "comparacion-ci.txt conserva la comparación de los runs 39429472606 y 39436611054; este intento no la reemplaza",
+        "draftUnchanged": true
+      },
+      "incidents": [
+        "Preflight inicial rechazó el import relativo de infra/ops/tests/migraciones.test.mjs porque el normalizador solo contemplaba alias; ningún test fue lanzado. Restauró 36/36 hashes. Se corrigió solo el comprobador y se repitió el preflight con éxito.",
+        "knowledge:status corrió durante el control A y terminó por sí solo con exit 0, ok=false, estructura INVALID. No es evidencia del estado final restaurado. El intento posterior de detener su espera no encontró el proceso y no terminó ninguno.",
+        "El watchdog por fase permaneció en 20 minutos aunque el Director amplió el turno total a 35. El Director ordenó conservar ese límite y no reiniciar automáticamente si cortaba."
+      ],
+      "limitations": [
+        "No comparación de tiempos A/B ni inferencia de mejora local: A incompleto y B no ejecutado.",
+        "Los tiempos A solo corresponden a los 26 archivos terminados, extraídos de sus líneas verdes del reporter; no hay JSON final ni resumen global de Vitest.",
+        "No se atribuye resultado a casos o archivos interrumpidos, aunque pudieran haber ejecutado parte de sus pruebas.",
+        "La identidad completa de casos entre A y B queda sin comprobar; los cuerpos fuente sí se verificaron iguales salvo imports/constructores.",
+        "Concurrencia prevista de dos workers en Windows; no comparar estos tiempos absolutos directamente con CI Linux de un worker.",
+        "No suite completa, nuevo ciclo de mutantes separado, producto, base real, migraciones, merge, deploy ni publicación de conocimiento."
+      ],
+      "evidence": [
+        {
+          "file": "A-fresco.log",
+          "sha256": "9a47dec73abafbbe72c565da6cebb71dfaad2c775e6b63963aa7af2638d49914"
+        },
+        {
+          "file": "manifest.json",
+          "sha256": "8730873bd8b24dc1f693443d40176e87cc49eb75bbedd4b6f3faad2b9cf610b2"
+        },
+        {
+          "file": "constructors-original.patch",
+          "sha256": "72b9705adedb1bae9eb45dce17b6b1981b854439834956c616c45e8c63160891"
+        },
+        {
+          "file": "run-ab.cjs",
+          "sha256": "cc3c0487d9b5c0a5cfbc7dca7d6d3671b6eda766a9c6bf53ea76932ec5be5f39"
+        },
+        {
+          "file": "preflight-restaurado.json",
+          "sha256": "3daab7f70cf71bfd90de98e91a423f7d6c83c71499726f80c197064c376c3aae"
+        }
+      ],
+      "localEvidenceArchiveId": "0570-ab-local; fuera de Git"
+    }
+  }
 }
