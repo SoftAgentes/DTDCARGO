@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 552 specs)
+### Índice de specs (generado · 553 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -589,7 +589,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0562 | «Por contabilizar» cuenta los recibos como la radiografía | in-progress | interno |
 | 0563 | La factura en bolívares o yuanes no se convierte para cuadrar… | in-progress | interno |
 | 0564 | Instalación piloto de Paperclip y Hermes en un VPS aislado | approved | interno |
+| 0565 | Ninguna cuenta del plan queda huérfana | in-progress | interno |
 | 0566 | Cierre contable con superclave y reporte de excepciones | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0565 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
