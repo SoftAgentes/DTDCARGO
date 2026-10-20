@@ -24,52 +24,52 @@
           "name": "crear_asiento_en_cierre",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:204"
+            "app/studio/(app)/contabilidad/actions.ts:206"
           ]
         },
         {
           "name": "asentar_asiento_en_cierre",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:128",
-            "app/studio/(app)/contabilidad/actions.ts:302"
+            "app/studio/(app)/contabilidad/actions.ts:130",
+            "app/studio/(app)/contabilidad/actions.ts:304"
           ]
         },
         {
           "name": "anular_asiento_en_cierre",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:128",
-            "app/studio/(app)/contabilidad/actions.ts:371"
+            "app/studio/(app)/contabilidad/actions.ts:130",
+            "app/studio/(app)/contabilidad/actions.ts:373"
           ]
         },
         {
           "name": "eliminar_borrador_en_cierre",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:128",
-            "app/studio/(app)/contabilidad/actions.ts:410"
+            "app/studio/(app)/contabilidad/actions.ts:130",
+            "app/studio/(app)/contabilidad/actions.ts:412"
           ]
         },
         {
           "name": "fijar_superclave_de_cierre",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:528"
+            "app/studio/(app)/contabilidad/actions.ts:530"
           ]
         },
         {
           "name": "restablecer_superclave_de_cierre",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:552"
+            "app/studio/(app)/contabilidad/actions.ts:554"
           ]
         },
         {
           "name": "accounting_settings.closing_mode",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/contabilidad/actions.ts:484",
+            "app/studio/(app)/contabilidad/actions.ts:486",
             "lib/studio/accounting/cierre-queries.ts:43"
           ]
         },
@@ -95,17 +95,17 @@
           "degradation": "Sin 0493 la RPC estado_cierre_contable no existe y PostgREST responde PGRST202: getEstadoCierre lanza y la página lo atrapa con estadoCierre en null. Contabilidad se ve como antes: sin la pestaña «Excepciones al cierre», sin el modo ni la superclave en el cajón del cierre y sin el aviso con la excepción en el Libro diario. Las tablas del reporte no se leen. Orden previsto: MIGRATE-FIRST (0493 antes de fusionar y desplegar), con el que esta ventana no existe."
         },
         {
-          "site": "app/studio/(app)/contabilidad/actions.ts:92",
+          "site": "app/studio/(app)/contabilidad/actions.ts:94",
           "contains": "console.error(\"[cierre-contable] estado no disponible:\", e instanceof Error ? e.message : e);",
           "degradation": "En las acciones del diario, avisoDelCierre atrapa el mismo PGRST202 y devuelve null: crear, asentar, anular y eliminar en período cerrado devuelven el mensaje de antes («Período contable cerrado al …: no puedes …»), sin cierre ni excepción. Es lo que hace hoy la app con 0133."
         },
         {
-          "site": "app/studio/(app)/contabilidad/actions.ts:134",
+          "site": "app/studio/(app)/contabilidad/actions.ts:136",
           "contains": "if (!aviso) return { error: mensajeSinExcepcion };",
           "degradation": "Las RPC asentar_asiento_en_cierre, anular_asiento_en_cierre y eliminar_borrador_en_cierre solo se llaman después de leer el estado: sin 0493 la acción vuelve antes con el mensaje de siempre y nunca las llama."
         },
         {
-          "site": "app/studio/(app)/contabilidad/actions.ts:197",
+          "site": "app/studio/(app)/contabilidad/actions.ts:199",
           "contains": "    if (!aviso) {",
           "degradation": "createJournalEntry tampoco llama a crear_asiento_en_cierre sin el estado: devuelve el mensaje de siempre para una fecha cerrada."
         },
