@@ -137,13 +137,13 @@ En Windows:
 | **#301**: tasa única, **migración 0495** | `codex/sdd-0569-conversor-usd-tasas` @ `3d0c9028` | Revisión corregida, verify aceptado y previa PASÓ sobre `3d0c9028`. BEHIND con main | **OK nominal de Sam.** Después: integrar, rearmar el paquete, previa de nuevo, apply y merge, smoke y sello |
 | **#307**: tarifa congelada, **migración 0496** | `claude/peaceful-franklin-a3831e` @ `a81dbbd7` | Correcciones de seguridad empujadas por el Director. **Su `pnpm verify` corría desde las 16:49Z** | Lee el resultado en el handoff `0571-…`. Si no está, el verify es NO VERIFICADO: repítelo con turno. Después: revisar la diferencia, previa, OK nominal, apply y merge |
 | **0573**: reverso al anular, **migración 0497** | `codex/sdd-0573-reverso-al-anular` @ `89f15a5d`, sin PR | Implementación empujada por el Director. **No consta que el bloqueante B1 y los importantes I1–I4 de la revisión estén corregidos** | Que un Worker lo compare con el informe del handoff, corrija, corra el verify con turno y publique la PR en borrador. Después: revisión corta, previa (md5 en vivo de `void_invoice_with_audit_reason` = `76644e17876d0caaa46e727de5946138`), OK nominal, apply y merge |
-| **0572-a**: reemplazos del conversor | `codex/sdd-0572-conversor-usd-reemplazos`: local `9c864da5`, origin `0c06d482` | **49 archivos sin commit**, con las reglas A–F aplicadas. Faltan unas 23 pruebas. Se le pidió al Worker un commit WIP y el push | Comprueba con `git ls-remote`. Si no llegó, recupera desde el worktree o desde `C:/tmp/director-traspaso-20261020/respaldo-0572/`. Después: las pruebas, archivo por archivo. La PR va cuando la #301 esté en main |
+| **0572-a**: reemplazos del conversor | `codex/sdd-0572-conversor-usd-reemplazos` @ `4f24a1db` (empujada) | Código terminado: 31 archivos de prueba en verde, uno por uno | Con turno: tsc, eslint, verify y mutantes. La PR va cuando la #301 esté en main |
 | **#304**: plantilla PGlite (solo pruebas) | `codex/pglite-snapshot-esquema` @ `59e8491b` | Borrador. Criterios 1–8 medidos: el CI baja de 41,6 a 29,3 min | Relanzar el run 39453136909, sacarla de borrador y fusionarla |
 | **#306**: docs de la oficina de agentes | `codex/oficina-hermes-diseno` @ `033eea50` | Revisada, solo docs | Integrar y fusionar. Después, una PR nueva con el anexo de Telegram |
 | **0574**: embarques sin facturar (4.5) | `codex/sdd-0574-embarques-sin-facturar` @ `18edcd81` | Diseño publicado, sin PR | Seguir con el carril del embarque |
-| **2.2**: asientos sin fallos silenciosos | — | Diseño pendiente | Va después de la 0572 |
+| **2.2 = SDD-0575**: asientos sin fallos silenciosos | `codex/sdd-0575-asientos-sin-fallos-silenciosos` @ `3f5b7bdc` | Diseño publicado, con 5 preguntas abiertas | Decide por delegación con la recomendación del §3.3 del handoff y regístralo en la spec |
 
-Numeración: SDD hasta la 0574 y migraciones hasta la 0497. **Antes de asignar, corre `node scripts/next-number.mjs`.** No deja saltar números.
+Numeración: SDD hasta la 0575 (la 2.2) y migraciones hasta la 0497. **Antes de asignar, corre `node scripts/next-number.mjs`.** No deja saltar números.
 
 Las sesiones de Claude Code («Contabilidad», «Carril del embarque», «Oficina Paperclip» y «Revisar el tope de 45 min del CI») **quedan en pausa**. Hazte cargo de esto:
 - abre tus propios Workers de Codex en los mismos worktrees;

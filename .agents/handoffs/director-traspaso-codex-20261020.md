@@ -134,14 +134,21 @@ También en main: #299 (respaldos), #302 (tope del CI a 60 min), #305 (decisione
 | **#307** `claude/peaceful-franklin-a3831e` @ `a81dbbd7` | 0571, tarifa congelada (carril del embarque). **Migración 0496** | Revisión de seguridad hecha y sus 8 hallazgos corregidos; el verify final corría sobre `a81dbbd7` (ver el §3.6). La cabeza publicada ya es `a81dbbd7` | Lee la tabla del verify en el handoff `0571-…`. Revisa la diferencia de las correcciones, haz la previa (`resolve_price_book` con deriva aceptada por su preflight), pide el OK nominal de la 0496, aplica y fusiona. Smoke: Almacén CN, columna «Tarifa · a facturar» |
 | `codex/sdd-0573-reverso-al-anular` @ `89f15a5d` (sin PR) | 0573, reverso al anular. **Migración 0497** | Implementada. La revisión de seguridad dio 1 bloqueante (B1: anular desde el libro diario rompe el par) y 4 importantes (I1: tenant en la DEFINER; I2: descuadre entre meses; I3: carrera emitir/anular; I4: verify). El Worker los estaba corrigiendo: **mira su handoff para ver qué quedó** | Que el Worker termine las correcciones, corra el verify y publique la PR en borrador. Después: una revisión corta de la diferencia, la previa (`void_invoice_with_audit_reason` vivo md5 `76644e17876d0caaa46e727de5946138`, sin espacios `c76c80e7…`, INVOKER, `search_path=""`), el OK de Sam, el apply y el merge |
 | `codex/sdd-0572-conversor-usd-reemplazos` | 0572, los 13 reemplazos del conversor | Diseño aprobado con 5 decisiones. **La 0572-a está casi implementada pero SIN COMMIT** (ver el §3.6) y apilada sobre la #301 | Reescribir las ~23 pruebas, corriendo un archivo a la vez, y la PR cuando la #301 esté en main. La 0572-b lleva migración: pedir número |
-| rama de la 2.2 | Asientos sin fallos silenciosos | Diseño en curso | Revisar la spec |
+| `codex/sdd-0575-asientos-sin-fallos-silenciosos` @ `3f5b7bdc` | **0575 = 2.2**, asientos sin fallos silenciosos | Diseño publicado (solo docs, con `docs:check`/`sdd:check` en verde). Corrige al plan: `journal_entries` ya tiene `receipt_id`, `bill_id` y `supplier_payment_id`. Un candado en `next_entry_code` no sirve | **Decide por delegación las 5 preguntas de la spec.** Recomendación del Director anterior:
+1. RPC atómica en la base, que falle cerrado.
+2. Período cerrado: bloquear y que aparezca en las excepciones de la 0566; nada de asentar en silencio en otro período.
+3. Sección dentro de «Por contabilizar».
+4. Sí a tres PR, con el número de migración de `next-number.mjs`.
+5. Sí: el gasto entra en la RPC.
+
+Registra las decisiones en la spec |
 | 0574 (reserva) | 4.5, «Embarques sin facturar» | Diseño en lectura | Seguir con el Worker del embarque |
 | **#304** `codex/pglite-snapshot-esquema` @ `59e8491b` | 0570, plantilla PGlite (solo test-infra) | CI verde sobre `8a13412c`; sobre `e6311891` falló por facturación | Relanzar el run 39453136909, integrar y fusionar. El A/B local está pendiente |
 | **#306** `codex/oficina-hermes-diseno` @ `033eea50` | 0564, D11 de la oficina de agentes | Revisada, solo docs | Integrar y fusionar |
 | #262 | 0543, contenedores 60 y 64 | Borrador | Espera los Excel del 60 y del 64 y el costo de HR. No tocar |
 
 **Números en uso:**
-- SDD hasta la 0574: la 0570 es PGlite, la 0571 la tarifa, la 0572 los reemplazos, la 0573 el reverso y la 0574 la 4.5.
+- SDD hasta la 0575 (0575 = 2.2): la 0570 es PGlite, la 0571 la tarifa, la 0572 los reemplazos, la 0573 el reverso y la 0574 la 4.5.
 - Migraciones hasta la 0497: la 0495 es la #301, la 0496 la #307 y la 0497 la 0573.
 - Antes de asignar números corre `node scripts/next-number.mjs`. El script no deja saltar números.
 
@@ -154,7 +161,13 @@ El Director lo comprobó con `git fetch`, `git worktree list` y `gh pr list`. **
 | `codex/sdd-0569-conversor-usd-tasas` (#301) | `DTD-worktrees/sdd-0569-conversor-usd-tasas` | `3d0c9028` | igual | Limpia. BEHIND con main |
 | `claude/peaceful-franklin-a3831e` (#307) | `DTDCARGO/.claude/worktrees/peaceful-franklin-a3831e` | `a81dbbd7` | `a81dbbd7`; **el Director empujó los 5 commits de las correcciones de seguridad** (`38198401`..`a81dbbd7`, con `2e94bccc` incluido) | **Su `pnpm verify` final corría desde las 16:49Z** (PID 48200) sobre `a81dbbd7`. El Worker anota el resultado en el handoff `0571-…` y empuja. Si la sesión murió sin anotarlo, el verify es NO VERIFICADO: repítelo con turno |
 | `codex/sdd-0573-reverso-al-anular` @ `89f15a5d` (sin PR) | `DTD-worktrees/sdd-0573-reverso-al-anular` | `89f15a5d` | `89f15a5d`; **el Director empujó los 3 commits de la implementación** | Implementada. **No consta que B1 e I1–I4 de la revisión estén corregidos:** revisa la diferencia contra el informe del handoff `0573-…` antes de la PR |
-| `codex/sdd-0572-conversor-usd-reemplazos` (sin PR) | `DTD-worktrees/sdd-0572-conversor-usd-reemplazos` | `9c864da5` (merge de la #301) | `0c06d482` (13 commits detrás) | **0572-a SIN COMMIT: 49 archivos modificados y 2 sin rastrear.** Se le pidió al Worker Contabilidad un commit WIP y el push. **Respaldo del Director:** `C:/tmp/director-traspaso-20261020/respaldo-0572/`, con el parche (`git apply`) y los 2 archivos nuevos. Si la rama remota sigue en `0c06d482`, recupera desde el worktree o desde el respaldo, **sin pisar el worktree** |
+| `codex/sdd-0572-conversor-usd-reemplazos` (sin PR) | `DTD-worktrees/sdd-0572-conversor-usd-reemplazos` | `9c864da5` (merge de la #301) | `0c06d482` (13 commits detrás) | **Actualizado a las 17:30Z.**
+
+- **La 0572-a tiene el código terminado** en `4f24a1db`, **empujado por el Director**. Reglas A–F aplicadas; la G queda diferida a la 2.3. Pasaron 31 archivos de prueba, corridos uno por uno.
+- **Falta, con turno:** tsc, eslint, verify y mutantes.
+- **Cambio de fixture:** `ingreso-fixture` con F6 y F9. Lo esperado: 3000 en total, 3 facturas, 2 sin convertir y 4 en otra moneda.
+- **Rendición:** bloquea también con una factura local sin tasa, y el texto no es literal de la spec. **Recomendación:** aceptar el texto del Worker.
+- El respaldo viejo en `C:/tmp/.../respaldo-0572/` ya no hace falta. |
 | `codex/sdd-0574-embarques-sin-facturar` | `DTD-worktrees/sdd-0574-embarques-sin-facturar` | `18edcd81` | igual | Diseño publicado, sin PR. Su claim ya está liberado |
 | `codex/pglite-snapshot-esquema` (#304) | `DTD-worktrees/pglite-snapshot-esquema` | `59e8491b` | igual | Borrador. Criterios 1–8 medidos en el CI: el job baja de 41,6 a 29,3 min. Hay que relanzar el run 39453136909 cuando se pague, sacar la PR de borrador y fusionarla. El A/B local de 34 archivos queda para cuando haya turno |
 | `codex/oficina-hermes-diseno` (#306) | — | `033eea50` | igual | Solo docs, revisada |
