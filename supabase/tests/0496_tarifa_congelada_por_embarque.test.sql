@@ -142,18 +142,21 @@ from (values
   ('c-B',       'tenant-B', 'DTD-0001', null)
 ) v(c, t, m, a);
 
-insert into public.rates (id, tenant_id, service, destination, per_cbm, flat_rate, min_charge, price_book_id, deleted_at)
-select pg_temp.fixture_id(r), pg_temp.fixture_id(t), s::public.shipment_service, 'Valencia', p, f, m,
-  pg_temp.fixture_id(b), case when x then now() end
+insert into public.rates (id, tenant_id, service, destination, per_cbm, flat_rate, min_charge, price_book_id, deleted_at, valid_until)
+select pg_temp.fixture_id(r), pg_temp.fixture_id(t), s::public.shipment_service, coalesce(d, 'Valencia'), p, f, m,
+  pg_temp.fixture_id(b), case when x then now() end, v
 from (values
-  ('rate-casa',       'tenant-A', 'puerta_a_puerta_DDP', 850::numeric, null::numeric, 50::numeric,  'book-casa-A', false),
-  ('rate-casa-lcl',   'tenant-A', 'consolidado_lcl',     580,          null,          null,         'book-casa-A', false),
-  ('rate-casa-fcl',   'tenant-A', 'fcl_directo',         null,         4000,          null,         'book-casa-A', false),
-  ('rate-P',          'tenant-A', 'puerta_a_puerta_DDP', 800,          null,          40,           'book-P',      false),
-  ('rate-S',          'tenant-A', 'puerta_a_puerta_DDP', 999,          null,          10,           'book-S',      false),
-  ('rate-borrada',    'tenant-A', 'puerta_a_puerta_DDP', 1,            null,          0,            'book-casa-A', true),
-  ('rate-B',          'tenant-B', 'puerta_a_puerta_DDP', 300,          null,          0,            'book-casa-B', false)
-) v(r, t, s, p, f, m, b, x);
+  ('rate-casa',       'tenant-A', 'puerta_a_puerta_DDP', 850::numeric, null::numeric, 50::numeric,  'book-casa-A', false, null::text,     (current_date + 365)),
+  ('rate-casa-lcl',   'tenant-A', 'consolidado_lcl',     580,          null,          null,         'book-casa-A', false, null,           null),
+  ('rate-casa-fcl',   'tenant-A', 'fcl_directo',         null,         4000,          null,         'book-casa-A', false, null,           null),
+  ('rate-P',          'tenant-A', 'puerta_a_puerta_DDP', 800,          null,          40,           'book-P',      false, null,           null),
+  -- La propia de S es de otra ruta: para Valencia, S cotiza con la casa.
+  ('rate-S',          'tenant-A', 'puerta_a_puerta_DDP', 999,          null,          10,           'book-S',      false, 'Barquisimeto', null),
+  ('rate-borrada',    'tenant-A', 'puerta_a_puerta_DDP', 1,            null,          0,            'book-casa-A', true,  null,           null),
+  ('rate-vencida',    'tenant-A', 'puerta_a_puerta_DDP', 700,          null,          0,            'book-casa-A', false, null,           date '2000-01-01'),
+  ('rate-maracaibo',  'tenant-A', 'puerta_a_puerta_DDP', 900,          null,          0,            'book-casa-A', false, 'Maracaibo',    null),
+  ('rate-B',          'tenant-B', 'puerta_a_puerta_DDP', 300,          null,          0,            'book-casa-B', false, null,           null)
+) v(r, t, s, p, f, m, b, x, d, v);
 
 insert into public.quotes (id, tenant_id, quote_code, client_markbox, service, rate_per_cbm, rate_used_id, status)
 select pg_temp.fixture_id(q), pg_temp.fixture_id('tenant-A'), 'EST-' || q, m, s::public.shipment_service, p,
@@ -192,12 +195,16 @@ from (values
   ('r-guardian',   'tenant-A', 'DTD-0001', false, 1.0,  null,   false),
   ('r-cascada',    'tenant-A', 'DTD-0001', false, 1.0,  null,   false),
   ('r-libre',      'tenant-A', 'DTD-0001', false, 1.0,  null,   false),
+  ('r-sin-destino','tenant-A', 'DTD-0001', false, 1.0,  null,   false),
+  ('r-P-casa',     'tenant-A', 'DTD-0002', false, 1.0,  null,   false),
   ('r-huerfana',   'tenant-A', 'DTD-0001', true,  1.0,  null,   false),
   ('r-sin-cbm',    'tenant-A', 'DTD-0001', false, null, null,   false),
   ('r-sin-cliente','tenant-A', 'DTD-9999', false, 1.0,  null,   false),
   ('r-borrada',    'tenant-A', 'DTD-0001', false, 1.0,  null,   true),
   ('r-B',          'tenant-B', 'DTD-0001', false, 1.0,  null,   false)
 ) v(r, t, m, o, cbm, kg, x);
+update public.warehouse_receipts_cn set destination_city = '  '
+where id = pg_temp.fixture_id('r-sin-destino');
 insert into public.shipments (id, tenant_id, code) values
   (pg_temp.fixture_id('s-A'), pg_temp.fixture_id('tenant-A'), 'S-A'),
   (pg_temp.fixture_id('s-A2'), pg_temp.fixture_id('tenant-A'), 'S-A2'),
@@ -307,6 +314,16 @@ begin
     'una fuente desconocida se rechaza');
   perform pg_temp.assert_true(pg_temp.codigo('admin-A', pg_temp.congelar('r-libre', 'tarifario', p_rate => 'rate-casa', p_kg => 800)) = '22023',
     'el peso incluido es 500 o 1000');
+  perform pg_temp.assert_true(pg_temp.codigo('admin-A', pg_temp.congelar('r-libre', 'tarifario', p_rate => 'rate-vencida')) = '22023',
+    'una tarifa vencida no congela');
+  perform pg_temp.assert_true(pg_temp.codigo('admin-A', pg_temp.congelar('r-libre', 'tarifario', p_rate => 'rate-maracaibo')) = '22023',
+    'una tarifa de otro destino no congela');
+  perform pg_temp.assert_true(pg_temp.codigo('admin-A', pg_temp.congelar('r-sin-destino', 'tarifario', p_rate => 'rate-casa')) = '22023',
+    'sin ciudad destino no se congela desde el tarifario');
+  perform pg_temp.assert_true(pg_temp.codigo('admin-A', pg_temp.congelar('r-P-casa', 'tarifario', p_rate => 'rate-casa')) = '22023',
+    'si la lista del cliente tiene su tarifa para la ruta, la de la casa no se acepta');
+  perform pg_temp.assert_true(pg_temp.codigo('admin-A', pg_temp.congelar('r-P-casa', 'tarifario', p_rate => 'rate-P')) = 'OK',
+    'y con su propia tarifa sí');
   perform pg_temp.assert_true(pg_temp.vivas('r-libre') = 0, 'nada de eso congeló');
 end;
 $rechazos$;
@@ -500,6 +517,21 @@ begin
     'una fila incoherente (lista sin origen ni fila) no entra');
 end;
 $guardian$;
+
+-- TRUNCATE no pasa por el guardián: nadie lo tiene.
+do $truncate$
+begin
+  begin
+    set local role service_role;
+    truncate public.shipment_rate_snapshots;
+    reset role;
+    raise exception 'TEST 0496: ni service_role vacía la tabla con TRUNCATE';
+  exception when insufficient_privilege then
+    reset role;
+  end;
+  perform pg_temp.assert_true(true, 'ni service_role vacía la tabla con TRUNCATE');
+end;
+$truncate$;
 
 -- ─── 12. Quién lee ───────────────────────────────────────────────────────────
 do $lectura$

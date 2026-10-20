@@ -128,6 +128,52 @@ describe("freezeRateAction", () => {
   });
 });
 
+describe("RBAC de la vía elevada (revisión de seguridad 3: la matriz de cn no cambia)", () => {
+  const MOTIVO = "Precio negociado por WhatsApp";
+
+  it("accounting sin cn congela a mano: la acción la deja pasar por rol", async () => {
+    estado.role = "accounting";
+    estado.editDenial = "No tienes permiso para editar esto.";
+    const r = await freezeRateAction({ receiptId: RID(1), source: "manual", perCbm: "900", reason: MOTIVO });
+    expect(r.ok).toBe(true);
+    expect(estado.rpcCalls).toEqual([expect.objectContaining({ p_source: "manual", p_reason: MOTIVO })]);
+  });
+
+  it("admin sin cn reemplaza con motivo y fija 1.000 kg/m³", async () => {
+    estado.role = "admin";
+    estado.editDenial = "No tienes permiso para editar esto.";
+    expect((await freezeRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE, reason: MOTIVO })).ok).toBe(true);
+    expect((await freezeRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE, includedKgPerCbm: 1000, reason: MOTIVO })).ok).toBe(true);
+    expect(estado.rpcCalls).toHaveLength(2);
+  });
+
+  it("accounting sin cn NO congela por la vía común: sigue mandando cn", async () => {
+    estado.role = "accounting";
+    estado.editDenial = "No tienes permiso para editar esto.";
+    const r = await freezeRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE });
+    expect(r).toEqual({ ok: false, error: "No tienes permiso para editar esto." });
+    expect(estado.rpcCalls).toHaveLength(0);
+  });
+
+  it("otro rol sin cn tampoco entra por la vía elevada", async () => {
+    for (const role of ["warehouse", "operations", "support", "commercial", "marketing"]) {
+      estado.role = role;
+      estado.editDenial = "No tienes permiso para editar esto.";
+      const r = await freezeRateAction({ receiptId: RID(1), source: "manual", perCbm: "900", reason: MOTIVO });
+      expect(r).toEqual({ ok: false, error: "No tienes permiso para editar esto." });
+    }
+    expect(estado.rpcCalls).toHaveLength(0);
+  });
+
+  it("la vista previa elevada también: accounting sin ver cn la pide", async () => {
+    estado.role = "accounting";
+    estado.viewDenial = "No tienes permiso para ver esto.";
+    expect((await previewRateAction({ receiptId: RID(1), source: "manual", perCbm: "900" })).ok).toBe(true);
+    expect(await previewRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE }))
+      .toEqual({ ok: false, error: "No tienes permiso para ver esto." });
+  });
+});
+
 describe("previewRateAction", () => {
   it("es una vista previa (p_dry_run) y no exige motivo", async () => {
     const r = await previewRateAction({ receiptId: RID(1), source: "manual", perCbm: "900" });
@@ -167,8 +213,20 @@ describe("freezePendingRatesAction", () => {
     estado.propuestas["DTD-0003"] = { kind: "estimado", quoteId: RATE, quoteCode: "EST-1", service: "puerta_a_puerta_DDP" };
     estado.rpcRespuesta = () => ({ data: null, error: { code: "42501", message: "TARIFA_SIN_PERMISO: no", hint: "dtd-tarifa" } });
     const r = await freezePendingRatesAction([RID(2), RID(3)]);
-    expect(r).toEqual({ ok: false, errorKey: "warehouse_cn.rate.err.forbidden" });
+    expect(r).toEqual({ ok: false, errorKey: "warehouse_cn.rate.err.forbidden", frozen: 0 });
     expect(estado.rpcCalls).toHaveLength(1);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("si falla a la mitad, devuelve lo congelado y refresca (revisión de seguridad 7)", async () => {
+    estado.propuestas["DTD-0003"] = { kind: "tarifario", rateId: RATE, origen: "casa", bookName: null, service: "puerta_a_puerta_DDP" };
+    let n = 0;
+    estado.rpcRespuesta = (args) => (++n === 1
+      ? { data: [fila(String(args.p_receipt_id))], error: null }
+      : { data: null, error: { code: "42501", message: "TARIFA_SIN_PERMISO: no", hint: "dtd-tarifa" } });
+    const r = await freezePendingRatesAction([RID(2), RID(3)]);
+    expect(r).toEqual({ ok: false, errorKey: "warehouse_cn.rate.err.forbidden", frozen: 1 });
+    expect(revalidatePath).toHaveBeenCalledWith("/studio/cn");
   });
 
   it("más de 100 no se aceptan", async () => {

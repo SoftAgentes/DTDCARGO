@@ -9,7 +9,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { clientIdByMarkbox, resolveRateForClient } from "../price-books/price-book-queries";
+import { resolveRateForClient } from "../price-books/price-book-queries";
 import type { OrigenTarifa } from "../price-books/price-book-types";
 import type { ShipmentService } from "../shipment-types";
 
@@ -27,7 +27,33 @@ export type RecepcionParaTarifa = {
   is_orphan: boolean;
 };
 
-const clave = (markbox: string | null | undefined) => (markbox ?? "").trim().toUpperCase();
+/** El Shipping Mark se compara como la RPC: `upper(btrim())` en los dos lados. */
+export const clave = (markbox: string | null | undefined) => (markbox ?? "").trim().toUpperCase();
+
+/** `%`, `_` y `\` son comodines de ILIKE: se escapan para buscar el texto tal cual. */
+function sinComodines(texto: string): string {
+  return texto.replace(/[\\%_]/g, (c) => "\\" + c);
+}
+
+/**
+ * El cliente del Shipping Mark, comparado como la RPC (`upper(btrim())`). El
+ * ILIKE con `%…%` trae candidatos sin importar mayúsculas ni espacios; la
+ * comparación exacta se hace aquí, así `DTD-0001` no encuentra a `DTD-00012`.
+ * Más de uno o ninguno = sin cliente (la RPC exige exactamente uno).
+ */
+async function clientePorShippingMark(supabase: SupabaseClient, markbox: string): Promise<string | null> {
+  const key = clave(markbox);
+  if (!key) return null;
+  const { data, error } = await supabase
+    .from("clients")
+    .select("id, markbox")
+    .ilike("markbox", `%${sinComodines(markbox.trim())}%`)
+    .is("deleted_at", null)
+    .limit(50);
+  if (error) throw error;
+  const iguales = ((data ?? []) as { id: string; markbox: string }[]).filter((c) => clave(c.markbox) === key);
+  return iguales.length === 1 ? iguales[0].id : null;
+}
 
 /**
  * El estimado aceptado de la orden de venta ligada a la recepción, si es del
@@ -81,7 +107,7 @@ export async function proponerTarifa(
     return { kind: "estimado", quoteId: estimado.id, quoteCode: estimado.quote_code, service: estimado.service };
   }
 
-  const clientId = await clientIdByMarkbox(supabase, receipt.client_markbox ?? "");
+  const clientId = await clientePorShippingMark(supabase, receipt.client_markbox ?? "");
   if (!clientId) return { kind: "ninguna", motivo: "sin_cliente" };
   if (!receipt.destination_city?.trim()) return { kind: "ninguna", motivo: "sin_destino" };
 
@@ -110,17 +136,25 @@ export async function listAcceptedQuotesForMarkbox(
 ): Promise<{ id: string; quote_code: string; rate_per_cbm: number; service: ShipmentService }[]> {
   const codigo = markbox.trim();
   if (!codigo) return [];
+  const key = clave(codigo);
   const { data, error } = await supabase
     .from("quotes")
-    .select("id, quote_code, rate_per_cbm, service, accepted_at")
-    .ilike("client_markbox", codigo)
+    .select("id, quote_code, client_markbox, rate_per_cbm, service, accepted_at")
+    .ilike("client_markbox", `%${sinComodines(codigo)}%`)
     .eq("status", "accepted")
     .is("deleted_at", null)
     .not("rate_per_cbm", "is", null)
     .order("accepted_at", { ascending: false, nullsFirst: false })
     .limit(20);
   if (error) throw error;
-  return ((data ?? []) as { id: string; quote_code: string; rate_per_cbm: number | string; service: ShipmentService }[])
+  return ((data ?? []) as {
+    id: string;
+    quote_code: string;
+    client_markbox: string | null;
+    rate_per_cbm: number | string;
+    service: ShipmentService;
+  }[])
+    .filter((q) => clave(q.client_markbox) === key)
     .map((q) => ({ id: q.id, quote_code: q.quote_code, rate_per_cbm: Number(q.rate_per_cbm), service: q.service }))
     .filter((q) => q.rate_per_cbm > 0);
 }

@@ -79,7 +79,7 @@ confidencialidad: interno
 | `id` | uuid | pk |
 | `tenant_id` | uuid | fk `tenants` on delete cascade |
 | `receipt_id` | uuid | fk `warehouse_receipts_cn` on delete cascade |
-| `shipment_id` | uuid null | fk `shipments` (no action); la llena la 4.2 |
+| `shipment_id` | uuid null | fk `shipments` (no action); la llena la 4.2, una vez, y después no cambia ni vuelve a null. **Qué pasa con la FK si se borra el envío se decide en la 4.2** |
 | `client_id` | uuid | fk `clients` (no action) |
 | `client_markbox` | text | el Shipping Mark al congelar |
 | `service` | `shipment_service` | |
@@ -104,7 +104,8 @@ CHECK de coherencia: `estimado` exige `quote_id`; `lista` y `casa` exigen `rate_
 ### Permisos
 
 - RLS: SELECT para `authenticated` del mismo tenant (`get_user_tenant_id()`) con rol admin, operations, warehouse, support, accounting o commercial. Ningún INSERT, UPDATE ni DELETE para `authenticated` ni `anon`.
-- Guardián `shipment_rate_snapshots_guard` (BEFORE UPDATE OR DELETE, para todos los roles): solo deja pasar marcar el reemplazo una vez (`superseded_at` y `superseded_by_id` de null a valor), llenar `shipment_id` de null a valor, y poner `shipment_id` en null si ese envío ya no existe. Un DELETE pasa solo si la recepción o el tenant ya no existen (borrado en cascada).
+- Guardián `shipment_rate_snapshots_guard` (BEFORE INSERT OR UPDATE OR DELETE, para todos los roles): el INSERT no mezcla tenants; el UPDATE solo deja marcar el reemplazo una vez (`superseded_at` y `superseded_by_id` de null a valor) y llenar `shipment_id` de null a un envío del mismo tenant, **una sola vez: no se cambia ni se vuelve a poner en null**; un DELETE pasa solo si la recepción o el tenant ya no existen (borrado en cascada). Un chequeo diferido (`shipment_rate_snapshots_supersede_check`) confirma al cerrar la transacción que la reemplazada apunta a una tarifa viva de la misma recepción.
+- Nadie tiene TRUNCATE (no pasa por los disparadores de fila), tampoco `service_role`; el postflight lo comprueba.
 
 ### RPC `public.congelar_tarifa_recepcion(...)` (SECURITY DEFINER, `search_path` vacío)
 
@@ -113,7 +114,7 @@ Parámetros: `p_receipt_id`, `p_source` (`estimado` | `tarifario` | `manual` | `
 1. Bloquea la recepción (`FOR UPDATE`). Exige: del tenant de la sesión, viva, no huérfana, con CBM > 0 y con un Shipping Mark que corresponda a un cliente vivo del tenant.
 2. Deriva los números según la fuente:
    - `estimado`: estimado aceptado, vivo, del tenant y del mismo Shipping Mark, con `rate_per_cbm > 0`. Servicio = el del estimado. Mínimo = `min_charge` de su `rate_used_id`, o 0.
-   - `tarifario`: fila viva del tenant, con `per_cbm`, del servicio pedido y de la lista del cliente (`resolve_price_book`) o de la casa. Si es de la lista del cliente → `lista`/`propia`; si es de la casa y la lista del cliente pacta `base_per_cbm` → `lista`/`pactada`; si pacta descuento → `lista`/`descuento` (`round(per_cbm × (1 − pct/100), 2)`; el mínimo no se descuenta, como en 0269); si no → `casa`.
+   - `tarifario`: fila viva del tenant, con `per_cbm`, del servicio pedido, **vigente** (`valid_until` vacío o desde hoy en Caracas), **del destino de la recepción** (el mismo ILIKE tolerante de `findRateInBook`; sin ciudad destino no se congela) y de la lista del cliente (`resolve_price_book`) o de la casa. **Si es de la casa y la lista del cliente tiene su propia fila viva, vigente, del servicio y del destino, se rechaza**: el orden de la decisión 9 manda, y `resolveRateForClient` nunca elegiría la de la casa. Si es de la lista del cliente → `lista`/`propia`; si es de la casa y la lista del cliente pacta `base_per_cbm` → `lista`/`pactada`; si pacta descuento → `lista`/`descuento` (`round(per_cbm × (1 − pct/100), 2)`; el mínimo no se descuenta, como en 0269); si no → `casa`.
    - `manual` / `excel_yiwu`: tarifa > 0, mínimo ≥ 0 y motivo.
 3. Permisos por rol (`current_studio_role()`):
    - ver (`p_dry_run`): admin, operations, warehouse, support, accounting;
@@ -135,6 +136,22 @@ Crea objetos nuevos. Las FK nuevas toman SHARE ROW EXCLUSIVE breve sobre `tenant
 ### Rollback
 
 `drop function` de la RPC y del guardián, y `drop table public.shipment_rate_snapshots`. Deja de ser seguro en cuanto haya tarifas congeladas que alguien vaya a facturar (4.3) o la PR esté desplegada.
+
+## Revisión de seguridad del Director (2026-10-20, sobre `38198401`)
+
+Cada escenario se confirmó con una prueba que fallaba sin la corrección (el mutante que la quita).
+
+| # | Hallazgo | Corrección |
+|---|---|---|
+| 1 | La #307 apuntaba a `239abca4`, no a lo revisado | un solo push con la cabeza final, después del verify |
+| 2 | La RPC aceptaba filas que `resolveRateForClient` nunca elegiría | vigente con la fecha de Caracas, del destino de la recepción por el mismo ILIKE, y la de la casa rechazada si la lista del cliente tiene su fila para la ruta. Un mutante por regla y la paridad prueba también el rechazo |
+| 3 | Contabilidad no llegaba a la vía elevada por la UI (la matriz da `cn` a operations, warehouse y support) | **decisión del Director: la matriz de `cn` no cambia.** Las acciones admiten admin o accounting por rol en la vía elevada (a mano, Excel, 1.000 kg/m³, reemplazo con motivo); la vía común sigue con `cn`. Prueba de RBAC por rol |
+| 4 | La spec decía que `shipment_id` podía volver a null; el guardián no lo deja | spec alineada con el guardián; la FK a `shipments` se resuelve en la 4.2 |
+| 5 | TRUNCATE salta los disparadores | `revoke truncate` a todos, en el postflight; el esquema de prueba trae los privilegios por defecto de Supabase para que el caso mida |
+| 6 | `FOR UPDATE` también en la vista previa | solo al congelar |
+| 7 | El lote perdía lo congelado si fallaba a la mitad | devuelve `frozen` y refresca aunque falle |
+| 8 | La app comparaba el Shipping Mark exacto y la RPC con `upper(btrim())` | la propuesta compara como la RPC, sin confundir `DTD-0001` con `DTD-00012` |
+| 9 | FUERA DE ALCANCE | ver el handoff, con destino a la SDD de RBAC multitenant |
 
 ## App
 

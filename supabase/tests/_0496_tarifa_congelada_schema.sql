@@ -21,6 +21,9 @@ begin
 end;
 $fixture_guard$;
 grant usage on schema public to anon, authenticated, service_role;
+-- Como Supabase: toda tabla nueva de public nace con todos los privilegios para
+-- los roles de la API. La 0496 tiene que quitarlos ella misma (TRUNCATE incluido).
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 create schema auth;
 grant usage on schema auth to authenticated, service_role;
 create table auth.users (id uuid primary key, email text);

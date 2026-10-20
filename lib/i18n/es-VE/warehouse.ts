@@ -357,6 +357,11 @@ export const warehouse = {
   "warehouse_cn.rate.err.rate_other_service": "Esa tarifa es de otro servicio.",
   "warehouse_cn.rate.err.rate_other_book": "Esa tarifa no es de la lista del cliente ni de la casa.",
   "warehouse_cn.rate.err.already_frozen": "La recepción ya tiene tarifa. Para cambiarla, escribe el motivo.",
+  "warehouse_cn.rate.err.rate_expired": "Esa tarifa ya venció.",
+  "warehouse_cn.rate.err.rate_other_destination": "Esa tarifa es de otro destino.",
+  "warehouse_cn.rate.err.rate_not_applicable": "La lista del cliente tiene su propia tarifa para esta ruta: usa esa.",
+  "warehouse_cn.rate.err.receipt_no_destination": "Falta la ciudad destino de la recepción.",
+  "warehouse_cn.rate.bulk.partial": "Antes del error se congelaron {frozen}.",
 } as const satisfies Record<string, string>;
 
 export type WarehouseDict = Record<keyof typeof warehouse, string>;

@@ -1165,10 +1165,10 @@ function BulkBar({
     startTransition(async () => {
       const r = await freezePendingRatesAction(ids);
       if (!r.ok) {
-        setFeedback({
-          kind: "err",
-          msg: r.errorKey ? t(r.errorKey) : (r.error ?? t("warehouse_cn.bulk.feedback_error_generic")),
-        });
+        const base = r.errorKey ? t(r.errorKey) : (r.error ?? t("warehouse_cn.bulk.feedback_error_generic"));
+        const parcial = r.frozen ? ` ${t("warehouse_cn.rate.bulk.partial", { frozen: r.frozen })}` : "";
+        setFeedback({ kind: "err", msg: base + parcial });
+        if (r.frozen) routerBulk.refresh();
         return;
       }
       const omitidas = r.skipped

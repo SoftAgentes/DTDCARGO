@@ -36,8 +36,11 @@
 -- · public.congelar_tarifa_recepcion(...) SECURITY DEFINER: deriva la tarifa y
 --   el mínimo de la fila de origen (estimado aceptado o fila del tarifario,
 --   clasificada lista/casa con la regla de resolveRateForClient), lee el CBM y
---   el peso de la recepción y congela. Con p_dry_run devuelve lo que congelaría
---   sin escribir.
+--   el peso de la recepción y congela. Una fila del tarifario tiene que estar
+--   vigente (fecha de Caracas), ser del destino de la recepción (el mismo ILIKE
+--   de findRateInBook) y, si es de la casa, la lista del cliente no puede tener
+--   la suya para esa ruta. Con p_dry_run devuelve lo que congelaría sin escribir
+--   ni bloquear. Nadie tiene TRUNCATE sobre la tabla.
 --
 -- ── Quién ───────────────────────────────────────────────────
 --   · ver (p_dry_run): admin, operations, warehouse, support, accounting;
@@ -115,6 +118,7 @@ begin
     ('public.rates', 'id', 'uuid'), ('public.rates', 'tenant_id', 'uuid'),
     ('public.rates', 'service', 'public.shipment_service'),
     ('public.rates', 'per_cbm', 'numeric'), ('public.rates', 'min_charge', 'numeric'),
+    ('public.rates', 'destination', 'text'), ('public.rates', 'valid_until', 'date'),
     ('public.rates', 'price_book_id', 'uuid'), ('public.rates', 'deleted_at', 'timestamptz'),
     ('public.price_books', 'id', 'uuid'), ('public.price_books', 'tenant_id', 'uuid'),
     ('public.price_books', 'is_house', 'boolean'),
@@ -271,6 +275,8 @@ alter table public.shipment_rate_snapshots enable row level security;
 revoke all on table public.shipment_rate_snapshots from public, anon, authenticated;
 grant select on table public.shipment_rate_snapshots to authenticated;
 grant select, insert, update, delete on table public.shipment_rate_snapshots to service_role;
+-- TRUNCATE no pasa por los disparadores de fila: nadie lo tiene (revisión de seguridad, punto 5).
+revoke truncate on table public.shipment_rate_snapshots from public, anon, authenticated, service_role;
 
 create policy shipment_rate_snapshots_select
   on public.shipment_rate_snapshots for select to authenticated
@@ -443,6 +449,7 @@ declare
   v_book_pct numeric;
   v_new_id uuid;
   v_row public.shipment_rate_snapshots;
+  v_today date := (pg_catalog.now() at time zone 'America/Caracas')::date;
 begin
   if v_tenant is null or v_role is null
      or v_role not in ('admin', 'operations', 'warehouse', 'support', 'accounting') then
@@ -463,12 +470,20 @@ begin
       using errcode = '22023', hint = 'dtd-tarifa';
   end if;
 
-  -- La recepción, bloqueada: dos congelaciones a la vez se ordenan aquí.
-  select r.id, r.client_markbox, r.is_orphan, r.total_cbm, r.total_weight_kg, r.destination_city
-    into v_receipt
-  from public.warehouse_receipts_cn r
-  where r.id = p_receipt_id and r.tenant_id = v_tenant and r.deleted_at is null
-  for update;
+  -- La recepción, bloqueada al congelar: dos congelaciones a la vez se ordenan
+  -- aquí. La vista previa no bloquea (revisión de seguridad, punto 6).
+  if coalesce(p_dry_run, false) then
+    select r.id, r.client_markbox, r.is_orphan, r.total_cbm, r.total_weight_kg, r.destination_city
+      into v_receipt
+    from public.warehouse_receipts_cn r
+    where r.id = p_receipt_id and r.tenant_id = v_tenant and r.deleted_at is null;
+  else
+    select r.id, r.client_markbox, r.is_orphan, r.total_cbm, r.total_weight_kg, r.destination_city
+      into v_receipt
+    from public.warehouse_receipts_cn r
+    where r.id = p_receipt_id and r.tenant_id = v_tenant and r.deleted_at is null
+    for update;
+  end if;
   if not found then
     raise exception 'TARIFA_RECEPCION_NO_ENCONTRADA: la recepción no existe o fue eliminada'
       using errcode = 'P0002', hint = 'dtd-tarifa';
@@ -530,7 +545,8 @@ begin
       raise exception 'TARIFA_SERVICIO_REQUERIDO: elige el servicio'
         using errcode = '22023', hint = 'dtd-tarifa';
     end if;
-    select x.id, x.service, x.per_cbm, coalesce(x.min_charge, 0) as min_charge, x.price_book_id
+    select x.id, x.service, x.per_cbm, coalesce(x.min_charge, 0) as min_charge, x.price_book_id,
+           x.destination, x.valid_until
       into v_rate
     from public.rates x
     where x.id = p_rate_id and x.tenant_id = v_tenant and x.deleted_at is null;
@@ -544,6 +560,21 @@ begin
     end if;
     if v_rate.service <> p_service then
       raise exception 'TARIFA_FILA_OTRO_SERVICIO: esa tarifa es de otro servicio'
+        using errcode = '22023', hint = 'dtd-tarifa';
+    end if;
+    -- Lo mismo que filtra findRateInBook (price-book-queries.ts:175): vigente
+    -- (aquí con la fecha de Caracas) y con el destino de la recepción por el
+    -- mismo ILIKE tolerante (revisión de seguridad, punto 2a y 2c).
+    if v_rate.valid_until is not null and v_rate.valid_until < v_today then
+      raise exception 'TARIFA_FILA_VENCIDA: esa tarifa ya venció'
+        using errcode = '22023', hint = 'dtd-tarifa';
+    end if;
+    if pg_catalog.btrim(coalesce(v_receipt.destination_city, '')) = '' then
+      raise exception 'TARIFA_RECEPCION_SIN_DESTINO: falta la ciudad destino de la recepción'
+        using errcode = '22023', hint = 'dtd-tarifa';
+    end if;
+    if v_rate.destination not ilike '%' || pg_catalog.btrim(v_receipt.destination_city) || '%' then
+      raise exception 'TARIFA_FILA_OTRO_DESTINO: esa tarifa es de otro destino'
         using errcode = '22023', hint = 'dtd-tarifa';
     end if;
 
@@ -572,6 +603,19 @@ begin
       v_source := 'lista'; v_origin := 'propia';
       v_per := v_rate.per_cbm; v_book_id := v_client_book;
     elsif v_house is not null and v_rate.price_book_id = v_house then
+      -- El orden de la decisión 9: si la lista del cliente tiene su propia fila
+      -- viva, vigente, del servicio y del destino, manda esa; la de la casa no
+      -- se acepta (revisión de seguridad, punto 2b).
+      if v_client_book is not null and v_client_book is distinct from v_house
+         and exists (
+           select 1 from public.rates o
+           where o.tenant_id = v_tenant and o.price_book_id = v_client_book
+             and o.deleted_at is null and o.service = p_service
+             and (o.valid_until is null or o.valid_until >= v_today)
+             and o.destination ilike '%' || pg_catalog.btrim(v_receipt.destination_city) || '%') then
+        raise exception 'TARIFA_FILA_NO_APLICA: la lista del cliente tiene su propia tarifa para esta ruta'
+          using errcode = '22023', hint = 'dtd-tarifa';
+      end if;
       if v_client_book is not null and v_client_book is distinct from v_house
          and v_book_base is not null and v_book_base > 0 then
         v_source := 'lista'; v_origin := 'pactada';
@@ -611,10 +655,16 @@ begin
       using errcode = '22023', hint = 'dtd-tarifa';
   end if;
 
-  select s.id into v_live
-  from public.shipment_rate_snapshots s
-  where s.receipt_id = p_receipt_id and s.superseded_at is null
-  for update;
+  if coalesce(p_dry_run, false) then
+    select s.id into v_live
+    from public.shipment_rate_snapshots s
+    where s.receipt_id = p_receipt_id and s.superseded_at is null;
+  else
+    select s.id into v_live
+    from public.shipment_rate_snapshots s
+    where s.receipt_id = p_receipt_id and s.superseded_at is null
+    for update;
+  end if;
 
   v_row.id := null;
   v_row.tenant_id := v_tenant;
@@ -724,7 +774,9 @@ begin
      or pg_catalog.has_table_privilege('authenticated', 'public.shipment_rate_snapshots', 'INSERT')
      or pg_catalog.has_table_privilege('authenticated', 'public.shipment_rate_snapshots', 'UPDATE')
      or pg_catalog.has_table_privilege('authenticated', 'public.shipment_rate_snapshots', 'DELETE')
-     or pg_catalog.has_table_privilege('anon', 'public.shipment_rate_snapshots', 'SELECT') then
+     or pg_catalog.has_table_privilege('anon', 'public.shipment_rate_snapshots', 'SELECT')
+     or pg_catalog.has_table_privilege('service_role', 'public.shipment_rate_snapshots', 'TRUNCATE')
+     or pg_catalog.has_table_privilege('authenticated', 'public.shipment_rate_snapshots', 'TRUNCATE') then
     raise exception '0496: postflight — grants de shipment_rate_snapshots distintos de lo prometido';
   end if;
   if (select pg_catalog.count(*) from pg_catalog.pg_trigger t

@@ -140,6 +140,17 @@ let receipt = 100;
 
 /** Una recepción nueva del cliente y destino, congelada en vista previa con la fila dada. */
 async function vistaPrevia(clientMarkbox: string, destination: string, rateId: string) {
+  const r = await intentar(clientMarkbox, destination, rateId);
+  if ("error" in r) throw new Error(r.error);
+  return r.row;
+}
+
+/** Lo mismo, pero devuelve el error de la RPC en vez de lanzarlo. */
+async function intentar(
+  clientMarkbox: string,
+  destination: string,
+  rateId: string,
+): Promise<{ row: Record<string, unknown> } | { error: string }> {
   const rid = id(receipt++);
   await db.query(
     `insert into public.warehouse_receipts_cn (id, tenant_id, receipt_code, client_markbox, total_cbm, destination_city)
@@ -154,7 +165,9 @@ async function vistaPrevia(clientMarkbox: string, destination: string, rateId: s
        from public.congelar_tarifa_recepcion($1, 'tarifario', $2, p_dry_run => true)`,
       [rid, rateId],
     );
-    return r.rows[0];
+    return { row: r.rows[0] };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
   } finally {
     await db.exec("reset role");
   }
@@ -202,6 +215,31 @@ describe("SDD-0571 · la RPC clasifica la fila como resolveRateForClient", () =>
       expect(Number(sql.min_charge)).toBe(Number(ts!.rate.min_charge ?? 0));
     }, SLOW);
   }
+
+  // El rechazo también es paridad: una fila que resolveRateForClient nunca
+  // elegiría para esa recepción, la base no la congela (revisión de seguridad 2).
+  it("rechaza la casa cuando la lista del aliado tiene su tarifa para la ruta (el resolver elige la propia)", async () => {
+    const ts = await resolveRateForClient(adaptador(db), {
+      service: "puerta_a_puerta_DDP", destination: "Valencia", clientId: id(41),
+    });
+    expect(ts?.origen).toBe("propia");
+    const r = await intentar("DTD-0041", "Valencia", id(30));
+    expect(r).toEqual({ error: expect.stringContaining("TARIFA_FILA_NO_APLICA") });
+  }, SLOW);
+
+  it("rechaza una fila vencida (el resolver no la ve)", async () => {
+    const r = await intentar("DTD-0040", "Valencia", id(33));
+    expect(r).toEqual({ error: expect.stringContaining("TARIFA_FILA_VENCIDA") });
+  }, SLOW);
+
+  it("rechaza una fila de otro destino (el resolver busca por el de la recepción)", async () => {
+    const ts = await resolveRateForClient(adaptador(db), {
+      service: "puerta_a_puerta_DDP", destination: "Caracas", clientId: id(40),
+    });
+    expect(ts?.rateId).toBe(id(31));
+    const r = await intentar("DTD-0040", "Caracas", id(30));
+    expect(r).toEqual({ error: expect.stringContaining("TARIFA_FILA_OTRO_DESTINO") });
+  }, SLOW);
 
   it("propiedad: el descuento redondea igual en la base y en la app (semilla fija)", async () => {
     let seed = 571;

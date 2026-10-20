@@ -42,7 +42,14 @@ import {
   type RecepcionParaTarifa,
 } from "@/lib/studio/rate-snapshots/propuesta";
 
-type ErrorResult = { ok: false; errorKey?: I18nKey; error?: string; fieldErrors?: FreezeFieldErrors };
+type ErrorResult = {
+  ok: false;
+  errorKey?: I18nKey;
+  error?: string;
+  fieldErrors?: FreezeFieldErrors;
+  /** Lote: las que alcanzaron a congelarse antes del error. */
+  frozen?: number;
+};
 
 const RPC = "congelar_tarifa_recepcion";
 
@@ -64,6 +71,39 @@ async function leerRecepcion(
     .maybeSingle<RecepcionParaTarifa & { id: string; receipt_code: string }>();
   if (error) throw error;
   return data ?? null;
+}
+
+/**
+ * ¿Es la vía elevada? A mano, Excel de Yiwu, 1.000 kg/m³ o con motivo (el
+ * reemplazo de una tarifa viva). La RPC la reserva a admin y accounting.
+ */
+function esElevada(input: FreezeInput): boolean {
+  return (
+    input.source === "manual" ||
+    input.source === "excel_yiwu" ||
+    input.includedKgPerCbm === 1000 ||
+    input.reason != null
+  );
+}
+
+/**
+ * Quién llega a la RPC. La vía común la manda el módulo `cn` (editar). La vía
+ * elevada la admiten admin o accounting por rol, igual que la RPC, aunque la
+ * matriz no les dé `cn` (decisión del Director, 2026-10-20, revisión de
+ * seguridad punto 3: la matriz de `cn` no se cambia).
+ */
+async function denegacion(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  input: FreezeInput,
+  tipo: "ver" | "editar",
+): Promise<string | null> {
+  const denial = tipo === "ver" ? await moduleViewDenial(supabase, "cn") : await moduleEditDenial(supabase, "cn");
+  if (!denial) return null;
+  if (esElevada(input)) {
+    const { role } = await getStudioAccess(supabase);
+    if (role === "admin" || role === "accounting") return null;
+  }
+  return denial;
 }
 
 /** La fuente que la propuesta automática le pasa a la RPC. */
@@ -161,11 +201,11 @@ export async function previewRateAction(
   raw: Record<string, unknown>,
 ): Promise<{ ok: true; snapshot: RateSnapshot } | ErrorResult> {
   const supabase = await createClient();
-  const denial = await moduleViewDenial(supabase, "cn");
-  if (denial) return { ok: false, error: denial };
   // La vista previa no exige motivo: la base tampoco lo pide sin escribir.
   const { input, fieldErrors } = validateFreezeInput(raw, { requireReason: false });
   if (!input) return { ok: false, fieldErrors };
+  const denial = await denegacion(supabase, input, "ver");
+  if (denial) return { ok: false, error: denial };
   return llamarRpc(supabase, input, true);
 }
 
@@ -173,10 +213,10 @@ export async function freezeRateAction(
   raw: Record<string, unknown>,
 ): Promise<{ ok: true; snapshot: RateSnapshot } | ErrorResult> {
   const supabase = await createClient();
-  const denial = await moduleEditDenial(supabase, "cn");
-  if (denial) return { ok: false, error: denial };
   const { input, fieldErrors } = validateFreezeInput(raw);
   if (!input) return { ok: false, fieldErrors };
+  const denial = await denegacion(supabase, input, "editar");
+  if (denial) return { ok: false, error: denial };
   const result = await llamarRpc(supabase, input, false);
   if (result.ok) revalidatePath("/studio/cn");
   return result;
@@ -243,9 +283,11 @@ export async function freezePendingRatesAction(
       frozen += 1;
     } else {
       skipped.push({ code: receipt.receipt_code, reasonKey: r?.errorKey ?? "warehouse_cn.rate.err.generic" });
-      // Sin permiso o sin la 0496, las demás van a fallar igual.
+      // Sin permiso o sin la 0496, las demás van a fallar igual. Lo que ya se
+      // congeló queda dicho y la pantalla se refresca (revisión de seguridad 7).
       if (r?.errorKey === "warehouse_cn.rate.err.forbidden" || r?.errorKey === "warehouse_cn.rate.unavailable") {
-        return { ok: false, errorKey: r.errorKey };
+        if (frozen > 0) revalidatePath("/studio/cn");
+        return { ok: false, errorKey: r.errorKey, frozen };
       }
     }
   }

@@ -249,6 +249,10 @@ const RATE_ERROR_KEYS: Record<string, I18nKey> = {
   TARIFA_FILA_SIN_CBM: "warehouse_cn.rate.err.rate_no_cbm",
   TARIFA_FILA_OTRO_SERVICIO: "warehouse_cn.rate.err.rate_other_service",
   TARIFA_FILA_OTRA_LISTA: "warehouse_cn.rate.err.rate_other_book",
+  TARIFA_FILA_VENCIDA: "warehouse_cn.rate.err.rate_expired",
+  TARIFA_FILA_OTRO_DESTINO: "warehouse_cn.rate.err.rate_other_destination",
+  TARIFA_FILA_NO_APLICA: "warehouse_cn.rate.err.rate_not_applicable",
+  TARIFA_RECEPCION_SIN_DESTINO: "warehouse_cn.rate.err.receipt_no_destination",
   TARIFA_MONTO_INVALIDO: "warehouse_cn.rate.err.amount_invalid",
   TARIFA_YA_CONGELADA: "warehouse_cn.rate.err.already_frozen",
 };

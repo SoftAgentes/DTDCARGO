@@ -194,14 +194,14 @@ describe("SDD-0571 · 0496 tarifa congelada por recepción (PGlite)", () => {
     },
     {
       name: "sin el tenant de la recepción",
-      from: "  where r.id = p_receipt_id and r.tenant_id = v_tenant and r.deleted_at is null\n  for update;",
-      to: "  where r.id = p_receipt_id and r.deleted_at is null\n  for update;",
+      from: "    where r.id = p_receipt_id and r.tenant_id = v_tenant and r.deleted_at is null\n    for update;",
+      to: "    where r.id = p_receipt_id and r.deleted_at is null\n    for update;",
       fails: "TEST 0496: una recepción de otro tenant no existe para este",
     },
     {
       name: "aceptando una recepción eliminada",
-      from: "  where r.id = p_receipt_id and r.tenant_id = v_tenant and r.deleted_at is null\n  for update;",
-      to: "  where r.id = p_receipt_id and r.tenant_id = v_tenant\n  for update;",
+      from: "    where r.id = p_receipt_id and r.tenant_id = v_tenant and r.deleted_at is null\n    for update;",
+      to: "    where r.id = p_receipt_id and r.tenant_id = v_tenant\n    for update;",
       fails: "TEST 0496: una recepción eliminada no existe",
     },
     {
@@ -257,6 +257,36 @@ describe("SDD-0571 · 0496 tarifa congelada por recepción (PGlite)", () => {
       from: "    v_row.amount_to_invoice := greatest(pg_catalog.round(v_row.cbm * v_row.per_cbm, 2), v_row.min_charge);",
       to: "    v_row.amount_to_invoice := pg_catalog.round(v_row.cbm * v_row.per_cbm, 2);",
       fails: "TEST 0496: la vista previa también cobra el mínimo",
+    },
+    {
+      name: "aceptando una fila vencida",
+      from: "    if v_rate.valid_until is not null and v_rate.valid_until < v_today then",
+      to: "    if false then",
+      fails: "TEST 0496: una tarifa vencida no congela",
+    },
+    {
+      name: "sin comparar el destino",
+      from: "    if v_rate.destination not ilike '%' || pg_catalog.btrim(v_receipt.destination_city) || '%' then",
+      to: "    if false then",
+      fails: "TEST 0496: una tarifa de otro destino no congela",
+    },
+    {
+      name: "sin exigir la ciudad destino",
+      from: "    if pg_catalog.btrim(coalesce(v_receipt.destination_city, '')) = '' then",
+      to: "    if false then",
+      fails: "TEST 0496: sin ciudad destino no se congela desde el tarifario",
+    },
+    {
+      name: "aceptando la casa cuando la lista del cliente tiene su tarifa",
+      from: "         and exists (\n           select 1 from public.rates o",
+      to: "         and false and exists (\n           select 1 from public.rates o",
+      fails: "TEST 0496: si la lista del cliente tiene su tarifa para la ruta, la de la casa no se acepta",
+    },
+    {
+      name: "dejando TRUNCATE a service_role (lo ataja el postflight)",
+      from: "revoke truncate on table public.shipment_rate_snapshots from public, anon, authenticated, service_role;",
+      to: "",
+      fails: "0496: postflight — grants de shipment_rate_snapshots distintos de lo prometido",
     },
     {
       name: "sin la inmutabilidad",
