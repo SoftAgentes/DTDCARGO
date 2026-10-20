@@ -1106,6 +1106,27 @@ contadora». Con eso, las decisiones 1 a 4 quedan tomadas:
   - el arranque contable (3.9).
 - **Tarea nueva, antes de la 2.11:** el cierre contable con superclave y el reporte «Excepciones al cierre». Hoy la SDD-0080 (migración `0133`) bloquea los asientos con `entry_date <= closing_date`, y para corregir algo hay que mover o quitar la fecha, lo que reabre el período para todos. La referencia es QuickBooks Online: en «Close the books» se elige entre «Allow changes after viewing a warning» o «…and entering password» ([Intuit](https://quickbooks.intuit.com/learn-support/en-us/customer-company-settings/how-to-close-the-books/00/186384)), y cada cambio aparece en el reporte «Exceptions to Closing Date». Lleva migración.
 
+### Decisiones tomadas por recomendación (2026-10-20)
+
+Sam delegó estas decisiones al Director el 2026-10-20 a las 14:44Z: «Requiero de ti que avances sin detenerte, como un plan continuo con un objetivo claro. Avanza todo lo que requieras en las tareas y ve haciendo un checklist de dónde estamos. Las respuestas que tengas, hazlas como recomendaciones, y dime después cuáles fueron las decisiones tomadas con base en lo recomendado.» En cada una se tomó la recomendación (⭐) de esta sección. **Son revisables por Sam:** cualquiera se puede cambiar antes de construir su SDD.
+
+| # | Decisión tomada |
+|---|---|
+| 6 y 8 | **Número de control:** captura manual del número y lotes «desde-hasta»; la imprenta digital se conecta cuando se contrate. **Correlativo:** se asigna al emitir, sin reinicio anual, y los huecos viejos se documentan sin renumerar |
+| 9 | **Tarifa por CBM:** se congela al recibir en Yiwu, con el CBM medido allí (500 kg/m³ es la regla y 1.000 la excepción). El orden es estimado aceptado → lista del cliente o aliado → tarifario. El mínimo se cobra. Hay pre-factura informativa al consolidar y la factura sale al llegar a Venezuela, con vencimiento inmediato |
+| 10 | **Ingreso:** se reconoce al emitir la factura en la llegada, con DTD como principal. El flete de la naviera y los gastos en China son costo del embarque |
+| 11 | **Socio China:** cuenta corriente 2.1.7 con el libro USD/RMB y «Pagar al socio». **Fondos de la Operadora:** pasivo «por rendir». Cambia el ingreso reconocido de DTD Services, así que la contadora lo revisa antes de construir la 4.7 |
+| 14 | **Estado de cuenta:** los abonos van por la fecha real del recibo, revirtiendo la decisión del 2026-07-29. Saldo y vencido visibles para todo rol con acceso a clientes, y el detalle bajo el permiso de facturación. El chat no se copia al ERP: va un resumen y un enlace a Kommo |
+| 15 | **La contadora:** lectura de Dirección, Rendiciones y Financiero China. Segunda aprobación (Sam o admin) para anular una factura emitida y para pagos a proveedor de más de **1.000 USD** |
+| 16 | **Descuento de referido:** descuento sobre ventas (4.9), como línea o NC en la factura del primer embarque. **Indemnización:** NC si se compensa con la factura, o gasto si se paga aparte |
+| 17 | **Compra asistida:** DTD es agente en «compramos por ti», y principal solo si revende con su propio proveedor |
+| 18 | **Gastos de operaciones y almacén:** entran como borrador que la contadora asienta cuando pasan de **200 USD** |
+| Tasa BCV | **La fuente es la tasa oficial publicada por el BCV**, con carga diaria automática desde el servidor y respaldo manual. Si no hay tasa, la factura en bolívares no se emite (falla cerrado) |
+
+**Lo que la delegación no cubre** (sigue necesitando el OK nominal de Sam, por las reglas de producción):
+- aplicar cada migración (la 0495, la 0422, la 0423 y las siguientes);
+- borrar datos de prueba de producción.
+
 **Radiografía 1.1: ya autorizada y corrida.** Sam la autorizó el 2026-10-18 («autorizo
 la radiografía 1.1 con conteos y sumas, sin datos personales») y el Director la
 ejecutó ese día (~23:00Z). Cada nueva corrida, antes de una migración de
