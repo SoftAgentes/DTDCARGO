@@ -199,6 +199,34 @@ describe("ClientAccountHeader · ERR-01", () => {
     expect(screen.queryByText(/saldo/i)).toBeNull();
   });
 
+  it("SDD-0568 · un cliente eliminado: «Cliente eliminado», sin saldo ni el error", () => {
+    render(
+      <ClientAccountHeader
+        canViewStatement
+        estado={{ tipo: "eliminado", eliminadoEl: "2026-10-19", markboxes: ["DTD-0001"], embarquesEnCurso: 0 }}
+      />,
+    );
+    const aviso = screen.getByRole("status");
+    expect(within(aviso).getByText("Cliente eliminado")).toBeTruthy();
+    expect(aviso.textContent).toContain("Se eliminó el 19 oct 2026, así que la ficha no calcula su saldo.");
+    expect(aviso.textContent).toContain("Sus documentos siguen en el estado de cuenta.");
+    expect(screen.queryByText("No se pudo calcular el saldo.")).toBeNull();
+    expect(screen.queryByText("Saldo abierto")).toBeNull();
+    expect(screen.getByText("Embarques en curso")).toBeTruthy();
+  });
+
+  it("SDD-0568 · sin el estado de cuenta, no lo menciona", () => {
+    render(
+      <ClientAccountHeader
+        canViewStatement={false}
+        estado={{ tipo: "eliminado", eliminadoEl: "", markboxes: ["DTD-0001"], embarquesEnCurso: null }}
+      />,
+    );
+    const aviso = screen.getByRole("status");
+    expect(aviso.textContent).toContain("Como está eliminado, la ficha no calcula su saldo.");
+    expect(aviso.textContent).not.toContain("estado de cuenta");
+  });
+
   it("si el cálculo falla, un mensaje recuperable con la referencia, sin cifras", () => {
     render(
       <ClientAccountHeader
