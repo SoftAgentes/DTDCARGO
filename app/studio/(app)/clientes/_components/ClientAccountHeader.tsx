@@ -191,6 +191,31 @@ export function ClientAccountHeader({
     );
   }
 
+  if (estado.tipo === "eliminado") {
+    return (
+      <Seccion>
+        <div
+          role="status"
+          style={{
+            gridColumn: "1 / -1",
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-lg)",
+            padding: "var(--s-4) var(--s-5)",
+            font: "500 13px/1.5 var(--f-sans)",
+            color: "var(--ink)",
+          }}
+        >
+          <strong style={{ display: "block", marginBottom: "var(--s-1)" }}>Cliente eliminado</strong>
+          {estado.eliminadoEl ? `Se eliminó el ${fechaCorta(estado.eliminadoEl)}, así que ` : "Como está eliminado, "}
+          la ficha no calcula su saldo.
+          {canViewStatement ? " Sus documentos siguen en el estado de cuenta." : ""}
+        </div>
+        <EmbarquesEnCurso total={estado.embarquesEnCurso} codigos={estado.markboxes.length} />
+      </Seccion>
+    );
+  }
+
   if (estado.tipo === "error") {
     return (
       <Seccion>
