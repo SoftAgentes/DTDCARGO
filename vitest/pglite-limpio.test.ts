@@ -7,10 +7,15 @@
  * significar lo mismo. Por eso la huella compara más que el catálogo: también
  * el txid y el OID siguiente, de los que dependen los desempates por xmin.
  */
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { PGlite, type Extensions, type PGliteOptions } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { pgliteLimpio } from "./pglite-limpio";
+
+const FUENTE = resolve(dirname(fileURLToPath(import.meta.url)), "pglite-limpio.ts");
 
 const SLOW = 60_000;
 
@@ -131,4 +136,46 @@ describe("SDD-0570 · pgliteLimpio", () => {
     await (await limpio()).close();
     expect(initdbs()).toBe(2);
   }, SLOW);
+
+  /**
+   * Vitest evalúa el módulo de nuevo en cada archivo (`isolate`). Aquí se simula
+   * con `resetModules`: el archivo A deja una tabla viva, sin cerrar, y el B
+   * arma su propia plantilla y no la ve.
+   */
+  it("un archivo no ve el estado que dejó otro: cada uno arma su plantilla", async () => {
+    const a = await contado();
+    const sucia = await a.limpio();
+    await sucia.exec("create table public.del_archivo_a (x int); insert into public.del_archivo_a values (1);");
+    vi.doUnmock("@electric-sql/pglite");
+    vi.resetModules();
+    const b = await contado();
+    const limpia = await b.limpio();
+    try {
+      const { rows } = await limpia.query<{ tabla: string | null }>("select to_regclass('public.del_archivo_a')::text as tabla");
+      expect(rows[0].tabla).toBeNull();
+      expect(b.initdbs()).toBe(1);
+    } finally {
+      await limpia.close();
+      await sucia.close();
+    }
+  }, SLOW);
+
+  /**
+   * La plantilla nace en cada corrida, con el PGlite instalado: si cambia la
+   * versión, se regenera sola, porque no hay dump guardado que cargar. Esta
+   * prueba hace de esa propiedad un candado: un caché en disco o un
+   * `globalSetup` tendrían que guardar la versión en la clave y fallar cerrado
+   * ante un dump de otra, y eso se decide en una SDD, no al pasar.
+   */
+  it("la plantilla vive en memoria: no lee ni escribe un dump en disco", () => {
+    const fuente = readFileSync(FUENTE, "utf8");
+    const disco = [
+      /from "(node:)?(fs|fs\/promises|os)"/,
+      /readFile|writeFile|tmpdir/,
+      /globalSetup|globalThis/,
+      /IdbFs|NodeFS|dataDir:|new PGlite\("/,
+    ];
+    for (const patron of disco) expect(fuente, String(patron)).not.toMatch(patron);
+    expect(fuente).toMatch(/dumpDataDir\("none"\)/);
+  });
 });
