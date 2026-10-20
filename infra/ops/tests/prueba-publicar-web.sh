@@ -65,7 +65,12 @@ if [ "${1:-}" = --mutantes ]; then
     motivo="
   mutar "acepta un sha corto" '[[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || { echo "uso: publicar' '[[ "${sha}" =~ ^[0-9a-f]+$ ]] || { echo "uso: publicar'
   mutar "no compara el commit de la etiqueta" '[ "${rev}" = "${sha}" ] || {' 'true || {'
-  mutar "no comprueba el origen" '[ "${f,,}" = "${FUENTE,,}" ] ||' 'true ||'
+  mutar "no comprueba el origen" '[[ "${f,,}" = "${FUENTE,,}" || "${f,,}" = "${FUENTE_HISTORICA,,}" ]] ||' 'true ||'
+  mutar "origen canónico ausente" '"${f,,}" = "${FUENTE,,}"' '"${f,,}" = "https://github.com/ajeno/DTDCARGO"'
+  mutar "origen histórico ausente" '"${f,,}" = "${FUENTE_HISTORICA,,}"' '"${f,,}" = "https://github.com/ajeno/DTDCARGO"'
+  mutar "origen distingue mayúsculas" '[[ "${f,,}" = "${FUENTE,,}" || "${f,,}" = "${FUENTE_HISTORICA,,}" ]] ||' '[[ "${f}" = "${FUENTE}" || "${f}" = "${FUENTE_HISTORICA}" ]] ||'
+  mutar "origen acepta prefijos" '[[ "${f,,}" = "${FUENTE,,}" || "${f,,}" = "${FUENTE_HISTORICA,,}" ]] ||' '[[ "${f,,}" = "${FUENTE,,}"* || "${f,,}" = "${FUENTE_HISTORICA,,}"* ]] ||'
+  mutar "origen controlado por entorno" 'readonly FUENTE=https://github.com/SoftAgentes/DTDCARGO' 'readonly FUENTE="${FUENTE:-https://github.com/SoftAgentes/DTDCARGO}"'
   mutar "avisa cada minuto" 'if [ "$(cat "${ESTADO}/ultimo-aviso" 2>/dev/null)" = "${clave}" ]; then' 'if false; then'
   mutar "sin copia del .env" 'cp -p "${DIR}/.env" "${b}" ||' 'true ||'
   mutar "cambiar_imagen acepta dos líneas DTD_WEB_IMAGE" '[ "${n}" = 1 ] || { MOTIVO="el .env tiene' 'true || { MOTIVO="el .env tiene'
@@ -506,6 +511,13 @@ for camino in automatico manual interino; do
     && [ "$(cat "${D}/cont/web")" = "${IA}" ] && grep -q 'no viene de' "${T}/salida.log" \
     && ok "identidad ${camino}: source ausente tampoco publica" \
     || { ko "identidad ausente ${camino}: rc=${RC}, up=$(ups)"; ver; }
+  reiniciar; fuente_de_imagen "${IB}" 'https://github.com/otro/repo'
+  cp "${P}/.env" "${T}/env-origen-antes"
+  FUENTE='https://github.com/otro/repo' FUENTE_HISTORICA='https://github.com/otro/repo' publicar_por_camino "${camino}"
+  [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && cmp -s "${P}/.env" "${T}/env-origen-antes" \
+    && [ "$(cat "${D}/cont/web")" = "${IA}" ] && grep -q 'no viene de' "${T}/salida.log" \
+    && ok "identidad ${camino}: el entorno no puede autorizar una fuente ajena" \
+    || { ko "identidad por entorno ${camino}: rc=${RC}, up=$(ups)"; ver; }
 done
 
 echo; echo "== identidad: vuelta atrás conserva la imagen histórica =="

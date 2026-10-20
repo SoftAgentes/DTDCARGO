@@ -56,7 +56,10 @@ IMAGEN=ghcr.io/hailuwaycom-sketch/dtdcargo
 ETIQUETA=publicable
 PROYECTO=dtd-cargo
 HOST_WEB=dtdcargo.com
-FUENTE=https://github.com/hailuwaycom-sketch/DTDCARGO
+# Cambio de nombre del perfil (2026-10-20), mismo repo ID 1246490707.
+# Dos fuentes exactas: canónica actual y alias para las imágenes históricas.
+readonly FUENTE=https://github.com/SoftAgentes/DTDCARGO
+readonly FUENTE_HISTORICA=https://github.com/hailuwaycom-sketch/DTDCARGO
 # Si difieren, el servidor quedó atrás del repo y cambiar la imagen no alcanza.
 BLOQUEAN="compose.yml compose.supabase.yml cron/Dockerfile cron/crontab cron/entrypoint.sh"
 
@@ -284,7 +287,7 @@ validar_imagen() { # $1 = referencia local, $2 = revisión, $3 = digest
   [[ "$2" =~ ^[0-9a-f]{40}$ ]] || { MOTIVO="$1 no trae un commit válido en org.opencontainers.image.revision («$(printf '%s' "$2" | cut -c1-60)»)"; CODIGO=imagen; return 1; }
   [[ "$3" =~ ^sha256:[0-9a-f]{64}$ ]] || { MOTIVO="$1 no tiene digest de ${IMAGEN}"; CODIGO=imagen; return 1; }
   local f; f="$(etiqueta_de "$1" org.opencontainers.image.source)"
-  [ "${f,,}" = "${FUENTE,,}" ] || { MOTIVO="$1 no viene de ${FUENTE} (source «${f}»)"; CODIGO=imagen; return 1; }
+  [[ "${f,,}" = "${FUENTE,,}" || "${f,,}" = "${FUENTE_HISTORICA,,}" ]] || { MOTIVO="$1 no viene de ${FUENTE} ni de su alias histórico ${FUENTE_HISTORICA} (source «${f}»)"; CODIGO=imagen; return 1; }
 }
 
 # ─── puertas ─────────────────────────────────────────────────────────────────
