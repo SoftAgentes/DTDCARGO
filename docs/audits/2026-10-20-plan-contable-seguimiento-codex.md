@@ -2,7 +2,7 @@
 
 **Dueño:** Director Codex, para Sam. **Estado:** seguimiento en curso.
 
-**Fecha de corte:** 20 de octubre de 2026, 2:16 p. m. de Caracas. **Clasificación:** interno.
+**Fecha de corte:** 20 de octubre de 2026, 2:27 p. m. de Caracas. **Clasificación:** interno.
 
 La prioridad sigue siendo llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo. Este documento presenta el avance comprobado de la continuación; las decisiones de negocio permanecen en el [plan maestro](2026-10-18-contabilidad-diagnostico-y-plan.md).
 
@@ -22,7 +22,7 @@ La 2.1 sigue **en curso**. Está dividida para poder revisar cada cambio y compr
 
 | Parte | Avance comprobado | Próximo paso |
 |---|---|---|
-| **Tasa única y conversor · 0569** | Código en la [PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301). La revisión encontró confusión entre una tasa tomada de la tabla y una excepción elegida en la factura; también una carrera entre editar y emitir | El Worker corrige ambos casos, el cambio de moneda del formulario y el límite de precisión. Luego pruebas, revisión y previa; después se pide el OK nominal de `0495_fx_rates_conversor_usd` |
+| **Tasa única y conversor · 0569** | Código en la [PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301). La corrección ya está preparada y su código revisado: distingue tasa de tabla y excepción de la factura, y detecta cambios de otra persona al editar o emitir | Demostrar el fallo previo y la corrección con pruebas, incluyendo cambio de moneda y precisión. Luego validación completa y previa; después se pide el OK nominal de `0495_fx_rates_conversor_usd` |
 | **Reemplazar las 13 conversiones · 0572-a** | Avance guardado y publicado. Pasaron 71 pruebas focales, revisión de tipos y revisión estática. Se repararon formatos y datos de prueba incompletos | Incorporar la dependencia 0569 corregida, comprobar el ranking de embarques sin tasa y terminar prueba completa, mutantes y revisión visual. La PR espera a #301 integrada |
 | **Conversiones pendientes en SQL · 0572-b** | Identificadas y separadas del cambio anterior | Encargo propio, número de migración coordinado y OK nominal antes de producción |
 | **Hora de Caracas** | Pendiente de implementación y de número de tarea | Unificar emisión, asientos, cobros y pagos después del cierre del conversor |
@@ -34,8 +34,8 @@ La 2.1 sigue **en curso**. Está dividida para poder revisar cada cambio y compr
 
 | Frente | Estado actual | Qué falta |
 |---|---|---|
-| **0571 · Tarifa congelada**, #307 | Implementada y con revisión anterior corregida. La prueba local terminó: 16 de 17 comprobaciones disponibles, con omisiones documentadas; GitHub pasó | Terminar la revisión actual, actualizar base, nueva previa, OK nominal de `0496_tarifa_congelada_por_embarque`, integración y prueba en el servidor |
-| **0573 · Reverso al anular**, 2.5 | Implementación publicada; los hallazgos de la revisión recibida siguen pendientes | Correcciones, prueba completa y PR; después revisión, previa y OK nominal de `0497_reverso_al_anular_factura` |
+| **0571 · Tarifa congelada**, #307 | La revisión nueva detectó tres problemas de búsqueda y actualización del formulario. El Worker los está corrigiendo. La validación anterior aprobó 16 de 17 comprobaciones disponibles, con omisiones documentadas | Probar las correcciones; después actualizar base, validación final, nueva previa, OK nominal de `0496_tarifa_congelada_por_embarque`, integración y prueba en el servidor |
+| **0573 · Reverso al anular**, 2.5 | Implementación publicada. Se recuperó y guardó el informe completo de revisión; sus hallazgos siguen pendientes | Corregir los controles de anulación, concurrencia, tenant y comparación entre meses; prueba completa y PR. Después revisión, previa y OK nominal de `0497_reverso_al_anular_factura` |
 | **0574 · Embarques sin facturar**, 4.5 | Ya implementada sobre 0571. Hay evidencia anterior de diez pruebas y tres mutantes | Preparar dependencias locales y ejecutar la prueba completa con turno. Se integra después de 0571 |
 | **0575 · Asientos sin fallos silenciosos**, 2.2 | Cinco decisiones de diseño registradas y publicadas; todavía no está implementada | Contratos, archivos de cada entrega y número de migración; tres PR sucesivas |
 | **0570 · Pruebas PGlite**, #304 | GitHub pasó; comparación local de 34 archivos en curso, con las mismas pruebas en ambas versiones | Comprobar los resultados antes de cerrar el criterio de velocidad |

@@ -51,15 +51,22 @@ El mandato de Sam de adoptar las sesiones Codex en los mismos worktrees incluye 
 
 - Árbol original limpio en `3d0c9028`, remoto actualizado a `e6579944` por integración del Director. A `17:39:24Z` no se observaron pruebas pesadas ni procesos Node con la ruta 0569.
 - Por el relevo explícito de Sam, se liberó el claim anterior `contabilidad-2026-10-18`, creado `11:48Z`. El worktree de integración del Director quedó limpio y su claim también se liberó.
-- El Worker confirmó la adopción, ff-only a `e6579944` y claim `codex-0569-01a15a4e-ddf0`. Se le asignó, después de cerrar 0572, el arreglo de los dos P1 y bordes de captura. La allowlist sigue siendo las 38 rutas de su spec.
+- El Worker confirmó la adopción, ff-only a `e6579944` y claim `codex-0569-01a15a4e-ddf0`. Se le asignó, después de cerrar 0572, el arreglo de los dos P1 y bordes de captura. La allowlist se amplió de 38 a 39 rutas para actualizar el fake del contrato preexistente `app/studio/(app)/facturacion/__tests__/update-invoice-conserva-embarque.test.ts`: conserva sus aserciones de embarque y totales y reproduce los filtros y la fila afectada, sin convertirlo en éxito incondicional.
 - Se permite ajustar la 0495 todavía no aplicada si se necesita procedencia persistente o protección transaccional; no se permite renumerar ni tocar migraciones previas. Esto invalida el paquete antiguo si cambia SQL.
+
+### Relevo 0571
+
+- Worktree: `DTDCARGO/.claude/worktrees/peaceful-franklin-a3831e`; rama `claude/peaceful-franklin-a3831e`. Cabeza de adopción local/remota `b70be5d792ca4ee0417426266301a9e2e7fd9ffc`, árbol limpio y sin consumidores observados por ruta.
+- El revisor pasó a Worker por asignación del Director y reclamó `codex-0571-cierre-01a15a4e`.
+- Encargo: resolver los tres P2 de la revisión actual, sin cambios de SQL ni RBAC. Allowlist de nueve rutas: `propuesta.ts` y su prueba; `RateSnapshotDrawer.tsx` y una prueba nueva de ese componente; spec 0571; handoff 0571; índice de specs solo si lo exige el generador; traducciones warehouse es-VE y zh-CN solo si se necesitan mensajes.
+- Preparación de código y regresiones autorizada. Pruebas locales pendientes de turno después de 0569. El verify final se hará sobre la base que corresponda después de integrar las dependencias, sin presentar la validación de `b70be5d7` como prueba del código nuevo.
 
 ## 3. Estado contrastado
 
 | Tarea | Cabeza verificada | Estado | Siguiente paso / owner |
 |---|---|---|---|
 | #301 / 0569 / 0495 | `e6579944` | Main incorporada mediante merge limpio y push; Draft. Revisión nueva detecta dos P1: procedencia ambigua de tasa y carrera editar/emitir; bloqueada para aprobación | Worker debe corregir y demostrar regresiones; después revisión/validación/paquete/previa nuevos |
-| #307 / 0571 / 0496 | `b70be5d7` | Nuevo commit de cierre documental; verify sobre `a81dbbd7` terminó 17:20:04Z, exit 0 pero 16/17 y límites e2e por contrastar | Revisor de solo lectura; Director integra después de #301/#304/#306 y aprobación nominal |
+| #307 / 0571 / 0496 | `b70be5d7` | Verify anterior contrastado, 16/17 con omisiones; revisión nueva encontró tres P2 de búsqueda y formulario | Worker corrige en su worktree; focales con turno, revisión y validación final antes de integración y aprobación nominal |
 | 0572-a | `9c254107` | Cierre parcial publicado, árbol limpio y claim liberado; 71 focales, typecheck y lint PASÓ | Retomar después de #301 corregida: ranking sin tasa, verify, mutantes y revisión visual |
 | 0573 / 0497 | `89f15a5d` | Implementada; B1, I1–I4 y M1–M9 pendientes según traspaso; sin verify | Worker posterior del carril contable, antes de consideración de integración |
 | #304 / 0570 | `59e8491b` | Draft; CI PASÓ. A/B local de 34 archivos en curso desde `18:11:47Z`, con claim `codex-0570-ab-01a15a4e` | Criterio 5 sigue pendiente de resultados; después devolver turno pesado a 0569 |
@@ -102,7 +109,15 @@ Evidencia primaria: `C:\Users\AKX generator\AppData\Local\Temp\claude\C--Users-A
 - Omisiones: 1 prueba unitaria y 20 e2e; e2e 176 passed y 2 flaky al reintento, con aviso del harness por salida de WebKit.
 - `migrations-applied`: NO DISPONIBLE, sin credenciales. Cierre 16/17, no verde completo.
 - La revisión confirmó presencia de las ocho correcciones anteriores; no equivale a una auditoría exhaustiva nueva.
-- El claim real está ausente aunque el handoff dice vigente. La ausencia no prueba por sí sola falta de consumidores.
+- Al iniciar la revisión, el claim estaba ausente aunque el handoff decía vigente. Después se realizó el relevo explícito y se reclamó `codex-0571-cierre-01a15a4e`.
+
+Revisión actual sobre `b70be5d7`, con lectura del SQL, acciones, consultas y formulario; sin acceso a filas reales:
+
+1. **P2 · búsqueda truncada.** `propuesta.ts` recorta candidatos parciales antes de comprobar coincidencia exacta normalizada. Un cliente exacto detrás de 50 coincidencias parciales, o un estimado exacto detrás de 20, queda omitido. Reproducido en memoria con las funciones reales y datos ficticios. Corregir con paginación estable: resolver ambigüedad de clientes y reunir los estimados exactos sin confundir límite de candidatos con límite de resultados.
+2. **P2 · precio previo mientras recalcula.** Después de cambiar un precio manual, el total anterior puede quedar visible y el botón aceptar la entrada nueva antes de terminar su consulta. La base calcula con la entrada nueva; no se atribuye un cálculo incorrecto al SQL. Invalidar inmediatamente la vista previa y exigir que corresponda a los valores actuales tanto en el botón como en el envío. Reproducción UI ejecutada: NO EJECUTADO.
+3. **P2 · respuesta anterior después de cambiar servicio.** Una consulta LCL lenta puede sustituir los datos de una DDP más reciente. El RPC rechaza una tarifa de otro servicio; el problema visible es la selección obsoleta y el intento fallido. Descartar respuestas que no correspondan a la recepción y servicio actuales. Reproducción UI ejecutada: NO EJECUTADO.
+
+No se encontró un P1 nuevo en el alcance revisado. El SQL conserva controles de cliente, servicio y reemplazo atómico. Los límites de roles y alcance de almacén previamente documentados no se amplían dentro de este encargo.
 
 ### Integración preparatoria y revisión 0569
 
@@ -124,6 +139,31 @@ Worktree propio del Director: `DTD-worktrees/director-pr301-codex-20261020`; ram
 El resolver histórico admite tasas con fecha anterior (`valid_on <= día`). El Director precisó por la delegación del §9 del plan maestro que la **emisión automática de una factura VES exige tasa con fecha de valor igual a la fecha de emisión**. Si solo hay una anterior, falla cerrado. Se conserva el override documental explícito y trazable; no se extiende por inferencia esta exigencia a CNY ni se cambia el resolver histórico de borradores/CxP.
 
 La precisión queda asignada a la spec y regresiones de 0569. No implementa autocarga BCV, reglas de fines de semana ni la unificación de hora de Caracas. El Worker prepara también una versión de escritura que cambie en toda actualización, independiente de los valores enviados por el cliente, para impedir efectos después de perder una carrera.
+
+El parche de producto de ocho rutas quedó preparado fuera del worktree, en `C:\tmp\director-traspaso-20261020\0569-codex-validation\prepared`, mientras se conserva la base con las regresiones para observar el fallo inicial. El Director leyó las ocho rutas: marca persistente de override, versión de escritura, comparación de versión/estado/moneda, limpieza de tasa al cambiar moneda y rechazo de valores que redondean a cero. Sin hallazgo adicional en esa lectura; ejecución roja/verde, SQL, mutantes y verify todavía pendientes de turno. El paquete 0495 anterior queda obsoleto cuando se aplique este cambio.
+
+### Recuperación del informe de revisión 0573
+
+Se recuperó el informe completo del Director anterior desde su registro local, entrada de `2026-10-20T16:38:57.720Z`, UUID `9c280073-37eb-4882-a244-28592b36c880`. Fuente: `C:\Users\AKX generator\.claude\projects\C--Users-AKX-generator-Desktop-Developer-DTDCARGO\267f5ded-5bbc-4289-a807-7248e4322009.jsonl`, línea 15292. Es evidencia histórica de revisión, no una autorización adicional. Los hallazgos siguen pendientes sobre la cabeza `89f15a5d`; ningún Worker nuevo ha comenzado a repararlos.
+
+| ID | Hallazgo recibido y aceptación de la reparación |
+|---|---|
+| B1 | Impedir anular manualmente un asiento de reverso o el asiento original ya revertido. El guard de base debe evitar duplicar el reverso o revivir el original; ocultar también la acción en el libro diario y probar ambos casos. |
+| I1 | Acotar por tenant todas las lecturas de asientos, líneas y recibos del RPC. Verificar cuenta y enlace `reverses_entry_id` dentro del mismo tenant, factura y fuente; distinguir la restricción de unicidad al manejar conflictos. Probar contaminación cruzada con datos ficticios. |
+| I2 | Reconciliar factura y reverso cuando caen en meses distintos. Definir una comparación consistente para ambos lados; no tratar reversos VES/CNY como USD comparable. Probar los períodos separados. |
+| I3 | Evitar que una emisión y una anulación concurrentes dejen un asiento de venta activo después de anular. El posting debe comprobar estado y serializarse con la anulación dentro de la transacción; no basta otra lectura separada desde la aplicación. |
+| I4 | Ejecutar typecheck, lint y verify, registrar omisiones y revisar el SHA resultante. |
+| M1 | Si falla el conteo de recibos al anular, bloquear la operación; no interpretar el error como cero cobros. |
+| M2 | Un asiento de venta en borrador no puede quedar vivo al anular la factura: rechazar o anularlo de manera definida y atómica. |
+| M3 | La fecha del reverso no debe anteceder hoy, el primer día abierto ni la fecha del asiento original. |
+| M4 | Mantener el motivo humano solo en el registro previsto D2. El memo contable usa referencias fijas de factura, asiento y fecha; no copia texto libre. |
+| M5 | Corregir el contrato de `canVoid` y `restrict` en la spec para que corresponda al comportamiento. |
+| M6 | Corregir el JSDoc desplazado en `libro-control`. |
+| M7 | La radiografía debe detectar reversos de facturas no anuladas y originales anulados incorrectamente. No ejecutar esa lectura en producción sin autorización. |
+| M8 | Documentar y mantener la dependencia de aplicar la migración aprobada antes de integrar el código que la requiere. |
+| M9 | El postflight debe comprobar propietario de la función y definición exacta del CHECK. |
+
+Puntos de partida del informe: `LibroDiarioTab`/`accounting/actions`, `0497_reverso_al_anular_factura.sql`, `libro-control`, `ingreso-periodo`, `facturacion/actions`, `invoice-posting` y `sales-orders/actions`. El siguiente Worker debe leer las rutas y líneas vigentes antes de editar, revisar su allowlist y demostrar cada cierre. La numeración de líneas del informe antiguo no es una ubicación garantizada después de actualizar la base.
 
 ### Corrección documental de #306
 
@@ -164,6 +204,8 @@ Los contratos de 0574 conservan `shipment_id`, `client_markbox` y `status`; el �
 Turno de máquina: 0569 confirmó adopción y ausencia de pruebas y cedió temporalmente la corrida pesada al A/B local de 0570/#304 mientras implementa. El turno vuelve mediante confirmación explícita, sin dos corridas concurrentes.
 
 El A/B usa los mismos 34 archivos, 2 workers y semilla/entorno/lockfile iguales. A restaura temporalmente solo imports/constructores previos; B usa los bytes de la cabeza original, con respaldos y hashes. Conserva aserciones y mutantes. Un preflight del comprobador falló antes de lanzar pruebas y restituyó 36/36 archivos; quedó separado. Duración inicialmente estimada 10–18 minutos, revisada a 25–30 al observar los primeros archivos; el Director autorizó completar hasta 35 minutos con aviso si necesita más. No hay resultado de aceptación todavía.
+
+El orquestador activo conserva un watchdog de 20 minutos por fase. Si interrumpe A, se conservará evidencia parcial y se restaurarán los archivos; no se reiniciará automáticamente ni se declarará mejora local. El turno se devolverá a 0569. A los once minutos, el Worker reportó 16/34 archivos completos y sin fallos; es avance, no resultado final.
 
 ## 4. Checklist vivo de continuidad
 
