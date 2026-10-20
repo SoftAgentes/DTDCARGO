@@ -2,7 +2,7 @@
 
 **Dueño:** Director Codex, para Sam. **Estado:** seguimiento en curso.
 
-**Fecha de corte:** 20 de octubre de 2026, 2:27 p. m. de Caracas. **Clasificación:** interno.
+**Fecha de corte:** 20 de octubre de 2026, 2:45 p. m. de Caracas. **Clasificación:** interno.
 
 La prioridad sigue siendo llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo. Este documento presenta el avance comprobado de la continuación; las decisiones de negocio permanecen en el [plan maestro](2026-10-18-contabilidad-diagnostico-y-plan.md).
 
@@ -10,7 +10,7 @@ El [registro del Director, §4](../../.agents/handoffs/director-continuidad-code
 
 ## Dónde estamos
 
-**GitHub volvió a funcionar.** Pasaron las verificaciones de `main`, tasa única (#301), pruebas PGlite (#304) y tarifa congelada (#307). La nueva revisión de tasa única encontró dos problemas que deben corregirse antes de aplicar su migración.
+**GitHub volvió a funcionar.** Pasaron las verificaciones de `main` y de las versiones anteriores de #301, #304 y #307. La revisión de tasa única encontró dos problemas; sus correcciones ya están publicadas en #301 y se está ejecutando una validación completa nueva. Los resultados anteriores no certifican este código nuevo.
 
 **El main que estaba pendiente ya quedó publicado**, a la 1:28 p. m., con 14 comprobaciones automáticas aprobadas y cero fallas. La lectura del servidor confirmó que sigue en esa versión. Todavía no se ha integrado ninguna PR nueva de este Director: 0569 y 0572 continúan en sus ramas.
 
@@ -22,7 +22,7 @@ La 2.1 sigue **en curso**. Está dividida para poder revisar cada cambio y compr
 
 | Parte | Avance comprobado | Próximo paso |
 |---|---|---|
-| **Tasa única y conversor · 0569** | Código en la [PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301). La corrección ya está preparada y su código revisado: distingue tasa de tabla y excepción de la factura, y detecta cambios de otra persona al editar o emitir | Demostrar el fallo previo y la corrección con pruebas, incluyendo cambio de moneda y precisión. Luego validación completa y previa; después se pide el OK nominal de `0495_fx_rates_conversor_usd` |
+| **Tasa única y conversor · 0569** | Correcciones publicadas en la [PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301), versión `5f0d04ad`: distinguen tasa de tabla y excepción documental, y detectan ediciones simultáneas. Pasaron 89 pruebas de app, 32 de SQL con 26 mutantes y 13 mutantes adicionales de app. Revisión local visible y previa de solo lectura en el servidor: PASÓ | Terminar validación completa y CI actuales. Después se pide el OK nominal de `0495_fx_rates_conversor_usd`; todavía no se ha aplicado |
 | **Reemplazar las 13 conversiones · 0572-a** | Avance guardado y publicado. Pasaron 71 pruebas focales, revisión de tipos y revisión estática. Se repararon formatos y datos de prueba incompletos | Incorporar la dependencia 0569 corregida, comprobar el ranking de embarques sin tasa y terminar prueba completa, mutantes y revisión visual. La PR espera a #301 integrada |
 | **Conversiones pendientes en SQL · 0572-b** | Identificadas y separadas del cambio anterior | Encargo propio, número de migración coordinado y OK nominal antes de producción |
 | **Hora de Caracas** | Pendiente de implementación y de número de tarea | Unificar emisión, asientos, cobros y pagos después del cierre del conversor |
@@ -34,11 +34,11 @@ La 2.1 sigue **en curso**. Está dividida para poder revisar cada cambio y compr
 
 | Frente | Estado actual | Qué falta |
 |---|---|---|
-| **0571 · Tarifa congelada**, #307 | La revisión nueva detectó tres problemas de búsqueda y actualización del formulario. El Worker los está corrigiendo. La validación anterior aprobó 16 de 17 comprobaciones disponibles, con omisiones documentadas | Probar las correcciones; después actualizar base, validación final, nueva previa, OK nominal de `0496_tarifa_congelada_por_embarque`, integración y prueba en el servidor |
+| **0571 · Tarifa congelada**, #307 | Correcciones y regresiones preparadas en ocho archivos para los tres problemas de búsqueda y actualización del formulario. Todavía no se han ejecutado sus pruebas; la validación anterior no cubre el código nuevo | Probarlas en el siguiente turno, después de 0569; luego actualizar base, validación final, nueva previa, OK nominal de `0496_tarifa_congelada_por_embarque`, integración y prueba en el servidor |
 | **0573 · Reverso al anular**, 2.5 | Implementación publicada. Se recuperó y guardó el informe completo de revisión; sus hallazgos siguen pendientes | Corregir los controles de anulación, concurrencia, tenant y comparación entre meses; prueba completa y PR. Después revisión, previa y OK nominal de `0497_reverso_al_anular_factura` |
 | **0574 · Embarques sin facturar**, 4.5 | Ya implementada sobre 0571. Hay evidencia anterior de diez pruebas y tres mutantes | Preparar dependencias locales y ejecutar la prueba completa con turno. Se integra después de 0571 |
 | **0575 · Asientos sin fallos silenciosos**, 2.2 | Cinco decisiones de diseño registradas y publicadas; todavía no está implementada | Contratos, archivos de cada entrega y número de migración; tres PR sucesivas |
-| **0570 · Pruebas PGlite**, #304 | GitHub pasó; comparación local de 34 archivos en curso, con las mismas pruebas en ambas versiones | Comprobar los resultados antes de cerrar el criterio de velocidad |
+| **0570 · Pruebas PGlite**, #304 | La primera mitad de la comparación local se detuvo por su límite de 20 minutos: 26 de 34 archivos y 649 casos informados sin fallas. La segunda mitad no se ejecutó. Archivos originales restaurados y evidencia parcial publicada en `1077ff21`; CI nuevo en curso | Repetir la comparación completa con un tiempo suficiente, después de 0569 y las pruebas focales de 0571. El criterio de velocidad local sigue pendiente |
 | **Oficina de agentes**, #306 | Correcciones documentales guardadas, publicadas y revisadas; comprobación de GitHub en curso | Actualizar base después de #301. El aislamiento real entre perfiles y la copia filtrada del servidor siguen sin verificar |
 
 Se ejecuta una sola prueba pesada a la vez en la máquina. El carril de embarques puede avanzar en paralelo cuando no compite por ese turno ni cambia contratos del carril contable.
@@ -89,7 +89,7 @@ El [plan de Claude](https://claude.ai/artifact/A1hEYVry1GXFZJdnj2ui1z#d53c897e-f
 - El pago ya está resuelto.
 - Los trece reemplazos son **0572**, aunque una lista todavía los llama 0571.
 - 0572 y 0574 ya tienen implementación; no están solo empezando el diseño.
-- La prueba final de 0571 ya terminó.
+- La prueba final de la versión anterior de 0571 ya terminó; las correcciones de la revisión nueva requieren pruebas propias.
 - Las decisiones delegadas de 0575 ya quedaron registradas.
 - #301 necesita cerrar los hallazgos nuevos antes de solicitar la aprobación de su migración.
 
