@@ -183,6 +183,9 @@ export type Referral = {
   applied_invoice_id: string | null;
   applied_entry_id: string | null;
   applied_at: string | null;
+  // SDD-0567 · la acreditación a mano (solo admin) y la venta anulada de un aplicado.
+  accredited_reason: string | null;
+  sale_voided_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

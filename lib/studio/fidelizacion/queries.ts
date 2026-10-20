@@ -147,13 +147,31 @@ export async function tierCounts(
 
 const REFERRAL_COLUMNS =
   "id, tenant_id, referral_code, referrer_client_id, referrer_markbox, referred_name, referred_company, referred_email, referred_phone, referred_client_id, status, reward_usd, lead_id, notes, applied_invoice_id, applied_entry_id, applied_at, created_at, updated_at, deleted_at";
+/** SDD-0567 · Columnas de la migración 0494: la acreditación a mano y la venta anulada. */
+const REFERRAL_COLUMNS_0494 = `${REFERRAL_COLUMNS}, accredited_reason, sale_voided_at`;
 
 /** Coacciona los campos numéricos (Supabase devuelve numeric como string). */
 function coerceReferral(row: Record<string, unknown>): Referral {
   return {
     ...(row as unknown as Referral),
     reward_usd: Number(row.reward_usd) || 0,
+    accredited_reason: (row.accredited_reason as string | null | undefined) ?? null,
+    sale_voided_at: (row.sale_voided_at as string | null | undefined) ?? null,
   };
+}
+
+/**
+ * Lee referidos con las columnas de la 0494 y, si la base todavía no las tiene
+ * (42703, columna inexistente), vuelve a leer sin ellas. Sin la 0494 la lista se
+ * ve como hoy: sin el motivo ni el aviso de la venta anulada.
+ */
+async function selectReferrals(
+  build: (columns: string) => PromiseLike<{ data: unknown; error: { code?: string } | null }>,
+): Promise<Referral[]> {
+  let { data, error } = await build(REFERRAL_COLUMNS_0494);
+  if (error?.code === "42703") ({ data, error } = await build(REFERRAL_COLUMNS));
+  if (error) throw error;
+  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceReferral);
 }
 
 export type ReferralFilters = {
@@ -166,31 +184,30 @@ export async function listReferrals(
   supabase: SupabaseClient,
   filters: ReferralFilters = {},
 ): Promise<Referral[]> {
-  let query = supabase
-    .from("referrals")
-    .select(REFERRAL_COLUMNS)
-    .order("created_at", { ascending: false })
-    .limit(500);
+  return selectReferrals((columns) => {
+    let query = supabase
+      .from("referrals")
+      .select(columns)
+      .order("created_at", { ascending: false })
+      .limit(500);
 
-  if (filters.status) {
-    query = query.eq("status", filters.status);
-  }
+    if (filters.status) {
+      query = query.eq("status", filters.status);
+    }
 
-  if (filters.q && filters.q.trim()) {
-    const q = filters.q.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ").trim();
-    query = query.or(
-      [
-        `referral_code.ilike.%${q}%`,
-        `referrer_markbox.ilike.%${q}%`,
-        `referred_name.ilike.%${q}%`,
-        `referred_company.ilike.%${q}%`,
-      ].join(","),
-    );
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceReferral);
+    if (filters.q && filters.q.trim()) {
+      const q = filters.q.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ").trim();
+      query = query.or(
+        [
+          `referral_code.ilike.%${q}%`,
+          `referrer_markbox.ilike.%${q}%`,
+          `referred_name.ilike.%${q}%`,
+          `referred_company.ilike.%${q}%`,
+        ].join(","),
+      );
+    }
+    return query;
+  });
 }
 
 /** Referidos de un referidor (por MARKBOX). RLS filtra por tenant. */
@@ -198,15 +215,14 @@ export async function referralsByReferrer(
   supabase: SupabaseClient,
   markbox: string,
 ): Promise<Referral[]> {
-  const { data, error } = await supabase
-    .from("referrals")
-    .select(REFERRAL_COLUMNS)
-    .eq("referrer_markbox", markbox)
-    .order("created_at", { ascending: false })
-    .limit(500);
-
-  if (error) throw error;
-  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceReferral);
+  return selectReferrals((columns) =>
+    supabase
+      .from("referrals")
+      .select(columns)
+      .eq("referrer_markbox", markbox)
+      .order("created_at", { ascending: false })
+      .limit(500),
+  );
 }
 
 export type ProgramStats = {
