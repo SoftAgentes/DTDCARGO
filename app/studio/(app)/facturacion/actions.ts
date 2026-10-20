@@ -673,8 +673,8 @@ export async function emitInvoice(
     .eq("status", "borrador")
     .eq("currency", current.currency)
     .is("deleted_at", null)
-    .select("id")
-    .maybeSingle<{ id: string }>();
+    .select("id, fx_rate")
+    .maybeSingle<{ id: string; fx_rate: number | null }>();
 
   if (error) return { error: error.message };
   if (!emitted) return { error: CONFLICTO_FACTURA };
@@ -703,7 +703,7 @@ export async function emitInvoice(
     await fireMailEvent(createAdminClient(), current.tenant_id, {
       event: "invoice_emitted",
       vars: varsDeFacturaEmitida(
-        current,
+        { ...current, fx_rate: emitted.fx_rate },
         today,
         current.due_date ?? addDaysISO(today, 30),
       ),

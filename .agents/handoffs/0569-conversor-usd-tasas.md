@@ -1,5 +1,99 @@
 # Handoff · SDD-0569 · Un solo conversor a USD, que falla cerrado, y una tabla de tasas con fuente y fecha
 
+## Reapertura P2 del aviso · corrección y controles focales · 2026-10-20
+
+Esta sección es el estado vigente. Los cierres y permisos históricos siguientes
+no sustituyen el encargo acotado nuevo del Director.
+
+**OBJETIVO ORIGINAL:** el evento `invoice_emitted` debe usar la tasa efectivamente
+persistida por el CAS exitoso, no la tasa anterior leída del borrador. Se mantiene
+el rechazo sin fila afectada antes de cualquier asiento o correo.
+
+**Adopción y ownership:** raíz
+`C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0569-conversor-usd-tasas`,
+rama `codex/sdd-0569-conversor-usd-tasas`, base/HEAD
+`eb22e2d4b414deb7d0983fa2e6524e0c99697fc8`; árbol limpio al retomar y sin procesos
+consumidores explícitos del worktree en la inspección. Guard, claim
+`codex-0569-01a15a4e-ddf0` y guard con owner pasaron. Se adoptaron AGENTS, Worker,
+runbook, reglas técnicas, AGENT-BRIEF y políticas SGE-00/ERR-01 aplicables.
+`node_modules` sigue siendo directorio local sin junction; no hubo instalaciones
+ni copia de secretos. `_norte/backend/README.md` no está disponible en este
+worktree ni en el checkout principal; no se reconstruyó ni cambió esa referencia.
+
+**COMPLETADO:** lectura del informe independiente
+`C:/tmp/director-traspaso-20261020/0569-codex-validation/revision-independiente-final.md`;
+regresiones en `factura-congela-la-tasa.test.ts` para automático 36→40,
+override 36 y borrador VES sin tasa. El doble respeta la proyección de cada
+SELECT y conserva los filtros/versiones de concurrencia; se mantienen las
+aserciones existentes de cero asiento y cero correo cuando pierde el CAS.
+El producto permaneció en la versión base para capturar primero el rojo y se
+aplicó después el cambio mínimo de tres líneas.
+
+Parche preparado fuera de Git y aplicado después del rojo:
+`C:/tmp/director-traspaso-20261020/0569-codex-validation/p2-invoice-emitted-prepared-actions.ts`.
+Contiene solo tres sustituciones dentro de `emitInvoice`: SELECT `id, fx_rate`,
+tipo de fila devuelta y `fx_rate: emitted.fx_rate` al construir las variables.
+SHA-256 base del archivo:
+`4ce222a9c963c27b224fd146bd42d016499b8524012b2811abe1862303d9fcf8`;
+preparado:
+`7de32ab476cb96219a588f60103158ac3fcf4629cac76e88d6c09fc6ed87db02`.
+
+**Alcance autorizado:** solo `app/studio/(app)/facturacion/actions.ts`,
+`app/studio/(app)/facturacion/__tests__/factura-congela-la-tasa.test.ts`,
+`docs/specs/0569-conversor-usd-tasas/spec.md` y este handoff. No SQL, helper de
+correo, RBAC u otras rutas. El blob de 0495 conserva su identidad anterior.
+
+**VALIDACIÓN:** el Director concedió el turno exclusivo después de A/B304.
+Identidad/guard y diff-check: **PASÓ**. El primer lanzador corepack falló antes de
+ejecutar tests por el tratamiento de paréntesis en Windows; se conserva como
+problema de herramienta, no como control rojo. Con Node y Vitest local:
+
+| Comprobación P2 | Resultado |
+|---|---|
+| Rojo sobre producto `eb22e2d4` + regresiones | **PASÓ como control rojo:** 2 fallos de aserción, 27 casos aprobados. El aviso devolvió 36 y —, respectivamente, frente al 40 esperado; sin fallos de importación ni doble roto |
+| Verde focal | **PASÓ:** 37/37 en 3 archivos: congelación/emisión, variables del correo y guardar conserva embarque |
+| Mutante `current.fx_rate` | **PASÓ:** detectado con 2 fallos de aserción; producto restaurado por SHA-256 |
+| Mutante SELECT sin `fx_rate` | **PASÓ:** detectado con 3 fallos de aserción; prueba de que el doble no inventa la columna; restauración exacta |
+| Typecheck | **PASÓ:** `corepack pnpm typecheck`, exit 0 |
+| Lint focal | **PASÓ:** ESLint local de las dos rutas TS modificadas, exit 0 y cero warnings |
+| Verify nuevo | **NO EJECUTADO todavía:** se ejecutará sobre el commit publicado después de lint |
+| SQL/Docker/UI | **NO EJECUTADO en P2**, por instrucción del Director: no cambia SQL ni formulario. El diff frente a `eb22e2d4` está vacío en supabase, InvoiceDrawer y helper de correo; SQL0495 mantiene SHA-256 `964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7` |
+
+Evidencia nueva fuera de Git: `p2-red.log`, `p2-green.log`,
+`p2-mutant-stale-rate.log`, `p2-mutant-missing-projection.log`,
+`p2-typecheck.log` y sus resultados JSON en la carpeta de validación.
+Los resultados previos de `5f0d04ad` no se atribuyen a esta corrección.
+
+**COMMITS:** pendiente el commit que contiene esta corrección y su evidencia.
+El Director autorizó commit/push selectivos de las cuatro rutas al pasar focal,
+mutantes, tipos y lint; verify correrá después sobre esa cabeza. No autoriza
+merge, migración, datos reales, secretos ni despliegue.
+
+**PR / BRANCH:** PR #301 existente, en borrador según el encargo; rama y HEAD
+anteriores. No hubo nueva consulta remota ni publicación en esta preparación.
+
+**PENDIENTES DE ESTA TAREA:** fijar/publicar SHA y actualizar el
+body de #301; ejecutar verify canónico secuencial, clasificar cada resultado y
+omisión, y entregar revisión exacta al Director. Los contratos SQL no cambiaron;
+no se repetirá SQL/Docker ni UI en esta reapertura por instrucción expresa.
+La aprobación de 0495 queda diferida hasta corregir, validar, revisar nueva
+cabeza y renovar identidad/previa por el Director.
+
+**Impacto documental y conocimiento:** spec y handoff guardan esta reapertura y
+su aceptación. Integración pendiente; Graphify estructural/semántico, Archify,
+preview y revisión visible/publicación Obsidian: **NO EJECUTADO** por coordinación,
+sin atribuir actualización a ninguna capa. No cambia UI ni plantilla, por lo que
+una nueva captura visual no demuestra el valor del evento: se requiere su prueba.
+
+**FUERA DE ALCANCE DETECTADO:** no se abrió auditoría general. El Norte backend
+ausente se registra como referencia documental no disponible, sin reparación
+de organización. Los hallazgos ajenos históricos conservan sus destinos.
+
+**HANDOFF AL DIRECTOR:** focal y mutantes comunicados; conserva el Worker el turno
+exclusivo hasta terminar verify y su limpieza. El informe y evidencia de
+diff/identidad quedan fuera de Git en la carpeta de validación. Ownership sigue
+reclamado durante implementación/validación y se liberará al acabar la escritura.
+
 ## Relevo Codex y reparación de revisión · 2026-10-20
 
 El Director asignó esta reparación después de pausar formalmente 0572-a en

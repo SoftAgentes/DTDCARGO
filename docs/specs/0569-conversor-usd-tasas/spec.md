@@ -15,7 +15,33 @@ confidencialidad: interno
 
 > La 2.1 del plan contable, primera parte: la tabla `fx_rates` y el conversor canónico (`to_usd` en SQL y `toUsd` en `lib/shared`), que nunca devuelve 0 ni el monto tal cual cuando falta la tasa. USDT = USD 1:1.
 
-**Estado: REPARACIÓN IMPLEMENTADA Y VALIDADA LOCALMENTE, LISTA PARA REVISIÓN; PR #301 en borrador.** El Director aprobó el diseño el 2026-10-20 y respondió las cinco preguntas (ver *Decisiones del Director*). El relevo Codex sobre `e6579944` corrige procedencia y concurrencia. Sobre `5f0d04ad`, la focal pasa 89 casos de app y 32 de SQL/PGlite, incluidos 26 mutantes SQL; los 13 mutantes adicionales de app mueren por aserción. El verify pasó sus 14 pasos medidos, incluido build, con reintento unitario aprobado y tres SKIPs explícitos. Después pasaron por separado 246 contratos SQL y la reconstrucción de 471 migraciones más 18 sólo-ledger sobre PostgreSQL local; el ledger productivo continúa como validación de release del Director. El handoff conserva cada corrida, omisión y límite por separado. La 0495 sigue sin aplicar; el Director comunicó un paquete actualizado desde ese mismo SHA, pendiente del OK nominal de Sam y la secuencia MIGRATE-FIRST. El cierre documental no cambia producto ni SQL. Graphify, Archify y preview quedan aplazados por coordinación expresa del Director hasta el cierre de conocimiento posterior a la integración.
+**Estado: P2 DEL AVISO CORREGIDO CON FOCAL VERDE; verify de la nueva cabeza pendiente. PR #301 permanece en borrador.** La revisión independiente sobre `eb22e2d4b414deb7d0983fa2e6524e0c99697fc8` detectó que `emitInvoice` guardaba la tasa nueva pero entregaba al evento `invoice_emitted` la tasa anterior del borrador. La corrección usa la tasa devuelta por el UPDATE condicional. En el turno exclusivo concedido tras A/B304, el control rojo detectó 36/— frente a 40; la focal pasó 37 pruebas y dos mutantes murieron por aserción con restauración exacta. La aprobación nominal de 0495 espera cierre canónico, revisión de la nueva cabeza e identidad/previa actualizadas del paquete.
+
+**Evidencia anterior, conservada por SHA:** el Director aprobó el diseño el 2026-10-20 y respondió las cinco preguntas (ver *Decisiones del Director*). El relevo Codex sobre `e6579944` corrigió procedencia y concurrencia. Sobre `5f0d04ad`, la focal pasó 89 casos de app y 32 de SQL/PGlite, incluidos 26 mutantes SQL; los 13 mutantes adicionales de app murieron por aserción. El verify pasó sus 14 pasos medidos, incluido build, con reintento unitario aprobado y tres SKIPs explícitos. Después pasaron por separado 246 contratos SQL y la reconstrucción de 471 migraciones más 18 sólo-ledger sobre PostgreSQL local; el ledger productivo continúa como validación de release del Director. El handoff conserva cada corrida, omisión y límite. El cierre documental `eb22e2d4` no cambió producto ni SQL frente a `5f0d04ad`; esa evidencia no acredita todavía la corrección P2. Graphify, Archify y preview siguen aplazados por coordinación expresa del Director.
+
+### Reapertura acotada · tasa del aviso de emisión · 2026-10-20
+
+- El UPDATE condicional exitoso debe devolver `id, fx_rate`; las variables del
+  aviso usan esa tasa persistida. Se conserva el rechazo sin fila afectada antes
+  de asiento o correo. No se cambia el helper de correo, su plantilla ni RBAC.
+- Aceptación: catálogo automático 36→40 avisa 40; override expreso conserva 36;
+  borrador VES sin tasa avisa la tasa persistida al emitir; las carreras CAS
+  perdedoras producen cero asiento y cero evento. El doble de prueba devuelve
+  únicamente las columnas solicitadas.
+- Allowlist de esta reapertura, subconjunto de las 39 rutas de la SDD:
+  `app/studio/(app)/facturacion/actions.ts`,
+  `app/studio/(app)/facturacion/__tests__/factura-congela-la-tasa.test.ts`,
+  esta spec y `.agents/handoffs/0569-conversor-usd-tasas.md`.
+- El parche de tres líneas se preparó fuera de Git y se aplicó después del rojo:
+  2 fallos de aserción y 27 casos aprobados sobre producto `eb22e2d4`. Focal verde:
+  37/37 entre emisión, variables de correo y conservación de embarque. Mutantes:
+  volver a `current.fx_rate` y omitir la tasa en SELECT fallan por aserción; se
+  restauró el archivo exacto después de cada uno. Typecheck y lint focal
+  **PASARON**, este último con cero warnings; verify permanece pendiente.
+  SQL0495 y formulario
+  permanecen idénticos; no se repiten SQL/Docker/UI por instrucción del Director.
+  Tras los controles focales, autorizó commit/push de estas cuatro rutas y verify
+  sobre la nueva cabeza, sin merge, migración ni despliegue.
 
 ### Precisiones autorizadas por el Director · revisión del 2026-10-20
 
@@ -271,12 +297,14 @@ Cada hallazgo se confirmó con su prueba en rojo antes de corregirlo, y tiene su
 14. Las dos intercalaciones editar/emitir rechazan la escritura perdedora; cambios de importes o destinatario en la misma moneda también se detectan. Cero filas afectadas significa cero asiento/correo de esa operación.
 15. `write_version` aumenta en todo UPDATE, incluso en una misma transacción, e ignora el valor enviado por cliente. El contrato comprueba ejecución bajo `authenticated` aunque la función no exponga EXECUTE directo.
 16. Drawer limpia la tasa al cambiar VES↔CNY; una cifra explícita igual a la anterior se distingue de conservar el campo precargado. Factura/CxP rechazan `1e-9` y los valores que redondean a cero, y comparten con PostgreSQL los límites de mitad a ocho decimales.
+17. El evento `invoice_emitted` usa la tasa devuelta por el UPDATE condicional exitoso. Catálogo 36→40 entrega `bcv_rate="40"`, override explícito conserva `"36"` y un borrador sin tasa entrega la persistida. Sin fila afectada no produce asiento ni evento.
 
 ## Gobernanza
 
 | Política | Clasificación | Evidencia |
 |---|---|---|
 | Cambio de comportamiento Studio | cumplimiento | esta spec, con allowlist exacta |
+| SGE-00.07 · veracidad del aviso | cumplimiento focal P2 | el evento usa la tasa persistida; rojo 36/— frente a 40 y verde en la prueba de emisión, con proyección real del doble |
 | AUD-01 | cumplimiento | la tasa guarda quién, cuándo y la fuente, y cada alta, corrección o borrado entra en la auditoría D2 con la tasa anterior y la nueva |
 | ERR-01 | cumplimiento | Admin › Tasas muestra solo los mensajes con `hint = 'dtd-fx'`; el resto, un mensaje genérico (prueba de la acción) |
 | FRM-01, A11Y-01 | cumplimiento | la fecha y la tasa del móvil con `<label>`; la ayuda de la tasa con `aria-describedby` |

@@ -12,6 +12,8 @@
  *
  * El doble aplica los filtros al escribir y permite intercalar acciones después
  * de la lectura. Así detecta una operación que informa éxito sin afectar filas.
+ * Devuelve solo la proyección solicitada: el aviso debe usar la tasa guardada,
+ * no la anterior del borrador ni una columna que el UPDATE no devolvió.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
@@ -66,11 +68,20 @@ function makeClient() {
     from(table: string) {
       const filtros: [string, unknown][] = [];
       let cambio: Write | null = null;
+      let columnas: string | null = null;
+      const proyectar = (row: Record<string, unknown>) => {
+        if (columnas == null) return null;
+        if (columnas === "*") return { ...row };
+        return Object.fromEntries(columnas.split(",").map((columna) => {
+          const key = columna.trim();
+          return [key, row[key]];
+        }));
+      };
       const ejecutar = async () => {
         if (!cambio) {
-          if (table === "invoices") return { data: fila(), error: null };
-          if (table === "tenants") return { data: { iva_enabled: false }, error: null };
-          if (table === "user_tenants") return { data: { tenant_id: "t1" }, error: null };
+          if (table === "invoices") return { data: proyectar(fila()), error: null };
+          if (table === "tenants") return { data: proyectar({ iva_enabled: false }), error: null };
+          if (table === "user_tenants") return { data: proyectar({ tenant_id: "t1" }), error: null };
           throw new Error(`lectura inesperada en ${table}`);
         }
         const intercalar = antesDeEscribir;
@@ -82,10 +93,10 @@ function makeClient() {
         }
         writes.push(cambio);
         guardada = { ...actual, ...cambio.values, write_version: Number(actual.write_version) + 1 };
-        return { data: { ...guardada }, error: null };
+        return { data: proyectar(guardada), error: null };
       };
       const chain = {
-        select: () => chain,
+        select: (seleccion = "*") => { columnas = seleccion; return chain; },
         eq: (key: string, value: unknown) => { filtros.push([key, value]); return chain; },
         is: (key: string, value: unknown) => { filtros.push([key, value]); return chain; },
         update(values: Record<string, unknown>) {
@@ -277,6 +288,10 @@ describe("regresiones de revisión · intención y concurrencia", () => {
     vigente = { data: [{ rate: 40, source: "manual", valid_on: hoy() }], error: null };
     expect(await emitInvoice("inv-0569")).toEqual({ ok: true });
     expect(guardada).toMatchObject({ status: "emitida", fx_rate: 40, fx_rate_valid_on: hoy(), fx_rate_is_override: false });
+    expect(fireMailEvent).toHaveBeenCalledTimes(1);
+    expect(fireMailEvent).toHaveBeenCalledWith(expect.anything(), "t1", expect.objectContaining({
+      event: "invoice_emitted", vars: expect.objectContaining({ bcv_rate: "40" }),
+    }));
   });
 
   it("un borrador creado con override expreso conserva su tasa y fecha al día siguiente", async () => {
@@ -289,6 +304,23 @@ describe("regresiones de revisión · intención y concurrencia", () => {
     expect(await emitInvoice("inv-0569")).toEqual({ ok: true });
     expect(guardada).toMatchObject({ fx_rate: 36, fx_rate_valid_on: "2026-10-19", fx_rate_is_override: true });
     expect(rpcs.map((call) => call.rpc)).toEqual(["next_invoice_code"]);
+    expect(fireMailEvent).toHaveBeenCalledTimes(1);
+    expect(fireMailEvent).toHaveBeenCalledWith(expect.anything(), "t1", expect.objectContaining({
+      event: "invoice_emitted", vars: expect.objectContaining({ bcv_rate: "36" }),
+    }));
+  });
+
+  it("un borrador VES sin tasa avisa con la tasa que se guardó al emitir", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-20T15:00:00Z"));
+    guardada = { currency: "VES", fx_rate: null, fx_rate_source: null, fx_rate_valid_on: null };
+    vigente = { data: [{ rate: 40, source: "bcv", valid_on: hoy() }], error: null };
+    expect(await emitInvoice("inv-0569")).toEqual({ ok: true });
+    expect(guardada).toMatchObject({ status: "emitida", fx_rate: 40, fx_rate_valid_on: hoy() });
+    expect(fireMailEvent).toHaveBeenCalledTimes(1);
+    expect(fireMailEvent).toHaveBeenCalledWith(expect.anything(), "t1", expect.objectContaining({
+      event: "invoice_emitted", vars: expect.objectContaining({ bcv_rate: "40" }),
+    }));
   });
 
   it("escribir explícitamente la misma cifra del catálogo crea override persistido", async () => {
