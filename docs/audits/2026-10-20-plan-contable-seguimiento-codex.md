@@ -2,7 +2,7 @@
 
 **Dueño:** Director Codex, para Sam. **Estado:** seguimiento en curso.
 
-**Fecha de corte:** 20 de octubre de 2026, 2:45 p. m. de Caracas. **Clasificación:** interno.
+**Fecha de corte:** 20 de octubre de 2026, 3:08 p. m. de Caracas. **Clasificación:** interno.
 
 La prioridad sigue siendo llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo. Este documento presenta el avance comprobado de la continuación; las decisiones de negocio permanecen en el [plan maestro](2026-10-18-contabilidad-diagnostico-y-plan.md).
 
@@ -11,6 +11,8 @@ El [registro del Director, §4](../../.agents/handoffs/director-continuidad-code
 ## Dónde estamos
 
 **GitHub volvió a funcionar.** Pasaron las verificaciones de `main` y de las versiones anteriores de #301, #304 y #307. La revisión de tasa única encontró dos problemas; sus correcciones ya están publicadas en #301 y se está ejecutando una validación completa nueva. Los resultados anteriores no certifican este código nuevo.
+
+Las cabezas actuales de #304 (`1077ff21`) y #306 (`2f9b336c`) también aprobaron GitHub. En la primera pasada local de #301 hubo un tiempo de espera agotado en una prueba del portal de proveedores, junto con 12.276 pruebas aprobadas y una omitida. Está en curso el reintento previsto del proceso; todavía no hay resultado final ni atribución comprobada de ese fallo.
 
 **El main que estaba pendiente ya quedó publicado**, a la 1:28 p. m., con 14 comprobaciones automáticas aprobadas y cero fallas. La lectura del servidor confirmó que sigue en esa versión. Todavía no se ha integrado ninguna PR nueva de este Director: 0569 y 0572 continúan en sus ramas.
 
@@ -38,8 +40,8 @@ La 2.1 sigue **en curso**. Está dividida para poder revisar cada cambio y compr
 | **0573 · Reverso al anular**, 2.5 | Implementación publicada. Se recuperó y guardó el informe completo de revisión; sus hallazgos siguen pendientes | Corregir los controles de anulación, concurrencia, tenant y comparación entre meses; prueba completa y PR. Después revisión, previa y OK nominal de `0497_reverso_al_anular_factura` |
 | **0574 · Embarques sin facturar**, 4.5 | Ya implementada sobre 0571. Hay evidencia anterior de diez pruebas y tres mutantes | Preparar dependencias locales y ejecutar la prueba completa con turno. Se integra después de 0571 |
 | **0575 · Asientos sin fallos silenciosos**, 2.2 | Cinco decisiones de diseño registradas y publicadas; todavía no está implementada | Contratos, archivos de cada entrega y número de migración; tres PR sucesivas |
-| **0570 · Pruebas PGlite**, #304 | La primera mitad de la comparación local se detuvo por su límite de 20 minutos: 26 de 34 archivos y 649 casos informados sin fallas. La segunda mitad no se ejecutó. Archivos originales restaurados y evidencia parcial publicada en `1077ff21`; CI nuevo en curso | Repetir la comparación completa con un tiempo suficiente, después de 0569 y las pruebas focales de 0571. El criterio de velocidad local sigue pendiente |
-| **Oficina de agentes**, #306 | Correcciones documentales guardadas, publicadas y revisadas; comprobación de GitHub en curso | Actualizar base después de #301. El aislamiento real entre perfiles y la copia filtrada del servidor siguen sin verificar |
+| **0570 · Pruebas PGlite**, #304 | La primera mitad de la comparación local se detuvo por su límite de 20 minutos: 26 de 34 archivos y 649 casos informados sin fallas. La segunda mitad no se ejecutó. Archivos originales restaurados y evidencia parcial publicada en `1077ff21`; GitHub PASÓ a las 3:01 p. m. | Repetir la comparación completa con un tiempo suficiente, después de 0569 y las pruebas focales de 0571. El criterio de velocidad local sigue pendiente |
+| **Oficina de agentes**, #306 | Correcciones documentales guardadas, publicadas y revisadas; GitHub PASÓ sobre `2f9b336c` a las 2:47 p. m. | Actualizar base después de #301. El aislamiento real entre perfiles y la copia filtrada del servidor siguen sin verificar |
 
 Se ejecuta una sola prueba pesada a la vez en la máquina. El carril de embarques puede avanzar en paralelo cuando no compite por ese turno ni cambia contratos del carril contable.
 
