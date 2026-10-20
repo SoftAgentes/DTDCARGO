@@ -1958,8 +1958,10 @@ function MarginTable({
 }) {
   return (
     <Card eyebrow="Rentabilidad · revenue real − costo real" style={{ padding: 0 }}>
+      <div role="region" aria-label="Tabla de rentabilidad" tabIndex={0} style={{ overflowX: "auto" }}>
+      <div style={{ minWidth: 724 }}>
       <HeaderRow
-        cols="1.6fr 110px 110px 120px 70px"
+        cols="minmax(220px, 1.6fr) 110px 110px 120px 70px"
         labels={[label0, "Ingreso", "Costo dir.", "Margen", "%"]}
         rightFrom={1}
         rightTo={4}
@@ -1969,7 +1971,7 @@ function MarginTable({
           key={r.key}
           style={{
             display: "grid",
-            gridTemplateColumns: "1.6fr 110px 110px 120px 70px",
+            gridTemplateColumns: "minmax(220px, 1.6fr) 110px 110px 120px 70px",
             padding: "13px 18px",
             gap: 14,
             alignItems: "center",
@@ -2003,6 +2005,8 @@ function MarginTable({
           </span>
         </div>
       ))}
+      </div>
+      </div>
     </Card>
   );
 }
@@ -2095,8 +2099,10 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
             consolidada. Costo real por embarque, sin estimaciones.
           </p>
         </div>
+        <div role="region" aria-label="Tabla de rendimiento por CBM" tabIndex={0} style={{ overflowX: "auto" }}>
+        <div style={{ minWidth: 744 }}>
         <HeaderRow
-          cols="1.5fr 90px 110px 110px 1fr"
+          cols="minmax(220px, 1.5fr) 90px 110px 110px minmax(120px, 1fr)"
           labels={["Ruta", "CBM", "$/CBM ing.", "$/CBM costo", "Margen / CBM"]}
           rightFrom={1}
           rightTo={3}
@@ -2109,7 +2115,7 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
               key={`${r.origin}→${r.destination}`}
               style={{
                 display: "grid",
-                gridTemplateColumns: "1.5fr 90px 110px 110px 1fr",
+                gridTemplateColumns: "minmax(220px, 1.5fr) 90px 110px 110px minmax(120px, 1fr)",
                 padding: "13px 18px",
                 gap: 14,
                 alignItems: "center",
@@ -2152,6 +2158,8 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
             </div>
           );
         })}
+        </div>
+        </div>
       </Card>
     </div>
   );

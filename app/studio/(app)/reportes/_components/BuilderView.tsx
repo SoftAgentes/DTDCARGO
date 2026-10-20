@@ -453,8 +453,10 @@ export function BuilderView({
             </Badge>
           </div>
 
+          <div role="region" aria-label="Tabla del reporte construido" tabIndex={0} style={{ overflowX: "auto" }}>
+          <div style={{ minWidth: 620 }}>
           <HeaderRow
-            cols="minmax(120px, 200px) 1fr 70px 110px"
+            cols="minmax(120px, 200px) minmax(160px, 1fr) 70px 110px"
             labels={[dim.label, "", "Conteo", metric.label]}
             rightFrom={2}
             rightTo={3}
@@ -465,7 +467,7 @@ export function BuilderView({
               key={`${r.label}-${i}`}
               style={{
                 display: "grid",
-                gridTemplateColumns: "minmax(120px, 200px) 1fr 70px 110px",
+                gridTemplateColumns: "minmax(120px, 200px) minmax(160px, 1fr) 70px 110px",
                 gap: 14,
                 padding: "12px 18px",
                 alignItems: "center",
@@ -509,6 +511,8 @@ export function BuilderView({
               </span>
             </div>
           ))}
+          </div>
+          </div>
           {result.rows.length > 20 && (
             <div
               style={{
@@ -583,8 +587,9 @@ export function BuilderView({
 
       <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
         Todo sobre datos reales del período. Revenue de embarques y montos de
-        facturas se normalizan a USD (VES por fx; CNY → 0). Los reportes guardados
-        viven en este navegador (no se comparten ni se sincronizan).
+        facturas se normalizan a USD por la tasa del documento. Los montos sin
+        tasa se identifican por separado. Los reportes guardados viven en este
+        navegador (no se comparten ni se sincronizan).
       </p>
 
       {/* Layout SOLO-impresión · "Exportar PDF" = window.print() (patrón

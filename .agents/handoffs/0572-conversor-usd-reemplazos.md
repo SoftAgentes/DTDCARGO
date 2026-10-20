@@ -185,8 +185,61 @@ limita al delta de TSX, sin refactor ni bibliotecas nuevas. La fixture F1–F6
 está preparada fuera de Git con componentes/agregadores reales y adaptadores
 de navegación/toast/editores inactivos; todavía no acredita validación visual.
 
-**PENDIENTES DE ESTA TAREA:** UI sintética nueva, validación
-canónica sobre nueva cabeza, revisión independiente, cierre y draft PR.
+**Checkpoint publicado de reparación:** `3c36a7b242f78b2a2b93250ee30c9e2d897d5087`,
+local/remoto iguales y árbol limpio al publicar. El recibo externo
+`revision-checkpoint-3c36a7b2.json` conserva los exits efectivos de tipos,
+lint y docs, además de la igualdad remota. Los resultados F1–F6 anteriores
+corresponden a ese producto; la UI final añade solo el delta siguiente.
+
+**Ajuste visual aprobado por el Director después de observar la fixture:**
+en `ReportesClient.tsx`, las tablas de rentabilidad y CBM colapsaban la primera
+columna a 390 px y dejaban columnas fuera de la tarjeta. En `BuilderView.tsx`,
+el importe/estado quedaba recortado y el pie visible todavía decía CNY → 0.
+El Director autorizó únicamente contenedores horizontales desplazables,
+ancho mínimo coherente de cabecera/filas y texto acorde con la tasa del
+documento. Se preservan cifras, agregadores, catálogo, selectores, acciones,
+tokens y estructura de las vistas. No se añadieron pruebas que espejen CSS.
+El comentario de cashflow en `queries.ts` ya estaba corregido en 3c36; no
+requiere otro cambio de producto. Solo dos TSX cambian en este delta visual.
+
+**UI F1–F6 ejecutada con datos ficticios y componentes/agregadores reales:**
+ReportesClient, BuilderView y CobranzasClient, con fixtures fuera de Git.
+Se observaron parcial/solo desconocido/cero conocido, Mixto cliente/ruta/CBM,
+Aging CxC sola/CxP sola/ambas sin tasa y verdadero vacío, cashflow mensual,
+fondos y exportación habilitada cuando solo hay excluidas. Las medidas
+físicas/costo por CBM siguen disponibles y los márgenes incompletos no se
+certifican. No hubo credenciales, lecturas de negocio ni conexión a base.
+
+- **PASÓ en el alcance observado:** escritorio claro/oscuro y contenedor de
+  390 px, no dispositivo móvil real. Contenido de la fixture 358/358 px sin
+  desborde; regiones visibles de 356 px con contenidos 724/744/620 y últimos
+  desplazamientos observados 368/388/264 respectivamente. Escritorio: tablas
+  1246/1246 sin scroll. La última columna y el contador son consultables.
+- Evidencia anterior/posterior: `revision-ui-mixto-cliente-390-table-before.png`,
+  `revision-ui-mixto-cliente-390-after.png`,
+  `revision-ui-mixto-cliente-390-last-light.png`,
+  `revision-ui-mixto-cbm-390-last-dark.png`,
+  `revision-ui-builder-390-last-dark.png`,
+  `revision-ui-cbm-desktop-dark.png` y `revision-ui-measurements.json`.
+  Aging/fondos/cashflow conservan capturas `revision-ui-*` separadas.
+- Estas capturas corresponden a los bytes de 3c36 más el delta de los dos TSX
+  contenido en este commit. La compilación de fixture final pasó; el primer
+  intento falló por resolución React del adaptador externo y se corrigió allí,
+  sin alterar producto para resolver infraestructura.
+- **PASÓ:** focal final de los tres componentes, 18/18 sin SKIPs, exit 0,
+  sesión 75534; tipos exit 0, sesión 4596; ESLint de los dos TSX exit 0 sin
+  advertencias, sesión 32924. Recibos `revision-ui-final-focal.log/.json`,
+  `revision-ui-final-typecheck.log` y `revision-ui-final-lint.log`.
+- Servidor propio solo en 127.0.0.1:4802. Se cerraron tab, PID34560 y su
+  conhost13164; cero procesos y listeners a `2026-10-20T23:06:00Z`,
+  `revision-fixture-cleanup.json`. No se deja servicio de fixture activo.
+- **NO EJECUTADO:** Studio autenticado, producción, dispositivo físico,
+  auditoría integral de accesibilidad e impresión/PDF. La observación local
+  no certifica esas superficies. No se repitieron 751 pruebas ni 43 mutantes
+  por este delta exclusivo de disposición/texto, por decisión del Director.
+
+**PENDIENTES DE ESTA TAREA:** validación canónica sobre nueva cabeza estable,
+revisión independiente, cierre y draft PR.
 Actions está retenido por rechazo de pago/revisión
 de 48 horas según Sam/Director: no se presume verde. Antes de integrar se exige
 revalidación contra la base que incluya 0573. Orden Director: 301 → 304/306 →

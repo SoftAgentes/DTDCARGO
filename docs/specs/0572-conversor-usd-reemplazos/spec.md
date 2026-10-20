@@ -336,6 +336,29 @@ En el mismo cierre, el Director autorizó sumar únicamente `TesoreriaClient.cxp
 
 ## Validación
 
+### Ajuste visual posterior al checkpoint 3c36 · 2026-10-20
+
+El Director aprobó, después de reproducir el recorte a 390 px, un delta mínimo
+en ReportesClient y BuilderView: contenedor horizontal accesible, ancho mínimo
+coherente para tablas de rentabilidad/CBM/Constructor y corrección del pie
+visible CNY → 0. No cambia agregación, catálogo, cifras, acciones ni estructura
+de vistas. Solo esos dos TSX y documentos propios cambian en este checkpoint.
+
+UI sintética **PASÓ en el alcance observado** con componentes y agregadores
+reales: incompletitud parcial/solo desconocido/cero, Mixto preservando costo
+por CBM, Aging CxC sola/CxP sola/ambas y vacío real, cashflow y fondos. Claro y
+oscuro, escritorio y contenedor390: contenido358/358 sin desborde de página;
+regiones356 con desplazamiento hasta últimas columnas. No es prueba de móvil
+real ni Studio autenticado. Capturas `revision-ui-*` y medidas externas
+`revision-ui-measurements.json`; servidor propio/tab cerrados a23:06Z.
+
+Focal final de tres componentes **PASÓ 18/18 sin SKIPs**, exit0; tipos **PASÓ**,
+exit0; ESLint de ambos TSX **PASÓ**, exit0 sin advertencias. El handoff conserva
+los recibos efectivos y los límites visuales. Los
+751 casos y43mutantes del checkpoint3c36 no se repiten por este delta de
+disposición/texto aprobado. Verify y revisión nueva siguen pendientes hasta
+fijar la nueva cabeza. No se modifica SQL ni la dependencia0569.
+
 ### Reparación F1–F6 sobre 220a · checkpoint local 2026-10-20
 
 Allowlist 65, turno pesado concedido a las 22:43:12Z. El ROJO sobre producto 220a
