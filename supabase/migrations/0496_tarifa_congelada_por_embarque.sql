@@ -55,8 +55,12 @@
 -- volatilidad y search_path:
 --   get_user_tenant_id()      0453  5ff0c51c… / 4ce5acd0…
 --   current_studio_role()     0200  b7157932… / df8ba522…
---   resolve_price_book(uuid)  0382  c9610650… / f523c0f4…
--- El Director las relee en producción antes de aplicar. Aborta también si la
+--   resolve_price_book(uuid)  0382  c9610650… / f523c0f4…  (repo)
+--                                   4f39f434… / 7004f04b…  (vivo)
+-- Las tres las leyó el Director en producción el 2026-10-20, sin filas. La de
+-- resolve_price_book tiene DERIVA: el cuerpo vivo es el de la 0382 SIN sus dos
+-- líneas de comentario («-- Tope de seguridad…»); misma lógica, y su huella
+-- sin comentarios da exactamente el md5 vivo. El preflight acepta los dos. Aborta también si la
 -- tabla o la RPC ya existen. El postflight exige RLS, la policy, los grants de
 -- la tabla, los disparadores, DEFINER y search_path vacío en las funciones y la
 -- ACL de la RPC.
@@ -148,7 +152,7 @@ begin
     ('public.current_studio_role()', true, 's', 'search_path=public',
      'b7157932457d04df4e8cf7621d212965', 'df8ba5229960ba06888dec61fbec2bc5'),                -- 0200
     ('public.resolve_price_book(uuid)', false, 's', 'search_path=public',
-     'c96106507ccf212509c3505c37a53db1', 'f523c0f4d09179dfa2c3a247ef846de5')                 -- 0382
+     'c96106507ccf212509c3505c37a53db1', 'f523c0f4d09179dfa2c3a247ef846de5')                 -- 0382 (repo)
   ) e(signature, definer, volatility, config, body_md5, body_md5_normalized) loop
     select pg_catalog.md5(pg_catalog.replace(p.prosrc, E'\r\n', E'\n')),
            pg_catalog.md5(pg_catalog.regexp_replace(p.prosrc, '\s', '', 'g'))
@@ -163,7 +167,11 @@ begin
         v_expected.signature;
     end if;
     if v_md5 <> v_expected.body_md5
-       and v_md5_normalized is distinct from v_expected.body_md5_normalized then
+       and v_md5_normalized is distinct from v_expected.body_md5_normalized
+       -- El cuerpo vivo de producción (2026-10-20): el de la 0382 sin comentarios.
+       and not (v_expected.signature = 'public.resolve_price_book(uuid)'
+                and (v_md5 = '4f39f4349889a6e5a00bb5d85617751c'
+                     or v_md5_normalized = '7004f04b5c3815441a63a99ffab49b4c')) then
       raise exception '0496 abortado: % tiene otro cuerpo (md5 %, sin espacios %); revisar antes de aplicar',
         v_expected.signature, v_md5, v_md5_normalized;
     end if;

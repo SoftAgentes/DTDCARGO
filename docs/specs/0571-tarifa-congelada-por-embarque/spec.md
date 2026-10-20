@@ -15,7 +15,21 @@ confidencialidad: interno
 
 > Cada recepción en Yiwu guarda su precio por CBM, su mínimo, su CBM medido, de dónde salió el precio, cuándo y quién lo fijó. Ese registro no se edita: un cambio crea otro con motivo y deja el anterior a la vista. En Almacén CN cada fila dice «CBM real · tarifa · a facturar», o «Sin tarifa» en rojo.
 
-**Estado:** diseño propuesto e implementado en la rama `claude/peaceful-franklin-a3831e`. La migración `0496` espera la revisión de seguridad del Director y el OK nominal de Sam (MIGRATE-FIRST).
+**Estado:** diseño aprobado por el Director el 2026-10-20 e implementado en la rama `claude/peaceful-franklin-a3831e`. La migración `0496` espera la revisión de seguridad del Director y el OK nominal de Sam (MIGRATE-FIRST).
+
+## Decisiones del Director, 2026-10-20
+
+«Revisé el diseño de la 0571 (`fccd1941`). **Aprobado, con tus 7 decisiones.**» Las toma por la delegación de Sam del 2026-10-20 (decisión 9). Sobre la sexta (congelar sola al recibir), el servicio de la recepción queda para la 4.2.
+
+### La previa de catálogo del Director (producción, 2026-10-20, sin leer filas)
+
+| Función | md5 vivo (CRLF→LF) | md5 sin espacios | DEFINER | Volatilidad | Config | Contra el repo |
+|---|---|---|---|---|---|---|
+| `current_studio_role()` | `b7157932457d04df4e8cf7621d212965` | `df8ba5229960ba06888dec61fbec2bc5` | sí | `s` | `search_path=public` | coincide con la 0200 |
+| `get_user_tenant_id()` | `5ff0c51c26a49419c34abc78f1d95c37` | `4ce5acd04a577f91ca77b74ebc622c49` | sí | `s` | `search_path=""` | coincide con la 0453 |
+| `resolve_price_book(uuid)` | `4f39f4349889a6e5a00bb5d85617751c` | `7004f04b5c3815441a63a99ffab49b4c` | no | `s` | `search_path=public` | **deriva**: la única definición es la 0382 (`c96106507…`); el vivo es ese cuerpo **sin sus dos líneas de comentario** («-- Tope de seguridad…»), y quitándolas da exactamente este md5. La lógica es idéntica |
+
+`shipment_rate_snapshots` no existe en producción. El preflight acepta los dos cuerpos de `resolve_price_book` (repo y vivo) y ningún otro; la prueba en PGlite corre el contrato entero con el cuerpo vivo, y su control rojo (sin aceptar el vivo) aborta.
 
 ## Contexto
 

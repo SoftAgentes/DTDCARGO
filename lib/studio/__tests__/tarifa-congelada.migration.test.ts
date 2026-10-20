@@ -83,9 +83,11 @@ function inline(file: string, vars: Record<string, string>, replace: Record<stri
   return out.join("\n");
 }
 
-async function contract(options: { applyFix?: boolean; migration?: string } = {}) {
-  const sql = inline(CONTRACT, { apply_fix: String(options.applyFix ?? true) },
-    options.migration ? { [M0496]: options.migration } : {});
+async function contract(options: { applyFix?: boolean; migration?: string; schema?: string } = {}) {
+  const replace: Record<string, string> = {};
+  if (options.migration) replace[M0496] = options.migration;
+  if (options.schema) replace["_0496_tarifa_congelada_schema.sql"] = options.schema;
+  const sql = inline(CONTRACT, { apply_fix: String(options.applyFix ?? true) }, replace);
   const db = new PGlite();
   try {
     const results = await db.exec(sql);
@@ -307,6 +309,37 @@ describe("SDD-0571 · 0496 tarifa congelada por recepción (PGlite)", () => {
       expect(result.error ?? "").toContain(m.fails);
     }, SLOW);
   }
+
+  /**
+   * DERIVA de producción (leída por el Director el 2026-10-20): el cuerpo vivo
+   * de resolve_price_book es el de la 0382 sin sus dos líneas de comentario
+   * (md5 4f39f434…). Misma lógica: el preflight lo acepta y el contrato entero
+   * pasa con ese cuerpo.
+   */
+  const SCHEMA_TEXT = readFileSync(SCHEMA, "utf8");
+  const COMENTARIO_0382 =
+    "       -- Tope de seguridad: el trigger anti-ciclo de la 0362 lo impide, pero una\n"
+    + "       -- recursión sin freno en una función `stable` cuelga la sesión entera.\n";
+  const SCHEMA_LF = SCHEMA_TEXT.replace(/\r\n/g, "\n");
+  const SCHEMA_VIVO = SCHEMA_LF.replace(COMENTARIO_0382, "");
+
+  it("el cuerpo vivo de resolve_price_book (sin comentarios) se acepta y el contrato pasa", async () => {
+    expect(SCHEMA_VIVO).not.toBe(SCHEMA_LF);
+    const result = await contract({ schema: SCHEMA_VIVO });
+    expect(result.error).toBeNull();
+    expect(result.green).toMatch(/^TEST 0496 GREEN: \d+ aserciones$/);
+  }, SLOW);
+
+  it("control rojo de la deriva: sin aceptar el cuerpo vivo, el preflight aborta", async () => {
+    const sinVivo = mutant(
+      "       and not (v_expected.signature = 'public.resolve_price_book(uuid)'\n"
+      + "                and (v_md5 = '4f39f4349889a6e5a00bb5d85617751c'\n"
+      + "                     or v_md5_normalized = '7004f04b5c3815441a63a99ffab49b4c')) then",
+      "       then",
+    );
+    const result = await contract({ schema: SCHEMA_VIVO, migration: sinVivo });
+    expect(result.error).toMatch(/0496 abortado: public\.resolve_price_book\(uuid\) tiene otro cuerpo \(md5 4f39f4349889a6e5a00bb5d85617751c/);
+  }, SLOW);
 
   it("el preflight aborta si resolve_price_book tiene otro cuerpo, sin crear nada", async () => {
     const db = new PGlite();
