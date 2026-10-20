@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 5:01 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 5:05 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -48,8 +48,9 @@
 
 - [x] Guardar y publicar la implementación en su rama, versión `9c254107`.
 - [x] Aprobar 71 pruebas focales, tipos y revisión estática.
+- [x] Definir la retoma y las reglas de totales incompletos: subtotal y aviso visibles, sin certificar cuadre ni rentabilidad cuando falte una tasa. Su implementación y nuevas pruebas siguen pendientes.
 - [ ] Incorporar la tasa única corregida después de integrar #301.
-- [ ] Comprobar que el ranking no trate como completo el ingreso de embarques con facturas sin tasa.
+- [ ] Comprobar que el ranking, los totales y el control de ingreso no traten como completo un conjunto con facturas sin tasa; conservarlo también al exportar.
 - [ ] Terminar validación completa, controles de regresión y revisión visible.
 - [ ] Abrir, revisar e integrar su PR; comprobar la publicación.
 
