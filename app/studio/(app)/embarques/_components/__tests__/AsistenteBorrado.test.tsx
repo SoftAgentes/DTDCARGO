@@ -4,9 +4,12 @@
  * Lo que mide: el plan en orden con un solo paso habilitado; la confirmación
  * (con motivo si es R3) antes de ejecutar; que después de cada paso se pinta
  * el plan que devuelve el servidor; que si el plan cambió, el diálogo se cierra
- * y lo dice; y que un plan bloqueado no ofrece nada. Las acciones son dobles:
- * la regla la deciden el servidor y su plan (probados aparte).
+ * y lo dice; que un plan bloqueado no ofrece nada; y que el resultado de un
+ * paso o de una revisión llega en el mismo render que el fin de la espera.
+ * Las acciones son dobles: la regla la deciden el servidor y su plan (probados
+ * aparte).
  */
+import { StrictMode } from "react";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -52,8 +55,48 @@ function abrir() {
 const panel = () => screen.getAllByRole("dialog")[0];
 const pasos = () => within(panel()).getAllByRole("listitem").filter((li) => li.closest("ol"));
 
+/**
+ * Anota lo que se ve cada vez que el DOM del contenedor cambia: el observador
+ * corre al terminar cada tarea que lo tocó, así que un estado intermedio queda
+ * anotado aunque dure un solo render. Un `waitFor` no sirve para esto: se
+ * conforma con el primer render que cumple y el resto depende del reloj.
+ */
+function filmar(contenedor: HTMLElement, foto: () => string) {
+  const cuadros: string[] = [];
+  const observador = new MutationObserver(() => cuadros.push(foto()));
+  observador.observe(contenedor, { subtree: true, childList: true, attributes: true, characterData: true });
+  return {
+    cuadros,
+    parar: () => {
+      observador.disconnect();
+      return cuadros;
+    },
+  };
+}
+
+/** El error del diálogo y cómo está su botón de confirmar. */
+function fotoDialogo(dialogo: HTMLElement) {
+  return () => {
+    const alerta = dialogo.querySelector('[role="alert"]')?.textContent ?? "";
+    const boton = dialogo.querySelector<HTMLButtonElement>('button[type="submit"]');
+    return `${alerta} | ${boton?.textContent ?? "sin botón"}${boton?.disabled ? " (deshabilitado)" : ""}`;
+  };
+}
+
+/** El `role="status"` del panel y cómo está uno de sus botones («-» si no está). */
+function fotoPanel(p: HTMLElement, nombre: string) {
+  return () => {
+    const estado = p.querySelector('[role="status"]')?.textContent ?? "";
+    const boton = [...p.querySelectorAll("button")].find((b) => b.textContent === nombre);
+    return `${estado} | ${boton ? `${nombre}${boton.disabled ? " (deshabilitado)" : ""}` : "-"}`;
+  };
+}
+
 beforeEach(() => {
-  vi.clearAllMocks();
+  // reset y no clear: `clearAllMocks` borra las llamadas pero deja en cola los
+  // `…Once` sin consumir. Si una prueba cae antes de usarlos, la siguiente los
+  // hereda y cae por otra razón.
+  vi.resetAllMocks();
   m.leer.mockResolvedValue({ ok: true, plan: conFactura() });
 });
 afterEach(cleanup);
@@ -175,11 +218,18 @@ describe("recálculo: dos personas a la vez", () => {
     await user.click(await within(panel()).findByRole("button", { name: "Anular factura…" }));
     const dialogo = screen.getAllByRole("dialog")[1];
     await user.type(within(dialogo).getByLabelText(/Motivo/), "Embarque de prueba");
+    const pelicula = filmar(dialogo, fotoDialogo(dialogo));
     await user.click(within(dialogo).getByRole("button", { name: "Anular factura" }));
     await waitFor(() => expect(within(dialogo).getByRole("alert").textContent).toBe("No se pudo anular la factura."));
     expect(screen.getAllByRole("dialog")[1]).toBe(dialogo);
+    const reintentar = await within(dialogo).findByRole("button", { name: "Anular factura" });
 
-    await user.click(within(dialogo).getByRole("button", { name: "Anular factura" }));
+    // El error llega con el reintento listo: ningún render lo muestra con el
+    // botón todavía en «Procesando…».
+    const conError = pelicula.parar().filter((c) => c.startsWith("No se pudo"));
+    expect([...new Set(conError)]).toEqual(["No se pudo anular la factura. | Anular factura"]);
+
+    await user.click(reintentar);
     await waitFor(() => expect(m.ejecutar).toHaveBeenCalledTimes(2));
   });
 
@@ -190,12 +240,14 @@ describe("recálculo: dos personas a la vez", () => {
     await user.click(await within(panel()).findByRole("button", { name: "Anular factura…" }));
     const dialogo = screen.getAllByRole("dialog")[1];
     await user.type(within(dialogo).getByLabelText(/Motivo/), "Embarque de prueba");
+    const pelicula = filmar(dialogo, fotoDialogo(dialogo));
     await user.click(within(dialogo).getByRole("button", { name: "Anular factura" }));
-    await waitFor(() =>
-      expect(within(dialogo).getByRole("alert").textContent).toBe(
-        "No se pudo confirmar el paso. Vuelve a revisar el plan para ver cómo quedó.",
-      ),
-    );
+    const sinRespuesta = "No se pudo confirmar el paso. Vuelve a revisar el plan para ver cómo quedó.";
+    await waitFor(() => expect(within(dialogo).getByRole("alert").textContent).toBe(sinRespuesta));
+    await within(dialogo).findByRole("button", { name: "Anular factura" });
+
+    const conError = pelicula.parar().filter((c) => c.startsWith("No se pudo"));
+    expect([...new Set(conError)]).toEqual([`${sinRespuesta} | Anular factura`]);
     expect(onEliminado).not.toHaveBeenCalled();
   });
 });
@@ -231,10 +283,30 @@ describe("lo que el asistente no resuelve", () => {
     // El paso del asistente espera: primero lo de TMS.
     expect(within(panel()).queryByRole("button", { name: "Anular factura…" })).toBeNull();
 
+    const pelicula = filmar(panel(), fotoPanel(panel(), "Anular factura…"));
     await user.click(within(panel()).getByRole("button", { name: "Ya lo hice: revisar de nuevo" }));
     expect(await within(panel()).findByRole("button", { name: "Anular factura…" })).toBeTruthy();
+    // El plan nuevo llega con la revisión terminada: ningún render lo muestra
+    // junto a «Revisando…» ni con su botón deshabilitado.
+    const conPlanNuevo = pelicula.parar().filter((c) => !c.endsWith("| -"));
+    expect([...new Set(conPlanNuevo)]).toEqual([" | Anular factura…"]);
     expect(m.leer).toHaveBeenCalledTimes(2);
     expect(m.ejecutar).not.toHaveBeenCalled();
+  });
+
+  it("si revisar de nuevo se cae, lo dice y deja volver a intentar en el mismo render", async () => {
+    const user = userEvent.setup();
+    const enTms = plan({ tms_routes: 1 }, { rutas: [{ id: "r-1", codigo: "R-2026-0001", estado: "planificado" }] });
+    m.leer.mockResolvedValueOnce({ ok: true, plan: enTms }).mockRejectedValueOnce(new Error("red caída"));
+    abrir();
+    const revisarDeNuevo = await within(panel()).findByRole("button", { name: "Ya lo hice: revisar de nuevo" });
+    const pelicula = filmar(panel(), fotoPanel(panel(), "Volver a revisar"));
+    await user.click(revisarDeNuevo);
+    expect(
+      await within(panel()).findByText("No se pudo revisar qué depende de este embarque. Vuelve a intentar en un momento."),
+    ).toBeTruthy();
+    const conError = pelicula.parar().filter((c) => !c.endsWith("| -"));
+    expect([...new Set(conError)]).toEqual([" | Volver a revisar"]);
   });
 
   it("si no se pudo leer el plan, lo dice y deja volver a intentar", async () => {
@@ -262,5 +334,50 @@ describe("los textos", () => {
     expect(cerrar).toHaveLength(2);
     await user.click(cerrar[1]);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("montado y desmontado", () => {
+  /** Abre el paso de la factura y confirma con motivo. */
+  async function confirmarFactura(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await within(panel()).findByRole("button", { name: "Anular factura…" }));
+    const dialogo = screen.getAllByRole("dialog")[1];
+    await user.type(within(dialogo).getByLabelText(/Motivo/), "Embarque de prueba");
+    await user.click(within(dialogo).getByRole("button", { name: "Anular factura" }));
+  }
+
+  it("en desarrollo (StrictMode monta, desmonta y vuelve a montar) aplica lo que responde el servidor", async () => {
+    const user = userEvent.setup();
+    m.ejecutar.mockResolvedValue({ ok: true, hecho: "Factura F-2026-0007 anulada.", eliminado: false, plan: soloEmbarque() });
+    render(
+      <StrictMode>
+        <AsistenteBorrado shipmentId={S} shipmentCode={CODE} onClose={onClose} onEliminado={onEliminado} />
+      </StrictMode>,
+    );
+    await confirmarFactura(user);
+    expect(m.ejecutar).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => expect(screen.getAllByRole("dialog")).toHaveLength(1));
+    expect(within(panel()).getByRole("status").textContent).toBe("Listo: Factura F-2026-0007 anulada.");
+    expect(within(panel()).getByRole("heading", { name: "Ya no queda nada que lo bloquee" })).toBeTruthy();
+  });
+
+  it("desmontado, una respuesta que llega tarde no se aplica", async () => {
+    const user = userEvent.setup();
+    let responder: (r: unknown) => void = () => {};
+    m.ejecutar.mockReturnValue(new Promise((r) => (responder = r)));
+    const { unmount } = abrir();
+    await confirmarFactura(user);
+    expect(m.ejecutar).toHaveBeenCalledTimes(1);
+
+    unmount();
+    responder({
+      ok: true,
+      hecho: "Embarque S-2026-0042 eliminado. Ya no aparece en Embarques, Tracking ni el Portal.",
+      eliminado: true,
+      plan: null,
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(onEliminado).not.toHaveBeenCalled();
   });
 });
