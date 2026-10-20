@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 6:36 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 6:48 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -24,8 +24,10 @@
 - [x] Aclarar el cambio de GitHub: Sam cambió el nombre del perfil. GitHub confirma el mismo repositorio bajo `SoftAgentes/DTDCARGO`, en una cuenta de usuario, y los enlaces anteriores redirigen. La compatibilidad del publicador con ese nombre se está revisando por separado.
 - [x] Comprobar que el publicador instalado todavía espera el nombre anterior y asignar un ajuste aislado que reconozca el nuevo y conserve las imágenes históricas.
 - [x] Preparar 43 combinaciones de prueba del publicador y respaldarlas en su rama, `297d566a`. Su script de producción todavía no cambió en ese punto; la ejecución local tiene ahora el turno.
-- [x] Reproducir la incompatibilidad y aprobar la reparación local del publicador: primero 10 fallos de aceptación y después **190/190 controles aprobados**, sin omisiones, con datos simulados y red deshabilitada. Falta cerrar sus controles de regresión y su PR; el servidor sigue sin cambios.
-- [ ] Validar ese ajuste y dejar su PR preparada. No se modificó el publicador del servidor; la recuperación requerirá comprobarlo además del pago.
+- [x] Reproducir la incompatibilidad y aprobar la reparación local del publicador: primero 10 fallos de aceptación y después **190/190 controles aprobados**, sin omisiones, con datos simulados y red deshabilitada. El servidor sigue sin cambios.
+- [x] Completar los controles locales del publicador: **seis errores intencionales detectados**, **30/30 pruebas del promotor aprobadas**, sintaxis e índices aprobados. Revisión independiente del código y de la instalación propuesta aprobada; código `b6af34a3` y cierre documental `021e96cd` respaldados en su rama.
+- [x] Validar ese ajuste y dejar la [PR #309](https://github.com/SoftAgentes/DTDCARGO/pull/309) preparada en borrador, versión `021e96cd`. La creación de PR también funciona. GitHub todavía no tiene resultado aprobado de esa versión; no se modificó el publicador del servidor.
+- [ ] Aprobar las comprobaciones remotas del ajuste y decidir su integración e instalación concreta cuando se recupere Actions. Su preparación no autoriza producción; la recuperación requerirá comprobarlo además del pago.
 - [ ] Recuperar la publicación normal de #301 cuando se habilite GitHub y comprobar la versión realmente servida. **La migración 0495 ya está aplicada y no se repite.**
 
 Se adelanta trabajo local, se respalda cada rama y se preparan PR en borrador durante la espera; la secuencia de integración de abajo se conserva. GitHub documenta que el uso de Actions puede quedar bloqueado al agotar la cuota sin un medio de pago válido; no se confunde ese servicio con el respaldo de código. [Documentación oficial de Actions](https://docs.github.com/en/billing/concepts/product-billing/github-actions). 0572 deberá volver a contrastarse con la base que incluya las entregas anteriores, especialmente el reverso de 0573.
@@ -75,6 +77,7 @@ Se adelanta trabajo local, se respalda cada rama y se preparan PR en borrador du
 - [x] Revisar los componentes reales con datos ficticios en claro y oscuro, incluido ingreso incompleto, mayor vacío y nominal mixto. El ranking permite consultar sus columnas en un contenedor de 390 píxeles; no se certifica con ello un teléfono real.
 - [x] Guardar y respaldar la corrección inicial en `220a2c3e`, con 58 archivos permitidos y las pruebas anteriores identificadas por esa versión.
 - [x] Investigar los dos fallos observados en la validación general: contratos de pruebas anteriores al filtro «Tasa» y a la eliminación de una lectura de facturas. Su actualización exacta queda autorizada.
+- [x] Reproducir los seis hallazgos nuevos antes de corregir: nueve archivos con 43 comprobaciones fallidas y 141 aprobadas, sin omisiones. Se ajustaron cuatro selectores de pruebas y se confirmaron los fallos funcionales de esas pantallas; no se confunden con defectos de arranque. Reparación en curso.
 - [ ] Corregir el contador al mezclar dos facturas distintas, una vinculada por identificador y otra por código.
 - [ ] Conservar estado y contador en Reportes/Mixto y CSV; no afirmar que no hay saldos cuando solo falta convertirlos.
 - [ ] Evitar que el constructor presente un importe sin conversión como cero definitivo, aunque se agrupe por cliente.
