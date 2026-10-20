@@ -1,0 +1,747 @@
+{
+  "schemaVersion": 1,
+  "status": "PARCIAL",
+  "criterion5Local": "PENDIENTE",
+  "performanceImprovementConclusion": "NO DISPONIBLE; no se completó el par A/B",
+  "head": "59e8491b4842e92678509ca7d1b4788718f7243d",
+  "owner": "codex-0570-ab-01a15a4e",
+  "method": {
+    "intendedAffectedFiles": 33,
+    "intendedTotalFiles": 34,
+    "intendedAffectedCases": 846,
+    "intendedTotalCases": 854,
+    "A": "Reversión temporal solo de los imports/constructores de 4b05a262: new PGlite por caso, sin cambiar aserciones ni SQL",
+    "B": "Previsto: bytes originales de 59e8491b con pgliteLimpio. NO EJECUTADO",
+    "helper": "8 pruebas del helper intacto se incluyeron en A y estaban previstas sin cambios en B",
+    "constructorFiles": [
+      {
+        "file": "__tests__/anon-privilegios-residuales.migration.test.ts",
+        "originalSha256": "0c07a23090aedac9b93b33498ffe43108f6137194c338ac6ff1f1f4d90982139",
+        "controlSha256": "4fa2072fcc90372f50c0a51f6b4b079536515ceda1d7729a2b17496871a84a2c",
+        "normalizedSha256": "4c492f73a6a1c27a20cc4c8c9b2174c06491d71144702c4f22c9a9e0b8cb645e"
+      },
+      {
+        "file": "app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts",
+        "originalSha256": "c99ff15142eb42a25a156b082dbc3f46e221571c9439fff976d1732546d8d204",
+        "controlSha256": "a68aeb8d01739ad98f204fa1195506e1c026bea90996541c7a94155c4e702d3b",
+        "normalizedSha256": "3857700d02ad9784dc66feb747d746155e496707332c8678bb44520b61cea0bb"
+      },
+      {
+        "file": "app/studio/(app)/naviera/__tests__/autorizar-correlation-id.migration.test.ts",
+        "originalSha256": "8b665ff18981842653b252f5f6fa8fb4f400531916a5b033ec0a4f9e72fad38c",
+        "controlSha256": "4f00f65b835e318779a5505fb6a94656b25a992dfa624b6f1df842632b6172e3",
+        "normalizedSha256": "b2b0b028e0c426f31b72d3ca9d3f57f12f81de1338e0cf07697615c8e3f0d287"
+      },
+      {
+        "file": "infra/ops/tests/migraciones.test.mjs",
+        "originalSha256": "3cda2ad439d90c97cd6266e973a855ca41437833a06355f1b67fd2b4cce4dba4",
+        "controlSha256": "b8861428a4499805c72239b6dc4f2875c6388a994b9f120df3a8c9c2524cb159",
+        "normalizedSha256": "36974c41991265073d79509b9448087bf57862f3af46499d627b070b258bc81a"
+      },
+      {
+        "file": "lib/portal/__tests__/billing-identity.migration.test.ts",
+        "originalSha256": "d9b1c0aaa75d4496a136c330a35e90589993ecac007fc1bd8e7d281f989ee26a",
+        "controlSha256": "b72837d81c33117e1c7978219dc5c28685332d82ef3d0c9a39a57e5260179417",
+        "normalizedSha256": "000b7659b99cce2003824adcdba9efb8b9d1406d38041343360609d4b9a10432"
+      },
+      {
+        "file": "lib/portal/__tests__/identity-photo-replacement.migration.test.ts",
+        "originalSha256": "824256d94ab1903bacec3a842e525d85517711b90b51a864e25b3de7b0551e17",
+        "controlSha256": "0f0f032a2650bbf374d6957bc93d48441750cf6c1c1823bbb94cb9038135cd81",
+        "normalizedSha256": "5f24a43b12e88e2fd21e37220395dd5e8bfc88315116120e80483b7812d0b4bf"
+      },
+      {
+        "file": "lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts",
+        "originalSha256": "bc8c4b4f4148a032f2a807a7e4b2a1fe1954f2167d50d16d8dc58786c464534f",
+        "controlSha256": "f2de141969f0e483ddf63574fb3a5d1742072c7dca21b379ee48cacfc868861a",
+        "normalizedSha256": "d1a7fd9743850e77918eb9b438199b0ef5e449ee56b40ee60b5a8e80c94ef249"
+      },
+      {
+        "file": "lib/portal/__tests__/portal-bandeja-avisos.migration.test.ts",
+        "originalSha256": "58b79d22fdb784abc2e88360a7b212e08c010a2fa3f83ebeb2bd7032d9e52863",
+        "controlSha256": "38e3ec96c9cf21eb3ab2f7188f97408d453b6350889fe19d95d6302d595e1886",
+        "normalizedSha256": "2c3c00b04a26ae2035d444502db2a48f998e6e5c5f1a1b88684779476aa39c2a"
+      },
+      {
+        "file": "lib/portal/__tests__/profile-direct-edit.migration.test.ts",
+        "originalSha256": "27243f4392b4d003bc1b6d57be7aef03c3a45c3d52274a3dd34de2f25d822d6a",
+        "controlSha256": "43370ecaec26c8c64633ea9b0dd8916dd67022c520d711cc70d66c73eabd6313",
+        "normalizedSha256": "b9a27af87890de964c000c4810b1376c8dc7142e04954b3a548a51d6ea3581f6"
+      },
+      {
+        "file": "lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts",
+        "originalSha256": "2b3fecaa9c3f52ecc708c91ce83cb09f8cb1bf5c29ccc909eee38f9da09cb484",
+        "controlSha256": "55e69209bcbca960f969b833d2fca894267921146e53bc1af13e2c86b575a7ca",
+        "normalizedSha256": "d6d98e40f8f52215d498b2a36e6646bdd4b1ab63539f8ee58413862b4e11f3eb"
+      },
+      {
+        "file": "lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts",
+        "originalSha256": "9f1c3e885931a6e74a129c97574fbb8d1a10e2f6fbbde4e5c01e2d52e01d5f43",
+        "controlSha256": "4b30521f47625ac64b2e5f64e8cef98210cdbe83dfd5919f0f37e110aaf31793",
+        "normalizedSha256": "c85b10624b63a2990b2e8a560c824401f163462dab202be95e5f2f9702942556"
+      },
+      {
+        "file": "lib/studio/__tests__/cierre-contable-superclave.migration.test.ts",
+        "originalSha256": "65adbf508d2ff545521d3a5802134329669d19383b62559d6f928edbb387dd3d",
+        "controlSha256": "67c20761ba597eb5c2ee01a949e1cb3495d08e2fc7428ff6715b8c8d394b74c1",
+        "normalizedSha256": "ba64f9388ae2ce5b1f0682f92ba9b42315d993fe487c75c80ff5dd9499e6f170"
+      },
+      {
+        "file": "lib/studio/__tests__/client-outstanding.migration.test.ts",
+        "originalSha256": "0922d89a61b010e0334f41f35d55d0c52c97b13ae2488c752d7283d5c533ea20",
+        "controlSha256": "b2814a6bf4279ce7470841170e5470782caa1f229568b34e84fbea8069ae864e",
+        "normalizedSha256": "81f8c991f00cecb691fd603a6dff3a8cb3d29ad1fd10bec13df10b0e94e08c05"
+      },
+      {
+        "file": "lib/studio/__tests__/cobro-factura-atomico.migration.test.ts",
+        "originalSha256": "62633bc4d2a4f0b3aa79de26cf088841cb74dd6ef4effa74a31a5a7007a9a54a",
+        "controlSha256": "be0c6e50985037bcaf7a46d6687decc23c607bb57d2153e9402421015aed760f",
+        "normalizedSha256": "42bac70aa7ceea878823c70129fac8744eab661d5a98840c42a5c2d7247388f2"
+      },
+      {
+        "file": "lib/studio/__tests__/credito-referido-atomico.migration.test.ts",
+        "originalSha256": "8e74924e4de40c85d33d05e29d657054938b243bfdb4a19cdb604aba14eb1e8a",
+        "controlSha256": "51941a6c3e086b78b432a3b9db0dccb58ccc226f81f264f8dd16587efe4b1052",
+        "normalizedSha256": "71112288800c5ea6aa1341c14019ac9699ef574a15339cf9b2104045eff9bb7b"
+      },
+      {
+        "file": "lib/studio/__tests__/credito-referido-candado.migration.test.ts",
+        "originalSha256": "c8493d1ce2797cf83e2c3aaefef2dccd18cbb93f1233e2a003a1654bca6ff25f",
+        "controlSha256": "d98565fc5d48a0843f59c580ba790c4410adc9a22539fe087b6892930308dbe5",
+        "normalizedSha256": "0eb03a94b51f81914211fdb2a3064e6aeb796ec6952778014a064257e9ebe062"
+      },
+      {
+        "file": "lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts",
+        "originalSha256": "6736f29a7b9a84000f72d538a6cc91c4600de5e0f4a3efa02637b5ff212f2021",
+        "controlSha256": "4b84e8fa97bc1880ade3b26c9b6cbaa87efc04441d0bcb0f8470e31dfc9dc143",
+        "normalizedSha256": "d77cc9ff16ab90f1de7292f501c3f458c6cdb684dc52ae1e05e816fab8fab53d"
+      },
+      {
+        "file": "lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts",
+        "originalSha256": "b51b0d1a2bf4b624c7ebc9f97d12bb9e3eb92c2a258b34183a3e72e7ef921a21",
+        "controlSha256": "ad8fb38f1013ef6b158589893a34e8c83812a209df3bbc02f4ae5151b96a38ad",
+        "normalizedSha256": "57ff6a939c37ee7446c4c9d579e7a807cbb55704cdd4c60555fc6bc6339126d5"
+      },
+      {
+        "file": "lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts",
+        "originalSha256": "61c070731176c60753ce302a3f93aa916f3b7cd909488227c3e068b75ea7b820",
+        "controlSha256": "2ad4a10cc85dcf606113584947c4518a06d8ef7104c527940a24cbae71b62bef",
+        "normalizedSha256": "2aecbfa1fefb97a71732b304e09e193e94e0facd9ce59b662a5e9e2d33b9dc47"
+      },
+      {
+        "file": "lib/studio/__tests__/kommo-functions-base-url.migration.test.ts",
+        "originalSha256": "07d94fdf1fd590fc251bd060745e8c878fa4847725ed7ad7d5f4343800280216",
+        "controlSha256": "e707bf9d98f4fd9d4111030d71ce2bf89dd3ec00c8d56e37612129a718394673",
+        "normalizedSha256": "cdb1d31ca7a5e705ae164c3855e7338f5a38102152398b2db97ada9bc8428c49"
+      },
+      {
+        "file": "lib/studio/__tests__/naviera-zarpe-avanza-envios.migration.test.ts",
+        "originalSha256": "0d1692c531d840e8de84c878b6e62c37036d4ff519209fdb2acff3ba65dd23fe",
+        "controlSha256": "d9a6d2f4913146e2fc61e67599d89719ce61cdb542533dc2a293fc0a2d2c7e02",
+        "normalizedSha256": "8bc7a19835062e125d83191a9ecee02f83252bd83c4318af147e78c1e46b1758"
+      },
+      {
+        "file": "lib/studio/__tests__/operarios-editar-por-region.migration.test.ts",
+        "originalSha256": "2524413b686dfbb6761ba45ba19ab3529037f6fdf3bdb81290254f3c721b4e72",
+        "controlSha256": "dfe03fb5d26b771eca8931a900a3b93b228a7c796870e7bbb4315ed11fc0f847",
+        "normalizedSha256": "ee482f8937cabc4e9f175874017fe7d1848ac43598275948cb2ae928b330fdee"
+      },
+      {
+        "file": "lib/studio/__tests__/pago-proveedor-atomico.migration.test.ts",
+        "originalSha256": "d77528e2d50acc6c7956cfe9122485c95b2d520a3a10dcbf6c8f383c9c277e44",
+        "controlSha256": "0fe5e1039dfaf8f0e5de0dccd548058c5378efb428eb4c19c532b53bb1ce0044",
+        "normalizedSha256": "bc38f359fbf76ec58733d04fad5eb916baeccae4dd69c2cc93b985931deafac0"
+      },
+      {
+        "file": "lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts",
+        "originalSha256": "6f2d3c526e3fc9760abbc87da6bd5cd057944bc56f83152fb973da111156e990",
+        "controlSha256": "e24a7cea7399e8f1f0550790d12c19b5440b7ac76a0c89e5c40217fe43e67ce5",
+        "normalizedSha256": "297dec56a099d3bcd022f791ca8107a44865876d6ff4964b564f8c24ae8250f4"
+      },
+      {
+        "file": "lib/studio/__tests__/r3-correlation-contract.ts",
+        "originalSha256": "8480ae761b1968c0a3c58699cd9635a503379f231f4573fc0ab972b23021c535",
+        "controlSha256": "a2971bfdd87e2a44f78e85773b95ad371152aaa3ff0226d91b07c1ae19ac7c29",
+        "normalizedSha256": "c74b7d7c8e31b67032d624ddcc26280ea0b0df08ee4e72b5e57f0ab912c4dafa"
+      },
+      {
+        "file": "lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts",
+        "originalSha256": "27bff0069d1e671f70640b91a6df28dd581ef7e092a90844211e5f85b1512242",
+        "controlSha256": "e3394b74d8e752f63d55ec5199521ba5a5fd62dd8a4800c23ad307fa3be00e14",
+        "normalizedSha256": "eae2482b59273b6857b7439f804a6f3b4db777e639e9e7c7d1e6760c807d4047"
+      },
+      {
+        "file": "scripts/__tests__/radiografia-referidos.test.ts",
+        "originalSha256": "b265ca37a614b234af516c373b85bba6e216781887692c1c7f080e1bfa77223e",
+        "controlSha256": "8ee522879d47f6b246df94da654516dcb5969ba7f1ed7ea240ec314f2bb25d6b",
+        "normalizedSha256": "3bc77f690afa7e5b920893f1b2cca384f2be83c04df65e3d1e064f3e8799c7d6"
+      }
+    ],
+    "unchangedProtectedFiles": [
+      "lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts",
+      "lib/studio/__tests__/financiero-china-pago-correlation-id.migration.test.ts",
+      "lib/studio/__tests__/inspecciones-retirar-reporte-correlation-id.migration.test.ts",
+      "lib/studio/__tests__/reclamos-pagar-indemnizacion-correlation-id.migration.test.ts",
+      "lib/studio/__tests__/seniat-liberar-correlation-id.migration.test.ts",
+      "lib/studio/__tests__/tms-completar-ruta-correlation-id.migration.test.ts",
+      "lib/studio/__tests__/ve-confirmar-entrega-correlation-id.migration.test.ts",
+      "vitest/pglite-limpio.test.ts",
+      "vitest/pglite-limpio.ts"
+    ],
+    "normalizedSourceBodiesEqual": true,
+    "originalHashes": {
+      "__tests__/anon-privilegios-residuales.migration.test.ts": "0c07a23090aedac9b93b33498ffe43108f6137194c338ac6ff1f1f4d90982139",
+      "app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts": "c99ff15142eb42a25a156b082dbc3f46e221571c9439fff976d1732546d8d204",
+      "app/studio/(app)/naviera/__tests__/autorizar-correlation-id.migration.test.ts": "8b665ff18981842653b252f5f6fa8fb4f400531916a5b033ec0a4f9e72fad38c",
+      "infra/ops/tests/migraciones.test.mjs": "3cda2ad439d90c97cd6266e973a855ca41437833a06355f1b67fd2b4cce4dba4",
+      "lib/portal/__tests__/billing-identity.migration.test.ts": "d9b1c0aaa75d4496a136c330a35e90589993ecac007fc1bd8e7d281f989ee26a",
+      "lib/portal/__tests__/identity-photo-replacement.migration.test.ts": "824256d94ab1903bacec3a842e525d85517711b90b51a864e25b3de7b0551e17",
+      "lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts": "bc8c4b4f4148a032f2a807a7e4b2a1fe1954f2167d50d16d8dc58786c464534f",
+      "lib/portal/__tests__/portal-bandeja-avisos.migration.test.ts": "58b79d22fdb784abc2e88360a7b212e08c010a2fa3f83ebeb2bd7032d9e52863",
+      "lib/portal/__tests__/profile-direct-edit.migration.test.ts": "27243f4392b4d003bc1b6d57be7aef03c3a45c3d52274a3dd34de2f25d822d6a",
+      "lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts": "2b3fecaa9c3f52ecc708c91ce83cb09f8cb1bf5c29ccc909eee38f9da09cb484",
+      "lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts": "9f1c3e885931a6e74a129c97574fbb8d1a10e2f6fbbde4e5c01e2d52e01d5f43",
+      "lib/studio/__tests__/cierre-contable-superclave.migration.test.ts": "65adbf508d2ff545521d3a5802134329669d19383b62559d6f928edbb387dd3d",
+      "lib/studio/__tests__/client-outstanding.migration.test.ts": "0922d89a61b010e0334f41f35d55d0c52c97b13ae2488c752d7283d5c533ea20",
+      "lib/studio/__tests__/cobro-factura-atomico.migration.test.ts": "62633bc4d2a4f0b3aa79de26cf088841cb74dd6ef4effa74a31a5a7007a9a54a",
+      "lib/studio/__tests__/credito-referido-atomico.migration.test.ts": "8e74924e4de40c85d33d05e29d657054938b243bfdb4a19cdb604aba14eb1e8a",
+      "lib/studio/__tests__/credito-referido-candado.migration.test.ts": "c8493d1ce2797cf83e2c3aaefef2dccd18cbb93f1233e2a003a1654bca6ff25f",
+      "lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts": "7aeed5781f2f8de7f38441030aa9aea036498c8b1dd36b19e4780bbec4c12fbd",
+      "lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts": "6736f29a7b9a84000f72d538a6cc91c4600de5e0f4a3efa02637b5ff212f2021",
+      "lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts": "b51b0d1a2bf4b624c7ebc9f97d12bb9e3eb92c2a258b34183a3e72e7ef921a21",
+      "lib/studio/__tests__/financiero-china-pago-correlation-id.migration.test.ts": "6e6155f1e821b932b72f42a8506907c2f02897674ff1e1a6949e911365a8f6df",
+      "lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts": "61c070731176c60753ce302a3f93aa916f3b7cd909488227c3e068b75ea7b820",
+      "lib/studio/__tests__/inspecciones-retirar-reporte-correlation-id.migration.test.ts": "9f0676af273c7c188a6fc93d0e070e63e3ef278500522a1c78b5be89938ccf9e",
+      "lib/studio/__tests__/kommo-functions-base-url.migration.test.ts": "07d94fdf1fd590fc251bd060745e8c878fa4847725ed7ad7d5f4343800280216",
+      "lib/studio/__tests__/naviera-zarpe-avanza-envios.migration.test.ts": "0d1692c531d840e8de84c878b6e62c37036d4ff519209fdb2acff3ba65dd23fe",
+      "lib/studio/__tests__/operarios-editar-por-region.migration.test.ts": "2524413b686dfbb6761ba45ba19ab3529037f6fdf3bdb81290254f3c721b4e72",
+      "lib/studio/__tests__/pago-proveedor-atomico.migration.test.ts": "d77528e2d50acc6c7956cfe9122485c95b2d520a3a10dcbf6c8f383c9c277e44",
+      "lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts": "6f2d3c526e3fc9760abbc87da6bd5cd057944bc56f83152fb973da111156e990",
+      "lib/studio/__tests__/reclamos-pagar-indemnizacion-correlation-id.migration.test.ts": "566aded88b45e9be2272c1ee72cae69f2aaeadedd1c85742a5e53b65ac5b1fe9",
+      "lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts": "27bff0069d1e671f70640b91a6df28dd581ef7e092a90844211e5f85b1512242",
+      "lib/studio/__tests__/seniat-liberar-correlation-id.migration.test.ts": "d6d691ccf060f5b58f146e9fa438b31bab6a453b19e56574992e4f90f6b21763",
+      "lib/studio/__tests__/tms-completar-ruta-correlation-id.migration.test.ts": "a2b15c77631f66d0ba8db37e78b0739fbdadd889eb85d74195d2090bd035293a",
+      "lib/studio/__tests__/ve-confirmar-entrega-correlation-id.migration.test.ts": "8259ad5ccbc33b533891665208521775902fc4c3e29e3be07be329ec8d766a63",
+      "scripts/__tests__/radiografia-referidos.test.ts": "b265ca37a614b234af516c373b85bba6e216781887692c1c7f080e1bfa77223e",
+      "vitest/pglite-limpio.test.ts": "c93b05c49afd08cb31fbfd2826767e07df910789b2fee08943f619f607096f54",
+      "vitest/pglite-limpio.ts": "9c69674f67988b68b8c5c37ddf84c1250e6639589a9e6104d270386f0fa27570",
+      "lib/studio/__tests__/r3-correlation-contract.ts": "8480ae761b1968c0a3c58699cd9635a503379f231f4573fc0ab972b23021c535"
+    },
+    "restoration": {
+      "filesChecked": 36,
+      "mismatches": []
+    },
+    "concurrency": {
+      "workers": 2,
+      "pool": "forks",
+      "isolate": true,
+      "cache": false,
+      "fileShuffleSeed": 570
+    },
+    "explicitEnvironment": {
+      "CI": "true",
+      "TZ": "UTC",
+      "NO_COLOR": "1"
+    },
+    "environmentPolicy": "Windows runtime allowlist only; no inherited application, Supabase or credential variables; no env-file import",
+    "command": "node node_modules/vitest/vitest.mjs run <los 34 paths de rows> --maxWorkers=2 --pool=forks --isolate --no-cache --sequence.shuffle.files --sequence.seed=570 --reporter=default --reporter=json --outputFile.json=<A-fresco.json o B-plantilla.json>"
+  },
+  "runtime": {
+    "node": "v24.20.0",
+    "vitest": "4.1.7",
+    "pglite": "0.5.8",
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "Intel(R) Core(TM) Ultra 7 155H"
+  },
+  "result": {
+    "completedFilesA": 26,
+    "completedAffectedFilesA": 25,
+    "completedCasesA": 649,
+    "completedAffectedCasesA": 641,
+    "unfinishedFilesA": [
+      "app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts",
+      "infra/ops/tests/migraciones.test.mjs",
+      "lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts",
+      "lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts",
+      "lib/studio/__tests__/cobro-factura-atomico.migration.test.ts",
+      "lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts",
+      "lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts",
+      "lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts"
+    ],
+    "failedCompletedFileIndicators": [],
+    "finalVitestJsonAAvailable": false,
+    "B": "NO EJECUTADO",
+    "stopReason": "Watchdog de 20 minutos por fase del arnés temporal; límite configurado antes de la extensión del turno a 35 minutos. No es un fallo de aserción de producto.",
+    "runs": [
+      {
+        "label": "A-fresco",
+        "startedAt": "2026-10-20T18:11:47.770Z",
+        "endedAt": "2026-10-20T18:31:48.616Z",
+        "wallMs": 1200846,
+        "exitCode": 1
+      }
+    ],
+    "visibleNodeProcessesAfterRestoration": 0,
+    "heavyTurnReturnedTo": "SDD-0569"
+  },
+  "rows": [
+    {
+      "file": "__tests__/anon-privilegios-residuales.migration.test.ts",
+      "affected": true,
+      "expectedTests": 26,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 26,
+      "millisecondsA": 87932,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts",
+      "affected": true,
+      "expectedTests": 9,
+      "statusA": "NO COMPLETADO / sin resultado final por archivo",
+      "testsCompletedA": null,
+      "millisecondsA": null,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "app/studio/(app)/naviera/__tests__/autorizar-correlation-id.migration.test.ts",
+      "affected": true,
+      "expectedTests": 26,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 26,
+      "millisecondsA": 64924,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "infra/ops/tests/migraciones.test.mjs",
+      "affected": true,
+      "expectedTests": 30,
+      "statusA": "NO COMPLETADO / sin resultado final por archivo",
+      "testsCompletedA": null,
+      "millisecondsA": null,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/portal/__tests__/billing-identity.migration.test.ts",
+      "affected": true,
+      "expectedTests": 12,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 12,
+      "millisecondsA": 49460,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/portal/__tests__/identity-photo-replacement.migration.test.ts",
+      "affected": true,
+      "expectedTests": 4,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 4,
+      "millisecondsA": 11813,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts",
+      "affected": true,
+      "expectedTests": 15,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 15,
+      "millisecondsA": 55463,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/portal/__tests__/portal-bandeja-avisos.migration.test.ts",
+      "affected": true,
+      "expectedTests": 48,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 48,
+      "millisecondsA": 157482,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/portal/__tests__/profile-direct-edit.migration.test.ts",
+      "affected": true,
+      "expectedTests": 10,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 10,
+      "millisecondsA": 31430,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts",
+      "affected": true,
+      "expectedTests": 87,
+      "statusA": "NO COMPLETADO / sin resultado final por archivo",
+      "testsCompletedA": null,
+      "millisecondsA": null,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts",
+      "affected": true,
+      "expectedTests": 15,
+      "statusA": "NO COMPLETADO / sin resultado final por archivo",
+      "testsCompletedA": null,
+      "millisecondsA": null,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/cierre-contable-superclave.migration.test.ts",
+      "affected": true,
+      "expectedTests": 38,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 38,
+      "millisecondsA": 155262,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/client-outstanding.migration.test.ts",
+      "affected": true,
+      "expectedTests": 25,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 25,
+      "millisecondsA": 75208,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/cobro-factura-atomico.migration.test.ts",
+      "affected": true,
+      "expectedTests": 7,
+      "statusA": "NO COMPLETADO / sin resultado final por archivo",
+      "testsCompletedA": null,
+      "millisecondsA": null,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/credito-referido-atomico.migration.test.ts",
+      "affected": true,
+      "expectedTests": 12,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 12,
+      "millisecondsA": 47316,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/credito-referido-candado.migration.test.ts",
+      "affected": true,
+      "expectedTests": 50,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 50,
+      "millisecondsA": 198186,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts",
+      "affected": true,
+      "expectedTests": 26,
+      "statusA": "NO COMPLETADO / sin resultado final por archivo",
+      "testsCompletedA": null,
+      "millisecondsA": null,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts",
+      "affected": true,
+      "expectedTests": 20,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 20,
+      "millisecondsA": 41673,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts",
+      "affected": true,
+      "expectedTests": 14,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 14,
+      "millisecondsA": 31565,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/financiero-china-pago-correlation-id.migration.test.ts",
+      "affected": true,
+      "expectedTests": 26,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 26,
+      "millisecondsA": 62629,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts",
+      "affected": true,
+      "expectedTests": 19,
+      "statusA": "NO COMPLETADO / sin resultado final por archivo",
+      "testsCompletedA": null,
+      "millisecondsA": null,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/inspecciones-retirar-reporte-correlation-id.migration.test.ts",
+      "affected": true,
+      "expectedTests": 26,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 26,
+      "millisecondsA": 68988,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/kommo-functions-base-url.migration.test.ts",
+      "affected": true,
+      "expectedTests": 12,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 12,
+      "millisecondsA": 9794,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/naviera-zarpe-avanza-envios.migration.test.ts",
+      "affected": true,
+      "expectedTests": 25,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 25,
+      "millisecondsA": 77676,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/operarios-editar-por-region.migration.test.ts",
+      "affected": true,
+      "expectedTests": 46,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 46,
+      "millisecondsA": 171771,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/pago-proveedor-atomico.migration.test.ts",
+      "affected": true,
+      "expectedTests": 10,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 10,
+      "millisecondsA": 43869,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts",
+      "affected": true,
+      "expectedTests": 87,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 87,
+      "millisecondsA": 343543,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/reclamos-pagar-indemnizacion-correlation-id.migration.test.ts",
+      "affected": true,
+      "expectedTests": 26,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 26,
+      "millisecondsA": 64217,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts",
+      "affected": true,
+      "expectedTests": 12,
+      "statusA": "NO COMPLETADO / sin resultado final por archivo",
+      "testsCompletedA": null,
+      "millisecondsA": null,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/seniat-liberar-correlation-id.migration.test.ts",
+      "affected": true,
+      "expectedTests": 26,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 26,
+      "millisecondsA": 64911,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/tms-completar-ruta-correlation-id.migration.test.ts",
+      "affected": true,
+      "expectedTests": 26,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 26,
+      "millisecondsA": 66179,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "lib/studio/__tests__/ve-confirmar-entrega-correlation-id.migration.test.ts",
+      "affected": true,
+      "expectedTests": 26,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 26,
+      "millisecondsA": 65943,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "scripts/__tests__/radiografia-referidos.test.ts",
+      "affected": true,
+      "expectedTests": 5,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 5,
+      "millisecondsA": 15307,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    },
+    {
+      "file": "vitest/pglite-limpio.test.ts",
+      "affected": false,
+      "expectedTests": 8,
+      "statusA": "PASÓ por archivo; corrida incompleta",
+      "testsCompletedA": 8,
+      "millisecondsA": 18745,
+      "statusB": "NO EJECUTADO",
+      "testsCompletedB": null,
+      "millisecondsB": null,
+      "sameCasesAcrossAB": "NO DISPONIBLE: no existe B"
+    }
+  ],
+  "ci": {
+    "currentCodeHead": "59e8491b4842e92678509ca7d1b4788718f7243d",
+    "status": "PASÓ",
+    "checkName": "Calidad local sin secretos",
+    "runId": 39460332474,
+    "jobId": 118776457014,
+    "startedAt": "2026-10-20T17:23:59Z",
+    "completedAt": "2026-10-20T17:48:05Z",
+    "url": "https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/39460332474/job/118776457014",
+    "source": "gh pr view 304 --json number,url,isDraft,headRefOid,baseRefName,statusCheckRollup, consultado 2026-10-20",
+    "historicalAB": "comparacion-ci.txt conserva la comparación de los runs 39429472606 y 39436611054; este intento no la reemplaza",
+    "draftUnchanged": true
+  },
+  "incidents": [
+    "Preflight inicial rechazó el import relativo de infra/ops/tests/migraciones.test.mjs porque el normalizador solo contemplaba alias; ningún test fue lanzado. Restauró 36/36 hashes. Se corrigió solo el comprobador y se repitió el preflight con éxito.",
+    "knowledge:status corrió durante el control A y terminó por sí solo con exit 0, ok=false, estructura INVALID. No es evidencia del estado final restaurado. El intento posterior de detener su espera no encontró el proceso y no terminó ninguno.",
+    "El watchdog por fase permaneció en 20 minutos aunque el Director amplió el turno total a 35. El Director ordenó conservar ese límite y no reiniciar automáticamente si cortaba."
+  ],
+  "limitations": [
+    "No comparación de tiempos A/B ni inferencia de mejora local: A incompleto y B no ejecutado.",
+    "Los tiempos A solo corresponden a los 26 archivos terminados, extraídos de sus líneas verdes del reporter; no hay JSON final ni resumen global de Vitest.",
+    "No se atribuye resultado a casos o archivos interrumpidos, aunque pudieran haber ejecutado parte de sus pruebas.",
+    "La identidad completa de casos entre A y B queda sin comprobar; los cuerpos fuente sí se verificaron iguales salvo imports/constructores.",
+    "Concurrencia prevista de dos workers en Windows; no comparar estos tiempos absolutos directamente con CI Linux de un worker.",
+    "No suite completa, nuevo ciclo de mutantes separado, producto, base real, migraciones, merge, deploy ni publicación de conocimiento."
+  ],
+  "evidenceDirectory": "C:/tmp/director-traspaso-20261020/0570-ab-local",
+  "evidence": [
+    {
+      "file": "A-fresco.log",
+      "sha256": "9a47dec73abafbbe72c565da6cebb71dfaad2c775e6b63963aa7af2638d49914"
+    },
+    {
+      "file": "manifest.json",
+      "sha256": "8730873bd8b24dc1f693443d40176e87cc49eb75bbedd4b6f3faad2b9cf610b2"
+    },
+    {
+      "file": "constructors-original.patch",
+      "sha256": "72b9705adedb1bae9eb45dce17b6b1981b854439834956c616c45e8c63160891"
+    },
+    {
+      "file": "run-ab.cjs",
+      "sha256": "cc3c0487d9b5c0a5cfbc7dca7d6d3671b6eda766a9c6bf53ea76932ec5be5f39"
+    },
+    {
+      "file": "preflight-restaurado.json",
+      "sha256": "3daab7f70cf71bfd90de98e91a423f7d6c83c71499726f80c197064c376c3aae"
+    }
+  ]
+}

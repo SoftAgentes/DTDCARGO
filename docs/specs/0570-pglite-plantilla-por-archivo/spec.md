@@ -117,7 +117,8 @@ del helper.
 | Criterio | Evidencia |
 |---|---|
 | 1, 2, 3 y 8 | `vitest/pglite-limpio.test.ts`, 8 casos. |
-| 4, 5, 6 y 7 | Ver «Medición después del cambio». |
+| 4, 6 y 7 | Ver «Medición después del cambio». |
+| 5 | CI medido; A/B local completo **PENDIENTE**. Intento del 2026-10-20 parcial por el watchdog del arnés temporal. |
 
 Mutantes del helper, con reporter TAP (control sin mutar: 8 ok):
 
@@ -173,9 +174,57 @@ migración; por ejemplo, «sin 0476 el equipo borra físicamente un embarque por
 falla en la primera aserción». Corrieron en verde también los 375 mutantes impresos, cada uno
 muerto donde debe.
 
-**Pendiente.** El A/B local completo de los 34 archivos queda para Codex, cuando el Director dé
-turno de máquina. El CI de la punta `e6311891` no arrancó por un bloqueo de facturación de GitHub
-Actions (run 39453136909, 3 s, sin pasos); hay que relanzarlo cuando se resuelva el pago.
+### Intento A/B local de 34 archivos · 2026-10-20 · PARCIAL
+
+Codex retomó el worktree `pglite-snapshot-esquema` por delegación del Director, con la sesión
+Claude pausada por Sam, sobre `59e8491b4842e92678509ca7d1b4788718f7243d`. El turno pesado fue
+cedido por 0569. El conjunto exacto fue el de los **33 contratos afectados (846 casos)** de la
+comparación CI más **las 8 pruebas del helper intacto: 34 archivos / 854 casos** por lado.
+
+El control A revirtió temporalmente solo los imports y las 36 construcciones de PGlite del
+commit `4b05a262`, en 27 archivos. Se guardaron los bytes originales y se comprobó igualdad de
+los cuerpos normalizados, sin cambiar casos, aserciones, SQL ni extensiones. B debía usar esos
+bytes restaurados con `pgliteLimpio`. El helper y sus 8 pruebas quedaban intactos en ambos lados:
+su tiempo no se debía atribuir a una mejora de los 33 contratos.
+
+Condiciones previstas iguales: Node `v24.20.0`, Vitest `4.1.7`, PGlite `0.5.8`, Windows x64,
+dos workers/forks, aislamiento por archivo, caché desactivado, semilla de archivos `570`,
+`CI=true`, `TZ=UTC` y `NO_COLOR=1`. Se usó una lista de variables de ejecución de Windows,
+sin variables heredadas de aplicación, Supabase ni credenciales y sin cargar `.env`.
+
+| Medida | Resultado |
+|---|---|
+| A, instancias nuevas | **PARCIAL**: 26/34 archivos completos, 649 casos reportados en verde |
+| Contratos afectados completos en A | 25/33 archivos, 641 casos; los 8 restantes del total son del helper |
+| Duración de A | 1.200,846 s, de `18:11:47.770Z` a `18:31:48.616Z`; exit 1 por corte del arnés |
+| B, plantilla | **NO EJECUTADO** |
+| Igualdad de casos entre A y B / mejora local | **NO DISPONIBLE**: falta el par completo |
+| Restauración | **PASÓ**: 36/36 SHA-256 originales coinciden, cero diferencias |
+| Procesos y turno al terminar | Cero procesos Node visibles del worktree; turno pesado devuelto a 0569 |
+
+El watchdog temporal tenía un límite de **20 minutos por fase**, fijado antes de que el Director
+ampliara el turno total a 35 minutos. Ese límite permaneció cargado; el Director indicó conservar
+la corrida y, si cortaba, documentar el parcial sin reiniciar. No se observó fallo de aserción en
+los archivos terminados. Los ocho archivos sin resultado completo no se cuentan como aprobados
+ni fallidos. El corte impidió emitir el JSON final de Vitest.
+
+El detalle de las 34 rutas, casos previstos y tiempos A disponibles está en
+[assets/comparacion-local.txt](assets/comparacion-local.txt); el manifiesto, hashes de integridad
+y límites están en [assets/comparacion-local.json](assets/comparacion-local.json).
+Logs, respaldo y orquestador quedan fuera de Git en
+`C:/tmp/director-traspaso-20261020/0570-ab-local`. Hubo un preflight rechazado por el normalizador
+de un import relativo `.mjs`, antes de ejecutar pruebas; restauró 36/36 hashes y se corrigió solo
+el comprobador. El segundo preflight pasó.
+
+**Criterio 5 local PENDIENTE.** Este intento no prueba mejora de rendimiento. Un nuevo turno debe
+definir el límite del arnés antes de iniciar un par A/B comparable; no queda una corrida en segundo
+plano. No se repitió la suite completa ni un ciclo separado de mutantes.
+
+**CI vigente del código observado:** `Calidad local sin secretos` **PASÓ** sobre `59e8491b`,
+run [39460332474](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/39460332474/job/118776457014),
+de `17:23:59Z` a `17:48:05Z`. El bloqueo de facturación del run histórico `39453136909` ya no
+describe esta punta. El A/B histórico del CI conserva sus propias condiciones y evidencia.
+La PR #304 sigue en borrador; esta medición no autoriza merge, deploy ni base real.
 
 ## Riesgos y reversión
 
