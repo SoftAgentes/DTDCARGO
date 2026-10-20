@@ -7,7 +7,7 @@
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\sdd-0566-cierre-contable-con-superclave` |
 | Rama | `codex/sdd-0566-cierre-contable-con-superclave`, desde `origin/main` `b34c8d57` |
 | SDD | [0566](../../docs/specs/0566-cierre-contable-con-superclave/spec.md), `in-progress`. La reserva es `codex/sdd-reserve-0566` (`fb597a2c`) y entró por cherry-pick. La migración 0493 la asignó el Director |
-| Estado | lista para revisión, con PR en borrador y la espera declarada; `pnpm verify` necesita turno del Director; la 0493 se aplica antes de fusionar (MIGRATE-FIRST), con el OK nominal de Sam |
+| Estado | lista para revisión, con PR en borrador y la espera declarada; `pnpm verify` 16/17 sin fallos sobre `3a2510f4`; la 0493 se aplica antes de fusionar (MIGRATE-FIRST), con la previa del Director y el OK nominal de Sam |
 | Permisos | El Director la asignó el 2026-10-19 («cierre contable con superclave y reporte de excepciones»), con las decisiones de Sam de ese día. Eso cubre commits selectivos, push de la rama propia y PR en borrador. **No incluye aplicar la 0493 ni leer producción:** eso es del Director, con el OK nominal de Sam |
 
 ## OBJETIVO ORIGINAL
@@ -60,7 +60,7 @@ Decisión de Sam del 2026-10-19, registrada por el Director: el período cerrado
 | `migrations-lock verificar` | candado | PASÓ: la 0493 figura como espera, «0 nueva(s) sin sellar» |
 | `docs:check` (551 specs), `sdd:check`, `governance:check`, `components:check` | documentación | PASÓ |
 | `/ui-check` | la UI nueva | OK con ajustes menores. El ⭐ (foco inicial del diálogo en el primer campo) quedó aplicado, con prueba. Los otros tres son de baja prioridad y se anotan abajo |
-| `pnpm verify` | completo | PENDIENTE: turno del Director |
+| `pnpm verify` | completo | ver la tabla de abajo, sobre `3a2510f4` |
 
 **Corrieron sin turno.** El contrato en Docker, las pruebas de vitest y los mutantes de arriba corrieron sin turno de máquina, mientras el Worker de la #292 tenía su `pnpm verify`, lanzado hacia las 19:55Z. Lo señaló el Director. El riesgo son rojos falsos en el verify de la #292, no un verde falso aquí: las corridas de esta tabla terminaron en verde. Se repiten con turno, en el orden que fijó el Director: el contrato en Docker, los mutantes en PGlite y el `pnpm verify` completo.
 
@@ -70,8 +70,15 @@ Decisión de Sam del 2026-10-19, registrada por el Director: el período cerrado
 
 | Comprobación | Alcance | Resultado |
 |---|---|---|
-| Contrato en PostgreSQL 17, ahora con 78 aserciones | la migración con `lock_timeout` y el §16 | NO EJECUTADO: sin turno de máquina (Docker) |
-| `cierre-contable-superclave.migration.test.ts`, ahora con 21 mutantes y 26 pruebas | lo mismo en PGlite, con los 3 mutantes nuevos | NO EJECUTADO: sin turno de máquina (vitest y PGlite) |
+| Contrato en PostgreSQL 17, ahora con 78 aserciones (con turno del Director, 2026-10-19 hacia las 20:20Z) | la migración con `lock_timeout` y el §16 | PASÓ: «TEST 0493 GREEN: 78 aserciones». Sin la 0493 (`apply_fix=false`): «TEST 0493: existe public.anular_asiento_en_cierre(uuid,text,text)» |
+| `cierre-contable-superclave.migration.test.ts`, ahora con 21 mutantes y 26 pruebas (con turno) | lo mismo en PGlite, con los 3 mutantes nuevos | PASÓ: `Tests  26 passed (26)`. Cada mutante afirma el mensaje exacto de la aserción donde muere |
+| **`pnpm verify` sobre `3a2510f4`** (turno del Director, de 2026-10-19 20:22:11Z a 2026-10-20 06:34:05Z, con el equipo suspendido de noche) | completo | `VERIFY_EXIT=0`: «CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied. No hubo fallos en lo medido (16/17)». Detalle abajo |
+
+Detalle del `verify`, copiado de su salida:
+- **PASÓ:** harness, lint, rsc-boundary, typecheck, edge-functions, test, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols («0 ROJO · 1 AMARILLO declarado(s)»: la 0493), sql-tests («244 contrato(s) de SQL verificado(s) · rollback total»), schema-rebuild («469 migraciones aplicadas desde cero», «aislamiento multi-tenant verificado (barrido de 219 tablas + 2 tenants reales)», «radiografía de integridad verificada sobre el esquema completo (63 filas, conteos)»), e2e y build.
+- **test:** la primera vuelta dio `Tests  9 failed | 11934 passed | 1 skipped (11944)`. Los 9 son topes de tiempo («Test timed out in 240000ms» y otros) con unos 34.500.000 ms transcurridos (≈9,6 h), el tiempo que el equipo estuvo suspendido. Cayeron en suites ajenas a esta SDD, como `billing-identity`, `portal-bandeja-avisos`, `infra/ops/tests/migraciones.test.mjs`, `borrado-embarques-recepciones` y `pin-operarios-endurecer`. El reintento dio `Tests  12039 passed | 1 skipped (12040)`.
+- **e2e:** la primera vuelta dio `1 failed` (`company-photo-carousel.spec.ts:93`, «visual evidence at 390 and 1440 pixels», del sitio público) y `1 flaky` (`auth.spec.ts:81`, el token inválido de Acceso), con `176 passed`. El reintento dio `1 flaky` (el mismo carrusel) y `177 passed (3.8m)`. Ninguno es de contabilidad.
+- **NO DISPONIBLE:** migrations-applied (el worktree no tiene `.env.local`). La 0493 es MIGRATE-FIRST y la aplica el Director.
 | `check-pending-migration-symbols` | código alcanzable que usa la 0493 | PASÓ: «0 ROJO · 1 AMARILLO declarado(s)». La 0492 ya está sellada |
 | `migrations-lock verificar` | candado | PASÓ: «3 espera(s) sin sellar (0422…, 0423…, 0493_cierre_contable_superclave) · 0 nueva(s) sin sellar» |
 | `docs:check` (552 specs), `sdd:check` | documentación | PASÓ |
@@ -91,7 +98,7 @@ La spec 0566 y el índice. **Cambia el esquema** (la 0493), así que el Director
 
 1. **Hecho, A o B (spec §8):** A, según el pedido literal de Sam del 2026-10-19; B ofrecida y no elegida. El Director se la planteó a Sam con la recomendación A, y Sam no pidió cambiarla.
 2. **La previa de producción, antes de aplicar** (la corre el Director): releer las seis huellas del preflight. Los parámetros de log ya los midió el 2026-10-19 (spec, revisión de seguridad).
-3. **Con turno de máquina:** el contrato en Docker y la prueba en PGlite con el §16 y los 3 mutantes nuevos, y después `pnpm verify`.
+3. **Hecho, con turno de máquina:** el contrato en Docker (78 aserciones), la prueba en PGlite (26 de 26, con los 21 mutantes) y `pnpm verify` (16/17 sin fallos).
 4. Aplicar la 0493 con el OK nominal de Sam NOMBRANDO `0493_cierre_contable_superclave`, hacer el smoke de la espera y después fusionar.
 
 ## FUERA DE ALCANCE DETECTADO (para el Director)
