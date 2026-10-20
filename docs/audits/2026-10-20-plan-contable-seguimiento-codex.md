@@ -2,7 +2,7 @@
 
 **Dueño:** Director Codex, para Sam. **Estado:** seguimiento en curso.
 
-**Fecha de corte:** 20 de octubre de 2026, 3:08 p. m. de Caracas. **Clasificación:** interno.
+**Fecha de actualización:** 20 de octubre de 2026. **Clasificación:** interno.
 
 La prioridad sigue siendo llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo. Este documento presenta el avance comprobado de la continuación; las decisiones de negocio permanecen en el [plan maestro](2026-10-18-contabilidad-diagnostico-y-plan.md).
 
@@ -12,7 +12,7 @@ El [registro del Director, §4](../../.agents/handoffs/director-continuidad-code
 
 **GitHub volvió a funcionar.** Pasaron las verificaciones de `main` y de las versiones anteriores de #301, #304 y #307. La revisión de tasa única encontró dos problemas; sus correcciones ya están publicadas en #301 y se está ejecutando una validación completa nueva. Los resultados anteriores no certifican este código nuevo.
 
-Las cabezas actuales de #304 (`1077ff21`) y #306 (`2f9b336c`) también aprobaron GitHub. En la primera pasada local de #301 hubo un tiempo de espera agotado en una prueba del portal de proveedores, junto con 12.276 pruebas aprobadas y una omitida. Está en curso el reintento previsto del proceso; todavía no hay resultado final ni atribución comprobada de ese fallo.
+Las cabezas actuales de #304 (`1077ff21`) y #306 (`2f9b336c`) también aprobaron GitHub. En #301, la primera pasada local tuvo un tiempo de espera agotado en una prueba del portal de proveedores; el reintento pasó sin cambios, con 12.277 pruebas aprobadas y una omitida. La construcción también pasó. La revisión canónica ejecutó 14 de 17 pasos. Las dos comprobaciones omitidas por Docker se completaron después: 246 contratos SQL y reconstrucción de 471 migraciones más 18 registros de historial, todo aprobado. La consulta del ledger de producción permanece separada como validación de publicación; el worktree no tiene esas credenciales.
 
 **El main que estaba pendiente ya quedó publicado**, a la 1:28 p. m., con 14 comprobaciones automáticas aprobadas y cero fallas. La lectura del servidor confirmó que sigue en esa versión. Todavía no se ha integrado ninguna PR nueva de este Director: 0569 y 0572 continúan en sus ramas.
 
@@ -24,7 +24,7 @@ La 2.1 sigue **en curso**. Está dividida para poder revisar cada cambio y compr
 
 | Parte | Avance comprobado | Próximo paso |
 |---|---|---|
-| **Tasa única y conversor · 0569** | Correcciones publicadas en la [PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301), versión `5f0d04ad`: distinguen tasa de tabla y excepción documental, y detectan ediciones simultáneas. Pasaron 89 pruebas de app, 32 de SQL con 26 mutantes y 13 mutantes adicionales de app. Revisión local visible y previa de solo lectura en el servidor: PASÓ | Terminar validación completa y CI actuales. Después se pide el OK nominal de `0495_fx_rates_conversor_usd`; todavía no se ha aplicado |
+| **Tasa única y conversor · 0569** | Correcciones publicadas en la [PR #301](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/301), versión `5f0d04ad`: distinguen tasa de tabla y excepción documental, y detectan ediciones simultáneas. Pasaron las pruebas específicas, el reintento general, navegación, construcción, 246 contratos SQL y reconstrucción completa. Revisión local visible y previa de solo lectura en el servidor: PASÓ | Cierre documental, revisión de la cabeza final, paquete/previa actuales y CI. Después se pide el OK nominal de `0495_fx_rates_conversor_usd`; todavía no se ha aplicado |
 | **Reemplazar las 13 conversiones · 0572-a** | Avance guardado y publicado. Pasaron 71 pruebas focales, revisión de tipos y revisión estática. Se repararon formatos y datos de prueba incompletos | Incorporar la dependencia 0569 corregida, comprobar el ranking de embarques sin tasa y terminar prueba completa, mutantes y revisión visual. La PR espera a #301 integrada |
 | **Conversiones pendientes en SQL · 0572-b** | Identificadas y separadas del cambio anterior | Encargo propio, número de migración coordinado y OK nominal antes de producción |
 | **Hora de Caracas** | Pendiente de implementación y de número de tarea | Unificar emisión, asientos, cobros y pagos después del cierre del conversor |
@@ -36,10 +36,10 @@ La 2.1 sigue **en curso**. Está dividida para poder revisar cada cambio y compr
 
 | Frente | Estado actual | Qué falta |
 |---|---|---|
-| **0571 · Tarifa congelada**, #307 | Correcciones y regresiones preparadas en ocho archivos para los tres problemas de búsqueda y actualización del formulario. Todavía no se han ejecutado sus pruebas; la validación anterior no cubre el código nuevo | Probarlas en el siguiente turno, después de 0569; luego actualizar base, validación final, nueva previa, OK nominal de `0496_tarifa_congelada_por_embarque`, integración y prueba en el servidor |
+| **0571 · Tarifa congelada**, #307 | Correcciones y regresiones preparadas en ocho archivos para los tres problemas de búsqueda y actualización del formulario. Ya recibió el turno para probarlas; la validación anterior no cubre el código nuevo | Cerrar pruebas focales y revisión visual; luego actualizar base, validación final, nueva previa, OK nominal de `0496_tarifa_congelada_por_embarque`, integración y prueba en el servidor |
 | **0573 · Reverso al anular**, 2.5 | Implementación publicada. Se recuperó y guardó el informe completo de revisión; sus hallazgos siguen pendientes | Corregir los controles de anulación, concurrencia, tenant y comparación entre meses; prueba completa y PR. Después revisión, previa y OK nominal de `0497_reverso_al_anular_factura` |
 | **0574 · Embarques sin facturar**, 4.5 | Ya implementada sobre 0571. Hay evidencia anterior de diez pruebas y tres mutantes | Preparar dependencias locales y ejecutar la prueba completa con turno. Se integra después de 0571 |
-| **0575 · Asientos sin fallos silenciosos**, 2.2 | Cinco decisiones de diseño registradas y publicadas; todavía no está implementada | Contratos, archivos de cada entrega y número de migración; tres PR sucesivas |
+| **0575 · Asientos sin fallos silenciosos**, 2.2 | Cinco decisiones y propuesta transaccional guardadas, publicadas y revisadas en `8a614250`. El diseño distingue documento guardado, asiento contabilizado y resultado desconocido; todavía no está implementado | Cerrar firmas, permisos, control del cierre en cada operación y base integrada; archivos exactos de cada entrega y número de migración; tres PR sucesivas |
 | **0570 · Pruebas PGlite**, #304 | La primera mitad de la comparación local se detuvo por su límite de 20 minutos: 26 de 34 archivos y 649 casos informados sin fallas. La segunda mitad no se ejecutó. Archivos originales restaurados y evidencia parcial publicada en `1077ff21`; GitHub PASÓ a las 3:01 p. m. | Repetir la comparación completa con un tiempo suficiente, después de 0569 y las pruebas focales de 0571. El criterio de velocidad local sigue pendiente |
 | **Oficina de agentes**, #306 | Correcciones documentales guardadas, publicadas y revisadas; GitHub PASÓ sobre `2f9b336c` a las 2:47 p. m. | Actualizar base después de #301. El aislamiento real entre perfiles y la copia filtrada del servidor siguen sin verificar |
 
@@ -70,7 +70,7 @@ El carril de embarques continúa con 4.5/0574 y después 4.2.
 
 Para **0575**: cada documento se contabiliza en una operación atómica; un período cerrado bloquea salvo la excepción gobernada existente; los fallos se muestran dentro de «Por contabilizar»; el trabajo se entrega en tres PR sucesivas; los gastos entran en el contrato desde la primera parte.
 
-El motivo de un fallo debe permanecer consultable sin dejar un asiento parcial. El mecanismo concreto todavía debe quedar resuelto y probado antes de implementar esa parte.
+La propuesta revisada revierte las escrituras contables incompletas y registra el motivo después, dentro de la misma llamada. Su conservación depende de que esa llamada termine confirmada: una pérdida de conexión exige comprobar el resultado antes de repetirlo. Además, un documento guardado antes de contabilizarse necesita su propio control de período cerrado. Estos límites quedaron documentados; todavía requieren contratos finales y pruebas de implementación.
 
 Para **0569**: la tasa automática de una factura en bolívares debe corresponder al día de emisión. Tener una tasa de un día anterior no basta para emitir. Una excepción elegida expresamente en el documento conserva su identificación y fecha; esa excepción no se deduce del simple hecho de que alguien haya cargado la tasa del catálogo a mano.
 
