@@ -1,7 +1,7 @@
 ---
 sdd: "0573"
 title: "Anular una factura revierte su asiento de venta, en la misma transacción"
-status: draft
+status: in-progress
 author: "founder"
 created: 2026-10-20
 updated: 2026-10-20
@@ -15,7 +15,20 @@ confidencialidad: interno
 
 > La 2.5 del plan contable. Hoy anular una factura solo cambia su estado: el asiento de venta sigue vivo e infla Clientes (1.1.2), Ingresos (4.5) e IVA por pagar (2.1.5). Con esta SDD, anular crea su contra-asiento en la misma transacción, y una factura con cobros vivos no se anula.
 
-**Estado: DISEÑO para revisión del Director.** No hay código ni migración. El número de la migración se le pide al Director cuando apruebe el diseño. Las preguntas están al final.
+**Estado: DISEÑO APROBADO por el Director el 2026-10-20** (sobre `b12fed95`), con las cinco propuestas. **Migración: 0497** (la 0496 es del embarque).
+
+## Decisiones del Director, por la delegación de Sam del 2026-10-20
+
+1. **`paid_amount > 0` sin recibos vivos se rechaza.**
+2. **Misma firma:** se reescribe `void_invoice_with_audit_reason(uuid, text)` desde su última definición, la 0294, con preflight sobre su md5 vivo. **Lectura de catálogo del Director (producción, 2026-10-20):** md5 `76644e17876d0caaa46e727de5946138`, sin espacios `c76c80e7b8cae81c28c7999803520fca`, 496 caracteres, INVOKER, volátil, `search_path=""`. El cuerpo de la 0294 del repo da exactamente lo mismo: sin deriva.
+3. **Contra-asiento siempre**, fechado `greatest(hoy en Caracas, closing_date + 1)`. El original no se toca.
+4. **DEFINER con rol admin o accounting**, con el tenant de la sesión y `search_path=''`.
+5. **Una sola PR, MIGRATE-FIRST.**
+
+**Tres cuidados del Director:**
+- los escenarios 1, 3 y 5 de `0467_reversion_credito_carrera.test.sql` se reescriben para esperar el rechazo nuevo, **sin borrarlos ni debilitarlos**;
+- una prueba demuestra que el contra-asiento de un asiento en período cerrado pasa por la 0566 (la 0493) sin tocar el cierre;
+- la anulación sigue auditada en D2 (`invoice_voided`, 0290), como hoy.
 
 ## Contexto
 
