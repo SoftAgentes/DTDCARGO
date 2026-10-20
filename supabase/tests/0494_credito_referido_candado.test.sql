@@ -232,6 +232,13 @@ select pg_temp.assert_true(
 select pg_temp.assert_true((select bool_and(p.prosecdef) from pg_proc p
   where p.oid in ('public.apply_referral_credit(uuid,uuid)'::regprocedure, 'public.revert_referral_credits(uuid,uuid)'::regprocedure)),
   'aplicar y revertir pasan a SECURITY DEFINER');
+select pg_temp.assert_true((select bool_and(p.proconfig = array['search_path=""']::text[]) from pg_proc p
+  where p.oid in ('public.apply_referral_credit(uuid,uuid)'::regprocedure, 'public.revert_referral_credits(uuid,uuid)'::regprocedure)),
+  'aplicar y revertir conservan el search_path vacío');
+-- DEFINER no amplía el rol: la guarda mira el de quien llama (auth.uid()), no el del dueño.
+select pg_temp.assert_true(pg_temp.error_of('commercial-A', format(
+  'select public.apply_referral_credit(%L::uuid, %L::uuid)', pg_temp.fixture_id('r1'), pg_temp.fixture_id('inv-ref')))
+  = '42501|REFERRAL_CREDIT_FORBIDDEN|', 'commercial sigue sin poder aplicar un crédito');
 select pg_temp.assert_true(
   (select md5(replace(prosrc, E'\r\n', E'\n')) from pg_proc where oid = 'public.apply_referral_credit(uuid,uuid)'::regprocedure)
     = '8c32487e62bc23c16def30cc4e3c343b'

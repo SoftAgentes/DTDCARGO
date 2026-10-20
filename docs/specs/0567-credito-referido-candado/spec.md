@@ -37,7 +37,9 @@ El Director se lo avisa a Sam: si quiere cambiar alguna, se corrige.
 | `apply_referral_credit(uuid,uuid)` | `8c32487e62bc23c16def30cc4e3c343b` | `63b7e0eab68c60f5aa5d12796b16d66e` | 4455 | coincide con la 0471 |
 | `revert_referral_credits(uuid,uuid)` | `256c1331a53ab794af184f8bb90a1ca4` | `0bc1e5497316176f03dadefb7cb9897f` | 3344 | coincide con la 0471 |
 
-Policies vivas de `referrals`: `referrals by tenant` (`*`, `authenticated`, `(tenant_id = get_user_tenant_id())`) y `referrals service_role all`. Grants vivos: `authenticated` DELETE, INSERT, SELECT y UPDATE; `service_role` todo. **Pendiente de confirmar con el Director:** si el `qual` vivo no tiene el `and deleted_at is null` de la 0098, es otra deriva (ver *Riesgos*).
+Policies vivas de `referrals`: `referrals by tenant` (`*`, `authenticated`) y `referrals service_role all`. Grants vivos: `authenticated` DELETE, INSERT, SELECT y UPDATE; `service_role` todo.
+
+**Deriva de la 0098, confirmada por el Director con `pg_policies` el 2026-10-20:** el `qual` vivo de `referrals by tenant` es `(tenant_id = get_user_tenant_id())`, **sin** el `and deleted_at is null` del repo (`0098:172-175`), y ninguna migración posterior lo cambia. En producción, los referidos borrados se ven por la API. El preflight de la 0494 acepta los dos `qual` conocidos, normalizados sin espacios, y aborta con cualquier otro; la prueba en PGlite lo cubre con los dos y con un tercero. **La SELECT nueva, con `deleted_at is null`, corrige esa deriva:** devuelve el comportamiento que la 0098 quería. Hoy no cambia nada visible, porque la radiografía midió 0 referidos.
 
 ## Contexto
 
@@ -200,7 +202,20 @@ Se reescribe `accredit_referral_on_first_invoice` desde la 0250, con el prefligh
 ## Riesgos
 
 - **Aceptado:** el guardián permite `aplicado → acreditado` con el rastro limpio, porque es la reversión. Una reversión falsa, que no baja el pagado de la factura, ya **no** se puede hacer por la API, porque `authenticated` no tiene UPDATE (lo prueba el contrato). La podría hacer código con `service_role`, y hoy ninguno lo hace. Cerrarla del todo exige reescribir el cuerpo de `revert_referral_credits` para que deje un permiso, y eso cambia su md5. Queda para el Director.
-- **Por confirmar:** la policy de SELECT nueva lleva `deleted_at is null`, como la 0098. Si en producción la policy viva no lo tiene, desde la 0494 los referidos borrados dejarían de verse por la API. La radiografía midió 0 referidos.
+
+  **Por qué no se cierra con el guardián, sin tocar el cuerpo** (pedido del Director: ¿puede el guardián exigir, para `aplicado → acreditado`, que el asiento `OLD.applied_entry_id` ya esté anulado?). El orden de la 0471 no lo permite:
+  1. `revert_referral_credits` hace primero el UPDATE de `referrals` (`0471:340-342`), que es cuando corre el guardián;
+  2. después baja el pagado de la factura (`0471:351-361`);
+  3. el asiento lo anula **la app**, fuera de la transacción y con el cliente admin (`referral-credit-posting.ts:446-469`).
+
+  Cuando el guardián mira, el asiento sigue vivo y la factura todavía no bajó: no hay nada que distinga la reversión real de la falsa. Exigir el asiento anulado rompería todas las reversiones reales.
+
+  **Mitigaciones posibles**, las dos fuera de esta SDD:
+  - reescribir `revert_referral_credits` (cambia su md5) para que baje el pagado **antes** de soltar el crédito y deje un permiso en la transacción, como la excepción de la 0566;
+  - o un disparador de restricción `deferrable initially deferred` que, al confirmar, compare el pagado de la factura con los créditos aplicados.
+
+  Mientras tanto, la vía queda cerrada para `authenticated`, y abierta solo para código de servidor con `service_role`, que hoy no lo hace.
+- **Corrección de una deriva:** la policy de SELECT nueva lleva `deleted_at is null`, como la 0098, y en producción no lo tenía (ver la previa de catálogo). Los referidos borrados dejan de verse por la API; hoy no hay ninguno.
 
 ## App
 
@@ -241,7 +256,7 @@ Se reescribe `accredit_referral_on_first_invoice` desde la 0250, con el prefligh
 |---|---|
 | `supabase/migrations/0494_credito_referido_candado.sql` | la migración |
 | `supabase/tests/0494_credito_referido_candado.test.sql` | el contrato |
-| `lib/studio/__tests__/credito-referido-candado.migration.test.ts` | el contrato en PGlite: control rojo, 24 mutantes, la deriva de la 0250, el preflight, la reaplicación y la espera |
+| `lib/studio/__tests__/credito-referido-candado.migration.test.ts` | el contrato en PGlite: control rojo, 24 mutantes, las derivas de la 0250 y de la 0098 (policy), el preflight, la reaplicación y la espera |
 | `supabase/migrations-baseline.json` | la espera de la 0494 |
 | `supabase/pending-migration-symbol-declarations.json` | los 5 símbolos y su degradación |
 | `app/studio/(app)/fidelizacion/actions.ts` | acreditar, avanzar y enlazar el asiento por las RPC; `errorDeReferido` |
@@ -250,6 +265,7 @@ Se reescribe `accredit_referral_on_first_invoice` desde la 0250, con el prefligh
 | `app/studio/(app)/fidelizacion/_components/ReferralDrawer.tsx` | el markbox para registrado, el motivo para acreditar sin venta, el aviso de la venta anulada |
 | `lib/studio/fidelizacion/types.ts` | `accredited_reason` y `sale_voided_at` en `Referral` |
 | `lib/studio/fidelizacion/queries.ts` | las columnas de la 0494, con la lectura de respaldo |
+| `lib/studio/fidelizacion/__tests__/queries.test.ts` | el helper `ref` con los dos campos nuevos |
 | `app/studio/(app)/fidelizacion/__tests__/apply-referral-credit.test.ts` | el enlace del asiento por la RPC |
 | `app/studio/(app)/fidelizacion/__tests__/referido-candado-acciones.test.ts` | nueva: acreditar y avanzar |
 | `scripts/qa/radiografia-referidos.sql` | la radiografía versionada |
@@ -269,7 +285,8 @@ Se reescribe `accredit_referral_on_first_invoice` desde la 0250, con el prefligh
 5. `aplicado` entra con su factura y su fecha, y sale solo con el rastro limpio. Su factura no cambia, y el asiento se enlaza una sola vez, y solo el del crédito.
 6. Anulada o borrada la venta que acreditó: sin aplicar, pasa a otra venta viva o vuelve a `registrado` limpio; aplicado, queda marcado y no se revierte solo. Revertido después, no queda acreditado sin venta.
 7. Un `acreditado` o `aplicado` no se borra, ni con DELETE ni con `deleted_at`.
-8. El preflight acepta el cuerpo del repo y el vivo del trigger de la 0250, y ningún otro; aplicada dos veces, aborta con «ya existe».
+8. El preflight acepta el cuerpo del repo y el vivo del trigger de la 0250, y los dos `qual` de la policy de la 0098 (repo y vivo), y ningún otro; aplicada dos veces, aborta con «ya existe».
+12. Apply y revert conservan su `search_path` vacío, y su guarda sigue mirando el rol de quien llama: commercial no aplica un crédito.
 9. La app usa las RPC, muestra solo los mensajes con `hint = 'dtd-referidos'` y, sin la 0494, no se rompe.
 10. La radiografía queda versionada, con su prueba (vacía, limpia y sucia, más el control rojo) y su corrida en `schema-rebuild`.
 11. Control rojo: cada regla tiene un mutante que muere.

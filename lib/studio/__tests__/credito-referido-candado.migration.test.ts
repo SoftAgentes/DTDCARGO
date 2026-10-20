@@ -321,6 +321,24 @@ describe("SDD-0567 · 0494 candado del crédito de referido (PGlite)", () => {
     );
   }, SLOW);
 
+  it("deriva de 0098: con la policy viva de producción (sin deleted_at), la 0494 aplica; con otra, aborta", async () => {
+    // Leída por el Director con pg_policies el 2026-10-20: el qual vivo no tiene «and deleted_at is null».
+    const m0098 = readFileSync(resolve(ROOT, "supabase/migrations/0098_fidelizacion_referidos.sql"), "utf8").replace(/\r\n/g, "\n");
+    const repo = "using (tenant_id = public.get_user_tenant_id() and deleted_at is null)";
+    expect(m0098.split(repo)).toHaveLength(2);
+    const vivo = await contract({
+      replace: { "0098_fidelizacion_referidos.sql": m0098.split(repo).join("using (tenant_id = public.get_user_tenant_id())") },
+    });
+    expect(vivo.error).toBeNull();
+    expect(vivo.green).toMatch(/^TEST 0494 GREEN: \d+ aserciones$/);
+    const otra = await contract({
+      replace: { "0098_fidelizacion_referidos.sql": m0098.split(repo).join("using (true)") },
+    });
+    expect(otra.error).toBe(
+      "0494 abortado: la policy «referrals by tenant» no es la de 0098 ni la viva de producción; revisar antes de aplicar",
+    );
+  }, SLOW);
+
   it("aplicada dos veces, la segunda aborta con «ya existe»", async () => {
     const result = await contract({ migration: FILE_0494 + "\n" + FILE_0494 });
     expect(result.error).toBe("0494 abortado: el candado de referidos ya existe");

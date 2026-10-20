@@ -112,13 +112,19 @@ begin
       where conrelid = 'public.referrals'::regclass and conname = 'referrals_credit_applied_coherent') then
     raise exception '0494 requiere el CHECK referrals_credit_applied_coherent de 0237';
   end if;
-  -- La policy que se reemplaza tiene que ser la de 0098: por tenant y para authenticated.
+  -- La policy que se reemplaza tiene que ser una de las dos conocidas. DERIVA DE
+  -- 0098, leída por el Director en producción el 2026-10-20 con pg_policies: el
+  -- qual vivo es «(tenant_id = get_user_tenant_id())», SIN el «and deleted_at is
+  -- null» del repo (0098:172-175), y ninguna migración lo cambia. La SELECT nueva
+  -- devuelve el comportamiento que la 0098 quería. Cualquier otra policy aborta.
   if not exists (select 1 from pg_catalog.pg_policies
       where schemaname = 'public' and tablename = 'referrals' and policyname = 'referrals by tenant'
         and cmd = 'ALL' and roles = array['authenticated']::name[]
-        and qual like '%tenant_id = get_user_tenant_id()%'
-        and with_check like '%tenant_id = get_user_tenant_id()%') then
-    raise exception '0494 abortado: la policy «referrals by tenant» no es la de 0098; revisar antes de aplicar';
+        and pg_catalog.regexp_replace(qual, '\s', '', 'g') in (
+          '((tenant_id=get_user_tenant_id())AND(deleted_atISNULL))',   -- 0098 del repo
+          '(tenant_id=get_user_tenant_id())')                          -- vivo en producción
+        and pg_catalog.regexp_replace(with_check, '\s', '', 'g') = '(tenant_id=get_user_tenant_id())') then
+    raise exception '0494 abortado: la policy «referrals by tenant» no es la de 0098 ni la viva de producción; revisar antes de aplicar';
   end if;
 end;
 $preflight$;

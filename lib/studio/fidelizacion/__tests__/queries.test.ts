@@ -262,6 +262,8 @@ function ref(p: Partial<Referral>): Referral {
     applied_invoice_id: null,
     applied_entry_id: null,
     applied_at: null,
+    accredited_reason: null,
+    sale_voided_at: null,
     created_at: "2026-05-01T00:00:00Z",
     updated_at: "2026-05-01T00:00:00Z",
     deleted_at: null,
