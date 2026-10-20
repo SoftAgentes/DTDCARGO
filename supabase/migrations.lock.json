@@ -3033,6 +3033,15 @@
         "fecha": "2026-10-19",
         "forma": "exacta"
       }
+    },
+    "0493_cierre_contable_superclave": {
+      "sha256": "603a78db5ef8af008c8aa7061de5321ad06038b1c867d61500494ad3035f7374",
+      "md5": "b5ca301e14f3bec8401bdf0dc229393c",
+      "bytes": 51754,
+      "ledger": {
+        "fecha": "2026-10-20",
+        "forma": "exacta"
+      }
     }
   }
 }
