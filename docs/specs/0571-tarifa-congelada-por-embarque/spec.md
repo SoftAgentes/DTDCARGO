@@ -172,16 +172,17 @@ Cada escenario se confirmó con una prueba que fallaba sin la corrección (el mu
 | Archivo | Cambio |
 |---|---|
 | `supabase/migrations/0496_tarifa_congelada_por_embarque.sql` | la migración |
-| `supabase/tests/0496_tarifa_congelada_por_embarque.test.sql` | el contrato (79 aserciones) |
+| `supabase/tests/0496_tarifa_congelada_por_embarque.test.sql` | el contrato (85 aserciones) |
 | `supabase/tests/_0496_tarifa_congelada_schema.sql` | su esquema mínimo, con los cuerpos exactos de los helpers |
-| `lib/studio/__tests__/tarifa-congelada.migration.test.ts` | el contrato en PGlite: control rojo, 30 mutantes, preflight, reaplicación y espera |
+| `lib/studio/__tests__/tarifa-congelada.migration.test.ts` | el contrato en PGlite: control rojo, 35 mutantes, deriva del preflight, reaplicación y espera |
 | `supabase/migrations-baseline.json` | la espera de la 0496 |
 | `supabase/pending-migration-symbol-declarations.json` | los dos símbolos y su degradación |
 | `lib/studio/rate-snapshots/types.ts` | tipos, etiquetas, validación y errores propios |
 | `lib/studio/rate-snapshots/queries.ts` | lectura de las vivas y del historial |
 | `lib/studio/rate-snapshots/propuesta.ts` | propuesta automática y estimados aceptados |
 | `lib/studio/rate-snapshots/__tests__/types.test.ts` | reglas puras |
-| `lib/studio/rate-snapshots/__tests__/paridad-resolver.migration.test.ts` | paridad de la RPC con `resolveRateForClient`, con propiedad del descuento |
+| `lib/studio/rate-snapshots/__tests__/paridad-resolver.migration.test.ts` | paridad de la RPC con `resolveRateForClient` (también el rechazo), con propiedad del descuento |
+| `lib/studio/rate-snapshots/__tests__/propuesta.test.ts` | propuesta automática y Shipping Mark comparado como la RPC |
 | `app/studio/(app)/cn/rate-snapshot-actions.ts` | acciones |
 | `app/studio/(app)/cn/__tests__/rate-snapshot-actions.test.ts` | pruebas de las acciones |
 | `app/studio/(app)/cn/page.tsx` | lee las tarifas vivas y quién congela en lote |
