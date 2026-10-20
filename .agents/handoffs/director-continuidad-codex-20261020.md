@@ -8,7 +8,7 @@
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\director-continuidad-codex-20261020` |
 | Rama y base | `codex/director-continuidad-codex-20261020`, desde `origin/main` `8e9e0f505322cd57b3230cce6b16b45b5554cb8a` |
 | Estado | En progreso: recepción del traspaso, verificaciones remotas relanzadas y relevo de Workers |
-| Alcance escritor del Director | Este handoff y documentación de coordinación; ningún archivo de producto |
+| Alcance escritor del Director | Este handoff y `docs/audits/2026-10-20-plan-contable-seguimiento-codex.md`, vista resumida autorizada por Sam al pedir continuar con el plan abierto; ningún archivo de producto |
 | Autorización | Sam ordenó seguir `C:\tmp\director-traspaso-20261020\PROMPT-CODEX-DIRECTOR.md`. El prompt autoriza continuidad con Workers, commits y ramas propias/PR, y establece el orden de integración/publicación; cada migración y borrado siguen exigiendo aprobación nominal independiente |
 
 ## 0. Fuentes y estado de partida
@@ -18,7 +18,7 @@
 - AGENTS, skill Director/Worker, runbooks de ingeniería, migraciones, respaldo/restauración y conocimiento.
 - Plan contable leído desde `origin/main`, especialmente §8 y §9. El checkout principal local estaba en `fa79394d`, 14 commits detrás. Tras comprobar que no tenía cambios rastreados ni staged, se sincronizó por fast-forward a `8e9e0f50`; se conservaron los archivos sin seguimiento.
 - Las reglas y evidencias de la memoria Claude se revisaron mediante un subagente de solo lectura: 108 Markdown = índice + 107 lecciones. Las copias congelada y original coinciden por SHA-256. Son antecedentes, no autorizaciones.
-- El enlace adicional de Sam `https://claude.ai/artifact/A1hEYVry1GXFZJdnj2ui1z#d53c897e-ffb6` pide inicio de sesión en el navegador integrado; contenido NO DISPONIBLE todavía.
+- El enlace adicional de Sam `https://claude.ai/artifact/A1hEYVry1GXFZJdnj2ui1z#d53c897e-ffb6` pidió inicialmente inicio de sesión. Después Sam abrió el plan y ordenó continuar: se leyó directamente su contenido en el navegador integrado. Título «Plan contable: avance y pendientes», corte `17:10Z`; estados desactualizados reconciliados en la vista resumida.
 
 ## 1. Límites y permisos
 
@@ -44,6 +44,15 @@ El mandato de Sam de adoptar las sesiones Codex en los mismos worktrees incluye 
 - Antes de la cesión se comprobó que no quedaba `verify`, `tsc`, `vitest` ni `next build` local corriendo. La validación 0571 terminó.
 - El Director liberó explícitamente el claim anterior como parte del relevo solicitado; el nuevo Worker reclamó `codex-0572-01a15a4e-ddf0`, verificó el guard y adoptó la metodología.
 - Autorización del Worker: cerrar validación de 0572-a, corregir únicamente defectos propios dentro de su allowlist, commits selectivos y push a su misma rama. La PR espera la integración de #301. Prohibidos merge/deploy/DB real y 0572-b.
+- Cierre parcial comprobado: `9c254107c7c1b9544bf91ebff177ab790b438f5f`, local/remoto iguales, árbol limpio y ahead 0. Reparó formatos, fixtures y añadió cinco casos. Pasaron 71 pruebas focales, typecheck y lint. Verify/build/e2e/mutantes NO EJECUTADOS por cambio de prioridad a la dependencia 0569. Claim liberado.
+- Pendiente propio adicional: probar que `topAndWorst` no clasifique embarques con ingreso parcial y facturas sin tasa. No se certifica aceptación completa.
+
+### Relevo 0569
+
+- Árbol original limpio en `3d0c9028`, remoto actualizado a `e6579944` por integración del Director. A `17:39:24Z` no se observaron pruebas pesadas ni procesos Node con la ruta 0569.
+- Por el relevo explícito de Sam, se liberó el claim anterior `contabilidad-2026-10-18`, creado `11:48Z`. El worktree de integración del Director quedó limpio y su claim también se liberó.
+- Se asignó al Worker, después de cerrar 0572, el arreglo de los dos P1 y bordes de captura, con owner previsto `codex-0569-01a15a4e-ddf0`, ff-only a su rama remota y turno de pruebas. La allowlist sigue siendo las 38 rutas de su spec.
+- Se permite ajustar la 0495 todavía no aplicada si se necesita procedencia persistente o protección transaccional; no se permite renumerar ni tocar migraciones previas. Esto invalida el paquete antiguo si cambia SQL.
 
 ## 3. Estado contrastado
 
@@ -51,7 +60,7 @@ El mandato de Sam de adoptar las sesiones Codex en los mismos worktrees incluye 
 |---|---|---|---|
 | #301 / 0569 / 0495 | `e6579944` | Main incorporada mediante merge limpio y push; Draft. Revisión nueva detecta dos P1: procedencia ambigua de tasa y carrera editar/emitir; bloqueada para aprobación | Worker debe corregir y demostrar regresiones; después revisión/validación/paquete/previa nuevos |
 | #307 / 0571 / 0496 | `b70be5d7` | Nuevo commit de cierre documental; verify sobre `a81dbbd7` terminó 17:20:04Z, exit 0 pero 16/17 y límites e2e por contrastar | Revisor de solo lectura; Director integra después de #301/#304/#306 y aprobación nominal |
-| 0572-a | `4f24a1db` recibido | Worker adoptó; typecheck detectó aliases públicos eliminados y fixtures incompletos, en corrección | Terminar reparación focal y guardado parcial; verify completo espera corrección de #301 para no validar una dependencia que cambiará |
+| 0572-a | `9c254107` | Cierre parcial publicado, árbol limpio y claim liberado; 71 focales, typecheck y lint PASÓ | Retomar después de #301 corregida: ranking sin tasa, verify, mutantes y revisión visual |
 | 0573 / 0497 | `89f15a5d` | Implementada; B1, I1–I4 y M1–M9 pendientes según traspaso; sin verify | Worker posterior del carril contable, antes de consideración de integración |
 | #304 / 0570 | `59e8491b` | Draft; CI vigente relanzado. Criterio 5 PARCIAL: falta A/B local completo de 34 archivos aunque el comparativo CI existe | Turno local posterior para completar aceptación; no declarar criterios 1–8 completos |
 | #306 / oficina | `033eea50` | Solo documentación, BEHIND | Director revisa e integra después de #301/#304 |
@@ -69,7 +78,9 @@ Relanzados los runs de las cabezas vigentes:
 - #304 `59e8491b`, Calidad: `39460332474`.
 - #307 `b70be5d7`, Calidad: `39465283137`.
 
-Se confirmó ejecución real de pasos (preparación, dependencias y ESLint) después del relanzamiento. La facturación dejó de impedir el arranque. Docker de main `39453056216` y la imagen publicable `39466238021` terminaron SUCCESS; no se ha comprobado despliegue ni smoke en VPS. Los runs de Calidad siguen en curso en el último muestreo.
+Se confirmó ejecución real de pasos después del relanzamiento. La facturación dejó de impedir el arranque. Docker de main `39453056216` y la imagen publicable `39466238021` terminaron SUCCESS; no se ha comprobado despliegue ni smoke en VPS.
+
+Calidad terminó SUCCESS para main `8e9e0f50` (`39453056471`, `17:58:20Z`), #304 `59e8491b` (`39460332474`), #307 `b70be5d7` (`39465283137`) y #301 `e6579944` (`39466459315`). El verde de #301 es anterior a su reparación y no resuelve los hallazgos de revisión.
 
 No se relanzó el run obsoleto `39453136909` de #304 (`e6311891`); se usó la cabeza actual.
 
@@ -124,6 +135,8 @@ Solo cambiaron spec y handoff de la tarea. `docs:check` (556 specs), numbering y
 | 0575 | DEBE ESPERAR para código | Solo decisiones documentales en este bloque; contrato, número y allowlists de cada PR pendientes |
 
 ## 4. Checklist vivo de continuidad
+
+Vista resumida para Sam: [Plan contable: avance y pendientes](../../docs/audits/2026-10-20-plan-contable-seguimiento-codex.md). Este §4 sigue siendo el registro vivo de coordinación.
 
 El checklist histórico del §4 anterior conserva 36 tareas vivas, 6 hechas, 1 en curso y 29 pendientes; esos conteos no se vuelven a afirmar como medición actual sin reconciliar cada entrega.
 
