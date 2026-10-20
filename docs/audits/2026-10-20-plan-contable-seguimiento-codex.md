@@ -2,7 +2,7 @@
 
 **Dueño:** Director Codex, para Sam. **Estado:** seguimiento en curso.
 
-**Fecha de corte:** 20 de octubre de 2026, 1:58 p. m. de Caracas. **Clasificación:** interno.
+**Fecha de corte:** 20 de octubre de 2026, 2:16 p. m. de Caracas. **Clasificación:** interno.
 
 La prioridad sigue siendo llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo. Este documento presenta el avance comprobado de la continuación; las decisiones de negocio permanecen en el [plan maestro](2026-10-18-contabilidad-diagnostico-y-plan.md).
 
@@ -12,7 +12,9 @@ El [registro del Director, §4](../../.agents/handoffs/director-continuidad-code
 
 **GitHub volvió a funcionar.** Pasaron las verificaciones de `main`, tasa única (#301), pruebas PGlite (#304) y tarifa congelada (#307). La nueva revisión de tasa única encontró dos problemas que deben corregirse antes de aplicar su migración.
 
-**Todavía no se ha integrado ni publicado ninguna entrega nueva de este Director.** El corte anterior reportaba seis tareas del plan terminadas y cinco extras en producción; ese antecedente se conserva fechado, sin volver a contarlo como una prueba nueva del servidor.
+**El main que estaba pendiente ya quedó publicado**, a la 1:28 p. m., con 14 comprobaciones automáticas aprobadas y cero fallas. La lectura del servidor confirmó que sigue en esa versión. Todavía no se ha integrado ninguna PR nueva de este Director: 0569 y 0572 continúan en sus ramas.
+
+El corte anterior reportaba seis tareas del plan terminadas y cinco extras en producción; ese antecedente se conserva fechado. La comprobación de publicación no sustituye la prueba funcional de cada recorrido dentro de Studio.
 
 ## 2.1 · Una sola regla para convertir a dólares
 
@@ -32,12 +34,12 @@ La 2.1 sigue **en curso**. Está dividida para poder revisar cada cambio y compr
 
 | Frente | Estado actual | Qué falta |
 |---|---|---|
-| **0571 · Tarifa congelada**, #307 | Implementada y revisada. La prueba local terminó: 16 de 17 comprobaciones disponibles, con omisiones documentadas; GitHub pasó | Actualizar base, nueva previa, OK nominal de `0496_tarifa_congelada_por_embarque`, integración y prueba en el servidor |
+| **0571 · Tarifa congelada**, #307 | Implementada y con revisión anterior corregida. La prueba local terminó: 16 de 17 comprobaciones disponibles, con omisiones documentadas; GitHub pasó | Terminar la revisión actual, actualizar base, nueva previa, OK nominal de `0496_tarifa_congelada_por_embarque`, integración y prueba en el servidor |
 | **0573 · Reverso al anular**, 2.5 | Implementación publicada; los hallazgos de la revisión recibida siguen pendientes | Correcciones, prueba completa y PR; después revisión, previa y OK nominal de `0497_reverso_al_anular_factura` |
 | **0574 · Embarques sin facturar**, 4.5 | Ya implementada sobre 0571. Hay evidencia anterior de diez pruebas y tres mutantes | Preparar dependencias locales y ejecutar la prueba completa con turno. Se integra después de 0571 |
 | **0575 · Asientos sin fallos silenciosos**, 2.2 | Cinco decisiones de diseño registradas y publicadas; todavía no está implementada | Contratos, archivos de cada entrega y número de migración; tres PR sucesivas |
-| **0570 · Pruebas PGlite**, #304 | GitHub pasó y existe comparación de tiempos en GitHub | Completar la comparación local de todos los archivos, que seguía pendiente en la propia spec |
-| **Oficina de agentes**, #306 | Revisión documental terminada; correcciones documentales asignadas | Corregir instrucciones contradictorias y distinguir el aislamiento probado del no comprobado; revisar después la base de integración |
+| **0570 · Pruebas PGlite**, #304 | GitHub pasó; comparación local de 34 archivos en curso, con las mismas pruebas en ambas versiones | Comprobar los resultados antes de cerrar el criterio de velocidad |
+| **Oficina de agentes**, #306 | Correcciones documentales guardadas, publicadas y revisadas; comprobación de GitHub en curso | Actualizar base después de #301. El aislamiento real entre perfiles y la copia filtrada del servidor siguen sin verificar |
 
 Se ejecuta una sola prueba pesada a la vez en la máquina. El carril de embarques puede avanzar en paralelo cuando no compite por ese turno ni cambia contratos del carril contable.
 
@@ -67,6 +69,8 @@ El carril de embarques continúa con 4.5/0574 y después 4.2.
 Para **0575**: cada documento se contabiliza en una operación atómica; un período cerrado bloquea salvo la excepción gobernada existente; los fallos se muestran dentro de «Por contabilizar»; el trabajo se entrega en tres PR sucesivas; los gastos entran en el contrato desde la primera parte.
 
 El motivo de un fallo debe permanecer consultable sin dejar un asiento parcial. El mecanismo concreto todavía debe quedar resuelto y probado antes de implementar esa parte.
+
+Para **0569**: la tasa automática de una factura en bolívares debe corresponder al día de emisión. Tener una tasa de un día anterior no basta para emitir. Una excepción elegida expresamente en el documento conserva su identificación y fecha; esa excepción no se deduce del simple hecho de que alguien haya cargado la tasa del catálogo a mano.
 
 Tus decisiones anteriores del plan se conservan: fuente oficial BCV, USD/USDT 1:1, impuestos en pausa y sin conector con QuickBooks.
 

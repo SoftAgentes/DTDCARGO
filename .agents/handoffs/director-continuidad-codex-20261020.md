@@ -51,7 +51,7 @@ El mandato de Sam de adoptar las sesiones Codex en los mismos worktrees incluye 
 
 - Árbol original limpio en `3d0c9028`, remoto actualizado a `e6579944` por integración del Director. A `17:39:24Z` no se observaron pruebas pesadas ni procesos Node con la ruta 0569.
 - Por el relevo explícito de Sam, se liberó el claim anterior `contabilidad-2026-10-18`, creado `11:48Z`. El worktree de integración del Director quedó limpio y su claim también se liberó.
-- Se asignó al Worker, después de cerrar 0572, el arreglo de los dos P1 y bordes de captura, con owner previsto `codex-0569-01a15a4e-ddf0`, ff-only a su rama remota y turno de pruebas. La allowlist sigue siendo las 38 rutas de su spec.
+- El Worker confirmó la adopción, ff-only a `e6579944` y claim `codex-0569-01a15a4e-ddf0`. Se le asignó, después de cerrar 0572, el arreglo de los dos P1 y bordes de captura. La allowlist sigue siendo las 38 rutas de su spec.
 - Se permite ajustar la 0495 todavía no aplicada si se necesita procedencia persistente o protección transaccional; no se permite renumerar ni tocar migraciones previas. Esto invalida el paquete antiguo si cambia SQL.
 
 ## 3. Estado contrastado
@@ -62,9 +62,9 @@ El mandato de Sam de adoptar las sesiones Codex en los mismos worktrees incluye 
 | #307 / 0571 / 0496 | `b70be5d7` | Nuevo commit de cierre documental; verify sobre `a81dbbd7` terminó 17:20:04Z, exit 0 pero 16/17 y límites e2e por contrastar | Revisor de solo lectura; Director integra después de #301/#304/#306 y aprobación nominal |
 | 0572-a | `9c254107` | Cierre parcial publicado, árbol limpio y claim liberado; 71 focales, typecheck y lint PASÓ | Retomar después de #301 corregida: ranking sin tasa, verify, mutantes y revisión visual |
 | 0573 / 0497 | `89f15a5d` | Implementada; B1, I1–I4 y M1–M9 pendientes según traspaso; sin verify | Worker posterior del carril contable, antes de consideración de integración |
-| #304 / 0570 | `59e8491b` | Draft; CI vigente relanzado. Criterio 5 PARCIAL: falta A/B local completo de 34 archivos aunque el comparativo CI existe | Turno local posterior para completar aceptación; no declarar criterios 1–8 completos |
-| #306 / oficina | `033eea50` | Solo documentación, BEHIND | Director revisa e integra después de #301/#304 |
-| 0574 / 4.5 | `18edcd81` | El handoff y el commit indican implementación, no solo diseño; depende de #307 | Validación pendiente y revisión del solapamiento con 0572 |
+| #304 / 0570 | `59e8491b` | Draft; CI PASÓ. A/B local de 34 archivos en curso desde `18:11:47Z`, con claim `codex-0570-ab-01a15a4e` | Criterio 5 sigue pendiente de resultados; después devolver turno pesado a 0569 |
+| #306 / oficina | `2f9b336c` | Correcciones documentales publicadas y revisadas; Draft. Árbol limpio, claim liberado; CI nuevo en curso | Director incorpora base y revalida después de #301; no confundir corrección documental con aislamiento del VPS |
+| 0574 / 4.5 | `18edcd81` | Implementada; preparación leída, 10/10 rutas propias en allowlist, sin dependencias locales instaladas; depende de #307 | Adopción posterior, instalación congelada, verify con turno y revisión visual |
 | 0575 / 2.2 | `b4bd7cc2` | Cinco decisiones delegadas registradas y publicadas; spec sigue draft. Árbol limpio y ahead remoto 0 comprobados | Antes de implementar: contratos, allowlists y reserva de migración; no iniciar código contable en paralelo |
 
 ### GitHub Actions
@@ -78,11 +78,20 @@ Relanzados los runs de las cabezas vigentes:
 - #304 `59e8491b`, Calidad: `39460332474`.
 - #307 `b70be5d7`, Calidad: `39465283137`.
 
-Se confirmó ejecución real de pasos después del relanzamiento. La facturación dejó de impedir el arranque. Docker de main `39453056216` y la imagen publicable `39466238021` terminaron SUCCESS; no se ha comprobado despliegue ni smoke en VPS.
+Se confirmó ejecución real de pasos después del relanzamiento. La facturación dejó de impedir el arranque. Docker de main `39453056216` y la imagen publicable `39466238021` terminaron SUCCESS. La publicación posterior se acredita en el apartado siguiente.
 
 Calidad terminó SUCCESS para main `8e9e0f50` (`39453056471`, `17:58:20Z`), #304 `59e8491b` (`39460332474`), #307 `b70be5d7` (`39465283137`) y #301 `e6579944` (`39466459315`). El verde de #301 es anterior a su reparación y no resuelve los hallazgos de revisión.
 
 No se relanzó el run obsoleto `39453136909` de #304 (`e6311891`); se usó la cabeza actual.
+
+### Publicación del main que estaba pendiente
+
+Lectura autorizada de metadatos operativos del VPS, sin filas de negocio ni PII:
+
+- `/srv/dtd-cargo/estado-publicacion/publicaciones.json`, actualizado `18:05:15Z`, informa `corre=publicable=8e9e0f505322cd57b3230cce6b16b45b5554cb8a`, vigilante `al-dia`, sin congelación ni faltantes.
+- La publicación automática de ese main ocurrió `17:28:50Z`, tras reactivar las verificaciones.
+- Evidencia `/srv/ops/evidencias/publicar-web-20261020T172837Z-publicar-8e9e0f50/salida.txt`: `RESUMEN: 14 PASÓ · 0 FALLÓ (código 0)` y `PUBLICADA 8e9e0f50`.
+- Esto acredita el despliegue del main ya integrado por el Director anterior. No hubo merge nuevo ni aplicación de migración por este Director. Smoke funcional autenticado en Studio: NO EJECUTADO.
 
 ### Revisión 0571 y límites del verify
 
@@ -110,6 +119,20 @@ Worktree propio del Director: `DTD-worktrees/director-pr301-codex-20261020`; ram
 - Se reservó el verify canónico de 0572 hasta corregir esta dependencia; su Worker termina primero las correcciones focales y un handoff parcial, antes de cambiar de tarea.
 - El paquete `e657` es evidencia de preparación local, no candidato aprobado para aplicar. Si la reparación cambia SQL, deben recalcularse blob/md5/bytes y repetir revisión, previa viva y aprobación sobre el paquete nuevo.
 
+### Precisión delegada del contrato de tasa
+
+El resolver histórico admite tasas con fecha anterior (`valid_on <= día`). El Director precisó por la delegación del §9 del plan maestro que la **emisión automática de una factura VES exige tasa con fecha de valor igual a la fecha de emisión**. Si solo hay una anterior, falla cerrado. Se conserva el override documental explícito y trazable; no se extiende por inferencia esta exigencia a CNY ni se cambia el resolver histórico de borradores/CxP.
+
+La precisión queda asignada a la spec y regresiones de 0569. No implementa autocarga BCV, reglas de fines de semana ni la unificación de hora de Caracas. El Worker prepara también una versión de escritura que cambie en toda actualización, independiente de los valores enviados por el cliente, para impedir efectos después de perder una carrera.
+
+### Corrección documental de #306
+
+Commit `2f9b336cd3a10b244f30be58f7e6466a2dd2b08c`, local/remoto/PR coincidentes según cierre comprobado. Siete rutas de las 23 de la allowlist original; el Director leyó el diff de las correcciones. Se excluyen perfiles privilegiados de contratación ordinaria, se elimina compartir perfiles, se retiran órdenes de repetir contrataciones y se separan evidencia histórica y estado vivo.
+
+El aislamiento entre procesos del mismo usuario `agentes-run` y la conformidad de la copia filtrada siguen **NO VERIFICADOS**. No se leyó una llave, no se probó acceso al VPS ni se modificó su configuración. El anexo Telegram permanece para una PR posterior.
+
+Docs (555 specs), numeración, diff y 24 enlaces locales PASÓ. Los lanzadores pnpm intentaron instalar dependencias: el Worker detuvo solo sus procesos y usó las entradas Node directas; no cambió el lockfile. La instalación parcial ignorada se conserva. Conocimiento devolvió `ok=false`, estructura INVALID; derivados pendientes. CI del nuevo SHA: run `39472795934`, en curso al corte.
+
 ### Decisiones delegadas de 0575
 
 En `b4bd7cc23394fde1e8543ffc400e271bbd2b9006`, publicadas en su rama y verificadas:
@@ -134,6 +157,14 @@ Solo cambiaron spec y handoff de la tarea. `docs:check` (556 specs), numbering y
 | 0572 / 0574 | PARALELIZABLE con coordinación | Producto separado; índice y declaraciones se reconcilian al integrar. Pruebas pesadas seriales |
 | 0575 | DEBE ESPERAR para código | Solo decisiones documentales en este bloque; contrato, número y allowlists de cada PR pendientes |
 
+0574 está limpio y respaldado en `18edcd81`, ahead/behind 0/0 y claim ausente. No se observaron consumidores por ruta ni chat asociado; no prueba ausencia de cwd ocultos. No tiene `node_modules` ni `.env.local`. El código final de 0571 `2e94bccc` ya es ancestro: los posteriores `a81dbbd7`/`b70be5d7` solo agregan evidencia documental. No necesita producción para probarse localmente.
+
+Los contratos de 0574 conservan `shipment_id`, `client_markbox` y `status`; el único solapamiento de archivos propios con 0572/0573 es el índice de specs. Aun así, 0572 modifica otros componentes de Dirección y Reportes: hace falta revisión combinada de la pantalla, no afirmar que no toca esos módulos.
+
+Turno de máquina: 0569 confirmó adopción y ausencia de pruebas y cedió temporalmente la corrida pesada al A/B local de 0570/#304 mientras implementa. El turno vuelve mediante confirmación explícita, sin dos corridas concurrentes.
+
+El A/B usa los mismos 34 archivos, 2 workers y semilla/entorno/lockfile iguales. A restaura temporalmente solo imports/constructores previos; B usa los bytes de la cabeza original, con respaldos y hashes. Conserva aserciones y mutantes. Un preflight del comprobador falló antes de lanzar pruebas y restituyó 36/36 archivos; quedó separado. Duración inicialmente estimada 10–18 minutos, revisada a 25–30 al observar los primeros archivos; el Director autorizó completar hasta 35 minutos con aviso si necesita más. No hay resultado de aceptación todavía.
+
 ## 4. Checklist vivo de continuidad
 
 Vista resumida para Sam: [Plan contable: avance y pendientes](../../docs/audits/2026-10-20-plan-contable-seguimiento-codex.md). Este §4 sigue siendo el registro vivo de coordinación.
@@ -145,6 +176,7 @@ El checklist histórico del §4 anterior conserva 36 tareas vivas, 6 hechas, 1 e
 - [x] Confirmar respaldo remoto y ausencia de cambios sin commit en las ocho ramas de la tabla del traspaso.
 - [x] Confirmar que 0572-a ya está subida; no repetir su implementación.
 - [x] Obtener de Sam el estado de facturación y relanzar CI vigente.
+- [x] Confirmar Calidad de main/#301/#304/#307 y publicación automática del main pendiente con evidencia 14/0.
 - [x] Leer memoria Claude completa mediante revisor.
 - [ ] Cerrar el relevo y la validación de 0572-a.
 - [ ] Revisar/preparar #301 en su cabeza actual y con base actual.
@@ -191,15 +223,15 @@ Fechas recibidas del traspaso; no se ha creado automatización.
 - Graphify `0.9.61`: estructura PENDING, 453 pendientes. Semántica global: 12/1320 verificadas, 1308 pendientes; piloto: 12/16, cuatro pendientes (`README.md`, reglas técnicas, marketing y runbook de ingeniería). No se infiere semántica a partir del AST.
 - Archify PENDING por `ARCHIFY_STALE_REVISION`; Obsidian PENDING. Publicación, regeneración y revisión visible de Obsidian: NO EJECUTADAS. No se alteraron derivados compartidos para simular vigencia.
 - Pruebas de producto propias del Director: NO EJECUTADO; es recepción/coordinación documental.
-- Producción y smoke visible: NO EJECUTADO por este Director.
+- Producción: lectura de metadatos de publicación PASÓ, main `8e9e0f50` y recibo de smoke automático 14/0 comprobados. Lecturas de negocio, migraciones y smoke funcional autenticado: NO EJECUTADOS.
 
 ## 8. Pendientes y handoff al Director
 
 **OBJETIVO ORIGINAL:** continuidad del plan hasta contabilidad completa en Studio.
 
-**COMPLETADO:** recepción y reconciliación inicial; respaldo de tareas verificado; CI reactivado con respuesta de Sam.
+**COMPLETADO:** recepción y reconciliación; respaldo de tareas; CI reactivado; publicación del main pendiente con 14/0 comprobado; cierre parcial 0572; decisiones 0575; correcciones documentales #306 y seguimiento visible del plan.
 
-**COMMITS / PR:** pendiente del cierre de este bloque documental.
+**COMMITS / PR:** `11fabc85` y `e4c7389b` publicados en la rama propia de coordinación; evidencia posterior en el commit que contiene esta actualización. La rama todavía no tiene PR. Las PR #301, #304, #306 y #307 están adjuntas a este chat.
 
 **PENDIENTES DE ESTA TAREA:** revisar resultados, completar paquetes revisables, coordinar Workers y actualizar este registro antes de cerrar.
 
