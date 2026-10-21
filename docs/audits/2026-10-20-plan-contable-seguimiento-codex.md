@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 9:38 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 9:40 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -125,12 +125,13 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Corregir y respaldar los **dos hallazgos de CRM y Portal** en **`3b1de986`**, misma PR #311 en borrador. CRM conserva la estimación legítima del prospecto cuando el cruce lo identifica y solo falla el cálculo anual; Portal muestra un aviso ante una respuesta inválida en vez de quedar vacío. **118/118 comprobaciones en nueve archivos, cero omisiones; diez errores intencionales detectados y fuentes restauradas; tipos y revisión estática aprobados**, con dos advertencias previas declaradas. Se conservan los intentos y errores de preparación de pruebas anteriores.
 - [x] Cerrar por lectura los dos hallazgos de revisión sobre `3b1de986`, sin otros P1/P2 materiales en el delta acotado. Addendum financiero independiente guardado; la revisión SQL/contratos conserva sus límites propios. No sustituye la prueba general.
 - [x] Completar el suplemento visual local de CRM y Portal con datos ficticios: ocho escenarios CRM y siete Portal, sin desborde de página a 390 píxeles. El intento inicial falló por exigir visibilidad a una sección vacía del caso null; el suplemento corrigió solo esa espera y aprobó los dos casos restantes. Recibos conservados, servidores propios cerrados. No acredita Auth, datos reales, teléfono físico ni accesibilidad integral.
+- [x] Aprobar los primeros controles de la validación general sobre `3b1de986`: **237/237 del arnés, sin omisiones**, revisión estática, frontera de componentes de servidor, tipos y compilación de las cuatro funciones auxiliares. La suite unitaria general está en curso; todavía no es el resultado global.
 - [ ] Terminar la **validación general en curso sobre `3b1de986`**, iniciada a las 9:35:58 p. m. Todavía sin resultado; conservar omisiones y avisos al cerrar. GitHub confirma la cabeza nueva y la PR en borrador, pero no devuelve comprobaciones para ese SHA.
 - [ ] Reemplazar las conversiones pendientes en SQL, con una entrega separada.
-- [x] Reservar y respaldar la **SDD-0576, hora Caracas**, tras inventario de 483 refs y worktrees. Diseño C1 de 59 rutas revisado y aprobado en ese nivel; C2 anual delimitado en 11 rutas, preservando las ventanas distintas. Todavía sin Worker nuevo, migración asignada ni producto implementado.
+- [x] Reservar y respaldar la **SDD-0576, hora Caracas**, tras inventario de 483 refs y worktrees. Diseño C1 revisado y C2 anual delimitado, preservando las ventanas distintas. La preparación ahora contempla 60 y 12 rutas respectivamente: se añadió solo el manifiesto necesario para mantener las referencias verificables de migraciones pendientes, sin debilitar sus controles. Todavía sin Worker nuevo, migración asignada ni producto implementado.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
-- [x] Revisar y aprobar el diseño acotado de la carga BCV: fecha exacta de hoy Caracas, decimal completo, protección de cambios concurrentes, ensayo sin escritura y respaldo manual. Reutiliza SDD-0569, 26 rutas propuestas y sin nueva migración. Todavía no existe importador ni agenda instalada.
+- [x] Revisar y aprobar el diseño acotado de la carga BCV: fecha exacta de hoy Caracas, decimal completo, protección de cambios concurrentes, ensayo sin escritura y respaldo manual. Reutiliza SDD-0569, 27 rutas propuestas al incluir el manifiesto de referencias pendientes, sin nueva migración. Todavía no existe importador ni agenda instalada.
 - [ ] Implementar la carga diaria desde el BCV oficial y el respaldo manual.
 - [ ] Comprobar el comportamiento cuando no exista una tasa vigente.
 
