@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 11:04 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 11:06 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -150,9 +150,11 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Delimitar la corrección del aviso de Warehouse: la factura emitida con asiento pendiente debe mostrarse como tal. **Alcance vigente: 68 rutas**, después de autorizar tipo, caller visible y prueba real de propagación. Misma tarea, rama y 0499; sin nueva automatización ni efectos financieros.
 - [x] Corregir y probar el aviso de factura emitida/asiento pendiente: **48/48 comprobaciones en tres archivos, sin omisiones**, después de reproducir los dos mensajes contradictorios. El recorrido CN usa el resultado real del emisor y no repite emisión ni asiento. Tipos y revisión estática del ajuste aprobados.
 - [x] Congelar y respaldar el primer candidato de aplicación **`5dadb103` en la [PR #312 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/312)**, apilada sobre #311 `8729f7f4`. Local/remoto coinciden, 62 rutas dentro de 68 permitidas y ninguna ajena. Dos revisores examinan esa versión fija mientras el único Worker continúa SQL. **Es una entrega parcial: SQL/HTTP, mutantes, navegador y cierre general siguen pendientes.**
+- [x] Terminar las dos revisiones iniciales de aplicación por versión fija: finanzas y fechas sin hallazgos materiales nuevos; Portal/Gastos con un P2 concreto de respuesta malformada, devuelto al Worker. No se aprueba la guarda histórica de `5dadb103` mientras ese ajuste siga sin revisión por versión nueva.
+- [x] Reproducir y corregir el P2 de Gastos: cuatro fallos funcionales ante filas malformadas y después **18/18 aprobadas, sin omisiones**, con cero modificaciones, anulación o asiento ante ese error. Revisión estática aprobada; guardado del ajuste y cotejo por SHA todavía pendientes al corte.
 - [ ] Cargar y validar 0499 real en base local desechable y API local, con permisos, recuperación, límites horarios y ausencia de efectos repetidos; sin base productiva.
 - [ ] Completar las pruebas de errores intencionales y la revisión visible de los formularios dentro del alcance.
-- [ ] Revisar el candidato C1, cerrar sus pruebas generales y dejar su PR en borrador.
+- [ ] Cerrar el cotejo del ajuste de Gastos y la revisión SQL/HTTP del candidato C1, ejecutar sus pruebas generales y completar la PR #312 en borrador. GitHub no aprobó el checkpoint: sus dos intentos terminaron antes de arrancar, por `startup_failure`.
 - [ ] Implementar después Caracas C2 para los cálculos anuales, con número de migración coordinado por inventario nuevo y las ventanas propias de Portal y Studio conservadas.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
