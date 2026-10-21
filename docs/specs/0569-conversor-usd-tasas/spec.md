@@ -416,3 +416,84 @@ Preparación GO03: texto íntegro `8410d224c3a7f3581a9d0a3d97f6d340c743a8afe998c
 GO03 efectivo a 2026-10-21 13:27:50.1825184 UTC, después de devolución de 0574. Guard nativo pasó en e9a65db2; crontab generado y check pasó con 21 entradas. Índice regenerado sin delta. Checkpoint previo a ROJOS conserva parser/source/sync/types/0501 idénticos a f106 y los oráculos de 8b4. Pruebas funcionales nuevas aún pendientes en este corte; instalación/baseline no se repiten. Canónica/build/conocimiento separados del GO funcional.
 
 Corte posterior GO03, producto `16eab3620aba3acfd1f7676453d3f30c37be5779`: ROJO inicial 23/129 funcional, reparaciones F01/F02/F03/S01 y residual inline F02 ROJO 1/46 → parser/fuente 79/79 PASÓ; sync ampliado 75/75 y UI DOM 19/19 PASARON. La focal de seis archivos tuvo 176/177 con un fallo del select tras error, conservado y reparado; el intento onReset delegado insuficiente y el positivo asíncrono mal esperado se separan en el handoff. HTTP full 01 falló preparación por colisión de fecha ficticia con legado humano; full 02 PASÓ 18 controles/27 escenarios/26 negativos, dos sesiones DML reales, strings extremos/auditoría, CAS/relectura, transporte/ACK perdido/UNKNOWN, ensayo, rollback y preservación manual/CNY/frozen/tenant. Receipt `5ad79026ec2c4d65707b73a6b648e0bd0f520008be5bb04c7bca99bc3d1dc954`, freeze129/0 diferencias y cleanup propio completo. No sumar intentos como cobertura distinta. UI real, mutantes TS, regresiones/gates, matriz integral, GET oficial condicionado y aceptación global siguen pendientes. Canónica/build/conocimiento/producción no acreditados ni ejecutados por este bloque.
+
+### Checkpoint funcional BCV · matriz medida del 21 de octubre
+
+Este corte sustituye únicamente los pendientes temporales de la continuación BCV de arriba. Producto/pruebas `390227699d167a7d6cdf7b22e1512f8d5a18a97c`; documentación posterior no cambia esos módulos. **Cierre local acotado para revisión; canónica/build/conocimiento NO EJECUTADOS, PR317 DRAFT/base C3, sin integración ni producción.** Fuente pública positiva NO DISPONIBLE por TLS. SDD permanece in-progress.
+
+La matriz conserva fuentes y oráculos efectivos; PASÓ significa la medición local indicada, no cobertura universal. No se suman casos repetidos, selección omitida, reparación roja o slices HTTP solapados. Los archivos están en esta rama; los recibos externos propios en `C:/tmp/director-traspaso-20261020/0569-bcv-validation/`. El handoff conserva primeros fallos y recibos completos.
+
+| Clave / recibo | SHA de entrada y resultado efectivo | SHA256 del log/recibo |
+|---|---|---|
+| P · go03-f02-residual-verde-01 | 658ca47a8; parser46/fuente33 =79/79 sin omisiones | log `5b3db583b048e7c765a440bf0caf57b988f6c177c738fd6e26aeb91b1aec2e63` |
+| S · go03-mutantes-control-01 | a3550ab64; parser46+sync76 =122/122, sin omisiones | log `5a6f85797b7a81d536df229c6f5fc40af092b09558b33becc140bcd67c928246` |
+| D · go03-deadline-phases-01 | 36fe66961;4 seleccionados/76 omitidos | log `0927c9a73b0bc31743e8ed6ff63508fc3bf772252a9cf2d5fe4c8ee027c73564` |
+| T · go03-three-tenants-01 | 390227699;3 seleccionados/80 omitidos | log `83334b76490866ba4b37c0b00735db2dbd2abe470ece8845c2d16828304e2b85` |
+| H · go03-http-full-02 | 16eab3620;18 controles/27 escenarios y26 negativos; PG17.11/REST14.17/SDK2.106.1 | receipt `5ad79026ec2c4d65707b73a6b648e0bd0f520008be5bb04c7bca99bc3d1dc954` |
+| X · go03-http-supplemental-01 | b8385d100; FALLÓ global por sintaxis de preparación de retirada; B5/B12/locks de instalación medidos y aceptados como evidencia parcial | receipt `d10f9edab3ad76b432ef8784eb6d1a7eba43de6d8bebd7fadc8668fdb16265aa` |
+| W · go03-http-withdrawal-02 | 71ea1132b; retirada aislada PASÓ, sin repetir B5/B12/timeout | receipt `a4a64bdc2317c562ba86bbce63e92e0e6e0552a49b0c6a60e06b44fc5677e7ee` |
+| Q · go02-persistencia-05 | f1061d2ea;10/10 sin omisiones, cuatro SQL mutantes incluidos | log `ef104af239c431b82ab19a5ad0aaa954968cb4c9430a3ae35057f36cb84eba14` |
+| U · go03-ui-real-07 | producto7b534e047;53 controles,14 PNG sellados; no24 capturas | receipt `1b4d3990a24d792ad469aefc8a336e90662b702517a818b9a7bccd0ebc464a1c` |
+| M · go03-mutantes-close-01; M06; readiness02 | a355/36fe: seis TS detectados con restauración exacta; quinto SQL readiness constante detectado; omitidos excluidos | cierre cinco TS `472dd49c4d4c09216d632f5ad9625ea237fed364ea83f19005200afb6b874294`; M06 stderr `d61ffd5bef6b0b92737dc4009edb27cf54af95d42b87c110ae57fad207ffc8e2`; readiness log `f51373cfda080e1307cdc9881ca57b1b20042d687760ab69d8751e9a210205cc` |
+| A · go03-focales-01 | a12e25b35; ruta19/19 y cron11/11 dentro de corrida global176/177 FALLÓ por UI; no se renombra como verde global | result `aac3e50a450b113b840c44a8ff18a5f0bfc02de1526d4d40a3882e52fd21127d`, logs nativos conservados |
+
+| Caso | Ruta y oráculo efectivamente medido | Resultado / atribución |
+|---|---|---|
+| B1 | `bcv-parser.test.ts:11`, fixture oficial/decoys; parser puro retorna VES/USD883.39630000/día21; M06 selector global devuelve2.50 | PASÓ P/S; mutante M06 falla por tasa,1 fallo/1 positivo/44 omitidos; parser restaurado exacto |
+| B2 | `bcv-parser.test.ts:15–61`, cardinalidad, etiqueta/markup/date/weekday/calendario/offset IANA y rótulo inline duplicado | PASÓ P; F01/F02 y residual tuvieron ROJO válido previo. Fracción .001 ya rechazaba: regresión |
+| B3 | `bcv-parser.test.ts:63–75`, extremos textuales, inválidos, equivalencia decimal; `bcv-sync.test.ts:291` sin churn | PASÓ P/S/H; M01 Number pierde último decimal y falla; precisión SQL/audit se compara como texto |
+| B4 | `bcv-source.test.ts`, GET fijo, redirects1/2/tercero/rechazados, gzip nativo>1MiB, reader/UTF8/deadline20 s y cancel diferido9 modos | PASÓ P. Reloj/streams controlados y gzip HTTP loopback; no acredita TLS/disponibilidad oficial |
+| B5 | `bcv-sync.test.ts:360`; driver `runSupplemental`: `b5-between-tenants`, `b5-committed-ack`, `b5-committed-lost-ack` | PASÓ S y tres parciales X aceptados; reloj app controlado cruza04:00Z con COMMIT real. Una DML, A original conservado, B diferido; ACK perdido=UNKNOWN, sin refecha ni rollback supuesto |
+| B6 | `bcv-sync.test.ts:366`, fecha pasada/futura/lejana; body DB50 s compartidos:219 | PASÓ S; espera/código explícito/cero DML, sin calendario laboral inferido |
+| B7 | `route.test.ts`; `bcv-sync.test.ts:85–121,212`, auth/query antes de sync, OFF antes de factory, scope0/duplicados/26 y25válidos | PASÓ A/S; bearer real regresión aparte; no IO/auth inválida ni scope del caller; M02 detectado |
+| B8 | `bcv-sync.test.ts:122–211`, arrays/count/shape/cobertura/cap; fábrica/SDK reales. Driver H404array/vacío/objeto,503/truncado/S01 | PASÓ S/H; vacío200count0 real y página206 válidos preservados; capability sin count no exige header; fallo no es ausencia |
+| B9 | `bcv-sync.test.ts:291`; driver `unchanged-reread`, filas/eventos/note/set_at observados | PASÓ S/H; cero UPDATE equivalente, identidad/token/nota/evento iguales, relectura íntegra |
+| B10 | `bcv-sync.test.ts:302`; driver `correction-cas`; Q/SQL contrato de corrección | PASÓ S/H/Q;7 predicados y token microsegundos original,1 evento SYSTEM/job y motivo fijo. Addendum sustituye rpc solo para job nuevo |
+| B11 | `bcv-sync.test.ts:312–380`; driver dos sesiones INSERT/CAS y `unchanged-interleaved` | PASÓ S/H; un ganador, pérdida/reconciliación sin segundo write; M04 detecta filtro ausente en fixture, no sustituye carrera PG real; sin ABA universal |
+| B12 | driver H `audit-rollback` INSERT y ACK perdido; X `b12-patch-append-rollback.json` PATCH con cambio efectivo+23514 | PASÓ H y parcial X; fila/eventos/contexto íntegros iguales tras append fallido. ACK/aborto no demuestra rollback; solo relectura acotada o UNKNOWN |
+| B13 | driver H strings0.00000001/999999999999.99999999, rate::text/audit->>rate, CAS microsegundos por SDK/HTTP real | PASÓ H; no cast float como oráculo ni PATCH artesanal; sesiones backend reales observadas |
+| B14 | driver H `isolation-frozen`, RPC humano y negativos/contexto; Q contrato0495 original | PASÓ H/Q; ajeno/manual/operacion/CNY/factura/CxP iguales, prioridad BCV y RLS humana conservadas; no lectura de negocio real |
+| B15 | `bcv-sync.test.ts:231,255,273,341,382,391`; T tres tenants con primero confirmado y segundo conflict/SQL/UNKNOWN | PASÓ S/D/T/H;4 deadlines seleccionados y3 particiones seleccionadas. Fake50 s+SDK/transporte controlado no equivalen a COMMIT real; H acredita éste aparte. Pendientes no sumados doble |
+| B16 | `route.test.ts`, `bcv-sync.test.ts:96,116`; driver H `dry-false/dry-true/normal-off`; M03 | PASÓ A/S/H; ensayo on/off solo GET/fuente/cero efecto y exige capability; modo/guard independiente, candidata no registrada |
+| B17 | `scripts/__tests__/build-crontab.test.ts`; generador/crontab f32cb6503 | PASÓ A;21 entradas,19 previas+SeaRates intactas,1 BCV `5 * * * *`, LF/secreto literal/determinismo.24 ticks nominales, sin cron instalado |
+| B18 | `ExchangeRatesSection.test.tsx`19DOM; UI07 helper/acción/toast ficticios, componente/CSS/fonts reales Edge155 | PASÓ U acotado:24 estados DOM/53 controles/14 PNG; Director inspeccionó8. Touch390/coarse/maxTouch1 cinco 48px, reflow320, teclado/pending/error/éxito/zoom nativo2x. PNG zoom viewport parcial, sinSSR/AT/dispositivo físico |
+| B19 | `bcv-sync.test.ts:419`, nueva invocación al día siguiente obtiene fuente otra vez y falla; UI no infiere último cron | PASÓ S; sin caché futura, replay o timer durable. No reinicio de VPS acreditado |
+| R1 | `bcv-sync.test.ts:116`; Q ausencia0501; W app después de retirada real | PASÓ S/Q/W; SQL_CONTRACT_UNAVAILABLE antes de fetch/DML, también dryRun, sin fallback0495 |
+| R2 | driver H/W y Q: GET service-only version1/readytrue y ausencia efecto; catálogo íntegro | PASÓ H/Q/W; no se atribuye lock/lease a GET |
+| R3 | HTTP02/fullH: roleGUC/service_role, current_user postgres, session_user authenticator, auth.uidNULL/claims sin sub;26 DML negativos | PASÓ H y GO02:24 rechazos sin cambios+2 humanos user/rpc, nunca job. No claim aislado ni current_user definer como caller; secreto de servicio no atesta exclusividad cron |
+| R4 | Q/H INSERT directo; auditoría system/NULL/job/motivo fijo, cuatro campos y note fuera | PASÓ Q/H; razón generada DB, no note/header humano inventado |
+| R5 | Q/H corrección CAS7, rate::text/microsegundos/before-after/motivo; cero CAS sin evento | PASÓ Q/H/S; no token monotónico universal |
+| R6 | S/H repetición equivalente y relectura | PASÓ, sin nota/token/motivo/evento nuevo |
+| R7 | `bcv-persistence.migration.test.ts:101`, contrato0495 original intacto sobre0501; regresiones69/69 | PASÓ Q y regresiones en 71ea1132b; source/motivo manual, CNY, DELETE y documentos históricos sin ampliación de alcance |
+| R8 | contrato SQL0501 motivo transaccional ajeno no vacío y control humano | PASÓ Q; branch nuevo rechaza, no hereda reason0294 ni cambia manual |
+| R9 | Q/H fallo append real por catálogo o trigger acotado; X corrección23514 | PASÓ Q/H y parcial X; INSERT y PATCH revierten fila/evento/contexto, sin stub exitoso |
+| R10 | S shapes/version/ready; Q trigger drift; `bcv-persistence.migration.test.ts:140` readiness constante | PASÓ Q/S y M-readiness02:1seleccionado/10 omitidos; se reaprueban solo huellas fixture, falla assert SQL `trigger disabled cierra capability`. Readiness01 seleccionó0/11 omitidos=NO EJECUTADO |
+| R11 | S/H capability falsa entre tenants después del primer confirmado | PASÓ,1confirmado conservado/1diferido/cero segunda DML; no rollback global ni lease |
+| R12 | H ACK perdido después de COMMIT: presencia reconcilia o lectura no disponible=UNKNOWN | PASÓ;1 write, sin autoría inferida; X cruce medianoche conserva efecto comprometido |
+| R13 | A/S ensayo/auth/OFF; D capability body y señal previamente abortada, PATCH/reconciliación con presupuesto común | PASÓ, solo GET en ensayo, SDK.retry(false)/abortSignal. No se traslada un deadline SELECT a todas las fases IO |
+| R14 | Q preflight/reaplicación/error posDDL+ROLLBACK; X pg_locks/timeout/instalación; W retirada exitosa con evento job previo | PASÓ por evidencias separadas: bloqueo151→166 en transactionid ShareLock/55P03 y catálogo exacto; instalación/retirada observadas con object AccessExclusiveLock. Quiescencia propia y eventos conservados; sin protección prometida ante DDL concurrente ni disponibilidad garantizada |
+
+Rutas abreviadas `bcv-*.test.ts` están en `lib/studio/fx/__tests__/`; `route.test.ts` en `app/api/cron/bcv-rates/__tests__/`; driver en `scripts/tests/bcv-rates-postgrest.mjs`; UI en `app/studio/(app)/admin/_components/`. Regresión69: `lib/studio/__tests__/fx-rates.test.ts`, `lib/shared/__tests__/fx.test.ts`, `app/studio/(app)/admin/__tests__/exchange-rates-actions.test.ts`, `lib/http/__tests__/secret-compare.test.ts`, log SHA256 `a52d696f8b93999d2af4c192430831807cc8084fd67e7d3d33c0ccc73c0f44dc`.
+
+### SGE-00 · clasificación medida del nuevo job y aviso
+
+| Principio | Clasificación acotada y evidencia |
+|---|---|
+|01 predecible|Cumplimiento local B5/B6/B15: día fijo, espera/candidata/UNKNOWN veraces; sin promesa diaria.|
+|02 conservación|Cumplimiento local S/H/X/U: CAS, manual/frozen/contexto preservados; error conserva4campos.|
+|03 riesgo/fricción|Cumplimiento del diseño R3 aprobado: automatización autorizada y ejecución productiva separadas; sin confirmación humana inventada por tick.|
+|04 auditoría|Cumplimiento local del nuevo job Q/H/X/W: motivo DB, origen job y atomicidad; las brechas manuales históricas siguen fuera, no excepción nueva.|
+|05 permisos/tenant|Cumplimiento local A/S/H/Q: bearer antes de IO, scope acotado, rol/login/claims/ACL verificados; no permisos humanos nuevos.|
+|06 prevención|Cumplimiento local P/S/H: estructura/fecha/decimal/snapshot/capability antes de DML.|
+|07 estado verdadero|Cumplimiento local S/H/X/T: partición, reconciliación/UNKNOWN y parciales; público NO DISPONIBLE no se renombra como éxito.|
+|08 pasos|Cumplimiento local U: respaldo manual conservado, pending bloquea duplicado y recuperación conserva contexto; no formulario nuevo.|
+|09 patrón|Cumplimiento local: helper Caracas, cliente SDK dedicado, generador canónico, tokens/icono existente; gates de5 componentes/28 políticas validan registro, no conformidad total.|
+|10 accesibilidad|Cumplimiento acotado del aviso/flujo medido U: teclado, foco, neutral>=4.5,16px,320px/2x / cinco 48px. No certificación A11Y integral, AT o teléfono físico. NC táctil06 corregida antes de UI07.|
+|11 lenguaje|Cumplimiento local A/U: no se confirmó, fecha/fuente atribuibles, siguiente acción manual; sin secretos/IDs/SQL crudos en summary.|
+|12 autoridad|Cumplimiento de límites: propia rama/DRAFT,0501 solo fixtures,0495 intacta; canónica/conocimiento/merge/release/producción siguen separados.|
+
+Typecheck delta03 PASÓ en 390227699; lint delta02 cuatro archivos,0 errores/3 avisos `_note` conservados. Primer gate conjunto FALLÓ por declaración pendiente; seis pasos verdes conservados y reintento único beaa5350 PASÓ 0 ROJO/3 AMARILLO/3 homónimos. No nuevas repeticiones por rutina. Cinco warnings del lint anterior y cada fallo de preparación se conservan en handoff.
+
+Única lectura pública implementada a 2026-10-21T14:54:05.174–05.824Z:1 intento GET/TLS normal/DB 0, **NO DISPONIBLE SOURCE_UNAVAILABLE**, causa nativa `UNABLE_TO_VERIFY_LEAF_SIGNATURE` antes de headers;0 bytes/sin hash de cuerpo completo. Receipt `go03-public-source-01/receipt.json` SHA256 `01c8f8f9fc7e7ff6c2f6e889d885b99a793e87e90c81ff079c35a766c83e116a`. Sin retry/fallback/TLS alternativo; no acredita obtención oficial positiva ni cron/operación disponible. Director permite documentar cierre local con este límite.
+
+Checkpoint/receta canónica externa en `go03-checkpoint-funcional-01/`: comando normal, freeze completo, recursos propios y captura del JSON E2E original antes de su borrado; **NO EJECUTADA**, requiere revisión/GO posterior. La capa documental queda guardada en rama; integración, estructura/semántica Graphify, Archify/preview/Obsidian y publicación compartida continúan pendientes separados. No se escribe memoria ni se cambia política para cerrar el job.
