@@ -146,7 +146,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
                 value={pair}
                 onChange={(e) => setPair(e.target.value as FxPair)}
                 className="studio-input"
-                style={{ marginTop: 6 }}
+                style={{ marginTop: 6, minHeight: "var(--s-12)" }}
               >
                 {FX_PAIRS.map((p) => (
                   <option key={p} value={p}>
@@ -165,7 +165,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
                 className="studio-input studio-input-mono"
                 inputMode="decimal"
                 placeholder={pair === "CNY/USD" ? "7.24" : "40.00"}
-                style={{ marginTop: 6 }}
+                style={{ marginTop: 6, minHeight: "var(--s-12)" }}
               />
             </div>
             <div>
@@ -178,7 +178,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
                 max={hoyEnCaracas()}
                 onChange={(e) => setValidOn(e.target.value)}
                 className="studio-input"
-                style={{ marginTop: 6 }}
+                style={{ marginTop: 6, minHeight: "var(--s-12)" }}
               />
             </div>
           </div>
@@ -193,7 +193,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
               onChange={(e) => setNote(e.target.value)}
               className="studio-input"
               placeholder="Ej.: BCV del día, o la cotización del banco"
-              style={{ marginTop: 6 }}
+              style={{ marginTop: 6, minHeight: "var(--s-12)" }}
             />
           </div>
 
@@ -233,7 +233,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
           </p>
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button type="submit" className="studio-btn studio-btn-primary" disabled={isPending || !canSubmit}>
+            <button type="submit" className="studio-btn studio-btn-primary" style={{ minHeight: "var(--s-12)" }} disabled={isPending || !canSubmit}>
               {isPending ? "Guardando…" : "Registrar tasa"}
             </button>
           </div>
