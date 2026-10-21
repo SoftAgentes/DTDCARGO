@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 4:28 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 4:41 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -10,7 +10,7 @@
 
 **Caracas C2 anual quedó entregado localmente en la PR #313 en borrador, final `0e630ede`:** **12.759 pruebas de aplicación al primer intento y una omitida**, más **249 contratos SQL, reconstrucción de 492 migraciones y construcción aprobadas**. Navegación: **177 aprobadas, una recuperada y 20 omitidas**, con aviso y original conservado. Mantiene **CIERRE INCOMPLETO, 16/17**, por historial productivo sin medir. El cierre documental, respaldo, integridad y liberación de propiedad están comprobados; 54 recibos coinciden por huella. Conserva los avisos, la primera corrida fallida y la atribución incierta de dos procesos. Conocimiento estructural y mapa actualizados; semántica y publicación compartida pendientes. Esto no acredita producción.
 
-**Ahora está activo Caracas C3, gastos móviles, PR #314 en borrador `d1a7cca2`:** regresiones **248/248**, trece variantes y recuperación nativa aprobadas. Ajuste de prueba temporal: **26/26 comprobaciones, cero omisiones**, y control negativo aún efectivo. Revisión independiente y del Director aprobadas; producto intacto. **La segunda receta normal comenzó a las4:25a.m.**, con39fuentes congeladas y sobre exclusivo. Su resultado está pendiente. **La primera conserva FALLÓ y cierre además INCOMPLETO**, con timeoutPortal sin causa demostrada; SQL249/reconstrucción492/construcción aprobados y navegación177/1recuperada/20omitidas con aviso e informe original. Sus39fuentes permanecieron intactas antes de documentos. Embarques ya reprodujo53fallos funcionales y pasó a corrección ligera; sus nuevas pruebas esperan el turno deCaracas. Después sigue BCV. Push y PR funcionan; Actions sigue sin aprobación.
+**Ahora está activo Caracas C3, gastos móviles, PR #314 en borrador `d1a7cca2`:** regresiones **248/248**, trece variantes y recuperación nativa aprobadas. Ajuste temporal **26/26**, con control negativo efectivo y revisión aprobada. La segunda receta desde4:25a.m. ya aprobó sus controles iniciales. **Primer intento completo:12.934aprobadas/1fallida/1omitida**; el control de zona horaria pasa y solo agotó20segundos una prueba delPortal. El reintento nativo está en curso; salida general pendiente y39fuentes congeladas. La primera receta conserva **FALLÓ+CIERRE INCOMPLETO**, sus originales y timeout sin causa demostrada. Embarques reprodujo53fallos funcionales y su parche está escrito, todavía sin probar; espera turno. Después sigue BCV. Push y PR funcionan; Actions sigue sin aprobación.
 
 **Cómo leerlo:** una casilla marcada significa que se terminó exactamente el paso escrito. En el checklist general, significa integrado y publicado. Dentro de una tarea abierta, una prueba aprobada puede tener ✓ aunque su publicación siga pendiente. Los resultados locales no se presentan como prueba de producción.
 
@@ -226,6 +226,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Corregir solo esa fixture y aprobar **26/26, cero omisiones**; el control temporal M9 sigue detectando seis días incorrectos, con un aprobado y18omitidos por filtro. Producto restaurado exactamente. Nuevo checkpoint **`d1a7cca2`** respaldado y revisado, sin hallazgos nuevos; siete rutas y fuentes ajenas intactas.
 - [x] Preparar un sobre exclusivo para la segunda receta, con cabeza exacta,39fuentes y protección de los13originales anteriores; revisión del Director aprobada. No se reutilizan los originales de la primera corrida.
 - [x] Recibir devolución expresa del turno breve0574 y comenzar la segunda receta normal a las**4:25a.m.** sobre**`d1a7cca2`**, con39fuentes congeladas, originales anteriores protegidos y observador externo.
+- [x] Recoger el primer intento unitario completo de la segunda receta: **12.934aprobadas/1fallida/1omitida**,562,82segundos. Zona horaria aprobada; el único fallo agota20segundos en elPortal, sin causa demostrada. Controles237/237, revisión estática y tipos aprobados; el reintento nativo sigue en curso, sin cambiar fuentes o límites.
 - [ ] Revisar la salida completa de esa segunda receta y su integridad antes del cierre documental y del ciclo único de conocimiento.
 - [ ] Corregir el tramo móvil y comprobar sus regresiones, navegación, validación general y entrega en PR en borrador.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
@@ -233,6 +234,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Volver a consultar el BCV a las **2:49 a. m. del 21**: HTTP 200 con TLS normal, bloque USD y Fecha Valor del 21 coherentes. HTML y recibo conservados por huella; el origen contiene otras fechas y el parser debe escoger el bloque correcto. Es observación pública, sin importador ni escritura de tasas.
 - [x] Revisar y aprobar el diseño acotado de la carga BCV: fecha exacta de hoy Caracas, decimal completo, protección de cambios concurrentes, ensayo sin escritura y respaldo manual. Reutiliza SDD-0569, 27 rutas propuestas al incluir el manifiesto de referencias pendientes, sin nueva migración. Todavía no existe importador ni agenda instalada.
 - [x] Contrastar las **27 rutas BCV iniciales** con treinta objetos y dependencias. La revisión posterior contraC3 detectó una ampliación mínima: **`.env.example`, ahora28rutas**, para documentar el interruptor apagado y el alcance vacío sin valores reales. Scanner intacto. Parser, cancelación, reintentos, auditoría y HTTP tienen una vía concreta; no existe todavía importador o cron activo ni pruebas ejecutadas de esa implementación.
+- [x] Completar el preflight BCV sobre el checkpointC3 y cotejar **37/37objetos, cero diferencias**. Encargo unificado de28rutas preparado; falta activar conC3final aceptado, árbol/propiedad y turno. No se presenta la ausencia de módulos como una prueba funcional fallida.
 - [ ] Implementar la carga diaria desde el BCV oficial y el respaldo manual.
 - [ ] Comprobar el comportamiento cuando no exista una tasa vigente.
 
