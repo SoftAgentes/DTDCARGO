@@ -1,10 +1,10 @@
 # Handoff · SDD-0572-b · Conversión anual USD compatible
 
-Estado vigente: **EN PROGRESO · SQL/PGlite parcial validado; cierre pendiente**.
+Estado vigente: **IMPLEMENTACIÓN LOCAL COMPLETA · candidato app en validación; cierre canónico y revisión financiera pendientes**.
 Base: a30d85859c788070ffc3459a29e389cab015c7eb. Claim adquirido y guard PASÓ.
 Owner: worker-0572b-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 Worktree: C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0572-conversor-usd-sql.
-Rama: codex/sdd-0572-conversor-usd-sql. PR futura en borrador contra
+Rama: codex/sdd-0572-conversor-usd-sql. PR311 en borrador contra
 codex/sdd-0572-conversor-usd-reemplazos (#310), sin merge/deploy/DB real.
 Árbol de partida limpio, node_modules ausente y sin consumidores propios.
 Turno pesado exclusivo recibido del Director; etapas locales seriales.
@@ -202,3 +202,85 @@ no es cierre, integración, aplicación ni aceptación íntegra de 0572-b.
   navegador, verify y revisión financiera siguen pendientes; no cierre general.
 - Adaptación app/DTO/consumidores sigue local y fuera del checkpointSQL.
   No se atribuyen los resultados de esos bytes al SHA publicado.
+
+## Candidato de aplicación · 2026-10-21 01:16 UTC
+
+- SQL publicado en f9cc1dd y suplemento inmutable en
+  3b74e42b1618a856d812455ca565f69f530efb53. Revisión SQL independiente del
+  Director: fixture temporal cerrada, sin nuevos hallazgos sobre contrato/ACL.
+  La migración conserva blob55c625d93c50aee8ba67d89b5f8bcc3947bbee77 y
+  SHA256cd6a612fc646f16099424266e974f0258347e663208193d6d5f062ce5b3fce6b.
+- DTO exacto compartido, lectores v2, propagación por Portal/Fidelización/
+  Reportes/CSV/CRM y rechazo de cruce truncado implementados. Puente numérico
+  exige representación decimal corta reversible; el importe exacto grande
+  sigue visible aunque no sea apto para derivar un nivel con Number.
+- Verde funcional ampliado previo:247/247,18archivos,0SKIP. Suplemento visual
+  posterior:28/28 en4archivos,0SKIP,exit0. Cinco casos nuevos de entrada ERP
+  ausente/nominal legítimo:20/20 en2archivos,0SKIP,exit0. No sumar estas cifras
+  como pruebas únicas: hay solapamiento; los recibos delimitan cada corrida.
+- Mutantes app: primera medición10muertos/3vivos,13restaurados. 09/10 revelaron
+  falta de regresión UI para convertido con lectura global disponible pero
+  entrada individual ausente; se añadieron esos casos y controles del nominal
+  legítimo. 12 tenía foco incorrecto: el contrato de tier:null ya estaba en la
+  prueba RSC real. Suplemento SOLO09/10/12:3muertos por aserción funcional y
+  3restaurados. Resultado final13/13 detectados, sin ocultar primera medición.
+  Evidencia: app-mutants/result.json y app-mutants-supplement/result.json,
+  logs individuales, copias originales y huellas de restauración.
+- UI sintética con componentes reales, adaptadores mínimos de navegación/
+  acciones inactivas y sesión ficticia; sin DB/env. Siete superficies a390 y
+  1280, claro/oscuro, parcial/cero/signo/solo excluidas/inválido/no disponible/
+  importe grande según recibos. after-measurements.json: documento390/390 y
+  1280/1280; cero pageerrors. Las cuatro tablas llegan por Tab y flechas al
+  extremo, con cifras/estado consultables. Ajustes de overflow y wrap solo en
+  consumidores permitidos; no se modifica KpiCard compartido.
+- Evidencia visual: visual-fixture/after-*.png, keyboard-*.png,
+  after-measurements.json, accessibility.json y source-hashes.json. CSSzoom2
+  observa392/390 en Reportes: aproximación de reflow, **no** certificación de
+  zoom nativo200%, lector de pantalla ni WCAG integral. El tema Portal inicial
+  mal configurado era de la fixture; corregido con data-portal-theme, sin
+  atribuir ese falso hallazgo al producto.
+- Servidor fixture PID32044/puerto47576 y suplemento baseline PID43812/48413
+  cerrados; cleanup.json y baseline-cleanup.json confirman cero procesos hijos
+  y cero listeners. Navegadores propios cerrados en finally.
+- Typecheck final2 **PASÓ exit0**, 01:14:31–01:14:54Z. Lint inicial34rutas
+  FALLÓ por optional-chain con non-null assertion en testPortal y un import de
+  tipo sin uso; ambos corregidos. Suplemento de las dos rutas **PASÓ exit0**.
+  Persisten dos advertencias idénticas a a30: Date.now en render Board y
+  setState síncrono en effect de KommoClient. No se suprimen ni se rediseña
+  reloj/aging. Los ajustes de lint no cambian comportamiento de producto.
+- Guard, índice, numbering y sintaxis del arnés HTTP **PASÓ**. Índice permanece
+  idéntico: no hubo cambios de metadatos que exijan regeneración.
+- pending-migration-symbols **FALLÓ**: el nombre privado convertir coincide
+  con literales «Convertir a cliente»/«Facturas sin convertir». El detector
+  busca token simple, no invocación SQL, y los declara llamadas alcanzables.
+  La declaración de la RPC v2 sí pasa. Se propuso al Director nombre privado
+  específico y revalidación de SQL/HTTP; no se inventa degradación de homónimos
+  ni se relaja el gate. Log original pending-symbols.log conservado.
+- Verify canónico y revisión financiera siguen pendientes. No se declara
+  aceptación completa, integración ni producción. Claim activo;
+  el Worker conserva el turno pesado hasta terminar y devolverlo expresamente.
+
+### FUERA DE ALCANCE DETECTADO
+
+Portal ShareHero: la fila de recompensa$80/Próximamente excede su caja a390
+(112px de caja/184px contenido) y la tarjeta superior la recorta. Reproducido
+con página a30 y candidata, mismo adaptador sintético y DTO completo; esa
+comparación solo atribuye la tarjeta de recompensa, no toda la app anterior.
+ShareHero normalizado idéntico SHA256a2104ade299287175059cc55886163b994b51067db0eb9640b51f79d2afc9efe.
+reward-comparison.json y reward-a30-390.png/reward-candidate-390.png preservan
+medición y captura. No se tocó recompensa, créditos ni su diseño.
+
+### Release y conocimiento pendientes
+
+La futura aplicación de0498 requiere paquete desde SHA revisado, previa de
+solo metadatos y OK nominal de Sam por el Director. Ejecutar preflight, DDL en
+transacción, postflight de identidad/ACL/shape, recarga de caché y comprobación
+con roles autorizados antes de publicar app. Nunca aplicar aquí por un gate.
+Rollback de app es compatible con DB nueva por campos/v1 preservados; no se
+propone borrar0498 aplicada ni restaurar conversiones mediante DML. Ante falla
+del preflight, detener y reconstruir paquete; no saltar huellas ni permisos.
+
+Documentación queda en spec/handoff propios, sin inventar regla nueva. Graphify
+estructural, cobertura semántica, Archify, preview y Obsidian quedan separados
+de implementación/PR. Status de cierre pendiente después de verify; sin
+regeneración masiva ni publicación compartida desde rama no integrada.

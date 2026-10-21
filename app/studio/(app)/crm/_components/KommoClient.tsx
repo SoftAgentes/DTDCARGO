@@ -1,5 +1,7 @@
 "use client";
 
+import { BILLING_UNAVAILABLE, billingStatus, formatAnnualUsd, type AnnualBillingRead } from "@/lib/shared/annual-billing";
+
 /**
  * Tablero CRM Kommo (SDD-0078) — orquestador client con 2 pestañas.
  *
@@ -101,6 +103,7 @@ export function KommoClient({
   filters,
   convertedLeads,
   valueByLead,
+  billingAvailable,
   contactByLead,
   pendingOpsByLead,
   staleOpsByLead,
@@ -122,7 +125,8 @@ export function KommoClient({
   /** kommo_lead_id → markbox de los leads ya convertidos en cliente. */
   convertedLeads: Record<number, string>;
   /** kommo_lead_id → USD facturado (12m) de los leads convertidos. */
-  valueByLead: Record<number, number>;
+  valueByLead: Record<number, AnnualBillingRead>;
+  billingAvailable: boolean;
   /** kommo_lead_id → contacto principal (nombre + teléfono). Vacío si no hay vínculo. */
   contactByLead: Record<number, KommoLeadContactInfo>;
   /** leadId → ops encoladas que aún no llegaron a Kommo (chip "en camino"). */
@@ -471,6 +475,7 @@ export function KommoClient({
                 subdomain={overview.subdomain}
                 converted={converted}
                 valueByLead={valueByLead}
+                billingAvailable={billingAvailable}
                 contactByLead={contactByLead}
                 pendingOps={pendingOpsByLead}
                 staleOps={staleOpsByLead}
@@ -515,6 +520,7 @@ function LeadsTable({
   subdomain,
   converted,
   valueByLead,
+  billingAvailable,
   contactByLead,
   pendingOps,
   staleOps,
@@ -528,7 +534,8 @@ function LeadsTable({
   statusName: Map<string, string>;
   subdomain: string | null;
   converted: Record<number, string>;
-  valueByLead: Record<number, number>;
+  valueByLead: Record<number, AnnualBillingRead>;
+  billingAvailable: boolean;
   /** leadId → contacto principal. Vacío si el vínculo aún no está espejado. */
   contactByLead: Record<number, KommoLeadContactInfo>;
   /** leadId → ops encoladas que todavía no llegaron a Kommo. */
@@ -562,7 +569,7 @@ function LeadsTable({
       }}
     >
       {/* Scroll de rescate en anchos chicos: la fila de acción no se aplasta. */}
-      <div style={{ overflowX: "auto" }}>
+      <div role="region" aria-label="Leads y facturación ERP" tabIndex={0} style={{ overflowX: "auto" }}>
         <div role="table" aria-label="Leads del CRM" style={{ minWidth: 800 }}>
           {/* Header */}
           <div
@@ -609,7 +616,7 @@ function LeadsTable({
             const waHref = contacto?.phone ? buildProspectWaLink(contacto.phone) : null;
             const markbox = converted[l.id];
             const days = daysSince(l.kommo_updated_at);
-            const erpVal = valueByLead[l.id];
+            const erpVal = valueByLead[l.id] ?? (!billingAvailable || converted[l.id] ? BILLING_UNAVAILABLE : undefined);
             const kommoPrice = Number(l.price) || 0;
 
             const nameStyle: CSSProperties = {
@@ -752,18 +759,19 @@ function LeadsTable({
                 </span>
                 <span
                   role="cell"
-                  style={{ textAlign: "right" }}
+                    style={{ textAlign: "right", minWidth: 0, overflowWrap: "anywhere" }}
                   title={
                     erpVal != null
-                      ? "Facturado en el ERP (12m)"
+                      ? billingStatus(erpVal)
                       : kommoPrice > 0
                         ? "Valor en el CRM"
                         : "Sin valor"
                   }
                 >
                   {erpVal != null ? (
-                    <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--success)" }}>
-                      {fmtUsd(erpVal)}
+                    <span style={{ font: "700 12px/1 var(--f-mono)", color: erpVal.state === "completo" ? "var(--success)" : "var(--ink-soft)" }}>
+                      {formatAnnualUsd(erpVal.subtotalUsd)}
+                      <small style={{ display: "block", lineHeight: 1.4, font: "500 11px/1.4 var(--f-sans)", marginTop: 5 }}>{billingStatus(erpVal)}</small>
                     </span>
                   ) : kommoPrice > 0 ? (
                     <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>

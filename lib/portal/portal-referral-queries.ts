@@ -11,6 +11,7 @@
  * código de referido. La normalización USD y la ventana trailing-12m se calculan
  * dentro de la RPC para no elevar la sesión de la página.
  */
+import { AnnualBillingError, BILLING_UNAVAILABLE, billingNumber, decodeAnnualBilling, type AnnualBillingRead } from "@/lib/shared/annual-billing";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   referralShareCode,
@@ -33,9 +34,10 @@ export type PortalReferralProgram = {
   /** Código para compartir (REF-XXXX, determinístico desde el markbox). */
   shareCode: string;
   /** Nivel + progreso al siguiente, derivado de la facturación trailing-12m USD. */
-  tier: TierProgress;
+  tier: TierProgress | null;
   /** Facturación trailing-12m USD-normalizada (la base del nivel). */
-  billedUsd: number;
+  billedUsd: number | null;
+  billing: AnnualBillingRead;
   /** Créditos ya acreditados (USD). */
   creditsEarnedUsd: number;
   /** Créditos en camino (referidos en pipeline, USD). */
@@ -50,7 +52,7 @@ export type PortalReferralProgram = {
 
 type ReferralProgramRpcRow = {
   markbox?: unknown;
-  billed_usd?: unknown;
+  billing_v2?: unknown;
   referrer_reward_usd?: unknown;
   referred_reward_usd?: unknown;
   referrals?: unknown;
@@ -65,15 +67,19 @@ export async function getMyReferralProgram(
   db: SupabaseClient,
 ): Promise<PortalReferralProgram | null> {
   const { data, error } = await db.rpc("get_portal_referral_program");
-  if (error) return null;
+  if (error) throw new AnnualBillingError("rpc");
 
+  if (Array.isArray(data) && data.length > 1) throw new AnnualBillingError("shape");
   const row = (Array.isArray(data) ? data[0] : data) as
     | ReferralProgramRpcRow
     | null;
   const markbox = String(row?.markbox ?? "").trim().toUpperCase();
   if (!row || !markbox) return null;
 
-  const billedUsd = Math.max(0, Number(row.billed_usd) || 0);
+  let billing: AnnualBillingRead;
+  try { billing = decodeAnnualBilling(row.billing_v2, true); }
+  catch { billing = BILLING_UNAVAILABLE; }
+  const billedUsd = billingNumber(billing);
   const referrerReward = Math.max(0, Number(row.referrer_reward_usd) || 0);
   const referredReward = Math.max(0, Number(row.referred_reward_usd) || 0);
   const rawReferrals = Array.isArray(row.referrals) ? row.referrals : [];
@@ -109,7 +115,8 @@ export async function getMyReferralProgram(
 
   return {
     shareCode: referralShareCode(markbox),
-    tier: tierProgress(billedUsd),
+    tier: billedUsd === null ? null : tierProgress(billedUsd),
+    billing,
     billedUsd,
     creditsEarnedUsd,
     pendingCreditsUsd,

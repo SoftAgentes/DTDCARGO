@@ -1,3 +1,4 @@
+import type { AnnualBillingRead } from "@/lib/shared/annual-billing";
 /**
  * Tipos + helpers PUROS del módulo Reportes & Analytics (SDD-0052 · Slice A).
  *
@@ -495,7 +496,8 @@ function sortByRevenueThenCount<T extends { revenue: number; count: number }>(
 export type ClientRankRow = {
   markbox: string;
   name: string;
-  billedUsd: number;
+  billedUsd: number | null;
+  billing: AnnualBillingRead;
   tierId: string;
   tierLabel: string;
   tierTone: string; // BadgeTone (string libre, lo resuelve la UI)
@@ -514,8 +516,9 @@ export type TierDistRow = {
 export type CommercialByClient = {
   ranking: ClientRankRow[];
   tierDist: TierDistRow[];
-  totalClients: number;
-  totalBilledUsd: number;
+  totalClients: number | null;
+  totalBilledUsd: number | null;
+  billing: AnnualBillingRead;
 };
 
 // ── Contables · Estado de resultados ───────────────────────────
@@ -791,9 +794,10 @@ export type AgentRow = {
   /** Leads perdidos (estado de sistema Kommo 143). */
   lost: number;
   /** Leads del asesor que se convirtieron en cliente vivo del ERP. */
-  clients: number;
+  clients: number | null;
   /** Facturación real (USD, trailing 12m) de esos clientes convertidos. */
-  revenueUsd: number;
+  revenueUsd: number | null;
+  billing: AnnualBillingRead;
   /** Conversión = won / leads * 100 (0 si no tiene leads). */
   convPct: number;
 };
@@ -805,8 +809,9 @@ export type CommercialByAgent = {
     leads: number;
     won: number;
     lost: number;
-    clients: number;
-    revenueUsd: number;
+    clients: number | null;
+    revenueUsd: number | null;
+  billing: AnnualBillingRead;
     convPct: number;
   };
   /**

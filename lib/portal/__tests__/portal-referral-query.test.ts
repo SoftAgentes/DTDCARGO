@@ -12,6 +12,7 @@ function row(overrides: Record<string, unknown> = {}) {
   return {
     markbox: "DTD-1004",
     billed_usd: 60000,
+    billing_v2: { version: 2, subtotal_usd: "60000.00", sin_tasa_count: 0, conversion_state: "completo" },
     referrer_reward_usd: 80,
     referred_reward_usd: 60,
     referrals: [],
@@ -20,6 +21,17 @@ function row(overrides: Record<string, unknown> = {}) {
 }
 
 describe("getMyReferralProgram por principal", () => {
+  it("v2 conserva subtotal y contador sin certificar el nivel legado", async () => {
+    const { db } = dbWithRpc(row({ billing_v2: { version: 2, subtotal_usd: "100.00", sin_tasa_count: 1, conversion_state: "sin_tasa" } }));
+    const program = await getMyReferralProgram(db);
+    expect(program).toMatchObject({ billing: { state: "sin_tasa", subtotalUsd: "100.00", sinTasaCount: 1 }, tier: null });
+  });
+
+  it("distingue fallo RPC de ausencia de principal", async () => {
+    const { db } = dbWithRpc(null, { message: "detalle interno no publicable" });
+    await expect(getMyReferralProgram(db)).rejects.toThrow("Facturación anual no disponible");
+  });
+
   it("consulta la RPC sin enviar markbox ni ids", async () => {
     const { db, rpc } = dbWithRpc(row());
     const program = await getMyReferralProgram(db);
@@ -47,8 +59,8 @@ describe("getMyReferralProgram por principal", () => {
     );
 
     const program = await getMyReferralProgram(db);
-    expect(program?.tier.tier.id).toBe("silver");
-    expect(program?.tier.next?.id).toBe("gold");
+    expect(program?.tier?.tier.id).toBe("silver");
+    expect(program?.tier?.next?.id).toBe("gold");
     expect(program?.creditsEarnedUsd).toBe(160);
     expect(program?.pendingCreditsUsd).toBe(80);
     expect(program?.referrals[0]).toMatchObject({
@@ -62,7 +74,6 @@ describe("getMyReferralProgram por principal", () => {
   it.each([
     { data: null, error: null },
     { data: { markbox: "" }, error: null },
-    { data: null, error: { message: "boom" } },
   ])("falla cerrado sin un programa válido", async ({ data, error }) => {
     const { db } = dbWithRpc(data, error);
     await expect(getMyReferralProgram(db)).resolves.toBeNull();

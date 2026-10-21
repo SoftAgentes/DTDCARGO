@@ -464,7 +464,7 @@ parcial. La retoma posterior de esta sección registra su reproducción y repara
 
 ## 0572-b · Transición compatible de agregados anuales · asignación 2026-10-20
 
-**EN PROGRESO; pruebas y release NO EJECUTADOS.** Base a30d8585, rama
+**IMPLEMENTACIÓN LOCAL COMPLETA; cierre canónico y revisión financiera pendientes.** Base a30d8585, rama
 `codex/sdd-0572-conversor-usd-sql`, worktree aislado propio. El Director aprobó
 la alternativa A y asignó `0498_annual_billing_fx_v2` tras inventario. El handoff
 propio es `.agents/handoffs/0572-conversor-usd-sql.md`; conserva el contrato
@@ -519,7 +519,46 @@ El contrato de zona fija p_as_of al cambiar timezone y demuestra su guarda
 con mutante; PGlite18/18 (13mutantes) incluido en focal247/247sinSKIPs.
 Arnés durable permite --http-only para suplementos sin repetir contratoSQL.
 Limitaciones de identidad sintética y recibos crudosStartedAt en handoff;
-tipos/lint/visual/verify y revisión financiera todavía pendientes.
+tipos/lint/visual/verify y revisión financiera todavía pendientes en ese checkpoint.
+
+Checkpoint aplicación01:16UTC: DTO exacto y todos los consumidores de b
+implementados. Focal247/247; suplemento de disposición28/28 y casos UI nuevos
+20/20, todos sinSKIPs (corridas solapadas, no total único). Mutantes app13/13
+detectados al cerrar suplemento: primera medición10/13, dos regresiones UI
+faltantes y un foco RSC corregido; todos los archivos restaurados por hash.
+UI sintética real390/1280 y claro/oscuro conserva importes grandes completos,
+subtotal/contador/estado; tablas consultables por Tab/flechas. Evidencia y
+limitaciones en handoff b. No certifica Studio autenticado ni producción.
+Tipos PASÓ y correcciones propias de lint PASÓ; dos advertencias de reloj CRM
+idénticas a a30 permanecen fuera del delta. Gate de símbolos detectó homónimos
+del nombre privado convertir en textos UI, sin llamadas reales al helper;
+resolución propuesta y evidencia en handoff. Cierre canónico aún no ejecutado.
+
+### Gobernanza de b · clasificación y evidencia por principio
+
+| Norma | Clasificación del delta | Evidencia/límite |
+|---|---|---|
+| SGE-00.01 predictibilidad | Cumplimiento | Lecturas y CSV conservan significado; subtotal parcial distinto de total completo. |
+| SGE-00.02 conservación | No aplica a escritura | No nuevos editores ni mutaciones; se mantienen datos no financieros cuando falla facturación. |
+| SGE-00.03 riesgo/fricción | Cumplimiento de alcance R3 | Sin confirmaciones nuevas de lectura; migración/publicación requieren aprobación nominal separada. |
+| SGE-00.04 auditoría | No aplica a eventos de negocio | No DML de negocio; DDL/pruebas/SHAs y recibos durables, no se confunde toast con auditoría. |
+| SGE-00.05 aislamiento | Cumplimiento local | SQL37 y HTTP sintético prueban ACL, tenants, ambiguo0453, disabled y OR con overridesfalse; no equivalencia Auth productivo. |
+| SGE-00.06 prevención | Cumplimiento | Decodificador cerrado, decimal exacto, errores/cap/duplicados rechazan; tests y mutantes. |
+| SGE-00.07 estado verdadero | Cumplimiento local | DTO y UI separan completo/sin tasa/inválido/no disponible; cero conocido conserva0, nunca precio Kommo para ERP desconocido. |
+| SGE-00.08 recorrido | Cumplimiento | Mismas páginas y acciones; Fidelización comparte lectura en listado/distribución, sin pasos agregados. |
+| SGE-00.09 reutilización | Cumplimiento | KpiCard/Badge/Progress/Avatar/tokens existentes; helper compartido de dinero, sin nueva primitiva global. |
+| SGE-00.10 accesibilidad | Parcial; aceptación integral pendiente | Teclado/foco/regiones y390/1280/light-dark/reduced-motion medidos. CSSzoom2 no sustituye zoom nativo200%; lector de pantalla/WCAG integral NO EJECUTADOS. |
+| SGE-00.11 lenguaje | Cumplimiento local | Subtotal parcial, contador, Por revisar y no disponible son texto visible; error Portal explica reintento; no depende del color. |
+| SGE-00.12 autoridad | Cumplimiento | Solo entorno sintético y PR borrador autorizados; ninguna aplicación/merge/deploy real. |
+| NUM-01 / ERR-01 | Cumplimiento local | Céntimos/string canónicos, signo/0/grande, null vacío en CSV, diagnóstico sanitizado y error distinto de sin tasa. |
+| VIS-01 / CMP-01 | Cumplimiento acotado | Componentes y tokens DTD, cambios mínimos de wrap/scroll en sus consumidores, sin rediseño. |
+| A11Y-01 | Parcial, no excepción aprobada | Límites de SGE-00.10 explícitos; recorte preexistente de recompensa Portal fuera del delta con reproducción a30. |
+
+No se atribuye DAT-01 a completitud financiera ni se cambia la política de
+fechas: ventanas temporales existentes preservadas por contrato SQL. Deuda
+compatible: mantener v1/legado hasta retiro aprobado; atribución por lead no
+equivale a facturación única del tenant. Previa/paquete/OK nominal, caché y
+rollback compatible descritos en handoff propio; release NO EJECUTADO.
 
 ```text
 supabase/migrations/0498_annual_billing_fx_v2.sql

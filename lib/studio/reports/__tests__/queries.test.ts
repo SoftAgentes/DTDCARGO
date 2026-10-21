@@ -23,6 +23,7 @@ import {
   cashflowReport,
   combinedReport,
   commercialByClient,
+  commercialByAgent,
   incomeStatement,
   operationalOverview,
   reportByCarrier,
@@ -493,15 +494,15 @@ describe("commercialByClient", () => {
   it("rankea por facturación USD-normalizada (desc) + tier derivado + distribución", async () => {
     // La normalización y ventana ya vienen agregadas desde la RPC mínima.
     const billing = [
-      { client_markbox: "DTD-1", billed_usd: 320000 },
-      { client_markbox: "DTD-2", billed_usd: 12000 },
+      { client_markbox: "DTD-1", subtotal_usd: "320000.00", sin_tasa_count: 0, conversion_state: "completo" },
+      { client_markbox: "DTD-2", subtotal_usd: "12000.00", sin_tasa_count: 0, conversion_state: "completo" },
     ];
     const clients = [
       { id: "1", markbox: "DTD-1", name: "Alfa" },
       { id: "2", markbox: "DTD-2", name: "Beta" },
       { id: "3", markbox: "DTD-3", name: "Gamma" }, // sin facturación
     ];
-    const { client } = stub({ studio_client_annual_billing: billing, clients });
+    const { client } = stub({ studio_client_annual_billing_v2: billing, clients });
     const out = await commercialByClient(client, NOW);
 
     expect(out.totalClients).toBe(3);
@@ -521,7 +522,7 @@ describe("commercialByClient", () => {
   });
 
   it("sin clientes → ranking vacío, totales en 0", async () => {
-    const { client } = stub({ studio_client_annual_billing: [], clients: [] });
+    const { client } = stub({ studio_client_annual_billing_v2: [], clients: [] });
     const out = await commercialByClient(client, NOW);
     expect(out.totalClients).toBe(0);
     expect(out.ranking).toEqual([]);
@@ -879,5 +880,49 @@ describe("combinedReport (Combinados · rentabilidad real)", () => {
     // El costo es 0 pero el revenue real sí entra (margen = ingreso completo).
     expect(out.totals.cost).toBe(0);
     expect(out.totals.revenue).toBe(5000);
+  });
+});
+
+describe("0572-b · agregados anuales comerciales reales", () => {
+  const annual = (mark: string, amount: string | null, missing = 0, state = missing ? "sin_tasa" : "completo") => ({ client_markbox: mark, subtotal_usd: amount, sin_tasa_count: missing, conversion_state: state });
+  it("cliente solo sin tasa no desaparece ni recibe Bronze; error no equivale a cero", async () => {
+    for (const data of [[annual("A", "0.00", 2)], [{ client_markbox: "A", subtotal_usd: "bad", sin_tasa_count: 0, conversion_state: "completo" }]]) {
+      const { client } = stub({ clients: [{ id: "a", markbox: "A", name: "Cliente" }], studio_client_annual_billing_v2: data });
+      const result = await commercialByClient(client);
+      expect(result.ranking).toHaveLength(1);
+      expect(result.ranking[0].tierLabel).toBe("Por revisar");
+      expect(result.totalBilledUsd).toBeNull();
+      expect(result.billing.state).toBe(data[0].subtotal_usd === "bad" ? "no_disponible" : "sin_tasa");
+      const csv = buildViewCsv({ category: "com", rep: "by-client", byClient: result });
+      expect(csv).not.toBeNull();
+      expect(csv!.content).toContain("Por revisar");
+    }
+  });
+  it("asesores conservan atribución por lead y deduplican contador por cliente en total", async () => {
+    const { client } = stub({ kommo_leads: [
+      { id: 1, price: 99, responsible_user_id: 10, status_id: 142 },
+      { id: 2, price: 99, responsible_user_id: 10, status_id: 143 },
+      { id: 3, price: 99, responsible_user_id: 20, status_id: 142 },
+    ], clients: [{ kommo_lead_id: 1, markbox: "A" }, { kommo_lead_id: 2, markbox: "A" }, { kommo_lead_id: 3, markbox: "A" }], studio_client_annual_billing_v2: [annual("A", "100.01", 2)] });
+    const result = await commercialByAgent(client);
+    expect(result.rows[0].billing).toEqual({ subtotalUsd: "200.02", sinTasaCount: 2, state: "sin_tasa" });
+    expect(result.rows[1].billing.subtotalUsd).toBe("100.01");
+    expect(result.totals.billing).toEqual({ subtotalUsd: "300.03", sinTasaCount: 2, state: "sin_tasa" });
+    expect(result.totals.revenueUsd).toBeNull();
+    expect(result.totals.leads).toBe(3);
+    const csv = buildViewCsv({ category: "com", rep: "by-agent", byAgent: result });
+    expect(csv!.content).toContain("200.02");
+    expect(csv!.content).toContain("2 facturas sin tasa,2");
+  });
+  it("cruce fallido o truncado no borra leads ni lo llama sin Kommo", async () => {
+    for (const options of [{ errorTable: "clients" }, { serverCap: 1 }]) {
+      const { client } = stub({ kommo_leads: [{ id: 1, responsible_user_id: 10, status_id: 142 }], clients: Array.from({ length: 61 }, (_, n) => ({ kommo_lead_id: n+1, markbox: `C${n}` })) }, options);
+      const result = await commercialByAgent(client);
+      expect(result.hasKommo).toBe(true);
+      expect(result.totals.leads).toBe(1);
+      expect(result.totals.clients).toBeNull();
+      expect(result.totals.billing.state).toBe("no_disponible");
+      expect(result.totals.revenueUsd).toBeNull();
+    }
   });
 });

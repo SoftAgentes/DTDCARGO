@@ -5,9 +5,11 @@
  * Read-only: el motor de niveles deriva de `invoices` (no hay tabla de tiers);
  * los referidos viven en `referrals` (migración 0098).
  *
- * Supabase devuelve `numeric` como string → se coerce a number en cada lectura.
+ * La facturación v2 conserva el decimal exacto; créditos y referidos mantienen
+ * su contrato numérico existente.
  */
 
+import { AnnualBillingError, BILLING_UNAVAILABLE, BILLING_ZERO, billingNumber, compareAnnualBilling, decodeAnnualBilling, type AnnualBilling, type AnnualBillingRead } from "@/lib/shared/annual-billing";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPaged } from "@/lib/db/paginate";
 import {
@@ -22,66 +24,42 @@ import {
 
 // ── Motor de niveles (derivado de invoices, trailing-12m) ─────
 
-type BillingAggregateRow = {
-  client_markbox: string;
-  billed_usd: number;
-};
-
-/**
- * Facturación por cliente de los últimos 12 meses, USD-normalizada (§3.2).
- *
- * La RPC `studio_client_annual_billing` hace el cálculo dentro de la base y
- * devuelve sólo Shipping Mark + total agregado. El caller no recibe facturas,
- * estados, monedas, tasas ni fechas individuales. La función SQL deriva el
- * tenant y valida el rol de la sesión; `p_as_of` sólo admite el presente.
- *
- * Devuelve `Map<markbox, billedUsd>`.
- */
+/** Agregado v2 minimizado de sesión; la lectura incompleta nunca equivale a cero. */
 export async function clientAnnualBilling(
   supabase: SupabaseClient,
   now: Date = new Date(),
-): Promise<Map<string, number>> {
+): Promise<Map<string, AnnualBilling>> {
   const asOf = now.toISOString().slice(0, 10);
-
-  // Aunque ya viene agregado, puede haber más de 1.000 clientes. Se pagina
-  // para no degradar silenciosamente los tiers de la cola truncada.
-  const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
-    (d, h) =>
-      supabase
-        .rpc("studio_client_annual_billing", { p_as_of: asOf })
-        .order("client_markbox", { ascending: true })
-        .range(d, h),
-  );
-  if (!complete) {
-    throw new Error("Los agregados de facturación superan el tope de lectura.");
-  }
-
-  const out = new Map<string, number>();
-  const rows = ((data as Record<string, unknown>[] | null) ?? []).map(
-    (r): BillingAggregateRow => ({
-      client_markbox: String(r.client_markbox ?? ""),
-      billed_usd: Number(r.billed_usd) || 0,
-    }),
-  );
-
-  for (const r of rows) {
-    if (!r.client_markbox) continue;
-    if (r.billed_usd <= 0) continue;
-    out.set(
-      r.client_markbox,
-      (out.get(r.client_markbox) ?? 0) + r.billed_usd,
+  try {
+    const { rows, complete } = await fetchAllPaged<Record<string, unknown>>(
+      async (d, h) => {
+        const page = await supabase.rpc("studio_client_annual_billing_v2", { p_as_of: asOf })
+          .order("client_markbox", { ascending: true }).range(d, h);
+        if (page.error) throw new AnnualBillingError("rpc");
+        if (!Array.isArray(page.data)) throw new AnnualBillingError("shape");
+        return page;
+      },
     );
+    if (!complete) throw new AnnualBillingError("paging");
+    const out = new Map<string, AnnualBilling>();
+    for (const row of rows) {
+      if (!row || typeof row.client_markbox !== "string" || !row.client_markbox) throw new AnnualBillingError("shape");
+      if (out.has(row.client_markbox)) throw new AnnualBillingError("duplicate");
+      out.set(row.client_markbox, decodeAnnualBilling(row));
+    }
+    return out;
+  } catch (error) {
+    throw error instanceof AnnualBillingError ? error : new AnnualBillingError("rpc");
   }
-
-  return out;
 }
 
 export type ClientWithTier = {
   id: string;
   markbox: string;
   name: string;
-  billedUsd: number;
-  tier: Tier;
+  billedUsd: number | null;
+  billing: AnnualBillingRead;
+  tier: Tier | null;
 };
 
 /**
@@ -92,37 +70,45 @@ export async function clientsWithTier(
   supabase: SupabaseClient,
   now: Date = new Date(),
 ): Promise<ClientWithTier[]> {
-  const billing = await clientAnnualBilling(supabase, now);
+  const billingMap = await clientAnnualBilling(supabase, now).catch(() => null);
 
   // Paginado: la cartera viva completa para cruzar con la facturación.
   // SDD-0509: la RLS no excluye a los eliminados; el filtro va acá.
   const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
-    (d, h) =>
-      supabase
+    async (d, h) => {
+      const page = await supabase
         .from("clients")
         .select("id, markbox, name")
         .is("deleted_at", null)
         .order("id", { ascending: true })
-        .range(d, h),
+        .range(d, h);
+      if (page.error || !Array.isArray(page.data)) throw new AnnualBillingError("rpc");
+      return page;
+    },
   );
   if (!complete) {
     throw new Error("Los clientes superan el tope de lectura.");
   }
 
 
-  const rows = ((data as Record<string, unknown>[] | null) ?? []).map((r) => {
+  if (billingMap === null && data.length === 0) throw new AnnualBillingError("rpc");
+  const seen = new Set<string>();
+  const rows = data.map((r) => {
+    if (typeof r.markbox !== "string" || !r.markbox || typeof r.id !== "string" || seen.has(r.markbox)) throw new AnnualBillingError("shape");
+    seen.add(r.markbox);
     const markbox = String(r.markbox ?? "");
-    const billedUsd = billing.get(markbox) ?? 0;
+    const billing = billingMap === null ? BILLING_UNAVAILABLE : billingMap.get(markbox) ?? BILLING_ZERO;
+    const billedUsd = billingNumber(billing);
     return {
       id: String(r.id ?? ""),
       markbox,
       name: String(r.name ?? ""),
-      billedUsd,
-      tier: tierOf(billedUsd),
+      billedUsd, billing,
+      tier: billedUsd === null ? null : tierOf(billedUsd),
     };
   });
 
-  return rows.sort((a, b) => b.billedUsd - a.billedUsd);
+  return rows.sort((a, b) => compareAnnualBilling(a.billing, b.billing));
 }
 
 export type TierCount = { tier: Tier; count: number };
@@ -133,13 +119,18 @@ export async function tierCounts(
   now: Date = new Date(),
 ): Promise<TierCount[]> {
   const clients = await clientsWithTier(supabase, now);
+  return tierCountsFromClients(clients);
+}
+
+/** La página deriva listado y distribución de la MISMA lectura. */
+export function tierCountsFromClients(clients: ClientWithTier[]): TierCount[] {
   const counts: Record<TierId, number> = {
     bronze: 0,
     silver: 0,
     gold: 0,
     platinum: 0,
   };
-  for (const c of clients) counts[c.tier.id] += 1;
+  for (const c of clients) if (c.tier) counts[c.tier.id] += 1;
   return TIERS.map((t) => ({ tier: t, count: counts[t.id] }));
 }
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { billingStatus, formatAnnualUsd } from "@/lib/shared/annual-billing";
+
 /**
  * Orquestador client del módulo Reportes & Analytics (SDD-0052 · Slices A+B).
  *
@@ -527,14 +529,19 @@ function Card({
   title,
   children,
   style,
+  scrollLabel,
 }: {
   eyebrow?: string;
   title?: string;
   children: React.ReactNode;
   style?: React.CSSProperties;
+  scrollLabel?: string;
 }) {
   return (
     <div
+      role={scrollLabel ? "region" : undefined}
+      aria-label={scrollLabel}
+      tabIndex={scrollLabel ? 0 : undefined}
       style={{
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
@@ -920,6 +927,7 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
 // Slice B — Comerciales · Por cliente
 // ═══════════════════════════════════════════════════════════════
 function ByClientView({ data }: { data: CommercialByClient }) {
+  if (data.totalClients === null) return <p role="status">Cartera y facturación anual no disponibles.</p>;
   if (data.totalClients === 0) {
     return (
       <EmptyState
@@ -930,9 +938,9 @@ function ByClientView({ data }: { data: CommercialByClient }) {
     );
   }
 
-  const ranked = data.ranking.filter((r) => r.billedUsd > 0);
-  const maxBilled = Math.max(1, ...ranked.map((r) => r.billedUsd));
-  const top = ranked.slice(0, 15);
+  const ranked = data.ranking;
+  const maxBilled = Math.max(1, ...ranked.map((r) => r.billedUsd ?? 0));
+  const top = ranked;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -945,28 +953,29 @@ function ByClientView({ data }: { data: CommercialByClient }) {
         }}
       >
         <KpiCard value={fmtNum(data.totalClients)} label="Clientes" sub="en cartera" valueColor="var(--wine-text)" />
-        <KpiCard value={fmtNum(ranked.length)} label="Con facturación" sub="últimos 12 meses" />
-        <KpiCard value={fmtUsdCompact(data.totalBilledUsd)} label="Facturado" sub="trailing 12m · USD" valueColor="var(--success)" />
+        <KpiCard value={fmtNum(ranked.filter((r) => r.billing.state === "completo" && r.billing.subtotalUsd !== "0.00").length)} label="Facturación verificable" sub="últimos 12 meses" />
+        <KpiCard value={formatAnnualUsd(data.billing.subtotalUsd)} label={data.billing.state === "completo" ? "Facturado" : "Subtotal conocido"} sub={billingStatus(data.billing)} style={{ overflowWrap: "anywhere" }} />
       </div>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(360px, 2fr) minmax(240px, 1fr)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
           gap: 16,
           alignItems: "start",
         }}
       >
         {/* Ranking */}
-        <Card eyebrow="Ranking por facturación" style={{ padding: 0 }}>
+        <Card eyebrow="Facturación por cliente · pendientes al final" scrollLabel="Facturación por cliente" style={{ padding: 0, overflowX: "auto" }}>
           {ranked.length === 0 ? (
             <div style={{ padding: "18px 20px", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
               Hay clientes pero ninguno con facturación en los últimos 12 meses.
             </div>
           ) : (
             <>
+              <div style={{ minWidth: 560 }}>
               <HeaderRow
-                cols="40px 1fr 90px 1fr"
+                cols="40px minmax(140px, 1fr) 90px minmax(180px, 1fr)"
                 labels={["#", "Cliente", "Nivel", "Facturado 12m"]}
                 rightFrom={3}
                 rightTo={3}
@@ -976,7 +985,8 @@ function ByClientView({ data }: { data: CommercialByClient }) {
                   key={r.markbox || r.name || i}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "40px 1fr 90px 1fr",
+                    gridTemplateColumns: "40px minmax(140px, 1fr) 90px minmax(180px, 1fr)",
+                    minWidth: 560,
                     gap: 14,
                     alignItems: "center",
                     padding: "12px 18px",
@@ -984,7 +994,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
                   }}
                 >
                   <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
-                    {i + 1}
+                    {r.billing.state === "completo" ? i + 1 : "—"}
                   </span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -1001,16 +1011,16 @@ function ByClientView({ data }: { data: CommercialByClient }) {
                       {r.tierLabel}
                     </Badge>
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
                     <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
-                      {fmtUsdCompact(r.billedUsd)}
+                      {formatAnnualUsd(r.billing.subtotalUsd)}
                     </span>
-                    <div style={{ marginTop: 5 }}>
-                      <Progress value={(r.billedUsd / maxBilled) * 100} tone="var(--wine)" height={3} />
-                    </div>
+                    <div style={{ marginTop: 5, font: "500 11px/1.4 var(--f-sans)" }}>{billingStatus(r.billing)}</div>
+                    {r.billedUsd !== null && <Progress value={(r.billedUsd / maxBilled) * 100} tone="var(--wine)" height={3} />}
                   </div>
                 </div>
               ))}
+              </div>
             </>
           )}
         </Card>
@@ -1072,7 +1082,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
   }
 
   const rows = data.rows;
-  const maxRev = Math.max(1, ...rows.map((r) => r.revenueUsd));
+  const maxRev = Math.max(1, ...rows.map((r) => r.revenueUsd ?? 0));
   const t = data.totals;
 
   return (
@@ -1087,13 +1097,14 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
       >
         <KpiCard value={fmtNum(t.leads)} label="Estimados" sub="leads asignados" valueColor="var(--wine-text)" />
         <KpiCard value={fmtNum(t.won)} label="Ganadas" sub={`${t.convPct}% conv. promedio`} valueColor="var(--success)" />
-        <KpiCard value={fmtNum(t.clients)} label="Convertidos" sub="a cliente del ERP" />
-        <KpiCard value={fmtUsdCompact(t.revenueUsd)} label="Revenue equipo" sub="facturado 12m · USD" valueColor="var(--success)" />
+        <KpiCard value={t.clients === null ? "—" : fmtNum(t.clients)} label="Convertidos" sub="a cliente del ERP" />
+        <KpiCard value={formatAnnualUsd(t.billing.subtotalUsd)} label="Facturación atribuida" sub={billingStatus(t.billing)} style={{ overflowWrap: "anywhere" }} />
       </div>
 
-      <Card eyebrow="Performance por agente" style={{ padding: 0 }}>
+      <Card eyebrow="Performance por agente" scrollLabel="Facturación por agente" style={{ padding: 0, overflowX: "auto" }}>
+        <div style={{ minWidth: 690 }}>
         <HeaderRow
-          cols="44px 1fr 70px 70px 70px 1.2fr"
+          cols="44px minmax(130px, 1fr) 70px 70px 70px minmax(180px, 1.2fr)"
           labels={["", "Agente", "Estim.", "Ganadas", "Conv.", "Revenue"]}
           rightFrom={2}
           rightTo={4}
@@ -1103,7 +1114,8 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
             key={r.agentId ?? `none-${i}`}
             style={{
               display: "grid",
-              gridTemplateColumns: "44px 1fr 70px 70px 70px 1.2fr",
+              gridTemplateColumns: "44px minmax(130px, 1fr) 70px 70px 70px minmax(180px, 1.2fr)",
+              minWidth: 690,
               padding: "14px 18px",
               gap: 14,
               alignItems: "center",
@@ -1120,7 +1132,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
                 {r.name}
               </div>
               <div style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 3 }}>
-                {fmtNum(r.clients)} {r.clients === 1 ? "cliente" : "clientes"} · {fmtNum(r.lost)} {r.lost === 1 ? "perdida" : "perdidas"}
+                {r.clients === null ? "—" : fmtNum(r.clients)} {r.clients === 1 ? "cliente" : "clientes"} · {fmtNum(r.lost)} {r.lost === 1 ? "perdida" : "perdidas"}
               </div>
             </div>
             <span style={{ font: "700 13px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
@@ -1138,16 +1150,16 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
             >
               {r.convPct}%
             </span>
-            <div>
+            <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
               <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
-                {fmtUsdCompact(r.revenueUsd)}
+                {formatAnnualUsd(r.billing.subtotalUsd)}
               </span>
-              <div style={{ marginTop: 5 }}>
-                <Progress value={(r.revenueUsd / maxRev) * 100} tone="var(--wine)" height={3} />
-              </div>
+              <div style={{ marginTop: 5, font: "500 11px/1.4 var(--f-sans)" }}>{billingStatus(r.billing)}</div>
+              {r.revenueUsd !== null && <Progress value={(r.revenueUsd / maxRev) * 100} tone="var(--wine)" height={3} />}
             </div>
           </div>
         ))}
+        </div>
       </Card>
 
       <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
@@ -1155,6 +1167,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
         estados de cierre del CRM. El revenue es facturación real del ERP
         (últimos 12 meses, USD) de los leads que se convirtieron en cliente —{" "}
         <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>no el valor estimado del CRM</strong>.
+        La atribución conserva una suma por lead: un cliente puede aparecer en varios leads o asesores; no es facturación única del tenant. El contador de facturas sin tasa se deduplica por cliente en cada ámbito.
         NPS y satisfacción se omiten: no hay fuente real todavía.
       </p>
     </div>
