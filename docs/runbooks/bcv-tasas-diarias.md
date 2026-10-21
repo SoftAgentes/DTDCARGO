@@ -1,6 +1,6 @@
 # BCV diario · VES por 1 USD
 
-SDD-0569 · 2026-10-21. **EN PROGRESO: candidato local en autoría ligera. Pruebas, agenda generada, instalación, activación y producción todavía NO EJECUTADAS.** El handoff propio conserva contratos y evidencia por fase; esta nota no autoriza operar el servidor.
+SDD-0569 · 2026-10-21. **EN PROGRESO: respaldo parcial en PR #317 DRAFT.** La instalación congelada, el baseline previo de cron/UI y el bloque acotado de contexto HTTP/persistencia están medidos; aceptación funcional general, agenda generada, revisión visual, canónica y conocimiento siguen pendientes. Activación y producción no están autorizadas. El handoff propio conserva contratos y evidencia por fase; esta nota no autoriza operar el servidor.
 
 El objetivo es guardar únicamente la cotización oficial cuyo día valor sea exactamente hoy en America/Caracas. El formulario de Tasas de cambio conserva el respaldo manual. Una fecha futura se vuelve a consultar cuando llegue su día; una fecha pasada no se copia como hoy. No hay historial durable de consultas ni disponibilidad diaria garantizada.
 
@@ -58,7 +58,9 @@ La nota de fila guarda solo URL/retrievedAt/hash/día sanitizados y<=500. No sus
 
 ## Agenda e instalación futura, no realizadas
 
-Agenda aprobada para generar después de su baseline: `5 * * * *`, ruta única `/api/cron/bcv-rates`. Son24invocaciones nominales/día, no cuota global exacta ni24requests HTTP garantizados por los redirects/repeticiones. Sin Vercel/Actions/scheduler paralelo. El generador y el crontab del servidor se mantienen como fuentes canónicas.
+Entrada autorada en el generador después del baseline: `5 * * * *`, ruta única `/api/cron/bcv-rates`. La regeneración nativa y sus comprobaciones esperan turno. Son 24 invocaciones nominales/día, no cuota global exacta ni 24 requests HTTP garantizados por los redirects/repeticiones. Sin Vercel/Actions/scheduler paralelo. El generador y el crontab del servidor se mantienen como fuentes canónicas.
+
+El aviso de Tasas distingue una BCV VES completa de hoy de manual/operación, anterior, futura o incompleta. Muestra la última fecha/fuente recibidas cuando son completas; null no demuestra que no exista tasa ni que haya fallado el cron. El formulario manual conserva par, tasa, fecha y nota. La autoría y sus casos DOM todavía no prueban teclado, contraste o disposición real.
 
 La futura operación requiere, por separado: checkpoint/PR revisados; aprobación nominal de Sam para0501 conforme al runbook productivo; preflight/postflight/caché HTTP y login real verificados; configuración/scope aprobados con flagOFF; ensayo estricto sin mutación; aprobación concreta de recreaciónweb/instalación de agenda y activación. La existencia de esta documentación o una PR DRAFT no concede ninguno de esos pasos.
 
@@ -66,7 +68,9 @@ Rollback preferido: app anterior con0501 compatible conservada. Retirar SQL requ
 
 ## Validación local y límites de evidencia
 
-En esta fase están autorados parser/source/sync/route, fixtures y contratos SQL/SDK; **todos NO EJECUTADOS**. Primero instalación propia congelada, baseline real de cron/UI existentes y gate pequeño PG17.11/PostgREST14.17 del contexto con humano positivo y negativos. Después B1–B19/R1–R14, HTTP proxy404/503/truncado/ACK perdido, regressiones0495, mutantes funcionales y UI proporcional. No ROJO por import/ENOENT de módulos antes ausentes.
+Instalación propia congelada y baseline previo de cron/UI: PASÓ, 2 archivos y 12 casos sin omisiones. GO02: PASÓ contexto acotado PG17.11/PostgREST14.17/SDK2.106.1 con siete controles, 24 rechazos DML sin efectos y dos humanos legítimos user/rpc; PASÓ focal persistencia 0501, 10/10 sin omisiones y cuatro mutantes funcionales. Los fallos de preparación y el diagnóstico omitido se conservan separados en el handoff.
+
+F01 medianoche, F02 vínculo Fecha Valor, F03 cancelación diferida y S01 Content-Range son hallazgos por lectura con oráculos autorados, **NO EJECUTADOS**. La variante F01 de fracción .001 ya rechazaba en el candidato y es regresión conservada. No se repararon parser/source/sync antes de medir ROJO válido. Quedan B1–B19/R1–R14 completos, HTTP ampliado, regresiones pertinentes, UI, tipos/lint/gates y canónica posterior. No ROJO por import/ENOENT de módulos antes ausentes ni conformidad global por una focal.
 
 Driver durable del gate pequeño: `node scripts/tests/bcv-rates-postgrest.mjs --context-only --evidence <directorio-nuevo-externo>`, solo con turno explícito del Director. SetupCOMMIT y contratoROLLBACK se separan; imágenes/versiones efectivas, recursos propios y cleanup se registran. Un gate pequeño aprobado no se presenta como aceptación completa.
 

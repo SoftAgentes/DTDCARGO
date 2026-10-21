@@ -58,7 +58,7 @@ Rama propia indicada arriba. Publicación parcial autorizada por el Director el 
 
 ## PENDIENTES DE ESTA TAREA
 
-- Reserva0501 completada localmente. Módulos/parser/source/sync/route, fixtures, SQL/contratos, driver pequeño y documentación autorados como candidatos; falta demostrar y corregir bajo turno. Cron/UI aún idénticos aD; package/lock solo promoción directa8.0.1.
+- Reserva0501 completada localmente. Módulos/parser/source/sync/route, fixtures, SQL/contratos, driver pequeño y documentación autorados como candidatos; falta demostrar y corregir bajo turno. Cron/UI autorados después del baseline, todavía sin ejecutar; crontab generado pendiente del script nativo bajo turno. Package/lock solo promoción directa8.0.1.
 - Gate SQL/HTTP pequeño y focal0501 completados bajo GO02; resto B1–B19/R1–R14 y canónica pendientes. Dos P2 SQL medidos: negativos DML con efectos/eventos y mutante funcional del guard; rechazo después de ambosDDL y catálogo exacto tras ROLLBACK en la mismaDB. Parser/source conservan producto candidato hasta ROJOS F01/F02/F03 en turno funcional futuro.
 - Matriz SGE12 de producto con clasificación/evidencia real, no ascender matriz estática a conformidad.
 - Documentos finales, recibos de cierre nativos, ciclo único de conocimiento local, PR DRAFT, integridad y cleanup de recursos atribuibles; liberar claim solo al concluir escritura y cierre aceptado.
@@ -130,6 +130,18 @@ Autoría nueva, **NO EJECUTADA** mientras 0574 conserva el turno pesado. F03 añ
 Informe sync `3b028de74af523b14800961d655720b7a213126ba8303c198e1bb4ece810397b` leído íntegro: P2-S01 confirmado por lectura de la frontera antes del SDK, sin reproducción. Nuevos oráculos con fábrica/SDK reales y sólo doble de transporte: `*/0basura`, `*/0.5`, `*/0/9`, prefijo inválido en snapshot y sus variantes de total 1 en tenants; exige cerrar antes de fuente/DML. Positivos de total paginado preservado y capability sin Content-Range; ausencia genuina `*/0` conservada. Fixture de respuestas usa rangos completos para arrays no vacíos, sin asignar Reply/count manualmente.
 
 Driver posterior al gate aceptado sólo está preparado: registrará Content-Range bruto y Prefer de cada salto, y añadirá muestras nativas de ausencia/página. Ese control adicional no se atribuye al HTTP02 ya medido. No hubo ejecución nueva, corrección de transporte/SDK/cliente compartido ni reparación F01/F02/F03 antes de ROJO. Se mantienen pendientes los oráculos nativos amplios B1–B19/R1–R14, cron/UI y cierre canónico/conocimiento.
+
+## PREPARACIÓN GO03 Y CRON/UI · 2026-10-21
+
+GO03 leído íntegro, SHA256 `8410d224c3a7f3581a9d0a3d97f6d340c743a8afe998c76d2d313bc1ffcccdc1`; no empieza hasta transferencia expresa del turno de 0574. Revisión de oráculos `368aefb9abbd28a6c65e3b9cf0bf15fd5329b63cea5535870ea02424ef3acdab` leída completa: sin bloqueo material por lectura, sin ejecución. F01 .001 ya se rechazaba; regresión, no cuarto ROJO nuevo. Driver ampliado exige evidencia nueva, sin heredar HTTP02.
+
+Preimágenes D de generador/test/crontab/UI/test revalidadas por blob y SHA256 antes de autoría, sin diferencias. Entrada BCV `5 * * * *` y oráculos de unicidad/precedentes/secret literal autorados. Crontab todavía sin regenerar: se preserva hasta ejecutar su generador nativo bajo turno, sin edición manual del derivado. No se cambia vercel.json, Compose, CURL_PREFIX ni entradas anteriores.
+
+Aviso UI autorado con Icon.info existente, tokens neutrales, región status/polite y calendario IANA compartido. Solo una VES BCV completa de hoy permite ocultar el aviso. Fecha/fuente completas se atribuyen a esta vista; incompletos dicen tasa no confirmada. No se deduce salud del cron, ausencia DB ni origen BCV desde una tasa manual. Campos/acción manual conservados, con casos de fecha Caracas, teclado DOM, foco durante rerender, error y pending preparados. Todos NO EJECUTADOS; navegador/contraste/reflow/zoom siguen pendientes.
+
+Governance Check aplicado por lectura: SGE-00, VIS-01/02, A11Y-01, CMP-01, ICO-01, FRM-01, ERR-01 y AVS-01; búsqueda del registro/primitivas no encontró banner informativo canónico que reemplazar. Se conserva la composición local y el icono central, sin primitiva global nueva ni API toast nueva. Cumplimiento estático del nuevo aviso en tokens/semántica/copy; cumplimiento funcional y visual todavía no acreditado. No se declara conformidad integral del formulario histórico ni se absorben sus brechas de error/contraste fuera del aviso. Validator del plugin y /ui-check real esperan turno. Las indicaciones históricas del comando sobre MARKBOX no sustituyen BRAND vigente.
+
+Se encontraron rutas supuestas ausentes al preparar lecturas (HANDOFF/CHANGELOG de raíz, registry relativo y nombres de helper); se resolvieron con inventario focal a sus rutas reales. Son preparación de lectura, sin runtime ni ROJO funcional. Notas de prevuelo/peer y checkpoint 8b4 permanecen inmutables; producto parser/source/sync/types/0501 idéntico a f106 hasta medir los hallazgos.
 
 ## CONTRATOS ÍNTEGROS CONSERVADOS ANTES DE PRODUCTO
 

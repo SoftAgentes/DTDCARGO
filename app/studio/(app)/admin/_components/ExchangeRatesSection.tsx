@@ -9,7 +9,9 @@
  */
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { fechaCaracas, isCalendarDate } from "@/lib/shared/fechas-caracas";
 import { recordExchangeRateAction } from "../exchange-rates-actions";
 import {
   FX_PAIRS,
@@ -17,6 +19,7 @@ import {
   isFxOutOfRange,
   type ExchangeRateActionState,
   type ExchangeRatesOverview,
+  type FxRateLatest,
   type FxPair,
 } from "@/lib/studio/exchange-rates-types";
 
@@ -34,9 +37,16 @@ function fechaCorta(iso: string | null): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : "—";
 }
 
-/** Hoy en Caracas (UTC−4), como AAAA-MM-DD. */
+/** Hoy con el calendario IANA compartido, como AAAA-MM-DD. */
 function hoyEnCaracas(): string {
-  return new Date(Date.now() - 4 * 3600 * 1000).toISOString().slice(0, 10);
+  return fechaCaracas();
+}
+
+/** Solo datos completos permiten atribuir una fecha y una fuente a una tasa. */
+function metadataDeTasa(last: FxRateLatest | undefined) {
+  if (!last || last.rate == null || !Number.isFinite(last.rate) || last.rate <= 0
+    || !isCalendarDate(last.validOn) || !last.source) return null;
+  return { validOn: last.validOn, source: last.source };
 }
 
 export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) {
@@ -60,12 +70,38 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
   const rateNum = Number(rate.replace(",", "."));
   const outOfRange = rate.trim() !== "" && Number.isFinite(rateNum) && rateNum > 0 && isFxOutOfRange(pair, rateNum);
   const canSubmit = rate.trim() !== "" && Number.isFinite(rateNum) && rateNum > 0 && validOn !== "";
+  const latestVes = metadataDeTasa(data.latest.find((last) => last.pair === "VES/USD"));
+  const bcvTodayConfirmed = latestVes?.source === "bcv" && latestVes.validOn === hoyEnCaracas();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Últimas tasas */}
       <Card>
         <CardEyebrow>Tasas vigentes</CardEyebrow>
+        {!bcvTodayConfirmed && (
+          <div
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            style={{
+              display: "flex", alignItems: "flex-start", gap: "var(--s-3)",
+              padding: "var(--s-3) var(--s-4)", marginBottom: "var(--s-4)",
+              background: "var(--bg-elevated)", color: "var(--ink)",
+              borderRadius: "var(--r-md)", font: "400 16px/1.5 var(--f-sans)",
+            }}
+          >
+            <span aria-hidden="true" style={{ display: "inline-flex", flexShrink: 0 }}>{Icon.info(16)}</span>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: 0, fontWeight: 700 }}>BCV: no se confirmó una tasa para hoy.</p>
+              <p style={{ margin: 0 }}>
+                {latestVes
+                  ? `Última tasa informada en esta vista: ${fechaCorta(latestVes.validOn)} · ${FUENTE[latestVes.source]}. `
+                  : "La información disponible no permite confirmar una fecha y fuente completas. "}
+                Puedes registrar una tasa manual en el formulario.
+              </p>
+            </div>
+          </div>
+        )}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--s-3)" }}>
           {data.latest.map((l) => (
             <div key={l.pair} style={{ padding: "var(--s-4)", background: "var(--bg-elevated)", borderRadius: "var(--r-md)" }}>
@@ -76,7 +112,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
                 {l.rate != null ? l.rate.toLocaleString("es-VE", { maximumFractionDigits: 4 }) : "—"}
               </div>
               <div style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)", marginTop: 6 }}>
-                {l.rate != null && l.source ? `del ${fechaCorta(l.validOn)} · ${FUENTE[l.source]}` : "sin tasa cargada"}
+                {metadataDeTasa(l) && l.source ? `del ${fechaCorta(l.validOn)} · ${FUENTE[l.source]}` : "tasa no confirmada"}
               </div>
             </div>
           ))}
