@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 8:57 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 9:05 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -110,14 +110,17 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Aprobar el primer contrato SQL embebido con datos sintéticos: **2/2 controles PGlite**, con compatibilidad y rechazo sin la ampliación. Se corrigió la preparación de la prueba; **esto todavía no acredita PostgreSQL, JWT, caché HTTP ni producción**.
 - [x] Corregir el caso de importe grande y aprobar **29 comprobaciones del código compartido**: mantiene los centavos exactos y rechaza un cálculo numérico que los perdería. La regresión ampliada anterior, 161 aprobadas y una fallida, conserva su recibo; no se presenta como verde general.
 - [x] Aprobar **31 comprobaciones suplementarias de componentes y páginas**, sin omisiones, para Fidelización, CRM y Portal. La revisión visual y el conjunto completo siguen pendientes.
-- [x] Ampliar el contrato embebido a **17/17 controles**, sin omisiones: incluye tres rechazos de instalación, compatibilidad y **12 errores intencionales detectados** con la fuente SQL conservada. Se probó una carga sintética de 1.201 grupos; PostgreSQL y HTTP reales siguen pendientes.
+- [x] Ampliar el contrato embebido a **18/18 controles**, sin omisiones: incluye rechazos de instalación, compatibilidad y **13 errores intencionales detectados** con la fuente SQL conservada. El nuevo control discrimina el fallback UTC de la zona de sesión; los recibos anteriores de 17 controles se conservan.
+- [x] Aprobar el conjunto focal de **247/247 comprobaciones en 18 archivos, sin omisiones**, incluyendo consultas, componentes, páginas, precisión y SQL. No sustituye la revisión completa ni el cierre canónico.
 - [ ] Completar la implementación de las fachadas SQL y llevar subtotal, contador y estado hasta Portal, Fidelización, Reportes y CRM.
 - [ ] Probar compatibilidad, permisos, paginación y casos sin tasa con datos sintéticos; cerrar revisión independiente y conservar las omisiones reales de la validación general.
 - [x] Respaldar el primer bloque SQL en `f9cc1dd1` y abrir la [PR #311 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/311), dependiente de #310: seis rutas con migración, contrato, PGlite y documentación. La adaptación de app y pantallas todavía está en desarrollo y no forma parte de ese checkpoint. Revisión SQL independiente en curso.
 - [x] Aprobar el contrato en **PostgreSQL 17.11 local: 37 aserciones y reversión de los datos sintéticos**. Se corrigió la referencia temporal de la prueba; el recibo del primer fallo se conserva y la migración sigue idéntica a `f9cc1dd1`.
 - [x] Aprobar las pruebas HTTP con **PostgREST 14.17 local**: función nueva ausente antes de instalar, disponible después de confirmar la migración y recargar el mismo proceso; decimal exacto, compatibilidad anterior y lectura de **1.202 grupos en páginas 500/500/202/0**. Se conserva el intento intermedio que falló por la paginación del arnés. Son identidades sintéticas; no certifica Auth alojado ni producción.
-- [ ] Completar esa misma PR con la app, las pantallas y la validación restante. Revisión SQL de `f9cc1dd1` sin hallazgos materiales nuevos; el contrato corregido y el arnés HTTP deben quedar en un suplemento guardado para cerrar su revisión. Revisión financiera/UI y cierre general todavía pendientes.
+- [x] Guardar el suplemento `3b74e42b` en esa misma PR y cerrar su revisión SQL independiente junto con `f9cc1dd1`: sin hallazgos materiales nuevos en permisos, identidad, compatibilidad o errores. Reparación temporal y arnés cotejados; instrumentación adicional de recibos declarada como todavía no ejecutada.
+- [ ] Completar esa misma PR con la app, las pantallas y la validación restante. La revisión visual encontró recortes de tabla/cifras grandes; reparación en curso en los consumidores permitidos. Revisión financiera/UI y cierre general todavía pendientes.
 - [ ] Reemplazar las conversiones pendientes en SQL, con una entrega separada.
+- [x] Reservar y respaldar la **SDD-0576, hora Caracas**, tras inventario de 483 refs y worktrees. Diseño C1 preparado con 59 rutas y revisión en curso; todavía sin Worker nuevo, migración asignada ni producto implementado.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
 - [ ] Implementar la carga diaria desde el BCV oficial y el respaldo manual.
