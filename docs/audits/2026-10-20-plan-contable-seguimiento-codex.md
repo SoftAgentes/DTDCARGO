@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 12:07 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 12:19 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -167,6 +167,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Iniciar la segunda validación general sobre **`9cbe8749`**, a las 11:49:03 p. m., con fuentes congeladas y manifiesto de identidad. Pasaron **237/237 controles del entorno sin omisiones**, revisión estática, fronteras, tipos y las cuatro funciones de backend; conserva 15 advertencias anteriores de revisión estática y cero errores. La suite detectó otro doble de prueba incompatible; se autorizó el corte controlado, **sin resultado global aprobado**.
 - [x] Corregir y revisar el doble de GastosUSD, limitado a **una sola ruta adicional, 70 en total**. Primero nueve pruebas aprobadas y una fallida; después **17/17 en dos archivos, sin omisiones**, conservando columnas, total 127, conteo 3 y los demás casos monetarios. Tipos y revisión estática aprobados. Director revisó el delta mínimo **`264e0531`**, respaldado en la PR #312; producto y SQL intactos. El segundo intento general quedó **INTERRUMPIDO/INCOMPLETO**, con manifiesto de 69 fuentes sin cambios y procesos propios retirados.
 - [x] Iniciar la tercera validación general sobre **`264e0531`**, a las 12:03:10 a. m., con las 70 fuentes congeladas, lockfile y ejecutor identificados. Es la única corrida pesada activa; **todavía sin resultado final**. Los intentos anteriores conservan su condición incompleta.
+- [x] Completar en esa tercera corrida **12.720 pruebas de aplicación aprobadas y una omitida**, en 885 archivos aprobados y uno omitido; **248 contratos SQL con rollback total** y **491 migraciones reconstruibles**: 473 aplicadas desde cero y 18 de solo historial. La base y sus dos tenants son sintéticos; no es una medición de producción. Navegación y construcción final siguen pendientes; el historial productivo no se midió por ausencia de credenciales.
 - [ ] Terminar las pruebas generales y el cierre documental de C1, conservando sus revisiones aprobadas, y completar la PR #312 en borrador. GitHub no aprobó el checkpoint: sus dos intentos medidos terminaron antes de arrancar, por `startup_failure`.
 - [x] Cotejar la preparación de Caracas C2 contra el código actual: **12 rutas revisadas**, sin omisión esencial; conserva las ventanas propias de Portal/Studio, calendario y permisos efectivos. El contrato y la primitiva de fecha ya están identificados. Es preparación; no implementación ni nueva migración reservada.
 - [ ] Implementar después Caracas C2 para los cálculos anuales, con base final C1, árbol/owner propios y número de migración coordinado por inventario nuevo.
