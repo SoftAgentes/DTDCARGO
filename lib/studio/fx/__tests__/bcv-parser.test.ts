@@ -23,14 +23,16 @@ describe("B1–B3 · BCV estructural y decimal exacto", () => {
       .replace("Miércoles, 21 Octubre  2026", "Jueves, 29 Febrero 2024");
     expect(parseBcvHtml(leap).validOn).toBe("2024-02-29");
   });
-  it.each(["pending-with-update", "duplicate-label", "label-in-note"])("F02 · Fecha Valor inequívoca: %s", (variant) => {
+  it.each(["pending-with-update", "duplicate-label", "duplicate-label-markup", "label-in-note"])("F02 · Fecha Valor inequívoca: %s", (variant) => {
     const date = official.match(/<span class="date-display-single"[\s\S]*?<\/span>/)?.[0];
     expect(date).toBeDefined();
     const changedField = variant === "pending-with-update"
       ? `<div>Fecha Valor: pendiente</div><div>Última actualización: ${date}</div>`
       : variant === "duplicate-label"
         ? `<div>Fecha Valor: pendiente</div><div>Fecha Valor: ${date}</div>`
-        : `<div>Nota sobre Fecha Valor: no disponible</div><div>Última actualización: ${date}</div>`;
+        : variant === "duplicate-label-markup"
+          ? `<div>Fecha <b>Valor:</b> pendiente</div><div>Fecha Valor: ${date}</div>`
+          : `<div>Nota sobre Fecha Valor: no disponible</div><div>Última actualización: ${date}</div>`;
     const changed = official.replace(/<div class="pull-right dinpro center">[\s\S]*?<\/div>/, changedField);
     expect(changed).not.toBe(official);
     expect(() => parseBcvHtml(changed)).toThrow(BcvError);
