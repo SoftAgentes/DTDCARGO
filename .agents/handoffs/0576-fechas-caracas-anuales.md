@@ -1,6 +1,6 @@
 # Handoff Worker — SDD0576 C2 · anuales Caracas
 
-Fecha de adopción: 2026-10-21. Estado: en-progreso; checkpoint revisable, cierre pendiente.
+Fecha de adopción: 2026-10-21. Estado: producto local validado y cierre documental; la ejecución posterior sobre este commit se identifica por el recibo externo final y el readback de PR313. El cierre canónico conserva sus omisiones y avisos.
 Owner: worker-0576c2-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 Sesión Director: 01a15a4e-ddf0-7d82-8656-d9dc56b58468; subagente worker_0576_c2.
 Worktree: C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0576-fechas-caracas-anuales.
@@ -38,7 +38,7 @@ SupabaseChangelog recibido200/102319bytes; PostgreSQL17 y Supabase Functions con
 
 ## COMPLETADO
 
-Caller usa fechaCaracas(now) una vez antes de paginar. 0500 contiene completas las tres fachadas y solo cambia seis relojes/seis fallbacks; fuente SHA256 bf90fe717e7be3d0af70a1c1999758529e875855aa118ad9f36dad2fdbffbfaf. Contrato PGlite/PG17 propio, arnés HTTP aislado, baseline0500 y anclas reales0498 actualizados. Portalreader/helper/paginador/0411/0498/0499 no se editaron. Son11rutas de la allowlist12.
+Caller usa fechaCaracas(now) una vez antes de paginar. 0500 contiene completas las tres fachadas y solo cambia seis relojes/seis fallbacks; fuente SHA256 bf90fe717e7be3d0af70a1c1999758529e875855aa118ad9f36dad2fdbffbfaf. Contrato PGlite/PG17 propio, arnés HTTP aislado, baseline0500 y anclas reales0498 actualizados. Portalreader/helper/paginador/0411/0498/0499 no se editaron. El checkpoint b309 modificó once rutas de las doce originales; el suplemento autorizado deja doce rutas modificadas dentro de la allowlist final de trece.
 
 El addendum incorpora exclusivamente standard-format.test.tsx como duodécima ruta modificada dentro de la allowlist final de trece. Aplicada la propuesta textual autorizada; producto/caller/SQL/arnés/contratos conservan bytesb309. Focal original y candidato PASARON los mismos siete casos con20s intactos. No se atribuye al cambio una causa ni un ahorro general de tiempo.
 
@@ -69,6 +69,12 @@ Cada archivo JSON de corrida conserva comando, PID, cwd absoluto, inicio/fin/exi
 | Focal standard-format ORIGINAL intacto | PASÓ7/7/0SKIP05:37:44.634–05:37:58.598Z; comando pnpm exec vitest run --maxWorkers=1 --reporter=verbose 'app/p/[token]/standard-format.test.tsx'; límite original20s, caso1 1224ms, tests10,21s/total11,60s. Recibos diagnostic-standard-original.json/.log; no acredita causa del timeout ni cierre canónico |
 | Focal standard-format CANDIDATO | PASÓ7/7/0SKIP05:39:00.172–05:39:13.502Z; misma receta/maxWorkers1/20s, caso1 1108ms, tests10,72s/total12,10s. Recibos diagnostic-standard-candidate.json/.log. El caso1 fue116ms menor en estos focales; el archivo completo fue0,50s mayor. Una observación aislada no demuestra ahorro estable ni causa de los timeouts globales |
 | Lint/docs del suplemento de test | PASÓ lint de la única ruta modificada, sin errores ni advertencias ESLint,05:39:45.954–05:40:27.551Z; docs:check PASÓ05:39:45.988–05:39:47.006Z,558specs. Diff-check sin errores. No fue necesario regenerar el índice; la siguiente corrida canónica cubrirá de nuevo tipos/build |
+| Segunda corrida canónica sobre 0f2 | Exit 0, **CIERRE INCOMPLETO**, 05:43:33.356–06:11:24.876Z. Literal: 16/17 pasos medidos; migrations-applied omitido sin URL/key. No hubo fallos según la clasificación final del runner; exit 0 no significa cobertura completa. Receta normal, sin overrides, hooks, loader, cambios de tiempos, pool ni gates |
+| Unitarias de la segunda corrida | PASÓ al primer intento: 12.759 aprobadas / 0 fallidas / 1 omitida, 886 archivos aprobados + 1 omitido, 553,38 s. Corpus real de proformas sin ejecutar; no se buscaron datos reales. Caché nativa por archivo conservada, 887 registros / failed=[]; SHA256 d7341c04f225081d403a9f764b2b73b6755e6abc06d91bd62137853e0ba62bc2. No demuestra la causa del timeout anterior ni una mejora estable |
+| Resto medido de la segunda corrida | Harness 237/237 sin omisiones; lint 0 errores / 15 advertencias preexistentes; RSC 1.708 módulos, tipos y cuatro Edge Functions PASÓ. Docs/numeración/componentes/gobernanza PASÓ. SQL 249 contratos incluido 0500 con rollback total; reconstrucción de 492 migraciones (474 aplicadas / 18 solo-ledger), aislamiento 219 tablas. Build PASÓ, 162 páginas; tsconfig restaurado |
+| E2E de la segunda corrida | **OK con AVISO del runner**: JSON original con 177 expected / 20 skipped / 0 unexpected / 1 flaky, 198 casos, 549.100,845 ms. auth.spec:81 Chromium registró ERR_ABORTED en page.goto (16.535 ms) y aprobó retry #1 (9.548 ms). Error global fuera de los casos: worker-17 no salió en 300.000 ms después de stop y fue forzado. El proceso salió distinto de cero y el runner aplicó su absolvedor; su atribución a WebKit/no-regresión se conserva como interpretación del runner, no como causa demostrada |
+| Integridad posterior a la segunda corrida | PASÓ a las 06:11:48.509Z: veinte fuentes + dos auxiliares iguales, diferencias=[], árbol limpio en 0f2. canonical-after-standard-bytecheck-before-docs.json SHA256 b1e3ffd36a50517f68c790e9bf90f7343669d26c8cf2e45f5bb84c9d01cf63b4. Este cierre posterior modifica solo spec/handoff, sin repetir producto por cambios documentales |
+| Recursos tras la segunda corrida | Las 55 identidades registradas quedaron cerradas, puertos 3163/13163 libres y contenedores propios ausentes; observador terminó solo. Dos candidatos WebKitNetworkProcess, PID 11760/27224, creados 06:04:05Z/06:04:19Z con PPID 42960 ya ausente, tienen ownership **NO VERIFICABLE** y se preservaron. PID 11760 había sido reutilizado; nombre/cache/tiempo no prueban ownership. CWD no disponible mediante bibliotecas existentes; sin instalación, args, entornos ni sondeo de memoria. Se preservaron además los antiguos 17988/19932. No se certifica limpieza global. Suplemento cleanup-second-candidate-inventory.json SHA256 e44094425e2b09bb2fac18f9cc1794bc58fe8955d993686fef46890e443fc385 |
 | Release, DBreal, producción, UI/A11Y nuevos | NO EJECUTADO, fuera de autorización o no aplica al delta query/SQL; no aprobación global |
 
 SQL real antes de instrumentación: catálogo registrado antes/después con MD5 de pg_proc, OID/firma/retorno/owner/proacl/ACL efectiva/STABLE/DEFINER/config y helpers completos. Default0033 de service_role del ownerpostgres reproducido; v1 conserva EXECUTE, Portal/v2 lo revocaron. Comparación completa de cuerpos verifica exclusivamente seisrelojes+seisfallbacks. Las copias de reloj usan dosanclas estrictas por función, mismo instante para las3, y restauran definiciones. Filtros/roles/autorización no se congelan ni se simulan siempre verdaderos.
@@ -77,10 +83,30 @@ La propuesta e2e-observer.cjsSHA256a7b2e303b9e72315bb98c31acd2f90633a8de9aa621e9
 
 Se ejecutó únicamente el observador externo separado e2e-external-observer.mjsSHA256434d099d7350baf982f0022c73f7375c2a2321babe73487a49c5d97b71b9603c, PID52844. Atribuyó por ancestry el runner18656/cwd del wrapper, registró rechazo de pnpm28580 y canonizó la ruta8.3. Capturó **JSON ORIGINAL**05:34:10.117Z:268805bytes, SHA2569ea74b36f27b4fd0ac92d2bb5a8210fccdbde38ce6be56ca840742b8b37f2e90, e2e-original-18656.json. rootDir fue informativo, nunca filtro. Recibo final:96646muestreos/96645ausencias/1intento, pausa máxima13556ms; no garantía de capturar archivos más breves que su pausa efectiva. Terminó solo tras el wrapper. No se reconstruyó JSON ni se repitió E2E para capturarlo.
 
+La segunda corrida usó únicamente el clon externo b060039380d49eeec689d07a8616644e09108b4e63793251f7e6e82372e6e851, con cuatro nombres de recibos distintos. PID39260 fijó el runner28052 y rechazó pnpm35096. Captura original 06:09:32.564Z, 268.916 bytes, SHA256 **70d3428c30e83a66cb869e9620670f797850f57c34117a6f18a86433b5bf6d07**, e2e-after-standard-original-28052.json. Final: 91.974 muestreos / 91.973 ausencias / un intento, pausa máxima 13.771 ms. rootDir informativo, ruta 8.3 canonizada, sin hooks. Los análisis derivados se etiquetan como tales y no sustituyen esos originales.
+
+Omisiones E2E de la segunda corrida, leídas del JSON original: comments-lifecycle 3 (Preview aislado/credenciales/seed), company-photo-carousel 2 (capturas de anchos explícitos ejecutadas una sola vez en Chromium), gastos-expense-void 6 (rol y gasto efímero), global-search 6 (usuario/seed) y nomina-settlement-void 3 (admin y finiquito efímero). Total 20; no todas son falta de Supabase y no se convierten en cobertura real. El JSON conserva los motivos y proyectos exactos.
+
+Las tres muestras externas de recursos de unitarias, 05:49:15Z / 05:50:30Z / 05:52:31Z, guardan solo descendientes del wrapper, CPU acumulada, working set y memoria física disponible. No guardan command lines o entornos ajenos. Son instantáneas diagnósticas; no demuestran causa ni absuelven un fallo. No se repitió producto para medir rendimiento.
+
+## Conocimiento local y evidencia posterior al commit
+
+Se verificó el runtime existente Graphify 0.9.61, sin instalar o modificar herramientas globales. knowledge:status inicial midió grafo ausente/estructura INVALID, 5.017 pendientes estructurales, semántica global 0/1.328 y piloto 0/16. No se copiaron derivados o recibos de main.
+
+La actualización nativa `graphify update .` terminó con exit 0, 06:16:55.771–06:19:14.363Z: 5.040 archivos recorridos, 44.261 nodos, 80.956 relaciones y 2.666 comunidades. HTML agregado de 2.666 nodos/3.424 relaciones, bajo el límite 5.000; sin raster ni HTML crudo de 44.261 nodos. Se conservaron 41 omisiones por falta de clasificación y advertencias de extracción parcial en LegalClient.tsx (12 símbolos) y legal/expediente/[code]/page.tsx (8 símbolos). CURRENT estructural no certifica extracción semántica ni elimina esas advertencias.
+
+Archify local fijado 2.16.0: release oficial v2.16.0, ZIP SHA256 4c59fa6557a2385beaaef8c7219cc414573acc9f0c30a932d5053b0b20689a46 cotejado antes de extraer; árbol SHA256 a1c035262b493ff4506d4bdd6b703ce0dfe08c99e4ad540a399ab236ef450148 cotejado antes de ejecutar. Primera generación sobre 0f2 PASÓ nueve comprobaciones validate/deliver, cero errores/advertencias de composición, once fuentes locales verificadas. Archify CURRENT, estructura CURRENT y semántica PENDING; no equivalen a revisión visible de UI.
+
+Tras el presente commit documental se ejecuta un último refresco de derivados ignorados, `knowledge:visual`, `knowledge:visual:check`, `knowledge:publish --preview`, `knowledge:status --preview` y `knowledge:check --preview`. El destino fijo es graphify-out/obsidian-preview de este worktree, nunca la bóveda compartida. El recibo externo **final-c2-receipt.json** y el readback final de PR313 ligan sus resultados observados, versiones y hashes al SHA documental definitivo; este documento no inventa esos resultados antes de ejecutarlos ni se reescribe para autocitar su SHA.
+
+Semántica masiva NO EJECUTADA; recibos piloto/global no importados. El estado semántico/piloto PENDING se conserva aunque la estructura o Archify estén CURRENT. Publicación compartida y revisión visible en Obsidian NO EJECUTADAS. No se amplió la política ni se convirtió conocimiento nuevo en regla global. Director conserva la integración, medición del ledger y cierre de la bóveda sobre main integrado comprobado.
+
 ## COMMITS
 
 - 769dd9ee2446c27123b041eefe7a78727a25f8af: primer checkpoint de implementación y pruebas propias.
 - b30934a507a0fcac064aa5c23194b5e5c3075d47: suplemento de arnés/pruebas/recibos; cabeza inmutable de HTTPfinal y primer verifyC2.
+- 0f2bc5362669ffc41d1c7abcbdefcc283c5cb03a: suplemento mínimo del test/spec/handoff revisado por Director; cabeza probada en la segunda corrida canónica.
+- El commit que contiene este cierre cambia únicamente spec/handoff frente a 0f2; su SHA definitivo y la igualdad de producto/tests se registran externamente y en PR313, sin recursión de autocita.
 
 ## PR / BRANCH
 
@@ -88,15 +114,15 @@ https://github.com/SoftAgentes/DTDCARGO/pull/313 OPEN/DRAFT, basecodex/sdd-0576-
 
 ## PENDIENTES DE ESTA TAREA
 
-El candidato del addendum está aplicado y validado focalmente; publicar su checkpoint limpio para revisión y GO del siguiente verify. Después: knowledge/Archify/preview con runtime existente autorizado, cierre documental/PRreadback/ahead0/clean/cleanup/claimrelease/recibo final. HTTPfinal/revisión/primer verify/ROJOtemporal ya ejecutados; se preserva el FALLÓ canónico, no figura como una corrida pendiente sin ejecutar.
+El addendum y la segunda corrida ya se completaron. Los pasos posteriores al commit documental son el último refresco/comprobación de derivados, PR readback, ahead0/clean, inventario final y liberación del claim/turno; su conclusión se acredita en final-c2-receipt.json y PR313. No queda defecto funcional propio conocido abierto dentro del alcance. Ledger productivo sin medir, semántica piloto/global, revisión visible de Obsidian y ownership de dos candidatos WebKit permanecen declarados; no se convierten en verde ni justifican acceso a DB real o terminación de procesos inciertos.
 
 ## FUERA DE ALCANCE DETECTADO
 
-C1, C3móvil, BCV0569,0573/0575/2.3, producción, CIalojado bloqueado, cobertura histórica no medida y derivados ausentes de conocimiento. No se absorben. No hay defecto conocido propio de producto abierto en este checkpoint; validaciones/revisión aún pendientes.
+C1, C3 móvil, BCV0569,0573/0575/2.3, producción, CI alojado bloqueado y cobertura histórica no medida. No se absorben. Los avisos del extractor de Legal y los vínculos históricos reportados por conocimiento se conservan sin reparar rutas ajenas. No se certifica migración aplicada, despliegue, recorrido productivo o accesibilidad global desde esta PR.
 
 ## HANDOFF AL DIRECTOR
 
-Conservar PRDRAFT y worktree. El primer verify sobreb309 conserva su FALLÓ; el suplemento exclusivo test/docs necesita revisión del nuevo SHA limpio y GO antes de otra corrida. Se entregan delta exacto frenteb309, igualdad de las17fuentes congeladas restantes y los recibos focales original/candidato. Turno pesado exclusivo y claim aún activos; solo se liberan al completar commits/push/readback/cleanup. FuturoMIGRATE-FIRST exige revisión de paquete, OK nominal de Sam y callerCaracas activo; respuesta200 de SQLanterior no activa una degradación ficticia. No se publica conocimiento compartido desde el borrador.
+Conservar PR DRAFT y worktree. El primer verify sobre b309 conserva su FALLÓ; el suplemento 0f2 PASÓ revisión inmutable y su siguiente verify terminó 16/17, exit 0, CIERRE INCOMPLETO por ledger y con AVISO E2E explícito. El delta posterior es documental: se entregan igualdad de las otras dieciocho fuentes congeladas y los dos auxiliares, junto a recibos originales. La liberación verificable del claim/turno se registra al terminar push/readback/inventario y derivados; no se borra worktree, rama, dependencias o resultados locales. Los candidatos de ownership incierto se preservan y se entregan como NO VERIFICABLE, por instrucción del Director. Futuro MIGRATE-FIRST exige revisión del paquete, OK nominal de Sam y caller Caracas activo; HTTP200 de SQL anterior no activa una degradación ficticia. No publicación compartida desde el borrador. C3 requiere otro Worker y no empieza en esta sesión.
 ## Contrato ejecutable íntegro incorporado
 
 Fuente externa: C:/tmp/director-traspaso-20261020/0576-caracas-c2-asignacion-worker.md, hash verificado arriba. Las concreciones y doce rutas siguientes son vinculantes.
