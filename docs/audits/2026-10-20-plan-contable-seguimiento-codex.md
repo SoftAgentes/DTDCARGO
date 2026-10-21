@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 5:14 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 5:18 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -287,7 +287,7 @@ La regla USD/USDT 1:1 ya está decidida. Los bolívares quedan para reportes. La
 - [ ] **4.2 · Envío por cliente al consolidar y llegada gobernada.** PENDIENTE; sigue a la tarifa congelada.
 - [ ] **4.3 · Aviso y factura al llegar desde cargos confirmados.** PENDIENTE; depende también del número de control.
 - [ ] **4.4 · Pre-factura al zarpar, cargos posteriores y cierre al entregar.** PENDIENTE.
-- [ ] **4.5 · Embarques sin facturar y tarjetas de Dirección.** RETOMA LOCAL ACTIVA: parche **`639c8954`** respaldado y revisado sin hallazgos obligatorios nuevos. **Focal PASÓ87/87, tres archivos, cero omisiones y un intento**, con los mismos nombres y bytes de tests del ROJO anterior **53 fallos / 34 aprobados**. Cotejo del Director: ocho recibos intactos y27fuentes iguales. Subtotal exacto/desconocidos, base congelada y vacío incompleto tienen prueba funcional aprobada. Regresiones, tipos y revisión estática en curso; variantes, UI, validación completa y PR pendientes. Doce rutas, dependencia0571. **0496 sigue sin aplicar y requiere autorización nominal.**
+- [ ] **4.5 · Embarques sin facturar y tarjetas de Dirección.** RETOMA LOCAL ACTIVA: parche **`639c8954`** respaldado y revisado. **Focal87/87 y regresiones167/167 PASÓ**, cero omisiones; los87 originales se repiten dentro de167, más80 adicionales. Tipos y revisión estática de siete rutas aprobaron sin advertencias. Mismos tests del ROJO53fallos/34aprobados;27fuentes intactas, recibos e identidades cotejados por Director. Subtotal exacto/desconocidos, base congelada y vacío incompleto tienen prueba funcional aprobada. Variantes, UI, validación completa y PR pendientes. Doce rutas, dependencia0571. **0496 sigue sin aplicar y requiere autorización nominal.**
 - [ ] **4.6 · Costo y margen real por embarque.** PENDIENTE.
 - [ ] **4.7 · Cuenta corriente del socio China y fondos por rendir de la Operadora.** PENDIENTE; revisión de la contadora antes de construir.
 - [ ] **4.8 · Compras asistidas y gastos cobrables generan su cargo al cliente.** PENDIENTE.
