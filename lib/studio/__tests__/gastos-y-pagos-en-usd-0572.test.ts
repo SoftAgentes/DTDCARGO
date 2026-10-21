@@ -10,7 +10,7 @@
  * siempre con tasa, fallando cerrado; nunca 0 ni el monto tal cual.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sumarEnUsd } from "@/lib/shared/fx";
 import { paymentAmountUsd } from "../accounting/supplier-payment-posting";
@@ -100,27 +100,45 @@ describe("regla D · gastos", () => {
 
 describe("regla E · «Gastos hoy» suma amount_usd", () => {
   it("lee amount_usd de cada gasto y no recalcula por moneda", async () => {
-    let columnas = "";
-    const stub = {
-      from() {
-        const chain: Record<string, unknown> = {
-          select: (c: string) => {
-            columnas = c;
-            return chain;
-          },
-          is: () => chain,
-          gte: () => chain,
-          then: (resolve: (v: { data: unknown; error: null }) => unknown) =>
-            Promise.resolve({
-              data: [{ amount_usd: "27.40" }, { amount_usd: 100 }, { amount_usd: null }],
-              error: null,
-            }).then(resolve),
-        };
-        return chain;
-      },
-    } as unknown as SupabaseClient;
-    const r = await sumMyExpensesTodayUsd(stub);
-    expect(columnas).toBe("amount_usd");
-    expect(r).toEqual({ total: 127, count: 3 });
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-21T03:59:59.999Z"));
+      let columnas = "";
+      const limites: [string, string, string][] = [];
+      const stub = {
+        from() {
+          const chain: Record<string, unknown> = {
+            select: (c: string) => {
+              columnas = c;
+              return chain;
+            },
+            is: () => chain,
+            gte: (column: string, value: string) => {
+              limites.push(["gte", column, value]);
+              return chain;
+            },
+            lt: (column: string, value: string) => {
+              limites.push(["lt", column, value]);
+              return chain;
+            },
+            then: (resolve: (v: { data: unknown; error: null }) => unknown) =>
+              Promise.resolve({
+                data: [{ amount_usd: "27.40" }, { amount_usd: 100 }, { amount_usd: null }],
+                error: null,
+              }).then(resolve),
+          };
+          return chain;
+        },
+      } as unknown as SupabaseClient;
+      const r = await sumMyExpensesTodayUsd(stub);
+      expect(columnas).toBe("amount_usd");
+      expect(limites).toEqual([
+        ["gte", "occurred_at", "2026-10-20T04:00:00.000Z"],
+        ["lt", "occurred_at", "2026-10-21T04:00:00.000Z"],
+      ]);
+      expect(r).toEqual({ total: 127, count: 3 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

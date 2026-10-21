@@ -284,3 +284,45 @@ La revisión independiente final del suplemento46c PASÓ sin hallazgo material a
 Navegador final: visual-final-receipt.json, fuentes/capturas en visual-fixture, producto46c. PASÓ alcance local con componentes reales, globals/tokens/studio.css y wrappers reales, datos/reloj/actions ficticios,390/1280claro/oscuro y navegadorShanghai.35controles funcionales/29mediciones; el recibo inspection-2 conserva FALLÓ por selector de gasto que omitió el punto del locale, corregido solo en suplemento externo inspection-supplement PASÓ. Se conserva tanto el fallo de selector como el resultado funcional; capturas anteriores a studio.css son provisionales. Recuperación Portal reenvía mismosIDs/payload/archivo aun cuando la fecha aceptada parece futura; creación nueva futura se rechaza antes de action; defaults, vacío/fecha explícita, CxP sin today inyectado, foco y Escape comprobados. Director inspeccionó independientemente390conCSSreal sin hallazgo material. No se certifica teléfono físico, Studio/Auth real, A11Y integral, alta/duplicación de factura en navegador ni zoom200%nativo: las teclas Chrome no cambiaron viewport/DPR/escala y no se sustituyó conCSSzoom. Invoice fixture acredita RegistrarPago. Servidor20036 y Chrome propia retirados; visual-cleanup.json conserva cero descendientes propios.
 
 PR312 permanece DRAFT/base8729; Actions de46c startup_failure39539115496/39539111495, sin aprobación. Conocimiento, cierre canónico nuevo, documentación final y release siguen separados. Sin merge/migración real/deploy.
+
+
+## Adopción de ampliación70 · doble de GastosUSD0572
+
+Leído íntegro y hash506d24fb1d35334877c320a7ee81e2cfa3a4b5c56a5cf1fc796628c767984cbb comprobado antes de editar. Verify2 de9cbe INTERRUMPIDO/INCOMPLETO por doble incompleto sin lt; no es defecto de cálculo. Recibo de corte:remaining=[]/unknownChildren=[]; manifiesto69sin diferencias, lockfile/runner intactos y árbol limpio antes de esta adopción.
+
+# C1 — adaptación del doble de GastosUSD0572
+
+Fecha: 2026-10-20, Caracas. Decisión del Director dentro del alcance local autorizado. Misma tarea, worktree, rama, owner y0499; sin cambio de producto o permiso de producción.
+
+## Evidencia y única ruta adicional
+
+El segundo verify sobre `9cbe8749d09bc1fbed9ebf42cdc4952f178a070b` detectó el caso «lee amount_usd de cada gasto y no recalcula por moneda». Su doble admite select/is/gte/then, pero no lt; la consulta vigente usa ambos límites del día Caracas. El Director leyó la fuente inmutable y comprobó el desajuste.
+
+Se añade una sola ruta a las69 anteriores: **70 rutas únicas**.
+
+```text
+lib/studio/__tests__/gastos-y-pagos-en-usd-0572.test.ts
+```
+
+La spec y el handoff propios ya están autorizados. Producto, consulta, SQL, conversor, redondeos, gates y demás tests no se modifican. Conservar íntegros el contrato original y sus cuatro addenda anteriores.
+
+## Aceptación y secuencia
+
+1. Guardar este documento completo/hash antes de editar. Autoriza detener de forma controlada solo el árbol propio del segundo verify34808 y su observador exacto17036, con identidad comprobada, logs/recibos conservados y estado INTERRUMPIDO/INCOMPLETO. Comprobar restantes/descendientes desconocidos antes del focal; ningún proceso compartido se detiene.
+2. Reproducir el archivo completo original en rojo. Registrar el error de método faltante y/o su efecto exacto en la aserción; no llamarlo un defecto de cálculo del producto ni un resultado global del verify.
+3. Añadir lt encadenable al doble, conservando select/is/gte/then y su respuesta de amount_usd. Registrar y exigir ambos límites literales, inferior inclusivo y superior exclusivo de Caracas, con reloj fijo cerca de medianoche. Verificar columnas exactamente amount_usd, total127 y count3; los otros nueve casos monetarios siguen intactos.
+4. Usar timers restaurados en finally o equivalente seguro. No cambiar expectativas de moneda, tasa, centavos, signo, redondeo o falta de conversión para acomodar el doble. No convertirlo en respuesta exitosa genérica que omita los límites.
+5. Pasar el archivo completo sin omisiones y la regresión directa existente de expense-queries-caracas, sin ampliar rutas. Lint/tipos pertinentes, diff-check, scope70 y checkpoint mínimo selectivo a PR #312 en borrador. Director revisará el delta fijo antes del nuevo cierre canónico.
+
+Inventario acotado ya efectuado por Director sobre9cbe: los únicos archivos de pruebas que mencionan/importan expense-queries son el nuevo `expense-queries-caracas.test.ts`, que ya contempla lt, y esta ruta heredada. No se autoriza un barrido masivo ni cambios especulativos en otros dobles. Si aparece otra ruptura concreta, se identifica y coordina su ruta.
+
+No combinar gates de las dos corridas interrumpidas con la siguiente, ni editar fuentes durante un verify nuevo. Se conserva un único turno pesado. Sin merge, migración real, lectura de negocio, radiografía, deploy, pagos o cambios de cuenta.0495 no se repite.
+
+
+## Checkpoint de compatibilidad del doble GastosUSD · 21oct04:02Z
+
+Verify2 sobre9cbe, iniciado03:49:03.165Z, fue INTERRUMPIDO/INCOMPLETO por autorización Director al observar que el doble de GastosUSD carecía de lt. Terminó por cierre controlado04:00:36.249Z, exit forzado4294967295. No concluyeron unitarias/SQL/E2E/build ni existe resultado global aprobado. verify-candidate-2-interruption.json acredita remaining=[]/unknownChildren=[]; observador17036 terminó0 sin JSON porque E2E no se alcanzó. Antes de modificar docs, verify-candidate-2-bytecheck.json cotejó69fuentes con su manifiesto de entrada: diferencias=[], lockfile/runner intactos y árbol limpio. No se combinan gates de esta corrida con otra.
+
+red-gastos-usd-original reprodujo el archivo original completo:9PASÓ/1FALLÓ/0SKIP,04:00:57.862–04:00:59.858Z. Error exacto TypeError: .lt is not a function en el doble; no es fallo de cálculo ni un ROJO funcional del producto. La adaptación autorizada solo añade lt encadenable y registro/aserción exacta de ambos límites: a2026-10-21T03:59:59.999Z, gte occurred_at2026-10-20T04:00:00.000Z y lt occurred_at2026-10-21T04:00:00.000Z. Conserva select amount_usd, respuesta original y total127/count3; los nueve casos restantes de monedas/centavos/signo/null siguen intactos. Reloj restaurado en finally.
+
+green-gastos-usd-compat PASÓ17/17 en2archivos completos,0SKIP,04:01:18.302–04:01:20.825Z, incluyendo expense-queries-caracas real que ejecuta filtros contra filas de borde. Lint focal PASÓ salida0 sin advertencias,04:01:25.413–04:01:31.340Z; typecheck-gastos-usd-compat PASÓ salida0,04:01:36.490–04:01:47.322Z. Producto APP/0499/arnés/gates siguen idénticos; el checkpoint contiene únicamente este test y los dos documentos propios. Alcance70rutas exactas. Nueva verificación canónica y cierre de conocimiento aún pendientes sobre el siguienteSHA congelado.
