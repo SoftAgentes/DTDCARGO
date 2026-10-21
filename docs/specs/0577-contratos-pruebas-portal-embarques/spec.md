@@ -1,7 +1,7 @@
 ---
 sdd: "0577"
 title: "Contratos de prueba del Portal y reintento de borrado de embarques"
-status: draft
+status: in-progress
 author: "Codex Worker 0577 para Sam"
 created: 2026-10-21
 updated: 2026-10-21
@@ -22,7 +22,7 @@ No se modifica producto ni se considera demostrada la causa del timeout del Port
 
 Reserva asignada por el Director después de inventario remoto/local de 497 refs y
 worktrees. Base independiente: eafbd910d1c082c9b416b558f8c3db5847b994a6.
-Estado inicial: stub documental; tests sin editar y ejecución pendiente de GO.
+Reserva inicial publicada en 8e1d2765; GO pesado recibido tras devolución de 0574 a 09:15:44Z.
 No hay SQL para esta tarea.
 
 ## Identidad y alcance autorizado
@@ -122,9 +122,9 @@ ciclo final acotado, sin publicación compartida desde esta rama.
 La spec no pasa a done hasta satisfacer sus criterios; integración/producción se
 registran por separado.
 
-## Resultado inicial
+## Resultado local del candidato
 
-- PASÓ: raíz/rama/base limpias, guard y claim, preimágenes de los tests, índice generado y docs:check.
-- NO EJECUTADO: instalación, original/candidato, lint, numeración y ciclo de conocimiento.
-- PENDIENTE: GO pesado del Director; implementación y validación proporcional.
+- PASÓ: aislamiento/ownership/reserva; instalación congelada sin scripts; original 40/40 y candidato 40/40, ambos con 2 workers/retry 0; lint focal y numeración.
+- PASÓ: mismos 40 nombres/firmas; 171 oráculos previos y 29 negativas conservados; 2 comprobaciones nuevas de disponibilidad, 38 cuerpos de casos intactos.
+- PENDIENTE: revisión del checkpoint/PR DRAFT y ciclo de conocimiento con turno. El par observado dio Files/Excel 2506.32 ms original y 2259.59 ms candidato; no demuestra mejora estable ni causa del timeout C3.
 - PENDIENTE DE COMPOSICIÓN: canónica C3 con nuevo GO y evidencia por SHA.
