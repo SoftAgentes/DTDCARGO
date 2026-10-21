@@ -6,7 +6,7 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 
 ## ADOPCIÓN Y PROPIEDAD
 
-- Estado: EN PROGRESO · GO04B FALLÓ e INCOMPLETO; GO05A reparó la paridad de plantilla y PASÓ su única focal 3/3 sobre fd09677f8. Producto/pruebas 390227699 conservados. Nueva canónica GO05B y conocimiento pendientes. Única sesión escritora /root/revision_bcv_prevuelo, rol Worker; Director coordina. Fuente pública positiva NO DISPONIBLE por TLS.
+- Estado: EN PROGRESO · GO05B sobre ce7e628e terminó FALLÓ e INCOMPLETO: test falló en sus dos intentos nativos y ledger crítico quedó omitido, 16/17 pasos ejecutados. Build PASÓ; E2E PASÓ CON AVISO NATIVO, con original conservado y límites abajo. GO04B conserva su fallo histórico y GO05A su focal 3/3. Producto/pruebas 390227699 y paridad fd09677f8 intactos. Conocimiento NO EJECUTADO y sin GO. Única sesión escritora /root/revision_bcv_prevuelo, rol Worker; claim retenido y turno pesado devuelto. Fuente pública positiva NO DISPONIBLE por TLS; sin aceptación global ni producción.
 - TaskID: `0569-bcv-carga-diaria`.
 - Owner: `worker-0569bcv-01a15a4e-ddf0-7d82-8656-d9dc56b58468`.
 - Raíz: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0569-bcv-carga-diaria`.
@@ -45,7 +45,7 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 | Suplementos B5/B12/R14 | Suplemento01 conserva FALLÓ global de preparación de retirada, con casos parciales aceptados: PATCH/append23514 y fila/eventos/contexto íntegros iguales; tres cruces de medianoche con reloj app controlado/COMMIT real; bloqueo151→166,55P03/ROLLBACK/catálogo exacto e instalación positiva. Retirada aislada02 PASÓ: locks reales, historia job conservada y app cierra antes de fuente/DML. |
 | B15/R13, regresiones, tipos/lint/gates | Cuatro fases IO seleccionadas PASARON (76 omitidos) y tres particiones de3tenants PASARON (80 omitidos), SDK real/transporte y reloj ficticios. Regresiones manual/conversor/secreto69/69. Typecheck delta03 PASÓ sobre390; delta02 no inició Node por ExtraInput ausente. Lint delta0errores/3warnings; cinco avisos del lint anterior conservados. Seis gates iniciales PASARON; conjunto01 FALLÓ por declaración, reintento único beaa5350 PASÓ0ROJO/3AMARILLO/3homónimos. |
 | Fuente pública implementada | NO DISPONIBLE: una invocación/1 intento GET TLS normal, 2026-10-21T14:54:05.174–05.824Z, UNABLE_TO_VERIFY_LEAF_SIGNATURE antes de respuesta,0bytes/sin hash de cuerpo completo/DB0. No acredita obtención oficial positiva ni disponibilidad operativa. Sin retry/fallback/TLS alternativo. |
-| Matriz y canónica | Matriz B1–B19/R1–R14/SGE12 local. GO04B exit1: test FALLÓ en ambos intentos nativos; 16/17 medidos y ledger crítico SKIP. Build PASÓ. 6447 entradas/0 diferencias, originales E2E y límites conservados. GO05B NO EJECUTADO; requiere revisión del checkpoint corregido. |
+| Matriz y canónica | Matriz B1–B19/R1–R14/SGE12 local. GO05B exit 1: test FALLÓ en ambos intentos nativos, 16/17 ejecutados y ledger crítico OMITIDO. Build PASÓ; E2E PASÓ CON AVISO NATIVO: 176 esperados, 20 omitidos, 2 flaky, 0 inesperados. Freeze 6447 entradas/0 diferencias y 11 extras/0 diferencias, slices solapados. Director aceptó integridad y recursos; no aceptación global BCV. GO04B conserva FALLÓ/INCOMPLETO. |
 | Graphify/semántica/Archify/preview/publicación | NO EJECUTADO; único ciclo local tras documentos estables y turno del Director. Sin bóveda compartida. |
 | Producción/ledger/migración/cron instalado | NO EJECUTADO y no autorizado.0495 aplicada no se repite;0501 exige OK nominal futuro. |
 
@@ -69,20 +69,21 @@ Rama propia indicada arriba. Publicación parcial autorizada por el Director el 
 
 ## PENDIENTES DE ESTA TAREA
 
-- Director revisa GO05A corregido y respaldo DRAFT317 antes del GO05B canónico. La única focal de paridad PASÓ 3/3; no otra canónica, GET, suites amplias o conocimiento en este bloque. Claim retenido hasta cierre coordinado.
+- GO05B quedó FALLÓ e INCOMPLETO. Director aceptó su integridad y recursos y autorizó sólo actualizar estos tres documentos y el mismo DRAFT317. Cuatro fallos de Portal, fuera de las 32 rutas, tienen causa NO DETERMINADA y diagnóstico separado del Director; no se absorbe su reparación. No otra receta, focal, GET o conocimiento en este bloque. Claim retenido hasta cierre coordinado.
 - Obtención pública positiva NO DISPONIBLE por TLS; la única lectura autorizada ya se consumió. No reparar cadena remota, cambiar TLS ni reintentar sin otro encargo concreto. No afecta la atribución de pruebas locales ni acredita operación disponible.
-- Documentos finales y ciclo único local de conocimiento después del D estable y turno específico: Graphify estructural/semántica, Archify, preview y revisión visible de Obsidian se reportan separados. Integración y bóveda compartida no autorizadas.
-- Canónica puede conservar SKIPs de ledger/credenciales o límites del navegador nativo; registrar cada paso real y originales E2E. Producción0501, cron/flags/scope/env reales, merge/deploy siguen excluidos y nominalmente futuros.
+- Documentos finales y ciclo único local de conocimiento después del D estable y turno específico: preparación 02 UNBOUND, sin GO y NO EJECUTADA. Store y graphify-out ausentes; no crear exclusiones por una existencia supuesta. Graphify estructural/semántica, Archify, preview y revisión visible de Obsidian se reportan separados. Integración y bóveda compartida no autorizadas.
+- Ledger migrations-applied sigue NO EJECUTADO por credenciales ausentes; los 20 omitidos E2E y el aviso de salida del proceso no equivalen a cobertura completa. Producción0501, cron/flags/scope/env reales, merge/deploy siguen excluidos y nominalmente futuros.
 
 ## FUERA DE ALCANCE DETECTADO
 
 - Main conserva archivos no rastreados preexistentes observados al iniciar; no se copian, abren ni limpian en esta tarea.
 - Brechas manuales históricas de auditoría no se absorben; no tocar0495/0267/0294, append global o UI manual por inercia.
+- GO05B: cuatro fallos de Portal en supplier-flow/standard-format, fuera de las 32 rutas. Causa NO DETERMINADA; el Director coordina diagnóstico separado, sin reparación ni ampliación de esta tarea.
 - No producción/Supabase real/VPS/cuentas/pagos/PII/secretos/env reales, configuración o instalación de cron, flags reales, CNY, historial durable, dashboard, documentos congelados, permisos humanos nuevos o rutas fuera de las 32 autorizadas.
 
 ## HANDOFF AL DIRECTOR
 
-GO04B terminó FALLÓ e INCOMPLETO y devolvió el turno; Director cotejó 6447 entradas sin diferencias y recursos conocidos ausentes. GO05A adoptó explícitamente 32 rutas, reparó sólo la plantilla de infra y midió los tres casos intactos: PASÓ 3/3. La nueva canónica GO05B y conocimiento siguen pendientes. Este estado actual prevalece sobre cortes históricos conservados abajo; no cierre global ni producción.
+GO05B sobre ce7e628e terminó FALLÓ e INCOMPLETO, exit 1 y 16/17 ejecutados; ambos intentos nativos de test fallaron y el ledger crítico quedó omitido. Director cotejó 6447 entradas antes/después/actuales sin diferencias, 11 extras iguales, streams y original E2E sellados, 772 identidades conocidas con 0 vivas/0 UNKNOWN y recursos propios ausentes. Aceptó integridad y recursos y quedó libre el turno pesado; claim retenido. GO04B y GO05A conservan sus resultados históricos. Sólo se autorizaron tres documentos y respaldo en DRAFT317; conocimiento sin GO, sin aceptación global BCV, integración ni producción. Este estado actual prevalece sobre los pendientes temporales de los cortes históricos conservados abajo.
 
 ## RECIBOS GO01/GO01B/GO01C · 2026-10-21
 
@@ -222,6 +223,28 @@ Checkpoint de ejecución `fd09677f83908c5ba0a9ea033220e37e1308d1af`: una invocac
 Freeze completo: 6451 entradas antes/después, 0 diferencias, HEAD y árbol limpios hasta EXIT y comparación. Tres identidades nativas conocidas y launcher ya ausentes por PID/ticks UTC, sin Kill ni censo universal. Native stdout SHA256 `5078a1a2d8bd81f842e6e3b6ef950787c258176aec5a8f3559a6d64d377332bc`; result `f3abaae08b601d551a82fed4a28550af7e37241dd703e23c7aec4a28e3e5f4f2`; postflight `b0a5a58c2ba986f69ccf9856e584aed7bb047e09096049bb03af62f5d1c3fd07`, en `C:/tmp/director-traspaso-20261020/0569-bcv-validation/go05a-parity-native-01/`.
 
 Director aceptó acotadamente GO05A y cotejó las 6451 entradas, seis artefactos y cuatro identidades ausentes: prueba externa SHA256 `dd2cc49a147219d03b75f63b0e27d00be4f7c3d3efc5acedf8ed70c914bc364a`. La focal corrige el oráculo de paridad medido; **GO04B permanece FALLÓ e INCOMPLETO**, con sus dos intentos y omisiones. El fallo auxiliar inicial de comparación de nombres antes del commit se conservó como preparación, sin ejecución de tests ni cambio de producto para pasarlo. Nueva canónica GO05B y ciclo de conocimiento siguen NO EJECUTADOS. Cierre documental, commit/push y DRAFT son respaldo para revisión; no integración, release ni producción.
+
+## GO05B · cierre canónico del 21 de octubre, FALLÓ e INCOMPLETO
+
+Una invocación normal de `pnpm verify` sobre `ce7e628e46d8e4e59176c9a84171d44b46261d4d` y base C3 `1905aef75680a80055621cffd717198915d089f9`, bajo GO 8c552b9c y activación 28ddc5a9. Inicio nativo 18:24:54.8345503Z; supervisor terminó 19:22:55.6252856Z. El instante exacto del EXIT nativo no se serializó por separado. Native, launcher y sesión exterior terminaron con **exit 1: FALLÓ y además INCOMPLETO, 16/17 pasos ejecutados**. Quince pasos aprobados, incluido build y E2E con aviso; test falló y migrations-applied quedó OMITIDO crítico sin credenciales. No nuevos overrides, retries de aplicación o receta adicional.
+
+| Intento nativo de Vitest | Archivos | Casos | Duración |
+|---|---|---|---|
+| 1 | 1 fallido / 892 aprobados / 1 omitido, total 894 | 1 fallido / 13144 aprobados / 1 omitido, total 13146 | 935.03 s |
+| 2 | 2 fallidos / 891 aprobados / 1 omitido, total 894 | 3 fallidos / 13142 aprobados / 1 omitido, total 13146 | 912.02 s |
+
+No se suman intentos como cobertura distinta; el log no identifica el caso unitario omitido. Primer intento: `app/p/[token]/supplier-flow.test.tsx:256:82`, no encontró el mensaje «Deja un contacto: WeChat, teléfono o email.». Segundo: `app/p/[token]/standard-format.test.tsx:60:97`, esperaba el texto ficticio Empresa real y recibió vacío; `supplier-flow.test.tsx:260:3` y `:287:3`, timeout nativo de 20000 ms en corrección/reenvío y revisión de adjuntos. Los cuatro casos están **FUERA DE ALCANCE DETECTADO**, fuera de las 32 rutas; causa **NO DETERMINADA**. No se infiere bug de producto, causalidad BCV ni flaky desde estos fallos o el mensaje genérico de retry del runner. Director prepara diagnóstico separado, sin fix autorizado en esta tarea.
+
+Harness 237/237, tipos y cuatro Edge Functions PASARON; lint 0 errores/20 avisos. SQL local: 250 contratos con rollback y reconstrucción de 475 migraciones más 18 sólo-ledger PASARON; los dos tenants materializados son fixtures sintéticas en DB desechable, no negocio real. Ninguno sustituye ledger productivo ni autoriza aplicar 0501.
+
+E2E original: **198 casos = 176 esperados + 20 omitidos + 2 flaky + 0 inesperados**. Flaky nativos recuperados en retry 1: `calculadora-semantic-colors.spec.ts:53/mobile-chrome` y `company-photo-carousel.spec.ts:93/chromium`. Omitidos por grupo: comments-lifecycle 3, company-photo-carousel 2, gastos-expense-void 6, global-search 6 y nomina-settlement-void 3; anotaciones y 198 casos completos en `e2e-readonly-interpretation-01.json`, SHA256 `94cb918941e77f59e4447d75e4a6eef3715f5ded9710f71a3136c9ac36b49cf0`. El proceso E2E salió **distinto de cero, valor exacto no publicado**; el entry existente lo absolvió con aviso y marcó PASÓ CON AVISO NATIVO. Su atribución a WebKit en Windows se conserva como explicación del runner, sin diagnóstico independiente. No es salida limpia ni cobertura integral y no se repitió E2E.
+
+Recibos en `C:/tmp/director-traspaso-20261020/0569-bcv-validation/go05b-canonical-native-01/`: terminal `go05b-terminal-receipt-01.json`, SHA256 `689a95faf068868c79265c5637209aec493c08702508ebe82e88705334108f5e`; stdout `03ebdba03ed3f28ab2ecf6be183fb2d02931738054a1cbad9dc9c45e06f9af55`; stderr `d8e084ebe140d1a6d730625c9026af857b57b9db5f70eacdad6e14be8810cf00`. Original `e2e-original-46880-d88e71b7-002000000000bbbd.json`, 276532 bytes, fileID `d88e71b7-002000000000bbbd`, SHA256 `b8bd7f0c978148eccd7b8678b484ef8f36acf1cfebf58b639ed978200e4b3153`, copiado desde el handle del PID propio abierto antes del borrado del nombre; JSON completo, sin reconstrucción.
+
+Freeze de 6447 entradas antes/después: 0 diferencias; 11 extras: 0 diferencias, slices solapados que no se suman como archivos únicos. Incluye Git completo fuera del store raíz y entradas runtime propias fijadas, no todo node_modules transitivo. Streams completos; supervisorPartial false, sin errores de observador/monitor. Postflight propio: 772 identidades conocidas incluido launcher, 0 vivas/0 UNKNOWN; puertos 3776/13776/49796/49798 libres y dos nombres/dos IDs Docker propios ausentes con Docker consultable. Sin Kill, sin censo universal ni terminación de PID reutilizados ajenos.
+
+Director cotejó también los 6447 archivos físicos actuales, originales y recursos a 19:27:48.474Z: `C:/tmp/director-traspaso-20261020/0569-bcv-canonica-05b-cotejo-director.json`, SHA256 `482a900a6858799ba3fb67094d2787450234d022bf876303efa746afc96ac963`. Aceptó **integridad y recursos**, no aceptación global BCV; turno pesado devuelto y claim retenido. Autorizó sólo los tres documentos propios y el mismo DRAFT317. Producto/pruebas del checkpoint 390227699, 0501, 0495, plantillas, Compose, lock y receta no se modifican por este cierre documental. GO04B conserva FALLÓ/INCOMPLETO; GO05A conserva su focal 3/3. Fuente pública positiva sigue NO DISPONIBLE por el único GET TLS anterior; conocimiento, preparación 02 UNBOUND/NO GO/NO EJECUTADO. Sin nueva receta, tests, instalación, SQL, GET, integración, merge, deploy o producción por este cierre.
+
 ### Addendum Director32 y GO05A · original íntegro d73e2afc
 
 ~~~~~~markdown
