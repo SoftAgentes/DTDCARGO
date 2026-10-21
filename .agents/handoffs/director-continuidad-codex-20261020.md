@@ -7,9 +7,23 @@
 | Objetivo | Retomar el plan contable y su carril de embarques sin perder trabajo ni omitir las fronteras de producción |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\director-continuidad-codex-20261020` |
 | Rama y base | `codex/director-continuidad-codex-20261020`, desde `origin/main` `8e9e0f505322cd57b3230cce6b16b45b5554cb8a` |
-| Estado | En progreso: 0495 aplicada/verificada y #301 integrada en d410ab2e; publicación retenida por facturación GitHub. Retoma local 0572 en validación durante las 48 horas de espera para cambiar tarjeta informadas por Sam |
+| Estado | En progreso: 0572-a y b entregadas localmente en PR #310/#311 en borrador; Caracas C1 en corrección y validación local. Publicación retenida por el bloqueo de Actions y permisos de release pendientes |
+| Último corte | 20 de octubre, 10:47 p. m. Caracas. C1: bloques funcionales de fechas, asientos/0128 y formularios aprobados; ampliación a 64 rutas autorizada para capturar antes de esperas. Navegador real, SQL/HTTP, revisión y verify pendientes |
+| Main comprobada | `d410ab2e23e74e5bcf7fdc7cc595371b24cc03a8`, igual a origin/main tras fetch sin prune. 0495 aplicada una vez y #301 integrada; web nueva pendiente, no repetir 0495 |
 | Alcance escritor del Director | Este handoff y `docs/audits/2026-10-20-plan-contable-seguimiento-codex.md`, vista resumida autorizada por Sam al pedir continuar con el plan abierto; ningún archivo de producto |
 | Autorización | Sam ordenó seguir `C:\tmp\director-traspaso-20261020\PROMPT-CODEX-DIRECTOR.md`. El prompt autoriza continuidad con Workers, commits y ramas propias/PR, y establece el orden de integración/publicación; cada migración y borrado siguen exigiendo aprobación nominal independiente |
+
+## Resumen actual para retomar
+
+- **Único escritor y turno pesado:** Worker C1 `/root/worker_0572_cierre`, owner `worker-0576c1-01a15a4e-ddf0-7d82-8656-d9dc56b58468`, árbol `DTD-worktrees/sdd-0576-fechas-caracas-operaciones`, rama homónima con prefijo `codex/`. Base b `8729f7f4`, stub adoptado en `eecfbbb1`; producto en desarrollo, sin candidato final ni PR C1 aún al corte.
+- **Contrato C1:** `C:/tmp/director-traspaso-20261020/0576-caracas-c1-asignacion-worker.md`, SHA256 `f4c55bb8c97ac57d9b0c8ce0206d2aabe524e3009320be6c7c974674cfde76ff`, más addendum `0576-caracas-c1-addendum-actions.md`, SHA256 `1d82124240dd1ad7f3666591d572219d23ded116ecabd871ddd88a364e4d86a6`: **64 rutas**. Migración asignada 0499, sin aplicar. Siguiente: captura en wrappers y checkpoint app con push/PR en borrador, revisión por objetos mientras el Writer desarrolla SQL/HTTP; después cerrar hallazgos y verify canónico.
+- **Entregas previas:** #310 `a30d8585`, cierre local 14/17; #311 `8729f7f4`, producto equivalente a `3b1de986`, cierre local 16/17 y build aprobado. Ambas con omisiones/avisos declarados, pendientes de CI/base final/integración/publicación. b terminó, árbol limpio, claim y recursos propios liberados.
+- **Secuencia local:** C1 → C2 anual → BCV. C2 tiene borrador revisado de 12 rutas, sin base/árbol/owner/número SQL/turno asignados. BCV tiene diseño de 27 rutas y SDD 0569, sin importador ni agenda instalada. No ejecutar otra prueba pesada durante C1.
+- **Seguimiento propio:** `docs/audits/2026-10-20-plan-contable-seguimiento-codex.md`, PR #308. Solo Director escribe estos dos documentos. 2.1 abierta; cada check acredita el paso escrito, no publicación implícita.
+- **GitHub y producción:** push y PR funcionan; Actions de #311 terminó startup_failure. Sam informó tarjeta rechazada y espera de 48 horas para cambiarla; no hay habilitación garantizada. Sin merge/deploy/VPS/datos reales/migraciones por esta continuación. 0498/0499 no aplicadas y 0495 no se repite.
+- **Conocimiento separado:** status en main terminó a las 10:13 p. m., exit 0 / ok=false: estructura y Archify CURRENT, semántica piloto 15/16 y global 15/1.322, Obsidian PENDING. Rama b sin grafo/runtime propios; no publicación compartida desde borradores.
+
+Las secciones iniciales siguientes conservan la reconstrucción histórica. Los cortes fechados al final aportan recibos y decisiones; este resumen identifica el trabajo actual.
 
 ## 0. Fuentes y estado de partida
 
@@ -61,7 +75,7 @@ El mandato de Sam de adoptar las sesiones Codex en los mismos worktrees incluye 
 - Encargo: resolver los tres P2 de la revisión actual, sin cambios de SQL ni RBAC. Allowlist de nueve rutas: `propuesta.ts` y su prueba; `RateSnapshotDrawer.tsx` y una prueba nueva de ese componente; spec 0571; handoff 0571; índice de specs solo si lo exige el generador; traducciones warehouse es-VE y zh-CN solo si se necesitan mensajes.
 - Preparación de código y regresiones autorizada. Pruebas locales pendientes de turno después de 0569. El verify final se hará sobre la base que corresponda después de integrar las dependencias, sin presentar la validación de `b70be5d7` como prueba del código nuevo.
 
-## 3. Estado contrastado
+## 3. Estado contrastado inicial · histórico
 
 | Tarea | Cabeza verificada | Estado | Siguiente paso / owner |
 |---|---|---|---|
@@ -74,7 +88,7 @@ El mandato de Sam de adoptar las sesiones Codex en los mismos worktrees incluye 
 | 0574 / 4.5 | `18edcd81` | Implementada; preparación leída, 10/10 rutas propias en allowlist, sin dependencias locales instaladas; depende de #307 | Adopción posterior, instalación congelada, verify con turno y revisión visual |
 | 0575 / 2.2 | `8a614250` | Cinco decisiones y propuesta transaccional publicadas; revisión documental PASÓ, spec sigue draft. Árbol limpio y remoto igual | Antes de implementar: contratos, allowlists, base integrada con Caracas y reserva de migración; no iniciar código contable en paralelo |
 
-### GitHub Actions
+### GitHub Actions · evolución histórica
 
 Sam respondió en esta sesión: **«Ya quedó resuelto»**, sobre el pago/límite de gasto.
 
@@ -722,3 +736,11 @@ Se coordinó un checkpoint intermedio de app después de su verde/tipos/lint, co
 Contrato BORRADOR C2 recibido y leído completo: `C:/tmp/director-traspaso-20261020/caracas-c2-contrato-director-preparacion.md`, SHA256 `33977babc9b77f41df7a7124e3e6b1e90c6154190a6c2a062b50b0eab54d7243`, 20.440 bytes y 12 rutas únicas. Actualiza fuentes por objetos8729 y conserva caller v2/nombre privado SQL final, ventanas distintas, límites y decimales. HTTP propio deberá reconocer las tres RPC ya presentes antes del DDL C2; no copiar 404/PGRST202 de la instalación inicial b. Admite solo cambios de agregados explicados por el borde temporal y prohíbe una degradación ficticia cuando la RPC antigua responde con semántica UTC. No hay incompatibilidad esencial ni ampliación de rutas. Se acepta como preparación, **no asignación ejecutable**: base/API final C1, número SQL, árbol/rama/owner y turno siguen pendientes. Sin tests ni producto C2.
 
 Actualización 10:36 p. m.: root cotejó ROJO/VERDE de asientos y caller0128. `red-posting-order`, `02:32:41.230Z–02:32:44.240Z`, exit 1: dos archivos, 22 fallos funcionales / 34 aprobadas / 0 omitidas; nueve capturas tardías en ocho posters y trece contratos del caller (fecha aditiva, readback por ausencia estricta y negativas). `green-posting-order-1`, `02:35:34.755Z–02:35:37.057Z`, exit 0 real: **56/56, dos archivos, 0 omisiones**. Mantiene fechas explícitas y posted_at; negativos de campo presente inválido, id/tenant ajenos, error, ausencia y multiplicidad dejan factura emitida/asiento pendiente sin nueva emisión. Formularios, SQL/HTTP y cierre general siguen pendientes. Se comunicó el punto de UI real del contrato: un max nativo de fecha no debe impedir el recovery autorizado de un intento previo ahora aparentemente futuro; ello no concede permiso desde formulario ni sustituye el control servidor/SQL.
+
+Actualización 10:47 p. m.: Sam se retiró a dormir e indicó avanzar sin detenerse, un objetivo tras otro, y terminar las tareas. Se conserva la secuencia continua del prompt final: decisiones técnicas delegadas, trabajo local/PR en borrador, producción sin nuevos permisos implícitos. Se abrió el objetivo activo concreto de cierre local C1; después corresponde continuar C2 y BCV, y la cola contable autorizada, sin convertir «avanza» en OK nominal de migración.
+
+Formularios cotejados por recibos/JSON originales: `red-forms-1` conserva selector incorrecto, nueve fallidas/21 aprobadas, sin adoptarlo como ROJO funcional completo. `red-forms-2`, `02:38:39.574Z–02:38:55.182Z`, exit 1, nueve fallos funcionales/22 aprobadas/0 omitidas (siete fechas de formulario y fila de gasto UTC/Shanghai). `green-forms-1`, `02:39:16.758Z–02:39:32.259Z`, exit 0, **31/31 en dos archivos, 0 omisiones**. La prueba de botón Portal conserva mismo intento con max reducido, noValidate y campos congelados; no sustituye navegador real ni autoridad de la action/SQL. Suplemento `red-anchor-history-supplement`, `02:44:17.737Z–02:44:20.326Z`: 5 fallos/20 aprobadas; verde siguiente `02:44:29.890Z–02:44:32.149Z`: **25/25**, sin omisiones, sobre captura de pago delegado y origen de gasto malformado. No sumar estos grupos a los anteriores como cobertura distinta.
+
+Controles de checkpoint todavía abiertos: tipos `typecheck-app-1`, `02:40:41.960Z–02:41:58.965Z`, exit 2 por dos usos de estado inválido en fixture de Cobranzas; Worker informó corrección de la fixture, pero reintento aún pendiente al corte. `lint-app-1`, `02:44:42.747Z–02:46:02.717Z`, exit 1; no se presenta como aprobado. `pending-symbols-app-1`, `02:46:45.170Z–02:47:10.631Z`, exit 0. Se preservan fallos y fuentes antes de nuevas corridas.
+
+**Ampliación técnica C1 autorizada por Director, 60→64 rutas:** addendum externo leído/guardado `0576-caracas-c1-addendum-actions.md`, SHA256 `1d82124240dd1ad7f3666591d572219d23ded116ecabd871ddd88a364e4d86a6`. Cuatro rutas exactas: `lib/studio/collections-actions.ts`, `app/studio/(app)/cobranzas/actions.ts`, `app/studio/(app)/tesoreria/actions.ts`, `lib/studio/__tests__/fechas-caracas-actions.test.ts`. Root contrastó por objetos8729 la lectura de factura antes de validatePaymentInput y los wrappers que esperan sesión/guard antes de delegar. El cambio cumple la aceptación ya vigente de capturar al entrar; no amplía el resultado de negocio. Solo registerCollectionFor, registerCollection/registerUnidentifiedPayment y createBill/registerPayment, más prueba de handlers/delegados reales. Omitida se resuelve una vez; vacío/null/explícita se conservan para validar; sin mutar raw ni nuevo fallo prematuro de payload malformado. Permisos/RLS/tenant/FX/importes y efectos permanecen. Worker debe guardar addendum en spec/handoff antes de esas ediciones y aportar ROJO/VERDE. Misma rama/owner/0499/turno y draft; sin merge ni prod.
