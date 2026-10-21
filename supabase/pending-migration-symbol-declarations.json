@@ -53,6 +53,7 @@
           "kind": "table",
           "callSites": [
             "lib/studio/fx-rates.ts:120",
+            "lib/studio/fx/bcv-sync.ts:71",
             "lib/studio/fx/bcv-sync.ts:124",
             "lib/studio/fx/bcv-sync.ts:233",
             "lib/studio/fx/bcv-sync.ts:237"
@@ -176,9 +177,9 @@
           "degradation": "Sin 0495, fx_rates no existe (42P01): ultimaTasa devuelve null; Admin › Tasas y Contabilidad › Tasas de cambio muestran «sin tasa cargada» y gastos y el móvil abren sin la tasa precargada (se escribe a mano)."
         },
         {
-          "site": "lib/studio/fx/bcv-sync.ts:75",
+          "site": "lib/studio/fx/bcv-sync.ts:95",
           "contains": "if (reply.error || reply.status !== 200 || !Array.isArray(reply.data)",
-          "degradation": "Importador BCV: snapshot ausente/error/null/truncado/shape inválido nunca equivale a ausencia confirmada. El preflight rechaza antes del fetch/DML; el transporte dedicado conserva rechazo404 antes de normalización SDK. Después de una mutación enviada, una lectura fallida solo permite reconciliación acotada o UNKNOWN; no prueba rollback. Sus callSites y guard son propios, no heredan la evidencia de ultimaTasa. Pruebas de ejecución todavía pendientes."
+          "degradation": "Importador BCV: snapshot ausente/error/null/truncado/shape inválido nunca equivale a ausencia confirmada. El preflight rechaza antes del fetch/DML; el transporte dedicado conserva rechazo 404 y valida el conteo antes de normalización SDK. Después de una mutación enviada, una lectura fallida sólo permite reconciliación acotada o UNKNOWN; no prueba rollback. Sus callSites y guard son propios, no heredan la evidencia de ultimaTasa. Transporte medido con SDK y HTTP locales; no acredita DB de producción."
         },
         {
           "site": "app/studio/(app)/admin/exchange-rates-actions.ts:44",
