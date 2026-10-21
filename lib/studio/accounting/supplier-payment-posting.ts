@@ -21,6 +21,7 @@
 
 import { usdOrNull } from "@/lib/shared/fx";
 import { createAdminClient } from "@/lib/db/admin";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 
 /** Cuenta de control de la CxP que se debita al pagar (SDD-0040 §5). */
 export const PAYMENT_AP_CODE = "2.1.1"; // Cuentas por pagar proveedores (debe)
@@ -118,6 +119,7 @@ export async function postSupplierPaymentJournalEntry(
   input: SupplierPaymentPostingInput,
 ): Promise<SupplierPaymentPostingResult> {
   try {
+    const entryDate = input.entryDate === undefined ? fechaCaracas() : input.entryDate;
     const admin = createAdminClient();
 
     // 1. Idempotencia: ¿ya hay asiento vivo para esta orden?
@@ -175,7 +177,6 @@ export async function postSupplierPaymentJournalEntry(
       return { ok: false, error: codeErr?.message ?? "next_entry_code falló" };
     }
     const entryCode = String(codeData);
-    const entryDate = input.entryDate ?? new Date().toISOString().slice(0, 10);
 
     // 5. Insertar el asiento (asentado) + sus 2 líneas.
     const { data: insertedEntry, error: entryErr } = await admin

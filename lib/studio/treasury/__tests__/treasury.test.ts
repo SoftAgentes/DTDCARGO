@@ -15,7 +15,7 @@
  *  - formato de los códigos PRV-/CXP-/OP-.
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import type { Account } from "../../account-types";
 import {
   buildPayablesQueue,
@@ -44,6 +44,26 @@ import {
 } from "../../accounting/supplier-payment-posting";
 
 const TODAY = "2026-06-01";
+
+afterEach(() => vi.useRealTimers());
+describe("C1 · fechas CxP y pago", () => {
+  const payable = { supplierId: "s1", expenseAccountId: "cost", totalAmount: 10.25, dueDate: "2026-11-20" };
+  const payment = { amount: 10.25, cashAccountId: "cash" };
+  it("omisión programática toma Caracas", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-21T02:30:00Z"));
+    expect(validateBillInput(payable).input).toMatchObject({ issueDate: "2026-10-20", totalAmount: 10.25 });
+    expect(validatePaymentInput(payment, 100).input).toMatchObject({ paidAt: "2026-10-20", amount: 10.25 });
+  });
+  it.each(["", "2026-02-30", "2025-02-29"])("rechaza fecha explícita inválida %j", (date) => {
+    expect(validateBillInput({ ...payable, issueDate: date }).fieldErrors?.issueDate).toEqual(expect.any(String));
+    expect(validatePaymentInput({ ...payment, paidAt: date }, 100).fieldErrors?.paidAt).toEqual(expect.any(String));
+  });
+  it("conserva emisión y pago explícitos", () => {
+    expect(validateBillInput({ ...payable, issueDate: "2024-02-29" }).input?.issueDate).toBe("2024-02-29");
+    expect(validatePaymentInput({ ...payment, paidAt: "2024-02-29" }, 100).input?.paidAt).toBe("2024-02-29");
+  });
+});
 
 function bill(partial: Partial<SupplierBill> & { id: string }): SupplierBill {
   return {

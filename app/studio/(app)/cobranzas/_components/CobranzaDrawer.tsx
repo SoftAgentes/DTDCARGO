@@ -1,5 +1,7 @@
 "use client";
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
+
 /**
  * Drawer del receivable (SDD-0041): datos de la factura + acciones de gestión
  * (contacto/promesa/nota) + registrar cobro + historial de recibos y gestiones.
@@ -462,7 +464,7 @@ function CobroForm({
   onDone: (receiptCode: string | undefined, fullyPaid: boolean) => void;
 }) {
   const balance = receivable.balance;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = fechaCaracas();
   const [amount, setAmount] = useState<string>(String(balance));
   const [cashAccountId, setCashAccountId] = useState<string>(
     cashAccounts[0]?.id ?? "",
@@ -858,7 +860,7 @@ function PromiseForm({
     promisedAmount: number | null,
   ) => Promise<boolean>;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = fechaCaracas();
   const [date, setDate] = useState<string>(today);
   const [amount, setAmount] = useState<string>("");
 

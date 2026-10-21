@@ -49,6 +49,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   postReceiptJournalEntry,
@@ -149,6 +150,7 @@ export async function registerCollectionFor(
   invoiceId: string,
   raw: Partial<PaymentInput>,
 ): Promise<RegisterCollectionResult> {
+  const receivedAt = raw?.receivedAt === undefined ? fechaCaracas() : raw.receivedAt;
   // 1. Leer la factura (RLS la acota al tenant). Sólo para el mensaje y el
   // saldo del formulario: la RPC vuelve a validar con la factura bloqueada.
   const { data: inv, error: readErr } = await supabase
@@ -174,7 +176,7 @@ export async function registerCollectionFor(
   });
 
   // 2. Validar el input (amount>0, ≤saldo, cuenta requerida).
-  const { input, fieldErrors } = validatePaymentInput(raw, balance);
+  const { input, fieldErrors } = validatePaymentInput({ ...raw, receivedAt }, balance);
   if (fieldErrors) return { fieldErrors };
 
   // 3. Cobro atómico (0467): factura FOR UPDATE, saldo estricto, receipt_code

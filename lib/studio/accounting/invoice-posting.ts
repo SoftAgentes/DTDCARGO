@@ -19,6 +19,7 @@
  */
 
 import { createAdminClient } from "@/lib/db/admin";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 
 /** Cuentas usadas por el asiento de venta (codes del CoA seed, SDD-0040 §5). */
 export const SALES_AR_CODE = "1.1.2"; // Cuentas por cobrar clientes (debe)
@@ -57,6 +58,7 @@ export async function postInvoiceJournalEntry(
   input: InvoicePostingInput,
 ): Promise<InvoicePostingResult> {
   try {
+    const entryDate = input.entryDate === undefined ? fechaCaracas() : input.entryDate;
     const admin = createAdminClient();
 
     // 1. Idempotencia: ¿ya hay asiento vivo para esta factura?
@@ -117,7 +119,6 @@ export async function postInvoiceJournalEntry(
       return { ok: false, error: codeErr?.message ?? "next_entry_code falló" };
     }
     const entryCode = String(codeData);
-    const entryDate = input.entryDate ?? new Date().toISOString().slice(0, 10);
 
     // 4. Insertar el asiento (asentado) + sus líneas.
     const { data: insertedEntry, error: entryErr } = await admin

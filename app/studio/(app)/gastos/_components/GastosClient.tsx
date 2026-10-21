@@ -1,5 +1,7 @@
 "use client";
 
+import { CARACAS_TIME_ZONE } from "@/lib/shared/fechas-caracas";
+
 /**
  * GastosClient — orquestador del módulo Gastos (SDD-0039 · Parte B).
  *
@@ -19,7 +21,6 @@ import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   useT,
   useLocale,
-  formatDate,
   formatNumber,
   formatCurrency,
   resolveErrorMessage,
@@ -605,7 +606,7 @@ function ExpenseRow({
           {row.expense_code}
         </code>
         <span style={{ font: "500 10.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
-          {formatDate(row.occurred_at, locale, "short")}
+          {new Intl.DateTimeFormat(locale, { timeZone: CARACAS_TIME_ZONE, year: "numeric", month: "short", day: "numeric" }).format(new Date(row.occurred_at))}
         </span>
       </div>
 

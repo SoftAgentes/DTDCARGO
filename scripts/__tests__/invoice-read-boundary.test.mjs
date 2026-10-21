@@ -75,7 +75,8 @@ const BASELINE = {
   // se aplicó un crédito de referido quedaron 'anulada' (el crédito varado que
   // avisa la pantalla de Fidelización).
   //
-  // Es el ÚNICO caller de este inventario que lee con el CLIENTE ADMIN, y la
+  // En SDD-0495 era el único caller que leía con el CLIENTE ADMIN (SDD-0576
+  // incorpora abajo el readback acotado de Warehouse), y la
   // razón es este mismo contrato: al exigir revisar «el guard y el tenant»
   // apareció que `invoices_accounting_select` (migr 0414) niega el SELECT a
   // `commercial` y `support`, que son justo los roles de esa pantalla — con el
@@ -109,6 +110,13 @@ const BASELINE = {
   "lib/studio/payment-queries.ts": 1,
   "lib/studio/renditions/queries.ts": 3,
   "lib/studio/reports/queries.ts": 4,
+  // SDD-0576: cliente ADMIN ya recibido por el motor Warehouse, detrás de sus
+  // gates y de RPC outcome=invoiced con UUID válido. Solo si issued_at está
+  // AUSENTE: select id/tenant_id/issued_at de esa factura, tenant confiable y
+  // deleted_at IS NULL; limit 2 detecta ambigüedad, se exige exactamente 1 fila
+  // coherente y calendario válido. Error no habilita poster, reloj ni otra RPC.
+  // No cambia el guard/RLS ni autoriza lecturas generales de facturas.
+  "lib/studio/sales-orders/actions.ts": 1,
 };
 
 function filesUnder(root) {
@@ -183,7 +191,8 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // SDD-0560: 18 → 19. Entra `lib/studio/borrado/asistente-servidor.ts`.
     // SDD-0557: 19 → 20. Entra `lib/studio/accounting/libro-control-queries.ts`.
     // SDD-0558: 20 → 19. Sale `lib/studio/kommo-contact-status.ts` entero.
-    expect(Object.keys(actual)).toHaveLength(19);
+    // SDD-0576: 19 → 20 por el readback de fecha persistida de Warehouse.
+    expect(Object.keys(actual)).toHaveLength(20);
     // El total va aparte del mapa a propósito: si alguien «arregla» el mapa
     // moviendo una llamada de un archivo a otro, el mapa vuelve a cuadrar y
     // este número no.
@@ -200,7 +209,8 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // origin/main bb6bb3e4 con la 0555, la 0556, la 0557 y la 0560 ya fusionadas.
     // SDD-0572: 44 → 43, solo sale la lectura de display latestVesFxRate.
     // Se mantienen 19 rutas y comparación exacta de todo el inventario.
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(43);
+    // SDD-0576: 43 → 44, exclusivamente issued_at ausente tras emisión real.
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(44);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {

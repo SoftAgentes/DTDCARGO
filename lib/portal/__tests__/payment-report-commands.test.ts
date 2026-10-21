@@ -52,6 +52,29 @@ const createCommand = () => ({
   invoiceCode: INVOICE_CODE,
   input: { amount: 45.5, method: "transferencia" as const, paidAt: "2026-09-01", note: "Nota sintética" },
   proofPath: PROOF_PATH,
+  context: { kind: "new" as const, businessDay: "2026-09-02" },
+});
+
+describe("C1 · contexto interno de creación", () => {
+  it("respeta ancla new recibida aunque el reloj ya haya pasado a otro día", async () => {
+    const io = sessionIo();
+    vi.setSystemTime(new Date("2026-10-21T12:00:00Z"));
+    const command = { ...createCommand(), context: { kind: "new", businessDay: "2026-10-20" }, input: { ...createCommand().input, paidAt: "2026-10-21" } } as unknown as Command;
+    expectSafeFailure(await runPaymentReportCommand(io.session, command), false);
+    expect(io.rpc).not.toHaveBeenCalled();
+  });
+  it("recovery permite enviar fecha previa aceptada y exige recibo validado de SQL", async () => {
+    const io = sessionIo({ data: wireReceipt({ replayed: true }), error: null });
+    const command = { ...createCommand(), context: { kind: "recovery-candidate" }, input: { ...createCommand().input, paidAt: "2026-10-21" } } as unknown as Command;
+    expect(await runPaymentReportCommand(io.session, command)).toMatchObject({ ok: true, receipt: { replayed: true } });
+    expect(io.rpc).toHaveBeenCalledOnce();
+    expect(io.rpc.mock.calls[0][1]).not.toHaveProperty("context");
+  });
+  it.each([undefined, {}, { kind: "new", businessDay: "2026-02-30" }, { kind: "public-retry" }])("contexto inválido %j no envía", async context => {
+    const io = sessionIo();
+    expectSafeFailure(await runPaymentReportCommand(io.session, { ...createCommand(), context } as unknown as Command), false);
+    expect(io.rpc).not.toHaveBeenCalled();
+  });
 });
 const cancelCommand = () => ({
   verb: "cancel" as const, requestId: REQUEST_ID, reportId: REPORT_ID, invoiceCode: INVOICE_CODE, reason: REASON,

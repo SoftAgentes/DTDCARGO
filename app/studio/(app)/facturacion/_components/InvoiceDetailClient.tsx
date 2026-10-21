@@ -1,5 +1,7 @@
 "use client";
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
+
 /**
  * Wrapper client del detalle de factura (SDD-0021).
  *
@@ -454,7 +456,7 @@ function PaymentModal({
   onPaid: (amount: number, fullyPaid: boolean, receiptCode?: string) => void;
   onError: (msg: string) => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = fechaCaracas();
   const [amount, setAmount] = useState<string>(String(balance));
   const [cashAccountId, setCashAccountId] = useState<string>(
     cashAccounts[0]?.id ?? "",
