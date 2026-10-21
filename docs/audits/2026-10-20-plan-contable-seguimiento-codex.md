@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 11:22 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 11:27 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -157,8 +157,10 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Respaldar el candidato SQL **`b7148218` en la PR #312 en borrador**, con las 68 rutas dentro del alcance. Huella exacta de 0499 cotejada desde Git. Los dos contratos ampliados pasaron **8/8 pruebas, sin omisiones**; incluyen controles permanentes que reconocen el comportamiento anterior. Revisión SQL independiente en curso; PostgreSQL y API local ya iniciaron, sin resultado todavía al corte.
 - [x] Ejecutar 0499 real en PostgreSQL 17.11 y API local PostgREST 14.17: **95 aserciones SQL, 39 controles del arnés y 41 respuestas HTTP** registradas. Versión antes/después en el mismo servicio, permisos/tenant/replay comprobados y recursos propios retirados. Paquete respaldado en **`de8b1961`**; no acredita Auth alojado, bytes actuales de Storage desde SQL ni producción.
 - [x] Comprobar que el contrato SQL detecta **14/14 errores intencionales**, con la fuente original intacta. El caso de la guarda histórica también conserva el bloqueo del trigger restante; no se presenta como prueba de que ese error permitiría guardar un estado inválido.
-- [ ] Completar el contraste acotado con las defensas vigentes de cierre **0493**, además de 0133, y cerrar la revisión independiente del SQL/HTTP. Es cobertura pendiente, sin defecto de producto nuevo confirmado al corte.
-- [ ] Completar las pruebas de errores intencionales y la revisión visible de los formularios dentro del alcance.
+- [x] Cerrar la revisión independiente del SQL `b7148218` y su suplemento HTTP `de8b1961`: sin hallazgos materiales nuevos, con identidad y límites de las pruebas documentados. La revisión exige comprobar por separado la composición con el cierre 0493 vigente; no declara C1 terminada.
+- [ ] Completar el contraste acotado con las defensas vigentes de cierre **0493**, además de 0133. El Worker incorporará la migración real y sus permisos, transiciones OLD/NEW y excepciones, sin cambiar producto; cobertura pendiente al corte.
+- [x] Completar los **29 controles de errores intencionales de aplicación**, con archivos originales restaurados: 25 reconocidos inicialmente, dos fallos funcionales de formularios reclasificados con evidencia y dos huecos de cobertura cerrados mediante regresiones de comprobante/replay. Estas últimas pasaron **265/265 pruebas en dos archivos, sin omisiones**, y detectaron ambos errores al repetirlos. Se conserva el primer resultado incompleto.
+- [ ] Completar la revisión visible de los formularios dentro del alcance; las pruebas de componentes no sustituyen el navegador.
 - [ ] Cerrar el cotejo del ajuste de Gastos y la revisión SQL/HTTP del candidato C1, ejecutar sus pruebas generales y completar la PR #312 en borrador. GitHub no aprobó el checkpoint: sus dos intentos terminaron antes de arrancar, por `startup_failure`.
 - [ ] Implementar después Caracas C2 para los cálculos anuales, con número de migración coordinado por inventario nuevo y las ventanas propias de Portal y Studio conservadas.
 - [ ] Cerrar un slice posterior acotado de gastos móviles antes de certificar toda la hora Caracas: el caller activo conserva fechas UTC explícitas y guardas anteriores. Detectado y cotejado por lectura, fuera de las 68 rutas de C1; sin implementación ni autorización de datos reales.
