@@ -1,10 +1,12 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 6:35 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 6:44 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 **Último avance comprobado, sin nuevo hito publicado:**
 
+- [x] Arrancar la primera instalación offline de CORE después de la revisión de V7 y su secuencia directa: **53 sellos de preparación y 38 del binding sin diferencias**. I02 está **EN CURSO**, con un solo ejecutor y sin repetir versiones. Última muestra a las 6:44 p. m.: dos identidades conocidas activas, ningún desconocido nuevo y recursos dentro del límite. Todavía no hay resultado de instalación, I03 o pruebas. Catorce hallazgos y ambas aceptaciones continúan abiertos.
+- [ ] Completar esa instalación, comprobar las dependencias propias y ejecutar después los cuatro archivos de pruebas de CORE con autorización separada. **121 casos previstos por fuente; cero ejecutados hasta este corte.**
 - [x] BCV terminó GO05B sobre `ce7e628e`: **FALLÓ por pruebas de aplicación y CIERRE ADEMÁS INCOMPLETO, 16/17**, con salida 1. Primer intento: 13.144 aprobadas, una fallida y una omitida. Segundo: 13.142 aprobadas, tres fallidas y una omitida. No se suman como casos únicos ni se atribuye causa sin prueba.
 - [x] Tipos, backend, 250 contratos SQL, reconstrucción de 475 migraciones más 18 registros de historial y construcción aprobaron. Navegación original: 198 casos = 176 aprobados, 20 omitidos y dos recuperados, sin fallos finales. El control aprobó con aviso por salida no cero del proceso; la atribución del ejecutor a WebKit no tiene diagnóstico independiente.
 - [x] Director comprobó integridad y cierre: 6.447 entradas antes, después y actuales, más once adicionales, sin diferencias; treinta artefactos sellados y diecisiete resultados nativos cotejados. Las 772 identidades conocidas no tienen procesos propios activos ni estado desconocido; cuatro puertos y los contenedores propios están libres. El turno fue devuelto.
