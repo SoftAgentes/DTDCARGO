@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 10:47 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 10:59 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -144,7 +144,11 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [ ] Reproducir los errores de fecha y corregir C1; probar emisión, asientos, cobros, pagos y recuperación del reporte Portal, sin cambiar fechas explícitas ni re-fechar historia.
 - [x] Corregir y probar las fechas de los asientos y del emisor automático: **56/56 comprobaciones en dos archivos, sin omisiones**, después de reproducir 22 fallos funcionales. Los nueve fallbacks capturan el día antes de esperar; una fecha explícita y el instante de auditoría se conservan. El asiento automático toma la fecha realmente guardada en la factura, o queda pendiente con explicación si no puede comprobarla, sin repetir la emisión.
 - [x] Aprobar las pruebas funcionales de los formularios reales: **31/31 en dos archivos, sin omisiones**, después de reproducir nueve fallos válidos. Fechas predeterminadas, edición y fila de gasto en distintas zonas comprobadas; el botón de reintento conserva IDs, datos y archivo aunque la fecha previa supere el nuevo máximo. Se conserva aparte el primer error de selector de la prueba. **Todavía falta navegador real y revisión visible**, sin certificarlos por estas pruebas.
-- [x] Delimitar y autorizar cuatro rutas adicionales para capturar la fecha omitida antes de esperar por sesión, permiso o factura en los delegados de Cobros/Tesorería. **Alcance vigente: 64 rutas.** Misma tarea, rama y migración; fechas explícitas/vacías, permisos e importes conservados. Implementación y pruebas de esa ampliación todavía pendientes al corte.
+- [x] Corregir la captura antes de esperas en los delegados de Cobros/Tesorería, dentro de las cuatro rutas adicionales autorizadas: **47/47 pruebas aprobadas**, después de reproducir 13 fallos funcionales. Fechas explícitas/vacías, permisos, payload original e importes conservados.
+- [x] Autorizar y actualizar exclusivamente el inventario de la lectura acotada de fecha emitida: **20 archivos y 44 llamadas**, con el analizador y los controles intactos. Quinta ruta adicional; alcance de 65 rutas antes del siguiente ajuste.
+- [x] Cotejar la regresión ampliada de aplicación: **697/697 casos en 19 archivos, sin omisiones**, terminada a las 10:54 p. m. Tipos y revisión estática pasaron; también el control de símbolos pendientes, con dos grupos declarados todavía sin aplicar. Son resultados sobre la versión en desarrollo, anteriores al ajuste del aviso que sigue; no sustituyen la validación final.
+- [x] Delimitar la corrección del aviso de Warehouse: la factura emitida con asiento pendiente debe mostrarse como tal. **Alcance vigente: 68 rutas**, después de autorizar tipo, caller visible y prueba real de propagación. Misma tarea, rama y 0499; sin nueva automatización ni efectos financieros.
+- [ ] Corregir y probar el aviso de factura emitida/asiento pendiente; congelar después el candidato de aplicación y respaldarlo en su PR en borrador para revisión independiente.
 - [ ] Cargar y validar 0499 real en base local desechable y API local, con permisos, recuperación, límites horarios y ausencia de efectos repetidos; sin base productiva.
 - [ ] Completar las pruebas de errores intencionales y la revisión visible de los formularios dentro del alcance.
 - [ ] Revisar el candidato C1, cerrar sus pruebas generales y dejar su PR en borrador.
