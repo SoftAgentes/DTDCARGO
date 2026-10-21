@@ -6,7 +6,7 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 
 ## ADOPCIÓN Y PROPIEDAD
 
-- Estado: EN PROGRESO · fase ligera activa desde 2026-10-21. Única sesión escritora `/root/revision_bcv_prevuelo`, ahora explícitamente Worker; Director conserva coordinación y revisión.
+- Estado: EN PROGRESO · GO03 funcional exclusivo efectivo desde 2026-10-21 13:27:50 UTC. Única sesión escritora `/root/revision_bcv_prevuelo`, explícitamente Worker; Director conserva coordinación y revisión. Sin canónica/build/conocimiento por este GO.
 - TaskID: `0569-bcv-carga-diaria`.
 - Owner: `worker-0569bcv-01a15a4e-ddf0-7d82-8656-d9dc56b58468`.
 - Raíz: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0569-bcv-carga-diaria`.
@@ -36,7 +36,9 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 | Promoción/importación parse5 | PASÓ autoría mínima9cd35b1ef y enlace/importación GO01C: versión efectiva8.0.1 desde árbol propio,31fuentes sin cambios. Promociones offline GO01/01B FALLARON PREPARACIÓN por metadata, sin ROJO funcional ni red añadida. |
 | SQL/HTTP/contexto/SDK | PASÓ gate acotado GO02: PG17.11/PostgREST14.17/SDK2.106.1, siete controles y 26 negativos DML. 24 rechazos sin efecto y 2 humanos user/rpc. No cubre el importador completo ni transporte amplio. |
 | Focal persistencia 0501 | PASÓ 10/10, 0 omisiones en f1061d2ea: contexto inicial/restaurado exigido, compatibilidad 0495, cuatro mutantes funcionales y rollback poscreación/catálogo en la misma DB. Intentos previos conservados, no sumados a cobertura. |
-| Parser/source/sync/route generales, UI, tipos/lint/build/verify | NO EJECUTADO. F01/F02/F03 siguen pendientes de ROJO válido y reparación posterior. |
+| Parser/source/sync/route/cron y UI DOM | GO03: ROJO inicial 23/129; reparación y positivos aprobados dentro de focal 176/177 con un fallo B18. Residual F02 ROJO 1/46 → parser/fuente 79/79 PASÓ. Sync ampliado 75/75 PASÓ; UI DOM 19/19 PASÓ. Intentos/SHAs y límites abajo; no sumar corridas solapadas. |
+| HTTP funcional ampliado | PASÓ HTTP full 02 en 16eab3620: 18 controles, 27 escenarios y 26 intentos negativos, con dos sesiones DML reales, ACK perdido, auditoría/rollback e aislamiento. Primera full FALLÓ PREPARACIÓN de fixture. |
+| UI real, mutantes TS, regresiones/gates globales, canónica | PENDIENTES; no conformidad global, verify ni build aprobados por estas focales. |
 | Graphify/semántica/Archify/preview/publicación | NO EJECUTADO; único ciclo local tras documentos estables y turno del Director. Sin bóveda compartida. |
 | Producción/ledger/migración/cron instalado | NO EJECUTADO y no autorizado.0495 aplicada no se repite;0501 exige OK nominal futuro. |
 
@@ -142,6 +144,28 @@ Aviso UI autorado con Icon.info existente, tokens neutrales, región status/poli
 Governance Check aplicado por lectura: SGE-00, VIS-01/02, A11Y-01, CMP-01, ICO-01, FRM-01, ERR-01 y AVS-01; búsqueda del registro/primitivas no encontró banner informativo canónico que reemplazar. Se conserva la composición local y el icono central, sin primitiva global nueva ni API toast nueva. Cumplimiento estático del nuevo aviso en tokens/semántica/copy; cumplimiento funcional y visual todavía no acreditado. No se declara conformidad integral del formulario histórico ni se absorben sus brechas de error/contraste fuera del aviso. Validator del plugin y /ui-check real esperan turno. Las indicaciones históricas del comando sobre MARKBOX no sustituyen BRAND vigente.
 
 Se encontraron rutas supuestas ausentes al preparar lecturas (HANDOFF/CHANGELOG de raíz, registry relativo y nombres de helper); se resolvieron con inventario focal a sus rutas reales. Son preparación de lectura, sin runtime ni ROJO funcional. Notas de prevuelo/peer y checkpoint 8b4 permanecen inmutables; producto parser/source/sync/types/0501 idéntico a f106 hasta medir los hallazgos.
+
+## GO03 · CORTE FUNCIONAL PARCIAL PARA RESPALDO · 2026-10-21
+
+Producto actual de este corte: `16eab3620aba3acfd1f7676453d3f30c37be5779`, aún sin cierre integral. Se preservan f106/8b4, cada primer fallo y cada carpeta externa. No se repitió instalación, baseline ni focal PGlite por rutina. 0495 y 0501 no cambiaron; 0501 solo fixtures. PR #317 continúa DRAFT apilada en C3; actualización remota autorizada por Director durante este corte sin corrida activa.
+
+| Recibo en 0569-bcv-validation | Resultado y atribución |
+|---|---|
+| go03-rojos-01 | f32cb6503: 23 fallos funcionales previstos / 129, 106 pasaron, 0 omisiones: F01 3, F02 3, F03 9, S01 8. Fracción .001 fue regresión aprobada. Freeze 127 entradas/0 diferencias. |
+| go03-focales-01 | a12e25b35: 176/177 pasaron, único fallo B18 de select controlado tras error. Los 129 oráculos originales reparados, ruta y cron pasaron; salida global 1 conservada. |
+| go03-ui-dom-02 | 3ffb3c855: 17/19 pasaron. onReset delegado no bastó porque React19 suspende sus eventos durante commit; el positivo nuevo de éxito además asertó antes del effect, clasificado preparación y corregido con espera, no bug de producto. |
+| go03-ui-dom-03 | c728a33a4: 19/19, 0 omisiones. Listener nativo reset con cleanup conserva campos controlados; éxito confirmado vacía solo tasa. Evidencia DOM/acciones ficticias, no navegador. |
+| go03-sync-aceptacion-01 | cd369ce64: 75/75, 0 omisiones: cobertura exacta de scope, shapes/capability/25 IDs/deadline común50s, CAS/token equivalente, partición y sin cache futura. |
+| go03-f02-residual-rojo-01 | a13de1183, parser idéntico a a12/c728: nuevo rótulo duplicado con markup inline falló por aserción 1/46; 45 positivos/negativos pasaron. |
+| go03-f02-residual-verde-01 | 658ca47a8: parser/fuente 79/79, 0 omisiones. Detección de rótulos visibles propios, sin contar wrappers ni omitir inline; vínculo válido directo/único intacto. |
+| go03-http-full-01 | bf68f1e79 FALLÓ PREPARACIÓN: noviembre4 ya tenía alta humana legítima del bloque previo, así que no era carrera de INSERT ausente. 10 controles parciales, no aceptación completa; no defecto de producto ni carrera INSERT demostrada. Fixture corregida a diciembre con precondición de ausencia, sin borrar legado. |
+| go03-http-full-02 | 16eab3620 PASÓ: 18 controles, 27 escenarios funcionales y 26 intentos negativos; PG17.11/PostgREST14.17/SDK2.106.1 reales. Receipt SHA256 5ad79026ec2c4d65707b73a6b648e0bd0f520008be5bb04c7bca99bc3d1dc954. |
+
+HTTP full 02 mide strings extremos 0.00000001 y 999999999999.99999999 desde fuente/parser reales (HTTP loopback, URL BCV interceptada solo por fixture), pasando por SDK/SQL y rate auditado como texto; CAS siete predicados/microsegundos, relectura UNCHANGED sin note/token/evento nuevo; dos sesiones DML observadas en pg_stat_activity (PID internos 129/587) con un ganador INSERT y CAS; intercalación, 404[]/vacío/objeto/503/truncado/S01, ACK perdido tras COMMIT real reconciled o UNKNOWN sin segundo write, capability fallida entre tenants, ensayo on/off con solo GET, OFF normal sin fábrica/IO, fallo real de auditoría que revierte tasa/evento en la misma DB, y tenant ajeno/manual/operacion/CNY/factura/CxP congeladas intactos. No prueba exactly-once, ABA universal, lease DDL, VPS ni producción.
+
+Muestras nativas HTTP: vacío 200 `*/0`, página 206 `0-0/3` con total 3, capability sin count exacto `0-0/*`; el transporte conserva total de página y no exige metadata a capability. Supervisor full 02 SHA256 89dbec29d8ab8fd3815eedc72d598a53fd553e7972fb25b0ec2bcfc4c3052343: freeze 129/0 diferencias, HEAD/estado intactos, 12 identidades observadas ausentes. Gateway sin listener/sockets/tareas, dos contenedores y red eliminados por owner/ID, puertos 7233/7231 sin listeners. Se declara límite de captura de procesos transitorios, sin inventar identidades ni terminación física remota.
+
+Pendiente GO03: UI real claro/oscuro/390/escritorio/teclado/reflow/zoom200%, mutantes TS proporcionales, regresiones/gates/tipos/lint y matriz completa B1–B19/R1–R14/SGE con fuente/log/SHA; único GET oficial implementado tras sus condiciones. Después checkpoint revisado para canónica separada; sin verify/build/conocimiento en este GO. Claim retenido.
 
 ## CONTRATOS ÍNTEGROS CONSERVADOS ANTES DE PRODUCTO
 
