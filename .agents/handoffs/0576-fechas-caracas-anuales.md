@@ -14,6 +14,16 @@ Cambiar exclusivamente la fecha civil de los cálculos anuales a America/Caracas
 
 Guard/claim propios PASÓ sobre base exacta y árbol inicial limpio; sin entorno/dependencias copiadas. Se leyeron AGENTS, Worker, runbook, reglas de proyecto, preparación vinculante y las instrucciones Supabase/gobernanza. Las instrucciones específicas DTD prevalecen sobre ejemplos generales CLI. La allowlist exacta y aceptación se incorporan íntegras abajo antes de editar producto. Turno pesado exclusivo concedido por el Director.
 
+### Addendum autorizado del cierre de pruebas — adopción 2026-10-21
+
+Se leyó completo y cotejó `C:/tmp/director-traspaso-20261020/0576-c2-addendum-test-standard-format.md`, SHA256 **65e50085e3d38ba9497cc1598fc2debc4f9862bf76e93ee6faa5a72cda28ed7d**. Director amplía de doce a trece la allowlist exacta únicamente con `app/p/[token]/standard-format.test.tsx`, para aplicar la propuesta textual **af4d9c07ae2f0c4d7098eca706db1d44721c2ff74e80182a986be9a76165e9a1**. No modifica el producto del proveedor, fixtures, mocks, siete casos, aserciones, esperas, límite20s, configuración, runners ni gates.
+
+Antes de editar ese test se cumplieron las condiciones: verifyb309 terminó realmente05:36:16.981Z; bytecheck05:36:51.032Z confirmó19fuentes+2auxiliares intactos/árbol limpio; cleanup05:37:36.762Z confirmó procesos conocidos terminados, puertos3163/13163 libres y contenedores propios ausentes. El focal ORIGINAL intacto, blob3e293eac5eddcc40dbe5ca3c8ce5d222c1ca43a1, PASÓ7/7/0SKIP05:37:44.634–05:37:58.598Z, con maxWorkers1 solo diagnóstico y límite20s original. No apareció otra aserción funcional. La causa de los dos timeouts de la suite completa sigue indeterminada; el focal verde no la prueba.
+
+Este registro precede la escritura de la ruta nueva. El delta permitido acota consultas a la tabla/editor ya identificados, reutiliza el botón entre aserción y clic y localiza una vez el heading conservando su espera de foco real. El nuevo checkpoint requiere revisión del Director y GO antes de otro verify. Graphify/Archify/cierre final quedan aplazados hasta resolver esa validación. Se preserva íntegro el contrato original al final como historia de adopción; el presente addendum es su única ampliación de escritura.
+
+El Norte backend existe y fue leído en `docs/design/studio/_norte/backend/README.md`; la ruta abreviada desde raíz no es su ubicación canónica. Ese documento describe el handoff del prototipo; no demuestra el estado productivo actual.
+
 Fuentes externas verificadas SHA256:
 - Asignación: 825ab8194a63ad542f2eb7c377f4e68ac5089cde0b352174a4d3771039c53943.
 - Contrato preparación: 33977babc9b77f41df7a7124e3e6b1e90c6154190a6c2a062b50b0eab54d7243.
@@ -29,6 +39,8 @@ SupabaseChangelog recibido200/102319bytes; PostgreSQL17 y Supabase Functions con
 ## COMPLETADO
 
 Caller usa fechaCaracas(now) una vez antes de paginar. 0500 contiene completas las tres fachadas y solo cambia seis relojes/seis fallbacks; fuente SHA256 bf90fe717e7be3d0af70a1c1999758529e875855aa118ad9f36dad2fdbffbfaf. Contrato PGlite/PG17 propio, arnés HTTP aislado, baseline0500 y anclas reales0498 actualizados. Portalreader/helper/paginador/0411/0498/0499 no se editaron. Son11rutas de la allowlist12.
+
+El addendum incorpora exclusivamente standard-format.test.tsx como duodécima ruta modificada dentro de la allowlist final de trece. Aplicada la propuesta textual autorizada; producto/caller/SQL/arnés/contratos conservan bytesb309. Focal original y candidato PASARON los mismos siete casos con20s intactos. No se atribuye al cambio una causa ni un ahorro general de tiempo.
 
 Se reparó el arnés propio al concatenar pg_get_functiondef sin separadores. Se reforzó el oráculo del futuro Portal legado por separado, mutantes upperpor fórmula, captura de hashscript/contrato/status y evidencia de recarga real. No se tocó producto para resolver fallos del arnés.
 
@@ -48,27 +60,35 @@ Cada archivo JSON de corrida conserva comando, PID, cwd absoluto, inicio/fin/exi
 | Regresión ampliada final | PASÓ223/223en11archivos,0omisiones,04:54:48–04:56:35Z; incluye30casosC2/21mutantesSQL, históricos0498/helperC1/Portal/CRM/Fidelización/Reportes/listados |
 | Mutantes caller | PASÓ muerte funcional UTC y relojporpágina, fuente restauradaSHA2569db8151732d6a99588ea32b0a51407b431f82275253a627ea12d24f541082601. Recibo caller-mutation-detail.json04:56:58–04:57:01Z; UTC6fallos/3pass/21no seleccionadas, relojporpágina1fallo/29no seleccionadas. Esas omisiones por -t no son cobertura global. El primer detalle fue sobrescrito por nombre compartido del wrapper; se repitió con nombres separados |
 | PG17/HTTP primer intento | FALLÓ después de fase real PASÓ,04:52:35–51Z;423asercionesSQL+ROLLBACK y recarga realPID824 sinreinicio. La copia de reloj falló por separadoresSQL, no muerte funcional; cleanup0/ausentes |
-| PG17/HTTP segunda | PASÓ04:53:33–47Z,PG17.11/PostgREST14.17,423asercionesSQL+ROLLBACK. TresRPC200antes→DDL0500real/COMMIT→después, PID1610/inicio04:53:38.876845343Z idénticos; interior/campos/ACL/helpers/RLS/filas conservados. Fasecopias02:30/03:59:59.999/04:00 y restauración; negativosreales;1202grupos500/500/202/0,202soloexcluidas; cleanup0/ausentes. Atribución a769+delta local2separadores, no al suplemento futuro. Recibo no había capturado hashscript/contrato; última corrida desde checkpoint limpio pendiente |
+| PG17/HTTP segunda | PASÓ04:53:33–47Z,PG17.11/PostgREST14.17,423asercionesSQL+ROLLBACK. TresRPC200antes→DDL0500real/COMMIT→después, PID1610/inicio04:53:38.876845343Z idénticos; interior/campos/ACL/helpers/RLS/filas conservados. Fasecopias02:30/03:59:59.999/04:00 y restauración; negativosreales;1202grupos500/500/202/0,202soloexcluidas; cleanup0/ausentes. Atribución a769+delta local2separadores. Su recibo no capturó hashscript/contrato; se conserva esa limitación histórica |
+| PG17/HTTP final inmutable | PASÓ05:01:25–45Z desdeb309 limpio;424asercionesSQL+ROLLBACK. PID830/inicio05:01:36.214487839Z iguales antes/después; recarga real0→1/loads1→2 observada05:01:37.947Z. Mismos contratos/paginación/negativos; cleanup0/ausentes. Recibo http-final/receipt.json SHA25614cc2f7e9d7cfd805762046f80e194d4481ed1989192fca62ba3c4b18aea2911 |
 | Tipos/lint/gobernanza/docs | PASÓ tipos04:57:13–04:58:47Z; lintfocal0errores con4advertencias propias corregidas, lintHTTPfinal0errores/0advertencias05:00:36–40Z. Pluginread-only28políticas/5componentes PASÓ05:00:41Z solo consistencia, no conducta. Docs/numbering PASÓ04:59:57–59Z |
-| Verify canónico C2 | NO EJECUTADO; requiere focales cerradas y confirmación del Director de la cabeza revisada |
+| Verify canónico C2 sobreb309 | FALLÓ, exit1,05:04:27.386–05:36:16.981Z;16/17pasos ejecutados, único fallo finaltest; cierre además INCOMPLETO por migrations-applied sinURL/key. Los dos intentos unitarios completos:12.758PASÓ/1FALLÓ/1SKIP en887archivos cada uno, timeout20000ms del mismo caso standard-format:25; duraciones564,01s/551,60s. No se interrumpió ni modificó receta/fuentes. Corpus real de proformas omitido, sin datos reales |
+| SQL/schema/E2E/build de ese verify | PASÓ249contratosSQL incluido0500 conROLLBACK;492migraciones reconstruibles (474aplicadas/18solo-ledger),219tablas/2tenants efímeros. E2E177expected/20SKIP/0unexpected/1flaky,269210,14ms; flaky auth.spec:81 chromium por net::ERR_ABORTED enpage.goto, recuperado sin atribuir causa. Servicios sintéticos3163/13163. BuildPASÓ,162páginas, tsconfig restaurado. No suma ni sustituye el fallo unitario |
+| Integridad y cleanup de verifyb309 | PASÓ19fuentes+2externas iguales, statuslimpio,05:36:51.032Z; recibo canonical-bytecheck-before-docs.json SHA256f039c17c41061fe054092fd975e61d4f449be96d24cafe5071bc22d29d907eee. Cleanup05:37:36.762Z sin10PIDs conocidos/puertos/contenedores propios; recursos ajenos preservados |
+| Focal standard-format ORIGINAL intacto | PASÓ7/7/0SKIP05:37:44.634–05:37:58.598Z; comando pnpm exec vitest run --maxWorkers=1 --reporter=verbose 'app/p/[token]/standard-format.test.tsx'; límite original20s, caso1 1224ms, tests10,21s/total11,60s. Recibos diagnostic-standard-original.json/.log; no acredita causa del timeout ni cierre canónico |
+| Focal standard-format CANDIDATO | PASÓ7/7/0SKIP05:39:00.172–05:39:13.502Z; misma receta/maxWorkers1/20s, caso1 1108ms, tests10,72s/total12,10s. Recibos diagnostic-standard-candidate.json/.log. El caso1 fue116ms menor en estos focales; el archivo completo fue0,50s mayor. Una observación aislada no demuestra ahorro estable ni causa de los timeouts globales |
+| Lint/docs del suplemento de test | PASÓ lint de la única ruta modificada, sin errores ni advertencias ESLint,05:39:45.954–05:40:27.551Z; docs:check PASÓ05:39:45.988–05:39:47.006Z,558specs. Diff-check sin errores. No fue necesario regenerar el índice; la siguiente corrida canónica cubrirá de nuevo tipos/build |
 | Release, DBreal, producción, UI/A11Y nuevos | NO EJECUTADO, fuera de autorización o no aplica al delta query/SQL; no aprobación global |
 
 SQL real antes de instrumentación: catálogo registrado antes/después con MD5 de pg_proc, OID/firma/retorno/owner/proacl/ACL efectiva/STABLE/DEFINER/config y helpers completos. Default0033 de service_role del ownerpostgres reproducido; v1 conserva EXECUTE, Portal/v2 lo revocaron. Comparación completa de cuerpos verifica exclusivamente seisrelojes+seisfallbacks. Las copias de reloj usan dosanclas estrictas por función, mismo instante para las3, y restauran definiciones. Filtros/roles/autorización no se congelan ni se simulan siempre verdaderos.
 
-ObservadorE2E externo preparado, no ejecutado aún: e2e-observer.cjsSHA256a7b2e303b9e72315bb98c31acd2f90633a8de9aa621e9b747f8c39c66a1336f4. Soloargv/cwd/PID del runner canónico de este árbol; captura bytes originales antes de readFileSync/rmSync/unlinkSync, registra intentos/rechazos/rutas canónicas y rootDir informativo sin filtro silencioso. No usa fs.watch, no cambia runner/gates, no reconstruye JSON. Si no está disponible se dirá así, sin repetir verify exitoso solo por capturarlo.
+La propuesta e2e-observer.cjsSHA256a7b2e303b9e72315bb98c31acd2f90633a8de9aa621e9b747f8c39c66a1336f4 fue RECHAZADA por el Director por hooks de fs dentro del proceso runner y quedó **NO EJECUTADA**. Nunca se usó --require/NODE_OPTIONS/loader/monkeypatch.
+
+Se ejecutó únicamente el observador externo separado e2e-external-observer.mjsSHA256434d099d7350baf982f0022c73f7375c2a2321babe73487a49c5d97b71b9603c, PID52844. Atribuyó por ancestry el runner18656/cwd del wrapper, registró rechazo de pnpm28580 y canonizó la ruta8.3. Capturó **JSON ORIGINAL**05:34:10.117Z:268805bytes, SHA2569ea74b36f27b4fd0ac92d2bb5a8210fccdbde38ce6be56ca840742b8b37f2e90, e2e-original-18656.json. rootDir fue informativo, nunca filtro. Recibo final:96646muestreos/96645ausencias/1intento, pausa máxima13556ms; no garantía de capturar archivos más breves que su pausa efectiva. Terminó solo tras el wrapper. No se reconstruyó JSON ni se repitió E2E para capturarlo.
 
 ## COMMITS
 
 - 769dd9ee2446c27123b041eefe7a78727a25f8af: primer checkpoint de implementación y pruebas propias.
-- Suplemento de arnés/pruebas/recibos: commit que contiene este documento; hashes finales se registran en PR.
+- b30934a507a0fcac064aa5c23194b5e5c3075d47: suplemento de arnés/pruebas/recibos; cabeza inmutable de HTTPfinal y primer verifyC2.
 
 ## PR / BRANCH
 
-https://github.com/SoftAgentes/DTDCARGO/pull/313 OPEN/DRAFT, basecodex/sdd-0576-fechas-caracas-operaciones=d6; head propio según commit revisable. Primera lectura head769/base d6/título/body/DRAFT PASÓ; final pendiente. ConectorGitHubno conectado; sesiónCLIautorizada disponible. PR adjunta a la tarea; push rama a sí misma, sin merge/deploy.
+https://github.com/SoftAgentes/DTDCARGO/pull/313 OPEN/DRAFT, basecodex/sdd-0576-fechas-caracas-operaciones=d6. Checkpoints769/b309 publicados y revisados; el suplemento actual del test conserva esa base y su SHA se registra por readback externo de la cabeza limpia. ConectorGitHub no conectado; sesiónCLI autorizada disponible. PR adjunta a la tarea; push rama a sí misma, sin merge/deploy.
 
 ## PENDIENTES DE ESTA TAREA
 
-Última corrida PG17/HTTP sobre suplemento limpio con hashes exactos; revisión inmutable y confirmación; pnpmverifycanónico con diagnóstico/SKIPs; knowledge:status y límites de capas; cierre documental/PRreadback/ahead0/clean/cleanup/claimrelease/recibo final. Implementación yROJOtemporal ya ejecutados, no figuran como pendientes.
+El candidato del addendum está aplicado y validado focalmente; publicar su checkpoint limpio para revisión y GO del siguiente verify. Después: knowledge/Archify/preview con runtime existente autorizado, cierre documental/PRreadback/ahead0/clean/cleanup/claimrelease/recibo final. HTTPfinal/revisión/primer verify/ROJOtemporal ya ejecutados; se preserva el FALLÓ canónico, no figura como una corrida pendiente sin ejecutar.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -76,7 +96,7 @@ C1, C3móvil, BCV0569,0573/0575/2.3, producción, CIalojado bloqueado, cobertura
 
 ## HANDOFF AL DIRECTOR
 
-Conservar PRDRAFT y worktree. Antes de verify se ofrece SHA/base limpios, hashes de SQL/script y recibos reales para revisión. Turno pesado exclusivo y claim aún activos; solo se liberan al completar commits/push/readback/cleanup. FuturoMIGRATE-FIRST exige revisión de paquete, OK nominal de Sam y callerCaracas activo; respuesta200 de SQLanterior no activa una degradación ficticia. No se publica conocimiento compartido desde el borrador.
+Conservar PRDRAFT y worktree. El primer verify sobreb309 conserva su FALLÓ; el suplemento exclusivo test/docs necesita revisión del nuevo SHA limpio y GO antes de otra corrida. Se entregan delta exacto frenteb309, igualdad de las17fuentes congeladas restantes y los recibos focales original/candidato. Turno pesado exclusivo y claim aún activos; solo se liberan al completar commits/push/readback/cleanup. FuturoMIGRATE-FIRST exige revisión de paquete, OK nominal de Sam y callerCaracas activo; respuesta200 de SQLanterior no activa una degradación ficticia. No se publica conocimiento compartido desde el borrador.
 ## Contrato ejecutable íntegro incorporado
 
 Fuente externa: C:/tmp/director-traspaso-20261020/0576-caracas-c2-asignacion-worker.md, hash verificado arriba. Las concreciones y doce rutas siguientes son vinculantes.

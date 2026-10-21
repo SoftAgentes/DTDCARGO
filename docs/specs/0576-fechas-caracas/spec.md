@@ -380,7 +380,7 @@ locales, nunca aplicación real desde esta tarea.
   grupos de v1/v2 cuando HAVING explica la diferencia. Portal mantiene soloNULL
   como ausencia y conserva los datos no financieros si falta billing_v2.
 
-Allowlist exacta C2 (no amplía las rutas de C1):
+Allowlist exacta C2, ampliada por el addendum de cierre del 2026-10-21 (no amplía las rutas productivas de C1):
 
 ```text
 lib/studio/fidelizacion/queries.ts
@@ -395,9 +395,10 @@ supabase/tests/0500_annual_billing_caracas.test.sql
 docs/specs/0576-fechas-caracas/spec.md
 .agents/handoffs/0576-fechas-caracas-anuales.md
 scripts/tests/annual-billing-caracas-postgrest.mjs
+app/p/[token]/standard-format.test.tsx
 ```
 
-No es obligatorio modificar las doce. Históricos0411/0498/0499, helper C1,
+No es obligatorio modificar las trece. Históricos0411/0498/0499, helper C1,
 paginador, conversor, readerPortal y arneses históricos solo se leen y prueban.
 No existe degradación automática por ausencia0500: las RPC previas pueden
 responder200 con semántica anterior. Se conserva únicamente la degradación
@@ -427,13 +428,15 @@ paginación real1202grupos con cap500 hasta vacía, última página completa sol
 excluidas, mismo `p_as_of`; negativos de tenant/ACL/rol/override/error y helper
 privado conservados. Cada recibo atribuye versiones, hashes, cwd, PID y tiempo.
 
-Estado de este checkpoint: implementación y regresión ampliada223/223 en11
-archivos PASÓ; incluye30casosC2/21mutantesSQL y controles históricos. HTTPsegunda
-PASÓ con423asercionesPG17 y recarga caliente; suplemento del arnés, nueva
-corrida limpia ligada a hashes, revisión inmutable, verify y cierre pendientes. El handoff propio conserva los
-resultados literales por corrida, sin sumar grupos solapados ni transferir el
-verify C1 a C2. `pnpm verify` se ejecutará después de focales y revisión sobre
-cabeza congelada; omisiones/ledger se informarán sin aplicar DB ni debilitar gates.
+Implementación y regresión ampliada223/223 en11archivos PASÓ; incluye30casosC2/21mutantesSQL y controles históricos. HTTPfinal PASÓ05:01:25–45Z sobreb309 limpio,424asercionesPG17 y recarga caliente del mismo PostgRESTPID830/inicio05:01:36.214487839Z; SQL/script/contrato ligados por hashes. Recibo SHA25614cc2f7e9d7cfd805762046f80e194d4481ed1989192fca62ba3c4b18aea2911. El handoff conserva por separado los intentos previos y sus defectos de arnés.
+
+El primer verify canónico C2 sobreb309,05:04:27.386–05:36:16.981Z, FALLÓexit1:16/17pasos ejecutados, único fallo finaltest y cierre además INCOMPLETO por migrations-applied sinURL/key. Sus dos intentos unitarios completos registraron cada uno12.758PASÓ/1FALLÓ/1SKIP; mismo timeout20000ms en standard-format:25. SQL249contratos, reconstrucción492migraciones, E2E177expected/20SKIP/0unexpected/1flaky y buildPASARON con sus límites. Corpus real de proformas omitido. Se conserva el JSONoriginalE2E268805bytes/SHA2569ea74b36f27b4fd0ac92d2bb5a8210fccdbde38ce6be56ca840742b8b37f2e90, capturado por observador externo sin hooks ni filtro rootDir. El bytecheck posterior confirmó19fuentes+2auxiliares iguales/árbol limpio antes de editar docs. No se transfiere verify C1 a C2 ni se elimina el FALLÓ del historial.
+
+### Addendum acotado del test de formato estándar
+
+Director autorizó `C:/tmp/director-traspaso-20261020/0576-c2-addendum-test-standard-format.md`, SHA25665e50085e3d38ba9497cc1598fc2debc4f9862bf76e93ee6faa5a72cda28ed7d, condicionado a EXIT real, integridad, cleanup y focal original. Esas condiciones se cumplieron antes de escribir la ruta nueva. La propuesta af4d9c07ae2f0c4d7098eca706db1d44721c2ff74e80182a986be9a76165e9a1 solo acota consultas a tabla/editor identificados por rol/nombre, reutiliza el botón entre su aserción/clic y conserva la espera de foco del heading localizado una vez. Mantiene siete casos, todas las aserciones/acciones, hidratación, oráculos, consultas globales de ausencia/unicidad, roundtrip y consulta final fresca. No cambia producto del proveedor, fixtures, mocks, tiempos20s, configuración, runners, gates ni dependencias.
+
+El focal ORIGINAL intacto PASÓ7/7/0SKIP05:37:44.634–05:37:58.598Z con maxWorkers1 solo diagnóstico; caso1 1224ms, tests10,21s/total11,60s. CANDIDATO PASÓ7/7/0SKIP05:39:00.172–05:39:13.502Z con la misma receta/20s; caso1 1108ms, tests10,72s/total12,10s. El caso1 fue116ms menor y el archivo completo0,50s mayor en estas observaciones; no se demuestra ahorro estable ni causa de los timeouts globales. Requiere checkpoint inmutable/revisión/GO antes de otra corrida canónica; un focal verde no cierra la suite completa. Caller/0500/arnés/contratoSQL conservan bytesb309, por lo que sus recibos no se repiten por este delta exclusivo de test/docs.
 
 ### Gobernanza C2 (riesgo R2 de lectura financiera)
 
