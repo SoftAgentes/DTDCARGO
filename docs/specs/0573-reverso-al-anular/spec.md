@@ -15,7 +15,7 @@ confidencialidad: interno
 
 ## 1. Adopción vigente y alcance de GO0
 
-**Estado al 2026-10-21: R0 revisado y autoría GO1 respaldada en PR #320 DRAFT; los catorce hallazgos siguen abiertos.** La implementación histórica y sus pruebas no acreditan la reparación actual. Aceptaciones A CORE y B propagación: NO EJECUTADAS.
+**Estado al 2026-10-21: R0 revisado, autoría GO1 y ajuste L1 GO2 en PR #320 DRAFT; entorno propuesto UNBOUND y catorce hallazgos abiertos.** La implementación histórica y sus pruebas no acreditan la reparación actual. Aceptaciones A CORE y B propagación: NO EJECUTADAS.
 
 - Task: 0573-core-reparacion-20261021. Owner: worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 - Sesión principal Director: 01a15a4e-ddf0-7d82-8656-d9dc56b58468; esta es su tarea Worker interna.
@@ -393,3 +393,42 @@ Este commit de cierre sólo actualiza spec/handoff para registrar la entrega; to
 57 casos nuevos y64 heredados,121 previstos: inventario textual,0 ejecutados,0 ROJO observado,0 VERDE observado. Los14 hallazgos y aceptaciones A/B siguen abiertos. Dependencias propias ausentes; receta y diferencia PNPM11.25/CI11.19 pendientes de revisión antes de otro GO/turno runtime. Ningún check de PR sustituye esa evidencia.
 
 Árbol quieto y claim propio retenido al entregar. Sin instalación, parser/tipos/lint/tests/SQL/DB/Docker/browser/HTTP/build/verify/conocimiento, main/merge/deploy/producción. Histórico intacto;0495 no se repite,0497 no se edita. Fuentes/recibos/logs conservados para revisión de Director.
+
+### GO2 · oráculo L1 y preparación externa UNBOUND, sin runtime
+
+Encargo adoptado completo: C:/tmp/director-traspaso-20261020/0573-core-go2-oraculo-preparacion-director.md, SHA256747424b7f73ac51628abdbea702c775094c68ec6c8aa3db3eea30e27a9851c69. Revisión peer final leída completa:0573-core-go1-revision-pruebas-peer.md, SHAc10290f3a52f57591cf4cd7394d775b3cc7722c6ed3faef7e462a2ba1a77ba3c. Entrada1c4b859d26d80033c6f8d3b971ee0f1f8e691e9c; misma raíz/rama/owner/claim. Adopción y tres preimágenes de entrada guardadas antes de editar; GO0/GO1 e histórico preservados.
+
+Allowlist escritora GO2, subset exacto de48, sin nuevas rutas:
+
+```text
+lib/studio/accounting/__tests__/invoice-posting-reverso.test.ts
+docs/specs/0573-reverso-al-anular/spec.md
+.agents/handoffs/0573-reverso-al-anular.md
+```
+
+L1 era una omisión de oráculo por fuente, no un bug observado de producto: los ocho not_posted conocidos admitían cualquier string, incluido unknown. Se conserva toda aserción anterior y se agregan toBe(skipped) y not.toBe(posting-state-unknown), con esta correspondencia pública ratificada para implementación posterior:
+
+| SQL | skipped público |
+|---|---|
+| invoice_unavailable | invoice-unavailable |
+| invoice_not_postable | invoice-not-postable |
+| invalid_issue_date | invalid-issue-date |
+| invalid_amounts | invalid-amounts |
+| totals_mismatch | totals-mismatch |
+| missing_accounts | missing-accounts |
+| period_closed | period-closed |
+| existing_sale_requires_review | existing-sale-requires-review |
+
+zero_total/zero-total y already_posted/entry-already-exists siguen iguales. Forma/identidad/versión inválida y motivo desconocido conservan unknown. La variante hipotética que transforma todo rechazo conocido aunknown ahora incumpliría cada fila: razonamiento de fuente, no mutante ejecutado. No cambia28 casos I3,57 nuevos,64 heredados o121 previstos. Cero discovery/ejecución/ROJO/VERDE; cuatro fuentes autorales restantes y14 sellos intactos. No se cambió producto,0497, tipos/DTO/package/lock/config.
+
+Preparación externa nueva: C:/tmp/director-traspaso-20261020/0573-core-go2-preparacion/. Contiene adopción/preimágenes, metadataCLI actual, receta, launcher y manifestUNBOUND. Perfil C:/tmp/sdd0573-core-runtime-01a15a4e, node_modules y salidas I/T no creados. Launcher no cargado ni validado por parser/ejecución. No instalar ni probar este launcher por GO2.
+
+Por metadata/hash actual, Nodebundled24.19.0 y PNPMpackage11.25.0 coinciden con la selección del Director; --version NO EJECUTADO. CI fija11.19.0 y no se declara equivalencia. dist/pnpm.mjs SHA256ddc64218bc85fb88d28b5def06eb01fafb39cb67f7a9465ce736456658cc7f11. El argv0578 fue rechazado y no es validado: parser326097–326263 convierte install→add si quedan posicionales; opciones globales/rcInstall327698–327719/225656–225725 no tipan varios ajustes. Explicación de lectura, sin reproducción.
+
+La receta propone argv de opciones tipadas con rutas --key=value y PNPM_CONFIG_* tipado para runtimeOnFailerror/npmrcAuthFile/stateDir/globalvirtualstorefalse; XDG_CONFIG_HOME propio determina config/pnpm, pues171185 sobrescribe config-dirCLI. Conserva frozen, ignore-scripts/ignore-pnpmfile, pmOnFailerror, TLS normal, ausencia de fallback, store/cache/state/config/virtualstore propios y child1/network2/copy. Todos los hijos propuestos limpian Environment y reciben whitelist sin secretos/proxies/NODE_PATH/config del usuario; no se modifican variables del anfitrión.
+
+Fases futuras separadas: I00–I03 instalación/metadatos; T cuatro archivos completos seriales,1worker/no-file-parallelism/reporterverbose,180s por archivo y sin cambiar20s heredados. Presupuesto propuesto único1800s desde primerI00, incluye pausa entre fases y cierre; no renovable. Observación≤5s/progreso30s/comunicación≤45s; heap3GiB, RAMlibre<2GiB/árbol>6GiB por dos muestras, stream64MiB; captura binaria doble desdeStart. VoidTaskResult descartado, JSON con DateKindString y UTC.NET exacta/ParseExactInvariant, identidadPID+nacimiento.NET y CIMsólo filiación. UNKNOWN conserva null/turno retenido, nunca cero. Cierre de recursos primero≤60s compartidos, sin cleanup destructivo ni retry automático.
+
+Lo anterior es fuente propuesta no verificada operacionalmente. Director debe decidir argv/env/versiones/presupuesto, fijar SHA/tree/manifestBOUND/GO por fase y asignar turno; no hay turno heredado de0578. Un exit nativo/121 textos no acredita resultado funcional; import/TypeError/doble/setup/timeout/captura incompleta son preparación/infraestructura. Los14 hallazgos, SQL/PG/locks/cierre0493/ACL/audit, lectores/UI/CSV/Dirección y aceptaciones A/B permanecen pendientes. Conocimiento todas las capas NO EJECUTADO. Árbol quieto/claim retenido al entregar, misma PR320 DRAFT/baseB, sin nueva PR/merge/deploy.
+
+Índice externo manifiesto-preparacion-go2.json SHA256e7f9a872ba40392fd25147460849d0e85b75d51dfa36f3bae1f31eee059768ff; receta-UNBOUND.md SHA25612606b0d9e3925fd54e2429e660605499d7016b5d8b8238ac8d6af9a8c40ae66. El recibo externo cierre-go2.json guardará SHA fuente/final/tree/parent, diff y readback final de PR sin autorreferencia.

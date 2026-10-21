@@ -1,4 +1,4 @@
-# Handoff · SDD-0573 · R0 y autoría GO1, PR CORE DRAFT
+# Handoff · SDD-0573 · R0, autoría GO1 y ajuste L1 GO2, PR CORE DRAFT
 
 | Campo | Valor |
 |---|---|
@@ -9,11 +9,11 @@
 | Rama | codex/sdd-0573-core-reparacion-20261021 |
 | H / B fija | 89f15a5dcb9c9047e9a289fd499563c201ab5701 / e834dc6eef597421d10f880b5deb8d689dcc7078 |
 | SDD | [0573](../../docs/specs/0573-reverso-al-anular/spec.md), in-progress |
-| Estado vigente | GO0 revisado; GO1 autoría respaldada en PR320 DRAFT;14hallazgos y aceptaciones A/B siguen abiertos |
+| Estado vigente | GO2 L1 reforzado por fuente; entorno UNBOUND; PR320 DRAFT;14hallazgos/A/B abiertos |
 | Contrato GO0 | 0573-core-go0-asignacion-director.md / SHA256 7a16dbdb1ebecfc420ca2f3c181ca6aa1cb5d6c5584f0c33fb2a7237af773428 |
 | Candidato completo | 0573-encargo-core-propuesto.md / SHA256 5ee11eab1d2f08af8890f676efdc20aa2daba918dd8d1c50c34950b366b22880 y diez fuentes completas cotejadas |
-| Permisos GO1 | autoría subset7/receta/Git ligero/commit/push propio/una PR CORE DRAFT; sin runtime ni reparación |
-| Turno y relevo | GO1 sin turno runtime; otro GO concreto pendiente; árbol quieto/claim propio retenido al entregar |
+| Permisos GO2 | autoría subset3/preparación externa/Git ligero/commit/push propio/misma PR320; sin Node/parser/runtime/producto |
+| Turno y relevo | GO2 sólo fuente, sin turno runtime; otro GO concreto pendiente; árbol quieto/claim propio retenido al entregar |
 
 ## OBJETIVO ORIGINAL
 
@@ -250,3 +250,48 @@ Diagnóstico0577, preparación0578 e instalación implícita EPERM en principal 
 GO1 entregado como fuente y custodia. Los14 hallazgos y aceptaciones A/B permanecen abiertos. Revisar checkpoint fuente8a588 y PR320; otro GO/turno es necesario para instalación/ROJO/producto. Árbol propio quieto, claim retenido explícitamente por encargo; ningún proceso producto iniciado ni cleanup destructivo.
 
 Evidencia externa: C:/tmp/director-traspaso-20261020/0573-core-go1-worker-20261021/. Receta-y-oráculos SHA2568ce8c568b88b288c75911f456511dfe5c442a180e84b72ca233df53b9f951aaa; manifiesto fuente/receta SHA2568afa09ce4f56d12447f132203f02cff882739ca9d0c9ed48d7ac706016f88033. Recibo final0573-core-go1-cierre.json incluirá PR/readback, hashes de parches completos y custodia local/remota.
+
+## Cierre GO2 · L1 por fuente y preparación UNBOUND
+
+### OBJETIVO ORIGINAL
+
+Fortalecer sólo el oráculo L1 de ocho rechazos conocidos I3 y preparar fuentes externas de entorno propio. Encargo747424b7f73ac51628abdbea702c775094c68ec6c8aa3db3eea30e27a9851c69 y peer finalc10290f3a52f57591cf4cd7394d775b3cc7722c6ed3faef7e462a2ba1a77ba3c leídos completos. Entrada1c4b859d26d80033c6f8d3b971ee0f1f8e691e9c, misma raíz/rama/owner/claim. No GO de Node/parser/instalación/discovery/tests/ROJO/producto/SQL/DB/build/knowledge.
+
+### COMPLETADO
+
+Adopción y tres preimágenes antes de autoría. Sólo I3/spec/handoff: tabla SQL→skipped exacto y exclusión explícita de posting-state-unknown; conserva las22 líneas expect anteriores, títulos y28 casos I3. Un adapter que convierta todo rechazo conocido aunknown incumpliría la tabla: contraejemplo razonado, no mutante ejecutado. No cambia57 nuevos+64heredados=121 previstos.
+
+Preparación externa nueva en C:/tmp/director-traspaso-20261020/0573-core-go2-preparacion/: receta-UNBOUND.md, launcher-runtime-UNBOUND.ps1, manifest-UNBOUND.json, cli-fuentes-locales.json, adopcion-preimagenes-go2.json y manifiesto-preparacion-go2.json. Sólo documentos/fuente; perfil, deps/store/cache y salidas runtime no creados. Launcher no cargado, parseado para validación ni ejecutado.
+
+### VALIDACIÓN
+
+PASÓ por Git/lectura/bytes: raíz/linkedworktree/rama/claim y SHAentrada; tres preimágenes;14 sellos producto/config y cuatro fuentes autorales restantes intactas; diff-check; conservación textual de aserciones y tamaño de tablas. No se ejecutó el guard Node por la prohibición expresa GO2: se cotejaron sus condiciones de aislamiento/registro/claim mediante Git nativo y metadata.
+
+NO EJECUTADO:121 casos, discovery/ROJO/VERDE, Node/PNPM, parser/tipos/lint, instalación/SQL/PG/DB/Docker/browser/HTTP/UI/build/verify y todas las capas de conocimiento. Revisar bytes de fuente/receta no equivale a comprobar el funcionamiento del launcher o comandos.
+
+Metadata/hash actual confirma Nodebundled24.19 y PNPMpackage11.25; CI11.19 distinto. El argv0578 rechazado no se copió como validado. Dist SHA256ddc64218bc85fb88d28b5def06eb01fafb39cb67f7a9465ce736456658cc7f11; referencias parser326097–326263, GLOBAL_OPTIONS327698–327719, rcInstall225656–225725, env168070–168210/171441–171485, configdir/auth168045–168058/171150–171185. Propuesta: argv sólo tipado/rutasconigual más PNPM_CONFIG_* y XDG propios; conserva frozen/scriptsdeshabilitados/failerror/TLS/storecacheconfigstate/virtualstore propios, child1/network2/copy. No se ejecutó help/install o --version.
+
+### COMMITS
+
+GO0 R0bd2eeb29af909bc0d62b902ab4973386ee0e2d98, adopcióndb5f84aab482252ada9030ba20f9e527338b66e2 y fuenteGO18a588ccab2e0dc943a5c4b8a6610c3c612c6402e preservados. Entrada1c4b859d26d80033c6f8d3b971ee0f1f8e691e9c. Commit que contiene este cierre: sólo tres rutas GO2; SHA fuente/final/tree/parent y respaldo remoto en cierre-go2.json externo, sin recursión.
+
+### PR / BRANCH
+
+Misma [PR320](https://github.com/SoftAgentes/DTDCARGO/pull/320), DRAFT, contra codex/0573-base-temprana-20261021 / e834dc6eef597421d10f880b5deb8d689dcc7078. Head codex/sdd-0573-core-reparacion-20261021. Attach oficial existente conservado; readback final head/base/draft/body/32rutas dentro48 se guarda en recibo externo. Ninguna PR adicional, retarget, merge o integración.
+
+### PENDIENTES DE ESTA TAREA
+
+1. Director revisa L1, argv/env/versiones/presupuesto y launcherUNBOUND; fija fuenteSHA/tree, copiaBOUND por hash, GO por fase y turno pesado separado. La selección PNPM11.25 local no es CI11.19 ni validación de instalación.
+2. Futura faseI00–I03 antes de T; otro GO concreto para cuatro archivos seriales completos. Propuesta única1800s desdeI00 con pausa/cierre incluidos, sin renovar;30s versiones/900s instalación/180s archivo. Observación≤5s/progreso30s/comunicación≤45s, heap3GiB y cortes memoria/streams. Captura doblebinaria desdeStart, descarteVoidTaskResult, DateKindString/UTCexacta, identidad.NET/CIM sólo filiación y cierre de recursos primero≤60s. Son fuentes no validadas; UNKNOWN retiene turno con null, nunca cero.
+3. Obtener ROJO funcional válido y reparar los14 hallazgos con VERDE posterior. Import/doble/setup/TypeError/timeout/captura parcial no cuentan como ROJO;121 previstos no son discovery/resultado. SQL/PG dos conexiones/locks/cierre0493/ACL/audit/rollback, consumidores y aceptaciónA/B siguen pendientes.
+4. Revalidar0497 pendiente antes de editarla en futuro;0495 aplicada no se repite. Propagación serial CORE→310→311→C1(R1)→C2→C3→BCV con otra evidencia. Conocimiento/canónica/Graphify/semántica/Archify/preview/Obsidian NO EJECUTADO.
+
+### FUERA DE ALCANCE DETECTADO
+
+0578 y su incidente argv/identidad pertenecen a otro namespace; no hubo intervención, ejecución o copia de deps/entorno. 0577, principalEPERM, históricoH/claimajeno, BCV/Caracas y otros posters preservados. Estado limpio no prueba ausencia de consumidores. No producto/tipos/DTO/package/lock/config/0497.
+
+### HANDOFF AL DIRECTOR
+
+GO2 entrega fuenteL1 y preparaciónUNBOUND, no entorno instalado ni ROJO. Catorce hallazgos y A/B abiertos. Árbol quieto, claim retenido y cero procesos producto iniciados. Director decide la próxima fase; no hay runtime automático por esta entrega ni por el estado de0578.
+
+Índice externo manifiesto-preparacion-go2.json SHA256e7f9a872ba40392fd25147460849d0e85b75d51dfa36f3bae1f31eee059768ff; receta-UNBOUND.md SHA25612606b0d9e3925fd54e2429e660605499d7016b5d8b8238ac8d6af9a8c40ae66. Cierre final externo cierre-go2.json contendrá diff completo, hashes, custodia y readback remoto de la mismaPR320.

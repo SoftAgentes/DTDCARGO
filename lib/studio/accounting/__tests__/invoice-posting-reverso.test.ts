@@ -179,11 +179,19 @@ describe("GO1 I3 · autoridad y delegación del adapter", () => {
     expectOnlyAtomicCall();
   });
 
+  // GO2 L1: contrato público propuesto para rechazos SQL conocidos.
+  // Un adapter que convierta todos a unknown debe fallar estas expectativas;
+  // es razonamiento de fuente, no un mutante ejecutado ni catálogo instalado.
   it.each([
-    "invoice_unavailable", "invoice_not_postable", "invalid_issue_date",
-    "invalid_amounts", "totals_mismatch", "missing_accounts",
-    "period_closed", "existing_sale_requires_review",
-  ])("%s rechaza sin confirmar asiento ni ejecutar el camino legado", async (reason) => {
+    ["invoice_unavailable", "invoice-unavailable"],
+    ["invoice_not_postable", "invoice-not-postable"],
+    ["invalid_issue_date", "invalid-issue-date"],
+    ["invalid_amounts", "invalid-amounts"],
+    ["totals_mismatch", "totals-mismatch"],
+    ["missing_accounts", "missing-accounts"],
+    ["period_closed", "period-closed"],
+    ["existing_sale_requires_review", "existing-sale-requires-review"],
+  ])("%s rechaza sin confirmar asiento ni ejecutar el camino legado", async (reason, skipped) => {
     rpcData = notPosted(reason);
 
     const result = await call();
@@ -191,6 +199,8 @@ describe("GO1 I3 · autoridad y delegación del adapter", () => {
     expect(result.ok).toBe(false);
     expect(result.entryCode).toBeUndefined();
     expect(result.skipped).toEqual(expect.any(String));
+    expect(result.skipped).toBe(skipped);
+    expect(result.skipped).not.toBe("posting-state-unknown");
     expectOnlyAtomicCall();
     // El rechazo de esta operación no prueba ausencia de antecedentes.
   });
