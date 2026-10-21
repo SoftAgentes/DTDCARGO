@@ -398,7 +398,9 @@ async function runFunctional({syncBcvRates,fetchBcvObservation,client,service,sc
   fixtureSources,supabaseBase,nonce,columns,setFault}) {
   const A=uuid('tenant-A'), B=uuid('tenant-B');
   let sequence=0,sourceSequence=0;
-  const nextDay=()=>new Date(Date.UTC(2026,10,++sequence)).toISOString().slice(0,10);
+  // Noviembre contiene las altas humanas legítimas del bloque de negativos.
+  // Diciembre es un namespace de reloj ficticio separado, sin borrar ese legado.
+  const nextDay=()=>new Date(Date.UTC(2026,11,++sequence)).toISOString().slice(0,10);
   const sourceTemplate=readFileSync(resolve(ROOT,'lib/studio/fx/__tests__/fixtures/bcv-usd-20261021.html'),'utf8');
   const days=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -460,7 +462,8 @@ async function runFunctional({syncBcvRates,fetchBcvObservation,client,service,sc
   receipt.functional=[];
 
   for(const rate of ['0.00000001','999999999999.99999999']){
-    const day=nextDay(); const result=await run('precision-'+rate,{day,rate});
+    const day=nextDay(); assert.deepEqual(await dayState(day),{rows:[],events:[]});
+    const result=await run('precision-'+rate,{day,rate});
     assert.equal(result.summary.counts.inserted,1);
     const state=await dayState(day); assert.equal(state.rows.length,1); assert.equal(state.rows[0].rate,rate);
     assert.equal(state.events.length,1); assert.equal(state.events[0].afterRateText,rate);
@@ -483,7 +486,8 @@ async function runFunctional({syncBcvRates,fetchBcvObservation,client,service,sc
   check('B9/B11: CAS de siete predicados y UNCHANGED releído sin churn de nota/token/evento');
 
   for(const kind of ['insert','cas']){
-    const day=nextDay(); if(kind==='cas') await seed(day);
+    const day=nextDay(); assert.deepEqual(await dayState(day),{rows:[],events:[]});
+    if(kind==='cas') await seed(day);
     await psql(`begin;
       create function bcv_fixture.pause_write() returns trigger language plpgsql set search_path='' as $$
         begin perform pg_catalog.pg_sleep(1); return new; end; $$;
