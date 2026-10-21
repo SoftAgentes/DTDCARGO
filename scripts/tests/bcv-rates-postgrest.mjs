@@ -301,10 +301,13 @@ async function main() {
     if (gateway) {
       try {
         const closed=new Promise(done=>gateway.close(done));
+        // destroy() solicita cierre; close se emite después. Esperar cada evento
+        // propio antes de exigir Set vacío, además del callback del servidor.
+        const socketsClosed=[...gatewaySockets].map(socket=>new Promise(done=>socket.once('close',done)));
         for (const request of gatewayRequests) request.abort();
         gateway.closeIdleConnections(); gateway.closeAllConnections();
         for (const socket of gatewaySockets) socket.destroy();
-        await Promise.allSettled([...gatewayTasks]); await closed;
+        await Promise.allSettled([...gatewayTasks]); await Promise.all([closed,...socketsClosed]);
         receipt.cleanup.push({kind:'gateway',owner:nonce,pid:process.pid,port:receipt.resources.gateway?.port,
           exit:gateway.listening||gatewaySockets.size||gatewayTasks.size?null:0,
           listening:gateway.listening,sockets:gatewaySockets.size,pending:gatewayTasks.size});
