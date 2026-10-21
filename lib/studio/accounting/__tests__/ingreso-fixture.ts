@@ -25,6 +25,7 @@
  * fixture sin esas tres.
  */
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ControlDelMayor } from "../ingreso-periodo";
 
 export const HOY = "2025-03-18";
@@ -115,4 +116,148 @@ export function control(
   conAsiento: readonly string[] = ventasConMovimiento ? TODAS_ASENTADAS : [],
 ): ControlDelMayor {
   return { ventas, ventasConMovimiento, ingresos, facturasConAsiento: new Set(conAsiento) };
+}
+
+/**
+ * GO1 I2 · datos sintéticos del puente documental.
+ * No reemplaza FACTURAS_DEL_MES ni modifica los controles heredados.
+ */
+
+type FilaReversoGo1 = Record<string, unknown>;
+export type DatosReversoGo1 = {
+  invoices: FilaReversoGo1[];
+  journal_entries: FilaReversoGo1[];
+  journal_lines: FilaReversoGo1[];
+  accounts: FilaReversoGo1[];
+};
+
+export const TENANT_REVERSO_GO1 = "tenant-go1";
+export const FACTURA_REVERSO_GO1 = "invoice-go1";
+export const RANGOS_REVERSO_GO1 = {
+  septiembre: { from: "2026-09-01", to: "2026-09-30" },
+  octubre: { from: "2026-10-01", to: "2026-10-31" },
+  combinado: { from: "2026-09-01", to: "2026-10-31" },
+} as const;
+
+export function datosReversoGo1(
+  opts: { currency?: string; fxRate?: number | null; base?: number; venta?: number } = {},
+): DatosReversoGo1 {
+  const base = opts.base ?? 100;
+  const venta = opts.venta ?? base;
+  return {
+    invoices: [{
+      id: FACTURA_REVERSO_GO1, tenant_id: TENANT_REVERSO_GO1,
+      invoice_code: "F-2026-0042", status: "anulada",
+      issued_at: "2026-09-15", created_at: "2026-09-15T12:00:00Z",
+      currency: opts.currency ?? "USD", fx_rate: opts.fxRate ?? null,
+      base_amount: base, iva_amount: 0, total_amount: base, paid_amount: 0,
+      fund_class: "local_revenue", deleted_at: null,
+    }],
+    journal_entries: [
+      { id: "original-go1", tenant_id: TENANT_REVERSO_GO1, invoice_id: FACTURA_REVERSO_GO1,
+        entry_code: "A-2026-0042", entry_date: "2026-09-15", status: "asentado",
+        source: "invoice", reverses_entry_id: null, deleted_at: null },
+      { id: "reverso-go1", tenant_id: TENANT_REVERSO_GO1, invoice_id: FACTURA_REVERSO_GO1,
+        entry_code: "A-2026-0051", entry_date: "2026-10-20", status: "asentado",
+        source: "invoice_reversal", reverses_entry_id: "original-go1", deleted_at: null },
+    ],
+    journal_lines: [
+      { id: "original-ar-go1", entry_id: "original-go1", account_id: "ar-go1", debit: venta, credit: 0 },
+      { id: "original-ingreso-go1", entry_id: "original-go1", account_id: "ingreso-go1", debit: 0, credit: venta },
+      { id: "reverso-ar-go1", entry_id: "reverso-go1", account_id: "ar-go1", debit: 0, credit: venta },
+      { id: "reverso-ingreso-go1", entry_id: "reverso-go1", account_id: "ingreso-go1", debit: venta, credit: 0 },
+    ],
+    accounts: [
+      { id: "ar-go1", tenant_id: TENANT_REVERSO_GO1, code: "1.1.2", type: "A", name: "Clientes", is_postable: true },
+      { id: "ingreso-go1", tenant_id: TENANT_REVERSO_GO1, code: "4.5", type: "I", name: "Ventas", is_postable: true },
+    ],
+  };
+}
+
+/** Sólo agrega el nominal de líneas de 4.5; nunca calcula el ajuste documental. */
+export function controlReversoGo1(
+  datos: DatosReversoGo1,
+  rango: { from: string; to: string },
+): ControlDelMayor {
+  const entradas = datos.journal_entries.filter((a) =>
+    a.tenant_id === TENANT_REVERSO_GO1 && a.status === "asentado" && a.deleted_at === null
+    && String(a.entry_date) >= rango.from && String(a.entry_date) <= rango.to);
+  const ids = new Set(entradas.map((a) => a.id));
+  const lineas = datos.journal_lines.filter((l) => ids.has(l.entry_id) && l.account_id === "ingreso-go1");
+  const ventas = lineas.reduce((sum, l) => sum + Number(l.credit) - Number(l.debit), 0);
+  return {
+    ventas, ingresos: ventas,
+    ventasConMovimiento: lineas.some((l) => Number(l.debit) !== 0 || Number(l.credit) !== 0),
+    facturasConAsiento: new Set(entradas.filter((a) => a.source === "invoice").map((a) => String(a.invoice_id))),
+  };
+}
+
+/**
+ * Doble de sesión para ingresoDelPeriodo: aplica RLS sintética, filtros,
+ * columnas planas y paginación de la query real. No calcula resultados I2.
+ * Una proyección relacional aún no modelada produce un error de preparación
+ * explícito; ese error nunca puede contabilizarse como ROJO funcional.
+ */
+export function lectorReversoGo1(
+  datos: DatosReversoGo1,
+  opts: { errorTabla?: string; limiteServidor?: number } = {},
+) {
+  const consultas: { tabla: string; columnas: string; filtros: [string, string, unknown][]; desde: number; hasta: number }[] = [];
+  function from(tabla: string) {
+    if (!(tabla in datos)) throw new Error("Doble GO1: tabla no modelada: " + tabla);
+    const filtros: [string, string, unknown][] = [];
+    let columnas = "*";
+    let desde = 0;
+    let hasta = Number.MAX_SAFE_INTEGER;
+    let orden = "id";
+    function respuesta() {
+      consultas.push({ tabla, columnas, filtros: [...filtros], desde, hasta });
+      if (tabla === opts.errorTabla) return { data: null, error: { message: "fallo-lectura-sintetico-go1", code: "08006" } };
+      if (/[()!]/.test(columnas)) throw new Error("Doble GO1: proyección relacional no modelada: " + columnas);
+      const origen = datos[tabla as keyof DatosReversoGo1];
+      const filas = origen.filter((fila) => {
+        // El cliente de sesión no revela cabeceras/documentos/cuentas ajenos.
+        if ("tenant_id" in fila && fila.tenant_id !== TENANT_REVERSO_GO1) return false;
+        return filtros.every(([op, col, valor]) => {
+          const actual = fila[col];
+          if (op === "eq") return actual === valor;
+          if (op === "is") return actual === valor;
+          if (op === "in") return (valor as readonly unknown[]).includes(actual);
+          if (op === "gte") return actual != null && String(actual) >= String(valor);
+          if (op === "lte") return actual != null && String(actual) <= String(valor);
+          return false;
+        });
+      }).sort((a, b) => String(a[orden] ?? "").localeCompare(String(b[orden] ?? "")));
+      const fin = Math.min(hasta + 1, desde + (opts.limiteServidor ?? Number.MAX_SAFE_INTEGER));
+      const seleccion = filas.slice(desde, fin);
+      const keys = columnas.split(",").map((k) => k.trim()).filter(Boolean);
+      return {
+        data: seleccion.map((fila) => columnas === "*" ? { ...fila } : Object.fromEntries(keys.map((k) => [k, fila[k]]))),
+        error: null,
+      };
+    }
+    const chain = {
+      select(cols: string) { columnas = cols; return chain; },
+      eq(col: string, valor: unknown) { filtros.push(["eq", col, valor]); return chain; },
+      is(col: string, valor: unknown) { filtros.push(["is", col, valor]); return chain; },
+      in(col: string, valor: readonly unknown[]) { filtros.push(["in", col, valor]); return chain; },
+      gte(col: string, valor: unknown) { filtros.push(["gte", col, valor]); return chain; },
+      lte(col: string, valor: unknown) { filtros.push(["lte", col, valor]); return chain; },
+      order(col: string) { orden = col; return chain; },
+      range(inicio: number, fin: number) { desde = inicio; hasta = fin; return chain; },
+      limit(cantidad: number) { hasta = desde + cantidad - 1; return chain; },
+      maybeSingle() {
+        const r = respuesta();
+        return Promise.resolve({ ...r, data: r.data?.[0] ?? null });
+      },
+      then<TResult1 = ReturnType<typeof respuesta>, TResult2 = never>(
+        fulfilled?: ((value: ReturnType<typeof respuesta>) => TResult1 | PromiseLike<TResult1>) | null,
+        rejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+      ) {
+        return Promise.resolve().then(respuesta).then(fulfilled, rejected);
+      },
+    };
+    return chain;
+  }
+  return { client: { from } as unknown as SupabaseClient, consultas };
 }

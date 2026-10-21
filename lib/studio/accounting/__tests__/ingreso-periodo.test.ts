@@ -26,7 +26,14 @@ import {
   HOY,
   RANGO_MES,
   control,
+  datosReversoGo1,
+  lectorReversoGo1,
+  controlReversoGo1,
+  RANGOS_REVERSO_GO1,
+  type DatosReversoGo1,
 } from "./ingreso-fixture";
+import { ingresoDelPeriodo } from "../libro-control-queries";
+import { MAX_PAGES } from "@/lib/db/paginate";
 
 const sinMayor = () => resumirIngreso(FACTURAS_DEL_MES, RANGO_MES, null);
 
@@ -432,5 +439,166 @@ describe("anti-deriva", () => {
 
   it("CUENTA_VENTAS es la cuenta que acredita el asiento de venta", () => {
     expect(CUENTA_VENTAS).toBe(SALES_INCOME_CODE);
+  });
+});
+
+/**
+ * GO1 I2 · propuesta autoral NO EJECUTADA.
+ * Se llama al lector público existente y se aplican sus filtros en el doble.
+ * ajusteAnulacionesUsd/baseComparacionUsd son nombres propuestos de salida,
+ * no imports de DTO futuros ni una implementación traída de 0572-a.
+ */
+async function leerReversoGo1(
+  datos: DatosReversoGo1,
+  rango: { from: string; to: string },
+  opts: { errorTabla?: string; limiteServidor?: number } = {},
+) {
+  const lector = lectorReversoGo1(datos, opts);
+  const ingreso = await ingresoDelPeriodo(lector.client, rango, {
+    mayor: controlReversoGo1(datos, rango),
+  });
+  return { ingreso, consultas: lector.consultas };
+}
+
+describe("GO1 I2 · oficial, ajuste documental y base de comparación", () => {
+  it.each([
+    { nombre: "septiembre", rango: RANGOS_REVERSO_GO1.septiembre, ajuste: 100, mayor: 100 },
+    { nombre: "octubre", rango: RANGOS_REVERSO_GO1.octubre, ajuste: -100, mayor: -100 },
+    { nombre: "rango combinado", rango: RANGOS_REVERSO_GO1.combinado, ajuste: 0, mayor: 0 },
+  ])("$nombre conserva oficial cero y muestra su puente documental", async ({ rango, ajuste, mayor }) => {
+    const { ingreso } = await leerReversoGo1(datosReversoGo1(), rango);
+
+    expect(ingreso.facturado).toEqual({ propio: 0, terceros: 0, total: 0 });
+    expect(ingreso.mayor?.ventas).toBe(mayor);
+    expect(ingreso).toMatchObject({
+      ajusteAnulacionesUsd: ajuste,
+      baseComparacionUsd: ajuste,
+      diferenciaUsd: 0,
+    });
+    expect(describirIngreso(ingreso).estado).toBe("cuadra");
+  });
+
+  it("documento 100 frente a venta 90 conserva diferencia 10 en septiembre", async () => {
+    const { ingreso } = await leerReversoGo1(
+      datosReversoGo1({ base: 100, venta: 90 }), RANGOS_REVERSO_GO1.septiembre,
+    );
+
+    expect(ingreso.facturado.total).toBe(0);
+    expect(ingreso.mayor?.ventas).toBe(90);
+    expect(ingreso).toMatchObject({
+      ajusteAnulacionesUsd: 100,
+      baseComparacionUsd: 100,
+      diferenciaUsd: 10,
+    });
+    expect(describirIngreso(ingreso).estado).not.toBe("cuadra");
+  });
+
+  it.each(["otra factura", "falta una línea financiera", "original no asentado"])(
+    "neto cero con %s no es Cuadra ni vacío legítimo", async (corrupcion) => {
+      const datos = datosReversoGo1();
+      if (corrupcion === "otra factura") datos.journal_entries[1].invoice_id = "factura-ajena-go1";
+      if (corrupcion === "falta una línea financiera") {
+        // Sólo se quita 1.1.2: el ingreso todavía netea cero.
+        datos.journal_lines = datos.journal_lines.filter((l) => l.id !== "reverso-ar-go1");
+      }
+      if (corrupcion === "original no asentado") {
+        datos.journal_entries[0].status = "anulado";
+        datos.journal_entries[1].status = "anulado";
+      }
+      const { ingreso } = await leerReversoGo1(datos, RANGOS_REVERSO_GO1.combinado);
+
+      expect(ingreso.facturado.total).toBe(0);
+      expect(ingreso.mayor?.ventas).toBe(0);
+      expect(ingreso.diferenciaUsd).toBeNull();
+      expect(describirIngreso(ingreso).estado).not.toBe("cuadra");
+      expect(describirIngreso(ingreso).estado).not.toBe("sin_movimiento");
+    },
+  );
+
+  it("octubre obtiene metadata de la factura emitida en septiembre", async () => {
+    const datos = datosReversoGo1();
+    const { ingreso, consultas } = await leerReversoGo1(datos, RANGOS_REVERSO_GO1.octubre);
+
+    // La query inicial de emisión excluye correctamente esa factura; el lector
+    // debe recuperarla por el vínculo del movimiento, no inventar un documento.
+    expect(consultas.some((q) => q.tabla === "invoices")).toBe(true);
+    expect(ingreso.facturado.total).toBe(0);
+    expect(ingreso.mayor?.ventas).toBe(-100);
+    expect(ingreso).toMatchObject({
+      ajusteAnulacionesUsd: -100,
+      baseComparacionUsd: -100,
+      diferenciaUsd: 0,
+    });
+  });
+
+  it.each([
+    { moneda: "VES", base: 3650, tasa: 36.5 },
+    { moneda: "CNY", base: 720, tasa: 7.2 },
+  ])("sólo el reverso nominal $moneda en octubre sigue no comparable", async ({ moneda, base, tasa }) => {
+    const { ingreso } = await leerReversoGo1(
+      datosReversoGo1({ currency: moneda, base, fxRate: tasa }), RANGOS_REVERSO_GO1.octubre,
+    );
+
+    expect(ingreso.facturado.total).toBe(0);
+    expect(ingreso.mayor?.ventas).toBe(-base);
+    expect(ingreso.enOtraMoneda).toBeGreaterThan(0);
+    expect(ingreso.diferenciaUsd).toBeNull();
+    expect(describirIngreso(ingreso).estado).toBe("no_comparable");
+    expect(notaDelMayorMezclado(ingreso)).toMatch(/nominal|bolívares|yuanes/i);
+  });
+
+  it("una tasa ausente no se convierte en ajuste conocido cero", async () => {
+    const { ingreso } = await leerReversoGo1(
+      datosReversoGo1({ currency: "VES", base: 3650, fxRate: null }),
+      RANGOS_REVERSO_GO1.combinado,
+    );
+
+    expect(ingreso.facturado.total).toBe(0);
+    expect(ingreso.diferenciaUsd).toBeNull();
+    const texto = describirIngreso(ingreso);
+    expect(texto.estado).not.toBe("cuadra");
+    expect(texto.estado).not.toBe("sin_movimiento");
+    expect(texto.diferenciaTexto).toMatch(/tasa|conver|nominal|bolívares/i);
+  });
+
+  it("un error de lectura rechaza; no devuelve cero ni un control exitoso", async () => {
+    await expect(leerReversoGo1(
+      datosReversoGo1(), RANGOS_REVERSO_GO1.septiembre, { errorTabla: "invoices" },
+    )).rejects.toThrow("fallo-lectura-sintetico-go1");
+  });
+
+  it("una lectura sin página vacía antes del tope rechaza como incompleta", async () => {
+    const datos = datosReversoGo1();
+    const original = datos.invoices[0];
+    datos.invoices = Array.from({ length: MAX_PAGES + 1 }, (_, n) => ({
+      ...original, id: "go1-paginada-" + String(n).padStart(4, "0"),
+    }));
+
+    await expect(leerReversoGo1(
+      datos, RANGOS_REVERSO_GO1.septiembre, { limiteServidor: 1 },
+    )).rejects.toThrow(/lectura.*tope|completo/i);
+    // Se usa el paginador real, sin mockear complete:false ni cambiar su tope.
+  });
+
+  it("un rango realmente vacío mantiene Sin movimiento, sin fabricar actividad", async () => {
+    const datos = datosReversoGo1();
+    datos.invoices = [];
+    datos.journal_entries = [];
+    datos.journal_lines = [];
+    const { ingreso } = await leerReversoGo1(datos, RANGOS_REVERSO_GO1.combinado);
+
+    expect(ingreso.facturado.total).toBe(0);
+    expect(ingreso.mayor).toMatchObject({ ventas: 0, ventasConMovimiento: false });
+    expect(describirIngreso(ingreso).estado).toBe("sin_movimiento");
+  });
+
+  it("cero neto conocido conserva actividad y explicación del ajuste", async () => {
+    const { ingreso } = await leerReversoGo1(datosReversoGo1(), RANGOS_REVERSO_GO1.combinado);
+
+    expect(ingreso.facturado.total).toBe(0);
+    expect(ingreso.mayor).toMatchObject({ ventas: 0, ventasConMovimiento: true });
+    expect(ingreso.diferenciaUsd).toBe(0);
+    expect(describirIngreso(ingreso).estado).toBe("cuadra");
+    expect(describirIngreso(ingreso).diferenciaTexto).toMatch(/ajuste|anulaci[oó]n|revers/i);
   });
 });

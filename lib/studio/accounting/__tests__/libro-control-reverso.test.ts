@@ -98,3 +98,58 @@ describe("el libro diario nombra el reverso", () => {
     expect(origenDelAsiento("invoice_reversal")).toBe("Reverso de factura");
   });
 });
+
+/**
+ * GO1 I2 · la presencia de un UUID no certifica un par íntegro.
+ * Estas negativas puras no certifican B1, tenant/ACL SQL ni locks.
+ */
+describe("GO1 I2 · sólo un vínculo coherente permite considerar revertido", () => {
+  it.each([
+    { nombre: "factura distinta", extra: { invoice_id: "f-ajena" } },
+    { nombre: "factura ausente", extra: { invoice_id: null } },
+    { nombre: "original borrador", extra: { status: "borrador" } },
+    { nombre: "original borrado", extra: { deleted_at: "2026-10-20" } },
+  ])("$nombre no se oculta por un reverso vivo", ({ nombre, extra }) => {
+    const cambiaOriginal = nombre.startsWith("original");
+    const original = asiento("e-go1", { invoice_id: "f-go1", ...(cambiaOriginal ? extra : {}) });
+    const reverso = asiento("r-go1", {
+      invoice_id: "f-go1", source: "invoice_reversal", reverses_entry_id: "e-go1",
+      ...(!cambiaOriginal ? extra : {}),
+    });
+
+    expect([...asientosRevertidos([original, reverso])]).toEqual([]);
+  });
+
+  it("un original ausente es vínculo no comprobado, no reverso válido", () => {
+    const reverso = asiento("r-go1", {
+      invoice_id: "f-go1", source: "invoice_reversal", reverses_entry_id: "fuera-del-conjunto",
+    });
+
+    expect([...asientosRevertidos([reverso])]).toEqual([]);
+    // La recuperación del otro extremo fuera de filtro/página es tarea del
+    // lector pendiente; este helper no puede certificar su existencia.
+  });
+
+  it("tenant distinto no permite validar el par aunque factura y UUID coincidan", () => {
+    const original = { ...asiento("e-go1", { invoice_id: "f-go1" }), tenant_id: "tenant-a-go1" };
+    const reverso = {
+      ...asiento("r-go1", { invoice_id: "f-go1", source: "invoice_reversal", reverses_entry_id: "e-go1" }),
+      tenant_id: "tenant-b-go1",
+    };
+
+    expect([...asientosRevertidos([original, reverso])]).toEqual([]);
+  });
+
+  it("una factura anulada conserva su hallazgo si el reverso apunta a otra factura", () => {
+    const r = cruzarDocumentosConAsientos(
+      [factura("f-go1", false)],
+      [
+        asiento("e-go1", { invoice_id: "f-go1" }),
+        asiento("r-go1", { invoice_id: "f-ajena", source: "invoice_reversal", reverses_entry_id: "e-go1" }),
+      ],
+    );
+
+    expect(r.anuladosConAsiento.map((h) => h.codigo)).toEqual(["F-f-go1"]);
+    expect(r.conteo.factura.anuladosConAsiento).toBe(1);
+  });
+});

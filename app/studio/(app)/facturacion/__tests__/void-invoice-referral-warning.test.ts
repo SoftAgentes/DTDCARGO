@@ -70,7 +70,11 @@ type Fila = {
 
 let fila: Fila | null = null;
 /** Cuántos recibos vivos tiene la factura. */
-let recibosVivos = 0;
+let recibosVivos: number | null = 0;
+/** Error de PostgREST independiente del count, incluso si devolvió un número. */
+let recibosError: { message: string; code?: string } | null = null;
+/** Recibos sintéticos de otro tenant con el mismo invoice_id contaminado. */
+let recibosAjenos = 0;
 /** Qué devolvió la RPC de anulación (`void_invoice_with_audit_reason`). */
 let rpcChanged: unknown = true;
 let rpcError: { message: string; code?: string; hint?: string | null } | null = null;
@@ -93,11 +97,18 @@ function makeClient() {
             filtrosRecibos.push(["is", col, val]);
             return chain;
           },
-          then: (resolve: (v: { count: number; error: null }) => void) => {
-            // Solo cuenta si la consulta pide los vivos de ESTA factura.
+          then: (resolve: (v: { count: number | null; error: typeof recibosError }) => void) => {
+            // El doble admite la query actual y aplica también el filtro nuevo.
+            // Sin tenant, los recibos ajenos contaminan el conteo observable.
             const deEsta = filtrosRecibos.some(([op, c, v]) => op === "eq" && c === "invoice_id" && v === fila?.id);
             const vivos = filtrosRecibos.some(([op, c, v]) => op === "is" && c === "deleted_at" && v === null);
-            resolve({ count: deEsta && vivos ? recibosVivos : 99, error: null });
+            const delTenant = filtrosRecibos.some(([op, c, v]) => op === "eq" && c === "tenant_id" && v === fila?.tenant_id);
+            const count = recibosVivos === null
+              ? null
+              : deEsta && vivos
+                ? recibosVivos + (delTenant ? 0 : recibosAjenos)
+                : 99;
+            return Promise.resolve({ count, error: recibosError }).then(resolve);
           },
         };
         return chain;
@@ -142,6 +153,8 @@ beforeEach(() => {
   denial = null;
   fila = { ...CON_CREDITO };
   recibosVivos = 0;
+  recibosError = null;
+  recibosAjenos = 0;
   rpcChanged = true;
   rpcError = null;
   rpcCalls = [];
@@ -200,10 +213,13 @@ describe("voidInvoice · con cobros vivos no se anula (SDD-0573)", () => {
   it("cuenta solo los recibos vivos de esta factura", async () => {
     await voidInvoice("inv-1", MOTIVO);
 
-    expect(filtrosRecibos).toEqual([
+    // Conserva ambos filtros heredados y exige tenant; el orden no altera SQL.
+    expect(filtrosRecibos).toHaveLength(3);
+    expect(filtrosRecibos).toEqual(expect.arrayContaining([
       ["eq", "invoice_id", "inv-1"],
       ["is", "deleted_at", null],
-    ]);
+      ["eq", "tenant_id", "t-1"],
+    ]));
   });
 });
 
@@ -365,5 +381,96 @@ describe("voidInvoice · lo que se rechaza antes de llegar al crédito", () => {
 
     expect(res.error).toMatch(/ya pagada/i);
     expect(revertSpy).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * GO1: fuentes autorales NO EJECUTADAS. El doble conserva todas las operaciones
+ * del camino actual; el futuro ROJO debe ser una aserción, no un TypeError.
+ */
+describe("GO1 M1 · el conteo debe ser conocido antes de producir efectos", () => {
+  it.each([
+    { nombre: "error con count nulo", count: null },
+    { nombre: "error aunque count sea cero", count: 0 },
+  ])("$nombre bloquea crédito, void y revalidaciones", async ({ count }) => {
+    recibosVivos = count;
+    recibosError = { code: "08006", message: "detalle-tecnico-go1-conteo-no-disponible" };
+
+    const res = await voidInvoice("inv-1", MOTIVO);
+
+    expect(res.ok).toBeUndefined();
+    expect(res.error).toEqual(expect.any(String));
+    expect(res.error).toMatch(/cobros|recibos/i);
+    expect(res.error).not.toContain(recibosError.message);
+    expect(revertSpy).not.toHaveBeenCalled();
+    expect(rpcCalls).toEqual([]);
+    expect(orden).toEqual([]);
+    expect(revalidateSpy).not.toHaveBeenCalled();
+  });
+
+  it("count null sin error no equivale a cero conocido", async () => {
+    recibosVivos = null;
+
+    const res = await voidInvoice("inv-1", MOTIVO);
+
+    expect(res.ok).toBeUndefined();
+    expect(res.error).toMatch(/cobros|recibos/i);
+    expect(revertSpy).not.toHaveBeenCalled();
+    expect(rpcCalls).toEqual([]);
+    expect(orden).toEqual([]);
+    expect(revalidateSpy).not.toHaveBeenCalled();
+  });
+
+  it("cero conocido permite crédito y void, una vez y en ese orden", async () => {
+    recibosVivos = 0;
+
+    const res = await voidInvoice("inv-1", MOTIVO);
+
+    expect(res).toEqual({ ok: true });
+    expect(revertSpy).toHaveBeenCalledTimes(1);
+    expect(rpcCalls).toEqual([
+      { fn: "void_invoice_with_audit_reason", args: { p_id: "inv-1", p_reason: MOTIVO } },
+    ]);
+    expect(orden).toEqual(["revertir", "anular"]);
+  });
+
+  it("positivo conocido bloquea todo efecto y no revalida", async () => {
+    recibosVivos = 1;
+
+    const res = await voidInvoice("inv-1", MOTIVO);
+
+    expect(res.ok).toBeUndefined();
+    expect(res.error).toMatch(/1 cobro/);
+    expect(revertSpy).not.toHaveBeenCalled();
+    expect(rpcCalls).toEqual([]);
+    expect(revalidateSpy).not.toHaveBeenCalled();
+  });
+
+  it("el recibo ajeno no bloquea una factura sin cobros del tenant de sesión", async () => {
+    recibosVivos = 0;
+    recibosAjenos = 2;
+
+    const res = await voidInvoice("inv-1", MOTIVO);
+
+    expect(res).toEqual({ ok: true });
+    expect(filtrosRecibos).toContainEqual(["eq", "tenant_id", CON_CREDITO.tenant_id]);
+    expect(revertSpy).toHaveBeenCalledTimes(1);
+    expect(rpcCalls).toHaveLength(1);
+  });
+
+  it("crédito confirmado seguido de void fallido conserva el aviso y no repite pasos", async () => {
+    revertResult = { ok: true, reverted: 1 };
+    rpcError = { code: "40P01", message: "detalle-tecnico-go1-void", hint: null };
+
+    const res = await voidInvoice("inv-1", MOTIVO);
+
+    expect(res.ok).toBeUndefined();
+    expect(res.error).toMatch(/crédito de referido.*ya volvió a estar disponible/i);
+    expect(res.error).not.toContain(rpcError.message);
+    expect(revertSpy).toHaveBeenCalledTimes(1);
+    expect(rpcCalls).toHaveLength(1);
+    expect(orden).toEqual(["revertir", "anular"]);
+    expect(revalidateSpy.mock.calls.map(([ruta]) => ruta)).toEqual(["/studio/fidelizacion"]);
+    // Esto observa dos pasos separados; no acredita una transacción conjunta.
   });
 });
