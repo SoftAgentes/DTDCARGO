@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 3:28 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 3:39 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -219,6 +219,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Respaldar las siete rutas en **`a732bcb0`** y abrir la [PR #314 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/314), base C2 final `0e630ede`. Árbol limpio y remoto igual; rollup vacío de GitHub no equivale a aprobación.
 - [x] Completar la revisión íntegra del Director y la revisión independiente del checkpoint, sin nuevos hallazgos accionables; conceder el GO de **una receta canónica normal** sobre ese SHA exacto. Manifiesto previo y comprobación posterior antes de editar documentos exigidos.
 - [ ] Recoger la salida completa de esa corrida general, sus omisiones y avisos, y cotejar las fuentes antes del cierre documental.
+- [ ] Resolver el fallo observado en el control de configuración de una prueba móvil: se investiga su manejo de zona horaria. La primera receta sigue en curso, sin editar sus fuentes; no se anuncia aprobada ni se cambia el control para hacerla pasar.
 - [ ] Corregir el tramo móvil y comprobar sus regresiones, navegación, validación general y entrega en PR en borrador.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
@@ -273,7 +274,7 @@ La regla USD/USDT 1:1 ya está decidida. Los bolívares quedan para reportes. La
 - [ ] **4.2 · Envío por cliente al consolidar y llegada gobernada.** PENDIENTE; sigue a la tarifa congelada.
 - [ ] **4.3 · Aviso y factura al llegar desde cargos confirmados.** PENDIENTE; depende también del número de control.
 - [ ] **4.4 · Pre-factura al zarpar, cargos posteriores y cierre al entregar.** PENDIENTE.
-- [ ] **4.5 · Embarques sin facturar y tarjetas de Dirección.** IMPLEMENTADO EN RAMA: SDD-0574, `18edcd81`; faltan validación completa y PR después de 0571.
+- [ ] **4.5 · Embarques sin facturar y tarjetas de Dirección.** RETOMA LOCAL ACTIVA: la implementación histórica `18edcd81` se combinó sin conflictos con0571 final `ba43747a` en una rama/árbol nuevos, **`e6b0129c`**. Tres hallazgos de fuente aceptados para corregir: importe desconocido resumido como cero/total, volumen actual sin distinguir la base congelada y vacío incompleto presentado «Al día». Se preparan pruebas; producto nuevo, ejecución, validación completa y PR siguen pendientes. Doce rutas; su turno pesado espera a C3 y la integración depende de0571.
 - [ ] **4.6 · Costo y margen real por embarque.** PENDIENTE.
 - [ ] **4.7 · Cuenta corriente del socio China y fondos por rendir de la Operadora.** PENDIENTE; revisión de la contadora antes de construir.
 - [ ] **4.8 · Compras asistidas y gastos cobrables generan su cargo al cliente.** PENDIENTE.
