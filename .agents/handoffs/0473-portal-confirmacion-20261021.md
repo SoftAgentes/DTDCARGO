@@ -1,7 +1,8 @@
 # SDD-0473 · Portal y confirmación del proveedor · 2026-10-21
 
 Owner `worker-packing-portal-20261021`. Estado: implementación y recorrido local completados;
-gate canónico en curso. Sin integración ni producción.
+PR borrador publicada. Gate ejecutado con cierre incompleto por ledger productivo sin medir.
+Sin integración ni producción.
 Worktree `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-list-portal-confirmacion-20261021`.
 Rama `codex/packing-list-portal-confirmacion-20261021`; base `d410ab2e23e74e5bcf7fdc7cc595371b24cc03a8`.
 Director comprobó con fetch final que origin/main conserva esa base.
@@ -72,14 +73,24 @@ durante harness para incorporar correcciones autorizadas; `worker-verify.log` no
 | Ledger productivo | NO DISPONIBLE: sin URL/credencial de servicio; no se copian secretos para verde |
 | Contratos SQL PostgreSQL 17 efímero | PASÓ, 246 contratos, rollback total |
 | Reconstrucción de esquema | PASÓ: 471 migraciones + 18 sólo ledger; 219 tablas / dos tenants de prueba |
-| E2E canónico | EN CURSO; 198 casos, Supabase local deny-only; se conserva su exit real |
-| Build canónico | PENDIENTE de la misma corrida |
-| pnpm verify final | EN CURSO; no se presenta como aprobado |
+| E2E canónico | PASÓ en reintento global, cobertura parcial: 177 aprobados / 1 flaky recuperado / 20 omitidos / 0 inesperados; Supabase local deny-only |
+| Build canónico | PASÓ, compilación optimizada y generación de 162 páginas; tsconfig restaurado automáticamente |
+| pnpm verify final | CIERRE INCOMPLETO, exit 0: 16/17 pasos medidos, crítico sin medir migrations-applied; no hubo fallos en lo medido tras reintento |
 | /ui-check y revisión React | OK con límites: marca, estados, foco, keys e identidad comprobados |
 | Diff / allowlist | PASÓ, 38 archivos modificados/nuevos, ninguno fuera de esta etapa |
 
 Fixture bajo docs excluida del ESLint por configuración del repo; TypeScript sí la comprobó.
 Log final: `C:/Users/AKX generator/.codex/visualizations/2026/10/21/packing-list-portal/worker-verify-final.log`.
+Primer intento E2E: 171 aprobados, 6 flaky recuperados, 20 omitidos y 1 fallo del carrusel;
+además worker 24 agotó 300000 ms al cerrar y Playwright lo terminó. El runner hizo su único
+reintento global configurado, sin alterar código, límites ni pruebas. Segundo: 177/1/20/0,
+sin errores globales; carrusel aprobado. Flaky del segundo: navegación ERR_ABORTED de token
+inválido, recuperada al reintentar. JSON original segundo guardado como `e2e-attempt2-report.json`.
+El JSON temporal primero fue eliminado por el propio runner antes de poder copiarlo; se conserva
+log completo, contextos y trace del carrusel. No se presenta un resumen derivado como ese original.
+Los 20 omitidos son 18 casos con seed/auth aislados no disponibles y 2 capturas duplicadas que
+se ejecutan sólo en Chromium. El veredicto automático nombra ledger como omisión crítica;
+la cobertura operativa/auth de E2E sigue parcial y se declara expresamente.
 
 ### Recorrido observado directamente por Director
 
@@ -142,16 +153,22 @@ publicó bóveda ni se declara CURRENT una capa no comprobada.
 
 ## COMMITS
 
-Pendientes del resultado final y cierre documental. Código congelado.
+- `b25a4660adcfb3286eeb480eb5d3146dd1700a95` — implementación, pruebas, fixture y SDD.
+- Cierre documental posterior, exclusivamente este handoff. SHA final registrado en Git/PR y
+  entrega al Director; no modifica el producto validado en b25a4660a.
 
 ## PR / BRANCH
 
-PR borrador pendiente. Rama/base arriba. Merge/deploy/flags sin autorización.
+[PR #319](https://github.com/SoftAgentes/DTDCARGO/pull/319), OPEN / DRAFT, base main d410ab2e.
+Rama publicada explícitamente a sí misma y PR adjuntada al chat. GitHub redirige el remoto histórico
+a SoftAgentes/DTDCARGO; no se cambió la configuración origin. Director revisó b25a4660a:
+38 archivos, 0 fuera de allowlist, diff y árbol limpios. Última consulta sin checks CI reportados;
+no equivale a CI aprobado. Merge/deploy/flags sin autorización.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Consolidar exit/build y reintentos/omisiones E2E; commits selectivos y PR.
-- Revisión Director de SHA/PR y de Sam del recorrido antes de planificar producción.
+- Revisión Director del cierre documental/SHA final y revisión de Sam del recorrido antes de
+  planificar producción. Producto b25a4660a ya revisado por Director.
 - Prueba autenticada en infraestructura aprobada, chino humano, WeChat, impresión completa y
   corpus/PDF reales NO EJECUTADOS. Ledger y conocimiento requieren contexto de cierre/release.
 
@@ -160,13 +177,15 @@ PR borrador pendiente. Rama/base arriba. Merge/deploy/flags sin autorización.
 - `company-photo-carousel.spec.ts:93`: intento inicial timeout en page.goto('/'); reintento
   esperaba dos `#operacion video` y recibió uno. Contextos/trace.zip preservados fuera de Git como
   `e2e-carousel-attempt1-*`. No se modificó el módulo; no se afirma preexistencia sin probar base.
-  Timeouts de rutas públicas que pasan en retry conservan su carácter inestable.
+  Pasó en el segundo intento global. Timeouts de rutas públicas recuperados y cierre de worker
+  agotado conservan su carácter inestable; no se presentan como un fallo permanente del producto.
 - 15 avisos lint y amarillo declarado 0495 no se absorben en esta tarea.
 - Activación comercial, calculadora, decisiones legales/privacidad productivas y recepción del
   warehouse conservan revisiones/autorizaciones específicas.
 
 ## HANDOFF AL DIRECTOR
 
-Implementación local funcional y auditada; gate final/PR pendientes. Mantener 4320/4321 y worktree.
-No integrar ni activar producción desde Worker. Claim activo hasta terminar commits/PR/documentos.
-Director revisa SHA final, fallo global/omisiones y capas de conocimiento antes de cualquier release.
+Implementación local funcional y auditada, PR borrador y gate final documentados. Mantener
+4320/4321 y worktree: listeners loopback comprobados al cerrar; revisión 4 confirmada preservada.
+No integrar ni activar producción desde Worker. Owner libera claim después del commit documental
+y push final. Director revisa SHA final, inestabilidad/omisiones y conocimiento antes de release.
