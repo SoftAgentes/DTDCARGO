@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 8:50 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 8:53 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -113,7 +113,8 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Ampliar el contrato embebido a **17/17 controles**, sin omisiones: incluye tres rechazos de instalación, compatibilidad y **12 errores intencionales detectados** con la fuente SQL conservada. Se probó una carga sintética de 1.201 grupos; PostgreSQL y HTTP reales siguen pendientes.
 - [ ] Completar la implementación de las fachadas SQL y llevar subtotal, contador y estado hasta Portal, Fidelización, Reportes y CRM.
 - [ ] Probar compatibilidad, permisos, paginación y casos sin tasa con datos sintéticos; cerrar revisión independiente y conservar las omisiones reales de la validación general.
-- [ ] Respaldar la entrega SQL en su rama y abrir su PR en borrador, con dependencia explícita de #310.
+- [x] Respaldar el primer bloque SQL en `f9cc1dd1` y abrir la [PR #311 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/311), dependiente de #310: seis rutas con migración, contrato, PGlite y documentación. La adaptación de app y pantallas todavía está en desarrollo y no forma parte de ese checkpoint. Revisión SQL independiente en curso.
+- [ ] Completar esa misma PR con la app, las pantallas y la validación restante. El primer PostgreSQL local detectó un fallo de preparación de la prueba de zona horaria; se conserva el recibo y se corrige sin cambiar la migración. HTTP aún no llegó a arrancar en ese intento.
 - [ ] Reemplazar las conversiones pendientes en SQL, con una entrega separada.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
