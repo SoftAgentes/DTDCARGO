@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 3:04 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 3:28 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -10,7 +10,7 @@
 
 **Caracas C2 anual quedó entregado localmente en la PR #313 en borrador, final `0e630ede`:** **12.759 pruebas de aplicación al primer intento y una omitida**, más **249 contratos SQL, reconstrucción de 492 migraciones y construcción aprobadas**. Navegación: **177 aprobadas, una recuperada y 20 omitidas**, con aviso y original conservado. Mantiene **CIERRE INCOMPLETO, 16/17**, por historial productivo sin medir. El cierre documental, respaldo, integridad y liberación de propiedad están comprobados; 54 recibos coinciden por huella. Conserva los avisos, la primera corrida fallida y la atribución incierta de dos procesos. Conocimiento estructural y mapa actualizados; semántica y publicación compartida pendientes. Esto no acredita producción.
 
-**Ahora está activo Caracas C3, gastos móviles:** el primer bloque corregido aprobó **168/168 pruebas en dos archivos, sin omisiones**. El navegador reprodujo la pérdida de foto y método al reintentar y comprobó que la corrección conserva ambos, sin volver a seleccionarlos, en alta y edición. También recibe foco el error y la fila muestra el día Caracas. Son comprobaciones locales con datos ficticios; faltan regresiones, controles de fallos, revisión y validación general. Después sigue BCV. Push y PR funcionan; Actions sigue sin aprobación.
+**Ahora está activo Caracas C3, gastos móviles, PR #314 en borrador `a732bcb0`:** las regresiones ampliadas aprobaron **248/248 pruebas en nueve archivos, sin omisiones**. Trece variantes de errores intencionales fueron detectadas y las fuentes quedaron restauradas. El navegador conservó foto, método y campos en alta y edición; la revisión visible con una imagen ficticia válida y las revisiones del Director e independiente terminaron sin nuevos hallazgos. **La validación general normal arrancó a las 3:28 a. m. sobre esa versión fija**, con comprobación de bytes antes de cerrar documentos; resultado todavía pendiente. Después sigue BCV. Push y PR funcionan; Actions sigue sin aprobación.
 
 **Cómo leerlo:** una casilla marcada significa que se terminó exactamente el paso escrito. En el checklist general, significa integrado y publicado. Dentro de una tarea abierta, una prueba aprobada puede tener ✓ aunque su publicación siga pendiente. Los resultados locales no se presentan como prueba de producción.
 
@@ -213,6 +213,12 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Revisar el fallo del segundo envío del formulario y corregir su diagnóstico: el detalle demuestra cambio de método **transferencia → efectivo**. No demuestra todavía pérdida del archivo; no se añadirá retención de foto si sus bytes y metadatos ya se conservan.
 - [x] Comprobar por separado el archivo: JSDOM lo conservaba en **dos casos aislados**, con los otros 21 omitidos por filtro; el navegador real sí lo perdía en ambos formularios. La comparación nativa posterior, con el mismo archivo ficticio, conserva **bytes, metadatos y método** en ambos envíos, antes y después del transporte, sin reselección. No se confunde la prueba local anterior con el navegador.
 - [x] Aprobar el primer bloque corregido móvil: **168/168 pruebas, dos archivos y cero omisiones**, después de los ROJOS registrados. Incluye fechas, tenant, cierre/historia, recuperación, cierre pendiente y foco. La comprobación nativa confirma foco en el error y el día Caracas; la revisión visual final usará una imagen ficticia decodificable, distinta del pequeño fixture de transporte.
+- [x] Ampliar y aprobar las regresiones móviles: **248/248 en nueve archivos, cero omisiones**, con fechas, tenant, dueño, historia, MIME/tamaño y comportamiento financiero anterior conservados. No se suman las corridas solapadas como casos nuevos.
+- [x] Detectar **trece variantes de errores intencionales**, incluida la pérdida del segundo archivo en navegador, y comprobar la restauración de ambas fuentes. Los intentos fallidos del entorno y las omisiones por filtro se conservan por separado.
+- [x] Revisar alta y edición reales con una imagen ficticia válida en **390 y 1280 píxeles**: foto y campos conservados, foco en error, teclado y controles pendientes observados; último botón accesible mediante scroll. No acredita teléfono físico, lector de pantalla ni zoom nativo al200%.
+- [x] Respaldar las siete rutas en **`a732bcb0`** y abrir la [PR #314 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/314), base C2 final `0e630ede`. Árbol limpio y remoto igual; rollup vacío de GitHub no equivale a aprobación.
+- [x] Completar la revisión íntegra del Director y la revisión independiente del checkpoint, sin nuevos hallazgos accionables; conceder el GO de **una receta canónica normal** sobre ese SHA exacto. Manifiesto previo y comprobación posterior antes de editar documentos exigidos.
+- [ ] Recoger la salida completa de esa corrida general, sus omisiones y avisos, y cotejar las fuentes antes del cierre documental.
 - [ ] Corregir el tramo móvil y comprobar sus regresiones, navegación, validación general y entrega en PR en borrador.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
