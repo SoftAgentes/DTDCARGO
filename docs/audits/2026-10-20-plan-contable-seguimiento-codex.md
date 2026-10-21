@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 3:39 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 3:51 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -220,6 +220,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Completar la revisión íntegra del Director y la revisión independiente del checkpoint, sin nuevos hallazgos accionables; conceder el GO de **una receta canónica normal** sobre ese SHA exacto. Manifiesto previo y comprobación posterior antes de editar documentos exigidos.
 - [ ] Recoger la salida completa de esa corrida general, sus omisiones y avisos, y cotejar las fuentes antes del cierre documental.
 - [ ] Resolver el fallo observado en el control de configuración de una prueba móvil: se investiga su manejo de zona horaria. La primera receta sigue en curso, sin editar sus fuentes; no se anuncia aprobada ni se cambia el control para hacerla pasar.
+- [x] Recoger por separado los dos resultados unitarios de esa primera receta: **12.934 aprobadas, una fallida y una omitida**; reintento **12.933 aprobadas, dos fallidas y una omitida**. El control confirmó `TZ`; el reintento agotó además veinte segundos en un caso del Portal que había pasado antes. **Paso FALLÓ**; la receta continúa en SQL/reconstrucción y conserva después navegación/construcción. No se atribuye una causa al tiempo agotado ni se amplía el alcance al Portal.
 - [ ] Corregir el tramo móvil y comprobar sus regresiones, navegación, validación general y entrega en PR en borrador.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
