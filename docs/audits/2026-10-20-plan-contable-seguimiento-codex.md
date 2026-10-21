@@ -4,6 +4,8 @@
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
+**Avance por hitos cerrados:** **6 de 38 del plan principal, aproximadamente 16 %**. Al incluir las cinco mejoras adicionales entregadas, son **11 de 43, aproximadamente 26 %**. Cada hito pesa lo mismo en este conteo; no es un porcentaje de horas o código. Los pasos técnicos y las PR en borrador avanzados se muestran abajo, pero no se cuentan como hitos publicados. Por esa razón el plan completo todavía no está al 80–90 %.
+
 **Dónde vamos:** seis puntos del plan original y cinco mejoras adicionales ya están integrados y publicados. La **2.1 sigue en curso**: reportes y reemplazos están respaldados en la PR #310. El cálculo anual y sus pantallas quedaron entregados localmente en la **PR #311 en borrador, versión final `8729f7f4`**, con construcción aprobada y cierre incompleto **16/17** por historial productivo sin medir, más omisiones y avisos declarados.
 
 **Caracas C1 quedó entregado localmente en la PR #312 en borrador, final `d6bcd0e8`:** producto y pruebas idénticos a `264e0531`, revisiones y cierre documental cotejados, árbol limpio y propiedad liberada. Conserva **16/17**, una prueba de aplicación omitida y navegación con 177 aprobadas, una recuperada y 20 omitidas.
