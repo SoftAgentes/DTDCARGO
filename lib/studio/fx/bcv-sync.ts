@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { fechaCaracas, isCalendarDate, validInstant } from "@/lib/shared/fechas-caracas";
-import { fetchBcvObservation, readBcvBody } from "./bcv-source";
+import { cancelBcvBody, fetchBcvObservation, readBcvBody } from "./bcv-source";
 import { BCV_MAX_TENANTS, BCV_RUN_TIMEOUT_MS, BCV_URL, BcvError, decimalRateKey,
   emptyBcvCounts, sameDecimalRate, type BcvCounts, type BcvObservation, type BcvReason, type BcvSummary } from "./bcv-types";
 
@@ -28,6 +28,17 @@ export function parseBcvDryRun(params: URLSearchParams): boolean {
   return true;
 }
 
+/** Gramática íntegra antes de parseInt del SDK; conserva el total paginado. */
+function validExactReadRange(value: string | null): boolean {
+  const match = value && /^(?:\*|([0-9]{1,16})-([0-9]{1,16}))\/([0-9]{1,16})$/.exec(value);
+  if (!match) return false;
+  const total = BigInt(match[3]);
+  if (total > BigInt(Number.MAX_SAFE_INTEGER)) return false;
+  if (match[1] === undefined) return true;
+  const start = BigInt(match[1]), end = BigInt(match[2]);
+  return start <= end && end < total;
+}
+
 /** Conserva el HTTP original antes de los workarounds404 del SDK2.106.1. */
 export function bcvDatabaseFetch(request: typeof globalThis.fetch, deadline: AbortSignal): typeof globalThis.fetch {
   return async (input, init) => {
@@ -47,12 +58,21 @@ export function bcvDatabaseFetch(request: typeof globalThis.fetch, deadline: Abo
         { status: response.status, headers: { "content-type": "application/json" } });
     }
     if (!response.ok) {
-      await response.body?.cancel();
+      await cancelBcvBody(response.body, signal);
       throw new BcvError("SNAPSHOT_UNAVAILABLE");
     }
     if (response.status === 204 || response.status === 205) {
-      await response.body?.cancel();
+      await cancelBcvBody(response.body, signal);
       return new Response(null, { status: response.status, headers: response.headers });
+    }
+    const method = init?.method ?? (input instanceof Request ? input.method : "GET");
+    const url = new URL(input instanceof Request ? input.url : input);
+    const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+    const exactTableRead = method === "GET" && /\/rest\/v1\/(?:tenants|fx_rates)$/.test(url.pathname)
+      && headers.get("prefer")?.split(",").some(value => value.trim().toLowerCase() === "count=exact");
+    if (exactTableRead && !validExactReadRange(response.headers.get("content-range"))) {
+      await cancelBcvBody(response.body, signal);
+      throw new BcvError("SNAPSHOT_UNAVAILABLE");
     }
     // También se termina/acota el body2xx dentro de la señal compartida.
     const bytes = await readBcvBody(response, signal);
