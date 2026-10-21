@@ -15,11 +15,11 @@ confidencialidad: interno
 
 > La 2.1 del plan contable, segunda parte. La SDD-0569 creó el conversor canónico (`toUsd` en `lib/shared/fx.ts` y `to_usd` en la 0495) y la tabla `fx_rates`. Esta reemplaza las 13 implementaciones y las tasas fijas del código por ese conversor. **Aquí sí cambian cifras visibles.**
 
-**Estado: 0572-a IMPLEMENTADA Y REVISADA LOCALMENTE; COBERTURA CANÓNICA INCOMPLETA** (reglas A a F y completitud cambiaria). Producto `4dbdb21b`, [PR #310 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/310), después de integrar #301 desde main `d410ab2e` en `2df9d22d`. Verify terminó exit 0 con 14/17 controles medidos y tres omisiones críticas; no equivale a cierre verde completo ni a integración aprobada. La base original apilada fue `3d0c9028`; el diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). G queda para 2.3 y 0572-b (SQL 0404/0411) no ha arrancado.
+**Estado: 0572-a IMPLEMENTADA Y REVISADA LOCALMENTE; COBERTURA CANÓNICA INCOMPLETA** (reglas A a F y completitud cambiaria). Producto `4dbdb21b`, [PR #310 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/310), después de integrar #301 desde main `d410ab2e` en `2df9d22d`. Verify terminó exit 0 con 14/17 controles medidos y tres omisiones críticas; no equivale a cierre verde completo ni a integración aprobada. La base original apilada fue `3d0c9028`; el diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). G queda para 2.3 y 0572-b inicia su transición compatible en rama separada, según la subsección b.
 
-El primer cierre parcial de 0572-a en Codex el 2026-10-20 recibió turno exclusivo de validación y autorización para commits selectivos y push a la misma rama; entonces la PR esperaba la integración de #301. La retoma vigente se rige por la decisión siguiente. El estado general permanece `in-progress` porque 0572-b sigue diferida.
+El primer cierre parcial de 0572-a en Codex el 2026-10-20 recibió turno exclusivo de validación y autorización para commits selectivos y push a la misma rama; entonces la PR esperaba la integración de #301. La retoma vigente se rige por la decisión siguiente. El estado general permanece `in-progress` porque la validación, integración y transición SQL 0572-b siguen abiertas.
 
-El cierre parcial anterior esperó la reparación de #301. El Director confirmó ahora su integración y la aplicación/verificación de 0495: la retoma no edita ni reaplica SQL. Sam confirmó que GitHub revisa el rechazo de pago durante 48 horas; los checks remotos no se presumen aprobados. La validación local y una PR en borrador están autorizadas; la integración final de 0572 debe revalidarse contra la base que incluya 0573 y conserva el orden coordinado por el Director.
+El cierre parcial anterior esperó la reparación de #301. El Director confirmó ahora su integración y la aplicación/verificación de 0495: la retoma no edita ni reaplica SQL. Sam informó el rechazo de pago y aclaró que las 48 horas son la espera para cambiar la tarjeta, sin garantía de habilitación de Actions; los checks remotos no se presumen aprobados. La validación local y una PR en borrador están autorizadas; la integración final de 0572 debe revalidarse contra la base que incluya 0573 y conserva el orden coordinado por el Director.
 
 ## Decisión del Director para la retoma local · 2026-10-20
 
@@ -461,3 +461,97 @@ T10 ya rechazaba lecturas incompletas/erróneas: se conserva esa regresión.
 
 En ese cierre anterior quedó pendiente comprobar `topAndWorst` con ingreso
 parcial. La retoma posterior de esta sección registra su reproducción y reparación.
+
+## 0572-b · Transición compatible de agregados anuales · asignación 2026-10-20
+
+**EN PROGRESO; pruebas y release NO EJECUTADOS.** Base a30d8585, rama
+`codex/sdd-0572-conversor-usd-sql`, worktree aislado propio. El Director aprobó
+la alternativa A y asignó `0498_annual_billing_fx_v2` tras inventario. El handoff
+propio es `.agents/handoffs/0572-conversor-usd-sql.md`; conserva el contrato
+completo. No se modifica el handoff de a ni sus migraciones aplicadas.
+
+- Portal conserva firma, identidad, propietario, ACL y campos legados; añade
+  `billing_v2`. Studio v1 permanece idéntica y añade RPC tabular
+  `studio_client_annual_billing_v2(p_as_of date)` sin tenant/cliente de entrada.
+- Decimal exacto con dos decimales como string, contador seguro y estado
+  `completo`/`sin_tasa`/`datos_invalidos`. Lectura `no_disponible` separada de
+  falta de tasa y ausencia de principal. Cero y signo se conservan.
+- Clasificador privado previsto: `annual_billing_private.convertir(numeric,text,numeric)`.
+  INVOKER, IMMUTABLE, search_path vacío, sin USAGE/EXECUTE para roles API.
+  Invoca `public.to_usd`; captura solo SQLSTATE 22023 + hint dtd-fx + mensajes
+  FX_AMOUNT_INVALID/FX_RATE_MISSING/FX_CURRENCY_UNKNOWN; relanza todo lo demás.
+  No duplica conversión, no usa catálogo ni altera `lib/shared/fx.ts`.
+- Suma redondeada por factura, filtros/ventanas y permisos de cada fachada
+  preservados. Studio no usa HAVING positivo; paginación hasta vacío, mismo
+  p_as_of, claves repetidas/error/tope rechazan. Sin garantía de snapshot entre
+  peticiones. Portal y Studio mantienen sus diferencias temporales existentes.
+- Subtotal/contador/estado hasta Portal, Fidelización, Reportes/CSV y CRM.
+  Lectura de Fidelización compartida; nivel/progreso parcial Por revisar.
+  Error de facturación o cruce CRM incompleto no se vuelve Map/objeto vacío
+  exitoso ni oculta datos no financieros. Cliente convertido no usa precio
+  Kommo como sustituto. Contadores por markbox sin multiplicarlos por lead;
+  atribución histórica de ingreso por lead se conserva, sin certificar KPI global.
+- Rollout MIGRATE-FIRST y compatibilidad DB nueva/app antigua; app nueva con
+  DB/caché anterior muestra no disponible. Retiro futuro de v1 es deuda
+  explícita, sin afirmar reemplazo universal de conversiones legadas.
+- Riesgo R3: SGE-00 (12 principios), NUM-01, ERR-01 y políticas aplicables se
+  contrastan con pruebas/UI, no con el resultado aislado de validadores.
+- Validación autorizada serial: rojos funcionales, SQL PostgreSQL17, PGlite,
+  PostgREST14.17 local con JWT sintéticos, paginación >1000/límite500, mutantes,
+  tipos/lint, UI real con fixtures y verify. Preservar JSON E2E antes de build.
+- 0495 ya aplicada por Director; baseline solo agrega espera0498. No DB real,
+  secretos, merge, deploy, 2.3/G, BCV/Caracas, cambios históricos ni KPI global.
+  PR propia en borrador apilada sobre #310, con integración final coordinada.
+
+### Allowlist exclusiva de b — 41 rutas aprobadas
+
+Checkpoint SQL 2026-10-21 00:50 UTC: implementación de0498 y contrato PGlite
+PASÓ17/17, sinSKIPs (contrato, control sin expansión,3preflights,12mutantes).
+PostgreSQL/HTTP y cierre general permanecen NO EJECUTADOS en este checkpoint;
+evidencia externa y límites de identidad/carga en el handoff propio de b.
+La carga1201 prueba materialización sin clasificación repetida por agregado.
+No atribuir este verde a la app todavía sin commit ni a producción.
+
+```text
+supabase/migrations/0498_annual_billing_fx_v2.sql
+supabase/tests/0498_annual_billing_fx_v2.test.sql
+supabase/migrations-baseline.json
+supabase/pending-migration-symbol-declarations.json
+lib/studio/__tests__/annual-billing-fx-v2.migration.test.ts
+scripts/tests/annual-billing-fx-v2-postgrest.mjs
+lib/shared/annual-billing.ts
+lib/shared/__tests__/annual-billing.test.ts
+lib/portal/portal-referral-queries.ts
+lib/portal/__tests__/portal-referral-query.test.ts
+lib/portal/__tests__/referrals.test.ts
+app/portal/(app)/referidos/page.tsx
+app/portal/(app)/referidos/__tests__/page.test.tsx
+lib/studio/fidelizacion/queries.ts
+lib/studio/fidelizacion/__tests__/queries.test.ts
+lib/studio/__tests__/listados-sin-eliminados.test.ts
+app/studio/(app)/fidelizacion/page.tsx
+app/studio/(app)/fidelizacion/_components/FidelizacionClient.tsx
+app/studio/(app)/fidelizacion/_components/FidelizacionClient.annual-billing.test.tsx
+app/studio/(app)/fidelizacion/__tests__/annual-billing-page.test.tsx
+lib/studio/reports/queries.ts
+lib/studio/reports/types.ts
+lib/studio/reports/__tests__/queries.test.ts
+lib/studio/reports/export-csv.ts
+lib/studio/reports/__tests__/export-csv.test.ts
+app/studio/(app)/reportes/_components/ReportesClient.tsx
+app/studio/(app)/reportes/_components/ReportesClient.annual-billing.test.tsx
+lib/studio/kommo-analytics.ts
+lib/studio/__tests__/kommo-analytics.test.ts
+lib/studio/__tests__/kommo-analytics-paging.test.ts
+app/studio/(app)/crm/page.tsx
+app/studio/(app)/crm/_components/KommoClient.tsx
+app/studio/(app)/crm/_components/KommoBoardView.tsx
+app/studio/(app)/crm/_components/DireccionTab.tsx
+app/studio/(app)/crm/_components/KommoClient.annual-billing.test.tsx
+app/studio/(app)/crm/_components/KommoBoardView.annual-billing.test.tsx
+app/studio/(app)/crm/_components/DireccionTab.annual-billing.test.tsx
+app/studio/(app)/crm/__tests__/annual-billing-page.test.tsx
+docs/specs/0572-conversor-usd-reemplazos/spec.md
+docs/specs/README.md
+.agents/handoffs/0572-conversor-usd-sql.md
+```
