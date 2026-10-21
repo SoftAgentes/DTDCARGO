@@ -460,7 +460,7 @@ La matriz conserva fuentes y oráculos efectivos; PASÓ significa la medición l
 | B19 | `bcv-sync.test.ts:419`, nueva invocación al día siguiente obtiene fuente otra vez y falla; UI no infiere último cron | PASÓ S; sin caché futura, replay o timer durable. No reinicio de VPS acreditado |
 | R1 | `bcv-sync.test.ts:116`; Q ausencia0501; W app después de retirada real | PASÓ S/Q/W; SQL_CONTRACT_UNAVAILABLE antes de fetch/DML, también dryRun, sin fallback0495 |
 | R2 | driver H/W y Q: GET service-only version1/readytrue y ausencia efecto; catálogo íntegro | PASÓ H/Q/W; no se atribuye lock/lease a GET |
-| R3 | HTTP02/fullH: roleGUC/service_role, current_user postgres, session_user authenticator, auth.uidNULL/claims sin sub;26 DML negativos | PASÓ H y GO02:24 rechazos sin cambios+2 humanos user/rpc, nunca job. No claim aislado ni current_user definer como caller; secreto de servicio no atesta exclusividad cron |
+| R3 | HTTP02/fullH: roleGUC/service_role, current_user postgres, session_user authenticator, auth.uidNULL/claims sin sub; 26 intentos DML (24 rechazos y 2 humanos legítimos) | PASÓ H y GO02:24 rechazos sin cambios+2 humanos user/rpc, nunca job. No claim aislado ni current_user definer como caller; secreto de servicio no atesta exclusividad cron |
 | R4 | Q/H INSERT directo; auditoría system/NULL/job/motivo fijo, cuatro campos y note fuera | PASÓ Q/H; razón generada DB, no note/header humano inventado |
 | R5 | Q/H corrección CAS7, rate::text/microsegundos/before-after/motivo; cero CAS sin evento | PASÓ Q/H/S; no token monotónico universal |
 | R6 | S/H repetición equivalente y relectura | PASÓ, sin nota/token/motivo/evento nuevo |
@@ -474,6 +474,8 @@ La matriz conserva fuentes y oráculos efectivos; PASÓ significa la medición l
 | R14 | Q preflight/reaplicación/error posDDL+ROLLBACK; X pg_locks/timeout/instalación; W retirada exitosa con evento job previo | PASÓ por evidencias separadas: bloqueo151→166 en transactionid ShareLock/55P03 y catálogo exacto; instalación/retirada observadas con object AccessExclusiveLock. Quiescencia propia y eventos conservados; sin protección prometida ante DDL concurrente ni disponibilidad garantizada |
 
 Rutas abreviadas `bcv-*.test.ts` están en `lib/studio/fx/__tests__/`; `route.test.ts` en `app/api/cron/bcv-rates/__tests__/`; driver en `scripts/tests/bcv-rates-postgrest.mjs`; UI en `app/studio/(app)/admin/_components/`. Regresión69: `lib/studio/__tests__/fx-rates.test.ts`, `lib/shared/__tests__/fx.test.ts`, `app/studio/(app)/admin/__tests__/exchange-rates-actions.test.ts`, `lib/http/__tests__/secret-compare.test.ts`, log SHA256 `a52d696f8b93999d2af4c192430831807cc8084fd67e7d3d33c0ccc73c0f44dc`.
+
+Los rótulos históricos «26 negativos» o «26 intentos negativos» son inexactos: en esos cortes significan 26 intentos DML, 24 rechazados sin efectos y dos humanos legítimos user/rpc, nunca job. Se conserva la historia y los recibos; esta precisión no altera casos ni contratos.
 
 ### SGE-00 · clasificación medida del nuevo job y aviso
 
