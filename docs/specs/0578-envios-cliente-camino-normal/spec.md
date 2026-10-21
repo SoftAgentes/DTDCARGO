@@ -378,3 +378,103 @@ UI Tracking redactada: datos derivados y pertenencia/revisiones/tarifa observada
 Tests nuevos de adaptadores Tracking/API redactados dentro43/44. Las tres fixtures adicionales propuestas en `0578-propuesta-fixtures-tracking-api-58.md`, SHA256 dde0404abe9aa75358f38450d02c19d2f57a084c9274280eec6ec76b1a842fb1, fueron leídas completas pero NO editadas ni incluidas en allowlist55. Esperan addendum; no se adapta un doble compartido ni se debilita producto para acomodarlas.
 
 Pendientes propios: Portal/RLS, VE, móvil, ACL/pre/postflight completo, fixture SQL/concurrencia/e2e y toda ejecución. SQL0502 con fusible antes de DDL; cohorte/rollout OFF; claim retenido. Todas las verificaciones de producto/SQL, tipos/lint amplio, browser/UI/A11Y, build/verify y conocimiento NO EJECUTADO. La autoría no cierra4.2 ni autoriza merge, migración o producción.
+
+## Adopción Worker P1 — addendum acumulado58
+
+Leído íntegramente y cotejado SHA256 `557b81d02d9307cc128e4b515f910b74fb9c863c4db899aee49656e1b3957bf3` antes de editar las tres fixtures Tracking/API añadidas. Se conserva contrato1939 y addendums52/55 íntegros. Sin concesión runtime, permisos o política. Misma raíz/rama/D1/owner/PR318; claim retenido, SQL0502 con fusible y cohorte OFF.
+
+<!-- ADDENDUM58 DIRECTOR ÍNTEGRO INICIO -->
+# SDD-0578 — addendum Director: fixtures Tracking/API, 58 rutas
+
+21 de octubre de 2026. AUTORIZADO sólo para autoría P1 del Worker vigente. Sustituye exclusivamente el límite acumulado55 por la unión literal58. Añade tres fixtures existentes para compatibilidad con metadata/lectura de ámbito explícitas. No amplía producto, permisos, políticas o runtime. SQL0502 conserva su fusible y cohorteOFF hasta implementación y aceptación completas.
+
+Misma raíz `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0578-envios-cliente-camino-normal`, rama `codex/sdd-0578-envios-cliente-camino-normal`, owner `worker-0578normal-01a15a4e-ddf0-7d82-8656-d9dc56b58468`, baseD1 `1ec5e85f736b7826cf5b6e8781757dc4cf950733`, PR318 DRAFT y claim retenido. BCV prepara su comprobación general; este addendum no transfiere turno ni concede ejecución.
+
+Conservar inmutables los contratos anteriores: `042-activacion-worker-0578-director.md`, SHA256 `1939a04752338b66bc5187961f8a1a216093dc6101fdb28771bec2efae607be4`; addendum52 `4d976df8afbe3a21538b66e582b65fa7f191b6dd2edcae20d8cf88d1666d853e`; addendum55 `8dd76b80bb2de54580d69b6a6b43c12a65d983177d8fd47c9b52f39348eec69b`. Todos sus límites/oráculos siguen vigentes.
+
+## Evidencia revisada y decisión
+
+Director leyó completas la propuesta `0578-propuesta-fixtures-tracking-api-58.md`, SHA256 `dde0404abe9aa75358f38450d02c19d2f57a084c9274280eec6ec76b1a842fb1`, y la revisión independiente `0578-revision-fixtures-tracking-api-58-peer.md`, SHA256 `7dc4027954273f49597b351b25a2d4d29959b42698076d615b8f8cabadbd5ad6`. El revisor leyó las447líneas de los tres archivos por objetosD1 y cotejó sus blobs; Director atribuye esa lectura al revisor, sin afirmar ejecución o lectura propia íntegra de los tres. La necesidad es inferencia de las interfaces nuevas, no fallo funcional reproducido.
+
+| Ruta añadida literal | BlobD1 / lectura independiente |
+|---|---|
+| `app/studio/(app)/tracking/[id]/__tests__/datos-reservados-actions.test.tsx` | `2e2896f7a8614f4d9f57e90d9bef0c7229f66b4f`,1–190 |
+| `app/studio/(app)/tracking/[id]/_components/__tests__/FooterActions.borrado.test.tsx` | `164a7c2e754e7688e5e1f4e28195b8d22238c8ad`,1–131 |
+| `app/api/studio/shipments/[id]/events/__tests__/module-gate.test.ts` | `a91d82bd6378fb82e1c53a0bf08f21b09ca797b5`,1–126 |
+
+1. **Datos reservados:** preparar sólo las dos instancias reales de ShipmentDataPanel con el DTO completo/legacy del mismo s1, conservando tenant t1 y servicio transporte_terrestre de la fixture. No mockear su decisión o la acción. Mantener selección del envío correcto frente a otro primero, GPS del servidor, rechazo del GPS del navegador, GPS ausente sin inventar, permisos antes de lecturas/delegación, envío ausente y puerta CN/VE real. No agregar casts/bypasses o cambiar servicio/estado para mostrar formulario. El mock de updateShipment observa delegación, no prueba SQL/RLS/persistencia.
+2. **FooterActions:** metadata completa de shp-1 en cada instancia, incluido bloquear(). Mantener permisos de Eliminar/Cancelar legacy, código exacto, motivo3inválido/4habilitado, consecuencia legible sin tecnicismos, dependencia visible, asistente ausente si no bloqueado y asistente real cuando corresponde. Conservar cierre del primer modal, calcularPlan real, segundo diálogo, vuelta aTracking y aviso único con eventKey/mensaje. El caso existente escribe código correcto; no afirmar que ya prueba el negativo de código incorrecto. Metadata nunca concede borrado/cancelación de cohorte ni amplía canDelete.
+3. **API events:** doblar exclusivamente client_consolidation_scope para s-1/t-1 con args y respuesta completa/checked exactos, aparte del registro de dominio. Mantener get_user_tenant_id, auth y moduleEditDenial real. Support403 y membershipausente403 antes de dominio/nueva lectura; inválido400 antes de efectos. Positivooperations201 llega a shipments:select y shipment_events:insert de la ruta real; no mock de éxito o guard. RPC no reconocida no recibe fallbacklegacy. El doble registra operaciones y no filtra eq/is ni persiste: no acredita UPDATE/RLS real.
+4. **Frontera negativa:** null/error/schema ausente/shape ilegible/incompleto, IDs omitidos/extra/duplicados/ajenos o cohorte fuera dechecked nunca habilitan legacy/OFF o éxito. OFF de nuevas altas no retira pertenencia ya enrolada. Los negativos efectivos pueden estar en pruebas de cohorte ya allowlisted, con referencias concretas al handoff. No fallback vacío, metadata opcional, dobles compartidos/gates/permissions/SQL tests ajenos ni reducción de asserts. UI con metadata fallida conserva explicación y no controles genéricos de fallback.
+5. Usar DTO/RPC reales del futuro SHA congelado, sin dar por aprobadas firmas de código mutable. Antes de aceptar el delta se cotejan preparación y oráculos conservados. Ningún test/readscope dobla autoridad de actor/tenant. La fixture VE actions-auth no se añade ni edita por este documento.
+
+## Allowlist acumulada literal:58 rutas únicas
+
+```text
+lib/studio/client-consolidation/types.ts
+lib/studio/client-consolidation/queries.ts
+lib/studio/client-consolidation/normal-flow.ts
+app/studio/(app)/naviera/_components/ConfirmarEnviosClienteDrawer.tsx
+app/studio/(app)/naviera/actions.ts
+app/studio/(app)/naviera/page.tsx
+app/studio/(app)/naviera/_components/NavieraClient.tsx
+app/studio/(app)/naviera/plan-actions.ts
+app/studio/(app)/cn/actions.ts
+app/studio/(app)/cn/page.tsx
+app/studio/(app)/cn/_components/AlmacenCnClient.tsx
+app/studio/(app)/cn/_components/ReceiptRowActions.tsx
+app/studio/(app)/tracking/[id]/actions.ts
+app/studio/(app)/tracking/[id]/page.tsx
+app/studio/(app)/tracking/[id]/_components/ShipmentDataPanel.tsx
+app/studio/(app)/tracking/[id]/_components/StateActionsPanel.tsx
+app/studio/(app)/tracking/[id]/_components/FooterActions.tsx
+app/api/studio/shipments/[id]/route.ts
+app/api/studio/shipments/[id]/events/route.ts
+app/studio/(app)/ve/actions.ts
+app/studio/(app)/ve/_components/VeRowActions.tsx
+app/m/cn/estibar/actions.ts
+app/m/cn/estibar/_components/EstibaClient.tsx
+lib/portal/portal-queries.ts
+lib/studio/rate-snapshots/types.ts
+lib/i18n/es-VE/warehouse.ts
+lib/i18n/zh-CN/warehouse.ts
+supabase/pending-migration-symbol-declarations.json
+supabase/migrations-baseline.json
+docs/specs/README.md
+.agents/handoffs/042-envio-cliente-camino-normal.md
+app/m/cn/estibar/[consolidationId]/page.tsx
+docs/specs/0578-envios-cliente-camino-normal/spec.md
+supabase/migrations/0502_consolidacion_cliente_camino_normal.sql
+supabase/tests/consolidacion_cliente_normal.test.sql
+supabase/tests/_consolidacion_cliente_normal_schema.sql
+lib/studio/client-consolidation/__tests__/normal-path.migration.test.ts
+scripts/check-client-consolidation-concurrency.mjs
+app/studio/(app)/naviera/__tests__/envios-cliente-actions.test.ts
+app/studio/(app)/naviera/_components/__tests__/ConfirmarEnviosClienteDrawer.test.tsx
+app/studio/(app)/cn/__tests__/consolidacion-cohorte.test.ts
+app/studio/(app)/naviera/__tests__/plan-carga-cohorte.test.ts
+app/studio/(app)/tracking/[id]/__tests__/cohorte-normal-actions.test.ts
+app/api/studio/shipments/[id]/__tests__/cohorte-normal.test.ts
+app/m/cn/estibar/__tests__/cohorte-pertenencia.test.ts
+app/studio/(app)/ve/__tests__/cohorte-normal.test.ts
+lib/portal/__tests__/envios-cohorte.test.ts
+lib/studio/rate-snapshots/__tests__/sin-facturar.test.ts
+app/studio/(app)/cn/__tests__/rate-snapshot-actions.test.ts
+e2e/consolidacion-clientes-camino-normal.spec.ts
+app/studio/(app)/cn/__tests__/delete-receipts-action.test.ts
+app/studio/(app)/cn/__tests__/create-receipt-code.test.ts
+app/studio/(app)/naviera/__tests__/zarpe-avanza-envios.test.ts
+app/studio/(app)/naviera/__tests__/ocultar-nombres-cn.test.tsx
+app/studio/(app)/naviera/_components/__tests__/NavieraClient.avance.test.tsx
+app/studio/(app)/tracking/[id]/__tests__/datos-reservados-actions.test.tsx
+app/studio/(app)/tracking/[id]/_components/__tests__/FooterActions.borrado.test.tsx
+app/api/studio/shipments/[id]/events/__tests__/module-gate.test.ts
+```
+
+## Adopción y fronteras
+
+Leer completo y cotejar hash; guardar adopción íntegra+hash en handoff/spec ANTES de editar estas tres rutas. Un único Worker escritor, mismo SDD/SQL/claim, commits selectivos y push al mismo DRAFT autorizados. Sin add-A, nueva base, main, árbol ajeno, reescritura de contratos o trabajo histórico.
+
+Sin instalar/compilar/ejecutar tests, tipos, lint amplio, Node de producto, SQL/DB/Docker, HTTP, navegador, verify/build o conocimiento por este addendum. Sin main/merge/deploy/VPS/DBreal/PII/secretos/pagos/contactos/publicación compartida.0495 no se modifica/reaplica;0496/0501/0502 sin aplicar. CohorteOFF; no facturación4.3/historia/caller o flagPODv2. No nueva política global, permiso o afirmación funcional. El paso runtime requiere su propio turno y plan concreto; preservar preparación previa y comprobar porSHA al cierre.
+
+<!-- ADDENDUM58 DIRECTOR ÍNTEGRO FIN -->

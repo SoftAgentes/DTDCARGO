@@ -5,6 +5,7 @@
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { NormalShipmentRead } from "@/lib/studio/client-consolidation/types";
 
 const mocks = vi.hoisted(() => ({
   deleteShipment: vi.fn(),
@@ -31,6 +32,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push, refres
 const { FooterActions } = await import("../FooterActions");
 
 const SHIPMENT = { shipmentId: "shp-1", shipmentCode: "S-2026-0042" };
+const LEGACY_SHIPMENT: NormalShipmentRead = { available: true, context: { shipmentId: "shp-1", cohort: false, complete: true, group: null, manifest: null } };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -39,8 +41,17 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("FooterActions · eliminar envío", () => {
+  const unknownReads: Array<NormalShipmentRead | undefined> = [undefined, { available: false, error: "No se pudo leer la pertenencia" },
+    { available: true, context: { shipmentId: "shp-1", cohort: false, complete: false, group: null, manifest: null } },
+    { available: true, context: { shipmentId: "otro-envio", cohort: false, complete: true, group: null, manifest: null } }];
+  it.each(unknownReads)("metadata ausente/fallida/parcial/ajena no concede acciones legacy", (normal) => {
+    render(<FooterActions {...SHIPMENT} status="in_transit" canDelete normal={normal} />);
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Eliminar envío" })).toBeNull(); expect(screen.queryByRole("button", { name: "Cancelar envío" })).toBeNull();
+    expect(mocks.deleteShipment).not.toHaveBeenCalled(); expect(mocks.cancelShipment).not.toHaveBeenCalled();
+  });
   it("sin permiso no se pinta el botón", () => {
-    render(<FooterActions {...SHIPMENT} status="in_transit" />);
+    render(<FooterActions {...SHIPMENT} status="in_transit" normal={LEGACY_SHIPMENT} />);
     expect(screen.queryByRole("button", { name: "Eliminar envío" })).toBeNull();
     // Cancelar envío sigue siendo de quien edita Tracking.
     expect(screen.getByRole("button", { name: "Cancelar envío" })).toBeTruthy();
@@ -48,7 +59,7 @@ describe("FooterActions · eliminar envío", () => {
 
   it("confirmar exige motivo de 4+ y el código exacto; manda los dos", async () => {
     const user = userEvent.setup();
-    render(<FooterActions {...SHIPMENT} status="in_transit" canDelete />);
+    render(<FooterActions {...SHIPMENT} status="in_transit" canDelete normal={LEGACY_SHIPMENT} />);
     await user.click(screen.getByRole("button", { name: "Eliminar envío" }));
     const dialogo = screen.getByRole("dialog");
     const confirmar = within(dialogo).getByRole("button", { name: "Confirmar eliminación" });
@@ -80,7 +91,7 @@ describe("FooterActions · asistente de borrado (SDD-0560)", () => {
       error: "No se puede eliminar: tiene 1 gasto (Gastos). Primero anula, elimina o desvincula eso en su módulo.",
       bloqueado: true,
     });
-    render(<FooterActions {...SHIPMENT} status="in_transit" canDelete />);
+    render(<FooterActions {...SHIPMENT} status="in_transit" canDelete normal={LEGACY_SHIPMENT} />);
     await user.click(screen.getByRole("button", { name: "Eliminar envío" }));
     const dialogo = screen.getByRole("dialog");
     await user.type(within(dialogo).getByLabelText(/escribe el código del envío/i), SHIPMENT.shipmentCode);
