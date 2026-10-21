@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 558 specs)
+### Índice de specs (generado · 559 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -596,6 +596,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0571 | Tarifa congelada por embarque: el precio por CBM queda guarda… | in-progress | interno |
 | 0574 | Embarques sin facturar: el reporte y las tarjetas en Dirección | in-progress | interno |
 | 0577 | Contratos de prueba del Portal y reintento de borrado de emba… | in-progress | interno |
+| 0578 | Envíos por cliente — camino normal prospectivo | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0569, 0570, 0572, 0573, 0575, 0576 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

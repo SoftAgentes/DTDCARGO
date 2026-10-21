@@ -1,0 +1,17 @@
+-- SDD-0578 · Envíos por cliente — camino normal prospectivo.
+-- Reserva coordinada por Director el 2026-10-21; fuente de activación:
+-- 042-activacion-worker-0578-director.md
+-- SHA256 1939a04752338b66bc5187961f8a1a216093dc6101fdb28771bec2efae607be4.
+--
+-- STUB TEMPRANO RESPALDABLE. SIN CUERPO DDL NI VALIDACIÓN; NO APLICAR.
+-- Este archivo reserva el basename autorizado, no implementa aún el contrato.
+-- El cuerpo se redactará en el worktree/owner exclusivo SDD-0578 y conservará:
+-- cohorte prospectiva LCL/DDP OFF; legacy y 0496 inmutables por alcance;
+-- formación/extensión/sello/estiba/plan/estados y reserva mínima de códigos;
+-- RLS/ACL, contexto privado y auditoría atómica; sin backfill ni finanzas 4.3.
+--
+-- PENDIENTE DE APLICAR: declarar espera por basename exacto en
+-- supabase/migrations-baseline.json; aplicación productiva requiere OK nominal
+-- de Sam y docs/runbooks/aplicar-migraciones-prod.md, en una autorización aparte.
+-- 0495 no se repite y 0496/0502 no se aplican por este encargo local.
+-- Instalación/DB/tests/verify esperan turno explícito; no hay resultados aquí.
