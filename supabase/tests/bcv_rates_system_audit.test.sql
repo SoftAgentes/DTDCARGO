@@ -14,6 +14,22 @@
 \set fixture_only false
 \endif
 begin;
+create temporary table bcv_fixture_initial_context as select
+  current_user::text as effective_user,session_user::text as login_user,
+  pg_catalog.current_setting('role') as native_role,
+  pg_catalog.current_setting('session_authorization') as authorization_guc,
+  pg_catalog.current_setting('is_superuser') as superuser;
+create function pg_temp.assert_fixture_reader() returns void language plpgsql as $$
+begin
+  if current_user<>'postgres' or session_user<>'postgres'
+     or pg_catalog.current_setting('is_superuser')<>'on' then
+    raise exception 'BCV_FIXTURE_READER user=% session=% role=% authorization=% superuser=%',
+      current_user,session_user,pg_catalog.current_setting('role'),
+      pg_catalog.current_setting('session_authorization'),pg_catalog.current_setting('is_superuser');
+  end if;
+end;
+$$;
+select pg_temp.assert_fixture_reader();
 do $fixture_guard$
 begin
   if to_regclass('public.entity_audit_log') is not null or to_regclass('public.invoices') is not null then
@@ -196,18 +212,12 @@ insert into public.fx_rates(id,tenant_id,currency,valid_on,source,rate,set_by,no
 values('00000000-0000-4000-8000-000000000501',md5('0495-synthetic-tenant-A')::uuid,
   'VES','2026-10-21','bcv','883.39630000',null,'procedencia sintética sin datos reales');
 reset role;
-reset session authorization;
--- Precondición de la inspección: no convertir permisos de fixture en un mutante detectado.
-do $fixture_reader$
-begin
-  if current_user<>'postgres' or session_user<>'postgres'
-     or pg_catalog.current_setting('is_superuser')<>'on' then
-    raise exception 'BCV_FIXTURE_READER user=% session=% role=% authorization=% superuser=%',
-      current_user,session_user,pg_catalog.current_setting('role'),
-      pg_catalog.current_setting('session_authorization'),pg_catalog.current_setting('is_superuser');
-  end if;
-end;
-$fixture_reader$;
+-- El RESET vacío observado en PGlite conserva authenticator: restauración nominal
+-- al login original de esta fixture, sin grants y sin SET ROLE de elevación.
+set session authorization postgres;
+-- Precondición de la inspección: mismo login inicial, sin permisos nuevos.
+select pg_temp.assert_fixture_reader();
+select pg_catalog.row_to_json(c) as fixture_initial_context from bcv_fixture_initial_context c;
 select pg_temp.assert_true((select value='{"version":1,"ready":true}'::jsonb from bcv_ready_result),
   'contexto servicio sin sub devuelve ready true');
 select pg_temp.assert_true((select native_role='service_role' and effective_user='postgres'
@@ -229,7 +239,8 @@ update public.fx_rates set rate='883.39630001',set_at='2026-10-21T07:00:00.12345
 where id='00000000-0000-4000-8000-000000000501' and tenant_id=md5('0495-synthetic-tenant-A')::uuid
   and currency='VES' and valid_on='2026-10-21' and source='bcv' and rate='883.39630000';
 reset role;
-reset session authorization;
+set session authorization postgres;
+select pg_temp.assert_fixture_reader();
 select pg_temp.assert_true((select count(*)=1 and bool_and(actor_type='system' and actor_id is null
   and source='job' and event_type='exchange_rate_corrected'
   and reason='Actualización automática del catálogo BCV: tasa oficial VES por 1 USD para la fecha valor 2026-10-21.'
@@ -254,7 +265,8 @@ create temporary table bcv_ambiguous_dml_result as select bcv_fixture.error_sql(
 $sql$) as value;
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 reset role;
-reset session authorization;
+set session authorization postgres;
+select pg_temp.assert_fixture_reader();
 select pg_temp.assert_true((select value='42501' from bcv_reason_result), 'motivo previo rechazado');
 select pg_temp.assert_true((select rate::text='883.39630001' from fx_rates
   where id='00000000-0000-4000-8000-000000000501'), 'rechazo motivo revierte tasa');
@@ -274,7 +286,8 @@ create temporary table bcv_append_result as select bcv_fixture.error_sql($sql$
   values('00000000-0000-4000-8000-000000000502',md5('0495-synthetic-tenant-B')::uuid,'VES','2026-10-21','bcv','884',null)
 $sql$) as value;
 reset role;
-reset session authorization;
+set session authorization postgres;
+select pg_temp.assert_fixture_reader();
 update public.audit_entity_types set status='active' where entity_type='exchange_rate';
 select pg_temp.assert_true((select value<>'ok' from bcv_append_result), 'append real falla por catálogo inactivo');
 select pg_temp.assert_true(not exists(select 1 from fx_rates where id='00000000-0000-4000-8000-000000000502')
@@ -287,7 +300,12 @@ set session authorization authenticator;
 set local role service_role;
 create temporary table bcv_drift_result as select public.bcv_rates_write_capability() as value;
 reset role;
-reset session authorization;
+set session authorization postgres;
+select pg_temp.assert_fixture_reader();
+select pg_catalog.json_build_object('effective_user',current_user,'login_user',session_user,
+  'native_role',pg_catalog.current_setting('role'),
+  'authorization_guc',pg_catalog.current_setting('session_authorization'),
+  'superuser',pg_catalog.current_setting('is_superuser')) as fixture_restored_context;
 alter table public.fx_rates enable trigger audit_fx_rates;
 select pg_temp.assert_true((select value->>'ready'='false' from bcv_drift_result), 'trigger disabled cierra capability');
 select pg_temp.assert_true((select count(*)=2 from entity_audit_log
