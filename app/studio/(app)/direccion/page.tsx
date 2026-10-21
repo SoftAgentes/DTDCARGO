@@ -25,6 +25,8 @@ import { ForecastCard } from "./_components/ForecastCard";
 import { OpsCard } from "./_components/OpsCard";
 import { CommercialCard } from "./_components/CommercialCard";
 import { AlertsCard } from "./_components/AlertsCard";
+import { SinFacturarCard } from "./_components/SinFacturarCard";
+import { reporteSinFacturar } from "@/lib/studio/rate-snapshots/sin-facturar";
 
 export const metadata = { title: "Dirección · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -54,7 +56,11 @@ export default async function DireccionPage() {
     redirect("/studio/dashboard");
   }
 
-  const data = await getDireccionData(supabase);
+  // SDD-0574: «Embarques sin facturar», en paralelo con el tablero.
+  const [data, sinFacturar] = await Promise.all([
+    getDireccionData(supabase),
+    reporteSinFacturar(supabase),
+  ]);
   const { finance, health, ops, commercial, forecast, alerts } = data;
   // Los textos de los dos KPI salen de una función pura, con prueba.
   const textos = textosFinancieros(finance);
@@ -170,6 +176,15 @@ export default async function DireccionPage() {
       >
         <OpsCard ops={ops} />
         <CommercialCard commercial={commercial} />
+      </section>
+
+      {/* Por facturar (SDD-0574) */}
+      <section>
+        <SinFacturarCard
+          resumen={sinFacturar.resumen}
+          completo={sinFacturar.completo}
+          tarifasDisponibles={sinFacturar.tarifasDisponibles}
+        />
       </section>
 
       {/* Alertas */}
