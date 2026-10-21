@@ -1,6 +1,6 @@
 # Handoff · SDD-0574 · Embarques sin facturar (4.5 del plan contable)
 
-> Estado de la retoma Codex, 2026-10-21: F1–F3 aceptados por el Director en el alcance local probado sobre `639c8954` (87/87 focales, 167/167 regresión con solapamiento, tipos/lint, 14 variantes y UI acotada). Merge local de 0577 guardado en `827df6c8`; producto y tests de 0574 intactos. Documentación y PR DRAFT contra #307 autorizadas; **canónica de esta composición NO EJECUTADA**, pendiente de GO independiente. Turno pesado devuelto a las 09:40:26Z, sin procesos propios; claim conservado. Los bloques anteriores al cierre de abajo son evidencia histórica fechada, no el estado actual ni permiso de release.
+> Estado de la retoma Codex, 2026-10-21: producto F1–F3 de `639c8954` y composición documentada en `8394a560` aceptados localmente con sus límites. **La única canónica normal de 8394 terminó con exit 0, 16/17 medidos y CIERRE INCOMPLETO por `migrations-applied` omitido**, con un timeout unitario inicial y retry nativo aprobado conservados. PR [#316](https://github.com/SoftAgentes/DTDCARGO/pull/316) sigue DRAFT contra #307; conocimiento final pendiente. Turno pesado devuelto a las 12:14:35.074Z, cero recursos propios; claim retenido. El cierre documental no cambia producto/tests/donantes. Los bloques históricos de preparación se conservan como evidencia fechada; el bloque final de aceptación canónica fija el estado actual y no autoriza release.
 
 | Campo | Valor |
 |---|---|
@@ -310,10 +310,81 @@ Commit/push selectivos de la rama propia y PR DRAFT autorizados contra `claude/p
 
 **PR entregada:** [#316](https://github.com/SoftAgentes/DTDCARGO/pull/316), OPEN/DRAFT, adjuntada a la tarea. Readback inicial sobre el commit documental `853b546392918936281dc382300928ec3b7bd55c`: base exacta `ba43747a803ea9aec3b8750d1b461d69795834a5`, veinte rutas y cuerpo cotejado íntegro; checks vacíos, no CI verde. `pr316-readback-853b5463.json` SHA256 `cbd39fff7403583077e22a0338b7bae874220db4276a50381b947e8192cdeeca` conserva esa lectura. El único delta posterior es registrar aquí la URL/entrega; el recibo externo final identifica el HEAD resultante y su igualdad remota, sin cambiar producto o pruebas.
 
-La preparación canónica usará una carpeta externa nueva, manifiesto de31 fuentes (las27 originales más cuatro heredadas nuevas), huellas/bytes de originales sellados y receta normal `corepack pnpm verify`. Antes de la futura ejecución deberá comprobarse SHA/claim/limpieza/ausencia de entorno real y versión efectiva mediante `corepack pnpm --version`, sin suponer que coincide con pnpm11.19.0 de instalación. Solo `COREPACK_ENABLE_AUTO_PIN=0` y `COREPACK_ENABLE_DOWNLOAD_PROMPT=0` por proceso, restaurados incluso al fallar; si un nombre estaba ausente se elimina del proveedor Env. Sin VERIFY*/NODE_OPTIONS, credenciales, overrides, cambio de topes/concurrencia/gates ni entrada directa al script. Si preflight/gestor cambia una fuente o falla, detener y conservar evidencia; no reparar/reinstalar/reintentar automáticamente. Esta receta está **PREPARADA, NO EJECUTADA y SIN GO CANÓNICO**.
+**Preparación histórica de la canónica (ejecución y resultado en el bloque final):** manifiesto de31 fuentes y originales sellados, receta normal `corepack pnpm verify`, previa comprobación de SHA/claim/limpieza/ausencia de entorno real y versión efectiva. La receta finalmente ejecutada pasó únicamente `COREPACK_ENABLE_AUTO_PIN=0` y `COREPACK_ENABLE_DOWNLOAD_PROMPT=0` en una **copia del entorno de cada hijo**; no mutó el padre ni necesitó borrar/restaurar entradas de Env. Sin VERIFY*/NODE_OPTIONS, credenciales, cambio de topes/concurrencia/gates o entrada directa al script. Se preservó el fallo de preflight b0ed antes del gestor; la V2 y su nuevo GO permitieron la única ejecución posterior, sin reparación o reintento externo de pruebas.
 
 Pendientes propios: revisar checkpoint/PR DRAFT compuesto; canónica normal sobre SHA aprobado con turno separado, inspección de exit/pasos/SKIPs y RLS/SQL/build reales que efectivamente ejecute; cierre documental estable; un único ciclo de conocimiento local con turno y límites por capa; respaldo/limpieza/recursos/claim al cierre aceptado. Estado inicial de conocimiento NO DISPONIBLE permanece histórico. Integración, producción y bóveda compartida no están autorizadas aquí;0495 no se repite y0496 sigue sin aplicar.
 
-Gobernanza: matriz por principio actualizada en la spec, con F1–F3 en cumplimiento local observado y sin excepción. Permisos/RLS reales, seis cabeceras por píxeles, dispositivo y accesibilidad integral conservan sus límites. La canónica pendiente pertenece a esta SDD, no a FUERA DE ALCANCE.
+Gobernanza: matriz por principio actualizada en la spec, con F1–F3 en cumplimiento local observado y sin excepción. Permisos/RLS reales, seis cabeceras por píxeles, dispositivo y accesibilidad integral conservan sus límites. La canónica fue ejecutada después de este checkpoint; su omisión de release y el conocimiento pendiente pertenecen a esta SDD, no a FUERA DE ALCANCE.
 
 **FUERA DE ALCANCE DETECTADO:** se conservan la unidad futura4.2 y la cobertura0128 por prealerta. La reparación0577 se hereda por mandato, sin absorber mejoras generales de Portal/borrado ni atribuir el timeout a una causa no demostrada. No hay nuevas operaciones de negocio, permisos, tasas, correlativos o migraciones.
+
+## Aceptación canónica sobre 8394 y cierre documental D · 2026-10-21
+
+Este bloque sustituye las previsiones de los checkpoints anteriores, que se conservan como historia. Director leyó y aceptó la evidencia de la única canónica normal sobre `8394a560065d49bd2e0064455f8985646191afab`, con **exit0 y CIERRE INCOMPLETO: 16/17 pasos medidos**. La aceptación no certifica CI/release/producción ni transfiere la corrida a un producto posterior. Producto/tests de 639, cuatro archivos heredados de 0577/c4 y cuatro históricos de 18ed permanecen intactos; este cierre solo admite spec/handoff propios y README por el generador.
+
+Autorización documental leída íntegra y cotejada: `C:/tmp/director-traspaso-20261020/0574-revision-director-canonic-v2-y-go-documental.md`, SHA256 `fda71ca8b1bfe4fa34376b0006439156369b33fb3ae80f1c0cffafb7b5b20f6e`. Mantiene owner `worker-0574cierre-01a15a4e-ddf0-7d82-8656-d9dc56b58468`, misma raíz/rama/claim, commit/push selectivos y actualización de PR #316 DRAFT. BCV tiene el turno pesado; aquí solo documentación y preparación externa de conocimiento. No hay otra canónica/focal/SQL/browser por cambios documentales.
+
+### Preparación preservada y única receta ejecutada
+
+El runner b0ed (`b0ed9f0d6f52d86d4d0a3e4df6a4855cff693a5b8d67fb34dcf4f4dcc9e01327`) falló en preflight **antes de iniciar el gestor o verify**. El diagnóstico autorizado del mismo `spawnSync git ls-files` confirmó status null/SIGTERM/ENOBUFS, 1064960 bytes stdout/0 stderr; el filtrado del store posterior a la captura llegaba tarde. No fue un ROJO de producto ni una segunda canónica.
+
+V2 `40289a3ec17c3be0be88410bd318267145933eba02f2b7e7799654229f6f8b7b` añade únicamente la exclusión literal del store raíz al propio listado Git, sin aumentar maxBuffer/memoria o cambiar gates/topes. La fixture Git externa comprobó que `.pnpm-store/` raíz queda excluida y siguen visibles archivo ordinario, `.pnpm-store-otro/` y `subdir/.pnpm-store/`. Sintaxis y consulta real corregida pasaron; no se borró/movió el cache ni se alteró configuración compartida. El GO V2 fue `0574-go-canonica-v2-8394a560-director.md`, SHA256 `d3c4f937ba8d10516a6bead811b0a47dc5a262b4e928a79add3d694205f9f67a`.
+
+Comando real: `corepack pnpm verify`; gestor observado **pnpm 12.14.0**, sin forzarlo a la versión 11.19.0 de instalación. Inicio 11:38:08.469Z; final 12:11:16.175Z; **1987.706 s**, exit 0/signal null/sin interrupción. El wrapper solo pasó AUTO_PIN=0/DOWNLOAD_PROMPT=0 en copias del entorno de hijos. El padre conservó sus variables; no hubo restauración/borrado de Env para esta receta. No se modificaron package/lock/config/runners, no hubo override de VERIFY/NODE_OPTIONS ni invocación directa de verify.mjs.
+
+### Resultado por comprobación
+
+| Paso | Estado y límite |
+|---|---|
+| Harness | **PASÓ 237/237**, cero fallos/skip/cancel/todo; 111875.4379 ms |
+| Lint | **PASÓ con avisos**, cero errores/quince advertencias; no se ocultaron ni repararon fuera de alcance |
+| RSC | **PASÓ**, 1713 módulos y sin cruces prohibidos |
+| Tipos y cuatro Edge | **PASÓ** en receta nativa; no una ejecución focal renombrada |
+| Unitarias, intento 1 | **FALLÓ**: 859 archivos aprobados/1 fallido/1 omitido; 12358 casos aprobados/1 fallido/1 omitido; 579.93 s |
+| Unitarias, retry nativo 1/1 | **PASÓ con omisión**: 860 archivos aprobados/1 omitido; 12359 casos aprobados/1 omitido; 522.22 s |
+| Docs / numeración | **PASÓ**: 558 specs/489 migraciones; avisos históricos conservados sin renumeración |
+| Constantes / componentes / gobernanza | **PASÓ**: 6 banderas, 5 fuentes CMP-01, registro de 28 políticas. Este gate no certifica conformidad universal del producto |
+| migrations-applied | **NO EJECUTADO / OMITIDO**, sin URL/servicekey productivas. Determina el **CIERRE INCOMPLETO 16/17**; no permite obtener secretos ni aplicar 0496 |
+| Símbolos pendientes | **PASÓ con aviso**, 0 ROJO/1 AMARILLO declarado de 0496 |
+| SQL local | **PASÓ 246 contratos**, postgres:17 efímero y rollback; no DB productiva |
+| Reconstrucción local | **PASÓ 489 migraciones = 471 DDL + 18 solo-ledger**; aislamiento sobre 219 tablas/dos tenants ficticios |
+| E2E | **PASÓ con omisiones**, 198 identidades únicas: 178 expected/20 skip/0 unexpected/0 flaky, 255793.348 ms; cero casos con múltiples intentos |
+| Build | **PASÓ**; tsconfig restaurado por la receta; avisos de Supabase ausente conservados |
+
+Fallo unitario conservado: `Test timed out in 20000ms.`, `app/p/[token]/supplier-flow.test.tsx:260:3`, caso `supplier guided workflow > supports correction and append-only resubmission without clearing the form`. La política del verificador inició su único retry nativo; el Worker no repitió la suite por fuera. Ambos intentos no se suman como cobertura única. La etiqueta «flaky conocido» del runner no demuestra causa; tampoco se declara que 0577 eliminó este timeout. La identidad de la única omisión unitaria no fue emitida en el resumen nativo disponible y no se infiere como hecho.
+
+E2E usó 8 workers, servidor propio 3285 y Supabase sintético deny-only 13285, sin filas reales. El Director recorrió 198 identidades y 20 anotaciones de omisión: comentarios 3 por Preview/seed, carrusel 2 por anchos explícitos una vez, gastos 6 por fixture contable, búsqueda 6 por credenciales y nómina 3 por seed. No hubo aviso global de cierre forzado en esta corrida; no se hereda el de otras tareas.
+
+### Observador, integridad y recursos
+
+Observer aceptado `8aa556b053018198e414a2591b848a87b18043b0775437da66798c24bab48f7b`: fijó verify PID 5600, CreationTime/ascendencia propia y mtime; capturó el JSON original a las 12:09:38.339Z, 264002 bytes. rootDir fue metadata, no filtro. No hooks, reconstrucción, replay ni otra E2E. Su muestreo no garantiza observar cualquier archivo de vida breve ni hace atómica la consulta proceso+archivo; en esta ejecución sí conservó el original. Observer terminó exit 0.
+
+Director cotejó antes/después/actuales **31 fuentes/247 originales/48 adicionales/13 composición**, más 20 artefactos y 12 referencias, por ruta/bytes/SHA256, cero diferencias. Los conjuntos se solapan. Incluyen producto/tests/runners/package/lock y documentación congelada de 8394; estos dos documentos pueden cambiar solo después de esa aceptación. Store preexistente conservado y desconocidos fuera del store 0. La documentación posterior no requiere repetir pruebas de producto.
+
+Turno pesado **devuelto a las 12:14:35.074459Z**, tras EXIT y bytecheck. 181 identidades observadas/resueltas; cero procesos propios/consumidores por rutas/puertos/contenedores. Un PID reutilizado se distinguió por CreationTime; seis navegadores previos no se atribuyeron ni terminaron. Primer inventario de cierre `f7c60c7a…` preservado: comparaba UTC con literal DateTime local y produjo candidatos previos; el cotejo usa UtcTicks de ambos extremos. Las incidencias auxiliares de lectura se documentan sin alterar receta/evidencia. No hubo cierre manual de la canónica o E2E. Claim **retenido** para revisión/cierre final, sin readopción silenciosa.
+
+Raíz de evidencia: `C:/tmp/director-traspaso-20261020/0574-cierre-validation/`. Los logs/JSON originales permanecen fuera de Git; las rutas siguientes son relativas a ella:
+
+| Artefacto | SHA256 |
+|---|---|
+| `canonica-v2-cierre-8394a560.json` | `dac834dcbdfa2ca4207d7255424858c9115ff31d6820a72f814e809d16ece5e7` |
+| `canonica-v2-cierre-8394a560.md` | `1f6e0ab905848cefe07af0edf27f6bdc6d18f0c30b0cca3cdaddbf0f549f22cc` |
+| `canonica-v2-entrega-8394a560.json` | `914ef7109e7eac1ff2d4bda87c171a5f520de133828fc55a93178c42ab0012db` |
+| `canonica-v2-git-readback-8394a560.json` | `125442ba242acdb6de0179d91886209ac48adf80ba6985815f19899b9fe4919d` |
+| `canonica-8394a560-preparacion/ejecucion-8394a560-1792582687461/receipt.json` | `1078c8f73625aef826c525f9958475f8665283b6399c9b9199ce2f545dde0e26` |
+| `canonica-8394a560-preparacion/ejecucion-8394a560-1792582687461/stdout.log` | `4f825c544f60f15a419b8d3af6fe6b643e58e871a0db307d14d4c0d3942d09af` |
+| `canonica-8394a560-preparacion/ejecucion-8394a560-1792582687461/stderr.log` | `9c7f90e4e104346e5ad7e1e14c670238109902eace7d03b77800a8318f704740` |
+| `canonica-8394a560-preparacion/ejecucion-8394a560-1792582687461/final-bytecheck-v2.json` | `66dc40f283486aec7a0d3350a4019818701feb830ce7cb61ddac6d988e947b02` |
+| `canonica-8394a560-preparacion/ejecucion-8394a560-1792582687461/final-resources-v2-cotejo.json` | `9b90680319152ec94c5fa51b86cfe23445d7d40e4ae25bc5c16b92f992d9be6d` |
+| `canonica-8394a560-observador-preparacion/captura-1792582713256/e2e-0574-original-5600.json` | `1e599a475ac83380f09a15fb17fe2062bef4f7c3542718607cde621c4faf1c41` |
+| `canonica-8394a560-observador-preparacion/captura-1792582713256/e2e-0574-observer-final.json` | `4e16724587d08847fa1a436f355d3dc4d77a1413158376761146d2549745136f` |
+
+### Checkpoint documental estable y pendientes propios
+
+El commit que contiene este apartado es el checkpoint documental **D**; su SHA/padres/diff/igualdad remota y cuerpo final de la PR se guardan en el recibo externo, sin commit recursivo para autocitar ese hash. Solo spec/handoff propios y, si lo requiere el generador, README pueden diferir de 8394. Guard, generación/check documental, numbering y diff-check proporcionan validación proporcional; su evidencia se registra en ese recibo. Producto 639/tests, donante c4 y heredados 18ed no reciben cambios ni una aprobación nueva por documentación.
+
+Después de D se prepara fuera de Git el plan del **único ciclo final de conocimiento**, todavía **NO EJECUTADO y SIN GO**. Se fijarán D, fuentes/runtime nativos, respaldos de derivados propios, guardas y estados por capa. El posible recorrido de `.pnpm-store/` por Graphify es evidencia de lectura, no causa demostrada de los 335.85 s del status interrumpido. CLI `--exclude` solo no garantiza el mismo corpus del inspector; cualquier propuesta de ignore local exige revisar interfaz soportada, inexistencia previa y fixture mínima que conserve fuentes ordinarias/otros directorios. No se crea ignore ni se ejecuta fixture/ciclo en este GO documental; no se borran/mueven cache, fuentes o configuración compartida, ni se parchea el runtime instalado.
+
+Pendientes: revisión de D/plan por Director; turno y GO para conocimiento local, con estructura/semántica/Archify/preview separados; cierre aceptado y liberación explícita del claim. CI/GitHub no acreditado por checks vacíos; ledger de release 0496 requiere aprobación nominal futura de Sam y permanece sin aplicar. No main/merge/deploy/VPS/DBreal/PII/secretos/pagos/contactos ni publicación de bóveda compartida desde esta rama. Los seis encabezados largos por píxeles, SSR/DB sintética/CSS acotado, dispositivo y A11Y integral mantienen sus límites.
+
+**FUERA DE ALCANCE DETECTADO:** permanecen la unidad futura 4.2 y la cobertura 0128 por prealerta. No se absorben Caracas/BCV/0573/0575 ni reparaciones generales de Portal/borrado; la omisión del ledger y el ciclo de conocimiento son pendientes propios, no hallazgos ajenos.
