@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 1:43 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 1:49 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -8,7 +8,7 @@
 
 **Caracas C1 quedó entregado localmente en la PR #312 en borrador, final `d6bcd0e8`:** producto y pruebas idénticos a `264e0531`, revisiones y cierre documental cotejados, árbol limpio y propiedad liberada. Conserva **16/17**, una prueba de aplicación omitida y navegación con 177 aprobadas, una recuperada y 20 omitidas.
 
-**Ahora avanza Caracas C2 anual, respaldado en la PR #313 en borrador, `0f2bc536`:** mantiene la regresión ampliada **223/223 en once archivos** y la API de **424 comprobaciones** de `b30934a5`, con producto y SQL idénticos. La primera corrida completa terminó: SQL **249**, reconstrucción **492**, navegación **177 aprobadas, una recuperada y 20 omitidas**, informe original y construcción aprobados; **FALLÓ** por el mismo timeout de veinte segundos en los dos intentos de aplicación y conserva el historial productivo sin medir. La corrección acotada del test pasó sus siete casos, con acciones, aserciones y tiempos intactos; fue revisada y se autorizó otra corrida completa del nuevo commit. Todavía no hay aprobación global. Gastos móviles y BCV siguen después. Push y PR funcionan; Actions sigue fallando antes de arrancar.
+**Ahora avanza Caracas C2 anual, respaldado en la PR #313 en borrador, `0f2bc536`:** mantiene la regresión ampliada **223/223 en once archivos** y la API de **424 comprobaciones** de `b30934a5`, con producto y SQL idénticos. La primera corrida completa terminó: SQL **249**, reconstrucción **492**, navegación **177 aprobadas, una recuperada y 20 omitidas**, informe original y construcción aprobados; **FALLÓ** por el mismo timeout de veinte segundos en los dos intentos de aplicación y conserva el historial productivo sin medir. La corrección acotada del test pasó sus siete casos, con acciones, aserciones y tiempos intactos. La segunda corrida está en marcha: aprobó **237 controles del entorno**, revisión estática, tipos y cuatro funciones auxiliares; la suite completa de aplicación sigue activa. Todavía no hay aprobación global. Gastos móviles y BCV siguen después. Push y PR funcionan; Actions sigue fallando antes de arrancar.
 
 **Cómo leerlo:** una casilla marcada significa que se terminó exactamente el paso escrito. En el checklist general, significa integrado y publicado. Dentro de una tarea abierta, una prueba aprobada puede tener ✓ aunque su publicación siga pendiente. Los resultados locales no se presentan como prueba de producción.
 
@@ -194,6 +194,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Aprobar los siete casos del test original intacto y los siete del candidato, sin omisiones y con el mismo límite. El caso afectado midió 1.224 → 1.108 ms, pero el archivo completo 11,60 → 12,10 s: **no se demuestra una mejora estable ni la causa del timeout**.
 - [x] Respaldar y revisar **`0f2bc536`** en la PR #313 en borrador: solo test, spec e informe propios frente a `b30934a5`; caller, SQL, arnés y dependencias intactos. Autorizar otra corrida normal con manifiesto nuevo y sin cambiar controles. El resultado se marcará después de comprobarlo.
 - [x] Completar la preparación normativa del siguiente tramo móvil: siete rutas, permisos propios conservados y dos criterios de recuperación que deberán reproducirse antes de corregir. El Norte backend canónico fue localizado y leído; **no hay implementación móvil aprobada todavía**.
+- [x] Iniciar la segunda corrida C2 sobre **`0f2bc536`**, con manifiesto comprobado de **20 fuentes y dos auxiliares**, remoto/base coherentes y archivos congelados. **237/237 controles del arnés**, revisión estática sin errores, frontera de componentes, tipos y cuatro funciones auxiliares aprobaron. La suite completa de aplicación está en ejecución; no se reemplaza el fallo histórico por un resultado todavía pendiente.
 - [ ] Completar la corrida general C2, cotejar sus bytes, omisiones, documentación y respaldo final; liberar sus recursos y propiedad antes de activar móvil. Su arranque y resultado se registran por separado.
 - [ ] Cerrar un slice posterior acotado de gastos móviles antes de certificar toda la hora Caracas: el caller activo conserva fechas UTC explícitas y guardas anteriores. Detectado y cotejado por lectura, fuera de las 68 rutas de C1; sin implementación ni autorización de datos reales.
 - [x] Preparar y revisar el diseño del slice móvil: siete rutas propuestas, sin bloqueante estructural ni nueva migración identificada. Conserva propiedad del gasto, fotos y datos al rechazar, y pone todas las guardas antes de modificar la evidencia. Base final, encargo y pruebas de implementación posteriores a C2 siguen pendientes.
@@ -223,7 +224,7 @@ La regla USD/USDT 1:1 ya está decidida. Los bolívares quedan para reportes. La
 ### Fase 2 · Integridad contable
 
 - [ ] **2.1 · Tasa única y conversión a dólares.** EN CURSO; pasos detallados arriba.
-- [ ] **2.2 · Asientos sin fallos silenciosos.** DISEÑO REVISADO: SDD-0575. Cinco decisiones y contrato propuesto guardados en `8a614250`; implementación pendiente.
+- [ ] **2.2 · Asientos sin fallos silenciosos.** DISEÑO REVISADO: SDD-0575. Cinco decisiones y contrato propuesto guardados en `8a614250`; implementación pendiente. Se documentó además la diferencia de precisión entre tasa del padre y del recibo/pago, la autoridad del valor persistido y el límite de transporte decimal; faltan contrato final y pruebas. No se corrige la historia ni se elige una tasa nueva al reintentar.
 - [ ] **2.3 · Mayor en USD y equivalentes en bolívares para reportes.** PENDIENTE.
 - [ ] **2.4 · Candado del mayor, cuentas y asientos.** PENDIENTE.
 - [ ] **2.5 · Reverso contable al anular una factura.** EN REVISIÓN: SDD-0573, implementación guardada y reparación de los 14 hallazgos definida. Se conservará la cifra oficial facturada y se mostrará el ajuste por anulaciones al comparar meses; un asiento borrador debe revisarse antes de anular. Las correcciones y sus pruebas siguen pendientes.
