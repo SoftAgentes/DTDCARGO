@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 2:57 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 3:04 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -10,7 +10,7 @@
 
 **Caracas C2 anual quedó entregado localmente en la PR #313 en borrador, final `0e630ede`:** **12.759 pruebas de aplicación al primer intento y una omitida**, más **249 contratos SQL, reconstrucción de 492 migraciones y construcción aprobadas**. Navegación: **177 aprobadas, una recuperada y 20 omitidas**, con aviso y original conservado. Mantiene **CIERRE INCOMPLETO, 16/17**, por historial productivo sin medir. El cierre documental, respaldo, integridad y liberación de propiedad están comprobados; 54 recibos coinciden por huella. Conserva los avisos, la primera corrida fallida y la atribución incierta de dos procesos. Conocimiento estructural y mapa actualizados; semántica y publicación compartida pendientes. Esto no acredita producción.
 
-**Ahora está activo Caracas C3, gastos móviles:** árbol y rama propios desde C2 final, propiedad y contrato guardados antes de producto. Las primeras pruebas reprodujeron **117 fallos de acciones, con 28 aprobadas**, y **13 fallos de interfaz, con ocho aprobadas**, en pasadas separadas. Fechas, guardas históricas, cierre durante envío, foco y pérdida del método de pago quedaron expuestos. El archivo necesita una medición independiente antes de afirmar que se pierde. El Worker continúa la corrección y conserva los errores del entorno de prueba aparte. Después sigue BCV. Push y PR funcionan; Actions sigue sin aprobación.
+**Ahora está activo Caracas C3, gastos móviles:** el primer bloque corregido aprobó **168/168 pruebas en dos archivos, sin omisiones**. El navegador reprodujo la pérdida de foto y método al reintentar y comprobó que la corrección conserva ambos, sin volver a seleccionarlos, en alta y edición. También recibe foco el error y la fila muestra el día Caracas. Son comprobaciones locales con datos ficticios; faltan regresiones, controles de fallos, revisión y validación general. Después sigue BCV. Push y PR funcionan; Actions sigue sin aprobación.
 
 **Cómo leerlo:** una casilla marcada significa que se terminó exactamente el paso escrito. En el checklist general, significa integrado y publicado. Dentro de una tarea abierta, una prueba aprobada puede tener ✓ aunque su publicación siga pendiente. Los resultados locales no se presentan como prueba de producción.
 
@@ -211,7 +211,8 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Crear el árbol y la rama **`codex/sdd-0576-fechas-caracas-movil`** desde **`0e630ede`**, comprobarlos y adoptar propiedad/contrato propios antes de producto. La consulta del Director terminó sin cambios en main y **el turno pesado ya pasó a C3**; sus resultados se marcarán al comprobarse.
 - [x] Reproducir los primeros problemas móviles: acciones **117 fallidas y 28 aprobadas**; interfaz **13 fallidas y ocho aprobadas**, sin omisiones, sobre las acciones y componentes reales. Fechas, historia, cierre durante envío y foco tienen fallos funcionales. Los primeros errores del entorno de prueba se conservan aparte y no cuentan como defectos del producto.
 - [x] Revisar el fallo del segundo envío del formulario y corregir su diagnóstico: el detalle demuestra cambio de método **transferencia → efectivo**. No demuestra todavía pérdida del archivo; no se añadirá retención de foto si sus bytes y metadatos ya se conservan.
-- [ ] Comprobar por separado los bytes y metadatos del archivo en ambos envíos y en transporte nativo de navegador, sin volver a seleccionarlo.
+- [x] Comprobar por separado el archivo: JSDOM lo conservaba en **dos casos aislados**, con los otros 21 omitidos por filtro; el navegador real sí lo perdía en ambos formularios. La comparación nativa posterior, con el mismo archivo ficticio, conserva **bytes, metadatos y método** en ambos envíos, antes y después del transporte, sin reselección. No se confunde la prueba local anterior con el navegador.
+- [x] Aprobar el primer bloque corregido móvil: **168/168 pruebas, dos archivos y cero omisiones**, después de los ROJOS registrados. Incluye fechas, tenant, cierre/historia, recuperación, cierre pendiente y foco. La comprobación nativa confirma foco en el error y el día Caracas; la revisión visual final usará una imagen ficticia decodificable, distinta del pequeño fixture de transporte.
 - [ ] Corregir el tramo móvil y comprobar sus regresiones, navegación, validación general y entrega en PR en borrador.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
@@ -238,7 +239,7 @@ La regla USD/USDT 1:1 ya está decidida. Los bolívares quedan para reportes. La
 ### Fase 2 · Integridad contable
 
 - [ ] **2.1 · Tasa única y conversión a dólares.** EN CURSO; pasos detallados arriba.
-- [ ] **2.2 · Asientos sin fallos silenciosos.** DISEÑO REVISADO: SDD-0575. Cinco decisiones y contrato propuesto guardados en `8a614250`; implementación pendiente. Se documentó además la diferencia de precisión entre tasa del padre y del recibo/pago, la autoridad del valor persistido y el límite de transporte decimal; faltan contrato final y pruebas. No se corrige la historia ni se elige una tasa nueva al reintentar.
+- [ ] **2.2 · Asientos sin fallos silenciosos.** DISEÑO REVISADO: SDD-0575. Cinco decisiones guardadas en `8a614250`; implementación pendiente. Director aceptó para la futura asignación conservar la tasa desde el origen persistido y cambiar conjuntamente la captura sin referencia a decimal textual, con rechazo previo del formulario antiguo y sin fallback numérico. No es activación ni garantía de toda captura del ERP. Faltan capacidades, alcance final, composición y pruebas; no se corrige historia ni se elige una tasa nueva al reintentar.
 - [ ] **2.3 · Mayor en USD y equivalentes en bolívares para reportes.** PENDIENTE.
 - [ ] **2.4 · Candado del mayor, cuentas y asientos.** PENDIENTE.
 - [ ] **2.5 · Reverso contable al anular una factura.** EN REVISIÓN: SDD-0573, implementación guardada y reparación de los 14 hallazgos definida. Se conservará la cifra oficial facturada y se mostrará el ajuste por anulaciones al comparar meses; un asiento borrador debe revisarse antes de anular. Las correcciones y sus pruebas siguen pendientes.
