@@ -1,6 +1,6 @@
 # Handoff Worker · SDD-0576 C3 · gastos móviles
 
-Fecha de adopción: 2026-10-21. Estado: primera receta canónica FALLÓ y CIERRE ADEMÁS INCOMPLETO; fixture TZ corregida y checkpoint siguiente para revisión del Director.
+Fecha de adopción: 2026-10-21. Estado: dos recetas canónicas FALLARON y conservaron CIERRE ADEMÁS INCOMPLETO; fixture TZ corregida, claim activo y espera de baseline independiente revisada para los fixtures heredados.
 Task ID: 0576-fechas-caracas-movil.
 Sesión escritora: /root/worker_0576_c3.
 Owner: worker-0576c3-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
@@ -45,12 +45,16 @@ Alta/edición/fila móvil usan día Caracas, tenant y origen propios, lecturas e
 - PASÓ con límites de la primera receta: harness237/237, lint0errores/15advertencias, RSC/tipos/cuatroEdgeFunctions/docs/numeración/componentes/gobernanza, SQL249contratos con rollback, reconstrucción492migraciones (474DDL+18historial) en DB efímera y build. El corpus real de proformas sigue OMITIDO. E2E fue OK con AVISO del runner:177expected/20skipped/0unexpected/1flaky,198casos; ERR_ABORTED de auth Chromium recuperado en reintento y error global worker-17 forzado después de300000ms. La interpretación WebKit/no-regresión del runner no demuestra causa.
 - PASÓ bytecheck inmediatamente después del EXIT,08:03:24.6738369Z:39/39fuentes/hash/bytes iguales, HEADa732estable, árbol limpio, antes de documentación. JSON E2E original268808bytes capturado por observador externo sin hooks/filtro rootDir; no se reconstruyó ni repitió E2E. Originales de esa carpeta y wrapper49d030 quedan inmutables.
 - PASÓ reparación exclusiva de fixture TZ autorizada tras revisión de EXIT/bytecheck: vi.stubEnv("TZ",tz)/vi.unstubAllEnvs(), conservando Intl/resolvedOptions real,25casos UI, aserciones y límites. Focal UI+env-contract26/26,0omitidos,08:07:27.756–08:07:56.240Z. M9 volvió a morir por día visible incorrecto:6FALLÓ/1PASÓ/18omitidos por filtro explícito D01-D04; producto UI restaurado al SHA6ab337a12cfe6e82018cbc1baf45a7d248e5c8a45ef17046eae6ea5fef33ed6a. No se repiten controles intactos por este delta exclusivo de test.
-- NO EJECUTADO: segunda receta canónica (requiere nuevo GO sobre checkpoint inmutable), DB/SQL vivo, producción, teléfono/Auth reales, lector de pantalla y zoom nativo200%. El layout fuente limita maximumScale1/userScalablefalse; CSSzoom no sustituye esa medición.
+- FALLÓ y CIERRE ADEMÁS INCOMPLETO: segunda receta normal sobre d1a7cca287fafcfe978ac74a58c40040889193c2, 08:25:18.8874801–09:03:45.1958957Z, exit 1; 16/17 pasos medidos, test fallido y ledger OMITIDO. Primer intento: 12.934 PASÓ/1 FALLÓ/1 OMITIDO, 562,82 s; único fallo Portal supplier-flow.test.tsx:287 por timeout 20000 ms. Reintento nativo: 12.934/1/1, 567,73 s; único fallo EmbarquesClient.borrado.test.tsx:184 al buscar el botón «Eliminar embarques» mientras el DOM original mostraba submit disabled «Procesando…». No se atribuye causa ni se fusionan intentos; TZ ya no figuró entre fallos.
+- PASÓ con límites en la segunda receta: harness 237/237, lint 0 errores/15 advertencias, RSC/tipos/cuatro Edge Functions/docs/numeración/componentes/gobernanza, SQL 249 con rollback, reconstrucción 492 (474 DDL+18 historial) en DB efímera y build. E2E OK con AVISO del runner: 177 expected/20 skipped/0 unexpected/1 flaky, 198 casos; auth Chromium ERR_ABORTED 14231 ms→13593 ms aprobado en reintento y error global worker-17 forzado tras 300000 ms. Wording WebKit/no-regresión del runner conservado sin promoverlo a causalidad.
+- PASÓ bytecheck automático de segunda receta a 09:03:45.2883911Z: 39/39 rutas únicas, hashes/bytes iguales antes/después/actuales, HEAD d1a7 estable y árbol limpio antes de documentos. Trece primeros originales también intactos. JSON E2E original 268802 bytes/SHA4bb1943ae2400f1b70dd6b782b7e7060661da764c40cb8c7192633028d263e3e capturado a 09:01:54.279Z con inicio propio 08:52:33.075Z. No reconstrucción ni E2E adicional.
+- PASÓ cierre de recursos observados: 89 identidades cerradas, cero listeners propios 3149/13149 y cero contenedores exactos dtd_sqltest_a6fd22e4/dtd_rebuild_a6fd22e4. Ningún proceso terminado por el Worker; cuatro WebKit anteriores no atribuidos se preservaron. Turno pesado devuelto expresamente al Director para el focal87 de 0574; claim C3 conservado. No se certifica limpieza global.
+- NO EJECUTADO: validación siguiente, pendiente de baseline independiente revisada y nuevo turno/GO; conocimiento C3, pendiente del cierre documental final estable. DB/SQL vivo, producción, teléfono/Auth reales, lector de pantalla y zoom nativo200% tampoco ejecutados. El layout fuente limita maximumScale1/userScalablefalse; CSSzoom no sustituye esa medición.
 - Lecturas confirmadas en base: actions9f10b23265c8273e9a2f543ac04092d1c7beea86; MobileTSX684e417cc504e77fdacb0c372eb43221913c1530; helperCaracas00af1518045806694794defd7b4154d3ba5b0913; spec0754922bade809ba9f019fd8c3e89509dbb825a1.
 
 ## COMMITS
 
-Checkpoint funcional a732bcb0221ad821c671b0ee18d52ab928da26eb publicado y revisado sobre base0e630. Este delta posterior contiene solo fixture TZ y anotación documental de la primera receta; su SHA inmutable se registra fuera del documento, en recibo de publicación y readback de PR, sin autocitar el SHA del mismo commit.
+Checkpoint funcional a732bcb0221ad821c671b0ee18d52ab928da26eb y reparación de fixture d1a7cca287fafcfe978ac74a58c40040889193c2 publicados y revisados sobre base0e630. Este delta posterior contiene únicamente anotación de la segunda receta en spec/handoff; su SHA inmutable se registra fuera del documento, en recibo de publicación y readback de PR, sin autocitar el SHA del mismo commit.
 
 ## PR / BRANCH
 
@@ -58,15 +62,34 @@ PR314 OPEN/DRAFT: https://github.com/SoftAgentes/DTDCARGO/pull/314, apilada sobr
 
 ## PENDIENTES DE ESTA TAREA
 
-Publicar checkpoint exclusivo de fixture/docs para revisión del Director; nuevo GO/turno para segunda receta normal, resultado/bytecheck/cleanup, cierre documental y un único ciclo nativo de conocimiento posterior al commit documental estable. El sobre canónico siguiente usa carpeta nueva y anti-sobrescritura, conservando los primeros originales. El resultado de conocimiento postcommit se guardará en recibo externo y PR; no habrá primer ciclo solo para autocitarlo.
+Publicar este checkpoint documental de resultados y conservar claim. Esperar baseline independiente revisada de los dos fixtures heredados, coordinada por Director y todavía no incorporada aquí; C3 no los edita. Toda validación posterior requiere nuevo turno/GO y sobre separado, sin sobrescribir las dos corridas existentes. Después de resultados revisados y cierre documental final estable, ejecutar un único ciclo nativo de conocimiento; sus resultados postcommit se guardarán externos y en PR, sin ciclo previo para autocitarlos.
 
 ## FUERA DE ALCANCE DETECTADO
 
-Carreras y fallos inciertos entre Storage/documento/posting son0575; no hay reparación histórica, nueva SQL, roles/RLS, moneda/FX, layout/CSS, deuda global de componentes o BCV en este slice. Timeout del Portal en el segundo intento canónico se conserva sin causa demostrada ni reparación autorizada.0495 ya aplicada no se repite. No se consultaron filas reales, secretos o PII. UI heredada: Archivo/ArchivoBlack medido por layout real frente al split operativo Nunito/Sora de la rúbrica; restricción zoom y legibilidad oscura sintética, sin cambio ni excepción por C3.
+Carreras y fallos inciertos entre Storage/documento/posting son0575; no hay reparación histórica, nueva SQL, roles/RLS, moneda/FX, layout/CSS, deuda global de componentes o BCV en este slice. Portal y prueba de borrado de embarques conservan los fallos de sus intentos, sin causa demostrada ni reparación dentro de las siete rutas C3; Director prepara un carril independiente.0495 ya aplicada no se repite. No se consultaron filas reales, secretos o PII. UI heredada: Archivo/ArchivoBlack medido por layout real frente al split operativo Nunito/Sora de la rúbrica; restricción zoom y legibilidad oscura sintética, sin cambio ni excepción por C3.
 
 ## HANDOFF AL DIRECTOR
 
-Worker activo con claim propio. Primera receta y bytecheck revisados formalmente por Director; reparación de fixture autorizada y comprobada. El próximo checkpoint conserva producto por bytes y espera revisión/turno/GO explícitos antes de otra receta. Conocimiento integrado, semántica global, publicación compartida y producción conservan sus fronteras.
+Worker activo con claim propio y turno pesado devuelto. Director cotejó los originales de ambas recetas y la integridad 39/39 antes de documentos; la segunda conserva test FALLÓ y CIERRE ADEMÁS INCOMPLETO. Producto C3 intacto, fixtures ajenos sin editar y solo anotación documental autorizada en este checkpoint. Espera de baseline independiente revisada y turno/GO explícitos antes de validar otra vez. Conocimiento integrado, semántica global, publicación compartida y producción conservan sus fronteras.
+
+## EVIDENCIA EXTERNA — segunda receta completa
+
+Carpeta separada: C:/tmp/director-traspaso-20261020/0576-c3-next/canonical-2. GO2 del Director leído íntegro en caracas-c3-revision-director-d1a7cca2.md, SHA7085550f50e6b32709aa061476dda97cf5e10d2b99b4b461305edb835b5f145b; wrapper13b8a101b0e9aca965956fae3057b9a43680453754e90e33d13fa330d00b8258 y observer8a93b26b40b6e73a31c9921859741e1e6b85e39db6ca0ab50a6042b636c942f3 cotejados antes de una sola receta normal. Nodo24.20.0/pnpm12.14.0, solo las dos variables Corepack locales autorizadas; sin credenciales ni overrides VERIFY/NODE_OPTIONS.
+
+| Original o derivado identificado | SHA256 | Alcance |
+|---|---|---|
+| verify-canonical.json | 7f9eb200e8187810cf30ffaee4573758fb9f62c6bb28636c3fd82f08a6d0ffe0 | Inicio/EXIT 1 sobre d1a7 |
+| verify-canonical.log | 6bf8fd29c0550453391b6a3965ac09165d9e073236b7a1df8db1373cd23ea53f | Original completo, ambos intentos/avisos/omisiones |
+| verify-bytecheck-after.json | 7516cf1f673805edd5c09218b5c11060301cbc79aeb18e75b963e37aa1b0ebb0 | 39/39 sin diferencias, antes de docs |
+| canonical-unit-attempt-1.log | e360934a767a3789602a4bfc5dfe9e6ce67d92bacd6f557cd9d9763cabd54893 | Derivado literal; Portal timeout |
+| canonical-unit-attempt-2.log | 4fdb294224a9525335b39012775953138abb71fe8c47d2cff9022f2852ff8bda | Derivado literal; consulta de botón en embarques |
+| e2e-c3-original-21296.json | 4bb1943ae2400f1b70dd6b782b7e7060661da764c40cb8c7192633028d263e3e | JSON original fresco, 198 casos |
+| e2e-c3-observer-final.json | aa4400759fe460f5af8653ed9b748732aac3c9b88476609e884167ea8e9ad083 | Captura por ancestry/PID/tiempo, sin filtro rootDir |
+| completed-analysis.json | dc16f5686cee883da2159b12557d08ef26d404497cf241d30d0654f7c47a9c20 | Análisis derivado; no sustituye originales |
+| e2e-analysis.json | 6ac1f12104a250229452376303fcdc8aca4b4547df784748eab7f0341259808c | Casos omitidos/flaky y error global por separado |
+| heavy-release.json | 68bdbefd98eef50f544688f7135116989ab69c3bcebfefab6fe52c7d18d42de3 | Cero pesado propio, 89 identidades cerradas y turno devuelto |
+
+La carpeta canónica queda preservada. Sello de todos sus archivos existentes en C:/tmp/director-traspaso-20261020/0576-c3-next/documentation-2/canonical-2-originals-seal.json, SHA9c4197b732e98f3eeca682999b4a363c9e0e77a1607f5d79ad1f7f1c9e08459b. Los nuevos recibos documentales van en esa carpeta hermana; ninguna fuente de producto cambia para registrar resultados.
 
 ## EVIDENCIA EXTERNA — primera receta y fixture TZ
 
