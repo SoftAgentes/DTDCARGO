@@ -1,6 +1,6 @@
 # Handoff Worker · SDD-0576 C3 · gastos móviles
 
-Fecha de adopción: 2026-10-21. Estado: checkpoint para revisión inmutable del Director; verify espera su GO.
+Fecha de adopción: 2026-10-21. Estado: primera receta canónica FALLÓ y CIERRE ADEMÁS INCOMPLETO; fixture TZ corregida y checkpoint siguiente para revisión del Director.
 Task ID: 0576-fechas-caracas-movil.
 Sesión escritora: /root/worker_0576_c3.
 Owner: worker-0576c3-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
@@ -40,28 +40,49 @@ Alta/edición/fila móvil usan día Caracas, tenant y origen propios, lecturas e
 - PASÓ:12 mutantes de código M1–M9/M11+N1/N2 por aserción prevista y M10 nativo por File en ambos forms (13 variantes). Fuente actions7bd00bb3dfe9626d35ea1aab436483f3287e1447ed53d2c77b8029d48be07cab y UI6ab337a12cfe6e82018cbc1baf45a7d248e5c8a45ef17046eae6ea5fef33ed6a restauradas exactas. El intento shell inicial y dos clasificaciones del arnés se corrigieron sin repetir mutantes ya demostrados.
 - PASÓ suplemento nativo con PNG válido:4recorridos alta/edición390×844/1280×900, foco del error, reintento Tab→Cancelar→Guardar→Enter, campos/File/hash, preview decodificada y primer rechazo sin efectos;2controles pending por botón/fondo y cierre real limpia selección. Recursos propios puertos64541/3175/7707 cerrados; ningún proceso ajeno eliminado.
 - UI-check advisory del delta sin bloqueadores nuevos. Matriz SGE12principios/políticas y privacidad técnica por fuente en spec C3 y recibo externo ui-governance-review.md; riesgoR3, sin excepción nueva ni conformidad global inventada.
-- NO EJECUTADO: verify canónico (espera revisión/GO Director), DB/SQL vivo, producción, teléfono/Auth reales, lector de pantalla y zoom nativo200%. El layout fuente limita maximumScale1/userScalablefalse; CSSzoom no sustituye esa medición.
+- FALLÓ y CIERRE ADEMÁS INCOMPLETO: primera receta normal corepack pnpm verify sobre a732bcb0221ad821c671b0ee18d52ab928da26eb,07:28:01.8197424–08:03:24.5892194Z,exit1.16/17pasos medidos, test falló y migrations-applied OMITIDO por URL/SERVICE_ROLE_KEY ausentes. Primer intento unitario12.934 PASÓ/1 FALLÓ/1 OMITIDO; reintento normal12.933/2/1. No sumar intentos ni presentar el fallo como verde.
+- Diagnóstico original: env-example-contract:98 detectó literalmente TZ en ambos intentos por lecturas/asignaciones directas nuevas en el fixture UI. El reintento agregó timeout20000ms de supplier-flow.test.tsx:287; ese caso pasó en el primer intento. Causa de ese timeout NO VERIFICADA; Portal, tiempos y gates intactos.
+- PASÓ con límites de la primera receta: harness237/237, lint0errores/15advertencias, RSC/tipos/cuatroEdgeFunctions/docs/numeración/componentes/gobernanza, SQL249contratos con rollback, reconstrucción492migraciones (474DDL+18historial) en DB efímera y build. El corpus real de proformas sigue OMITIDO. E2E fue OK con AVISO del runner:177expected/20skipped/0unexpected/1flaky,198casos; ERR_ABORTED de auth Chromium recuperado en reintento y error global worker-17 forzado después de300000ms. La interpretación WebKit/no-regresión del runner no demuestra causa.
+- PASÓ bytecheck inmediatamente después del EXIT,08:03:24.6738369Z:39/39fuentes/hash/bytes iguales, HEADa732estable, árbol limpio, antes de documentación. JSON E2E original268808bytes capturado por observador externo sin hooks/filtro rootDir; no se reconstruyó ni repitió E2E. Originales de esa carpeta y wrapper49d030 quedan inmutables.
+- PASÓ reparación exclusiva de fixture TZ autorizada tras revisión de EXIT/bytecheck: vi.stubEnv("TZ",tz)/vi.unstubAllEnvs(), conservando Intl/resolvedOptions real,25casos UI, aserciones y límites. Focal UI+env-contract26/26,0omitidos,08:07:27.756–08:07:56.240Z. M9 volvió a morir por día visible incorrecto:6FALLÓ/1PASÓ/18omitidos por filtro explícito D01-D04; producto UI restaurado al SHA6ab337a12cfe6e82018cbc1baf45a7d248e5c8a45ef17046eae6ea5fef33ed6a. No se repiten controles intactos por este delta exclusivo de test.
+- NO EJECUTADO: segunda receta canónica (requiere nuevo GO sobre checkpoint inmutable), DB/SQL vivo, producción, teléfono/Auth reales, lector de pantalla y zoom nativo200%. El layout fuente limita maximumScale1/userScalablefalse; CSSzoom no sustituye esa medición.
 - Lecturas confirmadas en base: actions9f10b23265c8273e9a2f543ac04092d1c7beea86; MobileTSX684e417cc504e77fdacb0c372eb43221913c1530; helperCaracas00af1518045806694794defd7b4154d3ba5b0913; spec0754922bade809ba9f019fd8c3e89509dbb825a1.
 
 ## COMMITS
 
-Checkpoint funcional propio preparado en esta rama con commits selectivos; su SHA inmutable y base se registran fuera de este documento, en recibo de publicación y readback de PR. El cierre documental posterior conservará fuentes de producto y sus pruebas por hashes, sin autocitar el SHA del mismo commit.
+Checkpoint funcional a732bcb0221ad821c671b0ee18d52ab928da26eb publicado y revisado sobre base0e630. Este delta posterior contiene solo fixture TZ y anotación documental de la primera receta; su SHA inmutable se registra fuera del documento, en recibo de publicación y readback de PR, sin autocitar el SHA del mismo commit.
 
 ## PR / BRANCH
 
-PR DRAFT apilada autorizada sobre la rama/base indicadas arriba; URL/head/base exactos se registrarán al publicar en recibo externo y handoff de cierre. Sin permiso de merge o producción.
+PR314 OPEN/DRAFT: https://github.com/SoftAgentes/DTDCARGO/pull/314, apilada sobre la rama/base indicadas arriba y adjunta al chat. Head/base actuales se cotejan en recibo externo/readback de cada checkpoint. Sin permiso de merge o producción.
 
 ## PENDIENTES DE ESTA TAREA
 
-Publicar checkpoint y PR DRAFT para revisión del Director; GO de verify canónico, resultado/bytecheck/cleanup, cierre documental y un único ciclo nativo de conocimiento posterior al commit documental estable. El resultado postcommit se guardará en recibo externo y PR; no habrá primer ciclo solo para autocitarlo.
+Publicar checkpoint exclusivo de fixture/docs para revisión del Director; nuevo GO/turno para segunda receta normal, resultado/bytecheck/cleanup, cierre documental y un único ciclo nativo de conocimiento posterior al commit documental estable. El sobre canónico siguiente usa carpeta nueva y anti-sobrescritura, conservando los primeros originales. El resultado de conocimiento postcommit se guardará en recibo externo y PR; no habrá primer ciclo solo para autocitarlo.
 
 ## FUERA DE ALCANCE DETECTADO
 
-Carreras y fallos inciertos entre Storage/documento/posting son0575; no hay reparación histórica, nueva SQL, roles/RLS, moneda/FX, layout/CSS, deuda global de componentes o BCV en este slice. 0495 ya aplicada no se repite. No se consultaron filas reales, secretos o PII. UI heredada: Archivo/ArchivoBlack medido por layout real frente al split operativo Nunito/Sora de la rúbrica; restricción zoom y legibilidad oscura sintética, sin cambio ni excepción por C3.
+Carreras y fallos inciertos entre Storage/documento/posting son0575; no hay reparación histórica, nueva SQL, roles/RLS, moneda/FX, layout/CSS, deuda global de componentes o BCV en este slice. Timeout del Portal en el segundo intento canónico se conserva sin causa demostrada ni reparación autorizada.0495 ya aplicada no se repite. No se consultaron filas reales, secretos o PII. UI heredada: Archivo/ArchivoBlack medido por layout real frente al split operativo Nunito/Sora de la rúbrica; restricción zoom y legibilidad oscura sintética, sin cambio ni excepción por C3.
 
 ## HANDOFF AL DIRECTOR
 
-Worker activo con claim y turno pesado propios. Verify canónico espera revisión del checkpoint y GO posterior. Conocimiento integrado, semántica global, publicación compartida y producción conservan sus fronteras.
+Worker activo con claim propio. Primera receta y bytecheck revisados formalmente por Director; reparación de fixture autorizada y comprobada. El próximo checkpoint conserva producto por bytes y espera revisión/turno/GO explícitos antes de otra receta. Conocimiento integrado, semántica global, publicación compartida y producción conservan sus fronteras.
+
+## EVIDENCIA EXTERNA — primera receta y fixture TZ
+
+Primera carpeta preservada: C:/tmp/director-traspaso-20261020/0576-c3-validation. Revisión del Director: C:/tmp/director-traspaso-20261020/caracas-c3-primera-canonica-revision.md,SHA256bdc113f6e3497e97685071b76bff47bb3ceae3430f72e10aee2e1bf5dd5de7e9. No es GO de segunda receta.
+
+| Recibo original/derivado identificado | SHA256 | Alcance |
+|---|---|---|
+| verify-canonical.json | 9541981d5ccfc1213d0ff21696f0116f841166b03b0c6866b96bd10bdccfd54d | Inicio/EXIT1 sobre a732 |
+| verify-canonical.log | 3e97bb3cb16752106a9eaebfa33dab81c2bad6338f0f2a360e47e4cef60bc47a | Original completo, fallos/reintento/omisiones/avisos |
+| verify-bytecheck-after.json | 4b74d8c2ec1bdd99298f01e11c6595c1eb1a10692e6bc956ccbf94e7191cb31b |39/39sin diferencia, antes de docs |
+| canonical-unit-attempt-1.log | 1dd0498e6886298d718a66b655ac92c73e12c5411112f636a2c9f3ab814c0191 | Derivado literal del primer intento,12934/1/1 |
+| canonical-unit-attempt-2.log | ffe4efe7f016c2f9aa5c81027cc7428db833eb15afa58b08336bd78a971b5fb0 | Derivado literal del reintento,12933/2/1 |
+| e2e-c3-original-23324.json | 0ff365f96a63595b19bbb5db7138ff1c289a01c7f7fe6bf130d1603409a95114 | JSON original198casos, sin reconstrucción |
+| e2e-c3-observer-final.json | cfd9c816759de5be049769d26a16fcf87327aff4832b50438572f637b8e7f890 | Captura atribuida por ancestry/PID/tiempo |
+
+Fixture/focal/M9 guardados en carpeta hermana nueva C:/tmp/director-traspaso-20261020/0576-c3-tz-fixture. focal.json SHA25638b439f5609844183b5d3c5cad1d5442fac07408bdc95fe0ca3fb2d215daa506; focal.log1c520c93f67c579249df17cbd89cb9a86fb53da291a168a1531a671b8f856821. m9.json8eed3ef4d8374c3bf8d3fb78cecbe00b8a32655559fbdf70cc18c921c5bf1ddb; m9.loga2ecedb983715d4c9fbd60704f96144554fecae6d3ea85b2ca75030386e9e277. Primera selección de originales sellada sin modificarla en first-originals-seal.json,SHA256612faca34abc8c711f77b47cfdd4e9e1b662f5352f3ca8f45a09ffd0ad752a98.
 
 ## EVIDENCIA EXTERNA C3 — checkpoint funcional inicial
 

@@ -51,7 +51,6 @@ const EXPENSE: Expense = {
   occurred_at: "2026-10-21T02:30:00.000Z", created_at: "2026-10-21T02:30:00.000Z",
   updated_at: "2026-10-21T02:30:00.000Z", deleted_at: null,
 };
-const ORIGINAL_TZ = process.env.TZ;
 type Row = Record<string, unknown>;
 type Envelope = { data: unknown; error: unknown };
 function deferred() {
@@ -221,8 +220,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
-  if (ORIGINAL_TZ === undefined) delete process.env.TZ;
-  else process.env.TZ = ORIGINAL_TZ;
+  vi.unstubAllEnvs();
 });
 
 describe("C3 · fila real e Intl IANA", () => {
@@ -235,7 +233,7 @@ describe("C3 · fila real e Intl IANA", () => {
     ["UTC", "2024-03-01T02:30:00.000Z", /29[-\s]+feb\.?/i],
     ["UTC", "2026-01-01T02:30:00.000Z", /31[-\s]+dic\.?/i],
   ])("D01-D04 %s, %s muestra día literal correcto", (tz, occurred_at, label) => {
-    process.env.TZ = tz;
+    vi.stubEnv("TZ", tz);
     expect(new Intl.DateTimeFormat().resolvedOptions().timeZone).toBe(tz);
     renderMobile({ ...EXPENSE, occurred_at });
     const row = screen.getByRole("button", { name: "Editar gasto EXP-fixture" });
