@@ -595,7 +595,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0568 | La ficha de un cliente eliminado dice que está eliminado y no… | in-progress | interno |
 | 0569 | Un solo conversor a USD, que falla cerrado, y una tabla de ta… | in-progress | interno |
 | 0572 | Los 13 conversores a USD pasan a uno solo, que falla cerrado | in-progress | interno |
-| 0576 | Fechas de operaciones en America/Caracas — C1 | in-progress | interno |
+| 0576 | Fechas de operaciones y lecturas anuales en America/Caracas —… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0570, 0571, 0573, 0574, 0575 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -1,6 +1,6 @@
 ---
 sdd: "0576"
-title: "Fechas de operaciones en America/Caracas — C1"
+title: "Fechas de operaciones y lecturas anuales en America/Caracas — C1/C2"
 status: in-progress
 author: "Codex"
 created: 2026-10-21
@@ -11,7 +11,7 @@ related: []
 confidencialidad: interno
 ---
 
-# SDD-0576 — Fechas de operaciones en America/Caracas — C1
+# SDD-0576 — Fechas de operaciones y lecturas anuales en America/Caracas — C1/C2
 
 ## Objetivo y autoridad
 
@@ -343,3 +343,128 @@ Verify2 sobre9cbe, iniciado03:49:03.165Z, fue INTERRUMPIDO/INCOMPLETO por autori
 red-gastos-usd-original reprodujo el archivo original completo:9PASÓ/1FALLÓ/0SKIP,04:00:57.862–04:00:59.858Z. Error exacto TypeError: .lt is not a function en el doble; no es fallo de cálculo ni un ROJO funcional del producto. La adaptación autorizada solo añade lt encadenable y registro/aserción exacta de ambos límites: a2026-10-21T03:59:59.999Z, gte occurred_at2026-10-20T04:00:00.000Z y lt occurred_at2026-10-21T04:00:00.000Z. Conserva select amount_usd, respuesta original y total127/count3; los nueve casos restantes de monedas/centavos/signo/null siguen intactos. Reloj restaurado en finally.
 
 green-gastos-usd-compat PASÓ17/17 en2archivos completos,0SKIP,04:01:18.302–04:01:20.825Z, incluyendo expense-queries-caracas real que ejecuta filtros contra filas de borde. Lint focal PASÓ salida0 sin advertencias,04:01:25.413–04:01:31.340Z; typecheck-gastos-usd-compat PASÓ salida0,04:01:36.490–04:01:47.322Z. Producto APP/0499/arnés/gates siguen idénticos; el checkpoint contiene únicamente este test y los dos documentos propios. Alcance70rutas exactas. Nueva verificación canónica y cierre de conocimiento aún pendientes sobre el siguienteSHA congelado.
+
+## C2 — Lecturas anuales Caracas (extensión autorizada del 2026-10-21)
+
+La evidencia y límites de C1 arriba se conservan como entrega fechada. C2 parte
+exactamente de d6bcd0e8b9738cb5784579ef8e7f1802abef4644 de PR312 y reutiliza esta
+SDD sin crear0577. Writer único en codex/sdd-0576-fechas-caracas-anuales;
+contrato ejecutable incorporado íntegro en el handoff propio
+`.agents/handoffs/0576-fechas-caracas-anuales.md`, fuente externa
+`C:/tmp/director-traspaso-20261020/0576-caracas-c2-asignacion-worker.md`, SHA256
+`825ab8194a63ad542f2eb7c377f4e68ac5089cde0b352174a4d3771039c53943`.
+Migración asignada **0500_annual_billing_caracas**: solo archivo y fixtures
+locales, nunca aplicación real desde esta tarea.
+
+### Contrato anual y alcance C2
+
+- Las tres fachadas existentes usan el día Caracas del reloj de transacción.
+  `issued_at DATE` tiene prioridad sin desplazarse; solo su ausencia deriva
+  `created_at TIMESTAMPTZ` mediante IANA. Se conserva la resta de un año
+  calendario y la historia de Caracas con -04:30, sin offset fijo ni365días.
+- Portal legado y v2 comparten lower inclusivo de hoy menos un año; conservan
+  sus fórmulas distintas y documentos futuros sin cota superior. Studio v1/v2
+  conservan `p_as_of` obligatorio, ambos extremos inclusivos y tolerancia ±1
+  Caracas; NULL/±2 siguen22023, nunca cero, vacío ni sustitución por hoy.
+- `clientAnnualBilling` llama a `fechaCaracas(now)` antes del primer await y
+  mantiene el mismo `p_as_of` hasta la página vacía. Reutiliza el helper C1,
+  la RPCv2, decodificador decimal, claves únicas y paginador vigentes.
+- 0500 redefine completas exclusivamente las tres funciones anuales. Preflight
+  comprueba cuerpos0411/0498 actuales y catálogo; postflight conserva OID,
+  owner, firma/retorno, STABLE/DEFINER/search_path y ACL efectiva diferenciada.
+  v1 conserva el defaultservice_role histórico0033; Portal y v2 lo revocaron.
+  No cambia grants, helpers privados, tenant, roles, overrides, RLS, importes,
+  estados, filas documentales ni auditoría.
+- v1 conserva HAVING>0 y fórmula legada. v2 conserva cero, negativos y grupos
+  solo excluidos, subtotal decimal como texto, contador y estado. No se igualan
+  grupos de v1/v2 cuando HAVING explica la diferencia. Portal mantiene soloNULL
+  como ausencia y conserva los datos no financieros si falta billing_v2.
+
+Allowlist exacta C2 (no amplía las rutas de C1):
+
+```text
+lib/studio/fidelizacion/queries.ts
+lib/studio/fidelizacion/__tests__/queries.test.ts
+lib/portal/__tests__/portal-referral-query.test.ts
+lib/studio/__tests__/annual-billing-caracas.migration.test.ts
+supabase/migrations-baseline.json
+supabase/pending-migration-symbol-declarations.json
+docs/specs/README.md
+supabase/migrations/0500_annual_billing_caracas.sql
+supabase/tests/0500_annual_billing_caracas.test.sql
+docs/specs/0576-fechas-caracas/spec.md
+.agents/handoffs/0576-fechas-caracas-anuales.md
+scripts/tests/annual-billing-caracas-postgrest.mjs
+```
+
+No es obligatorio modificar las doce. Históricos0411/0498/0499, helper C1,
+paginador, conversor, readerPortal y arneses históricos solo se leen y prueban.
+No existe degradación automática por ausencia0500: las RPC previas pueden
+responder200 con semántica anterior. Se conserva únicamente la degradación
+real por RPCv2 ausente de0498 y se ajustan sus anclas desplazadas.
+
+### Aceptación y evidencia C2
+
+ROJO funcional de caller sobre base anterior:8fallos/22pass; VERDE54/54 en
+caller y Portal en el árbol de implementación. Se mantiene NOW original de
+medianocheUTC y los tres oráculos cambian al literal2026-06-02. No se mueve la
+fixture a mediodía ni se calcula la expectativa con el helper bajo prueba.
+
+Contrato SQL propio: DDL0500 íntegra primero, catálogo antes/después y hashes
+de cuerpos medidos, cero DML, helpers/policies/ACL intactos; luego copias
+acotadas del reloj con dos anclas por cuerpo y aborto ante deriva. Oráculos
+independientes por v1/v2/Portal, lower exacto/un día antes, upperStudio y
+futuroPortal, prioridad documental,02:30/03:59:59.999/04:00Z, año nuevo,
+bisiestos e historiaIANA, zonasUTC/Caracas/Shanghai y erroresNULL/±2. Preserva
+fórmulas, signo, centavos, estados y permisos reales. Las fuentes nunca reciben
+reloj de prueba. Mutantes temporales deben morir por aserción funcional.
+
+El arnés HTTP propio usa PG17/PostgREST14.17, loopback/JWT sintéticos y recursos
+limitados con cleanup. Las tres RPC existen antes; se comparan respuestas
+antes→DDLreal/COMMIT/NOTIFY→después con el mismo PID/inicioPostgREST. Solo los
+bordes cambian según el oráculo. Fase instrumentada separada y restaurada;
+paginación real1202grupos con cap500 hasta vacía, última página completa solo
+excluidas, mismo `p_as_of`; negativos de tenant/ACL/rol/override/error y helper
+privado conservados. Cada recibo atribuye versiones, hashes, cwd, PID y tiempo.
+
+Estado de este checkpoint: implementación y focales en curso; HTTP, revisión
+inmutable, verify y cierre final pendientes. El handoff propio conserva los
+resultados literales por corrida, sin sumar grupos solapados ni transferir el
+verify C1 a C2. `pnpm verify` se ejecutará después de focales y revisión sobre
+cabeza congelada; omisiones/ledger se informarán sin aplicar DB ni debilitar gates.
+
+### Gobernanza C2 (riesgo R2 de lectura financiera)
+
+| Principio/política | Clasificación acotada | Evidencia o motivo |
+|---|---|---|
+| SGE-00.01 | Cumplimiento | Única semántica de día Caracas, ventanas deliberadamente distintas y oráculos por consumidor |
+| SGE-00.02 | Cumplimiento | Solo lecturas; errores/shape/duplicados/paginación incompleta conservan indisponibilidad explícita |
+| SGE-00.03 | No aplica mutación | Sin acción irreversible ni pasos/confirmaciones nuevos; DDL real requiere OK nominal aparte |
+| SGE-00.04 | No aplica evento nuevo | No cambia documentos/asientos ni eventos; snapshot local comprueba cero DML durante0500 |
+| SGE-00.05 | Cumplimiento acotado | Catálogo/ACL diferenciada, tenant/roles/overrides/RLS negativos en fixtures reales |
+| SGE-00.06 | Cumplimiento | Instante inválido antes deRPC, NULL/±2SQL siguenerror; issued_at conserva prioridad |
+| SGE-00.07 | Cumplimiento | Se conserva DTO/no_disponible y total completo; no éxito financiero por HTTP200 aislado |
+| SGE-00.08 | No aplica flujo nuevo | Cambio del ancla de consulta sin pasos, campos ni UI nuevos |
+| SGE-00.09 | Cumplimiento | Reutiliza fechaCaracas, fetchAllPaged, decoder anual y helper privado to_usd |
+| SGE-00.10 | No aplica al delta visual | Query/SQL sin interacción visual nueva; no certifica A11Y general ni revoca límites C1 |
+| SGE-00.11 | Cumplimiento acotado | Conserva errores sanitizados, shape/ausencia distintos y contrato previo de consumidores |
+| SGE-00.12 | Cumplimiento del límite | Implementación/push/PRDRAFT autorizados; merge/deploy/DBreal/PII no autorizados |
+| DAT-01v1.0 | Cumplimiento acotado | Fechas/calendario/timezone y límites explícitos; selector/teclado/móvil no reciben cambios |
+| NUM-01v1.1 | Cumplimiento acotado | Fórmulas/decimal textual/cero/negativos/centavos/contador/estado preservados |
+| ERR-01v1.0 | Cumplimiento acotado | Error real/no_disponible frente a cero yNULL; no nuevas excepciones ni copia de errores SQL a UI |
+
+Políticas aprobadas del registro fuente, plugin derivado solo read-only.
+Sus conteos de consistencia no aprueban comportamiento. UI nueva y ui-check
+NO EJECUTADOS por no aplicar al delta; no es una aprobación visual global.
+
+### Convivencia y pendientes globales
+
+MIGRATE-FIRST conserva firmas, pero una app antigua puede enviarUTC dentro de±1
+y seguir leyendo otra ventana. La validación futura requiere SQL0500 aprobado,
+OK nominal de Sam, callerCaracas activo y smoke por SHA servido. PR/merge,
+migración, deploy y producción siguen siendo permisos/resultados distintos.
+C3móvil y demás tareas siguen fuera; SDD0576 permanece **in-progress**.
+
+El cierre de conocimiento se medirá en esta rama separando guardado, integración,
+Graphify estructural/semántico/piloto, Archify, preview y Obsidian. No se copiarán
+los derivados de main ni se instalará/publicará por defecto desde el borrador.
