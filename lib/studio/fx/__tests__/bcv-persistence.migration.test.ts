@@ -93,7 +93,7 @@ describe("R1–R10 · auditoríaBCV0501 real en PGlite, HTTP separado", () => {
     const result = await contract(); expect(result.error).toBeNull(); expect(result.green).toMatch(/^TEST BCV0501 GREEN: \d+ aserciones$/);
     expect(result.initialContext).toMatchObject({ effective_user: "postgres", login_user: "postgres", superuser: "on" });
     expect(result.restoredContext).toMatchObject({ effective_user: "postgres", login_user: "postgres", superuser: "on" });
-    process.stdout.write("Contexto inicial/restaurado de fixture: " + JSON.stringify({ initial: result.initialContext, restored: result.restoredContext }) + "\n");
+    console.info("Contexto inicial/restaurado de fixture:", JSON.stringify({ initial: result.initialContext, restored: result.restoredContext }));
   }, SLOW);
   it("ausencia0501 cae en aserción funcional, no en missing-import", async () => {
     expect((await contract({ applyFix: false })).error).toContain("capability0501 instalada, no fallback");
