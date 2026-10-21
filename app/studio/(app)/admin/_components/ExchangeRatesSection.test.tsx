@@ -2,7 +2,7 @@
  * SDD-0569 · B18: vigencia BCV veraz y conservación del formulario manual.
  * DOM/acciones simuladas; contraste, reflow y teclado en navegador se miden aparte.
  */
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExchangeRateActionState, FxRateLatest } from "@/lib/studio/exchange-rates-types";
@@ -125,6 +125,8 @@ describe("ExchangeRatesSection", () => {
     await user.type(rate, "883,3963");
     fireEvent.change(date, { target: { value: "2026-10-20" } });
     await user.type(note, "Respaldo manual");
+    expect((screen.getByLabelText("Par de moneda") as HTMLSelectElement).value).toBe("VES/USD");
+    expect(rate.value).toBe("883,3963");
     const submit = screen.getByRole("button", { name: "Registrar tasa" });
     await user.click(submit);
     expect(await screen.findByText(error)).toBeTruthy();
@@ -171,6 +173,7 @@ describe("ExchangeRatesSection", () => {
     await user.type(rate, "883,3963");
     await user.type(note, "Cotización manual");
     await user.click(screen.getByRole("button", { name: "Registrar tasa" }));
+    await waitFor(() => expect(successToast).toHaveBeenCalledTimes(1));
     expect(rate.value).toBe("");
     expect((screen.getByLabelText("Par de moneda") as HTMLSelectElement).value).toBe("VES/USD");
     expect(note.value).toBe("Cotización manual");

@@ -57,6 +57,16 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
   const [rate, setRate] = useState("");
   const [validOn, setValidOn] = useState(hoyEnCaracas);
   const [note, setNote] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    const form = formRef.current;
+    // React 19 resetea durante su commit, cuando sus eventos delegados están
+    // suspendidos. El listener nativo conserva estos campos controlados.
+    const keepControlledFields = (event: Event) => event.preventDefault();
+    form?.addEventListener("reset", keepControlledFields);
+    return () => form?.removeEventListener("reset", keepControlledFields);
+  }, []);
 
   const handled = useRef<ExchangeRateActionState | null>(null);
   useEffect(() => {
@@ -123,10 +133,8 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
       <Card>
         <CardEyebrow>Registrar tasa nueva</CardEyebrow>
         <form
+          ref={formRef}
           action={formAction}
-          // React resetea el DOM al resolver la acción, incluso si devuelve error.
-          // Los campos son controlados; solo el éxito confirmado vacía la tasa.
-          onReset={(event) => event.preventDefault()}
           style={{ display: "flex", flexDirection: "column", gap: 14 }}
         >
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "var(--s-3)", alignItems: "end" }}>
