@@ -74,6 +74,24 @@ describe("uploadPaymentProof · reintento conservando evidencia", () => {
     expect(io.objects.size).toBe(0);
   });
 
+  it("C1 · recovery rechaza bytes distintos de igual tamaño bajo el path autorizado", async () => {
+    const io = storage();
+    const first = await uploadPaymentProof(io.admin, { ...SCOPE, file: proof("contenido A") });
+    expect(first.path).toEqual(expect.any(String));
+    const originalPath = first.path as string;
+    io.objects.set(originalPath, Buffer.from("contenido B"));
+    io.upload.mockClear();
+    const retry = await uploadPaymentProof(io.admin, {
+      ...SCOPE, file: proof("contenido A"), expectedPath: originalPath,
+    });
+    expect(retry.path).toBeUndefined();
+    expect(retry.error).toEqual(expect.any(String));
+    expect(io.download).toHaveBeenCalledWith(originalPath);
+    expect(io.upload).not.toHaveBeenCalled();
+    expect(io.remove).not.toHaveBeenCalled();
+    expect(io.objects.get(originalPath)?.toString()).toBe("contenido B");
+  });
+
   it("reutiliza objeto para mismo scope y bytes, aunque cambie el nombre local", async () => {
     const io = storage();
     const first = await uploadPaymentProof(io.admin, { ...SCOPE, file: proof() });

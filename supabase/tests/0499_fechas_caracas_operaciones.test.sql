@@ -31,6 +31,10 @@
 \else
 \set run_portal true
 \endif
+\if :{?run_closing}
+\else
+\set run_closing true
+\endif
 \if :{?run_portal_replay_only}
 \else
 \set run_portal_replay_only false
@@ -85,6 +89,13 @@ begin
   execute definition;
 end;
 $identity$;
+-- Composición vigente: fuentes REALES0357/0493 completas, sin sustituir
+-- permisos ni el nonce. Estos dos pins proceden de0210 y son requisito del
+-- preflight0493; no cargamos el test0493 (su guard exige una base vacía).
+\ir ../migrations/0357_role_module_overrides.sql
+alter function public.journal_entries_validate_closing() set search_path = public;
+alter function public.journal_lines_validate_closing() set search_path = public;
+\ir ../migrations/0493_cierre_contable_superclave.sql
 \ir ../migrations/0467_cobro_factura_atomico.sql
 \ir ../migrations/0468_pago_proveedor_atomico.sql
 -- Las tablas se añadieron después del bootstrap0421: reaplicar0230 idempotente
@@ -131,7 +142,10 @@ select jsonb_build_object('reports',(select jsonb_agg(to_jsonb(t) order by id) f
  'bills',(select jsonb_agg(to_jsonb(t) order by id) from public.supplier_bills t),
  'expenses',(select jsonb_agg(to_jsonb(t) order by id) from public.expenses t),
  'journals',(select jsonb_agg(to_jsonb(t) order by id) from public.journal_entries t),
- 'objects',(select jsonb_agg(to_jsonb(t) order by id) from storage.objects t))
+ 'objects',(select jsonb_agg(to_jsonb(t) order by id) from storage.objects t),
+ 'journalLines',(select jsonb_agg(to_jsonb(t) order by id) from public.journal_lines t),
+ 'closingExceptions',(select jsonb_agg(to_jsonb(t) order by id) from public.accounting_closing_exceptions t),
+ 'closingEvents',(select jsonb_agg(to_jsonb(t) order by id) from public.accounting_closing_events t))
 $$;
 create function c1_fixture.denied(label text,actor text,statement text,expected_message text,expected_state text default '22023',api_role text default 'authenticated') returns void language plpgsql as $$
 declare before_state jsonb:=c1_fixture.state(); denied boolean:=false; code text; message text;
@@ -159,6 +173,9 @@ create temporary table c1_before_functions as select oid,proowner,proacl,prosecd
  'public.register_supplier_payment_order(uuid,numeric,uuid,text,date,text,text)'::regprocedure,'public.void_expense_governed(uuid,text,text)'::regprocedure,
  'payment_private.run_report_command(uuid,uuid,text,jsonb)'::regprocedure,'public.sales_order_claim_and_invoice(uuid,uuid)'::regprocedure);
 create temporary table c1_before_policies as select to_jsonb(p) value from pg_policies p;
+create temporary table c1_before_closing_functions as select oid,proacl,proowner,proconfig,md5(prosrc) body_md5
+ from pg_proc where oid in('public.journal_entries_validate_closing()'::regprocedure,
+ 'public.journal_lines_validate_closing()'::regprocedure,'public.excepcion_al_cierre_vigente(uuid)'::regprocedure);
 create temporary table c1_before_triggers as select to_jsonb(t) value from pg_trigger t where not tgisinternal;
 create temporary table c1_before_state as select c1_fixture.state() value;
 \if :apply_fix
@@ -172,6 +189,9 @@ select c1_fixture.assert_true(not exists((select value from c1_before_policies e
  union all(select to_jsonb(p) from pg_policies p except select value from c1_before_policies)),'policies idénticas');
 select c1_fixture.assert_true(not exists((select value from c1_before_triggers except select to_jsonb(t) from pg_trigger t where not tgisinternal)
  union all(select to_jsonb(t) from pg_trigger t where not tgisinternal except select value from c1_before_triggers)),'triggers idénticos');
+select c1_fixture.assert_true(not exists(select 1 from c1_before_closing_functions b left join pg_proc p on p.oid=b.oid
+ where p.oid is null or (p.proacl,p.proowner,p.proconfig,md5(p.prosrc)) is distinct from(b.proacl,b.proowner,b.proconfig,b.body_md5)),
+ '0493 conserva hashes ACL owner config de ambos triggers y excepción después0499');
 
 -- Captura durable de fuentes REALES antes de instrumentar exclusivamente reloj.
 create table c1_fixture.real_definitions as select oid::regprocedure::text signature,pg_get_functiondef(oid) definition from c1_before_functions;
@@ -338,6 +358,64 @@ begin
  update public.accounting_settings set closing_date=null;
 end;
 $expense_history$;
+\endif
+\if :run_closing
+do $current_closing$
+declare r jsonb; current_nonce text; entry_closed uuid:=c1_fixture.id('closing-closed'); entry_open uuid:=c1_fixture.id('closing-open');
+begin
+ -- Datos sintéticos antes de cerrar; nada se refecha después para acomodar C1.
+ insert into public.expenses(id,tenant_id,user_id,expense_code,amount,category,occurred_at)
+ values(c1_fixture.id('expense-governed'),pg_temp.fixture_id('tenant-A'),pg_temp.fixture_id('accounting-A'),'EXP-C1-GOV',10.25,'otro','2026-10-21T05:00Z');
+ insert into public.journal_entries(id,tenant_id,entry_code,entry_date,status,source,expense_id) values
+ (entry_closed,pg_temp.fixture_id('tenant-A'),'C1-493-CLOSED','2026-10-20','borrador','expense',c1_fixture.id('expense-governed')),
+ (entry_open,pg_temp.fixture_id('tenant-A'),'C1-493-OPEN','2026-10-21','borrador','manual',null);
+ insert into public.journal_lines(id,entry_id,account_id,debit,credit) values
+ (c1_fixture.id('closing-line'),entry_closed,c1_fixture.id('cash'),10.25,0),
+ (c1_fixture.id('closing-credit'),entry_closed,c1_fixture.id('expense-account'),0,10.25);
+ insert into public.accounting_settings(tenant_id,closing_date) values(pg_temp.fixture_id('tenant-A'),'2026-10-20')
+ on conflict(tenant_id) do update set closing_date=excluded.closing_date;
+ perform c1_fixture.denied('0493 OLD cerrado NEW abierto','accounting-A',format('update public.journal_entries set entry_date=''2026-10-21'' where id=%L returning to_jsonb(id)',entry_closed),
+ 'Período contable cerrado: no se puede modificar un asiento en período cerrado (cierre: 2026-10-20).','23514');
+ perform c1_fixture.denied('0493 OLD abierto NEW cerrado','accounting-A',format('update public.journal_entries set entry_date=''2026-10-20'' where id=%L returning to_jsonb(id)',entry_open),
+ 'Período contable cerrado: no se puede modificar un asiento en período cerrado (cierre: 2026-10-20).','23514');
+ perform c1_fixture.denied('0493 DELETE cerrado','accounting-A',format('delete from public.journal_entries where id=%L returning to_jsonb(id)',entry_closed),
+ 'Período contable cerrado: no se puede borrar un asiento en período cerrado (cierre: 2026-10-20).','23514');
+ perform c1_fixture.denied('0493 línea no se traslada a abierto','accounting-A',format('update public.journal_lines set entry_id=%L where id=%L returning to_jsonb(id)',entry_open,c1_fixture.id('closing-line')),
+ 'Una línea no cambia de asiento: bórrala y créala en el otro.','23514');
+ r:=c1_fixture.actor('accounting-A',format('update public.journal_entries set memo=''Abierto conservado'' where id=%L returning to_jsonb(memo)',entry_open));
+ perform c1_fixture.assert_true(r='"Abierto conservado"'::jsonb,'0493 permite abierto');
+ perform set_config('dtd.excepcion_cierre','nonce-inventado',true);
+ perform c1_fixture.denied('0493 GUC inventado','accounting-A',format('update public.journal_entries set memo=''NO'' where id=%L returning to_jsonb(id)',entry_closed),
+ 'Período contable cerrado: no se puede modificar un asiento en período cerrado (cierre: 2026-10-20).','23514');
+ perform set_config('dtd.excepcion_cierre','',true);
+ -- Modo advertencia autorizado por admin, excepción por RPC real accounting;
+ -- no stub de autorización ni inserción manual que se presente como permiso.
+ perform c1_fixture.actor('admin-A',format('update public.accounting_settings set closing_mode=''advertencia'' where tenant_id=%L returning to_jsonb(tenant_id)',pg_temp.fixture_id('tenant-A')));
+ r:=c1_fixture.actor('accounting-A',format('select public.asentar_asiento_en_cierre(%L,null,''Composición C1 verificada'')',entry_closed));
+ perform c1_fixture.assert_true(r->>'ok'='true','0493 excepción gobernada asienta');
+ perform c1_fixture.assert_true(exists(select 1 from public.accounting_closing_exceptions where entry_id=entry_closed and entry_date='2026-10-20'
+  and closing_date='2026-10-20' and operation='asentar' and authorized_by='advertencia' and reason='Composición C1 verificada'
+  and user_id=pg_temp.fixture_id('accounting-A') and txid=txid_current() and length(nonce)=32 and amount_before=0 and amount_after=10.25),
+ '0493 fila nonce txid actor motivo importes reales');
+ perform c1_fixture.assert_true(coalesce(current_setting('dtd.excepcion_cierre',true),'')='','0493 limpia nonce después RPC');
+ select nonce into current_nonce from public.accounting_closing_exceptions where entry_id=entry_closed;
+ perform set_config('dtd.excepcion_cierre',current_nonce,true);
+ perform c1_fixture.denied('0493 nonce de otro asiento','accounting-A',format('update public.journal_entries set entry_date=''2026-10-20'' where id=%L returning to_jsonb(id)',entry_open),
+ 'Período contable cerrado: no se puede modificar un asiento en período cerrado (cierre: 2026-10-20).','23514');
+ -- El nonce real de ESTA transacción pasa el trigger para su asiento; la
+ -- guarda específica C1 de void_expense se mantiene incluso en ese contexto.
+ perform c1_fixture.assert_true(public.excepcion_al_cierre_vigente(entry_closed),'0493 nonce real válido para su asiento');
+ perform c1_fixture.denied('0499 void mantiene bloqueo con nonce válido','accounting-A',format('select to_jsonb(public.void_expense_governed(%L,''No anular historia'',''c1-valid-nonce''))',c1_fixture.id('expense-governed')),
+ 'expenses: período contable cerrado','23514');
+ -- Simular únicamente antigüedad de una fila autorizada prueba el contrato de
+ -- txid, sin declarar que una API pueda escribir esta tabla privada.
+ update public.accounting_closing_exceptions set txid=txid_current()-1 where entry_id=entry_closed;
+ perform c1_fixture.denied('0493 nonce de transacción previa','accounting-A',format('update public.journal_entries set memo=''NO'' where id=%L returning to_jsonb(id)',entry_closed),
+ 'Período contable cerrado: no se puede modificar un asiento en período cerrado (cierre: 2026-10-20).','23514');
+ perform set_config('dtd.excepcion_cierre','',true);
+ update public.accounting_settings set closing_date=null where tenant_id=pg_temp.fixture_id('tenant-A');
+end;
+$current_closing$;
 \endif
 \if :run_portal
 \if :run_portal_replay_only

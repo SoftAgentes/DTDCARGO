@@ -134,10 +134,13 @@ insert into public.warehouse_receipts_cn(id,tenant_id,receipt_code,client_markbo
     receipt.postgresVersion=await scalar('select version();');assert.match(receipt.postgresVersion,/PostgreSQL 17\./);
     receipt.pgImage=(await docker(['inspect','--format','{{.Image}}',pg])).stdout.trim();
     if(!process.argv.includes('--http-only')){
-      const contract=await docker(['exec',pg,'psql','-X','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres','-f','/sb/tests/0499_fechas_caracas_operaciones.test.sql']);
+      const closingOnly=process.argv.includes('--closing-only');
+      const selection=closingOnly?['-v','run_defaults=false','-v','run_operations=false','-v','run_auto_invoice=false','-v','run_portal=false']:[];
+      const contract=await docker(['exec',pg,'psql','-X','-v','ON_ERROR_STOP=1',...selection,'-U','postgres','-d','postgres','-f','/sb/tests/0499_fechas_caracas_operaciones.test.sql']);
       await save('postgres-contract.log',contract.stdout+'\n'+contract.stderr);
       assert.match(contract.stdout,/TEST0499 GREEN: \d+ aserciones/);assert.match(contract.stdout,/ROLLBACK/);
-      check('PostgreSQL17: contrato real completo y ROLLBACK',{marker:contract.stdout.match(/TEST0499 GREEN: \d+ aserciones/)[0]});
+      check(closingOnly?'PostgreSQL17: composición0493 + guardas gasto C1 y ROLLBACK':'PostgreSQL17: contrato real completo y ROLLBACK',{marker:contract.stdout.match(/TEST0499 GREEN: \d+ aserciones/)[0]});
+      if(closingOnly){receipt.http='NO EJECUTADO: suplemento0493 sin cambio0499/API';receipt.result='PASÓ';return;}
     }else receipt.sqlContract='NO EJECUTADO: --http-only';
     const fixture=await docker(['exec',pg,'psql','-X','-v','ON_ERROR_STOP=1','-v','fixture_only=true','-v','apply_fix=false','-U','postgres','-d','postgres','-f','/sb/tests/0499_fechas_caracas_operaciones.test.sql']);
     await save('http-fixture.log',fixture.stdout+'\n'+fixture.stderr);

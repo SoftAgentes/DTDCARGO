@@ -70,6 +70,14 @@ describe("C1 · contexto interno de creación", () => {
     expect(io.rpc).toHaveBeenCalledOnce();
     expect(io.rpc.mock.calls[0][1]).not.toHaveProperty("context");
   });
+  it("recovery no declara éxito si SQL devuelve un recibo nuevo en vez de replayed", async () => {
+    const io = sessionIo({ data: wireReceipt({ replayed: false }), error: null });
+    const command: Command = { ...createCommand(), context: { kind: "recovery-candidate" } };
+    expectSafeFailure(await runPaymentReportCommand(io.session, command), true);
+    expect(io.rpc).toHaveBeenCalledOnce();
+    expect(io.rpc.mock.calls[0][1]).toMatchObject({ p_request_id: REQUEST_ID, p_report_id: REPORT_ID });
+    expect(io.forbidden).not.toHaveBeenCalled();
+  });
   it.each([undefined, {}, { kind: "new", businessDay: "2026-02-30" }, { kind: "public-retry" }])("contexto inválido %j no envía", async context => {
     const io = sessionIo();
     expectSafeFailure(await runPaymentReportCommand(io.session, { ...createCommand(), context } as unknown as Command), false);
