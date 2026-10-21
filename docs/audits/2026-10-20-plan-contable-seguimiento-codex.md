@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 12:34 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 12:44 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -312,6 +312,7 @@ La regla USD/USDT 1:1 ya está decidida. Los bolívares quedan para reportes. La
 - [x] Recibir la adopción íntegra y huella del addendum55 antes de sus nuevas ediciones; comprobar **`d39aa7c4`**, PR #318 DRAFT sobre D1, **treinta rutas acumuladas**. Incluye autoría de confirmación Naviera, ámbito completo por identidad y fixtures. Cuerpo/alcance y fusible SQL cotejados; **no es revisión funcional completa ni prueba ejecutada**. Continúa P1 sin turno pesado.
 - [x] Revisar y autorizar la ampliación mínima a **58 rutas**: tres fixtures Tracking/API para metadata por identidad y lectura de ámbito, con permisos, GPS, asistente real y trazas conservados. Revisión independiente de las 447 líneas y documento final leídos; unión literal única comprobada. Worker adoptó íntegro+hash antes de editarlas. GitHub confirma el respaldo de autoría **`b20f8dd8`**, DRAFT sobre D1 y **39 rutas acumuladas**; código mutable, SQL global y funcionamiento siguen sin aceptación. Ninguna prueba de producto ejecutada por esta ampliación.
 - [x] Confirmar el siguiente respaldo de fixtures **`45fe45ed`**, misma PR #318 DRAFT/base D1, **42 rutas acumuladas**. Tres fixtures nuevas y su documentación quedaron respaldadas; SQL0502 todavía en autoría y con fusible. Las pruebas redactadas siguen **NO EJECUTADAS**; no se convierte el respaldo en aceptación de Portal, POD, concurrencia o permisos reales.
+- [x] Completar la revisión independiente del lector Portal y autorizar la ampliación a **64 rutas**, sólo seis fixtures locales adicionales. El Director leyó propuesta y revisión completas; el revisor cotejó las **1.275 líneas** de esos seis archivos. El diseño conserva la lectura del cliente propio, los derechos Studio existentes y los permisos documentales efectivos de 0439/0444. Cotizaciones conserva su principal mínimo, sin exigir nombre; errores y lectura incompleta no se convierten en vacío. Addendum completo entregado para adopción antes de editar; código, SQL/RLS e interfaz siguen sin aceptación funcional ni turno de pruebas.
 - [ ] Completar implementación, pruebas, concurrencia y recorrido visual de 0578 por turnos. La asignación y la reserva no son implementación terminada.
 
 ## Checklist general del plan
