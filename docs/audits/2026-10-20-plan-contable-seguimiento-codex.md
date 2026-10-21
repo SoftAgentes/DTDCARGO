@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 12:57 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 1:04 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -8,7 +8,7 @@
 
 **Caracas C1 quedó entregado localmente en la PR #312 en borrador, final `d6bcd0e8`:** producto y pruebas idénticos a `264e0531`, revisiones y cierre documental cotejados, árbol limpio y propiedad liberada. Conserva **16/17**, una prueba de aplicación omitida y navegación con 177 aprobadas, una recuperada y 20 omitidas.
 
-**Ahora avanza Caracas C2 anual, respaldado en la PR #313 en borrador:** **54/54 pruebas de aplicación** y **29/29 contratos y controles SQL** aprobados. La base de datos y la recarga de API ya tienen evidencia local; un fallo del arnés se corrigió y falta cotejar el suplemento y su ejecución desde una versión limpia. Siguen pendientes la revisión final y la corrida general. Después vienen gastos móviles y BCV, con diseños preparados. Push y PR funcionan; Actions sigue fallando antes de arrancar. La tarifa congelada conserva sus pendientes de base final y publicación.
+**Ahora avanza Caracas C2 anual, respaldado en la PR #313 en borrador, `b30934a5`:** regresión ampliada **223/223 en once archivos**, sin omisiones; API final limpia con **424 comprobaciones PostgreSQL** y recarga sin reinicio. La revisión independiente cerró el fallo del arnés y no encontró otro defecto material. Se autorizó la corrida general sobre esa versión congelada; todavía no tiene resultado. Después vienen gastos móviles y BCV, con diseños preparados. Push y PR funcionan; Actions sigue fallando antes de arrancar. La tarifa congelada conserva sus pendientes de base final y publicación.
 
 **Cómo leerlo:** una casilla marcada significa que se terminó exactamente el paso escrito. En el checklist general, significa integrado y publicado. Dentro de una tarea abierta, una prueba aprobada puede tener ✓ aunque su publicación siga pendiente. Los resultados locales no se presentan como prueba de producción.
 
@@ -181,7 +181,10 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Respaldar el primer checkpoint **`769dd9ee`** en la [PR #313 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/313), sobre C1 final `d6bcd0e8`. Director cotejó base, cabeza, descripción y alcance; no es todavía la versión final de aceptación.
 - [x] Aprobar **29/29 pruebas SQL en PGlite**, sin omisiones, en la tercera pasada: conserva las fórmulas y permisos, reproduce tres contratos temporales anteriores y detecta mutaciones de fecha. Las dos pasadas previas fallaron por oráculos del arnés y se conservan; no se presentan como reproducciones funcionales válidas del error de fecha.
 - [x] Comprobar localmente **423 aserciones PostgreSQL y reversión de datos de prueba**, con las tres funciones existentes antes de aplicar 0500 y recarga sin reiniciar la API. El primer arnés falló después por falta de separadores al instrumentar el reloj; se reparó dentro del alcance. El segundo recorrido aprobó, pero su suplemento y la repetición desde un commit limpio todavía deben cotejarse antes de aceptar HTTP final.
-- [ ] Implementar después Caracas C2 para los cálculos anuales, con base final C1, árbol/owner propios y número de migración coordinado por inventario nuevo.
+- [x] Implementar Caracas C2 para los cálculos anuales y publicar el suplemento **`b30934a5`**. Las **223/223 pruebas en once archivos** aprobaron; incluyen treinta casos C2, sus controles SQL y las regresiones previas. Dos errores intencionales del caller también fueron detectados, con fuentes restauradas. No se suman con las corridas anteriores que se solapan.
+- [x] Aprobar la **API final desde `b30934a5` limpio**: 424 aserciones y reversión SQL, recarga observada sin reinicio, fórmulas/permisos conservados y páginas 500/500/202/0. El fallo anterior de separadores quedó corregido y cerrado por revisión independiente; los recibos identifican exactamente el script y contrato ejecutados.
+- [x] Revisar el suplemento publicado, tipos, revisión estática y metadatos; sin nuevo hallazgo material. Director autorizó la corrida general normal, con archivos congelados y sin modificar controles.
+- [ ] Completar la corrida general C2, cotejar sus bytes, omisiones, documentación y respaldo final; liberar sus recursos y propiedad antes de activar móvil. Su arranque y resultado se registran por separado.
 - [ ] Cerrar un slice posterior acotado de gastos móviles antes de certificar toda la hora Caracas: el caller activo conserva fechas UTC explícitas y guardas anteriores. Detectado y cotejado por lectura, fuera de las 68 rutas de C1; sin implementación ni autorización de datos reales.
 - [x] Preparar y revisar el diseño del slice móvil: siete rutas propuestas, sin bloqueante estructural ni nueva migración identificada. Conserva propiedad del gasto, fotos y datos al rechazar, y pone todas las guardas antes de modificar la evidencia. Base final, encargo y pruebas de implementación posteriores a C2 siguen pendientes.
 - [x] Preparar la matriz móvil de **37 escenarios y once controles propuestos**, por lectura del código: altas, edición, tenant único, cierres, historia del asiento, fecha visible y segundo envío del archivo. Las siete rutas siguen bastando; ninguna prueba móvil nueva se ha ejecutado todavía.
