@@ -34,7 +34,9 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 | Nuevos módulos | AUSENTES inicialmente; no se ejecutó import/ENOENT como rojo. |
 | Instalación congelada, baseline cron/UI | PASÓ GO01: bootstrap único, baseline válido2archivos/12casos/0omisiones sobre preimagenD. Primer shim falló en preparación antes de pruebas; recibo separado. |
 | Promoción/importación parse5 | PASÓ autoría mínima9cd35b1ef y enlace/importación GO01C: versión efectiva8.0.1 desde árbol propio,31fuentes sin cambios. Promociones offline GO01/01B FALLARON PREPARACIÓN por metadata, sin ROJO funcional ni red añadida. |
-| SQL/HTTP/contexto/SDK/fixtures/tests/mutantes/tipos/lint/build/verify | NO EJECUTADO. La autoría no certifica cumplimiento. |
+| SQL/HTTP/contexto/SDK | PASÓ gate acotado GO02: PG17.11/PostgREST14.17/SDK2.106.1, siete controles y 26 negativos DML. 24 rechazos sin efecto y 2 humanos user/rpc. No cubre el importador completo ni transporte amplio. |
+| Focal persistencia 0501 | PASÓ 10/10, 0 omisiones en f1061d2ea: contexto inicial/restaurado exigido, compatibilidad 0495, cuatro mutantes funcionales y rollback poscreación/catálogo en la misma DB. Intentos previos conservados, no sumados a cobertura. |
+| Parser/source/sync/route generales, UI, tipos/lint/build/verify | NO EJECUTADO. F01/F02/F03 siguen pendientes de ROJO válido y reparación posterior. |
 | Graphify/semántica/Archify/preview/publicación | NO EJECUTADO; único ciclo local tras documentos estables y turno del Director. Sin bóveda compartida. |
 | Producción/ledger/migración/cron instalado | NO EJECUTADO y no autorizado.0495 aplicada no se repite;0501 exige OK nominal futuro. |
 
@@ -57,7 +59,7 @@ Rama propia indicada arriba. PR todavía NO CREADA. Base futura exacta: `codex/s
 ## PENDIENTES DE ESTA TAREA
 
 - Reserva0501 completada localmente. Módulos/parser/source/sync/route, fixtures, SQL/contratos, driver pequeño y documentación autorados como candidatos; falta demostrar y corregir bajo turno. Cron/UI aún idénticos aD; package/lock solo promoción directa8.0.1.
-- Gate SQL/HTTP y restantes ejecuciones bajo turno futuro del Director. Peer SQL93a909 sin P0/P1 estáticos y con dos P2 obligatorios: DML HTTP negativo con efectos/eventos y mutante funcional del guard; fallo poscreación de instalación y cotejo del catálogo recuperado tras ROLLBACK en la mismaDB. Autoría permitida; ejecución pendiente.
+- Gate SQL/HTTP pequeño y focal0501 completados bajo GO02; resto B1–B19/R1–R14 y canónica pendientes. Dos P2 SQL medidos: negativos DML con efectos/eventos y mutante funcional del guard; rechazo después de ambosDDL y catálogo exacto tras ROLLBACK en la mismaDB. Parser/source conservan producto candidato hasta ROJOS F01/F02/F03 en turno funcional futuro.
 - Matriz SGE12 de producto con clasificación/evidencia real, no ascender matriz estática a conformidad.
 - Documentos finales, recibos de cierre nativos, ciclo único de conocimiento local, PR DRAFT, integridad y cleanup de recursos atribuibles; liberar claim solo al concluir escritura y cierre aceptado.
 
@@ -93,9 +95,23 @@ Dos incidentes de preparación corregidos, sin ejecución de producto: PowerShel
 
 ## PREPARACIÓN GO02 · 2026-10-21
 
+Estado anterior a ejecución; se conserva como registro fechado. Los recibos de cierre siguientes lo actualizan.
+
 GO02 `40d640bd1cc93506268899f861fefe034e5cd474ec03e2e4fb54f4cff07d16e6` concede gateHTTP pequeño y, solo tras positivo, focalpersistencia0501. Nuevos oráculos P2 autorados:13contextos negativos con INSERT/PATCH reales y lectura de tasa/eventos/contexto por entidad; sub humano válido user/rpc o rechazo, nunca job; mutante del guard de sub con huellas reaprobadas solo en fixture; instalación que falla después de ambosDDL y ROLLBACK explícito con comparación íntegra de pg_proc/tabla/triggers/cadena y capability ausente en la mismaDB. Todavía no son resultados ejecutados.
 
 Peer fuente `c1b4bb846fcfec5efec8d6095764778438ec6ba90bebbb4c211b9ecca0d76749` leído íntegro: F01 medianoche, F02 asociación de FechaValor y F03 cancelación diferida son P2 por lectura. Parser/source conservan el candidato93ac/9cd; primero oráculos y ROJO válido en otro turno funcional antes de corregir producto. Incluye pendientes comprimido real>1MiB,200tras1/2redirects, abort durantebody, presupuesto acumulado y teardown del deferred. GO02 no ejecuta esas focales ni cron/UI/canónica/conocimiento.
+
+## CIERRE GO02 · 2026-10-21
+
+Paquete externo `C:/tmp/director-traspaso-20261020/0569-bcv-validation/go02-cierre-01/go02-close.json`, SHA256 `b576deafdf8ab090696929d79fed5e19f1b60647e86a9d56b47564794e1635dc`. Turno pesado devuelto expresamente; claim conservado para autoría ligera. No selección 06 ni pruebas posteriores por documentación. Corrección de emisor be383666e se restituyó en 2cd0250fc sin ejecución entre ambos; árbol de producto/pruebas idéntico a f106 antes de este cierre documental.
+
+HTTP01 conservó siete controles y 26 negativos parciales, pero FALLÓ global por consultar el Set antes del evento close. Reparación fa2f0395 espera cada close y mantiene cero exigido. HTTP02 PASÓ exit 0: recibo `http-context-02/receipt.json`, SHA256 `aedb2f010fa9864f2ef7825f269cda3cbcd05c67f09e3c4bb415e9065e7b79d6`. Dentro del definer se midieron role service_role/current_user postgres/session_user authenticator/auth.uid NULL y claims sin sub; evento real SYSTEM/job, motivo DB y cuatro campos. 24 DML rechazados sin cambios y 2 humanos legítimos user/rpc, nunca job. CAS textual y microsegundos reales. GET no es lease ni atesta exclusividad del cron.
+
+Focal01: 5/10 pasaron, cinco casos no alcanzaron oráculo por permisos de recibo temporal. Focal02: misma cobertura incompleta; SET ROLE postgres rechazado sin nuevos grants. Diagnóstico03: 1 falló y 9 omitidos; contexto user/session authenticator, role none, authorization vacío, superuser off tras RESET; no se suma. 617b67cd captura/exige login inicial postgres/superuser on y restaura nominalmente la misma autorización antes de leer recibos. Focal04: 7/10 pasaron; oráculo temporal acoplado a sufijo +00 corregido en f1061d2ea por igualdad del instante timestamptz exacto con seis microsegundos, sin configurar zona. Focal05: 10/10 PASARON, 0 omisiones, 11.97 s; log SHA256 `ef104af239c431b82ab19a5ad0aaa954968cb4c9430a3ae35057f36cb84eba14`.
+
+El contexto inicial/restaurado fue capturado en SQL y exigido por las aserciones de `bcv-persistence.migration.test.ts:94–95`; console.info no apareció en el log nativo. No reconstruir un literal ni repetir por impresión. R2 provocó error después de reemplazar/crear, ejecutó ROLLBACK y comparó OID/owner/ACL/prosrc/tabla/triggers/append exactos y capability ausente en la misma DB. Cuatro mutantes llegaron a sus oráculos funcionales con huellas reaprobadas solo para fixture; 0495 y 0501 productiva permanecen intactas.
+
+Freeze por corrida: 41 entradas base en HTTP y 44 en focal (más setup/stub/metadata PGlite), 0 diferencias después de EXIT. 17 identidades PID+creationDate cotejadas sin vivos; cero terminaciones. HTTP02 cerró servidor/sockets/tareas, contenedores y red por ID/owner; puertos sin listeners. Observers de focal llegaron después de terminar y no se inventan descendientes no capturados. Cierre local acotado, sin promesa de terminación física universal ni conformidad global. No parser/source/sync/route generales, UI/browser, tipos/lint/build/verify/conocimiento/BCV remoto/producción por GO02.
 
 ## CONTRATOS ÍNTEGROS CONSERVADOS ANTES DE PRODUCTO
 
