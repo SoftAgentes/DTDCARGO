@@ -1,7 +1,7 @@
 /** Pure validation/projection. SQL remains the authority for identity, scope and locks. */
 import { validateAuditReason } from "../audit/reason";
 import type {
-  CloseManifestInput, ConfirmMembershipInput, GroupSelection, NormalActionState,
+  CloseManifestInput, ConfirmMembershipInput, FixedMeasures, GroupSelection, NormalActionState,
   NormalRpcError, NormalService, ObservedRates, ReceiptSelection,
 } from "./types";
 
@@ -154,6 +154,31 @@ export function observedRatesTotal(parts: readonly ObservedRates[]): {
   return { knownSubtotalCents: known.toString(), totalCents: complete && missing === 0 ? known.toString() : null, missing, complete };
 }
 
+/** Exact display of fixed source values; never a replacement for SQL totals. */
+export function sumFixedMeasures(parts: readonly FixedMeasures[]): FixedMeasures {
+  const scaled = (value: string, places: number): bigint => {
+    const match = value.match(/^([0-9]+)(?:\.([0-9]+))?$/);
+    if (!match || match[0] !== value || (match[2]?.length ?? 0) > places) throw new Error("Medidas incompletas.");
+    return BigInt(match[1]) * BigInt(10 ** places) + BigInt((match[2] ?? "").padEnd(places, "0"));
+  };
+  const decimal = (value: bigint, places: number): string => {
+    const digits = value.toString().padStart(places + 1, "0");
+    return `${digits.slice(0, -places)}.${digits.slice(-places)}`;
+  };
+  let cbm = BigInt(0); let weight = BigInt(0); let boxes = 0;
+  for (const part of parts) {
+    cbm += scaled(part.cbm, 3); weight += scaled(part.weightKg, 2); boxes += part.boxes;
+    if (!Number.isSafeInteger(boxes) || part.boxes < 0 || !Number.isSafeInteger(part.boxes)) throw new Error("Conteo de cajas incompleto.");
+  }
+  return { cbm: decimal(cbm, 3), weightKg: decimal(weight, 2), boxes };
+}
+
+export function formatObservedCents(cents: string): string {
+  if (!/^[0-9]+$/.test(cents)) throw new Error("La tarifa observada no es válida.");
+  const exact = BigInt(cents);
+  return `${(exact / BigInt(100)).toLocaleString("es-VE")},${(exact % BigInt(100)).toString().padStart(2, "0")} USD`;
+}
+
 export const LEGACY_COHORT_DENIAL = "Esta recepción o envío usa el manifiesto por cliente. Abre el contenedor para continuar.";
 
 const ERROR_MESSAGES: Readonly<Record<string, string>> = {
@@ -184,6 +209,6 @@ export function normalFlowError(error: NormalRpcError | null | undefined): strin
   return "No se pudo confirmar la operación. Conserva la referencia y revisa el manifiesto antes de reintentar.";
 }
 
-export function invalidMembershipState(fieldErrors: Record<string, string>): NormalActionState {
+export function invalidMembershipState<T = never>(fieldErrors: Record<string, string>): NormalActionState<T> {
   return { fieldErrors, error: "Revisa los campos indicados. La selección se conserva." };
 }

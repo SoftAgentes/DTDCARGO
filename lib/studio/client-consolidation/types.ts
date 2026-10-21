@@ -1,6 +1,7 @@
 /** SDD-0578: the prospective path is identified by a durable DB enrolment. */
 import type { ShipmentService, ShipmentStatus } from "../shipment-types";
 import type { EspacioCarga, Lote } from "@/lib/shared/estiba-plan";
+import type { ContainerStatus } from "../naviera/types";
 
 export type NormalService = Extract<ShipmentService, "consolidado_lcl" | "puerta_a_puerta_DDP">;
 export type MembershipOperation = "form" | "extend";
@@ -39,6 +40,7 @@ export type NormalReceipt = {
   blockedReason: string | null;
   shipmentId: string | null;
   groupId: string | null;
+  rate: { snapshotId: string; amountCents: string } | null;
 };
 
 export type NormalGroup = {
@@ -50,6 +52,7 @@ export type NormalGroup = {
   clientName: string | null;
   code: string;
   service: NormalService;
+  destinationId: string;
   destination: string;
   revision: number;
   status: ShipmentStatus;
@@ -62,7 +65,7 @@ export type NormalGroup = {
 export type NormalManifest = {
   containerId: string;
   revision: number;
-  status: string;
+  status: ContainerStatus;
   sealed: boolean;
   sealId: string | null;
   canConfirm: boolean;
@@ -181,6 +184,7 @@ export type NormalActionState<T = MembershipResult> = {
   result?: T;
   error?: string;
   fieldErrors?: Record<string, string>;
+  warning?: string;
 };
 
 export type NormalRpcError = { code?: string; message?: string; hint?: string | null };

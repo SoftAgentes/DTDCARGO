@@ -243,3 +243,123 @@ Lectura sí, edición no por esta lista: SQL históricos 0321/0336/0449/0477/048
 **Validación futura por capas, en el turno que entregue Director:** pruebas DB/unitarias/adaptadores/HTTP/contratos y mutantes; lint/tipos/diff-check/SDD/numeración/índice y gates aplicables; e2e y `/ui-check`; regresiones de contratos SQL que se componen y legacy; después receta canónica normal `pnpm verify` del SHA revisado, que ya incluye build. No repetir build/canónica por rutina. Registrar configuración/fuentes/lockfile/runners y bytecheck tras EXIT antes de actualizar docs. Mantener fixtures ficticias, DB/servicios loopback propios y evidencia externa del owner; nada de sesión productiva, credenciales reales, teléfonos/PII/media reales o afirmación de A11Y global. No escribir tests sólo de forma que imiten la implementación.
 
 No modificar scripts generales/configuración/invoice boundary para acomodar el cambio: el nuevo producto no introduce un lector nuevo de invoices. Si un gate detecta una dependencia real fuera de allowlist, registrar evidencia y decisión del Director antes de alterar. `migrations-applied` es gate de release separado; estado omitido/no disponible se conserva explícito, no se usa como motivo para aplicar producción o inventar verde.
+
+
+## Adopción Worker P1 — addendum acumulado55
+
+Leído íntegramente y cotejado por SHA256 `8dd76b80bb2de54580d69b6a6b43c12a65d983177d8fd47c9b52f39348eec69b` antes de editar las tres fixtures añadidas. Autoriza únicamente autoría P1 en 55 rutas; contratos 1939a047/4d976df8 intactos. Owner/raíz/rama y claim comprobados con guard. SQL0502 conserva fusible, cohorte OFF, BCV mantiene GO03. Pruebas y validación funcional: NO EJECUTADO.
+
+<!-- ADDENDUM55 DIRECTOR ÍNTEGRO INICIO -->
+# SDD-0578 — addendum Director: tres fixtures Naviera, 55 rutas
+
+21 de octubre de 2026. AUTORIZADO por Director sólo para autoría P1 del Worker vigente. Sustituye exclusivamente el límite acumulado52 por la unión literal55 de abajo. No concede ejecución de producto, turno pesado, nuevo permiso de negocio ni excepción normativa. SQL0502 conserva su fusible hasta implementación completa.
+
+Raíz `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0578-envios-cliente-camino-normal`; rama `codex/sdd-0578-envios-cliente-camino-normal`; owner `worker-0578normal-01a15a4e-ddf0-7d82-8656-d9dc56b58468`; baseD1 `1ec5e85f736b7826cf5b6e8781757dc4cf950733`; misma PR318 DRAFT y claim retenido. BCV conserva GO03/turno pesado; este addendum no lo transfiere.
+
+Se preservan íntegros `042-activacion-worker-0578-director.md`, SHA256 `1939a04752338b66bc5187961f8a1a216093dc6101fdb28771bec2efae607be4`, y `042-addendum-director-0578-52-rutas-tests-legacy.md`, SHA256 `4d976df8afbe3a21538b66e582b65fa7f191b6dd2edcae20d8cf88d1666d853e`. No reescribirlos ni ampliar otras rutas por comodidad.
+
+## Evidencia y decisión concreta
+
+Director leyó completa la nota independiente `0578-revision-fixtures-naviera-55-rutas-peer.md`, SHA256 `2f9051654fcca5c672d3803e7f3a3b8ef59f7ae937513cd1dc152ce762f27b8c`. El revisor leyó completas las tres fixtures por objetosD1; Director no atribuye a sí mismo esa lectura íntegra ni ejecución de pruebas. La necesidad es adaptación de preparación a metadata nueva explícita; no hay fallo funcional reproducido todavía.
+
+| Ruta añadida | BlobD1 / cobertura leída por el revisor |
+| --- | --- |
+| `app/studio/(app)/naviera/__tests__/zarpe-avanza-envios.test.ts` | `f4bd1cd26449edb9b8508df4eadd5c60f06ae2e5`,1–378 |
+| `app/studio/(app)/naviera/__tests__/ocultar-nombres-cn.test.tsx` | `94d0740a512a1b5998d08a801a8b8f01bde27304`,1–268 |
+| `app/studio/(app)/naviera/_components/__tests__/NavieraClient.avance.test.tsx` | `c1aa125f9d2a0db66852ff4142445d7267f0fa1a`,1–153 |
+
+Se permite adaptar exclusivamente sus dobles/props de metadata y las expectativas estrictas de lecturas nuevas previstas; no editar producto por estas tres rutas, dobles compartidos, permisos o gates para acomodarlas. Conservar los oráculos siguientes:
+
+1. **Zarpe/arribo:** misma RPC escritora y argumentos, estados/already/saltos, pieza sin envío, avisos exactos por tenant, conteo realmente programado, permisos Naviera/Tracking y errores42501/P0002/PGRST202/ilegible sin fan-out. Cierrelegacy no exige Tracking ni llama la RPC de avance y conserva aviso consolidated. El cliente mínimo del casoTracking también declara su metadata. Separar contador de lecturas del contador de escrituras; una consulta nueva no permite cambiar una sola RPC escritora por conteo laxo. Se puede precisar el título «sin RPC de avance» conservando el oráculo.
+2. **PrivacidadCN:** página/acción/redacción reales, nombres nominales sintéticos y colisión de marca de otrotenant se conservan. Examinar todas las props, incluida metadata nueva: cero nombres paraCN, ShippingMark y avisos redactados; VE conserva nombre/plan/bandera. AsignaciónCN deriva nombre del envío correcto o marca del mismotenant y guardaNULL si no lo conoce, nunca el nombre del browser. No vaciar fuentes ni reemplazar funciones reales por un éxito prefabricado. DrawerCN conserva ausencia de Cliente y explicación; VE conserva campo.
+3. **NavieraClient:** DTO real de lectura legacy exitosa/completa para identidad/ámbito correcto y mantenido al rerender. Conservar dos envíos distintos pese a piezas repetidas, pieza sin envío, diálogo antes del efecto, cero llamadas previas, una sola llamada con el contenedor y estado esperados, resumen persistente y botón de siguiente avance. Error de permiso permanece en diálogo sin resumen de éxito; no alterar respuesta preparada o introducir casts/bypasses para sortear guardas.
+4. **Frontera negativa obligatoria:** error/schema ausente, null/shape ilegible, incompletitud/ID omitido o tenant ajeno no habilitan legacy/OFF ni mutación/avisos de éxito. Probar la frontera efectiva en las pruebas de cohorte ya autorizadas o en estas fixtures; la UI conserva explicación visible sin drawerlegacy de fallback. OFF de altas nuevas no retira miembros ya enrolados ni convierte cohorte enlegacy. No inventar firma de DTO/RPC; usar la implementación revisable porSHA, sin aprobarla por este documento.
+5. Antes de aceptar el delta, cotejar preparación/metadata exactas y conservación de oráculos. Todas las pruebas nuevas/adaptadas y runtime siguen NO EJECUTADOS hasta su turno y recibos. Este addendum no acredita layout, A11Y, navegador, SQL o funcionamiento.
+
+## Allowlist acumulada literal:55 rutas únicas
+
+```text
+lib/studio/client-consolidation/types.ts
+lib/studio/client-consolidation/queries.ts
+lib/studio/client-consolidation/normal-flow.ts
+app/studio/(app)/naviera/_components/ConfirmarEnviosClienteDrawer.tsx
+app/studio/(app)/naviera/actions.ts
+app/studio/(app)/naviera/page.tsx
+app/studio/(app)/naviera/_components/NavieraClient.tsx
+app/studio/(app)/naviera/plan-actions.ts
+app/studio/(app)/cn/actions.ts
+app/studio/(app)/cn/page.tsx
+app/studio/(app)/cn/_components/AlmacenCnClient.tsx
+app/studio/(app)/cn/_components/ReceiptRowActions.tsx
+app/studio/(app)/tracking/[id]/actions.ts
+app/studio/(app)/tracking/[id]/page.tsx
+app/studio/(app)/tracking/[id]/_components/ShipmentDataPanel.tsx
+app/studio/(app)/tracking/[id]/_components/StateActionsPanel.tsx
+app/studio/(app)/tracking/[id]/_components/FooterActions.tsx
+app/api/studio/shipments/[id]/route.ts
+app/api/studio/shipments/[id]/events/route.ts
+app/studio/(app)/ve/actions.ts
+app/studio/(app)/ve/_components/VeRowActions.tsx
+app/m/cn/estibar/actions.ts
+app/m/cn/estibar/_components/EstibaClient.tsx
+lib/portal/portal-queries.ts
+lib/studio/rate-snapshots/types.ts
+lib/i18n/es-VE/warehouse.ts
+lib/i18n/zh-CN/warehouse.ts
+supabase/pending-migration-symbol-declarations.json
+supabase/migrations-baseline.json
+docs/specs/README.md
+.agents/handoffs/042-envio-cliente-camino-normal.md
+app/m/cn/estibar/[consolidationId]/page.tsx
+docs/specs/0578-envios-cliente-camino-normal/spec.md
+supabase/migrations/0502_consolidacion_cliente_camino_normal.sql
+supabase/tests/consolidacion_cliente_normal.test.sql
+supabase/tests/_consolidacion_cliente_normal_schema.sql
+lib/studio/client-consolidation/__tests__/normal-path.migration.test.ts
+scripts/check-client-consolidation-concurrency.mjs
+app/studio/(app)/naviera/__tests__/envios-cliente-actions.test.ts
+app/studio/(app)/naviera/_components/__tests__/ConfirmarEnviosClienteDrawer.test.tsx
+app/studio/(app)/cn/__tests__/consolidacion-cohorte.test.ts
+app/studio/(app)/naviera/__tests__/plan-carga-cohorte.test.ts
+app/studio/(app)/tracking/[id]/__tests__/cohorte-normal-actions.test.ts
+app/api/studio/shipments/[id]/__tests__/cohorte-normal.test.ts
+app/m/cn/estibar/__tests__/cohorte-pertenencia.test.ts
+app/studio/(app)/ve/__tests__/cohorte-normal.test.ts
+lib/portal/__tests__/envios-cohorte.test.ts
+lib/studio/rate-snapshots/__tests__/sin-facturar.test.ts
+app/studio/(app)/cn/__tests__/rate-snapshot-actions.test.ts
+e2e/consolidacion-clientes-camino-normal.spec.ts
+app/studio/(app)/cn/__tests__/delete-receipts-action.test.ts
+app/studio/(app)/cn/__tests__/create-receipt-code.test.ts
+app/studio/(app)/naviera/__tests__/zarpe-avanza-envios.test.ts
+app/studio/(app)/naviera/__tests__/ocultar-nombres-cn.test.tsx
+app/studio/(app)/naviera/_components/__tests__/NavieraClient.avance.test.tsx
+```
+
+## Adopción y límites
+
+Leer completo/cotejar hash y guardar adopción íntegra+hash en handoff/spec antes de editar las tres rutas añadidas. Conservar ownership, SDD0578 y SQL0502. Commits selectivos y push al mismo DRAFT autorizados; no git add-A ni cambio de base/main/árbol ajeno. El resto del contrato y addendum52 permanece vigente.
+
+Sin instalación, tests, tipos, lint amplio, DB/Docker, navegador, verify/build o conocimiento por este addendum. Sin main/merge/deploy/VPS/DBreal/PII/secretos/pagos/contactos/publicación compartida.0495 no se edita ni reaplica;0496/0502 no se aplican. CohorteOFF, sin historia/facturación4.3 ni caller/flagPODv2. Ninguna autorización nueva de actor/tenant o política global.
+
+<!-- ADDENDUM55 DIRECTOR ÍNTEGRO FIN -->
+
+## Checkpoint P1 — Naviera, cobertura explícita y límite POD A14
+
+Autoría adicional sobre `930e93ea87eeafc05dde7cdea0b44a572f29d190`, todavía sin ejecución de producto. La allowlist acumulada vigente es 55, con addendum íntegro y hash arriba. Las tres fixtures Naviera se adaptan sólo en preparación de metadata explícita y nuevas lecturas; sus oráculos de avance, errores, permisos, avisos, privacidad, diálogo y resumen permanecen. No se modifican dobles compartidos.
+
+Naviera: el drawer nuevo prepara selección por cliente o extensión de un único grupo; muestra manual S-, servicio/destino, fuentes/versiones, sumas fijas antes+delta+después y subtotal conocido/total pendiente. Sólo la confirmación final envía una intención durable; motivo/referencia/revisión se conservan ante error incierto y el bloqueo síncrono impide dos envíos simultáneos. El cierre revisa cobertura completa y sella, sin inferir estado de shipment. El plan usa entrada completa y versión máxima histórica, con replay de la referencia propia antes de derivar otra intención. La vista general limitada no se usa como prueba de pertenencia/cobertura de cohorte.
+
+La RPC de scope debe validar existencia y tenant de TODOS los IDs, rechazar nulos/duplicados/ajenos y devolver `complete:true` más `checked` exacto. El decoder compara conjuntos exactos y prohíbe cohortes fuera de checked. Un subconjunto cohorte vacío sólo habilita legacy después de esa cobertura explícita. Naviera requiere checked del contenedor concreto. Error, schema ausente, null, omisión, extra o incompletitud no equivalen a legacy/OFF ni generan aviso de éxito. Metadata no concede permisos; los writers conservan autoridad propia. OFF de altas no elimina marcas existentes. El lector de shipment verifica también su ID aunque `cohort:false`; el lector de manifiesto verifica el contenedor solicitado. La página minimiza nombres en metadata nueva con la redacción existente, además de la minimización DB.
+
+Para el camino normal, una asignación OD temprana de miembros previos impide seguir agregando o sellar ese manifiesto: queda fuera de los predecesores de esta vía y no se repara historia. Esa detección no revierte ni impide por sí misma una captura parcial válida. Tipo de contenedor queda fijo para conservar coherencia del plan; número físico mantiene su acción vigente. Son guardas de este protocolo prospectivo, no reglas globales sobre legacy.
+
+### Ratificación Director de POD: alcance A14
+
+Lectura aplicable conservada: `0024_dispatch_core.sql` filas 421–445: OD×receipt almacena boxes_total/boxes_shipped y motivo de fracción, no IDs físicos por fracción. `0072_fix_audit_entity_type.sql` función `operario_action`, rama partial_delivery 275–353: estado por fila, autoridad VE camionero/supervisor y OD en_ruta/entregada. `0336_pod_closes_shipment.sql`, `camionero_pod_registrar_v2` 48–296: captura POD y cierre calculado sólo dentro de la OD; MD5 normalizado de su cuerpo `52fedc4c33bc71b1483e7fb4192b4940`. `0300_pod_seal.sql` 1–238: evidencia sellada, hash y guardas append-only. El v1/caller/flag no se activa ni sustituye por este slice.
+
+Director acepta para P1 una guarda conservadora de cierre automático: sumar boxes_shipped de fracciones o duplicados de una recepción no acredita identidad no superpuesta de todas las cajas del sello. Una cobertura no unívoca conserva el POD parcial válido y su captura, con señal pendiente, sin cerrar automáticamente. No es una política global aprobada ni prueba de aceptación A14.
+
+Oráculo positivo requerido: miembros distintos en varias ODs; cada recepción aparece completa y única en el conjunto, cantidades coinciden con su roster fijo, todas las filas tienen estado entregado y evidencias POD selladas/válidas; sólo el último POD completo cierra una vez, con evento/hora/AUD atómicos y replay histórico. Oráculos negativos: miembro faltante, fracción o recepción duplicada aunque las sumas coincidan, estado pendiente/rechazado/retornado, POD faltante/ilegible/hash inválido, OD ajena o referencias incompatibles no acreditan cierre. Los casos de cobertura dudosa no deshacen una captura POD válida. Fallo real de evento/AUD de un cierre elegible revierte el cierre y sus efectos de esa transacción. Vía manual 0487 permanece separada, con autoridad actual y atestación explícita del grupo sellado completo; no se le exige inventar POD ni hecho físico no acreditado.
+
+Pendientes de esta tarea: composición efectiva POD/ACL, Portal/RLS, Tracking/API/VE y móvil, fixtures SQL/concurrencia y aceptación completa. Todos los tests nuevos/adaptados, SQL, DB, tipos, lint amplio, navegador/A11Y, build/verify y conocimiento siguen NO EJECUTADOS. SQL0502 mantiene fusible que aborta antes del DDL; rollout/cohorte OFF. No cierre de 4.2, integración, migración, producción o comprobación semántica.

@@ -4,8 +4,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   manualShipmentCodeError, membershipRpcArgs, normalizeManualShipmentCode,
   normalFlowError, observedRatesTotal, validateCloseManifestInput, validateMembershipInput,
+  formatObservedCents, sumFixedMeasures,
 } from "../normal-flow";
-import { readNormalContext, NormalReadError } from "../queries";
+import { readNormalAssociations, readNormalContext, readNormalShipment, NormalReadError } from "../queries";
 import type { NormalContextPage, NormalReceipt, ObservedRates } from "../types";
 
 const id = (n: number) => `00000000-0000-0000-0000-${n.toString(16).padStart(12, "0")}`;
@@ -78,6 +79,12 @@ const rates = (known: string, missing: string[] = [], complete = true): Observed
   missingReceiptIds: missing, knownSubtotalCents: known, totalCents: missing.length || !complete ? null : known, complete,
 });
 describe("observed rates never become a financial total by approximation", () => {
+  it("renders cents and fixed measures exactly without a floating point round trip", () => {
+    expect(formatObservedCents("9007199254740993")).toBe("90.071.992.547.409,93 USD");
+    expect(sumFixedMeasures([{ cbm: "1.125", weightKg: "100.25", boxes: 2 }, { cbm: "2.250", weightKg: "200.50", boxes: 3 }]))
+      .toEqual({ cbm: "3.375", weightKg: "300.75", boxes: 5 });
+    expect(() => sumFixedMeasures([{ cbm: "1.1251", weightKg: "100.25", boxes: 2 }])).toThrow();
+  });
   it("sums integer cents beyond the safe Number boundary exactly", () => {
     expect(observedRatesTotal([rates("9007199254740991"), rates("2")])).toEqual({
       knownSubtotalCents: "9007199254740993", totalCents: "9007199254740993", missing: 0, complete: true,
@@ -97,10 +104,38 @@ describe("observed rates never become a financial total by approximation", () =>
   });
 });
 
+describe("explicit membership scope coverage", () => {
+  const checked = () => ({ receiptIds: [id(100)], shipmentIds: [], containerIds: [id(50)], boxIds: [] });
+  const reply = () => ({ available: true, complete: true, checked: checked(), receiptIds: [], shipmentIds: [], containerIds: [], boxIds: [] });
+  const read = (data: unknown, error: unknown = null) => readNormalAssociations({ rpc: vi.fn().mockResolvedValue({ data, error }) } as unknown as SupabaseClient,
+    { receiptIds: [id(100)], containerIds: [id(50)] });
+  it("only classifies legacy after checking every requested entity in the current tenant", async () => {
+    expect(await read(reply())).toMatchObject({ available: true, complete: true, checked: checked(), receiptIds: [], containerIds: [] });
+  });
+  it.each([null, {}, { ...reply(), complete: false }, { ...reply(), checked: { ...checked(), receiptIds: [] } },
+    { ...reply(), checked: { ...checked(), containerIds: [id(51)] } }, { ...reply(), containerIds: [id(51)] },
+    { ...reply(), receiptIds: [id(100), id(100)] }])("rejects null/partial/omitted/foreign-shaped metadata %j", async (data) => {
+    await expect(read(data)).rejects.toBeInstanceOf(NormalReadError);
+  });
+  it("a foreign entity SQL denial or missing RPC cannot become legacy/OFF", async () => {
+    await expect(read(null, { code: "42501", message: "foreign" })).rejects.toBeInstanceOf(NormalReadError);
+    await expect(read(null, { code: "PGRST202", message: "missing" })).rejects.toMatchObject({ code: "missing_schema" });
+  });
+  it("does not silently collapse duplicated request identities", async () => {
+    const rpc = vi.fn();
+    await expect(readNormalAssociations({ rpc } as unknown as SupabaseClient, { containerIds: [id(50), id(50)] })).rejects.toBeInstanceOf(NormalReadError);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+  it("the shipment reader also requires the requested identity even for a negative cohort result", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: { shipmentId: id(51), cohort: false, complete: true, manifest: null }, error: null });
+    await expect(readNormalShipment({ rpc } as unknown as SupabaseClient, id(50))).rejects.toBeInstanceOf(NormalReadError);
+  });
+});
+
 const receipt = (n: number): NormalReceipt => ({ receiptId: id(n), receiptCode: `WR-${n}`, warehouseId: id(8),
   clientId: id(1), clientMarkbox: "DTD-1001", clientName: null, service: null, destination: null,
   measures: { cbm: "1.000", weightKg: "100.00", boxes: 1 }, sourceVersion: version, eligible: true,
-  blockedReason: null, shipmentId: null, groupId: null });
+  blockedReason: null, shipmentId: null, groupId: null, rate: null });
 const page = (receipts: NormalReceipt[], nextReceiptId: string | null, readToken = "complete-input"): NormalContextPage => ({
   availability: "ready", readToken, observedAt: "2026-10-21T14:00:00Z", manifest: null,
   destinations: [{ id: id(90), label: "Valencia · Carabobo · Valencia", destination: "Valencia" }], receipts, nextReceiptId,

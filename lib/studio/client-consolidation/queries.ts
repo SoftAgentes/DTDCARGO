@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isMissingNormalSchema, normalFlowError } from "./normal-flow";
+import { CONTAINER_STATUSES } from "../naviera/types";
 import type {
-  NormalContext, NormalContextPage, NormalManifest, NormalReceipt,
+  MembershipResult, NormalContext, NormalContextPage, NormalManifest, NormalMutationResult, NormalReceipt,
   NormalPlanInput, NormalRpcError, NormalShipmentContext, ObservedRates,
 } from "./types";
 
@@ -13,7 +14,10 @@ export class NormalReadError extends Error {
 }
 
 type NormalAssociations = {
-  available: boolean;
+  available: true;
+  complete: true;
+  /** Every requested entity was found in the authenticated tenant. */
+  checked: { receiptIds: string[]; shipmentIds: string[]; containerIds: string[]; boxIds: string[] };
   receiptIds: string[];
   shipmentIds: string[];
   containerIds: string[];
@@ -58,7 +62,7 @@ function isRates(value: unknown): value is ObservedRates {
 
 function isManifest(value: unknown): value is NormalManifest {
   if (!object(value) || typeof value.containerId !== "string" || !whole(value.revision)
-    || typeof value.status !== "string" || typeof value.sealed !== "boolean"
+    || !CONTAINER_STATUSES.some((status) => status === value.status) || typeof value.sealed !== "boolean"
     || !(value.sealId === null || typeof value.sealId === "string")
     || typeof value.canConfirm !== "boolean" || typeof value.canClose !== "boolean"
     || !strings(value.expectedBoxIds) || !strings(value.stowedBoxIds) || !strings(value.missingBoxIds)
@@ -66,11 +70,26 @@ function isManifest(value: unknown): value is NormalManifest {
   if (!(value.currentPlan === null || (object(value.currentPlan) && typeof value.currentPlan.id === "string"
     && whole(value.currentPlan.version) && whole(value.currentPlan.manifestRevision)))) return false;
   return value.groups.every((group: unknown) => object(group)
-    && ["groupId", "shipmentId", "itemId", "clientId", "clientMarkbox", "code", "destination", "status"].every((key) => typeof group[key] === "string")
+    && ["groupId", "shipmentId", "itemId", "clientId", "clientMarkbox", "code", "destinationId", "destination", "status"].every((key) => typeof group[key] === "string")
     && (group.clientName === null || typeof group.clientName === "string")
     && ["consolidado_lcl", "puerta_a_puerta_DDP"].includes(String(group.service))
     && whole(group.revision) && strings(group.receiptIds) && strings(group.boxIds)
     && measures(group.measures) && isRates(group.rates));
+}
+
+export function membershipResult(value: unknown): MembershipResult | null {
+  if (!object(value) || !["confirmed", "replay"].includes(String(value.outcome)) || !["form", "extend"].includes(String(value.operation))
+    || typeof value.reference !== "string" || typeof value.occurredAt !== "string" || typeof value.containerId !== "string"
+    || !whole(value.containerRevision) || !Array.isArray(value.groups)) return null;
+  const manifest = { containerId: value.containerId, revision: value.containerRevision, status: "consolidando", sealed: false,
+    sealId: null, canConfirm: false, canClose: false, groups: value.groups, expectedBoxIds: [], stowedBoxIds: [], missingBoxIds: [],
+    unexpectedBoxIds: [], currentPlan: null };
+  return isManifest(manifest) ? value as MembershipResult : null;
+}
+
+export function mutationResult(value: unknown): NormalMutationResult | null {
+  return object(value) && ["closed", "transitioned", "recorded", "replay"].includes(String(value.outcome))
+    && typeof value.reference === "string" && typeof value.occurredAt === "string" ? value as NormalMutationResult : null;
 }
 
 function isReceipt(value: unknown): value is NormalReceipt {
@@ -78,6 +97,8 @@ function isReceipt(value: unknown): value is NormalReceipt {
     && ["clientId", "clientMarkbox", "clientName", "destination", "blockedReason", "shipmentId", "groupId"].every((key) => value[key] === null || typeof value[key] === "string")
     && (value.service === null || ["consolidado_lcl", "puerta_a_puerta_DDP"].includes(String(value.service)))
     && typeof value.eligible === "boolean"
+    && (value.rate === null || (object(value.rate) && typeof value.rate.snapshotId === "string"
+      && typeof value.rate.amountCents === "string" && /^[0-9]+$/.test(value.rate.amountCents)))
     && (value.measures === null || measures(value.measures));
 }
 
@@ -107,6 +128,10 @@ export async function readNormalContext(supabase: SupabaseClient, containerId: s
     if (error) throw new NormalReadError(normalFlowError(error), isMissingNormalSchema(error) ? "missing_schema" : "unavailable");
     const current = page(data);
     if (!current) throw new NormalReadError("No se pudo leer el manifiesto completo.", "incomplete");
+    if ((current.manifest !== null && current.manifest.containerId !== containerId)
+      || (current.availability === "off" && (current.manifest !== null || current.receipts.length > 0))) {
+      throw new NormalReadError("La lectura no corresponde al contexto completo solicitado.", "incomplete");
+    }
     if (first && (current.readToken !== first.readToken || current.availability !== first.availability)) {
       throw new NormalReadError("La carga cambió durante la lectura. Actualiza el manifiesto.", "incomplete");
     }
@@ -131,17 +156,27 @@ export async function readNormalAssociations(
   supabase: SupabaseClient,
   ids: { receiptIds?: readonly string[]; shipmentIds?: readonly string[]; containerIds?: readonly string[]; boxIds?: readonly string[] },
 ): Promise<NormalAssociations> {
-  const { data, error } = await supabase.rpc("client_consolidation_scope", {
-    p_receipt_ids: [...new Set(ids.receiptIds ?? [])].sort(),
-    p_shipment_ids: [...new Set(ids.shipmentIds ?? [])].sort(),
-    p_container_ids: [...new Set(ids.containerIds ?? [])].sort(),
-    p_box_ids: [...new Set(ids.boxIds ?? [])].sort(),
-  });
+  if ([ids.receiptIds, ids.shipmentIds, ids.containerIds, ids.boxIds].some((values) => values !== undefined && !strings(values))) {
+    throw new NormalReadError("La consulta de pertenencia contiene identidades repetidas o inválidas.", "incomplete");
+  }
+  const requested = { receiptIds: [...new Set(ids.receiptIds ?? [])].sort(), shipmentIds: [...new Set(ids.shipmentIds ?? [])].sort(),
+    containerIds: [...new Set(ids.containerIds ?? [])].sort(), boxIds: [...new Set(ids.boxIds ?? [])].sort() };
+  const { data, error } = await supabase.rpc("client_consolidation_scope", { p_receipt_ids: requested.receiptIds,
+    p_shipment_ids: requested.shipmentIds, p_container_ids: requested.containerIds, p_box_ids: requested.boxIds });
   // Missing RPC can also mean stale PostgREST metadata while enrolled rows do
   // exist. Never fall through to C-/OV or a generic writer on that uncertainty.
   if (isMissingNormalSchema(error)) throw new NormalReadError(normalFlowError(error), "missing_schema");
   if (error) throw new NormalReadError(normalFlowError(error), "unavailable");
-  if (!object(data) || data.available !== true || !["receiptIds", "shipmentIds", "containerIds", "boxIds"].every((key) => strings(data[key]))) {
+  const keys = ["receiptIds", "shipmentIds", "containerIds", "boxIds"] as const;
+  const checked = object(data) && object(data.checked) ? data.checked : null;
+  if (!object(data) || data.available !== true || data.complete !== true || !checked
+    || !keys.every((key) => {
+      const cohort = data[key];
+      const covered = checked[key];
+      return strings(covered) && strings(cohort)
+        && covered.length === requested[key].length && covered.every((id) => requested[key].includes(id))
+        && cohort.every((id) => requested[key].includes(id));
+    })) {
     throw new NormalReadError("No se pudo comprobar la pertenencia de la carga.", "incomplete");
   }
   return data as NormalAssociations;
@@ -155,12 +190,24 @@ export async function readNormalShipment(supabase: SupabaseClient, shipmentId: s
     || !(data.manifest === null || isManifest(data.manifest))) {
     throw new NormalReadError("No se pudo leer la pertenencia completa del envío.", "incomplete");
   }
+  if (data.shipmentId !== shipmentId || (!data.cohort && data.manifest !== null)) {
+    throw new NormalReadError("La pertenencia no corresponde al envío solicitado.", "incomplete");
+  }
   if (!data.cohort) return { cohort: false, group: null, manifest: null, complete: true };
   const manifest = data.manifest as NormalManifest | null;
   const group = manifest?.groups.find((g) => g.shipmentId === shipmentId);
   if (!manifest || !group) throw new NormalReadError("Falta la identidad completa del envío por cliente.", "incomplete");
   // The shipment reader only returns this client's group, never neighbouring identities.
   return { cohort: true, group, manifest, complete: true };
+}
+
+export async function readNormalManifest(supabase: SupabaseClient, containerId: string): Promise<NormalManifest> {
+  const { data, error } = await supabase.rpc("client_consolidation_manifest", { p_container_id: containerId });
+  if (error) throw new NormalReadError(normalFlowError(error), isMissingNormalSchema(error) ? "missing_schema" : "unavailable");
+  if (!object(data) || data.complete !== true || !isManifest(data.manifest) || data.manifest.containerId !== containerId) {
+    throw new NormalReadError("No se pudo leer el manifiesto completo del contenedor.", "incomplete");
+  }
+  return data.manifest;
 }
 
 export function normalReadMessage(error: unknown): string {

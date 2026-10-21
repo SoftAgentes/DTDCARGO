@@ -83,7 +83,8 @@ function detalle(status: Consolidation["status"]): ConsolidationDetail {
   return { consolidation, items, stats: containerStats(items, "40HC") };
 }
 
-function vista(status: Consolidation["status"]) {
+const legacyRead = { available: true, checkedContainerIds: ["con-1"], containerIds: [], manifests: {}, errors: {} };
+function vista(status: Consolidation["status"], normal = legacyRead) {
   return (
     <NavieraClient
       sailings={[]}
@@ -94,6 +95,7 @@ function vista(status: Consolidation["status"]) {
       ports={[]}
       containerTypes={[]}
       kpis={{ consolidating: 0, looseCbm: 0, looseCount: 0, openSailings: 0 }}
+      normal={normal}
     />
   );
 }
@@ -149,5 +151,16 @@ describe("NavieraClient · zarpe con sus envíos", () => {
     expect(mocks.change).toHaveBeenCalledWith("con-1", "arribado");
     expect(screen.getByRole("dialog")).toHaveTextContent("No tienes permiso para cambiar el estado de este contenedor.");
     expect(screen.queryByRole("region", { name: /Resumen del/ })).toBeNull();
+  });
+  it.each([
+    { available: false, checkedContainerIds: [], containerIds: [], manifests: {}, errors: { scope: "No se pudo comprobar la pertenencia" } },
+    { available: true, checkedContainerIds: [], containerIds: [], manifests: {}, errors: {} },
+    { available: true, checkedContainerIds: ["otro-contenedor"], containerIds: [], manifests: {}, errors: {} },
+  ])("una lectura fallida/incompleta/ajena no habilita el detalle legacy ni su avance", (normal) => {
+    render(vista("cerrado", normal));
+    expect(screen.queryByRole("button", { name: "Marcar zarpado" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Asignar carga" })).not.toBeInTheDocument();
+    expect(screen.getByText("Pertenencia no disponible")).toBeInTheDocument();
+    expect(mocks.change).not.toHaveBeenCalled(); expect(mocks.toastSuccess).not.toHaveBeenCalled();
   });
 });

@@ -605,7 +605,7 @@ create function dtd_client_normal.group_json(p_group uuid, p_names boolean, p_ob
 language sql stable security definer set search_path = '' as $fn$
   select jsonb_build_object('groupId',g.id,'shipmentId',g.shipment_id,'itemId',g.item_id,
     'clientId',g.client_id,'clientMarkbox',g.client_markbox,'clientName',case when p_names then s.client_name else null end,
-    'code',s.code,'service',g.service,'destination',g.destination,'revision',g.revision,'status',s.status,
+    'code',s.code,'service',g.service,'destinationId',g.destination_id,'destination',g.destination,'revision',g.revision,'status',s.status,
     'receiptIds',coalesce((select jsonb_agg(m.receipt_id order by m.receipt_id) from dtd_client_normal.members m where m.group_id=g.id),'[]'::jsonb),
     'boxIds',coalesce((select jsonb_agg(b.box_id order by b.box_id) from dtd_client_normal.member_boxes b
       join dtd_client_normal.members m on m.receipt_id=b.receipt_id where m.group_id=g.id),'[]'::jsonb),
@@ -650,7 +650,12 @@ begin
     where p.consolidation_id=p_container and p.is_current and p.deleted_at is null;
   return jsonb_build_object('containerId',p_container,'revision',coalesce(v_meta.revision,0),'status',v_c.status,
     'sealed',v_meta.seal_id is not null,'sealId',v_meta.seal_id,
-    'canConfirm',dtd_client_normal.can_form(v_c.tenant_id),'canClose',dtd_client_normal.module_allowed(v_c.tenant_id,'naviera',true),
+    'canConfirm',dtd_client_normal.can_form(v_c.tenant_id) and v_c.status='consolidando' and v_meta.seal_id is null
+      and (v_c.requested_by_operario_id is null or v_c.authorized_at is not null)
+      and (v_meta.container_id is not null or (not exists(select 1 from public.consolidation_items where consolidation_id=p_container)
+        and not exists(select 1 from public.consolidation_plans where consolidation_id=p_container)
+        and not exists(select 1 from public.consolidation_box_positions where consolidation_id=p_container))),
+    'canClose',dtd_client_normal.module_allowed(v_c.tenant_id,'naviera',true),
     'groups',coalesce((select jsonb_agg(dtd_client_normal.group_json(g.id,dtd_client_normal.can_see_names(g.tenant_id),v_now) order by g.created_at,g.id)
       from dtd_client_normal.groups g where g.container_id=p_container and (p_group is null or g.id=p_group)),'[]'::jsonb),
     'expectedBoxIds',v_expected,'stowedBoxIds',v_stowed,'missingBoxIds',v_missing,'unexpectedBoxIds',v_unexpected,'currentPlan',v_plan);
@@ -666,6 +671,7 @@ language sql stable security definer set search_path = '' as $fn$
     'measures',case when r.total_cbm>0 and r.total_weight_kg>=0 and r.boxes>0 then
       jsonb_build_object('cbm',r.total_cbm::text,'weightKg',r.total_weight_kg::text,'boxes',r.boxes) else null end,
     'sourceVersion',dtd_client_normal.receipt_version(r.id),'shipmentId',r.shipment_id,'groupId',m.group_id,
+    'rate',case when s.id is null then null else jsonb_build_object('snapshotId',s.id,'amountCents',trunc(s.amount_to_invoice*100)::text) end,
     'eligible',coalesce(m.receipt_id is null and r.shipment_id is null and r.status::text='pendiente_consolidacion'
       and not r.is_orphan and r.total_cbm>0 and r.total_weight_kg>=0 and r.boxes>0
       and dtd_client_normal.strict_client(r.tenant_id,r.client_markbox) is not null
@@ -697,7 +703,26 @@ begin
     or dtd_client_normal.module_allowed(v_tenant,'ve',false)
     or dtd_client_normal.module_allowed(v_tenant,'cn',true) or dtd_client_normal.module_allowed(v_tenant,'naviera',true)
     or dtd_client_normal.module_allowed(v_tenant,'tracking',true) or dtd_client_normal.module_allowed(v_tenant,'ve',true)) then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
-  return jsonb_build_object('available',true,
+  -- An empty cohort subset is meaningful only after ALL requested entities
+  -- have been classified in this tenant. Absent/foreign IDs never mean legacy.
+  if cardinality(p_receipt_ids) is distinct from (select count(distinct id) from unnest(p_receipt_ids) q(id))
+    or cardinality(p_shipment_ids) is distinct from (select count(distinct id) from unnest(p_shipment_ids) q(id))
+    or cardinality(p_container_ids) is distinct from (select count(distinct id) from unnest(p_container_ids) q(id))
+    or cardinality(p_box_ids) is distinct from (select count(distinct id) from unnest(p_box_ids) q(id)) then
+    perform dtd_client_normal.fail('NORMAL_INCOMPLETE');
+  end if;
+  if exists(select 1 from unnest(p_receipt_ids) q(id) where not exists(select 1 from public.warehouse_receipts_cn r where r.id=q.id and r.tenant_id=v_tenant))
+    or exists(select 1 from unnest(p_shipment_ids) q(id) where not exists(select 1 from public.shipments s where s.id=q.id and s.tenant_id=v_tenant))
+    or exists(select 1 from unnest(p_container_ids) q(id) where not exists(select 1 from public.consolidations c where c.id=q.id and c.tenant_id=v_tenant))
+    or exists(select 1 from unnest(p_box_ids) q(id) where not exists(select 1 from public.warehouse_boxes b where b.id=q.id and b.tenant_id=v_tenant)) then
+    perform dtd_client_normal.fail('NORMAL_FORBIDDEN');
+  end if;
+  return jsonb_build_object('available',true,'complete',true,
+    'checked',jsonb_build_object(
+      'receiptIds',coalesce((select jsonb_agg(q.id order by q.id) from (select distinct unnest(p_receipt_ids) id) q),'[]'::jsonb),
+      'shipmentIds',coalesce((select jsonb_agg(q.id order by q.id) from (select distinct unnest(p_shipment_ids) id) q),'[]'::jsonb),
+      'containerIds',coalesce((select jsonb_agg(q.id order by q.id) from (select distinct unnest(p_container_ids) id) q),'[]'::jsonb),
+      'boxIds',coalesce((select jsonb_agg(q.id order by q.id) from (select distinct unnest(p_box_ids) id) q),'[]'::jsonb)),
     'receiptIds',coalesce((select jsonb_agg(r.receipt_id order by r.receipt_id) from dtd_client_normal.receipts r
       where r.tenant_id=v_tenant and r.receipt_id=any(p_receipt_ids)),'[]'::jsonb),
     'shipmentIds',coalesce((select jsonb_agg(g.shipment_id order by g.shipment_id) from dtd_client_normal.groups g
@@ -745,7 +770,16 @@ begin
   if v_last is not null and exists(select 1 from dtd_client_normal.receipts r join public.warehouse_receipts_cn s on s.id=r.receipt_id
     where r.tenant_id=v_tenant and s.deleted_at is null and r.receipt_id>v_last) then v_next:=v_last; end if;
   return jsonb_build_object('availability',case when v_ready then 'ready' else 'off' end,'readToken',v_token,
-    'observedAt',clock_timestamp(),'manifest',v_manifest,'destinations',v_destinations,'receipts',v_receipts,'nextReceiptId',v_next);
+    'observedAt',clock_timestamp(),'manifest',case when v_ready then v_manifest else null end,'destinations',v_destinations,'receipts',v_receipts,'nextReceiptId',v_next);
+end $fn$;
+
+create function public.client_consolidation_manifest(p_container_id uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $fn$
+declare v_tenant uuid:=public.get_user_tenant_id();
+begin
+  if not dtd_client_normal.module_allowed(v_tenant,'naviera',false) or not exists(select 1 from dtd_client_normal.containers
+    where container_id=p_container_id and tenant_id=v_tenant) then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
+  return jsonb_build_object('complete',true,'manifest',dtd_client_normal.manifest_json(p_container_id));
 end $fn$;
 
 create function public.client_consolidation_shipment(p_shipment_id uuid) returns jsonb
@@ -758,7 +792,7 @@ begin
     perform dtd_client_normal.fail('NORMAL_FORBIDDEN');
   end if;
   select * into v_group from dtd_client_normal.groups g where g.shipment_id=p_shipment_id and g.tenant_id=v_tenant;
-  return jsonb_build_object('cohort',v_group.id is not null,'complete',true,
+  return jsonb_build_object('shipmentId',p_shipment_id,'cohort',v_group.id is not null,'complete',true,
     'manifest',case when v_group.id is null then null else dtd_client_normal.manifest_json(v_group.container_id,v_group.id) end);
 end $fn$;
 
@@ -835,6 +869,9 @@ begin
   if found then
     if v_meta.seal_id is not null then perform dtd_client_normal.fail('NORMAL_SEALED'); end if;
     if v_meta.revision<>p_expected_revision then perform dtd_client_normal.fail('NORMAL_CONFLICT'); end if;
+    if exists(select 1 from dtd_client_normal.groups g join dtd_client_normal.members m on m.group_id=g.id
+      join public.dispatch_order_packages p on p.package_kind='warehouse_receipt_cn' and p.package_id=m.receipt_id
+      where g.container_id=p_container_id) then perform dtd_client_normal.fail('NORMAL_INCOMPATIBLE'); end if;
   else
     if p_operation<>'form' or p_expected_revision<>0
       or exists(select 1 from public.consolidation_items i where i.consolidation_id=p_container_id)
@@ -1113,7 +1150,7 @@ language plpgsql security definer set search_path = '' as $fn$
 begin
   if exists(select 1 from dtd_client_normal.containers c where c.container_id=old.id) then
     if tg_op='DELETE' or new.id is distinct from old.id or new.tenant_id is distinct from old.tenant_id
-      or new.deleted_at is distinct from old.deleted_at then perform dtd_client_normal.fail('NORMAL_GOVERNED'); end if;
+      or new.deleted_at is distinct from old.deleted_at or new.container_type is distinct from old.container_type then perform dtd_client_normal.fail('NORMAL_GOVERNED'); end if;
     if new.status is distinct from old.status then
       if not (dtd_client_normal.authorized_context('close',old.id) and old.status='consolidando' and new.status='cerrado')
         and not (dtd_client_normal.authorized_context('naviera',old.id)
@@ -1154,6 +1191,9 @@ begin
   perform dtd_client_normal.assert_identity(p_container_id,false);
   if exists(select 1 from dtd_client_normal.groups g join public.shipments s on s.id=g.shipment_id where g.container_id=p_container_id and s.status::text<>'consolidating') then
     perform dtd_client_normal.fail('NORMAL_CONFLICT'); end if;
+  if exists(select 1 from public.dispatch_order_packages p join dtd_client_normal.members m on m.receipt_id=p.package_id
+    join dtd_client_normal.groups g on g.id=m.group_id where p.package_kind='warehouse_receipt_cn' and g.container_id=p_container_id) then
+    perform dtd_client_normal.fail('NORMAL_INCOMPATIBLE'); end if;
   v_manifest:=dtd_client_normal.manifest_json(p_container_id);
   if jsonb_array_length(v_manifest->'expectedBoxIds')=0 or jsonb_array_length(v_manifest->'missingBoxIds')<>0
     or jsonb_array_length(v_manifest->'unexpectedBoxIds')<>0 then perform dtd_client_normal.fail('NORMAL_COVERAGE'); end if;
@@ -1320,10 +1360,26 @@ create function public.client_consolidation_plan_input(p_container_id uuid) retu
 language plpgsql stable security definer set search_path = '' as $fn$
 declare v_tenant uuid:=public.get_user_tenant_id();
 begin
-  if not dtd_client_normal.module_allowed(v_tenant,'naviera',false)
+  if not (dtd_client_normal.module_allowed(v_tenant,'naviera',false) or dtd_client_normal.module_allowed(v_tenant,'naviera',true))
     or not exists(select 1 from dtd_client_normal.containers c where c.container_id=p_container_id and c.tenant_id=v_tenant) then
     perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
   return dtd_client_normal.plan_input(p_container_id);
+end $fn$;
+
+-- The existing plan action accepts target+reference, and captures the input on
+-- the server. A network replay must read that original result before capturing
+-- a newer input/version. The save RPC still rejects any changed full intent.
+create function public.client_consolidation_plan_replay(p_container_id uuid,p_reference uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $fn$
+declare v_tenant uuid:=public.get_user_tenant_id(); v_previous dtd_client_normal.intentions;
+begin
+  if v_tenant is null or auth.uid() is null then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
+  select * into v_previous from dtd_client_normal.intentions where tenant_id=v_tenant and reference=p_reference;
+  if not found then return null; end if;
+  if not dtd_client_normal.module_allowed(v_tenant,'naviera',false) then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
+  if v_previous.actor_id<>auth.uid() or v_previous.operation<>'plan'
+    or v_previous.intent->>'containerId' is distinct from p_container_id::text then perform dtd_client_normal.fail('NORMAL_INTENT_CONFLICT'); end if;
+  return jsonb_set(v_previous.result,'{outcome}','"replay"'::jsonb);
 end $fn$;
 
 create function dtd_client_normal.guard_plan() returns trigger

@@ -25,7 +25,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
+import { readNormalAssociations, readNormalContext, membershipResult, mutationResult, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
+import { LEGACY_COHORT_DENIAL, invalidMembershipState, membershipRpcArgs, normalFlowError,
+  validateCloseManifestInput, validateMembershipInput } from "@/lib/studio/client-consolidation/normal-flow";
+import type { MembershipResult, NormalActionState, NormalContext, NormalMutationResult } from "@/lib/studio/client-consolidation/types";
 import { readCanSeeClientNames } from "@/lib/studio/privacidad-cn";
 import { resolveClientNameByMarkbox } from "@/lib/studio/warehouse-cn-queries";
 import { notifyConsolidationAuthorizedToOperario } from "@/lib/studio/naviera/consolidation-request-notify";
@@ -624,6 +628,11 @@ export async function changeConsolidationStatus(
     return avanzarContenedor(supabase, consolidationId, status);
   }
 
+  try {
+    const scope = await readNormalAssociations(supabase, { containerIds: [consolidationId] });
+    if (scope.containerIds.length) return { error: LEGACY_COHORT_DENIAL };
+  } catch (error) { return { error: normalReadMessage(error) }; }
+
   const { error } = await supabase
     .from("consolidations")
     .update({ status })
@@ -864,6 +873,10 @@ export async function assignLooseCargo(
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
   // Leer el contenedor (tipo) + items actuales para el guard advisory.
+  try {
+    const scope = await readNormalAssociations(supabase, { containerIds: [consolidationId], shipmentIds: input!.shipmentId ? [input!.shipmentId] : [] });
+    if (scope.containerIds.length || scope.shipmentIds.length) return { error: LEGACY_COHORT_DENIAL };
+  } catch (error) { return { error: normalReadMessage(error) }; }
   const { data: consRow, error: consErr } = await supabase
     .from("consolidations")
     .select("id, container_type, status")
@@ -929,6 +942,14 @@ export async function removeConsolidationItem(itemId: string): Promise<Result> {
   const denial = await moduleEditDenial(supabase, "naviera");
   if (denial) return { error: denial };
 
+  const { data: item, error: itemError } = await supabase.from("consolidation_items").select("consolidation_id,shipment_id").eq("id", itemId)
+    .maybeSingle<{ consolidation_id: string; shipment_id: string | null }>();
+  if (itemError || !item) return { error: "No se pudo comprobar la pieza antes de retirarla." };
+  try {
+    const scope = await readNormalAssociations(supabase, { containerIds: [item.consolidation_id], shipmentIds: item.shipment_id ? [item.shipment_id] : [] });
+    if (scope.containerIds.length || scope.shipmentIds.length) return { error: LEGACY_COHORT_DENIAL };
+  } catch (error) { return { error: normalReadMessage(error) }; }
+
   const { error } = await supabase
     .from("consolidation_items")
     .delete()
@@ -936,4 +957,54 @@ export async function removeConsolidationItem(itemId: string): Promise<Result> {
   if (error) return { error: `No se pudo quitar la pieza: ${error.message}` };
   revalidate();
   return { ok: true };
+}
+
+/** Complete dedicated read; the general Naviera table is not this universe. */
+export async function loadClientManifestAction(containerId: string): Promise<{ context?: NormalContext; error?: string }> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+  try { return { context: await readNormalContext(supabase, containerId) }; }
+  catch (error) { return { error: normalReadMessage(error) }; }
+}
+
+export async function confirmClientShipmentsAction(raw: unknown): Promise<NormalActionState<MembershipResult>> {
+  const parsed = validateMembershipInput(raw);
+  if (!parsed.input) return invalidMembershipState(parsed.fieldErrors ?? {});
+  const supabase = await createClient();
+  // RPC distinguishes a new write (effective CN+Naviera+Tracking) from an
+  // exact historical replay (current reading authority). No admin writer,
+  // browser tenant/actor or extra view requirement for write-only overrides.
+  const { data, error } = await supabase.rpc("client_consolidation_confirm", membershipRpcArgs(parsed.input));
+  if (error) return { error: normalFlowError(error) };
+  const result = membershipResult(data);
+  if (!result || result.reference !== parsed.input.reference || result.containerId !== parsed.input.containerId) {
+    return { error: "No se pudo comprobar la respuesta. Conserva la referencia y consulta el estado actual antes de reintentar." };
+  }
+  revalidate(); revalidatePath("/studio/cn"); revalidatePath("/studio/tracking");
+  return { ok: true, result };
+}
+
+export async function closeClientManifestAction(raw: unknown): Promise<NormalActionState<NormalMutationResult>> {
+  const parsed = validateCloseManifestInput(raw);
+  if (!parsed.input) return invalidMembershipState(parsed.fieldErrors ?? {});
+  const supabase = await createClient();
+  const input = parsed.input;
+  const { data, error } = await supabase.rpc("client_consolidation_close", { p_container_id: input.containerId,
+    p_expected_revision: input.expectedContainerRevision, p_reference: input.reference, p_reason: input.reason });
+  if (error) return { error: normalFlowError(error) };
+  const result = mutationResult(data);
+  if (!result || result.reference !== input.reference || result.containerId !== input.containerId) {
+    return { error: "No se pudo comprobar el cierre. Conserva la referencia y consulta el estado actual." };
+  }
+  let warning: string | undefined;
+  if (result.outcome === "closed") {
+    try {
+      const tenant = await resolveTenant(supabase);
+      if (!tenant) warning = "El cierre quedó registrado; no se pudo comprobar el aviso al cliente.";
+      else await scheduleConsolidationEvent(createAdminClient(), tenant, input.containerId, "consolidated");
+    } catch { warning = "El cierre quedó registrado; no se pudo confirmar el aviso al cliente."; }
+  }
+  revalidate();
+  return { ok: true, result, warning };
 }

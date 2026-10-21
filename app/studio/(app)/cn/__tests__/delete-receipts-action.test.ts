@@ -62,7 +62,7 @@ let doble: DoubleHandle;
 let userId: string | null = "user-1";
 let memberships: MembershipRow[] = [];
 let rpcReply: Reply | ((args: Record<string, unknown>) => Reply) = { data: [], error: null };
-let scopeReply: Reply = { data: null, error: null };
+let scopeReply: Reply | ((args: Record<string, unknown>) => Reply) = { data: null, error: null };
 /** Si se fija, el insert de items de la sesión falla con este mensaje. */
 let itemsError: string | null = null;
 
@@ -104,7 +104,12 @@ beforeEach(() => {
   memberships = [membresia("admin")];
   itemsError = null;
   rpcReply = { data: [fila(A, "WR-2026-0001", "deleted"), fila(B, "WR-2026-0002", "deleted")], error: null };
-  scopeReply = { data: { available: true, receiptIds: [], shipmentIds: [], containerIds: [], boxIds: [] }, error: null };
+  scopeReply = (args) => {
+    const ids = args.p_receipt_ids;
+    if (!Array.isArray(ids) || ids.some((id) => id !== A && id !== B)) return { data: null, error: { code: "42501", message: "outside fixture tenant" } };
+    return { data: { available: true, complete: true, checked: { receiptIds: ids, shipmentIds: [], containerIds: [], boxIds: [] },
+      receiptIds: [], shipmentIds: [], containerIds: [], boxIds: [] }, error: null };
+  };
 });
 
 describe("deleteReceiptsAction · sólo admin", () => {
@@ -196,7 +201,8 @@ describe("deleteReceiptsAction · la RPC decide", () => {
     expect(doble.writes).toEqual([]); expect(revalidatePathMock).not.toHaveBeenCalled();
   });
   it("un lote mixto con cohorte no borra el subconjunto legacy", async () => {
-    scopeReply = { data: { available: true, receiptIds: [A], shipmentIds: [], containerIds: [], boxIds: [] }, error: null };
+    scopeReply = { data: { available: true, complete: true, checked: { receiptIds: [A, B], shipmentIds: [], containerIds: [], boxIds: [] },
+      receiptIds: [A], shipmentIds: [], containerIds: [], boxIds: [] }, error: null };
     expect(await deleteReceiptsAction([A, B], "Recepciones de prueba")).toMatchObject({ errorCode: "cn_delete_blocked" });
     expect(doble.rpcCalls.map((call) => call.name)).toEqual([SCOPE_RPC]); expect(doble.writes).toEqual([]);
   });

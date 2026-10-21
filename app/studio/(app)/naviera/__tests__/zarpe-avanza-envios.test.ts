@@ -144,12 +144,21 @@ const rpcAvance: Rpc = (args, store) => {
 };
 
 let rpcCalls: Array<{ fn: string; args: unknown }>;
+let scopeCalls: Array<{ fn: string; args: unknown }>;
 let session: ReturnType<typeof dobleLectores>;
 let admin: ReturnType<typeof dobleLectores>;
 
 function montar(rpc: Rpc = rpcAvance) {
   rpcCalls = [];
+  scopeCalls = [];
   session = dobleLectores(tablas(), {
+    client_consolidation_scope: (args, store) => {
+      scopeCalls.push({ fn: "client_consolidation_scope", args });
+      const containers = args.p_container_ids;
+      if (!Array.isArray(containers) || containers.some((id) => !(store.consolidations ?? []).some((c) => c.id === id && c.tenant_id === T))) return fallo("42501");
+      return ok({ available: true, complete: true, checked: { receiptIds: [], shipmentIds: [], containerIds: containers, boxIds: [] },
+        receiptIds: [], shipmentIds: [], containerIds: [], boxIds: [] });
+    },
     advance_consolidation_governed: (args, store) => {
       rpcCalls.push({ fn: "advance_consolidation_governed", args });
       return rpc(args, store);
@@ -307,12 +316,13 @@ describe("permisos y fallos", () => {
     expect(rpcCalls).toEqual([]);
   });
 
-  it("cerrar el contenedor no exige Tracking ni pasa por la RPC", async () => {
+  it("cerrar el contenedor legacy no exige Tracking ni pasa por la RPC de avance", async () => {
     mocks.denial.mockImplementation(async (_s: unknown, mod: string) =>
       mod === "tracking" ? "No tienes permiso para realizar esta acción." : null);
     const r = await closeConsolidation("con-c");
     expect(r.ok).toBe(true);
     expect(rpcCalls).toEqual([]);
+    expect(scopeCalls).toEqual([{ fn: "client_consolidation_scope", args: { p_receipt_ids: [], p_shipment_ids: [], p_container_ids: ["con-c"], p_box_ids: [] } }]);
     expect(session.store.consolidations.find((c) => c.id === "con-c")?.status).toBe("cerrado");
     // El aviso «consolidated» de siempre, para el envío vivo del contenedor.
     expect(avisos()).toEqual([["consolidated", "c1"]]);
@@ -345,6 +355,8 @@ describe("el aviso sale por el mismo camino que Tracking", () => {
     // actualiza el estado e inserta el evento).
     const filaTracking = { ...envio("s1", "ENV-101", "in_warehouse") };
     mocks.session = {
+      rpc: async (name: string, args: Record<string, unknown>) => name === "client_consolidation_shipment" && args.p_shipment_id === "s1"
+        ? ok({ shipmentId: "s1", cohort: false, complete: true, manifest: null }) : fallo("PGRST202"),
       from(table: string) {
         const b = {
           select: () => b,
