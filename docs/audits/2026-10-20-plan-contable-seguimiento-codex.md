@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 3:56 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 4:00 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -248,7 +248,7 @@ La regla USD/USDT 1:1 ya está decidida. Los bolívares quedan para reportes. La
 ### Fase 2 · Integridad contable
 
 - [ ] **2.1 · Tasa única y conversión a dólares.** EN CURSO; pasos detallados arriba.
-- [ ] **2.2 · Asientos sin fallos silenciosos.** DISEÑO REVISADO: SDD-0575. Cinco decisiones guardadas en `8a614250`; implementación pendiente. Director aceptó para la futura asignación conservar la tasa desde el origen persistido y cambiar conjuntamente la captura sin referencia a decimal textual, con rechazo previo del formulario antiguo y sin fallback numérico. No es activación ni garantía de toda captura del ERP. Faltan capacidades, alcance final, composición y pruebas; no se corrige historia ni se elige una tasa nueva al reintentar.
+- [ ] **2.2 · Asientos sin fallos silenciosos.** DISEÑO REVISADO: SDD-0575. Cinco decisiones guardadas en `8a614250`; implementación pendiente. Director aceptó para la futura asignación conservar la tasa desde el origen persistido y cambiar conjuntamente la captura sin referencia a decimal textual, con rechazo previo del formulario antiguo y sin fallback numérico. También fijó **tres entregas A→B→C, con cierre de las escrituras antiguas en un segundo hito SQL dentro de C**, después de comprobar B y retirar versiones anteriores; A sigue preparatoria. La edición financiera de gasto deberá conservar gasto/asiento anteriores si falla su sustitución completa. No es activación ni garantía de toda captura del ERP. Firmas, capacidades, alcance final, composición y pruebas pendientes; no se corrige historia ni se elige una tasa nueva al reintentar.
 - [ ] **2.3 · Mayor en USD y equivalentes en bolívares para reportes.** PENDIENTE.
 - [ ] **2.4 · Candado del mayor, cuentas y asientos.** PENDIENTE.
 - [ ] **2.5 · Reverso contable al anular una factura.** EN REVISIÓN: SDD-0573, implementación guardada y reparación de los 14 hallazgos definida. Se conservará la cifra oficial facturada y se mostrará el ajuste por anulaciones al comparar meses; un asiento borrador debe revisarse antes de anular. Las correcciones y sus pruebas siguen pendientes.
