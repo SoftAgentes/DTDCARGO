@@ -1,6 +1,6 @@
 # Handoff · SDD-0572-b · Conversión anual USD compatible
 
-Estado vigente: **IMPLEMENTACIÓN LOCAL COMPLETA · candidato app en validación; cierre canónico y revisión financiera pendientes**.
+Estado vigente: **IMPLEMENTACIÓN Y REVISIÓN LOCAL COMPLETADAS; verify CIERRE INCOMPLETO (16/17); PR311 DRAFT; integración y release pendientes**.
 Base: a30d85859c788070ffc3459a29e389cab015c7eb. Claim adquirido y guard PASÓ.
 Owner: worker-0572b-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 Worktree: C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0572-conversor-usd-sql.
@@ -379,3 +379,196 @@ Autorizada por Director dentro de las41rutas, sobre app a734 y suplemento SQL
   preexistentes ya contrastadas contra a30. Revisión del nuevo candidato pendiente.
   Verify y suplemento visual se ejecutarán después de estabilizar estos P2;
   ninguna revisión previa de a734 se atribuye automáticamente a la reparación.
+
+## Cierre local del candidato 3b1de986 · 21 de octubre de 2026
+
+Producto, pruebas y SQL quedaron congelados en
+`3b1de9861de7bf15e614d89eb13cd2de6cb54fb0` durante el suplemento visual,
+la corrida canónica y knowledge:status. El cierre posterior solo modifica
+esta nota y la spec; su equivalencia de runtime se comprueba contra ese SHA.
+La base de revisión continúa siendo `a30d85859c788070ffc3459a29e389cab015c7eb`
+de #310. No se cambia a main ni se adelanta la integración coordinada.
+
+### Revisión y suplemento visual
+
+Los dos P2 quedaron cerrados por revisión independiente sobre 3b1de986, sin
+nuevo hallazgo material conocido. El revisor financiero leyó los consumidores
+y la evidencia; el revisor de contratos cotejó el transporte, SQL intacto y
+las regresiones. Ninguno de esos dictámenes sustituye las ejecuciones del
+Worker ni certifica producción. Informes externos en
+`C:/tmp/director-traspaso-20261020/`:
+
+- `0572b-revision-financiera-ui-candidato.md`, SHA256
+  `bce64a3d0aedff6087ba5bada0654a05ba2f84c77748a320b451023bf65eff45`.
+- `0572b-revision-contratos-app-candidato.md`, incluido el addendum E2E,
+  SHA256 `5d15310ffa1687798bd6fd456817e682773e5acd55ac2364963de44201973015`.
+- `0572b-revision-sql-validacion.md`, suplemento 0de aceptado, SHA256
+  `785facdd0307e76f66a376a008a3ffe590097ad4d600846cafebb77a009a9f4e`.
+
+La fixture `visual-fixture-p2/` usa los componentes reales y datos ficticios
+de 3b1de986: ocho combinaciones CRM y siete Portal. Comprueba nominal legítimo
+9876 con RPC anual fallida, ERP no disponible para convertido/identidad
+desconocida, shape inválido visible, null real vacío y principal válido con
+v2 inválida. Conserva capturas a390/1280 y claro/oscuro según cada caso.
+La primera inspección **FALLÓ** al esperar visible una sección que debía estar
+vacía para null, después de confirmar 13 casos. El suplemento espera attached
+y confirma los dos restantes: **PASÓ**. No se reetiqueta el primer recibo.
+El ajuste de colores de la fixture Portal fue del adaptador, no del producto.
+`summary.json`, `receipt-initial.json`, `receipt-supplement.json`,
+`readable-captures.json` y `source-hashes.json` conservan fuentes y límites.
+No es Studio/Portal autenticado real, zoom nativo200%, lector de pantalla ni
+auditoría WCAG integral. El Director aceptó esa evidencia acotada.
+
+### Corrida canónica completa, con cobertura incompleta
+
+`corepack pnpm verify` sobre 3b1de986 terminó con **exit0 real**, desde
+`2026-10-21T01:35:58.749Z` hasta `2026-10-21T02:02:55.354Z`:
+26min56.605s. Resultado literal: **CIERRE INCOMPLETO — 16/17 medidos;
+migrations-applied sin medir**. El ledger productivo es validación de release;
+su omisión no autoriza aplicar0498 ni invalida los contratos locales ejecutados.
+
+| Control | Resultado observado | Evidencia y límite |
+|---|---|---|
+| harness | PASÓ | 237/237, 0 omitidos; 93.7496091s. |
+| lint | PASÓ con advertencias | 0 errores, 15 warnings. Las dos advertencias de reloj en rutas modificadas ya se contrastaron con a30; no se atribuyen las otras a esta tarea sin auditoría. |
+| rsc-boundary | PASÓ | 1707 módulos; sin cruces prohibidos detectados. |
+| typecheck | PASÓ | Control canónico completo. |
+| edge-functions | PASÓ | Compilan las cuatro entradas. |
+| test | PASÓ con omisión | Primer intento:12538 aprobadas/1 omitida;876 archivos aprobados/1 omitido;524.90s. |
+| docs:check | PASÓ | Índice coherente, metadatos sin cambio. |
+| numbering | PASÓ | Sin colisión nueva; baseline histórico conservado. |
+| feature-constants | PASÓ | Seis banderas coinciden. |
+| components:check | PASÓ | Registro coherente. |
+| governance:check | PASÓ | Cápsula coherente; no sustituye matriz ni revisión. |
+| migrations-applied | NO EJECUTADO / SKIP | Sin URL/credenciales de producción; ningún acceso productivo para poner verde. |
+| pending-migration-symbols | PASÓ | 0 rojos,2 amarillos declarados y3 homónimos descartados. |
+| sql-tests | PASÓ | 247/247 contratos PostgreSQL efímero, incluido0498 vigente. |
+| schema-rebuild | PASÓ | 490 migraciones:472 aplicadas+18 ledger-only;219 tablas y2 tenants sintéticos. |
+| e2e | PASÓ con aviso según política vigente | 177 aprobadas,1 flaky recuperado,20 omitidas y1 error global de cierre;9.7min. No es una salida limpia de Playwright. |
+| build | PASÓ | Build de producción completo y tsconfig restaurado;30.5s corresponde solo a compilación Turbopack. |
+
+No hay tiempos individuales disponibles para todas las etapas en el log; no
+se inventan a partir de los polls. Evidencia bajo
+`C:/tmp/director-traspaso-20261020/0572b-codex-validation/`:
+`verify-candidate.log`, `verify-candidate-receipt.json` y resumen derivado
+`cierre-canonico-3b1.json`. Los dos primeros son los originales de la corrida.
+
+La unitaria omitida es el corpus real de proformas, condicionado a
+DOCUMENT_IMPORT_CORPUS. No se cargaron documentos comerciales para ejecutarla.
+Los20 SKIPs E2E corresponden a18 casos de comentarios/gastos/buscador/finiquito
+que requieren credenciales y fixtures aislados, y2 capturas del carrusel
+reservadas por diseño al proyecto Chromium. No son cobertura de esos journeys.
+
+El caso Chromium `e2e/auth.spec.ts:81` falló inicialmente con
+`page.goto: net::ERR_ABORTED` en el token sintético inválido y pasó su retry;
+se conserva como flaky. Playwright informó además
+`worker-17 process did not exit within 300000ms after stop, force-killed it`.
+El verificador heredado aceptó la salida no cero con `[OK] e2e (con aviso)`;
+no hubo timeout del watchdog ni repetición de la suite. La frase automática
+que lo atribuye a WebKit/Windows es texto del runner, **no un diagnóstico
+causal demostrado**. Política/configuración permanecen idénticas a la base.
+
+**JSON E2E original NO DISPONIBLE.** El capturador original por sondeo registró
+captures=[] y el archivo ya estaba ausente al comenzar build. El ciclo heredado
+lo elimina antes de cada intento, incluido build. No se reconstruyó ni repitió
+la suite. El observador auxiliar fs.watch **FALLÓ** por assertion `_wcsnicmp`
+en Node24/Windows; terminó y no alteró verify ni el producto. Su recibo
+`e2e-original-watch-receipt.json` se conserva como incidencia de captura
+separada, no como fallo de una prueba del conversor.
+
+### Recursos, conocimiento y entrega
+
+Sesión de verify cerrada y árbol limpio en3b1de986. Los recibos
+`cleanup-after-verify.json` y `cleanup-final-heavy.json` comprueban cero
+procesos propios conocidos, cero descendientes registrados con la misma
+identidad y cero listeners de las fixtures/E2E. Un PID antiguo de Vitest fue
+reutilizado por conhost del runtime CUA, con otro padre y fecha posterior:
+se identificó y no se intervino. Los recursos PostgreSQL/HTTP propios quedaron
+retirados; docker ps no mostró contenedores activos al cierre. Se conserva
+Docker Desktop por el uso compartido observado durante la tarea.
+
+`node scripts/knowledge-sync.mjs status` terminó exit0,02:04:16.896Z–
+02:06:23.173Z, pero **ok=false**. Es una comprobación de lectura completada,
+no un cierre verde de conocimiento. `knowledge-status.log`, su recibo y
+`knowledge-summary.json` registran por separado:
+
+- Guardado canónico: spec y handoff propios actualizados; integración pendiente.
+- Graphify0.9.61 estructural **INVALID**: no existe graph.json en este worktree;
+  4997 fuentes pendientes y3672 missing. No se copió el grafo de otra rama.
+- Cobertura semántica global **INVALID**,0/1325 verificados; piloto **PENDING**,
+  0/16. No se extrajo ni se presentó cobertura inexistente.
+- Archify **PENDING / NO DISPONIBLE**, falta runtime2.16.0 en el worktree.
+- Preview local **NO EJECUTADA**, faltan prerrequisitos de grafo/Archify;
+  regeneración masiva fuera de esta ventana autorizada.
+- Bóveda compartida **PENDING**, revisión registrada6da8aebc. Publicación y
+  revisión visible en Obsidian **NO EJECUTADAS** desde esta rama.
+
+El turno pesado se devolvió expresamente al Director a02:07:40Z, después de
+confirmar cero procesos propios de status. Restan únicamente documentación y
+Git; no nuevas suites ni reconstrucciones. El Director coordina recuperación
+de derivados y publicación después de integración sobre main comprobado.
+No se convierte ningún pendiente de esta nota en una política nueva.
+
+### OBJETIVO ORIGINAL
+
+Entregar la transición compatible anualUSD con subtotal exacto, contador y
+estado verdadero hasta Portal/Fidelización/Reportes/CRM, sin modificar v1,
+migraciones aplicadas ni datos reales, como PR en borrador revisable.
+
+### COMPLETADO
+
+Implementación local, regresiones rojas/verdes, mutantes, SQL/HTTP reales
+efímeros, UI sintética, dos reparaciones de revisión y cierre canónico con
+omisiones registradas.0498 conserva blob
+`5b302b5cad00529fcc5731aa570fd620794c4689` y SHA256
+`dbbae6fc8b61489acc0c1fa4ada2790ae992bcc834181ef7e9e8c0c612f85315`.
+
+### VALIDACIÓN
+
+La tabla anterior delimita17 controles; no sumar focales históricos como casos
+únicos. Los rojos y problemas de fixture/captura permanecen documentados.
+Integración, aplicación0498, pruebas con Auth/datos productivos y despliegue
+**NO EJECUTADOS**. CI remoto **NO DISPONIBLE como evidencia de aprobación**:
+las corridas de3b1de986 terminaron startup_failure; no se supone que el pago
+o el cambio de tarjeta haya habilitado Actions.
+
+### COMMITS
+
+f9cc1dd:SQL;3b74e42b:contrato temporal/HTTP;a734aa61:DTO/consumidores;
+0de51227:renombre privado;3b1de986:P2 CRM/Portal. El commit posterior de
+cierre será exclusivamente esta nota y la spec; su SHA final y equivalencia
+se conservan en Git/PR y `final-git-receipt.json` externo.
+
+### PR / BRANCH
+
+[PR311 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/311), rama
+`codex/sdd-0572-conversor-usd-sql`, base de revisión #310 en a30d8585.
+Publicar el cierre documental no autoriza merge ni release. El claim se libera
+al finalizar esa escritura/publicación; el recibo final confirma su resultado.
+
+### PENDIENTES DE ESTA TAREA
+
+Revisión del cierre documental por Director; CI recuperado; actualización de
+base/revalidación final según orden humano y dependencia0573; integración
+autorizada; paquete0498 desde SHA revisado, previa y OK nominal para release;
+ejecución de ledger/cache/Auth/journeys productivos solo con sus permisos.
+Recuperación de Graphify/Archify/preview y revisión visible de Obsidian en
+ventana coordinada. La SDD general sigue in-progress, no se declara aceptación
+íntegra mientras esas capas permanecen pendientes.
+
+### FUERA DE ALCANCE DETECTADO
+
+Se conservan el recorte de recompensa Portal reproducido contra a30 y los dos
+warnings de reloj CRM preexistentes. La causalidad del cierre de worker-17 no
+se resuelve aquí; tampoco se amplían timeout, política del runner, ni alcance
+de staging0540. Retiro de v1, KPI global único por cliente/lead,2.3/G,BCV/Caracas,
+impuestos, históricos y cambios de cuenta permanecen fuera del encargo.
+
+### HANDOFF AL DIRECTOR
+
+Validar el SHA documental final y su delta de dos rutas respecto de3b1de986;
+conservar PR311 DRAFT y la dependencia #310. El producto/SQL ya revisado no
+cambia. Usar los recibos originales para aprobación local y los permisos
+separados para integración/release. Owner histórico de esta tarea:
+worker-0572b-01a15a4e-ddf0-7d82-8656-d9dc56b58468; comprobar liberación efectiva
+en el recibo final/harness, no inferir liveness por el historial de esta nota.

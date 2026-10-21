@@ -15,9 +15,9 @@ confidencialidad: interno
 
 > La 2.1 del plan contable, segunda parte. La SDD-0569 creó el conversor canónico (`toUsd` en `lib/shared/fx.ts` y `to_usd` en la 0495) y la tabla `fx_rates`. Esta reemplaza las 13 implementaciones y las tasas fijas del código por ese conversor. **Aquí sí cambian cifras visibles.**
 
-**Estado: 0572-a IMPLEMENTADA Y REVISADA LOCALMENTE; COBERTURA CANÓNICA INCOMPLETA** (reglas A a F y completitud cambiaria). Producto `4dbdb21b`, [PR #310 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/310), después de integrar #301 desde main `d410ab2e` en `2df9d22d`. Verify terminó exit 0 con 14/17 controles medidos y tres omisiones críticas; no equivale a cierre verde completo ni a integración aprobada. La base original apilada fue `3d0c9028`; el diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). G queda para 2.3 y 0572-b inicia su transición compatible en rama separada, según la subsección b.
+**Estado: 0572-a IMPLEMENTADA Y REVISADA LOCALMENTE; COBERTURA CANÓNICA INCOMPLETA** (reglas A a F y completitud cambiaria). Producto `4dbdb21b`, [PR #310 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/310), después de integrar #301 desde main `d410ab2e` en `2df9d22d`. Verify terminó exit 0 con 14/17 controles medidos y tres omisiones críticas; no equivale a cierre verde completo ni a integración aprobada. La base original apilada fue `3d0c9028`; el diseño lo aprobó el Director el 2026-10-20 (sobre `da23a77f`). G queda para 2.3. 0572-b ya está implementada y revisada localmente en rama separada, con verify16/17 y PR311 en borrador, según su subsección.
 
-El primer cierre parcial de 0572-a en Codex el 2026-10-20 recibió turno exclusivo de validación y autorización para commits selectivos y push a la misma rama; entonces la PR esperaba la integración de #301. La retoma vigente se rige por la decisión siguiente. El estado general permanece `in-progress` porque la validación, integración y transición SQL 0572-b siguen abiertas.
+El primer cierre parcial de 0572-a en Codex el 2026-10-20 recibió turno exclusivo de validación y autorización para commits selectivos y push a la misma rama; entonces la PR esperaba la integración de #301. La retoma vigente se rige por la decisión siguiente. El estado general permanece `in-progress`: la validación local de a/b no sustituye CI, revalidación de la base final, integración, aplicación0498 ni las capas de conocimiento pendientes.
 
 El cierre parcial anterior esperó la reparación de #301. El Director confirmó ahora su integración y la aplicación/verificación de 0495: la retoma no edita ni reaplica SQL. Sam informó el rechazo de pago y aclaró que las 48 horas son la espera para cambiar la tarjeta, sin garantía de habilitación de Actions; los checks remotos no se presumen aprobados. La validación local y una PR en borrador están autorizadas; la integración final de 0572 debe revalidarse contra la base que incluya 0573 y conserva el orden coordinado por el Director.
 
@@ -591,6 +591,38 @@ reprodujeron en rojo y luego pasaron118pruebas de9archivos y10mutantes con
 restauración. SQL permanece idéntico a0de; tipos y lint34rutas pasaron exit0
 (dos advertencias de reloj preexistentes). Revisión, suplemento visual y
 verify del nuevo candidato siguen pendientes en este hito.
+
+Cierre local de b (21oct02:07UTC): producto/pruebas en
+`3b1de9861de7bf15e614d89eb13cd2de6cb54fb0`, base a30d8585 de #310,
+[PR311 DRAFT](https://github.com/SoftAgentes/DTDCARGO/pull/311). Revisiones
+independientes de SQL y app cerraron los dos P2 sin nuevo hallazgo material
+conocido; suplemento visual sintético de15 casos confirmado, preservando
+el primer fallo de fixture y sus límites. No es autenticación productiva.
+
+Verify canónico terminó exit0 entre01:35:58.749 y02:02:55.354Z:
+**CIERRE INCOMPLETO,16/17 medidos**, únicamente migrations-applied omitido
+por ausencia de credenciales de release. Pasaron harness237/237, tipos,
+fronteras,4EdgeFunctions,12538unitarias (1omitida de corpus real), documentos,
+gobernanza, símbolos,247contratosSQL, reconstrucción472+18ledger-only y build.
+Lint conserva15advertencias/0errores. E2E fue aceptado **con aviso** por la
+política heredada:177aprobadas,1flaky recuperado,20omitidas y1error global de
+cierre de proceso; no se atribuye causalidad WebKit/Windows por el mensaje
+automático. JSON E2E original **NO DISPONIBLE**; se conserva log, clasificación
+y fallo separado del capturador auxiliar, sin repetir suite ni cambiar gates.
+
+Producto/SQL no cambian en el cierre documental posterior.0498 conserva
+blob `5b302b5cad00529fcc5731aa570fd620794c4689`, probado en PostgreSQL17.11 y
+PostgREST14.17 con recarga caliente en el mismo proceso, además del canónico.
+Los recibos y la tabla17controles están en el handoff propio de b; no sumar
+focales solapados ni atribuir recibos históricos a otro hash.
+
+Conocimiento de este worktree: status terminó exit0 pero ok=false; Graphify
+estructural/semántica global INVALID (grafo ausente,0/1325verificados), piloto
+PENDING0/16, Archify runtime2.16.0 ausente. Preview/publicación/lectura visible
+Obsidian NO EJECUTADAS; no hubo regeneración masiva ni publicación compartida.
+Turno pesado devuelto tras cero procesos propios. Integración,CI,paquete/
+previa/OK nominal0498,release y recuperación de derivados siguen pendientes,
+coordinados por Director; ninguna aplicación de DB real ocurrió en b.
 
 ```text
 supabase/migrations/0498_annual_billing_fx_v2.sql
