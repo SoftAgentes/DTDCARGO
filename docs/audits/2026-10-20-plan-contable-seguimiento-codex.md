@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 2:47 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 2:57 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -10,7 +10,7 @@
 
 **Caracas C2 anual quedó entregado localmente en la PR #313 en borrador, final `0e630ede`:** **12.759 pruebas de aplicación al primer intento y una omitida**, más **249 contratos SQL, reconstrucción de 492 migraciones y construcción aprobadas**. Navegación: **177 aprobadas, una recuperada y 20 omitidas**, con aviso y original conservado. Mantiene **CIERRE INCOMPLETO, 16/17**, por historial productivo sin medir. El cierre documental, respaldo, integridad y liberación de propiedad están comprobados; 54 recibos coinciden por huella. Conserva los avisos, la primera corrida fallida y la atribución incierta de dos procesos. Conocimiento estructural y mapa actualizados; semántica y publicación compartida pendientes. Esto no acredita producción.
 
-**Ahora está activo Caracas C3, gastos móviles:** árbol y rama propios desde C2 final, propiedad y contrato guardados antes de producto. La preparación de fechas, guardas históricas y recuperación del formulario pasó revisión. Terminó la consulta del Director y **C3 ya tiene el turno para ejecutar sus pruebas iniciales y correcciones**; todavía no hay un resultado móvil verificado. Después sigue BCV. Push y PR funcionan; Actions sigue sin aprobación.
+**Ahora está activo Caracas C3, gastos móviles:** árbol y rama propios desde C2 final, propiedad y contrato guardados antes de producto. Las primeras pruebas reprodujeron **117 fallos de acciones, con 28 aprobadas**, y **13 fallos de interfaz, con ocho aprobadas**, en pasadas separadas. Fechas, guardas históricas, cierre durante envío, foco y pérdida del método de pago quedaron expuestos. El archivo necesita una medición independiente antes de afirmar que se pierde. El Worker continúa la corrección y conserva los errores del entorno de prueba aparte. Después sigue BCV. Push y PR funcionan; Actions sigue sin aprobación.
 
 **Cómo leerlo:** una casilla marcada significa que se terminó exactamente el paso escrito. En el checklist general, significa integrado y publicado. Dentro de una tarea abierta, una prueba aprobada puede tener ✓ aunque su publicación siga pendiente. Los resultados locales no se presentan como prueba de producción.
 
@@ -209,10 +209,13 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Revisar la decisión móvil de usar la RPC existente de tenant, sin parámetros de negocio y con resultado UUID escalar estricto. Su autorización, filtros y recuperación caben en las siete rutas, sin permisos nuevos. Es preparación documental aprobada, todavía sin implementación móvil.
 - [x] Revisar la asignación móvil y completar su lectura previa contra C2 final, conservando las siete rutas y los componentes reales. No se ejecutaron pruebas durante esa preparación.
 - [x] Crear el árbol y la rama **`codex/sdd-0576-fechas-caracas-movil`** desde **`0e630ede`**, comprobarlos y adoptar propiedad/contrato propios antes de producto. La consulta del Director terminó sin cambios en main y **el turno pesado ya pasó a C3**; sus resultados se marcarán al comprobarse.
-- [ ] Reproducir los problemas móviles con las acciones y formularios reales: fechas, historia contable, cierre durante envío, foco y segundo envío del archivo. Los errores del entorno de prueba se clasificarán aparte.
+- [x] Reproducir los primeros problemas móviles: acciones **117 fallidas y 28 aprobadas**; interfaz **13 fallidas y ocho aprobadas**, sin omisiones, sobre las acciones y componentes reales. Fechas, historia, cierre durante envío y foco tienen fallos funcionales. Los primeros errores del entorno de prueba se conservan aparte y no cuentan como defectos del producto.
+- [x] Revisar el fallo del segundo envío del formulario y corregir su diagnóstico: el detalle demuestra cambio de método **transferencia → efectivo**. No demuestra todavía pérdida del archivo; no se añadirá retención de foto si sus bytes y metadatos ya se conservan.
+- [ ] Comprobar por separado los bytes y metadatos del archivo en ambos envíos y en transporte nativo de navegador, sin volver a seleccionarlo.
 - [ ] Corregir el tramo móvil y comprobar sus regresiones, navegación, validación general y entrega en PR en borrador.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
+- [x] Volver a consultar el BCV a las **2:49 a. m. del 21**: HTTP 200 con TLS normal, bloque USD y Fecha Valor del 21 coherentes. HTML y recibo conservados por huella; el origen contiene otras fechas y el parser debe escoger el bloque correcto. Es observación pública, sin importador ni escritura de tasas.
 - [x] Revisar y aprobar el diseño acotado de la carga BCV: fecha exacta de hoy Caracas, decimal completo, protección de cambios concurrentes, ensayo sin escritura y respaldo manual. Reutiliza SDD-0569, 27 rutas propuestas al incluir el manifiesto de referencias pendientes, sin nueva migración. Todavía no existe importador ni agenda instalada.
 - [x] Contrastar las **27 rutas BCV** con treinta objetos de código y las dependencias instaladas. No se identificó una ampliación esencial: parser, cancelación, reintentos, auditoría y pruebas HTTP tienen una vía concreta. Todas las pruebas de esa implementación futura siguen sin ejecutar; no existe aún importador ni cron activo.
 - [ ] Implementar la carga diaria desde el BCV oficial y el respaldo manual.
