@@ -247,7 +247,7 @@ select pg_temp.assert_true((select count(*)=1 and bool_and(actor_type='system' a
   and before_data->>'rate'='883.39630000' and after_data->>'rate'='883.39630001')
   from entity_audit_log where entity_id='00000000-0000-4000-8000-000000000501' and event_type='exchange_rate_corrected'),
   'corrección R3 exacta sin note/set_by');
-select pg_temp.assert_true((select set_at::text like '%00.123456+00' from fx_rates
+select pg_temp.assert_true((select set_at=timestamptz '2026-10-21T07:00:00.123456Z' from fx_rates
   where id='00000000-0000-4000-8000-000000000501'), 'timestamp conserva microsegundos');
 
 set session authorization authenticator;
