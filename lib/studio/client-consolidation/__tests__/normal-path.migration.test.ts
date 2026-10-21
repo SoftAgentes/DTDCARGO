@@ -1,5 +1,10 @@
 /** SDD-0578. Authored in P1; execution is reserved for the coordinated P2 turn. */
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { PGlite } from "@electric-sql/pglite";
+import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   manualShipmentCodeError, membershipRpcArgs, normalizeManualShipmentCode,
@@ -161,4 +166,62 @@ describe("dedicated complete reader", () => {
     const rpc = vi.fn().mockResolvedValue({ data: null, error: { code: "PGRST202" } });
     await expect(readNormalContext({ rpc } as unknown as SupabaseClient, id(50))).rejects.toMatchObject({ code: "missing_schema" });
   });
+});
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
+const migrationName = "0502_consolidacion_cliente_camino_normal.sql";
+const migrationFile = resolve(root, "supabase/migrations", migrationName);
+const contractFile = resolve(root, "supabase/tests/consolidacion_cliente_normal.test.sql");
+
+/** Only literal local includes and ON_ERROR_STOP; unsupported metaorders fail. */
+function inlineContract(path: string, migration: string): string {
+  if (!path.startsWith(resolve(root, "supabase") + "/") && !path.startsWith(resolve(root, "supabase") + "\\")) {
+    throw new Error("SQL fixture include outside the owned supabase source tree");
+  }
+  const source = path === migrationFile ? migration : readFileSync(path, "utf8");
+  return source.split(/\r?\n/).map((line) => {
+    const include = line.match(/^\\ir\s+([^\s]+)\s*$/);
+    if (include) return inlineContract(resolve(dirname(path), include[1]), migration);
+    if (/^\\set ON_ERROR_STOP on\s*$/.test(line)) return "";
+    if (/^\\/.test(line)) throw new Error("Unsupported psql metaorder in SDD0578 fixture");
+    return line;
+  }).join("\n");
+}
+async function executeRealContract(migration: string): Promise<{ error: string | null; completed: boolean }> {
+  // Retained P1 fuse is a hard stop. This test must NOT delete it, skip it or
+  // call a second unaudited migration body to manufacture acceptance.
+  if (migration.includes("do $authoring_fuse$")) throw new Error("P1_FUSE_RETAINED: functional SQL awaits Director local GO and reviewed source removal");
+  const db = new PGlite({ extensions: { pgcrypto } });
+  try {
+    const results = await db.exec(inlineContract(contractFile, migration));
+    return { error: null, completed: results.some((result) => result.rows.some((row) =>
+      typeof row === "object" && row !== null && "result" in row && String(row.result).startsWith("SDD0578 SQL assertions: "))) };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "SQL contract unavailable", completed: false };
+  } finally { await db.close(); }
+}
+
+describe.sequential("SDD0578 real migration/ACL/RLS/AUD contract, one ephemeral connection", () => {
+  it("runs real0502 with the actual0496/0477/VE/POD guards and rolls synthetic data back", async () => {
+    const result = await executeRealContract(readFileSync(migrationFile, "utf8"));
+    expect(result.error).toBeNull(); expect(result.completed).toBe(true);
+  }, 300_000);
+  it("kills the material0321 collision mutant instead of losing the second group AUD", async () => {
+    const source = readFileSync(migrationFile, "utf8");
+    const anchor = "jsonb_build_object('request_ref',v_group_ref,'pod_request_ref',v_ref";
+    expect(source.split(anchor)).toHaveLength(2);
+    const result = await executeRealContract(source.replace(anchor, "jsonb_build_object('request_ref',v_ref,'pod_request_ref',v_ref"));
+    expect(result.completed).toBe(false);
+    expect(result.error).toMatch(/entity_audit_ve_delivery_request_uidx|duplicate key/i);
+  }, 300_000);
+  it("kills a Portal projection that drops both group and shipment client identity", async () => {
+    const source = readFileSync(migrationFile, "utf8");
+    const anchor = "and g.client_id=v_principal.client_id and s.client_id=v_principal.client_id";
+    // portal_read and portal_events are independently scoped, with one exact
+    // predicate each. The policy helper has a distinct expression and remains.
+    expect(source.split(anchor)).toHaveLength(3);
+    const result = await executeRealContract(source.split(anchor).join(""));
+    expect(result.completed).toBe(false);
+    expect(result.error).toContain("hybrid own RPC never inherits broad Studio rows");
+  }, 300_000);
 });

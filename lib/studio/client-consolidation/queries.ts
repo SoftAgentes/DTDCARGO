@@ -4,7 +4,7 @@ import { CONTAINER_STATUSES } from "../naviera/types";
 import { STATUS_LABELS } from "../shipment-types";
 import type {
   MembershipResult, NormalContext, NormalContextPage, NormalManifest, NormalMutationResult, NormalReceipt,
-  NormalPlanInput, NormalRpcError, NormalShipmentContext, ObservedRates, NormalGroup, NormalMobileContext,
+  NormalPlanInput, NormalRpcError, NormalShipmentContext, ObservedRates, NormalGroup, NormalMobileContext, CloseManifestResult,
 } from "./types";
 
 export class NormalReadError extends Error {
@@ -102,13 +102,27 @@ function isManifest(value: unknown): value is NormalManifest {
 export function membershipResult(value: unknown): MembershipResult | null {
   if (!object(value) || !["confirmed", "replay"].includes(String(value.outcome)) || !["form", "extend"].includes(String(value.operation))
     || typeof value.reference !== "string" || !instant(value.occurredAt) || typeof value.containerId !== "string"
-    || !whole(value.containerRevision) || !Array.isArray(value.groups)) return null;
-  return value.groups.length > 0 && value.groups.every(isGroup) ? value as MembershipResult : null;
+    || !whole(value.containerRevision) || value.containerRevision < 1 || !Array.isArray(value.groups)) return null;
+  if (value.groups.length === 0 || !value.groups.every(isGroup)) return null;
+  const groups = value.groups;
+  return [groups.map((group) => group.groupId), groups.map((group) => group.shipmentId), groups.map((group) => group.itemId),
+    groups.map((group) => group.clientId), groups.flatMap((group) => group.receiptIds), groups.flatMap((group) => group.boxIds)].every(strings)
+    ? value as MembershipResult : null;
 }
 
 export function mutationResult(value: unknown): NormalMutationResult | null {
   return object(value) && ["closed", "transitioned", "recorded", "replay"].includes(String(value.outcome))
     && typeof value.reference === "string" && instant(value.occurredAt) ? value as NormalMutationResult : null;
+}
+
+/** A generic mutation envelope cannot certify a manifest seal. */
+export function closeManifestResult(value: unknown): CloseManifestResult | null {
+  const result = mutationResult(value);
+  if (!result || !object(value) || (result.outcome !== "closed" && result.outcome !== "replay")
+    || typeof value.containerId !== "string" || !value.containerId || !whole(value.containerRevision) || value.containerRevision < 1
+    || typeof value.sealId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.sealId)
+    || ["shipmentId", "from", "to", "status"].some((key) => value[key] !== undefined)) return null;
+  return { ...result, outcome: result.outcome, containerId: value.containerId, containerRevision: value.containerRevision, sealId: value.sealId };
 }
 
 export async function readNormalMobileContext(supabase: SupabaseClient, operarioId: string, containerId: string): Promise<NormalMobileContext> {

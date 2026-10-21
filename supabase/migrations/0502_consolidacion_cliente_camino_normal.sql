@@ -1888,16 +1888,26 @@ language sql stable security definer set search_path = '' as $fn$
     on p.package_kind='warehouse_receipt_cn' and m.receipt_id=p.package_id
   join dtd_client_normal.groups g on g.id=m.group_id where p.od_id=p_od
 $fn$;
-create function dtd_client_normal.lock_pod_containers(p_containers uuid[]) returns void
+create function dtd_client_normal.lock_pod_containers(p_containers uuid[],p_nowait boolean default false) returns void
 language plpgsql security definer set search_path = '' as $fn$
 declare v_container uuid;
 begin
   foreach v_container in array p_containers loop
-    perform 1 from public.consolidations where id=v_container for update;
+    if p_nowait then
+      perform 1 from public.consolidations where id=v_container for update nowait;
+    else
+      perform 1 from public.consolidations where id=v_container for update;
+    end if;
     -- A real row write, not just an advisory lock, closes stale RR snapshots.
     -- No business revision, membership, seal or previous event time changes.
     update public.consolidations set updated_at=clock_timestamp() where id=v_container;
   end loop;
+exception when lock_not_available then
+  -- A trigger may be entered after an unchanged legacy writer has already
+  -- locked a package/OD (0184). Never wait for its parent in reverse order.
+  -- The exception rolls back this command, including split P1/P2 or POD capture;
+  -- it does not undo an already committed partial capture or bypass a guard.
+  perform dtd_client_normal.fail('NORMAL_CONFLICT');
 end $fn$;
 
 create function dtd_client_normal.prepare_partial_delivery(p_operario uuid,p_od uuid,p_receipt uuid) returns boolean
@@ -1929,7 +1939,7 @@ begin
   if tg_op<>'DELETE' and new.package_kind='warehouse_receipt_cn' then v_receipts:=v_receipts||new.package_id; end if;
   select coalesce(array_agg(distinct g.container_id order by g.container_id),'{}'::uuid[]) into v_containers
     from dtd_client_normal.members m join dtd_client_normal.groups g on g.id=m.group_id where m.receipt_id=any(v_receipts);
-  perform dtd_client_normal.lock_pod_containers(v_containers);
+  perform dtd_client_normal.lock_pod_containers(v_containers,true);
   for v_group in select g.*,m.receipt_id,s.status::text shipment_status from dtd_client_normal.members m
     join dtd_client_normal.groups g on g.id=m.group_id join public.shipments s on s.id=g.shipment_id where m.receipt_id=any(v_receipts) loop
     if tg_op<>'DELETE' then
@@ -1961,7 +1971,7 @@ begin
   if not exists(select 1 from public.operario_pins o join public.dispatch_orders d on d.tenant_id=o.tenant_id
     where o.id=new.created_by_operario_id and o.active and o.region='ve' and o.role in('camionero','supervisor')
       and d.id=new.od_id and d.tenant_id=new.tenant_id) then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
-  perform dtd_client_normal.lock_pod_containers(v_containers);
+  perform dtd_client_normal.lock_pod_containers(v_containers,true);
   select c.occurred_at into v_clock from dtd_client_normal.contexts c where c.transaction_id=txid_current()
     and c.backend_pid=pg_backend_pid() and c.operation='pod_capture' and c.operario_id=new.created_by_operario_id and c.od_id=new.od_id;
   new.created_at:=coalesce(v_clock,clock_timestamp());
@@ -2029,7 +2039,7 @@ create function public.camionero_pod_v2(p_operario_id uuid,p_od_id uuid,p_packag
 language plpgsql security definer set search_path = '' as $fn$
 declare v_op public.operario_pins; v_containers uuid[]; v_group record; v_existing dtd_client_normal.pod_intentions;
   v_hash text; v_ref text:=nullif(btrim(p_request_ref),''); v_result jsonb; v_coverage jsonb; v_observed jsonb;
-  v_pending jsonb:='[]'; v_closed uuid[]:='{}'; v_pod uuid; v_now timestamptz; v_status text;
+  v_pending jsonb:='[]'; v_closed uuid[]:='{}'; v_pod uuid; v_now timestamptz; v_status text; v_group_ref text;
 begin
   select * into v_op from public.operario_pins where id=p_operario_id;
   -- Match the scalar-role POD0336 authority; this does not inherit the
@@ -2089,8 +2099,14 @@ begin
     end if;
     insert into dtd_client_normal.contexts(transaction_id,backend_pid,operation,operario_id,container_id,shipment_ids,occurred_at)
       values(txid_current(),pg_backend_pid(),'pod',p_operario_id,v_group.container_id,array[v_group.shipment_id],v_now);
+    -- 0321 uniquely indexes (tenant,event_type,payload.request_ref), without
+    -- entity_id. One POD can close several complete groups atomically. Give
+    -- each audited group a deterministic bounded reference; retain the caller's
+    -- original POD intention and its existing correlation separately. No change
+    -- to the global index, legacy manual requests, or per-group AUD coverage.
+    v_group_ref:='client-normal-pod:'||md5(jsonb_build_array(v_ref,v_group.shipment_id)::text);
     perform set_config('dtd.audit_reason','Entrega sellada por POD del camionero · ref '||v_ref,true);
-    perform set_config('dtd.ve_delivery_completion',v_ref,true);
+    perform set_config('dtd.ve_delivery_completion',v_group_ref,true);
     perform set_config('dtd.ve_delivery_completion_shipment',v_group.shipment_id::text,true);
     update public.shipments set status='delivered',pod_signed_by=btrim(p_received_by)
       where id=v_group.shipment_id and tenant_id=v_op.tenant_id and status::text=v_status and deleted_at is null;
@@ -2100,7 +2116,7 @@ begin
     perform public.append_audit_event(v_op.tenant_id,'shipment',v_group.shipment_id,'operario',p_operario_id,
       'shipment_delivery_manually_confirmed','rpc','succeeded','Entrega sellada por POD del camionero · ref '||v_ref,
       jsonb_build_object('status',v_status),jsonb_build_object('status','delivered'),
-      jsonb_build_object('request_ref',v_ref,'attestation_kind','dispatch_pod','pod_id',v_pod,'od_id',p_od_id,'coverage',v_coverage),
+      jsonb_build_object('request_ref',v_group_ref,'pod_request_ref',v_ref,'attestation_kind','dispatch_pod','pod_id',v_pod,'od_id',p_od_id,'coverage',v_coverage),
       'client-normal-pod:'||v_group.shipment_id::text||':'||md5(v_ref),1,'restricted');
     v_closed:=v_closed||v_group.shipment_id;
     delete from dtd_client_normal.contexts where transaction_id=txid_current() and backend_pid=pg_backend_pid() and operation='pod';
@@ -2222,6 +2238,46 @@ begin
     'clientId',v_principal.client_id,'markbox',v_principal.markbox),'observedAt',clock_timestamp(),'shipments',v_rows);
 end $fn$;
 
+-- History has NO row bound. Recent activity alone has an explicit positive
+-- topN. One JSON value avoids PostgREST's outer row cap, without claiming that
+-- a bounded feed represents the full history. The client identity is never an
+-- argument; Portal-only sessions do not need get_user_tenant_id() to be nonnull.
+create function public.client_consolidation_portal_events(p_shipment_id uuid default null,p_limit integer default null)
+returns jsonb language plpgsql stable security definer set search_path = '' as $fn$
+declare v_principal record; v_rows jsonb; v_view text;
+begin
+  select * into v_principal from dtd_client_normal.portal_principal();
+  if not found then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
+  if not ((p_shipment_id is not null and p_limit is null)
+    or (p_shipment_id is null and p_limit is not null and p_limit>0)) then
+    perform dtd_client_normal.fail('NORMAL_INVALID'); end if;
+  v_view:=case when p_shipment_id is null then 'recent' else 'history' end;
+  select coalesce(jsonb_agg(jsonb_build_object('id',e.id,'shipmentId',e.shipment_id,'shipmentCode',e.code,
+      'tenantId',e.tenant_id,'clientId',e.owner_client_id,'status',e.status,'occurredAt',e.occurred_at,'note',e.note)
+    order by case when p_shipment_id is not null then e.occurred_at end asc,
+      case when p_shipment_id is null then e.occurred_at end desc,
+      case when p_shipment_id is not null then e.id end asc,
+      case when p_shipment_id is null then e.id end desc),'[]'::jsonb) into v_rows
+  from (
+    select ev.id,ev.shipment_id,ev.tenant_id,ev.status,ev.occurred_at,ev.note,s.code,
+      case when g.id is null then v_principal.client_id else s.client_id end as owner_client_id
+    from public.shipment_events ev join public.shipments s on s.id=ev.shipment_id and s.tenant_id=ev.tenant_id
+    left join dtd_client_normal.groups g on g.shipment_id=s.id
+    where ev.tenant_id=v_principal.tenant_id and ev.deleted_at is null and s.deleted_at is null
+      and (p_shipment_id is null or s.id=p_shipment_id)
+      and ((g.id is null and s.client_markbox=v_principal.markbox)
+        or (g.id is not null and g.tenant_id=v_principal.tenant_id and g.client_id=v_principal.client_id and s.client_id=v_principal.client_id))
+    order by case when p_shipment_id is not null then ev.occurred_at end asc,
+      case when p_shipment_id is null then ev.occurred_at end desc,
+      case when p_shipment_id is not null then ev.id end asc,
+      case when p_shipment_id is null then ev.id end desc
+    limit p_limit
+  ) e;
+  return jsonb_build_object('available',true,'complete',true,'principal',jsonb_build_object('tenantId',v_principal.tenant_id,
+    'clientId',v_principal.client_id,'markbox',v_principal.markbox),'view',v_view,'shipmentId',p_shipment_id,
+    'limit',p_limit,'observedAt',clock_timestamp(),'events',v_rows);
+end $fn$;
+
 -- Restore the actual checked public ABI/ACL, including the0288 corrections.
 -- Private originals keep their checked bodies and are never callable by API.
 do $restore_wrappers$
@@ -2270,7 +2326,7 @@ do $postflight$
 declare v_contract dtd_client_normal.function_contracts; v_public pg_proc; v_private pg_proc; v_policy record; v_role text;
 begin
   if (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-    where n.nspname='public' and p.proname like 'client_consolidation_%')<>19 then
+    where n.nspname='public' and p.proname like 'client_consolidation_%')<>20 then
     raise exception '0502: conjunto de nuevas firmas inesperado'; end if;
   if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
     and p.proname like 'client_consolidation_%' and (has_function_privilege('anon',p.oid,'EXECUTE')

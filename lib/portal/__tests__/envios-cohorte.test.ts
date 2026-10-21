@@ -2,6 +2,7 @@
 /** SDD-0578. Adapter/decoder oracles only; this double does NOT prove RLS or SQL ownership. */
 import { describe, expect, it } from "vitest";
 import { getMyShipment, getNextArrival, getPortalActivation, listMyDocuments, listMyShipments, PortalShipmentsUnavailableError } from "../portal-queries";
+import { listMyRecentActivity, listMyShipmentEvents, PortalEventsUnavailableError, stepDatesFromEvents } from "../shipment-events-queries";
 import { portalDouble, portalMembership, CLIENT_A, TENANT_A, TENANT_B, MARKBOX, type Row } from "./portal-tenant-double";
 
 const instant = "2026-10-21T12:00:00Z";
@@ -80,5 +81,94 @@ describe("SDD-0578 Portal: own server principal and explicit complete snapshot",
     expect(await listMyShipments(double.db)).toEqual([]);
     expect(await getMyShipment(double.db, "S-2026-0001")).toBeNull();
     expect(double.rpcCalls).toEqual([]);
+  });
+});
+
+const eventRow = (id: string, over: Row = {}): Row => ({ id, shipmentId: "own-shipment", shipmentCode: "S-2026-OWN1",
+  tenantId: TENANT_A, clientId: CLIENT_A, status: "in_warehouse", occurredAt: instant, note: null, ...over });
+const eventEnvelope = (events: Row[], over: Row = {}): Row => ({ available: true, complete: true, observedAt: instant,
+  principal: { tenantId: TENANT_A, clientId: CLIENT_A, markbox: MARKBOX }, view: "history", shipmentId: "own-shipment", limit: null, events, ...over });
+function eventDouble(data: unknown = eventEnvelope([])) {
+  return portalDouble({ tables: { client_users: [portalMembership()] }, rpc: { client_consolidation_portal_events: () => data } });
+}
+
+describe("SDD-0578 Portal events: actual principal and strict projection decoder (not SQL/RLS proof)", () => {
+  it("Portal-only does not invoke a Studio tenant helper or native table", async () => {
+    const double = eventDouble(eventEnvelope([eventRow("event-a")]));
+    expect(await listMyShipmentEvents(double.db, "own-shipment")).toEqual([
+      { id: "event-a", status: "in_warehouse", occurredAt: instant, note: null },
+    ]);
+    expect(double.rpcCalls).toEqual([{ name: "client_consolidation_portal_events", args: { p_shipment_id: "own-shipment", p_limit: null } }]);
+    expect(double.operations.every((operation) => operation.table === "client_users")).toBe(true);
+  });
+  it("preserves all1105 history events and the first milestone beyond a PostgREST row cap", async () => {
+    const events = Array.from({ length: 1105 }, (_, index) => eventRow(String(index).padStart(4, "0"), {
+      status: index === 0 || index === 1104 ? "in_warehouse" : "shipped",
+      occurredAt: new Date(Date.UTC(2026, 5, 10) + index * 60_000).toISOString(),
+    }));
+    const double = eventDouble(eventEnvelope(events));
+    const history = await listMyShipmentEvents(double.db, "own-shipment");
+    expect(history).toHaveLength(1105);
+    expect(history[1104].id).toBe("1104");
+    expect(stepDatesFromEvents(history).in_warehouse).toBe("2026-06-10T00:00:00.000Z");
+    expect(double.rpcCalls[0].args).toEqual({ p_shipment_id: "own-shipment", p_limit: null });
+  });
+  it.each([8, 4])("recent requests exactly top%d with stable descending ties, separately from history", async (limit) => {
+    const events = Array.from({ length: limit }, (_, index) => eventRow(String(limit - index).padStart(4, "0")));
+    const double = eventDouble(eventEnvelope(events, { view: "recent", shipmentId: null, limit }));
+    const feed = limit === 8 ? await listMyRecentActivity(double.db) : await listMyRecentActivity(double.db, limit);
+    expect(feed.map((event) => event.id)).toEqual(events.map((event) => event.id));
+    expect(feed.every((event) => event.shipmentCode === "S-2026-OWN1")).toBe(true);
+    expect(double.rpcCalls).toEqual([{ name: "client_consolidation_portal_events", args: { p_shipment_id: null, p_limit: limit } }]);
+  });
+  it.each([
+    ["null", null], ["partial", eventEnvelope([], { complete: false })], ["unavailable", eventEnvelope([], { available: false })],
+    ["wrong principal tenant", eventEnvelope([], { principal: { tenantId: TENANT_B, clientId: CLIENT_A, markbox: MARKBOX } })],
+    ["wrong principal client", eventEnvelope([], { principal: { tenantId: TENANT_A, clientId: "other", markbox: MARKBOX } })],
+    ["wrong principal mark", eventEnvelope([], { principal: { tenantId: TENANT_A, clientId: CLIENT_A, markbox: "OTHER" } })],
+    ["bad observation", eventEnvelope([], { observedAt: "invalid" })], ["wrong view", eventEnvelope([], { view: "recent" })],
+    ["observation without actual timestamp", eventEnvelope([], { observedAt: "2026" })],
+    ["wrong selector", eventEnvelope([], { shipmentId: "foreign" })], ["truncated history", eventEnvelope([], { limit: 8 })],
+    ["duplicate event", eventEnvelope([eventRow("same"), eventRow("same")])],
+    ["foreign tenant event", eventEnvelope([eventRow("a", { tenantId: TENANT_B })])],
+    ["foreign client event", eventEnvelope([eventRow("a", { clientId: "other" })])],
+    ["foreign selector event", eventEnvelope([eventRow("a", { shipmentId: "foreign" })])],
+    ["missing parent code", eventEnvelope([eventRow("a", { shipmentCode: "" })])],
+    ["unknown status", eventEnvelope([eventRow("a", { status: "fabricated" })])],
+    ["bad occurrence", eventEnvelope([eventRow("a", { occurredAt: "invalid" })])],
+    ["bad note", eventEnvelope([eventRow("a", { note: undefined })])],
+    ["unordered tie", eventEnvelope([eventRow("b"), eventRow("a")])],
+  ])("%s is unavailable, never an empty successful history or native fallback", async (_label, value) => {
+    const double = eventDouble(value);
+    await expect(listMyShipmentEvents(double.db, "own-shipment")).rejects.toBeInstanceOf(PortalEventsUnavailableError);
+    expect(double.on("shipment_events")).toEqual([]);
+  });
+  it("valid empty is known absence, while SQL/transport absence is sanitized unavailability", async () => {
+    expect(await listMyShipmentEvents(eventDouble().db, "own-shipment")).toEqual([]);
+    const absent = eventDouble(null);
+    await expect(listMyShipmentEvents(absent.db, "own-shipment")).rejects.toThrow("PORTAL_EVENTOS_NO_DISPONIBLES");
+    const failed = portalDouble({ tables: { client_users: [portalMembership()] }, rpc: {
+      client_consolidation_portal_events: () => { throw new Error("private SQL/auth/row detail"); },
+    } });
+    await expect(listMyShipmentEvents(failed.db, "own-shipment")).rejects.toThrow("PORTAL_EVENTOS_NO_DISPONIBLES");
+  });
+  it.each([0, -1, 1.5, Number.NaN, 2_147_483_648])("invalid feed bound%s is rejected without coercion or RPC", async (limit) => {
+    const double = eventDouble();
+    await expect(listMyRecentActivity(double.db, limit)).rejects.toBeInstanceOf(PortalEventsUnavailableError);
+    expect(double.rpcCalls).toEqual([]);
+  });
+  it("feed cannot silently accept a wrong bound or excess rows", async () => {
+    const wrong = eventDouble(eventEnvelope([], { view: "recent", shipmentId: null, limit: 8 }));
+    await expect(listMyRecentActivity(wrong.db, 4)).rejects.toBeInstanceOf(PortalEventsUnavailableError);
+    const excess = eventDouble(eventEnvelope(Array.from({ length: 5 }, (_, index) => eventRow(String(5 - index))), { view: "recent", shipmentId: null, limit: 4 }));
+    await expect(listMyRecentActivity(excess.db, 4)).rejects.toBeInstanceOf(PortalEventsUnavailableError);
+  });
+  it("no coherent principal means no domain query or RPC, despite a supplied envelope", async () => {
+    for (const members of [[], [portalMembership({ clientTenant: TENANT_B })], [portalMembership(), portalMembership()]]) {
+      const double = portalDouble({ tables: { client_users: members }, rpc: { client_consolidation_portal_events: eventEnvelope([eventRow("a")]) } });
+      expect(await listMyShipmentEvents(double.db, "own-shipment")).toEqual([]);
+      expect(await listMyRecentActivity(double.db)).toEqual([]);
+      expect(double.rpcCalls).toEqual([]);
+    }
   });
 });

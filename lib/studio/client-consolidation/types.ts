@@ -149,6 +149,13 @@ export type NormalMutationResult = {
   status?: ShipmentStatus;
 };
 
+export type CloseManifestResult = NormalMutationResult & {
+  outcome: "closed" | "replay";
+  containerId: string;
+  containerRevision: number;
+  sealId: string;
+};
+
 export type NormalPlanInput = {
   manifestRevision: number;
   manifestHash: string;

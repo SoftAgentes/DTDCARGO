@@ -73,11 +73,46 @@ describe("prospective formation/extension adapters", () => {
     const result = await confirmClientShipmentsAction(input());
     expect(result.ok).toBeUndefined(); expect(result.error).toContain("Conserva la referencia");
   });
+  it.each([
+    { ...historical(), operation: "extend" }, { ...historical(), containerRevision: 2 },
+    { ...historical(), groups: [{ ...group, clientId: id(2) }] },
+    { ...historical(), groups: [{ ...group, code: "S-2026-0002" }] },
+    { ...historical(), groups: [{ ...group, revision: 2 }] },
+    { ...historical(), groups: [{ ...group, receiptIds: [id(11)], rates: { ...group.rates, missingReceiptIds: [id(11)] } }] },
+    { ...historical(), groups: [group, group] },
+  ])("a structurally readable but mismatched membership intention stays uncertain: %j", async (data) => {
+    h.rpc.mockResolvedValue({ data, error: null });
+    const result = await confirmClientShipmentsAction(input());
+    expect(result.ok).toBeUndefined(); expect(result.error).toContain("Conserva la referencia");
+    expect(h.revalidate).not.toHaveBeenCalled(); expect(h.notify).not.toHaveBeenCalled();
+  });
+  it("an extension replay keeps its historical revision and prior membership rather than matching a newer read", async () => {
+    const raw = { ...input(), operation: "extend", expectedContainerRevision: 1,
+      groups: [{ ...input().groups[0], code: null, groupId: id(20), expectedGroupRevision: 1, receipts: [{ receiptId: id(11), sourceVersion: "b".repeat(32) }] }] };
+    const extended = { ...group, revision: 2, receiptIds: [id(10), id(11)], boxIds: [id(100), id(101)],
+      measures: { cbm: "2.000", weightKg: "200.00", boxes: 2 }, rates: { ...group.rates, membershipRevision: 2, receiptCount: 2, missingReceiptIds: [id(10), id(11)] } };
+    h.rpc.mockResolvedValue({ data: { ...historical(), outcome: "replay", operation: "extend", containerRevision: 2, groups: [extended] }, error: null });
+    expect((await confirmClientShipmentsAction(raw)).result).toMatchObject({ outcome: "replay", containerRevision: 2, groups: [{ revision: 2, receiptIds: [id(10), id(11)] }] });
+    expect(h.read).not.toHaveBeenCalled();
+  });
 });
 
 describe("cohort close/legacy escapes and reads", () => {
   const close = () => ({ containerId: id(50), expectedContainerRevision: 2, reference: id(98), reason: "Cobertura completa revisada" });
   const closed = () => ({ outcome: "closed", reference: id(98), occurredAt: "2026-10-21T15:00:00Z", containerId: id(50), containerRevision: 2, sealId: id(51) });
+  it.each([
+    { outcome: "recorded", reference: id(98), occurredAt: "2026-10-21T15:00:00Z", containerId: id(50) },
+    { ...closed(), outcome: "transitioned" }, { ...closed(), outcome: "UNKNOWN" },
+    { ...closed(), sealId: undefined }, { ...closed(), sealId: "" }, { ...closed(), sealId: "not-a-seal" },
+    { ...closed(), containerRevision: undefined }, { ...closed(), containerRevision: 3 },
+    { ...closed(), containerId: id(52) }, { ...closed(), shipmentId: id(30) },
+    { ...closed(), outcome: "replay", sealId: undefined },
+  ])("incoherent close envelope cannot show success or schedule a notification: %j", async (data) => {
+    h.rpc.mockResolvedValue({ data, error: null });
+    const result = await closeClientManifestAction(close());
+    expect(result.ok).toBeUndefined(); expect(result.error).toContain("Conserva la referencia");
+    expect(h.notify).not.toHaveBeenCalled(); expect(h.admin).not.toHaveBeenCalled(); expect(h.revalidate).not.toHaveBeenCalled();
+  });
   it("schedules the existing consolidated notification only after an effective atomic close, never on replay", async () => {
     h.rpc.mockResolvedValueOnce({ data: closed(), error: null }).mockResolvedValueOnce({ data: { ...closed(), outcome: "replay" }, error: null });
     expect((await closeClientManifestAction(close())).ok).toBe(true);

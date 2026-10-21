@@ -19,7 +19,7 @@ Trabajo local P1 autorizado por Director, owner worker-0578normal-01a15a4e-ddf0-
 
 Fuente ejecutable: 042-activacion-worker-0578-director.md, SHA256 1939a04752338b66bc5187961f8a1a216093dc6101fdb28771bec2efae607be4. El contrato íntegro y las fases/permisos/exclusiones están preservados en `.agents/handoffs/042-envio-cliente-camino-normal.md`; las secciones contractuales y su allowlist/aceptación se copian abajo sin alterar la fuente sellada.
 
-Checkpoint de autoría P1: PR #318 OPEN/DRAFT, apilada sobre `codex/sdd-0574-embarques-cierre`/D1. Tipos, validación pura, lectores, guardas CN/bulk y sus oráculos están redactados; 0502 contiene un cuerpo parcial de esquema, formación/extensión/cierre, transporte ON/OFF, roster, plan/estiba y composición de estados con un fusible explícito que aborta su ejecución. POD global, Portal/RLS, ACL/postflight, restantes adaptadores/UI y aceptación siguen pendientes. Instalación, SQL/DB, pruebas, tipos, lint amplio, build, verify, UI y conocimiento NO EJECUTADO. BCV GO03 conserva el único turno pesado. Autoría no equivale a prueba, cierre o integración.
+Checkpoint de autoría P1 con unión67 adoptada: PR #318 OPEN/DRAFT, apilada sobre codex/sdd-0574-embarques-cierre/D1. Las67 rutas ya tienen autoría de producto/SQL/fixtures/oráculos y plan de relevo; revisión y aceptación siguen pendientes.0502 conserva fusible antes deDDL y cohorteOFF. Incluye correcciones estáticas de respuestas, lector de eventos Portal y propuestas F1AUD/F2locks, sin ejecutar. Instalación/SQL/DB/tests/tipos/lint amplio/HTTP/browser/UI/build/verify/conocimiento NO EJECUTADO. BCV GO05B conserva el turno pesado único. La matriz y el siguiente paso del Director se mantienen en el checkpoint final de este documento; no se certifica4.2 completo ni capacidad activa.
 
 ## Gobierno de permanencia y riesgo
 
@@ -617,3 +617,163 @@ SQL0502 redacta restauración/comprobación de ABI, owner, ACL, cuerpos privados
 Consumidor de error Portal ya existente leído íntegro: app/portal/(app)/error.tsx1–104, blobD1c6c3b929c383d6082905b631bba3efc1babfb573; ofrece alerta segura y Reintentar/Ir al inicio. No se editó. El detalle getMyShipment autoriza envío propio antes de lectores admin de Naviera/avisos/documentos; lectura primaria app/portal/(app)/envios/[code]/page.tsx1–135. Ausencia completa conocida sigue distinta de error/incompleto. Herencia Studio de híbridos fuera de la RPC propia se conserva.
 
 BCV GO04B conserva turno; todas las comprobaciones funcionales/SQL/HTTP/UI/verify/conocimiento de0578 NO EJECUTADAS. Handoff continúa abierto y claim retenido. Este checkpoint sólo respalda autoría parcial revisable, no aprobación de SQL ni capacidad activa.
+
+## Adopción P1 del addendum Director67
+
+Leído íntegro y cotejado:12862bytes/SHA256 `64d2eb92b6847c822fdc607ea631cc382f6cd8681753bec63dcd549497720ead`. Se adopta exclusivamente para autoría P1 dentro de la unión67, antes de editar el lector de eventos y sus dos fixtures. Raíz/rama/HEAD e7d0f4f0 y guard/owner comprobados; WIP propio de fixture SQL se conserva. Helper Studio NULL no invalida Portal-only; se retirará el mock de principal del fixture antiguo y se usará el resolver real. Funcionalidad/SQL/RLS/UI siguen NO EJECUTADAS. BCV GO04B terminó FALLÓ por paridad de dos variables; su GO05A limitado a plantilla/focal sigue separado del turno0578. Fusible0502 y cohorteOFF permanecen.
+
+<!-- ADDENDUM67 DIRECTOR ÍNTEGRO INICIO -->
+# SDD-0578 · addendum Director67, identidad de eventos Portal
+
+21 de octubre de2026. **AUTORIZADO sólo para autoría P1 del Worker vigente.** Unión literal64→67: un lector y sus dos fixtures. No aprueba WIP/SQL/RLS/funcionamiento/UI ni transfiere turno de pruebas. Misma baseD1 `1ec5e85f736b7826cf5b6e8781757dc4cf950733`, rama `codex/sdd-0578-envios-cliente-camino-normal`, worktree `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0578-envios-cliente-camino-normal`, owner `worker-0578normal-01a15a4e-ddf0-7d82-8656-d9dc56b58468`, claim y PR318DRAFT. SQL0502 conserva fusible antesDDL y cohorteOFF. BCV tiene GO05A propio;0573 sigue preparado/inactivo.
+
+Los contratos1939a047/4d976df8/8dd76b80/557b81d0 y el addendum64 `042-addendum-director-0578-64-rutas-portal-fixtures.md`,13546bytes/SHA256 `f877118d85c19f31d29d82e4083042366ccd92f45bb008827e4c7a87af39d108`, permanecen completos e inmutables. Este documento sustituye sólo el máximo64 por67 y concreta el lector de eventos y sus pruebas. No autoriza una cuarta ruta adicional ni edición de helpers históricos, pagos, notificaciones, Storage, páginas o doble compartido.
+
+## Fuentes, necesidad y límites de lectura
+
+Director leyó íntegros la propuesta `0578-propuesta-eventos-portal-67.md`,5327bytes/SHA256 `14daf4aa1a00ce738177507368a80b61a8b4fcc4330c65789f0a18e43e07a372`, y el peer `0578-revision-eventos-portal-67-peer.md`,SHA256 `39640a587b56df94afc5a0a05f7765a000d36e20b331f0884c29fd54280fa7c1`. El peer leyó363/363 líneas de las tres rutas, ambos callers completos y boundary104, más autoridad efectiva SQL/RLS por objetosD1. Director leyó además íntegro el lector114. Se atribuyen las lecturas primarias restantes al peer; ninguna fue ejecución de producto ni acceso a filas reales.
+
+El feed actual filtra tenant+marca del padre. La identidad de cohorte es tenant+client_id del grupo Y shipment. Un híbrido conserva derecho Studio, por lo que esa amplitud no autoriza incluir eventos ajenos en su Portal propio. Una marca histórica distinta también puede ocultar hitos propios. Es dependencia lógica demostrada por fuente, no filtración reproducida o autorización de cambiar marcas/historia. El detalle tiene autorización de shipment previa; no atribuirle automáticamente la filtración hipotética del feed.
+
+Preimágenes D1 de las tres nuevas rutas: lector `443f205ed614a5993397ccae2464967a6f10786d`; shipment-events.test `bac6d4dcfbbf8a04ca9adf58f28feaeb8013a100`; portal-read-principal-scope.test `2528616c29e7f3f9bfe8aecbd6725a3fd46afc71`. El boundary existente c6c3b929c383d6082905b631bba3efc1babfb573 tiene alert/Reintentar/Inicio y no muestra detalle técnico. Por lectura, una excepción segura de eventos llega a ese boundary de segmento; no se promete granularidad sólo del feed ni recorrido UI ejecutado.
+
+## Contrato técnico obligatorio de autoría
+
+1. Dentro de0502 ya allowlisted, concretar la RPC de lectura `client_consolidation_portal_events(p_shipment_id uuid default null,p_limit integer default null)` y el decoder local del lector. Derivar auth.uid y un único vínculo Portal activo con cliente vivo/tenant coherente; sin tenant/client_id browser como autoridad, sin admin/service_role o helperStudio para rescatar principal. Evento/padre vivos, tenant evento=padre=principal. Legacy conserva predicados efectivos tenant+marca/relaciones0416; cohorte exige grupo Y shipment del client_id propio. Proyección mínima de los campos consumidos, sin identidad/actor/finanzas ajenas ni nuevo permiso de escritura.
+2. **Autoridades separadas:** helperStudioNULL es normal en Portal-only propio y no invalida su lectura. Ausencia/ambigüedad/revocación del principal Portal sí corta antes del dominio. Híbrido conserva su derecho Studio legítimo fuera de esta RPC, que siempre devuelve sólo lo propio. Una membresía de equipo ambigua/deshabilitada/ajena no concede Studio ni rescata datos Portal. Mantener0012/0416/0453 efectivas y condiciones documentales0439/0444 del addendum64; no modificar helpers o quitar derechos globalmente para compensar el filtro de aplicación.
+3. ShipmentId es selector, no autoridad. Principal válido y selector ajeno/inexistente producen ausencia indistinguible. Dos vistas explícitas: historia completa de un shipment propio y actividad reciente topN. Historia no admite límite que la trunque; feed conserva default8 y el4 solicitado por tests. Concretar combinaciones/validación de argumentos, sin coerciones, clamp silencioso o cambio accidental de semántica. Envelope coteja principal, vista, selector, límite, observedAt y eventos; completo sólo si consulta interna es completa para esa vista. Un JSON único evita truncamiento externo de filas PostgREST, pero no demuestra por sí solo consulta interna completa.
+4. Historia ascendente occurred_at y desempate estable; feed descendente con desempate estable. Mantener fechas reales, note nullable, status y shipmentCode del padre propio. Conservar `stepDatesFromEvents`, DTO público y mapas/avisos puros; primera fecha de cada status gana. No sustituir occurred_at por created_at/observedAt, fabricar hitos, backdate, alterar catálogo, notificar o cambiar dinero/estado por leer.
+5. ErrorRPC/SQLausente/null/parcial/shape/principal distinto/vista-selector-límite discordantes/duplicados/filas ajenas **no son[] exitoso**. Completo/válido/vacío es ausencia conocida; sin principal válido conserva corte anterior sin dominio/RPC. Eliminar el fallback de error a[] para esta lectura; no consulta genérica alternativa a shipment_events. Excepción segura/sanitizada para el boundary existente, que además registra errores; sin mensajes SQL/filas/PII/auth.
+6. ACL explícita de lectura authenticated, sin concesión residual PUBLIC/anon ni nueva API de identidad. Derivación auth.uid y checks internos obligatorios; propietario/search_path/ACL/pre-postflight/catálogo quedan en pruebas ya autorizadas. Conservar derechos Studio/legacy y políticas de escrituras existentes. No declarar SQL/RLS conforme por mocks o por esta autorización de autoría.
+
+## Delta mínimo por cada nueva ruta y oráculos conservados
+
+- `lib/portal/shipment-events-queries.ts`: sólo transporte y validación de listMyShipmentEvents/listMyRecentActivity y comentarios de autoridad efectiva. Mantener DTO/mapas/fechas/hitos y firmas de consumidores. No páginas/boundary/Storage/documentos/admin/notificaciones.
+- `lib/portal/__tests__/shipment-events.test.ts`: **retirar dentro del mismo archivo el mock preexistente vi.mock('../portal-queries') de22–32**. Preparar auth.getUser y client_users/clients del escenario para operar el resolver real; no trasladar mock/cast/doble compartido. RPC local responde sólo al nombre/args/actor correspondientes. Conservar primera fecha in_warehouse10jun aunque se repita12jun, shipped20jun, deliveredundefined y mapa vacío. Conservar notificación sí in_warehouse/shipped/out_for_delivery/delivered y no arrived_destination/in_transit/in_customs/draft. Sustituir el lugar del assert tenant+mark por selector/principal/vista exactos y ausencia de consulta genérica; SQL real medirá el scope aparte. Sin principal conserva[] temprano/ceroRPC.
+- `lib/portal/__tests__/portal-read-principal-scope.test.ts`: resolver real y actores sintéticos existentes; adaptar sólo el dobleRPC específico y asserts de eventos/feed. Principal incoherente corta pagos/eventos y ceroRPC. **Filtros de pagos tenant-a/DTD-0001/INV-1 literales intactos**, sin editar payment-report-queries. Actividad conserva límite4; historia selector exacto, nunca autoridad browser.
+
+Pruebas nuevas futuras en rutas ya autorizadas: Portal-only válido con helperStudioNULL, híbridoB con marca histórica coincidente deA no revelaA mientras mantiene Studio, propioB con marca distinta sí visible; tenant ajeno/grupo-shipment discordante/padres/clientes/vínculos borrados o múltiples/evento discordante. Historia>1000 conserva primer hito y todos los eventos propios; feed8/4 topN estable distinto de historia total. Selector ajeno/inexistente indistinguible; errores/funciónausente/null/parcial/duplicados/envelopeajeno o vista incorrecta rechazan; completo vacío válido. Medir SQL/API/RLS real, concurrencia y recorrido boundary/reintento/teclado cuando haya GO; hoy **NO EJECUTADO**. No afirmar que el sobre del doble acredita aislamiento de DB.
+
+## Allowlist acumulada literal67
+
+```text
+lib/studio/client-consolidation/types.ts
+lib/studio/client-consolidation/queries.ts
+lib/studio/client-consolidation/normal-flow.ts
+app/studio/(app)/naviera/_components/ConfirmarEnviosClienteDrawer.tsx
+app/studio/(app)/naviera/actions.ts
+app/studio/(app)/naviera/page.tsx
+app/studio/(app)/naviera/_components/NavieraClient.tsx
+app/studio/(app)/naviera/plan-actions.ts
+app/studio/(app)/cn/actions.ts
+app/studio/(app)/cn/page.tsx
+app/studio/(app)/cn/_components/AlmacenCnClient.tsx
+app/studio/(app)/cn/_components/ReceiptRowActions.tsx
+app/studio/(app)/tracking/[id]/actions.ts
+app/studio/(app)/tracking/[id]/page.tsx
+app/studio/(app)/tracking/[id]/_components/ShipmentDataPanel.tsx
+app/studio/(app)/tracking/[id]/_components/StateActionsPanel.tsx
+app/studio/(app)/tracking/[id]/_components/FooterActions.tsx
+app/api/studio/shipments/[id]/route.ts
+app/api/studio/shipments/[id]/events/route.ts
+app/studio/(app)/ve/actions.ts
+app/studio/(app)/ve/_components/VeRowActions.tsx
+app/m/cn/estibar/actions.ts
+app/m/cn/estibar/_components/EstibaClient.tsx
+lib/portal/portal-queries.ts
+lib/studio/rate-snapshots/types.ts
+lib/i18n/es-VE/warehouse.ts
+lib/i18n/zh-CN/warehouse.ts
+supabase/pending-migration-symbol-declarations.json
+supabase/migrations-baseline.json
+docs/specs/README.md
+.agents/handoffs/042-envio-cliente-camino-normal.md
+app/m/cn/estibar/[consolidationId]/page.tsx
+docs/specs/0578-envios-cliente-camino-normal/spec.md
+supabase/migrations/0502_consolidacion_cliente_camino_normal.sql
+supabase/tests/consolidacion_cliente_normal.test.sql
+supabase/tests/_consolidacion_cliente_normal_schema.sql
+lib/studio/client-consolidation/__tests__/normal-path.migration.test.ts
+scripts/check-client-consolidation-concurrency.mjs
+app/studio/(app)/naviera/__tests__/envios-cliente-actions.test.ts
+app/studio/(app)/naviera/_components/__tests__/ConfirmarEnviosClienteDrawer.test.tsx
+app/studio/(app)/cn/__tests__/consolidacion-cohorte.test.ts
+app/studio/(app)/naviera/__tests__/plan-carga-cohorte.test.ts
+app/studio/(app)/tracking/[id]/__tests__/cohorte-normal-actions.test.ts
+app/api/studio/shipments/[id]/__tests__/cohorte-normal.test.ts
+app/m/cn/estibar/__tests__/cohorte-pertenencia.test.ts
+app/studio/(app)/ve/__tests__/cohorte-normal.test.ts
+lib/portal/__tests__/envios-cohorte.test.ts
+lib/studio/rate-snapshots/__tests__/sin-facturar.test.ts
+app/studio/(app)/cn/__tests__/rate-snapshot-actions.test.ts
+e2e/consolidacion-clientes-camino-normal.spec.ts
+app/studio/(app)/cn/__tests__/delete-receipts-action.test.ts
+app/studio/(app)/cn/__tests__/create-receipt-code.test.ts
+app/studio/(app)/naviera/__tests__/zarpe-avanza-envios.test.ts
+app/studio/(app)/naviera/__tests__/ocultar-nombres-cn.test.tsx
+app/studio/(app)/naviera/_components/__tests__/NavieraClient.avance.test.tsx
+app/studio/(app)/tracking/[id]/__tests__/datos-reservados-actions.test.tsx
+app/studio/(app)/tracking/[id]/_components/__tests__/FooterActions.borrado.test.tsx
+app/api/studio/shipments/[id]/events/__tests__/module-gate.test.ts
+lib/portal/__tests__/activation.test.ts
+lib/portal/__tests__/dashboard.test.ts
+lib/portal/__tests__/invoices.test.ts
+lib/portal/__tests__/estimates.test.ts
+lib/portal/__tests__/portal-queries-principal-scope.test.ts
+lib/portal/__tests__/portal-quote-scope.test.ts
+lib/portal/shipment-events-queries.ts
+lib/portal/__tests__/shipment-events.test.ts
+lib/portal/__tests__/portal-read-principal-scope.test.ts
+```
+
+## Adopción, respaldo y fronteras
+
+Leer íntegro y cotejar hash; copiar contrato completo al spec/handoff y confirmar adopción ANTES de tocar estas tres rutas. Revalidar guard/claim/raíz/rama y preimágenes; preservar WIP propio ya respaldado e7d0f4f0. Una sesión escritora. Commits selectivos/push/actualización del mismo PR318DRAFT autorizados; sin gitaddglobal, nueva base o SDD/SQL, main/reset/merge/deploy/producción/VPS/datos/PII/secretos/billing/contactos.
+
+P1 sólo autoría: no install/Nodeproducto/tests/tipos/lintglobal/SQL/DB/Docker/navegador/verify/build/conocimiento todavía. Sí inspección de fuentes y diffcheck/documentación proporcionales ya permitidos. Al terminar autoría, entregar SHA y diff fijo de todo el producto/SQL/tests, matriz de aceptación y plan de pruebas/recursos para revisión. No retirar fusible0502 o activarcohorte hasta GO local específico; no aplicar0496/0501/0502. Cualquier cuarta necesidad debe demostrarse antes de editarla. Dirección técnica autorizada no equivale a aceptación funcional.
+
+<!-- ADDENDUM67 DIRECTOR ÍNTEGRO FIN -->
+
+## Ajustes P1 por revisión estática del Director y peer · sin aceptación funcional
+
+La confirmación coteja operación, referencia, contenedor, revisión histórica esperada+1 y grupos exactos por cliente/servicio/destino/selección; alta exige código y revisión1, extensión exige mismo grupo y siguiente revisión. El cierre usa decoder propio closed/replay con contenedor/revisión/sello UUID completos; recorded/transitioned/UNKNOWN o sobre incoherente no confirma éxito, no revalida ni avisa y pide conservar referencia/leer estado. El replay se contrasta contra su intención histórica, sin exigir una lectura mutable posterior. Fixtures negativos/positivo escritos, NO EJECUTADOS.
+
+Lectura primaria0321_warehouse_ve_delivery_governance.sql:37–44 confirma UNIQUE tenant+event_type+payload.request_ref sin entity_id; guard53–100 no altera esa clave. En0502 el POD que cierre varios grupos no puede reutilizar request_ref literal para cada AUD. Ajuste local propuesto/redactado: request_ref por grupo = client-normal-pod: + md5(JSON[referenciaPOD,shipmentId]); payload.pod_request_ref conserva la referencia original, pod_intentions y correlación client-normal-pod:shipment:md5(ref) permanecen. Cada grupo conserva AUD propio en la misma transacción; falla del segundo AUD revierte captura/cierres/eventos/ledger completos. Replay devuelve resultado histórico y no reapende AUD. Índice0321, cuerpos históricos/ACL y vía manual0487 no se editan. Compatibilidad de catálogo/SQL y casos multi-grupo/últimoOD/rollback/replay siguen pendientes de ejecución conGO.
+## Checkpoint P1-67 · paquete autoral fijable para revisión, SIN ejecución
+
+Las67 rutas de la unión Director67 tienen autoría. No se añadieron superficies fuera de esa unión ni se tocaron fuentes históricas. Este checkpoint compone eventos Portal y sus dos fixtures, respuestas de Naviera más estrictas, propuestas F1/F2 de POD, fixture/contratoSQL/PGlite, arnés de dos sesiones, recorridoE2E y declaración concreta0502. No certifica implementación correcta ni4.2completo. Spec sigue in-progress; PR318DRAFT apilada enD1; fusible0502 anterior aDDL y cohorteOFF. BCV GO05B EN CURSO conserva el único turno pesado, según Director;0578no hereda sus autorizaciones o resultados.
+
+**Respuestas e identidad:** confirmar coteja operación/referencia/contenedor, revisión histórica esperada+1 y selección por cliente/servicio/destino/grupo. Formación exige código/revisión1 y miembros exactos; extensión conserva grupo y suma sólo los nuevos. Cierre tiene decoder propio closed/replay con contenedor/revisión/selloUUID completos; recorded/transitioned/UNKNOWN/ausente/discordante no produce ok, aviso ni revalidación. Negativos y replay histórico válido están redactados en el fixture deacciones. La respuesta incierta conserva intención y pide lectura; no se la transforma en fallo seguro de persistencia que autorice otro intento nuevo.
+
+**Eventos Portal67:** RPC authenticated con auth.uid/principal vivo único, legacy tenant+marca, cohorte grupo Y shipment client_id propios. No recibe identidad browser ni usa helperStudio como rescate. Portal-only/helperStudioNULL válido; híbrido conserva Studio fuera deRPC. Historia selectorpropio/limitNULL íntegra ascendente por occurred_at/id; feed selectorNULL/entero1..2147483647, topN descendente estable, APIappdefault8/test4. Ambas opciones NULL o ambas noNULL son inválidas; sin coerción/clamp. Un JSON agrupa consulta completa para su vista. Envelope valida principal/vista/selector/límite/observaciónISO/filas únicas propias/orden/status/note; error o sobre incompleto no es[]. Selector ajeno/inexistente con principal válido sí da ausencia indistinguible. DTO, primera fecha y hitos notificables quedan literales. Mock anterior del principal retirado de shipment-events.test; resolver real con auth/client_users del doble, sin editar doble compartido ni pagos. Las pruebas escritas incluyen1105eventos/default8/4, errores/duplicados/ajenos y corte ceroRPC. No prueban RLS por ser dobles.
+
+**POD F1/F2:** Director reportó peer completo 0578-revision-sql0502-e7d0f4f0-peer.md,21496bytes/SHA2561affbf103354383d69750dc944fed78bca139a90a0b10ccbb6a849ae09ff5599; aquí se cotejaron los cuerpos primarios pertinentes.0321unique tenant+tipo+payload.request_ref exige referencia AUD por grupo;0502deriva client-normal-pod:+md5(JSON[refPOD,shipmentId]), conserva pod_request_ref original, intenciónPOD y correlación anterior. No modifica índice ni0487. NOWAIT sólo en guardas de paquetes/captura que pueden entrar después de locks legacy; comandos nuevos mantienen bloqueo/orden padre→grupos/envíos→OD/paquetes. Contención produce NORMAL_CONFLICT y rollback del comando completo, sin esperar el padre en orden inverso.0184se conserva íntegra (blobD1 774ecd95287ebab892f93d1e0f5f8ed201f3e4c1,prosrcMD5LFce9d72146b0c734ce64e50e899e581fe). Ramas PODv1/v2 por rol singular y partial_delivery por roles[] permanecen distintas; no se amplía autoridad. Fixturev1 corregida a cuerpo efectivo0068 (blobD1 5a016d5d0a211932efa3c6d3a544d01a893f89f7,MD5LFf486d0990e8d9204c7e9c483923a81aa);0288esledger y no redefine ese cuerpo. Efectividad funcional/ACL pendiente.
+
+**Pruebas autorales y límites:**35usa esquema mínimo propio y funciones/guardas reales; tras cada comandoAPI completo fuerza constraints diferidas y restaura deferred para no omitir invariantes por ROLLBACK. Migración0502tieneCOMMIT, por lo que ROLLBACK final revierte semillas, no instalaciónDDL: correr sólo en DB exclusiva descartable y destruirla al salir. PGlite instancia/cierra su DB propia;38crea/droppea sólo sdd0578_uuid en contenedor local con nombre/label de tarea. Las dos sesiones observan pg_blocking_pids/pg_stat_activity; no una espera de duración supuesta. Casos escritos incluyen intención/replay, código cohorte→legacy, congelar0496→link, plan viejo→extensión, sello→extensión y split0184/POD→conflicto limpio/reintentoP0013. SQLPOD prueba dosgrupos/unPOD/AUDdistintos, últimaODde miembros distintos, fracciones/duplicados pendientes, replay histórico y rollback ante fallo del segundoAUD. ParcialPOD válido se conserva; no caller/flagv2 activo. El vectorSQL de plan all-unplaced verifica persistencia, no acredita cálculoestiba@1; ese algoritmo real se conserva y se ejercita por adaptador/E2E. Fixture no modela ERP entero ni declara cobertura de ramas no alcanzadas.
+
+E2E redactado para app/Auth/DB/Storage loopback propios, sin intercepción deRPC/HTTP/componente/cookie falsa: primera recepción0449→Drawer→permiso revocado real con misma referencia→formación→recepción tardía→mismo envío→plan→PIN/PWA390/estiba→sello→0477→liberaciónUIVE→entrega manual por teclado, con facturas constantes. Reparto intermedio usa RPC tipada y no se etiqueta UI deTMS. Recurso/manifest externo sintético aún no preparado ni usado; sin él, SKIP=NO DISPONIBLE y no aceptación. Claro/oscuro/UI-check/reflow/boundary/RLS real quedan explícitos para el turno futuro, sin A11Yglobal prometida.
+
+Declaración pendiente0502:18funciones/26sitios alcanzables inventariados por lectura nativa y4anclas de fail-closed. JSON parseado con PowerShell; detector AST/alcanzabilidad/columnas NO EJECUTADO. Baseline sigue pending basename0502, cutoff/esperas ajenas intactos.0495no reaplicada;0496/0501/0502sinaplicar. No C-/OV nuevo; legacy conserva su vía anterior. Sin backfill, purga, conversión C-, costing4.6, factura4.3, autoridad/historia de cancelación/reapertura/reasignación o producción.
+
+### Validación y aceptación pendiente
+
+| Capa | Estado de este checkpoint | Evidencia que falta |
+|---|---|---|
+| Guard/owner, raíz/rama, scope67, diffcheck | PASÓ por comprobaciones nativas; se revalida antes decommit | Recibo fijo Git/PR del commit publicado |
+| JSON declarativo | PASÓ parseo nativo únicamente | Checker real de símbolos/AST/SDD/docs/tipos/lint |
+| Unidad/adaptadores/UI de componente | NO EJECUTADO | Vitest focal y oráculos conservados52/55/58/64/67 |
+| SQL/ACL/RLS/ABI/AUD/0496/estados/POD | NO EJECUTADO | PGlite+PostgreSQL reales, regresiones actuales y mutantes |
+| Concurrencia/códigos/drain/roster | NO EJECUTADO | Barreras reales escritas y ampliar ambosórdenes RC/RR/rename/reactivación/bulk/OFF→ON/lote mixto/PODsimultáneo |
+| HTTP/browser/UI-check/A11Y | NO EJECUTADO | Recurso efímero real, errores/foco, claro/oscuro/móvil/teclado/reflow y límites visibles |
+| Canónica/build | NO EJECUTADO | pnpm verify del SHA revisado tras foco verde, sin convertirSKIPs en cobertura |
+| Conocimiento/Archify/Obsidian | NO EJECUTADO | Runbook leído íntegro; estructura/semántica/preview pendientes deGO, integración/publicación sóloDirector |
+
+Plan nuevo íntegro externo: `C:/tmp/director-traspaso-20261020/0578-normal-validation/plan-relevo-p1-67.md`,12311bytes/SHA2567ad0418905f72489b138dad57631197fe4e62e45a8e57a88e0024c30b0dabca8. Conserva plan6eb46941previo. Contiene orden/comandos/recursos/condiciones de fusible, regresiones, matrizA1–A18y casos aún por extender antes de cierre. Una ruta redactada no equivale a oráculo completo o funcionalidad probada. Todas A1–A18aceptación pendiente; no trocear un bypass y llamarlo4.2completo.
+
+### Pendientes de esta tarea y siguiente acción Director
+
+Revisar delta fijo/0502/fixtures/67rutas y F1/F2; después Director decide turno/recursoGO y eventual retiro revisado del fusible. No se inicia P2, SQL, tests, tipos, build, navegador o conocimiento por este handoff. El checkpoint y su diff/blobs/hashes se entregan por Git/recibo externo y PR318DRAFT; no integra main ni producción. Claim retenido para revisión/corrección/continuación de la misma tarea; no Writer nuevo ni reset. El trabajo no tiene aceptación funcional todavía.
+
+### FUERA DE ALCANCE DETECTADO
+
+El caller móvil Bodeguero actual humanizeRpcError(197–209) devuelve mensajes desconocidos literalmente; un conflicto nuevo de la guarda puede verse como NORMAL_CONFLICT. No se editó su ruta fuera67 ni se amplió su autoridad/contrato. Evaluar presentación en UI real al validar la contención; el rechazo DB es atómico, no éxito parcial. Permisos/roles y excepciones históricas no se normalizan por conveniencia. Semántica/CI/producción de0574y trabajos BCV/0573no ascienden a verde por este checkpoint.

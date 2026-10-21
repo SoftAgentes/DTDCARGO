@@ -26,7 +26,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
-import { readNormalAssociations, readNormalContext, membershipResult, mutationResult, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
+import { readNormalAssociations, readNormalContext, membershipResult, closeManifestResult, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
 import { LEGACY_COHORT_DENIAL, invalidMembershipState, membershipRpcArgs, normalFlowError,
   validateCloseManifestInput, validateMembershipInput } from "@/lib/studio/client-consolidation/normal-flow";
 import type { MembershipResult, NormalActionState, NormalContext, NormalMutationResult } from "@/lib/studio/client-consolidation/types";
@@ -978,7 +978,16 @@ export async function confirmClientShipmentsAction(raw: unknown): Promise<Normal
   const { data, error } = await supabase.rpc("client_consolidation_confirm", membershipRpcArgs(parsed.input));
   if (error) return { error: normalFlowError(error) };
   const result = membershipResult(data);
-  if (!result || result.reference !== parsed.input.reference || result.containerId !== parsed.input.containerId) {
+  const input = parsed.input;
+  if (!result || result.reference !== input.reference || result.containerId !== input.containerId || result.operation !== input.operation
+    || result.containerRevision !== input.expectedContainerRevision + 1 || result.groups.length !== input.groups.length
+    || input.groups.some((selection) => {
+      const group = result.groups.find((entry) => entry.clientId === selection.clientId);
+      return !group || group.service !== selection.service || group.destinationId !== selection.destinationId
+        || !selection.receipts.every((receipt) => group.receiptIds.includes(receipt.receiptId))
+        || (input.operation === "form" ? group.code !== selection.code || group.revision !== 1 || group.receiptIds.length !== selection.receipts.length
+          : group.groupId !== selection.groupId || group.revision !== (selection.expectedGroupRevision ?? 0) + 1);
+    })) {
     return { error: "No se pudo comprobar la respuesta. Conserva la referencia y consulta el estado actual antes de reintentar." };
   }
   revalidate(); revalidatePath("/studio/cn"); revalidatePath("/studio/tracking");
@@ -993,8 +1002,8 @@ export async function closeClientManifestAction(raw: unknown): Promise<NormalAct
   const { data, error } = await supabase.rpc("client_consolidation_close", { p_container_id: input.containerId,
     p_expected_revision: input.expectedContainerRevision, p_reference: input.reference, p_reason: input.reason });
   if (error) return { error: normalFlowError(error) };
-  const result = mutationResult(data);
-  if (!result || result.reference !== input.reference || result.containerId !== input.containerId) {
+  const result = closeManifestResult(data);
+  if (!result || result.reference !== input.reference || result.containerId !== input.containerId || result.containerRevision !== input.expectedContainerRevision) {
     return { error: "No se pudo comprobar el cierre. Conserva la referencia y consulta el estado actual." };
   }
   let warning: string | undefined;
