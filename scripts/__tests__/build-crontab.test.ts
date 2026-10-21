@@ -61,7 +61,7 @@ describe("SDD-0505 · crontab generado desde vercel.json", () => {
     }
   });
 
-  it("cubre los 19 crons de vercel.json con su mismo horario, más searates-refresh semanal", () => {
+  it("conserva los 19 crons y SeaRates semanal, con BCV único cada hora al minuto 5", () => {
     expect(vercelCrons).toHaveLength(19);
     const jobs = jobLines(committed);
     expect(jobs).toHaveLength(vercelCrons.length + EXTRA_CRONS.length);
@@ -71,13 +71,17 @@ describe("SDD-0505 · crontab generado desde vercel.json", () => {
       expect(jobs[i]).toBe(`${cron.schedule} ${CURL_PREFIX}${cron.path}`);
     });
 
-    // El extra va al final, con el horario fijado por la spec (lunes 06:00 UTC).
+    // Los extras conservan su orden y sus horarios aprobados.
     expect(EXTRA_CRONS).toEqual([
       expect.objectContaining({ path: "/api/cron/searates-refresh", schedule: "0 6 * * 1" }),
+      expect.objectContaining({ path: "/api/cron/bcv-rates", schedule: "5 * * * *" }),
     ]);
-    expect(jobs.at(-1)).toBe(`0 6 * * 1 ${CURL_PREFIX}/api/cron/searates-refresh`);
+    expect(jobs[vercelCrons.length]).toBe(`0 6 * * 1 ${CURL_PREFIX}/api/cron/searates-refresh`);
+    expect(jobs.at(-1)).toBe(`5 * * * * ${CURL_PREFIX}/api/cron/bcv-rates`);
+    expect(jobs.filter((line) => line.endsWith("/api/cron/bcv-rates"))).toHaveLength(1);
     // Y no está en vercel.json: si algún día se agenda allí, el extra sobra (duplicado).
     expect(vercelCrons.some((c) => c.path === "/api/cron/searates-refresh")).toBe(false);
+    expect(vercelCrons.some((c) => c.path === "/api/cron/bcv-rates")).toBe(false);
   });
 
   it("es determinista: la misma fuente produce los mismos bytes", () => {

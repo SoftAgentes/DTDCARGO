@@ -58,7 +58,7 @@ Rama propia indicada arriba. Publicación parcial autorizada por el Director el 
 
 ## PENDIENTES DE ESTA TAREA
 
-- Reserva0501 completada localmente. Módulos/parser/source/sync/route, fixtures, SQL/contratos, driver pequeño y documentación autorados como candidatos; falta demostrar y corregir bajo turno. Cron/UI autorados después del baseline, todavía sin ejecutar; crontab generado pendiente del script nativo bajo turno. Package/lock solo promoción directa8.0.1.
+- Reserva0501 completada localmente. Módulos/parser/source/sync/route, fixtures, SQL/contratos, driver pequeño y documentación autorados como candidatos; falta demostrar y corregir bajo turno. Cron/UI autorados después del baseline, pruebas todavía sin ejecutar; crontab generado con script nativo, check pasó. Package/lock solo promoción directa8.0.1.
 - Gate SQL/HTTP pequeño y focal0501 completados bajo GO02; resto B1–B19/R1–R14 y canónica pendientes. Dos P2 SQL medidos: negativos DML con efectos/eventos y mutante funcional del guard; rechazo después de ambosDDL y catálogo exacto tras ROLLBACK en la mismaDB. Parser/source conservan producto candidato hasta ROJOS F01/F02/F03 en turno funcional futuro.
 - Matriz SGE12 de producto con clasificación/evidencia real, no ascender matriz estática a conformidad.
 - Documentos finales, recibos de cierre nativos, ciclo único de conocimiento local, PR DRAFT, integridad y cleanup de recursos atribuibles; liberar claim solo al concluir escritura y cierre aceptado.
@@ -144,6 +144,8 @@ Governance Check aplicado por lectura: SGE-00, VIS-01/02, A11Y-01, CMP-01, ICO-0
 Se encontraron rutas supuestas ausentes al preparar lecturas (HANDOFF/CHANGELOG de raíz, registry relativo y nombres de helper); se resolvieron con inventario focal a sus rutas reales. Son preparación de lectura, sin runtime ni ROJO funcional. Notas de prevuelo/peer y checkpoint 8b4 permanecen inmutables; producto parser/source/sync/types/0501 idéntico a f106 hasta medir los hallazgos.
 
 ## CONTRATOS ÍNTEGROS CONSERVADOS ANTES DE PRODUCTO
+
+Estado GO03 efectivo: transferencia exclusiva confirmada a 2026-10-21 13:27:50.1825184 UTC / 09:27:50.1825184 Caracas, HEAD inicial e9a65db2ced8820587c8c7952c274cc7ca826449. Guard nativo pasó. Solo generador/test cron estaban modificados; se generó el crontab con el script nativo, 21 entradas y check PASÓ. Índice nativo regenerado, 559 specs/18 huecos preexistentes, sin delta. Fuentes parser/source/sync/types/0501 idénticas a f106 antes de ROJOS. No se repite instalación/baseline ni focal PGlite por rutina. /ui-check estático previo no sustituye navegador; ejecución funcional autorizada, canónica/build/conocimiento todavía fuera del bloque.
 
 ### Encargo original · SHA256 c477578e870ce7567d9c5e3ca10500e787169ded114bc41356daef6b4983f842
 

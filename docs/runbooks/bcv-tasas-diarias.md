@@ -1,6 +1,6 @@
 # BCV diario · VES por 1 USD
 
-SDD-0569 · 2026-10-21. **EN PROGRESO: respaldo parcial en PR #317 DRAFT.** La instalación congelada, el baseline previo de cron/UI y el bloque acotado de contexto HTTP/persistencia están medidos; aceptación funcional general, agenda generada, revisión visual, canónica y conocimiento siguen pendientes. Activación y producción no están autorizadas. El handoff propio conserva contratos y evidencia por fase; esta nota no autoriza operar el servidor.
+SDD-0569 · 2026-10-21. **EN PROGRESO: respaldo parcial en PR #317 DRAFT.** La instalación congelada, el baseline previo de cron/UI y el bloque acotado de contexto HTTP/persistencia están medidos; aceptación funcional general, revisión visual, canónica y conocimiento siguen pendientes. Agenda generada localmente; activación y producción no están autorizadas. El handoff propio conserva contratos y evidencia por fase; esta nota no autoriza operar el servidor.
 
 El objetivo es guardar únicamente la cotización oficial cuyo día valor sea exactamente hoy en America/Caracas. El formulario de Tasas de cambio conserva el respaldo manual. Una fecha futura se vuelve a consultar cuando llegue su día; una fecha pasada no se copia como hoy. No hay historial durable de consultas ni disponibilidad diaria garantizada.
 
@@ -58,7 +58,7 @@ La nota de fila guarda solo URL/retrievedAt/hash/día sanitizados y<=500. No sus
 
 ## Agenda e instalación futura, no realizadas
 
-Entrada autorada en el generador después del baseline: `5 * * * *`, ruta única `/api/cron/bcv-rates`. La regeneración nativa y sus comprobaciones esperan turno. Son 24 invocaciones nominales/día, no cuota global exacta ni 24 requests HTTP garantizados por los redirects/repeticiones. Sin Vercel/Actions/scheduler paralelo. El generador y el crontab del servidor se mantienen como fuentes canónicas.
+Entrada generada localmente después del baseline: `5 * * * *`, ruta única `/api/cron/bcv-rates`. El script nativo produjo 21 entradas y su check pasó; no hay instalación de cron. Son 24 invocaciones nominales/día, no cuota global exacta ni 24 requests HTTP garantizados por los redirects/repeticiones. Sin Vercel/Actions/scheduler paralelo. El generador y el crontab del servidor se mantienen como fuentes canónicas.
 
 El aviso de Tasas distingue una BCV VES completa de hoy de manual/operación, anterior, futura o incompleta. Muestra la última fecha/fuente recibidas cuando son completas; null no demuestra que no exista tasa ni que haya fallado el cron. El formulario manual conserva par, tasa, fecha y nota. La autoría y sus casos DOM todavía no prueban teclado, contraste o disposición real.
 
