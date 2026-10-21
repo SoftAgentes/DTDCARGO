@@ -13,29 +13,33 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push }) }));
 
 import { DocumentImportEntry } from "./DocumentImportEntry";
 import { DocumentRequestError, type DocumentClient } from "./document-client";
+import { emptyDocumentDraft } from "@/lib/shared/document-import";
 
 afterEach(() => {
   cleanup();
   mocks.push.mockClear();
 });
-
 function cliente(capabilities: unknown, falla?: Error) {
+  let revision = 0;
+  const workspace = { id: "00000000-0000-4000-8000-000000000001", revision, draft: emptyDocumentDraft(), confirmedRevision: null, expiresAt: null };
   const get = vi.fn(async (action: string) => {
     if (action === "job") {
       // Sin esto el archivo queda "en cola" para siempre y nada se habilita.
-      return { job: { status: "ready", result: null, errorCode: null } } as never;
+      return { job: { status: "ready", result: emptyDocumentDraft(), errorCode: null } } as never;
     }
+    if (action === "workspace") return { workspace: { ...workspace, revision } } as never;
     if (falla) throw falla;
     return capabilities as never;
   });
   const post = vi.fn(async (action: string) => {
     if (action === "open") {
-      return { workspace: { id: "00000000-0000-4000-8000-000000000001", revision: 0, draft: null, confirmedRevision: null, expiresAt: null } } as never;
+      return { workspace } as never;
     }
     if (action === "upload") {
       return { jobId: "job-1", status: "uploading", uploadUrl: "https://upload.test/x", contentType: "application/pdf" } as never;
     }
     if (action === "uploaded") return { jobId: "job-1", status: "queued" } as never;
+    if (action === "apply") { revision += 1; return { revision, confirmed: false } as never; }
     return {} as never;
   });
   const client: DocumentClient = {
@@ -52,6 +56,23 @@ function cliente(capabilities: unknown, falla?: Error) {
 const titulo = "Carga tus documentos y los llenamos";
 
 describe("DocumentImportEntry (SDD-0473)", () => {
+  it("informa disponibilidad para ofrecer una sola carga en la compra", async () => {
+    const { client } = cliente({ available: true, portal: true, formats: ["pdf"], maxBytes: 15728640 });
+    const onAvailability = vi.fn();
+    render(<DocumentImportEntry purchaseCode="DTD-0000-1-1" client={client} onAvailability={onAvailability} />);
+    await screen.findByRole("heading", { name: titulo });
+    expect(onAvailability).toHaveBeenCalledWith(true);
+  });
+
+  it("el resumen permite abrir el documento sin subirlo otra vez ni crear uno al visitar la compra", async () => {
+    const { client, post } = cliente({ available: true, portal: true, formats: ["xlsx"], maxBytes: 15728640 });
+    render(<DocumentImportEntry purchaseCode="DTD-0000-1-1" reviewHref="/portal/compras/DTD-0000-1-1/documento" presentation="overview" client={client} />);
+    const abrir = await screen.findByRole("link", { name: "Abrir Packing List + Factura" });
+    expect(abrir).toHaveAttribute("href", "/portal/compras/DTD-0000-1-1/documento");
+    expect(screen.queryByLabelText("Elige tus archivos o suéltalos aquí")).not.toBeInTheDocument();
+    expect(post).not.toHaveBeenCalled();
+  });
+
   it("no renderiza nada mientras la función no está habilitada", async () => {
     const { client, get } = cliente({ available: false, formats: [], maxBytes: 0 });
     const { container } = render(<DocumentImportEntry purchaseCode="DTD-0000-1-1" client={client} />);
@@ -112,7 +133,7 @@ describe("DocumentImportEntry (SDD-0473)", () => {
   });
 
   it("«Revisar documento» lleva a la compra, no a una pantalla anónima", async () => {
-    const { client } = cliente({ available: true, portal: true, formats: [], maxBytes: 15728640 });
+    const { client, post } = cliente({ available: true, portal: true, formats: [], maxBytes: 15728640 });
     render(
       <DocumentImportEntry
         purchaseCode="DTD-0000-1-1"
@@ -130,8 +151,12 @@ describe("DocumentImportEntry (SDD-0473)", () => {
     });
 
     const revisar = await screen.findByRole("button", { name: "Revisar documento" });
-    // El sondeo del trabajo corre cada 2,5 s: hay que darle su tiempo real.
-    await waitFor(() => expect(revisar).toBeEnabled(), { timeout: 6000 });
+    const aplicar = await screen.findByRole("button", { name: "Aplicar al documento" }, { timeout: 6000 });
+    expect(revisar).toBeDisabled();
+    expect(mocks.push).not.toHaveBeenCalled();
+    fireEvent.click(aplicar);
+    await waitFor(() => expect(revisar).toBeEnabled());
+    expect(post).toHaveBeenCalledWith("apply", expect.objectContaining({ expectedRevision: 0, workspaceId: "00000000-0000-4000-8000-000000000001" }));
     fireEvent.click(revisar);
     expect(mocks.push).toHaveBeenCalledWith("/portal/compras/DTD-0000-1-1/documento");
   });
@@ -151,5 +176,18 @@ describe("DocumentImportEntry (SDD-0473)", () => {
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith("open", { purchaseCode: "DTD-0000-1-1" }),
     );
+  });
+
+  it("al cambiar de compra reinicia los archivos y abre el nuevo documento en su propio ámbito", async () => {
+    const { client, post } = cliente({ available: true, portal: true, formats: ["pdf"], maxBytes: 15728640 });
+    const { rerender } = render(<DocumentImportEntry purchaseCode="DTD-0001-1" client={client} />);
+    const input = await screen.findByLabelText("Elige tus archivos o suéltalos aquí");
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.change(input, { target: { files: [new File(["compra-a"], "compra-a.pdf", { type: "application/pdf" })] } });
+    await waitFor(() => expect(post).toHaveBeenCalledWith("open", { purchaseCode: "DTD-0001-1" }));
+    rerender(<DocumentImportEntry purchaseCode="DTD-0002-1" client={client} />);
+    expect(screen.queryByText("compra-a.pdf")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Elige tus archivos o suéltalos aquí"), { target: { files: [new File(["compra-b"], "compra-b.pdf", { type: "application/pdf" })] } });
+    await waitFor(() => expect(post).toHaveBeenCalledWith("open", { purchaseCode: "DTD-0002-1" }));
   });
 });

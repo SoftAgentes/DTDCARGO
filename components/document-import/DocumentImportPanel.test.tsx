@@ -62,6 +62,7 @@ type Guion = {
   jobResult?: DocumentDraft | null;
   jobErrorCode?: string | null;
   uploadFalla?: DocumentRequestError;
+  finishStatus?: string;
 };
 
 function cliente(guion: Guion = {}) {
@@ -94,7 +95,7 @@ function cliente(guion: Guion = {}) {
         if (guion.uploadFalla) throw guion.uploadFalla;
         return { jobId: "job-1", status: "uploading", uploadUrl: "https://upload.test/x", contentType: "application/pdf" } as never;
       }
-      if (action === "uploaded") return { jobId: "job-1", status: "queued" } as never;
+      if (action === "uploaded") return { jobId: "job-1", status: guion.finishStatus??"queued" } as never;
       // El servidor devuelve un RECIBO, no el workspace (`save_document_workspace`
       // en la 0457 hace `return receipt`). El falso anterior devolvía un workspace
       // completo y por eso tapaba el defecto: el panel subía un objeto sin `id`
@@ -117,6 +118,13 @@ function elegir(files: File[]) {
 }
 
 describe("DocumentImportPanel (SDD-0473)", () => {
+  it("recupera la propuesta aunque la recepción idempotente ya llegue en ready",async()=>{
+    const {client}=cliente({finishStatus:"ready"});
+    render(<DocumentImportPanel workspace={WORKSPACE} onWorkspace={vi.fn()} client={client} pollMs={1}/>);
+    elegir([archivo()]);
+    const preview=await screen.findByText("Ver datos detectados");fireEvent.click(preview);
+    expect(screen.getByText("Vasos")).toBeVisible();expect(screen.getByRole("button",{name:"Aplicar al documento"})).toBeEnabled();expect(client.get).toHaveBeenCalledWith("job",{workspaceId:WORKSPACE.id,jobId:"job-1"});expect(client.post).not.toHaveBeenCalledWith("apply",expect.anything());
+  });
   it("anuncia los formatos que de verdad acepta y no promete fotos", () => {
     const { client } = cliente();
     render(<DocumentImportPanel workspace={null} onWorkspace={vi.fn()} client={client} />);

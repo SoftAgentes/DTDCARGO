@@ -153,6 +153,19 @@ beforeEach(() => {
 afterEach(() => { logged.mockRestore(); vi.unstubAllEnvs(); });
 
 describe("Puerta HTTP de importación documental", () => {
+  it("las etiquetas exigen el token de esta compra y la revisión confirmada solicitada",async()=>{
+    const d=draft();d.supplier.wechat="demo";d.groups=[{id:"g1",label:"1",cartons:1,grossWeightKg:2,cbm:0.05,items:[{productId:"p1",quantity:10}]}];
+    h.getWorkspace.mockResolvedValue(workspace({draft:d,revision:4,confirmed_revision:4,confirmed_submission_id:"submission"}));
+    h.state.admin.prealertas={data:{code:"DTD-C-1"}};h.state.admin.packing_list_submissions={data:{folio:"PL-TEST",version_no:1}};
+    h.state.admin.document_group_boxes={data:[{box_id:"box"}]};h.state.admin.warehouse_boxes={data:[{id:"box",code:"DTD-B-000001",seq:3}]};
+    h.state.admin.document_workspaces={data:{revision:4,confirmed_revision:4,confirmed_submission_id:"submission"}};
+    const headers=asSupplier();
+    const query={action:"labels",workspaceId:WORKSPACE_ID,expectedRevision:"4"};
+    const ok=await call({headers,query});expect(ok.status).toBe(200);expect(await ok.json()).toMatchObject({revision:4,labels:[{boxCode:"DTD-B-000001"}]});
+    const stale=await call({headers,query:{...query,expectedRevision:"3"}});expect(stale.status).toBe(409);
+    h.tokenIds.mockResolvedValue({prealertaId:"another-purchase",tenantId:TENANT_ID,markbox:MARKBOX});
+    expect((await call({headers,query})).status).toBe(404);
+  });
   it("sólo abre para los orígenes configurados y el propio, comparando el origen completo", async () => {
     for (const origin of [SITE, API, PORTAL, SELF]) {
       const res = await call({ origin, query: { action: "capabilities" } });

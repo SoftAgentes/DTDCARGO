@@ -33,6 +33,7 @@ import {
   type DocumentWorkspace,
 } from "./document-client";
 import s from "./document-import.module.css";
+import { DocumentEditor } from "./DocumentEditor";
 
 /** Lo que el servidor acepta hoy. Las fotos de WeChat hay que convertirlas antes. */
 const ACCEPT = ".xlsx,.csv,.pdf";
@@ -155,6 +156,7 @@ export function DocumentImportPanel({
   locale = "es",
   client,
   pollMs = 2500,
+  canReview = true,
 }: {
   /** Workspace ya abierto. Si falta, el panel lo abre con la primera carga. */
   workspace: DocumentWorkspace | null;
@@ -174,6 +176,7 @@ export function DocumentImportPanel({
   /** Inyección explícita sólo para pruebas y fixtures. */
   client?: DocumentClient;
   pollMs?: number;
+  canReview?: boolean;
 }) {
   const t = (zh: string, es: string, en: string) => documentText(locale, zh, es, en);
   const uid = useId();
@@ -297,7 +300,7 @@ export function DocumentImportPanel({
   /** Sondeo de los trabajos en vuelo. Se detiene solo cuando no queda ninguno. */
   useEffect(() => {
     const pendientes = entries.filter(
-      (e) => e.jobId && !TERMINAL.includes(e.status),
+      (e) => e.jobId && (!TERMINAL.includes(e.status) || (APPLICABLE.includes(e.status) && !e.draft)),
     );
     if (!pendientes.length || !workspace) return;
     let vivo = true;
@@ -358,7 +361,7 @@ export function DocumentImportPanel({
   }
 
   const listos = entries.filter((e) => APPLICABLE.includes(e.status));
-  const enVuelo = entries.some((e) => !TERMINAL.includes(e.status));
+  const enVuelo = entries.some((e) => !TERMINAL.includes(e.status) || (APPLICABLE.includes(e.status) && !e.draft));
 
   return (
     <section
@@ -378,6 +381,14 @@ export function DocumentImportPanel({
           )}
         </p>
       </div>
+
+      <p className={s.notice}>
+        {t(
+          "文件将保密保存，用于填写本次采购资料。如需辅助读取，会将文件内容发送至 Anthropic。请勿上传银行账号、身份证件或与货物无关的数据。",
+          "Guardamos estos archivos de forma privada para preparar tu Packing List + Factura. Si requieren lectura asistida, enviamos su contenido a Anthropic. Evita incluir datos bancarios, documentos de identidad o información ajena a la mercancía.",
+          "Files are stored privately to prepare your Packing List + Invoice. If assisted reading is needed, their content is sent to Anthropic. Avoid including bank details, identity documents or information unrelated to the goods.",
+        )}
+      </p>
 
       <div
         className={s.drop}
@@ -486,6 +497,7 @@ export function DocumentImportPanel({
                       {totals.cbm ?? t("待补充", "pendiente", "pending")} m³
                     </p>
                   )}
+                  {entry.draft&&<details className={s.card}><summary>{t("查看提取的数据","Ver datos detectados","View detected data")}</summary><DocumentEditor draft={entry.draft} locale={locale} readOnly/></details>}
 
                   {entry.status === "partial" && (
                     <p className={s.muted}>
@@ -508,8 +520,8 @@ export function DocumentImportPanel({
                       <button
                         type="button"
                         className="btn btn-primary"
-                        disabled={busy}
-                        onClick={() => void apply(entry)}
+                        disabled={busy || !entry.draft}
+                        onClick={() => { if(entry.draft)void apply(entry); }}
                       >
                         {t("应用到文件", "Aplicar al documento", "Apply to the document")}
                       </button>
@@ -535,7 +547,7 @@ export function DocumentImportPanel({
           <button
             type="button"
             className="btn btn-primary"
-            disabled={busy || enVuelo || (!workspace && listos.length === 0)}
+            disabled={busy || enVuelo || !canReview || (!workspace && listos.length === 0)}
             onClick={onReview}
           >
             {t("查看文件", "Revisar documento", "Review document")}

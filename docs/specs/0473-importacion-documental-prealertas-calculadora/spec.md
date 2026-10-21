@@ -4,7 +4,7 @@ title: "Importación documental, borrador compartido y calculadora puerta a puer
 status: in-progress
 author: "Codex"
 created: 2026-09-16
-updated: 2026-09-18
+updated: 2026-10-21
 supersedes: null
 superseded_by: null
 related: ["0468"]
@@ -279,6 +279,70 @@ prueba, `vercel.json`, `.env.example`, `app/cotizador/page.tsx`, `app/p/[token]/
 - `.agents/handoffs/0473-encender-cotizador-20260918.md`
 
 ## Aceptación
+
+### Continuación autorizada 2026-10-21 · Portal y confirmación del proveedor
+
+Sam pide terminar el documento compartido antes de activar producción y mejorar la presentación
+del portal: cliente carga/revisa/guarda; proveedor abre la revisión compartida, corrige peso bruto
+y CBM, confirma e imprime etiquetas. Owner `worker-packing-portal-20261021`, rama
+`codex/packing-list-portal-confirmacion-20261021`, base `d410ab2e`.
+
+Esta etapa sustituye la precarga parcial al formulario local para compras gestionadas: el editor
+normalizado conserva IDs, fuentes, unidades y moneda; los borradores locales antiguos nunca mandan
+sobre el documento compartido. Las compras sin workspace conservan el flujo legacy. Etiquetas
+finales requieren revisión confirmada y cajas físicas consultadas en servidor. No se activan
+banderas productivas ni se aplican migraciones en esta etapa.
+
+Allowlist exacta de esta etapa:
+
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-portal-confirmacion-20261021.md`
+- `app/p/[token]/page.tsx`
+- `app/p/[token]/ProviderShareClient.tsx`
+- `app/p/[token]/SharedSupplierDocument.tsx`
+- `app/p/[token]/SharedSupplierDocument.test.tsx`
+- `app/p/[token]/page.shared-document.test.tsx`
+- `app/p/[token]/SupplierUploadSection.tsx`
+- `app/p/[token]/SupplierUploadSection.test.tsx`
+- `app/p/[token]/supplier-flow.test.tsx`
+- `app/portal/_components/ShareProviderButton.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseStepDetalle.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseStepDetalle.test.tsx`
+- `app/portal/(app)/compras/[code]/page.tsx`
+- `app/portal/(app)/compras/[code]/documento/DocumentReviewClient.tsx`
+- `app/portal/(app)/compras/[code]/documento/DocumentReviewClient.test.tsx`
+- `app/portal/(app)/compras/[code]/_components/PackingListDelProveedor.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/page.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/LabelsClient.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/LabelsClient.test.tsx`
+- `app/portal/(app)/compras/[code]/page.test.tsx`
+- `components/document-import/DocumentEditor.tsx`
+- `components/document-import/DocumentEditor.test.tsx`
+- `components/document-import/DocumentImportPanel.tsx`
+- `components/document-import/DocumentImportPanel.test.tsx`
+- `components/document-import/DocumentImportEntry.tsx`
+- `components/document-import/DocumentImportEntry.test.tsx`
+- `components/document-import/document-client.ts`
+- `components/document-import/document-client.test.ts`
+- `components/document-import/document-import.module.css`
+- `lib/studio/document-import/service.ts`
+- `lib/studio/document-import/service.test.ts`
+- `lib/studio/document-import/http.ts`
+- `lib/studio/document-import/http.test.ts`
+- `lib/studio/document-import/migration.test.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/index.html`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/fixture.tsx`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/server.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/database.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/vite.config.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/README.md`
+
+Riesgo R3: identidad por sesión/capacidad, CAS y confirmación transaccional, etiquetas de revisión
+vigente. Cumplimiento previsto de FRM-01/ERR-01/LOD-01/A11Y-01/VIS-01/VIS-02/IA-01/AUD-01:
+estados explícitos, errores recuperables, foco y controles legibles, revisión humana antes de aplicar
+extracción y trazabilidad conservada. No aplica modificar contratos comerciales ni cotizador público.
+La fixture usa exclusivamente identidades/documentos sintéticos, persistencia SQL efímera y un
+transporte local identificado; no acredita Supabase/Storage/IA productivos ni WeChat.
 
 - Fixtures sintéticas XLSX DTD/ajeno/chino, CSV, PDF digital/escaneado mock explícito; mezcla
   factura+packing, duplicados, unidades, totales y grupos mixtos; no IA real con PII.

@@ -30,7 +30,7 @@ const mocks = vi.hoisted(() => ({ idsByToken: vi.fn(), portalPrincipal: vi.fn() 
 vi.mock("@/lib/studio/prealertas/queries", () => ({ getPrealertaIdsByToken: mocks.idsByToken }));
 vi.mock("@/lib/portal/portal-queries", () => ({ getPortalClientPrincipal: mocks.portalPrincipal }));
 
-import { MAX_IMPORT_BYTES, applyImport, documentLabelGate, getWorkspace, openWorkspace, projectWorkspace, reserveUpload, saveWorkspace } from "./service";
+import { MAX_IMPORT_BYTES, applyImport, documentLabelGate, getDocumentLabels, getWorkspace, openWorkspace, projectWorkspace, reserveUpload, saveWorkspace } from "./service";
 
 const ID = {
   workspace: "11111111-1111-4111-8111-111111111111",
@@ -91,6 +91,8 @@ function fakeDb(spec: DbSpec = {}) {
       select: (columns: string) => { q.select = columns; return api; },
       maybeSingle: async () => answer(q),
       single: async () => answer(q),
+      order: () => api,
+      then: (resolve:(value:Reply)=>unknown,reject:(error:unknown)=>unknown) => Promise.resolve(answer(q)).then(resolve,reject),
       insert: async (row: Record<string, unknown>) => { inserts.push({ table: q.table, row }); return { data: null, error: spec.insert?.error ?? null }; },
     };
     for (const op of ["eq", "is", "neq", "in", "gt", "lt"]) api[op] = (column: string, value: unknown) => { q.filters.push([op === "eq" ? column : op + ":" + column, value]); return api; };
@@ -529,5 +531,34 @@ describe("Leer un workspace por id", () => {
   });
   it("un error de lectura no se distingue de un documento inexistente", async () => {
     await expect(getWorkspace(fakeDb({ tables: { document_workspaces: { error: { code: "57014", message: "timeout" } } } }), ID.workspace)).rejects.toMatchObject({ status: 404, code: "not_found" });
+  });
+});
+
+describe("Etiquetas de la revisión confirmada vigente",()=>{
+  const row=()=>W({draft:completeDraft(),revision:8,confirmed_revision:8,confirmed_submission_id:"submission-test"});
+  function database(latest={revision:8,confirmed_revision:8,confirmed_submission_id:"submission-test"},boxes=[{id:"b1",code:"DTD-B-1",seq:4},{id:"b2",code:"DTD-B-2",seq:9}]){
+    return fakeDb({tables:{prealertas:{data:{code:"DTD-TEST-1"}},packing_list_submissions:{data:{folio:"PL-TEST",version_no:2}},document_group_boxes:{data:[{box_id:"b1"},{box_id:"b2"}]},warehouse_boxes:{data:boxes},document_workspaces:{data:latest}}});
+  }
+  it("devuelve exactamente los códigos físicos vigentes y conserva orden con huecos",async()=>{
+    const db=database();const labels=await getDocumentLabels(db,row(),8);
+    expect(labels).toEqual({revision:8,folio:"PL-TEST",versionNo:2,labels:[{code:"DTD-TEST-1",boxN:1,totalBoxes:2,boxCode:"DTD-B-1"},{code:"DTD-TEST-1",boxN:2,totalBoxes:2,boxCode:"DTD-B-2"}]});
+    expect(db.queries.find(q=>q.table==="warehouse_boxes")?.filters).toContainEqual(["tenant_id",ID.tenant]);
+    expect(db.queries.find(q=>q.table==="warehouse_boxes")?.filters).toContainEqual(["prealerta_id",ID.prealerta]);
+  });
+  it("niega un borrador, una revisión obsoleta y datos incompletos antes de leer cajas",async()=>{
+    for(const [workspace,expected] of [[row(),7],[{...row(),confirmed_revision:7},8],[{...row(),draft:emptyDocumentDraft()},8]] as [WorkspaceRow,number][]){
+      const db=database();await expect(getDocumentLabels(db,workspace,expected)).rejects.toMatchObject({status:409});expect(db.queries).toHaveLength(0);
+    }
+  });
+  it("niega listas parciales o códigos duplicados sin inventar etiquetas",async()=>{
+    for(const boxes of [[{id:"b1",code:"DTD-B-1",seq:4}],[{id:"b1",code:"DTD-B-1",seq:4},{id:"b2",code:"DTD-B-1",seq:9}]])
+      await expect(getDocumentLabels(database(undefined,boxes),row(),8)).rejects.toMatchObject({status:409,code:"labels_need_operations"});
+  });
+  it("detecta cuando el cliente guarda mientras se estaban consultando las cajas",async()=>{
+    await expect(getDocumentLabels(database({revision:9,confirmed_revision:8,confirmed_submission_id:"submission-test"}),row(),8)).rejects.toMatchObject({status:409,code:"revision_conflict"});
+  });
+  it("reimprime códigos físicos heredados sin mapping ni reasignar cajas recibidas",async()=>{
+    const db=fakeDb({tables:{prealertas:{data:{code:"DTD-LEGACY-1"}},packing_list_submissions:{data:{folio:"PL-LEGACY",version_no:1}},document_group_boxes:{data:[]},warehouse_boxes:{data:[{id:"received",code:"DTD-B-LEGACY1",seq:1},{id:"other",code:"DTD-B-LEGACY2",seq:2}]},document_workspaces:{data:{revision:8,confirmed_revision:8,confirmed_submission_id:"submission-test"}}}});
+    const result=await getDocumentLabels(db,row(),8);expect(result.labels.map(label=>label.boxCode)).toEqual(["DTD-B-LEGACY1","DTD-B-LEGACY2"]);expect(db.rpcCalls).toHaveLength(0);expect(db.queries.find(q=>q.table==="warehouse_boxes")?.filters).not.toContainEqual(["in:id",[]]);
   });
 });

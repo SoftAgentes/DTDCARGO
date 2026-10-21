@@ -40,6 +40,23 @@ function Controlado({ inicial, locale = "es" as const }: { inicial: DocumentDraf
 }
 
 describe("DocumentEditor (SDD-0473)", () => {
+  it("permite escribir CBM decimal progresivo y peso con coma sin borrar el separador",()=>{
+    render(<Controlado inicial={mixto()}/>);
+    const cbm=screen.getByRole("textbox",{name:"CBM TOTAL (m³)"});
+    fireEvent.change(cbm,{target:{value:"0"}});fireEvent.change(cbm,{target:{value:"0."}});expect(cbm).toHaveValue("0.");fireEvent.change(cbm,{target:{value:"0.6"}});expect(cbm).toHaveValue("0.6");
+    const weight=screen.getByRole("textbox",{name:"Peso bruto TOTAL (kg)"});
+    fireEvent.change(weight,{target:{value:"120,"}});expect(weight).toHaveValue("120,");fireEvent.change(weight,{target:{value:"120,5"}});expect(weight).toHaveValue("120,5");
+    expect(within(totales()).getByText("120,5 kg")).toBeVisible();
+  });
+  it("el formato estándar reemplaza campos guiados y conserva edición al volver desde la línea",()=>{
+    render(<Controlado inicial={mixto()}/>);
+    fireEvent.click(screen.getByRole("button",{name:"Formato estándar"}));
+    expect(screen.queryByRole("textbox",{name:"Empresa"})).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button",{name:"Editar Vasos"})[0]);
+    const name=screen.getByRole("textbox",{name:"Producto"});expect(name).toHaveValue("Vasos");
+    fireEvent.change(name,{target:{value:"Vasos corregidos"}});fireEvent.click(screen.getByRole("button",{name:"Guardar producto"}));
+    fireEvent.click(screen.getByRole("button",{name:"Formato estándar"}));expect(screen.getAllByText("Vasos corregidos")[0]).toBeVisible();
+  });
   it("cuenta las cajas, el peso y el volumen una sola vez aunque dos productos las compartan", () => {
     render(<DocumentEditor draft={mixto()} locale="es" />);
     const t = totales();

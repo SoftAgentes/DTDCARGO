@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import { parseDocumentDraft } from "@/lib/shared/document-import";
 import { enabled, ImportHttpError, authorizeWorkspace, portalEnabled, reserveRequest, requirePortal, requirePortalScope, UUID } from "./access";
-import { getWorkspace,openWorkspace,projectWorkspace,reserveUpload,applyImport,saveWorkspace } from "./service";
+import { getWorkspace,openWorkspace,projectWorkspace,reserveUpload,applyImport,saveWorkspace,getDocumentLabels } from "./service";
 import { finishUpload,processImportJob } from "./jobs";
 import { getEstimateRates,estimateForRequest } from "./estimate";
 import { exportDocument } from "./export";
@@ -51,6 +51,7 @@ export async function documentImportRequest(req:NextRequest) {
       const w=await getWorkspace(admin,req.nextUrl.searchParams.get("workspaceId")??"");
       const actor=await authorizeWorkspace(admin,session,w,req.headers);
       if(action==="workspace")return NextResponse.json({workspace:projectWorkspace(w,actor)},{headers});
+      if(action==="labels")return NextResponse.json(await getDocumentLabels(admin,w,Number(req.nextUrl.searchParams.get("expectedRevision")??NaN)),{headers});
       if(action==="job") {
         if(actor.kind==="supplier")throw new ImportHttpError(403,"not_allowed","Los archivos originales son privados.");
         const {data,error}=await admin.from("document_import_jobs").select("id,status,result,error_code").eq("id",req.nextUrl.searchParams.get("jobId")).eq("workspace_id",w.id).maybeSingle();

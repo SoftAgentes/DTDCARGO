@@ -12,15 +12,18 @@ import { SupplierUploadSection, SupplierUploadSummary, type SupplierUploadStatus
 import { providerText, type ProviderLocale } from "./PackingListGuidedForm";
 import type { BrandContext } from "@/lib/shared/brand-context";
 import { printMarkbox } from "@/lib/shared/markbox-chain";
+import { SharedSupplierDocument } from "./SharedSupplierDocument";
+import { createDocumentClient, type DocumentClient, type DocumentWorkspace } from "@/components/document-import/document-client";
 
 /** Public capability page. Receives only the data already scoped to this purchase. */
-export function ProviderShareClient({ token, code, markbox, supplierName, supplierWechat, labels, brand, presentation, request = fetch, excelHref, prefill }: {
+export function ProviderShareClient({ token, code, markbox, supplierName, supplierWechat, labels, brand, presentation, request = fetch, excelHref, prefill,sharedWorkspace,sharedUnavailable=false,documentClient }: {
   token: string; code: string; description?: string; markbox: string; supplierName: string | null; supplierWechat: string | null;
   labels: BoxLabel[]; brand: BrandContext; presentation?: LabelPresentation;
   /** SDD-0473 · Documento que el cliente ya cargó, para no hacerlo transcribir. */
   prefill?: Parameters<typeof PackingListFormSection>[0]["prefill"];
   /** Local review fixture injects a transport; real page keeps existing endpoints. */
   request?: typeof fetch; excelHref?: string;
+  sharedWorkspace?:DocumentWorkspace|null;sharedUnavailable?:boolean;documentClient?:DocumentClient;
 }) {
   const [uploads, setUploads] = useState<SupplierUploadStatus>({ kind: "idle", uploaded: 0, selected: 0 });
   const [locale, setLocale] = useState<ProviderLocale>("zh");
@@ -53,7 +56,7 @@ export function ProviderShareClient({ token, code, markbox, supplierName, suppli
       <div><h2 className="font-semibold">{t("发货前核对", "Antes de entregar", "Before delivery")}</h2><ol className="mt-4 list-decimal space-y-3 pl-5 text-grey-700">{WAREHOUSE_RULES.filter(rule => !rule.contact).map((rule, index) => <li key={index}>{rule[locale]}</li>)}</ol><p className="mt-5 text-sm text-grey-700">{cn.contactPersonCjk} · {cn.phone}<br/>WeChat: {cn.wechatId}</p></div>
     </div>
   </details>;
-  return <div className="min-h-screen bg-paper text-ink" style={{ fontFamily: "var(--font-archivo), var(--font-noto-sc)" }}>
+  return <div className="portal-sys min-h-screen bg-paper text-ink" style={{ fontFamily: "var(--font-archivo), var(--font-noto-sc)" }}>
     <style>{`
       .provider-page :is(button,a,input,select,textarea,summary):focus-visible { outline: 3px solid var(--color-wine-text); outline-offset: 3px; }
       @media print {
@@ -76,17 +79,23 @@ export function ProviderShareClient({ token, code, markbox, supplierName, suppli
         <p className="mt-3 max-w-prose text-base leading-relaxed text-grey-700">{t("填写货物资料，核对后提交。无需注册账号。", "Completa los datos de tu mercancía, revísalos y envíalos. No necesitas crear una cuenta.", "Enter your shipment details, review and send them. No account needed.")}</p>
       </header>
       {showPrintNotice && <section role="region" aria-label={t("打印前核对", "Antes de imprimir", "Before printing")} className="no-print mb-6 rounded-xl border border-grey-200 bg-white p-6"><h2 className="flex items-center gap-2 text-lg font-bold"><StatusIcon tone="info" size={20}/>{t("请确认箱数和标签", "Revisa las cajas y sus etiquetas", "Check cartons and labels")}</h2><p className="mt-3 text-grey-700">{t("修改箱数或装箱内容后，请核对并重新打印受影响的标签。可以先打印现有标签。", "Si cambias las cajas o su contenido, revisa y vuelve a imprimir las etiquetas afectadas. Puedes imprimir las disponibles ahora.", "After changing cartons or contents, review and reprint affected labels. You can print the available labels now.")}</p><div className="mt-4 flex flex-wrap gap-3"><button autoFocus type="button" className="btn btn-primary" onClick={() => { setPrintNoticed(true); setShowPrintNotice(false); printDocument("labels"); }}>{t("继续打印", "Continuar e imprimir", "Continue and print")}</button><button type="button" className="btn btn-ghost" onClick={() => setShowPrintNotice(false)}>{t("返回核对", "Volver a revisar", "Back to review")}</button></div></section>}
-      <div id="packing-list"><PackingListFormSection token={token} prefill={prefill} supplierName={supplierName} supplierWechat={supplierWechat} markbox={markbox} code={code} locale={locale} request={request} onPrintLabels={printLabels} excelHref={excelHref} attachments={<SupplierUploadSection token={token} locale={locale} request={request} showHeading={false} onUploadState={setUploads}/>} attachmentsSummary={<SupplierUploadSummary locale={locale} status={uploads}/>} delivery={delivery}/></div>
+      <div id="packing-list">
+        {sharedUnavailable?<section className="rounded-xl border border-grey-200 bg-white p-6"><h2 className="text-2xl font-bold">{t("共享文件暂时无法打开","Documento compartido no disponible","Shared document unavailable")}</h2><p className="mt-4 text-base leading-relaxed">{t("请重新打开此链接或联系 DTD。为保护已填写的数据，当前不能提交或打印标签。","Vuelve a abrir este enlace o contacta a DTD. Necesitamos recuperar la revisión compartida para confirmar e imprimir las etiquetas.","Reopen this link or contact DTD. We need the shared revision before confirmation or label printing.")}</p></section>:sharedWorkspace?<SharedSupplierDocument
+          key={token+":"+sharedWorkspace.id} initialWorkspace={sharedWorkspace} token={token} code={code} markbox={markbox} locale={locale} brand={brand} presentation={presentation}
+          client={documentClient??createDocumentClient({supplierToken:token,request})}
+          attachments={<SupplierUploadSection token={token} locale={locale} request={request} showHeading={false} onUploadState={setUploads} documentManaged/>}
+          attachmentsSummary={<SupplierUploadSummary locale={locale} status={uploads} documentManaged/>} delivery={delivery}
+        />:<PackingListFormSection token={token} prefill={prefill} supplierName={supplierName} supplierWechat={supplierWechat} markbox={markbox} code={code} locale={locale} request={request} onPrintLabels={printLabels} excelHref={excelHref} attachments={<SupplierUploadSection token={token} locale={locale} request={request} showHeading={false} onUploadState={setUploads}/>} attachmentsSummary={<SupplierUploadSummary locale={locale} status={uploads}/>} delivery={delivery}/>}</div>
       {/* Las etiquetas se ven en pantalla, no sólo al imprimir: el proveedor tiene que
           poder cotejar los códigos antes de pegarlos, y en el navegador de WeChat
           `window.print()` a menudo no existe — dejarlas sólo para impresión lo dejaba
           sin ninguna vía a los códigos de sus cajas. El CSS de impresión las reformatea
           a dos columnas; el resto de la página se oculta con `visibility`. */}
-      {labels.length > 0 && <section className="no-print mt-6" aria-labelledby="labels-heading">
+      {!sharedWorkspace&&!sharedUnavailable&&labels.length > 0 && <section className="no-print mt-6" aria-labelledby="labels-heading">
         <h2 id="labels-heading" className="text-[15px] font-bold">{t("箱子标签", "Etiquetas de las cajas", "Carton labels")}</h2>
         <p className="mt-1.5 max-w-[52ch] text-[12.5px] leading-[1.55] text-grey-700">{t("每个箱子贴一张标签，贴在能看到的一面。", "Pega una etiqueta en cada caja, en una cara visible.", "Stick one label on each carton, on a visible side.")}</p>
       </section>}
-      <div className="labels-print-area mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{labels.map(label => <ShippingBoxLabel key={label.boxN} label={label} markbox={markbox} brandName={brand.name} presentation={presentation}/>)}</div>
+      {!sharedWorkspace&&!sharedUnavailable&&<div className="labels-print-area mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{labels.map(label => <ShippingBoxLabel key={label.boxN} label={label} markbox={markbox} brandName={brand.name} presentation={presentation}/>)}</div>}
     </div>
   </div>;
 }

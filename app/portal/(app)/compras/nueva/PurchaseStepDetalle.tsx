@@ -15,7 +15,7 @@ import { useActionState, useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowIcon } from "@/components/Icon";
-import { FieldLabel, FileField } from "../../../_components/PortalFormField";
+import { FieldLabel as PortalFieldLabel, FileField } from "../../../_components/PortalFormField";
 import { PurchaseWizardSteps } from "./PurchaseWizardSteps";
 import { DocumentImportEntry } from "@/components/document-import/DocumentImportEntry";
 import { PurchaseSummaryPanel } from "./PurchaseSummaryPanel";
@@ -26,6 +26,10 @@ import { updatePrealertaDetalleAction } from "../../proveedores/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
 const initial: PrealertaActionState = {};
+
+function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
+  return <PortalFieldLabel htmlFor={htmlFor}><span className="text-base normal-case tracking-normal text-ink">{children}</span></PortalFieldLabel>;
+}
 
 const CAMPOS = [
   { key: "description", label: "Descripción" },
@@ -86,6 +90,7 @@ export function PurchaseStepDetalle({
     initial,
   );
   const uid = useId();
+  const [importacionDisponible, setImportacionDisponible] = useState(false);
   const [touched, setTouched] = useState({
     // Lo ya guardado cuenta como hecho: el checklist tiene que decir la verdad
     // de la compra, no sólo lo tecleado en esta visita.
@@ -109,7 +114,10 @@ export function PurchaseStepDetalle({
    */
   const algoTocado = Object.values(touched).some(Boolean);
 
-  const checklist: ChecklistItem[] = CAMPOS.map((c) => ({
+  const adjuntosManuales = !importacionDisponible || touched.packing || touched.factura;
+  const checklist: ChecklistItem[] = CAMPOS.filter((c) =>
+    adjuntosManuales || (c.key !== "packing" && c.key !== "factura"),
+  ).map((c) => ({
     key: c.key,
     label: c.label,
     done: touched[c.key],
@@ -119,7 +127,7 @@ export function PurchaseStepDetalle({
   useEffect(() => {
     onProgress?.(checklist);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [touched]);
+  }, [touched, adjuntosManuales]);
 
   // El guardado salió bien → al paso 3. En efecto, no en el render: avanzar es
   // un efecto sobre el padre, y hacerlo mientras se renderiza es un bug latente.
@@ -139,7 +147,7 @@ export function PurchaseStepDetalle({
         <div className="mb-6">
           <Link
             href={`/portal/compras/${encodeURIComponent(code)}`}
-            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-grey-700 hover:text-ink transition-colors"
+            className="inline-flex min-h-12 items-center gap-2 text-base font-semibold text-grey-700 hover:text-ink transition-colors"
           >
             <ArrowIcon size={15} className="rotate-180" /> Volver a la compra
           </Link>
@@ -157,10 +165,12 @@ export function PurchaseStepDetalle({
         no renderiza nada (la primera sola es el cotizador público), así que mientras
         la función no esté lista esta pantalla queda exactamente como estaba.
       */}
-      <div className="mb-5">
+      <div className="mb-6">
         <DocumentImportEntry
           purchaseCode={code}
           reviewHref={`/portal/compras/${encodeURIComponent(code)}/documento`}
+          onAvailability={setImportacionDisponible}
+          onManual={() => router.push(`/portal/compras/${encodeURIComponent(code)}/documento`)}
         />
       </div>
 
@@ -171,11 +181,13 @@ export function PurchaseStepDetalle({
         <input type="hidden" name="prealertaCode" value={code} />
 
         <div className="min-w-0 card-shadow bg-white border border-grey-200 rounded-[18px] p-5 sm:p-6">
-          <h2 className="text-[15px] font-bold text-ink m-0">
-            {suelto ? "Completa el detalle de tu compra" : "Adelanta lo que ya sabes"}
+          <h2 className="text-2xl font-bold text-ink m-0">
+            {importacionDisponible ? "Datos adicionales de la compra" : suelto ? "Completa el detalle de tu compra" : "Adelanta lo que ya sabes"}
           </h2>
-          <p className="mt-1.5 text-[12.5px] text-grey-700 leading-[1.55]">
-            {suelto
+          <p className="mt-3 text-base text-grey-700 leading-relaxed max-w-prose">
+            {importacionDisponible
+              ? "Esta información es opcional. El documento reúne los productos, las cajas, el peso y el CBM; aquí puedes agregar una descripción, el tracking o fotos."
+              : suelto
               ? "Lo que ya habías guardado está cargado abajo. Cambia lo que quieras y guarda."
               : "Por si nos atoramos con tu proveedor. Nada de esto es obligatorio, pero ayuda a avanzar."}
           </p>
@@ -192,17 +204,17 @@ export function PurchaseStepDetalle({
               onChange={() => mark("description")}
               placeholder="Ej. 3 cajas de zapatos deportivos"
               disabled={pending}
-              className="mt-1.5 w-full px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+              className="mt-2 w-full px-4 py-3 rounded-lg bg-grey-100 border-0 outline-none text-base text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
             />
             {state.fieldErrors?.description && (
               <PortalFieldError>{state.fieldErrors.description}</PortalFieldError>
             )}
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-4">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <FieldLabel htmlFor={`${uid}-boxes`}>
-                Total de cajas / bultos
+                {importacionDisponible ? "Cajas estimadas (opcional)" : "Total de cajas / bultos"}
               </FieldLabel>
               <input
                 id={`${uid}-boxes`}
@@ -214,7 +226,7 @@ export function PurchaseStepDetalle({
                 onChange={() => mark("boxes")}
                 placeholder="1"
                 disabled={pending}
-                className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+                className="mt-2 w-full h-12 px-4 rounded-lg bg-grey-100 border-0 outline-none text-base text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
                 style={{
                   fontFamily:
                     "var(--font-jetbrains-mono), ui-monospace, monospace",
@@ -238,7 +250,7 @@ export function PurchaseStepDetalle({
                 onChange={() => mark("estValueUsd")}
                 placeholder="—"
                 disabled={pending}
-                className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+                className="mt-2 w-full h-12 px-4 rounded-lg bg-grey-100 border-0 outline-none text-base text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
                 style={{
                   fontFamily:
                     "var(--font-jetbrains-mono), ui-monospace, monospace",
@@ -260,7 +272,7 @@ export function PurchaseStepDetalle({
               onChange={() => mark("trackingCn")}
               placeholder="Ej. SF1234567890"
               disabled={pending}
-              className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+              className="mt-2 w-full h-12 px-4 rounded-lg bg-grey-100 border-0 outline-none text-base text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
               style={{
                 fontFamily:
                   "var(--font-jetbrains-mono), ui-monospace, monospace",
@@ -269,13 +281,14 @@ export function PurchaseStepDetalle({
           </div>
 
           <div className="mt-5 rounded-[12px] border border-grey-200 p-4">
-            <FieldLabel>Adjuntos</FieldLabel>
-            <p className="mt-1.5 text-[11.5px] text-grey-700 leading-[1.45]">
-              Si los subes nos ayudas a saber qué traes y cuánto vale, y te
-              quedan de recordatorio en tu portal.
+            <FieldLabel>{adjuntosManuales ? "Adjuntos (opcionales)" : "Fotos del producto (opcional)"}</FieldLabel>
+            <p className="mt-2 text-base text-grey-700 leading-relaxed">
+              {adjuntosManuales
+                ? "Los archivos quedan adjuntos a la compra. Se guardan al avanzar."
+                : "Carga la factura y el packing list una sola vez en el bloque de documentos. Aquí puedes agregar fotos de la mercancía."}
             </p>
             <div className="mt-3 flex flex-col gap-2">
-              <div onChange={() => mark("packing")}>
+              {adjuntosManuales && <><div onChange={() => mark("packing")}>
                 <FileField
                   name="doc_packing"
                   label="Packing list"
@@ -290,7 +303,7 @@ export function PurchaseStepDetalle({
                   accept="image/*,application/pdf"
                   disabled={pending}
                 />
-              </div>
+              </div></>}
               <div onChange={() => mark("fotos")}>
                 <FileField
                   name="doc_fotos"
@@ -326,12 +339,12 @@ export function PurchaseStepDetalle({
             {suelto ? (
               <Link
                 href={`/portal/compras/${encodeURIComponent(code)}`}
-                className="-mx-3 px-3 py-2 min-h-[44px] inline-flex items-center justify-center text-[12px] font-semibold text-grey-700 hover:text-ink transition-colors"
+                className="-mx-3 px-3 py-3 min-h-12 inline-flex items-center justify-center text-base font-semibold text-grey-700 hover:text-ink transition-colors"
               >
                 Cancelar
               </Link>
             ) : algoTocado ? (
-              <p className="text-[11.5px] text-grey-700 leading-[1.5] text-center m-0">
+              <p className="text-base text-grey-700 leading-relaxed text-center m-0">
                 Lo que pusiste se guarda al avanzar.
               </p>
             ) : (
@@ -343,7 +356,7 @@ export function PurchaseStepDetalle({
                 type="button"
                 onClick={onDone}
                 disabled={pending}
-                className="-mx-3 px-3 py-2 min-h-[44px] text-[12px] font-semibold text-grey-700 hover:text-ink transition-colors disabled:opacity-60"
+                className="-mx-3 px-3 py-3 min-h-12 text-base font-semibold text-grey-700 hover:text-ink transition-colors disabled:opacity-60"
               >
                 Lo lleno después — ir al paso 3
               </button>

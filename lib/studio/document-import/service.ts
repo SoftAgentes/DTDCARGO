@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { emptyDocumentDraft, fromPackingPayload, parseDocumentDraft, mergeDocuments, toPackingPayload, confirmationIssues, type DocumentKind } from "@/lib/shared/document-import";
 import { validatePackingListInput } from "@/lib/studio/prealertas/packlist-form";
 import { getPrealertaIdsByToken } from "@/lib/studio/prealertas/queries";
+import { buildLabelsFromBoxes } from "@/lib/studio/prealertas/types";
 import { ImportHttpError, UUID, anonymousToken, hashToken, notFound, purchaseForClient, requirePortal, requirePortalScope, reserveLimit, type ImportActor, type WorkspaceRow } from "./access";
 
 export const IMPORT_BUCKET = "document-imports";
@@ -25,6 +26,28 @@ export async function documentLabelGate(db:SupabaseClient,purchaseId:string,tena
   if(!data)return {managed:false,allowed:true};
   try{return {managed:true,allowed:data.revision===data.confirmed_revision&&!confirmationIssues(parseDocumentDraft(data.draft)).some(i=>i.blocking&&!i.resolved)};}
   catch{return {managed:true,allowed:false};}
+}
+export async function getDocumentLabels(db:SupabaseClient,w:WorkspaceRow,expectedRevision:number) {
+  if(!Number.isInteger(expectedRevision) || expectedRevision!==w.revision) throw new ImportHttpError(409,"revision_conflict","El documento cambió. Carga la versión compartida antes de imprimir.");
+  if(!w.prealerta_id || !w.tenant_id || w.confirmed_revision!==w.revision || !w.confirmed_submission_id || confirmationIssues(parseDocumentDraft(w.draft)).some(i=>i.blocking))
+    throw new ImportHttpError(409,"confirmation_required","Confirma la revisión vigente antes de imprimir las etiquetas.");
+  const {data:purchase,error:purchaseError}=await db.from("prealertas").select("code").eq("id",w.prealerta_id).eq("tenant_id",w.tenant_id).is("deleted_at",null).neq("status","cancelada").maybeSingle();
+  if(purchaseError || !purchase) return notFound();
+  const {data:submission,error:submissionError}=await db.from("packing_list_submissions").select("folio,version_no").eq("id",w.confirmed_submission_id).eq("prealerta_id",w.prealerta_id).eq("tenant_id",w.tenant_id).eq("is_current",true).is("deleted_at",null).maybeSingle();
+  if(submissionError || !submission) throw new ImportHttpError(409,"confirmation_required","La versión confirmada cambió. Vuelve a abrir el documento.");
+  const {data:mapping,error:mappingError}=await db.from("document_group_boxes").select("box_id").eq("workspace_id",w.id);
+  if(mappingError || !mapping) throw new ImportHttpError(503,"labels_unavailable","No pudimos comprobar las etiquetas. Intenta otra vez.");
+  const ids=mapping.map(row=>row.box_id);
+  let query=db.from("warehouse_boxes").select("id,code,seq").eq("tenant_id",w.tenant_id).eq("prealerta_id",w.prealerta_id).is("deleted_at",null);
+  if(ids.length)query=query.in("id",ids);
+  const {data:boxes,error:boxesError}=await query.order("seq",{ascending:true});
+  const expected=parseDocumentDraft(w.draft).groups.reduce((sum,g)=>sum+(g.cartons??0),0);
+  if(boxesError || !boxes || boxes.length!==expected || (ids.length>0&&boxes.length!==ids.length) || new Set(boxes.map(box=>box.code)).size!==expected)
+    throw new ImportHttpError(409,"labels_need_operations","Las cajas físicas no coinciden con el documento. Contacta a DTD para revisar las etiquetas.");
+  const {data:latest,error:latestError}=await db.from("document_workspaces").select("revision,confirmed_revision,confirmed_submission_id").eq("id",w.id).maybeSingle();
+  if(latestError || !latest || latest.revision!==expectedRevision || latest.confirmed_revision!==expectedRevision || latest.confirmed_submission_id!==w.confirmed_submission_id)
+    throw new ImportHttpError(409,"revision_conflict","El documento cambió. Carga la versión compartida antes de imprimir.");
+  return {revision:w.revision,folio:submission.folio,versionNo:submission.version_no,labels:buildLabelsFromBoxes(purchase.code,boxes)};
 }
 export type OpenedWorkspace={workspace:WorkspaceRow;anonymousToken?:string};
 /** Tope de la carrera al crear el documento compartido: el que pierde vuelve a LEER la fila del

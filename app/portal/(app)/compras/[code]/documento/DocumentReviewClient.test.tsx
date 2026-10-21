@@ -19,9 +19,9 @@
  * de que un guardado no vacía el editor.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { emptyDocumentDraft } from "@/lib/shared/document-import";
-import { type DocumentClient, type DocumentWorkspace } from "@/components/document-import/document-client";
+import { DocumentRequestError, type DocumentClient, type DocumentWorkspace } from "@/components/document-import/document-client";
 import { DocumentReviewClient } from "./DocumentReviewClient";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
@@ -41,7 +41,7 @@ function cliente() {
   const client: DocumentClient = {
     get: vi.fn(async (action: string) => {
       calls.push({ action });
-      if (action === "capabilities") return { available: true } as never;
+      if (action === "capabilities") return { available: true, portal: true } as never;
       if (action === "workspace")
         return { workspace: { ...WORKSPACE, revision } } as never;
       throw new Error("acción GET no esperada: " + action);
@@ -83,6 +83,124 @@ afterEach(() => {
 });
 
 describe("DocumentReviewClient · guardar dos veces (SDD-0473)", () => {
+  it("espera también la capacidad del portal antes de abrir un documento compartido", async () => {
+    const { client } = cliente();
+    vi.mocked(client.get).mockResolvedValue({ available: true, portal: false });
+    render(<DocumentReviewClient code="DTD-0001-1" shareToken={null} client={client} />);
+    await screen.findByText(/el documento compartido todavía no está disponible/i);
+    expect(client.post).not.toHaveBeenCalled();
+  });
+
+  it("cambiar de compra desmonta los datos anteriores antes de cargar el documento nuevo", async () => {
+    const { client, calls } = cliente();
+    let abrirOtra!: (value: unknown) => void;
+    const otraRespuesta = new Promise<unknown>((resolve) => { abrirOtra = resolve; });
+    const guardarNormal = vi.mocked(client.post).getMockImplementation()!;
+    vi.mocked(client.post).mockImplementation(async (action, body) => {
+      if (action === "open" && body?.purchaseCode === "DTD-0002-1") return await otraRespuesta as never;
+      return guardarNormal(action, body);
+    });
+    const { rerender } = render(<DocumentReviewClient code="DTD-0001-1" shareToken="proveedor-a" client={client} />);
+    await screen.findByRole("button", { name: "Guardar borrador" });
+    fireEvent.change(screen.getByRole("textbox", { name: "Empresa" }), { target: { value: "Edición exclusiva de compra A" } });
+    rerender(<DocumentReviewClient code="DTD-0002-1" shareToken="proveedor-b" client={client} />);
+    expect(screen.queryByDisplayValue("Edición exclusiva de compra A")).not.toBeInTheDocument();
+    expect(screen.getByText(/abriendo el documento de tu compra/i)).toBeInTheDocument();
+    expect(calls.filter((call) => call.action === "save")).toHaveLength(0);
+    const otra = { ...WORKSPACE, id: "00000000-0000-4000-8000-000000000002", draft: { ...emptyDocumentDraft(), supplier: { ...emptyDocumentDraft().supplier, company: "Proveedor B" } } };
+    await act(async () => { abrirOtra({ workspace: otra }); });
+    expect(await screen.findByDisplayValue("Proveedor B")).toBeInTheDocument();
+  });
+
+  it("comparte solo la revisión guardada y conserva el editor tras el recibo", async () => {
+    const { client } = cliente();
+    render(<DocumentReviewClient code="DTD-0001-1" shareToken="proveedor-demo" client={client} />);
+    await screen.findByRole("button", { name: "Copiar enlace" });
+    fireEvent.change(screen.getByRole("textbox", { name: "Empresa" }), { target: { value: "Proveedor corregido" } });
+    expect(screen.queryByRole("button", { name: "Copiar enlace" })).not.toBeInTheDocument();
+    expect(screen.getByText(/guarda antes de compartir/i)).toBeInTheDocument();
+    guardar();
+    await screen.findByText(/Guardado\./);
+    expect(screen.getByRole("button", { name: "Copiar enlace" })).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Proveedor corregido")).toBeInTheDocument();
+  });
+
+  it("un conflicto conserva la edición; comparar no adopta datos sin pedirlo", async () => {
+    const { client } = cliente();
+    const remoto = { ...WORKSPACE, revision: 4, draft: { ...emptyDocumentDraft(), supplier: { ...emptyDocumentDraft().supplier, company: "Proveedor en otra revisión" } } };
+    vi.mocked(client.post).mockImplementation(async (action) => {
+      if (action === "open") return { workspace: WORKSPACE } as never;
+      if (action === "save") throw new DocumentRequestError(409, "revision_conflict", "conflicto");
+      throw new Error("acción inesperada");
+    });
+    vi.mocked(client.get).mockImplementation(async (action) => {
+      if (action === "capabilities") return { available: true, portal: true } as never;
+      if (action === "workspace") return { workspace: remoto } as never;
+      throw new Error("acción inesperada");
+    });
+    render(<DocumentReviewClient code="DTD-0001-1" shareToken="proveedor-demo" client={client} />);
+    await screen.findByRole("button", { name: "Guardar borrador" });
+    fireEvent.change(screen.getByRole("textbox", { name: "Empresa" }), { target: { value: "Mi corrección local" } });
+    guardar();
+    await screen.findByText(/Otra persona guardó una revisión/i);
+    expect(screen.getByRole("alert")).toHaveFocus();
+    expect(screen.getByDisplayValue("Mi corrección local")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Comparar con la versión compartida" }));
+    await screen.findByRole("heading", { name: /compara antes de reemplazar/i });
+    expect(screen.getByDisplayValue("Mi corrección local")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Conservar mis cambios" }));
+    expect(screen.getByRole("button", { name: "Comparar con la versión compartida" })).toHaveFocus();
+    expect(screen.getByDisplayValue("Mi corrección local")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copiar enlace" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Comparar con la versión compartida" }));
+    await screen.findByRole("heading", { name: /compara antes de reemplazar/i });
+    fireEvent.click(screen.getByRole("button", { name: "Descartar mis cambios y usar revisión 4" }));
+    expect(screen.queryByDisplayValue("Mi corrección local")).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue("Proveedor en otra revisión")).toBeInTheDocument();
+  });
+
+  it("bloquea otra carga mientras hay correcciones sin guardar", async () => {
+    const { client } = cliente();
+    render(<DocumentReviewClient code="DTD-0001-1" shareToken={null} client={client} />);
+    const input = await screen.findByLabelText("Elige tus archivos o suéltalos aquí");
+    fireEvent.change(screen.getByRole("textbox", { name: "Empresa" }), { target: { value: "Corrección local" } });
+    expect(input).toBeDisabled();
+    expect(screen.getByText(/guarda tus cambios antes de agregar otro documento/i)).toBeInTheDocument();
+    fireEvent.drop(input.closest("fieldset")!, { dataTransfer: { files: [new File(["x"], "nuevo.pdf", { type: "application/pdf" })] } });
+    expect(vi.mocked(client.post).mock.calls.map(([action]) => action)).not.toContain("upload");
+  });
+
+  it("una importación que termina durante la edición conserva las correcciones locales", async () => {
+    const { client } = cliente();
+    let aplicar!: (value: unknown) => void;
+    const applied = new Promise<unknown>((resolve) => { aplicar = resolve; });
+    const imported = { ...WORKSPACE, revision: 4, draft: { ...emptyDocumentDraft(), supplier: { ...emptyDocumentDraft().supplier, company: "Proveedor importado" } } };
+    vi.mocked(client.get).mockImplementation(async (action) => {
+      if (action === "capabilities") return { available: true, portal: true } as never;
+      if (action === "job") return { job: { status: "ready", result: emptyDocumentDraft(), errorCode: null } } as never;
+      if (action === "workspace") return { workspace: imported } as never;
+      throw new Error("acción GET inesperada");
+    });
+    vi.mocked(client.post).mockImplementation(async (action) => {
+      if (action === "open") return { workspace: WORKSPACE } as never;
+      if (action === "upload") return { jobId: "job-demo", status: "uploading", uploadUrl: "https://upload.test/demo", contentType: "application/pdf" } as never;
+      if (action === "uploaded") return { jobId: "job-demo", status: "queued" } as never;
+      if (action === "apply") return await applied as never;
+      throw new Error("acción POST inesperada");
+    });
+    render(<DocumentReviewClient code="DTD-0001-1" shareToken={null} client={client} />);
+    const input = await screen.findByLabelText("Elige tus archivos o suéltalos aquí");
+    const archivo = new File(["contenido"], "proforma.pdf", { type: "application/pdf" });
+    fireEvent.change(input, { target: { files: [archivo] } });
+    const aplicarBoton = await screen.findByRole("button", { name: "Aplicar al documento" }, { timeout: 6000 });
+    fireEvent.click(aplicarBoton);
+    fireEvent.change(screen.getByRole("textbox", { name: "Empresa" }), { target: { value: "Mi cambio mientras se aplicaba" } });
+    await act(async () => { aplicar({ revision: 4, confirmed: false }); });
+    await screen.findByText(/el documento importado llegó mientras editabas/i);
+    expect(screen.getByDisplayValue("Mi cambio mientras se aplicaba")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /compara antes de reemplazar/i })).toBeInTheDocument();
+  });
+
   it("el segundo guardado sigue llevando el id del documento", async () => {
     const { client, calls } = cliente();
     render(<DocumentReviewClient code="DTD-0001-1" shareToken={null} client={client} />);
