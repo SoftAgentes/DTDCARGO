@@ -1,4 +1,4 @@
-# Handoff · SDD-0573 · R0, autoría GO1 y ajuste L1 GO2, PR CORE DRAFT
+# Handoff · SDD-0573 · M1 por fuente, VERDE pendiente, PR CORE DRAFT
 
 | Campo | Valor |
 |---|---|
@@ -9,11 +9,11 @@
 | Rama | codex/sdd-0573-core-reparacion-20261021 |
 | H / B fija | 89f15a5dcb9c9047e9a289fd499563c201ab5701 / e834dc6eef597421d10f880b5deb8d689dcc7078 |
 | SDD | [0573](../../docs/specs/0573-reverso-al-anular/spec.md), in-progress |
-| Estado vigente | GO2 L1 reforzado por fuente; entorno UNBOUND; PR320 DRAFT;14hallazgos/A/B abiertos |
+| Estado vigente | M1 implementada por fuente; ROJO previo 22 PASÓ/5 FALLÓ; VERDE pendiente; checkpoint local sin push; 14 hallazgos/A/B abiertos |
 | Contrato GO0 | 0573-core-go0-asignacion-director.md / SHA256 7a16dbdb1ebecfc420ca2f3c181ca6aa1cb5d6c5584f0c33fb2a7237af773428 |
 | Candidato completo | 0573-encargo-core-propuesto.md / SHA256 5ee11eab1d2f08af8890f676efdc20aa2daba918dd8d1c50c34950b366b22880 y diez fuentes completas cotejadas |
-| Permisos GO2 | autoría subset3/preparación externa/Git ligero/commit/push propio/misma PR320; sin Node/parser/runtime/producto |
-| Turno y relevo | GO2 sólo fuente, sin turno runtime; otro GO concreto pendiente; árbol quieto/claim propio retenido al entregar |
+| Permisos vigentes M1 | actions/spec/handoff y un commit local padre directo 0e5a; sin runtime/tests/push/PR hasta revisión |
+| Turno y relevo | Sólo fuente M1; VERDE requiere revisión y GO focal con margen del presupuesto original; árbol quieto/claim retenido |
 
 ## OBJETIVO ORIGINAL
 
@@ -303,3 +303,16 @@ Candidato fuente L1 publicado: f9acd0eb9b02cb1392899c8a3e5015dec48c94d0, árbol 
 La preparación vigente para revisión es launcher-runtime-UNBOUND-v2.ps1 SHA25642a829b41ea855b2ba7de189b0f9436d746dc1c049fbc7f73eaba805af8d08fc, manifest-UNBOUND-v2.json SHA256b9dc3117405ae3dc3e5c9fce1ac5a4fdd254e52f216215f475c76607b101e8f6 y receta-UNBOUND-v2.md SHA256b7073c0a931f9bab457c05fe2e78cdd245030de829c4dfb440121a09695dd749. Índice manifiesto-preparacion-go2-v2.json SHA256d5e6966625a30263316d20b9658a2eb3c16f5b6e6340546ac8f3c19457d309fc, todos bajo C:/tmp/director-traspaso-20261020/0573-core-go2-preparacion/. El manifest sigue UNBOUND/executableNowfalse/runtimeApprovedfalse; perfil/deps/salidas no creados,121 previstos/0 ejecución y14 hallazgos/A/B abiertos.
 
 Recibo final cierre-go2-final-v2.json registrará SHA fuente f9acd y SHA final documental, árbol/padre, delta GO2 completo/subset3,14+4 sellos y readback de la mismaPR320 DRAFT/baseB. Claim retenido/árbol quieto; otra decisión y turno son necesarios para cualquier runtime. Las verificaciones descritas son de fuente/Git/metadatos, no pruebas operacionales del launcher.
+## Checkpoint M1 · producto local, VERDE pendiente
+
+Adopción expresa del encargo 9385a175fc62381e8d7dcbea089e638075e8563e4781f74757b0876e84ca6aaf y peer faa1c1b2a4847c899a0c1c5802e40a7b6f4cafd9cf71c187c6c195dde87f918c, leídos completos. Guard propio por Git nativo/metadata antes de editar: raíz/rama/entrada 0e5a28567b5d5df43e92f3fd52eb0662ca55842a/treef7fa, owner y claim212/b4ea exactos, árbol limpio. No se ejecuta guard Node por la prohibición de runtime; se cotejan sus condiciones de aislamiento/registro/claim. Preimágenes de las tres rutas y 19 sellos previos en C:/tmp/director-traspaso-20261020/0573-M1-checkpoint-local-01/guard-y-preimagenes-M1.json.
+
+ROJO M1 preservado: T01 completo, 27 reales/22 PASÓ/5 FALLÓ por aserción, exit1/reasonnull/quiettrue en 0573-core-runtime-T-04. Falla el tercer filtro tenant y el manejo de error/countnull; un recibo ajeno contamina el doble. Los logs cb10d746/5cdcfdd3 y los 27 oráculos daa0f5d7 no se editan ni repiten. T02 42/11 pertenece a I2 y el STOP por UNKNOWN46012/7728 dejó T03/T04 sin ejecutar; devolución administrativa limitada b27904a2 conserva false/incertidumbre y no prueba cero global.
+
+Cambio M1: agregar tenant_id de current al count exact/head con invoice_id y deleted_at NULL; capturar error y rechazar error/count null antes de cualquier efecto, sin mensaje DB ni crédito liberado. Cero conocido y positivo conocido conservan sus caminos; permisos/motivo/estado/RPC lock y avisos separados del crédito quedan iguales. Riesgo/permanencia R3/P3, SGE-00 y ERR-01, sin excepción nueva ni cliente admin. No atomicidad SQL/RLS/carrera acreditada por mocks.
+
+Entrega: sólo actions/spec/handoff; un commit local debe ser hijo directo de 0e5a. SHA/tree/padre/diff y hashes finales se registran externamente después de existir, sin escribir el SHA del propio commit dentro de él. Tests intactos; otros 18 inputs previos conservados. No push/PR en este checkpoint.
+
+Validación de comportamiento: VERDE NO EJECUTADO; ningún runner/probe/parser/instalación/lint/tipos/build/verify/SQL/DB/UI/conocimiento o censo. Director revisa el commit exacto antes de GO focal con margen del reloj original, que no se renueva ni transfiere. M1 implementada POR FUENTE no cierra los 14 hallazgos ni A/B; I2/I3/I4/B1/M2–M9 siguen fuera de este parche.
+
+Impacto documental: spec y handoff propios actualizados; publicación/estructura Graphify/cobertura semántica/Archify/revisión visible Obsidian y full verify pendientes del cierre CORE autorizado. Sin tocar derivados compartidos, histórico H, perfiles, store, parcial de dependencias o recibos. Árbol quieto y claim retenido al entregar.

@@ -15,7 +15,7 @@ confidencialidad: interno
 
 ## 1. Adopción vigente y alcance de GO0
 
-**Estado al 2026-10-21: R0 revisado, autoría GO1 y ajuste L1 GO2 en PR #320 DRAFT; entorno propuesto UNBOUND y catorce hallazgos abiertos.** La implementación histórica y sus pruebas no acreditan la reparación actual. Aceptaciones A CORE y B propagación: NO EJECUTADAS.
+**Estado al 2026-10-21: M1 implementada por fuente en checkpoint local, VERDE pendiente; CORE in-progress y PR #320 DRAFT.** La instalación normal/I03 y el baseline parcial tienen evidencia separada; este checkpoint no ejecuta pruebas. Los catorce hallazgos y aceptaciones A CORE y B propagación siguen sin cierre global.
 
 - Task: 0573-core-reparacion-20261021. Owner: worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 - Sesión principal Director: 01a15a4e-ddf0-7d82-8656-d9dc56b58468; esta es su tarea Worker interna.
@@ -440,3 +440,16 @@ Candidato fuente L1 publicado: f9acd0eb9b02cb1392899c8a3e5015dec48c94d0, árbol 
 La preparación vigente para revisión es launcher-runtime-UNBOUND-v2.ps1 SHA25642a829b41ea855b2ba7de189b0f9436d746dc1c049fbc7f73eaba805af8d08fc, manifest-UNBOUND-v2.json SHA256b9dc3117405ae3dc3e5c9fce1ac5a4fdd254e52f216215f475c76607b101e8f6 y receta-UNBOUND-v2.md SHA256b7073c0a931f9bab457c05fe2e78cdd245030de829c4dfb440121a09695dd749. Índice manifiesto-preparacion-go2-v2.json SHA256d5e6966625a30263316d20b9658a2eb3c16f5b6e6340546ac8f3c19457d309fc, todos bajo C:/tmp/director-traspaso-20261020/0573-core-go2-preparacion/. El manifest sigue UNBOUND/executableNowfalse/runtimeApprovedfalse; perfil/deps/salidas no creados,121 previstos/0 ejecución y14 hallazgos/A/B abiertos.
 
 Recibo final cierre-go2-final-v2.json registrará SHA fuente f9acd y SHA final documental, árbol/padre, delta GO2 completo/subset3,14+4 sellos y readback de la mismaPR320 DRAFT/baseB. Claim retenido/árbol quieto; otra decisión y turno son necesarios para cualquier runtime. Las verificaciones descritas son de fuente/Git/metadatos, no pruebas operacionales del launcher.
+## Checkpoint local M1 · fuente implementada, VERDE pendiente
+
+Encargo vigente 0573-M1-producto-checkpoint-director.md (5960 bytes, SHA256 9385a175fc62381e8d7dcbea089e638075e8563e4781f74757b0876e84ca6aaf) y criterio peer M1 (9025 bytes, SHA256 faa1c1b2a4847c899a0c1c5802e40a7b6f4cafd9cf71c187c6c195dde87f918c) leídos completos. Misma raíz/rama/owner/claim; entrada 0e5a28567b5d5df43e92f3fd52eb0662ca55842a. La allowlist escritora de este checkpoint contiene sólo actions.ts de Facturación, este spec y el handoff propio; conserva las 48 rutas CORE acumuladas.
+
+ROJO previo observado sobre esa entrada: T01 descubrió y ejecutó sus 27 casos, 22 PASÓ y 5 FALLÓ por aserción, exit 1/reason null/quiet true. Evidencia cerrada en C:/tmp/director-traspaso-20261020/0573-core-runtime-T-04/: T01-stdout.log (6203 bytes, SHA256 cb10d746a8ae6d7346e269f0ca43d9f1161745a084f3ebf91be9290e71b45803) y T01-stderr.log (3390 bytes, SHA256 5cdcfdd3bfe6702fcd506e527dc08be14009e213ac2610cf1993cd4f158891de). No se repite el ROJO.
+
+M1 ahora captura error y count del conteo exact/head de payment_receipts, conserva invoice_id/deleted_at NULL y agrega tenant_id desde current.tenant_id, obtenido por el flujo de sesión existente. Error, incluso junto a count 0, o count null/undefined devuelve un mensaje recuperable de cobros sin texto crudo de DB y antes de crédito, void, revalidaciones o éxito. Cero conocido conserva el flujo legítimo; positivo conocido mantiene la orientación a Cobranzas. Permisos/motivo/estado, control RPC bajo lock, orden reversión→void y avisos heredados de crédito no liberado/entries/crédito confirmado seguido de void fallido permanecen iguales.
+
+Gobernanza: R3/P3; corrección acotada de las no conformidades M1 SGE-00.05/.06/.07/.11 y prevención/recuperación ERR-01, sin excepción nueva. Los efectos/auditoría y la autoridad del tenant se conservan; los mocks no prueban SQL/RLS, carrera real ni transacción única crédito+factura.
+
+Los 27 oráculos permanecen inmutables, SHA256 daa0f5d7f46d3222539951c80557a42e12fffe2976bc92b333b91134dc2809ff. Los otros 18 inputs del manifest runtime previo se conservan; sólo actions cambia entre sus 19 entradas. El recibo externo de checkpoint registrará después de existir el commit su SHA/tree/padre directo 0e5a, diff y sellos, sin autorreferencia documental.
+
+Estado de esta entrega: M1 implementada POR FUENTE, VERDE pendiente de revisión y GO focal con margen. Ningún runner/test/parser/instalación/SQL/DB/verify/visual/conocimiento ni censo en este checkpoint; sin push o modificación de PR. El baseline parcial total fue 80 = 64 PASÓ + 16 FALLÓ, con 41 previstos T03/T04 NO EJECUTADOS; su supervisión/UNKNOWN y recibos originales false siguen intactos tras devolución administrativa limitada. No se cierra I2/I3/I4/B1/M2–M9 ni los 14 hallazgos/A/B. El reloj original I no se renueva ni transfiere. Impacto canónico/Graphify/Archify/semántico/Obsidian y verificación completa quedan pendientes del cierre CORE autorizado.

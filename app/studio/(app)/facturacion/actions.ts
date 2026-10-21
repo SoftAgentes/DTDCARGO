@@ -812,12 +812,20 @@ export async function voidInvoice(
   // SDD-0573: con cobros vivos la base no la anula. Se mira ANTES de revertir el
   // crédito, para no liberarlo en una anulación que igual se va a rechazar. La
   // RPC lo vuelve a contar bajo el lock de la factura, que es lo que manda.
-  const { count: recibosVivos } = await supabase
+  // Un conteo desconocido no habilita efectos; sólo cuentan los recibos del tenant actual.
+  const { count: recibosVivos, error: recibosError } = await supabase
     .from("payment_receipts")
     .select("id", { count: "exact", head: true })
+    .eq("tenant_id", current.tenant_id)
     .eq("invoice_id", id)
     .is("deleted_at", null);
-  if ((recibosVivos ?? 0) > 0) {
+  if (recibosError || recibosVivos == null) {
+    return {
+      error:
+        "No se pudieron comprobar los cobros de esta factura. Intenta de nuevo antes de anularla.",
+    };
+  }
+  if (recibosVivos > 0) {
     return { error: `La factura tiene ${recibosVivos} cobro(s) vivo(s): anúlalos primero en Cobranzas.` };
   }
 
