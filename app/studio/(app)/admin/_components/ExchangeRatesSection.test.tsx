@@ -160,4 +160,22 @@ describe("ExchangeRatesSection", () => {
     }
     expect(successToast).not.toHaveBeenCalled();
   });
+
+  it("el éxito manual vacía solo tasa, sin atribuir confirmación BCV a ese resultado", async () => {
+    saveRate.mockResolvedValueOnce({ ok: true });
+    const user = userEvent.setup();
+    render(<ExchangeRatesSection data={{ latest: [{ ...confirmed, source: "manual" }] }} />);
+    await user.selectOptions(screen.getByLabelText("Par de moneda"), "VES/USD");
+    const rate = screen.getByLabelText("Tasa (1 USD = ? VES)") as HTMLInputElement;
+    const note = screen.getByLabelText("Nota (opcional)") as HTMLInputElement;
+    await user.type(rate, "883,3963");
+    await user.type(note, "Cotización manual");
+    await user.click(screen.getByRole("button", { name: "Registrar tasa" }));
+    expect(rate.value).toBe("");
+    expect((screen.getByLabelText("Par de moneda") as HTMLSelectElement).value).toBe("VES/USD");
+    expect(note.value).toBe("Cotización manual");
+    expect(successToast).toHaveBeenCalledTimes(1);
+    expect(successToast).toHaveBeenCalledWith("Tasa registrada");
+    expect(screen.getByRole("status").textContent).toContain("21/10/2026 · manual");
+  });
 });

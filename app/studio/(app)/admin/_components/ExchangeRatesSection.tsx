@@ -122,7 +122,13 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
       {/* Registrar tasa */}
       <Card>
         <CardEyebrow>Registrar tasa nueva</CardEyebrow>
-        <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <form
+          action={formAction}
+          // React resetea el DOM al resolver la acción, incluso si devuelve error.
+          // Los campos son controlados; solo el éxito confirmado vacía la tasa.
+          onReset={(event) => event.preventDefault()}
+          style={{ display: "flex", flexDirection: "column", gap: 14 }}
+        >
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "var(--s-3)", alignItems: "end" }}>
             <div>
               <label className="studio-label" htmlFor="fx-pair">Par de moneda</label>
