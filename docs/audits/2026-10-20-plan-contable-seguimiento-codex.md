@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 10:59 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 11:04 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -148,7 +148,8 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Autorizar y actualizar exclusivamente el inventario de la lectura acotada de fecha emitida: **20 archivos y 44 llamadas**, con el analizador y los controles intactos. Quinta ruta adicional; alcance de 65 rutas antes del siguiente ajuste.
 - [x] Cotejar la regresión ampliada de aplicación: **697/697 casos en 19 archivos, sin omisiones**, terminada a las 10:54 p. m. Tipos y revisión estática pasaron; también el control de símbolos pendientes, con dos grupos declarados todavía sin aplicar. Son resultados sobre la versión en desarrollo, anteriores al ajuste del aviso que sigue; no sustituyen la validación final.
 - [x] Delimitar la corrección del aviso de Warehouse: la factura emitida con asiento pendiente debe mostrarse como tal. **Alcance vigente: 68 rutas**, después de autorizar tipo, caller visible y prueba real de propagación. Misma tarea, rama y 0499; sin nueva automatización ni efectos financieros.
-- [ ] Corregir y probar el aviso de factura emitida/asiento pendiente; congelar después el candidato de aplicación y respaldarlo en su PR en borrador para revisión independiente.
+- [x] Corregir y probar el aviso de factura emitida/asiento pendiente: **48/48 comprobaciones en tres archivos, sin omisiones**, después de reproducir los dos mensajes contradictorios. El recorrido CN usa el resultado real del emisor y no repite emisión ni asiento. Tipos y revisión estática del ajuste aprobados.
+- [x] Congelar y respaldar el primer candidato de aplicación **`5dadb103` en la [PR #312 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/312)**, apilada sobre #311 `8729f7f4`. Local/remoto coinciden, 62 rutas dentro de 68 permitidas y ninguna ajena. Dos revisores examinan esa versión fija mientras el único Worker continúa SQL. **Es una entrega parcial: SQL/HTTP, mutantes, navegador y cierre general siguen pendientes.**
 - [ ] Cargar y validar 0499 real en base local desechable y API local, con permisos, recuperación, límites horarios y ausencia de efectos repetidos; sin base productiva.
 - [ ] Completar las pruebas de errores intencionales y la revisión visible de los formularios dentro del alcance.
 - [ ] Revisar el candidato C1, cerrar sus pruebas generales y dejar su PR en borrador.
