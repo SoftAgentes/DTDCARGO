@@ -9,6 +9,27 @@
   ],
   "degradations": [
     {
+      "id": "sdd-0569-bcv-system-audit",
+      "primarySymbol": "bcv_rates_write_capability",
+      "migration": "0501_bcv_rates_system_audit",
+      "symbols": [
+        {
+          "name": "bcv_rates_write_capability",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/fx/bcv-sync.ts:97"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/fx/bcv-sync.ts:100",
+          "contains": "throw new BcvError(\"SQL_CONTRACT_UNAVAILABLE\")",
+          "degradation": "Sin0501/caché nueva o con contexto/huellas/shape incompatibles, capability GET no habilita el importador ni el ensayo: antes del fetch oficial y de cada DML real se exige ready/version válidos. No fallback0495 ni candidata de solo fuente. Si falla después de tenants confirmados, se detienen pendientes y se conservan sus conteos; una escritura ya incierta conserva reconciliación/UNKNOWN, nunca rollback o cero escrituras por inferencia. GET no inmoviliza DDL. Gate HTTP y ejecución de producto pendientes durante autoría ligera."
+        }
+      ]
+    },
+    {
       "id": "sdd-0569-conversor-usd-tasas",
       "primarySymbol": "fx_rate_on",
       "migration": "0495_fx_rates_conversor_usd",
@@ -31,7 +52,10 @@
           "name": "fx_rates",
           "kind": "table",
           "callSites": [
-            "lib/studio/fx-rates.ts:120"
+            "lib/studio/fx-rates.ts:120",
+            "lib/studio/fx/bcv-sync.ts:104",
+            "lib/studio/fx/bcv-sync.ts:213",
+            "lib/studio/fx/bcv-sync.ts:217"
           ]
         },
         {
@@ -150,6 +174,11 @@
           "site": "lib/studio/fx-rates.ts:126",
           "contains": "if (error || filas.length === 0) return null;",
           "degradation": "Sin 0495, fx_rates no existe (42P01): ultimaTasa devuelve null; Admin › Tasas y Contabilidad › Tasas de cambio muestran «sin tasa cargada» y gastos y el móvil abren sin la tasa precargada (se escribe a mano)."
+        },
+        {
+          "site": "lib/studio/fx/bcv-sync.ts:75",
+          "contains": "if (reply.error || reply.status !== 200 || !Array.isArray(reply.data)",
+          "degradation": "Importador BCV: snapshot ausente/error/null/truncado/shape inválido nunca equivale a ausencia confirmada. El preflight rechaza antes del fetch/DML; el transporte dedicado conserva rechazo404 antes de normalización SDK. Después de una mutación enviada, una lectura fallida solo permite reconciliación acotada o UNKNOWN; no prueba rollback. Sus callSites y guard son propios, no heredan la evidencia de ultimaTasa. Pruebas de ejecución todavía pendientes."
         },
         {
           "site": "app/studio/(app)/admin/exchange-rates-actions.ts:44",

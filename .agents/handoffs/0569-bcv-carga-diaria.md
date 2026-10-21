@@ -28,7 +28,7 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 |---|---|
 | Harness start/claim/guard | PASÓ: aislamiento/owner/base exactos. Es metadato de trabajo, no validación de producto. |
 | Preimágenes31 | PASÓ: 13 existentes/18 ausentes/0 diferencias. Recibo externo con blobs y SHA256 de archivos. |
-| Reserva0501 | Inventario nativo PASÓ:502refs+worktrees, SQL0501 libre; stub local coordinado creado. Commit selectivo de reserva en preparación. Sin ejecución ni publicación. |
+| Reserva0501 | Inventario nativo PASÓ:502refs+worktrees, SQL0501 libre; stub local coordinado creado. Reserva local commit9591b2436. Cuerpo candidato0501 autorado después, todavía sin ejecutar ni publicar. |
 | Nuevos módulos | AUSENTES inicialmente; no se ejecutó import/ENOENT como rojo. |
 | Instalación congelada, baseline cron/UI | NO EJECUTADO: único turno pesado pertenece a0574. |
 | SQL/HTTP/contexto/SDK/fixtures/tests/mutantes/tipos/lint/build/verify | NO EJECUTADO. La autoría no certifica cumplimiento. |
@@ -45,7 +45,7 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 
 ## COMMITS
 
-Pendientes. Commits selectivos permitidos en esta fase; publicación solo después de checkpoint funcional revisable.
+Reserva local `9591b2436033f1200ef71a79bb4e9ce67f10fbac`. Candidato de autoría ligera en el siguiente commit selectivo; no es checkpoint funcional aprobado. Publicación solo después de checkpoint funcional revisable.
 
 ## PR / BRANCH
 
@@ -53,7 +53,7 @@ Rama propia indicada arriba. PR todavía NO CREADA. Base futura exacta: `codex/s
 
 ## PENDIENTES DE ESTA TAREA
 
-- Revalidación numérica0501 y reserva local coherente; autoría ligera de módulos/fixtures/SQL/tests/docs dentro de31rutas.
+- Reserva0501 completada localmente. Módulos/parser/source/sync/route, fixtures, SQL/contratos, driver pequeño y documentación autorados como candidatos; falta demostrar y corregir bajo turno. Cron/UI/package/lock aún idénticos aD.
 - Baseline/instalación y todos los gates de ejecución bajo turno futuro del Director.
 - Matriz SGE12 de producto con clasificación/evidencia real, no ascender matriz estática a conformidad.
 - Documentos finales, recibos de cierre nativos, ciclo único de conocimiento local, PR DRAFT, integridad y cleanup de recursos atribuibles; liberar claim solo al concluir escritura y cierre aceptado.
@@ -67,6 +67,16 @@ Rama propia indicada arriba. PR todavía NO CREADA. Base futura exacta: `codex/s
 ## HANDOFF AL DIRECTOR
 
 Fase ligera activa. El Director conserva el único control de turnos y concede el pesado posterior; no se necesita otro “sigue” para autoría reversible permitida. Ninguna evidencia preparatoria sustituye ejecución. Las decisiones más recientes de activación/addendum prevalecen sobre estados preparados/exclusiones históricas conservados abajo.
+
+## CHECKPOINT DE AUTORÍA LIGERA · 2026-10-21
+
+Autorados tipos/decimal, parser estructural y3fixtures mínimas; fuente acotada; factory/transportSDK dedicados; sync/route y casos funcionales preparados.0501 y contrato adicional/PGlite conservan cadena real con preflight/huellas/ACL y motivos nuevos acotados. Manifiesto/baseline/env.example/runbooks registran cierre propio sin cambiar gates. Driver context-only está preparado, sin ejecutarse; todavía falta ampliar HTTP de transporte/concurrencia/incertidumbre después del gate de contexto.
+
+No se modificaron cron/UI/package/lock porque esperan baseline/instalación bajo turno. Ningún test/suite, Node de producto, SQL/Docker, navegador, fuente remota desde implementación o conocimiento se ejecutó en esta fase. Las autorías todavía pueden contener defectos de preparación/comportamiento: no se declaran conformes ni verdes. El primer bloque reproducible quedó en `C:/tmp/director-traspaso-20261020/0569-bcv-validation/primer-turno-preparado.md`.
+
+SQL/contexto: la candidata role GUC+claims+auth.uid/login necesita HTTP real. Solo después se amplía aceptación. GETcapability no inmovilizaDDL; uso de servicio no atesta cron exclusivo; timestampCAS no promete ABA universal. Se conserva UNKNOWN y no se repite write ante falta de certeza.
+
+Dos incidentes de preparación corregidos, sin ejecución de producto: PowerShell pipe inválido al formatear metadatos y rechazo de apply_patch por Delete+Add de la misma ruta. La receta externa los conserva; no son ROJOS ni mutantes detectados.
 
 ## CONTRATOS ÍNTEGROS CONSERVADOS ANTES DE PRODUCTO
 
