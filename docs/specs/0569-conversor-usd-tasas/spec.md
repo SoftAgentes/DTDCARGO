@@ -327,7 +327,7 @@ Ver el handoff `.agents/handoffs/0569-conversor-usd-tasas.md`.
 
 ## Continuación BCV diario · 2026-10-21 · Worker aislado
 
-**EN PROGRESO: GO04B FALLÓ e INCOMPLETO; GO05A autoriza paridad de plantilla y una focal pendiente.** Esta continuación conserva los resultados históricos de la tabla/conversor y no los atribuye al importador nuevo. La0495 aplicada permanece inmutable. Su razónNULL en INSERT y source rpc no bastan para la auditoría R3 del nuevo job: el Director aprobó una SQL aditiva estrecha0501 y capability GET service-only, con motivo fijo generado en DB/source job para el contexto verificado.
+**EN PROGRESO: GO04B FALLÓ e INCOMPLETO; GO05A reparó paridad y su focal PASÓ 3/3. Nueva canónica GO05B y conocimiento pendientes.** Esta continuación conserva los resultados históricos de la tabla/conversor y no los atribuye al importador nuevo. La0495 aplicada permanece inmutable. Su razónNULL en INSERT y source rpc no bastan para la auditoría R3 del nuevo job: el Director aprobó una SQL aditiva estrecha0501 y capability GET service-only, con motivo fijo generado en DB/source job para el contexto verificado.
 
 Raíz propia `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0569-bcv-carga-diaria`, rama `codex/sdd-0569-bcv-carga-diaria`, base literal C3 `1905aef75680a80055621cffd717198915d089f9`, owner `worker-0569bcv-01a15a4e-ddf0-7d82-8656-d9dc56b58468`. El handoff propio `.agents/handoffs/0569-bcv-carga-diaria.md` conserva íntegros encargo c477, addendum87589 y activación93c4. No incluye0573 ni carril de embarques.
 
@@ -420,7 +420,7 @@ Corte posterior GO03, producto `16eab3620aba3acfd1f7676453d3f30c37be5779`: ROJO 
 
 ### Checkpoint funcional BCV · matriz medida del 21 de octubre
 
-Este corte sustituye únicamente los pendientes temporales de la continuación BCV de arriba. Producto/pruebas `390227699d167a7d6cdf7b22e1512f8d5a18a97c`; documentación posterior no cambia esos módulos. **Cierre local acotado: GO04B FALLÓ en test y quedó INCOMPLETO por ledger crítico sin medir; build PASÓ. GO05A sólo repara paridad de plantilla; focal todavía NO EJECUTADA en este checkpoint previo. GO05B/conocimiento pendientes, PR317 DRAFT/base C3, sin integración ni producción.** Fuente pública positiva NO DISPONIBLE por TLS. SDD permanece in-progress.
+Este corte sustituye únicamente los pendientes temporales de la continuación BCV de arriba. Producto/pruebas `390227699d167a7d6cdf7b22e1512f8d5a18a97c`; documentación posterior no cambia esos módulos. **Cierre local acotado: GO04B FALLÓ en test y quedó INCOMPLETO por ledger crítico sin medir; build PASÓ. GO05A reparó sólo paridad de plantilla y su focal PASÓ 3/3 sobre fd09677f8. GO05B/conocimiento pendientes, PR317 DRAFT/base C3, sin integración ni producción.** Fuente pública positiva NO DISPONIBLE por TLS. SDD permanece in-progress.
 
 La matriz conserva fuentes y oráculos efectivos; PASÓ significa la medición local indicada, no cobertura universal. No se suman casos repetidos, selección omitida, reparación roja o slices HTTP solapados. Los archivos están en esta rama; los recibos externos propios en `C:/tmp/director-traspaso-20261020/0569-bcv-validation/`. El handoff conserva primeros fallos y recibos completos.
 
@@ -509,8 +509,15 @@ Freeze completo: 6447 entradas, 0 diferencias, HEAD y árbol limpios; captura/su
 
 Original E2E: 268459 bytes, SHA256 0363dc645e9484960f92ae2715453a2bef852c7496bb2306eef16ea65f23c40c; 177 aprobados, 20 omitidos y 1 flaky `auth.spec.ts:81/chromium` recuperado por su reintento nativo, 0 inesperados finales. No cobertura integral; 2 omisiones visuales duplicadas y 18 por fixture/seed ausente. Preparaciones de captura y dos fallos del lector/ensamblaje posterior al EXIT se conservan sin alterar el original ni repetir E2E.
 
-GO05A amplía sólo a `infra/dtd-cargo/.env.example`, con las cinco líneas literales del contrato siguiente: OFF false, scope vacío y tres comentarios; resto de bytes idéntico. Test, raíz, Compose, módulos, 0495/0501, lock y receta intactos. Una focal nativa de tres casos está autorizada pero todavía NO EJECUTADA en este checkpoint previo. No GO05B ni conocimiento. Fuente pública positiva sigue NO DISPONIBLE por el TLS anterior, sin otro GET.
+GO05A amplía sólo a `infra/dtd-cargo/.env.example`, con las cinco líneas literales del contrato siguiente: OFF false, scope vacío y tres comentarios; resto de bytes idéntico. Test, raíz, Compose, módulos, 0495/0501, lock y receta intactos. La única focal nativa de tres casos PASÓ 3/3 sobre fd09677f8, sin omisiones ni retry agregado; GO04B conserva su fallo histórico. No GO05B ni conocimiento. Fuente pública positiva sigue NO DISPONIBLE por el TLS anterior, sin otro GET.
 
+### GO05A · resultado focal medido, sin nueva canónica
+
+Checkpoint de ejecución `fd09677f83908c5ba0a9ea033220e37e1308d1af`: una invocación normal de Vitest 4.1.7 al test intacto `scripts/__tests__/infra-env-example.test.ts`, 18:07:02–18:07:16 UTC: **PASÓ, exit 0, 1 archivo y 3/3 casos, sin omisiones ni retry agregado**. El cambio funcional es únicamente la inserción literal de cinco líneas autorizadas en la plantilla de infra; el resto de bytes reconstruye exactamente su preimagen. Raíz, test, Compose, producto, 0495/0501 y lock conservados.
+
+Freeze completo: 6451 entradas antes/después, 0 diferencias, HEAD y árbol limpios hasta EXIT y comparación. Tres identidades nativas conocidas y launcher ya ausentes por PID/ticks UTC, sin Kill ni censo universal. Native stdout SHA256 `5078a1a2d8bd81f842e6e3b6ef950787c258176aec5a8f3559a6d64d377332bc`; result `f3abaae08b601d551a82fed4a28550af7e37241dd703e23c7aec4a28e3e5f4f2`; postflight `b0a5a58c2ba986f69ccf9856e584aed7bb047e09096049bb03af62f5d1c3fd07`, en `C:/tmp/director-traspaso-20261020/0569-bcv-validation/go05a-parity-native-01/`.
+
+Director aceptó acotadamente GO05A y cotejó las 6451 entradas, seis artefactos y cuatro identidades ausentes: prueba externa SHA256 `dd2cc49a147219d03b75f63b0e27d00be4f7c3d3efc5acedf8ed70c914bc364a`. La focal corrige el oráculo de paridad medido; **GO04B permanece FALLÓ e INCOMPLETO**, con sus dos intentos y omisiones. El fallo auxiliar inicial de comparación de nombres antes del commit se conservó como preparación, sin ejecución de tests ni cambio de producto para pasarlo. Nueva canónica GO05B y ciclo de conocimiento siguen NO EJECUTADOS. Cierre documental, commit/push y DRAFT son respaldo para revisión; no integración, release ni producción.
 ### Addendum Director32 y GO05A · original íntegro d73e2afc
 ~~~~~~markdown
 # SDD-0569 · addendum Director32 y GO05A de reparación local

@@ -6,7 +6,7 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 
 ## ADOPCIÓN Y PROPIEDAD
 
-- Estado: EN PROGRESO · GO04B FALLÓ e INCOMPLETO; GO05A autoriza sólo paridad de plantilla y focal nativa, todavía NO EJECUTADA. Producto/pruebas 390227699 permanecen; nueva canónica GO05B y conocimiento pendientes. Única sesión escritora /root/revision_bcv_prevuelo, rol Worker; Director coordina. Fuente pública positiva NO DISPONIBLE por TLS.
+- Estado: EN PROGRESO · GO04B FALLÓ e INCOMPLETO; GO05A reparó la paridad de plantilla y PASÓ su única focal 3/3 sobre fd09677f8. Producto/pruebas 390227699 conservados. Nueva canónica GO05B y conocimiento pendientes. Única sesión escritora /root/revision_bcv_prevuelo, rol Worker; Director coordina. Fuente pública positiva NO DISPONIBLE por TLS.
 - TaskID: `0569-bcv-carga-diaria`.
 - Owner: `worker-0569bcv-01a15a4e-ddf0-7d82-8656-d9dc56b58468`.
 - Raíz: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0569-bcv-carga-diaria`.
@@ -31,7 +31,7 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 | Harness start/claim/guard | PASÓ: aislamiento/owner/base exactos. Es metadato de trabajo, no validación de producto. |
 | Preimágenes31 | PASÓ: 13 existentes/18 ausentes/0 diferencias. Recibo externo con blobs y SHA256 de archivos. |
 | Preimágenes32 GO05A | PASÓ: 32 existentes sobre HEAD62; infra 37d1bf35, raíz 6d8599ca y test 78c80a8c coinciden con el addendum. |
-| Paridad de plantilla GO05A | Cinco líneas literales en infra: OFF=false/scope vacío y tres comentarios. Resto de bytes exacto; focal original de tres casos NO EJECUTADA todavía. |
+| Paridad de plantilla GO05A | Cinco líneas literales en infra: OFF=false/scope vacío y tres comentarios. Resto de bytes exacto; focal original PASÓ 3/3 sobre fd09677f8, sin omisiones ni retry agregado. |
 | Reserva0501 | Inventario nativo PASÓ:502refs+worktrees; reserva local9591b2436 y SQL0501 publicados solo en rama DRAFT. Aplicada únicamente en fixtures propias; nunca producción. |
 | Nuevos módulos | AUSENTES inicialmente; no se ejecutó import/ENOENT como rojo. |
 | Instalación congelada, baseline cron/UI | PASÓ GO01: bootstrap único, baseline válido2archivos/12casos/0omisiones sobre preimagenD. Primer shim falló en preparación antes de pruebas; recibo separado. |
@@ -61,13 +61,15 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 
 Reserva local `9591b2436033f1200ef71a79bb4e9ce67f10fbac`; candidato ligero `1ff0bbee4`; cleanup driver `01e830bdf632052c0f798e3de737b4336e949c55`; proxy loopback propio `93ac1a33f47bdeb4c4f85ffa6a8627e113092d1a`; promoción mínima parse5 `9cd35b1ef252b477969a3c50fdda0bd47c3da04e`. Ninguno constituye checkpoint funcional integral. Publicación solo después de checkpoint funcional revisable.
 
+GO05A: commit de ejecución `fd09677f83908c5ba0a9ea033220e37e1308d1af`, cinco líneas de plantilla y documentación de alcance/evidencia. Cierre documental posterior separado; no nueva prueba por documentación.
+
 ## PR / BRANCH
 
 Rama propia indicada arriba. Publicación parcial autorizada por el Director el 21 de octubre después de revisar GO02: [PR #317 DRAFT](https://github.com/SoftAgentes/DTDCARGO/pull/317), apilada sobre `codex/sdd-0576-fechas-caracas-movil`, base C3 `1905aef75680a80055621cffd717198915d089f9`. Head inicial publicado `021868d743b868c4e4f22155ccb4ce9c21da3031`; relectura inicial confirmó OPEN/DRAFT, body exacto y 25 rutas dentro de 31. No había checks reportados en ese corte; no equivale a CI verde. Es respaldo parcial; no aceptación completa, main, merge, auto-merge ni deploy. Las actualizaciones posteriores del mismo alcance están autorizadas sin pedir otra vez.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Director revisa GO05A corregido y respaldo DRAFT317 antes del GO05B canónico. Una sola focal de paridad autorizada; no otra canónica, GET, suites amplias o conocimiento en este bloque. Claim retenido hasta cierre coordinado.
+- Director revisa GO05A corregido y respaldo DRAFT317 antes del GO05B canónico. La única focal de paridad PASÓ 3/3; no otra canónica, GET, suites amplias o conocimiento en este bloque. Claim retenido hasta cierre coordinado.
 - Obtención pública positiva NO DISPONIBLE por TLS; la única lectura autorizada ya se consumió. No reparar cadena remota, cambiar TLS ni reintentar sin otro encargo concreto. No afecta la atribución de pruebas locales ni acredita operación disponible.
 - Documentos finales y ciclo único local de conocimiento después del D estable y turno específico: Graphify estructural/semántica, Archify, preview y revisión visible de Obsidian se reportan separados. Integración y bóveda compartida no autorizadas.
 - Canónica puede conservar SKIPs de ledger/credenciales o límites del navegador nativo; registrar cada paso real y originales E2E. Producción0501, cron/flags/scope/env reales, merge/deploy siguen excluidos y nominalmente futuros.
@@ -80,7 +82,7 @@ Rama propia indicada arriba. Publicación parcial autorizada por el Director el 
 
 ## HANDOFF AL DIRECTOR
 
-GO04B terminó FALLÓ e INCOMPLETO y devolvió el turno; Director cotejó 6447 entradas sin diferencias y recursos conocidos ausentes. GO05A adopta explícitamente 32 rutas para reparar sólo la plantilla de infra y medir los tres casos intactos. La nueva canónica GO05B y conocimiento siguen pendientes. Este estado actual prevalece sobre cortes históricos conservados abajo; no cierre global ni producción.
+GO04B terminó FALLÓ e INCOMPLETO y devolvió el turno; Director cotejó 6447 entradas sin diferencias y recursos conocidos ausentes. GO05A adoptó explícitamente 32 rutas, reparó sólo la plantilla de infra y midió los tres casos intactos: PASÓ 3/3. La nueva canónica GO05B y conocimiento siguen pendientes. Este estado actual prevalece sobre cortes históricos conservados abajo; no cierre global ni producción.
 
 ## RECIBOS GO01/GO01B/GO01C · 2026-10-21
 
@@ -211,8 +213,15 @@ Freeze 6447 antes/después/0 diferencias; streams completos y supervisor sin err
 
 E2E original 268459 bytes/SHA0363dc645e9484960f92ae2715453a2bef852c7496bb2306eef16ea65f23c40c/fileIDd88e71b7-006a000000011081:177 aprobados / 20 omitidos / 1 flaky auth.spec.ts:81 recuperado por retry1,0 inesperados finales. Dos omisiones visuales duplicadas y 18 por fixture/seed ausente; no cobertura integral. Se conservan fallos auxiliares del lector/ensamblaje posteriores al EXIT, sin reejecución E2E/canónica ni cambio del original.
 
-GO05A: única reparación funcional de cinco líneas literales en infra/dtd-cargo/.env.example; OFF false y scope vacío. Focal nativa intacta scripts/__tests__/infra-env-example.test.ts, tres casos, todavía NO EJECUTADA en este checkpoint previo. No cambios a raíz, test, Compose, producto/SQL/lock/receta. Contrato32 íntegro recibido a continuación; no nueva política por inferencia.
+GO05A: única reparación funcional de cinco líneas literales en infra/dtd-cargo/.env.example; OFF false y scope vacío. Focal nativa intacta scripts/__tests__/infra-env-example.test.ts PASÓ 3/3 sobre fd09677f8, sin omisiones. No cambios a raíz, test, Compose, producto/SQL/lock/receta. Contrato32 íntegro recibido a continuación; no nueva política por inferencia.
 
+### GO05A · resultado focal medido, sin nueva canónica
+
+Checkpoint de ejecución `fd09677f83908c5ba0a9ea033220e37e1308d1af`: una invocación normal de Vitest 4.1.7 al test intacto `scripts/__tests__/infra-env-example.test.ts`, 18:07:02–18:07:16 UTC: **PASÓ, exit 0, 1 archivo y 3/3 casos, sin omisiones ni retry agregado**. El cambio funcional es únicamente la inserción literal de cinco líneas autorizadas en la plantilla de infra; el resto de bytes reconstruye exactamente su preimagen. Raíz, test, Compose, producto, 0495/0501 y lock conservados.
+
+Freeze completo: 6451 entradas antes/después, 0 diferencias, HEAD y árbol limpios hasta EXIT y comparación. Tres identidades nativas conocidas y launcher ya ausentes por PID/ticks UTC, sin Kill ni censo universal. Native stdout SHA256 `5078a1a2d8bd81f842e6e3b6ef950787c258176aec5a8f3559a6d64d377332bc`; result `f3abaae08b601d551a82fed4a28550af7e37241dd703e23c7aec4a28e3e5f4f2`; postflight `b0a5a58c2ba986f69ccf9856e584aed7bb047e09096049bb03af62f5d1c3fd07`, en `C:/tmp/director-traspaso-20261020/0569-bcv-validation/go05a-parity-native-01/`.
+
+Director aceptó acotadamente GO05A y cotejó las 6451 entradas, seis artefactos y cuatro identidades ausentes: prueba externa SHA256 `dd2cc49a147219d03b75f63b0e27d00be4f7c3d3efc5acedf8ed70c914bc364a`. La focal corrige el oráculo de paridad medido; **GO04B permanece FALLÓ e INCOMPLETO**, con sus dos intentos y omisiones. El fallo auxiliar inicial de comparación de nombres antes del commit se conservó como preparación, sin ejecución de tests ni cambio de producto para pasarlo. Nueva canónica GO05B y ciclo de conocimiento siguen NO EJECUTADOS. Cierre documental, commit/push y DRAFT son respaldo para revisión; no integración, release ni producción.
 ### Addendum Director32 y GO05A · original íntegro d73e2afc
 
 ~~~~~~markdown
