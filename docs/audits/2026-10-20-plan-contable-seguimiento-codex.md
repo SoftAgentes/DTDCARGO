@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 12:46 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 12:57 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -8,7 +8,7 @@
 
 **Caracas C1 quedó entregado localmente en la PR #312 en borrador, final `d6bcd0e8`:** producto y pruebas idénticos a `264e0531`, revisiones y cierre documental cotejados, árbol limpio y propiedad liberada. Conserva **16/17**, una prueba de aplicación omitida y navegación con 177 aprobadas, una recuperada y 20 omitidas.
 
-**Ahora avanza Caracas C2 anual:** Worker y árbol propios, dependencias preparadas y primeras **54/54 pruebas de aplicación** aprobadas después de reproducir ocho fallos. Falta SQL/API, revisión y cierre general de esa entrega. Después siguen gastos móviles y BCV, con diseños preparados. Push y PR funcionan; Actions sigue fallando antes de arrancar. La tarifa congelada conserva sus pendientes de base final y publicación.
+**Ahora avanza Caracas C2 anual, respaldado en la PR #313 en borrador:** **54/54 pruebas de aplicación** y **29/29 contratos y controles SQL** aprobados. La base de datos y la recarga de API ya tienen evidencia local; un fallo del arnés se corrigió y falta cotejar el suplemento y su ejecución desde una versión limpia. Siguen pendientes la revisión final y la corrida general. Después vienen gastos móviles y BCV, con diseños preparados. Push y PR funcionan; Actions sigue fallando antes de arrancar. La tarifa congelada conserva sus pendientes de base final y publicación.
 
 **Cómo leerlo:** una casilla marcada significa que se terminó exactamente el paso escrito. En el checklist general, significa integrado y publicado. Dentro de una tarea abierta, una prueba aprobada puede tener ✓ aunque su publicación siga pendiente. Los resultados locales no se presentan como prueba de producción.
 
@@ -178,9 +178,13 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Crear el árbol propio de C2 desde **`d6bcd0e8`** y asignarlo a un Worker nuevo, con contrato completo y doce rutas. El inventario nuevo de las 12:39 a. m. comprobó 490 referencias más los árboles; se asignó **0500_annual_billing_caracas** para desarrollo local. Turno de pruebas exclusivo concedido a C2; adopción y dependencias en preparación, sin implementación acreditada todavía.
 - [x] Confirmar raíz, rama, base limpia y propiedad exclusiva de C2; contrato y fuentes cotejados por huella. El Director comprobó el registro de propiedad creado a las 12:41 a. m. Dependencias, reproducción de errores e implementación siguen en ejecución, sin pruebas C2 aprobadas todavía.
 - [x] Preparar dependencias propias con versiones congeladas, salida 0. Reproducir **ocho fallos funcionales de fecha y 22 casos aprobados** en el archivo del caller anual; después aprobar **54/54 en dos archivos, sin omisiones**, incluidos los contratos del lector Portal. Evidencia del árbol en implementación: no es todavía una cabeza final revisada ni aprobación de SQL/HTTP.
+- [x] Respaldar el primer checkpoint **`769dd9ee`** en la [PR #313 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/313), sobre C1 final `d6bcd0e8`. Director cotejó base, cabeza, descripción y alcance; no es todavía la versión final de aceptación.
+- [x] Aprobar **29/29 pruebas SQL en PGlite**, sin omisiones, en la tercera pasada: conserva las fórmulas y permisos, reproduce tres contratos temporales anteriores y detecta mutaciones de fecha. Las dos pasadas previas fallaron por oráculos del arnés y se conservan; no se presentan como reproducciones funcionales válidas del error de fecha.
+- [x] Comprobar localmente **423 aserciones PostgreSQL y reversión de datos de prueba**, con las tres funciones existentes antes de aplicar 0500 y recarga sin reiniciar la API. El primer arnés falló después por falta de separadores al instrumentar el reloj; se reparó dentro del alcance. El segundo recorrido aprobó, pero su suplemento y la repetición desde un commit limpio todavía deben cotejarse antes de aceptar HTTP final.
 - [ ] Implementar después Caracas C2 para los cálculos anuales, con base final C1, árbol/owner propios y número de migración coordinado por inventario nuevo.
 - [ ] Cerrar un slice posterior acotado de gastos móviles antes de certificar toda la hora Caracas: el caller activo conserva fechas UTC explícitas y guardas anteriores. Detectado y cotejado por lectura, fuera de las 68 rutas de C1; sin implementación ni autorización de datos reales.
 - [x] Preparar y revisar el diseño del slice móvil: siete rutas propuestas, sin bloqueante estructural ni nueva migración identificada. Conserva propiedad del gasto, fotos y datos al rechazar, y pone todas las guardas antes de modificar la evidencia. Base final, encargo y pruebas de implementación posteriores a C2 siguen pendientes.
+- [x] Preparar la matriz móvil de **37 escenarios y once controles propuestos**, por lectura del código: altas, edición, tenant único, cierres, historia del asiento, fecha visible y segundo envío del archivo. Las siete rutas siguen bastando; ninguna prueba móvil nueva se ha ejecutado todavía.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
 - [x] Revisar y aprobar el diseño acotado de la carga BCV: fecha exacta de hoy Caracas, decimal completo, protección de cambios concurrentes, ensayo sin escritura y respaldo manual. Reutiliza SDD-0569, 27 rutas propuestas al incluir el manifiesto de referencias pendientes, sin nueva migración. Todavía no existe importador ni agenda instalada.
