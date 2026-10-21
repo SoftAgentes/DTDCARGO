@@ -75,7 +75,13 @@ export function parseBcvHtml(html: string): BcvQuote {
   // El rótulo pertenece al campo que contiene el valor, no a cualquier nota
   // del bloque. Un segundo campo rotulado, incluso pendiente, es ambiguo.
   const ownText = (node: Element) => whitespace(node.childNodes.filter(n => n.nodeName === "#text").map(text).join(""));
-  const field = one(descendants.filter(node => ownText(node).startsWith("Fecha Valor:")));
+  const startsLabel = (node: Node) => whitespace(text(node)).startsWith("Fecha Valor:");
+  // Un rótulo puede verse partido por markup inline. Excluir subcampos ya
+  // rotulados evita contar sus wrappers como otro campo, sin ocultar un
+  // rótulo propio anterior a un subcampo (también sería ambiguo).
+  const visibleOwnLabel = (node: Element) => whitespace(node.childNodes
+    .filter(child => !isElement(child) || !startsLabel(child)).map(text).join(""));
+  const field = one(descendants.filter(node => visibleOwnLabel(node).startsWith("Fecha Valor:")));
   if (field.tagName !== "div" || date.parentNode !== field || ownText(field) !== "Fecha Valor:"
     || field.childNodes.some(node => isElement(node) && node !== date && node.tagName !== "hr")) return invalid();
   return Object.freeze({ currency: "VES", source: "bcv", unit: "VES/USD", rate, validOn: valueDate(date) });
