@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 11:50 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 11:55 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -164,7 +164,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Completar la revisión visible acotada con componentes y estilos reales, datos ficticios y acciones simuladas: fechas en **390 y 1.280 píxeles, claro/oscuro**, rechazo de nueva fecha futura y reintento por Enter conservando fecha, IDs, datos y comprobante. Inspección del Director en navegador y teclado sin hallazgo material nuevo; se conservaron fallos de selectores y su suplemento aprobado. **Zoom nativo al 200 % no disponible; teléfono físico y Studio autenticado no ejecutados.** No certifica accesibilidad completa ni producción.
 - [x] Registrar el primer intento general sobre **`46c64bd0`**, iniciado a las 11:39:19 p. m. y **INTERRUMPIDO/INCOMPLETO** al detectar una prueba que esperaba “hoy” para fecha vacía. Los 237 controles del entorno aprobaron; la suite general no terminó y sus resultados no se suman a otra corrida. Procesos propios retirados.
 - [x] Autorizar una única ruta adicional de prueba, **69 en total**, y corregir el contrato heredado: vacío da error; omisión o `undefined` toman el día de Caracas. Primero **33 aprobadas y una fallida**; después **36/36, sin omisiones**, con los dos bordes de medianoche, monto, moneda y fecha explícita conservados. Tipos y revisión estática aprobados. Director revisó el delta mínimo **`9cbe8749`**, respaldado en la PR #312; aplicación y SQL intactos.
-- [x] Iniciar la segunda validación general sobre **`9cbe8749`**, a las 11:49:03 p. m., con fuentes congeladas y manifiesto de identidad. **En curso; sin resultado aprobado todavía.** Es la única corrida pesada activa.
+- [x] Iniciar la segunda validación general sobre **`9cbe8749`**, a las 11:49:03 p. m., con fuentes congeladas y manifiesto de identidad. Pasaron **237/237 controles del entorno sin omisiones**, revisión estática, fronteras, tipos y las cuatro funciones de backend; conserva 15 advertencias anteriores de revisión estática y cero errores. **La suite de aplicación sigue en curso, sin resultado global aprobado.** Es la única corrida pesada activa.
 - [ ] Terminar las pruebas generales y el cierre documental de C1, conservando sus revisiones aprobadas, y completar la PR #312 en borrador. GitHub no aprobó el checkpoint: sus dos intentos medidos terminaron antes de arrancar, por `startup_failure`.
 - [ ] Implementar después Caracas C2 para los cálculos anuales, con número de migración coordinado por inventario nuevo y las ventanas propias de Portal y Studio conservadas.
 - [ ] Cerrar un slice posterior acotado de gastos móviles antes de certificar toda la hora Caracas: el caller activo conserva fechas UTC explícitas y guardas anteriores. Detectado y cotejado por lectura, fuera de las 68 rutas de C1; sin implementación ni autorización de datos reales.
