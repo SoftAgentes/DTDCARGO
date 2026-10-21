@@ -214,7 +214,12 @@ export async function createReceiptAction(
     .single<{ id: string; receipt_code: string }>();
 
   if (insertErr || !legacyReceipt) {
-    if (insertErr?.hint === "dtd-client-normal") return { error: normalFlowError(insertErr) };
+    // A stale RR birth can lose the OFF->ON fence after its preview. The whole
+    // INSERT was rolled back; keep the intent for a fresh read, never retry it
+    // here or display the database's serialization text as a business message.
+    if (insertErr?.hint === "dtd-client-normal" || insertErr?.code === "40001") {
+      return { error: normalFlowError(insertErr) };
+    }
     return {
       error: `No se pudo crear la recepción: ${insertErr?.message ?? "sin detalle"}`,
     };

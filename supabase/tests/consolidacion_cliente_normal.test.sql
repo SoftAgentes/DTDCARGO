@@ -66,6 +66,11 @@ begin
   perform sdd0578_fixture.check(v_result->>'availability'='ready' and v_result->>'receiptCode' like 'WR-%','atomic intake/0469');
   v_id:=(v_result->>'receiptId')::uuid;
   insert into sdd0578_fixture.state(label,id,value) values(p_label,v_id,v_result);
+  -- Intake does not invent a destination. This fixture explicitly prepares the
+  -- selected real catalogue city through the current editable-receipt guard,
+  -- BEFORE any tariff freeze or membership fingerprint is observed.
+  perform sdd0578_fixture.run_as('operations-A',format('with changed as(update public.warehouse_receipts_cn set destination_city=%L where id=%L::uuid returning id) select to_jsonb(count(*)) from changed',
+    'Valencia',v_id));
   return v_id;
 end $$;
 create function sdd0578_fixture.selection(p_container text,p_client text,p_receipts text[],p_code text,p_extend boolean default false)
@@ -91,7 +96,7 @@ $$;
 create function sdd0578_fixture.freeze_sql(p_label text,p_per numeric default 100,p_service text default 'consolidado_lcl')
 returns text language sql stable as $$
   select format('select to_jsonb(r) from public.congelar_tarifa_recepcion(%L::uuid,%L,null,null,%L::numeric,100::numeric,%L::public.shipment_service,500,%L,false) r',
-    (select id from sdd0578_fixture.state where label=p_label),'a_mano',p_per,p_service,'Tarifa sintética autorizada')
+    (select id from sdd0578_fixture.state where label=p_label),'manual',p_per,p_service,'Tarifa sintética autorizada')
 $$;
 create function sdd0578_fixture.stow_sql(p_container text,p_receipt text,p_revision bigint) returns text language sql stable as $$
   select format('select public.client_consolidation_physical(%L::uuid,%L::uuid,%L,%L::bigint,%L,null,null,%L::jsonb,false)',
@@ -104,11 +109,26 @@ returns text language sql stable as $$
   select format('select public.client_consolidation_transition(%L::uuid,%L,%L,%L::bigint,%L::bigint,%L::uuid,%L)',p_shipment,p_operation,p_status,
     p_group_revision,p_revision,sdd0578_fixture.id(p_reference),'Hito operativo sintético')
 $$;
+-- Additional cases are isolated by literal labels in this disposable DB. These
+-- helpers prepare synthetic parents only; every membership/physical/POD write
+-- below still enters the real public API and its real guards.
+create function sdd0578_fixture.new_container(p_label text) returns uuid language plpgsql as $$
+declare v_id uuid:=sdd0578_fixture.id(p_label);
+begin
+  insert into public.consolidations(id,tenant_id,ref,container_type)
+    values(v_id,sdd0578_fixture.id('tenant-A'),p_label,'S578');
+  return v_id;
+end $$;
+create function sdd0578_fixture.operario_create_sql(p_operator text,p_warehouse uuid,p_boxes integer) returns text language sql stable as $$
+  select format('select to_jsonb(r) from public.create_receipt_as_operario(%L::uuid,%L::uuid,false,%L,%L,null,null,%L,null,%L::integer,1,100,%L::date,null,%L::jsonb,false,null,%L) r',
+    sdd0578_fixture.id(p_operator),p_warehouse,'DTD-0001','Cliente sintético','Proveedor sintético',p_boxes,'2026-10-21',
+    '[{"description":"Mercancía sintética","quantity":1}]','Valencia')
+$$;
 
 -- Synthetic actors. No real accounts, credentials, addresses or media.
 insert into public.tenants(id) values(sdd0578_fixture.id('tenant-A')),(sdd0578_fixture.id('tenant-B'));
 insert into auth.users(id) select sdd0578_fixture.id(label) from unnest(array[
-  'admin-A','operations-A','commercial-A','accounting-A','warehouse-A','support-A','operations-B','portal-A','hybrid-B','portal-multiple']) label;
+  'admin-A','operations-A','commercial-A','accounting-A','warehouse-A','support-A','operations-B','portal-A','hybrid-B','portal-unlinked']) label;
 insert into public.user_tenants(user_id,tenant_id,role,region,warehouse_scope)
 select sdd0578_fixture.id(label),sdd0578_fixture.id(tenant),role,region,scope from(values
   ('admin-A','tenant-A','admin',null,'all'),('operations-A','tenant-A','operations',null,'all'),
@@ -227,9 +247,93 @@ begin
     v_input->'input',v_input->'space',v_result,sdd0578_fixture.id(p_reference));
 end $$;
 
+-- One real prealerta, first receipt owns boxes1+3 and the later receipt box2.
+-- A lot scanned at box1/count2 MUST NOT silently intersect with membership and
+-- select boxes1+3. Actual0244 allocates codes; actual0449 receives exact IDs.
+create function sdd0578_fixture.lot_sql(p_container text,p_revision bigint,p_box_label text,p_count integer) returns text language sql stable as $$
+  select format('select public.client_consolidation_physical(%L::uuid,%L::uuid,%L,%L::bigint,%L,0,%L::integer,null,false)',
+    sdd0578_fixture.id('operario-cn'),sdd0578_fixture.id(p_container),'stow_lot',p_revision,
+    (select value#>>'{}' from sdd0578_fixture.state where label=p_box_label),p_count)
+$$;
+create function sdd0578_fixture.mixed_lot(p_container text,p_code integer) returns void language plpgsql as $$
+declare v_pre uuid:=sdd0578_fixture.id(p_container||'-pre'); v_codes text[]; v_result jsonb; v_r uuid;
+begin
+  perform sdd0578_fixture.new_container(p_container);
+  insert into public.prealertas(id,tenant_id,code,client_markbox,boxes)
+    values(v_pre,sdd0578_fixture.id('tenant-A'),'CMP-S578-'||p_container,'DTD-0001',3);
+  select array_agg(code order by seq) into v_codes from public.warehouse_boxes where prealerta_id=v_pre and deleted_at is null;
+  perform sdd0578_fixture.check(cardinality(v_codes)=3,'actual0244 allocates exactly three expected box codes');
+  v_result:=sdd0578_fixture.run_as(null,format('select public.receive_prealerta_boxes_as_operario(%L::uuid,%L,%L::text[])',
+    sdd0578_fixture.id('operario-cn'),v_codes[1],array[v_codes[1],v_codes[3]]),'service_role');
+  v_r:=(v_result->>'receipt_id')::uuid;
+  insert into sdd0578_fixture.state(label,id,value) values(p_container||'-r1',v_r,v_result);
+  perform sdd0578_fixture.run_as('operations-A',format('with changed as(update public.warehouse_receipts_cn set total_cbm=2,total_weight_kg=200 where id=%L::uuid returning id) select to_jsonb(count(*)) from changed',v_r));
+  v_result:=sdd0578_fixture.run_as(null,format('select public.receive_prealerta_boxes_as_operario(%L::uuid,%L,%L::text[])',
+    sdd0578_fixture.id('operario-cn'),v_codes[2],array[v_codes[2]]),'service_role');
+  v_r:=(v_result->>'receipt_id')::uuid;
+  insert into sdd0578_fixture.state(label,id,value) values(p_container||'-r2',v_r,v_result);
+  perform sdd0578_fixture.run_as('operations-A',format('with changed as(update public.warehouse_receipts_cn set total_cbm=1,total_weight_kg=100 where id=%L::uuid returning id) select to_jsonb(count(*)) from changed',v_r));
+  perform sdd0578_fixture.run_as('operations-A',sdd0578_fixture.confirm_sql(p_container,0,p_container||'-form',
+    jsonb_build_array(sdd0578_fixture.selection(p_container,'client-A',array[p_container||'-r1'],'S-2026-'||p_code))));
+  insert into sdd0578_fixture.state(label,id,value)
+    select p_container||'-box'||seq,id,to_jsonb(code) from public.warehouse_boxes where prealerta_id=v_pre and deleted_at is null;
+end $$;
+select sdd0578_fixture.mixed_lot('lot-mixed',6401);
+
 -- SDD0578_ASSERTIONS_BEGIN
 -- The concurrency runner loads only the complete prefix above into its OWN DB,
 -- then commits. It never removes the migration fuse or changes product code.
+do $scope_fence_configuration$
+declare v_scope uuid:=sdd0578_fixture.id('scope-config'); v_first uuid:=sdd0578_fixture.id('warehouse-config-1');
+  v_second uuid:=sdd0578_fixture.id('warehouse-config-2'); v_before jsonb; v_touch bigint; v_result jsonb;
+begin
+  insert into public.warehouses_cn(id,code,hub_code,hub_name_es,hub_name_cn) values
+    (v_first,'S578CFG1','S578','Configuración sintética1','合成'),(v_second,'S578CFG2','S578','Configuración sintética2','合成');
+  select jsonb_agg(to_jsonb(r) order by r.receipt_id) into v_before from dtd_client_normal.receipts r;
+  insert into dtd_client_normal.scopes(id,tenant_id,warehouse_id,enabled,starts_at)
+    values(v_scope,sdd0578_fixture.id('tenant-A'),v_first,false,clock_timestamp());
+  select touched into v_touch from dtd_client_normal.scope_fences where tenant_id=sdd0578_fixture.id('tenant-A') and warehouse_id=v_first;
+  update dtd_client_normal.scopes set enabled=true where id=v_scope;
+  update dtd_client_normal.scopes set enabled=false where id=v_scope;
+  perform sdd0578_fixture.check((select touched>v_touch from dtd_client_normal.scope_fences
+    where tenant_id=sdd0578_fixture.id('tenant-A') and warehouse_id=v_first),'ON/OFF repeated writes durable fence version');
+  update dtd_client_normal.scopes set warehouse_id=v_second where id=v_scope;
+  perform sdd0578_fixture.check((select count(*)=2 from dtd_client_normal.scope_fences where tenant_id=sdd0578_fixture.id('tenant-A')
+    and warehouse_id in(v_first,v_second)),'config identity change fences both sorted old/new keys');
+  select touched into v_touch from dtd_client_normal.scope_fences where tenant_id=sdd0578_fixture.id('tenant-A') and warehouse_id=v_second;
+  delete from dtd_client_normal.scopes where id=v_scope;
+  perform sdd0578_fixture.check((select touched>v_touch from dtd_client_normal.scope_fences
+    where tenant_id=sdd0578_fixture.id('tenant-A') and warehouse_id=v_second),'scope delete retains/increments fence, never creates a missing-key gap');
+  insert into dtd_client_normal.scopes(id,tenant_id,warehouse_id,enabled,starts_at)
+    values(v_scope,sdd0578_fixture.id('tenant-A'),v_second,false,clock_timestamp());
+  perform sdd0578_fixture.check((select touched>v_touch+1 from dtd_client_normal.scope_fences
+    where tenant_id=sdd0578_fixture.id('tenant-A') and warehouse_id=v_second),'scope recreate uses durable prior fence, no reset');
+  perform sdd0578_fixture.check((select jsonb_agg(to_jsonb(r) order by r.receipt_id)=v_before from dtd_client_normal.receipts r),
+    'unrelated configuration cannot renew enrolled receipt identity/history');
+  perform sdd0578_fixture.denied(format('with changed as(update dtd_client_normal.scopes set warehouse_id=%L::uuid where id=%L::uuid returning id) select to_jsonb(count(*)) from changed',
+    v_first,sdd0578_fixture.id('scope')),'NORMAL_GOVERNED',null,'postgres');
+  perform sdd0578_fixture.check((select warehouse_id=sdd0578_fixture.id('warehouse') from dtd_client_normal.scopes where id=sdd0578_fixture.id('scope')),
+    'used scope cannot retarget historical cohort identity to a valid unused key');
+  foreach v_result in array array[
+    sdd0578_fixture.attempt(null,'select dtd_client_normal.fence_scope(null,null)','service_role'),
+    sdd0578_fixture.attempt('operations-A','select to_jsonb(count(*)) from dtd_client_normal.scope_fences'),
+    sdd0578_fixture.attempt('operations-A','delete from dtd_client_normal.scopes')
+  ] loop
+    perform sdd0578_fixture.check(v_result->>'state'='42501','scope helper/config/fence never an API permission');
+  end loop;
+  perform sdd0578_fixture.check(sdd0578_fixture.attempt(null,sdd0578_fixture.operario_create_sql('absent-operario',sdd0578_fixture.id('warehouse'),1),'service_role')->>'state'='P0001',
+    'unknown mobile operator retains original0045 rejection before scope fence');
+  perform sdd0578_fixture.check(sdd0578_fixture.attempt(null,sdd0578_fixture.operario_create_sql('operario-cn',sdd0578_fixture.id('warehouse'),0),'service_role')->>'state'='P0003',
+    'invalid mobile quantity retains original0045 rejection before scope fence');
+  perform sdd0578_fixture.denied(sdd0578_fixture.operario_create_sql('operario-ve',sdd0578_fixture.id('warehouse'),1),
+    'NORMAL_FORBIDDEN',null,'service_role');
+  v_result:=sdd0578_fixture.run_as(null,sdd0578_fixture.operario_create_sql('operario-ve',v_second,1),'service_role');
+  perform sdd0578_fixture.check(v_result->>'receipt_id' is not null and not exists(select 1 from dtd_client_normal.receipts
+    where receipt_id=(v_result->>'receipt_id')::uuid),'OFF0045 keeps its original authority; no inferred CN-only legacy permission change');
+  perform sdd0578_fixture.check(not exists(select 1 from dtd_client_normal.contexts) and not exists(select 1 from dtd_client_normal.intakes),
+    'invalid original writer calls leave no borrowed intake authority/context');
+end $scope_fence_configuration$;
+
 do $normal$
 declare v_input text; v_first jsonb; v_extended jsonb; v_old_member jsonb; v_old_boxes jsonb; v_snapshot uuid; v_created timestamptz;
  v_group dtd_client_normal.groups; v_ship uuid; v_counts jsonb; v_result jsonb; v_rate jsonb;
@@ -368,7 +472,9 @@ begin
 end $physical_and_states$;
 
 do $portal$
-declare v_ship uuid:=(select shipment_id from dtd_client_normal.groups where container_id=sdd0578_fixture.id('normal')); v_result jsonb; v_history jsonb; v_feed jsonb;
+declare v_ship uuid:=(select shipment_id from dtd_client_normal.groups where container_id=sdd0578_fixture.id('normal'));
+  v_result jsonb; v_history jsonb; v_feed jsonb; v_expected jsonb; v_actual jsonb; v_limit integer;
+  v_ordering_ship uuid:=sdd0578_fixture.id('portal-ordering-legacy'); v_tie timestamptz:=clock_timestamp()+interval '1 day';
 begin
   -- Events inserted only through the typed current-state note command; no
   -- fabricated private protocol context or direct bypass of guard_event.
@@ -381,11 +487,41 @@ begin
   perform sdd0578_fixture.check(v_history->>'complete'='true' and v_history->>'view'='history' and v_history->'limit'='null'::jsonb
     and jsonb_array_length(v_history->'events')>1105,'history complete beyond1000 with original first milestone');
   perform sdd0578_fixture.check(v_history#>>'{events,0,status}'='consolidating','first actual event retained');
-  foreach v_result in array array[
-    sdd0578_fixture.run_as('portal-A','select public.client_consolidation_portal_events(null,8)'),
-    sdd0578_fixture.run_as('portal-A','select public.client_consolidation_portal_events(null,4)')
-  ] loop
-    perform sdd0578_fixture.check(jsonb_array_length(v_result->'events')=(v_result->>'limit')::integer and v_result->>'view'='recent','feed8/4 exact separate view');
+  select jsonb_agg(to_jsonb(e.id) order by e.occurred_at,e.id) into v_expected from public.shipment_events e
+    where e.shipment_id=v_ship and e.deleted_at is null;
+  select jsonb_agg(e.value->'id' order by e.ordinality) into v_actual from jsonb_array_elements(v_history->'events') with ordinality e;
+  perform sdd0578_fixture.check(v_actual=v_expected,'cohort history exact full ID set and chronological order, not only >1000 count');
+  perform sdd0578_fixture.check(not exists(select 1 from jsonb_array_elements(v_history->'events') e
+    left join public.shipment_events source on source.id=(e->>'id')::uuid
+    where source.shipment_id is distinct from v_ship or source.occurred_at is distinct from (e->>'occurredAt')::timestamptz),
+    'full history preserves actual source clock for every exact event ID');
+
+  -- Deterministic ordering fixture, NOT a cohort writer/arrival authority test:
+  -- an owned legacy shipment has twelve known IDs, including ten equal clocks
+  -- and a one-microsecond predecessor. Future time is synthetic ordering data,
+  -- never inferred operational evidence. Legacy fixtures may set event times.
+  insert into public.shipments(id,tenant_id,code,client_id,client_markbox,shipment_service)
+    values(v_ordering_ship,sdd0578_fixture.id('tenant-A'),'S-2026-6901',sdd0578_fixture.id('client-A'),'DTD-0001','consolidado_lcl');
+  insert into public.shipment_events(id,tenant_id,shipment_id,status,note,occurred_at)
+    select ('ffffffff-ffff-4fff-8fff-'||lpad(i::text,12,'0'))::uuid,sdd0578_fixture.id('tenant-A'),v_ordering_ship,'consolidating',
+      'Evento sintético para orden estable',case when i=1 then v_tie-interval '1 second' when i=2 then v_tie-interval '1 microsecond' else v_tie end
+      from generate_series(1,12) i;
+  v_history:=sdd0578_fixture.run_as('portal-A',format('select public.client_consolidation_portal_events(%L::uuid,null)',v_ordering_ship));
+  select jsonb_agg(to_jsonb('ffffffff-ffff-4fff-8fff-'||lpad(i::text,12,'0')) order by i) into v_expected from generate_series(1,12) i;
+  select jsonb_agg(e.value->'id' order by e.ordinality) into v_actual from jsonb_array_elements(v_history->'events') with ordinality e;
+  perform sdd0578_fixture.check(v_actual=v_expected,'history tie orders all twelve literal IDs ASC, preserves microsecond predecessor');
+  perform sdd0578_fixture.check((select count(distinct (e->>'occurredAt')::timestamptz)=3 from jsonb_array_elements(v_history->'events') e),
+    'ordering fixture really contains a tie and distinct source clocks');
+  foreach v_limit in array array[8,4] loop
+    v_feed:=sdd0578_fixture.run_as('portal-A',format('select public.client_consolidation_portal_events(null,%s)',v_limit));
+    perform sdd0578_fixture.check(jsonb_array_length(v_feed->'events')=v_limit and v_feed->>'view'='recent'
+      and (v_feed->>'limit')::integer=v_limit,'feed8/4 exact separate selector');
+    select jsonb_agg(to_jsonb('ffffffff-ffff-4fff-8fff-'||lpad(i::text,12,'0')) order by i desc) into v_expected
+      from generate_series(13-v_limit,12) i;
+    select jsonb_agg(e.value->'id' order by e.ordinality) into v_actual from jsonb_array_elements(v_feed->'events') with ordinality e;
+    perform sdd0578_fixture.check(v_actual=v_expected,'recent topN exact newest literal IDs DESC at equal clocks, not oldest N/count only');
+    perform sdd0578_fixture.check(not exists(select 1 from jsonb_array_elements(v_feed->'events') e where (e->>'occurredAt')::timestamptz<>v_tie),
+      'recent topN reads the actual equal source clock');
   end loop;
   v_result:=sdd0578_fixture.run_as('hybrid-B','select public.client_consolidation_portal_read()');
   perform sdd0578_fixture.check(not exists(select 1 from jsonb_array_elements(v_result->'shipments') r where r->>'id'=v_ship::text),'hybrid own RPC never inherits broad Studio rows');
@@ -394,9 +530,46 @@ begin
   perform sdd0578_fixture.check(sdd0578_fixture.run_as('hybrid-B',format('select public.client_consolidation_portal_events(%L::uuid,null)',sdd0578_fixture.id('absent')))->'events'='[]'::jsonb,'absent and foreign selectors indistinguishable');
   perform sdd0578_fixture.denied('select public.client_consolidation_portal_events(null,null)','NORMAL_INVALID','portal-A');
   perform sdd0578_fixture.denied('select public.client_consolidation_portal_events(null,0)','NORMAL_INVALID','portal-A');
-  perform sdd0578_fixture.denied('select public.client_consolidation_portal_read()','NORMAL_FORBIDDEN','portal-multiple');
+  perform sdd0578_fixture.check(not exists(select 1 from public.client_users where auth_user_id=sdd0578_fixture.id('portal-unlinked')),
+    'zero-link actor is really unlinked, not a claimed multiplicity fixture');
+  perform sdd0578_fixture.denied('select public.client_consolidation_portal_read()','NORMAL_FORBIDDEN','portal-unlinked');
+  perform sdd0578_fixture.denied('select public.client_consolidation_portal_events(null,8)','NORMAL_FORBIDDEN','portal-unlinked');
+  -- Actual0080 UNIQUE(auth_user_id), acknowledged by effective0453, forbids two
+  -- links today. Do not drop/weaken it to fabricate a valid ambiguous principal.
+  -- TS doubles test defensive ambiguity separately, not a possible SQL state.
+  perform sdd0578_fixture.check(sdd0578_fixture.attempt(null,format(
+    'with changed as(insert into public.client_users(auth_user_id,tenant_id,client_id,email,status) values(%L::uuid,%L::uuid,%L::uuid,%L,%L) returning id) select to_jsonb(count(*)) from changed',
+    sdd0578_fixture.id('portal-A'),sdd0578_fixture.id('tenant-B'),sdd0578_fixture.id('client-B'),'duplicate-link@synthetic.invalid','active'),
+    'service_role')->>'state'='23505','real duplicate Portal link rejected by unchanged0080 uniqueness');
+  perform sdd0578_fixture.check((select count(*)=1 from public.client_users where auth_user_id=sdd0578_fixture.id('portal-A')),
+    'duplicate-link attempt leaves the original single coherent principal unchanged');
   perform sdd0578_fixture.check(sdd0578_fixture.attempt(null,'select public.client_consolidation_portal_events(null,8)','anon')->>'state'='42501','anon ACL no residual execute');
 end $portal$;
+
+do $mixed_lot_identity$
+declare v_command text; v_before jsonb; v_old_boxes jsonb; v_result jsonb;
+begin
+  v_command:=sdd0578_fixture.lot_sql('lot-mixed',1,'lot-mixed-box1',2);
+  v_before:=jsonb_build_array((select count(*) from public.consolidation_box_positions),(select count(*) from public.entity_audit_log));
+  perform sdd0578_fixture.denied(v_command,'NORMAL_INCOMPATIBLE',null,'service_role');
+  perform sdd0578_fixture.check(v_before=jsonb_build_array((select count(*) from public.consolidation_box_positions),
+    (select count(*) from public.entity_audit_log)),'mixed lot rejects entire attempted box1+2, not a filtered box1+3 subset');
+  perform sdd0578_fixture.check(not exists(select 1 from dtd_client_normal.contexts),'mixed lot failure leaves no physical/intake context');
+  select jsonb_agg(to_jsonb(b) order by b.box_id) into v_old_boxes from dtd_client_normal.member_boxes b
+    where receipt_id=(select id from sdd0578_fixture.state where label='lot-mixed-r1');
+  v_result:=sdd0578_fixture.run_as(null,sdd0578_fixture.lot_sql('lot-mixed',1,'lot-mixed-box1',1),'service_role');
+  perform sdd0578_fixture.check(v_result->>'stuffed'='1','explicit single member box remains available after mixed rejection');
+  perform sdd0578_fixture.run_as('operations-A',sdd0578_fixture.confirm_sql('lot-mixed',1,'lot-mixed-extension',
+    jsonb_build_array(sdd0578_fixture.selection('lot-mixed','client-A',array['lot-mixed-r2'],null,true)),'extend'));
+  perform sdd0578_fixture.check((select jsonb_agg(to_jsonb(b) order by b.box_id)=v_old_boxes from dtd_client_normal.member_boxes b
+    where receipt_id=(select id from sdd0578_fixture.state where label='lot-mixed-r1')),'extension preserves prior member box snapshots');
+  v_result:=sdd0578_fixture.run_as(null,sdd0578_fixture.lot_sql('lot-mixed',2,'lot-mixed-box2',2),'service_role');
+  perform sdd0578_fixture.check(v_result->>'stuffed'='2' and v_result->>'normal_revision'='2','new member is stowable only after real additive extension');
+  perform sdd0578_fixture.check((select count(*)=3 and count(distinct p.box_id)=3 from public.consolidation_box_positions p
+    where p.consolidation_id=sdd0578_fixture.id('lot-mixed') and p.unstuffed_at is null),'each of three physical IDs stowed exactly once');
+  perform sdd0578_fixture.check(sdd0578_fixture.run_as('operations-A',sdd0578_fixture.close_sql('lot-mixed',2,'lot-mixed-close'))->>'outcome'='closed',
+    'complete extended lot can seal; no hidden subset or extra group');
+end $mixed_lot_identity$;
 
 do $pod_complete$
 declare v_result jsonb; v_before jsonb; v_first jsonb; v_count integer;

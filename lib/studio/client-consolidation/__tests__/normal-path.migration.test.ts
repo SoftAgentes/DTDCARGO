@@ -224,4 +224,20 @@ describe.sequential("SDD0578 real migration/ACL/RLS/AUD contract, one ephemeral 
     expect(result.completed).toBe(false);
     expect(result.error).toContain("hybrid own RPC never inherits broad Studio rows");
   }, 300_000);
+  it("kills an oldest-first recent selector even if it still returns exactly8/4 rows", async () => {
+    const source = readFileSync(migrationFile, "utf8");
+    const anchor = "case when p_shipment_id is null then ev.occurred_at end desc";
+    expect(source.split(anchor)).toHaveLength(2);
+    const result = await executeRealContract(source.replace(anchor, "case when p_shipment_id is null then ev.occurred_at end asc"));
+    expect(result.completed).toBe(false);
+    expect(result.error).toContain("recent topN exact newest literal IDs DESC");
+  }, 300_000);
+  it("kills a silently capped history despite a valid envelope and recent feed", async () => {
+    const source = readFileSync(migrationFile, "utf8");
+    const anchor = /    limit p_limit\r?\n  \) e;/g;
+    expect(source.match(anchor)).toHaveLength(1);
+    const result = await executeRealContract(source.replace(anchor, "    limit coalesce(p_limit,1000)\n  ) e;"));
+    expect(result.completed).toBe(false);
+    expect(result.error).toContain("history complete beyond1000");
+  }, 300_000);
 });

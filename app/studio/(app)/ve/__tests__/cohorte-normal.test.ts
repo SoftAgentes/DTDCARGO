@@ -1,10 +1,16 @@
 // @vitest-environment node
-/** Adapter oracles; SQL35–38 separately prove authority, rollback, seal and POD persistence. */
+/** Adapter oracles; SQL35–38 separately test authority/rollback/persistence after GO. Not executed in P1. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const h = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn(), edit: vi.fn(), view: vi.fn(), revalidate: vi.fn() }));
+const h = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn(), edit: vi.fn(), view: vi.fn(), revalidate: vi.fn(),
+  splitRpc: vi.fn(), operario: vi.fn(), notify: vi.fn() }));
 vi.mock("@/lib/db/server", () => ({ createClient: async () => ({ rpc: h.rpc, from: h.from }) }));
+vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => ({ rpc: h.splitRpc }) }));
+vi.mock("@/lib/auth/operario-session", () => ({ getCurrentOperario: h.operario, signOutOperario: vi.fn() }));
+vi.mock("@/lib/studio/notify/notify-dispatch-events", () => ({ notifyCamioneroOdLista: h.notify }));
 vi.mock("@/lib/studio/rbac-guard", () => ({ moduleEditDenial: h.edit, moduleViewDenial: h.view }));
 vi.mock("next/cache", () => ({ revalidatePath: h.revalidate }));
+vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
+import { splitPackageP2Action } from "@/app/m/ve/bodeguero/actions";
 import { assignDeliveryAction, completeNormalVeDeliveryAction, loadVeNormalContextAction, markCustomsReleasedAction,
   markDeliveredAction, reportIncidentAction, transitionNormalVeShipmentAction } from "../actions";
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -19,6 +25,58 @@ const scope = (cohort: boolean) => ({ available: true, complete: true,
 beforeEach(() => {
   vi.clearAllMocks(); h.edit.mockResolvedValue(null); h.view.mockResolvedValue(null);
   h.rpc.mockResolvedValue({ data: scope(true), error: null }); h.from.mockImplementation(() => { throw new Error("Unexpected generic domain write"); });
+  h.operario.mockResolvedValue({ operario_id: id(70), tenant_id: id(71), region: "ve", role: "supervisor" });
+  h.splitRpc.mockResolvedValue({ data: id(73), error: null });
+});
+describe("actual Bodeguero split caller preserves new atomic contention intent", () => {
+  const form = () => {
+    const value = new FormData(); value.set("od_id", id(72)); value.set("package_id", id(74));
+    value.set("boxes_shipped", "1"); value.set("split_reason", "falta_volumen");
+    value.set("split_reason_text", "Fracción sintética");
+    // No caller flag may choose retryability or SQL authority.
+    value.set("retryable", "true"); value.set("operario_id", id(999)); return value;
+  };
+  const denied = { code: "P0001", message: "NORMAL_CONFLICT", hint: "dtd-client-normal" };
+  const safeMessage = "El despacho está cambiando. No se fraccionó este paquete. Revisa la orden e inténtalo de nuevo.";
+  it("only the exact server code/message/hint returns a safe retryable error, once", async () => {
+    h.splitRpc.mockResolvedValue({ data: null, error: denied });
+    expect(await splitPackageP2Action({}, form())).toEqual({ error: safeMessage, retryable: true });
+    expect(h.splitRpc).toHaveBeenCalledTimes(1); expect(h.splitRpc).toHaveBeenCalledWith("bodeguero_split_p2", {
+      p_operario_id: id(70), p_od_id: id(72), p_package_id: id(74), p_boxes_shipped: 1,
+      p_split_reason: "falta_volumen", p_split_reason_text: "Fracción sintética" });
+    expect(h.revalidate).not.toHaveBeenCalled(); expect(h.notify).not.toHaveBeenCalled(); expect(h.rpc).not.toHaveBeenCalled();
+  });
+  it.each([{ code: "40001" }, { code: undefined }, { hint: "another-surface" }, { hint: undefined },
+    { message: "NORMAL_CONFLICT suffix" }, { message: "P0013" }])("does not generalize the retry flag from a discordant error", async (delta) => {
+    const error = { ...denied, ...delta }; h.splitRpc.mockResolvedValue({ data: null, error });
+    const result = await splitPackageP2Action({}, form());
+    expect(result.retryable).toBeUndefined(); expect(result.ok).toBeUndefined(); expect(result.createdOdId).toBeUndefined();
+    expect(result.error).toBe(error.message.includes("P0013") ? "Este paquete ya fue fraccionado." : error.message);
+    expect(h.splitRpc).toHaveBeenCalledTimes(1); expect(h.revalidate).not.toHaveBeenCalled(); expect(h.notify).not.toHaveBeenCalled();
+  });
+  it.each([null, { operario_id: id(70), region: "cn", role: "supervisor" },
+    { operario_id: id(70), region: "ve", role: "camionero" }])("keeps actual session/region/role rejection before SQL", async (session) => {
+    h.operario.mockResolvedValue(session); const result = await splitPackageP2Action({}, form());
+    expect(result.error).toBeTruthy(); expect(result.retryable).toBeUndefined(); expect(h.splitRpc).not.toHaveBeenCalled();
+  });
+  it("keeps real input validation and terminal P0013 handling", async () => {
+    const invalid = form(); invalid.set("boxes_shipped", "0");
+    expect((await splitPackageP2Action({}, invalid)).fieldErrors).toBeTruthy(); expect(h.splitRpc).not.toHaveBeenCalled();
+    h.splitRpc.mockResolvedValue({ data: null, error: { code: "P0013", message: "P0013", hint: null } });
+    expect(await splitPackageP2Action({}, form())).toEqual({ error: "Este paquete ya fue fraccionado." });
+    expect(h.splitRpc).toHaveBeenCalledTimes(1); expect(h.revalidate).not.toHaveBeenCalled();
+  });
+  it("keeps actual success ID and the existing revalidation, with no flag from the form", async () => {
+    expect(await splitPackageP2Action({}, form())).toEqual({ ok: true, createdOdId: id(73) });
+    expect(h.splitRpc).toHaveBeenCalledTimes(1); expect(h.revalidate).toHaveBeenCalledTimes(1);
+    expect(h.revalidate).toHaveBeenCalledWith("/m/ve/bodeguero");
+    expect(h.notify).not.toHaveBeenCalled();
+  });
+  it("does not relabel ambiguous transport as an atomic denial or repeat SQL", async () => {
+    h.splitRpc.mockRejectedValue(new Error("synthetic transport lost"));
+    await expect(splitPackageP2Action({}, form())).rejects.toThrow("synthetic transport lost");
+    expect(h.splitRpc).toHaveBeenCalledTimes(1); expect(h.revalidate).not.toHaveBeenCalled();
+  });
 });
 describe("VE cohort closes individual legacy escapes", () => {
   it("release/dispatch/incident/manual legacy cut before generic state/event or the0487 transport", async () => {

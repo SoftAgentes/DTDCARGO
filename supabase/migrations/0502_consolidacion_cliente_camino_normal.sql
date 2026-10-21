@@ -66,6 +66,12 @@ create table dtd_client_normal.scopes (
 );
 comment on table dtd_client_normal.scopes is
   'SDD-0578: altas prospectivas OFF. Activación nominal futura, nunca browser/API. Desactivar no desmarca recepciones o grupos.';
+create table dtd_client_normal.scope_fences (
+  tenant_id uuid not null, warehouse_id uuid not null, touched bigint not null default 0,
+  primary key (tenant_id, warehouse_id)
+);
+comment on table dtd_client_normal.scope_fences is
+  'Fence técnico durable por ámbito, no reserva/permiso/enrolamiento. UPSERT fuerza versión incluso con scope antes ausente; borrar/configurar una scope no elimina su fence. Sin grants API.';
 
 create table dtd_client_normal.receipts (
   receipt_id uuid primary key references public.warehouse_receipts_cn(id) on delete restrict,
@@ -261,10 +267,63 @@ language sql stable security definer set search_path = '' as $fn$
   )::text) from public.warehouse_receipts_cn r where r.id = p_receipt
 $fn$;
 
+-- A snapshot-only scope SELECT can miss OFF->ON under REPEATABLE READ. Every
+-- birth/protocol and config writer crosses the SAME durable write key, including
+-- an absent scope. A stale RR UPSERT raises40001; callers must rollback the whole
+-- command and read again, never cache that failure as OFF or partial success.
+create function dtd_client_normal.fence_scope(p_tenant uuid,p_warehouse uuid,p_nowait boolean default false) returns void
+language plpgsql volatile security definer set search_path = '' as $fn$
+begin
+  -- Preserve the original writer's validation/error for invalid/missing input.
+  -- A valid nominal scope cannot have either NULL identity column.
+  if p_tenant is null or p_warehouse is null then return; end if;
+  -- The gate only permits a nonblocking entry after a config DELETE/key UPDATE
+  -- may own the scope row needed by a birth's implicit FK KEY SHARE. It is NOT
+  -- the RR fence: every holder must still write the durable key below. Ordinary
+  -- ON/OFF has NO KEY UPDATE, compatible with that FK, and keeps blocking entry.
+  if coalesce(p_nowait,false) then
+    if not pg_try_advisory_xact_lock(hashtextextended('client-normal-scope:'||p_tenant::text||':'||p_warehouse::text,0)) then
+      perform dtd_client_normal.fail('NORMAL_CONFLICT');
+    end if;
+  else perform pg_advisory_xact_lock(hashtextextended('client-normal-scope:'||p_tenant::text||':'||p_warehouse::text,0)); end if;
+  insert into dtd_client_normal.scope_fences(tenant_id,warehouse_id,touched) values(p_tenant,p_warehouse,1)
+    on conflict(tenant_id,warehouse_id) do update set touched=dtd_client_normal.scope_fences.touched+1;
+end $fn$;
+create function dtd_client_normal.guard_scope_configuration() returns trigger
+language plpgsql volatile security definer set search_path = '' as $fn$
+declare v_old_tenant uuid; v_old_warehouse uuid; v_new_tenant uuid; v_new_warehouse uuid; v_key record; v_nowait boolean:=false;
+begin
+  if tg_op<>'INSERT' then v_old_tenant:=old.tenant_id; v_old_warehouse:=old.warehouse_id; end if;
+  if tg_op<>'DELETE' then v_new_tenant:=new.tenant_id; v_new_warehouse:=new.warehouse_id; end if;
+  if tg_op='DELETE' then v_nowait:=true;
+  elsif tg_op='UPDATE' then v_nowait:=new.id is distinct from old.id or new.tenant_id is distinct from old.tenant_id
+    or new.warehouse_id is distinct from old.warehouse_id; end if;
+  for v_key in select distinct t,w from (values(v_old_tenant,v_old_warehouse),(v_new_tenant,v_new_warehouse)) k(t,w)
+    where t is not null and w is not null order by t,w loop
+    perform dtd_client_normal.fence_scope(v_key.t,v_key.w,v_nowait);
+  end loop;
+  if tg_op='UPDATE' and (new.tenant_id is distinct from old.tenant_id or new.warehouse_id is distinct from old.warehouse_id)
+    and (exists(select 1 from dtd_client_normal.receipts where scope_id=old.id)
+      or exists(select 1 from dtd_client_normal.containers where scope_id=old.id)) then
+    perform dtd_client_normal.fail('NORMAL_GOVERNED');
+  end if;
+  -- No receipt-table access or added scope row lock after the fence. Account
+  -- separately for implicit FK KEY SHARE on enrolment, not just explicit locks.
+  -- Existing FK/UNIQUE/permission rules still decide the actual config change.
+  if tg_op='DELETE' then return old; end if; return new;
+end $fn$;
+create trigger aa_client_normal_scope_configuration before insert or update or delete on dtd_client_normal.scopes
+for each row execute function dtd_client_normal.guard_scope_configuration();
+
 create function dtd_client_normal.enrol_receipt() returns trigger
 language plpgsql security definer set search_path = '' as $fn$
-declare v_scope uuid; v_now timestamptz := clock_timestamp(); v_intake dtd_client_normal.intakes;
+declare v_scope uuid; v_now timestamptz; v_intake dtd_client_normal.intakes;
 begin
+  -- INSERT already owns ROW EXCLUSIVE on warehouse_receipts_cn; checked0449
+  -- acquired its original stronger mode before reaching here. Mobile wrappers
+  -- do not decide the scope or take the key ahead of their original validators.
+  perform dtd_client_normal.fence_scope(new.tenant_id,new.warehouse_id);
+  v_now:=clock_timestamp(); -- eligibility clock AFTER any fence contention
   select s.id into v_scope from dtd_client_normal.scopes s where s.tenant_id = new.tenant_id
     and s.warehouse_id = new.warehouse_id and s.enabled and s.starts_at <= v_now;
   if v_scope is not null then
@@ -277,6 +336,10 @@ begin
       -- An old/direct caller cannot persist a half-created cohort receipt.
       -- OFF->ON between preview and INSERT aborts that INSERT, not a later DELETE.
       perform dtd_client_normal.fail('NORMAL_GOVERNED');
+    end if;
+    if v_intake.operario_id is not null and not exists(select 1 from public.operario_pins o
+      where o.id=v_intake.operario_id and o.active and o.region='cn' and o.tenant_id=new.tenant_id) then
+      perform dtd_client_normal.fail('NORMAL_FORBIDDEN');
     end if;
     insert into dtd_client_normal.receipts(receipt_id,tenant_id,scope_id,enrolled_at) values(new.id,new.tenant_id,v_scope,v_now);
     insert into dtd_client_normal.contexts(transaction_id,backend_pid,operation,actor_id,operario_id,receipt_ids)
@@ -434,39 +497,46 @@ create function public.create_receipt_as_operario(
   p_incident_note text,p_destination_city text default null
 ) returns table(receipt_id uuid,receipt_code text)
 language plpgsql security definer set search_path = '' as $fn$
-declare v_op public.operario_pins; v_enrol boolean;
+declare v_op public.operario_pins; v_prepared boolean:=false;
 begin
   select * into v_op from public.operario_pins where id=p_operario_id;
-  select exists(select 1 from dtd_client_normal.scopes where tenant_id=v_op.tenant_id and warehouse_id=p_warehouse_id
-    and enabled and starts_at<=clock_timestamp()) into v_enrol;
-  if v_enrol then
-    if not coalesce(v_op.active,false) or v_op.region<>'cn' then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
+  -- Prepare only the private writer principal, not scope/authority. Unknown
+  -- operario or NULL warehouse still reaches the literal original rejection;
+  -- no fence/new lock can mask its input error. Validated INSERT is the common
+  -- decision point and checks this principal's current CN authority if ON.
+  if v_op.tenant_id is not null and p_warehouse_id is not null then
     insert into dtd_client_normal.intakes(transaction_id,backend_pid,tenant_id,warehouse_id,operario_id)
       values(txid_current(),pg_backend_pid(),v_op.tenant_id,p_warehouse_id,p_operario_id);
+    v_prepared:=true;
   end if;
   return query select * from dtd_client_normal.legacy_create_receipt_as_operario(p_operario_id,p_warehouse_id,p_is_orphan,p_client_markbox,p_client_name,
     p_orphan_marks,p_orphan_brought_by,p_supplier_name,p_supplier_translated,p_boxes,p_total_cbm,p_total_weight_kg,p_received_at,p_notes,p_items,p_incident,p_incident_note,p_destination_city);
-  if v_enrol then
-    delete from dtd_client_normal.intakes where transaction_id=txid_current() and backend_pid=pg_backend_pid();
-    delete from dtd_client_normal.contexts where transaction_id=txid_current() and backend_pid=pg_backend_pid() and operation='intake';
+  if v_prepared then
+    delete from dtd_client_normal.intakes where transaction_id=txid_current() and backend_pid=pg_backend_pid()
+      and tenant_id=v_op.tenant_id and warehouse_id=p_warehouse_id and operario_id=p_operario_id and actor_id is null;
+    delete from dtd_client_normal.contexts where transaction_id=txid_current() and backend_pid=pg_backend_pid()
+      and operation='intake' and operario_id=p_operario_id and actor_id is null;
   end if;
 end $fn$;
 create function public.receive_prealerta_boxes_as_operario(p_operario_id uuid,p_code text,p_box_codes text[]) returns jsonb
 language plpgsql security definer set search_path = '' as $fn$
-declare v_op public.operario_pins; v_enrol boolean; v_result jsonb;
+declare v_op public.operario_pins; v_prepared boolean:=false; v_result jsonb;
 begin
   select * into v_op from public.operario_pins where id=p_operario_id;
-  select exists(select 1 from dtd_client_normal.scopes where tenant_id=v_op.tenant_id and warehouse_id=v_op.warehouse_id
-    and enabled and starts_at<=clock_timestamp()) into v_enrol;
-  if v_enrol then
-    if not coalesce(v_op.active,false) or v_op.region<>'cn' or v_op.warehouse_id is null then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
+  -- All0449 validators and its SHARE ROW EXCLUSIVE/parent/box lock order remain
+  -- in the checked original body. A rejected/no-birth call does not need a scope
+  -- decision; exceptions roll back this private context with the whole command.
+  if v_op.tenant_id is not null and v_op.warehouse_id is not null then
     insert into dtd_client_normal.intakes(transaction_id,backend_pid,tenant_id,warehouse_id,operario_id)
       values(txid_current(),pg_backend_pid(),v_op.tenant_id,v_op.warehouse_id,p_operario_id);
+    v_prepared:=true;
   end if;
   v_result:=dtd_client_normal.legacy_receive_prealerta_boxes_as_operario(p_operario_id,p_code,p_box_codes);
-  if v_enrol then
-    delete from dtd_client_normal.intakes where transaction_id=txid_current() and backend_pid=pg_backend_pid();
-    delete from dtd_client_normal.contexts where transaction_id=txid_current() and backend_pid=pg_backend_pid() and operation='intake';
+  if v_prepared then
+    delete from dtd_client_normal.intakes where transaction_id=txid_current() and backend_pid=pg_backend_pid()
+      and tenant_id=v_op.tenant_id and warehouse_id=v_op.warehouse_id and operario_id=p_operario_id and actor_id is null;
+    delete from dtd_client_normal.contexts where transaction_id=txid_current() and backend_pid=pg_backend_pid()
+      and operation='intake' and operario_id=p_operario_id and actor_id is null;
   end if;
   return v_result;
 end $fn$;
@@ -512,7 +582,12 @@ begin
   if v_actor is null or not dtd_client_normal.module_allowed(v_tenant,'cn',true) then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
   if jsonb_typeof(p_input) is distinct from 'object' then perform dtd_client_normal.fail('NORMAL_INCOMPLETE'); end if;
   v_warehouse:=(p_input->>'warehouse_id')::uuid;
-  perform 1 from dtd_client_normal.scopes where tenant_id=v_tenant and warehouse_id=v_warehouse for share;
+  -- Same lock order as legacy birth/0045/0449. ROW EXCLUSIVE does not serialize
+  -- ordinary INSERTs; it is the mode this atomic intake would need anyway.
+  -- Acquiring it here also respects an already queued0449 table lock BEFORE
+  -- this transaction owns a scope key. Never FOR SHARE scopes after the key.
+  lock table public.warehouse_receipts_cn in row exclusive mode;
+  perform dtd_client_normal.fence_scope(v_tenant,v_warehouse);
   if not exists(select 1 from dtd_client_normal.scopes where tenant_id=v_tenant and warehouse_id=v_warehouse
     and enabled and starts_at<=clock_timestamp()) then return jsonb_build_object('availability','off'); end if;
   if not exists(select 1 from public.warehouses_cn where id=v_warehouse and active)
@@ -2358,7 +2433,8 @@ begin
   if exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='dtd_client_normal'
     and c.relkind in('r','p') and (not c.relrowsecurity or pg_get_userbyid(c.relowner)<>'postgres')) then
     raise exception '0502: tabla privada sin RLS/owner'; end if;
-  if exists(select 1 from dtd_client_normal.scopes) or exists(select 1 from dtd_client_normal.receipts)
+  if exists(select 1 from dtd_client_normal.scopes) or exists(select 1 from dtd_client_normal.scope_fences)
+    or exists(select 1 from dtd_client_normal.receipts)
     or exists(select 1 from dtd_client_normal.groups) or exists(select 1 from dtd_client_normal.code_reservations)
     or exists(select 1 from dtd_client_normal.contexts) or exists(select 1 from dtd_client_normal.intakes) then
     raise exception '0502: rollout/backfill/contexto inesperado'; end if;
@@ -2371,8 +2447,15 @@ begin
       ('shipment_documents','client_normal_document_read')) and permissive='RESTRICTIVE' and cmd='SELECT' and roles=array['authenticated']::name[])<>3 then
     raise exception '0502: falta frontera SELECT de cohorte'; end if;
   if (select count(*) from pg_trigger t join pg_proc p on p.oid=t.tgfoid join pg_namespace n on n.oid=p.pronamespace
-    where n.nspname='dtd_client_normal' and not t.tgisinternal and t.tgenabled='O')<>18 then
+    where n.nspname='dtd_client_normal' and not t.tgisinternal and t.tgenabled='O')<>19 then
     raise exception '0502: conjunto de guardas incompleto'; end if;
+  if (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='dtd_client_normal'
+    and ((p.proname='fence_scope' and p.proargtypes='2950 2950 16'::oidvector)
+      or (p.proname='guard_scope_configuration' and p.pronargs=0)) and p.prosecdef and p.provolatile='v'
+    and pg_get_userbyid(p.proowner)='postgres' and p.proconfig=array['search_path=""']::text[])<>2
+    or not exists(select 1 from pg_constraint where conrelid='dtd_client_normal.scope_fences'::regclass
+      and contype='p' and conkey=array[1,2]::smallint[]) then
+    raise exception '0502: fence de ámbito sin clave/owner/search_path esperados'; end if;
 end $postflight$;
 
 -- Rollback: this transaction aborts entirely on any pre/postflight/AUD error.

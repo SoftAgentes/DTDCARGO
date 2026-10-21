@@ -11,6 +11,8 @@
  *
  * Por cada split: reconstruye FormData y llama splitPackageP2Action.
  *  - throw (red sigue caída) → lo deja en la cola.
+ *  - error con retryable:true del servidor → conserva la intención para el
+ *    próximo online/mount. No cuenta como aplicado ni reintenta en este drain.
  *  - {error} resuelto → lo saca de la cola. Incluye P0013 "ya fraccionado"
  *    (el split original SÍ entró · phantom-success) y validaciones que no se
  *    arreglan reintentando. La idempotencia de la DB (migr 0184) garantiza
@@ -93,6 +95,7 @@ async function retryOne(split: PendingSplit): Promise<boolean> {
     if (split.splitReasonText) fd.set("split_reason_text", split.splitReasonText);
 
     const result = await splitPackageP2Action({}, fd);
+    if (result?.retryable === true && result.error) return false;
     if (result?.error) {
       // Resuelto con error del server (incluye P0013 "ya fraccionado", que
       // es éxito-equivalente: el split original entró). No reintentable ·

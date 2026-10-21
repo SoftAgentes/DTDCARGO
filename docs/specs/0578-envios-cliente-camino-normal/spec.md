@@ -19,7 +19,7 @@ Trabajo local P1 autorizado por Director, owner worker-0578normal-01a15a4e-ddf0-
 
 Fuente ejecutable: 042-activacion-worker-0578-director.md, SHA256 1939a04752338b66bc5187961f8a1a216093dc6101fdb28771bec2efae607be4. El contrato íntegro y las fases/permisos/exclusiones están preservados en `.agents/handoffs/042-envio-cliente-camino-normal.md`; las secciones contractuales y su allowlist/aceptación se copian abajo sin alterar la fuente sellada.
 
-Checkpoint de autoría P1 con unión67 adoptada: PR #318 OPEN/DRAFT, apilada sobre codex/sdd-0574-embarques-cierre/D1. Las67 rutas ya tienen autoría de producto/SQL/fixtures/oráculos y plan de relevo; revisión y aceptación siguen pendientes.0502 conserva fusible antes deDDL y cohorteOFF. Incluye correcciones estáticas de respuestas, lector de eventos Portal y propuestas F1AUD/F2locks, sin ejecutar. Instalación/SQL/DB/tests/tipos/lint amplio/HTTP/browser/UI/build/verify/conocimiento NO EJECUTADO. BCV GO05B conserva el turno pesado único. La matriz y el siguiente paso del Director se mantienen en el checkpoint final de este documento; no se certifica4.2 completo ni capacidad activa.
+Checkpoint autoral P1-70 posterior al corte inmutable a6: unión70 y decisión fence adoptadas íntegras, PR #318 OPEN/DRAFT/baseD1. Nuevo fence privado durable, oráculos de carreras y presentación split redactados; aceptación funcional pendiente.0502 mantiene fusible antes deDDL/cohorteOFF. Runtime/instalación/tests/SQL/DB/tipos/lint/HTTP/browser/UI/build/verify/conocimiento NO EJECUTADO. Plan22f41ffa y matriz final de este documento distinguen autoría de aceptación y pendiente móvil fuera70. BCV conserva turno pesado; no se certifica4.2 completo ni capacidad activa.
 
 ## Gobierno de permanencia y riesgo
 
@@ -777,3 +777,231 @@ Revisar delta fijo/0502/fixtures/67rutas y F1/F2; después Director decide turno
 ### FUERA DE ALCANCE DETECTADO
 
 El caller móvil Bodeguero actual humanizeRpcError(197–209) devuelve mensajes desconocidos literalmente; un conflicto nuevo de la guarda puede verse como NORMAL_CONFLICT. No se editó su ruta fuera67 ni se amplió su autoridad/contrato. Evaluar presentación en UI real al validar la contención; el rechazo DB es atómico, no éxito parcial. Permisos/roles y excepciones históricas no se normalizan por conveniencia. Semántica/CI/producción de0574y trabajos BCV/0573no ascienden a verde por este checkpoint.
+
+## Adopción P1 del addendum Director70 · split pendiente, SIN ejecución
+
+SHA256 verificado: 8f5614ebd8683d1bff5b44c410b50089c2e964087cf16aba1d6f20a32c595ef4; 11865 bytes. Leído íntegro y copiado antes de editar las tres rutas nuevas. Se conserva a6a8c6c3601356d5647609ea1fa1ed5a8e7c8b44 como corte inmutable de revisión, SQL0502 con fusible y cohorteOFF, claim vigente. Adoptado sólo P1 sin runtime. Hallazgo de fuente NO REPRODUCIDO. Las inferencias OFF→ON/RR esperan dictamen separado y no cambian0502 por esta adopción.
+
+<!-- ADDENDUM70 DIRECTOR ÍNTEGRO INICIO -->
+# SDD-0578 · addendum Director70, conservar el split pendiente ante contención
+
+21 de octubre de2026. **AUTORIZADO sólo para autoría P1 del mismo Worker. NO es GO de ejecución.** Amplía literalmente67→70 mediante tres rutas. Mismos raíz `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0578-envios-cliente-camino-normal`, rama `codex/sdd-0578-envios-cliente-camino-normal`, owner `worker-0578normal-01a15a4e-ddf0-7d82-8656-d9dc56b58468`, claim vigente, baseD1 `1ec5e85f736b7826cf5b6e8781757dc4cf950733` y PR318DRAFT. El objeto `a6a8c6c3601356d5647609ea1fa1ed5a8e7c8b44` permanece corte inmutable de revisión; las ampliaciones actuales forman otro delta propio. Fusible0502 antesDDL y cohorteOFF intactos. BCV GO05B mantiene turno pesado y freeze propios.
+
+Los contratos1939a047, addenda52/55/58/64 y67 permanecen íntegros e inmutables. El67 `042-addendum-director-0578-67-rutas-eventos-portal.md`,12862bytes/SHA256 `64d2eb92b6847c822fdc607ea631cc382f6cd8681753bec63dcd549497720ead`, sólo cambia de máximo67 a70 para este relevo de dependencia. No modifica identidad Portal, permisos, SQL legado, planes o decisiones de negocio. Sin cuarta ruta nueva.
+
+## Evidencia y clasificación
+
+Director leyó íntegra la propuesta `0578-normal-validation/propuesta-presentacion-conflicto-split-a6a8.md`,6673bytes/SHA256 `c3e3ddd339e3885cb19f02e16f5c7ff8451b677bd2ec9de4164b6b44b86bbb65`. Leyó por objetos a6 completos: actionsBodeguero209líneas, SplitQueueRetryRunner110 y split-queue.test118, más fixtureVE46 completa87. Leyó sólo967–1016 de BodegueroClient y1–28 de `lib/studio/dispatch-mobile-types.ts`; no se atribuye esos archivos completos. ERR-01 aprobado leído íntegro. La nueva rama0502 NOWAIT/fail y su delta fueron leídos; su eficacia SQL sigue NO EJECUTADA y en revisión independiente.
+
+Blobs a6/D1 inmutables de las tres nuevas rutas: actions `153721b2d111661ba918171d794ff0e699f216e5`; runner `a4e1d140b9c4027e3e4e6ba4a0ed501110e9b464`; fixture `406022af568c50030822135b6f104db5b64562b8`. El cuerpo0184 no se edita: blob `774ecd95287ebab892f93d1e0f5f8ed201f3e4c1`, MD5prosrcLF `ce9d72146b0c734ce64e50e899e581fe`. Shared split-queue.ts, dispatch-mobile-types y BodegueroClient son referencias excluidas, no superficies escritoras.
+
+**Hallazgo de fuente, NO REPRODUCIDO:** el error nuevo del guard se devuelve por splitPackageP2Action como mensaje técnico porque humanizeRpcError termina en returnmsg. El runner47–67/95–105 interpreta todo `{error}` resuelto como terminal, retira la entrada y cuenta «aplicado». Un rechazo atómico por contención no acredita split ni permite perder esa intención. Es dependencia introducida porF2, no deuda ajena ya resuelta. No se afirma pérdida real, reproducción, prueba ni defecto productivo activo.
+
+Clasificación normativa de esta preparación: ERR-01 y SGE-00.02/.07/.11 exigen estado verdadero, conservación y mensaje recuperable; contrato documental conforme, producto NO EJECUTADO. No nueva excepción, política o traducción global. La deuda heredada de otros errores terminales se conserva acotada, sin declararla correcta en general ni ampliarla a la rama nueva.
+
+## Autoría mínima obligatoria
+
+1. Sólo en splitPackageP2Action, reconocer la terna exacta `error.code === "P0001"`, `error.message === "NORMAL_CONFLICT"`, `error.hint === "dtd-client-normal"`, antes del humanizador. Devolver error seguro y `retryable:true`, sin ok/createdOdId/revalidate/notificación. Copy aprobado para esta rama: «El despacho está cambiando. No se fraccionó este paquete. Revisa la orden e inténtalo de nuevo.» La afirmación de no fraccionar sólo corresponde a esa denegación transaccional identificada; transporte ambiguo no se convierte en este resultado.
+2. El tipo de retorno se amplía localmente en ESTA action mediante MobileActionState y la marca opcional; no editar tipo compartido ni aceptar retryable desdeFormData. Conservar requireBodegueroSession, región/roles, validator, payload y una sola RPC0184. No reintento de RPC dentro de la action, fallback, cambio de privilegios o cuerpoSQL. Otros códigos/hints/messages conservan exactamente su manejo anterior, incluidoP0013.
+3. En retryOne del runner, sólo `result.retryable === true` con error presente retorna false ANTES de la rama terminal. Conservar entrada/localId/fecha/campos íntegros. No removeSplit, settled++, toast de aplicado o refresh atribuibles a esa entrada; no lanzar otro intento inmediato ni confundir contención con desconexión. Próximo eventoonline/mount conserva el mecanismo existente y vuelve a estar sometido a las guardas0184/P0013. La marca no promete que un intento posterior vaya a aprobar.
+4. Si otras entradas sí se resuelven en el mismo drain, sólo ellas participan del conteo/toast/refresh; no impedir su drenaje legítimo ni contar la retenida. No rediseñar almacenamiento, dedup, cap, identidad, encolado o descarte global. No leer ni tocar la cola real del usuario al implementar/verificar; fixtures locales ficticias solamente. No extraer ni imprimir notas o identificadores reales.
+5. La presentación manual ya conserva campos/error en BodegueroClient967–1016. No editar ese componente, registrar éxito cuando hay rechazo o cerrar el diálogo. Para aceptar después harán falta pruebas del caller/runner y UI real con el alcance medido; fuente y mocks no bastan para declarar SQL/locks/catálogo/flujo completo.
+
+## Oráculos futuros, todos NO EJECUTADOS
+
+- Fixture46 ya permitida `app/studio/(app)/ve/__tests__/cohorte-normal.test.ts`: callerBodeguero real con dobles locales de sesión/admin; terna exacta→unRPC, error fijo y retryabletrue; variaciones de code/message/hint no obtienen marca. Sesión/región/rol/input inválidos→ceroRPC. P0013 mantiene «ya fraccionado» sin marca; éxito mantiene createdOdId/revalidate. Conservar todos los oráculos VE/0487 ya escritos, sin casts o mocks compartidos que sustituyan guards.
+- `app/m/_lib/__tests__/split-queue.test.ts`: mantener cada assert actual round-trip/dedup/cap/id/corrupción; agregar runnerREAL montado, sin exportar retryOne sólo para tests. Entrada exacta permanece byte equivalente tras errorretryable, sin toast/refresh/removal ni segundoRPC inmediato; posterioronline con éxito retira exactamente una. Cola mixta conserva la retenida y cuenta sólo las resueltas. Throw de red sigue conservando y P0013/errores terminales mantienen el comportamiento legado acotado. No convertir un import/sintaxis/fixturefallida en ROJO funcional. El archivo.ts conserva formato válido sin agregar una cuarta ruta por usarJSX.
+- SQL/runner38 ya dentro67 deberán acreditar rechazo y rollback reales del comando, barrera de contención y reintento0184; no se atribuyen esas propiedades al doble de la action. No exigir ejecutar ahora ni retirar el fusible para estos oráculos autorales.
+
+## Allowlist acumulada literal70
+
+```text
+lib/studio/client-consolidation/types.ts
+lib/studio/client-consolidation/queries.ts
+lib/studio/client-consolidation/normal-flow.ts
+app/studio/(app)/naviera/_components/ConfirmarEnviosClienteDrawer.tsx
+app/studio/(app)/naviera/actions.ts
+app/studio/(app)/naviera/page.tsx
+app/studio/(app)/naviera/_components/NavieraClient.tsx
+app/studio/(app)/naviera/plan-actions.ts
+app/studio/(app)/cn/actions.ts
+app/studio/(app)/cn/page.tsx
+app/studio/(app)/cn/_components/AlmacenCnClient.tsx
+app/studio/(app)/cn/_components/ReceiptRowActions.tsx
+app/studio/(app)/tracking/[id]/actions.ts
+app/studio/(app)/tracking/[id]/page.tsx
+app/studio/(app)/tracking/[id]/_components/ShipmentDataPanel.tsx
+app/studio/(app)/tracking/[id]/_components/StateActionsPanel.tsx
+app/studio/(app)/tracking/[id]/_components/FooterActions.tsx
+app/api/studio/shipments/[id]/route.ts
+app/api/studio/shipments/[id]/events/route.ts
+app/studio/(app)/ve/actions.ts
+app/studio/(app)/ve/_components/VeRowActions.tsx
+app/m/cn/estibar/actions.ts
+app/m/cn/estibar/_components/EstibaClient.tsx
+lib/portal/portal-queries.ts
+lib/studio/rate-snapshots/types.ts
+lib/i18n/es-VE/warehouse.ts
+lib/i18n/zh-CN/warehouse.ts
+supabase/pending-migration-symbol-declarations.json
+supabase/migrations-baseline.json
+docs/specs/README.md
+.agents/handoffs/042-envio-cliente-camino-normal.md
+app/m/cn/estibar/[consolidationId]/page.tsx
+docs/specs/0578-envios-cliente-camino-normal/spec.md
+supabase/migrations/0502_consolidacion_cliente_camino_normal.sql
+supabase/tests/consolidacion_cliente_normal.test.sql
+supabase/tests/_consolidacion_cliente_normal_schema.sql
+lib/studio/client-consolidation/__tests__/normal-path.migration.test.ts
+scripts/check-client-consolidation-concurrency.mjs
+app/studio/(app)/naviera/__tests__/envios-cliente-actions.test.ts
+app/studio/(app)/naviera/_components/__tests__/ConfirmarEnviosClienteDrawer.test.tsx
+app/studio/(app)/cn/__tests__/consolidacion-cohorte.test.ts
+app/studio/(app)/naviera/__tests__/plan-carga-cohorte.test.ts
+app/studio/(app)/tracking/[id]/__tests__/cohorte-normal-actions.test.ts
+app/api/studio/shipments/[id]/__tests__/cohorte-normal.test.ts
+app/m/cn/estibar/__tests__/cohorte-pertenencia.test.ts
+app/studio/(app)/ve/__tests__/cohorte-normal.test.ts
+lib/portal/__tests__/envios-cohorte.test.ts
+lib/studio/rate-snapshots/__tests__/sin-facturar.test.ts
+app/studio/(app)/cn/__tests__/rate-snapshot-actions.test.ts
+e2e/consolidacion-clientes-camino-normal.spec.ts
+app/studio/(app)/cn/__tests__/delete-receipts-action.test.ts
+app/studio/(app)/cn/__tests__/create-receipt-code.test.ts
+app/studio/(app)/naviera/__tests__/zarpe-avanza-envios.test.ts
+app/studio/(app)/naviera/__tests__/ocultar-nombres-cn.test.tsx
+app/studio/(app)/naviera/_components/__tests__/NavieraClient.avance.test.tsx
+app/studio/(app)/tracking/[id]/__tests__/datos-reservados-actions.test.tsx
+app/studio/(app)/tracking/[id]/_components/__tests__/FooterActions.borrado.test.tsx
+app/api/studio/shipments/[id]/events/__tests__/module-gate.test.ts
+lib/portal/__tests__/activation.test.ts
+lib/portal/__tests__/dashboard.test.ts
+lib/portal/__tests__/invoices.test.ts
+lib/portal/__tests__/estimates.test.ts
+lib/portal/__tests__/portal-queries-principal-scope.test.ts
+lib/portal/__tests__/portal-quote-scope.test.ts
+lib/portal/shipment-events-queries.ts
+lib/portal/__tests__/shipment-events.test.ts
+lib/portal/__tests__/portal-read-principal-scope.test.ts
+app/m/ve/bodeguero/actions.ts
+app/m/ve/bodeguero/_components/SplitQueueRetryRunner.tsx
+app/m/_lib/__tests__/split-queue.test.ts
+```
+
+## Adopción, respaldo y límites
+
+Antes de editar las tres rutas nuevas: leer íntegro este addendum, cotejar su SHA256, adoptar/copiar completo en spec/handoff y confirmar al Director; revalidar guard/claim/raíz/rama y preimágenes. Mantener a6 y la revisión actual como corte independiente; registrar delta posterior y todas sus rutas. Una sola sesión escritora, sin copiar otro árbol. Commits selectivos/push/actualización dePR318DRAFT ya autorizados; no gitaddglobal, force/reset, nueva base o nuevaSDD/SQL.
+
+P1 sigue sólo autoría: ningún install/Nodeproducto/tests/tipos/lintglobal/SQL/DB/Docker/browser/verify/build/conocimiento, ni captura/lectura de datos reales o inspección de localStorage del usuario. Sin main/merge/deploy/VPS/producción/flags/PODv2/PII/secretos/billing/contactos/memoria/bóveda compartida. No quitar fusible0502 ni activarcohorte.0495intacta;0496/0501/0502sinaplicar. La hipótesis separada OFF→ON/RR y los otros oráculos dentro70 se revisan por su fuente; esta ampliación no acepta una reparación de fence ni activa ningún ensayo.
+
+Al entregar: nuevo SHA fijo, diff completo contraa6 y contraD1, ruta por ruta/manifest70, matriz de aceptación honesta, propuesta de recursos y pendientes propios vs ajenos. Todo hallazgo de fuente conserva NO REPRODUCIDO hasta evidencia funcional pertinente. Director revisará porversión y dará GO porseparado; este texto no cierra4.2 ni aceptaSQL.
+<!-- ADDENDUM70 DIRECTOR ÍNTEGRO FIN -->
+
+
+## Adopción P1 de decisión Director · fence de ámbito, SIN ejecución
+
+SHA256 verificado3f0a4243cf244de6333a7919af15cf88de2a2dffe2239d297a6695c7f2f09c44; 6749 bytes. Leída íntegra y copiada antes de modificar0502 para el fence. Mismaallow70/owner/claim; a6 inmutable. F3 sustentado por fuente/NO REPRODUCIDO, nueva dirección autorizada sólo de autoría local. El mecanismo final y la funcionalidad todavía requieren revisión y GO posterior.
+
+<!-- DECISION FENCE SCOPE DIRECTOR ÍNTEGRA INICIO -->
+# SDD0578 · decisión de autoría para el fence de ámbito prospectivo
+
+21 de octubre de2026. **AUTORIZADO sólo para autoría P1 dentro de70; NO GO de ejecución ni aceptación de SQL.** Misma raíz/rama/owner/baseD1/claim/PR318DRAFT del addendum70 SHA8f5614ebd8683d1bff5b44c410b50089c2e964087cf16aba1d6f20a32c595ef4.0502 conserva fusible antesDDL y cohorteOFF; BCV mantiene turno pesado. La activación real de ámbitos sigue fuera de este permiso.
+
+## Evidencia y alcance de la decisión
+
+Director leyó íntegros la propuesta `0578-normal-validation/hipotesis-off-on-rr-a6a8-propuesta.md`,5609bytes/SHA085aa941ca6e6626b68e9fe3a97ce1c93d24fe3a6b3911466748660d3e98797b, y el informe independiente `0578-revision-sql0502-a6a8c6c3-peer.md`,24069bytes/SHA9de49eb3d7d47769eedcf94d52f2df30176a86ed5e0a82f2b1af0410c043fda4. Cotejó fuente a6 en0502:58–84,116–153,252–326,424–476,493–553. El peer distingue sus rangos/antecedentee7 y leyó fixture1843/contrato459/runner200 completos, sin runtime. Siete cuerpos copiados iguales son evidencia textual, no ejecución.
+
+F1AUD yF2NOWAIT tienen mecanismos corregidos por fuente para sus intercalaciones; prueba dinámica pendiente. El nuevo P2 de prospección queda **sustentado por fuente / NO REPRODUCIDO**: enrol_receipt y wrappers pueden leerOFF bajo snapshotRR anterior aON; el FOR SHARE deintake no protege el INSERT legado/directo que no pasó por allí. Las guardas posteriores sólo miran marcas que podrían no haberse creado. Este permiso repara el contrato existente deA17/addendum52, no inventa una política nueva de activación.
+
+## Dirección de implementación aprobada, sujeta a revisión del nuevo SHA
+
+1. Adoptar el mecanismo propuesto de **fence privado durable de escritura por tenant+warehouse**, mediante clave única y UPSERT que produzca versión de fila. Debe confrontar también un scope antes inexistente, sin depender de bloquear una fila que el snapshot aún no puede ver. No basta advisory/tablelock, SELECT previo o filtrar primero enabled=true. El helper sincroniza; no autoriza, activa, enrola historia ni cambia pertenencia antigua.
+2. Configuración scopes INSERT/UPDATE/DELETE y altas/protocolos existentes deben participar en el mismo orden antes de decidir disponibilidad. Considerar identidad anterior/nueva con claves en orden estable. Conservar filas de fence para mantener el significado de una versión y no abrir un hueco por borrar/configurar de nuevo. Evitar el ciclo configuradorconscoperow→mutex frente a intakeconmutex→FORSHAREscope: después de tomar el fence no agregar un lock de scope en orden inverso. La propuesta concreta sustituye el FOR SHARE actual por el protocolo común y debe justificar catálogo/orden real de triggers en el nuevo diff.
+3. Capturar el reloj de decisión después de la espera. El corte de starts_at no puede usar una hora anterior al bloqueo. Conservar relojes/identidades de intenciones históricas y replays; no re-fechar eventos ya confirmados ni trasladar esta sincronización a finanzas. OFF que confirmó un nacimiento antes deON conserva su vía legítima; ON confirmado antes del nacimiento tardío no deja una cabecera sin gobernar.
+4. Conservar permisos, región/rol/tenant/warehouse/validadores de cada writer y ABI/defaults/owner/ACL/bodies originales0045/0449/0184/0496. No convertir parámetros browser o GUC en autoridad. No producir nuevos rechazos fuera del ámbito válido por imponer supuestos a entradas que antes eran legítimas; si aparece una incompatibilidad de contrato, documentarla antes de ampliar. Las relaciones nuevas son privadas, sin grantsAPI y con search_path/propiedad/postflight efectivos.
+5. Un conflicto de escritura bajoRR o contención es rechazo de la operación completa, no éxito/no-op ni permiso de reintentar sólo una parte. Preservar SQLSTATE/causa en evidencia y mensaje seguro en las fronteras reales según el contrato. No ampliar silenciosamente retryable del split a cualquier error ni absorber40001/deadlock/timeouts como verde. Si la presentación exige otra ruta fuera70, demostrar caller/alcance antes de editarla. Transporte desconocido no se transforma en «no persistió».
+6. La autoría cabe en0502 y los contratos/runner/tests/doc ya dentro70. Mantener a6 como corte anterior; nuevo diff separado incluye tablas/helpers/triggers de fence y conteos/pre-postflight/declaraciones coherentes. No modificar SQL histórica, number/base, fuerza, allowlists de detectores, librerías o configuración para ocultar un gate.
+
+## Evidencia que deberá probarse después de GO, NO EJECUTADA ahora
+
+RC yRR en ambos órdenes: OFFpreview→ONcommit→INSERTsincontexto rechaza/rollback/ceroheader-cajas-marcas parciales; birthOFF posee fence y ON espera hasta su commit; ámbito ausente→scopeINSERTON→RRviejo no evade la frontera; intakeON frente aOFF posterior mantiene clasificación y contexto serializados; starts_at que pasa durante espera usa hora posterior; OFF posterior conserva recibos/grupos ya nacidos. Comprobar también cambio de identidad/configuración sin inversión y ON/OFF repetidos, sin renovar historia o borrar fences usados.
+
+Usar barreras reales y fixture válida. Un40001 aislado no demuestra corrección: rollback completo, reintento fresco autorizado y estado/AUD final deben corresponder a la intención. No reemitir documentos ni duplicar recepciones para satisfacer un assert. El primer éxito indebido del código previo será ROJO sólo al ejecutarse el oráculo funcional; errores de importación/fixture/preflight no cuentan. No retirar el fusible o aplicarSQL para obtener ese ROJO antes de GO.
+
+La mejora de oráculos Portal aprobada permanece: conjunto/IDs/orden/empates/top8/4 exactos, historia sin cap; UNIQUE0080 intacto, cero vínculo con nombre honesto y duplicado real23505. No se exige fabricar dos vínculos imposibles o alterar esquema para proclamar ambigüedadSQL. No es otro defecto confirmado deRPC.
+
+## Adopción y entrega
+
+Leer/cotejar/copiar íntegro este documento en spec/handoff y confirmar adopción ANTES de modificar0502 por esta dirección. Revalidar guard y proteger sourcea6/contratos anteriores. Entregar nuevo SHA/diff/manifiesto70, matriz de oráculos/locks/errores/ACL y pendientes, con source/NO REPRODUCIDO frente a ejecución separados. Director revisará ese SHA; autorización de autoría no acepta el mecanismo final ni garantiza ausencia universal de deadlocks.
+
+Sin install/tests/tipos/SQL/DB/Docker/HTTP/browser/verify/build/conocimiento por ahora. Sin main/merge/deploy/VPS/producción/PII/secretos/flags/activación nominal/billing/contactos/memoria/sharedObsidian.0495no se repite;0496/0501/0502sinaplicar. Las otras tareas y la receta actualBCV conservan sus propios límites.
+
+<!-- DECISION FENCE SCOPE DIRECTOR ÍNTEGRA FIN -->
+
+## Checkpoint autoral P1-70 posterior a a6 — fuente revisable, NO EJECUTADO
+
+Misma tarea/claim/owner y baseD1. El corte a6a8c6c3601356d5647609ea1fa1ed5a8e7c8b44 permanece inmutable para la revisión anterior; este delta es otro checkpoint. La unión literal70 del addendum8f5614eb y la decisión fence3f0a4243 se cotejaron y copiaron íntegras arriba ANTES de sus cambios. No hay ruta71, nueva SDD/SQL/ABI/autoridad ni activación. Plan nuevo externo `C:/tmp/director-traspaso-20261020/0578-normal-validation/plan-relevo-p1-70.md`,12651bytes/SHA256 `22f41ffadd86b00d1cbf6e189f5f4094c5e2306d903850386d670b6e39fcb214`; planes6eb46941 y7ad04189 conservados. El recibo del checkpoint fija SHA, diff íntegroD1, deltaa6 y blobs de70.
+
+### Diseño único adoptado para autoría del fence
+
+0502 conserva fusible antes deDDL y rolloutOFF. Blob autoral0502 `a07a5c482eaae5cd9aa761da70ce404a40773fbf`, SHA256 `c781b5acb3d6684c97d94cc1de90198b85133bd43619f562d441effdc92e64e3`. La dirección aprobada por Director sólo autoriza redactar este diseño; no acepta parche/SQL/deadlocks ni lo convierte en política global.
+
+- `scope_fences` es clave técnica durable tenant+warehouse, sin FKs/grants API. `fence_scope` toma gate de la misma identidad y siempre hace UPSERT de versión, incluso si scope aún no existe. El gate solo no evita snapshots RR obsoletos. Al competir con una escritura más reciente,40001 obliga rollback de todo comando y una lectura/decisión nueva, sin convertirlo en OFF o éxito parcial.
+- `enrol_receipt` es el punto común después de validación y del INSERT real. Toma fence y luego `clock_timestamp()` para decidir vigencia. Una lectura OFF anterior no autoriza el nacimiento después de ON; una desactivación posterior no desmarca miembros. El FK implícito de receipts.scope_id hacia scopes.id toma KEY SHARE después del fence y forma parte del orden, no se ignora.
+- Wrappers0045/0449 sólo preparan principal privado cuando las claves no son nulas, llaman cuerpos originales literales y limpian sólo su contexto. No hacen consulta/fence anticipada de scope que sustituya los errores heredados. El contexto no concede autoridad: en ON birth coteja operario activo/CN/tenant además de la identidad privada; en OFF conserva autoridad original0045. Error revierte la preparación con el comando. Llamada que se rechaza/no llega al INSERT, incluido replay0449 de caja recibida, conserva su error/ABI y no renueva reloj ni decide cohorte. No deja contexto vivo reutilizable.
+- Studio obtiene ROW EXCLUSIVE de warehouse_receipts_cn antes de decidir/fence; coincide con el modo del INSERT que ya necesitaría y respeta0449 SHARE ROW EXCLUSIVE previamente en cola. No hay upgrade posterior ni camino nuevo fence→mesa en configuración.
+- Config BEFORE INSERT/UPDATE/DELETE deduplica OLD/NEW y recorre tenant,warehouse en orden estable. ON/OFF/startsat usa gate bloqueante. Sólo DELETE/rekey con rowlock ya incompatible con el FK usa pg_try para entrar: P0001, message NORMAL_CONFLICT, hint dtd-client-normal, rollback íntegro, nunca retries parciales. Si entra, también escribe fence. Cambiar tenant/warehouse de un scope usado rechaza NORMAL_GOVERNED; DELETE/id conservan FK RESTRICT real. No borrar fence al borrar scope; recreación conserva versión. No se extiende este rechazo no bloqueante a intake, ON/OFF ordinario, roles API o split salvo su terna previamente aprobada.
+
+### Matriz de órdenes y contextos, sujeta a prueba
+
+| Camino efectivo | Orden local relevante | Autoridad/error y límite |
+|---|---|---|
+| Studio intake | sesión/permisos/input→ROW EXCLUSIVE receipts→gate bloqueante→UPSERT fence→scope vigente→header→birth reentrante→FK KEY SHARE scope | ON atómico; OFF explícito devuelve OFF.40001 no se reintenta en adaptador; sin revalidate/OV/avisos de éxito |
+| INSERT legacy directo | validaciones SQL/ROW EXCLUSIVE del INSERT→birth gate→UPSERT→reloj/scope→contexto exigido si ON→FK | ON sin protocolo aborta comando. Clave ausente también serializa; OFF anterior no promete nacimiento futuro |
+|0045 móvil | preparar principal privado→validadores/cuerpo literal0045→ROW EXCLUSIVE implícito→birth gate/fence→FK | Unknown/inactivo/qty0/nullwarehouse conservan errores originales antes del fence; contexto no sustituye cookie/pin/ABI |
+|0449 boxes | preparar principal→cuatro validadores operario originales→SHARE ROW EXCLUSIVE receipts→compra/boxes originales→header→birth gate/fence→FK→adopción | P0130/P0137 y errores previos no cambian. No nuevo callerTS ni UI de0449 por este delta |
+| Config INSERT | gate→UPSERT clave incluso ausente→FK catálogo/constraints nominales | privado, sin privilegio browser/API; no toma receipts ni scopeFORSHARE después del fence |
+| Config ON/OFF/startsat | rowlock NO KEY UPDATE→gate bloqueante→UPSERT→cambio | compatible con FK KEY SHARE del birth; RR exige rollback/retry completo si40001 |
+| Config DELETE/id/tenant/warehouse rekey | scope rowlock incompatible ya tomado→pg_try gate para claves OLD/NEW ordenadas→UPSERT en cada una→guards/constraints/FK | si gate ocupado: terna exacta, rollback también de primera clave; si usado: identidad intacta NORMAL_GOVERNED o23503 FK. No autoridad nueva ni retry parcial |
+|0496 freeze/link | warehouse_receipt→snapshot vivo | orden previo intacto; no recalcular miembros previos ni crear snapshot vivo libre tras reemplazo |
+|0184 split/POD |0184 paquete ya bloqueado→guard contenedor NOWAIT; POD contenedor→paquetes | F2 conserva cuerpo0184/roles; terna exacta tiene presentación local70. No40P01 como oráculo correcto |
+
+La matriz describe estos caminos y claves OLD/NEW de una configuración. No certifica ausencia universal de deadlocks ni orden global de cualquier UPDATE administrativo multi-fila arbitrario. El configurador debe revertir todo comando ante conflicto; no continuar por fila. La aceptación exige interleavings reales con FK/ACL/cuerpos efectivos, también clave ausente/varias claves/recreación.
+
+### Oráculos nuevos redactados dentro70
+
+- Runner38: insert/rename/reactivación/bulk de código contra cohorte, ambos ganadores RC/RR y estado final único; el bulk perdedor tampoco deja su primera fila. Sin ampliar reserva global legacy. Roster edit vs form ambos órdenes RC/RR; misma recepción/dos contenedores; dos extensiones con revisión antigua. Perdedor completo no deja grupo, receipt link, ítem, snapshot, evento, alerta o AUD; refresh explícito requiere nueva intención y replay anterior conserva resultado.
+-0496: congelar antes/después de link usa receipt→snapshot, live único ligado incluso primer freeze tardío compatible, replay antiguo inmutable. No habilita corrección tarifaria o membresía histórica. Fixture usaba origen sintético inválido a_mano y receipt sin destino: se corrigieron a manual actual0496 y preparación explícita Valencia antes de freeze; errores de fixture detectados por fuente, no fallos ejecutados del producto.
+- Lote mixto:0244 real genera1/2/3,0449 recibe1+3 y luego2. Formar sólo1+3, intentar lote físico1+2 rechaza entero; no intersectar silenciosamente1+3. Extensión admite2, preserva snapshots/posiciones anteriores y exige revisión nueva antes de estibar2. Carreras lote/extensión ambos órdenes y dos PODs distintos del mismo grupo: ambos POD válidos, último completo cierra una vez; replay parcial histórico no cierra retroactivamente.
+- Fence: RC/RR OFFpreview→ON comprometido, scope/fence antes ausente, nacimiento antesON/antesOFF, starts_at cruza espera real con reloj posterior; cola3sesiones ROW EXCLUSIVE→0449 fuerte en cola→Studio; FK scopeFORUPDATE contra birth gate, DELETE/rekey con terna exacta y rollback total. En rekey se fuerza NEW menor que OLD para escribir primera clave y fallar la segunda: no queda primera escritura incluso dentro del configurador. Reintento fresco protege scope usado con NORMAL_GOVERNED/23503.8 casos de validación/replay originales con snapshot RR viejo comprueban que no aparece40001/NORMAL en lugar del rechazo anterior ni contexto residual.
+- Portal67: historia>1105 con conjunto exacto de IDs y fechas/ordenASC(clock,id);12 IDs literales adicionales con10fechas empatadas prueban historia y top8/top4 DESC(clock,id). Mutante recent ascendente y cap1000 deben morir por esos oráculos, no longitud sola. `portal-unlinked` conserva cero vínculos. Duplicado de auth_user_id real rechaza23505 y conserva UNIQUE0080; no fabricar dos vínculos SQL imposibles. TS ambiguo sólo defensa. Principal propio/tenant/client_id/error≠vacío y permisos documentales0439+0444 intactos.
+- Addendum70:68 `app/m/ve/bodeguero/actions.ts`,69 `app/m/ve/bodeguero/_components/SplitQueueRetryRunner.tsx`,70 `app/m/_lib/__tests__/split-queue.test.ts` efectivamente editados. Sólo code P0001+message NORMAL_CONFLICT+hint dtd-client-normal devuelve mensaje aprobado y retryable local. Runner guarda entrada byte equivalente, sin toast/refresh/cuenta/reintento inmediato por ella; cola mixta sólo cuenta resueltas. Fixture46 conserva VE/0487 y agrega caller real/terna/negativos/P0013/autoridad. No tocar tipo/doble compartido/BodegueroClient/0184/0321.
+- CN Studio/fixture52: INSERT tras preview OFF que recibe40001 devuelve error seguro normalFlowError, sin retry, código, ítems, evento, OV o revalidate de éxito. Otros errores legacy y0469 siguen intactos. Mock sólo cuenta transporte, no persistencia/RLS.
+
+### Matriz de aceptación pendiente
+
+| Contrato | Autoría/oráculo al checkpoint70 | Estado y faltantes propios |
+|---|---|---|
+| A1–A4 normal/actor/identidad | SQL35+39/Drawer y metadatos completos/checked | NO EJECUTADO: SQL/ACL/API/UI y matriz servicio/destino/tenant completa |
+| A5–A8 extensión/0496 |35/38 recepción/caja/snapshot/replay/carreras | NO EJECUTADO: deferred/catálogo/reemplazo compatible e incompatible y permisos reales |
+| A9 código | global mínimo / ambos órdenesRC-RR insert/rename/reactivate/bulk | NO EJECUTADO: mutex/rollback/fresh-retry/lector público sin tenant reales |
+| A10–A12 plan/estiba/sello | lote mixto real + carreras extensión/planviejo/sello | NO EJECUTADO: faltan ampliar carreras plan antes/anotar/deshacer, close vs estiba/plan y variantes de drain; no se declaran escritas o aceptadas |
+| A13–A14 estados/POD |0477/transición técnica/VE/roles originales, F1AUD/F2guards, PODdistintos | NO EJECUTADO: ACL/0484/0486/SENIAT/TMS/0487 completos, regresiones, retorno/contradicción y prueba real rollback/locks |
+| A15 Portal/CN | IDs/orden/empate/feeds/23505, reales TS de principal e historia | NO EJECUTADO: RLS/documentos/Storage/Portal-only/helperNULL/híbrido y errores reales |
+| A16 efectos | AUD/ref por grupo+pod_request_ref, fechas/replay/alertas, OVlegacy fuera confirmación | NO EJECUTADO: trazas/fechas/facturas constantes y finanzas legacy, no4.3 |
+| A17 rollout/fence | fusible/OFF,19guards/20RPC+2helpers privados, scope/key ausente y reloj/cola/FK oráculos | NO EJECUTADO: catálogo, símbolos18/26, schema cache, drain/serialización y configuración reales |
+| A18 visible | UI/Demo fixtures/E2E50 y split runner autoral | NO EJECUTADO: infraestructura real no preparada/GO, HTTP/Auth/Storage/browser/CSS/oscuro/móvil/teclado/UI-check |
+
+Todos los oráculos son autoría, no tests pasados. F1/F2 reparados por fuente y F3 dirección autorizada se mantienen NO REPRODUCIDO/NO EJECUTADO hasta prueba del SHA nuevo. A6 no se altera retrospectivamente. `pnpm verify`, tests, SQL, tipos/lint, runtime, recursos, UI y conocimiento no se ejecutaron. Comparaciones Git/nativas de hashes, copia contractual íntegra/allowlist y diffcheck no son aceptación funcional.
+
+### Pendiente propio fuera70 — propuesta sin edición
+
+Dependencia introducida por el fence, no bug ajeno cerrado: `app/m/cn/nueva/actions.ts` devuelve mensaje bruto de0045;40001 o denegación gobernada podría verse técnico. Leídas completas143líneas y fixture372 en a6/D1; blobs `c587353da84ae32da584d22a6ee162d647ac4ed1` y `320b22001309bb1d2c4a0c1cd0bc89c380ff594d`. Propuesta externa `C:/tmp/director-traspaso-20261020/0578-normal-validation/propuesta-presentacion-intake-movil-0045.md`,4239bytes/SHA256 `9a8397c80f30e6fab354e7775b3d8f126f14e33a74fc7ccd0aa32251d73a4aa1`, sólo esas dos rutas, mapper local exacto/no retryable/no reintento y positivos/negativos heredados conservados. Ambas permanecen intactas hasta addendum/adopción. No hay petición de decisión rutinaria a Sam; sólo revisión de ampliación al Director. Mientras tanto no aceptar esa presentación en carrera móvil. No paraliza la revisión del delta70 ni autoriza nueva superficie.
+
+### Fuentes y límites de lectura de este delta
+
+- SQL0502 blob a07a5c48: fence_scope274–291, guard_scope_configuration292–314, trigger315–316, enrol_receipt318–351, wrappers0045/0449 493–542, client_consolidation_intake577–628 y postflight2400–2459 leídos por cuerpos completos del delta. move_original/contratos de origen464–491 conservan MD5 originales0045 f9e61f3ae50fca3f4752d61fb1d20f86 y0449 bf85211ecef554d573b9670d6011af37. Migraciones históricas0184/0321/0496 intactas frente a a6/D1;0184 blob774ecd95287ebab892f93d1e0f5f8ed201f3e4c1 y prosrcLFce9d72146b0c734ce64e50e899e581fe preservados. No ejecución de catálogo.
+- Runner38 blob6d900e4dc45b8a35a0ee7e5b7162c4ebf9f94810: revisión1–682 por rangos; Session/lock helpers1–156, code157–203, roster204–233, mismo receipt234–251, extensiones252–275,0496 276–300, lote301–330, POD331–364, scope365–380, OFF→ON381–413, birth/config414–439, reloj440–463, cola464–491, FK492–529, validadores530–563, orquestación/cleanup564–682. Fixture35: helpers1–282, scope286–335, Portal474–547, lote549–572 leídos completos. Fixture52 completa1–246 blob318d393dea852336faaf92473404d0c2d39d8c2b. Tres rutas70 completas: actions218, runner113, fixture205 líneas, blobs c28d84bccb143b4a3a70c3a58646a4f3000fed49/eeb612ac54d1c0c6382454f21c550ddfb2382e40/d638a0a400d42e8445ee60eddf4edcabdb657357. Pruebas sólo redactadas, sin import/parse/exec.
+- Acción móvil0045 y fixture sólo lecturas propias externas; búsqueda app/lib sin caller TS0449. El lector antiguo recibir usa otraRPC y no se altera por inferencia. No nuevo inventario masivo ni atribución de prueba a lecturas.
+
+La siguiente acción requiere revisión del SHA fijo y asignación explícita de turno por Director. Este checkpoint no cierra4.2, no libera claim, no retira fusible, no activa cohorte, no integra ni permite producción. Conserva legacy, facturaOV anterior y límites financieros4.3.
