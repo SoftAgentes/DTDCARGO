@@ -1,6 +1,6 @@
 # Handoff Worker · SDD-0576 C3 · gastos móviles
 
-Fecha de adopción: 2026-10-21. Estado: dos recetas canónicas FALLARON y conservaron CIERRE ADEMÁS INCOMPLETO; fixture TZ corregida, claim activo y espera de baseline independiente revisada para los fixtures heredados.
+Fecha de adopción: 2026-10-21. Estado: composición local de baseline 0577 revisada, pendiente de checkpoint/revisión y GO3. Las dos recetas anteriores conservan FALLÓ y CIERRE ADEMÁS INCOMPLETO; claim C3 activo.
 Task ID: 0576-fechas-caracas-movil.
 Sesión escritora: /root/worker_0576_c3.
 Owner: worker-0576c3-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
@@ -9,6 +9,7 @@ Rama: codex/sdd-0576-fechas-caracas-movil.
 Base de implementación y PR: 0e630ede760dbc369ddf60133c18c4a77f2d8692.
 Base de PR asignada: codex/sdd-0576-fechas-caracas-anuales (PR313).
 SDD reutilizada: docs/specs/0576-fechas-caracas/spec.md, in-progress.
+Baseline heredada 0577: c4b2e72dabbdde80ec7fe5c8a7f128966b6494be, PR315 DRAFT base main; incorporación Git local autorizada sobre receptor55138b9cca4d304802337b50f353569531f9993e, sin merge de PR ni main.
 
 Contrato activo leído completo y SHA256 cotejado antes de adoptar: C:/tmp/director-traspaso-20261020/0576-caracas-c3-asignacion-worker.md, 6b94cd33764fd13b05efe2881ce99d0ac579c563491f54f75b82c60894293c66.
 Preflight anterior exclusivamente por objetos Git de esta base; sus antecedentes y las políticas aplicables se conservaron como preparación, sin transferir resultados de C1/C2 a C3.
@@ -27,6 +28,7 @@ Alta/edición/fila móvil usan día Caracas, tenant y origen propios, lecturas e
 - Fila con IANA America/Caracas explícita; N1 protege cierre pending del alta; N2 error persistente con foco local en respuesta nueva.
 - Medición previa: JSDOM conservó File (2 PASÓ/21 omitidos por filtro), pero navegador nativo perdió File y método tras rechazo en ambos forms. El error inicial de diagnóstico por comparación global se corrigió: ese diff solo demostraba método; el multipart posterior sí demostró pérdida del archivo.
 - Reparación mínima local onSubmit/preventDefault→FormData nativo→useActionState/startTransition evita reset tras rechazo. Sin caché/ref de File, exports o forms duplicados.
+- Composición 0577 autorizada por contrato a8702feb4301de42ff694a19a47d62c9dd262856126b1391cd802d24016cd41e, leído completo y preservado abajo. Merge Git local normal c4b2e72d sobre55138, ancestro común eafbd910d1c082c9b416b558f8c3db5847b994a6; sin conflictos. Índice generado preserva ambas specs. No reescritura de producto/tests C3 ni de tests/spec/handoff 0577 heredados.
 
 ## VALIDACIÓN
 
@@ -49,12 +51,14 @@ Alta/edición/fila móvil usan día Caracas, tenant y origen propios, lecturas e
 - PASÓ con límites en la segunda receta: harness 237/237, lint 0 errores/15 advertencias, RSC/tipos/cuatro Edge Functions/docs/numeración/componentes/gobernanza, SQL 249 con rollback, reconstrucción 492 (474 DDL+18 historial) en DB efímera y build. E2E OK con AVISO del runner: 177 expected/20 skipped/0 unexpected/1 flaky, 198 casos; auth Chromium ERR_ABORTED 14231 ms→13593 ms aprobado en reintento y error global worker-17 forzado tras 300000 ms. Wording WebKit/no-regresión del runner conservado sin promoverlo a causalidad.
 - PASÓ bytecheck automático de segunda receta a 09:03:45.2883911Z: 39/39 rutas únicas, hashes/bytes iguales antes/después/actuales, HEAD d1a7 estable y árbol limpio antes de documentos. Trece primeros originales también intactos. JSON E2E original 268802 bytes/SHA4bb1943ae2400f1b70dd6b782b7e7060661da764c40cb8c7192633028d263e3e capturado a 09:01:54.279Z con inicio propio 08:52:33.075Z. No reconstrucción ni E2E adicional.
 - PASÓ cierre de recursos observados: 89 identidades cerradas, cero listeners propios 3149/13149 y cero contenedores exactos dtd_sqltest_a6fd22e4/dtd_rebuild_a6fd22e4. Ningún proceso terminado por el Worker; cuatro WebKit anteriores no atribuidos se preservaron. Turno pesado devuelto expresamente al Director para el focal87 de 0574; claim C3 conservado. No se certifica limpieza global.
-- NO EJECUTADO: validación siguiente, pendiente de baseline independiente revisada y nuevo turno/GO; conocimiento C3, pendiente del cierre documental final estable. DB/SQL vivo, producción, teléfono/Auth reales, lector de pantalla y zoom nativo200% tampoco ejecutados. El layout fuente limita maximumScale1/userScalablefalse; CSSzoom no sustituye esa medición.
+- PASÓ preflight de composición: receptor/remoto55138 y donante/remotoc4 exactos, PR314 y315 OPEN/DRAFT, claim propio y preimágenes comunes de ambos tests. Protegidos por hash/bytes los13primeros originales,32del segundo sobre y13artefactos del donante más su recibo2824bd5df16ac699c101024dcecace19de8577f7d1727c4fbfb499449c8f2d8e. Gestor efectivo pnpm12.14.0 sin alterar package/lock.
+- PASÓ índice generado y docs:check sobre el árbol de composición previo al commit:559specs/18huecos. Los40casos originales/candidatos de0577 son evidencia previa del donante, ligada a sus blobs; no se ejecutaron otra vez aquí ni se atribuyen a un HEAD receptor futuro. No se afirma causa del timeout Portal o estabilidad temporal por ese par.
+- NO EJECUTADO: canónica de composición, pendiente de checkpoint/revisión y GO3 explícito sobre SHA/sobre inmutables; conocimiento C3, pendiente del cierre documental final estable. DB/SQL vivo, producción, teléfono/Auth reales, lector de pantalla y zoom nativo200% tampoco ejecutados. El layout fuente limita maximumScale1/userScalablefalse; CSSzoom no sustituye esa medición.
 - Lecturas confirmadas en base: actions9f10b23265c8273e9a2f543ac04092d1c7beea86; MobileTSX684e417cc504e77fdacb0c372eb43221913c1530; helperCaracas00af1518045806694794defd7b4154d3ba5b0913; spec0754922bade809ba9f019fd8c3e89509dbb825a1.
 
 ## COMMITS
 
-Checkpoint funcional a732bcb0221ad821c671b0ee18d52ab928da26eb y reparación de fixture d1a7cca287fafcfe978ac74a58c40040889193c2 publicados y revisados sobre base0e630. Este delta posterior contiene únicamente anotación de la segunda receta en spec/handoff; su SHA inmutable se registra fuera del documento, en recibo de publicación y readback de PR, sin autocitar el SHA del mismo commit.
+Checkpoint funcional a732bcb0221ad821c671b0ee18d52ab928da26eb, reparación de fixture d1a7cca287fafcfe978ac74a58c40040889193c2 y anotación documental55138b9cca4d304802337b50f353569531f9993e publicados sobre base0e630. La composición actual conserva como padres receptor55138 y donantec4b2e72d. SHA definitivo/padres/blobs/remoto se registran externos después del commit; no se crea una cadena para autocitar el SHA propio.
 
 ## PR / BRANCH
 
@@ -62,15 +66,25 @@ PR314 OPEN/DRAFT: https://github.com/SoftAgentes/DTDCARGO/pull/314, apilada sobr
 
 ## PENDIENTES DE ESTA TAREA
 
-Publicar este checkpoint documental de resultados y conservar claim. Esperar baseline independiente revisada de los dos fixtures heredados, coordinada por Director y todavía no incorporada aquí; C3 no los edita. Toda validación posterior requiere nuevo turno/GO y sobre separado, sin sobrescribir las dos corridas existentes. Después de resultados revisados y cierre documental final estable, ejecutar un único ciclo nativo de conocimiento; sus resultados postcommit se guardarán externos y en PR, sin ciclo previo para autocitarlos.
+Publicar checkpoint de composición y conservar claim. Director debe revisar SHA/padres/delta/blobs y el nuevo sobre canonical-3 de43fuentes antes de conceder GO3; no se inicia verify automáticamente. La baseline0577 ya queda heredada localmente, sin permiso para reescribir sus archivos. Toda validación posterior conserva los13+32originales y recibos del donante. Después de resultados revisados y cierre documental final estable, ejecutar un único ciclo nativo de conocimiento; sus resultados postcommit se guardarán externos y en PR, sin ciclo previo para autocitarlos.
 
 ## FUERA DE ALCANCE DETECTADO
 
-Carreras y fallos inciertos entre Storage/documento/posting son0575; no hay reparación histórica, nueva SQL, roles/RLS, moneda/FX, layout/CSS, deuda global de componentes o BCV en este slice. Portal y prueba de borrado de embarques conservan los fallos de sus intentos, sin causa demostrada ni reparación dentro de las siete rutas C3; Director prepara un carril independiente.0495 ya aplicada no se repite. No se consultaron filas reales, secretos o PII. UI heredada: Archivo/ArchivoBlack medido por layout real frente al split operativo Nunito/Sora de la rúbrica; restricción zoom y legibilidad oscura sintética, sin cambio ni excepción por C3.
+Carreras y fallos inciertos entre Storage/documento/posting son0575; no hay reparación histórica, nueva SQL, roles/RLS, moneda/FX, layout/CSS, deuda global de componentes o BCV en este slice. Portal y embarques conservan sus fallos anteriores sin causa demostrada; la reparación independiente0577 se incorpora solo como baseline revisada. C3 no la reescribe ni convierte sus40focales en aceptación de composición.0495 ya aplicada no se repite;0496y0500 siguen sin aplicar a producción. No se consultaron filas reales, secretos o PII. UI heredada: Archivo/ArchivoBlack medido por layout real frente al split operativo Nunito/Sora de la rúbrica; restricción zoom y legibilidad oscura sintética, sin cambio ni excepción por C3.
 
 ## HANDOFF AL DIRECTOR
 
-Worker activo con claim propio y turno pesado devuelto. Director cotejó los originales de ambas recetas y la integridad 39/39 antes de documentos; la segunda conserva test FALLÓ y CIERRE ADEMÁS INCOMPLETO. Producto C3 intacto, fixtures ajenos sin editar y solo anotación documental autorizada en este checkpoint. Espera de baseline independiente revisada y turno/GO explícitos antes de validar otra vez. Conocimiento integrado, semántica global, publicación compartida y producción conservan sus fronteras.
+Worker activo con claim propio; turno devuelto por0574 para composición/índice/preparación del sobre, sin GO canónico. Director cotejó los originales de ambas recetas y la integridad39/39 antes de documentos; sus FALLÓ e INCOMPLETO se conservan. Producto/tests C3 intactos y baseline0577 heredada por merge local, sin reescritura. Espera revisión de composición y GO3 explícito antes de validar. Conocimiento integrado, semántica global, publicación compartida y producción conservan sus fronteras.
+
+## COMPOSICIÓN LOCAL 0577 — alcance y procedencia
+
+Allowlist acumulada:11rutas frente a basePR0e630. Las siete originales C3 se conservan; se añaden por herencia app/p/[token]/supplier-flow.test.tsx, app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.borrado.test.tsx, docs/specs/0577-contratos-pruebas-portal-embarques/spec.md y .agents/handoffs/0577-contratos-pruebas-portal-embarques.md. README ya estaba y solo se genera. No se amplían SQL/helpers/dependencias/config/runners ni protección productiva.
+
+Cuatro blobs C3 protegidos del receptor55138: actions894b99fc1cb0792f1617c665fddda8707f58dc4c; MobileErpClient1732f771fad250ed962fa7cc22dabb9b718bbac2; fechas-caracas.test59726dd390d072636ef1e71d259beffb9f81d666; pruebaUIbc54f37a308e9a60c688a39f2c41f9c01e316f9a. Tests heredados exactos: Portal8112f1d2d1d98623830e31855e67c0bf97b325d3 y Embarques64c357737fd383078ce3b68594f816561f93bed5; spec/handoff0577 también conservan sus blobs donantes.
+
+Donante revisado por Director/peer e48f432cd469f299ef8f9db1d5ebee569f7941a554a8b810a680b0584592c057, PR315 OPEN/DRAFT, base main observada d410ab2e23e74e5bcf7fdc7cc595371b24cc03a8. Esa base de PR no cambia el ancestro eaf ni la base de PR C3. Sus40casos originales/candidatos y171oráculos/29negativas conservados, más2comprobaciones de disponibilidad, son evidencia previa. No prueban estabilidad ni causa del timeout y no sustituyen la canónica receptora pendiente.
+
+Preflight, merge normal sin conflictos, índice y recibo final de composición: C:/tmp/director-traspaso-20261020/0576-c3-next/composition-0577. El sobre canonical-3 se preparará separado con43fuentes (39previas+dos tests/spec/handoff heredados), approvedHead explícito y protección de13+32originales/recibos del donante; no se ejecuta hasta GO3. No focal/UI/SQL extra ni knowledge por esta incorporación.
 
 ## EVIDENCIA EXTERNA — segunda receta completa
 
@@ -238,3 +252,40 @@ Antes de entregar: diffcompleto/allowlist/estado/numeración, PRhead/base/body/t
 
 El rechazo recuperable inicial para File/N1/N2 usa un cierre válido que abarque ambos días UTC/Caracas y una espera diferida del doble; ya existe en la base. Guardas de historia/settings estrictos tienen ROJOS separados. No contar éxito de la base, import, TypeError, realm o fallo de fixture como pérdida funcional del archivo.
 Doble thenable compatible con lecturas anteriores y candidato; corrupción inyectada al terminal tras filtros. Forms y create/update reales; frontera auth/DB/Storage/posting/revalidación sintética. Dos submits del mismo form y bytes/name/type/size del segundo FormData; navegador nativo y multipart observados cuando se autorice su ejecución.
+
+
+## AUTORIZACIÓN DE COMPOSICIÓN 0577 — TEXTO ÍNTEGRO
+
+Fuente externa y SHA indicados arriba. La confirmación posterior de PR315 DRAFT, arranque y devolución del turno activa únicamente la composición; el cierre pendiente del texto no constituye GO3.
+
+# Caracas C3 · incorporación local prevista de 0577
+
+21 de octubre de 2026. **AUTORIZADA LA COMPOSICIÓN LOCAL, NO LA CANÓNICA.** Director y peer revisaron el SHA funcional c4b2e72dabbdde80ec7fe5c8a7f128966b6494be y sus40casos. La ejecución local por el owner C3 espera mensaje de arranque del Director tras confirmar PR DRAFT y devolución del turno0574; antes solo lectura. No se trabaja en main ni se integra PR.
+
+Receptor: mismo Worker/owner/worktree/rama C3, actualmente checkpoint documental55138b9cca4d304802337b50f353569531f9993e, baseC2 0e630ede760dbc369ddf60133c18c4a77f2d8692. Claim C3 sigue adquirido; no se transfiere a0577. Donante: rama independiente `codex/sdd-0577-contratos-pruebas-portal-embarques`, SHA **c4b2e72dabbdde80ec7fe5c8a7f128966b6494be**, baseeafbd910d1c082c9b416b558f8c3db5847b994a6. Reserva8e1d2765 es solo stub. Producto/tests C3 conservan blobs del receptor; tests heredados esperados: Portal8112f1d2d1d98623830e31855e67c0bf97b325d3 yEmbarques64c357737fd383078ce3b68594f816561f93bed5.
+
+Revisión independiente íntegra **e48f432cd469f299ef8f9db1d5ebee569f7941a554a8b810a680b0584592c057**, sin hallazgo obligatorio nuevo. Director leyó delta completo de cinco rutas y metadata/driver/lint; cotejó13/13artefactos porhash/bytes, parseó40nombres únicos iguales y ambos40PASÓ. Se conservaron171oráculos/29negativas/+2visible-enabled,38cuerpos iguales. Ejecucionesoriginal/candidato fueron sobre reserva8e con byteslocales, vinculados a blobsdelcheckpoint por recibo2824bd5df16ac699c101024dcecace19de8577f7d1727c4fbfb499449c8f2d8e; no se atribuyen retrospectivamente a una ejecución iniciada enHEADc4. OriginalPortal2506.32ms y candidato2259.59ms pasan; no se reprodujo timeout focal ni se demuestra estabilidad/causa. Esa aceptación general es precisamente la validación receptora pendiente.
+
+## Herencia exacta que podrá incorporarse
+
+Los dos tests, spec0577 y handoff0577 serán **baseline heredada revisada**, sin permiso del Writer C3 para reescribir sus aserciones o producto. Índice compartido se genera conservando ambas specs. Estas cinco rutas se suman a la autorización de composición, con README ya presente en las siete originales:
+
+1. `app/p/[token]/supplier-flow.test.tsx`
+2. `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.borrado.test.tsx`
+3. `docs/specs/0577-contratos-pruebas-portal-embarques/spec.md`
+4. `.agents/handoffs/0577-contratos-pruebas-portal-embarques.md`
+5. `docs/specs/README.md` — generado, jamás resolver borrando specs del receptor.
+
+La allowlist acumulada de la PR C3 pasa de7 a11rutas por herencia de cuatro nuevas. El producto C3 y sus dos tests deben mantener blobs exactos del checkpoint55138/d1a7. Ningún SQL, helper, dependencia, config, runner o protección de producción se amplía.
+
+## Activación y validación prevista
+
+1. Tras mensaje de arranque del Director, Worker comprueba clean/root/branch/owner, PR DRAFT/remoto/HEADs y preimágenes comunes; realiza únicamente merge Git local normal de **c4b2e72dabbdde80ec7fe5c8a7f128966b6494be** en su rama desde55138. No cherry/copia de WIP, main, force o reset. Si aparece conflicto fuera de README, conserva y eleva diagnóstico; README se regenera con script existente preservando ambas specs. Commit/push propios autorizados al quedar composición concreta y revisable. Puede anotar la adopción/composición en sus propios spec/handoff después del merge; no reescribe spec/handoff0577 heredados. No hace falta una cadena de commits para autocitar sus propios hashes.
+2. Entregar SHA de composición y padres, diff exacto55138→composición/cotejo de siete rutas originales y herencia de los dos tests/spec/handoff; producto y tests C3 no cambian. Director revisa inmutable antes de conceder canónica nueva. Los mismos40 casos se validarán en la receta receptora; no repetir por rutina focales C3 intactos ni producir una falsa reproducción histórica.
+3. Preparar carpeta exclusiva `0576-c3-next/canonical-3` y wrapper/observador externos nuevos, nunca modificar canonical-1/2. Receta normal `corepack pnpm verify`, sin cambios de gates/timeouts/config/omisión. Solo las dos variables Corepack locales ya autorizadas; sin credenciales/VERIFY*/NODE_OPTIONS. Validar gestor real y conservar avisos. Ninguna canónica histórica nueva en0577, cuya aceptación general se registrará por este SHA receptor y límites.
+4. Manifiesto previsto:43fuentes únicas =39anteriores+dos tests heredados+spec0577+handoff0577; README ya estaba. Si otra fuente resulta necesaria se justifica antes de ejecutar. Sello de13primeros originales y32del segundo sobre, más recibos del donante, protegido. ROOT/HEAD/estado/guard/allowlist/huellas/sobre vacío y approvedHead verificados antes del GO final.
+5. Único turno pesado del Director; freeze total incluido docs hasta EXIT y bytecheck inmediato de fuentes/HEAD/estado. Conservar originales y resultado fallido si ocurre. E2E original con ancestry/PID exacto sin hooks ni reconstrucción; falta de captura se declara NO DISPONIBLE, no se repite para fabricar evidencia. SQL249/rebuild492 esperados por herencia, pero resultados reales mandan.
+6. Tras resultado revisado, anotar spec/handoff/PR y conservar las dos primeras FALLÓ+INCOMPLETO. Una receta posterior aprobada no las borra. Ledger productivo omitido y pruebas omitidas/avisos mantienen límites; no se consulta DB real ni se repite0495.0496y0500 siguen sin aplicar.
+7. Cierre documental estable, único ciclo de conocimiento propio con turno, resultados externos/PR, revisión final de respaldo/limpio/claim/recursos. Sin publicación compartida/producción. Solo después de aceptación local final se activa BCV desde ese cierre.
+
+Faltan confirmación de PR DRAFT0577, mensaje de arranque local y nuevo GO canónico sobre composición/receta inmutables. El permiso de composición no inicia ni aprueba por anticipado la canónica. No hay Worker nuevo ni otro propietario de C3. Conocimiento sigue esperando cierre documental estable; sin nuevos focales/UI/SQL por rutina antes del checkpoint de composición.

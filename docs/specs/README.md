@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 558 specs)
+### Índice de specs (generado · 559 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -596,6 +596,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0569 | Un solo conversor a USD, que falla cerrado, y una tabla de ta… | in-progress | interno |
 | 0572 | Los 13 conversores a USD pasan a uno solo, que falla cerrado | in-progress | interno |
 | 0576 | Fechas Caracas — operaciones, anuales y móvil — C1/C2/C3 | in-progress | interno |
+| 0577 | Contratos de prueba del Portal y reintento de borrado de emba… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0570, 0571, 0573, 0574, 0575 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
