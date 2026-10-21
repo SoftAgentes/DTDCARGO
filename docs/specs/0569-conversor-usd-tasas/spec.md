@@ -327,7 +327,7 @@ Ver el handoff `.agents/handoffs/0569-conversor-usd-tasas.md`.
 
 ## Continuación BCV diario · 2026-10-21 · Worker aislado
 
-**EN PROGRESO: autoría ligera autorizada; producto y conformidad pendientes de ejecución.** Esta continuación conserva los resultados históricos de la tabla/conversor y no los atribuye al importador nuevo. La0495 aplicada permanece inmutable. Su razónNULL en INSERT y source rpc no bastan para la auditoría R3 del nuevo job: el Director aprobó una SQL aditiva estrecha0501 y capability GET service-only, con motivo fijo generado en DB/source job para el contexto verificado.
+**EN PROGRESO: GO04B FALLÓ e INCOMPLETO; GO05A autoriza paridad de plantilla y una focal pendiente.** Esta continuación conserva los resultados históricos de la tabla/conversor y no los atribuye al importador nuevo. La0495 aplicada permanece inmutable. Su razónNULL en INSERT y source rpc no bastan para la auditoría R3 del nuevo job: el Director aprobó una SQL aditiva estrecha0501 y capability GET service-only, con motivo fijo generado en DB/source job para el contexto verificado.
 
 Raíz propia `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0569-bcv-carga-diaria`, rama `codex/sdd-0569-bcv-carga-diaria`, base literal C3 `1905aef75680a80055621cffd717198915d089f9`, owner `worker-0569bcv-01a15a4e-ddf0-7d82-8656-d9dc56b58468`. El handoff propio `.agents/handoffs/0569-bcv-carga-diaria.md` conserva íntegros encargo c477, addendum87589 y activación93c4. No incluye0573 ni carril de embarques.
 
@@ -344,7 +344,7 @@ Inventario nativo actualizado antes de stub:502refs+worktrees, siguienteSQL0501 
 
 Primero instalación congelada propia y baseline cron/UI bajo turno; después gate pequeño HTTP del contexto dentro del trigger definer con servicio sin sub positivo, humano positivo y negativos. Si no acredita la candidata, detener esa parte y volver al Director. Cron/UI/package/lock existentes se preservan hasta sus gates. Ese fue el orden inicial; los recibos GO01/01B/01C del handoff actualizan su avance.
 
-### Allowlist exacta de esta continuación ·31rutas
+### Allowlist exacta de esta continuación · 32 rutas
 
 ~~~~text
 app/api/cron/bcv-rates/route.ts
@@ -378,9 +378,10 @@ supabase/pending-migration-symbol-declarations.json
 supabase/migrations/0501_bcv_rates_system_audit.sql
 supabase/tests/bcv_rates_system_audit.test.sql
 supabase/migrations-baseline.json
+infra/dtd-cargo/.env.example
 ~~~~
 
-La allowlist histórica de39rutas pertenece a la entrega anterior. Esta continuación solo edita las31 anteriores; regresiones leídas/ejecutadas no reciben permiso implícito de edición. Nueva ruta requiere coordinación previa.
+La allowlist histórica de 39 rutas pertenece a la entrega anterior. La continuación usa la unión literal de 32 rutas del addendum Director d73e2afc: las 31 anteriores más únicamente infra/dtd-cargo/.env.example. La fuente31 original se conserva íntegra en el handoff. Regresiones leídas/ejecutadas no reciben permiso implícito de edición; una ruta adicional requiere coordinación previa.
 
 ### SGE-00 · clasificación inicial de producto, sin excepción
 
@@ -419,7 +420,7 @@ Corte posterior GO03, producto `16eab3620aba3acfd1f7676453d3f30c37be5779`: ROJO 
 
 ### Checkpoint funcional BCV · matriz medida del 21 de octubre
 
-Este corte sustituye únicamente los pendientes temporales de la continuación BCV de arriba. Producto/pruebas `390227699d167a7d6cdf7b22e1512f8d5a18a97c`; documentación posterior no cambia esos módulos. **Cierre local acotado para revisión; canónica/build/conocimiento NO EJECUTADOS, PR317 DRAFT/base C3, sin integración ni producción.** Fuente pública positiva NO DISPONIBLE por TLS. SDD permanece in-progress.
+Este corte sustituye únicamente los pendientes temporales de la continuación BCV de arriba. Producto/pruebas `390227699d167a7d6cdf7b22e1512f8d5a18a97c`; documentación posterior no cambia esos módulos. **Cierre local acotado: GO04B FALLÓ en test y quedó INCOMPLETO por ledger crítico sin medir; build PASÓ. GO05A sólo repara paridad de plantilla; focal todavía NO EJECUTADA en este checkpoint previo. GO05B/conocimiento pendientes, PR317 DRAFT/base C3, sin integración ni producción.** Fuente pública positiva NO DISPONIBLE por TLS. SDD permanece in-progress.
 
 La matriz conserva fuentes y oráculos efectivos; PASÓ significa la medición local indicada, no cobertura universal. No se suman casos repetidos, selección omitida, reparación roja o slices HTTP solapados. Los archivos están en esta rama; los recibos externos propios en `C:/tmp/director-traspaso-20261020/0569-bcv-validation/`. El handoff conserva primeros fallos y recibos completos.
 
@@ -498,4 +499,92 @@ Typecheck delta03 PASÓ en 390227699; lint delta02 cuatro archivos,0 errores/3 a
 
 Única lectura pública implementada a 2026-10-21T14:54:05.174–05.824Z:1 intento GET/TLS normal/DB 0, **NO DISPONIBLE SOURCE_UNAVAILABLE**, causa nativa `UNABLE_TO_VERIFY_LEAF_SIGNATURE` antes de headers;0 bytes/sin hash de cuerpo completo. Receipt `go03-public-source-01/receipt.json` SHA256 `01c8f8f9fc7e7ff6c2f6e889d885b99a793e87e90c81ff079c35a766c83e116a`. Sin retry/fallback/TLS alternativo; no acredita obtención oficial positiva ni cron/operación disponible. Director permite documentar cierre local con este límite.
 
-Checkpoint/receta canónica externa en `go03-checkpoint-funcional-01/`: comando normal, freeze completo, recursos propios y captura del JSON E2E original antes de su borrado; **NO EJECUTADA**, requiere revisión/GO posterior. La capa documental queda guardada en rama; integración, estructura/semántica Graphify, Archify/preview/Obsidian y publicación compartida continúan pendientes separados. No se escribe memoria ni se cambia política para cerrar el job.
+La receta prevista en `go03-checkpoint-funcional-01/` se concretó con supervisor V2 bajo GO04B: comando normal, freeze completo y original E2E conservado, con FALLÓ/INCOMPLETO según el corte siguiente. Una nueva canónica requiere revisión del checkpoint reparado y GO05B; no se repite por documentación. La capa documental queda guardada en rama; integración, estructura/semántica Graphify, Archify/preview/Obsidian y publicación compartida continúan pendientes separados. No se escribe memoria ni se cambia política para cerrar el job.
+
+### GO04B preservado · paridad de plantilla GO05A
+
+Una canónica normal sobre `62f64e8e5b8a3279892b95748487444a2e07eadb`, 16:26:49–17:00:34 UTC: **FALLÓ, exit 1, 16/17 ejecutados y cierre INCOMPLETO**. Los dos intentos nativos de Vitest dieron cada uno 13144 aprobados, 1 fallido y 1 omitido. Falló la misma aserción original `scripts/__tests__/infra-env-example.test.ts:34`: faltan `BCV_RATES_ENABLED` y `BCV_RATE_TENANT_IDS` en la plantilla de infra. No se suma cobertura entre intentos ni se llama flaky resuelto a ese fallo. Ledger crítico `migrations-applied` SKIP sin credenciales; los otros 15 pasos, incluido build, PASARON. Lint conserva 20 avisos; SQL local 250 contratos y esquema 475 migraciones más 18 sólo-ledger no acreditan producción.
+
+Freeze completo: 6447 entradas, 0 diferencias, HEAD y árbol limpios; captura/supervisor sin errores. Nativo: 1788 identidades conocidas, 0 vivas. Postflight: 1789 incluido launcher, 0 vivas, cinco puertos observados libres y dos IDs propios ausentes con Docker consultable. Recibo externo `go04b-canonical-native-01/go04b-terminal-receipt-01.json`, SHA256 e2a8105372ade30b78446cd87b54fd76f50f11c9c7aec472588f9f4a76be378c. Director aceptó el resultado como FALLÓ/INCOMPLETO y cotejó con SHA256 58262137986cb7e907eea87df9154e79e8b1e50211626590642674f088bae355.
+
+Original E2E: 268459 bytes, SHA256 0363dc645e9484960f92ae2715453a2bef852c7496bb2306eef16ea65f23c40c; 177 aprobados, 20 omitidos y 1 flaky `auth.spec.ts:81/chromium` recuperado por su reintento nativo, 0 inesperados finales. No cobertura integral; 2 omisiones visuales duplicadas y 18 por fixture/seed ausente. Preparaciones de captura y dos fallos del lector/ensamblaje posterior al EXIT se conservan sin alterar el original ni repetir E2E.
+
+GO05A amplía sólo a `infra/dtd-cargo/.env.example`, con las cinco líneas literales del contrato siguiente: OFF false, scope vacío y tres comentarios; resto de bytes idéntico. Test, raíz, Compose, módulos, 0495/0501, lock y receta intactos. Una focal nativa de tres casos está autorizada pero todavía NO EJECUTADA en este checkpoint previo. No GO05B ni conocimiento. Fuente pública positiva sigue NO DISPONIBLE por el TLS anterior, sin otro GET.
+
+### Addendum Director32 y GO05A · original íntegro d73e2afc
+~~~~~~markdown
+# SDD-0569 · addendum Director32 y GO05A de reparación local
+
+21 de octubre de2026. Director Codex. **AUTORIZADO: reparación mínima local y prueba focal nativa.** Mismo SDD0569, Worker/claim `worker-0569bcv-01a15a4e-ddf0-7d82-8656-d9dc56b58468`, rama `codex/sdd-0569-bcv-carga-diaria` y worktree `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0569-bcv-carga-diaria`. PR317 permanece DRAFT. No autoriza main/merge/deploy/producción/VPS/DB real/filas/PII/secretos/flags/agenda/GET oficial ni conocimiento todavía.
+
+## Evidencia y decisión
+
+Se conserva íntegro el addendum31 `0569-bcv-addendum-auditoria-director-31-rutas.md`, SHA256 `87589d14362e2e740713db01775ba5c7c551a2c6bbf4fe307932abd664049412`, y sus contratos B1–B19/R1–R14. Esta enmienda sustituye exclusivamente su límite de31 por la unión literal32 de abajo y concede GO05A acotado, posterior al cierre de GO04B. No autoriza nueva SQL, cambio de receta, tests debilitados ni alteración de los archivos protegidos.
+
+GO04B ejecutó una canónica normal sobre `62f64e8e5b8a3279892b95748487444a2e07eadb`, de16:26:49 a17:00:34UTC, exit1. **FALLÓ test y además quedó incompleto16/17 por ledger crítico omitido**. Dos intentos nativos de Vitest fallaron la misma aserción `scripts/__tests__/infra-env-example.test.ts:34`: faltan en infra los nombres `BCV_RATES_ENABLED` y `BCV_RATE_TENANT_IDS`. No es un flaky resuelto. El resultado previo, sus dos intentos, originales y omisiones permanecen sin sobrescribir ni reinterpretar como aprobados.
+
+Director leyó la nota independiente completa `0569-bcv-revision-paridad-env-infra-peer.md`, SHA256 `25c8ac6e856db9916fe69caadc08355b3c67b157a1cc582f39f88b367dd73969`. El oráculo original exige documentar los nombres de la plantilla raíz; las dos asignaciones ya existen en raíz y faltan en infra. Preimagen infra Git `37d1bf351226384012e62472a34c1efe079188d2`, test Git `78c80a8c287a34839e692cbfa1681f77f7cac741`, raíz Git `6d8599cad32f7ca11dc0b8b5428eaed11d7bb422`. No cambiar test, script, raíz ni Compose para eludir la aserción.
+
+Cotejo independiente Director aceptado `0569-bcv-canonica-04b-cotejo-director.json`, SHA256 `58262137986cb7e907eea87df9154e79e8b1e50211626590642674f088bae355`:6447 antes/después/actual, cero diferencias, HEAD62 y árbol limpio,1788 identidades conocidas sin coincidencias vivas, claim correcto retenido. Paquete terminal Worker `go04b-terminal-receipt-01.json`, SHA256 `e2a8105372ade30b78446cd87b54fd76f50f11c9c7aec472588f9f4a76be378c`, devuelve expresamente el turno pesado. Se conserva Docker Desktop y se preservan procesos ajenos.
+
+## Delta funcional único autorizado
+
+Añadir después de `CRON_SECRET` en `infra/dtd-cargo/.env.example`, antes de `DEBUG_HEALTH_SECRET`, exclusivamente este bloque con la separación de líneas necesaria:
+
+```dotenv
+# SDD-0569 · BCV VES/USD. Normal OFF; activación productiva pendiente.
+BCV_RATES_ENABLED=false
+# Scope explícito de UUID únicos (máximo25); vacío falla cerrado. Sin IDs reales.
+BCV_RATE_TENANT_IDS=
+# Reutiliza CRON_SECRET; ver docs/runbooks/bcv-tasas-diarias.md para ensayo/activación.
+```
+
+No poner true, tenant real o ficticio, credenciales ni valores operativos. Conservar todos los demás bytes y asignaciones de la plantilla. El ensayo autenticado estricto ya documentado sigue siendo modalidad distinta de OFF normal; esta inserción no activa job, instala cron, aplica0501 o autoriza ensayo. No editar `.env` vivo ni configuración de Docker/Compose.
+
+## Allowlist acumulada32, sin obligación de editar todas
+
+```text
+app/api/cron/bcv-rates/route.ts
+app/api/cron/bcv-rates/__tests__/route.test.ts
+lib/studio/fx/bcv-types.ts
+lib/studio/fx/bcv-parser.ts
+lib/studio/fx/bcv-source.ts
+lib/studio/fx/bcv-sync.ts
+lib/studio/fx/__tests__/bcv-parser.test.ts
+lib/studio/fx/__tests__/bcv-source.test.ts
+lib/studio/fx/__tests__/bcv-sync.test.ts
+lib/studio/fx/__tests__/bcv-persistence.migration.test.ts
+lib/studio/fx/__tests__/fixtures/bcv-usd-20261021.html
+lib/studio/fx/__tests__/fixtures/bcv-decoys.html
+lib/studio/fx/__tests__/fixtures/bcv-ambiguous.html
+scripts/tests/bcv-rates-postgrest.mjs
+scripts/build-crontab.mjs
+scripts/__tests__/build-crontab.test.ts
+infra/dtd-cargo/cron/crontab
+package.json
+pnpm-lock.yaml
+app/studio/(app)/admin/_components/ExchangeRatesSection.tsx
+app/studio/(app)/admin/_components/ExchangeRatesSection.test.tsx
+docs/runbooks/bcv-tasas-diarias.md
+docs/runbooks/servidor-contabo.md
+docs/specs/README.md
+docs/specs/0569-conversor-usd-tasas/spec.md
+.agents/handoffs/0569-bcv-carga-diaria.md
+supabase/pending-migration-symbol-declarations.json
+.env.example
+supabase/migrations/0501_bcv_rates_system_audit.sql
+supabase/tests/bcv_rates_system_audit.test.sql
+supabase/migrations-baseline.json
+infra/dtd-cargo/.env.example
+```
+
+## Secuencia GO05A
+
+1. Leer íntegro y confirmar SHA de este addendum; copiar contrato íntegro al handoff/spec propios con autorización32 y fuente31 conservada. Revalidar raíz/rama/HEAD62/claim/guard y limpieza antes de editar. Si hay cambio ajeno o nueva diferencia, conservar y comunicar antes de tocarla.
+2. Aplicar únicamente la inserción anterior y actualización documental de alcance/evidencia ya autorizada. Registrar diff literal y hashes antes/después. Confirmar originales test/raíz/Compose/producto/SQL/lock/receta sin cambio. 0495 aplicada y0501 local permanecen inmutables.
+3. Concedido turno para **una ejecución focal** de la suite nativa intacta `scripts/__tests__/infra-env-example.test.ts`, mediante el Vitest instalado y su configuración normal, sin filtros de casos, cambios de timeout/worker/CI/retries/configuración ni flags de omisión. Esperadas3 comprobaciones originales; registrar total real, stdout/stderr/exit y recursos conocidos. No repetir automáticamente ante fallo.
+4. Congelar inputs antes/después de esa ejecución, cotejar bytes y HEAD, conservar salidas nativas, ausencia de procesos propios por identidad. Guard y diffcheck; commits selectivos coherentes de la reparación/documentación, push de rama propia y actualización de PR317DRAFT ya autorizados. Ningún git add global.
+5. Entregar SHA local/remoto/DRAFT, diff completo, artefactos y límites. **No invocar otra canónica aún.** Director revisará el checkpoint corregido y el plan de nueva canónica. El fallo concreto de GO04B justifica repetir el cierre canónico una vez revisada la corrección; no lo justifica una preferencia por resultados verdes ni documentación sola.
+
+Las pruebas previas siguen con sus resultados y alcance. `migrations-applied` sin credenciales es NO EJECUTADO/SKIP crítico; no buscar credenciales ni aplicar DB para cambiar ese resultado. GET oficial positivo sigue NO DISPONIBLE por TLS bajo la única consulta anterior; sin reintento/fallback. Cobertura E2E no es integral por20 omisiones y1 flaky original. Toda aprobación posterior será local y con estos límites, sin cierre global2.1 ni producción implícita.
+~~~~~~
