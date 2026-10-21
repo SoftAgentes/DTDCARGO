@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 9:48 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 9:51 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -126,8 +126,10 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Cerrar por lectura los dos hallazgos de revisión sobre `3b1de986`, sin otros P1/P2 materiales en el delta acotado. Addendum financiero independiente guardado; la revisión SQL/contratos conserva sus límites propios. No sustituye la prueba general.
 - [x] Completar el suplemento visual local de CRM y Portal con datos ficticios: ocho escenarios CRM y siete Portal, sin desborde de página a 390 píxeles. El intento inicial falló por exigir visibilidad a una sección vacía del caso null; el suplemento corrigió solo esa espera y aprobó los dos casos restantes. Recibos conservados, servidores propios cerrados. No acredita Auth, datos reales, teléfono físico ni accesibilidad integral.
 - [x] Aprobar los primeros controles de la validación general sobre `3b1de986`: **237/237 del arnés, sin omisiones**, revisión estática, frontera de componentes de servidor, tipos y compilación de las cuatro funciones auxiliares. Es el resultado de esa etapa, separado del cierre global.
-- [x] Aprobar la suite general de la aplicación sobre ese candidato: **12.538 pruebas aprobadas y una omitida**, 876 archivos aprobados y uno omitido, en 8 min 45 s y sin reintento. Documentación, numeración, banderas, componentes, gobernanza y referencias pendientes también aprobados. El historial productivo se omitió por falta de credenciales; no se consultó la base real. Los contratos SQL generales están en curso y el cierre todavía no tiene resultado.
-- [ ] Terminar la **validación general en curso sobre `3b1de986`**, iniciada a las 9:35:58 p. m. Todavía sin resultado; conservar omisiones y avisos al cerrar. GitHub confirma la cabeza nueva y la PR en borrador, pero no devuelve comprobaciones para ese SHA.
+- [x] Aprobar la suite general de la aplicación sobre ese candidato: **12.538 pruebas aprobadas y una omitida**, 876 archivos aprobados y uno omitido, en 8 min 45 s y sin reintento. La omisión pertenece a la suite condicional del corpus real de proformas, no disponible. Documentación, numeración, banderas, componentes, gobernanza y referencias pendientes también aprobados. El historial productivo se omitió por falta de credenciales; no se consultó la base real. El cierre general todavía no tiene resultado.
+- [x] Aprobar los **247/247 contratos SQL generales**, incluida 0498, con reversión total en PostgreSQL 17 local desechable. Es una comprobación distinta de las 247 pruebas focales anteriores.
+- [x] Reconstruir y comprobar el esquema desde sus **490 migraciones: 472 aplicadas y 18 de historial verificadas**, con aislamiento de 219 tablas y dos tenants de prueba. Las radiografías corrieron sobre ese esquema efímero; no son una radiografía de producción.
+- [ ] Terminar la **validación general en curso sobre `3b1de986`**, iniciada a las 9:35:58 p. m. Ahora corre navegación, con servicios sintéticos, y queda la construcción de la aplicación. Todavía sin resultado global; conservar omisiones y avisos al cerrar. GitHub confirma la cabeza nueva y la PR en borrador, pero no devuelve comprobaciones para ese SHA.
 - [ ] Reemplazar las conversiones pendientes en SQL, con una entrega separada.
 - [x] Reservar y respaldar la **SDD-0576, hora Caracas**, tras inventario de 483 refs y worktrees. Diseño C1 revisado y C2 anual delimitado, preservando las ventanas distintas. La preparación ahora contempla 60 y 12 rutas respectivamente: se añadió solo el manifiesto necesario para mantener las referencias verificables de migraciones pendientes, sin debilitar sus controles. Todavía sin Worker nuevo, migración asignada ni producto implementado.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
