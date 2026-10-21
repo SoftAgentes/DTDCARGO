@@ -182,6 +182,7 @@ export default async function DireccionPage() {
       <section>
         <SinFacturarCard
           resumen={sinFacturar.resumen}
+          total={sinFacturar.total}
           completo={sinFacturar.completo}
           tarifasDisponibles={sinFacturar.tarifasDisponibles}
         />

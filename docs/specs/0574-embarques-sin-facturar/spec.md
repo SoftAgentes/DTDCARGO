@@ -15,7 +15,7 @@ confidencialidad: interno
 
 > Un reporte dice qué carga recibida en Yiwu todavía no tiene factura fiscal y cuánto hay que facturar: primero lo que ya llegó a Venezuela, después lo que no tiene tarifa congelada y al final lo que va en camino con su tarifa. Dirección lo muestra en tres tarjetas.
 
-**Estado actual:** retoma aislada en `codex/sdd-0574-embarques-cierre`. La combinación `e6b0129c6026ef32db9b5ae37d4a3ce669b17e76` incorpora 0571 `ba43747a803ea9aec3b8750d1b461d69795834a5` y la implementación histórica 0574 `18edcd8127f3acdd93e5a9e85c15c589c8712b88` mediante merge normal. **Fase ligera: contrato y pruebas preparados; producto sin reparación y pruebas nuevas NO EJECUTADAS.** F1–F3 siguen abiertos. Depende de la PR #307; sin migración propia. El árbol histórico se conserva.
+**Estado actual:** retoma aislada en `codex/sdd-0574-embarques-cierre`. La combinación `e6b0129c6026ef32db9b5ae37d4a3ce669b17e76` incorpora 0571 `ba43747a803ea9aec3b8750d1b461d69795834a5` y la implementación histórica 0574 `18edcd8127f3acdd93e5a9e85c15c589c8712b88` mediante merge normal. **ROJO funcional confirmado sobre `1ffa8acced21871379cd0c67ade6a90445d77219`: 87 casos, 53 fallan, 34 pasan, cero omitidos. El Director revisó el resultado y autorizó la implementación ligera; el parche F1–F3 está escrito, todavía NO VALIDADO.** Verde y demás gates esperan otro turno; F1–F3 no se declaran cerrados. Depende de la PR #307; sin migración propia. El árbol histórico se conserva.
 
 ## Contexto
 
@@ -47,7 +47,7 @@ Con el cliente de SESIÓN, bajo RLS, solo lectura y paginada (`fetchAllPaged`, `
 
 ## Contrato de reparación F1–F3 · 2026-10-21
 
-El Director aceptó estos tres hallazgos de lectura y su reparación dentro de doce rutas. La revisión no fue una prueba ejecutada. Este apartado fija la aceptación; la API siguiente es la propuesta técnica del Worker para revisar en el preflight, todavía sin parche de producto.
+El Director aceptó estos tres hallazgos de lectura y su reparación dentro de doce rutas. La revisión inicial no fue una prueba ejecutada. La API y su precisión fueron aceptadas en el preflight; el ROJO posterior confirmó los defectos. Este apartado fija el contrato de aceptación del parche, sin sustituir su validación pendiente.
 
 ### F1 · Importe conocido, faltante y alcance
 
@@ -58,7 +58,7 @@ El Director aceptó estos tres hallazgos de lectura y su reparación dentro de d
 - `completo=false` conserva cantidades y subtotales observados, pero invalida como totales globales los importes de todos los grupos, incluso los vacíos. No se altera el paginador ni se rechaza por defecto todo subconjunto útil.
 - Falta de esquema 0496, falta de snapshot vivo y corte de paginación se comunican por separado. El contador bajo esquema no disponible describe filas **sin tarifa disponible en esta lectura**, no una inexistencia probada en la base.
 
-### API técnica propuesta para este cierre
+### API técnica aceptada para este cierre
 
 ```ts
 type TarifaReporte = {
@@ -90,13 +90,13 @@ type ResumenSinFacturar = Record<EstadoSinFacturar, TotalesSinFacturar>;
 
 `aFacturar !== null` representa completitud del importe; no se añade un booleano redundante que pueda contradecirlo. `completo` sigue describiendo la lectura, y `tarifasDisponibles` la disponibilidad del esquema. El subtotal suma importes ya generados con dos decimales por 0496; no vuelve a multiplicar CBM y precio.
 
-**Precisión propuesta, cerrada para revisión antes del ROJO:** centavos enteros `BigInt` internos en `sin-facturar.ts`, proyectados a `ImporteUsdExacto` al terminar cada grupo y el global. La fila conserva su `number | null` actual; `BigInt` nunca cruza el DTO/RSC/JSON. `subtotalConocido` siempre devuelve dos decimales (`"0.00"` cuando la suma observada es cero); `aFacturar` devuelve esa misma representación solo si el agregado es completo. Una magnitud grande válida no crea `sinTarifa`, truncamiento ni un tope nuevo: sigue siendo un importe exacto conocido.
+**Precisión aceptada e implementada, pendiente de verde:** centavos enteros `BigInt` internos en `sin-facturar.ts`, proyectados a `ImporteUsdExacto` al terminar cada grupo y el global. La fila conserva su `number | null` actual; `BigInt` nunca cruza el DTO/RSC/JSON. `subtotalConocido` siempre devuelve dos decimales (`"0.00"` cuando la suma observada es cero); `aFacturar` devuelve esa misma representación solo si el agregado es completo. Una magnitud grande válida no crea `sinTarifa`, truncamiento ni un tope nuevo: sigue siendo un importe exacto conocido.
 
 La fuente es `amount_to_invoice numeric(14,2)` generado por 0496, con importes no negativos y máximo de tipo `999999999999.99`. Su normalización a Number por fila permite recuperar los dos decimales sin ambigüedad: por debajo de `10^12`, la separación máxima entre números representables es `2^-13`, menor que un centavo. Se recupera la cadena de dos decimales de **cada fila** y se convierten sus dígitos a centavos enteros; no se multiplica ni se suma el agregado en Number. Esto usa el contrato existente del tipo SQL, no una restricción nueva de facturación. La recuperación no autoriza redondear una entrada ajena a ese contrato ni reconstruir la tarifa desde CBM. Si la fuente dejara de cumplirlo, se requiere un error explícito de lectura, nunca un importe aproximado conocido ni un faltante de tarifa ficticio.
 
-Reporte y tarjeta formatean el decimal textual por sus partes, con agrupación y dos decimales, sin `Number`, `parseFloat` ni el formateador numérico global. Se prevén adaptadores locales pequeños en las dos rutas UI autorizadas: el componente cliente conserva el import **solo de tipo** de la biblioteca del lector. No se añade una dependencia del cliente sobre consultas ni una ruta compartida/global. Las pruebas atraviesan cada salida real para comprobar centavos y serialización.
+Reporte y tarjeta formatean el decimal textual por sus partes, con agrupación y dos decimales, sin `Number`, `parseFloat` ni el formateador numérico global. Los adaptadores son locales a las dos rutas UI autorizadas: el componente cliente conserva el import **solo de tipo** de la biblioteca del lector. No se añade una dependencia del cliente sobre consultas ni una ruta compartida/global. Las pruebas atraviesan cada salida real para comprobar centavos y serialización.
 
-Oráculos escritos, **NO EJECUTADOS**: las siguientes filas respetan las escalas y la fórmula generada de 0496, no son importes imposibles del snapshot. Sea `M = 100.000 m³ × 9999999999.99 USD/m³ = 999999999999.00 USD`; el mínimo es cero.
+Oráculos conservados del ROJO, **NO REEJECUTADOS sobre el parche**: las siguientes filas respetan las escalas y la fórmula generada de 0496, no son importes imposibles del snapshot. Sea `M = 100.000 m³ × 9999999999.99 USD/m³ = 999999999999.00 USD`; el mínimo es cero.
 
 | Filas sintéticas / alcance | Subtotal exacto esperado | Total / faltantes |
 |---|---|---|
@@ -107,7 +107,7 @@ Oráculos escritos, **NO EJECUTADOS**: las siguientes filas respetan las escalas
 | 60000 × M observadas con `lecturaCompleta=false` | `"59999999999940000.00"` | `null` / 0; el corte no es falta de tarifa |
 | `0.10 + 0.20`, cero generado, vacío completo, todo desconocido | `"0.30"` o `"0.00"` según el caso | Se conserva la distinción F1/F3 de cero conocido y desconocido |
 
-El escenario de 60000 filas es una regla pura sobre el subconjunto observado: con el paginador actual 60 páginas llenas no acreditan haber alcanzado vacío. No se presenta como lectura completa ni se ejecutó ese volumen durante el preflight. Estas propuestas no modifican `lib/money`, el normalizador compartido, SQL, FX ni el máximo de páginas.
+El escenario de 60000 filas es una regla pura sobre el subconjunto observado: con el paginador actual 60 páginas llenas no acreditan haber alcanzado vacío. No se presenta como lectura completa; se ejecutó solo como prueba sintética en el ROJO. El parche no modifica `lib/money`, el normalizador compartido, SQL, FX ni el máximo de páginas.
 
 **Dirección:** «Llegó sin factura» y «En camino» conservan sus cantidades por estado. «Sin tarifa disponible» muestra `total.sinTarifa`, incluido lo llegado. Es un **contador transversal**, no un tercer grupo que pueda sumarse a las otras tarjetas; llevará la explicación visible «incluye las que ya llegaron» y una aclaración de que las tarjetas se cruzan. El resumen global muestra la cantidad elegible una sola vez, subtotal/total según alcance y faltantes. En el reporte, las tres categorías siguen siendo exclusivas y se conserva su orden.
 
@@ -121,8 +121,8 @@ El vacío de una lectura completa puede comunicar «Al día» con alcance de **r
 
 ## Pantallas
 
-- **Reporte** `/studio/reportes/embarques-sin-facturar`, bajo el layout de Reportes (`requireModuleView("reports")`: accounting + admin): tres tarjetas (cantidad y monto por estado), y la tabla con estado, recepción, Shipping Mark, envío, CBM, tarifa, a facturar, días y pre-factura. Enlace desde Reportes › Contables.
-- **Dirección** (`requireModuleView("direccion")`, admin): la tarjeta «Por facturar» con los tres estados, cada uno enlazado al reporte.
+- **Reporte** `/studio/reportes/embarques-sin-facturar`, bajo el layout de Reportes (`requireModuleView("reports")`: accounting + admin): resumen global y tres categorías exclusivas con cantidad, importe/subtotal y faltantes. La tabla distingue CBM congelado/actual, tarifa, mínimo, importe fuente, estado, recepción, Shipping Mark, envío, días y pre-factura. Enlace desde Reportes › Contables.
+- **Dirección** (`requireModuleView("direccion")`, admin): resumen global de «Por facturar», tarjetas de llegada/en camino y contador transversal sin tarifa disponible, todos los enlaces al mismo reporte. No se ofrecen esas tres tarjetas como grupos sumables.
 
 ## Allowlist exacta
 
@@ -173,19 +173,19 @@ No toca `lib/studio/accounting`, `invoices` (solo lee), recibos ni tasas.
 | SGE-00.03 · riesgo/fricción | no aplica | no se añade una operación de permanencia o financiera |
 | SGE-00.04 · auditoría | no aplica | solo lectura; los avisos no se presentan como auditoría |
 | SGE-00.05 · permisos/tenant | cumplimiento de diseño por lectura; ejecución pendiente | cliente de sesión, gates accounting/admin y admin, RLS existente; dobles de membresía no acreditan RLS |
-| SGE-00.06 · prevenir errores | no conformidad | F1/F2: importe/base todavía pueden inducir una conclusión falsa |
-| SGE-00.07 · estado verdadero | no conformidad | F1/F3 abiertos; pruebas preparadas sin ejecutar |
+| SGE-00.06 · prevenir errores | no conformidad abierta hasta validación | F1/F2 confirmados en ROJO; parche de importe/base escrito sin verde |
+| SGE-00.07 · estado verdadero | no conformidad abierta hasta validación | F1/F3 confirmados en ROJO; faltantes/alcance propagados por lectura del parche, ejecución pendiente |
 | SGE-00.08 · frecuencia/complejidad | cumplimiento de diseño por lectura | mismo enlace y lectura; sin pasos adicionales de operación; no se inventa ahorro medido |
 | SGE-00.09 · patrón común | cumplimiento por lectura | reutilización de Badge/KpiCard/EmptyState/MiniStat y Link existentes; no se crean primitivas ni consumidores deprecated. Su ausencia del registro no se presenta como promoción canonical |
 | SGE-00.10 · accesibilidad | cumplimiento parcial por lectura; cierre pendiente | tabla semántica/headers, enlaces y texto; CSS/teclado/foco/reflow no ejecutados, sin certificación WCAG integral |
-| SGE-00.11 · lenguaje | no conformidad | F1–F3: mensajes actuales contradictorios; copy de reparación en contrato |
+| SGE-00.11 · lenguaje | no conformidad abierta hasta validación | mensajes de reparación escritos; no se acredita UI real ni cierre con lectura de JSX |
 | SGE-00.12 · autoridad humana | no aplica al producto | ninguna función de IA ni acción externa nueva; ingeniería respeta turno y alcance del Director |
 
 | Política/frontera | Clasificación y alcance |
 |---|---|
 | SDD/allowlist y SDD-0357 | cumplimiento por lectura; doce rutas y BASELINE exacto pendiente de ejecutar en combinación |
-| TBL-01 / NUM-01 | no conformidad F1/F2 pendiente; importes derivados, unidades y base congelada por corregir, sin nueva captura numérica |
-| LOD-01 / ERR-01 | no conformidad F3 pendiente; errores se relanzan y no hay recuperación escrita nueva; no se muestran mensajes SQL al cliente |
+| TBL-01 / NUM-01 | no conformidad F1/F2 pendiente de verde/UI; parche exacto por centavos y base congelada escrito, sin nueva captura numérica |
+| LOD-01 / ERR-01 | no conformidad F3 pendiente de verde/UI; errores se relanzan, origen monetario incompatible falla explícito y no hay recuperación escrita nueva; no se muestran mensajes SQL al cliente |
 | VIS-01/VIS-02, A11Y-01, ICO-01, LNK-01 | fuentes leídas; revisión de componentes/CSS/foco pendiente. No sustituir evidencia de navegador por jsdom |
 | CMP-01 | se consultó el registro generado y los componentes existentes; no hay promoción, variante global ni migración de biblioteca |
 | AVS-01, FRM-01, MP-01/AUD de mutación | no aplica a toasts/confirmación/formulario/mutación: esta superficie solo lee |
@@ -194,6 +194,10 @@ No toca `lib/studio/accounting`, `invoices` (solo lee), recibos ni tasas.
 
 ## Validación
 
-Ver el [handoff](../../../.agents/handoffs/0574-embarques-sin-facturar.md). Los diez casos y tres mutantes de 2026-10-20 son evidencia histórica, no resultados de esta combinación. En la fase ligera actual: guard/claim/merge PASÓ; pruebas nuevas, tipos/lint, documentos generados, RLS, UI, verify, CI y conocimiento NO EJECUTADOS. Se autoriza respaldo de la preparación mediante commit/push selectivo de cinco rutas de pruebas/documentación; todavía sin PR nueva, merge a main ni producción.
+Ver el [handoff](../../../.agents/handoffs/0574-embarques-sin-facturar.md). Los diez casos y tres mutantes de 2026-10-20 son evidencia histórica, no resultados de esta combinación.
 
-La instalación futura, pendiente de turno, usará Corepack con `pnpm@11.19.0`, `--frozen-lockfile --ignore-scripts --store-dir .pnpm-store`, y `COREPACK_ENABLE_AUTO_PIN=0` / `COREPACK_ENABLE_DOWNLOAD_PROMPT=0` limitados al proceso, restaurados al terminar. El Corepack instalado 0.35.0 admite esa sintaxis por lectura de su parser/ejecutor y README; no se ejecutó el manager. Se guardan hashes de `package.json` y `pnpm-lock.yaml` antes/después incluso si falla, y se rechaza cualquier modificación. No se ejecuta `corepack use`, `enable`, `prepare` ni se cambia configuración global. El recibo externo conserva rutas, líneas y hashes de esa inspección; resolver/descargar la versión y la instalación real siguen **NO EJECUTADOS**.
+- Guard/claim/merge y respaldo selectivo `1ffa8acc`: **PASÓ**. La instalación propia congelada con Corepack/pnpm11.19.0: **manager PASÓ exit0**; package/lock intactos. El envoltorio: **FALLÓ exit1** por comprobación de restauración de variables. El proceso terminó; incidencia y reproducción separada conservadas, sin reinstalación ni configuración global alterada.
+- `knowledge:status` inicial: **NO DISPONIBLE por interrupción autorizada** después de335.85s; estructura/semántica UNAVAILABLE. Su wrapper exit0 no significa éxito. Sin generación, publicación ni revisión visible de Obsidian.
+- ROJO sobre `1ffa8acc`, producto equivalente a `e6b0129c`: **87 casos, 53 fallos funcionales, 34 pasan, 0 skip/0 todo**, tres archivos reales, dos workers, retry0. Sin fallos de import/preparación/TypeError/timeout detectados, ni reparación de fixture/reintento. Sus 27 huellas quedaron intactas.
+- Parche F1–F3 escrito solo después de revisión y GO del Director. Los tres archivos de pruebas y sus 87 oráculos conservan los bytes del ROJO. **Verde, regresiones/mutantes, tipos/lint, docs/numbering/baseline, SQL/RLS, UI real, verify y CI: NO EJECUTADOS sobre el parche.** C3 conserva el turno pesado.
+- Sin PR nueva, integración, producción ni filas reales. El claim permanece. Recibos originales fuera de Git en `C:/tmp/director-traspaso-20261020/0574-cierre-validation/`: `fase1-resumen-1ffa8acc.md` (SHA256 `3cc586868d3aed18edb8b62564fcf423d98fff4b1dcda7062ad78092f0bf9cbe`) y `fase1-cierre-1ffa8acc.json` (SHA256 `df44eef2bbf88da90d79de1e7d595ba93b207129ec8417ebf0a62ae81ae509ee`) inventarían los logs/JSON y límites.

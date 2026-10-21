@@ -1,5 +1,7 @@
 # Handoff · SDD-0574 · Embarques sin facturar (4.5 del plan contable)
 
+> Estado de la retoma Codex, 2026-10-21: ROJO funcional revisado sobre `1ffa8acc` (87/53 fallos/34 pasan/0 omitidos), producto F1–F3 escrito después del GO y todavía sin validación verde. Turno pesado devuelto a C3 a08:23:49Z; solo implementación/preparación ligera. El registro histórico y la asignación de abajo se conservan con sus fechas. Rige el bloque de avance al final para el estado actual; sin PR nueva ni release.
+
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-10-20 |
@@ -180,3 +182,42 @@ La suma de muchos `numeric(14,2)` no cabe necesariamente en centavos seguros de 
 Los tres bordes `90071992547409.91/.92/.93` provienen de 92 snapshots aritméticamente realizables con las escalas de 0496: 90 × (100.000 × 9999999999.99), uno de (100.000 × 700000000.00) y uno de (1.000 × 1992547499.91/.92/.93), mínimo0. Los tests guardan literales esperados y recorren regla, lector/normalizador, JSON y ambas UI reales. También se escriben magnitud+faltante1 y 60000 filas observadas con subtotal `59999999999940000.00`, lectura parcial y faltantes0. Este último no certifica haber llegado al vacío del paginador. Todos los oráculos permanecen **NO EJECUTADOS** y no son evidencia de ROJO ni de precisión ya implementada.
 
 **Pendientes propios:** instalación, ROJO funcional, producto F1–F3, verde/regresiones/mutantes/restauración, roles/RLS, UI real, tipos/lint/docs/numbering/baseline, checkpoint/DRAFT, verify por receta y conocimiento. **FUERA DE ALCANCE DETECTADO:** unidad4.2 y cobertura de la auto-factura0128 por prealerta, conservadas; no se absorben Caracas/BCV/0573/0575 ni operaciones de producción.
+
+### Avance después del ROJO · 2026-10-21
+
+La preparación de cinco rutas quedó comprometida/publicada en `1ffa8acced21871379cd0c67ade6a90445d77219`, padre `e6b0129c`, remoto igual y ahead/behind0 en ese checkpoint. El Director leyó los tres archivos de pruebas completos y aceptó la API de centavos BigInt/proyección decimal textual. No se movió la rama histórica ni se cambió la combinación.
+
+**Fase1 ejecutada en turno expreso y cerrada antes de producto:**
+
+| Comprobación | Estado / evidencia |
+|---|---|
+| Instalación propia congelada | Manager PASÓ exit0: `corepack pnpm@11.19.0 install --frozen-lockfile --ignore-scripts --store-dir .pnpm-store`, 50.75s de pared. Package/lock idénticos. Sin env/copias ajenas, scripts de instalación ni upgrades |
+| Envoltorio de instalación | FALLÓ exit1: `environmentRestored=false`. El proceso23736 terminó. La reproducción separada muestra que PowerShell7.6.5 convierte el null pasado a SetEnvironmentVariable en cadena vacía; la receta futura debe eliminar el nombre del proveedor Env si antes estaba ausente y restaurar el valor si existía. El recibo original no midió los tipos previos y no se recertifica retroactivamente. No se repitió instalación |
+| Conocimiento inicial | NO DISPONIBLE por interrupción autorizada después de335.85s. JSON `ok=false`, estructura/semántica UNAVAILABLE; wrapper exit0 no es verde. Se terminaron solo procesos atribuibles a esa inspección. Sin generación/publicación, sin cambios de ignores/runtime/store; no se atribuye causa única a la caché |
+| ROJO funcional | Tres archivos completos, Vitest4.1.7, maxWorkers2/retry0. 87 casos: regla/lector38 (26 fallan/12 pasan), página29 (15/14), tarjeta20 (12/8). Total53 fallan/34 pasan/0 skip/0 todo; exit1, 35.97s pared. Nueve suites del JSON son agrupaciones, no nueve archivos |
+| Clasificación del ROJO | 33 AssertionError, 14 búsquedas DOM y6 toHaveTextContent: agregado, base congelada, faltantes/alcance y UI real en jsdom. Sin import/resolve/TypeError/ReferenceError/SyntaxError/timeout/no manejado detectados. No corrección de fixture ni reintento |
+| Huellas/procesos | 27/27 iguales: cinco producto, diecisiete protegidas, cinco preparación. Ningún tracked cambiado; solo store propia sin rastrear. PIDs registrados y procesos pesados atribuibles ausentes a08:23:49Z; turno devuelto expresamente a C3. Claim propio conservado |
+
+Los bordes monetarios fallaron con diferencias observables: `.91` recibió `.9`, `.93` recibió `.94`; 60000 filas esperaban `59999999999940000.00` y recibieron Number `59999999999994390`, además de certificar monto con lectura cortada. No son filas reales. Los fixtures de permisos no prueban RLS; jsdom no acredita CSS/navegador, dispositivo ni A11Y integral.
+
+**Recibos externos inmutables:** carpeta `C:/tmp/director-traspaso-20261020/0574-cierre-validation/`. Primer preflight conserva `preflight-ligero.md` SHA256 `7d5b5d5a882d5c333dcd1a4f341eb71400d942e5e1fb70539c11aa859caf76a1` y JSON `9bb117c9042aa7fa4ca923d3fabd065fcd98a0f12e3429f5c1eb13d78dbb0ff8`; precisión posterior usa nombres nuevos `preflight-precision-1ffa8acc.md/json` (`6e462f49…`/`ac3c0817…`). No se sobrescriben los originales citados.
+
+- `fase1-red-1ffa8acc.receipt.json`: SHA256 `36dce84b0b0cd49aeb6d0a5127874bff9346540d07504654b894b4f665a86458`.
+- JSON nativo ROJO: `8e9e0a6b2bfa8f597063674dce87bb8a24db43a1822c66e9825151ce0b90c57b`; log: `e23e65b91facf00fbe9152b2402986bc067eff8743527bf363da3bd23bd35a1c`.
+- `fase1-resumen-1ffa8acc.md`: SHA256 `3cc586868d3aed18edb8b62564fcf423d98fff4b1dcda7062ad78092f0bf9cbe`.
+- `fase1-cierre-1ffa8acc.json`: SHA256 `df44eef2bbf88da90d79de1e7d595ba93b207129ec8417ebf0a62ae81ae509ee`; inventaría todos los artefactos de fase1 y huellas finales. Se creó antes de editar producto y no se actualiza con el parche.
+
+**GO de implementación ligera:** después de leer el recibo, los53 nombres/primeros diagnósticos/líneas y cotejar los hashes, el Director autorizó producto/test/docs dentro de las mismas doce rutas, sin ejecución durante C3. El parche actual modifica cuatro rutas de producto:
+
+- `sin-facturar.ts`: suma importes fuente en centavos BigInt y proyecta texto exacto, por grupo y global. Conserva subtotal/faltante y anula el total si falta tarifa o lectura. La guarda por fila rechaza formato incompatible con numeric14,2; no lo disfraza como ausencia ni cero. Transporta CBM congelado/mínimo; mismo pairing, prioridades y consultas de sesión.
+- Reporte: global y categorías muestran alcance/subtotal/faltante; separa vacío completo/parcial. Tabla de CBM congelado/actual, aviso mediante `cbmCambio` existente y mínimo, sin recalcular. Agregados formateados por texto; fila conserva formateador numérico de su importe acotado. Contenedor desplazable con nombre y foco para comprobación posterior.
+- Tarjeta: contador sin tarifa transversal `total.sinTarifa`, incluido lo llegado, con explicación visible del cruce. Parcial no usa éxito por cero. Conserva los cuatro enlaces y solo importaciones de tipo de la biblioteca del lector; no añade hooks, estado compartido, fetches ni cascadas.
+- Dirección pasa el mismo `total` del lector. No cambia sus consultas ajenas, gates ni cifras contables.
+
+Los tres archivos de pruebas conservan sus87 oráculos y bytes del ROJO. Revisión acotada de React aplicada por lectura: props/estado derivados, null separado de cero, importación de tipos, sin solicitudes adicionales, tabla semántica y avisos textuales. No se recomienda cambiar bibliotecas ni tokens DTD. El diff/checkpoint ligero y scripts externos futuros no equivalen a validación ejecutada.
+
+**Validación siguiente preparada fuera de Git:** `fase2-plan-preparado.md` (SHA256 `5b1edab2f096e1febc0f90a523482bbcffdbde942ebb88040760fff45a16d4f9`) describe el focal87, ocho archivos de regresión, catorce mutantes y una fixture visual de componentes/CSS reales con DB sintética. `fase2-runner.cjs`, `fase2-mutants.json`, `fase2-ui.cjs`, `fase2-ui-data.ts` y `fase2-ui-entry.tsx` permanecen **NO EJECUTADOS**; su sintaxis/funcionamiento no están certificados. Por lectura de anclas, las14 sustituciones son únicas y sus tests existen. Se exige nuevo turno, SHA estable, guard/claim y referencia de GO; ninguna fase se encadena o reintenta automáticamente. El recibo externo del checkpoint inventaría los seis hashes. Los límites incluyen SSR estático, no RLS, Chromium/viewport sin teléfono real ni zoom nativo, y revisión visual posterior de capturas.
+
+**Pendientes de esta tarea:** verde87, regresiones pertinentes/baseline exacto, mutantes y restauración, tipos/lint/docs/numbering, RLS/SQL sintéticos, UI real claro/oscuro/390/escritorio/teclado/reflow, checkpoint funcional revisado y DRAFT, verify normal por receta del Director, ciclo de conocimiento/cierre. Todos **NO EJECUTADOS sobre el parche**; conocimiento inicial **NO DISPONIBLE**. Sin autorización actual para nuevos procesos pesados, PR, integración o producción. Claim permanece hasta cierre aceptado.
+
+**FUERA DE ALCANCE DETECTADO:** las dos deudas ya declaradas (unidad4.2 y cobertura0128 por prealerta) conservan su frontera. No se absorben 0573/0575/Caracas/BCV ni cambios contables globales. No hay hallazgo nuevo que exija ampliar las doce rutas.

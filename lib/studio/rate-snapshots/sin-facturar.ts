@@ -69,14 +69,35 @@ export type FacturaReporte = {
   status: string;
 };
 
-export type TarifaReporte = { amount_to_invoice: number; per_cbm: number };
+export type TarifaReporte = {
+  amount_to_invoice: number;
+  per_cbm: number;
+  cbm: number;
+  min_charge: number;
+};
+
+/** Decimal no negativo con dos decimales, sin agrupación ni exponente. */
+export type ImporteUsdExacto = string;
+
+export type TotalesSinFacturar = {
+  /** Recepciones elegibles observadas, no facturas. */
+  cantidad: number;
+  subtotalConocido: ImporteUsdExacto;
+  /** Recepciones observadas sin tarifa disponible, incluidas las llegadas. */
+  sinTarifa: number;
+  /** Solo es total si no falta tarifa y la lectura está completa. */
+  aFacturar: ImporteUsdExacto | null;
+};
 
 export type FilaSinFacturar = {
   receiptId: string;
   receiptCode: string;
   markbox: string;
   receivedAt: string;
+  /** Volumen actual de la recepción; no determina el importe congelado. */
   cbm: number | null;
+  cbmCongelado: number | null;
+  minimo: number | null;
   shipmentCode: string | null;
   shipmentStatus: string | null;
   estado: EstadoSinFacturar;
@@ -89,11 +110,12 @@ export type FilaSinFacturar = {
   dias: number;
 };
 
-export type ResumenSinFacturar = Record<EstadoSinFacturar, { cantidad: number; aFacturar: number }>;
+export type ResumenSinFacturar = Record<EstadoSinFacturar, TotalesSinFacturar>;
 
 export type ReporteSinFacturar = {
   filas: FilaSinFacturar[];
   resumen: ResumenSinFacturar;
+  total: TotalesSinFacturar;
   /** false = alguna lectura se cortó en el tope de páginas: los números no son todo. */
   completo: boolean;
   /** false = la 0496 no está aplicada: no se sabe qué tiene tarifa. */
@@ -101,6 +123,35 @@ export type ReporteSinFacturar = {
 };
 
 const DIA_MS = 24 * 60 * 60 * 1000;
+
+type Acumulado = { cantidad: number; centavos: bigint; sinTarifa: number };
+
+/**
+ * La fuente es numeric(14,2) de 0496. Cada fila cabe por debajo de 10^12:
+ * la separación entre Number representables es menor que un centavo y sus
+ * dos decimales se recuperan sin ambigüedad. La suma sí puede exceder ese
+ * límite: desde aquí solo se acumulan enteros BigInt, nunca Number.
+ */
+function centavosSnapshot(importe: number): bigint {
+  if (typeof importe !== "number" || !Number.isFinite(importe) || importe < 0 || importe > 999_999_999_999.99) {
+    throw new Error("El importe congelado no cumple el formato monetario de la lectura.");
+  }
+  const decimal = importe.toFixed(2);
+  if (Number(decimal) !== importe) {
+    throw new Error("El importe congelado no cumple el formato monetario de la lectura.");
+  }
+  return BigInt(decimal.replace(".", ""));
+}
+
+function proyectarTotal(acumulado: Acumulado, lecturaCompleta: boolean): TotalesSinFacturar {
+  const subtotalConocido = `${acumulado.centavos / 100n}.${(acumulado.centavos % 100n).toString().padStart(2, "0")}`;
+  return {
+    cantidad: acumulado.cantidad,
+    subtotalConocido,
+    sinTarifa: acumulado.sinTarifa,
+    aFacturar: lecturaCompleta && acumulado.sinTarifa === 0 ? subtotalConocido : null,
+  };
+}
 
 function llego(envio: EnvioReporte | undefined): boolean {
   if (!envio) return false;
@@ -118,7 +169,8 @@ export function clasificarSinFacturar(input: {
   facturas: FacturaReporte[];
   tarifas: Record<string, TarifaReporte>;
   hoy: Date;
-}): { filas: FilaSinFacturar[]; resumen: ResumenSinFacturar } {
+  lecturaCompleta?: boolean;
+}): { filas: FilaSinFacturar[]; resumen: ResumenSinFacturar; total: TotalesSinFacturar } {
   const envios = new Map(input.envios.map((e) => [e.id, e]));
   // Por (envío, Shipping Mark): la factura fiscal viva o, si no, la pre-factura.
   const facturada = new Set<string>();
@@ -131,6 +183,10 @@ export function clasificarSinFacturar(input: {
   }
 
   const filas: FilaSinFacturar[] = [];
+  const porEstado = Object.fromEntries(
+    ESTADOS_SIN_FACTURAR.map((e) => [e, { cantidad: 0, centavos: 0n, sinTarifa: 0 }]),
+  ) as Record<EstadoSinFacturar, Acumulado>;
+  const global: Acumulado = { cantidad: 0, centavos: 0n, sinTarifa: 0 };
   for (const r of input.recepciones) {
     const markbox = clave(r.client_markbox);
     if (!markbox) continue;
@@ -145,16 +201,26 @@ export function clasificarSinFacturar(input: {
     const desde = llegada && envio?.arrived_destination_at ? envio.arrived_destination_at : r.received_at;
     const dias = Math.max(0, Math.floor((input.hoy.getTime() - new Date(desde).getTime()) / DIA_MS));
 
+    // Un snapshot inválido es un error de lectura, no una tarifa ausente.
+    const centavos = tarifa ? centavosSnapshot(tarifa.amount_to_invoice) : null;
+    for (const acumulado of [porEstado[estado], global]) {
+      acumulado.cantidad += 1;
+      if (centavos === null) acumulado.sinTarifa += 1;
+      else acumulado.centavos += centavos;
+    }
+
     filas.push({
       receiptId: r.id,
       receiptCode: r.receipt_code,
       markbox,
       receivedAt: r.received_at,
       cbm: r.total_cbm == null ? null : Number(r.total_cbm),
+      cbmCongelado: tarifa ? tarifa.cbm : null,
+      minimo: tarifa ? tarifa.min_charge : null,
       shipmentCode: envio?.code ?? null,
       shipmentStatus: envio?.status ?? null,
       estado,
-      aFacturar: tarifa ? Number(tarifa.amount_to_invoice) : null,
+      aFacturar: tarifa ? tarifa.amount_to_invoice : null,
       perCbm: tarifa ? Number(tarifa.per_cbm) : null,
       preFactura: k ? (preFactura.get(k) ?? null) : null,
       dias,
@@ -164,14 +230,11 @@ export function clasificarSinFacturar(input: {
   const orden = new Map(ESTADOS_SIN_FACTURAR.map((e, i) => [e, i]));
   filas.sort((a, b) => (orden.get(a.estado)! - orden.get(b.estado)!) || b.dias - a.dias || a.receiptCode.localeCompare(b.receiptCode));
 
+  const lecturaCompleta = input.lecturaCompleta ?? true;
   const resumen = Object.fromEntries(
-    ESTADOS_SIN_FACTURAR.map((e) => [e, { cantidad: 0, aFacturar: 0 }]),
+    ESTADOS_SIN_FACTURAR.map((e) => [e, proyectarTotal(porEstado[e], lecturaCompleta)]),
   ) as ResumenSinFacturar;
-  for (const f of filas) {
-    resumen[f.estado].cantidad += 1;
-    resumen[f.estado].aFacturar = Math.round((resumen[f.estado].aFacturar + (f.aFacturar ?? 0)) * 100) / 100;
-  }
-  return { filas, resumen };
+  return { filas, resumen, total: proyectarTotal(global, lecturaCompleta) };
 }
 
 /**
@@ -228,21 +291,29 @@ export async function reporteSinFacturar(
   const tarifas: Record<string, TarifaReporte> = {};
   if (vivas.disponible) {
     for (const [id, s] of Object.entries(vivas.porRecepcion)) {
-      tarifas[id] = { amount_to_invoice: s.amount_to_invoice, per_cbm: s.per_cbm };
+      tarifas[id] = {
+        amount_to_invoice: s.amount_to_invoice,
+        per_cbm: s.per_cbm,
+        cbm: s.cbm,
+        min_charge: s.min_charge,
+      };
     }
   }
 
-  const { filas, resumen } = clasificarSinFacturar({
+  const completo = recepciones.complete && envios.complete && facturas.complete;
+  const { filas, resumen, total } = clasificarSinFacturar({
     recepciones: recepciones.rows,
     envios: envios.rows,
     facturas: facturas.rows,
     tarifas,
     hoy,
+    lecturaCompleta: completo,
   });
   return {
     filas,
     resumen,
-    completo: recepciones.complete && envios.complete && facturas.complete,
+    total,
+    completo,
     tarifasDisponibles: vivas.disponible,
   };
 }
