@@ -19,7 +19,7 @@ Trabajo local P1 autorizado por Director, owner worker-0578normal-01a15a4e-ddf0-
 
 Fuente ejecutable: 042-activacion-worker-0578-director.md, SHA256 1939a04752338b66bc5187961f8a1a216093dc6101fdb28771bec2efae607be4. El contrato íntegro y las fases/permisos/exclusiones están preservados en `.agents/handoffs/042-envio-cliente-camino-normal.md`; las secciones contractuales y su allowlist/aceptación se copian abajo sin alterar la fuente sellada.
 
-Checkpoint autoral P1-70 posterior al corte inmutable a6: unión70 y decisión fence adoptadas íntegras, PR #318 OPEN/DRAFT/baseD1. Nuevo fence privado durable, oráculos de carreras y presentación split redactados; aceptación funcional pendiente.0502 mantiene fusible antes deDDL/cohorteOFF. Runtime/instalación/tests/SQL/DB/tipos/lint/HTTP/browser/UI/build/verify/conocimiento NO EJECUTADO. Plan22f41ffa y matriz final de este documento distinguen autoría de aceptación y pendiente móvil fuera70. BCV conserva turno pesado; no se certifica4.2 completo ni capacidad activa.
+Checkpoint autoral P1-72 separado de cortes inmutables a6/b85: unión72 adoptada íntegra; sólo nueva presentación móvil0045 y fixture además del corte70. PR318 OPEN/DRAFT/baseD1,0502fusible/OFF sin deltaSQL; aceptación NO EJECUTADA. Plan4c52c6cb compone plan70/matriz/órdenes/oráculos y prueba focal móvil pendiente. Turno diagnósticoPortal reservado,0578 sin GO. No se certifica4.2 completo, capacidad activa o funcionamiento.
 
 ## Gobierno de permanencia y riesgo
 
@@ -1005,3 +1005,125 @@ Dependencia introducida por el fence, no bug ajeno cerrado: `app/m/cn/nueva/acti
 - Acción móvil0045 y fixture sólo lecturas propias externas; búsqueda app/lib sin caller TS0449. El lector antiguo recibir usa otraRPC y no se altera por inferencia. No nuevo inventario masivo ni atribución de prueba a lecturas.
 
 La siguiente acción requiere revisión del SHA fijo y asignación explícita de turno por Director. Este checkpoint no cierra4.2, no libera claim, no retira fusible, no activa cohorte, no integra ni permite producción. Conserva legacy, facturaOV anterior y límites financieros4.3.
+
+
+## Adopción íntegra addendum72 antes de las dos rutas móviles
+
+Fuente externa042-addendum-director-0578-72-rutas-intake-movil.md,8267bytes/SHA256 b7800a86b399b4478d5d905cd1e5f9f8a1ae8fc306135b805f56bf649c05a058, leída completa y cotejada. Unión literal72 única =70previas+exactamente app/m/cn/nueva/actions.ts y su actions.test.ts. Guard/owner retenidos, preimágenes b85 c587353da84ae32da584d22a6ee162d647ac4ed1/320b22001309bb1d2c4a0c1cd0bc89c380ff594d intactas antes de tocar ambas. Registro externo adopcion72-preimagenes-b85.json. Sólo mapper local exacto y oráculos; sin runtime ni inferir funcionamiento. El corte70 b85 permanece inmutable y su pendiente sólo se incorpora en otro SHA. Turno siguiente reservado al diagnósticoPortal, P1 sigue autoría exclusivamente.
+
+<!-- ADDENDUM72 DIRECTOR ÍNTEGRO INICIO -->
+# SDD0578 · addendum Director72, presentación del rechazo de alta móvil
+
+21 de octubre de2026. AUTORIZADO SÓLO PARA AUTORÍA P1. NO GO de instalación, runtime o pruebas. Mismos raíz C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0578-envios-cliente-camino-normal, rama codex/sdd-0578-envios-cliente-camino-normal, owner worker-0578normal-01a15a4e-ddf0-7d82-8656-d9dc56b58468, claim vigente, baseD1 1ec5e85f736b7826cf5b6e8781757dc4cf950733 y PR318DRAFT. Unión literal70+2=72, sin tercera ruta nueva. No cambia la dirección de fence/orden gate→fence→FK, cohortesOFF ni fusible0502 antesDDL. a6a8c6c3601356d5647609ea1fa1ed5a8e7c8b44 conserva su revisión anterior; toda nueva implementación requiere revisión de otro SHA.
+
+## Evidencia y alcance
+
+Director leyó íntegros propuesta0578-normal-validation/propuesta-presentacion-intake-movil-0045.md,4239bytes/SHA2569a8397c80f30e6fab354e7775b3d8f126f14e33a74fc7ccd0aa32251d73a4aa1, y objetos a6 de actions.ts143líneas/blob c587353da84ae32da584d22a6ee162d647ac4ed1 y actions.test.ts372líneas/blob320b22001309bb1d2c4a0c1cd0bc89c380ff594d. La acción llama0045 real, luego vincula/avisa y revalida sólo tras código exitoso. Su error101–104 interpola message sin mapper. La nueva respuesta de concurrencia/denegación daría texto técnico por fuente, NO REPRODUCIDO. Fixtures prueban acción/motor con store sintético, no DB/RLS/serialización.
+
+La búsqueda del Worker no halló callerTS0449 en app/lib y recibir/actions.ts usa otraRPC; no es prueba universal de inexistencia y no autoriza tocar ese flujo. No se cambia0045/0449 históricos, librería compartida, móvilVE o regla de avisos/OV. ERR-01 y estado veraz se satisfacen por el contrato de autoría; eficacia/recorrido todavía NO EJECUTADOS.
+
+## Cambio acotado y aceptación futura
+
+1. Sólo rama de error de createReceiptFromOperarioAction en app/m/cn/nueva/actions.ts. Conservar sesión, validación, privacidad del nombre resuelto en servidor, argumentos y únicaRPC. Reconocer code EXACTO40001 o terna codeP0001/hintdtd-client-normal/message EXACTO en NORMAL_GOVERNED,NORMAL_CONFLICT,NORMAL_FORBIDDEN. No includes, coerción o reconocimiento por texto parcial.
+2. Copy fijo de esas respuestas: «No se pudo confirmar la recepción. Revisa su estado y vuelve a intentarlo.» Sin dato técnico/identidad y sin afirmar persistencia o no-persistencia desconocida. Sin ok/receiptId/receiptCode, retryable, reintentoRPC, referencia nueva, vínculo/aviso/updates o revalidate de éxito. No ampliar tipos compartidos ni importar mapperStudio. El formulario conserva su gestión de error actual.
+3. Otros errores conservan exactamente contrato heredado, incluidoP0002 y transporte que no cumpla los predicados. No normalizar cualquiererror a esta rama. Mantener console existente sin nueva captura o datos. Positivo existente y vínculos/OV/privacidad no se tocan.
+4. En actions.test.ts mantener todos los casos/oráculos actuales y el store/motor real. Doblar sólo respuesta de RPC ya doblada, sin editar lectores-admin-double o notificadores. Añadir cada código exacto y negativos discordantes de code/hint/message, P0002literal y desconocido. Verificar única llamada con argumentos conservados, cero escritura/vínculo/aviso/revalidate/retry y ninguna forma de éxito. No fabricar ROJO funcional por fixture/import y no afirmar atomicidadDB con el doble.
+5. Adopción íntegra y guard antes de editar las dos rutas. Conservar preimágenes/D1 y contrato70 SHA8f5614ebd8683d1bff5b44c410b50089c2e964087cf16aba1d6f20a32c595ef4 intacto. Copiar literal72 en spec/handoff y permitir al guard sólo esta unión. Puede sellarse primero el checkpoint70, conservando este pendiente hasta que se incorpore; no atribuirle aceptación móvil antes del delta72 revisado.
+
+## Allowlist acumulada literal72
+
+```text
+lib/studio/client-consolidation/types.ts
+lib/studio/client-consolidation/queries.ts
+lib/studio/client-consolidation/normal-flow.ts
+app/studio/(app)/naviera/_components/ConfirmarEnviosClienteDrawer.tsx
+app/studio/(app)/naviera/actions.ts
+app/studio/(app)/naviera/page.tsx
+app/studio/(app)/naviera/_components/NavieraClient.tsx
+app/studio/(app)/naviera/plan-actions.ts
+app/studio/(app)/cn/actions.ts
+app/studio/(app)/cn/page.tsx
+app/studio/(app)/cn/_components/AlmacenCnClient.tsx
+app/studio/(app)/cn/_components/ReceiptRowActions.tsx
+app/studio/(app)/tracking/[id]/actions.ts
+app/studio/(app)/tracking/[id]/page.tsx
+app/studio/(app)/tracking/[id]/_components/ShipmentDataPanel.tsx
+app/studio/(app)/tracking/[id]/_components/StateActionsPanel.tsx
+app/studio/(app)/tracking/[id]/_components/FooterActions.tsx
+app/api/studio/shipments/[id]/route.ts
+app/api/studio/shipments/[id]/events/route.ts
+app/studio/(app)/ve/actions.ts
+app/studio/(app)/ve/_components/VeRowActions.tsx
+app/m/cn/estibar/actions.ts
+app/m/cn/estibar/_components/EstibaClient.tsx
+lib/portal/portal-queries.ts
+lib/studio/rate-snapshots/types.ts
+lib/i18n/es-VE/warehouse.ts
+lib/i18n/zh-CN/warehouse.ts
+supabase/pending-migration-symbol-declarations.json
+supabase/migrations-baseline.json
+docs/specs/README.md
+.agents/handoffs/042-envio-cliente-camino-normal.md
+app/m/cn/estibar/[consolidationId]/page.tsx
+docs/specs/0578-envios-cliente-camino-normal/spec.md
+supabase/migrations/0502_consolidacion_cliente_camino_normal.sql
+supabase/tests/consolidacion_cliente_normal.test.sql
+supabase/tests/_consolidacion_cliente_normal_schema.sql
+lib/studio/client-consolidation/__tests__/normal-path.migration.test.ts
+scripts/check-client-consolidation-concurrency.mjs
+app/studio/(app)/naviera/__tests__/envios-cliente-actions.test.ts
+app/studio/(app)/naviera/_components/__tests__/ConfirmarEnviosClienteDrawer.test.tsx
+app/studio/(app)/cn/__tests__/consolidacion-cohorte.test.ts
+app/studio/(app)/naviera/__tests__/plan-carga-cohorte.test.ts
+app/studio/(app)/tracking/[id]/__tests__/cohorte-normal-actions.test.ts
+app/api/studio/shipments/[id]/__tests__/cohorte-normal.test.ts
+app/m/cn/estibar/__tests__/cohorte-pertenencia.test.ts
+app/studio/(app)/ve/__tests__/cohorte-normal.test.ts
+lib/portal/__tests__/envios-cohorte.test.ts
+lib/studio/rate-snapshots/__tests__/sin-facturar.test.ts
+app/studio/(app)/cn/__tests__/rate-snapshot-actions.test.ts
+e2e/consolidacion-clientes-camino-normal.spec.ts
+app/studio/(app)/cn/__tests__/delete-receipts-action.test.ts
+app/studio/(app)/cn/__tests__/create-receipt-code.test.ts
+app/studio/(app)/naviera/__tests__/zarpe-avanza-envios.test.ts
+app/studio/(app)/naviera/__tests__/ocultar-nombres-cn.test.tsx
+app/studio/(app)/naviera/_components/__tests__/NavieraClient.avance.test.tsx
+app/studio/(app)/tracking/[id]/__tests__/datos-reservados-actions.test.tsx
+app/studio/(app)/tracking/[id]/_components/__tests__/FooterActions.borrado.test.tsx
+app/api/studio/shipments/[id]/events/__tests__/module-gate.test.ts
+lib/portal/__tests__/activation.test.ts
+lib/portal/__tests__/dashboard.test.ts
+lib/portal/__tests__/invoices.test.ts
+lib/portal/__tests__/estimates.test.ts
+lib/portal/__tests__/portal-queries-principal-scope.test.ts
+lib/portal/__tests__/portal-quote-scope.test.ts
+lib/portal/shipment-events-queries.ts
+lib/portal/__tests__/shipment-events.test.ts
+lib/portal/__tests__/portal-read-principal-scope.test.ts
+app/m/ve/bodeguero/actions.ts
+app/m/ve/bodeguero/_components/SplitQueueRetryRunner.tsx
+app/m/_lib/__tests__/split-queue.test.ts
+app/m/cn/nueva/actions.ts
+app/m/cn/nueva/actions.test.ts
+```
+
+## Entrega y límites
+
+Entregar SHA/árbol/diff propio vsD1 y delta desde corte anterior, manifiesto de blobs y huellas, cobertura72 exacta, contratos/oráculos/ACL/ordenes y pendientes. Tests, instalación, SQL local, DB, Docker, navegador, types/lintglobal/verify/build y conocimiento requieren turno/GO posterior. Todos siguen NO EJECUTADOS por este permiso.
+
+Sin main/merge/deploy/VPS/producción/PII/secretos/cuentas/billing/contactos/memoria/sharedObsidian/flags o activación nominal.0495 no se repite y0496/0501/0502 no se aplican. Nueva rama de sincronización no autoriza integrar o publicar en producción ni cambia las condiciones de los demás Workers. Preparación por fuente es reversible y no necesita permiso adicional de Sam dentro del encargo vigente.
+<!-- ADDENDUM72 DIRECTOR ÍNTEGRO FIN -->
+
+## Checkpoint autoral P1-72 — presentación móvil, sin cambio SQL
+
+Delta separado sobre corte70 `b85d2ae7b8cbb7748df1a9bb02c8a97fc6488e24`; b85/a6 siguen inmutables. Adopción72 fuente8267bytes/SHA b7800a86b399b4478d5d905cd1e5f9f8a1ae8fc306135b805f56bf649c05a058 copiada íntegra arriba y confirmada al Director ANTES de tocar las dos rutas. Preimágenes b85=D1/a6 guardadas en `C:/tmp/director-traspaso-20261020/0578-normal-validation/adopcion72-preimagenes-b85.json`,SHA256 a912e0ef7ede98ad0e8683a66b0f5bc39c738c88e9958df822620b69b5dd0073. Unión72 literal sin ruta73, mismo owner/claim/WT/rama/baseD1.
+
+- Ruta71 `app/m/cn/nueva/actions.ts`,150líneas/blob `965a0ad6e63bd61f21dad9a310aea07c72107c31`: cambio101–111 en la rama existente de error de createReceiptFromOperarioAction; leída completa. Sólo code exacto40001 o P0001+hintdtd-client-normal+message exactamente NORMAL_GOVERNED/NORMAL_CONFLICT/NORMAL_FORBIDDEN devuelven copy aprobado. No includes/coerción/texto parcial. No nuevo retryable/retry, ok/id/código, referencia, permiso, aviso/OV o revalidate de éxito. Sesión, validador, privacidad de nombre servidor, argumentos0045 y console mantienen sus cuerpos existentes; resto de errores conserva retorno literal, incluidoP0002.
+- Ruta72 `app/m/cn/nueva/actions.test.ts`,442líneas/blob `3824db617d25e0fb41fdc5f53c757e37db9b9507`: dos imports de mocks ya locales y nuevo bloque374–442. Comparación Git/nativa verificó el cuerpo anterior exacto después de excluir sólo los dos imports y los casos añadidos: todos los oráculos precedentes1–374 permanecen sin cambio.4positivos y9discordancias/códigos/transportes, más sesión/input previo:14escenarios redactados, ninguno ejecutado. Una únicaRPC con argumentos completos, nombre no confiable del dispositivo ignorado, store idéntico/cero inserts/updates/avisos/revalidate y ningún éxito/retryable; P0002literal/errores desconocidos intactos. Sólo cambia respuesta deRPC ya doblada, no lectores-admin-double, motor o notificadores. Mock API no prueba rollback, RLS, serialización ni persistencia real.
+-0502/runner/fence/ACL/ordenes/fechas/catálogos no cambian frente a b85; mismo blob0502 a07a5c482eaae5cd9aa761da70ce404a40773fbf/SHA256c781b5acb3d6684c97d94cc1de90198b85133bd43619f562d441effdc92e64e3. Fusible antesDDL/OFF intactos.0184/0321/0045/0449/0496 históricos y compartidos intactos. Sin nueva RPC pública/declaración/capability ni número SQL.
+
+La propuesta9a8397c8 antes fuera70 está incorporada sólo como autoría72. No es aceptación funcional: el caso de presentación móvil requiere revisión del nuevo SHA y pruebas futuras. Todo A1–A18 conserva NO EJECUTADO y los faltantes del plan70; ninguna inferencia de bloqueo/permiso/cobertura o política nueva se convierte en verde por este mapper.
+
+Plan actual externo `C:/tmp/director-traspaso-20261020/0578-normal-validation/plan-relevo-p1-72.md`,3640bytes/SHA256 `4c52c6cbfe4a17d65d6f5c11be494daec21fcdcabf5099fc44665693fb3a84f9` compone plan70 conservado22f41ffa y sólo añade focal de ruta72. Recibo inmutable70 `checkpoint-p1-70-b85d2ae7b-recibo.md`,3082bytes/SHA2567ff27293fecb03361dfc870784714b6715c1fe8c8e6a18b68f1675cd202b40a8 confirma push/GH318DRAFT/headb85/baseD1/70rutas/checks[]/body exacto antes de este delta. Recibo nuevo fija SHA/árbol/diffs/blob72/readback. Cambios rastreados del delta72: sólo estas dos rutas+spec/handoff, cuatro en total.
+
+Estado de turnos actualizado por Director: BCV GO05B FALLÓ+INCOMPLETO y recursos devueltos, turno siguiente reservado al diagnósticoPortal.0578 sigue sólo P1 sin GO; no tests/instalación/parser/tipos/lint/SQL/DB/Docker/HTTP/Auth/Storage/browser/UI/build/verify/conocimiento. Guard, copia literal/adopción/hash/diffcheck y preservación fuente son comprobaciones nativas/Git, no eficacia del código. Claim retenido, PRDRAFT, sin main/merge/deploy/prod/0495/activación4.2 ni cambios financieros4.3.
