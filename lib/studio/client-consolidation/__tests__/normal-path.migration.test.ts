@@ -103,7 +103,7 @@ const receipt = (n: number): NormalReceipt => ({ receiptId: id(n), receiptCode: 
   blockedReason: null, shipmentId: null, groupId: null });
 const page = (receipts: NormalReceipt[], nextReceiptId: string | null, readToken = "complete-input"): NormalContextPage => ({
   availability: "ready", readToken, observedAt: "2026-10-21T14:00:00Z", manifest: null,
-  destinations: [{ id: id(90), label: "Valencia" }], receipts, nextReceiptId,
+  destinations: [{ id: id(90), label: "Valencia · Carabobo · Valencia", destination: "Valencia" }], receipts, nextReceiptId,
 });
 
 describe("dedicated complete reader", () => {

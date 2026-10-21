@@ -1,9 +1,9 @@
 /**
  * Server actions del módulo Almacén CN (SDD-0016).
  *
- * - createReceiptAction: insert receipt (el receipt_code WR- o SIN-CODIGO- lo
- *   asigna la base al insertar, SDD-0491) + insert items + insert event
- *   'received' en una operación pseudo-atómica (rollback manual si falla items).
+ * - createReceiptAction: cohorte ON usa intake atómico; OFF explícito conserva
+ *   insert + items + received y rollback técnico legacy. El receipt_code WR- o
+ *   SIN-CODIGO- pertenece siempre a la base (SDD-0491 / 0469).
  * - changeReceiptStatusAction: update status + insert event 'status_change'.
  * - deleteReceiptsAction: borrado auditado por lote, sólo admin (SDD-0522, migr 0476).
  *
@@ -17,6 +17,8 @@ import { createClient } from "@/lib/db/server";
 import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
+import { readNormalAssociations, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
+import { LEGACY_COHORT_DENIAL, normalFlowError } from "@/lib/studio/client-consolidation/normal-flow";
 import {
   codigoResultadoRecepciones,
   normalizarLote,
@@ -45,6 +47,19 @@ import {
 // ─────────────────────────────────────────────────────────────
 // FormData parsing
 // ─────────────────────────────────────────────────────────────
+
+/** Must run before ANY C-/OV helper, no-op shortcut, bulk status or deletion. */
+async function legacyReceiptMutationDenial(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  receiptIds: readonly string[],
+): Promise<string | null> {
+  try {
+    const scope = await readNormalAssociations(supabase, { receiptIds });
+    return scope.receiptIds.length > 0 ? LEGACY_COHORT_DENIAL : null;
+  } catch (error) {
+    return normalReadMessage(error);
+  }
+}
 
 function parseStringOrNull(v: FormDataEntryValue | null): string | null {
   if (v == null) return null;
@@ -157,13 +172,25 @@ export async function createReceiptAction(
     return { errorCode: "tenant_unresolved" };
   }
 
+  // Sólo OFF explícito permite el transporte antiguo. La misma función decide
+  // el ámbito en DB y, si está ON, guarda cabecera + ítems + received juntos.
+  // Si ON llega entre esta lectura OFF y el INSERT, la guarda de nacimiento
+  // revierte el INSERT completo: nunca compensamos una cabecera enrolada.
+  const { data: intake, error: intakeError } = await supabase.rpc("client_consolidation_intake", { p_input: input! });
+  if (intakeError) return { error: normalFlowError(intakeError) };
+  let receipt: { id: string; receipt_code: string };
+  if (intake?.availability === "ready" && typeof intake.receiptId === "string"
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(intake.receiptId)
+    && typeof intake.receiptCode === "string" && intake.receiptCode.length > 0) {
+    receipt = { id: intake.receiptId, receipt_code: intake.receiptCode };
+  } else if (intake?.availability === "off") {
   // Insertar receipt SIN receipt_code: lo asigna la base al insertar (SDD-0491,
   // trigger de la migración 0469): WR-YYYY-NNNN, o SIN-CODIGO-NNNN si es
   // huérfana, en la misma transacción del INSERT y con un lock por tenant, así
   // dos altas a la vez no reciben el mismo número. Antes se pedía aparte a
   // next_receipt_code, que desde la 0079 da la serie R- de los cobros, y la
   // huérfana a next_orphan_code, que el Studio no puede ejecutar desde la 0211.
-  const { data: receipt, error: insertErr } = await supabase
+  const { data: legacyReceipt, error: insertErr } = await supabase
     .from("warehouse_receipts_cn")
     .insert({
       tenant_id: link.tenant_id,
@@ -186,11 +213,13 @@ export async function createReceiptAction(
     .select("id, receipt_code")
     .single<{ id: string; receipt_code: string }>();
 
-  if (insertErr || !receipt) {
+  if (insertErr || !legacyReceipt) {
+    if (insertErr?.hint === "dtd-client-normal") return { error: normalFlowError(insertErr) };
     return {
       error: `No se pudo crear la recepción: ${insertErr?.message ?? "sin detalle"}`,
     };
   }
+  receipt = legacyReceipt;
   const receipt_code = receipt.receipt_code;
 
   // Insertar items (rollback manual si falla)
@@ -236,6 +265,10 @@ export async function createReceiptAction(
       input!.supplier_name ? ` · supplier: ${input!.supplier_name}` : ""
     } · ${input!.items.length} item${input!.items.length === 1 ? "" : "s"}`,
   });
+  } else {
+    return { error: normalFlowError({ message: "NORMAL_INCOMPLETE", hint: "dtd-client-normal" }) };
+  }
+  const receipt_code = receipt.receipt_code;
 
   // ── Wiring recepción → compra → OV · SDD-0072 Fase 2, revisado en SDD-0284 ──
   //
@@ -456,7 +489,8 @@ export async function changeReceiptStatusAction(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "cn");
   if (denial) return { error: denial };
-
+  const cohortDenial = await legacyReceiptMutationDenial(supabase, [receiptId]);
+  if (cohortDenial) return { error: cohortDenial };
 
   // Resolver tenant_id (necesario para el event)
   const { data: link } = await supabase
@@ -870,7 +904,8 @@ export async function bulkChangeReceiptStatusAction(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "cn");
   if (denial) return { error: denial };
-
+  const cohortDenial = await legacyReceiptMutationDenial(supabase, receiptIds);
+  if (cohortDenial) return { error: cohortDenial };
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -935,6 +970,15 @@ export async function deleteReceiptsAction(
     return {
       errorCode: String(reason ?? "").trim().length < 4 ? "cn_delete_reason_short" : "cn_delete_reason_long",
     };
+  }
+
+  try {
+    const scope = await readNormalAssociations(supabase, { receiptIds: lote.ids });
+    if (scope.receiptIds.length > 0) return {
+      errorCode: "cn_delete_blocked", errorParams: { count: scope.receiptIds.length }, error: LEGACY_COHORT_DENIAL,
+    };
+  } catch (error) {
+    return { errorCode: "cn_delete_failed", error: normalReadMessage(error) };
   }
 
   const resultado = await eliminarRecepciones(supabase, lote.ids, motivo.reason);

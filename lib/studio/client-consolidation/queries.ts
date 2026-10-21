@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isMissingNormalSchema, normalFlowError } from "./normal-flow";
 import type {
   NormalContext, NormalContextPage, NormalManifest, NormalReceipt,
-  NormalRpcError, NormalShipmentContext, ObservedRates,
+  NormalPlanInput, NormalRpcError, NormalShipmentContext, ObservedRates,
 } from "./types";
 
 export class NormalReadError extends Error {
@@ -32,13 +32,28 @@ function whole(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
+function measures(value: unknown): boolean {
+  return object(value) && typeof value.cbm === "string" && /^[0-9]+(?:\.[0-9]+)?$/.test(value.cbm)
+    && !/^0*(?:\.0*)?$/.test(value.cbm) && typeof value.weightKg === "string"
+    && /^[0-9]+(?:\.[0-9]+)?$/.test(value.weightKg) && whole(value.boxes) && value.boxes > 0;
+}
+
+function space(value: unknown): boolean {
+  if (!object(value) || typeof value.code !== "string" || typeof value.label !== "string"
+    || typeof value.cbmCapacity !== "number" || !Number.isFinite(value.cbmCapacity) || value.cbmCapacity <= 0
+    || !object(value.layout)) return false;
+  const layout = value.layout;
+  return ["nx", "ny", "nz"].every((key) => whole(layout[key]) && Number(layout[key]) > 0);
+}
+
 function isRates(value: unknown): value is ObservedRates {
   if (!object(value) || !whole(value.membershipRevision) || !whole(value.receiptCount)
     || typeof value.observedAt !== "string" || !strings(value.snapshotIds) || !strings(value.missingReceiptIds)
     || typeof value.knownSubtotalCents !== "string" || !/^[0-9]+$/.test(value.knownSubtotalCents)
     || typeof value.complete !== "boolean") return false;
-  return value.totalCents === null || (typeof value.totalCents === "string" && value.totalCents === value.knownSubtotalCents
-    && value.complete && value.missingReceiptIds.length === 0);
+  if (value.snapshotIds.length + value.missingReceiptIds.length !== value.receiptCount) return false;
+  return value.complete && value.missingReceiptIds.length === 0
+    ? value.totalCents === value.knownSubtotalCents : value.totalCents === null;
 }
 
 function isManifest(value: unknown): value is NormalManifest {
@@ -55,8 +70,7 @@ function isManifest(value: unknown): value is NormalManifest {
     && (group.clientName === null || typeof group.clientName === "string")
     && ["consolidado_lcl", "puerta_a_puerta_DDP"].includes(String(group.service))
     && whole(group.revision) && strings(group.receiptIds) && strings(group.boxIds)
-    && object(group.measures) && typeof group.measures.cbm === "string" && typeof group.measures.weightKg === "string"
-    && whole(group.measures.boxes) && isRates(group.rates));
+    && measures(group.measures) && isRates(group.rates));
 }
 
 function isReceipt(value: unknown): value is NormalReceipt {
@@ -64,14 +78,13 @@ function isReceipt(value: unknown): value is NormalReceipt {
     && ["clientId", "clientMarkbox", "clientName", "destination", "blockedReason", "shipmentId", "groupId"].every((key) => value[key] === null || typeof value[key] === "string")
     && (value.service === null || ["consolidado_lcl", "puerta_a_puerta_DDP"].includes(String(value.service)))
     && typeof value.eligible === "boolean"
-    && (value.measures === null || (object(value.measures) && typeof value.measures.cbm === "string"
-      && typeof value.measures.weightKg === "string" && whole(value.measures.boxes)));
+    && (value.measures === null || measures(value.measures));
 }
 
 function page(value: unknown): NormalContextPage | null {
   if (!object(value) || !["off", "ready"].includes(String(value.availability)) || typeof value.readToken !== "string"
     || typeof value.observedAt !== "string" || !(value.manifest === null || isManifest(value.manifest))
-    || !Array.isArray(value.destinations) || !value.destinations.every((d: unknown) => object(d) && typeof d.id === "string" && typeof d.label === "string")
+    || !Array.isArray(value.destinations) || !value.destinations.every((d: unknown) => object(d) && typeof d.id === "string" && typeof d.label === "string" && typeof d.destination === "string")
     || !Array.isArray(value.receipts) || !value.receipts.every(isReceipt)
     || !(value.nextReceiptId === null || typeof value.nextReceiptId === "string")) return null;
   return value as NormalContextPage;
@@ -152,4 +165,18 @@ export async function readNormalShipment(supabase: SupabaseClient, shipmentId: s
 
 export function normalReadMessage(error: unknown): string {
   return error instanceof NormalReadError ? error.message : normalFlowError(error as NormalRpcError);
+}
+
+export async function readNormalPlanInput(supabase: SupabaseClient, containerId: string): Promise<NormalPlanInput> {
+  const { data, error } = await supabase.rpc("client_consolidation_plan_input", { p_container_id: containerId });
+  if (error) throw new NormalReadError(normalFlowError(error), isMissingNormalSchema(error) ? "missing_schema" : "unavailable");
+  if (!object(data) || !whole(data.manifestRevision) || typeof data.manifestHash !== "string"
+    || !whole(data.previousPlanVersion) || !object(data.groupRevisions) || !Object.values(data.groupRevisions).every(whole)
+    || !Array.isArray(data.input) || data.input.length === 0 || !data.input.every((lot: unknown) => object(lot)
+      && typeof lot.id === "string" && whole(lot.cajas) && lot.cajas > 0
+      && typeof lot.cbm === "number" && Number.isFinite(lot.cbm) && lot.cbm > 0)
+    || !space(data.space)) {
+    throw new NormalReadError("No se pudo leer la carga completa para el plan.", "incomplete");
+  }
+  return data as NormalPlanInput;
 }

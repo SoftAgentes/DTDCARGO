@@ -1,5 +1,6 @@
 /** SDD-0578: the prospective path is identified by a durable DB enrolment. */
 import type { ShipmentService, ShipmentStatus } from "../shipment-types";
+import type { EspacioCarga, Lote } from "@/lib/shared/estiba-plan";
 
 export type NormalService = Extract<ShipmentService, "consolidado_lcl" | "puerta_a_puerta_DDP">;
 export type MembershipOperation = "form" | "extend";
@@ -74,7 +75,8 @@ export type NormalManifest = {
   currentPlan: { id: string; version: number; manifestRevision: number } | null;
 };
 
-export type NormalDestination = { id: string; label: string };
+/** Canonical CN/dispatch city text is distinct from the disambiguated picker label. */
+export type NormalDestination = { id: string; label: string; destination: string };
 
 /** Every page carries the same server fingerprint; a changed page invalidates the read. */
 export type NormalContextPage = {
@@ -129,6 +131,28 @@ export type CloseManifestInput = {
   expectedContainerRevision: number;
   reference: string;
   reason: string;
+};
+
+export type NormalMutationResult = {
+  outcome: "closed" | "transitioned" | "recorded" | "replay";
+  reference: string;
+  occurredAt: string;
+  shipmentId?: string;
+  containerId?: string;
+  containerRevision?: number;
+  sealId?: string;
+  from?: ShipmentStatus;
+  to?: ShipmentStatus;
+  status?: ShipmentStatus;
+};
+
+export type NormalPlanInput = {
+  manifestRevision: number;
+  manifestHash: string;
+  groupRevisions: Record<string, number>;
+  previousPlanVersion: number;
+  input: Lote[];
+  space: EspacioCarga;
 };
 
 export type NormalShipmentContext = {

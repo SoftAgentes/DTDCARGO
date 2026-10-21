@@ -259,6 +259,9 @@ const RATE_ERROR_KEYS: Record<string, I18nKey> = {
 
 /** La clave del mensaje para un error de la RPC, o null si no es uno de los suyos. */
 export function rateErrorKey(error: { message?: string; hint?: string | null } | null | undefined): I18nKey | null {
+  if (error?.hint === "dtd-client-normal" && ["NORMAL_INCOMPATIBLE", "NORMAL_GOVERNED"].includes(String(error.message ?? "").split(":")[0])) {
+    return "warehouse_cn.normal.rate_incompatible";
+  }
   if (!error || error.hint !== "dtd-tarifa") return null;
   const code = String(error.message ?? "").split(":")[0].trim();
   return RATE_ERROR_KEYS[code] ?? null;

@@ -19,7 +19,7 @@ Trabajo local P1 autorizado por Director, owner worker-0578normal-01a15a4e-ddf0-
 
 Fuente ejecutable: 042-activacion-worker-0578-director.md, SHA256 1939a04752338b66bc5187961f8a1a216093dc6101fdb28771bec2efae607be4. El contrato íntegro y las fases/permisos/exclusiones están preservados en `.agents/handoffs/042-envio-cliente-camino-normal.md`; las secciones contractuales y su allowlist/aceptación se copian abajo sin alterar la fuente sellada.
 
-Checkpoint de autoría P1: PR #318 OPEN/DRAFT, apilada sobre `codex/sdd-0574-embarques-cierre`/D1. Tipos, validación pura, lectores y sus oráculos están redactados; 0502 contiene un cuerpo parcial de esquema/guardas/formación/extensión/cierre con un fusible explícito que aborta su ejecución. Adaptadores, UI, composición restante y aceptación siguen pendientes. Instalación, SQL/DB, pruebas, tipos, lint amplio, build, verify, UI y conocimiento NO EJECUTADO. BCV GO03 conserva el único turno pesado. Autoría no equivale a prueba, cierre o integración.
+Checkpoint de autoría P1: PR #318 OPEN/DRAFT, apilada sobre `codex/sdd-0574-embarques-cierre`/D1. Tipos, validación pura, lectores, guardas CN/bulk y sus oráculos están redactados; 0502 contiene un cuerpo parcial de esquema, formación/extensión/cierre, transporte ON/OFF, roster, plan/estiba y composición de estados con un fusible explícito que aborta su ejecución. POD global, Portal/RLS, ACL/postflight, restantes adaptadores/UI y aceptación siguen pendientes. Instalación, SQL/DB, pruebas, tipos, lint amplio, build, verify, UI y conocimiento NO EJECUTADO. BCV GO03 conserva el único turno pesado. Autoría no equivale a prueba, cierre o integración.
 
 ## Gobierno de permanencia y riesgo
 
@@ -31,7 +31,13 @@ La detección de pertenencia no degrada a «legacy» si falta su RPC o hay error
 
 La matriz SGE y privacidad se documenta con evidencia por fase. Hoy las doce comprobaciones siguen pendientes de ejecución; la lectura de políticas no es prueba de conformidad del código. Sin excepción inventada ni pérdida de guardas legacy.
 
-## Contrato adoptado y allowlist de 50 rutas
+## Addendum adoptado: transporte y allowlist acumulada de 52 rutas
+
+Director autorizó `042-addendum-director-0578-52-rutas-tests-legacy.md`, SHA256 `4d976df8afbe3a21538b66e582b65fa7f191b6dd2edcae20d8cf88d1666d853e`. Se leyó íntegro, cotejó y guardó íntegro en el handoff antes de editar los dos fixtures. Las cincuenta rutas y el contrato original siguen vigentes; la unión añade exclusivamente `app/studio/(app)/cn/__tests__/delete-receipts-action.test.ts` y `app/studio/(app)/cn/__tests__/create-receipt-code.test.ts`. Sólo se adapta transporte/dobles previstos y se conservan los oráculos de permisos, código DB0469, rollback legacy, errores, eventos y avisos; no se modifica el doble compartido.
+
+Intake ON: cabecera, ítems y `received` atómicos bajo actor CN/tenant/almacén y contexto privado. OFF explícito sin escritura: continúa literalmente el transporte legacy de INSERT/ítems/rollback admin por id+tenant y sus avisos/OV; error, ausencia de RPC o respuesta ilegible jamás equivale a OFF. Si cambia OFF→ON antes del INSERT legacy, la guarda de nacimiento exige el contexto del writer validado y revierte ese INSERT completo. Las versiones antiguas siguen requiriendo MIGRATE-FIRST/caché/callers y drain comprobado antes de activar. Esta autoría no acredita ese corte, no activa la cohorte y no cambia la autoridad legacy.
+
+## Contrato original adoptado y sus 50 rutas, ampliadas sólo por el addendum anterior
 
 ## 3. Contrato común de cohorte y permisos
 

@@ -352,3 +352,106 @@ Ninguno nuevo; exclusiones del contrato preservadas. No absorbe BCV, 0573 ni pen
 ## HANDOFF AL DIRECTOR
 
 Trabajo EN PROGRESO, owner retenido. Enrolamiento OFF; código parcial escrito y NO PROBADO, SQL con fusible que aborta. No instalar/ejecutar ni activar aún. Este handoff no es cierre de producto ni de 4.2 completo.
+
+## ADDENDUM ADOPTADO — alcance acumulado de 52 rutas
+
+Lectura íntegra y cotejo SHA256: 4d976df8afbe3a21538b66e582b65fa7f191b6dd2edcae20d8cf88d1666d853e. Se adopta sólo para autoría P1, sin turno runtime. Contrato1939 preservado arriba. Inicio del contenido íntegro:
+
+# SDD-0578 — addendum Director: dos fixtures legacy, 52 rutas
+
+21 de octubre de 2026. AUTORIZADO sólo para la autoría P1 vigente del mismo Worker, no para ejecución de producto. Este addendum sustituye únicamente el límite numérico 50 por la unión literal 52 de abajo y concreta la preservación del transporte legacy al adaptar dos fixtures. No concede otro turno, nueva capacidad de negocio, permiso ni excepción normativa.
+
+Raíz `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0578-envios-cliente-camino-normal`, rama `codex/sdd-0578-envios-cliente-camino-normal`, owner `worker-0578normal-01a15a4e-ddf0-7d82-8656-d9dc56b58468`; base D1 `1ec5e85f736b7826cf5b6e8781757dc4cf950733`, PR318 DRAFT. Contrato original íntegro conservado: `042-activacion-worker-0578-director.md`, SHA256 `1939a04752338b66bc5187961f8a1a216093dc6101fdb28771bec2efae607be4`. Claim retenido y una sola sesión escritora. BCV conserva GO03 y el único turno pesado.
+
+## Evidencia leída y decisión acotada
+
+Director leyó completos ambos tests en D1 por objetos Git. `delete-receipts-action.test.ts`, blob `7ac012cd32b55f1f483adf4b7959ca56b52942b8`, simula sólo la RPC de borrado y exige una llamada global. También conserva el rollback de creación legacy con admin, id y tenant. `create-receipt-code.test.ts`, blob `a20ef0d2da05e13e96834b0f780d1b4d9b47b252`, exige código asignado por DB0469, ausencia de RPC de generación de código, transporte INSERT legacy y eventos/avisos reales; una variante exige cero RPC globales.
+
+La guarda de pertenencia/roster y el intake prospectivo del contrato requieren reconocer el ámbito antes de la mutación y cerrar la carrera de alta/ítems. Se permite adaptar únicamente los dobles de esas dos rutas y sus expectativas de transporte a las nuevas lecturas/operación prevista; conservar íntegros los oráculos de dominio siguientes. Esta autorización no acepta la implementación todavía parcial ni acredita pruebas; SQL0502 mantiene su fusible mientras no esté completa.
+
+1. Borrado: permisos/usuario desactivado/lote/motivo inválidos cortan antes de la nueva consulta de cohorte y de la RPC escritora. Admin válido puede consultar metadata completa; error/null/parcial no son permiso de borrar ni ausencia de cohorte. El borrado legacy sigue efectuando exactamente una RPC escritora con IDs deduplicados y motivo recortado, sin DML directo; mantener errores bilingües, blockers, conteos y revalidaciones. La pertenencia de cohorte se protege en DB y acción, sin convertir una nueva lectura en éxito implícito.
+2. Captura prospectiva ON: la operación aprobada crea cabecera, ítems y evento received en una unidad con el actor CN/tenant/almacén validados y contexto privado verificable. Código sigue perteneciendo a DB0469, no al cliente ni a next_receipt_code/next_orphan_code. Fallo de ítem/evento no deja cabecera ni éxito parcial. No usar borrado compensatorio de una recepción que ya pueda ser miembro.
+3. OFF conserva literalmente la ruta legacy de INSERT, ítems, rollback técnico por admin acotado a id+tenant y sus avisos/eventos/OV existentes. Una consulta/RPC prospectiva puede responder OFF explícito sin escribir; falta de schema/RPC, error o respuesta ilegible nunca se interpreta OFF. Las pruebas de transporte deben distinguir esa consulta prevista de una RPC prohibida de generación de código; no retirar los asserts del origen DB del código o el rollback legacy.
+4. La guarda de nacimiento debe cerrar el cambio OFF→ON entre la lectura de ámbito y el INSERT anterior: si el contexto requerido no está presente, revierte ese INSERT completo y pide refrescar, sin cabecera huérfana. Esta decisión no habilita contexto por GUC libre, nuevo rol ni bypass de actor/tenant. Las versiones antiguas requieren MIGRATE-FIRST/caché y drain comprobado antes de ON; esa operación futura conserva su autorización y no se certifica por esta fixture.
+5. Mantener tests originales aplicables de autorización, estados, errores, código, events y avisos; añadir casos concretos de los nuevos caminos en las rutas ya autorizadas. No eliminar assertions para sacar verde, volver genéricos los errores, alterar el doble compartido, scanner, gates, RBAC, políticas o tests ajenos. Ante dependencia nueva, evidencia y decisión antes de editar.
+
+## Allowlist acumulada literal: 52 rutas únicas
+
+```text
+lib/studio/client-consolidation/types.ts
+lib/studio/client-consolidation/queries.ts
+lib/studio/client-consolidation/normal-flow.ts
+app/studio/(app)/naviera/_components/ConfirmarEnviosClienteDrawer.tsx
+app/studio/(app)/naviera/actions.ts
+app/studio/(app)/naviera/page.tsx
+app/studio/(app)/naviera/_components/NavieraClient.tsx
+app/studio/(app)/naviera/plan-actions.ts
+app/studio/(app)/cn/actions.ts
+app/studio/(app)/cn/page.tsx
+app/studio/(app)/cn/_components/AlmacenCnClient.tsx
+app/studio/(app)/cn/_components/ReceiptRowActions.tsx
+app/studio/(app)/tracking/[id]/actions.ts
+app/studio/(app)/tracking/[id]/page.tsx
+app/studio/(app)/tracking/[id]/_components/ShipmentDataPanel.tsx
+app/studio/(app)/tracking/[id]/_components/StateActionsPanel.tsx
+app/studio/(app)/tracking/[id]/_components/FooterActions.tsx
+app/api/studio/shipments/[id]/route.ts
+app/api/studio/shipments/[id]/events/route.ts
+app/studio/(app)/ve/actions.ts
+app/studio/(app)/ve/_components/VeRowActions.tsx
+app/m/cn/estibar/actions.ts
+app/m/cn/estibar/_components/EstibaClient.tsx
+lib/portal/portal-queries.ts
+lib/studio/rate-snapshots/types.ts
+lib/i18n/es-VE/warehouse.ts
+lib/i18n/zh-CN/warehouse.ts
+supabase/pending-migration-symbol-declarations.json
+supabase/migrations-baseline.json
+docs/specs/README.md
+.agents/handoffs/042-envio-cliente-camino-normal.md
+app/m/cn/estibar/[consolidationId]/page.tsx
+docs/specs/0578-envios-cliente-camino-normal/spec.md
+supabase/migrations/0502_consolidacion_cliente_camino_normal.sql
+supabase/tests/consolidacion_cliente_normal.test.sql
+supabase/tests/_consolidacion_cliente_normal_schema.sql
+lib/studio/client-consolidation/__tests__/normal-path.migration.test.ts
+scripts/check-client-consolidation-concurrency.mjs
+app/studio/(app)/naviera/__tests__/envios-cliente-actions.test.ts
+app/studio/(app)/naviera/_components/__tests__/ConfirmarEnviosClienteDrawer.test.tsx
+app/studio/(app)/cn/__tests__/consolidacion-cohorte.test.ts
+app/studio/(app)/naviera/__tests__/plan-carga-cohorte.test.ts
+app/studio/(app)/tracking/[id]/__tests__/cohorte-normal-actions.test.ts
+app/api/studio/shipments/[id]/__tests__/cohorte-normal.test.ts
+app/m/cn/estibar/__tests__/cohorte-pertenencia.test.ts
+app/studio/(app)/ve/__tests__/cohorte-normal.test.ts
+lib/portal/__tests__/envios-cohorte.test.ts
+lib/studio/rate-snapshots/__tests__/sin-facturar.test.ts
+app/studio/(app)/cn/__tests__/rate-snapshot-actions.test.ts
+e2e/consolidacion-clientes-camino-normal.spec.ts
+app/studio/(app)/cn/__tests__/delete-receipts-action.test.ts
+app/studio/(app)/cn/__tests__/create-receipt-code.test.ts
+```
+
+## Adopción y fronteras que continúan
+
+Guardar íntegros este addendum y su hash en el handoff propio antes de editar las dos rutas nuevas; actualizar spec/allowlist a52 y registrar el delta de transporte con su SHA. Commits selectivos, push propio y el mismo PR318 DRAFT siguen autorizados. No nueva PR de alcance diferente ni edición del árbol de0574/BCV.
+
+Durante P1 sólo autoría y comprobaciones ligeras de Git/harness/docs permitidas por el contrato. No instalar ni ejecutar Vitest/SQL/DB/Docker/tipos/lint amplio/browser/build/verify/conocimiento hasta transferencia expresa del Director; la canónica necesita además checkpoint revisado y GO propio. Una prueba redactada no es ejecutada ni aceptación.
+
+No main, merge, deploy, VPS, DB real, PII/secretos, cuentas/pagos, contactos, historia o facturación4.3. Cohorte prospectiva OFF; no activar ámbito/caller.0495 no se edita ni repite y0496/0502 no se aplican. No nueva política ni autoridad humana. El resto del contrato1939 permanece íntegro y vigente.
+<!-- Fin del addendum Director íntegro. -->
+
+## CHECKPOINT P1 — CN, roster y composición en autoría
+
+Alcance acumulado: las 52 rutas literales del addendum anterior. Claim propio retenido; publicación propia sigue autorizada en PR318 DRAFT. No ejecución de producto ni turno pesado heredado.
+
+- CN individual/bulk/borrado consulta pertenencia antes de C-/OV/efectos. Un lote mixto corta entero. La tabla general sigue siendo una vista acotada; sus metadatos no se presentan como el universo de formación. UI diferencia cohorte y prerrequisito no disponible, conserva las acciones de pago/verificación vigentes y dirige a Naviera según permiso real.
+- Transporte de creación: `client_consolidation_intake` sólo escribe en ámbito ON; cabecera, ítems, `received` y auditoría se redactaron en una transacción. OFF devuelve sólo una clasificación y conserva el bloque legacy de INSERT, ítems, rollback técnico admin por id+tenant y avisos/OV. Se mantiene DB0469 como asignador WR-/SIN-CODIGO-. Falta/error/respuesta ilegible no degrada a OFF. Una activación entre OFF e INSERT rechaza ese INSERT por falta del contexto privado de nacimiento. Este corte sigue necesitando el gate futuro de schema/caché/callers/drain, no demostrado aquí.
+- Roster: editores legítimos adquieren la recepción antes de sus cajas; el contexto privado de edición/nacimiento no autoriza alterar miembros. La composición de 0449 adopta las cajas exactas de una recepción NUEVA, sin tocar otra tanda. Los snapshots conservan recepción→snapshot y asociación viva compatible derivada; ningún lock posterior de grupo/contenedor en el binding tardío.
+- Estiba/plan: autores de caja/lote/deshacer serializan por contenedor; la rama de cohorte valida el conjunto intentado completo, no un subconjunto filtrado. La corrección física conserva historia y el mismo contenedor abierto. Anotación de plan separada por revisión; fallo de traza no permite repetir estiba efectiva. Lecturas/catálogo específicos completos sustituyen caps/fallbacks sólo en la rama nueva. El catálogo correcto es `dispatch_city_catalog`, el usado por CN; ID activo y ciudad canónica se conservan separados de la etiqueta de selección.
+- Estados: se redactaron wrappers que preservan cuerpos base comprobados de 0477/0484/0486/0487, sus roles y gates. Tránsito ratificado sigue Tracking, llegada operativa VE no acredita ingreso físico ni documentos SENIAT. La firma legacy de entrega manual no puede atestar una cohorte no vista; la nueva RPC compara sello/revisiones/lista completa con motivo/referencia. La composición de POD global y su replay parcial, Portal/RLS, ACL/postflight, interfaces y las pruebas reales aún están pendientes.
+- Aislamiento RR/concurrencia: el contenedor público recibe un cambio técnico de tuple al cambiar pertenencia para que un writer con snapshot previo no omita la marca privada tras esperar; guardas equivalentes participan en locks de padres. Esto es diseño escrito, sin prueba de dos sesiones todavía. Un deadlock/40001 no contará como carrera positiva probada.
+- Huellas LF de cuerpos originales leídos: 0045 `f9e61f3ae50fca3f4752d61fb1d20f86`; 0449 `bf85211ecef554d573b9670d6011af37`; 0072 + casts0296 `b0839c00d60dbeecf7e98c4c281f9fdc`; 0241 stuff/unstuff `74c9486fd9b9b6a175f9bd521a61ba3a` / `ccfe127d2b3ec1b3edd255728878c0c6`; 0246 stuff/unstuff `77b5e161cc1c81a527fd03dc9693b6d0` / `33554f0c1794aa185f7c2a2d3f9965f4`; 0477 `95d1f9971f13ea798173eca51ef962ef`; 0484 `04d5cf691b31bfa0fc3976b6a143b46b`; 0486 `8f72f0e10f86b079b2cb345289f02ee5`; 0487 `651252cda7e8354058ecb83b8cc0e324`. 0502 conserva fuente histórica intacta y rechaza otro cuerpo. La restauración de ACL usa el contrato efectivo comprobado, incluida reparación0288; no se deduce autoridad de comentarios antiguos.
+- Dos fixtures legacy adaptados únicamente tras adoptar el addendum íntegro. Se conservan pruebas de permiso antes de RPC, una única RPC escritora de borrado, generación DB0469 y ausencia de numeradores, rollback literal OFF y eventos/avisos. Casos nuevos de transporte ON y falta de prerrequisito están redactados; no son prueba SQL de rollback.
+
+SQL0502 conserva el fusible que aborta antes de DDL. Estado de Vitest/SQL/DB/2 sesiones/tipos/lint/build/verify/browser/conocimiento/producción: **NO EJECUTADO**. El checkpoint es autoría parcial respaldada, sin aceptación funcional ni cierre de 4.2.

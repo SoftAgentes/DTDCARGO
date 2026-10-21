@@ -16,6 +16,7 @@ import { STUDIO_USER_ROLES, type StudioUserRole } from "@/lib/studio/user-types"
 import { supabaseDouble, type DoubleHandle, type MembershipRow, type Reply } from "@/lib/studio/__tests__/user-tenants-double";
 
 const RPC = "soft_delete_warehouse_receipts_cn_with_audit_reason";
+const SCOPE_RPC = "client_consolidation_scope";
 const A = "11111111-1111-4111-8111-111111111111";
 const B = "22222222-2222-4222-8222-222222222222";
 
@@ -61,12 +62,16 @@ let doble: DoubleHandle;
 let userId: string | null = "user-1";
 let memberships: MembershipRow[] = [];
 let rpcReply: Reply | ((args: Record<string, unknown>) => Reply) = { data: [], error: null };
+let scopeReply: Reply = { data: null, error: null };
 /** Si se fija, el insert de items de la sesión falla con este mensaje. */
 let itemsError: string | null = null;
 
 vi.mock("@/lib/db/server", () => ({
   createClient: async () => {
-    doble = supabaseDouble({ userId, memberships, rpc: { [RPC]: rpcReply } });
+    doble = supabaseDouble({ userId, memberships, rpc: {
+      [RPC]: rpcReply, [SCOPE_RPC]: scopeReply,
+      client_consolidation_intake: { data: { availability: "off" }, error: null },
+    } });
     const client = doble.client as { from: (t: string) => unknown };
     const from = client.from;
     client.from = (t: string) =>
@@ -99,6 +104,7 @@ beforeEach(() => {
   memberships = [membresia("admin")];
   itemsError = null;
   rpcReply = { data: [fila(A, "WR-2026-0001", "deleted"), fila(B, "WR-2026-0002", "deleted")], error: null };
+  scopeReply = { data: { available: true, receiptIds: [], shipmentIds: [], containerIds: [], boxIds: [] }, error: null };
 });
 
 describe("deleteReceiptsAction · sólo admin", () => {
@@ -137,7 +143,11 @@ describe("deleteReceiptsAction · la RPC decide", () => {
   it("borrado: un llamado, ids sin duplicar, motivo recortado, revalida CN y despacho", async () => {
     const r = await deleteReceiptsAction([A, B, B], "  Recepciones de prueba  ");
     expect(r).toEqual({ ok: true, deleted: 2, codes: ["WR-2026-0001", "WR-2026-0002"] });
-    expect(doble.rpcCalls).toEqual([{ name: RPC, args: { p_ids: [A, B], p_reason: "Recepciones de prueba" } }]);
+    expect(doble.rpcCalls).toEqual([
+      { name: SCOPE_RPC, args: { p_receipt_ids: [A, B], p_shipment_ids: [], p_container_ids: [], p_box_ids: [] } },
+      { name: RPC, args: { p_ids: [A, B], p_reason: "Recepciones de prueba" } },
+    ]);
+    expect(doble.rpcCalls.filter((call) => call.name === RPC)).toHaveLength(1);
     expect(revalidatePathMock).toHaveBeenCalledWith("/studio/cn");
     expect(revalidatePathMock).toHaveBeenCalledWith("/studio/despacho");
     expect(doble.writes).toEqual([]);
@@ -174,6 +184,21 @@ describe("deleteReceiptsAction · la RPC decide", () => {
     rpcReply = { data: [], error: null };
     expect(await deleteReceiptsAction([A], "Recepciones de prueba")).toEqual({ errorCode: "cn_delete_unconfirmed" });
     expect(revalidatePathMock).toHaveBeenCalledWith("/studio/cn");
+  });
+  it.each([
+    { data: null, error: { code: "PGRST202", message: "missing scope" } },
+    { data: null, error: null },
+    { data: { available: true, receiptIds: [] }, error: null },
+  ])("metadata fallida/incompleta corta antes de la RPC de borrado", async (reply) => {
+    scopeReply = reply;
+    expect(await deleteReceiptsAction([A], "Recepciones de prueba")).toMatchObject({ errorCode: "cn_delete_failed" });
+    expect(doble.rpcCalls.map((call) => call.name)).toEqual([SCOPE_RPC]);
+    expect(doble.writes).toEqual([]); expect(revalidatePathMock).not.toHaveBeenCalled();
+  });
+  it("un lote mixto con cohorte no borra el subconjunto legacy", async () => {
+    scopeReply = { data: { available: true, receiptIds: [A], shipmentIds: [], containerIds: [], boxIds: [] }, error: null };
+    expect(await deleteReceiptsAction([A, B], "Recepciones de prueba")).toMatchObject({ errorCode: "cn_delete_blocked" });
+    expect(doble.rpcCalls.map((call) => call.name)).toEqual([SCOPE_RPC]); expect(doble.writes).toEqual([]);
   });
 });
 
