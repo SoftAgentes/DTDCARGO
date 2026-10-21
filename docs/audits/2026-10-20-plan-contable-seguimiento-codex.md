@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 11:11 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 11:17 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -154,11 +154,13 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Reproducir, corregir y revisar el P2 de Gastos en **`d5f28fde`**, ya respaldado en la PR #312: cuatro fallos funcionales y después **18/18 aprobadas, sin omisiones**, con cero modificaciones, anulación o asiento ante ese error. Revisión independiente del delta de tres rutas cerrada, sin nuevo hallazgo; la PR sigue parcial y en borrador.
 - [x] Reproducir los errores SQL sobre las funciones anteriores en PGlite local: cinco grupos fallan por fecha/default, cobro, emisión, cierre histórico y creación futura Portal. El replay idéntico aceptado también falla antes de la reparación. Se conserva el ensayo seleccionado con cinco grupos omitidos expresamente por su filtro; **todavía no acredita PostgreSQL real ni API HTTP**.
 - [x] Aprobar los **seis grupos SQL funcionales de PGlite local, sin omisiones**, después de incorporar la reparación: defaults, operaciones, emisión automática, gasto histórico, nueva creación Portal y recuperación idéntica. Resultado terminado a las 11:11:15 p. m.; el candidato SQL y su identidad/revisión independiente todavía deben cerrarse. No sustituye PostgreSQL real, permisos y transporte HTTP.
+- [x] Respaldar el candidato SQL **`b7148218` en la PR #312 en borrador**, con las 68 rutas dentro del alcance. Huella exacta de 0499 cotejada desde Git. Los dos contratos ampliados pasaron **8/8 pruebas, sin omisiones**; incluyen controles permanentes que reconocen el comportamiento anterior. Revisión SQL independiente en curso; PostgreSQL y API local ya iniciaron, sin resultado todavía al corte.
 - [ ] Cargar y validar 0499 real en base local desechable y API local, con permisos, recuperación, límites horarios y ausencia de efectos repetidos; sin base productiva.
 - [ ] Completar las pruebas de errores intencionales y la revisión visible de los formularios dentro del alcance.
 - [ ] Cerrar el cotejo del ajuste de Gastos y la revisión SQL/HTTP del candidato C1, ejecutar sus pruebas generales y completar la PR #312 en borrador. GitHub no aprobó el checkpoint: sus dos intentos terminaron antes de arrancar, por `startup_failure`.
 - [ ] Implementar después Caracas C2 para los cálculos anuales, con número de migración coordinado por inventario nuevo y las ventanas propias de Portal y Studio conservadas.
 - [ ] Cerrar un slice posterior acotado de gastos móviles antes de certificar toda la hora Caracas: el caller activo conserva fechas UTC explícitas y guardas anteriores. Detectado y cotejado por lectura, fuera de las 68 rutas de C1; sin implementación ni autorización de datos reales.
+- [x] Preparar y revisar el diseño del slice móvil: siete rutas propuestas, sin bloqueante estructural ni nueva migración identificada. Conserva propiedad del gasto, fotos y datos al rechazar, y pone todas las guardas antes de modificar la evidencia. Base final, encargo y pruebas de implementación posteriores a C2 siguen pendientes.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
 - [x] Revisar y aprobar el diseño acotado de la carga BCV: fecha exacta de hoy Caracas, decimal completo, protección de cambios concurrentes, ensayo sin escritura y respaldo manual. Reutiliza SDD-0569, 27 rutas propuestas al incluir el manifiesto de referencias pendientes, sin nueva migración. Todavía no existe importador ni agenda instalada.
