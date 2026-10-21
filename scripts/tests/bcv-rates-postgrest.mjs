@@ -156,7 +156,9 @@ async function main() {
           for (const name of ['content-type','content-range','preference-applied']) {
             const value=response.headers.get(name); if (value!==null) res.setHeader(name,value);
           }
-          receipt.gatewayHttp.push({method,path:path.pathname,mappedPath:upstream.pathname,status:response.status});
+          receipt.gatewayHttp.push({method,path:path.pathname,mappedPath:upstream.pathname,status:response.status,
+            requestedCountExact:headers.get('prefer')?.split(',').some(value=>value.trim()==='count=exact')??false,
+            contentRange:response.headers.get('content-range')});
           res.writeHead(response.status); res.end(body);
         } finally { gatewayRequests.delete(controller); }
       })().catch(() => { if (!res.destroyed) { if (!res.headersSent) res.writeHead(502); res.end(); } });
@@ -291,6 +293,23 @@ async function main() {
     }
     await save('negative-dml-effects.json',receipt.dmlNegatives);
     check('negativos HTTP INSERT/PATCH: efectos/eventos medidos; humano legado user/rpc o rechazo, nunca job');
+    // Preparación posterior al gate aceptado: obtener muestras nativas para S01.
+    // No se considera ejecutado hasta su nuevo recibo bajo turno autorizado.
+    const nativeEmpty=await service.from('fx_rates').select(columns,{count:'exact'})
+      .eq('tenant_id',uuid('tenant-B')).retry(false).abortSignal(AbortSignal.timeout(5000));
+    assert.equal(nativeEmpty.status,200); assert.equal(nativeEmpty.error,null);
+    assert.equal(nativeEmpty.count,0); assert.deepEqual(nativeEmpty.data,[]);
+    const emptyHeader=receipt.gatewayHttp.at(-1);
+    assert.equal(emptyHeader.requestedCountExact,true); assert.equal(typeof emptyHeader.contentRange,'string');
+    const total=Number(await scalar('select count(*) from public.fx_rates;'));
+    assert(total>1);
+    const nativePage=await service.from('fx_rates').select(columns,{count:'exact'}).range(0,0)
+      .retry(false).abortSignal(AbortSignal.timeout(5000));
+    assert.equal(nativePage.error,null); assert.equal(nativePage.count,total); assert.equal(nativePage.data.length,1);
+    const pageHeader=receipt.gatewayHttp.at(-1);
+    assert.equal(pageHeader.requestedCountExact,true); assert.equal(typeof pageHeader.contentRange,'string');
+    await save('native-content-range-samples.json',{empty:emptyHeader,page:pageHeader,total});
+    check('S01 positivo nativo: ausencia y página conservan count y Content-Range originales');
     receipt.result = 'PASÓ';
     receipt.scope = 'gate pequeño de contexto/GET/precisión; B1–B19/R1–R14 completos todavía pendientes';
   } catch (error) {

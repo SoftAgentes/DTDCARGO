@@ -123,6 +123,14 @@ Al publicar: entrega parcial con baseline 12/12, HTTP02 y focal 10/10 acotados; 
 
 PR #317 creada una vez y adjuntada a la tarea. Recibos de publicación en `C:/tmp/director-traspaso-20261020/0569-bcv-validation/publicacion-parcial-01/`; preflight remoto `711df0c68563ce743822ceef8d24e3ec1b23efa007e5bd1b44e0a60f35fddeae`. Un wrapper PowerShell falló al parsear antes de ejecutar gh; no creó PR ni es fallo funcional. Invocación corregida creó #317; push propio sin force, sin hook pre-push activo, sin cambiar configuración del remoto antiguo redirigido por GitHub. Relecturas y SHA remoto final quedan en el recibo externo; esta actualización de URL es documental y no exige repetir pruebas.
 
+## ORÁCULOS LIGEROS DESPUÉS DEL RESPALDO PARCIAL · 2026-10-21
+
+Autoría nueva, **NO EJECUTADA** mientras 0574 conserva el turno pesado. F03 añade nueve salidas con cancel diferido (longitud inválida/excesiva, bytes reales, lectura lenta, abort del padre, redirects, status/tipo), observación de asentamiento dentro de presupuesto y teardown que libera/espera el productor incluso ante ROJO. Se autoraron además 200 tras uno/dos redirects, abort durante body, presupuesto headers 18 s + body 3 s, stream/UTF8 inválidos y gzip real mayor de 1 MiB sobre un HTTP loopback propio. El gzip usa fetch nativo hacia la fixture; no acredita TLS ni comportamiento remoto del BCV. Parser/source productivos permanecen intactos.
+
+Informe sync `3b028de74af523b14800961d655720b7a213126ba8303c198e1bb4ece810397b` leído íntegro: P2-S01 confirmado por lectura de la frontera antes del SDK, sin reproducción. Nuevos oráculos con fábrica/SDK reales y sólo doble de transporte: `*/0basura`, `*/0.5`, `*/0/9`, prefijo inválido en snapshot y sus variantes de total 1 en tenants; exige cerrar antes de fuente/DML. Positivos de total paginado preservado y capability sin Content-Range; ausencia genuina `*/0` conservada. Fixture de respuestas usa rangos completos para arrays no vacíos, sin asignar Reply/count manualmente.
+
+Driver posterior al gate aceptado sólo está preparado: registrará Content-Range bruto y Prefer de cada salto, y añadirá muestras nativas de ausencia/página. Ese control adicional no se atribuye al HTTP02 ya medido. No hubo ejecución nueva, corrección de transporte/SDK/cliente compartido ni reparación F01/F02/F03 antes de ROJO. Se mantienen pendientes los oráculos nativos amplios B1–B19/R1–R14, cron/UI y cierre canónico/conocimiento.
+
 ## CONTRATOS ÍNTEGROS CONSERVADOS ANTES DE PRODUCTO
 
 ### Encargo original · SHA256 c477578e870ce7567d9c5e3ca10500e787169ded114bc41356daef6b4983f842

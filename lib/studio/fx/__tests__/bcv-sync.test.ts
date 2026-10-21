@@ -20,7 +20,8 @@ const row = (tenant = A, rate = "880.00000000", timestamp = OLD): Stored => ({
 });
 type Call = { method: string; url: URL; body?: Record<string, unknown> };
 const tableResponse = (data: unknown, count: number, status = 200) => new Response(JSON.stringify(data), {
-  status, headers: { "content-type": "application/json", "content-range": `*/${count}` },
+  status, headers: { "content-type": "application/json",
+    "content-range": `${Array.isArray(data) && data.length ? `0-${data.length - 1}` : "*"}/${count}` },
 });
 
 /** SDK real; el único doble es el transporte. HTTP/DB reales se miden aparte. */
@@ -134,6 +135,43 @@ describe("B7/B8/B16 · gates y ensayo inmutable", () => {
     const fail = database(); fail.setIntercept(() => new Response("unavailable", { status: 503 }));
     expect(await fail.run()).toMatchObject({ reason: "SCOPE_UNAVAILABLE" });
     expect(fail.calls).toHaveLength(1);
+  });
+  it.each([
+    ["fx_rates", "*/0basura"], ["fx_rates", "*/0.5"], ["fx_rates", "*/0/9"], ["fx_rates", "no-es-rango/0"],
+    ["tenants", "*/1basura"], ["tenants", "*/1.5"], ["tenants", "*/1/9"], ["tenants", "no-es-rango/1"],
+  ])("S01 · SDK real no acredita metadata malformada de %s: %s", async (table, contentRange) => {
+    const db = database();
+    db.setIntercept(call => call.method === "GET" && call.url.pathname.endsWith("/" + table)
+      ? new Response(JSON.stringify(table === "tenants" ? [{ id: A }] : []), {
+        status: 200, headers: { "content-type": "application/json", "content-range": contentRange },
+      }) : undefined);
+    expect(await db.run()).toMatchObject({ status: "REJECTED",
+      reason: table === "tenants" ? "SCOPE_UNAVAILABLE" : "SNAPSHOT_UNAVAILABLE",
+      counts: { inserted: 0, corrected: 0, notAttempted: 1 },
+    });
+    expect(db.obtain).not.toHaveBeenCalled(); expect(db.writes()).toHaveLength(0);
+  });
+  it("S01 · transporte conserva total de página válida sin sustituirlo por longitud", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(new Response(JSON.stringify([{ id: A }]), {
+      status: 206, headers: { "content-type": "application/json", "content-range": "0-0/9" },
+    }));
+    const signal = new AbortController().signal;
+    const client = createBcvServiceClient({ signal, url: "http://127.0.0.1:65430", serviceKey: "synthetic-fixture-key", fetch });
+    const reply = await client.from("fx_rates").select("id", { count: "exact" }).range(0, 0).retry(false).abortSignal(signal);
+    expect(reply).toMatchObject({ status: 206, error: null, count: 9, data: [{ id: A }] });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(new Headers(fetch.mock.calls[0][1]?.headers).get("Prefer")).toContain("count=exact");
+  });
+  it("S01 · capability GET sin count exacto no necesita Content-Range", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(new Response('{"version":1,"ready":true}', {
+      headers: { "content-type": "application/json" },
+    }));
+    const signal = new AbortController().signal;
+    const client = createBcvServiceClient({ signal, url: "http://127.0.0.1:65430", serviceKey: "synthetic-fixture-key", fetch });
+    const reply = await client.rpc("bcv_rates_write_capability", {}, { get: true }).retry(false).abortSignal(signal);
+    expect(reply).toMatchObject({ status: 200, error: null, count: null, data: { version: 1, ready: true } });
+    expect(fetch.mock.calls[0][1]?.method).toBe("GET");
+    expect(new Headers(fetch.mock.calls[0][1]?.headers).get("Prefer") ?? "").not.toContain("count=exact");
   });
 });
 
