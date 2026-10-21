@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 8:33 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 8:39 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -106,6 +106,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Aprobar y enviar la asignación completa de **0572-b** al Worker: 41 rutas exactas, transición compatible, subtotal decimal, estados y contadores hasta los cuatro consumidores, pruebas locales PostgreSQL/PostgREST y revisión independiente. Un solo turno pesado; ejecución asignada, resultados aún pendientes.
 - [x] Cerrar la revisión independiente del diseño y comprobar la adopción del Worker antes de producto, con árbol propio y contrato guardado. Preparación de dependencias aprobada sin cambiar el archivo de versiones.
 - [x] Reproducir **cinco fallos funcionales** sobre el producto anterior `a30d8585`: el Portal pierde el estado v2 y confunde error con ausencia; Fidelización descarta solo excluidas y suma claves repetidas; el cruce CRM acepta páginas truncadas. **27 comprobaciones aprobadas, cero omitidas**. Los cinco fallos son los problemas a reparar, sin fallos de infraestructura.
+- [x] Aprobar la primera corrección acotada de las tres consultas: **31/31 comprobaciones, sin omisiones**, incluidos los cinco fallos reproducidos. La prueba anterior que confundía error con ausencia fue sustituida por su contrato de rechazo explícito. **SQL, interfaz HTTP, pantallas y cierre general siguen pendientes**; todavía no es un candidato final.
 - [ ] Completar la implementación de las fachadas SQL y llevar subtotal, contador y estado hasta Portal, Fidelización, Reportes y CRM.
 - [ ] Probar compatibilidad, permisos, paginación y casos sin tasa con datos sintéticos; cerrar revisión independiente y conservar las omisiones reales de la validación general.
 - [ ] Respaldar la entrega SQL en su rama y abrir su PR en borrador, con dependencia explícita de #310.
