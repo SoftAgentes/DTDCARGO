@@ -17,15 +17,15 @@
           "name": "bcv_rates_write_capability",
           "kind": "function",
           "callSites": [
-            "lib/studio/fx/bcv-sync.ts:97"
+            "lib/studio/fx/bcv-sync.ts:117"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "lib/studio/fx/bcv-sync.ts:100",
+          "site": "lib/studio/fx/bcv-sync.ts:120",
           "contains": "throw new BcvError(\"SQL_CONTRACT_UNAVAILABLE\")",
-          "degradation": "Sin0501/caché nueva o con contexto/huellas/shape incompatibles, capability GET no habilita el importador ni el ensayo: antes del fetch oficial y de cada DML real se exige ready/version válidos. No fallback0495 ni candidata de solo fuente. Si falla después de tenants confirmados, se detienen pendientes y se conservan sus conteos; una escritura ya incierta conserva reconciliación/UNKNOWN, nunca rollback o cero escrituras por inferencia. GET no inmoviliza DDL. Gate HTTP y ejecución de producto pendientes durante autoría ligera."
+          "degradation": "Sin 0501/caché nueva o con contexto/huellas/shape incompatibles, capability GET no habilita el importador ni el ensayo: antes del fetch oficial y de cada DML real se exige ready/version válidos. No fallback 0495 ni candidata de solo fuente. Si falla después de tenants confirmados, se detienen pendientes y se conservan sus conteos; una escritura ya incierta conserva reconciliación/UNKNOWN, nunca rollback o cero escrituras por inferencia. GET no inmoviliza DDL. Contexto y persistencia fueron medidos en fixtures HTTP locales; no acredita instalación productiva."
         }
       ]
     },
@@ -53,9 +53,9 @@
           "kind": "table",
           "callSites": [
             "lib/studio/fx-rates.ts:120",
-            "lib/studio/fx/bcv-sync.ts:104",
-            "lib/studio/fx/bcv-sync.ts:213",
-            "lib/studio/fx/bcv-sync.ts:217"
+            "lib/studio/fx/bcv-sync.ts:124",
+            "lib/studio/fx/bcv-sync.ts:233",
+            "lib/studio/fx/bcv-sync.ts:237"
           ]
         },
         {
