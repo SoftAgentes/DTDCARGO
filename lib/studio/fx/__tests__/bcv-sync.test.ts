@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBcvServiceClient, parseBcvDryRun, parseBcvTenantScope, syncBcvRates } from "../bcv-sync";
-import { type BcvObservation } from "../bcv-types";
+import { BcvError, type BcvObservation } from "../bcv-types";
 
 const A = "00000000-0000-4000-8000-00000000000a";
 const B = "00000000-0000-4000-8000-00000000000b";
@@ -173,6 +173,55 @@ describe("B7/B8/B16 · gates y ensayo inmutable", () => {
     expect(fetch.mock.calls[0][1]?.method).toBe("GET");
     expect(new Headers(fetch.mock.calls[0][1]?.headers).get("Prefer") ?? "").not.toContain("count=exact");
   });
+  it.each([
+    () => tableResponse([], 0),
+    () => tableResponse([{ id: A }, { id: A }], 2),
+    () => tableResponse([{ id: C }], 1),
+    () => tableResponse([{ id: A, extra: true }], 1),
+    () => tableResponse([{ id: A }], 2),
+    () => new Response('[{"id":"' + A + '"}]', { headers: { "content-type": "application/json" } }),
+  ])("B8 · scope existente exige cobertura/shape/count completos", async response => {
+    const db = database();
+    db.setIntercept(call => call.url.pathname.endsWith("/tenants") ? response() : undefined);
+    expect(await db.run()).toMatchObject({ status: "REJECTED", reason: "SCOPE_UNAVAILABLE" });
+    expect(db.obtain).not.toHaveBeenCalled(); expect(db.writes()).toHaveLength(0);
+  });
+  it.each([
+    { source: "manual" }, { currency: "CNY" }, { valid_on: "2026-10-20" },
+    { set_by: A }, { set_at: "2026-10-21" }, { id: "invalid" }, { unexpected: true },
+  ])("B8 · una fila ajena al contrato no habilita DML: %j", async changed => {
+    const db = database();
+    db.setIntercept(call => call.url.pathname.endsWith("/fx_rates") ? tableResponse([{ ...row(), ...changed }], 1) : undefined);
+    expect(await db.run()).toMatchObject({ reason: "SNAPSHOT_UNAVAILABLE" });
+    expect(db.obtain).not.toHaveBeenCalled(); expect(db.writes()).toHaveLength(0);
+  });
+  it.each([null, [], { version: 2, ready: true }, { version: 1, ready: false }, { version: 1, ready: true, extra: true }])(
+    "R3/B16 · capability no exacta bloquea también ensayo: %j", async value => {
+      const db = database();
+      db.setIntercept(call => call.url.pathname.includes("/rpc/") ? new Response(JSON.stringify(value)) : undefined);
+      expect(await db.run({ enabled: false, dryRun: true })).toMatchObject({ reason: "SQL_CONTRACT_UNAVAILABLE" });
+      expect(db.obtain).not.toHaveBeenCalled(); expect(db.writes()).toHaveLength(0);
+    },
+  );
+  it("B7 · acepta exactamente 25 IDs únicos sin ampliar scope", async () => {
+    const ids = Array.from({ length: 25 }, (_, index) => `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`);
+    const db = database([], ids);
+    expect(await db.run({ dryRun: true })).toMatchObject({ status: "CANDIDATE", counts: { scope: 25, notAttempted: 25 } });
+    expect(db.calls[0].url.searchParams.get("id")).toBe(`in.(${ids.join(",")})`);
+    expect(db.writes()).toHaveLength(0);
+  });
+  it("B6 · el body DB comparte el deadline global de 50 s y no llega a fuente", async () => {
+    vi.useFakeTimers();
+    const cancel = vi.fn(); const db = database();
+    db.setIntercept(call => call.url.pathname.endsWith("/fx_rates") ? new Response(new ReadableStream({ cancel }), {
+      headers: { "content-range": "*/0", "content-type": "application/json" },
+    }) : undefined);
+    const task = db.run();
+    await vi.advanceTimersByTimeAsync(50_001);
+    expect(await task).toMatchObject({ status: "REJECTED", reason: "DEADLINE", counts: { notAttempted: 1, deferred: 1 } });
+    expect(cancel).toHaveBeenCalledTimes(1); expect(db.obtain).not.toHaveBeenCalled();
+    expect(db.writes()).toHaveLength(0); expect(vi.getTimerCount()).toBe(0);
+  });
 });
 
 describe("B9–B15 · persistencia textual, CAS y certeza", () => {
@@ -255,5 +304,33 @@ describe("B9–B15 · persistencia textual, CAS y certeza", () => {
     const db = database(); db.obtain.mockResolvedValue(observation("883.39630000", day));
     expect(await db.run()).toMatchObject({ status: "WAITING", counts: { notAttempted: 1 } });
     expect(db.writes()).toHaveLength(0);
+  });
+  it("B11 · mismo instante con otra zona no fabrica set_at ni PATCH", async () => {
+    const db = database([row(A, "880", "2026-10-21T03:00:00.123000-04:00")]);
+    expect(await db.run()).toMatchObject({ status: "PARTIAL", counts: { conflicts: 1, corrected: 0 } });
+    expect(db.writes()).toHaveLength(0);
+  });
+  it("B11 · equivalente con token cambiado se reconcilia, no se anuncia UNCHANGED", async () => {
+    const db = database([row(A, "883.39630000")]);
+    db.obtain.mockImplementation(async () => { db.state.set(A, row(A, "883.3963", "2026-10-21T06:45:00.000001Z")); return observation(); });
+    expect(await db.run()).toMatchObject({ counts: { reconciled: 1, unchanged: 0 } });
+    expect(db.writes()).toHaveLength(0);
+  });
+  it("B15 · un rechazo SQL validado conserva la partición y permite el siguiente tenant", async () => {
+    const db = database([], [A, B]);
+    db.setIntercept(call => call.method === "POST" && call.body?.tenant_id === A
+      ? new Response('{"code":"23514","message":"SYNTHETIC_SQL_PRIVATE_DETAIL"}', { status: 400 }) : undefined);
+    const result = await db.run();
+    expect(result).toMatchObject({ status: "PARTIAL", reason: "WRITE_FAILED", counts: { scope: 2, failed: 1, inserted: 1, unknown: 0, notAttempted: 0, deferred: 0 } });
+    expect(db.writes()).toHaveLength(2); expect(db.state.has(A)).toBe(false); expect(db.state.has(B)).toBe(true);
+    expect(JSON.stringify(result)).not.toMatch(/SYNTHETIC_SQL_PRIVATE_DETAIL|23514/);
+  });
+  it("B19 · una candidata futura no se reusa al día siguiente con fuente caída", async () => {
+    const db = database();
+    db.obtain.mockResolvedValueOnce(observation("883.3963", "2026-10-22"));
+    expect(await db.run()).toMatchObject({ reason: "WAITING_FOR_VALUE_DATE" });
+    db.obtain.mockRejectedValueOnce(new BcvError("SOURCE_UNAVAILABLE"));
+    expect(await db.run({ now: () => new Date("2026-10-22T07:00:00Z") })).toMatchObject({ status: "REJECTED", reason: "SOURCE_UNAVAILABLE" });
+    expect(db.obtain).toHaveBeenCalledTimes(2); expect(db.writes()).toHaveLength(0); expect(db.state.size).toBe(0);
   });
 });
