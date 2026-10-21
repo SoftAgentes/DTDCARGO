@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 9:05 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 9:24 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -118,11 +118,15 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Aprobar el contrato en **PostgreSQL 17.11 local: 37 aserciones y reversión de los datos sintéticos**. Se corrigió la referencia temporal de la prueba; el recibo del primer fallo se conserva y la migración sigue idéntica a `f9cc1dd1`.
 - [x] Aprobar las pruebas HTTP con **PostgREST 14.17 local**: función nueva ausente antes de instalar, disponible después de confirmar la migración y recargar el mismo proceso; decimal exacto, compatibilidad anterior y lectura de **1.202 grupos en páginas 500/500/202/0**. Se conserva el intento intermedio que falló por la paginación del arnés. Son identidades sintéticas; no certifica Auth alojado ni producción.
 - [x] Guardar el suplemento `3b74e42b` en esa misma PR y cerrar su revisión SQL independiente junto con `f9cc1dd1`: sin hallazgos materiales nuevos en permisos, identidad, compatibilidad o errores. Reparación temporal y arnés cotejados; instrumentación adicional de recibos declarada como todavía no ejecutada.
-- [ ] Completar esa misma PR con la app, las pantallas y la validación restante. La revisión visual encontró recortes de tabla/cifras grandes; reparación en curso en los consumidores permitidos. Revisión financiera/UI y cierre general todavía pendientes.
+- [x] Corregir y comprobar los recortes del cambio en navegador con datos ficticios: regiones recorribles por teclado y cifras completas en contenedores de 390 píxeles, más vista de escritorio. **28 comprobaciones posteriores aprobadas en cuatro archivos**. La aproximación de zoom no certifica zoom nativo ni accesibilidad integral; el recorte anterior de la tarjeta de recompensa Portal se comprobó idéntico en la base y se conserva fuera de alcance.
+- [x] Detectar los **13 errores intencionales de la app**, restaurando las fuentes. La primera corrida tuvo tres sobrevivientes: se añadieron dos escenarios ausentes y se corrigió el foco del tercero; el suplemento detectó los tres por su aserción funcional. Los recibos iniciales se conservan; no se confunden con fallos del producto.
+- [x] Respaldar la app y las pantallas en **`a734aa61`**, en la misma [PR #311 en borrador](https://github.com/SoftAgentes/DTDCARGO/pull/311): 40 rutas dentro de las 41 permitidas, rama local/remota iguales y árbol limpio en ese checkpoint. Tipos y corrección de revisión estática aprobados; se declaran dos advertencias anteriores al cambio.
+- [ ] Cerrar la revisión financiera/UI y de contratos sobre esa versión guardada, y la validación general. Un control confundió el nombre de la función SQL privada con textos de pantalla: se autorizó un nombre específico dentro de 0498 todavía no aplicada, sin relajar el control. El nuevo SQL pasó 18/18 controles embebidos; su suplemento PostgreSQL/API ya declara PASÓ y espera cotejo con el nuevo commit. Los revisores encontraron un caso CRM que ocultaba el nominal legítimo de un prospecto cuando fallaba solo la consulta anual; reparación y prueba integradas asignadas antes del cierre general.
 - [ ] Reemplazar las conversiones pendientes en SQL, con una entrega separada.
-- [x] Reservar y respaldar la **SDD-0576, hora Caracas**, tras inventario de 483 refs y worktrees. Diseño C1 preparado con 59 rutas y revisión en curso; todavía sin Worker nuevo, migración asignada ni producto implementado.
+- [x] Reservar y respaldar la **SDD-0576, hora Caracas**, tras inventario de 483 refs y worktrees. Diseño C1 de 59 rutas revisado y aprobado en ese nivel; C2 anual delimitado en 11 rutas, preservando las ventanas distintas. Todavía sin Worker nuevo, migración asignada ni producto implementado.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
+- [x] Revisar y aprobar el diseño acotado de la carga BCV: fecha exacta de hoy Caracas, decimal completo, protección de cambios concurrentes, ensayo sin escritura y respaldo manual. Reutiliza SDD-0569, 26 rutas propuestas y sin nueva migración. Todavía no existe importador ni agenda instalada.
 - [ ] Implementar la carga diaria desde el BCV oficial y el respaldo manual.
 - [ ] Comprobar el comportamiento cuando no exista una tasa vigente.
 
