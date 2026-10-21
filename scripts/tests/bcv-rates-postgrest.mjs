@@ -3,6 +3,7 @@
 // Uso: node scripts/tests/bcv-rates-postgrest.mjs --context-only --evidence <directorio-nuevo-externo>
 //      node scripts/tests/bcv-rates-postgrest.mjs --full --evidence <directorio-nuevo-externo>
 //      node scripts/tests/bcv-rates-postgrest.mjs --supplemental --evidence <directorio-nuevo-externo>
+//      node scripts/tests/bcv-rates-postgrest.mjs --withdrawal-only --evidence <directorio-nuevo-externo>
 // PG17.11/PostgREST14.17 propios y SDK/TS reales; JWT sintéticos, solo loopback.
 // No .env, Supabase real, BCV remoto, Compose, recursos o credenciales de otro WT.
 import assert from 'node:assert/strict';
@@ -36,9 +37,9 @@ const delay = ms => new Promise(done => setTimeout(done, ms));
 async function main() {
   assert.equal(realpathSync(process.cwd()).toLowerCase(), realpathSync(ROOT).toLowerCase(), 'ejecutar desde raíz propia');
   const args = process.argv.slice(2);
-  const full=args.includes('--full'), supplemental=args.includes('--supplemental');
-  assert.equal(['--full','--context-only','--supplemental'].filter(mode=>args.includes(mode)).length,1,
-    'elegir --context-only, --full o --supplemental');
+  const full=args.includes('--full'), supplemental=args.includes('--supplemental'), withdrawalOnly=args.includes('--withdrawal-only');
+  assert.equal(['--full','--context-only','--supplemental','--withdrawal-only'].filter(mode=>args.includes(mode)).length,1,
+    'elegir --context-only, --full, --supplemental o --withdrawal-only');
   const at = args.indexOf('--evidence');
   assert(at >= 0 && args[at+1] && !args[at+1].startsWith('--'), 'falta directorio externo nuevo de evidencia');
   assert(args.length === 3, 'opciones desconocidas');
@@ -50,7 +51,7 @@ async function main() {
   const network = 'dtd-bcv-' + nonce, pg = network + '-pg', rest = network + '-rest';
   const password = randomBytes(24).toString('hex'), secret = randomBytes(32).toString('hex');
   const receipt = { startedAt: new Date().toISOString(), pid: process.pid, root: ROOT, phase: 'PREPARACION',
-    result: 'RUNNING', mode:supplemental?'supplemental':full?'full':'context-only', resources: { network, pg, rest }, versions: {}, checks: [], commands: [], http: [], gatewayHttp: [], sourceHttp:[], cleanup: [] };
+    result: 'RUNNING', mode:withdrawalOnly?'withdrawal-only':supplemental?'supplemental':full?'full':'context-only', resources: { network, pg, rest }, versions: {}, checks: [], commands: [], http: [], gatewayHttp: [], sourceHttp:[], cleanup: [] };
   const attempted = []; let networkAttempted = false;
   let gateway;
   let fixtureFault;
@@ -119,7 +120,9 @@ async function main() {
     assert.match(setup.stdout,/COMMIT/);
     await psql("alter role authenticator login password '"+password+"';");
     const migration=readFileSync(resolve(ROOT,'supabase/migrations/0501_bcv_rates_system_audit.sql'),'utf8');
-    const installation=supplemental?await measureInstall({pg,nonce,run,scalar,psql,migration,receipt,save,check,eventually}):undefined;
+    const installation=supplemental?await measureInstall({pg,nonce,run,scalar,psql,migration,receipt,save,check,eventually}):withdrawalOnly?{
+      before:JSON.parse(await scalar(INSTALL_CATALOG)),
+      oldDefinition:await scalar("select pg_get_functiondef('public.audit_fx_rate_change()'::regprocedure);")}:undefined;
     if (!supplemental) await psql('begin;\n'+migration+'\ncommit;');
     attempted.push(rest);
     await run('rest-start',['run','-d','--name',rest,'--label','dtd.task=0569-bcv-carga-diaria','--label','dtd.owner='+nonce,
@@ -211,7 +214,7 @@ async function main() {
       } });
     const cap = async c => c.rpc('bcv_rates_write_capability',{}, {get:true}).retry(false).abortSignal(AbortSignal.timeout(5000));
     const service = client('service_role');
-    if (!supplemental) {
+    if (!supplemental&&!withdrawalOnly) {
     const ready = await cap(service); assert.equal(ready.status,200); assert.deepEqual(ready.data,{version:1,ready:true});
     assert.equal(receipt.http.at(-1).method,'GET');
     for (const sub of [null,'','not-a-uuid',uuid('accounting-A')]) {
@@ -342,11 +345,11 @@ async function main() {
     if (full) await runFunctional({syncBcvRates,fetchBcvObservation,client,service,scalar,psql,receipt,check,save,
       fixtureSources,supabaseBase,nonce,columns,setFault:value=>{fixtureFault=value;}});
     }
-    if (supplemental) await runSupplemental({syncBcvRates,fetchBcvObservation,client,service,scalar,psql,receipt,check,save,
+    if (supplemental||withdrawalOnly) await runSupplemental({withdrawalOnly,syncBcvRates,fetchBcvObservation,client,service,scalar,psql,receipt,check,save,
       fixtureSources,supabaseBase,nonce,installation,setFault:value=>{fixtureFault=value;},
       gatewayState:()=>({requests:gatewayRequests.size,tasks:gatewayTasks.size}),eventually});
     receipt.result = 'PASÓ';
-    receipt.scope = supplemental?'suplemento B5/B12/R14: reloj controlado con COMMIT real, PATCH/append y locks/retirada SQL; sin garantía frente a DDL concurrente':full?'aceptación HTTP sintética del importador, contexto y auditoría; canónica/producción no acreditadas':'gate pequeño de contexto/GET/precisión; B1–B19/R1–R14 completos todavía pendientes';
+    receipt.scope = withdrawalOnly?'R14 retirada SQL aislada con eventos ya comprometidos y app que falla cerrada; no repite B5/B12/locks de instalación':supplemental?'suplemento B5/B12/R14: reloj controlado con COMMIT real, PATCH/append y locks/retirada SQL; sin garantía frente a DDL concurrente':full?'aceptación HTTP sintética del importador, contexto y auditoría; B1–B19/R1–R14 completos todavía pendientes':'gate pequeño de contexto/GET/precisión; B1–B19/R1–R14 completos todavía pendientes';
   } catch (error) {
     receipt.result='FALLÓ'; receipt.failure={phase:receipt.phase, code:error.safeStep??error.code??error.name??'ERROR'};
     const diagnostic=String(error.stack??error).slice(0,16_384).replaceAll(password,'[fixture-password]')
@@ -746,7 +749,7 @@ async function measureInstall({pg,nonce,run,scalar,psql,migration,receipt,save,c
   return {before,oldDefinition};
 }
 
-async function runSupplemental({syncBcvRates,fetchBcvObservation,client,service,scalar,psql,receipt,check,save,
+async function runSupplemental({withdrawalOnly=false,syncBcvRates,fetchBcvObservation,client,service,scalar,psql,receipt,check,save,
   fixtureSources,supabaseBase,nonce,installation,setFault,gatewayState,eventually}) {
   const A=uuid('tenant-A'), B=uuid('tenant-B');
   const columns='id,tenant_id,currency,source,valid_on,rate::text,set_at,set_by';
@@ -789,6 +792,7 @@ async function runSupplemental({syncBcvRates,fetchBcvObservation,client,service,
     return item;
   };
   const writes=item=>item.http.filter(wire=>wire.flow===item.label&&['POST','PATCH'].includes(wire.method));
+  if(!withdrawalOnly) {
   const failDay='2027-01-01'; assert.deepEqual(await state(failDay),{rows:[],events:[],contexts:[]});
   const seeded=await service.from('fx_rates').insert({tenant_id:A,currency:'VES',source:'bcv',valid_on:failDay,
     rate:'880.00000000',set_at:failDay+'T06:00:00.123456Z',set_by:null,note:'preimagen sintética B12 PATCH'})
@@ -861,6 +865,11 @@ async function runSupplemental({syncBcvRates,fetchBcvObservation,client,service,
       limit:'Reloj de aplicación controlado que cruza medianoche IANA; PostgreSQL/HTTP/COMMIT reales. No es una espera de medianoche física ni promesa de cancelar COMMIT.'});
   }
   check('B5: corte entre tenants y ACK/ACK perdido tras COMMIT cruzan medianoche, conservan día original y difieren B');
+  } else {
+    const seeded=await execute('withdrawal-committed-seed','2027-01-01');
+    assert.equal(seeded.summary.counts.inserted,1); assert.equal(writes(seeded).length,1);
+    check('R14 precondición nueva: tasa y evento job ya comprometidos por importador HTTP real');
+  }
 
   receipt.phase='R14_WITHDRAWAL';
   await eventually(async()=>gatewayState().requests===0&&gatewayState().tasks===0);
@@ -870,7 +879,7 @@ async function runSupplemental({syncBcvRates,fetchBcvObservation,client,service,
   const durableBefore=await allState();
   assert(JSON.parse(durableBefore).events.some(event=>event.source==='job'),'eventos job ya comprometidos, no fixture vacía');
   const withdrew=await observeDdl({name:'bcv-'+nonce+'-withdraw',sql:`set local lock_timeout='5s'; set local statement_timeout='60s';
-    ${installation.oldDefinition}
+    ${installation.oldDefinition};
     drop function public.bcv_rates_write_capability(); notify pgrst,'reload schema';`,psql,scalar,eventually});
   const after=JSON.parse(await scalar(INSTALL_CATALOG)); assert.deepEqual(after,installation.before);
   assert.equal(await allState(),durableBefore,'retirada conserva cada fila/evento/contexto comprometido');
