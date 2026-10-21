@@ -314,9 +314,13 @@ Fuera de alcance: backfill/purga/conversión C-/renumeración/historia o datos d
 - Comprobados raíz/rama/HEAD/árbol y delta exclusivo de la reserva 4ea14d8a520f48cdfccb15db14e2d186b8aa9b3b.
 - Guard y claim propios adquiridos. Contrato íntegro guardado antes de adoptar el stub.
 - Stub SDD adoptado por cherry-pick exclusivo; nuevo commit 8059daadf723c0db9814bea92cbeee0fe5cc5b74, padre único D1. No se incorporó ascendencia main/reserva.
-- SQL 0502 respaldable como stub SIN CUERPO DDL/NO APLICAR, con espera concreta en baseline; cutoff y esperas ajenas preservados.
+- SQL 0502 respaldado primero como stub SIN CUERPO DDL en dc8bc10688db013d8554ec5e748e0b2c0e8b9be9, con espera concreta en baseline; cutoff y esperas ajenas preservados. Ahora está en autoría parcial y conserva un fusible explícito que aborta su ejecución.
 - Spec en progreso con contrato/50 rutas/oráculos íntegros y clasificación R3/P4; motivo humano por helper canónico, sin sustituir el límite propio 0496.
 - Índice regenerado mediante herramienta nativa: 559 specs, 19 huecos; no se tomó ningún hueco ni se reservó otro número.
+- PR #318 creada, publicada y adjuntada OPEN/DRAFT sobre la base exacta D1; el checkpoint inicial contiene cinco rutas propias y ninguna implementación funcional.
+- Redactados tipos, normalización/validación pura, proyección exacta de centavos y lectores específicos que no presentan una página fallida/truncada como completa. Sus pruebas están redactadas y NO EJECUTADAS.
+- Cuerpo parcial 0502: esquema privado y sin altas, contexto no falsificable por GUC, marcación prospectiva por reloj servidor, reserva sólo de códigos nuevos con mutex separado, guardas de identidad/medidas/cajas/eventos, binding vivo 0496, lector/manifiesto y RPC de formación/extensión/cierre. Es borrador sin validación, con composición/ACL/postflight restantes; no es SQL de release.
+- Referencias concretas R3/P4/motivo/confirmación guardadas en la spec; no amplían autoridad ni alteran miembros anteriores.
 
 ## VALIDACIÓN
 
@@ -327,17 +331,18 @@ Fuera de alcance: backfill/purga/conversión C-/renumeración/historia o datos d
 ## COMMITS
 
 - 8059daadf723c0db9814bea92cbeee0fe5cc5b74: adopción exclusiva del stub SDD 0578, padre único D1.
-- Checkpoint temprano: commit que contiene este documento; spec/contrato, stub SQL y espera, índice generado. Pruebas aún NO EJECUTADAS.
+- dc8bc10688db013d8554ec5e748e0b2c0e8b9be9: checkpoint temprano; spec/contrato, stub SQL y espera, índice generado. Pruebas aún NO EJECUTADAS.
+- Checkpoint P1 de autoría: commit que contiene esta actualización; cuerpo parcial con fusible y primeros contratos/oráculos. No es aceptación funcional.
 
 ## PR / BRANCH
 
-Rama propia asignada; push y DRAFT autorizados. PR aún NO CREADA. Base candidata codex/sdd-0574-embarques-cierre/D1: volver a comprobar remoto antes de publicar.
+Rama `codex/sdd-0578-envios-cliente-camino-normal`, PR https://github.com/SoftAgentes/DTDCARGO/pull/318 OPEN/DRAFT, adjuntada a la tarea. Base `codex/sdd-0574-embarques-cierre` en D1 `1ec5e85f736b7826cf5b6e8781757dc4cf950733`, cotejada al crearla. Publicación propia autorizada; no merge/retarget de base por reflejo.
 
 ## PENDIENTES DE ESTA TAREA
 
 1. Completar lecturas normativas de marca/Norte/privacidad/conocimiento y políticas de UI aplicables; lecturas base de AGENTS/Worker/runbook/reglas/registro/SGE/MP/AUD-01/backend realizadas, sin dar por consultado lo pendiente.
-2. Diseñar API/contextos privados/locks y cuerpo SQL/fixtures; preservar el contrato aprobado y registrar la evidencia por oráculo.
-3. Autoría ligera dentro de las 50 rutas, preparar fixtures/oráculos/plan de ejecución, commits y PR DRAFT.
+2. Completar cuerpo SQL: escritores de estado/estiba/plan/POD y composición de funciones/ACL/preflight/postflight, invariantes diferidas y fixtures reales. Preservar el contrato y registrar evidencia por oráculo; quitar el fusible sólo con cuerpo completo revisable.
+3. Adaptadores/UI/bulk/Portal dentro de las 50 rutas, fixtures/oráculos, commits y actualización de la PR DRAFT. Plan de relevo externo en `C:/tmp/director-traspaso-20261020/0578-normal-validation/plan-ejecucion-p1.md`.
 4. Recibir turno explícito del Director antes de cualquier ejecución pesada; no heredar GO de otra tarea.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -346,4 +351,4 @@ Ninguno nuevo; exclusiones del contrato preservadas. No absorbe BCV, 0573 ni pen
 
 ## HANDOFF AL DIRECTOR
 
-Trabajo EN PROGRESO, owner retenido. Enrolamiento OFF; código aún no escrito/probado. Este handoff no es cierre de producto ni de 4.2 completo.
+Trabajo EN PROGRESO, owner retenido. Enrolamiento OFF; código parcial escrito y NO PROBADO, SQL con fusible que aborta. No instalar/ejecutar ni activar aún. Este handoff no es cierre de producto ni de 4.2 completo.

@@ -19,11 +19,15 @@ Trabajo local P1 autorizado por Director, owner worker-0578normal-01a15a4e-ddf0-
 
 Fuente ejecutable: 042-activacion-worker-0578-director.md, SHA256 1939a04752338b66bc5187961f8a1a216093dc6101fdb28771bec2efae607be4. El contrato íntegro y las fases/permisos/exclusiones están preservados en `.agents/handoffs/042-envio-cliente-camino-normal.md`; las secciones contractuales y su allowlist/aceptación se copian abajo sin alterar la fuente sellada.
 
-Estado inicial de implementación: sólo stub SQL 0502 reservado y esta spec/contrato; producto, pruebas, RLS/SQL, instalación, tipos, lint amplio, build, verify, UI y conocimiento NO EJECUTADO. BCV GO03 conserva el único turno pesado. PR DRAFT/checkpoint temprano autorizados; ninguna afirmación de cierre o integración.
+Checkpoint de autoría P1: PR #318 OPEN/DRAFT, apilada sobre `codex/sdd-0574-embarques-cierre`/D1. Tipos, validación pura, lectores y sus oráculos están redactados; 0502 contiene un cuerpo parcial de esquema/guardas/formación/extensión/cierre con un fusible explícito que aborta su ejecución. Adaptadores, UI, composición restante y aceptación siguen pendientes. Instalación, SQL/DB, pruebas, tipos, lint amplio, build, verify, UI y conocimiento NO EJECUTADO. BCV GO03 conserva el único turno pesado. Autoría no equivale a prueba, cierre o integración.
 
 ## Gobierno de permanencia y riesgo
 
 Formar/extender/cerrar fijan relaciones operativas consumidas por otros procesos que este camino normal no permite retirar. Clasificación de implementación: R3, con evidencia P4 append-only, consecuencia visible, confirmación, motivo humano, permisos efectivos y AUD-01 atómica. El motivo forma parte de la intención durable; se usa el helper canónico `validateAuditReason` y sus límites 4–1000 donde no exista un límite específico más estricto. 0496 mantiene su motivo/roles/límites propios; no se reduce su validación. No se añade una capability ni autoridad de cancelar/corregir historia.
+
+Fundamento concreto: [MP-01 §§2–3, 5–7](../../governance/policies/mp-01.md) define P4 para evidencia y R3 para una operación irreversible para el usuario; su mapa logístico incluye cierre/en proceso. [AUD-01 §§2–5](../../governance/policies/aud-01.md) exige motivo R3, actor conocido, minimización y atomicidad. [BTN-01 §§3, 8–9](../../governance/policies/btn-01.md) fija el objeto de «Confirmar», el contrato y la espera sin doble ejecución. Se clasifica este slice; no se promueve una regla global. El motivo confirma la incorporación o el cierre revisado: no concede autoridad adicional, no habilita editar miembros previos y no sustituye los permisos efectivos.
+
+La detección de pertenencia no degrada a «legacy» si falta su RPC o hay error/incompletitud. Un `PGRST202` también puede ser una caché desactualizada con filas enroladas existentes; el adaptador debe rechazar antes del helper C-/OV o del writer genérico. El gate futuro exige schema/caché/callers disponibles antes de activar, además de drenar callers antiguos. Con el protocolo disponible y OFF, las filas legacy mantienen sus operaciones anteriores.
 
 La matriz SGE y privacidad se documenta con evidencia por fase. Hoy las doce comprobaciones siguen pendientes de ejecución; la lectura de políticas no es prueba de conformidad del código. Sin excepción inventada ni pérdida de guardas legacy.
 
