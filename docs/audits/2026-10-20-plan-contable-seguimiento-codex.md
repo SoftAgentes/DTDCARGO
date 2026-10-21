@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 8:24 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 8:29 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -103,6 +103,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Delimitar los reemplazos SQL, las fechas de Caracas y la carga BCV que faltan, con sus dependencias y criterios de prueba. Es preparación; su implementación sigue pendiente.
 - [x] Preparar un árbol aislado para **0572-b**, desde la entrega `a30d8585` de #310, y comprobar las dependencias actuales. La revisión de diseño confirma una transición compatible que conserva la interfaz anterior; la allowlist final y la implementación se registrarán por separado.
 - [x] Asignar al tramo SQL la migración **`0498_annual_billing_fx_v2`**, después de inventariar 480 refs y los archivos de los worktrees. Se reutiliza SDD-0572. Esta asignación no autoriza aplicarla en producción.
+- [x] Aprobar y enviar la asignación completa de **0572-b** al Worker: 41 rutas exactas, transición compatible, subtotal decimal, estados y contadores hasta los cuatro consumidores, pruebas locales PostgreSQL/PostgREST y revisión independiente. Un solo turno pesado; ejecución asignada, resultados aún pendientes.
 - [ ] Completar la implementación de las fachadas SQL y llevar subtotal, contador y estado hasta Portal, Fidelización, Reportes y CRM.
 - [ ] Probar compatibilidad, permisos, paginación y casos sin tasa con datos sintéticos; cerrar revisión independiente y conservar las omisiones reales de la validación general.
 - [ ] Respaldar la entrega SQL en su rama y abrir su PR en borrador, con dependencia explícita de #310.
