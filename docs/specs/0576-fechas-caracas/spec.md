@@ -1,6 +1,6 @@
 ---
 sdd: "0576"
-title: "Fechas de operaciones y lecturas anuales en America/Caracas — C1/C2"
+title: "Fechas Caracas — operaciones, anuales y móvil — C1/C2/C3"
 status: in-progress
 author: "Codex"
 created: 2026-10-21
@@ -11,7 +11,7 @@ related: []
 confidencialidad: interno
 ---
 
-# SDD-0576 — Fechas de operaciones y lecturas anuales en America/Caracas — C1/C2
+# SDD-0576 — Fechas de operaciones, lecturas anuales y móvil en America/Caracas — C1/C2/C3
 
 ## Objetivo y autoridad
 
@@ -481,3 +481,62 @@ C3móvil y demás tareas siguen fuera; SDD0576 permanece **in-progress**.
 El cierre local distingue guardado, integración, estructura, semántica/piloto, Archify, preview y UI de Obsidian. Por autorización específica del Director se ejecutó Graphify nativo0.9.61 sin instalación global/APIs: 44.261nodos/80.956relaciones/2.666comunidades, HTML agregado bajo5.000nodos. Se conservan avisos de extracción parcial en dos archivos de Legal; CURRENT estructural no demuestra semántica. Primera generación Archify2.16.0 PASÓ9/9 sin errores/advertencias, con ZIP y treehash fijados cotejados antes de extraer/ejecutar. Global0/1.328 y piloto0/16 del inventario inicial no se elevan a CURRENT por AST; no se copiaron recibos de main.
 
 El último refresco de derivados, knowledge:visual/check y publish/status/check --preview se ejecuta después del commit documental estable, con recibo externo final y readback de PR313 ligados a su SHA definitivo. Preview fija y propia en graphify-out/obsidian-preview; no publicación compartida. Semántica masiva, revisión visible en Obsidian, integración, ledger y producción conservan sus estados no medidos o pendientes. El handoff propio contiene comandos, huellas, intentos históricos y límites; no se alteran reglas globales para completar esta entrega.
+
+## C3 — alta, edición y fila de gastos móviles
+
+Asignación activada del Director2026-10-21, reproducida íntegra antes de producto en .agents/handoffs/0576-fechas-caracas-movil.md. Fuente externa C:/tmp/director-traspaso-20261020/0576-caracas-c3-asignacion-worker.md, SHA2566b94cd33764fd13b05efe2881ce99d0ac579c563491f54f75b82c60894293c66. Base final C2:0e630ede760dbc369ddf60133c18c4a77f2d8692; rama codex/sdd-0576-fechas-caracas-movil, PR DRAFT sobre codex/sdd-0576-fechas-caracas-anuales. No nueva migración, reparación histórica ni cambio0575.
+
+### Alcance exacto y aceptación C3
+
+Siete rutas permitidas: app/m/erp/actions.ts; app/m/erp/_components/MobileErpClient.tsx; app/m/erp/__tests__/fechas-caracas.test.ts; app/m/erp/_components/MobileErpClient.fechas-caracas.test.tsx; esta spec; docs/specs/README.md generado; .agents/handoffs/0576-fechas-caracas-movil.md. Helpers compartidos, CSS/layout, todos los tests previos, SQL, dependencias y gates quedan fuera de la escritura.
+
+- Alta captura un instante antes del PRIMER await, deriva su día IANA Caracas y persiste exactamente ese occurred_at. Guard y poster usan el mismo día, aun si sesión cruza04:00Z o el insert devuelve otro timestamp. La numeración conserva su RPC y reloj propios; no se afirma anclaje de su correlativo.
+- Ambas acciones resuelven tenant desde la sesión mediante get_user_tenant_id() sin argumentos y UUID escalar canónico estricto, sin fallback ni tenant de formulario. Solo arrays íntegros de0/1 settings con tenant coherente y closing_dateNULL/calendario válido pueden habilitar; errores, shapes o cardinalidad inesperados bloquean.
+- Edición carga exactamente un origen propio/tenant/activo, límite2, y valida identidad y occurred_at histórico sin reemplazarlo. Resuelve cuenta y conserva la comparación real amount_usd/cuenta/método antes de foto. Solo para cambio contable lee0/1 asiento vivo estricto con límite2; cierre o fecha histórica distinta bloquean antes de upload/remove/UPDATE/void/post. Cambio descriptivo abierto no consulta innecesariamente ese asiento ni repostea.
+- No se re-fecha historia, occurred_at ni created_at. Se preservan UTC de auditoría, importes/monedas/FX, permiso móvil propio, cuentaNULL legada, MIME/5MB y anulación gobernada.
+- Fila usa Intl real, localees-VE y timeZoneAmerica/Caracas explícita, incluidos02:30Z, corte04:00Z, mes/año/bisiesto y Caracas histórico−04:30.
+- El MISMO form conserva campos y File ante rechazo recuperable. Manejo local onSubmit/preventDefault→FormData nativo→useActionState en transición evita reset del form tras el error, sin caché/ref de File, exports ni form copiado. Retirar/sustituir/cancelar/cerrar realmente respeta la decisión del usuario.
+- N1: botón y fondo del alta no desmontan durante pending; vuelven a permitir cierre voluntario tras rechazo. N2: mensaje general persistente con rolealert/tabIndex−1 y foco local solo en respuesta nueva; no mueve foco al teclear/cambiar foto. Reintento por teclado medido en ambos forms.
+
+### Evidencia funcional C3 y límites
+
+Recibos externos bajo C:/tmp/director-traspaso-20261020/0576-c3-validation; sus identidades y hashes están en el handoff. ROJO puro de acciones sobre base intacta:117 FALLÓ/28 PASÓ,145 casos. ROJO UI real:13 FALLÓ/8 PASÓ,21 casos. Intentos con import/selección File de fixture incompleta se preservan aparte y no cuentan como ROJO funcional.
+
+La comparación global inicial E01/E03 solo mostraba método transfer→cash. La aserción independiente File de JSDOM PASÓ2/2 con21 omitidas por filtro, por lo que no demostraba pérdida de archivo. El navegador nativo posterior sí reprodujo, en alta y edición, primer File íntegro y segundo ausente tanto en FD cliente como en multipart parseado por handler real, con mismo form y rechazo inicial sin efectos. Se conserva esa diferencia de entorno.
+
+El VERDE nativo usa exactamente el mismo fixture de transporte11bytes: segundo File conserva name/type/size/bytes/SHA en ambos extremos y método transfer; todos los campos iguales. Base native/base-multipart.json SHA256c1126322305176ceeecc0f8339d280142a81e2e8804c3cee0cafc17223718db1; candidato native/candidate-multipart.json SHA2563e18370ef781902c35b163821503e264942cd0b809cc61b408c0fcfe6d902129. No se usa previewURL o input.files aislado como prueba de payload.
+
+Primer VERDE conjunto168/168 (145 acciones+23 UI). Regresión ampliada posterior248/248 en9archivos, cero omisiones:151 acciones C3+25 UI C3 y72 previas de anulación móvil/gobernada, Caracas, FX, cierre, posting y consultas. Incluye fieldErrors reales MIME y frontera de fallo posterior de upload/UPDATE; esto conserva, no elimina, la incertidumbre de escritura entre Storage/DB/posting. Tipos PASÓ tras corregir únicamente el tipo de una tabla del test; el primer falloTS se conserva.
+
+Mutantes focales seriales M1–M9/M11 y N1/N2 murieron por aserciones previstas; M10 nativo, al restaurar form action con reset, murió por aserción independiente del segundo File en ambos forms. Cada fuente se restauró por SHA256 exacto; fallos iniciales de invocación/clasificador se preservan como arnés, no como muerte funcional. No se tocaron controles, tiempos, pools, gates ni dependencias.
+
+Suplemento visual: Chrome headless, componente/forms/ToastProvider/CSS reales y fronteras sintéticas;390×844 y1280×900, teclado/foco/error/reintento/scroll/último control. PNG ficticio válido240×160/4421bytes/SHA2560e6d2f8ca3f566e34692303b1d8cf58ae963ba25d64fb3b443786f0c23af055c, distinto del fixture11bytes preservado para transporte. Preview decodificada y bytes/hash iguales en ambos envíos y extremos; documento sin desborde horizontal y forms390/480px. native/review.json SHA256714a9b80c6300cf1c6a8b8a2e2dde443786b53e036525e07a601e37dc1ca6ea5. Oscuro es suplemento sintético: layout real claro. Native200% NO DISPONIBLE; viewport fuente restringe zoom. Teléfono/Auth/RLS vivos, lector de pantalla y WCAG integral NO EJECUTADOS.
+
+### Gobernanza C3 — riesgo máximo R3 financiero
+
+| SGE-00v1.0 | Clasificación y evidencia acotada |
+|---|---|
+| .01 Predecibilidad | Cumplimiento: mismo Guardar, rechazo real sin cierre/refresh |
+| .02 No perder trabajo | Cumplimiento medido: File/método ROJO→VERDE nativo; N1 y cierre voluntario |
+| .03 Riesgo/fricción | Cumplimiento: guardas financieras sin confirmación nueva; anulación P3/R3 intacta |
+| .04 Auditoría | Cumplimiento del delta: ancla persistida, historia y UTC de auditoría preservados |
+| .05 Permisos/tenant/estado | Cumplimiento sintético/fuente: tenant escalar, owner y estados estrictos; no RLS vivo |
+| .06 Prevenir errores | Cumplimiento: guardas previas a foto/documento/void/post y calendario IANA |
+| .07 Estado verdadero | Cumplimiento: solo array vacío es ausencia; error no equivale a abierto; no atomicidad0575 |
+| .08 Frecuencia | Cumplimiento: no campos, permisos ni pasos nuevos |
+| .09 Reutilización | Cumplimiento: helper, componente y forms existentes; sin exports/duplicación |
+| .10 Accesibilidad | Cumplimiento de DOM/foco/teclado/reflow observado; integral NO VERIFICABLE por límites |
+| .11 Lenguaje | Cumplimiento de nuevas guardas: error persistente sanitizado y vía de recuperación |
+| .12 Autoridad humana | No aplica IA nueva; PR DRAFT autorizada y límites merge/producción preservados |
+
+DAT-01v1.0: día/calendario coherente, sin selector nuevo. ERR-01v1.0 y FRM-01v1.1: bloqueo visible, foco nuevo, preservación de trabajo y pending medidos. NUM-01v1.1: conversión/validación vigentes preservadas, no adopción global NumericInput. A11Y-01v1.1: DOM/teclado/foco/reflow medidos; lector/zoom/teléfono no certificados. MP-01v1.1: máximoR3 por historia financiera, sin fricción añadida ni promesa transaccional. Ninguna excepción creada; aprobación de políticas y conteos estáticos no certifican el producto.
+
+UI-check advisory del delta: sin color/spacing/CSS nuevo; error enfocado visible. Deuda fuera de alcance: layout móvil hereda Archivo/ArchivoBlack (medido, archivos locales cargados) frente al split operativo Nunito/Sora de la rúbrica; restricciones de zoom y legibilidad oscura heredadas. No se cambia layout ni se declara esa deuda conforme.
+
+Privacidad técnica del delta File: ENCONTRADO FormData nativo limitado al mismo input/form; CORRECTO sin caché global/durable, retirar/sustituir/cerrar y guardas antes de Storage medidos con datos ficticios; NO VERIFICABLE borrado físico de memoria/objetos históricos, vida completa de blobURLs y cumplimiento jurídico global. Sin filas reales, secretos o PII; no se promete borrado forense.
+
+### Cierre e integración C3
+
+Checkpoint para revisión del Director y PR DRAFT; verify canónico aún NO EJECUTADO hasta GO sobre candidato inmutable. Una sola receta normal, sin overrides, con manifest antes y bytecheck después del EXIT antes de documentación. Ledger vivo sigue validación release y no autoriza consultar DB para completar un gate.
+
+Después del último commit documental estable se realizará un único ciclo nativo de conocimiento propio: Graphify0.9.61, Archify2.16.0 con ZIP/hash verificado antes de extraer, visual/check y preview/publish/status/check locales. Resultados postcommit se guardarán externos y en PR, sin primer ciclo para autocitarlo ni publicación compartida. Semántica/piloto/global, revisión visible Obsidian, integración, deploy, migraciones y producción conservan estados separados. SDD0576 sigue in-progress; este slice no cierra por sí solo2.1global.
