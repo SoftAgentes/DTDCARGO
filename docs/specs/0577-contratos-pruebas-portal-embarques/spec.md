@@ -134,7 +134,7 @@ registran por separado.
 - PENDIENTE: revisión del checkpoint/PR DRAFT y ciclo de conocimiento con turno. El par observado dio Files/Excel 2506.32 ms original y 2259.59 ms candidato; no demuestra mejora estable ni causa del timeout C3.
 - PENDIENTE DE COMPOSICIÓN: canónica C3 con nuevo GO y evidencia por SHA.
 
-## Subfase diagnóstica GO05B · preparación GO0
+## Subfase diagnóstica GO05B · GO0 histórico y cierre GO05
 
 Asignación del Director del 21 de octubre de 2026:
 `0577-diagnostico-go05b-asignacion-director.md`, SHA-256
@@ -159,11 +159,11 @@ Allowlist acumulada de la subfase, independiente de la lista histórica:
 4. `docs/specs/README.md`, solo mediante su generador.
 5. `.agents/handoffs/0577-diagnostico-portal-go05b.md`.
 
-**GO0 permite modificar únicamente los tres documentos.** Los dos tests y todo
+**GO0 permitió modificar únicamente los tres documentos.** Los dos tests y todo
 producto/configuración/runner/package/lock conservan los bytes de la base ce7.
 La prueba de Embarques y el handoff histórico no pertenecen a esta subfase.
 
-### Contrato de las futuras pasadas, todavía NO EJECUTADAS
+### Contrato aprobado en GO0, conservado como antecedente
 
 Una basal nativa, con autorización posterior y namespace nuevo: los dos archivos
 en orden standard-format / supplier-flow, 2 workers, retry 0, JSON y ambos streams
@@ -212,7 +212,97 @@ No hubo extracción, AST, cluster, mapa, preview ni publicación. El exit de la
 consulta no significa que esas capas estén vigentes. El impacto documental se
 guarda en esta spec y el handoff propio; integración y conocimiento quedan separados.
 
-Basal, instrumental, reparación, validación de producto y canónica: **NO
-EJECUTADAS**. El estado de esta SDD se mantiene `in-progress`. La evidencia propia
-GO0 y el manifiesto del checkpoint documental D0 se conservan bajo
+Al cerrar GO0, basal, instrumental, reparación, validación de producto y canónica
+estaban **NO EJECUTADAS**. El checkpoint documental D0 quedó fijado en
+`0b8e70faeb92f2f42a031faf3306e2ac7e9aa202`. La evidencia propia GO0 y su manifiesto
+se conservan bajo
 `C:/tmp/director-traspaso-20261020/0577-go05b-diagnostico-validation/`.
+
+### Cierre del diagnóstico: GO04 funcional y GO05 documental
+
+El Director autorizó una única basal completa mediante
+`0577-basal-go04-director.md`, SHA-256
+`ca1233d02c797463659947ee947f91fc6eff30357e97a6a3ea67c4c959f1b307`.
+La ejecución sobre D0 terminó con **30 PASÓ, 0 fallos, 0 omitidos y 0 reintentos**:
+standard-format 7 y supplier-flow 23, dos workers y los límites originales.
+El cotejo ordinal de archivo, título y nombre completo confirmó las 30 identidades
+únicas previstas. Resultado: **NO REPRODUCIDO / CAUSA PORTAL NO DETERMINADA**.
+No se implementó un arreglo ni se acreditó estabilidad o una causa de carga.
+
+La secuencia previa queda conservada y no se cuenta como ejecución de esos casos:
+
+| Etapa | Resultado y límite |
+| --- | --- |
+| BASAL01 | FALLÓ preparación antes de Vitest; cero casos. No hubo captura heredada completa del error y no se reconstruyó. |
+| Primer lanzamiento preflight-only | FALLÓ la invocación exterior antes del launcher por conversión de fecha; cero casos. |
+| GO02 preflight-only | EXIT1 del prefijo por error de ruta y EXIT2 del launcher; UNKNOWN histórico de identidad, diferencia de 5 ticks y observación independiente a 63,056 s, 3,056 s sobre el plazo de cierre. El archivo no se trató como perdido ni se restauró o excluyó. |
+| GO03 sonda de una ruta | Colección con EXIT0; launcher EXIT2 por identidad no confirmada, diferencia de 8 ticks. La ruta literal, UTF-8 crudo y nombre físico coincidieron en 67 unidades; el pipeline produjo 70 bajo el contexto observado IBM850. Sin lectura del contenido HTML ni conclusión retrospectiva sobre los fallos JavaScript. |
+| GO04 basal completa | Git raw UTF-8 estricto/NUL y preflight PASÓ; Vitest EXIT0 y 30/30. Driver y launcher EXIT2 por supervisión incompleta, descrita abajo. |
+
+La lectura UTF-8/NUL permitió superar la preparación y arrancar la basal; **no
+explica los fallos funcionales de GO05B**. El nuevo mecanismo conservó literalmente
+el bloque Node/Vitest, los dos archivos, sus aserciones, datos, topes y ausencia de
+reintentos. Registró y revalidó nacimientos con la misma API .NET UTC exacta; CIM
+se conservó como evidencia de filiación separada, sin tolerancia o redondeo.
+
+El driver registró `DESCENDANT_IDENTITY_UNKNOWN` y mantuvo `knownAlive: null`.
+No guardó PID, nacimiento o instante del candidato no validado; no se reconstruyen
+ni se atribuyen a un proceso conocido. El launcher tuvo una observación propia sin
+errores y propagó EXIT2 del driver. Las ocho identidades conocidas se comprobaron
+ausentes a 15,959 s del EXIT nativo; eso no resuelve el hueco histórico ni es un
+censo universal. La supervisión sigue **INCOMPLETA / UNKNOWN**, separada de las
+treinta pruebas aprobadas.
+
+Actividad total: 71,408 s desde el primer preflight, dentro de 600 s; Node duró
+62,480 s y Vitest informó 58,80 s internos. El driver observó recursos antes de
+hashing y cerró en 5,430 s. No hubo terminaciones ni pérdida de captura. El Director
+aceptó limitadamente la evidencia y devolvió el turno pesado, conservando UNKNOWN.
+
+Integridad: 6.358 nombres Git exactos, cero faltantes/extra/errores de decodificación;
+6.478 registros antes/después con cero diferencias, incluidos los 6.466 aprobados
+y ocho controles de preparación. Son registros con posibles alias de separador,
+no 6.478 archivos físicos únicos. Ambos tests, producto, configuración, runners,
+package y lock mantuvieron los bytes de D0/ce7. Los originales de todos los intentos
+quedan conservados. El UNBOUND contiene dos propiedades `limits` históricas
+idénticas; el bound cambió sólo cinco campos efectivos autorizados y su `limits[0]`
+final vincula GO04. El array de 6.466 registros y los ocho controles no cambiaron.
+
+Evidencia externa, bajo el directorio de diagnóstico indicado arriba:
+
+- `basal-native-02/native-vitest.json` y streams nativos; `basal-launch-02/`
+  conserva los streams PowerShell, identidades y EXIT propios.
+- `basal-go04-closure-01/case-identity-comparison.json`, SHA-256
+  `5348ba9f0bdbfe16f57a20c56e1a3b71ff082fab5ffe3963c87883868e19d7c9`.
+  Firma de archivo + NUL + nombre completo, unidos por LF sin LF final:
+  `2627f7b421ac2ed25d70f15c029041201a4890a57a5efb10082c05b350ecb93a`.
+- `basal-go04-final.json`, SHA-256
+  `b5442d7d0eefb6fef8afb8b7bd71266abef020e49d73e91097503f58a78fa76e`;
+  `basal-go04-closure-01/RESUMEN.md`, SHA-256
+  `628c55785521c2b947052ab6383324a22d2afaafe62981fb592fd3aa8ffaf74c`.
+- Cotejo del Director `0577-go04-cierre-cotejo-director.json`, en el directorio
+  padre, SHA-256 `159dad7797739f9e8d8fd59a145698267021754f5f8c8995f40b959c93b49c55`.
+
+GO05 autoriza únicamente esta spec y el handoff diagnóstico; el índice generado y
+las demás rutas de la allowlist acumulada no reciben cambios. Autoridad externa
+`0577-go05-cierre-documental-director.md`, SHA-256
+`210e7db0dd056fbd2021212a57281b5f7e4f85b2a36ea23ce800335a291ae9b0`.
+La PR diagnóstica será DRAFT contra `codex/sdd-0569-bcv-carga-diaria`, cuya cabeza
+revalidada es `b179363d320aff9ada7b79d1f607b07d9b084a63`: tres documentos posteriores
+a ce7, sin nuevo producto. El diff propio de la PR desde el merge-base ce7 debe
+contener sólo los dos documentos. No se afirma haber probado esa cabeza posterior
+de la base, no se mueve PR #315 y no se integra nada en BCV o main.
+
+Esta fase termina la investigación acotada disponible: **no hay nueva basal,
+prefijo, parser, instrumentación, fix, retry, canónica, UI, HTTP o DB**. Otra corrida
+necesitaría un objetivo o causa nuevo y decisión específica. La canónica BCV
+permanece FALLÓ/INCOMPLETA, 16/17; los resultados de esta basal no la convierten en
+verde. La validación futura debe corresponder a la composición CORE propagada, no
+a una repetición de la misma fuente para buscar un resultado distinto.
+
+El conocimiento verificado se guarda en spec/handoff y se respalda mediante la
+rama/PR propia; integración sigue pendiente. Estructura Graphify, semántica,
+Archify, preview local, publicación Obsidian y revisión visible finales son **NO
+EJECUTADAS en GO05**, sin transferir vigencia desde la consulta GO0. Se propone un
+turno futuro acotado al Director, sin generar ni publicar derivados aquí. La SDD
+continúa `in-progress`: este cierre no completa las aceptaciones históricas de
+composición o conocimiento de la entrega original.
