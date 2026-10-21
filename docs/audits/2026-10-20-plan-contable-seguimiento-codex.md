@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 12:29 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 12:34 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -288,6 +288,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Autorizar **GO04B sobre `62f64e8e`**, una única receta general normal, con código congelado. Antes del arranque debe acreditarse ausencia de las variables que cambiarían concurrencia/omisiones y disponibilidad/ausencia de contenedores propios. El nombre adicional `E2E_WORKERS` hallado por la revisión se comprueba en la misma sesión de lanzamiento; no se cambia el entorno para pasar. Autorización y preparación no se presentan como ejecución ni resultado.
 - [x] Conservar la primera parada previa de GO04B: Docker no consultable, salida3 y **cero invocaciones de verify**, sin atribuir fallo al producto. Director inició la aplicación local habitual sin reset/configuración/borrado y comprobó por separado los dos contenedores ausentes. La continuación usa una copia idéntica del launcher y una carpeta nueva; conserva la parada original. Trece registros del cierre anterior cotejados sin diferencias.
 - [x] Comprobar el arranque real de **GO04B a las 12:26:49 p. m.**, sobre `62f64e8e`, una sola receta normal. Director verificó identidad y relación del proceso vivo; **6.447 entradas congeladas**. En esa misma sesión pasaron las guardas de concurrencia y Docker. El registro de ejecución ya muestra actividad de las pruebas del harness; no hay veredicto general todavía.
+- [x] Comprobar el primer tramo de esa misma corrida: **harness 237/237, cero fallos y cero omisiones**, duración nativa 121.471,47 ms; lint general **cero errores y veinte advertencias conservadas**. Director leyó sus líneas nativas de resultado. Son dos resultados parciales; construcción, salida y comparación final todavía no acreditadas.
 - [ ] Completar la comprobación general BCV y su cierre documental/conocimiento local. **GO04B EN CURSO; salida, comparación posterior y navegación original pendientes.** 0495 permanece inmutable; obtención pública positiva y disponibilidad operativa real no demostradas. No se repiten las pruebas anteriores ni la consulta pública por rutina.
 - [ ] Implementar la carga diaria desde el BCV oficial y el respaldo manual.
 - [ ] Comprobar el comportamiento cuando no exista una tasa vigente.
