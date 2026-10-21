@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 2:26 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 2:40 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -297,6 +297,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Revisar la inserción mínima y aprobar **GO05A: tres casos originales aprobados, cero omitidos**, sobre `fd09677f`. Una ejecución de2:07:02 a2:07:16p.m.; sin reintento añadido. Director leyó salida/supervisor completos y cotejó **6.451 entradas antes/después sin diferencias**, seis artefactos y cuatro identidades conocidas ausentes. Turno devuelto; cierre documental y respaldo corregido en preparación.
 - [x] Cotejar el respaldo corregido **`ce7e628e`, PR317 OPEN/DRAFT/baseC3,31 rutas dentro32** y cuerpo exacto. Director leyó completo el delta de los tres documentos posteriores; plantilla, producto, pruebas y SQL conservan los bytes de la focal. Revisión por versión terminada, sin CI aprobada.
 - [x] Revisar el derivado de la receta y comprobar el arranque real de **GO05B a las2:24:54p.m.**: misma receta normal, supervisor sólo cambia la versión de referencia y observador idéntico. Director cotejó20 artefactos y seis fuentes anteriores sin diferencias, después identidades vivas de la ejecución y **6.447 entradas congeladas**. Guardas de concurrencia y Docker aprobadas; **sin salida ni veredicto todavía**.
+- [x] Cotejar el avance intermedio de GO05B: el log nativo acredita **237 controles del entorno aprobados, cero fallos, y análisis de código con cero errores y veinte advertencias**. La batería completa de pruebas sigue en curso; este avance no acredita la salida final ni los demás pasos.
 - [ ] Completar nueva comprobación general BCV y cierre documental/conocimiento local. **GO05B EN CURSO; GO04B conserva FALLÓ y GO05A focal PASÓ.** 0495 permanece inmutable; obtención pública positiva y disponibilidad operativa real no demostradas. No se repiten la consulta pública ni las pruebas anteriores por rutina.
 - [ ] Implementar la carga diaria desde el BCV oficial y el respaldo manual.
 - [ ] Comprobar el comportamiento cuando no exista una tasa vigente.
