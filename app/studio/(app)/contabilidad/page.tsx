@@ -54,6 +54,8 @@ import type { BankStatement } from "@/lib/studio/accounting/bank-statement-types
 import type { EntryCandidate } from "@/lib/studio/accounting/bank-statement-queries";
 import type { FixedAsset } from "@/lib/studio/accounting/fixed-asset-types";
 import { ContabilidadClient } from "./_components/ContabilidadClient";
+import { getExchangeRatesOverview } from "@/lib/studio/exchange-rates-queries";
+import type { ExchangeRatesOverview } from "@/lib/studio/exchange-rates-types";
 
 export const metadata = { title: "Contabilidad" };
 
@@ -65,7 +67,8 @@ type Tab =
   | "subdiario"
   | "conciliacion"
   | "activos"
-  | "excepciones";
+  | "excepciones"
+  | "tasas";
 
 export default async function ContabilidadPage({
   searchParams,
@@ -86,7 +89,8 @@ export default async function ContabilidadPage({
     tabRaw === "subdiario" ||
     tabRaw === "conciliacion" ||
     tabRaw === "activos" ||
-    tabRaw === "excepciones"
+    tabRaw === "excepciones" ||
+    tabRaw === "tasas"
       ? tabRaw
       : "plan";
   const ledgerAccountId = single("cuenta") ?? null;
@@ -180,9 +184,16 @@ export default async function ContabilidadPage({
     assets = await listAssets(supabase);
   }
 
+  // ── Tasas de cambio (SDD-0569): la contadora las carga desde aquí ──
+  let tasas: ExchangeRatesOverview | null = null;
+  if (tab === "tasas") {
+    tasas = await getExchangeRatesOverview(supabase);
+  }
+
   return (
     <ContabilidadClient
       tab={tab}
+      tasas={tasas}
       accounts={accounts}
       balances={balances}
       entries={entries}
