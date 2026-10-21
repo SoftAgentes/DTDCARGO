@@ -13,6 +13,33 @@ describe("B1–B3 · BCV estructural y decimal exacto", () => {
       rate: "883.39630000", validOn: "2026-10-21" });
   });
   it("rechaza USD duplicado", () => expect(() => parseBcvHtml(fixture("bcv-ambiguous"))).toThrow(BcvError));
+  it.each(["12:00:00", "01:00:00", "00:00:01", "00:00:00.001"])("F01 · exige medianoche IANA, rechaza hora %s", (hour) => {
+    const changed = official.replace('content="2026-10-21T00:00:00-04:00"', `content="2026-10-21T${hour}-04:00"`);
+    expect(changed).not.toBe(official);
+    expect(() => parseBcvHtml(changed)).toThrow(BcvError);
+  });
+  it("F01 · conserva medianoche y weekday en día bisiesto válido", () => {
+    const leap = official.replace("2026-10-21T00:00:00-04:00", "2024-02-29T00:00:00-04:00")
+      .replace("Miércoles, 21 Octubre  2026", "Jueves, 29 Febrero 2024");
+    expect(parseBcvHtml(leap).validOn).toBe("2024-02-29");
+  });
+  it.each(["pending-with-update", "duplicate-label", "label-in-note"])("F02 · Fecha Valor inequívoca: %s", (variant) => {
+    const date = official.match(/<span class="date-display-single"[\s\S]*?<\/span>/)?.[0];
+    expect(date).toBeDefined();
+    const changedField = variant === "pending-with-update"
+      ? `<div>Fecha Valor: pendiente</div><div>Última actualización: ${date}</div>`
+      : variant === "duplicate-label"
+        ? `<div>Fecha Valor: pendiente</div><div>Fecha Valor: ${date}</div>`
+        : `<div>Nota sobre Fecha Valor: no disponible</div><div>Última actualización: ${date}</div>`;
+    const changed = official.replace(/<div class="pull-right dinpro center">[\s\S]*?<\/div>/, changedField);
+    expect(changed).not.toBe(official);
+    expect(() => parseBcvHtml(changed)).toThrow(BcvError);
+  });
+  it("F02 · conserva el campo oficial con entidades y whitespace", () => {
+    const changed = official.replace("Fecha Valor:", "Fecha&nbsp;Valor&#58;")
+      .replace("Miércoles, 21", "Miércoles,&#32;21");
+    expect(parseBcvHtml(changed).validOn).toBe("2026-10-21");
+  });
   it.each([
     official + official,
     official.replace("view-id-tipo_de_cambio_oficial_del_bcv", "vista-cambiada"),

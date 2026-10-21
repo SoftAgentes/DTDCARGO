@@ -54,7 +54,7 @@ Reserva local `9591b2436033f1200ef71a79bb4e9ce67f10fbac`; candidato ligero `1ff0
 
 ## PR / BRANCH
 
-Rama propia indicada arriba. PR todavía NO CREADA. Base futura exacta: `codex/sdd-0576-fechas-caracas-movil`. Push propio y PR DRAFT autorizados después del checkpoint, no main/merge/auto-merge/deploy.
+Rama propia indicada arriba. Publicación parcial autorizada por el Director el 21 de octubre después de revisar GO02: rama propia y PR DRAFT apilada sobre `codex/sdd-0576-fechas-caracas-movil`, base C3 `1905aef75680a80055621cffd717198915d089f9`. URL y relectura remota se registran tras crearla. Es respaldo parcial; no aceptación completa, main, merge, auto-merge ni deploy. Las actualizaciones posteriores del mismo alcance están autorizadas sin pedir otra vez.
 
 ## PENDIENTES DE ESTA TAREA
 
@@ -112,6 +112,14 @@ Focal01: 5/10 pasaron, cinco casos no alcanzaron oráculo por permisos de recibo
 El contexto inicial/restaurado fue capturado en SQL y exigido por las aserciones de `bcv-persistence.migration.test.ts:94–95`; console.info no apareció en el log nativo. No reconstruir un literal ni repetir por impresión. R2 provocó error después de reemplazar/crear, ejecutó ROLLBACK y comparó OID/owner/ACL/prosrc/tabla/triggers/append exactos y capability ausente en la misma DB. Cuatro mutantes llegaron a sus oráculos funcionales con huellas reaprobadas solo para fixture; 0495 y 0501 productiva permanecen intactas.
 
 Freeze por corrida: 41 entradas base en HTTP y 44 en focal (más setup/stub/metadata PGlite), 0 diferencias después de EXIT. 17 identidades PID+creationDate cotejadas sin vivos; cero terminaciones. HTTP02 cerró servidor/sockets/tareas, contenedores y red por ID/owner; puertos sin listeners. Observers de focal llegaron después de terminar y no se inventan descendientes no capturados. Cierre local acotado, sin promesa de terminación física universal ni conformidad global. No parser/source/sync/route generales, UI/browser, tipos/lint/build/verify/conocimiento/BCV remoto/producción por GO02.
+
+## CHECKPOINT PARA RESPALDO PARCIAL DRAFT · 2026-10-21
+
+Sobre el producto/pruebas validado en f106 se autoraron nuevos negativos F01 de hora no medianoche y F02 de asociación inequívoca Fecha Valor, con positivos de día bisiesto/entidades. Esos casos están NO EJECUTADOS; no se reparó parser/source antes de ROJO válido. F03 de cancelación diferida y comprimido/redirects/abort/presupuesto acumulado siguen pendientes de autoría y ejecución.
+
+El Director informó un candidato adicional por lectura de sync/SDK: Content-Range malformado `*/0basura` podría normalizarse como count 0 por parseInt. Revisión todavía abierta, sin reproducción ejecutada. Conservar producto/transporte para un oráculo con SDK real antes de reparar; no cambio de cliente compartido ni ampliación de rutas.
+
+Al publicar: entrega parcial con baseline 12/12, HTTP02 y focal 10/10 acotados; mantener todos los intentos/fallos/omisiones. B1–B19/R1–R14, F01/F02/F03, sync/transporte, cron/UI, canónica y conocimiento siguen abiertos. No listo para integrar ni para producción; 0501 sólo fixtures locales y 0495 intacta. Único turno pesado pertenece a 0574; aquí sólo autoría/publicación y verificaciones proporcionales de Git.
 
 ## CONTRATOS ÍNTEGROS CONSERVADOS ANTES DE PRODUCTO
 
