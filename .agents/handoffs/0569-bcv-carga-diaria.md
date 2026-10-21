@@ -54,7 +54,7 @@ Reserva local `9591b2436033f1200ef71a79bb4e9ce67f10fbac`; candidato ligero `1ff0
 
 ## PR / BRANCH
 
-Rama propia indicada arriba. Publicación parcial autorizada por el Director el 21 de octubre después de revisar GO02: rama propia y PR DRAFT apilada sobre `codex/sdd-0576-fechas-caracas-movil`, base C3 `1905aef75680a80055621cffd717198915d089f9`. URL y relectura remota se registran tras crearla. Es respaldo parcial; no aceptación completa, main, merge, auto-merge ni deploy. Las actualizaciones posteriores del mismo alcance están autorizadas sin pedir otra vez.
+Rama propia indicada arriba. Publicación parcial autorizada por el Director el 21 de octubre después de revisar GO02: [PR #317 DRAFT](https://github.com/SoftAgentes/DTDCARGO/pull/317), apilada sobre `codex/sdd-0576-fechas-caracas-movil`, base C3 `1905aef75680a80055621cffd717198915d089f9`. Head inicial publicado `021868d743b868c4e4f22155ccb4ce9c21da3031`; relectura inicial confirmó OPEN/DRAFT, body exacto y 25 rutas dentro de 31. No había checks reportados en ese corte; no equivale a CI verde. Es respaldo parcial; no aceptación completa, main, merge, auto-merge ni deploy. Las actualizaciones posteriores del mismo alcance están autorizadas sin pedir otra vez.
 
 ## PENDIENTES DE ESTA TAREA
 
@@ -120,6 +120,8 @@ Sobre el producto/pruebas validado en f106 se autoraron nuevos negativos F01 de 
 El Director informó un candidato adicional por lectura de sync/SDK: Content-Range malformado `*/0basura` podría normalizarse como count 0 por parseInt. Revisión todavía abierta, sin reproducción ejecutada. Conservar producto/transporte para un oráculo con SDK real antes de reparar; no cambio de cliente compartido ni ampliación de rutas.
 
 Al publicar: entrega parcial con baseline 12/12, HTTP02 y focal 10/10 acotados; mantener todos los intentos/fallos/omisiones. B1–B19/R1–R14, F01/F02/F03, sync/transporte, cron/UI, canónica y conocimiento siguen abiertos. No listo para integrar ni para producción; 0501 sólo fixtures locales y 0495 intacta. Único turno pesado pertenece a 0574; aquí sólo autoría/publicación y verificaciones proporcionales de Git.
+
+PR #317 creada una vez y adjuntada a la tarea. Recibos de publicación en `C:/tmp/director-traspaso-20261020/0569-bcv-validation/publicacion-parcial-01/`; preflight remoto `711df0c68563ce743822ceef8d24e3ec1b23efa007e5bd1b44e0a60f35fddeae`. Un wrapper PowerShell falló al parsear antes de ejecutar gh; no creó PR ni es fallo funcional. Invocación corregida creó #317; push propio sin force, sin hook pre-push activo, sin cambiar configuración del remoto antiguo redirigido por GitHub. Relecturas y SHA remoto final quedan en el recibo externo; esta actualización de URL es documental y no exige repetir pruebas.
 
 ## CONTRATOS ÍNTEGROS CONSERVADOS ANTES DE PRODUCTO
 
