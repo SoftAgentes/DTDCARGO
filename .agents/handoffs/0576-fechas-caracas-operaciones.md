@@ -1,13 +1,13 @@
 # Handoff · SDD-0576 · Fechas Caracas operaciones C1
 
-Estado: IMPLEMENTACIÓN APP EN CURSO; regresiones funcionales demostradas, SQL/HTTP y cierre canónico pendientes. No aceptación completa ni release.
+Estado vigente: C1 implementado y validado localmente sobre264e0531. Verify3 terminó16/17, CIERRE INCOMPLETO por ledger de release no medido; límites y omisiones en el cierre al final. PR312 DRAFT. SDD0576 in-progress: C2/móvil pendientes, sin integración ni producción.
 Owner: worker-0576c1-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 Worktree: C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0576-fechas-caracas-operaciones.
 Rama: codex/sdd-0576-fechas-caracas-operaciones.
 Base: 8729f7f4a3349b9b553c045c15a6adb37c943b98, PR311 en borrador.
 Stub 58beb2ce adoptado por cherry-pick exclusivamente de su spec en eecfbbb18d4da58f4306503622c12821738eca91.
 Guard y claim PASÓ; árbol inicial limpio, sin procesos consumidores observados y node_modules ausente.
-Turno pesado exclusivo concedido a C1; instalación, pruebas, SQL, UI y verify se ejecutarán serialmente.
+Turno pesado inicial concedido a C1; instalación, pruebas, SQL, UI, verify y conocimiento se ejecutaron serialmente. Devuelto al Director tras knowledge/plugin, antes del cierre documental; claim conservado solo durante esa escritura final.
 Contrato leído completo y SHA256 cotejado: f4c55bb8c97ac57d9b0c8ce0206d2aabe524e3009320be6c7c974674cfde76ff.
 No se edita 0572-b, main, reserva ni otro worktree. Sin secretos, DB real, merge, deploy, BCV ni C2.
 
@@ -432,3 +432,95 @@ Verify2 sobre9cbe, iniciado03:49:03.165Z, fue INTERRUMPIDO/INCOMPLETO por autori
 red-gastos-usd-original reprodujo el archivo original completo:9PASÓ/1FALLÓ/0SKIP,04:00:57.862–04:00:59.858Z. Error exacto TypeError: .lt is not a function en el doble; no es fallo de cálculo ni un ROJO funcional del producto. La adaptación autorizada solo añade lt encadenable y registro/aserción exacta de ambos límites: a2026-10-21T03:59:59.999Z, gte occurred_at2026-10-20T04:00:00.000Z y lt occurred_at2026-10-21T04:00:00.000Z. Conserva select amount_usd, respuesta original y total127/count3; los nueve casos restantes de monedas/centavos/signo/null siguen intactos. Reloj restaurado en finally.
 
 green-gastos-usd-compat PASÓ17/17 en2archivos completos,0SKIP,04:01:18.302–04:01:20.825Z, incluyendo expense-queries-caracas real que ejecuta filtros contra filas de borde. Lint focal PASÓ salida0 sin advertencias,04:01:25.413–04:01:31.340Z; typecheck-gastos-usd-compat PASÓ salida0,04:01:36.490–04:01:47.322Z. Producto APP/0499/arnés/gates siguen idénticos; el checkpoint contiene únicamente este test y los dos documentos propios. Alcance70rutas exactas. Nueva verificación canónica y cierre de conocimiento aún pendientes sobre el siguienteSHA congelado.
+
+## Cierre local C1 · 21oct2026 · evidencia por264e0531
+
+### OBJETIVO ORIGINAL
+
+Usar el día de operaciones America/Caracas en C1 web/SQL, capturado antes de esperas, sin re-fechar historia ni cambiar dinero, permisos, auditoría o el contrato de recuperación de evidencia. Base8729f7f4 de PR311; allowlist final70 rutas, contrato y cinco addenda íntegros conservados arriba. SDD0576 permanece in-progress porque C2 y móvil no pertenecen a esta entrega.
+
+### COMPLETADO
+
+- Primitiva compartida IANA/calendario estricto; ancla única y defaults en facturas, cobros, CxP/pagos, posters y formularios. Fechas explícitas conservadas; vacío/null no se convierten en hoy.
+- Gastos usa rango Caracas completo, muestra el día correcto y rechaza lecturas ambiguas/malformadas o reposteo que cambie la fecha histórica. El P2 de filas falsy quedó cerrado por regresión real, sin prometer atomicidad0575.
+- Portal separa creación futura prohibida de recuperación autorizada de un intento idéntico; conserva IDs/payload/prueba y comprueba bytes existentes. Emisión0128 devuelve fecha persistida; readback legado solo ante ausencia estricta; CN distingue emisión confirmada de asiento pendiente.
+- 0499 conserva las cinco fronteras SQL, cuatro defaults, RLS/ACL, locks y auditoría; composición con0493 real comprobada. No aplicada a DB real, sin GRANT ni backfill.
+- Revisión independiente APP/SQL/Portal y suplementos cerrados sin hallazgo material conocido pendiente. Los dos ajustes finales fueron exclusivamente contratos de pruebas consumidoras heredadas, con ROJO/VERDE y cotejo Director.
+
+### VALIDACIÓN
+
+Evidencia externa: C:/tmp/director-traspaso-20261020/0576-codex-validation/. No contiene datos de negocio ni secretos. Los recibos anteriores conservan su SHA/fecha; no se suman controles solapados como cobertura distinta.
+
+**Verify3 canónico sobre264e0531004ecc8c773c8fb32a88a2b206119a54:** corepack pnpm verify, sin overrides. Inicio04:03:10.374Z, fin04:26:01.702Z, duración22m51.328s, salida0. Log/recibo verify-candidate-3. Veredicto literal: **CIERRE INCOMPLETO — 16/17; migrations-applied crítico no medido**. Salida0 no equivale a cobertura completa.
+
+| Control canónico | Resultado | Evidencia de esta corrida |
+|---|---|---|
+| harness | PASÓ |237/237,0SKIP;87,245s |
+| lint | PASÓ con advertencias |0errores/15warnings en seis archivos con blobs iguales a la base; sin supresiones |
+| rsc-boundary | PASÓ |1708 módulos, sin cruces prohibidos |
+| typecheck | PASÓ |Sin errores |
+| edge-functions | PASÓ |4 funciones compilan |
+| test | PASÓ con omisión |12.720 aprobadas/1 omitida;885 archivos aprobados/1 omitido;568,50s |
+| docs:check | PASÓ |Índice vigente sobre264e |
+| numbering | PASÓ |Sin números repetidos |
+| feature-constants | PASÓ |6 banderas coinciden |
+| components:check | PASÓ |Consistencia del registro, no aprobación global de conducta |
+| governance:check | PASÓ |Consistencia de cápsula, no aprobación global de políticas |
+| migrations-applied | NO EJECUTADO / SKIP |Sin URL/key de producción; validación de release pendiente, no motivo para aplicar0499 |
+| pending-migration-symbols | PASÓ |0rojo,2amarillos declarados,3homónimos descartados |
+| sql-tests | PASÓ |248 contratos locales, rollback total |
+| schema-rebuild | PASÓ |473 migraciones desde cero+18solo-ledger=491;219tablas/2tenants sintéticos; controles locales de integridad |
+| e2e | PASÓ con advertencia y omisiones |177passed+1flaky+20skipped,4,8min; Next3214 y deny-only13214, sin Auth/negocio real |
+| build | PASÓ |Next16.2.11; compilación22,8s, TypeScript98s,162 páginas; tsconfig restaurado |
+
+El runner no proporciona tiempos separados para todos los gates; no se infieren del mtime del log. Los dos intentos anteriores,46c y9cbe, siguen **INTERRUMPIDOS/INCOMPLETOS**, sin combinar sus resultados con verify3.
+
+**Omisiones unitarias:** lib/studio/document-import/corpus.test.ts, suite «corpus real de proformas», caso «lee las proformas con encabezados reconocibles sin llamar a la IA». DOCUMENT_IMPORT_CORPUS no configurado en el entorno heredado; no se abrieron proformas reales. Evidencia verify3-unit-skip-evidence.json y definición skipIf de la fuente.
+
+**Omisiones E2E:**20 líneas exactas en verify3-e2e-log-evidence.json. En chromium/mobile-chrome/mobile-safari se omiten comentarios(1), anulación de gastos Studio/móvil(2), buscador con seed(2) y finiquito(1):18 por requerir entorno/usuarios/fixtures aislados. Las dos capturas adicionales del carrusel en mobile-chrome/mobile-safari se omiten por diseño de ese test, que se ejecuta una vez en chromium a anchos explícitos. No se presentan como recorridos autenticados aprobados.
+
+**Advertencia E2E propia de verify3:** chromium, e2e/auth.spec.ts:81, «Acceso: un token inválido renderiza el mismo error las dos veces», primer page.goto falló net::ERR_ABORTED; aprobó el reintento configurado. Log y verify3-e2e-auth-error-context.md conservados (SHA25659e4e2c05e1e7cb0a6b3f24b810aa7d435795e2085b8f15c98f784309f9ae6eb). Prueba, configuración y runner tienen blobs iguales a8729; ello no establece causa. No hubo watchdog/absolución ni cambio de timeout en esta corrida.
+
+**JSON original E2E: NO DISPONIBLE.** Observador17856 terminó0 con captures=[]/incompleteReads=0; el archivo exacto dtd-e2e-50896.json ya no estaba al iniciar build. El runner elimina ese reporte antes del siguiente paso. El observador también descarta silenciosamente un rootDir que no empieza por WT largo+'/'; no registra esos descartes. Es un límite de captura futura, no prueba de que ocurrió ni explicación de la falta del archivo. No se reconstruyó JSON ni se repitió la suite. La incidencia fs.watch del primer intento permanece separada de verify/producto.
+
+**Focales y SQL/HTTP:** historial de697/697 en19archivos,18/18 del P2Gastos,265/265 de recuperación,36/36 de recibos y17/17 de compatibilidad Gastos conserva recibos y solapamientos. PGlite final9/9 en2archivos,0SKIP. PostgreSQL17.11/PostgREST14.17:95 aserciones SQL+ROLLBACK,39checksHTTP/41respuestas, instancia antes→DDL0499 real→después con mismo StartedAt; suplemento0493 con37aserciones+ROLLBACK. JWT sintético y adaptador auth.uid identificado; no se certifica Auth alojado ni Storage real. Mutantes APP29 cubiertos (25clasificados inicialmente,2fallosUI reclasificados y2repetidos tras fortalecer casos); SQL14+composición0493cinco, todos con restauración. Primer exit1 de clasificación conservado. Hash0499 intacto: fd42b7a15fe413107d457a32da56b46f051fad29e7cbd7388611d24949b3f0ef.
+
+**Visual:** PASÓ alcance local de visual-final-receipt.json, con componentes/CSS/wrappers reales, datos/acciones/reloj sintéticos.35controles/29mediciones y suplemento de selector conservan resultado original y corrección externa.390/1280,claro/oscuro,Shanghai, recuperación con fecha aparentemente futura, nueva futura rechazada, fecha explícita/vacía, defaults, CxP sin today inyectado, foco/Escape; Director cotejó con IAB. Capturas anteriores a studio.css son provisionales. NO DISPONIBLE zoom200%nativo; NO EJECUTADOS lector de pantalla/A11Y integral, teléfono físico, Auth/Studio real y alta/duplicación de factura en navegador. Invoice fixture acredita RegistrarPago. Sin atribuir esas limitaciones a un defecto material demostrado ni aprobar excepción.
+
+**Revisiones finales:** caracas-c1-revision-suplemento-fd6e8146.md SHA2566a780886a25aa3263f3604380ee7a04826ab818d15a1186c136e8c970b614313; cotejo9cbe f0445c9b778c78d98b2266b152ca18bf1e9084769c07576c3eef30479ea1726e; cotejo264e e55bd858176f76423c46c98d1d4244806521c987059c8e890f157759de7db54c. No sustituyen release.
+
+**Congelación comprobada antes de docs:** verify-candidate-3-bytecheck.json,04:27:04.118Z,70/70hashes iguales, lockfile/runner iguales, HEAD264e y árbol limpio. El cierre posterior modifica solo spec/handoff/índice; APP, SQL y pruebas siguen exactamente en esos bytes.
+
+### COMMITS
+
+Checkpoints publicados: eecfbbb1(stub),5dadb103(APP),d5f28fde(P2Gastos),b7148218(SQL),de8b1961(HTTP),fd6e8146(composición0493),b127886d(dosnegativas0493),46c64bd0(orquestaciónPortal),9cbe8749(recibos),264e0531(dobleGastos). Producto APP/0499 no cambió después de b714; los suplementos posteriores son pruebas/arnés/documentación. El SHA documental final se coteja en Git/PR y en el recibo final externo, con delta exclusivo de estos documentos y el índice generado.
+
+### PR / BRANCH
+
+PR312 OPEN/DRAFT: https://github.com/SoftAgentes/DTDCARGO/pull/312. Rama codex/sdd-0576-fechas-caracas-operaciones, base codex/sdd-0572-conversor-usd-sql@8729f7f4. Push propio autorizado; sin merge. Últimos Actions de264e startup_failure39541828194/39541822849, no aprobación CI. La eventual habilitación de Actions no se presume por el cierre local.
+
+### CONOCIMIENTO Y GOBERNANZA
+
+Guardado: contrato, decisiones autorizadas, evidencias y límites en esta tarea. Integración: pendiente. SDD0576 pasa de draft a in-progress; no done global.
+
+knowledge-status-final terminó04:29:46.803Z,salida0, sobre264e; **ok=false**. Graphify0.9.61: estructura INVALID/5012pendientes, graph_missing_or_invalid y graph_empty; semántica global INVALID0/1327, piloto PENDING0/16. Archify PENDING por ARCHIFY_RUNTIME_MISSING2.16.0. Obsidian integrado PENDING y exige main; preview NO EJECUTADA, prerrequisitos locales no disponibles. Sin extracción, reconstrucción, instalación ni publicación compartida por instrucción expresa del Director; pendientes coordinados para conocimiento tras la integración comprobada. El futuro delta documental tampoco queda certificado semánticamente por esta consulta anterior.
+
+governance-plugin-final terminó04:30:06.142Z,salida0: PLG-01 válido read-only,28políticas/5componentes. Solo consistencia del derivado y rutas. La matriz normativa acotada está en la spec: SGE-00/DAT/FRM/ERR/UPL/AUD/NUM/MP; A11Y conserva no conformidad de evidencia pendiente para cobertura no medida, sin inventar excepción ni declarar conformidad global.
+
+### PENDIENTES DE ESTA TAREA
+
+- Revalidación contra la base coordinada por Director, integración según orden humano, CI real por SHA, paquete/previa y OK nominal de0499, migración MIGRATE-FIRST y despliegue/smoke autorizado. Nada de esto se ejecutó ni se autoriza por esta entrega.
+- Ledger de release, recorridos autenticados/fixtures omitidos y límites A11Y declarados; JSON original de esta corrida no recuperado. No hay defecto material de C1 conocido abierto tras las revisiones y correcciones.
+- Derivados Graphify/Archify/preview/Obsidian según coordinación Director. Mantener separado del funcionamiento y de los16gates locales medidos.
+
+### FUERA DE ALCANCE DETECTADO
+
+- C2 anual y slice móvil siguen pendientes en0576. app/m/erp/actions.ts mantiene occurred_at.slice(0,10)/guardas previas (blob9f10b23265c8273e9a2f543ac04092d1c7beea86, líneas95/195/260/354); ninguna afirmación de unificación global.
+- BCV corresponde a0569; no autocarga ni fuente nueva.0575atomicidad,0573/2.3/KPIs, históricos, datos reales y reglas monetarias no se absorben.
+- Advertencia de navegación ERR_ABORTED sin causa establecida; observador con límite rootDir y15warnings heredados quedan registrados, sin reparar módulos ajenos para ocultarlos.
+
+### HANDOFF AL DIRECTOR Y LIMPIEZA
+
+Verify y observador terminaron realmente; verify3-process-cleanup-final.json acredita cero procesos/puertos/recursos Docker propios. Dos procesos de otro encargo fueron incluidos inicialmente por enlace numérico de PID; sus CreationDate anteriores al verify y rutas ajenas los excluyen de ownership y NO fueron detenidos. El recibo intermedio de clasificación con error cultural de PowerShell se conserva como inválido; el final usa comparación temporal tipada. No se apagó Docker Desktop ni se tocó recurso ajeno.
+
+Knowledge/plugin finalizaron antes de devolver explícitamente el turno pesado al Director, quien lo recibió. Writer/claim se conserva solo hasta concluir documentos/índice, commit/push y lectura de PR. La liberación posterior se registra en final-receipt.json externo y se comunica expresamente al Director, después de comprobar remoto/árbol limpio. No se elimina worktree ni rama. C2 no se inicia desde esta sesión.

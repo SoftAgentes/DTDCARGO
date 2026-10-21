@@ -1,7 +1,7 @@
 ---
 sdd: "0576"
 title: "Fechas de operaciones en America/Caracas — C1"
-status: draft
+status: in-progress
 author: "Codex"
 created: 2026-10-21
 updated: 2026-10-21
@@ -66,7 +66,7 @@ La migración asignada es **0499_fechas_caracas_operaciones**, sin aplicación r
 ## Alcance y convivencia
 
 El contrato original contiene 60 rutas; los addenda del Director amplían la
-allowlist exacta vigente a **68 rutas**, adoptadas antes de sus cambios de
+allowlist exacta vigente a **70 rutas**, adoptadas antes de sus cambios de
 producto y reproducida íntegramente en el handoff. El índice SDD se genera;
 las declaraciones de símbolos pendientes solo ajustan sitios/anclas reales.
 No se editan rutas adicionales sin decisión del Director.
@@ -93,30 +93,47 @@ presenta como PostgreSQL ni como JWT/HTTP.
 Mutantes funcionales con restauración comprobada; tipos/lint/docs; fixtures
 reales y revisión visual acotada; `pnpm verify` serial sobre SHA guardado.
 PASÓ/FALLÓ/NO EJECUTADO/NO DISPONIBLE se informan por evidencia y SHA, con cada
-SKIP. Estado actual: **APP implementada con controles focales; SQL/HTTP,
-mutantes, navegador y verify pendientes**, sin aceptación de release ni
-afirmación de producción. La validación detallada vive en el handoff propio.
+SKIP. Estado actual: **C1 implementado y validado localmente sobre 264e0531**,
+con APP, SQL/HTTP sintético, mutantes, revisión independiente y navegador
+acotado. El tercer verify terminó el 21oct a 04:26:01.702Z, salida0:
+**16/17, CIERRE INCOMPLETO** por el ledger de release no medido. Se conservan
+una omisión unitaria, 20 omisiones E2E y un caso E2E aprobado al reintentar;
+no se presenta cobertura íntegra. La tabla final y sus límites viven en el
+handoff propio. C2 y el slice móvil siguen pendientes: la SDD0576 permanece
+in-progress, sin cierre global de hora Caracas, integración ni producción.
 
 ## Gobernanza (SGE-00, doce principios)
 
-| Principio | Clasificación inicial | Evidencia requerida |
+| Principio | Clasificación en C1 | Evidencia y límite |
 |---|---|---|
-| SGE-00.01 Acción predecible | Pendiente de evidencia | Mismo verbo/resultado; diferencia entre nuevo y recuperación explícita |
-| SGE-00.02 Conservar trabajo | Pendiente de evidencia | Identidad/payload/prueba del intento incierto conservados |
-| SGE-00.03 Fricción proporcional | Pendiente de evidencia | Mutación financiera R3; guardas sin confirmaciones nuevas rutinarias |
-| SGE-00.04 Auditoría | Pendiente de evidencia | SQL conserva actor, tenant, request, evento y reloj UTC |
-| SGE-00.05 Permisos y estados | Pendiente de evidencia | Guards, tenant y ACL intactos; período cerrado y negativos SQL/HTTP |
-| SGE-00.06 Prevención | Pendiente de evidencia | DAT/FRM: vacío inválido y futuro nuevo bloqueado antes de evidencia |
-| SGE-00.07 Estado verdadero | Pendiente de evidencia | Replay no inferido por existencia; lectura fallida no es ausencia |
-| SGE-00.08 Frecuencia y complejidad | Pendiente de evidencia | Sin pasos ni campos nuevos; límite de convivencia explícito |
-| SGE-00.09 Reutilización | Pendiente de evidencia | Helper compartido y wrappers compatibles; componentes existentes |
-| SGE-00.10 Accesibilidad | Pendiente de evidencia | A11Y: teclado, 390px y zoom; límites de fixture explícitos |
-| SGE-00.11 Lenguaje | Pendiente de evidencia | ERR-01: recuperación explícita y mensajes sanitizados persistentes |
+| SGE-00.01 Acción predecible | Cumplimiento acotado | CN comunica emisión confirmada/asiento pendiente; ROJO2/7→VERDE48/48 y revisión5dad |
+| SGE-00.02 Conservar trabajo | Cumplimiento acotado | Portal conserva IDs/payload/archivo al recuperar; pruebas265/265 y recorrido real sintético |
+| SGE-00.03 Fricción proporcional | Cumplimiento acotado | R3 conserva gates; recuperación no depende de un permiso UI ni agrega confirmaciones rutinarias |
+| SGE-00.04 Auditoría | Cumplimiento acotado | Contrato0499/HTTP y composición0493 conservan actor, tenant, request, evento y timestamps UTC |
+| SGE-00.05 Permisos y estados | Cumplimiento acotado | ACL/RLS y tenant ambiguo negativos; cierre OLD/NEW/DELETE/excepción real, sin acceso productivo |
+| SGE-00.06 Prevención | Cumplimiento acotado | Vacío inválido; futuro nuevo bloqueado antes de Storage; misma fecha anclada antes de awaits |
+| SGE-00.07 Estado verdadero | Cumplimiento acotado | Solo [] es ausencia; malformado falla cerrado; replay requiere recibo autorizado e input idéntico |
+| SGE-00.08 Frecuencia y complejidad | Cumplimiento acotado | Sin pasos nuevos; formularios existentes y limitación de convivencia explícita |
+| SGE-00.09 Reutilización | Cumplimiento acotado | Primitiva compartida IANA y componentes existentes; sin biblioteca UI paralela |
+| SGE-00.10 Accesibilidad | No conformidad de evidencia pendiente | Teclado/foco/390px y claro/oscuro medidos en fixture; zoom200%nativo NO DISPONIBLE, lector de pantalla y A11Y integral NO EJECUTADOS. No se afirma defecto visual ni excepción aprobada |
+| SGE-00.11 Lenguaje | Cumplimiento acotado | Errores persistentes/sanitizados y aviso fiel de CN; conservación del formulario y foco comprobados |
 | SGE-00.12 Autoridad humana | Cumplimiento del límite operativo | Encargo autorizado; PR borrador, sin merge, despliegue ni DB real |
 
-NUM-01: no se cambian importes, redondeos ni la semántica de incompletitud de b.
-La matriz se cotejará contra los identificadores y evidencia de las políticas
-vigentes al cerrar; «pendiente» no es cumplimiento demostrado.
+Políticas cotejadas: SGE-00v1.0, DAT-01v1.0 (fechas), FRM-01v1.1,
+ERR-01v1.0, UPL-01v1.0, AUD-01v1.0, NUM-01v1.1, MP-01v1.1,
+A11Y-01v1.1 y PLG-01v1.0. Cumplimiento del delta temporal y sus guardas según
+pruebas/rutas del handoff; no certificación transversal de esas políticas.
+NUM-01 conserva importes, redondeos y completitud de b. No aplica crear
+componentes, IA, notificaciones ni una auditoría global del ERP en este slice.
+No hay excepción nueva aprobada. El validador del plugin pasó solo consistencia
+del registro (28 políticas/5 componentes); sus conteos no aprueban conducta.
+
+Conocimiento de la rama264e: consulta final salida0 pero ok=false; Graphify
+estructural INVALID (grafo ausente), semántica global0/1327 y piloto0/16,
+Archify pendiente por runtime ausente. Preview y publicación compartida no
+ejecutadas por el límite expreso del Director; siguen pendientes coordinados.
+El cierre documental cambia únicamente esta spec, el índice generado y el
+handoff; conserva bytes de producto/SQL/pruebas del candidato verificado.
 
 ## Addendum íntegro del Director · 60 → 64 rutas
 # C1 · ampliación autorizada por el Director a 64 rutas
