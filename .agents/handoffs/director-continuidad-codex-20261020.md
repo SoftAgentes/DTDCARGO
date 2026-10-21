@@ -7,8 +7,8 @@
 | Objetivo | Retomar el plan contable y su carril de embarques sin perder trabajo ni omitir las fronteras de producción |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\director-continuidad-codex-20261020` |
 | Rama y base | `codex/director-continuidad-codex-20261020`, desde `origin/main` `8e9e0f505322cd57b3230cce6b16b45b5554cb8a` |
-| Estado | En progreso: 0572-a, b y Caracas C1 entregadas localmente en PR #310/#311/#312 en borrador. C2 anual asignado en árbol propio; adopción en curso. Publicación retenida por Actions y permisos de release pendientes |
-| Último corte | 21 de octubre, 12:41 a. m. Caracas. C1finald6/revisiónDirectorPASÓlocalconlímites/claimliberado. C2nuevoWorker/árbol/rama desde d6,12rutas/0500asignada; exclusivo turno pesado concedido. Sin implementación acreditada todavía. Mainknowledgefinal04:32:56Z,pendientes explícitos. C3/BCV preparados |
+| Estado | En progreso: 0572-a, b y Caracas C1 entregadas localmente en PR #310/#311/#312 en borrador. C2 anual en implementación; primer caller probado, SQL/API pendientes. Publicación retenida por Actions y permisos de release pendientes |
+| Último corte | 21 de octubre, 12:46 a. m. Caracas. C1 final d6, cierre local con límites. C2 owner/claim propios, 12 rutas/0500 asignada, dependencias fijadas; caller ROJO 8 fallidas/22 aprobadas → VERDE 54/54 en dos archivos sin omisiones. Es árbol de implementación, sin SHA final ni aprobación SQL. Turno exclusivo C2. C3/BCV preparados |
 | Main comprobada | `d410ab2e23e74e5bcf7fdc7cc595371b24cc03a8`, igual a origin/main tras fetch sin prune. 0495 aplicada una vez y #301 integrada; web nueva pendiente, no repetir 0495 |
 | Alcance escritor del Director | Este handoff y `docs/audits/2026-10-20-plan-contable-seguimiento-codex.md`, vista resumida autorizada por Sam al pedir continuar con el plan abierto; ningún archivo de producto |
 | Autorización | Sam ordenó seguir `C:\tmp\director-traspaso-20261020\PROMPT-CODEX-DIRECTOR.md`. El prompt autoriza continuidad con Workers, commits y ramas propias/PR, y establece el orden de integración/publicación; cada migración y borrado siguen exigiendo aprobación nominal independiente |
@@ -884,3 +884,9 @@ PreparaciónI3leídaintegra `0573-i3-contrato-rpc-preparacion.md`,SHA **9a6bb74d
 ### Asignación C2 anual · 21 de octubre, 12:41 a. m. Caracas
 
 Nuevo objetivo activo C2 tras cierre local C1. Harnessstart creó `sdd-0576-fechas-caracas-anuales` desde d6; raíz/rama/HEAD limpio cotejados, sin entorno ni dependencias implícitas. Inventario final04:39:16–04:39:47Z,exit0,490refs+worktrees/siguiente0577/0500; Director asigna0500aC2 y reutiliza0576. Contrato ejecutable `0576-caracas-c2-asignacion-worker.md`,SHA **825ab8194a63ad542f2eb7c377f4e68ac5089cde0b352174a4d3771039c53943**,12rutas/base d6/APIhelper00af/queries72dc/aceptación completa. Agente nuevo `/root/worker_0576_c2`, propietario y handoff propios; turno exclusivo concedido. Confirmó adopción/hashes/guard/claim y Director leyó metadatos de claim04:41:59.708Z conowner/ruta exactos. Dependencias y primeras pruebas pendientes, sin producto validado todavía. Nueva PR siempreDRAFT sobreC1; 0499 y0500sin aplicar,0495no se repite.
+
+### Primer caller C2 probado · 21 de octubre, 12:46 a. m. Caracas
+
+Revisión independiente del encargo leída íntegra/hash cotejado: `caracas-c2-revision-asignacion.md`, **6349acb47df0b00ef538a3052f53328df4c07278bfb680234faa644bf92f4240**. PASÓ documental sin material; 12 rutas únicas/campos/base/helper/0500/ventanas/ACL/HTTP concordantes. No aprobación de implementación.
+
+Director leyó recibos/logs externos C2: install04:42:42.599–04:43:04.904Z salida0, lockfile congelado; red-caller04:43:40.098–04:43:44.877Z salida1,8fallosfuncionales/22pass, sin bootstrap como oráculo; green-caller04:44:27.419–04:44:30.613Z salida0,54/54dosarchivos0skip. Cruce temporal y paginación conservan expectativas de fecha literales. Se atribuye al árbol de implementación, no a un futuro SHA ni al contratoSQL. Worker mantiene turno exclusivo y prepara SQL/HTTP; falta checkpoint inmutable, revisiones y cierre canónico.
