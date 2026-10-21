@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 1:10 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 1:18 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -8,7 +8,7 @@
 
 **Caracas C1 quedó entregado localmente en la PR #312 en borrador, final `d6bcd0e8`:** producto y pruebas idénticos a `264e0531`, revisiones y cierre documental cotejados, árbol limpio y propiedad liberada. Conserva **16/17**, una prueba de aplicación omitida y navegación con 177 aprobadas, una recuperada y 20 omitidas.
 
-**Ahora avanza Caracas C2 anual, respaldado en la PR #313 en borrador, `b30934a5`:** regresión ampliada **223/223 en once archivos**, sin omisiones; API final limpia con **424 comprobaciones PostgreSQL** y recarga sin reinicio. La revisión independiente cerró el fallo del arnés y no encontró otro defecto material. La corrida general arrancó a la **1:04 a. m.** y aprobó sus primeros controles; la suite completa de aplicación sigue en ejecución, sin resultado global. Después vienen gastos móviles y BCV, con diseños preparados. Push y PR funcionan; Actions sigue fallando antes de arrancar. La tarifa congelada conserva sus pendientes de base final y publicación.
+**Ahora avanza Caracas C2 anual, respaldado en la PR #313 en borrador, `b30934a5`:** regresión ampliada **223/223 en once archivos**, sin omisiones; API final limpia con **424 comprobaciones PostgreSQL** y recarga sin reinicio. La corrida general aprobó sus primeros controles, pero la primera pasada de aplicación tuvo **12.758 aprobadas, una fallida por límite de tiempo y una omitida**. El reintento automático de la suite está activo con la misma fuente y los mismos límites; no hay resultado global aprobado. Después vienen gastos móviles y BCV, con diseños preparados. Push y PR funcionan; Actions sigue fallando antes de arrancar. La tarifa congelada conserva sus pendientes de base final y publicación.
 
 **Cómo leerlo:** una casilla marcada significa que se terminó exactamente el paso escrito. En el checklist general, significa integrado y publicado. Dentro de una tarea abierta, una prueba aprobada puede tener ✓ aunque su publicación siga pendiente. Los resultados locales no se presentan como prueba de producción.
 
@@ -185,6 +185,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Aprobar la **API final desde `b30934a5` limpio**: 424 aserciones y reversión SQL, recarga observada sin reinicio, fórmulas/permisos conservados y páginas 500/500/202/0. El fallo anterior de separadores quedó corregido y cerrado por revisión independiente; los recibos identifican exactamente el script y contrato ejecutados.
 - [x] Revisar el suplemento publicado, tipos, revisión estática y metadatos; sin nuevo hallazgo material. Director autorizó la corrida general normal, con archivos congelados y sin modificar controles.
 - [x] Arrancar la corrida general C2 sobre **`b30934a5`**, con manifiesto de once rutas y ocho dependencias críticas; receta normal y archivos congelados. **237/237 controles del arnés**, revisión estática, fronteras, tipos y cuatro funciones auxiliares aprobaron. La suite de aplicación está activa; no es todavía el resultado de toda la corrida.
+- [x] Recoger el diagnóstico completo de la primera pasada de aplicación: **12.758 aprobadas, una fallida y una omitida** en 887 archivos. El único fallo es la prueba de formato estándar del proveedor, que agotó sus veinte segundos. Sus fuentes directas son iguales a la base; no se determinó la causa del sobretiempo. El verificador inició su reintento normal, sin editar producto ni ampliar tiempos.
 - [ ] Completar la corrida general C2, cotejar sus bytes, omisiones, documentación y respaldo final; liberar sus recursos y propiedad antes de activar móvil. Su arranque y resultado se registran por separado.
 - [ ] Cerrar un slice posterior acotado de gastos móviles antes de certificar toda la hora Caracas: el caller activo conserva fechas UTC explícitas y guardas anteriores. Detectado y cotejado por lectura, fuera de las 68 rutas de C1; sin implementación ni autorización de datos reales.
 - [x] Preparar y revisar el diseño del slice móvil: siete rutas propuestas, sin bloqueante estructural ni nueva migración identificada. Conserva propiedad del gasto, fotos y datos al rechazar, y pone todas las guardas antes de modificar la evidencia. Base final, encargo y pruebas de implementación posteriores a C2 siguen pendientes.
