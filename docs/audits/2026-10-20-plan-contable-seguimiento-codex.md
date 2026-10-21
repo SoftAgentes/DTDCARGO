@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 11:17 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 11:22 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -155,7 +155,9 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Reproducir los errores SQL sobre las funciones anteriores en PGlite local: cinco grupos fallan por fecha/default, cobro, emisión, cierre histórico y creación futura Portal. El replay idéntico aceptado también falla antes de la reparación. Se conserva el ensayo seleccionado con cinco grupos omitidos expresamente por su filtro; **todavía no acredita PostgreSQL real ni API HTTP**.
 - [x] Aprobar los **seis grupos SQL funcionales de PGlite local, sin omisiones**, después de incorporar la reparación: defaults, operaciones, emisión automática, gasto histórico, nueva creación Portal y recuperación idéntica. Resultado terminado a las 11:11:15 p. m.; el candidato SQL y su identidad/revisión independiente todavía deben cerrarse. No sustituye PostgreSQL real, permisos y transporte HTTP.
 - [x] Respaldar el candidato SQL **`b7148218` en la PR #312 en borrador**, con las 68 rutas dentro del alcance. Huella exacta de 0499 cotejada desde Git. Los dos contratos ampliados pasaron **8/8 pruebas, sin omisiones**; incluyen controles permanentes que reconocen el comportamiento anterior. Revisión SQL independiente en curso; PostgreSQL y API local ya iniciaron, sin resultado todavía al corte.
-- [ ] Cargar y validar 0499 real en base local desechable y API local, con permisos, recuperación, límites horarios y ausencia de efectos repetidos; sin base productiva.
+- [x] Ejecutar 0499 real en PostgreSQL 17.11 y API local PostgREST 14.17: **95 aserciones SQL, 39 controles del arnés y 41 respuestas HTTP** registradas. Versión antes/después en el mismo servicio, permisos/tenant/replay comprobados y recursos propios retirados. Paquete respaldado en **`de8b1961`**; no acredita Auth alojado, bytes actuales de Storage desde SQL ni producción.
+- [x] Comprobar que el contrato SQL detecta **14/14 errores intencionales**, con la fuente original intacta. El caso de la guarda histórica también conserva el bloqueo del trigger restante; no se presenta como prueba de que ese error permitiría guardar un estado inválido.
+- [ ] Completar el contraste acotado con las defensas vigentes de cierre **0493**, además de 0133, y cerrar la revisión independiente del SQL/HTTP. Es cobertura pendiente, sin defecto de producto nuevo confirmado al corte.
 - [ ] Completar las pruebas de errores intencionales y la revisión visible de los formularios dentro del alcance.
 - [ ] Cerrar el cotejo del ajuste de Gastos y la revisión SQL/HTTP del candidato C1, ejecutar sus pruebas generales y completar la PR #312 en borrador. GitHub no aprobó el checkpoint: sus dos intentos terminaron antes de arrancar, por `startup_failure`.
 - [ ] Implementar después Caracas C2 para los cálculos anuales, con número de migración coordinado por inventario nuevo y las ventanas propias de Portal y Studio conservadas.
