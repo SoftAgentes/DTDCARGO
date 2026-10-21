@@ -223,6 +223,24 @@ describe.sequential("SDD0578 real migration/ACL/RLS/AUD contract, one ephemeral 
     const result = await executeRealContract(source.split(name).join("zz_client_normal_scope_00_key_update"));
     expect(result.completed).toBe(false); expect(result.error).toContain("0502: contrato de prepaso scope incompleto");
   }, 300_000);
+  it("rejects WHEN on the key prepass while retaining its name, columns, arguments and order", async () => {
+    const source = readFileSync(migrationFile, "utf8");
+    const anchor = "for each row execute function dtd_client_normal.guard_scope_configuration('key_columns_gate');";
+    expect(source.split(anchor)).toHaveLength(2);
+    const result = await executeRealContract(source.replace(anchor,
+      "for each row when (old.id is distinct from new.id) execute function dtd_client_normal.guard_scope_configuration('key_columns_gate');"));
+    // Only the absence-of-WHEN contract must kill this catalog mutant. A fuse,
+    // parser error or any other installation failure does not satisfy it.
+    expect(result.completed).toBe(false); expect(result.error).toContain("0502: contrato de prepaso scope incompleto");
+  }, 300_000);
+  it("rejects WHEN on the general guard independently of the unchanged key prepass", async () => {
+    const source = readFileSync(migrationFile, "utf8");
+    const anchor = "for each row execute function dtd_client_normal.guard_scope_configuration();";
+    expect(source.split(anchor)).toHaveLength(2);
+    const result = await executeRealContract(source.replace(anchor,
+      "for each row when (false) execute function dtd_client_normal.guard_scope_configuration();"));
+    expect(result.completed).toBe(false); expect(result.error).toContain("0502: contrato de prepaso scope incompleto");
+  }, 300_000);
   it("kills the material0321 collision mutant instead of losing the second group AUD", async () => {
     const source = readFileSync(migrationFile, "utf8");
     const anchor = "jsonb_build_object('request_ref',v_group_ref,'pod_request_ref',v_ref";

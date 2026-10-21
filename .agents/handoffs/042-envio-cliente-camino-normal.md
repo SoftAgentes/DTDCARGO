@@ -1,6 +1,6 @@
 # Handoff · SDD-0578 · Envíos por cliente, camino normal prospectivo
 
-> Estado actual P1-72 claves no-op: nuevo delta sobre792f de las seis rutas Director, prepaso sólo gate y general con UPSERT único; oráculos/mutantes redactados. PR318DRAFT/baseD1,0502fusible/OFF. P2 por fuente NO REPRODUCIDO, matriz NO EJECUTADA y sin GO runtime. Ver planfdbd7dcd y checkpoint final; cortes anteriores intactos.
+> Estado actual P1-72 sin WHEN: delta pequeño sobre153c en cinco rutas, tgqualNULL en ambos triggers y dos negativos independientes; misma unión72/PR318DRAFT/baseD1/fusible/OFF. P2 por fuente NO REPRODUCIDO y matriz NO EJECUTADA. Ver plande4c5a73/último checkpoint; sin GO runtime.
 
 ## OBJETIVO ORIGINAL
 
@@ -1662,3 +1662,16 @@ Oráculos nuevos, todos NO EJECUTADOS:
 Plan externo actualizado `C:/tmp/director-traspaso-20261020/0578-normal-validation/plan-relevo-p1-72-claves-noop.md`,5636bytes/SHA256fdbd7dcd631fe32fb147e36a74efe3fc8f8cc94c1d78531bd72483ace91cadf2 compone planes70/72 anteriores preservados. Mantiene toda matrizA1–A18 NO EJECUTADA y faltantes propios/recursos/permisos; no cierre4.2. Nueva fuente requiere revisión/GO antes de cualquier runtime o retiro revisado del fusible.
 
 Guard/owner, copias contractuales íntegras, hashes y diffcheck nativos/Git verificados. Comparación textual de20 nombres definidos contra lista esperada PASÓ tras acotar selector a triggers (el primer selector también recogía3policies); no fue parser/catalogo/SQL. Fuente conservada: fixture estructural/históricas/adaptadores/baseline/package/lock/tipos fuera de este delta, ACL originales intactas,0495no se repite. Tests/Nodeparser/SQL/PGlite/DB/Docker/browser/types/lint/build/verify/knowledge NO EJECUTADO. FusibleantesDDL/cohorteOFF, PR318DRAFT, sin main/merge/prod/deploy, sin activaciónnominal o efectos financieros4.3. Claim retenido; diagnóstico0577 conserva permisos separados y BCVFALLÓ+INCOMPLETO no se convierte en verde.
+
+
+## Adopción residual de catálogo sin WHEN, preimagen153c
+
+Informe0578-revision-claves-noop-153c-peer.md leído completo71líneas,17307bytes/SHA2569e58dc27bf937d34b8932193316c8b866c6f9784b012530492d662cf65a46ba5, cotejado. Director autoriza dentro06367e18 y las mismas seis rutas: exigir tgqualNULL en ambos triggers, dos negativos separados/errores específicos y corregir atribución del runner sobre primera escritura. No nueva copia íntegra de este informe por instrucción expresa; conservar hash/rangos/decisión/limitaciones. El mecanismo P2 queda atendido por fuente, sin reproducción o aceptación. Residual153c: SQL2505–2513 no exige ausenciaWHEN; comentarios runner503–506/522 atribuyen un UPSERT previo que el prepaso sólo gate no ejecuta. Preimágenes153c en sin-when-preimagenes-153c.json. P1autoría solamente, FUSE/OFF, matrizNOEJECUTADO y misma unión72/owner/claim.
+
+## Checkpoint P1-72 sin WHEN posterior a153c
+
+Residual de catálogo atendido en autoría:0502:2507/2512 añade tgqual IS NULL a AMBAS definiciones, conservando todos los demás predicados y DDL actual sinWHEN. Blob8afddfa42a3762ccda5196ce58fb0ed93575d0fa/SHA04009a857a3210e721cbd5e1732e41a2855d0cd8a4669c81f1bf5cff548654d7. Sin cambio de cuerpo/ACL/ABI/autoridad, FUSEantesDDL/cohorteOFF intactos. Decisión06367e18 y misma unión72; sólo cinco de las seis rutas necesitan delta, contratoSQL35 intacto.
+
+Test37: dos negativos de catálogo separados añaden WHEN al prepaso y al general manteniendo las demás propiedades. Ambos exigen error específico0502 contrato de prepaso scope incompleto, no fusible/parser u otrofallo. Conteo textual del bloque:9casos/9llamadas al contrato real, desglosados1positivo+8mutantes; ninguno ejecutado/detectado. Runner sólo corrige comentario503–506 y mensaje522: prepaso sólo gate puede rechazar segunda clave antes de cualquier UPSERT. Target sin fence sigue siendo oráculo pertinente; no acredita una escritura durable previa revertida. Todos los asserts de estado/barreras anteriores se conservan.
+
+Informe peer9e58dc27 adoptado arriba, lectura completa71líneas/17307bytes y preimagen153c preservadas. Plan actual externo plan-relevo-p1-72-claves-noop-sin-when.md,2729bytes/SHAde4c5a73d1245fed11c97af6e5c0f3dc8baa3d4b8221d801fdecd2bf00c79555 compone planes previos conservados y corrige conteo/atribución sin cuota artificial. P2 atendido por mecanismo de fuente, NO REPRODUCIDO; matrizA1–A18 NO EJECUTADA. Sólo Git/nativo guard/hash/allowlist/diffcheck, sin parser o runtime. No instalación/Nodeproducto/tests/SQL/DB/Docker/browser/tipos/lint/build/verify/knowledge. NuevoSHA/diff/manifiesto/readback se fija en recibo externo; revisión antes de cualquierGO. Claim retenido, PR318DRAFT/baseD1, sin main/merge/prod/deploy/activación4.2/finanzas4.3 o cambios históricos.

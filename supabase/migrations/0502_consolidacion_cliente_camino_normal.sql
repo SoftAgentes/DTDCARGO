@@ -2504,12 +2504,12 @@ begin
     raise exception '0502: conjunto de guardas incompleto'; end if;
   if not exists(select 1 from pg_trigger t where t.tgrelid='dtd_client_normal.scopes'::regclass
       and t.tgname='aa_client_normal_scope_00_key_update' and t.tgtype=19 and t.tgenabled='O' and not t.tgisinternal
-      and t.tgfoid='dtd_client_normal.guard_scope_configuration()'::regprocedure and t.tgnargs=1
+      and t.tgfoid='dtd_client_normal.guard_scope_configuration()'::regprocedure and t.tgqual is null and t.tgnargs=1
       and t.tgattr='1 2 3'::int2vector and t.tgargs=decode('6b65795f636f6c756d6e735f6761746500','hex')
       and t.tgname<'aa_client_normal_scope_configuration')
     or not exists(select 1 from pg_trigger t where t.tgrelid='dtd_client_normal.scopes'::regclass
       and t.tgname='aa_client_normal_scope_configuration' and t.tgtype=31 and t.tgenabled='O' and not t.tgisinternal
-      and t.tgfoid='dtd_client_normal.guard_scope_configuration()'::regprocedure and t.tgnargs=0
+      and t.tgfoid='dtd_client_normal.guard_scope_configuration()'::regprocedure and t.tgqual is null and t.tgnargs=0
       and t.tgattr=''::int2vector and t.tgargs=decode('','hex')) then
     raise exception '0502: contrato de prepaso scope incompleto'; end if;
   if (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='dtd_client_normal'

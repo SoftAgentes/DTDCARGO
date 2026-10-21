@@ -500,10 +500,10 @@ async function receiptTableQueue() {
 async function scopeForeignKeyInversion(rekey, isolation, serial) {
   const label = `scope_fk_${serial}`, { warehouseId, scopeId, intake } = scopeCase(label, { enabled: true });
   const target = scopeCase(`${label}_target`, { absent: true,
-    // Force NEW before OLD in the real UUID ordering: the rejection on the
-    // second key must undo the first durable UPSERT as well as the rekey.
+    // Force NEW before OLD in the real UUID ordering: the gate-only prepass
+    // can acquire the first gate and reject the second before ANY UPSERT.
     warehouseOverride: rekey ? `00000000-0000-4000-8000-${String(serial).padStart(12, "0")}` : null }).warehouseId;
-  if (rekey) assert(target < warehouseId, "Fixture must exercise a second-key rejection after a first-key write");
+  if (rekey) assert(target < warehouseId, "Fixture must exercise ordered first-gate entry before second-gate rejection");
   const change = rekey ? `update dtd_client_normal.scopes set warehouse_id='${target}' where id='${scopeId}'`
     : `delete from dtd_client_normal.scopes where id='${scopeId}'`;
   const config = new Session(`${label}_config`), birth = new Session(`${label}_birth`);
@@ -519,7 +519,7 @@ async function scopeForeignKeyInversion(rekey, isolation, serial) {
     const conflict = JSON.parse(await config.ok(`select sdd0578_fixture.attempt(null,${literal(change)},'postgres');`));
     assert.equal(conflict.state, "P0001"); assert.equal(conflict.message, "NORMAL_CONFLICT"); assert.equal(conflict.hint, "dtd-client-normal");
     assert.equal(await config.ok(`select count(*) from dtd_client_normal.scope_fences where tenant_id='${id("tenant-A")}' and warehouse_id='${target}';`), "0",
-      "Caught second-key rejection must leave no first-key durable write, even inside the configuring transaction");
+      "Gate-only rejection leaves no target fence; absence does not prove an earlier UPSERT was written and reverted");
     await config.ok("rollback;"); // Releases incompatible tuple lock and ALL partially acquired keys.
     const created = JSON.parse(await pending); await birth.ok("commit;"); assert.equal(created.availability, "ready");
     assert.equal(sql(`select warehouse_id from dtd_client_normal.scopes where id='${scopeId}';`), warehouseId);
