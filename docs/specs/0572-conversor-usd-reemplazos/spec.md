@@ -512,6 +512,15 @@ evidencia externa y límites de identidad/carga en el handoff propio de b.
 La carga1201 prueba materialización sin clasificación repetida por agregado.
 No atribuir este verde a la app todavía sin commit ni a producción.
 
+Suplemento00:58UTC: contrato PostgreSQL17.11 PASÓ37aserciones/ROLLBACK;
+HTTP14.17 PASÓ transición antes/DDL/COMMIT/recarga caliente/después, legado,
+aislamiento y paginación1202grupos500/500/202/0. Migración idéntica a f9cc1dd.
+El contrato de zona fija p_as_of al cambiar timezone y demuestra su guarda
+con mutante; PGlite18/18 (13mutantes) incluido en focal247/247sinSKIPs.
+Arnés durable permite --http-only para suplementos sin repetir contratoSQL.
+Limitaciones de identidad sintética y recibos crudosStartedAt en handoff;
+tipos/lint/visual/verify y revisión financiera todavía pendientes.
+
 ```text
 supabase/migrations/0498_annual_billing_fx_v2.sql
 supabase/tests/0498_annual_billing_fx_v2.test.sql

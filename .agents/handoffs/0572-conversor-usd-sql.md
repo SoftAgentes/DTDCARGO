@@ -167,3 +167,38 @@ no es cierre, integración, aplicación ni aceptación íntegra de 0572-b.
 - Documentación/Graphify/Archify/Obsidian: guardado local en esta tarea;
   integración/estructura/cobertura semántica/preview/publicación pendientes.
   No se publica la bóveda desde esta rama.
+
+## Suplemento SQL/HTTP y focales — 2026-10-21 00:58 UTC
+
+- Checkpoint publicado: f9cc1dd101fc4e06ed7007b1a6a14c1bd5471cff.
+  PR311 abierta por Director, en borrador y apilada sobre #310:
+  https://github.com/SoftAgentes/DTDCARGO/pull/311 .
+- Migración0498 **idéntica** a f9cc1dd. Contrato corregido tras primer PostgreSQL:
+  el test cambiaba current_date al cambiar zona después de medianoche UTC.
+  Ahora fija fecha antes de SET TIMEZONE y sitúa created_at en límite inferior;
+  un mutante que usa fecha de sesión es detectado. No fue defecto de0498.
+- Focal ampliado **PASÓ247/247 en18archivos,0SKIP,exit0**,00:54:39–00:56:18Z,
+  focal-all-1.log/json/receipt. Incluye PGlite18/18 con13mutantes funcionales.
+- PostgreSQL17.11 **PASÓ37aserciones y ROLLBACK**, postgrest-2/postgres-contract.log.
+  El intento1 falló por fixture temporal; recibo conservado. El intento2 pasó
+  contrato y seis hitosHTTP, pero falló paginación del arnés: Range header no
+  pagina POST RPC. Corregido a offset/limit/order en query como SDK real.
+- HTTP PostgREST14.17 **PASÓ**, postgrest-3/receipt.json, exit0:
+  función ausente404/PGRST202 antes del DDL;0498 real con COMMIT; NOTIFY y
+  recarga en caliente en el mismo contenedor; compatibilidad v1/Portal;
+  tenant/roles/ambigüedad0453/ACL/overrideOR;1202grupos en500/500/202/0,
+  último solo sin tasa; importe99999999999999000000.00 exacto.
+  Fue HTTP-only: no repitió SQL37 verde de la corrida2.
+- Límite de reciboHTTP3: las aserciones de StartedAt igual antes/después y
+  respuestas negativas se ejecutaron, pero los valores crudos individuales
+  no quedaron guardados. **NO DISPONIBLES**, sin reconstruirlos. Se conserva
+  harness-executed.mjs y hash en la evidencia; el arnés durable agrega esos
+  campos para futuras ejecuciones. No se repite una corrida verde por reporte.
+- Docker29.9.1 iniciado oculto (ausente inicialmente); contenedores y redes
+  propios de las tres corridas eliminados y docker ps vacío. Desktop sigue
+  activo durante el turno para los gates canónicos futuros, sin recursos ajenos.
+- Tipos final1 **FALLÓ** por un argumento de fecha faltante en el test nuevo de
+  DireccionTab; corregido a reloj sintético explícito. Tipos finales, lint,
+  navegador, verify y revisión financiera siguen pendientes; no cierre general.
+- Adaptación app/DTO/consumidores sigue local y fuera del checkpointSQL.
+  No se atribuyen los resultados de esos bytes al SHA publicado.

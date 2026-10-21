@@ -9,6 +9,7 @@
 \set apply_fix true
 \endif
 begin;
+set local timezone='UTC';
 do $fixture_guard$
 begin
   if to_regclass('public.entity_audit_log') is not null or to_regclass('public.invoices') is not null then
@@ -227,15 +228,16 @@ select pg_temp.fixture_id(label),pg_temp.fixture_id('A'),label,mark,'Sintético'
  ('large','DTD-LARGE','VES',0.00000001,999999999999.99,current_date,now()),
  ('lower','DTD-DATE','USD',null,3,(current_date-interval '1 year')::date,now()),
  ('before-lower','DTD-DATE','USD',null,500,(current_date-interval '1 year')::date-1,now()),
- ('fallback','DTD-DATE','USD',null,7,null, current_date::timestamp at time zone 'UTC')
+ ('fallback','DTD-DATE','USD',null,7,null, (current_date-interval '1 year')::timestamp at time zone 'UTC')
 )v(label,mark,cur,rate,amount,day,created);
 select pg_temp.assert_true(pg_temp.actor('admin',$q$select to_jsonb(x) from public.studio_client_annual_billing_v2(current_date) x where client_markbox='DTD-HALF'$q$)->>'subtotal_usd'='0.02','agregado redondea cada factura');
 select pg_temp.assert_true(pg_temp.actor('admin',$q$select to_jsonb(x) from public.studio_client_annual_billing_v2(current_date) x where client_markbox='DTD-INVALID'$q$)='{"client_markbox":"DTD-INVALID","subtotal_usd":null,"sin_tasa_count":1,"conversion_state":"datos_invalidos"}'::jsonb,'inválido tiene precedencia y conserva contador distinto');
 select pg_temp.assert_true(pg_temp.actor('admin',$q$select to_jsonb(x) from public.studio_client_annual_billing_v2(current_date) x where client_markbox='DTD-LARGE'$q$)->>'subtotal_usd'='99999999999999000000.00','subtotal grande decimal exacto como texto');
 select pg_temp.assert_true(pg_temp.actor('admin',$q$select to_jsonb(x) from public.studio_client_annual_billing_v2(current_date) x where client_markbox='DTD-DATE'$q$)->>'subtotal_usd'='10.00','límite inferior inclusivo año calendario y fallbackUTC');
 select pg_temp.assert_true((date '2024-02-29'-interval '1 year')::date=date '2023-02-28' and (date '2025-03-01'-interval '1 year')::date=date '2024-03-01','aritmética calendario bisiesto sin365días');
+create temporary table fixture_as_of as select current_date as day;
 set local timezone='America/Los_Angeles';
-select pg_temp.assert_true(pg_temp.actor('admin',$q$select to_jsonb(x) from public.studio_client_annual_billing_v2(current_date) x where client_markbox='DTD-DATE'$q$)->>'subtotal_usd'='10.00','fallbackUTC de Studio no depende de zona de sesión');
+select pg_temp.assert_true(pg_temp.actor('admin',format($q$select to_jsonb(x) from public.studio_client_annual_billing_v2(%L::date) x where client_markbox='DTD-DATE'$q$,(select day from fixture_as_of)))->>'subtotal_usd'='10.00','fallbackUTC de Studio no depende de zona de sesión');
 set local timezone='UTC';
 -- Carga sintética, no producción/JWT. CTE MATERIALIZED evita repetir por SUM/COUNT/estado.
 create temporary sequence conversion_calls;

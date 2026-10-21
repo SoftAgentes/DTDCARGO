@@ -114,6 +114,7 @@ describe("0498 annual billing v2 · contrato PostgreSQL embebido", () => {
     ["omite tenant", "i.tenant_id = v_tenant and i.deleted_at is null", "i.deleted_at is null", "v2 convierte CNY y conserva parcial sin multiplicar"],
     ["incluye eliminada", "i.tenant_id = v_tenant and i.deleted_at is null", "i.tenant_id = v_tenant", "v2 convierte CNY y conserva parcial sin multiplicar"],
     ["solo positivos", "group by c.client_markbox order by c.client_markbox", "group by c.client_markbox having sum(c.usd)>0 order by c.client_markbox", "incluye cero negativo y solo sin tasa"],
+    ["fallback zona sesión", "(i.created_at at time zone 'UTC')::date", "i.created_at::date", "fallbackUTC de Studio no depende de zona de sesión"],
     ["OR vuelve AND", "or coalesce((", "and coalesce((", "support por Fidelización y accounting autorizados"],
     ["Portal pierde futuro", "where i.tenant_id = p.tenant_id", "where coalesce(i.issued_at, i.created_at::date) <= current_date and i.tenant_id = p.tenant_id", "Portal conserva ventana futura sin cota superior"],
     ["captura mensaje ajeno", "v_hint is distinct from 'dtd-fx' or v_message not in ('FX_AMOUNT_INVALID', 'FX_RATE_MISSING', 'FX_CURRENCY_UNKNOWN')", "v_hint is distinct from 'dtd-fx'", "error SQL ajeno se relanza"],
