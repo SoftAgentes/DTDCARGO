@@ -228,9 +228,66 @@ describe("B7/B8/B16 · gates y ensayo inmutable", () => {
     expect(cancel).toHaveBeenCalledTimes(1); expect(db.obtain).not.toHaveBeenCalled();
     expect(db.writes()).toHaveLength(0); expect(vi.getTimerCount()).toBe(0);
   });
+  it("B15 · señal ya abortada cierra antes de factory y de todo IO", async () => {
+    vi.useFakeTimers();
+    const parent = new AbortController(); parent.abort();
+    const db = database();
+    expect(await db.run({ signal: parent.signal })).toMatchObject({ status: "REJECTED", reason: "DEADLINE",
+      counts: { scope: 1, notAttempted: 1, deferred: 1 } });
+    expect(db.factory).not.toHaveBeenCalled(); expect(db.obtain).not.toHaveBeenCalled(); expect(db.calls).toHaveLength(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it("R13 · deadline del body capability no se atribuye al SELECT ni obtiene fuente", async () => {
+    vi.useFakeTimers();
+    const cancel = vi.fn(); const db = database();
+    db.setIntercept(call => call.url.pathname.endsWith("/rpc/bcv_rates_write_capability")
+      ? new Response(new ReadableStream({ cancel }), { headers: { "content-type": "application/json" } }) : undefined);
+    const task = db.run();
+    await vi.advanceTimersByTimeAsync(50_001);
+    expect(await task).toMatchObject({ status: "REJECTED", reason: "DEADLINE", counts: { notAttempted: 1, deferred: 1 } });
+    expect(db.calls.at(-1)?.url.pathname).toContain("/rpc/bcv_rates_write_capability");
+    expect(db.obtain).not.toHaveBeenCalled(); expect(db.writes()).toHaveLength(0); expect(cancel).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });
 
 describe("B9–B15 · persistencia textual, CAS y certeza", () => {
+  it("B15 · deadline en body PATCH enviado conserva UNKNOWN y detiene pendientes", async () => {
+    vi.useFakeTimers();
+    const cancel = vi.fn(); const db = database([row()], [A, B]);
+    db.setIntercept(call => {
+      if (call.method !== "PATCH") return undefined;
+      // Efecto sintético ya visible; no se atribuye un COMMIT PostgreSQL a este doble.
+      db.state.set(A, { ...db.state.get(A)!, ...call.body } as Stored);
+      return new Response(new ReadableStream({ cancel }), { headers: { "content-type": "application/json", "content-range": "0-0/1" } });
+    });
+    const task = db.run();
+    await vi.advanceTimersByTimeAsync(50_001);
+    expect(await task).toMatchObject({ status: "PARTIAL", reason: "WRITE_UNKNOWN",
+      counts: { scope: 2, unknown: 1, notAttempted: 1, deferred: 1 } });
+    expect(db.writes()).toHaveLength(1); expect(db.writes()[0].method).toBe("PATCH");
+    expect(db.state.get(A)?.rate).toBe("883.39630000"); expect(db.state.has(B)).toBe(false);
+    expect(db.calls.filter(call => call.method === "GET" && call.url.pathname.endsWith("/fx_rates"))).toHaveLength(1);
+    expect(cancel).toHaveBeenCalledTimes(1); expect(vi.getTimerCount()).toBe(0);
+  });
+  it("B15 · deadline durante reconciliación de PATCH no repite escritura", async () => {
+    vi.useFakeTimers();
+    const cancel = vi.fn(); const db = database([row()], [A, B]); let sent = false;
+    db.setIntercept(call => {
+      if (call.method === "PATCH") { sent = true; return new Response('{"message":"synthetic unavailable"}', { status: 503 }); }
+      if (sent && call.method === "GET" && call.url.pathname.endsWith("/fx_rates")) {
+        return new Response(new ReadableStream({ cancel }), { headers: { "content-type": "application/json", "content-range": "0-0/1" } });
+      }
+      return undefined;
+    });
+    const task = db.run();
+    await vi.advanceTimersByTimeAsync(50_001);
+    expect(await task).toMatchObject({ status: "PARTIAL", reason: "WRITE_UNKNOWN",
+      counts: { scope: 2, unknown: 1, notAttempted: 1, deferred: 1 } });
+    expect(db.writes()).toHaveLength(1);
+    expect(db.calls.filter(call => call.method === "GET" && call.url.pathname.endsWith("/fx_rates"))).toHaveLength(2);
+    expect(db.state.has(B)).toBe(false); expect(cancel).toHaveBeenCalledTimes(1); expect(vi.getTimerCount()).toBe(0);
+  });
   it("alta string exacta y repetición equivalente sin churn", async () => {
     const db = database();
     const first = await db.run();

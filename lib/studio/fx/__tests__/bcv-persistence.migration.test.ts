@@ -142,6 +142,7 @@ describe("R1–R10 · auditoríaBCV0501 real en PGlite, HTTP separado", () => {
     { from: "end || pg_catalog.to_char(new.valid_on,'YYYY-MM-DD') || '.';", to: "end || pg_catalog.to_char(new.valid_on,'YYYY-MM-DD') || '.';\n    v_reason := null;", assertion: "alta R3: un evento SYSTEM/job, motivo fijo, cuatro campos" },
     { from: "or v_claims->>'role' is distinct from 'service_role' or v_claims ? 'sub'", to: "or v_claims->>'role' is distinct from 'service_role'", assertion: "sub null no equivale a ausencia" },
     { from: "if v_claims ? 'sub' then", to: "if false then -- mutación sintética: omite el guard de sub del trigger", assertion: "sub null DML no habilita SYSTEM/job" },
+    { from: "'ready',coalesce(v_ready,false)", to: "'ready',true", assertion: "trigger disabled cierra capability" },
   ])("mutante funcional $assertion", async ({ from, to, assertion }) => {
     expect(SQL.split(from)).toHaveLength(2);
     const changed = reapproveMutant(SQL, SQL.replace(from, to));
