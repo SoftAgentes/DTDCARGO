@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 7:49 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 8:24 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -16,6 +16,7 @@
 
 ### Trabajo durante la espera de GitHub
 
+- [x] Recibir la instrucción de Sam de continuar localmente la 2.1 y subir entregas en PR en borrador. Se conservan separados implementación, pruebas, integración y publicación.
 - [x] Confirmar el motivo con Sam: tarjeta rechazada y espera de 48 horas para cambiarla por otra. No se cambió ningún pago ni límite.
 - [x] **Comprobar que el push sí funciona.** GitHub conserva reportes `a30d8585`, publicador `021e96cd` y este seguimiento en la PR #308, además de las PR #309 y #310 creadas durante el bloqueo. El bloqueo observado afecta a Actions; el código puede seguir respaldándose y las entregas revisables pueden quedar en PR en borrador.
 - [x] Asignar la retoma local de **0572-a**: incorporar #301 y probar reportes, rankings, totales y exportaciones con facturas sin tasa. La implementación nueva y sus pruebas se marcarán por separado al comprobarse.
@@ -100,6 +101,11 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 ### C. Resto de la 2.1
 
 - [x] Delimitar los reemplazos SQL, las fechas de Caracas y la carga BCV que faltan, con sus dependencias y criterios de prueba. Es preparación; su implementación sigue pendiente.
+- [x] Preparar un árbol aislado para **0572-b**, desde la entrega `a30d8585` de #310, y comprobar las dependencias actuales. La revisión de diseño confirma una transición compatible que conserva la interfaz anterior; la allowlist final y la implementación se registrarán por separado.
+- [x] Asignar al tramo SQL la migración **`0498_annual_billing_fx_v2`**, después de inventariar 480 refs y los archivos de los worktrees. Se reutiliza SDD-0572. Esta asignación no autoriza aplicarla en producción.
+- [ ] Completar la implementación de las fachadas SQL y llevar subtotal, contador y estado hasta Portal, Fidelización, Reportes y CRM.
+- [ ] Probar compatibilidad, permisos, paginación y casos sin tasa con datos sintéticos; cerrar revisión independiente y conservar las omisiones reales de la validación general.
+- [ ] Respaldar la entrega SQL en su rama y abrir su PR en borrador, con dependencia explícita de #310.
 - [ ] Reemplazar las conversiones pendientes en SQL, con una entrega separada.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [ ] Implementar la carga diaria desde el BCV oficial y el respaldo manual.

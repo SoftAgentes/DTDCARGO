@@ -589,3 +589,15 @@ Se encargó al mismo revisor una **propuesta de solo lectura** sobre representac
 **FUERA DE ALCANCE DETECTADO:** archivos sin seguimiento del checkout principal; notas históricas de memoria con procedimientos reemplazados; enlace wiki faltante `ufw-limit-ssh-oficina`. Se preservan sin reparar por reflejo.
 
 **HANDOFF AL DIRECTOR:** mantener autorizaciones separadas, pruebas locales seriales, cabezas exactas y documentación de cada resultado. No considerar un proceso iniciado como trabajo terminado.
+
+### Continuación local de 2.1 · 20 de octubre, 8:24 p. m. Caracas
+
+Sam autorizó continuar el trabajo local de la 2.1 y publicar las entregas como PR en borrador durante la espera para cambiar la tarjeta. No amplía las aprobaciones de integración, migraciones ni producción.
+
+Inventario actualizado después de `git fetch origin --no-prune`: principal y remoto iguales a `d410ab2e23e74e5bcf7fdc7cc595371b24cc03a8`; GitHub disponible, 77 worktrees en la foto inicial y 478 ramas. PR #310 sigue OPEN/DRAFT en `a30d85859c788070ffc3459a29e389cab015c7eb`; #308 y #309 siguen en borrador con las cabezas guardadas. Evidencia externa: `C:\tmp\director-traspaso-20261020\inventario-continuacion-local-21.json`. Es inventario, no prueba de inactividad de sesiones.
+
+Numeración completada sobre 480 refs más worktrees: siguiente spec 0576 y migración 0498. Se reutiliza SDD-0572 y **se asigna `0498_annual_billing_fx_v2` al tramo SQL 0572-b**. No hay otra asignación nueva en este turno. Se preservan las migraciones aplicadas, incluida 0495. La futura aplicación necesita su revisión y aprobación nominal propias.
+
+Aislamiento creado con el harness: `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\sdd-0572-conversor-usd-sql`, rama `codex/sdd-0572-conversor-usd-sql`, base `a30d85859c788070ffc3459a29e389cab015c7eb`, sin mover ni copiar el árbol anterior. Owner previsto: Worker 0572, con claim propio antes de editar. El diseño compatible conserva Studio v1 y agrega v2; Portal conserva firma y campos legados y añade `billing_v2`. La migración sola no cierra el encargo: subtotal, exclusiones e indisponibilidad deben llegar a los consumidores. Allowlist y dictamen final en preparación, todavía sin producto nuevo ni pruebas ejecutadas en b.
+
+Se consultó Graphify existente sin regenerarlo: 43.953 nodos, recorrido BFS y presupuesto 1.500 tokens; resultado truncado, contrastado con fuentes actuales. No se infiere cobertura total del mapa. `knowledge:status` inicial de esta continuación terminó a `00:22:44Z`, salida 0 y `ok=false`; Archify CURRENT y Obsidian PENDING. Recibo: `C:\tmp\director-traspaso-20261020\knowledge-director-inicio-continuacion-21.log`. No hubo publicación de bóveda.
