@@ -197,6 +197,11 @@ values('00000000-0000-4000-8000-000000000501',md5('0495-synthetic-tenant-A')::uu
   'VES','2026-10-21','bcv','883.39630000',null,'procedencia sintética sin datos reales');
 reset role;
 reset session authorization;
+-- El lector de recibos vuelve explícitamente al rol propietario de esta fixture.
+-- No se concede ningún permiso de producto ni se cambia el contexto del DML anterior.
+set local role postgres;
+select pg_temp.assert_true(current_user='postgres' and session_user='postgres',
+  'fixture restaura lector postgres después del contexto de servicio');
 select pg_temp.assert_true((select value='{"version":1,"ready":true}'::jsonb from bcv_ready_result),
   'contexto servicio sin sub devuelve ready true');
 select pg_temp.assert_true((select native_role='service_role' and effective_user='postgres'
@@ -219,6 +224,7 @@ where id='00000000-0000-4000-8000-000000000501' and tenant_id=md5('0495-syntheti
   and currency='VES' and valid_on='2026-10-21' and source='bcv' and rate='883.39630000';
 reset role;
 reset session authorization;
+set local role postgres;
 select pg_temp.assert_true((select count(*)=1 and bool_and(actor_type='system' and actor_id is null
   and source='job' and event_type='exchange_rate_corrected'
   and reason='Actualización automática del catálogo BCV: tasa oficial VES por 1 USD para la fecha valor 2026-10-21.'
@@ -244,6 +250,7 @@ $sql$) as value;
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 reset role;
 reset session authorization;
+set local role postgres;
 select pg_temp.assert_true((select value='42501' from bcv_reason_result), 'motivo previo rechazado');
 select pg_temp.assert_true((select rate::text='883.39630001' from fx_rates
   where id='00000000-0000-4000-8000-000000000501'), 'rechazo motivo revierte tasa');
@@ -264,6 +271,7 @@ create temporary table bcv_append_result as select bcv_fixture.error_sql($sql$
 $sql$) as value;
 reset role;
 reset session authorization;
+set local role postgres;
 update public.audit_entity_types set status='active' where entity_type='exchange_rate';
 select pg_temp.assert_true((select value<>'ok' from bcv_append_result), 'append real falla por catálogo inactivo');
 select pg_temp.assert_true(not exists(select 1 from fx_rates where id='00000000-0000-4000-8000-000000000502')
@@ -277,6 +285,7 @@ set local role service_role;
 create temporary table bcv_drift_result as select public.bcv_rates_write_capability() as value;
 reset role;
 reset session authorization;
+set local role postgres;
 alter table public.fx_rates enable trigger audit_fx_rates;
 select pg_temp.assert_true((select value->>'ready'='false' from bcv_drift_result), 'trigger disabled cierra capability');
 select pg_temp.assert_true((select count(*)=2 from entity_audit_log
