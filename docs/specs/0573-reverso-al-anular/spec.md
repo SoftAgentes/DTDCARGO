@@ -15,7 +15,7 @@ confidencialidad: interno
 
 ## 1. Adopción vigente y alcance de GO0
 
-**Estado al 2026-10-21: adopción y composición R0 solamente; los catorce hallazgos siguen abiertos.** La implementación histórica y sus pruebas no acreditan la reparación actual. Aceptaciones A CORE y B propagación: NO EJECUTADAS.
+**Estado al 2026-10-21: R0 revisado y autoría GO1 respaldada en PR #320 DRAFT; los catorce hallazgos siguen abiertos.** La implementación histórica y sus pruebas no acreditan la reparación actual. Aceptaciones A CORE y B propagación: NO EJECUTADAS.
 
 - Task: 0573-core-reparacion-20261021. Owner: worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 - Sesión principal Director: 01a15a4e-ddf0-7d82-8656-d9dc56b58468; esta es su tarea Worker interna.
@@ -381,3 +381,15 @@ La siguiente entrega es checkpoint selectivo/push y una única PR CORE DRAFT con
 
 Receta: C:/tmp/director-traspaso-20261020/0573-core-go1-worker-20261021/0573-core-go1-receta-y-oraculos.md; SHA256 8ce8c568b88b288c75911f456511dfe5c442a180e84b72ca233df53b9f951aaa.
 Manifiesto de fuente/14 sellos/inventario/receta: 0573-core-go1-receta-y-fuentes.json; SHA256 8afa09ce4f56d12447f132203f02cff882739ca9d0c9ed48d7ac706016f88033.
+
+### GO1 · custodia publicada y cierre de autoría
+
+GO0 fue aceptado por Director como composición/adopción; GO1 completó autoría y respaldo, sin reparación ni ejecución. Checkpoint fuente: 8a588ccab2e0dc943a5c4b8a6610c3c612c6402e (árbol 04e109975831dbab7e1ada7ad0777f5b6cf8ecdb), hijo de db5f84aab482252ada9030ba20f9e527338b66e2. Su delta es exactamente el subset7 autorizado.
+
+Única PR CORE creada: [#320, DRAFT](https://github.com/SoftAgentes/DTDCARGO/pull/320), abierta contra codex/0573-base-temprana-20261021 / e834dc6eef597421d10f880b5deb8d689dcc7078. Se adjuntó mediante herramienta oficial. Readback inicial verificó draft, head, base, cuerpo y 32 rutas acumuladas dentro48. R0 aportaba29 rutas; fixture, ingreso-periodo.test e invoice-posting-reverso.test suman3 al diff frenteB. GO1 no escribió32 rutas: escribió7.
+
+Este commit de cierre sólo actualiza spec/handoff para registrar la entrega; todos los bytes de las cinco fuentes autorales y de producto/SQL permanecen iguales al checkpoint fuente. El recibo externo 0573-core-go1-cierre.json guardará su SHA final, remoto, diff,14 sellos y readback final de PR sin autorreferencia documental.
+
+57 casos nuevos y64 heredados,121 previstos: inventario textual,0 ejecutados,0 ROJO observado,0 VERDE observado. Los14 hallazgos y aceptaciones A/B siguen abiertos. Dependencias propias ausentes; receta y diferencia PNPM11.25/CI11.19 pendientes de revisión antes de otro GO/turno runtime. Ningún check de PR sustituye esa evidencia.
+
+Árbol quieto y claim propio retenido al entregar. Sin instalación, parser/tipos/lint/tests/SQL/DB/Docker/browser/HTTP/build/verify/conocimiento, main/merge/deploy/producción. Histórico intacto;0495 no se repite,0497 no se edita. Fuentes/recibos/logs conservados para revisión de Director.

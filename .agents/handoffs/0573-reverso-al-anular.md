@@ -1,4 +1,4 @@
-# Handoff · SDD-0573 · Adopción y composición R0, GO0
+# Handoff · SDD-0573 · R0 y autoría GO1, PR CORE DRAFT
 
 | Campo | Valor |
 |---|---|
@@ -9,11 +9,11 @@
 | Rama | codex/sdd-0573-core-reparacion-20261021 |
 | H / B fija | 89f15a5dcb9c9047e9a289fd499563c201ab5701 / e834dc6eef597421d10f880b5deb8d689dcc7078 |
 | SDD | [0573](../../docs/specs/0573-reverso-al-anular/spec.md), in-progress |
-| Estado GO0 | lista para revisión de R0;14hallazgos y aceptaciones A/B siguen abiertos |
+| Estado vigente | GO0 revisado; GO1 autoría respaldada en PR320 DRAFT;14hallazgos y aceptaciones A/B siguen abiertos |
 | Contrato GO0 | 0573-core-go0-asignacion-director.md / SHA256 7a16dbdb1ebecfc420ca2f3c181ca6aa1cb5d6c5584f0c33fb2a7237af773428 |
 | Candidato completo | 0573-encargo-core-propuesto.md / SHA256 5ee11eab1d2f08af8890f676efdc20aa2daba918dd8d1c50c34950b366b22880 y diez fuentes completas cotejadas |
-| Permisos | documentos/Git ligero/guard/claim/merge local sólo B/commit selectivo/push propio; PR aún no |
-| Turno y relevo | diagnóstico0577 conserva pesado; al acabar GO0 árbol quieto/claim propio retenido |
+| Permisos GO1 | autoría subset7/receta/Git ligero/commit/push propio/una PR CORE DRAFT; sin runtime ni reparación |
+| Turno y relevo | GO1 sin turno runtime; otro GO concreto pendiente; árbol quieto/claim propio retenido al entregar |
 
 ## OBJETIVO ORIGINAL
 
@@ -205,3 +205,48 @@ La siguiente entrega es checkpoint selectivo/push y una única PR CORE DRAFT con
 
 Receta: C:/tmp/director-traspaso-20261020/0573-core-go1-worker-20261021/0573-core-go1-receta-y-oraculos.md; SHA256 8ce8c568b88b288c75911f456511dfe5c442a180e84b72ca233df53b9f951aaa.
 Manifiesto de fuente/14 sellos/inventario/receta: 0573-core-go1-receta-y-fuentes.json; SHA256 8afa09ce4f56d12447f132203f02cff882739ca9d0c9ed48d7ac706016f88033.
+
+## Cierre GO1 · autoría, respaldo y PR
+
+### OBJETIVO ORIGINAL
+
+Escribir regresiones M1/I2/I3 y receta futura dentro del subset7, conservar preimágenes db5/pruebas heredadas y entregar una única PR CORE DRAFT tras la revisión R0. GO1 no autoriza runtime ni reparación.
+
+### COMPLETADO
+
+Adopción y preimágenes guardadas antes de autoría. Checkpoint fuente 8a588ccab2e0dc943a5c4b8a6610c3c612c6402e, exactamente7 rutas;57 casos nuevos previstos,64 heredados conservados por inventario textual. Receta/inventario y14 sellos guardados fuera de Git. Única PR [#320 DRAFT](https://github.com/SoftAgentes/DTDCARGO/pull/320), adjuntada oficialmente y readback inicial cotejado.
+
+### VALIDACIÓN
+
+PASÓ: guard/owner/claim, subset7 frente db5, diff-check,14 sellos sin diferencias y respaldo de checkpoint fuente; readback inicial draft/head8a588/basee834/cuerpo/rutas. Diff PR32 dentro48 (R0:29 más3 nuevas rutas al diff). Este cierre documental conserva los bytes de las fuentes autorales/producto/SQL. Recibo final externo registra SHA remoto/readback final y custodia.
+
+NO EJECUTADO: los121 casos previstos, ROJO/VERDE, parser/tipos/lint, SQL/PG/carreras, Docker/browser/HTTP/build/verify, instalación y todas las capas de conocimiento. Checks PR iniciales: lista vacía; no se atribuye aceptación funcional. Conteos previstos no son discovery ni cuota.
+
+### COMMITS
+
+- bd2eeb29af909bc0d62b902ab4973386ee0e2d98: R0, padres H/B exactos, revisado por Director.
+- db5f84aab482252ada9030ba20f9e527338b66e2: adopción/contrato GO0, conservado.
+- 8a588ccab2e0dc943a5c4b8a6610c3c612c6402e: autoría GO1, árbol04e109975831dbab7e1ada7ad0777f5b6cf8ecdb, hijo db5, siete rutas.
+- Commit que contiene este cierre: sólo spec/handoff; SHA/árbol finales en recibo externo, sin recursión. No reparación nueva de producto.
+
+### PR / BRANCH
+
+[PR #320](https://github.com/SoftAgentes/DTDCARGO/pull/320), OPEN/DRAFT. Head codex/sdd-0573-core-reparacion-20261021; base codex/0573-base-temprana-20261021 fija e834dc6eef597421d10f880b5deb8d689dcc7078. Attach oficial realizado. Una sola PR CORE; no retarget/merge ni integración en B/main.
+
+### PENDIENTES DE ESTA TAREA
+
+1. Director revisa fuente/receta y versión PNPM11.25 disponible frente11.19 CI; fija SHA/GO y un único turno runtime separado. Dependencias propias siguen ausentes. No usar alias PNPM principal ni copiar deps/env/secretos.
+2. Obtener ROJO funcional con dobles/imports válidos; fallos de setup/import/TypeError/proyección no modelada/timeout no cuentan como ROJO. Implementación y VERDE siguen pendientes; fuentes no reparan producto.
+3. Cerrar B1/I1–I4/M1–M9 con matriz monetaria, SQL/PG dos conexiones/locks, cierre0493 real, ACL/audit/rollback/MIGRATE-FIRST, mutantes, lectores y consumidores UI/CSV/Dirección, verify normal, visual y revisión independiente.
+4. Revalidar0497 pendiente antes de cualquier edición futura;0495 aplicada no se repite. AceptaciónA CORE yB propagación independientes; CORE→310→311→C1(R1)→C2→C3→BCV por sus propios SHA/evidencias.
+5. Conocimiento/canónica/Graphify/semántica/Archify/preview/Obsidian NO EJECUTADO, pendientes de su turno; publicación compartida sólo main integrado autorizado.
+
+### FUERA DE ALCANCE DETECTADO
+
+Diagnóstico0577, preparación0578 e instalación implícita EPERM en principal pertenecen a otros encargos. No se reparó entorno ni se copiaron dependencias. HistóricoH/claim contabilidad-2026-10-18, BCV/Caracas y otros productos preservados. Estado limpio no certifica ausencia de consumidores históricos.
+
+### HANDOFF AL DIRECTOR
+
+GO1 entregado como fuente y custodia. Los14 hallazgos y aceptaciones A/B permanecen abiertos. Revisar checkpoint fuente8a588 y PR320; otro GO/turno es necesario para instalación/ROJO/producto. Árbol propio quieto, claim retenido explícitamente por encargo; ningún proceso producto iniciado ni cleanup destructivo.
+
+Evidencia externa: C:/tmp/director-traspaso-20261020/0573-core-go1-worker-20261021/. Receta-y-oráculos SHA2568ce8c568b88b288c75911f456511dfe5c442a180e84b72ca233df53b9f951aaa; manifiesto fuente/receta SHA2568afa09ce4f56d12447f132203f02cff882739ca9d0c9ed48d7ac706016f88033. Recibo final0573-core-go1-cierre.json incluirá PR/readback, hashes de parches completos y custodia local/remota.
