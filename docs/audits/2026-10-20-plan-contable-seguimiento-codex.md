@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 10:20 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 10:25 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -136,7 +136,8 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [ ] Aprobar CI y la base final de #311 después de las entregas anteriores; revisar y autorizar por nombre 0498, integrar y comprobar publicación y recorridos con los permisos correspondientes.
 - [x] Reservar y respaldar la **SDD-0576, hora Caracas**, tras inventario de 483 refs y worktrees. Diseño C1 revisado y C2 anual delimitado, preservando las ventanas distintas; 60 y 12 rutas respectivamente. Se incluye solo el manifiesto necesario para mantener referencias verificables de migraciones pendientes, sin debilitar controles. La asignación concreta se registra en el paso siguiente.
 - [x] **Asignar Caracas C1 al Worker en árbol aislado**, desde `8729f7f4`, rama `codex/sdd-0576-fechas-caracas-operaciones`, con 60 rutas exactas y contrato completo enviado. Inventario final de 486 refs y worktrees confirma **0499_fechas_caracas_operaciones**, asignada solo a esta tarea, sin aplicación real. Turno de pruebas concedido después de terminar b y la consulta del Director.
-- [x] Comprobar la adopción del Worker C1: propiedad y rama correctas, stub reservado adoptado en `eecfbbb1`, contrato íntegro guardado antes de producto y 60 rutas únicas. Recibo de las 10:19 p. m.; sin env copiados. Preparación de dependencias y pruebas funcionales en curso, todavía sin resultado aprobado.
+- [x] Comprobar la adopción del Worker C1: propiedad y rama correctas, stub reservado adoptado en `eecfbbb1`, contrato íntegro guardado antes de producto y 60 rutas únicas. Recibo de las 10:19 p. m.; sin env copiados.
+- [x] Preparar las dependencias propias de C1 con versiones congeladas: instalación aprobada, archivo de versiones idéntico antes y después y sin enlaces a dependencias de otro árbol. Pruebas funcionales en preparación, todavía sin resultado aprobado.
 - [ ] Reproducir los errores de fecha y corregir C1; probar emisión, asientos, cobros, pagos y recuperación del reporte Portal, sin cambiar fechas explícitas ni re-fechar historia.
 - [ ] Revisar el candidato C1, cerrar sus pruebas generales y dejar su PR en borrador.
 - [ ] Implementar después Caracas C2 para los cálculos anuales, con número de migración coordinado por inventario nuevo y las ventanas propias de Portal y Studio conservadas.
