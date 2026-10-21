@@ -37,6 +37,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   LOCKED_MODULES,
@@ -149,7 +150,7 @@ async function contract(options: { applyFix?: boolean; migration?: string; repla
   const replace = { ...(options.replace ?? {}) };
   if (options.migration) replace[M0475] = options.migration;
   const sql = psql(CONTRACT, { apply_fix: String(options.applyFix ?? true) }, replace);
-  const db = new PGlite({ extensions: { pgcrypto } });
+  const db = await pgliteLimpio({ pgcrypto });
   try {
     const results = await db.exec(sql);
     const rows = results.flatMap((result) => result.rows as Record<string, unknown>[]);
@@ -1064,7 +1065,7 @@ async function baseDecision(db: PGlite, tenant: string, role: StudioUserRole, ov
 
 async function openFixture(migration?: string) {
   const replace: Record<string, string> = migration ? { [M0475]: migration } : {};
-  const db = new PGlite({ extensions: { pgcrypto } });
+  const db = await pgliteLimpio({ pgcrypto });
   await db.exec(psql(CONTRACT, { fixture_only: "true" }, replace));
   const tenant = String((await db.query<{ id: string }>("select pg_temp.fixture_id('tenant-A')::text as id")).rows[0].id);
   return { db, tenant };

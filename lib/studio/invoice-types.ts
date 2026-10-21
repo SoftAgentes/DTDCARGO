@@ -10,6 +10,7 @@
  */
 
 import type { InvoiceIvaMode } from "@/lib/studio/fiscal/config-types";
+import { tasaPersistible } from "@/lib/shared/fx";
 
 export type { InvoiceIvaMode };
 
@@ -417,11 +418,14 @@ export function validateInvoiceInput(input: Partial<InvoiceInput>): {
     errors.due_date = "Fecha de vencimiento inválida (YYYY-MM-DD).";
   }
 
-  // VES requiere fx_rate (BCV) para que el monto tenga sentido fiscal.
-  if (currency === "VES") {
-    const fx = Number(input.fx_rate);
-    if (!Number.isFinite(fx) || fx <= 0) {
-      errors.fx_rate = "Indica la tasa BCV para facturar en bolívares.";
+  // VES y CNY requieren tasa (SDD-0569): sin ella no se convierten a USD. La
+  // acción la precarga con la vigente (fx_rates) si no se escribió.
+  if (currency === "VES" || currency === "CNY") {
+    if (tasaPersistible(input.fx_rate) === null) {
+      errors.fx_rate =
+        currency === "VES"
+          ? "Indica la tasa BCV para facturar en bolívares."
+          : "Indica la tasa para facturar en yuanes.";
     }
   }
 
@@ -437,9 +441,11 @@ export function validateInvoiceInput(input: Partial<InvoiceInput>): {
       shipment_code: input.shipment_code?.trim() || null,
       currency,
       fx_rate:
-        input.fx_rate != null && Number.isFinite(Number(input.fx_rate))
-          ? Number(input.fx_rate)
-          : null,
+        currency === "VES" || currency === "CNY"
+          ? tasaPersistible(input.fx_rate)
+          : input.fx_rate != null && Number.isFinite(Number(input.fx_rate))
+            ? Number(input.fx_rate)
+            : null,
       due_date: input.due_date?.trim() || null,
       lines,
       notes: input.notes?.trim() || null,

@@ -173,7 +173,7 @@ const SECTIONS: AdminSection[] = [
     label: "Tasas de cambio",
     icon: "invoice",
     description:
-      "BCV, paralelo y CNY. Historial diario y configuración de qué tasa usa cada flujo (facturación, costing, estado de cuenta).",
+      "Bolívares y yuanes: la tasa de cada día, con su fuente. Las facturas y las cuentas por pagar toman la vigente y la guardan.",
     sddRef: "SDD-0126",
   },
   {

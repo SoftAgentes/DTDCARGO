@@ -251,6 +251,14 @@ export const CAPABILITIES = {
   delete_shipments: [],
   /** Eliminar recepciones del Almacén CN (SDD-0522): admin-only, igual que embarques. */
   delete_warehouse_receipts: [],
+  /**
+   * La vía excepcional de la tarifa congelada (SDD-0571): fijarla a mano o con
+   * el Excel de Yiwu, usar 1.000 kg/m³ o reemplazar una congelada, con motivo.
+   * accounting + admin implícito, aunque la matriz no les dé `cn` (decisión del
+   * Director del 2026-10-20: la matriz de `cn` no cambia). La base repite el
+   * candado: `congelar_tarifa_recepcion` (migr 0496) exige admin o accounting.
+   */
+  fix_frozen_rate: ["accounting"],
 } as const satisfies Record<string, readonly StudioUserRole[]>;
 
 export type StudioCapability = keyof typeof CAPABILITIES;

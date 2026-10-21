@@ -1,0 +1,89 @@
+sin plantilla: 851 archivos · Tests  12133 passed | 1 skipped (12134)
+con plantilla: 852 archivos · Tests  12145 passed | 1 skipped (12146)
+solo sin plantilla: (ninguno)
+solo con plantilla: vitest/pglite-limpio.test.ts
+archivos con otro conteo, estado u omisiones: 2
+  lib/studio/__tests__/client-account.test.ts: ✓ 33 → ✓ 35
+  app/studio/(app)/clientes/_components/ClientAccountHeader.test.tsx: ✓ 11 → ✓ 13
+archivos no verdes con plantilla: ↓ lib/studio/document-import/corpus.test.ts
+
+afectados (sin → con plantilla):
+    41.8 →   18.7 s  ✓ 26 → ✓ 26  __tests__/anon-privilegios-residuales.migration.test.ts
+    14.7 →    6.0 s  ✓  9 → ✓  9  app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts
+    30.4 →   10.3 s  ✓ 26 → ✓ 26  app/studio/(app)/naviera/__tests__/autorizar-correlation-id.migration.test.ts
+    14.2 →    9.2 s  ✓ 30 → ✓ 30  infra/ops/tests/migraciones.test.mjs
+    24.1 →   12.4 s  ✓ 12 → ✓ 12  lib/portal/__tests__/billing-identity.migration.test.ts
+     6.9 →    4.2 s  ✓  4 → ✓  4  lib/portal/__tests__/identity-photo-replacement.migration.test.ts
+    33.4 →   18.5 s  ✓ 15 → ✓ 15  lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts
+    71.7 →   23.6 s  ✓ 48 → ✓ 48  lib/portal/__tests__/portal-bandeja-avisos.migration.test.ts
+    15.6 →    6.9 s  ✓ 10 → ✓ 10  lib/portal/__tests__/profile-direct-edit.migration.test.ts
+   169.2 →   73.9 s  ✓ 87 → ✓ 87  lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts
+    21.1 →    8.4 s  ✓ 15 → ✓ 15  lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts
+    91.9 →   53.3 s  ✓ 38 → ✓ 38  lib/studio/__tests__/cierre-contable-superclave.migration.test.ts
+    35.1 →   12.8 s  ✓ 25 → ✓ 25  lib/studio/__tests__/client-outstanding.migration.test.ts
+    14.7 →    8.3 s  ✓  7 → ✓  7  lib/studio/__tests__/cobro-factura-atomico.migration.test.ts
+    22.5 →   11.2 s  ✓ 12 → ✓ 12  lib/studio/__tests__/credito-referido-atomico.migration.test.ts
+    91.2 →   36.8 s  ✓ 50 → ✓ 50  lib/studio/__tests__/credito-referido-candado.migration.test.ts
+    30.3 →   10.6 s  ✓ 26 → ✓ 26  lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts
+    20.7 →    7.7 s  ✓ 20 → ✓ 20  lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts
+    15.2 →    6.0 s  ✓ 14 → ✓ 14  lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts
+    30.5 →   10.6 s  ✓ 26 → ✓ 26  lib/studio/__tests__/financiero-china-pago-correlation-id.migration.test.ts
+    26.5 →   10.5 s  ✓ 19 → ✓ 19  lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts
+    30.3 →   10.5 s  ✓ 26 → ✓ 26  lib/studio/__tests__/inspecciones-retirar-reporte-correlation-id.migration.test.ts
+    11.6 →    5.3 s  ✓ 12 → ✓ 12  lib/studio/__tests__/kommo-functions-base-url.migration.test.ts
+    35.3 →   16.1 s  ✓ 25 → ✓ 25  lib/studio/__tests__/naviera-zarpe-avanza-envios.migration.test.ts
+    76.0 →   34.9 s  ✓ 46 → ✓ 46  lib/studio/__tests__/operarios-editar-por-region.migration.test.ts
+    20.4 →   10.5 s  ✓ 10 → ✓ 10  lib/studio/__tests__/pago-proveedor-atomico.migration.test.ts
+   153.4 →   72.2 s  ✓ 87 → ✓ 87  lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts
+    30.9 →   10.9 s  ✓ 26 → ✓ 26  lib/studio/__tests__/reclamos-pagar-indemnizacion-correlation-id.migration.test.ts
+    23.9 →   12.5 s  ✓ 12 → ✓ 12  lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts
+    30.2 →   10.8 s  ✓ 26 → ✓ 26  lib/studio/__tests__/seniat-liberar-correlation-id.migration.test.ts
+    30.2 →   11.1 s  ✓ 26 → ✓ 26  lib/studio/__tests__/tms-completar-ruta-correlation-id.migration.test.ts
+    30.3 →   10.7 s  ✓ 26 → ✓ 26  lib/studio/__tests__/ve-confirmar-entrega-correlation-id.migration.test.ts
+     8.7 →    5.7 s  ✓  5 → ✓  5  scripts/__tests__/radiografia-referidos.test.ts
+  vitest/pglite-limpio.test.ts: falta en sin plantilla
+  total afectados: 21.7 → 9.5 min
+
+controles rojos corridos con plantilla (archivos afectados):
+  ✓ lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts › control rojo: sin 0475 cae en la primera aserción, pin_hash legible
+  ✓ lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts › control rojo: con la primera lectura por hora e id, el bloque 5 lee un restablecimiento viejo
+  ✓ lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts › control rojo: con la segunda lectura por hora e id, el bloque 5 lee un restablecimiento viejo
+  ✓ lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts › control rojo de la premisa: dos restablecimientos en la misma subtransacción hacen caer el bloque 14
+  ✓ lib/studio/__tests__/operarios-editar-por-region.migration.test.ts › control rojo: sin 0480 cae en la primera aserción, el camionero de Venezuela no se edita
+  ✓ lib/studio/__tests__/operarios-editar-por-region.migration.test.ts › control rojo: ordenando por hora, cae donde cayó el CI (run 38771102511)
+  ✓ lib/studio/__tests__/operarios-editar-por-region.migration.test.ts › control rojo de la premisa: dos ediciones en la misma subtransacción hacen caer el bloque 12
+  ✓ lib/studio/__tests__/borrado-embarques-recepciones.migration.test.ts › control rojo: sin 0476 el equipo borra físicamente un embarque por la API
+  ✓ lib/studio/__tests__/credito-referido-candado.migration.test.ts › control rojo: sin 0494 falla en la primera aserción
+  ✓ lib/studio/__tests__/credito-referido-candado.migration.test.ts › control rojo de la deriva: sin la huella viva en la lista, ese cuerpo aborta
+  ✓ lib/studio/__tests__/client-outstanding.migration.test.ts › control rojo: sin 0492 falla en la primera aserción
+  ✓ lib/studio/__tests__/cierre-contable-superclave.migration.test.ts › control rojo: sin 0493 falla en la primera aserción
+  ✓ lib/studio/__tests__/cierre-contable-superclave.migration.test.ts › control rojo de la deriva: sin la huella viva en la lista, ese cuerpo aborta
+  ✓ lib/studio/__tests__/naviera-zarpe-avanza-envios.migration.test.ts › control rojo: sin 0477 falla en la primera aserción
+  ✓ lib/portal/__tests__/portal-bandeja-avisos.migration.test.ts › control rojo: sin 0479 el contrato falla
+  ✓ __tests__/anon-privilegios-residuales.migration.test.ts › control rojo: sin la 0465 el mismo contrato falla en el contrato 1
+  ✓ __tests__/anon-privilegios-residuales.migration.test.ts › control rojo: si authenticated perdiera SELECT en user_tenants, el preflight de 0422 abortaría
+  ✓ lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts › control rojo: con la función de 0314 pasa las once ramas viejas y cae en Bitácora
+  ✓ lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts › control rojo: sin 0464 el contrato falla en la factura pagada
+  ✓ app/studio/(app)/naviera/__tests__/autorizar-correlation-id.migration.test.ts › control rojo: sin 0482 la referencia de la pantalla cae en el writer AUD-01
+  ✓ lib/studio/__tests__/kommo-functions-base-url.migration.test.ts › control rojo: con las funciones de 0084/0136 falla en la base nueva, no antes
+  ✓ lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts › control rojo: sin 0474 cae en el caso A
+  ✓ lib/studio/__tests__/credito-referido-atomico.migration.test.ts › control rojo: sin 0471 falla en la primera aserción
+  ✓ lib/studio/__tests__/rls-escritura-cobros-proveedores.migration.test.ts › control rojo: sin 0470 el comercial da de alta un cobro
+  ✓ lib/studio/__tests__/freight-carriers-auditoria.migration.test.ts › CONTROL ROJO: sin la 0491 ninguna escritura deja evento y el contrato cae
+  ✓ lib/portal/__tests__/billing-identity.migration.test.ts › control rojo: sin 0466 el contrato falla
+  ✓ lib/studio/__tests__/pago-proveedor-atomico.migration.test.ts › control rojo: sin 0468 falla en la primera aserción
+  ✓ lib/studio/__tests__/cobro-factura-atomico.migration.test.ts › control rojo: sin 0467 falla en la primera aserción
+  ✓ app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts › control rojo: sin 0469 la primera alta del Studio choca con el NOT NULL
+  ✓ lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts › CONTROL ROJO: sin la 0490 ninguna escritura deja evento y el contrato cae
+  ✓ scripts/__tests__/radiografia-referidos.test.ts › control rojo: sin el chequeo R1, la sucia pierde esa fila
+  ✓ lib/portal/__tests__/profile-direct-edit.migration.test.ts › control rojo: sin 0462 el contrato falla
+  ✓ lib/portal/__tests__/identity-photo-replacement.migration.test.ts › control rojo: sin 0461 el mismo contrato falla por el gate de 0447
+  ✓ lib/studio/__tests__/financiero-china-pago-correlation-id.migration.test.ts › control rojo: sin 0483 la referencia de la pantalla cae en el writer AUD-01
+  ✓ lib/studio/__tests__/inspecciones-retirar-reporte-correlation-id.migration.test.ts › control rojo: sin 0488 la referencia de la pantalla cae en el writer AUD-01
+  ✓ lib/studio/__tests__/reclamos-pagar-indemnizacion-correlation-id.migration.test.ts › control rojo: sin 0485 la referencia de la pantalla cae en el writer AUD-01
+  ✓ lib/studio/__tests__/despacho-cancelar-od-correlation-id.migration.test.ts › control rojo: sin 0489 la referencia de la pantalla cae en el writer AUD-01
+  ✓ lib/studio/__tests__/ve-confirmar-entrega-correlation-id.migration.test.ts › control rojo: sin 0487 la referencia de la pantalla cae en el writer AUD-01
+  ✓ lib/studio/__tests__/seniat-liberar-correlation-id.migration.test.ts › control rojo: sin 0484 la referencia de la pantalla cae en el writer AUD-01
+  ✓ lib/studio/__tests__/tms-completar-ruta-correlation-id.migration.test.ts › control rojo: sin 0486 la referencia de la pantalla cae en el writer AUD-01
+  total: 40 (40 en verde)
+mutantes impresos con plantilla: 375 (375 en verde)
