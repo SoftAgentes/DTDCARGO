@@ -15,7 +15,7 @@ const observation = (rate = "883.39630000", day = "2026-10-21"): BcvObservation 
 type Stored = { id: string; tenant_id: string; currency: string; source: string; valid_on: string;
   rate: string; set_at: string; set_by: null; note?: string };
 const row = (tenant = A, rate = "880.00000000", timestamp = OLD): Stored => ({
-  id: tenant === A ? "10000000-0000-4000-8000-00000000000a" : "10000000-0000-4000-8000-00000000000b",
+  id: `10000000-0000-4000-8000-${tenant.slice(-12)}`,
   tenant_id: tenant, currency: "VES", source: "bcv", valid_on: "2026-10-21", rate, set_at: timestamp, set_by: null,
 });
 type Call = { method: string; url: URL; body?: Record<string, unknown> };
@@ -387,6 +387,34 @@ describe("B9–B15 · persistencia textual, CAS y certeza", () => {
     expect(result).toMatchObject({ status: "PARTIAL", reason: "WRITE_FAILED", counts: { scope: 2, failed: 1, inserted: 1, unknown: 0, notAttempted: 0, deferred: 0 } });
     expect(db.writes()).toHaveLength(2); expect(db.state.has(A)).toBe(false); expect(db.state.has(B)).toBe(true);
     expect(JSON.stringify(result)).not.toMatch(/SYNTHETIC_SQL_PRIVATE_DETAIL|23514/);
+  });
+  it.each(["conflict", "sql-rejection", "unknown"])("B15 · tres tenants y corte del segundo: %s", async mode => {
+    const db = database([], [A, B, C]); let uncertain = false;
+    db.setIntercept(call => {
+      if (call.method === "POST" && call.body?.tenant_id === B) {
+        if (mode === "conflict") {
+          db.state.set(B, row(B, "777.00000000"));
+          return new Response('{"code":"23505","message":"synthetic competing row"}', { status: 409 });
+        }
+        if (mode === "sql-rejection") return new Response('{"code":"23514","message":"synthetic rejection"}', { status: 400 });
+        uncertain = true;
+        return Promise.reject(new TypeError("synthetic lost response"));
+      }
+      if (uncertain && call.method === "GET" && call.url.pathname.endsWith("/fx_rates")) {
+        return new Response("synthetic reconciliation unavailable", { status: 503 });
+      }
+      return undefined;
+    });
+    const result = await db.run();
+    expect(result).toMatchObject({ status: "PARTIAL", counts: { scope: 3, inserted: mode === "unknown" ? 1 : 2,
+      conflicts: mode === "conflict" ? 1 : 0, failed: mode === "sql-rejection" ? 1 : 0,
+      unknown: mode === "unknown" ? 1 : 0, notAttempted: mode === "unknown" ? 1 : 0,
+      deferred: mode === "unknown" ? 1 : 0 } });
+    expect(db.state.has(A)).toBe(true); expect(db.state.has(C)).toBe(mode !== "unknown");
+    expect(db.writes().map(call => call.body?.tenant_id)).toEqual(mode === "unknown" ? [A, B] : [A, B, C]);
+    expect(result.counts.inserted + result.counts.conflicts + result.counts.failed
+      + result.counts.unknown + result.counts.notAttempted).toBe(3);
+    expect(JSON.stringify(result)).not.toMatch(/synthetic|23514|23505|00000000000[abc]/);
   });
   it("B19 · una candidata futura no se reusa al día siguiente con fuente caída", async () => {
     const db = database();
