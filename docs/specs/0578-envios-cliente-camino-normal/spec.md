@@ -478,3 +478,142 @@ Leer completo y cotejar hash; guardar adopción íntegra+hash en handoff/spec AN
 Sin instalar/compilar/ejecutar tests, tipos, lint amplio, Node de producto, SQL/DB/Docker, HTTP, navegador, verify/build o conocimiento por este addendum. Sin main/merge/deploy/VPS/DBreal/PII/secretos/pagos/contactos/publicación compartida.0495 no se modifica/reaplica;0496/0501/0502 sin aplicar. CohorteOFF; no facturación4.3/historia/caller o flagPODv2. No nueva política global, permiso o afirmación funcional. El paso runtime requiere su propio turno y plan concreto; preservar preparación previa y comprobar porSHA al cierre.
 
 <!-- ADDENDUM58 DIRECTOR ÍNTEGRO FIN -->
+
+## P1 · propuesta técnica Portal y dependencias de fixtures (sin aceptación)
+
+Tras reanudar en45fe con guard/owner vigentes, se conserva WIP SQL y se redacta lectura Portal dentro24/34. Referencia externa íntegra `C:/tmp/director-traspaso-20261020/0578-propuesta-portal-y-fixtures-64.md`, SHA256 `8c22a256030f55eb6567bc87237445114ab1a75b6271defeb14b60e81e881795`. Seis fixtures fuera58 permanecen SIN EDITAR hasta addendum Director. La nota registra sus blobsD1/rangos íntegros y oráculos, sin resultados runtime.
+
+Hecho vigente:0416 conserva policies Portal permisivas junto a by-tenant Studio. Principal Portal vivo/coherente de client_users+clients y tenant activo Studio son identidades distintas; la sesión híbrida conserva derechos de equipo actuales. Propuesta: RPC `client_consolidation_portal_read()` sin autoridad browser, snapshot propio completo con tenant/client_id para cohorte y tenant/marca para legacy. App coteja principal, complete, fecha, shape e IDs; no fallback de error/null/parcial a vacío/legacy. Se retienen todos los grupos propios frente a ventanas100/50legacy. Documentos autorizan padre antes de lectura y conservan marca documental legacy; su ventana200 no acredita cobertura documental completa. No se cambia autoridad/filtros de facturas/cotizaciones; sólo códigos de envíos enlazados usan la misma identidad propia.
+
+Composición propuesta de policies: sustituir0416self por rama cohorte/client_id y rama legacy original; restrictiva sólo sobre cohorte, permitiendo derecho Studio actual del tenant O principal Portal propio. Rama legacy true deja resolver sus policies actuales; no introduce límite nuevo al equipo/hijos legacy. Helpers no conceden permisos de escritura ni exponen schema privado. Pendiente decisión/lectura Director y aceptación SQL/RLS real; esta autoría no constituye diseño aceptado.
+
+BCV recibió GO04B para preparar su comprobación general, con turno reservado. Worker continúa exclusivamente autoría P1; instalación/tests/tipos/lint amplio/DB/Docker/HTTP/browser/verify/build/conocimiento NO EJECUTADO por límite de turno. SQL0502 conserva fusible antes de DDL y cohorteOFF; main/merge/producción y0495 fuera de alcance.
+
+Lectura primaria adicional Portal: búsqueda acotada de definiciones de get_user_tenant_id en migracionesD1 encuentra0001/0012/0200/0453; última definición efectiva0453, líneas235–250, blob `2ca2f68a708394016d68ade17927c864ad47e369`, devuelve sólo la única membresía user_tenants activa de auth.uid(), sin fallback Portal. Huella prosrc LF propuesta para preflight `5ff0c51c26a49419c34abc78f1d95c37`, calculada del literal local, pendiente cotejo SQL real. El predicado RLS de cohorte además verifica EXISTS de esa membresía Studio activa y tenant concreto; no infiere pertenencia de metadata/helper aislado ni concede el ámbito Studio al lector Portal propio. No se cambian helpers históricos.
+
+Corrección material de preparación Portal a partir de lectura propia0439:106–217 y0444:102–169 y aviso Director:0416 ya no es el contrato completo de shipment_documents.0439:152–183 sustituyó ALL by-tenant por SELECT/INSERT/UPDATE/DELETE con document_entity_authorized;0444 es su autorizador efectivo (huella prosrc `4eb9fd08721e8f754087dddc5cb88953`, además referenciada por0456/0492). La propuesta externa64 anterior queda fechada y esta precisión prevalece sobre su mención genérica a by-tenant de las tres tablas. WIP0502 preserva las cuatro policies documentales y ACL/cuerpo del autorizador, compone sólo Portal self y restrictiva de cohorte con derecho Studio documental efectivo+tenant/membresía o principal Portal propio. Predicados no sustituyen el permiso por metadata o mera membresía. Preflight/postflight conserva snapshot de policies de equipo para cotejo exacto. Pendiente revisión Director/SQL real; ninguna aceptación funcional.
+
+
+## Adopción Worker P1 — addendum acumulado64
+
+Leído íntegro y cotejado SHA256 f877118d85c19f31d29d82e4083042366ccd92f45bb008827e4c7a87af39d108 (13546bytes), antes de editar seis fixtures Portal. Dirección técnica acotada conforme al addendum; no aceptación de WIP o funcionamiento. Se preservan contratos1939/52/55/58, owner, D1, PR318DRAFT, SQL0502 con fusible y cohorteOFF. P1 sin runtime; turno BCV GO04B.
+
+<!-- ADDENDUM64 DIRECTOR ÍNTEGRO INICIO -->
+# SDD-0578 — addendum Director: Portal y seis fixtures, 64 rutas
+
+21 de octubre de 2026. AUTORIZADO únicamente para autoría P1 del Worker vigente. Sustituye el máximo acumulado58 por la unión literal64 de abajo; agrega seis fixtures de compatibilidad del lector Portal. Acepta la dirección técnica de una lectura Portal propia con las condiciones de este documento, dentro de las rutas de producto ya autorizadas. No aprueba SQL/código WIP, funcionamiento, política de negocio nueva, permisos adicionales ni runtime. SQL0502 conserva su fusible y cohorte OFF.
+
+Mismos raíz `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0578-envios-cliente-camino-normal`, rama `codex/sdd-0578-envios-cliente-camino-normal`, owner `worker-0578normal-01a15a4e-ddf0-7d82-8656-d9dc56b58468`, baseD1 `1ec5e85f736b7826cf5b6e8781757dc4cf950733`, claim y PR318 DRAFT. BCV GO04B mantiene el único turno pesado; este addendum no lo transfiere. Se preservan los contratos anteriores1939a047/4d976df8/8dd76b80/557b81d0 y sus límites, completos e inmutables.
+
+## Evidencia realmente revisada
+
+Director leyó completas la propuesta `0578-propuesta-portal-y-fixtures-64.md`, SHA256 `8c22a256030f55eb6567bc87237445114ab1a75b6271defeb14b60e81e881795`, y la nota independiente `0578-revision-portal-fixtures-64-peer.md`,19517bytes/SHA256 `493ff828234c0767a1bee45664283d2ec0033ed7e179f48133792fb5561d9071`. El revisor leyó1275/1275líneas de las seis fixtures por objetosD1 y las fuentes de autoridad efectivas indicadas; Director atribuye esa lectura primaria al revisor, sin afirmar que leyó íntegros todos esos archivos o que ejecutó pruebas. La necesidad de adaptar el transporte es inferida del diseño, no un fallo reproducido.
+
+## Decisión técnica acotada y condiciones obligatorias
+
+1. **Lector Portal propio:** puede concretarse `client_consolidation_portal_read()` sin tenant/client_id recibidos como autoridad browser. Resuelve en DB el actor autenticado y un único vínculo activo client_users/clients, con tenant coherente y cliente vivo. Cada grupo Y shipment de cohorte debe pertenecer a ese tenant/client_id. Legacy conserva tenant+marca, padre vivo y las relaciones efectivas de documentos/eventos; no basta comparar una marca aislada. Proyección mínima Portal y asociaciones/revisiones/sello propios, sin información financiera o nombres ajenos. No rescatar errores/principal inválido mediante service_role/admin o tenant Studio.
+2. **Autoridades separadas:** el híbrido conserva el derecho Studio que ya posea, pero esa amplitud no entra en la RPC Portal propia. get_user_tenant_id efectivo D1 está en0453:235–250 (blob2ca2f68a708394016d68ade17927c864ad47e369): única membresía user_tenants activa, sin fallback Portal. El camino Studio exige membresía activa del tenant y coherencia con el helper; deshabilitada/ajena o varias activas no se convierten en permiso Studio. Esto no revoca automáticamente un principal Portal propio válido. Metadata no concede autoridad ni edición.
+3. **RLS de lectura y catálogo efectivo:** las policies Portal0416 se adaptan sólo para distinguir cohorte por client_id y legacy con sus predicados actuales; una restricción SELECT sólo cohorte impide revivir el grant por marca. Para legacy deja actuar los permisos existentes. Documentos NO conserva `shipment_documents by tenant` ALL:0439:152–183 lo reemplazó por cuatro policies Studio; SELECT exige también document_entity_authorized('shipment',tenant_id,'view'). El cuerpo efectivo de ese autorizador es0444:102–168 (blob4f8e9d5d7f7049fe11157585f7dc11f6208a425d), con Tracking/overrides. Conservar íntegros los cuatro permisos, sus ACL y Storage/bucket. No sustituir el permiso documental por membresía ni copiar el preflight histórico0416. Medir catálogo real esperado antes/después: comandos, roles, expresiones, polpermissive, propietario, ACL, search_path y minimización. No nuevas escrituras Portal, grants de datos/rol humano o API privada de identidad ajena. Helpers históricos no se editan por comodidad.
+4. **Completitud y errores:** envelope available/complete/principal/observedAt/shipments con principal exacto y shape válido, sin duplicados o filas ajenas. Error/null/shape incompleta/principal ajeno no son vacío, count0, no-arribo, legacy u OFF. Completo y vacío sí es ausencia conocida; sin principal válido se conserva el corte anterior sin dominio/RPC. Todos los grupos propios sobreviven las ventanas legacy100/50; complete exige fuente completa, no contar lo recibido. Snapshot coherente de identidad/grupos/asociaciones/revisiones requiere evidencia SQL/HTTP futura; observedAt no lo demuestra por sí solo. Documentos posterior exige padres propios+tenant/IDs y marca legacy, manteniendo200 como ventana de presentación, sin afirmar transacción conjunta con la RPC. Errores deben llegar a un estado recuperable seguro del consumidor real; si necesita una ruta no permitida, justificar antes de editar, nunca degradar a vacío para conservar firma.
+5. **Finanzas y cotizaciones:** preservar filtros/paginación completa de facturas, tenant+marca, borradores/borrados, importes/saldos/monedas/anuladas, detalle y errores actuales. Cotizaciones conserva su principal mínimo válido SIN exigir nombre, filtros de quotes web/Studio y100másrecientes. Sin enlace no hay RPC; enlace ajeno en lectura propia completa da código null. Error de transporte no se convierte en envelope vacío exitoso. No nuevo endurecimiento numérico, conversión o autoridad de cotizaciones por este tramo.
+6. **Aceptación futura:** dentro de los tests de cohorte/SQL/concurrencia ya permitidos, medir Portal-only, híbrido, otro tenant/mismo mark, otroclient/misma marca, grupo-shipment discordantes/borrados/padres ajenos; más de100grupos y arribo tras50terminales; membresía inválida/helperNULL sin rescate; documento con overrideTracking que permite/niega conservando alternativa Portal propia; ACL/PUBLIC/anon/search_path/proyección real. Decoder y consumidores efectivos rechazan null/error/parcial/duplicado/ajeno, completo vacío se distingue, aprobación corta antes de RPC y quote mínimo sin nombre funciona. Nada de esto está ejecutado o aceptado por lectura. No se trasladan los resultados de los dobles a SQL/RLS real.
+
+## Seis fixtures añadidas y conservación de oráculos
+
+| Ruta literal / blobD1 | Adaptación mínima y cobertura que permanece |
+|---|---|
+| `lib/portal/__tests__/activation.test.ts` / `7f3f8f5d92808315aa34bd34c5cf0315d2a4bc52` | Envelope0/N completo del principal y contadorRPC separado; conservar pendiente/aprobada/conenvíos/anónimo, aprobación antes de leer envíos y cero dominio/RPC sin principal. Error no es cero. |
+| `lib/portal/__tests__/dashboard.test.ts` / `a20d12116d4766a5fad34f12aedbde75b3ed0400` | Metadata legacy completa/identidad; no tocar builder.range/error de facturas. Conservar activos/YTD/ETA/terminales,1500facturado/600saldo/una pendiente del caso base, cero válido, monedas, anuladas, recorte de sobrepago y fallo de facturas sin perder envíos. |
+| `lib/portal/__tests__/invoices.test.ts` / `4b90585aaccfe7ba73c1df695ce858881cb33815` | Sólo transporte listMyShipments y su assert: RPC sin autoridad browser/principal exacto y ausencia de lectura genérica. Preservar filtros tenant+mark de facturas/detalle, importes/formato/tonos/estados y corte sin principal. Cambia dónde se demuestra scope, no elimina aislamiento. |
+| `lib/portal/__tests__/estimates.test.ts` / `de09c7c46faa10c3c9a3d83d456f62f665a3f141` | Mantener principal mínimo sin name; separar quotes deRPC. Conservar dos filas/campos/importe1250.5, vínculo propio/código, ajeno null, no-link sin lectura, total null y labels/tonos. Sólo completo vacío es ausencia válida. |
+| `lib/portal/__tests__/portal-queries-principal-scope.test.ts` / `ce68e0e08dd9aa3069014200f4727f647430728e` | AdaptadorRPC local sobre store exacto del escenario, sin tocar doble compartido. Dar a documentos padres propios/ajenos/otrocliente REALES de la fixture, no IDs inexistentes que borren la distinción0416. Preservar mismo código entre tenants, misma marca/otro cliente, borrado/arribo ajeno, aprobación porclient_id y cero dominio/RPC ante principal inválido. Adaptar también invocaciones directas del doble. |
+| `lib/portal/__tests__/portal-quote-scope.test.ts` / `6bf01be51aaceb5e3a27099e0a1d52249705e788` | Mantener filtros reales del doble y principal mínimo; resolver sólo código enlazado. Conservar aislamiento tenant/marca/borrado, splitweb-Studio, auth/vínculo inválidos, tenant/client incoherentes, cliente ausente/borrado, relación múltiple rechazada/singular aceptada,100másrecientes, código propio/null ajeno, error dequotes y no-link sin RPC. |
+
+Nada de envelope feliz genérico para toda RPC/principal, casts nuevos, mocks de acción/guard, cambios de permisos, eliminación de asserts o bypass para obtener verde. El doble compartido `portal-tenant-double.ts`, blob9c72c02383e39953d50824549855ad3b5a4b8083, queda fuera y sin editar. Toda la implementación se revisará por SHA fijo, con firmas reales y pruebas futuras; esta aprobación técnica no valida WIP todavía mutable.
+
+## Allowlist acumulada literal:64 rutas únicas
+
+```text
+lib/studio/client-consolidation/types.ts
+lib/studio/client-consolidation/queries.ts
+lib/studio/client-consolidation/normal-flow.ts
+app/studio/(app)/naviera/_components/ConfirmarEnviosClienteDrawer.tsx
+app/studio/(app)/naviera/actions.ts
+app/studio/(app)/naviera/page.tsx
+app/studio/(app)/naviera/_components/NavieraClient.tsx
+app/studio/(app)/naviera/plan-actions.ts
+app/studio/(app)/cn/actions.ts
+app/studio/(app)/cn/page.tsx
+app/studio/(app)/cn/_components/AlmacenCnClient.tsx
+app/studio/(app)/cn/_components/ReceiptRowActions.tsx
+app/studio/(app)/tracking/[id]/actions.ts
+app/studio/(app)/tracking/[id]/page.tsx
+app/studio/(app)/tracking/[id]/_components/ShipmentDataPanel.tsx
+app/studio/(app)/tracking/[id]/_components/StateActionsPanel.tsx
+app/studio/(app)/tracking/[id]/_components/FooterActions.tsx
+app/api/studio/shipments/[id]/route.ts
+app/api/studio/shipments/[id]/events/route.ts
+app/studio/(app)/ve/actions.ts
+app/studio/(app)/ve/_components/VeRowActions.tsx
+app/m/cn/estibar/actions.ts
+app/m/cn/estibar/_components/EstibaClient.tsx
+lib/portal/portal-queries.ts
+lib/studio/rate-snapshots/types.ts
+lib/i18n/es-VE/warehouse.ts
+lib/i18n/zh-CN/warehouse.ts
+supabase/pending-migration-symbol-declarations.json
+supabase/migrations-baseline.json
+docs/specs/README.md
+.agents/handoffs/042-envio-cliente-camino-normal.md
+app/m/cn/estibar/[consolidationId]/page.tsx
+docs/specs/0578-envios-cliente-camino-normal/spec.md
+supabase/migrations/0502_consolidacion_cliente_camino_normal.sql
+supabase/tests/consolidacion_cliente_normal.test.sql
+supabase/tests/_consolidacion_cliente_normal_schema.sql
+lib/studio/client-consolidation/__tests__/normal-path.migration.test.ts
+scripts/check-client-consolidation-concurrency.mjs
+app/studio/(app)/naviera/__tests__/envios-cliente-actions.test.ts
+app/studio/(app)/naviera/_components/__tests__/ConfirmarEnviosClienteDrawer.test.tsx
+app/studio/(app)/cn/__tests__/consolidacion-cohorte.test.ts
+app/studio/(app)/naviera/__tests__/plan-carga-cohorte.test.ts
+app/studio/(app)/tracking/[id]/__tests__/cohorte-normal-actions.test.ts
+app/api/studio/shipments/[id]/__tests__/cohorte-normal.test.ts
+app/m/cn/estibar/__tests__/cohorte-pertenencia.test.ts
+app/studio/(app)/ve/__tests__/cohorte-normal.test.ts
+lib/portal/__tests__/envios-cohorte.test.ts
+lib/studio/rate-snapshots/__tests__/sin-facturar.test.ts
+app/studio/(app)/cn/__tests__/rate-snapshot-actions.test.ts
+e2e/consolidacion-clientes-camino-normal.spec.ts
+app/studio/(app)/cn/__tests__/delete-receipts-action.test.ts
+app/studio/(app)/cn/__tests__/create-receipt-code.test.ts
+app/studio/(app)/naviera/__tests__/zarpe-avanza-envios.test.ts
+app/studio/(app)/naviera/__tests__/ocultar-nombres-cn.test.tsx
+app/studio/(app)/naviera/_components/__tests__/NavieraClient.avance.test.tsx
+app/studio/(app)/tracking/[id]/__tests__/datos-reservados-actions.test.tsx
+app/studio/(app)/tracking/[id]/_components/__tests__/FooterActions.borrado.test.tsx
+app/api/studio/shipments/[id]/events/__tests__/module-gate.test.ts
+lib/portal/__tests__/activation.test.ts
+lib/portal/__tests__/dashboard.test.ts
+lib/portal/__tests__/invoices.test.ts
+lib/portal/__tests__/estimates.test.ts
+lib/portal/__tests__/portal-queries-principal-scope.test.ts
+lib/portal/__tests__/portal-quote-scope.test.ts
+```
+
+## Adopción y fronteras
+
+Leer completo/cotejar hash y guardar adopción íntegra+hash en spec/handoff ANTES de tocar las seis rutas nuevas. Conservar ownership, SDD0578/SQL0502 y contratos anteriores. Una sesión escritora, commits selectivos/push al mismo DRAFT autorizados; no add-A, base nueva, main, resets o edición ajena. El ámbito heredado no es permiso para cambiar otros archivos.
+
+P1 sigue SIN instalación, tests, tipos, lint amplio, SQL/DB/Docker, HTTP, navegador, verify/build o conocimiento hasta turno explícito. BCV mantieneGO04B/freeze. Sin main/merge/deploy/VPS/DBreal/PII/secretos/pagos/contactos/bóveda compartida.0495no se modifica/reaplica;0496/0501/0502sinaplicar. CohorteOFF, sin facturación4.3/historia/caller o flagPODv2. No política nueva de negocio ni autorización de producción. Gobernanza: preparación documental conforme al alcance, evidencia funcional/SQL/UI pendiente, ninguna excepción nueva; no llamar PASÓ al funcionamiento por esta nota.
+
+<!-- ADDENDUM64 DIRECTOR ÍNTEGRO FIN -->
+
+## Checkpoint P1 · Portal, VE y estiba redactados; aceptación pendiente
+
+Autoría nueva dentro64: Portal snapshot propio y composición SELECT/cohorte con0439+0444; seis fixtures adaptadas después de adopción64; VE separa legacy comprobado y RPCs de liberación/reparto/entrega manual con atestación del sello completo. Entrega0487 conserva autoridad propia; la liberación es hito operativo aduanal, no ingreso físico ni factura. Estiba incluye proyección operario mínima/atómica sin nombres/tarifas, revisión explícita para caja/lote/deshacer, contexto privado para la firma nueva y guardas en firmas antiguas durante drain. Se conserva la selección real por prealerta/cantidad; no se intersecta silenciosamente el lote. La traza del plan permanece separada de éxito físico; falla de anotación da aviso sin repetir estiba. Página no certifica conteos truncados ni usa sugerencia de revisión anterior.
+
+SQL0502 redacta restauración/comprobación de ABI, owner, ACL, cuerpos privados y policies documentales actuales; prerequisitos/fusible antes deDDL y altaOFF permanecen. Estos son oráculos escritos, no resultados SQL. Nuevos tests de adaptadores VE/móvil/Portal y regresiones tarifa/reporte están redactados, SIN EJECUTAR. Matriz DB, fixture, carreras dos sesiones, recorrido HTTP/browser, declaración de símbolos y plan final todavía pendientes de autoría/revisión. Runtime completo y aceptación A1–A16/global siguen pendientes. Propuesta adicional67 externa `0578-propuesta-eventos-portal-67.md`, SHA256 `14daf4aa1a00ce738177507368a80b61a8b4fcc4330c65789f0a18e43e07a372`: lector eventos/feed aún por marca,3rutas fuera64 SIN EDITAR hasta decisión Director. No cerrar4.2 con ese escape pendiente.
+
+Consumidor de error Portal ya existente leído íntegro: app/portal/(app)/error.tsx1–104, blobD1c6c3b929c383d6082905b631bba3efc1babfb573; ofrece alerta segura y Reintentar/Ir al inicio. No se editó. El detalle getMyShipment autoriza envío propio antes de lectores admin de Naviera/avisos/documentos; lectura primaria app/portal/(app)/envios/[code]/page.tsx1–135. Ausencia completa conocida sigue distinta de error/incompleto. Herencia Studio de híbridos fuera de la RPC propia se conserva.
+
+BCV GO04B conserva turno; todas las comprobaciones funcionales/SQL/HTTP/UI/verify/conocimiento de0578 NO EJECUTADAS. Handoff continúa abierto y claim retenido. Este checkpoint sólo respalda autoría parcial revisable, no aprobación de SQL ni capacidad activa.

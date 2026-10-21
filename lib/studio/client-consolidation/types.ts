@@ -184,6 +184,9 @@ export type NormalNoteInput = {
   shipmentId: string; expectedStatus: ShipmentStatus; expectedGroupRevision: number; expectedContainerRevision: number;
   reference: string; reason: string; note: string;
 };
+export type NormalDeliveryInput = Omit<NormalNoteInput, "note"> & {
+  sealId: string; receiptIds: string[]; receivedBy: string; attestComplete: true;
+};
 
 export type NormalActionState<T = MembershipResult> = {
   ok?: true;
@@ -194,3 +197,12 @@ export type NormalActionState<T = MembershipResult> = {
 };
 
 export type NormalRpcError = { code?: string; message?: string; hint?: string | null };
+
+/** Operario projection: no client names, rates or neighbouring shipment data. */
+export type NormalMobileContext = {
+  available: true; complete: true; containerId: string; cohort: boolean; revision: number | null; sealed: boolean;
+  status: ContainerStatus; expectedBoxIds: string[]; stowedBoxIds: string[]; missingBoxIds: string[]; unexpectedBoxIds: string[];
+  stuffedCount: number; lotsCount: number;
+  plan: null | { id: string; version: number; manifestRevision: number | null; nz: number; totalLots: number;
+    steps: Array<{ markbox: string | null; destination: string; width: number }> };
+};

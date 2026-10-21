@@ -45,6 +45,10 @@ begin
   if pg_catalog.to_regnamespace('dtd_client_normal') is not null then
     raise exception '0502: el protocolo ya existe; no reejecutar ni sobrescribir';
   end if;
+  -- Last effective D1 definition is 0453 (not the older 0012/0200 helper).
+  if not exists(select 1 from pg_catalog.pg_proc where oid=to_regprocedure('public.get_user_tenant_id()')
+    and prosecdef and pg_get_userbyid(proowner)='postgres' and md5(replace(prosrc,E'\r\n',E'\n'))='5ff0c51c26a49419c34abc78f1d95c37') then
+    raise exception '0502: helper de tenant0453 distinto'; end if;
 end $preflight$;
 
 -- No API role can enrol a tenant or forge a transaction context. No seed/ON row.
@@ -168,7 +172,10 @@ create table dtd_client_normal.plan_inputs (
 create table dtd_client_normal.function_contracts (
   signature text primary key, private_name text not null unique, body_md5 text not null,
   owner_oid oid not null, acl pg_catalog.aclitem[], argument_names text[], argument_types oidvector,
-  result_type oid not null, returns_set boolean not null, default_count smallint not null, composed_body_md5 text
+  result_type oid not null, returns_set boolean not null, default_count smallint not null, default_definition text, composed_body_md5 text
+);
+create table dtd_client_normal.policy_contracts (
+  table_name text not null, policy_name text not null, definition jsonb not null, primary key(table_name,policy_name)
 );
 create table dtd_client_normal.pod_intentions (
   tenant_id uuid not null references public.tenants(id) on delete restrict,
@@ -406,8 +413,9 @@ begin
     or pg_catalog.has_function_privilege('anon',v_proc.oid,'EXECUTE') then raise exception '0502: contrato de función inesperado: %',p_signature; end if;
   v_body_md5:=md5(replace(v_proc.prosrc,E'\r\n',E'\n'));
   if v_body_md5<>p_expected_md5 then raise exception '0502: cuerpo base distinto: %',p_signature; end if;
-  insert into dtd_client_normal.function_contracts(signature,private_name,body_md5,owner_oid,acl,argument_names,argument_types,result_type,returns_set,default_count)
-    values(p_signature,p_private_name,v_body_md5,v_proc.proowner,v_proc.proacl,v_proc.proargnames,v_proc.proargtypes,v_proc.prorettype,v_proc.proretset,v_proc.pronargdefaults);
+  insert into dtd_client_normal.function_contracts(signature,private_name,body_md5,owner_oid,acl,argument_names,argument_types,result_type,returns_set,default_count,default_definition)
+    values(p_signature,p_private_name,v_body_md5,v_proc.proowner,v_proc.proacl,v_proc.proargnames,v_proc.proargtypes,v_proc.prorettype,v_proc.proretset,v_proc.pronargdefaults,
+      pg_get_expr(v_proc.proargdefaults,0));
   execute pg_catalog.format('alter function %s rename to %I',v_proc.oid::pg_catalog.regprocedure,p_private_name);
   execute pg_catalog.format('alter function public.%I(%s) set schema dtd_client_normal',p_private_name,pg_catalog.oidvectortypes(v_proc.proargtypes));
   execute pg_catalog.format('revoke all on function dtd_client_normal.%I(%s) from public,anon,authenticated,service_role',p_private_name,pg_catalog.oidvectortypes(v_proc.proargtypes));
@@ -1501,6 +1509,9 @@ begin
   v_cohort:=v_meta.container_id is not null or exists(select 1 from public.warehouse_boxes b
     join dtd_client_normal.receipts r on r.receipt_id=b.receipt_id where b.id=any(p_boxes));
   if not v_cohort then return false; end if;
+  if not exists(select 1 from dtd_client_normal.contexts c where c.transaction_id=txid_current() and c.backend_pid=pg_backend_pid()
+    and c.operation='physical_review' and c.container_id=p_container and c.operario_id=p_operario) then
+    perform dtd_client_normal.fail('NORMAL_GOVERNED'); end if;
   if v_meta.container_id is null or v_container.status::text<>'consolidando' or v_meta.seal_id is not null
     or p_operation not in('stow','unstow') or coalesce(cardinality(p_boxes),0)=0 then perform dtd_client_normal.fail('NORMAL_GOVERNED'); end if;
   perform dtd_client_normal.assert_identity(p_container,false);
@@ -1644,6 +1655,76 @@ begin
   v_result:=dtd_client_normal.legacy_unstuff_lot_as_operario(p_operario_id,p_consolidation_id);
   if v_normal then delete from dtd_client_normal.contexts where transaction_id=txid_current() and backend_pid=pg_backend_pid() and operation='unstow'; end if;
   return v_result;
+end $fn$;
+
+-- A single safe operario snapshot replaces truncated counts and stale plan
+-- suggestions. The service-role caller derives p_operario_id from its cookie;
+-- the DB rechecks the actual active CN principal/tenant. No names or rates.
+create function public.client_consolidation_operario_read(p_operario_id uuid,p_container_id uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $fn$
+declare v_op public.operario_pins; v_c public.consolidations; v_meta dtd_client_normal.containers;
+  v_expected jsonb:='[]'; v_stowed jsonb; v_missing jsonb:='[]'; v_extra jsonb:='[]'; v_lots integer; v_plan jsonb;
+begin
+  select * into v_op from public.operario_pins where id=p_operario_id;
+  if not coalesce(v_op.active and v_op.region='cn',false) then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
+  select * into v_c from public.consolidations where id=p_container_id and tenant_id=v_op.tenant_id and deleted_at is null;
+  if not found then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
+  select * into v_meta from dtd_client_normal.containers where container_id=p_container_id and tenant_id=v_op.tenant_id;
+  select coalesce(jsonb_agg(p.box_id order by p.box_id),'[]'::jsonb),count(distinct coalesce(p.load_order,0))::integer
+    into v_stowed,v_lots from public.consolidation_box_positions p where p.consolidation_id=p_container_id and p.unstuffed_at is null;
+  if v_meta.container_id is not null then
+    select coalesce(jsonb_agg(b.box_id order by b.box_id),'[]'::jsonb) into v_expected from dtd_client_normal.member_boxes b
+      join dtd_client_normal.members m on m.receipt_id=b.receipt_id join dtd_client_normal.groups g on g.id=m.group_id where g.container_id=p_container_id;
+    select coalesce(jsonb_agg(x order by x),'[]'::jsonb) into v_missing from jsonb_array_elements(v_expected) x where not v_stowed @> jsonb_build_array(x);
+    select coalesce(jsonb_agg(x order by x),'[]'::jsonb) into v_extra from jsonb_array_elements(v_stowed) x where not v_expected @> jsonb_build_array(x);
+  end if;
+  if (select count(*) from public.consolidation_plans where consolidation_id=p_container_id and tenant_id=v_op.tenant_id and is_current and deleted_at is null)>1 then
+    perform dtd_client_normal.fail('NORMAL_INCOMPLETE'); end if;
+  select jsonb_build_object('id',p.id,'version',p.version_no,
+    'manifestRevision',case when v_meta.container_id is null then null else i.manifest_revision end,
+    'nz',p.result#>'{espacio,layout,nz}','totalLots',jsonb_array_length(p.result->'pasos'),
+    'steps',coalesce((select jsonb_agg(jsonb_build_object('markbox',step->>'markbox','destination',coalesce(step->>'destino',''),
+      'width',step#>'{zonas,0,zz}') order by ordinal) from jsonb_array_elements(p.result->'pasos') with ordinality s(step,ordinal)
+      where step->'zonas'->0 is not null),'[]'::jsonb)) into v_plan
+    from public.consolidation_plans p left join dtd_client_normal.plan_inputs i on i.plan_id=p.id
+    where p.consolidation_id=p_container_id and p.tenant_id=v_op.tenant_id and p.is_current and p.deleted_at is null
+      and (v_meta.container_id is null or (i.manifest_revision=v_meta.revision and i.manifest_hash=md5(dtd_client_normal.seal_payload(p_container_id)::text)));
+  return jsonb_build_object('available',true,'complete',true,'containerId',p_container_id,'cohort',v_meta.container_id is not null,
+    'revision',v_meta.revision,'sealed',v_meta.seal_id is not null,'status',v_c.status,'expectedBoxIds',v_expected,'stowedBoxIds',v_stowed,
+    'missingBoxIds',v_missing,'unexpectedBoxIds',v_extra,'stuffedCount',jsonb_array_length(v_stowed),'lotsCount',v_lots,'plan',v_plan);
+end $fn$;
+
+-- Old physical signatures remain the literal legacy transport. For a cohort,
+-- they require this reviewed context; a drained old client cannot bypass the
+-- expected revision or silently repeat an uncertain physical write.
+create function public.client_consolidation_physical(p_operario_id uuid,p_container_id uuid,p_operation text,p_expected_revision bigint,
+  p_code text default null,p_width integer default null,p_count integer default null,p_zone jsonb default null,p_manual boolean default false) returns jsonb
+language plpgsql security definer set search_path = '' as $fn$
+declare v_c public.consolidations; v_meta dtd_client_normal.containers; v_result jsonb;
+begin
+  v_c:=dtd_client_normal.lock_physical_container(p_operario_id,p_container_id);
+  select * into v_meta from dtd_client_normal.containers where container_id=p_container_id;
+  if not found or p_expected_revision is null or v_meta.revision is distinct from p_expected_revision then perform dtd_client_normal.fail('NORMAL_CONFLICT'); end if;
+  if v_meta.seal_id is not null or v_c.status::text<>'consolidando' then perform dtd_client_normal.fail('NORMAL_SEALED'); end if;
+  if p_operation not in('stow_box','stow_lot','unstow_box','unstow_lot') or p_operation is null then perform dtd_client_normal.fail('NORMAL_GOVERNED'); end if;
+  if p_operation<>'unstow_lot' and nullif(btrim(p_code),'') is null then perform dtd_client_normal.fail('NORMAL_INCOMPLETE'); end if;
+  if p_operation='stow_box' and (jsonb_typeof(p_zone)<>'object' or p_zone is null
+    or not p_zone ?& array['zx','zy','zz'] or exists(select 1 from jsonb_each_text(p_zone) where key in('zx','zy','zz') and value !~ '^[0-9]+$')) then
+    perform dtd_client_normal.fail('NORMAL_INCOMPLETE'); end if;
+  insert into dtd_client_normal.contexts(transaction_id,backend_pid,operation,operario_id,container_id)
+    values(txid_current(),pg_backend_pid(),'physical_review',p_operario_id,p_container_id);
+  if p_operation='stow_lot' then v_result:=public.stuff_lot_as_operario(p_operario_id,p_container_id,p_code,p_width,p_count);
+  elsif p_operation='unstow_lot' then v_result:=public.unstuff_lot_as_operario(p_operario_id,p_container_id);
+  elsif p_operation='stow_box' then v_result:=public.stuff_box_as_operario(p_operario_id,p_container_id,p_code,
+    (p_zone->>'zx')::integer,(p_zone->>'zy')::integer,(p_zone->>'zz')::integer,p_manual);
+  else
+    if not exists(select 1 from public.consolidation_box_positions p join public.warehouse_boxes b on b.id=p.box_id
+      where p.consolidation_id=p_container_id and p.unstuffed_at is null and b.tenant_id=v_c.tenant_id and b.code=btrim(p_code)) then
+      perform dtd_client_normal.fail('NORMAL_INCOMPATIBLE'); end if;
+    v_result:=public.unstuff_box_as_operario(p_operario_id,p_code);
+  end if;
+  delete from dtd_client_normal.contexts where transaction_id=txid_current() and backend_pid=pg_backend_pid() and operation='physical_review';
+  return v_result||jsonb_build_object('normal_revision',v_meta.revision);
 end $fn$;
 
 -- Trace is a separate best-effort command after the physical write. Its failure
@@ -2032,6 +2113,217 @@ begin
   return v_result;
 end $fn$;
 
--- Remaining Portal and ACL/pre/postflight composition follows.
--- API ACL/owner and postflight are finalized with that complete body.
+-- Portal identity is deliberately separate from a Studio tenant membership.
+-- A hybrid session keeps its existing team rights, while the Portal reader
+-- below always resolves ONE live client principal and filters its own rows.
+create function dtd_client_normal.portal_principal() returns table(tenant_id uuid,client_id uuid,markbox text)
+language sql stable security definer set search_path = '' as $fn$
+  select (array_agg(cu.tenant_id))[1],(array_agg(c.id))[1],(array_agg(c.markbox))[1]
+  from public.client_users cu join public.clients c on c.id=cu.client_id and c.tenant_id=cu.tenant_id and c.deleted_at is null
+  where cu.auth_user_id=(select auth.uid()) and cu.status='active' having count(*)=1
+$fn$;
+create function public.client_consolidation_portal_can_read(p_shipment uuid,p_tenant uuid,p_mark text default null,p_document boolean default false)
+returns boolean language plpgsql stable security definer set search_path = '' as $fn$
+declare v_principal record; v_s public.shipments; v_g dtd_client_normal.groups;
+begin
+  select * into v_principal from dtd_client_normal.portal_principal();
+  if not found or v_principal.tenant_id is distinct from p_tenant then return false; end if;
+  select * into v_s from public.shipments where id=p_shipment and tenant_id=p_tenant and deleted_at is null;
+  if not found then return false; end if;
+  select * into v_g from dtd_client_normal.groups where shipment_id=p_shipment;
+  if found then return v_g.tenant_id=v_principal.tenant_id and v_g.client_id=v_principal.client_id and v_s.client_id=v_principal.client_id; end if;
+  return coalesce(v_s.client_markbox=v_principal.markbox and (not p_document or p_mark=v_s.client_markbox),false);
+end $fn$;
+create function public.client_consolidation_read_boundary(p_shipment uuid,p_tenant uuid,p_mark text default null,p_document boolean default false)
+returns boolean language sql stable security definer set search_path = '' as $fn$
+  -- Restrict the new cohort only. Legacy and the existing Studio policies
+  -- retain their actual scope, including their treatment of child records.
+  select not exists(select 1 from dtd_client_normal.groups g where g.shipment_id=p_shipment)
+    or (exists(select 1 from public.user_tenants ut where ut.user_id=(select auth.uid()) and ut.tenant_id=p_tenant
+          and ut.disabled_at is null and p_tenant=(select public.get_user_tenant_id())
+          and (not p_document or public.document_entity_authorized('shipment',p_tenant,'view')))
+      or public.client_consolidation_portal_can_read(p_shipment,p_tenant,p_mark,p_document))
+$fn$;
+do $portal_policies_preflight$
+declare v_table text;
+begin
+  foreach v_table in array array['shipments','shipment_events'] loop
+    if not exists(select 1 from pg_class where oid=to_regclass('public.'||v_table) and relrowsecurity)
+      or (select count(*) from pg_policies where schemaname='public' and tablename=v_table
+        and policyname=v_table||' portal self read' and cmd='SELECT' and roles=array['authenticated']::name[])<>1
+      or (select count(*) from pg_policies where schemaname='public' and tablename=v_table
+        and policyname=v_table||' by tenant' and cmd='ALL')<>1
+      or exists(select 1 from pg_policies where schemaname='public' and tablename=v_table and cmd in('ALL','SELECT')
+        and ('authenticated'=any(roles) or 'public'=any(roles)) and policyname not in(v_table||' portal self read',v_table||' by tenant')) then
+      raise exception '0502: policies Portal0416 distintas: %',v_table;
+    end if;
+  end loop;
+  -- 0439 replaced the document ALL policy with four module-authorized ones.
+  -- The effective authorization body is 0444, retained literally, not a tenant grant.
+  if not exists(select 1 from pg_proc where oid=to_regprocedure('public.document_entity_authorized(text,uuid,text)')
+      and prosecdef and pg_get_userbyid(proowner)='postgres' and md5(replace(prosrc,E'\r\n',E'\n'))='4eb9fd08721e8f754087dddc5cb88953')
+    or not exists(select 1 from pg_class where oid='public.shipment_documents'::regclass and relrowsecurity)
+    or exists(select 1 from pg_policies where schemaname='public' and tablename='shipment_documents' and cmd='ALL')
+    or (select count(*) from pg_policies where schemaname='public' and tablename='shipment_documents'
+        and policyname='shipment_documents portal self read' and cmd='SELECT' and roles=array['authenticated']::name[])<>1
+    or (select count(*) from pg_policies where schemaname='public' and tablename='shipment_documents'
+        and policyname in('shipment_documents by tenant read','shipment_documents by tenant insert',
+          'shipment_documents by tenant update','shipment_documents by tenant delete') and roles=array['authenticated']::name[]
+        and (coalesce(qual,'')||coalesce(with_check,'')) like '%get_user_tenant_id%'
+        and (coalesce(qual,'')||coalesce(with_check,'')) like '%document_entity_authorized%')<>4
+    or exists(select 1 from pg_policies where schemaname='public' and tablename='shipment_documents'
+        and policyname not in('shipment_documents portal self read','shipment_documents by tenant read','shipment_documents by tenant insert',
+          'shipment_documents by tenant update','shipment_documents by tenant delete') and ('authenticated'=any(roles) or 'public'=any(roles))) then
+    raise exception '0502: policies/autoridad documental0439/0444 distintas'; end if;
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename='shipment_documents'
+    and policyname='shipment_documents by tenant read' and cmd='SELECT' and qual like '%''shipment''%''view''%') then
+    raise exception '0502: lectura documental efectiva distinta'; end if;
+  insert into dtd_client_normal.policy_contracts(table_name,policy_name,definition)
+    select tablename,policyname,to_jsonb(p) from pg_policies p where schemaname='public'
+      and tablename in('shipments','shipment_events','shipment_documents') and policyname<>tablename||' portal self read';
+end $portal_policies_preflight$;
+drop policy "shipments portal self read" on public.shipments;
+create policy "shipments portal self read" on public.shipments for select to authenticated
+  using(deleted_at is null and public.client_consolidation_portal_can_read(id,tenant_id));
+drop policy "shipment_events portal self read" on public.shipment_events;
+create policy "shipment_events portal self read" on public.shipment_events for select to authenticated
+  using(deleted_at is null and public.client_consolidation_portal_can_read(shipment_id,tenant_id));
+drop policy "shipment_documents portal self read" on public.shipment_documents;
+create policy "shipment_documents portal self read" on public.shipment_documents for select to authenticated
+  using(deleted_at is null and public.client_consolidation_portal_can_read(shipment_id,tenant_id,client_markbox,true));
+-- Additional OR policies cannot resurrect a mark-based cohort grant. This
+-- boundary preserves the exact active Studio tenant right; it does not infer
+-- a module permission for a writer or constrain Studio to a Portal principal.
+create policy client_normal_shipment_read on public.shipments as restrictive for select to authenticated
+  using(public.client_consolidation_read_boundary(id,tenant_id));
+create policy client_normal_event_read on public.shipment_events as restrictive for select to authenticated
+  using(public.client_consolidation_read_boundary(shipment_id,tenant_id));
+create policy client_normal_document_read on public.shipment_documents as restrictive for select to authenticated
+  using(public.client_consolidation_read_boundary(shipment_id,tenant_id,client_markbox,true));
+
+create function public.client_consolidation_portal_read() returns jsonb
+language plpgsql stable security definer set search_path = '' as $fn$
+declare v_principal record; v_rows jsonb;
+begin
+  select * into v_principal from dtd_client_normal.portal_principal();
+  if not found then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
+  select coalesce(jsonb_agg(jsonb_build_object('id',s.id,'tenant_id',s.tenant_id,'code',s.code,'shipment_service',s.shipment_service,
+    'status',s.status,'origin',s.origin,'destination',s.destination,'volume_m3',s.volume_m3,'weight_kg',s.weight_kg,
+    'arrived_destination_at',s.arrived_destination_at,'created_at',s.created_at,'updated_at',s.updated_at,
+    'normal',case when g.id is null then null else jsonb_build_object('clientId',g.client_id,'containerId',g.container_id,
+      'containerRef',c.ref,'groupRevision',g.revision,'containerRevision',m.revision,'sealed',m.seal_id is not null) end)
+    order by s.updated_at desc,s.id),'[]'::jsonb) into v_rows
+    from public.shipments s left join dtd_client_normal.groups g on g.shipment_id=s.id
+    left join dtd_client_normal.containers m on m.container_id=g.container_id left join public.consolidations c on c.id=m.container_id
+    where s.tenant_id=v_principal.tenant_id and s.deleted_at is null and
+      ((g.id is null and s.client_markbox=v_principal.markbox)
+        or (g.id is not null and g.tenant_id=v_principal.tenant_id and g.client_id=v_principal.client_id and s.client_id=v_principal.client_id));
+  return jsonb_build_object('available',true,'complete',true,'principal',jsonb_build_object('tenantId',v_principal.tenant_id,
+    'clientId',v_principal.client_id,'markbox',v_principal.markbox),'observedAt',clock_timestamp(),'shipments',v_rows);
+end $fn$;
+
+-- Restore the actual checked public ABI/ACL, including the0288 corrections.
+-- Private originals keep their checked bodies and are never callable by API.
+do $restore_wrappers$
+declare v_contract dtd_client_normal.function_contracts; v_proc pg_proc; v_grant record; v_role text;
+begin
+  for v_contract in select * from dtd_client_normal.function_contracts order by signature loop
+    select * into v_proc from pg_proc where oid=to_regprocedure(v_contract.signature);
+    if not found or v_proc.proargtypes<>v_contract.argument_types or v_proc.proargnames is distinct from v_contract.argument_names
+      or v_proc.prorettype<>v_contract.result_type or v_proc.proretset<>v_contract.returns_set
+      or v_proc.pronargdefaults<>v_contract.default_count or pg_get_expr(v_proc.proargdefaults,0) is distinct from v_contract.default_definition
+      or not v_proc.prosecdef or v_proc.proconfig is distinct from array['search_path=""']::text[] then
+      raise exception '0502: ABI/security del wrapper distinta: %',v_contract.signature; end if;
+    execute format('alter function %s owner to %I',v_proc.oid::regprocedure,pg_get_userbyid(v_contract.owner_oid));
+    execute format('revoke all on function %s from public,anon,authenticated,service_role',v_proc.oid::regprocedure);
+    for v_grant in select * from aclexplode(coalesce(v_contract.acl,acldefault('f',v_contract.owner_oid))) loop
+      if v_grant.privilege_type<>'EXECUTE' then raise exception '0502: ACL original inesperada'; end if;
+      v_role:=case when v_grant.grantee=0 then 'PUBLIC' else quote_ident(pg_get_userbyid(v_grant.grantee)) end;
+      execute format('grant execute on function %s to %s%s',v_proc.oid::regprocedure,v_role,
+        case when v_grant.is_grantable then ' with grant option' else '' end);
+    end loop;
+  end loop;
+end $restore_wrappers$;
+
+drop function dtd_client_normal.move_original(text,text,text);
+revoke all on all functions in schema dtd_client_normal from public,anon,authenticated,service_role;
+alter default privileges for role postgres in schema dtd_client_normal revoke execute on functions from public;
+
+-- New session RPCs derive auth.uid()/effective tenant/current permission. The
+-- three operario commands derive their principal from the revalidated cookie
+-- at the server boundary and recheck it in DB; only service_role can call them.
+do $new_rpc_acl$
+declare v_proc record; v_role text;
+begin
+  for v_proc in select p.oid,p.proname,p.prosecdef,p.proowner,p.proconfig from pg_proc p
+    join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like 'client_consolidation_%' loop
+    if not v_proc.prosecdef or pg_get_userbyid(v_proc.proowner)<>'postgres' or v_proc.proconfig is distinct from array['search_path=""']::text[] then
+      raise exception '0502: nueva RPC sin owner/search_path esperados: %',v_proc.proname; end if;
+    v_role:=case when v_proc.proname in('client_consolidation_operario_read','client_consolidation_physical','client_consolidation_annotate_plan')
+      then 'service_role' else 'authenticated' end;
+    execute format('revoke all on function %s from public,anon,authenticated,service_role',v_proc.oid::regprocedure);
+    execute format('grant execute on function %s to %I',v_proc.oid::regprocedure,v_role);
+  end loop;
+end $new_rpc_acl$;
+
+do $postflight$
+declare v_contract dtd_client_normal.function_contracts; v_public pg_proc; v_private pg_proc; v_policy record; v_role text;
+begin
+  if (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='public' and p.proname like 'client_consolidation_%')<>19 then
+    raise exception '0502: conjunto de nuevas firmas inesperado'; end if;
+  if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
+    and p.proname like 'client_consolidation_%' and (has_function_privilege('anon',p.oid,'EXECUTE')
+      or not has_function_privilege(case when p.proname in('client_consolidation_operario_read','client_consolidation_physical','client_consolidation_annotate_plan')
+        then 'service_role' else 'authenticated' end,p.oid,'EXECUTE')
+      or has_function_privilege(case when p.proname in('client_consolidation_operario_read','client_consolidation_physical','client_consolidation_annotate_plan')
+        then 'authenticated' else 'service_role' end,p.oid,'EXECUTE'))) then
+    raise exception '0502: ACL de nuevas firmas inesperada'; end if;
+  for v_contract in select * from dtd_client_normal.function_contracts loop
+    select * into strict v_public from pg_proc where oid=to_regprocedure(v_contract.signature);
+    select p.* into strict v_private from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname='dtd_client_normal' and p.proname=v_contract.private_name and p.proargtypes=v_contract.argument_types;
+    if md5(replace(v_private.prosrc,E'\r\n',E'\n'))<>coalesce(v_contract.composed_body_md5,v_contract.body_md5)
+      or v_private.proowner<>v_contract.owner_oid or not v_private.prosecdef or v_public.proowner<>v_contract.owner_oid
+      or (select jsonb_agg(jsonb_build_array(grantee,privilege_type,is_grantable) order by grantee,privilege_type,is_grantable)
+        from aclexplode(coalesce(v_public.proacl,acldefault('f',v_public.proowner)))) is distinct from
+        (select jsonb_agg(jsonb_build_array(grantee,privilege_type,is_grantable) order by grantee,privilege_type,is_grantable)
+        from aclexplode(coalesce(v_contract.acl,acldefault('f',v_contract.owner_oid)))) then
+      raise exception '0502: contrato original/ACL no conservados: %',v_contract.signature; end if;
+  end loop;
+  foreach v_role in array array['anon','authenticated','service_role'] loop
+    if has_schema_privilege(v_role,'dtd_client_normal','USAGE') or has_schema_privilege(v_role,'dtd_client_normal','CREATE')
+      or exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='dtd_client_normal'
+        and has_function_privilege(v_role,p.oid,'EXECUTE')) or exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace
+        where n.nspname='dtd_client_normal' and c.relkind in('r','p') and
+          (has_table_privilege(v_role,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'))) then
+      raise exception '0502: acceso API al protocolo privado: %',v_role; end if;
+  end loop;
+  if exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='dtd_client_normal'
+    and c.relkind in('r','p') and (not c.relrowsecurity or pg_get_userbyid(c.relowner)<>'postgres')) then
+    raise exception '0502: tabla privada sin RLS/owner'; end if;
+  if exists(select 1 from dtd_client_normal.scopes) or exists(select 1 from dtd_client_normal.receipts)
+    or exists(select 1 from dtd_client_normal.groups) or exists(select 1 from dtd_client_normal.code_reservations)
+    or exists(select 1 from dtd_client_normal.contexts) or exists(select 1 from dtd_client_normal.intakes) then
+    raise exception '0502: rollout/backfill/contexto inesperado'; end if;
+  for v_policy in select * from dtd_client_normal.policy_contracts loop
+    if (select to_jsonb(p) from pg_policies p where p.schemaname='public' and p.tablename=v_policy.table_name and p.policyname=v_policy.policy_name)
+      is distinct from v_policy.definition then raise exception '0502: policy de equipo alterada: %.%',v_policy.table_name,v_policy.policy_name; end if;
+  end loop;
+  if (select count(*) from pg_policies where schemaname='public' and
+    (tablename,policyname) in (('shipments','client_normal_shipment_read'),('shipment_events','client_normal_event_read'),
+      ('shipment_documents','client_normal_document_read')) and permissive='RESTRICTIVE' and cmd='SELECT' and roles=array['authenticated']::name[])<>3 then
+    raise exception '0502: falta frontera SELECT de cohorte'; end if;
+  if (select count(*) from pg_trigger t join pg_proc p on p.oid=t.tgfoid join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='dtd_client_normal' and not t.tgisinternal and t.tgenabled='O')<>18 then
+    raise exception '0502: conjunto de guardas incompleto'; end if;
+end $postflight$;
+
+-- Rollback: this transaction aborts entirely on any pre/postflight/AUD error.
+-- After commit and before any cohort birth, an independently reviewed reverse
+-- migration may restore saved public contracts/policies and remove this empty
+-- protocol. It is NOT safe to drop/disable guards after enrolment, membership,
+-- code reservation or evidence exists. OFF stops births, never memberships.
+-- Old callers must drain/reload; missing RPC is not OFF. No product rollback,
+-- production application or reverse migration is authorized by this draft.
 commit;

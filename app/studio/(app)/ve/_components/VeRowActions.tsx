@@ -30,7 +30,11 @@ import {
   markCustomsReleasedAction,
   markDeliveredAction,
   reportIncidentAction,
+  loadVeNormalContextAction,
+  transitionNormalVeShipmentAction,
+  completeNormalVeDeliveryAction,
 } from "../actions";
+import type { NormalShipmentRead, NormalShipmentContext } from "@/lib/studio/client-consolidation/types";
 
 interface Props {
   shipmentId: string;
@@ -60,7 +64,26 @@ type PromptState =
       multiline: boolean;
     };
 
-export function VeRowActions({
+export function VeRowActions(props: Props) {
+  const [normal, setNormal] = useState<NormalShipmentRead | null>(null);
+  useEffect(() => {
+    let current = true;
+    setNormal(null);
+    void loadVeNormalContextAction(props.shipmentId).then((result) => { if (current) setNormal(result); }, () => {
+      if (current) setNormal({ available: false, error: "No se pudo comprobar el ámbito del envío. Actualiza antes de operar." });
+    });
+    return () => { current = false; };
+  }, [props.shipmentId, props.status]);
+  if (!normal || !normal.available || normal.context.shipmentId !== props.shipmentId || !normal.context.complete
+    || normal.context.cohort && normal.context.group?.status !== props.status) {
+    return <span role="status">{normal && !normal.available ? normal.error : "Comprobando el envío…"} <a href={`/studio/tracking/${props.shipmentId}`}>Ver detalle</a></span>;
+  }
+  if (!normal.context.cohort) return <LegacyVeRowActions {...props} />;
+  return <NormalVeRowActions key={`${props.shipmentId}:${normal.context.group?.status}:${normal.context.manifest?.revision}`} context={normal.context} />;
+}
+
+/** Legacy presentation is reachable only after an explicit, complete classification. */
+function LegacyVeRowActions({
   shipmentId,
   status,
 }: Props) {
@@ -386,6 +409,66 @@ export function VeRowActions({
       />
     </div>
   );
+}
+
+function NormalVeRowActions({ context }: { context: NormalShipmentContext }) {
+  const router = useRouter(); const group = context.group; const manifest = context.manifest;
+  const [operation, setOperation] = useState<"release_ve" | "manual_delivery" | null>(null);
+  const [reference, setReference] = useState(""); const [receivedBy, setReceivedBy] = useState("");
+  const [attest, setAttest] = useState(false); const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string>(); const [pending, startTransition] = useTransition();
+  const busy = useRef(false); const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  if (!group || !manifest || !context.complete || !manifest.sealed || !manifest.sealId) {
+    return <span>Falta el manifiesto completo y sellado. <a href={`/studio/tracking/${context.shipmentId}`}>Ver detalle</a></span>;
+  }
+  const open = (next: "release_ve" | "manual_delivery") => {
+    if (busy.current) return;
+    setOperation(next); setReference(crypto.randomUUID()); setReceivedBy(""); setAttest(false); setError(undefined);
+    setConfirming(next === "release_ve");
+  };
+  const confirm = (reason: string) => {
+    if (!operation || busy.current || (operation === "manual_delivery" && (!attest || receivedBy.trim().length < 2))) return;
+    busy.current = true;
+    const input = { shipmentId: group.shipmentId, expectedStatus: group.status, expectedGroupRevision: group.revision,
+      expectedContainerRevision: manifest.revision, reference, reason };
+    startTransition(async () => {
+      try {
+        const result = operation === "release_ve"
+          ? await transitionNormalVeShipmentAction({ ...input, operation: "release_ve" })
+          : await completeNormalVeDeliveryAction({ ...input, sealId: manifest.sealId, receiptIds: group.receiptIds,
+            receivedBy, attestComplete: attest });
+        if (!mounted.current) return;
+        if (result.error || !result.ok) { setError(result.error ?? "No se pudo comprobar la operación. Conserva la referencia."); return; }
+        setConfirming(false); setOperation(null); router.refresh();
+      } catch { if (mounted.current) setError("No se pudo comprobar la operación. Conservamos la referencia para consultar o reintentar."); }
+      finally { busy.current = false; }
+    });
+  };
+  return <div>
+    <a href={`/studio/tracking/${group.shipmentId}`}>Ver envío {group.code}</a>
+    {group.status === "in_customs" && <button type="button" disabled={pending} onClick={() => open("release_ve")}>Confirmar liberación de aduana</button>}
+    {group.status === "arrived_destination" && <a href={`/studio/tms?view=route&shipment=${group.shipmentId}`}>Asignar reparto en TMS</a>}
+    {["out_for_delivery", "last_mile"].includes(group.status) && <button type="button" disabled={pending} onClick={() => open("manual_delivery")}>Confirmar entrega manual del grupo</button>}
+    {operation === "manual_delivery" && !confirming && <section aria-label="Revisar entrega del grupo completo">
+      <p>{group.code} · {group.receiptIds.length} recepciones · {group.measures.boxes} cajas · {group.measures.cbm} m³ · {group.measures.weightKg} kg.</p>
+      <p>Sello vigente · revisión del grupo {group.revision} · revisión del contenedor {manifest.revision}.</p>
+      <ul>{group.receiptIds.map((id) => <li key={id}>Recepción {id}</li>)}</ul>
+      <label>Receptor <input value={receivedBy} maxLength={200} onChange={(event) => setReceivedBy(event.target.value)} /></label>
+      <label><input type="checkbox" checked={attest} onChange={(event) => setAttest(event.target.checked)} />Atesto la entrega de todas las recepciones y cajas de este grupo sellado.</label>
+      <p>Constancia manual; no sustituye la foto y firma del POD de Despacho.</p>
+      <button type="button" onClick={() => setOperation(null)}>Cancelar</button>
+      <button type="button" disabled={!attest || receivedBy.trim().length < 2} onClick={() => setConfirming(true)}>Revisar confirmación</button>
+    </section>}
+    <ConfirmDialog open={confirming} danger={operation === "manual_delivery"} reason reasonRequired
+      holdToConfirm={operation === "manual_delivery"} initialFocus="safe" pending={pending} error={error}
+      title={operation === "manual_delivery" ? "Confirmar entrega manual del grupo completo" : "Confirmar liberación de aduana"}
+      message={operation === "manual_delivery"
+        ? `${group.code}: ${group.receiptIds.length} recepciones, ${group.measures.boxes} cajas. Receptor: ${receivedBy}. Atestas todo el grupo sellado. Se cerrará como entregado con auditoría; esta constancia manual no es un POD.`
+        : `${group.code}: confirmas su liberación operativa de aduana, listo para retiro. Este hito no acredita ingreso físico en almacén y no emite una factura.`}
+      confirmLabel={operation === "manual_delivery" ? "Confirmar entrega completa" : "Confirmar liberación"}
+      reasonLabel="Evidencia o motivo" onCancel={() => { if (!busy.current) { setConfirming(false); setOperation(null); setError(undefined); } }} onConfirm={confirm} />
+  </div>;
 }
 
 // ─────────────────────────────────────────────────────────────

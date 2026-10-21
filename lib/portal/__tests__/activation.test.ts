@@ -32,8 +32,9 @@ function stub(opts: {
   markbox?: string | null;
   approvedAt?: string | null;
   shipmentCount?: number;
-}): { supabase: SupabaseClient; touchedShipments: () => boolean } {
+}): { supabase: SupabaseClient; touchedShipments: () => boolean; rpcCalls: string[] } {
   let touchedShipments = false;
+  const rpcCalls: string[] = [];
   const membership = opts.portalClientId
     ? {
         client_id: opts.portalClientId,
@@ -63,8 +64,14 @@ function stub(opts: {
           error: null,
         }),
     },
-    rpc() {
-      return Promise.resolve({ data: null, error: null });
+    rpc(name: string) {
+      if (name !== "client_consolidation_portal_read") throw new Error(`RPC inesperada: ${name}`);
+      rpcCalls.push(name);
+      return Promise.resolve({ data: { available: true, complete: true, observedAt: "2026-10-21T12:00:00Z",
+        principal: { tenantId: "tenant-1", clientId: opts.portalClientId, markbox: opts.markbox ?? "DTD-1007" },
+        shipments: Array.from({ length: opts.shipmentCount ?? 0 }, (_, i) => ({ id: `s-${i}`, tenant_id: "tenant-1", code: `S-2026-${1000 + i}`,
+          shipment_service: "consolidado_lcl", status: "in_transit", origin: null, destination: null, volume_m3: null, weight_kg: null,
+          arrived_destination_at: null, created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-01T00:00:00Z", normal: null })) }, error: null });
     },
     from(table: string) {
       if (table === "client_users") {
@@ -100,7 +107,7 @@ function stub(opts: {
     },
   } as unknown as SupabaseClient;
 
-  return { supabase, touchedShipments: () => touchedShipments };
+  return { supabase, touchedShipments: () => touchedShipments, rpcCalls };
 }
 
 describe("getPortalActivation — gate de activación", () => {
@@ -118,7 +125,7 @@ describe("getPortalActivation — gate de activación", () => {
   });
 
   it("aprobado: portal_approved_at set → activada por 'approved' (sin contar envíos)", async () => {
-    const { supabase, touchedShipments } = stub({
+    const { supabase, touchedShipments, rpcCalls } = stub({
       portalClientId: "c-1",
       markbox: "DTD-1007",
       approvedAt: "2026-06-02T12:00:00.000Z",
@@ -130,6 +137,7 @@ describe("getPortalActivation — gate de activación", () => {
     });
     // Si ya está aprobada no necesita contar envíos (corta antes).
     expect(touchedShipments()).toBe(false);
+    expect(rpcCalls).toEqual([]);
   });
 
   it("con-envíos: 0 aprobación pero ≥1 envío → activada por 'has_shipments'", async () => {
@@ -146,11 +154,12 @@ describe("getPortalActivation — gate de activación", () => {
   });
 
   it("principal no-cliente (sin client_id del portal) → no activada, sin tocar shipments", async () => {
-    const { supabase, touchedShipments } = stub({ portalClientId: null });
+    const { supabase, touchedShipments, rpcCalls } = stub({ portalClientId: null });
     expect(await getPortalActivation(supabase)).toEqual({
       activated: false,
       reason: null,
     });
     expect(touchedShipments()).toBe(false);
+    expect(rpcCalls).toEqual([]);
   });
 });

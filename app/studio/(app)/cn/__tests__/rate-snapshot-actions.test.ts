@@ -80,6 +80,30 @@ const recepcion = (n: number, markbox: string) => ({
   destination_city: "Valencia", sales_order_id: null, total_cbm: 2, is_orphan: false, deleted_at: null,
 });
 
+describe("SDD-0578 · binding de tarifa: sólo transporte y mensajes, no persistencia SQL", () => {
+  it("regular y elevada muestran conflicto de datos fijos sin filtrar identidad SQL ni anunciar éxito", async () => {
+    estado.rpcRespuesta = () => ({ data: null, error: { code: "P0001", hint: "dtd-client-normal", message: "NORMAL_INCOMPATIBLE: private foreign client" } });
+    expect(await freezeRateAction({ receiptId: RID(1), source: "tarifario", rateId: RATE }))
+      .toEqual({ ok: false, errorKey: "warehouse_cn.normal.rate_incompatible" });
+    estado.role = "admin";
+    expect(await freezeElevatedRateAction({ receiptId: RID(1), source: "manual", perCbm: "900", reason: "Revisión tarifaria documentada" }))
+      .toEqual({ ok: false, errorKey: "warehouse_cn.normal.rate_incompatible" });
+    expect(revalidatePath).not.toHaveBeenCalled(); expect(estado.rpcCalls).toHaveLength(2);
+  });
+  it("el lote conserva lo efectivamente congelado antes del conflicto de un miembro posterior", async () => {
+    estado.tablas.warehouse_receipts_cn = [recepcion(1, "DTD-0001"), recepcion(2, "DTD-0002")];
+    estado.tablas.shipment_rate_snapshots = [];
+    estado.propuestas = Object.fromEntries(["DTD-0001", "DTD-0002"].map((mark) => [mark,
+      { kind: "tarifario", rateId: RATE, origen: "casa", bookName: null, service: "puerta_a_puerta_DDP" }]));
+    let count = 0;
+    estado.rpcRespuesta = (args) => ++count === 1 ? { data: [fila(String(args.p_receipt_id))], error: null }
+      : { data: null, error: { code: "P0001", hint: "dtd-client-normal", message: "NORMAL_GOVERNED" } };
+    expect(await freezePendingRatesAction([RID(1), RID(2)]))
+      .toEqual({ ok: false, errorKey: "warehouse_cn.normal.rate_incompatible", frozen: 1 });
+    expect(estado.rpcCalls).toHaveLength(2); expect(revalidatePath).toHaveBeenCalledWith("/studio/cn");
+  });
+});
+
 beforeEach(() => {
   estado.role = "warehouse";
   estado.editDenial = null;

@@ -4,7 +4,7 @@ import { CONTAINER_STATUSES } from "../naviera/types";
 import { STATUS_LABELS } from "../shipment-types";
 import type {
   MembershipResult, NormalContext, NormalContextPage, NormalManifest, NormalMutationResult, NormalReceipt,
-  NormalPlanInput, NormalRpcError, NormalShipmentContext, ObservedRates, NormalGroup,
+  NormalPlanInput, NormalRpcError, NormalShipmentContext, ObservedRates, NormalGroup, NormalMobileContext,
 } from "./types";
 
 export class NormalReadError extends Error {
@@ -109,6 +109,35 @@ export function membershipResult(value: unknown): MembershipResult | null {
 export function mutationResult(value: unknown): NormalMutationResult | null {
   return object(value) && ["closed", "transitioned", "recorded", "replay"].includes(String(value.outcome))
     && typeof value.reference === "string" && instant(value.occurredAt) ? value as NormalMutationResult : null;
+}
+
+export async function readNormalMobileContext(supabase: SupabaseClient, operarioId: string, containerId: string): Promise<NormalMobileContext> {
+  const { data, error } = await supabase.rpc("client_consolidation_operario_read", { p_operario_id: operarioId, p_container_id: containerId });
+  if (error) throw new NormalReadError(normalFlowError(error), isMissingNormalSchema(error) ? "missing_schema" : "unavailable");
+  if (!object(data) || data.available !== true || data.complete !== true || data.containerId !== containerId || typeof data.cohort !== "boolean"
+    || !CONTAINER_STATUSES.some((status) => status === data.status) || typeof data.sealed !== "boolean"
+    || !(data.cohort ? whole(data.revision) && data.revision > 0 : data.revision === null && data.sealed === false)
+    || !strings(data.expectedBoxIds) || !strings(data.stowedBoxIds) || !strings(data.missingBoxIds) || !strings(data.unexpectedBoxIds)
+    || !whole(data.stuffedCount) || data.stuffedCount !== data.stowedBoxIds.length || !whole(data.lotsCount)
+    || data.lotsCount > data.stuffedCount) throw new NormalReadError("No se pudo comprobar la cobertura del contenedor.", "incomplete");
+  if (data.cohort) {
+    const stowed = new Set(data.stowedBoxIds); const expected = new Set(data.expectedBoxIds);
+    if (!sameIds(data.missingBoxIds, data.expectedBoxIds.filter((id) => !stowed.has(id)))
+      || !sameIds(data.unexpectedBoxIds, data.stowedBoxIds.filter((id) => !expected.has(id)))) {
+      throw new NormalReadError("La cobertura no corresponde al manifiesto.", "incomplete");
+    }
+  } else if (data.expectedBoxIds.length || data.missingBoxIds.length || data.unexpectedBoxIds.length) {
+    throw new NormalReadError("La clasificación legacy no es íntegra.", "incomplete");
+  }
+  if (data.plan !== null) {
+    const plan = data.plan;
+    if (!object(plan) || typeof plan.id !== "string" || !whole(plan.version) || plan.version < 1 || !whole(plan.nz) || plan.nz < 1
+      || !whole(plan.totalLots) || !Array.isArray(plan.steps) || (data.cohort ? plan.manifestRevision !== data.revision : plan.manifestRevision !== null)
+      || plan.steps.length > plan.totalLots || !plan.steps.every((step: unknown) => object(step)
+        && (step.markbox === null || typeof step.markbox === "string") && typeof step.destination === "string"
+        && whole(step.width) && step.width < plan.nz)) throw new NormalReadError("No se pudo comprobar la vigencia del plan.", "incomplete");
+  }
+  return data as NormalMobileContext;
 }
 
 function isReceipt(value: unknown): value is NormalReceipt {

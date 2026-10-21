@@ -182,6 +182,26 @@ export function noteRpcArgs(input: NormalNoteInput) {
     p_expected_container_revision: input.expectedContainerRevision, p_reference: input.reference, p_note: input.note, p_reason: input.reason };
 }
 
+export function validateNormalDelivery(raw: unknown): { input?: import("./types").NormalDeliveryInput; fieldErrors?: Record<string, string> } {
+  const parsed = expectedShipment(raw); const { value, errors } = parsed;
+  const sealId = uuid(value?.sealId);
+  const receiptIds = Array.isArray(value?.receiptIds) ? value.receiptIds.map(uuid) : [];
+  const receivedBy = typeof value?.receivedBy === "string" ? value.receivedBy.trim() : "";
+  if (!sealId || receiptIds.length === 0 || receiptIds.some((id) => id === null) || new Set(receiptIds).size !== receiptIds.length
+    || value?.attestComplete !== true) errors.attestation = "Revisa y atesta todas las recepciones del grupo sellado.";
+  if (parsed.expectedStatus !== "out_for_delivery" && parsed.expectedStatus !== "last_mile") errors.status = "Actualiza el estado del envío antes de confirmar.";
+  if (receivedBy.length < 2 || receivedBy.length > 200) errors.receivedBy = "Indica el receptor con 2 a 200 caracteres.";
+  if (Object.keys(errors).length) return { fieldErrors: errors };
+  return { input: { shipmentId: parsed.shipmentId!, reference: parsed.reference!, expectedStatus: parsed.expectedStatus!,
+    expectedGroupRevision: parsed.expectedGroupRevision!, expectedContainerRevision: parsed.expectedContainerRevision!,
+    reason: parsed.reason.ok ? parsed.reason.reason : "", sealId: sealId!, receiptIds: receiptIds as string[], receivedBy, attestComplete: true } };
+}
+export function deliveryRpcArgs(input: import("./types").NormalDeliveryInput) {
+  return { p_shipment_id: input.shipmentId, p_expected_status: input.expectedStatus, p_expected_group_revision: input.expectedGroupRevision,
+    p_expected_container_revision: input.expectedContainerRevision, p_seal_id: input.sealId, p_receipt_ids: [...input.receiptIds].sort(),
+    p_received_by: input.receivedBy, p_reason: input.reason, p_reference: input.reference, p_attest_complete: input.attestComplete };
+}
+
 /** No Number conversion: the maximum generated SQL numeric can exceed safe cents. */
 export function observedRatesTotal(parts: readonly ObservedRates[]): {
   knownSubtotalCents: string; totalCents: string | null; missing: number; complete: boolean;
