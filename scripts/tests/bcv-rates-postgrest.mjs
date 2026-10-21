@@ -46,7 +46,7 @@ async function main() {
   const network = 'dtd-bcv-' + nonce, pg = network + '-pg', rest = network + '-rest';
   const password = randomBytes(24).toString('hex'), secret = randomBytes(32).toString('hex');
   const receipt = { startedAt: new Date().toISOString(), pid: process.pid, root: ROOT, phase: 'PREPARACION',
-    result: 'RUNNING', resources: { network, pg, rest }, versions: {}, checks: [], http: [], gatewayHttp: [], cleanup: [] };
+    result: 'RUNNING', resources: { network, pg, rest }, versions: {}, checks: [], commands: [], http: [], gatewayHttp: [], cleanup: [] };
   const attempted = []; let networkAttempted = false;
   let gateway;
   const gatewaySockets = new Set(), gatewayTasks = new Set(), gatewayRequests = new Set();
@@ -54,6 +54,8 @@ async function main() {
   const check = (name, detail = {}) => { receipt.checks.push({ name, ...detail }); process.stdout.write('PASÓ: ' + name + '\n'); };
   const run = (step, argv, { input = '', timeout = 30_000, allowFailure = false } = {}) => new Promise((done, fail) => {
     const child = spawn('docker', argv, { windowsHide: true, stdio: ['pipe','pipe','pipe'] });
+    const execution={number:receipt.commands.length+1,step,pid:child.pid??null,startedAt:new Date().toISOString()};
+    receipt.commands.push(execution);
     let stdout = '', stderr = '', timedOut = false;
     const timer = setTimeout(() => { timedOut = true; child.kill(); }, timeout);
     child.stdout.on('data', data => { stdout += data; if (stdout.length > 4_194_304) child.kill(); });
@@ -62,8 +64,14 @@ async function main() {
     child.on('close', (code, signal) => {
       clearTimeout(timer);
       const result = { code, signal, timedOut, stdout, stderr };
-      if (!allowFailure && (code !== 0 || signal || timedOut)) fail(Object.assign(new Error(step + ': PREPARATION_FAILED'), { safeStep: step, result }));
-      else done(result);
+      Object.assign(execution,{code,signal,timedOut,finishedAt:new Date().toISOString()});
+      if (!allowFailure && (code !== 0 || signal || timedOut)) {
+        const error=Object.assign(new Error(step + ': PREPARATION_FAILED'),{safeStep:step,result});
+        // Solo stdout/stderr de recursos sintéticos; nunca argv/env/JWT. Redactar
+        // credenciales efímeras por si el motor las incluye en un error de setup.
+        const diagnostic=(stdout+stderr).replaceAll(password,'[fixture-password]').replaceAll(secret,'[fixture-secret]');
+        save('command-'+execution.number+'-'+step+'-failure.log',diagnostic).then(()=>fail(error),()=>fail(error));
+      } else done(result);
     });
     child.stdin.end(input);
   });
