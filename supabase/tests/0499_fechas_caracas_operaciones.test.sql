@@ -361,7 +361,7 @@ $expense_history$;
 \endif
 \if :run_closing
 do $current_closing$
-declare r jsonb; current_nonce text; entry_closed uuid:=c1_fixture.id('closing-closed'); entry_open uuid:=c1_fixture.id('closing-open');
+declare r jsonb; current_nonce text; before_state jsonb; entry_closed uuid:=c1_fixture.id('closing-closed'); entry_open uuid:=c1_fixture.id('closing-open');
 begin
  -- Datos sintéticos antes de cerrar; nada se refecha después para acomodar C1.
  insert into public.expenses(id,tenant_id,user_id,expense_code,amount,category,occurred_at)
@@ -382,12 +382,18 @@ begin
  'Período contable cerrado: no se puede borrar un asiento en período cerrado (cierre: 2026-10-20).','23514');
  perform c1_fixture.denied('0493 línea no se traslada a abierto','accounting-A',format('update public.journal_lines set entry_id=%L where id=%L returning to_jsonb(id)',entry_open,c1_fixture.id('closing-line')),
  'Una línea no cambia de asiento: bórrala y créala en el otro.','23514');
+ perform c1_fixture.denied('0493 línea conserva asiento cerrado y no cambia importe','accounting-A',format('update public.journal_lines set debit=20.50,line_memo=''NO'' where id=%L returning to_jsonb(id)',c1_fixture.id('closing-line')),
+ 'Período contable cerrado: no se pueden modificar las líneas de un asiento cerrado.','23514');
  r:=c1_fixture.actor('accounting-A',format('update public.journal_entries set memo=''Abierto conservado'' where id=%L returning to_jsonb(memo)',entry_open));
  perform c1_fixture.assert_true(r='"Abierto conservado"'::jsonb,'0493 permite abierto');
  perform set_config('dtd.excepcion_cierre','nonce-inventado',true);
  perform c1_fixture.denied('0493 GUC inventado','accounting-A',format('update public.journal_entries set memo=''NO'' where id=%L returning to_jsonb(id)',entry_closed),
  'Período contable cerrado: no se puede modificar un asiento en período cerrado (cierre: 2026-10-20).','23514');
  perform set_config('dtd.excepcion_cierre','',true);
+ before_state:=c1_fixture.state();
+ r:=c1_fixture.actor('accounting-A',format('select public.asentar_asiento_en_cierre(%L,null,''Intento sin superclave'')',entry_closed));
+ perform c1_fixture.assert_true(r=jsonb_build_object('ok',false,'motivo','sin_superclave'),'0493 modo default sin clave deniega');
+ perform c1_fixture.assert_true(c1_fixture.state()=before_state,'0493 sin clave no cambia asiento ni crea excepción');
  -- Modo advertencia autorizado por admin, excepción por RPC real accounting;
  -- no stub de autorización ni inserción manual que se presente como permiso.
  perform c1_fixture.actor('admin-A',format('update public.accounting_settings set closing_mode=''advertencia'' where tenant_id=%L returning to_jsonb(tenant_id)',pg_temp.fixture_id('tenant-A')));
