@@ -8,6 +8,7 @@ import { spawn } from 'node:child_process';
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { readFileSync, realpathSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -45,8 +46,10 @@ async function main() {
   const network = 'dtd-bcv-' + nonce, pg = network + '-pg', rest = network + '-rest';
   const password = randomBytes(24).toString('hex'), secret = randomBytes(32).toString('hex');
   const receipt = { startedAt: new Date().toISOString(), pid: process.pid, root: ROOT, phase: 'PREPARACION',
-    result: 'RUNNING', resources: { network, pg, rest }, versions: {}, checks: [], http: [], cleanup: [] };
+    result: 'RUNNING', resources: { network, pg, rest }, versions: {}, checks: [], http: [], gatewayHttp: [], cleanup: [] };
   const attempted = []; let networkAttempted = false;
+  let gateway;
+  const gatewaySockets = new Set(), gatewayTasks = new Set(), gatewayRequests = new Set();
   const save = (name, value) => writeFile(resolve(evidence, name), typeof value === 'string' ? value : JSON.stringify(value,null,2)+'\n');
   const check = (name, detail = {}) => { receipt.checks.push({ name, ...detail }); process.stdout.write('PASÓ: ' + name + '\n'); };
   const run = (step, argv, { input = '', timeout = 30_000, allowFailure = false } = {}) => new Promise((done, fail) => {
@@ -116,12 +119,55 @@ async function main() {
       const response=await fetch(base,{signal:AbortSignal.timeout(2000)});
       const ready=response.status===200; await response.body?.cancel(); return ready;
     });
+    // SupabaseSDK agrega /rest/v1. El servicio PostgREST local expone /rpc y
+    // tablas en raíz: este gateway propio monta el prefijo, sin parchear SDK/app.
+    gateway=createServer((req,res) => {
+      const operation=(async () => {
+        const path=new URL(req.url,'http://127.0.0.1');
+        if (!path.pathname.startsWith('/rest/v1/')) { res.writeHead(404); res.end(); return; }
+        const upstream=new URL(base); upstream.pathname=path.pathname.slice('/rest/v1'.length); upstream.search=path.search;
+        assert.equal(upstream.origin,base);
+        const controller=new AbortController(); gatewayRequests.add(controller);
+        req.once('aborted',()=>controller.abort());
+        res.once('close',()=>{ if (!res.writableEnded) controller.abort(); });
+        try {
+          const chunks=[]; let size=0;
+          for await (const chunk of req) {
+            size+=chunk.byteLength; if (size>1_048_576) throw new Error('FIXTURE_REQUEST_LIMIT'); chunks.push(chunk);
+          }
+          const headers=new Headers();
+          for (const name of ['authorization','apikey','content-type','accept','accept-profile','content-profile','prefer','range','range-unit','x-bcv-fixture-claims']) {
+            const value=req.headers[name]; if (typeof value==='string') headers.set(name,value);
+          }
+          const method=req.method??'GET';
+          const response=await fetch(upstream,{method,headers,redirect:'manual',
+            signal:AbortSignal.any([controller.signal,AbortSignal.timeout(10_000)]),
+            ...(method==='GET'||method==='HEAD'?{}:{body:Buffer.concat(chunks)})});
+          const body=new Uint8Array(await response.arrayBuffer());
+          if (body.byteLength>1_048_576) throw new Error('FIXTURE_RESPONSE_LIMIT');
+          for (const name of ['content-type','content-range','preference-applied']) {
+            const value=response.headers.get(name); if (value!==null) res.setHeader(name,value);
+          }
+          receipt.gatewayHttp.push({method,path:path.pathname,mappedPath:upstream.pathname,status:response.status});
+          res.writeHead(response.status); res.end(body);
+        } finally { gatewayRequests.delete(controller); }
+      })().catch(() => { if (!res.destroyed) { if (!res.headersSent) res.writeHead(502); res.end(); } });
+      gatewayTasks.add(operation); operation.finally(()=>gatewayTasks.delete(operation));
+    });
+    gateway.on('connection',socket=>{ gatewaySockets.add(socket); socket.once('close',()=>gatewaySockets.delete(socket)); });
+    gateway.requestTimeout=10_000; gateway.headersTimeout=5_000;
+    await new Promise((done,fail)=>{ gateway.once('error',fail); gateway.listen(0,'127.0.0.1',done); });
+    const address=gateway.address(); assert(address && typeof address==='object' && address.address==='127.0.0.1');
+    const supabaseBase='http://127.0.0.1:'+address.port;
+    receipt.resources.gateway={owner:nonce,pid:process.pid,host:address.address,port:address.port,base:supabaseBase,
+      mount:'/rest/v1',upstream:base};
     check('versiones efectivas PG17.11/PostgREST14.17 y setup COMMIT');
     receipt.phase = 'HTTP_CONTEXT';
-    const client = (role, sub, extraHeaders = {}) => createBcvServiceClient({ url: base, serviceKey: token(role,sub),
+    const client = (role, sub, extraHeaders = {}) => createBcvServiceClient({ url: supabaseBase, serviceKey: token(role,sub),
       signal: AbortSignal.timeout(50_000), fetch: (input,init) => {
         const url = new URL(typeof input==='string' ? input : input instanceof URL ? input.href : input.url);
-        assert.equal(url.origin,base,'solo destino loopback creado');
+        assert.equal(url.origin,supabaseBase,'solo gateway loopback propio');
+        assert(url.pathname.startsWith('/rest/v1/'),'prefijo SDK nativo esperado');
         receipt.http.push({ method:init?.method??'GET',path:url.pathname });
         return fetch(input,{...init,headers:{...Object.fromEntries(new Headers(init?.headers)),...extraHeaders}});
       } });
@@ -182,6 +228,18 @@ async function main() {
     // Sin argv/env/JWT/SQL/body externo. Logs de setup sintético se conservan aparte.
     process.stderr.write('FALLÓ: '+receipt.phase+'; revisar recibo externo\n'); process.exitCode=1;
   } finally {
+    if (gateway) {
+      try {
+        const closed=new Promise(done=>gateway.close(done));
+        for (const request of gatewayRequests) request.abort();
+        gateway.closeIdleConnections(); gateway.closeAllConnections();
+        for (const socket of gatewaySockets) socket.destroy();
+        await Promise.allSettled([...gatewayTasks]); await closed;
+        receipt.cleanup.push({kind:'gateway',owner:nonce,pid:process.pid,port:receipt.resources.gateway?.port,
+          exit:gateway.listening||gatewaySockets.size||gatewayTasks.size?null:0,
+          listening:gateway.listening,sockets:gatewaySockets.size,pending:gatewayTasks.size});
+      } catch { receipt.cleanup.push({kind:'gateway',owner:nonce,exit:null}); }
+    }
     for (const name of attempted.reverse()) {
       try {
         const inspected=await run('cleanup-inspect',['inspect','--format','{{.Id}} {{ index .Config.Labels "dtd.owner" }}',name],{allowFailure:true});
