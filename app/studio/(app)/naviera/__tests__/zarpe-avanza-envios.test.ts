@@ -355,8 +355,10 @@ describe("el aviso sale por el mismo camino que Tracking", () => {
     // actualiza el estado e inserta el evento).
     const filaTracking = { ...envio("s1", "ENV-101", "in_warehouse") };
     mocks.session = {
-      rpc: async (name: string, args: Record<string, unknown>) => name === "client_consolidation_shipment" && args.p_shipment_id === "s1"
-        ? ok({ shipmentId: "s1", cohort: false, complete: true, manifest: null }) : fallo("PGRST202"),
+      rpc: async (name: string, args: Record<string, unknown>) => name === "client_consolidation_scope" && Array.isArray(args.p_shipment_ids)
+        && args.p_shipment_ids.length === 1 && args.p_shipment_ids[0] === "s1"
+        ? ok({ available: true, complete: true, checked: { shipmentIds: ["s1"], containerIds: [], receiptIds: [], boxIds: [] },
+          shipmentIds: [], containerIds: [], receiptIds: [], boxIds: [] }) : fallo("PGRST202"),
       from(table: string) {
         const b = {
           select: () => b,

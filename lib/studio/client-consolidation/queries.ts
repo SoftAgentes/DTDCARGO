@@ -1,9 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isMissingNormalSchema, normalFlowError } from "./normal-flow";
 import { CONTAINER_STATUSES } from "../naviera/types";
+import { STATUS_LABELS } from "../shipment-types";
 import type {
   MembershipResult, NormalContext, NormalContextPage, NormalManifest, NormalMutationResult, NormalReceipt,
-  NormalPlanInput, NormalRpcError, NormalShipmentContext, ObservedRates,
+  NormalPlanInput, NormalRpcError, NormalShipmentContext, ObservedRates, NormalGroup,
 } from "./types";
 
 export class NormalReadError extends Error {
@@ -35,11 +36,18 @@ function strings(value: unknown): value is string[] {
 function whole(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
+function instant(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && !Number.isNaN(Date.parse(value));
+}
+function sameIds(left: readonly string[], right: readonly string[]): boolean {
+  const rightIds = new Set(right);
+  return left.length === right.length && left.every((id) => rightIds.has(id));
+}
 
 function measures(value: unknown): boolean {
-  return object(value) && typeof value.cbm === "string" && /^[0-9]+(?:\.[0-9]+)?$/.test(value.cbm)
+  return object(value) && typeof value.cbm === "string" && /^[0-9]+(?:\.[0-9]{1,3})?$/.test(value.cbm)
     && !/^0*(?:\.0*)?$/.test(value.cbm) && typeof value.weightKg === "string"
-    && /^[0-9]+(?:\.[0-9]+)?$/.test(value.weightKg) && whole(value.boxes) && value.boxes > 0;
+    && /^[0-9]+(?:\.[0-9]{1,2})?$/.test(value.weightKg) && whole(value.boxes) && value.boxes > 0;
 }
 
 function space(value: unknown): boolean {
@@ -52,12 +60,23 @@ function space(value: unknown): boolean {
 
 function isRates(value: unknown): value is ObservedRates {
   if (!object(value) || !whole(value.membershipRevision) || !whole(value.receiptCount)
-    || typeof value.observedAt !== "string" || !strings(value.snapshotIds) || !strings(value.missingReceiptIds)
+    || !instant(value.observedAt) || !strings(value.snapshotIds) || !strings(value.missingReceiptIds)
     || typeof value.knownSubtotalCents !== "string" || !/^[0-9]+$/.test(value.knownSubtotalCents)
     || typeof value.complete !== "boolean") return false;
   if (value.snapshotIds.length + value.missingReceiptIds.length !== value.receiptCount) return false;
   return value.complete && value.missingReceiptIds.length === 0
     ? value.totalCents === value.knownSubtotalCents : value.totalCents === null;
+}
+function isGroup(group: unknown): group is NormalGroup {
+  if (!object(group) || !["groupId", "shipmentId", "itemId", "clientId", "clientMarkbox", "code", "destinationId", "destination", "status"].every((key) => typeof group[key] === "string" && group[key].length > 0)
+    || !(group.clientName === null || typeof group.clientName === "string")
+    || !["consolidado_lcl", "puerta_a_puerta_DDP"].includes(String(group.service))
+    || typeof group.status !== "string" || !Object.prototype.hasOwnProperty.call(STATUS_LABELS, group.status) || !whole(group.revision) || group.revision < 1
+    || !strings(group.receiptIds) || group.receiptIds.length === 0 || !strings(group.boxIds)
+    || !measures(group.measures) || !object(group.measures) || !isRates(group.rates)) return false;
+  const receiptIds = group.receiptIds;
+  return group.boxIds.length === group.measures.boxes && group.rates.membershipRevision === group.revision
+    && group.rates.receiptCount === receiptIds.length && group.rates.missingReceiptIds.every((id) => receiptIds.includes(id));
 }
 
 function isManifest(value: unknown): value is NormalManifest {
@@ -69,27 +88,27 @@ function isManifest(value: unknown): value is NormalManifest {
     || !strings(value.unexpectedBoxIds) || !Array.isArray(value.groups)) return false;
   if (!(value.currentPlan === null || (object(value.currentPlan) && typeof value.currentPlan.id === "string"
     && whole(value.currentPlan.version) && whole(value.currentPlan.manifestRevision)))) return false;
-  return value.groups.every((group: unknown) => object(group)
-    && ["groupId", "shipmentId", "itemId", "clientId", "clientMarkbox", "code", "destinationId", "destination", "status"].every((key) => typeof group[key] === "string")
-    && (group.clientName === null || typeof group.clientName === "string")
-    && ["consolidado_lcl", "puerta_a_puerta_DDP"].includes(String(group.service))
-    && whole(group.revision) && strings(group.receiptIds) && strings(group.boxIds)
-    && measures(group.measures) && isRates(group.rates));
+  if (!value.groups.every(isGroup) || value.sealed !== (value.sealId !== null)) return false;
+  const groups = value.groups;
+  if (![groups.map((group) => group.groupId), groups.map((group) => group.shipmentId), groups.map((group) => group.itemId), groups.map((group) => group.clientId)].every(strings)
+    || !strings(groups.flatMap((group) => group.receiptIds)) || !strings(groups.flatMap((group) => group.boxIds))) return false;
+  const stowed = new Set(value.stowedBoxIds); const expected = new Set(value.expectedBoxIds);
+  return sameIds(groups.flatMap((group) => group.boxIds), value.expectedBoxIds)
+    && sameIds(value.missingBoxIds, value.expectedBoxIds.filter((id) => !stowed.has(id)))
+    && sameIds(value.unexpectedBoxIds, value.stowedBoxIds.filter((id) => !expected.has(id)))
+    && (groups.length === 0 ? !value.sealed : value.revision > 0);
 }
 
 export function membershipResult(value: unknown): MembershipResult | null {
   if (!object(value) || !["confirmed", "replay"].includes(String(value.outcome)) || !["form", "extend"].includes(String(value.operation))
-    || typeof value.reference !== "string" || typeof value.occurredAt !== "string" || typeof value.containerId !== "string"
+    || typeof value.reference !== "string" || !instant(value.occurredAt) || typeof value.containerId !== "string"
     || !whole(value.containerRevision) || !Array.isArray(value.groups)) return null;
-  const manifest = { containerId: value.containerId, revision: value.containerRevision, status: "consolidando", sealed: false,
-    sealId: null, canConfirm: false, canClose: false, groups: value.groups, expectedBoxIds: [], stowedBoxIds: [], missingBoxIds: [],
-    unexpectedBoxIds: [], currentPlan: null };
-  return isManifest(manifest) ? value as MembershipResult : null;
+  return value.groups.length > 0 && value.groups.every(isGroup) ? value as MembershipResult : null;
 }
 
 export function mutationResult(value: unknown): NormalMutationResult | null {
   return object(value) && ["closed", "transitioned", "recorded", "replay"].includes(String(value.outcome))
-    && typeof value.reference === "string" && typeof value.occurredAt === "string" ? value as NormalMutationResult : null;
+    && typeof value.reference === "string" && instant(value.occurredAt) ? value as NormalMutationResult : null;
 }
 
 function isReceipt(value: unknown): value is NormalReceipt {
@@ -104,7 +123,7 @@ function isReceipt(value: unknown): value is NormalReceipt {
 
 function page(value: unknown): NormalContextPage | null {
   if (!object(value) || !["off", "ready"].includes(String(value.availability)) || typeof value.readToken !== "string"
-    || typeof value.observedAt !== "string" || !(value.manifest === null || isManifest(value.manifest))
+    || !instant(value.observedAt) || !(value.manifest === null || isManifest(value.manifest))
     || !Array.isArray(value.destinations) || !value.destinations.every((d: unknown) => object(d) && typeof d.id === "string" && typeof d.label === "string" && typeof d.destination === "string")
     || !Array.isArray(value.receipts) || !value.receipts.every(isReceipt)
     || !(value.nextReceiptId === null || typeof value.nextReceiptId === "string")) return null;
@@ -193,12 +212,12 @@ export async function readNormalShipment(supabase: SupabaseClient, shipmentId: s
   if (data.shipmentId !== shipmentId || (!data.cohort && data.manifest !== null)) {
     throw new NormalReadError("La pertenencia no corresponde al envío solicitado.", "incomplete");
   }
-  if (!data.cohort) return { cohort: false, group: null, manifest: null, complete: true };
+  if (!data.cohort) return { shipmentId, cohort: false, group: null, manifest: null, complete: true };
   const manifest = data.manifest as NormalManifest | null;
   const group = manifest?.groups.find((g) => g.shipmentId === shipmentId);
-  if (!manifest || !group) throw new NormalReadError("Falta la identidad completa del envío por cliente.", "incomplete");
+  if (!manifest || !group || manifest.groups.length !== 1) throw new NormalReadError("Falta la identidad completa del envío por cliente.", "incomplete");
   // The shipment reader only returns this client's group, never neighbouring identities.
-  return { cohort: true, group, manifest, complete: true };
+  return { shipmentId, cohort: true, group, manifest, complete: true };
 }
 
 export async function readNormalManifest(supabase: SupabaseClient, containerId: string): Promise<NormalManifest> {

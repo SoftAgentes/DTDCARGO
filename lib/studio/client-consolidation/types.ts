@@ -159,11 +159,13 @@ export type NormalPlanInput = {
 };
 
 export type NormalShipmentContext = {
+  shipmentId: string;
   cohort: boolean;
   group: NormalGroup | null;
   manifest: NormalManifest | null;
   complete: boolean;
 };
+export type NormalShipmentRead = { available: true; context: NormalShipmentContext } | { available: false; error: string };
 
 export type NormalTransition = "transit" | "release_ve" | "dispatch_ve";
 export type NormalTransitionInput = {
@@ -177,6 +179,10 @@ export type NormalTransitionInput = {
   /** Existing VE delivery address/note; never an authority claim. */
   deliveryAddress?: string;
   note?: string;
+};
+export type NormalNoteInput = {
+  shipmentId: string; expectedStatus: ShipmentStatus; expectedGroupRevision: number; expectedContainerRevision: number;
+  reference: string; reason: string; note: string;
 };
 
 export type NormalActionState<T = MembershipResult> = {

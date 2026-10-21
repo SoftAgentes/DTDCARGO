@@ -1,8 +1,9 @@
 /** Pure validation/projection. SQL remains the authority for identity, scope and locks. */
 import { validateAuditReason } from "../audit/reason";
+import { STATUS_LABELS, type ShipmentStatus } from "../shipment-types";
 import type {
   CloseManifestInput, ConfirmMembershipInput, FixedMeasures, GroupSelection, NormalActionState,
-  NormalRpcError, NormalService, ObservedRates, ReceiptSelection,
+  NormalRpcError, NormalService, ObservedRates, ReceiptSelection, NormalTransitionInput, NormalNoteInput,
 } from "./types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -134,6 +135,51 @@ export function validateCloseManifestInput(raw: unknown): {
   if (!reason.ok) errors.reason = reason.error;
   if (Object.keys(errors).length) return { fieldErrors: errors };
   return { input: { containerId: containerId!, expectedContainerRevision: expectedContainerRevision!, reference: reference!, reason: reason.ok ? reason.reason : "" } };
+}
+
+function expectedShipment(raw: unknown) {
+  const value = record(raw); const errors: Record<string, string> = {};
+  const shipmentId = uuid(value?.shipmentId); const reference = uuid(value?.reference);
+  const expectedGroupRevision = revision(value?.expectedGroupRevision); const expectedContainerRevision = revision(value?.expectedContainerRevision);
+  const expectedStatus = typeof value?.expectedStatus === "string" && Object.prototype.hasOwnProperty.call(STATUS_LABELS, value.expectedStatus)
+    ? value.expectedStatus as ShipmentStatus : null;
+  const reason = validateAuditReason(value?.reason);
+  if (!shipmentId || expectedGroupRevision === null || expectedGroupRevision < 1 || expectedContainerRevision === null || expectedContainerRevision < 1 || !expectedStatus) {
+    errors.revision = "Actualiza la identidad y las revisiones del envío.";
+  }
+  if (!reference) errors.reference = "Conserva una referencia válida para este intento.";
+  if (!reason.ok) errors.reason = reason.error;
+  return { value, errors, shipmentId, reference, expectedGroupRevision, expectedContainerRevision, expectedStatus, reason };
+}
+export function validateNormalTransition(raw: unknown): { input?: NormalTransitionInput; fieldErrors?: Record<string, string> } {
+  const parsed = expectedShipment(raw); const { value, errors } = parsed;
+  const operation = value?.operation;
+  if (operation !== "transit" && operation !== "release_ve" && operation !== "dispatch_ve") errors.operation = "Operación no disponible en este camino.";
+  if (value?.deliveryAddress !== undefined && (typeof value.deliveryAddress !== "string" || value.deliveryAddress.length > 2000)) errors.deliveryAddress = "Revisa la dirección.";
+  if (value?.note !== undefined && (typeof value.note !== "string" || value.note.length > 1000)) errors.note = "La nota admite hasta 1000 caracteres.";
+  if (Object.keys(errors).length) return { fieldErrors: errors };
+  return { input: { shipmentId: parsed.shipmentId!, reference: parsed.reference!, expectedStatus: parsed.expectedStatus!,
+    expectedGroupRevision: parsed.expectedGroupRevision!, expectedContainerRevision: parsed.expectedContainerRevision!,
+    operation: operation as NormalTransitionInput["operation"], reason: parsed.reason.ok ? parsed.reason.reason : "",
+    ...(typeof value?.deliveryAddress === "string" ? { deliveryAddress: value.deliveryAddress.trim() } : {}),
+    ...(typeof value?.note === "string" ? { note: value.note.trim() } : {}) } };
+}
+export function transitionRpcArgs(input: NormalTransitionInput) {
+  return { p_shipment_id: input.shipmentId, p_operation: input.operation, p_expected_status: input.expectedStatus,
+    p_expected_group_revision: input.expectedGroupRevision, p_expected_container_revision: input.expectedContainerRevision,
+    p_reference: input.reference, p_reason: input.reason, p_delivery_address: input.deliveryAddress || null, p_note: input.note || null };
+}
+export function validateNormalNote(raw: unknown): { input?: NormalNoteInput; fieldErrors?: Record<string, string> } {
+  const parsed = expectedShipment(raw); const note = typeof parsed.value?.note === "string" ? parsed.value.note.trim() : "";
+  if (!note || note.length > 1000) parsed.errors.note = "Escribe una nota de hasta 1000 caracteres.";
+  if (Object.keys(parsed.errors).length) return { fieldErrors: parsed.errors };
+  return { input: { shipmentId: parsed.shipmentId!, reference: parsed.reference!, expectedStatus: parsed.expectedStatus!,
+    expectedGroupRevision: parsed.expectedGroupRevision!, expectedContainerRevision: parsed.expectedContainerRevision!,
+    reason: parsed.reason.ok ? parsed.reason.reason : "", note } };
+}
+export function noteRpcArgs(input: NormalNoteInput) {
+  return { p_shipment_id: input.shipmentId, p_expected_status: input.expectedStatus, p_expected_group_revision: input.expectedGroupRevision,
+    p_expected_container_revision: input.expectedContainerRevision, p_reference: input.reference, p_note: input.note, p_reason: input.reason };
 }
 
 /** No Number conversion: the maximum generated SQL numeric can exceed safe cents. */

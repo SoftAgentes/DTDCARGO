@@ -131,7 +131,7 @@ comment on table dtd_client_normal.intentions is
   'Atestación P4: intención estructurada y huella de servidor. Replay histórico sin mutación, evento, fecha o aviso nuevos. No contiene nombre/dirección/evidencia POD.';
 create table dtd_client_normal.contexts (
   transaction_id bigint not null, backend_pid integer not null, operation text not null,
-  actor_id uuid, operario_id uuid, container_id uuid, occurred_at timestamptz not null default clock_timestamp(),
+  actor_id uuid, operario_id uuid, container_id uuid, od_id uuid, occurred_at timestamptz not null default clock_timestamp(),
   shipment_ids uuid[] not null default '{}', receipt_ids uuid[] not null default '{}', box_ids uuid[] not null default '{}',
   primary key (transaction_id, backend_pid, operation)
 );
@@ -168,8 +168,16 @@ create table dtd_client_normal.plan_inputs (
 create table dtd_client_normal.function_contracts (
   signature text primary key, private_name text not null unique, body_md5 text not null,
   owner_oid oid not null, acl pg_catalog.aclitem[], argument_names text[], argument_types oidvector,
-  result_type oid not null, returns_set boolean not null, default_count smallint not null
+  result_type oid not null, returns_set boolean not null, default_count smallint not null, composed_body_md5 text
 );
+create table dtd_client_normal.pod_intentions (
+  tenant_id uuid not null references public.tenants(id) on delete restrict,
+  request_ref text not null, operario_id uuid not null references public.operario_pins(id) on delete restrict,
+  request_hash text not null, observed_membership jsonb not null, result jsonb not null, occurred_at timestamptz not null,
+  primary key(tenant_id,request_ref)
+);
+comment on table dtd_client_normal.pod_intentions is
+  'Replay v2 de cohorte, incluso POD parcial. Sólo huella de la solicitud, vector observado y resultado sin PII cruda. No cierra al repetir una captura histórica parcial.';
 do $private_tables$
 declare v_table text;
 begin
@@ -456,7 +464,7 @@ begin
 end $fn$;
 create function public.operario_action(p_operario_id uuid,p_action_type text,p_payload jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = '' as $fn$
-declare v_op public.operario_pins; v_receipt public.warehouse_receipts_cn; v_id uuid; v_result jsonb; v_cohort boolean:=false;
+declare v_op public.operario_pins; v_receipt public.warehouse_receipts_cn; v_id uuid; v_result jsonb; v_cohort boolean:=false; v_partial boolean:=false;
 begin
   if p_action_type='edit_receipt' then
     v_id:=(p_payload->>'receipt_id')::uuid;
@@ -472,10 +480,13 @@ begin
       insert into dtd_client_normal.contexts(transaction_id,backend_pid,operation,operario_id,receipt_ids)
         values(txid_current(),pg_backend_pid(),'receipt_edit',p_operario_id,array[v_id]);
     end if;
+  elsif p_action_type='partial_delivery' then
+    v_partial:=dtd_client_normal.prepare_partial_delivery(p_operario_id,(p_payload->>'od_id')::uuid,(p_payload->>'package_id')::uuid);
   end if;
-  -- Every other branch and every legacy receipt keeps the checked original.
+  -- Capture/status decisions still run through the checked original body.
   v_result:=dtd_client_normal.legacy_operario_action(p_operario_id,p_action_type,p_payload);
   if v_cohort then delete from dtd_client_normal.contexts where transaction_id=txid_current() and backend_pid=pg_backend_pid() and operation='receipt_edit'; end if;
+  if v_partial then delete from dtd_client_normal.contexts where transaction_id=txid_current() and backend_pid=pg_backend_pid() and operation='pod_package'; end if;
   return v_result;
 end $fn$;
 create constraint trigger client_normal_receipt_roster after insert or update on public.warehouse_receipts_cn
@@ -1293,17 +1304,20 @@ begin
 end $fn$;
 
 -- Timeline notes record the current state; they cannot manufacture a milestone.
-create function public.client_consolidation_note(p_shipment_id uuid,p_expected_status text,p_reference uuid,p_note text,p_reason text) returns jsonb
+create function public.client_consolidation_note(p_shipment_id uuid,p_expected_status text,p_expected_group_revision bigint,
+  p_expected_container_revision bigint,p_reference uuid,p_note text,p_reason text) returns jsonb
 language plpgsql volatile security definer set search_path = '' as $fn$
 declare v_tenant uuid:=public.get_user_tenant_id(); v_actor uuid:=auth.uid(); v_note text:=nullif(btrim(p_note),'');
   v_reason text:=nullif(btrim(p_reason),''); v_group dtd_client_normal.groups; v_intent jsonb; v_existing dtd_client_normal.intentions;
-  v_status public.shipment_status; v_now timestamptz; v_result jsonb;
+  v_status public.shipment_status; v_meta dtd_client_normal.containers; v_now timestamptz; v_result jsonb;
 begin
   if v_tenant is null or v_actor is null then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
-  if p_reference is null or p_expected_status is null or v_note is null or char_length(v_note)>1000
+  if p_reference is null or p_expected_status is null or p_expected_group_revision is null or p_expected_group_revision<1
+    or p_expected_container_revision is null or p_expected_container_revision<1 or v_note is null or char_length(v_note)>1000
     or v_reason is null or char_length(v_reason) not between 4 and 1000 then perform dtd_client_normal.fail('NORMAL_CONFLICT'); end if;
   if not exists(select 1 from dtd_client_normal.groups g where g.shipment_id=p_shipment_id and g.tenant_id=v_tenant) then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
   v_intent:=jsonb_build_object('operation','note','shipmentId',p_shipment_id,'expectedStatus',p_expected_status,
+    'groupRevision',p_expected_group_revision,'containerRevision',p_expected_container_revision,
     'noteHash',dtd_client_normal.content_hash(v_note),'reason',v_reason);
   perform pg_advisory_xact_lock(hashtextextended('client-normal-intent:'||v_tenant::text||':'||p_reference::text,0));
   select * into v_existing from dtd_client_normal.intentions where tenant_id=v_tenant and reference=p_reference;
@@ -1315,8 +1329,12 @@ begin
   if not dtd_client_normal.module_allowed(v_tenant,'tracking',true) then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
   select * into strict v_group from dtd_client_normal.groups where shipment_id=p_shipment_id;
   perform 1 from public.consolidations where id=v_group.container_id and tenant_id=v_tenant for update;
+  select * into strict v_meta from dtd_client_normal.containers where container_id=v_group.container_id for update;
+  select * into strict v_group from dtd_client_normal.groups where id=v_group.id for update;
   select status into v_status from public.shipments where id=p_shipment_id and tenant_id=v_tenant and deleted_at is null for update;
-  if not found or v_status::text<>p_expected_status then perform dtd_client_normal.fail('NORMAL_CONFLICT'); end if;
+  if not found or v_status::text<>p_expected_status or v_meta.revision<>p_expected_container_revision or v_group.revision<>p_expected_group_revision then
+    perform dtd_client_normal.fail('NORMAL_CONFLICT'); end if;
+  perform dtd_client_normal.assert_identity(v_group.container_id,v_meta.seal_id is not null);
   v_now:=clock_timestamp();
   insert into dtd_client_normal.contexts(transaction_id,backend_pid,operation,actor_id,container_id,shipment_ids,occurred_at)
     values(txid_current(),pg_backend_pid(),'note',v_actor,v_group.container_id,array[p_shipment_id],v_now);
@@ -1779,6 +1797,241 @@ begin
   return v_result;
 end $fn$;
 
--- Remaining complete POD, Portal and ACL/postflight composition follows.
+-- POD v1 keeps its current body/ACL/caller and never closes shipments. The
+-- additional clock/fence applies only to new-cohort evidence, without requiring
+-- a seal or complete delivery to capture a valid partial POD.
+create function dtd_client_normal.pod_containers(p_od uuid) returns uuid[]
+language sql stable security definer set search_path = '' as $fn$
+  select coalesce(array_agg(distinct g.container_id order by g.container_id),'{}'::uuid[])
+  from public.dispatch_order_packages p join dtd_client_normal.members m
+    on p.package_kind='warehouse_receipt_cn' and m.receipt_id=p.package_id
+  join dtd_client_normal.groups g on g.id=m.group_id where p.od_id=p_od
+$fn$;
+create function dtd_client_normal.lock_pod_containers(p_containers uuid[]) returns void
+language plpgsql security definer set search_path = '' as $fn$
+declare v_container uuid;
+begin
+  foreach v_container in array p_containers loop
+    perform 1 from public.consolidations where id=v_container for update;
+    -- A real row write, not just an advisory lock, closes stale RR snapshots.
+    -- No business revision, membership, seal or previous event time changes.
+    update public.consolidations set updated_at=clock_timestamp() where id=v_container;
+  end loop;
+end $fn$;
+
+create function dtd_client_normal.prepare_partial_delivery(p_operario uuid,p_od uuid,p_receipt uuid) returns boolean
+language plpgsql security definer set search_path = '' as $fn$
+declare v_group dtd_client_normal.groups; v_op public.operario_pins;
+begin
+  select g.* into v_group from dtd_client_normal.groups g join dtd_client_normal.members m on m.group_id=g.id
+    join public.dispatch_order_packages p on p.package_kind='warehouse_receipt_cn' and p.package_id=m.receipt_id
+    where m.receipt_id=p_receipt and p.od_id=p_od;
+  if not found then return false; end if;
+  select * into v_op from public.operario_pins where id=p_operario;
+  if not coalesce(v_op.active and v_op.region='ve' and v_op.tenant_id=v_group.tenant_id
+    and ('camionero'=any(v_op.roles) or 'supervisor'=any(v_op.roles)),false)
+    or not exists(select 1 from public.dispatch_orders where id=p_od and tenant_id=v_group.tenant_id) then
+    return false; -- Original function preserves its own authorization errors.
+  end if;
+  perform dtd_client_normal.lock_pod_containers(array[v_group.container_id]);
+  perform 1 from public.dispatch_orders where id=p_od for update;
+  insert into dtd_client_normal.contexts(transaction_id,backend_pid,operation,operario_id,container_id,od_id,receipt_ids)
+    values(txid_current(),pg_backend_pid(),'pod_package',p_operario,v_group.container_id,p_od,array[p_receipt]);
+  return true;
+end $fn$;
+
+create function dtd_client_normal.guard_dispatch_package() returns trigger
+language plpgsql security definer set search_path = '' as $fn$
+declare v_receipts uuid[]:='{}'; v_containers uuid[]; v_group record; v_row jsonb;
+begin
+  if tg_op<>'INSERT' and old.package_kind='warehouse_receipt_cn' then v_receipts:=v_receipts||old.package_id; end if;
+  if tg_op<>'DELETE' and new.package_kind='warehouse_receipt_cn' then v_receipts:=v_receipts||new.package_id; end if;
+  select coalesce(array_agg(distinct g.container_id order by g.container_id),'{}'::uuid[]) into v_containers
+    from dtd_client_normal.members m join dtd_client_normal.groups g on g.id=m.group_id where m.receipt_id=any(v_receipts);
+  perform dtd_client_normal.lock_pod_containers(v_containers);
+  for v_group in select g.*,m.receipt_id,s.status::text shipment_status from dtd_client_normal.members m
+    join dtd_client_normal.groups g on g.id=m.group_id join public.shipments s on s.id=g.shipment_id where m.receipt_id=any(v_receipts) loop
+    if tg_op<>'DELETE' then
+      select to_jsonb(d) into v_row from public.dispatch_orders d where d.id=new.od_id;
+      if v_row->>'tenant_id' is distinct from v_group.tenant_id::text then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
+      if tg_op='INSERT' and new.delivery_status<>'pendiente' then perform dtd_client_normal.fail('NORMAL_GOVERNED'); end if;
+      if tg_op='UPDATE' and new.delivery_status is distinct from old.delivery_status and not exists(
+        select 1 from dtd_client_normal.contexts c where c.transaction_id=txid_current() and c.backend_pid=pg_backend_pid()
+          and c.operation='pod_package' and c.od_id=old.od_id and old.package_id=any(c.receipt_ids)
+          and c.container_id=v_group.container_id) then perform dtd_client_normal.fail('NORMAL_GOVERNED'); end if;
+    end if;
+    if v_group.shipment_status='delivered' and (tg_op='DELETE' or tg_op='INSERT'
+      or (to_jsonb(new)-array['markbox','client_name','delivery_status','delivery_reason'])
+        is distinct from (to_jsonb(old)-array['markbox','client_name','delivery_status','delivery_reason'])) then
+      perform dtd_client_normal.fail('NORMAL_GOVERNED');
+    end if;
+  end loop;
+  if tg_op='DELETE' then return old; end if; return new;
+end $fn$;
+create trigger aa_client_normal_dispatch_package before insert or update or delete on public.dispatch_order_packages
+for each row execute function dtd_client_normal.guard_dispatch_package();
+
+create function dtd_client_normal.guard_pod_capture() returns trigger
+language plpgsql security definer set search_path = '' as $fn$
+declare v_containers uuid[]; v_clock timestamptz;
+begin
+  v_containers:=dtd_client_normal.pod_containers(new.od_id);
+  if cardinality(v_containers)=0 then return new; end if;
+  if not exists(select 1 from public.operario_pins o join public.dispatch_orders d on d.tenant_id=o.tenant_id
+    where o.id=new.created_by_operario_id and o.active and o.region='ve' and o.role in('camionero','supervisor')
+      and d.id=new.od_id and d.tenant_id=new.tenant_id) then perform dtd_client_normal.fail('NORMAL_FORBIDDEN'); end if;
+  perform dtd_client_normal.lock_pod_containers(v_containers);
+  select c.occurred_at into v_clock from dtd_client_normal.contexts c where c.transaction_id=txid_current()
+    and c.backend_pid=pg_backend_pid() and c.operation='pod_capture' and c.operario_id=new.created_by_operario_id and c.od_id=new.od_id;
+  new.created_at:=coalesce(v_clock,clock_timestamp());
+  return new;
+end $fn$;
+-- Runs before 0300 dispatch_pods_guard_trg: the existing seal includes this time.
+create trigger aa_client_normal_pod_capture before insert on public.dispatch_pods
+for each row execute function dtd_client_normal.guard_pod_capture();
+
+create function dtd_client_normal.pod_coverage(p_group uuid) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $fn$
+declare v_group dtd_client_normal.groups; v_meta dtd_client_normal.containers; v_hint text; v_count integer;
+begin
+  select * into strict v_group from dtd_client_normal.groups where id=p_group;
+  select * into v_meta from dtd_client_normal.containers where container_id=v_group.container_id;
+  if v_meta.seal_id is null then return jsonb_build_object('complete',false,'reason','seal_pending'); end if;
+  begin
+    perform dtd_client_normal.assert_identity(v_group.container_id,true);
+  exception when sqlstate 'P0001' then
+    get stacked diagnostics v_hint=pg_exception_hint;
+    if v_hint is distinct from 'dtd-client-normal' then raise; end if;
+    return jsonb_build_object('complete',false,'reason','identity_pending');
+  end;
+  select count(*) into v_count from dtd_client_normal.members where group_id=p_group;
+  if v_count=0 then return jsonb_build_object('complete',false,'reason','membership_pending'); end if;
+  -- Each receipt needs ONE full row across ALL ODs. Sums of fractions, even
+  -- equal to the fixed count, cannot prove non-overlapping physical box IDs.
+  if exists(select 1 from dtd_client_normal.members m where m.group_id=p_group and
+    (select count(*) from public.dispatch_order_packages p where p.package_kind='warehouse_receipt_cn' and p.package_id=m.receipt_id)<>1) then
+    return jsonb_build_object('complete',false,'reason','coverage_not_unique'); end if;
+  if exists(select 1 from dtd_client_normal.members m join public.dispatch_order_packages p
+    on p.package_kind='warehouse_receipt_cn' and p.package_id=m.receipt_id left join public.dispatch_orders d on d.id=p.od_id
+    where m.group_id=p_group and (d.tenant_id is distinct from v_group.tenant_id or d.status::text not in('en_ruta','entregada')
+      or p.boxes_total<>m.boxes or p.boxes_shipped<>m.boxes or p.delivery_status<>'entregado')) then
+    return jsonb_build_object('complete',false,'reason','delivery_pending'); end if;
+  if exists(select 1 from dtd_client_normal.members m join public.dispatch_order_packages p
+    on p.package_kind='warehouse_receipt_cn' and p.package_id=m.receipt_id where m.group_id=p_group and not exists(
+      select 1 from public.dispatch_pods pod where pod.tenant_id=v_group.tenant_id and pod.od_id=p.od_id
+        and (pod.package_id is null or pod.package_id=p.package_id) and pod.evidence_version=1
+        and nullif(btrim(pod.photo_path),'') is not null and nullif(btrim(pod.signature_path),'') is not null
+        and nullif(btrim(pod.received_by),'') is not null and public.dispatch_pod_hash_valid(pod.id) is true)) then
+    return jsonb_build_object('complete',false,'reason','pod_pending'); end if;
+  return jsonb_build_object('complete',true,'sealId',v_meta.seal_id,'containerRevision',v_meta.revision,'groupRevision',v_group.revision);
+end $fn$;
+
+select dtd_client_normal.move_original('public.camionero_pod_v2(uuid,uuid,uuid,text,text,text,text,text,text,numeric,numeric,numeric,text)',
+  'legacy_camionero_pod_v2','52fedc4c33bc71b1483e7fb4192b4940');
+-- One checked injection: retain capture/validation and legacy closure literally;
+-- the normal group is closed only by the complete, global proof below.
+do $compose_pod$
+declare v_oid oid:='dtd_client_normal.legacy_camionero_pod_v2(uuid,uuid,uuid,text,text,text,text,text,text,numeric,numeric,numeric,text)'::regprocedure;
+  v_def text; v_anchor text:=E'    -- Ya entregado: idempotente, no es error (dos PODs de la misma OD).';
+begin
+  v_def:=pg_get_functiondef(v_oid);
+  if (length(v_def)-length(replace(v_def,v_anchor,'')))/length(v_anchor)<>1 then raise exception '0502: ancla POD0336 distinta'; end if;
+  v_def:=replace(v_def,v_anchor,E'    if exists(select 1 from dtd_client_normal.groups g where g.shipment_id=v_shipment.id) then continue; end if;\n'||v_anchor);
+  execute v_def;
+  update dtd_client_normal.function_contracts set composed_body_md5=(select md5(replace(prosrc,E'\r\n',E'\n')) from pg_proc where oid=v_oid)
+    where private_name='legacy_camionero_pod_v2';
+end $compose_pod$;
+
+create function public.camionero_pod_v2(p_operario_id uuid,p_od_id uuid,p_package_id uuid,p_photo_path text,p_signature_path text,
+  p_received_by text,p_received_doc text,p_notes text,p_request_ref text,p_pod_lat numeric default null,p_pod_lng numeric default null,
+  p_pod_accuracy_m numeric default null,p_pod_gps_status text default null) returns jsonb
+language plpgsql security definer set search_path = '' as $fn$
+declare v_op public.operario_pins; v_containers uuid[]; v_group record; v_existing dtd_client_normal.pod_intentions;
+  v_hash text; v_ref text:=nullif(btrim(p_request_ref),''); v_result jsonb; v_coverage jsonb; v_observed jsonb;
+  v_pending jsonb:='[]'; v_closed uuid[]:='{}'; v_pod uuid; v_now timestamptz; v_status text;
+begin
+  select * into v_op from public.operario_pins where id=p_operario_id;
+  -- Match the scalar-role POD0336 authority; this does not inherit the
+  -- different roles-array contract used by partial_delivery in 0072.
+  if not coalesce(v_op.active and v_op.region='ve' and v_op.role in('camionero','supervisor'),false)
+    or not exists(select 1 from public.dispatch_orders where id=p_od_id and tenant_id=v_op.tenant_id) then
+    return dtd_client_normal.legacy_camionero_pod_v2(p_operario_id,p_od_id,p_package_id,p_photo_path,p_signature_path,
+      p_received_by,p_received_doc,p_notes,p_request_ref,p_pod_lat,p_pod_lng,p_pod_accuracy_m,p_pod_gps_status);
+  end if;
+  v_containers:=dtd_client_normal.pod_containers(p_od_id);
+  -- A cached cohort request stays historical even if a fresh read is partial.
+  -- Raw PII/photos/docs/notes are not copied to this protocol ledger.
+  v_hash:=dtd_client_normal.content_hash(jsonb_build_array('pod_v2',p_od_id,p_package_id,btrim(p_photo_path),btrim(p_signature_path),
+    btrim(p_received_by),nullif(btrim(p_received_doc),''),nullif(btrim(p_notes),''),p_pod_lat,p_pod_lng,p_pod_accuracy_m,p_pod_gps_status)::text);
+  if v_ref is not null then
+    perform pg_advisory_xact_lock(hashtextextended('client-normal-pod:'||v_op.tenant_id::text||':'||v_ref,578));
+    select * into v_existing from dtd_client_normal.pod_intentions where tenant_id=v_op.tenant_id and request_ref=v_ref;
+    if found then
+      if v_existing.operario_id<>p_operario_id or v_existing.request_hash<>v_hash then perform dtd_client_normal.fail('NORMAL_INTENT_CONFLICT'); end if;
+      return v_existing.result||jsonb_build_object('outcome','replay');
+    end if;
+  end if;
+  if cardinality(v_containers)=0 then
+    return dtd_client_normal.legacy_camionero_pod_v2(p_operario_id,p_od_id,p_package_id,p_photo_path,p_signature_path,
+      p_received_by,p_received_doc,p_notes,p_request_ref,p_pod_lat,p_pod_lng,p_pod_accuracy_m,p_pod_gps_status);
+  end if;
+  perform dtd_client_normal.lock_pod_containers(v_containers);
+  perform 1 from dtd_client_normal.groups where container_id=any(v_containers) order by id for update;
+  perform 1 from public.shipments s join dtd_client_normal.groups g on g.shipment_id=s.id
+    where g.container_id=any(v_containers) order by s.id for update of s;
+  perform 1 from public.dispatch_orders d where d.id=p_od_id or d.id in(select p.od_id from public.dispatch_order_packages p
+    join dtd_client_normal.members m on p.package_kind='warehouse_receipt_cn' and p.package_id=m.receipt_id
+    join dtd_client_normal.groups g on g.id=m.group_id where g.container_id=any(v_containers)) order by d.id for update;
+  perform 1 from public.dispatch_order_packages p where p.od_id=p_od_id or exists(select 1 from dtd_client_normal.members m
+    join dtd_client_normal.groups g on g.id=m.group_id where m.receipt_id=p.package_id and p.package_kind='warehouse_receipt_cn'
+      and g.container_id=any(v_containers)) order by p.od_id,p.package_id for update;
+  select coalesce(jsonb_agg(jsonb_build_object('groupId',g.id,'groupRevision',g.revision,'containerRevision',c.revision,'sealId',c.seal_id)
+    order by g.id),'[]'::jsonb) into v_observed from dtd_client_normal.groups g join dtd_client_normal.containers c on c.container_id=g.container_id
+    where g.container_id=any(v_containers);
+  v_now:=clock_timestamp();
+  insert into dtd_client_normal.contexts(transaction_id,backend_pid,operation,operario_id,od_id,occurred_at)
+    values(txid_current(),pg_backend_pid(),'pod_capture',p_operario_id,p_od_id,v_now);
+  v_result:=dtd_client_normal.legacy_camionero_pod_v2(p_operario_id,p_od_id,p_package_id,p_photo_path,p_signature_path,
+    p_received_by,p_received_doc,p_notes,p_request_ref,p_pod_lat,p_pod_lng,p_pod_accuracy_m,p_pod_gps_status);
+  v_pod:=(v_result->>'pod_id')::uuid;
+  select coalesce(array_agg(x::uuid),'{}'::uuid[]) into v_closed from jsonb_array_elements_text(v_result->'shipments_closed') x;
+  for v_group in select g.* from dtd_client_normal.groups g where g.container_id=any(v_containers)
+    and exists(select 1 from public.dispatch_order_packages p join dtd_client_normal.members m on m.receipt_id=p.package_id
+      where m.group_id=g.id and p.package_kind='warehouse_receipt_cn' and p.od_id=p_od_id) order by g.id loop
+    select status::text into v_status from public.shipments where id=v_group.shipment_id;
+    if v_status='delivered' then continue; end if;
+    v_coverage:=dtd_client_normal.pod_coverage(v_group.id);
+    if v_coverage->>'complete' is distinct from 'true' or v_status not in('out_for_delivery','last_mile') then
+      v_pending:=v_pending||jsonb_build_array(jsonb_build_object('shipmentId',v_group.shipment_id,'reason',
+        case when v_status not in('out_for_delivery','last_mile') then 'shipment_state_pending' else v_coverage->>'reason' end));
+      continue; -- A valid partial capture survives; no closure is inferred.
+    end if;
+    insert into dtd_client_normal.contexts(transaction_id,backend_pid,operation,operario_id,container_id,shipment_ids,occurred_at)
+      values(txid_current(),pg_backend_pid(),'pod',p_operario_id,v_group.container_id,array[v_group.shipment_id],v_now);
+    perform set_config('dtd.audit_reason','Entrega sellada por POD del camionero · ref '||v_ref,true);
+    perform set_config('dtd.ve_delivery_completion',v_ref,true);
+    perform set_config('dtd.ve_delivery_completion_shipment',v_group.shipment_id::text,true);
+    update public.shipments set status='delivered',pod_signed_by=btrim(p_received_by)
+      where id=v_group.shipment_id and tenant_id=v_op.tenant_id and status::text=v_status and deleted_at is null;
+    if not found then perform dtd_client_normal.fail('NORMAL_CONFLICT'); end if;
+    insert into public.shipment_events(tenant_id,shipment_id,status,note,created_by)
+      values(v_op.tenant_id,v_group.shipment_id,'delivered','Entrega del grupo completo sellado por POD',null);
+    perform public.append_audit_event(v_op.tenant_id,'shipment',v_group.shipment_id,'operario',p_operario_id,
+      'shipment_delivery_manually_confirmed','rpc','succeeded','Entrega sellada por POD del camionero · ref '||v_ref,
+      jsonb_build_object('status',v_status),jsonb_build_object('status','delivered'),
+      jsonb_build_object('request_ref',v_ref,'attestation_kind','dispatch_pod','pod_id',v_pod,'od_id',p_od_id,'coverage',v_coverage),
+      'client-normal-pod:'||v_group.shipment_id::text||':'||md5(v_ref),1,'restricted');
+    v_closed:=v_closed||v_group.shipment_id;
+    delete from dtd_client_normal.contexts where transaction_id=txid_current() and backend_pid=pg_backend_pid() and operation='pod';
+  end loop;
+  v_result:=v_result||jsonb_build_object('outcome','recorded','shipments_closed',to_jsonb(v_closed),'closed_count',cardinality(v_closed),
+    'normal_pending',v_pending,'occurred_at',v_now);
+  insert into dtd_client_normal.pod_intentions(tenant_id,request_ref,operario_id,request_hash,observed_membership,result,occurred_at)
+    values(v_op.tenant_id,v_ref,p_operario_id,v_hash,v_observed,v_result,v_now);
+  delete from dtd_client_normal.contexts where transaction_id=txid_current() and backend_pid=pg_backend_pid() and operation='pod_capture';
+  return v_result;
+end $fn$;
+
+-- Remaining Portal and ACL/pre/postflight composition follows.
 -- API ACL/owner and postflight are finalized with that complete body.
 commit;
