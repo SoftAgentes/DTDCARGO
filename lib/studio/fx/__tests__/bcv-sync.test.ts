@@ -99,6 +99,12 @@ describe("B7/B8/B16 · gates y ensayo inmutable", () => {
     expect(db.calls.map(c => c.url.pathname.split("/").at(-1))).toEqual(["tenants", "fx_rates", "bcv_rates_write_capability"]);
     expect(db.calls.every(c => c.method === "GET")).toBe(true); expect(db.obtain).toHaveBeenCalledTimes(1);
   });
+  it("B7 · rechaza 26 IDs válidos y únicos antes de crear el cliente", async () => {
+    const scope = Array.from({ length: 26 }, (_, i) => `00000000-0000-4000-8000-${i.toString(16).padStart(12, "0")}`).join(",");
+    const db = database();
+    expect(await db.run({ scope })).toMatchObject({ status: "REJECTED", reason: "INVALID_SCOPE" });
+    expect(db.factory).not.toHaveBeenCalled(); expect(db.obtain).not.toHaveBeenCalled(); expect(db.calls).toHaveLength(0);
+  });
   it.each(["dryRun=", "dryRun=0", "dryRun=true", "dryRun=false", "dryRun=01", "dryRun=1&dryRun=1", "tenant=x", "token=x"])("query %s no cae a modo normal", query => {
     expect(() => parseBcvDryRun(new URLSearchParams(query))).toThrow();
   });
