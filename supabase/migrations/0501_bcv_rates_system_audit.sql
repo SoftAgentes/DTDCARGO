@@ -1,0 +1,10 @@
+-- SDD-0569 · RESERVA LOCAL COORDINADA · 2026-10-21.
+-- Autor: Worker worker-0569bcv-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
+-- Base: 1905aef75680a80055621cffd717198915d089f9.
+-- Inventario nativo previo: 502 refs + worktrees; siguiente SQL 0501.
+-- Stub de autoría: todavía no implementa ni instala el contrato.
+-- Pendiente: rama estrecha audit_fx_rate_change BCV/VES/SYSTEM/job,
+-- motivo DB fijo y capability STABLE/INVOKER service-only con huellas fijas.
+-- No editar/reaplicar 0495 ni alterar append global, manual/operacion/CNY.
+-- Pruebas SQL/HTTP NO EJECUTADAS. No aplicar este stub a ningún entorno.
+-- Producción exige paquete final revisado y OK nominal de Sam por runbook.

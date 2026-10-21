@@ -4,7 +4,7 @@ title: "Un solo conversor a USD, que falla cerrado, y una tabla de tasas con fue
 status: in-progress
 author: "founder"
 created: 2026-10-20
-updated: 2026-10-20
+updated: 2026-10-21
 supersedes: null
 superseded_by: null
 related: ["0557", "0563", "0496"]
@@ -324,3 +324,79 @@ Cada hallazgo se confirmó con su prueba en rojo antes de corregirlo, y tiene su
 ## Validación
 
 Ver el handoff `.agents/handoffs/0569-conversor-usd-tasas.md`.
+
+## Continuación BCV diario · 2026-10-21 · Worker aislado
+
+**EN PROGRESO: autoría ligera autorizada; producto y conformidad pendientes de ejecución.** Esta continuación conserva los resultados históricos de la tabla/conversor y no los atribuye al importador nuevo. La0495 aplicada permanece inmutable. Su razónNULL en INSERT y source rpc no bastan para la auditoría R3 del nuevo job: el Director aprobó una SQL aditiva estrecha0501 y capability GET service-only, con motivo fijo generado en DB/source job para el contexto verificado.
+
+Raíz propia `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0569-bcv-carga-diaria`, rama `codex/sdd-0569-bcv-carga-diaria`, base literal C3 `1905aef75680a80055621cffd717198915d089f9`, owner `worker-0569bcv-01a15a4e-ddf0-7d82-8656-d9dc56b58468`. El handoff propio `.agents/handoffs/0569-bcv-carga-diaria.md` conserva íntegros encargo c477, addendum87589 y activación93c4. No incluye0573 ni carril de embarques.
+
+Inventario nativo actualizado antes de stub:502refs+worktrees, siguienteSQL0501 y spec0578, exit0, sin aviso de fetch incompleto. Recibo externo `0569-bcv-validation/inventario-0501-antes-stub.txt`, SHA256 `bce71f1d1d907de38a2ef820272a70c488a9e4d4dd11d3d5d079ed51d0d91dfb`.0501 queda reservada localmente con stub en esta rama; no es implementación, aplicación ni respaldo remoto. Reutiliza0569; no reserva0578.
+
+### Resultado y aceptación de esta continuación
+
+- Fuente constante BCV HTTPS normal, parser parse5 directo8.0.1, bloque/USD/FechaValor únicos y coherentes; decimal textual completo hasta8fracciones, >0 y <1e12. No Number/parseFloat/redondeo de tasa.
+- Fecha exactamente hoyCaracas capturada; futura espera, anterior no satisface hoy y día cambiado detiene pendientes. Fuente20s/1MiB/hasta2redirects canónicos, deadline común50s/cancelación/retry(false),24ticks nominales5 * * * * sin cron instalado.
+- Bearer y query estrictos antes de IO; normalOFF ceroIO. Scope servidor UUIDúnicos/cap25, SELECTid exacto y snapshotBCV/VES/hoy íntegro textual antes de fuente. DryRun exige capability válida inclusoOFF antes de fetch/candidata y nunca muta.
+- INSERT directo sin upsert, correcciónCAS por identidad/clave/rate/set_at observados y nuevo set_at explícito. UNCHANGED requiere relectura; incertidumbre solo reconcilia por lectura o UNKNOWN, detiene lo restante y conserva conteos. Sin garantíaABA/exactly-once/frescura editorial/cuota global.
+- SQL0501 conserva trigger/append real atómico y cuatro claves auditadas sin note/set_by; contexto rol nativo+claimsJSONsin sub+auth.uidNULL, motifijo/sourcejob solo BCV/VES/SYSTEM. Motivos humanos y manual/operacion/CNY/documentos intactos. Capability no inmovilizaDDL ni atesta exclusividad del cron.
+- B1–B19 del prevuelo y R1–R14 de auditoría obligatorios con B10 sourcejob/motivo y B16 ensayo estricto del addendum. SDK real con proxy404/503/truncado/ACKperdido, SQL/PGlite/HTTPPG17.11/PostgREST14.17, compatibilidad0495, focales/mutantes/UI y revisión independiente porSHA. No ROJO por módulos nuevos ausentes.
+
+Primero instalación congelada propia y baseline cron/UI bajo turno; después gate pequeño HTTP del contexto dentro del trigger definer con servicio sin sub positivo, humano positivo y negativos. Si no acredita la candidata, detener esa parte y volver al Director. Cron/UI/package/lock existentes se preservan hasta sus gates. El único pesado pertenece ahora a0574.
+
+### Allowlist exacta de esta continuación ·31rutas
+
+~~~~text
+app/api/cron/bcv-rates/route.ts
+app/api/cron/bcv-rates/__tests__/route.test.ts
+lib/studio/fx/bcv-types.ts
+lib/studio/fx/bcv-parser.ts
+lib/studio/fx/bcv-source.ts
+lib/studio/fx/bcv-sync.ts
+lib/studio/fx/__tests__/bcv-parser.test.ts
+lib/studio/fx/__tests__/bcv-source.test.ts
+lib/studio/fx/__tests__/bcv-sync.test.ts
+lib/studio/fx/__tests__/bcv-persistence.migration.test.ts
+lib/studio/fx/__tests__/fixtures/bcv-usd-20261021.html
+lib/studio/fx/__tests__/fixtures/bcv-decoys.html
+lib/studio/fx/__tests__/fixtures/bcv-ambiguous.html
+scripts/tests/bcv-rates-postgrest.mjs
+scripts/build-crontab.mjs
+scripts/__tests__/build-crontab.test.ts
+infra/dtd-cargo/cron/crontab
+package.json
+pnpm-lock.yaml
+app/studio/(app)/admin/_components/ExchangeRatesSection.tsx
+app/studio/(app)/admin/_components/ExchangeRatesSection.test.tsx
+docs/runbooks/bcv-tasas-diarias.md
+docs/runbooks/servidor-contabo.md
+docs/specs/README.md
+docs/specs/0569-conversor-usd-tasas/spec.md
+.agents/handoffs/0569-bcv-carga-diaria.md
+supabase/pending-migration-symbol-declarations.json
+.env.example
+supabase/migrations/0501_bcv_rates_system_audit.sql
+supabase/tests/bcv_rates_system_audit.test.sql
+supabase/migrations-baseline.json
+~~~~
+
+La allowlist histórica de39rutas pertenece a la entrega anterior. Esta continuación solo edita las31 anteriores; regresiones leídas/ejecutadas no reciben permiso implícito de edición. Nueva ruta requiere coordinación previa.
+
+### SGE-00 · clasificación inicial de producto, sin excepción
+
+| Principio | Clasificación y evidencia pendiente |
+|---|---|
+|01 predecible|no conformidad todavía verificable: estados/casos B5/B9/B15 pendientes de ejecutar.|
+|02 conservación|no conformidad todavía verificable: CAS/manual/frozen B11/B14 pendientes.|
+|03 riesgo/fricción|cumplimiento del encargo: productoR3, autorización de automatización separada de producción; ejecución pendiente.|
+|04 auditoría|no conformidad del nuevo job hasta0501/R4/R5/R9; no se hereda conformidad histórica.|
+|05 permisos/tenant|no conformidad todavía verificable: bearer/scope/contexto/ACL B7/B8/R3 pendientes.|
+|06 prevención|no conformidad todavía verificable: parser/fecha/capability antes de DML pendientes.|
+|07 estado verdadero|no conformidad todavía verificable: UNKNOWN/reconciliación/conteos B12/B15 pendientes.|
+|08 pasos|no aplica a formulario nuevo: no se crea uno; respaldo existente debe conservarse enB18.|
+|09 patrón|no conformidad todavía verificable: helperCaracas/SDK/generador/componentes reales pendientes.|
+|10 accesibilidad|no conformidad todavía verificable: componente/teclado/disposiciónestrecha/clarooscuro pendientesB18.|
+|11 lenguaje|no conformidad todavía verificable: avisos y errores seguros pendientesB18.|
+|12 autoridad|cumplimiento del encargo: sin merge/deploy/DBreal/croninstalado ni activación productiva; prueba local no los autoriza.|
+
+Validación de esta continuación: harness/claim/guard y preimágenes31 PASARON como metadatos. Módulos ausentes inicialmente son AUSENTES. Instalación/baselines/producto/tests/SQLHTTP/UI/verify/conocimiento: **NO EJECUTADOS**. No interpretar el stub o la matriz como entrega funcional. Handoff y recibos externos conservan omisiones y límites.
