@@ -19,7 +19,7 @@ Trabajo local P1 autorizado por Director, owner worker-0578normal-01a15a4e-ddf0-
 
 Fuente ejecutable: 042-activacion-worker-0578-director.md, SHA256 1939a04752338b66bc5187961f8a1a216093dc6101fdb28771bec2efae607be4. El contrato íntegro y las fases/permisos/exclusiones están preservados en `.agents/handoffs/042-envio-cliente-camino-normal.md`; las secciones contractuales y su allowlist/aceptación se copian abajo sin alterar la fuente sellada.
 
-Checkpoint autoral P1-72 separado de cortes inmutables a6/b85: unión72 adoptada íntegra; sólo nueva presentación móvil0045 y fixture además del corte70. PR318 OPEN/DRAFT/baseD1,0502fusible/OFF sin deltaSQL; aceptación NO EJECUTADA. Plan4c52c6cb compone plan70/matriz/órdenes/oráculos y prueba focal móvil pendiente. Turno diagnósticoPortal reservado,0578 sin GO. No se certifica4.2 completo, capacidad activa o funcionamiento.
+Checkpoint autoral P1-72 claves no-op sobre792f: seis rutas de decisión06367e18, prepaso privado sólo gate y general con escritura durable única; catálogo/oráculos/mutantes para revisión. Misma unión72/PR318DRAFT/baseD1/fusible0502/cohorteOFF. P2 por fuente NO REPRODUCIDO y matrizA1–A18 NO EJECUTADA; ningún GO runtime o aceptación funcional. Planfdbd7dcd compone planes anteriores y siguiente frontera de revisión.
 
 ## Gobierno de permanencia y riesgo
 
@@ -1127,3 +1127,324 @@ La propuesta9a8397c8 antes fuera70 está incorporada sólo como autoría72. No e
 Plan actual externo `C:/tmp/director-traspaso-20261020/0578-normal-validation/plan-relevo-p1-72.md`,3640bytes/SHA256 `4c52c6cbfe4a17d65d6f5c11be494daec21fcdcabf5099fc44665693fb3a84f9` compone plan70 conservado22f41ffa y sólo añade focal de ruta72. Recibo inmutable70 `checkpoint-p1-70-b85d2ae7b-recibo.md`,3082bytes/SHA2567ff27293fecb03361dfc870784714b6715c1fe8c8e6a18b68f1675cd202b40a8 confirma push/GH318DRAFT/headb85/baseD1/70rutas/checks[]/body exacto antes de este delta. Recibo nuevo fija SHA/árbol/diffs/blob72/readback. Cambios rastreados del delta72: sólo estas dos rutas+spec/handoff, cuatro en total.
 
 Estado de turnos actualizado por Director: BCV GO05B FALLÓ+INCOMPLETO y recursos devueltos, turno siguiente reservado al diagnósticoPortal.0578 sigue sólo P1 sin GO; no tests/instalación/parser/tipos/lint/SQL/DB/Docker/HTTP/Auth/Storage/browser/UI/build/verify/conocimiento. Guard, copia literal/adopción/hash/diffcheck y preservación fuente son comprobaciones nativas/Git, no eficacia del código. Claim retenido, PRDRAFT, sin main/merge/deploy/prod/0495/activación4.2 ni cambios financieros4.3.
+
+
+## Adopción previa de informe y decisión P2 claves no-op
+
+Informe peer31488bytes/SHA c04d28b2a510788a82d33e01ecb48dd001f68228b307c522d5ba5bf4acf3a831 leído completo211líneas; salida inicial truncada completada79–137. Decisión Director4918bytes/SHA06367e187616599a10ea5c208461ad5bbe479587a406878cc8efc63f6b678dfb leída completa/cotejada. Copias íntegras abajo ANTES de editar producto/oráculos. Dirección concreta aprobada: prepaso sólo gate, general siempre escribe fence una vez; sustituye exclusivamente alternativa de doble UPSERT del peer§5.2. Es P2 por fuente NO REPRODUCIDO, sin aceptación funcional. Preimagen792f y seis rutas fijadas en claves-noop-preimagenes-792f.json. Misma unión72/claim/baseD1/fusible/OFF; no runtime.
+
+<!-- INFORME PEER FENCE 792 ÍNTEGRO INICIO -->
+# SDD-0578 · revisión independiente del fence b85 / 792
+
+2026-10-21. Revisor: `/root/revision_bcv_prevuelo`. Destinatario: Director. Sólo fuentes fijas, comparaciones textuales y documentación primaria; ninguna ejecución de producto, SQL o pruebas. Única escritura de esta revisión: este informe externo. BCV permanece quieto después del handoff documental b179363d; su claim retenido y GO05B FALLÓ/INCOMPLETO no cambian por esta lectura.
+
+**Dictamen acotado:** el fence durable de b85 corrige por mecanismo la lectura OFF antigua descrita en a6, incluso con scope antes ausente, y mueve el reloj después de la espera. Su aceptación RC/RR sigue **NO EJECUTADA**. F1 AUD por grupo y F2 locks 0184/POD conservan sus mecanismos corregidos; C1 de conjuntos/orden/top-N tiene ahora oráculos y mutantes específicos escritos. Encontré **un P2 material residual por fuente, NO REPRODUCIDO**: la entrada bloqueante para un UPDATE que nombra una clave sin cambiar su valor todavía permite la inversión fila→gate frente a gate→FK. Se detalla en §4, con solución prospectiva estrecha y oráculo futuro; no es un bypass de autoridad ni un deadlock medido.
+
+## 1. Corte, precedencia y lecturas efectivas
+
+- Base primaria D1: `1ec5e85f736b7826cf5b6e8781757dc4cf950733`.
+- Anterior a6: `a6a8c6c3601356d5647609ea1fa1ed5a8e7c8b44`.
+- Candidato: `b85d2ae7b8cbb7748df1a9bb02c8a97fc6488e24`.
+- Sucesor: `792f00a8d1d7883cce6ad7691eef74b2980382ea`.
+- Almacén de objetos leído: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`. No se usa el checkout mutable de 0578 como identidad del corte. Git se limitó a show/rev-parse/diff/cat-file de lectura; sin refs, commits, claims, checkout o configuración modificados.
+- Informe base leído **completo antes del delta**: `C:/tmp/director-traspaso-20261020/0578-revision-sql0502-a6a8c6c3-peer.md`, 24069 bytes, SHA256 `9de49eb3d7d47769eedcf94d52f2df30176a86ed5e0a82f2b1af0410c043fda4`. Sus resultados son antecedentes de lectura; no se hereda ejecución inexistente.
+- Decisión de fence leída completa: `0578-decision-fence-scope-rr-director.md`, SHA256 `3f0a4243cf244de6333a7919af15cf88de2a2dffe2239d297a6695c7f2f09c44`. Autoriza autoría previa, no aplicación o aceptación de este candidato.
+- Los cinco objetos asignados tienen el mismo blob en b85 y 792; diff exclusivo de esas rutas entre ambos terminó sin diferencias. La fixture estructural también es idéntica a a6. Las trece fuentes históricas enumeradas en §10 son idénticas entre D1 y b85, comprobado por diff fijo.
+
+| Fuente | Lectura humana efectivamente realizada |
+|---|---|
+| `supabase/migrations/0502_consolidacion_cliente_camino_normal.sql` en b85 | Delta a6→b85 completo, 103 inserciones/20 eliminaciones. Rangos actuales 1–674 y 1959–2468; incluye tablas/contexto/fence, guardas de recepción, wrappers 0045/0449, binding 0496, POD/F1/F2, Portal y ACL/postflight. No afirmo lectura humana íntegra de las 2468 líneas: 675–1958 sólo se inventarió por funciones y conserva fuera de este foco su revisión anterior. |
+| `scripts/check-client-consolidation-concurrency.mjs` | **Completo, 1–682**. |
+| `supabase/tests/consolidacion_cliente_normal.test.sql` | **Completo, 1–632**. |
+| `lib/studio/client-consolidation/__tests__/normal-path.migration.test.ts` | **Completo, 1–243**. |
+| `supabase/tests/_consolidacion_cliente_normal_schema.sql` | 1–85,704–716,735–825,1820–1843 e inventario de includes/funciones. Comparación textual completa de siete cuerpos copiados, separada de lectura humana completa. No afirmo releer las 1843 líneas de fixture. |
+|0045/0449/0184/0321/0336/0296| Cuerpos completos pertinentes:0045 1–163;0449 1–250;0184 1–159;0321 1–264;0336 1–335;0296 1–136. |
+|0068/0072/0211/0487/0496|0068 PODv1 71–156;0072 21–80,264–341,498–506;0211 19–22, además de otros fragmentos de su sweep;0487 90–282;0496 275–405,408–490,650–747. No se atribuye lectura íntegra de los archivos largos. |
+|0502 anterior a6| Relectura 264–290,430–479,509–521 para confrontar el cambio de decisión/validación; el informe base conserva sus demás rangos. |
+
+Las primeras salidas largas truncadas se completaron con rangos menores antes de cerrar las lecturas completas declaradas. No se interpretó output no visible como leído. Se aplicó la skill Supabase ya adoptada y se leyó `supabase-postgres-best-practices/SKILL.md` con sus referencias de orden de locks y advisory. Son apoyo de lectura, no permiso de runtime. La recomendación genérica de advisory no sustituye el fence durable aprobado: aquí la escritura de versión cumple una finalidad MVCC/RR adicional.
+
+## 2. F3 de a6 · mecanismo corregido y autoridad preservada
+
+En a6:268–269, `enrol_receipt` decidía con SELECT de scope y podía observar OFF bajo snapshot RR fijado antes de ON. Sus wrappers 440–441/459–460 también decidían por SELECT. Este antecedente sigue **NO REPRODUCIDO**; no se etiqueta ROJO dinámico.
+
+En b85:
+
+- `scope_fences`69–74 tiene PK `(tenant_id,warehouse_id)` y contador durable. No depende de FK a una scope visible ni elimina la fila al borrar/recrear configuración. El helper274–291 toma gate y después hace UPSERT con incremento real, no DO NOTHING. Puede confrontar una clave que no existía en el snapshot.
+- `guard_scope_configuration`292–316 reúne OLD/NEW, elimina duplicados y los ordena por tenant/warehouse. Configuración INSERT/UPDATE/DELETE participa en el mismo gate y escritura. DELETE y cambio efectivo de id/tenant/warehouse usan try; ON/OFF/starts_at ordinarios mantienen espera. Un retarget tenant/warehouse de scope ya usado rechaza NORMAL_GOVERNED; las FK/UNIQUE siguen decidiendo el DML real.
+- `enrol_receipt`325–328 pasa por el fence, **después** captura `clock_timestamp()` y consulta enabled/starts_at. Si está ON exige el contexto privado, identidad del writer y estado de nacimiento; también revalida operario CN activo/tenant340–342. Un caller directo antiguo no obtiene permiso por atravesar el gate.
+- El intake Studio589–592 toma ROW EXCLUSIVE de la mesa de recepciones **antes** de gate/fence y ya no añade FOR SHARE de scope después. Los wrappers 493–542 no consultan ON ni toman el fence antes de sus validadores originales; preparan sólo el principal privado y delegan al cuerpo preservado.
+
+La inferencia RC/RR está apoyada en la [documentación oficial de aislamiento PostgreSQL 17](https://www.postgresql.org/docs/17/transaction-iso.html): bajo RC ON CONFLICT DO UPDATE puede alcanzar la versión concurrente; bajo RR una modificación incompatible exige abortar/reintentar toda la transacción. `enrol_receipt` conserva volatilidad por defecto y el helper es VOLATILE explícito; las consultas internas no quedan etiquetadas STABLE. La regla de snapshots internos se consultó en [volatilidad de funciones](https://www.postgresql.org/docs/17/xfunc-volatility.html). Esto justifica el diseño por fuente; no acredita el SQLSTATE ni el estado final de una ejecución local.
+
+No se promete exclusión universal, disponibilidad diaria, ausencia total de deadlocks, exactly-once o protección frente a DDL concurrente. El gate no autoriza activar un ámbito nominal, enrolar historia o modificar una pertenencia ya nacida.
+
+## 3. Orden de locks leído y oráculos nuevos escritos
+
+| Camino | Orden por fuente / caso escrito |
+|---|---|
+|Intake Studio| Mesa `warehouse_receipts_cn` ROW EXCLUSIVE589 → advisory gate590 → UPSERT durable → decisión de scope → INSERT de cabecera605 → enrolamiento/fence reentrante325 → FK de scope344. |
+|Alta0045| Validadores0045:52–76 → DML INSERT de la línea 86 y lock implícito de mesa → trigger de nacimiento325 → gate/fence → decisión y FK. No adelantar fence para ocultar errores de cantidad/identidad. |
+|Recepción0449| Validadores de operario28–44 → SHARE ROW EXCLUSIVE de mesa48 → prealerta FOR UPDATE72 → cajas FOR UPDATE92 → INSERT109 → gate/fence/FK del nacimiento. |
+|Config no-clave ordinaria| UPDATE obtiene NO KEY UPDATE de fila; trigger adquiere gate bloqueante → fence. Ese modo de fila es compatible con KEY SHARE del FK. No se añade lock explícito de scope después del gate. |
+|DELETE/rekey efectivo| Fila puede estar bloqueada en modo incompatible antes de BEFORE; try del gate evita esperar en sentido inverso, o rechaza íntegramente NORMAL_CONFLICT. Claves OLD/NEW ordenadas. |
+
+El runner ahora escribe, **sin ejecución acreditada**:
+
+- `offToOnSnapshot`381–411: RC/RR, OFF real y ámbito/fence antes ausentes; snapshot fijado, ON confirmado antes del INSERT antiguo, rechazo o40001 admitido sólo con rollback y cero cabecera/cajas/marca. Retry fresco por intake, OFF posterior conserva cohorte nacida.
+- `birthBeforeConfig`414–438: ambos órdenes (birth OFF antes de ON e intake ON antes de OFF), espera real observada,40001 de configurador RR y retry del comando completo; compara la cabecera completa y clasificación/reloj anteriores.
+- `startsAfterWait`440–462: observa bloqueo antes de starts_at, espera la condición de reloj DB y confirma después; nacimiento antiguo debe rechazar y el intake fresco queda enrolado con reloj posterior. No usa una pausa sola como oráculo.
+- `receiptTableQueue`464–490: tres sesiones, ROW EXCLUSIVE antigua → SHARE ROW EXCLUSIVE0449 en cola → intake Studio. Coteja bloqueadores reales y estados finales, dos recepciones/cajas, sin enrolamiento inventado en OFF.
+- `scopeForeignKeyInversion`492–527: DELETE/rekey, RC/RR; retiene la fila y fuerza al intake real a esperar por FK. Exige estado/message/hint exactos de NORMAL_CONFLICT, rollback de la primera escritura cuando el rechazo ocurre en la segunda clave, luego birth confirmado y FK/retarget intactos. El caso modela el lock previo al BEFORE, no sustituye la FK por un lock inventado del producto.
+- SQL 286–335: ON/OFF repetidos, ambas claves, delete/recreate con fence persistente, historia de receipts igual, scope usado sin retarget y API sin permiso. SQL 324–334 y runner 530–562: rechazos0045/0449 antes de nacimiento mantienen causa y no dejan autoridad prestada; incluye cantidad/warehouseNULL/unknown box/already-received/opNULL/inactivo/VE/sin warehouse.
+
+El caso nuevo de §4 **no aparece** entre esos DELETE/rekey efectivos. No se le hereda cobertura desde ellos.
+
+## 4. P2 residual de fuente · clave nombrada sin cambio de valor
+
+**Estado: defecto material del mecanismo de contención por fuente, NO REPRODUCIDO.** No es bypass de enrolamiento, lectura de datos ajenos ni éxito parcial demostrado. Afecta al configurador nominal privado cuando nombra una clave en SET, aunque conserve el valor; no depende de que un rol API tenga acceso a scopes.
+
+0502:298–303 selecciona la entrada try según diferencias de valores: DELETE o `new.id/tenant_id/warehouse_id IS DISTINCT FROM old...`. Para `UPDATE ... SET id=id`, esas tres diferencias son falsas y el helper288 elige advisory bloqueante. Lo mismo puede suceder al reenviar warehouse_id o tenant_id iguales, incluso junto a un cambio real de enabled. La sintaxis actual admite esos comandos y ninguna guarda los excluye.
+
+Fuentes primarias PostgreSQL 17 consultadas, rangos **L de la vista textual** de REL_17_STABLE, sin atribuirlos al binario local no ejercido:
+
+| Pasaje primario | Hecho leído |
+|---|---|
+|[execUtils.c](https://raw.githubusercontent.com/postgres/postgres/REL_17_STABLE/src/backend/executor/execUtils.c), L1208–1225 yL1242–1254| ExecGetUpdatedCols toma el bitmap de columnas de la sentencia; ExecGetAllUpdatedCols lo combina con las generadas. No compara OLD/NEW. |
+|[execMain.c](https://raw.githubusercontent.com/postgres/postgres/REL_17_STABLE/src/backend/executor/execMain.c), L2268–2284| ExecUpdateLockMode intersecta ese bitmap con INDEX_ATTR_BITMAP_KEY; si hay intersección devuelve LockTupleExclusive. |
+|[trigger.c](https://raw.githubusercontent.com/postgres/postgres/REL_17_STABLE/src/backend/commands/trigger.c), L2827–2844, L2892–2923 yL3196–3199| Obtiene la fila con el modo calculado antes de invocar el BEFORE de usuario; GetTupleForTrigger usa table_tuple_lock con LockWaitBlock. |
+|[ri_triggers.c](https://raw.githubusercontent.com/postgres/postgres/REL_17_STABLE/src/backend/utils/adt/ri_triggers.c), L334–363 yL390–402| La comprobación FK de INSERT construye la consulta al padre con KEY SHARE; el enrolamiento0502:344 referencia scopes.id definido en76–80. |
+
+La documentación [CREATE TRIGGER, notas y parámetros](https://www.postgresql.org/docs/17/sql-createtrigger.html) distingue una columna nombrada de su cambio de valor; UPDATE OF se activa también cuando se asigna el mismo valor. La [tabla de locks de fila](https://www.postgresql.org/docs/17/explicit-locking.html) distingue el conflicto de FOR UPDATE con KEY SHARE y la compatibilidad de NO KEY UPDATE. No se ejecutó el ejemplo ni se obtuvo un 40P01 local.
+
+Intercalación sustentada, **resultado inferido**:
+
+1. Configuración obtiene el lock exclusivo de la fila de scope para un UPDATE que nombra id, aunque el valor final sea igual; el planificador/ejecutor ya eligió ese modo antes del BEFORE.
+2. Un intake posee el gate y ha escrito el fence; llega a insertar la marca y espera KEY SHARE de esa fila padre. Es el corte entre adquisición de fila y ejecución del trigger que ya modela el runner para DELETE/rekey.
+3. El BEFORE del configurador ve OLD=NEW en claves, escoge entrada bloqueante y espera el gate que mantiene el intake.
+4. Queda ciclo fila→gate y gate→FK/fila. El detector o timeout puede abortar una parte; no es el rechazo controlado previsto y el runner actual no mide esta variante.
+
+No se requiere afirmar un caller de producción que hoy emita ese UPDATE. El SQL prospectivo gobierna todo UPDATE permitido de esa relación privada; la omisión es demostrable en su selección de modo. No se eleva a P1 ni se presenta como incidencia productiva.
+
+## 5. Solución mínima prospectiva propuesta, todavía sin código ni autorización
+
+Conservar la espera ordinaria para UPDATE que **no nombre** id/tenant_id/warehouse_id. Detectar por definición de trigger las claves nombradas, sin interpretar texto de consulta, claims, GUC de aplicación o diferencias de valores como sustituto del bitmap sintáctico.
+
+Una opción acotada, para decisión del Director/Writer:
+
+1. Añadir un BEFORE UPDATE OF `id,tenant_id,warehouse_id` a scopes que se ejecute alfabéticamente **antes** del guard general. Puede reutilizar `guard_scope_configuration` con argumento literal de trigger que fuerce try, o un helper privado equivalente. Ese argumento nace del catálogo controlado por owner; no de p_input/browser. No se presupone una variable PL/pgSQL inexistente para leer columnas actualizadas.
+2. Su primera entrada deduplica/ordena las mismas claves OLD/NEW y toma **try gate → UPSERT** o falla con la terna existente NORMAL_CONFLICT. El guard general se mantiene para INSERT/DELETE y todo UPDATE, incluidos los no-clave ON/OFF/starts_at. Si ambos BEFORE se ejecutan, el general entra sobre gates ya poseídos por la misma transacción; su segunda escritura técnica no renueva historia o relojes de negocio. Evitar agregar estado de autoridad sólo para omitir esa segunda pasada.
+3. No generalizar try a todos los UPDATE, no retirar FK/UNIQUE, no devolver OFF/éxito ante conflicto y no cambiar bodies0045/0449/0184/0496. Conservar el rechazo de retarget usado y el orden estable de varias claves. La clasificación por diferencia de valor puede seguir como defensa, pero no como único detector de UPDATE con lock de clave.
+4. Revalidar catálogo real: trigger ligado a la relación correcta, BEFORE/ROW/UPDATE, atributos de las tres claves, argumentos literales esperados y orden previo efectivo. Actualizar el postflight de 19 guardas de b85 al conjunto exacto resultante, sin sustituir la comprobación por una cifra permisiva. Reutilizar mismas ACL/owner/search_path privados.
+
+La base oficial para esa opción es UPDATE OF y el orden alfabético documentados en [CREATE TRIGGER](https://www.postgresql.org/docs/17/sql-createtrigger.html). Esta es una propuesta de revisión, no SQL instalado, política nueva ni edición del árbol. El Writer debe mostrar el diff y el Director aceptar la dirección concreta.
+
+Rutas que podrían requerir edición prospectiva: 0502, su contrato SQL, el runner de concurrencia y postflight/oráculos pertinentes del test de migración, más spec 0578 / handoff 042. Ya son superficies de 0578; este informe **no cambia ni amplía** la allowlist 72. No requiere tocar históricas ni adaptadores de aplicación revisados por el Director.
+
+Oráculo mínimo futuro, **NO EJECUTADO**:
+
+- Reutilizar fixture descartable y dos sesiones del caso de FK, con barrera real que certifique al intake esperando al configurador después de poseer gate/fence. El lock previo explícito modela la ventana del BEFORE; declarar ese montaje y comprobar por separado la elección de modo a través de la sentencia de clave, sin adjudicar al producto un SELECT añadido.
+- Ensayar `SET id=id`, clave warehouse igual y clave igual junto a enabled cambiado. No aceptar40P01,55P03,57014,25P02 ni «cualquier excepción». Con la terna actual conservada, esperar P0001/NORMAL_CONFLICT/hint dtd-client-normal, rollback completo y liberación que permita confirmar exactamente el birth autorizado.
+- Comparar scope/recibos/cajas/contextos/intakes/eventos/AUD antes-después, y la primera clave escrita si hay dos. Cero efecto parcial del configurador; un birth legítimo, historia/reloj preservados, ningún éxito cacheado. Retry fresco explícito y positivo no contencioso del UPDATE sin cambio.
+- Contrastar que UPDATE de enabled/starts_at **sin nombrar claves** aún espera y se ordena, con RC/RR y reglas anteriores; conservar todos los positivos, ausencia/recreación y clocks actuales. No basta un error de fixture/fusible ni la posterior elección de víctima del detector de deadlock.
+
+## 6. Wrappers, errores originales y contexto privado
+
+`move_original`470–491 coteja cuerpo MD5, owner postgres/DEFINER y ausencia de anon; conserva firma/defaults/ACL antes de mover el original al schema privado. Los wrappers reciben el ABI original493–542, preparan `intakes` sólo con identidades no nulas y llaman **el cuerpo histórico**. Se eliminan filas por transacción/backend/tenant/warehouse/operario y actorNULL en éxito. Una excepción que se propaga revierte también las inserciones privadas; no hay catch que convierta rechazo en OFF.
+
+0045:52–76 valida operario activo y cantidad/marca antes del INSERT de la línea 86. No tenía restricción CN en todo legacy: el SQL nuevo diferencia expresamente CN obligatorio dentro de ON de la vía antigua OFF; test 328–332 escribe ambos resultados. No se inventó una matriz uniforme que quite derechos antiguos.
+
+0449:28–48 valida identidad/region/warehouse antes de su lock de mesa; desconocido, inactivo, VE y warehouseNULL conservan causas originales. Las validaciones de cajas/prealerta y la adopción exacta permanecen en el cuerpo original; boxes0 transitorio se completa antes de constraints diferidas. Una llamada que rechaza antes de insertar no debe tocar el fence ni dejar contexto. Runner 530–562 escribe esa prueba sobre RR antiguo y versión actual del fence; su resultado sigue pendiente.
+
+`authorized_context`244–252 busca la fila privada por txid/pid/operación y selección concreta. `intakes`150–158 exige actor XOR operario; el gate no la fabrica para el caller directo. API no puede escribir esas tablas, y los GUC falsos del contrato392–393 no otorgan contexto. El contexto es mecanismo de DB, no autoridad del parámetro browser.
+
+Hay una inexactitud de comentario, no otro bug de producto:0502:575 dice que OFF retorna sin escrituras; desde b85 el helper escribe el fence técnico antes de devolver OFF. No nace recepción/cohorte/evento/AUD por esa devolución. Conviene precisar ese comentario en la futura autoría sin transformar la escritura necesaria para RR en un incumplimiento de «cero DML de negocio» o en permiso de activar scope.
+
+## 7. ACL, roles efectivos y copias
+
+No existe ni se exige «17 roles». Se separan identidad de aplicación, membresías de operario y permisos de PostgreSQL:
+
+| Autoridad | Fuente y distinción conservada |
+|---|---|
+|PODv1 yv2|0068:98–111 y 0336:85–111 usan **role escalar** camionero/supervisor, región VE, activo y tenant de OD.0502:2046–2048/2120–2125 conserva ese contrato; la delegación inválida vuelve al rechazo original. |
+|partial_delivery|0072:275–323 usa **membresías roles[]**, camionero o supervisor, región/activo y OD/estado/paquete.0502:1996–2005 prepara sólo cuando ese contrato autoriza y vuelve al original en caso contrario. No unificarlo con POD escalar. |
+|split0184|Role escalar bodeguero/supervisor, VE/activo; lock de paquete y P0013 tras lock se mantienen literales. |
+|Studio|0502:213–242 deriva auth.uid, tenant único0453, membership activa, rol/overrides y warehouse_scope; support no edita. No derivar permisos Studio de roles[] del operario. |
+|API y schema privado|Schema55–56 y tablas194–201 revocan acceso a PUBLIC/anon/authenticated/service_role y activan RLS. Privadas2380–2381 revocadas, defaults de EXECUTE cerrados. Postflight2425–2435 consulta privilegios efectivos de los tres roles API, incluidos los que obtengan por PUBLIC/herencia; no afirma haber inspeccionado membresías vivas en producción. |
+|RPC nuevas|2386–2412 conserva20 firmas; tres comandos operario service_role-only, las demás authenticated. Revoca roles contrarios y verifica owner/search_path/DEFINER. Son tres roles API inspeccionados por el contrato, no un censo global de roles. |
+|Wrappers antiguos|2358–2377 restaura ACL capturada, defaults/nombres/tipos/retorno/owner y postflight 2413–2423 coteja grants efectivos catalogados.0211:21–22 había retirado authenticated de 0045; no se infiere su ACL viva desde el grant intermedio 0209. 0449/0068/0072/0336 son service-only en sus primarios pertinentes. |
+
+Comparación textual nueva de siete cuerpos copiados: iguales tras normalizar únicamente CRLF→LF. Se compararon fuentes D1 con fixture b85; no se ejecutó SQL ni se reconstruyó catálogo:
+
+| Función copiada | MD5 del cuerpo |
+|---|---|
+|get_user_tenant_id0453|5ff0c51c26a49419c34abc78f1d95c37|
+|document_entity_module_contract0444|9c78c98fb29c311926f93a1c28ce1c32|
+|document_entity_authorized0444|4eb9fd08721e8f754087dddc5cb88953|
+|create_receipt_as_operario0045|f9e61f3ae50fca3f4752d61fb1d20f86|
+|operario_action0072, antes 0296|64fd617982cec37a58b2912a15980dbc|
+|receive_prealerta_boxes_as_operario0449|bf85211ecef554d573b9670d6011af37|
+|camionero_pod0068|f486d0990e8d9204c7e9c483923a81aa|
+
+Aplicar **sólo en texto** las dos cualificaciones de enum que dicta0296:56–65 produce `b0839c00d60dbeecf7e98c4c281f9fdc`, el MD5 que0502 exige al mover operario_action. La fixture incluye0296 real en1833. Incluye también AUD0258/0261/0267/0294,0300/0321/0487/0184/0336/0496 reales; no reemplaza append por éxito incondicional. Fixture1–23 crea auth/roles sintéticos,1820–1843 sus grants/paths de preparación y privilegios públicos de DB propia. No prueba Auth/JWT/Storage/RLS vivos o toda la instancia productiva.
+
+## 8. F1 AUD y F2 locks conservados
+
+**F1 corregido por fuente; aceptación dinámica NO EJECUTADA.** El índice0321:37–44 es único por tenant/event_type/request_ref y no incluye entity_id.0502:2182 deriva referencia acotada de la tupla estructurada referencia POD+shipment;2184 la usa en el GUC y 2194 en payload.request_ref, preservando pod_request_ref. AUD2191–2195 conserva actor operario/source rpc/motivo fijo significativo/correlación acotada. No elimina el segundo AUD ni cambia el índice global. Replay2132–2137 exige operario/huella y devuelve el resultado histórico antes de captura/cierre.
+
+SQL 574–592 escribe dos cierres/AUD distintos, intención única y replay sin eventos nuevos;609–630 falla el segundo append real con P5780, exige rollback de POD/eventos/AUD/ambos estados/intención y retry íntegro. Mutante 209–216 del test TS espera duplicate key/índice real, no cualquier error. No sumar este diseño como mutante ya detectado ni prometer exactamente-una-vez universal.
+
+**F2 corregido por fuente para la intercalación0184/POD; concurrencia NO EJECUTADA.**0502:1966–1986 ordena contenedores y usa NOWAIT sólo desde las guardas tardías2017/2049; transforma lock_not_available a NORMAL_CONFLICT sin éxito/no-op. Preparación partial_delivery toma contenedor antes de OD; v2 toma contenedores→grupos→shipments→ODs→paquetes.0184 real mantiene lock de paquete62–66, P0013 75–76 y creación P2 sin reescritura.
+
+Runner 626–645 fuerza split ya dueño de paquete y POD dueño de contenedor, observa bloqueo, exige P0001/NORMAL_CONFLICT y rechaza deadlock; tras rollback exige POD parcial válido, un P2 por retry y luego P0013. No se le acredita eliminar todos los ciclos o ejercitar cada combinación de roles.
+
+0496 no cambia. Se releyó guard/ACL e identidad fija275–405; congelación no-dry-run obtiene receipt antes de snapshot485/666; permisos elevados699–714 intactos.0502:631–671 respeta ese orden, vincula shipment una vez y difiere el check final; runner 276–298 escribe ambos órdenes freeze/link, fila viva única ligada y replay histórico. No re-fecha tarifas ni convierte subtotal parcial en total financiero. No se ejecutó ninguna de esas carreras.
+
+## 9. C1 de evidencia Portal y límites del runner
+
+La insuficiencia escrita de a6 queda atendida por fuente: SQL 490–497 compara el vector completo de IDs/orden y reloj real;503–524 añade12 IDs literales, diez empatados y predecesor de un microsegundo, historia ASC y top8/4 DESC exactos. El oráculo literal no copia el mismo predicado de autorización del producto. Mutantes227–242 aíslan oldest-first y cap1000 con mensajes de aserción específicos. No están detectados hasta ejecutar el contrato sin fusible bajo GO.
+
+Cero vínculo tiene nombre honesto y precondición533–536; duplicado real540–545 espera23505 con UNIQUE0080 intacto. El negativo híbrido y selector ajeno/ausente siguen526–530. El test combinado217–225 de identidad conserva su límite: muta dos proyecciones a la vez y falla en portal_read, no acredita dos mutantes independientes. No se absorbe aquí la revisión de adaptadores ni manifiesto72 que realiza el Director.
+
+Runner 42–100 usa PGAPPNAME corto/único, drena stdout/stderr y no acepta marcador de error antes de disponer de la línea ERROR completa. `blocked`102–112 consulta pg_blocking_pids y wait_event_type; delay sólo sondea. `rejected`140–145 excluye40P01/55P03/57014/25P02 y admite40001 sólo donde luego hay rollback/retry/estado final. El vector124–135 son **conteos**, no comparación íntegra de todas las filas; los casos añaden igualdades de las filas/identidades pertinentes. No se sobreafirma bytecheck de todo el negocio por ese vector.
+
+La instalación sigue bloqueada por el fusible0502:22–24. Runner 568 y test TS193 lo rechazan **antes** de crear DB/PGlite; no lo retiran, no hay SKIP verde ni ROJO funcional medido por su presencia. El contrato incluye0502 con BEGIN/COMMIT propio y después rollback de datos632; no se afirma que ese ROLLBACK desinstale todo el DDL.
+
+Cleanup escrito: nombre/label de contenedor acotados, DB nueva aleatoria, sesiones propias y finally676–681 termina conexiones sólo de esa DB y la elimina. Session.close espera dos segundos y puede terminar su propio child; no hay prueba de cierre físico o recursos cero aquí. Los límites8/12/18/20 segundos son por sondeo/SQL/query; sql() puede esperar un spawnSync de hasta30 segundos, por lo que no son deadline global rígido. Recursos/EXIT/cleanup deben acreditarse en la futura ejecución, sin heredar BCV ni ejecutar ahora para mejorar evidencia.
+
+## 10. Huellas de objetos y cierre
+
+SHA256 nuevos calculados sobre bytes crudos de `git cat-file blob` en memoria; no sobre salida numerada. Las cinco filas siguientes son idénticas en b85 y 792; no confundimos blob Git con SHA256:
+
+| Ruta | Blob | Bytes | SHA256 |
+|---|---|---:|---|
+|0502 SQL|a07a5c482eaae5cd9aa761da70ce404a40773fbf|203550|c781b5acb3d6684c97d94cc1de90198b85133bd43619f562d441effdc92e64e3|
+|fixture estructural|62c334eb0a599a8fc79ea92ca4b01b10f51714f9|78686|f384ad632fb45e4a4ae5e47a03a3539d6e4bfaf1f938cc66a4fea92b547af8f2|
+|contrato SQL|4bb74e9d25f8f1e86544ab800ba0aaeb12922d14|60268|13b14d34ef6b0e5a5ff59c4f7fa8eefabd8f2109db42b8ba8f0e63c02b2299d5|
+|runner concurrencia|6d900e4dc45b8a35a0ee7e5b7162c4ebf9f94810|55295|2a0d9876014e8e5ef593921806c838f497a440773fabac986399e66ac6763bd2|
+|test TS migración|c3e5ed63f1c2d21ca1719f1e68851b518b288cbf|16550|75e503758eabd40e443a755dae1c30e4ba4e25a7a2a43d1451f107030c3b05c2|
+
+Primarios D1 y b85 iguales; bytes crudos/hash nuevos, con lectura humana limitada a los rangos declarados:
+
+| Migración | Blob | SHA256 |
+|---|---|---|
+|0045|e1d628f2b9b5f39f7d676eab89d240d933a9269e|129cfef3aca773eccf2759b2e9e80c9eae362db1195b8c3576d8db01b22c7f8f|
+|0068|5a016d5d0a211932efa3c6d3a544d01a893f89f7|6bcde029bf781a821878e50ee4bb7d997a7fc5e51c7b980af48cd9df6c32d519|
+|0072|62e3e71767ed50d31bea2a57762c8220060db987|c24f1f98cdece872de60ba83e67b9f418c3f10fd376caac7524ea51420f3fff5|
+|0184|774ecd95287ebab892f93d1e0f5f8ed201f3e4c1|ba83f7bf1fcfd64c662f517485af0f1e466eda9d8b4cbea9b4b2a925bf5b16ac|
+|0211|3355dcadb3d138ef1f5ad7fe2ca9aefce32fbf55|22ef217c780afe48d3bc02d1170becb516a5e14858e7e25425a9c007ef6277e8|
+|0296|2c021232a9153442193a3c5adb9a75e911f5f6a6|fec70b3a2771f2f2f833d222416215ba952c5add005bb525359c4e76da7f2610|
+|0321|2a9bfa3de932e7eec3dca762c6c8ad19f0d4a822|c039bb72d0f35c5f4fccf3aee15fdaf9ca231bf9c491a5980671f52e0551ca7b|
+|0336|956831b05b535306269567400c24f3137fbb143e|789588414ded6c910479f3088f45173eab8140a2e4b05213d2b17181344a0ad5|
+|0444|4f8e9d5d7f7049fe11157585f7dc11f6208a425d|297be7156a75b0d9710823bf0e438dfc8a085e84158668755c13b28cf398792e|
+|0449|7b1e84fec2060edcb22d17389284b1ed4f7c1b3c|65bb32f52b322ba346a18665de462eb2dc4f57d1a3ddedf9bf96707d87574819|
+|0453|2ca2f68a708394016d68ade17927c864ad47e369|4f622ea95dd93ba54891081ffb6350e4abecdfa80ce54a22613e7eb0db34f30f|
+|0487|d2e5eb4f9f07f4924b6005d19373247651278f58|b272c77dad37a1d9d1c42bdd676b4d0e4c455ee45ec9187aac84ecf06416a3e9|
+|0496|10eea03c3a1d616994940656b312d16adae3c141|f59163473ec8c8575d1309575391b69ea455adbb33069911aecd72f3d8325a3d|
+
+La revisión concluye con un P2 residual concreto para autoría posterior y sin otro defecto material nuevo identificado en las superficies leídas. F1/F2 y C1 sólo tienen dictamen de fuente/cobertura escrita, no PASÓ dinámico. Revisar la corrección mínima y su nueva fuente antes de conceder ejecución. No basta transferir el resultado de a6, un 40001, una aserción que no corrió o una revisión de aplicación.
+
+**NO EJECUTADOS:** Node/Python de producto, suites, SQL/PGlite/DB/Docker/HTTP/browser/instalación/tipos/lint/build/verify/conocimiento. Sólo red de documentación primaria PostgreSQL, sin BCV nuevo, cuentas o servicios reales. Sin datos, entornos, secretos o PII, sin mutaciones Git/claim/worktree/SQL. No se activó0578, no se retiró fusible y no se aplicó0496/0501/0502. Ninguna escritura adicional en BCV/0578/main, ninguna autorización de merge/deploy/producción o memoria. El informe base y soportes previos conservan sus bytes.
+<!-- INFORME PEER FENCE 792 ÍNTEGRO FIN -->
+
+<!-- DECISION CLAVES NOOP DIRECTOR ÍNTEGRA INICIO -->
+# 0578 · decisión de autoría acotada para claves nombradas sin cambio
+
+Director, 21 de octubre de 2026. Misma tarea, owner, claim, rama y base D1.
+Preimagen inmutable `792f00a8d1d7883cce6ad7691eef74b2980382ea`.
+Esta decisión permite **autoría ligera y checkpoint DRAFT**, no runtime ni SQL.
+La allowlist acumulada sigue en 72 rutas; no se amplía.
+
+Director leyó íntegros el informe independiente de 31488 bytes, SHA256
+`c04d28b2a510788a82d33e01ecb48dd001f68228b307c522d5ba5bf4acf3a831`, y la propuesta
+Writer de 10508 bytes, SHA256
+`bcea0f34fcf493c8f54844e4d688f8c23f5ba1370f34f549b7e9bfc6ac474e4c`.
+Contrastó además las fuentes oficiales PG17 execMain.c, trigger.c y CREATE
+TRIGGER. Es **P2 material por fuente, NO REPRODUCIDO**; no se afirma deadlock,
+afectación productiva o bypass de autoridad observado.
+
+## Dirección concreta adoptada
+
+Adoptar la variante Writer de prepaso **sólo gate**, que evita duplicar la
+escritura durable propuesta como alternativa por el peer. Un BEFORE ROW UPDATE
+OF id, tenant_id, warehouse_id en scopes debe ordenarse antes del general y
+operar también cuando OLD y NEW tienen los mismos valores. No WHEN basado en
+diferencias de valores ni interpretación del texto del comando.
+
+Reutilizar la guarda privada con un argumento literal de catálogo exclusivo del
+prepaso. Verificar modo y contexto de trigger exactos; no aceptar un argumento
+de aplicación, browser, GUC o payload para elegirlo. Deduplicar y ordenar claves
+OLD/NEW con la misma identidad y hash de gate vigentes. El prepaso sólo usa try
+gate o rechaza con P0001 / NORMAL_CONFLICT / hint dtd-client-normal, y retorna NEW.
+No escribe fence, modifica la fila, crea contexto o concede autoridad.
+
+El general **siempre continúa**: reentra gates de su propia transacción, ejecuta
+una sola escritura durable por fila y conserva validación, identidad usada,
+FK/UNIQUE, conteos, reloj y clasificación. El UPDATE ordinario que sólo nombra
+enabled/starts_at/protocol_version mantiene espera bloqueante. DELETE/rekey
+efectivos conservan el mecanismo y rollback aprobados. No try universal.
+
+Mantener owner/search_path/DEFINER y revokes privados. Postflight debe comprobar
+la relación, BEFORE/ROW/UPDATE, tres columnas exactas, argumento literal, función,
+habilitación y orden de ambos triggers; conjunto de veinte guardas exactas y
+sin debilitar las diecinueve anteriores. No nueva ABI o función pública ni grants.
+Precisar el comentario OFF: puede escribir el fence técnico, sin DML de negocio.
+
+## Rutas de esta corrección, subconjunto de las 72 ya adoptadas
+
+1. supabase/migrations/0502_consolidacion_cliente_camino_normal.sql
+2. supabase/tests/consolidacion_cliente_normal.test.sql
+3. scripts/check-client-consolidation-concurrency.mjs
+4. lib/studio/client-consolidation/__tests__/normal-path.migration.test.ts
+5. docs/specs/0578-envios-cliente-camino-normal/spec.md
+6. .agents/handoffs/042-envio-cliente-camino-normal.md
+
+No editar fixture estructural, históricas, adaptadores, baseline, package, lock o
+tipos por esta decisión. Si una necesidad no cabe, justificarla antes de editar.
+0502 conserva el fusible anterior al DDL y cohorte OFF. No renumerar ni aplicar.
+
+## Oráculos que redactar, sin ejecutarlos todavía
+
+Usar UPDATE no-op **real** para cada clave, las tres juntas y combinaciones con
+enabled/starts_at. Gate libre debe permitirlos con una sola versión durable por
+fila. Gate ocupado debe producir la terna controlada antes de liberar al dueño,
+con rollback íntegro, intake real posterior sin FK residual y retry fresco del
+comando completo. SELECT FOR UPDATE de una barrera no sustituye esos comandos.
+
+Positivos ordinarios enabled/starts_at, incluidos no-op y sin claves nombradas,
+deben esperar realmente, dejando completar intake/FK y preservando reloj e
+historia. RC/RR separados; 40001 sólo con rollback/retry íntegro y estado final.
+No aceptar 40P01, 55P03, 57014 o 25P02 como rechazo funcional. Mantener ausencia,
+recreación, orden inverso, OLD/NEW y fallo en segunda clave ya escritos. Catálogo
+sin ejecución no acredita el interleaving. Añadir mutantes pertinentes de quitar
+o reordenar prepaso y de try universal; no contarlos como detectados sin correrlos.
+
+Leer y adoptar íntegra esta decisión con hash en spec/handoff antes de editar.
+Conservar las preimágenes y todos los oráculos previos. Entregar delta desde
+792f, SHA nuevo, manifiesto exacto de hasta 72 rutas, plan de relevo actualizado y
+PR318 DRAFT con cuerpo/readback cotejados. Sin instalación, parser de producto,
+tests, SQL/PGlite/DB/Docker, navegador, lint/tipos/build/verify o conocimiento.
+Revisión de la nueva fuente antes de conceder cualquier ejecución.
+
+No main, merge, deploy, VPS, datos reales, PII, secretos, cuentas, pagos,
+contactos, memoria, Obsidian compartido o activación nominal. BCV conserva su
+resultado FALLÓ/INCOMPLETO y el diagnóstico0577 sus permisos separados.
+<!-- DECISION CLAVES NOOP DIRECTOR ÍNTEGRA FIN -->
+
+## Checkpoint P1-72 claves no-op posterior a792f — sólo autoría
+
+Decisión06367e18 e informe c04d28b2 adoptados íntegros antes de producto arriba. Seis rutas exactas; misma unión72/baseD1/owner/claim. Preimagen792f conserva sus artefactos/PRrecibo y matriz; no se reescribe. Este delta atiende P2 material por fuente NO REPRODUCIDO, sin aceptar funcionamiento o ausencia de deadlocks.
+
+0502 blob3072c7519ee4737547923004976ca261b20ac97e/SHA25684652dbbd921873935064e293526906cc13403ba15cb7b064f41697d22b9acf3. guard_scope_configuration292–340 valida relación/schema/tabla/BEFORE/ROW, nombre exacto y modo literal TG; pretrigger341–342 UPDATE OF id,tenant_id,warehouse_id ordenado antes del general343–344. OLD/NEW deduplica/ordena la misma identidad/hash. Prepaso sólo try gate, sin UPSERT/contexto/modificarNEW; general continúa y escribe fence una sola vez. Misma terna P0001/NORMAL_CONFLICT/hint dtd-client-normal, rollback completo. UPDATE ordinario sin claves conserva espera. Sin nuevas funciones públicas/ABI/grants/helpers privados. Postflight2429–2522 exige20 nombres/relaciones/estado exactos, dos definiciones de scope con tipos19/31, attrs1/2/3 vs vacío, args literales/función y orden; dos helpers y20RPC públicas originales sin cambio. No se debilitó conjunto previo19. Comentario603 precisa OFF con escritura técnica de fence y cero DML de negocio.
+
+Oráculos nuevos, todos NO EJECUTADOS:
+
+- SQL35 scope_named_key_once339–369: UPDATE real de cada clave y las tres, puros/con enabled/starts_at; libre debe completar con una sola versión durable/identidad íntegra. Noop ordinario también escribe general una vez. Historia de receipts anterior igual.
+- Runner38 namedScopeKeyNoop540–583:24 combinaciones RC/RR de4formas×3extras; primero configuración libre/intake posterior (orden inverso), luego gate real retenido por fixturepropietaria, UPDATE no-op/combinado REAL debe rechazar con terna mientras sigue retenido. No SELECT FOR UPDATE sustitutivo. Rollback entero/scope igual/fence igual, intake real+FK válido/retry fresco, header y marca/reloj completos históricos intactos. La barrera privada no concede permiso ni fabrica intakes/contexto.
+- ordinaryScopeUpdate585–633: cinco formas sin claves×RC/RR; espera real pg_blocking_pids, permite intake/FK, configuraciónRC completa oRR40001 con rollback/retry entero. Valores exactos y un solo fence/header/marca/reloj histórico iguales. Rechazo prematuro es error específico, no éxito; timeouts/40P01 no aceptados. Casos antiguos de ausencia/recreación/rekey/segunda clave y validadores originales conservados.
+- PGlite37: dos mutantes de catálogo (quitar pretrigger y renombrar todas sus referencias para ordenar después del general), errores específicos conjunto/orden. No prueba dinámica de locks. Archivo completo ahora tiene7instancias seriales: contrato real+6mutantes; ninguna ejecutada, fusible siempre hardstop.
+- Runner opcional --scope-mutant try-universal: corrida SEPARADA en DB nueva propia/etiquetada, cambio sólo en memoria tras hardstopdelFUSE original; hash efectivo registrado. Sólo retorno prematuro del UPDATE ordinario y terna exacta confirmada con gate aún retenido generan ScopeOrdinaryWaitViolation/MUTANTE DETECTADO. Otro error/fusible/parser/timeout no lo mata válidamente. No equivale a productoPASÓ ni reemplaza baseline. No infraestructura nueva o comando lanzado enP1.
+
+Plan externo actualizado `C:/tmp/director-traspaso-20261020/0578-normal-validation/plan-relevo-p1-72-claves-noop.md`,5636bytes/SHA256fdbd7dcd631fe32fb147e36a74efe3fc8f8cc94c1d78531bd72483ace91cadf2 compone planes70/72 anteriores preservados. Mantiene toda matrizA1–A18 NO EJECUTADA y faltantes propios/recursos/permisos; no cierre4.2. Nueva fuente requiere revisión/GO antes de cualquier runtime o retiro revisado del fusible.
+
+Guard/owner, copias contractuales íntegras, hashes y diffcheck nativos/Git verificados. Comparación textual de20 nombres definidos contra lista esperada PASÓ tras acotar selector a triggers (el primer selector también recogía3policies); no fue parser/catalogo/SQL. Fuente conservada: fixture estructural/históricas/adaptadores/baseline/package/lock/tipos fuera de este delta, ACL originales intactas,0495no se repite. Tests/Nodeparser/SQL/PGlite/DB/Docker/browser/types/lint/build/verify/knowledge NO EJECUTADO. FusibleantesDDL/cohorteOFF, PR318DRAFT, sin main/merge/prod/deploy, sin activaciónnominal o efectos financieros4.3. Claim retenido; diagnóstico0577 conserva permisos separados y BCVFALLÓ+INCOMPLETO no se convierte en verde.

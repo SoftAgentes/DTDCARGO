@@ -291,8 +291,22 @@ begin
 end $fn$;
 create function dtd_client_normal.guard_scope_configuration() returns trigger
 language plpgsql volatile security definer set search_path = '' as $fn$
-declare v_old_tenant uuid; v_old_warehouse uuid; v_new_tenant uuid; v_new_warehouse uuid; v_key record; v_nowait boolean:=false;
+declare v_old_tenant uuid; v_old_warehouse uuid; v_new_tenant uuid; v_new_warehouse uuid; v_key record;
+  v_nowait boolean:=false; v_gate_only boolean:=false;
 begin
+  if tg_relid<>'dtd_client_normal.scopes'::regclass or tg_table_schema<>'dtd_client_normal'
+    or tg_table_name<>'scopes' or tg_when<>'BEFORE' or tg_level<>'ROW' then
+    raise exception '0502: contexto de trigger scope inesperado';
+  end if;
+  if tg_name='aa_client_normal_scope_00_key_update' then
+    if tg_op<>'UPDATE' or tg_nargs<>1 or tg_argv[0] is distinct from 'key_columns_gate' then
+      raise exception '0502: modo de prepaso scope inesperado';
+    end if;
+    v_gate_only:=true;
+  elsif tg_name<>'aa_client_normal_scope_configuration' or tg_nargs<>0
+    or tg_op not in('INSERT','UPDATE','DELETE') then
+    raise exception '0502: modo de guarda scope inesperado';
+  end if;
   if tg_op<>'INSERT' then v_old_tenant:=old.tenant_id; v_old_warehouse:=old.warehouse_id; end if;
   if tg_op<>'DELETE' then v_new_tenant:=new.tenant_id; v_new_warehouse:=new.warehouse_id; end if;
   if tg_op='DELETE' then v_nowait:=true;
@@ -300,8 +314,20 @@ begin
     or new.warehouse_id is distinct from old.warehouse_id; end if;
   for v_key in select distinct t,w from (values(v_old_tenant,v_old_warehouse),(v_new_tenant,v_new_warehouse)) k(t,w)
     where t is not null and w is not null order by t,w loop
-    perform dtd_client_normal.fence_scope(v_key.t,v_key.w,v_nowait);
+    if v_gate_only then
+      -- PG17 chooses the tuple lock from syntactically updated key columns,
+      -- BEFORE this trigger, even for id=id. Never wait on a foreign gate while
+      -- owning that incompatible tuple lock. This pass is NOT the RR fence.
+      if not pg_try_advisory_xact_lock(hashtextextended('client-normal-scope:'||v_key.t::text||':'||v_key.w::text,0)) then
+        perform dtd_client_normal.fail('NORMAL_CONFLICT');
+      end if;
+    else
+      -- The general trigger ALWAYS follows the prepass and writes once. Its
+      -- gates are now reentrant when a key column appeared in the SET list.
+      perform dtd_client_normal.fence_scope(v_key.t,v_key.w,v_nowait);
+    end if;
   end loop;
+  if v_gate_only then return new; end if;
   if tg_op='UPDATE' and (new.tenant_id is distinct from old.tenant_id or new.warehouse_id is distinct from old.warehouse_id)
     and (exists(select 1 from dtd_client_normal.receipts where scope_id=old.id)
       or exists(select 1 from dtd_client_normal.containers where scope_id=old.id)) then
@@ -312,6 +338,8 @@ begin
   -- Existing FK/UNIQUE/permission rules still decide the actual config change.
   if tg_op='DELETE' then return old; end if; return new;
 end $fn$;
+create trigger aa_client_normal_scope_00_key_update before update of id,tenant_id,warehouse_id on dtd_client_normal.scopes
+for each row execute function dtd_client_normal.guard_scope_configuration('key_columns_gate');
 create trigger aa_client_normal_scope_configuration before insert or update or delete on dtd_client_normal.scopes
 for each row execute function dtd_client_normal.guard_scope_configuration();
 
@@ -572,7 +600,8 @@ deferrable initially deferred for each row execute function dtd_client_normal.ch
 create constraint trigger client_normal_box_roster after insert or update or delete on public.warehouse_boxes
 deferrable initially deferred for each row execute function dtd_client_normal.check_receipt_roster();
 
--- Conditional transport only: OFF returns without writes, preserving the legacy
+-- Conditional transport only: OFF may write the technical scope fence, without
+-- business DML, preserving the legacy
 -- action below it. A missing RPC is an unavailable prerequisite, never OFF.
 create function public.client_consolidation_intake(p_input jsonb) returns jsonb
 language plpgsql security definer set search_path = '' as $fn$
@@ -2447,8 +2476,42 @@ begin
       ('shipment_documents','client_normal_document_read')) and permissive='RESTRICTIVE' and cmd='SELECT' and roles=array['authenticated']::name[])<>3 then
     raise exception '0502: falta frontera SELECT de cohorte'; end if;
   if (select count(*) from pg_trigger t join pg_proc p on p.oid=t.tgfoid join pg_namespace n on n.oid=p.pronamespace
-    where n.nspname='dtd_client_normal' and not t.tgisinternal and t.tgenabled='O')<>19 then
+    where n.nspname='dtd_client_normal' and not t.tgisinternal and t.tgenabled='O')<>20
+    or (select count(*) from (values
+      ('dtd_client_normal.scopes','aa_client_normal_scope_00_key_update'),
+      ('dtd_client_normal.scopes','aa_client_normal_scope_configuration'),
+      ('public.warehouse_receipts_cn','zz_client_normal_enrol_receipt'),
+      ('public.shipments','aa_client_normal_code'),
+      ('public.warehouse_receipts_cn','aa_client_normal_receipt'),
+      ('public.warehouse_boxes','aa_client_normal_member_box'),
+      ('public.warehouse_receipts_cn','zz_client_normal_finish_receipt_edit'),
+      ('public.warehouse_receipts_cn','client_normal_receipt_roster'),
+      ('public.warehouse_boxes','client_normal_box_roster'),
+      ('public.shipment_rate_snapshots','aa_client_normal_bind_snapshot'),
+      ('public.shipment_rate_snapshots','client_normal_snapshot_complete'),
+      ('dtd_client_normal.members','client_normal_member_snapshot_complete'),
+      ('public.shipments','ab_client_normal_shipment'),
+      ('public.consolidation_items','aa_client_normal_item'),
+      ('public.shipment_events','aa_client_normal_event'),
+      ('public.consolidations','aa_client_normal_container'),
+      ('public.consolidation_plans','aa_client_normal_plan'),
+      ('public.consolidation_box_positions','aa_client_normal_position'),
+      ('public.dispatch_order_packages','aa_client_normal_dispatch_package'),
+      ('public.dispatch_pods','aa_client_normal_pod_capture')) expected(relation_name,trigger_name)
+      join pg_trigger t on t.tgrelid=to_regclass(expected.relation_name) and t.tgname=expected.trigger_name
+      join pg_proc p on p.oid=t.tgfoid join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname='dtd_client_normal' and not t.tgisinternal and t.tgenabled='O')<>20 then
     raise exception '0502: conjunto de guardas incompleto'; end if;
+  if not exists(select 1 from pg_trigger t where t.tgrelid='dtd_client_normal.scopes'::regclass
+      and t.tgname='aa_client_normal_scope_00_key_update' and t.tgtype=19 and t.tgenabled='O' and not t.tgisinternal
+      and t.tgfoid='dtd_client_normal.guard_scope_configuration()'::regprocedure and t.tgnargs=1
+      and t.tgattr='1 2 3'::int2vector and t.tgargs=decode('6b65795f636f6c756d6e735f6761746500','hex')
+      and t.tgname<'aa_client_normal_scope_configuration')
+    or not exists(select 1 from pg_trigger t where t.tgrelid='dtd_client_normal.scopes'::regclass
+      and t.tgname='aa_client_normal_scope_configuration' and t.tgtype=31 and t.tgenabled='O' and not t.tgisinternal
+      and t.tgfoid='dtd_client_normal.guard_scope_configuration()'::regprocedure and t.tgnargs=0
+      and t.tgattr=''::int2vector and t.tgargs=decode('','hex')) then
+    raise exception '0502: contrato de prepaso scope incompleto'; end if;
   if (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='dtd_client_normal'
     and ((p.proname='fence_scope' and p.proargtypes='2950 2950 16'::oidvector)
       or (p.proname='guard_scope_configuration' and p.pronargs=0)) and p.prosecdef and p.provolatile='v'

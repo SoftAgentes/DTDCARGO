@@ -206,6 +206,23 @@ describe.sequential("SDD0578 real migration/ACL/RLS/AUD contract, one ephemeral 
     const result = await executeRealContract(readFileSync(migrationFile, "utf8"));
     expect(result.error).toBeNull(); expect(result.completed).toBe(true);
   }, 300_000);
+  it("rejects a missing key-column prepass through the exact trigger-set postflight", async () => {
+    const source = readFileSync(migrationFile, "utf8");
+    const anchor = /create trigger aa_client_normal_scope_00_key_update before update of id,tenant_id,warehouse_id on dtd_client_normal\.scopes\r?\nfor each row execute function dtd_client_normal\.guard_scope_configuration\('key_columns_gate'\);\r?\n/g;
+    expect(source.match(anchor)).toHaveLength(1);
+    const result = await executeRealContract(source.replace(anchor, ""));
+    expect(result.completed).toBe(false); expect(result.error).toContain("0502: conjunto de guardas incompleto");
+  }, 300_000);
+  it("rejects a syntactic-key prepass ordered after the general trigger", async () => {
+    const source = readFileSync(migrationFile, "utf8");
+    const name = "aa_client_normal_scope_00_key_update";
+    expect(source.split(name).length).toBeGreaterThan(2);
+    // Rename the definition AND its references so this isolates the ordering
+    // condition, rather than merely failing a count/name mismatch. Catalog
+    // mutation only: actual lock behavior belongs to the real PG runner.
+    const result = await executeRealContract(source.split(name).join("zz_client_normal_scope_00_key_update"));
+    expect(result.completed).toBe(false); expect(result.error).toContain("0502: contrato de prepaso scope incompleto");
+  }, 300_000);
   it("kills the material0321 collision mutant instead of losing the second group AUD", async () => {
     const source = readFileSync(migrationFile, "utf8");
     const anchor = "jsonb_build_object('request_ref',v_group_ref,'pod_request_ref',v_ref";

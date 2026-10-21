@@ -13,11 +13,17 @@ import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 
 const args = process.argv.slice(2);
-assert.equal(args.length, 2, "Only --container dtd_sdd0578_* is accepted");
+assert([2, 4].includes(args.length), "Only --container and the explicit scope mutation option are accepted");
 assert.equal(args[0], "--container");
 const container = args[1];
 assert.match(container, /^dtd_sdd0578_[a-zA-Z0-9_-]+$/);
+const scopeMutant = args.length === 4 ? args[3] : null;
+if (scopeMutant !== null) {
+  assert.equal(args[2], "--scope-mutant"); assert.equal(scopeMutant, "try-universal");
+}
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const migrationFile = resolve(root, "supabase/migrations/0502_consolidacion_cliente_camino_normal.sql");
+let effectiveMigration = null;
 const database = `sdd0578_${randomUUID().replaceAll("-", "")}`;
 const sessions = [];
 let created = false;
@@ -32,7 +38,7 @@ function sql(query) {
 }
 function inline(path) {
   assert(path.startsWith(resolve(root, "supabase") + sep), "Fixture include outside supabase sources");
-  return readFileSync(path, "utf8").split(/\r?\n/).map((line) => {
+  return (path === migrationFile && effectiveMigration !== null ? effectiveMigration : readFileSync(path, "utf8")).split(/\r?\n/).map((line) => {
     const match = line.match(/^\\ir\s+([^\s]+)\s*$/);
     if (match) return inline(resolve(dirname(path), match[1]));
     if (/^\\set ON_ERROR_STOP on\s*$/.test(line)) return "";
@@ -99,15 +105,17 @@ class Session {
     if (this.child.exitCode === null) this.child.kill();
   }
 }
-async function blocked(waiter, blocker) {
+async function blocked(waiter, blocker, cancellation = null) {
   const deadline = Date.now() + 8_000;
   while (Date.now() < deadline) {
+    if (cancellation?.cancelled) return false;
     const result = sql(`select exists(select 1 from pg_stat_activity w join pg_stat_activity b
       on b.pid=any(pg_blocking_pids(w.pid)) where w.datname=current_database() and w.application_name=${literal(waiter.tag)}
       and b.application_name=${literal(blocker.tag)} and w.wait_event_type='Lock');`);
-    if (result === "t") return;
+    if (result === "t") return true;
     await delay(40); // Polling actual lock evidence, never used as the assertion.
   }
+  if (cancellation?.cancelled) return false;
   throw new Error("Expected blocking relation was not observed; race not certified");
 }
 const id = (label) => sql(`select sdd0578_fixture.id(${literal(label)});`);
@@ -527,6 +535,103 @@ async function scopeForeignKeyInversion(rekey, isolation, serial) {
   } finally { await Promise.allSettled([config.close(), birth.close()]); }
 }
 
+class ScopeOrdinaryWaitViolation extends Error {}
+
+async function namedScopeKeyNoop(key, extra, isolation, serial) {
+  const label = `syntax_key_${serial}`, { warehouseId, scopeId, intake } = scopeCase(label, { enabled: true });
+  const tenant = id("tenant-A"), change = `update dtd_client_normal.scopes set ${key}${extra} where id='${scopeId}'`;
+  const fenceRead = `select touched from dtd_client_normal.scope_fences where tenant_id='${tenant}' and warehouse_id='${warehouseId}';`;
+  const identity = `select jsonb_build_array(id,tenant_id,warehouse_id)::text from dtd_client_normal.scopes where id='${scopeId}';`;
+  const originalIdentity = sql(identity), freeVersion = Number(sql(fenceRead));
+  sql(change); assert.equal(Number(sql(fenceRead)), freeVersion + 1, "Named-key prepass must not write the durable fence twice");
+  assert.equal(sql(identity), originalIdentity);
+  // Inverse order: the REAL configuration finishes before the actual intake.
+  const freeBirth = JSON.parse(sql(run(intake)));
+  assert.equal(freeBirth.availability, extra ? "off" : "ready");
+  const freeHistorySql = freeBirth.availability === "ready" ? `select jsonb_build_array(to_jsonb(r),to_jsonb(c))::text
+    from public.warehouse_receipts_cn r join dtd_client_normal.receipts c on c.receipt_id=r.id where r.id='${freeBirth.receiptId}';` : null;
+  const freeHistory = freeHistorySql ? sql(freeHistorySql) : null;
+  sql(`update dtd_client_normal.scopes set enabled=true,starts_at='2000-01-01T00:00:00Z' where id='${scopeId}';`);
+  const birth = new Session(`${label}_birth`), config = new Session(`${label}_config`);
+  try {
+    await birth.begin(isolation); await config.begin(isolation);
+    // Fixture-owner synchronization barrier ONLY. It neither forges intake
+    // context nor grants the API permission to call this private function.
+    await birth.ok(`select dtd_client_normal.fence_scope('${tenant}','${warehouseId}');`);
+    const before = await birth.ok(businessVector), heldVersion = await birth.ok(fenceRead);
+    const scopeBefore = sql(`select to_jsonb(s)::text from dtd_client_normal.scopes s where id='${scopeId}';`);
+    // This is the actual UPDATE (including syntactic no-ops), never a SELECT
+    // FOR UPDATE substituted for its executor lock/trigger classification.
+    const conflict = JSON.parse(await config.ok(`select sdd0578_fixture.attempt(null,${literal(change)},'postgres');`));
+    assert.deepEqual(conflict, { state: "P0001", message: "NORMAL_CONFLICT", hint: "dtd-client-normal" });
+    assert.equal(await birth.ok(fenceRead), heldVersion, "Rejected prepass cannot leave a durable write");
+    await config.ok("rollback;");
+    assert.equal(sql(`select to_jsonb(s)::text from dtd_client_normal.scopes s where id='${scopeId}';`), scopeBefore);
+    assert.equal(await birth.ok(businessVector), before, "The whole denied configuration has no business residue");
+    const actual = JSON.parse(await birth.ok(run(intake))); assert.equal(actual.availability, "ready");
+    const receiptBefore = await birth.ok(`select to_jsonb(r)::text from public.warehouse_receipts_cn r where id='${actual.receiptId}';`);
+    const cohortBefore = await birth.ok(`select to_jsonb(c)::text from dtd_client_normal.receipts c where receipt_id='${actual.receiptId}';`);
+    await birth.ok("commit;"); // Successful real FK, not just a released model rowlock.
+    const retryVersion = Number(sql(fenceRead)); sql(change);
+    assert.equal(Number(sql(fenceRead)), retryVersion + 1); assert.equal(sql(identity), originalIdentity);
+    assert.equal(sql(`select to_jsonb(r)::text from public.warehouse_receipts_cn r where id='${actual.receiptId}';`), receiptBefore);
+    assert.equal(sql(`select to_jsonb(c)::text from dtd_client_normal.receipts c where receipt_id='${actual.receiptId}';`), cohortBefore);
+    assert.equal(sql(`select count(*) from dtd_client_normal.receipts where receipt_id='${actual.receiptId}' and scope_id='${scopeId}';`), "1");
+    if (freeHistorySql) assert.equal(sql(freeHistorySql), freeHistory, "Earlier birth and cohort clock remain exactly historical");
+    observed(`real named-key UPDATE ${key}${extra}/${isolation}: free once, controlled rejection while gate held, rollback, actual intake/FK and whole fresh retry`);
+  } finally { await Promise.allSettled([birth.close(), config.close()]); }
+}
+
+async function ordinaryScopeUpdate(assignment, isolation, serial) {
+  const label = `syntax_ordinary_${serial}`, { warehouseId, scopeId, intake } = scopeCase(label, { enabled: true });
+  const tenant = id("tenant-A"), change = `update dtd_client_normal.scopes set ${assignment} where id='${scopeId}'`;
+  const fenceRead = `select touched from dtd_client_normal.scope_fences where tenant_id='${tenant}' and warehouse_id='${warehouseId}';`;
+  const scopeBefore = sql(`select to_jsonb(s)::text from dtd_client_normal.scopes s where id='${scopeId}';`);
+  const birth = new Session(`${label}_birth`), config = new Session(`${label}_config`);
+  const cancellation = { cancelled: false };
+  try {
+    await birth.begin(isolation); await config.begin(isolation); await config.ok("select txid_current_snapshot();");
+    await birth.ok(`select dtd_client_normal.fence_scope('${tenant}','${warehouseId}');`);
+    const pending = held(config.query(change));
+    const barrier = held(blocked(config, birth, cancellation));
+    const first = await Promise.race([barrier.then(() => ({ kind: "blocked" })), pending.then((result) => ({ kind: "returned", result }))]);
+    if (first.kind === "returned") {
+      cancellation.cancelled = true; await barrier;
+      await config.ok("rollback;");
+      if (first.result.error && first.result.state === "P0001" && first.result.stderr.includes("NORMAL_CONFLICT")) {
+        // Capture exact state/message/hint in one stdout JSON value on a fresh
+        // transaction, while the SAME fixture gate remains held by birth.
+        const denial = JSON.parse(await config.ok(`select sdd0578_fixture.attempt(null,${literal(change)},'postgres');`));
+        assert.deepEqual(denial, { state: "P0001", message: "NORMAL_CONFLICT", hint: "dtd-client-normal" });
+        throw new ScopeOrdinaryWaitViolation("SCOPE_ORDINARY_WAIT_REQUIRED: no-key UPDATE returned controlled conflict before owner released gate");
+      }
+      assert.fail(`Ordinary UPDATE returned instead of the required observed wait: ${JSON.stringify(first.result)}`);
+    }
+    const actual = JSON.parse(await birth.ok(run(intake))); assert.equal(actual.availability, "ready");
+    const receiptBefore = await birth.ok(`select to_jsonb(r)::text from public.warehouse_receipts_cn r where id='${actual.receiptId}';`);
+    const cohortBefore = await birth.ok(`select to_jsonb(c)::text from dtd_client_normal.receipts c where receipt_id='${actual.receiptId}';`);
+    const lastBirthVersion = Number(await birth.ok(fenceRead)); await birth.ok("commit;");
+    const result = await pending;
+    if (isolation === "repeatable read") {
+      assert.equal(result.error, true); assert.equal(result.state, "40001", result.stderr); await config.ok("rollback;");
+      sql(change); // Fresh whole command, never a partial retry or cached OFF.
+    } else { assert.equal(result.error, false, result.stderr); await config.ok("commit;"); }
+    assert.equal(Number(sql(fenceRead)), lastBirthVersion + 1);
+    assert.equal(sql(`select to_jsonb(r)::text from public.warehouse_receipts_cn r where id='${actual.receiptId}';`), receiptBefore);
+    assert.equal(sql(`select to_jsonb(c)::text from dtd_client_normal.receipts c where receipt_id='${actual.receiptId}';`), cohortBefore);
+    assert.equal(sql(`select count(*) from dtd_client_normal.receipts where receipt_id='${actual.receiptId}' and scope_id='${scopeId}';`), "1");
+    assert.equal(sql(`select id='${scopeId}' and tenant_id='${tenant}' and warehouse_id='${warehouseId}' from dtd_client_normal.scopes where id='${scopeId}';`), "t");
+    // Each command is fixed synthetic input, so compare its exact final value.
+    if (assignment === "enabled=false") assert.equal(sql(`select enabled from dtd_client_normal.scopes where id='${scopeId}';`), "f");
+    if (assignment.startsWith("starts_at='")) assert.equal(sql(`select starts_at='2099-01-01T00:00:00Z'::timestamptz from dtd_client_normal.scopes where id='${scopeId}';`), "t");
+    const changedField = assignment === "enabled=false" ? "enabled" : assignment.startsWith("starts_at='") ? "starts_at" : null;
+    if (changedField) assert.equal(sql(`select (to_jsonb(s)-${literal(changedField)})=(${literal(scopeBefore)}::jsonb-${literal(changedField)})
+      from dtd_client_normal.scopes s where id='${scopeId}';`), "t");
+    else assert.equal(sql(`select to_jsonb(s)::text from dtd_client_normal.scopes s where id='${scopeId}';`), scopeBefore);
+    observed(`ordinary UPDATE ${assignment}/${isolation}: actual blocking, compatible FK, whole config retry and unchanged prior birth clock`);
+  } finally { cancellation.cancelled = true; await Promise.allSettled([birth.close(), config.close()]); }
+}
+
 async function originalRejectionsBeforeFence() {
   const warehouse = id("warehouse"), scope = id("scope"), operator = id("operario-cn");
   const zeroBoxes = sql(`select sdd0578_fixture.operario_create_sql('operario-cn','${warehouse}',0);`);
@@ -564,13 +669,24 @@ async function originalRejectionsBeforeFence() {
 try {
   const labels = JSON.parse(docker(["inspect", "--format", "{{json .Config.Labels}}", container]));
   assert.equal(labels?.["dtd.sdd0578.disposable"], "true", "Caller must supply an explicitly labelled disposable container");
-  const migration = readFileSync(resolve(root, "supabase/migrations/0502_consolidacion_cliente_camino_normal.sql"), "utf8");
+  const migration = readFileSync(migrationFile, "utf8");
   assert(!migration.includes("do $authoring_fuse$"), "P1_FUSE_RETAINED: needs Director local GO and reviewed source removal");
+  effectiveMigration = migration;
+  if (scopeMutant === "try-universal") {
+    const anchor = "if coalesce(p_nowait,false) then";
+    assert.equal(migration.split(anchor).length, 2, "Mutant anchor must identify only the existing gate decision");
+    effectiveMigration = migration.replace(anchor, "if true then -- SDD0578 MUTANT: incorrectly try every scope gate");
+  }
   docker(["exec", container, "createdb", "-U", "postgres", database]); created = true;
   const contract = inline(resolve(root, "supabase/tests/consolidacion_cliente_normal.test.sql"));
   assert.equal(contract.split("-- SDD0578_ASSERTIONS_BEGIN").length, 2);
   sql(contract.split("-- SDD0578_ASSERTIONS_BEGIN")[0] + "\ncommit;");
   console.log(`SDD0578 immutable source SHA256 ${createHash("sha256").update(migration).digest("hex")}; owned DB ${database}`);
+  if (scopeMutant !== null) {
+    console.log(`SDD0578 mutation ${scopeMutant}; effective SHA256 ${createHash("sha256").update(effectiveMigration).digest("hex")}`);
+    await ordinaryScopeUpdate("enabled=enabled", "read committed", 0);
+    assert.fail("SCOPE_MUTANT_SURVIVED: the required ordinary blocking oracle did not reject try-universal");
+  }
 
   // Same intention: B waits on A's durable intent lock, then replays A's exact
   // historical result. It must not form a second group/item/alert/event.
@@ -665,14 +781,23 @@ try {
     await birthBeforeConfig(false, isolation, ++serial); await birthBeforeConfig(true, isolation, ++serial);
     await startsAfterWait(isolation, ++serial);
     await scopeForeignKeyInversion(false, isolation, ++serial); await scopeForeignKeyInversion(true, isolation, ++serial);
+    for (const key of ["id=id", "tenant_id=tenant_id", "warehouse_id=warehouse_id", "id=id,tenant_id=tenant_id,warehouse_id=warehouse_id"]) {
+      for (const extra of ["", ",enabled=false", ",starts_at='2099-01-01T00:00:00Z'"]) await namedScopeKeyNoop(key, extra, isolation, ++serial);
+    }
+    for (const assignment of ["enabled=enabled", "enabled=false", "starts_at=starts_at", "starts_at='2099-01-01T00:00:00Z'", "protocol_version=protocol_version"]) {
+      await ordinaryScopeUpdate(assignment, isolation, ++serial);
+    }
   }
   console.log(`PASÓ: ${authoredCases} observed case groups with commit/rollback/fresh-retry/final-state oracles. Not E2E, global ERP or production proof.`);
 } catch (error) {
-  console.error("FALLÓ/NO CERTIFICADO: retain the owned-session evidence; no error, deadlock or timeout is an acceptance result.");
+  const killedScopeMutant = scopeMutant === "try-universal" && error instanceof ScopeOrdinaryWaitViolation;
+  console.error(killedScopeMutant
+    ? "MUTANTE DETECTADO por retorno prematuro P0001/tuple exacta; esto NO acepta el producto ni la corrida baseline."
+    : "FALLÓ/NO CERTIFICADO: retain the owned-session evidence; no error, deadlock or timeout is an acceptance result.");
   for (const session of sessions) if (session.stderr.includes("ERROR:") || session.pending) {
     console.error(JSON.stringify({ label: session.label, tag: session.tag, output: session.output, stderr: session.stderr, pending: Boolean(session.pending) }));
   }
-  throw error;
+  if (!killedScopeMutant) throw error;
 } finally {
   await Promise.allSettled(sessions.map((session) => session.close()));
   if (created) {

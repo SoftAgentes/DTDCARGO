@@ -334,6 +334,40 @@ begin
     'invalid original writer calls leave no borrowed intake authority/context');
 end $scope_fence_configuration$;
 
+-- Real syntactic no-op UPDATEs, not SELECT FOR UPDATE substitutes. The earlier
+-- prepass must never duplicate a durable write or skip the general guard.
+do $scope_named_key_once$
+declare v_scope uuid:=sdd0578_fixture.id('scope-config'); v_tenant uuid:=sdd0578_fixture.id('tenant-A');
+  v_key text; v_extra text; v_touch bigint; v_before jsonb; v_after jsonb; v_receipts jsonb;
+begin
+  select jsonb_agg(to_jsonb(r) order by r.receipt_id) into v_receipts from dtd_client_normal.receipts r;
+  foreach v_key in array array['id=id','tenant_id=tenant_id','warehouse_id=warehouse_id',
+    'id=id,tenant_id=tenant_id,warehouse_id=warehouse_id'] loop
+    foreach v_extra in array array['',',enabled=not enabled',',starts_at=clock_timestamp()'] loop
+      select to_jsonb(s) into strict v_before from dtd_client_normal.scopes s where s.id=v_scope;
+      select touched into strict v_touch from dtd_client_normal.scope_fences where tenant_id=v_tenant
+        and warehouse_id=(v_before->>'warehouse_id')::uuid;
+      execute format('update dtd_client_normal.scopes set %s%s where id=%L::uuid',v_key,v_extra,v_scope);
+      select to_jsonb(s) into strict v_after from dtd_client_normal.scopes s where s.id=v_scope;
+      perform sdd0578_fixture.check((v_after-'enabled'-'starts_at')=(v_before-'enabled'-'starts_at'),
+        'named-key real UPDATE preserves exact old identity, no retarget');
+      if v_extra='' then perform sdd0578_fixture.check(v_after=v_before,'pure named-key no-op preserves every scope value'); end if;
+      perform sdd0578_fixture.check((select touched=v_touch+1 from dtd_client_normal.scope_fences where tenant_id=v_tenant
+        and warehouse_id=(v_before->>'warehouse_id')::uuid),'scope prepass gate only; exactly one durable write per row');
+    end loop;
+  end loop;
+  foreach v_key in array array['enabled=enabled','starts_at=starts_at','protocol_version=protocol_version'] loop
+    select touched into strict v_touch from dtd_client_normal.scope_fences where tenant_id=v_tenant
+      and warehouse_id=(v_before->>'warehouse_id')::uuid;
+    execute format('update dtd_client_normal.scopes set %s where id=%L::uuid',v_key,v_scope);
+    perform sdd0578_fixture.check((select touched=v_touch+1 from dtd_client_normal.scope_fences where tenant_id=v_tenant
+      and warehouse_id=(v_before->>'warehouse_id')::uuid),'ordinary no-key UPDATE still writes the general durable fence');
+  end loop;
+  update dtd_client_normal.scopes set enabled=false where id=v_scope;
+  perform sdd0578_fixture.check((select jsonb_agg(to_jsonb(r) order by r.receipt_id)=v_receipts from dtd_client_normal.receipts r),
+    'syntax-only configuration never rewrites prior cohort identity or clocks');
+end $scope_named_key_once$;
+
 do $normal$
 declare v_input text; v_first jsonb; v_extended jsonb; v_old_member jsonb; v_old_boxes jsonb; v_snapshot uuid; v_created timestamptz;
  v_group dtd_client_normal.groups; v_ship uuid; v_counts jsonb; v_result jsonb; v_rate jsonb;
