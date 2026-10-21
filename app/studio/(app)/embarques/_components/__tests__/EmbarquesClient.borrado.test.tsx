@@ -181,7 +181,14 @@ describe("EmbarquesClient · barra y diálogo", () => {
     expect(screen.getByRole("dialog")).toBe(dialogo);
     expect(mocks.show).not.toHaveBeenCalled();
 
-    await user.click(within(dialogo).getByRole("button", { name: "Eliminar embarques" }));
+    // El alert puede aparecer mientras el diálogo todavía está procesando.
+    const reintentar = await waitFor(() => {
+      const boton = within(dialogo).getByRole("button", { name: "Eliminar embarques" });
+      expect(boton).toBeVisible();
+      expect(boton).toBeEnabled();
+      return boton;
+    });
+    await user.click(reintentar);
     await waitFor(() => expect(mocks.deleteShipmentsAction).toHaveBeenCalledTimes(2));
   });
 

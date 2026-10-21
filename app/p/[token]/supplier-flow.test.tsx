@@ -289,7 +289,8 @@ describe("supplier guided workflow", () => {
     await start(request); step(3);
     expect(screen.getAllByRole("heading", { name: "Fotos y archivos · Opcional" })).toHaveLength(1);
     const file = new File(["photo"], "product.png", { type: "image/png" });
-    const chooser = screen.getByLabelText("Elegir archivos");
+    const uploads = screen.getByRole("region", { name: "Fotos y archivos" });
+    const chooser = within(uploads).getByLabelText("Elegir archivos");
     fireEvent.change(chooser, { target: { files: [file] } });
     step(4);
     expect(screen.queryByRole("button", { name: "Elegir archivos" })).not.toBeInTheDocument();
@@ -305,13 +306,13 @@ describe("supplier guided workflow", () => {
     const review = screen.getByRole("region", { name: "Fotos y archivos" });
     expect(within(review).getByText("1 archivo seleccionado, sin subir")).toBeVisible();
     fireEvent.click(within(review).getByRole("button", { name: "Revisar" }));
-    expect(screen.getByText("product.png")).toBeVisible();
-    expect(screen.getByLabelText("Elegir archivos")).toBe(chooser);
-    fireEvent.click(button("Usar Excel")); expect(screen.getByText("product.png")).toBeVisible();
+    expect(within(uploads).getByText("product.png")).toBeVisible();
+    expect(within(uploads).getByLabelText("Elegir archivos")).toBe(chooser);
+    fireEvent.click(button("Usar Excel")); expect(within(uploads).getByText("product.png")).toBeVisible();
     fireEvent.click(button("Volver al formulario"));
     expect(request).not.toHaveBeenCalled();
-    fireEvent.click(button("Subir archivos"));
-    await screen.findByText("1 archivo recibido");
+    fireEvent.click(within(uploads).getByRole("button", { name: "Subir archivos" }));
+    await within(uploads).findByText("1 archivo recibido");
     expect((request.mock.calls[0][1].body as FormData).getAll("files")).toEqual([file]);
     step(4);
     expect(within(screen.getByRole("region", { name: "Fotos y archivos" })).getByText("1 archivo recibido")).toBeVisible();
