@@ -221,6 +221,68 @@ async function main() {
     assert.equal(human.status,200); assert.equal(human.error,null);
     const actor = await scalar("select actor_id::text from entity_audit_log where source='rpc' and actor_type='user' order by occurred_at desc limit 1;");
     assert.equal(actor,uuid('accounting-A')); check('humano positivo: auth.uid real, manual/rpc conserva actor');
+
+    // GET readiness y trigger son guards distintos: cada negativo intenta INSERT
+    // y PATCH por HTTP y después mide la misma DB, sin deducir rollback del status.
+    const outcome = async id => JSON.parse(await scalar(`select jsonb_build_object(
+      'rows',coalesce((select jsonb_agg(jsonb_build_object('id',f.id,'tenant_id',f.tenant_id,
+        'currency',f.currency,'valid_on',f.valid_on,'source',f.source,'rate',f.rate::text,
+        'set_at',f.set_at::text,'set_by',f.set_by) order by f.id) from public.fx_rates f where f.id='${id}'::uuid),'[]'::jsonb),
+      'events',coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'actor_type',a.actor_type,
+        'actor_id',a.actor_id,'source',a.source,'event_type',a.event_type,'reason',a.reason) order by a.id)
+        from public.entity_audit_log a where a.entity_type='exchange_rate' and a.entity_id='${id}'::uuid),'[]'::jsonb),
+      'contexts',coalesce((select jsonb_agg(to_jsonb(c) order by c.operation,c.native_role,c.effective_user)
+        from bcv_fixture.context_log c where c.entity_id='${id}'::uuid),'[]'::jsonb));`));
+    const negatives = [
+      {label:'sub-null',role:'service_role',sub:null},
+      {label:'sub-empty',role:'service_role',sub:''},
+      {label:'sub-malformed',role:'service_role',sub:'not-a-uuid'},
+      {label:'sub-human-legacy',role:'service_role',sub:uuid('accounting-A'),legacy:true},
+      {label:'anon',role:'anon'},
+      {label:'authenticated',role:'authenticated',sub:uuid('accounting-A')},
+      {label:'claim-service-without-native-role',role:'authenticated',sub:uuid('accounting-A'),claims:'{"role":"service_role"}'},
+      {label:'claims-missing',role:'service_role',claims:''},
+      {label:'claims-empty-object',role:'service_role',claims:'{}'},
+      {label:'claims-array',role:'service_role',claims:'[]'},
+      {label:'claims-null',role:'service_role',claims:'null'},
+      {label:'claims-malformed',role:'service_role',claims:'{'},
+      {label:'claim-role-incoherent',role:'service_role',claims:'{"role":"authenticated"}'},
+    ];
+    receipt.dmlNegatives=[];
+    for (const [index,negative] of negatives.entries()) {
+      const c=client(negative.role,negative.sub,negative.claims===undefined?{}:{'x-bcv-fixture-claims':negative.claims});
+      const readiness=await cap(c); assert.notEqual(readiness.data?.ready,true,negative.label+' capability');
+      for (const method of ['INSERT','PATCH']) {
+        const id=method==='INSERT'?uuid('negative-'+negative.label):old.id;
+        const before=await outcome(id);
+        if (method==='INSERT') assert.deepEqual(before,{rows:[],events:[],contexts:[]});
+        const rate='884.'+String(index+1).padStart(8,'0');
+        const body=method==='INSERT'?{id,tenant_id:uuid('tenant-A'),currency:'VES',source:'bcv',
+          valid_on:'2026-11-'+String(index+1).padStart(2,'0'),rate,set_by:null,
+          set_at:'2026-10-21T07:00:00.345678Z'}:{rate,set_at:'2026-10-21T07:00:00.456789Z'};
+        const query=method==='INSERT'?c.from('fx_rates').insert(body):c.from('fx_rates').update(body).eq('id',id);
+        const reply=await query.select(columns).retry(false).abortSignal(AbortSignal.timeout(5000));
+        const after=await outcome(id);
+        const beforeJobs=before.events.filter(event=>event.source==='job').length;
+        assert.equal(after.events.filter(event=>event.source==='job').length,beforeJobs,negative.label+' nunca job');
+        if (negative.legacy && reply.status>=200 && reply.status<300) {
+          assert.equal(reply.error,null); assert.equal(reply.data.length,1);
+          assert.equal(after.rows.length,1); assert.equal(after.rows[0].rate,rate);
+          const added=after.events.filter(event=>!before.events.some(prior=>prior.id===event.id));
+          assert.equal(added.length,1); assert.equal(added[0].actor_type,'user');
+          assert.equal(added[0].actor_id,uuid('accounting-A')); assert.equal(added[0].source,'rpc');
+          assert.equal(after.contexts.length,before.contexts.length+1);
+        } else {
+          assert(reply.status>=400,negative.label+' '+method+' rechazada');
+          assert.deepEqual(after,before,negative.label+' '+method+' sin efecto/evento/contexto confirmado');
+        }
+        receipt.dmlNegatives.push({label:negative.label,method,status:reply.status,
+          errorCode:reply.error?.code??null,legacyAllowed:Boolean(negative.legacy),
+          before,after});
+      }
+    }
+    await save('negative-dml-effects.json',receipt.dmlNegatives);
+    check('negativos HTTP INSERT/PATCH: efectos/eventos medidos; humano legado user/rpc o rechazo, nunca job');
     receipt.result = 'PASÓ';
     receipt.scope = 'gate pequeño de contexto/GET/precisión; B1–B19/R1–R14 completos todavía pendientes';
   } catch (error) {

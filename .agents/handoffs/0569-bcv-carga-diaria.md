@@ -19,7 +19,9 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 ## COMPLETADO
 
 - Adopción del rol Worker y lectura de activación, contrato, addendum y peer independiente completos; preparaciones anteriores conservadas como evidencia estática.
-- Raíz/rama/base/ownership concretos; árbol inicial limpio. Cron/UI/package/lock conservados en preimagen D hasta baseline e instalación bajo turno.
+- Raíz/rama/base/ownership concretos; árbol inicial limpio. Cron/UI/package/lock se conservaron en preimagen D hasta medir el baseline bajo turno.
+- GO01: instalación inicial congelada PASÓ una vez; baseline nativo de cron/UI PASÓ con2archivos/12casos/0omisiones. El primer shim falló antes de Vitest; el intento válido usó Node→Corepack.js. No se repitió bootstrap.
+- GO01B: promoción parse5 directo8.0.1 con delta mínimo package+1/importador+3, resto byteidéntico. Su enlace offline falló en preparación por metadata@next/env; sin fallback ni ROJO funcional. GO01C: enlace normal congelado e importación mínima parse5 PASARON;31fuentes/lock/manifiesto sin reescritura. Recibos separados abajo.
 - Contratos originales íntegros conservados al final de este handoff antes del primer cambio de producto.
 
 ## VALIDACIÓN
@@ -30,14 +32,15 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 | Preimágenes31 | PASÓ: 13 existentes/18 ausentes/0 diferencias. Recibo externo con blobs y SHA256 de archivos. |
 | Reserva0501 | Inventario nativo PASÓ:502refs+worktrees, SQL0501 libre; stub local coordinado creado. Reserva local commit9591b2436. Cuerpo candidato0501 autorado después, todavía sin ejecutar ni publicar. |
 | Nuevos módulos | AUSENTES inicialmente; no se ejecutó import/ENOENT como rojo. |
-| Instalación congelada, baseline cron/UI | NO EJECUTADO: único turno pesado pertenece a0574. |
+| Instalación congelada, baseline cron/UI | PASÓ GO01: bootstrap único, baseline válido2archivos/12casos/0omisiones sobre preimagenD. Primer shim falló en preparación antes de pruebas; recibo separado. |
+| Promoción/importación parse5 | PASÓ autoría mínima9cd35b1ef y enlace/importación GO01C: versión efectiva8.0.1 desde árbol propio,31fuentes sin cambios. Promociones offline GO01/01B FALLARON PREPARACIÓN por metadata, sin ROJO funcional ni red añadida. |
 | SQL/HTTP/contexto/SDK/fixtures/tests/mutantes/tipos/lint/build/verify | NO EJECUTADO. La autoría no certifica cumplimiento. |
 | Graphify/semántica/Archify/preview/publicación | NO EJECUTADO; único ciclo local tras documentos estables y turno del Director. Sin bóveda compartida. |
 | Producción/ledger/migración/cron instalado | NO EJECUTADO y no autorizado.0495 aplicada no se repite;0501 exige OK nominal futuro. |
 
 ## PRIMER GATE PREPARADO PARA TURNO PESADO
 
-1. Registrar manager/versiones reales y hacer instalación propia con lock congelado, sin copiar node_modules/env ni auto-pin/upgrade. Medir baselines funcionales existentes de cron/UI con módulos válidos antes de alterarlos. Promoción directa parse5 8.0.1 solo en su delta autorizado después.
+1. Completado bajo GO01/01B/01C: Node24.20.0/pnpm12.14.0 reales, instalación propia congelada, baseline cron/UI antes de alterarlos y promoción/importación parse5 directa8.0.1. No repetir ese baseline por documentación.
 2. Fixture efímera PG17.11 y PostgREST14.17 propios/loopback; verificar versiones efectivas. Setup durable COMMIT separado de contrato0495 original ROLLBACK. Cargar cadena real0267/0294/0495 sin editarla y contrato nuevo0501.
 3. Gate pequeño: observar dentro del trigger SECURITY DEFINER role GUC/current_user/session_user/claims; servicio sin sub positivo, humano positivo para auth.uid, anon/authenticated y servicio con sub/contexto ambiguo negativos. Current_user del definer no acredita caller. Si no se demuestra, detener esa parte y devolver evidencia; sin fallback a claim aislado.
 4. Capability real GET service-only y huellas/ACL/preflight/drift; dryRun también la exige antes de fetch/candidata. Verificar motivo DB fijo/source job y rollback real de tasa si append falla. GET no inmoviliza DDL; no exclusividad del cron frente a otro poseedor legítimo de servicio.
@@ -45,7 +48,7 @@ Cargar exclusivamente VES por 1 USD de la fecha valor igual a hoy America/Caraca
 
 ## COMMITS
 
-Reserva local `9591b2436033f1200ef71a79bb4e9ce67f10fbac`. Candidato de autoría ligera en el siguiente commit selectivo; no es checkpoint funcional aprobado. Publicación solo después de checkpoint funcional revisable.
+Reserva local `9591b2436033f1200ef71a79bb4e9ce67f10fbac`; candidato ligero `1ff0bbee4`; cleanup driver `01e830bdf632052c0f798e3de737b4336e949c55`; proxy loopback propio `93ac1a33f47bdeb4c4f85ffa6a8627e113092d1a`; promoción mínima parse5 `9cd35b1ef252b477969a3c50fdda0bd47c3da04e`. Ninguno constituye checkpoint funcional integral. Publicación solo después de checkpoint funcional revisable.
 
 ## PR / BRANCH
 
@@ -53,8 +56,8 @@ Rama propia indicada arriba. PR todavía NO CREADA. Base futura exacta: `codex/s
 
 ## PENDIENTES DE ESTA TAREA
 
-- Reserva0501 completada localmente. Módulos/parser/source/sync/route, fixtures, SQL/contratos, driver pequeño y documentación autorados como candidatos; falta demostrar y corregir bajo turno. Cron/UI/package/lock aún idénticos aD.
-- Baseline/instalación y todos los gates de ejecución bajo turno futuro del Director.
+- Reserva0501 completada localmente. Módulos/parser/source/sync/route, fixtures, SQL/contratos, driver pequeño y documentación autorados como candidatos; falta demostrar y corregir bajo turno. Cron/UI aún idénticos aD; package/lock solo promoción directa8.0.1.
+- Gate SQL/HTTP y restantes ejecuciones bajo turno futuro del Director. Peer SQL93a909 sin P0/P1 estáticos y con dos P2 obligatorios: DML HTTP negativo con efectos/eventos y mutante funcional del guard; fallo poscreación de instalación y cotejo del catálogo recuperado tras ROLLBACK en la mismaDB. Autoría permitida; ejecución pendiente.
 - Matriz SGE12 de producto con clasificación/evidencia real, no ascender matriz estática a conformidad.
 - Documentos finales, recibos de cierre nativos, ciclo único de conocimiento local, PR DRAFT, integridad y cleanup de recursos atribuibles; liberar claim solo al concluir escritura y cierre aceptado.
 
@@ -68,7 +71,17 @@ Rama propia indicada arriba. PR todavía NO CREADA. Base futura exacta: `codex/s
 
 Fase ligera activa. El Director conserva el único control de turnos y concede el pesado posterior; no se necesita otro “sigue” para autoría reversible permitida. Ninguna evidencia preparatoria sustituye ejecución. Las decisiones más recientes de activación/addendum prevalecen sobre estados preparados/exclusiones históricas conservados abajo.
 
+## RECIBOS GO01/GO01B/GO01C · 2026-10-21
+
+En `C:/tmp/director-traspaso-20261020/0569-bcv-validation/`: GO01 `go01-instalacion-baseline-01/go01-close.json`, SHA256 `7c1789d2cc8450ecaea97d2a434bf9ffb38e4becd6fb601299733f12ad4e21f0`; GO01B `go01b-promocion-importador-01/go01b-close.json`, SHA256 `59e0f3a1cc5003b731675b7dfc98294093895cd764ff781c565aa444955d14fb`; GO01C `go01c-enlace-congelado-01/go01c-close.json`, SHA256 `f55394987be013be6609e5452c780a39053bef3cd12cb12002c8ace162293c40`.
+
+GO01 conservó por separado el shim previo fallido y la promoción offline sin metadatafsevents. GO01B conservó su único enlace offline fallido sin metadata@next/env y no trató el módulo ausente como ROJO. GO01C permitió registro para metadata/artefactos bloqueados:936entradas pasaron la política, resolución omitida, enlace5.5s e importación mínima8.0.1 PASARON. Advertencia pnpm12 sobre `pnpm.onlyBuiltDependencies` ignorado conservada; sin cambiar config/política. Su primera captura amplia no produjo recibo completo/salida de sesión retenida; la captura acotada02 de31rutas sí quedó completa. No hubo gestor en la captura fallida.
+
+Los tres turnos fueron devueltos expresamente. Cotejos residuales propios:0identidades/descendientes observables vivos,0puertos/contenedores iniciados/terminaciones. GO01C duró6.2s y no tuvo snapshot durante la corrida; el recibo declara ese límite. Claim se conserva para autoría ligera. Módulos/testsBCV, SQL/HTTP/Docker/PGlite, tipos/build/verify, browser, conocimiento y fetch implementado siguen NO EJECUTADOS.
+
 ## CHECKPOINT DE AUTORÍA LIGERA · 2026-10-21
+
+Registro anterior a GO01/01B/01C, conservado como estado fechado; los recibos superiores lo actualizan.
 
 Autorados tipos/decimal, parser estructural y3fixtures mínimas; fuente acotada; factory/transportSDK dedicados; sync/route y casos funcionales preparados.0501 y contrato adicional/PGlite conservan cadena real con preflight/huellas/ACL y motivos nuevos acotados. Manifiesto/baseline/env.example/runbooks registran cierre propio sin cambiar gates. Driver context-only está preparado, sin ejecutarse; todavía falta ampliar HTTP de transporte/concurrencia/incertidumbre después del gate de contexto.
 
@@ -77,6 +90,12 @@ No se modificaron cron/UI/package/lock porque esperan baseline/instalación bajo
 SQL/contexto: la candidata role GUC+claims+auth.uid/login necesita HTTP real. Solo después se amplía aceptación. GETcapability no inmovilizaDDL; uso de servicio no atesta cron exclusivo; timestampCAS no promete ABA universal. Se conserva UNKNOWN y no se repite write ante falta de certeza.
 
 Dos incidentes de preparación corregidos, sin ejecución de producto: PowerShell pipe inválido al formatear metadatos y rechazo de apply_patch por Delete+Add de la misma ruta. La receta externa los conserva; no son ROJOS ni mutantes detectados.
+
+## PREPARACIÓN GO02 · 2026-10-21
+
+GO02 `40d640bd1cc93506268899f861fefe034e5cd474ec03e2e4fb54f4cff07d16e6` concede gateHTTP pequeño y, solo tras positivo, focalpersistencia0501. Nuevos oráculos P2 autorados:13contextos negativos con INSERT/PATCH reales y lectura de tasa/eventos/contexto por entidad; sub humano válido user/rpc o rechazo, nunca job; mutante del guard de sub con huellas reaprobadas solo en fixture; instalación que falla después de ambosDDL y ROLLBACK explícito con comparación íntegra de pg_proc/tabla/triggers/cadena y capability ausente en la mismaDB. Todavía no son resultados ejecutados.
+
+Peer fuente `c1b4bb846fcfec5efec8d6095764778438ec6ba90bebbb4c211b9ecca0d76749` leído íntegro: F01 medianoche, F02 asociación de FechaValor y F03 cancelación diferida son P2 por lectura. Parser/source conservan el candidato93ac/9cd; primero oráculos y ROJO válido en otro turno funcional antes de corregir producto. Incluye pendientes comprimido real>1MiB,200tras1/2redirects, abort durantebody, presupuesto acumulado y teardown del deferred. GO02 no ejecuta esas focales ni cron/UI/canónica/conocimiento.
 
 ## CONTRATOS ÍNTEGROS CONSERVADOS ANTES DE PRODUCTO
 

@@ -137,11 +137,11 @@ grant select on public.tenants to service_role;
 create schema bcv_fixture;
 grant usage on schema bcv_fixture to anon,authenticated,service_role;
 create table bcv_fixture.context_log (
-  native_role text, effective_user text, login_user text, actor_id uuid, claims jsonb
+  entity_id uuid, operation text, native_role text, effective_user text, login_user text, actor_id uuid, claims jsonb
 );
 create function bcv_fixture.capture_context() returns trigger language plpgsql security definer set search_path='' as $$
 begin
-  insert into bcv_fixture.context_log values(pg_catalog.current_setting('role',true),current_user,session_user,
+  insert into bcv_fixture.context_log values(new.id,tg_op,pg_catalog.current_setting('role',true),current_user,session_user,
     auth.uid(),nullif(pg_catalog.current_setting('request.jwt.claims',true),'')::jsonb);
   return new;
 end;
@@ -237,6 +237,10 @@ $sql$) as value;
 select set_config('dtd.audit_reason','',true);
 select set_config('request.jwt.claims','{"role":"service_role","sub":null}',true);
 create temporary table bcv_ambiguous_result as select public.bcv_rates_write_capability() as value;
+create temporary table bcv_ambiguous_dml_result as select bcv_fixture.error_sql($sql$
+  insert into public.fx_rates(id,tenant_id,currency,valid_on,source,rate,set_by)
+  values('00000000-0000-4000-8000-000000000503',md5('0495-synthetic-tenant-B')::uuid,'VES','2026-10-23','bcv','885',null)
+$sql$) as value;
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 reset role;
 reset session authorization;
@@ -244,6 +248,11 @@ select pg_temp.assert_true((select value='42501' from bcv_reason_result), 'motiv
 select pg_temp.assert_true((select rate::text='883.39630001' from fx_rates
   where id='00000000-0000-4000-8000-000000000501'), 'rechazo motivo revierte tasa');
 select pg_temp.assert_true((select value->>'ready'='false' from bcv_ambiguous_result), 'sub null no equivale a ausencia');
+select pg_temp.assert_true((select value='42501' from bcv_ambiguous_dml_result), 'sub null DML no habilita SYSTEM/job');
+select pg_temp.assert_true(not exists(select 1 from fx_rates where id='00000000-0000-4000-8000-000000000503')
+  and not exists(select 1 from entity_audit_log where entity_id='00000000-0000-4000-8000-000000000503')
+  and not exists(select 1 from bcv_fixture.context_log where entity_id='00000000-0000-4000-8000-000000000503'),
+  'sub null DML no deja tasa/evento/contexto confirmado');
 
 -- Fallo REAL del append0267: catálogo inactivo. La tasa y el evento son atómicos.
 update public.audit_entity_types set status='deprecated' where entity_type='exchange_rate';

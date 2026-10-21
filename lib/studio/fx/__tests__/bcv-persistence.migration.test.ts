@@ -12,6 +12,18 @@ const CONTRACT = resolve(ROOT, "supabase/tests/bcv_rates_system_audit.test.sql")
 const MIGRATION = "0501_bcv_rates_system_audit.sql";
 const SQL = readFileSync(resolve(ROOT, "supabase/migrations", MIGRATION), "utf8");
 const SLOW = 240_000;
+const INSTALL_CATALOG = `select pg_catalog.jsonb_build_object(
+  'audit', (select pg_catalog.to_jsonb(p) from pg_catalog.pg_proc p
+    where p.oid=pg_catalog.to_regprocedure('public.audit_fx_rate_change()')),
+  'append', (select pg_catalog.jsonb_agg(pg_catalog.to_jsonb(p) order by p.oid) from pg_catalog.pg_proc p
+    where p.oid in (
+      'public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)'::regprocedure,
+      'public.append_audit_event_v1(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)'::regprocedure)),
+  'table', (select pg_catalog.to_jsonb(c) from pg_catalog.pg_class c where c.oid='public.fx_rates'::regclass),
+  'triggers', (select pg_catalog.jsonb_agg(pg_catalog.to_jsonb(t) order by t.oid) from pg_catalog.pg_trigger t
+    where t.tgrelid='public.fx_rates'::regclass),
+  'capability', pg_catalog.to_regprocedure('public.bcv_rates_write_capability()')::text
+) as snapshot`;
 
 /** Mismas metaórdenes nativas ya usadas por el contrato0495, sin ejecutar psql. */
 function inline(file: string, variables: Record<string, string>, replacements: Record<string, string> = {}): string {
@@ -95,10 +107,35 @@ describe("R1–R10 · auditoríaBCV0501 real en PGlite, HTTP separado", () => {
   it("reaplicación/instalación parcial no se sobreescribe", async () => {
     expect((await contract({ migration: SQL + "\n" + SQL })).error).toContain("capability ya existe");
   }, SLOW);
+  it("R2 · fallo después de reemplazar/crear revierte catálogo en la mismaDB comprometida", async () => {
+    const db = new PGlite({ extensions: { pgcrypto } });
+    try {
+      // COMMIT de la fixture previo al BEGIN de instalación: cerrar una DB no prueba rollback.
+      await db.exec(inline(CONTRACT, { apply_fix: "false", fixture_only: "true" }));
+      const before = (await db.query<{ snapshot: Record<string, unknown> }>(INSTALL_CATALOG)).rows[0].snapshot;
+      expect(before.capability).toBeNull(); expect(before.audit).not.toBeNull(); expect(before.append).not.toBeNull();
+      const anchor = "  grant execute on function public.bcv_rates_write_capability() to service_role;";
+      expect(SQL.split(anchor)).toHaveLength(2);
+      const rejected = SQL.replace(anchor, anchor + `
+  -- Inyección SOLO de esta fixture: ambos DDL ya ocurrieron dentro del DO/BEGIN.
+  if pg_catalog.to_regprocedure('public.bcv_rates_write_capability()') is null
+     or (select pg_catalog.md5(p.prosrc) from pg_catalog.pg_proc p
+         where p.oid='public.audit_fx_rate_change()'::regprocedure)='b08dabd9181839c55d879e27a1e35608' then
+    raise exception 'BCV_TEST_INJECTION_NOT_AFTER_CREATION';
+  end if;
+  raise exception 'BCV_TEST_POSTCREATE_ABORT';`);
+      await expect(db.exec("begin;\n" + rejected + "\ncommit;")).rejects.toThrow("BCV_TEST_POSTCREATE_ABORT");
+      await db.exec("rollback;");
+      const after = (await db.query<{ snapshot: Record<string, unknown> }>(INSTALL_CATALOG)).rows[0].snapshot;
+      // Filas pg_proc completas incluyen OID/owner/ACL/prosrc; tabla/trigger/cadena exactos.
+      expect(after).toEqual(before); expect(after.capability).toBeNull();
+    } finally { await db.close(); }
+  }, SLOW);
   it.each([
     { from: "v_source := 'job';", to: "v_source := 'rpc';", assertion: "alta R3: un evento SYSTEM/job, motivo fijo, cuatro campos" },
     { from: "end || pg_catalog.to_char(new.valid_on,'YYYY-MM-DD') || '.';", to: "end || pg_catalog.to_char(new.valid_on,'YYYY-MM-DD') || '.';\n    v_reason := null;", assertion: "alta R3: un evento SYSTEM/job, motivo fijo, cuatro campos" },
     { from: "or v_claims->>'role' is distinct from 'service_role' or v_claims ? 'sub'", to: "or v_claims->>'role' is distinct from 'service_role'", assertion: "sub null no equivale a ausencia" },
+    { from: "if v_claims ? 'sub' then", to: "if false then -- mutación sintética: omite el guard de sub del trigger", assertion: "sub null DML no habilita SYSTEM/job" },
   ])("mutante funcional $assertion", async ({ from, to, assertion }) => {
     expect(SQL.split(from)).toHaveLength(2);
     const changed = reapproveMutant(SQL, SQL.replace(from, to));

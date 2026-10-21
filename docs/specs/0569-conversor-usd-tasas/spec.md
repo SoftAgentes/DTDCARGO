@@ -342,7 +342,7 @@ Inventario nativo actualizado antes de stub:502refs+worktrees, siguienteSQL0501 
 - SQL0501 conserva trigger/append real atómico y cuatro claves auditadas sin note/set_by; contexto rol nativo+claimsJSONsin sub+auth.uidNULL, motifijo/sourcejob solo BCV/VES/SYSTEM. Motivos humanos y manual/operacion/CNY/documentos intactos. Capability no inmovilizaDDL ni atesta exclusividad del cron.
 - B1–B19 del prevuelo y R1–R14 de auditoría obligatorios con B10 sourcejob/motivo y B16 ensayo estricto del addendum. SDK real con proxy404/503/truncado/ACKperdido, SQL/PGlite/HTTPPG17.11/PostgREST14.17, compatibilidad0495, focales/mutantes/UI y revisión independiente porSHA. No ROJO por módulos nuevos ausentes.
 
-Primero instalación congelada propia y baseline cron/UI bajo turno; después gate pequeño HTTP del contexto dentro del trigger definer con servicio sin sub positivo, humano positivo y negativos. Si no acredita la candidata, detener esa parte y volver al Director. Cron/UI/package/lock existentes se preservan hasta sus gates. El único pesado pertenece ahora a0574.
+Primero instalación congelada propia y baseline cron/UI bajo turno; después gate pequeño HTTP del contexto dentro del trigger definer con servicio sin sub positivo, humano positivo y negativos. Si no acredita la candidata, detener esa parte y volver al Director. Cron/UI/package/lock existentes se preservan hasta sus gates. Ese fue el orden inicial; los recibos GO01/01B/01C del handoff actualizan su avance.
 
 ### Allowlist exacta de esta continuación ·31rutas
 
@@ -400,3 +400,5 @@ La allowlist histórica de39rutas pertenece a la entrega anterior. Esta continua
 |12 autoridad|cumplimiento del encargo: sin merge/deploy/DBreal/croninstalado ni activación productiva; prueba local no los autoriza.|
 
 Validación de esta continuación: harness/claim/guard y preimágenes31 PASARON como metadatos. Módulos ausentes inicialmente son AUSENTES. Instalación/baselines/producto/tests/SQLHTTP/UI/verify/conocimiento: **NO EJECUTADOS**. No interpretar el stub o la matriz como entrega funcional. Handoff y recibos externos conservan omisiones y límites.
+
+Actualización acotada21oct: instalación inicial congelada y baseline válido2archivos/12casos/0omisiones PASARON sobreD; preparación del primer shim y dos promociones offline fallaron por separado, sin ROJO funcional. Promoción parse5 directo8.0.1 exacto en9cd35b1ef y enlace/importación mínimos GO01C PASARON;31fuentes sin reescritura. Todavía no se han ejecutado módulos/testsBCV ni SQLHTTP/UI/canónica/conocimiento. GO02 autoriza solo contextoHTTP y después focalpersistencia0501, con inputs congelados/recibos nuevos; no acredita cierre global ni levanta el resto de fronteras.
