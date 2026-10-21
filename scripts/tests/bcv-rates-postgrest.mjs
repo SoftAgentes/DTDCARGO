@@ -46,7 +46,7 @@ async function main() {
   const password = randomBytes(24).toString('hex'), secret = randomBytes(32).toString('hex');
   const receipt = { startedAt: new Date().toISOString(), pid: process.pid, root: ROOT, phase: 'PREPARACION',
     result: 'RUNNING', resources: { network, pg, rest }, versions: {}, checks: [], http: [], cleanup: [] };
-  const created = []; let networkCreated = false;
+  const attempted = []; let networkAttempted = false;
   const save = (name, value) => writeFile(resolve(evidence, name), typeof value === 'string' ? value : JSON.stringify(value,null,2)+'\n');
   const check = (name, detail = {}) => { receipt.checks.push({ name, ...detail }); process.stdout.write('PASÓ: ' + name + '\n'); };
   const run = (step, argv, { input = '', timeout = 30_000, allowFailure = false } = {}) => new Promise((done, fail) => {
@@ -84,10 +84,12 @@ async function main() {
       'lib/studio/fx/bcv-sync.ts'].map(name => [name, SHA(readFileSync(resolve(ROOT,name)))]));
     const { createBcvServiceClient } = await tsImport(pathToFileURL(resolve(ROOT,'lib/studio/fx/bcv-sync.ts')).href, import.meta.url);
     check('SDK2.106.1 e import TS real preparados');
-    await run('network-create',['network','create','--label','dtd.task=0569-bcv-carga-diaria',network]); networkCreated = true;
+    networkAttempted = true;
+    await run('network-create',['network','create','--label','dtd.task=0569-bcv-carga-diaria','--label','dtd.owner='+nonce,network]);
+    attempted.push(pg);
     await run('postgres-start',['run','-d','--name',pg,'--label','dtd.task=0569-bcv-carga-diaria','--label','dtd.owner='+nonce,
       '--network',network,'--network-alias','db','-e','POSTGRES_PASSWORD='+password,
-      '-v',resolve(ROOT,'supabase')+':/sb:ro','postgres:17.11'], { timeout: 300_000 }); created.push(pg);
+      '-v',resolve(ROOT,'supabase')+':/sb:ro','postgres:17.11'], { timeout: 300_000 });
     await eventually(async () => (await run('postgres-ready',['exec',pg,'pg_isready','-U','postgres'], { allowFailure: true })).code === 0);
     receipt.versions.postgres = await scalar("select current_setting('server_version');");
     assert.match(receipt.versions.postgres,/^17\.11(?:\s|$)/);
@@ -99,10 +101,11 @@ async function main() {
     assert.match(setup.stdout,/COMMIT/);
     await psql("alter role authenticator login password '"+password+"';");
     await psql('begin;\n'+readFileSync(resolve(ROOT,'supabase/migrations/0501_bcv_rates_system_audit.sql'),'utf8')+'\ncommit;');
+    attempted.push(rest);
     await run('rest-start',['run','-d','--name',rest,'--label','dtd.task=0569-bcv-carga-diaria','--label','dtd.owner='+nonce,
       '--network',network,'-p','127.0.0.1::3000','-e','PGRST_DB_URI=postgres://authenticator:'+password+'@db:5432/postgres',
       '-e','PGRST_DB_SCHEMAS=public','-e','PGRST_DB_ANON_ROLE=anon','-e','PGRST_DB_PRE_REQUEST=bcv_fixture.http_context',
-      '-e','PGRST_JWT_SECRET='+secret,'postgrest/postgrest:v14.17'],{ timeout:300_000 }); created.push(rest);
+      '-e','PGRST_JWT_SECRET='+secret,'postgrest/postgrest:v14.17'],{ timeout:300_000 });
     receipt.versions.postgrest = (await run('rest-version',['exec',rest,'/bin/postgrest','--version'])).stdout.trim();
     assert.match(receipt.versions.postgrest,/\b14\.17\b/);
     receipt.resources.restImage = (await run('rest-image',['inspect','--format','{{.Image}}',rest])).stdout.trim();
@@ -179,16 +182,30 @@ async function main() {
     // Sin argv/env/JWT/SQL/body externo. Logs de setup sintético se conservan aparte.
     process.stderr.write('FALLÓ: '+receipt.phase+'; revisar recibo externo\n'); process.exitCode=1;
   } finally {
-    for (const name of created.reverse()) {
+    for (const name of attempted.reverse()) {
       try {
-        const result=await run('cleanup-container',['rm','-f',name],{allowFailure:true});
-        receipt.cleanup.push({kind:'container',name,exit:result.code});
+        const inspected=await run('cleanup-inspect',['inspect','--format','{{.Id}} {{ index .Config.Labels "dtd.owner" }}',name],{allowFailure:true});
+        if (inspected.code!==0) {
+          const absent=/No such (?:object|container)/i.test(inspected.stderr);
+          receipt.cleanup.push({kind:'container',name,exit:absent?0:null,absent}); continue;
+        }
+        const identity=/^([0-9a-f]{64}) ([0-9a-f]{12})$/.exec(inspected.stdout.trim());
+        if (!identity || identity[2]!==nonce) { receipt.cleanup.push({kind:'container',name,exit:null,ownerMismatch:true}); continue; }
+        const result=await run('cleanup-container',['rm','-f',identity[1]],{allowFailure:true});
+        receipt.cleanup.push({kind:'container',name,id:identity[1],exit:result.code});
       } catch { receipt.cleanup.push({kind:'container',name,exit:null}); }
     }
-    if (networkCreated) {
+    if (networkAttempted) {
       try {
-        const result=await run('cleanup-network',['network','rm',network],{allowFailure:true});
-        receipt.cleanup.push({kind:'network',name:network,exit:result.code});
+        const inspected=await run('cleanup-network-inspect',['network','inspect','--format','{{.Id}} {{ index .Labels "dtd.owner" }}',network],{allowFailure:true});
+        const identity=/^([0-9a-f]{64}) ([0-9a-f]{12})$/.exec(inspected.stdout.trim());
+        if (inspected.code===0 && identity?.[2]===nonce) {
+          const result=await run('cleanup-network',['network','rm',identity[1]],{allowFailure:true});
+          receipt.cleanup.push({kind:'network',name:network,id:identity[1],exit:result.code});
+        } else {
+          const absent=inspected.code!==0 && /No such network|not found/i.test(inspected.stderr);
+          receipt.cleanup.push({kind:'network',name:network,exit:absent?0:null,absent});
+        }
       } catch { receipt.cleanup.push({kind:'network',name:network,exit:null}); }
     }
     if (receipt.cleanup.some(item=>item.exit!==0)) {
