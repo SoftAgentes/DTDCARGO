@@ -1,6 +1,6 @@
 # Handoff · SDD-0574 · Embarques sin facturar (4.5 del plan contable)
 
-> Estado de la retoma Codex, 2026-10-21: ROJO funcional revisado sobre `1ffa8acc` (87/53 fallos/34 pasan/0 omitidos), producto F1–F3 escrito después del GO y todavía sin validación verde. Turno pesado devuelto a C3 a08:23:49Z; solo implementación/preparación ligera. El registro histórico y la asignación de abajo se conservan con sus fechas. Rige el bloque de avance al final para el estado actual; sin PR nueva ni release.
+> Estado de la retoma Codex, 2026-10-21: F1–F3 aceptados por el Director en el alcance local probado sobre `639c8954` (87/87 focales, 167/167 regresión con solapamiento, tipos/lint, 14 variantes y UI acotada). Merge local de 0577 guardado en `827df6c8`; producto y tests de 0574 intactos. Documentación y PR DRAFT contra #307 autorizadas; **canónica de esta composición NO EJECUTADA**, pendiente de GO independiente. Turno pesado devuelto a las 09:40:26Z, sin procesos propios; claim conservado. Los bloques anteriores al cierre de abajo son evidencia histórica fechada, no el estado actual ni permiso de release.
 
 | Campo | Valor |
 |---|---|
@@ -221,3 +221,97 @@ Los tres archivos de pruebas conservan sus87 oráculos y bytes del ROJO. Revisi�
 **Pendientes de esta tarea:** verde87, regresiones pertinentes/baseline exacto, mutantes y restauración, tipos/lint/docs/numbering, RLS/SQL sintéticos, UI real claro/oscuro/390/escritorio/teclado/reflow, checkpoint funcional revisado y DRAFT, verify normal por receta del Director, ciclo de conocimiento/cierre. Todos **NO EJECUTADOS sobre el parche**; conocimiento inicial **NO DISPONIBLE**. Sin autorización actual para nuevos procesos pesados, PR, integración o producción. Claim permanece hasta cierre aceptado.
 
 **FUERA DE ALCANCE DETECTADO:** las dos deudas ya declaradas (unidad4.2 y cobertura0128 por prealerta) conservan su frontera. No se absorben 0573/0575/Caracas/BCV ni cambios contables globales. No hay hallazgo nuevo que exija ampliar las doce rutas.
+
+## Checkpoint funcional aceptado y composición 0577 · 2026-10-21
+
+Este bloque sustituye el estado pendiente de los apartados de preparación, conservados como historia. El contrato original `8f425c18…`, los sobres previos y el ROJO no se reescriben. El Director aceptó el producto y la evidencia de `639c8954607ee81f86694390775fae325acadf8a` con los límites de esta sección; no transfirió esa ejecución a un SHA posterior.
+
+### Evidencia ejecutada sobre 639
+
+| Comprobación | Resultado y alcance real |
+|---|---|
+| Focal original | **PASÓ 87/87**, tres archivos reales: regla/lector 38, Reporte 29, tarjeta 20; cero fallo/skip/todo, maxWorkers2/retry0. Nombres/firmas únicos exactamente iguales al ROJO; sus 53 fallos pasan. Pared 39.411 s, Vitest 35.59 s |
+| Regresiones | **PASÓ 167/167**, ocho archivos, cero fallos/skip/todo; 87 repetidos + 80 adicionales, no 254 únicos. Incluye types14, propuesta11, paridad PGlite12, consultas Dirección39 y baseline4. No prueba RLS real de servidor |
+| Tipos | **PASÓ**, tsc --noEmit local, exit0 sin diagnósticos; 94.2 s |
+| Lint | **PASÓ**, cuatro productos reparados + tres tests, exit0 sin warnings, 62.392 s; no se renombra canónica |
+| Variantes M01–M14 | **PASÓ**, 14 detectadas por su aserción funcional prevista, cero sobrevivientes/inconclusas/timeout. Una por turno secuencial, restauración individual de bytes y final de 27/27 fuentes. Casos no seleccionados por patrón se conservan como no seleccionados; no son una suite completa ni 14 casos únicos nuevos |
+| UI original | **FALLÓ PREPARACIÓN**: entrada absoluta Windows marcada external por el resolver genérico; exit1 antes de servidor/navegador/capturas, cero PNG. No fue un fallo de producto ni se borró el intento |
+| UI V2 | **PASÓ en alcance observado**, ejecución única exit0 en 37.7893113 s; 40 combinaciones, 56 PNG revisados, cero diagnósticos. Cambió solo el resolver externo autorizado: `if (path.isAbsolute(args.path)) return undefined;` |
+| Recursos/huellas | Cada fase devolvió su turno después de EXIT y bytecheck. Última devolución a09:40:26.3670904Z: 27/27 intactas, tracked limpio, siete PIDs observados ausentes, cero consumidores propios y cero conexiones/listeners del puerto32766 |
+| Canónica, SQL/RLS de servidor, build general y CI del receptor | **NO EJECUTADOS**. El focal PGlite no se presenta como esos gates. Esperan la receta normal y el turno expresos |
+| Conocimiento | Inicial **NO DISPONIBLE**, interrupción autorizada conservada. Ciclo final **NO EJECUTADO**; no publicación compartida ni apertura visible de Obsidian acreditadas |
+
+UI: siete escenarios × dos superficies × dos temas a390 =28; mixed/precision a1280 =8; mixed a320 =4. Se distinguen subtotal exacto/total desconocido, todo sin tarifa, esquema no disponible, vacío parcial y vacío completo. La tarjeta incluye el faltante llegado en su contador transversal y explica que no se suman las tarjetas. La tabla muestra CBM congelado2/actual3 con $1,700.00 conservados y el mínimo $100.00; no recalcula a partir del volumen actual. La cifra agregada $90,071,992,547,409.93 conserva los centavos.
+
+Cero desbordes de página en40 medidas. Las14 tablas con desborde propio responden a ArrowRight (0→40); las dos mixed/1280 completas permanecen en0. Las16 últimas columnas se fotografiaron después de scroll programático al extremo y quedan dentro del contenedor. No se atribuye ese recorrido completo a una sola tecla. Las20 tarjetas conservan cuatro enlaces y foco visible; los16 reportes con tabla enfocan la región. Rúbrica `.claude/commands/ui-check.md` aplicada como advisory, sin hallazgo obligatorio observado ni reparación de marca heredada.
+
+**Límite visual conservado:** seis PNG de reportes largos empiezan en la tabla por el foco, sin probar por píxeles la cabecera superior: partial-rows/390 y precision/390/1280, ambos temas. Sus resúmenes sí se cotejaron exactamente en DOM. SSR estático/DB sintética/CSS de utilidades acotado con Studio/tokens/fuentes reales, sin hidratación, sesión/RLS reales, navegación autenticada, teléfono físico, zoom nativo ni auditoría A11Y/performance integral.320 es reflow de ancho. El Director aceptó esta frontera y no pidió otro ciclo de fotos.
+
+### Recibos inmutables y aceptación
+
+Raíz externa propia: `C:/tmp/director-traspaso-20261020/0574-cierre-validation/`. Logs y datos sintéticos no se agregan a Git. Los siguientes recibos inventarían sus entradas/salidas, hashes, procesos y fuentes:
+
+| Recibo | SHA256 |
+|---|---|
+| `fase2-focal-639c8954-1792573708412/cierre-turno.json` | `d0601cfaac863a947d85d832db09507c3d0fc56f03f13758e07a51e14ff04530` |
+| `fase2-regresiones-tipos-lint-cierre-639c8954.json` | `4ba37cb34cbcadda9a604a675b2467e488751f7049df5e0234ffd9249e9eed05` |
+| `fase2-mutants-639c8954-1792575062065/receipt.json` | `3b49115cf94f2679a2f3ee268fa066da34712a558778203d3937604ef0d47f09` |
+| `fase2-variantes-ui-cierre-639c8954.json` | `4cc7aa1020a4e0167ab3462083b0c2bf4b7c7c875b6be3081fb8759fe2f69d5e` |
+| `fase2-ui-v2-cierre-639c8954.json` | `a39074f0220b9e27ab957a70599a1a4df52213afbef0d37a581a19f7a4cfdb6e` |
+| `fase2-ui-v2-revision-639c8954.md` | `3dcbdfcb8be01a0ea4cb93c22265392240fc30728ae1346cd796ebe8b88c3cd0` |
+| `fase2-ui-639c8954-1792575547956/receipt.json` | `c9ba93baae1514fc0dec4708597a051a1e21fa4b951f0ff8abb958cc5f1aa0be` |
+
+Director cotejó8/8 artefactos focales y las87 identidades contra ROJO, revisó regresiones/tipos/lint, catorce diagnósticos/JSON de variantes y su restauración, y cotejó81/81 artefactos UI por hash/bytes. La revisión independiente de639 no encontró hallazgo obligatorio. Director examinó además ocho recortes UI y las40 medidas/modelos; la revisión de los56 PNG corresponde al Writer. Aceptación limitada al SHA y cobertura indicados.
+
+El plan anterior `fase2-plan-preparado.md` `5b1edab…` y su runner permanecen intactos como propuesta histórica. Su entrada directa al verificador/watchdog externo no rigen. La V2 `fase2-plan-canonica-v2.md` `38ff19df…` y runner `a2affce5…` conservaron las fases locales; la receta canónica normal es exclusivamente `corepack pnpm verify`, con GO independiente. El suplemento propuesto de catorce negativos monetarios no fue autorizado ni se necesitó para este cierre; no se añadieron tests ni se alteraron los87 originales.
+
+### Composición local autorizada de 0577
+
+Autorización leída íntegra: `C:/tmp/director-traspaso-20261020/0574-baseline-0577-autorizada.md`, SHA256 `4b0aa0638494febdc03bfbfbc7bb95077e0c5af5cd6a87baf3bac7a4fad5580d`. Permite composición/documentación/Git, sin turno pesado ni nuevo producto. C3 conserva ese turno.
+
+- Receptor:639; donante revisado `c4b2e72dabbdde80ec7fe5c8a7f128966b6494be`, rama `codex/sdd-0577-contratos-pruebas-portal-embarques`, PR[#315](https://github.com/SoftAgentes/DTDCARGO/pull/315) DRAFT. Ancestro común `eafbd910d1c082c9b416b558f8c3db5847b994a6`.
+- Merge normal `827df6c8be5446c69e5c8264fc179aeb18af0a30`; padres completos `639c8954607ee81f86694390775fae325acadf8a` y `c4b2e72dabbdde80ec7fe5c8a7f128966b6494be`; árbol `ca6460dcbc06342dc8caa5c353d142f8d3a06db4`.
+- Sin conflictos pendientes; merge semántico de README existente y regeneración con `node scripts/build-docs-index.mjs`:558 specs/19 huecos locales. No son números disponibles. No se reservaron IDs/SQL ni se modificó el generador.
+- Delta inmediato639→merge: únicamente dos tests y dos documentos de0577, más README. Los26 archivos protegidos distintos de README conservaron sus hashes al crear el merge. La documentación propia se actualiza después; producto/tests/runners/package/lock siguen iguales.
+- Tests heredados: Portal blob `8112f1d2d1d98623830e31855e67c0bf97b325d3`; Embarques blob `64c357737fd383078ce3b68594f816561f93bed5`. Spec0577 `10c3bf9f8a815f66caad5563ecc78caf158bb8aa`; handoff0577 `d205c0f629b344b6a5e45ff85001ced7fb9ea079`. Cotejados contra el donante sin editarlos.
+- Donante:40 casos,171 oráculos/29 negativas conservados, dos comprobaciones nuevas visible/enabled antes del único segundo click. Su par original/candidato40/40 pasó; no reproduce el timeout ni demuestra mejora estable/causa. Esta herencia no convierte su ejecución en resultado del receptor.
+- Preflight propio `composicion-0577-preflight-639c8954.json` `0f996933d5f8a1725d641ecea81d6afc44cd03cc6526b1638ec1c502aa2c9366`; recibo de merge `composicion-0577-merge.json` `fccbd87a052fabe9af3f675ed8e550f00768aac2e10dacd655154a53c36ce7a1`.
+
+Allowlist acumulada exacta de16 rutas (README compartido cuenta una vez):
+
+```text
+lib/studio/rate-snapshots/sin-facturar.ts
+lib/studio/rate-snapshots/__tests__/sin-facturar.test.ts
+app/studio/(app)/reportes/embarques-sin-facturar/page.tsx
+app/studio/(app)/direccion/_components/SinFacturarCard.tsx
+app/studio/(app)/direccion/page.tsx
+app/studio/(app)/reportes/page.tsx
+scripts/__tests__/invoice-read-boundary.test.mjs
+docs/specs/0574-embarques-sin-facturar/spec.md
+docs/specs/README.md
+.agents/handoffs/0574-embarques-sin-facturar.md
+app/studio/(app)/reportes/embarques-sin-facturar/page.test.tsx
+app/studio/(app)/direccion/_components/SinFacturarCard.test.tsx
+app/p/[token]/supplier-flow.test.tsx
+app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.borrado.test.tsx
+docs/specs/0577-contratos-pruebas-portal-embarques/spec.md
+.agents/handoffs/0577-contratos-pruebas-portal-embarques.md
+```
+
+Esta ampliación permite heredar0577 y documentar el receptor. No autoriza alterar producto/tests de639, tests/spec/handoff0577 ni cualquier archivo adicional. Solo README generado y los dos documentos propios pueden cambiar en este bloque. No se incorporan productos C3/C2, Caracas, BCV,0573/0575 ni WIP ajeno.
+
+La comparación completa contra la base `ba43747a` tiene veinte rutas, no dieciséis. Las cuatro adicionales ya procedían de main por la reserva histórica de 18ed, con autorización y límite explícitos en la asignación original: `.github/workflows/quality.yml` (blob `e2bf24977abebd5c099d07aa744a9231ce233cff`), `scripts/__tests__/ci-workflow-contract.test.mjs` (`ecb2d21871769f911faa4628c0bdea4145c0ef9b`), `.agents/handoffs/2026-10-20-ci-calidad-tope-y-paralelismo.md` (`fa5733641d20ee39c570a86f419380098e6bc230`) y `docs/audits/2026-10-18-contabilidad-diagnostico-y-plan.md` (`92ba7b672d35127c83308959c29b48ed64fd3862`). Los cuatro blobs coinciden en 18ed, e6, 639 y 827; no se editaron ni se amplía su permiso. Se separan esta herencia y las dieciséis rutas del alcance acumulado al describir la PR.
+
+### Entrega y pendientes propios
+
+Comprobaciones ligeras de la documentación compuesta: guard propio **PASÓ**, `docs:check` **PASÓ** con 558 specs; numbering **PASÓ** con 558 specs/489 migraciones y los once avisos de colisiones históricas conservados, sin renumeración; `git diff --check` **PASÓ**. Son controles documentales, no una nueva corrida de producto. La comparación rastreada de este bloque contiene únicamente spec/handoff propios; `.pnpm-store/` preexistente se conserva sin rastrear.
+
+Commit/push selectivos de la rama propia y PR DRAFT autorizados contra `claude/peaceful-franklin-a3831e`, base nominal `ba43747a803ea9aec3b8750d1b461d69795834a5`, dependencia[#307](https://github.com/SoftAgentes/DTDCARGO/pull/307). Reconsultar la base antes de crear; no retargetear si deriva. El recibo externo final y readback de la PR conservarán SHA/padres/base/delta/blobs, respaldo remoto y estado. No se hace commit adicional para autocitar el hash del mismo documento.
+
+La preparación canónica usará una carpeta externa nueva, manifiesto de31 fuentes (las27 originales más cuatro heredadas nuevas), huellas/bytes de originales sellados y receta normal `corepack pnpm verify`. Antes de la futura ejecución deberá comprobarse SHA/claim/limpieza/ausencia de entorno real y versión efectiva mediante `corepack pnpm --version`, sin suponer que coincide con pnpm11.19.0 de instalación. Solo `COREPACK_ENABLE_AUTO_PIN=0` y `COREPACK_ENABLE_DOWNLOAD_PROMPT=0` por proceso, restaurados incluso al fallar; si un nombre estaba ausente se elimina del proveedor Env. Sin VERIFY*/NODE_OPTIONS, credenciales, overrides, cambio de topes/concurrencia/gates ni entrada directa al script. Si preflight/gestor cambia una fuente o falla, detener y conservar evidencia; no reparar/reinstalar/reintentar automáticamente. Esta receta está **PREPARADA, NO EJECUTADA y SIN GO CANÓNICO**.
+
+Pendientes propios: revisar checkpoint/PR DRAFT compuesto; canónica normal sobre SHA aprobado con turno separado, inspección de exit/pasos/SKIPs y RLS/SQL/build reales que efectivamente ejecute; cierre documental estable; un único ciclo de conocimiento local con turno y límites por capa; respaldo/limpieza/recursos/claim al cierre aceptado. Estado inicial de conocimiento NO DISPONIBLE permanece histórico. Integración, producción y bóveda compartida no están autorizadas aquí;0495 no se repite y0496 sigue sin aplicar.
+
+Gobernanza: matriz por principio actualizada en la spec, con F1–F3 en cumplimiento local observado y sin excepción. Permisos/RLS reales, seis cabeceras por píxeles, dispositivo y accesibilidad integral conservan sus límites. La canónica pendiente pertenece a esta SDD, no a FUERA DE ALCANCE.
+
+**FUERA DE ALCANCE DETECTADO:** se conservan la unidad futura4.2 y la cobertura0128 por prealerta. La reparación0577 se hereda por mandato, sin absorber mejoras generales de Portal/borrado ni atribuir el timeout a una causa no demostrada. No hay nuevas operaciones de negocio, permisos, tasas, correlativos o migraciones.
