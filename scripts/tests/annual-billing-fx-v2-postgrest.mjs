@@ -172,7 +172,7 @@ try {
     const response = await rpc("get_portal_referral_program", actor);
     negative("Portal " + actor, response); assert.equal(response.data, null);
   }
-  const privateFn = await rpc("convertir", "admin", { p_amount: 1, p_currency: "USD", p_rate: null });
+  const privateFn = await rpc("convertir_factura_anual_usd", "admin", { p_amount: 1, p_currency: "USD", p_rate: null });
   negative("helper privado", privateFn);
   assert.equal(privateFn.status, 404);
   const invalidDate = await rpc("studio_client_annual_billing_v2", "admin", { p_as_of: null });

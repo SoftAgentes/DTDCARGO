@@ -44,7 +44,7 @@ create schema annual_billing_private authorization postgres;
 revoke all on schema annual_billing_private from public, anon, authenticated, service_role;
 
 -- Clasificador puro y privado. El orden y el redondeo pertenecen SOLO a to_usd.
-create function annual_billing_private.convertir(p_amount numeric, p_currency text, p_rate numeric)
+create function annual_billing_private.convertir_factura_anual_usd(p_amount numeric, p_currency text, p_rate numeric)
 returns table (usd numeric, fx_state text)
 language plpgsql immutable security invoker set search_path = ''
 as $classify$
@@ -61,8 +61,8 @@ exception when sqlstate '22023' then
   return next;
 end;
 $classify$;
-alter function annual_billing_private.convertir(numeric,text,numeric) owner to postgres;
-revoke all on function annual_billing_private.convertir(numeric,text,numeric) from public, anon, authenticated, service_role;
+alter function annual_billing_private.convertir_factura_anual_usd(numeric,text,numeric) owner to postgres;
+revoke all on function annual_billing_private.convertir_factura_anual_usd(numeric,text,numeric) from public, anon, authenticated, service_role;
 
 create function public.studio_client_annual_billing_v2(p_as_of date)
 returns table (
@@ -126,7 +126,7 @@ begin
   with converted as materialized (
     select i.client_markbox, c.usd, c.fx_state
     from public.invoices i
-    cross join lateral annual_billing_private.convertir(i.total_amount, i.currency::text, i.fx_rate) c
+    cross join lateral annual_billing_private.convertir_factura_anual_usd(i.total_amount, i.currency::text, i.fx_rate) c
     where i.tenant_id = v_tenant and i.deleted_at is null and i.client_markbox <> ''
       and i.status in ('emitida', 'parcial', 'pagada', 'vencida')
       and coalesce(i.issued_at, (i.created_at at time zone 'UTC')::date) >= (p_as_of - interval '1 year')::date
@@ -168,7 +168,7 @@ as $function$
     'billing_v2', (
       with converted as materialized (
         select c.usd, c.fx_state from public.invoices i
-        cross join lateral annual_billing_private.convertir(i.total_amount, i.currency::text, i.fx_rate) c
+        cross join lateral annual_billing_private.convertir_factura_anual_usd(i.total_amount, i.currency::text, i.fx_rate) c
         where i.tenant_id = p.tenant_id
           and pg_catalog.upper(pg_catalog.btrim(i.client_markbox)) = p.markbox
           and i.deleted_at is null and i.status::text in ('emitida', 'parcial', 'pagada', 'vencida')
@@ -242,7 +242,7 @@ begin
   end loop;
   foreach v_role in array array['anon','authenticated','service_role'] loop
     if pg_catalog.has_schema_privilege(v_role,'annual_billing_private','USAGE')
-       or pg_catalog.has_function_privilege(v_role,'annual_billing_private.convertir(numeric,text,numeric)','EXECUTE') then
+       or pg_catalog.has_function_privilege(v_role,'annual_billing_private.convertir_factura_anual_usd(numeric,text,numeric)','EXECUTE') then
       raise exception '0498: clasificador privado expuesto';
     end if;
   end loop;

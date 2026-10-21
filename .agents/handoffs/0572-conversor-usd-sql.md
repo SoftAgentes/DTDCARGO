@@ -205,6 +205,12 @@ no es cierre, integración, aplicación ni aceptación íntegra de 0572-b.
 
 ## Candidato de aplicación · 2026-10-21 01:16 UTC
 
+Publicado posteriormente en a734aa61f01fd70d734b4d2ddb32672d0c748a4c,
+local/remoto iguales y árbol limpio; PR311 actualizada como checkpoint parcial.
+Al pasar los archivos nuevos al índice, diff-check detectó dos EOF con línea
+en blanco en pruebas RSC nuevas; corregidos sin cambiar aserciones. Diff
+completo a30→a734 PASÓ después del commit. App congelada para revisión.
+
 - SQL publicado en f9cc1dd y suplemento inmutable en
   3b74e42b1618a856d812455ca565f69f530efb53. Revisión SQL independiente del
   Director: fixture temporal cerrada, sin nuevos hallazgos sobre contrato/ACL.
@@ -284,3 +290,49 @@ Documentación queda en spec/handoff propios, sin inventar regla nueva. Graphify
 estructural, cobertura semántica, Archify, preview y Obsidian quedan separados
 de implementación/PR. Status de cierre pendiente después de verify; sin
 regeneración masiva ni publicación compartida desde rama no integrada.
+
+## Renombre privado autorizado · 2026-10-21 01:21 UTC
+
+Director aprobó cambiar SOLO annual_billing_private.convertir por
+annual_billing_private.convertir_factura_anual_usd en0498 no aplicada y sus
+contratos/arnés. Son17 referencias en15 líneas de4rutas, sin cambiar fórmula/cuerpo/ACL/
+esquema ni las fachadas API. Evita declarar como degradación textos que no
+llaman SQL y conserva el detector sin modificaciones. Se exige revalidar
+PGlite/mutantes, PostgreSQL y HTTP sobre el nuevo blob, con revisión SQL nueva;
+los recibos anteriores se conservan como históricos, no atribuidos al nuevo
+hash. App a734 permanece intacta durante este suplemento.
+
+Docker: observados10contenedores ajenos supabase_*_loop3d-pr55-20261020 al
+iniciar el suplemento. No se gestionan ni se reutilizan; si siguen activos,
+Desktop se conservará para no cortar un consumidor ajeno. Recursos de b
+seguirán teniendo nombres/labels propios y limpieza limitada a esos recursos.
+
+### Suplemento validado del renombre
+
+- `rename-proof.json` acredita que las cuatro rutas de SQL/contrato/arnés solo
+  sustituyen el identificador privado respecto de a734. El blob de0498 es
+  `5b302b5cad00529fcc5731aa570fd620794c4689`, SHA256
+  `dbbae6fc8b61489acc0c1fa4ada2790ae992bcc834181ef7e9e8c0c612f85315`.
+  Las siete fuentes de la fixture visual siguen idénticas a a734.
+- PGlite `sql-rename-1` **PASÓ 18/18, 0 omitidos, exit0** entre
+  01:21:34 y01:22:15Z; incluye los13 mutantes SQL y su restauración.
+- PostgreSQL17.11 y PostgREST14.17 `postgrest-4` **PASÓ exit0**, entre
+  01:22:54.525 y01:23:11.463Z:37 aserciones SQL con ROLLBACK; HTTP antes de
+  crear0498, DDL confirmado, recarga en caliente y respuestas posteriores.
+  StartedAt antes/después es el mismo `2026-10-21T01:23:04.129331339Z`.
+  El recibo conserva12 respuestas negativas sintéticas, páginas500/500/202/0,
+  importe grande exacto y versiones/digests. Los dos contenedores y la red
+  propios se limpiaron correctamente; no se intervino Loop3D.
+- `pending-symbols-rename` **PASÓ exit0** a01:24:10Z:0 rojos y2 amarillos
+  declarados (0495 heredada y0498). Sin cambiar detector, inventar callSites
+  ni declarar textos de UI como fallbacks SQL. El fallo anterior se conserva
+  como histórico, no se sobrescribe su evidencia.
+- Lectura de capacidad antes de PG4: CPU host3%, memoria libre aproximada6GiB,
+  contenedores ajenos entre0 y1.12%CPU. Es una observación puntual de metadatos,
+  no prueba de ausencia universal de trabajo. Docker permanece por consumidores
+  ajenos; recursos de esta tarea ya no están activos.
+- Revisión SQL del nuevo blob y verify canónico pendientes. El Director
+  confirmó además un P2 de app en a734: fusionar disponibilidad del cruce de
+  leads y RPC anual oculta el nominal legítimo de un lead confirmado no
+  convertido. Reparación autorizada dentro de41rutas después de este suplemento,
+  con rojo lector/RSC/componentes y controles de convertido/cruce fallido.

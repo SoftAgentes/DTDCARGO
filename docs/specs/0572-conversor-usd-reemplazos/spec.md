@@ -476,7 +476,7 @@ completo. No se modifica el handoff de a ni sus migraciones aplicadas.
 - Decimal exacto con dos decimales como string, contador seguro y estado
   `completo`/`sin_tasa`/`datos_invalidos`. Lectura `no_disponible` separada de
   falta de tasa y ausencia de principal. Cero y signo se conservan.
-- Clasificador privado previsto: `annual_billing_private.convertir(numeric,text,numeric)`.
+- Clasificador privado vigente: `annual_billing_private.convertir_factura_anual_usd(numeric,text,numeric)`.
   INVOKER, IMMUTABLE, search_path vacío, sin USAGE/EXECUTE para roles API.
   Invoca `public.to_usd`; captura solo SQLSTATE 22023 + hint dtd-fx + mensajes
   FX_AMOUNT_INVALID/FX_RATE_MISSING/FX_CURRENCY_UNKNOWN; relanza todo lo demás.
@@ -534,6 +534,13 @@ idénticas a a30 permanecen fuera del delta. Gate de símbolos detectó homónim
 del nombre privado convertir en textos UI, sin llamadas reales al helper;
 resolución propuesta y evidencia en handoff. Cierre canónico aún no ejecutado.
 
+Decisión Director01:20UTC: renombrar únicamente el helper privado de0498 aún
+no aplicada a convertir_factura_anual_usd para evitar el homónimo textual del
+detector. Se conservan esquema/cuerpo/ACL/API; se actualizan las cuatro rutas
+SQL/contratos/arnés y se exige suplemento PGlite/mutantes/PostgreSQL/HTTP y
+revisión SQL por el nuevo blob. Los recibos f9/3b permanecen históricos, sin
+atribuirse por hash al nuevo nombre. App congelada en a734aa61 para revisión.
+
 ### Gobernanza de b · clasificación y evidencia por principio
 
 | Norma | Clasificación del delta | Evidencia/límite |
@@ -559,6 +566,21 @@ fechas: ventanas temporales existentes preservadas por contrato SQL. Deuda
 compatible: mantener v1/legado hasta retiro aprobado; atribución por lead no
 equivale a facturación única del tenant. Previa/paquete/OK nominal, caché y
 rollback compatible descritos en handoff propio; release NO EJECUTADO.
+
+Suplemento del identificador privado (21oct01:24UTC):0498 usa
+`annual_billing_private.convertir_factura_anual_usd`, sin cambio de fórmula,
+cuerpo ni ACL/API. Sobre blob `5b302b5cad00529fcc5731aa570fd620794c4689`
+pasaron PGlite18/18 (13mutantes), PostgreSQL37aserciones y HTTP real con
+recarga en caliente en el mismo PostgREST14.17. Gate de símbolos pendientes
+PASÓ sin modificar el detector. Recibos y límites en el handoff de b;
+revisión del nuevo blob y verify siguen pendientes.
+
+Precisión Director para el P2 de CRM: disponibilidad del cruce de identidad
+y de la métrica anual son estados distintos. Si el cruce completo confirma
+un lead no convertido, la falla anual no debe ocultar su nominal CRM ni la
+cabecera nominal. Si está convertido, o el cruce no está disponible, no se
+reemplaza un ERP desconocido por nominal. Requiere regresiones reales de
+lector, transporte RSC y ambos consumidores antes de certificar el cierre.
 
 ```text
 supabase/migrations/0498_annual_billing_fx_v2.sql

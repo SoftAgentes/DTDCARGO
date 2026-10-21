@@ -211,14 +211,14 @@ select pg_temp.assert_true(pg_temp.err('commercial','select to_jsonb(x) from pub
 delete from public.studio_role_module_overrides;
 select pg_temp.assert_true(pg_temp.err('admin','select to_jsonb(x) from public.studio_client_annual_billing_v2(null) x') like '22023|%' and pg_temp.err('admin','select to_jsonb(x) from public.studio_client_annual_billing_v2(current_date-2) x') like '22023|%','as_of nulo o fuera de ventana rechazado');
 select pg_temp.assert_true(pg_temp.err('admin','select to_jsonb(x) from public.studio_client_annual_billing_v2(current_date) x','anon') like '42501|%' and pg_temp.err('admin','select to_jsonb(x) from public.studio_client_annual_billing_v2(current_date) x','service_role') like '42501|%','anon y service_role no ejecutan v2');
-select pg_temp.assert_true(not has_schema_privilege('authenticated','annual_billing_private','USAGE') and not has_function_privilege('authenticated','annual_billing_private.convertir(numeric,text,numeric)','EXECUTE'),'ayudante privado no expuesto');
+select pg_temp.assert_true(not has_schema_privilege('authenticated','annual_billing_private','USAGE') and not has_function_privilege('authenticated','annual_billing_private.convertir_factura_anual_usd(numeric,text,numeric)','EXECUTE'),'ayudante privado no expuesto');
 -- Clasificación exacta / orden canónico / half away from zero / 8 decimales.
-select pg_temp.assert_true((select usd from annual_billing_private.convertir(15.66,'RMB',7.2))=2.18 and (select usd from annual_billing_private.convertir(-15.66,'CNY',7.2))=-2.18,'redondeo canónico con signo');
-select pg_temp.assert_true((select sum(c.usd) from generate_series(1,2) g cross join lateral annual_billing_private.convertir(g*0+0.01,'VES',2) c)=0.02,'redondeo por factura antes de suma');
-select pg_temp.assert_true((select usd from annual_billing_private.convertir(1,'VES',0.00000001))=100000000,'tasa persistida ocho decimales');
-select pg_temp.assert_true((select bool_and(c.fx_state='sin_tasa') from unnest(array[null::numeric,0,-1,'NaN'::numeric,'Infinity'::numeric,1e12]) r cross join lateral annual_billing_private.convertir(1,'CNY',r) c),'tasas inválidas clasificadas');
-select pg_temp.assert_true((select bool_and(c.fx_state='datos_invalidos') from unnest(array[null::numeric,'NaN'::numeric,'Infinity'::numeric,1e12,-1e12]) a cross join lateral annual_billing_private.convertir(a,'VES',null) c),'monto inválido precede tasa faltante');
-select pg_temp.assert_true((select fx_state from annual_billing_private.convertir(1,'XXX',1))='datos_invalidos','moneda desconocida no es falta de tasa');
+select pg_temp.assert_true((select usd from annual_billing_private.convertir_factura_anual_usd(15.66,'RMB',7.2))=2.18 and (select usd from annual_billing_private.convertir_factura_anual_usd(-15.66,'CNY',7.2))=-2.18,'redondeo canónico con signo');
+select pg_temp.assert_true((select sum(c.usd) from generate_series(1,2) g cross join lateral annual_billing_private.convertir_factura_anual_usd(g*0+0.01,'VES',2) c)=0.02,'redondeo por factura antes de suma');
+select pg_temp.assert_true((select usd from annual_billing_private.convertir_factura_anual_usd(1,'VES',0.00000001))=100000000,'tasa persistida ocho decimales');
+select pg_temp.assert_true((select bool_and(c.fx_state='sin_tasa') from unnest(array[null::numeric,0,-1,'NaN'::numeric,'Infinity'::numeric,1e12]) r cross join lateral annual_billing_private.convertir_factura_anual_usd(1,'CNY',r) c),'tasas inválidas clasificadas');
+select pg_temp.assert_true((select bool_and(c.fx_state='datos_invalidos') from unnest(array[null::numeric,'NaN'::numeric,'Infinity'::numeric,1e12,-1e12]) a cross join lateral annual_billing_private.convertir_factura_anual_usd(a,'VES',null) c),'monto inválido precede tasa faltante');
+select pg_temp.assert_true((select fx_state from annual_billing_private.convertir_factura_anual_usd(1,'XXX',1))='datos_invalidos','moneda desconocida no es falta de tasa');
 
 -- Casos de agregado y fechas, sin variar reglas de emisión ni ventana.
 insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,fx_rate,base_amount,total_amount,status,issued_at,created_at)

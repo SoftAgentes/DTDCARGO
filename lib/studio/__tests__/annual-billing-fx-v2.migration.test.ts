@@ -108,7 +108,7 @@ describe("0498 annual billing v2 · contrato PostgreSQL embebido", () => {
   // Mutación en memoria: ni el SQL rastreado ni otros procesos ven producto mutado.
   it.each([
     ["CNY nominal", "public.to_usd(p_amount, p_currency, p_rate)", "public.to_usd(p_amount, case when p_currency='CNY' then 'USD' else p_currency end, p_rate)", "v2 convierte CNY y conserva parcial sin multiplicar"],
-    ["usa base sin IVA", "convertir(i.total_amount, i.currency::text, i.fx_rate)", "convertir(i.base_amount, i.currency::text, i.fx_rate)", "v2 convierte CNY y conserva parcial sin multiplicar"],
+    ["usa base sin IVA", "convertir_factura_anual_usd(i.total_amount, i.currency::text, i.fx_rate)", "convertir_factura_anual_usd(i.base_amount, i.currency::text, i.fx_rate)", "v2 convierte CNY y conserva parcial sin multiplicar"],
     ["falta tasa nominal", "usd := null;", "usd := p_amount;", "v2 convierte CNY y conserva parcial sin multiplicar"],
     ["pierde contador", "count(*) filter (where c.fx_state = 'sin_tasa'),", "0::bigint,", "v2 convierte CNY y conserva parcial sin multiplicar"],
     ["omite tenant", "i.tenant_id = v_tenant and i.deleted_at is null", "i.deleted_at is null", "v2 convierte CNY y conserva parcial sin multiplicar"],
