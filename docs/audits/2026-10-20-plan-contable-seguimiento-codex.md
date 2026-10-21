@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 11:37 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 11:40 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -162,7 +162,8 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Cerrar la revisión independiente del suplemento hasta **`46c64bd0`**: dos negativas adicionales de 0493 probadas, **37 aserciones PostgreSQL** y recursos retirados. La revisión detectó una interferencia entre grupos de prueba; se reprodujo con dos fallos y siete aprobadas y se corrigió con **9/9 en los dos archivos completos, sin omisiones**. Producto y 0499 conservados; sin hallazgos materiales nuevos.
 - [x] Completar los **29 controles de errores intencionales de aplicación**, con archivos originales restaurados: 25 reconocidos inicialmente, dos fallos funcionales de formularios reclasificados con evidencia y dos huecos de cobertura cerrados mediante regresiones de comprobante/replay. Estas últimas pasaron **265/265 pruebas en dos archivos, sin omisiones**, y detectaron ambos errores al repetirlos. Se conserva el primer resultado incompleto.
 - [x] Completar la revisión visible acotada con componentes y estilos reales, datos ficticios y acciones simuladas: fechas en **390 y 1.280 píxeles, claro/oscuro**, rechazo de nueva fecha futura y reintento por Enter conservando fecha, IDs, datos y comprobante. Inspección del Director en navegador y teclado sin hallazgo material nuevo; se conservaron fallos de selectores y su suplemento aprobado. **Zoom nativo al 200 % no disponible; teléfono físico y Studio autenticado no ejecutados.** No certifica accesibilidad completa ni producción.
-- [ ] Cerrar el cotejo del ajuste de Gastos y la revisión SQL/HTTP del candidato C1, ejecutar sus pruebas generales y completar la PR #312 en borrador. GitHub no aprobó el checkpoint: sus dos intentos terminaron antes de arrancar, por `startup_failure`.
+- [x] Iniciar la validación general sobre **`46c64bd0`**, a las 11:39:19 p. m., con árbol limpio, alcance 68/68 y propiedad comprobada. Servidor visual propio retirado y única corrida pesada activa. **En curso; todavía sin resultado aprobado.**
+- [ ] Terminar las pruebas generales y el cierre documental de C1, conservando sus revisiones aprobadas, y completar la PR #312 en borrador. GitHub no aprobó el checkpoint: sus dos intentos medidos terminaron antes de arrancar, por `startup_failure`.
 - [ ] Implementar después Caracas C2 para los cálculos anuales, con número de migración coordinado por inventario nuevo y las ventanas propias de Portal y Studio conservadas.
 - [ ] Cerrar un slice posterior acotado de gastos móviles antes de certificar toda la hora Caracas: el caller activo conserva fechas UTC explícitas y guardas anteriores. Detectado y cotejado por lectura, fuera de las 68 rutas de C1; sin implementación ni autorización de datos reales.
 - [x] Preparar y revisar el diseño del slice móvil: siete rutas propuestas, sin bloqueante estructural ni nueva migración identificada. Conserva propiedad del gasto, fotos y datos al rechazar, y pone todas las guardas antes de modificar la evidencia. Base final, encargo y pruebas de implementación posteriores a C2 siguen pendientes.
