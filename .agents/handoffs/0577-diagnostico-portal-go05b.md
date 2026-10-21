@@ -177,20 +177,24 @@ Aceptan el resultado funcional y custodia con los límites, sin eliminar UNKNOWN
 ## COMMITS
 
 Base ce7 inmutable. D0: `0b8e70faeb92f2f42a031faf3306e2ac7e9aa202`.
+Commit documental GO05: `d7d09f4d1568a73d76da822d7490851dc9efd241`.
 El cierre GO05 sólo cambia spec y este handoff; su SHA final, padres y diff completo
 se fijan en el recibo externo `go05-documental-01/`, evitando autorreferencia en Git.
 No hay commit de producto, pruebas o instrumentación. PR #315 queda intacta.
 
 ## PR / BRANCH
 
-Rama propia indicada arriba; una única PR diagnóstica DRAFT autorizada contra
+Rama propia indicada arriba; [PR #321](https://github.com/SoftAgentes/DTDCARGO/pull/321),
+única PR diagnóstica DRAFT creada y adjunta oficialmente a la tarea, contra
 `codex/sdd-0569-bcv-carga-diaria`. Base remota revalidada:
 `b179363d320aff9ada7b79d1f607b07d9b084a63`; merge-base real ce7. El destino incluye
 tres documentos de cierre posteriores, con producto ce7 idéntico. No se afirma
 haber ejecutado las pruebas sobre b179 ni se compone/rebasea la rama propia.
 La PR debe mostrar exactamente spec y este handoff desde ce7; cualquier otro delta
 detiene publicación. Readback remoto/draft/cuerpo/archivos/checks queda en el recibo
-externo; checks vacíos no significan PASÓ. No hay merge ni despliegue autorizado.
+externo. Primer readback sobre d7d09f4d: DRAFT/OPEN, base b179, cuerpo exacto,
+dos documentos y checks vacíos; eso no significa CI PASÓ. El recibo final coteja
+la cabeza posterior que sólo registra esta entrega. No hay merge ni despliegue.
 
 ## PENDIENTES DE ESTA TAREA
 

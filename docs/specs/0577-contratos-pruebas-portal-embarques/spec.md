@@ -286,7 +286,8 @@ GO05 autoriza únicamente esta spec y el handoff diagnóstico; el índice genera
 las demás rutas de la allowlist acumulada no reciben cambios. Autoridad externa
 `0577-go05-cierre-documental-director.md`, SHA-256
 `210e7db0dd056fbd2021212a57281b5f7e4f85b2a36ea23ce800335a291ae9b0`.
-La PR diagnóstica será DRAFT contra `codex/sdd-0569-bcv-carga-diaria`, cuya cabeza
+La [PR diagnóstica #321](https://github.com/SoftAgentes/DTDCARGO/pull/321) se entrega
+DRAFT contra `codex/sdd-0569-bcv-carga-diaria`, cuya cabeza
 revalidada es `b179363d320aff9ada7b79d1f607b07d9b084a63`: tres documentos posteriores
 a ce7, sin nuevo producto. El diff propio de la PR desde el merge-base ce7 debe
 contener sólo los dos documentos. No se afirma haber probado esa cabeza posterior
