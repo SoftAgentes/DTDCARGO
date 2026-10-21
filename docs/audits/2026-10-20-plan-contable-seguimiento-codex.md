@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 1:04 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 1:10 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -8,7 +8,7 @@
 
 **Caracas C1 quedó entregado localmente en la PR #312 en borrador, final `d6bcd0e8`:** producto y pruebas idénticos a `264e0531`, revisiones y cierre documental cotejados, árbol limpio y propiedad liberada. Conserva **16/17**, una prueba de aplicación omitida y navegación con 177 aprobadas, una recuperada y 20 omitidas.
 
-**Ahora avanza Caracas C2 anual, respaldado en la PR #313 en borrador, `b30934a5`:** regresión ampliada **223/223 en once archivos**, sin omisiones; API final limpia con **424 comprobaciones PostgreSQL** y recarga sin reinicio. La revisión independiente cerró el fallo del arnés y no encontró otro defecto material. Se autorizó la corrida general sobre esa versión congelada; todavía no tiene resultado. Después vienen gastos móviles y BCV, con diseños preparados. Push y PR funcionan; Actions sigue fallando antes de arrancar. La tarifa congelada conserva sus pendientes de base final y publicación.
+**Ahora avanza Caracas C2 anual, respaldado en la PR #313 en borrador, `b30934a5`:** regresión ampliada **223/223 en once archivos**, sin omisiones; API final limpia con **424 comprobaciones PostgreSQL** y recarga sin reinicio. La revisión independiente cerró el fallo del arnés y no encontró otro defecto material. La corrida general arrancó a la **1:04 a. m.** y aprobó sus primeros controles; la suite completa de aplicación sigue en ejecución, sin resultado global. Después vienen gastos móviles y BCV, con diseños preparados. Push y PR funcionan; Actions sigue fallando antes de arrancar. La tarifa congelada conserva sus pendientes de base final y publicación.
 
 **Cómo leerlo:** una casilla marcada significa que se terminó exactamente el paso escrito. En el checklist general, significa integrado y publicado. Dentro de una tarea abierta, una prueba aprobada puede tener ✓ aunque su publicación siga pendiente. Los resultados locales no se presentan como prueba de producción.
 
@@ -184,13 +184,16 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Implementar Caracas C2 para los cálculos anuales y publicar el suplemento **`b30934a5`**. Las **223/223 pruebas en once archivos** aprobaron; incluyen treinta casos C2, sus controles SQL y las regresiones previas. Dos errores intencionales del caller también fueron detectados, con fuentes restauradas. No se suman con las corridas anteriores que se solapan.
 - [x] Aprobar la **API final desde `b30934a5` limpio**: 424 aserciones y reversión SQL, recarga observada sin reinicio, fórmulas/permisos conservados y páginas 500/500/202/0. El fallo anterior de separadores quedó corregido y cerrado por revisión independiente; los recibos identifican exactamente el script y contrato ejecutados.
 - [x] Revisar el suplemento publicado, tipos, revisión estática y metadatos; sin nuevo hallazgo material. Director autorizó la corrida general normal, con archivos congelados y sin modificar controles.
+- [x] Arrancar la corrida general C2 sobre **`b30934a5`**, con manifiesto de once rutas y ocho dependencias críticas; receta normal y archivos congelados. **237/237 controles del arnés**, revisión estática, fronteras, tipos y cuatro funciones auxiliares aprobaron. La suite de aplicación está activa; no es todavía el resultado de toda la corrida.
 - [ ] Completar la corrida general C2, cotejar sus bytes, omisiones, documentación y respaldo final; liberar sus recursos y propiedad antes de activar móvil. Su arranque y resultado se registran por separado.
 - [ ] Cerrar un slice posterior acotado de gastos móviles antes de certificar toda la hora Caracas: el caller activo conserva fechas UTC explícitas y guardas anteriores. Detectado y cotejado por lectura, fuera de las 68 rutas de C1; sin implementación ni autorización de datos reales.
 - [x] Preparar y revisar el diseño del slice móvil: siete rutas propuestas, sin bloqueante estructural ni nueva migración identificada. Conserva propiedad del gasto, fotos y datos al rechazar, y pone todas las guardas antes de modificar la evidencia. Base final, encargo y pruebas de implementación posteriores a C2 siguen pendientes.
 - [x] Preparar la matriz móvil de **37 escenarios y once controles propuestos**, por lectura del código: altas, edición, tenant único, cierres, historia del asiento, fecha visible y segundo envío del archivo. Las siete rutas siguen bastando; ninguna prueba móvil nueva se ha ejecutado todavía.
+- [x] Revisar la decisión móvil de usar la RPC existente de tenant, sin parámetros de negocio y con resultado UUID escalar estricto. Su autorización, filtros y recuperación caben en las siete rutas, sin permisos nuevos. Es preparación documental aprobada, todavía sin implementación móvil.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
 - [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
 - [x] Revisar y aprobar el diseño acotado de la carga BCV: fecha exacta de hoy Caracas, decimal completo, protección de cambios concurrentes, ensayo sin escritura y respaldo manual. Reutiliza SDD-0569, 27 rutas propuestas al incluir el manifiesto de referencias pendientes, sin nueva migración. Todavía no existe importador ni agenda instalada.
+- [x] Contrastar las **27 rutas BCV** con treinta objetos de código y las dependencias instaladas. No se identificó una ampliación esencial: parser, cancelación, reintentos, auditoría y pruebas HTTP tienen una vía concreta. Todas las pruebas de esa implementación futura siguen sin ejecutar; no existe aún importador ni cron activo.
 - [ ] Implementar la carga diaria desde el BCV oficial y el respaldo manual.
 - [ ] Comprobar el comportamiento cuando no exista una tasa vigente.
 
