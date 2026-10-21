@@ -429,7 +429,7 @@ La matriz conserva fuentes y oráculos efectivos; PASÓ significa la medición l
 | S · go03-mutantes-control-01 | a3550ab64; parser46+sync76 =122/122, sin omisiones | log `5a6f85797b7a81d536df229c6f5fc40af092b09558b33becc140bcd67c928246` |
 | D · go03-deadline-phases-01 | 36fe66961;4 seleccionados/76 omitidos | log `0927c9a73b0bc31743e8ed6ff63508fc3bf772252a9cf2d5fe4c8ee027c73564` |
 | T · go03-three-tenants-01 | 390227699;3 seleccionados/80 omitidos | log `83334b76490866ba4b37c0b00735db2dbd2abe470ece8845c2d16828304e2b85` |
-| H · go03-http-full-02 | 16eab3620;18 controles/27 escenarios y26 negativos; PG17.11/REST14.17/SDK2.106.1 | receipt `5ad79026ec2c4d65707b73a6b648e0bd0f520008be5bb04c7bca99bc3d1dc954` |
+| H · go03-http-full-02 | 16eab3620;18 controles/27 escenarios y 26 intentos DML (24 rechazos y 2 humanos legítimos); PG17.11/REST14.17/SDK2.106.1 | receipt `5ad79026ec2c4d65707b73a6b648e0bd0f520008be5bb04c7bca99bc3d1dc954` |
 | X · go03-http-supplemental-01 | b8385d100; FALLÓ global por sintaxis de preparación de retirada; B5/B12/locks de instalación medidos y aceptados como evidencia parcial | receipt `d10f9edab3ad76b432ef8784eb6d1a7eba43de6d8bebd7fadc8668fdb16265aa` |
 | W · go03-http-withdrawal-02 | 71ea1132b; retirada aislada PASÓ, sin repetir B5/B12/timeout | receipt `a4a64bdc2317c562ba86bbce63e92e0e6e0552a49b0c6a60e06b44fc5677e7ee` |
 | Q · go02-persistencia-05 | f1061d2ea;10/10 sin omisiones, cuatro SQL mutantes incluidos | log `ef104af239c431b82ab19a5ad0aaa954968cb4c9430a3ae35057f36cb84eba14` |
