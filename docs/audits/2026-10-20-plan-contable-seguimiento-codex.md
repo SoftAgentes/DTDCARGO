@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 12:36 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 12:41 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -171,6 +171,8 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Terminar la tercera validación general sobre **`264e0531`**: construcción aprobada y **CIERRE INCOMPLETO, 16/17**, con salida 0 y sin fallos en lo medido. Navegación: **177 aprobadas, una recuperada al reintentar y 20 omitidas**; el primer intento de carga del caso recuperado dio `ERR_ABORTED`. Se conservan log y contexto; JSON original no disponible. La única omisión de aplicación requiere el corpus externo de proformas. Estas omisiones y el historial productivo sin medir siguen explícitos.
 - [x] Completar el cierre local de C1 y cotejar la **PR #312 en borrador, final `d6bcd0e8`**: solo tres documentos cambiaron tras las pruebas; producto/SQL/pruebas equivalentes a `264e0531`, 70 rutas comprobadas. Descripción y título finales releídos, respaldo remoto igual, árbol limpio y propiedad liberada. Director aprobó el cierre local con límites; integración, CI, migración y producción siguen pendientes. Cuatro ejecuciones observadas sobre la cabeza final terminaron `startup_failure`.
 - [x] Cotejar la preparación de Caracas C2 contra el código actual: **12 rutas revisadas**, sin omisión esencial; conserva las ventanas propias de Portal/Studio, calendario y permisos efectivos. El contrato y la primitiva de fecha ya están identificados. Es preparación; no implementación ni nueva migración reservada.
+- [x] Crear el árbol propio de C2 desde **`d6bcd0e8`** y asignarlo a un Worker nuevo, con contrato completo y doce rutas. El inventario nuevo de las 12:39 a. m. comprobó 490 referencias más los árboles; se asignó **0500_annual_billing_caracas** para desarrollo local. Turno de pruebas exclusivo concedido a C2; adopción y dependencias en preparación, sin implementación acreditada todavía.
+- [x] Confirmar raíz, rama, base limpia y propiedad exclusiva de C2; contrato y fuentes cotejados por huella. El Director comprobó el registro de propiedad creado a las 12:41 a. m. Dependencias, reproducción de errores e implementación siguen en ejecución, sin pruebas C2 aprobadas todavía.
 - [ ] Implementar después Caracas C2 para los cálculos anuales, con base final C1, árbol/owner propios y número de migración coordinado por inventario nuevo.
 - [ ] Cerrar un slice posterior acotado de gastos móviles antes de certificar toda la hora Caracas: el caller activo conserva fechas UTC explícitas y guardas anteriores. Detectado y cotejado por lectura, fuera de las 68 rutas de C1; sin implementación ni autorización de datos reales.
 - [x] Preparar y revisar el diseño del slice móvil: siete rutas propuestas, sin bloqueante estructural ni nueva migración identificada. Conserva propiedad del gasto, fotos y datos al rechazar, y pone todas las guardas antes de modificar la evidencia. Base final, encargo y pruebas de implementación posteriores a C2 siguen pendientes.
