@@ -2,6 +2,7 @@
 // SDD-0569 · contexto y aceptación HTTP sintética; ejecutar solo con turno pesado.
 // Uso: node scripts/tests/bcv-rates-postgrest.mjs --context-only --evidence <directorio-nuevo-externo>
 //      node scripts/tests/bcv-rates-postgrest.mjs --full --evidence <directorio-nuevo-externo>
+//      node scripts/tests/bcv-rates-postgrest.mjs --supplemental --evidence <directorio-nuevo-externo>
 // PG17.11/PostgREST14.17 propios y SDK/TS reales; JWT sintéticos, solo loopback.
 // No .env, Supabase real, BCV remoto, Compose, recursos o credenciales de otro WT.
 import assert from 'node:assert/strict';
@@ -35,8 +36,9 @@ const delay = ms => new Promise(done => setTimeout(done, ms));
 async function main() {
   assert.equal(realpathSync(process.cwd()).toLowerCase(), realpathSync(ROOT).toLowerCase(), 'ejecutar desde raíz propia');
   const args = process.argv.slice(2);
-  const full=args.includes('--full');
-  assert(full!==args.includes('--context-only'), 'elegir --context-only o --full');
+  const full=args.includes('--full'), supplemental=args.includes('--supplemental');
+  assert.equal(['--full','--context-only','--supplemental'].filter(mode=>args.includes(mode)).length,1,
+    'elegir --context-only, --full o --supplemental');
   const at = args.indexOf('--evidence');
   assert(at >= 0 && args[at+1] && !args[at+1].startsWith('--'), 'falta directorio externo nuevo de evidencia');
   assert(args.length === 3, 'opciones desconocidas');
@@ -48,7 +50,7 @@ async function main() {
   const network = 'dtd-bcv-' + nonce, pg = network + '-pg', rest = network + '-rest';
   const password = randomBytes(24).toString('hex'), secret = randomBytes(32).toString('hex');
   const receipt = { startedAt: new Date().toISOString(), pid: process.pid, root: ROOT, phase: 'PREPARACION',
-    result: 'RUNNING', mode:full?'full':'context-only', resources: { network, pg, rest }, versions: {}, checks: [], commands: [], http: [], gatewayHttp: [], sourceHttp:[], cleanup: [] };
+    result: 'RUNNING', mode:supplemental?'supplemental':full?'full':'context-only', resources: { network, pg, rest }, versions: {}, checks: [], commands: [], http: [], gatewayHttp: [], sourceHttp:[], cleanup: [] };
   const attempted = []; let networkAttempted = false;
   let gateway;
   let fixtureFault;
@@ -116,7 +118,9 @@ async function main() {
     await save('fixture-commit.log',setup.stdout+setup.stderr);
     assert.match(setup.stdout,/COMMIT/);
     await psql("alter role authenticator login password '"+password+"';");
-    await psql('begin;\n'+readFileSync(resolve(ROOT,'supabase/migrations/0501_bcv_rates_system_audit.sql'),'utf8')+'\ncommit;');
+    const migration=readFileSync(resolve(ROOT,'supabase/migrations/0501_bcv_rates_system_audit.sql'),'utf8');
+    const installation=supplemental?await measureInstall({pg,nonce,run,scalar,psql,migration,receipt,save,check,eventually}):undefined;
+    if (!supplemental) await psql('begin;\n'+migration+'\ncommit;');
     attempted.push(rest);
     await run('rest-start',['run','-d','--name',rest,'--label','dtd.task=0569-bcv-carga-diaria','--label','dtd.owner='+nonce,
       '--network',network,'-p','127.0.0.1::3000','-e','PGRST_DB_URI=postgres://authenticator:'+password+'@db:5432/postgres',
@@ -207,6 +211,7 @@ async function main() {
       } });
     const cap = async c => c.rpc('bcv_rates_write_capability',{}, {get:true}).retry(false).abortSignal(AbortSignal.timeout(5000));
     const service = client('service_role');
+    if (!supplemental) {
     const ready = await cap(service); assert.equal(ready.status,200); assert.deepEqual(ready.data,{version:1,ready:true});
     assert.equal(receipt.http.at(-1).method,'GET');
     for (const sub of [null,'','not-a-uuid',uuid('accounting-A')]) {
@@ -336,8 +341,12 @@ async function main() {
     check('S01 positivo nativo: ausencia y página conservan count y Content-Range originales');
     if (full) await runFunctional({syncBcvRates,fetchBcvObservation,client,service,scalar,psql,receipt,check,save,
       fixtureSources,supabaseBase,nonce,columns,setFault:value=>{fixtureFault=value;}});
+    }
+    if (supplemental) await runSupplemental({syncBcvRates,fetchBcvObservation,client,service,scalar,psql,receipt,check,save,
+      fixtureSources,supabaseBase,nonce,installation,setFault:value=>{fixtureFault=value;},
+      gatewayState:()=>({requests:gatewayRequests.size,tasks:gatewayTasks.size}),eventually});
     receipt.result = 'PASÓ';
-    receipt.scope = full?'aceptación HTTP sintética del importador, contexto y auditoría; canónica/producción no acreditadas':'gate pequeño de contexto/GET/precisión; B1–B19/R1–R14 completos todavía pendientes';
+    receipt.scope = supplemental?'suplemento B5/B12/R14: reloj controlado con COMMIT real, PATCH/append y locks/retirada SQL; sin garantía frente a DDL concurrente':full?'aceptación HTTP sintética del importador, contexto y auditoría; canónica/producción no acreditadas':'gate pequeño de contexto/GET/precisión; B1–B19/R1–R14 completos todavía pendientes';
   } catch (error) {
     receipt.result='FALLÓ'; receipt.failure={phase:receipt.phase, code:error.safeStep??error.code??error.name??'ERROR'};
     const diagnostic=String(error.stack??error).slice(0,16_384).replaceAll(password,'[fixture-password]')
@@ -643,6 +652,237 @@ async function runFunctional({syncBcvRates,fetchBcvObservation,client,service,sc
     foreignAfter:await scalar(`select to_jsonb(f)::text from public.fx_rates f where id='${foreign.id}';`),foreignReadCount:foreignRead.count});
   check('B14/R14: tenant ajeno, manual/operacion/CNY y factura/CxP congeladas intactos; humano no lee tenant B');
   await save('functional-http.json',receipt.functional);
+}
+
+// Catálogo completo de los objetos protegidos; no basta comparar solo prosrc.
+const INSTALL_CATALOG=`select jsonb_build_object(
+  'audit',(select to_jsonb(p) from pg_proc p where p.oid=to_regprocedure('public.audit_fx_rate_change()')),
+  'append',(select jsonb_agg(to_jsonb(p) order by p.oid) from pg_proc p where p.oid in (
+    'public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)'::regprocedure,
+    'public.append_audit_event_v1(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)'::regprocedure)),
+  'table',(select to_jsonb(c) from pg_class c where c.oid='public.fx_rates'::regclass),
+  'triggers',(select jsonb_agg(to_jsonb(t) order by t.oid) from pg_trigger t where t.tgrelid='public.fx_rates'::regclass),
+  'capability',to_regprocedure('public.bcv_rates_write_capability()')::text);`;
+
+const lockSnapshot=name=>`select coalesce(jsonb_agg(jsonb_build_object(
+  'pid',a.pid,'backend_start',a.backend_start,'xact_start',a.xact_start,'state',a.state,
+  'application_name',a.application_name,'wait_type',a.wait_event_type,'wait_event',a.wait_event,
+  'blocking_pids',pg_blocking_pids(a.pid),'locks',(select jsonb_agg(jsonb_build_object(
+    'locktype',l.locktype,'mode',l.mode,'granted',l.granted,'relation',c.relname,
+    'relation_oid',l.relation,'classid',l.classid,'objid',l.objid,'objsubid',l.objsubid,
+    'page',l.page,'tuple',l.tuple,'transactionid',l.transactionid,'virtualxid',l.virtualxid)
+    order by l.locktype,l.relation,l.classid,l.objid,l.mode,l.granted) from pg_locks l
+    left join pg_class c on c.oid=l.relation where l.pid=a.pid))) ,'[]'::jsonb)
+  from pg_stat_activity a where a.application_name='${name}';`;
+
+async function observeDdl({name,sql,psql,scalar,eventually}) {
+  const startedAt=new Date().toISOString(), start=performance.now();
+  const executing=psql(`begin; set local application_name='${name}';\n${sql}\nselect pg_sleep(3); commit;`);
+  // Registrar un handler inmediatamente y esperar siempre la conexión, incluso
+  // si la observación de locks falla. No dejar el productor SQL sin observar.
+  const settled=executing.then(value=>({value}),error=>({error}));
+  let observed;
+  try {
+    await eventually(async()=>{
+      observed=JSON.parse(await scalar(lockSnapshot(name)));
+      return observed.length===1 && observed[0].wait_event==='PgSleep';
+    });
+    assert(observed[0].locks.some(lock=>lock.granted),'locks nativos de transacción DDL observados');
+  } finally { await settled; }
+  const result=await settled; if (result.error) throw result.error;
+  assert.match(result.value.stdout,/COMMIT/);
+  assert.deepEqual(JSON.parse(await scalar(lockSnapshot(name))),[],'backend propio DDL terminó');
+  return {startedAt,finishedAt:new Date().toISOString(),durationMs:performance.now()-start,
+    observed,stdout:result.value.stdout,stderr:result.value.stderr};
+}
+
+async function measureInstall({pg,nonce,run,scalar,psql,migration,receipt,save,check,eventually}) {
+  receipt.phase='R14_INSTALL_LOCKS';
+  const before=JSON.parse(await scalar(INSTALL_CATALOG)); assert.equal(before.capability,null);
+  const oldDefinition=await scalar("select pg_get_functiondef('public.audit_fx_rate_change()'::regprocedure);");
+  const holder='bcv-'+nonce+'-hold', installer='bcv-'+nonce+'-timeout';
+  const held=psql(`begin; set local application_name='${holder}';
+    alter function public.audit_fx_rate_change() security invoker; select pg_sleep(10); rollback;`)
+    .then(value=>({value}),error=>({error}));
+  let timed,holderLocks,installerLocks;
+  try {
+    await eventually(async()=>{
+      holderLocks=JSON.parse(await scalar(lockSnapshot(holder)));
+      return holderLocks.length===1 && holderLocks[0].wait_event==='PgSleep';
+    });
+    // El lector ve la preimagen0495 comprometida; el cambio sintético de otra
+    // sesión sigue sin commit y bloqueará CREATE OR REPLACE sobre la misma fila.
+    const startedAt=new Date().toISOString(),start=performance.now();
+    timed=run('expected-install-lock-timeout',['exec','-i',pg,'psql','-X','-v','ON_ERROR_STOP=0',
+      '-v','VERBOSITY=verbose','-U','postgres','-d','postgres','-At'],
+    {input:`begin; set local application_name='${installer}';\n${migration}\nrollback;`})
+      .then(value=>({value,startedAt,finishedAt:new Date().toISOString(),durationMs:performance.now()-start}),error=>({error}));
+    await eventually(async()=>{
+      installerLocks=JSON.parse(await scalar(lockSnapshot(installer)));
+      return installerLocks.length===1 && installerLocks[0].blocking_pids.includes(holderLocks[0].pid);
+    });
+    assert(installerLocks[0].locks.some(lock=>!lock.granted),'espera real, no solo timeout configurado');
+  } finally { await Promise.all([held,...(timed?[timed]:[])]); }
+  const holderResult=await held,timeoutResult=await timed;
+  if(holderResult.error) throw holderResult.error;
+  if(timeoutResult.error) throw timeoutResult.error;
+  assert.match(holderResult.value.stdout,/ROLLBACK/);
+  assert.match(timeoutResult.value.stderr,/55P03/,'SQLSTATE lock_timeout real');
+  assert.match(timeoutResult.value.stdout,/ROLLBACK/,'rollback explícito después del error');
+  assert.deepEqual(JSON.parse(await scalar(lockSnapshot(holder))),[]);
+  assert.deepEqual(JSON.parse(await scalar(lockSnapshot(installer))),[]);
+  const afterTimeout=JSON.parse(await scalar(INSTALL_CATALOG)); assert.deepEqual(afterTimeout,before);
+  await save('r14-install-timeout.json',{before,afterTimeout,holderLocks,installerLocks,
+    holderResult:holderResult.value,timeoutResult,limit:'psql esperado exit0 con ON_ERROR_STOP=0: se exige error55P03 y ROLLBACK, no se interpreta exit0 como instalación'});
+  check('R14 PG real: bloqueo observado, lock_timeout55P03, ROLLBACK y catálogo exacto sin capability');
+  const installed=await observeDdl({name:'bcv-'+nonce+'-install',sql:migration,psql,scalar,eventually});
+  const afterInstall=JSON.parse(await scalar(INSTALL_CATALOG));
+  assert.equal(afterInstall.audit.oid,before.audit.oid); assert.equal(afterInstall.audit.proowner,before.audit.proowner);
+  assert.deepEqual(afterInstall.audit.proacl,before.audit.proacl);
+  for(const field of ['append','table','triggers']) assert.deepEqual(afterInstall[field],before[field]);
+  assert.equal(afterInstall.capability,'bcv_rates_write_capability()');
+  await save('r14-install-positive.json',{before,afterInstall,...installed});
+  check('R14 PG real: locks de instalación abierta medidos y COMMIT conserva OID/owner/ACL/cadena/tabla/trigger');
+  return {before,oldDefinition};
+}
+
+async function runSupplemental({syncBcvRates,fetchBcvObservation,client,service,scalar,psql,receipt,check,save,
+  fixtureSources,supabaseBase,nonce,installation,setFault,gatewayState,eventually}) {
+  const A=uuid('tenant-A'), B=uuid('tenant-B');
+  const columns='id,tenant_id,currency,source,valid_on,rate::text,set_at,set_by';
+  const template=readFileSync(resolve(ROOT,'lib/studio/fx/__tests__/fixtures/bcv-usd-20261021.html'),'utf8');
+  const days=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const state=async(day)=>JSON.parse(await scalar(`select jsonb_build_object(
+    'rows',coalesce((select jsonb_agg(to_jsonb(f)||jsonb_build_object('rate_text',f.rate::text) order by f.id)
+      from public.fx_rates f where f.valid_on='${day}'::date),'[]'::jsonb),
+    'events',coalesce((select jsonb_agg(to_jsonb(a) order by a.id) from public.entity_audit_log a
+      where a.entity_id in(select id from public.fx_rates where valid_on='${day}'::date)),'[]'::jsonb),
+    'contexts',coalesce((select jsonb_agg(to_jsonb(c) order by c.entity_id,c.operation,c.native_role)
+      from bcv_fixture.context_log c where c.entity_id in(select id from public.fx_rates where valid_on='${day}'::date)),'[]'::jsonb));`));
+  const allState=()=>scalar(`select jsonb_build_object(
+    'rows',(select jsonb_agg(to_jsonb(f) order by f.id) from public.fx_rates f),
+    'events',(select jsonb_agg(to_jsonb(a) order by a.id) from public.entity_audit_log a),
+    'contexts',(select jsonb_agg(to_jsonb(c) order by c.entity_id,c.operation,c.native_role) from bcv_fixture.context_log c))::text;`);
+  receipt.supplemental=[];
+  const execute=async(label,day,{clock=()=>new Date(day+'T07:00:00.123Z'),scope=[A],rate='885.12345678'}={})=>{
+    receipt.phase='HTTP_SUPPLEMENTAL/'+label;
+    const date=new Date(day+'T12:00:00Z');
+    const visible=`${days[date.getUTCDay()]}, ${date.getUTCDate()} ${months[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+    const path='/__bcv-fixture/'+nonce+'/'+label;
+    const html=template.replace('883,39630000',rate.replace('.',','))
+      .replaceAll('2026-10-21T00:00:00-04:00',day+'T00:00:00-04:00').replace('Miércoles, 21 Octubre  2026',visible);
+    fixtureSources.set(path,{label,html});
+    const from=receipt.gatewayHttp.length,sourceFrom=receipt.sourceHttp.length;
+    const clockReads=[];
+    const summary=await syncBcvRates({enabled:true,dryRun:false,scope:scope.join(','),
+      now:()=>{const value=clock();clockReads.push(value.toISOString());return value;},
+      createClient:signal=>client('service_role',undefined,{'x-bcv-fixture-flow':label},signal),
+      obtain:options=>fetchBcvObservation({...options,fetch:(input,init)=>{
+        assert.equal(String(input),'https://www.bcv.org.ve/'); return fetch(supabaseBase+path,init);
+      }})});
+    const item={label,day,summary,clockReads,http:receipt.gatewayHttp.slice(from),sourceHttp:receipt.sourceHttp.slice(sourceFrom)};
+    receipt.supplemental.push(item);
+    assert.equal(summary.counts.scope,['inserted','corrected','unchanged','reconciled','conflicts','failed','unknown','notAttempted']
+      .reduce((sum,key)=>sum+summary.counts[key],0));
+    assert(summary.counts.deferred<=summary.counts.notAttempted);
+    return item;
+  };
+  const writes=item=>item.http.filter(wire=>wire.flow===item.label&&['POST','PATCH'].includes(wire.method));
+  const failDay='2027-01-01'; assert.deepEqual(await state(failDay),{rows:[],events:[],contexts:[]});
+  const seeded=await service.from('fx_rates').insert({tenant_id:A,currency:'VES',source:'bcv',valid_on:failDay,
+    rate:'880.00000000',set_at:failDay+'T06:00:00.123456Z',set_by:null,note:'preimagen sintética B12 PATCH'})
+    .select(columns).retry(false).abortSignal(AbortSignal.timeout(5000));
+  assert.equal(seeded.status,201); assert.equal(seeded.error,null); assert.equal(seeded.data.length,1);
+  const old=seeded.data[0],beforeFailure=await state(failDay);
+  await psql(`begin; create function bcv_fixture.reject_correction() returns trigger language plpgsql set search_path='' as $$
+    begin if new.source='job' and new.event_type='exchange_rate_corrected' then
+      raise exception 'synthetic correction append failure' using errcode='23514'; end if; return new; end; $$;
+    create trigger bcv_fixture_reject_correction before insert on public.entity_audit_log
+      for each row execute function bcv_fixture.reject_correction(); commit;`);
+  let rejected,patchRequest,patchError;
+  setFault((phase,wire)=>{
+    if(wire.flow!=='append-patch-rollback'||wire.method!=='PATCH') return;
+    if(phase==='before') patchRequest=wire;
+    if(phase==='after') patchError=JSON.parse(Buffer.from(wire.bytes).toString('utf8'));
+  });
+  try {rejected=await execute('append-patch-rollback',failDay);}
+  finally {
+    setFault(undefined);
+    await psql('begin; drop trigger bcv_fixture_reject_correction on public.entity_audit_log; drop function bcv_fixture.reject_correction(); commit;');
+  }
+  assert.equal(rejected.summary.counts.failed,1); assert.equal(rejected.summary.counts.unknown,0);
+  assert.equal(rejected.summary.reason,'WRITE_FAILED');
+  assert.equal(writes(rejected).length,1); assert.equal(writes(rejected)[0].method,'PATCH');
+  assert.equal(writes(rejected)[0].status,400);
+  assert.equal(patchError.code,'23514','append fallido observado, no solo status HTTP');
+  assert.equal(patchRequest.body.rate,'885.12345678'); assert.notEqual(patchRequest.body.set_at,old.set_at);
+  assert.deepEqual(Object.fromEntries(['id','tenant_id','currency','source','valid_on','rate','set_at'].map(key=>[key,patchRequest.query[key]])),{
+    id:'eq.'+old.id,tenant_id:'eq.'+A,currency:'eq.VES',source:'eq.bcv',valid_on:'eq.'+failDay,rate:'eq.'+old.rate,set_at:'eq.'+old.set_at});
+  const afterFailure=await state(failDay); assert.deepEqual(afterFailure,beforeFailure);
+  await save('b12-patch-append-rollback.json',{request:patchRequest,error:patchError,result:rejected,before:beforeFailure,after:afterFailure});
+  check('B12/R9: PATCH efectivo alcanza append real fallido; fila/eventos/contexto íntegros iguales, una sola mutación');
+
+  for(const [index,mode] of ['between-tenants','committed-ack','committed-lost-ack'].entries()) {
+    const day='2027-01-0'+(index+2),next='2027-01-0'+(index+3);
+    assert.deepEqual(await state(day),{rows:[],events:[],contexts:[]});
+    // Instante UTC del día siguiente, aún día Caracas original.
+    let instant=next+'T03:59:59.900Z';
+    let committed=false,crossed=false,committedEffects;
+    const transitions=[];
+    setFault(async(phase,wire)=>{
+      if(wire.flow!==mode) return;
+      if(phase==='after'&&wire.method==='POST'&&wire.path.endsWith('/fx_rates')) {
+        assert.equal(wire.status,201); committedEffects=await state(day);
+        assert.equal(committedEffects.rows.length,1); assert.equal(committedEffects.events.length,1);
+        committed=true; transitions.push({phase:'POSTGRES_COMMIT_OBSERVED_BEFORE_ACK',instant,status:wire.status});
+        if(mode!=='between-tenants') {
+          instant=next+'T04:00:00.000Z'; crossed=true; transitions.push({phase:'CLOCK_CROSSED_BEFORE_ACK',instant});
+          if(mode==='committed-lost-ack') return {drop:true};
+        }
+      }
+      if(mode==='between-tenants'&&committed&&!crossed&&phase==='before'&&wire.path.endsWith('/rpc/bcv_rates_write_capability')) {
+        instant=next+'T04:00:00.000Z'; crossed=true; transitions.push({phase:'NEXT_TENANT_CAPABILITY_AFTER_CONFIRMED_ACK',instant});
+      }
+    });
+    let result;
+    try {result=await execute(mode,day,{scope:[A,B],clock:()=>new Date(instant)});}
+    finally {setFault(undefined);}
+    assert(committed&&crossed); assert.equal(writes(result).length,1);
+    assert.equal(result.summary.reason,mode==='committed-lost-ack'?'WRITE_UNKNOWN':'DAY_CHANGED');
+    assert.equal(result.summary.counts[mode==='committed-lost-ack'?'unknown':'inserted'],1);
+    assert.equal(result.summary.counts.notAttempted,1); assert.equal(result.summary.counts.deferred,1);
+    const effects=await state(day); assert.deepEqual(effects,committedEffects);
+    assert.equal(effects.rows[0].tenant_id,A); assert.equal(effects.rows[0].valid_on,day);
+    assert.match(effects.rows[0].note,new RegExp('valid_on='+day));
+    assert.equal(effects.events[0].after_data.valid_on,day); assert.equal(effects.events[0].source,'job');
+    assert.deepEqual(await state(next),{rows:[],events:[],contexts:[]},'sin refecha en nueva medianoche');
+    await save('b5-'+mode+'.json',{result,transitions,committedEffects,effects,
+      limit:'Reloj de aplicación controlado que cruza medianoche IANA; PostgreSQL/HTTP/COMMIT reales. No es una espera de medianoche física ni promesa de cancelar COMMIT.'});
+  }
+  check('B5: corte entre tenants y ACK/ACK perdido tras COMMIT cruzan medianoche, conservan día original y difieren B');
+
+  receipt.phase='R14_WITHDRAWAL';
+  await eventually(async()=>gatewayState().requests===0&&gatewayState().tasks===0);
+  const active=JSON.parse(await scalar(`select coalesce(jsonb_agg(jsonb_build_object('pid',pid,'usename',usename,'state',state)), '[]'::jsonb)
+    from pg_stat_activity where datname=current_database() and pid<>pg_backend_pid() and xact_start is not null;`));
+  assert.deepEqual(active,[],'quiescencia observada de transacciones propias antes de retirar SQL');
+  const durableBefore=await allState();
+  assert(JSON.parse(durableBefore).events.some(event=>event.source==='job'),'eventos job ya comprometidos, no fixture vacía');
+  const withdrew=await observeDdl({name:'bcv-'+nonce+'-withdraw',sql:`set local lock_timeout='5s'; set local statement_timeout='60s';
+    ${installation.oldDefinition}
+    drop function public.bcv_rates_write_capability(); notify pgrst,'reload schema';`,psql,scalar,eventually});
+  const after=JSON.parse(await scalar(INSTALL_CATALOG)); assert.deepEqual(after,installation.before);
+  assert.equal(await allState(),durableBefore,'retirada conserva cada fila/evento/contexto comprometido');
+  const unavailable=await execute('after-successful-sql-withdrawal','2027-01-08');
+  assert.equal(unavailable.summary.reason,'SQL_CONTRACT_UNAVAILABLE');
+  assert.equal(unavailable.sourceHttp.length,0); assert.equal(writes(unavailable).length,0);
+  assert.equal(await allState(),durableBefore);
+  await save('r14-successful-withdrawal.json',{activeTransactionsBefore:active,gatewayBefore:{requests:0,tasks:0},
+    catalogBefore:installation.before,catalogAfter:after,durableBefore:JSON.parse(durableBefore),durableAfter:JSON.parse(await allState()),
+    ...withdrew,unavailable,limit:'Solo fixture propia y quiescente. GET capability no autoriza ni inmoviliza DDL concurrente; sin garantía de disponibilidad/bloqueo cero/rollback de datos ya comprometidos.'});
+  check('R14: retirada SQL confirmada conserva eventos job; app nueva falla cerrada antes de fuente/DML sin capability');
+  await save('supplemental-http.json',receipt.supplemental);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url)===resolve(process.argv[1])) await main();
