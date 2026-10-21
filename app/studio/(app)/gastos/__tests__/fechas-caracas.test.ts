@@ -10,7 +10,7 @@ import { createExpenseAction, updateExpenseAction } from "../actions";
 
 const tenant = "tenant-c1", expense = "expense-c1";
 type Row = Record<string, unknown>;
-function setup(options: { settings?: Row[]; entries?: Row[]; origin?: Row[]; errorTable?: string; errorCode?: string; crossMidnight?: boolean } = {}) {
+function setup(options: { settings?: Row[]; entries?: Row[]; transportEntries?: unknown[]; origin?: Row[]; errorTable?: string; errorCode?: string; crossMidnight?: boolean } = {}) {
   const mutations: { table: string; patch: Row }[] = [];
   const reads: { table: string; filters: [string, unknown][]; columns: string }[] = [];
   const original = { id: expense, tenant_id: tenant, deleted_at: null, expense_code: "G-C1", amount_usd: 10.25, account_id: "cost", method: "cash", occurred_at: "2026-10-21T02:30:00Z" };
@@ -35,7 +35,10 @@ function setup(options: { settings?: Row[]; entries?: Row[]; origin?: Row[]; err
         if (table === options.errorTable) return { data: null, error: { code: options.errorCode ?? "PGRST205", message: "synthetic failure" } };
         // Account code lookup is a synthetic seeded account; all domain filters
         // on origins/config/journals are actually applied and observed.
-        return { data: (rows[table] ?? []).filter(r => table === "accounts" || filters.every(([k,v]) => r[k] === v)).slice(0, limit), error: null };
+        const data = (rows[table] ?? []).filter(r => table === "accounts" || filters.every(([k,v]) => r[k] === v)).slice(0, limit);
+        // Malformación de transporte DESPUÉS de ejecutar la query: no lanzar
+        // en el filtro r[k] ni fabricar un rechazo antes del guard del handler.
+        return { data: table === "journal_entries" && options.transportEntries !== undefined ? options.transportEntries as Row[] : data, error: null };
       };
       const single = async () => { const r = execute(); return { ...r, data: r.data?.length === 1 ? r.data[0] : null, error: r.error ?? (r.data && r.data.length > 1 ? { code: "PGRST116", message: "multiple" } : null) }; };
       const q = { select: (value: string) => { columns = value; return q; },
@@ -61,6 +64,20 @@ beforeEach(() => { vi.clearAllMocks(); vi.useFakeTimers({ toFake:["Date"] }); vi
 afterEach(() => vi.useRealTimers());
 
 describe("C1 · gastos nuevos y guarda de historia", () => {
+  it.each([null, false, 0, ""])("fila de asiento malformada %j no equivale a []", async value => {
+    const state=setup({ transportEntries: [value] });
+    expect(await updateExpenseAction(expense, {}, form())).toMatchObject({ error: expect.any(String) });
+    expect(state.reads.find(r => r.table === "journal_entries")?.filters).toEqual([
+      ["tenant_id",tenant],["expense_id",expense],["status","asentado"],["deleted_at",null],
+    ]);
+    expect(state.mutations).toEqual([]); expect(state.rpc).not.toHaveBeenCalled(); expect(state.upload).not.toHaveBeenCalled();
+    expect(io.void).not.toHaveBeenCalled(); expect(io.post).not.toHaveBeenCalled();
+  });
+  it("una fila válida con fecha histórica coincidente conserva fecha al repostear", async () => {
+    const state=setup({ entries: [{ id:"live",tenant_id:tenant,expense_id:expense,source:"expense",status:"asentado",entry_date:"2026-10-20",deleted_at:null }] });
+    expect(await updateExpenseAction(expense, {}, form())).toMatchObject({ ok:true });
+    expect(state.mutations).toHaveLength(1); expect(io.post).toHaveBeenCalledWith(expect.objectContaining({ entryDate:"2026-10-20" }));
+  });
   it("persiste instante capturado antes del guard y asienta su día Caracas", async () => {
     const state = setup({ crossMidnight:true });
     expect(await createExpenseAction({},form())).toMatchObject({ ok:true });

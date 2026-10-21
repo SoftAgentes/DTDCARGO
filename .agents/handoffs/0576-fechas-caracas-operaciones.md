@@ -277,3 +277,18 @@ Addendum68 leído completo y hash04c5fc420ac77b7c018e21e3572c61fc2f21c9220addd3f
 
 Matriz SGE: .01/.02/.06/.07/.09/.11 cuentan con evidencia APP focal descrita; .04/.05 quedan pendientes de SQL/HTTP, .10 de navegador y .12 conserva límite de autorización. NUM-01: importes/IVA/monedas intactos por diff y controles de flujo, no aceptación financiera nueva. La guardia histórica de gastos no promete atomicidad0575.
 Lint-app-delta-3 PASÓ salida0 sin warnings,02:59:15.716–23.363Z, únicamente las5rutas del delta tipo/copy/test/inventario. Primer checkpoint APP listo para revisión independiente; SQL/HTTP, mutantes y verify permanecen pendientes.
+
+## Revisión APP · transporte malformado de asiento (P2)
+
+Checkpoint publicado: `5dadb10358811351384015dbddc698f3f430b93c`, PR [#312](https://github.com/SoftAgentes/DTDCARGO/pull/312) OPEN/DRAFT apilada sobre b `8729f7f4`. El Director demostró que una respuesta de transporte `error:null/data:[null]` (también false/0/cadena vacía) pasaba como ausencia por truthiness. No se afirma que PostgREST normal la produzca; el contrato exige que solamente `[]` sea ausencia.
+
+Corrección acotada a `gastos/actions.ts` y su prueba ya permitidas: una fila requiere objeto válido y conserva todas las validaciones de identidad/fecha. El doble inyecta el transporte malformado después de ejecutar los filtros; por tanto la regresión llega al guard real y no aprueba por una excepción anterior del mock. Las cuatro variantes verifican cero UPDATE, correlativo, upload, void y post. Permanecen los controles de ausencia legítima, fecha histórica válida/cerrada y coincidencia de la fecha al repostear.
+
+Evidencia externa en `C:/tmp/director-traspaso-20261020/0576-codex-validation/`:
+
+- `red-expense-malformed-1`: FALLÓ funcional esperado, 4 fallos / 18 casos, 03:04:28.312–03:04:30.713Z; recibió ok:true donde correspondía rechazo.
+- `green-expense-malformed-1`: PASÓ 18/18, 0 SKIP, 03:04:39.932–03:04:42.303Z.
+- `lint-expense-malformed-1`: PASÓ salida0 sin warnings, 03:04:43.039–03:04:51.253Z.
+- `typecheck-app-malformed-1`: FALLÓ salida2 únicamente por declaración de import del arnés SQL aún en preparación; no defecto de este handler. Se tipó el enlace del test al arnés sin silenciar reglas. `typecheck-app-malformed-2`: PASÓ salida0, 03:07:34.007–03:07:49.665Z.
+
+El ajuste se guarda en commit separado sin reescribir5dad. SQL sigue en preparación y su primer ROJO funcional de default Caracas se conserva separado; no se ha incorporado ni aplicado0499 al checkpoint APP. No se amplía la allowlist68 ni se certifica atomicidad0575.

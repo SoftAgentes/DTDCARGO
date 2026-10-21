@@ -299,8 +299,9 @@ export async function updateExpenseAction(
         .eq("tenant_id", tenantId).eq("expense_id", id).eq("status", "asentado").is("deleted_at", null).limit(2);
       if (entriesError || !Array.isArray(entries) || entries.length > 1) return { error: HISTORY_UNAVAILABLE };
       const live = entries[0];
-      if (live) {
-        if (typeof live.id !== "string" || !live.id || live.tenant_id !== tenantId || live.expense_id !== id
+      if (entries.length === 1) {
+        if (!live || typeof live !== "object" || Array.isArray(live)
+          || typeof live.id !== "string" || !live.id || live.tenant_id !== tenantId || live.expense_id !== id
           || live.source !== "expense" || live.status !== "asentado" || live.deleted_at !== null
           || !isCalendarDate(live.entry_date)) return { error: HISTORY_UNAVAILABLE };
         if (isPeriodClosed(closingDate, live.entry_date)) {
