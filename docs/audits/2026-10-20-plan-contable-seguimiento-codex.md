@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 20 de octubre de 2026, 10:33 p. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 20 de octubre de 2026, 10:36 p. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -142,7 +142,8 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Ampliar las regresiones antes de sus respectivas correcciones: guarda histórica de gastos, **ocho fallos y una aprobada**; contexto de creación/recuperación Portal, **nueve fallos y 254 aprobadas**, sin omisiones. Comparten casos con las corridas anteriores; no se suman como pruebas distintas.
 - [x] **Aprobar el primer bloque corregido de C1: 543/543 pruebas en 12 archivos, sin omisiones.** Incluye primitiva IANA y cambio histórico de offset, fechas/FX entre esperas, límites de gastos, guarda estricta de historia y Portal con recuperación del comprobante sin recrearlo. Recibo finalizado a las 10:31:36 p. m. Es un resultado acotado; todavía no es cierre general ni aceptación de la entrega completa.
 - [ ] Reproducir los errores de fecha y corregir C1; probar emisión, asientos, cobros, pagos y recuperación del reporte Portal, sin cambiar fechas explícitas ni re-fechar historia.
-- [ ] Completar las correcciones y pruebas específicas de asientos, emisión automática y formularios.
+- [x] Corregir y probar las fechas de los asientos y del emisor automático: **56/56 comprobaciones en dos archivos, sin omisiones**, después de reproducir 22 fallos funcionales. Los nueve fallbacks capturan el día antes de esperar; una fecha explícita y el instante de auditoría se conservan. El asiento automático toma la fecha realmente guardada en la factura, o queda pendiente con explicación si no puede comprobarla, sin repetir la emisión.
+- [ ] Completar las correcciones y pruebas específicas de los formularios.
 - [ ] Cargar y validar 0499 real en base local desechable y API local, con permisos, recuperación, límites horarios y ausencia de efectos repetidos; sin base productiva.
 - [ ] Completar las pruebas de errores intencionales y la revisión visible de los formularios dentro del alcance.
 - [ ] Revisar el candidato C1, cerrar sus pruebas generales y dejar su PR en borrador.
