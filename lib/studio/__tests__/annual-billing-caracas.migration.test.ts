@@ -143,10 +143,15 @@ describe("0500 · anuales Caracas, DDL real antes de copias de reloj", () => {
     expect(result.error).toMatch(temporalFailure(group));
     expect(result.error).toContain(" 5/");
   }, SLOW);
-  it("mata upper añadido al Portal en sus dos fórmulas", async () => {
+  it.each(["v2", "legado"] as const)("mata upper añadido solo al Portal %s", async (field) => {
     const expression = "and coalesce(i.issued_at, (i.created_at at time zone 'America/Caracas')::date) <= (pg_catalog.transaction_timestamp() at time zone 'America/Caracas')::date and i.tenant_id = p.tenant_id";
-    const result = await contract({ groups: ["portal"], migration: mutate("portal", "where i.tenant_id = p.tenant_id", "where true " + expression, 2) });
-    expect(result.error).toBe("TEST 0500: fase real Portal conserva futuro");
+    const definition = MIGRATION.match(functions.portal)![0];
+    const parts = definition.split("where i.tenant_id = p.tenant_id");
+    expect(parts).toHaveLength(3);
+    const occurrence = field === "v2" ? 0 : 1;
+    const changed = parts.map((part, n) => n < 2 ? part + (n === occurrence ? "where true " + expression : "where i.tenant_id = p.tenant_id") : part).join("");
+    const result = await contract({ groups: ["portal"], migration: MIGRATION.replace(definition, () => changed) });
+    expect(result.error).toBe(field === "v2" ? "TEST 0500: fase real Portal conserva futuro" : "TEST 0500: fase real Portal legado conserva futuro");
   }, SLOW);
   it.each(["v1", "v2"] as const)("mata quitar upper de Studio %s", async (group) => {
     const result = await contract({ groups: [group], migration: mutate(group, ") <= p_as_of", ") <= date '9999-12-31'", 1) });

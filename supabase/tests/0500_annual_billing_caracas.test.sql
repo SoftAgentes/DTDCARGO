@@ -226,6 +226,7 @@ select pg_temp.assert_true((select effective_acl=array[false,true,true] from c2_
 select pg_temp.assert_true(pg_temp.actor('commercial',$q$select to_jsonb(x) from public.studio_client_annual_billing_v2((transaction_timestamp() at time zone 'America/Caracas')::date) x where client_markbox='DTD-BASE'$q$)='{"client_markbox":"DTD-BASE","subtotal_usd":"210.00","sin_tasa_count":1,"conversion_state":"sin_tasa"}'::jsonb,'fase real v2 completa compatible');
 select pg_temp.assert_true((pg_temp.actor('commercial',$q$select to_jsonb(x) from public.studio_client_annual_billing((transaction_timestamp() at time zone 'America/Caracas')::date) x where client_markbox='DTD-BASE'$q$)->>'billed_usd')::numeric=110,'fase real v1 legada compatible');
 select pg_temp.assert_true(pg_temp.actor('portal','select public.get_portal_referral_program()')->'billing_v2'='{"version":2,"subtotal_usd":"215.00","sin_tasa_count":1,"conversion_state":"sin_tasa"}'::jsonb,'fase real Portal conserva futuro');
+select pg_temp.assert_true((pg_temp.actor('portal','select public.get_portal_referral_program()')->>'billed_usd')::numeric=115,'fase real Portal legado conserva futuro');
 select 'FASE REAL 0500 COMPLETA; solo después se instrumenta el reloj' as fase;
 
 -- Transformación SOLO en copias pg_temp de las tres definiciones medidas.

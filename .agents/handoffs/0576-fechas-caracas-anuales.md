@@ -1,6 +1,6 @@
 # Handoff Worker — SDD0576 C2 · anuales Caracas
 
-Fecha de adopción: 2026-10-21. Estado: en-progreso.
+Fecha de adopción: 2026-10-21. Estado: en-progreso; checkpoint revisable, cierre pendiente.
 Owner: worker-0576c2-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 Sesión Director: 01a15a4e-ddf0-7d82-8656-d9dc56b58468; subagente worker_0576_c2.
 Worktree: C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0576-fechas-caracas-anuales.
@@ -20,38 +20,63 @@ Fuentes externas verificadas SHA256:
 - Matriz funciones: 809a17866f7872e7a654529574b6ef293c7e565786e8749473877786222a4eb7.
 - Inventario pruebas: e294b45cfdae29cae6795febdae1474e93c2039d63a9a0526c1bda52410dc506.
 - Cierre C1: 2ace46582a02e86a49bac59ef017ac22d899f3da36992753f461924f18a445d4.
-- Documentación oficial: contraste suministrado; no evidencia de entorno vivo.
+- Contraste documental oficial: 75958ad90a4723ade36cfbe154fe01ee4f514161a6ad78455685c80c1f179021; no evidencia de entorno vivo.
+- Revisión independiente del encargo: 6349acb47df0b00ef538a3052f53328df4c07278bfb680234faa644bf92f4240.
 
 Evidencia externa propia: C:/tmp/director-traspaso-20261020/0576-c2-codex-validation/.
+SupabaseChangelog recibido200/102319bytes; PostgreSQL17 y Supabase Functions consultados. No cambios de versiones/CLI ni acceso a DB del proyecto. Memoria de aislamiento contrastada con guard/claim actuales; no se transfieren estados históricos a C2.
 
 ## COMPLETADO
 
-Adopción, caller Caracas antes de paginar, migración0500 íntegra, pruebas SQL propias y arnésHTTP propio preparados. PGlite29/29 y aplicación54/54 PASÓ en árbol; HTTP/verify/revisión aún pendientes.
+Caller usa fechaCaracas(now) una vez antes de paginar. 0500 contiene completas las tres fachadas y solo cambia seis relojes/seis fallbacks; fuente SHA256 bf90fe717e7be3d0af70a1c1999758529e875855aa118ad9f36dad2fdbffbfaf. Contrato PGlite/PG17 propio, arnés HTTP aislado, baseline0500 y anclas reales0498 actualizados. Portalreader/helper/paginador/0411/0498/0499 no se editaron. Son11rutas de la allowlist12.
+
+Se reparó el arnés propio al concatenar pg_get_functiondef sin separadores. Se reforzó el oráculo del futuro Portal legado por separado, mutantes upperpor fórmula, captura de hashscript/contrato/status y evidencia de recarga real. No se tocó producto para resolver fallos del arnés.
 
 ## VALIDACIÓN
 
-Guard/claim/base/limpieza inicial PASÓ. Install congelado04:42:42–04:43:04Z salida0; lockfile intacto. CallerROJO04:43:40–44Z:8fallos/22pass; caller+PortalVERDE04:44:27–30Z:54/54sinSKIP. PGlite tercera04:50:41–04:51:40Z:29/29sinSKIP, incluyeDDLreal,3ROJOtemporales independientes,3VERDEy18mutantes temporales. Dos corridas previas se conservan FALLÓ por oráculo de escala y etiquetas de fallos funcionales anticipados; no se cuentan como ROJOtemporal. Recibos externos run.mjs con comando/PID/cwd/tiempos/exit/log. No se transfieren resultados C1 a C2.
+Cada archivo JSON de corrida conserva comando, PID, cwd absoluto, inicio/fin/exit; logs originales externos. No sumar estos grupos solapados.
+
+| Comprobación | Estado / alcance real |
+|---|---|
+| Aislamiento, base d6, guard/claim | PASÓ, árbol inicial limpio, owner propio |
+| Dependencias congeladas | PASÓ04:42:42–04:43:04Z,817paquetes, Node24.20.0/pnpm11.25.0; lock intacto |
+| Caller ROJO | FALLÓ previsto04:43:40–44Z,8fallidas/22pass; diferenciaUTC/Caracas funcional,0SKIP |
+| Caller+Portal VERDE | PASÓ54/54,2archivos,0omisiones,04:44:27–30Z |
+| PGlite primer intento | FALLÓ24/25 por comparación textual de escala v1; no ROJOtemporal. Se conserva diagnóstico |
+| PGlite segundo intento | FALLÓ5/25 por etiquetas de muerte de mutantes anticipadas; contrato íntegro y3ROJO/3VERDE temporales PASARON |
+| PGlite tercera focal | PASÓ29/29,0omisiones,04:50:41–04:51:40Z; snapshot previo al refuerzo Portal legado |
+| Regresión ampliada final | PASÓ223/223en11archivos,0omisiones,04:54:48–04:56:35Z; incluye30casosC2/21mutantesSQL, históricos0498/helperC1/Portal/CRM/Fidelización/Reportes/listados |
+| Mutantes caller | PASÓ muerte funcional UTC y relojporpágina, fuente restauradaSHA2569db8151732d6a99588ea32b0a51407b431f82275253a627ea12d24f541082601. Recibo caller-mutation-detail.json04:56:58–04:57:01Z; UTC6fallos/3pass/21no seleccionadas, relojporpágina1fallo/29no seleccionadas. Esas omisiones por -t no son cobertura global. El primer detalle fue sobrescrito por nombre compartido del wrapper; se repitió con nombres separados |
+| PG17/HTTP primer intento | FALLÓ después de fase real PASÓ,04:52:35–51Z;423asercionesSQL+ROLLBACK y recarga realPID824 sinreinicio. La copia de reloj falló por separadoresSQL, no muerte funcional; cleanup0/ausentes |
+| PG17/HTTP segunda | PASÓ04:53:33–47Z,PG17.11/PostgREST14.17,423asercionesSQL+ROLLBACK. TresRPC200antes→DDL0500real/COMMIT→después, PID1610/inicio04:53:38.876845343Z idénticos; interior/campos/ACL/helpers/RLS/filas conservados. Fasecopias02:30/03:59:59.999/04:00 y restauración; negativosreales;1202grupos500/500/202/0,202soloexcluidas; cleanup0/ausentes. Atribución a769+delta local2separadores, no al suplemento futuro. Recibo no había capturado hashscript/contrato; última corrida desde checkpoint limpio pendiente |
+| Tipos/lint/gobernanza/docs | PASÓ tipos04:57:13–04:58:47Z; lintfocal0errores con4advertencias propias corregidas, lintHTTPfinal0errores/0advertencias05:00:36–40Z. Pluginread-only28políticas/5componentes PASÓ05:00:41Z solo consistencia, no conducta. Docs/numbering PASÓ04:59:57–59Z |
+| Verify canónico C2 | NO EJECUTADO; requiere focales cerradas y confirmación del Director de la cabeza revisada |
+| Release, DBreal, producción, UI/A11Y nuevos | NO EJECUTADO, fuera de autorización o no aplica al delta query/SQL; no aprobación global |
+
+SQL real antes de instrumentación: catálogo registrado antes/después con MD5 de pg_proc, OID/firma/retorno/owner/proacl/ACL efectiva/STABLE/DEFINER/config y helpers completos. Default0033 de service_role del ownerpostgres reproducido; v1 conserva EXECUTE, Portal/v2 lo revocaron. Comparación completa de cuerpos verifica exclusivamente seisrelojes+seisfallbacks. Las copias de reloj usan dosanclas estrictas por función, mismo instante para las3, y restauran definiciones. Filtros/roles/autorización no se congelan ni se simulan siempre verdaderos.
+
+ObservadorE2E externo preparado, no ejecutado aún: e2e-observer.cjsSHA256a7b2e303b9e72315bb98c31acd2f90633a8de9aa621e9b747f8c39c66a1336f4. Soloargv/cwd/PID del runner canónico de este árbol; captura bytes originales antes de readFileSync/rmSync/unlinkSync, registra intentos/rechazos/rutas canónicas y rootDir informativo sin filtro silencioso. No usa fs.watch, no cambia runner/gates, no reconstruye JSON. Si no está disponible se dirá así, sin repetir verify exitoso solo por capturarlo.
 
 ## COMMITS
 
-Primer checkpoint coherente: commit que contiene este documento; hashes finales se registran en PR.
+- 769dd9ee2446c27123b041eefe7a78727a25f8af: primer checkpoint de implementación y pruebas propias.
+- Suplemento de arnés/pruebas/recibos: commit que contiene este documento; hashes finales se registran en PR.
 
 ## PR / BRANCH
 
-Base PR propia codex/sdd-0576-fechas-caracas-operaciones (d6). Rama/worktree indicados arriba; se publica checkpointDRAFT con HTTP/verify/revisión pendientes explícitos.
+https://github.com/SoftAgentes/DTDCARGO/pull/313 OPEN/DRAFT, basecodex/sdd-0576-fechas-caracas-operaciones=d6; head propio según commit revisable. Primera lectura head769/base d6/título/body/DRAFT PASÓ; final pendiente. ConectorGitHubno conectado; sesiónCLIautorizada disponible. PR adjunta a la tarea; push rama a sí misma, sin merge/deploy.
 
 ## PENDIENTES DE ESTA TAREA
 
-Implementación, ROJO/VERDE, catálogo/ACL/SQL/HTTP, mutantes, revisión independiente, verify, cierre documental, respaldo, readback y cleanup propios.
+Última corrida PG17/HTTP sobre suplemento limpio con hashes exactos; revisión inmutable y confirmación; pnpmverifycanónico con diagnóstico/SKIPs; knowledge:status y límites de capas; cierre documental/PRreadback/ahead0/clean/cleanup/claimrelease/recibo final. Implementación yROJOtemporal ya ejecutados, no figuran como pendientes.
 
 ## FUERA DE ALCANCE DETECTADO
 
-C1/C3, BCV0569, otras tareas y producción; no se absorben.
+C1, C3móvil, BCV0569,0573/0575/2.3, producción, CIalojado bloqueado, cobertura histórica no medida y derivados ausentes de conocimiento. No se absorben. No hay defecto conocido propio de producto abierto en este checkpoint; validaciones/revisión aún pendientes.
 
 ## HANDOFF AL DIRECTOR
 
-Se ofrecerá checkpoint inmutable antes de verify. Claim activo y turno pesado exclusivo propios hasta completar entrega. No publicar derivados compartidos.
-
+Conservar PRDRAFT y worktree. Antes de verify se ofrece SHA/base limpios, hashes de SQL/script y recibos reales para revisión. Turno pesado exclusivo y claim aún activos; solo se liberan al completar commits/push/readback/cleanup. FuturoMIGRATE-FIRST exige revisión de paquete, OK nominal de Sam y callerCaracas activo; respuesta200 de SQLanterior no activa una degradación ficticia. No se publica conocimiento compartido desde el borrador.
 ## Contrato ejecutable íntegro incorporado
 
 Fuente externa: C:/tmp/director-traspaso-20261020/0576-caracas-c2-asignacion-worker.md, hash verificado arriba. Las concreciones y doce rutas siguientes son vinculantes.

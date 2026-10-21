@@ -42,7 +42,7 @@ function run(command, args, { input, timeout = 120000, allowFailure = false } = 
   return new Promise((resolveRun, reject) => {
     const child = spawn(command, args, { cwd: root, stdio: ["pipe", "pipe", "pipe"], windowsHide: true, shell: false });
     let stdout = "", stderr = "";
-    const timer = setTimeout(() => child.kill(), timeout);
+    const timer = setTimeout(() => child.kill(), allowFailure ? timeout : Math.min(timeout, Math.max(1, 20*60_000-(Date.now()-started))));
     child.stdout.on("data", (chunk) => { stdout += chunk; });
     child.stderr.on("data", (chunk) => { stderr += chunk; });
     child.on("error", (error) => { clearTimeout(timer); reject(error); });
@@ -80,6 +80,7 @@ const base = "http://127.0.0.1:" + httpPort;
 receipt.resources.httpPort = httpPort;
 const psql = (sql) => docker(["exec", "-i", pg, "psql", "-X", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", "-At"], { input: sql });
 async function rpc(name, actor, body = {}, options = {}) {
+  ensureBudget();
   const headers = { "Content-Type": "application/json", ...(actor ? { Authorization: "Bearer " + token(actor, options.role) } : {}), ...(options.headers ?? {}) };
   const query = new URLSearchParams(options.query ?? {}).toString();
   const response = await fetch(base + "/rpc/" + name + (query ? "?" + query : ""), { method: "POST", headers, body: JSON.stringify(body), signal: AbortSignal.timeout(15000) });
@@ -130,15 +131,17 @@ async function freeze(instant) {
     anchors.push({signature:row.signature,count,originalSha256:sha(row.definition),copySha256:sha(definition),anchor,replacement:fixed});
     return definition;
   });
-  const ddl=await psql('begin;\n'+definitions.join('\n')+'\ncommit; notify pgrst, \'reload schema\';');
+  const ddl=await psql('begin;\n'+definitions.map(d=>d+';').join('\n')+'\ncommit; notify pgrst, \'reload schema\';');
   await save('clock-'+instant.replaceAll(/[^0-9]/g,'')+'.json',{phase:'instrumentada DESPUÉS de DDL real',instant,anchors,ddlExit:ddl.code});
 }
 try {
   receipt.head=(await run('git',['rev-parse','HEAD'])).stdout.trim();
+  receipt.gitStatus=(await run('git',['status','--porcelain'])).stdout.trim();
   const originalMigration=await readFile(migrationPath,'utf8');
   receipt.migrationSha256=sha(originalMigration);
   receipt.sourceFiles={};
   for(const file of ['0411_client_annual_billing_facade.sql','0498_annual_billing_fx_v2.sql','0500_annual_billing_caracas.sql']) receipt.sourceFiles[file]=sha(await readFile(resolve(root,'supabase/migrations',file),'utf8'));
+  for(const file of ['supabase/tests/0500_annual_billing_caracas.test.sql','scripts/tests/annual-billing-caracas-postgrest.mjs']) receipt.sourceFiles[file]=sha(await readFile(resolve(root,file),'utf8'));
   receipt.dockerVersion=(await docker(['version','--format','{{.Server.Version}}'])).stdout.trim();
   await docker(['network','create','--label','dtd.task=0576c2',network]);hasNetwork=true;
   await docker(['run','-d','--name',pg,'--label','dtd.task=0576c2','--network',network,'--network-alias','db','--cpus','2','--memory','1g','--pids-limit','128','--mount','type=bind,source='+resolve(root,'supabase')+',target=/sb,readonly','-e','POSTGRES_PASSWORD='+syntheticPassword,imagePg],{timeout:300000});created.push(pg);
@@ -179,15 +182,21 @@ try {
   check('HTTP ANTES: las tres RPC existen y responden200, semántica anterior medida');
   receipt.postgrestStartedAtBeforeDdl=(await docker(['inspect','--format','{{.State.StartedAt}}',rest])).stdout.trim();
   receipt.postgrestPidBeforeDdl=(await docker(['inspect','--format','{{.State.Pid}}',rest])).stdout.trim();
+  const reloadLog=async()=>{const r=await docker(['logs',rest]);const text=r.stdout+r.stderr;return {text,messages:(text.match(/Received a schema cache reload message/g)??[]).length,loads:(text.match(/Schema cache loaded in /g)??[]).length};};
+  const reloadBefore=await reloadLog();
   receipt.ddlStartedAt=new Date().toISOString();
   const ddl=await docker(['exec',pg,'psql','-X','-1','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres','-f','/sb/migrations/0500_annual_billing_caracas.sql']);
   await save('http-migration-0500.log',ddl.stdout+'\n'+ddl.stderr);receipt.ddlCommittedAt=new Date().toISOString();
+  const reloadAfter=await eventually(reloadLog,r=>r.messages>reloadBefore.messages&&r.loads>reloadBefore.loads);
+  receipt.schemaReload={messagesBefore:reloadBefore.messages,messagesAfter:reloadAfter.messages,loadsBefore:reloadBefore.loads,loadsAfter:reloadAfter.loads,observedAt:new Date().toISOString()};
+  await save('real-schema-reload.log',reloadAfter.text);
   const after=await readAll(asOf);await save('http-after.json',after);
   receipt.postgrestStartedAtAfterDdl=(await docker(['inspect','--format','{{.State.StartedAt}}',rest])).stdout.trim();
   receipt.postgrestPidAfterDdl=(await docker(['inspect','--format','{{.State.Pid}}',rest])).stdout.trim();
   assert.equal(receipt.postgrestStartedAtAfterDdl,receipt.postgrestStartedAtBeforeDdl);assert.equal(receipt.postgrestPidAfterDdl,receipt.postgrestPidBeforeDdl);
   const catalogAfter=await catalog();await save('catalog-real.json',{before:catalogBefore,after:catalogAfter});
-  const withoutBody=rows=>rows.map(({definition,bodyMd5,...metadata})=>metadata);
+  const omit=(row,fields)=>Object.fromEntries(Object.entries(row).filter(([key])=>!fields.includes(key)));
+  const withoutBody=rows=>rows.map(row=>omit(row,['definition','bodyMd5']));
   assert.deepEqual(withoutBody(catalogAfter),withoutBody(catalogBefore));
   assert.equal(catalogAfter.find(r=>r.signature.startsWith('studio_client_annual_billing(')||r.signature.startsWith('public.studio_client_annual_billing(')).effectiveAcl.service_role,true);
   assert(catalogAfter.filter(r=>!/^public\.?studio_client_annual_billing\(/.test(r.signature)&&!/^studio_client_annual_billing\(/.test(r.signature)).every(r=>!r.effectiveAcl.service_role));
@@ -199,7 +208,7 @@ try {
   assert.equal(after.get_portal_referral_program.data.billing_v2.subtotal_usd,'234.00');
   assert.equal(after.get_portal_referral_program.data.billed_usd,134);
   for(const name of ['studio_client_annual_billing','studio_client_annual_billing_v2']) assert.deepEqual(after[name].data.find(r=>r.client_markbox==='DTD-INSIDE'),before[name].data.find(r=>r.client_markbox==='DTD-INSIDE'));
-  const nonAnnual=({billed_usd,billing_v2,...rest})=>rest;
+  const nonAnnual=row=>omit(row,['billed_usd','billing_v2']);
   assert.deepEqual(nonAnnual(after.get_portal_referral_program.data),nonAnnual(before.get_portal_referral_program.data));
   check('DDL0500 REAL/COMMIT/recarga mismo proceso; borde fallback cambia17 y Portal según reloj civil, interior/campos/ACL/helpers/RLS/filas intactos');
   realDefinitions=catalogAfter;
@@ -219,7 +228,7 @@ try {
     await save('http-fixed-'+instant.replaceAll(/[^0-9]/g,'')+'.json',{instant,day,responses});
   }
   check('HTTP copias instrumentadas02:30/03:59:59.999/04:00; ambos consumidores y fórmulas con oráculos propios');
-  await psql('begin;\n'+realDefinitions.map(r=>r.definition).join('\n')+'\ncommit; notify pgrst, \'reload schema\';');
+  await psql('begin;\n'+realDefinitions.map(r=>r.definition+';').join('\n')+'\ncommit; notify pgrst, \'reload schema\';');
   assert.deepEqual(await catalog(),catalogAfter);check('restauración íntegra de las tres definiciones reales');
   for(const name of ['studio_client_annual_billing','studio_client_annual_billing_v2']){
     for(const actor of ['disabled','ambiguous','operations','portal']){const response=await rpc(name,actor,{p_as_of:asOf});negative(name+' '+actor,response);assert.equal(response.status,403);assert.equal(response.data.code,'42501');}

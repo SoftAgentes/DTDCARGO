@@ -427,8 +427,10 @@ paginación real1202grupos con cap500 hasta vacía, última página completa sol
 excluidas, mismo `p_as_of`; negativos de tenant/ACL/rol/override/error y helper
 privado conservados. Cada recibo atribuye versiones, hashes, cwd, PID y tiempo.
 
-Estado de este checkpoint: implementación y focales en curso; HTTP, revisión
-inmutable, verify y cierre final pendientes. El handoff propio conserva los
+Estado de este checkpoint: implementación y regresión ampliada223/223 en11
+archivos PASÓ; incluye30casosC2/21mutantesSQL y controles históricos. HTTPsegunda
+PASÓ con423asercionesPG17 y recarga caliente; suplemento del arnés, nueva
+corrida limpia ligada a hashes, revisión inmutable, verify y cierre pendientes. El handoff propio conserva los
 resultados literales por corrida, sin sumar grupos solapados ni transferir el
 verify C1 a C2. `pnpm verify` se ejecutará después de focales y revisión sobre
 cabeza congelada; omisiones/ledger se informarán sin aplicar DB ni debilitar gates.
