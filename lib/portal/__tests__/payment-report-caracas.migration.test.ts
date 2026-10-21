@@ -11,7 +11,7 @@ const { inlineContract, embeddedSql } = await import(harnessPath) as {
 async function execute(vars:Record<string,string>) {
   const db = new PGlite({ extensions:{pgcrypto} });
   try {
-    await db.exec(embeddedSql(inlineContract({run_defaults:"false",run_operations:"false",run_auto_invoice:"false",run_expenses:"false",run_portal:"true",...vars})));
+    await db.exec(embeddedSql(inlineContract({run_defaults:"false",run_operations:"false",run_auto_invoice:"false",run_expenses:"false",run_closing:"false",run_portal:"true",...vars})));
     return null;
   } catch(error) { return error instanceof Error ? error.message : String(error); }
   finally { await db.close(); }
