@@ -25,7 +25,7 @@ const h = vi.hoisted(() => ({
 
 vi.mock("@/lib/db/server", () => ({ createClient: async () => h.doble.client }));
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => ({}) }));
-vi.mock("@/lib/studio/rbac-guard", () => ({ moduleEditDenial: async () => null }));
+vi.mock("@/lib/studio/rbac-guard", () => ({ moduleEditDenial: async () => null, moduleViewDenial: async () => null }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
@@ -82,9 +82,12 @@ const PLAN = {
   created_at: "2026-10-12T00:00:00Z",
 };
 
-function sembrar(membresia: typeof YIWU): Doble {
+function sembrar(membresia: typeof YIWU, checkedShipmentIds: string[] = []): Doble {
   const d = dobleSupabase({
     userId: "u1",
+    rpc: { client_consolidation_scope: { data: { available: true, complete: true,
+      checked: { containerIds: ["c1"], shipmentIds: checkedShipmentIds, receiptIds: [], boxIds: [] },
+      containerIds: [], shipmentIds: [], receiptIds: [], boxIds: [] }, error: null } },
     tablas: {
       user_tenants: [membresia],
       consolidations: [
@@ -159,6 +162,7 @@ describe("/studio/naviera", () => {
     const el = await NavieraPage();
     const props = el.props as Record<string, unknown>;
     expect(props.consolidations).toHaveLength(1);
+    expect(props.normal).toEqual({ available: true, checkedContainerIds: ["c1"], containerIds: [], manifests: {}, errors: {} });
     return props;
   }
 
@@ -203,9 +207,12 @@ describe("assignLooseCargo", () => {
     membresia: typeof YIWU,
     pieza: Partial<Parameters<typeof assignLooseCargo>[1]>,
   ) {
-    const d = sembrar(membresia);
+    const d = sembrar(membresia, pieza.shipmentId ? [pieza.shipmentId] : []);
     const r = await assignLooseCargo("c1", { cbm: 1, weightKg: 10, pieces: 1, ...pieza });
     expect(r.error).toBeUndefined();
+    expect(d.rpcLlamadas).toEqual([{ name: "client_consolidation_scope", args: { p_receipt_ids: [],
+      p_shipment_ids: pieza.shipmentId ? [pieza.shipmentId] : [], p_container_ids: ["c1"], p_box_ids: [] } }]);
+    expect(d.escrituras.filter((write) => write.table === "consolidation_items")).toHaveLength(1);
     const insert = d.escrituras.find((e) => e.table === "consolidation_items");
     return insert?.row as Record<string, unknown>;
   }

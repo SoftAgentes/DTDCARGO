@@ -43,6 +43,9 @@ import {
   readCanSeeClientNames,
   segunVisibilidad,
 } from "@/lib/studio/privacidad-cn";
+import { readNormalShipment, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
+import type { NormalShipmentRead } from "@/lib/studio/client-consolidation/types";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 
 export const metadata = {
   title: "Detalle envío",
@@ -64,6 +67,12 @@ export default async function ShipmentDetailPage({
   // el envío se pase a los paneles de cliente (que lo serializan entero).
   const puedeVerNombres = await readCanSeeClientNames(supabase);
   const shipment = segunVisibilidad(leido, puedeVerNombres);
+  const [normalResult, editResult] = await Promise.allSettled([readNormalShipment(supabase, id), moduleEditDenial(supabase, "tracking")]);
+  const normal: NormalShipmentRead = normalResult.status === "fulfilled"
+    ? { available: true, context: segunVisibilidad(normalResult.value, puedeVerNombres) }
+    : { available: false, error: normalReadMessage(normalResult.reason) };
+  const effectiveTrackingEdit = editResult.status === "fulfilled" && editResult.value === null;
+  const knownLegacy = normal.available && !normal.context.cohort;
 
   const events = await getShipmentEvents(supabase, id);
 
@@ -222,6 +231,7 @@ export default async function ShipmentDetailPage({
             <ShipmentDataPanel
               shipment={shipment}
               nombresOcultos={!puedeVerNombres}
+              normal={normal}
             />
           </section>
           <section
@@ -271,6 +281,8 @@ export default async function ShipmentDetailPage({
               shipmentId={shipment.id}
               service={shipment.shipment_service}
               status={shipment.status}
+              normal={normal}
+              canEdit={effectiveTrackingEdit}
             />
           </section>
 
@@ -282,7 +294,7 @@ export default async function ShipmentDetailPage({
               padding: 20,
             }}
           >
-            <ShipmentPlanPanel shipment={shipment} canEdit={canEditTracking} />
+            <ShipmentPlanPanel shipment={shipment} canEdit={knownLegacy && canEditTracking} />
           </section>
 
           {/* Expediente de defensa (SDD-0070) — admin-only. Abre la cadena de
@@ -338,11 +350,14 @@ export default async function ShipmentDetailPage({
               padding: 20,
             }}
           >
-            <TimelinePanel
+            {knownLegacy ? <TimelinePanel
               shipmentId={shipment.id}
               service={shipment.shipment_service}
               events={events}
-            />
+            /> : <section aria-label="Historial reciente del envío">
+              <h3>Historial reciente</h3><p>Esta vista muestra eventos recientes. Las notas nuevas se registran con el estado actual desde el panel de acciones.</p>
+              <ol>{events.map((event) => <li key={event.id}><time dateTime={event.occurred_at}>{formatRelative(event.occurred_at)}</time> · {event.status}{event.note ? ` · ${event.note}` : ""}</li>)}</ol>
+            </section>}
           </section>
         </aside>
       </div>
@@ -381,6 +396,7 @@ export default async function ShipmentDetailPage({
         shipmentCode={shipment.code}
         status={shipment.status}
         canDelete={canSpecial(roleRow?.role, "delete_shipments")}
+        normal={normal}
       />
     </div>
   );

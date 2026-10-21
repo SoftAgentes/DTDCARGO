@@ -91,7 +91,10 @@ interface Props {
   tarifas?: TarifasCn;
   /** SDD-0571: puede congelar en lote (admin, operations, warehouse, accounting). */
   puedeCongelarTarifas?: boolean;
+  cohorte?: CohorteCn;
 }
+
+export type CohorteCn = { available: boolean; receiptIds: string[]; canOpenNaviera: boolean };
 
 /** SDD-0571 · Lo que la tabla sabe de las tarifas congeladas. */
 export type TarifasCn = { disponible: boolean; porRecepcion: Record<string, RateSnapshot> };
@@ -133,6 +136,7 @@ function AlmacenCnView({
   eliminacion,
   tarifas,
   puedeCongelarTarifas = false,
+  cohorte,
 }: Props) {
   const alertSet = new Set(alertShipmentIds);
   // SDD-0571: el cajón de la tarifa de una recepción.
@@ -371,6 +375,7 @@ function AlmacenCnView({
           showClientNames={showClientNames}
           alertSet={alertSet}
           tarifas={tarifas}
+          cohorte={cohorte}
           onOpenRate={(id, code) => setTarifaDe({ id, code })}
         />
       )}
@@ -412,6 +417,7 @@ function AlmacenCnView({
             eliminacion={eliminacion}
             codigos={Object.fromEntries(receipts.map((r) => [r.id, r.receipt_code]))}
             congelarTarifas={Boolean(puedeCongelarTarifas && tarifas?.disponible)}
+            cohorte={cohorte}
           />
         </>
       )}
@@ -452,6 +458,7 @@ function ReceiptsTable({
   alertSet,
   tarifas,
   onOpenRate,
+  cohorte,
 }: {
   rows: WarehouseReceiptRow[];
   lang: LangDisplay;
@@ -463,8 +470,10 @@ function ReceiptsTable({
   alertSet: Set<string>;
   tarifas?: TarifasCn;
   onOpenRate: (id: string, code: string) => void;
+  cohorte?: CohorteCn;
 }) {
   const t = useT();
+  const normalIds = new Set(cohorte?.receiptIds ?? []);
   const allVisibleSelected =
     rows.length > 0 && rows.every((r) => selected.has(r.id));
   const someVisibleSelected =
@@ -538,6 +547,8 @@ function ReceiptsTable({
           hasAlert={r.shipment_id ? alertSet.has(r.shipment_id) : false}
           tarifas={tarifas}
           onOpenRate={onOpenRate}
+          normalMembership={cohorte && !cohorte.available ? "unavailable" : normalIds.has(r.id) ? "cohort" : "legacy"}
+          canOpenNaviera={cohorte?.canOpenNaviera ?? false}
         />
       ))}
     </div>
@@ -555,6 +566,8 @@ function ReceiptRow({
   hasAlert,
   tarifas,
   onOpenRate,
+  normalMembership,
+  canOpenNaviera,
 }: {
   row: WarehouseReceiptRow;
   lang: LangDisplay;
@@ -566,6 +579,8 @@ function ReceiptRow({
   hasAlert: boolean;
   tarifas?: TarifasCn;
   onOpenRate: (id: string, code: string) => void;
+  normalMembership: "legacy" | "cohort" | "unavailable";
+  canOpenNaviera: boolean;
 }) {
   const tRow = useT();
   // Supplier bilingual display
@@ -842,6 +857,7 @@ function ReceiptRow({
       {/* Status + payment + destino · stacked */}
       <span style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)", alignItems: "flex-start" }}>
         <ReceiptStatusBadge status={row.status} />
+        {normalMembership === "cohort" && <Badge tone="info" size="sm">{tRow("warehouse_cn.normal.badge")}</Badge>}
         <Badge tone={PAYMENT_STATUS_TONES[row.payment_status]} size="sm">
           {PAYMENT_STATUS_LABELS[row.payment_status]}
         </Badge>
@@ -879,6 +895,8 @@ function ReceiptRow({
           currentDestinationCity={row.destination_city ?? null}
           currentPaymentStatus={row.payment_status}
           invoiceVerifiedAt={row.invoice_verified_at ?? null}
+          normalMembership={normalMembership}
+          canOpenNaviera={canOpenNaviera}
         />
       </span>
     </div>
@@ -1038,6 +1056,7 @@ function BulkBar({
   eliminacion,
   codigos,
   congelarTarifas = false,
+  cohorte,
 }: {
   count: number;
   ids: string[];
@@ -1049,6 +1068,7 @@ function BulkBar({
   codigos: Record<string, string>;
   /** SDD-0571: muestra «Congelar tarifas pendientes». */
   congelarTarifas?: boolean;
+  cohorte?: CohorteCn;
 }) {
   const t = useT();
   const toast = useToast();
@@ -1057,6 +1077,9 @@ function BulkBar({
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
   const [errorBorrado, setErrorBorrado] = useState<string | undefined>(undefined);
   const [borrando, startBorrado] = useTransition();
+  const hasNormal = ids.some((id) => cohorte?.receiptIds.includes(id));
+  const membershipUnknown = !!cohorte && !cohorte.available;
+  const blockLegacyStatus = hasNormal || membershipUnknown;
 
   // SDD-0522 · La misma regla que decide el servidor: sin información, bloquea.
   const bloqueadas =
@@ -1070,7 +1093,7 @@ function BulkBar({
           .filter((b) => b.blockers.length > 0)
       : [];
   const excede = count > MAX_LOTE_BORRADO;
-  const puedeEliminar = eliminacion?.estado === "lista" && bloqueadas.length === 0 && !excede;
+  const puedeEliminar = eliminacion?.estado === "lista" && bloqueadas.length === 0 && !excede && !blockLegacyStatus;
   const motivos = (blockers: BloqueoContado<BloqueoRecepcionVisible>[]) =>
     blockers.map((b) => t(CLAVE_BLOQUEO_RECEPCION[b.kind])).join(", ");
   const filaBloqueada = (b: { code: string | null; blockers: BloqueoContado<BloqueoRecepcionVisible>[] }) =>
@@ -1265,7 +1288,8 @@ function BulkBar({
             key={a}
             type="button"
             onClick={() => handleClick(a)}
-            disabled={pending}
+            disabled={pending || (a.startsWith("status_") && blockLegacyStatus)}
+            aria-describedby={a.startsWith("status_") && blockLegacyStatus ? "cn-normal-bulk-status" : undefined}
             style={{
               padding: "6px 10px",
               background: "transparent",
@@ -1336,13 +1360,20 @@ function BulkBar({
       </div>
 
       {/* BTN-01 §6: por qué «Eliminar…» está deshabilitado, a la vista. */}
+      {blockLegacyStatus && (
+        <p id="cn-normal-bulk-status" role="status" style={{ margin: 0, color: "var(--glass-ink)", maxWidth: "65ch" }}>
+          {t(membershipUnknown ? "warehouse_cn.normal.unavailable" : "warehouse_cn.normal.bulk_hint")}
+        </p>
+      )}
       {eliminacion && !puedeEliminar && (
         <div
           id="cn-borrado-motivo"
           role="status"
           style={{ font: "600 11.5px/1.4 var(--f-sans)", color: "var(--glass-ink)", maxWidth: 640 }}
         >
-          {eliminacion.estado === "no_disponible" ? (
+          {blockLegacyStatus ? (
+            t(membershipUnknown ? "warehouse_cn.normal.unavailable" : "warehouse_cn.normal.manage_hint")
+          ) : eliminacion.estado === "no_disponible" ? (
             t("warehouse_cn.delete.unavailable")
           ) : excede ? (
             t("warehouse_cn.bulk.max_exceeded")

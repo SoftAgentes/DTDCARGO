@@ -37,6 +37,8 @@ import {
   segunVisibilidad,
 } from "@/lib/studio/privacidad-cn";
 import { NavieraClient } from "./_components/NavieraClient";
+import { readNormalAssociations, readNormalManifest, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
+import type { NormalManifest } from "@/lib/studio/client-consolidation/types";
 
 export const metadata = { title: "Naviera & Consolidación" };
 
@@ -99,6 +101,19 @@ export default async function NavieraPage() {
     }
   }
 
+  const normal: { available: boolean; checkedContainerIds: string[]; containerIds: string[]; manifests: Record<string, NormalManifest>; errors: Record<string, string> } = {
+    available: false, checkedContainerIds: [], containerIds: [], manifests: {}, errors: {},
+  };
+  try {
+    const scope = await readNormalAssociations(supabase, { containerIds: consolidations.map((detail) => detail.consolidation.id) });
+    normal.available = true; normal.checkedContainerIds = scope.checked.containerIds; normal.containerIds = scope.containerIds;
+    const manifests = await Promise.allSettled(scope.containerIds.map(async (id) => ({ id, manifest: await readNormalManifest(supabase, id) })));
+    for (const [index, result] of manifests.entries()) {
+      if (result.status === "fulfilled") normal.manifests[result.value.id] = result.value.manifest;
+      else normal.errors[scope.containerIds[index]] = normalReadMessage(result.reason);
+    }
+  } catch (error) { normal.errors.scope = normalReadMessage(error); }
+
   return (
     <NavieraClient
       sailings={sailings}
@@ -116,6 +131,7 @@ export default async function NavieraPage() {
       )}
       plansByConsolidation={plansByConsolidation}
       nombresOcultos={!puedeVerNombres}
+      normal={segunVisibilidad(normal, puedeVerNombres)}
     />
   );
 }

@@ -53,6 +53,19 @@ describe("clasificarSinFacturar", () => {
     env("s4", "cancelled"),
   ];
 
+  it("SDD-0578: varias recepciones del mismo grupo suman sus mínimos individuales, incluida la extensión parcial", () => {
+    const sources = { anterior: tarifa(100, 850, 0.1, 100), nueva: tarifa(100, 850, 0.1, 100) };
+    const before = clasificarSinFacturar({ recepciones: [rec("anterior", "DTD-0001", "s2")], envios, facturas: [], tarifas: sources, hoy: HOY });
+    const extended = clasificarSinFacturar({ recepciones: [rec("anterior", "DTD-0001", "s2"), rec("nueva", "DTD-0001", "s2"), rec("sin", "DTD-0001", "s2")],
+      envios, facturas: [], tarifas: sources, hoy: HOY });
+    expect(before.total).toEqual({ cantidad: 1, subtotalConocido: "100.00", sinTarifa: 0, aFacturar: "100.00" });
+    expect(extended.filas).toHaveLength(3);
+    expect(extended.total).toEqual({ cantidad: 3, subtotalConocido: "200.00", sinTarifa: 1, aFacturar: null });
+    expect(extended.filas.filter((row) => row.aFacturar === 100)).toHaveLength(2);
+    expect(sources.anterior).toEqual(tarifa(100, 850, 0.1, 100));
+    expect(before.total.aFacturar).toBe("100.00"); // historical observed result was not recalculated by the extension.
+  });
+
   it("una factura fiscal viva del mismo envío y Shipping Mark (normalizado) la saca del reporte", () => {
     for (const status of ["emitida", "parcial", "pagada", "vencida"]) {
       const { filas } = clasificarSinFacturar({
@@ -326,6 +339,19 @@ describe("reporteSinFacturar (lectura)", () => {
       { id: "t2", receipt_id: "r2", superseded_at: null, per_cbm: "850.00", amount_to_invoice: "1700.00", min_charge: "0", cbm: "2", included_kg_per_cbm: 500 },
       { id: "t2-vieja", receipt_id: "r2", superseded_at: "2026-10-01", per_cbm: "1.00", amount_to_invoice: "2.00", min_charge: "0", cbm: "2", included_kg_per_cbm: 500 },
     ],
+  });
+
+  it("SDD-0578: one shipment keeps all receipt rows and live bound amounts; a missing new rate stays pending", async () => {
+    const t = tablas();
+    t.warehouse_receipts_cn = ["old", "delta", "pending"].map((id) => ({ ...rec(id, "DTD-0001", "s1"), deleted_at: null, is_orphan: false }));
+    t.invoices = [];
+    t.shipment_rate_snapshots = ["old", "delta"].map((id) => ({ id: `snap-${id}`, receipt_id: id, shipment_id: "s1", superseded_at: null,
+      per_cbm: "850.00", cbm: "0.100", min_charge: "100.00", amount_to_invoice: "100.00", included_kg_per_cbm: 500 }));
+    const first = await reporteSinFacturar(doble(t), HOY);
+    const replay = await reporteSinFacturar(doble(t), HOY);
+    expect(first.completo).toBe(true); expect(first.filas).toHaveLength(3);
+    expect(first.total).toEqual({ cantidad: 3, subtotalConocido: "200.00", sinTarifa: 1, aFacturar: null });
+    expect(replay).toEqual(first); expect(t.invoices).toEqual([]);
   });
 
   it("filtra borradas, huérfanas, facturas borradas y tarifas reemplazadas", async () => {

@@ -32,12 +32,40 @@ import {
   type ShipmentStatus,
 } from "@/lib/studio/shipment-types";
 import { ChangeDestinationModal } from "./ChangeDestinationModal";
+import type { NormalShipmentRead } from "@/lib/studio/client-consolidation/types";
+import { formatObservedCents } from "@/lib/studio/client-consolidation/normal-flow";
 
 const initialState: ActionState = {};
 
 const TERMINAL_STATUSES: ShipmentStatus[] = ["delivered", "cancelled"];
 
 export function ShipmentDataPanel({
+  shipment, nombresOcultos = false, normal,
+}: { shipment: Shipment; nombresOcultos?: boolean; normal?: NormalShipmentRead }) {
+  if (!normal?.available) return <section aria-label="Datos del envío"><h3>Datos del envío</h3>
+    <p role="alert">{normal?.error ?? "No se pudo comprobar la pertenencia del envío. Actualiza antes de editar."}</p></section>;
+  if (!normal.context.complete || normal.context.shipmentId !== shipment.id || !normal.context.cohort && (normal.context.group || normal.context.manifest)
+    || normal.context.cohort && normal.context.group?.shipmentId !== shipment.id) {
+    return <p role="alert">La pertenencia no corresponde al envío completo solicitado.</p>;
+  }
+  if (!normal.context.cohort) return <LegacyShipmentDataPanel shipment={shipment} nombresOcultos={nombresOcultos} />;
+  const { group, manifest } = normal.context;
+  if (!group || !manifest) return <p role="alert">Falta la identidad completa del envío por cliente.</p>;
+  return <section aria-label="Datos derivados del envío por cliente">
+    <h3>Envío por cliente · {group.code}</h3><p>{group.clientMarkbox}{!nombresOcultos && group.clientName ? ` · ${group.clientName}` : ""}</p>
+    <p>{group.service === "consolidado_lcl" ? "Consolidado LCL" : "Puerta a puerta DDP"} · {group.destination}</p>
+    <p>{group.measures.boxes} cajas · {group.measures.cbm} CBM · {group.measures.weightKg} kg.</p>
+    <p>{group.receiptIds.length} recepción(es) · revisión del grupo {group.revision} · revisión del contenedor {manifest.revision} · {manifest.sealed ? "Manifiesto sellado" : "Manifiesto abierto"}.</p>
+    <p>Subtotal conocido: {formatObservedCents(group.rates.knownSubtotalCents)}. {group.rates.totalCents === null
+      ? `Total pendiente: ${group.rates.missingReceiptIds.length} recepción(es) sin tarifa.` : `Total observado: ${formatObservedCents(group.rates.totalCents)}.`} Sin facturación automática.</p>
+    <p>Cliente, servicio, destino, cajas y medidas vienen de la pertenencia confirmada. Esta vía no permite corregir miembros previos ni reasignarlos.</p>
+    <a href="/studio/naviera">Consultar el contenedor en Naviera</a>
+    {shipment.notes && <p>Nota operativa guardada: {shipment.notes}</p>}
+    <p>Las nuevas notas se registran con el estado actual y la hora del servidor desde el panel de acciones.</p>
+  </section>;
+}
+
+function LegacyShipmentDataPanel({
   shipment,
   nombresOcultos = false,
 }: {

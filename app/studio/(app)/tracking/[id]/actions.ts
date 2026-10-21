@@ -32,6 +32,10 @@ import type { Rate } from "@/lib/studio/rate-types";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
 import { scheduleClientNotifications } from "@/lib/studio/notifications/schedule-client-notifications";
 import { statusEvent } from "@/lib/studio/notifications/client-notification-types";
+import { readNormalAssociations, mutationResult, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
+import { LEGACY_COHORT_DENIAL, invalidMembershipState, normalFlowError, noteRpcArgs, transitionRpcArgs,
+  validateNormalNote, validateNormalTransition } from "@/lib/studio/client-consolidation/normal-flow";
+import type { NormalActionState, NormalMutationResult } from "@/lib/studio/client-consolidation/types";
 
 /** Estados terminales en los que no se puede cambiar el destino. */
 const TERMINAL_STATUSES: ShipmentStatus[] = ["delivered", "cancelled"];
@@ -41,6 +45,60 @@ export type ActionState = {
   error?: string;
   fieldErrors?: Record<string, string>;
 };
+
+async function legacyShipmentMutationDenial(supabase: Awaited<ReturnType<typeof createClient>>, id: string): Promise<string | null> {
+  try {
+    const scope = await readNormalAssociations(supabase, { shipmentIds: [id] });
+    return scope.shipmentIds.length ? LEGACY_COHORT_DENIAL : null;
+  } catch (error) { return normalReadMessage(error); }
+}
+
+/** Typed cohort writers: DB derives authority and distinguishes fresh write/replay. */
+export async function transitionClientShipment(raw: unknown): Promise<NormalActionState<NormalMutationResult>> {
+  const validated = validateNormalTransition(raw);
+  if (!validated.input) return invalidMembershipState(validated.fieldErrors ?? {});
+  const input = validated.input;
+  if (input.operation !== "transit") return { error: "La liberación y el reparto se confirman desde Almacén VE." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("client_consolidation_transition", transitionRpcArgs(input));
+  if (error) return { error: normalFlowError(error) };
+  const result = mutationResult(data);
+  if (!result || result.reference !== input.reference || result.shipmentId !== input.shipmentId
+    || !["transitioned", "replay"].includes(result.outcome) || result.from !== input.expectedStatus || result.to !== "in_transit") {
+    return { error: "No se pudo comprobar el tránsito. Conserva la referencia y consulta el estado actual." };
+  }
+  let warning: string | undefined;
+  if (result.outcome === "transitioned") {
+    try {
+      const tenantId = await getUserTenantId();
+      const { data: shipment, error: readError } = await supabase.from("shipments")
+        .select("code, client_markbox, client_name").eq("id", input.shipmentId).maybeSingle();
+      if (!tenantId || readError || !shipment) throw new Error("notification context unavailable");
+      await scheduleClientNotifications(createAdminClient(), tenantId, {
+        ancla: { kind: "shipment", shipmentId: input.shipmentId, shipmentCode: shipment.code },
+        clientMarkbox: shipment.client_markbox, clientName: shipment.client_name,
+        event: statusEvent("in_transit"), eventTime: new Date(result.occurredAt),
+      });
+    } catch { warning = "El tránsito quedó registrado; no se pudo comprobar la programación de su aviso."; }
+  }
+  revalidatePath(`/studio/tracking/${input.shipmentId}`); revalidatePath("/studio/tracking"); revalidatePath("/studio/naviera");
+  return { ok: true, result, ...(warning ? { warning } : {}) };
+}
+
+export async function recordClientShipmentNote(raw: unknown): Promise<NormalActionState<NormalMutationResult>> {
+  const validated = validateNormalNote(raw);
+  if (!validated.input) return invalidMembershipState(validated.fieldErrors ?? {});
+  const input = validated.input; const supabase = await createClient();
+  const { data, error } = await supabase.rpc("client_consolidation_note", noteRpcArgs(input));
+  if (error) return { error: normalFlowError(error) };
+  const result = mutationResult(data);
+  if (!result || result.reference !== input.reference || result.shipmentId !== input.shipmentId
+    || !["recorded", "replay"].includes(result.outcome) || result.status !== input.expectedStatus) {
+    return { error: "No se pudo comprobar la nota. Conserva la referencia y consulta el estado actual." };
+  }
+  revalidatePath(`/studio/tracking/${input.shipmentId}`);
+  return { ok: true, result };
+}
 
 function parseIsoInstant(value: FormDataEntryValue | null): string | null {
   const raw = String(value ?? "").trim();
@@ -68,6 +126,9 @@ export async function updateShipmentPlan(
   if (reason.length < 4) {
     return { error: "Indica un motivo de al menos 4 caracteres." };
   }
+
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
 
   const { error } = await supabase.rpc("update_shipment_plan", {
     p_shipment_id: id,
@@ -119,7 +180,8 @@ export async function updateShipment(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "tracking");
   if (denial) return { error: denial };
-
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
 
   // Leer el shipment para conocer su servicio (validacion vehicle_category)
   const { data: current, error: readError } = await supabase
@@ -193,6 +255,9 @@ export async function deleteShipment(
   const motivo = validateAuditReason(reason);
   if (!motivo.ok) return { error: motivo.error };
 
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
+
   const resultado = await eliminarEmbarques(supabase, lote.ids, motivo.reason);
   if (resultado.estado === "eliminado") {
     for (const ruta of RUTAS_EMBARQUES) revalidatePath(ruta);
@@ -230,6 +295,9 @@ export async function cancelShipment(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "tracking");
   if (denial) return { error: denial };
+
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
 
   const user = await getUser();
 
@@ -282,7 +350,9 @@ export async function transitionShipment(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "tracking");
   if (denial) return { error: denial };
-
+  // Resolve protocol before the global TS applicability hint (e.g. last_mile).
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
 
   const { data: shipment, error: readError } = await supabase
     .from("shipments")
@@ -381,6 +451,9 @@ export async function addShipmentEvent(
   const denial = await moduleEditDenial(supabase, "tracking");
   if (denial) return { error: denial };
 
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
+
   const { data: shipment, error: readError } = await supabase
     .from("shipments")
     .select("shipment_service")
@@ -451,7 +524,8 @@ export async function changeDestination(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "tracking");
   if (denial) return { error: denial };
-
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
 
   // 1) Leer envío actual (destino actual + status)
   const { data: shipment, error: readError } = await supabase

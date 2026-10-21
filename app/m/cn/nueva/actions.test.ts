@@ -15,6 +15,8 @@
  * (que no es lo que se mide) y el drain inline (no se manda correo).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { revalidatePath } from "next/cache";
+import { resolveClientNameByMarkbox } from "@/lib/studio/warehouse-cn-queries";
 import {
   dobleLectores,
   type DobleLectores,
@@ -368,5 +370,73 @@ describe("SDD-0524 · /m/cn/nueva vincula y avisa", () => {
     expect(res.error).toContain("Operario inactivo");
     expect(h.doble.updates).toEqual([]);
     expect(h.doble.store.client_notification_schedule).toEqual([]);
+  });
+});
+
+/** SDD0578 addendum72, authored only. The real action/store/motor remain above;
+ * only the already-doubled RPC response changes here. This is NOT evidence of
+ * database rollback, RLS, a reproduced race or successful runtime validation.
+ */
+describe("SDD-0578 · rechazo identificado del alta móvil0045", () => {
+  type RpcError = { code: string; message: string; hint?: string };
+  async function expectRejected(error: RpcError, expectedMessage: string) {
+    const rpc = vi.fn((_args: Record<string, unknown>) => ({ data: null, error }));
+    h.doble = dobleLectores(tablas({ prealertas: [compra("p-1", "DTD-1004-0002", { sales_order_id: "ov-1" })] }), {
+      create_receipt_as_operario: rpc,
+    });
+    const before = structuredClone(h.doble.store);
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const result = await createReceiptFromOperarioAction({}, formulario({ client_name: "Nombre sintético no confiable" }));
+      expect(result).toEqual({ error: expectedMessage });
+      expect(result).not.toHaveProperty("ok"); expect(result).not.toHaveProperty("receiptId");
+      expect(result).not.toHaveProperty("receiptCode"); expect(result).not.toHaveProperty("retryable");
+      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(rpc).toHaveBeenCalledWith({
+        p_operario_id: "op-cn", p_warehouse_id: "wh-yiwu", p_is_orphan: false, p_client_markbox: MARK,
+        p_client_name: null, p_orphan_marks: null, p_orphan_brought_by: null, p_supplier_name: null,
+        p_supplier_translated: null, p_boxes: 3, p_total_cbm: 0.4, p_total_weight_kg: 52,
+        p_received_at: "2026-10-15", p_notes: null, p_items: [], p_incident: false,
+        p_incident_note: null, p_destination_city: null,
+      }, h.doble.store);
+      expect(resolveClientNameByMarkbox).toHaveBeenCalledWith(h.doble.client, T, MARK);
+      expect(h.doble.store).toEqual(before); expect(h.doble.updates).toEqual([]); expect(h.doble.inserts).toEqual([]);
+      expect(avisos(h.doble)).toEqual([]); expect(notas(h.doble)).toEqual([]);
+      expect(revalidatePath).not.toHaveBeenCalled();
+      expect(log).toHaveBeenCalledWith("[createReceiptFromOperarioAction] RPC error:", error);
+    } finally { log.mockRestore(); }
+  }
+
+  it.each([
+    { code: "40001", message: "could not serialize synthetic access", hint: "unrelated" },
+    { code: "P0001", message: "NORMAL_GOVERNED", hint: "dtd-client-normal" },
+    { code: "P0001", message: "NORMAL_CONFLICT", hint: "dtd-client-normal" },
+    { code: "P0001", message: "NORMAL_FORBIDDEN", hint: "dtd-client-normal" },
+  ])("%j sólo entrega el mensaje conservador, sin éxito/retry/escritura/OV/aviso", async (error) => {
+    await expectRejected(error, "No se pudo confirmar la recepción. Revisa su estado y vuelve a intentarlo.");
+  });
+
+  it.each([
+    { code: "P0002", message: "Operario inactivo" },
+    { code: "42501", message: "NORMAL_CONFLICT", hint: "dtd-client-normal" },
+    { code: "P0001", message: "NORMAL_CONFLICT", hint: "other-hint" },
+    { code: "P0001", message: "NORMAL_CONFLICT" },
+    { code: "P0001", message: "NORMAL_CONFLICT: technical suffix", hint: "dtd-client-normal" },
+    { code: "P0001", message: "NORMAL_UNKNOWN", hint: "dtd-client-normal" },
+    { code: "P0001", message: "normal_conflict", hint: "dtd-client-normal" },
+    { code: "40001 ", message: "serialization-like synthetic text" },
+    { code: "08006", message: "Conexión sintética interrumpida" },
+  ])("%j conserva literalmente el contrato de los demás errores", async (error) => {
+    await expectRejected(error, `No se pudo guardar: ${error.message}`);
+  });
+
+  it("la sesión y validación anteriores siguen rechazando sin RPC", async () => {
+    const rpc = vi.fn(() => ({ data: null, error: { code: "40001", message: "must not run" } }));
+    h.doble = dobleLectores(tablas(), { create_receipt_as_operario: rpc });
+    h.getOperario.mockResolvedValueOnce(null);
+    expect(await createReceiptFromOperarioAction({}, formulario())).toEqual({ error: "Sesión expirada. Inicia sesión de nuevo." });
+    expect(await createReceiptFromOperarioAction({}, formulario({ boxes: 0 }))).toEqual({ error: "Cajas debe ser un número positivo" });
+    expect(rpc).not.toHaveBeenCalled(); expect(h.doble.updates).toEqual([]); expect(h.doble.inserts).toEqual([]);
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

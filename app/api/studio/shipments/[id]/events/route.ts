@@ -20,14 +20,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { getUser, getUserTenantId } from "@/lib/auth/session";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { isValidStatusForService } from "@/lib/studio/shipment-state-machine";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
+import { readNormalAssociations, mutationResult, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
+import { LEGACY_COHORT_DENIAL, normalFlowError, noteRpcArgs, transitionRpcArgs, validateNormalNote,
+  validateNormalTransition } from "@/lib/studio/client-consolidation/normal-flow";
 
 type EventCreatePayload = {
   status: ShipmentStatus;
   note?: string | null;
   occurred_at?: string; // ISO date string, default now()
+  normal?: unknown;
 };
 
 const ALL_STATUSES: ShipmentStatus[] = [
@@ -68,12 +72,40 @@ export async function POST(
   // Gate de modulo ANTES de leer el dominio: quien no puede editar "tracking"
   // recibe la denegacion y NO el envio.
   const denial = await moduleEditDenial(supabase, "tracking");
-  if (denial) return NextResponse.json({ error: denial }, { status: 403 });
+  const normalIntent = typeof payload.normal === "object" && payload.normal !== null && !Array.isArray(payload.normal)
+    ? payload.normal as Record<string, unknown> : null;
+  // Exact cohort replay is a read authorized in SQL. This branch never grants
+  // an ordinary legacy mutation to a viewer or accepts an arbitrary operation.
+  if (denial && (!normalIntent || await moduleViewDenial(supabase, "tracking"))) return NextResponse.json({ error: denial }, { status: 403 });
 
   const tenantId = await getUserTenantId();
   if (!tenantId) {
     return NextResponse.json({ error: "Sin tenant asignado." }, { status: 403 });
   }
+  try {
+    const scope = await readNormalAssociations(supabase, { shipmentIds: [id] });
+    if (scope.shipmentIds.length) {
+      if (!normalIntent || payload.occurred_at !== undefined) return NextResponse.json({ error: LEGACY_COHORT_DENIAL }, { status: 409 });
+      const raw = { ...normalIntent, shipmentId: id, note: payload.note };
+      const note = normalIntent.operation === "note" ? validateNormalNote(raw) : null;
+      const transit = normalIntent.operation === "transit" ? validateNormalTransition(raw) : null;
+      if ((!note?.input && !transit?.input) || note?.input && payload.status !== note.input.expectedStatus
+        || transit?.input && payload.status !== "in_transit") return NextResponse.json({ error: "Revisa operación, estado, motivo, revisiones y referencia." }, { status: 400 });
+      const input = note?.input ?? transit!.input!;
+      const { data, error } = note?.input
+        ? await supabase.rpc("client_consolidation_note", noteRpcArgs(note.input))
+        : await supabase.rpc("client_consolidation_transition", transitionRpcArgs(transit!.input!));
+      if (error) return NextResponse.json({ error: normalFlowError(error) }, { status: error.message === "NORMAL_FORBIDDEN" ? 403 : 409 });
+      const result = mutationResult(data);
+      if (!result || result.shipmentId !== id || result.reference !== input.reference
+        || note?.input && (!["recorded", "replay"].includes(result.outcome) || result.status !== input.expectedStatus)
+        || transit?.input && (!["transitioned", "replay"].includes(result.outcome) || result.from !== input.expectedStatus || result.to !== "in_transit")) {
+        return NextResponse.json({ error: "No se pudo comprobar el resultado. Conserva la referencia y consulta el estado actual." }, { status: 503 });
+      }
+      return NextResponse.json({ result }, { status: result.outcome === "replay" ? 200 : 201 });
+    }
+    if (normalIntent) return NextResponse.json({ error: "La operación tipada requiere un envío de la cohorte." }, { status: 409 });
+  } catch (error) { return NextResponse.json({ error: normalReadMessage(error) }, { status: 503 }); }
 
   // 1. Leer el shipment para validar servicio + status actual
   const { data: shipment, error: readError } = await supabase

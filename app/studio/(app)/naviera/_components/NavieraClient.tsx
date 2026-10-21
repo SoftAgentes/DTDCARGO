@@ -65,6 +65,12 @@ import { UtilizationBar, utilizationTone } from "./UtilizationBar";
 import { AvanceContenedorAccion } from "./AvanceContenedorAccion";
 import { AvanceContenedorResumen } from "./AvanceContenedorResumen";
 import type { ResumenAvanceContenedor } from "@/lib/studio/naviera/avance-por-contenedor";
+import { ConfirmarEnviosClienteDrawer } from "./ConfirmarEnviosClienteDrawer";
+import { formatObservedCents, observedRatesTotal, sumFixedMeasures } from "@/lib/studio/client-consolidation/normal-flow";
+import type { NormalManifest } from "@/lib/studio/client-consolidation/types";
+
+type NormalOverview = { available: boolean; checkedContainerIds: string[]; containerIds: string[]; manifests: Record<string, NormalManifest>; errors: Record<string, string> };
+const UNKNOWN_NORMAL: NormalOverview = { available: false, checkedContainerIds: [], containerIds: [], manifests: {}, errors: {} };
 
 type Tab = "sailings" | "consolidation" | "loose" | "bookings";
 
@@ -93,6 +99,7 @@ export function NavieraClient({
   stuffingByConsolidation,
   plansByConsolidation,
   nombresOcultos = false,
+  normal = UNKNOWN_NORMAL,
 }: {
   sailings: Sailing[];
   bookings: Booking[];
@@ -113,6 +120,7 @@ export function NavieraClient({
    * asignar, donde lo que escribiera se ignoraría.
    */
   nombresOcultos?: boolean;
+  normal?: NormalOverview;
 }) {
   const [tab, setTab] = useState<Tab>("consolidation");
   const [showNewSailing, setShowNewSailing] = useState(false);
@@ -121,6 +129,7 @@ export function NavieraClient({
   const [editBooking, setEditBooking] = useState<Booking | null>(null);
   const [showNewConsolidation, setShowNewConsolidation] = useState(false);
   const [assignTo, setAssignTo] = useState<ConsolidationDetail | null>(null);
+  const [normalTo, setNormalTo] = useState<ConsolidationDetail | null>(null);
 
   return (
     <div style={{ maxWidth: 1280 }}>
@@ -267,8 +276,10 @@ export function NavieraClient({
           trackingByConsolidation={trackingByConsolidation}
           stuffingByConsolidation={stuffingByConsolidation}
           plansByConsolidation={plansByConsolidation}
+          normal={normal}
           onNew={() => setShowNewConsolidation(true)}
           onAssign={(d) => setAssignTo(d)}
+          onPrepare={(detail) => setNormalTo(detail)}
         />
       )}
 
@@ -337,6 +348,8 @@ export function NavieraClient({
           nombresOcultos={nombresOcultos}
         />
       )}
+      {normalTo && <ConfirmarEnviosClienteDrawer containerId={normalTo.consolidation.id}
+        containerRef={normalTo.consolidation.ref ?? "Contenedor"} onClose={() => setNormalTo(null)} />}
     </div>
   );
 }
@@ -492,8 +505,10 @@ function ConsolidationTab({
   trackingByConsolidation,
   stuffingByConsolidation,
   plansByConsolidation,
+  normal,
   onNew,
   onAssign,
+  onPrepare,
 }: {
   consolidations: ConsolidationDetail[];
   carriers: Carrier[];
@@ -501,8 +516,10 @@ function ConsolidationTab({
   trackingByConsolidation?: Record<string, TrackingSnapshotRow>;
   stuffingByConsolidation?: Record<string, StuffedBox[]>;
   plansByConsolidation?: Record<string, ConsolidationPlan>;
+  normal: NormalOverview;
   onNew: () => void;
   onAssign: (d: ConsolidationDetail) => void;
+  onPrepare: (d: ConsolidationDetail) => void;
 }) {
   // SDD-0157: separar las solicitudes del operario (pendientes de autorizar) de
   // los contenedores ya operables. Las rechazadas no se muestran (sin ref, sin
@@ -569,6 +586,10 @@ function ConsolidationTab({
         {containers.map((d) => {
           const c = d.consolidation;
           const active = selected?.consolidation.id === c.id;
+          const known = normal.available && normal.checkedContainerIds.includes(c.id);
+          const isNormal = normal.containerIds.includes(c.id);
+          const manifest = normal.manifests[c.id];
+          const totals = manifest ? sumFixedMeasures(manifest.groups.map((group) => group.measures)) : null;
           return (
             <button
               key={c.id}
@@ -612,10 +633,11 @@ function ConsolidationTab({
                   marginBottom: 8,
                 }}
               >
-                {c.container_type ?? "sin tipo"} · {d.stats.clients} cliente(s) ·{" "}
-                {d.stats.pieces} pzs
+                {c.container_type ?? "sin tipo"} · {isNormal
+                  ? manifest && totals ? `${manifest.groups.length} cliente(s) · ${totals.boxes} cajas` : "Manifiesto pendiente de lectura"
+                  : known ? `${d.stats.clients} cliente(s) · ${d.stats.pieces} pzs` : "Pertenencia no disponible"}
               </div>
-              <UtilizationBar pct={d.stats.cbmPct} height={6} />
+              {!isNormal && known && <UtilizationBar pct={d.stats.cbmPct} height={6} />}
               <div
                 style={{
                   font: "700 10.5px/1 var(--f-mono)",
@@ -623,8 +645,9 @@ function ConsolidationTab({
                   marginTop: 6,
                 }}
               >
-                {d.stats.cbmPct.toFixed(0)}%
-                {d.stats.cap
+                {isNormal ? manifest && totals ? `${totals.cbm} CBM · revisión ${manifest.revision}` : "Cobertura no disponible"
+                  : known ? `${d.stats.cbmPct.toFixed(0)}%` : "Actualiza antes de operar"}
+                {!isNormal && known && d.stats.cap
                   ? ` · ${d.stats.usedCbm.toFixed(1)}/${d.stats.cap.cbm} CBM`
                   : ""}
               </div>
@@ -634,7 +657,10 @@ function ConsolidationTab({
       </div>
 
       {/* Detalle */}
-      {selected && (
+      {selected && (normal.containerIds.includes(selected.consolidation.id) || !normal.available || !normal.checkedContainerIds.includes(selected.consolidation.id) ? <ClientContainerDetail
+        key={selected.consolidation.id} detail={selected} manifest={normal.manifests[selected.consolidation.id] ?? null}
+        error={normal.errors[selected.consolidation.id] ?? normal.errors.scope} plan={plansByConsolidation?.[selected.consolidation.id] ?? null}
+        onPrepare={() => onPrepare(selected)} /> : (
         <ContainerDetail
           key={selected.consolidation.id}
           detail={selected}
@@ -644,8 +670,9 @@ function ConsolidationTab({
           stuffing={stuffingByConsolidation?.[selected.consolidation.id] ?? []}
           plan={plansByConsolidation?.[selected.consolidation.id] ?? null}
           onAssign={() => onAssign(selected)}
+          onPrepare={() => onPrepare(selected)}
         />
-      )}
+      ))}
     </div>
       )}
     </div>
@@ -886,6 +913,52 @@ function RequestRow({
   );
 }
 
+function ClientContainerDetail({ detail, manifest, error, plan, onPrepare }: {
+  detail: ConsolidationDetail; manifest: NormalManifest | null; error?: string;
+  plan: ConsolidationPlan | null; onPrepare: () => void;
+}) {
+  const c = detail.consolidation;
+  const [summary, setSummary] = useState<ResumenAvanceContenedor | null>(null);
+  const [containerNo, setContainerNo] = useState(c.container_no ?? "");
+  const normalized = normalizeContainerNo(containerNo);
+  const totals = manifest ? sumFixedMeasures(manifest.groups.map((group) => group.measures)) : null;
+  const rates = manifest ? observedRatesTotal(manifest.groups.map((group) => group.rates)) : null;
+  return <section style={{ display: "grid", gap: "var(--s-4)" }} aria-label="Manifiesto completo por cliente">
+    <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)", padding: "var(--s-5)" }}>
+      <h2 className="studio-display">{c.ref} · {manifest ? "envíos por cliente" : "pertenencia no disponible"}</h2>
+      {error && <p role="alert">{error}</p>}
+      {!manifest ? <p>No está disponible el manifiesto completo. Actualiza antes de cambiar la carga o el estado.</p> : <>
+        <p><Badge tone={containerStatusTone(manifest.status)}>{containerStatusLabel(manifest.status)}</Badge> · revisión {manifest.revision} · {manifest.sealed ? "Sellado" : "Abierto"}</p>
+        {totals && <p>{manifest.groups.length} cliente(s) · {totals.boxes} cajas · {totals.cbm} CBM · {totals.weightKg} kg.</p>}
+        <p>{manifest.stowedBoxIds.length} de {manifest.expectedBoxIds.length} cajas declaradas estibadas · {manifest.missingBoxIds.length} faltantes · {manifest.unexpectedBoxIds.length} ajenas.</p>
+        <p>La cobertura usa el registro completo del manifiesto. El plan guía la estiba y la capacidad sigue siendo un aviso.</p>
+        {rates && <p>Subtotal conocido: {formatObservedCents(rates.knownSubtotalCents)}. {rates.totalCents === null
+          ? `Total pendiente · ${rates.missing} recepción(es) sin tarifa.` : `Total observado: ${formatObservedCents(rates.totalCents)}.`} Sin efecto de facturación.</p>}
+      </>}
+      <button type="button" className="studio-btn studio-btn-primary" onClick={onPrepare}>Abrir manifiesto y revisar carga</button>
+      {manifest && <div style={{ marginTop: "var(--s-4)", display: "flex", flexWrap: "wrap", gap: "var(--s-2)", alignItems: "end" }}>
+        <label>Número físico de contenedor<input className="studio-input" value={containerNo} onChange={(event) => setContainerNo(event.target.value)} /></label>
+        <ActionButton idleLabel="Guardar número" loadingLabel="Guardando…" successLabel="Guardado"
+          disabled={(normalized ?? "") === (c.container_no ?? "")} onAction={() => setConsolidationContainerNo(c.id, normalized ?? "")} />
+      </div>}
+    </div>
+    {manifest?.status === "cerrado" && <AvanceContenedorAccion to="zarpado" consolidationRef={c.ref ?? "Contenedor"}
+      totalEnvios={manifest.groups.length} onAvanzar={() => changeConsolidationStatus(c.id, "zarpado")} onResumen={setSummary} />}
+    {manifest?.status === "zarpado" && <AvanceContenedorAccion to="arribado" consolidationRef={c.ref ?? "Contenedor"}
+      totalEnvios={manifest.groups.length} onAvanzar={() => changeConsolidationStatus(c.id, "arribado")} onResumen={setSummary} />}
+    {summary && <AvanceContenedorResumen resumen={summary} />}
+    {manifest?.currentPlan && (plan?.id === manifest.currentPlan.id && plan.version_no === manifest.currentPlan.version
+      ? <PlanCargaCard consolidationId={c.id} plan={plan} puedeCalcular={false} />
+      : <p>Plan vigente {manifest.currentPlan.version} · revisión {manifest.currentPlan.manifestRevision}. Su detalle no está disponible en esta vista.</p>)}
+    {manifest && <div style={{ display: "grid", gap: "var(--s-3)" }}>{manifest.groups.map((group) => <article key={group.groupId}
+      style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "var(--s-4)" }}>
+      <a href={`/studio/tracking/${group.shipmentId}`}><strong>{group.code} · {group.clientMarkbox}</strong></a>{group.clientName && <span> · {group.clientName}</span>}
+      <p>{group.destination} · {group.service === "consolidado_lcl" ? "Consolidado LCL" : "Puerta a puerta DDP"} · revisión {group.revision}.</p>
+      <p>{group.receiptIds.length} recepción(es) · {group.measures.boxes} cajas · {group.measures.cbm} CBM · {group.measures.weightKg} kg.</p>
+    </article>)}</div>}
+  </section>;
+}
+
 function ContainerDetail({
   detail,
   carriers,
@@ -894,6 +967,7 @@ function ContainerDetail({
   stuffing,
   plan,
   onAssign,
+  onPrepare,
 }: {
   detail: ConsolidationDetail;
   carriers: Carrier[];
@@ -902,6 +976,7 @@ function ContainerDetail({
   stuffing: StuffedBox[];
   plan: ConsolidationPlan | null;
   onAssign: () => void;
+  onPrepare: () => void;
 }) {
   const c = detail.consolidation;
   const st = detail.stats;
@@ -994,6 +1069,7 @@ function ContainerDetail({
               >
                 + Asignar carga
               </button>
+              <button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" onClick={onPrepare}>Envíos por cliente</button>
               <ActionButton
                 variant="dark"
                 size="sm"

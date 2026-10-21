@@ -100,6 +100,13 @@ export async function createReceiptFromOperarioAction(
 
   if (error) {
     console.error("[createReceiptFromOperarioAction] RPC error:", error);
+    // Only the new identified serialization/governed denials use this local
+    // copy. Preserve the submitted intent; a response error is not proof of a
+    // receipt or permission to retry this command automatically.
+    if (error.code === "40001" || (error.code === "P0001" && error.hint === "dtd-client-normal"
+      && (error.message === "NORMAL_GOVERNED" || error.message === "NORMAL_CONFLICT" || error.message === "NORMAL_FORBIDDEN"))) {
+      return { error: "No se pudo confirmar la recepción. Revisa su estado y vuelve a intentarlo." };
+    }
     return { error: `No se pudo guardar: ${error.message}` };
   }
 

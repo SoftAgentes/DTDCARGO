@@ -8,6 +8,12 @@
  */
 
 export const warehouse = {
+  "warehouse_cn.normal.badge": "Envío por cliente",
+  "warehouse_cn.normal.manage_hint": "Esta carga se confirma y amplía desde el manifiesto de Naviera con el equipo autorizado.",
+  "warehouse_cn.normal.open_naviera": "Abrir Naviera",
+  "warehouse_cn.normal.unavailable": "No se pudo comprobar la consolidación de esta carga. Actualiza antes de cambiar su estado o eliminarla.",
+  "warehouse_cn.normal.bulk_hint": "La selección contiene carga de un envío por cliente. Revisa su manifiesto en Naviera para continuar.",
+  "warehouse_cn.normal.rate_incompatible": "La tarifa no coincide con los datos fijos de esta recepción y su envío. Revisa la fuente; no se guardó el reemplazo.",
   // ── Page header ──────────────────────────────────────────
   "warehouse_cn.page.eyebrow": "Operación · Almacén",
   "warehouse_cn.page.title_prefix": "Almacén CN",

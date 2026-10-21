@@ -11,6 +11,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { revalidatePath } from "next/cache";
+import { autoInvoiceForReceipt } from "@/lib/studio/sales-orders/actions";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/studio/rbac-guard", () => ({ moduleEditDenial: vi.fn(async () => null) }));
@@ -41,6 +43,10 @@ let rpcs: string[] = [];
 let inserts: Insert[] = [];
 /** El código que asigna el trigger de la 0469 en el escenario. */
 let codigoDeLaBase = "WR-2026-0007";
+/** SDD-0578: OFF explícito mantiene íntegro el transporte legacy bajo prueba. */
+let intakeReply: { data: unknown; error: { code?: string; message: string; hint?: string } | null } = { data: { availability: "off" }, error: null };
+let intakeInput: Record<string, unknown> | null = null;
+let legacyInsertError: { code: string; message: string; hint?: string } | null = null;
 
 /** Sólo las columnas pedidas en `.select(...)`, como PostgREST. */
 function columnas(fila: Record<string, unknown>, pedidas: string | null) {
@@ -53,6 +59,7 @@ function columnas(fila: Record<string, unknown>, pedidas: string | null) {
 function respuesta(tabla: string, op: string, unica: boolean, pedidas: string | null) {
   if (tabla === "user_tenants") return { data: columnas({ tenant_id: "tenant-1" }, pedidas), error: null };
   if (tabla === "warehouse_receipts_cn" && op === "insert") {
+    if (legacyInsertError) return { data: null, error: legacyInsertError };
     return { data: columnas({ id: "rec-1", receipt_code: codigoDeLaBase }, pedidas), error: null };
   }
   return { data: unica ? null : [], error: null };
@@ -91,8 +98,12 @@ function cadena(tabla: string) {
 
 const cliente = {
   from: (tabla: string) => cadena(tabla),
-  rpc: (nombre: string) => {
+  rpc: (nombre: string, args: Record<string, unknown>) => {
     rpcs.push(nombre);
+    if (nombre === "client_consolidation_intake") {
+      intakeInput = args.p_input as Record<string, unknown>;
+      return Promise.resolve(intakeReply);
+    }
     // Lo que devolvía next_receipt_code desde la 0079: la serie de los cobros.
     return Promise.resolve({ data: "R-2026-0042", error: null });
   },
@@ -123,9 +134,13 @@ function formulario(huerfana: boolean): FormData {
 const recepcion = () => inserts.find((i) => i.tabla === "warehouse_receipts_cn");
 
 beforeEach(() => {
+  vi.clearAllMocks();
   rpcs = [];
   inserts = [];
   codigoDeLaBase = "WR-2026-0007";
+  intakeReply = { data: { availability: "off" }, error: null };
+  intakeInput = null;
+  legacyInsertError = null;
   fanout.resultado = { scheduled: 0, sinDestino: [], detalle: [] };
 });
 
@@ -150,7 +165,10 @@ describe("createReceiptAction · SDD-0491, el código lo asigna la base", () => 
     codigoDeLaBase = "SIN-CODIGO-0003";
     const res = await createReceiptAction({}, formulario(true));
 
-    expect(rpcs).toHaveLength(0);
+    // La lectura prevista de ámbito no es un generador de código.
+    expect(rpcs).toEqual(["client_consolidation_intake"]);
+    expect(rpcs).not.toContain("next_receipt_code");
+    expect(rpcs).not.toContain("next_orphan_code");
     expect(recepcion()!.valores).toMatchObject({ is_orphan: true });
     expect(recepcion()!.valores).not.toHaveProperty("receipt_code");
     expect(res.createdReceiptCode).toBe("SIN-CODIGO-0003");
@@ -161,6 +179,46 @@ describe("createReceiptAction · SDD-0491, el código lo asigna la base", () => 
 
     const evento = inserts.find((i) => i.tabla === "warehouse_receipt_events");
     expect(evento?.valores.description).toContain("Recepción WR-2026-0007 registrada");
+  });
+});
+
+describe("createReceiptAction · SDD-0578 transporte prospectivo acotado", () => {
+  it("un nacimiento RR rechazado tras OFF conserva la intención y no reintenta, factura ni anuncia éxito", async () => {
+    legacyInsertError = { code: "40001", message: "could not serialize access due to concurrent update" };
+    const result = await createReceiptAction({}, formulario(false));
+    expect(result).toEqual({ error: "No se pudo confirmar la operación. Conserva la referencia y revisa el manifiesto antes de reintentar." });
+    expect(result.ok).toBeUndefined(); expect(result.createdReceiptCode).toBeUndefined();
+    expect(rpcs).toEqual(["client_consolidation_intake"]);
+    // El doble cuenta intentos de transporte, no afirma persistencia/RLS de DB.
+    expect(inserts.map((insert) => insert.tabla)).toEqual(["warehouse_receipts_cn"]);
+    expect(autoInvoiceForReceipt).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+  it("ON devuelve el código de la RPC atómica sin INSERT/received o numerador paralelo en el adaptador", async () => {
+    intakeReply = { data: { availability: "ready", receiptId: "00000000-0000-0000-0000-000000000101", receiptCode: "WR-2026-0008" }, error: null };
+    const result = await createReceiptAction({}, formulario(false));
+    expect(result).toMatchObject({ ok: true, createdReceiptCode: "WR-2026-0008" });
+    expect(rpcs).toEqual(["client_consolidation_intake"]);
+    expect(intakeInput).toMatchObject({ boxes: 2, items: [{ description: "Zapatos", quantity: 10 }] });
+    expect(intakeInput).not.toHaveProperty("receipt_code"); expect(intakeInput).not.toHaveProperty("tenant_id");
+    expect(inserts.filter((i) => ["warehouse_receipts_cn", "warehouse_receipt_items"].includes(i.tabla))).toEqual([]);
+    expect(inserts.filter((i) => i.valores.event_type === "received")).toEqual([]);
+  });
+  it.each([
+    { data: null, error: { code: "PGRST202", message: "missing metadata" } },
+    { data: null, error: null },
+    { data: { availability: "ready", receiptCode: "WR-2026-0008" }, error: null },
+    { data: { availability: "unknown" }, error: null },
+  ])("no interpreta falta/error/respuesta incompleta como OFF", async (reply) => {
+    intakeReply = reply;
+    const result = await createReceiptAction({}, formulario(false));
+    expect(result.error).toBeTruthy(); expect(result.ok).toBeUndefined();
+    expect(inserts).toEqual([]); expect(rpcs).toEqual(["client_consolidation_intake"]);
+  });
+  it("un fallo de ítem/evento de la RPC no inicia una compensación ni el transporte legacy", async () => {
+    intakeReply = { data: null, error: { message: "atomic item failure", code: "23514" } };
+    const result = await createReceiptAction({}, formulario(true));
+    expect(result.ok).toBeUndefined(); expect(result.error).toBeTruthy(); expect(inserts).toEqual([]);
   });
 });
 

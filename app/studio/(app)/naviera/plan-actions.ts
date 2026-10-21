@@ -21,7 +21,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { planificarCarga, type EspacioCarga } from "@/lib/shared/estiba-plan";
 import {
   ALGORITHM_VERSION,
@@ -30,6 +30,8 @@ import {
 } from "@/lib/studio/naviera/plan-queries";
 import { parseZoneLayout } from "@/lib/studio/naviera/zones";
 import { CONTAINER_TYPES, isContainerTypeCode } from "@/lib/studio/naviera/types";
+import { readNormalAssociations, readNormalPlanInput, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
+import { normalFlowError } from "@/lib/studio/client-consolidation/normal-flow";
 
 export type PlanActionState = {
   ok?: boolean;
@@ -40,13 +42,63 @@ export type PlanActionState = {
 
 export async function calcularPlanCargaAction(
   consolidationId: string,
+  normalReference?: string,
 ): Promise<PlanActionState> {
   const supabase = await createClient();
 
   const denial = await moduleEditDenial(supabase, "naviera");
-  if (denial) return { error: denial };
+  if (denial) {
+    // An exact historical read cannot become a new calculation after write
+    // authority is lost. Ordinary legacy callers keep their existing denial.
+    if (!normalReference || await moduleViewDenial(supabase, "naviera")) return { error: denial };
+    try {
+      const scope = await readNormalAssociations(supabase, { containerIds: [consolidationId] });
+      if (!scope.containerIds.length) return { error: denial };
+      const historical = await supabase.rpc("client_consolidation_plan_replay", { p_container_id: consolidationId, p_reference: normalReference });
+      if (historical.error) return { error: normalFlowError(historical.error) };
+      if (historical.data?.outcome === "replay" && historical.data.reference === normalReference
+        && Number.isSafeInteger(historical.data.versionNo) && historical.data.versionNo > 0) return { ok: true, versionNo: historical.data.versionNo };
+      return { error: denial };
+    } catch (error) { return { error: normalReadMessage(error) }; }
+  }
 
   if (!consolidationId) return { error: "Falta el contenedor." };
+
+  try {
+    const scope = await readNormalAssociations(supabase, { containerIds: [consolidationId] });
+    if (scope.containerIds.length) {
+      if (!normalReference || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalReference)) {
+        return { error: "Abre el manifiesto por cliente y revisa la carga antes de calcular el plan." };
+      }
+      const historical = await supabase.rpc("client_consolidation_plan_replay", { p_container_id: consolidationId, p_reference: normalReference });
+      if (historical.error) return { error: normalFlowError(historical.error) };
+      if (historical.data !== null) {
+        if (!historical.data || historical.data.outcome !== "replay" || historical.data.reference !== normalReference
+          || !Number.isSafeInteger(historical.data.versionNo) || historical.data.versionNo < 1) return { error: "No se pudo comprobar el plan anterior." };
+        return { ok: true, versionNo: historical.data.versionNo };
+      }
+      const source = await readNormalPlanInput(supabase, consolidationId);
+      const plan = planificarCarga(source.input, source.space);
+      const { data, error } = await supabase.rpc("client_consolidation_save_plan", {
+        p_container_id: consolidationId, p_expected_revision: source.manifestRevision, p_manifest_hash: source.manifestHash,
+        p_previous_plan_version: source.previousPlanVersion, p_input: source.input, p_space: source.space, p_result: plan, p_reference: normalReference,
+      });
+      if (error) {
+        // Another invocation of this SAME server-captured request may have
+        // committed after the lookup but before this input was read.
+        if (error.hint === "dtd-client-normal" && error.message === "NORMAL_INTENT_CONFLICT") {
+          const concurrent = await supabase.rpc("client_consolidation_plan_replay", { p_container_id: consolidationId, p_reference: normalReference });
+          if (!concurrent.error && concurrent.data?.outcome === "replay" && concurrent.data.reference === normalReference
+            && Number.isSafeInteger(concurrent.data.versionNo) && concurrent.data.versionNo > 0) return { ok: true, versionNo: concurrent.data.versionNo };
+        }
+        return { error: normalFlowError(error) };
+      }
+      if (!data || !["recorded", "replay"].includes(data.outcome) || data.reference !== normalReference
+        || !Number.isSafeInteger(data.versionNo) || data.versionNo < 1) return { error: "No se pudo comprobar el plan guardado. Consulta el estado actual." };
+      revalidatePath("/studio/naviera");
+      return { ok: true, versionNo: data.versionNo };
+    }
+  } catch (error) { return { error: normalReadMessage(error) }; }
 
   // ── 1. El contenedor y su tipo ─────────────────────────────
   const { data: cons, error: consError } = await supabase

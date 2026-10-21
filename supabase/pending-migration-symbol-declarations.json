@@ -47,6 +47,169 @@
           "degradation": "Si se llega a llamar a la RPC o a leer la tabla sin 0496 (42883/PGRST202 o 42P01/PGRST205), la acción responde el mensaje traducido «La tarifa congelada todavía no está disponible» en vez de un error crudo; congelar en lote corta en la primera."
         }
       ]
+    },
+    {
+      "id": "sdd-0578-envios-cliente-camino-normal",
+      "primarySymbol": "client_consolidation_confirm",
+      "migration": "0502_consolidacion_cliente_camino_normal",
+      "symbols": [
+        {
+          "name": "client_consolidation_annotate_plan",
+          "kind": "function",
+          "callSites": [
+            "app/m/cn/estibar/actions.ts:384"
+          ]
+        },
+        {
+          "name": "client_consolidation_close",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/naviera/actions.ts:1002"
+          ]
+        },
+        {
+          "name": "client_consolidation_complete_delivery",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/ve/actions.ts:63"
+          ]
+        },
+        {
+          "name": "client_consolidation_confirm",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/naviera/actions.ts:978"
+          ]
+        },
+        {
+          "name": "client_consolidation_intake",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/cn/actions.ts:179"
+          ]
+        },
+        {
+          "name": "client_consolidation_manifest",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/client-consolidation/queries.ts:267"
+          ]
+        },
+        {
+          "name": "client_consolidation_note",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/tracking/[id]/actions.ts:92",
+            "app/api/studio/shipments/[id]/events/route.ts:96"
+          ]
+        },
+        {
+          "name": "client_consolidation_operario_read",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/client-consolidation/queries.ts:129"
+          ]
+        },
+        {
+          "name": "client_consolidation_physical",
+          "kind": "function",
+          "callSites": [
+            "app/m/cn/estibar/actions.ts:132",
+            "app/m/cn/estibar/actions.ts:190",
+            "app/m/cn/estibar/actions.ts:342",
+            "app/m/cn/estibar/actions.ts:430"
+          ]
+        },
+        {
+          "name": "client_consolidation_plan_input",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/client-consolidation/queries.ts:280"
+          ]
+        },
+        {
+          "name": "client_consolidation_plan_replay",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/naviera/plan-actions.ts:57",
+            "app/studio/(app)/naviera/plan-actions.ts:73",
+            "app/studio/(app)/naviera/plan-actions.ts:90"
+          ]
+        },
+        {
+          "name": "client_consolidation_portal_events",
+          "kind": "function",
+          "callSites": [
+            "lib/portal/shipment-events-queries.ts:54"
+          ]
+        },
+        {
+          "name": "client_consolidation_portal_read",
+          "kind": "function",
+          "callSites": [
+            "lib/portal/portal-queries.ts:92"
+          ]
+        },
+        {
+          "name": "client_consolidation_read",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/client-consolidation/queries.ts:187"
+          ]
+        },
+        {
+          "name": "client_consolidation_save_plan",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/naviera/plan-actions.ts:82"
+          ]
+        },
+        {
+          "name": "client_consolidation_scope",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/client-consolidation/queries.ts:226"
+          ]
+        },
+        {
+          "name": "client_consolidation_shipment",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/client-consolidation/queries.ts:248"
+          ]
+        },
+        {
+          "name": "client_consolidation_transition",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/tracking/[id]/actions.ts:63",
+            "app/api/studio/shipments/[id]/events/route.ts:97",
+            "app/studio/(app)/ve/actions.ts:47"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/client-consolidation/queries.ts:230",
+          "contains": "if (isMissingNormalSchema(error)) throw new NormalReadError(normalFlowError(error), \"missing_schema\");",
+          "degradation": "Sin0502 o caché PostgREST pendiente, el scope no acredita legacy. Lectores de Naviera/CN/Tracking/VE y API bloquean la mutación y muestran indisponibilidad; complete/checked exige identidad exacta. OFF explícito detiene altas y no desmarca miembros. MIGRATE-FIRST revisado, drain de callers antiguos y activación nominal futura; no aplicado ni probado por esta declaración."
+        },
+        {
+          "site": "app/studio/(app)/cn/actions.ts:180",
+          "contains": "if (intakeError) return { error: normalFlowError(intakeError) };",
+          "degradation": "La función de alta ausente es error seguro, nunca availability:off. Sólo OFF explícito usa transporte legacy literal; la guarda DB cierra OFF→ON. No bypass por capturar excepción ni compensación destructiva de una cabecera enrolada."
+        },
+        {
+          "site": "lib/portal/portal-queries.ts:76",
+          "contains": "constructor() { super(\"PORTAL_ENVIOS_NO_DISPONIBLES\"); this.name = \"PortalShipmentsUnavailableError\"; }",
+          "degradation": "RPC propia ausente/error/sobre incompleto arroja excepción segura al boundary Portal existente, sin consulta genérica amplia ni [] exitoso. Principal Portal y derechos Studio híbridos permanecen separados."
+        },
+        {
+          "site": "lib/portal/shipment-events-queries.ts:55",
+          "contains": "if (response.error) throw new PortalEventsUnavailableError();",
+          "degradation": "Historia íntegra y feed8/4 requieren RPC/envelope/actor/vista/selector/límite coherentes. Función ausente o respuesta inválida falla segura; no vuelve al lector por marca ni fabrica historia vacía. Sin principal vivo el corte temprano sí conserva[]."
+        }
+      ]
     }
   ]
 }

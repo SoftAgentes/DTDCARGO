@@ -7,6 +7,12 @@
 import type { WarehouseDict } from "../es-VE/warehouse";
 
 export const warehouse: WarehouseDict = {
+  "warehouse_cn.normal.badge": "按客户分组的货运单",
+  "warehouse_cn.normal.manage_hint": "此货物须由有权限的人员在海运模块的装柜清单中确认或追加。",
+  "warehouse_cn.normal.open_naviera": "打开海运模块",
+  "warehouse_cn.normal.unavailable": "无法核实此货物的拼柜信息。更改状态或删除前，请刷新页面。",
+  "warehouse_cn.normal.bulk_hint": "所选货物包含按客户分组的货运单。请在海运模块核对装柜清单后继续。",
+  "warehouse_cn.normal.rate_incompatible": "运价与此收货记录及货运单的固定数据不符。请核对来源；替换未保存。",
   // ── 页面 header ──────────────────────────────────────────
   "warehouse_cn.page.eyebrow": "运营 · 仓库",
   "warehouse_cn.page.title_prefix": "中国仓库",

@@ -13,10 +13,11 @@
  * Para estados terminales (delivered, cancelled) muestra mensaje de cierre.
  */
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect, useId } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
-import { transitionShipment } from "../actions";
+import { transitionShipment, recordClientShipmentNote, transitionClientShipment } from "../actions";
 import {
   getNextActions,
   isTerminalStatus,
@@ -27,6 +28,9 @@ import type {
   ShipmentStatus,
 } from "@/lib/studio/shipment-types";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { validateNormalNote, validateNormalTransition } from "@/lib/studio/client-consolidation/normal-flow";
+import type { NormalGroup, NormalManifest, NormalNoteInput, NormalShipmentRead, NormalTransitionInput } from "@/lib/studio/client-consolidation/types";
 
 type ActionVariant = "primary" | "warning" | "neutral";
 const VARIANT_TO_ACTIONBUTTON: Record<ActionVariant, "dark" | "warning" | "ghost"> = {
@@ -88,6 +92,84 @@ const VARIANT_CLASS: Record<"primary" | "warning" | "neutral", string> = {
 };
 
 export function StateActionsPanel({
+  shipmentId, service, status, normal, canEdit = false,
+}: { shipmentId: string; service: ShipmentService; status: ShipmentStatus; normal?: NormalShipmentRead; canEdit?: boolean }) {
+  if (!normal?.available) return <p role="alert">{normal?.error ?? "Pertenencia no disponible. Actualiza antes de cambiar estados."}</p>;
+  if (!normal.context.complete || normal.context.shipmentId !== shipmentId || !normal.context.cohort && (normal.context.group || normal.context.manifest)
+    || normal.context.cohort && normal.context.group?.shipmentId !== shipmentId) {
+    return <p role="alert">No se pudo comprobar la identidad completa de este envío.</p>;
+  }
+  if (!normal.context.cohort) return <LegacyStateActionsPanel shipmentId={shipmentId} service={service} status={status} />;
+  const { group, manifest } = normal.context;
+  return group && manifest ? <ClientStateActions key={group.shipmentId} group={group} manifest={manifest} canEdit={canEdit} />
+    : <p role="alert">No se pudo leer la identidad completa del grupo.</p>;
+}
+
+function ClientStateActions({ group, manifest, canEdit }: { group: NormalGroup; manifest: NormalManifest; canEdit: boolean }) {
+  const router = useRouter(); const formId = useId(); const alive = useRef(true); const busy = useRef(false);
+  const transitIntent = useRef<NormalTransitionInput | null>(null); const noteIntent = useRef<NormalNoteInput | null>(null);
+  const [dialog, setDialog] = useState(false); const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null); const [notice, setNotice] = useState<string | null>(null);
+  const [note, setNote] = useState(""); const [reason, setReason] = useState(""); const [transitDone, setTransitDone] = useState(false);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const base = { shipmentId: group.shipmentId, expectedStatus: group.status, expectedGroupRevision: group.revision, expectedContainerRevision: manifest.revision };
+  async function transit(humanReason: string) {
+    if (busy.current) return;
+    const checked = validateNormalTransition(transitIntent.current ?? { ...base, operation: "transit", reference: crypto.randomUUID(), reason: humanReason });
+    if (!checked.input) { setError("Revisa el motivo, la identidad y las revisiones antes de confirmar."); return; }
+    if (transitIntent.current && humanReason.trim() !== transitIntent.current.reason) {
+      setError(`La referencia conserva el motivo original: ${transitIntent.current.reason}. Reintenta el mismo intento.`); return;
+    }
+    transitIntent.current = checked.input; busy.current = true; setPending(true); setError(null);
+    try {
+      const result = await transitionClientShipment(checked.input);
+      if (!alive.current) return;
+      if (!result.ok) { setError(result.error ?? "No se pudo comprobar el tránsito."); return; }
+      setNotice(result.warning ?? `Tránsito registrado · ${result.result?.occurredAt}.`); setTransitDone(true); setDialog(false); transitIntent.current = null; router.refresh();
+    } catch { if (alive.current) setError("Respuesta incierta. Conserva la referencia y reintenta el mismo tránsito."); }
+    finally { busy.current = false; if (alive.current) setPending(false); }
+  }
+  async function saveNote(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (busy.current) return;
+    const checked = validateNormalNote(noteIntent.current ?? { ...base, reference: crypto.randomUUID(), reason, note });
+    if (!checked.input) { setError("Escribe una nota y un motivo válidos; actualiza las revisiones si cambiaron."); return; }
+    noteIntent.current = checked.input; busy.current = true; setPending(true); setError(null);
+    try {
+      const result = await recordClientShipmentNote(checked.input);
+      if (!alive.current) return;
+      if (!result.ok) { setError(result.error ?? "No se pudo comprobar la nota."); return; }
+      setNotice(`Nota registrada con el estado ${STATUS_LABELS[checked.input.expectedStatus]} y hora del servidor.`);
+      noteIntent.current = null; setNote(""); setReason(""); router.refresh();
+    } catch { if (alive.current) setError("Respuesta incierta. Reintenta la nota con su misma referencia."); }
+    finally { busy.current = false; if (alive.current) setPending(false); }
+  }
+  return <section aria-label="Operación del envío por cliente" style={{ display: "grid", gap: "var(--s-3)" }}>
+    <h3>Estado: {STATUS_LABELS[group.status]}</h3><p>Grupo {group.code} · revisión {group.revision} · contenedor revisión {manifest.revision}.</p>
+    {notice && <p role="status">{notice}</p>}{error && !dialog && <p role="alert">{error}</p>}
+    {group.status === "shipped" && manifest.sealed && !transitDone && <button type="button" className="studio-btn studio-btn-dark"
+      disabled={pending || (!canEdit && !transitIntent.current)} onClick={() => { setError(null); setDialog(true); }}>Confirmar tránsito manual</button>}
+    {transitIntent.current && !dialog && <button type="button" className="studio-btn studio-btn-ghost" disabled={pending}
+      onClick={() => void transit(transitIntent.current!.reason)}>Reintentar el tránsito con su referencia conservada</button>}
+    <p>El tránsito registra el hito técnico autorizado. Naviera conserva su avance a aduana; la liberación posterior significa listo para retiro y no acredita ingreso físico.</p>
+    <div><Link href="/studio/naviera">Contenedor en Naviera</Link> · <Link href="/studio/ve">Operaciones de Almacén VE</Link></div>
+    <p>SENIAT, TMS, entrega manual y POD conservan sus autoridades y evidencias actuales. Esta vía no ofrece saltos genéricos, excepciones o retornos sin contrato.</p>
+    <form onSubmit={(event) => void saveNote(event)} aria-busy={pending} style={{ display: "grid", gap: "var(--s-2)" }}>
+      <label htmlFor={`${formId}-note`}>Nota del estado actual</label><textarea id={`${formId}-note`} className="studio-input" value={note} maxLength={1000}
+        disabled={pending || !canEdit || !!noteIntent.current} onChange={(event) => setNote(event.target.value)} />
+      <label htmlFor={`${formId}-reason`}>Motivo del registro</label><input id={`${formId}-reason`} className="studio-input" value={reason} minLength={4} maxLength={1000}
+        disabled={pending || !canEdit || !!noteIntent.current} onChange={(event) => setReason(event.target.value)} />
+      <p>La nota conserva el estado actual; no crea un hito ni acepta una fecha retroactiva.</p>
+      {noteIntent.current && <p>Referencia conservada: <code>{noteIntent.current.reference}</code>.</p>}
+      <button type="submit" className="studio-btn studio-btn-ghost" disabled={pending || (!canEdit && !noteIntent.current)}>{pending ? "Registrando…" : noteIntent.current ? "Reintentar la misma nota" : "Registrar nota actual"}</button>
+    </form>
+    <ConfirmDialog open={dialog} title={`Confirmar tránsito · ${group.code}`} reason reasonRequired initialFocus="reason" pending={pending}
+      message={`El grupo sellado completo pasa de Embarcado a En tránsito, con estado y revisiones esperados. No declara llegada física ni factura.${transitIntent.current ? ` Referencia ${transitIntent.current.reference}; motivo original: ${transitIntent.current.reason}.` : ""}`}
+      confirmLabel="Confirmar tránsito" reasonLabel="Motivo del tránsito" error={error ?? undefined}
+      onCancel={() => { if (!pending) { setDialog(false); setError(null); } }} onConfirm={(value) => void transit(value)} />
+  </section>;
+}
+
+function LegacyStateActionsPanel({
   shipmentId,
   service,
   status,

@@ -11,11 +11,12 @@
  */
 
 import { redirect } from "next/navigation";
-import { fetchAllPaged } from "@/lib/db/paginate";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { EstibaClient, type SugerenciaPlan } from "../_components/EstibaClient";
-import { etiquetasAncho, type PlanCarga } from "@/lib/shared/estiba-plan";
+import { etiquetasAncho } from "@/lib/shared/estiba-plan";
+import { readNormalMobileContext, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
+import type { NormalMobileContext } from "@/lib/studio/client-consolidation/types";
 
 export const metadata = { title: "Estibar" };
 export const dynamic = "force-dynamic";
@@ -61,49 +62,34 @@ export default async function EstibarPage({
   // operario es CUÁNTAS cajas y CUÁNTOS lotes (load_order distintos), no la grilla.
   // Paginado: de acá salen "cuántas cajas" y "cuántos lotes" que ve el
   // operario. Truncar le dice que falta menos carga de la que falta.
-  const { rows } = await fetchAllPaged<{ load_order: number | null }>((d, h) =>
-    admin
-      .from("consolidation_box_positions")
-      .select("box_id, load_order")
-      .eq("consolidation_id", consolidationId)
-      .is("unstuffed_at", null)
-      .order("box_id", { ascending: true })
-      .range(d, h),
-  );
-  const stuffedCount = rows.length;
-  const lotsCount = new Set(rows.map((r) => r.load_order ?? 0)).size;
+  let context: NormalMobileContext | null = null;
+  let readError: string | null = null;
+  try { context = await readNormalMobileContext(admin, operario.operario_id, consolidationId); }
+  catch (error) { readError = normalReadMessage(error); }
 
   // SDD-0184 · Fase 4 — el plan vigente, masticado para la pantalla del operario.
   // El motor NO corre acá: solo se traduce el plan guardado a "para este cliente,
   // este lado". Si no hay plan, la estiba funciona exactamente como antes.
-  const { data: planRow } = await admin
-    .from("consolidation_plans")
-    .select("id, result")
-    .eq("consolidation_id", consolidationId)
-    .eq("tenant_id", operario.tenant_id)
-    .eq("is_current", true)
-    .maybeSingle<{ id: string; result: PlanCarga }>();
-
   let sugerencia: SugerenciaPlan | null = null;
-  if (planRow?.result?.pasos?.length) {
-    const lados = etiquetasAncho(planRow.result.espacio.layout.nz);
+  if (context?.plan?.steps.length) {
+    const lados = etiquetasAncho(context.plan.nz);
     const porCliente: SugerenciaPlan["porCliente"] = {};
-    for (const paso of planRow.result.pasos) {
+    for (const paso of context.plan.steps) {
       // El primer área del lote manda: es donde el operario empieza a poner.
-      const z = paso.zonas[0];
-      if (!paso.markbox || !z) continue;
+      if (!paso.markbox) continue;
       // Solo el PRIMER lote de cada cliente: si tiene dos, el segundo se resuelve
       // cuando el primero ya esté montado.
       if (porCliente[paso.markbox]) continue;
       porCliente[paso.markbox] = {
-        lado: z.zz,
-        frase: `${paso.destino} · ${lados[z.zz] ?? ""}`.replace(/ · $/, ""),
+        lado: paso.width,
+        frase: `${paso.destination} · ${lados[paso.width] ?? ""}`.replace(/ · $/, ""),
       };
     }
     sugerencia = {
-      planId: planRow.id,
+      planId: context.plan.id,
       porCliente,
-      totalLotes: planRow.result.pasos.length,
+      totalLotes: context.plan.totalLots,
+      manifestRevision: context.plan.manifestRevision,
     };
   }
 
@@ -113,10 +99,11 @@ export default async function EstibarPage({
       consolidationRef={consol.ref}
       containerLabel={ct?.label ?? consol.container_type ?? "Contenedor"}
       containerNo={consol.container_no}
-      status={consol.status}
-      initialStuffedCount={stuffedCount}
+      status={context?.status ?? consol.status}
+      initialStuffedCount={context?.stuffedCount ?? 0}
       sugerencia={sugerencia}
-      lotsCount={lotsCount}
+      lotsCount={context?.lotsCount ?? 0}
+      normalRead={context ? { available: true, context } : { available: false, error: readError ?? "No se pudo comprobar el contenedor." }}
     />
   );
 }
