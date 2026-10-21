@@ -1,6 +1,6 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 21 de octubre de 2026, 6:13 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 21 de octubre de 2026, 6:32 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 
@@ -14,7 +14,7 @@
 
 **El reporte de embarques `639c8954` también avanzó:** **87/87 focales, regresiones 167/167, tipos, revisión estática y 14 errores intencionales detectados**, con las fuentes restauradas. Revisión visual aprobada en su alcance: **40 combinaciones y 56 imágenes**; seis cabeceras de reportes largos solo están cotejadas en texto DOM. La **PR #316 está abierta y adjunta en borrador**, dependiente de #307; composición y documentos revisados en `8394a560`, comprobación general pendiente. Push y PR funcionan; Actions sigue sin aprobación. Producción conserva sus permisos específicos.
 
-**Avance de la receta actual de Caracas:** el primer intento terminó con salida1 y **12.823 aprobadas, una omitida y dos errores de procesos**, de 12.936 casos anunciados; 886 archivos aprobados y uno omitido de 889. **Es parcial: no acredita los casos que quedaron sin resultado.** Se conservaron dos errores nativos de memoria, sin causa demostrada; el reintento normal está activo. La PR #316 quedó revisada en **`8394a560`**, con producto/tests intactos, 31 fuentes y 247 originales cotejados; su receta está preparada y espera turno.
+**Avance de la receta actual de Caracas:** el reintento normal **PASÓ completo: 12.935 pruebas aprobadas y una omitida, 888 archivos aprobados y uno omitido**, en 647,26 segundos. También aprobaron **249 contratos SQL con reversión total y la reconstrucción del esquema**: 492 migraciones comprobadas, 474 aplicadas desde cero. **Navegación en curso; faltan construcción y salida final.** El primer intento parcial de 12.823 aprobadas/una omitida y dos errores de procesos permanece conservado; no se mezclan intentos ni se demuestra causa de los errores de memoria. La PR #316 quedó revisada en **`8394a560`**, con 31 fuentes y 247 originales cotejados; su receta espera turno.
 
 **Cómo leerlo:** una casilla marcada significa que se terminó exactamente el paso escrito. En el checklist general, significa integrado y publicado. Dentro de una tarea abierta, una prueba aprobada puede tener ✓ aunque su publicación siga pendiente. Los resultados locales no se presentan como prueba de producción.
 
@@ -239,6 +239,9 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [x] Incorporar localmente la reparación revisada #315 en **`22bd5192`**, con padres `55138b9c` y `c4b2e72d`. Director cotejó las once rutas acumuladas, cuatro archivos móviles intactos y cuatro heredados exactos; índice generado y remoto/PR comprobados.
 - [x] Aprobar y comenzar **una tercera receta general normal** sobre `22bd5192`, a las **5:58:37 a. m.**: 43 fuentes congeladas, sobre exclusivo y originales anteriores protegidos. Preparación y entorno sin credenciales comprobados. **Inicio acreditado; resultado todavía pendiente.**
 - [x] Conservar el primer intento unitario de esa tercera receta: **salida1, 519,63 segundos, 12.823 aprobadas/una omitida de 12.936, 886 archivos aprobados/uno omitido de 889 y dos errores de procesos**. Hubo dos errores nativos de memoria y salidas inesperadas; no acredita los casos sin resultado ni demuestra su causa. El reintento único previsto por la receta empezó a las **6:11:41 a. m.**, sin intervención ni cambios.
+- [x] Aprobar el reintento unitario completo de la tercera receta: **12.935 aprobadas y una omitida, 888 archivos aprobados y uno omitido, 647,26 segundos**. El paso de pruebas quedó aprobado; el primer intento parcial sigue documentado aparte.
+- [x] Aprobar **249 contratos SQL con reversión total** en esa tercera receta, dentro de la base local desechable; el historial productivo continúa omitido por falta de credenciales.
+- [x] Aprobar la reconstrucción local: **492 migraciones comprobadas y 474 aplicadas desde cero**, con esquema reconstruible. Navegación en curso; construcción y cierre general pendientes.
 - [ ] Terminar y revisar la tercera receta, su integridad y recursos; después cerrar documentos y un único ciclo de conocimiento, conservando los dos FALLÓ históricos y todas las omisiones.
 - [ ] Corregir el tramo móvil y comprobar sus regresiones, navegación, validación general y entrega en PR en borrador.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
