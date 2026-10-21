@@ -336,3 +336,46 @@ seguirán teniendo nombres/labels propios y limpieza limitada a esos recursos.
   leads y RPC anual oculta el nominal legítimo de un lead confirmado no
   convertido. Reparación autorizada dentro de41rutas después de este suplemento,
   con rojo lector/RSC/componentes y controles de convertido/cruce fallido.
+
+## Reparación de los dos P2 de revisión · 21oct01:32UTC
+
+Autorizada por Director dentro de las41rutas, sobre app a734 y suplemento SQL
+0de5122760449ebfdee78fa63e0dd9170eb22603. Ningún cambio SQL adicional.
+
+- CRM: `convertedAvailable` representa cruce completo y `billingAvailable`
+  representa lectura anual disponible. Se transportan separados por la página
+  RSC a Board/Worklist. Solo un no convertido confirmado puede usar su nominal;
+  un convertido o identidad desconocida mantiene ERP no disponible. La cabecera
+  nominal depende del cruce, no del éxito de la RPC anual. Si la columna no
+  tiene convertidos y el cruce es completo, la contribución ERP vacía es cero.
+- Portal: únicamente NULL real significa ausencia de principal. Se exige
+  objeto escalar y markbox string con trim no vacío antes de normalizarlo.
+  Arrays, undefined, primitivos y tipos inválidos provocan AnnualBillingError
+  shape; la página ya muestra un mensaje sanitizado. Un principal válido con
+  v2 ausente/errónea conserva código, recompensas, créditos y referidos,
+  degradando únicamente la métrica y el nivel.
+- ROJO CRM inicial:11fallos/20pasó. Incluía tres errores de fixture del asesor
+  por faltar una constante del módulo de queries. Se corrigió el doble con
+  importación parcial de constantes reales; `p2-crm-red-2` se ejecutó sobre los
+  cuatro blobs originales a734 y las nuevas regresiones:11fallos reales (dos
+  por nominal9876 ausente y nueve por contrato/flags). La restauración exacta
+  de las cuatro fuentes reparadas está acreditada con hashes en el recibo.
+- ROJO Portal: `p2-portal-red-2`30fallos/19pasó: shape se aceptaba como programa
+  o ausencia. Conserva null real y v2 inválida con principal válido como
+  controles. La primera corrida tenía arrays interpretados como tuplas por
+  it.each; se envolvieron como datos y se repitió el foco, sin cambiar producto.
+- Primer verde:115/118 por los tres errores de fixture citados; no se declara
+  aprobado. Verde definitivo `p2-green-2` **PASÓ9archivos/118pruebas/0omitidas,
+  exit0**,01:30:04–01:30:20Z. El bloque integrado ejecuta lector real, transporte
+  RSC y componentes reales con respuestas sintéticas de sesión; no mockea el
+  agregador bajo prueba ni usa DB/PII.
+- `p2-mutants/result.json`: **10/10detectados,10/10restaurados**, fatal=null.
+  Mutaciones de fusión de flags, cabecera nominal, fallback con identidad
+  desconocida/convertido y shape/ausencia Portal. Cada resultado conserva
+  aserciones fallidas, log, copia previa y hashes. Los13mutantes de app y13SQL
+  anteriores siguen siendo evidencia histórica, no se suman como nueva corrida.
+- Typecheck `p2-types` **PASÓexit0**,01:31:21–01:31:32Z; lint de34rutas
+  `p2-lint` **PASÓexit0**,01:32:04–01:32:13Z, con las dos advertencias de reloj
+  preexistentes ya contrastadas contra a30. Revisión del nuevo candidato pendiente.
+  Verify y suplemento visual se ejecutarán después de estabilizar estos P2;
+  ninguna revisión previa de a734 se atribuye automáticamente a la reparación.

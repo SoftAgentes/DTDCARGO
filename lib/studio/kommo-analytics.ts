@@ -462,6 +462,9 @@ export type KommoDireccionData = {
   convertedMarkboxByLead: Record<number, string>;
   /** Incluye cero, subtotal parcial y error; nunca reemplaza ERP por precio Kommo. */
   valueByLead: Record<number, AnnualBillingRead>;
+  /** Cruce completo: permite distinguir un no convertido de una identidad desconocida. */
+  convertedAvailable: boolean;
+  /** Lectura anual independiente del cruce de identidad. */
   billingAvailable: boolean;
   /**
    * `false` si la lectura del espejo se quedó corta (tope de páginas). Todo lo
@@ -523,7 +526,8 @@ export async function getKommoAnalytics(
     value: valueContrast(leads, converted, leadsPage.complete ? billing : null),
     convertedMarkboxByLead: converted ?? {},
     valueByLead,
-    billingAvailable: converted !== null && billing !== null,
+    convertedAvailable: converted !== null,
+    billingAvailable: billing !== null,
     complete: leadsPage.complete && contactsPage.complete,
   };
 }

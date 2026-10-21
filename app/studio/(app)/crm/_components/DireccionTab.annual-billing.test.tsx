@@ -24,7 +24,7 @@ const statuses = [{ id: 142, pipeline_id: 1, name: "Ganado", color: null, sort: 
 describe("0572-b · Dirección conserva CRM y contraste ERP", () => {
  it.each(cases)("contraste $state / $subtotalUsd", (billing) => {
   const map = billing.state === "no_disponible" ? null : new Map([["A",billing]]);
-  const data: KommoDireccionData = { totals:{leads:1,contacts:0}, conversion:conversionStats([lead]), convertedCount:1, email:emailCoverage([]), funnel:funnelHealth([lead],pipelines,statuses), aging:agingBuckets([lead], Date.parse("2026-10-20T12:00:00Z")), ownership:ownershipDistribution([lead]), value:valueContrast([lead],{1:"A"},map), convertedMarkboxByLead:{1:"A"}, valueByLead:{1:billing}, billingAvailable:map!==null, complete:true };
+  const data: KommoDireccionData = { totals:{leads:1,contacts:0}, conversion:conversionStats([lead]), convertedCount:1, email:emailCoverage([]), funnel:funnelHealth([lead],pipelines,statuses), aging:agingBuckets([lead], Date.parse("2026-10-20T12:00:00Z")), ownership:ownershipDistribution([lead]), value:valueContrast([lead],{1:"A"},map), convertedMarkboxByLead:{1:"A"}, valueByLead:{1:billing}, convertedAvailable:true, billingAvailable:map!==null, complete:true };
   render(<DireccionTab data={data} writeback={null} pipelines={pipelines} statuses={statuses} stageMap={{}} canEditStageMap={false} markboxFields={[]} markboxFieldId={null} markboxContactFields={[]} markboxContactFieldId={null} />);
   expect(screen.getAllByText(billingStatus(billing)).length).toBeGreaterThan(0);
   expect(screen.getAllByText(formatAnnualUsd(billing.subtotalUsd)).length).toBeGreaterThan(0);

@@ -103,6 +103,7 @@ export function KommoClient({
   filters,
   convertedLeads,
   valueByLead,
+  convertedAvailable,
   billingAvailable,
   contactByLead,
   pendingOpsByLead,
@@ -126,6 +127,7 @@ export function KommoClient({
   convertedLeads: Record<number, string>;
   /** kommo_lead_id → USD facturado (12m) de los leads convertidos. */
   valueByLead: Record<number, AnnualBillingRead>;
+  convertedAvailable: boolean;
   billingAvailable: boolean;
   /** kommo_lead_id → contacto principal (nombre + teléfono). Vacío si no hay vínculo. */
   contactByLead: Record<number, KommoLeadContactInfo>;
@@ -475,6 +477,7 @@ export function KommoClient({
                 subdomain={overview.subdomain}
                 converted={converted}
                 valueByLead={valueByLead}
+                convertedAvailable={convertedAvailable}
                 billingAvailable={billingAvailable}
                 contactByLead={contactByLead}
                 pendingOps={pendingOpsByLead}
@@ -520,6 +523,7 @@ function LeadsTable({
   subdomain,
   converted,
   valueByLead,
+  convertedAvailable,
   billingAvailable,
   contactByLead,
   pendingOps,
@@ -535,6 +539,7 @@ function LeadsTable({
   subdomain: string | null;
   converted: Record<number, string>;
   valueByLead: Record<number, AnnualBillingRead>;
+  convertedAvailable: boolean;
   billingAvailable: boolean;
   /** leadId → contacto principal. Vacío si el vínculo aún no está espejado. */
   contactByLead: Record<number, KommoLeadContactInfo>;
@@ -616,7 +621,9 @@ function LeadsTable({
             const waHref = contacto?.phone ? buildProspectWaLink(contacto.phone) : null;
             const markbox = converted[l.id];
             const days = daysSince(l.kommo_updated_at);
-            const erpVal = valueByLead[l.id] ?? (!billingAvailable || converted[l.id] ? BILLING_UNAVAILABLE : undefined);
+            const erpVal = !convertedAvailable ? BILLING_UNAVAILABLE
+              : converted[l.id] ? (billingAvailable ? valueByLead[l.id] ?? BILLING_UNAVAILABLE : BILLING_UNAVAILABLE)
+              : undefined;
             const kommoPrice = Number(l.price) || 0;
 
             const nameStyle: CSSProperties = {

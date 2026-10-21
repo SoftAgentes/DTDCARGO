@@ -79,6 +79,7 @@ export function KommoBoardView({
   subdomain,
   convertedMarkboxByLead,
   valueByLead,
+  convertedAvailable,
   billingAvailable,
   ownerName,
   pendingOpsByLead,
@@ -98,6 +99,7 @@ export function KommoBoardView({
   subdomain: string | null;
   convertedMarkboxByLead: Record<number, string>;
   valueByLead: Record<number, AnnualBillingRead>;
+  convertedAvailable: boolean;
   billingAvailable: boolean;
   ownerName: Record<number, string>;
   /** leadId → ops encoladas que todavía no llegaron a Kommo ("en camino"). */
@@ -206,7 +208,7 @@ export function KommoBoardView({
             const realCount = realCountByStatus[s.id] ?? colLeads.length;
             const truncated = realCount > colLeads.length;
             const converted = colLeads.filter((l) => convertedMarkboxByLead[l.id]);
-            const erp = !billingAvailable ? BILLING_UNAVAILABLE : sumAnnualBilling(converted.map((l) => ({ key: convertedMarkboxByLead[l.id], billing: valueByLead[l.id] ?? BILLING_UNAVAILABLE })));
+            const erp = !convertedAvailable ? BILLING_UNAVAILABLE : sumAnnualBilling(converted.map((l) => ({ key: convertedMarkboxByLead[l.id], billing: billingAvailable ? valueByLead[l.id] ?? BILLING_UNAVAILABLE : BILLING_UNAVAILABLE })));
             const nominal = colLeads.filter((l) => !convertedMarkboxByLead[l.id]).reduce((n, l) => n + (Number(l.price) || 0), 0);
             const shown = colLeads.slice(0, CARDS_PER_COLUMN);
             const rest = realCount - shown.length;
@@ -280,7 +282,7 @@ export function KommoBoardView({
                   >
                     <div>{truncated ? "Tarjetas cargadas · " : ""}ERP: {formatAnnualUsd(erp.subtotalUsd)}</div>
                     <div style={{ font: "500 11px/1.4 var(--f-sans)" }}>{billingStatus(erp)}</div>
-                    {billingAvailable && <div>Valor nominal CRM: {fmtUsd(nominal)}</div>}
+                    {convertedAvailable && <div>Valor nominal CRM: {fmtUsd(nominal)}</div>}
                   </div>
                 </div>
 
@@ -310,7 +312,9 @@ export function KommoBoardView({
                         ? `https://${subdomain}.kommo.com/leads/detail/${l.id}`
                         : null;
                       const days = daysSince(l.kommo_updated_at);
-                      const erpVal = valueByLead[l.id] ?? (!billingAvailable || convertedMarkboxByLead[l.id] ? BILLING_UNAVAILABLE : undefined);
+                      const erpVal = !convertedAvailable ? BILLING_UNAVAILABLE
+                        : convertedMarkboxByLead[l.id] ? (billingAvailable ? valueByLead[l.id] ?? BILLING_UNAVAILABLE : BILLING_UNAVAILABLE)
+                        : undefined;
                       const kommoPrice = Number(l.price) || 0;
                       const markbox = convertedMarkboxByLead[l.id];
                       const owner =

@@ -153,6 +153,7 @@ export default async function KommoPage({
           subdomain={overview.subdomain}
           convertedMarkboxByLead={analytics.convertedMarkboxByLead}
           valueByLead={analytics.valueByLead}
+          convertedAvailable={analytics.convertedAvailable}
           billingAvailable={analytics.billingAvailable}
           ownerName={ownerName}
           pendingOpsByLead={boardPendingOps}
@@ -258,6 +259,7 @@ export default async function KommoPage({
       filters={filters}
       convertedLeads={visibleConverted}
       valueByLead={visibleValue}
+      convertedAvailable={analytics.convertedAvailable}
       billingAvailable={analytics.billingAvailable}
       contactByLead={contactByLead}
       pendingOpsByLead={pendingOpsByLead}

@@ -71,11 +71,20 @@ describe("getMyReferralProgram por principal", () => {
     });
   });
 
-  it.each([
-    { data: null, error: null },
-    { data: { markbox: "" }, error: null },
-  ])("falla cerrado sin un programa válido", async ({ data, error }) => {
-    const { db } = dbWithRpc(data, error);
+  it("solo NULL real representa ausencia de principal", async () => {
+    const { db } = dbWithRpc(null);
     await expect(getMyReferralProgram(db)).resolves.toBeNull();
+  });
+
+  it.each([[], {}, { markbox: "" }, { markbox: "  " }, undefined, false, true, 0, 42, "DTD-1004", [row()], { markbox: 1004 }, { markbox: true }, { markbox: [] }, { markbox: {} }].map((data) => ({ data })))("rechaza shape no nulo $data sin confundirlo con ausencia", async ({ data }) => {
+    const { db } = dbWithRpc(data);
+    await expect(getMyReferralProgram(db)).rejects.toMatchObject({ name: "AnnualBillingError", reason: "shape", message: "Facturación anual no disponible" });
+  });
+
+  it.each([undefined, {}, { version: 1 }, { version: 2, subtotal_usd: 100, sin_tasa_count: 0, conversion_state: "completo" }])("principal válido con v2 inválida conserva normalización, créditos y referidos", async (billing_v2) => {
+    const { db } = dbWithRpc(row({ markbox: " dtd-1004 ", billing_v2, referrals: [{ id: "r", referred_name: "Sintético", status: "acreditado", reward_usd: 80 }] }));
+    const program = await getMyReferralProgram(db);
+    expect(program).toMatchObject({ shareCode: "REF-1004", tier: null, billedUsd: null, billing: { state: "no_disponible" }, creditsEarnedUsd: 80, referrerReward: 80, referredReward: 60 });
+    expect(program?.referrals).toHaveLength(1);
   });
 });

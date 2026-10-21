@@ -22,24 +22,24 @@ const statuses = [{ id: 142, pipeline_id: 1, name: "Ganado", color: null, sort: 
 
 describe("0572-b · tablero CRM real", () => {
  it("convertido sin entrada ERP conserva indisponibilidad aunque la lectura global esté disponible", () => {
-  render(<KommoBoardView pipelines={pipelines} statuses={statuses} leads={[lead]} realCountByStatus={{142:1}} pipelineId={1} subdomain={null} convertedMarkboxByLead={{1:"A"}} valueByLead={{}} billingAvailable ownerName={{}} pendingOpsByLead={{}} staleOpsByLead={{}} asesores={[]} canEdit={false} boardCap={2000} />);
+  render(<KommoBoardView pipelines={pipelines} statuses={statuses} leads={[lead]} realCountByStatus={{142:1}} pipelineId={1} subdomain={null} convertedMarkboxByLead={{1:"A"}} valueByLead={{}} convertedAvailable billingAvailable ownerName={{}} pendingOpsByLead={{}} staleOpsByLead={{}} asesores={[]} canEdit={false} boardCap={2000} />);
   expect(screen.getAllByText("Facturación anual no disponible").length).toBeGreaterThan(0);
   expect(screen.queryByText(/9,876/)).not.toBeInTheDocument();
  });
  it("no convertido conserva valor nominal CRM cuando el cruce está disponible", () => {
-  render(<KommoBoardView pipelines={pipelines} statuses={statuses} leads={[lead]} realCountByStatus={{142:1}} pipelineId={1} subdomain={null} convertedMarkboxByLead={{}} valueByLead={{}} billingAvailable ownerName={{}} pendingOpsByLead={{}} staleOpsByLead={{}} asesores={[]} canEdit={false} boardCap={2000} />);
+  render(<KommoBoardView pipelines={pipelines} statuses={statuses} leads={[lead]} realCountByStatus={{142:1}} pipelineId={1} subdomain={null} convertedMarkboxByLead={{}} valueByLead={{}} convertedAvailable billingAvailable ownerName={{}} pendingOpsByLead={{}} staleOpsByLead={{}} asesores={[]} canEdit={false} boardCap={2000} />);
   expect(screen.getAllByText(/9,876/).length).toBeGreaterThan(0);
   expect(screen.queryByText("Facturación anual no disponible")).not.toBeInTheDocument();
  });
  it.each(cases)("convertido conserva $state / $subtotalUsd", (billing) => {
-  render(<KommoBoardView pipelines={pipelines} statuses={statuses} leads={[lead]} realCountByStatus={{142:1}} pipelineId={1} subdomain={null} convertedMarkboxByLead={{1:"A"}} valueByLead={{1:billing}} billingAvailable={billing.state !== "no_disponible"} ownerName={{}} pendingOpsByLead={{}} staleOpsByLead={{}} asesores={[]} canEdit={false} boardCap={2000} />);
+  render(<KommoBoardView pipelines={pipelines} statuses={statuses} leads={[lead]} realCountByStatus={{142:1}} pipelineId={1} subdomain={null} convertedMarkboxByLead={{1:"A"}} valueByLead={{1:billing}} convertedAvailable billingAvailable={billing.state !== "no_disponible"} ownerName={{}} pendingOpsByLead={{}} staleOpsByLead={{}} asesores={[]} canEdit={false} boardCap={2000} />);
   expect(screen.getByText("Lead sintético")).toBeInTheDocument();
   expect(screen.getAllByText(billingStatus(billing)).length).toBeGreaterThan(0);
   expect(screen.getAllByText(formatAnnualUsd(billing.subtotalUsd)).length).toBeGreaterThan(0);
   expect(screen.queryByText(/9,876/)).not.toBeInTheDocument();
  });
  it("cruce ausente no vuelve al nominal aunque no haya markbox", () => {
-  render(<KommoBoardView pipelines={pipelines} statuses={statuses} leads={[lead]} realCountByStatus={{142:1}} pipelineId={1} subdomain={null} convertedMarkboxByLead={{}} valueByLead={{}} billingAvailable={false} ownerName={{}} pendingOpsByLead={{}} staleOpsByLead={{}} asesores={[]} canEdit={false} boardCap={2000} />);
+  render(<KommoBoardView pipelines={pipelines} statuses={statuses} leads={[lead]} realCountByStatus={{142:1}} pipelineId={1} subdomain={null} convertedMarkboxByLead={{}} valueByLead={{}} convertedAvailable={false} billingAvailable={false} ownerName={{}} pendingOpsByLead={{}} staleOpsByLead={{}} asesores={[]} canEdit={false} boardCap={2000} />);
   expect(screen.getAllByText("Facturación anual no disponible").length).toBeGreaterThan(0);
   expect(screen.queryByText(/9,876/)).not.toBeInTheDocument();
  });

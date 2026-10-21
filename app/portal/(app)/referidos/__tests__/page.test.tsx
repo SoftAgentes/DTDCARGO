@@ -55,6 +55,23 @@ beforeEach(() => {
 });
 
 describe("PortalReferralsPage · RPC 0404 por principal", () => {
+  it("NULL real no renderiza programa ni indisponibilidad", async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: null });
+    expect(await PortalReferralsPage()).toBeNull();
+    expect(mocks.from).not.toHaveBeenCalled();
+    expect(mocks.createAdminClient).not.toHaveBeenCalled();
+  });
+
+  it.each([[], {}, { markbox: "" }, { markbox: "  " }, undefined, false, true, 0, 42, "detalle interno", [{ markbox: "DTD-1004" }], { markbox: 1004 }, { markbox: true }, { markbox: [] }, { markbox: {} }].map((data) => ({ data })))("shape malformado $data muestra indisponibilidad sanitizada", async ({ data }) => {
+    mocks.rpc.mockResolvedValue({ data, error: null });
+    const html = renderToStaticMarkup(await PortalReferralsPage());
+    expect(html).toContain("Programa de referidos no disponible");
+    expect(html).not.toContain("detalle interno");
+    expect(html).not.toContain("REF-1004");
+    expect(mocks.from).not.toHaveBeenCalled();
+    expect(mocks.createAdminClient).not.toHaveBeenCalled();
+  });
+
   it.each<AnnualBillingRead>([
     { state: "completo", subtotalUsd: "0.00", sinTasaCount: 0 },
     { state: "completo", subtotalUsd: "-50.01", sinTasaCount: 0 },

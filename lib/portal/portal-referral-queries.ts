@@ -69,12 +69,11 @@ export async function getMyReferralProgram(
   const { data, error } = await db.rpc("get_portal_referral_program");
   if (error) throw new AnnualBillingError("rpc");
 
-  if (Array.isArray(data) && data.length > 1) throw new AnnualBillingError("shape");
-  const row = (Array.isArray(data) ? data[0] : data) as
-    | ReferralProgramRpcRow
-    | null;
-  const markbox = String(row?.markbox ?? "").trim().toUpperCase();
-  if (!row || !markbox) return null;
+  if (data === null) return null;
+  if (typeof data !== "object" || Array.isArray(data)) throw new AnnualBillingError("shape");
+  const row = data as ReferralProgramRpcRow;
+  if (typeof row.markbox !== "string" || !row.markbox.trim()) throw new AnnualBillingError("shape");
+  const markbox = row.markbox.trim().toUpperCase();
 
   let billing: AnnualBillingRead;
   try { billing = decodeAnnualBilling(row.billing_v2, true); }

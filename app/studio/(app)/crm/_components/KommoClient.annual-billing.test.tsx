@@ -24,22 +24,22 @@ const statuses = [{ id: 142, pipeline_id: 1, name: "Ganado", color: null, sort: 
 
 describe("0572-b · worklist CRM real", () => {
  it("convertido sin entrada ERP no vuelve al nominal con lectura global disponible", () => {
-  render(<KommoClient tab="asesor" direccion={null} tablero={null} recuperacion={null} overview={{leads:1,contacts:0,lastSyncAt:null,connStatus:"active",subdomain:null}} pipelines={pipelines} statuses={statuses} leads={[lead]} filters={{}} convertedLeads={{1:"A"}} valueByLead={{}} billingAvailable contactByLead={{}} pendingOpsByLead={{}} staleOpsByLead={{}} canEdit={false} responsibleUsers={[]} />);
+  render(<KommoClient tab="asesor" direccion={null} tablero={null} recuperacion={null} overview={{leads:1,contacts:0,lastSyncAt:null,connStatus:"active",subdomain:null}} pipelines={pipelines} statuses={statuses} leads={[lead]} filters={{}} convertedLeads={{1:"A"}} valueByLead={{}} convertedAvailable billingAvailable contactByLead={{}} pendingOpsByLead={{}} staleOpsByLead={{}} canEdit={false} responsibleUsers={[]} />);
   expect(screen.getByText("Facturación anual no disponible")).toBeInTheDocument();
   expect(screen.queryByText(/9,876/)).not.toBeInTheDocument();
  });
  it("cruce ausente tampoco certifica nominal sin markbox", () => {
-  render(<KommoClient tab="asesor" direccion={null} tablero={null} recuperacion={null} overview={{leads:1,contacts:0,lastSyncAt:null,connStatus:"active",subdomain:null}} pipelines={pipelines} statuses={statuses} leads={[lead]} filters={{}} convertedLeads={{}} valueByLead={{}} billingAvailable={false} contactByLead={{}} pendingOpsByLead={{}} staleOpsByLead={{}} canEdit={false} responsibleUsers={[]} />);
+  render(<KommoClient tab="asesor" direccion={null} tablero={null} recuperacion={null} overview={{leads:1,contacts:0,lastSyncAt:null,connStatus:"active",subdomain:null}} pipelines={pipelines} statuses={statuses} leads={[lead]} filters={{}} convertedLeads={{}} valueByLead={{}} convertedAvailable={false} billingAvailable={false} contactByLead={{}} pendingOpsByLead={{}} staleOpsByLead={{}} canEdit={false} responsibleUsers={[]} />);
   expect(screen.getByText("Facturación anual no disponible")).toBeInTheDocument();
   expect(screen.queryByText(/9,876/)).not.toBeInTheDocument();
  });
  it("no convertido conserva nominal cuando el cruce está disponible", () => {
-  render(<KommoClient tab="asesor" direccion={null} tablero={null} recuperacion={null} overview={{leads:1,contacts:0,lastSyncAt:null,connStatus:"active",subdomain:null}} pipelines={pipelines} statuses={statuses} leads={[lead]} filters={{}} convertedLeads={{}} valueByLead={{}} billingAvailable contactByLead={{}} pendingOpsByLead={{}} staleOpsByLead={{}} canEdit={false} responsibleUsers={[]} />);
+  render(<KommoClient tab="asesor" direccion={null} tablero={null} recuperacion={null} overview={{leads:1,contacts:0,lastSyncAt:null,connStatus:"active",subdomain:null}} pipelines={pipelines} statuses={statuses} leads={[lead]} filters={{}} convertedLeads={{}} valueByLead={{}} convertedAvailable billingAvailable contactByLead={{}} pendingOpsByLead={{}} staleOpsByLead={{}} canEdit={false} responsibleUsers={[]} />);
   expect(screen.getByText(/9,876/)).toBeInTheDocument();
   expect(screen.queryByText("Facturación anual no disponible")).not.toBeInTheDocument();
  });
  it.each(cases)("convertido conserva $state / $subtotalUsd", (billing) => {
-  render(<KommoClient tab="asesor" direccion={null} tablero={null} recuperacion={null} overview={{leads:1,contacts:0,lastSyncAt:null,connStatus:"active",subdomain:null}} pipelines={pipelines} statuses={statuses} leads={[lead]} filters={{}} convertedLeads={{1:"A"}} valueByLead={{1:billing}} billingAvailable={billing.state !== "no_disponible"} contactByLead={{}} pendingOpsByLead={{}} staleOpsByLead={{}} canEdit={false} responsibleUsers={[]} />);
+  render(<KommoClient tab="asesor" direccion={null} tablero={null} recuperacion={null} overview={{leads:1,contacts:0,lastSyncAt:null,connStatus:"active",subdomain:null}} pipelines={pipelines} statuses={statuses} leads={[lead]} filters={{}} convertedLeads={{1:"A"}} valueByLead={{1:billing}} convertedAvailable billingAvailable={billing.state !== "no_disponible"} contactByLead={{}} pendingOpsByLead={{}} staleOpsByLead={{}} canEdit={false} responsibleUsers={[]} />);
   expect(screen.getByText("Lead sintético")).toBeInTheDocument();
   expect(screen.getByText(billingStatus(billing))).toBeInTheDocument();
   expect(screen.getByText(billingStatus(billing)).parentElement).toHaveTextContent(formatAnnualUsd(billing.subtotalUsd));

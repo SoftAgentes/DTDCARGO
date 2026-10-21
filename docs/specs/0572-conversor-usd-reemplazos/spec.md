@@ -582,6 +582,16 @@ cabecera nominal. Si está convertido, o el cruce no está disponible, no se
 reemplaza un ERP desconocido por nominal. Requiere regresiones reales de
 lector, transporte RSC y ambos consumidores antes de certificar el cierre.
 
+Segundo P2 aceptado por Director: la RPC Portal escalar solo usa NULL real
+para ausencia de principal; un contenedor malformado, array, undefined o
+markbox de tipo inválido/vacío debe rechazar como shape y mostrar error
+sanitizado. Se conserva trim/uppercase del markbox válido y el resto del
+programa cuando únicamente billing_v2 falta o está mal formado. Ambos P2 se
+reprodujeron en rojo y luego pasaron118pruebas de9archivos y10mutantes con
+restauración. SQL permanece idéntico a0de; tipos y lint34rutas pasaron exit0
+(dos advertencias de reloj preexistentes). Revisión, suplemento visual y
+verify del nuevo candidato siguen pendientes en este hito.
+
 ```text
 supabase/migrations/0498_annual_billing_fx_v2.sql
 supabase/tests/0498_annual_billing_fx_v2.test.sql
