@@ -236,3 +236,51 @@ Recibos/logs/JSON externos en C:/tmp/director-traspaso-20261020/0576-codex-valid
 Suplemento mínimo tras revisión fd6: se añade negativa de editar importe/descripción de una línea manteniendo su asiento cerrado (rama específica del trigger), y RPC0493 en modo default superclave sin clave antes de habilitar advertencia. postgres-0493-composition-2 PASÓ37aserciones+ROLLBACK, salida0,03:30:28.126–03:30:34.518Z; mismos producto/0499/arnés, cero recursos propios restantes. No se repite HTTP ni los cinco mutantes intactos. No consta un defecto de producto; cierra cobertura de las dos negativas requeridas.
 
 Cierre de orquestación de pruebas: red-composed-orchestration-1 reprodujo2fallos/9 (7PASÓ,0SKIP): los controles Portal sin0499 alcanzaban antes el nuevo grupo de cierre que exige0499. Se aisló run_closing:false en el ejecutor Portal, sin cambiar sus oráculos ni la composición Studio. green-composed-orchestration-1 PASÓ9/9 en2archivos,0SKIP,03:31:19.712–03:31:34.235Z; incluye todos los positivos y negativos permanentes de ambos módulos. Lint-portal-composition-1 salida0. Es reparación propia de orquestación TEST, no producto. Se conserva ROJO original. SQL0499/APP/arnés iguales al checkpoint previo.
+
+
+## Adopción de ampliación 69 · recibos0068
+
+Leído íntegro antes de editar, SHA256834810d04b4c4eb0525e031885372c30894b84379051950f35cfef75e9322c7f. Verify46c interrumpido por decisión Director ante expectativa heredada vacío→hoy. Se conserva log/recibo, sin atribuir resultado global aprobado. Solo prueba adicional y documentos propios; producto/SQL intactos.
+
+# C1 — addendum del contrato heredado de recibos0068
+
+Fecha: 2026-10-20, Caracas. Decisión del Director dentro del mandato local vigente de Sam. Misma tarea C1, rama, worktree, owner y migración0499; ninguna nueva operación de producto o producción.
+
+## Motivo y alcance exacto
+
+El verify iniciado03:39:19.150Z sobre `46c64bd09b28d36e2689312aeea9d204dd2a2051` detectó el caso de `lib/studio/__tests__/payment-receipts-0068.test.ts` que entrega `receivedAt:""` y exige una fecha válida. El Director y Worker cotejaron por lectura esa expectativa. C1 prescribe valor predeterminado únicamente para `undefined`; vacío no significa hoy. El producto vigente rechaza ese vacío como corresponde al contrato aceptado.
+
+Se añade **una sola ruta** a la allowlist anterior de68: total **69 rutas únicas**.
+
+```text
+lib/studio/__tests__/payment-receipts-0068.test.ts
+```
+
+Las anotaciones necesarias en spec/handoff propios ya están permitidas. No cambia ninguna otra ruta, migración, módulo, validador, dinero, moneda ni autorización. El contrato original `0576-caracas-c1-asignacion-worker.md`, hash `f4c55bb8c97ac57d9b0c8ce0206d2aabe524e3009320be6c7c974674cfde76ff`, y sus tres addenda anteriores se conservan íntegros.
+
+## Aceptación comprobable
+
+1. Conservar el caso original rojo por su expectativa de vacío→fecha, los recibos y el intento canónico anterior. No atribuirle un resultado global aprobado.
+2. Mantener los controles de moneda desconocida→USD, fecha malformada, mandatos, importes, fondos y builders existentes.
+3. Exigir para fecha vacía error de campo e input ausente. No debilitar el validador para acomodar el test.
+4. Probar fecha omitida y `undefined` con reloj fijo: `2026-10-21T03:59:59.999Z` da `2026-10-20`; `2026-10-21T04:00:00Z` da `2026-10-21`. Conservar fechas explícitas válidas. Restaurar siempre los timers.
+5. Pasar el archivo completo, sin omisiones, y sus controles estáticos pertinentes. Publicar checkpoint mínimo, cotejar el delta y ejecutar el cierre canónico sobre el candidato congelado nuevo; no combinar recibos de candidatos distintos como una sola corrida.
+
+## Secuencia y límites
+
+Se permite detener de forma controlada únicamente el árbol de procesos propio del intento canónico ya identificado, conservando logs/recibos y marcándolo INTERRUMPIDO/INCOMPLETO por este hallazgo. Antes del focal comprobar que ese árbol terminó; no ejecutar dos pruebas pesadas ni matar procesos compartidos. El observador auxiliar de JSON E2E propio también debe quedar retirado si ya no corresponde al PID de verify.
+
+Guardar este addendum completo y su hash en el handoff antes de editar. Guard, rama y ownership siguen obligatorios. Commit y push selectivos a la rama propia y PR #312 en borrador ya autorizados. Sin merge, despliegue, migración real, lectura de negocio o modificación de pagos.0495 no se repite.
+
+
+## Checkpoint test de recibos0068 y evidencia visual final
+
+La ampliación69 no modifica producto APP,0499, arnés ni gates. El primer verify de46c comenzó03:39:19.150Z y fue INTERRUMPIDO/INCOMPLETO por decisión Director al detectar la expectativa heredada vacío→hoy. Harness237/237, lint con0errores/15advertencias de seis archivos idénticos a8729, fronteras1708módulos, tipos y cuatroEdgeFunctions habían pasado. La suite general no terminó; no se le atribuye verde global. Recibo verify-candidate-interruption.json:remaining=[]/unknownChildren=[]; wrapper terminó03:46:15.650Z por cierre controlado, exit forzado4294967295. E2E/build no alcanzados. El observador nativo fs.watch falló por aserción Windows; su sustituto de lectura exacta terminó0 sin captura al retirar la corrida. Son incidencias de captura separadas del producto.
+
+ROJO original completo red-receipts-0068-original:33PASÓ/1FALLÓ/0SKIP,03:46:49.406–03:46:53.508Z; toMatch recibióundefined porque vacío fue rechazado. La prueba conserva moneda desconocida→USD, fecha malformada, importes, fondos, mandatos y builders; ahora exige error/input ausente para vacío. Dos casos con timers restaurados comprueban omisión/undefined a03:59:59.999Z→20 y04:00Z→21, preservando fecha explícita, importe y moneda. green-receipts-0068 PASÓ36/36,0SKIP,03:47:12.712–03:47:15.434Z. Lint focal PASÓ salida0 sin advertencias; typecheck-receipts-0068 PASÓ salida0,03:47:38.163–03:47:53.688Z. No se cambió el validador para acomodar la prueba. Siguiente cierre canónico sobre nuevoSHA congelado, separado del intento46c.
+
+La revisión independiente final del suplemento46c PASÓ sin hallazgo material abierto: caracas-c1-revision-suplemento-fd6e8146.md SHA2566a780886a25aa3263f3604380ee7a04826ab818d15a1186c136e8c970b614313. El dictamen SQL/HTTP previo conserva00c21ac263a5a987e37a9097e0b72cefa2d1028b6f7483c4307d795246c78ed1. Estos dictámenes no sustituyen verify ni release.
+
+Navegador final: visual-final-receipt.json, fuentes/capturas en visual-fixture, producto46c. PASÓ alcance local con componentes reales, globals/tokens/studio.css y wrappers reales, datos/reloj/actions ficticios,390/1280claro/oscuro y navegadorShanghai.35controles funcionales/29mediciones; el recibo inspection-2 conserva FALLÓ por selector de gasto que omitió el punto del locale, corregido solo en suplemento externo inspection-supplement PASÓ. Se conserva tanto el fallo de selector como el resultado funcional; capturas anteriores a studio.css son provisionales. Recuperación Portal reenvía mismosIDs/payload/archivo aun cuando la fecha aceptada parece futura; creación nueva futura se rechaza antes de action; defaults, vacío/fecha explícita, CxP sin today inyectado, foco y Escape comprobados. Director inspeccionó independientemente390conCSSreal sin hallazgo material. No se certifica teléfono físico, Studio/Auth real, A11Y integral, alta/duplicación de factura en navegador ni zoom200%nativo: las teclas Chrome no cambiaron viewport/DPR/escala y no se sustituyó conCSSzoom. Invoice fixture acredita RegistrarPago. Servidor20036 y Chrome propia retirados; visual-cleanup.json conserva cero descendientes propios.
+
+PR312 permanece DRAFT/base8729; Actions de46c startup_failure39539115496/39539111495, sin aprobación. Conocimiento, cierre canónico nuevo, documentación final y release siguen separados. Sin merge/migración real/deploy.
