@@ -109,6 +109,7 @@ La primera validación general de `220a2c3e` quedó **interrumpida e incompleta*
 - [ ] Respaldar la entrega SQL en su rama y abrir su PR en borrador, con dependencia explícita de #310.
 - [ ] Reemplazar las conversiones pendientes en SQL, con una entrega separada.
 - [ ] Unificar la hora de Caracas para emisión, asientos, cobros y pagos.
+- [x] Consultar el origen oficial del BCV desde esta máquina y comprobar que publica una **fecha de valor** propia: en la lectura de las 8:28 p. m. del 20 mostró el 21. Esto no carga ninguna tasa ni acredita disponibilidad diaria o conexión desde el servidor; la tarea debe tratar expresamente las fechas futuras.
 - [ ] Implementar la carga diaria desde el BCV oficial y el respaldo manual.
 - [ ] Comprobar el comportamiento cuando no exista una tasa vigente.
 
