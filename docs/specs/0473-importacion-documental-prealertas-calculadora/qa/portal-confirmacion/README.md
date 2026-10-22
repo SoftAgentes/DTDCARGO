@@ -114,3 +114,32 @@ Contrato de esta demo: Vite define `NEXT_PUBLIC_SITE_URL=http://127.0.0.1:<QA_PO
 la UI como para SSR; el helper GUI/PDF usa esa misma autoridad. En4321 el origen esperado de los
 QR es `http://127.0.0.1:4321`, con los únicos parámetros `c`, `n` y `b`. No es una prueba de
 trazabilidad web de producción ni debe abrirse producción para validarlo.
+
+## Corrección después de B1: fuentes estáticas exclusivas para PDF
+
+B1sobre93e738ec4 ejecutó49:46aprobadas/3rendersfallidos/0SKIPseleccionado/38fuera del filtro.
+El diagnóstico offlinePROBE5 completó cinco reportes: las tres WOFF2variables Nunito/Sora/Mono
+reprodujeron DataView RangeError al codificar el subset; DengTTF y ArchivoBlackWOFF2estática
+codificaron sus cadenas acotadas, sin glifos faltantes. Eso no acredita PDF completo ni
+compatibilidad general de WOFF2. Las evidencias originalesB1/PROBE5 se preservan fueraGit.
+
+La corrección usa las cuatroTTF primarias aprobadas en `lib/font-files/pdf/`: Nunito400,
+Sora600, JetBrainsMono400 y ArchivoBlack400. El README de ese directorio contiene procedencia,
+pins y cuatroOFLcompletas. No se convierten fuentes, no se alteran las web y no se incorpora
+Deng al repositorio. CJK sigue exigiendo la ruta explícita actual y sus glyphs/flags de embedding.
+El loader rechaza WOFF2/OTF/CFF/ejes variables con503seguro; la auditoría muestra formato,
+ejes y peso de las cinco caras sin sus rutas.
+
+Selección nueva preparada: **51instancias en los mismos seis archivos y filtro `SDD-0473 B`**:
+modelo/renderer14, HTTP9, transporte5, proveedor10, portal5, proxy8. Conserva los49oráculos,
+incluidos los3renders reales; añade dos negativas de formato/ejes. La negativa latina configurada
+como CJK ahora usa la TTFestática para seguir probando glifos ausentes, sin quedar enmascarada
+por el rechazo de WOFF2. Los3renders comprobarán las cinco caras TTFsin ejes y pesos400/600/400/400.
+Esta selección es **NO EJECUTADA**; B1no se reintenta ni se transforma en verde por el cambio.
+
+El comando futuro conserva los seis archivos del bloque anterior y añade `--retry=0` literal.
+Se propone una sola corrida480s+60cierre, con Node24.20.0 y CJKDeng explícita como enB1, JSON,
+stdout/stderr y PDFs de test en una carpeta externa nueva. Requiere nuevoGO/ventana; no reinstalar,
+no reutilizar salidas deB1 ni compararlas como si fueran descargas de aceptación. No se inició
+runtime, render, tests, UI o servidor durante esta autoría. La futura aceptación del portal,
+QRde píxeles/papel y producción siguen con sus gates separados.

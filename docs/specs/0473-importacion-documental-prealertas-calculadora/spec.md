@@ -530,3 +530,61 @@ cambios locales/producto abierto/guardado en curso. HTML button type=button, est
 y aria-busy, error persistente503/409, afterSuccess=stay. No se anuncia recepción/impresión
 completada por disparar una descarga. No se agrega audit de negocio: no cambia documento,
 revisión ni códigos; auditoría/retención de exportaciones de producción no se acredita aquí.
+
+## Corrección B1 · Fuentes estáticas para PDF · 2026-10-22 · Sólo autoría
+
+Asignada por Director de Packing con adopción del paquete aprobada por Director general. Padre
+directo exigido93e738ec4d94c2ba590728ed82459a641d0034e3, mismo Worker/worktree/rama/PR319.
+Autoría iniciada04:50:52Z, máximo30min; checkpoint local selectivo, sin push ni runtime.
+
+Evidencia preservada: B1 ejecutó49,46PASÓ/3FALLÓ/0SKIPseleccionado/38fuera; los tres renders
+reales fallaron en fontkit2.0.4 subset/embedding con DataView RangeError. PROBE5 independiente
+procesó las cinco fuentes: DengTTF y ArchivoBlackWOFF2estática codificaron sus cadenas; las tres
+WOFF2variables Nunito/Sora/JetBrains reprodujeron exactamente el error en subset.encode. Ningún
+carácter faltaba en las cinco. Es diagnóstico acotado; no implica compatibilidad universal de
+WOFF2 ni aceptación del PDF. No se atribuye el fallo exclusivamente a Deng.
+
+El arreglo incorpora las cuatro TTF estáticas primarias aprobadas, mismas familias y pesos
+400/600/400/400, sin conversión ni modificación de sus bytes. Sólo el renderer PDF las consume.
+Las cuatro OFL se conservan verbatim dentro de lib/font-files/pdf/README.md con URL, commit,
+Gitblob, SHA256 y tamaño. Fuentes web/CJK/env/contratos/QR/SQL permanecen bajo el alcance anterior.
+El loader rechaza contenedores/ejes incompatibles con503seguro, sin ruta o detalles internos;
+conserva verificación de glyphs y embedding. Audita formatos/ejes/peso de las cinco caras sin paths.
+
+Allowlist exacta de esta corrección,22rutas (17B+5assets, sin autorizar cambios ajenos):
+
+- `.env.example`
+- `lib/studio/document-import/pdf.tsx`
+- `lib/studio/document-import/pdf.test.tsx`
+- `lib/studio/document-import/http.ts`
+- `lib/studio/document-import/http.test.ts`
+- `components/document-import/document-client.ts`
+- `components/document-import/document-client.test.ts`
+- `app/p/[token]/SharedSupplierDocument.tsx`
+- `app/p/[token]/SharedSupplierDocument.test.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/LabelsClient.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/LabelsClient.test.tsx`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/vite.config.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/pdf-proxy.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/pdf-proxy.test.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/README.md`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-portal-confirmacion-20261021.md`
+- `lib/font-files/pdf/nunito-sans-400.ttf`
+- `lib/font-files/pdf/sora-600.ttf`
+- `lib/font-files/pdf/jetbrains-mono-400.ttf`
+- `lib/font-files/pdf/archivo-black-400.ttf`
+- `lib/font-files/pdf/README.md`
+
+Se conservan los49casos y sus3renders; se añade cobertura negativa de formato/ejes. Esta autoría
+no ejecuta tests/render/tipos/lint/verify/UI/servidores ni instala fuentes. La nueva selección exacta
+y el checkpoint se entregan para otra ventana480+60propuesta, sin reutilizar B1/PROBE5.
+
+Autoría guardada: cuatroTTF copiadas sin cambio deSHA/Gitblob y cuatroOFLverbatim en README.
+El renderer consume únicamente las TTFPDF, rechaza formato/ejes/CFF incompatibles antes de
+usar glyphs y audita formato/ejes/peso sin paths. La negativa CJK existente usa ahora NunitoTTF
+estática para seguir ejercitando ausencia de glyphs. Se preservan los49casos y sus3renders,
+fortalecidos con auditoría de las cinco caras y pesos; dos negativas nuevas cubren contenedores
+incompatibles y variaciones. **51instancias propuestas, todas NO EJECUTADAS sobre el nuevo hijo**:
+pdf14, HTTP9, transporte5, proveedor10, portal5, proxy8. El filtro y seis archivos siguen iguales.
+Fuente/SDD/handoff/readme se cierran con guard/diff estáticos; runtime/aceptación pendientes.

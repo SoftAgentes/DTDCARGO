@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { emptyDocumentDraft } from "@/lib/shared/document-import";
 import { parseScannedLabel } from "@/lib/studio/etiquetas-qr";
-import { buildConfirmedPdfModel, parsePdfSurface, renderConfirmedDocumentPdf, type ConfirmedPdfInput } from "./pdf";
+import { buildConfirmedPdfModel, parsePdfSurface, renderConfirmedDocumentPdf, requireStaticPdfFont, type ConfirmedPdfInput } from "./pdf";
 
 function sample(): ConfirmedPdfInput {
   const draft=emptyDocumentDraft();draft.currency="USD";draft.supplier.company="Proveedor sintético";draft.supplier.wechat="demo";
@@ -19,6 +19,12 @@ function sample(): ConfirmedPdfInput {
   return {draft,markbox:"DTD-DEMO",code:"DTD-DEMO-1-1",revision:4,folio:"DTD-PL-2026-0001",versionNo:2,labels:Array.from({length:10},(_,index)=>({code:"DTD-DEMO-1-1",boxN:index+1,totalBoxes:10,boxCode:`DTD-B-${String(index+1).padStart(6,"0")}`}))};
 }
 afterEach(()=>vi.unstubAllEnvs());
+
+function expectStaticFontAudit(audit: Awaited<ReturnType<typeof renderConfirmedDocumentPdf>>["fontAudit"]) {
+  for(const face of [audit.cjk,...Object.values(audit.latin)]){expect(face.format).toBe("TTF");expect(face.variationAxes).toEqual([]);expect(face.postscriptName).toBeTruthy();}
+  expect([audit.latin.body.weightClass,audit.latin.heading.weightClass,audit.latin.mono.weightClass,audit.latin.brand.weightClass]).toEqual([400,600,400,400]);
+  expect(JSON.stringify(audit)).not.toMatch(/[A-Z]:[\\/]|font-files|\.ttf|\.woff/i);
+}
 
 describe("PDF confirmado SDD-0473 B",()=>{
   it("proyecta cajas mixtas una vez y sólo campos permitidos, sin originales privados",()=>{
@@ -50,12 +56,21 @@ describe("PDF confirmado SDD-0473 B",()=>{
     try{await renderConfirmedDocumentPdf(sample(),"labels");expect.fail("Debe rechazar la fuente");}catch(error){expect(error).toMatchObject({status:503,code:"pdf_font_unavailable"});expect(String(error)).not.toContain("NO-EXISTE");}
   });
   it("una fuente latina configurada como CJK no puede reemplazar caracteres por cuadros",async()=>{
-    vi.stubEnv("DOCUMENT_IMPORT_PDF_CJK_FONT_PATH",path.join(process.cwd(),"lib/font-files/nunito-sans-latin-wght.woff2"));await expect(renderConfirmedDocumentPdf(sample(),"packing-list")).rejects.toMatchObject({status:503,code:"pdf_font_unavailable"});
+    vi.stubEnv("DOCUMENT_IMPORT_PDF_CJK_FONT_PATH",path.join(process.cwd(),"lib/font-files/pdf/nunito-sans-400.ttf"));await expect(renderConfirmedDocumentPdf(sample(),"packing-list")).rejects.toMatchObject({status:503,code:"pdf_font_unavailable"});
+  });
+  it("rechaza WOFF2 y contenedores OpenType incompatibles con503 seguro",()=>{
+    for(const metadata of [{type:"WOFF2"},{type:"OTF"},{type:"DFONT"},{type:"TTF",directory:{tables:{"CFF ":{}}}},{type:"TTF",directory:{tables:{CFF2:{}}}}]){
+      try{requireStaticPdfFont(metadata);expect.fail("Debe rechazar el contenedor incompatible");}catch(error){expect(error).toMatchObject({status:503,code:"pdf_font_unavailable"});expect(String(error)).not.toMatch(/font-files|[A-Z]:[\\/]/i);}
+    }
+    expect(requireStaticPdfFont({type:"TTF",variationAxes:{}})).toEqual({format:"TTF",variationAxes:[]});expect(requireStaticPdfFont({type:"WOFF",variationAxes:{}})).toEqual({format:"WOFF",variationAxes:[]});
+  });
+  it("rechaza ejes variables incluso dentro de TTF o WOFF",()=>{
+    for(const type of ["TTF","WOFF"]){try{requireStaticPdfFont({type,variationAxes:{wght:{min:100,default:400,max:800}}});expect.fail("Debe rechazar la cara variable");}catch(error){expect(error).toMatchObject({status:503,code:"pdf_font_unavailable"});}}
   });
   // Requires an explicitly provisioned local font. No download, Windows default or licence claim.
   it.skipIf(!process.env.DOCUMENT_IMPORT_PDF_CJK_FONT_PATH).each(["packing-list","labels"] as const)("genera PDF real %s con fuente local explícita y registra flags de embedding",async(surface)=>{
     const result=await renderConfirmedDocumentPdf(sample(),surface);
-    expect(Buffer.from(result.bytes.subarray(0,5)).toString()).toBe("%PDF-");expect(result.bytes.length).toBeGreaterThan(1000);expect(result.fontAudit.licenceAndServerPortabilityCertified).toBe(false);expect(result.fontAudit.cjk.postscriptName).toBeTruthy();
+    expect(Buffer.from(result.bytes.subarray(0,5)).toString()).toBe("%PDF-");expect(result.bytes.length).toBeGreaterThan(1000);expect(result.fontAudit.licenceAndServerPortabilityCertified).toBe(false);expect(result.fontAudit.cjk.postscriptName).toBeTruthy();expectStaticFontAudit(result.fontAudit);
     const output=process.env.DOCUMENT_IMPORT_PDF_TEST_OUTPUT_DIR;if(output){await mkdir(output,{recursive:true});await writeFile(path.join(output,`${surface}-confirmado.pdf`),result.bytes);await writeFile(path.join(output,`${surface}-font-audit.json`),JSON.stringify(result.fontAudit,null,2));}
   });
   it.skipIf(!process.env.DOCUMENT_IMPORT_PDF_CJK_FONT_PATH)("genera 60 productos únicos en PDF real y manifiesto para verificar paginación completa",async()=>{
@@ -64,7 +79,7 @@ describe("PDF confirmado SDD-0473 B",()=>{
     input.draft.groups=[{id:"long",label:"Largo",cartons:10,grossWeightKg:130,cbm:0.7,items:input.draft.products.map(product=>({productId:product.id,quantity:10}))}];
     input.draft.declaredTotals.amount=600;
     const model=buildConfirmedPdfModel(input);expect(model.groups[0].rows).toHaveLength(60);expect(model.totals).toMatchObject({cartons:10,quantities:{pcs:600},amounts:{USD:600}});
-    const result=await renderConfirmedDocumentPdf(input,"packing-list");expect(Buffer.from(result.bytes.subarray(0,5)).toString()).toBe("%PDF-");expect(result.bytes.length).toBeGreaterThan(1000);
+    const result=await renderConfirmedDocumentPdf(input,"packing-list");expect(Buffer.from(result.bytes.subarray(0,5)).toString()).toBe("%PDF-");expect(result.bytes.length).toBeGreaterThan(1000);expectStaticFontAudit(result.fontAudit);
     const output=process.env.DOCUMENT_IMPORT_PDF_TEST_OUTPUT_DIR;if(output){
       await mkdir(output,{recursive:true});await writeFile(path.join(output,"packing-list-largo-60.pdf"),result.bytes);
       await writeFile(path.join(output,"packing-list-largo-60-manifest.json"),JSON.stringify({provenance:"synthetic-renderer-test-not-portal-acceptance",revision:input.revision,expectedCodes:model.groups.flatMap(group=>group.rows.map(row=>row.code)),checkpoints:["LONG-001","LONG-030","LONG-060"],totals:model.totals,fontAudit:result.fontAudit},null,2));

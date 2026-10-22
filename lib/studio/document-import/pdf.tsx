@@ -54,9 +54,17 @@ export function buildConfirmedPdfModel(input: ConfirmedPdfInput) {
     labels: input.labels.map(label => ({ code: label.code, boxN: label.boxN, totalBoxes: label.totalBoxes, boxCode: label.boxCode!, qr: labelVerifyUrl(input.markbox, label.boxN, label.totalBoxes, label.boxCode) })),
   };
 }
-type FontInfo = { family: string; postscriptName: string; embedding: Record<string, boolean> | null };
+type PdfFontMetadata = { type?: string; variationAxes?: Record<string, unknown>; directory?: { tables?: Record<string, unknown> } };
+type FontInfo = { family: string; postscriptName: string; embedding: Record<string, boolean> | null; format: "TTF" | "WOFF"; variationAxes: string[]; weightClass: number | null };
 const fontLoads = new Map<string, Promise<FontInfo>>();
 const fontError = () => new ImportHttpError(503, "pdf_font_unavailable", "El PDF no está disponible: falta una fuente compatible en el servidor. Puedes usar la impresión existente o contactar a DTD.");
+
+/** React-PDF v4 supports static TrueType/WOFF, not WOFF2 or variable/OpenType outlines. */
+export function requireStaticPdfFont(font: PdfFontMetadata): { format: "TTF" | "WOFF"; variationAxes: string[] } {
+  const axes = Object.keys(font.variationAxes ?? {});
+  if ((font.type !== "TTF" && font.type !== "WOFF") || axes.length || font.directory?.tables?.["CFF "] || font.directory?.tables?.CFF2) throw fontError();
+  return { format: font.type, variationAxes: axes };
+}
 
 async function loadLocalFont(file: string, prefix: string): Promise<FontInfo> {
   try {
@@ -72,11 +80,12 @@ async function loadLocalFont(file: string, prefix: string): Promise<FontInfo> {
         const source = Font.getFont({ fontFamily: family });
         await source.load();
         if (!source.data) throw fontError();
-        const raw = source.data as unknown as { postscriptName?: string; "OS/2"?: { fsType?: Record<string, boolean> } };
+        const raw = source.data as unknown as PdfFontMetadata & { postscriptName?: string; "OS/2"?: { fsType?: Record<string, boolean>; usWeightClass?: number } };
+        const compatible = requireStaticPdfFont(raw);
         const embedding = raw["OS/2"]?.fsType ?? null;
         // Enforce the font's own embedding flags; this does not certify its licence or portability.
         if (embedding && (embedding.noEmbedding || embedding.noSubsetting || embedding.bitmapOnly)) throw fontError();
-        return { family, postscriptName: raw.postscriptName ?? "", embedding };
+        return { family, postscriptName: raw.postscriptName ?? "", embedding, ...compatible, weightClass: raw["OS/2"]?.usWeightClass ?? null };
       })();
       fontLoads.set(key, loading);
       void loading.catch(() => fontLoads.delete(key));
@@ -107,10 +116,10 @@ export async function renderConfirmedDocumentPdf(input: ConfirmedPdfInput, surfa
   if (!cjkPath) throw fontError();
   const [cjk, body, heading, mono, brand] = await Promise.all([
     loadLocalFont(cjkPath, "DTDCJK"),
-    loadLocalFont(path.join(process.cwd(), "lib/font-files/nunito-sans-latin-wght.woff2"), "DTDBody"),
-    loadLocalFont(path.join(process.cwd(), "lib/font-files/sora-latin-wght.woff2"), "DTDHeading"),
-    loadLocalFont(path.join(process.cwd(), "lib/font-files/jetbrains-mono-latin-wght.woff2"), "DTDCode"),
-    loadLocalFont(path.join(process.cwd(), "lib/font-files/archivo-black-latin-400.woff2"), "DTDBrand"),
+    loadLocalFont(path.join(process.cwd(), "lib/font-files/pdf/nunito-sans-400.ttf"), "DTDBody"),
+    loadLocalFont(path.join(process.cwd(), "lib/font-files/pdf/sora-600.ttf"), "DTDHeading"),
+    loadLocalFont(path.join(process.cwd(), "lib/font-files/pdf/jetbrains-mono-400.ttf"), "DTDCode"),
+    loadLocalFont(path.join(process.cwd(), "lib/font-files/pdf/archivo-black-400.ttf"), "DTDBrand"),
   ]);
   function text(value: string, kind: "body" | "heading" | "mono" | "brand" = "body") {
     const selected = needsCjk(value) ? cjk : kind === "brand" ? brand : kind === "heading" ? heading : kind === "mono" ? mono : body;
@@ -142,5 +151,6 @@ export async function renderConfirmedDocumentPdf(input: ConfirmedPdfInput, surfa
     document = <Document title={`Etiquetas ${model.code}`} author="DTD Cargo">{pages.map((labels, pageIndex) => <Page key={pageIndex} size="A4" style={[style.page, { fontFamily: body.family }]}><View style={style.labelGrid}>{labels.map((label, index) => <View key={label.boxCode} style={style.label} wrap={false}>{text("Shipping Mark")}<View style={style.mark}>{text(model.markbox, "mono")}</View><Image style={style.qr} src={images[pageIndex * 6 + index]} />{text(label.code, "mono")}{text(`第 ${label.boxN}/${label.totalBoxes} 箱 · Caja ${label.boxN}/${label.totalBoxes}`)}{text(label.boxCode, "mono")}<View style={style.small}>{wordmark()}{text(`Rev. ${model.revision} · ${model.folio} · V${model.versionNo}`, "mono")}</View></View>)}</View>{footer}</Page>)}</Document>;
   }
   const bytes = new Uint8Array(await renderToBuffer(document));
-  return { bytes, fontAudit: { cjk: { postscriptName: cjk.postscriptName, embedding: cjk.embedding }, licenceAndServerPortabilityCertified: false } };
+  const audit = (font: FontInfo) => ({ postscriptName: font.postscriptName, format: font.format, variationAxes: font.variationAxes, weightClass: font.weightClass, embedding: font.embedding });
+  return { bytes, fontAudit: { cjk: audit(cjk), latin: { body: audit(body), heading: audit(heading), mono: audit(mono), brand: audit(brand) }, licenceAndServerPortabilityCertified: false } };
 }

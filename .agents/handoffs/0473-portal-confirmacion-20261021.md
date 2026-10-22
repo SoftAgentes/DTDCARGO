@@ -530,3 +530,79 @@ independientes en Promise.all, rutas de descarga con cleanup de montaje y blobs 
 No se ejecutó validate-governance, UI-check ni ningún validator por el límite expreso de fuente;
 las clasificaciones no equivalen a conformidad visual/funcional o aprobación de integración.
 Guard y git diff --check PASARON; el SHA fijo se entrega por el canal del Director sin recursión.
+
+## Corrección B1 · Fuentes PDF estáticas · 2026-10-22 · Fuente sin ejecución
+
+**OBJETIVO ORIGINAL:** resolver el fallo de render PDF evidenciado por B1, conservando familias,
+documento confirmado/códigos/QR, CJK/config y los49casos anteriores incluidos sus3renders reales.
+
+**ASIGNACIÓN / OWNERSHIP:** Director general aprobó adopción de ocho archivos primarios
+(cuatroTTF+cuatroOFL),611757bytes, con ochoSHA256 y Gitblob cotejados por él y el Director.
+Mismo Worker owner worker-packing-portal-20261021, worktree/rama/PR319; inicio limpio en
+93e738ec4d94c2ba590728ed82459a641d0034e3, guard/claim propios sin desplazar owner a04:50:52Z.
+Presupuesto30min. Hijo directo local de93; sin push ni pruebas hasta otra asignación.
+Allowlist22exacta registrada en la nueva etapa de SDD0473 antes de modificar producto/assets:
+las17rutasB más cuatroTTF y únicoREADME en lib/font-files/pdf/. No otras fuentes/config/SQL.
+
+**CAUSA CON EVIDENCIA:** B1, ventana DIRECTOR-PACKING-B1-49-20261022-01, native1:46/49aprobadas,
+3renders fallidos/0SKIPseleccionado/38fuera. Custodia externa B1-93e738e/worker-custody-B1.json
+SHA9a8e643b5ca5bb8d5288e0ad49eeeed4bc209c50d88e8cb412d24ffaca91bb58 conserva originales,
+títulos, plazos y trazas. PROBE5, ventana DIRECTOR-PACKING-FONT-PROBE5-20261022-01, nativo1
+con5reportes completos/2encoded/3errores: Nunito/Sora/JetBrains WOFF2variables reproducen DataView
+RangeError en fontkit subset.encode; DengTTF y ArchivoBlackWOFF2estática codifican las cadenas
+acotadas. No missingglyphs. Custodia worker-custody-PROBE5.json SHA
+87e51e0d583e3c4b61baa3c121e628a7e7f8716fd76a84cb1000cb5239e906c5. Ambos turnos cerrados,
+originales preservados; ninguna conclusión de aceptación de producto sale del diagnóstico.
+
+**ARREGLO AUTORIZADO:** copiar únicamente TTFs primarias aprobadas Nunito400/Sora600/Mono400/
+ArchivoBlack400 a subdirectorioPDF, byteporbyte; conservar cuatroOFLverbatim en README único,
+proveniencia URL/commit/Gitblob/SHA/tamaño. Loader rechaza formato/ejes incompatibles con503
+seguro; mantiene glyphs/embedding y salida sin paths. Fuentes web, CJK/Deng/config quedan intactas.
+Adquisición DIRECTOR-PACKING-FONTS-ADQ-20261022-01, receiptacquisition-receipt.json aprobada
+porGeneral; no conversión, instalación ni nuevas descargas en esta autoría. Peso/rutas reales
+se verifican por metadatos del paquete; render de las nuevas caras aún NO EJECUTADO.
+
+**VALIDACIÓN / PENDIENTES:** escribir negativas aditivas formato/ejes y auditar las cinco caras
+en los3renders futuros, sin debilitar los49anteriores. Conteo exacto al cerrar fuente. Todos los
+checks/runtime nuevos NO EJECUTADOS, incluido render/49rerun/tipos/lint/verify/UI/SQL. No demo,
+servidor, adquisición extra, fuenteweb, migra/merge/prod. Checkpoint/sourceguard/diff-check sí
+permitidos. La próxima corrida480+60s sólo queda propuesta, no admitida por esta autoría.
+
+**COMPLETADO POR FUENTE:** los cuatroTTF dePDFse copiaron byteporbyte del paqueteaprobado;
+cuatroSHA256 y cuatroGitblob coinciden, todos exitsdehash-object0. Receipt primario SHA256
+6daa9ab897c8b35b2c17b982a045d599bd41c2825949d4a9ae5206e2329e0a34. Copia/preimages externa
+B1-static-fonts-fix-93e/asset-copy-preimages.json SHA256
+1b798fff599227f77b245d533b180d322d9b16de155f3d3e2d0fae379a672074. El únicoREADMEextra
+incluye las cuatroOFLcompletas/verbatim, URL/commit/Gitblob/SHA/tamaño/peso. No se convirtió,
+instaló o cargó ninguna fuente en esta autoría, ni se cambió una fuenteweb/config/CJK.
+
+loadLocalFont admite TTF/WOFFestáticos sinCFF/ejes variables; WOFF2/OTF/colección/CFF/ejes
+reciben503pdf_font_unavailable seguro. Se conservan el contacto/revisión/gates y checksde
+glyphs/embedding. LosPDFusan ahora exclusivamente las cuatroTTFprimarias. Fontaudit añadesólo
+postscriptName/formato/ejes/peso/embedding paraCJKy las cuatrocaraslatinas; nunca susrutas.
+
+**PRUEBAS ESCRITAS:** se conservan49originales y los3renders. La negativa Nunito-como-CJKapunta
+a laTTFestática, porque mantenerWOFF2sólo habría probado formato y ocultado el oráculo de
+glyphs. Doscasos aditivos cubren WOFF2/OTF/CFF y ejes variables enTTF/WOFF, con503seguro.
+Los3rendersfuturos auditarán5caras TTFsinvariables y pesoslatinos400/600/400/400. Conteoexacto
+**51**, mismos6archivos/filtroSDD-0473 B: pdf14/http9/transporte5/proveedor10/portal5/proxy8.
+Todos **NO EJECUTADOS sobre este hijo**. El nuevoREADYes sólo propuesta480+60/0retry, fuente
+CJKexplícita/Node24.20idénticos y directorioexternonuevo; no admisión de tests/render/UI.
+
+**LÍMITES Y HANDOFF:** revisión estática/diff/guard y commitlocal selectivo hijo de93; no push,
+pruebas/tipos/lint/verify/build/servidor/demo/QR/producción. El diagnóstico fundamenta la
+corrección, no demuestra que el PDFfuncione. No debilitar las3fallidas ni inferir compatibilidad
+CJKlicencia/servidor/WeChat. Se entregan checkpoint/preimages/READY pararevisión y posterior
+ventana específica. La actualización de conocimiento/derivados queda NO EJECUTADA en fuente-only;
+se conservan todoslos históricos de B1/PROBE5/adquisición y los pendientes operativos anteriores.
+
+**REVISIÓN ESTÁTICA DE CIERRE:** guard propio PASÓ y el staged contiene diez rutas, todas
+incluidas en allowlist22. `git diff --cached --check` devolvió2 únicamente por los espacios
+finales originales de las cuatro OFL en `lib/font-files/pdf/README.md`, líneas55/162/269/376.
+Se conservan verbatim por mandato de procedencia; excepción documental limitada a esas cuatro
+líneas. No se cambió configuración Git ni se ocultaron advertencias. La revisión default de
+las otras nueve rutas devolvió0. Git avisa que normalizará CRLF a LF en el README; se preserva
+el contenido completo de las licencias y sus espacios, con originales/binarios sellados fueraGit.
+No se ejecutó ninguna prueba ni renderer para cerrar este checkpoint. El nuevo READY propone
+51/6, tres renders sin SKIP seleccionado y cero reintentos; sólo una ventana posterior válida
+podrá ejecutarlo. La rama remota/PR sigue en su SHA publicado anterior; este hijo queda local.
