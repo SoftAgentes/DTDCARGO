@@ -161,7 +161,7 @@ Consulta independiente GitHub: 18 PR abiertas, todas DRAFT. No se hizo revisión
 | PR | Frente / base declarada | HEAD al corte | Observación |
 |---|---|---|---|
 | 308 | Seguimiento contable / main | 9e23746c | Respaldo actualizado,2 documentos propios |
-| 319 | Packing / main | b325e203 | 38 rutas; sin intersección exacta con otras 17 PR en el inventario inicial |
+| 319 | Packing / main | 53965778 | 38 rutas; respaldo final comprobado, nueva selección9 aún pendiente al corte |
 | 310 | Reemplazos / main | a30d8585 | Inicio cadena contable |
 | 311 | Anual / rama310 | 8729f7f4 | Dependiente310 |
 | 312 | Caracas operaciones / rama311 | d6bcd0e8 | Dependiente311 |
@@ -173,7 +173,7 @@ Consulta independiente GitHub: 18 PR abiertas, todas DRAFT. No se hizo revisión
 | 316 | Embarques / rama307 | 1ec5e85f | Base declarada de318 |
 | 318 | Envíos0578 / rama316 | ec95a1b0 | 72 rutas propias; 105 acumuladas contra merge-base main |
 | 315 | Contratos pruebas / main | 8bfb620b | CONFLICTING; 5 rutas heredadas en ramas posteriores |
-| 320 | CORE0573 / base temprana | b70c5ddf | Cierre documental remoto; producto7394 con27M1PASÓ/supervisiónincompleta |
+| 320 | CORE0573 / base temprana | 5c659dad | 44 rutas; fuenteI2 revisada respaldada, M1sólo7394/27PASÓ/supervisiónincompleta |
 | 304 | PGlite / main | 8fb4edee | Harness, conservar procedencia |
 | 306 | Oficina agentes / main | 2f9b336c | Documentación, fuera de los dos frentes producto nuevos |
 | 309 | Publicador / main | 021e96cd | Infra independiente; no autoriza publicación |
@@ -341,6 +341,30 @@ Respuesta observada del frente contable tras esa aclaración: informa respaldo I
 Pedido directo Packing verificado mediante read_thread, mensaje humano01a16137-7522-7750-98ec-6bb4857e3888/turno01a16137-728f-7c73-a845-70c56bbc5ba8: coordinar revisión del commit y ejecutar NUEVE pruebas cuando se libere el turno, misma PR, sin merge/producción. Se cerró cotejo y se reservó esa selección como primera del siguiente turno local ELEGIBLE, DESPUÉS de liberación explícita de la retención M1. Reserva no equivale a GO ni repara el UNKNOWN.
 
 Owner prepara sólo selección UNBOUND de2archivos/7+2títulos/comando exacto, SHA539/códigofd0, entorno existente/maxWorkers1/sin paralelismo/budget acotado/salida real; sin discovery/parser/Node/tests/instalación/censo ni otro supervisor. No reloj nuevo arrancado/renovaciónM1 ni suite completa. Contabilidad fue informada del orden para no auto-iniciar I2 al ver PR publicada; su cola ligera continua queda permitida. Paquete nueve/pruebas/asignación de ventana aún pendientes. Las tres sesiones conservan reportes de encargos directos, cambios materiales, bloqueos y cierres.
+
+## Respaldos remotos confirmados y continuidad I3-A
+
+Readback independiente de root: PR320 OPEN/DRAFT en5c659dad,44rutas, rama CORE y base temprana e834; ls-remote confirma ambas refs y main d410. Cuerpo7299bytes/SHA256a790df8b199d09d7f3e6778101278cef512c11f3813589f02b42b18b086b4875 coincide con recibo,46LF reales y sin escapes literales. Recibo Worker `0573-I2-respaldo-PR320-01/recibo-respaldo-PR320-5c65.json`,6577bytes/SHA2565347a790742d8eeb8501cfac744e21d0684bb50cf35505cd086f40c59dffb333, leído/cotejado. Respaldo I2 COMPLETADO como fuente revisada, sin prueba funcional ni cierre14/A-B.
+
+PR319 también comprobada directamente en GitHub: OPEN/DRAFT53965778/base main/38rutas, título y cuerpo distinguen b25 histórico, fd0/539 por fuente y nueve pruebas no ejecutadas. Owner reportó fast-forward desde b325 y estado limpio/claim ausente. Paquete propio `C:/Users/AKX generator/.codex/visualizations/2026/10/21/packing-list-portal/respaldo-53965778c/`; readback/recibo externos conservados. Respaldos separados, sin integración ni producción.
+
+Contabilidad tomó I3-A adapter bajo su continuidad ya autorizada. Encargo `0573-I3A-autoria-adapter-sin-runtime-director-v2.md`,9083bytes/SHA25602b7067a23fb2456c665de2c6bd7555726afb6a2317f4582c1e21b9091d99671. Peer de root verificó coherencia de fronteras por lectura: cuatro rutas/28oráculos, padre5c65, mismo Writer/WT/claim, una RPC tenant+factura sin dinero/fecha/código autoritativos, retorno estricto/desconocido honesto y sin fallback. RPC ausente es dependencia SQL futura explícita, no bloqueo de autoría local ni prueba de atomicidad. Sin cruces Packing/CRM ni nuevo gate de reautorización. SQL/M8/M9 y runtime permanecen pendientes de sus cortes/turnos; Director interno asigna y revisa dentro del backlog humano, y reporta material.
+
+## Decisión operativa: reserva M1 histórica y nuevo turno Packing9
+
+El plan Packing9 UNBOUND pasó revisión estática independiente:7+2 nombres/filtro, CLI instalada4.1.7, dos archivos y presupuesto propuesto360s. Archivo `plan-nueve-UNBOUND.md`,SHA256d0148e5645711191c16e7f18f255c1d4c9cd2b6562d288539bb1edba28988f5f. No discovery ni ejecución para ese dictamen. El comando pnpm propuesto no imponía por sí solo el presupuesto; se asignó ejecución nativa controlable y, para evitar cualquier gestor/instalación, CLI ya instalada mediante node_modules/.bin/vitest.CMD run, leído por root. Script test equivale a vitest run, sin pre/post ni packageManager.
+
+Revisión de autoridad operativa: prompt del Director99/166 permite al Director asignar una corrida a la vez después de comprobar procesos actuales. No hay norma de OK nominal Sam para cancelar reserva administrativa; permisos nominales de producción no se trasladan a esta coordinación. Peer independiente cotejó GO/manifest M1: obligan a conservar UNKNOWN y no reanudar esa ejecución ni su reloj; no prohíben nueva admisión de otro trabajo humano autorizado. No se pide a Sam que resuelva una condición técnica mediante permiso genérico.
+
+Se hizo una comprobación ACTUAL separada, no una reconstrucción del PID histórico: `director-packing9-admision-actual-01.json`,74539bytes/SHA2561ee1d4119bc78fdff8e53261295e74051f395d0a3f1ba7f952de759fa62f080c.01:40:53.6111962–01:40:56.6647018Z:143procesos Node/Deno/Docker con nacimiento .NET actual vinculado, cero marcadores de corrida pesada;134herramientas/soporte,6demo y3sin clasificar inicialmente. Sin terminaciones/ownership ni comandos crudos/secretos impresos. La consulta sólo responde disponibilidad observada en ese ámbito, no cero global ni ausencia histórica de todos los descendientes.
+
+Los tres actuales se precisaron en `director-packing9-admision-clasificacion-02.json`,01:42:43–44Z: identidad actual y hash de comando iguales, Vite con host/puerto, review-server y su Next con host/puerto; sin comandos build/test detectados. No se consultó/reidentificó21908, no se reinterpretó el viejo no-running y no se tocó proceso alguno. Se conservan ambos recibos de admisión sin modificar el original.
+
+Director canceló ADMINISTRATIVAMENTE la reserva vencida M1 y admitió un turno NUEVO para las9 autorizadas por Sam. Registro `C:/tmp/director-traspaso-20261020/director-packing9-decision-y-turno-01.json`,3659bytes/SHA2560b2b55bd276428d1c21c093b86ad5b4c3cc6e309b495d13df3384584266d9f8f. M1 nativo queda INCOMPLETO_RETIENE_TURNO/quietfalse/turnReleasedfalse/UNKNOWN/outer1 intactos: la cancelación administrativa no es cierre del supervisor, prueba de quiet ni resolución retrospectiva. Claim CORE retenido; no se reabrió su reloj ni repitieron27.
+
+GO nominal enviado a Packing: ID DIRECTOR-PACKING9-20261021-01, HEAD53965778/tree308937ca, dos archivos/filtro exacto/maxWorkers1/sin paralelismo/una sola corrida/no retry. VentanaUTC01:44:41.5131787Z, último arranque01:48:41.5131787Z, cutoff01:54:41.5131787Z, cierre01:55:41.5131787Z;máximo360s desde inicio y reserva60. Guard/claim propio antes, salida nativa/stdout/stderr/JSON/exit real; sólo su sesión identificada se puede detener por presupuesto. Pruebas fuera del patrón pueden aparecer filtradas: conservarlas aparte, sin fingir cobertura global ni contar como omitidas de las9. Fallo de carga/conteo/aserción/timeout detiene ampliación y reintento automático.
+
+Contabilidad notificada de EXCLUSIVIDAD Packing durante ese turno, sin otra pesada/I2/verify/SQL/censo/supervisor por interpretar la cancelación como permiso general. I3 y cola ligera continúan. Resultado Packing9 todavía PENDIENTE DE INICIO/SALIDA al registrar este GO. Ninguna instalación/cambio de producto/DB/UI/demo/merge/producción autorizado por esta ventana.
 
 ## Fuera de alcance detectado
 
