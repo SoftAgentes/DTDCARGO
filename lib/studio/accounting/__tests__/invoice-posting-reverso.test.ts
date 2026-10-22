@@ -255,3 +255,177 @@ describe("GO1 I3 · resultado inválido o ambiguo no se convierte en éxito", ()
     // observable del adapter. Locks/atomicidad/rollback se prueban en PG aparte.
   });
 });
+
+// I3-A: sufijo nuevo. Los 10454bytes anteriores, doble y28oráculos permanecen literales.
+// Autoría de contrato, NO EJECUTADA; no acredita RPC instalada, commit o locks SQL.
+describe("I3-A · contrato escalar estricto y señal segura", () => {
+  it.each([
+    { nombre: "posted con reason de reconocimiento", value: posted({ reason: "entry_already_exists" }) },
+    { nombre: "posted con reason de cero", value: posted({ reason: "zero_total" }) },
+    { nombre: "already_posted con reason posted", value: posted({ outcome: "already_posted", reason: "posted" }) },
+    { nombre: "already_posted con rechazo", value: posted({ outcome: "already_posted", reason: "invoice_unavailable" }) },
+    { nombre: "not_posted con reason posted", value: notPosted("posted") },
+    { nombre: "not_posted con reason de reconocimiento", value: notPosted("entry_already_exists") },
+  ])("$nombre no confirma un asiento ni reintenta", async ({ value }) => {
+    rpcData = value;
+
+    const result = await call();
+
+    expect(result).toMatchObject({ ok: false, skipped: "posting-state-unknown" });
+    expect(result.entryCode).toBeUndefined();
+    expectOnlyAtomicCall();
+  });
+
+  it.each([
+    { field: "entry_id", mode: "ausente" },
+    { field: "entry_id", mode: "undefined" },
+    { field: "entry_id", mode: "no-null" },
+    { field: "entry_code", mode: "ausente" },
+    { field: "entry_code", mode: "undefined" },
+    { field: "entry_code", mode: "no-null" },
+    { field: "entry_date", mode: "ausente" },
+    { field: "entry_date", mode: "undefined" },
+    { field: "entry_date", mode: "no-null" },
+  ])("zero_total con $field $mode no certifica no-op", async ({ field, mode }) => {
+    const value = notPosted("zero_total");
+    if (mode === "ausente") delete value[field];
+    else value[field] = mode === "undefined" ? undefined : "valor-no-nulo";
+    rpcData = value;
+
+    const result = await call();
+
+    expect(result).toMatchObject({ ok: false, skipped: "posting-state-unknown" });
+    expect(result.entryCode).toBeUndefined();
+    expectOnlyAtomicCall();
+  });
+
+  it("un rechazo conocido sin entry_date null no se valida sólo por su reason", async () => {
+    const value = notPosted("period_closed");
+    delete value.entry_date;
+    rpcData = value;
+
+    const result = await call();
+
+    expect(result).toMatchObject({ ok: false, skipped: "posting-state-unknown" });
+    expect(result.entryCode).toBeUndefined();
+    expectOnlyAtomicCall();
+  });
+
+  it("zero_total sin ninguno de los tres campos no equivale a null explícito", async () => {
+    const value = notPosted("zero_total");
+    delete value.entry_id;
+    delete value.entry_code;
+    delete value.entry_date;
+    rpcData = value;
+
+    const result = await call();
+
+    expect(result).toMatchObject({ ok: false, skipped: "posting-state-unknown" });
+    expect(result.entryCode).toBeUndefined();
+    expectOnlyAtomicCall();
+  });
+
+  it.each([
+    { nombre: "posted sin entry_id", value: posted({ entry_id: undefined }) },
+    { nombre: "posted con salto final en UUID", value: posted({ entry_id: ENTRY + "\n" }) },
+    { nombre: "already_posted sin entry_id", value: posted({ outcome: "already_posted", reason: "entry_already_exists", entry_id: undefined }) },
+    { nombre: "posted con código blanco", value: posted({ entry_code: "   " }) },
+    { nombre: "already_posted con código blanco", value: posted({ outcome: "already_posted", reason: "entry_already_exists", entry_code: "\n\t" }) },
+    { nombre: "posted con código numérico", value: posted({ entry_code: 42 }) },
+    { nombre: "already_posted sin fecha", value: posted({ outcome: "already_posted", reason: "entry_already_exists", entry_date: undefined }) },
+    { nombre: "already_posted con fecha imposible", value: posted({ outcome: "already_posted", reason: "entry_already_exists", entry_date: "2026-02-30" }) },
+  ])("$nombre requiere revisión sin código confirmado", async ({ value }) => {
+    rpcData = value;
+
+    const result = await call();
+
+    expect(result).toMatchObject({ ok: false, skipped: "posting-state-unknown" });
+    expect(result.entryCode).toBeUndefined();
+    expectOnlyAtomicCall();
+  });
+
+  it.each([
+    { nombre: "booleano", value: false },
+    { nombre: "número", value: 42 },
+    { nombre: "string", value: "posted" },
+    { nombre: "versión string", value: posted({ version: "1" }) },
+    { nombre: "sin identidad", value: posted({ invoice_id: undefined }) },
+    { nombre: "sin reason", value: posted({ reason: null }) },
+  ])("respuesta $nombre no sustituye el objeto v1 identificable", async ({ value }) => {
+    rpcData = value;
+
+    const result = await call();
+
+    expect(result).toMatchObject({ ok: false, skipped: "posting-state-unknown" });
+    expect(result.entryCode).toBeUndefined();
+    expectOnlyAtomicCall();
+  });
+
+  it.each([
+    "0000-01-01", "2100-02-29", "1900-02-29", "2026-04-31",
+    "2026-2-01", "2026-09-15T00:00:00Z", "2026-13-01", "2026-01-00", "2026-09-15\n",
+  ])("fecha civil %s no se normaliza o reemplaza por hoy", async (entry_date) => {
+    rpcData = posted({ entry_date });
+
+    const result = await call();
+
+    expect(result).toMatchObject({ ok: false, skipped: "posting-state-unknown" });
+    expect(result.entryCode).toBeUndefined();
+    expectOnlyAtomicCall();
+  });
+
+  it.each([
+    { entry_date: "2000-02-29", outcome: "posted", reason: "posted" },
+    { entry_date: "2024-02-29", outcome: "already_posted", reason: "entry_already_exists" },
+    { entry_date: "1900-02-28", outcome: "posted", reason: "posted" },
+    { entry_date: "0001-01-01", outcome: "already_posted", reason: "entry_already_exists" },
+    { entry_date: "9999-12-31", outcome: "posted", reason: "posted" },
+  ])("fecha civil válida $entry_date conserva $outcome sin writes", async ({ entry_date, outcome, reason }) => {
+    rpcData = posted({ entry_date, outcome, reason });
+
+    const result = await call();
+
+    expect(result).toEqual({
+      ok: true, entryCode: ENTRY_CODE,
+      ...(outcome === "already_posted" ? { skipped: "entry-already-exists" } : {}),
+    });
+    expectOnlyAtomicCall();
+  });
+
+  it.each(["42883", "PGRST202"])("RPC ausente %s tiene código controlado y no filtra crudos", async (code) => {
+    rpcData = null;
+    rpcError = { code, message: "sql-interno-no-publicar", hint: "detalle-interno-no-publicar" };
+
+    const result = await call();
+
+    expect(result).toMatchObject({ ok: false, skipped: "atomic-posting-unavailable", error: expect.any(String) });
+    expect(result.entryCode).toBeUndefined();
+    expect(result.error).not.toContain("sql-interno-no-publicar");
+    expect(result.error).not.toContain("detalle-interno-no-publicar");
+    expectOnlyAtomicCall();
+  });
+
+  it.each(["23505", "57014", "ETIMEDOUT"])("error %s conserva unknown incluso con data de éxito", async (code) => {
+    rpcData = posted();
+    rpcError = { code, message: "sql-interno-no-publicar", hint: "detalle-interno-no-publicar" };
+
+    const result = await call();
+
+    expect(result).toMatchObject({ ok: false, skipped: "posting-state-unknown", error: expect.any(String) });
+    expect(result.entryCode).toBeUndefined();
+    expect(result.error).not.toContain("sql-interno-no-publicar");
+    expect(result.error).not.toContain("detalle-interno-no-publicar");
+    expectOnlyAtomicCall();
+  });
+
+  it("excepción con detalle interno conserva unknown sin publicar mensaje o repetir RPC", async () => {
+    rpcReject = new Error("sql-interno-no-publicar");
+
+    const result = await call();
+
+    expect(result).toMatchObject({ ok: false, skipped: "posting-state-unknown", error: expect.any(String) });
+    expect(result.entryCode).toBeUndefined();
+    expect(result.error).not.toContain("sql-interno-no-publicar");
+    expectOnlyAtomicCall();
+  });
+});

@@ -628,3 +628,66 @@ Validación realizada exclusivamente guard propio/Git/lectura/diff, sin runtimep
 Pendientes propios: revisión de Director/peer del nuevoSHA, validaciones funcionales/UI/gobernanza con GO posterior y eventual respaldoDRAFT exacto. Guardado documental propio realizado; integración/Graphify/Archify/semántica/publicaciónObsidian NO EJECUTADAS y pendientes. Fuera de alcance:14hallazgos/A-B no cerrados; M1 sólo27probados en7394; I3/B1/M2–M9/41primeras ejecuciones anteriores no absorbidos. Sin push/PRedit/ready/merge/main/deploy/producción; claim y turno retenidos.
 
 Cotejo textual durable: preservacion-fuente.json SHA256701b6ad31796214aee8e0aebc9b42cc3cd1a2e5074fc7537377a58e2f9d02c3c. Inversión literal reconstruye ReportesClient7d08 entero y doscasosgerenciales originales; no es prueba ejecutada de ramas, estilo o accesibilidad.
+
+## Adopción I3-A v2 · adapter, sólo fuente, hijo de5c65
+
+Se adopta ANTES del cambio de producto 0573-I3A-autoria-adapter-sin-runtime-director-v2.md (9083bytes/SHA25602b7067a23fb2456c665de2c6bd7555726afb6a2317f4582c1e21b9091d99671), leído completo. V1c5e376d3 queda preservada NO ADOPTADA; v2 corrige sólo el typo not_posted. CORE5ee11eab1d2f08af8890f676efdc20aa2daba918dd8d1c50c34950b366b22880, especialmente§6, y peerI3(9983bytes/SHA256125d54a41d1f41da461eeb81d55f1c979502c96787d23fccb7c2bdab41385fbb) leídos completos. El peer es criterio técnico, la orden vigente activa únicamente I3-A.
+
+Mismo Writer/owner worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468, WT C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0573-core-reparacion-20261021, rama codex/sdd-0573-core-reparacion-20261021. Entrada/padre DIRECTO5c659dad1bceb0c8f51031149287240827374619/tree5c4770102b89b9abb6def1ae5feed7a9ad1eaa93, guard propio PASÓ y estado limpio; claim212bytes/B4 y turno RETENIDOS. Cuatro preimágenes y adopción externas en C:/tmp/director-traspaso-20261020/0573-I3A-autoria-local-01/adopcion-preimagenes.json, preservadas antes de autoría.
+
+Allowlist escritora EXACTA, dentro51CORE/R1excluida-unión52:
+
+~~~text
+lib/studio/accounting/invoice-posting.ts
+lib/studio/accounting/__tests__/invoice-posting-reverso.test.ts
+docs/specs/0573-reverso-al-anular/spec.md
+.agents/handoffs/0573-reverso-al-anular.md
+~~~
+
+Objetivo de este corte: una única RPC post_invoice_journal_entry_atomic sólo con tenant/factura, validación escalar estricta y señal honesta de desconocido/dependencia ausente; API/exportaciones/códigosSALES preservados. Mantener literalmente28 oráculos T04 y su doble legado; nuevas regresiones sólo autoría, sin discovery/ejecución. No autoría SQL/M8/M9 ni RPC instalada inferida; futura unidad SQL de código/cabecera/líneas/locks/auditoría, tres intentos selectivos y catálogo siguen pendientes de otro corte concreto. Importes/código/fecha del caller se conservan por compatibilidad de tipos, sin autoridad de posting.
+
+Únicamente lectura/fuente/Git/diff-check/guard ligero y commit LOCAL hijo5c65. Sin push/PRedit I3A antes de revisión; PR320DRAFT publicado permanece5c65/basee834. Se preservan18I2, M1actions/27, SQL/package/lock/config y otras6341entradas. Prohibidos runtimeproducto/Nodeadicional/import/parser/AST/tests/tipos/lint/build/UI/SQL/DB/PNPM/Docker/advisors/censo/supervisor/conocimiento/hooksruntime. Guardado documental propio sí; integración/Graphify/Archify/semántica/Obsidian NO EJECUTADOS. M1 sólo27PASÓ7394/supervisión INCOMPLETA, I2fuente5c65 NOEJ,28T04/base80/41restantes/14/A-B abiertos; UNKNOWN21908 y recibos intactos.
+
+### Resultado de autoría I3-A · revisión y ejecución pendientes
+
+El commit que contiene este bloque es un hijoLOCAL DIRECTO5c65 de exactamente cuatro rutas. invoice-posting.ts mantiene exports, tipos públicos y códigosSALES; cambia sólo la implementación del adapter. Una llamada a post_invoice_journal_entry_atomic(p_tenant_id,p_invoice_id) identifica la factura del tenant, sin enviar invoiceCode/importes/entryDate. Se eliminan count amplio, lecturas de cuentas, correlativo, writes directos, compensaciónDELETE, tolerancia/round monetario y fechaUTC/hoy. Esto no crea la RPC ni verifica atomicidad: toda persistencia, dinero/fecha civil persistidos, idempotencia íntegra, locks, cierre, auditoría y tres intentos selectivos pertenecen al futuro corte SQL/I3/M8/M9.
+
+Contrato de respuesta implementado por fuente:
+
+| Resultado escalar v1 identificado | Resultado público |
+|---|---|
+| posted/reasonposted + UUID/código/fecha civil válidos | oktrue/entryCode, sin skipped |
+| already_posted/reasonentry_already_exists + mismos campos válidos | oktrue/entryCode/skippedentry-already-exists |
+| not_posted/reasonzero_total, tres campos de asiento EXACTAMENTE null | oktrue/skippedzero-total, sin entryCode; sólo no-op |
+| not_posted con uno de los ocho motivos conocidos y camposnull | okfalse/skippedestable específico; no confirma ausencia de antecedentes |
+| RPC ausente42883/PGRST202 | okfalse/skippedatomic-posting-unavailable, explicación segura; no fallback |
+| Otra forma/versión/identidad/reason/campo inválidos, error o excepción | okfalse/skippedposting-state-unknown, sin entryCode ni crudos; no afirma ausencia/rollback/commit |
+
+Los ocho skipped son invoice-unavailable, invoice-not-postable, invalid-issue-date, invalid-amounts, totals-mismatch, missing-accounts, period-closed y existing-sale-requires-review. atomic-posting-unavailable es decisión acotada del adapter ratificada por este GO, no outcomeSQL adicional. Mensajes propios con recuperación; no se propagan message/hint/SQL/PII del servidor. Un error prevalece sobre data de éxito. Sin retry general, reemisión, cobro, crédito o reparación implícita.
+
+La fecha devuelta exige longitud10/formatoYYYY-MM-DD y calendario gregoriano real de años0001–9999, con regla de siglo/bisiesto; no usa Date ni normalización. UUID exige36 caracteres y sintaxis hex canónica, sin imponer versión/variante adicional al contrato. Código string no blanco; se conserva su valor, sin inventar formato financiero. Longitudes explícitas evitan aceptar un salto final permitido por el ancla$ de una regex. Ninguna validación sustituye dinero/fecha del documento persistido a cargo de SQL.
+
+T04: archivo original ENTERO10454bytes/SHA2565f92773763cf1c0db026f73e0919f73d6995c3b669e7dcf0e4c27fc1d486e33c preservado como prefijo literal, incluidos imports, doble legado real,28títulos/cuerpos/oráculos. No incompatibilidad heredada detectada por lectura. Sufijo nuevo51escenarios ESCRITOS NOEJ: combinaciones6;null explícito9;rechazo/cero incompletos2;campos de éxito8;forma/versión/identidad6;fechas inválidas9;fechas válidas5;RPC ausente2;errores devueltos3;excepción1. Total79previstos por inventario de fuente, SIN discovery, ROJO, VERDE o test ejecutado. Cada caso usa el adapter/doble existente y observa una sola RPC/sinfrom/sinwrites; no representa commit/locks SQL. Cotejo textual y refinamiento de longitudes en preservacion-oraculos-fuente.json externo, no convertido en validación funcional.
+
+Superficie backend Studio/Contabilidad, riesgoR3 financiero; governance-check aplicado sólo por lectura de brief/registro derivado contrastado con políticas primarias SGE-00v1.0, ERR-01v1.0, NUM-01v1.1, AUD-01/AUD-02v1.0. No excepción nueva ni conformidad global:
+
+| Principio | Clasificación acotada y evidencia |
+|---|---|
+| SGE-00.01 predecible | Cumplimiento por fuente del mapping estable; no confirma emisión/documento completo. |
+| SGE-00.02 conservación | Adapter elimina compensación best-effort y no reintenta desconocido; no conformidad de cierre pendiente de unidad SQL/rollback probado. |
+| SGE-00.03 riesgo | R3 mantenido; no aplica cambio de confirmación/fricción/UI, callers/gates intactos. |
+| SGE-00.04 auditoría | No conformidad de evidencia de cierre: futura SQL/D2/fallo del evento y rollback aún NOEJ; no log ficticio enTS. |
+| SGE-00.05 tenant/permisos | Cumplimiento por fuente de dosIDs/cliente existente; ACL/tenant/estados/cierre se deben probar enSQL, no aceptación. |
+| SGE-00.06 prevención | Validación estricta antes de certificar resultado, sin autorizar éxito HTTP200 por sí solo; validación persistida pendiente. |
+| SGE-00.07 estado real | Cumplimiento por fuente posted/reconocido/cero/rechazo/dependencia/unknown; no exactamente-una-vez ni commit exterior prometido. |
+| SGE-00.08 complejidad | Conserva API/callers sin nuevos pasos o formularios; explica revisión antes de otra solicitud. |
+| SGE-00.09 reutilización | Cliente admin/API existentes, sin helper/import/dependencia o componente nuevo. |
+| SGE-00.10 accesibilidad | No aplica control/render nuevo en este adapter; UI/callers no revalidados aquí. |
+| SGE-00.11 lenguaje | Errores seguros con revisión/siguiente paso; sin ausencia afirmada o SQL crudo. Logs legados ajenos conservan deuda§6.4. |
+| SGE-00.12 autoridad | Autoría local autorizada; no ejecución financiera, DB, integración o publicación nueva por esta fase. |
+
+NUM-01: la autoridad decimal permanece SQL, nofloat/tolerancia en el adapter ni cero por error. ERR-01: rechazo/dependencia/desconocido separados y copy seguro; no auto-retry. AUD-01/AUD-02: ninguna auditoría ficticia, fila real, exportación o payload sensible; evento/ACL efectivos pendientes del corteSQL. Documentación primariaSupabase de funciones/rpc/EXECUTE/search_path y changelog consultada por lectura pública, sin medir servidor o conectarse a cuenta; la guía no sustituye la ACL service_role/tenant ratificadas ni impone auth.uid no-null al admin sin sujeto.
+
+Validación de este corte: guard propio/Git/lectura/diff-check y preservación textual; controles automáticos de gobernanza/docs/UI, parser/AST, imports/tipos/lint/tests/build/verify, SQL/DB/locks/carreras/catálogo, conocimiento y supervisión NO EJECUTADOS. Mantener los28T04 sin ejecutar y baseline80/41,14hallazgos/A-B abiertos. M1 prueba27 sólo7394/supervisión INCOMPLETA; I2fuente5c65/52nuevos NOEJ. RPC/M8/M9 pendientes, no aplicadas0496/0497. Deuda fuera de estas cuatro rutas: logs legados de callers con prefijo “no creado” reconocido enCORE§6.4; no prueba de ausencia ni permiso de editarlos.
+
+Entrega de revisión: cuatro copias finales/diff/manifest externo en0573-I3A-autoria-local-01 con padre/tree/6345entradas y6341otrasidénticas. Guardado documental propio realizado; integración, Graphify/Archify/semántica/Obsidian NO EJECUTADOS y pendientes por turno retenido. PR320DRAFT publicado sigue5c65/basee834 hasta revisión/GO de respaldo exactoI3. Sin push/PRedit/main/ready/merge/deploy/DB; Writer quieto tras checkpoint, claim/turno RETENIDOS y UNKNOWN21908/recibos intactos.
