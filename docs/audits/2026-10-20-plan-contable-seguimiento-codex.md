@@ -1,10 +1,12 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 22 de octubre de 2026, 12:32 a. m. (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 22 de octubre de 2026, 12:54 a. m. (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
 **Último avance comprobado, sin nuevo hito publicado:**
 
+- [x] Completar la **revisión del ejecutor local04**: quince archivos sellados, dieciséis entradas SQL y veintitrés referencias anteriores sin diferencias. La lectura encontró ajustes de arranque, comprobación del montaje y recuperación del cierre. Se asignó la corrección05 al mismo Worker, sólo en sus archivos de preparación; la versión04 y los originales se conservan. **Es revisión de fuente; no se inició PostgreSQL ni se observaron esos fallos en ejecución.**
+- [x] Ordenar los pendientes del CORE sin confundirlos con pruebas por ejecutar: la revisión de fuente identifica una reparación del cruce T03 y de su diagnóstico M7, el comentario M6 y la implementación de protección del Libro Diario UI/B1. Su detalle y posible ampliación de tres fixtures se preparan por separado; **no se amplió todavía la allowlist ni se acredita que esos cambios estén implementados.**
 - [x] Delimitar y revisar los ajustes de pruebas de **I3-B** antes de modificarlas: conservar las semillas históricas y los veinte mutantes, separar la protección inmediata de las restricciones nativas y comprobar por separado el cierre de períodos y la auditoría. Se autorizó sólo esa ampliación dentro de las mismas ocho rutas; no se ha ejecutado SQL ni se acredita todavía su resultado.
 - [x] Recibir y cotejar la primera versión fija **I3-B, `cfa71fbc`**, con sólo ocho rutas autorizadas. Director comprobó treinta archivos de evidencia, ocho fuentes y siete preimágenes, sin diferencias; las 6.338 entradas restantes del árbol son idénticas. Su revisión encontró tres ajustes, corregidos y comprobados en la versión siguiente. La primera versión y su evidencia se conservan. La PR #320 sigue en borrador con `46e5fd6e`, comprobado a las 11:46 p. m.
 - [x] Corregir y revisar **los tres P2** en la nueva candidata local **`89213003`**, hija directa de `cfa71fbc`: valores reales por defecto, nueve dependencias del control previo y distinción entre ausencia de motivo y ausencia de registro. Director, dos revisiones independientes y Director general revisaron la fuente; **32 archivos de evidencia, ocho fuentes y ocho preimágenes sin diferencias**, sólo ocho rutas y 6.338 entradas restantes idénticas. No se publica todavía esta candidata.
