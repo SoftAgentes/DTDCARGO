@@ -4,7 +4,7 @@ title: "Importación documental, borrador compartido y calculadora puerta a puer
 status: in-progress
 author: "Codex"
 created: 2026-09-16
-updated: 2026-10-21
+updated: 2026-10-22
 supersedes: null
 superseded_by: null
 related: ["0468"]
@@ -814,3 +814,41 @@ actuales, PDF escaneado, WeChat/chino humano/CJK producción siguen pendientes. 
 Hashes y originales fueraGit en pdf-import-optin-e060/ y handoff propio. Las cinco TS de la
 etapa y siete runtime/test pins quedan intactos; tres docs cambian por autorización, por lo
 que no se afirma que los15 pins anteriores sigan todos idénticos después de este hijo.
+
+## Propuesta 2026-10-22 · Lector GLM · Primera entrega documental
+
+La instrucción humana `01a16397-1de2-7b91-b6ac-9d8d80331447`, leída en el chat Packing,
+pide PDF/Excel del proveedor → propuesta Packing List + Factura en el portal DTD, con GLM.
+Esta continuación reutiliza SDD-0473; 0468 sigue siendo la presentación relacionada.
+No sustituye los resultados históricos ni declara terminada la importación real.
+
+Nueva sesión escritora `01a1639b-cd99-7921-ac27-5d218d0a1516`, owner
+`worker-packing-glm-01a1639b-cd99-7921-ac27-5d218d0a1516`, rama
+`codex/packing-glm-encargo-20261022`, worktree hermano `DTD-worktrees/packing-glm-encargo-20261022`.
+Base inmutable `d42b42de94aa09222b67f342451b2e3cf573e3d4`, árbol
+`2a7e4b742e021d5280732b1040972ec0a3993569`. No se adopta la rama/árbol del Worker anterior.
+
+La autorización vigente de esta fase comprende únicamente estas tres rutas documentales:
+
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/glm-encargo-20261022.md`
+- `.agents/handoffs/0473-glm-encargo-20261022.md`
+
+El [paquete de encargo](glm-encargo-20261022.md) contiene la allowlist de producto **propuesta,
+no habilitada**, contratos oficiales, diseño, pruebas y decisiones pendientes del Director.
+No se reserva otro SDD ni se ejecuta el gestor de numeración. Inventario Git focal: 349 refs,
+247 commits distintos y 91 worktrees; una sola carpeta para 0473 y otra para 0468, sin cambios
+sin commit detectados en esas specs al corte. No acredita disponibilidad global de otros IDs.
+
+La autoría de producto espera asignación concreta del Director sobre este paquete. Las pruebas,
+instalaciones, servidores y llamadas GLM esperan su GO propio con checkpoint/receta/entorno;
+ningún GO anterior permanece abierto. PR319 continúa OPEN/DRAFT en d42. Publicación remota,
+integración, migraciones, flags y producción no están autorizadas. No hay clave ni modelo TEST.
+
+Contrato propuesto: Excel determinista primero; PDF digital/escaneado mediante OCR documental
+GLM y estructuración validada, sin asumir equivalencia con Anthropic. Campos desconocidos quedan
+pendientes; peso neto se conserva separado del bruto y por grupo. Revisión → aplicación explícita
+por cliente → revisión/confirmación por proveedor → PDF/etiquetas conserva sus autoridades.
+El DTO d42 todavía no admite peso neto; su ampliación y la del aviso de privacidad forman parte
+de la propuesta y no de una implementación entregada. El detalle y el handoff distinguen evidencia
+de fuente, dobles, futura lectura real y aceptación de extremo a extremo.
