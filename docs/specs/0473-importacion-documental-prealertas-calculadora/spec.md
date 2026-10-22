@@ -852,3 +852,34 @@ por cliente → revisión/confirmación por proveedor → PDF/etiquetas conserva
 El DTO d42 todavía no admite peso neto; su ampliación y la del aviso de privacidad forman parte
 de la propuesta y no de una implementación entregada. El detalle y el handoff distinguen evidencia
 de fuente, dobles, futura lectura real y aceptación de extremo a extremo.
+
+### Anexo de coordinación 2026-10-22 · Alcance humano y configuración TEST
+
+Sam instruyó en esta sesión entregar el paquete al Director, coordinar la implementación GLM y
+mantener **la misma PR319, sin merge ni producción**. Se entregó el checkpoint documental
+`4b45fca00e0b1b031636d4684b2f5227b7775c54`, árbol
+`6cd0093fc76b8d4fa37af2416bb7913a3adfccee`, hijo directo de d42. El Director acusó recibo y
+revisó el paquete; todavía no ha adoptado la allowlist propuesta de 43 rutas ni habilitado producto.
+
+El General comunicó haber verificado en Packing los mensajes humanos
+`01a163a9-53c3-7ad2-b544-c96fb30223a0` (ERP y portal de DTD Cargo) y
+`01a163aa-3ca2-7871-8ccf-ff16b86c7ca6` (ubicación segura de API GLM y prueba PDF/Excel hasta
+confirmación/etiquetas). Esta evidencia delegada resuelve la referencia a «Contífico»: no hay
+integración con un ERP externo. No repetir esa pregunta ni solicitar Anthropic.
+
+Por coordinación posterior, Packing es el único owner del archivo externo a Git
+`C:/Users/AKX generator/.config/dtdcargo/document-import-glm.test.env`. Reportó su creación con
+los nombres `DOCUMENT_IMPORT_GLM_API_KEY` y `DOCUMENT_IMPORT_GLM_MODEL` inicialmente vacíos,
+y permisos restringidos. Este Worker no abrió, leyó, creó, modificó ni inspeccionó permisos de ese
+archivo o su carpeta; existencia, estado inicial y ACL son evidencia reportada por el Director,
+no verificación propia. La orden posterior sustituyó el encargo inicial de crear una plantilla.
+
+La configuración corresponde al banco TEST futuro: no existe todavía el cargador GLM, llenar
+el archivo no activa una llamada ni acredita funcionamiento. Clase de cuenta, modelo habilitado,
+límites, costo y parser siguen pendientes de resolución. El Director Packing solicita al usuario
+la confirmación y clase de plataforma por su canal; no se duplica la pregunta ni se pide el secreto.
+La [propuesta de carga explícita y sus límites](glm-encargo-20261022.md#11-coordinación-posterior-y-carga-test-propuesta)
+queda sólo documentada. Se conserva la allowlist activa de tres documentos y la restricción de
+runtime, API, instalaciones y pruebas hasta la asignación y el GO correspondientes. Publicar el
+head de PR319 requiere decisión explícita de SHA/owner; no se ejecutó push. UI/B1 conserva la
+prioridad de ejecución pesada comunicada por el General en esta coordinación.

@@ -424,3 +424,90 @@ por chat. Ninguno de esos pendientes impide entregar y revisar ahora este paquet
 Impacto documental guardado en la spec, este paquete y el handoff propio. Integración, índice,
 Graphify, Archify y Obsidian siguen separados y pendientes. La bóveda compartida sólo podrá
 publicarse desde main integrado comprobado, nunca desde esta propuesta.
+
+## 11. Coordinación posterior y carga TEST propuesta
+
+Este anexo actualiza los pendientes de la primera entrega sin modificar su evidencia fechada.
+Sam pidió directamente entregar el paquete al Director y coordinar el alcance para implementar
+GLM, conservando **PR319, sin merge ni producción**. El General recibió y revisó el checkpoint
+`4b45fca00e0b1b031636d4684b2f5227b7775c54`, árbol
+`6cd0093fc76b8d4fa37af2416bb7913a3adfccee`, hijo directo de d42. La lista de 43 rutas sigue
+siendo propuesta: no hay todavía autoría de producto, instalación, runtime o llamada real habilitada.
+
+### Aclaración del objetivo y ownership de configuración
+
+El General informó haber leído en Packing los mensajes humanos
+`01a163a9-53c3-7ad2-b544-c96fb30223a0` y `01a163aa-3ca2-7871-8ccf-ff16b86c7ca6`.
+El primero precisa **ERP y portal de DTD Cargo**; la referencia previa a «Contífico» queda resuelta
+sin integración externa. El segundo pide una ubicación segura para configurar GLM y recorrer
+PDF/Excel → revisión → aplicación → proveedor → confirmación → PDF/etiquetas, sin merge ni
+producción. Esta precisión procede de evidencia humana verificada por el General; este Worker
+no volvió a leer esos dos mensajes. No se solicita otra aprobación genérica para implementar.
+
+El General asignó primero una plantilla local sin secretos y luego corrigió la coordinación:
+**Packing ya creó el archivo y es su único owner operativo**. La instrucción posterior sustituye
+la creación/inspección previstas; este Worker no toca el archivo ni la carpeta. Destino único:
+
+`C:/Users/AKX generator/.config/dtdcargo/document-import-glm.test.env`
+
+Según el recibo del General, se creó con dos nombres, inicialmente sin valores:
+
+- `DOCUMENT_IMPORT_GLM_API_KEY`
+- `DOCUMENT_IMPORT_GLM_MODEL`
+
+También reportó ACL restringida. Son datos de coordinación, no una inspección propia del archivo
+ni de sus permisos. No se conoce, valida o publica aquí ningún valor actual. No copiar el archivo
+al repositorio/worktree, abrir otros `.env`, imprimirlo, versionarlo ni modificar su ACL. El
+usuario introduce el secreto localmente; Packing centraliza la confirmación de configuración y
+clase de plataforma. Este Worker no duplica la pregunta ni pide claves por chat.
+
+Los demás nombres de §5 conservan su carácter propuesto para un futuro runner. La clase de
+cuenta no se deduce de una suscripción: `zai-standard` sigue siendo una propuesta de perfil,
+no una elección confirmada. Modelo habilitado, endpoint admitido, límites y costo no se infieren
+del archivo. No se amplía ahora la plantilla, no se activa `QA_PDF_EXTRACTION_ENABLED` y no se
+introduce un fallback a Anthropic.
+
+### Carga explícita propuesta para el banco futuro — no implementada
+
+1. El General asigna primero rutas, parser/dependencias, perfil de cuenta, modelos y límites.
+   Antes de ejecutar fija SHA/árbol, receta, entorno aislado, muestra ficticia, presupuesto y GO
+   nuevo. La carga no forma parte del arranque normal del portal ni de las demos 4320/4321.
+2. Un runner TEST del servidor acepta ese destino explícito; no descubre archivos por directorios,
+   no autoimporta `.env` de ROOT/Packing/worktrees y no usa un endpoint aportado por el documento.
+   Su implementación deberá mantener `envFile: false` y separar la configuración del navegador.
+3. Antes de importar el extractor, el runner construye la configuración del proceso aislado con
+   sólo los dos nombres permitidos del archivo y los parámetros no secretos del perfil revisado.
+   No carga ni mezcla credenciales heredadas, no añade propiedades `NEXT_PUBLIC_*` y no serializa
+   el entorno a capabilities, respuestas, bundler, mensajes de error, logs o artefactos.
+4. Perfil y modelo sin confirmar, archivo/campo ausente, parser no preparado o presupuesto sin
+   adoptar producen indisponibilidad clara antes de cualquier petición. Los nombres completos
+   `DOCUMENT_IMPORT_GLM_TIMEOUT_MS`, `DOCUMENT_IMPORT_GLM_MAX_INPUT_TOKENS`,
+   `DOCUMENT_IMPORT_GLM_MAX_OUTPUT_TOKENS` y `DOCUMENT_IMPORT_GLM_MAX_OCR_PAGES_PER_DAY`
+   siguen pendientes; no asumir los límites históricos de Anthropic ni valores monetarios.
+5. Configurar o cargar el archivo no ejecuta OCR, inferencia, tokenización ni otra prueba de red.
+   El caso real requiere opt-in separado, GO vigente y acción explícita sobre la muestra acordada.
+   El runner usa un puerto libre independiente >=4322, sin proxy, reinicio o tráfico a 4320/4321.
+6. La evidencia pública del runner se limita a estado sanitizado, perfil efectivo y límites
+   aprobados; los recibos de prueba distinguen dobles, GLM real, revisión humana y confirmación.
+   Nunca acreditan extracción por valores rellenados manualmente o por la mera presencia de una key.
+
+Esta receta es una propuesta documental, no un script, cargador o permiso de ejecución. No se
+añadieron dependencias, comandos de inicio, endpoints ni configuración al producto. El General
+mantiene pendientes la allowlist de producto y el parser, presupuestos y privacidad del proveedor.
+UI/B1 conserva la prioridad de pesada comunicada en esta coordinación; no hay reserva GLM abierta.
+
+### Estado de esta continuación
+
+| Comprobación | Evidencia y límite |
+|---|---|
+| Entrega al General | PASÓ: mensaje autorizado por Sam, checkpoint fijo y respuesta recibida. |
+| Aclaración ERP/portal | RESUELTA por el mensaje humano verificado y comunicado por el General. |
+| Archivo TEST y ACL | REPORTADOS por Packing/General; inspección propia NO EJECUTADA por coordinación. |
+| Clave, clase de cuenta y modelos habilitados | NO VERIFICADOS por este Worker; no se leyeron valores. |
+| Cargador/autoría de producto | NO EJECUTADO; sólo propuesta y actualización de tres documentos. |
+| API, pruebas, instalaciones, servidores y aceptación visible | NO EJECUTADO; sin consumo de inferencia de esta sesión. |
+| PR319 | Única PR indicada por Sam; publicación de SHA/owner aún pendiente, sin push ni PR nueva. |
+
+El siguiente checkpoint es documental y descendiente de 4b45, sin amend. Guard/claim y revisión
+del diff se registran en su entrega; el SHA resultante se comunica fuera del propio commit. Se
+preservan la base d42, las demos previas, ramas/worktrees ajenos, flags, datos y producción.
