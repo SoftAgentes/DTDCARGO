@@ -433,3 +433,100 @@ Se registra sin corregir producto, cambiar el sondeo o agregar un décimo caso e
 Hijo documental autorizado de fd0eeada, sin amend, limitado a esta spec y
 `.agents/handoffs/0473-portal-confirmacion-20261021.md`; los cuatro blobs de código/pruebas se
 conservan exactamente. Sin ejecución, push, actualización remota/PR ni cambios en la demo.
+
+## Etapa B · PDF confirmado y etiquetas · 2026-10-21 · Sólo fuente
+
+Orden directa de Sam, asignada por el Director de Packing; Director general notificado.
+Misma rama/worktree/owner y PR #319, base de autoría `53965778c7acf4671d241d1fe3c88d24549f0b20`.
+Objetivo: descargar PDF real del Packing List + Factura y de las etiquetas confirmadas desde los
+mismos datos y códigos físicos, sin reemplazar impresión o legacy. No modifica SQL/RPC/warehouse.
+
+Contrato aditivo: GET `action=pdf`, `surface=packing-list|labels`, `workspaceId`, `expectedRevision`.
+Autorización actual y gate getDocumentLabels antes de renderizar; nueva comprobación después del
+render. Una revisión obsoleta produce 409 y ningún PDF. Respuesta application/pdf privada/no-store.
+download(workspaceId, options?) conserva XLSX cuando no hay opciones. Botones PDF gestionados se
+bloquean al editar/guardar, con cambios locales o revisión no confirmada. Error recuperable en UI.
+PDF con compra/revisión/folio/versión, productos y códigos primero; cantidades/importes por
+asignación al grupo, logística una sola vez por grupo, totales una sola vez. No incluye fuentes
+privadas, identidad del cliente ni códigos inventados. Las etiquetas vienen únicamente del gate.
+
+CJK exige DOCUMENT_IMPORT_PDF_CJK_FONT_PATH explícita del servidor. Sin ruta válida/fuente/glyphs,
+503 pdf_font_unavailable; no sustituir ni omitir caracteres silenciosamente. Sólo la futura prueba
+local podrá usar Deng existente sin copiarla. No hay fallback Windows ni fuente redistribuida;
+portabilidad del servidor sigue pendiente. Se usan renderer/qrcode ya instalados, sin dependencias.
+
+Allowlist exacta ÚNICA de B (17 rutas):
+
+- `.env.example`
+- `lib/studio/document-import/pdf.tsx`
+- `lib/studio/document-import/pdf.test.tsx`
+- `lib/studio/document-import/http.ts`
+- `lib/studio/document-import/http.test.ts`
+- `components/document-import/document-client.ts`
+- `components/document-import/document-client.test.ts`
+- `app/p/[token]/SharedSupplierDocument.tsx`
+- `app/p/[token]/SharedSupplierDocument.test.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/LabelsClient.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/LabelsClient.test.tsx`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/vite.config.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/pdf-proxy.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/pdf-proxy.test.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/README.md`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-portal-confirmacion-20261021.md`
+
+La fixture prepara interceptor PDF SSR en 4321 sobre el backend existente 4320. No nuevo 4322,
+no reinicio/reset ahora. PDF de entrada sin IA conserva el fallo recuperable real. El caso previsto
+mixto tiene 10 cajas/220 pcs/USD340; corregir grupo A a 52 kg/.28 y revisar el declarado .66 permite
+confirmar 130 kg/.70, sin esconder discrepancias. QR: payload/destino/código verificables;
+decodificación de píxeles/escaneo físico pendientes, no acreditados por generar QR.
+
+Secuencia autorizada de B: hasta 45 minutos de autoría/inspección y pruebas escritas SIN EJECUTAR,
+checkpoint local selectivo, revisión del diff por Director antes de publicar. Sin redes, render,
+tests, tipos/lint, verify, instalaciones, servidores ni reinicio de demo hasta GO runtime específico
+del Director general. La ventana PACKING9 cerrada no se reutiliza. Las evidencias anteriores sólo
+acreditan sus SHAs/casos. FRM-01/ERR-01/LOD-01/IA-01: intención de cumplimiento por fuente;
+validación ejecutable de B y aceptación pendientes. Sin merge, despliegue, migraciones ni producción.
+
+### Autoría B preparada para checkpoint · Sin runtime
+
+Se escribieron el renderer cerrado, puerta HTTP y proxy de fixture, transporte compatible con
+XLSX y las dos acciones PDF en proveedor/portal. HTTP reautoriza workspace/tenant/compra y relee
+revisión/submission/códigos tras renderizar; la fixture relee sus dos recursos de autoridad. Ninguno
+envía el buffer si cambian. El modelo usa cantidades asignadas e importes de sus líneas con el
+redondeo del exportador XLSX; logística una vez por grupo. El documento largo conserva filas con
+salto de página automático; su inspección real permanece pendiente, no inferida de JSX.
+
+Fuente CJK obligatoria: se comprueban archivo, glyphs y flags de embedding noEmbedding,
+noSubsetting y bitmapOnly. No acredita licencia ni disponibilidad del servidor de producción.
+Wordmark usa ArchivoBlack local con DTD vino/Cargo tinta; latinas y paleta existentes. Los PDF
+contienen sólo supplier.company/contact/email/wechat/phone/address/city, productos, grupos,
+Shipping Mark, compra/revisión/folio/versión y códigos permitidos; no sources, identidad cliente,
+tokens, nombres de originales o rutas del servidor. Finalidad: salida de la compra confirmada;
+acceso: los actores que ya autoriza el workspace. Retención del archivo descargado y permisos
+reales de producción NO VERIFICABLES en esta demo; no se amplía una auditoría legal ni DB.
+
+Se escribieron49 instancias B en seis archivos, seleccionables por `-t 'SDD-0473 B'`:
+pdf.test.tsx12, http.test.ts9, document-client.test.ts5, SharedSupplierDocument.test.tsx10,
+LabelsClient.test.tsx5, pdf-proxy.test.ts8. Todas **NO EJECUTADAS**. Tres renders reales requieren
+fuente explícita; incluyen60 productos únicos y manifest externo si TEST_OUTPUT_DIR está
+configurado. La futura revisión de páginas,60 códigos, QR por píxeles y PDF descargados del portal
+es distinta de esos tests sintéticos. El README fija comando, procedencia y presupuesto propuesto
+de480s ejecución +60s cierre, una pasada sin retry, sujeto a ventana específica del Director general.
+No discovery, parser, render, instalación, prueba o servidor se ejecutó para esta etapa.
+
+La futura actualización requiere reinicio autorizado únicamente de4321, conservando4320/SQL.
+FontPath se proporciona explícitamente al iniciar. Vite fija origen de QR de GUI/PDF al loopback
+de QA_PORT: en4321 es http://127.0.0.1:4321 con c/n/b; no acredita trazabilidad pública en producción.
+PDF entrada/IA, licencia/portabilidad CJK, paginación e inspección visual, QR digital/físico,
+chino operativo/WeChat, tipos/lint/verify y aceptación permanecen pendientes. La evidencia
+histórica b25/PACKING9 no se presenta como validación de B. Sin publicación hasta revisar el diff.
+
+Contrato de acciones B (BTN-01): download-packing-pdf/download-labels-pdf, verbo Descargar,
+salida archivo de la revisión confirmada, rol secundario ghost, riesgo R2 de exportación dentro
+del flujo R3 de identidad/revisión. Permanencia/fricción destructivas no aplican: lectura sin
+mutación DB ni emisión nueva. Permiso workspace autorizado; precondiciones doble gate, sin
+cambios locales/producto abierto/guardado en curso. HTML button type=button, estado Preparando…
+y aria-busy, error persistente503/409, afterSuccess=stay. No se anuncia recepción/impresión
+completada por disparar una descarga. No se agrega audit de negocio: no cambia documento,
+revisión ni códigos; auditoría/retención de exportaciones de producción no se acredita aquí.

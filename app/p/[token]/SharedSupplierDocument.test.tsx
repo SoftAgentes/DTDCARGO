@@ -26,6 +26,40 @@ beforeEach(()=>{vi.spyOn(window,"print").mockImplementation(()=>{});vi.stubGloba
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();delete document.documentElement.dataset.printSurface;});
 
 describe("proveedor del documento compartido",()=>{
+  describe("descarga PDF SDD-0473 B proveedor",()=>{
+    beforeEach(()=>{const BaseURL=URL;vi.stubGlobal("URL",class extends BaseURL{static createObjectURL=vi.fn(()=>"blob:synthetic-pdf");static revokeObjectURL=vi.fn();});vi.spyOn(HTMLAnchorElement.prototype,"click").mockImplementation(()=>{});});
+    const confirmed=()=>{const w=fixture(120);w.confirmedRevision=w.revision;return w;};
+    it.each(["packing-list","labels"] as const)("descarga %s sólo con revisión confirmada, sin invocar impresión",async(surface)=>{
+      const {client}=setup(confirmed());await ready();vi.mocked(client.download).mockResolvedValue(new Blob(["%PDF-test"],{type:"application/pdf"}));
+      fireEvent.click(screen.getByRole("button",{name:surface==="labels"?"Descargar etiquetas PDF":"Descargar documento PDF"}));
+      await waitFor(()=>expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledOnce());expect(client.download).toHaveBeenCalledWith(fixture().id,{format:"pdf",surface,expectedRevision:1});expect(window.print).not.toHaveBeenCalled();
+    });
+    it("fuente503 conserva el documento y ofrece impresión, sin descargar un blob",async()=>{
+      const {client}=setup(confirmed());await ready();vi.mocked(client.download).mockRejectedValue(new DocumentRequestError(503,"pdf_font_unavailable",""));fireEvent.click(screen.getByRole("button",{name:"Descargar documento PDF"}));
+      await screen.findByText(/El PDF no está disponible en este momento/);expect(URL.createObjectURL).not.toHaveBeenCalled();expect(screen.getByRole("button",{name:"Imprimir documento"})).toBeEnabled();step(1);expect(screen.getByRole("textbox",{name:"Empresa"})).toHaveValue("Proveedor sintético");
+    });
+    it.each(["zh","en"] as const)("fuente503 explica la recuperación en %s sin filtrar rutas",async(locale)=>{
+      const w=confirmed(),view=setup(w);await ready();view.rerender(<SharedSupplierDocument initialWorkspace={w} token="test-only" code={code} markbox="DTD-0000" locale={locale} brand={resolveBrand(null)} client={view.client}/>);
+      vi.mocked(view.client.download).mockRejectedValue(new DocumentRequestError(503,"pdf_font_unavailable","C:/PRIVATE/font.ttf"));fireEvent.click(screen.getByRole("button",{name:locale==="zh"?"下载文件 PDF":"Download document PDF"}));await screen.findByText(locale==="zh"?/暂时无法下载 PDF/:/The PDF is currently unavailable/);expect(screen.queryByText(/PRIVATE/)).not.toBeInTheDocument();expect(URL.createObjectURL).not.toHaveBeenCalled();
+    });
+    it("409 conserva datos y exige comparar sin descargar PDF anterior",async()=>{
+      const {client}=setup(confirmed());await ready();vi.mocked(client.download).mockRejectedValue(new DocumentRequestError(409,"revision_conflict",""));fireEvent.click(screen.getByRole("button",{name:"Descargar etiquetas PDF"}));
+      await screen.findByText(/No descargamos el PDF anterior/);expect(URL.createObjectURL).not.toHaveBeenCalled();expect(screen.getByRole("button",{name:"Comparar versión compartida"})).toBeVisible();expect(screen.getByRole("button",{name:"Descargar documento PDF"})).toBeDisabled();
+    });
+    it("bloquea ambas descargas mientras se obtiene un PDF",async()=>{
+      let resolve!:(blob:Blob)=>void;const response=new Promise<Blob>(done=>{resolve=done;});const {client}=setup(confirmed());await ready();vi.mocked(client.download).mockReturnValue(response);
+      fireEvent.click(screen.getByRole("button",{name:"Descargar documento PDF"}));expect(screen.getByRole("button",{name:"Preparando documento PDF…"})).toBeDisabled();expect(screen.getByRole("button",{name:"Descargar etiquetas PDF"})).toBeDisabled();resolve(new Blob(["%PDF-test"]));await waitFor(()=>expect(URL.createObjectURL).toHaveBeenCalledOnce());
+    });
+    it("desmontar durante descarga impide entregar el blob de la compra anterior",async()=>{
+      let resolve!:(blob:Blob)=>void;const response=new Promise<Blob>(done=>{resolve=done;});const view=setup(confirmed());await ready();vi.mocked(view.client.download).mockReturnValue(response);fireEvent.click(screen.getByRole("button",{name:"Descargar documento PDF"}));view.unmount();resolve(new Blob(["%PDF-old"]));await response;expect(URL.createObjectURL).not.toHaveBeenCalled();
+    });
+    it("sin confirmar o con cambios locales no ofrece descargar un PDF final",async()=>{
+      const {client}=setup();await ready();step(4);expect(screen.queryByRole("button",{name:"Descargar documento PDF"})).not.toBeInTheDocument();step(1);fireEvent.change(screen.getByRole("textbox",{name:"Empresa"}),{target:{value:"Cambio sin guardar"}});step(4);expect(screen.queryByRole("button",{name:"Descargar etiquetas PDF"})).not.toBeInTheDocument();expect(client.download).not.toHaveBeenCalled();
+    });
+    it("producto abierto impide volver a acciones PDF sin aceptar la edición",async()=>{
+      const {client}=setup(confirmed());await ready();step(2);fireEvent.click(screen.getByRole("button",{name:"Editar Vasos"}));step(4);expect(screen.getByRole("textbox",{name:"Producto"})).toHaveValue("Vasos");expect(screen.queryByRole("button",{name:"Descargar documento PDF"})).not.toBeInTheDocument();expect(client.download).not.toHaveBeenCalled();
+    });
+  });
   it("reabre confirmados en el recibo y permite ver códigos sin imprimir",async()=>{
     const w=fixture(120);w.revision=3;w.confirmedRevision=3;setup(w);await ready();
     expect(screen.getByRole("heading",{name:"Despacho confirmado"})).toBeVisible();fireEvent.click(screen.getByRole("button",{name:"Ver etiquetas"}));

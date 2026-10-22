@@ -407,3 +407,126 @@ Sin pruebas, tipos, lint, verify, build, E2E, UI, navegador, SQL, instalaciones,
 censo/procesos, runtime nuevo, push ni actualización remota/PR. Sin tocar demo 4320/4321, main,
 merge o producción. El SHA hijo, SHA256 de ambos documentos y blob IDs idénticos se entregan al
 Director para cotejo previo a cualquier respaldo autorizado en la misma PR #319 DRAFT.
+
+## Etapa B · PDF real confirmado · Autoría sin ejecución · 2026-10-21
+
+Sam autorizó aceptación con Excel/PDF de muestra y PDF final/etiquetas. Director de Packing asignó
+B de fuente y notificó al Director general. Worker owner `worker-packing-portal-20261021`, misma
+rama/worktree/PR #319, inicio limpio comprobado en `53965778c7acf4671d241d1fe3c88d24549f0b20`.
+Guard y claim propios adquiridos sin desplazar owner. Autoría iniciada 2026-10-22T03:37:46Z;
+presupuesto máximo 45 minutos. No runtime autorizado en esta etapa.
+
+Allowlist exacta: las 17 rutas de «Etapa B» en SDD-0473: .env.example; pdf.tsx/pdf.test.tsx,
+http.ts/http.test.ts de lib/studio/document-import; document-client.ts/document-client.test.ts;
+SharedSupplierDocument.tsx/test; LabelsClient.tsx/test; qa/portal-confirmacion/vite.config.ts,
+pdf-proxy.ts/pdf-proxy.test.ts/README.md; spec0473 y este handoff. No autoriza otras rutas.
+
+Contrato previsto: GET action=pdf, surface=packing-list|labels, expectedRevision. Autorización
+actual, getDocumentLabels antes de render y comprobación posterior;409 sin bytes si cambió.
+download(options?) conserva XLSX sin opciones. Botones gestionados, legacy/impresión intactos.
+Producto/código primero; cantidad/importe asignados al grupo, logística una vez por grupo y totales
+una vez. Revisión/folio/versión y códigos físicos vigentes; sin identidad cliente o fuentes privadas.
+CJK explícito DOCUMENT_IMPORT_PDF_CJK_FONT_PATH,503 recuperable si falta/inválida o no cubre texto;
+no fallback Windows/copia de fuente ni omisión silenciosa. Deng sólo en futura prueba local admitida;
+portabilidad/servidor pendiente. Renderer/qrcode existentes; sin dependencias nuevas.
+
+Fixture: interceptor SSR en4321 lee4320 existente. No4322, no reiniciar4320/4321 ni reset ahora.
+PDF entrada sin IA mantiene fallo recuperable real. Muestra mixta prevista:10cajas/220pcs/USD340;
+A52kg/.28 +B78kg/.42 =130kg/.70; revisar también el declarado .66 antes de confirmar.
+Payload/destino/código QR separados de escaneo físico/decodificación de imagen pendientes.
+
+Sólo se escriben fuente/pruebas/docs. Prohibidos tests/render/tipos/lint/verify/instalaciones,
+redes/servidores/suites hasta GO runtime específico del Director general. PACKING9 está cerrada,
+no reutilizable; sus nueve aprobadas no acreditan B. Checkpoint local selectivo permitido;
+publicación espera revisión del Director. No SQL/RPC/CORE/warehouse/calculadora, secretos/PII,
+otras sesiones, agentes, merge, producción o migraciones.
+
+### Cierre de fuente B para revisión del checkpoint
+
+**OBJETIVO ORIGINAL:** descargar un PDF real del Packing List + Factura confirmado y otro de sus
+etiquetas vigentes, conservando impresión, XLSX, contratos/códigos/QR y el estado de la demo.
+
+**COMPLETADO POR FUENTE:** renderer server-only con modelo cerrado; endpoint aditivo autorizado
+con doble gate/relectura y no-store; transporte download(options?) sin romper XLSX; dos acciones
+compactas junto a las actuales, apiladas en móvil, zh/es/en en proveedor; error503 recuperable
+que conserva datos/impresión y409 que evita el blob antiguo y exige comparar/cargar la revisión.
+Se comprueba montaje antes de entregar una descarga que terminó tarde. La impresión legacy no
+se reemplaza. La fixture prepara interceptor SSR en4321 sobre HTTP4320, sin nueva base/códigos.
+
+El PDF usa cantidades por asignación y sumas de las mismas líneas, con redondeo del exportador
+XLSX; cajas/peso/CBM se cuentan una vez por grupo. Revisión/folio/versión y códigos vienen de la
+autoridad. Se revalida también el cambio de códigos físicos durante render aunque siga la misma
+revisión. Las fuentes latinas y ArchivoBlack locales, con DTD vino/Cargo tinta, usan la marca
+vigente. CJK sólo por ruta explícita: archivo/glyphs y flags de embedding verificados en código;
+no ruta Windows, descarga, copia ni sustitución silenciosa. El audit de la fuente omite su ruta
+y marca explícitamente que licencia/portabilidad no están certificadas.
+
+**PROYECCIÓN Y PRIVACIDAD ACOTADAS:** supplier.company/contact/email/wechat/phone/address/city,
+productos/grupos, Shipping Mark, referencia de compra, revisión/folio/versión y códigos físicos.
+Finalidad: documento de la compra confirmada. Acceso por autorización actual del workspace,
+incluido token limitado de proveedor; se reautoriza tras render. Se excluyen sources, identidad
+del cliente, originales privados, tokens y rutas de fuente. CORRECTO por lectura en
+lib/studio/document-import/pdf.tsx:28 (buildConfirmedPdfModel) y http.ts:55 (action=pdf); regresiones
+de proyección/tenant/compra escritas, NO EJECUTADAS. Retención real de las descargas, configuración
+del servidor, licencia de fuentes y permisos de producción NO VERIFICABLES en esta demo. No se
+consultaron filas reales ni se alteraron políticas. Esta revisión técnica no es asesoría legal.
+
+**VALIDACIÓN B:**49 instancias nuevas escritas, todas **NO EJECUTADAS**. Distribución por fuente:
+modelo/renderer12, HTTP9, transporte5, proveedor10, portal5, proxy8; filtro `SDD-0473 B` en esos
+seis archivos. Tres instancias necesitan fuente explícita y producen PDF real: corto, etiquetas
+y60 productos únicos. Sólo si DOCUMENT_IMPORT_PDF_TEST_OUTPUT_DIR está configurado se guardan
+PDF/manifest/audit fueraGit. Manifest largo contiene60 códigos y checkpoints inicial/medio/final;
+su existencia no acredita inspección de páginas/líneas. Datos de tests (precios2/.75/2) no sustituyen
+la aceptación del portal con la muestra de precios1.5/.5/3, aunque ambas sumenUSD340.
+
+Los casos cubren mezclas, asignaciones, declarado.66/.70, privacidad y diez códigos; puertaHTTP
+privada/tenant/compra, cambios de revisión/códigos durante render, fuente ausente/inválida y CJK
+sin glyphs; transporte que rechaza HTML falso; UI pendiente/no confirmado/dirty/producto abierto,
+desmontaje,503 y409 sin descarga; proxy sólo loopback y doble lectura. No se ejecutaron render,
+tests, discovery, tipos, lint, verify, build, E2E, UI, navegador, SQL, redes, instalación ni nuevos
+servidores. Guard/claim y revisión estática de Git sí autorizados; diff-check y SHA se entregan
+al Director tras crear el checkpoint local. b25 y nueve PACKING9 siguen como evidencia histórica
+limitada a sus SHAs/casos y no validan B. No se modifica ese historial.
+
+**READY PROPUESTO, NO ADMITIDO:** una corrida de49 con CLI instalada directa, maxWorkers1,
+sin file parallelism, filtro y seis archivos del README;480s ejecución +60s cierre y sin retry.
+Fuente CJK explícita y directorio externo asignados por Director; stdout/stderr originales,
+JSON, exit nativo y recibo antes de concluir. Tipos/lint/verify y aceptaciónUI requieren ventana
+específica. PACKING9 está cerrada; no se reutiliza ni se inicia reloj por esta propuesta.
+
+**COMMITS / PR / BRANCH:** checkpoint local selectivo con padre53965778c7acf4671d241d1fe3c88d24549f0b20,
+misma rama/PR319. Sin push ni actualización remota antes de revisión del Director. Las17 rutas
+de la allowlistB son el único delta autorizado; las38 históricas se conservan sin reclasificarlas.
+
+**PENDIENTES DE ESTA TAREA:** revisión fija del checkpoint; ventana de ejecución, inspección de
+PDF corto/largo y diez QR desde los PDF descargados por UI; aceptación con muestrasA4; error de
+entradaPDF sin Anthropic como fallo recuperable; chino/WeChat y escaneo/papel físico pendientes.
+Portabilidad/servidor/licencia CJK y despliegue no verificados. Para cargarB se necesita reiniciar
+sólo4321 con fuente explícita al inicio y backend4320, conservando estadoSQL. No se reinició ni
+inspeccionó ningún proceso ni se alteró la demo. GUI y PDF comparten labelVerifyUrl; Vite define
+origen QR loopback segúnQA_PORT (4321 esperado http://127.0.0.1:4321) con c/n/b. Esa autoridad
+no acredita trazabilidad web pública de producción. No abrir producción para validarla.
+
+**FUERA DE ALCANCE DETECTADO:** se conserva el residual preexistente de GET superpuestos entre
+rondas y todos los pendientes operativos anteriores. Sin SQL/RPC/warehouse/envíos nuevos.
+
+**HANDOFF AL DIRECTOR:** cotejar diff/SHA fijo, asignar ventana antes de runtime y mantener la
+distinción entre PDFs sintéticos de test y descargas de aceptación. Impacto documental guardado
+en spec/README/handoff propios. Graphify/Archify/Obsidian y pnpm knowledge:status NO EJECUTADOS
+por el límite expreso de esta autoría; no se publican derivados. Worker libera claim al cerrar
+la escritura y conserva worktree/rama y los procesos4320/4321. Sin merge, producción o migración.
+
+**REVISIÓN NORMATIVA ESTÁTICA B:** superficie portal/proveedor, documento compartido, riesgo R3
+de identidad/revisión heredado; descarga R2 de datos autorizados. BTN-01 v1.1 / LOD-01 v1.0:
+cumplimiento POR FUENTE del verbo Descargar, variantes ghost, type=button, Preparando…/aria-busy,
+bloqueo de repetición y contrato de acciones de la spec. ERR-01 v1.0: recuperación503/409 sin
+borrar los datos ni filtrar rutas/tokens, evidencia en SharedSupplierDocument.tsx/LabelsClient.tsx
+y puerta HTTP. CMP-01 v1.1: no aplica promoción/reemplazo de componente; no nuevo consumidor
+deprecated. VIS-01/BRAND: paleta/fuentes locales oficiales por lectura; VIS-02 v1.0: CJK local
+configurable es adaptación técnica autorizada para esta prueba, no certificación Noto/servidor
+de producción. IA-01: no aplica generación/lectura IA nueva enB; el fallo de entradaPDF sigue
+pendiente de aceptación. React: renderer pesado sólo servidor/dynamicimport HTTP, fontloads
+independientes en Promise.all, rutas de descarga con cleanup de montaje y blobs revocados.
+No se ejecutó validate-governance, UI-check ni ningún validator por el límite expreso de fuente;
+las clasificaciones no equivalen a conformidad visual/funcional o aprobación de integración.
+Guard y git diff --check PASARON; el SHA fijo se entrega por el canal del Director sin recursión.

@@ -52,6 +52,24 @@ export async function documentImportRequest(req:NextRequest) {
       const actor=await authorizeWorkspace(admin,session,w,req.headers);
       if(action==="workspace")return NextResponse.json({workspace:projectWorkspace(w,actor)},{headers});
       if(action==="labels")return NextResponse.json(await getDocumentLabels(admin,w,Number(req.nextUrl.searchParams.get("expectedRevision")??NaN)),{headers});
+      if(action==="pdf") {
+        const {parsePdfSurface,renderConfirmedDocumentPdf}=await import("./pdf");
+        const surface=parsePdfSurface(req.nextUrl.searchParams.get("surface"));
+        const expected=Number(req.nextUrl.searchParams.get("expectedRevision")??NaN);
+        const gate=await getDocumentLabels(admin,w,expected);
+        const {data:p,error}=await admin.from("prealertas").select("code,client_markbox").eq("id",w.prealerta_id).eq("tenant_id",w.tenant_id).is("deleted_at",null).maybeSingle();
+        if(error||!p)throw new ImportHttpError(404,"not_found","Compra no disponible.");
+        const draft=projectWorkspace(w,actor).draft;
+        const {bytes}=await renderConfirmedDocumentPdf({draft,markbox:p.client_markbox,code:p.code,revision:expected,folio:gate.folio,versionNo:gate.versionNo,labels:gate.labels},surface);
+        // Rendering may take time. Re-read the authoritative row, not the request's snapshot.
+        const latest=await getWorkspace(admin,w.id);
+        await authorizeWorkspace(admin,session,latest,req.headers);
+        if(latest.confirmed_submission_id!==w.confirmed_submission_id)throw new ImportHttpError(409,"revision_conflict","El documento cambió. Carga la revisión vigente antes de descargar.");
+        const current=await getDocumentLabels(admin,latest,expected);
+        if(current.folio!==gate.folio||current.versionNo!==gate.versionNo||JSON.stringify(current.labels)!==JSON.stringify(gate.labels))throw new ImportHttpError(409,"revision_conflict","Las etiquetas cambiaron. Carga la revisión vigente antes de descargar.");
+        const name=`${surface==="labels"?"Etiquetas":"PackingList"}-${p.code.replace(/[^a-z0-9-]/gi,"_")}-Rev${expected}.pdf`;
+        return new NextResponse(bytes as BodyInit,{headers:{...headers,"Content-Type":"application/pdf","Content-Disposition":`attachment; filename="${name}"`}});
+      }
       if(action==="job") {
         if(actor.kind==="supplier")throw new ImportHttpError(403,"not_allowed","Los archivos originales son privados.");
         const {data,error}=await admin.from("document_import_jobs").select("id,status,result,error_code").eq("id",req.nextUrl.searchParams.get("jobId")).eq("workspace_id",w.id).maybeSingle();

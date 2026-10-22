@@ -4,6 +4,7 @@ export type DocumentLocale = "zh" | "es" | "en";
 export const documentText = (locale: DocumentLocale, zh: string, es: string, en: string) => locale === "zh" ? zh : locale === "en" ? en : es;
 export type DocumentWorkspace = { id: string; revision: number; draft: DocumentDraft; confirmedRevision: number | null; expiresAt: string | null };
 export type DocumentReceipt = { revision: number; confirmed: boolean; folio?: string; versionNo?: number; submissionId?: string };
+export type DocumentDownloadOptions = { format:"pdf"; surface:"packing-list"|"labels"; expectedRevision:number };
 export class DocumentRequestError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); this.name = "DocumentRequestError"; }
 }
@@ -11,7 +12,7 @@ export type DocumentClient = {
   get<T>(action: string, params?: Record<string, string>): Promise<T>;
   post<T>(action: string, body?: Record<string, unknown>): Promise<T>;
   upload(url: string, file: File, contentType: string): Promise<void>;
-  download(workspaceId: string): Promise<Blob>;
+  download(workspaceId: string, options?: DocumentDownloadOptions): Promise<Blob>;
   setAnonymousToken(token: string): void;
   id(): string;
 };
@@ -40,7 +41,13 @@ export function createDocumentClient({ baseUrl = "", supplierToken, request = fe
       catch { throw new DocumentRequestError(0, "upload_unconfirmed", "La recepción del archivo no está confirmada."); }
       if (!result.ok) throw new DocumentRequestError(result.status, "upload_failed", "No pudimos recibir el archivo.");
     },
-    download: async workspaceId => (await response("export", { workspaceId })).blob(),
+    download: async (workspaceId,options) => {
+      const result=await response(options?"pdf":"export",options?{workspaceId,surface:options.surface,expectedRevision:String(options.expectedRevision)}:{workspaceId});
+      if(options && result.headers.get("content-type")?.split(";")[0].trim().toLowerCase()!=="application/pdf")throw new DocumentRequestError(0,"invalid_pdf_response","No pudimos comprobar el PDF. Conserva tus datos y vuelve a intentarlo.");
+      const blob=await result.blob();
+      if(options && await blob.slice(0,5).text()!=="%PDF-")throw new DocumentRequestError(0,"invalid_pdf_response","No pudimos comprobar el PDF. Conserva tus datos y vuelve a intentarlo.");
+      return blob;
+    },
     setAnonymousToken: token => { anonymousToken = token; },
     id: () => crypto.randomUUID(),
   };

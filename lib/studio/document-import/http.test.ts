@@ -28,6 +28,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest";
 import { NextRequest } from "next/server";
 import { emptyDocumentDraft, type DocumentDraft } from "@/lib/shared/document-import";
+import { ImportHttpError } from "./access";
 
 const h = vi.hoisted(() => {
   type Reply = { data?: unknown; error?: unknown };
@@ -67,6 +68,7 @@ const h = vi.hoisted(() => {
     getEstimateRates: vi.fn(),
     estimateForRequest: vi.fn(),
     exportDocument: vi.fn(),
+    renderPdf: vi.fn(),
   };
 });
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => h.admin }));
@@ -84,6 +86,7 @@ vi.mock("./estimate", () => ({ getEstimateRates: h.getEstimateRates, estimateFor
 // El armado del xlsx se prueba en su propia suite; aquí importa QUÉ sello y qué
 // identidad le entrega esta puerta, porque eso es lo que el proveedor lee.
 vi.mock("./export", () => ({ exportDocument: h.exportDocument }));
+vi.mock("./pdf",()=>({renderConfirmedDocumentPdf:h.renderPdf,parsePdfSurface:(value:string|null)=>{if(value!=="packing-list"&&value!=="labels")throw new ImportHttpError(400,"invalid_pdf_surface","Elige documento o etiquetas.");return value;}}));
 
 import { documentImportRequest, options } from "./http";
 import * as route from "@/app/api/document-import/route";
@@ -136,6 +139,14 @@ function request(init: Init = {}): NextRequest {
 const call = (init: Init = {}) => documentImportRequest(request(init));
 const post = (body: unknown, init: Init = {}) => call({ method: "POST", origin: SITE, body: JSON.stringify(body), ...init });
 
+function pdfReady() {
+  const d=draft();d.supplier.wechat="demo";d.groups=[{id:"g1",label:"1",cartons:1,grossWeightKg:2,cbm:0.05,items:[{productId:"p1",quantity:10}]}];
+  const w=workspace({draft:d,revision:4,confirmed_revision:4,confirmed_submission_id:"submission"});h.getWorkspace.mockResolvedValue(w);
+  h.state.admin.prealertas={data:{code:"DTD-C-1",client_markbox:MARKBOX}};h.state.admin.packing_list_submissions={data:{folio:"PL-TEST",version_no:1}};
+  h.state.admin.document_group_boxes={data:[{box_id:"box"}]};h.state.admin.warehouse_boxes={data:[{id:"box",code:"DTD-B-000001",seq:1}]};h.state.admin.document_workspaces={data:{revision:4,confirmed_revision:4,confirmed_submission_id:"submission"}};
+  return {w,headers:asSupplier(),query:{action:"pdf",surface:"packing-list",workspaceId:WORKSPACE_ID,expectedRevision:"4"}};
+}
+
 let logged: MockInstance<(...args: unknown[]) => void>;
 beforeEach(() => {
   vi.clearAllMocks();
@@ -148,11 +159,39 @@ beforeEach(() => {
   vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "true");
   vi.stubEnv("DOCUMENT_IMPORT_RATE_SECRET", "s".repeat(48));
   h.getWorkspace.mockResolvedValue(workspace());
+  h.renderPdf.mockResolvedValue({bytes:new TextEncoder().encode("%PDF-synthetic-renderer-contract")});
   logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 afterEach(() => { logged.mockRestore(); vi.unstubAllEnvs(); });
 
 describe("Puerta HTTP de importación documental", () => {
+  describe("PDF confirmado SDD-0473 B HTTP",()=>{
+    it.each(["packing-list","labels"])("sirve %s privado con compra y revisión protegidas",async(surface)=>{
+      const {headers,query}=pdfReady();const res=await call({headers,query:{...query,surface}});expect(res.status).toBe(200);expect(res.headers.get("content-type")).toBe("application/pdf");expect(res.headers.get("cache-control")).toBe("private, no-store");expect(res.headers.get("content-disposition")).toContain("Rev4.pdf");
+      expect(h.renderPdf).toHaveBeenCalledWith(expect.objectContaining({markbox:MARKBOX,code:"DTD-C-1",revision:4,folio:"PL-TEST",versionNo:1,labels:[expect.objectContaining({boxCode:"DTD-B-000001"})]}),surface);
+      expect(h.renderPdf.mock.calls[0][0].draft.sources).toEqual([]);expect(h.getWorkspace).toHaveBeenCalledTimes(2);
+    });
+    it("cambiar la revisión durante el render devuelve409, nunca bytes PDF",async()=>{
+      const {headers,query,w}=pdfReady();h.renderPdf.mockImplementationOnce(async()=>{h.getWorkspace.mockResolvedValue({...w,revision:5,confirmed_revision:4});return {bytes:new TextEncoder().encode("%PDF-stale")};});
+      const res=await call({headers,query});expect(res.status).toBe(409);expect(res.headers.get("content-type")).toContain("application/json");expect(await res.json()).toMatchObject({code:"revision_conflict"});
+    });
+    it("sin revisión confirmada rechaza antes del renderer",async()=>{
+      const {headers,query,w}=pdfReady();h.getWorkspace.mockResolvedValue({...w,confirmed_revision:null});expect((await call({headers,query})).status).toBe(409);expect(h.renderPdf).not.toHaveBeenCalled();
+    });
+    it.each(["compra","tenant"])("otro %s no puede usar PDF aunque conozca workspace/revisión",async(scope)=>{
+      const {headers,query}=pdfReady();h.tokenIds.mockResolvedValue({prealertaId:scope==="compra"?"other":PURCHASE_ID,tenantId:scope==="tenant"?"other":TENANT_ID,markbox:MARKBOX});expect((await call({headers,query})).status).toBe(404);expect(h.renderPdf).not.toHaveBeenCalled();
+    });
+    it("códigos físicos que cambian durante el render invalidan el PDF aun con la misma revisión",async()=>{
+      const {headers,query}=pdfReady();h.renderPdf.mockImplementationOnce(async()=>{h.state.admin.warehouse_boxes={data:[{id:"box",code:"DTD-B-000002",seq:1}]};return {bytes:new TextEncoder().encode("%PDF-old-code")};});
+      const res=await call({headers,query});expect(res.status).toBe(409);expect(res.headers.get("content-type")).toContain("application/json");expect(await res.json()).toMatchObject({code:"revision_conflict"});
+    });
+    it("fuente no disponible mantiene503 recuperable y respuesta privada",async()=>{
+      const {headers,query}=pdfReady();h.renderPdf.mockRejectedValueOnce(new ImportHttpError(503,"pdf_font_unavailable","Falta una fuente compatible. Puedes usar la impresión existente."));const res=await call({headers,query});expect(res.status).toBe(503);expect(res.headers.get("cache-control")).toBe("private, no-store");expect(await res.json()).toMatchObject({code:"pdf_font_unavailable"});
+    });
+    it("superficie no permitida se rechaza sin renderizar",async()=>{
+      const {headers,query}=pdfReady();expect((await call({headers,query:{...query,surface:"secret"}})).status).toBe(400);expect(h.renderPdf).not.toHaveBeenCalled();
+    });
+  });
   it("las etiquetas exigen el token de esta compra y la revisión confirmada solicitada",async()=>{
     const d=draft();d.supplier.wechat="demo";d.groups=[{id:"g1",label:"1",cartons:1,grossWeightKg:2,cbm:0.05,items:[{productId:"p1",quantity:10}]}];
     h.getWorkspace.mockResolvedValue(workspace({draft:d,revision:4,confirmed_revision:4,confirmed_submission_id:"submission"}));
