@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createDemoDatabase, IDS, QA_CASES } from "./database";
 import { getWorkspace, applyImport, saveWorkspace, getDocumentLabels } from "@/lib/studio/document-import/service";
-import { emptyDocumentDraft, projectSupplierDocument, computeDocumentTotals, sameDocumentCargo } from "@/lib/shared/document-import";
+import { emptyDocumentDraft, parseDocumentDraft, projectSupplierDocument, computeDocumentTotals, sameDocumentCargo } from "@/lib/shared/document-import";
 import { estimateDocuments } from "@/lib/studio/document-import/estimate";
 import { QA_RATE_SNAPSHOT } from "./server";
 
@@ -60,9 +60,13 @@ describe("S3 fictitious PGlite uses real apply, save, confirm and calculator", (
       expect(() => estimateDocuments([latest], { cityId: "maracaibo" }, QA_RATE_SNAPSHOT.rates)).toThrow(/declaración de baterías y carga regulada/);
       // The supplier editor supports these two declarations. A human reviews the
       // authoritative changed cargo, then saves declarations only in a NEW revision.
-      const reviewed = projectSupplierDocument(latest.draft as typeof draft);
+      const canonical = parseDocumentDraft(latest.draft);
+      const reviewed = projectSupplierDocument(canonical);
+      expect(reviewed.products).toEqual((latest.draft as typeof draft).products);
+      expect(reviewed.groups).toEqual((latest.draft as typeof draft).groups);
+      expect(reviewed.declaredTotals).toEqual((latest.draft as typeof draft).declaredTotals);
       reviewed.transportDeclarations = { battery: false, specialCargo: false };
-      expect(sameDocumentCargo(latest.draft as typeof draft, reviewed)).toBe(true);
+      expect(sameDocumentCargo(canonical, reviewed)).toBe(true);
       const declarationCommandId = randomUUID();
       expect(declarationCommandId).not.toBe(logisticsCommandId);
       const declared = await saveWorkspace(database.db, latest, supplier, { draft: reviewed, expectedRevision: latest.revision, commandId: declarationCommandId });
