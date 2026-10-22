@@ -105,6 +105,8 @@ export function documentStatusLabel(status: JobStatus, locale: DocumentLocale): 
 export function documentErrorLabel(code: string, locale: DocumentLocale): string {
   const t = (zh: string, es: string, en: string) => documentText(locale, zh, es, en);
   const known: Record<string, string> = {
+    qa_glm_context_conflict: t("已有读取结果属于其他版本或采购。请保留数据并请求核对。", "La lectura conocida pertenece a otro contexto o revisión. Conserva tus datos y solicita revisar el documento; no se envió de nuevo.", "The known reading belongs to a different context or revision. Keep your data and request a review; it was not sent again."),
+    qa_glm_dispatch_blocked: t("此前的发送需要核对，不会自动重发。可手动填写。", "Un envío anterior requiere revisión del registro. No lo reenviamos automáticamente; puedes completar los datos a mano.", "A previous dispatch requires ledger review. It is not resent automatically; you can enter the data manually."),
     legacy_xls: t(
       "请将 XLS 另存为 XLSX 或 PDF 后再导入。",
       "Guarda el XLS como XLSX o PDF para importarlo. El original puede quedar como adjunto.",
@@ -213,6 +215,7 @@ function DocumentImportSession({
   const [busy, setBusy] = useState(false);
   const sending = useRef(false);
   const [disclosure, setDisclosure] = useState<string | null>(extractionDisclosure ?? null);
+  const [formats, setFormats] = useState(["xlsx", "csv", "pdf"]);
 
   // Inicializador perezoso en vez de un ref: crea el transporte UNA sola vez sin
   // leer `.current` durante el render, que es lo que React desaconseja.
@@ -225,8 +228,9 @@ function DocumentImportSession({
   useEffect(() => {
     if (extractionDisclosure) return;
     let current = true;
-    transport.get<{ extractionDisclosure?: string }>("capabilities").then(result => {
+    transport.get<{ extractionDisclosure?: string; formats?: string[] }>("capabilities").then(result => {
       if (current && typeof result.extractionDisclosure === "string" && result.extractionDisclosure.length <= 400) setDisclosure(result.extractionDisclosure);
+      if (current && Array.isArray(result.formats) && result.formats.length>0 && result.formats.length<=3 && result.formats.every(format=>["xlsx","csv","pdf"].includes(format)) && new Set(result.formats).size===result.formats.length) setFormats(result.formats);
     }).catch(() => { if (current) setDisclosure(null); });
     return () => { current = false; };
   }, [transport, extractionDisclosure]);
@@ -287,7 +291,7 @@ function DocumentImportSession({
       "uploaded",
       { workspaceId: target.id, jobId: reserved.jobId },
     );
-    patch(entry.requestKey, { status: finished.status });
+    patch(entry.requestKey, { jobId: finished.jobId, status: finished.status });
   }
 
   async function add(files: FileList | File[]) {
@@ -481,7 +485,7 @@ function DocumentImportSession({
           id={`${uid}-file`}
           type="file"
           multiple
-          accept={ACCEPT}
+          accept={formats.map(format=>"."+format).join(",") || ACCEPT}
           disabled={busy}
           onChange={(e) => {
             if (e.target.files?.length) void add(e.target.files);
@@ -496,9 +500,7 @@ function DocumentImportSession({
           {t("选择文件", "Elegir archivos", "Choose files")}
         </button>
         <p className={s.chips} aria-label={t("支持的格式", "Formatos admitidos", "Supported formats")}>
-          <span className={s.chip}>XLSX</span>
-          <span className={s.chip}>CSV</span>
-          <span className={s.chip}>PDF</span>
+          {formats.map(format=><span key={format} className={s.chip}>{format.toUpperCase()}</span>)}
           <span className={s.chip}>15 MB</span>
         </p>
         <p className={s.muted}>

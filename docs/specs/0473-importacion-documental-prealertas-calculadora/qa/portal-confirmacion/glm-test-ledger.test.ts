@@ -17,6 +17,27 @@ async function ledger(root?: string, goId = "synthetic-go-01") {
 afterEach(async () => { for (const l of ledgers.splice(0)) await l.close(); for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true }); });
 
 describe("S3 durable global ledger with fictitious isolated roots", () => {
+  it("recovers a completed result across instances only for exact SHA/profile/origin revision with zero new dispatch",async()=>{
+    const first=await ledger(),key={sha256:usage().sha256,profile:"c".repeat(64),context:"d".repeat(64)},value={draft:"synthetic-completed-value-not-a-GLM-answer"};
+    expect(await first.instance.readCompleted(key,signal())).toBeNull();
+    await first.instance.reserveUsage(usage(),signal());
+    for(const stage of ["ocr","tokenizer","chat"] as const){await first.instance.tokenization.beforeDispatch(dispatch(stage),signal());await first.instance.tokenization.received(dispatch(stage),signal());}
+    await first.instance.tokenization.observeUsage({tokenizer:1000,chat:1200,difference:200,outputTokens:100,ocr:null},signal());
+    await first.instance.writeCompleted(key,value,signal());await first.instance.close();
+    const before=await readFile(path.join(first.root,"global-dispatches.jsonl"),"utf8"),second=await ledger(first.root);
+    expect(await second.instance.readCompleted(key,signal())).toEqual(value);
+    await expect(second.instance.readCompleted({...key,context:"e".repeat(64)},signal())).rejects.toMatchObject({code:"qa_glm_context_conflict"});
+    await expect(second.instance.readCompleted({...key,profile:"f".repeat(64)},signal())).rejects.toMatchObject({code:"qa_glm_context_conflict"});
+    await expect(second.instance.reserveUsage(usage("new-job"),signal())).rejects.toMatchObject({code:"qa_glm_dispatch_blocked"});
+    expect(await readFile(path.join(first.root,"global-dispatches.jsonl"),"utf8")).toBe(before);
+  });
+  it("never recovers an incomplete or truncated result as a completed cache",async()=>{
+    const first=await ledger(),key={sha256:usage().sha256,profile:"c".repeat(64),context:"d".repeat(64)};
+    await first.instance.reserveUsage(usage(),signal());await first.instance.tokenization.beforeDispatch(dispatch("ocr"),signal());await first.instance.close();
+    const second=await ledger(first.root);await expect(second.instance.readCompleted(key,signal())).rejects.toMatchObject({code:"qa_glm_dispatch_blocked"});
+    await writeFile(path.join(first.root,"global-dispatches.jsonl"),'{"truncated":');
+    await expect(second.instance.readCompleted(key,signal())).rejects.toMatchObject({code:"qa_glm_dispatch_blocked"});
+  });
   it("persists possibly_sent before releasing every stage, caps global dispatches at three", async () => {
     const { instance, root } = await ledger(); await instance.reserveUsage(usage(), signal());
     for (const stage of ["ocr", "tokenizer", "chat"] as const) {

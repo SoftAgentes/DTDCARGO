@@ -318,3 +318,8 @@ de configuración TEST (clave/modelo); no se llamó SDK real ni se llenó a mano
 extracción. El próximo caso debe ser nuevo y preservar el caso anterior confirmado rev3/V1.
 Full pnpm verify/build actual, escaneado, WeChat/chino humano y CJK producción siguen pendientes.
 No merge ni producción. Este cierre no consume otra ventana ni ejecuta pruebas/servicios/UI/IA.
+
+
+### Corrección de la revisión CEF
+
+La hija correctiva conserva case en enlaces/open/etiquetas y no ofrece CSV/reset en GLM. Snapshot local usa guardia SQL atómica por identidad y revisión al insertar. Recuperación completada usa SHA/perfil/contexto: archivo+fence+journal terminal válidos; no desbloquea guardias inciertas ni concede nuevos HTTP. Se devuelve job conocido sólo en contexto válido y nunca se aplica solo. Native XLSX/caché conocida no leen la credencial. Se añadieron pruebas adversariales y render de etiquetas por grupo/neto; ahora seis instancias CJK requieren Deng.ttf explícita en la futura reserva, sin SKIPs ocultos. Todo sigue NO EJECUTADO hasta GO concreto sobre nuevo SHA.

@@ -3,6 +3,19 @@ export type QaExtractionConfig = { readonly pdfEnabled: boolean; readonly glmTes
 export const DISABLED_QA_EXTRACTION: QaExtractionConfig = Object.freeze({ pdfEnabled: false });
 /** Candidate authority root: must be explicitly admitted/provisioned by the later GO. */
 export const GLM_TEST_CANONICAL_LEDGER_ROOT = "C:/Users/AKX generator/.config/dtdcargo/document-import-glm.test-ledger";
+export const QA_CASE_LINKS = Object.freeze({
+  pdf: Object.freeze({ code: "DTD-DEMO-1-1", token: "55555555-5555-4555-8555-555555555555" }),
+  xlsx: Object.freeze({ code: "DTD-DEMO-1-2", token: "77777777-7777-4777-8777-777777777777" }),
+});
+/** Closed fictitious identities, shared by redirects and database; no ordinal inference. */
+export function qaCaseRoute(pathname: string) {
+  for (const [kind, identity] of Object.entries(QA_CASE_LINKS)) {
+    if (pathname === `/p/${identity.token}`) return { kind, page: "supplier" };
+    if (pathname === `/portal/compras/${identity.code}/etiquetas`) return { kind, page: "labels" };
+    if ([`/portal/compras/${identity.code}`, `/portal/compras/${identity.code}/documento`].includes(pathname)) return { kind, page: "client" };
+  }
+  return null;
+}
 
 export class QaExtractionConfigurationError extends Error {
   readonly code = "qa_extraction_configuration";

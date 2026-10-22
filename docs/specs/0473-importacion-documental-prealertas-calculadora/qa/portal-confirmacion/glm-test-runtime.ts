@@ -5,8 +5,12 @@ import { extractWithGlm } from "@/lib/studio/document-import/glm";
 import type { GlmStage } from "@/lib/studio/document-import/glm";
 import { draftFromExtraction } from "@/lib/studio/document-import/draft-from-extraction";
 import { extractDocument, type ExtractionOptions } from "@/lib/studio/document-import/extract";
-import { createTestLedger, type TestLedgerAdmission } from "./glm-test-ledger";
+import { createTestLedger, TestCacheConflict, TestLedgerBlocked, type TestLedgerAdmission } from "./glm-test-ledger";
 import { GLM_TEST_CANONICAL_LEDGER_ROOT } from "./extraction-config";
+import { parseDocumentDraft } from "@/lib/shared/document-import";
+import { isRecord } from "@/lib/studio/document-import/extraction-contract";
+import type { WorkspaceRow } from "@/lib/studio/document-import/access";
+type TestOrigin=Pick<WorkspaceRow,"id"|"tenant_id"|"client_id"|"prealerta_id"|"anonymous_hash"|"revision">;
 
 const PRIVATE_FILE = "C:/Users/AKX generator/.config/dtdcargo/document-import-glm.test.env";
 export const TEST_INPUTS = Object.freeze({
@@ -58,17 +62,36 @@ export async function createGlmTestRuntime(admission: GlmTestAdmission, dependen
 } = {}) {
   if (admission.canonicalRoot !== GLM_TEST_CANONICAL_LEDGER_ROOT || !admission.workspaceIds.pdf || !admission.workspaceIds.xlsx || admission.workspaceIds.pdf === admission.workspaceIds.xlsx) invalid();
   const ledger = await createTestLedger(admission);
-  // No top-level read. The caller must first validate the explicit GO and launch boundary.
-  const configuration = await loadTestGlmConfiguration(dependencies.readCredential);
+  // Native XLSX and known completed cache never require reading a credential.
+  let configuration: ReturnType<typeof loadTestGlmConfiguration> | undefined;
+  const configured=()=>configuration??(configuration=loadTestGlmConfiguration(dependencies.readCredential));
+  const profile=createHash("sha256").update(JSON.stringify({goId:admission.goId,provider:"glm",platform:"zai-standard",model:"glm-4.6",ocr:"glm-ocr",input:16384,output:8192,pages:2})).digest("hex");
   const running = new Set<string>();
+  const contextId=(source:ExtractionOptions,origin:TestOrigin)=>createHash("sha256").update(JSON.stringify({profile,origin:{id:origin.id,tenant:origin.tenant_id,client:origin.client_id,purchase:origin.prealerta_id,anonymous:origin.anonymous_hash,revision:origin.revision},kind:source.kind,fileName:source.fileName})).digest("hex");
   const receipts = new Map<string, Pick<Awaited<ReturnType<typeof extractWithGlm>>, "attemptId" | "provider" | "usage">>();
-  const extract = async (bytes: Uint8Array, options: ExtractionOptions, workspaceId: string, stage?: (stage: GlmStage) => void) => {
+  const extract = async (bytes: Uint8Array, options: ExtractionOptions, origin:TestOrigin, stage?: (stage: GlmStage) => void) => {
+    const workspaceId=origin.id,revision=origin.revision;
     const kind = admitTestInput(bytes, options.fileName);
-    if (workspaceId !== admission.workspaceIds[kind] || running.has(workspaceId)) invalid();
+    if (workspaceId !== admission.workspaceIds[kind] || running.has(workspaceId) || !Number.isInteger(revision) || revision<0) invalid();
     running.add(workspaceId);
     try {
       return await extractDocument(bytes, options, { nativeOnly: true, pdf: async (pdf, source) => {
-        const result = await extractWithGlm({ type: "pdf", bytes: pdf }, source, configuration, {
+        const signal=new AbortController().signal;
+        const key={sha256:TEST_INPUTS.pdf.sha256,profile,context:contextId(source,origin)};
+        const known=await ledger.readCompleted(key,signal);
+        if(known!==null){
+          if(!isRecord(known)||!isRecord(known.receipt)||typeof known.receipt.attemptId!=="string"||!/^[a-f0-9-]{36}$/i.test(known.receipt.attemptId)||!isRecord(known.receipt.usage))invalid();
+          const u=known.receipt.usage;
+          const counter=(value:unknown):number=>{if(typeof value!=="number"||!Number.isSafeInteger(value)||value<0)return invalid();return value;};
+          const usage=(value:unknown)=>{if(!isRecord(value))return invalid();return{inputTokens:counter(value.inputTokens),outputTokens:counter(value.outputTokens),totalTokens:counter(value.totalTokens)};};
+          const tokenizer=counter(u.tokenizerInputTokens),chat=usage(u.chat),ocr=u.ocr===null?null:usage(u.ocr);
+          if(tokenizer<1||tokenizer>16384||chat.inputTokens>16384||chat.outputTokens>8192||u.ocrPages!==2||u.reservedTextTokens!==24576||u.tokenizerChatDifference!==chat.inputTokens-tokenizer)invalid();
+          const draft=parseDocumentDraft(known.draft);
+          if(draft.sources.length!==1||draft.sources[0].fileName!==source.fileName||draft.sources[0].kind!==source.kind)invalid();
+          receipts.set(workspaceId,{attemptId:known.receipt.attemptId,provider:{name:"glm",platform:"zai-standard",model:"glm-4.6"},usage:{ocr,chat,ocrPages:2,reservedTextTokens:24576,tokenizerInputTokens:tokenizer,tokenizerChatDifference:chat.inputTokens-tokenizer}});
+          return draft;
+        }
+        const result = await extractWithGlm({ type: "pdf", bytes: pdf }, source, await configured(), {
           fetch: dependencies.fetch, reserveUsage: ledger.reserveUsage, tokenization: { ...ledger.tokenization, async beforeDispatch(request, signal) {
             await ledger.tokenization.beforeDispatch(request, signal); if (!signal.aborted) stage?.(request.stage);
           } },
@@ -86,9 +109,12 @@ export async function createGlmTestRuntime(admission: GlmTestAdmission, dependen
           },
         });
         receipts.set(workspaceId, { attemptId: result.attemptId, provider: result.provider, usage: result.usage });
-        return draftFromExtraction(result.extraction, source);
+        const draft=draftFromExtraction(result.extraction, source);
+        await ledger.writeCompleted(key,{draft,receipt:receipts.get(workspaceId)},signal);
+        return draft;
       } });
     } finally { running.delete(workspaceId); }
   };
-  return Object.freeze({ extract, receipt: (workspaceId: string) => receipts.get(workspaceId) ?? null, close: ledger.close, disclosure: Object.freeze({ provider: "GLM · Z.AI Standard", pdf: "OCR y lectura asistida", spreadsheet: "Lectura nativa sin IA", maxHttp: 3 }) });
+  const failureCode=(error:unknown)=>error instanceof TestCacheConflict||error instanceof TestLedgerBlocked||error instanceof GlmTestConfigurationError?error.code:null;
+  return Object.freeze({ extract, contextId, failureCode, receipt: (workspaceId: string) => receipts.get(workspaceId) ?? null, close: ledger.close, disclosure: Object.freeze({ provider: "GLM · Z.AI Standard", pdf: "OCR y lectura asistida", spreadsheet: "Lectura nativa sin IA", maxHttp: 3 }) });
 }

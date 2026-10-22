@@ -1,10 +1,16 @@
 // @vitest-environment node
 import { describe,expect,it } from "vitest";
-import { configureQaExtraction,QaExtractionConfigurationError,GLM_TEST_CANONICAL_LEDGER_ROOT } from "./extraction-config";
+import { configureQaExtraction,QaExtractionConfigurationError,GLM_TEST_CANONICAL_LEDGER_ROOT,QA_CASE_LINKS,qaCaseRoute } from "./extraction-config";
 
 const configured=()=>({QA_PDF_EXTRACTION_ENABLED:"true",ANTHROPIC_API_KEY:"synthetic-test-key",DOCUMENT_IMPORT_MODEL:"synthetic-model"});
 
 describe("S3 separate Standard GLM launch configuration",()=>{
+  it.each(["pdf","xlsx"] as const)("keeps the exact %s identity in canonical supplier and labels redirects",kind=>{
+    const identity=QA_CASE_LINKS[kind];expect(qaCaseRoute(`/p/${identity.token}`)).toEqual({kind,page:"supplier"});
+    expect(qaCaseRoute(`/portal/compras/${identity.code}/etiquetas`)).toEqual({kind,page:"labels"});
+    expect(qaCaseRoute(`/portal/compras/${identity.code}/documento`)).toEqual({kind,page:"client"});
+    expect(qaCaseRoute(`/portal/compras/${identity.code}-OTHER/etiquetas`)).toBeNull();
+  });
   const env=()=>({QA_GLM_TEST_ENABLED:"true",QA_GLM_TEST_LEDGER_ROOT:GLM_TEST_CANONICAL_LEDGER_ROOT,QA_GLM_TEST_GO:"synthetic-go-01",ANTHROPIC_API_KEY:"must-remove",DOCUMENT_IMPORT_MODEL:"must-remove"});
   it("requires the dedicated backend port and returns only non-secret launch controls",()=>{
     const values=env(), result=configureQaExtraction(values,{port:4323});

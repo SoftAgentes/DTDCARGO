@@ -3,12 +3,15 @@ import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emptyDocumentDraft } from "@/lib/shared/document-import";
+import { QA_CASE_LINKS } from "./extraction-config";
+import type { WorkspaceRow } from "@/lib/studio/document-import/access";
+import { TestCacheConflict } from "./glm-test-ledger";
 
 export const IDS={tenant:"11111111-1111-4111-8111-111111111111",client:"22222222-2222-4222-8222-222222222222",purchase:"33333333-3333-4333-8333-333333333333",user:"44444444-4444-4444-8444-444444444444",token:"55555555-5555-4555-8555-555555555555"};
 export const CODE="DTD-DEMO-1-1";
 export const QA_CASES = Object.freeze({
-  pdf: Object.freeze({ purchase: IDS.purchase, token: IDS.token, code: CODE }),
-  xlsx: Object.freeze({ purchase: "66666666-6666-4666-8666-666666666666", token: "77777777-7777-4777-8777-777777777777", code: "DTD-DEMO-1-2" }),
+  pdf: Object.freeze({ purchase: IDS.purchase, ...QA_CASE_LINKS.pdf }),
+  xlsx: Object.freeze({ purchase: "66666666-6666-4666-8666-666666666666", ...QA_CASE_LINKS.xlsx }),
 });
 export async function createDemoDatabase(root:string, options?:{separateGlmCases?:boolean}) {
   const pg=new PGlite();
@@ -43,10 +46,26 @@ export async function createDemoDatabase(root:string, options?:{separateGlmCases
     const other=await pg.query<{id:string}>("select (create_document_workspace($1,$2,$3,$4::jsonb,null,null,null)).id",[IDS.tenant,IDS.client,QA_CASES.xlsx.purchase,JSON.stringify(draft)]);
     xlsxWorkspaceId=other.rows[0].id;
   }
-  async function storeJob(job:{id:string;workspaceId:string;fileName:string;kind:string;size:number;sha256:string;result?:unknown;errorCode?:string}){
-    if(![workspaceId,xlsxWorkspaceId].includes(job.workspaceId))throw new Error("Unknown fictitious workspace");
-    await pg.query(`insert into document_import_jobs(id,workspace_id,request_key,file_name,file_kind,storage_path,content_type,size_bytes,sha256,status,result,error_code)
-      values($1,$2,$1,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11)`,[job.id,job.workspaceId,job.fileName,job.kind,`qa/${job.workspaceId}/${job.id}`,"application/octet-stream",job.size,job.sha256,job.result?"ready":"failed",job.result?JSON.stringify(job.result):null,job.errorCode??null]);
+  async function storeJob(job:{id:string;workspaceId:string;fileName:string;kind:string;size:number;sha256:string;context:string;result?:unknown;errorCode?:string}){
+    if(![workspaceId,xlsxWorkspaceId].includes(job.workspaceId)||!/^[a-f0-9]{64}$/.test(job.context))throw new Error("Unknown fictitious context");
+    const storagePrefix=`qa/${job.workspaceId}/${job.context}/`;
+    const inserted=await pg.query<{id:string}>(`insert into document_import_jobs(id,workspace_id,request_key,file_name,file_kind,storage_path,content_type,size_bytes,sha256,status,result,error_code)
+      values($1,$2,$1,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11) on conflict do nothing returning id`,[job.id,job.workspaceId,job.fileName,job.kind,storagePrefix+job.id,"application/octet-stream",job.size,job.sha256,job.result?"ready":"failed",job.result?JSON.stringify(job.result):null,job.errorCode??null]);
+    if(inserted.rows[0])return inserted.rows[0].id;
+    const known=await pg.query<{id:string;storage_path:string;file_kind:string;file_name:string}>("select id,storage_path,file_kind,file_name from document_import_jobs where workspace_id=$1 and sha256=$2 and status='ready'",[job.workspaceId,job.sha256]);
+    if(known.rows.length!==1||!known.rows[0].storage_path.startsWith(storagePrefix)||known.rows[0].file_kind!==job.kind||known.rows[0].file_name!==job.fileName)throw new TestCacheConflict();
+    return known.rows[0].id;
+  }
+  /** One SQL statement locks/rechecks the exact owner and revision before insertion. */
+  async function saveEstimateSnapshot(expected:WorkspaceRow,value:{inputs:unknown;rates:unknown;result:unknown}){
+    const result=await pg.query<{id:string}>(`with current_workspace as materialized (
+      select id from document_workspaces where id=$1 and tenant_id is not distinct from $2::uuid
+      and client_id is not distinct from $3::uuid and prealerta_id is not distinct from $4::uuid
+      and anonymous_hash is not distinct from $5::text and revision=$6 for update
+    ) insert into document_estimate_snapshots(tenant_id,client_id,created_by,inputs,rates,result)
+      select $2::uuid,$3::uuid,$7::uuid,$8::jsonb,$9::jsonb,$10::jsonb from current_workspace returning id`,
+      [expected.id,expected.tenant_id,expected.client_id,expected.prealerta_id,expected.anonymous_hash,expected.revision,IDS.user,JSON.stringify(value.inputs),JSON.stringify(value.rates),JSON.stringify(value.result)]);
+    return result.rows[0]?.id??null;
   }
   const ident=(value:string)=>{if(!/^[a-z_][a-z0-9_]*$/.test(value))throw new Error("Invalid SQL identifier");return '"'+value+'"';};
   const from=(table:string)=>{
@@ -56,5 +75,5 @@ export async function createDemoDatabase(root:string, options?:{separateGlmCases
     return chain;
   };
   const db={from,async rpc(name:string,args:Record<string,unknown>){if(name!=="save_document_workspace")throw new Error("Demo RPC unavailable");try{const result=await pg.query<{result:unknown}>("select save_document_workspace($1,$2,$3::jsonb,$4,$5,$6,$7::jsonb) result",[args.p_workspace_id,args.p_expected_revision,JSON.stringify(args.p_draft),args.p_actor_kind,args.p_actor_id,args.p_command_id,args.p_confirmation?JSON.stringify(args.p_confirmation):null]);return {data:result.rows[0].result,error:null};}catch(error){return {data:null,error};}}} as unknown as SupabaseClient;
-  return {pg,db,workspaceId,...(xlsxWorkspaceId?{caseWorkspaces:{pdf:workspaceId,xlsx:xlsxWorkspaceId}}:{}),storeJob};
+  return {pg,db,workspaceId,...(xlsxWorkspaceId?{caseWorkspaces:{pdf:workspaceId,xlsx:xlsxWorkspaceId}}:{}),storeJob,saveEstimateSnapshot};
 }

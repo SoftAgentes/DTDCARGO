@@ -2,7 +2,7 @@ import type { IncomingMessage,ServerResponse } from "node:http";
 import { randomUUID,createHash } from "node:crypto";
 import { createDemoDatabase,IDS,CODE,QA_CASES } from "./database";
 import { parseDocumentDraft,mergeDocuments,projectSupplierDocument,type DocumentDraft,type DocumentKind } from "@/lib/shared/document-import";
-import { DISABLED_QA_EXTRACTION,qaExtractionErrorCode,type QaExtractionConfig } from "./extraction-config";
+import { DISABLED_QA_EXTRACTION,qaExtractionErrorCode,qaCaseRoute,type QaExtractionConfig } from "./extraction-config";
 import type { createGlmTestRuntime } from "./glm-test-runtime";
 import type { estimateDocuments } from "@/lib/studio/document-import/estimate";
 
@@ -28,6 +28,8 @@ export async function demoMiddleware(server:{ssrLoadModule:(path:string)=>Promis
   const exporter=await server.ssrLoadModule("/lib/studio/document-import/export.ts") as typeof import("@/lib/studio/document-import/export");
   return async(req:IncomingMessage,res:ServerResponse,next:()=>void)=>{
     const url=new URL(req.url??"/","http://127.0.0.1");
+    const canonical=glm?qaCaseRoute(url.pathname):null;
+    if(canonical&&req.method==="GET"){res.statusCode=302;res.setHeader("Location",`/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/index.html?page=${canonical.page}&case=${canonical.kind}`);res.end();return;}
     if(url.pathname===`/p/${IDS.token}`&&req.method==="GET"){res.statusCode=302;res.setHeader("Location","/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/index.html?page=supplier");res.end();return;}
     if(!url.pathname.startsWith("/qa/")&&url.pathname!=="/api/document-import")return next();
     res.setHeader("Cache-Control","no-store");
@@ -48,6 +50,7 @@ export async function demoMiddleware(server:{ssrLoadModule:(path:string)=>Promis
       const requestedId=String(body.workspaceId??url.searchParams.get("workspaceId")??(Array.isArray(body.workspaceIds)&&body.workspaceIds.length===1?body.workspaceIds[0]:""));
       const xlsx=glm&&(body.purchaseCode===QA_CASES.xlsx.code||requestedId===database.caseWorkspaces?.xlsx||token===QA_CASES.xlsx.token);
       const targetId=xlsx?database.caseWorkspaces!.xlsx:database.workspaceId;
+      if(glm&&body.purchaseCode!==undefined&&body.purchaseCode!==(xlsx?QA_CASES.xlsx.code:CODE)){json({code:"not_found"},404);return;}
       if(glm&&requestedId&&requestedId!==targetId){json({code:"not_found"},404);return;}
       if(glm&&actor.kind==="supplier"&&((token===QA_CASES.xlsx.token)!==xlsx)){json({code:"not_found"},404);return;}
       if(glm&&actor.kind==="supplier"&&["upload","uploaded","job","apply","estimate","destinations"].includes(action)){json({code:"not_allowed"},403);return;}
@@ -60,8 +63,13 @@ export async function demoMiddleware(server:{ssrLoadModule:(path:string)=>Promis
         const result=estimate!([w],body,QA_RATE_SNAPSHOT.rates);
         const snapshot={id:QA_RATE_SNAPSHOT.id,fictitious:true,digest:createHash("sha256").update(JSON.stringify(QA_RATE_SNAPSHOT)).digest("hex")};
         let savedId:string|undefined;
-        if(body.save===true){const saved=await database.pg.query<{id:string}>("insert into document_estimate_snapshots(tenant_id,client_id,created_by,inputs,rates,result)values($1,$2,$3,$4::jsonb,$5::jsonb,$6::jsonb)returning id",[w.tenant_id,w.client_id,IDS.user,JSON.stringify({workspaceIds:body.workspaceIds,expectedRevisions:body.expectedRevisions,input:result.input}),JSON.stringify({...result.rates,snapshot}),JSON.stringify(result)]);savedId=saved.rows[0].id;}
-        const latest=await service.getWorkspace(database.db,w.id);if(latest.revision!==w.revision){json({code:"revision_conflict"},409);return;}
+        if(body.save===true){
+          const before=await service.getWorkspace(database.db,w.id);
+          if(before.revision!==w.revision||before.tenant_id!==w.tenant_id||before.client_id!==w.client_id||before.prealerta_id!==w.prealerta_id){json({code:"revision_conflict"},409);return;}
+          const id=await database.saveEstimateSnapshot(w,{inputs:{workspaceIds:body.workspaceIds,expectedRevisions:body.expectedRevisions,input:result.input},rates:{...result.rates,snapshot},result});
+          if(!id){json({code:"revision_conflict"},409);return;}savedId=id;
+        }
+        const latest=await service.getWorkspace(database.db,w.id);if(latest.revision!==w.revision||latest.tenant_id!==w.tenant_id||latest.client_id!==w.client_id||latest.prealerta_id!==w.prealerta_id||latest.anonymous_hash!==w.anonymous_hash){json({code:"revision_conflict"},409);return;}
         json({...result,snapshot,...(savedId?{savedId}:{})});return;
       }
       if(action==="open"||action==="workspace"){json({workspace:service.projectWorkspace(w,actor)});return;}
@@ -72,26 +80,29 @@ export async function demoMiddleware(server:{ssrLoadModule:(path:string)=>Promis
         const id=String(body.jobId),job=jobs.get(id);
         if(!job){json({code:"upload_failed"},400);return;}
         if(glm&&job.workspaceId!==w.id){json({code:"not_found"},404);return;}
+        if(glm&&job.revision!==w.revision){json({code:"qa_glm_context_conflict"},409);return;}
         // Reserve synchronously before the first await; duplicate requests never re-extract.
         if(job.status!=="uploading"){json({jobId:id,status:job.status});return;}
         if(!job.bytes){json({code:"upload_failed"},400);return;}
         job.status="processing";
+        let responseId=id;
         try{
           if(job.fileName.toLowerCase().endsWith(".pdf")&&!extraction.pdfEnabled)throw new extractor.DocumentImportError("configuration_missing","La lectura PDF no está habilitada en esta demo.");
           const options={fileName:job.fileName,kind:job.kind,sourceId:id};
-          const result=glm?await glm.extract(job.bytes,options,w.id,stage=>{job.stage=stage;}):await extractor.extractDocument(job.bytes,options);
+          let result=glm?await glm.extract(job.bytes,options,w,stage=>{job.stage=stage;}):await extractor.extractDocument(job.bytes,options);
           if(glm){
             const latest=await service.getWorkspace(database.db,w.id);
-            if(latest.revision!==job.revision||latest.tenant_id!==w.tenant_id||latest.prealerta_id!==w.prealerta_id)throw new Error("Stale extraction");
-            await database.storeJob({id,workspaceId:w.id,fileName:job.fileName,kind:job.kind,size:job.bytes.length,sha256:createHash("sha256").update(job.bytes).digest("hex"),result});
+            if(latest.revision!==job.revision||latest.tenant_id!==w.tenant_id||latest.client_id!==w.client_id||latest.prealerta_id!==w.prealerta_id||latest.anonymous_hash!==w.anonymous_hash)throw new Error("Stale extraction");
+            responseId=await database.storeJob({id,workspaceId:w.id,fileName:job.fileName,kind:job.kind,size:job.bytes.length,sha256:createHash("sha256").update(job.bytes).digest("hex"),context:glm.contextId(options,w),result});
+            if(responseId!==id){const known=jobs.get(responseId);if(!known?.result||known.workspaceId!==w.id||known.revision!==w.revision)throw new Error("Unknown completed job");result=known.result;}
           }
           job.result=result;
           job.status="ready";
-        }catch(error){job.errorCode=qaExtractionErrorCode(error,extractor.DocumentImportError);job.status="failed";}
-        json({jobId:id,status:job.status});return;
+        }catch(error){responseId=id;job.errorCode=glm?.failureCode(error)??qaExtractionErrorCode(error,extractor.DocumentImportError);job.status="failed";}
+        json({jobId:responseId,status:job.status});return;
       }
       if(action==="job"){const job=jobs.get(url.searchParams.get("jobId")??"");if(glm&&job?.workspaceId!==w.id){json({code:"not_found"},404);return;}json({job:{status:job?.status??"failed",result:job?.result??null,errorCode:job?.errorCode??null,...(glm&&job?.stage?{stage:job.stage}:{})}});return;}
-      if(action==="apply"){if(glm){json(await service.applyImport(database.db,w,actor,body));return;}const job=jobs.get(String(body.jobId));if(!job?.result){json({code:"not_found"},404);return;}const merged=mergeDocuments(parseDocumentDraft(w.draft),job.result);json(await service.saveWorkspace(database.db,{...w,draft:merged},actor,{...body,draft:merged}));return;}
+      if(action==="apply"){if(glm){const job=jobs.get(String(body.jobId));if(!job?.result||job.workspaceId!==w.id){json({code:"not_found"},404);return;}if(job.revision!==w.revision){json({code:"qa_glm_context_conflict"},409);return;}json(await service.applyImport(database.db,w,actor,body));return;}const job=jobs.get(String(body.jobId));if(!job?.result){json({code:"not_found"},404);return;}const merged=mergeDocuments(parseDocumentDraft(w.draft),job.result);json(await service.saveWorkspace(database.db,{...w,draft:merged},actor,{...body,draft:merged}));return;}
       if(action==="save"||action==="confirm"){json(await service.saveWorkspace(database.db,w,actor,body,action==="confirm"));return;}
       if(action==="labels"){json(await service.getDocumentLabels(database.db,w,Number(url.searchParams.get("expectedRevision"))));return;}
       if(glm&&action==="pdf"){

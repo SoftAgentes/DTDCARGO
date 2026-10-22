@@ -21,8 +21,9 @@ async function setup(pdfEnabled=false,glmTest=false){
   const other={...workspace,id:"synthetic-xlsx-workspace"};
   const service={getWorkspace:vi.fn(async(_db:unknown,id:string)=>id===other.id?other:workspace),projectWorkspace:vi.fn((w:typeof workspace)=>w),saveWorkspace:vi.fn(),applyImport:vi.fn(async()=>({revision:1}))};
   const extractDocument=vi.fn(async(_bytes:Uint8Array,_options:ExtractionOptions)=>draft);
-  const storeJob=vi.fn(),runtime={extract:vi.fn(async()=>draft),receipt:vi.fn(),close:vi.fn()};
-  database.create.mockResolvedValue({db:{},pg:{close:vi.fn(),query:vi.fn()},workspaceId:workspace.id,storeJob,...(glmTest?{caseWorkspaces:{pdf:workspace.id,xlsx:other.id}}:{})});
+  const storeJob=vi.fn(async(job:{id:string})=>job.id),saveEstimateSnapshot=vi.fn(async():Promise<string|null>=>"synthetic-snapshot");
+  const runtime={extract:vi.fn(async()=>draft),contextId:vi.fn(()=>"f".repeat(64)),failureCode:vi.fn(()=>null),receipt:vi.fn(),close:vi.fn()};
+  database.create.mockResolvedValue({db:{},pg:{close:vi.fn(),query:vi.fn()},workspaceId:workspace.id,storeJob,saveEstimateSnapshot,...(glmTest?{caseWorkspaces:{pdf:workspace.id,xlsx:other.id}}:{})});
   const ssrLoadModule=vi.fn(async(path:string)=>{
     if(path.endsWith("/service.ts"))return service;
     if(path.endsWith("/extract.ts"))return{extractDocument,DocumentImportError:SsrDocumentImportError};
@@ -51,10 +52,30 @@ async function setup(pdfEnabled=false,glmTest=false){
     return jobId;
   }
   const job=(id:string)=>request("GET",`/api/document-import?action=job&jobId=${id}`);
-  return{request,requestStream,post,upload,job,extractDocument,service,draft,runtime,storeJob,workspace,other};
+  return{request,requestStream,post,upload,job,extractDocument,service,draft,runtime,storeJob,saveEstimateSnapshot,workspace,other};
 }
 
 describe("S3 TEST middleware core boundary",()=>{
+  it("opens and redirects the exact XLSX identity and rejects a crossed purchase code",async()=>{
+    const h=await setup(true,true);
+    expect((await h.post({action:"open",purchaseCode:"DTD-DEMO-1-2"})).json()).toMatchObject({workspace:{id:h.other.id}});
+    expect((await h.post({action:"open",purchaseCode:"DTD-DEMO-1-1",workspaceId:h.other.id})).status).toBe(404);
+    expect((await h.post({action:"open",purchaseCode:"UNKNOWN"})).status).toBe(404);
+    const supplier=await h.request("GET","/p/77777777-7777-4777-8777-777777777777");expect(supplier.status).toBe(302);expect(supplier.headers.get("Location")).toContain("page=supplier&case=xlsx");
+    const labels=await h.request("GET","/portal/compras/DTD-DEMO-1-2/etiquetas");expect(labels.status).toBe(302);expect(labels.headers.get("Location")).toContain("page=labels&case=xlsx");
+  });
+  it("returns409 when the atomic estimate insert rejects an intervening revision without a saved receipt",async()=>{
+    const h=await setup(true,true);h.saveEstimateSnapshot.mockImplementationOnce(async()=>{h.workspace.revision++;return null;});
+    const response=await h.post({action:"estimate",workspaceIds:[h.workspace.id],expectedRevisions:[{workspaceId:h.workspace.id,revision:0}],cityId:"maracaibo",save:true});
+    expect(response.status).toBe(409);expect(response.json()).toEqual({code:"revision_conflict"});expect(h.saveEstimateSnapshot).toHaveBeenCalledTimes(1);
+  });
+  it("returns the known job identity for a completed duplicate without applying it automatically",async()=>{
+    const h=await setup(true,true);
+    async function run(){const created=await h.post({action:"upload",fileName:"synthetic.pdf",kind:"combined",sizeBytes:14,workspaceId:h.workspace.id});await h.request("PUT",String(created.json().uploadUrl),Buffer.from("%PDF-synthetic"));return h.post({action:"uploaded",workspaceId:h.workspace.id,jobId:created.json().jobId});}
+    const first=await run(),known=String(first.json().jobId);h.storeJob.mockResolvedValueOnce(known);
+    const duplicate=await run();expect(duplicate.json()).toEqual({jobId:known,status:"ready"});expect(h.service.applyImport).not.toHaveBeenCalled();
+    h.workspace.revision++;expect((await h.post({action:"uploaded",workspaceId:h.workspace.id,jobId:known})).status).toBe(409);
+  });
   it("publishes effective GLM disclosure and both admitted formats without a legacy provider call",async()=>{
     const h=await setup(true,true);expect((await h.request("GET","/api/document-import?action=capabilities")).json()).toMatchObject({formats:["pdf","xlsx"],extractionDisclosure:expect.stringContaining("GLM")});
     expect(h.runtime.extract).not.toHaveBeenCalled();expect(h.extractDocument).not.toHaveBeenCalled();

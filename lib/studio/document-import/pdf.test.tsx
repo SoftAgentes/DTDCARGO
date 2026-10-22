@@ -54,6 +54,24 @@ function expectStaticFontAudit(audit: Awaited<ReturnType<typeof renderConfirmedD
 }
 
 describe("PDF confirmado SDD-0473 B",()=>{
+  it.skipIf(!process.env.DOCUMENT_IMPORT_PDF_CJK_FONT_PATH)("renderiza etiquetas reales con mapping confirmado y logística neta de dos grupos distintos",async()=>{
+    const input=sample();input.draft.groups[0].grossWeightKg=60;input.draft.groups[0].netWeightKg=48;input.draft.groups[0].cbm=0.36;
+    input.draft.groups[1].grossWeightKg=96;input.draft.groups[1].netWeightKg=72;input.draft.groups[1].cbm=0.60;
+    input.draft.declaredTotals.grossWeightKg=156;input.draft.declaredTotals.netWeightKg=120;input.draft.declaredTotals.cbm=0.96;
+    const groupA=new Set(["DTD-B-000001","DTD-B-000003","DTD-B-000006","DTD-B-000010"]);
+    input.boxGroups=input.labels.map(label=>({boxCode:label.boxCode!,groupId:groupA.has(label.boxCode!)?"A":"B"}));
+    const result=await renderConfirmedDocumentPdf(input,"labels");expectStaticFontAudit(result.fontAudit);
+    const pages=measuredPages(),texts=pages.map(measuredText),all=texts.join("");
+    expect(pages).toHaveLength(2);
+    expect(all.split("15 kg bruto · 12 kg neto · 0,09 m³ por caja")).toHaveLength(5);
+    expect(all.split("16 kg bruto · 12 kg neto · 0,1 m³ por caja")).toHaveLength(7);
+    expect(all).not.toMatch(/15,6 kg bruto|0,096 m³ por caja/);
+    for(const label of input.labels)expect(all.split(label.boxCode!)).toHaveLength(2);
+    const output=process.env.DOCUMENT_IMPORT_PDF_TEST_OUTPUT_DIR;if(output){
+      await mkdir(output,{recursive:true});await writeFile(path.join(output,"labels-confirmed-group-logistics.pdf"),result.bytes);
+      await writeFile(path.join(output,"labels-confirmed-group-logistics-manifest.json"),JSON.stringify({provenance:"synthetic-render-regression-not-real-GLM-extraction",pageCount:pages.length,pageTexts:texts,boxGroups:input.boxGroups,physicalCodes:input.labels.map(label=>label.boxCode),visualClippingVerified:false},null,2));
+    }
+  });
   it("incluye neto opcional del grupo y total sin cambiar códigos ni duplicar cajas mixtas",()=>{
     const input=sample(); input.draft.groups[0].netWeightKg=40;input.draft.groups[1].netWeightKg=60;input.draft.declaredTotals.netWeightKg=100;
     const model=buildConfirmedPdfModel(input);expect(model.groups.map(g=>g.netWeightKg)).toEqual([40,60]);expect(model.totals.netWeightKg).toBe(100);

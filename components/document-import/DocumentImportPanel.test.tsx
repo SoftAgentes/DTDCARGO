@@ -148,11 +148,12 @@ describe("DocumentImportPanel (SDD-0473)", () => {
     expect(screen.getByRole("button",{name:"Prefiero llenarlo a mano"})).toBeEnabled();expect(client.upload).not.toHaveBeenCalled();
   });
   it("muestra el proveedor efectivo del servidor antes de habilitar el envío",async()=>{
-    const {client}=cliente();vi.mocked(client.get).mockImplementationOnce(async()=>({extractionDisclosure:"PDF a GLM · Z.AI Standard; Excel nativo sin IA"}) as never);
+    const {client}=cliente();vi.mocked(client.get).mockImplementationOnce(async()=>({extractionDisclosure:"PDF a GLM · Z.AI Standard; Excel nativo sin IA",formats:["pdf","xlsx"]}) as never);
     render(<DocumentImportPanel workspace={WORKSPACE} onWorkspace={vi.fn()} client={client} pollMs={1}/>);
     fireEvent.change(screen.getByLabelText("Elige tus archivos o suéltalos aquí"),{target:{files:[archivo()]}});
     await waitFor(()=>expect(screen.getByRole("button",{name:"Enviar y leer documentos"})).toBeEnabled());
     expect(screen.getByText(/PDF a GLM/)).toBeVisible();expect(client.upload).not.toHaveBeenCalled();
+    expect(screen.queryByText("CSV")).not.toBeInTheDocument();expect(screen.getByLabelText("Elige tus archivos o suéltalos aquí")).toHaveAttribute("accept",".pdf,.xlsx");
   });
   it("recupera la propuesta aunque la recepción idempotente ya llegue en ready",async()=>{
     const {client}=cliente({finishStatus:"ready"});

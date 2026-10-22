@@ -4,7 +4,7 @@ import path from "node:path";
 import react from "@vitejs/plugin-react";
 import tailwind from "@tailwindcss/postcss";
 import type { IncomingMessage,ServerResponse } from "node:http";
-import { configureQaExtraction,QaExtractionConfigurationError } from "./extraction-config";
+import { configureQaExtraction,QaExtractionConfigurationError,qaCaseRoute } from "./extraction-config";
 
 async function main(){
 const require=createRequire(path.join(process.cwd(),"package.json"));
@@ -31,7 +31,7 @@ const server=await createServer({
   plugins:[{
     name:"synthetic-shared-document-local",
     enforce:"pre",
-    configureServer(vite:{middlewares:{use:(callback:(req:IncomingMessage,res:ServerResponse,next:()=>void)=>void)=>void}}){vite.middlewares.use((req,res,next)=>{void(async()=>{if(pdfHandler&&await pdfHandler(req,res))return;const pathname=new URL(req.url??"/","http://127.0.0.1").pathname;const supplier=pathname==="/p/55555555-5555-4555-8555-555555555555";const portal=pathname.startsWith("/portal/compras");if(supplier||portal){res.statusCode=302;res.setHeader("Location","/"+fixture.replace("fixture.tsx","index.html")+"?page="+(supplier?"supplier":pathname.endsWith("/etiquetas")?"labels":"client"));res.end();return;}if(handler)await handler(req,res,next);else next();})().catch(()=>{res.statusCode=503;res.end("Demo unavailable");});});},
+    configureServer(vite:{middlewares:{use:(callback:(req:IncomingMessage,res:ServerResponse,next:()=>void)=>void)=>void}}){vite.middlewares.use((req,res,next)=>{void(async()=>{if(pdfHandler&&await pdfHandler(req,res))return;const pathname=new URL(req.url??"/","http://127.0.0.1").pathname;const canonical=(glmFrontend||extraction.glmTest)?qaCaseRoute(pathname):null;if(canonical){res.statusCode=302;res.setHeader("Location","/"+fixture.replace("fixture.tsx","index.html")+`?page=${canonical.page}&case=${canonical.kind}`);res.end();return;}const supplier=pathname==="/p/55555555-5555-4555-8555-555555555555";const portal=pathname.startsWith("/portal/compras");if(!(glmFrontend||extraction.glmTest)&&(supplier||portal)){res.statusCode=302;res.setHeader("Location","/"+fixture.replace("fixture.tsx","index.html")+"?page="+(supplier?"supplier":pathname.endsWith("/etiquetas")?"labels":"client"));res.end();return;}if(handler)await handler(req,res,next);else next();})().catch(()=>{res.statusCode=503;res.end("Demo unavailable");});});},
     transform(code:string,id:string){if(id.replaceAll("\\","/").endsWith("/app/globals.css"))return code.replace('@import "tailwindcss";','@import "tailwindcss" source(none);\n@source "../components/document-import";\n@source "../app/p/[token]";\n@source "../app/portal";\n@source "../docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion";');},
     resolveId(id:string){if(["next/navigation","next/link","next/image"].includes(id))return "\0local-demo:"+id;},
     load(id:string){if(id==="\0local-demo:next/navigation")return "export const useRouter=()=>({refresh(){},push(url){location.href=url}});";if(id==="\0local-demo:next/link")return "import React from 'react';export default function Link({children,...props}){return React.createElement('a',props,children)}";if(id==="\0local-demo:next/image")return "import React from 'react';export default function Image({fill,priority,unoptimized,...props}){return React.createElement('img',props)}";},
