@@ -183,6 +183,42 @@ no equivale a CI aprobado. Merge/deploy/flags sin autorización.
 - Activación comercial, calculadora, decisiones legales/privacidad productivas y recepción del
   warehouse conservan revisiones/autorizaciones específicas.
 
+## Coordinación 2026-10-21 / Director general
+
+Fuente: decisión del Director general / DIRECTOR ORQUESTADOR
+(`01a160e3-92b0-76f0-bc3c-20000e81ff16`), transmitida por el Director de esta tarea después
+de verificar la autorización humana de Sam para esa coordinación. Es un registro de fronteras
+entre frentes; no constituye aceptación del producto ni autorización de integración o producción.
+
+Según la revisión comunicada por el Director general, #319 conserva sus 38 rutas y no comparte
+archivos con #318/SDD-0578 en este corte. El Director general informa que el delta de #318 es de
+72 rutas respecto de #316; su diff contra main incluye ancestros. Estas cifras y la comparación
+de ese otro frente se registran con esa atribución, sin una inspección nueva por este Worker.
+
+Aunque la autoría esté separada, ambos frentes comparten `prealertas`, `warehouse_boxes` y la
+cadena `save_document_workspace` → `submit_packing_list` / `receive_prealerta_boxes_as_operario`.
+Packing conserva documento, revisión, confirmación y etiquetas; envíos conserva recepción,
+embarque y consolidación. La frontera acordada exige:
+
+- No inventar ni sustituir `boxCode`.
+- No sumar `contents.scope=group_total` una vez por cada caja.
+- Editar exige una reconfirmación vigente; las cajas recibidas bloquean reasignar grupos.
+- Antes de modificar contratos, avisar al Director general con firma o columna concreta y el
+  consumidor afectado. No copiar commits entre #319 y #318.
+
+Autoría con allowlists actuales: PARALELIZABLE. Prueba combinada confirmar → etiquetar → recibir
+y cualquier activación: DEPENDIENTES de una composición revisada fuera de las ramas de autoría.
+Esta coordinación no acredita esa prueba combinada ni altera los resultados de validación de arriba.
+
+El Director general informa además que SDD-0578 cambia lectores generales del Portal que requieren
+RPC 0502: cohorte OFF no demuestra compatibilidad sin la migración. Ese frente debe revisar
+MIGRATE-FIRST, caché, callers y la cadena #307 → #316 → #318. Es una dependencia reportada de otro
+frente, sin auditoría ni implementación nuevas de 0502/0578 en esta tarea.
+
+Próximo turno pesado reservado a contabilidad. Packing espera revisión de Sam y conserva la demo.
+Se mantienen los pendientes operativos y las fronteras de merge/deploy ya documentados; no hay
+autorización de merge, despliegue ni aceptación de producto derivadas de esta coordinación.
+
 ## HANDOFF AL DIRECTOR
 
 Implementación local funcional y auditada, PR borrador y gate final documentados. Mantener
