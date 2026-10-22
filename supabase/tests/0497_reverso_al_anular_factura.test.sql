@@ -115,9 +115,6 @@ create table public.studio_role_module_overrides (
 alter function public.journal_entries_validate_closing() set search_path = public;
 alter function public.journal_lines_validate_closing() set search_path = public;
 \ir ../migrations/0493_cierre_contable_superclave.sql
-\if :apply_fix
-\ir ../migrations/0497_reverso_al_anular_factura.sql
-\endif
 
 create function pg_temp.fixture_id(p_label text) returns uuid language sql immutable as $$
   select md5('0497-synthetic-' || p_label)::uuid
@@ -192,6 +189,35 @@ values
 -- Enero cerrado (como postgres: el historial queda sin usuario).
 insert into public.accounting_settings (tenant_id, closing_date)
 values (pg_temp.fixture_id('tenant-A'), '2026-01-31');
+
+-- Legado idéntico ya presente ANTES de guardas: duplicidad y descuadre no se
+-- reparan ni se fabrican desactivando triggers después de instalar0497.
+-- Nuevos sujetos legados independientes: no reemplazan ninguna semilla vieja.
+insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,
+  base_amount,iva_amount,total_amount,paid_amount,status,issued_at)
+select pg_temp.fixture_id('i3b-'||label),pg_temp.fixture_id('tenant-A'),'F-I3B-'||label,
+  'DTD-I3B','Cliente sintético','USD',100,0,100,0,'emitida','2026-10-10'
+from unnest(array['legacy-draft','legacy-empty','history90','original-future','legacy-both']) label;
+insert into public.journal_entries(id,tenant_id,entry_code,entry_date,memo,status,source,invoice_id,posted_at)
+select pg_temp.fixture_id('i3b-entry-'||v.label),pg_temp.fixture_id('tenant-A'),v.code,
+  case when v.label='original-future' then (now() at time zone 'America/Caracas')::date+20
+       else date '2026-10-10' end,'Nota libre original I3B',v.status::public.entry_status,'invoice',
+  pg_temp.fixture_id('i3b-'||v.invoice),case when v.status='asentado' then now() else null end
+from (values
+  ('legacy-draft','legacy-draft','I3B-LEG-DRAFT','borrador'),
+  ('legacy-empty','legacy-empty','I3B-LEG-EMPTY','asentado'),
+  ('history90','history90','I3B-HISTORY90','asentado'),
+  ('original-future','original-future','I3B-FUTURE','asentado'),
+  ('legacy-both','legacy-both','I3B-BOTH-POST','asentado'),
+  ('legacy-both-draft','legacy-both','I3B-BOTH-DRAFT','borrador')) v(label,invoice,code,status);
+insert into public.journal_lines(entry_id,account_id,debit,credit,line_memo)
+select pg_temp.fixture_id('i3b-entry-'||label),pg_temp.fixture_id(account),debit,credit,'Nota libre línea I3B'
+from (values ('history90','clientes',90,0),('history90','ventas',0,90),
+  ('original-future','clientes',100,0),('original-future','ventas',0,100),
+  ('legacy-both','clientes',100,0),('legacy-both','ventas',0,100)) v(label,account,debit,credit);
+\if :apply_fix
+\ir ../migrations/0497_reverso_al_anular_factura.sql
+\endif
 
 create temporary sequence assertion_count;
 create function pg_temp.assert_true(p_value boolean, p_label text) returns void language plpgsql as $$
@@ -290,8 +316,8 @@ select pg_temp.assert_true((select je.source = 'invoice_reversal' and je.status 
   from public.journal_entries je where je.id = pg_temp.reverso_de('e-abierta')),
   'el reverso es un asiento asentado de la factura, fechado hoy en Caracas');
 select pg_temp.assert_true((select je.memo from public.journal_entries je where je.id = pg_temp.reverso_de('e-abierta'))
-  = 'Reverso de la factura F-0497-01 (asiento A-2026-0101 del 2026-10-01). Motivo: Factura emitida por error',
-  'el memo cita la factura, el asiento original, su fecha y el motivo');
+  = 'Reverso de la factura F-0497-01 (asiento A-2026-0101 del 2026-10-01).',
+  'el memo cita la factura, el asiento original y su fecha sin motivo libre');
 select pg_temp.assert_true(pg_temp.neto_del_par('e-abierta') = 0
   and (select count(*) from public.journal_lines where entry_id = pg_temp.reverso_de('e-abierta')) = 3,
   'el reverso tiene las mismas líneas al revés: el par suma cero en cada cuenta');
@@ -310,7 +336,7 @@ select pg_temp.assert_true((select count(*) from public.journal_entries where re
 -- ── 3. Período cerrado: el reverso va al período abierto, sin tocar el cierre ──
 select pg_temp.assert_true(pg_temp.anular('admin-A', 'inv-cerrada') = 'true', 'el admin anula una factura de enero cerrado');
 select pg_temp.assert_true((select je.entry_date = pg_temp.hoy()
-    and je.memo = 'Reverso de la factura F-0497-02 (asiento A-2026-0102 del 2026-01-15). Motivo: Factura emitida por error — período cerrado: el reverso va en el período abierto.'
+    and je.memo = 'Reverso de la factura F-0497-02 (asiento A-2026-0102 del 2026-01-15). — período cerrado: el reverso va en el período abierto.'
   from public.journal_entries je where je.id = pg_temp.reverso_de('e-cerrada')),
   'el reverso de un asiento de período cerrado va hoy, con el memo del período cerrado');
 select pg_temp.assert_true((select status::text from public.journal_entries where id = pg_temp.fixture_id('e-cerrada')) = 'asentado'
@@ -322,7 +348,13 @@ select pg_temp.assert_true(split_part(pg_temp.err(format(
   'insert into public.journal_entries (tenant_id, entry_code, entry_date, status, source, invoice_id, reverses_entry_id) '
   || 'values (%L::uuid, ''A-2026-0900'', ''2026-01-20'', ''borrador'', ''invoice_reversal'', %L::uuid, %L::uuid)',
   pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('inv-doble'), pg_temp.fixture_id('e-doble-1'))), '|', 1) = '23514',
-  'un reverso dentro del período cerrado lo rechaza el cierre (0133/0493)');
+  'un reverso header-first cerrado se rechaza sin atribuir la guarda alcanzada');
+select pg_temp.assert_true(pg_temp.err(format(
+  'insert into public.journal_entries(tenant_id,entry_code,entry_date,status,source) '
+  || 'values(%L::uuid,''M-CIERRE-0497'',''2026-01-20'',''borrador'',''manual'')',
+  pg_temp.fixture_id('tenant-A')))
+  like '23514|Período contable cerrado: no se puede crear un asiento en período cerrado (cierre: 2026-01-31).|%',
+  'un manual ajeno alcanza el cierre real0493 sin excepción');
 
 -- ── 4. Cobros vivos y abonos sin recibo: no se anula ──
 select pg_temp.assert_true(pg_temp.error_of('accounting-A', pg_temp.void_sql('inv-recibo'))
@@ -350,10 +382,18 @@ select pg_temp.assert_true(pg_temp.estado('inv-doble') = 'emitida' and pg_temp.e
   'esos rechazos no cambian la factura');
 
 -- ── 6. El vínculo del reverso ──
+create function pg_temp.guard_snapshot() returns jsonb language sql as $$
+  select jsonb_build_object(
+    'entries',(select jsonb_agg(to_jsonb(e) order by e.id) from public.journal_entries e),
+    'lines',(select jsonb_agg(to_jsonb(l) order by l.id) from public.journal_lines l),
+    'audit',(select jsonb_agg(to_jsonb(a) order by a.id) from public.entity_audit_log a),
+    'reason',current_setting('dtd.audit_reason',true))
+$$;
+create temporary table guard_before as select pg_temp.guard_snapshot() as value;
 select pg_temp.assert_true(split_part(pg_temp.err(format(
   'insert into public.journal_entries (tenant_id, entry_code, entry_date, status, source, invoice_id, reverses_entry_id) '
   || 'values (%L::uuid, ''A-2026-0901'', ''2026-10-10'', ''borrador'', ''invoice_reversal'', %L::uuid, %L::uuid)',
-  pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('inv-abierta'), pg_temp.fixture_id('e-abierta'))), '|', 1) = '23505',
+  pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('inv-abierta'), pg_temp.fixture_id('e-abierta'))), '|', 1) = '23514',
   'un asiento tiene un solo reverso');
 select pg_temp.assert_true(split_part(pg_temp.err(format(
   'insert into public.journal_entries (tenant_id, entry_code, entry_date, status, source) '
@@ -364,9 +404,11 @@ select pg_temp.assert_true(split_part(pg_temp.err(format(
   || 'values (%L::uuid, ''A-2026-0903'', ''2026-10-10'', ''borrador'', ''manual'', %L::uuid)',
   pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('e-futuro'))), '|', 1) = '23514', 'solo un invoice_reversal revierte un asiento');
 select pg_temp.assert_true(split_part(pg_temp.err(format(
-  'delete from public.journal_entries where id = %L::uuid', pg_temp.fixture_id('e-abierta'))), '|', 1) in ('23001', '23503'),
+  'delete from public.journal_entries where id = %L::uuid', pg_temp.fixture_id('e-abierta'))), '|', 1) = '23514',
   'el original no se borra mientras exista su reverso');
--- (23001 en PGlite, 23503 en postgres:17: los dos son la clave foránea RESTRICT.)
+-- Guarda temprana, no error nativo de UNIQUE/RESTRICT. Catálogo separado abajo.
+select pg_temp.assert_true(pg_temp.guard_snapshot()=(select value from guard_before),
+  'rechazos tempranos conservan cabeceras líneas eventos y contexto exactos');
 
 -- ── 7. Un cierre a futuro: el reverso va al primer día abierto (cierre + 1) ──
 update public.accounting_settings set closing_date = pg_temp.hoy() + 10
@@ -381,6 +423,472 @@ select pg_temp.assert_true((select je.entry_date = pg_temp.hoy() + 11
 select pg_temp.assert_true(not has_function_privilege('anon', 'public.void_invoice_with_audit_reason(uuid,text)', 'EXECUTE')
   and has_function_privilege('authenticated', 'public.void_invoice_with_audit_reason(uuid,text)', 'EXECUTE'),
   'solo authenticated ejecuta la anulación');
+
+
+-- I3-B 01..18: escenarios AUTORADOS, NO EJECUTADOS. ROLLBACK de esta fixture
+-- no acredita COMMIT/races: esos oráculos pertenecen al archivo dblink nuevo.
+update public.accounting_settings set closing_date='2026-01-31'
+where tenant_id=pg_temp.fixture_id('tenant-A');
+
+create function pg_temp.i3b_invoice(p_label text,p_base numeric default 100,
+  p_iva numeric default 0,p_total numeric default 100,p_issued date default date '2026-10-10')
+returns uuid language plpgsql as $test$
+declare v_id uuid := pg_temp.fixture_id('i3b-'||p_label);
+begin
+  insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,
+    base_amount,iva_amount,total_amount,paid_amount,status,issued_at)
+  values(v_id,pg_temp.fixture_id('tenant-A'),'F-I3B-'||p_label,'DTD-I3B','Cliente sintético','USD',
+    p_base,p_iva,p_total,0,'emitida',p_issued);
+  return v_id;
+end;
+$test$;
+create function pg_temp.i3b_post_sql(p_label text) returns text language sql as $test$
+  select format('select public.post_invoice_journal_entry_atomic(%L::uuid,%L::uuid)',
+    pg_temp.fixture_id('tenant-A'),pg_temp.fixture_id('i3b-'||p_label))
+$test$;
+create function pg_temp.i3b_post(p_label text) returns jsonb language sql as $test$
+  select pg_temp.as_actor(null,pg_temp.i3b_post_sql(p_label),'service_role')
+$test$;
+create function pg_temp.i3b_snapshot() returns jsonb language sql as $test$
+  select jsonb_build_object('journal',pg_temp.guard_snapshot(),
+    'invoices',(select jsonb_agg(to_jsonb(i) order by i.id) from public.invoices i))
+$test$;
+
+-- 01. Fórmula/civil/IVA exactos; base0 conserva su línea4.5 cero.
+select pg_temp.i3b_invoice('normal',100,16,116);
+select pg_temp.assert_true(pg_temp.i3b_post('normal')->>'outcome'='posted','I3B01 posting ordinario');
+select pg_temp.assert_true((select e.entry_date=date '2026-10-10' and count(l.*)=3
+  and sum(l.debit)=116 and sum(l.credit)=116 from public.journal_entries e
+  join public.journal_lines l on l.entry_id=e.id
+  where e.invoice_id=pg_temp.fixture_id('i3b-normal') group by e.id),
+  'I3B01 fórmula exacta fecha persistida y tres líneas');
+select pg_temp.i3b_invoice('base0',0,16,16);
+do $test$ declare result jsonb; begin
+result:=pg_temp.i3b_post('base0');
+perform pg_temp.assert_true(result->>'outcome'='posted'
+  and exists(select 1 from public.journal_entries e join public.journal_lines l on l.entry_id=e.id
+    join public.accounts a on a.id=l.account_id
+    where e.invoice_id=pg_temp.fixture_id('i3b-base0') and a.code='4.5' and l.debit=0 and l.credit=0),
+  'I3B01 base0 IVApositivo conserva4.5 cero');
+end; $test$;
+
+-- 02. Cero sólo después de validar; negativos/NaN/centavo no se reparan.
+select pg_temp.i3b_invoice('zero',0,0,0);
+select pg_temp.assert_true(pg_temp.i3b_post('zero')=
+  jsonb_build_object('version',1,'outcome','not_posted','reason','zero_total',
+    'invoice_id',pg_temp.fixture_id('i3b-zero'),'entry_id',null,'entry_code',null,'entry_date',null),
+  'I3B02 cero coherente no certifica asiento');
+select pg_temp.i3b_invoice('cent',100,0,100.01);
+select pg_temp.i3b_invoice('negative',-1,0,0);
+select pg_temp.i3b_invoice('nan','NaN'::numeric,0,'NaN'::numeric);
+select pg_temp.assert_true(pg_temp.i3b_post('cent')->>'reason'='totals_mismatch'
+  and pg_temp.i3b_post('negative')->>'reason'='invalid_amounts'
+  and pg_temp.i3b_post('nan')->>'reason'='invalid_amounts',
+  'I3B02 centavo negativo y NaN rechazan antes del cero');
+select pg_temp.i3b_invoice('bad-date',100,0,100,null);
+select pg_temp.assert_true(pg_temp.i3b_post('bad-date')->>'reason'='invalid_issue_date',
+  'I3B02 fecha ausente sin fallback');
+select pg_temp.i3b_invoice('infinite-date',100,0,100,'infinity'::date);
+select pg_temp.assert_true(pg_temp.i3b_post('infinite-date')->>'reason'='invalid_issue_date',
+  'I3B02 fecha infinita sin fallback');
+select pg_temp.i3b_invoice('exact-cent',0.01,0,0.01);
+select pg_temp.assert_true(pg_temp.i3b_post('exact-cent')->>'outcome'='posted',
+  'I3B02 un centavo exacto no se redondea ni se rechaza');
+select pg_temp.i3b_invoice('max-finite',999999999999.99,0,999999999999.99);
+select pg_temp.assert_true(pg_temp.i3b_post('max-finite')->>'outcome'='posted',
+  'I3B02 máximo numeric14,2 finito íntegro');
+select pg_temp.i3b_invoice('not-postable-account');
+update public.accounts set is_postable=false where id=pg_temp.fixture_id('ventas');
+select pg_temp.assert_true(pg_temp.i3b_post('not-postable-account')->>'reason'='missing_accounts',
+  'I3B02 cuenta existente no imputable no acredita catálogo');
+update public.accounts set is_postable=true where id=pg_temp.fixture_id('ventas');
+
+-- 03. Reconocimiento íntegro es lectura aun cerrado y90 no se revalora a100.
+create temporary table i3b_read_before as select pg_temp.i3b_snapshot() as value;
+select pg_temp.assert_true(pg_temp.i3b_post('normal')->>'outcome'='already_posted',
+  'I3B03 reconocimiento íntegro');
+select pg_temp.assert_true(pg_temp.i3b_snapshot()=(select value from i3b_read_before),
+  'I3B03 reconocimiento no escribe ni audita');
+select pg_temp.assert_true(pg_temp.i3b_post('history90')->>'outcome'='already_posted',
+  'I3B03 documento100 reconoce original íntegro90 sin revalorarlo');
+do $test$ declare result jsonb; begin
+result:=pg_temp.as_actor('accounting-A',format(
+  'select to_jsonb(public.void_invoice_with_audit_reason(%L::uuid,''I3B histórico90''))',
+  pg_temp.fixture_id('i3b-history90')));
+perform pg_temp.assert_true(result='true'::jsonb
+  and (select sum(l.debit) from public.journal_lines l join public.journal_entries e on e.id=l.entry_id
+    where e.reverses_entry_id=pg_temp.fixture_id('i3b-entry-history90'))=90,
+  'I3B03 reverso conserva90 no ajusta diez del documento');
+end; $test$;
+do $test$ declare result jsonb; begin
+result:=pg_temp.as_actor('accounting-A',format(
+  'select to_jsonb(public.void_invoice_with_audit_reason(%L::uuid,''I3B fecha original futura''))',
+  pg_temp.fixture_id('i3b-original-future')));
+perform pg_temp.assert_true(result='true'::jsonb
+  and (select entry_date from public.journal_entries where reverses_entry_id=pg_temp.fixture_id('i3b-entry-original-future'))
+    =(now() at time zone 'America/Caracas')::date+20,
+  'I3B03 M3 nunca fecha reverso antes del original futuro');
+end; $test$;
+update public.accounting_settings set closing_date='2026-10-31'
+where tenant_id=pg_temp.fixture_id('tenant-A');
+select pg_temp.assert_true(pg_temp.i3b_post('normal')->>'outcome'='already_posted',
+  'I3B03 cierre posterior no modifica original válido');
+select pg_temp.i3b_invoice('closed',100,0,100);
+select pg_temp.assert_true(pg_temp.i3b_post('closed')->>'reason'='period_closed',
+  'I3B03 nuevo posting cerrado rechaza sin excepción');
+update public.accounting_settings set closing_date='2026-01-31'
+where tenant_id=pg_temp.fixture_id('tenant-A');
+
+-- 04. Legado duplicado/descuadrado no se completa ni se reconoce.
+select pg_temp.assert_true(pg_temp.i3b_post('legacy-draft')->>'reason'='existing_sale_requires_review'
+  and pg_temp.i3b_post('legacy-empty')->>'reason'='existing_sale_requires_review'
+  and pg_temp.i3b_post('legacy-both')->>'reason'='existing_sale_requires_review',
+  'I3B04 borrador huérfana y borrador coexistente no son reconocimiento');
+select pg_temp.assert_true(pg_temp.as_actor(null,format(
+  'select public.post_invoice_journal_entry_atomic(%L::uuid,%L::uuid)',
+  pg_temp.fixture_id('tenant-A'),pg_temp.fixture_id('inv-doble')),'service_role')->>'reason'
+  ='invalid_issue_date', 'I3B04 fecha legada ausente no se inventa');
+select pg_temp.assert_true(split_part(pg_temp.err(format(
+  'insert into public.journal_lines(entry_id,account_id,debit,credit) values(%L::uuid,%L::uuid,0,50)',
+  pg_temp.fixture_id('e-descuadre'),pg_temp.fixture_id('ventas'))),'|',1)='23514',
+  'I3B04 no completar cabecera legada ni aun sin reverso');
+
+-- 05. Header-first no confirma ni D2; la emisión persistida se conserva.
+select pg_temp.i3b_invoice('header-first');
+create temporary table i3b_header_before as select pg_temp.i3b_snapshot() as value;
+select pg_temp.assert_true(split_part(pg_temp.err(format(
+  'insert into public.journal_entries(tenant_id,entry_code,entry_date,status,source,invoice_id,posted_at)'
+  ||' values(%L::uuid,''I3B-HEADER-FIRST'',''2026-10-10'',''asentado'',''invoice'',%L::uuid,now())',
+  pg_temp.fixture_id('tenant-A'),pg_temp.fixture_id('i3b-header-first'))),'|',1)='23514'
+  and pg_temp.i3b_snapshot()=(select value from i3b_header_before),
+  'I3B05 header-first no deja fila auditoría ni revierte emisión anterior');
+
+-- 06. Ambos extremos, OLD/NEW y líneas: no editar/restaurar como compensación.
+create temporary table i3b_pair_before as select pg_temp.i3b_snapshot() as value;
+do $test$
+declare v_id uuid; v_sql text;
+begin
+  for v_id in select id from public.journal_entries where id in
+    (pg_temp.fixture_id('e-abierta'),pg_temp.reverso_de('e-abierta'))
+  loop
+    foreach v_sql in array array[
+      format('update public.journal_entries set source=''manual'' where id=%L::uuid',v_id),
+      format('update public.journal_entries set tenant_id=%L::uuid where id=%L::uuid',pg_temp.fixture_id('tenant-B'),v_id),
+      format('update public.journal_entries set deleted_at=now() where id=%L::uuid',v_id),
+      format('update public.journal_entries set status=''anulado'' where id=%L::uuid',v_id),
+      format('delete from public.journal_entries where id=%L::uuid',v_id),
+      format('delete from public.journal_lines where entry_id=%L::uuid',v_id),
+      format('update public.journal_lines set debit=debit+1 where entry_id=%L::uuid',v_id),
+      format('insert into public.journal_lines(entry_id,account_id,debit,credit) values(%L::uuid,%L::uuid,0,0)',
+        v_id,pg_temp.fixture_id('ventas'))
+    ] loop
+      perform pg_temp.assert_true(split_part(pg_temp.err(v_sql),'|',1)='23514','I3B06 mutación protegida rechazada');
+    end loop;
+  end loop;
+end;
+$test$;
+select pg_temp.assert_true(pg_temp.i3b_snapshot()=(select value from i3b_pair_before),
+  'I3B06 ambos extremos líneas eventos y contexto intactos');
+
+-- 07. Desvincular/reabrir factura tampoco convierte el par en manual.
+select pg_temp.assert_true(split_part(pg_temp.err(format(
+  'update public.invoices set status=''emitida'' where id=%L::uuid',
+  pg_temp.fixture_id('inv-abierta'))),'|',1)='23514'
+  and split_part(pg_temp.err(format('update public.invoices set deleted_at=now() where id=%L::uuid',
+    pg_temp.fixture_id('inv-abierta'))),'|',1)='23514',
+  'I3B07 no reabrir ni ocultar factura del par');
+
+-- 08. FK singular diferida se fuerza de verdad; NULL no se interpreta como éxito.
+do $test$
+declare v_state text;
+begin
+  begin
+    set constraints public.journal_lines_entry_id_fkey deferred;
+    insert into public.journal_lines(entry_id,account_id,debit,credit)
+    values(pg_temp.fixture_id('missing-parent'),pg_temp.fixture_id('ventas'),0,1);
+    set constraints public.journal_lines_entry_id_fkey immediate;
+    raise exception 'I3B08 no falló la FK';
+  exception when foreign_key_violation then v_state:=sqlstate;
+  end;
+  perform pg_temp.assert_true(v_state='23503','I3B08 FK forzada rechaza huérfana');
+end;
+$test$;
+
+-- 09. Manual ajeno sigue header→líneas; DELETE físico CASCADE se observa.
+insert into public.journal_entries(id,tenant_id,entry_code,entry_date,status,source)
+values(pg_temp.fixture_id('manual-i3b'),pg_temp.fixture_id('tenant-A'),'M-I3B','2026-10-10','borrador','manual');
+insert into public.journal_lines(entry_id,account_id,debit,credit) values
+  (pg_temp.fixture_id('manual-i3b'),pg_temp.fixture_id('clientes'),5,0),
+  (pg_temp.fixture_id('manual-i3b'),pg_temp.fixture_id('ventas'),0,5);
+delete from public.journal_entries where id=pg_temp.fixture_id('manual-i3b');
+select pg_temp.assert_true(not exists(select 1 from public.journal_lines where entry_id=pg_temp.fixture_id('manual-i3b'))
+  and exists(select 1 from public.entity_audit_log where entity_id=pg_temp.fixture_id('manual-i3b')
+    and event_type='journal_entry_deleted'),'I3B09 manual físico RC conserva CASCADE y D2');
+
+-- 10. Caller ALL IMMEDIATE: construcción difiere sólo sus tres nombres.
+select pg_temp.i3b_invoice('caller-immediate');
+set constraints all immediate;
+select pg_temp.assert_true(pg_temp.i3b_post('caller-immediate')->>'outcome'='posted',
+  'I3B10 caller ALL IMMEDIATE admite construcción íntegra');
+select pg_temp.assert_true(pg_temp.as_actor('accounting-A',format(
+  'select to_jsonb(public.void_invoice_with_audit_reason(%L::uuid,''I3B motivo exacto''))',
+  pg_temp.fixture_id('i3b-caller-immediate')))='true'::jsonb,
+  'I3B10 reverso transitorio no se valida antes de anular');
+set constraints public.i3_journal_entry_final_check,public.i3_invoice_final_check immediate;
+
+-- 11. Pendiente inválido del caller se rechaza antes de construir otra venta.
+select pg_temp.i3b_invoice('prior-pending');
+do $test$
+declare v_before jsonb:=pg_temp.i3b_snapshot(); v_state text;
+begin
+  begin
+    set constraints public.journal_lines_entry_id_fkey deferred;
+    insert into public.journal_lines(entry_id,account_id,debit,credit)
+      values(pg_temp.fixture_id('prior-invalid'),pg_temp.fixture_id('ventas'),0,1);
+    perform pg_temp.i3b_post('prior-pending');
+    raise exception 'I3B11 se omitió pendiente previo';
+  exception when foreign_key_violation then v_state:=sqlstate;
+  end;
+  perform pg_temp.assert_true(v_state='23503' and pg_temp.i3b_snapshot()=v_before,
+    'I3B11 pendiente previo no deja posting parcial');
+end;
+$test$;
+
+-- 12. No-op/reconocimiento no fuerzan una FK previamente diferida.
+do $test$
+begin
+  set constraints public.journal_lines_entry_id_fkey deferred;
+  insert into public.journal_lines(entry_id,account_id,debit,credit)
+    values(pg_temp.fixture_id('noop-pending'),pg_temp.fixture_id('ventas'),0,1);
+  perform pg_temp.assert_true(pg_temp.i3b_post('zero')->>'reason'='zero_total'
+    and pg_temp.i3b_post('normal')->>'outcome'='already_posted',
+    'I3B12 no-op y lectura no fuerzan pendientes ajenos');
+  delete from public.journal_lines where entry_id=pg_temp.fixture_id('noop-pending');
+  set constraints public.journal_lines_entry_id_fkey immediate;
+end;
+$test$;
+
+-- 13. M4/D2: motivo EXACTO en su evento, referencias sin notas libres.
+select pg_temp.assert_true(exists(select 1 from public.entity_audit_log
+    where entity_id=pg_temp.fixture_id('i3b-caller-immediate') and event_type='invoice_voided'
+      and reason='I3B motivo exacto')
+  and not exists(select 1 from public.journal_entries
+    where invoice_id=pg_temp.fixture_id('i3b-caller-immediate') and memo like '%I3B motivo exacto%')
+  and not exists(select 1 from public.journal_lines l join public.journal_entries e on e.id=l.entry_id
+    where e.invoice_id=pg_temp.fixture_id('inv-abierta') and e.source='invoice_reversal'
+      and (l.line_memo like '%Factura emitida por error%' or l.line_memo like '%Por cobrar%'
+           or l.line_memo like '%Ingreso%'))
+  and not exists(select 1 from public.entity_audit_log a join public.journal_entries e on e.id=a.entity_id
+    where e.invoice_id=pg_temp.fixture_id('i3b-caller-immediate')
+      and a.event_type='journal_entry_posted' and a.reason like '%I3B motivo exacto%'),
+  'I3B13 motivo sólo invoice_voided y no copia notas');
+select set_config('dtd.audit_reason','I3B contexto exterior',true);
+select pg_temp.i3b_invoice('context-outer');
+do $test$ declare result jsonb; begin
+result:=pg_temp.i3b_post('context-outer');
+perform pg_temp.assert_true(result->>'outcome'='posted'
+  and current_setting('dtd.audit_reason',true)='I3B contexto exterior',
+  'I3B13 SET de función restaura contexto exterior no vacío');
+end; $test$;
+select pg_temp.assert_true(not exists(select 1 from public.entity_audit_log a join public.journal_entries e on e.id=a.entity_id
+  where e.invoice_id=pg_temp.fixture_id('i3b-context-outer') and a.event_type='journal_entry_posted'
+    and a.reason='I3B contexto exterior'),'I3B13 contexto externo no contamina posting');
+select set_config('dtd.audit_reason','',true);
+
+-- 14. Tres intentos TOTALES selectivos, con todas las líneas/audit en subunidad.
+create temporary sequence i3b_code_attempts;
+create temporary table i3b_code_mode(value text);
+insert into i3b_code_mode values('twice');
+create temporary table i3b_code_original as
+select pg_get_functiondef('public.next_entry_code(uuid)'::regprocedure) as ddl;
+create or replace function public.next_entry_code(p_tenant_id uuid)
+returns text language plpgsql security definer set search_path=public as $test$
+declare n bigint:=nextval('pg_temp.i3b_code_attempts'); mode text; yr int:=extract(year from current_date); mx int;
+begin
+  select value into mode from pg_temp.i3b_code_mode;
+  if mode='always' or (mode='twice' and n<=2) then return 'A-2026-0101'; end if;
+  select coalesce(max((regexp_match(entry_code,'^A-\d{4}-(\d+)$'))[1]::int),0)+1 into mx
+    from public.journal_entries where tenant_id=p_tenant_id and entry_code like 'A-'||yr||'-%';
+  return 'A-'||yr||'-'||lpad(mx::text,4,'0');
+end;
+$test$;
+select pg_temp.i3b_invoice('collision-two');
+do $test$ declare result jsonb; begin
+result:=pg_temp.i3b_post('collision-two');
+perform pg_temp.assert_true(result->>'outcome'='posted'
+  and (select last_value from i3b_code_attempts)=3
+  and (select count(*) from public.journal_entries where invoice_id=pg_temp.fixture_id('i3b-collision-two'))=1,
+  'I3B14 dos colisiones tercera unidad íntegra sin líneas o eventos de intentos fallidos');
+end; $test$;
+update i3b_code_mode set value='always';
+select setval('pg_temp.i3b_code_attempts',1,false);
+select pg_temp.i3b_invoice('collision-three');
+create temporary table i3b_collision_before as select pg_temp.i3b_snapshot() as value;
+do $test$ declare failure text; begin
+failure:=pg_temp.error_of(null,pg_temp.i3b_post_sql('collision-three'),'service_role');
+perform pg_temp.assert_true(split_part(failure,'|',1)='23505'
+  and (select last_value from i3b_code_attempts)=3
+  and pg_temp.i3b_snapshot()=(select value from i3b_collision_before),
+  'I3B14 tercera colisión propaga23505 y revierte unidad completa');
+end; $test$;
+-- Otro23505/FK real: sólo UN intento de código, no un retry genérico.
+update i3b_code_mode set value='none';
+create temporary table i3b_native_error_mode(value text);
+insert into i3b_native_error_mode values('unique');
+create function pg_temp.i3b_native_error() returns trigger language plpgsql as $test$
+begin
+  if new.line_memo like 'Factura F-I3B-native-%' then
+    if (select value from pg_temp.i3b_native_error_mode)='unique' then
+      select id into new.id from public.journal_lines order by id limit 1;
+    else
+      new.account_id:=pg_temp.fixture_id('i3b-account-does-not-exist');
+    end if;
+  end if;
+  return new;
+end;
+$test$;
+create trigger i3b_test_native_error before insert on public.journal_lines
+for each row execute function pg_temp.i3b_native_error();
+do $test$
+declare kind text; before_state jsonb; failure text;
+begin
+  foreach kind in array array['unique','foreign-key'] loop
+    update pg_temp.i3b_native_error_mode set value=kind;
+    perform pg_temp.i3b_invoice('native-'||kind);
+    before_state:=pg_temp.i3b_snapshot();
+    perform setval('pg_temp.i3b_code_attempts',1,false);
+    failure:=pg_temp.error_of(null,pg_temp.i3b_post_sql('native-'||kind),'service_role');
+    perform pg_temp.assert_true(split_part(failure,'|',1)=case when kind='unique' then '23505' else '23503' end
+      and (select last_value from pg_temp.i3b_code_attempts)=1 and pg_temp.i3b_snapshot()=before_state,
+      'I3B14 otra UNIQUE/FK propaga sin retry ni efectos');
+  end loop;
+end;
+$test$;
+drop trigger i3b_test_native_error on public.journal_lines;
+do $test$ begin execute (select ddl from pg_temp.i3b_code_original); end; $test$;
+
+-- 15. Append REAL falla en su INSERT; no sustituimos0290/0294/0267.
+create temporary table i3b_append_mode(value text);
+insert into i3b_append_mode values('journal_entry_posted');
+create function pg_temp.i3b_fail_append() returns trigger language plpgsql as $test$
+begin
+  if new.event_type=(select value from pg_temp.i3b_append_mode) then
+    raise exception 'I3B fallo append real' using errcode='23514';
+  end if;
+  return new;
+end;
+$test$;
+create trigger i3b_test_fail_append before insert on public.entity_audit_log
+for each row execute function pg_temp.i3b_fail_append();
+select pg_temp.i3b_invoice('append-post');
+create temporary table i3b_append_before as select pg_temp.i3b_snapshot() as value;
+select pg_temp.assert_true(pg_temp.error_of(null,pg_temp.i3b_post_sql('append-post'),'service_role')
+  ='23514|I3B fallo append real|' and pg_temp.i3b_snapshot()=(select value from i3b_append_before),
+  'I3B15 append de posted revierte cabecera todas líneas y evento');
+update i3b_append_mode set value='';
+select pg_temp.i3b_invoice('append-void');
+select pg_temp.i3b_post('append-void');
+update i3b_append_mode set value='invoice_voided';
+create temporary table i3b_void_before as select pg_temp.i3b_snapshot() as value;
+select pg_temp.assert_true(pg_temp.error_of('accounting-A',format(
+  'select to_jsonb(public.void_invoice_with_audit_reason(%L::uuid,''I3B motivo de fallo''))',
+    pg_temp.fixture_id('i3b-append-void')))='23514|I3B fallo append real|'
+  and pg_temp.i3b_snapshot()=(select value from i3b_void_before),
+  'I3B15 append de invoice_voided revierte reverso posted y transición');
+drop trigger i3b_test_fail_append on public.entity_audit_log;
+
+-- 16. Error de última línea y otra UNIQUE no son código ocupado.
+create function pg_temp.i3b_last_line_fail() returns trigger language plpgsql as $test$
+begin
+  if new.line_memo='IVA de factura F-I3B-last-line' then
+    raise exception 'I3B última línea' using errcode='23514';
+  end if;
+  return new;
+end;
+$test$;
+create trigger i3b_test_last_line before insert on public.journal_lines
+for each row execute function pg_temp.i3b_last_line_fail();
+select pg_temp.i3b_invoice('last-line',100,16,116);
+create temporary table i3b_line_before as select pg_temp.i3b_snapshot() as value;
+select pg_temp.assert_true(pg_temp.error_of(null,pg_temp.i3b_post_sql('last-line'),'service_role')
+  ='23514|I3B última línea|' and pg_temp.i3b_snapshot()=(select value from i3b_line_before),
+  'I3B16 última línea revierte toda unidad sin compensación');
+drop trigger i3b_test_last_line on public.journal_lines;
+
+-- Borrar PRE-header es lícito; sólo el conjunto restante admite la cabecera.
+select pg_temp.i3b_invoice('preheader-delete');
+select pg_temp.i3b_invoice('preheader-missing');
+do $test$
+declare entry uuid:=pg_temp.fixture_id('i3b-preheader-entry'); extra uuid:=pg_temp.fixture_id('i3b-preheader-extra');
+  before_state jsonb; failure text;
+begin
+  set constraints public.journal_lines_entry_id_fkey,
+    public.i3_journal_entry_final_check,public.i3_invoice_final_check deferred;
+  insert into public.journal_lines(entry_id,account_id,debit,credit) values
+    (entry,pg_temp.fixture_id('clientes'),100,0),(entry,pg_temp.fixture_id('ventas'),0,100);
+  insert into public.journal_lines(id,entry_id,account_id,debit,credit)
+    values(extra,entry,pg_temp.fixture_id('ventas'),0,1);
+  delete from public.journal_lines where id=extra;
+  insert into public.journal_entries(id,tenant_id,entry_code,entry_date,status,source,invoice_id,posted_at)
+    values(entry,pg_temp.fixture_id('tenant-A'),'I3B-PRE-DELETE','2026-10-10','asentado','invoice',
+      pg_temp.fixture_id('i3b-preheader-delete'),now());
+  set constraints public.journal_lines_entry_id_fkey,
+    public.i3_journal_entry_final_check,public.i3_invoice_final_check immediate;
+  perform pg_temp.assert_true((select count(*) from public.journal_lines where entry_id=entry)=2,
+    'I3B16 extra borrada antes de admisión no altera unidad final');
+  before_state:=pg_temp.i3b_snapshot();
+  failure:=pg_temp.err(format('delete from public.journal_lines where entry_id=%L::uuid',entry));
+  perform pg_temp.assert_true(split_part(failure,'|',1)='23514' and pg_temp.i3b_snapshot()=before_state,
+    'I3B16 misma operación después de admitir cabecera está bloqueada');
+  begin
+    entry:=pg_temp.fixture_id('i3b-preheader-missing-entry');
+    set constraints public.journal_lines_entry_id_fkey,
+      public.i3_journal_entry_final_check,public.i3_invoice_final_check deferred;
+    insert into public.journal_lines(entry_id,account_id,debit,credit) values
+      (entry,pg_temp.fixture_id('clientes'),100,0),(entry,pg_temp.fixture_id('ventas'),0,100);
+    delete from public.journal_lines where entry_id=entry and credit=100;
+    insert into public.journal_entries(id,tenant_id,entry_code,entry_date,status,source,invoice_id,posted_at)
+      values(entry,pg_temp.fixture_id('tenant-A'),'I3B-PRE-MISSING','2026-10-10','asentado','invoice',
+        pg_temp.fixture_id('i3b-preheader-missing'),now());
+    raise exception 'I3B16 cabecera incompleta indebidamente admitida';
+  exception when check_violation then failure:=sqlstate;
+  end;
+  perform pg_temp.assert_true(failure='23514' and pg_temp.i3b_snapshot()=before_state,
+    'I3B16 línea esencial ausente rechaza y revierte líneas/cabecera/eventos');
+end;
+$test$;
+
+-- 17. Catálogo nativo separado del bloqueo temprano.
+select pg_temp.assert_true(exists(select 1 from pg_index i
+  where i.indexrelid='public.journal_entries_un_reverso'::regclass
+    and i.indisunique and i.indisvalid and i.indisready and i.indislive and i.indimmediate
+    and i.indnatts=1 and i.indnkeyatts=1 and i.indexprs is null
+    and array(select x from unnest(i.indkey::smallint[]) x)=array[
+      (select attnum from pg_attribute where attrelid='public.journal_entries'::regclass and attname='reverses_entry_id')]::smallint[]
+    and pg_get_expr(i.indpred,i.indrelid)='(reverses_entry_id IS NOT NULL)'),
+  'I3B17 UNIQUE real clave predicado y validez del reverso');
+select pg_temp.assert_true(exists(select 1 from pg_constraint c join pg_index i on i.indexrelid=c.conindid
+  where c.conrelid='public.journal_entries'::regclass and c.conname='journal_entries_reverses_entry_id_fkey'
+    and c.contype='f' and c.confrelid=c.conrelid and c.confdeltype='r' and c.confupdtype='a'
+    and c.confmatchtype='s' and c.convalidated and not c.condeferrable and not c.condeferred
+    and i.indisprimary and i.indisvalid and i.indisunique),
+  'I3B17 FK real RESTRICT PK y diferibilidad independientes');
+select pg_temp.assert_true(exists(select 1 from pg_constraint c
+  where c.conrelid='public.journal_entries'::regclass and c.conname='journal_entries_reverso_coherente'
+    and c.contype='c' and c.convalidated
+    and regexp_replace(pg_get_expr(c.conbin,c.conrelid),'[[:space:]()]','','g')
+      ='source=''invoice_reversal''::text=reverses_entry_idISNOTNULL'),
+  'I3B17 CHECK exacto ambas direcciones independiente');
+
+-- 18. ACL efectiva: API posting sólo service_role; helpers no se exponen.
+select pg_temp.assert_true(has_function_privilege('service_role','public.post_invoice_journal_entry_atomic(uuid,uuid)','EXECUTE')
+  and not has_function_privilege('authenticated','public.post_invoice_journal_entry_atomic(uuid,uuid)','EXECUTE')
+  and not has_function_privilege('anon','public.post_invoice_journal_entry_atomic(uuid,uuid)','EXECUTE')
+  and not has_function_privilege('service_role','public.i3_lock_entry(uuid)','EXECUTE'),
+  'I3B18 ACL efectiva y helper privado');
+set constraints public.journal_lines_entry_id_fkey,
+  public.i3_journal_entry_final_check,public.i3_invoice_final_check immediate;
+
 
 select 'TEST 0497 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 rollback;
