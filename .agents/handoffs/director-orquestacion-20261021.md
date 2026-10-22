@@ -1,5 +1,209 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## READY02 y orquestación revisados; GO03 sólo binding — 2026-10-22T15:36 UTC
+
+- HITO nuevo por FUENTE: orquestación02 adfa74e6ec2fb9bd6d65083865182f0668fd2ac92d564742d8242e420828f92f/18669 y contrato43d87e5610ff4acadd80b2f31387c04c088adfda732eadc9dea149deec52c89a/4027 revisados General+Director+peer. H1 estático de emit→notify sincatch confirmado por lectura propia c43633 y corregido por4spansJS+1scalarcontrato. Delta/contrato FULLREAD5a57e4; inversas ENTERAS propias f55a4f15:28:00.6162819Z recuperan18238/3fb6224a y3653/f8b40f18. notify/serialización y persistencia de incidencia se contienen; notificationRecords en snapshot/final, sin recursión ni error.message/stack. ETX/args/caps/hash/binding/FIN-UNKNOWN/primerpollantesyield intactos. No evaluación/parser/probe ni latenciahost acreditada. Original3fb y H1 se conservan.
+- Orquestación02 DEVUELTA FORMAL15:27:51.4684151Z/9a606d; Worker actual completed/IDLE observado. General c9f507 FULLREADrecibo10705/77d84571 ycadena1575/95b727fa;7356c2 a15:31:31.8539195Z exact8rutas+14refs0diff yreceta4143/de31828d FULLREAD. Manifest2079/b4e51ad7,custodia7246/3f5a2db9,delta8942/929f6d40. Peerfinal8305/a022b02371b4e4eb27322bc3d3441a8c138b431c2d618967a7e2473d64c13300 favorable REFERIDO por Director; General no FULLREAD de esa nota aún. No otro gate humano.
+- READY02 cincofijos propios ab6223 a15:24:06.3047495Z: plan43742/e07b1957,PS12894/5f374cf9,payload13193/df60379b,template5301/9a812b01,tabla2995/e3dac320; hashes exactos/inversaPS+payloadENTERS/cmd+otros4/footer237/4a2471da. 4Gitindividuales0/source2f7-tree4907-ramaCORE-clean/83fuente SHA yblob porárbol+5runtime0diff/claim212B4/8dirsordinarios-auth0.900+60 seguía PROPUESTA/opsNULL en ese corte. Cotejo fuente propio anterior abortado porrestart no se adoptó; ab6223 es nueva lectura metadata efectiva, no corrida.
+- READY02 administración DEVUELTA15:21:47.2174913Z: recibo9396/50c22140 ycadena1278/80dcf88a FULLREADaa2d2b. Manifest416archivos71605/66f16641,custodia104476/c88fe949 con606observaciones referidas(416paquete+190refs). Propio f29719 a15:27:14.8618534Z cotejó832observaciones duplicadas porseparadores de rutas,416archivos materiales0diff; f55a4f cotejó190refs históricas adicionales0diff. Ledger original marca NO APROBADA orquestación3fb/H1, no se reescribe por la corrección externa.
+- NUEVO GO emitido b80ed9: DIRECTOR-UI-B1-239-20261022-03,8000bytes/SHAb5718860fa5915ea6f74b6fb9d173bfc0394bebf3bbc60440cf3295ae37e8d0c,issued15:33:44Z/window15:34:44/latest15:53:44/absolutosexec16:09:44 yclose16:10:44Z.900+60ORIGINAL(minabsolutos), origenNULL. Se envió alDirector para SAMEWorker materializarCreateNew C:/tmp/director-traspaso-20261020/0573-UI-B1-GO-239-20261022-03.json ybindingnuevo0573-UI-B1-binding-03; sóloPS2marcadores/payloadcmdentero4campos/JS2clavesstore únicasadfa. Reserva exclusiva CORE asignada; ejecución NO INICIADA/EJECUTA NOMINAL AÚN NO DADA. Esperar bindingfrío/cotejo/entornoyoutput03ausente antesEJECUTA; no repetirGO ni abrir pesadaGLM. Estado operativo debe reconstruirse de mensajes posteriores aeste commit.
+- Incidente propio al construir mensaje GO: primer functions.exec tuvo SyntaxError por backtickPSenString.raw antes de invocar herramienta; noGOarchivo/payload/runtime. Se corrigió usando char10 y b80ed9 generó sólo literal+hash, sin escritura externaGeneral. No es intento de239 ni se renuevan relojes.
+- Apprestart alrededor15:10 interrumpió CORE01a16419 yGLM01a1641c; se preservaron WIP/claims sin reset/reaplicar. Directappinput aWorkerCORE falló «direct app-server input is not allowed for multi-agent v2 sub-agents», sin despacho; su Director recuperó MISMOUUID mediantefollowup_task, actualturn01a1642b. GLM recibió UNA reanudación pública15:13:31, actualturn01a1642c-a80a-7281-92b5-8c3339deb01aACTIVE/commandcompleted observado; no se repiteusageerrorantiguo. Ambosowners efectivos; no otra sesiónescritora ni cambioModelo/reset/cuentas.
+- Director informó invocación indebida corepack pnpm knowledge:status en SU WT causando auto-syncdependenciaspropias antesstatus. Sesión71848 realFIN/native0/exec-65606d7f completed159534ms verificado enlecturaactual; propioWTclean y0knowledgeprocesos referido enb572d815:21:55. No prueba productoCORE ni verdeglobal; ownWTstatusokfalse no sustituye statuscanónicofechado de main. Orden de no repetirgestor dada; sólo scriptcanónicoreadonly cuando corresponda. Nadaheavy delDirector sigueactivo según devolución.
+- Fetch General ea8d57→ae7827FIN0 a15:28:44.0794768Z:main/originD410ab2e23e74e5bcf7fdc7cc595371b24cc03a8,originCORE306,originPackingD42. GitHubconector desconectado; fallbackghsólolectura tresFINnative0 reales15:30:10.179–331Z:319DRAFTD42/53paths/baseMainD410;320DRAFT306/47paths/baseearlye834;308DRAFT872999801bf7bda393afd7bdbfe66aed04a218a7/2docsotroDirector/baseRefmain/baseOid8e9segúnGH. MergedAtnulltodas/checks[]noCIverde/3pares0solapamientoliteral. UI2f yGLM9e aúnLOCAL; no push por consultar. URLs actuales SoftAgentes/DTDCARGO; remote existente hailuwaycom-sketch preservado.
+- Packing GLM S2-P29 entregó checkpointFIJO5e6875e2370250a609648054c778d02ebb609936/treee9b4ba12d34d6d4681f708e0661c732431845704/padreDIRECTO9e49,29rutas1405+/245− según entrega15:33–35; no aceptaciónfuncional. Paquete62artefactos/manifest11348-4e46f004 referido, revisiónGeneral pendiente. Worker liberó su propioclaim al concluir, receipt releaseexterno referido; NO reutilizar B703 como vigente y reclamarMISMOowner con nueva evidencia antes otraautoría. Packing trajo hallazgoestático concreto en authorityrefs de entidadesnuevas para contradiccionesobservedValue, sin reproducción: revisión fría pendiente y noGO ni runtimeS2. ShippingMark/client_markbox y código compra YAcompartidos se conservan como2identificadoresoperativos, no se los llama anónimos/noPII; no buyerattrs/nuevoslookups. TotalesGLOBALfiables/revisados permiten flete UNAvez incluso grupospartiales/vacíos sininventarreparto; confirm/PDF/QR exige distribuciónreal/conflictospending. StandardAPIguardada porSam no se relee/pide/hash/modal. GLM50/custodia cerrados no se repiten.
+- ParentPacking autorizado sólo a preparar propuestaS3-TEST por lectura mientrastermina29, sin despacho ni runtime. Entregó propuesta17022/72cf4f4f yfuentes8669/d1f849bd en su directorio s3-test-proposal-01;28rutas23base9e+5nuevas ypresupuesto/modelo/tokenizer remoto SONPROPUESTAS no adoptadasGeneral/GO/API. Requiere repinbase tras29, revisión/pruebas, ledgerdurable antesfetch/noresendincierto y loaderprivadosólomemoria; no usarbancoviejo parafingirdemo.
+- CRM último humano01a163cd-b9cf-7e50-8620-8d2b85b6a344 releído DIRECTO: mostrar soporte/adjuntos para revisar ANTESenvío, ADETENIDA/B1noiniciar. TurnofinalCOMPLETED/no nuevas instrucciones ni contacto. Se conserva14PASÓhistóricos+2NODISP, no se certifica cerocanales/egresos.
+- I3B/M7/GO04/históricos cerrados sin repetición. No merge/deploy/prod/migración/PII/secretos/contactos/cuentas. Próximo: binding03cerrado→cotejo→EJECUTA239→FINnativo/aviso/retornoformal→exteriores dentro ORIGINAL→resultado+cotejo/custodia, con una sola pesada.
+
+GO literal emitido (no afirmar materialización ni ejecución por su presencia aquí):
+
+```json
+{
+  "templateOnly": false,
+  "state": "GO NUEVO EMITIDO; sólo binding, ejecución después de EJECUTA nominal separado del General",
+  "issuedAtUtc": "2026-10-22T15:33:44.000Z",
+  "turnId": "DIRECTOR-UI-B1-239-20261022-03",
+  "source": {
+    "head": "2f7abf0cb6f16036879ebb5761fe559a43347e99",
+    "tree": "490784b892b8b6d4d1d86bc3e30949c01b1aeebe",
+    "parent": "82b9eed85481d84aab22d1a8147c37284f2b721e",
+    "branch": "codex/sdd-0573-core-reparacion-20261021",
+    "owner": "worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468",
+    "worktree": "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0573-core-reparacion-20261021",
+    "claimBytes": 212,
+    "claimSha256": "b4ea7421a49ca0ec099a6e0552d2af03630cc648863479e4468e2d98244b8905"
+  },
+  "commandSupplement": {
+    "executable": "C:/Users/AKX generator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe",
+    "args": [
+      "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0573-core-reparacion-20261021/node_modules/vitest/vitest.mjs",
+      "run",
+      "app/studio/(app)/contabilidad/__tests__/reverso-factura-acciones.test.ts",
+      "lib/studio/__tests__/journal-queries-reverso.test.ts",
+      "app/studio/(app)/contabilidad/__tests__/libro-diario-reverso.test.tsx",
+      "app/studio/(app)/contabilidad/__tests__/cierre-excepcion-acciones.test.ts",
+      "app/studio/(app)/contabilidad/__tests__/cierre-excepcion-pantalla.test.tsx",
+      "app/studio/(app)/contabilidad/__tests__/libro-diario-aviso.test.tsx",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--retry=0",
+      "--reporter=verbose",
+      "--reporter=json",
+      "--outputFile.json=C:/tmp/director-traspaso-20261020/0573-UI-B1-ejecucion-03/vitest-original.json"
+    ],
+    "outputDirectory": "C:/tmp/director-traspaso-20261020/0573-UI-B1-ejecucion-03"
+  },
+  "budget": {
+    "maximumExecutionSeconds": 900,
+    "closureReserveSeconds": 60,
+    "maximumActualTotalSeconds": 960,
+    "windowStartUtc": "2026-10-22T15:34:44.000Z",
+    "latestStartUtc": "2026-10-22T15:53:44.000Z",
+    "absoluteExecutionCutoffUtc": "2026-10-22T16:09:44.000Z",
+    "absoluteClosureDeadlineUtc": "2026-10-22T16:10:44.000Z",
+    "actualInvocationStartUtc": null,
+    "renewal": false
+  },
+  "readyReferences": {
+    "plan": {
+      "path": "C:/tmp/director-traspaso-20261020/0573-UI-B1-preparacion-02/plan-UI-B1-239-UNBOUND.json",
+      "bytes": 43742,
+      "sha256": "e07b19573e9d284d95fb6f5fdbe7d47cf2b909d4bbe58942d8fc5c84f818d33a"
+    },
+    "script": {
+      "path": "C:/tmp/director-traspaso-20261020/0573-UI-B1-preparacion-02/READY-V2-UNBOUND.ps1",
+      "bytes": 12894,
+      "sha256": "5f374cf97ea6a9c4a328cd816881e2aaf0b71fb012a2eb0dda79f72a9ba4ec6c"
+    },
+    "payload": {
+      "path": "C:/tmp/director-traspaso-20261020/0573-UI-B1-preparacion-02/exec-command-READY-UNBOUND.json",
+      "bytes": 13193,
+      "sha256": "df60379bd778ee4394b86897d3cb0bf69b0a9b7b72ae3da369822784578f45e8"
+    }
+  },
+  "schemaNotes": {
+    "futureUTC": "Strings ISOZ invariant: yyyy-MM-ddTHH:mm:ssZ, .fffZ o .fffffffZ; null aquí no es ventana",
+    "futureTurn": "string no vacío, emitido por General mediante GO NUEVO, no heredado",
+    "futureOutput": "C:/tmp/director-traspaso-20261020/0573-UI-B1-ejecucion-NN,NNdosdígitos; debe estar ausente y no se crea aquí",
+    "futureArgs": "Reemplazar sólo UNBOUND_OUTPUT_DIRECTORY por outputDirectory concreto del futuro GO; seis archivos ENTEROS, resolución node/jsdom existente, sin filtro y resto argv idéntico al plan",
+    "futureBinding": "No materializado. Tras revisión y GO concreto, se ligan únicamente UNBOUND_NEXT_GO_PATH y UNBOUND_NEXT_GO_SHA256 en copia BOUND externa; cotejo previo separado",
+    "currentOrigin": "null; las marcas UTC de preparación no son origen de ejecución"
+  },
+  "selection": {
+    "files": [
+      "app/studio/(app)/contabilidad/__tests__/reverso-factura-acciones.test.ts",
+      "lib/studio/__tests__/journal-queries-reverso.test.ts",
+      "app/studio/(app)/contabilidad/__tests__/libro-diario-reverso.test.tsx",
+      "app/studio/(app)/contabilidad/__tests__/cierre-excepcion-acciones.test.ts",
+      "app/studio/(app)/contabilidad/__tests__/cierre-excepcion-pantalla.test.tsx",
+      "app/studio/(app)/contabilidad/__tests__/libro-diario-aviso.test.tsx"
+    ],
+    "fullFiles": true,
+    "planned": 239,
+    "byFile": [
+      123,
+      44,
+      38,
+      17,
+      13,
+      4
+    ],
+    "inherited": 34,
+    "newWritten": 205,
+    "maxWorkers": 1,
+    "fileParallelism": false,
+    "retry": 0,
+    "discovery": "NO EJECUTADO",
+    "environmentByFile": [
+      {
+        "path": "app/studio/(app)/contabilidad/__tests__/reverso-factura-acciones.test.ts",
+        "environment": "node por anotación de fuente"
+      },
+      {
+        "path": "lib/studio/__tests__/journal-queries-reverso.test.ts",
+        "environment": "node por anotación de fuente"
+      },
+      {
+        "path": "app/studio/(app)/contabilidad/__tests__/libro-diario-reverso.test.tsx",
+        "environment": "jsdom por vitest.config.ts"
+      },
+      {
+        "path": "app/studio/(app)/contabilidad/__tests__/cierre-excepcion-acciones.test.ts",
+        "environment": "node por anotación de fuente"
+      },
+      {
+        "path": "app/studio/(app)/contabilidad/__tests__/cierre-excepcion-pantalla.test.tsx",
+        "environment": "jsdom por vitest.config.ts"
+      },
+      {
+        "path": "app/studio/(app)/contabilidad/__tests__/libro-diario-aviso.test.tsx",
+        "environment": "jsdom por vitest.config.ts"
+      }
+    ]
+  },
+  "orchestration": {
+    "unboundScript": {
+      "path": "C:/tmp/director-traspaso-20261020/0573-UI-B1-orquestacion-02/orquestacion-functions-exec-UNBOUND.js",
+      "sha256": "adfa74e6ec2fb9bd6d65083865182f0668fd2ac92d564742d8242e420828f92f",
+      "bytes": 18669
+    },
+    "contract": {
+      "path": "C:/tmp/director-traspaso-20261020/0573-UI-B1-orquestacion-02/contrato-orquestacion-binding-UNBOUND.json",
+      "sha256": "43d87e5610ff4acadd80b2f31387c04c088adfda732eadc9dea149deec52c89a",
+      "bytes": 4027
+    },
+    "futureBindingStoreKey": "dtd-ui-b1-239-20261022-03-2f7-cold-binding",
+    "futureObservationsStoreKey": "dtd-ui-b1-239-20261022-03-2f7-observations",
+    "oneEvaluationAwaited": true,
+    "sourceNotEvaluatedYet": true,
+    "notifyBestEffort": true,
+    "reportedIntervalsOnly": true
+  },
+  "supervision": {
+    "ownSessionOnly": true,
+    "pollMaximumSeconds": 10,
+    "recordActualUTC": true,
+    "notifyFirstYieldAndFIN": true,
+    "interruptOwnSessionByDeadlineMinusSeconds": 20,
+    "formalReturnBeforeCustody": true,
+    "exteriorOriginalDeadline": true,
+    "clockRenewal": false,
+    "noSecondShellOrSupervisor": true,
+    "noHostLatencyGuarantee": true,
+    "unavailableNodeBirthVisible": true
+  },
+  "scope": {
+    "oneInvocation": true,
+    "realAPI": false,
+    "credentialRead": false,
+    "install": false,
+    "sourceEdit": false,
+    "services": false,
+    "sqlDbDocker": false,
+    "browser": false,
+    "push": false,
+    "merge": false,
+    "production": false
+  },
+  "review": {
+    "sourceFixed": "2f7/4907/padre82b9;T1 fuente ya revisada, no cambio producto",
+    "fiveFixedOwnTool": "ab6223",
+    "fiveFixedOwnAtUtc": "2026-10-22T15:24:06.3047495Z",
+    "sourceInputs": 83,
+    "runtimeFiles": 5,
+    "differences": 0,
+    "sourceClean": true,
+    "newOrchestrationInverseOwnTool": "f55a4f",
+    "newOrchestrationClosedOwnTool": "7356c2",
+    "newOrchestrationAtUtc": "2026-10-22T15:31:31.8539195Z",
+    "H1": "RESUELTO POR FUENTE en adfa;original3fb preservado",
+    "otherHeavyKnown": "Ninguna;UI02/GLM50 devueltos,COREWorkerIDLE,S2GLM sólo autoría;knowledgeadministrativa otroDirector FIN",
+    "historicalUI02": "FALLÓ238/239+1Unhandled/supervisiónFALLÓ;no se transfiere"
+  }
+}
+```
+
 ## T1 revisado y READY02 en preparación; continuidad recuperada — 2026-10-22T14:57 UTC
 
 - T1 FIJO2f7abf0cb6f16036879ebb5761fe559a43347e99/tree490784b892b8b6d4d1d86bc3e30949c01b1aeebe/padreDIRECTO82b9: FULLdiff3rutas45+/3− leído General6258d3, Promise<Response> adopta base y transforma antes conectar resolve/reject. Cotejo propiofcebf514:40:44.3064176Z:6rawGitblobs0 y2trees0, inversa ENTERA test14713/baacffce,1ancla,post14843/2ef571, prefijosS227425/H196189 enteros; sufijos5142/cd7d01b41862b53a15687fe8036ec57dae6e6985000c9d788866d986b0bb9a71 iguales,6349entradas/6346ajenasidénticas. CONFORMIDAD PORFUENTE nominal enviada, no aceptación funcional.133artefactos+3anclas136sellos General17e60a14:44:37.2407392Z0diff. Recibo9194/22117759,cadena1428/e580f086 FULLREAD2cbc81; manifest23495/e60f4e39/custodia50233/51f73774. 83pins porGit=82igual+1testnuevo, no3pinsmodificados. Producto/query/actions/UI/SQL/fixtures/config intactos. 239previstos y todosasserts/h1 conservados, sin transferir238pasados.
