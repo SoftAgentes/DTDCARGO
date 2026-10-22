@@ -44,8 +44,29 @@ async function openExport(draft: DocumentDraft, context = ctx) {
   const bytes = await exportDocument(draft, context);
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(Buffer.from(bytes) as unknown as Parameters<typeof wb.xlsx.load>[0]);
-  return { bytes, ws: wb.worksheets[0] };
+  return { bytes, ws: wb.worksheets[0], wb };
 }
+
+describe("S2: columna neta independiente y contratos de 14/15 columnas", () => {
+  it("conserva A:N, coloca neto sólo en la líder y reimporta quince columnas sin duplicarlo", async () => {
+    const d = draftOf({ products: [product({ id: "p1", name: "Vasos", quantity: 10, unitPrice: 2, currency: "USD" }), product({ id: "p2", name: "Tapas", quantity: 20, unitPrice: 1, currency: "USD" })], groups: [{ id: "g1", label: "A", cartons: 2, grossWeightKg: 20, netWeightKg: 16, cbm: 0.4, items: [{ productId: "p1", quantity: 10 }, { productId: "p2", quantity: 20 }] }] });
+    const { bytes, ws } = await openExport(d);
+    expect(ws.getCell("J10").value).toBe(20); expect(ws.getCell("K10").value).toBe(0.4);
+    expect(ws.getCell("O9").value).toContain("Peso neto"); expect(ws.getCell("O10").value).toBe(16); expect(ws.getCell("O11").value).toBeNull();
+    expect(totalsRow(ws).getCell(15).value).toBe(16);
+    const roundTrip = await extractDocument(bytes, opts);
+    expect(computeDocumentTotals(roundTrip)).toEqual(computeDocumentTotals(d)); expect(roundTrip.groups[0].netWeightKg).toBe(16);
+  });
+  it("acepta el libro previo de catorce columnas conservando neto ausente y bruto intacto", async () => {
+    const d = draftOf({ products: [product({ id: "p1", name: "Vasos", quantity: 10, unitPrice: 2, currency: "USD" })], groups: [{ id: "g1", label: "A", cartons: 2, grossWeightKg: 20, cbm: 0.4, items: [{ productId: "p1", quantity: 10 }] }] });
+    const { ws, wb } = await openExport(d);
+    ws.unMergeCells("A1"); ws.mergeCells("A1:N1"); ws.spliceColumns(15, 1);
+    const bytes = new Uint8Array(await wb.xlsx.writeBuffer());
+    const roundTrip = await extractDocument(bytes, opts);
+    expect(roundTrip.groups[0]).not.toHaveProperty("netWeightKg");
+    expect(computeDocumentTotals(roundTrip)).toEqual(computeDocumentTotals(d));
+  });
+});
 const isTotals = (ws: ExcelJS.Worksheet, n: number) => /^总计/.test(String(ws.getCell(n, 1).value ?? ""));
 /** Filas de producto: entre el encabezado y el pie de totales. */
 function dataRows(ws: ExcelJS.Worksheet): ExcelJS.Row[] {

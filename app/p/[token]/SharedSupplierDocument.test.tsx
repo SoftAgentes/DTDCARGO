@@ -15,11 +15,24 @@ function fixture(weight:number|null=null):DocumentWorkspace {
 }
 function setup(workspace=fixture()) {
   const get=vi.fn(async(action:string,params?:Record<string,string>)=>action==="workspace"?{workspace}:action==="labels"?{revision:Number(params?.expectedRevision??workspace.revision),folio:"PL-TEST",versionNo:1,labels:Array.from({length:10},(_,index)=>({code,boxN:index+1,totalBoxes:10,boxCode:`DTD-B-${index+1}`}))}:{versions:[]});
-  const post=vi.fn(async(action:string)=>({revision:action==="confirm"?3:2,confirmed:action==="confirm",folio:action==="confirm"?"PL-TEST":undefined,versionNo:action==="confirm"?1:undefined}));
+  const post=vi.fn(async(action:string,body?:Record<string,unknown>)=>{const revision=action==="confirm"?3:2;return {revision,confirmed:action==="confirm",folio:action==="confirm"?"PL-TEST":undefined,versionNo:action==="confirm"?1:undefined,workspace:{...workspace,revision,confirmedRevision:action==="confirm"?revision:workspace.confirmedRevision,draft:body?.draft??workspace.draft}};});
   const client={get,post,id:vi.fn(()=>crypto.randomUUID()),upload:vi.fn(),download:vi.fn(),setAnonymousToken:vi.fn()} as unknown as DocumentClient;
   const view=render(<SharedSupplierDocument initialWorkspace={workspace} token="test-only" code={code} markbox="DTD-0000" locale="es" brand={resolveBrand(null)} client={client}/>);
   return {...view,get,post,client};
 }
+
+it("adopta la revisión proyectada del servidor y conserva cambios si el recibo no se puede comprobar",async()=>{
+  const {post}=setup(fixture(120));await ready();
+  fireEvent.change(screen.getByRole("textbox",{name:"Empresa"}),{target:{value:"Clon local"}});
+  const normalized=fixture(120);normalized.revision=2;normalized.draft.supplier.company="Proveedor normalizado en servidor";
+  post.mockImplementationOnce(async()=>({revision:2,confirmed:false,folio:undefined,versionNo:undefined,workspace:normalized}));
+  fireEvent.click(screen.getByRole("button",{name:"Guardar borrador compartido"}));
+  expect(await screen.findByDisplayValue("Proveedor normalizado en servidor")).toBeVisible();
+  fireEvent.change(screen.getByRole("textbox",{name:"Empresa"}),{target:{value:"Conservar local"}});
+  post.mockImplementationOnce(async()=>({revision:3,confirmed:false,folio:undefined,versionNo:undefined} as never));
+  fireEvent.click(screen.getByRole("button",{name:"Guardar borrador compartido"}));
+  await screen.findByText(/No pudimos confirmar el resultado/);expect(screen.getByDisplayValue("Conservar local")).toBeVisible();
+});
 const step=(number:number)=>fireEvent.click(within(screen.getByRole("navigation")).getByRole("button",{name:new RegExp(`^${number} `)}));
 const ready=async()=>{await waitFor(()=>expect(within(screen.getByRole("navigation")).getAllByRole("button")[0]).toBeEnabled());await act(async()=>{});};
 beforeEach(()=>{vi.spyOn(window,"print").mockImplementation(()=>{});vi.stubGlobal("requestAnimationFrame",(callback:FrameRequestCallback)=>{callback(0);return 1;});});
@@ -243,7 +256,7 @@ describe("proveedor del documento compartido",()=>{
     expect(main.getByRole("textbox",{name:"Producto"})).toHaveValue("Producto compartido");
     fireEvent.click(main.getByRole("button",{name:"Guardar producto"}));
     fireEvent.change(main.getByRole("textbox",{name:"Peso bruto TOTAL (kg)"}),{target:{value:"131"}});
-    post.mockResolvedValueOnce({revision:5,confirmed:false,folio:undefined,versionNo:undefined});
+    post.mockImplementationOnce(async(_action,body)=>({revision:5,confirmed:false,folio:undefined,versionNo:undefined,workspace:{...latest,revision:5,draft:body!.draft as typeof latest.draft}}));
     expect(screen.getByRole("button",{name:"Guardar borrador compartido"})).toBeEnabled();
     fireEvent.click(screen.getByRole("button",{name:"Guardar borrador compartido"}));
     await screen.findByText(/Borrador compartido guardado/);

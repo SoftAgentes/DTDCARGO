@@ -165,6 +165,40 @@ beforeEach(() => {
 afterEach(() => { logged.mockRestore(); vi.unstubAllEnvs(); });
 
 describe("Puerta HTTP de importación documental", () => {
+  it("aplica la misma proyección privada a workspace, historial y Excel conservando los dos identificadores operativos", async () => {
+    const d = draft(); d.supplier.email = "proveedor@synthetic.example";
+    d.fieldDecisions = [{ path: "products.p1.name", origin: "manual", references: [] }];
+    d.issues = [{ id: "PRIVATE-ID", code: "PRIVATE-CODE", message: "PRIVATE-BUYER PRIVATE-OCR PRIVATE-ALTERNATIVE", path: "PRIVATE-PATH", severity: "warning", blocking: false }];
+    h.getWorkspace.mockResolvedValue(workspace({ draft: d }));
+    h.state.admin.document_workspace_versions = { data: [{ revision: 3, actor_kind: "client", created_at: "2026-10-22T12:00:00Z", confirmed: false, draft: d, private: "PRIVATE-HISTORY" }] };
+    h.state.admin.prealertas = { data: { code: "DTD-C-1", client_markbox: MARKBOX, name: "PRIVATE-NAME", email: "PRIVATE-EMAIL", phone: "PRIVATE-PHONE", address: "PRIVATE-ADDRESS" } };
+    h.exportDocument.mockResolvedValue(new Uint8Array([80, 75, 3, 4]));
+    const headers = asSupplier();
+    for (const action of ["workspace", "history"]) {
+      const response = await call({ headers, query: { action, workspaceId: WORKSPACE_ID } });
+      expect(response.status).toBe(200); const serialized = JSON.stringify(await response.json());
+      expect(serialized).not.toMatch(/PRIVATE-|factura-original-del-cliente|fieldDecisions/); expect(serialized).toContain("proveedor@synthetic.example");
+    }
+    expect((await call({ headers, query: { action: "export", workspaceId: WORKSPACE_ID, expectedRevision: "3" } })).status).toBe(200);
+    const [shared, context] = h.exportDocument.mock.calls[0];
+    expect(JSON.stringify([shared, context])).not.toMatch(/PRIVATE-|factura-original-del-cliente|fieldDecisions/);
+    expect(shared.sources).toEqual([]); expect(context).toMatchObject({ markbox: MARKBOX, code: "DTD-C-1", revision: 3 });
+  });
+  it("el PDF recibe la misma proyección de incidencias y no contactos del comprador", async () => {
+    const { w, headers, query } = pdfReady(); const d = w.draft as DocumentDraft;
+    d.issues = [{ id: "PRIVATE-ID", code: "PRIVATE-CODE", message: "PRIVATE-BUYER PRIVATE-OCR", path: "PRIVATE-PATH", severity: "warning", blocking: false }];
+    h.getWorkspace.mockResolvedValue({ ...w, draft: d });
+    const response = await call({ headers, query }); expect(response.status).toBe(200);
+    const payload = h.renderPdf.mock.calls[0][0]; expect(JSON.stringify(payload)).not.toMatch(/PRIVATE-|fieldDecisions|factura-original-del-cliente/);
+    expect(payload).toMatchObject({ markbox: MARKBOX, code: "DTD-C-1" });
+  });
+  it("niega XLSX sin revisión y si cambia durante el render", async () => {
+    h.state.admin.prealertas = { data: { code: "DTD-C-1", client_markbox: MARKBOX } };
+    expect((await call({ headers: asSupplier(), query: { action: "export", workspaceId: WORKSPACE_ID } })).status).toBe(409);
+    expect(h.exportDocument).not.toHaveBeenCalled();
+    h.exportDocument.mockImplementationOnce(async () => { h.getWorkspace.mockResolvedValue(workspace({ revision: 4 })); return new Uint8Array([80, 75]); });
+    expect((await call({ headers: asSupplier(), query: { action: "export", workspaceId: WORKSPACE_ID, expectedRevision: "3" } })).status).toBe(409);
+  });
   describe("PDF confirmado SDD-0473 B HTTP",()=>{
     it.each(["packing-list","labels"])("sirve %s privado con compra y revisión protegidas",async(surface)=>{
       const {headers,query}=pdfReady();const res=await call({headers,query:{...query,surface}});expect(res.status).toBe(200);expect(res.headers.get("content-type")).toBe("application/pdf");expect(res.headers.get("cache-control")).toBe("private, no-store");expect(res.headers.get("content-disposition")).toContain("Rev4.pdf");
@@ -418,7 +452,7 @@ describe("Puerta HTTP de importación documental", () => {
     h.saveWorkspace.mockRejectedValue(new Error("Documento inválido: products.id"));
     const res = await post({ action: "save", workspaceId: WORKSPACE_ID }, { headers: asClient() });
     expect(res.status).toBe(422);
-    expect(await res.json()).toMatchObject({ code: "invalid_document", error: "Documento inválido: products.id" });
+    expect(await res.json()).toMatchObject({ code: "invalid_document", error: "Los datos del documento necesitan revisión. Conserva tus cambios y revisa los campos indicados." });
     expect(logged).not.toHaveBeenCalled();
   });
 
@@ -494,7 +528,7 @@ describe("Puerta HTTP de importación documental", () => {
   it("el packing list sólo sale sellado como confirmado cuando la revisión vigente ES la confirmada", async () => {
     h.exportDocument.mockResolvedValue(new Uint8Array([80, 75, 3, 4]));
     h.state.admin.prealertas = { data: { code: "DTD-C-1", client_markbox: MARKBOX }, error: null };
-    const query = { action: "export", workspaceId: WORKSPACE_ID };
+    const query = { action: "export", workspaceId: WORKSPACE_ID, expectedRevision: "3" };
 
     // Hay ediciones posteriores a la confirmación: el documento es un borrador,
     // y sellarlo como confirmado le diría al proveedor que produzca lo que aún
@@ -505,18 +539,18 @@ describe("Puerta HTTP de importación documental", () => {
     expect(h.exportDocument.mock.calls[0][1]).toMatchObject({ confirmed: false, revision: 3, markbox: MARKBOX, code: "DTD-C-1" });
 
     h.getWorkspace.mockResolvedValue(workspace({ revision: 2, confirmed_revision: 2 }));
-    await call({ origin: PORTAL, headers: asClient(), query });
+    await call({ origin: PORTAL, headers: asClient(), query: { ...query, expectedRevision: "2" } });
     expect(h.exportDocument.mock.calls[1][1]).toMatchObject({ confirmed: true, revision: 2 });
 
     // Un documento que nunca se confirmó tampoco se sella.
     h.getWorkspace.mockResolvedValue(workspace({ revision: 1, confirmed_revision: null }));
-    await call({ origin: PORTAL, headers: asClient(), query });
+    await call({ origin: PORTAL, headers: asClient(), query: { ...query, expectedRevision: "1" } });
     expect(h.exportDocument.mock.calls[2][1]).toMatchObject({ confirmed: false, revision: 1 });
   });
 
   it("no exporta un documento cuya compra no se puede leer, ni deja que el código escape a la cabecera", async () => {
     h.exportDocument.mockResolvedValue(new Uint8Array([80, 75, 3, 4]));
-    const query = { action: "export", workspaceId: WORKSPACE_ID };
+    const query = { action: "export", workspaceId: WORKSPACE_ID, expectedRevision: "3" };
 
     // Sin la compra no hay marca ni código: exportar igual produciría un packing
     // list sin dueño, que es exactamente el dato inventado que no se permite.

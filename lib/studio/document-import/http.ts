@@ -2,7 +2,7 @@ import "server-only";
 import { after, NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
-import { parseDocumentDraft } from "@/lib/shared/document-import";
+import { parseDocumentDraft, projectSupplierDocument } from "@/lib/shared/document-import";
 import { enabled, ImportHttpError, authorizeWorkspace, portalEnabled, reserveRequest, requirePortal, requirePortalScope, UUID } from "./access";
 import { getWorkspace,openWorkspace,projectWorkspace,reserveUpload,applyImport,saveWorkspace,getDocumentLabels } from "./service";
 import { finishUpload,processImportJob } from "./jobs";
@@ -59,7 +59,7 @@ export async function documentImportRequest(req:NextRequest) {
         const gate=await getDocumentLabels(admin,w,expected);
         const {data:p,error}=await admin.from("prealertas").select("code,client_markbox").eq("id",w.prealerta_id).eq("tenant_id",w.tenant_id).is("deleted_at",null).maybeSingle();
         if(error||!p)throw new ImportHttpError(404,"not_found","Compra no disponible.");
-        const draft=projectWorkspace(w,actor).draft;
+        const draft=projectSupplierDocument(parseDocumentDraft(w.draft));
         const {bytes}=await renderConfirmedDocumentPdf({draft,markbox:p.client_markbox,code:p.code,revision:expected,folio:gate.folio,versionNo:gate.versionNo,labels:gate.labels},surface);
         // Rendering may take time. Re-read the authoritative row, not the request's snapshot.
         const latest=await getWorkspace(admin,w.id);
@@ -79,12 +79,17 @@ export async function documentImportRequest(req:NextRequest) {
       if(action==="history") {
         const {data,error}=await admin.from("document_workspace_versions").select("revision,draft,actor_kind,confirmed,created_at").eq("workspace_id",w.id).order("revision",{ascending:false}).limit(50);
         if(error)throw new ImportHttpError(503,"history_unavailable","No pudimos cargar el historial.");
-        return NextResponse.json({versions:(data??[]).map(v=>{const draft=parseDocumentDraft(v.draft);if(actor.kind==="supplier")draft.sources=[];return {...v,draft};})},{headers});
+        return NextResponse.json({versions:(data??[]).map(v=>({revision:v.revision,actor_kind:v.actor_kind,confirmed:v.confirmed,created_at:v.created_at,draft:actor.kind==="supplier"?projectSupplierDocument(parseDocumentDraft(v.draft)):parseDocumentDraft(v.draft)}))},{headers});
       }
       if(action==="export") {
+        const expected=Number(req.nextUrl.searchParams.get("expectedRevision")??NaN);
+        if(!Number.isInteger(expected)||expected!==w.revision)throw new ImportHttpError(409,"revision_conflict","El documento cambió. Carga la revisión guardada antes de descargar.");
         let markbox="",code="Documento";
         if(w.prealerta_id){const {data:p,error}=await admin.from("prealertas").select("code,client_markbox").eq("id",w.prealerta_id).eq("tenant_id",w.tenant_id).maybeSingle();if(error||!p)throw new ImportHttpError(404,"not_found","Compra no disponible.");markbox=p.client_markbox;code=p.code;}
-        const bytes=await exportDocument(parseDocumentDraft(w.draft),{markbox,code,confirmed:w.revision===w.confirmed_revision,revision:w.revision});
+        const bytes=await exportDocument(projectSupplierDocument(parseDocumentDraft(w.draft)),{markbox,code,confirmed:w.revision===w.confirmed_revision,revision:w.revision});
+        const latest=await getWorkspace(admin,w.id);
+        await authorizeWorkspace(admin,session,latest,req.headers);
+        if(latest.revision!==expected||latest.confirmed_revision!==w.confirmed_revision||latest.tenant_id!==w.tenant_id||latest.client_id!==w.client_id||latest.prealerta_id!==w.prealerta_id)throw new ImportHttpError(409,"revision_conflict","El documento cambió durante la descarga. Conserva tus datos y carga la revisión vigente.");
         return new NextResponse(bytes as BodyInit,{headers:{...headers,"Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","Content-Disposition":`attachment; filename="PackingList-${code.replace(/[^a-z0-9-]/gi,"_")}.xlsx"`}});
       }
       throw new ImportHttpError(400,"unknown_action","Operación no disponible.");
@@ -114,7 +119,7 @@ export async function documentImportRequest(req:NextRequest) {
     return NextResponse.json(result,{headers});
   }catch(e){
     if(e instanceof ImportHttpError)return NextResponse.json({error:e.message,code:e.code},{status:e.status,headers});
-    if(e instanceof Error && e.message.startsWith("Documento inválido:"))return NextResponse.json({error:e.message,code:"invalid_document"},{status:422,headers});
+    if(e instanceof Error && e.message.startsWith("Documento inválido:"))return NextResponse.json({error:"Los datos del documento necesitan revisión. Conserva tus cambios y revisa los campos indicados.",code:"invalid_document"},{status:422,headers});
     // Logs contain only event code, never tokens, raw documents, PII or vendor errors.
     console.error("[document-import] request_failed");
     return NextResponse.json({error:"No pudimos completar la operación. Conserva tus datos e intenta otra vez.",code:"unavailable"},{status:503,headers});

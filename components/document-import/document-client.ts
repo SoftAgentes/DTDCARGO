@@ -1,12 +1,24 @@
-import type { DocumentDraft } from "@/lib/shared/document-import";
+import { parseDocumentDraft, type DocumentDraft } from "@/lib/shared/document-import";
 
 export type DocumentLocale = "zh" | "es" | "en";
 export const documentText = (locale: DocumentLocale, zh: string, es: string, en: string) => locale === "zh" ? zh : locale === "en" ? en : es;
 export type DocumentWorkspace = { id: string; revision: number; draft: DocumentDraft; confirmedRevision: number | null; expiresAt: string | null };
-export type DocumentReceipt = { revision: number; confirmed: boolean; folio?: string; versionNo?: number; submissionId?: string };
-export type DocumentDownloadOptions = { format:"pdf"; surface:"packing-list"|"labels"; expectedRevision:number };
+export type DocumentReceipt = { revision: number; confirmed: boolean; workspace?: DocumentWorkspace; folio?: string; versionNo?: number; submissionId?: string };
+export type DocumentDownloadOptions = { format:"pdf"; surface:"packing-list"|"labels"; expectedRevision:number } | { format:"xlsx"; expectedRevision:number };
 export class DocumentRequestError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); this.name = "DocumentRequestError"; }
+}
+/** Only business edits travel back; the server retains the evidence it already owns. */
+export function documentEdit(draft: DocumentDraft): DocumentDraft {
+  const edit = { ...draft, sources: [] };
+  delete edit.fieldDecisions;
+  return edit;
+}
+/** A receipt never makes the submitted browser clone authoritative. */
+export function receiptWorkspace(receipt: DocumentReceipt, workspaceId: string): DocumentWorkspace {
+  const next = receipt.workspace;
+  if (!next || next.id !== workspaceId || !Number.isSafeInteger(next.revision) || next.revision < 0 || next.revision !== receipt.revision || typeof receipt.confirmed !== "boolean" || (next.confirmedRevision !== null && !Number.isSafeInteger(next.confirmedRevision)) || (next.expiresAt !== null && typeof next.expiresAt !== "string") || receipt.confirmed !== (next.confirmedRevision === next.revision)) throw new DocumentRequestError(0, "unconfirmed", "No pudimos comprobar la revisión guardada. Conserva tus cambios y consulta la versión compartida.");
+  return { id: next.id, revision: next.revision, confirmedRevision: next.confirmedRevision, expiresAt: next.expiresAt, draft: parseDocumentDraft(next.draft) };
 }
 export type DocumentClient = {
   get<T>(action: string, params?: Record<string, string>): Promise<T>;
@@ -42,10 +54,12 @@ export function createDocumentClient({ baseUrl = "", supplierToken, request = fe
       if (!result.ok) throw new DocumentRequestError(result.status, "upload_failed", "No pudimos recibir el archivo.");
     },
     download: async (workspaceId,options) => {
-      const result=await response(options?"pdf":"export",options?{workspaceId,surface:options.surface,expectedRevision:String(options.expectedRevision)}:{workspaceId});
-      if(options && result.headers.get("content-type")?.split(";")[0].trim().toLowerCase()!=="application/pdf")throw new DocumentRequestError(0,"invalid_pdf_response","No pudimos comprobar el PDF. Conserva tus datos y vuelve a intentarlo.");
+      if(!options || !Number.isInteger(options.expectedRevision) || options.expectedRevision<0)throw new DocumentRequestError(400,"invalid_revision","Actualiza la revisión del documento antes de descargar.");
+      const pdf=options.format==="pdf";
+      const result=await response(pdf?"pdf":"export",{workspaceId,...(options.format==="pdf"?{surface:options.surface}:{}),expectedRevision:String(options.expectedRevision)});
+      if(pdf && result.headers.get("content-type")?.split(";")[0].trim().toLowerCase()!=="application/pdf")throw new DocumentRequestError(0,"invalid_pdf_response","No pudimos comprobar el PDF. Conserva tus datos y vuelve a intentarlo.");
       const blob=await result.blob();
-      if(options && await blob.slice(0,5).text()!=="%PDF-")throw new DocumentRequestError(0,"invalid_pdf_response","No pudimos comprobar el PDF. Conserva tus datos y vuelve a intentarlo.");
+      if(pdf && await blob.slice(0,5).text()!=="%PDF-")throw new DocumentRequestError(0,"invalid_pdf_response","No pudimos comprobar el PDF. Conserva tus datos y vuelve a intentarlo.");
       return blob;
     },
     setAnonymousToken: token => { anonymousToken = token; },

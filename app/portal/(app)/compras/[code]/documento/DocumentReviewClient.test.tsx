@@ -1,9 +1,9 @@
 /**
  * SDD-0473 · Lo que esta pantalla no puede romper al guardar.
  *
- * `save` y `apply` NO devuelven el workspace: devuelven un RECIBO
+ * El RPC devuelve un recibo; S2 añade el workspace autoritativo proyectado al RECIBO
  * (`save_document_workspace` en la migración 0457 hace `return receipt`), con
- * revisión, folio y confirmación — sin `id` y sin `draft`.
+ * revisión, folio y confirmación. La UI adopta receipt.workspace, nunca el recibo entero.
  *
  * Adoptar ese recibo como si fuera el workspace costaba dos fallas que sólo se
  * ven usando la pantalla: el `id` se perdía y el guardado siguiente salía con
@@ -42,6 +42,7 @@ function cliente() {
     get: vi.fn(async (action: string) => {
       calls.push({ action });
       if (action === "capabilities") return { available: true, portal: true } as never;
+      if (action === "destinations") return { cities: [] } as never;
       if (action === "workspace")
         return { workspace: { ...WORKSPACE, revision } } as never;
       throw new Error("acción GET no esperada: " + action);
@@ -57,7 +58,7 @@ function cliente() {
             `revisión esperada ${revision}, llegó ${String(body?.expectedRevision)}`,
           );
         revision += 1;
-        return { revision, confirmed: false, folio: "DOC-1", versionNo: 1 } as never;
+        return { revision, confirmed: false, folio: "DOC-1", versionNo: 1, workspace: { ...WORKSPACE, revision, draft: body.draft } } as never;
       }
       throw new Error("acción POST no esperada: " + action);
     }),
@@ -83,6 +84,29 @@ afterEach(() => {
 });
 
 describe("DocumentReviewClient · guardar dos veces (SDD-0473)", () => {
+  it("muestra el valor autoritativo del recibo, aunque difiera del valor enviado", async () => {
+    const { client } = cliente(); const normalPost = vi.mocked(client.post).getMockImplementation()!;
+    vi.mocked(client.post).mockImplementation(async (action, body) => {
+      if (action !== "save") return normalPost(action, body) as never;
+      const saved = { ...emptyDocumentDraft(), supplier: { ...emptyDocumentDraft().supplier, company: "Empresa normalizada en servidor" } };
+      return { revision: 4, confirmed: false, workspace: { ...WORKSPACE, revision: 4, draft: saved } } as never;
+    });
+    render(<DocumentReviewClient code="DTD-0001-1" shareToken={null} client={client}/>);
+    await screen.findByRole("button", { name: "Guardar borrador" });
+    fireEvent.change(screen.getByRole("textbox", { name: "Empresa" }), { target: { value: "Clon enviado" } }); guardar();
+    expect(await screen.findByDisplayValue("Empresa normalizada en servidor")).toBeVisible();
+    expect(screen.queryByDisplayValue("Clon enviado")).not.toBeInTheDocument();
+  });
+  it("un recibo incompleto conserva cambios y no habilita una descarga como guardada", async () => {
+    const { client } = cliente(); const normalPost = vi.mocked(client.post).getMockImplementation()!;
+    vi.mocked(client.post).mockImplementation(async (action, body) => action === "save" ? { revision: 4, confirmed: false } as never : normalPost(action, body) as never);
+    render(<DocumentReviewClient code="DTD-0001-1" shareToken={null} client={client}/>);
+    await screen.findByRole("button", { name: "Guardar borrador" });
+    fireEvent.change(screen.getByRole("textbox", { name: "Empresa" }), { target: { value: "Conservar este cambio" } }); guardar();
+    await screen.findByText(/No pudimos confirmar el guardado/);
+    expect(screen.getByDisplayValue("Conservar este cambio")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Descargar Excel guardado" })).toBeDisabled();
+  });
   it("espera también la capacidad del portal antes de abrir un documento compartido", async () => {
     const { client } = cliente();
     vi.mocked(client.get).mockResolvedValue({ available: true, portal: false });
@@ -135,6 +159,7 @@ describe("DocumentReviewClient · guardar dos veces (SDD-0473)", () => {
     });
     vi.mocked(client.get).mockImplementation(async (action) => {
       if (action === "capabilities") return { available: true, portal: true } as never;
+      if (action === "destinations") return { cities: [] } as never;
       if (action === "workspace") return { workspace: remoto } as never;
       throw new Error("acción inesperada");
     });
@@ -177,6 +202,7 @@ describe("DocumentReviewClient · guardar dos veces (SDD-0473)", () => {
     const imported = { ...WORKSPACE, revision: 4, draft: { ...emptyDocumentDraft(), supplier: { ...emptyDocumentDraft().supplier, company: "Proveedor importado" } } };
     vi.mocked(client.get).mockImplementation(async (action) => {
       if (action === "capabilities") return { available: true, portal: true } as never;
+      if (action === "destinations") return { cities: [] } as never;
       if (action === "job") return { job: { status: "ready", result: emptyDocumentDraft(), errorCode: null } } as never;
       if (action === "workspace") return { workspace: imported } as never;
       throw new Error("acción GET inesperada");

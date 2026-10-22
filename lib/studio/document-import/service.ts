@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { emptyDocumentDraft, fromPackingPayload, parseDocumentDraft, mergeDocuments, toPackingPayload, confirmationIssues, type DocumentKind } from "@/lib/shared/document-import";
+import { emptyDocumentDraft, fromPackingPayload, parseDocumentDraft, mergeDocuments, reconcileDocumentEdit, projectSupplierDocument, DocumentMergeReviewError, toPackingPayload, confirmationIssues, type DocumentDraft, type DocumentKind } from "@/lib/shared/document-import";
 import { validatePackingListInput } from "@/lib/studio/prealertas/packlist-form";
 import { getPrealertaIdsByToken } from "@/lib/studio/prealertas/queries";
 import { buildLabelsFromBoxes } from "@/lib/studio/prealertas/types";
@@ -116,26 +116,33 @@ async function openWorkspaceAttempt(admin:SupabaseClient,session:SupabaseClient,
 
 /** Supplier projection excludes source filenames, original URLs, jobs and client identity. */
 export function projectWorkspace(w:WorkspaceRow,actor:ImportActor) {
-  const draft=parseDocumentDraft(w.draft);
-  if(actor.kind==="supplier") draft.sources=[];
+  const draft=actor.kind==="supplier"?projectSupplierDocument(parseDocumentDraft(w.draft)):parseDocumentDraft(w.draft);
   return {id:w.id,revision:w.revision,draft,confirmedRevision:w.confirmed_revision,expiresAt:w.expires_at};
 }
 export async function saveWorkspace(db:SupabaseClient,w:WorkspaceRow,actor:ImportActor,body:Record<string,unknown>,confirm=false) {
-  if(!Number.isInteger(body.expectedRevision) || !UUID.test(String(body.commandId??""))) throw new ImportHttpError(400,"invalid_revision","Actualiza el documento antes de guardar.");
-  const draft=parseDocumentDraft(body.draft);
   const existing=parseDocumentDraft(w.draft);
-  // Source evidence is server-owned, not editable by supplier or a browser payload.
-  draft.sources=existing.sources;
-  const knownIssues=new Map(existing.issues.map(i=>[i.id,i]));
-  draft.issues=existing.issues.map(i=>({...i,resolved:body.resolvedIssueIds instanceof Array && body.resolvedIssueIds.includes(i.id) ? true : (draft.issues.find(x=>x.id===i.id)?.resolved===true || i.resolved)}));
-  for(const i of parseDocumentDraft(body.draft).issues) if(!knownIssues.has(i.id)) draft.issues.push(i);
+  const draft=reconcileDocumentEdit(existing,body.draft);
+  const submittedIssues=draft.issues;
+  // Supplier issue IDs are projected; they cannot inject private messages or metadata.
+  draft.issues=existing.issues.map((i,index)=>{
+    const visibleId=actor.kind==="supplier"?`supplier-review-${index+1}`:i.id;
+    const submitted=submittedIssues.find(x=>x.id===visibleId);
+    const resolved=(Array.isArray(body.resolvedIssueIds)&&body.resolvedIssueIds.includes(visibleId))?true:submitted?.resolved??i.resolved;
+    return {...i,...(resolved===undefined?{}:{resolved})};
+  });
+  return persistWorkspace(db,w,actor,body,draft,confirm);
+}
+/** Internal extraction path cannot be selected by body.mode or a client metadata flag. */
+async function persistWorkspace(db:SupabaseClient,w:WorkspaceRow,actor:ImportActor,body:Record<string,unknown>,draft:DocumentDraft,confirm:boolean) {
+  if(!Number.isInteger(body.expectedRevision) || Number(body.expectedRevision)<0 || !UUID.test(String(body.commandId??""))) throw new ImportHttpError(400,"invalid_revision","Actualiza el documento antes de guardar.");
+  draft=parseDocumentDraft(draft);
   let confirmation=null;
   if(confirm) {
     if(actor.kind!=="supplier" || !w.prealerta_id) throw new ImportHttpError(403,"supplier_required","El proveedor debe confirmar el despacho desde su enlace.");
     const blockers=confirmationIssues(draft).filter(i=>i.blocking && !i.resolved);
-    if(blockers.length) throw new ImportHttpError(422,"missing_logistics",blockers.map(i=>i.message).slice(0,5).join(" "));
+    if(blockers.length) throw new ImportHttpError(422,"missing_logistics","Revisa los datos pendientes del documento antes de confirmar el despacho.");
     const {input,fieldErrors}=validatePackingListInput(toPackingPayload(draft));
-    if(!input) throw new ImportHttpError(422,"invalid_document",Object.values(fieldErrors??{}).join(" "));
+    if(!input) throw new ImportHttpError(422,"invalid_document",fieldErrors?"Revisa los datos del documento antes de confirmar.":"No pudimos validar el documento.");
     confirmation=input;
   }
   const {data,error}=await db.rpc("save_document_workspace",{p_workspace_id:w.id,p_expected_revision:body.expectedRevision,p_draft:draft,p_actor_kind:actor.kind,p_actor_id:actor.id,p_command_id:body.commandId,p_confirmation:confirmation});
@@ -144,16 +151,25 @@ export async function saveWorkspace(db:SupabaseClient,w:WorkspaceRow,actor:Impor
     if(error.message?.includes("received_boxes")) throw new ImportHttpError(409,"received_boxes","Ya hay cajas recibidas. El equipo de DTD debe revisar cambios en el embalaje.");
     throw new ImportHttpError(503,"save_failed","No pudimos guardar el documento. Conserva los cambios e intenta otra vez.");
   }
-  return data;
+  const receipt=Array.isArray(data)?data[0]:data;
+  if(!receipt||!Number.isInteger(receipt.revision)||typeof receipt.confirmed!=="boolean") throw new ImportHttpError(503,"save_unconfirmed","No pudimos comprobar el recibo. Conserva tus cambios y consulta la revisión compartida.");
+  const latest=await getWorkspace(db,w.id);
+  if(latest.tenant_id!==w.tenant_id||latest.client_id!==w.client_id||latest.prealerta_id!==w.prealerta_id||latest.anonymous_hash!==w.anonymous_hash) return notFound();
+  if(latest.revision!==receipt.revision) throw new ImportHttpError(409,"revision_conflict","El guardado fue recibido, pero el documento cambió después. Conserva tus cambios y compara la revisión compartida.");
+  // Return only known receipt fields and the authoritative projected document.
+  return {revision:latest.revision,confirmed:latest.confirmed_revision===latest.revision,
+    ...(typeof receipt.folio==="string"?{folio:receipt.folio}:{}),...(Number.isInteger(receipt.versionNo)?{versionNo:receipt.versionNo}:{}),
+    ...(typeof receipt.submissionId==="string"?{submissionId:receipt.submissionId}:{}),workspace:projectWorkspace(latest,actor)};
 }
 export async function applyImport(db:SupabaseClient,w:WorkspaceRow,actor:ImportActor,body:Record<string,unknown>) {
   if(actor.kind==="supplier") throw new ImportHttpError(403,"not_available","Los documentos originales del cliente son privados.");
   const {data:j,error}=await db.from("document_import_jobs").select("result,status").eq("id",String(body.jobId)).eq("workspace_id",w.id).maybeSingle();
   if(error || !j || !["ready","partial"].includes(j.status) || !j.result) return notFound();
-  const proposal=mergeDocuments(parseDocumentDraft(w.draft),parseDocumentDraft(j.result));
-  // Application is explicit after preview; source comes only from the extraction.
-  const mergedWorkspace={...w,draft:proposal};
-  return saveWorkspace(db,mergedWorkspace,actor,{...body,draft:proposal},false);
+  let proposal:DocumentDraft;
+  try{proposal=mergeDocuments(parseDocumentDraft(w.draft),parseDocumentDraft(j.result));}
+  catch(error){if(error instanceof DocumentMergeReviewError)throw new ImportHttpError(422,"identity_review",error.message);throw error;}
+  // The real prior remains w; extraction never acquires manual authority.
+  return persistWorkspace(db,w,actor,body,proposal,false);
 }
 const MIME:Record<string,string>={pdf:"application/pdf",csv:"text/csv",xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"};
 export async function reserveUpload(db:SupabaseClient,w:WorkspaceRow,actor:ImportActor,body:Record<string,unknown>) {

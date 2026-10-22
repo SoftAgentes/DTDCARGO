@@ -23,7 +23,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { emptyDocumentDraft, type DocumentDraft, type DocumentSource } from "@/lib/shared/document-import";
+import { emptyDocumentDraft, projectSupplierDocument, reconcileDocumentEdit, type DocumentDraft, type DocumentSource } from "@/lib/shared/document-import";
 import type { ImportActor, WorkspaceRow } from "./access";
 
 const mocks = vi.hoisted(() => ({ idsByToken: vi.fn(), portalPrincipal: vi.fn() }));
@@ -82,6 +82,9 @@ function fakeDb(spec: DbSpec = {}) {
   const inserts: { table: string; row: Record<string, unknown> }[] = [];
   const uploads: { path: string; options: unknown }[] = [];
   const answer = (q: TableQuery): Reply => {
+    // A successful save fixture persists the exact RPC draft for the authoritative receipt read.
+    const saved = rpcCalls.findLast(c => c.name === "save_document_workspace");
+    if (q.table === "document_workspaces" && saved && !Object.hasOwn(spec.tables ?? {}, q.table)) return { data: W({ revision: 8, draft: saved.args.p_draft as DocumentDraft }) };
     const entry = spec.tables?.[q.table];
     const value = typeof entry === "function" ? entry(q) : entry;
     return { data: value?.data ?? null, error: value?.error ?? null };
@@ -137,8 +140,40 @@ describe("Lo que el proveedor puede ver del documento compartido", () => {
 });
 
 describe("Guardar sin pisar el trabajo de la otra parte", () => {
+  it("devuelve el borrador persistido y proyectado, aunque difiera del clon enviado", async () => {
+    const persisted = completeDraft(); persisted.supplier.company = "Proveedor normalizado";
+    persisted.sources = [CLIENT_SOURCE]; persisted.fieldDecisions = [{ path: "supplier.company", origin: "manual", references: [] }];
+    persisted.issues = [{ id: "PRIVATE-ID", code: "PRIVATE-CODE", path: "PRIVATE-PATH", message: "PRIVATE-BUYER PRIVATE-OCR PRIVATE-ALTERNATIVE", blocking: false, severity: "warning" }];
+    const db = fakeDb({ tables: { document_workspaces: { data: W({ revision: 8, draft: persisted }) } }, rpc: () => ({ data: { revision: 8, confirmed: false, private: "PRIVATE-RPC" } }) });
+    const result = await saveWorkspace(db, W(), supplier, body({ draft: projectSupplierDocument(workingDraft()) }));
+    expect(result.workspace.draft.supplier.company).toBe("Proveedor normalizado"); expect(result.workspace.revision).toBe(8);
+    expect(result.workspace.draft.sources).toEqual([]); expect(result.workspace.draft).not.toHaveProperty("fieldDecisions");
+    expect(JSON.stringify(result)).not.toMatch(/PRIVATE-|proforma-del-cliente/);
+    expect(result.workspace.draft.supplier.email).toBe("ventas@sintetico.example");
+  });
+  it("un recibo no comprobable o una lectura posterior distinta nunca se devuelve como éxito", async () => {
+    const invalid = fakeDb({ rpc: () => ({ data: { revision: 8 } }) });
+    await expect(saveWorkspace(invalid, W(), clientActor, body())).rejects.toMatchObject({ code: "save_unconfirmed" });
+    const changed = fakeDb({ tables: { document_workspaces: { data: W({ revision: 9 }) } }, rpc: () => ({ data: { revision: 8, confirmed: false } }) });
+    await expect(saveWorkspace(changed, W(), clientActor, body())).rejects.toMatchObject({ status: 409, code: "revision_conflict" });
+  });
+  it("un proveedor sin metadata conserva correcciones manuales; body.mode no convierte save en apply", async () => {
+    const prior = completeDraft(), submitted = projectSupplierDocument(prior); submitted.products[0].unitPrice = null;
+    const db = fakeDb({ rpc: () => ({ data: { revision: 8, confirmed: false } }) });
+    await saveWorkspace(db, W({ draft: prior }), supplier, body({ draft: submitted, mode: "apply", fieldDecisions: [] }));
+    expect(lastDraft(db).fieldDecisions).toContainEqual({ path: "products.p1.unitPrice", origin: "manual", references: [] });
+    expect(lastDraft(db).products[0].unitPrice).toBeNull();
+  });
+  it("la confirmación devuelve la proyección del servidor y conserva sus gates sin compartir metadata", async () => {
+    const d = completeDraft(); d.sources = [CLIENT_SOURCE];
+    const db = fakeDb({ tables: { document_workspaces: { data: W({ revision: 8, confirmed_revision: 8, draft: d }) } }, rpc: () => ({ data: { revision: 8, confirmed: true, folio: "PL-SYNTHETIC", versionNo: 1 } }) });
+    const result = await saveWorkspace(db, W({ draft: d }), supplier, body({ draft: projectSupplierDocument(d) }), true);
+    expect(result).toMatchObject({ confirmed: true, workspace: { revision: 8, confirmedRevision: 8, draft: { sources: [] } } });
+    expect(JSON.stringify(result)).not.toContain(SUPPLIER_FILE);
+    expect(db.rpcCalls[0].args.p_confirmation).not.toBeNull();
+  });
   it("manda a la base la revisión que declara el cliente, no la que ya tiene el servidor", async () => {
-    const db = fakeDb({ rpc: () => ({ data: { revision: 8 } }) });
+    const db = fakeDb({ rpc: () => ({ data: { revision: 8, confirmed: false } }) });
     await saveWorkspace(db, W({ revision: 7 }), clientActor, body({ expectedRevision: 3 }));
     // Si acá viajara `w.revision`, el CAS siempre acertaría y el guardado pisaría.
     expect(db.rpcCalls[0]).toMatchObject({ name: "save_document_workspace", args: { p_workspace_id: ID.workspace, p_expected_revision: 3, p_command_id: ID.command, p_actor_kind: "client" } });
@@ -163,33 +198,33 @@ describe("Guardar sin pisar el trabajo de la otra parte", () => {
     ["sin comando", { commandId: undefined }],
     ["comando que no es UUID", { commandId: "12345" }],
   ])("rechaza un guardado %s antes de tocar la base", async (_caso, over) => {
-    const db = fakeDb({ rpc: () => ({ data: {} }) });
+    const db = fakeDb({ rpc: () => ({ data: { revision: 8, confirmed: false } }) });
     await expect(saveWorkspace(db, W(), clientActor, body(over))).rejects.toMatchObject({ status: 400, code: "invalid_revision" });
     expect(db.rpcCalls).toHaveLength(0);
   });
   it("la evidencia de origen es del servidor: el payload no la inventa ni la reemplaza", async () => {
-    const db = fakeDb({ rpc: () => ({ data: {} }) });
+    const db = fakeDb({ rpc: () => ({ data: { revision: 8, confirmed: false } }) });
     const forged = workingDraft();
     forged.sources = [{ id: "inventado", fileName: "factura-que-nunca-existio.pdf", kind: "invoice", locations: [{ path: "products.p1.unitPrice", sheet: null, cell: "Z9", page: null }] }];
     await saveWorkspace(db, W(), supplier, body({ draft: forged }));
     expect(lastDraft(db).sources).toEqual([CLIENT_SOURCE]);
   });
   it("el proveedor no borra la revisión pendiente mandando un documento sin incidencias", async () => {
-    const db = fakeDb({ rpc: () => ({ data: {} }) });
+    const db = fakeDb({ rpc: () => ({ data: { revision: 8, confirmed: false } }) });
     const silent = workingDraft();
     silent.issues = [];
     await saveWorkspace(db, W(), supplier, body({ draft: silent }));
     expect(lastDraft(db).issues).toContainEqual(expect.objectContaining({ id: "ai_review_required:document", blocking: true, resolved: false }));
   });
   it("no confirma un despacho con datos faltantes: corta antes de llamar a la base", async () => {
-    const db = fakeDb({ rpc: () => ({ data: {} }) });
+    const db = fakeDb({ rpc: () => ({ data: { revision: 8, confirmed: false } }) });
     const incomplete = workingDraft();
     incomplete.groups = [];
     await expect(saveWorkspace(db, W(), supplier, body({ draft: incomplete }), true)).rejects.toMatchObject({ status: 422, code: "missing_logistics" });
     expect(db.rpcCalls).toHaveLength(0);
   });
   it("sólo el proveedor confirma, y sólo sobre una compra real", async () => {
-    const db = fakeDb({ rpc: () => ({ data: {} }) });
+    const db = fakeDb({ rpc: () => ({ data: { revision: 8, confirmed: false } }) });
     await expect(saveWorkspace(db, W(), clientActor, body(), true)).rejects.toMatchObject({ status: 403, code: "supplier_required" });
     await expect(saveWorkspace(db, W({ prealerta_id: null }), supplier, body(), true)).rejects.toMatchObject({ status: 403, code: "supplier_required" });
     expect(db.rpcCalls).toHaveLength(0);
@@ -309,6 +344,27 @@ describe("Aplicar una extracción al documento", () => {
     document_import_jobs: (q: TableQuery) => ({ data: q.filters.some(([c, v]) => c === "workspace_id" && v === ID.workspace) ? job : null }),
   });
 
+  it("apply compara con el anterior real y no convierte la lectura en corrección manual", async () => {
+    const prior = completeDraft(), browser = projectSupplierDocument(prior); browser.products[0].unitPrice = null;
+    const saved = reconcileDocumentEdit(prior, browser);
+    const incoming = completeDraft(); incoming.products[0].unitPrice = 40; incoming.groups[0].grossWeightKg = 14;
+    incoming.sources = [{ id: "job-new", fileName: "synthetic.xlsx", kind: "packing_list", locations: [{ path: "groups.g1.grossWeightKg", sheet: "Datos", cell: "A1", page: null, evidenceId: "e1", observedValue: 14 }] }];
+    const db = fakeDb({ tables: jobsTable({ status: "ready", result: incoming }), rpc: () => ({ data: { revision: 8, confirmed: false } }) });
+    await applyImport(db, W({ draft: saved }), clientActor, { ...body(), jobId: ID.job });
+    const result = lastDraft(db);
+    expect(result.products[0].unitPrice).toBeNull();
+    expect(result.groups[0].grossWeightKg).toBe(14);
+    expect(result.fieldDecisions).toContainEqual({ path: "groups.g1.grossWeightKg", origin: "source", references: [{ sourceId: "job-new", evidenceId: "e1" }] });
+    expect(result.fieldDecisions).not.toContainEqual(expect.objectContaining({ path: "groups.g1.grossWeightKg", origin: "manual" }));
+  });
+  it("una identidad incierta falla antes del RPC, sin resucitar el producto eliminado", async () => {
+    const prior = completeDraft(), browser = projectSupplierDocument(prior); browser.products = []; browser.groups[0].items = [];
+    const saved = reconcileDocumentEdit(prior, browser);
+    const db = fakeDb({ tables: jobsTable({ status: "ready", result: completeDraft() }) });
+    await expect(applyImport(db, W({ draft: saved }), clientActor, { ...body(), jobId: ID.job })).rejects.toMatchObject({ status: 422, code: "identity_review" });
+    expect(db.rpcCalls).toHaveLength(0);
+  });
+
   it("el proveedor nunca aplica una extracción: ni consulta el job", async () => {
     const db = fakeDb({ tables: jobsTable({ status: "ready", result: extracted() }) });
     await expect(applyImport(db, W(), supplier, { ...body(), jobId: ID.job })).rejects.toMatchObject({ status: 403, code: "not_available" });
@@ -332,7 +388,7 @@ describe("Aplicar una extracción al documento", () => {
     expect(db.rpcCalls).toHaveLength(0);
   });
   it.each([["ready"], ["partial"]])("aplica un job %s conservando la evidencia de ambos documentos y sin confirmar", async (status) => {
-    const db = fakeDb({ tables: jobsTable({ status, result: extracted() }), rpc: () => ({ data: { revision: 8 } }) });
+    const db = fakeDb({ tables: jobsTable({ status, result: extracted() }), rpc: () => ({ data: { revision: 8, confirmed: false } }) });
     await applyImport(db, W(), clientActor, { ...body(), jobId: ID.job });
     const draft = lastDraft(db);
     expect(draft.products.map((p) => p.id).sort()).toEqual(["j2-p1", "p1"]);

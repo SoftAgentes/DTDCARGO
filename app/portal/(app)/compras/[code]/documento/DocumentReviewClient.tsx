@@ -5,8 +5,11 @@ import Link from "next/link";
 import { computeDocumentTotals, confirmationIssues, type DocumentDraft } from "@/lib/shared/document-import";
 import { DocumentEditor, DocumentSummary } from "@/components/document-import/DocumentEditor";
 import { DocumentImportPanel } from "@/components/document-import/DocumentImportPanel";
+import { DocumentCalculator } from "@/components/document-import/DocumentCalculator";
 import {
   createDocumentClient,
+  documentEdit,
+  receiptWorkspace,
   DocumentRequestError,
   type DocumentClient,
   type DocumentReceipt,
@@ -36,6 +39,7 @@ function DocumentReviewWorkspace({ code, shareToken, client }: DocumentReviewPro
   const [draft, setDraft] = useState<DocumentDraft | null>(null);
   const [sucio, setSucio] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [descargando, setDescargando] = useState(false);
   const [aviso, setAviso] = useState<Aviso>(null);
   const [conflicto, setConflicto] = useState(false);
   const [compartida, setCompartida] = useState<DocumentWorkspace | null>(null);
@@ -45,9 +49,13 @@ function DocumentReviewWorkspace({ code, shareToken, client }: DocumentReviewPro
   const avisoRef = useRef<HTMLDivElement>(null);
   const compararRef = useRef<HTMLButtonElement>(null);
   const cambiosRef = useRef(false);
+  const mounted = useRef(true), generation = useRef(0);
+  const command = useRef<{key:string;id:string}|null>(null);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; generation.current++; }; }, []);
   const compraHref = `/portal/compras/${encodeURIComponent(code)}`;
 
   const adoptar = useCallback((next: DocumentWorkspace) => {
+    generation.current++;
     setWorkspace(next);
     setDraft(next.draft);
     cambiosRef.current = false;
@@ -95,26 +103,25 @@ function DocumentReviewWorkspace({ code, shareToken, client }: DocumentReviewPro
     if (!workspace || !draft || guardando) return;
     setGuardando(true);
     setAviso(null);
+    const requestedGeneration = generation.current;
+    const key = JSON.stringify([workspace.id, workspace.revision, draft]);
+    if(command.current?.key!==key) command.current={key,id:transport.id()};
     try {
       const recibo = await transport.post<DocumentReceipt>("save", {
         workspaceId: workspace.id,
-        draft,
+        draft: documentEdit(draft),
         expectedRevision: workspace.revision,
-        commandId: transport.id(),
+        commandId: command.current.id,
       });
-      setWorkspace({
-        ...workspace,
-        draft,
-        revision: recibo.revision,
-        confirmedRevision: recibo.confirmed ? recibo.revision : workspace.confirmedRevision,
-      });
-      setSucio(false);
-      cambiosRef.current = false;
-      setConflicto(false);
-      setCompartida(null);
+      if (!mounted.current) return;
+      const saved = receiptWorkspace(recibo, workspace.id);
+      if (generation.current !== requestedGeneration) { setCompartida(saved); setConflicto(true); setAviso({ text: "El guardado llegó después de otro cambio. Conservamos tus cambios en pantalla para compararlos.", error: true }); return; }
+      adoptar(saved);
+      command.current=null;
       setSalir(false);
       setAviso({ text: `Guardado. El proveedor verá la revisión ${recibo.revision} al abrir el enlace.`, error: false });
     } catch (error) {
+      if (!mounted.current || generation.current !== requestedGeneration) return;
       if (error instanceof DocumentRequestError && error.status === 409) {
         setConflicto(true);
         setAviso({ text: "Otra persona guardó una revisión más reciente. Tus cambios siguen en pantalla. Compara las versiones antes de continuar.", error: true });
@@ -122,7 +129,7 @@ function DocumentReviewWorkspace({ code, shareToken, client }: DocumentReviewPro
         setAviso({ text: "No pudimos confirmar el guardado. Tus cambios siguen en pantalla; inténtalo de nuevo.", error: true });
       }
     } finally {
-      setGuardando(false);
+      if (mounted.current) setGuardando(false);
     }
   }
 
@@ -131,6 +138,7 @@ function DocumentReviewWorkspace({ code, shareToken, client }: DocumentReviewPro
     setConsultando(true);
     try {
       const response = await transport.get<{ workspace: DocumentWorkspace }>("workspace", { workspaceId: workspace.id });
+      if (!mounted.current) return;
       setCompartida(response.workspace);
       setAviso({ text: "La versión compartida está abajo para comparar. Tus cambios todavía se conservan.", error: false });
     } catch {
@@ -138,6 +146,23 @@ function DocumentReviewWorkspace({ code, shareToken, client }: DocumentReviewPro
     } finally {
       setConsultando(false);
     }
+  }
+
+  async function descargarExcel() {
+    if (!workspace || sucio || conflicto || guardando || descargando) return;
+    const requestedGeneration = generation.current, revision = workspace.revision;
+    setDescargando(true);
+    try {
+      const file = await transport.download(workspace.id, { format: "xlsx", expectedRevision: revision });
+      if (!mounted.current || requestedGeneration !== generation.current) return;
+      const url = URL.createObjectURL(file), link = document.createElement("a");
+      link.href = url; link.download = `PackingList-${code.replace(/[^a-z0-9-]/gi, "_")}-Rev${revision}.xlsx`; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      if (!mounted.current || requestedGeneration !== generation.current) return;
+      if (error instanceof DocumentRequestError && error.status === 409) setConflicto(true);
+      setAviso({ text: "No pudimos descargar esa revisión. Tus cambios siguen en pantalla; consulta la versión compartida.", error: true });
+    } finally { if (mounted.current) setDescargando(false); }
   }
 
   if (estado === "cargando") {
@@ -231,7 +256,13 @@ function DocumentReviewWorkspace({ code, shareToken, client }: DocumentReviewPro
           </fieldset>
         </details>
 
-        {draft && <DocumentEditor draft={draft} onChange={(next) => { cambiosRef.current = true; setDraft(next); setSucio(true); if (!conflicto) setAviso(null); }} locale="es" disabled={guardando} revision={workspace?.revision} confirmed={confirmado && !sucio} hideSummary />}
+        {draft && <DocumentEditor draft={draft} onChange={(next) => { generation.current++; cambiosRef.current = true; setDraft(next); setSucio(true); if (!conflicto) setAviso(null); }} locale="es" disabled={guardando} revision={workspace?.revision} confirmed={confirmado && !sucio} hideSummary />}
+
+        {workspace && <section className={s.stack} aria-label="Cotizar y descargar la revisión guardada">
+          <div className={s.actions}><button type="button" className="btn btn-ghost" disabled={sucio || conflicto || guardando || descargando} onClick={() => void descargarExcel()}>{descargando ? "Preparando Excel…" : "Descargar Excel guardado"}</button></div>
+          {(sucio || conflicto) && <p className={s.notice}>Guarda o compara la revisión compartida para cotizar y descargar los datos vigentes.</p>}
+          <DocumentCalculator workspaces={[workspace]} client={transport} disabled={sucio || guardando || conflicto} merchandise={(() => { const amounts = Object.entries(computeDocumentTotals(workspace.draft).amounts); return amounts.length === 1 ? { currency: amounts[0][0], amount: amounts[0][1] } : null; })()} onNeedsDocument={() => setAviso({ text: "Revisa los datos y la declaración de transporte en el documento, guarda y vuelve a cotizar.", error: true })} />
+        </section>}
 
         <section id="compartir-borrador" className={[s.card, s.stack].join(" ")} aria-label="Compartir el documento guardado">
           <h2>{confirmado&&!sucio?"Documento confirmado por el proveedor":"Comparte el borrador guardado"}</h2>

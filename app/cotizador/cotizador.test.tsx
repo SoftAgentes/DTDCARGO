@@ -12,8 +12,8 @@
  *  - Que el plazo de borrado salga del `expiresAt` del servidor y no de un "+24 h"
  *    calculado acá.
  *
- * El cliente falso responde como el servidor de verdad: `apply` y `save`
- * devuelven un RECIBO (`{revision, confirmed}`), no el workspace completo.
+ * El RPC devuelve un recibo; la puerta S2 añade el workspace autoritativo a save.
+ * La aplicación de importación conserva además la relectura del documento.
  */
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -35,7 +35,7 @@ const EXPIRA = "2026-09-18T15:00:00.000Z";
 /** Dos productos en las MISMAS 5 cajas: 50 × 2 + 8 × 4 = 132 USD de mercancía. */
 function extraido(): DocumentDraft {
   const draft = emptyDocumentDraft();
-  draft.currency = "USD";
+  draft.currency = "USD"; draft.transportDeclarations = { battery: false, specialCargo: false };
   draft.products = [
     { id: "p1", name: "Vasos", nameZh: "", code: "VAS-01", brand: "", material: "", quantity: 50, unitPrice: 2, currency: "USD" },
     { id: "p2", name: "Tapas", nameZh: "", code: "TAP-02", brand: "", material: "", quantity: 8, unitPrice: 4, currency: "USD" },
@@ -147,11 +147,11 @@ function cliente(guion: Guion = {}) {
       }
       if (action === "save") {
         if (guion.guardarFalla) throw guion.guardarFalla;
-        return { revision: 2, confirmed: false } as never;
+        return { revision: 2, confirmed: false, workspace: workspace(body!.draft as DocumentDraft, 2, expiresAt) } as never;
       }
       if (action === "estimate") {
         if (guion.estimarFalla) throw guion.estimarFalla;
-        return estimado() as never;
+        return { ...estimado(), documentRevisions: (body!.expectedRevisions as {workspaceId:string;revision:number}[]).map(r => ({...r,confirmed:false})) } as never;
       }
       throw new Error("acción POST no esperada: " + action);
     }),
@@ -201,6 +201,23 @@ async function calcular(boton: string) {
 }
 
 describe("Cotizador público (SDD-0473)", () => {
+  it("el precio usa la revisión y el borrador normalizados por el servidor al guardar", async () => {
+    const { client, calls } = cliente();
+    const original = vi.mocked(client.post).getMockImplementation()!;
+    vi.mocked(client.post).mockImplementation(async (action, body) => {
+      if (action !== "save") return original(action, body) as never;
+      const d = structuredClone(body!.draft as DocumentDraft); d.groups[0].grossWeightKg = 31;
+      return { revision: 8, confirmed: false, workspace: workspace(d, 8, EXPIRA) } as never;
+    });
+    await hastaRevisar(client);
+    fireEvent.change(screen.getByLabelText(/Peso bruto TOTAL \(kg\)/), { target: { value: "30" } });
+    fireEvent.change(screen.getByLabelText("Lleva baterías"), { target: { value: "no" } });
+    fireEvent.change(screen.getByLabelText("Carga especial o regulada"), { target: { value: "no" } });
+    await calcular("Guardar y ver cuánto cuesta");
+    await waitFor(() => expect(calls.find(c => c.action === "estimate")?.body).toMatchObject({ expectedRevisions: [{ workspaceId: WORKSPACE_ID, revision: 8 }] }));
+    fireEvent.click(screen.getByRole("button", { name: "Volver a revisar el documento" }));
+    expect(screen.getByLabelText(/Peso bruto TOTAL \(kg\)/)).toHaveValue("31");
+  });
   it("abre un workspace ANÓNIMO: no le manda ninguna compra al servidor", async () => {
     const { client, calls } = cliente();
     render(<CotizadorClient client={client} pollMs={1} />);
@@ -256,6 +273,8 @@ describe("Cotizador público (SDD-0473)", () => {
     await hastaRevisar(client);
 
     fireEvent.change(screen.getByLabelText(/Peso bruto TOTAL \(kg\)/), { target: { value: "30" } });
+    fireEvent.change(screen.getByLabelText("Lleva baterías"), { target: { value: "no" } });
+    fireEvent.change(screen.getByLabelText("Carga especial o regulada"), { target: { value: "no" } });
     await calcular("Guardar y ver cuánto cuesta");
 
     const guardado = calls.find((c) => c.action === "save");

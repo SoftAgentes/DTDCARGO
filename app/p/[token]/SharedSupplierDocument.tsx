@@ -8,7 +8,7 @@ import type { LabelPresentation } from "@/lib/shared/label-presentation";
 import { ShippingBoxLabel } from "@/app/portal/_components/ShippingBoxLabel";
 import { StatusIcon } from "@/components/StatusIcon";
 import { DocumentEditor, DocumentSummary, documentIssueLabel } from "@/components/document-import/DocumentEditor";
-import { createDocumentClient, documentText, DocumentRequestError, type DocumentClient, type DocumentLocale, type DocumentReceipt, type DocumentWorkspace } from "@/components/document-import/document-client";
+import { createDocumentClient, documentEdit, documentText, receiptWorkspace, DocumentRequestError, type DocumentClient, type DocumentLocale, type DocumentReceipt, type DocumentWorkspace } from "@/components/document-import/document-client";
 import s from "@/components/document-import/document-import.module.css";
 
 type Labels = { revision:number;folio:string;versionNo:number;labels:{code:string;boxN:number;totalBoxes:number;boxCode?:string|null}[] };
@@ -43,13 +43,14 @@ export function SharedSupplierDocument({initialWorkspace,token,code,markbox,loca
   const noticeRef=useRef<HTMLDivElement>(null);
   const mounted=useRef(true);
   const metadataGeneration=useRef(0);
+  const editGeneration=useRef(0), latestScope=useRef(scope);latestScope.current=scope;
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
-  const confirmed=!dirty&&workspace.revision===workspace.confirmedRevision;
+  const confirmed=scope===transportScope&&!dirty&&workspace.revision===workspace.confirmedRevision;
   const canHydrateReceipt=loaded&&confirmed&&!dirty&&!conflict&&!editingProduct&&scope===transportScope&&workspace.id===initialWorkspace.id;
   const currentReceiptMetadata=canHydrateReceipt&&receiptMetadata?.scope===scope&&receiptMetadata.workspaceId===workspace.id&&receiptMetadata.revision===workspace.revision?receiptMetadata:null;
   const blockers=confirmationIssues(draft).filter(issue=>issue.blocking);
   const steps=[t("供应商资料","Datos del proveedor","Supplier details"),t("产品与箱组","Productos y cajas","Products and cartons"),t("照片与附件","Fotos y archivos","Photos and files"),t("核对并确认发货","Revisar y confirmar","Review and confirm")];
-  const adopt=useCallback((next:DocumentWorkspace)=>{metadataGeneration.current++;setReceiptMetadata(null);setWorkspace(next);setDraft(next.draft);setDirty(false);setConflict(false);setComparison(null);setLabels(null);setReceipt(null);setChecked(false);setEditingProduct(false);setEditorGeneration(generation=>generation+1);setStep(next.revision===next.confirmedRevision?3:0);},[]);
+  const adopt=useCallback((next:DocumentWorkspace)=>{editGeneration.current++;metadataGeneration.current++;setReceiptMetadata(null);setWorkspace(next);setDraft(next.draft);setDirty(false);setConflict(false);setComparison(null);setLabels(null);setReceipt(null);setChecked(false);setEditingProduct(false);setEditorGeneration(generation=>generation+1);setStep(next.revision===next.confirmedRevision?3:0);},[]);
 
   useEffect(()=>{let active=true;transport.get<{workspace:DocumentWorkspace}>("workspace",{workspaceId:initialWorkspace.id}).then(result=>{if(active){adopt(result.workspace);setLoaded(true);}}).catch(()=>{if(active){setNotice(t("无法读取最新修订版，请重试。","No pudimos consultar la revisión vigente. Reintenta antes de editar.","We could not load the current revision. Retry before editing."));}});return()=>{active=false;};
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,29 +75,34 @@ export function SharedSupplierDocument({initialWorkspace,token,code,markbox,loca
   },[canHydrateReceipt,currentReceiptMetadata,receipt,labels,transport,scope,workspace.id,workspace.revision,locale]);
   useEffect(()=>{if(!dirty)return;const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();};window.addEventListener("beforeunload",warn);return()=>window.removeEventListener("beforeunload",warn);},[dirty]);
 
-  function change(next:DocumentDraft){metadataGeneration.current++;setReceiptMetadata(null);setDraft(next);setDirty(true);setChecked(false);setLabels(null);setReceipt(null);}
+  function change(next:DocumentDraft){editGeneration.current++;metadataGeneration.current++;setReceiptMetadata(null);setDraft(next);setDirty(true);setChecked(false);setLabels(null);setReceipt(null);}
   function navigate(next:number){if(editingProduct){setNotice(t("请先保存或移除正在编辑的产品。","Guarda o quita el producto que estás editando antes de cambiar de paso.","Save or remove the product you are editing before changing steps."));return;}if(!conflict)setNotice(null);setStep(next);requestAnimationFrame(()=>heading.current?.focus());}
   async function compare(){setBusy(true);try{const next=await transport.get<{workspace:DocumentWorkspace}>("workspace",{workspaceId:workspace.id});setComparison(next.workspace);setLoaded(true);}catch{setNotice(t("无法读取共享版本，你的修改仍在此处。","No pudimos consultar la versión compartida. Tus cambios siguen aquí.","We could not load the shared revision. Your edits remain here."));}finally{setBusy(false);}}
   async function reload(){setBusy(true);try{const next=await transport.get<{workspace:DocumentWorkspace}>("workspace",{workspaceId:workspace.id});adopt(next.workspace);setLoaded(true);setNotice(null);}catch{setNotice(t("无法读取共享版本，请重试。","No pudimos consultar la versión compartida. Intenta otra vez.","We could not load the shared revision. Try again."));}finally{setBusy(false);}}
   async function save(confirm=false){
-    if(busy||!loaded||editingProduct)return;
+    if(busy||!loaded||editingProduct||scope!==transportScope)return;
     if(confirm&&(!checked||blockers.length)){setNotice(t("请补充必要信息并确认实际发货内容。","Completa los pendientes y confirma que revisaste el despacho.","Complete the missing information and confirm you reviewed the dispatch."));requestAnimationFrame(()=>noticeRef.current?.focus());return;}
     setBusy(true);setNotice(null);
     const action=confirm?"confirm":"save";
     const key=JSON.stringify({action,revision:workspace.revision,draft});
+    const requestedGeneration=editGeneration.current,requestedScope=scope;
     if(command.current?.key!==key)command.current={key,id:transport.id()};
     try{
-      const result=await transport.post<DocumentReceipt>(action,{workspaceId:workspace.id,draft,expectedRevision:workspace.revision,commandId:command.current.id});
+      const result=await transport.post<DocumentReceipt>(action,{workspaceId:workspace.id,draft:documentEdit(draft),expectedRevision:workspace.revision,commandId:command.current.id});
+      if(!mounted.current||latestScope.current!==requestedScope)return;
+      const saved=receiptWorkspace(result,workspace.id);
+      if(editGeneration.current!==requestedGeneration){setComparison(saved);setConflict(true);return;}
       metadataGeneration.current++;setReceiptMetadata(null);
-      setWorkspace({...workspace,draft,revision:result.revision,confirmedRevision:result.confirmed?result.revision:workspace.confirmedRevision});
+      editGeneration.current++;setWorkspace(saved);setDraft(saved.draft);
       setDirty(false);setConflict(false);setComparison(null);setReceipt(result);setLabels(null);setHistory(null);command.current=null;
       if(result.confirmed){setStep(3);setNotice(t("发货已确认。可以打印文件和箱标。","Despacho confirmado. Ya puedes imprimir el documento y las etiquetas.","Dispatch confirmed. You can now print the document and carton labels."));}
       else setNotice(t("共享草稿已保存，客户会看到本次修订版。","Borrador compartido guardado. El cliente verá esta revisión.","Shared draft saved. The client will see this revision."));
     }catch(error){
+      if(!mounted.current||latestScope.current!==requestedScope||editGeneration.current!==requestedGeneration)return;
       if(error instanceof DocumentRequestError&&error.status===409){setConflict(true);setLabels(null);setReceipt(null);setNotice(error.code==="received_boxes"?t("已有箱子入库，包装变更须由 DTD 核对。你的修改仍在此处。","Ya hay cajas recibidas. DTD debe revisar los cambios de embalaje. Tus cambios siguen aquí.","Cartons have already been received. DTD must review packaging changes. Your edits remain here."):t("共享文件已有更新。你的修改仍在此处；先比较最新修订版。","El documento compartido cambió. Tus cambios siguen aquí; compara la revisión vigente.","The shared document changed. Your edits remain here; compare the current revision."));}
       else setNotice(t("无法确认操作结果。修改仍保留，请重试。","No pudimos confirmar el resultado. Conservamos tus cambios; reintenta la misma acción.","We could not confirm the result. Your edits are preserved; retry the same action."));
       requestAnimationFrame(()=>noticeRef.current?.focus());
-    }finally{setBusy(false);}
+    }finally{if(mounted.current&&latestScope.current===requestedScope)setBusy(false);}
   }
   async function printable(surface:"labels"|"packing-list"|"preview"){
     if(!confirmed||busy||conflict)return;
@@ -112,15 +118,16 @@ export function SharedSupplierDocument({initialWorkspace,token,code,markbox,loca
     }catch(error){setLabels(null);if(error instanceof DocumentRequestError&&error.status===409)setConflict(true);setNotice(error instanceof DocumentRequestError&&error.code==="labels_need_operations"?t("实际箱子与文件不一致。请联系 DTD 核对箱标。","Las cajas físicas no coinciden con el documento. Contacta a DTD para revisar las etiquetas.","Physical cartons differ from the document. Contact DTD to review the labels."):t("无法打印当前修订版。请读取共享版本并核对确认状态。","No pudimos validar esta revisión para imprimir. Consulta la versión compartida y su confirmación.","This revision could not be validated for printing. Check the shared revision and confirmation."));}
     finally{setBusy(false);}
   }
-  async function download(){setBusy(true);try{const file=await transport.download(workspace.id);const url=URL.createObjectURL(file);const link=document.createElement("a");link.href=url;link.download=`PackingList-${code.replace(/[^a-z0-9-]/gi,"_")}.xlsx`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{setNotice(t("无法下载，请重试。","No pudimos descargar el Excel. Intenta otra vez.","We could not download the Excel. Try again."));}finally{setBusy(false);}}
+  async function download(){if(busy||dirty||conflict||!loaded||scope!==transportScope)return;const requestedGeneration=editGeneration.current,requestedScope=scope;setBusy(true);try{const file=await transport.download(workspace.id,{format:"xlsx",expectedRevision:workspace.revision});if(!mounted.current||latestScope.current!==requestedScope||editGeneration.current!==requestedGeneration)return;const url=URL.createObjectURL(file);const link=document.createElement("a");link.href=url;link.download=`PackingList-${code.replace(/[^a-z0-9-]/gi,"_")}-Rev${workspace.revision}.xlsx`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){if(!mounted.current||latestScope.current!==requestedScope||editGeneration.current!==requestedGeneration)return;if(error instanceof DocumentRequestError&&error.status===409)setConflict(true);setNotice(t("无法下载当前修订版，请读取共享版本。","No pudimos descargar esa revisión. Consulta la versión compartida.","We could not download that revision. Load the shared revision."));}finally{if(mounted.current&&latestScope.current===requestedScope)setBusy(false);}}
   async function downloadPdf(surface:"packing-list"|"labels"){
-    if(busy||!loaded||!confirmed||editingProduct||conflict)return;
+    if(busy||!loaded||!confirmed||editingProduct||conflict||scope!==transportScope)return;
+    const requestedGeneration=editGeneration.current,requestedScope=scope;
     setBusy(true);setPdfSurface(surface);setNotice(null);
     try{
       const file=await transport.download(workspace.id,{format:"pdf",surface,expectedRevision:workspace.revision});
-      if(!mounted.current)return;
+      if(!mounted.current||latestScope.current!==requestedScope||editGeneration.current!==requestedGeneration)return;
       const url=URL.createObjectURL(file),link=document.createElement("a");link.href=url;link.download=`${surface==="labels"?"Etiquetas":"PackingList"}-${code.replace(/[^a-z0-9-]/gi,"_")}-Rev${workspace.revision}.pdf`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-    }catch(error){if(!mounted.current)return;
+    }catch(error){if(!mounted.current||latestScope.current!==requestedScope||editGeneration.current!==requestedGeneration)return;
       if(error instanceof DocumentRequestError&&error.status===409){setConflict(true);setLabels(null);setReceipt(null);setNotice(t("共享文件已更新，未下载旧版 PDF。请比较并载入当前修订版。","El documento cambió. No descargamos el PDF anterior; compara y carga la revisión vigente.","The document changed. The older PDF was not downloaded; compare and load the current revision."));}
       else setNotice(error instanceof DocumentRequestError&&error.code==="pdf_font_unavailable"?t("暂时无法下载 PDF。资料仍已保存；您可以使用打印功能或联系 DTD。","El PDF no está disponible en este momento. Tus datos siguen guardados; puedes usar Imprimir o avisar a DTD.","The PDF is currently unavailable. Your data is still saved; you can use Print or contact DTD."):t("无法下载 PDF，资料已保留。请重试。","No pudimos descargar el PDF. Conservamos tus datos; intenta otra vez.","We could not download the PDF. Your data is preserved; try again."));
     }finally{if(mounted.current){setBusy(false);setPdfSurface(null);}}
@@ -130,7 +137,7 @@ export function SharedSupplierDocument({initialWorkspace,token,code,markbox,loca
   return <div className={[s.root,s.stack].join(" ")}>
     <div className={[s.notice,s.status,s.noPrint].join(" ")}><StatusIcon tone={confirmed?"success":"info"} size={20}/><span>{confirmed?t("已确认发货","Despacho confirmado","Dispatch confirmed"):dirty?t("有未保存的更改","Cambios sin guardar","Unsaved changes"):t("共享草稿 · 待供应商确认","Borrador compartido · pendiente del proveedor","Shared draft · supplier confirmation pending")} · {t("修订版","Revisión","Revision")} {workspace.revision}</span></div>
     <p className={[s.muted,s.noPrint].join(" ")}>{t("客户已提供以下资料。请核对实际发货的产品、箱数、毛重和体积；无需重新录入。","El cliente adelantó estos datos. Revisa productos, cajas, peso bruto y CBM del despacho real; completa lo que falte.","The client provided these details. Check products, cartons, gross weight and CBM against the actual dispatch, then complete anything missing.")}</p>
-    <div className={[s.bar,s.noPrint].join(" ")}><p><strong>{t("采购编号","Compra","Purchase")}</strong> {code} · <strong>Shipping Mark</strong> {markbox}</p><div className={s.actions}><button type="button" className="btn btn-ghost" disabled={busy} onClick={loadHistory}>{t("历史记录","Historial","History")}</button><button type="button" className="btn btn-ghost" disabled={busy||dirty} onClick={download}>{t("下载 Excel","Descargar Excel","Download Excel")}</button></div></div>
+    <div className={[s.bar,s.noPrint].join(" ")}><p><strong>{t("采购编号","Compra","Purchase")}</strong> {code} · <strong>Shipping Mark</strong> {markbox}</p><div className={s.actions}><button type="button" className="btn btn-ghost" disabled={busy} onClick={loadHistory}>{t("历史记录","Historial","History")}</button><button type="button" className="btn btn-ghost" disabled={busy||dirty||conflict||!loaded||scope!==transportScope} onClick={download}>{t("下载 Excel","Descargar Excel","Download Excel")}</button></div></div>
     {!loaded&&<button type="button" className="btn btn-ghost" disabled={busy} onClick={reload}>{t("重新读取共享版本","Reintentar lectura","Retry loading")}</button>}
     {notice&&<div ref={noticeRef} tabIndex={-1} role="status" className={[s.notice,s.noPrint].join(" ")}><p>{notice}</p>{conflict&&<button type="button" className="btn btn-ghost" disabled={busy} onClick={compare}>{t("比较共享版本","Comparar versión compartida","Compare shared revision")}</button>}</div>}
     {comparison&&<section className={[s.card,s.stack,s.noPrint].join(" ")} aria-label={t("共享版本","Versión compartida","Shared revision")}><h2>{t("共享修订版","Revisión compartida","Shared revision")} {comparison.revision}</h2><p>{t("你的修改仍在编辑器内。以下内容是服务器上的版本。","Tus cambios siguen en el editor. Aquí puedes consultar lo que está guardado en el servidor.","Your edits remain in the editor. This is the revision currently saved on the server.")}</p><DocumentSummary draft={comparison.draft} locale={locale}/><details><summary>{t("查看完整版本","Ver documento completo","View full document")}</summary><DocumentEditor draft={comparison.draft} locale={locale} readOnly/></details><button type="button" className="btn btn-ghost" disabled={busy} onClick={()=>{adopt(comparison);setNotice(t("已载入共享版本。","Versión compartida cargada.","Shared revision loaded."));}}>{t("放弃我的修改并载入此版本","Descartar mis cambios y cargar esta versión","Discard my edits and load this revision")}</button></section>}
