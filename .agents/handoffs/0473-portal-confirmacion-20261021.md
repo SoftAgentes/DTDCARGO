@@ -277,3 +277,105 @@ es un caso distinto de la revisión histórica 4 / 0,60 m³, que no se reescribe
 Se conservan 4320/PID 26356 y 4321/PID 22292. Sin cambios de producto o contratos, pruebas nuevas,
 repetición de gates ni operaciones de producción. Este recorrido no sustituye la prueba conjunta
 con recepción ni cierra los pendientes operativos o permisos de integración ya documentados.
+
+## Seguimiento local P2 · 2026-10-21 · Autoría sin ejecución
+
+Encargo del Director general vía Director de esta tarea. Misma rama/worktree/PR #319 y owner
+`worker-packing-portal-20261021`. Inicio comprobado limpio en
+`b325e203dc7af1f1f93f0c28e2e811f1bc5ba4fa`; guard y claim adquiridos sin desplazar otro owner.
+Este SHA será el padre EXACTO del checkpoint local. Se conserva la entrega histórica de 38 rutas.
+
+Allowlist ÚNICA de esta ventana:
+
+- `components/document-import/DocumentImportPanel.tsx`
+- `components/document-import/DocumentImportPanel.test.tsx`
+- `app/p/[token]/SharedSupplierDocument.tsx`
+- `app/p/[token]/SharedSupplierDocument.test.tsx`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-portal-confirmacion-20261021.md`
+
+Lectura estática confirma P2_1: el timeout de polling se consumía una sola vez; el catch del GET
+no cambiaba entries ni programaba otro tick. ready/partial sin draft quedaba bloqueado. Además,
+entries no tenía identidad de workspace: cancelar sólo el efecto antiguo permitía volver a pedir
+el job viejo con la compra nueva. Se acota el arreglo a sesiones del panel por workspace,
+preservando null → workspace abierto por el propio panel, sondeo secuencial reprogramado y guardas
+de vida para no continuar operaciones/respuestas de una sesión desmontada.
+
+Lectura estática confirma P2_2: adoptar cambiaba draft/step sin reiniciar editingProduct ni
+editing/view internos del editor. Se reiniciaron la guarda del padre y la identidad del editor
+editable desde SharedSupplierDocument. DocumentEditor se consulta como dependencia, sin editarlo.
+Los oráculos escritos cubren adopción borrador/confirmada con el editor real, sin formulario viejo y con
+navegación/Continuar y datos adoptados disponibles.
+
+Pruebas del seguimiento: escritas SIN EJECUTAR, incluidos rechazo inicial GET → recuperación
+de preview/aplicación manual, desmontaje, respuesta GET tardía al cambiar A→B, y padre con prop
+null→workspace realmente actualizada. El razonamiento anterior es estático, no prueba ejecutada.
+Las validaciones históricas sólo acreditan b25a4660a; ninguna acredita este seguimiento todavía.
+
+Permisos: autoría estática y un commit checkpoint LOCAL; NO PUSH ni actualización remota/PR hasta
+revisión específica del checkpoint por Director general. Sin nuevos subagentes/sesiones, tests,
+tipos, lint, verify, build, E2E, navegador, SQL, instalación, censo de procesos o runtime nuevo.
+M1 retiene el turno global con supervisión UNKNOWN. No se modifica diseño, contratos/RPC/SQL,
+envíos, otras ramas/handoffs, main ni producción; no se reinicia ni altera la demo 4320/4321.
+Entrega del checkpoint: SHA/padre, diff selectivo, SHA256 de las seis rutas y estado/claim.
+
+### Checkpoint de autoría local preparado
+
+**OBJETIVO ORIGINAL:** reparar únicamente P2_1/P2_2 dentro de las seis rutas anteriores,
+con pruebas escritas y checkpoint local para revisión del Director general antes de validar o publicar.
+
+**COMPLETADO por lectura/autoría estática:**
+
+- DocumentImportPanel separa la sesión interna del panel de su identidad de workspace. Un cambio
+  externo A→B desmonta entries, transporte y estado anteriores. La marca de apertura propia conserva
+  la sesión null→workspace cuando onWorkspace actualiza realmente la prop del padre; no pierde
+  la carga que acaba de iniciarse.
+- El GET job se sondea secuencialmente y programa otro tick también al fallar, sin resubir ni
+  aplicar la propuesta por su cuenta. La limpieza cancela el timer y descarta respuestas pendientes.
+  Guardas de vida evitan que open/upload/apply de una sesión desmontada continúen llamadas o publiquen
+  un workspace antiguo. No se cambia el contrato DocumentClient ni se incorpora AbortSignal:
+  las solicitudes HTTP ya emitidas no se abortan físicamente; se ignoran sus respuestas y se
+  impiden pasos posteriores de esa sesión.
+- SharedSupplierDocument reinicia editingProduct y una generación key del editor editable al
+  adoptar explícitamente cualquier revisión. Esto descarta editing/view/formulario internos,
+  además de liberar la guarda de navegación/guardado. DocumentEditor no se modificó.
+- Se añadieron siete casos al panel: ready/partial con GET inicial rechazado y posterior propuesta,
+  aplicación sólo por clic sin resubida; cancelación del próximo tick; GET que llega tras desmontaje;
+  A→B con respuesta vieja resuelta después de mostrar B y sin consultar job A con workspace B;
+  padre con useState que adopta realmente null→abierto; apertura tardía tras cambio de compra.
+  Se añadieron dos casos del proveedor con DocumentEditor real: tras 409 y producto abierto,
+  adoptar borrador o confirmado, regresar a cargo sin formulario viejo, Continuar y guardar
+  datos adoptados con expectedRevision 4 e IDs originales. Son nueve casos nuevos escritos.
+
+**VALIDACIÓN del seguimiento:** guard/identidad/ownership y revisión estática de alcance realizados;
+`git diff --check` PASÓ. Las nueve regresiones están **NO EJECUTADAS**. También **NO EJECUTADOS**
+tipos, lint, verify, build, E2E, `/ui-check`, navegador, SQL y validadores de gobernanza/conocimiento.
+Esta omisión es la secuencia expresa del Director general mientras M1 retiene el turno global
+con supervisión UNKNOWN; no se infiere que las regresiones pasen. Las validaciones históricas
+de b25a4660a permanecen intactas y no acreditan este seguimiento.
+
+Revisión normativa estática: superficie Studio/proveedor, módulo documento compartido, riesgo R3
+heredado de identidad/revisión. FRM-01 v1.1: cumplimiento del descarte explícito a nivel de código,
+con comprobación ejecutable pendiente. ERR-01 v1.0 / LOD-01 v1.0: recuperación reprogramada y
+cancelación de la sesión observadas en el diff; la conformidad de runtime no está certificada. CMP-01 v1.1:
+no aplica promoción o nuevo componente reusable; DocumentImportSession es detalle interno de este
+panel y no incorpora consumidores de deprecated. Revisión React estática: claves cambian por
+adopción/compra; inicialización de transporte sigue local a la sesión; cleanup del sondeo y guardas
+tras cada await protegen el estado descartado. No se ejecutó el script del plugin por el límite
+expreso de esta ventana; no se convierte esta lectura en aprobación de integración.
+
+**COMMITS / PR / BRANCH:** checkpoint únicamente LOCAL con padre exacto
+`b325e203dc7af1f1f93f0c28e2e811f1bc5ba4fa`, misma rama y PR #319. El SHA inmutable y hashes de las
+seis rutas se entregan al Director al crear el commit. NO PUSH, sin actualización de PR/remote.
+
+**PENDIENTES DE ESTA TAREA:** revisión específica del checkpoint por Director general; después,
+ventana de validación y publicación explícitamente coordinadas. Integración/producción y pendientes
+operativos históricos conservan sus permisos y no se cierran aquí. Impacto documental guardado en
+esta spec/handoff; Graphify, Archify y Obsidian no consultados ni regenerados en este seguimiento.
+
+**FUERA DE ALCANCE DETECTADO:** ninguno nuevo que exija editar otra ruta. No se modifica diseño,
+SQL/RPC, contratos, envíos ni datos de demo. Se preservan los procesos 4320/4321 sin inspeccionarlos,
+reiniciarlos ni cambiar su estado sintético.
+
+**HANDOFF AL DIRECTOR:** revisar el checkpoint inmutable, no los resultados históricos como prueba
+del arreglo. El Worker libera su claim al finalizar la escritura y conserva rama/worktree/demo.

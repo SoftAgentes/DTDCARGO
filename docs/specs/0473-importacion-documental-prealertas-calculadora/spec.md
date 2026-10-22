@@ -364,3 +364,52 @@ IA-01 I2: preview humana antes de aplicar; nunca envío/confirmación automátic
 no son instrucciones. Auditoría sin prompts completos, secretos ni contenido de documentos en logs.
 Riesgo R3 de identidad/logística; validación proporcional documentada en handoff. Lectura de producción,
 llamadas IA reales con datos cliente y publicación en bóveda compartida fuera de autorización.
+
+## Seguimiento local P2 · 2026-10-21 · Checkpoint previo a publicación
+
+Asignación del Director general transmitida por el Director de esta tarea. Owner
+`worker-packing-portal-20261021`, misma rama/worktree/PR #319. Padre exacto del checkpoint local:
+`b325e203dc7af1f1f93f0c28e2e811f1bc5ba4fa`. Las 38 rutas y evidencias de la entrega anterior se
+conservan como historial; no amplían la allowlist de esta ventana.
+
+Allowlist exacta del seguimiento:
+
+- `components/document-import/DocumentImportPanel.tsx`
+- `components/document-import/DocumentImportPanel.test.tsx`
+- `app/p/[token]/SharedSupplierDocument.tsx`
+- `app/p/[token]/SharedSupplierDocument.test.tsx`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-portal-confirmacion-20261021.md`
+
+P2_1: recuperar la propuesta de un trabajo ready/partial recibido idempotentemente cuyo primer
+GET job falla. El sondeo debe reprogramarse sin volver a subir, sin aplicar automáticamente y
+sin perder preview/aplicación manual. Cancelar timers e ignorar respuestas pendientes al desmontar
+o cambiar workspace; nunca consultar el job de otra compra con el workspace nuevo. La transición
+null → workspace creado por el propio panel debe conservar la carga en un padre que realmente
+actualiza esa prop. Las guardas de vida de operaciones se limitan a impedir que aperturas/subidas
+de la sesión anterior continúen o publiquen estado después del desmontaje.
+
+P2_2: tras 409 y producto abierto, adoptar explícitamente una revisión borrador o confirmada debe
+reiniciar juntos la guarda editingProduct del padre y la identidad del editor editable. Remontar
+desde SharedSupplierDocument evita conservar edición, vista o formulario interno del documento
+descartado. DocumentEditor se lee pero no se modifica. Los oráculos usan ese componente real y
+exigen volver a cargo, sin formulario viejo, con Continuar disponible y datos adoptados.
+
+Secuencia autorizada: lectura/autoría estática y pruebas escritas SIN EJECUTAR → un checkpoint
+local con el padre exacto anterior → revisión específica del Director general antes de cualquier
+push/actualización de PR o validación posterior. Las validaciones anteriores acreditan b25a4660a,
+no este seguimiento. No se ejecutan tests, tipos, lint, verify, build, E2E, navegador, SQL,
+instalación ni censo/runtime nuevos. M1 conserva el turno global, supervisión UNKNOWN.
+Sin subagentes, cambios de diseño, SQL/RPC/contratos, envíos, main, merge, producción ni reinicio
+o alteración de datos de la demo 4320/4321. FRM-01/ERR-01/LOD-01: recuperación y descarte explícitos;
+la conformidad ejecutable del seguimiento queda pendiente de la ventana de validación autorizada.
+
+Autoría guardada para revisión: sondeo secuencial que reprograma el siguiente tick también al
+rechazar GET; sesión interna por identidad de workspace y guardas de vida para operaciones
+pendientes; generación del editor editable y guarda padre reiniciadas juntas al adoptar una
+revisión. El contrato HTTP no incorpora AbortSignal: una solicitud ya emitida puede concluir,
+pero su respuesta se ignora y no inicia trabajo posterior en la sesión descartada.
+Se escribieron nueve casos de regresión SIN EJECUTAR: ready y partial con primer GET fallido;
+cancelación del timer al desmontar; respuesta GET posterior al desmontaje; A→B con GET antiguo
+pendiente; padre real null→abierto; apertura tardía descartada; adopción borrador y confirmada
+con DocumentEditor real, sin formulario anterior y con navegación/guardado posteriores.

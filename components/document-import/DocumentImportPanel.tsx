@@ -147,7 +147,27 @@ export function documentErrorLabel(code: string, locale: DocumentLocale): string
   );
 }
 
-export function DocumentImportPanel({
+export function DocumentImportPanel(props: Parameters<typeof DocumentImportSession>[0]) {
+  const workspaceId = props.workspace?.id ?? null;
+  const [identity, setIdentity] = useState(() => ({
+    workspaceId,
+    openedId: null as string | null,
+    generation: 0,
+  }));
+  if (workspaceId !== identity.workspaceId) {
+    // Abrir desde null pertenece a esta carga; cambiar de compra crea otra sesión.
+    const openedHere = identity.workspaceId === null && workspaceId !== null && workspaceId === identity.openedId;
+    setIdentity({ workspaceId, openedId: null, generation: identity.generation + (openedHere ? 0 : 1) });
+  }
+  const onWorkspace = props.onWorkspace;
+  const publishWorkspace = useCallback((next: DocumentWorkspace) => {
+    setIdentity((current) => current.workspaceId === null ? { ...current, openedId: next.id } : current);
+    onWorkspace(next);
+  }, [onWorkspace]);
+  return <DocumentImportSession key={identity.generation} {...props} onWorkspace={publishWorkspace} />;
+}
+
+function DocumentImportSession({
   workspace,
   openParams,
   onWorkspace,
@@ -189,12 +209,19 @@ export function DocumentImportPanel({
   // Inicializador perezoso en vez de un ref: crea el transporte UNA sola vez sin
   // leer `.current` durante el render, que es lo que React desaconseja.
   const [transport] = useState<DocumentClient>(() => client ?? createDocumentClient());
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => { active.current = false; };
+  }, []);
 
   const patch = useCallback(
-    (requestKey: string, next: Partial<FileEntry>) =>
+    (requestKey: string, next: Partial<FileEntry>) => {
+      if (!active.current) return;
       setEntries((prev) =>
         prev.map((e) => (e.requestKey === requestKey ? { ...e, ...next } : e)),
-      ),
+      );
+    },
     [],
   );
 
@@ -207,18 +234,20 @@ export function DocumentImportPanel({
     [locale],
   );
 
-  async function ensureWorkspace(): Promise<DocumentWorkspace> {
+  async function ensureWorkspace(): Promise<DocumentWorkspace | null> {
     if (workspace) return workspace;
     const opened = await transport.post<{
       workspace: DocumentWorkspace;
       anonymousToken?: string;
     }>("open", { ...openParams });
+    if (!active.current) return null;
     if (opened.anonymousToken) transport.setAnonymousToken(opened.anonymousToken);
     onWorkspace(opened.workspace);
     return opened.workspace;
   }
 
   async function send(entry: FileEntry, target: DocumentWorkspace) {
+    if (!active.current) return;
     const reserved = await transport.post<{
       jobId: string;
       status: JobStatus;
@@ -231,11 +260,13 @@ export function DocumentImportPanel({
       sizeBytes: entry.file.size,
       kind: entry.kind,
     });
+    if (!active.current) return;
     patch(entry.requestKey, { jobId: reserved.jobId, status: reserved.status });
     // Sin uploadUrl el archivo ya estaba recibido: reintento idempotente.
     if (reserved.uploadUrl && reserved.contentType) {
       await transport.upload(reserved.uploadUrl, entry.file, reserved.contentType);
     }
+    if (!active.current) return;
     const finished = await transport.post<{ jobId: string; status: JobStatus }>(
       "uploaded",
       { workspaceId: target.id, jobId: reserved.jobId },
@@ -244,6 +275,7 @@ export function DocumentImportPanel({
   }
 
   async function add(files: FileList | File[]) {
+    if (!active.current) return;
     setPanelError(null);
     const chosen = Array.from(files);
     if (!chosen.length) return;
@@ -275,7 +307,9 @@ export function DocumentImportPanel({
     setBusy(true);
     try {
       const target = await ensureWorkspace();
+      if (!active.current || !target) return;
       for (const entry of nuevos) {
+        if (!active.current) return;
         try {
           await send(entry, target);
         } catch (error) {
@@ -283,6 +317,7 @@ export function DocumentImportPanel({
         }
       }
     } catch (error) {
+      if (!active.current) return;
       setPanelError(reason(error));
       setEntries((prev) =>
         prev.map((e) =>
@@ -292,8 +327,10 @@ export function DocumentImportPanel({
         ),
       );
     } finally {
-      setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
+      if (active.current) {
+        setBusy(false);
+        if (inputRef.current) inputRef.current.value = "";
+      }
     }
   }
 
@@ -304,7 +341,7 @@ export function DocumentImportPanel({
     );
     if (!pendientes.length || !workspace) return;
     let vivo = true;
-    const timer = setTimeout(async () => {
+    async function poll() {
       for (const entry of pendientes) {
         if (!vivo) return;
         try {
@@ -321,10 +358,12 @@ export function DocumentImportPanel({
                 : null,
           });
         } catch {
-          // Un sondeo fallido no es un fallo del archivo: se reintenta al próximo tick.
+          // No invalida el archivo. El siguiente tick se programa también tras el fallo.
         }
       }
-    }, pollMs);
+      if (vivo) timer = setTimeout(poll, pollMs);
+    }
+    let timer = setTimeout(poll, pollMs);
     return () => {
       vivo = false;
       clearTimeout(timer);
@@ -332,7 +371,7 @@ export function DocumentImportPanel({
   }, [entries, workspace, transport, patch, locale, pollMs]);
 
   async function apply(entry: FileEntry) {
-    if (!workspace || !entry.jobId) return;
+    if (!active.current || !workspace || !entry.jobId) return;
     setBusy(true);
     setPanelError(null);
     try {
@@ -346,17 +385,18 @@ export function DocumentImportPanel({
         expectedRevision: workspace.revision,
         commandId: transport.id(),
       });
+      if (!active.current) return;
       patch(entry.requestKey, { status: "applied" });
       // Aplicado ya está: se marca antes de releer para no perder ese hecho si
       // la relectura falla. Sin el borrador nuevo no hay nada que subir.
       const fresco = await transport.get<{ workspace: DocumentWorkspace }>("workspace", {
         workspaceId: workspace.id,
       });
-      onWorkspace(fresco.workspace);
+      if (active.current) onWorkspace(fresco.workspace);
     } catch (error) {
-      setPanelError(reason(error));
+      if (active.current) setPanelError(reason(error));
     } finally {
-      setBusy(false);
+      if (active.current) setBusy(false);
     }
   }
 

@@ -87,6 +87,63 @@ describe("proveedor del documento compartido",()=>{
     fireEvent.click(screen.getByRole("button",{name:"Descartar mis cambios y cargar esta versión"}));
     expect(screen.getByRole("textbox",{name:"Empresa"})).toHaveValue("Edición del cliente");
   });
+  it.each([false,true])("adoptar una revisión con confirmed=%s reinicia el producto abierto y permite continuar sin recargar",async(confirmed)=>{
+    const {post,get}=setup(fixture(120));await ready();step(2);
+    fireEvent.change(screen.getByRole("textbox",{name:"Peso bruto TOTAL (kg)"}),{target:{value:"121"}});
+    post.mockRejectedValueOnce(new DocumentRequestError(409,"revision_conflict",""));
+    fireEvent.click(screen.getByRole("button",{name:"Guardar borrador compartido"}));
+    await screen.findByText(/El documento compartido cambió/);
+
+    // Editor real: su estado interno `editing` también debe descartarse. Un mock
+    // que sólo llame onProductEditingChange no detectaría el formulario retenido.
+    fireEvent.click(within(screen.getByRole("main")).getByRole("button",{name:"Editar Vasos"}));
+    fireEvent.change(screen.getByRole("textbox",{name:"Producto"}),{target:{value:"Producto local pendiente"}});
+    expect(screen.getByRole("button",{name:"Formato estándar"})).toBeDisabled();
+    expect(screen.getByRole("button",{name:"Guardar borrador compartido"})).toBeDisabled();
+
+    const latest=fixture(130.5);latest.revision=4;latest.confirmedRevision=confirmed?4:null;
+    latest.draft.supplier.company="Datos del cliente";
+    latest.draft.products[0].name="Producto compartido";
+    latest.draft.groups[0].cbm=0.64;
+    get.mockResolvedValueOnce({workspace:latest});
+    fireEvent.click(screen.getByRole("button",{name:"Comparar versión compartida"}));
+    await screen.findByRole("heading",{name:"Revisión compartida 4"});
+    expect(screen.getByRole("textbox",{name:"Producto"})).toHaveValue("Producto local pendiente");
+    fireEvent.click(screen.getByRole("button",{name:"Descartar mis cambios y cargar esta versión"}));
+    if(confirmed)expect(screen.getByRole("heading",{name:"Despacho confirmado"})).toBeVisible();
+    else expect(screen.getByRole("textbox",{name:"Empresa"})).toHaveValue("Datos del cliente");
+
+    step(2);
+    const main=within(screen.getByRole("main"));
+    expect(main.getByRole("heading",{name:"Productos y cajas"})).toBeVisible();
+    expect(main.queryByRole("textbox",{name:"Producto"})).not.toBeInTheDocument();
+    expect(main.queryByRole("button",{name:"Guardar producto"})).not.toBeInTheDocument();
+    expect(main.getByRole("button",{name:"Formato estándar"})).toBeEnabled();
+    expect(main.getByRole("button",{name:"Editar Producto compartido"})).toBeVisible();
+    expect(main.queryByText("Producto local pendiente")).not.toBeInTheDocument();
+    expect(main.getByRole("textbox",{name:"Peso bruto TOTAL (kg)"})).toHaveValue("130.5");
+    expect(main.getByRole("textbox",{name:"CBM TOTAL (m³)"})).toHaveValue("0.64");
+    fireEvent.click(main.getByRole("button",{name:"Continuar"}));
+    expect(main.getByRole("heading",{name:"Fotos y archivos"})).toBeVisible();
+
+    step(2);
+    expect(main.queryByRole("textbox",{name:"Producto"})).not.toBeInTheDocument();
+    fireEvent.click(main.getByRole("button",{name:"Editar Producto compartido"}));
+    expect(main.getByRole("textbox",{name:"Producto"})).toHaveValue("Producto compartido");
+    fireEvent.click(main.getByRole("button",{name:"Guardar producto"}));
+    fireEvent.change(main.getByRole("textbox",{name:"Peso bruto TOTAL (kg)"}),{target:{value:"131"}});
+    post.mockResolvedValueOnce({revision:5,confirmed:false,folio:undefined,versionNo:undefined});
+    expect(screen.getByRole("button",{name:"Guardar borrador compartido"})).toBeEnabled();
+    fireEvent.click(screen.getByRole("button",{name:"Guardar borrador compartido"}));
+    await screen.findByText(/Borrador compartido guardado/);
+    expect(post).toHaveBeenLastCalledWith("save",expect.objectContaining({
+      expectedRevision:4,
+      draft:expect.objectContaining({
+        products:[expect.objectContaining({id:"original-product",name:"Producto compartido"})],
+        groups:[expect.objectContaining({id:"original-group",grossWeightKg:131,cbm:0.64})],
+      }),
+    }));
+  });
   it("reintenta el mismo comando tras respuesta no confirmada",async()=>{
     const {post,client}=setup();await ready();fireEvent.change(screen.getByRole("textbox",{name:"Empresa"}),{target:{value:"Cambio"}});
     post.mockRejectedValueOnce(new DocumentRequestError(0,"network",""));
