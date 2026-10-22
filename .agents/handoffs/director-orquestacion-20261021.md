@@ -1,5 +1,14 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Corte de continuidad — 2026-10-22 04:54 UTC / 00:54 Caracas
+
+- CORE: wrapper53 PASÓ sobre8921300 y turno devuelto; hija953efdd revisada por fuente/custodia37/8copias/8preimágenes/23inputs, ninguna nueva ejecución sobre953. PG17real NO EJECUTADO; mismoWorker corrige sóloejecutorexterno05, preserva04/953, y entregaráREADYliteral para revisión/GO nuevo.
+- Packing: última candidata93e738e/PR319. B1FALLÓ46/49 con3rendererrores/0SKIPfocales/38fuera. FONT-PROBE5 completo reprodujoerror en3latinasvariables;Deng yArchivoestáticaencodaron. B1/ADQ01/PROBE5 formalmente devueltos; no repetir esos GOs.
+- Packing mismoWorker ahora autoría ligera de hijadirecta93e en22rutas(17+4TTF+READMElicencias), activosoficiales8archivos611757B verificados fueraGit, sin cambiosfontweb/Deng. Conservar49+negativasaditivas ydeclarar conteonuevo. Esperarcheckpoint/READYnuevo; B2/B3/UI/QR NO EJECUTADOS. No runtimePacking activo por esas asignaciones.
+- CRM: B0alta autorizada/hecha; aislamiento parcial14PASÓ/2NO DISPONIBLE(correo/workflows). A detenida/B1NOINICIADO; no repetiralta/crearcredenciales/importar/conectar sin permiso específico nuevo deSam verificado en su chat.
+- Revalidar admisión antes de siguienteGO; COREprioritario si coinciden READYválidas. No quietglobal ni cierre del supervisorM1 histórico. PR320/319separadas/DRAFT; nada de merge/producción ni fuente de producto editada porGeneral. Registro verificable detallado al final de este mismo documento.
+- Heartbeat coordinar-sesiones-dtd-cargo sigue ACTIVE/misma cadencia/destino, actualizado con resultados actuales; silencio cuando sólo hay progreso pendiente. Este corte no sustituye Git/PR/mensajes recientes.
+
 ## Objetivo original y autorización
 
 Sam designó este chat como Director general para coordinar las tres sesiones existentes de DTD Cargo, mantener comunicación entre ellas y evitar PRs o merges que mezclen encargos. Fuente humana: chat 01a160e3-92b0-76f0-bc3c-20000e81ff16, mensaje 01a160e3-a581-7c60-8008-e52f7c1c8646. La autorización incluye comunicación de coordinación en ambos sentidos; no añade permisos de publicación, merge, despliegue, migraciones, cambios de cuentas ni acceso a datos.
@@ -688,7 +697,7 @@ Luego GOúnico DIRECTOR-PACKING-FONT-PROBE5-20261022-01: READY10589/SHA1fa3409be
 
 PROBE5 nativoCMD31128 inició04:47:09.8519349Z/final04:47:10.2546127Z, native1/wrapper1/incompleteFalse/sintimeout/0retry. DiagnósticoCOMPLETO:5faces,2encoded(DengTTF yArchivoWOFF2estática),3erroressubset-encode deNunito/Sora/JetBrainsWOFF2variables conelmismoRangeError. Todas0missing/5fuentesoriginalesunchanged. Noafirmar falloDeng ni queunfaceencoded apruebePDFfinal. RootGENERALexterior04:47:44.5315029→44.7119087Z(+34.46s)4Gitexits0/93/tree/rama/clean/CLAIMAUSENTE; DirectorPacking27.080Z/Worker33.274Z tambiénfin+60. Summary14508/SHAdaf37210872f3261f922a84193cf37c9712af1965d4742ce4991f42f75402a9d leído porroot. Custodia14251/87e51e0d583e3c4b61baa3c121e628a7e7f8716fd76a84cb1000cb5239e906c5:20originalesrecalculados0diff. DevoluciónFORMALPROBE recibida; slotlibre porconfirmación, sinquietglobal/M1resuelto.
 
-Con diagnóstico y8bytesfuentesverificados se aprobó adopción porMISMO Worker/reclaim/guard en22rutas(17+5assets), hijadirecta93e ySDDallowlistexacta. ConservarDeng/config/chino/glyphcheck/fontweb y49originales/3render; negativastipo/axesaditivas=>declarar conteonuevoexplícito, no asumir49. Autoría30minsinruntime/push; guardarpreimágenes/originales/checkpoint/READYnuevo. B2/B3 siguenNOEJ yB1FALLÓ hasta nuevacandidatayGO/resultado; ninguna aprobación deproducción. COREprioritario en siguientesREADYválidas, sólocorrigeejecutorexterno05. CRM sin cambioaccionable (B014/2parcial/B1detenido). Fetchroot04:37:57Zexit0; ninguna integración porGeneral.
+Con diagnóstico y8archivosfuenteverificados se aprobó adopción porMISMO Worker/reclaim/guard en22rutas(17+5assets), hijadirecta93e ySDDallowlistexacta. ConservarDeng/config/chino/glyphcheck/fontweb y49originales/3render; negativastipo/axesaditivas=>declarar conteonuevoexplícito, no asumir49. Autoría30minsinruntime/push; guardarpreimágenes/originales/checkpoint/READYnuevo. B2/B3 siguenNOEJ yB1FALLÓ hasta nuevacandidatayGO/resultado; ninguna aprobación deproducción. COREprioritario en siguientesREADYválidas, sólocorrigeejecutorexterno05. CRM sin cambioaccionable (B014/2parcial/B1detenido). Fetchroot04:37:57Zexit0; ninguna integración porGeneral.
 
 ## Fuera de alcance detectado
 
