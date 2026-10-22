@@ -864,3 +864,161 @@ describe("I2 · contexto completo con cliente de sesión", () => {
       { mayor: controlReversoGo1(d, RANGOS_REVERSO_GO1.octubre) })).rejects.toThrow(/líneas de los extremos.*tope/);
   });
 });
+
+describe("T03 · lector completo y degradación de cabeceras", () => {
+  const tablas = (): Record<string, Fila[]> => ({
+    invoices: [{ id: "f3", invoice_code: "F-3", status: "anulada", issued_at: "2025-03-07",
+      currency: "USD", total_amount: 200, paid_amount: 0, deleted_at: null }],
+    journal_entries: [
+      entrada("a-original", "2024-01-01", "asentado", { source: "invoice", invoice_id: "f3" }),
+      entrada("z-reverso", "2026-10-21", "asentado", { source: "invoice_reversal", invoice_id: "f3", reverses_entry_id: "a-original" }),
+    ],
+    journal_lines: [],
+  });
+  const leer = (client: ReturnType<typeof dobleListados>["client"]) =>
+    cuadreDelLibro(client, { accounts: PLAN as unknown as Account[], saldos: {}, hoy: "2025-03-18" });
+  type RespuestaCruce = { data: unknown; error: { code: string; message: string } | null };
+  type PaginaCruce = { columnas: string; desde: number; hasta: number; real: () => Promise<RespuestaCruce> };
+  // Conserva el select, filtros, orden, proyección y range reales del doble.
+  // Sólo intercepta la respuesta de transporte que éste no modela.
+  function interceptar(client: ReturnType<typeof dobleListados>["client"], responder: (p: PaginaCruce) => Promise<RespuestaCruce>) {
+    return {
+      ...client,
+      from(table: string) {
+        const q = client.from(table) as unknown as { select: (cols?: string, opts?: unknown) => Record<string, unknown> };
+        if (table !== "journal_entries") return q;
+        return {
+          ...q,
+          select(cols?: string, opts?: unknown) {
+            const cadena = q.select(cols, opts);
+            const range = cadena.range as (desde: number, hasta: number) => Promise<RespuestaCruce>;
+            cadena.range = (desde: number, hasta: number) => responder({ columnas: cols ?? "", desde, hasta,
+              real: () => range(desde, hasta) });
+            return cadena;
+          },
+        };
+      },
+    } as typeof client;
+  }
+  const faltaColumna = { data: null, error: { code: "42703", message: "column journal_entries.reverses_entry_id does not exist" } };
+
+  it("lee ambos extremos separados por más de500 filas, fechas ajenas y páginas proyectadas sin exigir líneas", async () => {
+    const datos = tablas();
+    datos.journal_entries.push(...Array.from({ length: 510 }, (_, n) =>
+      entrada(`m-${String(n).padStart(3, "0")}`, "2025-03-01", "asentado", { source: "receipt" })));
+    const { client, filtros } = dobleListados(datos, { serverCap: 17, proyectar: true });
+    const paginas: number[] = [];
+    const c = await leer(interceptar(client, async p => { paginas.push(p.desde); return p.real(); }));
+    expect(c.documentos.anuladosConAsiento).toEqual([]);
+    expect(datos.journal_lines).toEqual([]);
+    expect(paginas[0]).toBe(0);
+    expect(paginas[paginas.length - 1]).toBe(512); // Página final vacía, después de los dos extremos.
+    expect(filtros.filter(f => f.table === "journal_entries").some(f => f.col === "entry_date")).toBe(false);
+  });
+
+  it.each([
+    { nombre: "borrado original", lado: 0, campo: "deleted_at" },
+    { nombre: "borrado reverso", lado: 1, campo: "deleted_at" },
+    { nombre: "tenant original", lado: 0, campo: "tenant_id" },
+    { nombre: "tenant reverso", lado: 1, campo: "tenant_id" },
+    { nombre: "backlink original", lado: 0, campo: "reverses_entry_id" },
+    { nombre: "backlink reverso", lado: 1, campo: "reverses_entry_id" },
+  ])("$nombre no proyectado conserva F-3, sin convertir ausencia en null", async ({ lado, campo }) => {
+    const datos = tablas();
+    delete datos.journal_entries[lado][campo];
+    const { client } = dobleListados(datos, { serverCap: 1, proyectar: true });
+    const c = await leer(client);
+    expect(c.documentos.anuladosConAsiento.map(h => h.codigo)).toEqual(["F-3"]);
+  });
+
+  it.each(["tenant numérico", "identidades numéricas"])("%s no se acreditan mediante String(value)", async caso => {
+    const datos = tablas();
+    if (caso === "tenant numérico") for (const a of datos.journal_entries) a.tenant_id = 7;
+    else {
+      datos.journal_entries[0].id = 7;
+      datos.journal_entries[1].reverses_entry_id = 7;
+    }
+    const { client } = dobleListados(datos, { serverCap: 1, proyectar: true });
+    const c = await leer(client);
+    expect(c.documentos.anuladosConAsiento.map(h => h.codigo)).toEqual(["F-3"]);
+  });
+
+  it.each(["42501", "57014"])("un error nativo %s que menciona la columna no autoriza fallback", async code => {
+    const { client } = dobleListados(tablas(), { proyectar: true });
+    const selecciones: string[] = [];
+    const conError = interceptar(client, async p => {
+      selecciones.push(p.columnas);
+      return { data: null, error: { code, message: `fallo-${code}-reverses_entry_id` } };
+    });
+    await expect(leer(conError)).rejects.toThrow(`fallo-${code}-reverses_entry_id`);
+    expect(selecciones).toHaveLength(1);
+  });
+
+  it.each([
+    "column journal_entries.invoice_id does not exist",
+    "column otro.reverses_entry_id does not exist",
+    "column journal_entries.invoice_id does not exist (reverses_entry_id)",
+  ])("42703 de otro identificador o mención incidental rechaza: %s", async message => {
+    const { client } = dobleListados(tablas(), { proyectar: true });
+    const selecciones: string[] = [];
+    await expect(leer(interceptar(client, async p => {
+      selecciones.push(p.columnas);
+      return { data: null, error: { code: "42703", message } };
+    }))).rejects.toThrow(message);
+    expect(selecciones).toHaveLength(1);
+  });
+
+  it("un error después de una página válida conserva la causa y no entrega cruce parcial", async () => {
+    const { client } = dobleListados(tablas(), { serverCap: 1, proyectar: true });
+    await expect(leer(interceptar(client, async p => p.desde === 0 ? p.real()
+      : { data: null, error: { code: "57014", message: "lectura-interrumpida" } }))).rejects.toThrow("lectura-interrumpida");
+  });
+
+  it.each([
+    { nombre: "null", data: null },
+    { nombre: "objeto", data: {} },
+    { nombre: "fila null", data: [null] },
+    { nombre: "fila array", data: [[]] },
+    { nombre: "escalar", data: 0 },
+  ])("una página ilegible $nombre no equivale a una página vacía válida", async ({ data }) => {
+    const { client } = dobleListados(tablas(), { proyectar: true });
+    await expect(leer(interceptar(client, async () => ({ data, error: null })))).rejects.toThrow(
+      "Por contabilizar · asientos: respuesta de página ilegible.");
+  });
+
+  it("42703 exacto tardío reinicia desde cero sin mezclar páginas y mantiene el diagnóstico F-3", async () => {
+    const { client } = dobleListados(tablas(), { serverCap: 1, proyectar: true });
+    const paginas: { vinculo: boolean; desde: number }[] = [];
+    const c = await leer(interceptar(client, async p => {
+      const vinculo = p.columnas.includes("reverses_entry_id");
+      paginas.push({ vinculo, desde: p.desde });
+      return vinculo && p.desde === 1 ? faltaColumna : p.real();
+    }));
+    expect(paginas).toEqual([{ vinculo: true, desde: 0 }, { vinculo: true, desde: 1 },
+      { vinculo: false, desde: 0 }, { vinculo: false, desde: 1 }, { vinculo: false, desde: 2 }]);
+    expect(c.documentos.anuladosConAsiento.map(h => h.codigo)).toEqual(["F-3"]);
+    expect(c.documentos.conteo.factura).toMatchObject({ revisados: 1, anuladosConAsiento: 1 });
+  });
+
+  it("el fallback no oculta un error de su lectura base", async () => {
+    const { client } = dobleListados(tablas(), { proyectar: true });
+    await expect(leer(interceptar(client, async p => p.columnas.includes("reverses_entry_id")
+      ? faltaColumna : { data: null, error: { code: "42501", message: "base-sin-permiso" } }))).rejects.toThrow("base-sin-permiso");
+  });
+
+  it("el fallback tampoco acepta una página base ilegible", async () => {
+    const { client } = dobleListados(tablas(), { proyectar: true });
+    await expect(leer(interceptar(client, async p => p.columnas.includes("reverses_entry_id")
+      ? faltaColumna : { data: null, error: null }))).rejects.toThrow("respuesta de página ilegible");
+  });
+
+  it.each([false, true])("un corte al tope de páginas rechaza también con degradación=%s", async degradar => {
+    const datos = tablas();
+    datos.journal_entries.push(...Array.from({ length: 59 }, (_, n) =>
+      entrada(`m-${n}`, "2025-03-01", "asentado", { source: "receipt" })));
+    const { client } = dobleListados(datos, { serverCap: 1, proyectar: true });
+    await expect(leer(interceptar(client, async p => degradar && p.columnas.includes("reverses_entry_id")
+      ? faltaColumna : p.real()))).rejects.toThrow(
+      "Por contabilizar · asientos: la lectura supera el tope; el control no se puede calcular completo.");
+  });
+});

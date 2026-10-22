@@ -50,7 +50,8 @@ import { cuadreSubdiario, type SaldoDeCuenta } from "./subdiario";
 type Fila = Record<string, unknown>;
 type Pagina = Parameters<typeof fetchAllPaged>[0];
 
-/** Lee completo o lanza con el nombre de lo que no se pudo leer. */
+class ColumnaDeReversoAusente extends Error {}
+
 /**
  * Los asientos del cruce de «Por contabilizar». Solo los orígenes documentales:
  * un `referral_credit` también guarda `invoice_id` y no es el asiento de venta.
@@ -63,26 +64,40 @@ type Pagina = Parameters<typeof fetchAllPaged>[0];
  * pantalla degrada a lo de antes (sin reversos), en vez de no cargar.
  */
 async function leerAsientosDelCruce(supabase: SupabaseClient): Promise<Fila[]> {
-  const leer = (columnas: string) =>
-    leerCompleto<Fila>("Por contabilizar · asientos", (d, h) =>
-      supabase
+  const leer = (columnas: string, conVinculo: boolean) =>
+    leerCompleto<Fila>("Por contabilizar · asientos", async (d, h) => {
+      const respuesta = await supabase
         .from("journal_entries")
         .select(columnas)
         .is("deleted_at", null)
         .in("status", ["asentado", "anulado"])
         .in("source", [...Object.values(ORIGEN_POR_TIPO), "receipt_reclass", "invoice_reversal"])
         .order("id", { ascending: true })
-        .range(d, h),
-    );
-  const base = "id, status, source, invoice_id, receipt_id, bill_id, supplier_payment_id, deleted_at";
+        .range(d, h);
+      if (respuesta.error) {
+        // El code nativo se reconoce antes de que fetchAllPaged lo pierda.
+        if (conVinculo && respuesta.error.code === "42703"
+          && /^column (?:(?:journal_entries|"journal_entries")\.)?(?:reverses_entry_id|"reverses_entry_id") does not exist$/.test(respuesta.error.message)) {
+          throw new ColumnaDeReversoAusente();
+        }
+        return respuesta;
+      }
+      if (!Array.isArray(respuesta.data)
+        || respuesta.data.some(a => !a || typeof a !== "object" || Array.isArray(a))) {
+        throw new Error("Por contabilizar · asientos: respuesta de página ilegible.");
+      }
+      return respuesta;
+    });
+  const base = "id, tenant_id, status, source, invoice_id, receipt_id, bill_id, supplier_payment_id, deleted_at";
   try {
-    return await leer(`${base}, reverses_entry_id`);
+    return await leer(`${base}, reverses_entry_id`, true);
   } catch (e) {
-    if (!(e instanceof Error) || !/reverses_entry_id/.test(e.message)) throw e;
-    return await leer(base);
+    if (!(e instanceof ColumnaDeReversoAusente)) throw e;
+    return await leer(base, false);
   }
 }
 
+/** Lee completo o lanza con el nombre de lo que no se pudo leer. */
 async function leerCompleto<T>(nombre: string, page: Pagina): Promise<T[]> {
   const { rows, complete } = await fetchAllPaged<T>(page);
   if (!complete) {
@@ -419,15 +434,16 @@ export async function cuadreDelLibro(
     })),
   ];
   const vinculos: AsientoDeDocumento[] = asientos.map((a) => ({
-    id: str(a.id),
-    status: str(a.status),
-    source: str(a.source),
-    deleted_at: strOrNull(a.deleted_at),
-    invoice_id: strOrNull(a.invoice_id),
+    id: typeof a.id === "string" ? a.id : "",
+    tenant_id: typeof a.tenant_id === "string" ? a.tenant_id : undefined,
+    status: typeof a.status === "string" ? a.status : "",
+    source: typeof a.source === "string" ? a.source : "",
+    deleted_at: a.deleted_at === null ? null : typeof a.deleted_at === "string" ? a.deleted_at : undefined,
+    invoice_id: typeof a.invoice_id === "string" ? a.invoice_id : null,
     receipt_id: strOrNull(a.receipt_id),
     bill_id: strOrNull(a.bill_id),
     supplier_payment_id: strOrNull(a.supplier_payment_id),
-    reverses_entry_id: strOrNull(a.reverses_entry_id),
+    reverses_entry_id: a.reverses_entry_id === null ? null : typeof a.reverses_entry_id === "string" ? a.reverses_entry_id : undefined,
   }));
 
   const porDocumento = asientosPorDocumento(docs, vinculos);

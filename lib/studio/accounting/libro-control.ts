@@ -190,6 +190,8 @@ export type DocumentoContable = {
 
 export type AsientoDeDocumento = {
   id: string;
+  /** Opcional por compatibilidad; ausente no acredita pertenencia de un par. */
+  tenant_id?: string | null;
   status: string;
   source: string;
   deleted_at?: string | null;
@@ -202,15 +204,48 @@ export type AsientoDeDocumento = {
 };
 
 /**
- * SDD-0573 · Los asientos que tienen un contra-asiento vivo (`invoice_reversal`,
- * migr 0497). El original queda `asentado` —en un período cerrado no se puede
- * tocar—, pero con su reverso el par suma cero: para el cruce cuenta como
- * anulado, no como vivo.
+ * SDD-0573 · Originales con un vínculo de cabeceras comprobado en este conjunto
+ * completo. Ambos extremos deben acreditar identidad, pertenencia, factura y
+ * estado; un backlink solo no basta. El cruce los trata como anulados.
+ * No certifica líneas, espejo, balance ni integridad financiera del par, y un
+ * Set vacío no demuestra que no haya otros asientos fuera de la lectura.
  */
 export function asientosRevertidos(asientos: readonly AsientoDeDocumento[]): Set<string> {
-  const out = new Set<string>();
+  const conocido = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
+  const campos = ["source", "status", "deleted_at", "tenant_id", "invoice_id", "reverses_entry_id"] as const;
+  const porId = new Map<string, AsientoDeDocumento>();
+  const ambiguos = new Set<string>();
   for (const a of asientos) {
-    if (a.source === "invoice_reversal" && a.reverses_entry_id && asientoVivo(a)) out.add(a.reverses_entry_id);
+    if (!conocido(a.id)) continue;
+    const previo = porId.get(a.id);
+    if (previo && campos.some(k => !Object.is(previo[k], a[k]))) ambiguos.add(a.id);
+    else if (!previo) porId.set(a.id, a);
+  }
+  // Una identidad contradictoria tampoco desaparece a favor de otro reverso.
+  const objetivosAmbiguos = new Set<string>();
+  for (const a of asientos) {
+    if (ambiguos.has(a.id) && a.source === "invoice_reversal" && conocido(a.reverses_entry_id)) {
+      objetivosAmbiguos.add(a.reverses_entry_id);
+    }
+  }
+
+  const reversosPorOriginal = new Map<string, Set<string>>();
+  for (const r of porId.values()) {
+    if (ambiguos.has(r.id) || r.source !== "invoice_reversal" || r.status !== "asentado"
+      || r.deleted_at !== null || !conocido(r.reverses_entry_id) || r.reverses_entry_id === r.id
+      || !conocido(r.tenant_id) || !conocido(r.invoice_id)) continue;
+    const o = porId.get(r.reverses_entry_id);
+    if (!o || ambiguos.has(o.id) || objetivosAmbiguos.has(o.id) || o.source !== "invoice"
+      || o.status !== "asentado" || o.deleted_at !== null || o.reverses_entry_id !== null
+      || !conocido(o.tenant_id) || o.tenant_id !== r.tenant_id
+      || !conocido(o.invoice_id) || o.invoice_id !== r.invoice_id) continue;
+    const ids = reversosPorOriginal.get(o.id) ?? new Set<string>();
+    ids.add(r.id);
+    reversosPorOriginal.set(o.id, ids);
+  }
+  const out = new Set<string>();
+  for (const [id, reversos] of reversosPorOriginal) {
+    if (reversos.size === 1) out.add(id);
   }
   return out;
 }
@@ -341,11 +376,20 @@ export function asientosPorDocumento(
   const porId = new Map<string, AsientoDeDocumento>();
   for (const a of asientos) porId.set(a.id, a);
   const revertidos = asientosRevertidos(asientos);
+  const ventasVivas = new Map<string, Set<string>>();
+  for (const a of asientos) {
+    if (a.source !== "invoice" || !asientoVivo(a) || typeof a.invoice_id !== "string") continue;
+    const ids = ventasVivas.get(a.invoice_id) ?? new Set<string>();
+    ids.add(a.id);
+    ventasVivas.set(a.invoice_id, ids);
+  }
 
   const out = new Map<string, { vivos: number; anulados: number }>();
   const contados = new Map<string, Set<string>>();
   const sumar = (doc: DocumentoContable, a: AsientoDeDocumento) => {
     if (a.source !== ORIGEN_POR_TIPO[doc.tipo]) return;
+    // Una fila contradictoria no oculta el invoice vivo observado del mismo ID.
+    if (a.source === "invoice" && !asientoVivo(a) && ventasVivas.get(doc.id)?.has(a.id)) return;
     const k = clave(doc.tipo, doc.id);
     const vistos = contados.get(k) ?? new Set<string>();
     if (vistos.has(a.id)) return;
