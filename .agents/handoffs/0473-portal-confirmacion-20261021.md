@@ -298,7 +298,7 @@ Lectura estática confirma P2_1: el timeout de polling se consumía una sola vez
 no cambiaba entries ni programaba otro tick. ready/partial sin draft quedaba bloqueado. Además,
 entries no tenía identidad de workspace: cancelar sólo el efecto antiguo permitía volver a pedir
 el job viejo con la compra nueva. Se acota el arreglo a sesiones del panel por workspace,
-preservando null → workspace abierto por el propio panel, sondeo secuencial reprogramado y guardas
+preservando null → workspace abierto por el propio panel, ronda de sondeo secuencial reprogramada y guardas
 de vida para no continuar operaciones/respuestas de una sesión desmontada.
 
 Lectura estática confirma P2_2: adoptar cambiaba draft/step sin reiniciar editingProduct ni
@@ -330,7 +330,7 @@ con pruebas escritas y checkpoint local para revisión del Director general ante
   externo A→B desmonta entries, transporte y estado anteriores. La marca de apertura propia conserva
   la sesión null→workspace cuando onWorkspace actualiza realmente la prop del padre; no pierde
   la carga que acaba de iniciarse.
-- El GET job se sondea secuencialmente y programa otro tick también al fallar, sin resubir ni
+- La ronda del efecto sondea los GET job secuencialmente y programa otro tick también al fallar, sin resubir ni
   aplicar la propuesta por su cuenta. La limpieza cancela el timer y descarta respuestas pendientes.
   Guardas de vida evitan que open/upload/apply de una sesión desmontada continúen llamadas o publiquen
   un workspace antiguo. No se cambia el contrato DocumentClient ni se incorpora AbortSignal:
@@ -373,9 +373,37 @@ ventana de validación y publicación explícitamente coordinadas. Integración/
 operativos históricos conservan sus permisos y no se cierran aquí. Impacto documental guardado en
 esta spec/handoff; Graphify, Archify y Obsidian no consultados ni regenerados en este seguimiento.
 
-**FUERA DE ALCANCE DETECTADO:** ninguno nuevo que exija editar otra ruta. No se modifica diseño,
-SQL/RPC, contratos, envíos ni datos de demo. Se preservan los procesos 4320/4321 sin inspeccionarlos,
-reiniciarlos ni cambiar su estado sintético.
+**FUERA DE ALCANCE DETECTADO:** residual preexistente de GET superpuestos entre rondas del efecto
+con varios archivos, según el dictamen del Director general detallado abajo. No se corrige producto
+ni se exige un décimo caso en esta ventana. No se modifica diseño, SQL/RPC, contratos, envíos ni
+datos de demo. Se preservan los procesos 4320/4321 sin inspeccionarlos, reiniciarlos ni cambiar
+su estado sintético.
 
 **HANDOFF AL DIRECTOR:** revisar el checkpoint inmutable, no los resultados históricos como prueba
 del arreglo. El Worker libera su claim al finalizar la escritura y conserva rama/worktree/demo.
+
+### Hijo documental del checkpoint · Dictamen limitado · 2026-10-21
+
+Fuente: dictamen del Director general y dos peers, transmitido por el Director de esta tarea.
+Ambos P2 originales se consideran atendidos POR FUENTE en
+`fd0eeada16157f77f83bf84115ac1d6788bf1aab`, con hashes y alcance aprobados estáticamente.
+Los nueve casos corresponden a los hallazgos y siguen **NO EJECUTADOS**. No hay aceptación
+funcional ni permiso de publicación. Las validaciones históricas de b25a4660a no cubren fd0eeada
+ni este hijo; M1 mantiene la espera de validación.
+
+Precisión del término «sondeo secuencial»: se refiere a la ronda de cada efecto y no a exclusión
+global de peticiones HTTP en vuelo. Con varios archivos, el patch del primer GET modifica entries
+y reinicia el efecto mientras otro GET de la ronda anterior puede continuar pendiente. Si tarda
+más de pollMs, el nuevo efecto puede emitir otro GET del mismo trabajo. La respuesta vieja se
+ignora correctamente y las solicitudes HTTP ya emitidas no se abortan físicamente. El dictamen
+identifica esta interacción como YA EXISTENTE antes de fd0eeada; queda en FUERA DE ALCANCE
+DETECTADO, sin nueva corrección de producto ni décimo test.
+
+Alcance documental ÚNICO: `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+y `.agents/handoffs/0473-portal-confirmacion-20261021.md`. Se crea un hijo de padre exacto
+`fd0eeada16157f77f83bf84115ac1d6788bf1aab`, sin amend, preservando los cuatro blobs de código/tests
+del checkpoint. Inicio limpio verificado, guard y claim propios adquiridos sin desplazar owner.
+Sin pruebas, tipos, lint, verify, build, E2E, UI, navegador, SQL, instalaciones, hook runtime,
+censo/procesos, runtime nuevo, push ni actualización remota/PR. Sin tocar demo 4320/4321, main,
+merge o producción. El SHA hijo, SHA256 de ambos documentos y blob IDs idénticos se entregan al
+Director para cotejo previo a cualquier respaldo autorizado en la misma PR #319 DRAFT.

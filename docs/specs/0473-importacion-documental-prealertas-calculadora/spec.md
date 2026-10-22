@@ -404,7 +404,7 @@ Sin subagentes, cambios de diseño, SQL/RPC/contratos, envíos, main, merge, pro
 o alteración de datos de la demo 4320/4321. FRM-01/ERR-01/LOD-01: recuperación y descarte explícitos;
 la conformidad ejecutable del seguimiento queda pendiente de la ventana de validación autorizada.
 
-Autoría guardada para revisión: sondeo secuencial que reprograma el siguiente tick también al
+Autoría guardada para revisión: ronda de sondeo secuencial que reprograma el siguiente tick también al
 rechazar GET; sesión interna por identidad de workspace y guardas de vida para operaciones
 pendientes; generación del editor editable y guarda padre reiniciadas juntas al adoptar una
 revisión. El contrato HTTP no incorpora AbortSignal: una solicitud ya emitida puede concluir,
@@ -413,3 +413,23 @@ Se escribieron nueve casos de regresión SIN EJECUTAR: ready y partial con prime
 cancelación del timer al desmontar; respuesta GET posterior al desmontaje; A→B con GET antiguo
 pendiente; padre real null→abierto; apertura tardía descartada; adopción borrador y confirmada
 con DocumentEditor real, sin formulario anterior y con navegación/guardado posteriores.
+
+### Dictamen estático y precisión del sondeo · 2026-10-21
+
+Según el Director general y dos peers, ambos P2 originales quedaron atendidos POR FUENTE en
+`fd0eeada16157f77f83bf84115ac1d6788bf1aab`; sus hashes y alcance fueron aprobados estáticamente.
+Los nueve casos escritos corresponden a los hallazgos y permanecen NO EJECUTADOS. Este dictamen
+no acredita aceptación funcional ni autoriza publicación. La evidencia histórica de b25a4660a
+no cubre fd0eeada ni este hijo documental; M1 mantiene la espera de validación.
+
+«Secuencial» describe la ronda de cada efecto, no exclusión global de peticiones en vuelo.
+Con varios archivos, el patch del primer GET cambia entries y reinicia el efecto mientras otro
+GET de la ronda anterior puede seguir pendiente. Si tarda más de pollMs, puede emitirse otro GET
+del mismo trabajo. La respuesta vieja se ignora correctamente; HTTP ya emitido no se aborta
+físicamente. Según esa revisión, esta interacción YA EXISTÍA antes del checkpoint.
+
+FUERA DE ALCANCE DETECTADO: ese residual preexistente de solicitudes superpuestas entre rondas.
+Se registra sin corregir producto, cambiar el sondeo o agregar un décimo caso en este seguimiento.
+Hijo documental autorizado de fd0eeada, sin amend, limitado a esta spec y
+`.agents/handoffs/0473-portal-confirmacion-20261021.md`; los cuatro blobs de código/pruebas se
+conservan exactamente. Sin ejecución, push, actualización remota/PR ni cambios en la demo.
