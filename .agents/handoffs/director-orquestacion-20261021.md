@@ -634,6 +634,12 @@ Director contable devolvió FORMALMENTE DIRECTOR-I3B-WRAPPER-53-20261022-01 COMP
 
 Turno pesado de esta asignación DEVUELTO/LIBRE por confirmación explícita, sin quietglobal o resolución del supervisorM1. Packing avisado: preparar/cerrar READY B1 para asignar nuevoGO480+60; todavía no ejecución por el aviso de slotlibre. CORE conserva mismoowner y sóloautoría ligera de hijaR15/captura, revisión/checkpoint/recetaGOrealposteriores; no SQLreal/push por inferencia. La petición humana de checkpoint I3-B revisado y pruebas coordinadas está cumplida, además de53ejecutadasyPASÓ; cierre funcionalglobal I3-B continúa abierto por validacionesPGreal y límites de cobertura consignados. Seguimiento de tres sesiones continúa en heartbeat existente sin nuevochat/writer/PRmezclada/merge/producción.
 
+## Orden puntual R15 recibida y cotejada tras la devolución
+
+Director contable concretó0573-I3B-R15-captura-encargo-director.md,7381bytes/SHA78fb81db46c316a2378c57665e32b98db282178b69b553cb685e7b07179475d0; root lo leyó íntegro y cotejó el sello. Mismoowner/claim, hijo directo892, tresrutas(carrera/spec/handoff), cuatroemisionesNOTICE conetapa y JSON crudo antesdeaserciones inicial/RPC/postCOMMIT/auditoría; conserva orden/criterios/consultas y filas temporales. Único añadido de umbral SETLOCALclient_min_messagesnotice inmediatamente trasBEGIN delcoordinadordesechable, sin otrasconexiones/configpersistente ni audit_reason. Es ajuste de custodia de evidencia por fuente; no fallo ejecutado ni nueva pruebaaprobada.
+
+Paquete03nuevo requerido con8copias/8preimágenes, sólo3changed/6343same; cincofuentes y23inputs wrapper literalmente intactos,01/02/20originales53preservados. RecetaPG17 posterior sóloUNBOUNDdocumental; sin Docker/Node/parser/SQLreal/test/push, revisiónfija posterior y GO propio. Wrapper53 conserva atribución892. Reserva pesada libretrasdevoluciónCORE; PackingB1 aún esperaREADY/GOconcretos, no está ejecutándose por estaorden. Fetchroot04:14:01Zexit0/main-origind410/remoteCORE46e5/remotePacking539 confirmados, sin integración.
+
 ## Fuera de alcance detectado
 
 Conflictos de307/315, pendientes históricos contables, compatibilidad/ejecución0502, omisiones de QA de packing, permisos de historial/piloto CRM y cobertura semántica global conservan sus owners. Se registraron sin repararlos, absorberlos ni activar producción.
