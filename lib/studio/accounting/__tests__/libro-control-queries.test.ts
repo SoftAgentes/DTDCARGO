@@ -27,6 +27,8 @@ import {
   FACTURAS_EN_USD,
   RANGO_MES,
   control,
+  datosReversoGo1, lectorReversoGo1, controlReversoGo1, RANGOS_REVERSO_GO1,
+  tablasDeControl,
 } from "./ingreso-fixture";
 
 const SERVER_CAP = 1000;
@@ -60,6 +62,7 @@ const entrada = (id: string, entry_date: string, status = "asentado", extra: Fil
   status,
   source: "manual",
   invoice_id: null,
+  reverses_entry_id: null,
   receipt_id: null,
   bill_id: null,
   supplier_payment_id: null,
@@ -74,7 +77,7 @@ const linea = (id: string, entry_id: string, account_id: string, debit: number, 
 
 describe("ingresoDelPeriodo", () => {
   it("la cifra oficial y el filtro que baja a SQL; con bolívares o yuanes y asientos de factura en 4.5, sin diferencia (E1)", async () => {
-    const { client, filtros } = dobleListados({ invoices: FACTURAS_DEL_MES }, { serverCap: SERVER_CAP });
+    const { client, filtros } = dobleListados(tablasDeControl(FACTURAS_DEL_MES, RANGO_MES, control(1500)), { serverCap: SERVER_CAP });
     const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor: control(1500) });
     expect(i.facturado.total).toBe(ESPERADO.total);
     expect(i.sinConvertir).toBe(ESPERADO.sinConvertir);
@@ -92,7 +95,7 @@ describe("ingresoDelPeriodo", () => {
 
   it("una anulada en VES del período, con su asiento vivo, vuelve no comparable el control (llega desde SQL)", async () => {
     const anuladaVes = { ...FACTURAS_DEL_MES[0], id: "fv", currency: "VES", fx_rate: 36.5, status: "anulada" };
-    const { client } = dobleListados({ invoices: [...FACTURAS_EN_USD, anuladaVes] }, { serverCap: SERVER_CAP });
+    const { client } = dobleListados(tablasDeControl([...FACTURAS_EN_USD, anuladaVes], RANGO_MES, control(1000, 1000, true, ["f1", "fv"])), { serverCap: SERVER_CAP });
     const i = await ingresoDelPeriodo(client, RANGO_MES, { mayor: control(1000, 1000, true, ["f1", "fv"]) });
     expect(i.facturado.total).toBe(ESPERADO_EN_USD.total);
     expect(i.enOtraMoneda).toBe(1);
@@ -136,8 +139,12 @@ describe("ingresoDelPeriodo", () => {
     expect(i.mayor).toEqual({ ventas: 600, ventasConMovimiento: true, ingresos: 1100, otrosIngresos: 500 });
     // 1000 − 600. Contra toda la 4.5 (con el manual) daría 100; contra todas
     // las cuentas 4, −100.
-    expect(i.diferenciaUsd).toBe(400);
-    expect(describirIngreso(i).estado).toBe("mayor_menor");
+    // La resta conocida1000−600=400 no certifica el contexto de e1/e4/e6.
+    expect(i.facturado.total).toBe(1000);
+    expect(i.diferenciaUsd).toBeNull();
+    expect(describirIngreso(i).estado).toBe("requiere_revision");
+    expect(i.controlI2.verificacion).toBe("requiere_revision");
+    expect(i.controlI2.incidencias.some(x => x.codigo === "documento_no_disponible" || x.codigo === "cabecera_invalida")).toBe(true);
     // SDD-0573: con su contra-asiento, que resta en la fecha en que se anuló.
     expect(filtros).toContainEqual({ table: "journal_entries", op: "in", col: "source", val: ["invoice", "invoice_reversal"] });
   });
@@ -289,7 +296,7 @@ describe("reportesDelLibro", () => {
       {
         invoices: FACTURAS_EN_USD,
         accounts: PLAN,
-        journal_entries: [deFactura("e1", "2025-03-05"), entrada("e0", "2025-02-10")],
+        journal_entries: [deFactura("e1", "2025-03-05", "asentado", { invoice_id: "f1" }), entrada("e0", "2025-02-10")],
         journal_lines: [
           linea("l1", "e1", "cxc", 600, 0),
           linea("l2", "e1", "ventas", 0, 600),
@@ -734,5 +741,101 @@ describe("cuadreDelLibro · el contra-asiento de la 0497 (SDD-0573)", () => {
     const c = await cuadreDelLibro(sinColumna, { accounts, saldos, hoy: "2025-03-18" });
     // Sin saber del reverso, el par se ve como antes: la anulada con su asiento vivo.
     expect(c.documentos.anuladosConAsiento.map((h) => h.codigo)).toEqual(["F-3"]);
+  });
+});
+
+describe("I2 · contexto completo con cliente de sesión", () => {
+  it("positivo íntegro: oficial600+400, sólo600asentada y manuales500 conservan diferencia400", async () => {
+    const emitida = (id: string, base: number) => ({ id, tenant_id: "t", status: "emitida", issued_at: "2025-03-05",
+      currency: "USD", fx_rate: null, base_amount: base, fund_class: "local_revenue", deleted_at: null });
+    const { client } = dobleListados({ accounts: PLAN, invoices: [emitida("f600", 600), emitida("f400", 400)],
+      journal_entries: [deFactura("e600", "2025-03-05", "asentado", { invoice_id: "f600", reverses_entry_id: null }),
+        entrada("m200", "2025-03-07"), entrada("m300", "2025-03-09")],
+      journal_lines: [linea("l600-ar", "e600", "cxc", 600, 0), linea("l600-v", "e600", "ventas", 0, 600),
+        linea("l200-b", "m200", "banco", 200, 0), linea("l200-fx", "m200", "forex", 0, 200),
+        linea("l300-b", "m300", "banco", 300, 0), linea("l300-v", "m300", "ventas", 0, 300)],
+    }, { serverCap: 1, proyectar: true });
+    const i = await ingresoDelPeriodo(client, RANGO_MES);
+    expect(i.facturado.total).toBe(1000);
+    expect(i.mayor).toEqual({ ventas: 600, ventasConMovimiento: true, ingresos: 1100, otrosIngresos: 500 });
+    expect(i).toMatchObject({ ajusteAnulacionesUsd: 0, baseComparacionUsd: 1000, diferenciaUsd: 400,
+      controlI2: { verificacion: "completa", incidencias: [] } });
+    expect(describirIngreso(i).estado).toBe("mayor_menor");
+  });
+  it.each([true, false])("lee ambos extremos y metadata fuera de emisión, mayor precalculado=%s", async precalculado => {
+    const datos = datosReversoGo1();
+    const rango = RANGOS_REVERSO_GO1.octubre;
+    const lector = lectorReversoGo1(datos, { limiteServidor: 1 });
+    const i = await ingresoDelPeriodo(lector.client, rango,
+      precalculado ? { mayor: controlReversoGo1(datos, rango) } : {});
+    expect(i).toMatchObject({ ajusteAnulacionesUsd: -100, baseComparacionUsd: -100, diferenciaUsd: 0,
+      controlI2: { verificacion: "completa", unidadMayor: "usd" } });
+    const metadata = lector.consultas.filter(q => q.tabla === "invoices" && q.filtros.some(f => f[0] === "in" && f[1] === "id"));
+    expect(metadata.length).toBeGreaterThan(0);
+    expect(metadata.every(q => !q.filtros.some(f => f[1] === "issued_at" || f[1] === "status" || f[1] === "deleted_at"))).toBe(true);
+    expect(lector.consultas.some(q => q.tabla === "journal_entries" && q.filtros.some(f => f[1] === "reverses_entry_id"))).toBe(true);
+  });
+  it("mayor null evita las lecturas contables del Dashboard", async () => {
+    const lector = lectorReversoGo1(datosReversoGo1());
+    const i = await ingresoDelPeriodo(lector.client, RANGOS_REVERSO_GO1.septiembre, { mayor: null });
+    expect(i.mayor).toBeNull();
+    expect(lector.consultas.every(q => q.tabla === "invoices")).toBe(true);
+  });
+  it.each(["accounts", "journal_lines", "journal_entries"])("propaga error real de %s sin producir cero", async tabla => {
+    const d = datosReversoGo1();
+    const lector = lectorReversoGo1(d, { errorTabla: tabla });
+    await expect(ingresoDelPeriodo(lector.client, RANGOS_REVERSO_GO1.octubre,
+      { mayor: controlReversoGo1(d, RANGOS_REVERSO_GO1.octubre) })).rejects.toThrow("fallo-lectura-sintetico-go1");
+  });
+  it.each(["documento", "cuenta", "original"])("un extremo %s oculto por RLS conserva incidencia genérica", async oculto => {
+    const d = datosReversoGo1();
+    if (oculto === "documento") d.invoices[0].tenant_id = "otro-tenant";
+    if (oculto === "cuenta") d.accounts[0].tenant_id = "otro-tenant";
+    if (oculto === "original") d.journal_entries[0].tenant_id = "otro-tenant";
+    const lector = lectorReversoGo1(d);
+    const i = await ingresoDelPeriodo(lector.client, RANGOS_REVERSO_GO1.octubre,
+      { mayor: controlReversoGo1(d, RANGOS_REVERSO_GO1.octubre) });
+    expect(i.diferenciaUsd).toBeNull();
+    expect(i.controlI2.verificacion).toBe("requiere_revision");
+    expect(JSON.stringify(i)).not.toContain("otro-tenant");
+  });
+  it("resuelve cuentas pertinentes y su padre aunque estén después de la primera página del plan", async () => {
+    const d = datosReversoGo1();
+    d.accounts[1].parent_id = "padre-remoto";
+    d.accounts.unshift(...Array.from({ length: 1001 }, (_, n) => ({ id: `irrelevante-${n}`, tenant_id: "tenant-go1",
+      code: `9.${n}`, type: "G", parent_id: null })));
+    d.accounts.push({ id: "padre-remoto", tenant_id: "tenant-go1", code: "4", type: "I", parent_id: null });
+    const lector = lectorReversoGo1(d, { limiteServidor: 1 });
+    const i = await ingresoDelPeriodo(lector.client, RANGOS_REVERSO_GO1.septiembre,
+      { mayor: controlReversoGo1(d, RANGOS_REVERSO_GO1.septiembre) });
+    expect(i.diferenciaUsd).toBe(0);
+    expect(i.controlI2.verificacion).toBe("completa");
+    expect(lector.consultas.some(q => q.tabla === "accounts" && q.filtros.some(f => f[1] === "id" && (f[2] as string[]).includes("padre-remoto")))).toBe(true);
+    expect(lector.consultas.filter(q => q.tabla === "accounts").every(q => q.filtros.some(f => f[1] === "id"))).toBe(true);
+  });
+  it("sin opts.mayor, una subcuenta nominal omitida del plan no transforma neto0 en USD/Cuadra", async () => {
+    const d = datosReversoGo1({ currency: "VES", base: 3650, fxRate: 36.5 });
+    d.accounts[1].code = "4.5.zz";
+    d.accounts[1].parent_id = "ventas-raiz";
+    d.accounts.push({ id: "ventas-raiz", tenant_id: "tenant-go1", code: "4.5", type: "I", parent_id: null },
+      ...Array.from({ length: 1001 }, (_, n) => ({ id: `relleno-${n}`, tenant_id: "tenant-go1",
+        code: `4.5.${String(n).padStart(4, "0")}`, type: "I", parent_id: "ventas-raiz" })));
+    const lector = lectorReversoGo1(d);
+    const i = await ingresoDelPeriodo(lector.client, RANGOS_REVERSO_GO1.combinado);
+    // El mayor heredado no ve la hoja: el contexto porIDs sí la recupera.
+    // No se repara el plan global ni se reemplaza ese saldo por otro calculado.
+    expect(i.mayor).toMatchObject({ ventas: 0, ventasConMovimiento: false });
+    expect(i.enOtraMoneda).toBe(1);
+    expect(i.controlI2).toMatchObject({ unidadMayor: "nominal_mixto", verificacion: "requiere_revision", hayActividad: true });
+    expect(i.controlI2.incidencias).toContainEqual({ codigo: "mayor_inconsistente", cantidad: 1 });
+    expect(i.diferenciaUsd).toBeNull();
+    expect(describirIngreso(i).estado).toBe("no_comparable");
+  });
+  it("las líneas por ID también deben alcanzar una página vacía antes del tope", async () => {
+    const d = datosReversoGo1();
+    d.journal_lines.push(...Array.from({ length: 60 }, (_, n) => ({ ...d.journal_lines[0], id: `extra-${n}` })));
+    const lector = lectorReversoGo1(d, { limiteServidor: 1 });
+    await expect(ingresoDelPeriodo(lector.client, RANGOS_REVERSO_GO1.octubre,
+      { mayor: controlReversoGo1(d, RANGOS_REVERSO_GO1.octubre) })).rejects.toThrow(/líneas de los extremos.*tope/);
   });
 });

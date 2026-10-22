@@ -25,6 +25,7 @@ import {
   type FacturaDeIngreso,
   type IngresoPeriodo,
   type RangoFechas,
+  type ContextoControlI2,
 } from "./ingreso-periodo";
 import {
   asientosPorDocumento,
@@ -193,6 +194,65 @@ export async function controlDelPeriodo(
   return controlDelMayor(accounts, balances, deFacturas.saldos, deFacturas.facturas);
 }
 
+/** Evidencia del puente I2. Fecha sólo para candidatos; extremos y metadata
+ * se resuelven por identidad sin convertirlos en ingreso oficial del rango.
+ * El cliente sigue siendo el de sesión/RLS, también con mayor precalculado.
+ */
+async function contextoDelIngreso(
+  supabase: SupabaseClient, rango: RangoFechas, facturas: readonly FacturaDeIngreso[],
+): Promise<ContextoControlI2> {
+  const columnas = "id, tenant_id, status, source, deleted_at, invoice_id, entry_date, reverses_entry_id";
+  async function porIds(nombre: string, ids: string[], pagina: Parameters<typeof fetchAllByIds>[1]) {
+    const { rows, complete } = await fetchAllByIds<Fila>([...new Set(ids)], pagina);
+    if (!complete) throw new Error(`${nombre}: la lectura supera el tope; el control no se puede calcular completo.`);
+    return rows;
+  }
+  const asientos = await leerCompleto<Fila>("Ingreso I2 · candidatos del período", (d, h) =>
+    supabase.from("journal_entries").select(columnas)
+      .in("source", ["invoice", "invoice_reversal"])
+      .gte("entry_date", rango.from).lte("entry_date", rango.to)
+      .order("id", { ascending: true }).range(d, h));
+  const documentosIniciales = [...new Set([
+    ...asientos.map(a => str(a.invoice_id)),
+    ...facturas.filter(f => f.status === "anulada").map(f => f.id),
+  ].filter(Boolean))];
+  asientos.push(...await porIds("Ingreso I2 · asientos por documento", documentosIniciales,
+    (ids, d, h) => supabase.from("journal_entries").select(columnas)
+      .in("invoice_id", ids).in("source", ["invoice", "invoice_reversal"])
+      .order("id", { ascending: true }).range(d, h)));
+  asientos.push(...await porIds("Ingreso I2 · originales por vínculo",
+    asientos.map(a => str(a.reverses_entry_id)).filter(Boolean),
+    (ids, d, h) => supabase.from("journal_entries").select(columnas).in("id", ids)
+      .order("id", { ascending: true }).range(d, h)));
+  // Encuentra también reversos mal vinculados a otra factura, sin esconderlos
+  // tras el filtro por invoice_id ni por estado/borrado/origen.
+  asientos.push(...await porIds("Ingreso I2 · reversos por vínculo",
+    asientos.filter(a => a.source === "invoice").map(a => str(a.id)),
+    (ids, d, h) => supabase.from("journal_entries").select(columnas).in("reverses_entry_id", ids)
+      .order("id", { ascending: true }).range(d, h)));
+  const documentos = await porIds("Ingreso I2 · metadata documental",
+    [...documentosIniciales, ...asientos.map(a => str(a.invoice_id)).filter(Boolean)],
+    (ids, d, h) => supabase.from("invoices")
+      .select("id, tenant_id, status, issued_at, currency, fx_rate, base_amount, fund_class, deleted_at")
+      .in("id", ids).order("id", { ascending: true }).range(d, h));
+  const lineas = await porIds("Ingreso I2 · líneas de los extremos", asientos.map(a => str(a.id)),
+    (ids, d, h) => supabase.from("journal_lines").select("id, entry_id, account_id, debit, credit")
+      .in("entry_id", ids).order("id", { ascending: true }).range(d, h));
+  const cuentas: Fila[] = [];
+  const solicitadas = new Set<string>();
+  let pendientes = [...new Set(lineas.map(l => str(l.account_id)).filter(Boolean))];
+  while (pendientes.length) {
+    for (const id of pendientes) solicitadas.add(id);
+    const lote = await porIds("Ingreso I2 · cuentas y ascendencia", pendientes,
+      (ids, d, h) => supabase.from("accounts").select("id, tenant_id, code, type, parent_id")
+        .in("id", ids).order("id", { ascending: true }).range(d, h));
+    cuentas.push(...lote);
+    pendientes = [...new Set(lote.map(c => str(c.parent_id))
+      .filter(id => id && !solicitadas.has(id)))];
+  }
+  return { completo: true, documentos, asientos, lineas, cuentas };
+}
+
 /**
  * La cifra oficial de ingreso del período (ingreso-periodo.ts). El filtro va en
  * SQL por eficiencia y la regla lo repite en memoria. Trae también las
@@ -230,7 +290,8 @@ export async function ingresoDelPeriodo(
     ]);
     mayor = await controlDelPeriodo(supabase, rango, accounts, balances);
   }
-  return resumirIngreso(facturas, rango, mayor);
+  const contexto = mayor == null ? undefined : await contextoDelIngreso(supabase, rango, facturas);
+  return resumirIngreso(facturas, rango, mayor, contexto);
 }
 
 /**

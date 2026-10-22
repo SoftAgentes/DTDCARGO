@@ -18,6 +18,7 @@
 
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { dobleListados, type Fila } from "@/lib/studio/__tests__/listados-double";
 import {
   netMarginPct,
   netPosition,
@@ -30,7 +31,7 @@ import {
   textosFinancieros,
   type ForecastBill,
 } from "../queries";
-import { resumirIngreso } from "@/lib/studio/accounting/ingreso-periodo";
+import { resumirIngreso as resumirIngresoSinContexto } from "@/lib/studio/accounting/ingreso-periodo";
 import {
   ASIENTOS_EN_OTRA_MONEDA,
   ESPERADO,
@@ -39,7 +40,10 @@ import {
   HOY,
   RANGO_MES,
   control,
+  resumirIngresoConContexto as resumirIngreso,
+  datosReversoGo1, lectorReversoGo1, controlReversoGo1, RANGOS_REVERSO_GO1,
 } from "@/lib/studio/accounting/__tests__/ingreso-fixture";
+import { ingresoDelPeriodo } from "@/lib/studio/accounting/libro-control-queries";
 
 describe("netPosition — posición neta", () => {
   it("posición neta = caja + CxC − CxP", () => {
@@ -247,8 +251,12 @@ function makeClient(opts: {
 }): SupabaseClient {
   const tables = opts.tables ?? {};
   const rpc = opts.rpc ?? {};
+  const contables = dobleListados(Object.fromEntries(
+    ["accounts", "journal_entries", "journal_lines", "invoices"].map(t => [t, tables[t]?.data ?? []]),
+  ) as Record<string, Fila[]>, { serverCap: SERVER_CAP, proyectar: true }).client;
   return {
     from(table: string) {
+      if (["accounts", "journal_entries", "journal_lines", "invoices"].includes(table)) return contables.from(table);
       const entry = tables[table] ?? {};
       const result = {
         data: entry.data ?? [],
@@ -305,18 +313,20 @@ describe("getDireccionData — composición (smoke)", () => {
         // factura), caja (1.1.1).
         accounts: {
           data: [
-            { id: "inc", tenant_id: "t", code: "4", name: "Ingresos", type: "I", is_postable: false },
-            { id: "inc1", tenant_id: "t", code: "4.5", name: "Otros ingresos por servicios", type: "I", is_postable: true },
-            { id: "caja", tenant_id: "t", code: "1.1.1", name: "Banco", type: "A", is_postable: true, qbo_type: "Bank" },
+            { id: "inc", tenant_id: "t", code: "4", name: "Ingresos", type: "I", parent_id: null, is_postable: false },
+            { id: "inc1", tenant_id: "t", code: "4.5", name: "Otros ingresos por servicios", type: "I", parent_id: "inc", is_postable: true },
+            { id: "caja", tenant_id: "t", code: "1.1.1", name: "Banco", type: "A", parent_id: null, is_postable: true, qbo_type: "Bank" },
+            { id: "ar", tenant_id: "t", code: "1.1.2", name: "Clientes", type: "A", parent_id: null, is_postable: true },
           ],
         },
         // Asientos asentados (P&L del mes) + saldos vivos (caja). El asiento
         // es de factura: su 4.5 es el control del ingreso.
-        journal_entries: { data: [{ id: "je1", status: "asentado", source: "invoice", deleted_at: null }] },
+        journal_entries: { data: [{ id: "je1", tenant_id: "t", invoice_id: "f1", entry_date: "2026-06-02", status: "asentado", source: "invoice", deleted_at: null, reverses_entry_id: null }] },
         journal_lines: {
           data: [
-            { entry_id: "je1", account_id: "inc1", debit: 0, credit: 10000 }, // ingreso
-            { entry_id: "je1", account_id: "caja", debit: 8000, credit: 0 }, // caja
+            { id: "ingreso-je1", entry_id: "je1", account_id: "inc1", debit: 0, credit: 10000 }, // ingreso
+            { id: "caja-je1", entry_id: "je1", account_id: "caja", debit: 8000, credit: 0 }, // caja
+            { id: "ar-je1", entry_id: "je1", account_id: "ar", debit: 2000, credit: 0 },
           ],
         },
         // Cobranzas: una factura con saldo (CxC) — receivablesQueue.
@@ -330,6 +340,7 @@ describe("getDireccionData — composición (smoke)", () => {
               base_amount: 4000,
               total_amount: 4000,
               paid_amount: 0,
+              deleted_at: null,
               issued_at: "2026-06-02",
               due_date: "2026-06-20",
             },
@@ -452,11 +463,12 @@ describe("getDireccionData — composición (smoke)", () => {
 
 describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
   const PLAN_DIR = [
-    { id: "inc", tenant_id: "t", code: "4", name: "Ingresos", type: "I", is_postable: false },
-    { id: "ven", tenant_id: "t", code: "4.5", name: "Otros ingresos por servicios", type: "I", is_postable: true },
-    { id: "fx", tenant_id: "t", code: "4.6", name: "Ingreso por cambio de moneda", type: "I", is_postable: true },
-    { id: "g", tenant_id: "t", code: "6", name: "Gastos", type: "G", is_postable: false },
-    { id: "g1", tenant_id: "t", code: "6.1", name: "Gastos generales", type: "G", is_postable: true },
+    { id: "inc", tenant_id: "t", code: "4", name: "Ingresos", type: "I", parent_id: null, is_postable: false },
+    { id: "ven", tenant_id: "t", code: "4.5", name: "Otros ingresos por servicios", type: "I", parent_id: "inc", is_postable: true },
+    { id: "fx", tenant_id: "t", code: "4.6", name: "Ingreso por cambio de moneda", type: "I", parent_id: "inc", is_postable: true },
+    { id: "g", tenant_id: "t", code: "6", name: "Gastos", type: "G", parent_id: null, is_postable: false },
+    { id: "g1", tenant_id: "t", code: "6.1", name: "Gastos generales", type: "G", parent_id: "g", is_postable: true },
+    { id: "ar", tenant_id: "t", code: "1.1.2", name: "Clientes", type: "A", parent_id: null, is_postable: true },
   ];
 
   it("con el fixture del mes da la misma cifra que los otros consumidores; con bolívares o yuanes, no comparable", async () => {
@@ -468,13 +480,18 @@ describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
         // je1 trae las líneas; F2, F6 y F7 tienen su asiento de factura vivo
         // (sin líneas), así cuentan en «no comparable» (decisión 7).
         journal_entries: {
-          data: [{ id: "je1", status: "asentado", source: "invoice", deleted_at: null, invoice_id: "f1" }, ...ASIENTOS_EN_OTRA_MONEDA],
+          data: [{ id: "je1", tenant_id: "t", entry_date: "2025-03-05", reverses_entry_id: null, status: "asentado", source: "invoice", deleted_at: null, invoice_id: "f1" }, ...ASIENTOS_EN_OTRA_MONEDA],
         },
         journal_lines: {
           data: [
-            { entry_id: "je1", account_id: "ven", debit: 0, credit: 1500 },
-            { entry_id: "je1", account_id: "fx", debit: 0, credit: 200 },
-            { entry_id: "je1", account_id: "g1", debit: 700, credit: 0 },
+            { id: "je1-v", entry_id: "je1", account_id: "ven", debit: 0, credit: 1497 },
+            { id: "je1-fx", entry_id: "je1", account_id: "fx", debit: 0, credit: 200 },
+            { id: "je1-g", entry_id: "je1", account_id: "g1", debit: 700, credit: 0 },
+            { id: "je1-ar", entry_id: "je1", account_id: "ar", debit: 997, credit: 0 },
+            ...ASIENTOS_EN_OTRA_MONEDA.flatMap(a => [
+              { id: `${a.id}-ar`, entry_id: a.id, account_id: "ar", debit: 1, credit: 0 },
+              { id: `${a.id}-v`, entry_id: a.id, account_id: "ven", debit: 0, credit: 1 },
+            ]),
           ],
         },
         invoices: { data: FACTURAS_DEL_MES },
@@ -502,15 +519,16 @@ describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
         accounts: { data: PLAN_DIR },
         journal_entries: {
           data: [
-            { id: "je1", status: "asentado", source: "invoice", deleted_at: null },
-            { id: "je2", status: "asentado", source: "manual", deleted_at: null },
+            { id: "je1", tenant_id: "t", invoice_id: "f1", entry_date: "2025-03-05", reverses_entry_id: null, status: "asentado", source: "invoice", deleted_at: null },
+            { id: "je2", tenant_id: "t", entry_date: "2025-03-06", status: "asentado", source: "manual", deleted_at: null },
           ],
         },
         journal_lines: {
           data: [
-            { entry_id: "je1", account_id: "ven", debit: 0, credit: 600 },
-            { entry_id: "je2", account_id: "ven", debit: 0, credit: 300 }, // manual a 4.5
-            { entry_id: "je2", account_id: "fx", debit: 0, credit: 200 },
+            { id: "je1-v", entry_id: "je1", account_id: "ven", debit: 0, credit: 600 },
+            { id: "je1-ar", entry_id: "je1", account_id: "ar", debit: 600, credit: 0 },
+            { id: "je2-v", entry_id: "je2", account_id: "ven", debit: 0, credit: 300 }, // manual a 4.5
+            { id: "je2-fx", entry_id: "je2", account_id: "fx", debit: 0, credit: 200 },
           ],
         },
         invoices: { data: FACTURAS_EN_USD },
@@ -607,5 +625,24 @@ describe("textosFinancieros · los KPI de ingreso y utilidad (SDD-0557)", () => 
     expect(textos(ingreso(conTerceros, control(1050))).ingreso.detalle).toBe(
       "cuadra con 4.5 de facturas: $1,050.00 · incluye fondos de terceros",
     );
+  });
+});
+
+describe("I2 · Dirección conserva el oficial y explica el puente", () => {
+  it("el reverso explica ajuste/base/diferencia sin cambiar utilidad o margen", async () => {
+    const d = datosReversoGo1(); const rango = RANGOS_REVERSO_GO1.octubre;
+    const ingreso = await ingresoDelPeriodo(lectorReversoGo1(d).client, rango, { mayor: controlReversoGo1(d, rango) });
+    const t = textosFinancieros({ ingreso, utilidad: 400, margenPct: 40 });
+    expect(t.ingreso.valor).toBe("$0.00");
+    expect(t.ingreso.detalle).toContain("ajuste por anulaciones: -$100.00; base comparada: -$100.00; diferencia: $0.00");
+    expect(t.utilidad).toEqual({ label: "Utilidad neta · libro", valor: "$400.00", sub: "Margen 40.0% sobre los ingresos del libro" });
+  });
+  it("el contexto ausente muestra unidad sin verificar y causa, sin inventar bolívares", () => {
+    const ingreso = resumirIngresoSinContexto([], RANGO_MES, control(0, 0, true));
+    const t = textosFinancieros({ ingreso, utilidad: 0, margenPct: 0 });
+    expect(t.ingreso.detalle).toContain("unidad sin verificar");
+    expect(t.ingreso.detalle).toContain("requiere revisión");
+    expect(t.ingreso.detalle).toContain("No se leyó el contexto");
+    expect(t.ingreso.detalle).not.toMatch(/bolívares|yuanes|cuadra/);
   });
 });

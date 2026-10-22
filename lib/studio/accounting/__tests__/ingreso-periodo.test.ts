@@ -11,7 +11,7 @@ import {
   describirIngreso,
   mesEnCurso,
   rangoDesdeParams,
-  resumirIngreso,
+  resumirIngreso as resumirIngresoSinContexto,
   notaDelMayorMezclado,
 } from "../ingreso-periodo";
 import { SALE_STATUSES } from "@/lib/studio/fiscal/queries";
@@ -31,6 +31,7 @@ import {
   controlReversoGo1,
   RANGOS_REVERSO_GO1,
   type DatosReversoGo1,
+  resumirIngresoConContexto as resumirIngreso,
 } from "./ingreso-fixture";
 import { ingresoDelPeriodo } from "../libro-control-queries";
 import { MAX_PAGES } from "@/lib/db/paginate";
@@ -285,15 +286,20 @@ describe("el mayor vacío gana sobre «no comparable» (B3)", () => {
     expect(d.diferenciaTexto).not.toMatch(/No comparable|se asienta/);
   });
 
-  it("una VES con su asiento de factura vivo pero sin líneas en 4.5: el mayor vacío gana igual, con diferencia", () => {
+  it("una VES con cabecera huérfana no acredita movimiento nominal ni diferencia: requiere revisión", () => {
     // invoice-posting.ts inserta la cabecera y después las líneas, sin una
     // transacción: si las líneas fallan y el rollback manual del header también,
-    // queda un asiento vivo sin líneas (B3). La factura cuenta como asentada,
-    // pero contra una 4.5 sin debe ni haber no hay monedas que mezclar.
+    // queda una cabecera viva sin líneas (B3). No acredita movimiento ni unidad:
+    // el cero del saldo no convierte la evidencia incompleta en USD o Cuadra.
     const i = resumirIngreso([vesAsentada], RANGO_MES, control(0, 0, false, ["va"]));
-    expect(i.enOtraMoneda).toBe(1);
-    expect(i.diferenciaUsd).toBe(1000);
-    expect(describirIngreso(i).estado).toBe("mayor_menor");
+    expect(i.enOtraMoneda).toBe(0);
+    expect(i.facturado.total).toBe(1000);
+    expect(i).toMatchObject({ ajusteAnulacionesUsd: null, baseComparacionUsd: null, diferenciaUsd: null,
+      controlI2: { verificacion: "requiere_revision", unidadMayor: "sin_verificar", hayActividad: false,
+        contribucionesAjuste: 0 } });
+    expect(i.controlI2.incidencias).toContainEqual({ codigo: "lineas_invalidas", cantidad: 1 });
+    expect(describirIngreso(i).estado).toBe("requiere_revision");
+    expect(notaDelMayorMezclado(i)).toBeNull();
   });
 
   it("con el fixture del mes (VES y CNY) y 4.5 vacía: la diferencia es todo lo facturado", () => {
@@ -600,5 +606,139 @@ describe("GO1 I2 · oficial, ajuste documental y base de comparación", () => {
     expect(ingreso.diferenciaUsd).toBe(0);
     expect(describirIngreso(ingreso).estado).toBe("cuadra");
     expect(describirIngreso(ingreso).diferenciaTexto).toMatch(/ajuste|anulaci[oó]n|revers/i);
+  });
+});
+
+describe("I2 · evidencia independiente del saldo", () => {
+  const rango = RANGOS_REVERSO_GO1.combinado;
+  function crudo(datos = datosReversoGo1()) {
+    return { completo: true, documentos: datos.invoices, asientos: datos.journal_entries,
+      lineas: datos.journal_lines, cuentas: datos.accounts };
+  }
+  it("un mayor sin contexto no certifica cero ni Cuadra, y no inventa moneda nominal", () => {
+    const i = resumirIngresoSinContexto([], rango, control(0, 0, true));
+    expect(i).toMatchObject({ ajusteAnulacionesUsd: null, baseComparacionUsd: null, diferenciaUsd: null,
+      controlI2: { verificacion: "no_leida", unidadMayor: "sin_verificar" } });
+    expect(describirIngreso(i).estado).toBe("requiere_revision");
+    expect(notaDelMayorMezclado(i)).toBeNull();
+  });
+  it("sin mayor conserva el oficial y no exige evidencia contable al Dashboard", () => {
+    const i = resumirIngresoSinContexto(FACTURAS_DEL_MES, RANGO_MES, null);
+    expect(i.facturado.total).toBe(2000);
+    expect(describirIngreso(i).estado).toBe("sin_mayor");
+    expect(i.controlI2).toMatchObject({ verificacion: "no_leida", incidencias: [] });
+  });
+  it.each([
+    "tenant cabecera", "tenant documento", "tenant cuenta", "origen", "borrado", "backlink",
+    "cuenta oculta", "parent ausente", "ciclo de cuentas", "línea sin importe", "monto no finito",
+    "documento oculto", "identidad incompatible", "multiplicidad distinta",
+  ])("rechaza %s aunque el neto sea cero", (fallo) => {
+    const d = datosReversoGo1();
+    if (fallo === "tenant cabecera") d.journal_entries[1].tenant_id = "otro";
+    if (fallo === "tenant documento") d.invoices[0].tenant_id = "otro";
+    if (fallo === "tenant cuenta") d.accounts[0].tenant_id = "otro";
+    if (fallo === "origen") d.journal_entries[1].source = "manual";
+    if (fallo === "borrado") d.journal_entries[0].deleted_at = "2026-10-21";
+    if (fallo === "backlink") d.journal_entries[1].reverses_entry_id = "no-visible";
+    if (fallo === "cuenta oculta") d.accounts.pop();
+    if (fallo === "parent ausente") d.accounts[1].parent_id = "no-visible";
+    if (fallo === "ciclo de cuentas") d.accounts[1].parent_id = d.accounts[1].id;
+    if (fallo === "línea sin importe") delete d.journal_lines[0].debit;
+    if (fallo === "monto no finito") d.invoices[0].base_amount = "NaN";
+    if (fallo === "documento oculto") d.invoices = [];
+    if (fallo === "identidad incompatible") d.journal_entries.push({ ...d.journal_entries[0], status: "anulado" });
+    if (fallo === "multiplicidad distinta") d.journal_lines.push({ ...d.journal_lines[0], id: "duplicada" });
+    const i = resumirIngresoSinContexto([], rango, control(0, 0, true), crudo(d));
+    expect(i.diferenciaUsd).toBeNull();
+    expect(i.ajusteAnulacionesUsd).toBeNull();
+    expect(i.controlI2.verificacion).toBe("requiere_revision");
+    expect(i.controlI2.incidencias.length).toBeGreaterThan(0);
+    expect(describirIngreso(i).estado).toBe("requiere_revision");
+    expect(notaDelMayorMezclado(i)).toBeNull();
+  });
+  it("IVA, subcuentas, orden inverso e IDs nuevos conservan el espejo por multiplicidad", () => {
+    const d = datosReversoGo1();
+    d.accounts.push({ id: "iva", tenant_id: "tenant-go1", code: "2.1.5", type: "P", parent_id: null },
+      { id: "subventa", tenant_id: "tenant-go1", code: "4.5.1", type: "I", parent_id: "ingreso-go1" });
+    d.journal_lines[0].debit = 116;
+    d.journal_lines[1].account_id = "subventa";
+    d.journal_lines[2].credit = 116;
+    d.journal_lines[3].account_id = "subventa";
+    d.journal_lines.push({ id: "iva-o", entry_id: "original-go1", account_id: "iva", debit: 0, credit: 16 },
+      { id: "iva-r", entry_id: "reverso-go1", account_id: "iva", debit: 16, credit: 0 });
+    d.journal_lines = d.journal_lines.reverse().map((l, n) => ({ ...l, id: `otra-linea-${n}`, line_memo: "otro memo" }));
+    const i = resumirIngresoSinContexto([], rango, control(0, 0, true), crudo(d));
+    expect(i).toMatchObject({ ajusteAnulacionesUsd: 0, baseComparacionUsd: 0, diferenciaUsd: 0,
+      controlI2: { verificacion: "completa", hayActividad: true, contribucionesAjuste: 2, incidencias: [] } });
+    expect(describirIngreso(i).estado).toBe("cuadra");
+  });
+  it("redondea una vez la base documental y usa los mismos centavos al revertir", () => {
+    const d = datosReversoGo1({ base: 100.015, venta: 100.02 });
+    const sept = resumirIngresoSinContexto([], RANGOS_REVERSO_GO1.septiembre, control(100.02), crudo(d));
+    const oct = resumirIngresoSinContexto([], RANGOS_REVERSO_GO1.octubre, control(-100.02), crudo(d));
+    expect(sept.ajusteAnulacionesUsd).toBe(100.02);
+    expect(oct.ajusteAnulacionesUsd).toBe(-100.02);
+    expect(sept.diferenciaUsd).toBe(0);
+    expect(oct.diferenciaUsd).toBe(0);
+  });
+  it("moneda desconocida no obtiene etiqueta USD ni advertencia inventada de VES/CNY", () => {
+    const d = datosReversoGo1({ currency: "EUR" });
+    const i = resumirIngresoSinContexto([], rango, control(0, 0, true), crudo(d));
+    expect(i.controlI2.unidadMayor).toBe("sin_verificar");
+    expect(i.baseComparacionUsd).toBeNull();
+    expect(describirIngreso(i).estado).toBe("requiere_revision");
+    expect(notaDelMayorMezclado(i)).toBeNull();
+  });
+  it("nominal acreditado e integridad rota conservan ambos ejes visibles", () => {
+    const d = datosReversoGo1({ currency: "VES", base: 3650, fxRate: 36.5 });
+    d.journal_lines = d.journal_lines.filter(l => l.id !== "reverso-ar-go1");
+    const i = resumirIngresoSinContexto([], rango, control(0, 0, true), crudo(d));
+    expect(i.controlI2).toMatchObject({ unidadMayor: "nominal_mixto", verificacion: "requiere_revision" });
+    expect(describirIngreso(i).estado).toBe("no_comparable");
+    expect(i.ajusteAnulacionesUsd).toBeNull();
+    expect(i.enOtraMoneda).toBe(1);
+  });
+  it("complete false y desacuerdo con el mayor no se convierten en subtotal completo", () => {
+    const d = datosReversoGo1();
+    const incompleto = resumirIngresoSinContexto([], rango, control(0, 0, true), { ...crudo(d), completo: false });
+    expect(incompleto.baseComparacionUsd).toBeNull();
+    const desacuerdo = resumirIngresoSinContexto([], rango, control(1), crudo(d));
+    expect(desacuerdo.controlI2.incidencias).toContainEqual({ codigo: "mayor_inconsistente", cantidad: 1 });
+    expect(desacuerdo.diferenciaUsd).toBeNull();
+  });
+  it("anulada sin posting no inventa par roto ni actividad", () => {
+    const d = datosReversoGo1(); d.journal_entries = []; d.journal_lines = [];
+    const i = resumirIngresoSinContexto([], rango, control(0, 0, false), crudo(d));
+    expect(i).toMatchObject({ ajusteAnulacionesUsd: 0, diferenciaUsd: 0,
+      controlI2: { verificacion: "completa", hayActividad: false, incidencias: [] } });
+    expect(describirIngreso(i).estado).toBe("sin_movimiento");
+  });
+  it("una versión documental distinta entre lectura oficial y contexto no obtiene Cuadra", () => {
+    const d = datosReversoGo1();
+    const facturas = [{ id: "invoice-go1", status: "anulada", issued_at: "2026-09-15", currency: "USD",
+      fx_rate: null, base_amount: 90, fund_class: "local_revenue", deleted_at: null }];
+    const i = resumirIngresoSinContexto(facturas, rango, control(0, 0, true), crudo(d));
+    expect(i.controlI2.incidencias).toContainEqual({ codigo: "identidad_incompatible", cantidad: 1 });
+    expect(i.baseComparacionUsd).toBeNull();
+    expect(i.diferenciaUsd).toBeNull();
+  });
+  it("la anulada VES sin tasa no aumenta sinConvertir oficial ni presenta ajuste parcial", () => {
+    const d = datosReversoGo1({ currency: "VES", base: 3650, fxRate: null });
+    const i = resumirIngresoSinContexto([], rango, control(0, 0, true), crudo(d));
+    expect(i.sinConvertir).toBe(0);
+    expect(i).toMatchObject({ ajusteAnulacionesUsd: null, baseComparacionUsd: null, diferenciaUsd: null });
+    expect(i.controlI2.incidencias).toContainEqual({ codigo: "importe_sin_convertir", cantidad: 1 });
+    expect(i.controlI2.unidadMayor).toBe("nominal_mixto");
+  });
+  it("una VES acreditada y otra huérfana cuentan1, no2, y conservan la incidencia", async () => {
+    const d = datosReversoGo1({ currency: "VES", base: 3650, fxRate: 36.5 });
+    d.invoices.push({ ...d.invoices[0], id: "ves-huerfana", status: "emitida", issued_at: "2026-10-05" });
+    d.journal_entries.push({ ...d.journal_entries[0], id: "header-huerfano", invoice_id: "ves-huerfana", entry_date: "2026-10-05" });
+    const { ingreso: i } = await leerReversoGo1(d, rango);
+    expect(i.enOtraMoneda).toBe(1);
+    expect(i.controlI2).toMatchObject({ unidadMayor: "nominal_mixto", verificacion: "requiere_revision" });
+    expect(i.controlI2.incidencias).toContainEqual({ codigo: "lineas_invalidas", cantidad: 1 });
+    expect(i.diferenciaUsd).toBeNull();
+    expect(describirIngreso(i).estado).toBe("no_comparable");
   });
 });

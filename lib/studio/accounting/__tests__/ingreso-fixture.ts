@@ -26,7 +26,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ControlDelMayor } from "../ingreso-periodo";
+import { resumirIngreso, type ControlDelMayor, type ContextoControlI2, type FacturaDeIngreso, type RangoFechas } from "../ingreso-periodo";
 
 export const HOY = "2025-03-18";
 export const RANGO_MES = { from: "2025-03-01", to: "2025-03-18" } as const;
@@ -49,6 +49,7 @@ type Factura = {
 };
 
 const base = {
+  tenant_id: "t",
   due_date: "2025-04-30",
   fx_rate: null,
   iva_amount: 0,
@@ -96,6 +97,7 @@ export const ASIENTOS_EN_OTRA_MONEDA = ["f2", "f6", "f7"].map((id) => ({
   status: "asentado",
   source: "invoice",
   invoice_id: id,
+  reverses_entry_id: null,
   deleted_at: null,
 }));
 
@@ -168,9 +170,81 @@ export function datosReversoGo1(
       { id: "reverso-ingreso-go1", entry_id: "reverso-go1", account_id: "ingreso-go1", debit: venta, credit: 0 },
     ],
     accounts: [
-      { id: "ar-go1", tenant_id: TENANT_REVERSO_GO1, code: "1.1.2", type: "A", name: "Clientes", is_postable: true },
-      { id: "ingreso-go1", tenant_id: TENANT_REVERSO_GO1, code: "4.5", type: "I", name: "Ventas", is_postable: true },
+      { id: "ar-go1", tenant_id: TENANT_REVERSO_GO1, code: "1.1.2", type: "A", parent_id: null, name: "Clientes", is_postable: true },
+      { id: "ingreso-go1", tenant_id: TENANT_REVERSO_GO1, code: "4.5", type: "I", parent_id: null, name: "Ventas", is_postable: true },
     ],
+  };
+}
+
+/** Preparación explícita de los controles puros heredados. Materializa filas
+ * contables desde los inputs del caso (saldo/movimiento/documentos), nunca
+ * calcula ajuste, diferencia, unidad o validez. Los casos I2 adversos llaman
+ * al lector real con datosReversoGo1 o pasan contexto crudo modificado.
+ */
+export function contextoDeControl(
+  facturas: readonly FacturaDeIngreso[], rango: RangoFechas, mayor: ControlDelMayor,
+): ContextoControlI2 {
+  const documentos: Record<string, unknown>[] = [];
+  const asientos: Record<string, unknown>[] = [];
+  const lineas: Record<string, unknown>[] = [];
+  const cuentas = [
+    { id: "prep-ar", tenant_id: "t", code: "1.1.2", type: "A", parent_id: null },
+    { id: "prep-ventas", tenant_id: "t", code: "4.5", type: "I", parent_id: null },
+  ];
+  function asiento(doc: Record<string, unknown>, importe: number, ordinal: string, conLineas = true) {
+    if (!documentos.some(d => d.id === doc.id)) documentos.push(doc);
+    const id = `prep-${ordinal}`;
+    asientos.push({ id, tenant_id: "t", invoice_id: doc.id, entry_date: rango.from,
+      source: "invoice", status: "asentado", deleted_at: null, reverses_entry_id: null });
+    // El B3 heredado con Set de cabeceras pero sin movimiento representa una
+    // cabecera HUÉRFANA, no un asiento balanceado fuera de4.5. Se conserva el
+    // dato adverso y su discrepancia con el viejo oráculo queda documentada.
+    if (!conLineas) return;
+    const d = Math.max(importe, 0); const h = Math.max(-importe, 0);
+    lineas.push({ id: `${id}-ar`, entry_id: id, account_id: "prep-ar", debit: d, credit: h },
+      { id: `${id}-contra`, entry_id: id, account_id: "prep-ventas", debit: h, credit: d });
+  }
+  // Cada nominal con asiento lleva líneas reales. El resto del saldo es otro
+  // documento USD emitido antes del rango, de modo que no amplía el oficial.
+  let usado = 0;
+  for (const f of facturas) {
+    if (!mayor.facturasConAsiento.has(f.id) || f.deleted_at != null || f.status === "borrador"
+      || !f.issued_at || f.issued_at.slice(0, 10) < rango.from || f.issued_at.slice(0, 10) > rango.to
+      || (f.currency !== "VES" && f.currency !== "CNY")) continue;
+    const doc = { ...f, tenant_id: "t", deleted_at: null };
+    asiento(doc, 1, f.id, mayor.ventasConMovimiento);
+    if (f.status === "anulada") {
+      const original = asientos[asientos.length - 1];
+      const id = `${original.id}-reverso`;
+      asientos.push({ ...original, id, source: "invoice_reversal", reverses_entry_id: original.id });
+      lineas.push(...lineas.filter(l => l.entry_id === original.id).map(l => ({ ...l,
+        id: `${l.id}-reverso`, entry_id: id, debit: l.credit, credit: l.debit })));
+    } else if (mayor.ventasConMovimiento) usado += 1;
+  }
+  const resto = (mayor.ventas ?? 0) - usado;
+  const doc = { id: "prep-fuera-del-rango", tenant_id: "t", status: "emitida", issued_at: "2000-01-01",
+    currency: "USD", fx_rate: null, base_amount: Math.abs(resto), deleted_at: null };
+  if (resto !== 0) asiento(doc, resto, "saldo");
+  else if (mayor.ventasConMovimiento && lineas.length === 0) {
+    asiento(doc, 1, "ida"); asiento(doc, -1, "vuelta");
+  }
+  return { completo: true, documentos, asientos, lineas, cuentas };
+}
+
+export function resumirIngresoConContexto(
+  facturas: readonly FacturaDeIngreso[], rango: RangoFechas, mayor: ControlDelMayor | null,
+) {
+  return resumirIngreso(facturas, rango, mayor, mayor ? contextoDeControl(facturas, rango, mayor) : undefined);
+}
+
+/** Filas de preparación para el lector; el doble aplica filtros y proyección. */
+export function tablasDeControl(facturas: readonly FacturaDeIngreso[], rango: RangoFechas, mayor: ControlDelMayor) {
+  const c = contextoDeControl(facturas, rango, mayor);
+  return {
+    invoices: [...facturas.map(f => ({ ...f, tenant_id: "t" })),
+      ...c.documentos.filter(d => !facturas.some(f => f.id === d.id))],
+    journal_entries: c.asientos.map(a => ({ ...a })), journal_lines: c.lineas.map(l => ({ ...l })),
+    accounts: c.cuentas.map(a => ({ ...a })),
   };
 }
 

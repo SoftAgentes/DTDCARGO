@@ -24,24 +24,15 @@
  * los que van a la propia 4.5, y cualquier otro origen) son «otros ingresos
  * del mayor»: van aparte y no cuentan como diferencia.
  *
- * Estados del control (`describirIngreso`), en este orden:
- *  - «sin cuenta 4.5»: el plan no la tiene;
- *  - el mayor VACÍO gana (B3): si las líneas de 4.5 de los asientos de factura
- *    no tienen debe ni haber y hay facturado o facturas sin convertir, «el
- *    mayor tiene menos» por todo lo facturado. Cero no mezcla monedas, así que
- *    esta comparación vale aunque haya facturas en VES o CNY;
- *  - «sin movimiento»: sin facturas que sumen, sin facturas sin convertir y
- *    sin debe ni haber de asientos de factura en 4.5. Un 0 contra 0 no es una
- *    verificación;
- *  - «no comparable» (regla E1 de la SDD-0559): 4.5 tiene asientos de factura
- *    y alguna factura no borrador del período en VES o CNY, convertida o no,
- *    tiene su asiento `invoice` vivo en el rango (decisión 7 del Director,
- *    2026-10-19, revisable por Sam). Esas son las que hoy se asientan en 4.5
- *    por el NOMINAL en bolívares o yuanes (B2), así que la diferencia no dice
- *    nada; vuelve cuando el asiento de venta se registre en USD (fase 2 del
- *    plan de trabajo de contabilidad). Una VES o CNY SIN asiento no cuenta: ya
- *    está en «sin asiento» (B3) y no mezcla nada en 4.5;
- *  - «cuadra», «el mayor tiene menos», «el mayor tiene más».
+ * SDD-0573 I2 añade el puente documental sin cambiar esa cifra oficial:
+ * oficial + ajuste por anulaciones = base comparada. Integridad, unidad y
+ * actividad son ejes independientes. Una cabecera sola no acredita moneda.
+ * «No comparable» requiere movimiento nominal VES/CNY acreditado; puede
+ * coexistir con incidencias. Sin esa evidencia y sin integridad, «requiere
+ * revisión», nunca Cuadra ni USD por un contador cero. Sólo con contexto
+ * completo, unidad USD y base conocida se compara. Mayor realmente vacío
+ * contra facturas sin asiento conserva B3; una cabecera huérfana requiere
+ * revisión. Neto cero íntegro con movimiento conserva actividad y puente.
  *
  * El desglose propio/terceros sale de `fund_class` (0122): la cifra INCLUYE
  * los fondos de terceros y cada pantalla lo dice. La decisión de si son
@@ -77,7 +68,7 @@ export const CUENTA_VENTAS = "4.5";
 
 /** Lo mínimo que la regla necesita de una factura. */
 export type FacturaDeIngreso = {
-  /** Para saber si tiene su asiento de factura vivo (`ControlDelMayor.facturasConAsiento`). */
+  /** Identidad documental para el contexto y el control del período. */
   id: string;
   status: string;
   issued_at: string | null;
@@ -105,12 +96,17 @@ export type ControlDelMayor = {
    * Ids de las facturas con un asiento `invoice` vivo (asentado y sin borrar)
    * en el rango, por `journal_entries.invoice_id`: los MISMOS asientos que
    * forman `ventas`. Las facturas no tienen `journal_entry_id`, así que el
-   * vínculo solo existe de ese lado.
+   * vínculo solo existe de ese lado. Es metadata heredada del saldo, no un
+   * certificado de integridad ni de unidad para I2.
    */
   facturasConAsiento: ReadonlySet<string>;
 };
 
 export type IngresoPeriodo = {
+  /** Puente documental; null significa que no se pudo certificar, nunca cero supuesto. */
+  ajusteAnulacionesUsd: number | null;
+  baseComparacionUsd: number | null;
+  controlI2: ControlI2;
   rango: RangoFechas;
   /** Facturado sin IVA en USD: propio (`local_revenue`), terceros y total. */
   facturado: { propio: number; terceros: number; total: number };
@@ -119,12 +115,10 @@ export type IngresoPeriodo = {
   /** Facturas del período que NO suman: VES sin tasa o CNY. */
   sinConvertir: number;
   /**
-   * Facturas no borrador del período (también las anuladas) en VES o CNY,
-   * convertidas o no, CON su asiento `invoice` vivo en el rango (decisión 7):
-   * son las que meten el nominal en 4.5. Con alguna, y con asientos de factura
-   * en 4.5, el control es «no comparable» (E1, B2). Con 4.5 vacía no importa:
-   * cero no mezcla monedas. Sin control del mayor (Dashboard) es 0: no se
-   * leyeron los asientos.
+   * Documentos distintos con movimiento nominal VES/CNY relevante acreditado
+   * por metadata/tenant/cuentas/líneas, incluidos reversos de una emisión fuera
+   * del rango. Cabeceras sin líneas no cuentan. Cero no certifica USD: la
+   * unidad y la verificación están en controlI2. Sin mayor es0/no_leida.
    */
   enOtraMoneda: number;
   /** Control del mayor; null cuando la pantalla no lo lee (Dashboard). */
@@ -136,13 +130,247 @@ export type IngresoPeriodo = {
     otrosIngresos: number;
   } | null;
   /**
-   * facturado.total − mayor.ventas; null si no hay mayor, no hay cuenta 4.5 o
+   * baseComparacionUsd − mayor.ventas; null si no hay mayor, no hay cuenta 4.5 o
    * no es comparable (alguna factura del período en VES o CNY con su asiento
    * de factura vivo y asientos de factura en 4.5). Con 4.5 sin movimiento es
    * todo lo facturado.
    */
   diferenciaUsd: number | null;
 };
+
+/** Contexto interno de lectura. No forma parte del DTO enviado a las pantallas. */
+export type FilaControlI2 = Readonly<Record<string, unknown>>;
+export type ContextoControlI2 = {
+  completo: boolean;
+  documentos: readonly FilaControlI2[];
+  asientos: readonly FilaControlI2[];
+  lineas: readonly FilaControlI2[];
+  cuentas: readonly FilaControlI2[];
+};
+
+export type IncidenciaI2 =
+  | "contexto_ausente" | "lectura_incompleta" | "identidad_incompatible"
+  | "documento_no_disponible" | "cabecera_invalida" | "par_incompleto"
+  | "lineas_invalidas" | "cuenta_no_disponible" | "moneda_desconocida"
+  | "importe_sin_convertir" | "mayor_inconsistente";
+export type ControlI2 = {
+  verificacion: "no_leida" | "completa" | "requiere_revision";
+  unidadMayor: "usd" | "nominal_mixto" | "sin_verificar";
+  hayActividad: boolean;
+  contribucionesAjuste: number;
+  incidencias: readonly { codigo: IncidenciaI2; cantidad: number }[];
+};
+
+const CAUSA_I2: Record<IncidenciaI2, string> = {
+  contexto_ausente: "No se leyó el contexto documental del control.",
+  lectura_incompleta: "La lectura del control está incompleta.",
+  identidad_incompatible: "Hay identidades duplicadas con datos incompatibles.",
+  documento_no_disponible: "Falta metadata de un documento relacionado.",
+  cabecera_invalida: "Hay un asiento con estado, fecha, origen o pertenencia inválidos.",
+  par_incompleto: "No se pudo acreditar el par de anulación y su vínculo.",
+  lineas_invalidas: "Las líneas del asiento o su espejo requieren revisión.",
+  cuenta_no_disponible: "No se pudo resolver una cuenta y su ascendencia.",
+  moneda_desconocida: "No se conoce la unidad de un movimiento del mayor.",
+  importe_sin_convertir: "Falta un monto o una tasa válida para el ajuste de anulación.",
+  mayor_inconsistente: "El saldo recibido del mayor no coincide con las líneas leídas.",
+};
+
+export function causaDelControlI2(i: IngresoPeriodo): string | null {
+  const causas = i.controlI2.incidencias.map(({ codigo, cantidad }) =>
+    `${CAUSA_I2[codigo]} (${cantidad})`);
+  return causas.length ? causas.join(" ") : null;
+}
+
+const texto = (v: unknown): string => typeof v === "string" ? v : "";
+const fechaI2 = (v: unknown): string | null => {
+  const s = texto(v).slice(0, 10);
+  return isIsoDate(s) ? s : null;
+};
+const centavosI2 = (v: unknown): number | null => {
+  if ((typeof v !== "number" && typeof v !== "string") || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 && Math.abs(n * 100 - Math.round(n * 100)) < 0.00001
+    && Number.isSafeInteger(Math.round(n * 100)) ? Math.round(n * 100) : null;
+};
+
+/** Valida evidencia cruda, sin inferir integridad del neto ni del saldo del mayor. */
+function puenteDelPeriodo(
+  rango: RangoFechas, mayor: ControlDelMayor, contexto: ContextoControlI2 | undefined,
+  facturas: readonly FacturaDeIngreso[],
+): { ajuste: number | null; nominales: ReadonlySet<string>; control: ControlI2 } {
+  const incidencias = new Map<IncidenciaI2, number>();
+  const avisar = (c: IncidenciaI2) => incidencias.set(c, (incidencias.get(c) ?? 0) + 1);
+  const dentro = (v: unknown) => { const f = fechaI2(v); return f != null && f >= rango.from && f <= rango.to; };
+  const nominales = new Set<string>();
+  let unidadDesconocida = false;
+  let actividad = mayor.ventasConMovimiento;
+  let contribuciones = 0;
+  let ajusteCentavos = 0;
+  let ventasCentavos = 0;
+  let movimientoVentasAcreditado = false;
+  const salida = (noLeida = false) => ({
+    ajuste: incidencias.size ? null : round2(ajusteCentavos / 100), nominales,
+    control: {
+      verificacion: noLeida ? "no_leida" : incidencias.size ? "requiere_revision" : "completa",
+      unidadMayor: nominales.size ? "nominal_mixto"
+        : unidadDesconocida || noLeida || incidencias.has("lectura_incompleta")
+          || incidencias.has("cuenta_no_disponible") || incidencias.has("documento_no_disponible")
+          || incidencias.has("identidad_incompatible") ? "sin_verificar" : "usd",
+      hayActividad: actividad, contribucionesAjuste: contribuciones,
+      incidencias: [...incidencias].map(([codigo, cantidad]) => ({ codigo, cantidad })),
+    } as ControlI2,
+  });
+  if (!contexto) { avisar("contexto_ausente"); return salida(true); }
+  if (!contexto.completo) avisar("lectura_incompleta");
+
+  // La misma fila puede llegar por fecha y por identidad. Sólo colapsa si sus
+  // campos seleccionados coinciden; no elige una versión ante una carrera.
+  function indexar(filas: readonly FilaControlI2[]): Map<string, FilaControlI2> {
+    const mapa = new Map<string, FilaControlI2>();
+    for (const fila of filas) {
+      const id = texto(fila.id);
+      if (!id) { avisar("identidad_incompatible"); continue; }
+      const anterior = mapa.get(id);
+      const firma = (f: FilaControlI2) => JSON.stringify(Object.keys(f).sort().map(k => [k, f[k]]));
+      if (anterior && firma(anterior) !== firma(fila)) avisar("identidad_incompatible");
+      else mapa.set(id, fila);
+    }
+    return mapa;
+  }
+  const documentos = indexar(contexto.documentos);
+  const asientos = indexar(contexto.asientos);
+  const lineas = indexar(contexto.lineas);
+  const cuentas = indexar(contexto.cuentas);
+  // La primera lectura del oficial y la metadata por identidad tampoco son
+  // un snapshot: una versión incompatible impide certificar el puente.
+  for (const f of facturas) {
+    const d = documentos.get(f.id);
+    if (!d) continue;
+    const campos = ["status", "issued_at", "currency", "fx_rate", "base_amount", "fund_class", "deleted_at"] as const;
+    if (campos.some(k => (f[k] ?? null) !== (d[k] ?? null))) avisar("identidad_incompatible");
+  }
+  const porAsiento = new Map<string, FilaControlI2[]>();
+  for (const l of lineas.values()) {
+    const id = texto(l.entry_id);
+    if (!asientos.has(id)) { avisar("lineas_invalidas"); continue; }
+    const grupo = porAsiento.get(id) ?? [];
+    grupo.push(l); porAsiento.set(id, grupo);
+  }
+  function cuentaValida(id: string, tenant: string): FilaControlI2 | null {
+    const vistos = new Set<string>();
+    let c = cuentas.get(id);
+    const hoja = c;
+    while (c) {
+      const actual = texto(c.id);
+      if (!actual || vistos.has(actual) || c.tenant_id !== tenant || !texto(c.code)
+        || !["A", "P", "PT", "I", "CGS", "G"].includes(texto(c.type))
+        || c.type !== hoja?.type || !("parent_id" in c) || c.parent_id === undefined) return null;
+      vistos.add(actual);
+      if (c.parent_id === null) return hoja ?? null;
+      c = cuentas.get(texto(c.parent_id));
+    }
+    return null;
+  }
+  const esVenta = (c: FilaControlI2) => c.type === "I"
+    && (c.code === CUENTA_VENTAS || texto(c.code).startsWith(`${CUENTA_VENTAS}.`));
+  const firmas = new Map<string, { ida: string[]; vuelta: string[]; venta: boolean }>();
+  const headersValidos = new Set<string>();
+  const porDocumento = new Map<string, FilaControlI2[]>();
+  for (const [id, a] of asientos) {
+    const relacionados = porDocumento.get(texto(a.invoice_id)) ?? [];
+    relacionados.push(a); porDocumento.set(texto(a.invoice_id), relacionados);
+    const doc = documentos.get(texto(a.invoice_id));
+    const tenant = texto(a.tenant_id);
+    const ls = porAsiento.get(id) ?? [];
+    const relevante = dentro(a.entry_date);
+    if (relevante && ls.some(l => (centavosI2(l.debit) ?? 0) > 0 || (centavosI2(l.credit) ?? 0) > 0)) actividad = true;
+    let valido = true;
+    if (!doc) { avisar("documento_no_disponible"); valido = false; }
+    if (!tenant || !doc || doc.tenant_id !== tenant || doc.deleted_at !== null
+      || !fechaI2(doc.issued_at) || (doc.status !== "anulada" && !esDeIngreso(texto(doc.status)))) {
+      avisar("cabecera_invalida"); valido = false;
+    }
+    if (a.status !== "asentado" || a.deleted_at !== null || !fechaI2(a.entry_date)
+      || (a.source !== "invoice" && a.source !== "invoice_reversal")
+      || (a.source === "invoice" && a.reverses_entry_id !== null)
+      || (a.source === "invoice_reversal" && !texto(a.reverses_entry_id))) {
+      avisar("cabecera_invalida"); valido = false;
+    }
+    let debe = 0; let haber = 0; let venta = false;
+    const ida: string[] = []; const vuelta: string[] = [];
+    if (ls.length === 0) { avisar("lineas_invalidas"); unidadDesconocida = true; valido = false; }
+    for (const l of ls) {
+      const c = cuentaValida(texto(l.account_id), tenant);
+      const d = centavosI2(l.debit); const h = centavosI2(l.credit);
+      if (!c) { avisar("cuenta_no_disponible"); valido = false; }
+      if (d == null || h == null || (d > 0 && h > 0)
+        || ("tenant_id" in l && l.tenant_id !== tenant)) {
+        avisar("lineas_invalidas"); unidadDesconocida = true; valido = false; continue;
+      }
+      debe += d; haber += h;
+      ida.push(JSON.stringify([l.account_id, d, h]));
+      vuelta.push(JSON.stringify([l.account_id, h, d]));
+      if (c && esVenta(c) && (d !== 0 || h !== 0)) {
+        venta = true;
+        if (relevante && a.status === "asentado" && a.deleted_at == null
+          && (a.source === "invoice" || a.source === "invoice_reversal")) {
+          ventasCentavos += h - d;
+          movimientoVentasAcreditado = true;
+          if (doc && doc.tenant_id === tenant) {
+            if (enOtraMonedaDelAsiento(texto(doc.currency))) nominales.add(texto(doc.id));
+            else if (doc.currency !== "USD" && doc.currency !== "USDT") {
+              unidadDesconocida = true; avisar("moneda_desconocida");
+            }
+          } else unidadDesconocida = true;
+        }
+      }
+    }
+    if (debe !== haber || !Number.isSafeInteger(debe) || !Number.isSafeInteger(haber)) {
+      avisar("lineas_invalidas"); valido = false;
+    }
+    firmas.set(id, { ida: ida.sort(), vuelta: vuelta.sort(), venta });
+    if (valido) headersValidos.add(id);
+  }
+
+  for (const doc of documentos.values()) {
+    const delDocumento = porDocumento.get(texto(doc.id)) ?? [];
+    const originales = delDocumento.filter(a => a.source === "invoice");
+    const reversos = delDocumento.filter(a => a.source === "invoice_reversal");
+    if (doc.status !== "anulada") {
+      if (reversos.length) avisar("par_incompleto");
+      continue;
+    }
+    if (delDocumento.length === 0) continue; // anulación sin evidencia de posting: no-op válido
+    if (originales.length !== 1 || reversos.length !== 1) { avisar("par_incompleto"); continue; }
+    const original = originales[0]; const reverso = reversos[0];
+    const f = firmas.get(texto(original.id)); const r = firmas.get(texto(reverso.id));
+    if (!headersValidos.has(texto(original.id)) || !headersValidos.has(texto(reverso.id))
+      || reverso.reverses_entry_id !== original.id || original.tenant_id !== reverso.tenant_id
+      || !f?.venta || !r?.venta || JSON.stringify(f.ida) !== JSON.stringify(r.vuelta)) {
+      avisar("par_incompleto"); continue;
+    }
+    const suma = dentro(doc.issued_at); const resta = dentro(reverso.entry_date);
+    if (!suma && !resta) continue;
+    actividad = true;
+    contribuciones += Number(suma) + Number(resta);
+    const base = doc.base_amount;
+    if ((typeof base !== "number" && typeof base !== "string") || base === ""
+      || !Number.isFinite(Number(base)) || Number(base) < 0
+      || !convertible(texto(doc.currency), doc.fx_rate as number | string | null)) {
+      avisar("importe_sin_convertir"); continue;
+    }
+    // Una sola conversión y redondeo documental: el reverso usa exactamente
+    // los mismos centavos, sin importar el nominal registrado en el par.
+    const usd = round2(invoiceUsdAmount({ currency: doc.currency as InvoiceCurrency,
+      total_amount: Number(base), fx_rate: doc.fx_rate == null ? null : Number(doc.fx_rate) }));
+    if (!Number.isFinite(usd) || !Number.isSafeInteger(Math.round(usd * 100))) { avisar("importe_sin_convertir"); continue; }
+    ajusteCentavos += (Number(suma) - Number(resta)) * Math.round(usd * 100);
+  }
+  if (!Number.isSafeInteger(ajusteCentavos) || !Number.isSafeInteger(ventasCentavos)) avisar("importe_sin_convertir");
+  if ((mayor.ventas != null && Math.round(mayor.ventas * 100) !== ventasCentavos)
+    || mayor.ventasConMovimiento !== movimientoVentasAcreditado) avisar("mayor_inconsistente");
+  return salida();
+}
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -250,35 +478,27 @@ function enOtraMonedaDelAsiento(currency: string): boolean {
 }
 
 /**
- * LA regla. Vuelve a filtrar borradas, estado y fecha en memoria, así que da
- * lo mismo aunque el lector traiga de más. Cuenta además las facturas no
- * borrador del período en VES o CNY (también las anuladas, que pueden
- * conservar su asiento) que tienen su asiento de factura vivo: con alguna, la
- * comparación contra 4.5 no vale (E1), salvo que 4.5 no tenga asientos de
- * factura en el rango (B3): contra cero la diferencia es todo lo facturado,
- * en cualquier moneda.
+ * Cifra oficial heredada más control I2. Filtra borradas/estado/fecha del
+ * oficial en memoria; el contexto adicional no amplía ese oficial. El puente
+ * y su unidad se acreditan con filas crudas, también con mayor precalculado;
+ * el Set de cabeceras no establece comparabilidad ni movimiento nominal.
  */
 export function resumirIngreso(
   facturas: readonly FacturaDeIngreso[],
   rango: RangoFechas,
   mayor: ControlDelMayor | null,
+  contexto?: ContextoControlI2,
 ): IngresoPeriodo {
   let propio = 0;
   let terceros = 0;
   let cuenta = 0;
   let sinConvertir = 0;
-  let enOtraMoneda = 0;
-  // Sin control no se leyeron los asientos: ninguna cuenta como asentada.
-  const conAsiento = mayor?.facturasConAsiento ?? new Set<string>();
 
   for (const f of facturas) {
     if (f.deleted_at != null) continue;
     if (!f.issued_at) continue;
     const dia = f.issued_at.slice(0, 10);
     if (dia < rango.from || dia > rango.to) continue;
-    if (f.status !== "borrador" && enOtraMonedaDelAsiento(f.currency) && conAsiento.has(f.id)) {
-      enOtraMoneda += 1;
-    }
     if (!esDeIngreso(f.status)) continue;
     if (!convertible(f.currency, f.fx_rate)) {
       sinConvertir += 1;
@@ -306,12 +526,20 @@ export function resumirIngreso(
         otrosIngresos: round2(mayor.ingresos - (mayor.ventas ?? 0)),
       }
     : null;
-  // El mayor vacío gana sobre «no comparable» (B3): cero no mezcla monedas.
-  const comparable = enOtraMoneda === 0 || !control?.ventasConMovimiento;
   // Contra 4.5 vacía y sin facturado en USD, lo único que hay son facturas sin
   // convertir: falta el asiento, pero el monto en USD no se conoce.
   const sinMontoConocido =
     control != null && !control.ventasConMovimiento && Math.abs(total) < 0.005 && sinConvertir > 0;
+
+  const puente = mayor ? puenteDelPeriodo(rango, mayor, contexto, facturas) : null;
+  const controlI2: ControlI2 = puente?.control ?? {
+    verificacion: "no_leida", unidadMayor: "sin_verificar", hayActividad: false,
+    contribucionesAjuste: 0, incidencias: [],
+  };
+  const enOtraMoneda = puente?.nominales.size ?? 0;
+  const ajusteAnulacionesUsd = puente?.ajuste ?? null;
+  const baseComparacionUsd = ajusteAnulacionesUsd == null || sinMontoConocido
+    ? null : round2(total + ajusteAnulacionesUsd);
 
   return {
     rango,
@@ -320,9 +548,13 @@ export function resumirIngreso(
     sinConvertir,
     enOtraMoneda,
     mayor: control,
+    ajusteAnulacionesUsd,
+    baseComparacionUsd,
+    controlI2,
     diferenciaUsd:
-      control && control.ventas != null && comparable && !sinMontoConocido
-        ? round2(total - control.ventas)
+      control && control.ventas != null && baseComparacionUsd != null
+        && controlI2.verificacion === "completa" && controlI2.unidadMayor === "usd"
+        ? round2(baseComparacionUsd - control.ventas)
         : null,
   };
 }
@@ -334,7 +566,8 @@ export type EstadoDelIngreso =
   | "no_comparable"
   | "sin_movimiento"
   | "sin_cuenta"
-  | "sin_mayor";
+  | "sin_mayor"
+  | "requiere_revision";
 
 /** Rótulo corto del estado del control (CSV, insignias). */
 export const ETIQUETA_ESTADO_INGRESO: Record<EstadoDelIngreso, string> = {
@@ -345,6 +578,7 @@ export const ETIQUETA_ESTADO_INGRESO: Record<EstadoDelIngreso, string> = {
   sin_movimiento: "Sin movimiento",
   sin_cuenta: "Sin cuenta 4.5",
   sin_mayor: "Sin mayor",
+  requiere_revision: "Requiere revisión",
 };
 
 export type DescripcionIngreso = {
@@ -372,7 +606,7 @@ export type DescripcionIngreso = {
  * como USD funcional. `null` si no hace falta.
  */
 export function notaDelMayorMezclado(i: IngresoPeriodo): string | null {
-  if (describirIngreso(i).estado !== "no_comparable") return null;
+  if (i.controlI2.unidadMayor !== "nominal_mixto") return null;
   return (
     "Estas cifras salen del mayor y mezclan el nominal de facturas en bolívares o yuanes " +
     "con montos en USD: no son todas USD. Vuelven a ser comparables cuando el asiento de venta " +
@@ -386,7 +620,21 @@ export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
   if (i.mayor) {
     const conAsientos = i.mayor.ventasConMovimiento;
     const hayFacturado = Math.abs(i.facturado.total) >= 0.005;
-    if (i.mayor.ventas == null) {
+    if (i.controlI2.verificacion === "no_leida") {
+      estado = "requiere_revision";
+      diferenciaTexto = "Requiere revisión: no se leyó el contexto documental del control.";
+    } else if (i.controlI2.unidadMayor === "nominal_mixto") {
+      estado = "no_comparable";
+      const n = i.enOtraMoneda;
+      diferenciaTexto =
+        `No comparable: ${n === 1 ? "1 factura del período está" : `${n} facturas del período están`}` +
+        ` en bolívares o yuanes y hoy ${n === 1 ? "se asienta" : "se asientan"} en la cuenta ${CUENTA_VENTAS}` +
+        " por su nominal en esa moneda, no en USD. La comparación vuelve cuando el asiento de venta" +
+        " se registre en USD (fase 2 del plan de trabajo de contabilidad).";
+    } else if (i.controlI2.verificacion !== "completa" || i.controlI2.unidadMayor !== "usd") {
+      estado = "requiere_revision";
+      diferenciaTexto = "Requiere revisión: no se pudo certificar el puente documental y su comparación con el mayor.";
+    } else if (i.mayor.ventas == null) {
       estado = "sin_cuenta";
       diferenciaTexto = `La cuenta ${CUENTA_VENTAS} no está en el plan de cuentas: no hay con qué comparar.`;
     } else if (!conAsientos && (hayFacturado || i.sinConvertir > 0)) {
@@ -399,31 +647,30 @@ export function describirIngreso(i: IngresoPeriodo): DescripcionIngreso {
               ? "la factura del período (en bolívares sin tasa o en yuanes) debería tenerlo"
               : `las ${i.sinConvertir} facturas del período (en bolívares sin tasa o en yuanes) deberían tenerlo`
           }.`;
-    } else if (!conAsientos && i.facturas === 0) {
+    } else if (!conAsientos && i.facturas === 0 && !i.controlI2.hayActividad) {
       estado = "sin_movimiento";
       diferenciaTexto = `Sin movimiento: no hay facturas del período ni asientos de factura en la cuenta ${CUENTA_VENTAS}. No hay nada que comparar.`;
-    } else if (conAsientos && i.enOtraMoneda > 0) {
-      estado = "no_comparable";
-      const n = i.enOtraMoneda;
-      diferenciaTexto =
-        `No comparable: ${n === 1 ? "1 factura del período está" : `${n} facturas del período están`}` +
-        ` en bolívares o yuanes y hoy ${n === 1 ? "se asienta" : "se asientan"} en la cuenta ${CUENTA_VENTAS}` +
-        " por su nominal en esa moneda, no en USD. La comparación vuelve cuando el asiento de venta" +
-        " se registre en USD (fase 2 del plan de trabajo de contabilidad).";
     } else {
       // Con 4.5 en el plan y comparable, `resumirIngreso` siempre la calcula.
-      const dif = i.diferenciaUsd ?? 0;
-      if (Math.abs(dif) < 0.005) {
+      const dif = i.diferenciaUsd;
+      if (dif == null) {
+        estado = "requiere_revision";
+        diferenciaTexto = "Requiere revisión: la base de comparación en USD no está disponible.";
+      } else if (Math.abs(dif) < 0.005) {
         estado = "cuadra";
         diferenciaTexto = `Cuadra con el mayor (cuenta ${CUENTA_VENTAS}).`;
       } else if (dif > 0) {
         estado = "mayor_menor";
-        diferenciaTexto = `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(dif)} menos que lo facturado.`;
+        diferenciaTexto = `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(dif)} menos que ${i.controlI2.contribucionesAjuste ? "la base comparada" : "lo facturado"}.`;
       } else {
         estado = "mayor_mayor";
-        diferenciaTexto = `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(-dif)} más que lo facturado.`;
+        diferenciaTexto = `El mayor (cuenta ${CUENTA_VENTAS}) tiene ${fmtUsd(-dif)} más que ${i.controlI2.contribucionesAjuste ? "la base comparada" : "lo facturado"}.`;
       }
     }
+  }
+
+  if (i.mayor && i.controlI2.contribucionesAjuste > 0) {
+    diferenciaTexto += " Puente de anulación: facturado oficial + ajuste documental = base comparada con el mayor.";
   }
 
   const n = i.sinConvertir;

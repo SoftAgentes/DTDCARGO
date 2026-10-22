@@ -540,6 +540,7 @@ export function vistaDelEstado(
   income: Pick<IncomeStatement, "income" | "netIncome" | "ingreso">,
 ): "vacio" | "solo-facturado" | "completo" {
   const mayorVacio = income.income === 0 && income.netIncome === 0;
+  if (income.ingreso.controlI2.hayActividad || income.ingreso.controlI2.incidencias.length > 0) return "completo";
   const hayFacturado =
     income.ingreso.facturado.total !== 0 || income.ingreso.sinConvertir > 0;
   if (!mayorVacio) return "completo";
