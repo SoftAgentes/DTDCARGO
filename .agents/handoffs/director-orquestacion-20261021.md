@@ -1,5 +1,13 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Alternativa r3 con canal conservado; respaldo f24 efectivo en curso — corte General 2026-10-22T22:20 UTC
+
+- MISMOGLM adoptó explícitamente ANTESderivar alternativa acotada permitida: tty:true/canalConPTY-ETX/PSmonitor PRESERVADOSdeR2; shellpwsh/loginfalse+cmdcortoSHA soncambiosrealesdemecanismo. ttyfalseNOADOPTADO en candidato, porque0x03porpipe noacreditaCtrlC/FIN ni controlNode. Borradoranterior noinvocado sepreserva comoalternativa, no se reescribenhistóricos. Nojobs/handles/supervisorexterno nuevos;noensayo ni promesa de solucióncausalidadlatencia/límitepoll≤10s. GeneralconfirmóalcancealMISMOowner yParentPacking; amboscontratos/tablas/payload/inversas deben reflejarelecciónantesREADYFIJA. Source7bcaquieta/r3externo/GO3NULL/noheavy/API/probes/install/push.
+- COREfaseB efectivaParentconfirmóDESPACHO MISMOCORE alrecibirb323cb/a035d6; snapshotWorker198ACTIVE/turno01a165b1-8005-77b0-99dc-7ed919bbd24b revalida ownership/source/remoto365/PRbaseantespublicarf24normal. No sourceproducto, no pesadafinanzas. Respaldo/FINreal/readback/body/custodia aúnpendientes; noafirmarfinalporcomentario ni repetirpush. PackingGLM453ACTIVE sólopreparaciónr3, noREADYFIJA.
+- Parentpropone para futuro AUTORÍA financiera3rutas sobrebasef24despuésbackup; contratoFRÍOv2Ctmp/0573-finanzas-tres-rutas-encargo-frio-propuesta-director-v2.md11658/SHAf8ca0ad8564881df67041ed30c9ed78ac8a4e28eb785b56697aaca9e73bb3c53/peer5655-2864e1ab referido. GeneralAÚNNOleyó/revisócontrato niadoptóbasefutura;NOdespacho porhuecoprioridad/GO. Allowlist propuesta carrera0497+spec+handoff/RB-ambosórdenescobro-COMMITordinario,nooráculosdebilitados;seconservaFRÍO. No nueva puertaSamgenérica, sólo revisión nominal pendiente mientrasPackingpreparaelpaqueteconprioridad.
+- Ningúnnuevobloqueohumano/resultadofuncional/mergeproducción. El fallodearranqueS3ycuatroCOREPASÓ ya fueroninformadosaSam; mientras sóloautorías/backupenpreparación, silencioenheartbeat.
+
+
 ## F24 documental revisado por General; respaldo faseB nominal — corte 2026-10-22T22:18 UTC
 
 - Heartbeat reconstruyó HEADpropioe9addc147 limpio/source ylecturaactualchats:GLM450ACTIVE sóloautoríapreparaciónr3,mismoowner;CRM9a2efd45:3notLoaded conservaFINAL ysin nuevohumano, no abandono. Contabilidadhumano01a1654d-8898-7ba0-8116-83a89c6f43a4 leídodirecto pide continuar2.1/checklist/DRAFT; esautorización yaexistente, noactiva finanzasporinferir.
