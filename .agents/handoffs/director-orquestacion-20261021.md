@@ -31,6 +31,7 @@ Las tres sesiones leyeron el mensaje humano original, verificaron la autorizaci�
 ### Contabilidad
 
 - Coordinación propia: DTD-worktrees/director-continuidad-codex-20261020, rama codex/director-continuidad-codex-20261020, PR308 draft sobre main. Corte inicial49a5a052; actualización remota verificada c7274a13d7a56237e4f0643daf69d1e06a20ccdb, con el resultado M1 funcional y supervisión separados.
+- Readback posterior PR308 OPEN/DRAFT5a4683425c837fa0d9adb88f85594c15e315d704, verificado por Director; nuevo «continua» humano mantiene la retención de pesadas.
 - Owner: director-codex-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 - Sus dos archivos: docs/audits/2026-10-20-plan-contable-seguimiento-codex.md y .agents/handoffs/director-continuidad-codex-20261020.md. Este Director no los edita.
 - CORE0573: worktree sdd-0573-core-reparacion-20261021, rama codex/sdd-0573-core-reparacion-20261021; owner worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468, claim retenido.
@@ -75,6 +76,7 @@ Las tres sesiones leyeron el mensaje humano original, verificaron la autorizaci�
 - Si requiere código en DTD Cargo: pedir asignación con SDD/allowlist/worktree antes de escribir.
 - No requiere recursos de prueba pesados ni archivos de los otros frentes.
 - Cambio humano posterior reportado por owner: Sam aprobóA, pero antes de ejecutarla restringió el frente a preparar solamente el plan de transición y revisar su dirección («a Kommo» frente al objetivo originalKommo→GHL). Esta última limitación prevalece: A no se ejecutó; no se guardó integración/creó credencial/leyóAPI. Owner ya pidió aclaración de dirección en su chat y prepara conservación/pasos comunes fuera del repo. El Director confirmó PLANIFICACIÓN solamente, sin duplicar la pregunta ni reactivar permisos previos.
+- Aclaración posterior verificada por read_thread: Sam confirmó «Kommo → GoHighLevel, como veníamos trabajando», cerrando dirección/D1. Nuevo pedido directo: analizar bandeja nativa frente a archivo privado y recomendar sin ejecutar. Owner continúa informe local y documentación oficial, sin chats reales/credenciales/importaciones/cambios de canal; aprobaciónA sigue antecedente detenido.
 
 ## Matriz de paralelismo y contratos
 
@@ -155,7 +157,7 @@ Consulta independiente GitHub: 18 PR abiertas, todas DRAFT. No se hizo revisión
 
 | PR | Frente / base declarada | HEAD al corte | Observación |
 |---|---|---|---|
-| 308 | Seguimiento contable / main | c7274a13 | Respaldo actualizado,2 documentos propios |
+| 308 | Seguimiento contable / main | 5a468342 | Respaldo actualizado,2 documentos propios |
 | 319 | Packing / main | 41b04942 | 38 rutas; sin intersección exacta con otras 17 PR |
 | 310 | Reemplazos / main | a30d8585 | Inicio cadena contable |
 | 311 | Anual / rama310 | 8729f7f4 | Dependiente310 |
@@ -218,10 +220,27 @@ Status principal completó exit0 con ok=false:
 - Actualización de ese pendiente: el binding antiguo permanece NO EJECUTADO; la nueva corrida27 sí se ejecutó y PASÓ funcionalmente. Conservar/registrar cierre INCOMPLETO y turno retenido porUNKNOWN; ningún nuevo runtime pesado autorizado.
 - Packing: esperar revisión de Sam y del Director; preservar demo y no ampliar alcance.
 - CRM: cerrar la respuesta humana vigente y mantener la transición como preparación; permisos efectivos/API/piloto real siguen pendientes.
-- CRM entregó el plan propio Plan-transicion-chats-Kommo-GoHighLevel-2026-10-21.html yJSON/recibo,25páginas oficiales consultadas según su owner. Sigue SOLO PLANIFICACIÓN; dirección «aKommo» pendiente de aclaración humana; aprobaciónA histórica detenida, sin credenciales/API/canales. No confundir15casos/27mensajes ficticios CRM con27pruebasM1.
+- CRM entregó el plan propio Plan-transicion-chats-Kommo-GoHighLevel-2026-10-21.html yJSON/recibo,25páginas oficiales consultadas según su owner. Dirección confirmada Kommo→GoHighLevel; nuevo análisis de bandeja nativa frente a archivo privado, SOLO PLANIFICACIÓN. A histórica detenida, sin credenciales/API/canales. No confundir15casos/27mensajes ficticios CRM con27pruebasM1.
 - Ante un pedido nuevo de Sam: delimitar objetivo, identificar owner existente o crear aislamiento necesario, SDD y allowlist; comprobar dependencias antes de autorizar escritura. No crear un chat nuevo sin solicitud expresa.
 - Antes de una eventual integración: revisión completa del delta propio y ancestros sobre SHA/base actuales, aceptación, permisos específicos y serialización. Esta tarea no autorizó esa integración.
 - Este handoff queda local, pendiente de integración/publicación con permiso. No confundirlo con conocimiento integrado o visible en Obsidian.
+
+## Reanudación de I2 y ampliación concreta a17 rutas
+
+Sam indicó «continuar» en este Director. Worker CORE y reviewer emitieron un error de límite de uso; estado oficial aquí ordinaryUsageAllowed=true/usedPercent0/rateLimitReachedTypenull/spendControlReachedfalse, contradictorio y sin diagnóstico de causa. Sin resets/créditos/cambio de cuenta/modelo/owner. Una sola reanudación al MISMO Worker respondió guardPASÓ/HEADb70/claimB4, fuente y regresiones dentro15 y solo Gitdiff-checkPASÓ, según su coordinador. El reviewer también completó su lectura tras una sola reanudación. Se conserva el fallo previo; no se infiere validación de producto ni solución de causa.
+
+Director y reviewer cotejaron C:/tmp/director-traspaso-20261020/0573-I2-boundary-corte-01: Q21545/SHAab0ef8eb, patch4869/c18fba87, solicitud2213/f4be8852 y scanner12990/dfc8ed38 (hashes completos en solicitud/recibo externo). Los4sellos y6blobs guard/caller b70 coinciden; scannerblob b628 intacto. Q235 añade una lectura literal invoices por IDs deduplicados, mismo cliente sesión/RLS; metadata con tenant, sin admin/RPC/escritura. Contexto también conopts.mayor, salvo mayor=null. Por lectura de b70+ese patch: Q2→3,total44→45/mismas19rutas. Scanner/DB/RLS efectiva NO EJECUTADOS; puente yDTO deben verificarse alcheckpoint completo.
+
+Director general dio conformidad explícita15→17I2 y48→50CORE, R1excluida/unión51. Dos rutas añadidas exclusivamente:
+
+1. scripts/__tests__/invoice-read-boundary.test.mjs: comentario callsite/guard/tenant/DTO, Q3/total45/19; scanner/AST/prefiltro/raíces/exclusiones/imports/timeouts/demás valores y pruebas intactos.
+2. app/studio/(app)/reportes/__tests__/estado-gerencial-mezclado.test.tsx: contexto sintético completo para2casosVES/USD, manteniendo literalmente títulos/asserts/importes/presencia o ausencia de nota. Sin flags/DTOprecalculado ni cambio deReportesClient.
+
+Oráculo Q102–143: conservar e1sininvoice_id/e4anulado/e6borrado, mayor600/ingresos1100/otros500/oficial1000 y filtroorigen. Esos candidatos inválidos no permiten certificar400/mayor_menor: se autorizó únicamente diferencia null/requiere_revision+incidencia y assertdeoficial1000, con400 como comentario sin tautología. Añadir caso íntegro que conserve400/mayor_menor/otros500.53T02/onceoráculos y27M1 intactos; otra contradicción requiere evidencia, sin ocultar cabeceras corruptas ni cambiar expectativas por conveniencia.
+
+Ampliación final entregada al mismo Worker: C:/tmp/director-traspaso-20261020/0573-I2-ampliacion-boundary-y-fixtures-director-v2.md,6511bytes/SHA6c58cb6f5f9b442b2b1175b47a6bc61600b256155b0da24e64fa51e459742dc7. Director verificó hash/tamaño y diffV1→V2: solo encabezado y assert de resta cambiado por comentario400+assertoficial1000. V1preservada/noadoptada. Peer contablecompatibilidad12844/SHA84889f7b, leído por su owner.2preimágenes y adopción antes de editar añadidas. Checkpoint LOCAL padre b70, sin publicación antes de revisión delSHA; código/testsI2 siguen NO EJECUTADOS, turno pesado RETENIDO.
+
+I3/M8/M9: propuesta sobre objetob70,9983bytes/SHA125d54a41d1f41da461eeb81d55f1c979502c96787d23fccb7c2bdab41385fbb, reportada leída por su owner; preparación posterior aI2 sin implementación/GO/ROJO,28T04 NO EJECUTADOS.
 
 ## Fuera de alcance detectado
 
