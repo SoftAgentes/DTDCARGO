@@ -32,6 +32,7 @@ Las tres sesiones leyeron el mensaje humano original, verificaron la autorizaci�
 
 - Coordinación propia: DTD-worktrees/director-continuidad-codex-20261020, rama codex/director-continuidad-codex-20261020, PR308 draft sobre main. Corte inicial49a5a052; actualización remota verificada c7274a13d7a56237e4f0643daf69d1e06a20ccdb, con el resultado M1 funcional y supervisión separados.
 - Readback posterior PR308 OPEN/DRAFT5a4683425c837fa0d9adb88f85594c15e315d704, verificado por Director; nuevo «continua» humano mantiene la retención de pesadas.
+- Actualización posterior comprobada: PR308 DRAFT9e23746c9e50ce1c5f60b3d40dac8dff5b92ef88, solo seguimiento propio. Continúa I2 en el mismo Worker, sin levantar la retención de runtime.
 - Owner: director-codex-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 - Sus dos archivos: docs/audits/2026-10-20-plan-contable-seguimiento-codex.md y .agents/handoffs/director-continuidad-codex-20261020.md. Este Director no los edita.
 - CORE0573: worktree sdd-0573-core-reparacion-20261021, rama codex/sdd-0573-core-reparacion-20261021; owner worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468, claim retenido.
@@ -49,7 +50,7 @@ Las tres sesiones leyeron el mensaje humano original, verificaron la autorizaci�
 
 - Worktree: DTD-worktrees/packing-list-portal-confirmacion-20261021.
 - Rama: codex/packing-list-portal-confirmacion-20261021; base d410ab2e23e74e5bcf7fdc7cc595371b24cc03a8.
-- HEAD local/remoto/PR: 41b04942967f38be5532747b4b12fd13681a0a81; producto validado en b25a4660adcfb3286eeb480eb5d3146dd1700a95. El posterior cambia handoff.
+- HEAD inicial local/remoto/PR: 41b04942967f38be5532747b4b12fd13681a0a81; producto validado en b25a4660adcfb3286eeb480eb5d3146dd1700a95. El posterior cambia handoff; último respaldo b325e203 se precisa abajo.
 - PR319 OPEN/DRAFT sobre main, 38 archivos; árbol limpio al responder. Sin migración nueva ni modificada.
 - Owner de entrega worker-packing-portal-20261021; claim liberado según owner. No reclamarlo mientras solo se lee. Antes de nueva escritura, guard/claim propio sin desplazar otro owner.
 - Handoff: .agents/handoffs/0473-portal-confirmacion-20261021.md; allowlist exacta y evidencias permanecen allí.
@@ -61,6 +62,7 @@ Las tres sesiones leyeron el mensaje humano original, verificaron la autorizaci�
 - Demo: http://127.0.0.1:4321/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/index.html?page=client
 - Actualización posterior al corte inicial: owner publicó 443d949dec6944d59b0cdb3c8fa7b7386bf55ef8 en PR319. Solo añade36 líneas a su handoff para registrar esta coordinación; producto permanece b25a4660a y base d410ab2e. Guard/claim propios y liberación informados; sin nuevas pruebas. Esta actualización documental no hereda una aceptación de PR completa.
 - Cierre posterior del recorrido directo: HEAD PR319 b325e203dc7af1f1f93f0c28e2e811f1bc5ba4fa, OPEN/DRAFT38rutas, verificado independientemente. Respecto443d949de solo cambia su handoff (52líneas reportadas); producto b25a4660a congelado. Owner observó carga→preview→proveedor corrige120,5kg/.64m³→confirmaciónrev3/versión1→10códigos físicos yQR→cliente actualizado. Pulsar Imprimir sin error visible no acredita diálogo nativo/PDF/papel/escaneo; pendientes conservados. Evidencia propia en packing-list-portal/recorrido-con-cliente/recorrido.md y capturas01..09. No usó turno pesado.
+- Revisión adicional en curso por peer del Director sobre objetos Git fijos b325/base d410: persistencia de revisión, invalidación/reconfirmación, identidad de caja y recuperación de errores del flujo. Es revisión estática acotada, sin editar ni usar demo/runtime; no aceptación completa dePR319.
 
 ### Kommo → GoHighLevel
 
@@ -77,6 +79,7 @@ Las tres sesiones leyeron el mensaje humano original, verificaron la autorizaci�
 - No requiere recursos de prueba pesados ni archivos de los otros frentes.
 - Cambio humano posterior reportado por owner: Sam aprobóA, pero antes de ejecutarla restringió el frente a preparar solamente el plan de transición y revisar su dirección («a Kommo» frente al objetivo originalKommo→GHL). Esta última limitación prevalece: A no se ejecutó; no se guardó integración/creó credencial/leyóAPI. Owner ya pidió aclaración de dirección en su chat y prepara conservación/pasos comunes fuera del repo. El Director confirmó PLANIFICACIÓN solamente, sin duplicar la pregunta ni reactivar permisos previos.
 - Aclaración posterior verificada por read_thread: Sam confirmó «Kommo → GoHighLevel, como veníamos trabajando», cerrando dirección/D1. Nuevo pedido directo: analizar bandeja nativa frente a archivo privado y recomendar sin ejecutar. Owner continúa informe local y documentación oficial, sin chats reales/credenciales/importaciones/cambios de canal; aprobaciónA sigue antecedente detenido.
+- Entrega posterior del pedido directo: Analisis-bandeja-y-archivo-2026-10-21.html,2907221bytes/SHA256c09b891827861232f95cdff4e7547b99b84b8720fe729a1baf04cf7374bd6d3e, cotejados por este Director contra recibo-analisis-bandeja-archivo-2026-10-21.json. Owner reporta20tipos de información/15fuentes oficiales. Recomienda GHL operativo con historial cuya representación se pruebe y archivo privado de todos los originales recuperables, también los mostrados enGHL. Recomendación pendiente de aceptación por Sam. El recibo distingue compilación/exportación/consistencia local PASÓ de revisión visual y extracción/importación/continuidad NO EJECUTADAS; no se reinspeccionaron cuentas. Sigue SOLO PLANIFICACIÓN y A detenida; cero credenciales/consultas autenticadas de mensajes/importaciones/envíos/cambios de canal. Sin PR ni cambios al repositorio. Este cotejo de entrega no es una auditoría independiente de las15fuentes ni prueba de portabilidad.
 
 ## Matriz de paralelismo y contratos
 
@@ -157,8 +160,8 @@ Consulta independiente GitHub: 18 PR abiertas, todas DRAFT. No se hizo revisión
 
 | PR | Frente / base declarada | HEAD al corte | Observación |
 |---|---|---|---|
-| 308 | Seguimiento contable / main | 5a468342 | Respaldo actualizado,2 documentos propios |
-| 319 | Packing / main | 41b04942 | 38 rutas; sin intersección exacta con otras 17 PR |
+| 308 | Seguimiento contable / main | 9e23746c | Respaldo actualizado,2 documentos propios |
+| 319 | Packing / main | b325e203 | 38 rutas; sin intersección exacta con otras 17 PR en el inventario inicial |
 | 310 | Reemplazos / main | a30d8585 | Inicio cadena contable |
 | 311 | Anual / rama310 | 8729f7f4 | Dependiente310 |
 | 312 | Caracas operaciones / rama311 | d6bcd0e8 | Dependiente311 |
@@ -175,6 +178,8 @@ Consulta independiente GitHub: 18 PR abiertas, todas DRAFT. No se hizo revisión
 | 306 | Oficina agentes / main | 2f9b336c | Documentación, fuera de los dos frentes producto nuevos |
 | 309 | Publicador / main | 021e96cd | Infra independiente; no autoriza publicación |
 | 262 | Consolidados / main | f959cd0a | No reabrir su alcance por este encargo |
+
+Refresco posterior a la continuación de Sam: fetch origin --no-prune PASÓ, origin/main sigue d410ab2e. Readback GitHub de308/319/320 confirma OPEN/DRAFT, bases y HEAD9e23746c/b325e203/b70c5ddf, con2/38/32rutas respectivamente. Los demás HEAD del cuadro son la foto anterior, no se revalidaron todos por este refresco. I2 sigue sin respaldo remoto nuevo al corte.
 
 Algunos baseRefOid de API conservan asociación histórica y no equivalen al tip vivo de la rama base. Antes de integrar, verificar refs/base efectiva/merge-base y HEAD exactos; nuevo commit invalida aceptación anterior. Una PR apilada conserva dependencia, no se convierte silenciosamente en paquete de varios frentes.
 
@@ -241,6 +246,18 @@ Oráculo Q102–143: conservar e1sininvoice_id/e4anulado/e6borrado, mayor600/ing
 Ampliación final entregada al mismo Worker: C:/tmp/director-traspaso-20261020/0573-I2-ampliacion-boundary-y-fixtures-director-v2.md,6511bytes/SHA6c58cb6f5f9b442b2b1175b47a6bc61600b256155b0da24e64fa51e459742dc7. Director verificó hash/tamaño y diffV1→V2: solo encabezado y assert de resta cambiado por comentario400+assertoficial1000. V1preservada/noadoptada. Peer contablecompatibilidad12844/SHA84889f7b, leído por su owner.2preimágenes y adopción antes de editar añadidas. Checkpoint LOCAL padre b70, sin publicación antes de revisión delSHA; código/testsI2 siguen NO EJECUTADOS, turno pesado RETENIDO.
 
 I3/M8/M9: propuesta sobre objetob70,9983bytes/SHA125d54a41d1f41da461eeb81d55f1c979502c96787d23fccb7c2bdab41385fbb, reportada leída por su owner; preparación posterior aI2 sin implementación/GO/ROJO,28T04 NO EJECUTADOS.
+
+## Enmienda única B3 y contador acreditado de I2
+
+Al continuar Sam, se preservó la revisión del corte cerrado C:/tmp/director-traspaso-20261020/0573-I2-B3-corte-01. Los5archivos fueron cotejados por Director y peer: IP32886/SHAf7f15bf5,fixture17117/4d4ed0cb,testT0235212/6ce45308,diff27138/30b9e643 y contexto2370/e4fbc2c0. Son fuentes/inferencia estática, no resultados de ejecución.
+
+El caso heredado B3 b70:288–297 describe una cabecera huérfana por fallo de líneas/rollback. Se rechazó prepararle líneas balanceadas prep-pasivo, porque ocultaba ese sujeto negativo. Header prep-va, VES36500/tasa36.5, oficial1000, rango, mayor0 y ausencia real de líneas de ese fixture se conservan. Su unidad no puede certificarse por una cabecera sola.
+
+Director autorizó excepción técnica SOLO a ese oráculo: enOtraMoneda1→0 documentos con movimiento nominal acreditado, diferencia1000→null y mayor_menor→requiere_revision; título/comentario propio pueden precisar cabecera huérfana. Exigir oficial1000, ajuste/base/diferencia null, unidadsin_verificar, verificaciónrequiere_revision, actividadfalse/contribuciones0, lineas_invalidas visible y notaNominalnull. El0 acreditado no demuestra ausencia global ni autoriza USD. Corregir contador/comparabilidad/JSDoc/consumidores dentro17rutas: documentos distintos con metadata/tenant/cuentas/líneas relevantes acreditadas, incluidos reversos pertinentes; no unir IDs de cabeceras sin prueba ni mantener una segunda autoridad de comparabilidad anterior a ese contador.
+
+Los otros52 títulos/oráculos heredados y los once oráculosI2 permanecen intactos. Los once forman parte del inventario preservado, no once casos adicionales. Informar52preservados+1reforzado, con mapping literal/localizadores/motivo; no decir53inalterados. Conservar positivos VESsinningúnasiento/diferencia1000 y documento100/venta90/diferencia10. Añadir una regresión de1VESconmovimientoacreditado+1VEShuérfana: contador1/no2 e incidencia visible, sin comparación certificada. Nominal acreditado e incidencia pueden coexistir: no_comparable y verificación pendiente separados.
+
+Coordinador contable lo adoptó en C:/tmp/director-traspaso-20261020/0573-I2-enmienda-B3-director.md,5591bytes/SHA256caf766a8c1bf67a0ed7f1a637d297c82440bf14a54a65b3e8815b18c0156edb8. Director y peer leyeron completo y dieron conformidad documental limitada, sin inspeccionar WIP ni aprobar la implementación. Mismo Worker/claim/WT/rama;17I2/50CORE/R1excluida-unión51; padre local b70. Enmienda exige adopción previa en spec/handoff y revisión del commit inmutable antes de respaldar enPR320DRAFT. Código/testsI2 NO EJECUTADOS; M1solo7394; turno pesado RETENIDO. No hay permiso de merge/DB/producción ni aceptación deI2completo/14hallazgos/A-B. I3/M8/M9 conserva propuesta sinGO.
 
 ## Fuera de alcance detectado
 
