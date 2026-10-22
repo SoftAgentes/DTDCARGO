@@ -41,6 +41,10 @@ La primera activación de este piloto queda limitada a configuración e identifi
 
 La propiedad se libera después de terminar la escritura, validación y handoff, antes del cierre oficial del Worker. El destino de la terminal se resuelve por el protocolo de Orca; borrar ramas/worktrees conserva los requisitos de cleanup de DTD.
 
+### Creación y apertura en Codex
+
+El siguiente ejemplo se aplica solo para crear y abrir una sesión Codex; no se ejecuta automáticamente en una sesión Orca.
+
 ```powershell
 git fetch origin
 node scripts/harness-worktree.mjs start objetivo-concreto
@@ -54,6 +58,10 @@ checkout principal, en el contenedor hermano DTD-worktrees. Ese sigue siendo su
 no copia .env, no instala dependencias, no publica. GitHub no disponible:
 usa una base local verificada con `--from <ref>`, declara antigüedad y no
 integres hasta verificar el remoto.
+
+### Reglas compartidas de propiedad
+
+Estas reglas se aplican tanto a sesiones Codex como a sesiones Orca.
 
 El Worker usa guard y claim antes de editar. El claim local bajo metadatos Git
 por worktree impide que dos sesiones cooperantes lo reclamen simultáneamente;
