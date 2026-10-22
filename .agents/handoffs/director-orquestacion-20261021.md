@@ -1,5 +1,11 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## No conformidad del INPUT real GO02 declarada por owner — 2026-10-22T22:12 UTC
+
+- MISMOGLM informó hallazgoADMIN en custodia: INPUTREAL call_9e219a4941bc4d6585fa54e9f2d05572/21:29:56.835Z tiene2324bytes/SHAa05861cf37f7a39a89ca48ecf0073d1b8aea4a7f9f15ea0acc16d7f8855bbf2c, frente autorizado2322/3085c71a59afd0493f9534e3bb36f12fe2406b625fad57041503ef482b438910. Primeros2322bytesidénticos+DOSbytesCRLF0D0A añadidos; NOwholeEqual. Datos REFERIDOS deowner aún no cotejadosGeneral, conservarambosoriginales/seisrecords; no normalizar ni reconstruir desdeBOUND. No inferirCRLFcomocausa de33min/ANSI/presupuestoausente.
+- HelperADMINd31cd8/native1 se detuvointencionalmenteal detectar esa diferencia; mismowner cierra únicamenteADMINconNO CONFORMIDADreal/4GitA29tardíosquietos/outputAUSENTE/shellFIN1/NativeND/23NOEJ. General autorizó cierrehonesto sineditar producto/wrapperfijo/GO2/READY ni retry. ParentPackingavisado. PaqueteFIJO/manifest/custodia ydiagnósticotransporte pendientes; futuroGO NUEVOrequiere resolver no conformidad yrevisarse, no reutilizar21:28 niotrosclocks. La tarea lectorNOterminada, noacciónhumana/clave nueva requerida porahora.
+
+
 ## GO02 S3 cerrado sin resultados nativos; diagnóstico ADMIN — corte General 2026-10-22T22:11 UTC
 
 - Nuevo humano Sam 'como vamos' durante reconciliación. Se respondió que contabilidad4PASÓ/0FALLÓ ylectorNOterminado; bloqueo actualdearranque/continuidad, nofallodeassertsacreditado. Noacciónhumana/clave nueva requerida. Se conserva ordenprioridad4CORE→23Packing yobjetivo posteriorAPIreal,mismasPRseparadas/sinmergeprod.
