@@ -4,6 +4,7 @@
 -- Patrón0467: S confirma fixture REAL antes de A/B; rollback del coordinador
 -- no deshace esos commits. Cleanup sólo objetos marcados propios, sin FORCE.
 begin;
+set local client_min_messages = notice;
 do $guard$
 begin
   if current_setting('server_version_num')::integer not between 170000 and 179999 then
@@ -490,13 +491,23 @@ begin
   -- No precargar ni transformar los valores crudos de la observación.
   perform dblink_connect('i3b_c',pg_temp.conn('dtd_carrera_0497_i3b','c'));
   select r into before_guc from dblink('i3b_c','select to_jsonb(current_setting(''dtd.audit_reason'',true))') x(r jsonb);
+  raise notice 'I3B_R15_RAW_CONTEXT %',jsonb_build_object(
+    'stage','initial_before_first_call','beforeRaw',before_guc,
+    'beforeRepresentation',case when before_guc is null then 'SQL_NULL' when before_guc='""'::jsonb then 'EMPTY_STRING' else 'OTHER_VALUE' end);
   perform pg_temp.ok(before_guc is null,'R15 GUC AUSENTE medido antes de primera llamada en C');
   id:=pg_temp.new_invoice('context-fresh');
   perform pg_temp.start_session('i3b_c','service_role');
   r:=pg_temp.run('i3b_c',pg_temp.post_sql(id));
+  raise notice 'I3B_R15_RAW_CONTEXT %',jsonb_build_object(
+    'stage','rpc_result_before_posted_assert','rpcRaw',r);
   perform pg_temp.ok(r->'result'->>'outcome'='posted','R15 primera llamada real');
   perform dblink_exec('i3b_c','commit');
   select r into after_guc from dblink('i3b_c','select to_jsonb(current_setting(''dtd.audit_reason'',true))') x(r jsonb);
+  raise notice 'I3B_R15_RAW_CONTEXT %',jsonb_build_object(
+    'stage','after_commit_before_semantic_assert','beforeRaw',before_guc,'afterRaw',after_guc,
+    'beforeRepresentation',case when before_guc is null then 'SQL_NULL' when before_guc='""'::jsonb then 'EMPTY_STRING' else 'OTHER_VALUE' end,
+    'afterRepresentation',case when after_guc is null then 'SQL_NULL' when after_guc='""'::jsonb then 'EMPTY_STRING' else 'OTHER_VALUE' end,
+    'registryIdentityRestorationClaimed',false);
   insert into pg_temp.i3b_results values('R15-fresh-context',jsonb_build_object(
     'beforeRaw',before_guc,'afterRaw',after_guc,
     'beforeRepresentation',case when before_guc is null then 'SQL_NULL' when before_guc='""'::jsonb then 'EMPTY_STRING' else 'OTHER_VALUE' end,
@@ -508,6 +519,8 @@ begin
     'select jsonb_build_object(''posted'',count(*),''withReason'',count(*) filter(where a.reason is not null and a.reason<>''''))'
     ||' from public.entity_audit_log a join public.journal_entries e on e.id=a.entity_id'
     ||' where e.invoice_id=%L::uuid and a.event_type=''journal_entry_posted''',id)) x(r jsonb);
+  raise notice 'I3B_R15_RAW_CONTEXT %',jsonb_build_object(
+    'stage','audit_before_assert','auditRaw',observed);
   perform pg_temp.ok(observed->>'posted'='1' and observed->>'withReason'='0',
     'R15 primera llamada confirma un evento D2 sin motivo filtrado');
   update pg_temp.i3b_results set evidence=evidence||jsonb_build_object('auditRaw',observed)
