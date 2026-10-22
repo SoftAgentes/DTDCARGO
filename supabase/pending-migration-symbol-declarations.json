@@ -242,7 +242,8 @@
             "lib/studio/accounting/libro-control-queries.ts:219",
             "lib/studio/accounting/libro-control-queries.ts:239",
             "lib/studio/accounting/libro-control-queries.ts:246",
-            "lib/studio/accounting/libro-control-queries.ts:446",
+            "lib/studio/accounting/libro-control-queries.ts:448",
+            "lib/studio/accounting/libro-control-queries.ts:461",
             "lib/studio/accounting/libro-control.ts:203",
             "lib/studio/accounting/libro-control.ts:215",
             "lib/studio/accounting/libro-control.ts:227",
@@ -269,7 +270,7 @@
         {
           "site": "lib/studio/accounting/libro-control-queries.ts:95",
           "contains": "if (!(e instanceof ColumnaDeReversoAusente)) throw e;",
-          "degradation": "Sólo esa señal privada reinicia la lectura completa desde cero sin la columna0497. No mezcla páginas; shape/error/corte de la segunda lectura también rechazan. Backlink ausente no se transforma en null conocido y no acredita un par; conserva el diagnóstico heredado F-3. MIGRATE-FIRST evita publicar la app dependiente sin0497; no autoriza aplicarla."
+          "degradation": "Sólo esa señal privada reinicia la lectura completa desde cero sin la columna0497. No mezcla páginas; shape/error/corte de la segunda lectura también rechazan. En rawinvoice/invoice_reversal, backlink ausente no se transforma en null conocido y no acredita un par; conserva el diagnóstico heredado F-3. Fuera de esos orígenes se mantiene el mapper4b sin aportar tenant que certifique un par por source coercionada. MIGRATE-FIRST evita publicar la app dependiente sin0497; no autoriza aplicarla."
         },
         {
           "site": "lib/studio/accounting/libro-control-queries.ts:219",

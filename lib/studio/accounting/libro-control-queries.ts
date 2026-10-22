@@ -433,18 +433,34 @@ export async function cuadreDelLibro(
       journal_entry_id: strOrNull(p.journal_entry_id),
     })),
   ];
-  const vinculos: AsientoDeDocumento[] = asientos.map((a) => ({
-    id: typeof a.id === "string" ? a.id : "",
-    tenant_id: typeof a.tenant_id === "string" ? a.tenant_id : undefined,
-    status: typeof a.status === "string" ? a.status : "",
-    source: typeof a.source === "string" ? a.source : "",
-    deleted_at: a.deleted_at === null ? null : typeof a.deleted_at === "string" ? a.deleted_at : undefined,
-    invoice_id: typeof a.invoice_id === "string" ? a.invoice_id : null,
-    receipt_id: strOrNull(a.receipt_id),
-    bill_id: strOrNull(a.bill_id),
-    supplier_payment_id: strOrNull(a.supplier_payment_id),
-    reverses_entry_id: a.reverses_entry_id === null ? null : typeof a.reverses_entry_id === "string" ? a.reverses_entry_id : undefined,
-  }));
+  const vinculos: AsientoDeDocumento[] = asientos.map((a) => {
+    if (a.source !== "invoice" && a.source !== "invoice_reversal") {
+      // Transporte legado completo; no aporta tenant para certificar un par.
+      return {
+        id: str(a.id),
+        status: str(a.status),
+        source: str(a.source),
+        deleted_at: strOrNull(a.deleted_at),
+        invoice_id: strOrNull(a.invoice_id),
+        receipt_id: strOrNull(a.receipt_id),
+        bill_id: strOrNull(a.bill_id),
+        supplier_payment_id: strOrNull(a.supplier_payment_id),
+        reverses_entry_id: strOrNull(a.reverses_entry_id),
+      };
+    }
+    return {
+      id: typeof a.id === "string" ? a.id : "",
+      tenant_id: typeof a.tenant_id === "string" ? a.tenant_id : undefined,
+      status: typeof a.status === "string" ? a.status : "",
+      source: typeof a.source === "string" ? a.source : "",
+      deleted_at: a.deleted_at === null ? null : typeof a.deleted_at === "string" ? a.deleted_at : undefined,
+      invoice_id: typeof a.invoice_id === "string" ? a.invoice_id : null,
+      receipt_id: strOrNull(a.receipt_id),
+      bill_id: strOrNull(a.bill_id),
+      supplier_payment_id: strOrNull(a.supplier_payment_id),
+      reverses_entry_id: a.reverses_entry_id === null ? null : typeof a.reverses_entry_id === "string" ? a.reverses_entry_id : undefined,
+    };
+  });
 
   const porDocumento = asientosPorDocumento(docs, vinculos);
   // SDD-0562 · Solo los recibos que tocan 1.1.2 (con factura y, si se

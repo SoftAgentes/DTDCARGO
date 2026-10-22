@@ -1022,3 +1022,56 @@ describe("T03 · lector completo y degradación de cabeceras", () => {
       "Por contabilizar · asientos: la lectura supera el tope; el control no se puede calcular completo.");
   });
 });
+
+describe("T03 · enmienda de conservación del transporte ajeno", () => {
+  it.each([
+    { source: "receipt", tabla: "payment_receipts", tipo: "recibo" as const, fk: "receipt_id", codigo: "R-LEG",
+      documento: { id: "doc-legado", receipt_code: "R-LEG", received_at: "2025-03-10", currency: "USD", amount: 100,
+        journal_entry_id: "asiento-legado", invoice_id: null, identified_at: null, deleted_at: null } },
+    { source: "supplier_bill", tabla: "supplier_bills", tipo: "cxp" as const, fk: "bill_id", codigo: "CXP-LEG",
+      documento: { id: "doc-legado", bill_code: "CXP-LEG", issue_date: "2025-03-10", currency: "USD", total_amount: 100,
+        paid_amount: 0, fx_rate: null, status: "pendiente", journal_entry_id: "asiento-legado", deleted_at: null } },
+    { source: "supplier_payment", tabla: "supplier_payments", tipo: "pago_proveedor" as const, fk: "supplier_payment_id", codigo: "PP-LEG",
+      documento: { id: "doc-legado", payment_code: "PP-LEG", paid_at: "2025-03-10", currency: "USD", amount: 100,
+        journal_entry_id: "asiento-legado", deleted_at: null } },
+  ])("$source conserva el hallazgo legado ante deleted_at numérico en la respuesta", async ({ source, tabla, tipo, fk, codigo, documento }) => {
+    const { client, filtros } = dobleListados({
+      [tabla]: [documento],
+      journal_entries: [entrada("asiento-legado", "2025-03-10", "asentado", { source, [fk]: "doc-legado" })],
+      journal_lines: [],
+    }, { serverCap: 1, proyectar: true });
+    const transportadas: Fila[] = [];
+    const transporteInvalido = {
+      ...client,
+      from(table: string) {
+        const q = client.from(table) as unknown as { select: (cols?: string, opts?: unknown) => Record<string, unknown> };
+        if (table !== "journal_entries") return q;
+        return {
+          ...q,
+          select(cols?: string, opts?: unknown) {
+            const cadena = q.select(cols, opts);
+            const range = cadena.range as (desde: number, hasta: number) => Promise<{ data: Fila[]; error: null }>;
+            cadena.range = async (desde: number, hasta: number) => {
+              const respuesta = await range(desde, hasta);
+              // Primero operan filtros/proyección reales sobre metadata válida.
+              // Sólo la respuesta observada por el mapper trae el dato inválido.
+              return { ...respuesta, data: respuesta.data.map(a => {
+                const invalida = { ...a, deleted_at: 7 };
+                transportadas.push(invalida);
+                return invalida;
+              }) };
+            };
+            return cadena;
+          },
+        };
+      },
+    } as typeof client;
+    const c = await cuadreDelLibro(transporteInvalido,
+      { accounts: PLAN as unknown as Account[], saldos: {}, hoy: "2025-03-18" });
+    expect(transportadas).toHaveLength(1);
+    expect(transportadas[0]).toMatchObject({ id: "asiento-legado", source, status: "asentado", deleted_at: 7 });
+    expect(filtros).toContainEqual({ table: "journal_entries", op: "is", col: "deleted_at", val: null });
+    expect(c.documentos.sinAsiento.map(h => [h.tipo, h.codigo, h.motivo])).toEqual([[tipo, codigo, "sin_asiento"]]);
+    expect(c.documentos.conteo[tipo]).toMatchObject({ revisados: 1, vivos: 1, sinAsiento: 1, anuladosConAsiento: 0 });
+  });
+});
