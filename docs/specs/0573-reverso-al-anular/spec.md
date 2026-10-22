@@ -587,3 +587,44 @@ IP incorpora exactamente la condición mayor.ventasnull + movimientoVentasAcredi
 Inventario de autoría vigente51escenarios nuevos previstos:49de97df +2USD/VES; las precondiciones del caso anterior no son casos nuevos ni discovery.52heredados/onceI2/B3/M1 permanecen intactos; los otros13archivos de17 y todos los blobs externos a estas cuatro rutas deben coincidir con97df. Guard y Git/diff son la validación permitida; el resto de controles sigue NO EJECUTADO, sin atribuir fallo/verde real al contraejemplo o la preparación anterior.
 
 HijoLOCAL de97dfe31652ddead1ed2d95a2dd70328b40cab7b5, sin amend/rebase/publicación. SHA/tree/diff/cuatrocopias y cotejo de los demás blobs se registran en0573-I2-correccion-97df-01/checkpoint-hijo97df.json al crear el commit que contiene este bloque. Turno y claim retenidos. La próxima ampliación de consumidor aún no se adopta en este seguimiento y no se toca aquí ninguna ruta adicional.
+
+### Adopción previa · incertidumbre gerencial I2, sólo fuenteUI
+
+Leído íntegro y cotejado0573-I2-ampliacion-incertidumbre-gerencial-director.md (6630bytes/SHA256cff99d8876ce1d6236ba4751725f8c120745117efee9f9e9f5f9505a709ee7b4), con conformidadGeneral. Entrada7d08c173d562acfb3fc7ee69f6fe65b19c29c7a2 limpia, guard del mismo owner PASÓ, cuatropreimágenes incluidanuevaRuta registradas antes de editarla en0573-I2-gerencial-incertidumbre-01/adopcion-preimagenes.json.
+
+Nueva ruta única app/studio/(app)/reportes/_components/ReportesClient.tsx, antes excluida de48; acumulado18I2/51CORE/R1excluida-unión52, lista18literal en el manifest de adopción y el GO. En esta fase sólo cambian ReportesClient.tsx, app/studio/(app)/reportes/__tests__/estado-gerencial-mezclado.test.tsx y estosdos documentos; las otras14 del18 y todootroblob deben seguir idénticos a7d08. Se conserva97df/7d08 y sus recibos, nuevo commit HIJO7d08 sin amend/rebase/push.
+
+CambioUI riesgoR2 exclusivamente en IncomeStatementCard cuando unidadMayor=sin_verificar: título sin certificaciónUSD, aviso persistente de unidad no verificada y siguiente paso de revisar el control deIngreso del período; importes No disponible y porcentajes raya. Conserva oficial y diagnóstico separados, ramasUSD/nominal, filas/importes/cálculosP&L/utilidad/margen/filtros/fechas/interacción. Sin nueva primitiva, permiso, lectura, conversor, dependencia, API o detalle técnico en el texto al usuario.
+
+Añadir UN caso real de helper/contextoausente con income/netIncome0 y vista completa porincidencia, tarjeta gerencial real sinUSD/$0/porcentaje certificado y oficial conocido conservado. Los2títulos/aserciones/render/importes gerenciales anteriores permanecen literalmente intactos; total autoral51+1=52previstos, no discovery. Guard/Gitlectura-diff son las comprobaciones permitidas; UI/teclado/contraste/zoom/reflow/lector/ui-check/gobernanzaautomática y todo runtimeproducto/parser/import/AST/tests/tipos/lint/build/browser/SQL/DB/PNPM/censo/conocimiento quedan NO EJECUTADOS. No aceptaciónfuncionalI2/14/A-B, no liberación de claim/turno ni publicación antes de revisión delSHA.
+
+### I2 · incertidumbre gerencial implementada por fuente, R2
+
+IncomeStatementCard lee exclusivamente el eje unidadMayor. Sólo sin_verificar usa título «Gerencial · unidad monetaria sin verificar», aviso persistente role=note con unidad no verificada y siguiente paso de revisar Ingreso del período, importes «No disponible» y porcentajes raya. No ejecuta fmtUsd ni muestra color de monto negativo para esa rama desconocida. Las ramasUSD/nominal conservan título/aviso/formatos previos; no se cambian P&L, filas, valores, porcentajes calculados, utilidad/margen, fechas/filtros, interacción o APIs. IngresoDelPeriodoCard conserva oficial y diagnóstico separados.
+
+El único caso nuevo llama resumirIngreso real sin contexto, con mayor0 y facturaUSD1000 conocida; payload gerencial income/netIncome0 y fila0/pct0. Usa vistaDelEstado real (completo porincidencia) y renderiza ambas tarjetas reales. Las aserciones de ausencia deUSD funcional/$/0% se limitan al nodo gerencial; la tarjeta oficial conserva$1000. Los dos casos anteriores mantienen literalmente títulos, aserciones, render e importes37500/36500/1000. Inventario52nuevos previstos=51+1, sin discovery ni ejecución.
+
+Matriz SGE-00 de esta superficie (evidencia de fuente; no conformidad global ni excepción). UI=[IncomeStatementCard](../../../app/studio/(app)/reportes/_components/ReportesClient.tsx); T=[testgerencial](../../../app/studio/(app)/reportes/__tests__/estado-gerencial-mezclado.test.tsx). Los enlaces apuntan a la fuente del checkpoint; sus comprobaciones dinámicas siguen NO EJECUTADAS.
+
+| Principio | Clasificación de esta autoría | Evidencia y límite |
+|---|---|---|
+| SGE-00.01 predecible | No aplica a acciones nuevas | UI no añade verbos de mutación ni controles; sólo presenta estado. |
+| SGE-00.02 no pérdida silenciosa | No aplica | No hay edición/guardado/borrado ni estado de trabajo modificado. |
+| SGE-00.03 riesgo/fricción | Cumple por fuente, cierre pendiente | RiesgoR2 financiero de lectura: aviso/no disponible sin confirmación o fricción nueva. UI conserva interacción. |
+| SGE-00.04 auditoría | No aplica a evento nuevo | No se produce mutación financiera ni llamada externa; cálculos y permisos no cambian. |
+| SGE-00.05 permisos/tenant/privacidad | No aplica a cambio de autoridad | Sólo DTO agregado recibido; UI no añade lecturas, IDs, PII, permisos o ruta de datos. No se declara RLS verificada. |
+| SGE-00.06 prevenir error | Cumple por fuente, gate pendiente | UI guarda unidad antes de formatear dinero/porcentaje; T mantiene0 desconocido separado de oficial conocido. |
+| SGE-00.07 estado verdadero | No conformidad de7d corregida por fuente; cierre pendiente | Antes títuloUSDfuncional/montos0 sin unidad; UI añade aviso persistente/título/no disponible. T describe el contraejemplo; NO EJECUTADO. |
+| SGE-00.08 frecuencia/complejidad | Cumple por fuente, cierre pendiente | Sin pasos/campos/filtros extra ni ocultar vista; complejidad se explica cerca del dato. |
+| SGE-00.09 reutilización | Cumple por fuente | Mismo Card/aviso role=note/estilos/tokens existentes; ninguna primitiva nueva. |
+| SGE-00.10 accesibilidad | No cumple evidencia de cierre: gate pendiente | Texto explícito/role=note/tokens, sin nuevos foco/interacción. Contraste/zoom/reflow/teclado/lector/ui-check NO EJECUTADOS; no se presume fallo observado ni conformidad. |
+| SGE-00.11 lenguaje/recuperación | Cumple por fuente, gate pendiente | Aviso dice qué no se verificó, qué no está disponible y próximo paso; no SQL/rutas internas/tipos/detalles técnicos al usuario. |
+| SGE-00.12 autoridad humana | No aplica a acciónIA nueva | Sin ejecución externa, propuesta de mutación o decisión financiera automática. |
+
+NUM-01: unidad/null/0 separados en presentación; oficial conocido permaneceUSD, gerencial desconocido no recibe signo$ ni porcentaje, sin nuevo cálculo. ERR-01: explicación persistente y cercana, texto legible neutro sobre aviso existente con próximo paso; no toast ni datos internos. A11Y-01/BRAND: reutilización de tokens/estructura, sin color como único mensaje; accesibilidad real y gobernanza automática NO EJECUTADAS. La lectura del JSX no certifica el gate; no se inventa excepción para omitirlo.
+
+Validación realizada exclusivamente guard propio/Git/lectura/diff, sin runtimeproducto/import/parser/AST/scanner/tests/tipos/lint/build/browser/UI/SQL/DB/PNPM/censo/conocimiento. Evidencia textual de preservación y cuatropreimágenes/copias finales se guarda en0573-I2-gerencial-incertidumbre-01; SHA/tree/padre7d08/diff y cotejo de todos los demás blobs encheckpoint-gerencial.json al crear el hijo que contiene este bloque. Acumulado18I2/51CORE/R1excluida-unión52; sóloCUATRO rutas activas y otras14idénticas7d08.
+
+Pendientes propios: revisión de Director/peer del nuevoSHA, validaciones funcionales/UI/gobernanza con GO posterior y eventual respaldoDRAFT exacto. Guardado documental propio realizado; integración/Graphify/Archify/semántica/publicaciónObsidian NO EJECUTADAS y pendientes. Fuera de alcance:14hallazgos/A-B no cerrados; M1 sólo27probados en7394; I3/B1/M2–M9/41primeras ejecuciones anteriores no absorbidos. Sin push/PRedit/ready/merge/main/deploy/producción; claim y turno retenidos.
+
+Cotejo textual durable: preservacion-fuente.json SHA256701b6ad31796214aee8e0aebc9b42cc3cd1a2e5074fc7537377a58e2f9d02c3c. Inversión literal reconstruye ReportesClient7d08 entero y doscasosgerenciales originales; no es prueba ejecutada de ramas, estilo o accesibilidad.
