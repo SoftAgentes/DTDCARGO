@@ -12,7 +12,7 @@ import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import {
   accountBalances,
   computeBalances,
-  listAccounts,
+  listAccountsComplete,
   type AccountBalanceMap,
 } from "@/lib/studio/account-queries";
 import type { Account } from "@/lib/studio/account-types";
@@ -299,10 +299,8 @@ export async function ingresoDelPeriodo(
 
   let mayor = opts.mayor;
   if (mayor === undefined) {
-    const [accounts, balances] = await Promise.all([
-      listAccounts(supabase),
-      accountBalances(supabase, { fromDate: rango.from, upToDate: rango.to }),
-    ]);
+    const accounts = await listAccountsComplete(supabase);
+    const balances = await accountBalances(supabase, { fromDate: rango.from, upToDate: rango.to }, accounts);
     mayor = await controlDelPeriodo(supabase, rango, accounts, balances);
   }
   const contexto = mayor == null ? undefined : await contextoDelIngreso(supabase, rango, facturas);
@@ -317,10 +315,10 @@ export async function reportesDelLibro(
   supabase: SupabaseClient,
   rango: RangoFechas,
 ): Promise<ReportesDelLibro> {
-  const [accounts, delPeriodo, alCorte] = await Promise.all([
-    listAccounts(supabase),
-    accountBalances(supabase, { fromDate: rango.from, upToDate: rango.to }),
-    accountBalances(supabase, { upToDate: rango.to }),
+  const accounts = await listAccountsComplete(supabase);
+  const [delPeriodo, alCorte] = await Promise.all([
+    accountBalances(supabase, { fromDate: rango.from, upToDate: rango.to }, accounts),
+    accountBalances(supabase, { upToDate: rango.to }, accounts),
   ]);
   const ingreso = await ingresoDelPeriodo(supabase, rango, {
     mayor: await controlDelPeriodo(supabase, rango, accounts, delPeriodo),
