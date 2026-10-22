@@ -57,6 +57,7 @@ Las tres sesiones leyeron el mensaje humano original, verificaron la autorizaci�
 - Consumidores vivos propios: demo API/PGlite loopback4320 y frontend4321. Preservarlos: reiniciar la API pierde el estado sintético.
 - Próximo paso: revisión del recorrido por Sam y revisión del Director sobre SHA/base actuales. Sin nuevas pruebas pesadas ni activación.
 - Demo: http://127.0.0.1:4321/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/index.html?page=client
+- Actualización posterior al corte inicial: owner publicó 443d949dec6944d59b0cdb3c8fa7b7386bf55ef8 en PR319. Solo añade36 líneas a su handoff para registrar esta coordinación; producto permanece b25a4660a y base d410ab2e. Guard/claim propios y liberación informados; sin nuevas pruebas. Esta actualización documental no hereda una aceptación de PR completa.
 
 ### Kommo → GoHighLevel
 
@@ -141,7 +142,8 @@ Status principal completó exit0 con ok=false:
 - Archify CURRENT2.16.0 en revisión d410ab2e.
 - Obsidian PENDING, revisión publicada6da8aebcd71e348254452ffa4e5d45389fe37d37; sin conflictos; publicación bloqueada por SEMANTIC_PILOT_PENDING.
 - No se refrescó, publicó ni abrió Obsidian. Los derivados no certifican este handoff nuevo.
-- La consulta de cierre en el worktree propio se registra al finalizar, sin instalar dependencias.
+- Consulta de cierre propia: node scripts/knowledge-sync.mjs status terminó exit0, ok=false; raíz director-orquestacion-20261021, capturada sobre revisión d410ab2e antes del commit documental. Estructura y semántica INVALID por graph_missing_or_invalid/graph_empty: este worktree nuevo no tiene graphify-out/graph.json. Archify y Obsidian PENDING, publicación bloqueada además por MAIN_REQUIRED. Es el estado de los derivados locales de este worktree; no reemplaza el status principal descrito arriba. No se copiaron índices de otro owner ni se intentó publicar desde esta rama.
+- Evidencia de cierre fuera de Git: C:/Users/AKX generator/AppData/Local/Temp/director-orquestacion-20261021-knowledge-close.json. Todos los procesos de auditoría iniciados para esta tarea terminaron.
 
 ## Validación de esta tarea
 
@@ -149,6 +151,7 @@ Status principal completó exit0 con ok=false:
 |---|---|
 | Identificar tres chats y verificar reportes bidireccionales autorizados | PASÓ |
 | Raíz/rama/claim propios antes de escribir | PASÓ |
+| Formato y allowlist del handoff, git diff --cached --check | PASÓ tras corregir una línea vacía final |
 | Fetch, refs actuales, PRs y separación de archivos | PASÓ con límites de inventario fechados |
 | Revisión de fronteras packing/envíos en fuentes y ramas | PASÓ en lectura; no prueba funcional combinada |
 | Revisión completa de aceptación de cada PR | NO EJECUTADO |
