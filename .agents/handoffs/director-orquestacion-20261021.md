@@ -30,7 +30,7 @@ Las tres sesiones leyeron el mensaje humano original, verificaron la autorizaci�
 
 ### Contabilidad
 
-- Coordinación propia: DTD-worktrees/director-continuidad-codex-20261020, rama codex/director-continuidad-codex-20261020, HEAD 49a5a05208204395aa6e76ae55e7845e18888e88, PR308 draft sobre main.
+- Coordinación propia: DTD-worktrees/director-continuidad-codex-20261020, rama codex/director-continuidad-codex-20261020, PR308 draft sobre main. Corte inicial49a5a052; actualización remota verificada c7274a13d7a56237e4f0643daf69d1e06a20ccdb, con el resultado M1 funcional y supervisión separados.
 - Owner: director-codex-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 - Sus dos archivos: docs/audits/2026-10-20-plan-contable-seguimiento-codex.md y .agents/handoffs/director-continuidad-codex-20261020.md. Este Director no los edita.
 - CORE0573: worktree sdd-0573-core-reparacion-20261021, rama codex/sdd-0573-core-reparacion-20261021; owner worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468, claim retenido.
@@ -114,6 +114,8 @@ Evidencia cerrada, sin nuevas observaciones físicas por el Director:
 
 Se informó a Sam del PASÓ funcional y del bloqueo de cierre. Se pidió al frente contable registrar ambos estados en su checklist/handoff/PR propios, con el producto probado7394 identificado, sin alterar tests/recibos ni reintentar. Este registro no constituye aceptación de integración ni producción.
 
+Respaldo documental posterior: Director verificó PR308 OPEN/DRAFT en c7274a13d7a56237e4f0643daf69d1e06a20ccdb. Owner reportó cierre CORE local b70c5ddfd649cabaf71ee90e3ef080fd4f25d459, padre7394; diff independiente confirma solo spec/handoff,67añadidas/5retiradas, sin producto/tests. PR320 seguía remoto7394 en esa lectura: respaldo de b70 pendiente de readback, sin presentarlo publicado todavía. I2 continúa como diseño bajo revisión técnica, sin implementación ni nuevo runtime.
+
 | Frontera | Responsable | Clasificación y condición |
 |---|---|---|
 | Documento de compra, revisión, confirmación proveedor, etiquetas | Packing / PR319 | PARALELIZABLE con allowlist actual |
@@ -143,7 +145,7 @@ Consulta independiente GitHub: 18 PR abiertas, todas DRAFT. No se hizo revisión
 
 | PR | Frente / base declarada | HEAD al corte | Observación |
 |---|---|---|---|
-| 308 | Seguimiento contable / main | 49a5a052 | 2 documentos propios |
+| 308 | Seguimiento contable / main | c7274a13 | Respaldo actualizado,2 documentos propios |
 | 319 | Packing / main | 41b04942 | 38 rutas; sin intersección exacta con otras 17 PR |
 | 310 | Reemplazos / main | a30d8585 | Inicio cadena contable |
 | 311 | Anual / rama310 | 8729f7f4 | Dependiente310 |
