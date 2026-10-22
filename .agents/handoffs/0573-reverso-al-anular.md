@@ -1,4 +1,4 @@
-# Handoff · SDD-0573 · M1 por fuente, VERDE pendiente, PR CORE DRAFT
+# Handoff · SDD-0573 · M1 local 27 PASÓ, supervisión incompleta, PR CORE DRAFT
 
 | Campo | Valor |
 |---|---|
@@ -9,11 +9,11 @@
 | Rama | codex/sdd-0573-core-reparacion-20261021 |
 | H / B fija | 89f15a5dcb9c9047e9a289fd499563c201ab5701 / e834dc6eef597421d10f880b5deb8d689dcc7078 |
 | SDD | [0573](../../docs/specs/0573-reverso-al-anular/spec.md), in-progress |
-| Estado vigente | M1 implementada por fuente; ROJO previo 22 PASÓ/5 FALLÓ; VERDE pendiente; checkpoint local sin push; 14 hallazgos/A/B abiertos |
+| Estado vigente | M1 funcional local aceptada sobre 7394: 27 PASÓ/0 FALLÓ/0 OMITIDAS; supervisión INCOMPLETA/UNKNOWN 21908/turnReleased=false; 14 hallazgos/A/B abiertos |
 | Contrato GO0 | 0573-core-go0-asignacion-director.md / SHA256 7a16dbdb1ebecfc420ca2f3c181ca6aa1cb5d6c5584f0c33fb2a7237af773428 |
 | Candidato completo | 0573-encargo-core-propuesto.md / SHA256 5ee11eab1d2f08af8890f676efdc20aa2daba918dd8d1c50c34950b366b22880 y diez fuentes completas cotejadas |
-| Permisos vigentes M1 | actions/spec/handoff y un commit local padre directo 0e5a; sin runtime/tests/push/PR hasta revisión |
-| Turno y relevo | Sólo fuente M1; VERDE requiere revisión y GO focal con margen del presupuesto original; árbol quieto/claim retenido |
+| Permisos vigentes | Sólo spec/handoff y un commit LOCAL padre 7394; sin producto/tests/índice/runtime/push/bodyedit hasta revisión documental |
+| Turno y relevo | Corrida T01 única terminada; resultado funcional aceptado, supervisión incompleta y turno retenido; sin otra pesada/claim release |
 
 ## OBJETIVO ORIGINAL
 
@@ -316,3 +316,34 @@ Entrega: sólo actions/spec/handoff; un commit local debe ser hijo directo de 0e
 Validación de comportamiento: VERDE NO EJECUTADO; ningún runner/probe/parser/instalación/lint/tipos/build/verify/SQL/DB/UI/conocimiento o censo. Director revisa el commit exacto antes de GO focal con margen del reloj original, que no se renueva ni transfiere. M1 implementada POR FUENTE no cierra los 14 hallazgos ni A/B; I2/I3/I4/B1/M2–M9 siguen fuera de este parche.
 
 Impacto documental: spec y handoff propios actualizados; publicación/estructura Graphify/cobertura semántica/Archify/revisión visible Obsidian y full verify pendientes del cierre CORE autorizado. Sin tocar derivados compartidos, histórico H, perfiles, store, parcial de dependencias o recibos. Árbol quieto y claim retenido al entregar.
+
+## M1 · T01 local aceptada, supervisión incompleta · 2026-10-22 UTC
+
+Producto probado: **7394f63f5a0ab4d39f950b73141c698ae17aff7d**, árbol **81b55b3d2b866e88d9f63795cea9ef64d57ec436**. El Director contable y el Director general aceptaron el resultado funcional local del archivo T01 completo: **27 ejecutados, 27 PASÓ, 0 FALLÓ y 0 OMITIDAS; exit nativo 0**. Se verificaron los mismos 27 oráculos inmutables, incluidos los rechazos por error/count desconocido, tenant, cero/positivo y avisos heredados; no se repitió el ROJO. Es evidencia unitaria con dobles, no prueba de DB/RLS/SQL, atomicidad o carreras. Los estados anteriores «VERDE pendiente/NO EJECUTADO» describen sus etapas históricas; este bloque registra la única verificación posterior aceptada.
+
+Autoridad y cotejo: GO 0573-core-M1-T01-27-go-director.md, 6465 bytes, SHA256 8f44370f99ee40276294fb1cee266c1f294dee4723c4d84b0f3d5691480fd9d5; turno DIRECTOR-M1-27-20261021-01. Cotejo del Director 0573-M1-T01-27-resultado-cotejo-director.json, 14003 bytes, SHA256 4c7c1c0dd1160f9505c911af83b8645a3d62cdaa9bbadae67f385bdd86676ae8: 20 archivos, 27 nombres únicos, 3 muestras y 2 cierres oportunos. El resultado funcional PASÓ se acepta separado de la supervisión **INCOMPLETA**, sin cierre de los catorce hallazgos, A/B o PR.
+
+Reloj propio de esa etapa, durable en verification-budget-fixed.json: origen local **2026-10-22T00:21:16.3598975Z**, deadline **00:36:16.3598975Z**, cutoff **00:35:16.3598975Z**; máximo 900 s con reserva 60 s incluida, T01 ≤180 s. Ventana concedida 00:12:02–00:42:02Z. No se recibió origen externo, restauró el reloj I, renovó presupuesto ni autorizó otra corrida con el margen restante. SHA256 del budget: 6f1c3b8527a13551e32a7afacd4c6e58e374b55336ffc431c3f70cb2fe79ca04.
+
+El Process original del launcher fue **5476**, nacimiento .NET **00:21:15.8354405Z**, ticks **639282252758354405**, **exit 1** observado a **00:21:29.1017043Z** mediante WaitForExitAsync y ExitCode de ese mismo objeto; esa observación no se presenta como hora de salida OS reconstruida. Ambos streams se copiaron desde Start antes de leer birth. El hijo T01 tuvo identidad 2144:639282252789423843, nacimiento 00:21:18.9423843Z y exit 0.
+
+STOP conservado por nuevo **UNKNOWN candidato 21908**, parentPid 2144, primer registro original **00:21:21.5415957Z**, CIM_FILIATION_WITHOUT_CONFIRMED_NET_BIRTH, sin nacimiento .NET confirmado y sin intervención. No se reconstruyó identidad por PID. Recibo nativo: **INCOMPLETO_RETIENE_TURNO, quiet=false, turnReleased=false**; capturas completas. La identidad conocida 2144 figura ABSENT sólo según observaciones cacheadas; UNKNOWN permanece y liveOwnedCount es null. No es supervisor verde ni cero global.
+
+Las tres muestras cerradas conservan separación máxima 4029.2646 ms y duración máxima UTC derivada 2881.6855 ms. Los cierres T01/FINAL finalizaron a 00:21:24.5208279Z y 00:21:28.0740135Z, dentro del cap original **00:22:21.6161448Z**. SourceAfter original 00:21:25.6356094Z y **SourceFinal original 00:21:28.8805998Z** registran HEAD 7394 / tree 81b55 / rama propia/clean=true y claim SHA256 b4ea7421a49ca0ec099a6e0552d2af03630cc648863479e4468e2d98244b8905. Es custodia de observaciones originales, sin censo físico posterior para obtener cero.
+
+Evidencia cerrada bajo C:/tmp/director-traspaso-20261020/. N = 0573-core-M1-verificacion-27-01/; E = 0573-core-M1-verificacion-27-exec-01/. Los originales se conservan:
+
+| Archivo | Bytes | SHA256 |
+|---|---:|---|
+| N/T01-stdout.log | 5962 | 1792f6ace164c6028669edc060f49143078f8b5865ccdd7509774d01572a9ae7 |
+| N/T01-stderr.log | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 |
+| N/operational-receipt.json | 8735 | d1f142378cde81cbbd14fda060cfde4c35b913ca0429a33c16930b4e55e7c46c |
+| E/external-receipt.json | 3151 | 9f96bc74c37e3a490e5832eb394af0f67764e45ee409fc0b8b08590aaafb2771 |
+| E/casos-M1-T01-27-observados.json | 10634 | 94cfd943daa616799ea525416e8921994c6f9c84689818e177f40aca2471d848 |
+| E/cierre-M1-T01-27-incompleto.json | 11256 | 4351b68a3a9e5d018ddf3b68cb124722bd5a1244c60a1c2079559eb1ada64a9f |
+
+Pendientes: I2 sigue sin implementar; su propuesta externa 0573-I2-preparacion-worker.md (21011 bytes, SHA256 5f412c910b3fabee62d848dd12f7b3d7cc66d5d53cfadf4a3ed10725dc2a8ed9) fue leída por el Director, no es GO. T03/T04 y sus 41 primeras ejecuciones permanecen NO EJECUTADOS. La baseline anterior 80 = 64 PASÓ + 16 FALLÓ sigue ligada a su SHA/recibos; estas 27 revalidaciones se solapan y no son casos únicos adicionales. I2/I3/I4/B1/M2–M9, SQL/carreras/lectores/consumidores/verify/visual y los catorce hallazgos/A/B conservan su revisión pendiente.
+
+El freeze operativo de 7394 terminó exclusivamente para este checkpoint documental propio. Este commit cambia sólo spec y handoff; producto/tests/SQL/lock/config conservan todos sus blobs de 7394. El producto probado sigue siendo 7394; no se transfiere una ejecución nueva al commit documental. Sin modificación de índice ni nueva prueba. No push/bodyedit antes de revisión de este delta; misma PR320 DRAFT contra B, sin ready/merge/deploy o claim release.
+
+Impacto documental: resultado, procedencia y límites guardados sólo en spec/handoff propios. **Conocimiento NO EJECUTADO por turno retenido**: sin generadores, Graphify, Archify, cobertura semántica ni publicación/apertura compartida Obsidian. Tampoco full verify en este checkpoint. El control se devuelve al Director con retención técnica explícita; no se libera el turno ni el claim y no se inicia otra pesada.
