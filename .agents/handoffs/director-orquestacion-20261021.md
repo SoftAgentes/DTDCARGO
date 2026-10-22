@@ -76,6 +76,14 @@ Las tres sesiones leyeron el mensaje humano original, verificaron la autorizaci�
 
 ## Matriz de paralelismo y contratos
 
+### Actualización humana: encargos directos y ejecución M1
+
+Sam autorizó avanzar con las27 pruebas M1 cuando esté listo el paquete y pidió que las tres sesiones actualicen siempre al Director sobre los encargos que les haga directamente. La instrucción fue enviada a las tres: reportar al tomar el encargo o en el siguiente punto seguro, avisar cambios de alcance/permisos/contratos/turnos y bloqueos, y cerrar con evidencia/pendientes. Agrupar novedades útiles sin acuses vacíos; no frenar trabajo ligero independiente por una aprobación rutinaria. Cada owner registra en su artefacto propio. No se creó scheduler ni se modificó AGENTS o memorias personales.
+
+- Pedido directo packing, fuente humana01a160ee-7623-7ac0-b80d-fc713c2f28c3: abrir y mostrar demo completa cliente→proveedor→corrección→confirmación→etiquetas antes de producción. Es revisión visible del recorrido existente, sin código/merge/producción nuevos.
+- Pedido directo GHL, fuente humana01a160ea-e9de-75c3-bc7a-e077695acfac: mantener cuentas separadas y preparar acceso de lectura y aprobación del piloto, sin desconectar canales ni importar datos reales. Borrador abierto sin guardar; concesión/extracción efectiva siguen pendientes de aprobación concreta. Reportes al Director sanitizados.
+- M1: variante nueva hallada en C:/tmp/director-traspaso-20261020/0573-core-M1-verificacion-etapa-preparacion, UNBOUND,900s/reserva60s. La revisión detectó que exigía T01/T03/T04=68pruebas. El Director pidió variante mínima T01-only=27 antes de EJECUTA, sin modificar producto/tests/instalación ni repetir custodia no afectada. Las otras41 quedan fuera de esta corrida. La reserva global sigue en contabilidad.
+
 | Frontera | Responsable | Clasificación y condición |
 |---|---|---|
 | Documento de compra, revisión, confirmación proveedor, etiquetas | Packing / PR319 | PARALELIZABLE con allowlist actual |
