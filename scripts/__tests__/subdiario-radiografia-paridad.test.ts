@@ -413,3 +413,128 @@ describe("SDD-0562 · «Por contabilizar» y la radiografía cuentan igual los n
     expect(await correr(SCRIPT)).toEqual(completa);
   });
 });
+
+
+/**
+ * M7 no redefine T03 como auditor financiero.
+ * T03 adoptado: dd51cda9eab2efd87f641bc8a0d9bd5878274dad, Pblob61c9be7781aefeebeb186fe81933a81cfef23463;
+ * Qblob02d2cc028acc1605c266939f1bfccd53f0f34b3c. Sólo se prueba el contrato de cabeceras vigente.
+ * La paridad heredada anterior permanece literal, incluidos18tenants/91=7/K10/FH2/H/B/restauración.
+ */
+describe("SDD-0573 M7 · paridad de cabeceras separada del perfil financiero", () => {
+  const correrM7 = async (db: PGlite) =>
+    (await db.exec(inline(SCRIPT, QA))).flatMap((r) => r.rows as FilaRadiografia[]);
+  const nM7 = (filas: FilaRadiografia[], orden: number) =>
+    filas.filter((r) => Number(r.orden) === orden).reduce((s, r) => s + Number(r.n), 0);
+
+  /** Filas reales del tenant, con el mismo proyector estricto de los lectores heredados. */
+  async function studioM7(db: PGlite, tenantId: string) {
+    const tablas: Record<string, Fila[]> = {};
+    for (const tabla of TABLAS_DEL_TENANT) {
+      tablas[tabla] = (await db.query<{ fila: Fila }>(
+        `select to_jsonb(x) as fila from public.${tabla} x where x.tenant_id = $1 order by x.id`,
+        [tenantId],
+      )).rows.map((r) => r.fila);
+    }
+    tablas.journal_lines = (await db.query<{ fila: Fila }>(
+      `select to_jsonb(l) as fila from public.journal_lines l join public.journal_entries e on e.id = l.entry_id
+        where e.tenant_id = $1 order by l.id`, [tenantId],
+    )).rows.map((r) => r.fila);
+    const { client } = dobleListados(tablas, { proyectar: true });
+    const [accounts, saldos] = await Promise.all([listAccounts(client), accountBalances(client)]);
+    return cuadreDelLibro(client, { accounts, saldos, hoy: HOY });
+  }
+
+  /** Sin aislamiento que borre otros tenants: el QA ve ambos extremos de cruces inválidos. */
+  async function casoM7(sql: string, comprobar: (
+    db: PGlite, base: FilaRadiografia[], actual: FilaRadiografia[],
+    studio: Awaited<ReturnType<typeof studioM7>>,
+  ) => Promise<void>) {
+    const db = new PGlite();
+    try {
+      await db.exec(inline(FIXTURE, QA));
+      const tenant = (await db.query<{ id: string }>("select pg_temp.t('U')::text as id")).rows[0].id;
+      const crudo = (await db.query<{ n: number; posted: boolean }>(
+        `select count(*)::int as n, bool_and(posted_at is not null and isfinite(posted_at)) as posted
+         from public.journal_entries where id in (pg_temp.id('AFU1'), pg_temp.id('RFU1'))`,
+      )).rows[0];
+      expect(crudo).toEqual({ n: 2, posted: true });
+      const base = await correrM7(db);
+      await db.exec(sql);
+      const actual = await correrM7(db);
+      await comprobar(db, base, actual, await studioM7(db, tenant));
+    } finally {
+      await db.close();
+    }
+  }
+
+  it("espejo incompleto: T03 conserva su juicio de cabeceras y M7 exige revisión", async () => {
+    await casoM7(
+      `update public.journal_lines set debit = 149.15
+        where entry_id = pg_temp.id('RFU1') and account_id = pg_temp.cta('U', '4.5');`,
+      async (_db, base, actual, studio) => {
+        expect(nM7(actual, 40)).toBe(nM7(base, 40) + 1);
+        expect(nM7(actual, 48)).toBe(nM7(base, 48) + 1);
+        expect(studio.documentos.anuladosConAsiento).toEqual([]);
+        expect(studio.subdiario.clientes.estado).toBe("cuadra");
+      },
+    );
+  }, SLOW);
+
+  it("histórico90/documento100 conserva nominal y añade revisión documental sólo en M7", async () => {
+    await casoM7(
+      `update public.invoices set base_amount = 100, iva_amount = 0, total_amount = 100 where id = pg_temp.id('FU1');
+       update public.journal_lines set debit = case when debit > 0 then 90 else 0 end,
+         credit = case when credit > 0 then 90 else 0 end
+         where entry_id in (pg_temp.id('AFU1'), pg_temp.id('RFU1'));`,
+      async (db, base, actual, studio) => {
+        const crudo = (await db.query<{ documento: string; original: string }>(
+          `select total_amount::text as documento,
+            (select sum(debit)::text from public.journal_lines where entry_id = pg_temp.id('AFU1')) as original
+           from public.invoices where id = pg_temp.id('FU1')`,
+        )).rows[0];
+        expect(crudo).toEqual({ documento: "100.00", original: "90.00" });
+        expect(nM7(actual, 40)).toBe(nM7(base, 40));
+        expect(nM7(actual, 48)).toBe(nM7(base, 48) + 1);
+        expect(studio.documentos.anuladosConAsiento).toEqual([]);
+        expect(studio.subdiario.clientes.estado).toBe("cuadra");
+      },
+    );
+  }, SLOW);
+
+  it.each(["VES", "CNY"])("nominal %s: M7 conserva no_comparable bruto y T03 sólo neutraliza cabeceras", async (moneda) => {
+    await casoM7(
+      `update public.invoices set currency = '${moneda}'::invoice_currency, fx_rate = null where id = pg_temp.id('FU1');`,
+      async (_db, base, actual, studio) => {
+        expect(nM7(actual, 40)).toBe(nM7(base, 40));
+        expect(nM7(actual, 48)).toBe(nM7(base, 48));
+        expect(nM7(actual, 23)).toBe(nM7(base, 23) + 1);
+        expect(nM7(actual, 91)).toBe(nM7(base, 91) + 1);
+        expect(studio.documentos.anuladosConAsiento).toEqual([]);
+        expect(studio.subdiario.clientes).toMatchObject({ estado: "cuadra", diferenciaUsd: 0, sinConvertir: 0 });
+      },
+    );
+  }, SLOW);
+
+  it.each([
+    ["tenant", "tenant_id = pg_temp.t('E')"],
+    ["factura", "invoice_id = pg_temp.id('F5')"],
+  ])("cruce de %s conserva ambos extremos en QA y no inventa visibilidad RLS", async (_campo, asignacion) => {
+    await casoM7(
+      `update public.journal_entries set ${asignacion} where id = pg_temp.id('RFU1');`,
+      async (db, base, actual, studio) => {
+        const extremos = (await db.query<{ id: string; tenant_id: string; invoice_id: string; reverses_entry_id: string | null }>(
+          `select id::text, tenant_id::text, invoice_id::text, reverses_entry_id::text from public.journal_entries
+           where id in (pg_temp.id('AFU1'), pg_temp.id('RFU1')) order by source`,
+        )).rows;
+        expect(extremos).toHaveLength(2);
+        expect(extremos[1].reverses_entry_id).toBe(extremos[0].id);
+        expect(extremos[1].tenant_id !== extremos[0].tenant_id || extremos[1].invoice_id !== extremos[0].invoice_id).toBe(true);
+        expect(nM7(actual, 40)).toBe(nM7(base, 40) + 1);
+        expect(nM7(actual, 48)).toBe(nM7(base, 48) + 1);
+        expect(studio.documentos.anuladosConAsiento.map((d) => [d.codigo, d.motivo]))
+          .toEqual([["CENTINELA-F-FU1", "anulado_con_asiento_vivo"]]);
+      },
+    );
+  }, SLOW);
+});

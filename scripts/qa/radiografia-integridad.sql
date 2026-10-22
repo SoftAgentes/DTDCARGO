@@ -21,7 +21,8 @@
 --     cobrado contra sus fuentes), y cada sección empieza por la marca de montos. Las filas
 --     del mayor no llevan monto: el mayor mezcla monedas (B2). Esa salida es sólo para la
 --     conversación: la prueba falla si una fila con la marca aparece en docs/ o .agents/.
---   · Nunca lee nombres, RIF, Shipping Mark, códigos de documento, memos, notas ni referencias;
+--   · Nunca proyecta nombres, RIF, Shipping Mark, códigos de documento, memos, notas ni referencias;
+--     excepción local0573: sólo presencia booleana del código ORIGINAL dentro del EXISTS privado.
 --     el origen libre de un asiento se reduce a una lista cerrada. No convierte monedas: lo que
 --     está en VES/CNY se cuenta aparte y no entra en las sumas en USD.
 --   · Lee public.referrals sólo en id, status, reward_usd, applied_invoice_id, applied_entry_id y
@@ -49,7 +50,7 @@ set local lock_timeout = '5s';
 \if :montos
 set local dtd.radiografia_montos = 'on';
 \endif
-with
+with recursive
 -- Asiento vivo: la única definición. NOT MATERIALIZED deja que cada subconsulta use los índices
 -- de journal_entries (invoice_id, receipt_id, bill_id, supplier_payment_id).
 je_vivo as not materialized (
@@ -69,17 +70,144 @@ lin as (
   join public.journal_lines l on l.entry_id = j.id
   join public.accounts a on a.id = l.account_id
 ),
+-- SDD-0573 M7: contexto BRUTO, antes de validar; conserva borrados, anulados, cruces y extras.
+-- No comparte helpers0497: sólo reproduce su perfil histórico y el espejo multiconjunto.
+m7_cabeceras as (
+  select e.id, e.tenant_id, e.invoice_id, e.source, e.reverses_entry_id,
+         e.status::text as estado, e.deleted_at, e.entry_date, e.posted_at
+  from public.journal_entries e
+),
+-- Universo48 nominal0573: admisión RAW A unión B, antes del perfil y deduplicada por identidad.
+-- B: original de factura anulada/no borrada, incluso borrador/anulado/borrado o tenant cruzado.
+-- A: invoice_reversal siempre; otro origen sólo con padre invoice resuelto. No es un censo global.
+m7_anclas as (
+  select distinct on (ancla) ancla, original_id
+  from (
+    select e.id as ancla, e.id as original_id
+    from m7_cabeceras e
+    join public.invoices d on d.id = e.invoice_id
+    where e.source = 'invoice' and d.status::text = 'anulada' and d.deleted_at is null
+    union all
+    select coalesce(o.id, r.id), o.id
+    from m7_cabeceras r left join m7_cabeceras o on o.id = r.reverses_entry_id
+    where r.source = 'invoice_reversal' or (r.reverses_entry_id is not null and o.source = 'invoice')
+  ) x
+  order by ancla, original_id nulls last
+),
+m7_ascendencia as (
+  select l.id as linea_id, l.entry_id, a.id, a.parent_id, a.tenant_id, a.code,
+         array[a.id] as vistos
+  from m7_anclas x join m7_cabeceras e on e.id = x.original_id
+  join public.journal_lines l on l.entry_id = e.id
+  join public.accounts a on a.id = l.account_id
+  where a.tenant_id = e.tenant_id and a.is_postable
+  union all
+  select c.linea_id, c.entry_id, a.id, a.parent_id, a.tenant_id, a.code, c.vistos || a.id
+  from m7_ascendencia c join public.accounts a on a.id = c.parent_id
+  where a.tenant_id = c.tenant_id and not a.id = any(c.vistos)
+),
+m7_lineas as (
+  select l.id, l.entry_id, l.debit, l.credit,
+         (select min(c.code) from m7_ascendencia c where c.linea_id = l.id
+          and c.code in ('1.1.2','4.5','2.1.5') having count(*) = 1) as clase,
+         not exists (select 1 from m7_ascendencia c where c.linea_id = l.id
+           and c.parent_id is not null and not exists (
+             select 1 from public.accounts p where p.id = c.parent_id
+             and p.tenant_id = c.tenant_id and not p.id = any(c.vistos))) as ascendencia_valida
+  from m7_anclas x join public.journal_lines l on l.entry_id = x.original_id
+),
+m7_ventas as (
+  select e.id,
+         coalesce(count(l.id) >= 2
+           and bool_and(l.clase is not null and l.ascendencia_valida
+             and l.debit is not null and l.credit is not null
+             and l.debit between 0 and 999999999999.99
+             and l.credit between 0 and 999999999999.99
+             and scale(l.debit) <= 2 and scale(l.credit) <= 2
+             and (l.debit = 0 or l.credit = 0)
+             and case l.clase when '1.1.2' then l.credit = 0 and l.debit > 0
+                              when '4.5' then l.debit = 0
+                              when '2.1.5' then l.debit = 0 and l.credit > 0
+                              else false end)
+           and count(*) filter (where l.clase = '1.1.2') = 1
+           and count(*) filter (where l.clase = '4.5') >= 1
+           and sum(l.debit) > 0 and sum(l.debit) = sum(l.credit), false) as perfil_valido,
+         sum(l.debit) filter (where l.clase = '1.1.2') as total_original,
+         sum(l.credit) filter (where l.clase = '4.5') as base_original,
+         coalesce(sum(l.credit) filter (where l.clase = '2.1.5'), 0) as iva_original
+  from m7_anclas x join m7_cabeceras e on e.id = x.original_id
+  left join m7_lineas l on l.entry_id = e.id
+  group by e.id
+),
+m7_pares as (
+  select x.ancla, o.id as original_id, o.invoice_id,
+         coalesce(d.id is not null and d.deleted_at is null and d.status::text = 'anulada'
+           and o.source = 'invoice' and o.reverses_entry_id is null
+           and o.tenant_id = d.tenant_id and o.estado = 'asentado' and o.deleted_at is null
+           and exists (select 1 from public.journal_entries e
+            where e.id = o.id and e.source = 'invoice'
+              and nullif(pg_catalog.btrim(e.entry_code), '') is not null)
+           and o.posted_at is not null and isfinite(o.posted_at)
+           and o.entry_date is not null and isfinite(o.entry_date)
+           and o.entry_date between date '0001-01-01' and date '9999-12-31'
+           and v.perfil_valido
+           and cardinalidad.total = 2 and cardinalidad.originales = 1 and cardinalidad.reversos = 1
+           and r.id is not null and r.source = 'invoice_reversal' and r.reverses_entry_id = o.id
+           and r.invoice_id = d.id and r.tenant_id = d.tenant_id
+           and r.estado = 'asentado' and r.deleted_at is null
+           and r.posted_at is not null and isfinite(r.posted_at)
+           and r.entry_date is not null and isfinite(r.entry_date) and r.entry_date >= o.entry_date
+           and not exists (
+             (select l.account_id, l.credit, l.debit from public.journal_lines l where l.entry_id = o.id
+              except all
+              select l.account_id, l.debit, l.credit from public.journal_lines l where l.entry_id = r.id)
+             union all
+             (select l.account_id, l.debit, l.credit from public.journal_lines l where l.entry_id = r.id
+              except all
+              select l.account_id, l.credit, l.debit from public.journal_lines l where l.entry_id = o.id)
+           ), false) as nominal_acreditado,
+         coalesce(case when d.currency::text in ('USD', 'USDT') then
+             d.base_amount is not null and d.iva_amount is not null and d.total_amount is not null
+             and d.base_amount between 0 and 999999999999.99
+             and d.iva_amount between 0 and 999999999999.99
+             and d.total_amount between 0 and 999999999999.99
+             and scale(d.base_amount) <= 2 and scale(d.iva_amount) <= 2 and scale(d.total_amount) <= 2
+             and d.base_amount + d.iva_amount = d.total_amount
+             and d.base_amount = v.base_original and d.iva_amount = v.iva_original
+             and d.total_amount = v.total_original
+           when d.currency::text in ('VES', 'CNY') then true else false end, false) as documento_concordante
+  from m7_anclas x
+  left join m7_cabeceras o on o.id = x.original_id
+  left join public.invoices d on d.id = o.invoice_id
+  left join m7_ventas v on v.id = o.id
+  -- No elige una contraparte favorable entre varias: si hay más de una, ninguna se acredita.
+  left join m7_cabeceras r on r.reverses_entry_id = o.id
+    and (select count(*) from m7_cabeceras z where z.reverses_entry_id = o.id) = 1
+  cross join lateral (
+    select count(*) as total,
+           count(*) filter (where z.source = 'invoice' and z.reverses_entry_id is null) as originales,
+           count(*) filter (where z.source = 'invoice_reversal') as reversos
+    from m7_cabeceras z
+    where (z.invoice_id = o.invoice_id and (z.source in ('invoice', 'invoice_reversal') or z.reverses_entry_id is not null))
+       or z.reverses_entry_id in (select e.id from m7_cabeceras e where e.invoice_id = o.invoice_id)
+  ) cardinalidad
+),
 -- Facturas no borradas. Abierta = emitida, parcial, pagada o vencida (sin borradores ni anuladas).
-fac as (
+fac_bruto as (
   select i.id, i.tenant_id, i.status::text as estado, i.currency::text as moneda, i.fx_rate,
          i.total_amount, i.paid_amount, i.issued_at,
          i.status::text in ('emitida', 'parcial', 'pagada', 'vencida') as abierta,
-         -- SDD-0573: el asiento de venta con su contra-asiento (invoice_reversal, 0497) ya no está vivo.
+          -- BRUTO: presencia observada; el espejo nunca elimina evidencia de los otros consumidores.
          (select count(*) from je_vivo j where j.source = 'invoice' and j.invoice_id = i.id
-            and not exists (select 1 from je_vivo r where r.source = 'invoice_reversal' and r.reverses_entry_id = j.id)) as asientos,
+          ) as asientos,
          exists (select 1 from public.payment_receipts r where r.invoice_id = i.id and r.deleted_at is null) as con_recibo
   from public.invoices i
   where i.deleted_at is null
+),
+fac as (
+  select f.*, f.asientos - (select count(*) from m7_pares p
+                            where p.invoice_id = f.id and p.nominal_acreditado) as asientos_b1
+  from fac_bruto f
 ),
 -- Recibos, vivos y anulados (anular = deleted_at). El asiento del cobro es 'receipt'; la
 -- reclasificación al identificar un pago sin referencia es 'receipt_reclass'. con_factura: el
@@ -259,9 +387,9 @@ filas (orden, seccion, indicador, n, monto) as (
     group by x.estado, x.origen
   union all select 40, '3 · B1 documentos anulados con asiento vivo', 'facturas anuladas con asiento de venta vivo',
     count(*), sum(total_amount) filter (where moneda in ('USD', 'USDT'))
-    from fac where estado = 'anulada' and asientos > 0
+    from fac where estado = 'anulada' and asientos_b1 > 0
   union all select 41, '3 · B1 documentos anulados con asiento vivo', '  de ellas con abonos (cobrado o recibo vivo)',
-    (select count(*) from fac where estado = 'anulada' and asientos > 0 and (paid_amount > 0 or con_recibo)), null
+    (select count(*) from fac where estado = 'anulada' and asientos_b1 > 0 and (paid_amount > 0 or con_recibo)), null
   union all select 42, '3 · B1 documentos anulados con asiento vivo', 'recibos anulados con asiento de cobro vivo',
     (select count(*) from rec where not vivo and asientos > 0), null
   union all select 43, '3 · B1 documentos anulados con asiento vivo', 'recibos anulados con asiento de reclasificación vivo',
@@ -276,6 +404,8 @@ filas (orden, seccion, indicador, n, monto) as (
   union all select 47, '3 · B1 documentos anulados con asiento vivo', 'asientos de venta vivos cuya factura está borrada o no existe',
     (select count(*) from je_vivo j where j.source = 'invoice'
        and not exists (select 1 from public.invoices i where i.id = j.invoice_id and i.deleted_at is null)), null
+  union all select 48, '3 · B1 documentos anulados con asiento vivo', 'conjuntos de reverso de factura por revisar',
+    (select count(*) from m7_pares where not (nominal_acreditado and documento_concordante)), null
   union all select 50, '4 · B3 documentos sin asiento vivo', 'facturas emitidas, parciales, pagadas o vencidas sin asiento de venta vivo',
     count(*), sum(total_amount) filter (where moneda in ('USD', 'USDT'))
     from fac where abierta and asientos = 0

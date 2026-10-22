@@ -587,9 +587,12 @@ select pg_temp.vincula_recibo('RT1', 'ART1');
 
 -- ════ U (SDD-0573): una factura ANULADA con su asiento de venta y el contra-asiento de la 0497
 -- (invoice_reversal, con reverses_entry_id). El original queda asentado; el par suma cero en 1.1.2
--- y en 4.5. No es B1: la factura anulada ya no tiene un asiento de venta vivo ════
+-- y en 4.5. Ambos siguen vivos en el BRUTO; sólo B1 neutraliza este par íntegro ════
 select pg_temp.factura('U', 'FU1', 'anulada', 'USD', 150.15, 0, '2026-07-14');
 select pg_temp.asiento('U', 'AFU1', 'asentado', 'invoice', '1.1.2', '4.5', 150.15, 'FU1');
 select pg_temp.asiento('U', 'RFU1', 'asentado', 'manual', '4.5', '1.1.2', 150.15);
 update public.journal_entries set source = 'invoice_reversal', invoice_id = pg_temp.id('FU1'),
   reverses_entry_id = pg_temp.id('AFU1') where id = pg_temp.id('RFU1');
+-- Metadata conocida únicamente de este positivo, sin cambiar helper/estado/importes/fechas.
+update public.journal_entries set posted_at = timestamptz '2026-07-14 12:00:00+00'
+where id in (pg_temp.id('AFU1'), pg_temp.id('RFU1'));

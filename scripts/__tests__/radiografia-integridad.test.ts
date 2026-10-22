@@ -153,6 +153,7 @@ const ESPERADO: readonly [number, string, number][] = [
   [45, "pagos a proveedor anulados con asiento vivo", 2], // OP2 OPS1
   [46, "asientos de crédito de referido vivos sin crédito aplicado", 2], // AQ3 (Q3 revertido) AQ5 (sin referral_id ni applied_entry_id)
   [47, "asientos de venta vivos cuya factura está borrada o no existe", 2], // AFP1 (FP1 borrada) AFP2 (sin invoice_id)
+  [48, "conjuntos de reverso de factura por revisar", 5], // AF4 AF5 AF16 AF17 AFJ2; universo nominal0573, U íntegro aporta0
   // A 7 (F2 F3 F6 F7 F13 F19 F20) + FB3 FC1 FH2 FI1 FK2 FM3 FN1 FS2 FT1 (FI2 tiene AFI2)
   [50, "facturas emitidas, parciales, pagadas o vencidas sin asiento de venta vivo", 16],
   [51, "recibos vivos sin asiento de cobro vivo", 6], // R3 R8 R13 R16 R17 RB2
@@ -317,7 +318,8 @@ const MUTANTES_DEL_DIRECTOR: Mutante[] = [
     a: "(select count(*) from je_vivo j where j.invoice_id = i.id\n",
     // F3 queda «con asiento» por el crédito AQ1; F15 suma AQ3 y AQ5 y sale duplicada; y FU1,
     // anulada, cuenta su contra-asiento RFU1 como asiento de venta y sale como B1 (SDD-0573).
-    cambia: { "40": 5, "50": 15, "60": 2 },
+    // Adopción3556/91a07f71: bruto conserva AFU1+RFU1; FJ1/F15/FU1 son tres duplicados.
+    cambia: { "40": 5, "50": 15, "60": 3 },
   },
   {
     nombre: "recibo sin asiento = recibo sin vínculo",
@@ -361,8 +363,9 @@ const MUTANTES_DE_REGLAS: Mutante[] = [
   {
     // SDD-0573: sin mirar el contra-asiento, la factura anulada FU1 vuelve a ser B1.
     nombre: "anulada con su reverso cuenta como B1",
-    de: "\n            and not exists (select 1 from je_vivo r where r.source = 'invoice_reversal' and r.reverses_entry_id = j.id)) as asientos,",
-    a: ") as asientos,",
+    de: "f.asientos - (select count(*) from m7_pares p\n"
+      + "                            where p.invoice_id = f.id and p.nominal_acreditado)",
+    a: "f.asientos",
     cambia: { "40": 5 },
   },
   {
@@ -884,6 +887,23 @@ const IDENTIFICADORES_PROHIBIDOS = new RegExp(
     + "contact_[a-z]+|display_name|slug|resolution_reason|cancelled_by|confirmed_by|billing_[a-z_]+)\\b",
   "gi",
 );
+/** Excepción LOCAL0573/3936c23d: sólo este booleano de presencia del ORIGINAL, nunca su texto. */
+const PRESENCIA_CODIGO_ORIGINAL = "exists (select 1 from public.journal_entries e\n"
+  + "            where e.id = o.id and e.source = 'invoice'\n"
+  + "              and nullif(pg_catalog.btrim(e.entry_code), '') is not null)";
+const LUGAR_CODIGO_ORIGINAL = "and o.source = 'invoice' and o.reverses_entry_id is null\n"
+  + "           and o.tenant_id = d.tenant_id and o.estado = 'asentado' and o.deleted_at is null\n"
+  + "           and " + PRESENCIA_CODIGO_ORIGINAL + "\n"
+  + "           and o.posted_at is not null and isfinite(o.posted_at)";
+
+/** Reconocimiento literal acotado, no parser ni acreditación semántica universal. */
+function sqlParaPrivacidad(sql: string): string {
+  const limpio = sinComentarios(sql);
+  const partes = limpio.split(PRESENCIA_CODIGO_ORIGINAL);
+  if (partes.length !== 2) throw new Error("M7: presencia de código original debe aparecer exactamente una vez");
+  if (limpio.split(LUGAR_CODIGO_ORIGINAL).length !== 2) throw new Error("M7: ubicación exclusiva del original");
+  return partes.join("true");
+}
 /** Cualquier palabra que escribe, sin exigir su forma completa (un alias o `only` no la esconden). */
 const ESCRITURA = /\b(insert|update|delete|merge|into|create|alter|drop|truncate|grant|revoke|copy|call|nextval|setval)\b/gi;
 /**
@@ -1073,10 +1093,10 @@ describe("SDD-0559 · radiografía de integridad contable (PGlite)", () => {
 
   it("estático: el script no nombra columnas de texto del negocio ni escribe", () => {
     const sql = sinComentarios(SCRIPT);
-    expect(hallazgos(IDENTIFICADORES_PROHIBIDOS, sql)).toEqual([]);
+    expect(hallazgos(IDENTIFICADORES_PROHIBIDOS, sqlParaPrivacidad(sql))).toEqual([]);
     expect(hallazgos(ESCRITURA, sql)).toEqual([]);
     // Control: la fuga se detecta antes de correr nada.
-    expect(hallazgos(IDENTIFICADORES_PROHIBIDOS, sinComentarios(mutar(FUGA.de, FUGA.a)))).toEqual(["client_name"]);
+    expect(hallazgos(IDENTIFICADORES_PROHIBIDOS, sqlParaPrivacidad(mutar(FUGA.de, FUGA.a)))).toEqual(["client_name"]);
     // Control: la escritura se detecta con alias, con `only` y con comillas.
     expect(hallazgos(ESCRITURA, sinComentarios(mutar(ANCLA, ANCLA + "update public.invoices as i set paid_amount = i.paid_amount where false;\n"))))
       .toEqual(["update"]);
@@ -1143,5 +1163,504 @@ describe("SDD-0559 · radiografía de integridad contable (PGlite)", () => {
     // Control: la misma función detecta una fila sintética en modo montos.
     expect(filasDeMontos("40|MONTOS-NO-VA-A-GIT · 3 · B1 documentos anulados con asiento vivo|x|1|1.00")).toHaveLength(1);
     expect(filasDeMontos("la marca `MONTOS-NO-VA-A-GIT · ` encabeza cada sección")).toHaveLength(0);
+  }, SLOW);
+});
+
+
+/** M7: escenarios propios; no cambian las semillas ni los oráculos heredados. */
+describe("SDD-0573 M7 · perfil histórico y conjuntos de reverso por revisar", () => {
+  let baseM7: Fila[] = [];
+  const consulta = async (db: PGlite, sql = SCRIPT) =>
+    (await db.exec(inline(sql, QA))).flatMap((r) => r.rows as Fila[]);
+  const n = (filas: Fila[], orden: number) => Number(aMapa(filas).get(String(orden)));
+  const original = "pg_temp.id('AFU1')";
+  const reverso = "pg_temp.id('RFU1')";
+  const factura = "pg_temp.id('FU1')";
+
+  async function precondiciones(db: PGlite, lineasO = 2, lineasR = 2) {
+    const r = (await db.query<{
+      cabeceras: number; tenant_unico: boolean; relacionadas: boolean; vivas: boolean;
+      posted_conocido: boolean; fechas_validas: boolean; fechas_iguales: boolean; lineas_o: number; lineas_r: number;
+    }>(`select count(*)::int as cabeceras,
+          count(distinct tenant_id) = 1 as tenant_unico,
+          bool_and(invoice_id = ${factura}
+            and case source when 'invoice' then reverses_entry_id is null
+                            when 'invoice_reversal' then reverses_entry_id = ${original}
+                            else false end) as relacionadas,
+          bool_and(status = 'asentado' and deleted_at is null) as vivas,
+          bool_and(posted_at is not null and isfinite(posted_at)) as posted_conocido,
+          bool_and(isfinite(entry_date) and entry_date between date '0001-01-01' and date '9999-12-31') as fechas_validas,
+          min(entry_date) = max(entry_date) as fechas_iguales,
+          (select count(*)::int from public.journal_lines where entry_id = ${original}) as lineas_o,
+          (select count(*)::int from public.journal_lines where entry_id = ${reverso}) as lineas_r
+        from public.journal_entries where id in (${original}, ${reverso})`)).rows[0];
+    expect(r).toEqual({ cabeceras: 2, tenant_unico: true, relacionadas: true, vivas: true,
+      posted_conocido: true, fechas_validas: true, fechas_iguales: true, lineas_o: lineasO, lineas_r: lineasR });
+  }
+
+  /** Cada caso tiene una base sintética propia; setup confirmado antes del BEGIN READ ONLY QA. */
+  async function conFixture(f: (db: PGlite) => Promise<void>) {
+    const db = new PGlite();
+    try {
+      await db.exec(inline(FIXTURE, QA));
+      await precondiciones(db);
+      await f(db);
+    } finally {
+      await db.close();
+    }
+  }
+
+  beforeAll(async () => {
+    await conFixture(async (db) => {
+      baseM7 = await consulta(db);
+      expect(Object.fromEntries(aMapa(baseM7))).toEqual(Object.fromEntries(BASE));
+      expect(violaciones(baseM7, "conteos")).toEqual([]);
+    });
+  }, SLOW);
+
+  const baseCeroIVA = `
+    insert into public.accounts (tenant_id, code, name, type, is_postable)
+      values (pg_temp.t('U'), '2.1.5', 'CENTINELA-IVA-M7', 'P', true);
+    update public.invoices set base_amount = 0, iva_amount = 150.15 where id = ${factura};
+    update public.journal_lines set credit = 0
+      where entry_id = ${original} and account_id = pg_temp.cta('U', '4.5');
+    update public.journal_lines set debit = 0
+      where entry_id = ${reverso} and account_id = pg_temp.cta('U', '4.5');
+    insert into public.journal_lines (entry_id, account_id, debit, credit) values
+      (${original}, pg_temp.cta('U', '2.1.5'), 0, 150.15),
+      (${reverso}, pg_temp.cta('U', '2.1.5'), 150.15, 0);`;
+
+  const rechazos: { nombre: string; sql: string; b1: number; bruto?: number; revision?: number;
+    duplicados?: number; lineas?: [number, number]; sumasR?: [string, string] }[] = [
+    { nombre: "factura vigente con reverso", b1: 0,
+      sql: `update public.invoices set status = 'emitida' where id = ${factura};` },
+    { nombre: "factura borrada con ambos extremos conservados", b1: 0,
+      sql: `update public.invoices set deleted_at = now() where id = ${factura};` },
+    { nombre: "original anulado no se convierte en vivo", b1: 0, bruto: 0,
+      sql: `update public.journal_entries set status = 'anulado' where id = ${original};` },
+    { nombre: "original borrado permanece en contexto", b1: 0, bruto: 0,
+      sql: `update public.journal_entries set deleted_at = now() where id = ${original};` },
+    { nombre: "reverso borrador", b1: 1,
+      sql: `update public.journal_entries set status = 'borrador' where id = ${reverso};` },
+    { nombre: "reverso anulado", b1: 1,
+      sql: `update public.journal_entries set status = 'anulado' where id = ${reverso};` },
+    { nombre: "reverso borrado", b1: 1,
+      sql: `update public.journal_entries set deleted_at = now() where id = ${reverso};` },
+    { nombre: "tenant del reverso cruzado sin eliminarlo", b1: 1,
+      sql: `update public.journal_entries set tenant_id = pg_temp.t('E') where id = ${reverso};` },
+    { nombre: "factura del reverso distinta con backlink conservado", b1: 1,
+      sql: `update public.journal_entries set invoice_id = pg_temp.id('F5') where id = ${reverso};` },
+    { nombre: "tenant documental distinto", b1: 1,
+      sql: `update public.invoices set tenant_id = pg_temp.t('E') where id = ${factura};` },
+    { nombre: "origen manual no sustituye invoice_reversal", b1: 1,
+      sql: `update public.journal_entries set source = 'manual' where id = ${reverso};` },
+    { nombre: "backlink del original no es NULL", b1: 1,
+      sql: `update public.journal_entries set reverses_entry_id = id where id = ${original};` },
+    { nombre: "posted_at ausente del original", b1: 1,
+      sql: `update public.journal_entries set posted_at = null where id = ${original};` },
+    { nombre: "posted_at ausente del reverso", b1: 1,
+      sql: `update public.journal_entries set posted_at = null where id = ${reverso};` },
+    { nombre: "fecha no finita del original", b1: 1,
+      sql: `update public.journal_entries set entry_date = date '-infinity' where id = ${original};` },
+    { nombre: "reverso anterior al original", b1: 1,
+      sql: `update public.journal_entries set entry_date = entry_date - 1 where id = ${reverso};` },
+    { nombre: "posted_at no finito del reverso", b1: 1,
+      sql: `update public.journal_entries set posted_at = timestamptz 'infinity' where id = ${reverso};` },
+    { nombre: "original sin líneas aunque los UUID coinciden", b1: 1, lineas: [0, 2],
+      sql: `delete from public.journal_lines where entry_id = ${original};` },
+    { nombre: "dos cabeceras sin ninguna línea no forman un par", b1: 1, lineas: [0, 0],
+      sql: `delete from public.journal_lines where entry_id in (${original}, ${reverso});` },
+    { nombre: "espejo de importe incompleto", b1: 1, lineas: [2, 2], sumasR: ["149.15", "150.15"],
+      sql: `update public.journal_lines set debit = 149.15
+        where entry_id = ${reverso} and account_id = pg_temp.cta('U', '4.5');` },
+    { nombre: "cuenta de otro tenant en las dos caras del espejo", b1: 1,
+      sql: `update public.journal_lines set account_id = pg_temp.cta('E', '1.1.2')
+        where entry_id in (${original}, ${reverso}) and account_id = pg_temp.cta('U', '1.1.2');` },
+    { nombre: "cuenta no imputable", b1: 1,
+      sql: `update public.accounts set is_postable = false where id = pg_temp.cta('U', '4.5');` },
+    { nombre: "ascendencia cruzada aunque el código conserve el prefijo", b1: 1,
+      sql: `update public.accounts set parent_id = pg_temp.cta('E', '4.5') where id = pg_temp.cta('U', '4.5');` },
+    { nombre: "ciclo de ascendencia real", b1: 1,
+      sql: `insert into public.accounts (tenant_id, code, name, type, is_postable, parent_id)
+        values (pg_temp.t('U'), '4.5.9', 'CENTINELA-CICLO', 'I', false, pg_temp.cta('U', '4.5'));
+        update public.accounts set parent_id = pg_temp.cta('U', '4.5.9') where id = pg_temp.cta('U', '4.5');` },
+    { nombre: "una línea pertenece a dos clases de control", b1: 1,
+      sql: `update public.accounts set parent_id = pg_temp.cta('U', '1.1.2') where id = pg_temp.cta('U', '4.5');` },
+    { nombre: "prefijo sin ascendencia hasta la clase real", b1: 1,
+      sql: `insert into public.accounts (tenant_id, code, name, type, is_postable)
+        values (pg_temp.t('U'), '4.5.9.1', 'CENTINELA-HUERFANA', 'I', true);
+        update public.journal_lines set account_id = pg_temp.cta('U', '4.5.9.1')
+        where entry_id in (${original}, ${reverso}) and account_id = pg_temp.cta('U', '4.5');` },
+    { nombre: "multiplicidad distinta con mismos agregados y mismos valores distintos", b1: 1,
+      sql: baseCeroIVA + `insert into public.journal_lines (entry_id, account_id, debit, credit)
+        values (${original}, pg_temp.cta('U', '4.5'), 0, 0);` },
+    { nombre: "segundo reverso no permite elegir el favorable", b1: 1,
+      sql: `select pg_temp.asiento('U', 'RM7-extra', 'asentado', 'manual', '4.5', '1.1.2', 150.15);
+        update public.journal_entries set source = 'invoice_reversal', invoice_id = ${factura},
+          reverses_entry_id = ${original}, posted_at = timestamptz '2026-07-14 12:00:00+00'
+        where id = pg_temp.id('RM7-extra');` },
+    { nombre: "segundo original retiene dos anclas distintas y el duplicado", b1: 1, bruto: 2, revision: 2, duplicados: 1,
+      sql: `select pg_temp.asiento('U', 'OM7-extra', 'asentado', 'invoice', '1.1.2', '4.5', 150.15, 'FU1');
+        update public.journal_entries set posted_at = timestamptz '2026-07-14 12:00:00+00' where id = pg_temp.id('OM7-extra');` },
+    { nombre: "original todo cero con documento cero no acredita movimiento", b1: 1,
+      sql: `update public.invoices set base_amount = 0, iva_amount = 0, total_amount = 0 where id = ${factura};
+        update public.journal_lines set debit = 0, credit = 0 where entry_id in (${original}, ${reverso});` },
+    { nombre: "base persistida ausente no se infiere del cobrado (schema sintético explícito)", b1: 0,
+      sql: `alter table public.invoices alter column base_amount drop not null;
+        update public.invoices set base_amount = null where id = ${factura};` },
+    { nombre: "IVA persistido ausente no se presume cero (schema sintético explícito)", b1: 0,
+      sql: `alter table public.invoices alter column iva_amount drop not null;
+        update public.invoices set iva_amount = null where id = ${factura};` },
+    { nombre: "total persistido ausente no se reconstruye (schema sintético explícito)", b1: 0,
+      sql: `alter table public.invoices alter column total_amount drop not null;
+        update public.invoices set total_amount = null where id = ${factura};` },
+    { nombre: "componentes documentales inconsistentes no revocan el espejo nominal", b1: 0,
+      sql: `update public.invoices set base_amount = 149.15 where id = ${factura};` },
+    { nombre: "escala excesiva conservada explícitamente en esquema sintético", b1: 1,
+      sql: `alter table public.journal_lines alter column debit type numeric, alter column credit type numeric;
+        update public.journal_lines set debit = case when debit > 0 then 150.155 else 0 end,
+          credit = case when credit > 0 then 150.155 else 0 end where entry_id in (${original}, ${reverso});` },
+    { nombre: "rango excesivo conservado explícitamente en esquema sintético", b1: 1,
+      sql: `alter table public.journal_lines alter column debit type numeric, alter column credit type numeric;
+        update public.journal_lines set debit = case when debit > 0 then 1000000000000 else 0 end,
+          credit = case when credit > 0 then 1000000000000 else 0 end where entry_id in (${original}, ${reverso});` },
+  ];
+
+
+  // Derivación exhaustiva previa: 0573-M7-universo48-fronteras-derivacion-worker.md.
+  // Altas en borrador/anulado: ejercitan admisión RAW sin modificar mayor, presencia viva o dinero.
+  const fronteras: { nombre: string; sql: string; crudo: string; cambia: Record<string, number | null> }[] = [
+    { nombre: "AF4 borrador sin reverso permanece visible sin convertirse en B1", sql: "",
+      crudo: `exists (select 1 from public.journal_entries o join public.invoices d on d.id = o.invoice_id
+        where o.id = pg_temp.id('AF4') and o.source = 'invoice' and o.status = 'borrador'
+          and o.deleted_at is null and d.status = 'anulada' and d.deleted_at is null)
+        and not exists (select 1 from public.journal_entries where reverses_entry_id = pg_temp.id('AF4'))`,
+      cambia: {} },
+    { nombre: "original anulado de anulada sin reverso se admite antes del estado",
+      sql: `update public.journal_entries set status = 'anulado' where id = pg_temp.id('AF4');`,
+      crudo: `exists (select 1 from public.journal_entries o join public.invoices d on d.id = o.invoice_id
+        where o.id = pg_temp.id('AF4') and o.source = 'invoice' and o.status = 'anulado'
+          and d.status = 'anulada' and d.deleted_at is null)
+        and not exists (select 1 from public.journal_entries where reverses_entry_id = pg_temp.id('AF4'))`,
+      cambia: { "30|asientos · borrador · invoice": null, "30|asientos · anulado · invoice": 1 } },
+    { nombre: "original borrado de anulada sin reverso no desaparece del contexto",
+      sql: `update public.journal_entries set deleted_at = now() where id = pg_temp.id('AF4');`,
+      crudo: `exists (select 1 from public.journal_entries o join public.invoices d on d.id = o.invoice_id
+        where o.id = pg_temp.id('AF4') and o.source = 'invoice' and o.deleted_at is not null
+          and d.status = 'anulada' and d.deleted_at is null)
+        and not exists (select 1 from public.journal_entries where reverses_entry_id = pg_temp.id('AF4'))`,
+      cambia: { "30|asientos · borrador · invoice": null } },
+    { nombre: "tenant del original cruzado sin reverso no filtra la admisión B",
+      sql: `update public.journal_entries set tenant_id = pg_temp.t('E') where id = pg_temp.id('AF4');`,
+      crudo: `exists (select 1 from public.journal_entries o join public.invoices d on d.id = o.invoice_id
+        where o.id = pg_temp.id('AF4') and o.source = 'invoice' and o.status = 'borrador'
+          and o.tenant_id <> d.tenant_id and d.status = 'anulada' and d.deleted_at is null)
+        and not exists (select 1 from public.journal_entries where reverses_entry_id = pg_temp.id('AF4'))`,
+      cambia: {} },
+    { nombre: "original defectuoso de vigente sin reverso queda fuera sin certificarlo",
+      sql: `select pg_temp.asiento('A', 'OM7-vigente', 'anulado', 'invoice', '1.1.2', '4.5', 1, 'F1');`,
+      crudo: `exists (select 1 from public.journal_entries o join public.invoices d on d.id = o.invoice_id
+        where o.id = pg_temp.id('OM7-vigente') and o.source = 'invoice' and o.status = 'anulado'
+          and d.status = 'emitida' and d.deleted_at is null)
+        and not exists (select 1 from public.journal_entries where reverses_entry_id = pg_temp.id('OM7-vigente'))`,
+      cambia: { "30|asientos · anulado · invoice": 1 } },
+    { nombre: "invoice_reversal con padre resuelto de otro origen conserva su ancla",
+      sql: `select pg_temp.asiento('A', 'RM7-padre-ajeno', 'borrador', 'manual', '4.5', '1.1.2', 1);
+        update public.journal_entries set source = 'invoice_reversal', invoice_id = pg_temp.id('F1'),
+          reverses_entry_id = pg_temp.id('M1') where id = pg_temp.id('RM7-padre-ajeno');`,
+      crudo: `exists (select 1 from public.journal_entries r join public.journal_entries o on o.id = r.reverses_entry_id
+        where r.id = pg_temp.id('RM7-padre-ajeno') and r.source = 'invoice_reversal'
+          and r.status = 'borrador' and r.invoice_id = pg_temp.id('F1') and o.source = 'manual')`,
+      cambia: { "30|asientos · borrador · invoice_reversal": 1, "48": 6 } },
+    { nombre: "otro origen con padre invoice resuelto entra por A2 aunque el documento esté vigente",
+      sql: `select pg_temp.asiento('A', 'RM7-origen-ajeno', 'borrador', 'manual', '4.5', '1.1.2', 1);
+        update public.journal_entries set invoice_id = pg_temp.id('F1'), reverses_entry_id = pg_temp.id('AF1')
+          where id = pg_temp.id('RM7-origen-ajeno');`,
+      crudo: `exists (select 1 from public.journal_entries r join public.journal_entries o on o.id = r.reverses_entry_id
+        join public.invoices d on d.id = o.invoice_id
+        where r.id = pg_temp.id('RM7-origen-ajeno') and r.source = 'manual' and r.status = 'borrador'
+          and o.source = 'invoice' and d.status = 'emitida')`,
+      cambia: { "30|asientos · borrador · manual": 2, "48": 6 } },
+    { nombre: "invoice_reversal con backlink no resoluble no pierde el contexto",
+      // Sólo esta DB ficticia permite preparar la corrupción; no se aplica0497 ni se altera la QA.
+      sql: `alter table public.journal_entries drop constraint journal_entries_reverses_entry_id_fkey;
+        select pg_temp.asiento('A', 'RM7-padre-ausente', 'borrador', 'manual', '4.5', '1.1.2', 1);
+        update public.journal_entries set source = 'invoice_reversal', invoice_id = pg_temp.id('F1'),
+          reverses_entry_id = pg_temp.id('M7-no-existe') where id = pg_temp.id('RM7-padre-ausente');`,
+      crudo: `exists (select 1 from public.journal_entries r left join public.journal_entries o on o.id = r.reverses_entry_id
+        where r.id = pg_temp.id('RM7-padre-ausente') and r.source = 'invoice_reversal'
+          and r.status = 'borrador' and r.invoice_id = pg_temp.id('F1')
+          and r.reverses_entry_id is not null and o.id is null)`,
+      cambia: { "30|asientos · borrador · invoice_reversal": 1, "48": 6 } },
+    { nombre: "varios reversos sobre un mismo original se deduplican por identidad",
+      sql: `select pg_temp.asiento('A', 'RM7-mismo-1', 'borrador', 'manual', '4.5', '1.1.2', 1);
+        select pg_temp.asiento('A', 'RM7-mismo-2', 'borrador', 'manual', '4.5', '1.1.2', 1);
+        update public.journal_entries set source = 'invoice_reversal', invoice_id = pg_temp.id('F1'),
+          reverses_entry_id = pg_temp.id('AF1') where id in (pg_temp.id('RM7-mismo-1'), pg_temp.id('RM7-mismo-2'));`,
+      crudo: `(select count(*) = 2 and count(distinct r.reverses_entry_id) = 1 and bool_and(o.source = 'invoice'
+          and r.source = 'invoice_reversal' and r.status = 'borrador')
+        from public.journal_entries r join public.journal_entries o on o.id = r.reverses_entry_id
+        where r.id in (pg_temp.id('RM7-mismo-1'), pg_temp.id('RM7-mismo-2')))`,
+      cambia: { "30|asientos · borrador · invoice_reversal": 2, "48": 6 } },
+    { nombre: "originales distintos con relación observada conservan dos anclas",
+      sql: `select pg_temp.asiento('A', 'RM7-distinto-1', 'borrador', 'manual', '4.5', '1.1.2', 1);
+        select pg_temp.asiento('A', 'RM7-distinto-2', 'borrador', 'manual', '4.5', '1.1.2', 1);
+        update public.journal_entries set source = 'invoice_reversal',
+          invoice_id = case id when pg_temp.id('RM7-distinto-1') then pg_temp.id('F1') else pg_temp.id('F8') end,
+          reverses_entry_id = case id when pg_temp.id('RM7-distinto-1') then pg_temp.id('AF1') else pg_temp.id('AF8') end
+          where id in (pg_temp.id('RM7-distinto-1'), pg_temp.id('RM7-distinto-2'));`,
+      crudo: `(select count(*) = 2 and count(distinct o.id) = 2 and bool_and(o.source = 'invoice'
+          and d.status = 'emitida' and r.source = 'invoice_reversal' and r.status = 'borrador')
+        from public.journal_entries r join public.journal_entries o on o.id = r.reverses_entry_id
+        join public.invoices d on d.id = o.invoice_id
+        where r.id in (pg_temp.id('RM7-distinto-1'), pg_temp.id('RM7-distinto-2')))`,
+      cambia: { "30|asientos · borrador · invoice_reversal": 2, "48": 7 } },
+    { nombre: "dos reversos huérfanos distintos conservan sus dos identidades",
+      sql: `select pg_temp.asiento('A', 'RM7-huerfano-1', 'borrador', 'manual', '4.5', '1.1.2', 1);
+        select pg_temp.asiento('A', 'RM7-huerfano-2', 'borrador', 'manual', '4.5', '1.1.2', 1);
+        update public.journal_entries set source = 'invoice_reversal', invoice_id = pg_temp.id('F1')
+          where id in (pg_temp.id('RM7-huerfano-1'), pg_temp.id('RM7-huerfano-2'));`,
+      crudo: `(select count(*) = 2 and count(distinct id) = 2
+          and bool_and(source = 'invoice_reversal' and status = 'borrador' and reverses_entry_id is null)
+        from public.journal_entries where id in (pg_temp.id('RM7-huerfano-1'), pg_temp.id('RM7-huerfano-2')))`,
+      cambia: { "30|asientos · borrador · invoice_reversal": 2, "48": 7 } },
+    { nombre: "reverso de otro dominio con padre receipt no se incorpora por invoice_id",
+      sql: `select pg_temp.asiento('A', 'RM7-receipt', 'borrador', 'manual', '4.5', '1.1.2', 1);
+        update public.journal_entries set source = 'receipt_reversal', invoice_id = pg_temp.id('F1'),
+          receipt_id = pg_temp.id('R1'), reverses_entry_id = pg_temp.id('AR1') where id = pg_temp.id('RM7-receipt');`,
+      crudo: `exists (select 1 from public.journal_entries r join public.journal_entries o on o.id = r.reverses_entry_id
+        where r.id = pg_temp.id('RM7-receipt') and r.source = 'receipt_reversal' and r.status = 'borrador'
+          and r.invoice_id = pg_temp.id('F1') and o.source = 'receipt')`,
+      cambia: { "30|asientos · borrador · otro": 1 } },
+    { nombre: "origen irreconocible con backlink no resoluble queda fuera sin certificación global",
+      sql: `alter table public.journal_entries drop constraint journal_entries_reverses_entry_id_fkey;
+        select pg_temp.asiento('A', 'RM7-irreconocible', 'borrador', 'manual', '4.5', '1.1.2', 1);
+        update public.journal_entries set invoice_id = pg_temp.id('F1'), reverses_entry_id = pg_temp.id('M7-no-existe')
+          where id = pg_temp.id('RM7-irreconocible');`,
+      crudo: `exists (select 1 from public.journal_entries r left join public.journal_entries o on o.id = r.reverses_entry_id
+        where r.id = pg_temp.id('RM7-irreconocible') and r.source = 'manual' and r.status = 'borrador'
+          and r.invoice_id = pg_temp.id('F1') and r.reverses_entry_id is not null and o.id is null)`,
+      cambia: { "30|asientos · borrador · manual": 2 } },
+  ];
+
+  it.each(fronteras)("universo48 · $nombre", async (caso) => {
+    await conFixture(async (db) => {
+      if (caso.sql) await db.exec(caso.sql);
+      const crudo = (await db.query<{ ok: boolean }>(`select ${caso.crudo} as ok`)).rows[0];
+      expect(crudo).toEqual({ ok: true });
+      const filas = await consulta(db);
+      expect(cambios(filas)).toEqual(caso.cambia);
+      expect(n(filas, 40)).toBe(4);
+      expect(filas.find((f) => Number(f.orden) === 48)?.monto_usd).toBeNull();
+      expect(violaciones(filas, "conteos")).toEqual([]);
+    });
+  }, SLOW);
+
+
+  it.each(rechazos)("rechaza: $nombre", async (caso) => {
+    await conFixture(async (db) => {
+      await db.exec(caso.sql);
+      if (caso.lineas) await precondiciones(db, ...caso.lineas);
+      if (caso.sumasR) {
+        const sumas = (await db.query<{ debe: string; haber: string }>(`select sum(debit)::text as debe,
+          sum(credit)::text as haber from public.journal_lines where entry_id = ${reverso}`)).rows[0];
+        expect(sumas).toEqual({ debe: caso.sumasR[0], haber: caso.sumasR[1] });
+      }
+      const bruto = (await db.query<{ n: number }>(`select count(*)::int as n from public.journal_entries
+        where invoice_id = ${factura} and source = 'invoice' and status = 'asentado' and deleted_at is null`)).rows[0].n;
+      expect(bruto).toBe(caso.bruto ?? 1);
+      const filas = await consulta(db);
+      expect(n(filas, 40)).toBe(n(baseM7, 40) + caso.b1);
+      expect(n(filas, 48)).toBe(n(baseM7, 48) + (caso.revision ?? 1));
+      expect(n(filas, 60)).toBe(n(baseM7, 60) + (caso.duplicados ?? 0));
+      expect(violaciones(filas, "conteos")).toEqual([]);
+      expect(filas.find((f) => Number(f.orden) === 48)?.monto_usd).toBeNull();
+    });
+  }, SLOW);
+
+
+  it("U íntegro conserva ambas cabeceras vivas y neutraliza sólo B1", async () => {
+    await conFixture(async (db) => {
+      const filas = await consulta(db);
+      expect(filas).toEqual(baseM7);
+      expect(n(filas, 40)).toBe(4);
+      expect(n(filas, 48)).toBe(5);
+      expect(n(filas, 12)).toBe(83);
+      const r = (await db.query<{ debe: string; haber: string }>(`select sum(debit)::text as debe,
+        sum(credit)::text as haber from public.journal_lines where entry_id = ${original}`)).rows[0];
+      expect(r).toEqual({ debe: "150.15", haber: "150.15" });
+    });
+  }, SLOW);
+
+  it("base cero con IVA positivo tiene movimiento y espejo nominal válidos", async () => {
+    await conFixture(async (db) => {
+      await db.exec(baseCeroIVA);
+      const filas = await consulta(db);
+      expect(n(filas, 40)).toBe(n(baseM7, 40));
+      expect(n(filas, 48)).toBe(n(baseM7, 48));
+      const r = (await db.query<{ lineas: number; ceros: number; positivo: boolean }>(`select count(*)::int as lineas,
+        count(*) filter (where debit = 0 and credit = 0)::int as ceros, sum(debit) > 0 as positivo
+        from public.journal_lines where entry_id = ${original}`)).rows[0];
+      expect(r).toEqual({ lineas: 3, ceros: 1, positivo: true });
+    });
+  }, SLOW);
+
+  it("histórico90/documento100 neutraliza nominal sin ocultar la diferencia documental", async () => {
+    await conFixture(async (db) => {
+      await db.exec(`update public.invoices set base_amount = 100, iva_amount = 0, total_amount = 100 where id = ${factura};
+        update public.journal_lines set debit = case when debit > 0 then 90 else 0 end,
+          credit = case when credit > 0 then 90 else 0 end where entry_id in (${original}, ${reverso});`);
+      const r = (await db.query<{ documento: string; original: string }>(`select total_amount::text as documento,
+        (select sum(debit)::text from public.journal_lines where entry_id = ${original}) as original
+        from public.invoices where id = ${factura}`)).rows[0];
+      expect(r).toEqual({ documento: "100.00", original: "90.00" });
+      const filas = await consulta(db);
+      expect(n(filas, 40)).toBe(n(baseM7, 40));
+      expect(n(filas, 48)).toBe(n(baseM7, 48) + 1);
+      expect(filas.find((f) => Number(f.orden) === 48)?.monto_usd).toBeNull();
+    });
+  }, SLOW);
+
+  it.each(["VES", "CNY"])("par nominal %s no se convierte aUSD ni pierde su presencia bruta", async (moneda) => {
+    await conFixture(async (db) => {
+      await db.query(`update public.invoices set currency = $1::invoice_currency, fx_rate = null where id = ${factura}`, [moneda]);
+      const filas = await consulta(db);
+      expect(n(filas, 40)).toBe(n(baseM7, 40));
+      expect(n(filas, 48)).toBe(n(baseM7, 48));
+      expect(n(filas, 23)).toBe(n(baseM7, 23) + 1);
+      expect(n(filas, 91)).toBe(n(baseM7, 91) + 1);
+      expect(n(filas, 93)).toBe(n(baseM7, 93) - 1);
+      expect(violaciones(filas, "conteos")).toEqual([]);
+    });
+  }, SLOW);
+
+  it("documento cero sin par no fabrica una incidencia", async () => {
+    await conFixture(async (db) => {
+      await db.exec(`delete from public.journal_entries where id = ${reverso};
+        delete from public.journal_entries where id = ${original};
+        update public.invoices set base_amount = 0, iva_amount = 0, total_amount = 0 where id = ${factura};`);
+      const filas = await consulta(db);
+      expect(n(filas, 40)).toBe(n(baseM7, 40));
+      expect(n(filas, 48)).toBe(n(baseM7, 48));
+    });
+  }, SLOW);
+
+  it("reverso huérfano usa su propia ancla y conserva el par U válido", async () => {
+    await conFixture(async (db) => {
+      await db.exec(`select pg_temp.asiento('U', 'RM7-huerfano', 'asentado', 'manual', '4.5', '1.1.2', 1);
+        update public.journal_entries set source = 'invoice_reversal', posted_at = timestamptz '2026-07-14 12:00:00+00'
+        where id = pg_temp.id('RM7-huerfano');`);
+      const filas = await consulta(db);
+      expect(n(filas, 40)).toBe(n(baseM7, 40));
+      expect(n(filas, 48)).toBe(n(baseM7, 48) + 1);
+    });
+  }, SLOW);
+
+  it("varios defectos del mismo original suman un solo conjunto", async () => {
+    await conFixture(async (db) => {
+      await db.exec(`update public.journal_entries set status = 'borrador', tenant_id = pg_temp.t('E'), posted_at = null
+        where id = ${reverso}; delete from public.journal_lines where entry_id = ${original};`);
+      const filas = await consulta(db);
+      expect(n(filas, 40)).toBe(n(baseM7, 40) + 1);
+      expect(n(filas, 48)).toBe(n(baseM7, 48) + 1);
+    });
+  }, SLOW);
+
+  it.each(["", "   "])("código O vacío/espacios requiere revisión: %j", async (codigo) => {
+    await conFixture(async (db) => {
+      await db.query(`update public.journal_entries set entry_code = $1 where id = ${original}`, [codigo]);
+      const filas = await consulta(db);
+      expect(n(filas, 40)).toBe(n(baseM7, 40) + 1);
+      expect(n(filas, 48)).toBe(n(baseM7, 48) + 1);
+      expect(n(filas, 50)).toBe(n(baseM7, 50));
+      expect(n(filas, 60)).toBe(n(baseM7, 60));
+      // Mutante FUNCIONAL: no pasa por el guard léxico.
+      const sinPresencia = await consulta(db, mutar(PRESENCIA_CODIGO_ORIGINAL, "true"));
+      expect(n(sinPresencia, 40)).toBe(n(baseM7, 40));
+      expect(n(sinPresencia, 48)).toBe(n(baseM7, 48));
+    });
+  }, SLOW);
+
+  it("código blanco del reverso no impone una condición ajena al histórico0497", async () => {
+    await conFixture(async (db) => {
+      await db.query(`update public.journal_entries set entry_code = $1 where id = ${reverso}`, ["   "]);
+      expect(await consulta(db)).toEqual(baseM7);
+    });
+  }, SLOW);
+
+  it("NULL O sintético separa setup, QAreadonly y restauración NOTNULL/base comprobada", async () => {
+    await conFixture(async (db) => {
+      const catalogo = async () => (await db.query<{ attnotnull: boolean }>(`select attnotnull from pg_attribute
+        where attrelid = 'public.journal_entries'::regclass and attname = 'entry_code' and not attisdropped`)).rows[0].attnotnull;
+      const previo = (await db.query<{ codigo: string }>(`select entry_code as codigo from public.journal_entries where id = ${original}`)).rows[0].codigo;
+      expect(await catalogo()).toBe(true);
+      expect(previo).toContain("CENTINELA");
+      let errorPrimario: unknown;
+      let errorCleanup: unknown;
+      let qaFallida = false;
+      try {
+        // Setup confirmado FUERA de la QA, sin BEGIN exterior.
+        await db.exec(`alter table public.journal_entries alter column entry_code drop not null;
+          update public.journal_entries set entry_code = null where id = ${original};`);
+        expect(await catalogo()).toBe(false);
+        const nulls = (await db.query<{ n: number }>("select count(*)::int as n from public.journal_entries where entry_code is null")).rows[0].n;
+        expect(nulls).toBe(1);
+        expect((await db.query<{ objetivo: boolean }>(`select entry_code is null as objetivo from public.journal_entries where id = ${original}`)).rows[0].objetivo).toBe(true);
+        qaFallida = true;
+        const filas = await consulta(db);
+        qaFallida = false;
+        expect(n(filas, 40)).toBe(n(baseM7, 40) + 1);
+        expect(n(filas, 48)).toBe(n(baseM7, 48) + 1);
+        expect(n(filas, 50)).toBe(n(baseM7, 50));
+        expect(n(filas, 60)).toBe(n(baseM7, 60));
+      } catch (e) {
+        errorPrimario = e;
+      } finally {
+        try {
+          if (qaFallida) await db.exec("rollback;");
+          await db.query(`update public.journal_entries set entry_code = $1 where id = ${original}`, [previo]);
+          await db.exec("alter table public.journal_entries alter column entry_code set not null;");
+          expect(await catalogo()).toBe(true);
+          expect((await db.query<{ n: number }>("select count(*)::int as n from public.journal_entries where entry_code is null")).rows[0].n).toBe(0);
+          expect((await db.query<{ codigo: string }>(`select entry_code as codigo from public.journal_entries where id = ${original}`)).rows[0].codigo).toBe(previo);
+          // SEGUNDA QA literal: su rollback no deshace el setup confirmado.
+          expect(await consulta(db)).toEqual(baseM7);
+        } catch (e) {
+          errorCleanup = e;
+        }
+      }
+      if (errorPrimario !== undefined || errorCleanup !== undefined) {
+        throw new AggregateError([errorPrimario, errorCleanup].filter((e) => e !== undefined),
+          "M7: fallo primario y/o restauración sintética; ninguno se silencia");
+      }
+    });
+  }, SLOW);
+
+  it("guard de código rechaza cero, duplicación, alteraciones y señuelos sin permitir usos adicionales", () => {
+    const sinSpan = mutar(PRESENCIA_CODIGO_ORIGINAL, "true");
+    for (const sql of [
+      sinSpan,
+      mutar(PRESENCIA_CODIGO_ORIGINAL, PRESENCIA_CODIGO_ORIGINAL + " and " + PRESENCIA_CODIGO_ORIGINAL),
+      mutar(PRESENCIA_CODIGO_ORIGINAL, PRESENCIA_CODIGO_ORIGINAL.replace("e.id = o.id", "e.id = r.id")),
+      mutar(PRESENCIA_CODIGO_ORIGINAL, PRESENCIA_CODIGO_ORIGINAL.replace("e.source = 'invoice'", "true")),
+      mutar(PRESENCIA_CODIGO_ORIGINAL, PRESENCIA_CODIGO_ORIGINAL.replace("pg_catalog.btrim", "pg_catalog.trim")),
+      sinSpan + "\n/* " + PRESENCIA_CODIGO_ORIGINAL + " */",
+      sinSpan + "\nselect $m7$" + PRESENCIA_CODIGO_ORIGINAL + "$m7$;",
+    ]) expect(() => sqlParaPrivacidad(sql)).toThrow(/M7:/);
+    const extra = SCRIPT + "\nselect e.entry_code from public.journal_entries e;";
+    expect(hallazgos(IDENTIFICADORES_PROHIBIDOS, sqlParaPrivacidad(extra))).toEqual(["entry_code"]);
+  });
+
+  it("fuga MIN(entry_code) exige BASE y CENTINELA medido, además del guard léxico", async () => {
+    await conFixture(async (db) => {
+      expect(await consulta(db)).toEqual(baseM7);
+      const minimo = (await db.query<{ codigo: string }>("select min(e.entry_code) as codigo from public.journal_entries e")).rows[0].codigo;
+      expect(minimo).toContain("CENTINELA");
+      const fuga = mutar(FUGA.de,
+        "'facturas · ' || estado || ' · ' || moneda || ' · ' || (select min(e.entry_code) from public.journal_entries e),");
+      expect(hallazgos(IDENTIFICADORES_PROHIBIDOS, sqlParaPrivacidad(fuga))).toEqual(["entry_code"]);
+      expect(violaciones(await consulta(db, fuga), "conteos")).toEqual(["centinela", "indicador fuera del vocabulario"]);
+      expect(await consulta(db)).toEqual(baseM7);
+    });
   }, SLOW);
 });
