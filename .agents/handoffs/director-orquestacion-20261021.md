@@ -1,5 +1,12 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Aceptación final Binding02 y orden EJECUTA nominal — 2026-10-22T21:02:28.649Z
+
+- General744ece REAL21:01:47.799Z/native0:330comprobaciones/0diferencias en310manifest+3refs/cadenas7/nativeFINADMIN0/controlformaldevuelto/4authNULL/actualINPUT4765==exporterfijo==INPUToriginalJSONL ENTEROS. Recibo17601/376db0ffd1bec17f53f1730857d6a6280c7d2743a58d1213505f82a5ae38894c FULLREADb53cd0; manifest60517/052b13fc76d76186955cf41abd53d33ce496f37d96ca74c0a77d9db5b994d5c2 ycustodia585/f931e0130d25bcf6f8097d2c5a4a2ff68d92d08462929dcd10f8cd04d957d1de. Cadenas originales/aditivas leídas porcampos ysellos. LectorGeneral anterior imprimió demasiadosoperatorPins yJSONparse falló portruncación; sólolector compactado, no cambióevidencia/candidato/ejecución. cc82c1combinadotruncado noFULLREAD; b53cd0aislado síreciboENTERO.
+- Parent8d1bbd REAL21:00:40.662Z/native0/527checks0diff,34INPUTS+34RETORNOS contraoffsetsREALES/trazaENTERA segúnrecibo94848/b60dcf5a4d9790ee2efc7bf239e3a143888ed439b282060c541a6c958ba0d305 REFERIDO. ControlADMINformal20:59:48.896/8d191dnative0; aditivo2320/44ddfa0e2a174ca6970b5451a6ec1726ef1529938d7887aede919cb204205991/FIN2571ba0b de21:00 conservados. No gateSam/General pendiente.
+- ORDEN NOMINAL General se emite acontinuación medianteParent alMISMOCORE. Sólo4authcambian almodoEJECUTA_NOMINAL/true/true/turnexacto, código18662fd4b/body1867683ffd ywrapper2326fb717665 quedanENTEROS. 1FULL/4previstos/180+60ORIGINAL/latest21:06:00.515Z; ninguna ventana renovada. Una eval/exec/polls yFINformalANTESconteos/custodia; RootGeneral listos paraexteriorespororigenauténtico. Generalexteriorfijado por6datosGO02+19operatorpins,origenUNBOUNDhastaNode. Packing23 sigue sinGO hastaFIN/control/exteriores/custodiaCORE. Este tiempo deorden NO esorigen deejecución.
+
+
 ## Boundary02 STORE real revisado, cierre ADMIN pendiente — General 2026-10-22T20:56 UTC
 
 - Sigue prioridad HUMANA: CORE4 primero y Packing23 después. COREGO02 existe6500/eae753dff508e7d81714b4458deafdf8979aa1086b332bd3b4e65cf02c0cb055; latest21:06:00.515Z/absolutos21:09–21:10 ORIGINALES. NO EJECUTA aún, ningúnNodeproducto/origen. Worker CORE turno01a16555-ddf4-7a30-b73d-febc2bf190c5 continúa sólo cierre binding ADMIN. No renovar ventana ni GO01. Slot CORE reservado, GLM sinGO.
