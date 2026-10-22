@@ -1,8 +1,30 @@
 # DTD Cargo · Checklist del plan contable
 
-**Actualizado:** 22 de octubre de 2026, 15:33 (Caracas). **Responsable:** Director Codex.
+**Actualizado:** 22 de octubre de 2026, 16:06 (Caracas). **Responsable:** Director Codex.
 
 **Objetivo:** llevar la contabilidad completa en Studio y dejar QuickBooks cuando el ERP esté listo.
+
+## Cierre local de la 2.1 · estado que manda en este corte
+
+**La 2.1 sigue abierta localmente.** Las entregas están respaldadas; las casillas históricas de preparación, custodia y documentación no sustituyen los resultados funcionales pendientes. Lectura nueva de GitHub: ocho entregas principales OPEN/DRAFT, con las mismas cabezas registradas; no se ejecutaron pruebas durante esta consulta.
+
+- [x] Respaldar conversiones y cálculo anual en **#310 `a30d8585` y #311 `8729f7f4`**, con pruebas y omisiones identificadas por versión.
+- [x] Respaldar las tres entregas de **Caracas #312 `d6bcd0e8`, #313 `0e630ede` y #314 `1905aef7`**. Cierres locales documentados; 16/17 conserva el historial productivo sin medir.
+- [x] Respaldar la reparación del diario y los reversos en **#320 `36566242`**, sobre base temprana: UI/B1 **239 PASÓ sobre `2f7abf0c`** y consumidores I2 **129 PASÓ sobre `6672a123`**. La hija documental no es otra corrida.
+- [x] Respaldar BCV y su diagnóstico en **#317 `b179363d` y #321 `5368345b`**. BCV conserva **FALLÓ/INCOMPLETO 16/17**; las 30 pruebas del portal no reprodujeron el fallo ni demostraron su causa.
+- [ ] **1. Frontera:** ejecutar y cotejar los cuatro casos completos en un turno nuevo. GO01 quedó cerrado por fallo del operador antes de despachar; producto NO EJECUTADO. El transporte sustituto pasó seis escenarios sintéticos. Tras devolver S3, el General autorizó preparar Boundary02: encargo externo ya enviado al mismo Worker, con fuente y propiedad comprobadas otra vez. Es preparación; no hay GO ni ejecución nuevos.
+- [ ] **2. Coberturas financieras:** implementar y probar rollback después de escrituras, cobro concurrente y COMMIT ordinario independiente. El contrato de tres rutas ya fue revisado; futura base sin asignar y autoría sin activar. Son faltantes de evidencia, no tres bugs nuevos demostrados.
+- [ ] **3. Aceptación y dependencias:** resolver la matriz de catorce criterios y aceptaciones A/B; revisar la propagación de la reparación a conversiones, SQL, Caracas y BCV sobre sus cabezas reales. No se integra a main para hacer ese trabajo local.
+- [ ] **4. Validación final:** cierre canónico de la versión resultante, incluida construcción, y revisión visible pendiente. Conservar fallos, avisos, SKIPs y comprobaciones no disponibles; ninguna salida cero parcial equivale a cobertura completa.
+- [ ] **5. BCV:** cerrar la evaluación de los fallos de su batería general y los límites de supervisión del diagnóstico. La obtención pública positiva sigue NO DISPONIBLE por TLS y requiere su tratamiento separado; no se autoriza otro intento por actualizar este checklist.
+- [ ] **6. Entrega final:** actualizar spec, handoff y conocimiento local aplicable; revisión del delta, commits selectivos, push normal y lectura de las PR aún en borrador con versión/base/alcance actuales. La documentación pendiente no se publica en la bóveda compartida.
+
+**Pendientes externos o de release:** habilitación de Actions tras el pago, controles remotos, revisión del historial productivo, autorizaciones nominales de migraciones futuras, integración y publicación. El pago no impide estos push: las PR ya están en GitHub. `0495` ya aplicada nunca se repite. Este corte no verifica producción ni cambia permisos.
+
+**Fuentes del corte:** lectura GitHub nativa `cb75eb`, salida 0; mensaje reciente del Director General `msg_054b6d49cd9a5128016ada6a9523408195aa3410734c50f61e`; originales y preimágenes en `C:/tmp/director-traspaso-20261020/director-corte-21-20261022-1601/`. Los detalles siguientes conservan su secuencia histórica y sus propios límites.
+
+**Avance posterior incorporado:** General comunicó el retorno S3 y autorizó exclusivamente preparación externa Boundary02. Guard Root `22bce1`, 20:05:49Z: cuatro Git individuales0, fuente365/árbol7a6e/estado limpio/claim212B4. Encargo `0573-boundary-02-encargo-READY-director-20261022-1605.md`, 5.828 bytes y SHA256 `bc4d14a00ea1faf7b24a7c3e26f5ac669fe7582b2239eeb7bf15043ffd6c272c`, entregado al mismo Worker. Única escritura en carpeta externa nueva; cero producto y sin turno de ejecución. Finanzas continúa en frío.
+
 **Estado actual:** El Libro Diario UI/B1 aprobó **239 de 239 pruebas locales sobre `2f7abf0c`**. Los cinco archivos completos de consumidores I2 aprobaron **129 de 129 sobre `6672a123`: 117 heredadas y las 12 nuevas que faltaban por acreditar**, sin fallos, pendientes u omisiones. Director y General cotejaron resultados, supervisión y cierres originales. **La custodia I2 y el registro documental `36566242` quedaron cerrados y revisados. Esta versión ya está respaldada en la misma PR #320 en borrador, con base temprana intacta y las 55 rutas exactas; ambos directores comprobaron el título y cuerpo completos en GitHub.** La hija sólo modifica especificación y handoff; conserva las otras 6.347 entradas. La evidencia del respaldo también quedó cerrada y cotejada, sin repetir pruebas. El aviso React, los fallos históricos de UI y los 175 resultados anteriores de M7 se conservan con sus propias versiones y límites. **La preparación de frontera y su vinculación quedaron revisadas y cerradas. El primer intento fue NO EJECUTADO para producto por un fallo del operador antes de despachar; no hay cuatro resultados fallidos. Se conserva el input real y el turno quedó en cuarentena, con custodia aceptada por ambos directores.** La reparación externa del transporte está preparada: seis escenarios sintéticos aprobaron, sin casos de frontera ejecutados; revisión final y turno nuevo pendientes. El encargo financiero de tres rutas quedó revisado por texto, con futura base sin asignar y sin autoría activada. Siguen abiertas las coberturas financieras, la matriz de aceptación, el cierre canónico y la revisión visible. **La 2.1 permanece abierta**; el respaldo en borrador no acredita integración ni publicación productiva.
 
 **Secuencia de avances comprobados; los cortes anteriores se conservan como historia:**
