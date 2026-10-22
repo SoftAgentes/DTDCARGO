@@ -29,6 +29,18 @@ Fuentes verificadas: [skills nativas](https://learn.chatgpt.com/docs/build-skill
 
 ## Aislamiento
 
+### Transporte alternativo: piloto local Orca
+
+Las sesiones de Codex conservan este procedimiento. En una sesión Orca, el Director carga `.agents/skills/dtd-orca/SKILL.md`, el Director del repositorio y el skill común `director-orca` instalado para el usuario. El skill oficial `orchestration` se consulta desde el binario ejecutor y no se modifica.
+
+Preparar una propuesta o iniciar el Director no crea ejecuciones de Workers. Para un encargo de ejecución supervisada autorizado, Orca gestiona Run/Task/Dispatch y sus mensajes; Git/PR/SDD/handoffs siguen siendo evidencia del producto. No se abre una tarea de Codex como transporte alternativo silencioso.
+
+Un worktree creado por Orca puede utilizarse solo después de verificar raíz, rama, guard y ownership. Si ya está aislado, no se ejecuta automáticamente `start` para crear otro. El owner del harness se relaciona con la sesión y los IDs de Orca mediante el handoff, conservando su sintaxis permitida.
+
+La primera activación de este piloto queda limitada a configuración e identificación locales: Manual, sin Workers, producto, VPS, bases de datos, publicación o aprobaciones. Al adoptar un encargo posterior se conserva la separación de permisos. Una entrega de Orca no equivale a aprobación humana, merge ni despliegue.
+
+La propiedad se libera después de terminar la escritura, validación y handoff, antes del cierre oficial del Worker. El destino de la terminal se resuelve por el protocolo de Orca; borrar ramas/worktrees conserva los requisitos de cleanup de DTD.
+
 ```powershell
 git fetch origin
 node scripts/harness-worktree.mjs start objetivo-concreto

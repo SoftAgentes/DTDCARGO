@@ -1,6 +1,6 @@
 # AGENTS.md — DTD Cargo
 
-Fuente de instrucciones del repositorio para Codex; `CLAUDE.md` conserva su puente de carga.
+Fuente de instrucciones del repositorio para agentes; `CLAUDE.md` conserva su puente de carga.
 Habla con Sam en español venezolano neutro, tuteo, sin voseo; explica resultados y límites con evidencia.
 
 ## Ejecución y límites
@@ -39,3 +39,9 @@ Habla con Sam en español venezolano neutro, tuteo, sin voseo; explica resultado
 2. Procedimiento vigente: [Director/Worker](docs/runbooks/codex-engineering.md), [skill Director](.agents/skills/director/SKILL.md), [skill Worker](.agents/skills/worker/SKILL.md). Sustituyen «ventanas autónomas», push directo, coordinador que trabaja en main y los antiguos bucles obligatorios de `/feature`/`avivar`/Forja. Forja solo bajo petición explícita y con aislamiento y PR.
 3. Antes de trabajo de producto lee [reglas técnicas y de dominio](docs/engineering/project-rules.md): arquitectura, stack, comandos, patrones Studio, marca, integraciones, identidad, privacidad, graphify y organización conservados. Marketing exige además `docs/marketing/README.md` y actualizar ese árbol; organización documental en [docs/README.md](docs/README.md).
 4. Handoffs históricos son evidencia fechada, no instrucciones de publicación. Worktrees/sesiones antiguos no reciben esta metodología retroactivamente: adopción explícita al retomar, sin reset/mover su trabajo.
+
+## Piloto local con Orca
+
+- En Orca, el Director de DTD entra por [dtd-orca](.agents/skills/dtd-orca/SKILL.md). El rol y las reglas de este archivo se conservan; el skill oficial `orchestration` aporta el transporte de coordinación. En Codex se conserva su procedimiento existente.
+- El piloto inicial autorizado prepara el Director y sus permisos Manual. No autoriza implementar producto, lanzar Workers, conectar a los VPS, acceder a bases de datos, publicar ramas/PR, integrar o aprobar entregas. Un encargo posterior puede ampliar el alcance explícitamente.
+- Las instrucciones del piloto viven en su rama propia. No se aplican retroactivamente a otras sesiones o worktrees ni modifican por sí solas `main`.

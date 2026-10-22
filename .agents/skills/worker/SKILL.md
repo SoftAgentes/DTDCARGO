@@ -45,3 +45,13 @@ estado visual y estado de la preview de Obsidian en el handoff. Un mapa autoral 
 Sigue el [runbook de conocimiento](../../../docs/runbooks/knowledge-graphify-obsidian.md). En el handoff propio registra impacto documental (o no aplica con motivo), documentos canónicos actualizados, evidencia, resultados estructurales/semánticos y pendientes de integración/exportación. Conserva propuestas separadas de decisiones autorizadas.
 
 Ejecuta `pnpm knowledge:status` al cerrar y actualiza los derivados afectados en tu worktree. `pnpm knowledge:publish --preview` produce una vista local revisable; no escribe la bóveda compartida. Director publica desde main comprobado después de integrar con autorización. No cambies las notas personales ni declares actualizada una capa pendiente.
+
+## Worker asignado por Orca
+
+Esta sección se aplica solo cuando existe una asignación real y autorizada de Orca. El piloto inicial del Director no la crea.
+
+- Si Orca ya asignó un worktree, verifica su ruta, rama, guard y claim antes de editar. Si es válido, no ejecutes `start` para crear otro. Un Worker nuevo no demuestra que el árbol esté libre.
+- Conserva en el handoff el identificador funcional de DTD y los IDs reales de Run/Task/Dispatch. No reemplaces SDD o PR con IDs de Orca. El owner debe cumplir la sintaxis del harness y corresponder a esta sesión; nunca se roba un claim.
+- Sigue la guía oficial de la versión ejecutora y el preámbulo real para preguntas, mensajes y `worker_done`. No inventes IDs ni comandos de cierre.
+- En este transporte, completa primero validación, conocimiento y handoff. Termina la escritura y libera el claim propio al final; después envía el cierre oficial una sola vez y termina ese turno. Informa cualquier fallo de cierre en el resultado.
+- La entrega técnica no aprueba integración, publicación, despliegue o datos. Resolver la terminal de Orca no autoriza borrar el worktree o la rama.
