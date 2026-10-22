@@ -588,3 +588,59 @@ fortalecidos con auditoría de las cinco caras y pesos; dos negativas nuevas cub
 incompatibles y variaciones. **51instancias propuestas, todas NO EJECUTADAS sobre el nuevo hijo**:
 pdf14, HTTP9, transporte5, proveedor10, portal5, proxy8. El filtro y seis archivos siguen iguales.
 Fuente/SDD/handoff/readme se cierran con guard/diff estáticos; runtime/aceptación pendientes.
+
+## Seguimiento P2 de presentación PDF · 2026-10-22 · autoría local sin runtime
+
+Autorización del Director general después de revisar las once páginas de B3. Padre directo
+exigido:4ee35b9266d2fe999f0ea16d2382d58cefa0f7a9, mismo Worker/worktree/rama/PR319.
+Guard y claim propios worker-packing-portal-20261021 a06:37:10Z, sin desplazar owner.
+
+Allowlist exacta de este seguimiento (cinco rutas, subconjunto de las22anteriores):
+
+- `lib/studio/document-import/pdf.tsx`
+- `lib/studio/document-import/pdf.test.tsx`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/README.md`
+- `.agents/handoffs/0473-portal-confirmacion-20261021.md`
+
+Contrato: corregir únicamente presentación del documento. Mantener cabecera y logística del
+grupo junto con su primera fila; las demás filas deben poder paginar. Repetir contexto de
+compra/Shipping Mark/folio/revisión y columnas en las páginas de continuación. Compactar
+proveedor con campos legibles, sin forzar todos los documentos a una página. Conservar nombre
+del producto primero/código después y contexto del grupo en las filas que continúan. No perder
+productos, datos comerciales/logísticos, monedas ni unidades. No alterar fuentes, CJK, licencias,
+modelo, totales, endpoints, revisiones, confirmación, SQL, QR o layout de etiquetas.
+
+Evidencia previa preservada: B1sobre4ee aprobó51/51focales y3renders; su cierre Worker fue
+administrativamente tardío. B2generó PDF reales rev3/V1/folioDTD-PL-2026-0001,10cajas/220pcs/
+USD340/130kg/.70; bitácora administrativa INCOMPLETA recuperada TARDÍAMENTE. B3ejecutó7pasos
+con7exits0, QR10/10y10códigos únicos; Root/General hicieron exteriores oportunos. Cierre Worker
+B3 tardío. Revisión manual de TODASlas11PNG: documento2páginas FALLÓ por grupoB huérfano y
+exceso de espacio; etiquetas2páginas PASARON; largo7páginas/60códigos íntegros, continuidad a
+mejorar. Esa integridad no sustituye la aceptación visual. No reescribir estos resultados.
+
+Plan de autoría: estilos exclusivos del documento, encabezado fijo con columnas, proveedor en
+dos columnas y bloque indivisible limitado a cabecera/logística/primera fila de cada grupo.
+Cada fila conserva su grupo para identificar las continuaciones. Se preservan51casos/3renders;
+se añaden dos regresiones con renderer REAL y observación de sus páginas calculadas: caso
+compacto3productos/2grupos y caso largo60filas sin truncar/con encabezados. No tests de espejo
+de estilos/props ni cambios de esquemas de salida anteriores. Dos nuevos PDF/manifiestos de
+prueba serán artefactos sintéticos separados de las descargas reales.
+
+Sólo se autoriza fuente/lectura estática/commit selectivo hijo de4ee y READY de una futura
+selección; pruebas, renders, tipos/lint/verify/UI/descargas/restarts/push NO EJECUTADOS aquí.
+El workspace compartido confirmado rev3/V1 y sus10códigos se conservan; no guardar/reconfirmar.
+Autoría terminada, sin ejecutar: se aislaron estilos del documento, cabecera/columnas fijas,
+proveedor en dos columnas y bloque inicial de cada grupo con su primera fila. Las filas restantes
+pueden paginar y llevan identificación del grupo. Rama de etiquetas y StyleSheet anterior
+conservados literalmente; fuentes, CJK, modelos, cálculos, QR y contratos sin cambios.
+
+Se conservaron los 51 casos y tres renders originales. Se escribieron dos casos aditivos con
+renderer real: muestra de tres productos/dos grupos y siete campos del proveedor más fecha,
+compacta en una página para esa muestra; documento de sesenta productos en dos grupos con
+cabeceras, columnas, identificación y primera fila coherentes, sin truncar códigos. El adaptador
+de prueba sólo observa onRender del renderer instalado, nunca fabrica layout o bytes PDF.
+Selección propuesta: 53 instancias / 6 archivos / 5 renders reales, filtro SDD-0473 B,
+pdf16 + HTTP9 + transporte5 + proveedor10 + portal5 + proxy8; cero SKIP seleccionado esperado
+con la fuente CJK explícita. Todos los nuevos resultados están NO EJECUTADOS. La aceptación
+real y visual queda pendiente de nuevo GO, sin reutilizar ventanas cerradas ni salidas previas.

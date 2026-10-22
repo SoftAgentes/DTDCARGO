@@ -143,3 +143,26 @@ stdout/stderr y PDFs de test en una carpeta externa nueva. Requiere nuevoGO/vent
 no reutilizar salidas deB1 ni compararlas como si fueran descargas de aceptación. No se inició
 runtime, render, tests, UI o servidor durante esta autoría. La futura aceptación del portal,
 QRde píxeles/papel y producción siguen con sus gates separados.
+
+## Seguimiento P2: PDF de documento compacto y continuación
+
+La aceptación anterior sobre4ee dejó documento2páginas con grupoB huérfano: FALLÓpresentación.
+Etiquetas2páginas y QR10/10PASARON; largo7páginas/60códigos íntegro, sin cabeceras repetidas.
+Las once PNG fueron revisadas porRoot. B2tiene bitácora recuperada tarde y B3Worker cierre tardío,
+con exteriores Root/General oportunos. Se preservan originales, recibos y clasificaciones.
+
+La autoría posterior se limita al layout del documento: proveedor compacto, contexto/columnas
+por página, grupo+logística+primer ítem juntos; las filas restantes siguen paginables. Etiquetas,
+QR, fuentes/CJK y modelo/cálculos no cambian. Conservar51casos y3renders; añadir dos casos que
+observan el layout producido por el renderer real, caso3productos/2grupos y largo60sintruncar.
+No usar las salidas nuevas como reemplazo de PDFreales ni cambiar oráculos anteriores para verde.
+Todas las pruebas/renders de esta fuente requieren una nueva ventana GO. No reiniciar4320 ni
+modificar el workspace rev3/V1/10códigos. La descarga real posterior sólo cambia presentación.
+Fuente del fix terminada y todavía NO EJECUTADA: 53 casos en los mismos seis archivos, filtro
+SDD-0473 B, reparto16/9/5/10/5/8; cinco renders reales. Los tres renders/archivos/manifiesto
+anteriores se conservan. Se agregan packing-list-compact-layout.pdf y
+packing-list-pagination-layout.pdf con manifiestos nuevos, sólo en TEST_OUTPUT_DIR externo.
+El primero verifica una página para esta muestra compacta, sin imponer límite universal. El
+segundo comprueba paginación real, sesenta códigos íntegros, contexto y comienzos de grupos
+coherentes. Ninguna observación de layout reemplaza la revisión visual de todas las páginas.
+El próximo GO deberá conservar rev3/V1 y sus diez códigos, sin guardar ni confirmar de nuevo.

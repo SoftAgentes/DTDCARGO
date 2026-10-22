@@ -606,3 +606,62 @@ el contenido completo de las licencias y sus espacios, con originales/binarios s
 No se ejecutó ninguna prueba ni renderer para cerrar este checkpoint. El nuevo READY propone
 51/6, tres renders sin SKIP seleccionado y cero reintentos; sólo una ventana posterior válida
 podrá ejecutarlo. La rama remota/PR sigue en su SHA publicado anterior; este hijo queda local.
+## Seguimiento local P2 · Presentación y continuación del PDF · 2026-10-22
+
+**OBJETIVO ORIGINAL:** impedir que el nombre de un grupo quede separado de su logística y
+primer producto; compactar proveedor y repetir contexto/columnas, manteniendo paginación larga.
+**ALCANCE:** las cinco rutas exactas de la nueva etapa SDD0473; padre4ee35b9266d2fe999f0ea16d2382d58cefa0f7a9.
+Guard/claim propios a06:37:10Z. Cinco preimages sellados fueraGit en pdf-layout-fix-4ee/
+five-source-preimages.json antes de editar. No cambios en fuente de etiquetas/QR, fuentes y
+CJK, cálculos/monedas/unidades, modelos/contratos/endpoints/DB o workspace confirmado rev3/V1.
+
+**EVIDENCIA PREVIA, NO REESCRITA:** B1nuevo aprobó51/51, tres renders y cinco caras estáticas,
+pero cierre administrativo Worker tardío. DIAG01falló bootstrap(fileURL), DIAG02ZIPválido /
+ExcelJSundefined.sheets: original3479con x:workbook continúa como incompatibilidad pendiente,
+no OOXMLinválido. Muestra DTDv2canónica se generó/releyó/extrajo con10cajas/220pcs/USD340/.66 y
+pesoAausente; originales3479/51dc intactos. B2final confirmó rev3/V1/folioDTD-PL-2026-0001,
+130kg/.70 y descargó PDFreales. FuncionalPASÓ, diario02seguíaappend: copia/suplemento recuperados
+fuera de cap, administración INCOMPLETA/TARDÍA. No resellar diario02como oportuno.
+
+B3: siete nativos exit0, sin retry, QRdigital10/10y10códigos únicos/autoridadlocal4321; largo60
+íntegro. Root/General exteriores oportunos; devolución WorkerB3tardía y sin readback dentrocap.
+Rootrevisó TODASlas11PNG a06:35:33Z: documento2páginas FALLÓ(P2grupoB huérfano, proveedor extenso,
+continuación sin cabeceras); etiquetas2páginas PASARON; largo7páginas/60filas íntegro y legible
+con continuación a mejorar. Visual-review.json externo SHA256
+ de46d38d80cfec756778f3f9b19990c2410dbe7df8abc37484b4345aa5d39a63 conserva dictamen completo.
+No globalverde: corrección de presentación aún pendiente de nuevas pruebas y revisión visual.
+
+**PLAN Y CHECKPOINTS:** primero SDD/allowlist/contrato; después estilos exclusivos documento y
+encabezado fijo/tabla, proveedor compacto, bloque de inicio de grupo con sólo primera fila
+indivisible. Resto de productos paginable y grupo visible en cada línea. Mantener51casos y
+3renders; dos regresiones nuevas del renderer real para caso compacto y60filas/contexto por
+página, no mocks de layout. Finalmente diff/guard/commit selectivo local y READY; NO ejecutar
+pruebas/render/tipos/lint/verify ni UI/restarts/descargas/push hasta GOespecífico posterior.
+
+**PENDIENTES:** validación de esta nueva fuente, PDF real actualizado sin guardar/reconfirmar,
+revisión visual de todas las páginas, verify canónico. Papel/cámara, chino humano/WeChat,
+portabilidad/licencia CJK y producción siguen NO EJECUTADOS/no certificados. Fuera de alcance:
+compatibilidad del XMLprefijado original, corrección del catch genérico de la fixture y diarios
+administrativos de otros frentes; no se absorben en este seguimiento.
+**AUTORÍA CERRADA, NO ACEPTACIÓN FUNCIONAL:** se implementaron documentStyle aislado,
+cabecera fija con compra/Shipping Mark/folio/revisión/columnas, proveedor en dos columnas,
+primera fila unida a cabecera/logística y resto paginable con contexto de grupo por línea.
+Se conservó literalmente el StyleSheet anterior y la rama de etiquetas, incluidos QR y footer.
+No hubo cambios en fuentes/CJK, datos, precios, asignaciones, modelos, endpoints, SQL o revisión.
+
+Se escribieron dos regresiones reales aditivas: muestra compacta con siete campos del proveedor
+más fecha, tres productos y dos grupos (una página sólo para esta muestra); sesenta productos
+repartidos en dos grupos de cinco cajas, con comprobación de códigos íntegros, contexto y
+cabecera/logística/primera fila en la misma página. La observación onRender envuelve y llama
+renderToBuffer real; usa el layout calculado expuesto por la versión instalada. Si esa API interna
+cambia, la prueba falla por falta de páginas, no sustituye el renderer ni fabrica resultados.
+Los 51 casos y tres renders anteriores conservaron sus oráculos y nombres de salida; dos nuevos
+PDF/manifiestos son sintéticos, separados de las descargas del portal.
+
+Propuesta cerrada: **53 / 6 archivos / 5 renders**, filtro SDD-0473 B, reparto16/9/5/10/5/8,
+480 s + 60 s de cierre, una corrida y cero reintentos/SKIP seleccionado con CJK explícita.
+**NO EJECUTADO:** pruebas, render, tipos, lint, verify, build, UI, descargas y restarts sobre este
+hijo. Sólo lectura/revisión estática, guard y Git selectivo local. No push, merge o producción.
+El estado confirmado rev3/V1 sigue intacto; futura descarga sólo requiere actualizar frontend
+propio y leer la revisión existente, sin importar, guardar, confirmar ni reiniciar backend.
+Conocimiento/derivados NO EJECUTADOS; esta evidencia se conserva en el handoff de la tarea.

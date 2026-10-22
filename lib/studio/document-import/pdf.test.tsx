@@ -6,6 +6,33 @@ import { emptyDocumentDraft } from "@/lib/shared/document-import";
 import { parseScannedLabel } from "@/lib/studio/etiquetas-qr";
 import { buildConfirmedPdfModel, parsePdfSurface, renderConfirmedDocumentPdf, requireStaticPdfFont, type ConfirmedPdfInput } from "./pdf";
 
+const measuredRender = vi.hoisted(() => ({ layout: null as unknown }));
+vi.mock("@react-pdf/renderer", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@react-pdf/renderer")>();
+  const { cloneElement } = await import("react");
+  return {
+    ...actual,
+    // Keep the real renderer and inspect its computed, paginated layout, not JSX props.
+    renderToBuffer: (element: Parameters<typeof actual.renderToBuffer>[0]) => actual.renderToBuffer(cloneElement(element, {
+      onRender: (event) => {
+        measuredRender.layout = (event as unknown as { _INTERNAL__LAYOUT__DATA_: unknown })._INTERNAL__LAYOUT__DATA_;
+        element.props.onRender?.(event);
+      },
+    })),
+  };
+});
+type MeasuredNode = { type?: string; value?: string; children?: MeasuredNode[]; style?: { fontSize?: number } };
+function measuredPages() {
+  const layout = measuredRender.layout as MeasuredNode | null;
+  expect(layout).toBeTruthy();
+  const pages = layout?.children?.filter(node => node.type === "PAGE") ?? [];
+  expect(pages.length).toBeGreaterThan(0);
+  return pages;
+}
+function measuredText(node: MeasuredNode): string {
+  return (node.value ?? "") + (node.children ?? []).map(measuredText).join("");
+}
+
 function sample(): ConfirmedPdfInput {
   const draft=emptyDocumentDraft();draft.currency="USD";draft.supplier.company="Proveedor sintético";draft.supplier.wechat="demo";
   draft.products=[
@@ -18,7 +45,7 @@ function sample(): ConfirmedPdfInput {
   draft.sources=[{id:"private",fileName:"PRIVATE-CLIENT-ORIGINAL.pdf",kind:"combined",locations:[]}];
   return {draft,markbox:"DTD-DEMO",code:"DTD-DEMO-1-1",revision:4,folio:"DTD-PL-2026-0001",versionNo:2,labels:Array.from({length:10},(_,index)=>({code:"DTD-DEMO-1-1",boxN:index+1,totalBoxes:10,boxCode:`DTD-B-${String(index+1).padStart(6,"0")}`}))};
 }
-afterEach(()=>vi.unstubAllEnvs());
+afterEach(()=>{vi.unstubAllEnvs();measuredRender.layout=null;});
 
 function expectStaticFontAudit(audit: Awaited<ReturnType<typeof renderConfirmedDocumentPdf>>["fontAudit"]) {
   for(const face of [audit.cjk,...Object.values(audit.latin)]){expect(face.format).toBe("TTF");expect(face.variationAxes).toEqual([]);expect(face.postscriptName).toBeTruthy();}
@@ -83,6 +110,50 @@ describe("PDF confirmado SDD-0473 B",()=>{
     const output=process.env.DOCUMENT_IMPORT_PDF_TEST_OUTPUT_DIR;if(output){
       await mkdir(output,{recursive:true});await writeFile(path.join(output,"packing-list-largo-60.pdf"),result.bytes);
       await writeFile(path.join(output,"packing-list-largo-60-manifest.json"),JSON.stringify({provenance:"synthetic-renderer-test-not-portal-acceptance",revision:input.revision,expectedCodes:model.groups.flatMap(group=>group.rows.map(row=>row.code)),checkpoints:["LONG-001","LONG-030","LONG-060"],totals:model.totals,fontAudit:result.fontAudit},null,2));
+    }
+  });
+  it.skipIf(!process.env.DOCUMENT_IMPORT_PDF_CJK_FONT_PATH)("mantiene compacta la muestra de tres productos y dos grupos con datos completos del proveedor en una página real",async()=>{
+    const input=sample();
+    input.draft.supplier={company:"Proveedor de muestra Yiwu",contact:"Contacto de muestra",email:"demo@example.invalid",wechat:"dtd-demo",phone:"+86 000 0000 0000",address:"Dirección de muestra 123",city:"Yiwu"};
+    input.draft.docDate="2026-10-21";
+    const result=await renderConfirmedDocumentPdf(input,"packing-list");
+    expect(Buffer.from(result.bytes.subarray(0,5)).toString()).toBe("%PDF-");expectStaticFontAudit(result.fontAudit);
+    const pages=measuredPages(),pageTexts=pages.map(measuredText);
+    expect(pages).toHaveLength(1);
+    for(const [label,firstCode] of [["A","VAS-01"],["B","BOT-01"]]){
+      const page=pageTexts.find(text=>text.includes(`箱组 / Grupo ${label}`));
+      expect(page).toContain(firstCode);
+      expect(page).toContain(label==="A"?"52 kg bruto":"78 kg bruto");
+    }
+    for(const code of ["VAS-01","TAP-01","BOT-01"])expect(pageTexts.join("").split(code)).toHaveLength(2);
+    expect(pageTexts[0]).toContain("Proveedor de muestra Yiwu");expect(pageTexts[0]).toContain("2026-10-21");
+    const output=process.env.DOCUMENT_IMPORT_PDF_TEST_OUTPUT_DIR;if(output){
+      await mkdir(output,{recursive:true});await writeFile(path.join(output,"packing-list-compact-layout.pdf"),result.bytes);
+      await writeFile(path.join(output,"packing-list-compact-layout-manifest.json"),JSON.stringify({provenance:"synthetic-layout-test-not-portal-acceptance",pageCount:pages.length,pageTexts,expectedCodes:["VAS-01","TAP-01","BOT-01"]},null,2));
+    }
+  });
+  it.skipIf(!process.env.DOCUMENT_IMPORT_PDF_CJK_FONT_PATH)("pagina sesenta productos sin truncarlos y repite documento, columnas y contexto de grupo en las páginas reales",async()=>{
+    const input=sample();
+    input.draft.products=Array.from({length:60},(_,index)=>({id:`layout-${index+1}`,name:`Producto de muestra ${index+1}`,nameZh:"样品",code:`PAGE-${String(index+1).padStart(3,"0")}`,brand:"",material:"",quantity:10,unitPrice:1,currency:"USD",unit:"pcs"}));
+    input.draft.groups=[
+      {id:"layout-A",label:"Largo A",cartons:5,grossWeightKg:52,cbm:0.28,items:input.draft.products.slice(0,13).map(product=>({productId:product.id,quantity:10}))},
+      {id:"layout-B",label:"Largo B",cartons:5,grossWeightKg:78,cbm:0.42,items:input.draft.products.slice(13).map(product=>({productId:product.id,quantity:10}))},
+    ];
+    input.draft.declaredTotals.amount=600;
+    const result=await renderConfirmedDocumentPdf(input,"packing-list");expectStaticFontAudit(result.fontAudit);
+    const pages=measuredPages(),pageTexts=pages.map(measuredText),expectedCodes=input.draft.products.map(product=>product.code);
+    expect(pages.length).toBeGreaterThan(1);
+    expect(pageTexts.join("").match(/PAGE-\d{3}/g)).toEqual(expectedCodes);
+    for(const text of pageTexts){
+      for(const context of ["Packing List + Factura",input.code,input.markbox,input.folio,`Rev. ${input.revision}`,"Producto · Código","Cantidad","Precio","Importe"])expect(text).toContain(context);
+      if(/PAGE-\d{3}/.test(text))expect(text).toContain("Grupo Largo");
+    }
+    for(const [label,firstCode,logistics] of [["Largo A","PAGE-001","52 kg bruto"],["Largo B","PAGE-014","78 kg bruto"]]){
+      const page=pageTexts.find(text=>text.includes(`箱组 / Grupo ${label}`));expect(page).toContain(firstCode);expect(page).toContain(logistics);
+    }
+    const output=process.env.DOCUMENT_IMPORT_PDF_TEST_OUTPUT_DIR;if(output){
+      await mkdir(output,{recursive:true});await writeFile(path.join(output,"packing-list-pagination-layout.pdf"),result.bytes);
+      await writeFile(path.join(output,"packing-list-pagination-layout-manifest.json"),JSON.stringify({provenance:"synthetic-layout-test-not-portal-acceptance",pageCount:pages.length,pageTexts,expectedCodes,checkpoints:["PAGE-001","PAGE-030","PAGE-060"]},null,2));
     }
   });
 });

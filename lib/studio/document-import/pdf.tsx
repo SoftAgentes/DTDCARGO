@@ -109,6 +109,22 @@ const style = StyleSheet.create({
   mark: { fontSize: 14, marginTop: 4 }, qr: { width: 100, height: 100, marginVertical: 6 },
 });
 
+// Packing-list styles are separate: label card dimensions, QR and their footer stay unchanged.
+const documentStyle = StyleSheet.create({
+  page: { paddingTop: 132, paddingBottom: 38, paddingHorizontal: 26, fontSize: 9, lineHeight: 1.25, color: "#0F1E3D", backgroundColor: "#FFFFFF" },
+  header: { position: "absolute", top: 24, left: 26, right: 26, height: 94, borderBottom: "1 solid #7F0F1A" },
+  heading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
+  brand: { fontSize: 16 }, title: { fontSize: 13 },
+  context: { fontSize: 8, marginBottom: 4 }, meta: { fontSize: 7.5, color: "#6B6B6B", marginBottom: 6 },
+  columns: { flexDirection: "row", borderTop: "0.5 solid #E8E6E2", paddingTop: 5, fontSize: 8 },
+  supplier: { flexDirection: "row", flexWrap: "wrap", marginBottom: 8 },
+  field: { width: "50%", paddingRight: 14, paddingBottom: 4, fontSize: 8.5 },
+  group: { marginBottom: 8 }, groupHead: { flexDirection: "row", alignItems: "center", backgroundColor: "#F2F0EC", paddingVertical: 5, paddingHorizontal: 7 },
+  groupName: { width: "38%", paddingRight: 8, fontSize: 9.5 }, groupMetrics: { width: "62%", fontSize: 8.5, textAlign: "right" },
+  row: { flexDirection: "row", borderBottom: "0.5 solid #E8E6E2", paddingVertical: 4, minHeight: 29 },
+  name: { fontSize: 9.5 }, rowMeta: { fontSize: 8, color: "#6B6B6B", marginTop: 2 },
+  totals: { borderTop: "1 solid #7F0F1A", paddingTop: 6, lineHeight: 1.35 },
+});
 /** Server-only renderer. The caller must gate the confirmed revision before AND after rendering. */
 export async function renderConfirmedDocumentPdf(input: ConfirmedPdfInput, surface: PdfSurface) {
   const model = buildConfirmedPdfModel(input);
@@ -133,17 +149,32 @@ export async function renderConfirmedDocumentPdf(input: ConfirmedPdfInput, surfa
   text(meta, "mono");
   const footer = <Text fixed style={[style.footer, { fontFamily: needsCjk(meta) ? cjk.family : mono.family }]} render={({ pageNumber, totalPages }) => `${meta} · ${pageNumber}/${totalPages}`} />;
   const supplierLabels: Record<string, string> = { company: "供应商 / Proveedor", contact: "联系人 / Contacto", email: "Email", wechat: "WeChat", phone: "Tel", address: "地址 / Dirección", city: "城市 / Ciudad" };
-  const header = <View style={style.header}><View style={style.brand}>{wordmark()}</View><View style={style.title}>{text("装箱单 + 商业发票 / Packing List + Factura", "heading")}</View><View style={style.muted}>{text("Confirmado / 已确认 · " + meta, "mono")}</View></View>;
   let document;
   if (surface === "packing-list") {
-    document = <Document title={`Packing List + Factura ${model.code}`} author="DTD Cargo"><Page size="A4" orientation="landscape" style={[style.page, { fontFamily: body.family }]}>
-      {header}<View style={style.supplier}>{text(`Shipping Mark: ${model.markbox}`, "mono")}{Object.entries(model.supplier).filter(([, value]) => value).map(([key, value]) => <View key={key}>{text(`${supplierLabels[key]}: ${value}`)}</View>)}{model.date && text(`Fecha: ${model.date}`, "mono")}</View>
-      {model.groups.map((group, index) => <View key={index} style={style.group}>
-        <View style={style.groupHead}>{text(`箱组 / Grupo ${group.label}`)}{text(`${format(group.cartons)} cajas · ${format(group.grossWeightKg)} kg bruto · ${format(group.cbm)} m³ TOTAL del grupo`)}</View>
-        <View style={style.row}><View style={style.product}>{text("产品 / Producto · Código")}</View><View style={style.qty}>{text("数量 / Cantidad")}</View><View style={style.price}>{text("单价 / Precio")}</View><View style={style.total}>{text("金额 / Importe")}</View></View>
-        {group.rows.map((row, rowIndex) => <View key={rowIndex} style={style.row} wrap={false}><View style={style.product}>{row.name && text(row.name)}{row.nameZh && text(row.nameZh)}<View style={style.small}>{text(row.code || "—", "mono")}</View>{(row.brand || row.material) && <View style={style.small}>{text([row.brand, row.material].filter(Boolean).join(" · "))}</View>}</View><View style={style.qty}>{text(`${format(row.quantity)} ${row.unit}`)}</View><View style={style.price}>{text(`${row.currency} ${price(row.unitPrice)}`)}</View><View style={style.total}>{text(amount(row.amount, row.currency))}</View></View>)}
+    const columns = <View style={documentStyle.columns}><View style={style.product}>{text("产品 / Producto · Código")}</View><View style={style.qty}>{text("数量 / Cantidad")}</View><View style={style.price}>{text("单价 / Precio")}</View><View style={style.total}>{text("金额 / Importe")}</View></View>;
+    const documentHeader = <View fixed style={documentStyle.header}>
+      <View style={documentStyle.heading}><View style={documentStyle.brand}>{wordmark()}</View><View style={documentStyle.title}>{text("装箱单 + 商业发票 / Packing List + Factura", "heading")}</View></View>
+      <View style={documentStyle.context}>{text(`Shipping Mark: ${model.markbox}`, "mono")}</View>
+      <View style={documentStyle.meta}>{text("Confirmado / 已确认 · " + meta, "mono")}</View>{columns}
+    </View>;
+    const supplierFields = Object.entries(model.supplier).filter(([, value]) => value).map(([key, value]) => ({ label: supplierLabels[key], value }));
+    if (model.date) supplierFields.push({ label: "Fecha", value: model.date });
+    type ProductRow = (typeof model.groups)[number]["rows"][number];
+    const productRow = (row: ProductRow, groupLabel: string, key: number) => <View key={key} style={documentStyle.row} wrap={false}>
+      <View style={style.product}><Text style={documentStyle.name}>{row.name && text(row.name)}{row.name && row.nameZh && text(" / ")}{row.nameZh && text(row.nameZh)}</Text>
+        <Text style={documentStyle.rowMeta}>{text(row.code || "—", "mono")}{text(` · Grupo ${groupLabel}`)}{(row.brand || row.material) && text(" · " + [row.brand, row.material].filter(Boolean).join(" · "))}</Text>
+      </View><View style={style.qty}>{text(`${format(row.quantity)} ${row.unit}`)}</View><View style={style.price}>{text(`${row.currency} ${price(row.unitPrice)}`)}</View><View style={style.total}>{text(amount(row.amount, row.currency))}</View>
+    </View>;
+    document = <Document title={`Packing List + Factura ${model.code}`} author="DTD Cargo"><Page size="A4" orientation="landscape" style={[documentStyle.page, { fontFamily: body.family }]}>
+      {documentHeader}<View style={documentStyle.supplier}>{supplierFields.map(({ label, value }) => <View key={label} style={documentStyle.field} wrap={false}>{text(`${label}: ${value}`)}</View>)}</View>
+      {model.groups.map((group, index) => <View key={index} style={documentStyle.group}>
+        <View wrap={false}>
+          <View style={documentStyle.groupHead}><View style={documentStyle.groupName}>{text(`箱组 / Grupo ${group.label}`, "heading")}</View><View style={documentStyle.groupMetrics}>{text(`${format(group.cartons)} cajas · ${format(group.grossWeightKg)} kg bruto · ${format(group.cbm)} m³ TOTAL del grupo`)}</View></View>
+          {group.rows[0] && productRow(group.rows[0], group.label, 0)}
+        </View>
+        {group.rows.slice(1).map((row, rowIndex) => productRow(row, group.label, rowIndex + 1))}
       </View>)}
-      <View style={style.totals} wrap={false}>{text("总计 / Totales")}{text(`${format(model.totals.cartons)} cajas · ${Object.entries(model.totals.quantities).map(([unit, n]) => `${format(n)} ${unit}`).join(" · ")} · ${format(model.totals.grossWeightKg)} kg bruto · ${format(model.totals.cbm)} m³`)}{text(Object.entries(model.totals.amounts).map(([currency, n]) => amount(n, currency)).join(" · "))}</View>{footer}
+      <View style={documentStyle.totals} wrap={false}>{text("总计 / Totales")}{text(`${format(model.totals.cartons)} cajas · ${Object.entries(model.totals.quantities).map(([unit, n]) => `${format(n)} ${unit}`).join(" · ")} · ${format(model.totals.grossWeightKg)} kg bruto · ${format(model.totals.cbm)} m³`)}{text(Object.entries(model.totals.amounts).map(([currency, n]) => amount(n, currency)).join(" · "))}</View>{footer}
     </Page></Document>;
   } else {
     const images = await Promise.all(model.labels.map(label => QRCode.toDataURL(label.qr, { errorCorrectionLevel: "M", margin: 4, width: 400, color: { dark: "#0F1E3D", light: "#FFFFFF" } })));
