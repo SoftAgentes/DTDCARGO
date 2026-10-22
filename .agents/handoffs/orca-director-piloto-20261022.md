@@ -18,7 +18,7 @@ Preparar DTD Cargo como piloto local de Director en Orca y dejar permisos Manual
 
 Proyecto registrado en Orca, worktree independiente creado con setup omitido, guard y claim comprobados. Skill común instalado como instrucción propia del usuario, sin modificar el skill oficial. Fuentes del repositorio adaptadas condicionalmente para conservar el transporte Codex y habilitar el transporte Orca.
 
-Los permisos se aplicaron mediante el RPC local de la propia aplicación: preset Manual y sincronización del chat nativo a preguntar. Para Codex se fijaron `on-request`, `approvals_reviewer=user` y sandbox `workspace-write`, sin red ni raíces adicionales. La configuración global de Codex y las sesiones existentes se conservaron.
+Los permisos se aplicaron mediante el RPC local de la propia aplicación: preset Manual y sincronización del chat nativo a preguntar. Para Codex se fijaron `on-request`, `approvals_reviewer=user` y sandbox `workspace-write`, sin red ni raíces adicionales. Las políticas globales de permisos y las sesiones existentes se conservaron. Al iniciar el agente, Orca añadió automáticamente `projects.<carpeta de este piloto>.trust_level=trusted` al archivo global de Codex: es el único cambio semántico respecto a la copia cuyo hash coincide con el previo al arranque. No se debe describir el archivo completo como intacto después del lanzamiento.
 
 Sam eligió Codex. El Director arrancó mediante `agent launch` en su terminal propia, leyó las instrucciones y confirmó «Director DTD Cargo listo para recibir tu encargo». Terminó su primera respuesta y espera a Sam, sin editar ni reclamar este árbol.
 
@@ -29,7 +29,7 @@ Sam eligió Codex. El Director arrancó mediante `agent launch` en su terminal p
 
 ## VALIDACIÓN
 
-PASÓ: guard y claim propio, `git diff --check`, validador de las cuatro skills (común, adaptador, Director y Worker) y descubrimiento de las skills por Orca. Se comprobaron seis hashes protegidos sin cambios: skill oficial y cinco fuentes del checkout principal. Cuentas/comandos/voz de Orca y el archivo global de configuración de Codex permanecen intactos.
+PASÓ: guard y claim propio, `git diff --check`, validador de las cuatro skills (común, adaptador, Director y Worker) y descubrimiento de las skills por Orca. Se comprobaron seis hashes protegidos sin cambios: skill oficial y cinco fuentes del checkout principal. Cuentas/comandos/voz de Orca permanecen intactos. La configuración global de Codex conserva políticas, modelo y hooks; el cambio automático de confianza de esta carpeta se documenta arriba.
 
 PASÓ: la sesión real de Codex registra `approval_policy=on-request`, `approvals_reviewer=user`, sandbox `workspace-write` y `network_access=false`. El rol leyó las instrucciones y terminó su primera respuesta. La asociación del worktree con el repo de Orca fue verificada por la sesión preparadora; el Director declaró correctamente que no la había consultado en el runtime.
 
