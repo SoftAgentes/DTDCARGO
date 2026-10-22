@@ -798,3 +798,51 @@ nuevos en reglas estables sin destino/justificación y revisión del Director. N
 **CIERRE DE ESTE HIJO:** sólo tres documentos, sin nuevas pruebas/build/UI/API/raster/QR,
 reinicios/descargas/escrituras de negocio. Commit selectivo local hijoCBE; no push hasta cotejo
 final del General. Este cierre documental no cambia los resultados ejecutados ni aprueba producción.
+
+
+## Autoría PDF QA aislada · 2026-10-22
+
+Adopción explícita de la etapa desde e060f6d, mismo owner/rama/PR319. Claim propio y guard OK; ocho preimágenes registradas antes de editar (cinco existentes y tres rutas nuevas). Allowlist exacta y contrato de esta etapa en spec0473, sección Lectura PDF real en QA aislada. Sólo autoría y Git estático autorizados; ningún GO previo continúa vigente. No se alteran backend4320, frontend4321, rev3/V1 ni etiquetas. Extracción positiva sigue NO EJECUTADA, sin credencial/modelo de pruebas disponibles en ubicaciones autorizadas. Tests y receta nuevos se preparan como fuente, sin ejecución/push/producción.
+
+**CIERRE DE AUTORÍA (sin ejecución):**25 pruebas nuevas escritas, config13 + middleware12; con
+14 casos existentes Anthropic son39/3archivos por filtro SDD-0473 PDF QA|Anthropic document adapter boundary.
+Uploaded concurrente reserva processing antes de await, repeticiones ready/failed no llaman otra
+vez, PUT tardío no cambia bytes y un nuevo intento requiere otro job explícito. Constructor SSR
+real conserva códigos; error desconocido equivale a extraction_unavailable, sin message/stack o
+body sensible. Modo por defecto conserva CSV/XLSX y PDF deshabilitado sin llamar IA. Opt-in es un
+banco PDF-only separado; no cambia formatos del portal real ni UI. Main catch de QA tampoco
+imprime errores de arranque completos. Receta externa sample-source/create-proforma.py crea
+una muestra nueva completa de2p/10cajas/192pcs/USD390/140kg/.80m³,100%ficticia, proveedor completo,
+net120 distinto del bruto y grupos mixtos explícitos. Oracle de autoría NO es una extracción falsa.
+
+Allowlist exacta de la etapa (ocho rutas; tres nuevas):
+
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/extraction-config.ts
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/extraction-config.test.ts
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/vite.config.ts
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/server.ts
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/server.test.ts
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/README.md
+- docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md
+- .agents/handoffs/0473-portal-confirmacion-20261021.md
+
+Preimágenes y fuente de muestra fueraGit: C:/Users/AKX generator/.codex/visualizations/2026/10/21/
+packing-list-portal/pdf-import-optin-e060/. Git estático/guard/custodia no equivalen a pruebas.
+Todos los39 focales sobre esta fuente, tipos/lint/build/verify, marker/PDF/PNG/UI/IA y aceptación
+positiva: NO EJECUTADOS. No se tocó4320/4321, su revisión3/V1 ni códigos; no push hasta revisión.
+La lectura positiva necesita clave/modelo de pruebas y un nuevo GO específico; no presentar mocks
+como evidencia de lectura. Presupuestos propuestos:180+60focales y120+60muestra, aún sin ventana.
+
+**PENDIENTES:** credencial/modelo TEST no disponibles en proceso/User/Machine/WT/main autorizados;
+main sólo declara nombres en .env.example, no configuración usable. Configuración por canal seguro,
+modelo accesible sin asumir vigencia y una carga real en instancia nueva/caso separado. Revisión
+humana de la propuesta/páginas antes de aplicar; no autocompletar valores esperados a mano para
+ocultar extracción parcial. Precisión digital/escaneada y producción no acreditadas. No migraciones,
+DBreal/PII/cuentas/cotizador ni cambio de contratos. Original PDF51dc con peso faltante se preserva.
+
+**FUERA DE ALCANCE DETECTADO:** portabilidad/licencia CJK de producción, compatibilidad workbook
+prefijado y residual GET multiarchivo siguen pendientes. El catch genérico QA histórico sí se
+atiende ahora por estar directamente ligado al costo/diagnóstico de esta lectura real, sin borrar
+el registro fechado anterior. Full verify/releasegreen sigue pendiente. Ninguna aceptación previa
+cubre este nuevo checkpoint. Graphify/Archify/Obsidian no ejecutados ni publicados por esta etapa;
+impacto documental guardado sólo en spec/QA README/handoff, pendiente de integración y revisión.

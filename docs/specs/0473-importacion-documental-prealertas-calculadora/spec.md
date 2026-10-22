@@ -740,3 +740,43 @@ build canónico actual, papel/cámara/WeChat, revisión humana de chino, licenci
 servidor y producción siguen NO EJECUTADOS o NO ACREDITADOS. Sin aprobación de merge/deploy.
 Evidencia, hashes y pendientes detallados en el handoff propio y README de QA. Graphify,
 Archify y publicación/revisión visible en Obsidian no quedaron acreditados por esta aceptación.
+## Etapa 2026-10-22 · Lectura PDF real en QA aislada (autoría ligera)
+
+Autorización directa de Sam y asignación del Director de Packing, coordinada con el Director
+General. Se adopta el mismo Worker/owner, worktree, rama y PR319 desde e060f6d. Esta etapa no
+reabre ningún GO anterior ni cambia la aceptación histórica CBE. Allowlist EXACTA de ocho rutas:
+
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/extraction-config.ts
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/extraction-config.test.ts
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/vite.config.ts
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/server.ts
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/server.test.ts
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/README.md
+- docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md
+- .agents/handoffs/0473-portal-confirmacion-20261021.md
+
+Contrato: opt-in explícito de QA para usar el lector Anthropic existente con clave/modelo de
+pruebas suministrados al proceso, sin envFile ni carga general de .env. La instancia positiva
+será independiente y en otro origen; no proxy al backend4320 ni puerto4320/4321. Deshabilitado
+por defecto, elimina ambas variables heredadas. La instancia opt-in acepta sólo PDF, mantiene
+propuesta/revisión humana y no aplica ni confirma automáticamente. Un uploaded repetido en
+processing/ready/failed no vuelve a extraer; retry requiere nuevo job explícito. Errores conocidos
+preservan identidad del DocumentImportError exportado por SSR; desconocidos se convierten a
+extraction_unavailable, sin mensajes/cuerpos/stacks/credenciales del proveedor en las respuestas.
+No cambia lector, DTO, SQL, UI, cálculos ni contratos de producción. Caso previo rev3/V1 y códigos
+se preservan. Fuente y pruebas se escribirán sin ejecutarlas; la lectura positiva real necesita
+credencial/modelo de pruebas y GO de runtime nuevo. No simular JSON ni inferir éxito por unit tests.
+Autoría terminada por fuente, NO EJECUTADA: configureQaExtraction sólo devuelve pdfEnabled; fail-fast
+sin clave/modelo o con puerto/proxy no aislados. Vite mantiene envFile:false. Middleware preserva
+processing antes del await; repetición terminal no reextrae y PUT comprueba estado de nuevo al
+terminar el body. Test nuevo de esa carrera usa stream retenido; CSV/XLSX por defecto conservados.
+Se escribieron25 instancias (config13/server12). Con14 casos existentes del adaptador Anthropic,
+selección propuesta39 en3 archivos por filtro SDD-0473 PDF QA|Anthropic document adapter boundary,
+retry0/1worker/sin paralelismo. Son pruebas unitarias con IO doblado; no acreditan IA real.
+Receta externa crea proforma ficticia nueva2p/10cajas/192pcs/USD390/140kg/.80m³, con procedencia
+impresa por página y oracle de autoría separado de DocumentDraft. Receta/marker/generación/PNG
+siguen NO EJECUTADOS. Presupuesto propuesto: focales180s+60cierre; muestra120s+60cierre, sujetos a
+GO nuevo. No hay credencial/modelo de pruebas disponibles en las ubicaciones autorizadas. No se
+copiaron valores de .env.example ni secretos, no se consumió el SDK ni se levantó otro proceso.
+La prueba digital positiva y cualquier prueba escaneada siguen pendientes. La etapa no modifica
+capacidades del portal real ni DTO/lector/SQL; PDF-only corresponde exclusivamente al banco QA.

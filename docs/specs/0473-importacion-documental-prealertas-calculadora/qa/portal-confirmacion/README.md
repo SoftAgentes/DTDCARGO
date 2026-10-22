@@ -202,3 +202,62 @@ WeChat/chino humano y licencia/portabilidad CJK de producción siguen pendientes
 La visual local aprobada no autoriza merge, activación ni despliegue. Graphify/Archify/Obsidian
 no se actualizaron ni quedaron acreditados en este cierre documental. No reiniciar la demo o
 reconfirmar para reproducir una evidencia ya preservada sin una nueva asignación concreta.
+
+## Banco PDF opt-in · fuente nueva desde e060f6d (2026-10-22)
+
+Este modo es un banco de pruebas PDF-only; NO reduce los formatos del portal de producto. La UI
+histórica puede mencionar Excel, pero en esta instancia sólo se acepta el PDF ficticio del caso
+nuevo. La demo por defecto conserva CSV/XLSX y el error recuperable de PDF deshabilitado.
+
+`QA_PDF_EXTRACTION_ENABLED=true` habilita el lector Anthropic existente únicamente si:
+
+- el proceso recibe ANTHROPIC_API_KEY y DOCUMENT_IMPORT_MODEL de PRUEBAS, ambos no vacíos;
+- QA_PORT es un entero entre4322 y65535 (4322 propuesto, disponibilidad NO comprobada todavía);
+- QA_BACKEND_ORIGIN no está definido: debe crear su propio PGlite, sin usar4320/4321.
+
+No se carga ningún .env: envFile sigue false y no se usa dotenv/envpull. La configuración no
+retorna ni imprime la clave o el modelo. Sin opt-in se eliminan ambas variables heredadas. No
+existe un modelo por defecto ni se presume acceso a un modelo declarado en un ejemplo. Una
+configuración incompleta falla antes de levantar el servidor. Los botones de PDF final conservan
+su configuración CJK independiente; esta etapa no cambia el renderer ni sus fuentes.
+
+El job reserva processing antes de esperar al extractor; uploaded repetido en processing, ready
+o failed devuelve su estado y no inicia otra llamada. Un PUT tardío no sustituye bytes durante la
+lectura. Reintentar requiere crear un nuevo job explícitamente y una autorización de la prueba;
+no hay retry automático en este banco. El lector real mantiene maxRetries0, límites de tokens,
+salida estructurada y revisión humana pendiente. La propuesta nunca se aplica/confirma sola.
+Los errores DocumentImportError del mismo módulo SSR conservan su código; errores desconocidos
+se muestran como extraction_unavailable, sin message/stack/respuesta del proveedor ni secretos.
+
+Disponibilidad revisada, sólo presencia/nombres: no se detectó clave/modelo usable en proceso,
+User/Machine o .env del worktree. La raíz canónica sólo tiene declaraciones en .env.example;
+no se tomaron valores ni se copiaron secretos. La ejecución IA positiva sigue NO DISPONIBLE hasta
+la configuración segura de pruebas; no pedir al usuario que publique la clave en el chat.
+
+### Propuesta de validación, todavía NO EJECUTADA
+
+- 25 casos nuevos escritos:13 de configuración y12 del middleware (incluye concurrentes/PUT tardío,
+  ready/failed, constructor SSR, errores seguros y alternativa CSV). Sólo mocks unitarios de IO;
+  no acreditan lectura de PDF. Con14 casos existentes del adaptador son39 casos/3archivos.
+- Selección: extraction-config.test.ts + server.test.ts de este directorio y
+  lib/studio/document-import/anthropic.test.ts, filtro
+  `SDD-0473 PDF QA|Anthropic document adapter boundary`, un worker, sin paralelismo de archivos,
+  retry0, dependencias instaladas, sin red/clave real. Toda ejecución requiere GO nuevo.
+- Receta externa nueva en pdf-import-optin-e060/sample-source/, fueraGit: proforma PI-DEMO-PDF-002,
+ 2páginas completas. Comercial/proveedor enp1; embalaje explícito enp2. Tres productos:
+ 72mugs x2.25=162;72lids x.50=36;48bottles x4=192;192pcs/USD390. GrupoA4cajas idénticas,
+ 18mugs+18lids/caja,56kg bruto/.32m³ total. GrupoB6cajas de8bottles,84kg/.48m³ total.
+ Total10cajas/140kg/.80m³; pesos netos48/72 claramente distintos del bruto. Todo100%ficticio.
+- Primero se generará y revisará visualmente esa muestra con ReportLab/Poppler existentes, sin
+  instalar; marker de authoring PDF exactamente una vez antes de crear. No se genera ahora.
+- Aceptación futura: nueva instancia/origen/caso, una carga del PDF nuevo, lector real sin fallback,
+  propuesta completa con páginas de procedencia, revisión explícita de incidencias y aplicación
+  manual al nuevo documento compartido. Nunca rellenar a mano los valores esperados para hacer
+  pasar la extracción. Los prefills pueden producir conflictos legítimos que se deben revisar.
+- El caso previo rev3/V1/10códigos y archivos originales (incluido el PDF con peso faltante) no se
+  resetean ni reutilizan como muestra positiva. Es una aceptación separada, sin producción.
+
+PDF escaneado positivo, precisión con documentos de otros proveedores, presupuesto/retención de
+IA en producción y pnpm verify actual siguen pendientes. Ningún resultado histórico cubre esta
+fuente nueva, ni25 mocks significan aceptación IA. No iniciar servidor, llamar al SDK, generar o
+rasterizar archivos, ejecutar tests o publicar este checkpoint sin la asignación correspondiente.
