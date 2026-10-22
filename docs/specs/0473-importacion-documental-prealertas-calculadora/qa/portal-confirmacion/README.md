@@ -261,3 +261,38 @@ PDF escaneado positivo, precisión con documentos de otros proveedores, presupue
 IA en producción y pnpm verify actual siguen pendientes. Ningún resultado histórico cubre esta
 fuente nueva, ni25 mocks significan aceptación IA. No iniciar servidor, llamar al SDK, generar o
 rasterizar archivos, ejecutar tests o publicar este checkpoint sin la asignación correspondiente.
+
+## Resultado de GO02 sobre f43 · 2026-10-22
+
+La selección39/3archivos se ejecutó una vez sobre f43ae5e7e9d1ea852d58396844892a70844d446b:
+39PASÓ/0fallos/0pendientes/0todo;39títulos stdout/JSON cotejados. Cuatro nativos exit0,
+wrapper0/incompleteFalse: tests→markerONCE→crear muestra→Poppler. Los dobles de SDK/IO en las
+pruebas unitarias NO acreditan lectura automática de PDF. El hijo actual sólo toca tres docs
+(handoff/spec/esteREADME), no es otra fuente de producto ejecutada ni una corrida adicional.
+
+Originales bajo C:/Users/AKX generator/.codex/visualizations/2026/10/21/packing-list-portal/pdf-import-optin-e060/:
+
+- combined-v3-results/formal-return.json: cierre11:43:46.7932444Z, nativeFIN11:43:46.3332261Z.
+- focal-v3-results/vitest.result.json:39passed/0failed/0pending/0todo/3files.
+- sample-v3-output/proforma-packing-pdf-002-completa.pdf:2páginas,4855bytes,
+ SHA2567fada57b5d00093c5f3950e36de7812226b675a2fc1547d234ca3c790b170b2e.
+- sample-v3-renders/proforma-pdf-002-1.png y -2.png: AMBOS vistos por Root y General, visualPASÓ,
+ sin clipping/superposición. Rootvisual ec93db0914a1c3b28925ad5dd44047df1b8543b6d7fb64535ce6a82a8d143306.
+- custody-qa39-sample-02.json y caller-tool-result-qa39-sample-02.json preservan hashes y resultado
+ original tool: sesión36567/chunk414c89/exit0/terminada, separado del archivo formal.
+
+RootPOST11:43:48.2826603Z y General11:44:34.659Z fueron oportunos dentro del cap11:44:46.3332261Z.
+La custodia corta cerró11:44:41.7683113Z; el recibo de campos tool se guardó después, con su hora
+real, sin fingir copia byte a byte de streams. GO01 conservado FALLÓ/WhenAll/0nativos producto;
+V3 y GO02 son sucesores, sin reejecución oculta. No se usaron GO antiguos ni se tocaron4320/4321.
+
+Aviso de render: stderr Poppler94bytes contiene No display font for Symbol y ArialUnicode,
+SHA2566b76dedf9fefb6759a7c6ef6ed89ea38f6b993e297a0acdcbd6c6c84b47b8b17. Native0 y revisión visual
+correcta; no declarar todos los stderr vacíos ni CJK/portabilidad resueltos, no instalar/rerender.
+Muestra coherente:192pcs,USD162+36+192=390,10cartons4+6,140kg bruto distinto de120neto,.80CBM.
+
+PDF→IA→propuesta→aplicar→proveedor→confirmación/etiquetas de ESTA muestra: NO DISPONIBLE por falta
+de configuración TEST (clave/modelo); no se llamó SDK real ni se llenó a mano para aparentar
+extracción. El próximo caso debe ser nuevo y preservar el caso anterior confirmado rev3/V1.
+Full pnpm verify/build actual, escaneado, WeChat/chino humano y CJK producción siguen pendientes.
+No merge ni producción. Este cierre no consume otra ventana ni ejecuta pruebas/servicios/UI/IA.

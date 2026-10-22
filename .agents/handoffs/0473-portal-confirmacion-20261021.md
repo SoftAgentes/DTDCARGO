@@ -846,3 +846,76 @@ atiende ahora por estar directamente ligado al costo/diagnóstico de esta lectur
 el registro fechado anterior. Full verify/releasegreen sigue pendiente. Ninguna aceptación previa
 cubre este nuevo checkpoint. Graphify/Archify/Obsidian no ejecutados ni publicados por esta etapa;
 impacto documental guardado sólo en spec/QA README/handoff, pendiente de integración y revisión.
+## Cierre documental de QA PDF · GO02 · 2026-10-22
+
+**ADOPCIÓN Y ALCANCE:** autorización del General transmitida por Director de Packing. Hijo DIRECTO
+f43ae5e7e9d1ea852d58396844892a70844d446b, mismo Worker/owner/rama/PR319. Claim canónico propio y
+guard OK, tres preimágenes FÍSICAS con hashes/blobs y cuatro Git raw íntegros antes de editar,
+en pdf-import-optin-e060/doc-closure-f43/. Allowlist exacta DOCONLY, sin cambiar fuente ejecutada:
+
+- .agents/handoffs/0473-portal-confirmacion-20261021.md
+- docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/README.md
+
+**RESULTADO LOCAL SOBRE F43 (no sobre este hijo docs):** GO DIRECTOR-PACKING-PDF-QA39-SAMPLE-20261022-02,
+una invocación foreground/0retry,39PASÓ/0FALLÓ/0pending/0todo,3archivos.25nuevas QA+14adaptador,
+39títulos reales entre stdout/JSON sin diferencias según cotejo General. No se debilitaron tests.
+IO/SDK de unit tests doblados: no son extracción positiva real. Cuatro pasos nativos exit0
+(focales/markerONCE/Python/Poppler),wrapper0/incompleteFalse; streams originales preservados.
+Origen11:43:34.3957828Z,primerNative11:43:34.9989493Z,FIN11:43:46.3332261Z; devolución propia
+11:43:46.7932444Z. RootPOST automático11:43:48.2826603Z y General11:44:34.659Z oportunos,
+dentro del cap11:44:46.3332261Z. Custodia corta11:44:41.7683113Z dentro del cap. Cierre GLOBAL
+acreditado por último tools.write_stdin original: sesión36567/chunk414c89/exit0/sin session_id,
+terminada. No inferir global desde formal-return. El recibo de campos tool se guardó después
+con hora real y declara que no copia bytes de streams ni ejecuta/reconsulta la sesión.
+
+**MUESTRA Y VISUAL:** PDF ficticio PI-DEMO-PDF-002 generado4855bytes/2páginas. Ambos PNG originales
+vistos por Root y General: PASÓ sin cortes/superposiciones/códigos omitidos. Proveedor completo,
+fecha/moneda,3productos;72x2.25=162,72x.50=36,48x4=192→192pcs/USD390. A4cajas idénticas mixtas,
+18mugs+18lids/caja→72+72,total56kg bruto/48neto/.32CBM. B6cajas de8botellas→48,total84kg/72neto/.48.
+Totales10cartons/140kg bruto/120neto/.80CBM contados una vez. Oracle de autoría separado de
+DocumentDraft: NO extracción simulada. Esta muestra no sustituye archivos ni recibo rev3/V1 previos.
+
+**WARNING PRESERVADO:** Poppler stderr94bytes, No display font for Symbol y ArialUnicode,
+SHA2566b76dedf9fefb6759a7c6ef6ed89ea38f6b993e297a0acdcbd6c6c84b47b8b17. Native0 y páginas correctas
+por revisión completa, pero no afirmar stderr todos vacíos, validez CJK o portabilidad producción.
+No se instaló ni rerenderizó para ocultar warnings. GO01 quedó FALLÓ BOOTSTRAP WhenAll/0nativos
+trabajo con exterior y retorno propios conservados; su outerexit0 no era éxito de tests. GO02
+no rehabilita GO01. V1/V2/vacíos/errorc0376b y originales permanecen preservados.
+
+**EVIDENCIA FUERA GIT:** base C:/Users/AKX generator/.codex/visualizations/2026/10/21/packing-list-portal/pdf-import-optin-e060/.
+
+| Archivo relativo | SHA256 |
+| --- | --- |
+| combined-v3-results/formal-return.json |efed8b7b34b32b1b0b01f780edfe9091a80daad19b3761f2e4d822625e3deed2|
+| focal-v3-results/vitest.result.json |56163eb943d0c2be9dd471dea85cd14fef0ec85b991214d4455e51b1a0a545e0|
+| custody-qa39-sample-02.json |a937762cef1fc59a96b3eb46adc430483a18f5c8d9a6002e9a213298683bcf07|
+| caller-tool-result-qa39-sample-02.json |1b889278296d3b8c1050cb2925c0d09d4d5d15d0bfaf9ba5d78359609adffafc|
+| sample-v3-output/proforma-packing-pdf-002-completa.pdf |7fada57b5d00093c5f3950e36de7812226b675a2fc1547d234ca3c790b170b2e|
+| sample-v3-renders/proforma-pdf-002-1.png |c3e8f249d52d70a0f25e1c361cf2ee66631c235eadd1dad857215a98bc553ace|
+| sample-v3-renders/proforma-pdf-002-2.png |5cb0f10d39a2c1d778bc3886af116cb450878ed7cbd5f925d2478e4786302274|
+| root-visual-sample-v3.json |ec93db0914a1c3b28925ad5dd44047df1b8543b6d7fb64535ce6a82a8d143306|
+| combined-v3-results/04-raster-two-pages.stderr.log |6b76dedf9fefb6759a7c6ef6ed89ea38f6b993e297a0acdcbd6c6c84b47b8b17|
+
+General cotejó20artefactos de custodia sin diferencias y revisó ambos PNG, según su dictamen.
+RootPOST SHA cf428170b388ef499bea6146929178b76c1c09ede003b9bdb47f5e6dce628328,4Git0/19sellos
+(15+READY/caller/controller/V1)0diff/claimABSENT. Registrar ese cotejo como evidencia anterior al
+hijo documental: después de editar tres docs NO afirmar que siguen idénticos los15pins completos.
+Las otras cinco TS de la etapa y siete runtime/test pins quedan intactas; coreproductoCBE intacto.
+
+**PENDIENTE DE ESTA TAREA:** IAreal de entradaPDF, apply/proveedor/confirmación/etiquetas/QR de ESTA
+muestra NO DISPONIBLE por falta de clave/modelo TEST. No SDKcall remoto ni proforma leída por IA.
+Siguiente aceptación autorizable: nuevoPDF→propuesta con páginas→revisión explícita→apply→proveedor
+corrige grupoA→confirma→PDF final/etiquetas/QR. Nunca entrada manual de valores esperados para
+fingir lectura. Se preserva demo4320/4321 rev3/V1 y diez códigos físicos; no reset/reimport/save/
+confirmación/servidor/UI/descarga nuevos en este cierre. Se requiere GO nuevo y canal seguro para
+configuración TEST; no copiar secretos de producción ni pedir sus valores por chat. Full pnpm
+verify/build actual NO EJECUTADOS, ni escaneado/WeChat/revisión humana chino/CJKproducción. Sin
+merge, producción, DBreal/migraciones/flags. Respaldo de la misma PR DRAFT autorizado tras cotejo
+General del hijo documental y body fiel; no se publica desde este cierre antes de esa revisión.
+
+**IMPACTO Y FUERA DE ALCANCE:** registros históricos se preservan sin reemplazar NOEJ/FALLÓ por
+este éxito acotado. Workbook prefijado, residual GET multiarchivo y CJKproducción siguen pendientes.
+Graphify/Archify/Obsidian no acreditados por esta etapa; impacto guardado en tres documentos,
+pendiente de integración y actualización de conocimiento por Director. No nuevos tests/renders,
+servicios, censo, instaladores o cierres recursivos. Cotejo documental y Git estático únicamente.

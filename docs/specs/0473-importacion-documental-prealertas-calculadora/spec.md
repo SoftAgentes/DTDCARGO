@@ -780,3 +780,37 @@ GO nuevo. No hay credencial/modelo de pruebas disponibles en las ubicaciones aut
 copiaron valores de .env.example ni secretos, no se consumió el SDK ni se levantó otro proceso.
 La prueba digital positiva y cualquier prueba escaneada siguen pendientes. La etapa no modifica
 capacidades del portal real ni DTO/lector/SQL; PDF-only corresponde exclusivamente al banco QA.
+## Cierre local de QA PDF · GO02 · 2026-10-22
+
+Fuente de producto ejecutada: f43ae5e7e9d1ea852d58396844892a70844d446b. El hijo documental
+actual es DIRECTO de f43 y sólo añade resultados en estas tres rutas exactas:
+
+- .agents/handoffs/0473-portal-confirmacion-20261021.md
+- docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md
+- docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/README.md
+
+GO DIRECTOR-PACKING-PDF-QA39-SAMPLE-20261022-02: una corrida serial,0retry,39 pruebas PASÓ,
+0fallos/pendientes/todo,3archivos. Son25 casos QA nuevos y14 del adaptador con IO/SDK doblados;
+no fueron llamadas a IA. Los39 títulos se cotejaron entre stdout y JSON. Cuatro nativos exit0
+(focales,marker una vez,Python,Poppler),wrapper0/incompleteFalse. Fin11:43:46.3332261Z,
+formal propio11:43:46.7932444Z; RootPOST11:43:48.2826603Z y General11:44:34.659Z oportunos,
+con cap efectivo11:44:46.3332261Z. El resultado original de sesión36567/chunk414c89 acreditó
+exit0 y terminación de la herramienta; no se infirió cierre global desde el archivo formal.
+
+Muestra nueva de2páginas generada,4855bytes,SHA2567fada57b5d00093c5f3950e36de7812226b675a2fc1547d234ca3c790b170b2e.
+Root y General vieron ambos PNG originales: PASÓ visual, sin cortes/superposiciones. Contenido
+ficticio completo:10cajas/192pcs/USD390/140kg bruto/120kg neto/.80m³; A4cajas mixtas56kg/.32 y
+B6cajas84kg/.48. Es oracle de autoría; no es una propuesta extraída ni un documento confirmado.
+Poppler emitió94bytes de warnings No display font for Symbol/ArialUnicode con native0; páginas
+correctas. No afirmar stderr vacío, cobertura CJK o portabilidad de fuentes de producción.
+GO01 quedó FALLÓ por bootstrap WhenAll/0nativos de trabajo, preservado; GO02 no lo rehabilita.
+
+Extracción positiva PDF mediante IA, aplicar esa propuesta, proveedor/confirmación/PDF final/
+etiquetas/QR de ESTA muestra: NO DISPONIBLE sin clave/modelo TEST; ninguna llamada al SDK real.
+La muestra vieja y workspace4320/4321 rev3/V1 siguen intactos. Próxima aceptación pendiente:
+PDF nuevo real→propuesta con evidencia→revisión humana→aplicar→proveedor corrige grupoA→confirma
+→documento/etiquetas/QR; nunca llenar valores manuales para fingir extracción. pnpm verify/build
+actuales, PDF escaneado, WeChat/chino humano/CJK producción siguen pendientes. Sin merge/deploy.
+Hashes y originales fueraGit en pdf-import-optin-e060/ y handoff propio. Las cinco TS de la
+etapa y siete runtime/test pins quedan intactos; tres docs cambian por autorización, por lo
+que no se afirma que los15 pins anteriores sigan todos idénticos después de este hijo.
