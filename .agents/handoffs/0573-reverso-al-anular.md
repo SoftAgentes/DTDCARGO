@@ -544,7 +544,7 @@ Superficie backend Studio/Contabilidad, riesgoR3 financiero; governance-check ap
 | SGE-00.06 prevención | Validación estricta antes de certificar resultado, sin autorizar éxito HTTP200 por sí solo; validación persistida pendiente. |
 | SGE-00.07 estado real | Cumplimiento por fuente posted/reconocido/cero/rechazo/dependencia/unknown; no exactamente-una-vez ni commit exterior prometido. |
 | SGE-00.08 complejidad | Conserva API/callers sin nuevos pasos o formularios; explica revisión antes de otra solicitud. |
-| SGE-00.09 reutilización | Cliente admin/API existentes, sin helper/import/dependencia o componente nuevo. |
+| SGE-00.09 reutilización | Cliente admin/API existentes; tres funciones privadas locales (isCivilDate, postingStateUnknown y readAtomicResult) dentro del mismo adapter, sin nuevos imports, dependencias o componentes. |
 | SGE-00.10 accesibilidad | No aplica control/render nuevo en este adapter; UI/callers no revalidados aquí. |
 | SGE-00.11 lenguaje | Errores seguros con revisión/siguiente paso; sin ausencia afirmada o SQL crudo. Logs legados ajenos conservan deuda§6.4. |
 | SGE-00.12 autoridad | Autoría local autorizada; no ejecución financiera, DB, integración o publicación nueva por esta fase. |
