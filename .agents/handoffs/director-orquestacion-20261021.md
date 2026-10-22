@@ -34,11 +34,12 @@ Las tres sesiones leyeron el mensaje humano original, verificaron la autorizaci�
 - Owner: director-codex-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 - Sus dos archivos: docs/audits/2026-10-20-plan-contable-seguimiento-codex.md y .agents/handoffs/director-continuidad-codex-20261020.md. Este Director no los edita.
 - CORE0573: worktree sdd-0573-core-reparacion-20261021, rama codex/sdd-0573-core-reparacion-20261021; owner worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468, claim retenido.
-- HEAD local CORE: 7394f63f5a0ab4d39f950b73141c698ae17aff7d; PR320 remoto todavía 0e5a28567b5d5df43e92f3fd52eb0662ca55842a. No presentar la revisión del padre como revisión del commit local.
+- HEAD local CORE y PR320 remoto actualizados a 7394f63f5a0ab4d39f950b73141c698ae17aff7d. Verificación independiente GitHub confirmó OPEN/DRAFT, base e834dc6e y32 rutas. En el corte inicial el remoto seguía en0e5a2856; ese desfase ya se cerró. La revisión de fuente reportada por el owner no equivale a aceptación completa de la PR.
 - PR320 apilada sobre codex/0573-base-temprana-20261021, base e834dc6eef597421d10f880b5deb8d689dcc7078. La composición de esa base debe conservar su procedencia.
 - Baseline reportada por owner: 80 pruebas ejecutadas, 64 PASÓ y 16 FALLÓ; 41 previstas NO EJECUTADAS. La corrección M1 local tiene revisión de fuente, pero sus 27 tests no se ejecutaron sobre ese SHA al corte.
 - Paquete preparado C:/tmp/director-traspaso-20261020/0573-core-M1-T-binding-01. Cutoff heredado 2026-10-21T23:58:19.3523944Z, deadline 23:59:19.3523944Z.
 - El Director comprobó reloj a 23:58:05Z y no dio EJECUTA con esa ventana. Instrucción enviada: conservar el paquete, no arrancar tarde ni renovar su reloj; registrar NO EJECUTADO si vence. No se invalida el código por ese resultado.
+- Actualización del owner: binding anterior vencido y NO EJECUTADO, sin renovar su origen ni enviar EJECUTA. Prepara una etapa T-only distinta, UNBOUND, propuesta de900s con60s de reserva, sin nueva instalación. Reportará paquete/SHA/ventana concreta antes de cualquier ejecución. Las27 pruebas sobre M1 siguen NO EJECUTADAS;14 hallazgos y A/B continúan abiertos. Esta coordinación solo confirmó el respaldo remoto y recibe la propuesta; no certificó los10 archivos ni revisó el paquete nuevo todavía.
 - Próximo turno pesado reservado a contabilidad; la reserva no equivale a GO. Primero informar paquete, SHA y ventana válidos. Permanece permitido el trabajo ligero dentro de las asignaciones vigentes.
 - El owner declara un heartbeat anterior cada 20 minutos. Este encargo no creó ni modificó automatizaciones; se comunicó que ese frente no arranque una nueva prueba pesada sin coordinación global.
 - El owner conserva autorización anterior de subir sus entregas como PR borrador. Ningún permiso nuevo de merge o producción se deduce del presente encargo.
@@ -117,7 +118,7 @@ Consulta independiente GitHub: 18 PR abiertas, todas DRAFT. No se hizo revisión
 | 316 | Embarques / rama307 | 1ec5e85f | Base declarada de318 |
 | 318 | Envíos0578 / rama316 | ec95a1b0 | 72 rutas propias; 105 acumuladas contra merge-base main |
 | 315 | Contratos pruebas / main | 8bfb620b | CONFLICTING; 5 rutas heredadas en ramas posteriores |
-| 320 | CORE0573 / base temprana | 0e5a2856 | Local7394f63f aún no remoto |
+| 320 | CORE0573 / base temprana | 7394f63f | Respaldo remoto verificado en actualización posterior; tests M1 pendientes |
 | 304 | PGlite / main | 8fb4edee | Harness, conservar procedencia |
 | 306 | Oficina agentes / main | 2f9b336c | Documentación, fuera de los dos frentes producto nuevos |
 | 309 | Publicador / main | 021e96cd | Infra independiente; no autoriza publicación |
