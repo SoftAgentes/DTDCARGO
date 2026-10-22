@@ -45,11 +45,13 @@ function clientFor(rows: Fila[], options: OpcionesDoble = {}, fault?: (read: Rea
             reads.push(read);
             return fault ? fault(read) : read.response;
           };
-          query.then = (resolve, reject) => then((response) => {
+          query.then = (resolve, reject) => new Promise<Response>((resolveResponse, rejectResponse) => {
+            then(resolveResponse, rejectResponse);
+          }).then((response) => {
             const read = { table, columns, response };
             reads.push(read);
-            return resolve(fault ? fault(read) : response);
-          }, reject);
+            return fault ? fault(read) : response;
+          }).then(resolve, reject);
           return query;
         },
       };
