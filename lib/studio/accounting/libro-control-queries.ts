@@ -12,6 +12,7 @@ import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import {
   accountBalances,
   computeBalances,
+  listAccounts,
   listAccountsComplete,
   type AccountBalanceMap,
 } from "@/lib/studio/account-queries";
