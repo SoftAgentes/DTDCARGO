@@ -34,7 +34,7 @@ Las tres sesiones leyeron el mensaje humano original, verificaron la autorizaci�
 - Owner: director-codex-01a15a4e-ddf0-7d82-8656-d9dc56b58468.
 - Sus dos archivos: docs/audits/2026-10-20-plan-contable-seguimiento-codex.md y .agents/handoffs/director-continuidad-codex-20261020.md. Este Director no los edita.
 - CORE0573: worktree sdd-0573-core-reparacion-20261021, rama codex/sdd-0573-core-reparacion-20261021; owner worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468, claim retenido.
-- HEAD local CORE y PR320 remoto actualizados a 7394f63f5a0ab4d39f950b73141c698ae17aff7d. Verificación independiente GitHub confirmó OPEN/DRAFT, base e834dc6e y32 rutas. En el corte inicial el remoto seguía en0e5a2856; ese desfase ya se cerró. La revisión de fuente reportada por el owner no equivale a aceptación completa de la PR.
+- Producto M1 probado7394f63f5a0ab4d39f950b73141c698ae17aff7d; cierre posterior local/remoto PR320 b70c5ddfd649cabaf71ee90e3ef080fd4f25d459, solo spec/handoff, confirmado OPEN/DRAFT sobrebase e834dc6e. En el corte inicial remoto0e5a2856 y después7394; respaldos ya verificados. La revisión de fuente no equivale a aceptación completa de la PR.
 - PR320 apilada sobre codex/0573-base-temprana-20261021, base e834dc6eef597421d10f880b5deb8d689dcc7078. La composición de esa base debe conservar su procedencia.
 - Baseline reportada por owner: 80 pruebas ejecutadas, 64 PASÓ y 16 FALLÓ; 41 previstas NO EJECUTADAS. La corrección M1 local tiene revisión de fuente, pero sus 27 tests no se ejecutaron sobre ese SHA al corte.
 - Paquete preparado C:/tmp/director-traspaso-20261020/0573-core-M1-T-binding-01. Cutoff heredado 2026-10-21T23:58:19.3523944Z, deadline 23:59:19.3523944Z.
@@ -114,7 +114,17 @@ Evidencia cerrada, sin nuevas observaciones físicas por el Director:
 
 Se informó a Sam del PASÓ funcional y del bloqueo de cierre. Se pidió al frente contable registrar ambos estados en su checklist/handoff/PR propios, con el producto probado7394 identificado, sin alterar tests/recibos ni reintentar. Este registro no constituye aceptación de integración ni producción.
 
-Respaldo documental posterior: Director verificó PR308 OPEN/DRAFT en c7274a13d7a56237e4f0643daf69d1e06a20ccdb. Owner reportó cierre CORE local b70c5ddfd649cabaf71ee90e3ef080fd4f25d459, padre7394; diff independiente confirma solo spec/handoff,67añadidas/5retiradas, sin producto/tests. PR320 seguía remoto7394 en esa lectura: respaldo de b70 pendiente de readback, sin presentarlo publicado todavía. I2 continúa como diseño bajo revisión técnica, sin implementación ni nuevo runtime.
+Respaldo documental posterior: Director verificó PR308 OPEN/DRAFT en c7274a13d7a56237e4f0643daf69d1e06a20ccdb. Cierre CORE b70c5ddfd649cabaf71ee90e3ef080fd4f25d459, padre7394; diff independiente confirma solo spec/handoff,67añadidas/5retiradas, sin producto/tests. Readback posterior independiente confirmó PR320 OPEN/DRAFT ya enb70 ybaseB, cerrando el pendiente de respaldo. Producto probado sigue7394; no transferir sus27tests al siguiente I2.
+
+### Continuidad I2: autoría local sin runtime
+
+El frente contable asignó el siguiente hallazgoI2 ya ratificado en el encargoCORE0573 §5, bajo su autorización humana vigente de continuidad. No es una tarea de packing/CRM ni conversor general2.1/libro2.3. Conserva owner,worktree,rama yPR320; base de autoríab70. Asignación leída completa: C:/tmp/director-traspaso-20261020/0573-I2-autoria-sin-runtime-director.md,12059bytes,SHAd992a236659643d37cb208962a7a816be15ac72892d6dc8c0d286a6f758bb50f.
+
+Alcance15rutas dentro48CORE:6producto (ingreso-periodo/libro-control-queries/Card/report-types/CSV/Dirección),6tests,fixtureI2,spec/handoff. Oficial se conserva; ajusteAnulacionesUsd/baseComparacionUsd nullable y diagnóstico separan integridad/unidad/actividad. Nominal acreditado no_comparable; incertidumbre requiere_revision; ningún USD o0 por defecto. Contexto leído aunque llegue opts.mayor, con cliente de sesión/RLS/cuentas/metadata completas. No schema/RPC/DB/migración ni contrato de cajas/envíos/CRM.
+
+Autoriza preparar código/tests y checkpoint LOCAL coherente; no pruebas/parser/lint/tipos/build/UI/runtime/DB/censo/instalación ni publicación antes de revisión del nuevoSHA. Los27M1 no se cambian ni heredan. invoice-read-boundary sigue excluida hasta necesidad concreta de caller/tenant/guard/conteo, sin cambiar scanner. Mantener15rutas y elevar firma/caller adicional antes de ampliar. El Director cruza en lectura los contratos con310/311/312 para conservar adaptación hacia adelante; no impone integrar310antesCORE contra el encargo ratificado. Un eventual solape de integración no prueba otro escritor vivo. Se pidió al coordinador interno serializar cualquier escritor real de esos archivos y reportar owner concreto. Turno pesado continúa retenido.
+
+Revisión independiente de coordinaciónI2 completada: sin hallazgo bloqueante en asignación, no aceptación de implementación. Readbacks actuales de310/311/312/320 confirman bases encadenadas; solapes por delta propio:#310=10rutasI2,#311=3(CSV/testCSV/report-types),#312/#313/#314=0propias.308/319=0solapesI2. No se comprobó escritor concurrente; no se deduce inactividad por árbol/antigüedad. La asignación cubre mapasEstadoDelIngreso actuales enIP/Card/Dirección y preserva vistaDelEstado. Callers reportesDelLibro/Dirección/Reports pasanopts.mayor y deben obtenercontexto; conservar firma evita ampliarreports/queries sin necesidad. Dashboard mayor=null conserva oficial/sin_mayor, sin obligarlo aleercontabilidad. Integración futura conserva sinConvertir/conversion_incompleta0572 y oficialanual; no copiar conversor ni restaurar archivos enteros. Estas precisiones ya figuran enCORE§304–305 y se comunicaron al owner; revalidar alSHAfinal. Solo lectura, sin runtime/DB/claims ni edición de producto por revisores.
 
 | Frontera | Responsable | Clasificación y condición |
 |---|---|---|
@@ -158,7 +168,7 @@ Consulta independiente GitHub: 18 PR abiertas, todas DRAFT. No se hizo revisión
 | 316 | Embarques / rama307 | 1ec5e85f | Base declarada de318 |
 | 318 | Envíos0578 / rama316 | ec95a1b0 | 72 rutas propias; 105 acumuladas contra merge-base main |
 | 315 | Contratos pruebas / main | 8bfb620b | CONFLICTING; 5 rutas heredadas en ramas posteriores |
-| 320 | CORE0573 / base temprana | 7394f63f | Respaldo remoto verificado en actualización posterior; tests M1 pendientes |
+| 320 | CORE0573 / base temprana | b70c5ddf | Cierre documental remoto; producto7394 con27M1PASÓ/supervisiónincompleta |
 | 304 | PGlite / main | 8fb4edee | Harness, conservar procedencia |
 | 306 | Oficina agentes / main | 2f9b336c | Documentación, fuera de los dos frentes producto nuevos |
 | 309 | Publicador / main | 021e96cd | Infra independiente; no autoriza publicación |
