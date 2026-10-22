@@ -1,5 +1,11 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Lectura M3 fría preservada sin ampliar autoría — 2026-10-22T22:57 UTC
+
+- ParentrefiereCORESQLfinancieraYAescrita/diffcheckWIPd8417a0/3rutas, cierra mapas/inversas/docsANTEScommit/FIN; NOentregaFIJA ni revisiónGeneral/WIPaprobada. Encargo3rutasB4siguesinruntime/GO. Packingcorrectiva4fuenteenMISMOownerrecibida/sincheckpointaún; ningúnslotpesadoabierto.
+- Generalf55355/native0 verificósello yleyóENTERA propuestaFRÍA Ctmp/0573-M3-reloj-pglite-viabilidad-fria-director-20261022.md5039/SHA47d54f56cb26848a122362ad60a75bda81f7e1224eb582e475aea850d9bb37cb. FuenteParentrefierePGlite0.5.8/DateNowdinámicoleídoTEXTOsinimportar yprimariasVitest/PG17, no pruebas. OpciónFUTURA wrapperexistente reverso-al-anular-factura.migration.test.ts FUERA3/BASEFUTURAUNBOUND, NOASIGNADA/noactivarporconveniencia. RequiereSQLobserveinstantesCaracas31oct→1nov(2026-11-01T03:59:59.999Z→04:00:00.001Z),DOStransaccionesterminadasnow-iniciotx,no sólocallsJS; sinobservabilidad=ND/nooráculofabricado. RestaurarDatefinally/instanciapropia/nofakecontroladorSO-timers-ACL;oráculosfuturos/cierreexistentesintactos. Ningunaejecución/import/parser/sonda/DB/timer/nuevaautoríarutaautorizada. ValorarjuntoM2/B1DESPUÉSentregayrevisiónfinanciera, no sustituyeaceptación14AB.
+
+
 ## Corte General 22:55 UTC: PRs separadas actuales; correctiva recibida — 2026-10-22
 
 - RevalidaciónINDEPENDIENTEGit70a273/native0 fetchorigin--no-prune22:54:32.5727019Z0/main-originmaind410ab2e23e74e5bcf7fdc7cc595371b24cc03a8. GHGraphQL223022/native0 REAL22:54:52.714Z repoactualSoftAgentes/DTDCARGO:319OPEN/DRAFT/headD42d42b42de94aa09222b67f342451b2e3cf573e3d4/baseMAINd410/53paths/body4322-c08ad017c42a441becd24a94ec1cbcb182afdcd1e3ac25577867e0b4365ecb20/titleoriginal;320OPEN/DRAFT/headEXACTOf24a3b32be1f05236688f51f03bba239b31c679d/baseRefcodex/0573-base-temprana-20261021/e834dc6eef597421d10f880b5deb8d689dcc7078/55paths/body6185-58828da558d5ba208b61ea4620a54f4f99eff0fadc6defc538dad620683b0686/titleBoundary4. mergedAtNULLambas/statusCheckRollupNULLnoCIverde. GLM7bcaLOCALnoatribuidoaremoto319/noOTROpush.
