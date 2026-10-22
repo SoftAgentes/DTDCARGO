@@ -1,5 +1,10 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Corte de continuidad — 2026-10-22 09:45 UTC / 05:45 Caracas
+
+- Seguimiento propio del otro Director respaldado en PR308, separado de producto: e8bdecada50c04bb1de0880d7402f632923cd596, padre9fbb0c5011dcb624f01555e9eeabb6ec910f82a3. Lecturas Git General0 confirman sólo sus dos documentos,38inserciones/5eliminaciones; ninguna edición General de esos archivos. Readback GitHubGeneral REAL09:45:18.0829904Z/nativo0:PR308OPEN/DRAFT/headEXACTOe8b/baseRefName main/baseRefOid8e9segúnGH/mergedAtnull, exactamente handoffDirector yplan-contable-seguimiento. ConsultaGeneral82088COMPLETADA antes de registrar ese resultado.
+- Director informó publisher13378FIN354e60/global0/árbollimpio09:44:21.5161341Z y cuerpo literal. Vista textual44461/SHA d1708c5b421ad604d9e85fd62390f400c88665df3cc0dc5cc57a8210e47e2bdf con styles/scriptsidénticos según su reporte; General no verificó ese archivo ni visibilidadUI, no atribuir apertura visible. Check M7 conserva autoría/pruebas abierto: la fuente sigue con el mismo Worker bajo7934/808e085c, sin GO pesado, ejecución o permiso nuevo. PR308documental no se incorpora a PR319/320; no merge/producción. No bloqueo ni decisión humana nuevos; siguiente acción sigue siendo revisar la entrega M7 cuando exista.
+
 ## Corte de continuidad — 2026-10-22 09:41 UTC / 05:41 Caracas
 
 - M7 DESPACHADO NOMINAL al MISMO Worker CORE y arranque de autoría confirmado. Director informó followup_task posterior a devolución formal del respaldo04; General observó09:40:57.6536447Z snapshotWorker10 ACTIVE/turno01a162fb-67be-7e02-b356-56585761b451, mensaje «Inicio M7 sólo como autoría de fuente sobre93075a32»: lectura de contrato y tres fuentes, seis preimágenes y adopción antes de editar; pruebas sólo escritas para propuesta posterior. No crear otra sesión ni reasignar Writer. Contrato7934/808e085c, base93075/tree444, seis rutas y claimB4 siguen vigentes. Es autoría EN CURSO, no checkpoint entregado ni resultado funcional.
