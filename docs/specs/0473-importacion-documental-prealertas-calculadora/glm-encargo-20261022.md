@@ -1,6 +1,6 @@
 # SDD-0473 · Encargo GLM para revisión del Director
 
-Fecha: 2026-10-22, America/Caracas. Estado: **propuesto; primera fase documental terminada**.
+Fecha: 2026-10-22, America/Caracas. Estado actual: **S1 escrito para revisión; sin ejecución**.
 Owner: `worker-packing-glm-01a1639b-cd99-7921-ac27-5d218d0a1516`.
 Este documento propone autoría; no habilita producto, runtime, API ni publicación por sí mismo.
 
@@ -511,3 +511,145 @@ UI/B1 conserva la prioridad de pesada comunicada en esta coordinación; no hay r
 El siguiente checkpoint es documental y descendiente de 4b45, sin amend. Guard/claim y revisión
 del diff se registran en su entrega; el SHA resultante se comunica fuera del propio commit. Se
 preservan la base d42, las demos previas, ramas/worktrees ajenos, flags, datos y producción.
+
+## 12. S1 asignado y escrito · Contrato y transporte desconectados
+
+Asignación del General recibida después de su lectura fija de 4b45 y verificación del mensaje
+humano `01a163ac-4321-7d30-aeb4-66f3ef203c50`. Se adopta sobre el hijo documental preservado
+`86461c79ec37828e3cea301403a170339207be0d` (parent 4b45, árbol
+`ecb1b89ccb48527032d1c1c1be623c734b0c640b`). Antes del código se leyeron enteras las tres
+preimágenes desde Git, se comprobaron las seis ausencias Git/disco, identidad/HEAD/estado/claim
+y se registró la adopción en spec/handoff. La allowlist activa exacta está en la spec: seis
+rutas de contrato/proveedor/GLM y sus tests, más estas tres docs. Las otras rutas de §6 siguen
+sin habilitar; S1 no modifica ningún archivo de producto preexistente.
+
+### Contrato efectivamente escrito
+
+- `extraction-contract.ts`: códigos seguros compatibles con los existentes, JSON acotado en
+  bytes/profundidad, metadatos de origen y celdas validados, referencias locales y evidencia.
+  Su salida es `IntermediateExtraction`: observaciones por proveedor/documento/producto/grupo/
+  asignación/total, con `netWeightKg` independiente, incidencias y revisión obligatoria. **No es
+  DocumentDraft**: el validador de negocio y su conversión siguen pendientes. Conserva contenido
+  OCR/celdas sólo en memoria privada del servidor; no se escribe en Git, logs ni UI.
+- `provider.ts`: entradas explícitas sin leer process.env o archivos; sólo perfil `zai-standard`,
+  OCR y modo explícitos, modelo estructurador sin default, límites enteros y credencial privada
+  en closure. Serializar configuración no incluye el secreto. El resumen declara expresamente
+  `accountVerified:false` y `readyForPortal:false`. No reconoce clase de clave por prefijo.
+- `glm.ts`: HTTP nativo a dos destinos constantes, sin SDK, tools, redirects, cookies ni retries.
+  PDF requiere inspector con cancelación real declarada y mapeo revisado de páginas antes de
+  red. Toda entrada requiere reserva confirmada de OCR/texto y contador local específico del
+  modelo. Snapshot/digest enlazan bytes, inspección y reserva. Se limita el body efectivamente
+  leído, UTF-8/JSON, cobertura, coordenadas, tokens, finish reason y referencias. Descartar el
+  cuerpo de error evita propagar secretos o documentos; un resultado incierto nunca es retryable.
+
+Los recibos de inspector/reserva/contador son contratos inyectados, **no implementaciones de
+autoridad**. No hay dependencias de producción que los satisfagan todavía. `abortStopsWork:true`
+en un doble no demuestra terminación del parser; la carrera con AbortSignal evita continuar el
+pipeline después del timeout, pero no convierte un callback arbitrario en proceso interrumpible.
+El mapeo OCR tampoco deduce página de `block.index` ni de posición del array: exige función
+revisada y cobertura completa 1..N; esa función real permanece pendiente. Base64 sin prefijo es
+la codificación escrita para el contrato documentado, aún sin aceptación de cuenta real. Una
+página vacía o sólo imagen se rechaza conservadoramente, sin fingir cobertura de su contenido.
+
+Se reutilizan los nombres duraderos `configuration_missing`, `configuration_invalid`,
+`file_size`, `invalid_metadata`, `invalid_pdf`, `token_limits`, `extraction_invalid`,
+`extraction_incomplete` y `extraction_unavailable`; no se crea otra taxonomía persistida.
+`outcome:not_sent|received|uncertain` es metadata transitoria separada. En el siguiente tramo,
+con allowlist para Anthropic/extract/tests, se extraerá/reexportará la clase canónica preservando
+su identidad `instanceof` y contratos previos. S1 no importa ni altera Anthropic ni duplica su
+schema DocumentDraft; su schema intermedio tiene otra finalidad y nunca se guarda como draft.
+
+La respuesta del modelo no certifica el dato sólo por citar una evidencia existente. S1 valida
+forma y referencias; exactitud OCR, interpretación de unidades, sumas, fusión, correcciones
+manuales y autorizaciones de negocio necesitan sus etapas y revisión humana. Los identificadores
+locales de sujetos no se adoptan como IDs de negocio. HTML/URLs son datos inertes: no se ejecutan,
+descargan o renderizan. El contenido intermedio no constituye una respuesta pública del portal.
+
+### Acceso TEST: actualizaciones humanas, sin tocar la cuenta
+
+El General verificó dos instrucciones posteriores en Packing:
+
+1. `01a163b4-35dd-79f0-b4b4-31f1757e4d4b`: Sam identificó **GLM Coding Plan**. La pregunta quedó
+   respondida, sin habilitar uso de Coding para el portal ni afirmar que esa clave sea Standard.
+2. `01a163b7-f3f9-7260-95ed-b06318f25e1d`: Sam pidió preparar **Standard API** y guardar la clave
+   de forma segura para el recorrido PDF/Excel hasta confirmar/etiquetas, sin merge/producción.
+   Reemplaza la elección operativa anterior por preparación Standard; no acredita creación,
+   guardado, modelo habilitado, saldo o GO. Packing conserva la gestión de cuenta/archivo.
+
+Consulta oficial renovada el 2026-10-22: [autenticación Standard](https://docs.z.ai/api-reference/introduction)
+y [claves separadas de Coding Plan](https://docs.z.ai/devpack/quick-start). Es documentación,
+no evidencia de capacidad de la cuenta. Se mantiene el destino externo de §11 sin abrirlo,
+copiarlo, inspeccionar ACL o leer/hash de contenido. No se repite la pregunta ni se solicita
+secreto por chat. La falta de acceso no impide autoría S1, pero bloquea una prueba real.
+
+### Próximos tramos propuestos para asignación — no activos
+
+**S2, inspección PDF y cuotas antes de conexión:** candidato `pdf-lib` **1.17.1**, versión exacta
+del [manifest oficial](https://raw.githubusercontent.com/Hopding/pdf-lib/v1.17.1/package.json),
+[licencia MIT](https://raw.githubusercontent.com/Hopding/pdf-lib/v1.17.1/LICENSE.md), consultados
+2026-10-22. Es candidato revisable, no afirmación de versión más nueva o libre de vulnerabilidades.
+Declarar sin caret; regeneración controlada de pnpm-lock fijaría integridades y transitivas
+(`@pdf-lib/standard-fonts`, `@pdf-lib/upng`, `pako`, `tslib`), sin resolverlas a mano ni instalar ahora.
+Aceptar la dependencia exige revisión de transitivas y runtime real de Node (package exige >=24;
+no se ejecutó Node de producto ni se verificó su versión efectiva en esta fase).
+
+Propuesta de rutas: `pdf-inspection.ts`/su test y **nueva ruta no autorizada todavía**
+`lib/studio/document-import/pdf-inspection-worker.cjs`, más package/lock. El worker tendría sólo
+bytes acotados, cero red/credenciales/env heredado, validación de cifrado/páginas/digest y salida
+estrecha. El coordinador terminaría el worker ante deadline/cancelación y esperaría su salida
+real con [worker.terminate](https://nodejs.org/api/worker_threads.html#workerterminate), sin dejar
+un parser corriendo por resolver sólo una Promise.race. `resourceLimits` limita heap JS, **no
+todos los buffers externos**: memoria total y descompresión requieren aislamiento/límite efectivo
+o un parser alternativo antes de declarar el inspector acotado. Validación de empaquetado Next/QA,
+terminación, PDFs malformados/cifrados/bombas y ausencia de red queda pendiente de GO. No se crea
+ese worker ni se acepta un contrato de inspector real por la mera selección de la librería.
+
+Lectura fija: `access.ts:reserveLimit` llama a `reserve_document_import_limit`; SQL0457:125–134
+reserva atómicamente por scope/ventana mediante INSERT/ON CONFLICT condicionado. Sólo service_role
+puede ejecutar (235–240). Propuesta: scopes OCR-páginas y texto-tokens diarios, ambos confirmados
+antes del primer fetch. Si falla la segunda reserva, la primera puede quedar consumida de forma
+conservadora, sin afirmar atomicidad conjunta o liberar gasto no comprobado. No exige inferir
+una migración para admitir esos scopes. Una cuota monetaria requiere tarifas/modelo y tope
+aprobados; páginas/tokens por sí solos no son dólares ni prueba de saldo.
+
+**Riesgo durable a resolver antes de conectar jobs:** SQL0457:137–148 reclama jobs processing con
+lease vencido y attempts<3. `retryable:false` evita reintento de un error retornado, pero no el
+reenvío tras muerte del proceso después de una petición facturable. El siguiente encargo debe
+fijar la marca durable previa al envío y cómo la autoridad de claim/manual retry conserva el
+estado incierto. No se presume que error_code en memoria, request_id o CAS final lo solucionen.
+Si la solución requiere SQL nuevo, volver al Director para allowlist/SDD/ID; no modificar 0457.
+
+**S3, datos y revisión:** productor y validador deben avanzar juntos: neto nullable compatible en
+DTO/parseo/exportadores, referencias campo por campo, conservación manual ante fusión, conflictos
+de identidad y aviso del proveedor efectivo antes de transferir. El documento del proveedor
+sigue sin fuentes privadas; etiquetas conservan códigos autoritativos. No conectar salida
+intermedia de S1 directamente al DTO actual ni descartar neto para forzar compatibilidad.
+
+**S4, banco conectado y aceptación:** cargador de servidor explícito del destino de §11, perfil
+Standard verificado por su responsable, modelos/costo/límites, puerto nuevo aislado y sin secretos
+de cliente. Sólo después de revisión de S2/S3 y GO se usaría la muestra ficticia acordada; PDF,
+Excel y escaneado tienen resultados separados, con revisión/aplicación/confirmación humana y
+PDF/etiquetas propios. El presupuesto/GO de UI/B1 tiene prioridad y no se hereda una ventana libre.
+
+### Validación escrita y cierre S1
+
+Conteo por lectura de declaraciones de tests, **no discovery/ejecución**:
+
+| Archivo | Casos escritos | Cobertura pretendida |
+|---|---:|---|
+| `extraction-contract.test.ts` | 14 | Neto/bruto, evidencia, desconocidos, referencias, moneda, límites, fórmulas y JSON. |
+| `provider.test.ts` | 11 | Configuración explícita, Coding rechazado, ausencia de defaults, secretos y límites. |
+| `glm.test.ts` | 25 | HTTP doblado OCR/chat, orden y reservas, snapshot, cobertura, inyección, cuerpos, timeout y errores. |
+| Total | 50 | Todos NO EJECUTADOS; no prueba funcional, OCR real o cuenta habilitada. |
+
+Receta focal futura propuesta, sujeta a revisión del checkpoint, dependencias disponibles y GO:
+`pnpm exec vitest run lib/studio/document-import/extraction-contract.test.ts lib/studio/document-import/provider.test.ts lib/studio/document-import/glm.test.ts --maxWorkers=1 --no-file-parallelism --retry=0`.
+No se ejecutó, ni su discovery, tipos, lint, build/verify, DB/SQL, instalación, API o servidor.
+Los 50 casos no heredan ningún PASÓ previo. El tiempo propuesto para admisión es 180 s más 60 s
+de cierre, una corrida sin retry; no hay reserva abierta ni autorización de consumo real.
+
+Revisión por lectura y Git comprueba alcance nuevo/aditivo, preservación de fuentes anteriores y
+ausencia de conexión al portal. No reemplaza typecheck, ejecución o revisión independiente. El
+handoff entrega parent/árbol/blobs y estado limpio después del commit selectivo de nueve rutas.
+PR319 conserva destino y head previo: su publicación futura requiere único publicador nominal,
+SHA/base/ref comprobados y avance normal fast-forward. Sin PR alternativa, push, merge o producción.

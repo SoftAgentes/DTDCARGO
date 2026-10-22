@@ -883,3 +883,41 @@ queda sólo documentada. Se conserva la allowlist activa de tres documentos y la
 runtime, API, instalaciones y pruebas hasta la asignación y el GO correspondientes. Publicar el
 head de PR319 requiere decisión explícita de SHA/owner; no se ejecutó push. UI/B1 conserva la
 prioridad de ejecución pesada comunicada por el General en esta coordinación.
+
+## GLM S1 · Autoría asignada por el General · 2026-10-22
+
+Se adopta la asignación concreta S1 antes de escribir código. Parent directo:
+`86461c79ec37828e3cea301403a170339207be0d`, árbol `ecb1b89ccb48527032d1c1c1be623c734b0c640b`.
+Se preservan 4b45 y la base de producto d42. Misma sesión, rama, worktree y owner propios.
+Guard/claim, HEAD limpio, tres preimágenes documentales completas en Git y seis ausencias
+Git/disco comprobados antes de editar. Allowlist activa S1 exacta (9):
+
+- `lib/studio/document-import/extraction-contract.ts`
+- `lib/studio/document-import/extraction-contract.test.ts`
+- `lib/studio/document-import/provider.ts`
+- `lib/studio/document-import/provider.test.ts`
+- `lib/studio/document-import/glm.ts`
+- `lib/studio/document-import/glm.test.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/glm-encargo-20261022.md`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-glm-encargo-20261022.md`
+
+Contrato: motor neutral y transporte OCR/chat desconectados de todo caller actual; configuración
+explícita Z.ai Standard, modelo sin default, sin fallback. Datos intermedios conservan procedencia
+y neto sin convertirse al DTO vigente. PDF requiere inspector acotado y reserva confirmada
+inyectados antes de red; S1 sólo declara esos contratos y escribe dobles, no los implementa.
+Pruebas de protocolo, límites, cobertura, errores e incertidumbre escritas SIN EJECUTAR. No hay
+autorización de runtime, instalaciones, parser, dependencias, loader, archivo TEST, UI, DB, API,
+conocimiento o push. Ninguna ruta fuera de estas nueve queda habilitada por inferencia.
+
+S1 escrito: tres módulos y tres archivos de prueba, desconectados de los callers existentes.
+Salida intermedia con neto/bruto y evidencia; jamás se guarda como DocumentDraft. Transporte
+requiere inspección/reservas/contador/mapeo inyectados; dobles no son autoridades productivas.
+50 casos declarados por fuente (14 contrato + 11 provider + 25 GLM), todos NO EJECUTADOS.
+Detalles, equivalencia futura de errores Anthropic y siguientes tramos en §12 del paquete.
+Sam pasó de indicar Coding Plan (`01a163b4-35dd-79f0-b4b4-31f1757e4d4b`) a solicitar preparación
+Standard (`01a163b7-f3f9-7260-95ed-b06318f25e1d`), según verificación comunicada por el General.
+Packing conserva cuenta/archivo; no se acredita clave, modelo, costo, llamada o configuración real.
+Quotas genéricas existentes son reutilizables por fuente, pero caída tras envío y reclaim por
+lease requieren decisión durable antes de conectar jobs. Candidato parser/version/licencia y
+worker interrumpible sólo propuestos, sin nueva ruta o dependencia añadida fuera de S1.
