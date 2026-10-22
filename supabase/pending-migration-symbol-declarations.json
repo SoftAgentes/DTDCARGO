@@ -269,7 +269,7 @@
         {
           "site": "lib/studio/accounting/invoice-posting.ts:127",
           "contains": "if (error.code === \"42883\" || error.code === \"PGRST202\") {",
-          "degradation": "Sin RPC0497, el adapter devuelve ok:false/skipped:atomic-posting-unavailable. No usa INSERT REST de cabecera/líneas, no fallback ni retry. Otros errores/respuesta inválida quedan estado desconocido honesto; no se afirma ausencia ni rollback del commit. Huella fuente0497 SHA256 c598c0074da16895ca02feb1dd30fdc9669a831aeeb43db71a555165b2f3d799. MIGRATE-FIRST; fuente/SQL/catálogos/races NO EJECUTADOS."
+          "degradation": "Sin RPC0497, el adapter devuelve ok:false/skipped:atomic-posting-unavailable. No usa INSERT REST de cabecera/líneas, no fallback ni retry. Otros errores/respuesta inválida quedan estado desconocido honesto; no se afirma ausencia ni rollback del commit. Huella fuente0497 SHA256 1b0a60a49d78997a98f04f8dd14c36f23662668850b4f9ead7d422afff386d04. MIGRATE-FIRST; fuente/SQL/catálogos/races NO EJECUTADOS."
         }
       ]
     }

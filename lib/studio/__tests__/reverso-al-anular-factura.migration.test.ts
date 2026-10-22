@@ -140,6 +140,34 @@ function mutant(from: string, to: string, signature?: string, repin = false): st
   return sql;
 }
 const VOID_SIGNATURE = "public.void_invoice_with_audit_reason(uuid,text)";
+const APPEND_TYPES = "uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text";
+/** Mutante de DEFAULT, no de cuerpo. El clon TEST comprueba todo pg_proc
+ * excepto proargdefaults para impedir detección por una deriva colateral. */
+function auditDefaultMutation(signature: string): string {
+  return `do $default_mutant$
+declare
+  before_proc pg_catalog.pg_proc%rowtype;
+  after_proc pg_catalog.pg_proc%rowtype;
+  definition text;
+  needle constant text := 'p_result text DEFAULT ''succeeded''::text';
+begin
+  select p.* into strict before_proc from pg_catalog.pg_proc p
+    where p.oid=pg_catalog.to_regprocedure('${signature}');
+  definition:=pg_catalog.pg_get_functiondef(before_proc.oid);
+  if before_proc.pronargdefaults<>8
+     or cardinality(pg_catalog.string_to_array(definition,needle))<>2 then
+    raise exception 'TEST I3B: ancla/defaults de escritor no corresponde';
+  end if;
+  execute pg_catalog.replace(definition,needle,'p_result text DEFAULT ''failed''::text');
+  select p.* into strict after_proc from pg_catalog.pg_proc p where p.oid=before_proc.oid;
+  if (pg_catalog.to_jsonb(before_proc)-'proargdefaults') is distinct from
+       (pg_catalog.to_jsonb(after_proc)-'proargdefaults')
+     or before_proc.proargdefaults::text is not distinct from after_proc.proargdefaults::text then
+    raise exception 'TEST I3B: mutante no cambió únicamente expresiones de defaults';
+  end if;
+end;
+$default_mutant$;`;
+}
 const SNAPSHOT = `jsonb_build_object(
   'entries',(select jsonb_agg(to_jsonb(e) order by e.id) from public.journal_entries e),
   'lines',(select jsonb_agg(to_jsonb(l) order by l.id) from public.journal_lines l),
@@ -402,6 +430,36 @@ describe("SDD-0573 · 0497 reverso al anular una factura (PGlite)", () => {
       "on public.journal_entries (reverses_entry_id) where reverses_entry_id is null;",
     ) });
     expect(result.error).toBe("0497: M9 índice UNIQUE del reverso incompatible.");
+  }, SLOW);
+
+  for (const phase of ["preflight", "postflight"] as const) {
+    it.each(["append_audit_event", "append_audit_event_v1"])(
+      `M9 default real de %s: cardinalidad8/cuerpo conservados en ${phase}`,
+      async (name) => {
+        const signature = `public.${name}(${APPEND_TYPES})`;
+        const marker = `do $${phase}$`;
+        const result = await contract({ migration: mutant(
+          marker, auditDefaultMutation(signature) + "\n" + marker,
+        ) });
+        expect(result.error).toBe(`0497: ${phase} defaults de ${signature} no coinciden.`);
+      }, SLOW,
+    );
+  }
+  it.each([
+    ["invoices", "alter table public.invoices rename to i3b_test_missing_invoices;"],
+    ["journal_entries", "alter table public.journal_entries rename to i3b_test_missing_entries;"],
+    ["journal_lines", "alter table public.journal_lines rename to i3b_test_missing_lines;"],
+    ["payment_receipts", "alter table public.payment_receipts rename to i3b_test_missing_receipts;"],
+    ["accounting_settings", "alter table public.accounting_settings rename to i3b_test_missing_settings;"],
+    ["user_tenants", "alter table public.user_tenants rename to i3b_test_missing_memberships;"],
+    ["get_user_tenant_id()", "alter function public.get_user_tenant_id() rename to i3b_test_missing_tenant;"],
+    ["next_entry_code(uuid)", "alter function public.next_entry_code(uuid) rename to i3b_test_missing_code;"],
+    ["auth.uid()", "alter function auth.uid() rename to i3b_test_missing_uid;"],
+  ])("M9 dependencia nominal ausente %s: rechazo antes del DDL", async (_name, rename) => {
+    // OID/cuerpos/ACL se conservan: sólo falta el nombre de esta dependencia.
+    // Exclusivamente fixture TEST; no DROP CASCADE ni alteración de predecesoras.
+    const result = await contract({ migration: mutant("do $preflight$", rename + "\ndo $preflight$") });
+    expect(result.error).toBe("0497 requiere invoices, journal_entries, journal_lines, payment_receipts, accounting_settings, user_tenants, get_user_tenant_id(), next_entry_code(uuid) y auth.uid()");
   }, SLOW);
 
   it("el preflight aborta si void_invoice_with_audit_reason no es la de la 0294", async () => {

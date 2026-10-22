@@ -859,6 +859,15 @@ end;
 $test$;
 
 -- 17. Catálogo nativo separado del bloqueo temprano.
+select pg_temp.assert_true((select count(*)=2 and bool_and(p.pronargdefaults=8
+    and pg_get_expr(p.proargdefaults,0::oid,false)=$defaults$'succeeded'::text, NULL::text, NULL::jsonb, NULL::jsonb, '{}'::jsonb, NULL::text, 1, 'internal'::text$defaults$)
+  from pg_proc p where p.oid in (
+    'public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)'::regprocedure,
+    'public.append_audit_event_v1(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)'::regprocedure)),
+  'I3B17 defaults tipados exactos de ambos escritores reales');
+select pg_temp.assert_true((select pronargdefaults=0 and proargdefaults is null from pg_proc
+  where oid='public.post_invoice_journal_entry_atomic(uuid,uuid)'::regprocedure),
+  'I3B17 posting sin expresiones de defaults');
 select pg_temp.assert_true(exists(select 1 from pg_index i
   where i.indexrelid='public.journal_entries_un_reverso'::regclass
     and i.indisunique and i.indisvalid and i.indisready and i.indislive and i.indimmediate

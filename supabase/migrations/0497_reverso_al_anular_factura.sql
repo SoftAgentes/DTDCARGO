@@ -17,7 +17,18 @@ declare
   v_md5 text;
   v_definer boolean;
   v_config text[];
+  -- PG17 pg_get_expr mantiene orden, tipos y literales; no borra espacios.
+  v_append_defaults constant text := $defaults$'succeeded'::text, NULL::text, NULL::jsonb, NULL::jsonb, '{}'::jsonb, NULL::text, 1, 'internal'::text$defaults$;
 begin
+  -- Precondición nominal heredada, antes de DDL y de otros pins de M9.
+  if pg_catalog.to_regclass('public.invoices') is null or pg_catalog.to_regclass('public.journal_entries') is null
+     or pg_catalog.to_regclass('public.journal_lines') is null or pg_catalog.to_regclass('public.payment_receipts') is null
+     or pg_catalog.to_regclass('public.accounting_settings') is null or pg_catalog.to_regclass('public.user_tenants') is null
+     or pg_catalog.to_regprocedure('public.get_user_tenant_id()') is null
+     or pg_catalog.to_regprocedure('public.next_entry_code(uuid)') is null
+     or pg_catalog.to_regprocedure('auth.uid()') is null then
+    raise exception '0497 requiere invoices, journal_entries, journal_lines, payment_receipts, accounting_settings, user_tenants, get_user_tenant_id(), next_entry_code(uuid) y auth.uid()';
+  end if;
   if exists (select 1 from pg_catalog.pg_attribute a where a.attrelid=pg_catalog.to_regclass('public.journal_entries')
      and a.attname='reverses_entry_id' and not a.attisdropped) then
     raise exception '0497 abortado: el reverso de asientos ya existe';
@@ -59,6 +70,11 @@ begin
        or (select l.lanname from pg_catalog.pg_language l where l.oid=v_proc.prolang) <> v.lang
        or pg_catalog.md5(pg_catalog.replace(v_proc.prosrc,E'\r\n',E'\n')) <> v.body_md5 then
       raise exception '0497: preflight función/cuerpo/config de % no coincide.',v.signature;
+    end if;
+    if (v.defaults=0 and v_proc.proargdefaults is not null)
+       or (v.defaults<>0 and (v_proc.proargdefaults is null
+         or pg_catalog.pg_get_expr(v_proc.proargdefaults,0::oid,false) is distinct from v_append_defaults)) then
+      raise exception '0497: preflight defaults de % no coinciden.',v.signature;
     end if;
   end loop;
 
@@ -871,6 +887,7 @@ declare
   v_proc pg_catalog.pg_proc%rowtype;
   v_code pg_catalog.pg_constraint%rowtype;
   v_fk pg_catalog.pg_constraint%rowtype;
+  v_append_defaults constant text := $defaults$'succeeded'::text, NULL::text, NULL::jsonb, NULL::jsonb, '{}'::jsonb, NULL::text, 1, 'internal'::text$defaults$;
 begin
   if not exists (select 1 from pg_catalog.pg_proc p
       where p.oid=pg_catalog.to_regprocedure('public.void_invoice_with_audit_reason(uuid,text)')
@@ -910,6 +927,11 @@ begin
        or pg_catalog.md5(pg_catalog.replace(v_proc.prosrc,E'\r\n',E'\n')) <> v.body_md5 then
       raise exception '0497: postflight predecesor conservado función/cuerpo/config de % no coincide.',v.signature;
     end if;
+    if (v.defaults=0 and v_proc.proargdefaults is not null)
+       or (v.defaults<>0 and (v_proc.proargdefaults is null
+         or pg_catalog.pg_get_expr(v_proc.proargdefaults,0::oid,false) is distinct from v_append_defaults)) then
+      raise exception '0497: postflight defaults de % no coinciden.',v.signature;
+    end if;
   end loop;
 
 
@@ -945,6 +967,9 @@ begin
        or (select l.lanname from pg_catalog.pg_language l where l.oid=v_proc.prolang) <> v.lang
        or pg_catalog.md5(pg_catalog.replace(v_proc.prosrc,E'\r\n',E'\n')) <> v.body_md5 then
       raise exception '0497: postflight I3-B función/cuerpo/config de % no coincide.',v.signature;
+    end if;
+    if v_proc.proargdefaults is not null then
+      raise exception '0497: postflight defaults de % no coinciden.',v.signature;
     end if;
   end loop;
 
