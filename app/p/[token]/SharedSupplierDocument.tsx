@@ -12,10 +12,13 @@ import { createDocumentClient, documentText, DocumentRequestError, type Document
 import s from "@/components/document-import/document-import.module.css";
 
 type Labels = { revision:number;folio:string;versionNo:number;labels:{code:string;boxN:number;totalBoxes:number;boxCode?:string|null}[] };
+type ReceiptMetadata = Pick<Labels,"revision"|"folio"|"versionNo"> & {workspaceId:string;scope:string};
 type Version = { revision:number;actor_kind:string;confirmed:boolean;created_at:string;draft:DocumentDraft };
 
 export function SharedSupplierDocument({initialWorkspace,token,code,markbox,locale,brand,presentation,client,attachments,attachmentsSummary,delivery}:{initialWorkspace:DocumentWorkspace;token:string;code:string;markbox:string;locale:DocumentLocale;brand:BrandContext;presentation?:LabelPresentation;client?:DocumentClient;attachments?:ReactNode;attachmentsSummary?:ReactNode;delivery?:ReactNode}) {
   const t=(zh:string,es:string,en:string)=>documentText(locale,zh,es,en);
+  const scope=JSON.stringify([token,code,initialWorkspace.id]);
+  const [transportScope]=useState(scope);
   const [transport]=useState(()=>client??createDocumentClient({supplierToken:token}));
   const [workspace,setWorkspace]=useState(initialWorkspace);
   const [draft,setDraft]=useState(initialWorkspace.draft);
@@ -28,6 +31,7 @@ export function SharedSupplierDocument({initialWorkspace,token,code,markbox,loca
   const [comparison,setComparison]=useState<DocumentWorkspace|null>(null);
   const [labels,setLabels]=useState<Labels|null>(null);
   const [receipt,setReceipt]=useState<DocumentReceipt|null>(null);
+  const [receiptMetadata,setReceiptMetadata]=useState<ReceiptMetadata|null>(null);
   const [history,setHistory]=useState<Version[]|null>(null);
   const [historyRevision,setHistoryRevision]=useState<number|null>(null);
   const [checked,setChecked]=useState(false);
@@ -38,18 +42,39 @@ export function SharedSupplierDocument({initialWorkspace,token,code,markbox,loca
   const heading=useRef<HTMLHeadingElement>(null);
   const noticeRef=useRef<HTMLDivElement>(null);
   const mounted=useRef(true);
+  const metadataGeneration=useRef(0);
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
   const confirmed=!dirty&&workspace.revision===workspace.confirmedRevision;
+  const canHydrateReceipt=loaded&&confirmed&&!dirty&&!conflict&&!editingProduct&&scope===transportScope&&workspace.id===initialWorkspace.id;
+  const currentReceiptMetadata=canHydrateReceipt&&receiptMetadata?.scope===scope&&receiptMetadata.workspaceId===workspace.id&&receiptMetadata.revision===workspace.revision?receiptMetadata:null;
   const blockers=confirmationIssues(draft).filter(issue=>issue.blocking);
   const steps=[t("供应商资料","Datos del proveedor","Supplier details"),t("产品与箱组","Productos y cajas","Products and cartons"),t("照片与附件","Fotos y archivos","Photos and files"),t("核对并确认发货","Revisar y confirmar","Review and confirm")];
-  const adopt=useCallback((next:DocumentWorkspace)=>{setWorkspace(next);setDraft(next.draft);setDirty(false);setConflict(false);setComparison(null);setLabels(null);setReceipt(null);setChecked(false);setEditingProduct(false);setEditorGeneration(generation=>generation+1);setStep(next.revision===next.confirmedRevision?3:0);},[]);
+  const adopt=useCallback((next:DocumentWorkspace)=>{metadataGeneration.current++;setReceiptMetadata(null);setWorkspace(next);setDraft(next.draft);setDirty(false);setConflict(false);setComparison(null);setLabels(null);setReceipt(null);setChecked(false);setEditingProduct(false);setEditorGeneration(generation=>generation+1);setStep(next.revision===next.confirmedRevision?3:0);},[]);
 
   useEffect(()=>{let active=true;transport.get<{workspace:DocumentWorkspace}>("workspace",{workspaceId:initialWorkspace.id}).then(result=>{if(active){adopt(result.workspace);setLoaded(true);}}).catch(()=>{if(active){setNotice(t("无法读取最新修订版，请重试。","No pudimos consultar la revisión vigente. Reintenta antes de editar.","We could not load the current revision. Retry before editing."));}});return()=>{active=false;};
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[transport,initialWorkspace.id,adopt]);
+  useEffect(()=>{
+    if(!canHydrateReceipt||currentReceiptMetadata||(receipt?.confirmed&&receipt.revision===workspace.revision&&receipt.folio&&receipt.versionNo)||(labels?.revision===workspace.revision&&labels.folio&&labels.versionNo))return;
+    let active=true;
+    const generation=++metadataGeneration.current;
+    const workspaceId=workspace.id,revision=workspace.revision;
+    transport.get<Labels>("labels",{workspaceId,expectedRevision:String(revision)}).then(result=>{
+      if(!active||!mounted.current||metadataGeneration.current!==generation)return;
+      if(result.revision!==revision)throw new DocumentRequestError(409,"revision_conflict","");
+      if(typeof result.folio!=="string"||!result.folio.trim()||!Number.isInteger(result.versionNo)||result.versionNo<1)throw new DocumentRequestError(0,"unconfirmed","");
+      setReceiptMetadata({scope,workspaceId,revision,folio:result.folio,versionNo:result.versionNo});
+    }).catch(error=>{
+      if(!active||!mounted.current||metadataGeneration.current!==generation)return;
+      setReceiptMetadata(null);
+      if(error instanceof DocumentRequestError&&error.status===409){metadataGeneration.current++;setConflict(true);setLabels(null);setReceipt(null);setNotice(documentText(locale,"共享文件已更新。请比较并载入当前修订版，再查看确认编号。","El documento cambió. Compara y carga la revisión vigente para consultar su folio.","The document changed. Compare and load the current revision to view its confirmation reference."));}
+      else setNotice(current=>current??documentText(locale,"暂时无法读取确认编号和版本。资料仍已保存；请使用“查看箱标”重试。","No pudimos consultar el folio y la versión. Tus datos siguen guardados; usa Ver etiquetas para reintentar.","We could not retrieve the confirmation reference and version. Your data is still saved; use View labels to retry."));
+    });
+    return()=>{active=false;};
+  },[canHydrateReceipt,currentReceiptMetadata,receipt,labels,transport,scope,workspace.id,workspace.revision,locale]);
   useEffect(()=>{if(!dirty)return;const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();};window.addEventListener("beforeunload",warn);return()=>window.removeEventListener("beforeunload",warn);},[dirty]);
 
-  function change(next:DocumentDraft){setDraft(next);setDirty(true);setChecked(false);setLabels(null);setReceipt(null);}
+  function change(next:DocumentDraft){metadataGeneration.current++;setReceiptMetadata(null);setDraft(next);setDirty(true);setChecked(false);setLabels(null);setReceipt(null);}
   function navigate(next:number){if(editingProduct){setNotice(t("请先保存或移除正在编辑的产品。","Guarda o quita el producto que estás editando antes de cambiar de paso.","Save or remove the product you are editing before changing steps."));return;}if(!conflict)setNotice(null);setStep(next);requestAnimationFrame(()=>heading.current?.focus());}
   async function compare(){setBusy(true);try{const next=await transport.get<{workspace:DocumentWorkspace}>("workspace",{workspaceId:workspace.id});setComparison(next.workspace);setLoaded(true);}catch{setNotice(t("无法读取共享版本，你的修改仍在此处。","No pudimos consultar la versión compartida. Tus cambios siguen aquí.","We could not load the shared revision. Your edits remain here."));}finally{setBusy(false);}}
   async function reload(){setBusy(true);try{const next=await transport.get<{workspace:DocumentWorkspace}>("workspace",{workspaceId:workspace.id});adopt(next.workspace);setLoaded(true);setNotice(null);}catch{setNotice(t("无法读取共享版本，请重试。","No pudimos consultar la versión compartida. Intenta otra vez.","We could not load the shared revision. Try again."));}finally{setBusy(false);}}
@@ -62,6 +87,7 @@ export function SharedSupplierDocument({initialWorkspace,token,code,markbox,loca
     if(command.current?.key!==key)command.current={key,id:transport.id()};
     try{
       const result=await transport.post<DocumentReceipt>(action,{workspaceId:workspace.id,draft,expectedRevision:workspace.revision,commandId:command.current.id});
+      metadataGeneration.current++;setReceiptMetadata(null);
       setWorkspace({...workspace,draft,revision:result.revision,confirmedRevision:result.confirmed?result.revision:workspace.confirmedRevision});
       setDirty(false);setConflict(false);setComparison(null);setReceipt(result);setLabels(null);setHistory(null);command.current=null;
       if(result.confirmed){setStep(3);setNotice(t("发货已确认。可以打印文件和箱标。","Despacho confirmado. Ya puedes imprimir el documento y las etiquetas.","Dispatch confirmed. You can now print the document and carton labels."));}
@@ -115,7 +141,7 @@ export function SharedSupplierDocument({initialWorkspace,token,code,markbox,loca
       {step<2&&<DocumentEditor key={editorGeneration} draft={draft} onChange={change} locale={locale} section={step===0?"supplier":"cargo"} hideSummary hidePrint disabled={busy||!loaded} onProductEditingChange={setEditingProduct}/>}
       {step===2&&<div className={[s.card,s.stack,s.noPrint].join(" ")}><p>{t("可选：补充货物照片或发货附件。文件上传不等于确认发货。","Opcional: agrega fotos de la mercancía o archivos del despacho. Recibir un archivo no confirma el documento.","Optional: add product photos or dispatch files. Receiving a file does not confirm the document.")}</p>{attachments}</div>}
       {step===3&&<><div className={[s.card,s.stack,s.noPrint].join(" ")}><DocumentEditor draft={draft} locale={locale} readOnly shippingMark={markbox} revision={workspace.revision} confirmed={confirmed}/>{!confirmed&&<><p>{t("核对实际发货内容后确认。确认后将生成每箱唯一标签。","Confirma lo que realmente vas a despachar. Después tendrás una etiqueta única por caja.","Confirm the goods you will actually dispatch. Each carton will then receive its own unique label.")}</p>{blockers.length>0&&<div className={s.notice}><h3>{t("确认前需要补充","Pendientes para confirmar","Required before confirmation")}</h3><ul className={s.reviewList}>{blockers.map(issue=><li key={issue.id}>{documentIssueLabel(issue,locale)}</li>)}</ul><button type="button" className="btn btn-ghost" onClick={()=>navigate(1)}>{t("更正产品与箱组","Corregir productos y cajas","Correct products and cartons")}</button></div>}<label className={s.actions}><input type="checkbox" checked={checked} disabled={busy} onChange={event=>setChecked(event.target.checked)}/><span>{t("我已核对产品、箱数、总毛重和总体积，与实际发货一致。","Revisé los productos, las cajas, el peso bruto total y el CBM del despacho real.","I checked the products, cartons, total gross weight and CBM against the actual dispatch.")}</span></label><button type="button" className="btn btn-primary" disabled={busy||!checked||blockers.length>0||conflict} onClick={()=>save(true)}>{busy?t("正在确认…","Confirmando…","Confirming…"):t("确认发货并发送给 DTD","Confirmar despacho y enviar a DTD","Confirm dispatch and send to DTD")}</button></>}{attachmentsSummary}</div>
-      {confirmed&&<section className={[s.receipt,s.noPrint].join(" ")}><h2 className={s.status}><StatusIcon tone="success" size={24}/>{t("发货已确认","Despacho confirmado","Dispatch confirmed")}</h2><p>{receipt?.folio??labels?.folio??t("已确认的共享文件","Documento compartido confirmado","Confirmed shared document")} · {t("修订版","Revisión","Revision")} {workspace.revision}{(receipt?.versionNo??labels?.versionNo)?` · ${t("版本","Versión","Version")} ${receipt?.versionNo??labels?.versionNo}`:""}</p><p>{t("每箱贴一张标签。若修改装箱数据，请再次确认后重新打印。","Pega una etiqueta en cada caja. Si corriges el embalaje, vuelve a confirmar e imprime las etiquetas vigentes.","Attach one label to each carton. After changing packaging, confirm again and print the current labels.")}</p><div className={s.actions}><button type="button" className="btn btn-primary" disabled={busy||conflict} onClick={()=>printable("labels")}>{t("打印箱标","Imprimir etiquetas","Print labels")}</button><button type="button" className="btn btn-ghost" disabled={busy||conflict} onClick={()=>printable("packing-list")}>{t("打印文件","Imprimir documento","Print document")}</button><button type="button" className="btn btn-ghost" onClick={()=>navigate(1)}>{t("更正文件","Corregir documento","Correct document")}</button></div></section>}</>}
+      {confirmed&&<section className={[s.receipt,s.noPrint].join(" ")}><h2 className={s.status}><StatusIcon tone="success" size={24}/>{t("发货已确认","Despacho confirmado","Dispatch confirmed")}</h2><p>{receipt?.folio??labels?.folio??currentReceiptMetadata?.folio??t("已确认的共享文件","Documento compartido confirmado","Confirmed shared document")} · {t("修订版","Revisión","Revision")} {workspace.revision}{(receipt?.versionNo??labels?.versionNo??currentReceiptMetadata?.versionNo)?` · ${t("版本","Versión","Version")} ${receipt?.versionNo??labels?.versionNo??currentReceiptMetadata?.versionNo}`:""}</p><p>{t("每箱贴一张标签。若修改装箱数据，请再次确认后重新打印。","Pega una etiqueta en cada caja. Si corriges el embalaje, vuelve a confirmar e imprime las etiquetas vigentes.","Attach one label to each carton. After changing packaging, confirm again and print the current labels.")}</p><div className={s.actions}><button type="button" className="btn btn-primary" disabled={busy||conflict} onClick={()=>printable("labels")}>{t("打印箱标","Imprimir etiquetas","Print labels")}</button><button type="button" className="btn btn-ghost" disabled={busy||conflict} onClick={()=>printable("packing-list")}>{t("打印文件","Imprimir documento","Print document")}</button><button type="button" className="btn btn-ghost" onClick={()=>navigate(1)}>{t("更正文件","Corregir documento","Correct document")}</button></div></section>}</>}
       {confirmed&&step===3&&<div aria-busy={pdfSurface!==null} className={[s.noPrint,"flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center"].join(" ")}><button type="button" className="btn btn-ghost" disabled={busy||conflict} onClick={()=>printable("preview")}>{t("查看箱标","Ver etiquetas","View labels")}</button><button type="button" className="btn btn-ghost" disabled={busy||!loaded||editingProduct||conflict} onClick={()=>downloadPdf("packing-list")}>{pdfSurface==="packing-list"?t("正在准备文件 PDF…","Preparando documento PDF…","Preparing document PDF…"):t("下载文件 PDF","Descargar documento PDF","Download document PDF")}</button><button type="button" className="btn btn-ghost" disabled={busy||!loaded||editingProduct||conflict} onClick={()=>downloadPdf("labels")}>{pdfSurface==="labels"?t("正在准备箱标 PDF…","Preparando etiquetas PDF…","Preparing labels PDF…"):t("下载箱标 PDF","Descargar etiquetas PDF","Download labels PDF")}</button><p className={s.muted}>{t("无需打印也能查看每箱的唯一编码。","Puedes consultar el código de cada caja en pantalla.","You can view each carton code on screen without printing.")}</p></div>}
       <div className={[s.bar,s.noPrint].join(" ")}><div className={s.actions}>{step>0&&<button type="button" className="btn btn-ghost" disabled={busy} onClick={()=>navigate(step-1)}>{t("上一步","Anterior","Back")}</button>}<button type="button" className="btn btn-ghost" disabled={busy||!dirty||!loaded||conflict||editingProduct} onClick={()=>save()}>{busy?t("保存中…","Guardando…","Saving…"):t("保存共享草稿","Guardar borrador compartido","Save shared draft")}</button></div>{step<3&&<button type="button" className="btn btn-primary" disabled={busy||!loaded} onClick={()=>navigate(step+1)}>{t("下一步","Continuar","Continue")}</button>}</div>
       {delivery&&<div className={s.noPrint}>{delivery}</div>}

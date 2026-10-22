@@ -665,3 +665,54 @@ hijo. Sólo lectura/revisión estática, guard y Git selectivo local. No push, m
 El estado confirmado rev3/V1 sigue intacto; futura descarga sólo requiere actualizar frontend
 propio y leer la revisión existente, sin importar, guardar, confirmar ni reiniciar backend.
 Conocimiento/derivados NO EJECUTADOS; esta evidencia se conserva en el handoff de la tarea.
+## Seguimiento local: hidratación del recibo confirmado · 2026-10-22
+
+**OBJETIVO Y AUTORIZACIÓN:** opción B autorizada por el Director general, hijo directo de
+004a52246771d474deec3ddefb7f7d4fb1d44517. Mismo Worker/worktree/rama/PR319. Claim canónico
+primero, guard propio después. Antes de editar se copiaron y sellaron las cuatro rutas en
+receipt-hydration-004a/four-source-preimages.json. La allowlist exacta se adoptó primero en SDD:
+SharedSupplierDocument.tsx, su test, spec0473 y este handoff. Ningún README ni otra ruta.
+
+**DIAGNÓSTICO POR FUENTE:** defecto preexistente en b25, sin cambios de esas rutas entre4ee y
+004a: workspace no incluye folio/versión y adopt borra estados locales; sólo confirmar o consultar
+etiquetas vuelve a llenar metadata. No hay pérdida DB demostrada ni causa del renderer. GET
+labels ya devuelve metadata confirmada y códigos existentes, con CAS/compra/tenant/submission;
+sólo SELECT y proyección de b.code, sin crear etiquetas físicas o escribir. No modificar contratos.
+
+**EVIDENCIA Y LÍMITES:** B1 sobre004a pasó53/53, cinco renders, cierre oportuno; sigue pendiente
+aceptación visual del PDF real actualizado. Se preserva layout FALLÓ4ee y etiquetas/QR PASÓ.
+Nuevo B2 se detuvo ANTES de descargar: AX vio fallback confirmado Revisión3; PNG02 no encuadra
+el target y no se usa como prueba visual de ese texto. Root post07:20:22 oportuno; aviso y
+custodia TARDÍOS07:23:54.2261040Z; General exterior NO EJECUTADO. No rehabilitar su cierre.
+Documento rev3/V1/folioDTD-PL-2026-0001, diez códigos y backend/frontend actuales se conservan.
+
+**CONTRATO DE AUTORÍA:** recuperar sólo metadata estrecha de GET labels en revisión confirmada,
+ligada a identidad/workspace/revisión vigentes. No fabricar recibos de confirmación ni abrir
+etiquetas/print automáticamente. Cancelar respuestas obsoletas al editar, adoptar, cambiar compra
+o desmontar;409 exige comparar y error temporal conserva datos con recuperación existente.
+Mantener save/confirm/preview/descargas, los53oráculos y los cinco renders previos. Nuevas pruebas
+observables son aditivas; no ejecutar en esta fase. Commit local selectivo y READY tras cierre.
+
+**PROHIBICIONES:** sin producto runtime, parser/discovery/tests/tipos/lint/build/UI/API/restart,
+nueva descarga, push/merge/producción o cambios de DB/códigos/confirmación. No otras sesiones.
+**AUTORÍA CERRADA / SIN VALIDACIÓN FUNCIONAL:** metadata separada ReceiptMetadata, estrecha
+revision/folio/versionNo, con scope del transporte y workspace/revisión. GET labels existente
+hidrata sólo esa metadata, nunca DocumentReceipt inventado ni grilla/print. Guardas de identidad,
+loaded/confirmado/dirty/conflict/edición y cancelación por generación/mounted/cleanup.409 pide
+comparar y rechaza versión equivocada;503 conserva datos y ofrece Ver etiquetas para reintentar.
+La cancelación evita aplicar respuestas; no aborta físicamente HTTP ya emitido.
+
+**PRUEBAS ESCRITAS:** ocho instancias nuevas observables: reapertura confirmada, recarga real del
+componente, respuesta de otra compra desmontada, respuesta fallida después de edición local,
+adopción de revisión nueva con respuesta vieja pendiente,409, revisión incorrecta y503 con
+recuperación manual existente. No hay aserciones/títulos previos debilitados. El doble GET labels
+ahora responde la revisión pedida, manteniendo negativas explícitas en los oráculos; el helper
+ready vacía efectos inmediatos para no asignar a una lectura automática un error reservado a la
+siguiente acción. Nuevos61/6/5renders propuestos (16/9/5/18/5/8), todos NO EJECUTADOS sobre este
+hijo. Los53PASÓ y cinco renders anteriores acreditan004a, no esta autoría nueva.
+
+**FRONTERA Y PENDIENTES:** sólo cuatro rutas; renderer/PDF, DTO, servicio, HTTP, proxy, fuentes,
+QR y códigos se conservan idénticos a004a. Documento confirmado rev3/V1 y procesos actuales no
+se tocaron. Falta GO nuevo de pruebas, reapertura en UI y descarga/revisión de PDF real. Histórico
+B2stop y sus cierres tardíos permanecen; ninguna corrección administrativa crea aceptación.
+Commit selectivo local hijo004a, sin push. Actualización de conocimiento/derivados NO EJECUTADA.

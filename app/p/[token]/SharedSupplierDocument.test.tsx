@@ -1,5 +1,5 @@
 import { afterEach,beforeEach,describe,expect,it,vi } from "vitest";
-import { cleanup,fireEvent,render,screen,waitFor,within } from "@testing-library/react";
+import { act,cleanup,fireEvent,render,screen,waitFor,within } from "@testing-library/react";
 import { emptyDocumentDraft } from "@/lib/shared/document-import";
 import { resolveBrand } from "@/lib/shared/brand-context";
 import { DocumentRequestError,type DocumentClient,type DocumentWorkspace } from "@/components/document-import/document-client";
@@ -14,18 +14,95 @@ function fixture(weight:number|null=null):DocumentWorkspace {
   return {id:"11111111-1111-4111-8111-111111111111",revision:1,confirmedRevision:null,expiresAt:null,draft};
 }
 function setup(workspace=fixture()) {
-  const get=vi.fn(async(action:string)=>action==="workspace"?{workspace}:action==="labels"?{revision:3,folio:"PL-TEST",versionNo:1,labels:Array.from({length:10},(_,index)=>({code,boxN:index+1,totalBoxes:10,boxCode:`DTD-B-${index+1}`}))}:{versions:[]});
+  const get=vi.fn(async(action:string,params?:Record<string,string>)=>action==="workspace"?{workspace}:action==="labels"?{revision:Number(params?.expectedRevision??workspace.revision),folio:"PL-TEST",versionNo:1,labels:Array.from({length:10},(_,index)=>({code,boxN:index+1,totalBoxes:10,boxCode:`DTD-B-${index+1}`}))}:{versions:[]});
   const post=vi.fn(async(action:string)=>({revision:action==="confirm"?3:2,confirmed:action==="confirm",folio:action==="confirm"?"PL-TEST":undefined,versionNo:action==="confirm"?1:undefined}));
   const client={get,post,id:vi.fn(()=>crypto.randomUUID()),upload:vi.fn(),download:vi.fn(),setAnonymousToken:vi.fn()} as unknown as DocumentClient;
   const view=render(<SharedSupplierDocument initialWorkspace={workspace} token="test-only" code={code} markbox="DTD-0000" locale="es" brand={resolveBrand(null)} client={client}/>);
   return {...view,get,post,client};
 }
 const step=(number:number)=>fireEvent.click(within(screen.getByRole("navigation")).getByRole("button",{name:new RegExp(`^${number} `)}));
-const ready=()=>waitFor(()=>expect(within(screen.getByRole("navigation")).getAllByRole("button")[0]).toBeEnabled());
+const ready=async()=>{await waitFor(()=>expect(within(screen.getByRole("navigation")).getAllByRole("button")[0]).toBeEnabled());await act(async()=>{});};
 beforeEach(()=>{vi.spyOn(window,"print").mockImplementation(()=>{});vi.stubGlobal("requestAnimationFrame",(callback:FrameRequestCallback)=>{callback(0);return 1;});});
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();delete document.documentElement.dataset.printSurface;});
 
 describe("proveedor del documento compartido",()=>{
+  describe("rehidratación del recibo SDD-0473 B proveedor",()=>{
+    const confirmedWorkspace=(revision=3)=>{const w=fixture(120);w.revision=revision;w.confirmedRevision=revision;return w;};
+    const labelsResult=(revision=3,folio="PL-REOPEN",versionNo=1)=>({revision,folio,versionNo,labels:Array.from({length:10},(_,index)=>({code,boxN:index+1,totalBoxes:10,boxCode:`DTD-B-${String(index+1).padStart(6,"0")}`}))});
+    type LabelsResult=ReturnType<typeof labelsResult>;
+    function deferred(){let resolve!:(value:LabelsResult)=>void;let reject!:(error:Error)=>void;const promise=new Promise<LabelsResult>((done,fail)=>{resolve=done;reject=fail;});return {promise,resolve,reject};}
+    function metadataClient(workspace:DocumentWorkspace,readLabels:(params?:Record<string,string>)=>Promise<LabelsResult>){
+      const get=vi.fn(async(action:string,params?:Record<string,string>)=>action==="workspace"?{workspace}:action==="labels"?readLabels(params):{versions:[]});
+      const post=vi.fn();
+      const client={get,post,id:vi.fn(()=>crypto.randomUUID()),upload:vi.fn(),download:vi.fn(),setAnonymousToken:vi.fn()} as unknown as DocumentClient;
+      return {get,post,client};
+    }
+    const element=(workspace:DocumentWorkspace,client:DocumentClient,token="receipt-A")=><SharedSupplierDocument key={token+":"+workspace.id} initialWorkspace={workspace} token={token} code={code} markbox="DTD-0000" locale="es" brand={resolveBrand(null)} client={client}/>;
+
+    it("rehidrata folio y versión confirmados sin confirmar, imprimir o abrir la grilla",async()=>{
+      const w=confirmedWorkspace(),pending=deferred(),api=metadataClient(w,()=>pending.promise);render(element(w,api.client));await ready();
+      await waitFor(()=>expect(api.get).toHaveBeenCalledWith("labels",{workspaceId:w.id,expectedRevision:"3"}));
+      expect(screen.getByText("Documento compartido confirmado · Revisión 3")).toBeVisible();
+      await act(async()=>{pending.resolve(labelsResult());await pending.promise;});
+      expect(await screen.findByText("PL-REOPEN · Revisión 3 · Versión 1")).toBeVisible();
+      expect(screen.queryByText("DTD-B-000001")).not.toBeInTheDocument();expect(api.post).not.toHaveBeenCalled();expect(window.print).not.toHaveBeenCalled();
+    });
+    it("recargar el enlace vuelve a leer el mismo recibo sin reingresar datos ni confirmar",async()=>{
+      const w=confirmedWorkspace(),api=metadataClient(w,async()=>labelsResult(3,"PL-RELOAD",2));const view=render(element(w,api.client));
+      await screen.findByText("PL-RELOAD · Revisión 3 · Versión 2");view.unmount();
+      render(element(w,api.client));expect(await screen.findByText("PL-RELOAD · Revisión 3 · Versión 2")).toBeVisible();
+      expect(api.get.mock.calls.filter(([action])=>action==="labels")).toHaveLength(2);
+      step(1);expect(screen.getByRole("textbox",{name:"Empresa"})).toHaveValue("Proveedor sintético");
+      step(2);expect(screen.getByRole("textbox",{name:"Peso bruto TOTAL (kg)"})).toHaveValue("120");
+      expect(api.post).not.toHaveBeenCalled();expect(window.print).not.toHaveBeenCalled();
+    });
+    it("descarta la respuesta tardía de otra compra desmontada y conserva el recibo de la nueva",async()=>{
+      const a=confirmedWorkspace(),old=deferred(),apiA=metadataClient(a,()=>old.promise);const view=render(element(a,apiA.client));await ready();
+      await waitFor(()=>expect(apiA.get).toHaveBeenCalledWith("labels",{workspaceId:a.id,expectedRevision:"3"}));
+      const b=confirmedWorkspace(6);b.id="22222222-2222-4222-8222-222222222222";b.draft.supplier.company="Proveedor B";
+      const apiB=metadataClient(b,async()=>labelsResult(6,"PL-COMPRA-B",2));view.rerender(element(b,apiB.client,"receipt-B"));
+      await screen.findByText("PL-COMPRA-B · Revisión 6 · Versión 2");
+      await act(async()=>{old.resolve(labelsResult(3,"PL-COMPRA-A"));await old.promise;});
+      expect(screen.getByText("PL-COMPRA-B · Revisión 6 · Versión 2")).toBeVisible();expect(screen.queryByText(/PL-COMPRA-A/)).not.toBeInTheDocument();
+      expect(apiA.post).not.toHaveBeenCalled();expect(apiB.post).not.toHaveBeenCalled();expect(window.print).not.toHaveBeenCalled();
+    });
+    it("una respuesta pendiente que falla después de editar no bloquea los cambios locales",async()=>{
+      const w=confirmedWorkspace(),pending=deferred(),api=metadataClient(w,()=>pending.promise);render(element(w,api.client));await ready();
+      await waitFor(()=>expect(api.get).toHaveBeenCalledWith("labels",{workspaceId:w.id,expectedRevision:"3"}));
+      step(1);fireEvent.change(screen.getByRole("textbox",{name:"Empresa"}),{target:{value:"Edición pendiente"}});
+      await act(async()=>{pending.reject(new DocumentRequestError(409,"revision_conflict",""));await pending.promise.catch(()=>undefined);});
+      expect(screen.getByRole("textbox",{name:"Empresa"})).toHaveValue("Edición pendiente");expect(screen.getByRole("button",{name:"Guardar borrador compartido"})).toBeEnabled();
+      expect(screen.queryByRole("button",{name:"Comparar versión compartida"})).not.toBeInTheDocument();expect(api.post).not.toHaveBeenCalled();
+    });
+    it("adoptar una revisión nueva descarta metadata pendiente de la revisión anterior",async()=>{
+      const w=confirmedWorkspace(),old=deferred(),next=deferred(),api=metadataClient(w,params=>params?.expectedRevision==="4"?next.promise:old.promise);
+      render(element(w,api.client));await ready();await waitFor(()=>expect(api.get).toHaveBeenCalledWith("labels",{workspaceId:w.id,expectedRevision:"3"}));
+      step(1);fireEvent.change(screen.getByRole("textbox",{name:"Empresa"}),{target:{value:"Edición local"}});api.post.mockRejectedValueOnce(new DocumentRequestError(409,"revision_conflict",""));
+      fireEvent.click(screen.getByRole("button",{name:"Guardar borrador compartido"}));await screen.findByText(/El documento compartido cambió/);
+      const latest=confirmedWorkspace(4);latest.draft.supplier.company="Datos vigentes";api.get.mockResolvedValueOnce({workspace:latest});
+      fireEvent.click(screen.getByRole("button",{name:"Comparar versión compartida"}));await screen.findByRole("heading",{name:"Revisión compartida 4"});
+      fireEvent.click(screen.getByRole("button",{name:"Descartar mis cambios y cargar esta versión"}));
+      await waitFor(()=>expect(api.get).toHaveBeenCalledWith("labels",{workspaceId:w.id,expectedRevision:"4"}));
+      await act(async()=>{old.resolve(labelsResult(3,"PL-OBSOLETO",99));await old.promise;});
+      expect(screen.queryByText(/PL-OBSOLETO/)).not.toBeInTheDocument();expect(screen.getByText("Documento compartido confirmado · Revisión 4")).toBeVisible();
+      await act(async()=>{next.resolve(labelsResult(4,"PL-VIGENTE",2));await next.promise;});
+      expect(await screen.findByText("PL-VIGENTE · Revisión 4 · Versión 2")).toBeVisible();expect(api.post).toHaveBeenCalledOnce();
+    });
+    it.each(["409","revision"] as const)("un recibo %s exige comparar y no adopta metadata incorrecta",async(mode)=>{
+      const w=confirmedWorkspace(),api=metadataClient(w,async()=>{if(mode==="409")throw new DocumentRequestError(409,"revision_conflict","");return labelsResult(4,"PL-INCORRECTO",2);});
+      render(element(w,api.client));await screen.findByText(/El documento cambió\. Compara y carga la revisión vigente/);
+      expect(screen.getByRole("button",{name:"Comparar versión compartida"})).toBeVisible();expect(screen.getByRole("button",{name:"Descargar documento PDF"})).toBeDisabled();
+      expect(screen.queryByText(/PL-INCORRECTO/)).not.toBeInTheDocument();expect(api.post).not.toHaveBeenCalled();expect(window.print).not.toHaveBeenCalled();
+    });
+    it("un error temporal conserva los datos y permite recuperar el recibo con Ver etiquetas",async()=>{
+      const w=confirmedWorkspace(),reader=vi.fn<(_:Record<string,string>|undefined)=>Promise<LabelsResult>>().mockRejectedValueOnce(new DocumentRequestError(503,"labels_unavailable","")).mockResolvedValue(labelsResult(3,"PL-RECUPERADO",1));
+      const api=metadataClient(w,reader);render(element(w,api.client));await screen.findByText(/No pudimos consultar el folio y la versión/);
+      expect(screen.getByRole("heading",{name:"Despacho confirmado"})).toBeVisible();expect(screen.getByRole("button",{name:"Imprimir documento"})).toBeEnabled();
+      step(1);expect(screen.getByRole("textbox",{name:"Empresa"})).toHaveValue("Proveedor sintético");step(4);
+      fireEvent.click(screen.getByRole("button",{name:"Ver etiquetas"}));expect(await screen.findByText("PL-RECUPERADO · Revisión 3 · Versión 1")).toBeVisible();
+      expect(await screen.findByText("DTD-B-000010")).toBeVisible();expect(reader).toHaveBeenCalledTimes(2);expect(api.post).not.toHaveBeenCalled();expect(window.print).not.toHaveBeenCalled();
+    });
+  });
   describe("descarga PDF SDD-0473 B proveedor",()=>{
     beforeEach(()=>{const BaseURL=URL;vi.stubGlobal("URL",class extends BaseURL{static createObjectURL=vi.fn(()=>"blob:synthetic-pdf");static revokeObjectURL=vi.fn();});vi.spyOn(HTMLAnchorElement.prototype,"click").mockImplementation(()=>{});});
     const confirmed=()=>{const w=fixture(120);w.confirmedRevision=w.revision;return w;};

@@ -644,3 +644,55 @@ Selección propuesta: 53 instancias / 6 archivos / 5 renders reales, filtro SDD-
 pdf16 + HTTP9 + transporte5 + proveedor10 + portal5 + proxy8; cero SKIP seleccionado esperado
 con la fuente CJK explícita. Todos los nuevos resultados están NO EJECUTADOS. La aceptación
 real y visual queda pendiente de nuevo GO, sin reutilizar ventanas cerradas ni salidas previas.
+## Seguimiento local: recuperar el recibo confirmado al reabrir · 2026-10-22
+
+Autorización concreta del Director general: opción B, hijo directo de
+004a52246771d474deec3ddefb7f7d4fb1d44517, mismo Worker/worktree/rama/PR319. Claim canónico
+propio y guard antes de editar; cuatro copias/preimages sellados fuera Git en receipt-hydration-004a.
+
+Allowlist exacta de esta etapa, subconjunto de las 22 rutas previas:
+
+- `app/p/[token]/SharedSupplierDocument.tsx`
+- `app/p/[token]/SharedSupplierDocument.test.tsx`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-portal-confirmacion-20261021.md`
+
+Diagnóstico por fuente: el DTO workspace no entrega folio/versión; el estado local receipt/labels
+comienza vacío y adopt lo limpia. Sólo confirmar o consultar etiquetas recupera esa metadata.
+El fallback observado después de recargar ya existía en b25, no es pérdida DB probada ni causado
+por el renderer. GET labels existente es lectura, valida revisión y códigos físicos vigentes;
+no genera códigos, confirma ni modifica cajas. PDF/proxy usan ese gate, independientes del recibo UI.
+
+Contrato: hidratar sólo metadata estrecha y tipada desde GET labels al cargar una revisión
+confirmada, con identidad actual de compra/workspace/transporte/revisión y expectedRevision.
+Conservar guardas loaded/dirty/conflict/desmontaje/cancelación; ninguna respuesta vieja puede
+restaurar folio o provocar conflicto sobre otra revisión o edición. No fabricar DocumentReceipt,
+abrir automáticamente grilla/impresión, alterar save/confirm/descargas, ampliar DTO/endpoints,
+generar códigos o modificar el documento. 409 exige comparación explícita; fallo temporal tiene
+recuperación sin perder datos. Preservar los 53 oráculos previos y añadir regresiones observables.
+
+Evidencia previa conservada: 53/53 y cinco renders aprobaron sobre 004a; no es aceptación visual
+real del PDF actualizado. Layout 4ee falló; etiquetas/QR 10/10 aprobaron. B2 posterior se detuvo
+antes de descargar al observar fallback confirmado Rev3 sin folio/versión en AX; PNG02 no
+encuadra ese target. Root post 07:20:22 fue oportuno, aviso/custodia TARDÍOS a07:23:54.2261040Z;
+General exterior NO EJECUTADO. No rehabilitar ese cierre ni alterar confirmación rev3/V1.
+
+Sólo autoría y Git estático en esta etapa. Ningún test/render/tipo/lint/build/UI/API/restart,
+descarga/push o escritura de negocio hasta nuevas autorizaciones específicas.
+Autoría terminada sin runtime: ReceiptMetadata es una proyección estrecha de revision/folio/
+versionNo, ligada al workspace y scope del transporte inicial. La consulta sólo se inicia con
+workspace cargado y confirmado, sin dirty/conflict/edición de producto y con identidad actual.
+Se conserva el recibo real de confirmar; GET no fabrica DocumentReceipt ni abre grilla/print.
+Generación, limpieza del efecto y mounted impiden adoptar respuestas viejas tras editar/adoptar,
+cambiar compra o desmontar. Se comprueba revisión y metadata básica;409 exige comparar y503
+ofrece Ver etiquetas como recuperación existente. La cancelación es lógica: no se promete abortar
+físicamente un HTTP ya emitido. No se modificó el contrato del cliente o servidor.
+
+Se preservaron las aserciones/títulos originales. El doble GET labels histórico se alineó con
+expectedRevision (antes respondía siempre3 incluso para workspace confirmado1); las respuestas
+obsoletas tienen ahora una negativa explícita. El helper ready vacía efectos React inmediatos
+antes de programar errores de otra acción, sin omitir aserciones ni esperar promesas pendientes.
+Se escribieron ocho instancias aditivas: montaje sin grilla; recarga; otra compra/desmontaje;
+edición durante lectura; adopción de revisión nueva;409; revisión de respuesta incorrecta;503
+recuperable. Selección propuesta61/6, reparto16/9/5/18/5/8, cinco renders anteriores idénticos.
+Todas las pruebas de este nuevo hijo están NO EJECUTADAS;53PASÓ sólo acredita004a.
