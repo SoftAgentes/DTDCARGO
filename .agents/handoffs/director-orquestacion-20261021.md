@@ -89,6 +89,31 @@ Sam autorizó avanzar con las27 pruebas M1 cuando esté listo el paquete y pidi�
 - Bloqueo P2 previo al arranque: owner y reviewer del Director confirmaron que el supervisor11741/variante27 descartaba la observaciónLIVE/UNKNOWN de identidades previasI y el finally podía liberar afirmativamente un turno mirando una lista nueva vacía, además de iniciar SourceFinal trasSTOP. Count1/T01 PASÓ pero admisión FALLÓ por fuente. Se informó a Sam; no requiere decisión humana. Corrección mínima autorizada dentro de preparación: observaciones previas como procedencia separada y prohibición de liberación afirmativa/nuevos hijos tras admisión rechazada o incompleta, sin importar identidades antiguas como propias ni cambiar observación/captura/cierre/tests/producto. El arranque queda pendiente del sello y revisión de esa corrección, bajo el mismo turno/ventana; el GO previo no es dispensa del defecto.
 - P2 resuelto en candidata v3 por revisión estrecha independiente: launcher43243bytes SHA7ebe6d96743feff6b665a16976fbd8ad873cdeb7b6332fcb5c2c1dd599c09eb0; manifest78193e2fe1b8bded222971c51ccacd65bf511d503e2ccf2c8483627183b2501f; plan19a9774ca0b070737b08134ef00eefce8ae656d8dfc3822f7d3bb46ab9df5575; invocaciónc24ea3b7151afefdaa1cb4a32534425b0e3664cad882d75ff7bc27c2fa1ec438. Count1/T01,27casos,20funciones intactas y refs7artefactos PASÓ. Se envió EJECUTA explícito v3 bajo mismo turno/ventana; owner puede vincular una vez los campos de binding y arrancar sin otra aprobación. Resultado todavía pendiente de evidencia; niGO ni revisión acreditan ejecución.
 
+### Resultado ejecutado M1: 27 PASÓ; supervisión incompleta
+
+La corrida autorizada se ejecutó una sola vez, en el worktree del Worker CORE, sobre7394f63f/tree81b55b3d. Binding en C:/tmp/director-traspaso-20261020/0573-core-M1-T01-27-binding-01:12 sustituciones reconstruyen exactamente manifest004aa0534a9418ead449a8249fa5700884ad894596fd6824ca9b513dcc9c5f39, sin otros cambios. Origen nuevo00:21:16.3598975Z/deadline00:36:16.3598975Z/cutoff00:35:16.3598975Z; no renovación.
+
+| Evidencia final revisada por Director y reviewer independiente | Resultado |
+|---|---|
+| Archivo T01 completo,27 casos individuales y resumen27passed/27 | PASÓ:27aprobadas/0fallidas/0omitidas, exit nativo0 |
+| Capturas nativas y exteriores, bytes y SHA256 | PASÓ, completas; ambos stderr0 y outerErrornull |
+| SourceFinal, árbol y claim | PASÓ:7394f63f/tree81b55b3d/limpio, claim conservado |
+| Admisión histórica I | ADMITTED con2observacionesABSENT separadas; sin importar ownership |
+| Controlador exterior original5476/nacimiento00:21:15.8354405Z | Terminó exit1 mediante objetoProcess original y WaitForExitAsync |
+| Supervisión/turno global | INCOMPLETO_RETIENE_TURNO, quiet=false/turnReleased=false |
+
+Bloqueo conservado: candidatoCIM21908,parent2144,sin nacimiento.NET confirmado, intervened=false. La identidad propia2144ABSENT no resuelve eseUNKNOWN ni prueba ausencia global. El exit nativo0 acredita las aserciones; el exterior1 conserva la supervisión incompleta. No convertirlo en verde total ni repetir pruebas para resolver esa incertidumbre. No se autorizó otra corrida pesada; owner puede preparar documentación/lecturas ligeras ya autorizadas.14hallazgos/A-B y aceptación completa dePR320 siguen fuera del cierre funcionalM1.
+
+Evidencia cerrada, sin nuevas observaciones físicas por el Director:
+- C:/tmp/director-traspaso-20261020/0573-core-M1-verificacion-27-01/operational-receipt.json,8735bytes,SHAd1f142378cde81cbbd14fda060cfde4c35b913ca0429a33c16930b4e55e7c46c.
+- T01-receipt.json en la misma raíz,2152bytes,SHA2d88479799ba96e4d03d1f2f75ca10c6a8271a0d6d3f46cd7d87b51121b27973.
+- T01-stdout.log,5962bytes,SHA1792f6ace164c6028669edc060f49143078f8b5865ccdd7509774d01572a9ae7; contiene27líneas de casos aprobados y resumen Vitest.
+- verification-budget-fixed.json,1358bytes,SHA6f1c3b8527a13551e32a7afacd4c6e58e374b55336ffc431c3f70cb2fe79ca04.
+- C:/tmp/director-traspaso-20261020/0573-core-M1-verificacion-27-exec-01/external-receipt.json,SHA9f96bc74c37e3a490e5832eb394af0f67764e45ee409fc0b8b08590aaafb2771.
+- launcher-stdout.log exterior,200bytes,SHA06787b48b6ebee010885dbfb695a92cb19ed3eb1547c68b714d86414c44dbd71; ambos stderr0.
+
+Se informó a Sam del PASÓ funcional y del bloqueo de cierre. Se pidió al frente contable registrar ambos estados en su checklist/handoff/PR propios, con el producto probado7394 identificado, sin alterar tests/recibos ni reintentar. Este registro no constituye aceptación de integración ni producción.
+
 | Frontera | Responsable | Clasificación y condición |
 |---|---|---|
 | Documento de compra, revisión, confirmación proveedor, etiquetas | Packing / PR319 | PARALELIZABLE con allowlist actual |
@@ -178,8 +203,10 @@ Status principal completó exit0 con ok=false:
 
 - Mantener la comunicación ante cambio significativo/bloqueo/entrega; no generar acuses en cadena.
 - Contabilidad: conservar M1 no ejecutado dentro del límite vencido y reportar el próximo paquete/ventana reproducible antes de usar el turno reservado.
+- Actualización de ese pendiente: el binding antiguo permanece NO EJECUTADO; la nueva corrida27 sí se ejecutó y PASÓ funcionalmente. Conservar/registrar cierre INCOMPLETO y turno retenido porUNKNOWN; ningún nuevo runtime pesado autorizado.
 - Packing: esperar revisión de Sam y del Director; preservar demo y no ampliar alcance.
 - CRM: cerrar la respuesta humana vigente y mantener la transición como preparación; permisos efectivos/API/piloto real siguen pendientes.
+- CRM entregó el plan propio Plan-transicion-chats-Kommo-GoHighLevel-2026-10-21.html yJSON/recibo,25páginas oficiales consultadas según su owner. Sigue SOLO PLANIFICACIÓN; dirección «aKommo» pendiente de aclaración humana; aprobaciónA histórica detenida, sin credenciales/API/canales. No confundir15casos/27mensajes ficticios CRM con27pruebasM1.
 - Ante un pedido nuevo de Sam: delimitar objetivo, identificar owner existente o crear aislamiento necesario, SDD y allowlist; comprobar dependencias antes de autorizar escritura. No crear un chat nuevo sin solicitud expresa.
 - Antes de una eventual integración: revisión completa del delta propio y ancestros sobre SHA/base actuales, aceptación, permisos específicos y serialización. Esta tarea no autorizó esa integración.
 - Este handoff queda local, pendiente de integración/publicación con permiso. No confundirlo con conocimiento integrado o visible en Obsidian.
