@@ -716,3 +716,85 @@ QR y códigos se conservan idénticos a004a. Documento confirmado rev3/V1 y proc
 se tocaron. Falta GO nuevo de pruebas, reapertura en UI y descarga/revisión de PDF real. Histórico
 B2stop y sus cierres tardíos permanecen; ninguna corrección administrativa crea aceptación.
 Commit selectivo local hijo004a, sin push. Actualización de conocimiento/derivados NO EJECUTADA.
+## Cierre documental de aceptación local · 2026-10-22
+
+**FUENTE EJECUTADA:** cbe76365407fa2ca9608a93d7dbe28f162089011 (tree64cc059d). Este cierre es
+un hijo exclusivamente documental, autorizado por el Director general, en la misma rama/PR319.
+No se atribuye ejecución al nuevo hijo ni se cambia historia. Claim propio primero, guard después;
+tres copias/preimages en acceptance-close-cbe7636-docs/three-doc-preimages.json antes de editar.
+Allowlist exacta: este handoff, spec0473 y qa/portal-confirmacion/README.md; ningún producto.
+
+**ACEPTACIÓN FUNCIONAL LOCAL, DATOS FICTICIOS:**
+
+- B1:61 aprobadas,0 fallos,0 SKIP seleccionado,38 fuera del filtro,6 archivos y5 renders.
+  Una corrida,0 reintentos. Native07:50:27.1600277→07:51:07.4333064Z; wrapper0/incompleteFalse,
+  receipt cerrado07:51:08.2426385Z. RootPOST/formal y General extra oportunos. Ownclosure incluyó
+  cuatro Git y release0/claimABSENT. Mi complemento extendido de custodia NO EJECUTADO por cap;
+  no existe worker-return y no se rehabilita. Root watcher tuvo un error inicial de metadatos de
+  fecha y corrigió DateKind String; toolerror preservado, no reintento de Vitest.
+- B2-cbe: un único refresh V5 exit0, sin reset del backend. Recargar mostró automáticamente
+  DTD-PL-2026-0001 / Rev3 / V1 ANTES de Ver etiquetas. Cliente y proveedor conservaron10cajas,
+  220pcs,USD340,130kg/.70 y DTD-B-000001..000010. No upload/import/apply/save/confirm/reset,
+  descarga de etiquetas ni impresión en este tramo. Capturas01antes(fallback),02después(recibo),
+  03proveedorPDF y04cliente. Se descargó el PDF del documento real una vez:41579bytes/SHA063def...
+  abajo completo; document-download-original conserva el archivo original de Downloads.
+- B2 UIend08:21:44.906Z, RootPOST08:22:00.3694617Z y General extra08:22:15Z oportunos. El
+  extended receipt Root se bloqueó al primer control de cap: NO run.receipt. El suplemento
+  custody-supplement-late.json es explícitamente TARDÍO, no una reconstrucción oportuna.
+- B3-cbe:7 nativos exit0,wrapper0/incompleteFalse/rawtrue/0retry. Último fin08:32:51.8097561Z,
+  cap08:33:51.8097561Z; RootPOST08:32:53.8152978Z y General extra08:33:21.7729055→22.1643835Z
+  oportunos,89pins. Documento real1página:3productos/2grupos,220pcs/USD340/130kg/.70,
+  A4cajas/52kg/.28,B6cajas/78kg/.42; cabecera/logística/primer producto coherentes. HuérfanoB
+  de4ee resuelto. Root vio TODAS14PNG a08:35:01.5882238Z y General confirmó independientemente:
+  documento1+compacto1+LONG6+PAGE6,PASÓ sin P1/P2. LONG/PAGE60códigos completos/600pcs/USD600/
+  Rev4V2 son sintéticos; compactoRev4V2 conserva precios160+60+120. El PDF real usa120+40+180.
+  No se sustituye evidencia de portal por fixtures aunque ambos totales sean340.
+- P3 menor: columnas de primera página algo separadas de productos por el bloque proveedor.
+  No hay cortes, solapamientos o asociaciones incorrectas. Pulido futuro, no editar hoy.
+- Etiquetas/QR anteriores conservados: PDF de etiquetas93900bytes y10/10 lecturas digitales
+  únicas de píxeles, sin navegar enlaces. Origen demo127.0.0.1:4321,paramsb/c/n; no credenciales.
+  Se corroboraron los diez códigos vigentes en UI, sin nueva descarga/decodificación/impresión.
+
+**CUSTODIA EXTERNA, ORIGINALES PRESERVADOS:** raíz local
+C:/Users/AKX generator/.codex/visualizations/2026/10/21/packing-list-portal/.
+
+| Artefacto relativo a esa raíz | SHA256 |
+| --- | --- |
+| B1-cbe7636-receipt/run.receipt.json |49f20d4bf9e4ad1e527d4b5af7fe35e7ce661f37ce41b6a2885c136aad4eef9f|
+| B1-cbe7636-receipt/vitest.result.json |0500f29760a96b0e7cfaee5c2d00bc921d79aa444de9abcdc0ec00e69957092d|
+| B2-cbe7636-portal-pdf/packing-list-factura-confirmado.pdf |063def8bebe704a7920980c16fddb0294325850d3c0e03d826ece3cdffe3e33f|
+| B2-cbe7636-portal-pdf/custody-supplement-late.json |b04c0d945fd995dcc2528a28350c39136599caeac57aa87571dd690849534270|
+| B3-cbe7636-layout/outputs/run.receipt.json |d8290d42278112f82f8539f90ec07bde45620ac1f76e9bfc56a2638823611686|
+| B3-cbe7636-layout/root-visual-review.json |8a30b6a8d781fb998b653e534408c63024707cc10c39dc9f02ee31d1fe6cb224|
+| B2-4ee35b9-portal-03/etiquetas-confirmadas.pdf |e7b5c11a6f76f3aa20f54e05e9aa847cbeff69cdbfdba0fa0d8a493c6acd87ce|
+| B3-4ee35b9-portal-pdf-qr/outputs/qr-lecturas.json |62bb658435d59c3c2bd7af2ada8386b5861d9680004c045d1acfc9359c4cb671|
+| xlsx-muestra-dtd-v2-4ee/outputs/packing-mixto-muestra-dtd-v2.xlsx |f1867b0f4b2bdc7024700e502436a55e672e0276360a630e0b1e0db85e42c825|
+
+Los nueve pins se cotejaron por lectura/hash al cerrar documentación, sin ejecutar sus procesos.
+Root-return-supplement B1 conserva el error de fechas y la devolución oportuna independiente;
+no sustituye mi complemento ausente. El suplemento tardío B2 no se presenta como run.receipt.
+Se preservan también los B1/B2/B3 fallidos, originales de entrada y estados históricos previos.
+
+**PENDIENTES DE ESTA ENTREGA:** pnpm verify y build canónico actual sobre fuenteCBE NO EJECUTADOS;
+61focales no son suite global o releasegreen. Extracción positiva de PDF digital/escaneado NO
+DISPONIBLE sin adaptador/credenciales en la demo; el error negativo conservó el documento.
+Impresión en papel, escaneo con cámara, prueba realWeChat y revisión humana de chino NO EJECUTADOS.
+Licencia/embedding/portabilidad CJK para servidor de producción NO ACREDITADOS: Deng local no
+se copió al repo ni certifica servidor. Revisar paquete CJK/configuración antes de activación.
+Integración, migración/flags y despliegue necesitan sus autorizaciones; no merge/producción aquí.
+La aceptación usa componentes reales con auth/storage de demo, no una sesión de cliente real.
+
+**FUERA DE ALCANCE DETECTADO:** compatibilidad del Excel original con x:workbook/ExcelJS sigue
+pendiente; ZIP/XML válido no acredita todas las variantes, ni se declara OOXML inválido. Catch
+genérico de la fixture, residual previo de GET simultáneos con múltiples archivos y P3 de columnas
+no se corrigen en este cierre. Calculadora pública y otros frentes no forman parte de la aceptación.
+
+**IMPACTO DOCUMENTAL Y CONOCIMIENTO:** spec0473, QA README y handoff guardan resultados/pins,
+fronteras y pendientes. Registro local no implica integración. Estructura/actualización Graphify,
+cobertura semántica, mapa Archify y publicación/revisión visible de Obsidian NO ACREDITADOS;
+no se ejecutó knowledge:status ni se publicaron derivados desde esta rama. No convertir hallazgos
+nuevos en reglas estables sin destino/justificación y revisión del Director. No se cambió AGENTS.
+
+**CIERRE DE ESTE HIJO:** sólo tres documentos, sin nuevas pruebas/build/UI/API/raster/QR,
+reinicios/descargas/escrituras de negocio. Commit selectivo local hijoCBE; no push hasta cotejo
+final del General. Este cierre documental no cambia los resultados ejecutados ni aprueba producción.

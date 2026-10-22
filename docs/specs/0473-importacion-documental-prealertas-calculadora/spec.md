@@ -696,3 +696,47 @@ Se escribieron ocho instancias aditivas: montaje sin grilla; recarga; otra compr
 edición durante lectura; adopción de revisión nueva;409; revisión de respuesta incorrecta;503
 recuperable. Selección propuesta61/6, reparto16/9/5/18/5/8, cinco renders anteriores idénticos.
 Todas las pruebas de este nuevo hijo están NO EJECUTADAS;53PASÓ sólo acredita004a.
+## Cierre de aceptación local · 2026-10-22 · fuente ejecutada cbe7636
+
+Etapa documental autorizada por el Director general, hijo directo de
+`cbe76365407fa2ca9608a93d7dbe28f162089011`. Claim canónico propio antes de guard y tres copias
+con SHA256 anteriores a la edición. Allowlist exacta de este cierre:
+
+- `.agents/handoffs/0473-portal-confirmacion-20261021.md`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/README.md`
+
+Este hijo sólo documenta resultados. No representa otra fuente de producto ejecutada, otra
+corrida, integración, migración, activación o despliegue. Los registros históricos NO EJECUTADO,
+fallos y cierres tardíos anteriores se conservan con su fecha y alcance.
+
+Aceptación local con datos ficticios, componentes reales y autoridad SQL de la demo:
+
+| Comprobación | Resultado y alcance |
+| --- | --- |
+| B1 sobre cbe7636 | PASÓ:61/61,0 fallos,0 SKIP seleccionado,38 fuera del filtro;6 archivos,5 renders,1 corrida,0 reintentos. Native0 y wrapper0/incompleteFalse. No equivale a toda la suite o verify. |
+| Recibo al reabrir | PASÓ: folio DTD-PL-2026-0001 / Rev3 / V1 aparece automáticamente tras recargar, antes de Ver etiquetas. No se volvió a guardar ni confirmar. |
+| Cliente y proveedor | PASÓ: mismo documento con10 cajas,220pcs,USD340,130kg y0.70m³; diez códigos físicos originales conservados. |
+| Descarga PDF real | PASÓ: una descarga,41579bytes,SHA256063def8bebe704a7920980c16fddb0294325850d3c0e03d826ece3cdffe3e33f. Una página,3 productos/2 grupos; A4cajas/52kg/.28 y B6cajas/78kg/.42. El grupoB huérfano anterior quedó resuelto. |
+| B3 y visual completa | PASÓ:7 pasos nativos exit0,wrapper0/incompleteFalse; Root y General revisaron todas las14PNG:documento1+compacto1+LONG6+PAGE6. Sin hallazgosP1/P2. |
+| Documentos largos | PASÓ:60 códigos únicos y ordenados en LONG y PAGE,600pcs/USD600/Rev4V2,continuidad legible. Son fixtures sintéticos distintos de la compra real de la demo. |
+| Etiquetas y QR conservados | PASÓ digital anterior:10/10 únicos desde píxeles, sin navegar destinos. No se redescargaron ni decodificaron de nuevo en esta aceptación; layout/códigos permanecieron intactos. |
+
+La observación P3 de acercar las columnas a los productos en primera página es pulido futuro;
+no se cambió el candidato revisado. Precios del PDF real:120+40+180=340; compacto de test:
+160+60+120=340. No intercambiar esos artefactos aunque coincidan los totales.
+
+Custodia clasificada por separado: B1 tuvo ownclosure/RootPOST/formal/General oportunos; el
+complemento extendido Worker quedó NO EJECUTADO por cap y no existe worker-return. El watcher
+Root corrigió sólo Parse de fechas con DateKind String, sin repetir producto. B2 tuvo UIend y
+exteriores oportunos, pero su extended receipt se detuvo al primer control de cap; no existe
+run.receipt y su suplemento de custodia se guardó explícitamente tarde. B3 completó recibo y
+exteriores dentro de plazo. Esos límites administrativos no se rehabilitan con la visual aprobada.
+
+La muestra XLSX DTDv2 fue funcional en el recorrido real. Extracción positiva de PDF de entrada:
+NO DISPONIBLE en la demo sin adaptador; su error conservó datos. El workbook original prefijado
+sigue como compatibilidad pendiente, no se declara OOXML inválido. `pnpm verify` sobre cbe7636,
+build canónico actual, papel/cámara/WeChat, revisión humana de chino, licencia/portabilidad CJK
+servidor y producción siguen NO EJECUTADOS o NO ACREDITADOS. Sin aprobación de merge/deploy.
+Evidencia, hashes y pendientes detallados en el handoff propio y README de QA. Graphify,
+Archify y publicación/revisión visible en Obsidian no quedaron acreditados por esta aceptación.

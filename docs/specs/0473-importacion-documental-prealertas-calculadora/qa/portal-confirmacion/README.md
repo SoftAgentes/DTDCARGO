@@ -166,3 +166,39 @@ El primero verifica una página para esta muestra compacta, sin imponer límite 
 segundo comprueba paginación real, sesenta códigos íntegros, contexto y comienzos de grupos
 coherentes. Ninguna observación de layout reemplaza la revisión visual de todas las páginas.
 El próximo GO deberá conservar rev3/V1 y sus diez códigos, sin guardar ni confirmar de nuevo.
+## Aceptación local cerrada sobre cbe7636 · 2026-10-22
+
+Fuente de producto ejecutada: `cbe76365407fa2ca9608a93d7dbe28f162089011`. El hijo de cierre
+sólo toca spec, handoff y este README; no ejecuta ni cambia producto. Datos100%ficticios,
+componentes reales y backend SQL de demo; sin producción ni sesión autenticada de cliente real.
+
+- B1:61/61 PASÓ,0fallos,0SKIP seleccionado,38fuera del filtro,6archivos/5renders,una corrida,
+  sin retry. Native0/wrapper0,incompleteFalse. Root/General exteriores y devolución oportunos;
+  complemento extendido Worker NO EJECUTADO por cap, sin worker-return. Error de fechas del
+  watcher Root corregido sólo en metadatos, no fue un reintento del producto.
+- B2: recargar proveedor muestra folioDTD-PL-2026-0001,Rev3/V1 automáticamente ANTES de Ver
+  etiquetas. Mismos10códigos y datos cliente/proveedor:10cajas/220pcs/USD340/130kg/.70. Una
+  descarga real del documento,41579bytes,SHA256063def8bebe704a7920980c16fddb0294325850d3c0e03d826ece3cdffe3e33f.
+  No guardar/reconfirmar/reimportar/resetear/backendrestart/print o nueva descarga de etiquetas.
+  UIend y exteriores oportunos; extended receipt Root NO EJECUTADO por cap. El suplemento de
+  custodia tardío está identificado como tal; no existe run.receipt de B2.
+- B3: siete pasos nativos0/wrapper0,incompleteFalse; Root y General vieron TODAS14PNG:
+  documento real1página,compacto1,LONG6,PAGE6. PASÓ sin P1/P2; grupoB ya no queda huérfano.
+  Documento real220pcs/USD340/Rev3V1; fixtures largos60códigos/600pcs/USD600/Rev4V2. Compacto
+  usa precios distintos del portal: no intercambiar sus PDFs como evidencia. P3 menor: acercar
+  columnas a productos en primera página; no se modifica el candidato aprobado por ese pulido.
+- Etiquetas y QR anteriores se conservan:2páginas,10códigos físicos,10/10 lecturas digitales
+  únicas de píxeles, sin navegar destinos. No se realizó nueva decodificación/descarga/impresión.
+
+Artefactos fuera Git bajo C:/Users/AKX generator/.codex/visualizations/2026/10/21/packing-list-portal/:
+B1-cbe7636-receipt/, B2-cbe7636-portal-pdf/ y B3-cbe7636-layout/. CapturasB2:01antes,
+02recibo tras recarga,03proveedorPDF,04cliente. Descarga original en document-download-original.json;
+PDF real en B2 y14PNG en B3/outputs. Hashes completos y cierres clasificados en el handoff de esta tarea.
+
+XLSX DTDv2 funcional en recorrido real; Excel original prefijado sigue como compatibilidad
+pendiente, no se declara OOXML inválido. PDF de entrada positivo NO DISPONIBLE sin adaptador;
+el error no aplicó datos ni borró el documento. `pnpm verify`/build actuales, papel/cámara,
+WeChat/chino humano y licencia/portabilidad CJK de producción siguen pendientes/no acreditados.
+La visual local aprobada no autoriza merge, activación ni despliegue. Graphify/Archify/Obsidian
+no se actualizaron ni quedaron acreditados en este cierre documental. No reiniciar la demo o
+reconfirmar para reproducir una evidencia ya preservada sin una nueva asignación concreta.
