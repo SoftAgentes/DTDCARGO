@@ -1,5 +1,115 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## GLM S1: revisión de preparación PASÓ y GO50 nuevo emitido — 2026-10-22T14:27:28.000Z
+
+General FULLREAD README/script/config/formal y15sustituciones. Cotejo propio4fcdfd14:25:26.8747136→14:25:27.4050888Z:27artefactos0diff,14inputs+23runtime+claim210/B7030diff,4Git0/9e49-tree4c981-branchclean,Native26/8dirsordinarios/auth0/output01ausente. Inversa controllerUTF8ENTERA exactaM7c0d579/15spanssingulares/4cambiosmecanismo explícitos(Vitestabsoluto/ViteenvezPGlite),cmd==PS/5campos/3otrosvaloresconservados/workdirpropio. Config .mjs/native/envFilefalse/cachepropia conservaReact/jsdomglobal/3anotacionesNode/setupíntegro/aliases/timeouts20s. No importabilidad/Windowsbarrerafuncional ni API acreditados. Payload/mecanismo favorable porfuente, no otro gate genérico. UI02 devuelto formalmente, CORE sóloadministración y futura autoría, no READYUIválida concurrente. Reserva exclusiva GLM50; no iniciar otra pesada hasta devolución. S2-P27 no activadoantes de cerrar50 sobre9e49. GO exacto a materializar CreateNew por el MISMOowner en C:/tmp/sdd0473-glm-GO-50-20261022-01.json; bytes=4058;SHA=177af2935736446d9686451dc6a249aec9b67aa3f3a832614fc97bf6c8e37333. Binding nuevo externo y revisión antes EJECUTA nominal. 180+60ORIGINAL/minconabsolutos/noFin+60. Sin API/secretos/red/instalación/servicios/producto/push.
+
+```json
+{
+  "kind": "GLM_S1_50_GO_NEW",
+  "templateOnly": false,
+  "state": "GO NUEVO EMITIDO; binding autorizado, ejecución sólo tras EJECUTA nominal General",
+  "issuedAtUtc": "2026-10-22T14:27:28.000Z",
+  "turnId": "DIRECTOR-GLM-S1-50-20261022-01",
+  "source": {
+    "owner": "worker-packing-glm-01a1639b-cd99-7921-ac27-5d218d0a1516",
+    "head": "9e49b3c13995e3dd50b60ce79a42f846b37b34fb",
+    "worktree": "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022",
+    "tree": "4c9819286e86e41a38709931d98285fc1ebe05e7",
+    "branch": "codex/packing-glm-encargo-20261022",
+    "claimBytes": 210,
+    "claimSha256": "b70389cb6cecdf17d3cb6f58c39ba077f5197545cf5d8f3679bdb23ee0294395"
+  },
+  "commandSupplement": {
+    "executable": "C:/Users/AKX generator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe",
+    "args": [
+      "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-list-portal-confirmacion-20261021/node_modules/.pnpm/vitest@4.1.7_@types+node@20_f94b4d5065533632c7c7866af55881e1/node_modules/vitest/vitest.mjs",
+      "run",
+      "--config",
+      "C:/tmp/sdd0473-glm-preparacion-01a1639b-r1/vitest.glm.proposed.mjs",
+      "--configLoader=native",
+      "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022/lib/studio/document-import/extraction-contract.test.ts",
+      "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022/lib/studio/document-import/provider.test.ts",
+      "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022/lib/studio/document-import/glm.test.ts",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--retry=0",
+      "--reporter=verbose",
+      "--reporter=json",
+      "--outputFile=C:/tmp/sdd0473-glm-ejecucion-01a1639b-01/vitest-original.json"
+    ],
+    "outputDirectory": "C:/tmp/sdd0473-glm-ejecucion-01a1639b-01"
+  },
+  "budget": {
+    "maximumExecutionSeconds": 180,
+    "closureReserveSeconds": 60,
+    "maximumActualTotalSeconds": 240,
+    "windowStartUtc": "2026-10-22T14:28:28.000Z",
+    "latestStartUtc": "2026-10-22T14:47:28.000Z",
+    "absoluteExecutionCutoffUtc": "2026-10-22T14:51:28.000Z",
+    "absoluteClosureDeadlineUtc": "2026-10-22T14:52:28.000Z",
+    "actualInvocationStartUtc": null,
+    "renewal": false
+  },
+  "readyReferences": {
+    "plan": {
+      "path": "C:/tmp/sdd0473-glm-preparacion-01a1639b-r1/plan-50-UNBOUND.json",
+      "bytes": 26246,
+      "sha256": "2cbacc60e2875c2f72c7bc9940d0ca541369614c6d525809efafe20d22ac8f4b"
+    },
+    "script": {
+      "path": "C:/tmp/sdd0473-glm-preparacion-01a1639b-r1/READY-GLM-UNBOUND.ps1",
+      "bytes": 13180,
+      "sha256": "29e3d6a48cc56cdd11adef6f0f7e90af97f79f9c9353cc7e767889ac5bc4f586"
+    },
+    "payload": {
+      "path": "C:/tmp/sdd0473-glm-preparacion-01a1639b-r1/exec-command-UNBOUND.json",
+      "bytes": 13475,
+      "sha256": "807a7a0dcec99c6981720ffdda5d13278a6d69f9dd6fe210b1ed96a71ed45817"
+    }
+  },
+  "selection": {
+    "completeFiles": 3,
+    "plannedBySource": 50,
+    "actualDiscovered": null,
+    "actualExecuted": null
+  },
+  "scope": {
+    "oneInvocation": true,
+    "realAPI": false,
+    "credentialRead": false,
+    "network": false,
+    "install": false,
+    "sourceEdit": false,
+    "services": false,
+    "merge": false,
+    "production": false
+  },
+  "review": {
+    "generalTool": "4fcdfd",
+    "atUtc": "2026-10-22T14:25:27.4050888Z",
+    "manifestArtifacts": 27,
+    "differences": 0,
+    "sourcePins": 14,
+    "runtimePins": 23,
+    "claim": true,
+    "sourceClean": true,
+    "mechanismFourChangesExplicit": true,
+    "otherHeavyKnown": "UI02 formalmente devuelto; CORE sólo ADMIN/futura autoría test aún sin READY/GO; CRM idle"
+  },
+  "supervision": {
+    "ownSessionOnly": true,
+    "pollMaximumSeconds": 10,
+    "recordActualUTC": true,
+    "notifyFirstYieldAndFIN": true,
+    "interruptOwnSessionByDeadlineMinusSeconds": 20,
+    "formalReturnBeforeCustody": true,
+    "exteriorOriginalDeadline": true,
+    "clockRenewal": false
+  }
+}
+```
+
 ## UI/B1 GO02 FALLÓ; corrección mínima autorizada — 2026-10-22T14:22 UTC
 
 - EJECUTA General14:11:03.2141281Z tras binding propio76456d/global0: dos marcadores/inversas/argv/83inputs/5runtime/4Git/B4 correctos. Una invocación Worker sesión32470, FINc1915c/global1, turno01a163f3-af0b-7370-8f2b-388af22ea616 COMPLETED leído General. Presupuesto ORIGINAL: origen14:12:32.1551477Z, nativeFIN14:13:44.9124177Z/72757.27ms/native1 inmediato. Ejecución14:27:32.1551477Z/cierre14:28:32.1551477Z/CtrlCby14:27:12.1551477Z. Sin renovación ni FIN+60. Interior14:13:45.1256965Z/4Git0/sourceUnchanged/B4 y devolución formal anteriores a custodia. Nodebirth NO DISPONIBLE.
