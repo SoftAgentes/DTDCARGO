@@ -225,3 +225,55 @@ Implementación local funcional y auditada, PR borrador y gate final documentado
 4320/4321 y worktree: listeners loopback comprobados al cerrar; revisión 4 confirmada preservada.
 No integrar ni activar producción desde Worker. Owner libera claim después del commit documental
 y push final. Director revisa SHA final, inestabilidad/omisiones y conocimiento antes de release.
+
+## Adenda 2026-10-21 / Coordinación y nuevo recorrido con Sam
+
+### Protocolo de coordinación
+
+Fuente: el Director de esta tarea verificó mediante `read_thread` el mensaje humano
+`01a160f0-8ca6-7340-b7b8-c8c4e61a234e` del chat del Director general
+`01a160e3-92b0-76f0-bc3c-20000e81ff16`. Sam indica que también trabaja directamente en las
+sesiones y pide mantener actualizado al Director general.
+
+Al tomar un pedido directo, o en el siguiente punto seguro, informar el pedido/referencia y su
+efecto en objetivo, alcance, permisos, rama/PR, contratos y turnos. Al cerrar, informar resultado,
+evidencia y pendientes. Un bloqueo, cruce de contrato o necesidad de recurso pesado se informa
+sin esperar al cierre. Agrupar novedades significativas, sin acuses vacíos ni mensajes por comando.
+Los pedidos directos de Sam conservan validez dentro de su alcance; este protocolo no amplía
+permisos. No habilita editar documentos de otros frentes ni crear automatizaciones o chats.
+El turno pesado M1 contable permanece reservado; se mantiene la demo ligera propia.
+En esta actualización el root hará el cierre único al Director general; este Worker no envía
+mensajes a otros chats.
+
+### Nuevo recorrido solicitado directamente por Sam
+
+Pedido: «Ábreme la demo y muéstrame cómo quedó el portal, desde que el cliente carga el packing
+list hasta que el proveedor corrige peso y CBM, confirma e imprime las etiquetas. Quiero revisarlo
+antes de producción.» El Director lo observó desde la UI, sólo con CSV ficticio y la demo existente
+4320/4321, e inició el reporte al Director general en un punto seguro.
+
+Para mostrar la carga desde cero se reinició únicamente el estado sintético mediante el botón de
+la demo. Las evidencias y resultados históricos anteriores permanecen intactos. Recorrido observado:
+
+1. Preview antes de aplicar: 10 cajas, 100 pcs, USD 350, CBM 0,60 m³ y peso ausente. Aplicar guarda
+   revisión 1; copiar enlace muestra confirmación visible.
+2. Otra pestaña del proveedor abre esa misma revisión, chino por defecto; se cambia a español.
+   Se completa peso bruto TOTAL de 120,5 kg y se corrige CBM TOTAL de 0,60 a 0,64 m³. Se revisa
+   expresamente la diferencia de nombre del proveedor entre datos ficticios iniciales y CSV,
+   y se guarda revisión 2.
+3. Adjuntos opcionales sin exigir otro archivo; revisión final y confirmación explícita generan
+   revisión 3, versión 1 y folio DTD-PL-2026-0001. Ver etiquetas muestra diez códigos distintos
+   DTD-B-000001 a DTD-B-000010 con QR.
+4. Cliente recargado muestra esos mismos datos confirmados: 10 cajas, 100 pcs, USD 350,
+   120,5 kg y 0,64 m³. Se pulsa Imprimir etiquetas sin error visible; página y etiquetas siguen
+   utilizables. Esta captura no acredita diálogo nativo, papel, PDF final ni escaneo físico:
+   no se afirma impresión completada. Se dejan dos pestañas abiertas para revisión de Sam.
+
+Evidencia exacta fuera de Git:
+`C:/Users/AKX generator/.codex/visualizations/2026/10/21/packing-list-portal/recorrido-con-cliente/recorrido.md`,
+con capturas 01 a 09 en esa misma carpeta. Estado sintético actual: revisión 3 confirmada / 0,64 m³;
+es un caso distinto de la revisión histórica 4 / 0,60 m³, que no se reescribe.
+
+Se conservan 4320/PID 26356 y 4321/PID 22292. Sin cambios de producto o contratos, pruebas nuevas,
+repetición de gates ni operaciones de producción. Este recorrido no sustituye la prueba conjunta
+con recepción ni cierra los pendientes operativos o permisos de integración ya documentados.
