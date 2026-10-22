@@ -1,5 +1,162 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## GO01 NO EJECUTADO y nueva admisión GO02 UI/B1 — 2026-10-22T14:06:19.000Z
+
+- GO01 NUNCA recibió EJECUTA nominal. Rootlector308bc4 falló sólo por coerción automática de fechas de JSON al calcular margen, antes de cualquier controlador; corregido con DateKind String. CotejofinalGeneralcfdd87/global0 a14:02:49.2351091Z:binding33da/3cfe yGO6ead íntegrantes,83inputs5runtime0diff/4Git0/source82b9clean/output01ausente. Quedaban20.7segundos yeladmitidorechazóANTESenviarmensaje. General14:03:31ZordenóNOEJECUTARmantenerlatest14:03:10,sinextenderniinvocarparademostrarelrechazo. Fallo de coordinación temporal, NOFALLÓ239/NOtestskips. RootparentnuncadespachóEJECUTAniControlador/Node.
+- Ownerconstancia1281/SHA2427d36467fc7f74f3ca579fc4b51c44a8aade5e88ea1a115dccc3c6f84888c0, observación14:04:14.7295185Z, FULLREADGeneral5692b2:controlDEVUELTOFORMALMENTE,0controller/preflight/Nodeproducto/origenbudgetnativeNULL/salida01AUSENTE/sinprocesopropio. ParentdevolvióFORMALreserva01. Go01/binding01/originalesintactos,norenovados,ninguna corridaque repetir.
+- NuevaadmisiónPROPIA14:06:18.5367520Z/5692b2/global0:83source+5runtime0diff,4Gitindividuales0/HEAD82b9/tree5ebc/ramaCORE-clean,outputs01y02AUSENTES. Slotsconocidos:GO01devuelto,GLMsóloexterno/NO GO50oIA,PackingnoAPI,CRMfinal; no pesadoautorizado. SourceREADYrevisadareutilizabledatosquietos,no otrareviewgenérica.
+- EMITIDO GO NUEVO DIRECTOR-UI-B1-239-20261022-02, para UNA invocación futura6FULL239previstos/900SEGUNDOStrabajo+60SEGUNDOSreserva=960total; inicioREALminconabsolutos,noFin+60niherenciaGO01. RESERVAexclusiva02; aún NO EJECUTA. MaterializaciónCreateNew Director aC:/tmp/director-traspaso-20261020/0573-UI-B1-GO-239-20261022-02.json, UTF8sinBOM/LFfinal/SHA 95fcfc596aeb7470284760b0e2b221ee71e15b2c338c603f187d8d5629781482. Binding02nuevo desdeUNBOUND421e/7a5a SOLOdosmarcadores ydatos02, nunca cambiar01. WindowStart2026-10-22T14:07:19.000Z/latestStart2026-10-22T14:26:19.000Z/absexec2026-10-22T14:41:19.000Z/absclose2026-10-22T14:42:19.000Z. Ventanadearranque20minadmitederlímitesadministrativos, el trabajo sigue900+60segundosMAX. General cotejará bindingyemitiráEJECUTAnominalseparado antesNode. Mismaowner/WT/sourceB4,sin sourceedit/PR/SQL/merge/prod.
+
+```json
+{
+  "templateOnly": false,
+  "state": "GO NUEVO EMITIDO: binding autorizado; ejecución sólo tras EJECUTA nominal del General",
+  "issuedAtUtc": "2026-10-22T14:06:19.000Z",
+  "turnId": "DIRECTOR-UI-B1-239-20261022-02",
+  "source": {
+    "head": "82b9eed85481d84aab22d1a8147c37284f2b721e",
+    "tree": "5ebc5dbb8e8cd14b6a975099aea04900e533527c",
+    "parent": "d8967bc77280029b9ccfa5aa70c18fe30eb3ed7c",
+    "branch": "codex/sdd-0573-core-reparacion-20261021",
+    "owner": "worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468",
+    "worktree": "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0573-core-reparacion-20261021",
+    "claimBytes": 212,
+    "claimSha256": "b4ea7421a49ca0ec099a6e0552d2af03630cc648863479e4468e2d98244b8905"
+  },
+  "commandSupplement": {
+    "executable": "C:/Users/AKX generator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe",
+    "args": [
+      "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0573-core-reparacion-20261021/node_modules/vitest/vitest.mjs",
+      "run",
+      "app/studio/(app)/contabilidad/__tests__/reverso-factura-acciones.test.ts",
+      "lib/studio/__tests__/journal-queries-reverso.test.ts",
+      "app/studio/(app)/contabilidad/__tests__/libro-diario-reverso.test.tsx",
+      "app/studio/(app)/contabilidad/__tests__/cierre-excepcion-acciones.test.ts",
+      "app/studio/(app)/contabilidad/__tests__/cierre-excepcion-pantalla.test.tsx",
+      "app/studio/(app)/contabilidad/__tests__/libro-diario-aviso.test.tsx",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--retry=0",
+      "--reporter=verbose",
+      "--reporter=json",
+      "--outputFile.json=C:/tmp/director-traspaso-20261020/0573-UI-B1-ejecucion-02/vitest-original.json"
+    ],
+    "outputDirectory": "C:/tmp/director-traspaso-20261020/0573-UI-B1-ejecucion-02"
+  },
+  "budget": {
+    "maximumExecutionSeconds": 900,
+    "closureReserveSeconds": 60,
+    "maximumActualTotalSeconds": 960,
+    "windowStartUtc": "2026-10-22T14:07:19.000Z",
+    "latestStartUtc": "2026-10-22T14:26:19.000Z",
+    "absoluteExecutionCutoffUtc": "2026-10-22T14:41:19.000Z",
+    "absoluteClosureDeadlineUtc": "2026-10-22T14:42:19.000Z",
+    "actualInvocationStartUtc": null,
+    "renewal": false
+  },
+  "readyReferences": {
+    "plan": {
+      "path": "C:/tmp/director-traspaso-20261020/0573-UI-B1-preparacion-01/plan-UI-B1-239-UNBOUND.json",
+      "bytes": 43671,
+      "sha256": "f5e87ce2051b26f253d92c73fc5e1105e6cfb22e9ce4f1238f8bcd7bfe5595d8"
+    },
+    "script": {
+      "path": "C:/tmp/director-traspaso-20261020/0573-UI-B1-preparacion-01/READY-V2-UNBOUND.ps1",
+      "bytes": 12894,
+      "sha256": "421e73a293609dfdbc683b2ed472f55e0a91b5b84dbfa1d4efd9fa7f6649e916"
+    },
+    "payload": {
+      "path": "C:/tmp/director-traspaso-20261020/0573-UI-B1-preparacion-01/exec-command-READY-UNBOUND.json",
+      "bytes": 13193,
+      "sha256": "7a5a4fcae622ef303336d1b30b5af73f2e3cdc96cd68f8fe89748175b2c439b0"
+    }
+  },
+  "schemaNotes": {
+    "futureUTC": "Strings ISOZ invariant: yyyy-MM-ddTHH:mm:ssZ, .fffZ o .fffffffZ; null aquí no es ventana",
+    "futureTurn": "string no vacío, emitido por General mediante GO NUEVO, no heredado",
+    "futureOutput": "C:/tmp/director-traspaso-20261020/0573-UI-B1-ejecucion-NN,NNdosdígitos; debe estar ausente y no se crea aquí",
+    "futureArgs": "Reemplazar sólo UNBOUND_OUTPUT_DIRECTORY por outputDirectory concreto del futuro GO; seis archivos ENTEROS, resolución node/jsdom existente, sin filtro y resto argv idéntico al plan",
+    "futureBinding": "No materializado. Tras revisión y GO concreto, se ligan únicamente UNBOUND_NEXT_GO_PATH y UNBOUND_NEXT_GO_SHA256 en copia BOUND externa; cotejo previo separado",
+    "currentOrigin": "null; las marcas UTC de preparación no son origen de ejecución"
+  },
+  "selection": {
+    "files": [
+      "app/studio/(app)/contabilidad/__tests__/reverso-factura-acciones.test.ts",
+      "lib/studio/__tests__/journal-queries-reverso.test.ts",
+      "app/studio/(app)/contabilidad/__tests__/libro-diario-reverso.test.tsx",
+      "app/studio/(app)/contabilidad/__tests__/cierre-excepcion-acciones.test.ts",
+      "app/studio/(app)/contabilidad/__tests__/cierre-excepcion-pantalla.test.tsx",
+      "app/studio/(app)/contabilidad/__tests__/libro-diario-aviso.test.tsx"
+    ],
+    "fullFiles": true,
+    "planned": 239,
+    "byFile": [
+      123,
+      44,
+      38,
+      17,
+      13,
+      4
+    ],
+    "inherited": 34,
+    "newWritten": 205,
+    "maxWorkers": 1,
+    "fileParallelism": false,
+    "retry": 0,
+    "discovery": "NO EJECUTADO",
+    "environmentByFile": [
+      {
+        "path": "app/studio/(app)/contabilidad/__tests__/reverso-factura-acciones.test.ts",
+        "environment": "node por anotación de fuente"
+      },
+      {
+        "path": "lib/studio/__tests__/journal-queries-reverso.test.ts",
+        "environment": "node por anotación de fuente"
+      },
+      {
+        "path": "app/studio/(app)/contabilidad/__tests__/libro-diario-reverso.test.tsx",
+        "environment": "jsdom por vitest.config.ts"
+      },
+      {
+        "path": "app/studio/(app)/contabilidad/__tests__/cierre-excepcion-acciones.test.ts",
+        "environment": "node por anotación de fuente"
+      },
+      {
+        "path": "app/studio/(app)/contabilidad/__tests__/cierre-excepcion-pantalla.test.tsx",
+        "environment": "jsdom por vitest.config.ts"
+      },
+      {
+        "path": "app/studio/(app)/contabilidad/__tests__/libro-diario-aviso.test.tsx",
+        "environment": "jsdom por vitest.config.ts"
+      }
+    ]
+  },
+  "authorization": {
+    "singleInvocation": true,
+    "scope": "Seis archivos completos UI/B1 sobre 82b9; 239 previstos sin cuota de resultados.",
+    "nominalExecuteRequired": true,
+    "noRuntimeBeforeExecute": true,
+    "sourceAndReadyReviewed": true,
+    "exclusiveHeavyReservation": "DIRECTOR-UI-B1-239-20261022-02",
+    "otherHeavyRunsAuthorized": false,
+    "originalStreamsAndImmediateNativeExit": true,
+    "formalReturnBeforeAdministrativeCustody": true,
+    "exteriorGeneralAndDirectorClosureRequired": true,
+    "noMergeNoProduction": true
+  },
+  "priorAttempt": {
+    "turnId": "DIRECTOR-UI-B1-239-20261022-01",
+    "result": "NO EJECUTADO ANTES DE NODE",
+    "controllerInvoked": false,
+    "productInvoked": false,
+    "formalReturn": true,
+    "receipt": "C:/tmp/director-traspaso-20261020/0573-UI-B1-GO01-NOEJ-worker.json",
+    "receiptSHA256": "2427d36467fc7f74f3ca579fc4b51c44a8aade5e88ea1a115dccc3c6f84888c0",
+    "sourceUnchanged": true
+  }
+}
+```
+
 ## Admisión y GO nuevo UI/B1 239 — 2026-10-22T13:53:10.000Z
 
 - READY cerrada recibida/formalmente devuelta: recibo16213/96c12fb1,manifest59871/241fccc4,custodia93615/05127b04,cadena1284/9033d15d yreceta7066/175eac20 FULLREADGeneral980fd6. Peer10503/SHA798c9aad67d2673e4158b0d8878e6fd6b245a0fee7ad89a80bd14011b98d4030 FULLREADGeneral, favorable. Preparación es metadata, no importabilidad/prueba funcional.
