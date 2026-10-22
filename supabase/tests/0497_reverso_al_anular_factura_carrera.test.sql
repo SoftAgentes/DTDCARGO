@@ -459,7 +459,7 @@ begin
     r:=pg_temp.run('i3b_a',format('with d as(delete from public.journal_entries where id=%L::uuid returning id) select to_jsonb(count(*)) from d',entry));
     perform pg_temp.ok((r->>'ok')::boolean and r->'result'='1'::jsonb,'R13 DELETE manual sin25000 artificial');
     perform dblink_exec('i3b_a','commit');
-    select r into observed from dblink('i3b_s',format(
+    select x.r into observed from dblink('i3b_s',format(
       'select jsonb_build_object(''parent'',(select count(*) from public.journal_entries where id=%1$L::uuid),'
       ||'''lines'',(select count(*) from public.journal_lines where entry_id=%1$L::uuid),'
       ||'''audit'',(select count(*) from public.entity_audit_log where entity_id=%1$L::uuid and event_type=''journal_entry_deleted''))',entry)) x(r jsonb);
@@ -490,7 +490,7 @@ begin
   -- SET de función puede registrar placeholder y restaurarlo como cadena vacía.
   -- No precargar ni transformar los valores crudos de la observación.
   perform dblink_connect('i3b_c',pg_temp.conn('dtd_carrera_0497_i3b','c'));
-  select r into before_guc from dblink('i3b_c','select to_jsonb(current_setting(''dtd.audit_reason'',true))') x(r jsonb);
+  select x.r into before_guc from dblink('i3b_c','select to_jsonb(current_setting(''dtd.audit_reason'',true))') x(r jsonb);
   raise notice 'I3B_R15_RAW_CONTEXT %',jsonb_build_object(
     'stage','initial_before_first_call','beforeRaw',before_guc,
     'beforeRepresentation',case when before_guc is null then 'SQL_NULL' when before_guc='""'::jsonb then 'EMPTY_STRING' else 'OTHER_VALUE' end);
@@ -502,7 +502,7 @@ begin
     'stage','rpc_result_before_posted_assert','rpcRaw',r);
   perform pg_temp.ok(r->'result'->>'outcome'='posted','R15 primera llamada real');
   perform dblink_exec('i3b_c','commit');
-  select r into after_guc from dblink('i3b_c','select to_jsonb(current_setting(''dtd.audit_reason'',true))') x(r jsonb);
+  select x.r into after_guc from dblink('i3b_c','select to_jsonb(current_setting(''dtd.audit_reason'',true))') x(r jsonb);
   raise notice 'I3B_R15_RAW_CONTEXT %',jsonb_build_object(
     'stage','after_commit_before_semantic_assert','beforeRaw',before_guc,'afterRaw',after_guc,
     'beforeRepresentation',case when before_guc is null then 'SQL_NULL' when before_guc='""'::jsonb then 'EMPTY_STRING' else 'OTHER_VALUE' end,
@@ -515,7 +515,7 @@ begin
     'initialRegistryAbsenceMeasured',true,'registryIdentityRestorationClaimed',false));
   perform pg_temp.ok(after_guc is null or after_guc='""'::jsonb,
     'R15 tras RPC/COMMIT no queda motivo, sin exigir ausencia registral restaurada');
-  select r into observed from dblink('i3b_s',format(
+  select x.r into observed from dblink('i3b_s',format(
     'select jsonb_build_object(''posted'',count(*),''withReason'',count(*) filter(where a.reason is not null and a.reason<>''''))'
     ||' from public.entity_audit_log a join public.journal_entries e on e.id=a.entity_id'
     ||' where e.invoice_id=%L::uuid and a.event_type=''journal_entry_posted''',id)) x(r jsonb);
@@ -530,10 +530,10 @@ begin
     perform pg_temp.start_session('i3b_c','authenticated');
     r:=pg_temp.run('i3b_c',format('select to_jsonb(public.void_invoice_with_audit_reason(%L::uuid,''  ''))',id));
     perform pg_temp.ok(r->>'state'='22023','R15 excepción concreta por motivo vacío');
-    select r into after_guc from dblink('i3b_c','select to_jsonb(current_setting(''dtd.audit_reason'',true))') x(r jsonb);
+    select x.r into after_guc from dblink('i3b_c','select to_jsonb(current_setting(''dtd.audit_reason'',true))') x(r jsonb);
     perform pg_temp.ok(after_guc=to_jsonb(context_value),'R15 excepción restaura contexto exacto en TX');
     perform dblink_exec('i3b_c','commit');
-    select r into after_guc from dblink('i3b_c','select to_jsonb(current_setting(''dtd.audit_reason'',true))') x(r jsonb);
+    select x.r into after_guc from dblink('i3b_c','select to_jsonb(current_setting(''dtd.audit_reason'',true))') x(r jsonb);
     perform pg_temp.ok(after_guc=to_jsonb(context_value),'R15 contexto vacío/no vacío tras COMMIT');
   end loop;
   perform dblink_exec('i3b_c',$nested$
@@ -553,7 +553,7 @@ begin
   perform pg_temp.start_session('i3b_c','service_role');
   r:=pg_temp.run('i3b_c',format('select public.i3b_test_nested(%L::uuid,%L::uuid)',pg_temp.fid('tenant-A'),id));
   perform pg_temp.ok(r->'result'->>'outcome'='posted','R15 llamada anidada real');
-  select r into after_guc from dblink('i3b_c','select to_jsonb(current_setting(''dtd.audit_reason'',true))') x(r jsonb);
+  select x.r into after_guc from dblink('i3b_c','select to_jsonb(current_setting(''dtd.audit_reason'',true))') x(r jsonb);
   perform pg_temp.ok(after_guc=to_jsonb('I3B contexto exterior C'::text),'R15 función anidada devuelve contexto exterior');
   perform dblink_exec('i3b_c','commit');
 
