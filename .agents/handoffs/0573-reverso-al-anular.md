@@ -924,3 +924,118 @@ Los resultados GO04/dd51 de150PASÓ y GO03/80d9 de144PASÓ/6FALLÓ+1Unhandled co
 0497 sigue UNAPPLIED/MIGRATE-FIRST y sujeta a las aprobaciones nominales futuras;0495 fue aplicada una vez y nunca se repite. Este hijo documental no aplica migraciones; los ensayos previos en bases sintéticas no acreditan aplicación productiva ni sustituyen la aprobación nominal de Sam. No hay nueva corrida ni resultado ejecutado en el SHA que contiene este suplemento.
 
 Validación de este hijo: sólo guardownership, lectura/hash, comparación literal, metadata y Git/diffcheck; producto/tests/SQL/DB/Docker/discovery/parser/AST/tipos/lint/build/verify/install/censo quedan NO EJECUTADOS. Impacto documental guardado únicamente en esta spec y el handoff propio; integración, Graphify/Archify, cobertura semántica, Obsidian/preview/publicacióncompartida y knowledge siguen NO EJECUTADOS. No commit recursivo de su propio SHA, nuevoGO/reloj/reserva, push o ediciónPR por este tramo. Se entrega hijo local limpio para revisión Director/General antes de otro despacho nominal de respaldoDRAFT; control formal devuelto al cierre y claim212/B4 retenido.
+
+## UI/B1 · adopción nominal de autoría sobre306abebd (2026-10-22)
+
+Se adopta ANTES de producto el despacho `C:/tmp/director-traspaso-20261020/0573-UI-B1-despacho-306-director-v1.md` (5032 bytes, SHA256 `22c36a4c1b358f9f364bd5df4b9d86b8085332320813fd1e89bd380dec240f4c`) y la adopción de base `0573-UI-B1-adopcion-base-306abebd-director.md` (8239, `f37d167d2d966d8bca3ec575b34b43db096f572ba5be419aa5173a1c541b8645`), leídos íntegros. El despacho nominal cumple la condición de activación de los documentos preparados; sus rótulos históricos y cifras anteriores no se reescriben.
+
+Autoridades completas leídas bajo `C:/tmp/director-traspaso-20261020/`: contrato17804/`2cd1643e30976c6647a1cdb9b3d797182dddf443657a71d652c5c08ebc2af3cd`; addendum4669/`691e12b79665b116760e8b7f19b0d689d8fc598d84fc101ac46c47a3c1a6dc43`; precisión de count17006/`a8925a50af977e22a78ed67e4adeef9290c9ed804fc42786ba1493c33b0253f4`; revalidación10739/`c293f633ca69572157c46dd85880cd9af7c2d86c850a7e7fc7b04ff13d17100d`. La base actual es `306abebd81e8e2134a8e10f40c60f66baaa6d548`/árbol `6811fa330d4fe871b7f29c78cb619fe97737f789`, padre del futuro checkpoint; CORE52 más tres fixtures existentes da UNIÓN55, con R1 FUERA. account-queries no es ruta14.
+
+Mismo owner `worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468`, WT/rama propios y claim212/B4 retenidos. A12:10:32.1965528Z se comprobaron guard0, raíz/rama/HEAD/tree/estado e índice limpios, diez preimágenes físicas ENTERAS+rawGit y tres ausencias Git/disco. Evidencia anterior a editar en `C:/tmp/director-traspaso-20261020/0573-UI-B1-fuente-01/identidad-preimagenes-worker.json`; la hora exacta de adopción y sellos de lecturas quedan en su `adopcion-worker.json`. Los siete blobs de producto/fixtures coinciden con los ratificados; D parte de `d3a9f8b5fc2913061345809029748fb6e8f481f9` y conserva los diez localizadoresQ vigentes.
+
+Allowlist EXACTA de esta fase:
+1. `lib/studio/journal-types.ts`.
+2. `lib/studio/journal-queries.ts`.
+3. `app/studio/(app)/contabilidad/actions.ts`, sólo postEntry/voidEntry/softDeleteEntry y dependencias locales mínimas.
+4. `app/studio/(app)/contabilidad/_components/LibroDiarioTab.tsx`.
+5. `app/studio/(app)/contabilidad/__tests__/reverso-factura-acciones.test.ts`, nuevo reservado.
+6. `app/studio/(app)/contabilidad/__tests__/libro-diario-reverso.test.tsx`, nuevo reservado.
+7. `lib/studio/__tests__/journal-queries-reverso.test.ts`, nuevo reservado.
+8. `app/studio/(app)/contabilidad/__tests__/cierre-excepcion-acciones.test.ts`, sólo preparación manual/contexto.
+9. `app/studio/(app)/contabilidad/__tests__/cierre-excepcion-pantalla.test.tsx`, sólo DTO manual conocido.
+10. `app/studio/(app)/contabilidad/__tests__/libro-diario-aviso.test.tsx`, sólo DTO manual conocido.
+11. `supabase/pending-migration-symbol-declarations.json`, sólo sitios/anclas/degradación de columna0497 afectados.
+12. Esta spec.
+13. `.agents/handoffs/0573-reverso-al-anular.md`.
+
+Se adoptan sin reinterpretación: protección raw discriminada que falla cerrada; evidencia positiva automático/backlink/inversa no desaparece al fallar completar; manual legítimo exige contexto confiable y lectura inversa completa. Se leen ambos sentidos por lotes sin heredar500/mes/página/source/status/deleted. Cabeceras coherentes no certifican líneas, balance, espejo financiero ni ausencia global; no coerceEntry como evidencia raw ni helper/RPCprivada/admin.
+
+Las tres acciones deben resolver moduleEditGate/contexto fresco en la misma sesión, targetID+tenant, protección y estado antes de efectos o excepción0493. Superclave no evita protección. Post/delete requieren error===null y count de TIPO number EXACTAMENTE1 con filtrosID/tenant/preestado/deletedNULL y valores determinados; data:null es normal en respuesta mínima. No SELECT posterior, raw-headerhardening o RPC nueva. Void sólo booleantrue; excepción0493 sólo JSONok===true. Respuesta perdida permanece NOconfirmada, sin afirmar rollback ni reintentar automáticamente.
+
+La UI debe mantener explicación persistente accesible y controles bloqueados en protección/incertidumbre, sin enlaces fabricados desdeUUID. Sólo ok===true confirma éxito. Callbacks locales devuelven Promise<string|null>, capturan rechazo y reservan null para éxito; handlers/DeleteButton liberan pending en finally y no cierran al fallar. Se conservan motivo, clave, foco, CSV, aviso500, cifras y todos los títulos/aserciones heredados de las tres fixtures.
+
+Gobernanza leída: AGENTS/Worker/runbook/project-rules, AGENT-BRIEF/registro; SGE-00v1.0, MP-01v1.1, BTN-01v1.1, ERR-01v1.0, LOD-01v1.0, FRM-01v1.1, A11Y-01v1.1, TBL-01v1.0, AUD-01v1.0, CMP-01v1.1 y AVS-01v1.0 en SDD0165. Se reutilizan componentes canónicos; P4 para la protección, P3/R3 para manual asentado y P2/R2 para borrador manual existente, sin rebajar fricción. Matriz concreta y ui-check por lectura se completarán con la fuente fija; no se declara cumplimiento global o revisión visible.
+
+Corte de marca/Norte leído: BRAND, diseño, app/studio/CLAUDE y Norte CLAUDE→HANDOFF→entradas aplicables CHANGELOG, más backend/README real. La enmienda SDD0441 de2026-09-05 prevalece: espera/información neutras, atención localizada y éxito sólo confirmado. Norte conserva4.6 frente a runtime5.0; no se publica una copia antigua. La rúbrica `.claude/commands/ui-check.md` se aplicará al diff local sin preview/browser. No se invoca el diseñador inexistente ni se heredan convenciones de prototipo que contradigan el runtime Next/TS.
+
+AUTORÍA LIGERA únicamente. Tests nuevos se escribirán contra funciones/componentes reales, con inventario por FUENTE y sin cuota/discovery/ROJO ejecutado. Node de producto, imports, parser/AST, tipos/lint/build/verify, SQL/DB/Docker/pnpm/install, censo, preview y conocimiento quedan NO EJECUTADOS; la única excepción Node es el guard existente. Validador automático de governance-check y comprobaciones runtime de Supabase quedan NO EJECUTADOS por el alcance expreso. GO/reserva/presupuesto futuros NULL; no se reutiliza M7.
+
+M7175PASÓ sobre62 y cierre/respaldo306, GO04150PASÓ y fallos previos, M1supervisiónINCOMPLETA,14/A-B y demás límites permanecen separados. No se modifica SQL/ACL/roles/scanner/paginador/componentes compartidos u otras rutas; dependencia imprescindible fuera13 exige evidencia antes de editar. Sin push/PR/merge/ready/retarget/deploy/producción/datos reales/PII/secretos/cuentas/pagos/contactos/publicación compartida.0495 nunca repetir;0497UNAPPLIED y aprobaciones nominales futuras conservadas.
+
+## UI/B1 · precisión nominal AVS adoptada durante autoría
+
+Adopción factual posterior a la adopción inicial12:14:20Z y anterior a migrar los cuatro avisos o cambiar la preparación/aserción F9. Se leyó íntegro `C:/tmp/director-traspaso-20261020/0573-UI-B1-precision-AVS-4avisos-F9-director.md`,6977bytes/SHA256 `27d908ce391933ae1948c78131116b4b892cae9757e8602c35632062e43a0b7c` (lectura f8bbd4). Su hora real de adopción y las cuatro preimágenes físicas ENTERAS del WIP quedan en `C:/tmp/director-traspaso-20261020/0573-UI-B1-fuente-01/adopcion-precision-AVS-worker.json`. No se retrotrae esta decisión a12:14.
+
+Los cuatro avisos sí están tocados por sus condiciones de éxito: se migran sólo ellos a `toast.show`, scope module/priority normal, mensajes conservados y claves canónicas `accounting:journal-entry:posted`, `accounting:journal-entry:draft-deleted`, `accounting:journal-entry:voided` y `accounting:journal-entry:closing-exception-applied`. Dedupe objetivo efectivo; en excepción incluye operación. No alias legacy, correlationId inventado, motivo/superclave, importe, action/enlace ni cambio de duración. AVS no se declara no aplicable ni se crea excepción normativa.
+
+F9 conserva preparación DTO y todos los títulos/escenarios/otros oráculos; se permite añadir mock show/reset y sustituir exclusivamente el assert base111 por el objeto canónico COMPLETO del mismo mensaje, evento y contexto. No objectContaining ni puente show→success. La inversa física debe recuperar íntegramente306 retirando preparación DTO + esos tres deltas. Las otras dos fixtures conservan únicamente su preparación ya autorizada. Mismas13rutas/55/R1fuera, misma base306/owner/claim; SIN runtime, push, GO, reserva o presupuesto. La precisión no transfiere resultados anteriores al hijo UI.
+
+
+## UI/B1 · checkpoint de autoría sobre306, sin ejecución
+
+Resultado de FUENTE, pendiente de revisión del SHA fijo y de pruebas separadas. El diario recibe evidencia raw de protección y las tres acciones deciden de nuevo con contexto actual. Los cuatro avisos tocados adoptan AVS mediante la precisión6977/27d908ce, adoptada REALMENTE a12:53:25.3485543Z antes de cambiar API/mock/aserción; recibo2365/SHA256 eab74490ad3bcc19f5295922f5e229db748c456ae231177da7c5d5575d40e67f. No se declara UI/B1 funcional PASÓ.
+
+- **DTO/lector:** `JournalEntry.protection` es opcional para compatibilidad; ausente/ilegible bloquea. Evidencia positiva invoice/invoice_reversal, backlink propio o referencia entrante conserva protección aunque falle completar. Metadata ausente queda no comprobada; duplicados contradictorios no autorizan y contradicción visible protegida queda inconsistente. Identificar cabeceras no certifica importes/líneas/cuentas/espejo.
+- **Alcance visible:** la misma sesión resuelve usuario y membresía activa con filtros user_id/disabled_at; sólo ese tenant delimita lotes y páginas estables de IDs e inversos. Actions aportan el tenant del moduleEditGate actual, sin releer membresía. No se importan módulos server/auth/RBAC/admin en journal-queries; `auth.getUser()` es método del cliente recibido, no un import servidor. Sin500/filtro/mes/estado/borrado en auxiliares, sin N+1 ni aumentar máximos del paginador. Error/shape/corte se rechazan antes de PageResult. Sin0497 se conserva lista con protección no comprobada/positiva; ninguna proyección alternativa habilita.
+- **Lectura base/detalle:** listado500/orden/count/totales y coerciones de presentación se conservan, sin usarlas como prueba raw. Fallo base produce error seguro. Detalle pagina hasta vacío para distinguir0/1/ambigüedad aun con capHTTP1; PGRST116 no equivale a ausencia. RLS sólo delimita lo visible: sin capacidad, ausencia global, snapshot REST o lock prometidos.
+- **Acciones reales:** acceso actual → target ID+tenant → protección fresca → estado/deletedNULL → balance/cierre/efecto. Automático, vinculado, desconocido, ajeno, borrado o ilegible bloquea antes de líneas operativas, settings/cierre0493, RPC, PATCH y revalidate. Superclave no evita protección. Crear y administrar permanecen fuera del cambio.
+- **Acuse:** post/delete usan valores determinados y WHERE id/tenant/statusborrador/deletedNULL con count exact. Éxito exige error===null y count de TIPO number EXACTAMENTE1; data:null es normal en minimal. Sin SELECT posterior, RPC nueva, raw-header-hardening o retry. El límite SDK2.106.1 parseInt/backend de17006 permanece: no se promete rechazar una malformación ya perdida al normalizar headers. Void exige booleantrue;0493 exige JSONobjeto ok===true y conserva mensajes propios hint dtd-cierre. Respuesta perdida=NO CONFIRMADA, no prueba rollback.
+- **UI:** explicación persistente con aria-describedby, bloqueo de controles/apertura de excepción y sin enlaces inventados desdeUUID. Manual conocido conserva motivo, clave/foco, cierre, CSV, rangos, aviso500, columnas/importes. Sólo ok===true termina como éxito. Callbacks de excepción capturan rechazo y devuelven error no vacío; null sólo éxito. Esperas locales finally, confirmación abierta ante fallo y candados de envío, sin retry automático. Primitivas compartidas intactas.
+
+### Cuatro avisos AVS y equivalencia F9
+
+Los cuatro mensajes originales permanecen literales. Todos usan únicamente eventKey/tone/message/priority normal/scope module/dedupeKey; sin alias legacy ni acción, duración o correlationId inventado.
+
+| Aviso confirmado | eventKey | tone | dedupeKey |
+|---|---|---|---|
+| Asentar abierto | accounting:journal-entry:posted | success | evento:entry.id |
+| Eliminar borrador | accounting:journal-entry:draft-deleted | info | evento:entry.id |
+| Anular abierto | accounting:journal-entry:voided | success | evento:voidTarget.id efectivo |
+| Excepción0493 | accounting:journal-entry:closing-exception-applied | success | evento:op:entry.id |
+
+F9 no conserva literalmente TODO assert: la única adaptación nominal es el assert base111, de success(message) al objeto COMPLETO show con message «Asiento A-cerrado asentado con excepción al cierre», eventKey accounting:journal-entry:closing-exception-applied, tone success, priority normal, scope module y dedupeKey accounting:journal-entry:closing-exception-applied:asentar:cerrado. Mock show y su reset no delegan a legacy ni usan objectContaining. Título, llamada/motivo/clave, cierre, foco/password/autocomplete y todos los otros oráculos recuperan306 por inversa íntegra. F8 conserva sólo gate equivalente y nulls raw; F10 sólo DTO manual. Los otros tres payloads completos y negativos están escritos en el test reservado propio.
+
+### Inventario de FUENTE y propuesta posterior
+
+| Archivo completo | Nuevos escritos | Heredados conservados | Previstos por fuente |
+|---|---:|---:|---:|
+| reverso-factura-acciones.test.ts |123|0|123|
+| journal-queries-reverso.test.ts |44|0|44|
+| libro-diario-reverso.test.tsx |38|0|38|
+| cierre-excepcion-acciones.test.ts |0|17|17|
+| cierre-excepcion-pantalla.test.tsx |0|13|13|
+| libro-diario-aviso.test.tsx |0|4|4|
+| Total selección propuesta |205|34|239|
+
+Son escenarios ESCRITOS/PREVISTOS, no discovery, cuota, títulos nativos únicos ni ejecución. Los tres nuevos ejercitan funciones/gate/componentes reales con transporte/acciones sintéticos: no prueban RLS, HTTP/PATCH real, ACL, locks, D2 o commit de DB. La selección DOCUMENTAL separada propone los SEIS archivos completos, sin filtro; mecanismo/READY/GO/reserva/presupuesto/origen/ventanas/salida futuros siguenNULL. Ningún controlador/payload nuevo se materializa por esta autoría.
+
+### Matriz normativa aplicada por lectura
+
+Clasificación de fuente propuesta; aceptación Director y validación automática/visible siguen pendientes. Se revalidaron AGENT-BRIEF/registro y versiones aprobadas, BRAND/diseño/Norte aplicable/backend y rúbrica ui-check; cortes/sellos en adopción-worker.json. No se invocó diseñador inexistente ni barrido de UI.
+
+| Principio | Clasificación y evidencia concreta |
+|---|---|
+| SGE-00v1.0 .01/.11 | Cumplimiento por fuente: bloqueo y consecuencia persistentes; revisión por factura; cambios manuales sólo tras confirmación. |
+| SGE .02 | Cumplimiento por conservación: importes/monedas/formatos/count/CSV/rangos y flujos manuales; tipos opcionales, fixtures por inversión. |
+| SGE .03 / MP-01v1.1 | Cumplimiento por fuente: protegidoP4 no editable, manual anuladoP3/R3 conserva motivo/diálogo; borradorP2 conserva fricción; ninguna superclave libera vínculo. |
+| SGE .04 / AUD-01v1.0 | Conservación de frontera: RPC/triggers D2/0493/0497 no editados; rechazo de lectura no fabrica evento financiero; toast no audita. Atomicidad/runtime/UI nuevos NO EJECUTADOS. |
+| SGE .05 | Cumplimiento por fuente: moduleEditGate real, misma sesión/tenant, target+preestado/deletedNULL; tests escritos con matriz real, disabled/membresía/rol y ámbito visible. |
+| SGE .06 / BTN-01v1.1 | Cumplimiento por fuente: prevención raw, acciones deshabilitadas con explicación asociada, cap/shape/error bloquean. |
+| SGE .07 / AVS-01v1.0 SDD0165 | Cumplimiento por fuente de precisión nominal:4show canónicos sólo tras ok===true, count/RPC estrictos; sin éxito por truthy o pérdida de respuesta. |
+| SGE .08/.09 / CMP-01v1.1 | Cumplimiento por alcance/reuso:13rutas55/R1fuera; ActionButton/ConfirmDialog/ExcepcionCierreDialog/ToastProvider y paginador existentes intactos; funciones privadas locales permitidas, sin nuevos componentes o dependencias. |
+| SGE .10 / A11Y-01v1.1 | Evidencia de fuente: notas persistentes, aria-describedby, foco/teclado de diálogos preservados, pending liberado. Navegador/AT/contraste/reflow/revisión visible NO EJECUTADOS. |
+| ERR-01v1.0 / LOD-01v1.0 | Cumplimiento por fuente: errores públicos seguros, sin motivo/clave/SQL en payloads/avisos nuevos; recuperación finally, no cierre fallido ni retry automático. |
+| FRM-01v1.1 / TBL-01v1.0 | Conservación por fuente: motivo/key y limpieza previa, filas/columnas/GRID/CSV/rangos/totales; anotación usa tokens y ancho existente. Revisión visual/mediciones pendientes. |
+| SGE .12 / AUD-02 | No aplica a nueva acciónIA o visor/exportación de logs: no se crean. No equivale a auditar consumidores externos. |
+
+No excepción normativa nueva ni conformidad integral automática. El validador de gobernanza, ui-check automatizado/visible, AST/parsers, tipos/lint/tests/build/verify, SQL/DB/Docker, instalación y conocimiento quedan NO EJECUTADOS por el contrato de autoría. Único Node permitido: guard administrativo; Git/diff/lectura/hash no son pruebas funcionales.
+
+### Preservación, saldo histórico y pendientes
+
+Paquete externo propio `C:/tmp/director-traspaso-20261020/0573-UI-B1-fuente-01`: diez preimágenes físicas+rawGit y tres ausencias originales; cuatro preimágenesWIP de la precisión; post/rawGit, diff completo, inversas de fixtures/documentos, inventario, preservación de árbol, recibo/manifiesto/custodia/cadena y propuesta documental. Checkpoint hijoDIRECTO306, commit selectivo dentro13; identidad/árbol/estado final se sellan externamente sin registrar SHA propio recursivo aquí. ClaimB4 retenido; ninguna publicación o turno pesado nace de este cierre.
+
+El cotejo acotado41ae19 registra96referencias/58rutas:94idénticas y2deltas autorizados que son el MISMO journal-types repetido en18inputsGO04 y39inputsM7. Por conjuntos:17/18GO04 y38/39M7 iguales; SQL16+wrapper23 iguales. El DTO tipo es cambio autorizado, no «18/18 o39/39 intactos». Cinco archivos de runtime conservan sellos por metadata, sin importabilidad o funcionalidad nueva. Originales/resultados150(dd51),175(62), hashes/recibos y siete rótulos nativos repetidosM7 permanecen históricos; no se transfieren al hijoUI. M7 conserva también límite de intervalos de polling NO DISPONIBLES/Nodebirth NO DISPONIBLE.
+
+Precisión factual de saldo I2 atribuida a Director, recibo `0573-I2-saldo-306-conciliacion-director.json`/peer20275-b7981bdd: «27otrosI2» es saldo histórico52−25 que incluía15Q cubiertos después por el archivo completoQ93 PASÓ enGO04/dd51, blobQ idéntico306. Historia27 se conserva literal; no se reconstruyen15fullNames faltantes ni se emiten15resultados propios. El remanente autoral sin aceptación documentada encontrada es12 en5consumidores (3Card+3tipos+3CSV+2Dirección+1gerencial), no totalCORE, discovery,12fallos ni ausencia absoluta de ejecución. Esos5archivos completos son prioridad propuesta posterior, fuera de esta autoría.
+
+PENDIENTES: revisión de este SHA/13rutas e inversas; coordinación separada de las239 previstas y evidencia funcional/UI real; canónica completa y conocimiento/Graphify/Archify/Obsidian NO EJECUTADOS. Se conservan matriz14/A-B, aceptaciónCORE/composición serial, rollback financiero tras escrituras, cobro concurrente y COMMIT ordinario independiente de dirección inversa. M1 mantiene27 PASÓ sólo7394 con supervisión INCOMPLETA/UNKNOWN/outer1/turnReleasedfalse históricos. IP78/T0479/mock, wrapper53(892), secuencial102(953), carreraGO01 FALLÓ y GO02 PASÓ(ff) siguen separados. Este hijo no aplica migraciones; ensayosSQL sintéticos previos no acreditan aplicación productiva ni sustituyen aprobación nominalSam.0497 sigueUNAPPLIED/MIGRATE-FIRST productivo;0495 no se repite. Sin R1/ACL/SQL nuevo/PII/secretos/producción/merge/deploy ni publicación compartida.

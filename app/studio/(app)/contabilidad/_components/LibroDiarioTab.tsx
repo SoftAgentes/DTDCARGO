@@ -17,7 +17,7 @@
  * vuelve a validar.
  */
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import {
   entryStatusBadgeTone,
   entryStatusLabel,
@@ -47,6 +47,28 @@ import { postEntry, voidEntry, softDeleteEntry } from "../actions";
 import { isPeriodClosed } from "@/lib/studio/accounting/period-queries";
 import type { AvisoCierre, ResultadoDeAsiento } from "@/lib/studio/accounting/cierre-excepciones";
 
+const CAMBIO_NO_CONFIRMADO = "No se pudo confirmar el cambio. Recarga el diario antes de volver a intentarlo.";
+function mensajeDeAccion(result: ResultadoDeAsiento | null | undefined): string {
+  return typeof result?.error === "string" && result.error.trim() ? result.error : CAMBIO_NO_CONFIRMADO;
+}
+function admiteCambioManual(entry: JournalEntry): boolean {
+  const p = entry.protection;
+  const sourceKnown = ["manual", "receipt", "supplier_bill", "supplier_payment", "expense", "depreciacion"].includes(entry.source);
+  return sourceKnown && typeof entry.id === "string" && !!entry.id.trim() && typeof entry.tenant_id === "string" && !!entry.tenant_id.trim() &&
+    (entry.invoice_id === null || (typeof entry.invoice_id === "string" && !!entry.invoice_id.trim())) && entry.deleted_at === null &&
+    p?.state === "sin_vinculo_visible" && p.reading === "completa" && p.relation === "ninguno_visible";
+}
+function avisoDeProteccion(entry: JournalEntry): string {
+  const p = entry.protection;
+  if (p?.state === "protegido") {
+    if (p.relation === "inconsistente") return "Asiento protegido con un vínculo que requiere revisión. Revisa la factura; los cambios manuales están bloqueados.";
+    if (p.reading === "no_comprobada" || p.relation === "no_comprobado") return "Asiento protegido. No se pudo completar la revisión del vínculo; revisa la factura antes de continuar.";
+    if (p.relation === "original" || p.relation === "reverso") return `Original y reverso identificados${p.counterpartCode ? `: ${p.counterpartCode}` : ""}. Esto no verifica los importes. Revisa la factura; no admite cambios manuales.`;
+  }
+  if (entry.source === "invoice" || entry.source === "invoice_reversal" || p?.state === "protegido") return "Asiento automático o vinculado protegido. Revísalo desde la factura; no admite cambios manuales.";
+  return "Protección sin comprobar. Recarga el diario y solicita revisión si el aviso continúa. Los cambios manuales están bloqueados.";
+}
+
 export function LibroDiarioTab({
   entries,
   totalEntries,
@@ -75,6 +97,10 @@ export function LibroDiarioTab({
   const [error, setError] = useState<string | null>(null);
   const [voidTarget, setVoidTarget] = useState<JournalEntry | null>(null);
   const [voidPending, setVoidPending] = useState(false);
+  const protectionId = useId();
+  const voidRequest = useRef(false);
+  const exceptionRequest = useRef<Promise<string | null> | null>(null);
+  const postingRequests = useRef(new Set<string>());
   // SDD-0566: asentar, anular o eliminar un asiento de período cerrado.
   const [excepcionTarget, setExcepcionTarget] = useState<{
     op: "asentar" | "anular" | "eliminar";
@@ -229,10 +255,13 @@ export function LibroDiarioTab({
 
         {entries.map((entry, i) => {
           const totals = entryLineTotals(entry);
+          const blocked = !admiteCambioManual(entry);
+          const reasonId = `${protectionId}-${i}`;
           return (
             <div
               key={entry.id}
               data-row-id={entry.entry_code}
+              aria-describedby={blocked ? reasonId : undefined}
               className={`studio-tracking-row ${flashClassFor(entry.entry_code)}`.trim()}
               style={{
                 display: "grid",
@@ -301,7 +330,15 @@ export function LibroDiarioTab({
                   alignItems: "center",
                 }}
               >
-                {entry.status === "borrador" && enCierre(entry) && (
+                {blocked && (entry.status === "borrador" || entry.status === "asentado") && (
+                  <>
+                    <button type="button" className="studio-btn studio-btn-ghost studio-btn-xs" disabled aria-describedby={reasonId}>
+                      {entry.status === "borrador" ? "Asentar" : "Anular"}
+                    </button>
+                    {entry.status === "borrador" && <button type="button" className="studio-btn studio-btn-ghost studio-btn-xs" disabled aria-describedby={reasonId}>Eliminar</button>}
+                  </>
+                )}
+                {!blocked && entry.status === "borrador" && enCierre(entry) && (
                   <>
                     <button
                       type="button"
@@ -326,7 +363,7 @@ export function LibroDiarioTab({
                     </button>
                   </>
                 )}
-                {entry.status === "borrador" && !enCierre(entry) && (
+                {!blocked && entry.status === "borrador" && !enCierre(entry) && (
                   <>
                     <ActionButton
                       variant="dark"
@@ -336,27 +373,43 @@ export function LibroDiarioTab({
                       successLabel="Asentado"
                       idleIcon={Icon.check(12)}
                       onAction={async () => {
+                        if (postingRequests.current.has(entry.id)) throw new Error("Ya hay un cambio en curso para este asiento.");
+                        postingRequests.current.add(entry.id);
                         setError(null);
-                        const r = await postEntry(entry.id);
-                        if (r.error) throw new Error(r.error);
+                        let r: ResultadoDeAsiento;
+                        try { r = await postEntry(entry.id); }
+                        catch { throw new Error(CAMBIO_NO_CONFIRMADO); }
+                        finally { postingRequests.current.delete(entry.id); }
+                        if (r?.ok !== true) throw new Error(mensajeDeAccion(r));
                       }}
-                      onSuccess={() =>
-                        toast.success(`Asiento ${entry.entry_code} asentado`)
-                      }
+                      onSuccess={() => {
+                        setError(null);
+                        toast.show({
+                          eventKey: "accounting:journal-entry:posted", tone: "success",
+                          message: `Asiento ${entry.entry_code} asentado`, priority: "normal", scope: "module",
+                          dedupeKey: `accounting:journal-entry:posted:${entry.id}`,
+                        });
+                      }}
                       onError={setError}
                     />
                     <DeleteButton
                       entryCode={entry.entry_code}
+                      onError={setError}
                       onConfirm={async () => {
                         setError(null);
                         const r = await softDeleteEntry(entry.id);
-                        if (r.error) setError(r.error);
-                        else toast.info(`Asiento ${entry.entry_code} eliminado`);
+                        if (r?.ok !== true) { setError(mensajeDeAccion(r)); return false; }
+                        toast.show({
+                          eventKey: "accounting:journal-entry:draft-deleted", tone: "info",
+                          message: `Asiento ${entry.entry_code} eliminado`, priority: "normal", scope: "module",
+                          dedupeKey: `accounting:journal-entry:draft-deleted:${entry.id}`,
+                        });
+                        return true;
                       }}
                     />
                   </>
                 )}
-                {entry.status === "asentado" && (
+                {!blocked && entry.status === "asentado" && (
                   <button
                     type="button"
                     className="studio-btn studio-btn-ghost studio-btn-xs"
@@ -381,6 +434,12 @@ export function LibroDiarioTab({
                   </span>
                 )}
               </span>
+              {blocked && (
+                <p id={reasonId} role="note" style={{ gridColumn: "1 / -1", margin: 0, display: "flex", gap: "var(--s-2)", alignItems: "flex-start", color: "var(--ink)", font: "500 12px/1.45 var(--f-sans)" }}>
+                  <StatusIcon tone="warning" size={14} style={{ color: "var(--warning)" }} />
+                  <span>{avisoDeProteccion(entry)}</span>
+                </p>
+              )}
             </div>
           );
         })}
@@ -394,18 +453,31 @@ export function LibroDiarioTab({
           aviso={avisoCierre}
           operacion={excepcionTarget.op}
           entryCode={excepcionTarget.entry.entry_code}
-          onCancel={() => setExcepcionTarget(null)}
+          onCancel={() => { if (!exceptionRequest.current) setExcepcionTarget(null); }}
           onConfirm={async ({ superclave, motivo }) => {
             const { op, entry } = excepcionTarget;
-            let r: ResultadoDeAsiento;
-            if (op === "asentar") r = await postEntry(entry.id, { superclave, motivo });
-            else if (op === "eliminar") r = await softDeleteEntry(entry.id, { superclave, motivo });
-            else r = await voidEntry(entry.id, motivo, superclave);
-            if (!r.ok) return r.error ?? "No se pudo guardar el cambio.";
-            const hecho = op === "asentar" ? "asentado" : op === "eliminar" ? "eliminado" : "anulado";
-            toast.success(`Asiento ${entry.entry_code} ${hecho} con excepción al cierre`);
-            setExcepcionTarget(null);
-            return null;
+            if (!admiteCambioManual(entry)) return avisoDeProteccion(entry);
+            if (exceptionRequest.current) return exceptionRequest.current;
+            const request = (async (): Promise<string | null> => {
+              try {
+                let r: ResultadoDeAsiento;
+                if (op === "asentar") r = await postEntry(entry.id, { superclave, motivo });
+                else if (op === "eliminar") r = await softDeleteEntry(entry.id, { superclave, motivo });
+                else r = await voidEntry(entry.id, motivo, superclave);
+                if (r?.ok !== true) return mensajeDeAccion(r);
+                const hecho = op === "asentar" ? "asentado" : op === "eliminar" ? "eliminado" : "anulado";
+                toast.show({
+                  eventKey: "accounting:journal-entry:closing-exception-applied", tone: "success",
+                  message: `Asiento ${entry.entry_code} ${hecho} con excepción al cierre`, priority: "normal", scope: "module",
+                  dedupeKey: `accounting:journal-entry:closing-exception-applied:${op}:${entry.id}`,
+                });
+                setExcepcionTarget(null);
+                return null;
+              } catch { return CAMBIO_NO_CONFIRMADO; }
+            })();
+            exceptionRequest.current = request;
+            try { return await request; }
+            finally { if (exceptionRequest.current === request) exceptionRequest.current = null; }
           }}
         />
       )}
@@ -421,21 +493,28 @@ export function LibroDiarioTab({
         pending={voidPending}
         error={error ?? undefined}
         onCancel={() => {
-          if (!voidPending) setVoidTarget(null);
+          if (!voidRequest.current) setVoidTarget(null);
         }}
         onConfirm={async (reason) => {
-          if (!voidTarget) return;
+          if (!voidTarget || voidRequest.current) return;
+          if (!admiteCambioManual(voidTarget)) { setError(avisoDeProteccion(voidTarget)); return; }
+          voidRequest.current = true;
           setVoidPending(true);
           setError(null);
-          const result = await voidEntry(voidTarget.id, reason);
-          if (result.error) {
-            setError(result.error);
+          try {
+            const result = await voidEntry(voidTarget.id, reason);
+            if (result?.ok !== true) { setError(mensajeDeAccion(result)); return; }
+            toast.show({
+              eventKey: "accounting:journal-entry:voided", tone: "success",
+              message: `Asiento ${voidTarget.entry_code} anulado`, priority: "normal", scope: "module",
+              dedupeKey: `accounting:journal-entry:voided:${voidTarget.id}`,
+            });
+            setVoidTarget(null);
+          } catch { setError(CAMBIO_NO_CONFIRMADO); }
+          finally {
+            voidRequest.current = false;
             setVoidPending(false);
-            return;
           }
-          toast.success(`Asiento ${voidTarget.entry_code} anulado`);
-          setVoidTarget(null);
-          setVoidPending(false);
         }}
       />
     </>
@@ -535,12 +614,15 @@ function ExportarDiario() {
 function DeleteButton({
   entryCode,
   onConfirm,
+  onError,
 }: {
   entryCode: string;
-  onConfirm: () => Promise<void>;
+  onConfirm: () => Promise<boolean>;
+  onError: (message: string) => void;
 }) {
   const [confirm, setConfirm] = useState(false);
   const [pending, setPending] = useState(false);
+  const request = useRef(false);
 
   if (!confirm) {
     return (
@@ -562,10 +644,12 @@ function DeleteButton({
         className="studio-btn studio-btn-danger studio-btn-xs"
         disabled={pending}
         onClick={async () => {
+          if (request.current) return;
+          request.current = true;
           setPending(true);
-          await onConfirm();
-          setPending(false);
-          setConfirm(false);
+          try { if (await onConfirm() === true) setConfirm(false); }
+          catch { onError(CAMBIO_NO_CONFIRMADO); }
+          finally { request.current = false; setPending(false); }
         }}
       >
         {pending ? "…" : "Sí"}

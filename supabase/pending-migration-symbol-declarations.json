@@ -250,7 +250,23 @@
             "lib/studio/accounting/libro-control.ts:228",
             "lib/studio/accounting/libro-control.ts:235",
             "lib/studio/accounting/libro-control.ts:237",
-            "lib/studio/accounting/libro-control.ts:239"
+            "lib/studio/accounting/libro-control.ts:239",
+            "lib/studio/journal-queries.ts:26",
+            "lib/studio/journal-queries.ts:27",
+            "lib/studio/journal-queries.ts:39",
+            "lib/studio/journal-queries.ts:44",
+            "lib/studio/journal-queries.ts:81",
+            "lib/studio/journal-queries.ts:89",
+            "lib/studio/journal-queries.ts:106",
+            "lib/studio/journal-queries.ts:109",
+            "lib/studio/journal-queries.ts:112",
+            "lib/studio/journal-queries.ts:116",
+            "lib/studio/journal-queries.ts:125",
+            "lib/studio/journal-queries.ts:137",
+            "lib/studio/journal-queries.ts:141",
+            "lib/studio/journal-queries.ts:144",
+            "lib/studio/journal-queries.ts:156",
+            "app/studio/(app)/contabilidad/actions.ts:294"
           ]
         },
         {
@@ -276,6 +292,16 @@
           "site": "lib/studio/accounting/libro-control-queries.ts:220",
           "contains": "const columnas = \"id, tenant_id, status, source, deleted_at, invoice_id, entry_date, reverses_entry_id\";",
           "degradation": "El contexto I2 requiere metadata cruda completa de extremos y vínculos; si esta lectura falla no fabrica headers ni verifica el par. La falta de la columna continúa visible como lectura fallida."
+        },
+        {
+          "site": "lib/studio/journal-queries.ts:94",
+          "contains": "if (response.error !== null || !Array.isArray(response.data)) throw new Error(\"Lectura de protección no comprobable.\");",
+          "degradation": "UI/B1: sin columna0497, error/shape/corte de cualquier página auxiliar rechaza antes de PageResult; journalEntryProtections conserva el listado con protección no comprobada o evidencia positiva protegida ya observada. No convierte missing/undefined en null conocido, no presume ausencia de vínculos ni permite cambios manuales. No reinicia con una proyección habilitante; MIGRATE-FIRST no autoriza aplicar0497."
+        },
+        {
+          "site": "app/studio/(app)/contabilidad/actions.ts:296",
+          "contains": "if (error !== null || !Array.isArray(data) || data.length !== 1",
+          "degradation": "UI/B1: la lectura fresca del target incluye columna0497 y exige ID+tenant del gate. Si no existe o no se puede comprobar una única cabecera, postEntry/voidEntry/softDeleteEntry devuelven error antes de líneas, cierre0493, RPC, UPDATE o revalidate. La superclave no omite protección; ninguna respuesta incierta confirma una transición."
         },
         {
           "site": "lib/studio/accounting/invoice-posting.ts:127",
