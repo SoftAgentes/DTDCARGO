@@ -130,10 +130,10 @@ export type IngresoPeriodo = {
     otrosIngresos: number;
   } | null;
   /**
-   * baseComparacionUsd − mayor.ventas; null si no hay mayor, no hay cuenta 4.5 o
-   * no es comparable (alguna factura del período en VES o CNY con su asiento
-   * de factura vivo y asientos de factura en 4.5). Con 4.5 sin movimiento es
-   * todo lo facturado.
+   * baseComparacionUsd − mayor.ventas sólo con contexto íntegro, unidad USD
+   * acreditada, base conocida y mayor coherente con neto/movimiento raw.
+   * Una cabecera huérfana, unidad nominal/desconocida o contradicción del
+   * mayor mantiene null; un saldo cero por sí solo no certifica comparación.
    */
   diferenciaUsd: number | null;
 };
@@ -368,6 +368,7 @@ function puenteDelPeriodo(
   }
   if (!Number.isSafeInteger(ajusteCentavos) || !Number.isSafeInteger(ventasCentavos)) avisar("importe_sin_convertir");
   if ((mayor.ventas != null && Math.round(mayor.ventas * 100) !== ventasCentavos)
+    || (mayor.ventas == null && movimientoVentasAcreditado)
     || mayor.ventasConMovimiento !== movimientoVentasAcreditado) avisar("mayor_inconsistente");
   return salida();
 }

@@ -815,12 +815,20 @@ describe("I2 · contexto completo con cliente de sesión", () => {
   });
   it("sin opts.mayor, una subcuenta nominal omitida del plan no transforma neto0 en USD/Cuadra", async () => {
     const d = datosReversoGo1({ currency: "VES", base: 3650, fxRate: 36.5 });
+    const raiz = "a-raiz-ventas-go1";
+    const hoja = "zz-hoja-ventas-go1";
+    d.accounts[1].id = hoja;
     d.accounts[1].code = "4.5.zz";
-    d.accounts[1].parent_id = "ventas-raiz";
-    d.accounts.push({ id: "ventas-raiz", tenant_id: "tenant-go1", code: "4.5", type: "I", parent_id: null },
+    d.accounts[1].parent_id = raiz;
+    for (const l of d.journal_lines) if (l.account_id === "ingreso-go1") l.account_id = hoja;
+    d.accounts.push({ id: raiz, tenant_id: "tenant-go1", code: "4.5", type: "I", parent_id: null },
       ...Array.from({ length: 1001 }, (_, n) => ({ id: `relleno-${n}`, tenant_id: "tenant-go1",
-        code: `4.5.${String(n).padStart(4, "0")}`, type: "I", parent_id: "ventas-raiz" })));
+        code: `4.5.${String(n).padStart(4, "0")}`, type: "I", parent_id: raiz })));
     const lector = lectorReversoGo1(d);
+    const planAcotado = await listAccounts(lector.client);
+    expect(planAcotado).toHaveLength(1000);
+    expect(planAcotado.some(c => c.id === raiz)).toBe(true);
+    expect(planAcotado.some(c => c.id === hoja)).toBe(false);
     const i = await ingresoDelPeriodo(lector.client, RANGOS_REVERSO_GO1.combinado);
     // El mayor heredado no ve la hoja: el contexto porIDs sí la recupera.
     // No se repara el plan global ni se reemplaza ese saldo por otro calculado.
@@ -830,6 +838,23 @@ describe("I2 · contexto completo con cliente de sesión", () => {
     expect(i.controlI2.incidencias).toContainEqual({ codigo: "mayor_inconsistente", cantidad: 1 });
     expect(i.diferenciaUsd).toBeNull();
     expect(describirIngreso(i).estado).toBe("no_comparable");
+    expect(lector.consultas.some(q => q.tabla === "accounts" && q.filtros.some(f => f[0] === "in" && f[1] === "id" && (f[2] as string[]).includes(hoja)))).toBe(true);
+    expect(lector.consultas.some(q => q.tabla === "accounts" && q.filtros.some(f => f[0] === "in" && f[1] === "id" && (f[2] as string[]).includes(raiz)))).toBe(true);
+  });
+  it.each([
+    { moneda: "USD", base: 100, tasa: null, unidad: "usd", estado: "requiere_revision" },
+    { moneda: "VES", base: 3650, tasa: 36.5, unidad: "nominal_mixto", estado: "no_comparable" },
+  ])("ventasnull y flagtrue con movimiento raw $moneda conservan revisión, sin inventar ausencia de4.5", async ({ moneda, base, tasa, unidad, estado }) => {
+    const d = datosReversoGo1({ currency: moneda, base, fxRate: tasa });
+    const lector = lectorReversoGo1(d);
+    const mayor = { ventas: null, ventasConMovimiento: true, ingresos: 0, facturasConAsiento: new Set(["invoice-go1"]) };
+    const i = await ingresoDelPeriodo(lector.client, RANGOS_REVERSO_GO1.combinado, { mayor });
+    expect(i.mayor).toMatchObject({ ventas: null, ventasConMovimiento: true });
+    expect(i).toMatchObject({ ajusteAnulacionesUsd: null, baseComparacionUsd: null, diferenciaUsd: null });
+    expect(i.controlI2).toMatchObject({ verificacion: "requiere_revision", unidadMayor: unidad, hayActividad: true });
+    expect(i.controlI2.incidencias).toContainEqual({ codigo: "mayor_inconsistente", cantidad: 1 });
+    expect(describirIngreso(i).estado).toBe(estado);
+    expect(describirIngreso(i).estado).not.toBe("sin_cuenta");
   });
   it("las líneas por ID también deben alcanzar una página vacía antes del tope", async () => {
     const d = datosReversoGo1();
