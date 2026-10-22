@@ -582,6 +582,26 @@ Preparación previa entregada fueraGit: Piloto-hibrido-siguiente-paso-2026-10-21
 
 Automatización existente coordinar-sesiones-dtd-cargo actualizada con herramienta, ACTIVE y misma cadencia/destino; no duplicada. Se ajustó sólo el límite de cuentas para reconocer aprobaciones específicas de Sam verificadas por mensajehumano y no ampliar/repetirB0. No se cambió heartbeat contable ni preferencias de notificación. Prompt mantiene silencio sin cambio material, separación de writers/PR/runtime y límites de producción. Guard propio0 antes del registro; sólo este handoff rastreado cambia.
 
+## Hija I3-B revisada por fuente; paquete02 y READY pendientes de cierre
+
+Worker entregó objeto fijo892130032401f2e99f969d3740a23aa9fc8e5c70, padre directocfa71fbc5c93538f62a8a5bb9921eca6b2547f2f, treea1e17769aed5fc758c2cbcdb7b230aca2a6f5e0d; ocho rutas/172inserciones/5borrados. Root leyó el delta y recibió dos revisiones independientes sin hallazgo material nuevo. P2-D/P2-P/P2-R15 quedan atendidos por fuente: defaults tipados exactos en pre/postflight y ausencia de expresiones para cero defaults; nueve dependencias nominales comprobadas antes del DDL y pins; R15 conserva C fresca/NULL inicial/RPC/COMMIT, valores crudos y clasificación NULL/vacío/otro, ausencia semántica y un evento real observado desde S sin motivo filtrado. Restauración exacta previa vacía/no vacía/excepción/anidación permanece.
+
+Root comparó literalmente el bloque desde alter table journal_lines hasta antes de postflight: catorce funciones completas y configuración/triggers/owner/ACL sin cambio respecto a cfa; SHA256 de ambos bloques con LF c8e96fb76b5ef8f05fc2c4f770e66c3c6707cdc72a4ccc62e4693904d42e07fd, lecturas Git individuales0. El wrapper conserva cuarenta casos y agrega cuatro mutantes de defaults/dos fases/dos escritores y nueve dependencias;53 previstos por fuente, sin skip/filtro/retry nuevo. Mutantes requieren error exacto y cambio aislado. Discovery/detección/SQL/runtime siguen NO EJECUTADOS. Documentación explicita además COMMIT real independiente anulada→reverso pendiente, junto con R17 financiero/cobro concurrente; no se absuelven por equivalencia con R11.
+
+Se comunicó cierre estático al Director contable y se pidió paquete02 sellado y READY V2 ligado a892. Director general leyó borrador literal READY UNBOUND, con ParseExact0/3/7 antes de guard/mkdir/env, Node directo24.19,26env/r3,53casos/1worker y presupuesto propuesto900+60, interrupción propia880. No hay GO ni reloj abierto; la mera existencia de la carpeta02 no es entrega sellada. Sólo después de cotejar paquete/READY/disponibilidad se asignará turno nuevo. Paquete01 y sus originales permanecen intactos; no push/merge/producción.
+
+## Packing B en autoría y decoder de apoyo adquirido sin ejecución
+
+Packing informa B fuente17rutas aún en progreso, nuevo wordmark local oficial, controles tenant/autoridad y caso60líneas; selección provisional49instancias/3PDF de tests, todavía sin checkpoint ni READY. Separa propuestas futuras B1 focal180s, B2 recorrido real/reinicio sólo4321 y B3 raster/diezQR. PDF de tests no se entregará como salida real del portal. CORE tiene prioridad si ambos quedan listos. Sin runtime/reinicio/render de B ni reserva activa.
+
+Adquisición aislada jsqr1.4.0 completada03:48:59.971327→03:49:00.775926Z y recibo leído/cotejado por root: tarball64745bytes/SHA256b5299b37917a1fe7a8cab9dd5cc6b8accf82663add80abe5bf7761a921cc6602; SHA1/SHA512 publicados coinciden. dist/jsQR.js256885/SHA256bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859. adquisicion.json1525/SHA256f09ec35c6d82affa3f97cec28b64d4b2648b7d8925f5e6ac83f8b4e47a0f1330, LICENSE/packagejson preservados, fueraGit. Sin instalación, scripts, import o decodificación. Uso depende de paqueteB/GO nuevo; no prueba diezQR ni impresión física.
+
+## CRM B0 cerrado con aislamiento parcial y dos bloqueos de lectura
+
+Reporte de su Director recibido y JSON/recibo leídos por root. Alta PASÓ de subcuenta vGdnxA7nAMLJADdbuOZi; aislamiento PARCIAL:14comprobacionesUI PASÓ y2 NO DISPONIBLE (correo/proveedor/buzones/campañas; workflows/webhooks). Vistas en blanco tras relectura/recarga/navegación oficial; no equivalen a ausencia ni bloqueo de salida. Cuenta comparte Agency Owner preexistente; no certifica aislamiento técnico de red/envío. Sin B1/tokens/importaciones/canales/mensajes; A detenida. Root pidió continuar sólo esas lecturas ya autorizadas al estar disponibles, sin cambiar privacidad/permisos/conexiones, y reportar instrucciones directas nuevas de Sam.
+
+Entrega en carpeta CRM kommo-ghl/B0-creacion-y-aislamiento-2026-10-21.html y JSON; recibo5735bytes/SHA256b7e70bda3753ddc1cb19dc9bfcf5a696dcac4d429961a9da80cfc594dc8c474d. Root recalculó19archivos sellados, cero diferencias. Capturas disponibles; inspección visible del HTML local NO EJECUTADO, diferente de revisiónUI efectiva. Sin cambios repo/PR/merge/producción ni pesada nueva por este cierre.
+
 ## Fuera de alcance detectado
 
 Conflictos de307/315, pendientes históricos contables, compatibilidad/ejecución0502, omisiones de QA de packing, permisos de historial/piloto CRM y cobertura semántica global conservan sus owners. Se registraron sin repararlos, absorberlos ni activar producción.
