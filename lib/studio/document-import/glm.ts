@@ -9,6 +9,9 @@ import { requireGlmConfiguration, type GlmConfiguration } from "./provider";
 
 const OCR_URL = "https://api.z.ai/api/paas/v4/layout_parsing";
 const CHAT_URL = "https://api.z.ai/api/paas/v4/chat/completions";
+const TOKENIZER_URL = "https://api.z.ai/api/paas/v4/tokenizer";
+export type GlmStage = "ocr" | "tokenizer" | "chat";
+export type GlmDispatch = Readonly<{ attemptId: string; sha256: string; stage: GlmStage; correlationId: string; bodySha256: string }>;
 export type PdfInspection = Readonly<{ sha256: string; pageCount: number; encrypted: false; complete: true }>;
 export type UsageRequest = Readonly<{
   attemptId: string; sourceId: string; sha256: string; ocrPages: number; model: string;
@@ -26,6 +29,13 @@ export type GlmDependencies = {
   countInputTokens?: (request: Readonly<{ model: string; body: string }>, signal: AbortSignal) => Promise<{
     model: string; inputTokens: number; method: "exact" | "upper_bound";
   }>;
+  /** Explicit TEST protocol. These hooks must fence and fsync before every HTTP dispatch. */
+  tokenization?: {
+    mode: "remote_standard";
+    beforeDispatch: (request: GlmDispatch, signal: AbortSignal) => Promise<void>;
+    received: (request: GlmDispatch, signal: AbortSignal) => Promise<void>;
+    observeUsage: (counts: Readonly<{ tokenizer: number; chat: number; difference: number; outputTokens: number; ocr: Usage | null }>, signal: AbortSignal) => Promise<void>;
+  };
   /** The future worker must stop parsing on abort; a flag/test double does not implement that guarantee. */
   pdfInspector?: {
     abortStopsWork: true;
@@ -107,14 +117,19 @@ function readChat(value: unknown, model: string, maxInput: number, maxOutput: nu
   return { value: parseBoundedJson(message.content, EXTRACTION_LIMITS.structuredBytes), usage: consumed };
 }
 
-/** Disconnected S1 transport. It has no env loader, job runner, persistence, UI or automatic retry. */
+/** Explicit transport; LOCAL S1 remains available. No env loader or automatic retry. */
 export async function extractWithGlm(input: ExtractionInput, options: ExtractionOptions,
   configuration: GlmConfiguration, dependencies: GlmDependencies) {
   requireGlmConfiguration(configuration);
   const settings = configuration.settings, source = validateOptions(options);
-  if (!dependencies || typeof dependencies.reserveUsage !== "function" || typeof dependencies.countInputTokens !== "function") {
+  const remote = dependencies?.tokenization;
+  if (!dependencies || typeof dependencies.reserveUsage !== "function" || (!remote && typeof dependencies.countInputTokens !== "function")) {
     return fail("configuration_missing");
   }
+  if (remote && (remote.mode !== "remote_standard" || typeof remote.beforeDispatch !== "function"
+    || typeof remote.received !== "function" || typeof remote.observeUsage !== "function"
+    || settings.model !== "glm-4.6" || settings.maxInputTokens !== 16384 || settings.maxOutputTokens !== 8192
+    || settings.maxPages !== 2 || settings.timeoutMs > 90_000)) fail("configuration_invalid");
   if (!input || !["pdf", "spreadsheet"].includes(input.type)) return fail("invalid_metadata");
   if (input.type === "pdf" && (dependencies.pdfInspector?.abortStopsWork !== true
     || typeof dependencies.pdfInspector.inspect !== "function" || typeof dependencies.mapOcrPages !== "function")) {
@@ -151,8 +166,15 @@ export async function extractWithGlm(input: ExtractionInput, options: Extraction
     } finally { if (listener) signal.removeEventListener("abort", listener); }
   };
   const discardBody = (response: Response) => { void response.body?.cancel().catch(() => undefined); };
-  const post = async (url: typeof OCR_URL | typeof CHAT_URL, body: string): Promise<unknown> => {
+  let dispatches = 0;
+  const post = async (stage: GlmStage, url: typeof OCR_URL | typeof CHAT_URL | typeof TOKENIZER_URL, body: string): Promise<unknown> => {
     ensureActive();
+    if (remote && dispatches >= 3) fail("token_limits", outcome());
+    const dispatch = Object.freeze({ attemptId, sha256, stage, correlationId: `${attemptId}-${stage}`,
+      bodySha256: createHash("sha256").update(body).digest("hex") });
+    if (remote) await bounded(() => remote.beforeDispatch(dispatch, signal));
+    ensureActive();
+    dispatches++;
     sent = true; inFlight = true;
     const pending = (dependencies.fetch ?? fetch)(url, {
       method: "POST", headers: { Authorization: configuration.authorization(), "Content-Type": "application/json", Accept: "application/json" },
@@ -191,7 +213,9 @@ export async function extractWithGlm(input: ExtractionInput, options: Extraction
       let text: string;
       try { text = new TextDecoder("utf-8", { fatal: true }).decode(all); }
       catch { return fail("extraction_invalid", "received"); }
-      return parseBoundedJson(text, EXTRACTION_LIMITS.responseBytes);
+      const parsed = parseBoundedJson(text, EXTRACTION_LIMITS.responseBytes);
+      if (remote) await bounded(() => remote.received(dispatch, signal));
+      return parsed;
     } finally {
       void reader.cancel().catch(() => undefined);
       reader.releaseLock();
@@ -219,26 +243,36 @@ export async function extractWithGlm(input: ExtractionInput, options: Extraction
     let ocr: ReturnType<typeof readOcr> | undefined;
     if (bytes && inspection) {
       // Bare base64 follows the documented input type. Exact account behavior still needs a separate real acceptance.
-      const response = await post(OCR_URL, JSON.stringify({ model: settings.ocrModel, file: Buffer.from(bytes).toString("base64"),
+      const response = await post("ocr", OCR_URL, JSON.stringify({ model: settings.ocrModel, file: Buffer.from(bytes).toString("base64"),
         return_crop_images: false, need_layout_visualization: false, start_page_id: 1, end_page_id: inspection.pageCount,
         request_id: `${attemptId}-ocr` }));
       ocr = readOcr(response, inspection, dependencies.mapOcrPages!);
       evidence = ocr.evidence;
     }
+    const messages = Object.freeze([
+      Object.freeze({ role: "system", content: EXTRACTION_SYSTEM }),
+      Object.freeze({ role: "user", content: JSON.stringify({ untrustedMetadata: { fileName: source.fileName, kind: source.kind }, untrustedEvidence: evidence }) }),
+    ]);
     const chatBody = JSON.stringify({ model: settings.model, stream: false, max_tokens: settings.maxOutputTokens,
-      response_format: { type: "json_object" }, request_id: `${attemptId}-chat`, messages: [
-        { role: "system", content: EXTRACTION_SYSTEM },
-        { role: "user", content: JSON.stringify({ untrustedMetadata: { fileName: source.fileName, kind: source.kind },
-          untrustedEvidence: evidence }) },
-      ] });
+      response_format: { type: "json_object" }, ...(remote ? { thinking: { type: "disabled" } } : {}),
+      request_id: `${attemptId}-chat`, messages });
     if (new TextEncoder().encode(chatBody).length > EXTRACTION_LIMITS.responseBytes) fail("token_limits", outcome());
-    const count = await bounded(() => dependencies.countInputTokens!(Object.freeze({ model: settings.model, body: chatBody }), signal));
+    const count = remote ? await (async () => {
+      const result = await post("tokenizer", TOKENIZER_URL, JSON.stringify({ model: settings.model, messages }));
+      if (!isRecord(result) || Object.hasOwn(result, "error") || !isRecord(result.usage)
+        || !safeInteger(result.usage.prompt_tokens, 1, settings.maxInputTokens)) return fail("token_limits", "received");
+      return { model: settings.model, inputTokens: result.usage.prompt_tokens, method: "exact" as const };
+    })() : await bounded(() => dependencies.countInputTokens!(Object.freeze({ model: settings.model, body: chatBody }), signal));
     if (!count || count.model !== settings.model || !["exact", "upper_bound"].includes(count.method)
       || !safeInteger(count.inputTokens, 1, settings.maxInputTokens)) fail("token_limits", outcome());
-    const chat = readChat(await post(CHAT_URL, chatBody), settings.model, count.inputTokens, settings.maxOutputTokens);
+    const chat = readChat(await post("chat", CHAT_URL, chatBody), settings.model, remote ? Number.MAX_SAFE_INTEGER : count.inputTokens, remote ? Number.MAX_SAFE_INTEGER : settings.maxOutputTokens);
+    if (remote) await bounded(() => remote.observeUsage(Object.freeze({ tokenizer: count.inputTokens, chat: chat.usage.inputTokens,
+      difference: chat.usage.inputTokens - count.inputTokens, outputTokens: chat.usage.outputTokens, ocr: ocr?.usage ?? null }), signal));
+    if (remote && (chat.usage.inputTokens > settings.maxInputTokens || chat.usage.outputTokens > settings.maxOutputTokens)) fail("token_limits", "received");
     const extraction = parseIntermediate(chat.value, source, evidence);
     return { extraction, attemptId, provider: { name: "glm" as const, platform: settings.platform, model: settings.model },
-      usage: { ocr: ocr?.usage ?? null, chat: chat.usage, reservedTextTokens: reservation.textTokens, ocrPages: request.ocrPages },
+      usage: { ocr: ocr?.usage ?? null, chat: chat.usage, reservedTextTokens: reservation.textTokens, ocrPages: request.ocrPages,
+        ...(remote ? { tokenizerInputTokens: count.inputTokens, tokenizerChatDifference: chat.usage.inputTokens - count.inputTokens } : {}) },
       ocr: ocr ? { markdown: ocr.markdown, pageCount: inspection!.pageCount } : null };
   } catch (error) {
     if (error instanceof ExtractionFailure) throw error;

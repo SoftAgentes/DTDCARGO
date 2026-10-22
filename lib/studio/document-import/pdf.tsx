@@ -13,6 +13,8 @@ export type PdfSurface = "packing-list" | "labels";
 export type ConfirmedPdfInput = {
   draft: DocumentDraft; markbox: string; code: string; revision: number;
   folio: string; versionNo: number; labels: BoxLabel[];
+  /** Optional authoritative confirmed SQL mapping; never infer group from label order. */
+  boxGroups?: ReadonlyArray<Readonly<{ boxCode: string; groupId: string }>>;
 };
 export function parsePdfSurface(value: string | null): PdfSurface {
   if (value !== "packing-list" && value !== "labels") throw new ImportHttpError(400, "invalid_pdf_surface", "Elige el documento o sus etiquetas.");
@@ -36,6 +38,7 @@ export function buildConfirmedPdfModel(input: ConfirmedPdfInput) {
   const quantities: Record<string, number> = {};
   const groups = draft.groups.map((group, index) => ({
     label: group.label || String(index + 1), cartons: group.cartons!, grossWeightKg: group.grossWeightKg!, cbm: group.cbm!,
+    ...(group.netWeightKg == null ? {} : { netWeightKg: group.netWeightKg }),
     rows: group.items.map(item => {
       const product = draft.products.find(product => product.id === item.productId)!;
       const currency = product.currency ?? draft.currency!;
@@ -47,11 +50,28 @@ export function buildConfirmedPdfModel(input: ConfirmedPdfInput) {
       return { name: product.name, nameZh: product.nameZh, code: product.code, brand: product.brand, material: product.material, quantity, unit, unitPrice: product.unitPrice!, currency, amount: lineAmount };
     }),
   }));
+  const mapped = new Map<string, { grossWeightKg: number; netWeightKg?: number; cbm: number }>();
+  if (input.boxGroups) {
+    if (input.boxGroups.length !== input.labels.length || new Set(input.boxGroups.map(row => row.boxCode)).size !== input.labels.length)
+      throw new ImportHttpError(409, "labels_need_operations", "Revisa la asignación confirmada de las cajas.");
+    for (const group of draft.groups) {
+      const rows = input.boxGroups.filter(row => row.groupId === group.id);
+      if (rows.length !== group.cartons) throw new ImportHttpError(409, "labels_need_operations", "Revisa la asignación confirmada de las cajas.");
+      for (const row of rows) {
+        if (!input.labels.some(label => label.boxCode === row.boxCode)) throw new ImportHttpError(409, "labels_need_operations", "Revisa la asignación confirmada de las cajas.");
+        mapped.set(row.boxCode, { grossWeightKg: group.grossWeightKg! / group.cartons!, cbm: group.cbm! / group.cartons!,
+          ...(group.netWeightKg == null ? {} : { netWeightKg: group.netWeightKg / group.cartons! }) });
+      }
+    }
+    if (mapped.size !== input.labels.length) throw new ImportHttpError(409, "labels_need_operations", "Revisa la asignación confirmada de las cajas.");
+  }
   return {
     code: input.code, markbox: input.markbox, revision: input.revision, folio: input.folio, versionNo: input.versionNo,
     supplier: { ...draft.supplier }, date: draft.docDate, groups,
-    totals: { cartons: totals.cartons, grossWeightKg: totals.grossWeightKg!, cbm: totals.cbm!, quantities, amounts },
-    labels: input.labels.map(label => ({ code: label.code, boxN: label.boxN, totalBoxes: label.totalBoxes, boxCode: label.boxCode!, qr: labelVerifyUrl(input.markbox, label.boxN, label.totalBoxes, label.boxCode) })),
+    totals: { cartons: totals.cartons, grossWeightKg: totals.grossWeightKg!, cbm: totals.cbm!, quantities, amounts,
+      ...(totals.netWeightKg == null ? {} : { netWeightKg: totals.netWeightKg }) },
+    labels: input.labels.map(label => ({ code: label.code, boxN: label.boxN, totalBoxes: label.totalBoxes, boxCode: label.boxCode!, qr: labelVerifyUrl(input.markbox, label.boxN, label.totalBoxes, label.boxCode),
+      ...(mapped.has(label.boxCode!) ? { logistics: mapped.get(label.boxCode!)! } : {}) })),
   };
 }
 type PdfFontMetadata = { type?: string; variationAxes?: Record<string, unknown>; directory?: { tables?: Record<string, unknown> } };
@@ -169,17 +189,17 @@ export async function renderConfirmedDocumentPdf(input: ConfirmedPdfInput, surfa
       {documentHeader}<View style={documentStyle.supplier}>{supplierFields.map(({ label, value }) => <View key={label} style={documentStyle.field} wrap={false}>{text(`${label}: ${value}`)}</View>)}</View>
       {model.groups.map((group, index) => <View key={index} style={documentStyle.group}>
         <View wrap={false}>
-          <View style={documentStyle.groupHead}><View style={documentStyle.groupName}>{text(`箱组 / Grupo ${group.label}`, "heading")}</View><View style={documentStyle.groupMetrics}>{text(`${format(group.cartons)} cajas · ${format(group.grossWeightKg)} kg bruto · ${format(group.cbm)} m³ TOTAL del grupo`)}</View></View>
+          <View style={documentStyle.groupHead}><View style={documentStyle.groupName}>{text(`箱组 / Grupo ${group.label}`, "heading")}</View><View style={documentStyle.groupMetrics}>{text(`${format(group.cartons)} cajas · ${format(group.grossWeightKg)} kg bruto${group.netWeightKg == null ? "" : ` · ${format(group.netWeightKg)} kg neto`} · ${format(group.cbm)} m³ TOTAL del grupo`)}</View></View>
           {group.rows[0] && productRow(group.rows[0], group.label, 0)}
         </View>
         {group.rows.slice(1).map((row, rowIndex) => productRow(row, group.label, rowIndex + 1))}
       </View>)}
-      <View style={documentStyle.totals} wrap={false}>{text("总计 / Totales")}{text(`${format(model.totals.cartons)} cajas · ${Object.entries(model.totals.quantities).map(([unit, n]) => `${format(n)} ${unit}`).join(" · ")} · ${format(model.totals.grossWeightKg)} kg bruto · ${format(model.totals.cbm)} m³`)}{text(Object.entries(model.totals.amounts).map(([currency, n]) => amount(n, currency)).join(" · "))}</View>{footer}
+      <View style={documentStyle.totals} wrap={false}>{text("总计 / Totales")}{text(`${format(model.totals.cartons)} cajas · ${Object.entries(model.totals.quantities).map(([unit, n]) => `${format(n)} ${unit}`).join(" · ")} · ${format(model.totals.grossWeightKg)} kg bruto${model.totals.netWeightKg == null ? "" : ` · ${format(model.totals.netWeightKg)} kg neto`} · ${format(model.totals.cbm)} m³`)}{text(Object.entries(model.totals.amounts).map(([currency, n]) => amount(n, currency)).join(" · "))}</View>{footer}
     </Page></Document>;
   } else {
     const images = await Promise.all(model.labels.map(label => QRCode.toDataURL(label.qr, { errorCorrectionLevel: "M", margin: 4, width: 400, color: { dark: "#0F1E3D", light: "#FFFFFF" } })));
     const pages = Array.from({ length: Math.ceil(model.labels.length / 6) }, (_, index) => model.labels.slice(index * 6, index * 6 + 6));
-    document = <Document title={`Etiquetas ${model.code}`} author="DTD Cargo">{pages.map((labels, pageIndex) => <Page key={pageIndex} size="A4" style={[style.page, { fontFamily: body.family }]}><View style={style.labelGrid}>{labels.map((label, index) => <View key={label.boxCode} style={style.label} wrap={false}>{text("Shipping Mark")}<View style={style.mark}>{text(model.markbox, "mono")}</View><Image style={style.qr} src={images[pageIndex * 6 + index]} />{text(label.code, "mono")}{text(`第 ${label.boxN}/${label.totalBoxes} 箱 · Caja ${label.boxN}/${label.totalBoxes}`)}{text(label.boxCode, "mono")}<View style={style.small}>{wordmark()}{text(`Rev. ${model.revision} · ${model.folio} · V${model.versionNo}`, "mono")}</View></View>)}</View>{footer}</Page>)}</Document>;
+    document = <Document title={`Etiquetas ${model.code}`} author="DTD Cargo">{pages.map((labels, pageIndex) => <Page key={pageIndex} size="A4" style={[style.page, { fontFamily: body.family }]}><View style={style.labelGrid}>{labels.map((label, index) => <View key={label.boxCode} style={style.label} wrap={false}>{text("Shipping Mark")}<View style={style.mark}>{text(model.markbox, "mono")}</View><Image style={style.qr} src={images[pageIndex * 6 + index]} />{text(label.code, "mono")}{text(`第 ${label.boxN}/${label.totalBoxes} 箱 · Caja ${label.boxN}/${label.totalBoxes}`)}{text(label.boxCode, "mono")}{label.logistics && <View style={style.small}>{text(`${format(label.logistics.grossWeightKg)} kg bruto${label.logistics.netWeightKg == null ? "" : ` · ${format(label.logistics.netWeightKg)} kg neto`} · ${format(label.logistics.cbm)} m³ por caja`)}</View>}<View style={style.small}>{wordmark()}{text(`Rev. ${model.revision} · ${model.folio} · V${model.versionNo}`, "mono")}</View></View>)}</View>{footer}</Page>)}</Document>;
   }
   const bytes = new Uint8Array(await renderToBuffer(document));
   const audit = (font: FontInfo) => ({ postscriptName: font.postscriptName, format: font.format, variationAxes: font.variationAxes, weightClass: font.weightClass, embedding: font.embedding });

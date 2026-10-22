@@ -54,6 +54,24 @@ function expectStaticFontAudit(audit: Awaited<ReturnType<typeof renderConfirmedD
 }
 
 describe("PDF confirmado SDD-0473 B",()=>{
+  it("incluye neto opcional del grupo y total sin cambiar códigos ni duplicar cajas mixtas",()=>{
+    const input=sample(); input.draft.groups[0].netWeightKg=40;input.draft.groups[1].netWeightKg=60;input.draft.declaredTotals.netWeightKg=100;
+    const model=buildConfirmedPdfModel(input);expect(model.groups.map(g=>g.netWeightKg)).toEqual([40,60]);expect(model.totals.netWeightKg).toBe(100);
+    expect(model.groups[0].rows).toHaveLength(2);expect(model.labels.map(l=>l.boxCode)).toEqual(input.labels.map(l=>l.boxCode));
+    const absent=buildConfirmedPdfModel(sample());expect(absent.totals).not.toHaveProperty("netWeightKg");expect(absent.groups[0]).not.toHaveProperty("netWeightKg");
+  });
+  it("asigna logística por códigos físicos confirmados y grupo real, sin promedio global ni ordinal",()=>{
+    const input=sample();input.draft.groups[0].grossWeightKg=60;input.draft.groups[0].netWeightKg=48;input.draft.groups[0].cbm=0.36;
+    input.draft.groups[1].grossWeightKg=96;input.draft.groups[1].netWeightKg=72;input.draft.groups[1].cbm=0.60;
+    input.draft.declaredTotals.grossWeightKg=156;input.draft.declaredTotals.netWeightKg=120;input.draft.declaredTotals.cbm=0.96;
+    // Deliberately interleave confirmed mappings; array order must not assign groups.
+    input.boxGroups=input.labels.map((label,index)=>({boxCode:label.boxCode!,groupId:[0,2,5,9].includes(index)?"A":"B"})).reverse();
+    const model=buildConfirmedPdfModel(input);
+    expect(model.labels[0].logistics).toEqual({grossWeightKg:15,netWeightKg:12,cbm:0.09});
+    expect(model.labels[1].logistics?.grossWeightKg).toBe(16);expect(model.labels[1].logistics?.cbm).toBeCloseTo(0.1);
+    expect(model.labels.map(l=>l.boxCode)).toEqual(input.labels.map(l=>l.boxCode));
+    input.boxGroups=[...input.boxGroups.slice(1)];expect(()=>buildConfirmedPdfModel(input)).toThrow();
+  });
   it("proyecta cajas mixtas una vez y sólo campos permitidos, sin originales privados",()=>{
     const model=buildConfirmedPdfModel(sample());
     expect(model.totals).toEqual({cartons:10,grossWeightKg:130,cbm:0.7,quantities:{pcs:220},amounts:{USD:340}});

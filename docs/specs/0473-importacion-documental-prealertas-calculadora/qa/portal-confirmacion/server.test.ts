@@ -7,7 +7,7 @@ import type { ExtractionOptions } from "@/lib/studio/document-import/extract";
 import { demoMiddleware } from "./server";
 
 const database=vi.hoisted(()=>({create:vi.fn()}));
-vi.mock("./database",()=>({createDemoDatabase:database.create,IDS:{token:"synthetic-token",user:"synthetic-user"},CODE:"DTD-DEMO-1-1"}));
+vi.mock("./database",()=>({createDemoDatabase:database.create,IDS:{token:"synthetic-token",user:"synthetic-user"},CODE:"DTD-DEMO-1-1",QA_CASES:{pdf:{code:"DTD-DEMO-1-1",token:"synthetic-token"},xlsx:{code:"DTD-DEMO-1-2",token:"synthetic-xlsx-token"}}}));
 
 // Deliberately supplied by the SSR loader, not imported again through another module graph.
 class SsrDocumentImportError extends Error {
@@ -15,19 +15,23 @@ class SsrDocumentImportError extends Error {
 }
 function deferred<T>(){let resolve!:(value:T)=>void,reject!:(reason:unknown)=>void;const promise=new Promise<T>((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};}
 
-async function setup(pdfEnabled=false){
+async function setup(pdfEnabled=false,glmTest=false){
   const draft=emptyDocumentDraft();
   const workspace={id:"synthetic-workspace",revision:0,confirmed_revision:null,draft};
-  const service={getWorkspace:vi.fn(async()=>workspace),projectWorkspace:vi.fn(()=>workspace),saveWorkspace:vi.fn()};
+  const other={...workspace,id:"synthetic-xlsx-workspace"};
+  const service={getWorkspace:vi.fn(async(_db:unknown,id:string)=>id===other.id?other:workspace),projectWorkspace:vi.fn((w:typeof workspace)=>w),saveWorkspace:vi.fn(),applyImport:vi.fn(async()=>({revision:1}))};
   const extractDocument=vi.fn(async(_bytes:Uint8Array,_options:ExtractionOptions)=>draft);
-  database.create.mockResolvedValue({db:{},pg:{close:vi.fn(),query:vi.fn()},workspaceId:workspace.id});
+  const storeJob=vi.fn(),runtime={extract:vi.fn(async()=>draft),receipt:vi.fn(),close:vi.fn()};
+  database.create.mockResolvedValue({db:{},pg:{close:vi.fn(),query:vi.fn()},workspaceId:workspace.id,storeJob,...(glmTest?{caseWorkspaces:{pdf:workspace.id,xlsx:other.id}}:{})});
   const ssrLoadModule=vi.fn(async(path:string)=>{
     if(path.endsWith("/service.ts"))return service;
     if(path.endsWith("/extract.ts"))return{extractDocument,DocumentImportError:SsrDocumentImportError};
     if(path.endsWith("/export.ts"))return{exportDocument:vi.fn()};
+    if(path.endsWith("/glm-test-runtime.ts"))return{createGlmTestRuntime:vi.fn(async()=>runtime)};
+    if(path.endsWith("/estimate.ts"))return{estimateDocuments:vi.fn(()=>({input:{},rates:{}}))};
     throw new Error("Unexpected SSR module");
   });
-  const handler=await demoMiddleware({ssrLoadModule},"synthetic-root",{pdfEnabled});
+  const handler=await demoMiddleware({ssrLoadModule},"synthetic-root",{pdfEnabled,...(glmTest?{glmTest:{canonicalRoot:"synthetic-double-only",goId:"synthetic-go-01"}}:{})});
   async function requestStream(method:string,url:string,stream:Readable){
     const req=Object.assign(stream,{method,url,headers:{}});
     const headers=new Map<string,unknown>();let output="";
@@ -47,8 +51,30 @@ async function setup(pdfEnabled=false){
     return jobId;
   }
   const job=(id:string)=>request("GET",`/api/document-import?action=job&jobId=${id}`);
-  return{request,requestStream,post,upload,job,extractDocument,service,draft};
+  return{request,requestStream,post,upload,job,extractDocument,service,draft,runtime,storeJob,workspace,other};
 }
+
+describe("S3 TEST middleware core boundary",()=>{
+  it("publishes effective GLM disclosure and both admitted formats without a legacy provider call",async()=>{
+    const h=await setup(true,true);expect((await h.request("GET","/api/document-import?action=capabilities")).json()).toMatchObject({formats:["pdf","xlsx"],extractionDisclosure:expect.stringContaining("GLM")});
+    expect(h.runtime.extract).not.toHaveBeenCalled();expect(h.extractDocument).not.toHaveBeenCalled();
+  });
+  it("persists extracted jobs and applies through the real core seam with its actual prior",async()=>{
+    const h=await setup(true,true),created=await h.post({action:"upload",fileName:"synthetic.pdf",kind:"proforma",sizeBytes:14,workspaceId:h.workspace.id});
+    const id=String(created.json().jobId);await h.request("PUT",String(created.json().uploadUrl),Buffer.from("%PDF-synthetic"));
+    await h.post({action:"uploaded",jobId:id,workspaceId:h.workspace.id});expect(h.storeJob).toHaveBeenCalledWith(expect.objectContaining({id,workspaceId:h.workspace.id,kind:"proforma",result:h.draft}));
+    const command={action:"apply",workspaceId:h.workspace.id,jobId:id,expectedRevision:0,commandId:"synthetic-command"};await h.post(command);
+    expect(h.service.applyImport).toHaveBeenCalledWith(expect.anything(),h.workspace,{kind:"client",id:"synthetic-user"},command);
+    expect(h.service.saveWorkspace).not.toHaveBeenCalled();expect(h.extractDocument).not.toHaveBeenCalled();
+  });
+  it("never attaches a late extraction to a newer server revision or a different case",async()=>{
+    const h=await setup(true,true),created=await h.post({action:"upload",fileName:"synthetic.pdf",kind:"combined",sizeBytes:14,workspaceId:h.workspace.id}),id=String(created.json().jobId);
+    await h.request("PUT",String(created.json().uploadUrl),Buffer.from("%PDF-synthetic"));h.runtime.extract.mockImplementationOnce(async()=>{h.workspace.revision++;return h.draft;});
+    expect((await h.post({action:"uploaded",jobId:id,workspaceId:h.workspace.id})).json()).toMatchObject({status:"failed"});expect(h.storeJob).not.toHaveBeenCalled();
+    expect((await h.request("GET",`/api/document-import?action=job&jobId=${id}&workspaceId=${h.other.id}`)).status).toBe(404);
+    expect((await h.request("POST","/qa/reset")).status).toBe(409);
+  });
+});
 
 describe("SDD-0473 PDF QA · lectura e idempotencia",()=>{
   beforeEach(()=>{vi.clearAllMocks();});

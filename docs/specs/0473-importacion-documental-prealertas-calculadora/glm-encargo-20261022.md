@@ -773,3 +773,93 @@ Sam autorizó revisión13FULL/corregirfallos/conexiónreal en su mensaje01a16444
 
 Alcance puntual de esta hija directa5e6875e: estimate.ts, estimate.test.ts y estos tres documentos (spec, encargo, handoff); las otras6320entradas se preservan. Antes de editar: guard y claim210B/a29aa577a954b3744e1eae27618b75393f77834071b72115bd1fb927fd366cbc verificados y5preimágenes físicas+5rawGit selladas en C:/tmp/sdd0473-s2-cobertura-campo-adopcion-01a1639b-01. No se altera DTO/shared/UI/motor/tarifas/S1, ni paquetes READY/custodia ya cerrados. Nuevos tests son aditivos y aún NO EJECUTADOS; la preparación13FULL se refresca después de fijar la hija, sin descubrir/ejecutar ni pedir otro permiso humano genérico. Se conserva la secuencia/recurso exclusivo coordinado por Director; S3-TEST real continúa como siguiente encargo nominal, sin lectura de credenciales/API ahora.
 Corrección escrita por campo: se releva cada missing únicamente con su global positivo; ningún otro blocker cambió. Se agregaron14casos estáticos derivados de6tablas literales de2casos y2casos directos: ambos cruces por campo, ambos globales con grupos vacíos/parciales, faltante real/0, subtotales superiores, sumas completas distintas, conflicto explícito, sí+pendiente y recuperación en ambas declaraciones, lecturaIA y recuperación. Los tests heredados/oráculos financieros se conservan completos; se compara entrada y resultado con calcularEnvioLCL/PARAMS/MARACAIBO/rates existentes. Ningún caso fue descubierto ni ejecutado todavía. `git diff --check` administrativo y comparación del resto del árbol se registran en el recibo del checkpoint. Preimágenes/adopción selladas antes de producto (manifest0d5e5a587752474e1f67dbacc6c546b2e90f769809d944e0e65a235085af0af5). El precio y sus gates sólo se acreditarán al ejecutar13FULL y completar los checks posteriores; estos14 son expectativa por fuente, no un resultado PASÓ.
+## S3 TEST v2 — adopción de autoría (2026-10-22)
+
+El Director General activó autoría de fuentes en este mismo Worker/chat, rama y worktree; base `b60c8fe9f7e0fd2579b0f5f82f04ed1355163249`, árbol `8f1a0484ef038a86a0884303c266464c34d02f56`, claim A29 conservado. Destino: misma PR319. Sin merge, producción ni push en esta fase. S1/50 y S2/13 FULL (350/350 PASS) permanecen cerrados. S3 fuente en preparación: ejecución funcional y conexión real **NO EJECUTADO**.
+
+Autoridades completas adoptadas antes de comportamiento, en `s3-test-encargo-v2` del paquete del Director Packing: encargo v2 SHA256 `4fae2339334861fc301dff2af0541215ac382383e55db379e26e7fdc26078ae0`; pins base/input `8c6bb4759f513127618dffd62db3b35dd3f4408ee583ed34cdace14e507573a3`; precisión 01 `eb98dcadd3e4d5169ae8dff2edcbb20b659e3bfd8a4b678a8d62098a04f83578`; corrección manual opcional adoptada por General `2c17b99d52c75470249b702e851a7c30fc17dd53690a38ab3e6f90a6afad22e2`. La activación expresa posterior del General habilita autoría; no transforma propuestas de runtime en permisos actuales.
+
+Custodia previa: `C:/tmp/sdd0473-s3-adopcion-01a1639b-01`, 53 artefactos más MANIFEST, SHA256 manifiesto `ace615f4fd1a2e592f6a992ef6903c78ca94673b8cc2e9512c322c142dc08364`. Conserva 23 preimágenes físicas y 23 raw Git, cinco ausencias, cuatro autoridades completas, allowlist y evidencia. Una diferencia de codificación física/raw en estimate.test.ts está documentada; ambas copias verificadas, blob canónico correcto y base limpia. No se borra la evidencia de captura interrumpida. Fuera de los 28 paths: 6302 entradas originales deben permanecer idénticas.
+
+Contrato de implementación adoptado:
+
+- TEST Standard: OCR glm-ocr → tokenizer remoto explícito glm-4.6 → chat glm-4.6, endpoints fijos api.z.ai/paas/v4; mismo objeto de mensajes inmutable tokenizer/chat; conservar contador LOCAL S1 fuera de TEST. Chat stream false, JSON object, thinking disabled, máximo 8192 salida; entrada tokenizer positiva entera hasta 16384. Registrar diferencia de consumo chat, sin margen inventado.
+- Tres HTTP globales como máximo, concurrencia uno, 90 segundos pipeline, sin retry/fallback. Ledger durable: guardia global SHA(bytes) independiente de job/workspace/perfil/cuenta/fecha, persistir y fsync possibly_sent, consumo y fencing antes de cada fetch. Crash, truncamiento o lease no liberan envíos inciertos. Root canónico compartido sólo se fija en GO posterior; cambiar root/cache/perfil no autoriza reenviar. USD0.25 es presupuesto operativo, no cap de cuenta probado; tarifa tokenizer no disponible.
+- Credencial privada únicamente backend/memoria mediante loader explícito futuro, no abrir ni consultar metadatos ahora. Modelo vacío adopta literal glm-4.6; modelo diferente falla, sin mutación/fallback. Sin variables globales, NEXT_PUBLIC, Vite cliente, logs ni Git con secretos.
+- Dos inputs ficticios separados y fijados: PDF002 4855 bytes SHA256 7fada57b5d00093c5f3950e36de7812226b675a2fc1547d234ca3c790b170b2e (inspector TEST exclusivo de esos bytes y dos páginas conocidas, OCR verifica cobertura real); XLSX 8178 bytes SHA256 f1867b0f4b2bdc7024700e502436a55e672e0276360a630e0b1e0db85e42c825, extracción nativa cero IA. Workspaces/Compras independientes; oráculos nunca entran al prompt ni sustituyen respuesta real.
+- Reutilizar applyImport/save/confirm de core y PGlite ficticio; calculadora real con snapshot tarifario ficticio identificado y digest, sin duplicar fórmulas ni afirmar paridad online/precio firme. Logística confiable por campo, revisión y conflictos preservados, sin distribuir totales inventando valores de cartón.
+- Corrección humana opcional posterior: A cuatro cajas /60 kg bruto/48 neto/.36 CBM, cada una 15/12/.09; B seis /96 bruto/72 neto/.60 CBM, cada una 16/12/.10. Total diez cajas/192 unidades/USD390/156 bruto/120 neto/.96. A18 tazas+18 tapas/caja, B8 botellas/caja. Mapear IDs reales confirmados; ninguna media global por etiqueta. Reestimar con mismo motor/config; mínimos pueden conservar precio.
+- Preservar S2 A–H, server prior, delta manual, procedencia privada y controles de revisión/actor/revisión antes y después de resultados. Batería/especial triestado pendiente. Proyección proveedor sólo datos operativos legítimos, ShippingMark/compra, sin buyer/PII/OCR privado. Neto opcional independiente en PDF por grupo y total, nunca requerido universal; Excel A:N estable, O neto aditivo, logística de grupo una vez; QR e identidades existentes.
+- Preparar archivo y tipo antes de transferir bytes, envío explícito y proveedor efectivo revelado. Reutilizar componentes/tokens/flujo; etapas reales sin porcentaje ficticio. Sin componentes compartidos adicionales ni cambios a políticas, índices, rutas, DB o jobs de producción.
+
+Matriz SGE-00 / diseño R3 (evidencia de intención de diseño, no aceptación funcional):
+
+| Principio | Decisión / verificación pendiente |
+| --- | --- |
+| SGE-00.01 Predecibilidad | `DocumentImportPanel`: elegir/preparar, Enviar y leer, Aplicar; fuente revisada, interacción pendiente. |
+| SGE-00.02 Conservar trabajo | `service.saveWorkspace` y revisión/recarga existentes; `server.test.ts` prueba fuente de resultado tardío. Runtime pendiente. |
+| SGE-00.03 Fricción proporcional | Envío explícito antes de transferencia/costo y confirmación proveedor; no modal adicional ni paso irreversible nuevo. |
+| SGE-00.04 Auditoría | `glm-test-ledger.ts`: fence, correlación, SHA y possibly_sent/fsync; core conserva actor/tenant/revisión. Persistencia pendiente de prueba. |
+| SGE-00.05 Permisos y privacidad | Proyección proveedor, casos separados y negativas en server/database tests; banco ficticio no certifica RLS productivo. |
+| SGE-00.06 Prevención | Pin bytes, tipo/size, tokenización, cap global y revisión antes de exportar; pruebas fuente aditivas. |
+| SGE-00.07 Estado verdadero | Prepared/processing/ready/failed y etapas reales de runtime; sin porcentaje inventado, ejecución pendiente. |
+| SGE-00.08 Frecuencia y complejidad | Se añade envío explícito por transferencia a tercero/costo; selección de tipo operable antes de bytes. |
+| SGE-00.09 Patrón común | Reutiliza panel/editor/botones/tokens, core y motor; no componente compartido nuevo. |
+| SGE-00.10 Accesibilidad | Label/select/button nativos, estado anunciado y salida manual; teclado/foco/375/390/200%/movimiento pendiente. |
+| SGE-00.11 Lenguaje | Verbos operativos y errores seguros con alternativa manual; revisión de texto fuente, UI pendiente. |
+| SGE-00.12 Autoridad humana | Extracción propone; cliente aplica y proveedor confirma; sin aplicación o acción externa autónoma. |
+
+Aplicabilidad: IA-01, UPL-01, PRG-01, SGE-00, FRM-01, A11Y-01, ERR-01, LOD-01 y CMP-01; cumplimiento de diseño en preparación, aceptación runtime **NO EJECUTADO**, sin excepción implícita ni promoción de componentes. Revisión de datos sólo técnica sobre fixtures ficticios, sin certificar cumplimiento legal. Graphify principal es descubrimiento histórico; no actualiza ni demuestra el árbol de este worktree. Publicación Obsidian/main no autorizada aquí.
+
+Frontera actual: sin importación de candidato, parser/AST, discovery, tests, typecheck/lint/build/verify, DB/Docker, servidor, API, lectura/metadatos del secreto, instalación/junction/copia de dependencias ni push. Sólo edición y revisión de fuentes más Git/guard administrativos. Pruebas aditivas sin cambiar títulos/oráculos/timeouts heredados. Primero checkpoint hijo directo b60 y custodia para revisión del General; cada runtime posterior requiere GO concreto. Preservar demos 4320/4321, 26356, 8212–18580 y datasetRev3V1.
+
+Allowlist S3 exacta (28; no todos requieren cambio):
+- `lib/studio/document-import/glm.ts`
+- `lib/studio/document-import/glm.test.ts`
+- `lib/studio/document-import/extract.ts`
+- `lib/studio/document-import/extract.test.ts`
+- `lib/studio/document-import/estimate.ts`
+- `lib/studio/document-import/estimate.test.ts`
+- `lib/studio/document-import/http.ts`
+- `lib/studio/document-import/http.test.ts`
+- `components/document-import/DocumentImportPanel.tsx`
+- `components/document-import/DocumentImportPanel.test.tsx`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/extraction-config.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/extraction-config.test.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/glm-test-runtime.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/glm-test-runtime.test.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/glm-test-ledger.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/glm-test-ledger.test.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/server.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/server.test.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/database.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/database.test.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/vite.config.ts`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/fixture.tsx`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/README.md`
+- `lib/studio/document-import/pdf.tsx`
+- `lib/studio/document-import/pdf.test.tsx`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/glm-encargo-20261022.md`
+- `.agents/handoffs/0473-glm-encargo-20261022.md`
+
+### S3 checkpoint de fuente — cierre de autoría para revisión
+
+Implementación fuente: modo remoto explícito OCR/tokenizer/chat con mensajes inmutables y sin alterar el contador local S1; ledger con guardias durables global/SHA y fsync antes de envío; loader backend y root candidato único no creado; dos casos ficticios aislados; XLSX nativo sin IA; core applyImport/save/confirm y snapshot tarifario ficticio; tipo antes de bytes/aviso efectivo; neto opcional y etiquetas mapeadas por IDs SQL/códigos físicos reales. El modo legacy QA se conserva separado, incluida su antigua fusión; S3 no lo usa.
+
+Revisión de fuente realizada: límites/importaciones/público-ERP preservados; componentes y tokens existentes, sin primitives nuevas; proyección privada y relectura antes/después de operaciones; contraste/tamaños/375/390/teclado/impresión no medidos. Clasificación de gobernanza: conformidad de diseño sustentada en fuente para IA-01/UPL-01/PRG-01/FRM-01/ERR-01/LOD-01/CMP-01; aceptación funcional/A11Y sigue NO EJECUTADO. No se ha concedido excepción. Los 12 IDs normativos SGE-00 están mapeados arriba; no confundir revisión con pruebas ejecutadas.
+
+Tests nuevos/adaptados en fuente: GLM remoto/mensajes/contadores/gate persistente; ledger tres etapas, reinicios antes/después, truncamiento, concurrencia y callbacks tardíos; loader sin secretos, root/bytes incorrectos; banco PGlite core/compra ajena/edición/confirmación/QR/motor; QA rutas/aislamiento/stale; preparación y aviso de UI; PDF neto/mapping por códigos. Pruebas heredadas conservan títulos, asserts y timeouts. Única adaptación del recorrido UI heredado: capability sintética inyectada y clic de envío en helper de selección, sin relajar oráculos. `http.test.ts` agrega assert al caso existente, no reemplaza su oráculo con flag apagado.
+
+Validación actual:
+
+- PASÓ: guard administrativo y claim A29; diff whitespace; alcance por Git y custodia previa. Ninguno es prueba de producto.
+- NO EJECUTADO: tests nuevos/heredados sobre S3, typecheck/lint/build/pnpm verify, validator de gobernanza local, PGlite, extracción de inputs, API GLM, PDF render/QR/visual, knowledge:status/Graphify/Archify/Obsidian. Prohibidos por la activación de autoría hasta checkpoint revisado y GO concreto.
+- NO DISPONIBLE: fetch web de Supabase changelog.md rechazado por content-type text/markdown; documentación select consultada. Protocolos primarios Z.AI tokenizer/layout/chat consultados; esto no prueba acceso de cuenta/modelo ni factura/costo.
+- S2: 13 FULL /350 PASS pertenece a b60, no certifica este nuevo árbol. S1/50 queda cerrado, pruebas existentes preservadas.
+
+Propuesta siguiente reserva sin ejecutar: 13 suites S2 completas + DocumentImportPanel/pdf/glm/provider/extraction-contract + QA extraction-config/server/glm-test-runtime/glm-test-ledger/database, con dobles de red prohibiendo fetch real, tooling explícito y sin ocultar SKIPs/warnings. Después verify y UI-check con reserva propia; sólo luego GO separado para muestras/API real y raíz nominal. Dependencias físicas de este worktree siguen ausentes; no instalar/copiar/junction ni ejecutar discovery por inferencia.
+
+Pendientes de esta tarea: revisión independiente del checkpoint; validación completa, reparar fallos de esa evidencia, conexión real y las dos aceptaciones completas. Producción, merge, push y traslado de PR319 continúan sin autorización en esta fase.
+
+FUERA DE ALCANCE DETECTADO: inspector PDF genérico, drenador/migración durable de producción y validez de tarifas online; no se implementaron ni se declaran resueltos. Conocimiento integrado/shared Obsidian sólo lo publica Director desde main integrada comprobada con sus permisos; aquí no hay publicación.

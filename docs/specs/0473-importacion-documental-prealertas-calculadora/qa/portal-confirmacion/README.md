@@ -1,7 +1,29 @@
 # Recorrido local de cliente a proveedor · SDD-0473
 
-Demo con identidades y documentos exclusivamente ficticios. No lee `.env`, no usa Supabase remoto
+Demo con identidades y documentos exclusivamente ficticios. El modo predeterminado no lee `.env`, no usa Supabase remoto
 ni credenciales, no llama a Anthropic. Solo escucha en `127.0.0.1`.
+
+## S3 GLM TEST — código candidato, ejecución pendiente
+
+S1/50 y S2/13 FULL 350 PASS están cerrados. Esta ampliación es fuente para revisión del Director, aún sin ejecutar tests, DB, servidores, API o lectura/metadatos de credencial. Los comandos históricos siguientes no habilitan S3. Se conserva PR319 sin merge ni producción.
+
+Un GO posterior debe fijar SHA, dependencias, ejecución y tiempos; candidato backend 4323/frontend 4324 con strictPort. `QA_GLM_TEST_ENABLED=true` sólo admite backend 4323, sin proxy ni proveedor legacy. Frontend separado requiere `QA_GLM_TEST_FRONTEND=true`, puerto 4324 y origen exacto 127.0.0.1:4323. Ninguno de estos procesos se inició durante autoría.
+
+Root durable candidato único que debe admitir/provisionar ese GO: `C:/Users/AKX generator/.config/dtdcargo/document-import-glm.test-ledger`. No fue creado ni inspeccionado aquí. No se permite sustituirlo por el output del lote, otro perfil o una carpeta nueva. `global-pipeline.guard`, guardia SHA(bytes) y `global-dispatches.jsonl` sobreviven éxito/error/crash. Nunca borrar, truncar, reclamar por lease ni abrir otro root para reintentar. El código bloquea una nueva reserva global aun después de un resultado recibido; recuperación requiere revisión expresa del General y no está automatizada.
+
+El loader futuro lee sólo el destino privado explícito en memoria del backend, clave/modelo; modelo vacío adopta glm-4.6 y cualquier otro modelo falla. Ninguna llave va a process.env, frontend, logs, Git o UI. Los tests usan lectores sintéticos inyectados. No hay probes de modelos, salud, saldo ni recargas.
+
+Se admiten exclusivamente PDF002 (4855 bytes/SHA256 7fada57b5d00093c5f3950e36de7812226b675a2fc1547d234ca3c790b170b2e, metadata conocida de dos páginas) y XLSXv2 (8178 bytes/SHA256 f1867b0f4b2bdc7024700e502436a55e672e0276360a630e0b1e0db85e42c825). No se parsearon estos inputs durante autoría. Casos PDF/Excel tienen Compra/workspace/token de proveedor distintos; fixture `?case=pdf` / `?case=xlsx`, sin reiniciar el banco S3. El inspector de PDF es específico de esos bytes; no demuestra compatibilidad PDF genérica.
+
+PDF: OCR glm-ocr → tokenizer HTTP remoto explícito → chat glm-4.6 con mensajes idénticos inmutables, thinking deshabilitado y JSON object. Máximo global tres HTTP, sin retry/fallback, 90 s, 16384 entrada/8192 salida. Se registra possibly_sent/fsync antes de fetch y diferencia tokenizer/chat. Excel: nativo, cero IA; múltiples hojas ambiguas fallan para revisión, nunca escalan silenciosamente a IA. Se prepara el tipo antes de transferir y se requiere clic explícito con aviso del proveedor efectivo.
+
+El banco utiliza applyImport/save/confirm reales, SQL ficticio PGlite y motor calcularEnvioLCL real. Snapshot **ficticio** `sdd0473-s3-fictional-20261022-v1` con digest calculado de su JSON y guardado en el estimado; no certifica tarifa online ni precio firme. Declaraciones desconocidas siguen pendientes; cambio de revisión invalida resultado previo.
+
+PDF y etiquetas se generan desde revisión confirmada. El banco S3 obtiene grupo/código físico del mapping SQL real; no asigna grupos por ordinal ni inventa códigos. Etiquetas usan bruto/neto/CBM de su grupo dividido por cajas del grupo; no promedio global. Neto es opcional, independiente del bruto. El renderer conserva el flujo anterior cuando no recibe mapping. Exportación existente mantiene A:N/O neto y privacidad. Después de renderizar se vuelve a comprobar revisión, confirmación, etiquetas y mapping.
+
+Corrección humana opcional adoptada: A4 cajas/60 bruto/48 neto/.36 CBM; B6/96/72/.60; cada A15/12/.09, cada B16/12/.10. No son respuestas para GLM: sólo ediciones humanas posteriores, mapeadas a IDs reales. El precio puede conservarse por mínimos; no se cambian tarifas para forzar diferencias.
+
+Próxima evidencia requerida: suites completas nuevas y heredadas sin red, pnpm verify y sus SKIPs, dos extracciones reales independientes (Excel sin IA), revisión cliente/proveedor, Excel final, PDF/etiquetas nuevos, rasterización completa y decodificación de todos los QR; 375/390/escritorio, claro/oscuro/teclado/foco. Chino operativo/WeChat/impresora física siguen NO EJECUTADO. La fuente no equivale a aceptación funcional.
 
 Desde este worktree:
 

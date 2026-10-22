@@ -6,7 +6,11 @@ import { emptyDocumentDraft } from "@/lib/shared/document-import";
 
 export const IDS={tenant:"11111111-1111-4111-8111-111111111111",client:"22222222-2222-4222-8222-222222222222",purchase:"33333333-3333-4333-8333-333333333333",user:"44444444-4444-4444-8444-444444444444",token:"55555555-5555-4555-8555-555555555555"};
 export const CODE="DTD-DEMO-1-1";
-export async function createDemoDatabase(root:string) {
+export const QA_CASES = Object.freeze({
+  pdf: Object.freeze({ purchase: IDS.purchase, token: IDS.token, code: CODE }),
+  xlsx: Object.freeze({ purchase: "66666666-6666-4666-8666-666666666666", token: "77777777-7777-4777-8777-777777777777", code: "DTD-DEMO-1-2" }),
+});
+export async function createDemoDatabase(root:string, options?:{separateGlmCases?:boolean}) {
   const pg=new PGlite();
   const migration=(name:string)=>readFileSync(path.join(root,"supabase/migrations",name),"utf8");
   function fn(sql:string,name:string){const pattern="function public."+name;const start=sql.lastIndexOf("create",sql.indexOf(pattern));const end=sql.indexOf("$$;",sql.indexOf("as $$",start));if(start<0||end<0)throw new Error("Missing SQL function");return sql.slice(start,end+3);}
@@ -33,6 +37,17 @@ export async function createDemoDatabase(root:string) {
   const draft=emptyDocumentDraft();draft.supplier.company="供应商示例 · Proveedor de ejemplo";draft.supplier.wechat="demo-wechat";draft.docDate="2026-10-21";
   const created=await pg.query<{id:string}>("select (create_document_workspace($1,$2,$3,$4::jsonb,null,null,null)).id",[IDS.tenant,IDS.client,IDS.purchase,JSON.stringify(draft)]);
   const workspaceId=created.rows[0].id;
+  let xlsxWorkspaceId: string | undefined;
+  if(options?.separateGlmCases){
+    await pg.query("insert into prealertas(id,tenant_id,client_markbox,code)values($1,$2,'DTD-DEMO',$3)",[QA_CASES.xlsx.purchase,IDS.tenant,QA_CASES.xlsx.code]);
+    const other=await pg.query<{id:string}>("select (create_document_workspace($1,$2,$3,$4::jsonb,null,null,null)).id",[IDS.tenant,IDS.client,QA_CASES.xlsx.purchase,JSON.stringify(draft)]);
+    xlsxWorkspaceId=other.rows[0].id;
+  }
+  async function storeJob(job:{id:string;workspaceId:string;fileName:string;kind:string;size:number;sha256:string;result?:unknown;errorCode?:string}){
+    if(![workspaceId,xlsxWorkspaceId].includes(job.workspaceId))throw new Error("Unknown fictitious workspace");
+    await pg.query(`insert into document_import_jobs(id,workspace_id,request_key,file_name,file_kind,storage_path,content_type,size_bytes,sha256,status,result,error_code)
+      values($1,$2,$1,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11)`,[job.id,job.workspaceId,job.fileName,job.kind,`qa/${job.workspaceId}/${job.id}`,"application/octet-stream",job.size,job.sha256,job.result?"ready":"failed",job.result?JSON.stringify(job.result):null,job.errorCode??null]);
+  }
   const ident=(value:string)=>{if(!/^[a-z_][a-z0-9_]*$/.test(value))throw new Error("Invalid SQL identifier");return '"'+value+'"';};
   const from=(table:string)=>{
     const filters:{column:string;operator:string;value:unknown}[]=[];let columns="*",order="";
@@ -41,5 +56,5 @@ export async function createDemoDatabase(root:string) {
     return chain;
   };
   const db={from,async rpc(name:string,args:Record<string,unknown>){if(name!=="save_document_workspace")throw new Error("Demo RPC unavailable");try{const result=await pg.query<{result:unknown}>("select save_document_workspace($1,$2,$3::jsonb,$4,$5,$6,$7::jsonb) result",[args.p_workspace_id,args.p_expected_revision,JSON.stringify(args.p_draft),args.p_actor_kind,args.p_actor_id,args.p_command_id,args.p_confirmation?JSON.stringify(args.p_confirmation):null]);return {data:result.rows[0].result,error:null};}catch(error){return {data:null,error};}}} as unknown as SupabaseClient;
-  return {pg,db,workspaceId};
+  return {pg,db,workspaceId,...(xlsxWorkspaceId?{caseWorkspaces:{pdf:workspaceId,xlsx:xlsxWorkspaceId}}:{}),storeJob};
 }

@@ -458,13 +458,20 @@ function legacyProposal(draft: DocumentDraft): DocumentDraft {
   return parseDocumentDraft(clean);
 }
 
-export async function extractDocument(bytes: Uint8Array, options: ExtractionOptions): Promise<DocumentDraft> {
+export type DocumentExtractionDependencies = Readonly<{
+  /** Server-owned explicit TEST seam, never selected from request/provider metadata. */
+  pdf?: (bytes: Uint8Array, options: ExtractionOptions) => Promise<DocumentDraft>;
+  nativeOnly?: boolean;
+}>;
+export async function extractDocument(bytes: Uint8Array, options: ExtractionOptions, dependencies?: DocumentExtractionDependencies): Promise<DocumentDraft> {
   if (!bytes.length || bytes.length > MAX_BYTES) throw new DocumentImportError("file_size", "El archivo debe tener contenido y pesar hasta 15 MB.");
   if (!/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,79}$/.test(options.sourceId) || options.fileName.length > 255) throw new DocumentImportError("invalid_metadata", "Los datos del archivo no son válidos.");
   const ext = options.fileName.toLowerCase().split(".").pop();
   if (ext === "xls") throw new DocumentImportError("legacy_xls", "El archivo XLS se conserva como adjunto. Conviértelo a XLSX o PDF para importar sus datos.");
   if (ext === "pdf") {
     if (!new TextDecoder().decode(bytes.subarray(0, 1024)).includes("%PDF-")) throw new DocumentImportError("invalid_pdf", "El archivo no tiene una cabecera PDF válida.");
+    if (dependencies?.pdf) return parseDocumentDraft(await dependencies.pdf(new Uint8Array(bytes), options));
+    if (dependencies?.nativeOnly) throw new DocumentImportError("configuration_missing", "La lectura PDF requiere configuración explícita.");
     return legacyProposal(await extractWithAnthropic({ type: "pdf", bytes }, options));
   }
   let sheets: Sheet[];
@@ -477,6 +484,11 @@ export async function extractDocument(bytes: Uint8Array, options: ExtractionOpti
   const useful = sheets.filter((sheet) => sheet.rows.some((row) => row.some((c) => s(c))));
   if (!useful.length) throw new DocumentImportError("empty_document", "El documento no contiene datos para importar.");
   const parsed = useful.map((sheet) => parseSheet(sheet, options));
+  if (dependencies?.nativeOnly) {
+    if (parsed.length !== 1 || !parsed[0]?.products.length) throw new DocumentImportError("native_review_required", "Revisa las hojas del Excel antes de importar; no se envió a IA.");
+    // Preserve native issues/unknowns. Native-only never silently buys assisted extraction.
+    return parseDocumentDraft(parsed[0]);
+  }
   if (parsed.length !== 1 || parsed.some((d) => !d || !d.products.length || d.issues.some((i) => ["additional_sections", "packing_patterns_assisted"].includes(i.code)))) {
     // Multiple sheets may overlap (invoice + packing list): model proposes matches,
     // preview is mandatory. Never concatenate sheets and silently double-count.

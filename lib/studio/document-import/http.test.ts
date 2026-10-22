@@ -296,6 +296,7 @@ describe("Puerta HTTP de importación documental", () => {
     expect(h.state.calls).toEqual([]);
     vi.stubEnv("DOCUMENT_IMPORT_ENABLED", "true");
     expect(await (await call({ origin: PORTAL, query: { action: "capabilities" } })).json()).toMatchObject({ available: true, portal: true });
+    expect(await (await call({ origin: PORTAL, query: { action: "capabilities" } })).json()).toMatchObject({ extractionDisclosure: expect.stringContaining("Anthropic") });
   });
 
   it("con sólo la llave del cotizador, capabilities lo dice y lo que es de una compra se niega sin tocar sus tablas", async () => {

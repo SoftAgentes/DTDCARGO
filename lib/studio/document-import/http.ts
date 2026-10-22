@@ -31,7 +31,8 @@ export async function documentImportRequest(req:NextRequest) {
     if(req.headers.has("origin")&&!allowedOrigin(req))throw new ImportHttpError(403,"origin_denied","Origen no permitido.");
     if(req.method==="POST"&&!allowedOrigin(req))throw new ImportHttpError(403,"origin_required","Abre esta operación desde el portal de DTD.");
     const action=req.nextUrl.searchParams.get("action");
-    if(req.method==="GET"&&action==="capabilities")return NextResponse.json({available:process.env.DOCUMENT_IMPORT_ENABLED==="true",portal:portalEnabled(),formats:["xlsx","csv","pdf"],maxBytes:15*1024*1024},{headers});
+    if(req.method==="GET"&&action==="capabilities")return NextResponse.json({available:process.env.DOCUMENT_IMPORT_ENABLED==="true",portal:portalEnabled(),formats:["xlsx","csv","pdf"],maxBytes:15*1024*1024,
+      ...(process.env.DOCUMENT_IMPORT_ENABLED==="true"?{extractionDisclosure:"La lectura asistida envía el contenido a Anthropic. Revisa la propuesta antes de aplicarla."}:{})},{headers});
     enabled();
     const admin=createAdminClient(),session=await createClient();
     await reserveRequest(admin,req.headers);

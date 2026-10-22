@@ -42,6 +42,7 @@ const MAX_BYTES = 15 * 1024 * 1024;
 const MAX_FILES = 10;
 
 type JobStatus =
+  | "prepared"
   | "uploading"
   | "queued"
   | "processing"
@@ -63,6 +64,7 @@ type FileEntry = {
   /** Motivo legible del fallo. Nunca lleva texto del documento. */
   error: string | null;
   draft: DocumentDraft | null;
+  stage?: "ocr" | "tokenizer" | "chat";
 };
 
 const TERMINAL: JobStatus[] = ["ready", "partial", "applied", "failed"];
@@ -83,6 +85,7 @@ export function documentKindLabel(kind: DocumentKind, locale: DocumentLocale): s
 export function documentStatusLabel(status: JobStatus, locale: DocumentLocale): string {
   const t = (zh: string, es: string, en: string) => documentText(locale, zh, es, en);
   const known: Record<JobStatus, string> = {
+    prepared: t("待发送", "Preparado para enviar", "Ready to send"),
     uploading: t("上传中", "Enviando", "Uploading"),
     queued: t("排队中", "En cola", "Queued"),
     processing: t("读取中", "Leyendo", "Reading"),
@@ -177,6 +180,7 @@ function DocumentImportSession({
   client,
   pollMs = 2500,
   canReview = true,
+  extractionDisclosure,
 }: {
   /** Workspace ya abierto. Si falta, el panel lo abre con la primera carga. */
   workspace: DocumentWorkspace | null;
@@ -197,6 +201,8 @@ function DocumentImportSession({
   client?: DocumentClient;
   pollMs?: number;
   canReview?: boolean;
+  /** Explicit fixture capability; normal callers read the effective server capability. */
+  extractionDisclosure?: string;
 }) {
   const t = (zh: string, es: string, en: string) => documentText(locale, zh, es, en);
   const uid = useId();
@@ -205,6 +211,8 @@ function DocumentImportSession({
   const [over, setOver] = useState(false);
   const [panelError, setPanelError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const sending = useRef(false);
+  const [disclosure, setDisclosure] = useState<string | null>(extractionDisclosure ?? null);
 
   // Inicializador perezoso en vez de un ref: crea el transporte UNA sola vez sin
   // leer `.current` durante el render, que es lo que React desaconseja.
@@ -214,6 +222,14 @@ function DocumentImportSession({
     active.current = true;
     return () => { active.current = false; };
   }, []);
+  useEffect(() => {
+    if (extractionDisclosure) return;
+    let current = true;
+    transport.get<{ extractionDisclosure?: string }>("capabilities").then(result => {
+      if (current && typeof result.extractionDisclosure === "string" && result.extractionDisclosure.length <= 400) setDisclosure(result.extractionDisclosure);
+    }).catch(() => { if (current) setDisclosure(null); });
+    return () => { current = false; };
+  }, [transport, extractionDisclosure]);
 
   const patch = useCallback(
     (requestKey: string, next: Partial<FileEntry>) => {
@@ -299,18 +315,28 @@ function DocumentImportSession({
       file,
       kind: "unknown",
       jobId: null,
-      status: "uploading",
+      status: "prepared",
       error: null,
       draft: null,
     }));
     setEntries((prev) => [...prev, ...nuevos]);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  async function sendPrepared() {
+    if (sending.current || !disclosure || !active.current) return;
+    const nuevos = entries.filter(e => e.status === "prepared");
+    if (!nuevos.length) return;
+    sending.current = true;
     setBusy(true);
+    setPanelError(null);
     try {
       const target = await ensureWorkspace();
       if (!active.current || !target) return;
       for (const entry of nuevos) {
         if (!active.current) return;
         try {
+          patch(entry.requestKey, { status: "uploading" });
           await send(entry, target);
         } catch (error) {
           patch(entry.requestKey, { status: "failed", error: reason(error) });
@@ -327,6 +353,7 @@ function DocumentImportSession({
         ),
       );
     } finally {
+      sending.current = false;
       if (active.current) {
         setBusy(false);
         if (inputRef.current) inputRef.current.value = "";
@@ -346,12 +373,13 @@ function DocumentImportSession({
         if (!vivo) return;
         try {
           const { job } = await transport.get<{
-            job: { status: JobStatus; result: DocumentDraft | null; errorCode: string | null };
+            job: { status: JobStatus; result: DocumentDraft | null; errorCode: string | null; stage?: "ocr" | "tokenizer" | "chat" };
           }>("job", { workspaceId: workspace.id, jobId: entry.jobId! });
           if (!vivo) return;
           patch(entry.requestKey, {
             status: job.status,
             draft: job.result,
+            stage: ["ocr", "tokenizer", "chat"].includes(job.stage ?? "") ? job.stage : undefined,
             error:
               job.status === "failed"
                 ? documentErrorLabel(job.errorCode ?? "unknown", locale)
@@ -401,7 +429,7 @@ function DocumentImportSession({
   }
 
   const listos = entries.filter((e) => APPLICABLE.includes(e.status));
-  const enVuelo = entries.some((e) => !TERMINAL.includes(e.status) || (APPLICABLE.includes(e.status) && !e.draft));
+  const enVuelo = entries.some((e) => e.status !== "prepared" && (!TERMINAL.includes(e.status) || (APPLICABLE.includes(e.status) && !e.draft)));
 
   return (
     <section
@@ -424,10 +452,11 @@ function DocumentImportSession({
 
       <p className={s.notice}>
         {t(
-          "文件将保密保存，用于填写本次采购资料。如需辅助读取，会将文件内容发送至 Anthropic。请勿上传银行账号、身份证件或与货物无关的数据。",
-          "Guardamos estos archivos de forma privada para preparar tu Packing List + Factura. Si requieren lectura asistida, enviamos su contenido a Anthropic. Evita incluir datos bancarios, documentos de identidad o información ajena a la mercancía.",
-          "Files are stored privately to prepare your Packing List + Invoice. If assisted reading is needed, their content is sent to Anthropic. Avoid including bank details, identity documents or information unrelated to the goods.",
+          "文件用于填写本次采购资料。请勿上传银行账号、身份证件或与货物无关的数据。",
+          "Usamos los archivos para preparar tu Packing List + Factura. Evita incluir datos bancarios, documentos de identidad o información ajena a la mercancía.",
+          "Files are used to prepare your Packing List + Invoice. Avoid bank details, identity documents or information unrelated to the goods.",
         )}
+        {" "}{disclosure ?? t("读取方式暂不可用，仍可手动填写。", "No pudimos comprobar el servicio de lectura. Puedes completar los datos a mano.", "Reading service could not be checked. You can enter the data manually.")}
       </p>
 
       <div
@@ -506,8 +535,9 @@ function DocumentImportSession({
                     <span className={s.fileName}>{entry.file.name}</span>
                     <span className={s.badge}>{documentStatusLabel(entry.status, locale)}</span>
                   </div>
+                  {entry.status === "processing" && entry.stage && <p role="status" className={s.muted}>{entry.stage === "ocr" ? t("识别 PDF 文字", "Leyendo el texto del PDF", "Reading PDF text") : entry.stage === "tokenizer" ? t("检查输入长度", "Comprobando el tamaño de la lectura", "Checking input length") : t("整理提取的数据", "Preparando los datos para revisar", "Preparing extracted data for review")}</p>}
 
-                  {entry.status === "uploading" && !entry.jobId && (
+                  {entry.status === "prepared" && !entry.jobId && (
                     <label className={s.field}>
                       <span>{t("文件类型", "Tipo de documento", "Document type")}</span>
                       <select
@@ -571,6 +601,10 @@ function DocumentImportSession({
               );
             })}
           </div>
+          {entries.some(e => e.status === "prepared") && <div className={s.actions}>
+            <button type="button" className="btn btn-primary" disabled={busy || !disclosure} onClick={() => void sendPrepared()}>{t("发送并读取", "Enviar y leer documentos", "Send and read documents")}</button>
+            <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setEntries(previous => previous.filter(e => e.status !== "prepared"))}>{t("移除待发送文件", "Quitar archivos preparados", "Remove prepared files")}</button>
+          </div>}
 
           <p className={s.muted}>
             {t(

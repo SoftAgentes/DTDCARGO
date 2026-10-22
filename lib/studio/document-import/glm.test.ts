@@ -61,6 +61,44 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
+describe("S3 explicit remote Standard tokenizer", () => {
+  const remoteSettings = () => configureGlm({ DOCUMENT_IMPORT_PROVIDER: "glm", DOCUMENT_IMPORT_GLM_PLATFORM: "zai-standard",
+    DOCUMENT_IMPORT_GLM_API_KEY: "synthetic-only", DOCUMENT_IMPORT_GLM_MODEL: "glm-4.6", DOCUMENT_IMPORT_GLM_OCR_MODEL: "glm-ocr",
+    DOCUMENT_IMPORT_GLM_PDF_MODE: "ocr_then_text", DOCUMENT_IMPORT_GLM_MAX_PAGES: "2", DOCUMENT_IMPORT_GLM_TIMEOUT_MS: "1000",
+    DOCUMENT_IMPORT_GLM_MAX_INPUT_TOKENS: "16384", DOCUMENT_IMPORT_GLM_MAX_OUTPUT_TOKENS: "8192", DOCUMENT_IMPORT_GLM_MAX_OCR_PAGES_PER_DAY: "2" });
+  function remoteContext(tokens: unknown = 1000) {
+    const c = context();
+    const beforeDispatch = vi.fn(async () => undefined), received = vi.fn(async () => undefined), observeUsage = vi.fn(async () => undefined);
+    c.deps.tokenization = { mode: "remote_standard", beforeDispatch, received, observeUsage };
+    c.replies.splice(0, 2, json(ocr()), json({ usage: { prompt_tokens: tokens } }), json({ ...chat(), model: "glm-4.6", usage: { prompt_tokens: 1200, completion_tokens: 40, total_tokens: 1240 } }));
+    return { ...c, beforeDispatch, received, observeUsage, remoteRun: () => extractWithGlm(c.input, source, remoteSettings(), c.deps) };
+  }
+  it("sends the identical messages to tokenizer and chat, with thinking disabled and usage difference recorded", async () => {
+    const c = remoteContext(), result = await c.remoteRun();
+    expect(c.fetchMock.mock.calls.map(([url]) => url)).toEqual(["https://api.z.ai/api/paas/v4/layout_parsing", "https://api.z.ai/api/paas/v4/tokenizer", "https://api.z.ai/api/paas/v4/chat/completions"]);
+    const tokenizer = JSON.parse(String(c.fetchMock.mock.calls[1][1]?.body)), body = JSON.parse(String(c.fetchMock.mock.calls[2][1]?.body));
+    expect(tokenizer.messages).toEqual(body.messages); expect(tokenizer.model).toBe(body.model);
+    expect(body).toMatchObject({ stream: false, thinking: { type: "disabled" }, max_tokens: 8192, response_format: { type: "json_object" } });
+    expect(c.count).not.toHaveBeenCalled(); expect(c.beforeDispatch).toHaveBeenCalledTimes(3); expect(c.received).toHaveBeenCalledTimes(3);
+    expect(c.observeUsage).toHaveBeenCalledWith(expect.objectContaining({ tokenizer: 1000, chat: 1200, difference: 200, outputTokens: 40 }), expect.any(AbortSignal));
+    expect(result.usage).toMatchObject({ tokenizerInputTokens: 1000, tokenizerChatDifference: 200 });
+  });
+  it.each([0, -1, 16385, 1.5, "123", null])("blocks chat for invalid remote token count %s", async tokens => {
+    const c = remoteContext(tokens); await expect(c.remoteRun()).rejects.toMatchObject({ code: "token_limits" });
+    expect(c.fetchMock).toHaveBeenCalledTimes(2); expect(c.count).not.toHaveBeenCalled();
+  });
+  it.each([0, 1, 2])("does not fetch stage %s when its durable pre-dispatch fails", async stage => {
+    const c = remoteContext(); c.beforeDispatch.mockImplementation(async () => { if (c.beforeDispatch.mock.calls.length === stage + 1) throw new Error("PRIVATE ledger failure"); });
+    await expect(c.remoteRun()).rejects.toMatchObject({ code: "extraction_unavailable" });
+    expect(c.fetchMock).toHaveBeenCalledTimes(stage);
+  });
+  it("never falls back to the local counter when tokenizer rejects the request", async () => {
+    const c = remoteContext(); c.replies[1] = json({ error: "PRIVATE" }, 429);
+    await expect(c.remoteRun()).rejects.toMatchObject({ code: "extraction_unavailable" });
+    expect(c.fetchMock).toHaveBeenCalledTimes(2); expect(c.count).not.toHaveBeenCalled();
+  });
+});
+
 describe("SDD-0473 GLM S1 disconnected HTTP transport", () => {
   it("inspects and reserves before OCR, then counts the exact chat body and preserves net evidence", async () => {
     const c = context(), output = await c.run();
