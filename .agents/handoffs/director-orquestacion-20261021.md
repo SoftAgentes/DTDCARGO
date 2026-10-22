@@ -656,6 +656,14 @@ Lectura preliminar completa del diff inmutable953 frentea892:3rutas/57insercione
 
 Packingv1permanece sinruntime, mismoREADY8c0745/wrapper7391a2; V2enpreparación para resolver controladordevuelto, ninguna ventana abierta/reserva pesada porinferir. CRM14PASÓ/2NO DISPONIBLE yB1detenido sin nuevo cambioaccionable. Automatizaciónexistente coordinar-sesiones-dtd-cargo ACTUALIZADA conherramienta/mismoid/ACTIVE/cadencia/destino: añade estado53cerrado/capturaR15pendiente/PackingV2pendiente/CRMB0parcial para evitarreabrir turnos o repetiraltas. No automatizaciónduplicada ni cambio depreferenciasnotificación. Sigue silencio con progreso pendiente, notificación sólo por resultado/fallo/bloqueonuevo. Este heartbeat no acredita otra prueba ni amerita repetir el informe53.
 
+## Packing V2 conforme y GO B1 nuevo asignado
+
+V2 recibida/readiness14451/SHA d5e402ba8c69dd03fe97947bf8e106d90f1e44d013aaf58b7b7f5f12b86f274e yrun-B1-v2.ps119329/SHA67546e9eda53bb417e7f23334c3e3ea2173e9fb8e0e2cf3ace8b7b59221b72de leídas completas root/peer. Se corrigieron retry0, banderaindependienteStart, NativeExitCreateNewyaviso antesdedrain/postcheck, cleanup propioacotadotambiénencatch, metadatosconpresupuestorestante yatribuciónhonestaCMD/NodePIDnoobservado. Cierre efectivo min(absoluto,exec+60,finobservado+60). No queda hallazgo material estático de lospuntosrevisados; funcionamiento NO EJECUTADO aún. V1intacta; identidad/nodo/font/selección49/6/3render/17preimágenes iguales por comparación JSON literal de campos.
+
+Admisiónroot04:26:25.3891901Z137candidatos/0marcadores/0cmdfaltantes acotada, HEAD93e/tree d276/ramaPacking/clean4exits0. GOúnico DIRECTOR-PACKING-B1-49-20261022-01 asignado alDirectorPacking/mismoWorker, guard+claim antesdelrun/revalidaciónactual, preservarsellos. WindowStart04:27:00Z/últimaentrada04:37:00Z/corteexec04:45:00Z/cierre04:46:00Z,480trabajo+60cierre/máximo540, efectivos máscortos sinrenovar. Controllerliteralcon4parámetros, outputsB1previamenteausentes, sinretry/install/sourcewrite/push/B2/B3/resetservidores/QR. AvisoNativeExitinmediato yprepararantesdearrancar exterior4Gitexits/claim para ejecutar dentrofin+60sin esperarcustodia. Root observará también. ReservaúnicaPackingB1 hasta devolución formal, aúnsininicio demostrado alregistrar.
+
+Directorcontable avisado de reservaPacking; sólo03/PG17UNBOUNDligeros, no runtime/PGrealporinferencia. PrioridadCOREsevalorará cuandohayaotraREADYválida trasdevolución; no iniciarporcaducidaddehora. No nueva instrucción humana ni permiso externo ampliado.
+
 ## Fuera de alcance detectado
 
 Conflictos de307/315, pendientes históricos contables, compatibilidad/ejecución0502, omisiones de QA de packing, permisos de historial/piloto CRM y cobertura semántica global conservan sus owners. Se registraron sin repararlos, absorberlos ni activar producción.
