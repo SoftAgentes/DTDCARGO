@@ -15,7 +15,7 @@
  * sale, no que se haya llamado a una función.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { emptyDocumentDraft, type DocumentDraft } from "@/lib/shared/document-import";
+import { confirmationIssues, emptyDocumentDraft, toPackingPayload, type DocumentDraft } from "@/lib/shared/document-import";
 import { calcularEnvioLCL, type CalcParams, type Ciudad } from "@/lib/calculadora";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PortalClientPrincipal } from "@/lib/portal/portal-queries";
@@ -367,6 +367,83 @@ describe("S2: revisiones y declaraciones autoritativas", () => {
     const db = { from: () => ({ insert: () => ({ select: () => ({ single }) }) }) } as unknown as SupabaseClient;
     await expect(estimateForRequest(db, session, new Headers(), { ...requestBody(rows), save: true })).rejects.toMatchObject({ status: 409, code: "revision_conflict" });
     expect(single).toHaveBeenCalledOnce();
+  });
+});
+
+describe("S2: cobertura logística independiente por campo", () => {
+  function byField(globalField: "grossWeightKg" | "cbm") {
+    const d = packed({ cbm: null, weight: null, cartons: 1 });
+    d.supplier.email = "supplier@synthetic.example";
+    d.groups = [
+      { id: "g1", label: "A", cartons: 1, grossWeightKg: globalField === "cbm" ? 60 : null, cbm: globalField === "grossWeightKg" ? 0.3 : null, items: [{ productId: "p1", quantity: 5 }] },
+      { id: "g2", label: "B", cartons: 1, grossWeightKg: globalField === "cbm" ? 80 : null, cbm: globalField === "grossWeightKg" ? 0.5 : null, items: [{ productId: "p1", quantity: 5 }] },
+    ];
+    d.declaredTotals = { cartons: 2, grossWeightKg: globalField === "grossWeightKg" ? 140 : null, cbm: globalField === "cbm" ? 0.8 : null, amount: null };
+    return d;
+  }
+  function expectExistingEngine(drafts: DocumentDraft[], cbm: number, pesoKg: number, bateria = false, cargaEspecial = false) {
+    const rows = drafts.map(d => workspace(d));
+    const snapshot = rates();
+    const actual = estimateDocuments(rows, { cityId: "maracaibo" }, snapshot);
+    const input = { modo: "ddp" as const, cbmTotal: cbm, pesoKg, ciudadId: "maracaibo", embalaje: "estandar" as const, bateria, cargaEspecial, tarifaCBMOverride: snapshot.rate.per_cbm, minChargeOverride: snapshot.rate.min_charge ?? undefined };
+    expect(actual.input).toEqual(input);
+    expect(actual.totals).toMatchObject({ cbm, grossWeightKg: pesoKg });
+    expect(actual.result).toEqual(calcularEnvioLCL(input, PARAMS, [MARACAIBO]));
+    expect(actual.rates).toEqual({ rate: snapshot.rate, params: PARAMS, city: MARACAIBO });
+    return actual;
+  }
+  it.each(["cbm", "grossWeightKg"] as const)("usa %s global y el otro campo completo de grupos una vez, conservando el despacho pendiente", field => {
+    const d = byField(field), before = JSON.stringify(d);
+    expectExistingEngine([d], 0.8, 140);
+    expect(JSON.stringify(d)).toBe(before);
+    expect(d.declaredTotals[field === "cbm" ? "grossWeightKg" : "cbm"]).toBeNull();
+    expect(confirmationIssues(d).some(i => i.code === `${field}_missing` && i.blocking)).toBe(true);
+    expect(() => toPackingPayload(d)).toThrow();
+  });
+  it.each(["empty", "partial"])("conserva ambos globales con grupos %s sin fabricar reparto", mode => {
+    const d = byField("cbm"); d.declaredTotals.grossWeightKg = 140;
+    if (mode === "empty") d.groups = [];
+    else d.groups.forEach(g => { g.grossWeightKg = null; g.cbm = null; });
+    const before = JSON.stringify(d); expectExistingEngine([d], 0.8, 140);
+    expect(JSON.stringify(d)).toBe(before); expect(() => toPackingPayload(d)).toThrow();
+  });
+  it.each(["cbm", "grossWeightKg"] as const)("un %s realmente faltante o cero sigue sin cotizar", field => {
+    for (const value of [null, 0]) {
+      const d = byField(field); d.declaredTotals[field] = value;
+      expectFail(() => estimateDocuments([workspace(d)], { cityId: "maracaibo" }, rates()), 422, "missing_logistics");
+    }
+  });
+  it.each(["cbm", "grossWeightKg"] as const)("un subtotal %s conocido que supera el global nunca se oculta por otro grupo incompleto", field => {
+    const d = byField(field); d.groups[0][field] = field === "cbm" ? 0.9 : 141;
+    expect(confirmationIssues(d).some(i => i.code === "declared_total_mismatch")).toBe(true);
+    expectFail(() => estimateDocuments([workspace(d)], { cityId: "maracaibo" }, rates()), 422, "review_required");
+  });
+  it.each(["cbm", "grossWeightKg"] as const)("la suma %s completa distinta del global conserva el bloqueo numérico", field => {
+    const d = byField(field);
+    d.groups[0][field] = field === "cbm" ? 0.2 : 50;
+    d.groups[1][field] = field === "cbm" ? 0.4 : 70;
+    expectFail(() => combinedLogistics([workspace(d)]), 422, "review_required");
+  });
+  it("un conflicto explícito de fuente sigue bloqueando aunque ambos totales del motor estén disponibles", () => {
+    const d = byField("cbm");
+    d.issues = [{ id: "source-conflict", code: "source_conflict", path: "declaredTotals.cbm", message: "Valores distintos por revisar.", blocking: true, severity: "error" }];
+    expectFail(() => combinedLogistics([workspace(d)]), 422, "review_required");
+  });
+  it.each(["battery", "specialCargo"] as const)("no oculta %s=true con otra compra pendiente y recupera sólo tras declaración humana", key => {
+    const a = byField("cbm"), b = byField("grossWeightKg");
+    a.transportDeclarations![key] = true; b.transportDeclarations![key] = null;
+    const error = expectFail(() => estimateDocuments([workspace(a), workspace(b)], { cityId: "maracaibo", battery: false, specialCargo: false }, rates()), 422, "transport_review_required");
+    expect(error.message).toContain(key === "battery" ? "incluye baterías" : "incluye carga especial");
+    b.transportDeclarations![key] = false;
+    const result = expectExistingEngine([a, b], 1.6, 280, key === "battery", key === "specialCargo");
+    if (key === "specialCargo") expect(result.result.alerta?.tipo).toBe("carga_especial");
+  });
+  it("la lectura IA pendiente permanece bloqueante; revisar no fabrica la distribución", () => {
+    const d = byField("cbm");
+    d.issues = [{ id: "ai_review_required:document", code: "ai_review_required", path: "document", message: "Revisa la lectura.", blocking: true, severity: "error" }];
+    expectFail(() => estimateDocuments([workspace(d)], { cityId: "maracaibo" }, rates()), 422, "review_required");
+    d.issues[0].resolved = true; expectExistingEngine([d], 0.8, 140);
+    expect(() => toPackingPayload(d)).toThrow();
   });
 });
 

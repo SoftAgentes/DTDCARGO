@@ -18,11 +18,13 @@ export function combinedLogistics(workspaces:WorkspaceRow[]) {
     const totals=computeDocumentTotals(draft);
     if(totals.cbm==null || totals.cbm<=0 || totals.grossWeightKg==null || totals.grossWeightKg<=0) throw new ImportHttpError(422,"missing_logistics","Completa el peso bruto y el CBM de todas las compras antes de calcular.");
     const freightIndependent=new Set(["contact_missing","name_missing","price_missing","currency_missing","multiple_currencies","unsupported_currency","quantity_missing","unit_review","groups_missing","allocation_mismatch","contents_missing","unequal_carton_contents","packing_pattern_unknown","cartons_missing"]);
-    const reliableGlobal=draft.declaredTotals.cbm!==null&&draft.declaredTotals.cbm>0&&draft.declaredTotals.grossWeightKg!==null&&draft.declaredTotals.grossWeightKg>0;
+    const globalCbm=draft.declaredTotals.cbm!==null&&draft.declaredTotals.cbm>0;
+    const globalGross=draft.declaredTotals.grossWeightKg!==null&&draft.declaredTotals.grossWeightKg>0;
     const blockers=confirmationIssues(draft).filter(i=>i.blocking&&!i.resolved&&!freightIndependent.has(i.code)
       // Global totals cover the shipment once, including partially described groups.
       // Known disagreements (including subtotals exceeding the global total) still block.
-      && !(reliableGlobal && ["grossWeightKg_missing","cbm_missing"].includes(i.code)));
+      && !(globalCbm && i.code==="cbm_missing")
+      && !(globalGross && i.code==="grossWeightKg_missing"));
     if(blockers.length) throw new ImportHttpError(422,"review_required","Revisa las diferencias y la lectura parcial de los documentos antes de calcular.");
     cbm+=totals.cbm;weight+=totals.grossWeightKg;cartons=cartons===null||totals.cartons===null?null:cartons+totals.cartons;
   }
