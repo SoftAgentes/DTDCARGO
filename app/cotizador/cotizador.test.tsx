@@ -31,6 +31,11 @@ afterEach(cleanup);
 
 const WORKSPACE_ID = "00000000-0000-4000-8000-000000000001";
 const EXPIRA = "2026-09-18T15:00:00.000Z";
+const EXTRACTION_DISCLOSURE = "Proveedor sintético de la prueba: lectura aislada de PDF, sin servicio externo real.";
+const EXTRACTION_CAPABILITIES = {
+  available: true, portal: true, extractionDisclosure: EXTRACTION_DISCLOSURE,
+  formats: ["xlsx", "csv", "pdf"],
+};
 
 /** Dos productos en las MISMAS 5 cajas: 50 × 2 + 8 × 4 = 132 USD de mercancía. */
 function extraido(): DocumentDraft {
@@ -112,6 +117,7 @@ function cliente(guion: Guion = {}) {
   const client: DocumentClient = {
     get: vi.fn(async (action: string, params?: Record<string, string>) => {
       calls.push({ action, body: params });
+      if (action === "capabilities") return EXTRACTION_CAPABILITIES as never;
       if (action === "workspace")
         return {
           workspace: aplicado
@@ -169,16 +175,29 @@ function archivo(name = "proforma.pdf") {
   return file;
 }
 
-function elegir(files: File[]) {
+async function elegir(files: File[], client: DocumentClient) {
   fireEvent.change(screen.getByLabelText("Elige tus archivos o suéltalos aquí"), {
     target: { files },
   });
+  expect(client.upload).not.toHaveBeenCalled();
+  expect(client.post).not.toHaveBeenCalledWith("upload", expect.anything());
+  expect(client.post).not.toHaveBeenCalledWith("apply", expect.anything());
+  fireEvent.change(screen.getByRole("combobox", { name: "Tipo de documento" }), {
+    target: { value: "proforma" },
+  });
+  expect(client.upload).not.toHaveBeenCalled();
+  expect(client.post).not.toHaveBeenCalledWith("upload", expect.anything());
+  expect(client.post).not.toHaveBeenCalledWith("apply", expect.anything());
+  expect(await screen.findByText(EXTRACTION_DISCLOSURE, { exact: false })).toBeVisible();
+  const enviar = screen.getByRole("button", { name: "Enviar y leer documentos" });
+  await waitFor(() => expect(enviar).toBeEnabled());
+  fireEvent.click(enviar);
 }
 
 /** Recorre el camino real hasta tener el documento en la pantalla de revisión. */
 async function hastaRevisar(client: DocumentClient) {
   render(<CotizadorClient client={client} pollMs={1} />);
-  elegir([archivo()]);
+  await elegir([archivo()], client);
   fireEvent.click(await screen.findByRole("button", { name: "Aplicar al documento" }));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Revisar documento" })).toBeEnabled(),
@@ -221,7 +240,7 @@ describe("Cotizador público (SDD-0473)", () => {
   it("abre un workspace ANÓNIMO: no le manda ninguna compra al servidor", async () => {
     const { client, calls } = cliente();
     render(<CotizadorClient client={client} pollMs={1} />);
-    elegir([archivo()]);
+    await elegir([archivo()], client);
 
     await waitFor(() => expect(calls.some((c) => c.action === "open")).toBe(true));
     // Cuerpo vacío: ni `purchaseCode`, ni `purchaseId`, ni `authenticated`.
@@ -238,7 +257,7 @@ describe("Cotizador público (SDD-0473)", () => {
     expect(screen.getByRole("button", { name: "3 Precio" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Calcular el transporte" })).not.toBeInTheDocument();
 
-    elegir([archivo()]);
+    await elegir([archivo()], client);
     // El workspace ya está abierto, pero viene vacío: todavía no hay nada que cotizar.
     await waitFor(() => expect(client.post).toHaveBeenCalledWith("upload", expect.anything()));
     expect(screen.getByRole("button", { name: "3 Precio" })).toBeDisabled();
@@ -316,7 +335,7 @@ describe("Cotizador público (SDD-0473)", () => {
   it("el aviso de borrado usa la fecha del servidor", async () => {
     const { client } = cliente();
     render(<CotizadorClient client={client} pollMs={1} />);
-    elegir([archivo()]);
+    await elegir([archivo()], client);
 
     const aviso = await screen.findByText(/se borra solo el/i);
     expect(aviso.querySelector("time")).toHaveAttribute("datetime", EXPIRA);
@@ -325,7 +344,7 @@ describe("Cotizador público (SDD-0473)", () => {
   it("sin fecha del servidor no promete ningún plazo", async () => {
     const { client } = cliente({ expiresAt: null });
     render(<CotizadorClient client={client} pollMs={1} />);
-    elegir([archivo()]);
+    await elegir([archivo()], client);
 
     await waitFor(() => expect(client.post).toHaveBeenCalledWith("upload", expect.anything()));
     expect(screen.queryByText(/se borra solo/i)).not.toBeInTheDocument();
@@ -341,7 +360,7 @@ describe("Cotizador público (SDD-0473)", () => {
       ),
     });
     render(<CotizadorClient client={client} pollMs={1} />);
-    elegir([archivo()]);
+    await elegir([archivo()], client);
 
     await screen.findByText(/todavía no está disponible/);
     expect(screen.queryByText(/USD/)).not.toBeInTheDocument();

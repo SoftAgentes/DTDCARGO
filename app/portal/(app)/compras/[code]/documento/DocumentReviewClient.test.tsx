@@ -25,6 +25,11 @@ import { DocumentRequestError, type DocumentClient, type DocumentWorkspace } fro
 import { DocumentReviewClient } from "./DocumentReviewClient";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+const EXTRACTION_DISCLOSURE = "Proveedor sintético de la prueba: lectura aislada de PDF, sin servicio externo real.";
+const EXTRACTION_CAPABILITIES = {
+  available: true, portal: true, extractionDisclosure: EXTRACTION_DISCLOSURE,
+  formats: ["xlsx", "csv", "pdf"],
+};
 
 const WORKSPACE: DocumentWorkspace = {
   id: "00000000-0000-4000-8000-000000000001",
@@ -41,7 +46,7 @@ function cliente() {
   const client: DocumentClient = {
     get: vi.fn(async (action: string) => {
       calls.push({ action });
-      if (action === "capabilities") return { available: true, portal: true } as never;
+      if (action === "capabilities") return EXTRACTION_CAPABILITIES as never;
       if (action === "destinations") return { cities: [] } as never;
       if (action === "workspace")
         return { workspace: { ...WORKSPACE, revision } } as never;
@@ -158,7 +163,7 @@ describe("DocumentReviewClient · guardar dos veces (SDD-0473)", () => {
       throw new Error("acción inesperada");
     });
     vi.mocked(client.get).mockImplementation(async (action) => {
-      if (action === "capabilities") return { available: true, portal: true } as never;
+      if (action === "capabilities") return EXTRACTION_CAPABILITIES as never;
       if (action === "destinations") return { cities: [] } as never;
       if (action === "workspace") return { workspace: remoto } as never;
       throw new Error("acción inesperada");
@@ -201,7 +206,7 @@ describe("DocumentReviewClient · guardar dos veces (SDD-0473)", () => {
     const applied = new Promise<unknown>((resolve) => { aplicar = resolve; });
     const imported = { ...WORKSPACE, revision: 4, draft: { ...emptyDocumentDraft(), supplier: { ...emptyDocumentDraft().supplier, company: "Proveedor importado" } } };
     vi.mocked(client.get).mockImplementation(async (action) => {
-      if (action === "capabilities") return { available: true, portal: true } as never;
+      if (action === "capabilities") return EXTRACTION_CAPABILITIES as never;
       if (action === "destinations") return { cities: [] } as never;
       if (action === "job") return { job: { status: "ready", result: emptyDocumentDraft(), errorCode: null } } as never;
       if (action === "workspace") return { workspace: imported } as never;
@@ -218,6 +223,20 @@ describe("DocumentReviewClient · guardar dos veces (SDD-0473)", () => {
     const input = await screen.findByLabelText("Elige tus archivos o suéltalos aquí");
     const archivo = new File(["contenido"], "proforma.pdf", { type: "application/pdf" });
     fireEvent.change(input, { target: { files: [archivo] } });
+    expect(client.upload).not.toHaveBeenCalled();
+    expect(client.post).not.toHaveBeenCalledWith("upload", expect.anything());
+    expect(client.post).not.toHaveBeenCalledWith("apply", expect.anything());
+    fireEvent.change(screen.getByRole("combobox", { name: "Tipo de documento" }), {
+      target: { value: "proforma" },
+    });
+    expect(client.upload).not.toHaveBeenCalled();
+    expect(client.post).not.toHaveBeenCalledWith("upload", expect.anything());
+    expect(client.post).not.toHaveBeenCalledWith("apply", expect.anything());
+    expect(await screen.findByText(EXTRACTION_DISCLOSURE, { exact: false })).toBeVisible();
+    const enviar = screen.getByRole("button", { name: "Enviar y leer documentos" });
+    await waitFor(() => expect(enviar).toBeEnabled());
+    fireEvent.click(enviar);
+    await waitFor(() => expect(client.post).toHaveBeenCalledWith("upload", expect.objectContaining({ kind: "proforma" })));
     const aplicarBoton = await screen.findByRole("button", { name: "Aplicar al documento" }, { timeout: 6000 });
     fireEvent.click(aplicarBoton);
     fireEvent.change(screen.getByRole("textbox", { name: "Empresa" }), { target: { value: "Mi cambio mientras se aplicaba" } });

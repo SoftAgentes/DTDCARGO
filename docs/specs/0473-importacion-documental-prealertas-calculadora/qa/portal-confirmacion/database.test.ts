@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createDemoDatabase, IDS, QA_CASES } from "./database";
 import { getWorkspace, applyImport, saveWorkspace, getDocumentLabels } from "@/lib/studio/document-import/service";
-import { emptyDocumentDraft, projectSupplierDocument, computeDocumentTotals } from "@/lib/shared/document-import";
+import { emptyDocumentDraft, projectSupplierDocument, computeDocumentTotals, sameDocumentCargo } from "@/lib/shared/document-import";
 import { estimateDocuments } from "@/lib/studio/document-import/estimate";
 import { QA_RATE_SNAPSHOT } from "./server";
 
@@ -53,8 +53,23 @@ describe("S3 fictitious PGlite uses real apply, save, confirm and calculator", (
       editable.declaredTotals.grossWeightKg = 32; editable.declaredTotals.cbm = 0.24;
       const resolvedIssueIds = editable.issues.filter(issue => issue.code === "review_required" && ["supplier.company", "supplier.wechat"].includes(issue.path)).map(issue => issue.id);
       expect(resolvedIssueIds).toHaveLength(2);
-      const saved = await saveWorkspace(database.db, latest, supplier, { draft: editable, resolvedIssueIds, expectedRevision: latest.revision, commandId: randomUUID() });
+      const logisticsCommandId = randomUUID();
+      const saved = await saveWorkspace(database.db, latest, supplier, { draft: editable, resolvedIssueIds, expectedRevision: latest.revision, commandId: logisticsCommandId });
       latest = await getWorkspace(database.db, w.id); expect(latest.revision).toBe(saved.revision);
+      expect((latest.draft as typeof draft).transportDeclarations).toEqual({ battery: null, specialCargo: null });
+      expect(() => estimateDocuments([latest], { cityId: "maracaibo" }, QA_RATE_SNAPSHOT.rates)).toThrow(/declaración de baterías y carga regulada/);
+      // The supplier editor supports these two declarations. A human reviews the
+      // authoritative changed cargo, then saves declarations only in a NEW revision.
+      const reviewed = projectSupplierDocument(latest.draft as typeof draft);
+      reviewed.transportDeclarations = { battery: false, specialCargo: false };
+      expect(sameDocumentCargo(latest.draft as typeof draft, reviewed)).toBe(true);
+      const declarationCommandId = randomUUID();
+      expect(declarationCommandId).not.toBe(logisticsCommandId);
+      const declared = await saveWorkspace(database.db, latest, supplier, { draft: reviewed, expectedRevision: latest.revision, commandId: declarationCommandId });
+      expect(declared.revision).toBe(latest.revision + 1);
+      latest = await getWorkspace(database.db, w.id);
+      expect(latest.revision).toBe(declared.revision);
+      expect((latest.draft as typeof draft).transportDeclarations).toEqual({ battery: false, specialCargo: false });
       const confirmed = await saveWorkspace(database.db, latest, supplier, { draft: projectSupplierDocument(latest.draft as typeof draft), expectedRevision: latest.revision, commandId: randomUUID() }, true);
       latest = await getWorkspace(database.db, w.id); expect(confirmed.confirmed).toBe(true); expect(latest.confirmed_revision).toBe(latest.revision);
       const labels = await getDocumentLabels(database.db, latest, latest.revision);
