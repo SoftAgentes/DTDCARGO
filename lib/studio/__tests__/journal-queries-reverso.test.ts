@@ -70,6 +70,7 @@ describe("SDD-0573 · protección raw del diario", () => {
     expect(d.auth).toHaveBeenCalledTimes(1);
     expect(d.filters).toContainEqual({ table: "user_tenants", op: "eq", col: "user_id", val: "u1" });
     expect(d.filters).toContainEqual({ table: "user_tenants", op: "is", col: "disabled_at", val: null });
+    expect(d.filters).toContainEqual({ table: "journal_entries", op: "eq", col: "tenant_id", val: "t1" });
     expect(d.filters.filter((f) => f.table === "journal_entries" && f.op === "eq").every((f) => f.col === "tenant_id" && f.val === "t1")).toBe(true);
   });
 
