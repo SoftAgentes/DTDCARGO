@@ -1,5 +1,11 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Prioridad vigente DATA05: EXACT5 autorizados por dos constantes UUID obsoletas
+
+- HALLAZGO material estático owner e0ce3f/0 recibido después del encargo3: inspect-exported-pdfs.py:24 y decode-exported-qr.cjs:18 de los6fijos02 conservan WORKSPACE7015967d-5c7d-4a58-8dad-7ade1e7784e0; UUIDXLSXactual05 es328b2cff-3afd-4813-95b8-616f89bd5f25. Reutilizarlos intactos fallaría identidad del inspector, no demuestra BUGExcel/QR. Owner no alteró originales ni ejecutó helpers.
+- General YA autorizó MISMOowner, antes de entrega fija3, ampliar MISMOdirectorioDATA05 a EXACT5 TEXTOS: preflight-identity-DATA05.ps1; E2E-DATA-BINDING-UNBOUND.json; MANIFEST.json; inspect-exported-pdfs-DATA05.py; decode-exported-qr-DATA05.cjs. Dos copias DATA-only, UNA sustitución exacta WORKSPACE por helper count1, restoWHOLEidéntico/inversaENTERA/SHAantes-después; originales6intactos. Guard/ausencia/adopciónscopeampliado antesCreateNew2. JSON actualiza sólo2descriptorespath-bytes-SHA/datosinvocaciones yexpectedpins coherentes, inversaWHOLEexec02; sin lógica/controller/framework/helper6 nuevo. Si aparece otra referencia DATAoperativa, enumerarla en mismoJSON conubicación-count-inversa antes cualquier delta de lógica. NO dejar gatependiente presentada comoREADY.
+- Prompt de ampliación enviado UNAvez DIRECTO MISMOGLM yParentPackingavisado/isErrorfalse; no otra activación/Writer/Samgate. Esperar5FIJOS+FINADMIN yreviews antes NUEVOGO E2E04+EJE. Lo anterior que dice3es antecedente, scopeactual5 PREVALECE. Sin runtime/Nodecandidate/parser/P0/HTTP/CIM/privado/install/productedit. Recovery05 continúa PASÓ/reservaLIBERADA; Core03 sigue frío sinEJE.
+
 ## Estado vigente 2026-10-23 16:12 UTC — Recovery05 PASÓ; reserva liberada; DATA05 asignada
 
 - RECOVERY05 COMPLETADA PASÓ. Único fdbcc4/native0: ENTRY15:54:58.5766098Z→FIN15:55:34.9251048Z; actor54596/birth15:54:58.7631430Z/FINnative15:55:34.8753896Z/exit0/SafeHandle retenido. STDIN14381/069d5995... exacto fijo; stdout693/SHA66c52d21e3a2034bb2fb0a8a9333569d0314814a29f6a0b309e004bae32584c8/EOFtrue, stderr0/e3b0/EOFtrue/JSONvalidationtrue/problemNULL. Formal return15:56:06.176Z antes de custodia. ORIGINAL work16:09:58.576Z/close16:10:58.576Z conservadores de ms; no FIN+60/renovación. Go05/clocks/keys CONSUMIDOS, no repetir START/P0/POST.
