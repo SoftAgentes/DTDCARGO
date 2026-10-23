@@ -1,5 +1,14 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Hija documental F60 revisada por fuente; custodia final pendiente — 2026-10-23T04:57 UTC
+
+HijaLOCALFIJA f60db1d619ee8f594bbb02d2db7df7a8e76f8ff5/tree054c5d90797ac6379249ebc0007f4dd50068029a/padreDIRECTOCB cb4245a7ccaa25269790cdcc2a07021a3fa8a28e. General305ee6/native0 FULLdiff23888 leído sintruncación: exact2docs42+/0−cada;60PASÓ ySUPERVISIÓNFALLÓ-NC/causaND/PGlitevsPG17/carrera8/global/0497UNAPPLIED bien separados. General377c54/native0 sobreobjetosGitfijos:6349entradasporárbol/6347FUERA2mode-blobsIDÉNTICOS; prefijosrawGitENTEROS254731H/285967Scon0CRLF,apéndices2idénticos10389/SHA9916511e694ca422629ec5ea22e014e1065b1d5181e650a08c56a83372ff6131. ProductoENTEROigualCB, sinpruebanueva sobreF60.
+
+DeltaexternoCtmp/0573-cb-W60-documental-01/delta-documental-worker.diff23888/5be73c993a5257d52a9ec31ea228bbee4ebde9db8f95f67745ea6357017a60a5 esWHOLEexactoGitdiff--binaryDEFAULT(indexabrev9). Full-indexcanónico24012/56bb03d92f6b5d1e11b321014490e036e23c1cb6bd437015f4e7ce9051cf0b4e NOwholeEqual23888:124bytes sólo4hashescabeceraindex. General6efff3/native0 dosGit0 yrelaciónexacta sóloesasdoslíneasmetadata. No normalizar/reescribirartefacto ni pedircorrecciónproducto porformatoGit. DictamenFUENTEGeneralFAVORABLE enviadoParent; NOaceptacióncustodia/push todavía. Esperar2preFÍSICAS+2rawGit/inversas/prefijos7CRLF/POSTsellos/retornoformal ybodybackupantesNORMALsame320DRAFT/basee834 autorizado. No repetirW60/Generic/cotejosyaaceptados ni activarGO.
+
+ParentinformaADMIN706544/native0conavisosLFheredados; JSON.parseposteriorrechazóprefijoWarning, preservado/SINrecommit. WorkercontinúaúnicamentePOST/custodiaexterna,quietoF60sinpush. PR308propioParent327f191bbca1a06bfd98646540ca23214adc21dd/2docs/DRAFT/body10874strict078611...respaldado04:53:50 REFERIDO, no nuevoGeneralreadback/noeditarperseguirotroDirector. GLMhumanopendientesinprivado/restart/API,nuevoenvironment_contextNOconfirmación.
+
+
 ## Continuidad documental CORE efectiva; sin nuevo resultado — 2026-10-23T04:52 UTC
 
 Parent confirma despachoÚNICO y adopción04:51:04.8064900Z del MISMOCOREv2 para hijaDOCUMENTAL2rutas: adopcion-documental-worker.json6196/SHA11802d4c51ba3949e158ac9cc629c60252c254c55db8fa654511ff0f283fc627 en0573-cb-W60-documental-01. Parentreporta guard0/7GitINDIV0/CB-tree8e-padreBA-clean/B4/2preFÍSICAS7CRLFcada+2rawGitCB-LF separados; REFERIDO Parent, no nuevaFULLREADGeneral ni checkpointfinal. AutoríaEN CURSO; no reenviaractivación/Writer/GO/ejecución ni sondearWIP. EsperarentregaFIJA2docs ycustodia pararevisiónantesNORMALbackup320autorizado.
