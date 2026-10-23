@@ -6,6 +6,7 @@ const dgram = require('node:dgram');
 const cp = require('node:child_process');
 const path = require('node:path');
 const os = require('node:os');
+const { promisify } = require('node:util');
 const { syncBuiltinESMExports } = require('node:module');
 
 const log = process.env.DTD_OFFLINE_LOG;
@@ -30,7 +31,12 @@ net.Socket.prototype.connect = function (...args) {
 for (const key of ['lookup', 'resolve', 'resolve4', 'resolve6', 'resolveAny', 'resolveCname', 'resolveMx', 'resolveTxt', 'reverse']) {
   if (typeof dns[key] !== 'function') continue;
   const original = dns[key];
-  dns[key] = function (host, ...rest) { check('dns', host); return original.call(this, host, ...rest); };
+  dns[key] = function (host, ...rest) {
+    // listen(0, '0.0.0.0') resuelve una IP literal de bind, sin consultar DNS.
+    // connect a ese host sigue denegado por Socket.connect.
+    if (!(key === 'lookup' && host === '0.0.0.0')) check('dns', host);
+    return original.call(this, host, ...rest);
+  };
 }
 for (const key of ['lookup', 'resolve', 'resolve4', 'resolve6', 'resolveAny', 'resolveCname', 'resolveMx', 'resolveTxt', 'reverse']) {
   if (typeof dns.promises[key] !== 'function') continue;
@@ -98,6 +104,21 @@ for (const key of ['exec', 'execSync']) {
   cp[key] = function (command, options, callback) {
     if (typeof options === 'function') return original.call(this, command, childOptions(command, [], {}), options);
     return original.call(this, command, childOptions(command, [], options), callback);
+  };
+}
+// Node exec/execFile prometen {stdout,stderr}, no sólo stdout. Mantener el
+// contrato sin reutilizar el custom original (que eludiría childOptions).
+for (const key of ['exec', 'execFile']) {
+  cp[key][promisify.custom] = (...args) => {
+    let child;
+    const promise = new Promise((resolve, reject) => {
+      child = cp[key](...args, (error, stdout, stderr) => {
+        if (error) { error.stdout = stdout; error.stderr = stderr; reject(error); }
+        else resolve({ stdout, stderr });
+      });
+    });
+    promise.child = child;
+    return promise;
   };
 }
 syncBuiltinESMExports();

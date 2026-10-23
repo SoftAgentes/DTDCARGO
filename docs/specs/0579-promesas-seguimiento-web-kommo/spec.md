@@ -1,7 +1,7 @@
 ---
 sdd: "0579"
 title: "Promesas de seguimiento coherentes en FAQ y fuentes locales"
-status: in-progress
+status: done
 author: "Codex"
 created: 2026-10-23
 updated: 2026-10-23
@@ -73,4 +73,4 @@ Detalle reproducible y resultados en [qa.md](qa.md). Gobernanza Studio: no aplic
 
 ## Estado
 
-Implementación y validación local en progreso; no integrada ni publicada. Cierre y evidencia definitiva en el [handoff](../../../.agents/handoffs/0579-promesas-seguimiento-web-kommo.md).
+Implementación y aceptación local completadas: cinco FAQ, fuentes estáticas y privacidad, pruebas focales, render/JSON-LD y build de release. El gate canónico conserva FALLÓ/INCOMPLETO por incompatibilidades del auxiliar de ensayo, corregidas y recheckeadas focalmente, y cinco omisiones explícitas. No equivale a un gate global verde ni aprobación de release. Sin integración ni publicación. Conocimiento con capas pendientes declaradas. Cierre y evidencia en el [handoff](../../../.agents/handoffs/0579-promesas-seguimiento-web-kommo.md).

@@ -37,12 +37,15 @@ Object.assign(env, {
   NEXT_PUBLIC_HAILUWAY_API: fixtureUrl,
   NEXT_PUBLIC_SUPABASE_URL: fixtureUrl,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'synthetic-local-anon-no-business-data',
-  NEXT_PUBLIC_SITE_URL: 'http://127.0.0.1:45790',
   VERIFY_SKIP_EDGE: '1',
   VERIFY_SKIP_SQL: '1',
   // La suite E2E general no instala nuestro route guard; se sustituye por ui acotada.
   VERIFY_SKIP_E2E: '1',
 });
+// La URL canónica forma enlaces y no inicia conexiones. En verify se conserva
+// el default del producto para que las pruebas de email mockeado midan su contrato.
+delete env.NEXT_PUBLIC_SITE_URL;
+if (mode === 'ui') env.NEXT_PUBLIC_SITE_URL = 'http://127.0.0.1:45790';
 const require = createRequire(import.meta.url);
 for (const name of Object.keys(process.env)) {
   if (!(name in env)) delete process.env[name];
