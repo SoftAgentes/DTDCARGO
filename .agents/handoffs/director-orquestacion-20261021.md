@@ -1,5 +1,11 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Continuidad fría efectiva referida; automatización actualizada — 2026-10-23T05:25 UTC
+
+Parent informa adopción FRÍA efectiva del MISMO CORE a05:20:29.435Z: guard0, siete Git0, F60/ramaCORE limpio/B4 antes de crear las tres salidas autorizadas. Es REFERIDO por Parent, no lectura WIP ni nuevo checkpoint General. No reenviar activación ni reservar prueba; esperar paquete fijo y retorno ADMIN. El respaldo PR308 a65dd2c3ae9afc75ee1f6912b52a6847fe76de4a/2docs a05:23:48.5505880Z y sus comprobantes son REFERIDOS, no readback General ni autorización para editar otro Director.
+
+La automatización oficial coordinar-sesiones-dtd-cargo fue actualizada realmente a05:24:41UTC con prompt cohesivo: F60 remoto PASÓ, custodia de publicación INCOMPLETA por «blocked by policy», dos durables/seis ausentes, control ADMIN cerrado sin evasión, propuesta fría independiente de tres textos ya despachada y GLM pendiente de humano. Se conservaron ACTIVE, cada20min, targetRoot y notificationPolicyNULL. Snapshot pasivo GLM después del readbackF60: cursor643/IDLE/changedfalse, sin nuevo humano ni activación. Próxima continuidad debe leer este HEAD y mensajes posteriores; no repetir avisos, publicación, pruebas o preguntaKEY por estos hechos.
+
 ## PR320 F60 publicada; custodia incompleta por rechazo automático — 2026-10-23 05:22:39 UTC
 
 PASÓ el respaldo remoto, comprobado por General de forma independiente en 835d2f/native0: PR320 OPEN/DRAFT, head exacto f60db1d619ee8f594bbb02d2db7df7a8e76f8ff5, baseRef codex/0573-base-temprana-20261021 y base e834dc6eef597421d10f880b5deb8d689dcc7078, 55 rutas, mergedAt NULL. Readback real 05:15:40.276–05:15:41.039Z y fetch origin --no-prune 6aea89/native0. Título entero «SDD-0573 CORE: reversos y Libro Diario; W60 PASÓ con NC», 56 bytes/SHA69bf24f8901ddd016b120e5e40465b6d665b9ba650e0947a85db0342a3ad2561. Body entero 4905/SHA08a090f02cc930f78d954dbdaafc819d2da022885d98181aacad2eed5050d3ea, idéntico byte por byte al archivo aprobado. checks[] no acredita CI verde. PR319 se mantiene OPEN/DRAFT en d42b42de94aa09222b67f342451b2e3cf573e3d4, base main/D410, 53 rutas, sin merge; ambas listas de rutas tienen cero solapamientos literales. GLM43582 sigue local y no corresponde al head remoto319.
