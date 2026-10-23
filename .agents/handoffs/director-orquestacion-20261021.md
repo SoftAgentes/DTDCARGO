@@ -1,5 +1,12 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Estado vigente de coordinación — 23oct2026 21:24 UTC / 17:24 Caracas
+
+Este encabezado orienta la lectura del handoff. El checklist vigente está en la sección «Checklist de cierre actualizado — 2026-10-23 21:20 UTC / 17:20 Caracas». Los bloques anteriores de CLI01/CLI02 y sus autoridades son históricos: no son una reserva activa ni permiten repetir operaciones.
+
+Estado observado: #322/#323/#324 CI individual PASÓ y recomendación de integración serial revisada; integración/producción aún no autorizadas. #319/db0 TypeScript y Edge PASÓ, CI completa pendiente con unitarios en ejecución (consulta21:24:42). Parent CONTABILIDAD cotejó autoridad05 y prepara el despacho frío al MISMO CORE tras sus comprobaciones; General aún no observa adopción efectiva del Worker. QPG17/carrera siguen NO EJECUTADOS. Sin reserva heavy ni EJE vigente. HUMAN03 mantiene sus dos servicios A26 protegidos, sin nuevas lecturas de app/archivos del usuario.
+
+
 ## CLI01 cerrado FALLÓ readiness; CLI02 nominal con presupuesto operativo corregido — 2026-10-23
 
 CLI01 ORIGINauténtico18:51:33Z/work19:06:33/close19:08:33 consumidos. App backend/frontend sí arrancó porCLIenv-i estándar: backend982f69/session34280/shell26896→env46336→Node33408, CIM18:52:12.7848750Z/HANDLE.7848752, esbuild50388 observado; frontendd93752/session11480/shell42628. HTTPcapabilities/workspace/frontend2001608b1/0 observación18:53:14.6595153Z, UUID9e2c8d39-f6d5-4e1f-9f74-37f26122a81d realR0vacío. firstanchor18:52:12.6461885→HTTPproof62.0133268s>ready60: FALLÓpreparación, CSVpreview/XLSXFULL/UI/HUMAN NOEJ, no fallo de negocio demostrado.
