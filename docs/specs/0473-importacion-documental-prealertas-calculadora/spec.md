@@ -1369,3 +1369,25 @@ SQL/UI, pnpm verify y gestores/conocimiento están NO EJECUTADOS por el encargo
 actual; node_modules está ausente y no se instala ni copia. Gate pendiente:
 revisión Parent-General y luego CI automática del respaldo normal de la misma
 PR319, base main, sin force, nueva PR, merge ni producción.
+
+## CI319 · tipo del recibo en memoria del runtime QA · 2026-10-23
+
+Continuación exacta sobre b1ef: run40024180498/job120656054567 FALLÓ TypeScript
+por UN TS2322 en runtime(91,37); los18 errores previos no se repiten. Se conservan
+ambos fallos CI y sus SKIPs; ningún resultado previo acredita este candidato.
+
+Allowlist exacta: qa/portal-confirmacion/glm-test-runtime.ts relativa a esta
+spec, esta spec y .agents/handoffs/0473-glm-encargo-20261022.md del WT CI propio.
+Sólo cambia la anotación del Map receipts: attemptId string; provider/usage
+siguen derivados por Pick del resultado de extractWithGlm. La string del caché
+continúa pasando por el mismo typeof y regex, sin cast a UUID ni otra validación.
+
+Consumidores revisados por Git: receipt(workspaceId) retorna valor o null al
+JSON de action usage en server.ts; writeCompleted recibe value unknown. Ambos
+admiten la string ya validada, y el UUID inferido del resultado fresco es
+asignable a string. El cambio se borra al compilar tipos y no agrega efectos.
+
+Candidato local pendiente de revisión Parent-General/respaldo normal misma319
+y CI real. Sin tests/lint/typecheck/build/verify/runtime/UI/HTTP/Nodecandidato,
+instalación o conocimiento por encargo. Sin cambios en demo A26 ni documentos
+de Sam, fuentes anteriores, tests/config o controles durables/proveedor.

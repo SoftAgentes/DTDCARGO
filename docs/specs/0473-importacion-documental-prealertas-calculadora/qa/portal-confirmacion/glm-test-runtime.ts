@@ -68,7 +68,7 @@ export async function createGlmTestRuntime(admission: GlmTestAdmission, dependen
   const profile=createHash("sha256").update(JSON.stringify({goId:admission.goId,provider:"glm",platform:"zai-standard",model:"glm-4.6",ocr:"glm-ocr",input:16384,output:8192,pages:2})).digest("hex");
   const running = new Set<string>();
   const contextId=(source:ExtractionOptions,origin:TestOrigin)=>createHash("sha256").update(JSON.stringify({profile,origin:{id:origin.id,tenant:origin.tenant_id,client:origin.client_id,purchase:origin.prealerta_id,anonymous:origin.anonymous_hash,revision:origin.revision},kind:source.kind,fileName:source.fileName})).digest("hex");
-  const receipts = new Map<string, Pick<Awaited<ReturnType<typeof extractWithGlm>>, "attemptId" | "provider" | "usage">>();
+  const receipts = new Map<string, Pick<Awaited<ReturnType<typeof extractWithGlm>>, "provider" | "usage"> & { attemptId: string }>();
   const extract = async (bytes: Uint8Array, options: ExtractionOptions, origin:TestOrigin, stage?: (stage: GlmStage) => void) => {
     const workspaceId=origin.id,revision=origin.revision;
     const kind = admitTestInput(bytes, options.fileName);
