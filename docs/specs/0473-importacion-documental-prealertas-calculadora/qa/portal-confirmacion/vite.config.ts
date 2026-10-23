@@ -96,6 +96,308 @@ const runtimeAliases:ReadonlyArray<readonly [string,string]>=[
     "node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite"
   ]
 ];
+type SsrNodeRow={id:string;aliasTarget:string;entry:string;anchor:string;format:"commonjs"|"module";names:readonly string[]};
+// Finite SSR entrypoints read from the admitted physical package manifests.
+const ssrNodeDefinitions:ReadonlyArray<SsrNodeRow>=[
+  {
+    "id": "react",
+    "aliasTarget": "node_modules/.pnpm/react@19.2.4/node_modules/react",
+    "entry": "node_modules/.pnpm/react@19.2.4/node_modules/react/index.js",
+    "anchor": "node_modules/.pnpm/react@19.2.4/node_modules/react/package.json",
+    "format": "commonjs",
+    "names": [
+      "Activity",
+      "Children",
+      "Component",
+      "Fragment",
+      "Profiler",
+      "PureComponent",
+      "StrictMode",
+      "Suspense",
+      "__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE",
+      "__COMPILER_RUNTIME",
+      "act",
+      "cache",
+      "cacheSignal",
+      "captureOwnerStack",
+      "cloneElement",
+      "createContext",
+      "createElement",
+      "createRef",
+      "forwardRef",
+      "isValidElement",
+      "lazy",
+      "memo",
+      "startTransition",
+      "unstable_useCacheRefresh",
+      "use",
+      "useActionState",
+      "useCallback",
+      "useContext",
+      "useDebugValue",
+      "useDeferredValue",
+      "useEffect",
+      "useEffectEvent",
+      "useId",
+      "useImperativeHandle",
+      "useInsertionEffect",
+      "useLayoutEffect",
+      "useMemo",
+      "useOptimistic",
+      "useReducer",
+      "useRef",
+      "useState",
+      "useSyncExternalStore",
+      "useTransition",
+      "version"
+    ]
+  },
+  {
+    "id": "react/jsx-runtime",
+    "aliasTarget": "node_modules/.pnpm/react@19.2.4/node_modules/react/jsx-runtime",
+    "entry": "node_modules/.pnpm/react@19.2.4/node_modules/react/jsx-runtime.js",
+    "anchor": "node_modules/.pnpm/react@19.2.4/node_modules/react/package.json",
+    "format": "commonjs",
+    "names": [
+      "Fragment",
+      "jsx",
+      "jsxs"
+    ]
+  },
+  {
+    "id": "react/jsx-dev-runtime",
+    "aliasTarget": "node_modules/.pnpm/react@19.2.4/node_modules/react/jsx-dev-runtime",
+    "entry": "node_modules/.pnpm/react@19.2.4/node_modules/react/jsx-dev-runtime.js",
+    "anchor": "node_modules/.pnpm/react@19.2.4/node_modules/react/package.json",
+    "format": "commonjs",
+    "names": [
+      "Fragment",
+      "jsxDEV"
+    ]
+  },
+  {
+    "id": "react-dom",
+    "aliasTarget": "node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom",
+    "entry": "node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/index.js",
+    "anchor": "node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/package.json",
+    "format": "commonjs",
+    "names": [
+      "__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE",
+      "createPortal",
+      "flushSync",
+      "preconnect",
+      "prefetchDNS",
+      "preinit",
+      "preinitModule",
+      "preload",
+      "preloadModule",
+      "requestFormReset",
+      "unstable_batchedUpdates",
+      "useFormState",
+      "useFormStatus",
+      "version"
+    ]
+  },
+  {
+    "id": "react-dom/client",
+    "aliasTarget": "node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/client",
+    "entry": "node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/client.js",
+    "anchor": "node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/package.json",
+    "format": "commonjs",
+    "names": [
+      "createRoot",
+      "hydrateRoot",
+      "version"
+    ]
+  },
+  {
+    "id": "next",
+    "aliasTarget": "node_modules/.pnpm/next@16.2.11_@babel+core@7._d08a723af2f56ed11bad03bde5cbd597/node_modules/next",
+    "entry": "node_modules/.pnpm/next@16.2.11_@babel+core@7._d08a723af2f56ed11bad03bde5cbd597/node_modules/next/dist/server/next.js",
+    "anchor": "node_modules/.pnpm/next@16.2.11_@babel+core@7._d08a723af2f56ed11bad03bde5cbd597/node_modules/next/package.json",
+    "format": "commonjs",
+    "names": []
+  },
+  {
+    "id": "next/headers",
+    "aliasTarget": "node_modules/.pnpm/next@16.2.11_@babel+core@7._d08a723af2f56ed11bad03bde5cbd597/node_modules/next/headers",
+    "entry": "node_modules/.pnpm/next@16.2.11_@babel+core@7._d08a723af2f56ed11bad03bde5cbd597/node_modules/next/headers.js",
+    "anchor": "node_modules/.pnpm/next@16.2.11_@babel+core@7._d08a723af2f56ed11bad03bde5cbd597/node_modules/next/package.json",
+    "format": "commonjs",
+    "names": [
+      "cookies",
+      "headers",
+      "draftMode"
+    ]
+  },
+  {
+    "id": "next/server",
+    "aliasTarget": "node_modules/.pnpm/next@16.2.11_@babel+core@7._d08a723af2f56ed11bad03bde5cbd597/node_modules/next/server",
+    "entry": "node_modules/.pnpm/next@16.2.11_@babel+core@7._d08a723af2f56ed11bad03bde5cbd597/node_modules/next/server.js",
+    "anchor": "node_modules/.pnpm/next@16.2.11_@babel+core@7._d08a723af2f56ed11bad03bde5cbd597/node_modules/next/package.json",
+    "format": "commonjs",
+    "names": [
+      "NextRequest",
+      "NextResponse",
+      "ImageResponse",
+      "userAgentFromString",
+      "userAgent",
+      "URLPattern",
+      "after",
+      "connection"
+    ]
+  },
+  {
+    "id": "exceljs",
+    "aliasTarget": "node_modules/.pnpm/exceljs@4.4.0/node_modules/exceljs",
+    "entry": "node_modules/.pnpm/exceljs@4.4.0/node_modules/exceljs/excel.js",
+    "anchor": "node_modules/.pnpm/exceljs@4.4.0/node_modules/exceljs/package.json",
+    "format": "commonjs",
+    "names": []
+  },
+  {
+    "id": "fflate",
+    "aliasTarget": "node_modules/.pnpm/fflate@0.8.3/node_modules/fflate",
+    "entry": "node_modules/.pnpm/fflate@0.8.3/node_modules/fflate/esm/index.mjs",
+    "anchor": "node_modules/.pnpm/fflate@0.8.3/node_modules/fflate/package.json",
+    "format": "module",
+    "names": [
+      "Unzip",
+      "UnzipInflate",
+      "strToU8",
+      "unzipSync",
+      "zipSync"
+    ]
+  },
+  {
+    "id": "@supabase/supabase-js",
+    "aliasTarget": "node_modules/.pnpm/@supabase+supabase-js@2.106.1/node_modules/@supabase/supabase-js",
+    "entry": "node_modules/.pnpm/@supabase+supabase-js@2.106.1/node_modules/@supabase/supabase-js/dist/index.mjs",
+    "anchor": "node_modules/.pnpm/@supabase+supabase-js@2.106.1/node_modules/@supabase/supabase-js/package.json",
+    "format": "module",
+    "names": [
+      "createClient"
+    ]
+  },
+  {
+    "id": "@supabase/ssr",
+    "aliasTarget": "node_modules/.pnpm/@supabase+ssr@0.5.2_@supabase+supabase-js@2.106.1/node_modules/@supabase/ssr",
+    "entry": "node_modules/.pnpm/@supabase+ssr@0.5.2_@supabase+supabase-js@2.106.1/node_modules/@supabase/ssr/dist/main/index.js",
+    "anchor": "node_modules/.pnpm/@supabase+ssr@0.5.2_@supabase+supabase-js@2.106.1/node_modules/@supabase/ssr/package.json",
+    "format": "commonjs",
+    "names": [
+      "createServerClient"
+    ]
+  },
+  {
+    "id": "@anthropic-ai/sdk",
+    "aliasTarget": "node_modules/.pnpm/@anthropic-ai+sdk@0.98.0_zod@4.4.3/node_modules/@anthropic-ai/sdk",
+    "entry": "node_modules/.pnpm/@anthropic-ai+sdk@0.98.0_zod@4.4.3/node_modules/@anthropic-ai/sdk/index.mjs",
+    "anchor": "node_modules/.pnpm/@anthropic-ai+sdk@0.98.0_zod@4.4.3/node_modules/@anthropic-ai/sdk/package.json",
+    "format": "module",
+    "names": []
+  },
+  {
+    "id": "clsx",
+    "aliasTarget": "node_modules/.pnpm/clsx@2.1.1/node_modules/clsx",
+    "entry": "node_modules/.pnpm/clsx@2.1.1/node_modules/clsx/dist/clsx.mjs",
+    "anchor": "node_modules/.pnpm/clsx@2.1.1/node_modules/clsx/package.json",
+    "format": "module",
+    "names": []
+  },
+  {
+    "id": "tailwind-merge",
+    "aliasTarget": "node_modules/.pnpm/tailwind-merge@3.6.0/node_modules/tailwind-merge",
+    "entry": "node_modules/.pnpm/tailwind-merge@3.6.0/node_modules/tailwind-merge/dist/bundle-mjs.mjs",
+    "anchor": "node_modules/.pnpm/tailwind-merge@3.6.0/node_modules/tailwind-merge/package.json",
+    "format": "module",
+    "names": []
+  },
+  {
+    "id": "qrcode",
+    "aliasTarget": "node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode",
+    "entry": "node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/index.js",
+    "anchor": "node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/package.json",
+    "format": "commonjs",
+    "names": []
+  },
+  {
+    "id": "qrcode.react",
+    "aliasTarget": "node_modules/.pnpm/qrcode.react@4.2.0_react@19.2.4/node_modules/qrcode.react",
+    "entry": "node_modules/.pnpm/qrcode.react@4.2.0_react@19.2.4/node_modules/qrcode.react/lib/esm/index.js",
+    "anchor": "node_modules/.pnpm/qrcode.react@4.2.0_react@19.2.4/node_modules/qrcode.react/package.json",
+    "format": "module",
+    "names": [
+      "QRCodeSVG"
+    ]
+  },
+  {
+    "id": "@react-pdf/renderer",
+    "aliasTarget": "node_modules/.pnpm/@react-pdf+renderer@4.5.1_react@19.2.4/node_modules/@react-pdf/renderer",
+    "entry": "node_modules/.pnpm/@react-pdf+renderer@4.5.1_react@19.2.4/node_modules/@react-pdf/renderer/lib/react-pdf.js",
+    "anchor": "node_modules/.pnpm/@react-pdf+renderer@4.5.1_react@19.2.4/node_modules/@react-pdf/renderer/package.json",
+    "format": "module",
+    "names": [
+      "Document",
+      "Font",
+      "Image",
+      "Page",
+      "StyleSheet",
+      "Text",
+      "View",
+      "renderToBuffer"
+    ]
+  },
+  {
+    "id": "sharp",
+    "aliasTarget": "node_modules/.pnpm/sharp@0.35.3_@types+node@20.19.41/node_modules/sharp",
+    "entry": "node_modules/.pnpm/sharp@0.35.3_@types+node@20.19.41/node_modules/sharp/dist/index.mjs",
+    "anchor": "node_modules/.pnpm/sharp@0.35.3_@types+node@20.19.41/node_modules/sharp/package.json",
+    "format": "module",
+    "names": []
+  },
+  {
+    "id": "@electric-sql/pglite",
+    "aliasTarget": "node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite",
+    "entry": "node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/index.js",
+    "anchor": "node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/package.json",
+    "format": "module",
+    "names": [
+      "PGlite"
+    ]
+  }
+];
+const ssrNodeRows:ReadonlyArray<SsrNodeRow>=ssrNodeDefinitions.map(row=>({...row,
+  aliasTarget:path.join(closedRuntimeRoot,row.aliasTarget).replaceAll("\\","/"),
+  entry:path.join(closedRuntimeRoot,row.entry).replaceAll("\\","/"),
+  anchor:path.join(closedRuntimeRoot,row.anchor).replaceAll("\\","/"),
+}));
+const ssrVirtualPrefix="\0sdd0473-node-cjs:";
+const normalizeSsrId=(id:string)=>id.replaceAll("\\","/");
+function resolveSsrNode(id:string,options:{ssr?:boolean}|undefined){
+  if(!runtimeMode||!options?.ssr)return undefined;
+  const normalized=normalizeSsrId(id);
+  const rowIndex=ssrNodeRows.findIndex(row=>normalized===row.id||normalized===row.aliasTarget||normalized===row.entry);
+  if(rowIndex<0)return undefined;
+  const row=ssrNodeRows[rowIndex];
+  if(row.format==="module")return row.entry; // exact Node import-condition ESM file; Vite normal ESM processing
+  return ssrVirtualPrefix+String(rowIndex);
+}
+function loadSsrNode(id:string,options:{ssr?:boolean}|undefined){
+  if(!id.startsWith(ssrVirtualPrefix))return undefined;
+  if(!runtimeMode||!options?.ssr)throw new QaExtractionConfigurationError();
+  const indexText=id.slice(ssrVirtualPrefix.length);
+  if(!/^(0|[1-9][0-9]*)$/.test(indexText))throw new QaExtractionConfigurationError();
+  const row=ssrNodeRows[Number(indexText)];
+  if(!row||row.format!=="commonjs"||!row.names.every(name=>/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)))throw new QaExtractionConfigurationError();
+  return [
+    'import { createRequire as createLocalRequire } from "node:module";',
+    'const localRequire=createLocalRequire('+JSON.stringify(row.anchor)+');',
+    'const actualModule=localRequire('+JSON.stringify(row.entry)+');',
+    'export default actualModule;',
+    ...row.names.map(name=>'export const '+name+'=actualModule['+JSON.stringify(name)+'];'),
+  ].join("\n");
+}
 const require=createRequire(path.join(runtimeMode?closedRuntimeRoot:root,"package.json"));
 const vitePath=runtimeMode?path.join(closedRuntimeRoot,runtimeEntries.vite)
   :require.resolve("vite",{paths:[path.dirname(require.resolve("vitest/package.json"))]});
@@ -142,8 +444,8 @@ const server=await createServer({
         return code.replace(bare,selectedImport+'\n@source "../components/document-import";\n@source "../app/p/[token]";\n@source "../app/portal";\n@source "../docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion";');
       }
     },
-    resolveId(id:string){if(["next/navigation","next/link","next/image"].includes(id))return "\0local-demo:"+id;},
-    load(id:string){if(id==="\0local-demo:next/navigation")return "export const useRouter=()=>({refresh(){},push(url){location.href=url}});";if(id==="\0local-demo:next/link")return "import React from 'react';export default function Link({children,...props}){return React.createElement('a',props,children)}";if(id==="\0local-demo:next/image")return "import React from 'react';export default function Image({fill,priority,unoptimized,...props}){return React.createElement('img',props)}";},
+    resolveId(id:string,_importer:string|undefined,options?:{ssr?:boolean}){const native=resolveSsrNode(id,options);if(native!==undefined)return native;if(["next/navigation","next/link","next/image"].includes(id))return "\0local-demo:"+id;},
+    load(id:string,options?:{ssr?:boolean}){const native=loadSsrNode(id,options);if(native!==undefined)return native;if(id==="\0local-demo:next/navigation")return "export const useRouter=()=>({refresh(){},push(url){location.href=url}});";if(id==="\0local-demo:next/link")return "import React from 'react';export default function Link({children,...props}){return React.createElement('a',props,children)}";if(id==="\0local-demo:next/image")return "import React from 'react';export default function Image({fill,priority,unoptimized,...props}){return React.createElement('img',props)}";},
   },react()],
 });
 if(!backend){const {demoMiddleware}=await server.ssrLoadModule("/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/server.ts");handler=await demoMiddleware(server,root,extraction);}
