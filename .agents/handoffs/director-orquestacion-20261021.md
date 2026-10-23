@@ -54,6 +54,113 @@ CORE04 bloqueo NUEVO REFERIDO directamente por Parent: única celda ADMIN90 al e
 
 Conocimiento/gestores/bootstrap/inventarios equivalentes siguen suspendidos. Excepción humana de actualizar Graphify/Obsidian ya completada y fechada14:31UTC, sin actualizar software Graphify0.9.61 a0.9.94 (requiere petición humana de upgrade y compatibilidad). No confundir conocimiento actualizado con release ERP. Preservar rechazos históricos F60 y 19 exports GLM sin reconstrucción/alternativas; no resolver por este análisis.
 
+## Corte de cierre por ventanas y PR solicitado por Sam — 2026-10-23 20:11 UTC / 16:11 Caracas
+
+**Prioridad humana vigente:** cerrar las entregas actuales con su checklist y PR antes de ampliar el siguiente objetivo. El pedido no autoriza merge, deploy ni migraciones productivas. Root conserva sólo este artefacto; los planes/checklists de CONTABILIDAD y SEO permanecen en sus dueños. Mismos Workers/ramas, sin escritores ni modelos sustitutos.
+
+### Qué se verificó y qué se decidió
+
+- [x] HEAD propio a5f8630d, rama codex/director-orquestacion-20261021 y árbol rastreado limpio antes de esta entrada.
+- [x] Lectura directa de humanos recientes y finales de Packing/GLM, SEO y CRM. CONTABILIDAD tuvo systemError403/routing en heartbeats y recibió un encargo nuevo sólo ADMIN; no se atribuyen esos errores a SQL.
+- [x] Fetch f9d9b2/0 REAL19:59:38.6927722→19:59:47.5396505Z: origin/main D410. GH a9fa76/0 a19:59:52, archivo por archivo48e65f/0 (consulta20:02:24→20:04:27), y base/head/checks026002/0 a20:07:55: **18PR abiertas, todasDRAFT**. Catorce sin checks; cuatro con SUCCESS propio (#262/#306/#307/#308), ninguna verde por transitividad.
+- [x] Separación de las tres entregas web comprobada por Root2a5051/0: 16/17/15 rutas, cabezas d069/c2a9/6e3b limpias y claims ausentes. Sólo comparten docs/marketing/README.md y docs/specs/README.md; sin solapamiento de producto, NO prueba de ejecución combinada.
+- [x] Paquete final SEO aa0bd4d leído ENTERO bc950c/0:18444 caracteres; tres títulos/cuerpos exactos propuestos y resultados canónicos honestos. Se adopta para **respaldo DRAFT normal** bajo instrucción humana nueva, sin abrir otras tareas.
+- [ ] Publicaciones DRAFT web y readbacks: orden concreta abajo; todavía NO realizadas al guardar esta entrada.
+- [ ] Aptitud productiva: ninguna entrega funcional actual admitida para activar producción. Las documentales son revisables por su alcance; no prueban capacidades del ERP. Main puede activar la publicación automática en VPS.
+
+### Checklist por ventana / siguiente cierre
+
+**SEO y web — mismo Director y owners originales.** Tres correcciones terminadas para revisión local; primer lote independiente recomendado.
+
+- [x] 0579 FAQ/privacidad/KB local: d069b5b26df962b25f6476bfd7c3c626c4764be2; producto probado206728c5.41focales/UI/JSON-LD/build PASÓ; canónico FALLÓ/INCOMPLETO12/17, cuatro fallos generales originales y rechecks conservados. Kommo NO actualizado; no es gate para revisar la web.
+- [x] 0580 CTA: c2a933aac5ad8bc6ce3b8d78688e2dcaae9dc780; producto probado b7b28310.26escenarios/52CTA, Vitest12278/build PASÓ; E2E47/48→recheckafectado10/10; canónico FALLÓ/INCOMPLETO12/17. Reflow global y FAB WhatsApp fuera del recorte, sin declarar todo móvil resuelto.
+- [x] 0581 consentimiento:6e3bbfbe560e97ec216d43788062b490c3cd6bd1; producto c5a4f253/descubrimiento bfc36c37.267focales/32E2E/12294unitarias/harness237/build PASÓ; canónico12/17 medidos, wrapperexit1 y recheck36/36 conservados. CSP intacta; tag real INCONCLUSO por conectividad, no bloquea revisar parser exacto de cookie.
+- [ ] Publicar estas tres ramas/PR DRAFT separadas con la autoridad nueva de abajo; CI del SHA final y combinación/reconciliación documental aún pendientes.
+- [ ] Revisar los gates realmente aplicables al lote web; no exigir una migración inexistente a un cambio CSS, ni llamar verde al canónico incompleto.
+
+**Revisa rediseño de packing list / Lector PDF y Excel con GLM — PR319.**
+
+- [x] A26 fuente6 QA/docs revisada; QR20/20 de R4 cerrado y no repetido.
+- [x] CLI02 XLSX nativo selectorreal→preview→apply→save/receipt→reloadR2→export pasó según originales/control formal del mismo owner.3productos/10cajas/220uds/USD340/.66; pesoA y total ausentes intactos. CSVpreview SINapply.
+- [x] Oráculo corregido ANTESdelnegativo, ed34ed/0 + NATIVE-CLI02-ORACLE-DATA-01: supplier confirm422/missing_logistics; labels409/confirmation_required; stale409/revision_conflict. No retroconvertir422en409.
+- [x] Nuevo control ADMIN del owner recibido AHORA: STOP/cierreVALIDACIÓN UNKNOWN; HUMANA NOEJ. No CtrlC enviado en02. Calls334/335 inciertas, stores de la continuaciónND; no reconstruirlos.
+- [ ] Recuperación independiente de identidades actuales: se autoriza sólo UNA observación PRE estrecha abajo, sin señales, HTTP/UI ni nueva aplicación. IDs históricos no son admisión actual.
+- [ ] Demo humana limpia, UIvisual completa, canónico A26, y transporte producto/auth/RLS/storage/jobs/CAS pendientes. nativeOnly está en QA; jobs.ts97 no lo pasa y HTTP declaraAnthropic. No venderA26 comoGLM/0IAenERP.
+- [ ] Remoto319D42 todavía no contieneA26. DictamenParent fijo: D42..A26=13commits/54rutas; main..A26=82rutas. Preparar respaldo MISMA319 sólo tras revisar ese rango/refmap completo, sinforce/oldWTmodificado.
+- [ ] PDFGLM sigue SEND02FALLÓOCR/receiptNULL; no éxito por inferencia ni resend.
+
+**CONTABILIDAD — CORE y cadena de PR.**
+
+- [x] FuenteF60/claimB4 y respaldo320 conservados. GateW60 funcional60 PASÓ, supervisiónNC preservada; no reejecutar por verde.
+- [x] ADMIN04 cerrado con14fijos+MANIFESTparcial/os206; no15admitidos. Prohibido reparar/reintentar/dividir el payload que falló o completar los exports rechazados.
+- [ ] QFULLPG17 sobreF60 y carreraR01–R18+8finanzas continúan NOEJ; no0497prod/0495repeat/global2.1/14AB/M8 por unitarias.
+- [x] Root leyó el diseño mínimo futuro disponible f1a199/0: sección7716bytes/990018c9 incluye dos casillas posteriores; no se afirma igualdad de ese corte con el bloque previo6771/f1a987. Índice por14referencias y reciboterminalexterno son cambiosADMIN reales, no sóloDATA.
+- [ ] Parent mantiene su matriz/plan; siguiente cierre acotado es fijar contrato ADMIN futuro pequeño y revisarlo, SINrehabilitarGo04 ni nueva ejecución05 automática. Aún no hay GO runtime nuevo.
+- [ ] Resolver base de320: main..F60=137rutas,0496+0497 y29commits de base no integrados; no incorporar arrastre como si fueran sólo55.
+- [ ] Reconciliar dependencias, CI porSHA/canónico y paquete de compatibilidad/rollback antes de release; autorización nominal distinta para cada migración y servidor.
+
+**Transición-Kommo a GHL — CRM.**
+
+- [x] Leído humano directo01a163cd-b9cf: mostrar solicitud+6capturas/anexo antesdecontactar soporte; A detenida/B1NOiniciado/B0alta yahecha.
+- [x] Texto y evidencia están preparados y NOENVIADOS. No se repitió alta ni se despertó paraACK.
+- [ ] Correos/proveedor/domains/mailboxes/workflows siguenND; no apto para migración operativa. No contactos/imports/cuentas/canales/envíos como parte de este cierre.
+
+**Infra y documentación de Oficina.** PR309 es un cambio de publicador validado localmente, no instalación real ni prueba del VPS.306/308/262/321 son artefactos documentales revisables; no contar su CI o merge como operación del ERP. Se conserva la sesiónVPS que trabaja en otro proyecto sin despertarla ni mezclar alcances.
+
+### Matriz de las 18PR observadas
+
+Base indica la ref devuelta porGitHub; para lasPRBEHIND se conservan susbaseOIDfechados en el registro, no se sustituyen pororigin/mainD410. Fuente de elegibilidad: metadata/archivos y handoffs fijos leídos; esta matriz no es aprobación completa de cada diff.
+
+| PR | Head / base | Rutas | CI / estado GitHub | Dictamen de cierre y siguiente gate |
+|---|---|---:|---|---|
+| [#262](https://github.com/SoftAgentes/DTDCARGO/pull/262) | f959cd0a / main | 1 | SUCCESS observado; BEHIND | Documental histórico: Revisar vigencia y base; no entrega una función de ERP |
+| [#304](https://github.com/SoftAgentes/DTDCARGO/pull/304) | 8fb4edee / main | 35 | Sin checks; BLOCKED | Revisión de tooling pendiente: Validar cabeza actual/CI y composición; no es cierre de negocio |
+| [#306](https://github.com/SoftAgentes/DTDCARGO/pull/306) | 2f9b336c / main | 23 | SUCCESS observado; BEHIND | Revisión documental posible: Base atrasada; no instalar ni activar Oficina por esta PR |
+| [#307](https://github.com/SoftAgentes/DTDCARGO/pull/307) | ba43747a / main | 28 | SUCCESS observado; DIRTY | NO APTO: Conflicto actual; 0496 MIGRATE-FIRST, base/composición y release nominal |
+| [#308](https://github.com/SoftAgentes/DTDCARGO/pull/308) | 07e095c7 / main | 2 | SUCCESS observado; BEHIND | Revisión documental posible: CI propio SUCCESS; BEHIND; dos docs, no prueba CORE |
+| [#309](https://github.com/SoftAgentes/DTDCARGO/pull/309) | 021e96cd / main | 5 | Sin checks; BLOCKED | NO APTO para instalar: Validado localmente; falta CI SHA, revisión infraestructura y despliegue nominal |
+| [#310](https://github.com/SoftAgentes/DTDCARGO/pull/310) | a30d8585 / main | 65 | Sin checks; BLOCKED | NO APTO: Conversión y CORE se cruzan; definir candidato/base y cobertura, CI vacío |
+| [#311](https://github.com/SoftAgentes/DTDCARGO/pull/311) | 8729f7f4 / codex/sdd-0572-conversor-usd-reemplazos | 40 | Sin checks; CLEAN | NO APTO: Depende de310; 0498, canónico incompleto/CI y paquete DB |
+| [#312](https://github.com/SoftAgentes/DTDCARGO/pull/312) | d6bcd0e8 / codex/sdd-0572-conversor-usd-sql | 70 | Sin checks; CLEAN | NO APTO: Depende de311; 0499, composición y límites de canónico |
+| [#313](https://github.com/SoftAgentes/DTDCARGO/pull/313) | 0e630ede / codex/sdd-0576-fechas-caracas-operaciones | 12 | Sin checks; CLEAN | NO APTO: Depende de312; 0500, aceptación y release separado |
+| [#314](https://github.com/SoftAgentes/DTDCARGO/pull/314) | 1905aef7 / codex/sdd-0576-fechas-caracas-anuales | 11 | Sin checks; CLEAN | NO APTO: Depende de313; composición de pruebas0577 y cobertura de móvil |
+| [#315](https://github.com/SoftAgentes/DTDCARGO/pull/315) | 8bfb620b / main | 5 | Sin checks; DIRTY | NO APTO: CONFLICTING; mismos5archivos también en316/314, reconciliar sin duplicar |
+| [#316](https://github.com/SoftAgentes/DTDCARGO/pull/316) | 1ec5e85f / claude/peaceful-franklin-a3831e | 20 | Sin checks; CLEAN | NO APTO: Depende de307; 16/17 medidos y0496/release pendientes |
+| [#317](https://github.com/SoftAgentes/DTDCARGO/pull/317) | b179363d / codex/sdd-0576-fechas-caracas-movil | 31 | Sin checks; CLEAN | NO APTO: Entrega parcial BCV, 0501 y fuente/HTTP real sin aceptación completa |
+| [#318](https://github.com/SoftAgentes/DTDCARGO/pull/318) | ec95a1b0 / codex/sdd-0574-embarques-cierre | 72 | Sin checks; CLEAN | NO APTO: Depende de316; 0502 con fusible/OFF, matriz NOEJ |
+| [#319](https://github.com/SoftAgentes/DTDCARGO/pull/319) | d42b42de / main | 53 | Sin checks; BLOCKED | NO APTO: D42remoto≠A26local; ruta nativa sóloQA, cierre/humana/canónico/producto pendientes |
+| [#320](https://github.com/SoftAgentes/DTDCARGO/pull/320) | f60db1d6 / codex/0573-base-temprana-20261021 | 55 | Sin checks; CLEAN | NO APTO: Base temprana; QPG17 y carrera F60 NOEJ, arrastre137rutas+0496/0497 |
+| [#321](https://github.com/SoftAgentes/DTDCARGO/pull/321) | 5368345b / codex/sdd-0569-bcv-carga-diaria | 2 | Sin checks; CLEAN | Documental de diagnóstico: Base317; diagnóstico no reproducido/supervisión limitada, no resuelve Portal |
+
+Cadena observada:310→311(0498)→312(0499)→313(0500)→314→317(0501)→321docs.307(0496)→316→318(0502).320 usa basee834 con0496 y0497; candidato debe componerse expresamente.319 y web0579–81 se pueden revisar por lotes independientes; índices/documentos y contratos compartidos requieren reconciliación.
+
+### CLI02: supervisión y recursos remanentes
+
+Clock original19:06:21Z/work19:21:21Z/close19:23:21Z CONSUMIDOS. Root estuvo en espera MCP sin respuesta; al retomar wait(cell275) respondió notfound. CausaND. **POSTRoot oportuno NO EJECUTADO**; POSTParent02 no acreditado. Nunca lateGREEN/FIN+120/relojrenovado. ADMIN STOP se recibe ahora; es distinto de cierre acreditado de los procesos.
+
+Última identidad HISTÓRICA19:06:56: shell38004→env34336→Node57684→esbuild14468 y shell62440→env28648→Node48124; PTY11069/78567. No humana iniciada. No se libera por mero paso del tiempo ni se mata por esos IDs. Mantener excluida otraheavy hasta cerrar recuperación actual o constatar límite que requiere intervención.
+
+Export propio histórico: C:/tmp/sdd0473-native-demo-01a1639b-02/outputs/PackingList-DTD-DEMO-1-1-Rev2.xlsx8224/SHA6194dc33f54f48150c6ed61ea358bbb7151c1389b5661decad4da3a2d1a7c3b8; fixtureCSV161/1fc1bcad. Sellos capturados porowner, no rehashRoot actual ni archivo realSam.
+
+### Autoridades nuevas y concretas de este cierre
+
+ROOT-WEB-DRAFT-CLOSE-0579-0581-20261023-01-BEGIN
+```json
+{"id":"DIRECTOR-WEB-DRAFT-CLOSE-0579-0581-20261023-01","issuedAt":"2026-10-23T20:11:43.000Z","publisherThread":"01a1690f-8764-7ed1-9e1d-c478cd3e6c45","packageCommit":"aa0bd4d14fc02ff5b5d81daf38b429964affbd38","baseRef":"main","reviewedBase":"d410ab2e23e74e5bcf7fdc7cc595371b24cc03a8","entries":[{"sdd":"0579","ref":"refs/heads/codex/0579-promesas-seguimiento-web-kommo","head":"d069b5b26df962b25f6476bfd7c3c626c4764be2","paths":16},{"sdd":"0580","ref":"refs/heads/codex/0580-shipping-mark-cta-movil","head":"c2a933aac5ad8bc6ce3b8d78688e2dcaae9dc780","paths":17},{"sdd":"0581","ref":"refs/heads/codex/0581-medicion-ads-csp-offline","head":"6e3bbfbe560e97ec216d43788062b490c3cd6bd1","paths":15}],"scope":"TRES push normales de SHA a sus ramas originales y TRES PR nuevas DRAFT independientes base main; títulos/cuerpos EXACTOS del paquete revisado. El pedido humano nuevo de cerrar frentes con sus PR y autorización vigente de respaldos DRAFT se concreta aquí; no nueva autoría/Writer/mezcla.","preflight":"Releer remoto y búsquedas por head; exigir heads locales exactos, rama/árbol limpio; rama remota ausente o mismo SHA. Si nueva cabeza, PR ya creada o divergencia, STOP esa entrada sinforce/duplicar. No push main. Conservar autorización humana anterior sinpush como fase histórica previa, esta fase específica sólo habilita DRAFT.","evidence":"Guardar entradas/salidas nativas y readbacks independientes head/base/DRAFT/title/body/files/checks; adjuntar cada PR con attach_artifact; control formal de publicación antes de custodia pequeña. Éxito de creación no es CI verde ni release.","prohibit":["merge","auto-merge","ready-for-review","deploy","productive DB","force push","rebase","editing Worker worktrees","private files","new tests/build/knowledge","Ads accounts","CSP expansion","new Writers/models"]}
+```
+ROOT-WEB-DRAFT-CLOSE-0579-0581-20261023-01-END
+
+ROOT-CLI02-IDENTITY-RECOVERY-20261023-01-BEGIN
+```json
+{"id":"DIRECTOR-NATIVE-CLI02-IDENTITY-RECOVERY-20261023-01","issuedAt":"2026-10-23T20:11:43.000Z","latestStart":"2026-10-23T20:21:43.000Z","absoluteWorkCutoff":"2026-10-23T20:24:43.000Z","absoluteClosureCutoff":"2026-10-23T20:25:43.000Z","ownerThreadId":"01a1639b-cd99-7921-ac27-5d218d0a1516","source":"a26c4009a3f3f5043c0f590918b55d7251d5379b","scope":"UNA observación PRE de siete identidades originales y listeners4325/4326, literal de propuesta recibida, sólo siete propiedades CIM + HANDLEbirth separados; sin CommandLine. Es una observación nueva estrecha de recuperación, no retry334 ni retorno reconstruido.","budgetSeconds":{"work":180,"closure":60},"originActual":null,"actualWorkCutoff":null,"actualClosureCutoff":null,"transport":{"shell":"C:/Users/AKX generator/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/pwsh.exe","login":false,"tty":false,"yield_time_ms":10000,"max_output_tokens":5000},"operationTimeoutSec":4,"allowedHistoricalPids":[38004,34336,57684,14468,62440,28648,48124],"prohibit":["CtrlC","kill","Stop-Process","Node/application launch","HTTP","UI","candidate/parser","new file","private config","ledger","provider","knowledge","install","resend334","resend335","new app"],"controls":"Preparar en memoria antes de UNAclock auténtica propia; enviar input/result/cutoffs y seguir sinACK. Guardar inputreal antesawait/resultado o excepción auténticos; ScriptRunning→waitMISMAcelda inmediato; UNKNOWNSTOP sin nueva llamada ni señal. Al obtener resultado devolver CONTROLFORMAL inmediato. nativeExit/sessionNULL si no expuesto; output combinado no streamsseparados. No prueba cancelación334/335 ni ausencia exhaustiva del host. Raíz del método original/PIDs históricos no son identidad actual."}
+```
+ROOT-CLI02-IDENTITY-RECOVERY-20261023-01-END
+
+Los dos despachos se harán una sola vez después de este guardado. Publicaciónweb es respaldo DRAFT sin aplicación/main. La observación recuperadora NOautorizaCtrlC/kill/Node/humana; devolver formalmente su resultado antes de decidir una acción distinta. No se impone como gate imposible probar la cancelación de334/335 para una lectura nueva independiente; ambos siguenUNKNOWN y no se repiten. Una señal futura sí requiere admisión de identidad y argv reales del proceso propio.
+
+Conocimiento: actualización humana Graphify/Obsidian ya cerrada14:31/mainD410; no se vuelve a ejecutar por esta presentación. Software0.9.61 vs0.9.94 notificado, sinupgradeautorizado. Continúan suspendidas consultasknowledge/gestores/bootstrap/install/censos/limpiezas ignoradas, incluidos start/end. Privados GLM/config/ledger y exports bloqueados permanecen fuera.
+
+
 
 ## ROI06-02 custodia índice cerrada y autoría demo adoptada
 
