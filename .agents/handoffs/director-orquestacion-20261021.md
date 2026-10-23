@@ -54,6 +54,8 @@ CORE04 bloqueo NUEVO REFERIDO directamente por Parent: única celda ADMIN90 al e
 
 Conocimiento/gestores/bootstrap/inventarios equivalentes siguen suspendidos. Excepción humana de actualizar Graphify/Obsidian ya completada y fechada14:31UTC, sin actualizar software Graphify0.9.61 a0.9.94 (requiere petición humana de upgrade y compatibilidad). No confundir conocimiento actualizado con release ERP. Preservar rechazos históricos F60 y 19 exports GLM sin reconstrucción/alternativas; no resolver por este análisis.
 
+**Errata de conteo Root CI319:** f2dce3/native0 contiene 18 lineas de diagnostico `error TS`, no19; el conteo anterior incluia el cierre del paso/lifecycle. Mismas cuatro fuentes y lineas, sin cambio de alcance, reintento o resultados. Corregido y comunicado a los mismos owners sin pedir ACK.
+
 ## Última comprobación del cierre — 2026-10-23 20:52 UTC / 16:52 Caracas
 
 Root9aa2de→7b4ec9/native0 REAL20:51:48.0246915Z revalidófetchorigin--no-prune0/GH0/mainAPI0: mainD410sin cambios; PR322/323/324OPEN-DRAFT/heads originales/CIIN_PROGRESS;319A26DRAFT/CITypeScriptFAILURE. Root4236ceb limpio antesde esta nota. SinCIreruns, merge oproducción.
