@@ -1,5 +1,16 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Errata de origen QR; CORE admisión despachada; información OCR solicitada — 2026-10-23T08:38 UTC
+
+ERRATA: la inferencia de Parent sobre QRdefaulthttpsprod por falta envSITE_URL era incompleta. General dfe314/native0 leyó fuente fija vite.config.ts412–429: define process.env.NEXT_PUBLIC_SITE_URL=JSON.stringify(http127.0.0.1:port). El hostREAL del futuro QR sigue NO OBSERVADO hasta decodificar PDFactual; la configuración evidencia orígeneslocales4323/4324, NO salidaQRprod acreditada. Root lo adoptó nominalmente enMISMAautoría4, sin reenviaractivación: whitelistURIlocalesfundados, APIlookup4324only, URIdato-nonavigate/noheaders/key. No hardcode sólohttpsprod ni cambio env/labelVerifyUrl/servidores. Originalinferencia en mensajes previos se conserva con ESTArectificación, no reescritura de evidencia.
+
+Parentcontabilidad formalizó y DESPACHÓUNAvez MISMOCORE293 aexact3textos admisiónpublica, tras snapshotCOMPLETED293/idle. Contrato Parent13253/0e8d6ca057f34229f30c95bfcda51b74843246ea16d24a7f787a2c1501788402/FULLa04aa6native0 REAL08:33:01.6703562 REFERIDOS, noFULLRoot. Explicitó subdirectorio docker-config-vacio ordinario propio DENTROdestino3textos/ceroautharchivos (no cuarto texto/helper/log). Hostnpipe:////./pipe/dockerDesktopLinuxEngine desde0573-PG17-context-local-director-01.jsonHISTÓRICO; no DockerRoot. MetadataClient/Server/imagenreadonlyaúnpendienteentrega, noconfundiradopciónconentornoacreditado. No nuevaautorizaciónSQL/containers/GO. No reenviar eseencargo, esperarpaquetefijo.
+
+Parentobservabilidad8728/f4f23947...aceptóNOasignar8rutas; body/vendorCode yproductoencopiafueraWTNOadoptados/no requisitoE2E. GLMsnapshot757ACTIVE: QR4escrito yplancompletándose, NOcheckpointfinalniGO/Node/HTTP/CUArecorrido. No sondeoWIP. Propuesta ymedicionesmanualesExcelCONDmappingmantienen138/114/.70/0IA. CausaremotaOCRpasadaND ysinresend.
+
+General envió UNA UIrequest_user_input_async NUEVA para dato diagnóstico faltante: si panelZ.AI conserva código del intento23oct04:01Caracas, Sam puede compartir SÓLOnúmeroHTTP+códigonumérico, sin token/capturas/datoscuenta ni ejecutarotra prueba. No se pidió clave otra vez, noRootaccountaccess/noprobe/contacto. Respuesta opcionalPENDIENTE, no permiso genérico ni dependenciaExcel/Core. No repetir pregunta si noresponde/heartbeat. El código privado/cause histórico no se reconstruye por inferir.
+
+
 ## SEND02 real FALLÓ OCR; cierre aceptado; QR/Excel y admisión PG17 asignados — 2026-10-23T08:30 UTC
 
 Binding SEND02 exact8 fue FULLGeneral f49491 yfc4106/native0 REAL07:58:28.369Z:39checks0diff+131pins públicos fuente/ejecutables/claim0diff/4GitINDIV0/43582-tree3feb-rama-clean-A29; GOcanonical/copia5678BYTEWHOLE==V8literal56c880d7, inversasWHOLEcuatro tokens CMD/KEYSUP/7props/STOREauth3NULL youtputausente. Parentf13709/35checks adicional. EJECUTA General separado07:59:27 víaParent, despachoÚNICO real Parentexec-dc60d8b1 comprobado porread_thread acotado; ningunaEJEduplicada. RootreservóUNAslot, noSQL simultáneo.
