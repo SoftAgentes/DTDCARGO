@@ -1,5 +1,14 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Revisados textos fríos demo05: correcciones administrativas concretas — 2026-10-23 23:32 UTC / 19:32 Caracas
+
+ActorentregóUNJSONTEXTO43928(schemaDTD_NATIVE_DEMO05_COLD_TEXT_PROPOSAL_3) conjuntooriginal04input4410/jointnuevo8176/cierre1710/DATAJS3265/4CLI05/delta4splicesforward-inversaWHOLEreferidos; General leyótextoENTEROdelmensajedirecto, no mideNode/CI/actualinputNativeporvisualización. HISTORIArealGETactionhistory→versionsarray0yDTOidR0/confirmedRevisionpresentnull/products/groups/sources[], DateKindString y5camposWHOLEdeCADAidentidadDATAJS+Node4argvconservados; no ejecución, noFS/clock/puertos/HTTP.
+
+TresNC deobservaciónfuturaantesGO: listenersGet-NetTCPConnectionErrorActionSilentlyContinueconfundeerrorconarrayvacío; catchHTTPincluyeJSONparseHTTP200ypermiteretrytransportnull; traversaldescendientedosshellnoexigeexplícitoSHELL→ENV→NODEporrole. YAencargoMISMOActor+Parentrevisor: listenersCIMMSFT_NetTCPConnectionState2filtrado27/28ErrorActionStop(ceroresultadosválidos=[]), JSONparsehardSTOPsinreintento, guardasrolancestríaactualesantesHTTP/emisiónantesguardas. No app defectoconsiderado. NuevosucesorTEXTOcompleto+3deltas/inversaantesruntime, CLI4intactos. CambioPROSPECTIVOexpresoSÓLOjointnuevo cap10000UTF16 paraCONSERVARaserciones/no minificar/fragmentar; cierrecompacto8192yproductoríndiceCORE8192inalterados. V18212/V38176jamásNativeinvocados, originales04fallidosintactos; estoNOretry/rechazopolicy/OS206niampliaciónotroproductor.
+
+Go05demoborradorENMEMORIA NOEMITIDO/noclock/reserva/EJE. FormalcontrolfuturocompactoDATA<=20000UTF16conactualclock/cutoffs/OWN5camposfull+nodeargv4/listeners/PTYrealexits yoriginalesNativeíntegrosseparadosSTORErefs; noCLIduplicadomegavolcado/Nodeexitfake. RootPOSTfuturoTEXTOseleccionanodeargv4/DateKindString; no invocación05. CORE06sóloBORRADOR ENMEMORIA/noautoridad; esperarcheckpointParentcorrecciónS8shellausente+review. Noheavysactivo.
+
+
 ## ADMIN06 revisión fija completada con una NC de transporte — 2026-10-23 23:27 UTC / 19:27 Caracas
 
 Parentfijo5590e2a1d928755e2ca437137eb0913f5657e144/tree92eb21723133bd2c9eb696f9b35f90f3a53054f5/padre6c441 exact2docs+566/-0. Root18235f/0+f4d6f6/0 FULLporobjeto1–284,969f67/0 REAL23:25:48.9227299Z:6277ambosárboles/6275fuera2WHOLEmode-type-blobiguales/prefijosdosdocs30189B724313...WHOLEiguales;E4718/48ff1...WHOLEigualphysical/E06texto5948/8b449.../7count1/forward-inversaWHOLE. R/Vcompatibilidadlecturafija007b37/0FULL5265/d918...;newcapturepreawait/resultbeforeparse/PREFIXantesE06/POSTexternos/CONTROLv2/14+índice/AnoCold aceptablesESTÁTICOS,no ejecuciónprobada. RemanenteWIPdosdocs Parentpreservaciónbytewhole REFERIDA, noadoptado.
