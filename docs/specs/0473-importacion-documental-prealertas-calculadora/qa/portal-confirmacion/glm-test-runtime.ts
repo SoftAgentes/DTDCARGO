@@ -80,7 +80,7 @@ export async function createGlmTestRuntime(admission: GlmTestAdmission, dependen
         const key={sha256:TEST_INPUTS.pdf.sha256,profile,context:contextId(source,origin)};
         const known=await ledger.readCompleted(key,signal);
         if(known!==null){
-          if(!isRecord(known)||!isRecord(known.receipt)||typeof known.receipt.attemptId!=="string"||!/^[a-f0-9-]{36}$/i.test(known.receipt.attemptId)||!isRecord(known.receipt.usage))invalid();
+          if(!isRecord(known)||!isRecord(known.receipt)||typeof known.receipt.attemptId!=="string"||!/^[a-f0-9-]{36}$/i.test(known.receipt.attemptId)||!isRecord(known.receipt.usage))return invalid();
           const u=known.receipt.usage;
           const counter=(value:unknown):number=>{if(typeof value!=="number"||!Number.isSafeInteger(value)||value<0)return invalid();return value;};
           const usage=(value:unknown)=>{if(!isRecord(value))return invalid();return{inputTokens:counter(value.inputTokens),outputTokens:counter(value.outputTokens),totalTokens:counter(value.totalTokens)};};

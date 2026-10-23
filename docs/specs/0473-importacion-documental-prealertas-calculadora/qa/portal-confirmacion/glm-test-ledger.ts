@@ -30,7 +30,7 @@ export async function createTestLedger(admission: TestLedgerAdmission) {
   const assertActive = (signal: AbortSignal) => { if (closed || signal.aborted) blocked(); };
   const append = async (event: Record<string, unknown>, signal: AbortSignal) => {
     assertActive(signal);
-    if (!log) blocked();
+    if (!log) return blocked();
     await log.appendFile(JSON.stringify({ version: 1, goId: admission.goId, fence, atUtc: new Date().toISOString(), ...event }) + "\n", "utf8");
     await log.sync();
     assertActive(signal);
@@ -119,7 +119,7 @@ export async function createTestLedger(admission: TestLedgerAdmission) {
       const events=raw.trimEnd().split("\n").map(line=>JSON.parse(line) as Record<string,unknown>);
       const last=events.at(-1),expected=["reserved","possibly_sent","received","possibly_sent","received","possibly_sent","received","usage_observed","completed"];
       if(events.length!==expected.length||events.some((event,index)=>event.state!==expected[index]||event.fence!==guard.fence||event.goId!==guard.goId||event.version!==1)
-        ||last?.consumed!==3||guard.sha256!==key.sha256)blocked();
+        ||last?.consumed!==3||guard.sha256!==key.sha256)return blocked();
       for(const [index,stage] of (["ocr","tokenizer","chat"] as const).entries()){
         for(const position of [1+index*2,2+index*2]){const event=events[position];if(event.stage!==stage||event.consumed!==index+1||event.sha256!==key.sha256||event.attemptId!==guard.attemptId||event.correlationId!==`${guard.attemptId}-${stage}`)blocked();}
       }

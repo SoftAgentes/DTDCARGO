@@ -88,17 +88,18 @@ export function spreadsheetEvidence(input: SpreadsheetInput): Evidence[] {
     const cells = new Set<string>();
     for (const [cellIndex, cell] of sheet.cells.entries()) {
       if (!isRecord(cell)) fail("invalid_metadata");
-      const match = typeof cell.cell === "string" ? /^([A-Z]{1,2})([1-9][0-9]{0,3})$/.exec(cell.cell) : null;
+      const address = cell.cell;
+      const match = typeof address === "string" ? /^([A-Z]{1,2})([1-9][0-9]{0,3})$/.exec(address) : null;
       const column = match?.[1].split("").reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0) ?? 0;
-      if (!match || column > 100 || Number(match[2]) > 2000 || cells.has(cell.cell)
+      if (!match || typeof address !== "string" || column > 100 || Number(match[2]) > 2000 || cells.has(address)
         || typeof cell.unavailable !== "boolean" || (cell.unavailable && cell.value !== null)
         || !(cell.value === null || (typeof cell.value === "string" && cell.value.length <= 10_000)
           || (typeof cell.value === "number" && Number.isFinite(cell.value) && Math.abs(cell.value) <= 1e12))) fail("invalid_metadata");
-      cells.add(cell.cell);
-      characters += String(cell.value ?? "").length + sheet.name.length + cell.cell.length;
+      cells.add(address);
+      characters += String(cell.value ?? "").length + sheet.name.length + address.length;
       if (characters > EXTRACTION_LIMITS.textCharacters || result.length >= EXTRACTION_LIMITS.cells) fail("file_size");
       result.push({ id: `s${sheetIndex + 1}c${cellIndex + 1}`, kind: "cell", sheet: sheet.name,
-        cell: cell.cell, value: cell.value, unavailable: cell.unavailable });
+        cell: address, value: cell.value, unavailable: cell.unavailable });
     }
   }
   if (!result.length) fail("invalid_metadata");

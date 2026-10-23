@@ -1341,3 +1341,31 @@ revalidan. No se cambian los servicios ni el extractor de producto. El plan de
 arranque900+120s es PROPUESTA en el handoff, no autoridad ni observación runtime.
 Incluye validación ficticia y pareja humana fresca, ambas a admitir expresamente.
 Parser/tests/compilación/startup/UI y enlace usable siguen NO EJECUTADOS.
+
+## CI319 · cierre candidato de estrechamiento TypeScript · 2026-10-23
+
+Encargo del Director al mismo Worker: corregir los diagnósticos de tipos de
+run `40019590003` sobre A26. La CI histórica permanece FALLÓ (TypeScript exit 2);
+el resultado de otro SHA no se hereda ni se obtiene reintentando ese run.
+
+Allowlist exacta del candidato: `components/document-import/DocumentImportPanel.tsx`,
+`qa/portal-confirmacion/glm-test-ledger.ts`, `qa/portal-confirmacion/glm-test-runtime.ts`
+(las dos últimas relativas a esta spec), `lib/studio/document-import/extraction-contract.ts`,
+esta spec y el handoff `.agents/handoffs/0473-glm-encargo-20261022.md` del WT nuevo.
+No se modifican los cuatro tests existentes ni tsconfig.
+
+Cambios: referencia local no nula al mismo workspace para el callback de sondeo;
+retorno explícito de las guardas que ya lanzaban errores en journal/caché;
+dirección local de celda y estrechamiento string explícito antes de usarla.
+Las condiciones, errores, límites y orden de efectos persistentes se conservan;
+esta conclusión es revisión textual razonada, pendiente de verificación de CI.
+
+WT `packing-glm-ci-cierre-20261023`, rama `codex/packing-glm-ci-cierre-20261023`,
+desde A26/`a8704347d3397b1da637a95de0b7d7c1de62b9c7`. El WT A26 que sirve HUMAN03
+queda sin escrituras ni intervención; el actor no lee app ni documentos de Sam.
+
+La revisión Git/diff no sustituye compilación. Candidato/tests/lint/typecheck/build/
+SQL/UI, pnpm verify y gestores/conocimiento están NO EJECUTADOS por el encargo
+actual; node_modules está ausente y no se instala ni copia. Gate pendiente:
+revisión Parent-General y luego CI automática del respaldo normal de la misma
+PR319, base main, sin force, nueva PR, merge ni producción.

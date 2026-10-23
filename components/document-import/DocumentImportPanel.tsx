@@ -371,6 +371,7 @@ function DocumentImportSession({
       (e) => e.jobId && (!TERMINAL.includes(e.status) || (APPLICABLE.includes(e.status) && !e.draft)),
     );
     if (!pendientes.length || !workspace) return;
+    const pollingWorkspace: DocumentWorkspace = workspace;
     let vivo = true;
     async function poll() {
       for (const entry of pendientes) {
@@ -378,7 +379,7 @@ function DocumentImportSession({
         try {
           const { job } = await transport.get<{
             job: { status: JobStatus; result: DocumentDraft | null; errorCode: string | null; stage?: "ocr" | "tokenizer" | "chat" };
-          }>("job", { workspaceId: workspace.id, jobId: entry.jobId! });
+          }>("job", { workspaceId: pollingWorkspace.id, jobId: entry.jobId! });
           if (!vivo) return;
           patch(entry.requestKey, {
             status: job.status,
