@@ -1,5 +1,64 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Graphify y Obsidian actualizados por pedido humano; GLM03 nuevo — 2026-10-23T14:35Z
+
+- Sam pidió directamente comprobar/cuándo/actualizar Graphify y «Estado de DTD Cargo y Obsidian», reiteró ambos. Excepción concreta General a suspensión de conocimiento: sólo runtimes existentes y scripts canónicos directos sobre derivados ignorados y publicación desde main integrado. No memoria personal, gestores, instalación, fuente main, datos privados ni tareas ajenas. Prohibición de knowledge/gestores para Parents/Workers continúa.
+- Admisión REAL14:07:50.5667082Z main/originD410ab2e23e74e5bcf7fdc7cc595371b24cc03a8/branchmain/0trackedchanges; dos untracked preexistentes preservados/no leídos/no cleanup. Auditoría ignorada graphify-out/director-update-20261023-1407. Status canónico directo FIN14:10:31.8893607/native0 PERO okfalse: estructuraCURRENT/piloto15de16/global15de1322/ArchifyCURRENT/ObsidianPENDINGrev6da8. Últimos archivos grafo20oct21:52UTC(17:52Caracas), Obsidian16oct00:10UTC(15oct20:10Caracas); no actualización continua demostrada.
+- Revisión humana/asistente ENTERA marketingREADME255líneas33220/SHAaec1bca3e4cfac465dbd9a335755d38442aa4a337b53efe559f93b691b53e865 +40nodos/58edges/1hyperedge actuales. Se preservan historias, inferencias,2ambigüedades y falta de evidencia externa; fuente y grafo ya coherentes. Sólo renovación del outputfingerprint con registro canónico, no afirmar reextracción. Evidence/receipt anterior/originales durable en auditoría. record native0 ENTRY14:23:44.845864→FIN14:26:50.449840Z/recordedtrue/16verificados1306pendientes, comprobó8bindings/lecturas repetidas canónicas antes reemplazo. GrafoSHA6a30009000a410af79b4980d10f7605c144b91e581722503cfa271f6c2fea95a intacto; marketing outputHash7249b4333beb9d5e8c48b323e13b358d6b5c3a455fbf1843b2ffc22d9e4e64b9.
+- Fetchorigin--no-prune y admisión principal14:28:35→43Z native0/D410estable/preexistentesidénticos. publish directo Node14:28:43.048412→14:31:17.720081Z/native0/oktrue/publishedtrue/1321docs. check independiente14:31:17.740263→14:31:55.812253Z/native0/oktrue. ObsidianCURRENT/D410/0conflictos/1335managedfiles; índiceDTD Cargo/Generado/Indice.md. EstructuraCURRENT/piloto16de16CURRENT/global16de1322PENDING(1306fuera)/Archify2.16.0CURRENT.43warnings enlaces históricos preservados; publicación no valida esos sitios ni cubre semántica global. No inspección visual nativa de Obsidian afirmada.
+- General b0b1c8/native0 FIN14:33:21.091456Z comprobó manifest/índice/receipt/check/skill y4Git: main/originD410, tracked intacto, mismos2untracked. closure-proof.json conserva evidencia. Reserva mantenimiento LIBERADA con clockGeneralREAL14:35:07UTC después FINcheck+preservación. No shell propia sigue viva; session32137/39603 COMPLETADAS.
+- Pedido posterior Sam: comprobar versión skill/software y AVISAR para actualizar, no instalación. Comparación oficial GitHub/PyPI REAL14:21:52: instalada graphifyy0.9.61/.graphify_version0.9.61/SKILL41318 SHA3898b1042721cad27d6f87ca44f638415a7f763203aefd86b90f9358ffea3a43, mtime15sep16:49:55Z; oficialv0.9.94/tagc588b72d936927790a87ad009955078ed40562a3 release22oct16:19:50Z/PyPIwheel16:20:25.072314Z. UpstreamCodexSKILL48304/SHAe1150326f0ed06db45e735ecb92b9d3048c9d165d61f61c5ecc728758a9c21f2 yrefs extraction/update DIFERENTES; diffs y textos públicos íntegros en auditoría, no ejecutados ni instalados. Cambios relevantes cobertura fin real/partials, orígenes semánticos, caché, Windows espacios, resolverJS/TS/SQL yURLsecurity. ASTschema nuevo fuerza primera reextracción. scripts/knowledge-policy.json yknowledge-graph.py fijan0.9.61: upgrade requiere compatibilidad/revisión separada, no ejecutar gestor por aviso.
+- Custodia GLM02 FIJA Root revisada ahora: a6f6a5/native0 exact5 tamaños/SHAs conformes; c1c591 FULLoperativos/context18/contrato10GET/P0/rawshapes; 887c90 payload7 WHOLE/literal ycmd15916SHA03cc, estadosformal==closure. Mis tres false de comparación eran shapes (reference/native result tratados como rawrecord); lectores88fff2+591372 corrigieron SOLOlector y cotejaron P0/helperfallido/helpertruncado WHOLE dentro raworiginales17167/17185/17194; ninguna fuente/custodia alterada.7026fc confirmó stdout16814SHA4e2061.../EOF2/stderr0,24paresRPC/9>10000/máx31047, P0outer8823/tool7526.9793/proceso7294.4159 distintos. Custodia/contrato ACEPTADOS CON LIMITACIÓN exteriorNC; no host≤10sglobal ni productoE2EPASÓ.02clock/keysconsumidos yQA/UI/P1–P10NOEJ conservados.
+- ParentCONTABILIDAD recibió entregaCORE15FIJOS/FINae30b0 14:24:23/CONTROLquieto referido. Se autorizó revisión ADMIN ligera ahora, sin esperar runtime ni reactivarCORE. Dictamen/reviewGeneral pendientes, A_Q02 vencidoNOEJ/noSQL/Go nuevo aúnNO emitido. Prioridad humana confirmada para Excel completo al liberar mantenimiento; Bcarrera sólotrasAreal.
+- Nueva autoridad GLM03 emitida con clockGeneralREAL14:35:07UTC tras liberación, misión misma/ownerC168A29/PR319DRAFT. No nueva preparación/harness/Writer/ACK. Autoridad y EJE separados: ONEclockauténticoWorker→Generaladopta context18/payload7nuevo ANTESlaunch, espera dentro1800original;11fases reutilizan6/P0correctiva3/launch2.02archivos sólo referencias inmutables, nunca autoridad/keys02. Run01 sóloausenciaactual; nuevo contexto03. No proveedorPDF/configRoot/ledgerRoot/servicios/sourceedit/push/merge/prod. HumanonuevoPacking/GLM pide Excelcompleto→demo/archivos/20QR→despuésOCR; relatorías recibidas, alcance base ya autorizado enGeneral, sin inferirresend.
+
+ROOT-GLM-E2E03-EXECUTIVE-AUTHORITY-BEGIN
+{
+  "schema": "GLM_XLSX_FUNCTIONAL_E2E_DIRECT_EXECUTIVE_AUTHORITY_v3",
+  "goId": "DIRECTOR-GLM-XLSX-FUNCTIONAL-E2E-20261023-03",
+  "issuedAtUtc": "2026-10-23T14:35:07.000Z",
+  "latestStartUtc": "2026-10-23T14:50:07.000Z",
+  "grantWorkDeadlineUtc": "2026-10-23T15:20:07.000Z",
+  "grantClosureDeadlineUtc": "2026-10-23T15:22:07.000Z",
+  "phase": "NEW_EXECUTIVE_AUTHORITY_AND_SEPARATE_EXECUTE_CLOCK_THEN_GENERAL_INLINE_BINDING_ADOPTION_BEFORE_LAUNCH",
+  "GeneralAccepted": true,
+  "RootAccepted": true,
+  "writerThreadId": "01a1639b-cd99-7921-ac27-5d218d0a1516",
+  "writerOwner": "worker-packing-glm-01a1639b-cd99-7921-ac27-5d218d0a1516",
+  "worktree": "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022",
+  "branch": "codex/packing-glm-encargo-20261022",
+  "sourceHead": "c1682cc529754c35d001c964b31cdcd59e2bebd0",
+  "sourceTree": "66abc9e787c2f0a284ec1d1ef3e2932fe4996fa0",
+  "claimSha256": "a29aa577a954b3744e1eae27618b75393f77834071b72115bd1fb927fd366cbc",
+  "runtimeBudgetSeconds": 1800,
+  "closureBudgetSeconds": 120,
+  "actualOriginUtc": null,
+  "actualWorkDeadlineUtc": null,
+  "actualClosureDeadlineUtc": null,
+  "budgetRule": "Authentic ONE clock before first preflight/FS/QA/UI. Work=min(origin+1800,grantWork), closure=min(origin+1920,grantClosure); latestStart enforced. All General review waiting consumes original budget. No renewal/retry/resend.",
+  "mechanisms": "Reuse reviewed preparation02 exact6, preflight02 exact3, launch02 exact2 unchanged. Cold02 artifacts are immutable historical mechanism references, never live authority or consumed02 keys. New inline18context plus exact7payload bound after authentic clock reviewed by General; no new cold pipeline/framework/helper.",
+  "rawTemplateAuthorityPath": "C:/tmp/sdd0473-glm-xlsx-e2e-binding-01a1639b-02/GO-E2E.json",
+  "inheritedNonoperationalContract": "Same complete functional11 phases, exact XLSX8178/f1867..., manual fixture6daedf conditional real mapping/provenance/second-savefalsefalse, QA rates real engine, actual exports and20QR pixels10+10, viewer and visual checks, source/invariants/privacy/scopes/caps as fully reviewed GO02/READY6. GO02 identifier/authority/clocks/windows/keys are consumed and NOT inherited.",
+  "newKeysPrefix": "director-glm-xlsx-functional-e2e-20261023-03",
+  "runRoot": "C:/tmp/sdd0473-glm-xlsx-functional-e2e-01a1639b-01",
+  "runRootRule": "Explicit reuse authority for this still-absent path only, independent P0 current absence required; no adoption/overwrite/cleanup.",
+  "p0CapSeconds": 120,
+  "inspectionTotalCapSeconds": 240,
+  "inspectionPhases": "Serial Python render -> Node jsQR -> Python finalize under ONE240 cap, actual native exits and complete streams. Render alone never PASO.",
+  "runtimeExclusivity": "General maintenance finished check0 and preservation0; exclusive GLM03 reserved. No CORE heavy until formal return plus both timely public exteriors accepted.",
+  "qaContract": "Use accepted closure02 exact GET4323/api/document-import action/workspaceId and real document-client; no guessed qa-api.ts or /qa/ready. After identityPASS, get actual QA context inside remaining sharedP0 before UI. Unexpected state STOP.",
+  "execution": "ONE actual UI chooser file from reviewed fixture -> native0IA -> review/apply -> missingweightgates -> suppliermanualfictional -> secondexplicitreview -> confirm/readback -> realengine/ratesQA -> PDF/XLSX/10labels+reprint ->20pixelQR/viewer/visual/demo. Finish whole valid flow autonomously inside original cap; no ACK per reversible button.",
+  "forbidden": "No providerHTTP/PDFresend/configRoot/ledgerFSRoot/service restart/reset/DBrestore/IDclone/install/knowledge/productsourceedit/push/merge/deploy/prod/businessPII/accounts/externalcontacts. PDF OCR separate future concrete diagnosis, no reuse uncertain sends.",
+  "supervision": "Outer exec30000 tokens/native24000, real tools exec/wait SAME CELL immediately until FIN; live own sessions, UTC and authentic native exits/EOF2. >10000ms exterior observed is NC, causeND unless proven; never guarantee universal host latency. No 30s coordinator polling during active run.",
+  "closure": "Formal FIN/STOP before custody counts. Parent and General public exteriors4GitINDIV/sourcepins/claim/OWNidentity must finish before ORIGINALactualClosure, no FIN+120. UNKNOWN blocks dependents/reservationrelease; no rerun for green.",
+  "trackedAllowlist": [],
+  "samePR": 319,
+  "draft": true,
+  "merge": false,
+  "production": false
+}
+ROOT-GLM-E2E03-EXECUTIVE-AUTHORITY-END
+
 ## Correctiva P0 GLM revisada; lanzamiento frío mínimo y binding CORE A_Q en curso — 2026-10-23T11:10Z
 
 ## Confirmación de metas largas y seguimiento corregido — 2026-10-23T14:01Z
