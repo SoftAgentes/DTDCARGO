@@ -1,5 +1,75 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Recuperación QA pareja04 revisada y autoridad NUEVA emitida; no E2E ni proveedor
+
+- EntregaFIJA0301c8/native0 FINADMIN15:11:47.6625817Z, EXACT2 C:/tmp/sdd0473-glm-qa-recovery-pair-propuesta-01a1639b-04: RECOVERY-PAIR-UNBOUND.json47531/dcca3f12c3c6caffa3710895d56ad55c6a00e72279f239d8b3ed5fa6555209c5; MANIFEST2041/5af09b6f997d87b457fbab146ecbb6fc0bad4a1475203e82a8a04911c966219f. Root96fc95hash2conformes. Node14353/d208a89dc9c97d33eda187cc837da6819500ae939788f906817e34be593433da/payloadPS6789/9545d44b4986a6843f564b8b24355063a30140a9976b76f5b4a6aa1539d29ec1 sonDATOS/literales revisados, nohelper3/coldframework.
+- RevisiónGeneral0e42d8Node1–41 ycamposoperativos; presentación6004tokens/6000truncó4tokens delobserverescapado, recuperado746562observerdecodificado26líneasENTERO+common10750/51líneasENTERO.53137bPSouter63ENTERO. Nativebe37a0 REAL15:19:07.241870→07.623156Z35pins0diff/4GitINDIV0/C168tree66clean/A29/payload7/sentinel1/Nodecmdhashes/inversas31-30WHOLE. NoNodecandidate/syntaxruntime/PSobserver/services/CIM/HTTP/privado ejercidos.
+- Parent reviewFIJA favorable436dea/b3439e/ee6b24/8bc830/d2e8a3(49checks)/27cc90 P0whole: requerimientoParentvivo NOexiste, P0sóloserviciosantes/después, parentPidcomparaDATOS. Mi preocupaciónpreliminar padreNodeactorFIN no esbugdemostrado ni requierewrappernuevo. Supervivencia detached trasFIN debeobservarseporPOST y E2Eactual, sininferirporReadyantesFIN. GetLISTENobserver filtra proyección4puertos; nootrametadata deotros puertospersistida. StreamlímitepostEOF no seafirmahardcapmemoria/universalhost10s. EstoslímitesACEPTADOS para QA localficticio controlado, noProd.
+- Oráculofresh draft.sources existe enlib/shared/document-import.ts13–29/emptyDocumentDraft; Rootcdf90c fuenteconfirma products/groups/sources[] ySTART02 originalopenficticio/usage. Mi rutaauxiliarservice.tsdeQAadivinada inexistente fue lecturaADMIN7ab65a/1, rgfilesb68061 ubicólib/studio/document-import/service.ts; nada bajoRuntime ni Sourceedit/foreigndata. No otrafuente porinferir.
+- GoNUEVO DIRECTOR-GLM-RECOVERY-PAIR-20261023-04 emitidoconclockGeneralREAL2026-10-23 15:28:58 UTC; contexto11/sentinel1 se fijaabajo. Sólorecuperaciónpareja nueva4323/4324/perfil04,900+60MINENTRYPWSHauténticoantesFS,readiness240/72HTTPLOCALES. Backend puedeconfigcanónicamemoria; Root/actorNUNCAcredencial/FSledger, provider0/noresend. FuentesC168/A29sintrackeds. MISMOGLMidle:40/turn01a1693dCOMPLETED/errorNULL verificado antesdespacho. Reservaexclusivarecovery04, noCOREheavy. La lecturaestadofrío no eraEJE ni prueba. No otraSamgate.
+- Generalencoder177ec6/0 context11/payload7FINAL cmd7383/SHAee02575baf5cdf82a38f2443a37dcf88e6b149506aeec010983d24ef661e094c, inversaWHOLE/6otraspropsintactas/UTF8roundtrip/0eval/0files. LiteralFINAL se envíaDIRECTO alMISMOGLM conEJECUTA separado una vez, sinotroACK/clocktool separado/cold. ORIGIN/runtime/Ready/resultados todavíaNULL/NOEJ en estecorte. TrasFINformalpostspúblicos4Git/pinsclaim/identidadesOWN ANTESORIGINALclose; noFIN+60 ni renovar. UnknownSTOP/reservaretenida. E2Eposterior necesitaDATOSreales nuevos PIDs/births/parent/UUID enoldhelpers+review/nuevaautoridad, noGo03consumido.
+
+ROOT-GLM-QA-PAIR04-AUTHORITY-BEGIN
+{
+  "schema": "GENERAL_QA_PAIR_RECOVERY_NOMINAL_AUTHORITY_v1",
+  "goId": "DIRECTOR-GLM-RECOVERY-PAIR-20261023-04",
+  "issuedAtUtc": "2026-10-23T15:28:58.000Z",
+  "status": "EJECUTA_NOMINAL",
+  "stage": "RECOVERY_PAIR",
+  "writer": "01a1639b-cd99-7921-ac27-5d218d0a1516",
+  "owner": "worker-packing-glm-01a1639b-cd99-7921-ac27-5d218d0a1516",
+  "sourceHead": "c1682cc529754c35d001c964b31cdcd59e2bebd0",
+  "sourceTree": "66abc9e787c2f0a284ec1d1ef3e2932fe4996fa0",
+  "claimSha256": "a29aa577a954b3744e1eae27618b75393f77834071b72115bd1fb927fd366cbc",
+  "reviewedPackage": "C:/tmp/sdd0473-glm-qa-recovery-pair-propuesta-01a1639b-04",
+  "packageBytes": 47531,
+  "packageSha256": "dcca3f12c3c6caffa3710895d56ad55c6a00e72279f239d8b3ed5fa6555209c5",
+  "manifestSha256": "5af09b6f997d87b457fbab146ecbb6fc0bad4a1475203e82a8a04911c966219f",
+  "workSeconds": 900,
+  "closureSeconds": 60,
+  "originRule": "Actual FIRST outer PowerShell ENTRY before FS; context actualOuterOriginUtc set by reviewed controller, Node uses same original conservatively to milliseconds. Work=min(ENTRY+900,absoluteWork),close=min(ENTRY+960,absoluteClosure); no FIN+60/renewal.",
+  "inlineContext": {
+    "schema": "QA_PAIR_EXECUTIVE_CONTEXT_v1",
+    "goId": "DIRECTOR-GLM-RECOVERY-PAIR-20261023-04",
+    "GeneralAccepted": true,
+    "RootAccepted": true,
+    "execute": "START_FRESH_QA_PAIR",
+    "latestStartUtc": "2026-10-23T15:38:58.000Z",
+    "absoluteWorkDeadlineUtc": "2026-10-23T15:53:58.000Z",
+    "absoluteClosureDeadlineUtc": "2026-10-23T15:54:58.000Z",
+    "packageManifestSHA256": "5af09b6f997d87b457fbab146ecbb6fc0bad4a1475203e82a8a04911c966219f",
+    "externalWholeReviewPassed": true,
+    "actualOuterOriginUtc": null
+  },
+  "reviewEvidence": "General96fc95 2hashes;0e42d8Node1-41,53137bwholePS63,746562recoveredwholeobserver26/common51,be37a0dated35pins0diff/4GitINDIV0/C168A29/inverses31-30/7payload. Parent436dea/b3439e/ee6b24/8bc830/d2e8a3/27cc90 favorable with exact stated limits.",
+  "scope": "One fresh backend and frontend pair4323/4324;profile04/output04 absentCreateNew;exactargv/env31-30/exes and SourceC168. Only existingSTART02 common sourceIdentity/write/local/check functions, fixed reviewed Node14353 and PS6789 payload. No new helper/coldpipeline.",
+  "runtimeCaps": {
+    "readinessTotalSeconds": 240,
+    "maximumLocalHttpCalls": 72,
+    "spawnPerRole": 1,
+    "providerHttp": 0,
+    "providerRetries": 0,
+    "respawn": 0,
+    "parallelProvider": 0
+  },
+  "localHttp": "Only reviewed START allowlist GET capabilities bothports, exactly one POSTopen for each fictitious DTD-DEMO-1-1/1-2, GETusage each actualnewUUID. No extraction/upload/apply/save/confirm/calculate/export/provider.",
+  "serviceOwnership": "Observe actual new own child SafeHandle/birthCIM andHANDLE separately/exe/argvWhole/listener andparentactualNodeactor while alive. Actor exits at formalReady, detachedservice survival requires fresh postFIN exterior; parent need not stay alive and no parent-live requirement invented. Never stop oldPIDs/foreign/process-tree; partialfailure preserves ownservices for explicit decision.",
+  "backendConfigAuthority": "ONLY backend service may load canonical existing test config in memory under this GO. Root/actor never read/stat/hash credential or FSledger. Ledger canonical GLOBALinputSHA invariant, no reset/reclaim/rename/newcredits/newkey/resend. No privatecontent in logs/argv/env/stdout/errors.",
+  "limits": "No universal host<=10s, Node lstat tags/concurrency guarantee, or hard streaming memory-cap claim from EOF length checks. Bounded fixed-program QA actor output plus original deadlines; capture incomplete/unknown STOP. Port LISTEN query produces only protected/new4port projection, no otherports persisted or contacts/business/PII.",
+  "sourceAllowlist": [],
+  "samePR": 319,
+  "draft": true,
+  "push": false,
+  "merge": false,
+  "deploy": false,
+  "production": false,
+  "actualOriginUtc": null,
+  "reserved": true,
+  "separateExecuteRequired": true,
+  "next": "PAIR_READY requires actualNode0+EOF2+strictUTF8JSON and actualpostFINownservices; then General/Parentexteriors before ORIGINALclose and formalreturn BEFOREcustody. Future E2E requires DATA-onlynewPID/birth-parent/UUID bindings reviewed plus NEWfunctionalauthority; do notrunold03orclaimedhistoricalPDFjobinnewmemory."
+}
+ROOT-GLM-QA-PAIR04-AUTHORITY-END
+
 ## CORE02 revisión General cerrada favorable; nueva humana Packing leída directamente
 
 - General7b6b70/native0 leyó HEAD13d6a9bfc/limpio y ENTERO dictamen8366/d8cf52a1597e2b3faa7d369f897cc68642706b8cee6b5ebfcc0471042286b94b. Rootfba5d3/native0 REAL2026-10-23T15:01:23.582035→15:01:36.338424Z comprobó3sellosParent+15FIJOSactuales/17SQL físicasENTERAS==rawGitF60(native17exit0)/4GitINDIV0 F60tree054branchclean/claim212B4/realkeyresumedAdministrativeAdoption. NoSQL/Nodeproducto/Docker/CIM/conocimiento/gestores nireserva.
