@@ -215,6 +215,25 @@ select pg_temp.fixture_id('i3b-entry-'||label),pg_temp.fixture_id(account),debit
 from (values ('history90','clientes',90,0),('history90','ventas',0,90),
   ('original-future','clientes',100,0),('original-future','ventas',0,100),
   ('legacy-both','clientes',100,0),('legacy-both','ventas',0,100)) v(label,account,debit,credit);
+-- M2: dos sujetos NUEVOS previos a0497; no sustituyen legado ni apagan guardas.
+insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,
+  base_amount,iva_amount,total_amount,paid_amount,status,issued_at)
+select pg_temp.fixture_id('m2-'||label),pg_temp.fixture_id('tenant-A'),'F-M2-'||label,
+  'DTD-M2-TEST','Cliente sintético M2','USD',100,0,100,0,'emitida',date '2026-10-10'
+from unnest(array['draft-only','posted-and-draft']) label;
+insert into public.journal_entries(id,tenant_id,entry_code,entry_date,memo,status,source,invoice_id,posted_at)
+select pg_temp.fixture_id('m2-entry-'||label),pg_temp.fixture_id('tenant-A'),code,date '2026-10-10',
+  'Legado sintético M2',status::public.entry_status,'invoice',pg_temp.fixture_id('m2-'||invoice),
+  case when status='asentado' then now() else null end
+from (values('draft-only','draft-only','M2-DRAFT-ONLY','borrador'),
+  ('both-posted','posted-and-draft','M2-BOTH-POST','asentado'),
+  ('both-draft','posted-and-draft','M2-BOTH-DRAFT','borrador')) v(label,invoice,code,status);
+insert into public.journal_lines(entry_id,account_id,debit,credit,line_memo)
+select pg_temp.fixture_id('m2-entry-'||label),pg_temp.fixture_id(account),debit,credit,'Línea sintética M2'
+from (values('draft-only','clientes',100,0),('draft-only','ventas',0,100),
+  ('both-posted','clientes',100,0),('both-posted','ventas',0,100),
+  ('both-draft','clientes',100,0),('both-draft','ventas',0,100)) v(label,account,debit,credit);
+
 \if :apply_fix
 \ir ../migrations/0497_reverso_al_anular_factura.sql
 \endif
@@ -296,6 +315,308 @@ create function pg_temp.neto_del_par(p_entry text) returns numeric language sql 
     where l.entry_id in (pg_temp.fixture_id(p_entry), pg_temp.reverso_de(p_entry))
     group by l.account_id) s
 $$;
+
+-- M2/B1/M3: definiciones reales comunes al contrato normal y sus probes (§1).
+-- Sólo TEST INVOKER; no se otorga EXECUTE a una autorizadora privada.
+create function pg_temp.m2b1_context() returns jsonb language sql as $supp$
+  select jsonb_build_object('auditReason',current_setting('dtd.audit_reason',true),
+    'closingGucSqlNull',current_setting('dtd.excepcion_cierre',true) is null,
+    'closingGucEmpty',current_setting('dtd.excepcion_cierre',true)='',
+    'closingGucHasValue',nullif(current_setting('dtd.excepcion_cierre',true),'') is not null)
+$supp$;
+create function pg_temp.m2b1_snapshot() returns jsonb language sql as $supp$
+  select jsonb_build_object(
+    'invoices',coalesce((select jsonb_agg(to_jsonb(i) order by i.id) from public.invoices i),'[]'::jsonb),
+    'entries',coalesce((select jsonb_agg(to_jsonb(e) order by e.id) from public.journal_entries e),'[]'::jsonb),
+    'lines',coalesce((select jsonb_agg(to_jsonb(l) order by l.id) from public.journal_lines l),'[]'::jsonb),
+    'receipts',coalesce((select jsonb_agg(to_jsonb(r) order by r.id) from public.payment_receipts r),'[]'::jsonb),
+    'audit',coalesce((select jsonb_agg(to_jsonb(a) order by a.id) from public.entity_audit_log a),'[]'::jsonb),
+    'exceptions',coalesce((select jsonb_agg(to_jsonb(x) order by x.id) from public.accounting_closing_exceptions x),'[]'::jsonb),
+    'closingEvents',coalesce((select jsonb_agg(to_jsonb(e) order by e.id) from public.accounting_closing_events e),'[]'::jsonb),
+    'settings',coalesce((select jsonb_agg(to_jsonb(s) order by s.tenant_id) from public.accounting_settings s),'[]'::jsonb))
+$supp$;
+create function pg_temp.m2b1_redact(p_graph jsonb) returns jsonb language sql as $supp$
+  select jsonb_set(p_graph,'{exceptions}',coalesce((select jsonb_agg(x.value-'nonce' order by x.value->>'id')
+    from jsonb_array_elements(p_graph->'exceptions') x),'[]'::jsonb))
+$supp$;
+create function pg_temp.m2b1_graph(p_invoice uuid) returns jsonb language sql as $supp$
+  select jsonb_build_object('invoice',(select to_jsonb(i) from public.invoices i where i.id=p_invoice),
+    'entries',coalesce((select jsonb_agg(to_jsonb(e) order by e.id) from public.journal_entries e where e.invoice_id=p_invoice),'[]'::jsonb),
+    'originals',coalesce((select jsonb_agg(to_jsonb(e) order by e.id) from public.journal_entries e where e.invoice_id=p_invoice and e.source='invoice'),'[]'::jsonb),
+    'lines',coalesce((select jsonb_agg(to_jsonb(l) order by l.id) from public.journal_lines l where l.entry_id in
+      (select e.id from public.journal_entries e where e.invoice_id=p_invoice)),'[]'::jsonb),
+    'accounts',coalesce((select jsonb_agg(to_jsonb(a) order by a.id) from public.accounts a where a.id in
+      (select l.account_id from public.journal_lines l where l.entry_id in(select e.id from public.journal_entries e where e.invoice_id=p_invoice))),'[]'::jsonb),
+    'receipts',coalesce((select jsonb_agg(to_jsonb(r) order by r.id) from public.payment_receipts r where r.invoice_id=p_invoice),'[]'::jsonb),
+    'audit',coalesce((select jsonb_agg(to_jsonb(a) order by a.id) from public.entity_audit_log a where a.entity_id=p_invoice
+      or a.entity_id in(select e.id from public.journal_entries e where e.invoice_id=p_invoice)
+      or a.entity_id in(select r.id from public.payment_receipts r where r.invoice_id=p_invoice)),'[]'::jsonb),
+    'orphanLines',coalesce((select jsonb_agg(to_jsonb(l) order by l.id) from public.journal_lines l where not exists
+      (select 1 from public.journal_entries e where e.id=l.entry_id)),'[]'::jsonb),
+    'orphanHeaders',coalesce((select jsonb_agg(to_jsonb(e) order by e.id) from public.journal_entries e
+      where e.source in('invoice','invoice_reversal') and not exists(select 1 from public.invoices i where i.id=e.invoice_id)),'[]'::jsonb))
+$supp$;
+create function pg_temp.m2b1_attempt(p_actor text,p_command text,p_role text default 'authenticated')
+returns jsonb language plpgsql as $supp$
+declare value jsonb; state text; message text; detail text; hint text; context text;
+  schema_value text; table_value text; column_value text; constraint_value text; datatype_value text;
+begin
+  begin
+    value:=pg_temp.as_actor(p_actor,p_command,p_role);
+    return jsonb_build_object('ok',true,'result',value,'command',p_command);
+  exception when others then
+    get stacked diagnostics state=returned_sqlstate,message=message_text,detail=pg_exception_detail,
+      hint=pg_exception_hint,context=pg_exception_context,schema_value=schema_name,table_value=table_name,
+      column_value=column_name,constraint_value=constraint_name,datatype_value=pg_datatype_name;
+    return jsonb_build_object('ok',false,'command',p_command,'state',state,'message',message,'detail',detail,
+      'hint',hint,'context',context,'schema',schema_value,'table',table_value,'column',column_value,
+      'constraint',constraint_value,'datatype',datatype_value);
+  end;
+end;
+$supp$;
+create function pg_temp.m2_void_case(p_case text) returns jsonb language plpgsql as $supp$
+declare v_invoice uuid:=pg_temp.fixture_id('m2-'||p_case); before_state jsonb; after_state jsonb; result jsonb;
+  context_before jsonb; context_after jsonb; expected_headers integer;
+begin
+  perform pg_temp.assert_true(p_case in('draft-only','posted-and-draft'),'M2 sujeto nominal independiente');
+  expected_headers:=case when p_case='draft-only' then 1 else 2 end;
+  perform pg_temp.assert_true((select i.tenant_id=pg_temp.fixture_id('tenant-A') and i.currency='USD'
+    and i.base_amount=100 and i.iva_amount=0 and i.total_amount=100 and i.paid_amount=0
+    and i.status='emitida' and i.deleted_at is null and i.issued_at=date '2026-10-10'
+    from public.invoices i where i.id=v_invoice),'M2 preimagen factura100 emitida sin cobro: '||p_case);
+  perform pg_temp.assert_true((select count(*)=expected_headers and bool_and(e.tenant_id=pg_temp.fixture_id('tenant-A')
+    and e.source='invoice' and e.deleted_at is null and e.entry_date=date '2026-10-10' and e.entry_code is not null)
+    and count(*) filter(where e.status='borrador')=1
+    and count(*) filter(where e.status='asentado')=expected_headers-1 from public.journal_entries e where e.invoice_id=v_invoice),
+    'M2 cabeceras positivas borrador y original dedicados: '||p_case);
+  perform pg_temp.assert_true(not exists(select 1 from public.journal_entries e where e.invoice_id=v_invoice
+    and not exists(select 1 from public.entity_audit_log a where a.entity_id=e.id))
+    and not exists(select 1 from public.journal_entries e where e.invoice_id=v_invoice and
+      (select count(*)<>2 or sum(l.debit)<>100 or sum(l.credit)<>100
+       or not bool_and(a.tenant_id=pg_temp.fixture_id('tenant-A') and a.is_postable
+         and ((a.code='1.1.2' and l.debit=100 and l.credit=0) or(a.code='4.5' and l.debit=0 and l.credit=100)))
+       from public.journal_lines l join public.accounts a on a.id=l.account_id where l.entry_id=e.id)),
+    'M2 líneas100 propias y auditoría positiva por cabecera: '||p_case);
+  before_state:=pg_temp.m2b1_snapshot();context_before:=pg_temp.m2b1_context();
+  result:=pg_temp.m2b1_attempt('accounting-A',pg_temp.void_sql('m2-'||p_case,'M2 motivo sintético válido'));
+  after_state:=pg_temp.m2b1_snapshot();context_after:=pg_temp.m2b1_context();
+  raise notice '0573_M2_RAW %',jsonb_build_object('case',p_case,'before',pg_temp.m2b1_redact(before_state),
+    'after',pg_temp.m2b1_redact(after_state),'result',result,'contextBefore',context_before,'contextAfter',context_after);
+  perform pg_temp.assert_true(result->>'ok'='false' and result->>'state'='55000'
+    and result->>'message'='Los antecedentes de venta requieren revisión.' and result->>'hint'='dtd-anular',
+    'M2 void55000 por borrador: '||p_case);
+  perform pg_temp.assert_true(after_state=before_state and pg_temp.m2b1_graph(v_invoice)->'orphanLines'='[]'::jsonb
+    and pg_temp.m2b1_graph(v_invoice)->'orphanHeaders'='[]'::jsonb,'M2 rechazo conserva grafo entero: '||p_case);
+  return result;
+end;
+$supp$;
+create function pg_temp.m2b1_assert_sale(p_invoice uuid,p_reverse boolean,p_label text) returns jsonb language plpgsql as $supp$
+declare graph jsonb; original uuid; reversal uuid;
+begin
+  graph:=pg_temp.m2b1_graph(p_invoice);
+  perform pg_temp.assert_true((select tenant_id=pg_temp.fixture_id('tenant-A') and currency='USD'
+    and base_amount=100 and iva_amount=0 and total_amount=100 and paid_amount=0 and deleted_at is null
+    and status=case when p_reverse then 'anulada'::public.invoice_status else 'emitida'::public.invoice_status end
+    from public.invoices where id=p_invoice),'M2B1M3 factura positiva: '||p_label);
+  select id into strict original from public.journal_entries where invoice_id=p_invoice and source='invoice';
+  select id into reversal from public.journal_entries where reverses_entry_id=original;
+  perform pg_temp.assert_true(jsonb_array_length(graph->'entries')=case when p_reverse then 2 else 1 end
+    and jsonb_array_length(graph->'lines')=case when p_reverse then 4 else 2 end
+    and (reversal is not null)=p_reverse and graph->'receipts'='[]'::jsonb
+    and graph->'orphanLines'='[]'::jsonb and graph->'orphanHeaders'='[]'::jsonb,
+    'M2B1M3 multiplicidad sin huérfanos: '||p_label);
+  perform pg_temp.assert_true(not exists(select 1 from public.journal_entries e where e.invoice_id=p_invoice
+    and (e.tenant_id<>pg_temp.fixture_id('tenant-A') or e.status<>'asentado' or e.deleted_at is not null
+      or e.posted_at is null or e.entry_code is null or e.entry_date is null))
+    and (select count(*)=2 and sum(l.debit)=100 and sum(l.credit)=100 and bool_and(
+      a.tenant_id=pg_temp.fixture_id('tenant-A') and a.is_postable and
+      ((a.code='1.1.2' and l.debit=100 and l.credit=0) or(a.code='4.5' and l.debit=0 and l.credit=100)))
+      from public.journal_lines l join public.accounts a on a.id=l.account_id where l.entry_id=original)
+    and exists(select 1 from public.entity_audit_log where entity_id=original and event_type='journal_entry_posted'),
+    'M2B1M3 original nominal100 y auditoría reales: '||p_label);
+  if p_reverse then
+    perform pg_temp.assert_true((select source='invoice_reversal' and invoice_id=p_invoice and reverses_entry_id=original
+      from public.journal_entries where id=reversal)
+      and not exists((select account_id,debit,credit from public.journal_lines where entry_id=original
+        except all select account_id,credit,debit from public.journal_lines where entry_id=reversal)
+        union all(select account_id,credit,debit from public.journal_lines where entry_id=reversal
+        except all select account_id,debit,credit from public.journal_lines where entry_id=original))
+      and exists(select 1 from public.entity_audit_log where entity_id=reversal and event_type='journal_entry_posted')
+      and exists(select 1 from public.entity_audit_log where entity_id=p_invoice and event_type='invoice_voided'),
+      'M2B1M3 espejo100 y auditoría de anulación completos: '||p_label);
+  end if;
+  return graph;
+end;
+$supp$;
+create function pg_temp.m2b1_fresh_sale(p_label text) returns uuid language plpgsql as $supp$
+declare v_invoice uuid:=pg_temp.fixture_id('m2b1m3-'||p_label); result jsonb;
+begin
+  insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,
+    base_amount,iva_amount,total_amount,paid_amount,status,issued_at)
+  values(v_invoice,pg_temp.fixture_id('tenant-A'),'F-0573-'||p_label,'DTD-0573-TEST','Cliente sintético','USD',
+    100,0,100,0,'emitida',date '2026-10-10');
+  result:=pg_temp.as_actor(null,format('select public.post_invoice_journal_entry_atomic(%L::uuid,%L::uuid)',
+    pg_temp.fixture_id('tenant-A'),v_invoice),'service_role');
+  perform pg_temp.assert_true(result->>'outcome'='posted','M2B1M3 posting fresco real: '||p_label);
+  perform pg_temp.m2b1_assert_sale(v_invoice,false,p_label);
+  return v_invoice;
+end;
+$supp$;
+
+create temporary sequence m2b1_seen_manual minvalue 0 start 0;
+create temporary sequence m2b1_seen_original minvalue 0 start 0;
+create temporary sequence m2b1_seen_reverso minvalue 0 start 0;
+select setval('pg_temp.m2b1_seen_manual',0,true),setval('pg_temp.m2b1_seen_original',0,true),setval('pg_temp.m2b1_seen_reverso',0,true);
+create temporary table m2b1_targets(label text primary key,id uuid unique not null,reason text not null);
+create temporary table m2b1_settings_before as select closing_date,closing_mode from public.accounting_settings where false;
+create function pg_temp.m2b1_test_key() returns text language sql immutable as $supp$
+  select 'SOLO-TEST-0573-SUPERCLAVE'
+$supp$;
+create function pg_temp.m2b1_observe() returns trigger language plpgsql security invoker set search_path='' as $supp$
+declare target record; exception_row public.accounting_closing_exceptions%rowtype; match_count bigint;
+  expected_owner text; closing date; observed bigint; sequence_name text;
+begin
+  select * into target from pg_temp.m2b1_targets t where t.id=old.id;
+  if not found then return new; end if;
+  select pg_catalog.pg_get_userbyid(p.proowner) into strict expected_owner from pg_catalog.pg_proc p
+    where p.oid='public.anular_asiento_en_cierre(uuid,text,text)'::pg_catalog.regprocedure;
+  select closing_date into strict closing from public.accounting_settings where tenant_id=old.tenant_id;
+  if tg_op<>'UPDATE' or current_user is distinct from expected_owner or old.status<>'asentado'
+    or new.status<>'anulado' or new.id is distinct from old.id
+    or (to_jsonb(new)-'status'-'updated_at') is distinct from (to_jsonb(old)-'status'-'updated_at')
+    or old.tenant_id is distinct from pg_temp.fixture_id('tenant-A') or auth.uid() is distinct from pg_temp.fixture_id('accounting-A')
+    or closing is null or old.entry_date>closing then raise exception 'TEST B1: contexto real del observador inválido'; end if;
+  select count(*) into match_count from public.accounting_closing_exceptions x
+    where x.entry_id=old.id and x.tenant_id=old.tenant_id and x.user_id=auth.uid()
+      and x.operation='anular' and x.authorized_by='superclave' and x.entry_code=old.entry_code
+      and x.entry_date=old.entry_date and x.closing_date=closing and x.reason=target.reason
+      and x.amount_before=100 and x.amount_after=0
+      and x.nonce=nullif(pg_catalog.current_setting('dtd.excepcion_cierre',true),'')
+      and x.txid=pg_catalog.txid_current();
+  if match_count<>1 or nullif(pg_catalog.current_setting('dtd.excepcion_cierre',true),'') is null
+    or public.excepcion_al_cierre_vigente(old.id) is distinct from true then
+    raise exception 'TEST B1: excepción singular nonce/GUC/txid no acreditada'; end if;
+  select x.* into strict exception_row from public.accounting_closing_exceptions x
+    where x.entry_id=old.id and x.nonce=nullif(pg_catalog.current_setting('dtd.excepcion_cierre',true),'')
+      and x.txid=pg_catalog.txid_current();
+  sequence_name:='pg_temp.m2b1_seen_'||target.label;
+  observed:=pg_catalog.nextval(sequence_name::pg_catalog.regclass);
+  raise notice '0573_B1_AUTHENTIC_WITNESS %',jsonb_build_object('case',target.label,'target',old.id,
+    'exceptionId',exception_row.id,'txid',exception_row.txid::text,'actor',exception_row.user_id,
+    'tenant',exception_row.tenant_id,'operation',exception_row.operation,'authorizedBy',exception_row.authorized_by,
+    'entryDate',exception_row.entry_date,'closingDate',exception_row.closing_date,'observed',observed,
+    'matchCount',match_count,'nonceMatchesGuc',exception_row.nonce=current_setting('dtd.excepcion_cierre',true),
+    'sameTxid',exception_row.txid=txid_current(),'validator',public.excepcion_al_cierre_vigente(old.id),
+    'contextOwner',current_user,'expectedOwner',expected_owner);
+  return new;
+end;
+$supp$;
+create trigger a0573_m2b1_observe before update on public.journal_entries for each row execute function pg_temp.m2b1_observe();
+create function pg_temp.m2b1_setup() returns void language plpgsql as $supp$
+declare v_invoice uuid; original uuid; reversal uuid; manual uuid:=pg_temp.fixture_id('m2b1-manual'); result jsonb; close_date date;
+begin
+  perform pg_temp.assert_true(not exists(select 1 from pg_temp.m2b1_targets)
+    and not exists(select 1 from public.accounting_closing_secrets where tenant_id=pg_temp.fixture_id('tenant-A')),
+    'B1 setup único y clave TEST inicialmente ausente');
+  insert into pg_temp.m2b1_settings_before select closing_date,closing_mode from public.accounting_settings where tenant_id=pg_temp.fixture_id('tenant-A');
+  perform pg_temp.assert_true((select count(*)=1 from pg_temp.m2b1_settings_before),'B1 configuración previa singular');
+  update public.accounting_settings set closing_date=null,closing_mode='superclave' where tenant_id=pg_temp.fixture_id('tenant-A');
+  v_invoice:=pg_temp.m2b1_fresh_sale('b1-pair');
+  result:=pg_temp.as_actor('accounting-A',format('select to_jsonb(public.void_invoice_with_audit_reason(%L::uuid,''B1 crear par sintético''))',v_invoice));
+  perform pg_temp.assert_true(result='true'::jsonb,'B1 par fresco por void público real');
+  perform pg_temp.m2b1_assert_sale(v_invoice,true,'B1 par dedicado');
+  select e.id into strict original from public.journal_entries e where e.invoice_id=v_invoice and e.source='invoice';
+  select e.id into strict reversal from public.journal_entries e where e.reverses_entry_id=original;
+  insert into public.journal_entries(id,tenant_id,entry_code,entry_date,status,source)
+    values(manual,pg_temp.fixture_id('tenant-A'),'M-0573-B1',date '2026-10-10','borrador','manual');
+  insert into public.journal_lines(entry_id,account_id,debit,credit) values
+    (manual,pg_temp.fixture_id('clientes'),100,0),(manual,pg_temp.fixture_id('ventas'),0,100);
+  update public.journal_entries set status='asentado',posted_at=now() where public.journal_entries.id=manual;
+  perform pg_temp.assert_true((select count(*)=2 and sum(debit)=100 and sum(credit)=100 from public.journal_lines where entry_id=manual)
+    and exists(select 1 from public.entity_audit_log where entity_id=manual and event_type='journal_entry_posted'),
+    'B1 manual dedicado asentado100 positivo');
+  result:=pg_temp.as_actor('admin-A','select public.fijar_superclave_de_cierre(null,pg_temp.m2b1_test_key())');
+  perform pg_temp.assert_true(result->'ok'='true'::jsonb and (select closing_mode='superclave'
+    from public.accounting_settings where tenant_id=pg_temp.fixture_id('tenant-A')),'B1 clave configurada por RPC admin real en modo superclave');
+  select max(entry_date) into close_date from public.journal_entries where public.journal_entries.id in(original,reversal,manual);
+  update public.accounting_settings set closing_date=close_date where tenant_id=pg_temp.fixture_id('tenant-A');
+  perform pg_temp.assert_true((select count(*)=3 and bool_and(entry_date<=close_date and status='asentado')
+    from public.journal_entries where public.journal_entries.id in(original,reversal,manual)),'B1 cierre alcanza manual y AMBOS extremos reales');
+  insert into pg_temp.m2b1_targets values('manual',manual,'B1 motivo manual permitido'),
+    ('original',original,'B1 motivo original protegido'),('reverso',reversal,'B1 motivo reverso protegido');
+end;
+$supp$;
+create function pg_temp.m2b1_restore() returns void language plpgsql as $supp$
+begin
+  update public.accounting_settings s set closing_date=b.closing_date,closing_mode=b.closing_mode
+    from pg_temp.m2b1_settings_before b where s.tenant_id=pg_temp.fixture_id('tenant-A');
+  drop trigger if exists a0573_m2b1_observe on public.journal_entries;
+end;
+$supp$;
+create function pg_temp.m2b1_case(p_case text) returns jsonb language plpgsql as $supp$
+declare target record; before_state jsonb; after_state jsonb; before_context jsonb; after_context jsonb;
+  before_count bigint; after_count bigint; before_called boolean; after_called boolean; result jsonb;
+begin
+  select * into strict target from pg_temp.m2b1_targets where label=p_case;
+  execute format('select last_value,is_called from pg_temp.%I','m2b1_seen_'||p_case) into before_count,before_called;
+  before_state:=pg_temp.m2b1_snapshot();before_context:=pg_temp.m2b1_context();
+  result:=pg_temp.m2b1_attempt('accounting-A',format(
+    'select public.anular_asiento_en_cierre(%L::uuid,pg_temp.m2b1_test_key(),%L)',target.id,target.reason));
+  execute format('select last_value,is_called from pg_temp.%I','m2b1_seen_'||p_case) into after_count,after_called;
+  after_state:=pg_temp.m2b1_snapshot();after_context:=pg_temp.m2b1_context();
+  raise notice '0573_B1_ATTEMPT_RAW %',jsonb_build_object('case',p_case,'target',target.id,'result',result,
+    'before',pg_temp.m2b1_redact(before_state),'after',pg_temp.m2b1_redact(after_state),
+    'sequenceBefore',before_count,'sequenceAfter',after_count,'isCalledBefore',before_called,'isCalledAfter',after_called,
+    'contextBefore',before_context,'contextAfter',after_context);
+  perform pg_temp.assert_true(before_called and after_called and after_count=before_count+1,'B1 testigo auténtico avanza EXACTO1: '||p_case);
+  if p_case='manual' then
+    perform pg_temp.assert_true(result->>'ok'='true' and result->'result'->'ok'='true'::jsonb
+      and exists(select 1 from public.journal_entries where id=target.id and status='anulado')
+      and exists(select 1 from public.entity_audit_log where entity_id=target.id and event_type='journal_entry_voided' and reason=target.reason)
+      and (select count(*)=1 from public.accounting_closing_exceptions where entry_id=target.id
+        and operation='anular' and authorized_by='superclave' and user_id=pg_temp.fixture_id('accounting-A')
+        and txid=txid_current() and reason=target.reason and amount_before=100 and amount_after=0),
+      'B1 manual permitido por la misma excepción auténtica');
+  else
+    perform pg_temp.assert_true(result->>'ok'='false' and result->>'state'='23514'
+      and result->>'message'='El asiento automático es inmutable; revisa su factura y reverso.',
+      'B1 excepción auténtica no autoriza extremo: '||p_case);
+    perform pg_temp.assert_true(after_state=before_state,'B1 rechazo conserva grafo/excepciones/auditoría ENTEROS: '||p_case);
+  end if;
+  return result;
+end;
+$supp$;
+create function pg_temp.m2b1_run(p_only text default null) returns void language plpgsql as $supp$
+begin
+  perform pg_temp.m2b1_setup();
+  if p_only is null then
+    perform pg_temp.m2b1_case('manual');perform pg_temp.m2b1_case('original');perform pg_temp.m2b1_case('reverso');
+  else
+    perform pg_temp.assert_true(p_only in('original','reverso'),'B1 probe focal nominal');perform pg_temp.m2b1_case(p_only);
+  end if;
+  perform pg_temp.m2b1_restore();
+exception when others then
+  -- La fixture completa hará ROLLBACK; no se sustituye el primario por cleanup.
+  begin perform pg_temp.m2b1_restore();exception when others then raise notice '0573_B1_CLEANUP_ERROR %',sqlerrm;end;
+  raise;
+end;
+$supp$;
+
+create function pg_temp.m3_setup() returns jsonb language plpgsql as $supp$
+declare a uuid; b uuid;
+begin
+  a:=pg_temp.m2b1_fresh_sale('m3-before');b:=pg_temp.m2b1_fresh_sale('m3-after');
+  perform pg_temp.assert_true((select closing_date is null or closing_date<date '2026-10-31'
+    from public.accounting_settings where tenant_id=pg_temp.fixture_id('tenant-A')),'M3 cierre no domina las dos bandas');
+  return jsonb_build_object('before',pg_temp.m2b1_assert_sale(a,false,'M3 antes positivo'),
+    'after',pg_temp.m2b1_assert_sale(b,false,'M3 después positivo'),'setupTxid',txid_current()::text);
+end;
+$supp$;
+create function pg_temp.m3_sample() returns jsonb language sql as $supp$
+  select jsonb_build_object('utc',to_char(now() at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    'epochUs',(extract(epoch from now())*1000000)::numeric(30,0)::text,'txid',txid_current()::text,
+    'caracasDate',(now() at time zone 'America/Caracas')::date::text)
+$supp$;
 
 -- ── 1. Quién anula y con qué motivo ──
 select pg_temp.assert_true(pg_temp.error_of('commercial-A', pg_temp.void_sql('inv-abierta'))
@@ -898,6 +1219,11 @@ select pg_temp.assert_true(has_function_privilege('service_role','public.post_in
 set constraints public.journal_lines_entry_id_fkey,
   public.i3_journal_entry_final_check,public.i3_invoice_final_check immediate;
 
+
+-- Suplemento M2/B1 independiente; sólo se ejecutará con un GO futuro.
+select pg_temp.m2_void_case('draft-only');
+select pg_temp.m2_void_case('posted-and-draft');
+select pg_temp.m2b1_run();
 
 select 'TEST 0497 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 rollback;

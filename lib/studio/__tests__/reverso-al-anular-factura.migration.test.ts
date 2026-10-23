@@ -17,7 +17,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const CONTRACT = resolve(ROOT, "supabase/tests/0497_reverso_al_anular_factura.test.sql");
@@ -97,13 +97,14 @@ async function contract(options: { applyFix?: boolean; migration?: string; repla
   }
   const sql = inline(CONTRACT, { apply_fix: String(options.applyFix ?? true) }, replacements);
   const db = new PGlite({ extensions: { pgcrypto } });
+  const notices: Record<string, unknown>[] = [];
   try {
-    const results = await db.exec(sql);
+    const results = await db.exec(sql, { onNotice: (notice) => notices.push({ ...notice }) });
     const rows = results.flatMap((result) => result.rows as Record<string, unknown>[]);
     const green = rows.map((row) => String(row.resultado ?? "")).find((text) => text.startsWith("TEST 0497 GREEN"));
-    return { error: null as string | null, green };
+    return { error: null as string | null, green, notices, nativeError: null as Record<string, unknown> | null };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : String(error), green: undefined };
+    return { error: error instanceof Error ? error.message : String(error), green: undefined, notices, nativeError: nativeEvidence(error) };
   } finally {
     await db.close();
   }
@@ -184,6 +185,137 @@ end;
 $probe$;`;
 }
 
+
+type ClockSample = { utc: string; epochUs: string; txid: string; caracasDate: string };
+type NativeAttempt = { ok: boolean; result?: unknown; command: string; state?: string;
+  message?: string; hint?: string; context?: string; [field: string]: unknown };
+type MidnightStage = { label: string; nominalUtc: string; lowerUs: string; upperUs: string;
+  expectedDate: string; sampleBefore?: ClockSample; sampleAfter?: ClockSample;
+  before?: Record<string, unknown>; attempt?: NativeAttempt; afterRollback?: Record<string, unknown>;
+  afterCommit?: Record<string, unknown>; committed?: boolean; endedTransaction?: boolean };
+const MIDNIGHT_CASES = [
+  { label: "before", nominalUtc: "2026-11-01T03:59:59.999Z", lowerUs: "1793505599998999",
+    upperUs: "1793505599999001", expectedDate: "2026-10-31" },
+  { label: "after", nominalUtc: "2026-11-01T04:00:00.001Z", lowerUs: "1793505600000999",
+    upperUs: "1793505600001001", expectedDate: "2026-11-01" },
+] as const;
+const MIDNIGHT_SUCCESS = "M3 éxito público auténtico: ";
+const SEQUENTIAL_MARKER = "-- ── 1. Quién anula y con qué motivo ──";
+function nativeEvidence(error: unknown): Record<string, unknown> {
+  if (typeof error !== "object" || error === null) return { thrown: error };
+  return Object.fromEntries(Object.getOwnPropertyNames(error).map((key) =>
+    [key, (error as Record<string, unknown>)[key]]));
+}
+function onlyRow<T>(results: { rows: unknown[] }[], column: string): T {
+  const rows = results.flatMap((result) => result.rows as Record<string, unknown>[]);
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toHaveProperty(column);
+  return rows[0][column] as T;
+}
+/** Date únicamente del worker Vitest; no modifica reloj SO/controlador/timers. */
+async function midnightContract(migration = FILE_0497) {
+  const RealDate = Date;
+  const entryDateUtc = new RealDate().toISOString();
+  const originalTimers = { setTimeout, clearTimeout, setInterval, clearInterval };
+  const notices: Record<string, unknown>[] = [];
+  const stages: MidnightStage[] = [];
+  const cleanupErrors: Record<string, unknown>[] = [];
+  let db: PGlite | undefined;
+  let error: string | null = null;
+  let originalError: Record<string, unknown> | null = null;
+  let setup: Record<string, unknown> | undefined;
+  let setupCommitted = false;
+  let boundary: "NO DISPONIBLE" | "ADMITIDA POR SQL" = "NO DISPONIBLE";
+  let dateOwned = false;
+  try {
+    expect(vi.isFakeTimers()).toBe(false);
+    db = new PGlite({ extensions: { pgcrypto } });
+    const exec = (sql: string) => db!.exec(sql, { onNotice: (notice) => notices.push({ ...notice }) });
+    const fixture = readFileSync(CONTRACT, "utf8");
+    expect(fixture.split(SEQUENTIAL_MARKER)).toHaveLength(2);
+    // El prefijo REAL incluye BEGIN/migraciones/§0 y las mismas definiciones.
+    const bootstrap = inline(CONTRACT, { apply_fix: "true" }, {
+      [M0497]: migration,
+      "0497_reverso_al_anular_factura.test.sql": fixture.slice(0, fixture.indexOf(SEQUENTIAL_MARKER)),
+    });
+    await exec(bootstrap);
+    expect(db.isInTransaction()).toBe(true);
+    setup = onlyRow<Record<string, unknown>>(await exec("select pg_temp.m3_setup() as evidence;"), "evidence");
+    await exec("commit;");
+    expect(db.isInTransaction()).toBe(false);
+    setupCommitted = true;
+    // Las bandas TEXT de arriba son previas a observar SQL, no tolerancia aprendida.
+    dateOwned = true;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    for (const nominal of MIDNIGHT_CASES) {
+      const stage: MidnightStage = { ...nominal };
+      stages.push(stage);
+      vi.setSystemTime(new RealDate(nominal.nominalUtc));
+      await exec("begin isolation level read committed;");
+      expect(db.isInTransaction()).toBe(true);
+      stage.sampleBefore = onlyRow<ClockSample>(await exec("select pg_temp.m3_sample() as evidence;"), "evidence");
+      const observedUs = BigInt(stage.sampleBefore.epochUs);
+      if (observedUs < BigInt(nominal.lowerUs) || observedUs > BigInt(nominal.upperUs)
+        || stage.sampleBefore.caracasDate !== nominal.expectedDate) {
+        throw new Error("M3 frontera NO DISPONIBLE: SQL fuera de banda previa " + nominal.label);
+      }
+      const invoice = `pg_temp.fixture_id('m2b1m3-m3-${nominal.label}')`;
+      stage.before = onlyRow<Record<string, unknown>>(await exec(
+        `select pg_temp.m2b1_assert_sale(${invoice},false,'M3 ${nominal.label} antes') as graph;`), "graph");
+      stage.attempt = onlyRow<NativeAttempt>(await exec(
+        `select pg_temp.m2b1_attempt('accounting-A',pg_temp.void_sql('m2b1m3-m3-${nominal.label}','M3 motivo temporal sintético')) as evidence;`), "evidence");
+      stage.sampleAfter = onlyRow<ClockSample>(await exec("select pg_temp.m3_sample() as evidence;"), "evidence");
+      expect(stage.sampleAfter).toEqual(stage.sampleBefore);
+      if (!stage.attempt.ok || stage.attempt.result !== true) {
+        // Captura primaria COMPLETA antes del nuevo oráculo; no leer un R inexistente.
+        await exec("rollback;");
+        stage.endedTransaction = !db.isInTransaction();
+        stage.afterRollback = onlyRow<Record<string, unknown>>(await exec(
+          `select pg_temp.m2b1_assert_sale(${invoice},false,'M3 ${nominal.label} rollback positivo') as graph;`), "graph");
+        expect(stage.afterRollback).toEqual(stage.before);
+        throw new Error(MIDNIGHT_SUCCESS + nominal.label);
+      }
+      const after = onlyRow<Record<string, unknown>>(await exec(
+        `select pg_temp.m2b1_assert_sale(${invoice},true,'M3 ${nominal.label} par efectivo') as graph;`), "graph");
+      const entries = after.entries as Record<string, unknown>[];
+      const reversals = entries.filter((entry) => entry.source === "invoice_reversal");
+      expect(reversals).toHaveLength(1);
+      expect(reversals[0].entry_date).toBe(nominal.expectedDate);
+      expect(after.originals).toEqual(stage.before.originals);
+      await exec("commit;");
+      stage.endedTransaction = !db.isInTransaction();
+      expect(stage.endedTransaction).toBe(true);
+      stage.committed = true;
+      stage.afterCommit = onlyRow<Record<string, unknown>>(await exec(
+        `select pg_temp.m2b1_assert_sale(${invoice},true,'M3 ${nominal.label} confirmado') as graph;`), "graph");
+      expect(stage.afterCommit).toEqual(after);
+    }
+    expect(stages).toHaveLength(2);
+    expect(stages[0].sampleBefore!.txid).not.toBe(stages[1].sampleBefore!.txid);
+    boundary = "ADMITIDA POR SQL";
+  } catch (caught) {
+    error = caught instanceof Error ? caught.message : String(caught);
+    originalError = nativeEvidence(caught);
+  } finally {
+    try {
+      if (db) {
+        try {
+          if (db.isInTransaction()) await db.exec("rollback;", { onNotice: (notice) => notices.push({ ...notice }) });
+        } catch (cleanup) { cleanupErrors.push(nativeEvidence(cleanup)); }
+        try { await db.close(); } catch (cleanup) { cleanupErrors.push(nativeEvidence(cleanup)); }
+      }
+    } finally {
+      if (dateOwned) vi.useRealTimers();
+      expect(Date).toBe(RealDate);
+      expect({ setTimeout, clearTimeout, setInterval, clearInterval }).toEqual(originalTimers);
+    }
+  }
+  const evidence = { error, originalError, entryDateUtc, setup, setupCommitted, stages, boundary, cleanupErrors, notices,
+    secondVoid: stages.length < 2 ? "NO EJECUTADO: no se alcanzó" : "ver segundo stage real" };
+  // Fuera del reloj fake: captura durable nativa del worker, sin prometer SQL gold.
+  console.info("0573_M3_ORIGINAL_EVIDENCE", JSON.stringify(evidence));
+  return evidence;
+}
 
 describe("SDD-0573 · 0497 reverso al anular una factura (PGlite)", () => {
   it("el contrato pasa con 0497", async () => {
@@ -473,6 +605,84 @@ describe("SDD-0573 · 0497 reverso al anular una factura (PGlite)", () => {
   it("aplicada dos veces, la segunda aborta con «ya existe»", async () => {
     const result = await contract({ migration: FILE_0497 + "\n" + FILE_0497 });
     expect(result.error).toBe("0497 abortado: el reverso de asientos ya existe");
+  }, SLOW);
+
+  it("M2/B1 oro: dos legados void y excepción auténtica manual/ambos extremos", async () => {
+    const result = await contract({ probe: "select pg_temp.m2_void_case('draft-only');\n"
+      + "select pg_temp.m2_void_case('posted-and-draft');\nselect pg_temp.m2b1_run();" });
+    console.info("0573_M2_B1_ORIGINAL_NOTICES", JSON.stringify(result.notices));
+    expect(result.error).toBeNull();
+    const witnesses = result.notices.map((notice) => String(notice.message ?? ""))
+      .filter((message) => message.startsWith("0573_B1_AUTHENTIC_WITNESS "));
+    expect(witnesses).toHaveLength(3);
+    for (const label of ["manual", "original", "reverso"]) {
+      const rows = witnesses.map((message) => JSON.parse(message.slice("0573_B1_AUTHENTIC_WITNESS ".length)) as Record<string, unknown>)
+        .filter((row) => row.case === label);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ observed: 1, matchCount: 1, nonceMatchesGuc: true,
+        sameTxid: true, validator: true, operation: "anular", authorizedBy: "superclave" });
+      expect(rows[0]).not.toHaveProperty("nonce");
+      expect(rows[0]).not.toHaveProperty("secret_hash");
+    }
+  }, SLOW);
+
+  for (const subject of ["draft-only", "posted-and-draft"] as const) {
+    it(`M2 mutante sin revisión borrador: probe independiente ${subject}`, async () => {
+      const result = await contract({ migration: mutant("if v_vivos <> v_all then", "if false then", VOID_SIGNATURE, true),
+        probe: `select pg_temp.m2_void_case('${subject}');` });
+      console.info("0573_M2_MUTANT_ORIGINAL", JSON.stringify({ subject, notices: result.notices, nativeError: result.nativeError }));
+      expect(result.error).toBe("TEST 0497: M2 void55000 por borrador: " + subject);
+      expect(result.notices.some((notice) => String(notice.message ?? "").startsWith("0573_M2_RAW "))).toBe(true);
+    }, SLOW);
+  }
+
+  for (const endpoint of ["original", "reverso"] as const) {
+    it(`B1 mutante acepta excepción: probe auténtico independiente ${endpoint}`, async () => {
+      const from = "  -- OLD o NEW, incluidos los dos extremos y participación inversa.";
+      const changed = from + "\n  if tg_op='UPDATE' and public.excepcion_al_cierre_vigente(old.id) then return new; end if;";
+      const result = await contract({ migration: mutant(from, changed, "public.i3_journal_entry_guard()", true),
+        probe: `select pg_temp.m2b1_run('${endpoint}');` });
+      console.info("0573_B1_MUTANT_ORIGINAL", JSON.stringify({ endpoint, notices: result.notices, nativeError: result.nativeError }));
+      expect(result.error).toBe("TEST 0497: B1 excepción auténtica no autoriza extremo: " + endpoint);
+      const witnesses = result.notices.map((notice) => String(notice.message ?? ""))
+        .filter((message) => message.startsWith("0573_B1_AUTHENTIC_WITNESS "));
+      expect(witnesses).toHaveLength(1);
+      expect(JSON.parse(witnesses[0].slice("0573_B1_AUTHENTIC_WITNESS ".length))).toMatchObject({
+        case: endpoint, observed: 1, matchCount: 1, nonceMatchesGuc: true, sameTxid: true, validator: true,
+      });
+    }, SLOW);
+  }
+
+  it("M3 oro: SQL en bandas ±1µs Caracas antes/después y dos COMMIT distintos", async () => {
+    const result = await midnightContract();
+    expect(result.error).toBeNull();
+    expect(result.setupCommitted).toBe(true);
+    expect(result.boundary).toBe("ADMITIDA POR SQL");
+    expect(result.cleanupErrors).toEqual([]);
+    expect(result.stages).toHaveLength(2);
+    expect(result.stages.every((stage) => stage.committed && stage.endedTransaction)).toBe(true);
+  }, SLOW);
+
+  it("M3 mutante UTC: falla éxito público antes, conserva23514/contexto/rollback", async () => {
+    const changed = mutant("v_hoy := (pg_catalog.now() at time zone 'America/Caracas')::date;",
+      "v_hoy := (pg_catalog.now() at time zone 'UTC')::date;", VOID_SIGNATURE, true);
+    const result = await midnightContract(changed);
+    expect(result.error).toBe(MIDNIGHT_SUCCESS + "before");
+    expect(result.setupCommitted).toBe(true);
+    expect(result.cleanupErrors).toEqual([]);
+    expect(result.stages).toHaveLength(1);
+    const stage = result.stages[0];
+    expect(BigInt(stage.sampleBefore!.epochUs)).toBeGreaterThanOrEqual(BigInt(MIDNIGHT_CASES[0].lowerUs));
+    expect(BigInt(stage.sampleBefore!.epochUs)).toBeLessThanOrEqual(BigInt(MIDNIGHT_CASES[0].upperUs));
+    expect(stage.attempt).toMatchObject({ ok: false, state: "23514",
+      message: "El nuevo reverso no acredita un original íntegro." });
+    expect(stage.attempt!.command).toContain("public.void_invoice_with_audit_reason");
+    expect(stage.attempt!.context).toContain("i3_assert_new_entry");
+    expect(stage.attempt!.context).toContain("i3_journal_entry_guard");
+    expect(stage.afterRollback).toEqual(stage.before);
+    expect(stage.endedTransaction).toBe(true);
+    expect(stage.committed).not.toBe(true);
+    expect(result.secondVoid).toBe("NO EJECUTADO: no se alcanzó");
   }, SLOW);
 
   it("la 0497 espera en pendingBelowCutoff, MIGRATE-FIRST y con OK nominal de Sam", () => {
