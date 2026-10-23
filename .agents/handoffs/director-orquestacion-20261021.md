@@ -1,5 +1,11 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Cronología exterior fría recibida; paquete todavía en preparación — 2026-10-23 05:26:59 UTC
+
+General leyó ENTERO el comprobante fijo C:/tmp/director-traspaso-20261020/director-f60-respaldo-01/revision-exterior-fria-director.json, 987bytes/SHA63062835267979883dceab2c791cbf8adabd5e85e31aebb92c15f88f754388e3, en9bdc29/native0. Documento fechado05:25:54.0116749Z, referido inicialmente porParent6f9556/0: la separación exterior ScriptRunningcell46304:29:17.113Z→primerfunctions.wait04:31:12.600Z es115487ms; distinta de104247msentre respuestas internas/104246msUTCprimerpoll/wall5.0040721s. Referencia los14records históricos17589/7ee7ba40 ya aceptados; no se volvieron a ejecutar ni reconstruir. Causa NO DETERMINADA; esos14records no inventarían todas las acciones del caller entre ambos puntos. No demuestra solución de supervisión ni garantía de latencia.
+
+Snapshot pasivo del MISMO CORE269/turno01a16733-071c-7d53-875d-f65df3bd5a72 ACTIVE sin error: propuesta fría en curso. Su comentario distingue Q con auxiliaresM3 definidos pero flujo normalM2/B1, frente a carrera con ocho financieros y0467completa antes0497; es avance referido, NO entrega fija revisada ni resultado de ejecución. No leer WIP ni adelantar GO/reserva. Parent informa su vista HTML y respaldoPR308 por separado; no inspección visual propia General ni nueva publicación producto. Se espera el paquete fijo de tres textos, sin otro ACK ni acción humana nueva.
+
 ## Continuidad fría efectiva referida; automatización actualizada — 2026-10-23T05:25 UTC
 
 Parent informa adopción FRÍA efectiva del MISMO CORE a05:20:29.435Z: guard0, siete Git0, F60/ramaCORE limpio/B4 antes de crear las tres salidas autorizadas. Es REFERIDO por Parent, no lectura WIP ni nuevo checkpoint General. No reenviar activación ni reservar prueba; esperar paquete fijo y retorno ADMIN. El respaldo PR308 a65dd2c3ae9afc75ee1f6912b52a6847fe76de4a/2docs a05:23:48.5505880Z y sus comprobantes son REFERIDOS, no readback General ni autorización para editar otro Director.
