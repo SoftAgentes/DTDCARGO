@@ -29,7 +29,7 @@ Si no hay defecto reproducible se entrega diagnóstico y contratos, sin ampliar 
 - `next.config.ts`: únicamente tras RED específico y aprobación del Director.
 - `components/Analytics.tsx`, `lib/cookie-consent.ts` y `components/Analytics.consent-cookie.test.tsx`: ampliación mínima aprobada por Director tras RED del consentimiento.
 - `lib/runtime/__tests__/next-config.test.ts`.
-- `e2e/analytics-csp-offline.spec.ts`.
+- `e2e/analytics-csp-offline.offline.ts` (nombre exclusivo de la configuración offline).
 - `playwright.analytics-csp-offline.config.ts`.
 - Esta spec y `assets/offline-network-guard.cjs`, `assets/local-ads-check.mjs`, `assets/fixture-app.mjs`.
 - `docs/qa/0581-medicion-ads-csp-offline.md`.
@@ -76,3 +76,10 @@ Studio no aplica por superficie. No se promete mejora de ROAS, CPC o Quality Sco
 ## Evidencia
 
 Ver `docs/qa/0581-medicion-ads-csp-offline.md` y el diagnóstico de marketing.
+
+El cierre detectó que el nombre inicial `.spec.ts` añadía 48 casos offline al
+descubrimiento general sin sus servidores/barreras propios. Se renombró a
+`e2e/analytics-csp-offline.offline.ts` y se ajustó únicamente su `testMatch`:
+el general descubre cero casos propios y la configuración propia conserva 32.
+El cuerpo conserva su SHA-256 byte a byte; la ejecución previa 32/32 mantiene
+su alcance. No cambia configuración general, skips, producto ni aserciones.

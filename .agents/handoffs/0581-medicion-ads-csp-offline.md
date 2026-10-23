@@ -55,6 +55,10 @@ Resultados detallados y rutas de recibos en `docs/qa/0581-medicion-ads-csp-offli
   Atribución por reproducción posterior; el raw original no tenía contexto suficiente.
 - **NO EJECUTADO**: Edge, ledger productivo, SQL, reconstrucción y E2E global,
   con motivos en QA. No se repitió el canónico ni la suite general tras el auxiliar.
+- Reparación de descubrimiento: RED 48 casos offline incluidos en el general;
+  rename a `e2e/analytics-csp-offline.offline.ts` y testMatch propio. GREEN cero
+  casos propios en el general, 32 en configuración propia, cuerpo byte a byte
+  idéntico al ejecutado 32/32. Sin cambios en configuración general o producto.
 
 Las barreras son controles de ensayo y no una sandbox del SO. No se ejecutó JS
 real de Google ni se usaron cuentas. Las colas locales no demuestran recepción,

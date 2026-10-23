@@ -127,3 +127,24 @@ no solo una capacidad genérica; la fixture inerte no acredita qué solicitud
 elige realmente esta propiedad. Falta traza controlada de recurso/iniciador para
 justificar la apertura con el umbral P3. No se afirma CSP completa correcta ni
 ausencia de pérdidas de medición Ads. La política sigue intacta en esta entrega.
+
+### Aislamiento del descubrimiento Playwright
+
+El cierre encontró una regresión del harness: el nombre inicial
+`e2e/analytics-csp-offline.spec.ts` era descubierto por la configuración general,
+sin la preparación offline específica. RED de `--list`: **48 casos propios**
+en sus tres proyectos, conservado en `ads-discovery-red.json`.
+
+Se renombró a `e2e/analytics-csp-offline.offline.ts` y se cambió solamente
+`testMatch` de `playwright.analytics-csp-offline.config.ts`. GREEN de `--list`:
+**cero casos propios en el general y 32 en la configuración propia**, exit 0 y
+cero registros de red en ambos. Resumen: `ads-discovery-green-summary.json`;
+JSON completos: `ads-discovery-green-{general,own}.json`.
+
+El SHA-256 del cuerpo antes/después es idéntico:
+`ac1dc645708f0a356ce66db8fad3f1e9d4c490fbc94e30f51c903d17a67160a3`.
+La ejecución anterior 32/32 comprueba ese mismo contenido. No se repitió suite
+general ni canónico, ni se alteraron configuración general, skips o aserciones.
+Un primer intento de listado no cargó el preload por barras Windows en
+NODE_OPTIONS; se preservó como `ads-discovery-preload-path-error.*` y se corrigió
+la ruta de ese comando antes del listado efectivo, sin ejecutar tests o servidores.
