@@ -1,5 +1,13 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## UI01 revisada; corrección estática unificada02 antes de abrir — 2026-10-23T06:10 UTC
+
+PaqueteUI01FIJO0277e1/native0a06:05:11.9880647Z, exact3textos: credential-input.ps110347/3086676d8333a9f9a26db88dd955f287dd7d5660a4c55d1ddae2b1f9674c2795; spec5070/4d23cf82af69dd5bffde306c08129f11733c47548e71aa929ebb3793cd065099; manifest515/81291fa785f2e5fdac82f9214c68467a05ff9014181dc7554d78670be255da89. General512ea9/native0 leyó ENTEROS146líneas+spec+manifest. No ejecución ni ventana todavía. MecanismoWPF/PasswordBoxvacío, guardarhumano/handleexclusivocanónico/UTF8/preservarajenas/Flush+verificarmismostream/rollbackmemoria/fallosSAVEDseparadosdenative0; límites abruptpower/IOsíncrononoacotable/stringsgestionadasnozeroinggarantizado honestos.
+
+General unificó UNA corrección02 alMISMOowner víaParent a06:08:58UTC,03TEXTOSúnicos/version01preservada/ningúnproducto: (1) amboslímites16384envez1MiB,igualaloader; (2) WindowOpened sóloContentRendered; (3) presupuestoORIGINALpúblico emitido antesAddType/ShowDialog yseñalWINDOW_READY enContentRendered, sincuartoarchivo/secretos, closureMINwork+60abs/noFIN+60. Son cambiosDEMECANISMOdeclarados, noDATOS. SpecdetallarámultiplesJSONpúblicos yFINcategory+writeVerified. PSbundledpúblicopin+STA/NoProfile; fechasGoO7decimales/+00:00 paraParseExactexistente. Parent confirmóasignaciónúnica; Worker671ACTIVEcierraesosajustes. No GO abierto/heavy/UI/helper/privado/API/sourceedit ni nuevaSamgate. EsperarFIJO02/diff/inversaWHOLE/huellas/FINADMIN→revisión→GOaperturaúnica. Elecciónhumana yaresuelta, no preguntarlaotra vez.
+
+Parentcontabilidadtransmitió nuevohumano paraQPG17→carrera/checklist/PRDRAFT; General mantiene lectura global plan89901PENDIENTE a su cargo ynoinfiereFULLREADpor45checksParent. Siguientefasepropuesta trasrevisiónserádiseño externo/admisiónmetadata/supervisión, noSQLporfreeturn; MISMOCORE276idle. GLMprivadonoesprerrequisitoSQL. No perseguirPR3082docspropiosParent ni duplicarle Writer/asignación.
+
 ## Ventana local elegida por Sam: mecanismo nuevo sólo en preparación — 2026-10-23T06:00 UTC
 
 Sam respondió DIRECTAMENTE en General al request_user_input_async call_73cae208cf6c4ce8ab485f5aa4d13e52/ítem0: «Usar una ventana local con el campo de clave oculto». Elección observada a06:00UTC (02:00Caracas). Resuelve la preferencia que faltaba; NO pedir otra confirmación genérica para preparar/abrir esa ventana y guardar sólo cuando Sam pulse GUARDAR. NO significa que la clave esté ya introducida ni queSAVED/validación/GLM hayan pasado. Root seguirá sin ver/abrir/leerUI/modal/archivo/metadata/hash/fragmentos/clipboard/screenshot privado.
