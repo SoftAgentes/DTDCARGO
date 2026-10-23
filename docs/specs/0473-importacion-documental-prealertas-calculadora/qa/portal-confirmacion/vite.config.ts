@@ -14,13 +14,19 @@ const runtimeRoot=process.env.QA_GLM_TEST_RUNTIME_ROOT;
 const runtimeMode=runtimeRoot!==undefined;
 const closedRuntimeRoot="C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-list-portal-confirmacion-20261021";
 const closedSourceRoot="C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022";
+const closedNativeSourceRoot="C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-ci-cierre-20261023";
+const ciSource=path.resolve(root)===path.resolve(closedNativeSourceRoot);
+const ciNativeSource=nativeOnly&&ciSource;
+const nativeBackendPort=ciNativeSource?4327:4325;
+const nativeFrontendPort=ciNativeSource?4328:4326;
+const nativeBackendOrigin=ciNativeSource?"http://127.0.0.1:4327":"http://127.0.0.1:4325";
 const nativeContext=nativeOnly&&runtimeMode&&process.env.QA_GLM_TEST_ENABLED==="false"
   &&process.env.QA_GLM_TEST_FRONTEND==="false"&&process.env.QA_PDF_EXTRACTION_ENABLED==="false"
-  &&((port===4325&&backend===undefined)||(port===4326&&backend==="http://127.0.0.1:4325"));
+  &&((port===nativeBackendPort&&backend===undefined)||(port===nativeFrontendPort&&backend===nativeBackendOrigin));
 const glmContext=!nativeOnly&&((process.env.QA_GLM_TEST_ENABLED==="true"&&!glmFrontend&&port===4323&&backend===undefined)
   ||(glmFrontend&&process.env.QA_GLM_TEST_ENABLED!=="true"&&port===4324&&backend==="http://127.0.0.1:4323"));
-if(nativeOnly&&!nativeContext)throw new QaExtractionConfigurationError();
-if(runtimeMode&&(runtimeRoot!==closedRuntimeRoot||path.resolve(root)!==path.resolve(closedSourceRoot)
+if((nativeOnly||ciSource)&&!nativeContext)throw new QaExtractionConfigurationError();
+if(runtimeMode&&(runtimeRoot!==closedRuntimeRoot||path.resolve(root)!==path.resolve(ciNativeSource?closedNativeSourceRoot:closedSourceRoot)
   ||(!nativeContext&&!glmContext))){
   throw new QaExtractionConfigurationError();
 }

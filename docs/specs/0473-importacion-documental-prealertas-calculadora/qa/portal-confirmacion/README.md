@@ -442,3 +442,34 @@ Propone validar con un CSV ficticio, cerrar sólo esa pareja propia y dejar
 una pareja humana nueva con workspace R0, sin reset ni restauración; esas dos
 instancias y la retención requieren adopción expresa del GO posterior.
 Los enlaces4325/4326 siguen candidatos NO LIVE; pruebas y carga real pendientes.
+
+### Perfil nativo separado del worktree CI — 2026-10-23
+
+Autoridad DIRECTOR-PR319-NATIVE-DEMO-CI-PROFILE-AUTHORING-20261023-01.
+Base0fafa68819a4a40583abae1b7a3d4ff0194e17a9 tiene CI aprobada; el nuevo commit
+sólo adapta el harness QA y NO hereda esa CI por inferencia. No activa ERP,
+GLM/OCR ni tarifas comerciales. Runtime y dependencias prestados no cambian.
+
+El cwd adicional admitido es EXCLUSIVAMENTE:
+C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-ci-cierre-20261023
+Esta raíz exige el contexto native-only cerrado: QA_NATIVE_TEST_ENABLED=true,
+QA_GLM_TEST_RUNTIME_ROOT con el mismo literal prestado ya documentado, y
+QA_GLM_TEST_ENABLED=false, QA_GLM_TEST_FRONTEND=false y
+QA_PDF_EXTRACTION_ENABLED=false. No hay variable nueva ni raíz configurable.
+Backend sólo4327 sin QA_BACKEND_ORIGIN; frontend sólo4328 con
+QA_BACKEND_ORIGIN=http://127.0.0.1:4327 exacto. CIWT con GLM, flags incompletos,
+modo no nativo o pareja distinta se rechaza ANTES de imports externos. La raíz
+legacy conserva native4325/4326 y GLM4323/4324, sin ampliar su contexto.
+
+URL NUEVA CANDIDATA, NO LIVE hasta GO/arranque/verificación:
+http://127.0.0.1:4328/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/index.html
+Puertos4327/4328 y perfil04 no se han comprobado ni creado con esta autoría.
+No se toca HUMAN03/A26/4325–26 ni sus posibles archivos privados.
+
+Sólo cambian las guardas de cwd y pareja exacta. SSR/aliases/cache/fs/watch:null,
+envFile:false/configFile:false/CSS, servidor, fixture, lector y controles de
+compra/revisión/aplicación permanecen iguales. XLSX/CSV local sin IA, 15MiB,
+datos ausentes pendientes y tarifas ficticias conservan los límites anteriores.
+Próxima fase bajo GO nominal: validar un Excel ficticio completo, cerrar sólo
+esa pareja propia y abrir otra nueva con UUID/R0 vacío para Sam; retención de
+sus dos servicios expresamente autorizada. Sin START/API/HTTP/UI/tests ahora.

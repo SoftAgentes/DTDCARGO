@@ -1442,3 +1442,29 @@ seis rutas y preservación mode/type/blob de todo lo demás antes del commit.
 Entrega fija local para revisión Parent-General y respaldo FF posterior en la
 MISMA PR319 DRAFT. No push del Worker, merge, producción ni intervención de
 HUMAN03/A26. Sin UI/HTTP/Excel de Sam/config/ledger/proveedor/API/dependencias.
+
+## Perfil QA nativo CI319 separado — 2026-10-23
+
+Encargo DIRECTOR-PR319-NATIVE-DEMO-CI-PROFILE-AUTHORING-20261023-01 sobre0fafa.
+CI40030665981 de0fafa PASÓ según General/Parent (875 archivos/1skip, incluidos
+build y reproducibilidad); ese resultado no prueba el nuevo árbol de QA.
+
+Sólo vite.config.ts admite otra raíz fuente literal: el WT CI propio, únicamente
+native-only, flags GLM/frontendGLM/PDF exactamente false, runtimeRoot prestado
+cerrado y pareja4327/4328 con origenbackend exacto. CIWT fuera de ese contexto,
+puertos cruzados/otros, raíces desconocidas en modo runtime/native y GLM en CIWT
+se rechazan antes de importar terceros. LegacyA26/native4325–26 y GLM4323–24
+conservan sus condiciones. Sin env nueva, parámetro libre ni bypass.
+
+Las otras tres rutas de esta autoría son README QA, esta spec y handoff propio.
+No cambia producto, servidor, fixture, extracción, CAS, aviso de proveedor,
+servicios, dependencia, SSR, cache, fs, watch, envFile, configFile o CSS. Mantiene
+lectura nativa XLSX/CSV, datos faltantes pendientes, PDF deshabilitado y tarifas
+ficticias. Cumplimiento del aislamiento existente; no componente/UI nuevo.
+
+Candidato local sujeto a revisión Parent-General y GO nominal posterior para
+arranque estándar/prueba ficticia y pareja humana NUEVA R0 vacía. No se ejecuta
+Node candidato/test/parser/eval/import, START/CIM/puertos/HTTP/UI/FS perfil;
+sin reserva heavy ni clock operativo, gestores/knowledge/install o push.
+HUMAN03/A26 y archivos de Sam no se leen ni intervienen. Misma PR319 DRAFT,
+sin merge ni producción. Validación real y nueva CI siguen pendientes.
