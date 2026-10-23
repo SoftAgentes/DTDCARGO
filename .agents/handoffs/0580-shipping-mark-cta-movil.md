@@ -70,10 +70,11 @@ pendientes; no están autorizadas por este encargo.
 ## PENDIENTES DE ESTA TAREA
 
 Producto: ninguno para la aceptación local del recorte, con los límites de QA.
-Derivados locales: recibo semántico de README marketing, mapa Archify y preview
-Obsidian permanecen pendientes; no se certifican. Director autorizó cerrar con
-estas capas pendientes, sin otra extracción global ni refrescos por el SHA del
-propio cierre documental. Integración y publicación no están autorizadas.
+Derivados locales: recibo semántico de README marketing y cobertura piloto/global
+permanecen pendientes. Mapa Archify y preview local generados en la revisión
+observada indicada abajo. Director autorizó cerrar con las capas pendientes,
+sin otra extracción global ni refrescos por el SHA del propio handoff. Integración
+y publicación compartida o web no están autorizadas.
 
 ### Conocimiento local observado
 
@@ -88,16 +89,27 @@ propio cierre documental. Integración y publicación no están autorizadas.
   propio. El fragmento del README modificado está preparado en
   `graphify-out/0580-marketing-fragment.json` (cinco conceptos/cuatro relaciones),
   pero **NO APLICADO** y no constituye un recibo semántico.
-- Archify **2.16.0**: paquete local copiado como artefacto inmutable y validado
-  por archive/tree hashes del lock. Mapa **PENDING / NO EJECUTADO**; runtime
-  disponible no equivale a mapa generado ni revisión visual.
-- Preview Obsidian **PENDING / NO EJECUTADO**. Bóveda compartida no publicada ni
-  abierta; no se declara certificación del piloto ni cobertura global.
-- `knowledge:status` separado no se volvió a ejecutar tras el recibo estructural.
-  Se conserva `.codex/qa/knowledge-record-initial.json` como evidencia de la
-  revisión observada. El handoff cambia después: esta foto no certifica el SHA
-  documental posterior. Su vigencia final queda pendiente de otra revisión,
-  sin repetir refrescos/exportaciones para perseguir el hash del propio handoff.
+- Una única pasada local posterior, con fuentes estables en
+  `94bcaaa413d2ea1535fbfa53b8e3407d13b94239`, completó los comandos de cierre:
+  `node scripts/knowledge-visual.mjs build`, `node scripts/knowledge-visual.mjs check`
+  y `node scripts/knowledge-sync.mjs publish --preview`.
+- Archify **2.16.0 CURRENT** en esa revisión: paquete local validado por hashes
+  del lock, nueve checks aprobados y 11 fuentes. HTML/SVG/evidencia generados;
+  no se abrió su interfaz ni se declara revisión visual humana del mapa.
+  Recibos: `.codex/qa/knowledge-visual-build.json` y `knowledge-visual-check.json`.
+- Obsidian **PREVIEW** local generada, 1.324 documentos y 43 advertencias de
+  enlaces históricos; cero conflictos. Recibo `.codex/qa/knowledge-preview.json`.
+  Bóveda compartida no publicada ni abierta. La preview lleva sus límites y no
+  certifica el piloto ni la cobertura global.
+- La lectura única final `node scripts/knowledge-sync.mjs status --preview`
+  confirmó sobre `94bcaaa413d2ea1535fbfa53b8e3407d13b94239`: `ok:false`,
+  estructura **PENDING** solo por este handoff, semántica **PENDING**, piloto
+  **0/16**, global **0/1.325**, Archify **CURRENT**, Obsidian **PREVIEW**.
+  Evidencia: `.codex/qa/knowledge-status-final-observed.json`. También se conserva
+  `knowledge-record-initial.json` con el estado estructural anterior.
+- Este último cierre documental cambia el handoff después de la foto observada.
+  Los recibos no certifican el SHA documental posterior. No se repite el grafo,
+  el mapa ni la exportación para perseguir el hash del propio handoff.
 
 ## FUERA DE ALCANCE DETECTADO
 
