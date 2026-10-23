@@ -1,5 +1,12 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## CORE06 retorno formal PREINVOKE; recepción de original limitada — 2026-10-23 23:52 UTC / 19:52 Caracas
+
+ParentdevolvióCONTROLADMINFINALdelMISMOCOREturn01a16b29-88e1-7233-9edd-65f9e3da6abc COMPLETED/errorNULL. NEWguard06medido9696UTF16>cap9000, errorSTOP06newguardcap9696ANTESNative; inputliteralNUEVOíntegroinclinput.selectionguardadoprethrowenkeyrealcore-pg17-a-q-f60-20261023-06-capture-register:NEW_GUARD06/registro06segúnOwner. resultNULL/errorNULLderegistroesporqueexteriorThrow, NO NativeExit/sesióndelguard. CuatroNativeADMINpreviosGO1a4790/0y4599c9/f2e0f0/9f7911todos0sonOTRASlecturas, no7Git/claim/perfil/17pinsnuevos; no heredar5303d6fechado. CEROCreateNewM06/V06/output/Codebundle/E06/V/I/SQL/EJE/originbudgetsegúnretornoOwner, no ausenciaFSRootmedida. PREPARACIÓN15INCOMPLETA/quietud/claimsinmodificar;noreservaSQLqueliberar ni falloSQLdemostrado.
+
+ÚNICAdecisiónNuevaenviadaMISMOParent: recibirporMISMOOwnerUNobjetoAUTHÉNTICOENTEROdelaKEYconocida .inputincl.selection yNativeproposedInputSÓLOsiYArealcapturado, distinguirnivelesfunctionsexec vsNativecmd;ParentreadENTERO+GeneralreviewANTEScap/invocación. functionsmaxoutput30000/samecellwait;ningúnNative/FS/Git/clock/parser/guard/candidato/census/minify/split/encoding/tool/pathalternativo/reconstructwrapper/display. Originalfaltante/no cabe/trunc/error/unknown=>STOPrecibocontrolformal,nootravía. Noautorizarsuperar9000/reanudar06escriturasahora;fechas06ORIGINALESintactas,no renovación. Original9696capfailpreservado. GLM05continúaHEAVYEXCLUSIVAorigen23:40:50/work00:00:50/close00:02:50; COREsólorecepciónDATAacotada, no runtime.
+
+
 ## CORE06: fuente ADMIN corregida revisada y nueva preparación fría — 2026-10-23T23:42:31.0000000Z
 
 S8NCcerradaestática250502/native0, fijoParentc5f2f8/3304/padre5590/2docs+22-16;E06texto6016/21234.../8count1forward-inversaWHOLE. AutoridadNUEVA06sóloCOLD con14originales+índice15/registrocapturaspreawait/PREFIXantesE06/POSTexternos. No recaptura/reparación05/04 ni ejecuciónSQL. Sammetacontablelargapendiente/mismoCOREvíaParent. Go05demo mantiene exclusividadHEAVY;estaautoríaADMINfríanoreservaruntime. No nuevosACK/Samgate/Worker/modelo.
