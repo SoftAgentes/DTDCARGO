@@ -1,6 +1,6 @@
 # Worker SDD-0581 — Medición Ads/CSP offline
 
-Fecha: 2026-10-23. Estado: lista-para-revision; conocimiento local en cierre.
+Fecha: 2026-10-23. Estado: cierre local; implementación aceptada por Director; canónico INCOMPLETO.
 Owner: `worker-0581-ads`; sesión `/root/worker_ads`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/0581-medicion-ads-csp-offline`.
 Rama: `codex/0581-medicion-ads-csp-offline`.
@@ -59,6 +59,18 @@ Resultados detallados y rutas de recibos en `docs/qa/0581-medicion-ads-csp-offli
   rename a `e2e/analytics-csp-offline.offline.ts` y testMatch propio. GREEN cero
   casos propios en el general, 32 en configuración propia, cuerpo byte a byte
   idéntico al ejecutado 32/32. Sin cambios en configuración general o producto.
+- Conocimiento observado en bfc36c37: Graphify 0.9.61 estructura CURRENT, cero
+  issues, 43.794 nodos / 79.875 aristas. Semántica PENDING, piloto 1/16 y global
+  1/1325; README marketing importado con 15 conceptos / 14 relaciones. Archify
+  2.16.0 build/check CURRENT, nueve checks / once fuentes. Obsidian PREVIEW:
+  1.324 documentos, 43 warnings históricos, cero conflictos. Estado global
+  `ok:false` por cobertura pendiente; no se presenta como conocimiento completo.
+
+Recibos bfc en `.codex/qa/knowledge-{graphify-update,record,visual-build,visual-check,preview,status-final-observed}.json`;
+resumen `knowledge-bfc-summary.json`. Instantánea c5 preservada en
+`graphify-out/0581-observed-c5/`. Dos avisos nativos de parseo parcial históricos
+en Legal siguen fuera del alcance. Runtime Archify cache verificado; sin descarga,
+publicación compartida ni revisión humana de bóveda/mapa. Mapa autoral no certifica AST.
 
 Las barreras son controles de ensayo y no una sandbox del SO. No se ejecutó JS
 real de Google ni se usaron cuentas. Las colas locales no demuestran recepción,
@@ -67,9 +79,11 @@ WhatsApp es valor configurado, no ingreso comprobado; las señales GA son distin
 
 ## COMMITS
 
-Reserva local indicada arriba. Implementación: commit que contiene este documento;
-Director registrará el SHA revisado. Cierre documental de conocimiento posterior
-será un delta separado, sin recursión para guardar su propio hash.
+- Reserva: `654d972afd3c0766c644340956c92a7e62bd7094`.
+- Implementación: `c5a4f253aca4554ed43174fffd9667b3eef8d7e2`, revisada por Director.
+- Descubrimiento: `bfc36c37b8e42024043c19859718a8cd424963a3`, revisado y aceptado.
+- Este cierre documental contiene solo spec/índice generado/QA/handoff; SHA
+  informado al Director al entregar, sin recursión para guardar su propio hash.
 
 ## PR / BRANCH
 
@@ -77,8 +91,11 @@ Sin PR ni respaldo remoto. Rama y worktree se conservan.
 
 ## PENDIENTES DE ESTA TAREA
 
-Solo cierre local de derivados y handoff final, actualmente en ejecución.
-Integración y publicación no están autorizadas.
+Ningún cambio local de producto o harness pendiente. El último commit documental
+es posterior a los recibos bfc: sus revisiones/hashes quedan PENDING tras ese delta,
+sin una nueva vuelta de derivados. Cobertura semántica parcial y omisiones del
+canónico conservan sus límites. Integración/publicación no autorizadas; requieren
+revisión de base/índice y actualización de capas desde main integrado comprobado.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -87,10 +104,15 @@ y estado real de campañas no verificados. Pings denied a pagead2 requieren traz
 controlada antes de abrir CSP según el umbral P3. Duplicadas persistentes pueden
 requerir limpieza independiente; este slice no elimina cookies de otros ámbitos.
 Los SKIPs canónicos no se presentan como cobertura completa ni permiso de release.
+Cobertura semántica global, advertencias históricas de enlaces y parseo parcial
+de Legal no se absorben como reparaciones de esta tarea.
 
 ## HANDOFF AL DIRECTOR
 
-Única sesión escritora indicada arriba. Claim activo hasta cierre. Se conservan
-worktree/rama y builds archivados propios; sin respaldo remoto. Puertos Next
-45811/45812 liberados tras pruebas. Director revisa este SHA y el delta documental
-posterior; integración, publicación y producción requieren permisos separados.
+Única sesión escritora indicada arriba. Director aceptó localmente c5 y bfc.
+Se conservan worktree/rama, recibos y builds archivados propios; sin respaldo remoto.
+Procedimiento final: verificar commit limpio, procesos propios y puertos Next
+45811/45812 libres, guardar `.codex/qa/ads-final-state.json` y liberar claim como
+última acción de la sesión escritora. La salida de release confirma esa acción
+al entregar; el recibo conserva las comprobaciones previas.
+Sin push, PR, merge, despliegue, cambios de cuentas ni publicación compartida.

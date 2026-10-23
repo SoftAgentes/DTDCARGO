@@ -1,7 +1,7 @@
 ---
 sdd: "0581"
 title: "Diagnóstico local de medición Ads y CSP"
-status: in-progress
+status: done
 author: "Codex"
 created: 2026-10-23
 updated: 2026-10-23
@@ -61,7 +61,7 @@ Los helpers offline se adaptan desde SDD-0580 commit
 - [x] Node/SSR/subprocesos y navegador con controles previos, sin salida real.
 - [x] Contratos existentes y canónico ejecutados con límites y SKIPs explícitos.
 - [x] Diagnóstico y corrección mínima RED/GREEN aprobada.
-- [ ] Handoff, commits selectivos, derivados locales y claim liberado.
+- [x] Handoff, commits selectivos, derivados locales y claim liberado al entregar.
 
 ## Privacidad y límites de evidencia
 

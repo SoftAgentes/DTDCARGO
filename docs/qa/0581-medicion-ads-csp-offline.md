@@ -1,6 +1,6 @@
 # QA SDD-0581 — Medición Ads/CSP offline
 
-Dueño: Worker `worker-0581-ads`. Fecha: 2026-10-23. Estado: validación local terminada; cierre documental pendiente.
+Dueño: Worker `worker-0581-ads`. Fecha: 2026-10-23. Estado: cierre local terminado; canónico INCOMPLETO.
 Base `d410ab2e23e74e5bcf7fdc7cc595371b24cc03a8`.
 
 ## RED antes de producto
@@ -148,3 +148,37 @@ general ni canónico, ni se alteraron configuración general, skips o aserciones
 Un primer intento de listado no cargó el preload por barras Windows en
 NODE_OPTIONS; se preservó como `ads-discovery-preload-path-error.*` y se corrigió
 la ruta de ese comando antes del listado efectivo, sin ejecutar tests o servidores.
+
+## Cierre de conocimiento y revisiones observadas
+
+Implementación revisada por Director:
+`c5a4f253aca4554ed43174fffd9667b3eef8d7e2`.
+Aislamiento de descubrimiento revisado y aceptado:
+`bfc36c37b8e42024043c19859718a8cd424963a3`.
+La primera instantánea c5 se conserva íntegra en
+`graphify-out/0581-observed-c5/`: graph, manifest, receipt, mapa, preview y recibos.
+
+Después del rename se ejecutó una única secuencia local acotada: Graphify
+0.9.61 update, record, Archify 2.16.0 build/check, publish --preview y status
+--preview. Todas las órdenes terminaron exit 0. Recibos nuevos:
+`.codex/qa/knowledge-{graphify-update,record,visual-build,visual-check,preview,status-final-observed}.json`.
+Resumen saneado: `knowledge-bfc-summary.json`.
+
+| Capa observada en bfc36c37 | Resultado |
+|---|---|
+| Graphify estructural | **CURRENT**, cero issues; 43.794 nodos / 79.875 aristas. |
+| Extracción semántica propia | README de marketing completo leído e importado: 15 conceptos / 14 relaciones, conservados tras rename. Sin otra extracción semántica. |
+| Cobertura semántica | **PENDING**: piloto 1/16, global 1/1325, 1.324 documentos globales pendientes. `status.ok:false` conserva este límite. |
+| Archify local | **CURRENT**, 2.16.0, runtime cache verificado, build y check reales; nueve checks / once fuentes. |
+| Obsidian local | **PREVIEW**, 1.324 documentos, 43 warnings de enlaces históricos, cero conflictos. |
+| Publicación compartida / apertura o revisión humana de bóveda | **NO EJECUTADO**. |
+
+Las dos advertencias nativas de parseo parcial son las mismas rutas históricas
+de Legal (`LegalClient.tsx` y `legal/expediente/[code]/page.tsx`), sin cambios allí.
+El mapa Archify es autoral y no certifica relaciones AST ni revisión humana visual.
+
+El último commit solo cierra spec/índice/QA/handoff después de esos recibos.
+Estos prueban bfc36c37, no el SHA documental posterior: sus revisiones o hashes
+de fuente quedan pendientes de refresco tras ese delta. No se repiten derivados
+para perseguir el SHA del propio cierre. La integración futura requiere regenerar
+el índice y actualizar/publicar las capas desde main comprobado, con autorización.
