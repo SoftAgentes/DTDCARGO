@@ -1,5 +1,11 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Precisión fría F-COB adoptada y monitor GLM cerrado — 2026-10-23T05:58 UTC
+
+Parent informó lectura completa del paquete frío por partes y detectó sobreafirmación documental «mensajes/hints exactos». General15775a/native0 contrastó el objeto GitFIJOF60 de carrera líneas787–811: cobro40→void exige SQLSTATE55000 y SUBCADENA cobro(s) vivo(s), sin igualdad de mensaje entero niassertHint; void→cobro exige23514 yPAYMENT_STATE exacto. General adoptó esa errata para el recibo de revisión/adopción propio delParent ANTESdeREADY, conservando los tres originales y sin cuarta salida delWorker/SQL/migración/oráculonuevo. NoBUGproducto ni aprobación global delplan89901 por este cotejo puntual; FULLREAD propioGeneral sigue pendiente.
+
+La automatización oficial quedó realmente actualizada a estado05:57UTC: DIAG04CERRADO/KEY_MISSINGposthumano/custodia63checksaceptada/ambosPOSToportunos/noheavy/GO04consumido, elecciónhumana local segura pendiente, COREfríoFIJO276aún enrevisión ycustodiaF60incompleta preservada. Se conservaron ACTIVE/cada20min/targetRoot/notifNULL. No duplicar avisos/pregunta ni abrir otra lectura privada/RECOVERY/SEND porheartbeat; toda respuesta humana nueva conserva su alcance. General sólo editó su handoff, sin cambios de producto/main/otroDirector.
+
 ## DIAG04 terminó; KEY_MISSING persiste después de la confirmación humana — 2026-10-23T05:56 UTC
 
 General emitió EJECUTA NOMINAL separado a05:49:58UTC víaParent al MISMO GLM, autorizaciones GeneralAccepted/RootAcceptedTRUE yexecuteBACKEND_CONFIG_DIAG exactos. Binding04 había pasado revisiónWHOLE4367/f60d3487810c863f630586bfd20ba4a4b0bb4eec293a197e4175d4f9ff6fee3f; ocho fijos/manifest2418-4a903656. Rootlector813535/native1 interpretó onlyBindings como objetos; cab3d8/native0 corrigió sólo lector con ocho checks0diff/inversas completas; ningún artefacto alterado. Parent34checks favorable fue recibido antesEJE.
