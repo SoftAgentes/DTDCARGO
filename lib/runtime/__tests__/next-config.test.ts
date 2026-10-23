@@ -122,3 +122,22 @@ describe("next.config.ts · Supabase propio (SDD-0505)", () => {
     expect((await loadConfig({})).output).toBeUndefined();
   });
 });
+
+describe("SDD-0581 · CSP de medición sin relajar defensas públicas", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("release permite el loader y colectores clásicos conservando eval, media y framing restringidos", async () => {
+    const csp = await siteCsp(await loadConfig({ NODE_ENV: "production" }));
+    expect(directive(csp, "script-src")).toContain("https://www.googletagmanager.com");
+    expect(directive(csp, "script-src")).not.toContain("'unsafe-eval'");
+    expect(directive(csp, "connect-src")).toContain("https://www.googleadservices.com");
+    expect(directive(csp, "connect-src")).toContain("https://ad.doubleclick.net");
+    expect(directive(csp, "connect-src")).toContain("wss://*.supabase.co");
+    expect(directive(csp, "connect-src").split(" ")).not.toContain("wss:");
+    expect(directive(csp, "media-src")).toContain("blob:");
+    expect(directive(csp, "object-src")).toBe("object-src 'none'");
+    expect(directive(csp, "base-uri")).toBe("base-uri 'self'");
+    expect(directive(csp, "form-action")).toBe("form-action 'self'");
+    expect(directive(csp, "frame-ancestors")).toBe("frame-ancestors 'none'");
+  });
+});
