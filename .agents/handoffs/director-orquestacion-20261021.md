@@ -1,5 +1,539 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+
+## Revisiones cerradas DATA05 y autoridad NUEVA funcional04; EJE separado pendiente
+
+- GLM cincoFIJOS ceb907/native0 FINADMIN16:33:44.8809148Z yquietud:51 COMPLETED/idle/errorNULL. General242652 sellos5;fd78e3 FULLtodosoperativos/spans;f61803/native0 16:38:24.094714Z91checks0diff;4cd469 inversasFUENTESENTERAS53327/9083...y20001/7ae80f.../sinlogicchange. Parent f1aeb7/07e677/3f29d4 FULL y77+2comparaciones; lectorespropios b6756a yParentb56f0c conerratasderepresentacioncorregidasSOLOlectores, noartefactos. AmbasreviewsDATA05 FAVORABLES/CERRADAS, no otroACK/coldpipeline. NOresultadoExcel/PDF/QRtodavia.
+- CORE15FIJOS4d12a6/native0 FINADMIN16:25:04.2187287Z/quietudCORE:41 anteslectura. General150a84 todos15seals;8f0ff0/native0 53checksfuente,87e12d/native0 REAL16:34:39.362612→40.376558Z25checks4Git0/F60tree054clean/B4/17SQLrawGitWHOLE/Native26/payloadsourcewhole. Total78propios conformes. faa5de estructural100exporter+108serializerinputs-resultados actuales completos/native0todos. NoFULLhumana2.9MBduplicados; custodiafinalParent aúnendictamen, no EJECORE/reservaSQL. Excelprioritario concurrente.
+- General emite autoridad04 fresca conclockEMISION 2026-10-23T16:49:14.000Z (NOoriginoperativo), literalSHA 08fe2f4166b3ffaa36fbf7336836cafe7657be2613604a641a157dfa64eb93cf. Slotse reserva SOLOaldespachoEJE separado; Worker despuésONEclockreal/Generaladopcion18+7/UNAlaunch→11fasesautonomas. CoreQ03latest17:45:10inmutable. No renovarGo03 oGo04 previos, servicios05retenidos.
+
+ROOT-GLM-GO04-AUTHORITY-BEGIN
+{
+  "schema": "DTD_GLM_XLSX_FUNCTIONAL_E2E_GO_v2_DATA05",
+  "goId": "DIRECTOR-GLM-XLSX-FUNCTIONAL-E2E-20261023-04",
+  "issuedAtUtc": "2026-10-23T16:49:14.000Z",
+  "authorityPhase": "REVIEWED_NOMINAL_AUTHORITY_SEPARATE_EJECUTA_AND_AUTHENTIC_CLOCK_REQUIRED",
+  "authorizer": "General/root 01a160e3-92b0-76f0-bc3c-20000e81ff16 under Sam's existing local fictitious E2E authorization",
+  "selection": "Eleven fixed functional phases P0..P10, Excel only; three serial native inspection phases within P8. No unit-suite rerun or provider request.",
+  "source": {
+    "head": "c1682cc529754c35d001c964b31cdcd59e2bebd0",
+    "tree": "66abc9e787c2f0a284ec1d1ef3e2932fe4996fa0",
+    "parent": "43582b364368dea4bd2e9d48e708451e896150b5",
+    "branch": "codex/packing-glm-encargo-20261022",
+    "worktree": "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022",
+    "owner": "worker-packing-glm-01a1639b-cd99-7921-ac27-5d218d0a1516",
+    "claimBytes": 210,
+    "claimSHA256": "a29aa577a954b3744e1eae27618b75393f77834071b72115bd1fb927fd366cbc",
+    "trackedAllowlist": []
+  },
+  "fixedPreparation": {
+    "directory": "C:/tmp/sdd0473-glm-xlsx-e2e-preparacion-01a1639b-02",
+    "files": [
+      {
+        "name": "READY-E2E-UNBOUND.json",
+        "bytes": 40737,
+        "sha256": "ae88a759ff06137242c5d20394de7c33b032a164642f4734c058d8d6c74ca703"
+      },
+      {
+        "name": "inspect-exported-pdfs.py",
+        "bytes": 32327,
+        "sha256": "f0e9bc0f472e8ac2f2fd1970c97f0dbde76ffc00d231cfe85a007e0b955644d9"
+      },
+      {
+        "name": "exec-inspection-UNBOUND.json",
+        "bytes": 20001,
+        "sha256": "7ae80f06429be15e049cf40a1a92ea371fdcae2fc41269cbf4bd1848a96cbe67"
+      },
+      {
+        "name": "SUPERVISION-E2E-UNBOUND.md",
+        "bytes": 16613,
+        "sha256": "e8fd3d88ef3c4d60dc82186aaebf3cfc9878f3fff7feeaa961ed27f48d01eceb"
+      },
+      {
+        "name": "MANIFEST.json",
+        "bytes": 107134,
+        "sha256": "ebf46ed5c5a2707b80482e0c98caabca46bd004576434581a09d9e57778c068a"
+      },
+      {
+        "name": "decode-exported-qr.cjs",
+        "bytes": 19540,
+        "sha256": "8e3d41336fd8e970b8e31a83fb276eefb7580a863efc6d17244b3ca4b0059803"
+      }
+    ]
+  },
+  "sourceReview": {
+    "GeneralAccepted": true,
+    "DirectorPackingAccepted": true,
+    "generalWholeSources": [
+      "ce28d0",
+      "c5b6c9",
+      "f175db",
+      "c9ba49",
+      "b996fc",
+      "f5ec5b",
+      "7c3c8a",
+      "c402db",
+      "1a1072"
+    ],
+    "generalEntireInverses": "05dd65/native0",
+    "generalPublicPins": "275c15/native0 2026-10-23T10:12:19.2516633Z 85checks0diff/75public+5successor+5predecessor/4Git0/A29",
+    "directorPacking": "74fae1/native0 2026-10-23T10:10:36.0082431Z 131checks0diff; report b772a39003a224faad2f45cf1ec4647163d26c4ccf18a7f5faa591101aadae98",
+    "correctiveP0General": "82ba29/native0 2026-10-23T11:07:49.3607893Z 49checks0diff; entire PS1/operativePRECHECK/manifest and UTF8 whole inverses, source6+binding3+custody8.",
+    "launchGeneral": "de5075/native0 2026-10-23T11:23:14.9641683Z 36checks0diff;6f02d5 FULL175lines controller; cbb67a operative mapping/context/limits;705833 FULLmanifest.12sourcepins2exes+custody8/4Git0/A29.",
+    "launchPacking": "8f4702/native0 2026-10-23T11:22:03.2475920Z 58checks0diff; report6250/8cf5e3cef70e508de4413990175a0c3933096a61f73d5ca44eef5d3008d000c5, referred by Parent",
+    "DATA05General": "242652 fivefixed;fd78e3 FULL alloperativefields/spans;f61803/native0 2026-10-23T16:38:24.094714Z91checks0diff;4cd469/native0 whole source inverses53327/9083d775 and20001/7ae80f;current4Git0/C168A29, no candidate.",
+    "DATA05Packing": "f1aeb7 pins5,07e677+3f29d4 FULL operative tables/refs/plan, b56f0c77of79 plus corrected readerf54ad1/native0 twoWHOLEsourceinverses;849693 representationdiagnostic. Parent FINAL favorable77+2, no artifactchanged, no pendingACK."
+  },
+  "budget": {
+    "workSeconds": 1800,
+    "closureSeconds": 120,
+    "latestStartUtc": "2026-10-23T17:04:14.000Z",
+    "absoluteExecutionCutoffUtc": "2026-10-23T17:34:14.000Z",
+    "absoluteClosureDeadlineUtc": "2026-10-23T17:36:14.000Z",
+    "originUtc": null,
+    "actualWorkDeadlineUtc": null,
+    "actualClosureDeadlineUtc": null,
+    "formula": "Work MIN(authentic ENTRY+1800s, absoluteExecutionCutoffUtc); Closure MIN(ENTRY+1920s, absoluteClosureDeadlineUtc). ENTRY before FIRST UI/API/CLI/runtime admission; no FIN+120 or per-phase renewal.",
+    "inspectionCap": "MIN(authentic inspection ENTRY+240s, original global work deadline), ONE shared total for render then decode then finalize.",
+    "hostResponseMaximumAllowedMs": 10000,
+    "hostMaximumObservedMs": null,
+    "hostLatencyGuarantee": false
+  },
+  "exclusiveSlot": {
+    "reserved": false,
+    "executiveDispatch": null,
+    "requiresGeneralSeparateExecute": true,
+    "concretePriority": "Excel current DATA05 reviewed by both Directors now; CoreQ03 stays cold until this actualFIN+timelyposts accepted. Q latest17:45:10 remains immutable.",
+    "noConcurrentHeavy": true
+  },
+  "roots": {
+    "dataDirectory": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05",
+    "bindingDirectory": null,
+    "bindingMode": "Direct in-memory authority from General ownhandoff/message; NO new cold3files/copies/Generic/framework.",
+    "executionOutput": "C:/tmp/sdd0473-glm-xlsx-functional-e2e-01a1639b-01",
+    "preserveProfile": "C:/tmp/sdd0473-glm-real-perfil-01a1639b-05",
+    "noProfileCreationOrServiceRestart": true,
+    "executionOutputReuseAuthority": "Explicit NEW04 only if this exact output positively ABSENT in current P0 before creation. Never adopt/overwrite/cleanup/rename or clone another root. Previous failure03 was before creation; current absence not assumed."
+  },
+  "cases": {
+    "xlsx": {
+      "workspaceId": "328b2cff-3afd-4813-95b8-616f89bd5f25",
+      "revisionAtReadiness": 0,
+      "confirmedRevision": null,
+      "draftCounts": {
+        "products": 0,
+        "groups": 0,
+        "sources": 0
+      },
+      "currency": null,
+      "purchaseCode": "DTD-DEMO-1-2",
+      "supplierFixtureToken": "77777777-7777-4777-8777-777777777777",
+      "inputPath": "C:/Users/AKX generator/.codex/visualizations/2026/10/21/packing-list-portal/xlsx-muestra-dtd-v2-4ee/outputs/packing-mixto-muestra-dtd-v2.xlsx",
+      "bytes": 8178,
+      "sha256": "f1867b0f4b2bdc7024700e502436a55e672e0276360a630e0b1e0db85e42c825",
+      "kind": "combined",
+      "providerHttpAllowed": 0
+    },
+    "pdfPreserve": {
+      "workspaceId": "59732388-53bb-488c-a9b4-db7c1574d790",
+      "revisionAtReadiness": 0,
+      "confirmedRevision": null,
+      "draftCounts": {
+        "products": 0,
+        "groups": 0,
+        "sources": 0
+      },
+      "currency": null,
+      "historicFailedJob": "d7944896-3caa-451e-9e6e-72c3511b7ee4",
+      "historicOnly": true,
+      "queryHistoricJobInNewMemory": false,
+      "noResend": true
+    }
+  },
+  "servicesDated": {
+    "readiness": {
+      "path": "C:/tmp/sdd0473-glm-qa-recovery-pair-ejecucion-01a1639b-05/readiness-original.json",
+      "bytes": 6214,
+      "sha256": "dd182ec168d17920a6162b784a3f665433f6ebcaf2ce762e709c098950d484a0",
+      "atUtc": "2026-10-23T15:55:34.863Z",
+      "profile": "C:/tmp/sdd0473-glm-real-perfil-01a1639b-05",
+      "caseId": "GLM-QA-PAIR-CASE-01A1639B-RECOVERY05-20261023-01",
+      "serviceObservationEntryUtc": "2026-10-23T15:55:29.9298522+00:00",
+      "serviceObservationFinUtc": "2026-10-23T15:55:34.3869456+00:00",
+      "currentLiveCheck": "NO EJECUTADO in this administrative task; dated original adopted by both Directors"
+    },
+    "refs": [
+      {
+        "name": "backend",
+        "pid": 56124,
+        "parentPid": 54596,
+        "cimBirthUtc": "2026-10-23T15:55:04.0430390Z",
+        "cimReferenceType": "Win32_Process.CreationDate converted to UTC",
+        "cimReferenceObservedUtc": "2026-10-23T15:55:34.3869456+00:00",
+        "handleBirthUtc": "2026-10-23T15:55:04.0430390Z",
+        "handleReferenceType": "System.Diagnostics.Process.StartTime converted to UTC",
+        "handleReferenceObservedEntryUtc": "2026-10-23T15:55:29.9298522+00:00",
+        "handleReferenceObservedFinUtc": "2026-10-23T15:55:34.3869456+00:00",
+        "handleReferenceChunk": "fdbcc4",
+        "executable": "C:\\Users\\AKX generator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+        "commandLine": "\"C:/Users/AKX generator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe\" --max-old-space-size=3072 --import file:///C:/Users/AKX%20generator/Desktop/Developer/DTD-worktrees/packing-list-portal-confirmacion-20261021/node_modules/.pnpm/tsx%404.22.3/node_modules/tsx/dist/loader.mjs \"C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/vite.config.ts\"",
+        "port": 4323
+      },
+      {
+        "name": "frontend",
+        "pid": 40424,
+        "parentPid": 54596,
+        "cimBirthUtc": "2026-10-23T15:55:04.0620110Z",
+        "cimReferenceType": "Win32_Process.CreationDate converted to UTC",
+        "cimReferenceObservedUtc": "2026-10-23T15:55:34.3869456+00:00",
+        "handleBirthUtc": "2026-10-23T15:55:04.0620115Z",
+        "handleReferenceType": "System.Diagnostics.Process.StartTime converted to UTC",
+        "handleReferenceObservedEntryUtc": "2026-10-23T15:55:29.9298522+00:00",
+        "handleReferenceObservedFinUtc": "2026-10-23T15:55:34.3869456+00:00",
+        "handleReferenceChunk": "fdbcc4",
+        "executable": "C:\\Users\\AKX generator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+        "commandLine": "\"C:/Users/AKX generator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe\" --max-old-space-size=3072 --import file:///C:/Users/AKX%20generator/Desktop/Developer/DTD-worktrees/packing-list-portal-confirmacion-20261021/node_modules/.pnpm/tsx%404.22.3/node_modules/tsx/dist/loader.mjs \"C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/vite.config.ts\"",
+        "port": 4324
+      }
+    ],
+    "admission": "P0 CURRENT ownSafeHandle/CIM-HANDLE separate/exe/argvWHOLE/parentDATA/listeners then9QA GET within SAME120. Parent54596 may be dead; NEVER add parent-live gate. Drift/unknown STOP, no reset/restart/new instance."
+  },
+  "adoptedPlan": {
+    "path": "C:/tmp/sdd0473-glm-qr-source-01a1639b-01/E2E-EXECUTION-PROPOSED-UNBOUND.json",
+    "bytes": 16309,
+    "sha256": "27965a774e0d1f78c8cc3ca3b4fd7630d11baedb67764546e5d34fa63b103f7a",
+    "allElevenPhasesAndNegatives": true,
+    "precedence": "EXACT6 closes renderer/decoder/controller; upload POST uses workspaceId/requestKey/fileName/sizeBytes/kind, contentType from RESPONSE only. Real screen reader not admitted = above  NO EJECUTADO, not DOM equivalence."
+  },
+  "phaseLimitsProposedSeconds": [
+    120,
+    180,
+    120,
+    120,
+    240,
+    120,
+    120,
+    180,
+    240,
+    240,
+    120
+  ],
+  "manualFixture": {
+    "path": "C:/tmp/sdd0473-glm-real-send-diseno-root-02/xlsx-supplier-manual-fixture-PROPOSED.json",
+    "bytes": 3976,
+    "sha256": "6daedf501609a6d5a8b77b83a7c94b049d0b7ccbffacabb76d70dfbaf0c9b1b8",
+    "conditionalOnActualProposalMapping": true,
+    "sourceExpected": "3 products VAS80+TAP80 in A4 and BOT60 in B6; source .66CBM/missing A gross, 220units/USD340. Stop on mismatch, never inject proposal.",
+    "manualValues": "A60gross48net/.28 B78gross66net/.42 TOTAL138gross114net/.70/10/220/USD340; manual fictitious, not extracted or physically measured; preserve provenance.",
+    "declarations": "After cargo save reread pending, HUMAN explicit false/false and SECOND save without new cargo change. No defaults/bypass."
+  },
+  "engine": {
+    "existingActual": "estimateDocuments/calcularEnvioLCL",
+    "fixtureSnapshot": "sdd0473-s3-fictional-20261022-v1",
+    "city": "maracaibo",
+    "singlePurchase": true,
+    "commercialPriceClaim": false,
+    "noForcedPriceChange": true
+  },
+  "inspectionBinding": {
+    "admittedRuntime": "Existing pinned Python3.12.14/PDFium5.14.0/Pillow12.3.0, bundled Node, existing absolute jsQR1.4.0 only; no install/probe/fallback/new helper.",
+    "lateDataAllowed": true,
+    "lateDataReason": "Current revision/folio/V/GETworkspace/labels/3PDF hashes exist only AFTER authentic confirmation and export within this same GO.",
+    "inputPath": "C:/tmp/sdd0473-glm-xlsx-functional-e2e-01a1639b-01/inspection-input.json",
+    "boundPayloadPath": "C:/tmp/sdd0473-glm-xlsx-functional-e2e-01a1639b-01/exec-inspection-BOUND.json",
+    "parameters": "Exactly four literal sentinel substitutions of fixed execPayloadUNBOUND.cmd, count1 each; all other characters and six other payload properties WHOLE unchanged. No code edits, no eval fallback.",
+    "sentinels": [
+      "__GO_BOUND_CURRENT_INPUT_PATH__",
+      "__GO_BOUND_CURRENT_INPUT_SHA256__",
+      "__GO_BOUND_FUNCTIONAL_GO_ID__",
+      "__GO_BOUND_ORIGINAL_GLOBAL_EXECUTION_CUTOFF_UTC__"
+    ],
+    "inputContract": "CURRENT_PDF_EXPORT_INSPECTION_v2 from exact6 exec; canonical Windows GetFullPath/str(Path) paths, original confirmed workspace/labels snapshots and current PDF pins; matching GO/approval/runtime admissions only after EXECUTE. No prefilled receipts/revision math.",
+    "execution": "RenderPython then decodeNode then finalizePython serial, actual native own handles/exits/streams/argv/SHA/UTC, ONE240 cap. Render pending; final PASO only after20 real pixel decodes/current text/10+10 stable physical boxes.",
+    "limitsSource": "Exact6 finiteLimits, no changes or quota renewal.",
+    "payloadSource": "activeDATA05.binding / inspection.payload7Template",
+    "programPinsSource": "activeDATA05.binding / inspection.programPins",
+    "helpers": [
+      {
+        "role": "inspector",
+        "path": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05/inspect-exported-pdfs-DATA05.py",
+        "bytes": 32369,
+        "sha256": "73e67421d37878bb311b577d92d4a3e8dc6515df8d4c7f8c57bb14fa085fbf4c"
+      },
+      {
+        "role": "decoder",
+        "path": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05/decode-exported-qr-DATA05.cjs",
+        "bytes": 19568,
+        "sha256": "4abed567f516fdb60de63bc3211c4d9475fc2105025db4f7655ff790811def30"
+      }
+    ],
+    "lateInputAuthority": "Authorised sameWorker to materialize exact current inspection-input.json and exec-inspection-BOUND.json INSIDE admitted runRoot after real exports, filling ONLY4sentinels plus inputcontract actual receipts/PDFpins/deadlines/admissions, WHOLEinverse and native3serial. No another General ACK perfield; STOP on logic/schema mismatch. SourceDATA05 controllers remain unchanged."
+  },
+  "evidence": {
+    "allToolInputsResultsOriginals": true,
+    "utcBeforeAfterEveryCall": true,
+    "nativeStreamsExitSeparated": true,
+    "uiNativeExit": null,
+    "uiExitReason": "NO APLICA",
+    "immediateWaitSameCellOnScriptRunning": true,
+    "ownSessionPollSeconds": 5,
+    "outerInnerIntervalsSeparate": true,
+    "noHostGuarantee": true,
+    "formalReturnBeforeCustody": true,
+    "generalAndParentExterior": "4 Git individually + source/prep/public pins/claim and own nominal processes under original closure. No late checks relabeled timely.",
+    "unknownStopsDependents": true,
+    "noRetry": true
+  },
+  "exclusions": [
+    "provider API/GLM resend/account probes",
+    "credential or ledger filesystem/clipboard/UI inspection",
+    "production/businessPII",
+    "source tracked edits/SQL/DB/Docker/new services",
+    "packages/managers/install/download/dep copying/junction/knowledge",
+    "new chats/Writers/helpers/Generic",
+    "push/merge/deploy/productive migrations",
+    "reset/reconfirm foreign contexts, process-tree/port/name kill",
+    "QR URI navigation/fetch foreign host",
+    "fake success from source strings, old PDFs, UI-injected DTO or old test results"
+  ],
+  "executiveAuthorization": {
+    "GeneralAccepted": null,
+    "RootAccepted": null,
+    "execute": null,
+    "actualTurnId": null,
+    "dispatchUtc": null
+  },
+  "p0Preparation": {
+    "directory": "C:/tmp/sdd0473-glm-xlsx-e2e-preflight-preparacion-01a1639b-02",
+    "files": [
+      {
+        "name": "preflight-identity-UNBOUND.ps1",
+        "bytes": 14275,
+        "sha256": "4315ea1ba98a1f9eb4910726fbbb8a71f81c59df3e0a4edc7db9d70cf40968d1"
+      },
+      {
+        "name": "PRECHECK-UNBOUND.json",
+        "bytes": 82827,
+        "sha256": "c79bd0013d2744d4f82e23b633b5a13bfe8eeef819bf46a92fd110fe655c5cdc"
+      },
+      {
+        "name": "MANIFEST.json",
+        "bytes": 5190,
+        "sha256": "ea220b07453514950426baf1323d6f332b134aa35d36d84057ed0a213dc0a18c"
+      }
+    ],
+    "launchDirectory": "C:/tmp/sdd0473-glm-xlsx-e2e-launch-preparacion-01a1639b-02",
+    "launchFiles": [
+      {
+        "name": "LAUNCH-P0-UNBOUND.json",
+        "bytes": 53327,
+        "sha256": "9083d775fec37e490a1aec21f47630db2dc64fe8b873863c3c2e95828f0f1f6e"
+      },
+      {
+        "name": "MANIFEST.json",
+        "bytes": 9077,
+        "sha256": "30d1e47a2e2e6f0df68d5f162fe261fb47de303305843dbca266e80d69071da8"
+      }
+    ],
+    "controller": "Use DATA05.launcher.payload7Template ONLY; bind ONE future contextBase64 sentinel, other6 propertiesWHOLE unchanged. OriginalLAUNCH02 retained baseline only, no source edits.",
+    "clockProtocol": "After SEPARATE GeneralEJECUTA/exclusive reservation, Worker FIRST operational action ONE functions.exec invoking exactly ONE tools.clock__curr_time({}), storing original object and text output. NoFS/preflight/UI/API before this clock. Immediately remit whole original INPUT/RESULT and enclosingcallID only if actually exposed, otherwise ND. General resolves exact real wrappercall from that one task record, adopts18context and fills DATA05.launcher7 template itself. Never fabricatecallID/autoassert externalWholeReviewPassed/recaptureclock. All communication consumes original1800. After General FINAL payload one launch then autonomous11phases; no anotherphaseACK.",
+    "lateContextInCold": null,
+    "controllerP0Cap": "ONE total120 from actual controller ENTRY, MIN original global work, stop own child deadline5s earlier within same total. Context GETs must complete in remaining P0 deadline, no new120; all phases MIN original global cutoff.",
+    "capture": "Nativepayload24000/enclosingfunctions.exec at least30000 tokens, storewhole original; ifScriptRunning NEXTactionfunctions.wait SAMEcell immediately untilFIN, noanalysis/othercallsbetween. Innerownpoll5s/UTC/nativefin/EOF2; truncation/unknown STOPdependents.",
+    "limitations": [
+      "Environment.Clear19 is child only; tool-host shell environment not controlled by exec_command schema and not read/logged.",
+      "Exact ProcessStartInfo argv request is direct API evidence, no independent CIM argv observation.",
+      "Bounded Windows waits are no universal OS/transport latency guarantee.",
+      "Base64/output large: if transport truncates, STOP/NO DISPONIBLE, no raw file workaround or fabricated completeness."
+    ],
+    "contextGet": "EXACT9 QA GET in DATA05.qaPreflight after current nativeP0PASS, share remainingP0TOTAL120; nojobd794 in newmemory, no9percontext/no renewal. If live baselines differ without explained ownership STOP.",
+    "activeDATA05": {
+      "directory": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05",
+      "manifest": {
+        "path": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05/MANIFEST.json",
+        "bytes": 5595,
+        "sha256": "0d431bff86d383acf8fe90cb4e8a7f77ab3a8c379978dc13ac82717edc52c429"
+      },
+      "binding": {
+        "path": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05/E2E-DATA-BINDING-UNBOUND.json",
+        "bytes": 61808,
+        "sha256": "b72b19cf888cf83049206cbc1b434e79bee400c6fc5de0866867bd778efeaa46"
+      },
+      "preflight": {
+        "path": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05/preflight-identity-DATA05.ps1",
+        "bytes": 14306,
+        "sha256": "b97e4c1755f939229be0cfad4d590c65af873547c10a4aedbbd357eba34d4f7f"
+      },
+      "helpers": [
+        {
+          "role": "inspector",
+          "path": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05/inspect-exported-pdfs-DATA05.py",
+          "bytes": 32369,
+          "sha256": "73e67421d37878bb311b577d92d4a3e8dc6515df8d4c7f8c57bb14fa085fbf4c"
+        },
+        {
+          "role": "decoder",
+          "path": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05/decode-exported-qr-DATA05.cjs",
+          "bytes": 19568,
+          "sha256": "4abed567f516fdb60de63bc3211c4d9475fc2105025db4f7655ff790811def30"
+        }
+      ],
+      "precedence": "Only reviewed DATA05 payload7Templates CURRENT. Old6/LAUNCH02 are immutable baseline/invariants, NOT oldUUID/PID/execution descriptors. Helpers DATA-only10occurrences; all logic/oracles/caps unchanged."
+    }
+  },
+  "precedingAttempts": {
+    "functional01": "CONSUMED/FALLOP0 OWN_PROCESS_DRIFT/noFSrun",
+    "functional02": "CONSUMED/P0passed but OPERATORbadauxpath/truncatedread STOP beforeQA/UI, timelypostsaccepted",
+    "functional03": "CONSUMED/FALLOP0 PROCESS_IDENTITY_NOT_ADMITTED, noExcel/UI, sourcepreserved",
+    "recovery04": "CONSUMED/FALLOprofileprecreated, no children; preserveprofile04",
+    "recovery05": "PASO/native0/EOF2/formal15:56:06.176;bothpostsParent88cf90/General6a2589timelybefore16:10:58.576;reservationreleased",
+    "NEW04": "Explicit NEW functional authority after fresh pair05 and DATA5 independentlyreviewed; zero providerHTTP; not autoRetry any consumedwindow."
+  },
+  "activeDATA05": {
+    "directory": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05",
+    "manifest": {
+      "path": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05/MANIFEST.json",
+      "bytes": 5595,
+      "sha256": "0d431bff86d383acf8fe90cb4e8a7f77ab3a8c379978dc13ac82717edc52c429"
+    },
+    "binding": {
+      "path": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05/E2E-DATA-BINDING-UNBOUND.json",
+      "bytes": 61808,
+      "sha256": "b72b19cf888cf83049206cbc1b434e79bee400c6fc5de0866867bd778efeaa46"
+    },
+    "preflight": {
+      "path": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05/preflight-identity-DATA05.ps1",
+      "bytes": 14306,
+      "sha256": "b97e4c1755f939229be0cfad4d590c65af873547c10a4aedbbd357eba34d4f7f"
+    },
+    "helpers": [
+      {
+        "role": "inspector",
+        "path": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05/inspect-exported-pdfs-DATA05.py",
+        "bytes": 32369,
+        "sha256": "73e67421d37878bb311b577d92d4a3e8dc6515df8d4c7f8c57bb14fa085fbf4c"
+      },
+      {
+        "role": "decoder",
+        "path": "C:/tmp/sdd0473-glm-xlsx-e2e-datos-recuperacion-01a1639b-05/decode-exported-qr-DATA05.cjs",
+        "bytes": 19568,
+        "sha256": "4abed567f516fdb60de63bc3211c4d9475fc2105025db4f7655ff790811def30"
+      }
+    ],
+    "precedence": "Only reviewed DATA05 payload7Templates CURRENT. Old6/LAUNCH02 are immutable baseline/invariants, NOT oldUUID/PID/execution descriptors. Helpers DATA-only10occurrences; all logic/oracles/caps unchanged."
+  },
+  "qaPreflight": {
+    "requests": [
+      {
+        "kind": "pdf",
+        "method": "GET",
+        "action": "capabilities",
+        "workspaceId": "59732388-53bb-488c-a9b4-db7c1574d790",
+        "url": "http://127.0.0.1:4323/api/document-import?action=capabilities&workspaceId=59732388-53bb-488c-a9b4-db7c1574d790",
+        "headers": {},
+        "executeNow": false
+      },
+      {
+        "kind": "pdf",
+        "method": "GET",
+        "action": "workspace",
+        "workspaceId": "59732388-53bb-488c-a9b4-db7c1574d790",
+        "url": "http://127.0.0.1:4323/api/document-import?action=workspace&workspaceId=59732388-53bb-488c-a9b4-db7c1574d790",
+        "headers": {},
+        "executeNow": false
+      },
+      {
+        "kind": "pdf",
+        "method": "GET",
+        "action": "history",
+        "workspaceId": "59732388-53bb-488c-a9b4-db7c1574d790",
+        "url": "http://127.0.0.1:4323/api/document-import?action=history&workspaceId=59732388-53bb-488c-a9b4-db7c1574d790",
+        "headers": {},
+        "executeNow": false
+      },
+      {
+        "kind": "pdf",
+        "method": "GET",
+        "action": "usage",
+        "workspaceId": "59732388-53bb-488c-a9b4-db7c1574d790",
+        "url": "http://127.0.0.1:4323/api/document-import?action=usage&workspaceId=59732388-53bb-488c-a9b4-db7c1574d790",
+        "headers": {},
+        "executeNow": false
+      },
+      {
+        "kind": "xlsx",
+        "method": "GET",
+        "action": "capabilities",
+        "workspaceId": "328b2cff-3afd-4813-95b8-616f89bd5f25",
+        "url": "http://127.0.0.1:4323/api/document-import?action=capabilities&workspaceId=328b2cff-3afd-4813-95b8-616f89bd5f25",
+        "headers": {},
+        "executeNow": false
+      },
+      {
+        "kind": "xlsx",
+        "method": "GET",
+        "action": "workspace",
+        "workspaceId": "328b2cff-3afd-4813-95b8-616f89bd5f25",
+        "url": "http://127.0.0.1:4323/api/document-import?action=workspace&workspaceId=328b2cff-3afd-4813-95b8-616f89bd5f25",
+        "headers": {},
+        "executeNow": false
+      },
+      {
+        "kind": "xlsx",
+        "method": "GET",
+        "action": "history",
+        "workspaceId": "328b2cff-3afd-4813-95b8-616f89bd5f25",
+        "url": "http://127.0.0.1:4323/api/document-import?action=history&workspaceId=328b2cff-3afd-4813-95b8-616f89bd5f25",
+        "headers": {},
+        "executeNow": false
+      },
+      {
+        "kind": "xlsx",
+        "method": "GET",
+        "action": "usage",
+        "workspaceId": "328b2cff-3afd-4813-95b8-616f89bd5f25",
+        "url": "http://127.0.0.1:4323/api/document-import?action=usage&workspaceId=328b2cff-3afd-4813-95b8-616f89bd5f25",
+        "headers": {},
+        "executeNow": false
+      },
+      {
+        "kind": "xlsx",
+        "method": "GET",
+        "action": "destinations",
+        "workspaceId": "328b2cff-3afd-4813-95b8-616f89bd5f25",
+        "url": "http://127.0.0.1:4323/api/document-import?action=destinations&workspaceId=328b2cff-3afd-4813-95b8-616f89bd5f25",
+        "headers": {},
+        "executeNow": false
+      }
+    ],
+    "count": 9,
+    "base": "http://127.0.0.1:4323/api/document-import",
+    "actor": "Existing QA fictitious client by absent x-supplier-token; no private/production auth",
+    "shapes": {
+      "capabilities": "{available,portal,formats,maxBytes,extractionDisclosure}",
+      "workspace": "{workspace}",
+      "history": "{versions}",
+      "usage": "{receipt}",
+      "destinations": "{cities}"
+    },
+    "expectedCapabilities": {
+      "available": true,
+      "portal": true,
+      "formats": [
+        "pdf",
+        "xlsx"
+      ],
+      "maxBytes": 15728640
+    },
+    "expectedBaseline": "Both actual new workspaces R0/unconfirmed/empty products/groups/sources/currencyNULL; usage receipts null. Actual future histories and values must be observed, no assumed version count.",
+    "sharedBudget": "These9 GETs AFTER identityPASS and BEFORE UI share the remainder of original P0 total120; no new120 or deadline renewal.",
+    "historicalPdf": "Failed prior PDF/job d7944896-3caa-451e-9e6e-72c3511b7ee4 is dated evidence only. Do not query it in new memory, restore/clone jobs or resend PDF."
+  },
+  "completion": "Complete all11 admittedphases with actualUI chooser/XLSX native0AI/reviewapply/missingweightgate/conditionalmanualsupplierprovenance/explicitSECONDsavefalsefalse/confirmreload/realQArateengine/actualPDF-XLSX-labels20QRpixels/viewernegatives/visual. No FileEntry/DTOinject. On material failSTOP preserve complete native/log/input/output and returnformalIMMEDIATELY BEFOREcustodycounts. Never weakenoracles or report pending aspass.",
+  "formalClosure": "General andParent OWN public4Git/pinsclaim/actualservices exteriors AFTER formalFIN and BEFORE ORIGINALMINclose, noFIN+120 or lategreen; release onlyknownformalFIN+acceptedposts. UnknownnotFIN, do notinterruptforeigncells. Delivery files/PDFdemo are current actualoutputs only; no production/camera/paper/humanChinese claims."
+}
+ROOT-GLM-GO04-AUTHORITY-END
+
 ## DATA05 alcance de datos completo adoptado: ocho rutas/nombres además de dos UUID
 
 - Owner e0ce3f/7a560b/ca3e39 informó referencias operativas DATA que harían incompatibles las copias si sólo cambiara UUID: Python PREPdir línea27 y nombres decoder3/inspector2; JS SELF eINSPECTOR1cada, verificaciones nativas scriptPath/argv/pins. Sin ejecución ni modificación de lógica. PS1DATA05 único14306 ya creado, otros4 aún ausentes al reporte; no entrega fija ni revisión General de esos nuevos bytes.
