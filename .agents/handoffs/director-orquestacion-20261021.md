@@ -1,5 +1,88 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## RECOVERY05 sucesor mínimo revisado; autoridad NUEVA y binding FINAL
+
+- FIJOS05exact2 entregados46133b/native0 FINADMIN15:46:45.2708175Z (no renueva04): JSON53653/83125e9a460f3991e45b85cbdea8948c529b9c12a8eb72d1ecffcccf7635d89f yMANIFEST2500/943d39e542cc2accca2a142c3bc9d7b237c037494432f625650746a104f49eb7 enCtmp/sdd0473-glm-qa-recovery-pair-propuesta-01a1639b-05. General0ea99c leyó ENTEROS3spans ydatosnuevos+diffNode/PScompleto; únicamenteENVADMIN19actor/Git/probe y3paths/case05, Node14381/069d5995e68b25b4c6e1c1148dcf16feba9ccdcbfbfeb3fd4dc519113eda4daa,PS6764/0a714ddcc6f3cca136d172a7e1826296da78d9829eef77ab420b0a3a5be441b4.
+- General2f605b/native0 REAL15:50:46.540187Z52checks0diff: inversa DEBYTES ENTERA47531/dccarecupera04; admin19whole+orden==LAUNCH02literal yNOHOME/TEMP05antesCreateNew; SERVICE31/30launch/envfunction+observerWHOLEintactos,35pins0diff/4GitINDIV0/C168tree66ramaaownclean/A29/perfil05-OUT05absentes. Parent9d8c97+7f653e60checks0difffavorablecerrado. NoNodecandidate/probes/HTTP/install/privateejercios. Coldmarker__RECOVERY04_CONTEXT... preservado esDATASLOT,no keyautoridad04.
+- Custodia04 bc9074/native0 exact2/wholehash19140/1cf451f...y1760/ca60c7...conformes trasFIN; no exteriornuevo/renovación. Fallo04/fechasperfil04/CreatorND ypaquetesfijosintactos,sinadopción/borrado/perfilclonado. ScopeGoal no secompleta porpreparación.
+- EmisiónGeneral NUEVADIRECTOR-GLM-RECOVERY-PAIR-20261023-05 conclockREAL2026-10-23 15:52:36 UTC; contexto11yautoridadliteral abajo. MISMOGLMsnapshotactualtras:40 leídoantesdespacho, no nuevoWriter. Snapshotno acreditaReady. Reservaexclusiva05,nadaCOREheavy.900+60MINFIRSTPWSHENTRYauténticoantesFS; nootroclocktool/adopciónloop.Semántica STARTsólocaps/open2ficticios/usagenull/provider0/BackendconfigMEMORIAsóloautorizada,Root/actorNUNCAFSconfig/ledger. Nodeactor/preflightAdmin19yaaprobado/servicios31-30soloalcrearperfil05guardadoprevio, sinmecanismoadicional.
+- EncoderGeneral4d131f/0 context11+payload7FINAL cmd7358/SHAc29da5441df7828be6160089cc0466600da7e0662e3647b575580dca92e7ae9b; sentinel1/inversaWHOLE/6otraspropsintactas/UTF8roundtrip/0eval/0files. LiteralFINAL seráenviadoDIRECTOMISMOGLM conEJECUTA separadoUNAvezsinACK/nuevaencoder niP0viejo; origenRuntime/resultadoaúnNOobservado. Padresavisados.NoCOREsqlporGo3COLD. TrasFINformal2POSTs públicosOWN/oportunosoriginalcloseantescustodia, noFIN+60;UNKNOWNnoFIN. LuegoDATOSrealesPIDs/UUIDs enP0/inspectorE2Ereview yautoridadNUEVAobjetivocompletoExcel/20QR/demo/misma319DRAFT,nomergeprod; OCRseparado.
+- CORE A_Q03 autoridadfría14527/b122e86...YAenviadaParentvíaMISMOCore concondiciónfreshidle+5GitF60B4, despacho/adopciónaúnporconfirmar/noactivardoble. latest17:45:10/exec17:50:10/close17:51:10 no renew02. Esperar15fijos+FIN/reviews yserialización General. Suplan/checklistParentintacto. GraphifyObsidianterminados/noinstallsoftware;CRMsincontactos.
+
+ROOT-GLM-QA-PAIR05-AUTHORITY-BEGIN
+{
+  "schema": "GENERAL_QA_PAIR_RECOVERY_NOMINAL_AUTHORITY_v1",
+  "goId": "DIRECTOR-GLM-RECOVERY-PAIR-20261023-05",
+  "issuedAtUtc": "2026-10-23T15:52:36.000Z",
+  "status": "EJECUTA_NOMINAL",
+  "stage": "RECOVERY_PAIR",
+  "writer": "01a1639b-cd99-7921-ac27-5d218d0a1516",
+  "owner": "worker-packing-glm-01a1639b-cd99-7921-ac27-5d218d0a1516",
+  "sourceHead": "c1682cc529754c35d001c964b31cdcd59e2bebd0",
+  "sourceTree": "66abc9e787c2f0a284ec1d1ef3e2932fe4996fa0",
+  "claimSha256": "a29aa577a954b3744e1eae27618b75393f77834071b72115bd1fb927fd366cbc",
+  "reviewedPackage": "C:/tmp/sdd0473-glm-qa-recovery-pair-propuesta-01a1639b-05",
+  "packageBytes": 53653,
+  "packageSha256": "83125e9a460f3991e45b85cbdea8948c529b9c12a8eb72d1ecffcccf7635d89f",
+  "manifestSha256": "943d39e542cc2accca2a142c3bc9d7b237c037494432f625650746a104f49eb7",
+  "workSeconds": 900,
+  "closureSeconds": 60,
+  "originRule": "Actual FIRST outer PowerShell ENTRY before FS; context actualOuterOriginUtc set by reviewed controller, Node uses same original conservatively to milliseconds. Work=min(ENTRY+900,absoluteWork),close=min(ENTRY+960,absoluteClosure); no FIN+60/renewal.",
+  "inlineContext": {
+    "schema": "QA_PAIR_EXECUTIVE_CONTEXT_v1",
+    "goId": "DIRECTOR-GLM-RECOVERY-PAIR-20261023-05",
+    "GeneralAccepted": true,
+    "RootAccepted": true,
+    "execute": "START_FRESH_QA_PAIR",
+    "latestStartUtc": "2026-10-23T16:02:36.000Z",
+    "absoluteWorkDeadlineUtc": "2026-10-23T16:17:36.000Z",
+    "absoluteClosureDeadlineUtc": "2026-10-23T16:18:36.000Z",
+    "packageManifestSHA256": "943d39e542cc2accca2a142c3bc9d7b237c037494432f625650746a104f49eb7",
+    "externalWholeReviewPassed": true,
+    "actualOuterOriginUtc": null
+  },
+  "reviewEvidence": "General0ea99c 2hashes+complete3literalspans and differential;2f605b/native0 2026-10-23T15:50:46.540187Z52checks0diff:WHOLEBYTEinverse47531/dcca, admin19WHOLEordered LAUNCH02/noPROFILE05beforeguard/service31-30launch+envfunctions+observerWHOLEunchanged/35pins/4GitINDIV0/A29/profile05-output05absent. Parent9d8c97+7f653e60checks0diff/fixedreviewaccepted. Original04Node41+PS63+observer26/common51 already FULLreviewed, no candidate evaluated.",
+  "scope": "One fresh backend and frontend pair4323/4324;profile05/output05 absentCreateNew;exactargv/env31-30/exes and SourceC168. Only existingSTART02 common sourceIdentity/write/local/check functions, fixed reviewed Node14353 and PS6789 payload. No new helper/coldpipeline. Admin19ONLY actor/sourceIdentityGit/observer exactly approved P0/LAUNCH02; service31/30 independent unchanged except legitimate profile05/case05.",
+  "runtimeCaps": {
+    "readinessTotalSeconds": 240,
+    "maximumLocalHttpCalls": 72,
+    "spawnPerRole": 1,
+    "providerHttp": 0,
+    "providerRetries": 0,
+    "respawn": 0,
+    "parallelProvider": 0
+  },
+  "localHttp": "Only reviewed START allowlist GET capabilities bothports, exactly one POSTopen for each fictitious DTD-DEMO-1-1/1-2, GETusage each actualnewUUID. No extraction/upload/apply/save/confirm/calculate/export/provider.",
+  "serviceOwnership": "Observe actual new own child SafeHandle/birthCIM andHANDLE separately/exe/argvWhole/listener andparentactualNodeactor while alive. Actor exits at formalReady, detachedservice survival requires fresh postFIN exterior; parent need not stay alive and no parent-live requirement invented. Never stop oldPIDs/foreign/process-tree; partialfailure preserves ownservices for explicit decision.",
+  "backendConfigAuthority": "ONLY backend service may load canonical existing test config in memory under this GO. Root/actor never read/stat/hash credential or FSledger. Ledger canonical GLOBALinputSHA invariant, no reset/reclaim/rename/newcredits/newkey/resend. No privatecontent in logs/argv/env/stdout/errors.",
+  "limits": "No universal host<=10s, Node lstat tags/concurrency guarantee, or hard streaming memory-cap claim from EOF length checks. Bounded fixed-program QA actor output plus original deadlines; capture incomplete/unknown STOP. Port LISTEN query produces only protected/new4port projection, no otherports persisted or contacts/business/PII.",
+  "sourceAllowlist": [],
+  "samePR": 319,
+  "draft": true,
+  "push": false,
+  "merge": false,
+  "deploy": false,
+  "production": false,
+  "actualOriginUtc": null,
+  "reserved": true,
+  "separateExecuteRequired": true,
+  "next": "PAIR_READY requires actualNode0+EOF2+strictUTF8JSON and actualpostFINownservices; then General/Parentexteriors before ORIGINALclose and formalreturn BEFOREcustody. Future E2E requires DATA-onlynewPID/birth-parent/UUID bindings reviewed plus NEWfunctionalauthority; do notrunold03orclaimedhistoricalPDFjobinnewmemory. No04 retry/adoption/cleanup. The unchanged cold sentinel saysRECOVERY04 but contains only NEW05context now; it is not an operational key.",
+  "priorAttempt": {
+    "goId": "DIRECTOR-GLM-RECOVERY-PAIR-20261023-04",
+    "status": "CLOSED_FAILED_NO_SERVICE_CHILDREN",
+    "originUtc": "2026-10-23T15:31:00.7057286Z",
+    "finUtc": "2026-10-23T15:31:06.0075290Z",
+    "error": "PROFILE_OR_OUTPUT_EXISTS",
+    "profile04CreatedDuringAttempt": "2026-10-23T15:31:01.8183937Z; creatorND",
+    "output04Absent": true,
+    "postGeneral": "598687/native0 timely",
+    "postParent": "589f9d/native0 and f03e2a timely",
+    "preserveProfile04AndBothFixedPackages": true,
+    "keysConsumedNoRenewal": true
+  }
+}
+ROOT-GLM-QA-PAIR05-AUTHORITY-END
+
 ## RECOVERY04 cerrado FALLÓ; sucesor mínimo05 asignado; CORE A_Q03 autoridad nueva sólo fría
 
 - RECOVERY04 único d63d0a/native1 ENTRYOUTER15:31:00.7057286→FIN15:31:06.0075290Z/5698msapp. Actor56416/birth15:31:00.9676567Z/nativeFIN15:31:05.9764605Z/exit1/STDIN14353/d208igualfijo. EOF2 stdout431/SHAe74827ac46f0133891b36416badbee152c30372bdfec74955656b2c02f74446c ystderr0. InnerSTOP_NO_AUTOMATIC_RETRY/PROFILE_OR_OUTPUT_EXISTS/phaseAUTHORITY/ownChildren[]/filesCreatedfalse; NOservicios/HTTP/UI/Excel. Formalreturnreal15:32:41.364Z antescustodia. No inferir ceroefectosFSimplícitos de filesCreatedfalse. Work15:46:00.705/close15:47:00.705ZNodeconservadoros(frenteouter100ns), consumed/noFIN+60/retry.
