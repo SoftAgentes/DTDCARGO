@@ -1,5 +1,12 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## ADMIN06 revisión fija completada con una NC de transporte — 2026-10-23 23:27 UTC / 19:27 Caracas
+
+Parentfijo5590e2a1d928755e2ca437137eb0913f5657e144/tree92eb21723133bd2c9eb696f9b35f90f3a53054f5/padre6c441 exact2docs+566/-0. Root18235f/0+f4d6f6/0 FULLporobjeto1–284,969f67/0 REAL23:25:48.9227299Z:6277ambosárboles/6275fuera2WHOLEmode-type-blobiguales/prefijosdosdocs30189B724313...WHOLEiguales;E4718/48ff1...WHOLEigualphysical/E06texto5948/8b449.../7count1/forward-inversaWHOLE. R/Vcompatibilidadlecturafija007b37/0FULL5265/d918...;newcapturepreawait/resultbeforeparse/PREFIXantesE06/POSTexternos/CONTROLv2/14+índice/AnoCold aceptablesESTÁTICOS,no ejecuciónprobada. RemanenteWIPdosdocs Parentpreservaciónbytewhole REFERIDA, noadoptado.
+
+NC ADMIN CONCRETA: E06args.shell retiene C:/Program Files/PowerShell/7/pwsh.exe; Roote1a361/0 REAL23:27:13.8799663Z ESA rutaexistsfalse. NoSQL/producto/sourceF60defecto. EncargoYAenviadoMISMOParentSUS2docs: cambiarliteralNUEVOE06aPWSHbundled301368/362a...yaadmitido, añadirS8/datosoffset-pinrecalculados/8count1/forward-inversaWHOLE yUNcheckpointSELECTIVOsinotroWIP/push/Workeractivation. E4718viejo/source03/PS/JS/Generic/SQL/Native26/indexR1quietos. NoGo06/clock/COREautoría/EJE/heavyhastaESAentregafija+review. CORE05permaneceCERRADOincompleto/SQLNOEJ; no reabrirporquepasóotrometadato.
+
+
 ## Go04 cierre aceptado y reserva liberada — 2026-10-23 23:23 UTC / 19:23 Caracas
 
 RootPOST REAL1254f4/native0 ENTRY2026-10-23T23:22:56.8153912+00:00→FIN2026-10-23T23:22:59.2624998+00:00, OPORTUNO antesORIGINALclose23:34:29Z. Setenta comprobaciones/0fallos:4GitINDIV0/sourceFD03treea618/ramaCIclean; runtime referencia163677/c85 +61observaciones53pathsúnicos0diff, másclaim212/24544b ordinario/ownerWTcorrectos; total62observaciones54pinesúnicosinclclaim. SieteidentidadesoriginalesPID41912/11840/27848/9116/41316/32776/10120 ausentes, unaobservaciónlisteners27/28vacía. Originalcontrolproyección3039B/SHA7c79ef08e44ad43783f7b048ecaae9e5ec064a0be9608ed58651278ab034e764 yGo0421509B/2ac1... cotejados. SinappHTTP/UI/perfil/privado/intervenciónprocesos. NoHANDLE/argvpostmortemfabricados. Input/returnoriginalesRootenSTOREdtdNative04RootPostActualInput/Result.
