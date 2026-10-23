@@ -2,6 +2,329 @@
 
 ## Correctiva P0 GLM revisada; lanzamiento frío mínimo y binding CORE A_Q en curso — 2026-10-23T11:10Z
 
+## CORE A_Q01 NO EJECUTADO; GLM GO02 sólo binding frío emitido — 2026-10-23T11:36:11Z
+
+- NO heavy, runtime o shellGeneral activos. Clock General REAL11:30:31UTC acreditó vencimiento latestStart11:30:14 de DIRECTOR-CORE-PG17-A-Q-20261023-01. General NUNCA emitió EJECUTA; sinreserva/ORIGIN/budgetauténtico. Resultado deesa oportunidad NO EJECUTADO, no FALLÓSQL/daemon/entorno inferido. Viejas ventanas/keys sólofrías consumidas paraarranque, noinvocarporabsExec11:35/close11:36ni renovar. ParentRootclock11:30:21 ymi orden11:30:31 concordantes ya enviadas MISMOCOREactivo.
+- CORE sólo terminaADMIN15MISMOencargo sin recrear/releer/repetirGeneric incierto,4authNULL/ambasdispatch+OBSausentes. Parent reportó11:32:34 export531595/72647c6d,CONTROL59400/28bf5b82,verifier71caf5/native0/proof2752/28e54d3d/siblingexact5/7Git0/44pins0diff/B4/outputEJEausente. AúnFALTABAN file8inputsresultados+MANIFEST+FIN/quietud; TODO REFERIDO/noRootWIPreview. Celda658ADMINúnica activa delWorker noRootshell, no reintentar/interrumpir por cierrearranque. Esperar15FIJOS+FINADMIN y revisarfrío. Sólo después autoridadDISTINTA concreta A_Q sin reutilizarkeys/clocks; Bcarrera sólotrasArealcerrada. No permisoSam pendiente/bloqueofuncionalSQL acreditado.
+- Packing preguntó dependenciaexacta; General aclaró que no hayejecuciónCOREactiva/reserva, sólo paquete15 yrevisiónantesnuevaautoridad. PreparaciónGLM6/P0correctiva3/launch2 estáCERRADA favorable, noesperaclave/humano/nuevafuente. Respuesta aParent conservaCOREprioridadsiambasválidas; no arranqueGLM por status. RootactualsnapshotGLM803COMPLETED-IDLE/turn01a1687f-7744-7af2-bb1a-342776bb7bb2/errorNULL antes nuevoencargo.
+- NUEVO GO General DIRECTOR-GLM-XLSX-FUNCTIONAL-E2E-20261023-02 EMITIDO sóloFRÍO usando clockREAL11:33:03UTC. issued11:33:03.000Z/latest12:18:03.000Z/absExec12:48:03.000Z/absClose12:50:03.000Z,1800+120 ORIGINAL/runtimeoriginNULL/actualcutoffsNULL/4autorizacionesoperativasNULL/reservedfalse/EJEseparado. No Go01reuse/renewal/APIresend. Autoridad completa Rootliteral15847chars/UTF8 15848B SHA c2a6be4d41dd82e7587bbde2593f45f45d1771b279ad74a0581a6d76be4c9945/finalLF sellada nativeGeneral dc76de0 y coincide copiaParent9751d7/0 reportada por mensaje. DatosJSONsinanglebracketsparaevitarcapaHTML; originalGo02 se conservaentero abajo, no código candidato.
+- AUTORIZADO víaParent UNAcontinuaciónMISMOGLM idle803 exact3 C:/tmp/sdd0473-glm-xlsx-e2e-binding-01a1639b-02:GO-E2E.json,BINDING-E2E.json,MANIFEST.json. ParentYA confirmóUNdespacho/fuenteMCPoriginal+copiapública.../xlsx-e2e-authority-root-02/GO-E2E-literal.json15848/c2a6; no reenviaractivación/Writer. Adopción/ausencia/sourceC168tree66/A29/trackedVACÍA/pins6+oldbinding3+correctiva3+launch2/custodia8antesCreateNew. Boundtemplateliteral7props/P0sentinel único FUTURE_CONTEXT y18NULL/fourinspectionSentinels sinprefillRecibos. No operativoSTORE/runtime/capturarClockactual/CIM/HTTP/UI/procesos/privado/ledger/FSrun/install/push en frío.
+- FuturoEJEGLM requiere ambasrevisiones3 yowner/disponibilidad/exclusividad/corepriority. MapeoClock: herramientaREAL UNAvez antesprimerpreflight/FS, remitir ORIGINALinputresult+18context+payloadBound aGeneral para verificación/adopciónAGENTE ANTESlaunch; ningunapreguntaSam/autoafirmación/clockinventado/renew. Ese controlconsume1800original. ControllerP0max120TOTAL/minGlobal/QAcontextGETenrestoP0sinrenovar120; outercapturealmenos30000 frente24000native/UNKNOWN-truncaciónSTOP. Actualengine/fictitiousrates/manualfixture138/114/.70/rootrun01ausenteexigido/inspector240TOTAL/20QRactuales intactos, todavíaNOEJ. NoGLMAPI; PDFjobd794FALLÓOCR/receiptNULL/propuestaNONE preservado, no transferenciaéxitoExcel.
+- PR319D42y320F60 actualesGeneralREAL11:26 permanecenOPEN-DRAFT/separadas/0overlap/mergedNULL/checksND; noAPIcuentas/merge/prod. Parent308d0b0a161f79a0476da28d389138d860dc0075c1e/2docs ypost7143f0 sóloREFERIDO,noRootGHnuevo/chase. F60custodiablockedincompletaintacta/prohibidobypass, conocimientoequiSUSPENDIDO/CRMFINALpreparadosNOENVIADOS.
+- OBJETIVO sigueparcial: fuente/controleslocalespreviosPASÓ; ExcelP0intento01FALLÓ/E2ENOEJ; correctivasP0+launchPASÓcomoestáticas yGo02sólocold; QGo01NOEJ. No test deproducto nuevo durante estasprecisiones. PendientesconcretosCORE15fixed/review yGLM3fixed/review antes GO/EJEque corresponda. NingunaacciónSam requeridaahora.
+
+Autoridad literal General GO02 UTF8 con LF, SHA c2a6be4d41dd82e7587bbde2593f45f45d1771b279ad74a0581a6d76be4c9945; extraer sólo bytes entre estos marcadores, sin normalizar ni reserializar:
+ROOT-GLM-GO02-LITERAL-BEGIN
+{
+  "schema": "DTD_GLM_XLSX_FUNCTIONAL_E2E_GO_v1",
+  "goId": "DIRECTOR-GLM-XLSX-FUNCTIONAL-E2E-20261023-02",
+  "issuedAtUtc": "2026-10-23T11:33:03.000Z",
+  "authorityPhase": "COLD_BINDING_ONLY_EXECUTIVE_DISPATCH_SEPARATE",
+  "authorizer": "General/root 01a160e3-92b0-76f0-bc3c-20000e81ff16 under Sam's existing local fictitious E2E authorization",
+  "selection": "Eleven fixed functional phases P0..P10, Excel only; three serial native inspection phases within P8. No unit-suite rerun or provider request.",
+  "source": {
+    "head": "c1682cc529754c35d001c964b31cdcd59e2bebd0",
+    "tree": "66abc9e787c2f0a284ec1d1ef3e2932fe4996fa0",
+    "parent": "43582b364368dea4bd2e9d48e708451e896150b5",
+    "branch": "codex/packing-glm-encargo-20261022",
+    "worktree": "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022",
+    "owner": "worker-packing-glm-01a1639b-cd99-7921-ac27-5d218d0a1516",
+    "claimBytes": 210,
+    "claimSHA256": "a29aa577a954b3744e1eae27618b75393f77834071b72115bd1fb927fd366cbc",
+    "trackedAllowlist": []
+  },
+  "fixedPreparation": {
+    "directory": "C:/tmp/sdd0473-glm-xlsx-e2e-preparacion-01a1639b-02",
+    "files": [
+      {
+        "name": "READY-E2E-UNBOUND.json",
+        "bytes": 40737,
+        "sha256": "ae88a759ff06137242c5d20394de7c33b032a164642f4734c058d8d6c74ca703"
+      },
+      {
+        "name": "inspect-exported-pdfs.py",
+        "bytes": 32327,
+        "sha256": "f0e9bc0f472e8ac2f2fd1970c97f0dbde76ffc00d231cfe85a007e0b955644d9"
+      },
+      {
+        "name": "exec-inspection-UNBOUND.json",
+        "bytes": 20001,
+        "sha256": "7ae80f06429be15e049cf40a1a92ea371fdcae2fc41269cbf4bd1848a96cbe67"
+      },
+      {
+        "name": "SUPERVISION-E2E-UNBOUND.md",
+        "bytes": 16613,
+        "sha256": "e8fd3d88ef3c4d60dc82186aaebf3cfc9878f3fff7feeaa961ed27f48d01eceb"
+      },
+      {
+        "name": "MANIFEST.json",
+        "bytes": 107134,
+        "sha256": "ebf46ed5c5a2707b80482e0c98caabca46bd004576434581a09d9e57778c068a"
+      },
+      {
+        "name": "decode-exported-qr.cjs",
+        "bytes": 19540,
+        "sha256": "8e3d41336fd8e970b8e31a83fb276eefb7580a863efc6d17244b3ca4b0059803"
+      }
+    ]
+  },
+  "sourceReview": {
+    "GeneralAccepted": true,
+    "DirectorPackingAccepted": true,
+    "generalWholeSources": [
+      "ce28d0",
+      "c5b6c9",
+      "f175db",
+      "c9ba49",
+      "b996fc",
+      "f5ec5b",
+      "7c3c8a",
+      "c402db",
+      "1a1072"
+    ],
+    "generalEntireInverses": "05dd65/native0",
+    "generalPublicPins": "275c15/native0 2026-10-23T10:12:19.2516633Z 85checks0diff/75public+5successor+5predecessor/4Git0/A29",
+    "directorPacking": "74fae1/native0 2026-10-23T10:10:36.0082431Z 131checks0diff; report b772a39003a224faad2f45cf1ec4647163d26c4ccf18a7f5faa591101aadae98",
+    "correctiveP0General": "82ba29/native0 2026-10-23T11:07:49.3607893Z 49checks0diff; entire PS1/operativePRECHECK/manifest and UTF8 whole inverses, source6+binding3+custody8.",
+    "launchGeneral": "de5075/native0 2026-10-23T11:23:14.9641683Z 36checks0diff;6f02d5 FULL175lines controller; cbb67a operative mapping/context/limits;705833 FULLmanifest.12sourcepins2exes+custody8/4Git0/A29.",
+    "launchPacking": "8f4702/native0 2026-10-23T11:22:03.2475920Z 58checks0diff; report6250/8cf5e3cef70e508de4413990175a0c3933096a61f73d5ca44eef5d3008d000c5, referred by Parent"
+  },
+  "budget": {
+    "workSeconds": 1800,
+    "closureSeconds": 120,
+    "latestStartUtc": "2026-10-23T12:18:03.000Z",
+    "absoluteExecutionCutoffUtc": "2026-10-23T12:48:03.000Z",
+    "absoluteClosureDeadlineUtc": "2026-10-23T12:50:03.000Z",
+    "originUtc": null,
+    "actualWorkDeadlineUtc": null,
+    "actualClosureDeadlineUtc": null,
+    "formula": "Work MIN(authentic ENTRY+1800s, absoluteExecutionCutoffUtc); Closure MIN(ENTRY+1920s, absoluteClosureDeadlineUtc). ENTRY before FIRST UI/API/CLI/runtime admission; no FIN+120 or per-phase renewal.",
+    "inspectionCap": "MIN(authentic inspection ENTRY+240s, original global work deadline), ONE shared total for render then decode then finalize.",
+    "hostResponseMaximumAllowedMs": 10000,
+    "hostMaximumObservedMs": null,
+    "hostLatencyGuarantee": false
+  },
+  "exclusiveSlot": {
+    "reserved": false,
+    "executiveDispatch": null,
+    "requiresGeneralSeparateExecute": true,
+    "corePriorityIfBothReady": true,
+    "noConcurrentHeavy": true,
+    "pendingCoreColdReviewOnly": true
+  },
+  "roots": {
+    "bindingDirectory": "C:/tmp/sdd0473-glm-xlsx-e2e-binding-01a1639b-02",
+    "executionOutput": "C:/tmp/sdd0473-glm-xlsx-functional-e2e-01a1639b-01",
+    "preserveProfile": "C:/tmp/sdd0473-glm-real-perfil-01a1639b-03",
+    "noProfileCreationOrServiceRestart": true,
+    "executionOutputReuseAuthority": "EXPLICITLY AUTHORIZED for this NEW02 only if current absence is positively revalidated by P0 before any creation. Attempt01 did not create it. No adopt, overwrite, cleanup, rename, new clone or pre-creation in cold phase."
+  },
+  "cases": {
+    "xlsx": {
+      "workspaceId": "7015967d-5c7d-4a58-8dad-7ade1e7784e0",
+      "purchaseCode": "DTD-DEMO-1-2",
+      "supplier": "77777777-7777-4777-8777-777777777777",
+      "initialRevisionExpected": 0,
+      "inputPath": "C:/Users/AKX generator/.codex/visualizations/2026/10/21/packing-list-portal/xlsx-muestra-dtd-v2-4ee/outputs/packing-mixto-muestra-dtd-v2.xlsx",
+      "bytes": 8178,
+      "sha256": "f1867b0f4b2bdc7024700e502436a55e672e0276360a630e0b1e0db85e42c825",
+      "kind": "combined",
+      "providerHttpAllowed": 0
+    },
+    "pdfPreserve": {
+      "workspaceId": "f26ee17c-59d4-43ef-9f9b-bcb5f7c2cd29",
+      "jobId": "d7944896-3caa-451e-9e6e-72c3511b7ee4",
+      "status": "failed/extraction_unavailable/stageocr",
+      "receipt": null,
+      "proposal": null,
+      "noResend": true
+    }
+  },
+  "servicesDated": {
+    "backend": {
+      "pid": 56996,
+      "parent": 6440,
+      "birthUtc": "2026-10-23T07:14:13.8716220Z",
+      "origin": "http://127.0.0.1:4323"
+    },
+    "frontend": {
+      "pid": 52116,
+      "parent": 54816,
+      "birthUtc": "2026-10-23T02:25:50.3306750Z",
+      "origin": "http://127.0.0.1:4324"
+    },
+    "admission": "Fictitious loopback preflight under future EXECUTE must revalidate actual handle/PID/birth/exe/argv/parent/listener and both contexts. Historical IDs are not live authority. Drift STOP; no reset/restart/kill or alternate instance.",
+    "representation": "birthUtc fields above are typed CIM UTC references. Future P0 MUST compare CIM to CIM, HANDLE to separate HANDLE dated references in accepted corrective PS1. No cross-representation comparison/tolerance.",
+    "handleReferences": {
+      "backend": {
+        "utc": "2026-10-23T07:14:13.8716224Z",
+        "pid": 56996,
+        "parentPid": 6440
+      },
+      "frontend": {
+        "utc": "2026-10-23T02:25:50.3306757Z",
+        "pid": 52116,
+        "parentPid": 54816
+      },
+      "source": "General382c93 actual2026-10-23T10:40:30.8716325Z to2026-10-23T10:40:34.0789136Z, dated not live admission"
+    }
+  },
+  "adoptedPlan": {
+    "path": "C:/tmp/sdd0473-glm-qr-source-01a1639b-01/E2E-EXECUTION-PROPOSED-UNBOUND.json",
+    "bytes": 16309,
+    "sha256": "27965a774e0d1f78c8cc3ca3b4fd7630d11baedb67764546e5d34fa63b103f7a",
+    "allElevenPhasesAndNegatives": true,
+    "precedence": "EXACT6 closes renderer/decoder/controller; upload POST uses workspaceId/requestKey/fileName/sizeBytes/kind, contentType from RESPONSE only. Real screen reader not admitted = above  NO EJECUTADO, not DOM equivalence."
+  },
+  "phaseLimitsProposedSeconds": [
+    120,
+    180,
+    120,
+    120,
+    240,
+    120,
+    120,
+    180,
+    240,
+    240,
+    120
+  ],
+  "manualFixture": {
+    "path": "C:/tmp/sdd0473-glm-real-send-diseno-root-02/xlsx-supplier-manual-fixture-PROPOSED.json",
+    "bytes": 3976,
+    "sha256": "6daedf501609a6d5a8b77b83a7c94b049d0b7ccbffacabb76d70dfbaf0c9b1b8",
+    "conditionalOnActualProposalMapping": true,
+    "sourceExpected": "3 products VAS80+TAP80 in A4 and BOT60 in B6; source .66CBM/missing A gross, 220units/USD340. Stop on mismatch, never inject proposal.",
+    "manualValues": "A60gross48net/.28 B78gross66net/.42 TOTAL138gross114net/.70/10/220/USD340; manual fictitious, not extracted or physically measured; preserve provenance.",
+    "declarations": "After cargo save reread pending, HUMAN explicit false/false and SECOND save without new cargo change. No defaults/bypass."
+  },
+  "engine": {
+    "existingActual": "estimateDocuments/calcularEnvioLCL",
+    "fixtureSnapshot": "sdd0473-s3-fictional-20261022-v1",
+    "city": "maracaibo",
+    "singlePurchase": true,
+    "commercialPriceClaim": false,
+    "noForcedPriceChange": true
+  },
+  "inspectionBinding": {
+    "admittedRuntime": "Existing pinned Python3.12.14/PDFium5.14.0/Pillow12.3.0, bundled Node, existing absolute jsQR1.4.0 only; no install/probe/fallback/new helper.",
+    "lateDataAllowed": true,
+    "lateDataReason": "Current revision/folio/V/GETworkspace/labels/3PDF hashes exist only AFTER authentic confirmation and export within this same GO.",
+    "inputPath": "C:/tmp/sdd0473-glm-xlsx-functional-e2e-01a1639b-01/inspection-input.json",
+    "boundPayloadPath": "C:/tmp/sdd0473-glm-xlsx-functional-e2e-01a1639b-01/exec-inspection-BOUND.json",
+    "parameters": "Exactly four literal sentinel substitutions of fixed execPayloadUNBOUND.cmd, count1 each; all other characters and six other payload properties WHOLE unchanged. No code edits, no eval fallback.",
+    "sentinels": [
+      "__GO_BOUND_CURRENT_INPUT_PATH__",
+      "__GO_BOUND_CURRENT_INPUT_SHA256__",
+      "__GO_BOUND_FUNCTIONAL_GO_ID__",
+      "__GO_BOUND_ORIGINAL_GLOBAL_EXECUTION_CUTOFF_UTC__"
+    ],
+    "inputContract": "CURRENT_PDF_EXPORT_INSPECTION_v2 from exact6 exec; canonical Windows GetFullPath/str(Path) paths, original confirmed workspace/labels snapshots and current PDF pins; matching GO/approval/runtime admissions only after EXECUTE. No prefilled receipts/revision math.",
+    "execution": "RenderPython then decodeNode then finalizePython serial, actual native own handles/exits/streams/argv/SHA/UTC, ONE240 cap. Render pending; final PASO only after20 real pixel decodes/current text/10+10 stable physical boxes.",
+    "limitsSource": "Exact6 finiteLimits, no changes or quota renewal."
+  },
+  "evidence": {
+    "allToolInputsResultsOriginals": true,
+    "utcBeforeAfterEveryCall": true,
+    "nativeStreamsExitSeparated": true,
+    "uiNativeExit": null,
+    "uiExitReason": "NO APLICA",
+    "immediateWaitSameCellOnScriptRunning": true,
+    "ownSessionPollSeconds": 5,
+    "outerInnerIntervalsSeparate": true,
+    "noHostGuarantee": true,
+    "formalReturnBeforeCustody": true,
+    "generalAndParentExterior": "4 Git individually + source/prep/public pins/claim and own nominal processes under original closure. No late checks relabeled timely.",
+    "unknownStopsDependents": true,
+    "noRetry": true
+  },
+  "exclusions": [
+    "provider API/GLM resend/account probes",
+    "credential or ledger filesystem/clipboard/UI inspection",
+    "production/businessPII",
+    "source tracked edits/SQL/DB/Docker/new services",
+    "packages/managers/install/download/dep copying/junction/knowledge",
+    "new chats/Writers/helpers/Generic",
+    "push/merge/deploy/productive migrations",
+    "reset/reconfirm foreign contexts, process-tree/port/name kill",
+    "QR URI navigation/fetch foreign host",
+    "fake success from source strings, old PDFs, UI-injected DTO or old test results"
+  ],
+  "executiveAuthorization": {
+    "GeneralAccepted": null,
+    "RootAccepted": null,
+    "execute": null,
+    "actualTurnId": null,
+    "dispatchUtc": null
+  },
+  "coldAssignment": {
+    "exactFiles": [
+      "GO-E2E.json",
+      "BINDING-E2E.json",
+      "MANIFEST.json"
+    ],
+    "createExecutionOutputNow": false,
+    "privateIOAllowed": false,
+    "processApiUiRuntimeAllowed": false,
+    "formalAdminReturnRequired": true,
+    "noOtherSamGate": true,
+    "bindingContents": "Exact original General authority literal plus LF; actual source C168/claim/current public source pins; fixed6 plus preflight3 plus launch2; seven-property launch and inspection templates/18fields allNULL/sentinels unchanged; forward/inverse whole proof and preservation of consumed01/custody8. No candidate parsing/evaluation or operational STORE in cold phase.",
+    "preserveOriginalGo01Binding3": true,
+    "noNewHelperOrGeneric": true
+  },
+  "p0Preparation": {
+    "directory": "C:/tmp/sdd0473-glm-xlsx-e2e-preflight-preparacion-01a1639b-02",
+    "files": [
+      {
+        "name": "preflight-identity-UNBOUND.ps1",
+        "bytes": 14275,
+        "sha256": "4315ea1ba98a1f9eb4910726fbbb8a71f81c59df3e0a4edc7db9d70cf40968d1"
+      },
+      {
+        "name": "PRECHECK-UNBOUND.json",
+        "bytes": 82827,
+        "sha256": "c79bd0013d2744d4f82e23b633b5a13bfe8eeef819bf46a92fd110fe655c5cdc"
+      },
+      {
+        "name": "MANIFEST.json",
+        "bytes": 5190,
+        "sha256": "ea220b07453514950426baf1323d6f332b134aa35d36d84057ed0a213dc0a18c"
+      }
+    ],
+    "launchDirectory": "C:/tmp/sdd0473-glm-xlsx-e2e-launch-preparacion-01a1639b-02",
+    "launchFiles": [
+      {
+        "name": "LAUNCH-P0-UNBOUND.json",
+        "bytes": 53327,
+        "sha256": "9083d775fec37e490a1aec21f47630db2dc64fe8b873863c3c2e95828f0f1f6e"
+      },
+      {
+        "name": "MANIFEST.json",
+        "bytes": 9077,
+        "sha256": "30d1e47a2e2e6f0df68d5f162fe261fb47de303305843dbca266e80d69071da8"
+      }
+    ],
+    "controller": "Exactly accepted launch.payload seven properties; bound by replacing one __FUTURE_EXECUTIVE_CONTEXT_UTF8_BASE64__ only. No other cmd/PS1/helper edit.",
+    "clockProtocol": "After separate EJE and exclusive slot, capture ONE actual clock__curr_time input/result before first operational filesystem/UI/API/runtime admission. Origin that original result. Remit original clock, mapped18-field context and exact future bound payload to General for AGENT verification/adoption BEFORE launch. No Sam question, autoassertion of externalWholeReviewPassed or clock renewal; this review consumes original global1800. Preserve template late fields NULL in cold packet.",
+    "lateContextInCold": null,
+    "controllerP0Cap": "ONE total120 from actual controller ENTRY, MIN original global work, stop own child deadline5s earlier within same total. Context GETs must complete in remaining P0 deadline, no new120; all phases MIN original global cutoff.",
+    "capture": "Native payload max_output_tokens24000. Enclosing functions.exec max_output_tokens at least30000 or enough for COMPLETE native result plus envelope, preserve original. Truncated/UNKNOWN cannot be whole/native success; STOP dependents.",
+    "limitations": [
+      "Environment.Clear19 is child only; tool-host shell environment not controlled by exec_command schema and not read/logged.",
+      "Exact ProcessStartInfo argv request is direct API evidence, no independent CIM argv observation.",
+      "Bounded Windows waits are no universal OS/transport latency guarantee.",
+      "Base64/output large: if transport truncates, STOP/NO DISPONIBLE, no raw file workaround or fabricated completeness."
+    ],
+    "contextGet": "After native P0 PASS, validate both actual QA contexts/known PDF job/capabilities/history/usage against fixed plan before UI. P0 identity alone insufficient; no new provider call."
+  },
+  "precedingAttempts": {
+    "GLM01": "CONSUMED/FALLÓ P0 OWN_PROCESS_DRIFT; P1..P10NOEJ, original native1 and custody8 accepted; no retry/reuse old clocks.",
+    "CORE_A_Q01": "latest11:30:14 expired without EJE/closed15/reviews; NO EJECUTADO, no SQL failure inferred. Core only completing ADMIN cold15. Not a current heavy reservation.",
+    "newGOIsNotAutomaticRetry": "General explicit NEW02 after fixed corrective3 and launch2 independently reviewed. No provider request allowed and no resources reset."
+  }
+}
+ROOT-GLM-GO02-LITERAL-END
+
 ## Lanzador P0 exactDOS revisado y PR separadas actuales — 2026-10-23T11:26:07Z
 
 - Noheavy/runtime/shellGeneral activos. CORE346ACTIVE mismo turn01a1686e-956d-7af1-8f3f-ef8d22b2b419 sólo bindingfrío10+5; compactwaits sin cambionuevo noadoptanWIP. R1 yverifier5 adopciónyaefectivaambasrecibidas según commentary/Parent; aún no entregaFIJA15/FINADMIN niEJE. latest11:30:14/exec11:35:14/close11:36:14 INTACTOS, no renovar.
