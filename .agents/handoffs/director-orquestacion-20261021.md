@@ -1,4 +1,14 @@
 # Director: orquestación de tres sesiones — 2026-10-21
+## Propuesta recuperación GLM revisada, carrier sólo texto y autoridadCOREvigente — 2026-10-23T04:07 UTC
+
+GeneralFULL0657e8 plan6593/spec4507/manifest1115+98443e pines12226ENTERO/manifiesto3sellos-total4/0diff/SHA3cee72dfcf1ae8b3699a5d007f23148a3ff8222ffa821d65a5b11b98de908ec9. DictamenfavorableCOMOPLANbackendONLY/frontendconservado/instanciamemoriaIDsnuevoslegítimos sincontinuidadcache/jobhistóricopreservado/globalledgerguardasINTOCADOS/noPromisePatch/no viejoSTARTejecutablereusado. Parent5e154a20/0FULLcuatroconforme, aúnsinconfirmaciónhumana real (environment_contextactualizafechaNOkey).
+
+Generalautorizó víaParentMISMOGLM autoríaEXTERNAESTÁTICAcarrierbackendONLYfuente43582/A29/allowlisttrackedVACÍA. Perf ilnuevoCANDIDATO C:/tmp/sdd0473-glm-real-perfil-01a1639b-03 NOcrear; perfil02/frontendconservar. Node/argv/TSXloader31envSTART02baselinefijado, cambiosDATOSperfildeclarados/controlesNTpaths-ISODateKindString; mecanismonuevocarrier-payload-supervisor-manifest FULLrevisable/inversasloaplicable. NOHTTP/Nodecandidato/import/test/privado/ledger/CIMnuevo/servicios/sourceedit/stop/restart/pushahora. FutureLiveGETsnapshotcaseficticio/PIDhandle-birth-exe-argv-ancestríarevalidadoantesSTOPown/noárbol-opuerto/noesbuildPIDviejo, cambiosconocidosnoexplicadosSTOP, getterjobnoenum/noafirmartodosidle. RecuperaciónEJECUCIÓNsiguebloqueadaporhumano«ya corregido»POSTpregunta+validaciónsegura+paqueterevisado/GOnuevo. Nada deotroSamgate paraESTAautoríaligera autorizada. ParentdijoasignaráMISMOowner, verificarregistroefectivoantesreenviar.
+
+COREGO DIRECTOR-CORE-CB-W60-20261022-01 emitido04:00:47.484 SÓLOCOLD binding+exports (latest04:30:47.484/exec04:45:47.484/close04:46:47.484/900+60). GeneralmandórecordatorioNOsegundaactivación paraquesigaautoridadliteraloriginal/nootragateemisión; siParentyaasignó sólo recibo, si no un despachoalMISMOCORE. SnapshotParent66aúnreportópreparandopropuesta, NOpruebadefallo/capacidadnireenvío porinferencia. EsperarbindingfijoyadopciónrealantesEJECUTA; UserKeyNOdependenciafuncional. Noheavy/Goexecutivo/RootshellACTIVOS.
+
+AutomatizaciónactualizadaCOHESIVA conestado04:07/frentes/cierres/bloqueovalorhumano/CoreGOCOLDventanas/NoGestores, sustituyócadena de leadsestadocontradictorios. Cadencia20minACTIVE/targetRoot/notificaciónnullpreservados. Rootúltimoguardfresco/únicaescrituraestahandoff. Ningunaotra lectura privada ni APIporpasodetiempo; confirmaciónSamactual siguependiente.
+
 ## CORE W60 GO nominal emitido sólo binding frío — 2026-10-23T04:00:47.484Z
 
 GeneralFULLf27e24 candidata7208/9012b100089f4e2844a511dd92d691f75202dbc0a2fd1193ebf28e3acf327cd7 ydisponibilidad5261/11e60239con10Git0dated03:57:58/CBB4quieto/ownerCOMPLETED. 3c8dacrecuperóJSONsemánticacompleto+Genericadapter2244FULL, ningunacandidatoevaluado. RevisiónREADY6generalYAcerrada24checks/d3034d +Parent167/216peer, nootroSamgate.
