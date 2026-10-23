@@ -1,6 +1,6 @@
 # Worker SDD-0580 — Shipping Mark CTA móvil
 
-Fecha: 2026-10-23. Estado: en-progreso (cierre de derivados locales pendiente).
+Fecha: 2026-10-23. Estado: lista-para-revision; derivados pendientes explícitos.
 Owner/sesión: `worker-0580-cta-movil` / subagente `/root/worker_movil`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/0580-shipping-mark-cta-movil`.
 Rama: `codex/0580-shipping-mark-cta-movil`.
@@ -57,9 +57,10 @@ Detalle: `docs/specs/0580-shipping-mark-cta-movil/qa.md`; logs y matrices en
 
 ## COMMITS
 
-Implementación y evidencia: commit que contiene este documento. No crear
+Implementación, pruebas y evidencia: `b7b283107f2f5cfe44a7c55efc8cc75675ac7b03`.
+Cierre documental: commit que contiene esta versión del handoff. No crear
 recursión de commits para guardar su propio hash; Director registrará el SHA
-revisado en su artefacto. Reserva local indicada arriba.
+final revisado en su artefacto. Reserva local indicada arriba.
 
 ## PR / BRANCH
 
@@ -68,9 +69,35 @@ pendientes; no están autorizadas por este encargo.
 
 ## PENDIENTES DE ESTA TAREA
 
-Cerrar comprobación local de Graphify, recibo semántico de README marketing,
-Archify y preview Obsidian. Después, guardar resultados y liberar claim propio.
-La aceptación de producto local está satisfecha, con límites de QA explícitos.
+Producto: ninguno para la aceptación local del recorte, con los límites de QA.
+Derivados locales: recibo semántico de README marketing, mapa Archify y preview
+Obsidian permanecen pendientes; no se certifican. Director autorizó cerrar con
+estas capas pendientes, sin otra extracción global ni refrescos por el SHA del
+propio cierre documental. Integración y publicación no están autorizadas.
+
+### Conocimiento local observado
+
+- Revisión observada: `b7b283107f2f5cfe44a7c55efc8cc75675ac7b03`, antes de este
+  cierre documental. Graphify **0.9.61**, 43.774 nodos/79.851 aristas, vista
+  agregada de comunidades. El recibo de `knowledge-graph.py record --root .`
+  confirmó estructura **CURRENT**, sin pending/drifted/missing/deleted.
+- Dos advertencias nativas de parseo parcial en Studio legal, fuera del cambio:
+  `app/studio/(app)/legal/_components/LegalClient.tsx` y
+  `app/studio/(app)/legal/expediente/[code]/page.tsx`. No se ocultan ni se corrigen.
+- Semántica **PENDING**, cero fuentes verificadas/1.325 pendientes en este grafo
+  propio. El fragmento del README modificado está preparado en
+  `graphify-out/0580-marketing-fragment.json` (cinco conceptos/cuatro relaciones),
+  pero **NO APLICADO** y no constituye un recibo semántico.
+- Archify **2.16.0**: paquete local copiado como artefacto inmutable y validado
+  por archive/tree hashes del lock. Mapa **PENDING / NO EJECUTADO**; runtime
+  disponible no equivale a mapa generado ni revisión visual.
+- Preview Obsidian **PENDING / NO EJECUTADO**. Bóveda compartida no publicada ni
+  abierta; no se declara certificación del piloto ni cobertura global.
+- `knowledge:status` separado no se volvió a ejecutar tras el recibo estructural.
+  Se conserva `.codex/qa/knowledge-record-initial.json` como evidencia de la
+  revisión observada. El handoff cambia después: esta foto no certifica el SHA
+  documental posterior. Su vigencia final queda pendiente de otra revisión,
+  sin repetir refrescos/exportaciones para perseguir el hash del propio handoff.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -88,6 +115,7 @@ La aceptación de producto local está satisfecha, con límites de QA explícito
 Revisar SHA final, diff de 17 archivos autorizados, QA y seis capturas. Conservar
 las ramas aisladas 0579/0580 sin integrar hasta autorización. No reutilizar los
 resultados focales como certificación de un gate general nuevo. La única sesión
-escritora de esta tarea es la indicada arriba; claim activo durante el cierre.
-Los procesos UI, browser, servidor y fixtures de ensayo ya terminaron. Al liberar
-ownership se informará al Director; no eliminar rama ni worktree.
+escritora de esta tarea es la indicada arriba. Los procesos UI, browser, servidor,
+fixtures y extracción ya terminaron. El claim se libera al guardar este cierre;
+su confirmación y el SHA definitivo se entregan al Director por el canal de la
+tarea. Conservar rama y worktree, sin respaldo remoto; no eliminar.
