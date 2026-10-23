@@ -1,4 +1,19 @@
 # Director: orquestación de tres sesiones — 2026-10-21
+## SSR interop: propuesta revisada y AUTORÍA CINCO ACTIVADA al mismo GLM — 2026-10-23T01:57 UTC
+
+Objetivo humano extracción REAL sigue ABIERTO; key ya guardada por Sam. General jamás contenido/stat/hash/listado de config/ledger. No API real/upload/UI/readiness. NOheavy/GOejecutivo/shellGeneral. Decisión GLM-SSR-NATIVE-PREP-20261023-FINAL: graph-eval RETIRADO; START01/DIAG02 consumidos/custodiasaceptadasCONNC, no repetir.
+
+PaqueteFIJO Ownera99924/native0 REAL01:51:43.109Z: Ctmp/sdd0473-glm-ssr-external-propuesta-01a1639b-01/MANIFEST-PROPOSAL-SSR-INTEROP.json2759/SHA370d64a763efaae315ba03d95fc95d934f4960da3a949bb9cb0a5e176132edfd. Generalf26786 FULLREADmanifest/mecanismo2491-12c50faba/encargo4288-b9d90d58. Volcadotabla20236previoTRUNCADO,noFULLREADreclamado; recuperación9a4a54/native0 sítablaCOMPACTA20filas/id-format-entry-anchor-names/20SHAfísicos0diff/todosidentificadoresválidossindefault. Tabla20236/SHA39019530793e02db7506c12e7f5397dbcda0ca797ffa8a35299b25060a4351d5.15manifests/127fuentes/55importrefs/48cláusulas(noAST),20targets11CJS9ESM. General12ae83/native0 REAL01:57:32.789Z10sellos+11copiasENTERAS0diff. Parentf1b6ef/native0198checks0diff/report3082-SHA4cac79bbca956031914cbefa40499751b22ba7bd5c328f40c18fc10ffe165a7e FULLREADmecanismo/tabla/encargo/anchorscatalogo, CONFORME candidatasinotrohallazgo.
+
+PluginPREexistente runtimeMode+SSR, tabla20porid/aliasTarget/entry; CJSbridgevirtualESM con node:module/createRequireLOCAL(anchorphysical)/moduleexportsreal/default+namesfinitos;9ESMentryNode/importconditionreal→Vite,norequireESM/flagdecorativo. Nextnavigation/link/image3stubs EXCLUIDOStabla yrestoliteral; browseraliases/CSS/guards/runtimeRoot/envfilefalse/capsledger preservados. ExcelJS CJSprobable origen<anonymous>:15:1 sigueHIPÓTESIS hastaSTART,nofuncionalpaperPASÓ/directCJSruntimeprobado.
+
+AUTORÍA NOMINAL GLM-SSR-NATIVE-FIVE-20261023-01 enviadaGeneralALMISMOGLM/Parentnotificado. HijaDIRECTAff74ff5b330c477458029820092283a0d7bb8e9d/mismoWT-rama-A29. EXACTAS5existentes: QAvite.config.ts; QA README; spec0473; glmencargo0473; handoff0473. Guard/pre5FÍSICAS+5rawGit/modosblobs anteseditar/adopciónCUATROdocsANTESVite. Sólo tabla/mecanismofijos, no6aruta. Commitselectivo/diff5/inversaENTERArestoVite/prefijosdocs/TODOFuera5GitmodeblobsconteoREAL/custodia/controlformal. NO Nodeproducto/import/parser/check/probes/tests/START/SEND/API/configprivada/ledger/install/push antescheckpointFIJOyrevisión. No otraaprobaciónSam/Root/Parent ni duplicarWriter/activación.
+
+Después checkpointFIJO, revisar ySTART NUEVO→SENDsinmásdiagnósticosencadena/ni521porharnesssolo. Reusarcatálogo17929files348links/f88d4099 sinrecenso9min; actualizar5sourceinputs/head+extrasentryanchor realesdeclaradossinforzarconteo. Perfilnuevo pristineANTESPSmetadata/supervisorcierreabsolutoSIEMPRE/minoriginal/inputnuevoEXACTUNA LFdeclarada(noeditarhistóricos/garantíahost). GO+binding+EJECUTA nuevos; CASE_PROFILE/ledgerGLOBAL/caps3 intactos/keybackendmemoriasóloSEND. Backendpropioaliveidletraséxito,noactorFIN=serverFIN.
+
+ParentCOREW60entornoexternoCERRADO/revisadoRoot1a50ef/native0 REAL01:53:40.272Z738checks0diff/131únicos/61manifest/45hashfísicos/18copias/5links/14migraciones/8Genericrefs/footer237literal;sourceCB/B4quietos,15GitMETA0=7adopción+1lstree22líneas+7finales,7paresRAWfinales. No importabilidad/NOTICE/READY/GO/SQL/Nodeproducto/heavy. SigueEXTERNAUNBOUNDplan/PS/payload/JSsóloDATOS/inversasenteras/Genericfijo, sinbinding/reserva, prioridadGLM. CRMsin humanonuevo/Aheld/B1NOINICIADO/soporteNOENVIADO. PR319D42/320CBseparadasDRAFT/mainD410últimoverificado,sinmergeprod. GuardGeneraldcfa22/native0 antesescrituraúnicahandoffpropio.
+
+
 
 ## DECISIÓN VIGENTE GLM-SSR-NATIVE-PREP-20261023-FINAL: preparar interoperabilidad nativa; NO evaluar grafo — 2026-10-23T01:47 UTC
 
