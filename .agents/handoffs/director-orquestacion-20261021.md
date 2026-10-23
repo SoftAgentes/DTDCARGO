@@ -1,5 +1,17 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Go05 aclaratoria inmutable de ruta CSV ficticio — 2026-10-23 23:41 UTC / 19:41 Caracas
+
+Parent leyóliteralGitGo05yhallóreferencia'root04' enfixture.csv.source; dataRoots+4CLIal05yaeran correctos. AddendumexpresosólorutaCSVbajo05, mantienecanonicalGo/clocks/source/V4/CSVpreview/Go04frozen. Actoravisadoinmediatamente; no renovar/ACK/otrafuente. No defectoappmedido.
+
+ROOT-NATIVE-CI-DEMO-GO05-CSV-PATH-ERRATA-BEGIN
+```json
+{"id":"DIRECTOR-DEMO05-CSV-PATH-ERRATA-20261023-01","goId":"DIRECTOR-NATIVE-XLSX-CI-DEMO-20261023-05","goCommit":"6a53ef8f45c8b27e3f81b661c29f8740d611383d","goCanonical":{"bytes":22667,"sha256":"a93c15d1a5a90260ffa12804669305366fe8fbbac349704dd728a4446aa96d34"},"field":"fixture.csv.source","oldText":"GET existing own QA endpoint /qa/example.csv after identities/readiness. If local chooser requires file, save returned fictitious bytes CreateNew under root04/fixtures/example.csv; no invented input oracle or thirdparty fetch.","newText":"CreateNew fictitious CSV ONLY C:/tmp/sdd0473-native-demo-01a1639b-05/fixtures/example.csv under dataRoots.root05/fixtures; old root04 is frozen and never written.","meaning":"Explicit immutable path-reference errata only. dataRoots and perCycle paths05 already fixed; do not mutate originalGo canonical bytes/hash.","keep":["same issued23:38:41/latest23:53:41/absExec24Oct00:13:41/absClose00:15:41","authenticActororigin/cutoffs notrecaptured/notrenewed","sameCSVcontent/previewSINapply/selector/sourceFD03/V4/budget","root04preserved/Go04resultfailunchanged"],"failure":"If unauthorized04write alreadyoccurred, reportactualSTOP preservepartial; no delete/move/rename/new05retry orretroauthorize."}
+```
+ROOT-NATIVE-CI-DEMO-GO05-CSV-PATH-ERRATA-END
+
+Go05 RESERVAEXCLUSIVAACTIVA: literalcompletoParent+Actor yUNA EJE nominalSEPARADAyaenviadosMCPok; origin/cutoffs aúnnoobservadosRootalredactar. No COREheavy. Latest23:53:41/absExec24oct00:13:41/absClose00:15:41;1200work+120close/ready240TOTAL. ActorcontinúasinACK, formalantescustodia yRootParentPOSToprotunosANTESORIGINALclose. Esperaractualclock, no asumirdeadlineporFIN.
+
 ## Go05 demo nativa: V4 completo admitido por General y Parent — 2026-10-23T23:38:41.0000000Z
 
 Joint9669/cierre1778/DATAJS3265/4CLI V4 revisados ENTEROS; 3NCcerradas, Parentspans2/1/1/inversasWHOLE/favorable. Formatoformal20k resuelto sin perder originales. Go04cerrado intacto. NuevoGo05 local QA; esperaEJESEPARADO, noSTARTporliteral.
