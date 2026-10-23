@@ -1,5 +1,12 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Propuesta BODY/TITLE backup F60 ya revisada; sin publicar — 2026-10-23T05:02 UTC
+
+General e78f96/native0 FULLbodypropuesto4905 leído ENTERO;52aee6/native0 REAL05:00:36.405Z sella Ctmp/director-traspaso-20261020/director-W60-documental-revision-01/pr320-body-W60-f60-propuesta-director.md4905/SHA08a090f02cc930f78d954dbdaafc819d2da022885d98181aacad2eed5050d3ea. Favorable: problema/behaviorCORE, CBrealmenteprobado vsF60sólo2doc,60PASÓ53+7/SUPERVISIÓNFALLÓ-NC/causaND/cierres/PG17-race8-M8-14AB-canónica-2.1pendientes separados, no falsaCIverde/mergeprod. TitleFIELDexacto «SDD-0573 CORE: reversos y Libro Diario; W60 PASÓ con NC»56bytes/69bf24f8901ddd016b120e5e40465b6d665b9ba650e0947a85db0342a3ad2561. TitleTXTpr320-title-W60-f60-propuesta-director.txt57/2c42deb61cd47353b9610ec8a0e7e35496826e20268a1666a27a04979a5b78e1=FIELD+UNLF, NOwholeEqualFIELDfile. RevisiónSOURCEF60yBODY/TITLEcompletasfavorables, no volverleerporpresentación.
+
+GeneralmandóconformidadTEXTOalParent; AÚN NO orden NORMALPUSH porquePOST/custodia/retornoformalF60 noentregadosfinalmente. WorkerCOREsnapshot262ACTIVE05:01:29acusa recibofijo ytransferenciaADMINenprogreso;faltanmanifest/custodia/cadena, no test/publicación activos. EsperarentregaFIJA yParentreview, cotejar2preFÍSICAS2rawGit/inversas7CRLF/transitivos/FIN, despuésbackupNORMALMISMOCORE/MISMA320DRAFT/basee834 conBODY/TITLEexactosYAautorizado sinotraSamgate. NoGOnuevo/otraautoría ni repetircorrida60 porcompletararchivocustodia. GLMhumanopendientesin cambios.
+
+
 ## Hija documental F60 revisada por fuente; custodia final pendiente — 2026-10-23T04:57 UTC
 
 HijaLOCALFIJA f60db1d619ee8f594bbb02d2db7df7a8e76f8ff5/tree054c5d90797ac6379249ebc0007f4dd50068029a/padreDIRECTOCB cb4245a7ccaa25269790cdcc2a07021a3fa8a28e. General305ee6/native0 FULLdiff23888 leído sintruncación: exact2docs42+/0−cada;60PASÓ ySUPERVISIÓNFALLÓ-NC/causaND/PGlitevsPG17/carrera8/global/0497UNAPPLIED bien separados. General377c54/native0 sobreobjetosGitfijos:6349entradasporárbol/6347FUERA2mode-blobsIDÉNTICOS; prefijosrawGitENTEROS254731H/285967Scon0CRLF,apéndices2idénticos10389/SHA9916511e694ca422629ec5ea22e014e1065b1d5181e650a08c56a83372ff6131. ProductoENTEROigualCB, sinpruebanueva sobreF60.
