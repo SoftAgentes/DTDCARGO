@@ -173,7 +173,8 @@ describe("DocumentReviewClient · guardar dos veces (SDD-0473)", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Empresa" }), { target: { value: "Mi corrección local" } });
     guardar();
     await screen.findByText(/Otra persona guardó una revisión/i);
-    expect(screen.getByRole("alert")).toHaveFocus();
+    // El aviso puede estar en el DOM antes de que useEffect le dé el foco.
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveFocus());
     expect(screen.getByDisplayValue("Mi corrección local")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Comparar con la versión compartida" }));
     await screen.findByRole("heading", { name: /compara antes de reemplazar/i });

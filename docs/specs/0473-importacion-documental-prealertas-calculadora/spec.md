@@ -1391,3 +1391,54 @@ Candidato local pendiente de revisión Parent-General/respaldo normal misma319
 y CI real. Sin tests/lint/typecheck/build/verify/runtime/UI/HTTP/Nodecandidato,
 instalación o conocimiento por encargo. Sin cambios en demo A26 ni documentos
 de Sam, fuentes anteriores, tests/config o controles durables/proveedor.
+
+## CI319 · cierre de seis contratos unitarios · 2026-10-23
+
+Autoridad DIRECTOR-PR319-UNIT-CONTRACT-CLOSURE-20261023-01, General2b667833,
+base db0d4deeec984da755594290da9f95f85f1f4c4a, mismo WT/rama CI del Worker.
+Baseline referida: run40025670469/job120661111175 FALLÓ con6 casos/4 archivos;
+12583 casos PASÓ y7 SKIP. ESLint/RSC/TypeScript/Edge PASÓ; pasos11–20 SKIPPED,
+build NO EJECUTADO. La revisión de fuentes no sustituye una nueva CI.
+
+Diagnóstico y candidato mínimo para los seis contratos:
+
+1. Entry/Revisar: el test anterior seleccionaba PDF y esperaba Aplicar sin envío.
+   Panel.add sólo prepara; sendPrepared exige disclosure efectivo y clic explícito.
+   La fixture positiva ahora incluye formatos PDF y proveedor sintético explícito;
+   se comprueba cero POST/upload antes del clic y se pulsa Enviar y leer documentos.
+   Se conserva Revisar deshabilitado/router sin llamadas antes de Aplicar,
+   apply con expectedRevision0/workspaceId exacto, habilitación y ruta de compra
+   después de aplicar. No se activa envío ni aplicación automática en producto.
+2. Entry/open: misma precondición de proveedor efectivo y envío explícito; conserva
+   open({purchaseCode}) exacto y añade cero POST/upload al sólo elegir el archivo.
+   La fixture no representa un proveedor real ni hace llamadas externas.
+3. Entry/cambio de compra: envía explícitamente A y B, conserva la desaparición
+   del archivo A al cambiar de compra y ambos open con códigos exactos. Comprueba
+   que elegir B no añade llamadas ni transferencias antes de su propio clic.
+   No se cambia key, scope, workspace, polling ni CAS de producto.
+4. Contrato env raíz: faltaba DOCUMENT_IMPORT_PDF_TEST_OUTPUT_DIR, leído sólo por
+   tests de PDF para artefactos ficticios opcionales. Se documenta vacío y SÓLO
+   TEST, también en infra para conservar la paridad de nombres de plantillas.
+5. Contrato infra: faltaba DOCUMENT_IMPORT_PDF_CJK_FONT_PATH, ya documentado en
+   raíz. Se documenta vacío: ruta absoluta local explícita, fallo cerrado sin
+   fuente compatible, sin descarga/fallback Windows y revisión de licencia.
+   Los dos tests env originales y sus regex/listas de exclusión siguen intactos.
+6. Review409: la fuente ya tiene useEffect que enfoca el aviso de error con ref,
+   tabIndex=-1 y role alert. El test esperaba aparición del texto y comprobaba
+   foco inmediatamente. La aserción exacta toHaveFocus ahora usa waitFor con el
+   límite existente de Testing Library; sin aumentar timeouts, sleep, focus desde
+   el test ni reemplazar foco por visibilidad. Esto expresa el contrato asíncrono;
+   no adjudica por sí solo la causa runtime del fallo. Se conservan todas las
+   aserciones de edición, comparación, devolución de foco, bloqueo de compartir,
+   adopción explícita y segundo guardado. La CI nueva debe verificar el resultado.
+
+Gobernanza: cumplimiento del contrato existente de disclosure/envío explícito,
+compra/revisión, edición y foco; sin comportamiento/componente/acción/rediseño
+nuevo. Las tres fuentes de producto admitidas permanecen byte a byte iguales.
+La validación local de producto queda NO EJECUTADA por el encargo, sin excepción
+implícita a pnpm verify ni al release. Se revisa diff completo/whitespace, exactas
+seis rutas y preservación mode/type/blob de todo lo demás antes del commit.
+
+Entrega fija local para revisión Parent-General y respaldo FF posterior en la
+MISMA PR319 DRAFT. No push del Worker, merge, producción ni intervención de
+HUMAN03/A26. Sin UI/HTTP/Excel de Sam/config/ledger/proveedor/API/dependencias.

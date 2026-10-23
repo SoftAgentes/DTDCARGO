@@ -54,6 +54,7 @@ function cliente(capabilities: unknown, falla?: Error) {
 }
 
 const titulo = "Carga tus documentos y los llenamos";
+const extractionDisclosure = "Proveedor sintético de prueba: lectura aislada de PDF, sin servicio externo real.";
 
 describe("DocumentImportEntry (SDD-0473)", () => {
   it("informa disponibilidad para ofrecer una sola carga en la compra", async () => {
@@ -133,7 +134,7 @@ describe("DocumentImportEntry (SDD-0473)", () => {
   });
 
   it("«Revisar documento» lleva a la compra, no a una pantalla anónima", async () => {
-    const { client, post } = cliente({ available: true, portal: true, formats: [], maxBytes: 15728640 });
+    const { client, post } = cliente({ available: true, portal: true, formats: ["pdf"], maxBytes: 15728640, extractionDisclosure });
     render(
       <DocumentImportEntry
         purchaseCode="DTD-0000-1-1"
@@ -150,6 +151,13 @@ describe("DocumentImportEntry (SDD-0473)", () => {
       target: { files: [archivo] },
     });
 
+    expect(post).not.toHaveBeenCalled();
+    expect(client.upload).not.toHaveBeenCalled();
+    const enviar = screen.getByRole("button", { name: "Enviar y leer documentos" });
+    await waitFor(() => expect(enviar).toBeEnabled());
+    expect(screen.getByText(extractionDisclosure, { exact: false })).toBeVisible();
+    fireEvent.click(enviar);
+
     const revisar = await screen.findByRole("button", { name: "Revisar documento" });
     const aplicar = await screen.findByRole("button", { name: "Aplicar al documento" }, { timeout: 6000 });
     expect(revisar).toBeDisabled();
@@ -162,7 +170,7 @@ describe("DocumentImportEntry (SDD-0473)", () => {
   });
 
   it("abre el documento contra la compra, no como anónimo que expira en 24 h", async () => {
-    const { client, post } = cliente({ available: true, portal: true, formats: [], maxBytes: 15728640 });
+    const { client, post } = cliente({ available: true, portal: true, formats: ["pdf"], maxBytes: 15728640, extractionDisclosure });
     render(<DocumentImportEntry purchaseCode="DTD-0000-1-1" client={client} />);
     await screen.findByRole("heading", { name: titulo });
 
@@ -173,21 +181,39 @@ describe("DocumentImportEntry (SDD-0473)", () => {
       target: { files: [archivo] },
     });
 
+    expect(post).not.toHaveBeenCalled();
+    expect(client.upload).not.toHaveBeenCalled();
+    const enviar = screen.getByRole("button", { name: "Enviar y leer documentos" });
+    await waitFor(() => expect(enviar).toBeEnabled());
+    fireEvent.click(enviar);
+
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith("open", { purchaseCode: "DTD-0000-1-1" }),
     );
   });
 
   it("al cambiar de compra reinicia los archivos y abre el nuevo documento en su propio ámbito", async () => {
-    const { client, post } = cliente({ available: true, portal: true, formats: ["pdf"], maxBytes: 15728640 });
+    const { client, post } = cliente({ available: true, portal: true, formats: ["pdf"], maxBytes: 15728640, extractionDisclosure });
     const { rerender } = render(<DocumentImportEntry purchaseCode="DTD-0001-1" client={client} />);
     const input = await screen.findByLabelText("Elige tus archivos o suéltalos aquí");
     const { fireEvent } = await import("@testing-library/react");
     fireEvent.change(input, { target: { files: [new File(["compra-a"], "compra-a.pdf", { type: "application/pdf" })] } });
+    expect(post).not.toHaveBeenCalled();
+    expect(client.upload).not.toHaveBeenCalled();
+    const enviarA = screen.getByRole("button", { name: "Enviar y leer documentos" });
+    await waitFor(() => expect(enviarA).toBeEnabled());
+    fireEvent.click(enviarA);
     await waitFor(() => expect(post).toHaveBeenCalledWith("open", { purchaseCode: "DTD-0001-1" }));
     rerender(<DocumentImportEntry purchaseCode="DTD-0002-1" client={client} />);
     expect(screen.queryByText("compra-a.pdf")).not.toBeInTheDocument();
+    const llamadasPrevias = post.mock.calls.length;
+    const cargasPrevias = vi.mocked(client.upload).mock.calls.length;
     fireEvent.change(screen.getByLabelText("Elige tus archivos o suéltalos aquí"), { target: { files: [new File(["compra-b"], "compra-b.pdf", { type: "application/pdf" })] } });
+    expect(post).toHaveBeenCalledTimes(llamadasPrevias);
+    expect(client.upload).toHaveBeenCalledTimes(cargasPrevias);
+    const enviarB = screen.getByRole("button", { name: "Enviar y leer documentos" });
+    await waitFor(() => expect(enviarB).toBeEnabled());
+    fireEvent.click(enviarB);
     await waitFor(() => expect(post).toHaveBeenCalledWith("open", { purchaseCode: "DTD-0002-1" }));
   });
 });
