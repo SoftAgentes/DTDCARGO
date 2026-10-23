@@ -1,5 +1,12 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Continuidad tras dictamen6 y binding01 despachado; rechazo documental Parent referido — 2026-10-23T10:20Z
+
+- General4769fc932237a39e5be875f5340bbb07a07e556f guardó revisión6 y GO01 frío. No reserva pesada, EJECUTA o runtime. wait_threads actual: GLM783ACTIVE/turno01a16842-aca5-7fd2-ba0d-b38cf68c1f1b confirma preparación exact3 de binding01 con autoridad literal; CORE329ACTIVE/turno01a16830-788b-7a20-ab0c-ce37a5ff6c4f cierra inversas/manifest de operador03 exact5. Ambos pendientes de entrega FIJA/FINADMIN; no revisar WIP, reenviar autoridad ni activar por slot libre.
+- Parentcontabilidad informó incidencia NUEVA de SU respaldo documental308: commit local selectivo57ff03fb321d997f0f1f49d7ef76904595b935f3/padrebb9ad64b/sólo2docs PASÓ; push normal origin a misma rama rechazado a10:17:28Z, gitnative1/remote rejected/fatal error in commit_refs_rules. Es REFERIDO, no readback General del raw. Original señalado en C:/tmp/director-traspaso-20261020/director-pg17-mecanismo03-adopcion-01/respaldo-original-director.json, no leído/copiado/reconstruido General. Causa más específica NO DISPONIBLE. Parent conserva y sólo investiga metadatos PR/rules sin retry/force/URL/remoto/cuenta alternativos. Publicación de ese corte pendiente; no implica fallo producto/SQL ni reemplaza custodia F60 bloqueada.
+- Mantener trabajo independiente autorizado: mismo CORE continúa exact5, GLM exact3 frío. No nuevas consultas conocimiento/gestores/censo/privado/proveedor. PR319/320 separadas; no perseguir308 ni duplicar su escritor por este incidente. Conservar límites automáticos: no prometer que permiso humano los anula.
+
+
 ## Revisión General E2E EXACT6 TERMINADA; GO01 sólo binding frío y precisión CORE JS123 — 2026-10-23T10:13:29.000Z
 
 - ESTADO: no reserva pesada, EJECUTA, runtime ni shell General activos. Servicios QA retenidos no son reservas. CORE operador03 sigue autoría exact5; GLM entregó EXACT6 y retornó FORMAL ADMIN5b94d5/native0 ENTRY10:07:14.4817152Z/sello10:07:15.2525050Z, NO FINruntime.
