@@ -2,6 +2,280 @@
 
 ## Correctiva P0 GLM revisada; lanzamiento frío mínimo y binding CORE A_Q en curso — 2026-10-23T11:10Z
 
+## GLM02 EJECUTA reservada/espera clockadopción; CORE A_Q02 nueva sólofría — 2026-10-23T11:59:49Z
+
+- RESERVA EXCLUSIVA General ACTIVA para DIRECTOR-GLM-XLSX-FUNCTIONAL-E2E-20261023-02. General envió EJECUTA NOMINAL SEPARADO víaParentPacking despuésverificar GLM807COMPLETED-IDLE/errorNULL, sourceC168/A29 y3bindingcerrados. Parent confirmóUNfollowupMISMOGLM807 yRootadoptaGeneralAccepted/RootAcceptedtrue/execute02. FaseactualPENDING_AUTHENTIC_CLOCK_CONTEXT_ADOPTION_NO_P0_LAUNCH_YET; ningúnORIGIN/resultadoP0/UI/E2E observado aún. ROOT/ParentCORE informados: ningunapesadaCORE/otra mientrasnoFINformal+POST+devoluciónGLM. COREsóloCOLD.
+- GLM3FIJOS cierre d2ca0d/native0 ENTRYADMIN11:43:11.6318098Z/FINADMIN11:43:12.2731018Z. C:/tmp/sdd0473-glm-xlsx-e2e-binding-01a1639b-02: GO15848/c2a6be4d41dd82e7587bbde2593f45f45d1771b279ad74a0581a6d76be4c9945; BINDING244242/42f31ba8965d0486bb3d1ce1db3a29d1e8f2b2ef9272fc0075a46dbc2c3a2708; MANIFEST56807/30a8271326c1346b3d5ed9b831b9077e41073923f1b5cc957ed441e3ac2b35cd. General862871/native0 comparó GOphysical ENTERO==MIliteralOriginal==BINDINGauthority yoriginalPromptWholeENTERO==MIargumentoMCP17832. NoSourceEdit/normalize/entities. Native1ae099 REAL11:56:31.4530450→31.9999678Z126checks0diff/3hashes+94pins+custodia7-exes2/payload7WHOLE/segmentos2+5/sentinels1+4/startslengths/inversas/18NULL/budgetwhole/4GitINDIV0C168tree66ramaclean/A29. NoFULLhumana244kduplicados. Parent3favorable178/183más5falsosindex→startcorregidos461ec3sólolector/nofuente; REFERIDO.
+- GoGLM02latest12:18:03/absExec12:48:03/absClose12:50:03 originales; futuroORIGINtoolauténticoantesprimerFS/preflight/UI/API/CLI,1800+120MINabsolutos/noFIN+120. Primeraacción trasEJE: UNA clock__curr_time real y remitir input/result/callidREAL+18context+payloadP0BOUND aGeneral. ESPERARadopciónAGENTEdeesosoriginales ANTESlaunch, noSamgate ni autoafirmar externalWholeReviewPassed/IDs/renovar. Conversiónpuradatos.NETUTF8Base64sinFS/env/probes/CIM/UI/API/privado autorizada paraencoding, nohelper/HashAlgoritmo/archivoextra. LaesperacuentadentroORIGINoriginal. DespuésadopciónGeneral podrácontinuarPlan11bajoMISMAEJE sinotrapuertaSam: P0controller120TOTALminGlobal/EOF2/native0real, GETQAcontexto dentrorestoP0antesUI/sinrenovar120; uploadXLSXreal/recibosreales/manualfixture138/114/.70/confirm-engineQA-export-20QRpixels-visor-visual. NingúnPDFresend/proveedorHTTP/ledgerFS/configRoot nireset/restart/otraInstancia. Outerfunctions.execalmenos30000/native24000 ySameCellwaitINMEDIATO,unknown/truncado/driftSTOPdependientes/nativeFINhonesto. FINFORMALANTESconteoscustodia ydosPOST oportunosantescloseORIGINAL.
+- CORE15FIJOS FINADMIN real11:41:23.7248780→.8811478Z/response11:41:24.354Z/celda667; General397IDLEerrorNULL confirmadoANTESleer. MANIFEST217570/32f7d2f29b90baeed3d58ce15bda98d2f5baedb7db77db21c9780bee20790fcb/source15coldNoe01 cerrado. b1cdc4schemas/hash5 y aacc77/819da1 operativosnoRawduplicados; presentacionestruncadasNOFULL619k/1.56M. e8827f/native0 REAL11:47:55.7504515→56.2070922Z76checks0diff/15pins8Generic/RAW6-CODEfísicoswhole/PSJS2+2/inversaRAWPAYLOADWHOLE/17SQL/4GitINDIV0F60tree054clean/B4. General5e868dFULLdictamenParent7282/SHA556c81d376bc49f6503a0a7af5c3fd01f8e17ed640cfc92ab4ec85eef97e79fd; adopto577conformesParent06b77c/99Nativecmdresult/37transfers/157rangos conlímites explícitos, no réplicaGeneraldeTODO577.
+- ADMIN/fuente/custodiaCORE A_Q01 ACEPTADOS CONLÍMITES, runtime01 sigueNOEJ/ventanas-keysCONSUMIDAS. OuterfunctionsoriginalND programático/157comandosfile8completosdurablesND/HerrorstreamtruncadoND/General10202históricoreferidoR1false ycanonical10205adoptado/ BINDING.invokedfalsefechado11:24previoexportposterior. No reconstruirND/nuevohelper. Mis a5c595Join-Pathsinseparador y a2133f/52f465parser99forma/aserción destino son lectoresRootfallidos/no hallazgoWorker; Parent577 tiene trazacomparadaentera. Mi if-templatebacktickSyntaxError antesMCP corregido sin efecto. NingunaejecuciónReader/Exporter/Producto repetida para estética de logs.
+- NUEVA AUTORIDAD General DIRECTOR-CORE-PG17-A-Q-20261023-02 emitida conclockREAL11:59:49UTC, SÓLOFRÍA despuésreviewcerrada. issued11:59:49.0000000/latest13:14:49.0000000/absExec13:19:49.0000000/absClose13:20:49.0000000Z.75minmargenINICIALfrío(38minanterior+10review), no renovación de01. Runtime300+60/readiness60dentrofuturoORIGINMINcaps/noFIN+60/ORIGINNULL/4authNULL/reservedfalse. F60tree054B4/plan03+ReadyQ3+17SQL+Native26 intactos, noSource04/probeDocker/SQLnuevoahora.
+- AUTORIZADO víaParent UNAcontinuaciónMISMOCORE397IDLE a C:/tmp/director-traspaso-20261020/0573-pg17-Q-binding-f60-02 EXACT10mismosnombres01 y sibling -02-verificacion EXACT5mismosnombres. NuevosGOID/keys02/container/token/outputEJE02/paths/SHAs, dispatchKeyahoraEXACTO bindingKey+':dispatch' comoJS; noalias-01. Guard/ausencia/adopciónexterna antesCreateNew, Generalnoescribe15. Generic/source03algoritmosintactos, sóloDATOS/inversasWHOLE/Nativeoriginales/adminexportercopies/FINcontrol. No16helper,Source04,candidatoeval/parser/import,SQLDBDocker,CIM,Nodeproducto,privado/ledger/FSoutputEJE,gestor/conocimiento/install,push. Old15/errores/ND yF60blocked intocados.
+- GLMturnoEXCLUSIVO vigente: CORE02 no arranca por su Go ni sourceconformity, sólofrío mientrasGLM. Esperar15FIJOS+FINADMIN/reviews+devoluciónGLM/POSTs para EJECUTA SEPARADA posterior. NoactivarCORE hasta mensajeLiteral02, ya enviadoParent; comprobardespacho/adopciónantesduplicar. BodyGoCORE02completo másabajo conservaautoridad; sinanglebrackets.
+- PR319D42y320F60 últimosGeneral11:26siguenDRAFTseparadas/0overlap/sinmergeproducción. Parent308posterior737f3f70d33d0d4d99156c1e718e9f2415429bd6/2docs/normalpush+readback sóloREFERIDO/noRootchase. CRMFINALsincontactosNOENVIADOS; conocimiento/equivalentesSUSPENDIDOS. PróximoRoot: recibir/adoptar clockGLM02literal y vigilarFIN/POST antesclose; CORE2colddespuésentrega. No otraacciónSam/clave.
+
+Autoridad literal General CORE A_Q02 con LF; extraer JSON entre marcadores:
+ROOT-CORE-AQ02-LITERAL-BEGIN
+{
+  "schema": "0573_PG17_NOMINAL_FUTURE_GO_v1",
+  "templateOnly": false,
+  "goId": "DIRECTOR-CORE-PG17-A-Q-20261023-02",
+  "turnId": "DIRECTOR-CORE-PG17-A-Q-20261023-02",
+  "issuedAtUtc": "2026-10-23T11:59:49.0000000Z",
+  "issuancePhase": "COLD_BINDING_ONLY_SEPARATE_EXECUTIVE_DISPATCH_REQUIRED",
+  "authority": {
+    "mode": "EJECUTA_NOMINAL",
+    "RootAccepted": true,
+    "GeneralAccepted": true,
+    "interpretation": "Nominal authority after reviewed binding and SEPARATE General EJECUTA. Cold STORE authorization remains fourNULL; do not evaluate now.",
+    "executiveDispatch": null
+  },
+  "source": {
+    "head": "f60db1d619ee8f594bbb02d2db7df7a8e76f8ff5",
+    "tree": "054c5d90797ac6379249ebc0007f4dd50068029a",
+    "parent": "cb4245a7ccaa25269790cdcc2a07021a3fa8a28e",
+    "branch": "codex/sdd-0573-core-reparacion-20261021",
+    "worktree": "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/sdd-0573-core-reparacion-20261021",
+    "owner": "worker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468",
+    "workerUUID": "01a1601e-d9fd-7280-8977-6b5d4719a99b",
+    "claimBytes": 212,
+    "claimSHA256": "b4ea7421a49ca0ec099a6e0552d2af03630cc648863479e4468e2d98244b8905",
+    "trackedAllowlist": []
+  },
+  "plan": {
+    "path": "C:/tmp/director-traspaso-20261020/0573-pg17-mecanismo-UNBOUND-f60-03/plan-mecanismo-UNBOUND.json",
+    "bytes": 301904,
+    "sha256": "8ec83f18208ee7f86957f64098daabe5a7f159769e3a652ee00c4c12b1575a0a"
+  },
+  "reviewedPreparation": {
+    "READY": {
+      "path": "C:/tmp/director-traspaso-20261020/0573-pg17-Q-READY-f60-01/READY-Q-UNBOUND.json",
+      "bytes": 42431,
+      "sha256": "5d17d1e233b985bc0e9bd7481015ff58cadfaa504253094fbc1ec369cd14c6b3"
+    },
+    "supervision": {
+      "path": "C:/tmp/director-traspaso-20261020/0573-pg17-Q-READY-f60-01/SUPERVISION-Q-UNBOUND.md",
+      "bytes": 8325,
+      "sha256": "97ad6031d4edef2db2f90599fd18e6c814c5119c39533a5d8fd41228522c9695"
+    },
+    "manifest": {
+      "path": "C:/tmp/director-traspaso-20261020/0573-pg17-Q-READY-f60-01/MANIFEST.json",
+      "bytes": 178485,
+      "sha256": "cd923bf1a625659a4836dcd87d1d09c6f613f9b30ddedc5453110dc7826cbee1"
+    },
+    "RootGeneralReview": "0f5296/529c2e/f035ab/2f4c41 operative complete;2669b3/native0 10:51:08.2816254Z 27pins0diff/8ordinarydirs-auth0metadata/4Git0/B4/Native26literal/14NULL",
+    "ParentReview": "4438/bf04dd36ce604b6a788457c59d7aa604b30489bb315e20d45e2f296e100a1875; Parent652706/61234576checks reported",
+    "currentServerVersionClaim": false,
+    "M03_DOC_01": "Use original version02 START09:25:28.2080757Z to FIN09:25:28.3469642Z only; dated29.9.1 not live daemon. Preserve all five03, no repeat metadata query now."
+  },
+  "selection": "A",
+  "selectionContract": {
+    "id": "A_Q",
+    "fullFiles": 1,
+    "path": "supabase/tests/0497_reverso_al_anular_factura.test.sql",
+    "bytes": 82095,
+    "sha256": "bd39ba28bf1880416994db8691d9a8c53ad9710144c6d27c1bb4c72393e59e6c",
+    "containerPath": "/sb/tests/0497_reverso_al_anular_factura.test.sql",
+    "imports": 14,
+    "defaultApplyFix": true,
+    "extra0467": false,
+    "extraM3": false,
+    "filters": [],
+    "retry": 0,
+    "textualLocators": 113,
+    "actualDiscovered": null,
+    "actualExecuted": null,
+    "actualResult": null
+  },
+  "precedingAReview": {
+    "accepted": false,
+    "receiptSHA256": null,
+    "appliesOnlyToB": true,
+    "BNotAuthorized": true
+  },
+  "supervisionAdmission": {
+    "accepted": true,
+    "evidenceSHA256": "97ad6031d4edef2db2f90599fd18e6c814c5119c39533a5d8fd41228522c9695",
+    "maximumAllowedResponseMilliseconds": 10000,
+    "observedMaximumResponseMilliseconds": null,
+    "observedAtUtc": null,
+    "meaning": "General admits the concrete immediate SAMECELL functions.wait procedure and original bounded handling under this NEW02 nominal authority. Not admission of measured10000, universal latency, PGperformance or repair of W60. Missing observations stay ND; actual above10000 means NC even if SQLpasses.",
+    "historicalW60NC": {
+      "innerResponseIntervalMs": 104247,
+      "outerFirstWaitMs": 115487,
+      "cause": "NO DETERMINADA",
+      "preserved": true
+    },
+    "positiveGLMReference": "NO DISPONIBLE in this package; not required to fabricate or equate PG17",
+    "firstWait": "After functions.exec ScriptRunning the NEXT action MUST be functions.wait for exact returnedcell, before analysis/comment/othercall. Preserve original full inputs/results UTC, inner/outer intervals separate; continue same aliveawait ownsession5s.",
+    "noNewLatencyTrial": true,
+    "previousOpportunityNotExecuted": true
+  },
+  "budget": {
+    "windowStartUtc": "2026-10-23T11:59:49.0000000Z",
+    "latestStartUtc": "2026-10-23T13:14:49.0000000Z",
+    "absoluteExecutionCutoffUtc": "2026-10-23T13:19:49.0000000Z",
+    "absoluteClosureDeadlineUtc": "2026-10-23T13:20:49.0000000Z",
+    "maximumExecutionSeconds": 300,
+    "closureReserveSeconds": 60,
+    "maximumActualTotalSeconds": 360,
+    "readinessMaximumSecondsInsideWork": 60,
+    "renewal": false,
+    "actualInvocationStartUtc": null,
+    "actualExecutionDeadlineUtc": null,
+    "actualClosureDeadlineUtc": null,
+    "formula": "Authentic first operator budget output: workMIN(origin+300s,absoluteExec),closeMIN(origin+360s,absoluteClose),ETXbywork-20s. NoFIN+60 or budget renewal."
+  },
+  "resources": {
+    "imageId": "sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675",
+    "reviewedEntrypoint": [
+      "docker-entrypoint.sh"
+    ],
+    "containerName": "sdd0573-pg17-a-q-20261023-02",
+    "ownershipToken": "dtd0573-pg17-a-q-f60-20261023-02",
+    "scope": "NEW OWN empty fixture only; positive absence/labels/token/ID before lifecycle. networknone/noports/nopull/tmpfs/17ROmounts and own evidence. Actual major17/psql/coreutils/socket/pgcrypto/dblink verified inside ORIGINAL readiness60 before ONEFULL; no install/fallback/FORCE/adoptforeign."
+  },
+  "docker": {
+    "executable": {
+      "path": "C:/Users/AKX generator/AppData/Local/Programs/DockerDesktop/resources/bin/docker.exe",
+      "bytes": 44921264,
+      "sha256": "0df52bb089985681771c874575a199438e6721814e682d74176e7444d40e1957"
+    },
+    "host": "npipe:////./pipe/dockerDesktopLinuxEngine",
+    "publicContextIdentity": "EXPLICIT_LOCAL_PIPE_dockerDesktopLinuxEngine_NO_INHERITED_CONTEXT",
+    "config": "fresh empty own output/docker-config only at actual runtime under originalclock; no user Docker/auth config"
+  },
+  "git": {
+    "executable": {
+      "path": "C:/Program Files/Git/cmd/git.exe",
+      "bytes": 43352,
+      "sha256": "78211c7ed73988da93a6d8a33d47ec6187f464d7ea2a9a00c182bbd7a1ecf30f"
+    }
+  },
+  "shell": {
+    "path": "C:/Users/AKX generator/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/pwsh.exe",
+    "bytes": 301368,
+    "sha256": "362a356ce7f0940ec74f73a8fc2c990a2cc24a38a11c90bbd8eca947110ad139",
+    "login": false,
+    "sourcePayloadSevenProperties": true
+  },
+  "nativeEnvironment26": {
+    "SystemRoot": "C:\\WINDOWS",
+    "ComSpec": "C:\\WINDOWS/System32/cmd.exe",
+    "PATH": "C:\\Users\\AKX generator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin;C:\\WINDOWS/System32;C:/Program Files/Git/cmd",
+    "PATHEXT": ".COM;.EXE;.BAT;.CMD",
+    "USERPROFILE": "C:/tmp/sdd0573-core-runtime-01a15a4e-r3/home",
+    "HOME": "C:/tmp/sdd0573-core-runtime-01a15a4e-r3/home",
+    "APPDATA": "C:/tmp/sdd0573-core-runtime-01a15a4e-r3/appdata",
+    "LOCALAPPDATA": "C:/tmp/sdd0573-core-runtime-01a15a4e-r3/localappdata",
+    "TEMP": "C:/tmp/sdd0573-core-runtime-01a15a4e-r3/tmp",
+    "TMP": "C:/tmp/sdd0573-core-runtime-01a15a4e-r3/tmp",
+    "PNPM_HOME": "C:/tmp/sdd0573-core-runtime-01a15a4e-r3/pnpm-home",
+    "XDG_CONFIG_HOME": "C:/tmp/sdd0573-core-runtime-01a15a4e-r3/config",
+    "XDG_CACHE_HOME": "C:/tmp/sdd0573-core-runtime-01a15a4e-r3/cache",
+    "XDG_DATA_HOME": "C:/tmp/sdd0573-core-runtime-01a15a4e-r3/state",
+    "CI": "true",
+    "NO_COLOR": "1",
+    "NODE_OPTIONS": "--max-old-space-size=3072",
+    "npm_config_ignore_scripts": "true",
+    "PNPM_CONFIG_PM_ON_FAIL": "error",
+    "PNPM_CONFIG_RUNTIME_ON_FAIL": "error",
+    "PNPM_CONFIG_NPMRC_AUTH_FILE": "C:/tmp/sdd0573-core-runtime-01a15a4e-r3/config/empty.npmrc",
+    "PNPM_CONFIG_STATE_DIR": "C:/tmp/sdd0573-core-runtime-01a15a4e-r3/state",
+    "PNPM_CONFIG_ENABLE_GLOBAL_VIRTUAL_STORE": "false",
+    "PNPM_CONFIG_STRICT_SSL": "true",
+    "PNPM_CONFIG_IGNORE_SCRIPTS": "true",
+    "PNPM_CONFIG_EXTEND_NODE_PATH": "false"
+  },
+  "outputDirectory": "C:/tmp/director-traspaso-20261020/0573-pg17-Q-ejecucion-f60-02",
+  "binding": {
+    "directory": "C:/tmp/director-traspaso-20261020/0573-pg17-Q-binding-f60-02",
+    "bindingKey": "core-pg17-a-q-f60-20261023-02-binding",
+    "observationsKey": "core-pg17-a-q-f60-20261023-02-observations",
+    "codeKey": "core-pg17-a-q-f60-20261023-02-code",
+    "dispatchKey": "core-pg17-a-q-f60-20261023-02-binding:dispatch",
+    "authorization": {
+      "mode": null,
+      "RootAccepted": null,
+      "GeneralAccepted": null,
+      "turnId": null
+    },
+    "dispatchAbsent": true,
+    "reserved": false,
+    "verificationDirectory": "C:/tmp/director-traspaso-20261020/0573-pg17-Q-binding-f60-02-verificacion",
+    "exactMainFiles": [
+      "GO-PG17-Q.json",
+      "operador-pg17-BOUND.ps1",
+      "orquestacion-pg17-BOUND.js",
+      "payload-UNBOUND-original.json",
+      "payload-BOUND.json",
+      "BINDING-PG17-Q.json",
+      "STORE-export-original.json",
+      "STORE-verification-original.json",
+      "CONTROL-ADMIN.json",
+      "MANIFEST.json"
+    ],
+    "exactVerificationCopies": [
+      "sourceRaw-STORE-ENTERO.js",
+      "bodyRaw-STORE-STRICT14-ENTERO.js",
+      "CODE-STORE-ENTERO.json",
+      "lector-nativo-original.json",
+      "cotejo-frio-nativo-ENTERO.json"
+    ],
+    "noOperationalAuthorizationOrCandidateEvaluation": true
+  },
+  "exclusions": [
+    "B_R or any second selection without actual A closure/review and NEWGO",
+    "production or Supabase environment/DB/migrations",
+    "businessPII/credentials/ledger/auth content",
+    "new repositories/writers/models/helpers/algorithms/Generic implementation",
+    "install/managers/knowledge/bootstrap inventories/dependency or ignored cleanup",
+    "Dockerpull/FORCE/foreignsessions/foreigncontainers/globalstop/delete",
+    "product or SQL source edits/commit/push/merge/deploy",
+    "reuse W60/other consumedGOs/clocks or GLM_E2E01",
+    "retry uncertain native/latency or run subsets"
+  ],
+  "evidence": {
+    "nativePSQLExitImmediateMarker": true,
+    "sqlTransportExitSeparate": true,
+    "originalStdoutStderrJSONAndCLIExit": true,
+    "all17InputPinsBeforeAfter": true,
+    "fourIndividualExteriorGitClaimTimely": true,
+    "formalFINBeforeCountsCustody": true,
+    "unknownNotFIN": true,
+    "noObservedBirthFabricated": true
+  },
+  "nextStep": "Materialize COLD physical GO/binding/sixRAW/CODE/exports/verification/control only; separate review and separate nominal EJE, no runtime or reservation by this JSON.",
+  "reviewedPriorCold01": {
+    "directory": "C:/tmp/director-traspaso-20261020/0573-pg17-Q-binding-f60-01",
+    "manifestBytes": 217570,
+    "manifestSHA256": "32f7d2f29b90baeed3d58ce15bda98d2f5baedb7db77db21c9780bee20790fcb",
+    "runtimeStatus": "NO EJECUTADO; latest expired without EJE. All01 clocks and keys consumed for execution; no reuse.",
+    "GeneralReview": "e8827f/native0 2026-10-23T11:47:56.2070922Z76checks0diff;15pins8Generic6RAW/CODEwhole/inversesPSJS/payloadRAWwhole/17SQL/4Git0F60B4.5e868d FULLfinalParentdictamen7282/556c81d376bc49f6503a0a7af5c3fd01f8e17ed640cfc92ab4ec85eef97e79fd.",
+    "ParentReview": "06b77c/native0 2026-10-23T11:48:31.2720461Z577admin0diff;99actualNativeinputs/results/37transfers/157file8ranges; additional referred proof as scoped by FULLdictamen.",
+    "limits": [
+      "Original enclosing functions.exec source not programmatically exported.",
+      "Complete157file8command literals not durable;metadata/ranges/native results retained.",
+      "First H/GetHistory error result tool-truncated;missing restND.",
+      "Initial Rootliteral10202 different descriptiveGT entity vs adoptedR1physical10205; both preserved.",
+      "BINDING exporter.invokedfalse dated before actual exporter call, not current state."
+    ],
+    "acceptedWithLimits": true,
+    "notSQLResult": true,
+    "preserve15AndErrors": true
+  },
+  "coordination": {
+    "currentHeavyReservedFor": "DIRECTOR-GLM-XLSX-FUNCTIONAL-E2E-20261023-02",
+    "COREColdOnlyUntilFormalReturn": true,
+    "COREPreferredNextIfReadyAfterGLM": true,
+    "doesNotReserveHeavy": true,
+    "realisticColdWindowBasis": "Previouscold01 took38min plusreview10min; NEW02 allows75min before latest. This is initial new grant after closed reviewed01, no renewal of consumed windows.",
+    "noOtherSamGate": true
+  }
+}
+ROOT-CORE-AQ02-LITERAL-END
+CORE_AQ02_NATIVE_UTF8_SHA256 1f1ebfb1a8dabe338d7688ff6a18c2ff0cd7416cdeebaf549c0707b9be1aa8cf
+
 ## CORE A_Q01 NO EJECUTADO; GLM GO02 sólo binding frío emitido — 2026-10-23T11:36:11Z
 
 - NO heavy, runtime o shellGeneral activos. Clock General REAL11:30:31UTC acreditó vencimiento latestStart11:30:14 de DIRECTOR-CORE-PG17-A-Q-20261023-01. General NUNCA emitió EJECUTA; sinreserva/ORIGIN/budgetauténtico. Resultado deesa oportunidad NO EJECUTADO, no FALLÓSQL/daemon/entorno inferido. Viejas ventanas/keys sólofrías consumidas paraarranque, noinvocarporabsExec11:35/close11:36ni renovar. ParentRootclock11:30:21 ymi orden11:30:31 concordantes ya enviadas MISMOCOREactivo.
