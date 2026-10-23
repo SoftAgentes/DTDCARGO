@@ -1,38 +1,147 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
-import react from "@vitejs/plugin-react";
-import tailwind from "@tailwindcss/postcss";
 import type { IncomingMessage,ServerResponse } from "node:http";
 import { configureQaExtraction,QaExtractionConfigurationError,qaCaseRoute } from "./extraction-config";
 
 async function main(){
-const require=createRequire(path.join(process.cwd(),"package.json"));
-const vitePath=require.resolve("vite",{paths:[path.dirname(require.resolve("vitest/package.json"))]});
-const {createServer}=await import(pathToFileURL(vitePath).href);
 const root=process.cwd();
-const fixture="docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/fixture.tsx";
 const port=Number(process.env.QA_PORT??4320);
 const backend=process.env.QA_BACKEND_ORIGIN;
+const glmFrontend=process.env.QA_GLM_TEST_FRONTEND==="true";
+const runtimeRoot=process.env.QA_GLM_TEST_RUNTIME_ROOT;
+const runtimeMode=runtimeRoot!==undefined;
+const closedRuntimeRoot="C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-list-portal-confirmacion-20261021";
+const closedSourceRoot="C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022";
+if(runtimeMode&&(runtimeRoot!==closedRuntimeRoot||path.resolve(root)!==path.resolve(closedSourceRoot)
+  ||!((process.env.QA_GLM_TEST_ENABLED==="true"&&!glmFrontend&&port===4323&&backend===undefined)
+    ||(glmFrontend&&process.env.QA_GLM_TEST_ENABLED!=="true"&&port===4324&&backend==="http://127.0.0.1:4323")))){
+  throw new QaExtractionConfigurationError();
+}
 if(backend){const url=new URL(backend);if(url.protocol!=="http:"||!["127.0.0.1","localhost"].includes(url.hostname)||url.username||url.password||url.pathname!=="/"||url.search)throw new Error("QA backend must be a loopback origin");}
 const extraction=configureQaExtraction(process.env,{port,backend});
-const glmFrontend=process.env.QA_GLM_TEST_FRONTEND==="true";
 if(glmFrontend&&(port!==4324||backend!=="http://127.0.0.1:4323"||extraction.glmTest))throw new QaExtractionConfigurationError();
+// The later GO supplies a clean, owned cache root. No inherited/default vendor cache.
+const requestedCache=process.env.XDG_CACHE_HOME;
+const cacheRoot=runtimeMode&&requestedCache?path.resolve(requestedCache):undefined;
+const within=(parent:string,candidate:string)=>{const relative=path.relative(parent,candidate);return relative===""||(!path.isAbsolute(relative)&&relative!==".."&&!relative.startsWith(".."+path.sep));};
+if(runtimeMode&&(!requestedCache||!path.isAbsolute(requestedCache)||!cacheRoot||path.parse(cacheRoot).root===cacheRoot
+  ||[root,closedRuntimeRoot,"C:/Users/AKX generator/.config/dtdcargo"].some(reserved=>within(reserved,cacheRoot)||within(cacheRoot,reserved)))){
+  throw new QaExtractionConfigurationError();
+}
+const runtimeEntries={
+  "vite": "node_modules/.pnpm/vite@8.0.16_@types+node@20._db1984a4be61a31045a112f464fedc2c/node_modules/vite/dist/node/index.js",
+  "@vitejs/plugin-react": "node_modules/.pnpm/@vitejs+plugin-react@6.0.2__e3f9902fed70d8be789b84b255b6443a/node_modules/@vitejs/plugin-react/dist/index.js",
+  "@tailwindcss/postcss": "node_modules/.pnpm/@tailwindcss+postcss@4.3.0/node_modules/@tailwindcss/postcss/dist/index.mjs"
+};
+const runtimeAliases:ReadonlyArray<readonly [string,string]>=[
+  [
+    "react",
+    "node_modules/.pnpm/react@19.2.4/node_modules/react"
+  ],
+  [
+    "react-dom",
+    "node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom"
+  ],
+  [
+    "next",
+    "node_modules/.pnpm/next@16.2.11_@babel+core@7._d08a723af2f56ed11bad03bde5cbd597/node_modules/next"
+  ],
+  [
+    "exceljs",
+    "node_modules/.pnpm/exceljs@4.4.0/node_modules/exceljs"
+  ],
+  [
+    "fflate",
+    "node_modules/.pnpm/fflate@0.8.3/node_modules/fflate"
+  ],
+  [
+    "@supabase/supabase-js",
+    "node_modules/.pnpm/@supabase+supabase-js@2.106.1/node_modules/@supabase/supabase-js"
+  ],
+  [
+    "@supabase/ssr",
+    "node_modules/.pnpm/@supabase+ssr@0.5.2_@supabase+supabase-js@2.106.1/node_modules/@supabase/ssr"
+  ],
+  [
+    "@anthropic-ai/sdk",
+    "node_modules/.pnpm/@anthropic-ai+sdk@0.98.0_zod@4.4.3/node_modules/@anthropic-ai/sdk"
+  ],
+  [
+    "clsx",
+    "node_modules/.pnpm/clsx@2.1.1/node_modules/clsx"
+  ],
+  [
+    "tailwind-merge",
+    "node_modules/.pnpm/tailwind-merge@3.6.0/node_modules/tailwind-merge"
+  ],
+  [
+    "qrcode",
+    "node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode"
+  ],
+  [
+    "qrcode.react",
+    "node_modules/.pnpm/qrcode.react@4.2.0_react@19.2.4/node_modules/qrcode.react"
+  ],
+  [
+    "@react-pdf/renderer",
+    "node_modules/.pnpm/@react-pdf+renderer@4.5.1_react@19.2.4/node_modules/@react-pdf/renderer"
+  ],
+  [
+    "sharp",
+    "node_modules/.pnpm/sharp@0.35.3_@types+node@20.19.41/node_modules/sharp"
+  ],
+  [
+    "@electric-sql/pglite",
+    "node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite"
+  ]
+];
+const require=createRequire(path.join(runtimeMode?closedRuntimeRoot:root,"package.json"));
+const vitePath=runtimeMode?path.join(closedRuntimeRoot,runtimeEntries.vite)
+  :require.resolve("vite",{paths:[path.dirname(require.resolve("vitest/package.json"))]});
+// No third-party import occurs until the closed runtime/context/cache checks pass.
+const {createServer}=await import(pathToFileURL(vitePath).href);
+const react=(runtimeMode?await import(pathToFileURL(path.join(closedRuntimeRoot,runtimeEntries["@vitejs/plugin-react"])).href)
+  :await import("@vitejs/plugin-react")).default;
+const tailwind=(runtimeMode?await import(pathToFileURL(path.join(closedRuntimeRoot,runtimeEntries["@tailwindcss/postcss"])).href)
+  :await import("@tailwindcss/postcss")).default;
+const fixture="docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/fixture.tsx";
+const ownedGlobals=path.join(root,"app/globals.css").replaceAll("\\","/");
+const tailwindRelative=runtimeMode?path.relative(path.join(root,"app"),path.join(closedRuntimeRoot,"node_modules/.pnpm/tailwindcss@4.3.0/node_modules/tailwindcss/index.css")).replaceAll("\\","/"):null;
+if(runtimeMode&&tailwindRelative!=="../../packing-list-portal-confirmacion-20261021/node_modules/.pnpm/tailwindcss@4.3.0/node_modules/tailwindcss/index.css")throw new QaExtractionConfigurationError();
 process.env.DOCUMENT_IMPORT_ENABLED="true";process.env.DOCUMENT_IMPORT_PORTAL_ENABLED="true";
 let handler:((req:IncomingMessage,res:ServerResponse,next:()=>void)=>Promise<void>)|null=null;
 let pdfHandler:((req:IncomingMessage,res:ServerResponse)=>Promise<boolean>)|null=null;
 const server=await createServer({
   configFile:false,envFile:false,root,publicDir:path.join(root,"public"),
+  ...(runtimeMode?{cacheDir:path.join(cacheRoot!,"sdd0473-glm-vite",String(port))}:{}),
   optimizeDeps:{entries:[fixture],noDiscovery:true,include:["react","react-dom/client","react/jsx-runtime","qrcode.react"]},
   define:{"process.env.NEXT_PUBLIC_SITE_URL":JSON.stringify(`http://127.0.0.1:${port}`),"process.env.NEXT_PUBLIC_QA_GLM_TEST":JSON.stringify(glmFrontend||!!extraction.glmTest?"true":"false")},
-  resolve:{alias:{"@":root,"server-only":path.join(root,"vitest/server-only.stub.ts")}},
+  resolve:{alias:runtimeMode?[
+    {find:"@",replacement:root},
+    {find:"server-only",replacement:path.join(root,"vitest/server-only.stub.ts")},
+    ...runtimeAliases.map(([name,relative])=>({
+      // The exact Next adapters below must reach resolveId without prefix rewriting.
+      find:name==="next"?/^next(?!\/(?:navigation|link|image)$)(?=\/|$)/:new RegExp("^"+name.replaceAll(".","\\.")+"(?=/|$)"),
+      replacement:path.join(closedRuntimeRoot,relative).replaceAll("\\","/"),
+    })),
+  ]:{"@":root,"server-only":path.join(root,"vitest/server-only.stub.ts")}},
   css:{postcss:{plugins:[tailwind()]}},
-  server:{host:"127.0.0.1",port,strictPort:true,watch:null,...(backend?{proxy:{"/api":{target:backend,changeOrigin:true},"/qa":{target:backend,changeOrigin:true}}}:{})},
+  server:{host:"127.0.0.1",port,strictPort:true,watch:null,...(runtimeMode?{fs:{strict:true,allow:[root,path.join(closedRuntimeRoot,"node_modules"),cacheRoot!]}}:{}),...(backend?{proxy:{"/api":{target:backend,changeOrigin:true},"/qa":{target:backend,changeOrigin:true}}}:{})},
   plugins:[{
     name:"synthetic-shared-document-local",
     enforce:"pre",
     configureServer(vite:{middlewares:{use:(callback:(req:IncomingMessage,res:ServerResponse,next:()=>void)=>void)=>void}}){vite.middlewares.use((req,res,next)=>{void(async()=>{if(pdfHandler&&await pdfHandler(req,res))return;const pathname=new URL(req.url??"/","http://127.0.0.1").pathname;const canonical=(glmFrontend||extraction.glmTest)?qaCaseRoute(pathname):null;if(canonical){res.statusCode=302;res.setHeader("Location","/"+fixture.replace("fixture.tsx","index.html")+`?page=${canonical.page}&case=${canonical.kind}`);res.end();return;}const supplier=pathname==="/p/55555555-5555-4555-8555-555555555555";const portal=pathname.startsWith("/portal/compras");if(!(glmFrontend||extraction.glmTest)&&(supplier||portal)){res.statusCode=302;res.setHeader("Location","/"+fixture.replace("fixture.tsx","index.html")+"?page="+(supplier?"supplier":pathname.endsWith("/etiquetas")?"labels":"client"));res.end();return;}if(handler)await handler(req,res,next);else next();})().catch(()=>{res.statusCode=503;res.end("Demo unavailable");});});},
-    transform(code:string,id:string){if(id.replaceAll("\\","/").endsWith("/app/globals.css"))return code.replace('@import "tailwindcss";','@import "tailwindcss" source(none);\n@source "../components/document-import";\n@source "../app/p/[token]";\n@source "../app/portal";\n@source "../docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion";');},
+    transform(code:string,id:string){
+      const normalizedId=id.replaceAll("\\","/");
+      const ownedStyle=runtimeMode?normalizedId.split("?")[0]===ownedGlobals:normalizedId.endsWith("/app/globals.css");
+      if(ownedStyle){
+        const bare='@import "tailwindcss";';
+        if(runtimeMode&&code.split(bare).length!==2)throw new QaExtractionConfigurationError();
+        const selectedImport=runtimeMode?'@import "'+tailwindRelative+'" source(none);':'@import "tailwindcss" source(none);';
+        return code.replace(bare,selectedImport+'\n@source "../components/document-import";\n@source "../app/p/[token]";\n@source "../app/portal";\n@source "../docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion";');
+      }
+    },
     resolveId(id:string){if(["next/navigation","next/link","next/image"].includes(id))return "\0local-demo:"+id;},
     load(id:string){if(id==="\0local-demo:next/navigation")return "export const useRouter=()=>({refresh(){},push(url){location.href=url}});";if(id==="\0local-demo:next/link")return "import React from 'react';export default function Link({children,...props}){return React.createElement('a',props,children)}";if(id==="\0local-demo:next/image")return "import React from 'react';export default function Image({fill,priority,unoptimized,...props}){return React.createElement('img',props)}";},
   },react()],

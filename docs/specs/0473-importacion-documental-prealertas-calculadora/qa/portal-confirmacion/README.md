@@ -323,3 +323,47 @@ No merge ni producción. Este cierre no consume otra ventana ni ejecuta pruebas/
 ### Corrección de la revisión CEF
 
 La hija correctiva conserva case en enlaces/open/etiquetas y no ofrece CSV/reset en GLM. Snapshot local usa guardia SQL atómica por identidad y revisión al insertar. Recuperación completada usa SHA/perfil/contexto: archivo+fence+journal terminal válidos; no desbloquea guardias inciertas ni concede nuevos HTTP. Se devuelve job conocido sólo en contexto válido y nunca se aplica solo. Native XLSX/caché conocida no leen la credencial. Se añadieron pruebas adversariales y render de etiquetas por grupo/neto; ahora seis instancias CJK requieren Deng.ttf explícita en la futura reserva, sin SKIPs ocultos. Todo sigue NO EJECUTADO hasta GO concreto sobre nuevo SHA.
+
+
+## Arranque GLM con dependencias existentes — fuente nueva desde 06e
+
+GO04 cerró las 23 suites sobre `06e236583db0be74f67d36026a8e287ca2e951b6`: **521/521 PASÓ**, cero fallos/pending/todo/SKIP, seis casos CJK y doce artefactos requeridos. Ese resultado y su custodia aceptada no validan automáticamente esta nueva configuración. Los apartados históricos fechados que indican S3 sin ejecutar conservan su valor histórico; la **conexión real GLM y la demo completa siguen NO EJECUTADAS**. No se reinstalan paquetes ni se usan los comandos históricos de instalación para esta fase.
+
+Esta hija modifica sólo el harness Vite y cuatro documentos, por asignación General `b28a4f/native0`. El diseño íntegro v2 y su suplemento CSS están fijados en `C:/tmp/sdd0473-real-runtime-fuente-01a1639b-01/authorities/`. No cambia el extractor, el proveedor, los tests, la base, la calculadora, el PDF/CJK ni la UI de negocio. Seleccionar varias compras es otra fase explícita pendiente.
+
+El parámetro de arranque **del proceso, nunca del navegador** es `QA_GLM_TEST_RUNTIME_ROOT`. Sólo admite el literal:
+
+```text
+C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-list-portal-confirmacion-20261021
+```
+
+Se rechaza antes de imports externos si root, worktree propio o contexto difieren: backend GLM4323 sin proxy, o frontend GLM4324 con backend exacto `http://127.0.0.1:4323`. Sin ese parámetro se conserva la ruta legacy. No hay búsqueda de dependencias, NODE_PATH, hook global, copia de paquetes ni junction nuevo.
+
+El caller propuesto queda como **datos para una futura READY/GO**, no una orden de ejecución de este README. Ejecutable existente: `C:/Users/AKX generator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe`; Node24.19 directo, sin CLI TSX hija. Los cuatro argv literales son:
+
+```json
+[
+  "--max-old-space-size=3072",
+  "--import",
+  "file:///C:/Users/AKX%20generator/Desktop/Developer/DTD-worktrees/packing-list-portal-confirmacion-20261021/node_modules/.pnpm/tsx%404.22.3/node_modules/tsx/dist/loader.mjs",
+  "C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/vite.config.ts"
+]
+```
+
+El loader TSX4.22.3 y los entry ESM físicos Vite8.0.16, plugin React6.0.2 y PostCSS4.3.0 proceden del mismo runtime fijado. Quince alias físicos cerrados resuelven SSR/browser; se mantienen `@ -> WT propio`, server-only stub y los adaptadores exactos next/navigation, next/link y next/image. La regla de prefijo next los excluye antes de cualquier rewrite; no se habilita Testing Library en la aplicación.
+
+La futura GO debe proporcionar entorno limpio explícito, perfil/cache propios y fuente CJK admitida. `XDG_CACHE_HOME` debe ser absoluto, no raíz de unidad, y no solaparse con el producto, runtime prestado o configuración privada. Vite escribe exclusivamente en `<XDG_CACHE_HOME>/sdd0473-glm-vite/<puerto>`. El perfil concreto, ruta, cierres transitivos y compatibilidad siguen UNBOUND/NO EJECUTADOS. El allow de archivos en GLM sólo contiene WT propio, node_modules prestado y esa cache propia; conserva deny predeterminado, strictPort, watch:null, loopback y envFile:false.
+
+Para el CSS, el transform de **OWN** app/globals.css mantiene su ID/from y sustituye sólo el import bare por:
+
+```css
+@import "../../packing-list-portal-confirmacion-20261021/node_modules/.pnpm/tailwindcss@4.3.0/node_modules/tailwindcss/index.css" source(none);
+@source "../components/document-import";
+@source "../app/p/[token]";
+@source "../app/portal";
+@source "../docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion";
+```
+
+El índice físico4.3.0 fijado no tiene imports anidados. Este mecanismo usa resolución CSS relativa de PostCSS; no presupone que un alias JS o el parámetro base resuelvan el import bare. El archivo globals.css y el vendor permanecen intactos.
+
+Validación propuesta, **sin ejecución ni reserva activadas**: revisar diff/allowlist y conservación de todos los blobs ajenos; después, bajo orden concreta, comprobar rechazo previo a imports para root/contexto/cache inválidos y preservar modo legacy. Una futura ventana de arranque verificará ambos procesos propios, aislamiento de puertos/cache/fs, middleware/UI/carga nativa XLSX y ausencia de API previa al clic. El alcance multicompra y el dataset completo deben quedar listos antes de la primera API real. No repetir521 automáticamente por cambiar este harness. pnpm verify/build, servicios, browser, configuración privada/ledger y GLM real permanecen pendientes de sus fases asignadas; no push, merge ni producción.
