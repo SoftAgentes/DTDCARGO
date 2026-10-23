@@ -25,6 +25,12 @@ Historial y estado del SEO del **sitio público `dtdcargo.com`**. Parte del tree
 
 ## Cronología
 
+### 2026-10-23 · Promesas de seguimiento coherentes (SDD-0579, local)
+
+Cinco FAQ del sitio dejan de prometer eventos en vivo o etapas visibles en el Portal mientras `TRACKING_EN_CONSTRUCCION` siga encendido. `/faq` y `/shipping-mark` reutilizan las mismas respuestas en UI y FAQPage JSON-LD; `/puerta-a-puerta` conserva su selección. La fuente markdown de Kommo, el beneficio fuente de la infografía de pre-alerta y una referencia factual de privacidad se alinean sin alterar otras condiciones.
+
+La frase «Te avisaremos apenas esté activo» ya estaba aprobada en SDD-0521: no agrega fecha, canal ni automatización. Es una corrección de expectativas, sin garantía de ranking o conversión. [Spec y matriz](../specs/0579-promesas-seguimiento-web-kommo/spec.md) · [QA](../specs/0579-promesas-seguimiento-web-kommo/qa.md). Preparación e implementación locales; integración, publicación y subida a Kommo **NO EJECUTADAS**. La KB es estática y requerirá revisión separada al activar seguimiento.
+
 ### 2026-10-08 · Acarigua con tarifa de entrega (SDD-0504)
 
 Por decisión de Sam, Acarigua deja de tener entrega nacional incluida. Se conserva la tarifa vigente/respaldo existente por metro cúbico, y las otras siete ciudades con inclusión no cambian. `lib/geo-zonas.ts` alinea el mensaje de la landing de Acarigua; la calculadora principal y el embed respetan la bandera persistida y combinan el mismo tarifario. La guía del equipo y el prompt de infografías actualizan su lista a siete ciudades. [PR #193](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/193) conserva la evidencia de integración y publicación comprobadas por Director; esta nota describe el cambio autorizado.

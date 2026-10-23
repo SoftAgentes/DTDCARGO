@@ -57,7 +57,7 @@ const CAPTURA: [string, string][] = [
   ],
   [
     "Seguimiento de envío",
-    "El código de rastreo que introduces para consultar el estado de tu carga.",
+    "El Shipping Mark o el número de envío que nos indicas al consultar con nuestro equipo el estado de tu carga.",
   ],
   [
     "Navegación",
