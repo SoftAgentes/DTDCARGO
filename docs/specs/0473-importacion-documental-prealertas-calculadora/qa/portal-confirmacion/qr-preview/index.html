@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; connect-src http://127.0.0.1:4324; img-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <title>Comprobar caja · QA local DTD Cargo</title>
+  <style>
+    /* QA experimental acotada: tokens canónicos de app/studio/tokens.css;
+       fuentes físicas existentes, sin importar Studio ni cargar un CDN. */
+    @font-face { font-family: 'Nunito Sans'; src: url('/lib/font-files/nunito-sans-latin-wght.woff2') format('woff2'); font-weight: 200 1000; font-display: swap; }
+    @font-face { font-family: 'Sora'; src: url('/lib/font-files/sora-latin-wght.woff2') format('woff2'); font-weight: 100 800; font-display: swap; }
+    @font-face { font-family: 'JetBrains Mono'; src: url('/lib/font-files/jetbrains-mono-latin-wght.woff2') format('woff2'); font-weight: 100 800; font-display: swap; }
+    :root {
+      --wine: #7F0F1A; --wine-deep: #5E0A12; --wine-text: #7F0F1A;
+      --bg-base: #FBFAF7; --bg-surface: #FFFFFF; --bg-elevated: #F2F0EC;
+      --ink: #0F1E3D; --ink-soft: #6B6B6B; --ink-side-strong: #FFFFFF;
+      --success: #1F8A5B; --danger: #A8323E;
+      --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px;
+      --s-6: 24px; --s-8: 32px; --s-12: 48px; --r-sm: 5px; --r-lg: 10px;
+      --f-sans: 'Nunito Sans', sans-serif; --f-display: 'Sora', sans-serif;
+      --f-mono: 'JetBrains Mono', monospace;
+      color-scheme: light;
+    }
+    [data-theme="dark"] {
+      --wine: #A8323E; --wine-text: #D89AA4;
+      --bg-base: #0B1428; --bg-surface: #16264A; --bg-elevated: #1F3055;
+      --ink: #F2F0EC; --ink-soft: #A8B0C4; --success: #5BCFA0;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg-base); color: var(--ink); font: 1rem/1.6 var(--f-sans); }
+    main { max-width: 65ch; margin: auto; padding: var(--s-6) var(--s-4) var(--s-12); }
+    h1, h2 { font-family: var(--f-display); line-height: 1.25; overflow-wrap: anywhere; }
+    h1 { font-size: 1.75rem; }
+    h2 { font-size: 1.25rem; }
+    p { margin-block: var(--s-3); }
+    .muted { color: var(--ink-soft); }
+    .panel { padding: var(--s-6); margin-block: var(--s-6); background: var(--bg-surface); border-radius: var(--r-lg); }
+    label { display: block; font-weight: 800; margin-top: var(--s-4); }
+    input, select, textarea, button { font: inherit; }
+    input, select, textarea { display: block; width: 100%; max-width: 100%; background: var(--bg-base); color: var(--ink); border: 1px solid var(--ink-soft); border-radius: var(--r-sm); padding: var(--s-3); }
+    textarea, code, dd { overflow-wrap: anywhere; }
+    textarea { resize: vertical; min-height: calc(var(--s-12) * 2); }
+    input, select, button { min-height: calc(var(--s-8) + var(--s-3)); }
+    :focus-visible { outline: 2px solid var(--wine-text); outline-offset: var(--s-1); }
+    [aria-invalid="true"] { border-color: var(--danger); border-width: 2px; }
+    .hint, .field-error { margin-block: var(--s-1) var(--s-2); }
+    .field-error { font-weight: 800; }
+    button { cursor: pointer; padding: var(--s-2) var(--s-4); border: 1px solid var(--ink-soft); border-radius: var(--r-sm); background: var(--bg-surface); color: var(--ink); }
+    button:hover { background: var(--bg-elevated); }
+    button:active { outline: 2px solid var(--wine-text); }
+    .primary { background: var(--wine); color: var(--ink-side-strong); border-color: var(--wine); font-weight: 800; }
+    .primary:hover { background: var(--wine-deep); }
+    button:disabled { cursor: default; background: var(--bg-elevated); color: var(--ink-soft); border-color: var(--ink-soft); }
+    .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s-3); margin-top: var(--s-6); }
+    #status { padding: var(--s-4); background: var(--bg-elevated); }
+    #status[data-state="success"]::before { content: '✓ '; color: var(--success); font-weight: 800; }
+    #status[data-state="error"]::before { content: '! '; color: var(--danger); font-weight: 800; }
+    dl { margin: 0; }
+    dt { font-weight: 800; margin-top: var(--s-3); }
+    dd { margin: 0; font-family: var(--f-mono); }
+    code { font-family: var(--f-mono); white-space: pre-wrap; }
+    a { color: var(--wine-text); text-decoration: underline; text-underline-offset: var(--s-1); }
+    [hidden] { display: none !important; }
+    @media (max-width: 30rem) { .panel { padding: var(--s-4); } .actions button { flex: 1 1 100%; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto; animation: none; transition: none; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="muted">DTD Cargo · comprobación local con datos ficticios</p>
+  <h1>Comprobar una caja del documento confirmado</h1>
+  <p>Pega el contenido original del QR y los datos impresos del documento. La consulta comprueba la caja dentro de la revisión indicada, con los servicios locales de esta prueba.</p>
+  <button id="theme" type="button" aria-pressed="false">Usar tema oscuro</button>
+  <form id="lookup" class="panel" novalidate aria-describedby="scope">
+    <h2>Etiqueta y contexto de la compra</h2>
+    <p id="scope">Todos los campos son obligatorios. No se guardan cambios en la compra. Conservamos tus entradas en pantalla si la consulta falla.</p>
+    <label for="case">Compra de prueba</label>
+    <select id="case" name="case" aria-describedby="case-hint case-error">
+      <option value="xlsx">Excel · DTD-DEMO-1-2</option>
+      <option value="pdf">PDF · DTD-DEMO-1-1</option>
+    </select>
+    <p id="case-hint" class="hint muted">Cada caso tiene su documento local independiente. El caso PDF aún no tiene propuesta: falló la lectura OCR.</p>
+    <p id="case-error" class="field-error" hidden></p>
+    <label for="qr">Contenido original del QR</label>
+    <textarea id="qr" name="qr" maxlength="2048" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="qr-hint qr-error"></textarea>
+    <p id="qr-hint" class="hint muted">Se lee como texto. Esta página nunca abre la dirección del QR. Debe incluir la identidad física b de la caja.</p>
+    <p id="qr-error" class="field-error" hidden></p>
+    <label for="revision">Revisión impresa (Rev.)</label>
+    <input id="revision" name="revision" inputmode="numeric" autocomplete="off" aria-describedby="revision-error">
+    <p id="revision-error" class="field-error" hidden></p>
+    <label for="folio">Folio impreso</label>
+    <input id="folio" name="folio" maxlength="200" autocomplete="off" spellcheck="false" aria-describedby="folio-error">
+    <p id="folio-error" class="field-error" hidden></p>
+    <label for="version">Versión impresa (V)</label>
+    <input id="version" name="version" inputmode="numeric" autocomplete="off" aria-describedby="version-error">
+    <p id="version-error" class="field-error" hidden></p>
+    <div class="actions">
+      <button id="cancel" type="button" disabled>Cancelar consulta</button>
+      <button id="submit" class="primary" type="submit">Comprobar caja</button>
+    </div>
+  </form>
+  <section id="observation" aria-busy="false" aria-label="Resultado de la consulta">
+    <p id="status" role="status" aria-live="polite" aria-atomic="true" tabindex="-1">Pendiente: completa la etiqueta y su contexto.</p>
+    <div id="result" class="panel" hidden>
+      <h2>Caja válida en la revisión consultada</h2>
+      <dl id="details"></dl>
+      <p>El QR contiene Shipping Mark, número/total e identidad física. No codifica folio ni revisión: un papel antiguo con el mismo QR no se distingue automáticamente. Compara también Rev., folio y V impresos.</p>
+      <p>Este resultado corresponde al momento de las lecturas locales; vuelve a comprobarlo si cambia el documento. No acredita una consulta en producción.</p>
+      <p><a id="document-link" target="_blank" rel="noopener noreferrer">Consultar documento local (abre en una pestaña nueva)</a></p>
+    </div>
+  </section>
+  <noscript><p>Activa JavaScript para comprobar la caja. No se ha realizado ninguna consulta.</p></noscript>
+</main>
+<script type="module" src="./qr-preview.js"></script>
+</body>
+</html>
