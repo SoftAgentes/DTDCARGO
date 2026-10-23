@@ -1,5 +1,19 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## CORE Q05: recepción de evidencia R2 parcial; una recepción íntegra con presupuesto explícito — 2026-10-23 21:51 UTC / 17:51 Caracas
+
+Parent recibió FINAL/quietud del Owner: sólo leyórecordsauténticos existentes pg17-Q05-guard-native ypg17-Q05-r2-guard-proposal, emitióUNobjeto, sin derivación/Native/FS/Git/guard/archivos/SQL. functions.exec mostró «298 tokens truncated» enauthority.literalRaw. La recepción primera es PARCIAL/noWHOLE: Root no leyó ni mide7913/8638 directamente, no reconstruye autoridad conocida ni298omitidos. Originales íntegros segúnOwner, guardR2NUNCAinvocado; se conservaSTOP previo.
+
+General admite UNArecepciónreadonly nueva DELMISMOobjeto auténtico intacto ymisma carga/formato, sóloelevandopresupuestoexterior functions.exec30000 explícito; no_native/FS/invocaciónGuard/fragmentación/compresión/helper/encoding/alternativa/reconstrucción. No exportpolicybloqueado. Si fuenteintactafalta/novolumencabe/truncado/unknown/error, STOP/controlformal sinotra vía. Esta decisión permite revisar evidencia, NOcap9000 niEJE/SQL/renew05. DespuésRootcompararáold/new/spanse inversas antesdecidir. Origen/auth/reservasiguenNULL. La entrega parcialnuncapasa aWHOLEretroactivamente.
+
+CI319cierreseis yaACTIVOMISMOGLM snapshot:7/turn01a16abc...; no reenviar. ParentPacking revisa db0contratos/entregafija. Sinheavy.
+
+ROOT-CORE-Q05-EVIDENCE-RECEIVE-R1-BEGIN
+```json
+{"id":"DIRECTOR-CORE-Q05-GUARD-EVIDENCE-RECEIVE-R1-20261023","scope":"UNA_RECEPCION_READONLY_DEL_MISMO_OBJETO_AUTHENTICO_INTACTO","sourceThread":"01a1601e-d9fd-7280-8977-6b5d4719a99b","viaParent":"01a15a4e-ddf0-7d82-8656-d9dc56b58468","evidence":["pg17-Q05-guard-native","pg17-Q05-r2-guard-proposal"],"previousReception":"PARCIAL_298_TOKENS_OMITIDOS_EN_AUTHORITY_LITERALRAW_NO_WHOLE","reason":"La primera emisión no tenía un presupuesto exterior suficiente acreditado. Se cambia sólo el límite de recepción para revisar el mismo objeto conservado íntegro; no se reejecuta la acción guard, no se recupera un export bloqueado por policy.","transport":{"tool":"functions.exec","max_output_tokens":30000,"source":"MISMA carga/objeto auténticos que se emitieron, sin derivar ni mutar registros, textos o formato","calls":1,"immediateWaitSameCellUntilFin":true},"prohibited":["Native/FS/Git/guard/SQL/Generic/candidato","reconstrucción de298tokens o autoridaddesdeotrafuente","mutación/compresión/fragmentación/archivo/helper/encoding/toolalternativo","lecturas de códigoSTORE bloqueado previamente o de privado/ledger","renovar05/aumentarcapguard9000/emitirEJE"],"delivery":"Remitir un solo objeto completo por canal formal con inputs old/new auténticos, dos spans e inversa ya fijados; mantener explícitamente parcial la primera recepción. Root revisará strings y límites actuales antes de decidir la única llamada guard futura.","onFailure":"Si no existe el mismo objeto auténtico intacto, no cabe o hay nueva truncación/unknown/error, STOP y controlformal; no otra recepción o vía por inferencia.","originalGo05DatesUnchanged":{"latest":"2026-10-23T23:15:48Z","absExec":"2026-10-23T23:20:48Z","close":"2026-10-23T23:21:48Z"},"runtime":{"origin":null,"heavyReserved":false,"executa":false}}
+```
+ROOT-CORE-Q05-EVIDENCE-RECEIVE-R1-END
+
 ## CI319: unitarios FALLÓ; cierre acotado de seis casos al MISMO Worker — 2026-10-23 21:46 UTC / 17:46 Caracas
 
 General b12aa6→a9c7d5/0 consultó run40025670469/job120661111175 del headREMOTO db0: COMPLETED/FAILURE. ESLint/RSC/TypeScript/Edge PASÓ; Unitarios FALLÓ; pasos11–20 incluido build quedaron SKIPPED. Logs remotos 5995líneas/813762chars fueron filtrados por diagnóstico (NO lectura humana WHOLE813k): d11d15 y ff7de7 nativos0 acreditan 4 archivosFALLÓ/871PASÓ/1SKIP;6casosFALLÓ/12583PASÓ/7SKIP. Los18TS históricos yTS2322b1ef se preservan; nuevoTS PASÓ no es CIverde.
