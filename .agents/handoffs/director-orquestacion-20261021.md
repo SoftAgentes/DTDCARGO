@@ -1,5 +1,15 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Aclaración nominal ROI06-ADMISSION-DATA-01 — antes de cualquier EJECUTA
+
+Parent detectó antes de runtime que la autoridad original decía decoder.execute=true, pero los helpers PY257/CJS144 exigen EXACTSTRING LOAD_EXISTING_JSQR_1_4_0. General corrige EXCLUSIVAMENTE ese DATO por addendum siguiente; originalGo/4fijos intactos, mismasfechas/caps/keys/outputs. General/RootAccepted=true en renderer/decoder y inputAuthorizationexecute INSPECT_CURRENT_EXPORTS. Parent adoptó semánticaresto condicionada aexactaaclaración, condiciónsatisfecha. BINDING debe conservar original+addendum y usarstring, no booleano. No nuevaSamgate/GOruntime/nohelperedit. Si COLD2yaexisten,nooverwriteporiniciativa.
+
+ROOT-GLM-QR-ROI06-ADDENDUM-BEGIN
+```json
+{"schema":"DTD_GENERAL_QR_ROI06_AUTHORITY_ADDENDUM_v1","goId":"DIRECTOR-GLM-QR-ROI06-20261023-01","correctionId":"ROI06-ADMISSION-DATA-01","precedence":"This exact clarification overrides only mechanism.bindingRule decoder.execute true in original authority; preserve original authority verbatim and record both in BINDING. No helper/source/four fixed files change.","decoderAdmission":{"GeneralAccepted":true,"RootAccepted":true,"execute":"LOAD_EXISTING_JSQR_1_4_0"},"rendererAdmission":{"GeneralAccepted":true,"RootAccepted":true},"inputAuthorization":{"GeneralAccepted":true,"RootAccepted":true,"execute":"INSPECT_CURRENT_EXPORTS","goId":"DIRECTOR-GLM-QR-ROI06-20261023-01"},"RootAcceptance":"Parent explicitly adopted remaining authority and RootAccepted=true conditional on this exact clarification; condition now satisfied. No runtime EJECUTA yet.","limits":"Dates/keys/caps/selection/outputs/frozenrefs unchanged. No new GO clock and no runtime/reservation. Original incorrect true preserved as historical data erratum. New dynamic binding must use exact string."}
+```
+ROOT-GLM-QR-ROI06-ADDENDUM-END
+
 ## PRIORIDAD 2026-10-23 17:48UTC — CORE03 cerrado PREORIGIN/reserva liberada; QR ROI06 siguiente
 
 - General recibió y verificó FINADMIN c9980b/native0 17:34:39.7398016Z/retorno17:34:40.254Z y CORE48 COMPLETED/IDLE/errorNULL. Cierre único225075/cc01a7f5e2fe8e244b29baaedb61e706c219e1b82aeec74f895ec062f90de6f8 y dictamenParent5753/8055cfa2d89a96612a3306a2cbbbb3038da7fde7564fe6d6208a5ac928db1f30 leídos bajoPIN (dictamen FULL d29ef4/0). Propio f1ce6e/native0 REAL17:46:04.835844Z:43predicados0diff, OBSúnico==Nativeinput/return==terminalb4242e/1,7argumentosorden/valores enteros/cmdPSbytesWHOLE/payloadrawWHOLE/32pinsactuales+claim212B4/outputEXACTO C:/tmp/director-traspaso-20261020/0573-pg17-Q-ejecucion-f60-03 AUSENTE, budget/sesiónNULL/0polls. Source14/55 antes103/110/118 leída. Propio70d52f4GitINDIV0F60tree054/rama-clean17:45:41ADMIN. General ADOPTA NOEJ_PREORIGIN SQL y LIBERA recurso operativamente a17:46:38UTC; no FINPG17 ni POST/runtime budget/cutoff fabricados. GenericINCERTIDUMBREoriginal preservado separado del settlement. Go03/keysconsumidos, no replay/Source04. A_Q04 NOEMITIDA; sólo DATAfechas7fracciones futuras validadas, mismaSource03.
