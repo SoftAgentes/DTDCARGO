@@ -377,6 +377,7 @@ $supp$;
 create function pg_temp.m2_void_case(p_case text) returns jsonb language plpgsql as $supp$
 declare v_invoice uuid:=pg_temp.fixture_id('m2-'||p_case); before_state jsonb; after_state jsonb; result jsonb;
   context_before jsonb; context_after jsonb; expected_headers integer;
+  audit_before text; audit_after text; closing_before text; closing_after text;
 begin
   perform pg_temp.assert_true(p_case in('draft-only','posted-and-draft'),'M2 sujeto nominal independiente');
   expected_headers:=case when p_case='draft-only' then 1 else 2 end;
@@ -398,13 +399,19 @@ begin
        from public.journal_lines l join public.accounts a on a.id=l.account_id where l.entry_id=e.id)),
     'M2 líneas100 propias y auditoría positiva por cabecera: '||p_case);
   before_state:=pg_temp.m2b1_snapshot();context_before:=pg_temp.m2b1_context();
+  audit_before:=current_setting('dtd.audit_reason',true);closing_before:=current_setting('dtd.excepcion_cierre',true);
   result:=pg_temp.m2b1_attempt('accounting-A',pg_temp.void_sql('m2-'||p_case,'M2 motivo sintético válido'));
   after_state:=pg_temp.m2b1_snapshot();context_after:=pg_temp.m2b1_context();
+  audit_after:=current_setting('dtd.audit_reason',true);closing_after:=current_setting('dtd.excepcion_cierre',true);
   raise notice '0573_M2_RAW %',jsonb_build_object('case',p_case,'before',pg_temp.m2b1_redact(before_state),
     'after',pg_temp.m2b1_redact(after_state),'result',result,'contextBefore',context_before,'contextAfter',context_after);
   perform pg_temp.assert_true(result->>'ok'='false' and result->>'state'='55000'
     and result->>'message'='Los antecedentes de venta requieren revisión.' and result->>'hint'='dtd-anular',
     'M2 void55000 por borrador: '||p_case);
+  perform pg_temp.assert_true(nullif(audit_before,'') is not distinct from nullif(audit_after,''),
+    'M2 rechazo conserva audit_reason semántico: '||p_case);
+  perform pg_temp.assert_true(nullif(closing_before,'') is not distinct from nullif(closing_after,''),
+    'M2 rechazo conserva GUC cierre opaco semántico: '||p_case);
   perform pg_temp.assert_true(after_state=before_state and pg_temp.m2b1_graph(v_invoice)->'orphanLines'='[]'::jsonb
     and pg_temp.m2b1_graph(v_invoice)->'orphanHeaders'='[]'::jsonb,'M2 rechazo conserva grafo entero: '||p_case);
   return result;
@@ -556,14 +563,17 @@ $supp$;
 create function pg_temp.m2b1_case(p_case text) returns jsonb language plpgsql as $supp$
 declare target record; before_state jsonb; after_state jsonb; before_context jsonb; after_context jsonb;
   before_count bigint; after_count bigint; before_called boolean; after_called boolean; result jsonb;
+  audit_before text; audit_after text; closing_before text; closing_after text;
 begin
   select * into strict target from pg_temp.m2b1_targets where label=p_case;
   execute format('select last_value,is_called from pg_temp.%I','m2b1_seen_'||p_case) into before_count,before_called;
   before_state:=pg_temp.m2b1_snapshot();before_context:=pg_temp.m2b1_context();
+  audit_before:=current_setting('dtd.audit_reason',true);closing_before:=current_setting('dtd.excepcion_cierre',true);
   result:=pg_temp.m2b1_attempt('accounting-A',format(
     'select public.anular_asiento_en_cierre(%L::uuid,pg_temp.m2b1_test_key(),%L)',target.id,target.reason));
   execute format('select last_value,is_called from pg_temp.%I','m2b1_seen_'||p_case) into after_count,after_called;
   after_state:=pg_temp.m2b1_snapshot();after_context:=pg_temp.m2b1_context();
+  audit_after:=current_setting('dtd.audit_reason',true);closing_after:=current_setting('dtd.excepcion_cierre',true);
   raise notice '0573_B1_ATTEMPT_RAW %',jsonb_build_object('case',p_case,'target',target.id,'result',result,
     'before',pg_temp.m2b1_redact(before_state),'after',pg_temp.m2b1_redact(after_state),
     'sequenceBefore',before_count,'sequenceAfter',after_count,'isCalledBefore',before_called,'isCalledAfter',after_called,
@@ -581,6 +591,10 @@ begin
     perform pg_temp.assert_true(result->>'ok'='false' and result->>'state'='23514'
       and result->>'message'='El asiento automático es inmutable; revisa su factura y reverso.',
       'B1 excepción auténtica no autoriza extremo: '||p_case);
+    perform pg_temp.assert_true(nullif(audit_before,'') is not distinct from nullif(audit_after,''),
+      'B1 rechazo conserva audit_reason semántico: '||p_case);
+    perform pg_temp.assert_true(nullif(closing_before,'') is not distinct from nullif(closing_after,''),
+      'B1 rechazo conserva GUC cierre opaco semántico: '||p_case);
     perform pg_temp.assert_true(after_state=before_state,'B1 rechazo conserva grafo/excepciones/auditoría ENTEROS: '||p_case);
   end if;
   return result;
