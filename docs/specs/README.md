@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 556 specs)
+### Índice de specs (generado · 557 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -594,6 +594,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0567 | El crédito de referido no nace sin venta ni se aplica dos veces | in-progress | interno |
 | 0568 | La ficha de un cliente eliminado dice que está eliminado y no… | in-progress | interno |
 | 0569 | Un solo conversor a USD, que falla cerrado, y una tabla de ta… | in-progress | interno |
+| 0580 | Shipping Mark CTA: altura intrínseca y recorrido móvil | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0570, 0571, 0572, 0573, 0574, 0575, 0576, 0577, 0578, 0579 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
