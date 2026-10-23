@@ -9,13 +9,19 @@ const root=process.cwd();
 const port=Number(process.env.QA_PORT??4320);
 const backend=process.env.QA_BACKEND_ORIGIN;
 const glmFrontend=process.env.QA_GLM_TEST_FRONTEND==="true";
+const nativeOnly=process.env.QA_NATIVE_TEST_ENABLED==="true";
 const runtimeRoot=process.env.QA_GLM_TEST_RUNTIME_ROOT;
 const runtimeMode=runtimeRoot!==undefined;
 const closedRuntimeRoot="C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-list-portal-confirmacion-20261021";
 const closedSourceRoot="C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/packing-glm-encargo-20261022";
+const nativeContext=nativeOnly&&runtimeMode&&process.env.QA_GLM_TEST_ENABLED==="false"
+  &&process.env.QA_GLM_TEST_FRONTEND==="false"&&process.env.QA_PDF_EXTRACTION_ENABLED==="false"
+  &&((port===4325&&backend===undefined)||(port===4326&&backend==="http://127.0.0.1:4325"));
+const glmContext=!nativeOnly&&((process.env.QA_GLM_TEST_ENABLED==="true"&&!glmFrontend&&port===4323&&backend===undefined)
+  ||(glmFrontend&&process.env.QA_GLM_TEST_ENABLED!=="true"&&port===4324&&backend==="http://127.0.0.1:4323"));
+if(nativeOnly&&!nativeContext)throw new QaExtractionConfigurationError();
 if(runtimeMode&&(runtimeRoot!==closedRuntimeRoot||path.resolve(root)!==path.resolve(closedSourceRoot)
-  ||!((process.env.QA_GLM_TEST_ENABLED==="true"&&!glmFrontend&&port===4323&&backend===undefined)
-    ||(glmFrontend&&process.env.QA_GLM_TEST_ENABLED!=="true"&&port===4324&&backend==="http://127.0.0.1:4323")))){
+  ||(!nativeContext&&!glmContext))){
   throw new QaExtractionConfigurationError();
 }
 if(backend){const url=new URL(backend);if(url.protocol!=="http:"||!["127.0.0.1","localhost"].includes(url.hostname)||url.username||url.password||url.pathname!=="/"||url.search)throw new Error("QA backend must be a loopback origin");}
@@ -416,9 +422,9 @@ let handler:((req:IncomingMessage,res:ServerResponse,next:()=>void)=>Promise<voi
 let pdfHandler:((req:IncomingMessage,res:ServerResponse)=>Promise<boolean>)|null=null;
 const server=await createServer({
   configFile:false,envFile:false,root,publicDir:path.join(root,"public"),
-  ...(runtimeMode?{cacheDir:path.join(cacheRoot!,"sdd0473-glm-vite",String(port))}:{}),
+  ...(runtimeMode?{cacheDir:path.join(cacheRoot!,nativeOnly?"sdd0473-native-vite":"sdd0473-glm-vite",String(port))}:{}),
   optimizeDeps:{entries:[fixture],noDiscovery:true,include:["react","react-dom/client","react/jsx-runtime","qrcode.react"]},
-  define:{"process.env.NEXT_PUBLIC_SITE_URL":JSON.stringify(`http://127.0.0.1:${port}`),"process.env.NEXT_PUBLIC_QA_GLM_TEST":JSON.stringify(glmFrontend||!!extraction.glmTest?"true":"false")},
+  define:{"process.env.NEXT_PUBLIC_SITE_URL":JSON.stringify(`http://127.0.0.1:${port}`),"process.env.NEXT_PUBLIC_QA_GLM_TEST":JSON.stringify(glmFrontend||!!extraction.glmTest?"true":"false"),"process.env.NEXT_PUBLIC_QA_NATIVE_TEST":JSON.stringify(nativeOnly?"true":"false")},
   resolve:{alias:runtimeMode?[
     {find:"@",replacement:root},
     {find:"server-only",replacement:path.join(root,"vitest/server-only.stub.ts")},
@@ -448,10 +454,12 @@ const server=await createServer({
     load(id:string,options?:{ssr?:boolean}){const native=loadSsrNode(id,options);if(native!==undefined)return native;if(id==="\0local-demo:next/navigation")return "export const useRouter=()=>({refresh(){},push(url){location.href=url}});";if(id==="\0local-demo:next/link")return "import React from 'react';export default function Link({children,...props}){return React.createElement('a',props,children)}";if(id==="\0local-demo:next/image")return "import React from 'react';export default function Image({fill,priority,unoptimized,...props}){return React.createElement('img',props)}";},
   },react()],
 });
-if(!backend){const {demoMiddleware}=await server.ssrLoadModule("/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/server.ts");handler=await demoMiddleware(server,root,extraction);}
+if(!backend){const {demoMiddleware}=await server.ssrLoadModule("/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/server.ts");handler=await demoMiddleware(server,root,extraction,{nativeOnly});}
+if(!nativeOnly){
 const {createPdfProxy}=await server.ssrLoadModule("/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/pdf-proxy.ts");
 const {renderConfirmedDocumentPdf}=await server.ssrLoadModule("/lib/studio/document-import/pdf.tsx");
 if(!glmFrontend&&!extraction.glmTest)pdfHandler=createPdfProxy({backend:backend??`http://127.0.0.1:${port}`,markbox:"DTD-DEMO",render:renderConfirmedDocumentPdf});
+}
 await server.listen();
 console.log(`Demo sintética con PostgreSQL local: http://127.0.0.1:${port}/${fixture.replace("fixture.tsx","index.html")}`);
 if(backend)console.log(`Frontend actualizado; conserva el PostgreSQL del proceso ${backend}. No hay conexión a producción.`);

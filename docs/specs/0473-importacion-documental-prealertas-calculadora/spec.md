@@ -4,7 +4,7 @@ title: "Importación documental, borrador compartido y calculadora puerta a puer
 status: in-progress
 author: "Codex"
 created: 2026-09-16
-updated: 2026-10-22
+updated: 2026-10-23
 supersedes: null
 superseded_by: null
 related: ["0468"]
@@ -1257,3 +1257,87 @@ La propuesta de paquete de inspección es PyMuPDF/Pillow y cv2.QRCodeDetector o 
 No se cierra aceptación total con Excel: PDF real sigue FALLÓ OCR sin propuesta/receipt y sin nuevo envío. Tarifa es ficticia, mercancíaUSD340 separada del flete; multicompra/WeChat real/revisión humana china/producción NO EJECUTADOS. pnpm verify/build, governance/components/docs scripts y automatizaciones de conocimiento NO EJECUTADOS durante esta autoría por la orden concreta de fuente sola.
 
 UI-CHECK estático /ui-check: sin hallazgo duro de marca en revisión de fuente; campos/acciones semánticos, copy, fuentes locales y tokens, foco/hover/active/disabled/empty/loading/error/success previstos, layout fluido sin columnas de datos de ancho fijo. Prioridad alta pendiente: contraste real, teclado/lector, reflow200% y viewport375/390, cancelación/carrera y recuperación. Veredicto: fuente revisable, aprobación de consumidor y evidencia visual PENDIENTES; sin capturas ni ejecución de prueba.
+
+
+## Demo nativa de Excel propio — adopción 2026-10-23
+
+General cerró ROI06-02 y asignó este slice al mismo Worker GLM/owner A29, rama
+codex/packing-glm-encargo-20261022, como hija directa de
+c1682cc529754c35d001c964b31cdcd59e2bebd0 (árbol
+66abc9e787c2f0a284ec1d1ef3e2932fe4996fa0). Guard y cuatro Git individuales
+pasaron; las seis preimágenes físicas coinciden byte por byte con raw Git.
+La adopción se registra antes de modificar comportamiento. PR319 sigue DRAFT,
+sin push en esta fase, merge ni producción.
+
+Allowlist exacta: vite.config.ts, server.ts, fixture.tsx y README.md de esta
+carpeta QA; spec.md de SDD0473; .agents/handoffs/0473-glm-encargo-20261022.md.
+Ningún componente ni librería de producto cambia.
+
+### Contrato y alcance R2 de esta hija
+
+Superficie: harness QA local del portal; selección/importación revisable y
+estimado ficticio. Los esquemas, servicios, extractor, exportador, componentes
+de producto y tarifas online permanecen fuera de la allowlist.
+
+- Admisión nativa cerrada: root y runtime existentes, 4325 backend sin proxy /
+  4326 frontend con origen exacto 127.0.0.1:4325; GLM/PDF desactivados,
+  entorno limpio posterior y cache propia. Se conservan las veinte entradas SSR
+  y cuarenta anchors; no nuevos hooks, dependencias o ampliación de fs.allow.
+- Middleware con cuarta opción nativeOnly=false por defecto. En modo nativo
+  valida metadatos/tamaño/tipo, conserva bytes sólo en RAM, invoca el lector
+  existente con {nativeOnly:true} y usa los recibos reales de apply/save.
+  Lecturas ambiguas no invocan IA; el error permite revisión manual.
+- PDF rechazado antes de cualquier ssrLoadModule PDF. No constructor GLM,
+  lectura de configuración/ledger, HTTP externo ni fallback asistido.
+- Caso PGlite nuevo; UUID real no conocido hasta startup. No clonación R4,
+  reset, restauración o reconfirmación del banco GLM previo.
+- Revisiones/confirmación/segundo guardado de declaraciones conservados.
+  Peso/CBM/batería/carga especial desconocidos siguen pendientes.
+- Estimación mediante motor existente con QA_RATE_SNAPSHOT ficticio y revisión
+  ligada al resultado; no precio firme ni paridad comercial online.
+- UI reutilizada: aviso XLSX/CSV local sin IA/PDF; reset oculto y bloqueado.
+  Sin nueva primitiva, colores, tipografías, jerarquía o flujo de producto.
+
+### Evidencia y aceptación proporcional
+
+ROI06-02 PASÓ: 10 QR originales y 10 de reimpresión distintos/ordinales1..10,
+misma URI/código por caja, texto vigente completo, tres etapas nativas0 con EOF.
+PDF/DTO/R4 y las fuentes C168 se preservaron. Original8/10 y ReferenceError de
+ROI06-01 siguen históricos, sin corregir sus resultados retrospectivamente.
+Índice17referencias, 8318/SHA256
+59df6a57676a7cb850950150a725e5dc4e284a9caeb1352a3f0a73efef605a79.
+
+Gobernanza: SGE-00/UPL-01/ERR-01 aplican a selección, error y conservación.
+CUMPLIMIENTO de fuente: guardas de contexto, carga declarada/validada,
+propuesta humana y bloqueo de reset. IA-01: NO APLICA ejecución de IA en
+este modo, con obligación de aviso veraz y salida manual conservada.
+R3/producción/cuentas/transferencia externa: NO APLICA a esta hija.
+Accesibilidad y comportamiento: NO CONFORMIDAD de aceptación pendiente,
+sin excepción; conservar roles, controles/labels/foco/carga existentes y
+verificar en navegador con archivo ficticio bajo GO. Sin promoción CMP.
+BRAND/Norte y AGENT-BRIEF consultados; sin cambio de diseño ni biblioteca.
+
+Comprobaciones de esta fase: revisión textual/Git/preimágenes/allowlist y
+preservación de todos los mode/type/blob ajenos. Tests/parser/import/build,
+governance/components/docs check y pnpm verify NO EJECUTADOS por la orden
+de autoría estática. Para el harness se propone GO específico de startup y
+recorrido conductual; el cierre canónico de producto es una fase distinta.
+No atribuir los 23 suites/521 previos a esta hija.
+
+Aceptación futura: procesos propios/entorno limpio/listeners4325-26; UUID/R0
+nuevo; carga real XLSX/CSV → propuesta/apply/recibo/reload → save/stale409;
+PDF/formato/tamaño/CSV inválidos y ambigüedad sin IA; export XLSX; estimado
+ficticio y revisión; UI/teclado; ausencia de intervención en 4320/21/23/24.
+Código hijo revisado y GO concreto antes de startup. OCR PDF GLM sigue
+FALLÓ histórico/causeND, sin reenvío por inferencia.
+
+
+### Checkpoint nativo de fuente — 2026-10-23
+
+Tres QA implementados; revisión textual del diff y metadata43pines sin diferencias.
+Se conserva el modo previo con nativeOnly=false. En nativo se usa storeJob propio
+con contexto SHA256 local y applyImport real; metadata/bytes PUT y revisión se
+revalidan. No se cambian los servicios ni el extractor de producto. El plan de
+arranque900+120s es PROPUESTA en el handoff, no autoridad ni observación runtime.
+Incluye validación ficticia y pareja humana fresca, ambas a admitir expresamente.
+Parser/tests/compilación/startup/UI y enlace usable siguen NO EJECUTADOS.

@@ -381,3 +381,64 @@ Antes de esta adopción se preservaron cinco preimágenes físicas y cinco raw G
 Evidencia vigente: las 23 suites de 06e pasaron 521/521 sin SKIP; no son una ejecución de este nuevo slice. START01 falló antes de API. DIAG02 terminó con actor/child 0 y capturó ESM limpio de 10705 bytes; no evaluó el módulo ni extrajo el PDF. Sus originales y la NC de input (2985 = prefijo BOUND de 2984 + LF final) permanecen en custodia aceptada con NC. La propuesta SSR_GRAPH_EVALUATION y sus ventanas fueron retiradas sin activarse.
 
 Estado de este slice al adoptar: EN AUTORÍA. Las comprobaciones de cierre serán diff/inversas completas, prefijos documentales enteros, conteo real de todos los modos/blobs fuera de las cinco rutas y commit selectivo hijo directo de ff74. No se ejecuta Node de producto, parser, import, check, suite, START, SEND, API, instalación, push, merge o producción por esta autoría. El próximo START requiere checkpoint fijo revisado y una orden nominal nueva; su supervisor nuevo tendrá exactamente una LF final, sin normalizar los intentos anteriores.
+
+
+## Demo nativa de Excel propio — adopción 2026-10-23
+
+General cerró ROI06-02 y asignó este slice al mismo Worker GLM/owner A29, rama
+codex/packing-glm-encargo-20261022, como hija directa de
+c1682cc529754c35d001c964b31cdcd59e2bebd0 (árbol
+66abc9e787c2f0a284ec1d1ef3e2932fe4996fa0). Guard y cuatro Git individuales
+pasaron; las seis preimágenes físicas coinciden byte por byte con raw Git.
+La adopción se registra antes de modificar comportamiento. PR319 sigue DRAFT,
+sin push en esta fase, merge ni producción.
+
+Allowlist exacta: vite.config.ts, server.ts, fixture.tsx y README.md de esta
+carpeta QA; spec.md de SDD0473; .agents/handoffs/0473-glm-encargo-20261022.md.
+Ningún componente ni librería de producto cambia.
+
+El contexto nuevo admite exclusivamente XLSX/CSV por lectura nativa y revisión
+humana. PDF queda deshabilitado antes de cargar su proxy o renderer; no hay
+fallback a Anthropic ni constructor GLM, credencial o ledger en este recorrido.
+La instancia PGlite será nueva, local y en memoria, con UUID real al arrancar.
+No restaura ni reinicia el documento R4 confirmado de la pareja GLM retenida.
+
+Entrada **candidata, NO LIVE** hasta el siguiente GO y arranque verificado:
+http://127.0.0.1:4326/docs/specs/0473-importacion-documental-prealertas-calculadora/qa/portal-confirmacion/index.html
+Proveedor candidato: la misma entrada con ?page=supplier. Backend candidato
+127.0.0.1:4325; 4320/4321/4323/4324 se conservan. El nuevo modo requiere
+QA_NATIVE_TEST_ENABLED=true, flags GLM/frontend/PDF exactamente false, runtime
+prestado cerrado, root propio y cache propia; envFile:false y watch:null.
+La cache nativa usa sdd0473-native-vite, sin escribir vendor ni instalar paquetes.
+
+Límites heredados: 15 MiB por archivo, XLSX/CSV UTF-8, veinte hojas, 2000 filas,
+100 columnas y 30000 celdas; ZIP máximo 3000 entradas, 20 MiB por miembro y
+40 MiB expandidos. XLS antiguo, macros/enlaces externos/ZIP cifrado se rechazan
+según el lector existente. Cabeceras ambiguas o varias hojas útiles requieren
+revisión manual; no se promete comprender cualquier Excel. Peso/CBM ausentes
+siguen pendientes. El cálculo usa el motor real y el snapshot ficticio de QA,
+sin certificar tarifas comerciales online.
+
+Recorrido previsto: seleccionar archivo → propuesta nativa → revisar/aplicar
+con recibo del servidor → proveedor completa y guarda → revisión y declaración
+explícita → confirmación → Excel. Reset queda bloqueado para conservar la carga.
+El archivo permanece en memoria de esta prueba; no se copia a Git ni a logs.
+Conservar el original y el Excel descargado antes de cerrar el entorno local.
+
+Evidencia separada: los PDF R4 existentes pasaron 20 QR reales (10+10) y texto,
+finalize nativo 0 a 18:01:35.1548824 UTC. Índice externo ROI06-02-HANDOFF.json,
+8318 bytes/SHA256 59df6a57676a7cb850950150a725e5dc4e284a9caeb1352a3f0a73efef605a79.
+Ese resultado no acredita UI, papel/cámara ni OCR GLM: el fallo OCR previo se
+preserva. Este slice está EN AUTORÍA; startup, tests, carga propia, UI y enlace
+usable están NO EJECUTADOS hasta checkpoint fijo, revisión y GO concreto.
+
+
+### Checkpoint de fuente nativa — 2026-10-23
+
+Implementación local terminada en las tres rutas QA. La revisión textual/diff y
+43 pines físicos de runtime pasaron; no se evaluó el candidato ni arrancó la demo.
+El plan de arranque y los pines completos están en el handoff de esta tarea.
+Propone validar con un CSV ficticio, cerrar sólo esa pareja propia y dejar
+una pareja humana nueva con workspace R0, sin reset ni restauración; esas dos
+instancias y la retención requieren adopción expresa del GO posterior.
+Los enlaces4325/4326 siguen candidatos NO LIVE; pruebas y carga real pendientes.
