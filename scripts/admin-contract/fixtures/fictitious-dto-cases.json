@@ -1,0 +1,2313 @@
+{
+  "schema": "FICTITIOUS_ADMIN_DTO_CASES_1",
+  "profile": "ADMIN_STATIC_DTO_PROFILE_1",
+  "baseline": {
+    "marker": "FICTITIOUS_ADMIN_DTO_FIXTURE_1",
+    "caseRole": "FICT_BASELINE",
+    "units": [
+      {
+        "id": "FICT_ID_CONTRACT",
+        "dtoType": "LOCAL_DATA",
+        "unitKind": "LOCAL_ORIGINAL",
+        "role": "FICT_ROLE_CONTRACT",
+        "versionId": "FICT_VERSION_CONTRACT",
+        "order": 0,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "fictitious": true,
+          "label": "FICT_CONTRACT_SENTINEL"
+        }
+      },
+      {
+        "id": "FICT_ID_CHANNEL",
+        "dtoType": "LOCAL_DATA",
+        "unitKind": "LOCAL_ORIGINAL",
+        "role": "FICT_ROLE_CHANNEL",
+        "versionId": "FICT_VERSION_CHANNEL",
+        "order": 10,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "fictitious": true,
+          "label": "FICT_CHANNEL_SENTINEL"
+        }
+      },
+      {
+        "id": "FICT_ID_DECLARATION",
+        "dtoType": "LOCAL_DATA",
+        "unitKind": "LOCAL_ORIGINAL",
+        "role": "FICT_ROLE_DECLARATION",
+        "versionId": "FICT_VERSION_DECLARATION",
+        "order": 20,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "fictitious": true,
+          "label": "FICT_DECLARATION_SENTINEL"
+        }
+      },
+      {
+        "id": "FICT_ID_LOCAL",
+        "dtoType": "LOCAL_DATA",
+        "unitKind": "LOCAL_ORIGINAL",
+        "role": "FICT_ROLE_LOCAL",
+        "versionId": "FICT_VERSION_LOCAL",
+        "order": 30,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "fictitious": true,
+          "label": "FICT_LOCAL_ORIGINAL"
+        }
+      },
+      {
+        "id": "FICT_ID_INITIAL_INPUT",
+        "dtoType": "INPUT_DATA",
+        "unitKind": "CALL_INPUT",
+        "role": "FICT_ROLE_INITIAL_INPUT",
+        "versionId": "FICT_VERSION_INITIAL_INPUT",
+        "order": 40,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "fictitious": true,
+          "toolRole": "FICT_INITIAL_TOOL",
+          "arguments": {
+            "fictitious": true,
+            "token": "FICT_START"
+          }
+        }
+      },
+      {
+        "id": "FICT_ID_INITIAL_RETURN",
+        "dtoType": "RETURN_DATA",
+        "unitKind": "CALL_RETURN",
+        "role": "FICT_ROLE_INITIAL_RETURN",
+        "versionId": "FICT_VERSION_INITIAL_RETURN",
+        "order": 50,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "fictitious": true,
+          "terminal": false,
+          "exitCode": null,
+          "sessionId": "FICT_SESSION_1"
+        }
+      },
+      {
+        "id": "FICT_ID_INITIAL_INPUT_CAPTURE",
+        "dtoType": "ENTRY3",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_INITIAL_INPUT_CAPTURE",
+        "versionId": "FICT_VERSION_INITIAL_INPUT_CAPTURE",
+        "order": 60,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_ENTRY_3",
+          "actionRole": "FICT_ACTION_INITIAL",
+          "actionId": "FICT_CALL_INITIAL",
+          "key": "FICT_KEY_INITIAL",
+          "inputProp": "FICT_INPUT_PROP",
+          "returnProp": "FICT_RETURN_PROP",
+          "declarationRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_DECLARATION",
+            "versionId": "FICT_VERSION_DECLARATION",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_DECLARATION",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "parentRole": null,
+          "boundary": "POST_PREFIX",
+          "ordinal": 1,
+          "actionKind": "TOOL_CALL",
+          "captureState": "INPUT_SAVED",
+          "callState": "NOT_INVOKED",
+          "input": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_INITIAL_INPUT",
+            "versionId": "FICT_VERSION_INITIAL_INPUT",
+            "kind": "TOOL_INPUT",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_INITIAL_INPUT",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "beforeUtc": "2001-01-01T00:00:00.000Z",
+          "result": null,
+          "error": null,
+          "afterUtc": null,
+          "native": {
+            "toolCallId": null,
+            "chunkId": null,
+            "sessionId": null,
+            "exitCode": null,
+            "terminal": null,
+            "source": null
+          },
+          "events": [
+            {
+              "schema": "PROP_ADMIN_EVENT_1",
+              "ordinal": 0,
+              "priorOrdinal": null,
+              "kind": "INPUT_SAVED",
+              "original": {
+                "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+                "logicalRole": "FICT_ROLE_INITIAL_INPUT",
+                "versionId": "FICT_VERSION_INITIAL_INPUT",
+                "kind": "TOOL_INPUT",
+                "storageRole": "FICT_STORAGE",
+                "custodyHandle": "FICT_HANDLE_INITIAL_INPUT",
+                "contentPin": {
+                  "bytes": 7,
+                  "utf16Units": 7,
+                  "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                },
+                "whole": "ENTERO",
+                "sourceEventRole": null
+              },
+              "observedUtc": null
+            }
+          ],
+          "stopReason": null,
+          "localObservationRef": null,
+          "containerVersionRef": null
+        }
+      },
+      {
+        "id": "FICT_ID_INITIAL_RETURN_CAPTURE",
+        "dtoType": "ENTRY3",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_INITIAL_RETURN_CAPTURE",
+        "versionId": "FICT_VERSION_INITIAL_RETURN_CAPTURE",
+        "order": 70,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_ENTRY_3",
+          "actionRole": "FICT_ACTION_INITIAL",
+          "actionId": "FICT_CALL_INITIAL",
+          "key": "FICT_KEY_INITIAL",
+          "inputProp": "FICT_INPUT_PROP",
+          "returnProp": "FICT_RETURN_PROP",
+          "declarationRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_DECLARATION",
+            "versionId": "FICT_VERSION_DECLARATION",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_DECLARATION",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "parentRole": null,
+          "boundary": "POST_PREFIX",
+          "ordinal": 2,
+          "actionKind": "TOOL_CALL",
+          "captureState": "RETURN_SAVED",
+          "callState": "RETURNED",
+          "input": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_INITIAL_INPUT",
+            "versionId": "FICT_VERSION_INITIAL_INPUT",
+            "kind": "TOOL_INPUT",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_INITIAL_INPUT",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "beforeUtc": "2001-01-01T00:00:00.000Z",
+          "result": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_INITIAL_RETURN",
+            "versionId": "FICT_VERSION_INITIAL_RETURN",
+            "kind": "TOOL_RETURN",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_INITIAL_RETURN",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "error": null,
+          "afterUtc": "2001-01-01T00:00:01.000Z",
+          "native": {
+            "toolCallId": "FICT_TOOLCALL_INITIAL",
+            "chunkId": "FICT_CHUNK_INITIAL",
+            "terminal": false,
+            "exitCode": null,
+            "sessionId": "FICT_SESSION_1",
+            "source": {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_INITIAL_RETURN",
+              "versionId": "FICT_VERSION_INITIAL_RETURN",
+              "kind": "TOOL_RETURN",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_INITIAL_RETURN",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            }
+          },
+          "events": [
+            {
+              "schema": "PROP_ADMIN_EVENT_1",
+              "ordinal": 0,
+              "priorOrdinal": null,
+              "kind": "INPUT_SAVED",
+              "original": {
+                "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+                "logicalRole": "FICT_ROLE_INITIAL_INPUT",
+                "versionId": "FICT_VERSION_INITIAL_INPUT",
+                "kind": "TOOL_INPUT",
+                "storageRole": "FICT_STORAGE",
+                "custodyHandle": "FICT_HANDLE_INITIAL_INPUT",
+                "contentPin": {
+                  "bytes": 7,
+                  "utf16Units": 7,
+                  "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                },
+                "whole": "ENTERO",
+                "sourceEventRole": null
+              },
+              "observedUtc": null
+            },
+            {
+              "schema": "PROP_ADMIN_EVENT_1",
+              "ordinal": 1,
+              "priorOrdinal": 0,
+              "kind": "RETURN_SAVED",
+              "original": {
+                "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+                "logicalRole": "FICT_ROLE_INITIAL_RETURN",
+                "versionId": "FICT_VERSION_INITIAL_RETURN",
+                "kind": "TOOL_RETURN",
+                "storageRole": "FICT_STORAGE",
+                "custodyHandle": "FICT_HANDLE_INITIAL_RETURN",
+                "contentPin": {
+                  "bytes": 7,
+                  "utf16Units": 7,
+                  "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                },
+                "whole": "ENTERO",
+                "sourceEventRole": null
+              },
+              "observedUtc": null
+            }
+          ],
+          "stopReason": null,
+          "localObservationRef": null,
+          "containerVersionRef": null
+        }
+      },
+      {
+        "id": "FICT_ID_POLL_INPUT",
+        "dtoType": "INPUT_DATA",
+        "unitKind": "CALL_INPUT",
+        "role": "FICT_ROLE_POLL_INPUT",
+        "versionId": "FICT_VERSION_POLL_INPUT",
+        "order": 80,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "fictitious": true,
+          "toolRole": "FICT_POLL_TOOL",
+          "arguments": {
+            "fictitious": true,
+            "token": "FICT_SESSION_1"
+          }
+        }
+      },
+      {
+        "id": "FICT_ID_POLL_RETURN",
+        "dtoType": "RETURN_DATA",
+        "unitKind": "CALL_RETURN",
+        "role": "FICT_ROLE_POLL_RETURN",
+        "versionId": "FICT_VERSION_POLL_RETURN",
+        "order": 90,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "fictitious": true,
+          "terminal": true,
+          "exitCode": 0,
+          "sessionId": "FICT_SESSION_1"
+        }
+      },
+      {
+        "id": "FICT_ID_POLL_INPUT_CAPTURE",
+        "dtoType": "ENTRY3",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_POLL_INPUT_CAPTURE",
+        "versionId": "FICT_VERSION_POLL_INPUT_CAPTURE",
+        "order": 100,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_ENTRY_3",
+          "actionRole": "FICT_ACTION_POLL",
+          "actionId": "FICT_CALL_POLL",
+          "key": "FICT_KEY_POLL",
+          "inputProp": "FICT_INPUT_PROP",
+          "returnProp": "FICT_RETURN_PROP",
+          "declarationRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_DECLARATION",
+            "versionId": "FICT_VERSION_DECLARATION",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_DECLARATION",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "parentRole": null,
+          "boundary": "POST_PREFIX",
+          "ordinal": 1,
+          "actionKind": "TOOL_CALL",
+          "captureState": "INPUT_SAVED",
+          "callState": "NOT_INVOKED",
+          "input": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_POLL_INPUT",
+            "versionId": "FICT_VERSION_POLL_INPUT",
+            "kind": "TOOL_INPUT",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_POLL_INPUT",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "beforeUtc": "2001-01-01T00:00:00.000Z",
+          "result": null,
+          "error": null,
+          "afterUtc": null,
+          "native": {
+            "toolCallId": null,
+            "chunkId": null,
+            "sessionId": null,
+            "exitCode": null,
+            "terminal": null,
+            "source": null
+          },
+          "events": [
+            {
+              "schema": "PROP_ADMIN_EVENT_1",
+              "ordinal": 0,
+              "priorOrdinal": null,
+              "kind": "INPUT_SAVED",
+              "original": {
+                "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+                "logicalRole": "FICT_ROLE_POLL_INPUT",
+                "versionId": "FICT_VERSION_POLL_INPUT",
+                "kind": "TOOL_INPUT",
+                "storageRole": "FICT_STORAGE",
+                "custodyHandle": "FICT_HANDLE_POLL_INPUT",
+                "contentPin": {
+                  "bytes": 7,
+                  "utf16Units": 7,
+                  "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                },
+                "whole": "ENTERO",
+                "sourceEventRole": null
+              },
+              "observedUtc": null
+            }
+          ],
+          "stopReason": null,
+          "localObservationRef": null,
+          "containerVersionRef": null
+        }
+      },
+      {
+        "id": "FICT_ID_POLL_RETURN_CAPTURE",
+        "dtoType": "ENTRY3",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_POLL_RETURN_CAPTURE",
+        "versionId": "FICT_VERSION_POLL_RETURN_CAPTURE",
+        "order": 110,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_ENTRY_3",
+          "actionRole": "FICT_ACTION_POLL",
+          "actionId": "FICT_CALL_POLL",
+          "key": "FICT_KEY_POLL",
+          "inputProp": "FICT_INPUT_PROP",
+          "returnProp": "FICT_RETURN_PROP",
+          "declarationRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_DECLARATION",
+            "versionId": "FICT_VERSION_DECLARATION",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_DECLARATION",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "parentRole": null,
+          "boundary": "POST_PREFIX",
+          "ordinal": 2,
+          "actionKind": "TOOL_CALL",
+          "captureState": "RETURN_SAVED",
+          "callState": "RETURNED",
+          "input": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_POLL_INPUT",
+            "versionId": "FICT_VERSION_POLL_INPUT",
+            "kind": "TOOL_INPUT",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_POLL_INPUT",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "beforeUtc": "2001-01-01T00:00:00.000Z",
+          "result": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_POLL_RETURN",
+            "versionId": "FICT_VERSION_POLL_RETURN",
+            "kind": "TOOL_RETURN",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_POLL_RETURN",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "error": null,
+          "afterUtc": "2001-01-01T00:00:01.000Z",
+          "native": {
+            "toolCallId": "FICT_TOOLCALL_POLL",
+            "chunkId": "FICT_CHUNK_POLL",
+            "terminal": true,
+            "exitCode": 0,
+            "sessionId": "FICT_SESSION_1",
+            "source": {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_POLL_RETURN",
+              "versionId": "FICT_VERSION_POLL_RETURN",
+              "kind": "TOOL_RETURN",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_POLL_RETURN",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            }
+          },
+          "events": [
+            {
+              "schema": "PROP_ADMIN_EVENT_1",
+              "ordinal": 0,
+              "priorOrdinal": null,
+              "kind": "INPUT_SAVED",
+              "original": {
+                "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+                "logicalRole": "FICT_ROLE_POLL_INPUT",
+                "versionId": "FICT_VERSION_POLL_INPUT",
+                "kind": "TOOL_INPUT",
+                "storageRole": "FICT_STORAGE",
+                "custodyHandle": "FICT_HANDLE_POLL_INPUT",
+                "contentPin": {
+                  "bytes": 7,
+                  "utf16Units": 7,
+                  "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                },
+                "whole": "ENTERO",
+                "sourceEventRole": null
+              },
+              "observedUtc": null
+            },
+            {
+              "schema": "PROP_ADMIN_EVENT_1",
+              "ordinal": 1,
+              "priorOrdinal": 0,
+              "kind": "RETURN_SAVED",
+              "original": {
+                "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+                "logicalRole": "FICT_ROLE_POLL_RETURN",
+                "versionId": "FICT_VERSION_POLL_RETURN",
+                "kind": "TOOL_RETURN",
+                "storageRole": "FICT_STORAGE",
+                "custodyHandle": "FICT_HANDLE_POLL_RETURN",
+                "contentPin": {
+                  "bytes": 7,
+                  "utf16Units": 7,
+                  "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                },
+                "whole": "ENTERO",
+                "sourceEventRole": null
+              },
+              "observedUtc": null
+            }
+          ],
+          "stopReason": null,
+          "localObservationRef": null,
+          "containerVersionRef": null
+        }
+      },
+      {
+        "id": "FICT_ID_NATIVE",
+        "dtoType": "NATIVE_OBSERVATION",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_NATIVE",
+        "versionId": "FICT_VERSION_NATIVE",
+        "order": 120,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "toolCallId": "FICT_NATIVE_CALL",
+          "chunkId": "FICT_NATIVE_CHUNK",
+          "sessionId": "FICT_SESSION_1",
+          "exitCode": 0,
+          "terminal": true,
+          "source": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_POLL_RETURN",
+            "versionId": "FICT_VERSION_POLL_RETURN",
+            "kind": "TOOL_RETURN",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_POLL_RETURN",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          }
+        }
+      },
+      {
+        "id": "FICT_ID_OPERATION",
+        "dtoType": "OPERATION_CLOSURE",
+        "unitKind": "OPERATION_CLOSURE",
+        "role": "FICT_ROLE_OPERATION",
+        "versionId": "FICT_VERSION_OPERATION",
+        "order": 130,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_OPERATION_CLOSURE_1",
+          "operationRole": "FICT_OPERATION",
+          "initialCallRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_INITIAL_RETURN_CAPTURE",
+            "versionId": "FICT_VERSION_INITIAL_RETURN_CAPTURE",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_INITIAL_RETURN_CAPTURE",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "pollCallRefs": [
+            {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_POLL_RETURN_CAPTURE",
+              "versionId": "FICT_VERSION_POLL_RETURN_CAPTURE",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_POLL_RETURN_CAPTURE",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            }
+          ],
+          "terminalCallRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_POLL_RETURN_CAPTURE",
+            "versionId": "FICT_VERSION_POLL_RETURN_CAPTURE",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_POLL_RETURN_CAPTURE",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "state": "TERMINAL",
+          "terminalObservationRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_POLL_RETURN",
+            "versionId": "FICT_VERSION_POLL_RETURN",
+            "kind": "TOOL_RETURN",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_POLL_RETURN",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "decisionRef": null
+        }
+      },
+      {
+        "id": "FICT_ID_ACTION",
+        "dtoType": "ACTION_CLOSURE",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_ACTION",
+        "versionId": "FICT_VERSION_ACTION",
+        "order": 140,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_ACTION_CLOSURE_1",
+          "actionRole": "FICT_CLOSED_ACTION",
+          "declarationRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_DECLARATION",
+            "versionId": "FICT_VERSION_DECLARATION",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_DECLARATION",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "inputRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_INITIAL_INPUT",
+            "versionId": "FICT_VERSION_INITIAL_INPUT",
+            "kind": "TOOL_INPUT",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_INITIAL_INPUT",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "returnRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_POLL_RETURN",
+            "versionId": "FICT_VERSION_POLL_RETURN",
+            "kind": "TOOL_RETURN",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_POLL_RETURN",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "errorRef": null,
+          "localObservationRef": null,
+          "containerRef": null,
+          "captureEntryVersionRefs": [
+            {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_INITIAL_INPUT_CAPTURE",
+              "versionId": "FICT_VERSION_INITIAL_INPUT_CAPTURE",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_INITIAL_INPUT_CAPTURE",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            },
+            {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_INITIAL_RETURN_CAPTURE",
+              "versionId": "FICT_VERSION_INITIAL_RETURN_CAPTURE",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_INITIAL_RETURN_CAPTURE",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            },
+            {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_POLL_INPUT_CAPTURE",
+              "versionId": "FICT_VERSION_POLL_INPUT_CAPTURE",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_POLL_INPUT_CAPTURE",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            },
+            {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_POLL_RETURN_CAPTURE",
+              "versionId": "FICT_VERSION_POLL_RETURN_CAPTURE",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_POLL_RETURN_CAPTURE",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            }
+          ],
+          "operationClosureRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_OPERATION",
+            "versionId": "FICT_VERSION_OPERATION",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_OPERATION",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "result": "PASO",
+          "limits": []
+        }
+      },
+      {
+        "id": "FICT_ID_VERSION",
+        "dtoType": "VERSION_REF",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_VERSION",
+        "versionId": "FICT_VERSION_VERSION",
+        "order": 150,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+          "logicalRole": "FICT_ROLE_LOCAL",
+          "versionId": "FICT_VERSION_LOCAL",
+          "kind": "JSON_ORIGINAL",
+          "storageRole": "FICT_STORAGE",
+          "custodyHandle": "FICT_HANDLE_LOCAL",
+          "contentPin": {
+            "bytes": 7,
+            "utf16Units": 7,
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "whole": "ENTERO",
+          "sourceEventRole": null
+        }
+      },
+      {
+        "id": "FICT_ID_DESCRIPTOR",
+        "dtoType": "UNIT_DESCRIPTOR",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_DESCRIPTOR",
+        "versionId": "FICT_VERSION_DESCRIPTOR",
+        "order": 160,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_UNIT_DESCRIPTOR_1",
+          "unitRole": "FICT_ROLE_INITIAL_INPUT",
+          "kind": "CALL_INPUT",
+          "versionRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_INITIAL_INPUT",
+            "versionId": "FICT_VERSION_INITIAL_INPUT",
+            "kind": "TOOL_INPUT",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_INITIAL_INPUT",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "originRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_LOCAL",
+            "versionId": "FICT_VERSION_LOCAL",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_LOCAL",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "parentRefs": [],
+          "semanticContractRole": "FICT_PROFILE",
+          "critical": true,
+          "custodianRole": "FICT_OWNER"
+        }
+      },
+      {
+        "id": "FICT_ID_BINDING",
+        "dtoType": "PREDICATE_BINDING",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_BINDING",
+        "versionId": "FICT_VERSION_BINDING",
+        "order": 170,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "contractRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_CONTRACT",
+            "versionId": "FICT_VERSION_CONTRACT",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_CONTRACT",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "predicateRole": "FICT_RAW_PREDICATE",
+          "operandRequirements": [
+            {
+              "role": "FICT_RAW_OPERAND",
+              "unitKind": "LOCAL_ORIGINAL",
+              "min": 1,
+              "max": 1,
+              "critical": true,
+              "order": "SINGLE"
+            }
+          ]
+        }
+      },
+      {
+        "id": "FICT_ID_OPERAND",
+        "dtoType": "RELATION_OPERAND",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_OPERAND",
+        "versionId": "FICT_VERSION_OPERAND",
+        "order": 180,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "role": "FICT_RAW_OPERAND",
+          "occurrence": 0,
+          "unitRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_LOCAL",
+            "versionId": "FICT_VERSION_LOCAL",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_LOCAL",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          }
+        }
+      },
+      {
+        "id": "FICT_ID_RAW_PROOF",
+        "dtoType": "RELATION_PROOF",
+        "unitKind": "WHOLE_PROOF",
+        "role": "FICT_ROLE_RAW_PROOF",
+        "versionId": "FICT_VERSION_RAW_PROOF",
+        "order": 190,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_RELATION_PROOF_1",
+          "predicate": {
+            "contractRef": {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_CONTRACT",
+              "versionId": "FICT_VERSION_CONTRACT",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_CONTRACT",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            },
+            "predicateRole": "FICT_RAW_PREDICATE",
+            "operandRequirements": [
+              {
+                "role": "FICT_RAW_OPERAND",
+                "unitKind": "LOCAL_ORIGINAL",
+                "min": 1,
+                "max": 1,
+                "critical": true,
+                "order": "SINGLE"
+              }
+            ]
+          },
+          "operandRefs": [
+            {
+              "role": "FICT_RAW_OPERAND",
+              "occurrence": 0,
+              "unitRef": {
+                "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+                "logicalRole": "FICT_ROLE_LOCAL",
+                "versionId": "FICT_VERSION_LOCAL",
+                "kind": "JSON_ORIGINAL",
+                "storageRole": "FICT_STORAGE",
+                "custodyHandle": "FICT_HANDLE_LOCAL",
+                "contentPin": {
+                  "bytes": 7,
+                  "utf16Units": 7,
+                  "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                },
+                "whole": "ENTERO",
+                "sourceEventRole": null
+              }
+            }
+          ],
+          "claims": [
+            {
+              "claimRole": "FICT_CLAIM",
+              "operandRoles": [
+                "FICT_RAW_OPERAND"
+              ],
+              "result": "PASO",
+              "evidenceRefs": [
+                {
+                  "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+                  "logicalRole": "FICT_ROLE_LOCAL",
+                  "versionId": "FICT_VERSION_LOCAL",
+                  "kind": "JSON_ORIGINAL",
+                  "storageRole": "FICT_STORAGE",
+                  "custodyHandle": "FICT_HANDLE_LOCAL",
+                  "contentPin": {
+                    "bytes": 7,
+                    "utf16Units": 7,
+                    "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                  },
+                  "whole": "ENTERO",
+                  "sourceEventRole": null
+                }
+              ],
+              "scope": "FICT_STRUCTURE"
+            }
+          ],
+          "sourceEvidenceRefs": [
+            {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_LOCAL",
+              "versionId": "FICT_VERSION_LOCAL",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_LOCAL",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            }
+          ],
+          "result": "PASO",
+          "limits": []
+        }
+      },
+      {
+        "id": "FICT_ID_CONTAINER",
+        "dtoType": "CONTAINER_DATA",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_CONTAINER",
+        "versionId": "FICT_VERSION_CONTAINER",
+        "order": 200,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "fictitious": true,
+          "proofRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_RAW_PROOF",
+            "versionId": "FICT_VERSION_RAW_PROOF",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_RAW_PROOF",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          }
+        }
+      },
+      {
+        "id": "FICT_ID_CONTAINER_PROOF",
+        "dtoType": "RELATION_PROOF",
+        "unitKind": "WHOLE_PROOF",
+        "role": "FICT_ROLE_CONTAINER_PROOF",
+        "versionId": "FICT_VERSION_CONTAINER_PROOF",
+        "order": 210,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_RELATION_PROOF_1",
+          "predicate": {
+            "contractRef": {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_CONTRACT",
+              "versionId": "FICT_VERSION_CONTRACT",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_CONTRACT",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            },
+            "predicateRole": "FICT_CONTAINER_PREDICATE",
+            "operandRequirements": [
+              {
+                "role": "FICT_CONTAINER_OPERAND",
+                "unitKind": "SEMANTIC_DTO",
+                "min": 1,
+                "max": 1,
+                "critical": true,
+                "order": "SINGLE"
+              }
+            ]
+          },
+          "operandRefs": [
+            {
+              "role": "FICT_CONTAINER_OPERAND",
+              "occurrence": 0,
+              "unitRef": {
+                "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+                "logicalRole": "FICT_ROLE_CONTAINER",
+                "versionId": "FICT_VERSION_CONTAINER",
+                "kind": "JSON_ORIGINAL",
+                "storageRole": "FICT_STORAGE",
+                "custodyHandle": "FICT_HANDLE_CONTAINER",
+                "contentPin": {
+                  "bytes": 7,
+                  "utf16Units": 7,
+                  "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                },
+                "whole": "ENTERO",
+                "sourceEventRole": null
+              }
+            }
+          ],
+          "claims": [
+            {
+              "claimRole": "FICT_CLAIM",
+              "operandRoles": [
+                "FICT_CONTAINER_OPERAND"
+              ],
+              "result": "PASO",
+              "evidenceRefs": [
+                {
+                  "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+                  "logicalRole": "FICT_ROLE_CONTAINER",
+                  "versionId": "FICT_VERSION_CONTAINER",
+                  "kind": "JSON_ORIGINAL",
+                  "storageRole": "FICT_STORAGE",
+                  "custodyHandle": "FICT_HANDLE_CONTAINER",
+                  "contentPin": {
+                    "bytes": 7,
+                    "utf16Units": 7,
+                    "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                  },
+                  "whole": "ENTERO",
+                  "sourceEventRole": null
+                }
+              ],
+              "scope": "FICT_STRUCTURE"
+            }
+          ],
+          "sourceEvidenceRefs": [
+            {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_CONTAINER",
+              "versionId": "FICT_VERSION_CONTAINER",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_CONTAINER",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            }
+          ],
+          "result": "PASO",
+          "limits": []
+        }
+      },
+      {
+        "id": "FICT_ID_CONTAINER_REVIEW",
+        "dtoType": "UNIT_REVIEW",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_CONTAINER_REVIEW",
+        "versionId": "FICT_VERSION_CONTAINER_REVIEW",
+        "order": 220,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_UNIT_REVIEW_1",
+          "unitVersionRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_CONTAINER",
+            "versionId": "FICT_VERSION_CONTAINER",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_CONTAINER",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "channelProfileRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_CHANNEL",
+            "versionId": "FICT_VERSION_CHANNEL",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_CHANNEL",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "ownerRole": "FICT_OWNER",
+          "reviewerRole": "FICT_REVIEWER",
+          "custodyResult": "PASO",
+          "receiveResult": "PASO",
+          "humanWhole": "COMPLETA",
+          "semanticResult": "PASO",
+          "relationProofRefs": [],
+          "limits": [],
+          "decisionRef": null
+        }
+      },
+      {
+        "id": "FICT_ID_PROOF_REVIEW",
+        "dtoType": "UNIT_REVIEW",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_PROOF_REVIEW",
+        "versionId": "FICT_VERSION_PROOF_REVIEW",
+        "order": 230,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_UNIT_REVIEW_1",
+          "unitVersionRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_CONTAINER_PROOF",
+            "versionId": "FICT_VERSION_CONTAINER_PROOF",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_CONTAINER_PROOF",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "channelProfileRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_CHANNEL",
+            "versionId": "FICT_VERSION_CHANNEL",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_CHANNEL",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "ownerRole": "FICT_OWNER",
+          "reviewerRole": "FICT_REVIEWER",
+          "custodyResult": "PASO",
+          "receiveResult": "PASO",
+          "humanWhole": "COMPLETA",
+          "semanticResult": "PASO",
+          "relationProofRefs": [],
+          "limits": [],
+          "decisionRef": null
+        }
+      },
+      {
+        "id": "FICT_ID_RELATION_REVIEW",
+        "dtoType": "RELATION_REVIEW",
+        "unitKind": "SEMANTIC_DTO",
+        "role": "FICT_ROLE_RELATION_REVIEW",
+        "versionId": "FICT_VERSION_RELATION_REVIEW",
+        "order": 240,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "schema": "PROP_ADMIN_RELATION_REVIEW_1",
+          "relationRole": "FICT_EXTERNAL_REVIEW",
+          "predicate": {
+            "contractRef": {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_CONTRACT",
+              "versionId": "FICT_VERSION_CONTRACT",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_CONTRACT",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            },
+            "predicateRole": "FICT_CONTAINER_PREDICATE",
+            "operandRequirements": [
+              {
+                "role": "FICT_CONTAINER_OPERAND",
+                "unitKind": "SEMANTIC_DTO",
+                "min": 1,
+                "max": 1,
+                "critical": true,
+                "order": "SINGLE"
+              }
+            ]
+          },
+          "operands": [
+            {
+              "role": "FICT_CONTAINER_OPERAND",
+              "occurrence": 0,
+              "unitRef": {
+                "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+                "logicalRole": "FICT_ROLE_CONTAINER",
+                "versionId": "FICT_VERSION_CONTAINER",
+                "kind": "JSON_ORIGINAL",
+                "storageRole": "FICT_STORAGE",
+                "custodyHandle": "FICT_HANDLE_CONTAINER",
+                "contentPin": {
+                  "bytes": 7,
+                  "utf16Units": 7,
+                  "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+                },
+                "whole": "ENTERO",
+                "sourceEventRole": null
+              }
+            }
+          ],
+          "unitReviewRefs": [
+            {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_CONTAINER_REVIEW",
+              "versionId": "FICT_VERSION_CONTAINER_REVIEW",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_CONTAINER_REVIEW",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            },
+            {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_PROOF_REVIEW",
+              "versionId": "FICT_VERSION_PROOF_REVIEW",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_PROOF_REVIEW",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            }
+          ],
+          "proofRef": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_CONTAINER_PROOF",
+            "versionId": "FICT_VERSION_CONTAINER_PROOF",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_CONTAINER_PROOF",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          },
+          "reviewerRole": "FICT_REVIEWER",
+          "humanWhole": "COMPLETA",
+          "result": "PASO",
+          "rationale": "FICT_FINITE_ORDER_ONLY",
+          "limits": [],
+          "sourceDecisionRef": null
+        }
+      },
+      {
+        "id": "FICT_ID_ERROR",
+        "dtoType": "ERROR_DATA",
+        "unitKind": "CALL_ERROR",
+        "role": "FICT_ROLE_ERROR",
+        "versionId": "FICT_VERSION_ERROR",
+        "order": 250,
+        "pin": {
+          "bytes": 7,
+          "utf16Units": 7,
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "value": {
+          "fictitious": true,
+          "message": "FICT_ERROR_NOT_AN_EXIT"
+        }
+      }
+    ]
+  },
+  "cases": [
+    {
+      "caseRole": "FICT_VALID",
+      "changes": [],
+      "expected": {
+        "structuralStates": [
+          "VALID",
+          "VALID",
+          "VALID"
+        ],
+        "evidenceStates": [
+          "PRESENT_FICTITIOUS",
+          "PRESENT_FICTITIOUS",
+          "PRESENT_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [],
+          [],
+          []
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_WRONG_KIND_SAME_SHAPE",
+      "changes": [
+        {
+          "op": "set",
+          "path": [
+            "units",
+            16,
+            "value",
+            "kind"
+          ],
+          "value": "SEMANTIC_DTO"
+        }
+      ],
+      "expected": {
+        "structuralStates": [
+          "VALID",
+          "INVALID",
+          "INVALID"
+        ],
+        "evidenceStates": [
+          "PRESENT_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [],
+          [
+            "WRONG_KIND"
+          ],
+          [
+            "WRONG_KIND"
+          ]
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_MISSING_VERSION_ROLE",
+      "changes": [
+        {
+          "op": "set",
+          "path": [
+            "units",
+            18,
+            "value",
+            "unitRef",
+            "versionId"
+          ],
+          "value": "FICT_MISSING_VERSION"
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            18,
+            "value",
+            "unitRef",
+            "logicalRole"
+          ],
+          "value": "FICT_MISSING_ROLE"
+        }
+      ],
+      "expected": {
+        "structuralStates": [
+          "VALID",
+          "INVALID",
+          "INVALID"
+        ],
+        "evidenceStates": [
+          "PRESENT_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [],
+          [
+            "MISSING_REF"
+          ],
+          [
+            "MISSING_REF"
+          ]
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_CYCLE_SELF_REFERENCE",
+      "changes": [
+        {
+          "op": "set",
+          "path": [
+            "units",
+            16,
+            "value",
+            "parentRefs"
+          ],
+          "value": [
+            {
+              "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+              "logicalRole": "FICT_ROLE_DESCRIPTOR",
+              "versionId": "FICT_VERSION_DESCRIPTOR",
+              "kind": "JSON_ORIGINAL",
+              "storageRole": "FICT_STORAGE",
+              "custodyHandle": "FICT_HANDLE_DESCRIPTOR",
+              "contentPin": {
+                "bytes": 7,
+                "utf16Units": 7,
+                "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              },
+              "whole": "ENTERO",
+              "sourceEventRole": null
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "structuralStates": [
+          "VALID",
+          "VALID",
+          "INVALID"
+        ],
+        "evidenceStates": [
+          "PRESENT_FICTITIOUS",
+          "PRESENT_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [],
+          [],
+          [
+            "CYCLE",
+            "INVALID_ORDER"
+          ]
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_NONTERMINAL",
+      "changes": [
+        {
+          "op": "set",
+          "path": [
+            "units",
+            9,
+            "value",
+            "terminal"
+          ],
+          "value": false
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            9,
+            "value",
+            "exitCode"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            11,
+            "value",
+            "native",
+            "terminal"
+          ],
+          "value": false
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            11,
+            "value",
+            "native",
+            "exitCode"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            12,
+            "value",
+            "terminal"
+          ],
+          "value": false
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            12,
+            "value",
+            "exitCode"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            13,
+            "value",
+            "state"
+          ],
+          "value": "RUNNING"
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            13,
+            "value",
+            "terminalCallRef"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            13,
+            "value",
+            "terminalObservationRef"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            14,
+            "value",
+            "result"
+          ],
+          "value": "NO_ACREDITADO"
+        }
+      ],
+      "expected": {
+        "structuralStates": [
+          "VALID",
+          "VALID",
+          "VALID"
+        ],
+        "evidenceStates": [
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [
+            "INCOMPLETE_EVIDENCE"
+          ],
+          [
+            "INCOMPLETE_EVIDENCE"
+          ],
+          [
+            "INCOMPLETE_EVIDENCE"
+          ]
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_TERMINAL_OWN_POLL",
+      "changes": [],
+      "expected": {
+        "structuralStates": [
+          "VALID",
+          "VALID",
+          "VALID"
+        ],
+        "evidenceStates": [
+          "PRESENT_FICTITIOUS",
+          "PRESENT_FICTITIOUS",
+          "PRESENT_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [],
+          [],
+          []
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_TERMINAL_TRANSFERRED_TO_INITIAL",
+      "changes": [
+        {
+          "op": "set",
+          "path": [
+            "units",
+            5,
+            "value",
+            "terminal"
+          ],
+          "value": true
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            5,
+            "value",
+            "exitCode"
+          ],
+          "value": 0
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            7,
+            "value",
+            "native",
+            "terminal"
+          ],
+          "value": true
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            7,
+            "value",
+            "native",
+            "exitCode"
+          ],
+          "value": 0
+        }
+      ],
+      "expected": {
+        "structuralStates": [
+          "VALID",
+          "VALID",
+          "INVALID"
+        ],
+        "evidenceStates": [
+          "PRESENT_FICTITIOUS",
+          "PRESENT_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [],
+          [],
+          [
+            "INVALID_ORDER"
+          ]
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_PROOF_CONTAINER_EXTERNAL_REVIEW",
+      "changes": [],
+      "expected": {
+        "structuralStates": [
+          "VALID",
+          "VALID",
+          "VALID"
+        ],
+        "evidenceStates": [
+          "PRESENT_FICTITIOUS",
+          "PRESENT_FICTITIOUS",
+          "PRESENT_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [],
+          [],
+          []
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_FORWARD_CONTAINER",
+      "changes": [
+        {
+          "op": "set",
+          "path": [
+            "units",
+            20,
+            "order"
+          ],
+          "value": 10000
+        }
+      ],
+      "expected": {
+        "structuralStates": [
+          "VALID",
+          "VALID",
+          "INVALID"
+        ],
+        "evidenceStates": [
+          "PRESENT_FICTITIOUS",
+          "PRESENT_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [],
+          [],
+          [
+            "INVALID_ORDER"
+          ]
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_MUTUAL_CLOSURE_WRONG_KIND",
+      "changes": [
+        {
+          "op": "set",
+          "path": [
+            "units",
+            13,
+            "value",
+            "initialCallRef"
+          ],
+          "value": {
+            "schema": "PROP_ADMIN_ORIGINAL_REF_2",
+            "logicalRole": "FICT_ROLE_ACTION",
+            "versionId": "FICT_VERSION_ACTION",
+            "kind": "JSON_ORIGINAL",
+            "storageRole": "FICT_STORAGE",
+            "custodyHandle": "FICT_HANDLE_ACTION",
+            "contentPin": {
+              "bytes": 7,
+              "utf16Units": 7,
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "whole": "ENTERO",
+            "sourceEventRole": null
+          }
+        }
+      ],
+      "expected": {
+        "structuralStates": [
+          "VALID",
+          "INVALID",
+          "INVALID"
+        ],
+        "evidenceStates": [
+          "PRESENT_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [],
+          [
+            "WRONG_KIND"
+          ],
+          [
+            "WRONG_KIND"
+          ]
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_ND_WITHOUT_SUCCESS",
+      "changes": [
+        {
+          "op": "set",
+          "path": [
+            "units",
+            9,
+            "value",
+            "terminal"
+          ],
+          "value": false
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            9,
+            "value",
+            "exitCode"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            11,
+            "value",
+            "native",
+            "terminal"
+          ],
+          "value": false
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            11,
+            "value",
+            "native",
+            "exitCode"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            12,
+            "value",
+            "terminal"
+          ],
+          "value": false
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            12,
+            "value",
+            "exitCode"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            13,
+            "value",
+            "state"
+          ],
+          "value": "RUNNING"
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            13,
+            "value",
+            "terminalCallRef"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            13,
+            "value",
+            "terminalObservationRef"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            14,
+            "value",
+            "result"
+          ],
+          "value": "NO_ACREDITADO"
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            9,
+            "value",
+            "terminal"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            11,
+            "value",
+            "native",
+            "terminal"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            12,
+            "value",
+            "terminal"
+          ],
+          "value": null
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            13,
+            "value",
+            "state"
+          ],
+          "value": "UNKNOWN"
+        },
+        {
+          "op": "set",
+          "path": [
+            "units",
+            14,
+            "value",
+            "result"
+          ],
+          "value": "NO_DISPONIBLE"
+        }
+      ],
+      "expected": {
+        "structuralStates": [
+          "VALID",
+          "VALID",
+          "VALID"
+        ],
+        "evidenceStates": [
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [
+            "INCOMPLETE_EVIDENCE"
+          ],
+          [
+            "INCOMPLETE_EVIDENCE"
+          ],
+          [
+            "INCOMPLETE_EVIDENCE"
+          ]
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_MALFORMED_NULL",
+      "input": null,
+      "expected": {
+        "structuralStates": [
+          "INVALID",
+          "INVALID",
+          "INVALID"
+        ],
+        "evidenceStates": [
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [
+            "BAD_ENVELOPE"
+          ],
+          [
+            "BAD_ENVELOPE"
+          ],
+          [
+            "BAD_ENVELOPE"
+          ]
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_MISSING_MARKER",
+      "changes": [
+        {
+          "op": "delete",
+          "path": [
+            "marker"
+          ]
+        }
+      ],
+      "expected": {
+        "structuralStates": [
+          "INVALID",
+          "INVALID",
+          "INVALID"
+        ],
+        "evidenceStates": [
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [
+            "BAD_ENVELOPE"
+          ],
+          [
+            "BAD_ENVELOPE"
+          ],
+          [
+            "BAD_ENVELOPE"
+          ]
+        ]
+      }
+    },
+    {
+      "caseRole": "FICT_UNKNOWN_FIELD_ALIAS",
+      "changes": [
+        {
+          "op": "set",
+          "path": [
+            "units",
+            6,
+            "value",
+            "state"
+          ],
+          "value": "FICT_LEGACY_ALIAS"
+        }
+      ],
+      "expected": {
+        "structuralStates": [
+          "INVALID",
+          "INVALID",
+          "INVALID"
+        ],
+        "evidenceStates": [
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS",
+          "NO_ACREDITADO_FICTITIOUS"
+        ],
+        "requiredCodes": [
+          [
+            "INVALID_FIELD"
+          ],
+          [
+            "INVALID_FIELD"
+          ],
+          [
+            "INVALID_FIELD"
+          ]
+        ]
+      }
+    }
+  ]
+}
