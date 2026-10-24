@@ -146,3 +146,105 @@ Sus tiempos son observaciones exteriores, no un reloj financiero o Node birth.
   "afterUtc": "2026-10-24T07:58:43.090Z"
 }
 ```
+
+## Nueva autoridad humana S1-P1 - adopcion de continuacion
+
+Adopcion del mismo Owner: 2026-10-24T11:07:02.450Z, antes de modificar modulo/test.
+Autoridad integra recibida: DIRECTOR-ADMIN-SLICE1-S1P1-LOCAL-CORRECTION-20261024,
+Parent exec-657ec011-b81d-4cea-a98a-5ec048e40c2a, orden humana posterior de Sam:
+"Director, encarga al mismo CORE corregir S1-P1, anadir el negativo de operandos
+cruzados y ejecutar una vez la suite local. Sin push, PR, merge ni produccion,
+y sin recuperar la lectura truncada del fixture."
+Mismo WT/rama, base f908944466efe32ea87ceb13907b1d2c5b874103/tree802d28b1e69ba4cf302eac8e7887476ca50afb8b,
+clean/index vacio verificados. Claim nuevo de continuacion adquirido CreateNew
+con mismoOwner a 2026-10-24T11:06:06.388Z, 201bytes/SHA2567dce85323f6dd60851dd683054135e71844b305295f630b09d2e268a28073d03.
+ALLOWLIST de correccion EXACTA: modulo, test y este handoff. No cuarto archivo.
+Fixture INMUTABLE: blob bfcb7249d0327a41510002dcce25f9d607b292fd,
+70302bytes/SHA2562e350df58251fccfe17aadd15dc21d5f0f66faaa1672e77cc127cbefa2e2653d.
+Se coteja identidad Git, sin abrirlo para revision. Lectura integral del fixture
+en la revision heredada Parent dbf655: NO ACREDITADA, presentacion PARCIAL.
+No se recupera/reemite/reconstruye esa lectura ni se transfieren lecturas Owner
+previas a Parent. Solo el runner puede seguir leyendo el JSON como input.
+
+S1-P1: antes de aceptar RelationReview PASO se coteja el array operandRefs del
+proof contra operands de review, igualdad estructural completa y ordenada:
+cantidad/role/occurrence/VersionRef con metadata. Incumplimiento se diagnostica
+INVALID_FIELD, role del review, field value.operands, sin modificar ND u outputs.
+El nuevo negativo sustituye solo el operando revisado por otra version previa
+del MISMO unitKind SEMANTIC_DTO, y ajusta su UnitReview completa. Mantiene proof
+PASO para el operando original, predicate igual, proof-review completa y todas
+las expectativas previas. Input efectivo completo antes de cualquier llamada.
+No se ejecuta la version vulnerable para un red adicional. Una nueva suite
+permitida DESPUES del cambio; no --version, knowledge, productos o SQL.
+Inversas enteras del modulo y del test a sus preimagenes comprobadas antes de
+escribir. Este apendice conserva literalmente el handoff anterior completo.
+Estado de esta continuacion: autoria; suite nueva aun NO EJECUTADA.
+
+## Resultado fijo S1-P1 y handoff de la correccion
+
+- **OBJETIVO ORIGINAL:** corregir unicamente S1-P1 y agregar el negativo
+  significativo de operandos cruzados, conservando perfil y fixture inmutable.
+- **COMPLETADO:** una guardia nueva compara con sameData el array completo y
+  ordenado proof.value.operandRefs frente a review.operands, antes de aceptar
+  review.result PASO. Mantiene cantidad/role/occurrence/VersionRef/metadata y
+  usa codigo cerrado INVALID_FIELD, field value.operands. Sin nuevo export,
+  I/O, lookup, esquema, formato de salida o cambio de semantica ND.
+- **VALIDACION:** UNA nueva ejecucion autorizada, Native6c89d8/exit0.
+  Resultado REAL nuevo: tests47/pass47/fail0/cancelled0/skipped0/todo0,
+  duration_ms112.6443. Observaciones exteriores 2026-10-24T11:07:46.339Z -> 2026-10-24T11:07:47.315Z.
+  El test nominal S1-P1 PASO: Dtos y References VALID/PRESENT_FICTITIOUS;
+  ClosureOrder INVALID/NO_ACREDITADO_FICTITIOUS con SOLO el diagnostico
+  INVALID_FIELD/FICT_ROLE_RELATION_REVIEW/value.operands. Control positivo
+  coincidente y todas las expectativas anteriores conservados y PASO.
+  No se ejecuto la version vulnerable ni se reparo/repitio esta suite.
+- **COMMITS:** commit local selectivo de esta correccion que contiene este
+  documento, modulo y test. SHA final en entrega externa; no recursion propia.
+- **PR / BRANCH:** misma codex/sdd-0573-admin-static-dto-20261024/WT managed.
+  Padre directo f908944466efe32ea87ceb13907b1d2c5b874103.
+  Esperado diff padre..nuevo: exactamente tres modificaciones. F60..nuevo:
+  mismas cuatro altas originales, fixture con mismo blob bfcb7249d0327a41510002dcce25f9d607b292fd.
+- **PENDIENTES DE ESTA TAREA:** revision semantica Parent/General del candidato
+  fijo. Lectura integral heredada del fixture: NO ACREDITADA; no se recupera
+  dbf655 ni se reimprime el JSON. Conservacion se acredita por identidad Git,
+  no por afirmar una nueva lectura integral o un nuevo hash humano del fixture.
+- **FUERA DE ALCANCE DETECTADO:** no se adopta otro bug o contrato. CORE06 no
+  apto, QPG17/B no ejecutados, auth4/origin/budgetNULL/reservaFalse intactos.
+- **HANDOFF AL DIRECTOR:** revisar modulo/test/handoff nuevos completos y el
+  original autentico siguiente; no revisar el fixture omitido para este arreglo.
+  Sin push/PR/merge/produccion. Claim de continuacion se verifica antes del
+  commit y solo ese claim propio se libera al terminar; B4 queda retenido.
+
+El negativo esta completo en memoria antes de cualquier validador: conserva
+predicate y proof PASO para el contenedor original, usa otra version anterior
+del mismo unitKind SEMANTIC_DTO para review y ajusta una UnitReview completa
+para esa version, manteniendo la UnitReview completa del proof. El assert
+estricto de issues evita un falso rojo por referencia/tipo/alias/ciclo/orden
+ajeno. No modificaciones al fixture o expectativas existentes. Todos los datos
+son FICT_ y no acreditan evidencia operacional/2.1/SQL/carrera.
+
+### Original autentico ENTERO de la unica suite nueva S1-P1
+
+```json
+{
+  "schema": "DTD_SLICE1_S1P1_SINGLE_NODE_TEST_ORIGINAL_1",
+  "input": {
+    "cmd": "& 'C:/Users/AKX generator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe' --test scripts/admin-contract/static-dto-validator.test.mjs",
+    "shell": "C:/Users/AKX generator/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/pwsh.exe",
+    "login": false,
+    "tty": false,
+    "workdir": "C:/Users/AKX generator/.codex/worktrees/sdd-0573-admin-static-dto-20261024/DTDCARGO",
+    "yield_time_ms": 10000,
+    "max_output_tokens": 12000
+  },
+  "beforeUtc": "2026-10-24T11:07:46.339Z",
+  "result": {
+    "chunk_id": "6c89d8",
+    "wall_time_seconds": 0.2606109,
+    "exit_code": 0,
+    "original_token_count": 947,
+    "output": "✔ FICTICIO: all effective cases exist before validation and cover the admitted groups (0.8471ms)\n✔ FICT_VALID: Dtos FICTITIOUS_STRUCTURE_ONLY (1.9199ms)\n✔ FICT_VALID: References FICTITIOUS_STRUCTURE_ONLY (2.14ms)\n✔ FICT_VALID: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (1.3776ms)\n✔ FICT_WRONG_KIND_SAME_SHAPE: Dtos FICTITIOUS_STRUCTURE_ONLY (0.6738ms)\n✔ FICT_WRONG_KIND_SAME_SHAPE: References FICTITIOUS_STRUCTURE_ONLY (0.7038ms)\n✔ FICT_WRONG_KIND_SAME_SHAPE: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (0.7641ms)\n✔ FICT_MISSING_VERSION_ROLE: Dtos FICTITIOUS_STRUCTURE_ONLY (0.443ms)\n✔ FICT_MISSING_VERSION_ROLE: References FICTITIOUS_STRUCTURE_ONLY (0.7264ms)\n✔ FICT_MISSING_VERSION_ROLE: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (0.5786ms)\n✔ FICT_CYCLE_SELF_REFERENCE: Dtos FICTITIOUS_STRUCTURE_ONLY (0.6075ms)\n✔ FICT_CYCLE_SELF_REFERENCE: References FICTITIOUS_STRUCTURE_ONLY (0.4284ms)\n✔ FICT_CYCLE_SELF_REFERENCE: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (0.7963ms)\n✔ FICT_NONTERMINAL: Dtos FICTITIOUS_STRUCTURE_ONLY (0.4316ms)\n✔ FICT_NONTERMINAL: References FICTITIOUS_STRUCTURE_ONLY (0.6577ms)\n✔ FICT_NONTERMINAL: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (1.2503ms)\n✔ FICT_TERMINAL_OWN_POLL: Dtos FICTITIOUS_STRUCTURE_ONLY (0.7933ms)\n✔ FICT_TERMINAL_OWN_POLL: References FICTITIOUS_STRUCTURE_ONLY (0.5627ms)\n✔ FICT_TERMINAL_OWN_POLL: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (0.7233ms)\n✔ FICT_TERMINAL_TRANSFERRED_TO_INITIAL: Dtos FICTITIOUS_STRUCTURE_ONLY (0.7855ms)\n✔ FICT_TERMINAL_TRANSFERRED_TO_INITIAL: References FICTITIOUS_STRUCTURE_ONLY (1.0206ms)\n✔ FICT_TERMINAL_TRANSFERRED_TO_INITIAL: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (0.8929ms)\n✔ FICT_PROOF_CONTAINER_EXTERNAL_REVIEW: Dtos FICTITIOUS_STRUCTURE_ONLY (0.3872ms)\n✔ FICT_PROOF_CONTAINER_EXTERNAL_REVIEW: References FICTITIOUS_STRUCTURE_ONLY (0.3669ms)\n✔ FICT_PROOF_CONTAINER_EXTERNAL_REVIEW: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (0.4966ms)\n✔ FICT_FORWARD_CONTAINER: Dtos FICTITIOUS_STRUCTURE_ONLY (0.4046ms)\n✔ FICT_FORWARD_CONTAINER: References FICTITIOUS_STRUCTURE_ONLY (0.4669ms)\n✔ FICT_FORWARD_CONTAINER: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (0.6974ms)\n✔ FICT_MUTUAL_CLOSURE_WRONG_KIND: Dtos FICTITIOUS_STRUCTURE_ONLY (0.3631ms)\n✔ FICT_MUTUAL_CLOSURE_WRONG_KIND: References FICTITIOUS_STRUCTURE_ONLY (0.4506ms)\n✔ FICT_MUTUAL_CLOSURE_WRONG_KIND: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (0.476ms)\n✔ FICT_ND_WITHOUT_SUCCESS: Dtos FICTITIOUS_STRUCTURE_ONLY (0.4168ms)\n✔ FICT_ND_WITHOUT_SUCCESS: References FICTITIOUS_STRUCTURE_ONLY (0.4462ms)\n✔ FICT_ND_WITHOUT_SUCCESS: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (0.5333ms)\n✔ FICT_MALFORMED_NULL: Dtos FICTITIOUS_STRUCTURE_ONLY (0.0646ms)\n✔ FICT_MALFORMED_NULL: References FICTITIOUS_STRUCTURE_ONLY (0.0517ms)\n✔ FICT_MALFORMED_NULL: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (0.046ms)\n✔ FICT_MISSING_MARKER: Dtos FICTITIOUS_STRUCTURE_ONLY (0.1798ms)\n✔ FICT_MISSING_MARKER: References FICTITIOUS_STRUCTURE_ONLY (0.4641ms)\n✔ FICT_MISSING_MARKER: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (0.1689ms)\n✔ FICT_UNKNOWN_FIELD_ALIAS: Dtos FICTITIOUS_STRUCTURE_ONLY (1.0201ms)\n✔ FICT_UNKNOWN_FIELD_ALIAS: References FICTITIOUS_STRUCTURE_ONLY (0.6841ms)\n✔ FICT_UNKNOWN_FIELD_ALIAS: ClosureOrder FICTITIOUS_STRUCTURE_ONLY (0.36ms)\n✔ FICTICIO: terminal belongs to the own poll, never to the initial return (0.143ms)\n✔ FICTICIO: finite proof then container then external review, with concrete proof review (0.0781ms)\n✔ FICTICIO: ND and running have no terminal reference or successful action (0.1371ms)\n✔ FICTICIO S1-P1: successful review cannot cross concrete operands of its proof (1.6725ms)\nℹ tests 47\nℹ suites 0\nℹ pass 47\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 112.6443\n"
+  },
+  "error": null,
+  "afterUtc": "2026-10-24T11:07:47.315Z"
+}
+```

@@ -56,6 +56,24 @@ const effectiveCases = fixture.cases.map(definition => ({
   role: definition.caseRole, input: freeze(applyCase(definition)), expected: freeze(clone(definition.expected))
 }));
 freeze(effectiveCases);
+// S1-P1: another PRIOR version of the SAME natural unitKind. Complete effective
+// input is fixed here before any validator invocation, without editing the JSON.
+const crossedOperandsInput = clone(fixture.baseline);
+crossedOperandsInput.caseRole = 'FICT_CROSSED_OPERANDS';
+const crossedRelation = crossedOperandsInput.units.find(u => u.role === 'FICT_ROLE_RELATION_REVIEW');
+const crossedOther = crossedOperandsInput.units.find(u => u.role === 'FICT_ROLE_BINDING');
+const crossedUnitReview = crossedOperandsInput.units.find(u => u.role === 'FICT_ROLE_CONTAINER_REVIEW');
+assert.equal(crossedOther.unitKind, 'SEMANTIC_DTO');
+assert.ok(crossedOther.order < crossedUnitReview.order && crossedUnitReview.order < crossedRelation.order);
+const crossedRef = {
+  schema: 'PROP_ADMIN_ORIGINAL_REF_2', logicalRole: crossedOther.role,
+  versionId: crossedOther.versionId, kind: 'JSON_ORIGINAL', storageRole: 'FICT_STORAGE',
+  custodyHandle: 'FICT_HANDLE_BINDING', contentPin: clone(crossedOther.pin),
+  whole: 'ENTERO', sourceEventRole: null
+};
+crossedRelation.value.operands[0].unitRef = clone(crossedRef);
+crossedUnitReview.value.unitVersionRef = clone(crossedRef);
+freeze(crossedOperandsInput);
 const stages = [
   ['Dtos', validateFixtureDtos],
   ['References', validateFixtureReferences],
@@ -136,4 +154,41 @@ test('FICTICIO: ND and running have no terminal reference or successful action',
     assert.notEqual(unit(input, 'FICT_ROLE_ACTION').value.result, 'PASO');
     assert.equal(unit(input, 'FICT_ROLE_POLL_RETURN').value.exitCode, null);
   }
+});
+
+test('FICTICIO S1-P1: successful review cannot cross concrete operands of its proof', () => {
+  const review = unit(crossedOperandsInput, 'FICT_ROLE_RELATION_REVIEW').value;
+  const proof = unit(crossedOperandsInput, 'FICT_ROLE_CONTAINER_PROOF').value;
+  const operandReview = unit(crossedOperandsInput, 'FICT_ROLE_CONTAINER_REVIEW').value;
+  const proofReview = unit(crossedOperandsInput, 'FICT_ROLE_PROOF_REVIEW').value;
+  const originalOperand = crossedOperandsInput.units.find(u =>
+    u.versionId === proof.operandRefs[0].unitRef.versionId);
+  assert.equal(crossedOther.unitKind, originalOperand.unitKind);
+  assert.deepEqual(review.predicate, proof.predicate);
+  assert.equal(proof.result, 'PASO');
+  assert.notEqual(review.operands[0].unitRef.versionId, proof.operandRefs[0].unitRef.versionId);
+  assert.deepEqual(operandReview.unitVersionRef, review.operands[0].unitRef);
+  assert.equal(proofReview.unitVersionRef.versionId, 'FICT_VERSION_CONTAINER_PROOF');
+  for (const r of [operandReview, proofReview]) {
+    assert.equal(r.custodyResult, 'PASO');
+    assert.equal(r.receiveResult, 'PASO');
+    assert.equal(r.semanticResult, 'PASO');
+    assert.equal(r.humanWhole, 'COMPLETA');
+  }
+  for (const validate of [validateFixtureDtos, validateFixtureReferences]) {
+    assert.deepEqual(validate(crossedOperandsInput), {
+      structuralState: 'VALID', evidenceState: 'PRESENT_FICTITIOUS',
+      scope: 'FICTITIOUS_STRUCTURE_ONLY', issues: []
+    });
+  }
+  assert.deepEqual(validateFixtureClosureOrder(crossedOperandsInput), {
+    structuralState: 'INVALID', evidenceState: 'NO_ACREDITADO_FICTITIOUS',
+    scope: 'FICTITIOUS_STRUCTURE_ONLY',
+    issues: [{code: 'INVALID_FIELD', role: 'FICT_ROLE_RELATION_REVIEW', field: 'value.operands'}]
+  });
+  const matching = caseByRole('FICT_PROOF_CONTAINER_EXTERNAL_REVIEW');
+  assert.deepEqual(validateFixtureClosureOrder(matching), {
+    structuralState: 'VALID', evidenceState: 'PRESENT_FICTITIOUS',
+    scope: 'FICTITIOUS_STRUCTURE_ONLY', issues: []
+  });
 });

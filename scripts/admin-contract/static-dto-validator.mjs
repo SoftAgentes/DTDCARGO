@@ -384,6 +384,8 @@ function closureStage(fixture, c, byVersion) {
           issue(c, 'INVALID_FIELD', 'value.claims.result');
       } else {
         const proof = get(v.proofRef);
+        if (v.result === 'PASO' && proof && !sameData(proof.value.operandRefs, v.operands))
+          issue(c, 'INVALID_FIELD', 'value.operands');
         const critical = operands.filter(o => reqs.find(r => r.role === o.role)?.critical).map(o => o.unitRef.versionId);
         if (proof) critical.push(proof.versionId);
         for (const id of new Set(critical)) {
