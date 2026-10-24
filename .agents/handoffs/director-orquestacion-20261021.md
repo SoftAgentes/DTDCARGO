@@ -1,5 +1,16 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## Respaldo FD03 real y CI nueva exacta — 2026-10-24 00:09 UTC / 23oct20:09 Caracas
+
+RESPALDO05PUBLICADOPASÓRoot; revisiónindependienteParentPackingASIGNADAUNAvezpendientealregistrar. Autoridad6266a0ce85946c4add66e391ca118d65f8ddeb6d/ROOT-PR319-FD03-NORMAL-BACKUP05-LITERAL-BEGIN. ENTRYNative2026-10-24T00:08:22.7857088Z, UNpushNORMAL00:08:37.0896633→39.8241979/0 0fafa→fd03af07c67ae491609e4d14a411b6ad2e5e13b3 aMISMArefs/heads/codex/packing-list-portal-confirmacion-20261021;UNPATCH00:08:39.8696933→41.1789262/0. Nativef59ea9→OWNsession12594→e382cd→630d47/0 FIN00:08:51.3636268Z. Gitinvocacióncore.hooksPath=NUL sóloeseNORMALpushparaNOejecutarhooks/test/gestoreslocales; no configpersistida/force/fuentesmutadas.
+
+PATCHresponsehead0fafacachedPRESERVADO; posterioresGraphQL/RESTdetalle/RESTfiles/GitlsremoteTODOS0 headFD03/baseMAINd410ab2e23e74e5bcf7fdc7cc595371b24cc03a8/OPEN-DRAFT/mergedNULL/noautomerge/títuloybodyWHOLE. Body8832UTF16/8974UTF8/SHA256c7cd7fcdc8da5d03ca1e5b5c7069af783287824d9d757c8da592428809187874.83Git=83Graph=83RESTrutasENTERAS0diff;mainD410sinpublicación. Snapshot/source/claimprecheckactualescorrectosantesoperación; SourceFD03/treea618padrе0fafa/ramaCIclean/claim21224544retenidosconconsumidorfrozen. NoappHTTP/UI/Sam/processintervention/DB.
+
+NUEVACIrun40043499928/Calidadcontinua/attempt1/pull_request/headFD03CREATEDSTARTED2026-10-24T00:08:51Z, IN_PROGRESSsegún983299/0REAL00:09:12.7910600Z, conclusiónNULL. https://github.com/SoftAgentes/DTDCARGO/actions/runs/40043499928. NOrerunCIhistórica/noGREENanticipado/noherencia0fafa. ParentrecibióencargoREADBACKconcretoPORUNAVEZyGLMrecibióresultadoSHAURLrunparaentrega finalsinmásNativeautoría/ACK.
+
+Go05runtimeCERRADO/reservaLIBERADA; HUMAN05(4327/28) yHUMAN03(4325/26)RETENIDASPROTEGIDASfueraActorbudget. Samya puedehabersubidoprivado: NINGUNA nueva lecturaapp/HTTP/UI/browser/screenshot/chooser/userfiles/reapertura/nointervenirporIDsantiguos. Fae852partialREALNCpersiste, no retroPASS. CORE06R1cap10000sóloguard9696YAenviadoUNAvezParent, noEJE/SQL/origen/runtime/reserva.
+
+
 ## Respaldo normal FD03 / PR319 revisado y autorizado — 2026-10-24 00:07:28 UTC / 23oct Caracas
 
 Go05FIN +ambosPOSToportunosACEPTADOS, reservaLIBERADA. HUMAN05serviciosretenidos/protegidos; ninguna nueva lectura app/UI/HTTP/archivos. Recorrido XLSX selector/aplicar/guardar/recargar/export realPASÓ; CSVpreviewsinapply; negativosindicadosPASÓ. Capturafae852REALPARCIALNCpreservada, fae091nueva íntegra antesCtrlC+9113c6ausencias actualessustentan cierre; no retroPASS. FD03fixedreviewRoot+ParentyaCERRADA/sourcecongelada. NoWIPnuevo.
