@@ -1,5 +1,22 @@
 # Director: orquestación de tres sesiones — 2026-10-21
 
+## CORE06 guard referido PASÓ; lectura E06 detenida y recepción acotada — 2026-10-24 00:14 UTC / 23oct20:14 Caracas
+
+Parent recibió MESSAGE+FINAL/controlformal y quietud del MISMO CORE, turno01a16b3d-181b-78f1-b80f-108bd471a9cb COMPLETED/IDLE/errorNULL. Según Owner, guard R1 exacto9696 terminó Native423eee/0 REAL00:09:04.783→00:09:07.712Z (7Git0,28pins,Native26,8dirs/auth0 y18ausencias); adopción00:09:26.942Z. Root/Parent NO han leído íntegros esos originales: son PASÓ REFERIDO, no FULL propio ni admisión15.
+
+Después falló adquisición TEXT de E06 por Git fijo:7a3b56/1 REAL00:10:09.400→11.465Z, error 'Protocol E06 heading absent'. Owner declara0CreateNew06 y E06 no adquirido; R/I/Generic/exporter/verifier/índice/candidato/SQL no invocados, auth4NULL/origenNULL/ninguna sesión propia activa. No reserva SQL que liberar. Input/return auténticos están en captura E06_FIXED_TEXT_READ, aún no recibidos completos por Parent/Root. No reconstruir comando desde el error ni repetir el guard consumido.
+
+Root2cf8b2/native0 leyó sólo documentos del objeto fijo c5f2f829109749d0f76781471b7974ff59103073: el sourceSection literal del Go ('ADMIN06 delta de instrumentación del exportador como texto') da IndexOf=-1 en AMBOS docs. El encabezado real observado en línea76 de ambos es '## ADMIN06 · delta de instrumentación del exportador como texto', count1, índices14794/14780 en lecturas LF. Es una discrepancia del localizador documental, no un fallo medido del texto E066016/21234. Lectura estática propia, sin ejecutar productores/candidato. Antes de precisar la llamada se pide UNA captura auténtica íntegra; no se autoriza Native adicional aquí.
+
+ROOT-CORE-AQ06-E06-ORIGINAL-RECEIVE-R2-BEGIN
+```json
+{"authorityId":"DIRECTOR-CORE-Q06-E06-ORIGINAL-RECEIVE-R2-20261023","kind":"ONE_EXISTING_AUTHENTIC_DATA_RECEIPT_ONLY","originalGo":"DIRECTOR-CORE-PG17-A-Q-20261023-06","sourceFixedCommit":"c5f2f829109749d0f76781471b7974ff59103073","originalCaptureKey":"core-pg17-a-q-f60-20261023-06-capture-register:E06_FIXED_TEXT_READ","request":"Recibir UNA vez el MISMO objeto de captura autentico completo, intacto, con beforeUtc/original input/selection/arguments/result/error tal como existe, no reconstruccion desde appdisplay/error/recuerdo.","bounds":{"sameParent":true,"sameCore":true,"noNative":true,"noFs":true,"noGit":true,"noSourceReadOrCandidate":true,"noGuardRepeat":true,"noSqlRuntimeClock":true,"noDerivationOrProposalYet":true,"maxOutputTokens":30000,"sameCellWaitImmediate":true,"noSplitCompressEncodingAlternate":true,"stopIfMissingTruncatedUnknown":true,"noRetrySameReceipt":true},"preserve":["NEW_GUARD06 preinvoke9000 intacto","NEW_GUARD06_ADMITTED_R1 Native423eee/0 segunOwner pendiente lecturaParentRoot","E06_FIXED_TEXT_READ Native7a3b56/1 intacto; no retry","0CreateNew06 referido, auth4NULL/originNULL/SQLNOEJ/no reserva","Go06 deadlines originales sin renovacion"],"rootStaticObservation":{"native":"2cf8b2/0","atUtc":"2026-10-24T00:13:36.0502629Z..00:13:36.2103067Z","docs":[".agents/handoffs/director-continuidad-codex-20261020.md","docs/audits/2026-10-20-plan-contable-seguimiento-codex.md"],"oldGoLocator":"ADMIN06 delta de instrumentación del exportador como texto","oldIndexBoth":-1,"observedExactHeading":"## ADMIN06 · delta de instrumentación del exportador como texto","exactCountEach":1,"lineEach":76,"indexEach":[14794,14780],"status":"OBSERVACION SOLO TEXTO; NO ADMISION DE CAMBIO/RETRY NATIVE NI ALTERACION E06"},"next":"Parent remite captura ENTERA por canal formal para que Root revise el input real antes de una precision del locator. No despertar ACK ni ejecutar por lectura de esta autoridad."}
+```
+ROOT-CORE-AQ06-E06-ORIGINAL-RECEIVE-R2-END
+
+El respaldo FD03/PR319 permanece cerrado con ambas revisiones aceptadas; CI40043499928/job120719757677 sigue pendiente de conclusión. Go05 cerrado y HUMAN05/HUMAN03 protegidas, sin nuevas lecturas. No merge ni producción.
+
+
 ## Cierre del respaldo FD03 con revisión independiente — 2026-10-24 00:12 UTC / 23oct20:12 Caracas
 
 El RESPALDO NORMAL05 de la misma PR319 queda CERRADO y PASÓ la comprobación del Director y la revisión independiente de Packing. Se publicó fd03af07c67ae491609e4d14a411b6ad2e5e13b3, árbol a618f2831bedbbc89655c51f1ce5aa7f54b04540, padre directo0fafa. No repetir push, PATCH, custodia ni activación del Writer por este respaldo. Su CI nueva todavía no está cerrada.
