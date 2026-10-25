@@ -214,7 +214,11 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
         slug: "contable-estado-resultados",
         headers: ["Concepto", "Monto USD", "% s/ingresos"],
         rows: [
-          ...inc.rows.map((r): CsvValue[] => [r.label, ing.controlI2.unidadMayor === "usd" ? r.amount : "", r.pct ?? ""]),
+          ...inc.rows.map((r): CsvValue[] => [
+            r.label,
+            ing.controlI2.unidadMayor === "usd" ? r.amount : "",
+            ing.controlI2.unidadMayor === "usd" ? r.pct ?? "" : "",
+          ]),
           ["Ingreso facturado (sin IVA · USD · por emisión)", ing.facturado.total, ""],
           ["Fondos de terceros incluidos en el facturado", ing.facturado.terceros, ""],
           filaDelMayor,
