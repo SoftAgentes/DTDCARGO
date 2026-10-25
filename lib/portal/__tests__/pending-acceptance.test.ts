@@ -1,14 +1,15 @@
 /**
  * SDD-0543 · Facturas «por aceptar» en las pantallas de facturas del Portal.
  *
- * El loader resuelve el tenant por el id del cliente y delega en las consultas
- * legales con tenant + Shipping Mark; nunca lanza, ni siquiera cuando no se
+ * El loader toma tenant + Shipping Mark del principal Portal ya resuelto por
+ * sesión (SDD-0549) y delega en las consultas legales; NO relee
+ * `clients.tenant_id` con el admin client. Nunca lanza, ni siquiera cuando no se
  * puede crear el admin client. `totalPorAceptar` sólo suma cuando todo está en
  * la misma moneda. `medidaDeLaFactura` suma la medida de todos los embarques
  * cuando la factura junta varios.
  */
 import { describe, expect, it, vi } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { CLIENT_A, MARKBOX, TENANT_A, TENANT_B, portalDouble, type PortalDouble } from "./portal-tenant-double";
 
 const h = vi.hoisted(() => ({
   list: vi.fn(),
@@ -34,75 +35,74 @@ import {
 } from "../pending-acceptance";
 
 /**
- * Doble del admin client que SÍ aplica la consulta: devuelve el tenant sólo si
- * se lee `clients.tenant_id` filtrando por el id del cliente pedido. Un doble
- * que ignorara `.from()`/`.eq()` no probaría que el tenant sale del cliente.
+ * Doble del admin client que SÍ aplica la consulta (`portal-tenant-double`).
+ * Siembra en `clients` un tenant LEGADO distinto del del principal: si el
+ * loader volviera a leer `clients.tenant_id` (el patrón que la 0397 quitó de la
+ * acción), la consulta legal recibiría ese tenant y no el del principal.
  */
-function admin(filas: Record<string, string>, opts: { lanza?: boolean } = {}): SupabaseClient {
-  return {
-    from: (tabla: string) => ({
-      select: (cols: string) => ({
-        eq: (col: string, valor: string) => ({
-          maybeSingle: async () => {
-            if (opts.lanza) throw new Error("boom");
-            if (tabla !== "clients" || cols !== "tenant_id" || col !== "id") return { data: null, error: null };
-            const tenant = filas[valor];
-            return { data: tenant ? { tenant_id: tenant } : null, error: null };
-          },
-        }),
-      }),
-    }),
-  } as unknown as SupabaseClient;
+function admin(): PortalDouble {
+  return portalDouble({
+    tables: { clients: [{ id: CLIENT_A, tenant_id: TENANT_B, markbox: MARKBOX, deleted_at: null }] },
+  });
 }
+
+/** Lo que la página pasa: el principal Portal resuelto por sesión. */
+const principal = { tenantId: TENANT_A, client: { id: CLIENT_A, markbox: MARKBOX } };
+/** Mismo principal con la forma vieja del parámetro, por si el loader la leyera. */
+const principalConRefVieja = { ...principal, clientId: CLIENT_A, markbox: MARKBOX };
 
 const pendiente = { code: "F-2026-0007", baseAmount: 100, totalAmount: 116, currency: "USD", shipmentCode: "DTD-A116-06", cbm: 1.02, weightKg: 408.55 };
 
 describe("loadPendingAcceptanceForClient", () => {
-  it("pasa a la consulta legal el tenant DEL cliente pedido y su Shipping Mark", async () => {
+  it("pasa a la consulta legal el tenant y el Shipping Mark DEL principal, sin releer clients", async () => {
     h.list.mockReset().mockResolvedValue([pendiente]);
-    const db = admin({ c1: "t1", c2: "t2" });
-    const out = await loadPendingAcceptanceForClient({ clientId: "c1", markbox: "DTD-8001" }, db);
+    const db = admin();
+    const out = await loadPendingAcceptanceForClient(principalConRefVieja, db.db);
     expect(out).toEqual([pendiente]);
-    expect(h.list).toHaveBeenCalledWith(db, { tenantId: "t1", markbox: "DTD-8001" });
-    // Otro cliente, otro tenant: el doble filtra por id, así que la consulta recibe t2.
-    await loadPendingAcceptanceForClient({ clientId: "c2", markbox: "DTD-8002" }, db);
-    expect(h.list).toHaveBeenLastCalledWith(db, { tenantId: "t2", markbox: "DTD-8002" });
+    expect(h.list).toHaveBeenCalledTimes(1);
+    expect(h.list).toHaveBeenCalledWith(db.db, { tenantId: TENANT_A, markbox: MARKBOX });
+    expect(db.operations).toEqual([]);
   });
   it("devuelve vacío sin tenant, sin marca o si algo falla", async () => {
     h.list.mockReset().mockResolvedValue([pendiente]);
-    expect(await loadPendingAcceptanceForClient({ clientId: "c9", markbox: "DTD-8001" }, admin({ c1: "t1" }))).toEqual([]);
-    expect(await loadPendingAcceptanceForClient({ clientId: "c1", markbox: " " }, admin({ c1: "t1" }))).toEqual([]);
-    expect(await loadPendingAcceptanceForClient({ clientId: "c1", markbox: "DTD-8001" }, admin({ c1: "t1" }, { lanza: true }))).toEqual([]);
+    const db = admin();
+    expect(await loadPendingAcceptanceForClient({ ...principal, tenantId: " " }, db.db)).toEqual([]);
+    expect(await loadPendingAcceptanceForClient({ ...principal, client: { markbox: " " } }, db.db)).toEqual([]);
+    expect(h.list).not.toHaveBeenCalled();
     h.list.mockRejectedValueOnce(new Error("rls"));
-    expect(await loadPendingAcceptanceForClient({ clientId: "c1", markbox: "DTD-8001" }, admin({ c1: "t1" }))).toEqual([]);
+    expect(await loadPendingAcceptanceForClient(principal, db.db)).toEqual([]);
+    expect(db.operations).toEqual([]);
   });
   it("sin admin inyectado lo crea DENTRO del try: si falta la variable de entorno no tumba «Mis facturas»", async () => {
     h.crearAdmin.mockClear();
     h.list.mockReset();
-    await expect(loadPendingAcceptanceForClient({ clientId: "c1", markbox: "DTD-8001" })).resolves.toEqual([]);
+    await expect(loadPendingAcceptanceForClient(principal)).resolves.toEqual([]);
     expect(h.crearAdmin).toHaveBeenCalledTimes(1);
     expect(h.list).not.toHaveBeenCalled();
     // Sin marca ni siquiera intenta crearlo.
-    await expect(loadPendingAcceptanceForClient({ clientId: "c1", markbox: "" })).resolves.toEqual([]);
+    await expect(loadPendingAcceptanceForClient({ ...principal, client: { markbox: "" } })).resolves.toEqual([]);
     expect(h.crearAdmin).toHaveBeenCalledTimes(1);
   });
 });
 
 describe("loadPendingAcceptanceDetailForClient", () => {
-  it("busca por código con tenant y marca; null si no es suya", async () => {
+  it("busca por código con tenant y marca del principal, sin releer clients; null si no es suya", async () => {
     h.get.mockReset().mockResolvedValue({ ...pendiente, invoiceId: "i1", shipmentId: "s1", clientName: "X", ivaRate: 16, ivaAmount: 16, fxRate: null, lines: [], notes: null, embarques: [] });
-    const db = admin({ c1: "t1" });
-    const out = await loadPendingAcceptanceDetailForClient({ clientId: "c1", markbox: "DTD-8001", code: "F-2026-0007" }, db);
+    const db = admin();
+    const out = await loadPendingAcceptanceDetailForClient(principalConRefVieja, " F-2026-0007 ", db.db);
     expect(out?.code).toBe("F-2026-0007");
-    expect(h.get).toHaveBeenCalledWith(db, { tenantId: "t1", markbox: "DTD-8001", code: "F-2026-0007" });
+    expect(h.get).toHaveBeenCalledWith(db.db, { tenantId: TENANT_A, markbox: MARKBOX, code: "F-2026-0007" });
     h.get.mockResolvedValueOnce(null);
-    expect(await loadPendingAcceptanceDetailForClient({ clientId: "c1", markbox: "DTD-8001", code: "F-2026-0008" }, db)).toBeNull();
-    expect(await loadPendingAcceptanceDetailForClient({ clientId: "c1", markbox: "DTD-8001", code: "" }, db)).toBeNull();
-    expect(await loadPendingAcceptanceDetailForClient({ clientId: "c1", markbox: "DTD-8001", code: "F-1" }, admin({ c1: "t1" }, { lanza: true }))).toBeNull();
+    expect(await loadPendingAcceptanceDetailForClient(principal, "F-2026-0008", db.db)).toBeNull();
+    expect(await loadPendingAcceptanceDetailForClient(principal, "", db.db)).toBeNull();
+    expect(await loadPendingAcceptanceDetailForClient({ ...principal, tenantId: "" }, "F-2026-0007", db.db)).toBeNull();
+    h.get.mockRejectedValueOnce(new Error("boom"));
+    expect(await loadPendingAcceptanceDetailForClient(principal, "F-1", db.db)).toBeNull();
+    expect(db.operations).toEqual([]);
   });
   it("sin admin inyectado y sin variable de entorno devuelve null en vez de tumbar el detalle", async () => {
     h.crearAdmin.mockClear();
-    await expect(loadPendingAcceptanceDetailForClient({ clientId: "c1", markbox: "DTD-8001", code: "F-2026-0007" })).resolves.toBeNull();
+    await expect(loadPendingAcceptanceDetailForClient(principal, "F-2026-0007")).resolves.toBeNull();
     expect(h.crearAdmin).toHaveBeenCalledTimes(1);
   });
 });

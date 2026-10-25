@@ -6,27 +6,22 @@
  * filas (ver portal-academy-queries) — acá solo se toca `academy_lesson_progress`,
  * nunca `academy_enrollments` (sin UPDATE forjable → sin BOLA).
  *
- * Aislamiento: MARKBOX del cliente vía `get_portal_client_markbox()` + tenant vía
- * `get_portal_client_tenant()` (igual que proveedores/compras). La RLS de 0149
- * exige pertenencia por markbox; además exigimos inscripción (defensa en
- * profundidad). Completar = upsert idempotente; descompletar = delete.
+ * Aislamiento (SDD-0549): tenant + Shipping Mark del principal Portal de la
+ * sesión (`getPortalClientPrincipal`), resueltos UNA vez y sin las RPC
+ * `get_portal_client_markbox()` / `get_portal_client_tenant()`. Cada lectura y
+ * escritura filtra por los dos: el Shipping Mark es único POR tenant. La RLS de
+ * 0418 exige pertenencia por principal y tenant; además exigimos inscripción
+ * (defensa en profundidad). Completar = upsert idempotente; descompletar =
+ * delete.
  */
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 
 export type LessonToggleResult =
   | { ok: true; done: boolean }
   | { ok: false; error: string };
-
-/** MARKBOX del cliente del portal logueado, o null. */
-async function portalMarkbox(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-): Promise<string | null> {
-  const { data, error } = await supabase.rpc("get_portal_client_markbox");
-  if (error || !data) return null;
-  return String(data);
-}
 
 export async function setLessonComplete(
   courseId: string,
@@ -36,13 +31,16 @@ export async function setLessonComplete(
   if (!courseId || !lessonId) return { ok: false, error: "Datos incompletos." };
 
   const supabase = await createClient();
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { ok: false, error: "Tu sesión expiró. Vuelve a entrar." };
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return { ok: false, error: "Tu sesión expiró. Vuelve a entrar." };
+  const { tenantId } = principal;
+  const { markbox } = principal.client;
 
   // Defensa en profundidad: solo cuenta progreso de cursos donde está inscrito.
   const { data: enr } = await supabase
     .from("academy_enrollments")
     .select("id")
+    .eq("tenant_id", tenantId)
     .eq("course_id", courseId)
     .eq("client_markbox", markbox)
     .is("deleted_at", null)
@@ -51,10 +49,6 @@ export async function setLessonComplete(
   if (!enr) return { ok: false, error: "No estás inscrito en este curso." };
 
   if (done) {
-    const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
-    const tenantId = tenantData ? String(tenantData) : null;
-    if (!tenantId) return { ok: false, error: "No pudimos resolver tu cuenta." };
-
     const { error } = await supabase.from("academy_lesson_progress").upsert(
       {
         tenant_id: tenantId,
@@ -72,6 +66,7 @@ export async function setLessonComplete(
     const { error } = await supabase
       .from("academy_lesson_progress")
       .delete()
+      .eq("tenant_id", tenantId)
       .eq("client_markbox", markbox)
       .eq("lesson_id", lessonId);
     if (error) {

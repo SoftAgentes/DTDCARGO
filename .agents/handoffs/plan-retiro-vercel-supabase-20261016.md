@@ -24,7 +24,7 @@
 
 ## Calendario
 
-### Esta noche (jueves 16, madrugada)
+### Esta noche (viernes 16, madrugada)
 | Qué | Quién | Condición |
 |---|---|---|
 | Esperar que Google y Cloudflare den 217.216.54.70 cuatro veces seguidas, más 5 min de TTL | Sesión de Contabo (vigilante) | — |
@@ -36,18 +36,18 @@
 ### Esta semana
 | Día | Qué | Quién |
 |---|---|---|
-| Jueves 16 | Publicación automática: SDD-0541, scripts y pruebas en el repo, PR en borrador | Worker (lanzado a las 07:27Z), coordinado con la sesión de Contabo |
-| Jueves 16 | Entorno de prueba: SDD-0540, diseño y decisiones para Sam | Worker (en curso) |
-| Jueves 16 – viernes 17 | Pendientes del tarifario: SDD-0539, con migración 0491 si hace falta | Sesión de Sam (en curso) |
-| Viernes 17 | Revisar e integrar la 0541. Instalarla en el servidor y encenderla | Director integra; Contabo instala con el OK de Sam |
-| Viernes 17 | Smokes de Sam pendientes: calculadora, borrar embarque, bandeja de avisos, «Zarpado», operarios de Venezuela, nombres ocultos a China, una de las siete acciones R3 y `/studio/debug` | Sam |
-| Viernes 17 | Regla «Recibido en bodega China» → «Correo + push» | Sam (Admin → Notificaciones) |
-| Sábado 18 – domingo 19 | Reescribir `docs/runbooks/aplicar-migraciones-prod.md` para el servidor propio (psql en `dtd-cargo-db-1` y fila del ledger en la misma transacción). Es condición de la Fase 4 | Director o Worker, con PR |
-| Lunes 20 | Revisión semanal de respaldos: `rclone lsl … db/daily/ | tail -7` tiene que mostrar 7 dumps diarios seguidos (el respaldo diario se encendió el 2026-10-13) | Sesión de Contabo |
-| Martes 21 – miércoles 22 | Restore de prueba mensual (`infra/ops/backup/restore-test.sh`) sobre un dump tomado en el servidor. Es condición de la Fase 4 | Sesión de Contabo |
+| Viernes 16 | Publicación automática: SDD-0541, scripts y pruebas en el repo, PR en borrador | Worker (lanzado a las 07:27Z), coordinado con la sesión de Contabo |
+| Viernes 16 | Entorno de prueba: SDD-0540, diseño y decisiones para Sam | Worker (en curso) |
+| Viernes 16 – sábado 17 | Pendientes del tarifario: SDD-0539, con migración 0491 si hace falta | Sesión de Sam (en curso) |
+| Sábado 17 | Revisar e integrar la 0541. Instalarla en el servidor y encenderla | Director integra; Contabo instala con el OK de Sam |
+| Sábado 17 | Smokes de Sam pendientes: calculadora, borrar embarque, bandeja de avisos, «Zarpado», operarios de Venezuela, nombres ocultos a China, una de las siete acciones R3 y `/studio/debug` | Sam |
+| Sábado 17 | Regla «Recibido en bodega China» → «Correo + push» | Sam (Admin → Notificaciones) |
+| Domingo 18 – lunes 19 | Reescribir `docs/runbooks/aplicar-migraciones-prod.md` para el servidor propio (psql en `dtd-cargo-db-1` y fila del ledger en la misma transacción). Es condición de la Fase 4 | Director o Worker, con PR |
+| Martes 20 | Revisión semanal de respaldos: los últimos 7 dumps diarios tienen que ser seguidos (el respaldo diario se encendió el 2026-10-13). **Hecha por el Director el 2026-10-20 a las 10:50Z en solo lectura: PASÓ** (ver «Revisión de respaldos del 2026-10-20» abajo) | Sesión de Contabo → Director |
+| Miércoles 21 – jueves 22 | Restore de prueba mensual (`infra/ops/backup/restore-test.sh`) sobre un dump tomado en el servidor. Es condición de la Fase 4 | Sesión de Contabo |
 | Esta semana | Ajustar el panel de publicaciones y el estado del Studio, que leen Vercel (`deployActions.ts`, `vercel-deploys.ts`, `env-status.ts`) | Worker, con su SDD (sale del handoff de la 0541) |
 
-### Martes 28 de octubre — base de datos: 14 días desde su corte (14-oct)
+### Miércoles 28 de octubre — base de datos: 14 días desde su corte (14-oct)
 Revisar las condiciones de `servidor-contabo.md` §4 y anotarlas en este handoff:
 1. 14 días sin incidente abierto.
 2. Restore de prueba PASÓ sobre un dump del servidor.
@@ -58,13 +58,13 @@ Si las cuatro se cumplen, con el OK de Sam, en este orden:
 1. Dump final de Cloud (`supabase db dump`), cifrado con `age` y guardado fuera del servidor.
 2. **Pausar** Supabase Cloud (`xpfuzqombmjmxvprjgmi`), sin borrarlo.
 
-### Jueves 30 de octubre — web: 14 días desde su corte (16-oct)
+### Viernes 30 de octubre — web: 14 días desde su corte (16-oct)
 Con Cloud ya pausado y su dump guardado, y con el OK de Sam:
 1. Quitar el dominio del proyecto en Vercel. Revocar `VERCEL_API_TOKEN`. Comprobar que la integración de Git ya esté desconectada.
 2. Antes de cancelar el plan de Vercel, confirmar qué pasa con la organización de Supabase creada por la integración (hallazgo 1).
 3. Docs: `setup-portal-auth.md`, `setup-resend.md`, `setup-web-push.md`, `setup-kommo-webhook.md` y `e2e-supabase-efimero.md` reciben su nota «desde <fecha> esto vive en el servidor» (Fase 4, paso 4).
 
-### Jueves 27 de noviembre (30 días después de pausar Cloud)
+### Viernes 27 de noviembre (30 días después de pausar Cloud)
 - Borrar Supabase Cloud, con otro OK de Sam y el dump final ya verificado.
 - Cancelar los planes de pago de Vercel y Supabase.
 
@@ -78,3 +78,51 @@ Con Cloud ya pausado y su dump guardado, y con el OK de Sam:
 - Las llaves públicas viejas de Cloud en `GOTRUE_JWT_KEYS` y `JWT_JWKS`, para validar las sesiones abiertas.
 - La URL de Cloud en el texto de 0084 y 0136: una migración aplicada no se edita, y desde la 0472 la URL sale del Vault.
 - Las variables `VERCEL_*` en `lib/runtime/app-env.ts`, como respaldo histórico (Fase 4, paso 5).
+
+## Seguimiento del 2026-10-17 (Director)
+
+- **Días de la semana corregidos.** El plan nombraba el 2026-10-16 como jueves; fue viernes (`date -d 2026-10-16 +%A`). Se corrigieron los nombres y se conservaron las fechas: el 20 es martes, el 28 miércoles, el 30 viernes y el 27 de noviembre viernes.
+- **Hecho desde el plan:**
+  - Vercel en pausa y con la integración de Git desconectada.
+  - Contenedor `cron` del servidor encendido.
+  - SDD-0541 integrada, con la publicación automática encendida a las 14:29Z del 16. La #249 y la #260 se publicaron solas: lo medí en el journal del servidor (14/0 en la prueba rápida). Las demás no las comprobé una por una.
+  - Entorno de prueba arriba (SDD-0540 §10).
+  - Pendientes del tarifario (0491) aplicados.
+- **Sigue pendiente, con las fechas del calendario:**
+  - reescribir `docs/runbooks/aplicar-migraciones-prod.md` para el servidor propio (condición de la Fase 4);
+  - revisión semanal de respaldos el martes 20;
+  - restore de prueba del 21 al 22;
+  - ajustar el panel de publicaciones del Studio, que lee Vercel (`lib/studio/vercel-deploys.ts`, `app/studio/(app)/debug/`);
+  - los pasos con pago o producción del 28, del 30 y del 27 de noviembre, cada uno con el OK de Sam en su momento.
+- **Agregado:** Sam pidió esperar al lunes 19 para los contenedores 60 al 64 en prueba (SDD-0543, PR #262), porque no le llegaron los archivos. Hay un recordatorio local agendado para ese día a las 9:00 de Caracas.
+
+## Seguimiento del 2026-10-17, tarde (Director)
+
+- **Hecho:**
+  - El runbook `aplicar-migraciones-prod.md`, reescrito para el servidor propio: SDD-0546 y PR #266, fusionada a las 20:44:18Z. Sus scripts quedaron instalados en `/srv/ops` a las 20:47:05Z. Era condición de la Fase 4.
+  - El panel de publicaciones del Studio ya no lee Vercel: SDD-0547, PR #264 y #265, publicadas a las 19:22Z y a las 20:15Z.
+  - La #114 (SDD-0390/0397) quedó publicada a las 18:48Z.
+- **Sigue pendiente:**
+  - La revisión de respaldos del martes 20 y el restore de prueba del 21 al 22, en la sesión de Contabo.
+  - Los pasos con pago o producción del 28, del 30 y del 27 de noviembre, cada uno con el OK de Sam.
+  - **`VERCEL_API_TOKEN` ya no lo lee nadie:** se puede revocar antes del 30 si Sam quiere.
+
+## Revisión de respaldos del 2026-10-20 (Director)
+
+Hecha en solo lectura en el VPS a las 10:50Z, con el `rclone` del contenedor de `pg-dump-to-s3.sh` (`rclone/rclone:1.75.1`, configuración montada en solo lectura). **PASÓ.**
+
+| Fecha (UTC) | Dump de la base (`.dump.age`) |
+|---|---|
+| 2026-10-14 06:07 | 6.366.767 bytes |
+| 2026-10-15 06:06 | 6.432.992 bytes |
+| 2026-10-16 06:03 | 6.582.883 bytes |
+| 2026-10-17 06:04 | 6.623.605 bytes |
+| 2026-10-18 06:03 | 6.640.248 bytes |
+| 2026-10-19 06:00 | 6.660.991 bytes |
+| 2026-10-20 06:06 | 6.719.435 bytes |
+
+- **7 dumps seguidos**, que crecen poco a poco; ninguno cae a la mitad. Cada uno trae su `-roles.sql.age`, su `-acl.sql.age` y su `.sha256`.
+- **La configuración también subió hoy:** `dtd-cargo-config-20261020T060621Z.tar.age`.
+- **`dtd-cargo-backup.service`** terminó bien todos los días del 14 al 20. Falló una vez el 14 a las 02:10 y se completó en el reintento de las 02:32.
+- **El runbook tenía un comando viejo** (`backups:dtdcargo-backups/db/daily/`, un remoto que no existe). Quedó corregido en `docs/runbooks/backup-restore-servidor.md` §2.
+- **Sigue:** el restore de prueba del 21 al 22 (`infra/ops/backup/restore-test.sh`) y las condiciones del miércoles 28.

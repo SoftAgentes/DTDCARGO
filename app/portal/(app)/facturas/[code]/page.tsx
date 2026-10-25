@@ -2,10 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { getMyInvoice, getPortalClient } from "@/lib/portal/portal-queries";
+import { getMyInvoice, getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { loadPendingAcceptanceDetailForClient } from "@/lib/portal/pending-acceptance";
 import { listMyInvoiceReports } from "@/lib/portal/payment-report-queries";
-import { formatInvoiceAmount, invoiceBalance } from "@/lib/portal/portal-types";
+import { formatInvoiceAmount } from "@/lib/portal/portal-types";
+import {
+  esAnulada,
+  indicacionPagosEnAnuladas,
+  saldoPorPagar,
+} from "@/lib/portal/saldo-de-cuenta";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { InvoiceStatusBadge } from "../../../_components/InvoiceStatusBadge";
@@ -28,17 +33,21 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
   // La RLS + el filtro por markbox sólo devuelven facturas del cliente logueado;
   // si no hay match (ajena, borrador o inexistente) → 404. Excepción (SDD-0543):
   // un borrador SUYO que espera su aceptación de T&C no es un 404 sino una puerta
-  // cerrada con el monto a la vista y el botón para aceptar.
+  // cerrada con el monto a la vista y el botón para aceptar. El borrador se
+  // busca con el tenant + Shipping Mark del principal de sesión (SDD-0549).
   if (!inv) {
-    const client = await getPortalClient(supabase);
-    const pendiente = client
-      ? await loadPendingAcceptanceDetailForClient({ clientId: client.id, markbox: client.markbox, code })
+    const principal = await getPortalClientPrincipal(supabase);
+    const pendiente = principal
+      ? await loadPendingAcceptanceDetailForClient(principal, code)
       : null;
     if (!pendiente) notFound();
     return <PendingInvoiceGate pendiente={pendiente} />;
   }
 
-  const balance = invoiceBalance({ total_amount: inv.total, paid_amount: inv.paid });
+  // SDD-0556 · una anulada no tiene saldo pendiente, aunque se le haya pagado
+  // una parte: lo pagado se informa abajo, no se convierte en deuda.
+  const balance = saldoPorPagar(inv);
+  const anulada = esAnulada(inv);
   const ivaOn = inv.ivaRate > 0;
   const waLink = buildWhatsAppLink(
     `Hola DTD Cargo, tengo una consulta sobre mi factura ${inv.code}.`,
@@ -138,6 +147,16 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
               />
             ) : null}
           </dl>
+
+          {anulada ? (
+            <p className="mt-4 text-[13.5px] text-grey-700 leading-[1.55]">
+              Esta factura está anulada: no tienes nada que pagar por ella.
+              {/* La indicación sale de `saldo-de-cuenta.ts`: la misma en todo el portal. */}
+              {inv.paid > 0
+                ? ` Recibimos ${formatInvoiceAmount(inv.paid, inv.currency)} en pagos de esta factura. ${indicacionPagosEnAnuladas({ inicioDeFrase: true })}.`
+                : ""}
+            </p>
+          ) : null}
 
           {inv.notes ? (
             <div className="mt-6 pt-5 border-t border-grey-200">

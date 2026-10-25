@@ -94,13 +94,11 @@ const TRACKED_ENV_VARS = [
   "APP_URL",
   "REQUEST_IP_HEADER",
   "NEXT_PUBLIC_BUILD_SHA",
-  "VERCEL_ENV",
-  "VERCEL_URL",
-  "VERCEL_GIT_COMMIT_SHA",
-  "VERCEL_GIT_COMMIT_REF",
-  "VERCEL_API_TOKEN",
-  "VERCEL_PROJECT_ID",
-  "VERCEL_TEAM_ID",
+  // SDD-0547: sin `VERCEL_*`. Las del panel de deploys de Vercel
+  // (VERCEL_API_TOKEN, VERCEL_PROJECT_ID, VERCEL_TEAM_ID) ya no las lee nadie:
+  // el panel lee el estado del servidor. VERCEL_ENV, VERCEL_URL y VERCEL_GIT_*
+  // siguen como respaldo en lib/runtime/app-env.ts, pero las inyectaba Vercel y
+  // el servidor propio no las define: listarlas solo mostraba cuatro «faltan».
 ];
 
 function statusOf(envKey: string, isRequired = false): IntegrationStatus {

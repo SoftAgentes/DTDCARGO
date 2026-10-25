@@ -6,9 +6,18 @@
  * Lista de asientos con su total (debe=haber), fecha, origen y estado.
  * Acciones por asiento: asentar (borrador→asentado), anular (asentado→anulado),
  * eliminar (solo borrador). "Nuevo asiento" abre el EntryDrawer.
+ *
+ * SDD-0557: la lista trae como mucho los 500 asientos más recientes
+ * (`DIARIO_PANTALLA_MAX`). Los contadores salen de los totales REALES
+ * (`countEntries`), no de la lista, y si hay más de los que se ven la pantalla
+ * lo dice («Mostrando N de M») y enlaza el diario en CSV. El CSV baja solo los
+ * asientos ASENTADOS (así cuadra con la comprobación; pregunta abierta 3 de la
+ * spec): el enlace, el botón y el aviso lo dicen. La exportación con
+ * Desde/Hasta vive acá; valida las fechas antes de navegar y la ruta las
+ * vuelve a validar.
  */
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   entryStatusBadgeTone,
   entryStatusLabel,
@@ -24,36 +33,60 @@ import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { Icon } from "@/app/studio/_components/icons";
+import { StatusIcon } from "@/components/StatusIcon";
+import {
+  avisoDelDiario,
+  enlaceDelDiario,
+  rangoDelDiario,
+  ROTULO_DIARIO_CSV,
+} from "@/lib/studio/accounting/libro-control";
 import { fmtAmount } from "./format";
 import { EntryDrawer } from "./EntryDrawer";
+import { ExcepcionCierreDialog } from "./ExcepcionCierreDialog";
 import { postEntry, voidEntry, softDeleteEntry } from "../actions";
+import { isPeriodClosed } from "@/lib/studio/accounting/period-queries";
+import type { AvisoCierre, ResultadoDeAsiento } from "@/lib/studio/accounting/cierre-excepciones";
 
 export function LibroDiarioTab({
   entries,
+  totalEntries,
   postableAccounts,
   accountsCount,
   asentadosCount,
   showCreate,
   onOpenCreate,
   onCloseCreate,
+  avisoCierre = null,
 }: {
   entries: JournalEntry[];
+  /** Asientos vivos del diario, sin el tope de pantalla (countEntries). */
+  totalEntries: number;
   postableAccounts: Account[];
   accountsCount: number;
   asentadosCount: number;
   showCreate: boolean;
   onOpenCreate: () => void;
   onCloseCreate: () => void;
+  /** SDD-0566: el cierre del período, para ofrecer la excepción en sus asientos. */
+  avisoCierre?: AvisoCierre | null;
 }) {
   const toast = useToast();
   const flashClassFor = useRowHighlight();
   const [error, setError] = useState<string | null>(null);
   const [voidTarget, setVoidTarget] = useState<JournalEntry | null>(null);
   const [voidPending, setVoidPending] = useState(false);
+  // SDD-0566: asentar, anular o eliminar un asiento de período cerrado.
+  const [excepcionTarget, setExcepcionTarget] = useState<{
+    op: "asentar" | "anular" | "eliminar";
+    entry: JournalEntry;
+  } | null>(null);
+  const enCierre = (e: JournalEntry) =>
+    avisoCierre !== null && isPeriodClosed(avisoCierre.closingDate, e.entry_date);
 
   const noAccounts = accountsCount === 0 || postableAccounts.length === 0;
+  const aviso = avisoDelDiario(entries.length, totalEntries, asentadosCount);
 
-  if (entries.length === 0) {
+  if (totalEntries === 0) {
     return (
       <>
         <EmptyState
@@ -110,17 +143,57 @@ export function LibroDiarioTab({
       <div
         style={{
           display: "flex",
-          gap: 16,
-          marginBottom: 14,
-          font: "500 11.5px/1 var(--f-sans)",
-          color: "var(--ink-soft)",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: "var(--s-4)",
+          flexWrap: "wrap",
+          marginBottom: "var(--s-4)",
         }}
       >
-        <span>
-          {entries.length} asiento{entries.length === 1 ? "" : "s"}
-        </span>
-        <span>·</span>
-        <span>{asentadosCount} asentado{asentadosCount === 1 ? "" : "s"}</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
+          <div
+            data-testid="diario-contador"
+            style={{
+              display: "flex",
+              gap: "var(--s-3)",
+              font: "500 12px/1.2 var(--f-sans)",
+              color: "var(--ink-soft)",
+            }}
+          >
+            <span>
+              {totalEntries.toLocaleString("es-VE")} asiento{totalEntries === 1 ? "" : "s"}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              {asentadosCount.toLocaleString("es-VE")} asentado{asentadosCount === 1 ? "" : "s"}
+            </span>
+          </div>
+          {aviso && (
+            <p
+              role="status"
+              data-testid="diario-aviso"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--s-2)",
+                flexWrap: "wrap",
+                margin: 0,
+                font: "500 12px/1.4 var(--f-sans)",
+                color: "var(--ink)",
+              }}
+            >
+              <StatusIcon tone="warning" size={14} style={{ color: "var(--warning)" }} />
+              <span>{aviso}</span>
+              <a
+                href={enlaceDelDiario()}
+                style={{ color: "var(--wine-text)", fontWeight: 700 }}
+              >
+                {ROTULO_DIARIO_CSV}
+              </a>
+            </p>
+          )}
+        </div>
+        <ExportarDiario />
       </div>
 
       <div
@@ -228,7 +301,32 @@ export function LibroDiarioTab({
                   alignItems: "center",
                 }}
               >
-                {entry.status === "borrador" && (
+                {entry.status === "borrador" && enCierre(entry) && (
+                  <>
+                    <button
+                      type="button"
+                      className="studio-btn studio-btn-dark studio-btn-xs"
+                      onClick={() => {
+                        setError(null);
+                        setExcepcionTarget({ op: "asentar", entry });
+                      }}
+                    >
+                      Asentar…
+                    </button>
+                    <button
+                      type="button"
+                      className="studio-btn studio-btn-ghost studio-btn-xs"
+                      style={{ color: "var(--danger)" }}
+                      onClick={() => {
+                        setError(null);
+                        setExcepcionTarget({ op: "eliminar", entry });
+                      }}
+                    >
+                      Eliminar…
+                    </button>
+                  </>
+                )}
+                {entry.status === "borrador" && !enCierre(entry) && (
                   <>
                     <ActionButton
                       variant="dark"
@@ -265,10 +363,11 @@ export function LibroDiarioTab({
                     style={{ color: "var(--danger)" }}
                     onClick={() => {
                       setError(null);
-                      setVoidTarget(entry);
+                      if (enCierre(entry)) setExcepcionTarget({ op: "anular", entry });
+                      else setVoidTarget(entry);
                     }}
                   >
-                    Anular
+                    {enCierre(entry) ? "Anular…" : "Anular"}
                   </button>
                 )}
                 {entry.status === "anulado" && (
@@ -289,6 +388,26 @@ export function LibroDiarioTab({
 
       {showCreate && (
         <EntryDrawer postableAccounts={postableAccounts} onClose={onCloseCreate} />
+      )}
+      {excepcionTarget && avisoCierre && (
+        <ExcepcionCierreDialog
+          aviso={avisoCierre}
+          operacion={excepcionTarget.op}
+          entryCode={excepcionTarget.entry.entry_code}
+          onCancel={() => setExcepcionTarget(null)}
+          onConfirm={async ({ superclave, motivo }) => {
+            const { op, entry } = excepcionTarget;
+            let r: ResultadoDeAsiento;
+            if (op === "asentar") r = await postEntry(entry.id, { superclave, motivo });
+            else if (op === "eliminar") r = await softDeleteEntry(entry.id, { superclave, motivo });
+            else r = await voidEntry(entry.id, motivo, superclave);
+            if (!r.ok) return r.error ?? "No se pudo guardar el cambio.";
+            const hecho = op === "asentar" ? "asentado" : op === "eliminar" ? "eliminado" : "anulado";
+            toast.success(`Asiento ${entry.entry_code} ${hecho} con excepción al cierre`);
+            setExcepcionTarget(null);
+            return null;
+          }}
+        />
       )}
       <ConfirmDialog
         open={voidTarget !== null}
@@ -320,6 +439,95 @@ export function LibroDiarioTab({
         }}
       />
     </>
+  );
+}
+
+/**
+ * Exportación del diario con Desde/Hasta opcionales (SDD-0557). Es un GET a la
+ * ruta de exportación: la respuesta es un adjunto y el navegador la descarga
+ * sin salir de la pantalla. Las fechas se validan antes de enviar con la misma
+ * regla que usa la ruta (`rangoDelDiario`), para no mandar a nadie a una
+ * respuesta de error.
+ */
+function ExportarDiario() {
+  const id = useId();
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const errorId = `${id}-error`;
+
+  return (
+    <form
+      method="get"
+      action="/api/studio/contabilidad/export"
+      aria-label="Exportar el diario a CSV"
+      onSubmit={(e) => {
+        const r = rangoDelDiario(desde, hasta);
+        if (r.error) {
+          e.preventDefault();
+          setError(r.error);
+          return;
+        }
+        setError(null);
+      }}
+      style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}
+    >
+      <input type="hidden" name="tipo" value="diario" />
+      <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--s-2)", flexWrap: "wrap" }}>
+        <label style={{ display: "flex", flexDirection: "column" }}>
+          <span className="studio-label">Desde (opcional)</span>
+          <input
+            type="date"
+            name="desde"
+            className="studio-input"
+            value={desde}
+            onChange={(e) => {
+              setDesde(e.target.value);
+              if (error) setError(rangoDelDiario(e.target.value, hasta).error);
+            }}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+            style={{ minWidth: 160 }}
+          />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column" }}>
+          <span className="studio-label">Hasta (opcional)</span>
+          <input
+            type="date"
+            name="hasta"
+            className="studio-input"
+            value={hasta}
+            onChange={(e) => {
+              setHasta(e.target.value);
+              if (error) setError(rangoDelDiario(desde, e.target.value).error);
+            }}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+            style={{ minWidth: 160 }}
+          />
+        </label>
+        <button type="submit" className="studio-btn studio-btn-ghost studio-btn-sm">
+          {ROTULO_DIARIO_CSV}
+        </button>
+      </div>
+      {error && (
+        <p
+          id={errorId}
+          role="alert"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--s-2)",
+            margin: 0,
+            font: "500 12px/1.4 var(--f-sans)",
+            color: "var(--ink)",
+          }}
+        >
+          <StatusIcon tone="danger" size={14} style={{ color: "var(--danger-text)" }} />
+          {error}
+        </p>
+      )}
+    </form>
   );
 }
 

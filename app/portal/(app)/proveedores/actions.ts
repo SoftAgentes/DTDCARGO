@@ -4,12 +4,15 @@
  * Server actions del Portal · Compras (prealertas) + Proveedores (SDD-0057,
  * Slice B). El cliente del portal CRUD de SUS proveedores y crea SUS compras.
  *
- * IDENTIDAD + AISLAMIENTO: resolvemos el MARKBOX del cliente logueado vía
- * `get_portal_client_markbox()` (helper aislada, igual que el resto del portal)
- * y scopeamos TODO por ese markbox. La RLS doble de la migración 0105 permite
- * que el cliente escriba directo (WITH CHECK por `get_portal_client_markbox()` +
- * `get_portal_client_tenant()`), así que usamos el client de SESIÓN
- * (`createClient`) — el service_role queda de respaldo en la policy.
+ * IDENTIDAD + AISLAMIENTO (SDD-0549): resolvemos UNA vez el principal Portal
+ * de la sesión (`getPortalClientPrincipal`) y scopeamos TODO por su tenant y su
+ * Shipping Mark. El Shipping Mark es único POR tenant y la policy «by tenant» es
+ * permisiva: sin el tenant, una sesión híbrida (equipo de otro tenant + cliente
+ * Portal) leía y editaba proveedores y compras del mismo Shipping Mark ajeno.
+ * Las RPC `get_portal_client_markbox()` / `get_portal_client_tenant()` ya no se
+ * usan aquí. La RLS del Portal (0105, endurecida por 0417/0434) permite que el
+ * cliente escriba directo, así que usamos el client de SESIÓN (`createClient`) —
+ * el service_role queda de respaldo en la policy.
  *
  * Validación manual con `validate*Input` (sin Zod, patrón del repo). El alta de
  * la compra arma el código del Norte `DTD-{clientNo}-{supplier_seq}-{order_seq}`
@@ -21,6 +24,7 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   validateSupplierInput,
   validatePrealertaInput,
@@ -170,13 +174,16 @@ function revalidatePortal() {
   for (const p of PORTAL_PATHS) revalidatePath(p);
 }
 
-/** MARKBOX del cliente del portal logueado, o null. */
-async function portalMarkbox(
+/**
+ * Tenant + Shipping Mark del principal Portal logueado, o null si la sesión no
+ * tiene un principal válido (vínculo activo, cliente vivo y coherente).
+ */
+async function portalScope(
   supabase: Awaited<ReturnType<typeof createClient>>,
-): Promise<string | null> {
-  const { data, error } = await supabase.rpc("get_portal_client_markbox");
-  if (error || !data) return null;
-  return String(data);
+): Promise<{ tenantId: string; markbox: string } | null> {
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  return { tenantId: principal.tenantId, markbox: principal.client.markbox };
 }
 
 // ╔═══════════════════════════════════════════════════════════╗
@@ -263,7 +270,8 @@ async function insertPrealertaServiceRequestsFromForm(args: {
   markbox: string;
 }): Promise<void> {
   try {
-    const active = await listActivePrealertaAddons(args.supabase);
+    // Mismo catálogo que el asistente le mostró: el del tenant del principal (SDD-0402).
+    const active = await listActivePrealertaAddons(args.supabase, { tenantId: args.tenantId });
     const activeCodes = new Set(active.map((a) => a.code as string));
     const reqs = parseServiceRequestsFromForm(args.formData, activeCodes);
     if (reqs.length === 0) return;
@@ -323,13 +331,15 @@ export async function createSupplierAction(
   if (!input) return { error: "Datos inválidos." };
 
   const supabase = await createClient();
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const scope = await portalScope(supabase);
+  if (!scope) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const { tenantId, markbox } = scope;
 
   // Evita duplicar el mismo proveedor dos veces (partiría su historial en dos códigos).
   const { data: existing, error: dupErr } = await supabase
     .from("suppliers_cn")
     .select("name")
+    .eq("tenant_id", tenantId)
     .eq("client_markbox", markbox)
     .is("deleted_at", null)
     .limit(500);
@@ -354,10 +364,6 @@ export async function createSupplierAction(
     return { error: "No pudimos registrar el proveedor. Prueba de nuevo." };
   }
   const supplierSeq = Number(seqData);
-
-  const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
-  const tenantId = tenantData ? String(tenantData) : null;
-  if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
 
   // Ficha extendida del Norte (SDD-0173 · columnas de la migr 0266, aplicada).
   // Se lee siempre: la pinta sólo el asistente (`<SupplierPicker showProfile />`),
@@ -421,11 +427,12 @@ export async function updateSupplierAction(
   if (!input) return { error: "Datos inválidos." };
 
   const supabase = await createClient();
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const scope = await portalScope(supabase);
+  if (!scope) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const { tenantId, markbox } = scope;
 
-  // El UPDATE pasa por la RLS (using/check por markbox) — scopeamos explícito
-  // por id + markbox (defensa en profundidad).
+  // El UPDATE pasa por la RLS (using/check por principal) — scopeamos explícito
+  // por id + tenant + Shipping Mark (defensa en profundidad).
   const { error: updErr } = await supabase
     .from("suppliers_cn")
     .update({
@@ -436,6 +443,7 @@ export async function updateSupplierAction(
       notes: input.notes,
     })
     .eq("id", supplierId)
+    .eq("tenant_id", tenantId)
     .eq("client_markbox", markbox)
     .is("deleted_at", null);
 
@@ -460,14 +468,16 @@ export async function deleteSupplierAction(
   if (!supplierId) return { error: "Falta el proveedor a borrar." };
 
   const supabase = await createClient();
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const scope = await portalScope(supabase);
+  if (!scope) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const { tenantId, markbox } = scope;
 
   // No se borra un proveedor con compras vivas — partiría su historial/código.
   const { count, error: countErr } = await supabase
     .from("prealertas")
     .select("id", { count: "exact", head: true })
     .eq("supplier_id", supplierId)
+    .eq("tenant_id", tenantId)
     .eq("client_markbox", markbox)
     .is("deleted_at", null);
   if (countErr) {
@@ -482,6 +492,7 @@ export async function deleteSupplierAction(
     .from("suppliers_cn")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", supplierId)
+    .eq("tenant_id", tenantId)
     .eq("client_markbox", markbox)
     .is("deleted_at", null);
   if (delErr) {
@@ -530,18 +541,17 @@ export async function createPrealertaAction(
   }
 
   const supabase = await createClient();
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const scope = await portalScope(supabase);
+  if (!scope) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const { tenantId, markbox } = scope;
 
-  const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
-  const tenantId = tenantData ? String(tenantData) : null;
-  if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
-
-  // El supplier_seq del proveedor (para armar el code). Scopeado por markbox.
+  // El supplier_seq del proveedor (para armar el code). Scopeado por tenant +
+  // Shipping Mark: un proveedor de otro tenant no es válido para esta compra.
   const { data: supRow, error: supErr } = await supabase
     .from("suppliers_cn")
     .select("supplier_seq")
     .eq("id", input.supplierId)
+    .eq("tenant_id", tenantId)
     .eq("client_markbox", markbox)
     .is("deleted_at", null)
     .maybeSingle<{ supplier_seq: number }>();
@@ -594,6 +604,7 @@ export async function createPrealertaAction(
           .from("suppliers_cn")
           .update({ wechat: supplierWechat })
           .eq("id", input.supplierId)
+          .eq("tenant_id", tenantId)
           .eq("client_markbox", markbox)
           .is("deleted_at", null);
       }
@@ -654,19 +665,17 @@ export async function requestPrealertaServiceAction(
   }
 
   const supabase = await createClient();
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const scope = await portalScope(supabase);
+  if (!scope) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const { tenantId, markbox } = scope;
 
-  const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
-  const tenantId = tenantData ? String(tenantData) : null;
-  if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
+  // La compra (scopeada por tenant y Shipping Mark del principal, y comprobada
+  // otra vez contra el tenant, como la página de etiquetas) → su id.
+  const pre = await getPrealertaByCode(supabase, code, { markbox, tenantId });
+  if (!pre || pre.tenant_id !== tenantId) return { error: "Esa compra no es válida." };
 
-  // La compra (scopeada por markbox) → su id.
-  const pre = await getPrealertaByCode(supabase, code, { markbox });
-  if (!pre) return { error: "Esa compra no es válida." };
-
-  // El servicio debe estar activo en el menú del tenant.
-  const active = await listActivePrealertaAddons(supabase);
+  // El servicio debe estar activo en el menú del tenant del principal (SDD-0402).
+  const active = await listActivePrealertaAddons(supabase, { tenantId });
   const activeCodes = new Set(active.map((a) => a.code as string));
   const v = validateServiceRequestInput(
     {
@@ -717,12 +726,14 @@ export async function updatePrealertaDetalleAction(
   if (!code) return { error: "Falta la compra." };
 
   const supabase = await createClient();
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const scope = await portalScope(supabase);
+  if (!scope) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const { tenantId, markbox } = scope;
 
-  // Scopeado por markbox: una compra de otro cliente no existe para esta sesión.
-  const pre = await getPrealertaByCode(supabase, code, { markbox });
-  if (!pre) return { error: "Esa compra no es válida." };
+  // Scopeado por Shipping Mark y tenant del principal: una compra de otro
+  // cliente, o del mismo Shipping Mark en otro tenant, no existe para esta sesión.
+  const pre = await getPrealertaByCode(supabase, code, { markbox, tenantId });
+  if (!pre || pre.tenant_id !== tenantId) return { error: "Esa compra no es válida." };
 
   // Sólo mientras nadie la haya tocado en bodega: una vez recibida, el detalle
   // lo manda el operario con la carga delante, no el cliente desde el portal.
@@ -749,10 +760,6 @@ export async function updatePrealertaDetalleAction(
   if (fieldErrors) return { fieldErrors };
   if (!input) return { error: "Datos inválidos." };
 
-  const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
-  const tenantId = tenantData ? String(tenantData) : null;
-  if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
-
   const { error: updErr } = await supabase
     .from("prealertas")
     .update({
@@ -762,6 +769,7 @@ export async function updatePrealertaDetalleAction(
       est_value_usd: input.estValueUsd,
     })
     .eq("id", pre.id)
+    .eq("tenant_id", tenantId)
     .eq("client_markbox", markbox)
     .is("deleted_at", null);
 

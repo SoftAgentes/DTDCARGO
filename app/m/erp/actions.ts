@@ -71,6 +71,8 @@ export async function createExpenseAction(
   const partial: Partial<CreateExpenseInput> = {
     amount: Number(formData.get("amount") ?? 0),
     currency: (formData.get("currency") as ExpenseCurrency) || "USD",
+    // SDD-0569: el móvil manda la tasa (precargada de fx_rates); el validador la exige fuera de USD.
+    fx_rate: formData.get("fx_rate") ? Number(formData.get("fx_rate")) : undefined,
     category: (formData.get("category") as ExpenseCategory) || "otro",
     method: (formData.get("method") as ExpenseMethod) || "cash",
     shipment_id: (formData.get("shipment_id") as string | null) || null,
@@ -215,6 +217,8 @@ export async function updateExpenseAction(
   const partial: Partial<CreateExpenseInput> = {
     amount: Number(formData.get("amount") ?? 0),
     currency: (formData.get("currency") as ExpenseCurrency) || "USD",
+    // SDD-0569: el móvil manda la tasa (precargada de fx_rates); el validador la exige fuera de USD.
+    fx_rate: formData.get("fx_rate") ? Number(formData.get("fx_rate")) : undefined,
     category: (formData.get("category") as ExpenseCategory) || "otro",
     method: (formData.get("method") as ExpenseMethod) || "cash",
     shipment_id: (formData.get("shipment_id") as string | null) || null,

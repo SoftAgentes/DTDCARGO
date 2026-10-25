@@ -4,16 +4,26 @@
  * Funciones puras que reciben un SupabaseClient. RLS filtra por tenant_id.
  *
  * La cola de CxC (`receivablesQueue`) se DERIVA de las facturas con saldo
- * (no es una tabla nueva): facturas con `total_amount - paid_amount > 0`,
- * status ≠ anulada y sin `deleted_at` (SDD-0465), enriquecidas con aging
- * (días vencido) + stage derivado a partir de las gestiones
- * (`collection_activities`). Lo que no entra a la cola no se cobra ni recibe
- * recordatorio (SDD-0306): el filtro de borradas decide a quién se le escribe.
+ * (no es una tabla nueva): facturas con `total_amount - paid_amount > 0`, en
+ * un estado que cuenta para el saldo y sin `deleted_at` (SDD-0465),
+ * enriquecidas con aging (días vencido) + stage derivado a partir de las
+ * gestiones (`collection_activities`). Lo que no entra a la cola no se cobra ni
+ * recibe recordatorio (SDD-0306): el filtro decide a quién se le escribe.
+ *
+ * SDD-0558: la regla de estados es la del saldo por cliente
+ * (`ESTADOS_FACTURA_CON_SALDO`: emitida, parcial, pagada y vencida; ni
+ * borrador ni anulada), la misma de `client_outstanding` (0492), y «hoy» es la
+ * fecha de Caracas (`todayCaracasISO`), no la de UTC. Antes un BORRADOR con
+ * total > 0 entraba a la cola, a los KPI, al export y a los recordatorios, y
+ * entre las 20:00 y las 24:00 de Caracas una factura que vencía ese día ya
+ * salía vencida. Una prueba de propiedad en PGlite fija la paridad con la 0492.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import type { Account } from "./account-types";
+import { cuentaParaSaldo, ESTADOS_FACTURA_CON_SALDO } from "./client-account";
+import { todayCaracasISO } from "./bitacora/dates";
 import { computeBalance, type Invoice } from "./invoice-types";
 import { invoiceUsdAmount } from "./fidelizacion/types";
 import { receiptAmountUsd } from "./accounting/receipt-posting";
@@ -399,7 +409,7 @@ export type Receivable = {
 /** Días entre `due_date` y hoy (positivo = vencido). null si no hay due_date. */
 export function daysOverdue(
   dueDate: string | null,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = todayCaracasISO(),
 ): number | null {
   if (!dueDate) return null;
   const due = new Date(dueDate + "T00:00:00Z").getTime();
@@ -441,7 +451,7 @@ export function derivedStage(args: {
   activities: CollectionActivity[];
   today?: string;
 }): { stage: ReceivableStage; promiseDate: string | null } {
-  const today = args.today ?? new Date().toISOString().slice(0, 10);
+  const today = args.today ?? todayCaracasISO();
   if (round2(args.balance) <= 0) return { stage: "pagado", promiseDate: null };
 
   // Última promesa (la más reciente por created_at).
@@ -472,18 +482,19 @@ export function derivedStage(args: {
  * Construye la cola de CxC a partir de un set de facturas y un map de gestiones
  * por invoice_id. PURA — testeable sin DB.
  *
- * Solo facturas con saldo > 0 y status ≠ anulada (las pagadas y anuladas no
- * están en la cola). Ordenadas por días vencido descendente (las más atrasadas
- * arriba), luego por saldo descendente.
+ * Solo facturas con saldo > 0 y en un estado que cuenta para el saldo
+ * (SDD-0558: ni borrador ni anulada; las pagadas quedan fuera por el saldo).
+ * Ordenadas por días vencido descendente (las más atrasadas arriba), luego por
+ * saldo descendente.
  */
 export function buildReceivablesQueue(
   invoices: Invoice[],
   activitiesByInvoice: Map<string, CollectionActivity[]>,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = todayCaracasISO(),
 ): Receivable[] {
   const out: Receivable[] = [];
   for (const inv of invoices) {
-    if (inv.status === "anulada") continue;
+    if (!cuentaParaSaldo(inv.status)) continue;
     const balance = computeBalance(inv);
     if (balance <= 0) continue;
 
@@ -520,7 +531,7 @@ export function buildReceivablesQueue(
  */
 export async function receivablesQueue(
   supabase: SupabaseClient,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = todayCaracasISO(),
 ): Promise<Receivable[]> {
   // Paginado: es la cola de COBRANZA. Una factura vencida que no aparece no
   // se cobra — y la lista se ordena por vencimiento, así que lo que se pierde
@@ -530,6 +541,9 @@ export async function receivablesQueue(
   // alimenta la pantalla, el export y los recordatorios por correo. Una
   // factura eliminada que entrara acá se cobraría y se le escribiría al
   // cliente por una deuda que el Studio ya no muestra.
+  //
+  // SDD-0558: solo los estados que cuentan para el saldo, los mismos de la
+  // 0492. Un borrador no es deuda: no se cobra ni se le recuerda a nadie.
   const { rows: invRows, complete: invOk } = await fetchAllPaged<
     Record<string, unknown>
   >((d, h) =>
@@ -537,7 +551,7 @@ export async function receivablesQueue(
       .from("invoices")
       .select(INVOICE_COLUMNS)
       .is("deleted_at", null)
-      .neq("status", "anulada")
+      .in("status", [...ESTADOS_FACTURA_CON_SALDO])
       .order("due_date", { ascending: true, nullsFirst: false })
       .order("id", { ascending: true })
       .range(d, h),
@@ -643,7 +657,7 @@ export function computeCollectionKpis(queue: Receivable[]): CollectionKpis {
 /** KPIs de cobranza del tenant (deriva de la cola). */
 export async function collectionKpis(
   supabase: SupabaseClient,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = todayCaracasISO(),
 ): Promise<CollectionKpis> {
   const queue = await receivablesQueue(supabase, today);
   return computeCollectionKpis(queue);

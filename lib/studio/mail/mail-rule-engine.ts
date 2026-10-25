@@ -206,8 +206,12 @@ export async function fireMailEvent(
  *
  * Un código retirado por RENOMBRADO no tiene fila en `clients` y sigue sin
  * correo, como antes: esta función no amplía a quién se le escribe.
+ *
+ * Exportada (SDD-0556) para el aviso al cliente cuando el equipo resuelve un
+ * reporte de pago: mismo destinatario que las reglas de Mailing, sin copiar
+ * la regla de fusiones.
  */
-async function emailDelShippingMark(
+export async function emailDelShippingMark(
   supabaseAdmin: SupabaseClient,
   tenantId: string,
   markbox: string,

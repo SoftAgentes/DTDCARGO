@@ -4,6 +4,17 @@
 **Proyecto:** DTD-Cargo monorepo (sitio público + Studio ERP + back de administración)
 **Repo:** github.com/hailuwaycom-sketch/DTDCARGO · privado
 
+> ⚠️ **Nota del 2026-10-19 · foto del 2026-05-27.** Las versiones y el
+> despliegue de abajo describen esa fecha. Desde el corte del 2026-10-14
+> (02:00Z), la base, Auth y Storage de producción son el Supabase del servidor
+> propio (VPS de Contabo, `https://supabase.dtdcargo.com`, contenedor
+> `dtd-cargo-db-1`), y desde el 2026-10-16 la web también corre ahí; Vercel está
+> en pausa. El proyecto de Cloud `xpfuzqombmjmxvprjgmi` es la copia del corte y
+> se pausa el 2026-10-28. Vigente: [`servidor-contabo.md`](../runbooks/servidor-contabo.md),
+> [`aplicar-migraciones-prod.md`](../runbooks/aplicar-migraciones-prod.md) y
+> [`publicacion-automatica-web.md`](../runbooks/publicacion-automatica-web.md).
+> El PDF hermano (`stack-tecnico.pdf`) es la misma foto y no lleva esta nota.
+
 ---
 
 ## Resumen rápido
@@ -86,6 +97,9 @@ Pero conviven **4 productos** dentro del mismo Next.js app:
 ---
 
 ## Deploy
+
+> Histórico (2026-05-27). Hoy: servidor propio en Contabo para la web y la
+> base; ver la nota del inicio.
 
 | Servicio | Producto |
 |----------|----------|

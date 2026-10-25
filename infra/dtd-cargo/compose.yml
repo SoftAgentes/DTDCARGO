@@ -69,6 +69,12 @@ services:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?NEXT_PUBLIC_SUPABASE_ANON_KEY falta en .env}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY falta en .env}
       CRON_SECRET: ${CRON_SECRET:?CRON_SECRET falta en .env}
+    volumes:
+      # Estado de las publicaciones que deja publicar-web.sh (SDD-0547) y que el
+      # Studio muestra en /studio/debug. Se monta la carpeta y no el archivo
+      # (el script lo reemplaza con mv), en solo lectura. Relativa: prueba ve la
+      # suya, vacía, y no la de producción.
+      - ./estado-publicacion:/var/lib/dtd-cargo/publicacion:ro
     networks:
       - dtd_edge
       - dtd_internal

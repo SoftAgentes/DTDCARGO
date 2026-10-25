@@ -5,6 +5,17 @@ Runbook para **prender el login del Portal Cliente** (`/portal`). El código
 magic-link **entregue**. Mismo patrón que `setup-resend.md` /
 `setup-web-push.md`: el código está, falta config del founder en el dashboard.
 
+> ⚠️ **Nota del 2026-10-19 · producción ya no es Supabase Cloud.** Desde el corte
+> del 2026-10-14 (02:00Z), Auth de producción es el GoTrue del servidor propio
+> (VPS de Contabo, `https://supabase.dtdcargo.com`), y desde el 2026-10-16 la
+> web también corre ahí; Vercel está en pausa. El proyecto de Cloud
+> `xpfuzqombmjmxvprjgmi` y sus enlaces al dashboard (sección «Proyecto
+> Supabase») son la copia del corte, que se pausa el 2026-10-28: no los uses
+> para configurar. Lo vigente es la sección [Self-hosted](#self-hosted-sdd-0505):
+> variables del `.env` del servidor (`/srv/dtd-cargo/.env`), plantillas servidas
+> por `auth-templates`. Lo opera la sesión de Contabo con el OK de Sam:
+> [`servidor-contabo.md`](servidor-contabo.md).
+
 ## Qué desbloquea
 
 El cliente entra a `dtdcargo.com/portal`, pone su email, recibe un **enlace

@@ -54,6 +54,9 @@ export default async function FidelizacionPage() {
   // Configurar los montos (SDD-0159): quien edita el módulo Fidelización. El
   // botón se esconde para el resto; el gate real vive en saveReferralSettingsAction.
   const canConfigure = canEditModule(role, "fidelizacion");
+  // SDD-0567: acreditar SIN venta crea un crédito en dinero: solo el admin. El
+  // gate real vive en la base (acreditar_referido_con_motivo, migración 0494).
+  const canAccreditManually = role === "admin";
 
   return (
     <FidelizacionClient
@@ -63,6 +66,7 @@ export default async function FidelizacionPage() {
       stats={stats}
       topReferrers={top}
       canApplyCredit={canApplyCredit}
+      canAccreditManually={canAccreditManually}
       referralSettings={referralSettings}
       canConfigure={canConfigure}
       strandedCredits={stranded.credits}

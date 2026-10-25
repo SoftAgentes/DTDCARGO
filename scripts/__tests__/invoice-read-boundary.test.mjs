@@ -29,6 +29,19 @@ const BASELINE = {
   "app/studio/(app)/fidelizacion/actions.ts": 1,
   "lib/portal/portal-legal-queries.ts": 3,
   "lib/portal/portal-queries.ts": 2,
+  // SDD-0560: +1 archivo y +1 lectura. `leerFacturas`, del asistente de borrado
+  // de embarques, lee `id, invoice_code, status, paid_amount` de las facturas
+  // vivas y no anuladas de UN embarque (el predicado de la guarda `invoices` de
+  // la 0476). Revisión del contrato:
+  //   · candado: sólo la llaman `leerPlanDeBorradoAction` y
+  //     `ejecutarPasoDeBorradoAction`, con `capabilityDenial(…, "delete_shipments")`
+  //     (admin) al tope, antes de leer nada;
+  //   · tenant: cliente de SESIÓN bajo `invoices_accounting_select` (0414,
+  //     accounting/admin del propio tenant); nunca el admin client;
+  //   · uso: decide qué paso ofrecer, no la autoridad: la lista tiene que cuadrar
+  //     con el conteo de la RPC de la 0476 y cada paso lo revalida la acción de
+  //     Facturación. Al cliente cruza sólo el código y el estado.
+  "lib/studio/borrado/asistente-servidor.ts": 1,
   // SDD-0496: aquí estaba `lib/studio/accounting/referral-credit-posting.ts`: 2.
   // SALE del inventario. `revertReferralCreditsForInvoice` leía la factura y le
   // escribía el pagado con guard optimista y relectura; las dos cosas pasaron a
@@ -40,6 +53,19 @@ const BASELINE = {
   // pasaron a las RPC de 0467, y la anulación ya no lee la factura. Quedan las
   // dos lecturas previas del cobro y de la identificación (sólo mensajes).
   "lib/studio/collections-actions.ts": 2,
+  // SDD-0557: +1 archivo y +2 lecturas, las dos de solo lectura con el cliente
+  // de SESIÓN bajo `invoices_accounting_select` (0414, accounting/admin del
+  // propio tenant); nunca el admin client.
+  //   · `ingresoDelPeriodo` lee `status, issued_at, currency, fx_rate,
+  //     base_amount, fund_class, deleted_at` de las facturas del período: es
+  //     la cifra oficial de ingreso. Sus callers están detrás de su candado:
+  //     Contabilidad (layout, `accounting`), Reportes (layout, `reports`) y
+  //     Dirección (página admin-only). Al cliente cruzan solo sumas y conteos.
+  //   · `cuadreDelLibro` lee código, estado, fecha, moneda y montos de las
+  //     facturas no borrador para «Por contabilizar» (Contabilidad, layout
+  //     `accounting`). Al cliente cruzan código, fecha, moneda y monto; sin
+  //     nombre ni RIF del cliente.
+  "lib/studio/accounting/libro-control-queries.ts": 2,
   "lib/studio/costing/queries.ts": 2,
   "lib/studio/dashboard/dashboard-kpi-queries.ts": 1,
   // SDD-0495: +1 por `strandedReferralCredits`, que mira si las facturas donde
@@ -72,7 +98,11 @@ const BASELINE = {
   // del Portal (getMyInvoiceForPrincipal + «invoices portal self read»).
   "lib/studio/invoice-client-doc.ts": 1,
   "lib/studio/invoice-queries.ts": 3,
-  "lib/studio/kommo-contact-status.ts": 1,
+  // SDD-0558: aquí estaba `lib/studio/kommo-contact-status.ts`: 1. SALE del
+  // inventario. El job de Kommo leía las facturas de los clientes vinculados
+  // con el cliente ADMIN y sumaba el saldo en TS; ahora lo pide a
+  // `client_outstanding` (0492), la definición única del saldo por cliente, por
+  // `listClientOutstanding` en `client-queries.ts`. No nombra `invoices`.
   "lib/studio/payment-queries.ts": 1,
   "lib/studio/renditions/queries.ts": 3,
   "lib/studio/reports/queries.ts": 4,
@@ -147,7 +177,10 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     });
     expect(actual).toEqual(BASELINE);
     // SDD-0496: 19 → 18 archivos. Sale `referral-credit-posting.ts` entero.
-    expect(Object.keys(actual)).toHaveLength(18);
+    // SDD-0560: 18 → 19. Entra `lib/studio/borrado/asistente-servidor.ts`.
+    // SDD-0557: 19 → 20. Entra `lib/studio/accounting/libro-control-queries.ts`.
+    // SDD-0558: 20 → 19. Sale `lib/studio/kommo-contact-status.ts` entero.
+    expect(Object.keys(actual)).toHaveLength(19);
     // El total va aparte del mapa a propósito: si alguien «arregla» el mapa
     // moviendo una llamada de un archivo a otro, el mapa vuelve a cuadrar y
     // este número no.
@@ -158,7 +191,11 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // está en `fidelizacion/referral-credit-queries.ts`, y ninguna de las tres
     // que quité está ahí. Número recalculado sobre el árbol fusionado, no
     // deducido de la aritmética.
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(42);
+    // SDD-0560: 42 → 43 por la lectura de `leerFacturas` (asistente de borrado).
+    // SDD-0557: 43 → 45 por `ingresoDelPeriodo` y `cuadreDelLibro`.
+    // SDD-0558: 45 → 44. La lectura de Kommo pasó a la 0492; recalculado sobre
+    // origin/main bb6bb3e4 con la 0555, la 0556, la 0557 y la 0560 ya fusionadas.
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(44);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {

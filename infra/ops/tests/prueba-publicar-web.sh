@@ -76,7 +76,7 @@ if [ "${1:-}" = --mutantes ]; then
   mutar "sin chequeo de disco" 'if ! libre_suficiente; then
     log "${MOTIVO}"; avisar_una_vez disco' 'if false; then
     log "${MOTIVO}"; avisar_una_vez disco'
-  mutar "no espera healthy" 'esperar_web "$2" || { MOTIVO="la web no quedó healthy"; return 1; }' 'true'
+  mutar "no espera healthy" 'esperar_web "$2" || { MOTIVO="la web no quedó healthy"; CODIGO=salud; return 1; }' 'true'
   mutar "sin prueba de sharp" 'prueba_sharp "$1" || return 1' 'true'
   mutar "sharp con red" 'docker run --rm --network none --entrypoint node' 'docker run --rm --entrypoint node'
   mutar "sin la interfaz del interino" 'if [[ "${MODO}" =~ ^(sha-)?[0-9a-f]{40}$ ]]; then set -- "${MODO#sha-}" "$@"; MODO=publicar; fi' ':'
@@ -97,6 +97,20 @@ if [ "${1:-}" = --mutantes ]; then
   mutar "Telegram sin recorte" '"text=${1:0:3500}"' '"text=$1"'
   mutar "Kuma sin recorte" '"msg=${2:0:200}"' '"msg=$2"'
   mutar "publica a mano y el vigilante la pisa" '      marcar_rechazo "${pdig}" "${prev}"' '      true "${pdig}" "${prev}"'
+  # SDD-0547: el estado para el Studio.
+  mutar "estado sin chmod 644" 'chmod 644 "${tmp}" && mv -f' 'true && mv -f'
+  mutar "estado escrito en el sitio (sin mv)" 'mv -f "${tmp}" "${ESTADO_WEB}/publicaciones.json"' 'cat "${tmp}" > "${ESTADO_WEB}/publicaciones.json" && rm -f "${tmp}"'
+  mutar "retenida cada minuto" 'if [ "$(cat "${ESTADO}/ultimo-retenida" 2>/dev/null)" = "${clave}" ]; then return 0; fi' ':'
+  mutar "texto libre al historial" '\"motivo\":$(json_codigo "$4")"' '\"motivo\":\"${MOTIVO}\""'
+  mutar "historial sin tope" '| tail -n "${MAX_HISTORIAL}" | tac' '| tail -n 200 | tac'
+  mutar "faltantes sin tope" "| awk '!visto[\$0]++' | head -50" "| awk '!visto[\$0]++'"
+  mutar "vigilar no escribe el estado" '  tomar_candado 0 || { echo "otra publicación en curso: nada que hacer"; return 0; }
+  ESCRIBIR_ESTADO=1' '  tomar_candado 0 || { echo "otra publicación en curso: nada que hacer"; return 0; }'
+  mutar "escribe sin el candado" 'ESCRIBIR_ESTADO=0   # 1 cuando' 'ESCRIBIR_ESTADO=1   # 1 cuando'
+  mutar "congelado siempre automático" '[ ! "${ESTADO}/congelado-automatico" -ot "${CONGELADO}" ]' 'true'
+  mutar "el vigilante guardado sin revisar" '[[ "${v}" =~ ${FORMA_VIGILANTE} ]] || v=null' 'true'
+  mutar "la fallida lleva el motivo de la vuelta" 'evento vuelta-atras-fallida "${sha}" "${origen}" "${fallo_codigo}"' 'evento vuelta-atras-fallida "${sha}" "${origen}" "${CODIGO}"'
+  mutar "la rechazada sin su código" 'VIG_ESTADO=retenida; VIG_MOTIVO=rechazada; return 1' 'VIG_ESTADO=retenida; return 1'
   echo "RESULTADO MUTANTES: ${muertos} muertos · ${vivos} vivos"
   [ "${vivos}" = 0 ]; exit
 fi
@@ -546,6 +560,193 @@ reiniciar; correr estado
 correr revisar; [ "${RC}" = 0 ] && grep -q 'PUERTAS: pasan' "${T}/salida.log" && [ "$(ups)" = 0 ] && ok "revisar: corre las puertas sin publicar" || { ko "revisar rc=${RC}"; ver; }
 correr; [ "${RC}" = 3 ] && ok "sin subcomando: uso (3)" || ko "uso rc=${RC}"
 
+# ─── estado para el Studio (SDD-0547) ────────────────────────────────────────
+echo; echo "== estado para el Studio (SDD-0547) =="
+J="${P}/estado-publicacion/publicaciones.json"
+LECTOR="${REPO}/lib/studio/publicaciones-types.ts"
+EJEMPLO="${REPO}/docs/specs/0547-panel-publicaciones-servidor/ejemplo-publicaciones.v1.json"
+nv=0
+nv() { echo "NO VERIFICADO · $*"; nv=$((nv + 1)); }
+# js '<expresión con e = el JSON>': un campo del archivo (los no-texto, como JSON).
+js() {
+  node -e 'const e = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    const r = new Function("e", "return (" + process.argv[2] + ")")(e);
+    process.stdout.write(typeof r === "string" ? r : JSON.stringify(r));' "${J}" "$1" 2>/dev/null
+}
+# Las formas del contrato (§4.1-§4.5), sin el código del Studio: claves conocidas
+# y cada valor con su forma. Un texto libre (ruta, error, URL) no cabe en ninguna.
+cat > "${T}/formas.js" <<'NODE'
+const e = JSON.parse(require("fs").readFileSync(process.argv[2], "utf8"));
+const SHA = /^[0-9a-f]{40}$/, HORA = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/, MIG = /^[0-9]{4}[a-z]?_[a-z0-9_]{1,80}$/;
+const COD = new Set(["migraciones", "ledger", "huellas", "sharp", "etiquetas", "imagen", "descarga", "disco", "ensayo", "env",
+  "sin-vuelta-atras", "salud", "prueba-rapida", "compose", "rechazada", "otro"]);
+const EST = new Set(["al-dia", "retenida", "detenido", "congelado"]), ORI = new Set(["vigilante", "a-mano"]);
+const RES = new Set(["publicada", "retenida", "vuelta-atras", "vuelta-atras-fallida", "vuelta-atras-a-mano"]);
+const malos = [];
+const claves = (o) => Object.keys(o).join(",");
+const migs = (l) => Array.isArray(l) && l.length <= 50 && l.every((m) => typeof m === "string" && MIG.test(m));
+if (claves(e) !== "version,actualizado,corre,anterior,publicable,congelado,vigilante,historial") malos.push("claves " + claves(e));
+if (e.version !== 1) malos.push("version");
+if (!HORA.test(e.actualizado)) malos.push("actualizado");
+for (const k of ["corre", "anterior", "publicable"]) if (e[k] !== null && !SHA.test(e[k])) malos.push(k);
+const c = e.congelado;
+if (c !== null && (claves(c) !== "desde,automatico" || !HORA.test(c.desde) || typeof c.automatico !== "boolean")) malos.push("congelado");
+const v = e.vigilante;
+if (v !== null && (claves(v) !== "estado,motivo,faltan" || !EST.has(v.estado) || (v.motivo !== null && !COD.has(v.motivo)) || !migs(v.faltan))) malos.push("vigilante");
+if (!Array.isArray(e.historial) || e.historial.length > 20) malos.push("historial");
+else e.historial.forEach((h, i) => {
+  const k = claves(h);
+  if (!(k === "hora,sha,origen,resultado,motivo" || k === "hora,sha,origen,resultado,motivo,faltan") || !HORA.test(h.hora) || !SHA.test(h.sha)
+    || !ORI.has(h.origen) || !RES.has(h.resultado) || (h.motivo !== null && !COD.has(h.motivo)) || ("faltan" in h && !migs(h.faltan))) malos.push("historial[" + i + "]");
+  if (i > 0 && e.historial[i - 1].hora < h.hora) malos.push("orden " + i);
+});
+if (malos.length) { console.log(malos.join(" ")); process.exit(1); }
+NODE
+formas() { node "${T}/formas.js" "${1:-${J}}" 2>&1; }
+lector() { # el parser del Studio (PR #264), si está en el árbol → «ok descartados=N historial=N vigilante=…»
+  node --input-type=module -e "import { readFileSync } from 'node:fs';
+    const m = await import('file://${LECTOR}');
+    const r = m.parseEstadoPublicaciones(JSON.parse(readFileSync(process.argv[1], 'utf8')));
+    console.log(r.ok ? 'ok descartados=' + r.estado.descartados + ' historial=' + r.estado.historial.length + ' vigilante=' + (r.estado.vigilante ? r.estado.vigilante.estado : 'null') : 'no ' + r.motivo);" "$1" 2>/dev/null
+}
+vig() { js 'e.vigilante === null ? "null" : e.vigilante.estado + " " + e.vigilante.motivo'; }
+ult() { js 'e.historial.length ? e.historial[0].resultado + " " + e.historial[0].sha + " " + e.historial[0].origen + " " + e.historial[0].motivo : "vacío"'; }
+
+if [ -f "${EJEMPLO}" ]; then
+  f="$(formas "${EJEMPLO}")" && ok "el validador de formas acepta el ejemplo canónico de la spec" || ko "el ejemplo de la spec no pasa: ${f}"
+else nv "el ejemplo canónico de la spec no está en este árbol (PR #264)"; fi
+
+reiniciar; correr vigilar
+[ "${RC}" = 0 ] && [ -f "${J}" ] && [ "$(stat -c %a "${J}")" = 644 ] && [ "$(stat -c %a "${P}/estado-publicacion")" = 755 ] \
+  && ok "vigilar deja publicaciones.json en 644, en una carpeta 755 dentro del directorio del compose" || { ko "archivo o permisos: $(stat -c '%a %n' "${J}" "${P}/estado-publicacion" 2>&1 | tr '\n' ' ')"; ver; }
+[ "$(ls -A "${P}/estado-publicacion")" = publicaciones.json ] && ok "no quedan temporales en la carpeta" || ko "sobran: $(ls -A "${P}/estado-publicacion" | tr '\n' ' ')"
+f="$(formas)" && ok "cada valor tiene una forma del contrato (§4.5): no hay texto libre" || ko "formas: ${f}"
+[ "$(js e.version)" = 1 ] && [ "$(js e.corre)" = "${B}" ] && [ "$(js e.anterior)" = "${A}" ] && [ "$(js e.publicable)" = "${B}" ] \
+  && [ "$(js 'JSON.stringify(e.vigilante)')" = '{"estado":"al-dia","motivo":null,"faltan":[]}' ] && [ "$(js e.congelado)" = null ] \
+  && ok "corre B, anterior A, publicable B, vigilante al día y sin congelar" || ko "campos: $(cut -c1-300 "${J}")"
+[ "$(js e.historial.length)" = 1 ] && [ "$(ult)" = "publicada ${B} vigilante null" ] && ok "historial: un evento «publicada» de B, automático" || ko "historial: $(ult)"
+! grep -q 'SECRETO\|TOKENKUMA\|secreto-cron\|/srv\|http' "${J}" && ok "sin secretos, rutas ni URLs" || ko "el archivo trae texto que no debe"
+i1="$(stat -c %i "${J}")"; correr vigilar; i2="$(stat -c %i "${J}")"
+[ "${RC}" = 0 ] && [ "${i1}" != "${i2}" ] && [ "$(js e.historial.length)" = 1 ] && [ "$(vig)" = "al-dia null" ] \
+  && ok "otra vuelta al día: reemplaza el archivo con mv (otro inodo) y no agrega eventos" || ko "segunda vuelta: inodo ${i1}→${i2}, $(js e.historial.length) eventos"
+if [ -f "${LECTOR}" ]; then
+  r="$(lector "${J}")"; [ "${r}" = "ok descartados=0 historial=1 vigilante=al-dia" ] && ok "el lector del Studio (parseEstadoPublicaciones) lo acepta entero" || ko "lector: ${r:-sin salida}"
+else nv "el lector del Studio no está en este árbol (PR #264): se prueban las formas, no el parser"; fi
+
+echo; echo "== estado: retenida, un evento por motivo =="
+reiniciar; printf '%s\n' 0001_init 0300_alfa > "${D}/ledger"; correr vigilar; correr vigilar
+[ "${RC}" = 1 ] && [ "$(js 'JSON.stringify(e.vigilante)')" = '{"estado":"retenida","motivo":"migraciones","faltan":["0301_beta","0302_gama"]}' ] \
+  && ok "faltan migraciones: vigilante retenido por «migraciones», con las que faltan" || ko "vigilante: $(js 'JSON.stringify(e.vigilante)')"
+[ "$(js e.historial.length)" = 1 ] && [ "$(ult)" = "retenida ${B} vigilante migraciones" ] && [ "$(js 'JSON.stringify(e.historial[0].faltan)')" = '["0301_beta","0302_gama"]' ] \
+  && ok "dos vueltas con el mismo motivo: un solo evento «retenida», con sus faltantes" || ko "retenidas: $(js 'JSON.stringify(e.historial)')"
+echo 0301_beta >> "${D}/ledger"; correr vigilar
+[ "$(js e.historial.length)" = 2 ] && [ "$(js 'JSON.stringify(e.historial[0].faltan)')" = '["0302_gama"]' ] \
+  && ok "si cambia lo que falta, otro evento (la misma regla que el aviso)" || ko "tras el cambio: $(js 'JSON.stringify(e.historial)')"
+f="$(formas)" && ok "retenida: sigue sin texto libre" || ko "formas: ${f}"
+correr aceptar-pendiente 0302_gama; correr vigilar
+[ "${RC}" = 0 ] && [ "$(ult)" = "publicada ${B} vigilante null" ] && [ "$(vig)" = "al-dia null" ] && ok "cuando pasa la puerta: «publicada» y al día" || ko "tras aceptar: $(ult) / $(vig)"
+
+echo; echo "== estado: cada negativa con su código =="
+caso() { # $1 = «estado motivo» esperado del vigilante, $2 = evento esperado («vacío» o «resultado motivo»), $3 = qué se probó
+  local f e
+  correr vigilar
+  e="$(js 'e.historial.length ? e.historial[0].resultado + " " + e.historial[0].motivo : "vacío"')"
+  if [ "$(vig)" = "$1" ] && [ "${e}" = "$2" ] && f="$(formas)"; then ok "$3 → vigilante «$1», historial «$2»"; else ko "$3: vigilante «$(vig)», historial «${e}» ${f:-}"; fi
+}
+reiniciar; echo 1 > "${D}/rc-pull"; caso "detenido descarga" "vacío" "no pudo bajar :publicable"
+! grep -q 'denied\|Error' "${J}" && ok "el error de docker pull no llega al archivo" || ko "el error de docker llegó al archivo"
+reiniciar; touch "${P}/compose.ensayo.yml"; caso "detenido ensayo" "vacío" "compose.ensayo.yml puesto"
+reiniciar; sed -i 's/^PUBLICAR_MIN_LIBRE_GB=0/PUBLICAR_MIN_LIBRE_GB=999999/' "${O}/publicar.env"; caso "detenido disco" "vacío" "poco disco"
+reiniciar; sed -i 's|^org.opencontainers.image.source=.*|org.opencontainers.image.source=https://github.com/otro/repo|' "${D}/img/${IB}/labels"; caso "detenido imagen" "vacío" "imagen de otro repositorio"
+reiniciar; echo "# a mano" >> "${P}/compose.yml"; caso "retenida huellas" "retenida huellas" "compose.yml distinto del commit"
+reiniciar; sed -i '/^org.dtdcargo.migraciones=/d' "${D}/img/${IB}/labels"; caso "retenida etiquetas" "retenida etiquetas" "imagen sin etiqueta de migraciones"
+reiniciar; : > "${D}/ledger"; caso "retenida ledger" "retenida ledger" "ledger vacío"
+reiniciar; echo 1 > "${D}/rc-sharp"; caso "retenida sharp" "retenida sharp" "sharp no convierte"
+reiniciar; echo "DTD_WEB_IMAGE=${IMG}:sha-${X}" >> "${P}/.env"; caso "retenida env" "retenida env" ".env con dos líneas DTD_WEB_IMAGE"
+reiniciar; rm -f "${D}/img/${IA}/local" "${D}/reg/$(printf '%s' "${IMG}:sha-${A}" | tr '/:@' '___')"; caso "retenida sin-vuelta-atras" "retenida sin-vuelta-atras" "sin la imagen anterior"
+reiniciar; echo unhealthy > "${D}/salud/${IB}"; caso "retenida salud" "vuelta-atras salud" "web unhealthy"
+reiniciar; printf '1\n1\n' > "${D}/smoke-rcs"; caso "retenida prueba-rapida" "vuelta-atras prueba-rapida" "la prueba rápida falla dos veces"
+[ "$(ult)" = "vuelta-atras ${B} vigilante prueba-rapida" ] && [ "$(js e.corre)" = "${A}" ] && ok "la «vuelta-atras» es de B (la que falló) y corre A" || ko "vuelta: $(ult) corre $(js e.corre)"
+caso "retenida rechazada" "vuelta-atras prueba-rapida" "al minuto siguiente, ya rechazada (sin evento nuevo)"
+[ "$(js e.historial.length)" = 1 ] && ok "la rechazada no suma eventos" || ko "eventos: $(js e.historial.length)"
+
+echo; echo "== estado: congelado y vuelta atrás fallida =="
+reiniciar; printf '1\n1\n1\n1\n' > "${D}/smoke-rcs"; correr vigilar
+[ "${RC}" = 2 ] && [ "$(ult)" = "vuelta-atras-fallida ${B} vigilante prueba-rapida" ] && [ "$(js e.congelado.automatico)" = true ] \
+  && [[ "$(js e.congelado.desde)" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}Z$ ]] && [ "$(vig)" = "congelado null" ] && f="$(formas)" \
+  && ok "doble fallo: sale 2, «vuelta-atras-fallida» por el motivo de la nueva, congelado automático" || ko "doble fallo rc=${RC}: $(cut -c1-400 "${J}") ${f:-}"
+correr descongelar
+[ "$(js e.congelado)" = null ] && [ "$(vig)" = null ] && ok "descongelar: sin congelado; el vigilante, sin dato hasta su próxima vuelta" || ko "descongelar: $(cut -c1-300 "${J}")"
+reiniciar; echo 1 > "${D}/rc-up"; correr vigilar
+[ "${RC}" = 2 ] && [ "$(ult)" = "vuelta-atras-fallida ${B} vigilante compose" ] && ok "docker compose up falla en la nueva y en la vuelta: «vuelta-atras-fallida» por compose" || ko "compose rc=${RC}: $(ult)"
+reiniciar; echo unhealthy > "${D}/salud/${IB}"; printf '1\n1\n' > "${D}/smoke-rcs"; correr vigilar
+[ "${RC}" = 2 ] && [ "$(ult)" = "vuelta-atras-fallida ${B} vigilante salud" ] \
+  && ok "la nueva no arranca (salud) y la vuelta falla la prueba rápida: el evento lleva «salud», el motivo de la nueva" || ko "motivo de la fallida rc=${RC}: $(ult)"
+reiniciar; correr vigilar; correr congelar "corte de prueba"
+[ "$(js e.congelado.automatico)" = false ] && [ "$(vig)" = "congelado null" ] && ! grep -q 'corte de prueba' "${J}" \
+  && ok "congelar a mano: automático false, y el motivo escrito a mano no va al archivo" || ko "congelar: $(cut -c1-300 "${J}")"
+reiniciar; mkdir -p "${O}/estado"; touch -d '2 minutes ago' "${O}/estado/congelado-automatico"; echo "a mano · alguien" > "${O}/CONGELADO"; correr vigilar
+[ "$(js e.congelado.automatico)" = false ] && ok "una marca de automático vieja no cuenta para un CONGELADO puesto después a mano" || ko "marca vieja: $(js 'JSON.stringify(e.congelado)')"
+
+echo; echo "== estado: a mano y vuelta atrás a mano =="
+reiniciar; imagen "${X}" "${IX}" "${DX}" 300; correr publicar "${X}"
+[ "${RC}" = 0 ] && [ "$(ult)" = "publicada ${X} a-mano null" ] && [ "$(js e.corre)" = "${X}" ] && ok "a mano: «publicada» con origen a-mano" || ko "a mano: $(ult)"
+correr volver
+[ "${RC}" = 0 ] && [ "$(ult)" = "vuelta-atras-a-mano ${A} a-mano null" ] && [ "$(js e.corre)" = "${A}" ] && ok "volver: «vuelta-atras-a-mano» con el commit al que volvió" || ko "volver: $(ult)"
+if [ -f "${LECTOR}" ]; then
+  r="$(lector "${J}")"; [ "${r}" = "ok descartados=0 historial=2 vigilante=null" ] && ok "el lector del Studio acepta el historial a mano" || ko "lector: ${r:-sin salida}"
+fi
+
+echo; echo "== estado: historial, tamaño y fallas del escritor =="
+reiniciar; mkdir -p "${O}/estado"
+for i in $(seq 0 249); do
+  printf '{"hora":"2026-10-01T%02d:%02d:%02dZ","sha":"%s","origen":"vigilante","resultado":"publicada","motivo":null}\n' $((i / 3600)) $((i / 60 % 60)) $((i % 60)) "${A}"
+done > "${O}/estado/historial.jsonl"
+printf '{"hora":"2026-10-01T09:00:00Z","sha":"%s","origen":"vigilante","resultado":"publicada","motivo":"/srv/ops/web SECRETO"}\n' "${A}" >> "${O}/estado/historial.jsonl"
+correr vigilar
+[ "$(js e.historial.length)" = 20 ] && [ "$(ult)" = "publicada ${B} vigilante null" ] && [ "$(js e.historial[1].hora)" = "2026-10-01T00:04:09Z" ] && ! grep -q SECRETO "${J}" \
+  && ok "historial: los 20 más nuevos, el más nuevo primero; una línea con texto libre no pasa" || ko "historial: $(js e.historial.length) · $(js e.historial[1].hora)"
+[ "$(grep -c . "${O}/estado/historial.jsonl")" = 200 ] && ok "el historial del servidor se queda en 200 líneas" || ko "historial.jsonl: $(grep -c . "${O}/estado/historial.jsonl") líneas"
+reiniciar; mkdir -p "${O}/estado"
+largo="$(for i in $(seq 1000 1099); do printf '%s_%s,' "${i}" "$(printf 'x%.0s' $(seq 1 78))"; done)"; largo="${largo%,}"
+sed -i "s/^org.dtdcargo.migraciones=.*/org.dtdcargo.migraciones=v1:100:${largo}/" "${D}/img/${IB}/labels"
+for i in $(seq 10 49); do
+  printf '{"hora":"2026-10-01T00:00:%02dZ","sha":"%s","origen":"vigilante","resultado":"retenida","motivo":"migraciones","faltan":[%s]}\n' "${i}" "${A}" \
+    "$(printf '"%s",' $(printf '%s' "${largo}" | tr ',' ' ' | cut -d' ' -f1-50) | sed 's/,$//')"
+done > "${O}/estado/historial.jsonl"
+correr vigilar
+tam="$(stat -c %s "${J}")"
+[ "${tam}" -le 131072 ] && [ "$(js e.vigilante.faltan.length)" = 50 ] && [ "$(js e.historial[0].faltan.length)" = 50 ] && f="$(formas)" \
+  && ok "100 faltantes de 83 caracteres y 20 eventos llenos: ${tam} bytes (tope del Studio: 131072), 50 faltantes por lista" || ko "tamaño ${tam} · $(js e.vigilante.faltan.length) ${f:-}"
+reiniciar; echo "no soy carpeta" > "${P}/estado-publicacion"; correr vigilar
+[ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${B}@${DB}" ] && grep -q 'estado para el Studio: no pude' "${T}/salida.log" \
+  && ok "si no puede escribir el estado: publica igual, lo dice y sale 0" || { ko "escritor roto rc=${RC}"; ver; }
+reiniciar; mkdir -p "${O}/estado"; imagen "${X}" "${IX}" "${DX}" 300
+printf '%s\n' '{"estado":"al-dia","motivo":"/srv/ops SECRETO","faltan":[]}' > "${O}/estado/vigilante.json"
+correr publicar "${X}"
+[ "$(vig)" = null ] && ! grep -q SECRETO "${J}" && ok "un vigilante.json con otra forma no pasa al archivo (queda null)" || ko "vigilante.json raro: $(vig)"
+reiniciar; correr estado; correr revisar; correr aceptar-pendiente 0302_gama
+[ ! -e "${J}" ] && ok "estado, revisar y aceptar-pendiente no escriben el archivo" || ko "lo escribieron"
+reiniciar; correr vigilar; i1="$(stat -c %i "${J}")"
+( exec 9>"${T}/candado"; flock 9; sleep 30 ) & PID_CANDADO=$!
+sleep 1; correr vigilar
+kill "${PID_CANDADO}" 2>/dev/null; wait "${PID_CANDADO}" 2>/dev/null
+[ "$(stat -c %i "${J}")" = "${i1}" ] && ok "con otra publicación en curso no toca el estado (lo escribe la que tiene el candado)" || ko "escribió sin el candado"
+
+echo; echo "== estado: el código y el montaje =="
+awk '/(^|[^A-Z_])MOTIVO="/ && !/MOTIVO="\$\{MOTIVO\}/ && !/MOTIVO=""/ && !/CODIGO=/ { print NR ": " $0 }' "${SCRIPT}" > "${T}/sin-codigo"
+[ -s "${SCRIPT}" ] && grep -q 'MOTIVO="' "${SCRIPT}" && [ ! -s "${T}/sin-codigo" ] && ok "cada MOTIVO= lleva su CODIGO en la misma línea" || ko "MOTIVO sin CODIGO: $(head -2 "${T}/sin-codigo" | cut -c1-140)"
+grep -oE 'CODIGO=[a-z-]+' "${SCRIPT}" | cut -d= -f2 | sort -u > "${T}/codigos"
+printf '%s\n' migraciones ledger huellas sharp etiquetas imagen descarga disco ensayo env sin-vuelta-atras salud prueba-rapida compose rechazada | sort > "${T}/lista"
+[ -s "${T}/codigos" ] && [ -z "$(comm -23 "${T}/codigos" "${T}/lista")" ] && ok "los códigos del script son de la lista cerrada de §4.4 ($(grep -c . "${T}/codigos") distintos)" || ko "códigos fuera de la lista: $(comm -23 "${T}/codigos" "${T}/lista" | tr '\n' ' ')"
+awk '/^  web:/ { w = 1; next } /^  [a-z]/ { w = 0 } w' "${REPO}/infra/dtd-cargo/compose.yml" > "${T}/web.yml"
+grep -qx '      - ./estado-publicacion:/var/lib/dtd-cargo/publicacion:ro' "${T}/web.yml" \
+  && ok "compose.yml: el web monta ./estado-publicacion en /var/lib/dtd-cargo/publicacion, solo lectura" || ko "montaje del web en compose.yml"
+if [ -f "${REPO}/lib/studio/publicaciones-loader.ts" ]; then
+  grep -qF '"/var/lib/dtd-cargo/publicacion/publicaciones.json"' "${REPO}/lib/studio/publicaciones-loader.ts" \
+    && ok "el destino del montaje es la carpeta que lee el Studio (RUTA_ESTADO_PUBLICACIONES)" || ko "el loader del Studio lee otra ruta"
+else nv "publicaciones-loader.ts no está en este árbol (PR #264): no se compara su ruta con el montaje"; fi
+
 echo; echo "== unidades de systemd =="
 grep -qx 'ExecStart=/srv/ops/web/publicar-web.sh vigilar' "${UNITS}/dtd-cargo-publicar.service" && grep -qx 'Type=oneshot' "${UNITS}/dtd-cargo-publicar.service" \
   && ok "el servicio corre publicar-web.sh vigilar, oneshot" || ko "servicio"
@@ -553,5 +754,5 @@ grep -qx 'OnUnitInactiveSec=60s' "${UNITS}/dtd-cargo-publicar.timer" && grep -qx
   && ok "el timer vuelve 60 s después de que termina la vuelta anterior (no se superponen)" || ko "timer"
 bash -n "${S}/web/publicar-web.sh" && bash -n "${HUELLAS}" && ok "bash -n de los dos scripts" || ko "bash -n"
 
-echo "RESULTADO: ${pass} PASÓ · ${fail} FALLÓ"
+echo "RESULTADO: ${pass} PASÓ · ${fail} FALLÓ · ${nv} NO VERIFICADO"
 [ "${fail}" = 0 ]

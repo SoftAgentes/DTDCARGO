@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { buildViewCsv, reportFilename, rowsToCsv } from "../export-csv";
+import { resumirIngreso } from "@/lib/studio/accounting/ingreso-periodo";
 import type {
   AgingReport,
+  CashflowReport,
+  IncomeStatement,
   CombinedReport,
   CommercialByClient,
   OperationalOverview,
@@ -220,5 +223,79 @@ describe("buildViewCsv · Combinados", () => {
 describe("buildViewCsv · Constructor (build) se autogestiona → null", () => {
   it("devuelve null para category build", () => {
     expect(buildViewCsv({ category: "build", rep: "", today: TODAY })).toBeNull();
+  });
+});
+
+// ── SDD-0557 · Estado de resultados con la cifra oficial ──────
+describe("buildViewCsv · Estado de resultados (SDD-0557)", () => {
+  const rango = { from: "2026-06-01", to: "2026-06-04" };
+  const MAYOR_VACIO = { ventas: 0, ventasConMovimiento: false, ingresos: 0, facturasConAsiento: new Set<string>() };
+  const ingreso = (base: number, currency = "USD", mayor = MAYOR_VACIO) =>
+    resumirIngreso(
+      base ? [{ id: "f1", status: "emitida", issued_at: "2026-06-02", currency, fx_rate: currency === "VES" ? 36.5 : null, base_amount: base }] : [],
+      rango,
+      mayor,
+    );
+  const income = (over: Partial<IncomeStatement>): IncomeStatement => ({
+    rows: [],
+    income: 0,
+    netIncome: 0,
+    range: rango,
+    ingreso: ingreso(0),
+    ...over,
+  });
+
+  it("mayor en 0 con facturado: igual exporta, con las filas de control al final", () => {
+    const csv = buildViewCsv({ category: "con", rep: "income", income: income({ ingreso: ingreso(2000) }), today: TODAY });
+    expect(csv).not.toBeNull();
+    const lines = csv!.content.split("\r\n");
+    expect(lines[0]).toBe("Concepto,Monto USD,% s/ingresos");
+    expect(lines).toContain("Ingreso facturado (sin IVA · USD · por emisión),2000,");
+    expect(lines).toContain("En el mayor · cuenta 4.5 · asientos de factura,0,");
+    expect(lines).toContain("Diferencia facturado − mayor (4.5),2000,");
+    expect(lines).toContain("Control contra 4.5: El mayor tiene menos,,");
+    expect(lines).toContain("Facturas del período en bolívares o yuanes con asiento de factura (cantidad),0,");
+    expect(lines).toContain("Otros ingresos del mayor (4.6 y manuales · también a 4.5),0,");
+  });
+
+  it("con una factura en bolívares y asientos de factura en 4.5: diferencia vacía, «No comparable» y 4.5 fuera de «Monto USD»", () => {
+    // La factura en bolívares con su asiento de factura vivo (decisión 7).
+    const conAsiento = { ventas: 36500, ventasConMovimiento: true, ingresos: 36500, facturasConAsiento: new Set(["f1"]) };
+    const csv = buildViewCsv({ category: "con", rep: "income", income: income({ ingreso: ingreso(36500, "VES", conAsiento) }), today: TODAY });
+    const lines = csv!.content.split("\r\n");
+    expect(lines).toContain("Diferencia facturado − mayor (4.5),,");
+    expect(lines).toContain("Control contra 4.5: No comparable,,");
+    expect(lines).toContain("Facturas del período en bolívares o yuanes con asiento de factura (cantidad),1,");
+    // El nominal mixto no va bajo «Monto USD»: la fila lo dice y la celda va vacía.
+    expect(lines).toContain("En el mayor · cuenta 4.5 · asientos de factura: nominal mixto (no USD),,");
+    expect(lines.some((l) => l.includes("36500") && l.startsWith("En el mayor"))).toBe(false);
+  });
+
+  it("con una factura en bolívares y 4.5 vacía (B3): el mayor tiene menos por todo lo facturado", () => {
+    const csv = buildViewCsv({ category: "con", rep: "income", income: income({ ingreso: ingreso(36500, "VES") }), today: TODAY });
+    const lines = csv!.content.split("\r\n");
+    expect(lines).toContain("En el mayor · cuenta 4.5 · asientos de factura,0,");
+    expect(lines).toContain("Diferencia facturado − mayor (4.5),1000,");
+    expect(lines).toContain("Control contra 4.5: El mayor tiene menos,,");
+    // Sin asiento no cuenta (decisión 7): ya falta en 4.5.
+    expect(lines).toContain("Facturas del período en bolívares o yuanes con asiento de factura (cantidad),0,");
+  });
+
+  it("todo en 0 → null", () => {
+    expect(buildViewCsv({ category: "con", rep: "income", income: income({}), today: TODAY })).toBeNull();
+  });
+
+  it("Facturado contra cobrado: el archivo ya no se llama cashflow", () => {
+    const cashflow: CashflowReport = {
+      series: [{ month: "2026-06", label: "JUN 26", billed: 100, collected: 50 }],
+      totalBilled: 100,
+      totalCollected: 50,
+      outstanding: 50,
+      overdue: 0,
+    };
+    const csv = buildViewCsv({ category: "con", rep: "cashflow", cashflow, today: TODAY });
+    expect(csv!.filename).toBe("reporte-contable-facturado-contra-cobrado-2026-06-04.csv");
+    // El facturado de esta vista lleva IVA (se compara con lo cobrado).
+    expect(csv!.content.split("\r\n")[0]).toBe("Mes,Facturado con IVA USD,Cobrado USD");
   });
 });

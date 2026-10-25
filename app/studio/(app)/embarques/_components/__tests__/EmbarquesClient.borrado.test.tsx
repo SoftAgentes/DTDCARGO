@@ -15,11 +15,16 @@ import type { InfoBorradoEmbarque } from "@/lib/studio/borrado/reglas";
 
 const mocks = vi.hoisted(() => ({
   deleteShipmentsAction: vi.fn(),
+  leerPlanDeBorradoAction: vi.fn(),
+  ejecutarPasoDeBorradoAction: vi.fn(),
   show: vi.fn(),
 }));
 
 vi.mock("../../actions", () => ({
   deleteShipmentsAction: (...a: unknown[]) => mocks.deleteShipmentsAction(...a),
+  // SDD-0560: el asistente que abre «Ver los pasos».
+  leerPlanDeBorradoAction: (...a: unknown[]) => mocks.leerPlanDeBorradoAction(...a),
+  ejecutarPasoDeBorradoAction: (...a: unknown[]) => mocks.ejecutarPasoDeBorradoAction(...a),
 }));
 vi.mock("@/app/studio/_components/ui/ToastProvider", () => ({
   useToast: () => ({ show: mocks.show, success: vi.fn(), info: vi.fn(), error: vi.fn(), warning: vi.fn(), dismiss: vi.fn() }),
@@ -211,5 +216,65 @@ describe("EmbarquesClient · barra y diálogo", () => {
     const eliminar = within(barra).getByRole("button", { name: "Eliminar…" });
     expect(eliminar).toBeDisabled();
     expect(eliminar).toHaveAccessibleDescription("Elige hasta 100 por vez: quita 1 de la selección.");
+  });
+});
+
+describe("EmbarquesClient · «Ver los pasos» (SDD-0560)", () => {
+  it("la fila bloqueada ofrece el asistente, sin tocar la descripción de la casilla", () => {
+    pintar({ estado: "lista", info: INFO });
+    const ver = screen.getByRole("button", { name: "Ver los pasos para eliminar S-2026-0002" });
+    expect(ver.textContent).toBe("Ver los pasos");
+    // La descripción de la casilla sigue siendo sólo el motivo.
+    expect(screen.getByRole("checkbox", { name: "Seleccionar S-2026-0002" })).toHaveAccessibleDescription(MOTIVO_S2);
+    // Las que se pueden eliminar no lo necesitan.
+    expect(screen.queryByRole("button", { name: "Ver los pasos para eliminar S-2026-0001" })).toBeNull();
+  });
+
+  it("sin lectura de la fila, o ya eliminado, no se ofrece (no hay plan que mostrar)", () => {
+    pintar({
+      estado: "lista",
+      info: { "s-1": INFO["s-1"], "s-2": { bloqueos: { already_deleted: 1 }, avisos: {} } },
+    });
+    expect(screen.queryByRole("button", { name: /Ver los pasos para eliminar/ })).toBeNull();
+  });
+
+  it("abre el asistente de ese embarque", async () => {
+    const user = userEvent.setup();
+    mocks.leerPlanDeBorradoAction.mockResolvedValue({ ok: false, error: "No se pudo revisar." });
+    pintar({ estado: "lista", info: INFO });
+    await user.click(screen.getByRole("button", { name: "Ver los pasos para eliminar S-2026-0002" }));
+    expect(await screen.findByRole("heading", { name: "Eliminar S-2026-0002 paso a paso" })).toBeTruthy();
+    expect(mocks.leerPlanDeBorradoAction).toHaveBeenCalledWith("s-2");
+  });
+
+  it("al eliminar desde el asistente: un solo aviso y se cierra", async () => {
+    const user = userEvent.setup();
+    const hecho = "Embarque S-2026-0002 eliminado. Ya no aparece en Embarques, Tracking ni el Portal.";
+    const { calcularPlan } = await import("@/lib/studio/borrado/asistente");
+    mocks.leerPlanDeBorradoAction.mockResolvedValue({
+      ok: true,
+      plan: calcularPlan({
+        embarque: { id: "s-2", codigo: "S-2026-0002" },
+        info: { bloqueos: {}, avisos: {} },
+        facturas: [],
+        gastos: [],
+        cxp: [],
+        rutas: [],
+        consolidaciones: [],
+        recepciones: [],
+        compras: [],
+      }),
+    });
+    mocks.ejecutarPasoDeBorradoAction.mockResolvedValue({ ok: true, hecho, eliminado: true, plan: null });
+    pintar({ estado: "lista", info: INFO });
+    await user.click(screen.getByRole("button", { name: "Ver los pasos para eliminar S-2026-0002" }));
+    await user.click(await screen.findByRole("button", { name: "Eliminar embarque…" }));
+    const confirmacion = screen.getAllByRole("dialog")[1];
+    await user.type(within(confirmacion).getByLabelText(/Motivo/), "Embarque de prueba");
+    await user.click(within(confirmacion).getByRole("button", { name: "Eliminar embarque" }));
+
+    await waitFor(() => expect(screen.queryAllByRole("dialog")).toHaveLength(0));
+    expect(mocks.show).toHaveBeenCalledTimes(1);
+    expect(mocks.show.mock.calls[0][0]).toMatchObject({ eventKey: "shipments:deleted", tone: "success", message: hecho });
   });
 });

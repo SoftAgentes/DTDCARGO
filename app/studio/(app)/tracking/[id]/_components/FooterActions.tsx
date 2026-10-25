@@ -8,6 +8,8 @@
  * - Eliminar: motivo obligatorio (4 a 1000, SDD-0522) + tipear el codigo exacto
  *   del envio (estilo GitHub). Solo lo ve quien puede eliminar (admin,
  *   `delete_shipments`); la RPC de la 0476 decide si se puede.
+ * - SDD-0560: si lo bloquean dependencias vivas, el modal ofrece «Ver los pasos
+ *   para eliminarlo», que abre el asistente de borrado.
  *
  * Tooltips de hover en ambos botones del footer principal.
  *
@@ -15,10 +17,13 @@
  */
 
 import { useState, useTransition, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { cancelShipment, deleteShipment } from "../actions";
 import { isTerminalStatus } from "@/lib/studio/shipment-actions";
 import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { AsistenteBorrado } from "@/app/studio/(app)/embarques/_components/AsistenteBorrado";
 
 const MODAL_BACKDROP: React.CSSProperties = {
   position: "fixed",
@@ -58,6 +63,9 @@ export function FooterActions({
   const [deleteTypedCode, setDeleteTypedCode] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // SDD-0560: el borrado lo bloquean dependencias vivas → se ofrece el asistente.
+  const [bloqueado, setBloqueado] = useState(false);
+  const [asistente, setAsistente] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const terminal = isTerminalStatus(status);
@@ -72,6 +80,7 @@ export function FooterActions({
     setDeleteTypedCode("");
     setDeleteReason("");
     setError(null);
+    setBloqueado(false);
   };
 
   /**
@@ -114,13 +123,17 @@ export function FooterActions({
       return;
     }
     setError(null);
+    setBloqueado(false);
     startTransition(async () => {
       // deleteShipment redirige a /studio/tracking cuando el borrado ocurre, así
       // que esta línea sólo devuelve algo si no borró: permiso, motivo, lo que
       // lo bloquea (factura, gasto, aduana…) o una falla. Antes redirigía en los
       // tres casos y el operador se iba creyendo que había borrado (SDD-0497).
       const result = await deleteShipment(shipmentId, deleteReason);
-      if (result?.error) setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        setBloqueado(result.bloqueado === true);
+      }
     });
   };
 
@@ -370,6 +383,24 @@ export function FooterActions({
               </p>
             )}
 
+            {/* SDD-0560: en vez de dejarte trabado, el asistente te dice qué
+                resolver y en qué orden. */}
+            {error && bloqueado && (
+              <div style={{ marginBottom: 12 }}>
+                <button
+                  type="button"
+                  className="studio-btn studio-btn-dark studio-btn-sm"
+                  onClick={() => {
+                    closeModal();
+                    setAsistente(true);
+                  }}
+                  disabled={isPending}
+                >
+                  Ver los pasos para eliminarlo
+                </button>
+              </div>
+            )}
+
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
               <button
                 type="button"
@@ -392,6 +423,51 @@ export function FooterActions({
           </div>
         </div>
       )}
+
+      {canDelete && asistente && (
+        <AsistenteEnTracking
+          shipmentId={shipmentId}
+          shipmentCode={shipmentCode}
+          onClose={() => setAsistente(false)}
+        />
+      )}
     </>
+  );
+}
+
+/**
+ * SDD-0560 · El asistente desde el detalle. Sólo se monta al abrirlo: el resto
+ * del pie no depende del toast ni del router. Al eliminar el embarque, este
+ * detalle deja de existir: un aviso y de vuelta al listado, como
+ * `deleteShipment`.
+ */
+function AsistenteEnTracking({
+  shipmentId,
+  shipmentCode,
+  onClose,
+}: {
+  shipmentId: string;
+  shipmentCode: string;
+  onClose: () => void;
+}) {
+  const toast = useToast();
+  const router = useRouter();
+  return (
+    <AsistenteBorrado
+      shipmentId={shipmentId}
+      shipmentCode={shipmentCode}
+      onClose={onClose}
+      onEliminado={(hecho) => {
+        toast.show({
+          eventKey: "shipments:deleted",
+          tone: "success",
+          message: hecho,
+          priority: "normal",
+          scope: "module",
+          dedupeKey: `shipments:deleted:${shipmentCode}`,
+        });
+        router.push("/studio/tracking");
+      }}
+    />
   );
 }

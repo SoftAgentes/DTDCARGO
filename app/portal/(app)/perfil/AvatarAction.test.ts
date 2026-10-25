@@ -13,10 +13,17 @@ const stubs = vi.hoisted(() => ({
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: (...a: unknown[]) => stubs.revalidatePath(...a) }));
-vi.mock("@/lib/db/server", () => ({
-  createClient: async () => ({
-    rpc: async () => ({ data: stubs.clientId, error: stubs.clientId ? null : { message: "x" } }),
-  }),
+vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
+// SDD-0552: identidad, tenant y markbox salen del principal Portal de la sesión.
+vi.mock("@/lib/portal/portal-queries", () => ({
+  getPortalClientPrincipal: async () =>
+    stubs.clientId
+      ? {
+          userId: "u1",
+          tenantId: "tenant-1",
+          client: { id: stubs.clientId, markbox: "DTD-5452", name: "Cliente sintético" },
+        }
+      : null,
 }));
 vi.mock("@/lib/db/admin", () => ({
   createAdminClient: () => ({

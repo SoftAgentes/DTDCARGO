@@ -10,12 +10,11 @@ import {
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
   formatInvoiceAmount,
-  invoiceBalance,
   isActiveShipmentStatus,
-  type InvoiceCurrency,
   type PortalShipmentRow,
   type PortalEstimateRow,
 } from "@/lib/portal/portal-types";
+import { notaPagosEnAnuladas, notaSobrepagos, resumenDeCuenta } from "@/lib/portal/saldo-de-cuenta";
 import { showNortePortal } from "@/lib/portal/demo";
 import { ArrowIcon, DocIcon, QuoteIcon } from "@/components/Icon";
 import { InvoiceRow } from "../../_components/InvoiceRow";
@@ -49,27 +48,13 @@ export default async function PortalFinanzasPage() {
     "Hola DTD Cargo, soy cliente y tengo una consulta sobre mis facturas.",
   );
 
-  // KPIs en la moneda DOMINANTE (sumar entre monedas sería incorrecto; mismo
-  // criterio que /portal/facturas).
-  const byCurrency = new Map<
-    InvoiceCurrency,
-    { total: number; paid: number; balance: number }
-  >();
-  for (const inv of invoices) {
-    const e = byCurrency.get(inv.currency) ?? { total: 0, paid: 0, balance: 0 };
-    e.total += inv.total;
-    e.paid += inv.paid;
-    e.balance += invoiceBalance({ total_amount: inv.total, paid_amount: inv.paid });
-    byCurrency.set(inv.currency, e);
-  }
-  const currencies = [...byCurrency.keys()];
-  const primary =
-    currencies
-      .slice()
-      .sort((a, b) => (byCurrency.get(b)?.total ?? 0) - (byCurrency.get(a)?.total ?? 0))[0] ??
-    "USD";
-  const agg = byCurrency.get(primary) ?? { total: 0, paid: 0, balance: 0 };
-  const mixed = currencies.length > 1;
+  // KPIs en la moneda DOMINANTE, con la MISMA definición de deuda que
+  // /portal/facturas e Inicio (SDD-0556): las anuladas no suman, y lo pagado en
+  // ellas se informa aparte sin restarlo.
+  const r = resumenDeCuenta(invoices);
+  const notaAnuladas = notaPagosEnAnuladas(r.pagosEnAnuladas);
+  // Con un sobrepago, facturado − pagado no da el saldo pendiente (SDD-0556).
+  const notaDeMas = notaSobrepagos(r.sobrepagos, r.currency, { donde: "kpis" });
 
   return (
     <div>
@@ -96,7 +81,7 @@ export default async function PortalFinanzasPage() {
           estimatesCount={estimates.length}
           approvedCount={approvedCount}
           invoicesCount={invoices.length}
-          invoicedLabel={formatInvoiceAmount(agg.total, primary)}
+          invoicedLabel={formatInvoiceAmount(r.facturado, r.currency)}
         />
       ) : null}
 
@@ -122,20 +107,30 @@ export default async function PortalFinanzasPage() {
       ) : (
         <>
           <div className="mt-7 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Kpi label="Total facturado" value={formatInvoiceAmount(agg.total, primary)} />
-            <Kpi label="Pagado" value={formatInvoiceAmount(agg.paid, primary)} />
+            <Kpi label="Total facturado" value={formatInvoiceAmount(r.facturado, r.currency)} />
+            <Kpi label="Pagado" value={formatInvoiceAmount(r.pagado, r.currency)} />
             <Kpi
               label="Saldo pendiente"
-              value={formatInvoiceAmount(agg.balance, primary)}
-              highlight={agg.balance > 0}
+              value={formatInvoiceAmount(r.porPagar, r.currency)}
+              highlight={r.porPagar > 0}
             />
           </div>
-          {mixed && (
+          {r.mixedCurrencies && (
             <p className="mt-3 text-[12px] text-grey-500">
-              Montos en {primary}. Tienes facturas en otras monedas — abre cada una
+              Montos en {r.currency}. Tienes facturas en otras monedas — abre cada una
               para ver su detalle.
             </p>
           )}
+          {notaAnuladas ? (
+            <p className="mt-3 text-[12.5px] text-grey-700 leading-[1.5] max-w-[64ch]">
+              {notaAnuladas}
+            </p>
+          ) : null}
+          {notaDeMas ? (
+            <p className="mt-3 text-[12.5px] text-grey-700 leading-[1.5] max-w-[64ch]">
+              {notaDeMas}
+            </p>
+          ) : null}
 
           <div className="mt-6 flex flex-col gap-3">
             {invoices.map((inv) => (

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 531 specs)
+### Índice de specs (generado · 556 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -525,6 +525,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0498 | Cinco puertas del Studio que se saltaban el fail-closed por d… | in-progress | interno |
 | 0499 | Secretos que viajan mal y gates que faltan en app/api | in-progress | interno |
 | 0500 | El anti-drift de RBAC mide por acción, no por archivo | in-progress | interno |
+| 0501 | Detectar el desfase de encabezados del grafo que el sello AST… | done | interno |
 | 0502 | Mínimo facturable con batería según el multiplicador configur… | in-progress | interno |
 | 0503 | Carrusel de fotos de la empresa en la web pública | in-progress | interno |
 | 0504 | Entrega incluida desde Editar ciudad | done | interno |
@@ -569,6 +570,30 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0543 | Consolidados en camino: carga de contenedores desde el packin… | in-progress | interno |
 | 0544 | Producto mínimo para el entorno de prueba: GA apagable, aviso… | proposed | interno |
 | 0545 | sdd:next --reserve: --expect, --number y aviso de hueco reciente | in-progress | interno |
+| 0546 | Aplicar migraciones en la base del servidor propio: scripts p… | in-progress | interno |
+| 0547 | Panel de publicaciones del Studio: el estado del servidor pro… | in-progress | interno |
+| 0548 | El gate migrations-applied mide solo en producción y dice dón… | in-progress | interno |
+| 0549 | Portal: lecturas restantes por principal de sesión y tenant | done | interno |
+| 0550 | Pruebas que vencen bajo carga, pruebas bash en el CI y sha256… | in-progress | interno |
+| 0551 | Retirar el botón «Publicar» (bot de deploy) del Studio local | done | interno |
+| 0552 | Portal: relecturas de tenant con el admin, por principal de s… | in-progress | interno |
+| 0553 | Portal: avanzar estimado a cotización por principal y tenant | in-progress | interno |
+| 0554 | Portal: lecturas de compras por tenant del principal | in-progress | interno |
+| 0555 | El borrador de factura conserva el embarque de cada línea | in-progress | interno |
+| 0556 | El portal dice la verdad: las facturas anuladas no son deuda | in-progress | interno |
+| 0557 | Reportes contables sin migración: una cifra de ingreso, compr… | in-progress | interno |
+| 0558 | Saldo único por cliente y cabecera del perfil v1 | in-progress | interno |
+| 0559 | Radiografía de integridad contable repetible | in-progress | interno |
+| 0560 | Asistente de borrado de embarques: pasos en orden para poder … | in-progress | interno |
+| 0561 | Candado de las migraciones aplicadas: una migración en produc… | in-progress | interno |
+| 0562 | «Por contabilizar» cuenta los recibos como la radiografía | in-progress | interno |
+| 0563 | La factura en bolívares o yuanes no se convierte para cuadrar… | in-progress | interno |
+| 0564 | Instalación piloto de Paperclip y Hermes en un VPS aislado | approved | interno |
+| 0565 | Ninguna cuenta del plan queda huérfana | in-progress | interno |
+| 0566 | Cierre contable con superclave y reporte de excepciones | in-progress | interno |
+| 0567 | El crédito de referido no nace sin venta ni se aplica dos veces | in-progress | interno |
+| 0568 | La ficha de un cliente eliminado dice que está eliminado y no… | in-progress | interno |
+| 0569 | Un solo conversor a USD, que falla cerrado, y una tabla de ta… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

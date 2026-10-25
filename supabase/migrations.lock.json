@@ -1,0 +1,3056 @@
+{
+  "$doc": [
+    "Candado de las migraciones aplicadas (SDD-0561). Lo verifica scripts/migrations-lock.mjs,",
+    "que corre en scripts/tests/migrations-lock.node.mjs (pnpm harness:test, CI y pnpm verify).",
+    "",
+    "Cada entrada de `selladas` es una migración ya aplicada en producción y la identidad del",
+    "ARCHIVO del repo: sha256, md5 y bytes de supabase/migrations/<nombre>.sql. Si el archivo",
+    "cambia, se borra o se renombra, la verificación falla. La identidad sellada no se",
+    "reescribe nunca.",
+    "",
+    "EL LEDGER NO SIEMPRE GUARDA ESE TEXTO. La era de Supabase Cloud guardó en `statements`",
+    "otro texto (partido, sin comentarios) o registró la migración con otro nombre. Solo las",
+    "entradas con `ledger` ({ fecha, forma }) tienen comprobado que su fila del ledger de",
+    "producción es el mismo archivo: `exacta` (md5 y bytes iguales), `sin-salto-final` o",
+    "`con-crlf-final` (las convenciones de Cloud, runbook §7). Sin `ledger`, la entrada fija",
+    "el archivo del repo, no lo que guardó el ledger.",
+    "",
+    "QUÉ ENTRÓ AL CREARLO (2026-10-19, origin/main 3f3a52cc): todas las migraciones del repo",
+    "hasta la 0491, menos las esperas de pendingBelowCutoff (0422 y 0423), que no están",
+    "aplicadas. Se sellaron los archivos tal como estaban en main. El mismo día el Director",
+    "leyó el ledger de producción en solo lectura y se marcaron con `ledger` las que",
+    "coinciden (conteos y método en la SDD-0561).",
+    "",
+    "UNA MIGRACIÓN NUEVA se sella cuando se aplica, en la rama de cierre:",
+    "infra/ops/migraciones/retirar-espera.mjs <NNNN_nombre> --md5 <md5 del ledger> retira la",
+    "espera, la sella y la marca `ledger` exacta, porque ese md5 es el que la verificación",
+    "del apply comparó con el ledger; se niega si el archivo no lo tiene. Sin espera que",
+    "retirar: scripts/migrations-lock.mjs sellar <NNNN_nombre> --md5 <md5>.",
+    "",
+    "UN CAMBIO ACEPTADO de una migración sellada (por ejemplo, un comentario corregido con",
+    "decisión explícita) NO se tapa reescribiendo el sello: scripts/migrations-lock.mjs",
+    "excepcion <nombre> --motivo \"…\" --autorizacion \"…\" agrega a la entrada una excepción",
+    "con la identidad nueva, la fecha, el motivo y quién lo aceptó. El archivo tiene que",
+    "tener la identidad de la última excepción; la de la raíz sigue siendo la sellada.",
+    "Las excepciones solo se agregan. Editar una migración aplicada sigue prohibido por",
+    "docs/runbooks/aplicar-migraciones-prod.md §8: la excepción registra una salida",
+    "autorizada, no la habilita."
+  ],
+  "schemaVersion": 1,
+  "selladas": {
+    "0001_init_tenancy": {
+      "sha256": "5b80b2b7f3517ef3f631b62689c903d0eaa584e0627b458bf2d80c673642b4b8",
+      "md5": "674eb2155327898bb7d0884fc3663fbb",
+      "bytes": 3147
+    },
+    "0002_shipments": {
+      "sha256": "7414edc11c5025ee7ed2b913830c10c0fd691bf6f6c3e8c6dfe67525a2d4e99c",
+      "md5": "cfa075d76d7a7a156806b9a226631f4e",
+      "bytes": 4901
+    },
+    "0003_shipment_events_on_insert": {
+      "sha256": "86ace0873f786b93a6052bd8d849c0d82357464622746c1d8eda747905beb020",
+      "md5": "43e997c43d819f485cc42343a6171dd5",
+      "bytes": 2401
+    },
+    "0004_add_destination_gps": {
+      "sha256": "310d940a24d5c93399b69052d81fd8623ab95df4b00e197784e802173f298635",
+      "md5": "d36b00212855e75ec24e28088db5f4f2",
+      "bytes": 995
+    },
+    "0005_rates": {
+      "sha256": "67aea16d3c728508328f1866b70423382b0bd96e42bc106007baefbdda130865",
+      "md5": "fceeea0de9c0b5cd40cc7e9f0f664cea",
+      "bytes": 3793
+    },
+    "0006_clients": {
+      "sha256": "5261311a9c265e1103422a0d1993d063aa264ed8b26f24c2267b29e4bb90ee68",
+      "md5": "916023354a4f5ca994a2796b6ccd434f",
+      "bytes": 4516
+    },
+    "0007_quotes": {
+      "sha256": "41f0703478bda42b8b4f1071feece7c7266e4b5f8f6eb497476b09d304650c7e",
+      "md5": "afecb90e84502fe768f313531c148ea4",
+      "bytes": 4105
+    },
+    "0008_warehouses_cn": {
+      "sha256": "912a94f4fa2a863030e2e1f43f0c7ccddb36a79a7470745fb5ae89acc20be3bc",
+      "md5": "9d495fd052733c7d51781de5465858f8",
+      "bytes": 15347
+    },
+    "0009_shipment_delivery_pod": {
+      "sha256": "547d335d07dd124a60a4430235f646332424306663722361ae633d4d9f2b87a5",
+      "md5": "fb714c88353609ced5e45cde28f89a03",
+      "bytes": 2066
+    },
+    "0010_customs_seniat": {
+      "sha256": "9e603d9e442f24093a53b399b254cfa9ec87134bf8f0b8ad6e3d5934e8c3d88b",
+      "md5": "5be96910d7a8f7b19f8f4a39dd36a702",
+      "bytes": 11984
+    },
+    "0011_tms_schema": {
+      "sha256": "caef7668f5dc2be732baa659c862e287c367dc8b9c2b0ae70098e48de2db03c3",
+      "md5": "711628df82cd3cf13a4832d15b28d184",
+      "bytes": 16839
+    },
+    "0012_rls_perf_and_rpc_guards": {
+      "sha256": "4f18775d27292ecbf837873a739963ce529dd5f572f4932a3d87036b9e04a630",
+      "md5": "bd1854b7797b6fff5523fe1a8ae7e0d6",
+      "bytes": 16569
+    },
+    "0013_fk_indexes": {
+      "sha256": "22970bc5e0d53bbc7a809b9404cabe86c5294e092095bcb60742cc245643d881",
+      "md5": "a35bc73b47e8df87daa2c2550eea7f50",
+      "bytes": 6975
+    },
+    "0014_dashboard_counts_rpc": {
+      "sha256": "5153ded98dd616f172ae261fbaf3d67bead67ddc1fc64f6fb08fed13335fd95c",
+      "md5": "0c2e8359e97d9c5d9592157715e9f692",
+      "bytes": 2039
+    },
+    "0015_agents": {
+      "sha256": "dd2209c1dc2cbd8c4a903e1615edecb9dbf7751628239075e28e38641aa98554",
+      "md5": "4a571cbe6d8045e116ef242463b76d4f",
+      "bytes": 15949
+    },
+    "0016_agent_runs_service_role_grants": {
+      "sha256": "bb1f5094fe98ad726ca056a0e426126255092f7b779549be39b2cf18dd1c51ed",
+      "md5": "461aaca700ec0311c54ea86392c53ae0",
+      "bytes": 1634
+    },
+    "0017_no_olvidar": {
+      "sha256": "149b16e2bccbf7759cb36a22cd8848ec0bad620e293b27eee193dd81020e2cfe",
+      "md5": "810d97a61086cf9b965bc3206c3d4623",
+      "bytes": 23095
+    },
+    "0018_mailing": {
+      "sha256": "1e48ab91cf9cd5a638ecb08d71451b060c285a12b88980a3dcd7e686a32ef95a",
+      "md5": "e2e1b4c3846c7fba431455c9130f0d34",
+      "bytes": 18710
+    },
+    "0019_users_roles": {
+      "sha256": "0348183d5f9c078a27d98f99f868141b06475faefae21c9e565db88973687abd",
+      "md5": "6ad111189e4ab3f2584eee2b4d684ff6",
+      "bytes": 15760
+    },
+    "0020_operario_pins": {
+      "sha256": "52dc22eb76b0246ea5be6d7594b6d9aeeba01f95fa8a62c3fa5f946267ea86c3",
+      "md5": "f2d7bfae6cfeaeadf0bf9e5877a7f182",
+      "bytes": 15520
+    },
+    "0020b_operario_pins_post_apply_fixes": {
+      "sha256": "263f18ecebdd8e639fac07b8b4e74ec434a838bdc786580d9acbfa7b9e8bcb26",
+      "md5": "21cc20ebd36e7dc11e4ded49b6950c24",
+      "bytes": 8826
+    },
+    "0021_operario_admin_rpcs": {
+      "sha256": "086fcd4883b5685bf3e2821436b31093a7499476ef5b720573c391978e21b1f5",
+      "md5": "91445c8a3e8c744d0d4df8788524e96e",
+      "bytes": 7027
+    },
+    "0022_receipt_photos": {
+      "sha256": "4b749da246e8ce55c136790a4ec4213f38e48afb38ba7d2865a3c949b902faf9",
+      "md5": "927161c45707d0d16a39413de3f54f64",
+      "bytes": 6016
+    },
+    "0023_operario_region": {
+      "sha256": "227c1748b39293b5a49d387b132a089865a0460930ec2342dee1f2acf645a84d",
+      "md5": "ce3b003885743e862285d61ad0f44a35",
+      "bytes": 1891
+    },
+    "0024_dispatch_core": {
+      "sha256": "2aed9a0b2a4cae6c32ddcc2eb8f4b33f3096855d5b91a4dbad48bacc679e35d6",
+      "md5": "fc9872ff14733d3d9cac5f0cbb330962",
+      "bytes": 44190
+    },
+    "0025_operario_roles_extend": {
+      "sha256": "b5579dba1050b57e827bbbb07ff678807fcf72a9dff730dd1c79955b8d7a9f25",
+      "md5": "bc9153c31f543e4a74aaa2c570a7aff4",
+      "bytes": 20716
+    },
+    "0026_welcome_email_template_seed": {
+      "sha256": "0c096e3ad40de0f38d11445203176c0c5a92dd46769bdf3657b206dce2663164",
+      "md5": "b0a7c682cc6031be6034940cb27a5702",
+      "bytes": 2708,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0027_qr_print_orders": {
+      "sha256": "4376a861280f6759d8db37757d39decaf2457fab00c574523e58ed918778cfa9",
+      "md5": "b760d6196dc02d67036148d33b4ce1f1",
+      "bytes": 12811,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0028_bug_reporter": {
+      "sha256": "4bf27123f1569382a682ba98a044ff0f9b9f0a5dfc39be199285116e21eb0d99",
+      "md5": "3a0b50b3e5bd0bdb0708963ccb70de08",
+      "bytes": 32252
+    },
+    "0029_bug_tech_data_admin_only": {
+      "sha256": "55ae6da8f7deeaa1e96578fd8e410a74f9b1628aa5c54a73ff4cb51bf5f7f2f3",
+      "md5": "5545f7915b7f41b86f0fbc9f859e0eda",
+      "bytes": 1856
+    },
+    "0030_back_content_admin": {
+      "sha256": "2812c10905578d5009258f1a08fcadd34653d407e227cdc2987be575b0be0076",
+      "md5": "5d63419c00fe1e145dcb9902b0f886f9",
+      "bytes": 21208
+    },
+    "0031_fix_studio_invite_gen_random_bytes": {
+      "sha256": "4ff25d9978a0b9875124822e52ff56dbcb29e5af1fd6e1237db080aff45b2c7a",
+      "md5": "8296dce3805f143e549a239995bd954a",
+      "bytes": 2849
+    },
+    "0032_fix_studio_invite_ambiguous_token": {
+      "sha256": "efd6002e9b448ac244c95275c7fb706914e6121f909af4cc949bcea9a29eea14",
+      "md5": "bb5879cd44f1b5911511e223a0618e51",
+      "bytes": 2781
+    },
+    "0033_grant_service_role_policies": {
+      "sha256": "ceac2fcd382257b754e283604066b0857cd8d51b5a6fbac599a4ce81ac70117e",
+      "md5": "a09e03f9f62c47b32ee0a5b4902fa834",
+      "bytes": 3288,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0034_fix_studio_accept_invitation_ambiguous": {
+      "sha256": "f0cfe1fc51a31e2d0508df613de48cfdb4ccadad6e50cd6070be5b6ae507f587",
+      "md5": "8faecb24f4cf4381434374167201a3ee",
+      "bytes": 3208
+    },
+    "0035_fix_verify_operario_pin_extensions": {
+      "sha256": "06d78a46bbb430e6584b60f4e9876fe478c062d178bfbda8daa87ce8bf365bce",
+      "md5": "732f8ed961708b91b94cf4965ca8d797",
+      "bytes": 2496,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0036_fk_user_tenants_profile": {
+      "sha256": "2538215f58b497f7069d91f709a3209b988dddabc6182bd380c1b2dc15125132",
+      "md5": "ba63f9c578e32019aaafc8e6d6247056",
+      "bytes": 949,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0037_harden_operario_pin_validator": {
+      "sha256": "0bb3f7f2dfedb34330810a52ca0dbbbbc8e904c32e42223d24edbff08ec9eb0e",
+      "md5": "6e3f5a4763cd32e66a33f189af2da876",
+      "bytes": 1944,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0038_service_role_grants_all_tables": {
+      "sha256": "8c944119ffe62be34357ed83040cc098bb6a921dfa3a86f17b6a664c95a2ee6f",
+      "md5": "2027d8b6627879e1e638276811ee5bde",
+      "bytes": 2054
+    },
+    "0039_fix_bug_advance_state_actor_type_cast": {
+      "sha256": "36955b99c4f45240f74957a28ecaec8f8ebf3498f3bd23e110b973cbd44483d2",
+      "md5": "f2872b0ac20dd9e070b14085a60a3fb6",
+      "bytes": 3544,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0040_rls_user_tenants_see_tenant_members": {
+      "sha256": "22ab48aa769e13cecfa8a6cf6eeeea6860d78c111e2188198c67c41c72fd99da",
+      "md5": "893609c35ea3aea9d9436ef938e0747e",
+      "bytes": 1768
+    },
+    "0041_rollback_user_tenants_policy_0040": {
+      "sha256": "724e010b9f174a5ef4da4b95cbf4e55463653dd99b9c4eabcc5d47f61af1b9c8",
+      "md5": "8aff550df6225c2c299d78743e016054",
+      "bytes": 1709
+    },
+    "0042_feature_flags": {
+      "sha256": "e9dfc8767b7f8ea560127ef3cbf8cccd2b43eb964a8706d32b2d58babc199d43",
+      "md5": "d851f6b82e4c47fb76252f30ec83853d",
+      "bytes": 5400
+    },
+    "0043_realtime_dispatch": {
+      "sha256": "6ee2590bdcf80cf125cf5b1d8c5bfedf67d912cd1e984e451a5a19489012b322",
+      "md5": "5e4d00182187040121aa76a698a8db8c",
+      "bytes": 2341
+    },
+    "0044_warehouse_receipts_cn_dispatch_fields": {
+      "sha256": "03f63437a83609038bd930a8017194c06ea783b894d35268b3ee822ddbcc5070",
+      "md5": "5edf51d1cf45d3f6c082aab5a7016524",
+      "bytes": 1793
+    },
+    "0045_create_receipt_as_operario_destination_city": {
+      "sha256": "129cfef3aca773eccf2759b2e9e80c9eae362db1195b8c3576d8db01b22c7f8f",
+      "md5": "053d1cdcf829ee0642bcfa5339894d22",
+      "bytes": 6105
+    },
+    "0046_dispatch_rules_hold_fields": {
+      "sha256": "43b87269703c1115f1a582ad760aeb0f27a86888f2ede198e7d810b0a2a73dc2",
+      "md5": "ecba32fe124294e987c297c9412264bf",
+      "bytes": 3775
+    },
+    "0047_expenses": {
+      "sha256": "77013327921fb8176f7d2d84ea33135d2430af34564129ae80a8d06a9ba821da",
+      "md5": "f1cb62174cad762290c9738cbd78ceeb",
+      "bytes": 5819
+    },
+    "0048_clients_geo": {
+      "sha256": "dd2dc68279c7c815536b6d553799b7e0755b83cf35eefef46afe03ce60c3a3f8",
+      "md5": "e805c8f107026e462306858255a076f5",
+      "bytes": 1757
+    },
+    "0049_expenses_receipt": {
+      "sha256": "904cf0e85e7fb2d3a4692d3a87089667ae38cfc8cda705e7594c3ee6f4e7a5d4",
+      "md5": "d8d55501b9bd3c5728594e7a61517970",
+      "bytes": 3061
+    },
+    "0050_user_profiles_telegram": {
+      "sha256": "abc22c2dbc042db744373906bad68f667f03f4604dada57e74f24053d3b960a8",
+      "md5": "bfe1f4206e109893d26fa7eaaa39dd2d",
+      "bytes": 1975
+    },
+    "0051_brand_v3_templates": {
+      "sha256": "fc17252d95af972c650ae1ffd44bb132112029bbd6e09586dc1d7a1a25ffbab6",
+      "md5": "709cf9c0431ffc33f2d1e0e0225e9f61",
+      "bytes": 1184
+    },
+    "0052_user_region": {
+      "sha256": "3e7603157f35e6aedd19a10c8113452c72c5d29c3b03e9465a20e19f88b7c1a6",
+      "md5": "f9e187688530af53f1a245ce41fb3667",
+      "bytes": 3842
+    },
+    "0053_seo_drafts": {
+      "sha256": "942f34080705e8b2c9f6e8d8ecf0d0663b7d955476aa9f75e5df5e47ecdfadee",
+      "md5": "d4f29d33950346fd0581f699b8d1727e",
+      "bytes": 4527
+    },
+    "0054_news_writers": {
+      "sha256": "5089145ea318636232fa2c301ae2f0f57d8dbc936c441b7862d5f535f67b21cf",
+      "md5": "693d87ef9b6879b27992dce519077c4c",
+      "bytes": 4005
+    },
+    "0055_news_posts": {
+      "sha256": "1e5f8fe5308ce487707a0115ffdd864ebd5157d41a559507279df37b3988243c",
+      "md5": "c895e6da57fa56c03beeb892c21c004c",
+      "bytes": 5014
+    },
+    "0056_seed_news_posts_from_static": {
+      "sha256": "f7c0292c64993376c48d84cada0f7eb5117ea0fc66c8eae4ea141117d097becc",
+      "md5": "ea6ff1b7dc42026ef7688b0dfd59cd2f",
+      "bytes": 12917
+    },
+    "0057_seo_drafts_brief_fields": {
+      "sha256": "6e33cd7ebacab0b5ecc4d651aeeb766baa016f258154400f2074286ad1cba554",
+      "md5": "8ffed2c675675d03904f93e2de30dda5",
+      "bytes": 1708
+    },
+    "0057_user_profiles_locale_nullable": {
+      "sha256": "28097b53fdc416e501bea8d1346e81004c42398e306f1de991616201355c9111",
+      "md5": "769a620af17cca0d110b9025bcf6f1b0",
+      "bytes": 1550
+    },
+    "0058_platform_admins": {
+      "sha256": "f78a30f05af478d0a67c04183aeebe743a868c08b0057ae8b3381f58e8b9a559",
+      "md5": "bb99b54106d671457836daa0dc53b839",
+      "bytes": 3351
+    },
+    "0058_user_invitations_region": {
+      "sha256": "9755e48bf2e6747dfa616085ee766948ae2cf40ea8ffeecdc9ff5754201c4d7f",
+      "md5": "8347990162e1438bdebd0a6faed766c9",
+      "bytes": 1556
+    },
+    "0059_public_track_rpc": {
+      "sha256": "52a2f56cfd7ece3141d2848334023acc0cd3c199eb796e75e0d441f95f56abbd",
+      "md5": "17570a5f6d3bc1c4aca4935367b1bba8",
+      "bytes": 7083
+    },
+    "0060_operario_tms_driver_link": {
+      "sha256": "00faf7d0a2c8fabcb45c3ee626d7a84214a111e1debed65771bb76f8c9cadfe5",
+      "md5": "967425bb907ccf159dd287fdfa8c050d",
+      "bytes": 5227
+    },
+    "0066_foundation_v3": {
+      "sha256": "c9a852426cb91f508f9940b4080403f892edacb08d9268d45e48847612c44284",
+      "md5": "53c6781f3471cd09b3b2da5dc8b27e84",
+      "bytes": 18497
+    },
+    "0067_warehouse_receipts_ve": {
+      "sha256": "a799ea60dcbf4c3c868b2c5a861833c0eb95716c94a9a648781719b4ed3443c2",
+      "md5": "3f4a4ae42816a878f7aa5fa96179ade6",
+      "bytes": 20901
+    },
+    "0068_pod_partial_and_gps_addons": {
+      "sha256": "6bcde029bf781a821878e50ee4bb7d997a7fc5e51c7b980af48cd9df6c32d519",
+      "md5": "ec3138985561fc2f3b4aaacbf89dd145",
+      "bytes": 19926
+    },
+    "0069_reassign_od_bodeguero": {
+      "sha256": "8861cf368421c3e85e6a0b61a11f2aaf129102a902cc78343ab6c4848eb395ba",
+      "md5": "2a672f69102700f110e174c7fac7d8c1",
+      "bytes": 17353
+    },
+    "0070_edit_receipt_operario": {
+      "sha256": "9dab0313dc44b41faed842b3e413c4af1de087c3a9328e899d85b494d82c7798",
+      "md5": "65c4bee949b86677d430d5516969fadb",
+      "bytes": 22829
+    },
+    "0071_operario_push_subscriptions": {
+      "sha256": "ce06f5976429f4c05a9978c3e5666a1caf22359950f1f07bb0a20e2053f59399",
+      "md5": "22d8691712ad06e98171fe112c64236a",
+      "bytes": 6408
+    },
+    "0072_fix_audit_entity_type": {
+      "sha256": "c24f1f98cdece872de60ba83e67b9f418c3f10fd376caac7524ea51420f3fff5",
+      "md5": "77dcc39efc6eb2aee89d35bafd6ae15b",
+      "bytes": 21682
+    },
+    "0073_expense_categories_op": {
+      "sha256": "f8eec22180b4b36689c260773f87ad71ec7ee4039106002b5f7c158d3c021f45",
+      "md5": "2b2813f325eb4649c5cb6d4f64b6c7a5",
+      "bytes": 1469
+    },
+    "0074_expenses_scope_fx": {
+      "sha256": "b068cbd16eb70e16d64453e09d961f35a61b79633dc08b83ed39d79e6e768960",
+      "md5": "a63d80d53743a0899911ffef47610d75",
+      "bytes": 6062
+    },
+    "0075_expense_alerts": {
+      "sha256": "f09967106ad038133048942b09eef2ccec8e1f8bad23becccf1a251917f19e77",
+      "md5": "31ef0aa20e5d1b6f4585b9e520cea3d7",
+      "bytes": 4241
+    },
+    "0076_mail_event_consolidated_cn": {
+      "sha256": "1b5831e28428d934c783cbb1f943102eb508d25ea0f31552293afbf4c75fc523",
+      "md5": "bf1f693b2ed76c04021325fb9839eb02",
+      "bytes": 983
+    },
+    "0077_invoices": {
+      "sha256": "44b2593011d93edc634a273d6d366f92f979360fa51f273638cbfd013bde6b49",
+      "md5": "abadb0af64a3eb51dddd22c0b74601ea",
+      "bytes": 5646
+    },
+    "0078_contabilidad": {
+      "sha256": "795fb0d0ee761b9cdda5906f90f0e8572ab6bae4b7270ede6719513b86219dee",
+      "md5": "74a9dcc6d3fa6ff56ae8fe23e0947ba0",
+      "bytes": 17951
+    },
+    "0079_cobranzas": {
+      "sha256": "ba62a6ec5386cca5aeeb5dfa5ab1b12662ebaa1b95d9a9fe3dbfc025b2c29a6e",
+      "md5": "dea6fb99fca53263aa21ef136c3f81da",
+      "bytes": 8149
+    },
+    "0080_portal_cliente": {
+      "sha256": "411154ae3e599131bb95138e848de0b260caac1230f5b661eb9640ae6dc56112",
+      "md5": "50fa25d8ed790483909681feb8f63056",
+      "bytes": 9222
+    },
+    "0081_portal_harden_grants": {
+      "sha256": "8f5e6cad631369626989693387e4097cff547692e9cf2fdb8df1e21b17ae700e",
+      "md5": "59cf4caafd9c5ed246b378ffc4d11ec0",
+      "bytes": 1146
+    },
+    "0082_kommo_mirror_schema": {
+      "sha256": "246783963ccd16472b44454edb392838b35c4ec597f5859e8f704779d1a28811",
+      "md5": "6fa828042c5d3daca0e83b54e576f722",
+      "bytes": 10887
+    },
+    "0083_kommo_statuses_pk_pipeline": {
+      "sha256": "5e73e0c6f09c48fc0576b3d63519a78db4bf0ab7f5afa44027c7d044ae93f18b",
+      "md5": "2b6f3f4a58de8bc0c55054b72d4ddf3c",
+      "bytes": 1032
+    },
+    "0084_kommo_cron_sync": {
+      "sha256": "aaa7b2c8e3ad4df180f3541e6cd14f4926457f63badfea96e00f5ad41df369a0",
+      "md5": "b3df3e8b588d5fba1424d41b588f0410",
+      "bytes": 2125
+    },
+    "0085_portal_invoices_rls": {
+      "sha256": "54c35c40fef86213b7eb8b353f225980ea5dd9eb5b747424859c9625207d0a8f",
+      "md5": "9dc9f068f389f9a1c67e71c2eca36a77",
+      "bytes": 1558
+    },
+    "0086_shipment_documents": {
+      "sha256": "1e0b7464fbe3e2c57565e4e386bdede504d97a1f6d5683bfbcb93288783d869a",
+      "md5": "c3207708d3ba1650f298343fbee07829",
+      "bytes": 4668
+    },
+    "0087_portal_approval": {
+      "sha256": "a94a4678e2f6023952e89fe41c1b3687b3ce334584b44208e8f11f123a28e714",
+      "md5": "0fcfd035f728cf2a1d6cc46949048697",
+      "bytes": 2767
+    },
+    "0088_tesoreria": {
+      "sha256": "150dccb195a316db4761192090c1ed8ef41da70488cd91b72012fe47ffb3f5e0",
+      "md5": "ed47d09326c9619a98f4b35ff9267731",
+      "bytes": 14400
+    },
+    "0090_comments": {
+      "sha256": "7b63fef47942d12045719d8d47e8220c0752ef9333d9ef4629ad811935862afe",
+      "md5": "c3096345634e118c97b89f0faa14097c",
+      "bytes": 13895
+    },
+    "0091_portal_self_register": {
+      "sha256": "9d1294f10143cffa2e22a142aea01c88797efdf375d23b611a839e7ed93c7387",
+      "md5": "c13b714e7bedcb0abc3ccbd9afb36d23",
+      "bytes": 3490
+    },
+    "0092_identity_verification": {
+      "sha256": "c5e6babc86ece6d80910891d1f6b72dd180a334ed8e1d43748d4f20dd5d88537",
+      "md5": "693d27d16e823e0f5b1bb5e0a5b1c1f1",
+      "bytes": 5442
+    },
+    "0093_comments_hardening": {
+      "sha256": "7405e996dcdbdd7fb2c7ca07db6be9add65fb6a6ddda487cde3e56907df133ca",
+      "md5": "de059f502281b33432acd51181804161",
+      "bytes": 8377
+    },
+    "0094_portal_registro_throttle": {
+      "sha256": "2a2f34eeeaacf0146ed43a6ac2463af35b90f002582decf65f92cadcef4c4161",
+      "md5": "921264bd7ba5f46ee8d74ceaef0b8de9",
+      "bytes": 2438
+    },
+    "0095_clients_rif_unique": {
+      "sha256": "d67894745322ff8ce22d6930466ddfb5af43e5991a2a9d27fecb9111d5efceff",
+      "md5": "da8edf3f06fda76b2709dfbc0ae1f193",
+      "bytes": 2955
+    },
+    "0096_naviera_consolidacion": {
+      "sha256": "54c5fc6ffa9c53ca87a09307fc5bff5dffad8ea1751aed60aba369589a7d31fe",
+      "md5": "54d491566d63f089ea3a5579a64f069a",
+      "bytes": 24119
+    },
+    "0097_documentos_hub": {
+      "sha256": "b3d1d20ed5c8dbb3af5c8b9415329d9ed94ee40402d84e0538387ae4685a2105",
+      "md5": "ce6bf50d0807990948d2bf9306d24514",
+      "bytes": 13803
+    },
+    "0098_fidelizacion_referidos": {
+      "sha256": "0aff4248fdddf000686d648f7cbb77e4a65172a42fefd0e2760ab4ae010d2f2d",
+      "md5": "defc418057d0555e8606497bd03ad9d9",
+      "bytes": 10992
+    },
+    "0100_costing": {
+      "sha256": "5337ae9bed83a32705112ef98daaa204d0694d7cd99606a3ae5524425fa2cb09",
+      "md5": "5b34fba7bcbff20cbf3d9df05738fb67",
+      "bytes": 11389
+    },
+    "0101_rates_valid_from_is_public": {
+      "sha256": "495cc240d9229c87356823a739a1d13503bb005d16a5fa9b3dc0b7574adb14d2",
+      "md5": "231cb7f611db0e0c24bd3967b1aac073",
+      "bytes": 4360
+    },
+    "0102_capa_legal": {
+      "sha256": "c57727f28ede280144da2f65895bf5963ee6d8feb335c08360591e2273b17958",
+      "md5": "6d1be8933117b2a03683848d998dddfb",
+      "bytes": 24594
+    },
+    "0103_calculator_settings": {
+      "sha256": "c22e02c652e1979b30dfdc2c998b2b0272dfe9c1c8587c5da40f9aad17742652",
+      "md5": "0f7deee22e3a978c52159b6fc211ee2c",
+      "bytes": 7188,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0104_calculator_cities_rate_status": {
+      "sha256": "6ffecf3ed2e642fbb20eaa786019ffca1d850801441673a3a35d7e5610519fdb",
+      "md5": "f0cddf13f6b47bd97419245fa0d5553e",
+      "bytes": 11603
+    },
+    "0105_portal_compras": {
+      "sha256": "9a12d8fe3f3feb7904cd953116be92dceaf799a5953052b13f3d6650bfe5fc0d",
+      "md5": "56c4e514ea23c8f9ec8eb97c245df86a",
+      "bytes": 17579
+    },
+    "0106_conversaciones": {
+      "sha256": "dfba05c7fd3be6a7cd6748f44c8e89e81bd055786d10a265387144a87732c4a7",
+      "md5": "aa10a1513a95577452aa068b7947f83b",
+      "bytes": 16442
+    },
+    "0107_kommo_webhook_guard": {
+      "sha256": "c0c3499aea968f73b61ffddb5964f92223cdbb21eb7640ab39050458b4ab0ec8",
+      "md5": "eb6f250bee18858c9f582bb1efa20385",
+      "bytes": 2794
+    },
+    "0108_clients_kommo_lead": {
+      "sha256": "4fcab88845b2fe0a8629511f3f158612cbdf140cb691693287a416091d6abdb9",
+      "md5": "a4e0d0d50e75686fc928667bb17ce128",
+      "bytes": 1414
+    },
+    "0109_next_markbox_service": {
+      "sha256": "ff7169896cbce470ed8dc542d742ab0615f173b2c9ecff93f9865c6a38b199c7",
+      "md5": "fcd60f08fded9af56d8d0a337f1128e3",
+      "bytes": 2080
+    },
+    "0110_calculator_settings_container_limits": {
+      "sha256": "72b7331046b3be8714e542ce742569721d7725524d0f71c44281da086bb72f11",
+      "md5": "c5f33878d57efa52b27247f60f3ebeda",
+      "bytes": 2082
+    },
+    "0113_estimado_web": {
+      "sha256": "7f8cb72497e4b241103f84f530905ce89a7ee003cf9fdcb4b7701ee9c7ee610e",
+      "md5": "7035abebc3478d98b08cf966291b3b2a",
+      "bytes": 4418
+    },
+    "0114_financiero_china": {
+      "sha256": "30f96d91669aabe7ba8674c082a1ec0c65f04cb47120dd0b61f8c2a8bafd440e",
+      "md5": "7ea5a726a5cd4fd8a7bf99297807de60",
+      "bytes": 31643
+    },
+    "0115_partner_statements": {
+      "sha256": "952396b2cae7217fbd7762ab97480a0e0cc3d45e13f9ce760850900c0894f933",
+      "md5": "3909f5a933cc0721892a9d0539e39ddb",
+      "bytes": 16907
+    },
+    "0116_documentos_versionado": {
+      "sha256": "39dd14f7ae18badbfa828b4882cb95aa64359aea6ac8ad1a3fc0c30edb3e98f1",
+      "md5": "7b8c53c326dafa889b7e8e68c4c314e1",
+      "bytes": 10566
+    },
+    "0117_quotes_portal_rls": {
+      "sha256": "c300e03c8e4eb716a28bab6a9ed9fc368b68f02e6d5a0e252083e52ff1001294",
+      "md5": "ed30901ec543bbe179142e570841160a",
+      "bytes": 1694
+    },
+    "0118_prealerta_documents": {
+      "sha256": "d6d3160f5e1ce227a13268c860c8a18e8c81d8296f044af72a46bf5318d0b334",
+      "md5": "58901704479e88dd84ef5107e2bb514a",
+      "bytes": 6156
+    },
+    "0119_prealerta_share_token": {
+      "sha256": "fb63df7d38a9c0b96750f4efd02be4eb95bda596c548e7dcb2ad379f715ea0f8",
+      "md5": "d9bb7e5199a86a5fc3bb2bc36bc3b19a",
+      "bytes": 1610
+    },
+    "0120_welcome_email_template_v37": {
+      "sha256": "ec55a4489ea1a02c2a4ead5e5e386eedd3d6e0fd323639d9041872b3e901fcbe",
+      "md5": "3b592f857e05ae5e8d9f2611e6611bf7",
+      "bytes": 2593
+    },
+    "0121_acceptance_evidence_v2": {
+      "sha256": "3e79ed2cb91daef92db2dcffad343d12a5944af62e73cc590096a6318097f950",
+      "md5": "8451edf7001675d9fbf4d18c99a3711e",
+      "bytes": 4997
+    },
+    "0122_recibos_cobranza": {
+      "sha256": "a42b7689bae82794058ecfd52e02f047dfcfc5bd000b4820ffb5f0073fb431c5",
+      "md5": "da3475afadce97348dada97e95bcb1d2",
+      "bytes": 10907
+    },
+    "0123_rendiciones": {
+      "sha256": "e423710ff030a1d25fd949b955a61bd8d9ff47b78ca4a511def553af3d841b97",
+      "md5": "0be812bfa040b32f5629afac09c917c4",
+      "bytes": 21066
+    },
+    "0124_purchase_orders": {
+      "sha256": "f2870a3490f81bad6f180efd6f0227c29d809c666d57be419379fb35f21e952c",
+      "md5": "3a46bcbc6b058d4d294b5a66e4156efe",
+      "bytes": 12827
+    },
+    "0124b_revoke_anon_next_po_code": {
+      "sha256": "c71b042ac578eaa6b4a9c9a38bddb4de966b1cdc95de00de846ff1c440b2f115",
+      "md5": "7f8350fe08ff144265427544628f510b",
+      "bytes": 1379
+    },
+    "0125_sales_orders": {
+      "sha256": "c766999b8a217c63bf7abad6340344a93afd339439d810f0660b4960f2b914d2",
+      "md5": "f0b67da23b1bab36b8e944731e5e7ddb",
+      "bytes": 13436
+    },
+    "0126_fiscal_settings": {
+      "sha256": "0de1e2fe9216a84694a87471e54f873ac5eb5b3393dbe9e94319260ed1dd89b9",
+      "md5": "622ebc7f8e50b39bd329f5aecd0eb4eb",
+      "bytes": 7443
+    },
+    "0127_sales_order_invoicing": {
+      "sha256": "bf4948369eeb4c90621b3104ce5dfe0e7f3c173850bfd28c0cd149369a543e54",
+      "md5": "36807335afb980473413eddb48a71c8b",
+      "bytes": 9619
+    },
+    "0128_sales_order_invoicing_hardening": {
+      "sha256": "a55968bb725bae3a8150d25afd767e7baaed90b33292a88c2c9ef2b3e366bed3",
+      "md5": "884a9a64a15820414146fd4a0277c69f",
+      "bytes": 21650
+    },
+    "0129_sales_order_invoice_verification": {
+      "sha256": "e845e108fcad4970daee2f992b7691364bf7f29106b1d527ecd9909acb6271de",
+      "md5": "86da637dc63f9187024523f64248e51b",
+      "bytes": 3295
+    },
+    "0130_service_configs": {
+      "sha256": "36209e3c8f074cef5bab7016d7e699fd6a73adfe16eb2688ed6b3d776b4945c6",
+      "md5": "47315e07dbe9b22b562d724b584f8e86",
+      "bytes": 30384
+    },
+    "0131_contabilidad_qbo": {
+      "sha256": "14089ae2ecfeaee337b293a5287522520f40c6f2fbd8f347ee74ec1abf63f004",
+      "md5": "afca0f477e428f5ad0fca36d3b4c4738",
+      "bytes": 6184
+    },
+    "0132_expense_posting": {
+      "sha256": "da66e3c66ffc70bc5bc18745dac880aefe420c6153c98c4d8493a94387e47250",
+      "md5": "977959ce5c019b746eaf815272ee63b0",
+      "bytes": 3731
+    },
+    "0133_period_close": {
+      "sha256": "e7bbc1eb5df570c51f9f8a9944f469ec03d272b5cb15f1c6e4baaae5cea3a035",
+      "md5": "c7747ea49832e8c2057794ccfd2f2847",
+      "bytes": 11152
+    },
+    "0134_clients_email_consent": {
+      "sha256": "348d71c452539e1cc7ea656ff8770bf0836caaefcb58941ffb64e0ac39eec158",
+      "md5": "72536de9a335622b75c9b2d4c54f17e3",
+      "bytes": 1746
+    },
+    "0135_mail_event_dormant_reengagement": {
+      "sha256": "0e63cb40a489697a19650e2eaf6a903fd2ca4f4f5cc7e9dd468f38bd8ceed5c7",
+      "md5": "841c0cb6e97d3ac576da975f09f0a67d",
+      "bytes": 581
+    },
+    "0136_kommo_writeback_outbox": {
+      "sha256": "4da0b637191921c15a44da556ff8b430ab068c7726d9645eabd743bd4226b654",
+      "md5": "91e0a252eecc89b2a106bbfd97f38705",
+      "bytes": 8573
+    },
+    "0137_kommo_stage_map": {
+      "sha256": "6157efff85a0ecf8113f652a73c2ab1a3b6371918c126aafb09fb371fbc15752",
+      "md5": "61ed32d7a9a7cf058399e027d03949fd",
+      "bytes": 1849
+    },
+    "0138_kommo_markbox_field": {
+      "sha256": "97a1df2a571b6c716d927412df4307b83a6a0fae79107fece2bf7896a1fa0bfa",
+      "md5": "cd79f4c7946bf7586dfdd7af05f4b6c8",
+      "bytes": 1469
+    },
+    "0139_kommo_users_mirror": {
+      "sha256": "dd428e5ed2a24d6bab6174f0181c07c065ae7814f760fe2ac428c75312ce0cbe",
+      "md5": "1d49b3ed6130ebaaa72eb4fdf632f63f",
+      "bytes": 1365
+    },
+    "0140_news_categorias_negocio": {
+      "sha256": "01346d174f0d3ac6aad91602babcb08f15df2f982c4dfdc8f93f71c7edf75063",
+      "md5": "382dffab55be27f2907ef38b4dfdb85c",
+      "bytes": 3409
+    },
+    "0141_fiscal_module_v2_seniat": {
+      "sha256": "ed3c57c4d757d328f5013d6a4c6e0cab70f22ea9fa0d9158fc843e9f592b8728",
+      "md5": "41d83c962fd1c666c36ad511b372c296",
+      "bytes": 8765
+    },
+    "0142_service_offer_matrix": {
+      "sha256": "859c46cfb25a0f69f6c098b35c4d7c7cc3ec35013aac5bc0cfb2c33868b8703b",
+      "md5": "404568a52cac5676c0df248ff74d172c",
+      "bytes": 4988
+    },
+    "0143_workflow_engine": {
+      "sha256": "c887ce8c271b3a4a68802ccc5f428c6fadbe83f844b61a80572089c472944c6f",
+      "md5": "c5ae2a389fb1413df9e684044823d0e7",
+      "bytes": 6827
+    },
+    "0144_academia": {
+      "sha256": "68fcf8993d334baef5cdb12b05c1e7b83e1ab8fddb79852cd7d2fdebb660632d",
+      "md5": "0019b81d4df3de8ba2c3e0204c22d2b1",
+      "bytes": 14964
+    },
+    "0145_academia_portal_read": {
+      "sha256": "c1907f57bf7d73383754482a86eea7de44317a07e4dbbee344945e442cb1abaf",
+      "md5": "cae26f5a4547786676b2ee55d63bebcc",
+      "bytes": 2795
+    },
+    "0146_ocean_rates_cache": {
+      "sha256": "815d384e31d3796372fb9bcbeb183c246ebca0e5ad3fbaae7ee5c0b591ec29fb",
+      "md5": "b769bf6b0991cc04b4bf7da491265aee",
+      "bytes": 5783
+    },
+    "0147_supplier_packing_uploads": {
+      "sha256": "41f23f38bf4bb25020b84eb90d8d7019e74162bac01be2cf369b369bdba661d7",
+      "md5": "a39dff5cf8f7e957a24069356bd10fbc",
+      "bytes": 16519
+    },
+    "0148_packing_list_supplier_address": {
+      "sha256": "712d97e3d22aab1b8c6ed8e43ae20eb2ced3446eeb249f4cce4fcb6280839ea3",
+      "md5": "a09909e14989096b90bc956f665e598d",
+      "bytes": 6997
+    },
+    "0149_academia_lesson_progress": {
+      "sha256": "988b4b093afdd3f21ee8a1c899e6c526b84d1989304f8f636f4ab6cc363ca39e",
+      "md5": "8bff2f491f681030e94a56cfa8361194",
+      "bytes": 4689
+    },
+    "0150_prealerta_addons": {
+      "sha256": "0845705232f52282300599774b946295c7ef332791a83fa062e21097f7dc0579",
+      "md5": "7eaceda2193e7e2eccc85fac094cc45d",
+      "bytes": 18645
+    },
+    "0151_clients_advisor": {
+      "sha256": "b5aec20e3ceda178273e624225069952a44fa3c2f238dc2a3bb38142261c2055",
+      "md5": "5be68ac3057c1a898cb1de17d1b2bc1a",
+      "bytes": 4632
+    },
+    "0152_client_claims": {
+      "sha256": "1f794eb60d88090b8bddac4af9a9bdda150fdeddfb8eea6bbcedf2c0dfb1b351",
+      "md5": "cebf9e9bd035e9bc16513552c43fa0ce",
+      "bytes": 9368
+    },
+    "0153_client_claims_portal": {
+      "sha256": "713681957e5d879fce6dfbc42a164b6fa1d0777aaa9d801953342a359174a699",
+      "md5": "d5b51c360d9aefb321f289b699c4fdf6",
+      "bytes": 3836
+    },
+    "0154_naviera_container_no": {
+      "sha256": "c10d1e572ef9de0664487e1c92fd2292f87428508edd90dfd5fe797abef0369c",
+      "md5": "8bd39e8328661273dcede6c7dc82725e",
+      "bytes": 2745
+    },
+    "0155_client_claim_evidence": {
+      "sha256": "6111a1a6c320cdb7e9ad9019086eeb6983bcc98509ac935bce33a07029392dd6",
+      "md5": "4e1ed41fe1daeee25a0d50b177621858",
+      "bytes": 5762
+    },
+    "0156_client_claims_financials": {
+      "sha256": "77cde7f299cf3c73e4537b30fd9afb5ed89339c7eb5a3fdf06818b3e99817d55",
+      "md5": "d5556826f3cb5250b10815dd56b74791",
+      "bytes": 6288
+    },
+    "0157_claim_indemnity_posting": {
+      "sha256": "ab241659939c83be3b74fe87b539e78b02901a3be1b7f7cdcd4cf9269872721a",
+      "md5": "f65ed7174afa23a7fb7c4239162e0b79",
+      "bytes": 3659
+    },
+    "0158_tracking_snapshots": {
+      "sha256": "5d5080661b6a3c7d2b055ae9913ff2f80b839c17ed0efc32010051560630933e",
+      "md5": "068dac5fa3eb43ccef7f72980325e198",
+      "bytes": 6822
+    },
+    "0159_public_fcl_rates": {
+      "sha256": "cad8c8a65d70ee87a0d7dad9e1bc149bd1d3e6b51960802e7de8ebf330709875",
+      "md5": "c073bb52e73d994c5950d9ed9bcebdd2",
+      "bytes": 3002
+    },
+    "0160_nomina_employees": {
+      "sha256": "2c4d2fa0fddc7268b1741dc51ca112277db9e88899e79520e45e2736f11bd98a",
+      "md5": "8e2578cafdd25f1f7b390bc9a2e0ffb2",
+      "bytes": 8546
+    },
+    "0161_nomina_contractors": {
+      "sha256": "a66ebedf44586abd7caf3aa98906fc3dca822d49e3be8531b2b4b7081f8a5715",
+      "md5": "7af2a4af55f31e948e68d82d1814e6ef",
+      "bytes": 7941
+    },
+    "0162_nomina_payroll_rules": {
+      "sha256": "91bcb4bb04e2e6d542ddcc81a53abd2d80282f18719dae68e1f6624ea6e44f43",
+      "md5": "bebb3c4c782b40dc3db08ccb7acbafc5",
+      "bytes": 6600
+    },
+    "0163_nomina_attendance_holidays": {
+      "sha256": "39c0a2de43f9c3dd9ad666cb474922b6133951b71f926aa0b3d7e9b1e954694c",
+      "md5": "608bb4e4dbdeb6373321e361d9c20519",
+      "bytes": 8995
+    },
+    "0164_nomina_loans": {
+      "sha256": "d4ceb00c145215fabae18f9920e75e2f51e4e44a1184a20d41dc553b55cfda27",
+      "md5": "840b2bbaffd1dffcc6e58cbb2152156b",
+      "bytes": 9111
+    },
+    "0165_fiscal_books": {
+      "sha256": "9520727b26670f1f7b78eb9d15c36c0eb0ff70705a14550e47d4bc31dec92657",
+      "md5": "f4ed39a933712b4caaac62a0b1ba19f6",
+      "bytes": 21324
+    },
+    "0166_tax_withholdings": {
+      "sha256": "f5b86fa1ce193289c15932d98dc7a729b7352c6bf32f0ddf667f8ac7630bed4b",
+      "md5": "4cd5e781709999a65b91dbc924bc6246",
+      "bytes": 9400
+    },
+    "0167_bank_reconciliation": {
+      "sha256": "f553adeef93f798dbecd29cfce4f74f0f297b7edfce3015a2b7ab7d7f73cd924",
+      "md5": "4a7cbdfbc40853911288991dcab7dead",
+      "bytes": 13517
+    },
+    "0168_fixed_assets": {
+      "sha256": "51975f8d86db4c63dfe286027f3f22aafeb8aa9cc8d73b9784ace051538eb7e1",
+      "md5": "c42e4e645e4f868060b08adcad07303a",
+      "bytes": 11647
+    },
+    "0169_public_verify_throttle": {
+      "sha256": "6a231ea5882b0df2de3224c0a274bdf7e5831d95dcd5ab8c58b03452db35383b",
+      "md5": "4a9379903c46e63d33f910f92680c789",
+      "bytes": 2482
+    },
+    "0170_persons": {
+      "sha256": "8100dd80219661afe62a185d4d6326210fdc21000e5f3643e614e54211e0c751",
+      "md5": "201c88bda74d268e862a81f057747831",
+      "bytes": 4186
+    },
+    "0171_nomina_warnings": {
+      "sha256": "5fd96ee78d2d6769de4a8708acc8b15481493db85c949710180f2f871369e09d",
+      "md5": "f797261ad916611f044f2d3209e38e43",
+      "bytes": 7664
+    },
+    "0172_clients_person_link": {
+      "sha256": "012532bbc18529974b846bbe724bcca8cfaa277844e34dc5ce4b56e800c63a6f",
+      "md5": "be78a37116404ca19584cb98d6c44530",
+      "bytes": 1278
+    },
+    "0173_markbox_optional": {
+      "sha256": "d54175231b165fce176efd1d709648a8efc58fd0a647ba500bbc0c6e770fd52e",
+      "md5": "831ffda3b59c53ecb4d3af0a9d464b46",
+      "bytes": 2836
+    },
+    "0174_find_client_by_cedula": {
+      "sha256": "164a0f9f277ae4210774a3632b96aa371d957640d35010b150ca9e2c296b7690",
+      "md5": "e3c0433c068393c355205b91ce7179d6",
+      "bytes": 1661
+    },
+    "0175_nomina_payroll_run": {
+      "sha256": "41dad48a6348844f2f68288a1a1597878f4f5ea6cfcc9c6f07ab9acac17aa566",
+      "md5": "11353c7c0009197306c821689b7f4d8f",
+      "bytes": 11820
+    },
+    "0176_inspecciones": {
+      "sha256": "8027bad971a990cb9250877e0d2121828a41ecd8a65f10af6729df871b0b0f1c",
+      "md5": "e2e0d7ebebde1c2dcdec12c1b236c0cc",
+      "bytes": 15082
+    },
+    "0177_academia_person_link": {
+      "sha256": "3ac37f858fb8e59967b919a0cbd160eaf4a2278a41365882165e0c3008e04609",
+      "md5": "0c1417a3c52aaf1950729b7b6fa78426",
+      "bytes": 8279
+    },
+    "0178_partner_finance_journal_link": {
+      "sha256": "01591a2e1b86732b438e54abf9ea8277633b0657ea9e7a020aa3a1f020777659",
+      "md5": "f20e36ff0916b3c887491b2284a16baa",
+      "bytes": 6409
+    },
+    "0179_nomina_settlements": {
+      "sha256": "e9b4844761e3080b0352c0587b82938a63b8ac67cfe52012da2513aff8edbb33",
+      "md5": "b28a08b5fb3e96b2d92a45bccf4ec2b1",
+      "bytes": 16265
+    },
+    "0180_employee_invites_registrations": {
+      "sha256": "185f1e1cf9faf71db60c151fbaedee87d6e01a33c23b1e0eff4167549239171b",
+      "md5": "47f9a68038aa49d041aa43606d207781",
+      "bytes": 10469
+    },
+    "0181_employee_comms": {
+      "sha256": "96a02dd493182dc957021658bc7a1377e79c28433cc184ba2bce2dcc3d993cb9",
+      "md5": "178c0b789a7afbc2fb94611685223a57",
+      "bytes": 16340
+    },
+    "0182_employee_self_service": {
+      "sha256": "6ce834ee8697dd75eb7d08bd3797103d430a7989d6cf26052d0222bde99f2ad7",
+      "md5": "ffc5b329f8b5c0f68b43b0b0550b267d",
+      "bytes": 14756
+    },
+    "0183_receipt_photo_idempotent_link": {
+      "sha256": "b4fd726ddc36d3ea0e43c04ab1f9b7e90f16e6ff318091d2d23b9d4b5954aa57",
+      "md5": "2141e915208b5ab1c3924c53821569c0",
+      "bytes": 4618
+    },
+    "0184_bodeguero_split_idempotent": {
+      "sha256": "ba83f7bf1fcfd64c662f517485af0f1e466eda9d8b4cbea9b4b2a925bf5b16ac",
+      "md5": "e55bcab583ada29121f99039d4b2728f",
+      "bytes": 6840
+    },
+    "0185_club_members": {
+      "sha256": "5c54ab4b997176301e4638e64ec0f08195b4cfd9e1068c2b08baac21022de258",
+      "md5": "2f07f49ec0b8356f08483ba95c84f79f",
+      "bytes": 7759
+    },
+    "0186_club_group_buys": {
+      "sha256": "5eb64c83290d81f140eb2ac24adf4bafc56794d05a1580cd5a615a377daae113",
+      "md5": "21b4a5f37edc30d259b68d2afe1c1ad9",
+      "bytes": 11370
+    },
+    "0187_club_portal_read": {
+      "sha256": "5fb682eb5f1a4a83ff2b39276f735212f77536afa7d0893cf2dcdd76013a3d7b",
+      "md5": "271d73b98d0a18c6298edf6ef24beb33",
+      "bytes": 4554
+    },
+    "0188_club_events_context": {
+      "sha256": "84dcf4305482cbd85d6d87713664ad4d29b629ceb28f7956c4c6082eb90a7292",
+      "md5": "6d5376db94ef482d6ae5e5ddb01c44a9",
+      "bytes": 3208
+    },
+    "0189_marketing_role": {
+      "sha256": "302e2f715f5db3ca9bb8cbe587381823dfaf0d2c1079fe59d4c7df7ba11bd9ca",
+      "md5": "984a43fd6801917ec7a855ca14395872",
+      "bytes": 6341
+    },
+    "0190_datos_empresa": {
+      "sha256": "6072396801d356ed9281d891b317d36ac1772d9c4c233b3d30fba71e8d9fc888",
+      "md5": "3721fe1ff0a9ae5d37d414489cb146fb",
+      "bytes": 6699
+    },
+    "0191_invoice_legal_legends": {
+      "sha256": "efb46e6879761cb11d4a399523b2564881114950fed37f9e1be1ebbd7de0ea47",
+      "md5": "f1cb1e1efecf120f4a0eab4e5a6f14ec",
+      "bytes": 2020
+    },
+    "0192_operational_calendar": {
+      "sha256": "d2f58711b14c8e8dc2d0600b56c13bd668bfbe53133f6dd3419d133279befdac",
+      "md5": "f9719f0c1b54a0818aaa91afff7e21ee",
+      "bytes": 3679
+    },
+    "0193_api_keys_webhooks": {
+      "sha256": "4985bdd8d37d4053f5229165e91b945aefea7d7162263aada1ba3cba2dcf1a4a",
+      "md5": "871eff6936829cc2fb814ff0edea9b00",
+      "bytes": 4970
+    },
+    "0194_clients_contact_name": {
+      "sha256": "2fc1122916a4f63b62c06968bdb28b7657e380a0312e90effaf99c6cbfcfbaf2",
+      "md5": "a7d0c74f4e5c8db79daf86b53379d795",
+      "bytes": 1484
+    },
+    "0195_payment_reports": {
+      "sha256": "c27a8570317d6b351a4e6175fc693b090bc65f22813275fc12b76023ba2542f6",
+      "md5": "ee59b16c3b501ae53f67216572f629ad",
+      "bytes": 18075
+    },
+    "0196_shipment_events_portal_rls": {
+      "sha256": "a53ec0dcafdfdd389a50e2baff042d0a4be86c6471e9a577a36a3416a5155a1d",
+      "md5": "f1985b8ad412d4512760a10d6b801eb9",
+      "bytes": 2341
+    },
+    "0197_referral_auto_accredit": {
+      "sha256": "156ce8b7d842b12610e3a0a3a16f811f07fabfb57bc75ee455ac930eb38bede4",
+      "md5": "57481856de15ec71f5294b9c28d89509",
+      "bytes": 6866
+    },
+    "0198_client_delivery_addresses": {
+      "sha256": "b218431a5c694db57cbbc6416336239229cb2030228abf1b23f50187525bcea1",
+      "md5": "ae55c60205a615cc19eb78d270657fd9",
+      "bytes": 11061
+    },
+    "0199_clients_avatar": {
+      "sha256": "fe34461d831f0e377ac596798903c2bab71d28919472c71b67c6e6f44a3db997",
+      "md5": "3c9cf1bf791c2f7e5e502a462360dfbe",
+      "bytes": 2215
+    },
+    "0200_rbac_disabled_enforcement": {
+      "sha256": "937decf1952dc0d39027cc0b3f94b0a64fce066dd1aec417d73d50d9183a3356",
+      "md5": "bd4de53f0209e7a1973c73d6a99c573f",
+      "bytes": 17194
+    },
+    "0201_user_role_audit": {
+      "sha256": "b1cc6da1589e9b16f0057e3fd23da4eca24ecb0ffd640e8a8dcd3881a535a93c",
+      "md5": "da10ebc82c2eaf8082b8873010fad388",
+      "bytes": 4773
+    },
+    "0202_warehouse_scope": {
+      "sha256": "c24a72be23115784ba498b72edc1c9f07a469c7c4c05901dc12037d50e9f17dd",
+      "md5": "fbe778c3d1ece08f54462bfcf694f55f",
+      "bytes": 5221
+    },
+    "0203_fix_studio_invite_user_region": {
+      "sha256": "2d9763a9a1958e5aeedeefbcac296889f99d4b83907461562faf01a1d2a228c7",
+      "md5": "74f256c44928fdb6c0d772055dc470a2",
+      "bytes": 8302
+    },
+    "0204_nomina_positions": {
+      "sha256": "d229a7dd05a493c753740d34c655fd7570e1e8e6120fb41ab4805e14fe035e0b",
+      "md5": "43ab91dc6cc6703d1ee46cf5076fd495",
+      "bytes": 15488
+    },
+    "0205_nomina_employee_position": {
+      "sha256": "b04d78101603fa44d78311e4258ed348d9e1cab3dc2a4babcef4ead712f4c689",
+      "md5": "a6ac285d07339596943224fdb04d5860",
+      "bytes": 1696
+    },
+    "0206_mail_signatures_admin_lang": {
+      "sha256": "7877caf8e9573bb0c3baee9cd764f916b0897115594468ab060fd9544e153f1b",
+      "md5": "27fc164dd61cb5414afd96e20897edb5",
+      "bytes": 3130
+    },
+    "0207_mail_scheduled": {
+      "sha256": "777aebe7fab8c47764738b2fff98846910b3a0632c323f47a1b7a50db1e5c40e",
+      "md5": "c5ad652931a9e9eabc7d0ee32af770d1",
+      "bytes": 3638
+    },
+    "0208_purchase_order_code_ca": {
+      "sha256": "fb7302118becb44699a48380928ff4085f0ef0b33726be416b46f73b9b0d0e70",
+      "md5": "b0028c2746a5321043b9e1787cee2621",
+      "bytes": 4447
+    },
+    "0209_revoke_anon_rpc_sweep": {
+      "sha256": "89ef08e238b2c138d5f4e7be70f8e63171aa68cba0a1c3ede080c0c992696802",
+      "md5": "c6c722efdb7ff79ef037e0d826739205",
+      "bytes": 12475
+    },
+    "0210_pin_search_path_triggers": {
+      "sha256": "57a8144bf02276258dcfd139d376200c74733d2f4c26edf8bd6e990f4150577c",
+      "md5": "c3131d8ea3756049d6455bc98b4d0ecc",
+      "bytes": 3678,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0211_revoke_authenticated_rpc_sweep": {
+      "sha256": "22ef217c780afe48d3bc02d1170becb516a5e14858e7e25425a9c007ef6277e8",
+      "md5": "e80ea1b34654761ba708f5f468436f2a",
+      "bytes": 8299
+    },
+    "0212_legal_docs_historico": {
+      "sha256": "1a29ce8fa12d649530893e0cca61d0c6d2db071efa1da6d42620609191e16028",
+      "md5": "cac2df30a16a24d4e0866791d4fd15a9",
+      "bytes": 3820
+    },
+    "0213_acuerdo_servicios_v3": {
+      "sha256": "72fe26b350813830cd3c28362a5fb684360768df3841d4f9715728bf8adf433f",
+      "md5": "86c4af3b917fa3cb8ce6e028fc7b9013",
+      "bytes": 20883
+    },
+    "0214_bitacora": {
+      "sha256": "a0040936873d79383bd589065b989a7271d90b1085eeba75d1cefbf635932bde",
+      "md5": "734f53d9f99d3aa22aea2a5d83ac4133",
+      "bytes": 35283
+    },
+    "0215_bitacora_enums": {
+      "sha256": "f6d4ef87c1410f23a4970f44404a5c56ad247c782dea6361f2c1f3b665493c5c",
+      "md5": "26c1aa89623c1a36794e0eea453a6bea",
+      "bytes": 8441
+    },
+    "0216_bitacora_push": {
+      "sha256": "fb4ced5c4311013ddbd2e1cc299827db8e68f8d9061f45ac093b51d6d53795f8",
+      "md5": "adc6eb3ee6c62d51991d1ce8297cf3c4",
+      "bytes": 8471
+    },
+    "0217_portal_conversation_read": {
+      "sha256": "eea952315b1afc4d16e2b28b59ebb64dafec6e989a6c7c7f69cd47ee8c2632c5",
+      "md5": "ef12037fe8ffa49a349318a0f057daf9",
+      "bytes": 2599
+    },
+    "0218_notify_portal_message_pref": {
+      "sha256": "605ec79caa707b6d4359beca2515c2ece27b460bb5bf98b6e1d96bf2010c4d11",
+      "md5": "ab67a7cf9b9e13406b746694d9e2239c",
+      "bytes": 1746
+    },
+    "0219_conversation_monthly_digests": {
+      "sha256": "c79674214d06cfb4c451758a477af8ec944249695026d53c99e061b30262eecb",
+      "md5": "a7f1a84f1e6c1bce58ee8560950d3656",
+      "bytes": 3704
+    },
+    "0220_client_change_requests": {
+      "sha256": "b0a21de79874a53887911d8fa06d76f5f267bc7b92c90b3c52ffca61f0d7e339",
+      "md5": "d780a758741d54dbc1e1d7652134692e",
+      "bytes": 4578
+    },
+    "0221_client_change_request_source": {
+      "sha256": "36fb6df6314049ca41e5350183cb3e1b2de3dddfbbdd98c9601998826b9e3c23",
+      "md5": "baf4995b3eca347a9eb28c7f9208cdab",
+      "bytes": 1467
+    },
+    "0222_calculator_settings_drop_peso_max_kg": {
+      "sha256": "434c018f58233dda35e32654bb987101cd188b6650aab6b80695c211622aa0fa",
+      "md5": "3269cc83b52c497e518563e60584244e",
+      "bytes": 2144
+    },
+    "0223_calculator_settings_peso_max_envio": {
+      "sha256": "354d47b6cd8a34ca245e283f309d0f52516e52beda1594b02f261948594dea4b",
+      "md5": "741667cd71138016de81c0d301037aad",
+      "bytes": 2157
+    },
+    "0224_conversation_digest_client_summary": {
+      "sha256": "e155d6c5bc8e227eb5c7e287761965cf444d52b986d30f25b55be2d9f570d9e4",
+      "md5": "a146794380f579c9f53f87223ff8b94d",
+      "bytes": 1840
+    },
+    "0225_prealerta_share_active": {
+      "sha256": "4aebcf464ad10689820173b5fed8b9af4c847a454e24fa06149037b2bfcbe399",
+      "md5": "65f3364f9d06ce46dd22a05f1e561024",
+      "bytes": 5570
+    },
+    "0226_portal_invite_counts": {
+      "sha256": "25c2a23f132f5e678f434ed3fd04e0789383374c084286ba70cd3ba5c959be0e",
+      "md5": "2d2c9edebc0d50414b96fa508e29d31f",
+      "bytes": 3172
+    },
+    "0227_portal_invite_by": {
+      "sha256": "58a0c22c4cc1ef2c048c7d053ba73abab75ce886a0a371dd97763c6f531ed9bd",
+      "md5": "e99d8c932421e9005f09004197394591",
+      "bytes": 2562
+    },
+    "0228_suppliers_cn_extended_fields": {
+      "sha256": "8df43b6e1da6ca407330bfd929b0349b4a0e164d887af7efa6995a585abbff34",
+      "md5": "b1ed41c3e41818a32df4e46f224b297b",
+      "bytes": 4339
+    },
+    "0229_suppliers_cn_operator_write": {
+      "sha256": "1e6b1c2a9fdd7a3720bb8950fae096c6f1fa4b57a0738c5ee2e76b12bafc3595",
+      "md5": "d99618b88fec7ccb4ba3619ee46fbc9b",
+      "bytes": 2612,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0230_fix_rls_soft_delete_blocked": {
+      "sha256": "4832f45d484ac724667f7c1f509762ec5c5cf2e567cde4cdfbf04085c5fab77a",
+      "md5": "148b6074e295ef305c1953519dbf8cec",
+      "bytes": 1934
+    },
+    "0231_fix_portal_supplier_seq_rpc_grants": {
+      "sha256": "c8f615e6cbf2b72def6cb1086b55b25de0c41f17927758c1d28d1ace65bb6baa",
+      "md5": "c957bf31ffb43d8536f9518c00eb87b2",
+      "bytes": 2592
+    },
+    "0232_bug_notifications_outbox_retry": {
+      "sha256": "57419700f5b28814877d1789031b41bec9d942b9f0401d9bc0742f6ca051a09d",
+      "md5": "7b82af9b77d73a2a1ddc861a046dfbec",
+      "bytes": 3559
+    },
+    "0233_user_dashboard_prefs": {
+      "sha256": "f1f4661337d8ad5b3f1578d5f6c62ab52c30ddbfbe6d8896750627a9e47e78b4",
+      "md5": "0dc2239454852a47a1c1f761815c8d80",
+      "bytes": 3785
+    },
+    "0234_marketing_friction_reports": {
+      "sha256": "26b7e8e60b60058f6956ae62e6d2e373abbcfd5667c2090a15985f5e7211d9b5",
+      "md5": "ee97f4415c5b8931dd6c29480aa6ef34",
+      "bytes": 5658
+    },
+    "0235_club_registrations_suppliers": {
+      "sha256": "b5bcc048c3bf576122aa37d1153d0e075cd9f969a204488afa66e3b582600192",
+      "md5": "9778fea4a00b58cbbd01fc2678e907bb",
+      "bytes": 13596
+    },
+    "0236_supplier_scorecard": {
+      "sha256": "8b4c6d90823536d7c70348c5e0fe26c25baf708ea9e45367ea4abc701fdc46e7",
+      "md5": "9563d7a554f5e9880aca815bb406db4c",
+      "bytes": 21171
+    },
+    "0237_referral_credit_apply": {
+      "sha256": "dd2237c005f6279963124d738b8108e1e42556bdc9c0b53e7b7a296ddbdc1107",
+      "md5": "d49d15a3a2a092a759c74706cec28a6b",
+      "bytes": 9397
+    },
+    "0238_referrals_accredited_at": {
+      "sha256": "4aa9c5d5a07819433160b72ba55bf8f5355636602ae988aab414744136c9d771",
+      "md5": "626deeea23c7cb6eda9f45ac3900de6d",
+      "bytes": 5040
+    },
+    "0239_applied_migrations_rpc": {
+      "sha256": "abd7dc8e7a077363e51a60d5a412251777710c54539cc5277ff41459b07d668f",
+      "md5": "3154ccdb30579e41942082321448b836",
+      "bytes": 3309
+    },
+    "0240_warehouse_boxes": {
+      "sha256": "466dfb6b4162564aa6e7890391d603b428b3d12f90a3e93e730d834d7e3847db",
+      "md5": "f323ae5e42e8faba8cf6b1280f8df7d1",
+      "bytes": 14992
+    },
+    "0241_estiba_por_zonas": {
+      "sha256": "57181d38f0ab44059f5dcf400353cdd44905b5a6bfc7fbd13d4f6f8ed3a1f6b8",
+      "md5": "1062fc19acdc56b3ba5141d3969c9e9d",
+      "bytes": 22975
+    },
+    "0242_qr_print_orders_receipt": {
+      "sha256": "dc8a6236b8f919adba07400d69d47a90f7c5d2144d54ad9ce57a4f5bbf00966f",
+      "md5": "75e3fcc59d9ed186749a99fcaba2e065",
+      "bytes": 2389
+    },
+    "0243_clients_doc_kind_backfill": {
+      "sha256": "12716fc95387278c416152f8d4ca63720484430b81c577b9ab39f541f5e9f65f",
+      "md5": "7b64b6c87b3ef30529ff9d2340170fc2",
+      "bytes": 4022
+    },
+    "0243_warehouse_boxes_seq_partial_unique": {
+      "sha256": "557c291a329faafb957e0f45e04f88083e28a98dbf3a3615267eaa50c6537caf",
+      "md5": "bb4474747fe0652e11ea510de28324eb",
+      "bytes": 2242
+    },
+    "0244_warehouse_boxes_predeclaradas": {
+      "sha256": "c067e30cf9d3a6b477af2170abcdc23a5a463bdc6f64a3d4066ea63d2c41fe46",
+      "md5": "cdb5b0b2ad374513a3f61bc2e1ae798e",
+      "bytes": 14281
+    },
+    "0245_receive_prealerta_as_operario": {
+      "sha256": "84653f7949ca9bc6e69d12efc86ea1a328eed55d753ad5ebf48e474e75629591",
+      "md5": "554574a8d5b39036f2ef499eda22340b",
+      "bytes": 9170
+    },
+    "0246_estiba_por_lotes": {
+      "sha256": "08ff30cf7a1f8a9c06148e131d5475e141bcf4229447c5e5ff8a54dfbda78adc",
+      "md5": "72ea3e3b540c4737570aca68a0f4f18b",
+      "bytes": 12620
+    },
+    "0247_client_notifications": {
+      "sha256": "08721b694b381c397c1631b469f34da49206da644df0a77e14147420e0a283c3",
+      "md5": "a4494ed087f7da4a53d7f63309e2dbb4",
+      "bytes": 9865
+    },
+    "0247_grant_next_consolidation_ref_authenticated": {
+      "sha256": "22da4a89325e071524e7977049a597bb415edc246a9f3662bb2de373f340f0dc",
+      "md5": "ccddb7a28eb37cbd2b8dda35b099d567",
+      "bytes": 1527
+    },
+    "0248_grant_correlativos_authenticated_sweepback": {
+      "sha256": "ec1ce6b5a55d86b90ad7707b23bbd94f74a8cba6b438704704660743cf505be3",
+      "md5": "aeca070d54aaa7552e0a47b18a7289d4",
+      "bytes": 3530
+    },
+    "0249_consolidacion_operario_request": {
+      "sha256": "5dbac23b8f236d86ecf5bf2ec7918be6373707aaf96caace1da2deb162e51bfc",
+      "md5": "fb9dfbceb8693fc98df566744ed43d8c",
+      "bytes": 3255
+    },
+    "0250_referral_settings": {
+      "sha256": "04e3dd87f1546546d7ecfee8fb225af0b1535b2b41527aab7ff68853a074c5ed",
+      "md5": "b63fe462dac95d36f868e05b8deb8826",
+      "bytes": 8938
+    },
+    "0254_fix_public_ocean_rate_casing": {
+      "sha256": "968a3e0f00d37652c107e520915fb2b1d3c2eaf043db5c5575c0c49e93e4ab56",
+      "md5": "fa2f73afe1be88697560cf4297961a78",
+      "bytes": 2507
+    },
+    "0255_rates_public_calc_modo": {
+      "sha256": "6be55318c5cd01607ab0bc35ab2b7ac0269d10b469c37ecacb9a2189c357c264",
+      "md5": "c9a393f7b69a55ef908caea72865b3da",
+      "bytes": 9658
+    },
+    "0256_shipment_service_nombres_unicos": {
+      "sha256": "0a9d752530820964724a01c05ec7ec8555eb428febe3e871408be3b7a069f438",
+      "md5": "bd5d830281834d59f1490afaededa4a0",
+      "bytes": 10044
+    },
+    "0257_rates_expiry_alert": {
+      "sha256": "336842ce74c2a2679b57244b226f988babfe5d3ecd217edbeb074ff581468388",
+      "md5": "df4fcb53a9b646c19c34197f34904d86",
+      "bytes": 2052
+    },
+    "0258_audit_entity_catalog": {
+      "sha256": "fc24586211c442b0c538d3a327ad429ee0d4a456d37ae83f1edeaa69c438cfaf",
+      "md5": "ff2673085739966ecd0a41ce1dd032a3",
+      "bytes": 8246
+    },
+    "0259_newsletter_subscribers": {
+      "sha256": "05f1c29ebea5c380c2a336b7db00338b89b4def5ef924fdec2260398f8a6f7b4",
+      "md5": "cb64f15c6800f5ca25deda81192a08a9",
+      "bytes": 2488,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0260_newsletter_campaigns": {
+      "sha256": "c2934d8d99e6f592d3add5f2e8c15a4071c2a1e21625c5321f0c22eb5845c3f5",
+      "md5": "120fc36604da60b5f48c7d7785427e36",
+      "bytes": 9136
+    },
+    "0261_audit_entity_catalog_validate": {
+      "sha256": "0e5874c86abb2882bedbf218187d03b4b4a117496c1b8be597075b181efae0ca",
+      "md5": "8ac0ae45c1049cd9f2ebb2d5f953b97d",
+      "bytes": 5999,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0261b_comments_acl_least_privilege": {
+      "sha256": "1da25b121ceba0830ad1c8e2388e2b91a57977088f216bc62d9818ad0022763e",
+      "md5": "435b5658af9d3563a8ab76d2bdc593a2",
+      "bytes": 5592,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0262_comments_lifecycle_contract": {
+      "sha256": "d0a057d03b200032894824758275228807ba28495e4a02221b9d40ea271e2528",
+      "md5": "c0f2ff34ec0550d48ce79c4db8d364df",
+      "bytes": 54212,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0263_harden_postgres_public_default_table_acl": {
+      "sha256": "114dee6efbfc568e4cd3459a7c01b6712fb5cd4d252bdc10babbe213de63c30a",
+      "md5": "32a515b4d2e3bc24bb581fc5f94264f0",
+      "bytes": 4486,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0264_harden_comment_mentions_validate_execute": {
+      "sha256": "3441045d20ad176eb3e34f7283f86c6915e92f7d17aac77e09bdd5b11fbac095",
+      "md5": "4d7f349bfe65032f0a12fe62cbc4c877",
+      "bytes": 4385,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0265_comments_lifecycle_hardening": {
+      "sha256": "2f6fe74b7908cb3649f663e29b738c0bbddf0c673d7bd1041fa4608179c6a3ab",
+      "md5": "512d9fe4104043af69b151aaf26c7454",
+      "bytes": 23565,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0266_suppliers_cn_portal_profile": {
+      "sha256": "df0875f59f69da7711808db9efae38cc0f9d38d368bf4680501328262f6ba912",
+      "md5": "7310e70c2970825f73ff045ba58ae2c2",
+      "bytes": 4083
+    },
+    "0267_audit_contract_append_only": {
+      "sha256": "10a9db4453a7e13537100593c7d36a9b766121a26bf57d79ff579dc6936b33c9",
+      "md5": "bf975126f2820c677560b10113fb356e",
+      "bytes": 26690,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0268_tenant_lifecycle_guardrails": {
+      "sha256": "c7102c9728ac33ed0213fd648a76f204efca9bb0e862023d73a3b581a9b039ac",
+      "md5": "127a11d4eac9106d621a537b1886c6c3",
+      "bytes": 4363
+    },
+    "0269_prealertas_client_note": {
+      "sha256": "5b39a4e4a4e56e454496aebe66bb1f21d871d0441cac03c46128bb8f12560dc8",
+      "md5": "fa945dba302dbf083637adcafb76d258",
+      "bytes": 2529
+    },
+    "0270_audit_governed_query_rbac": {
+      "sha256": "2aa6ff0e4654ea310c560a609f16f5f9dc42dfddc30f9c95ccbc5135ed3f7576",
+      "md5": "888c2d9aea1e4b495f41d134b7d53392",
+      "bytes": 17625,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0271_repair_branch_replay_history": {
+      "sha256": "9edcf5658702b483617dad257c058b346f595fa0c04247260db4b42456681d46",
+      "md5": "0839e50eeb47a158382fc2f6c27d5fe9",
+      "bytes": 133295
+    },
+    "0272_skip_superseded_invite_history": {
+      "sha256": "5aa89ccb01db8aefeada9625ec08c8d7ba6dd90e17d4a16013e4a819e476ccea",
+      "md5": "5f502d2468f993d74c6428de89c13218",
+      "bytes": 2836
+    },
+    "0273_skip_platform_admin_bootstrap_history": {
+      "sha256": "27b37488283d8dd12dbe754950be33916b323b202b6e97a4c69b08478a355942",
+      "md5": "0348af3b73c5760c403df3861fd7540b",
+      "bytes": 4585
+    },
+    "0274_restore_calculator_settings_history": {
+      "sha256": "5e33ee512a20da3c0e9c1cf200cb3cb9a97cac51308578f4ed6a26724ac1ff89",
+      "md5": "a891ca3f514dc7424576501c1275005c",
+      "bytes": 8634
+    },
+    "0275_restore_pin_search_path_history": {
+      "sha256": "83675cddbd1d3e48354e423f2a6247771394865436d0af33ab09e1994bcebf2b",
+      "md5": "a217fa825ff964f2c2a4cb26d31c3dbc",
+      "bytes": 5121
+    },
+    "0276_restore_revoke_anon_rpc_sweep_history": {
+      "sha256": "46d2850b11b69d73aab75ff83a7195d610d57e8694b37b9cb9ffe54950f2c917",
+      "md5": "784f95726bd9c6f21963722f1ce7e61d",
+      "bytes": 13877
+    },
+    "0277_calculator_cities_destinos_faltantes": {
+      "sha256": "3d41d9af9d0c1a1796f57bf2fe55a8de4c778c856254c87deb547394ac1a307b",
+      "md5": "d3aad8d027e7a6a9b1e2442b0daddcfd",
+      "bytes": 1747
+    },
+    "0277_version_rls_auto_enable": {
+      "sha256": "53d5176876fc8259fdc035fc8395ec1f8d701f649c454b91a0ded2b7dd6aa58c",
+      "md5": "171643b4a504a765e5183d0e80cd461f",
+      "bytes": 3755
+    },
+    "0278_restore_rls_auto_enable_history": {
+      "sha256": "a15b609faf375151a21ae103801d1e93b876f14b42b6bd3b7f151bc2e411e163",
+      "md5": "b89ea936f0ea66e226e6ad36e6105541",
+      "bytes": 3654,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0279_restore_tenant_lifecycle_acl_history": {
+      "sha256": "611f58c462a2fbf63295a38bc65e69f19873a4202baace19180210004daf0d18",
+      "md5": "330b7165b70dbfaa682b9e7c0d337f81",
+      "bytes": 1779
+    },
+    "0280_repair_sdd0118_split_history": {
+      "sha256": "760320ec7a033f7586cc9d349a820c7f3419a2c04b1b6b9c75d7f1915c32bb72",
+      "md5": "6234e2fd64ce1f352878f5e8a43b96d4",
+      "bytes": 138546
+    },
+    "0281_repair_invite_skip_split_history": {
+      "sha256": "a1364a506378ef031bfaa4de88a9545c5cfcba5bf8ffd3a9f30bc974b39ea631",
+      "md5": "720ffea0a7c62241a2ea729285cb9ac6",
+      "bytes": 4535
+    },
+    "0282_repair_platform_admin_skip_split_history": {
+      "sha256": "b7219a4572243ff48c6ef3c6de835c9fdfede6dac815ce9e243bfb28bca0acb7",
+      "md5": "958bc40ff0f3b7d68ebe01a539b70eb3",
+      "bytes": 6567
+    },
+    "0283_repair_calculator_settings_split_history": {
+      "sha256": "cbc0a001d43bfc28a16b2f1bb93d1a5076b50a27424e2974978a1ebe6d0e4823",
+      "md5": "4f52eea8b1bc1d4711e77ed7073ff03d",
+      "bytes": 10531
+    },
+    "0284_repair_pin_search_path_split_history": {
+      "sha256": "7e2886a86d6d2b99da976329fa312d4867dc0de8d336d74f12ccf78237b46f64",
+      "md5": "49280ca29a4a4d383ea0cc36c03cb0ce",
+      "bytes": 6938
+    },
+    "0285_repair_revoke_anon_split_history": {
+      "sha256": "446de572b09157380dedb08614465944a05a1c0f818ec968bb61b190f8b70349",
+      "md5": "b99f9ac3ce36126ef5414614a760b901",
+      "bytes": 15728
+    },
+    "0286_repair_tenant_acl_split_history": {
+      "sha256": "5fd0253fdd40f3440e45e18dc6b61221088dca2037eee4115e61de9374da2700",
+      "md5": "88ef526405bbe3aec768e50a50fd7bc2",
+      "bytes": 8068
+    },
+    "0287_repair_replay_gate_split_history": {
+      "sha256": "152ee04075f997bea4b2e9086f32639a958aecbcdbeb420e68e57aea9eaa1be4",
+      "md5": "3b71c44ac5a5f7dd7c3678673a2c3826",
+      "bytes": 201869
+    },
+    "0288_finalize_replay_gate_split_history": {
+      "sha256": "d25fa1a3d381c4037e194ff80ed8ca9b758f0a7c10a69d2eff407d76649dc0ae",
+      "md5": "c9a9933108f03b8d6d1f415b1ced6478",
+      "bytes": 206220,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0289_audit_d1_access_configuration": {
+      "sha256": "3d067834db4a1c2a61a0e6305e7de3f3d08174d551eb4ecf40ba8365e3970fca",
+      "md5": "8309b325f6645b3a408373ece6101c7d",
+      "bytes": 44029,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0290_audit_d2_financial_domain": {
+      "sha256": "48b56a14de5676f3648f9322e0611c740c8ed07e6a51b5548e973d765357db70",
+      "md5": "ac9a4fa75fbd52bd15cfca41b505c016",
+      "bytes": 16255,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0291_audit_d3_commercial_cycle": {
+      "sha256": "47452a73d03503bcd7b5a83582f1a7ec40c70df9a814cfc3638e7b0a29993a44",
+      "md5": "eade8a35f1815d0dc9de4d5cd6e8ccd1",
+      "bytes": 10938,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0292_audit_d4_logistics_r3": {
+      "sha256": "8940910040b684a80325f8539169c834951a24bccafcf64304d6dcdde25d4628",
+      "md5": "55f8e43b28aa500aa362fc6c8d3d1fa9",
+      "bytes": 5345,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0293_audit_d5_residual_and_writer_retirement": {
+      "sha256": "205d3e97f4231604fb4429ef98583e8d1aeff0485df8de8d87f3cad765060b91",
+      "md5": "801ffec4607b3bd11d011bb6e80e8845",
+      "bytes": 21662,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0294_audit_d2_human_reasons": {
+      "sha256": "e95212dbcb2ec50e9d4af2b3813ee228b01f9ffc90bacd9c3cfa7b88eb9791dd",
+      "md5": "7d9972e9d64150a3a09aebbcf7c48c6d",
+      "bytes": 10234,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0295_audit_d3_human_reasons": {
+      "sha256": "367378fe16b1ba798629848e96dcf60a8c7a14d39225a9f01f7e958cdcbb5611",
+      "md5": "060e59d7cedf27163d7960ebc9909df6",
+      "bytes": 5144,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0296_audit_d4_empty_search_path": {
+      "sha256": "fec70b3a2771f2f2f833d222416215ba952c5add005bb525359c4e76da7f2610",
+      "md5": "a1fc8c758cbf203d111adeae82fd4479",
+      "bytes": 4233,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0297_container_types_activos_y_capacidad_util": {
+      "sha256": "79dee88e4cf3352607609428f4ef43000cb8f5e0bc1dbc3f74de35c4b1efdbaa",
+      "md5": "b5bd35b519ec4b7faf912b456fa3c835",
+      "bytes": 6667
+    },
+    "0297_legal_docs_body_hash": {
+      "sha256": "b041e16afe892b8cc82c118e1834790a8df6e73953e45b4560bc01eac624d891",
+      "md5": "4f82bdcaaba2e95854201fc87c52ccc9",
+      "bytes": 8422
+    },
+    "0298_consolidation_plans": {
+      "sha256": "1737f00937915a40e8b69083410f31c8398ac2705ba7579bce3f06353df4949b",
+      "md5": "91c92300a5de257a65a353b9e8efd2a1",
+      "bytes": 8660
+    },
+    "0299_estiba_plan_vs_real": {
+      "sha256": "445a71305a36f61351239d26ce2c2729267b9261f4e5b14b9ffb10caca29ff87",
+      "md5": "d24332f98b859d5ea8aa0c5e7d2f7710",
+      "bytes": 2896
+    },
+    "0300_pod_seal": {
+      "sha256": "9ff06468e24d15f87e2e55ec64ae8b81421beb4a982168a7792f1f5596f61144",
+      "md5": "514a075f066427201299b7627230fb24",
+      "bytes": 13547
+    },
+    "0301_audit_legal_holds": {
+      "sha256": "76e6a4e5bb7acc2c41794c8b5e616637fcb501cde644201de38ee29df60e84b6",
+      "md5": "143cb8314c62517b804aea9f3fcd3680",
+      "bytes": 12458,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0302_audit_export_governed": {
+      "sha256": "3d4fdee5a89e86dad585ee2fbc8518372e9ba039ed261a4d11c078eaef85cc6b",
+      "md5": "7208f3fee07bc254d95ae13373269b86",
+      "bytes": 14395,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0303_audit_export_expiry": {
+      "sha256": "1c9768af43e9d7afe61fc9156551adb3136628abaecab7693258e6c359254eaa",
+      "md5": "f7ffd1ed43537d32c6e3aa46ac334c96",
+      "bytes": 5040,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0304_audit_retention_batches": {
+      "sha256": "50b51b75d7af4cd6e5b2bc29f0cf297cb0bf3e10e7135990c1b796c56d01a4de",
+      "md5": "c71dea2cae312df9f90bdfdf0eb384aa",
+      "bytes": 10123,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0305_shipment_planning_dates": {
+      "sha256": "1a1656f736cdd4e624cdbed58a6bc73b04c5f7502530fdbddb15fbbee23efb0a",
+      "md5": "6fb032b025fd94899ef23cba35adfc67",
+      "bytes": 6496,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0306_expense_receipts_tenant_boundary": {
+      "sha256": "13b5573430aab311dcad947f052f2649121442dcc83107290f01d11359315314",
+      "md5": "c5da09550213b8af9baca94923faab85",
+      "bytes": 2035,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0307_documents_attachment_metadata": {
+      "sha256": "6b024f08a240541b815af70246f9510f6f0d17db3bb093168ff3509ec2d27a3a",
+      "md5": "bf15dfd1a23e691d28b70650663cef95",
+      "bytes": 3556,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0308_document_upload_intents": {
+      "sha256": "9b2f41db07b082151c896dbb0979e84238bffc48153704b6ce40c2f73126f052",
+      "md5": "452595854ec2379553171d3b91e5b111",
+      "bytes": 2262,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0309_document_reserve_finalize_rpcs": {
+      "sha256": "d5f7375e389c3f3083e1c8e38835d78ccf8b17291e785fa221a13b5210fecf82",
+      "md5": "3547f2f824ff015d93b986a099bf7e3e",
+      "bytes": 7293,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0310_erp_attachments_bucket": {
+      "sha256": "a58c22f020fbd975c5954feac197add0d7b334f364f2dfa576658435968fc458",
+      "md5": "36e33153252f0b9d6e35f9db931f5406",
+      "bytes": 1049,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0311_document_scan_outbox": {
+      "sha256": "31ba503ae0ecc737c786b8ce8e77c8dd5318e7e47c69d1de49c62d7ac9636f4a",
+      "md5": "5f0ad0a2338c570f2c8f20f55ca2f3cb",
+      "bytes": 6516,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0312_document_backup_outbox": {
+      "sha256": "2a72517dfaafa2c05eeff87164b5d1038aebbb580ede0d6728d29810a5bf12da",
+      "md5": "0a071589ef326d52b379c2f172a3d500",
+      "bytes": 6964,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0313_document_restore_retention": {
+      "sha256": "5cd26f6066d440bce08c07d3930e89297c26a3c01ff59994eb1896c05bf53928",
+      "md5": "2eb2f3498c5592467d1d22a291cef8b5",
+      "bytes": 7324,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0314_expenses_document_adapter": {
+      "sha256": "4eac7c13e093d2b1dc9238dfe6c4db549f33f5a5524d532ac5c5d4bcd3d6a3f4",
+      "md5": "9444282bdb82e91a0417f17ff11d0b96",
+      "bytes": 3564,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0316_nomina_settlement_void_governance": {
+      "sha256": "314ef3ad2325f1eaaa5d7725d168354b6cc7344ab42824a0f36ded66cb80015e",
+      "md5": "ea862b1a337c2f8ac1d52a9e5a9d7bee",
+      "bytes": 10798
+    },
+    "0317_partner_claim_payment_governance": {
+      "sha256": "e5c8b4f3a9b7903bb07e7d3d24db200cd28557ad2a7d27cc6f480a58771adfab",
+      "md5": "9e0c14d399cd4d8e2d5be4f618bd709b",
+      "bytes": 7826,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0318_customs_clearance_governance": {
+      "sha256": "12079b7c440a4f2c17714a1ff3b3f408015c09367a23635300bee6c9ae354fe3",
+      "md5": "5ca83032bac69a04d68af3e196b41311",
+      "bytes": 10509,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0319_claim_indemnity_payment_governance": {
+      "sha256": "a06d84a4f32214c167fd440638cca7829a2220767e7709c00ee8209dcc9ea854",
+      "md5": "bfac3fb7c010ea833d6051808c1a0acf",
+      "bytes": 13586,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0320_tms_route_completion_governance": {
+      "sha256": "b9fd04bd1438e524bd54d9905e9539bbc50384f2e195f8519413c00aec10c43f",
+      "md5": "3500c03e966319a171ece7f0a5b847b9",
+      "bytes": 10992,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0321_warehouse_ve_delivery_governance": {
+      "sha256": "c039bb72d0f35c5f4fccf3aee15fdaf9ca231bf9c491a5980671f52e0551ca7b",
+      "md5": "60d1724a22ed9b011826c510b914c4a3",
+      "bytes": 8307,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0322_naviera_consolidation_authorization_governance": {
+      "sha256": "5f8c67ef603d8e5c552a02e00e6ff82f1faed5704507f8265eccc9b8d1525b52",
+      "md5": "3c431afa508ed95a1bf23c4669af6f51",
+      "bytes": 9290,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0323_inspection_report_retirement_governance": {
+      "sha256": "52db8e54df1542b925a931aef636b1d5afd1ceb4021b590aaa9ab5c30d216749",
+      "md5": "76cd9863ffaffa180d6ffc2da3729e8a",
+      "bytes": 8971,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0324_dispatch_order_cancellation_governance": {
+      "sha256": "2c960f75637a1f12d89ced9562638ea98dab430cc9b312793a4019e99cb78ce7",
+      "md5": "02b587dde38fddc520683cc8fd94c885",
+      "bytes": 8696,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0325_operario_pin_login_hardening": {
+      "sha256": "f43667efeeb9648fa22e6f7b3e346df6eb4a888da899a66dffc5acc6dc334266",
+      "md5": "984285c13a14a633e33096e5c0c21517",
+      "bytes": 3564,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0326_public_tracking_privacy_throttle": {
+      "sha256": "5e420e8d99f2d0b63405bf31e7a27dcdc1a8b97aa54cfe6b318d75ec55968c26",
+      "md5": "bc577c354c3c4ed9d75b3ef6f3cc5025",
+      "bytes": 3441,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0327_internal_function_grants": {
+      "sha256": "51f1db939e8b6a5bd81508d86ae8b293b78d3e45767ae7f37ce8c3bc8cad8fdf",
+      "md5": "31cad44d14b878ae0f599573102a8232",
+      "bytes": 867,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0328_camionero_dispatch_assignment": {
+      "sha256": "45e20f1ef002aaab114b3c162b7588f7b9f6bfb4cd31b549cdc6f07805396354",
+      "md5": "aeb96467ce9a27ba90f223c0383f8d7c",
+      "bytes": 2697,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0329_user_profiles_tenant_scope": {
+      "sha256": "3f5ecbeb3d2c912f8868d58349dab066a4b71742f91ccbf234536b4fe0f8119d",
+      "md5": "15302e11e7b31e2fa8c9db774171893e",
+      "bytes": 912,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0330_freight_carriers_tariffs": {
+      "sha256": "b8d8f6c2ed9d1348902af902f33cfd56f6eda08b6f5034908095b85d0ea76ce1",
+      "md5": "6e99d6ec8ecd1c34da2fae55f207891b",
+      "bytes": 15448,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0331_seed_received_ve_rule": {
+      "sha256": "e4ff6118af8d0e9cc9fa378a12dd6af2317ea91a4a4ed9910d63cc12ad751557",
+      "md5": "b61916ec46bbce97445f7d012cc0e695",
+      "bytes": 2444,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0332_seed_tarifario_benito": {
+      "sha256": "11250237f4b9a8a75458579d238267c565efa0b67126b41e2a5b5aa0e610d736",
+      "md5": "47fa75d842dad9905dcffe7ee4c54cdd",
+      "bytes": 30617
+    },
+    "0333_retira_tarifa_terrestre_sembrada": {
+      "sha256": "abfb01ccd7c79580d06ac6359ec68ed40b0b70cd1275fe6a65cb518048cb5d38",
+      "md5": "94c89130faf1dc4bd8ba0bc3d360275d",
+      "bytes": 3622
+    },
+    "0334_brand_catalog_public_gate": {
+      "sha256": "82f7abb98bca4b15f7239bc955394a88c8ad9e2c85caf3de677f629413c0c5ab",
+      "md5": "7da1544afbb53d8afa564dbb2dc4488b",
+      "bytes": 25328
+    },
+    "0335_brand_assets_preview_metadata": {
+      "sha256": "e194025ff99cb31c40c091373f916554ab0119f67c6da3ae2c49e59e4ce63e2e",
+      "md5": "2361d689921fc750e8d62fdb5c8c118a",
+      "bytes": 3254
+    },
+    "0336_pod_closes_shipment": {
+      "sha256": "789588414ded6c910479f3088f45173eab8140a2e4b05213d2b17181344a0ad5",
+      "md5": "6f9faad2dd1b635f8c24b0e1c70ff946",
+      "bytes": 13040
+    },
+    "0336_rate_ddp_850_septiembre_2026": {
+      "sha256": "f8648a8387bf4476f8a30079553a9cb9401ec425c08a25f30775ed1a5fdc77b6",
+      "md5": "18658c07ccba326f84e739495ffb81cc",
+      "bytes": 5582
+    },
+    "0337_feature_flags_seed_and_trigger": {
+      "sha256": "440259a79238823593bd2e5a8a866fc14bd190b432a57f119c6fa237058d7669",
+      "md5": "bafce3839239e22085fcb1b8a8d49109",
+      "bytes": 6583
+    },
+    "0338_ve_locality_catalog_read_policy": {
+      "sha256": "4193ef25878c625a345beb8bd44a643129faf39846bc398d37d47955241f7736",
+      "md5": "440934eeac64d72b07da64f5144d13c7",
+      "bytes": 3420
+    },
+    "0339_brand_internal_second_gate": {
+      "sha256": "913e7fd2df0c1f279ffca915f2b9b3d408e2ac05be334baf64adffbc77e94431",
+      "md5": "7a9bc886b9d0baecfa8c3c8a1e1097e6",
+      "bytes": 11850
+    },
+    "0340_expense_void_governance": {
+      "sha256": "2c86c5cc30ddf551e4132515d3514bb49ffa92c7c767cc50e18644559996cbaf",
+      "md5": "189617ea29e51f1c3de2b266ef1c67c6",
+      "bytes": 9222,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0341_client_merge_duplicados": {
+      "sha256": "15ff2d7aaa4ba8c6619e273ac11414f70dc84f2dda9a3edcd4df9184dd452a63",
+      "md5": "0323bab051ab726a1b9e6abea6eac6a1",
+      "bytes": 26724
+    },
+    "0342_kommo_contact_link": {
+      "sha256": "7b76f5d72d0b5fac9bc6b032b9620aa3b05503dab6e483d82d5e107a3d2fe86d",
+      "md5": "38c1a9938e99167525d3e20fc72466dc",
+      "bytes": 3722,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0342_phone_match_key_relleno": {
+      "sha256": "bff930188536a0527dbab5d934b235261eba2ec840b9ef930cd85ed59a1175d4",
+      "md5": "243594cd768840c84ff526f05159fde2",
+      "bytes": 8213
+    },
+    "0343_kommo_unsorted_mirror": {
+      "sha256": "52741e2cea8ffecf7a0c3d9365a10a4f71008f73ecef1f11ce67dd9011f3f982",
+      "md5": "9ea7b6fdcea7e042ef4d22902a90cfce",
+      "bytes": 3620,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0344_kommo_writeback_contact_target": {
+      "sha256": "20a4cc60abeecb7b1e24c24758873359f69c1b716590b893e4ebe917b0984a08",
+      "md5": "aa9c34d724655ed44b849db5e9faed05",
+      "bytes": 4113
+    },
+    "0346_r2_bucket_lock_backup_receipts": {
+      "sha256": "cc987420c1ea76168be2ce0b3fa53f9f41e205bcb98b73488bba346065173091",
+      "md5": "87e0b8f3b0916f92a1b8684c2a65b31b",
+      "bytes": 3384,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0347_client_delivery_addresses_city_slug": {
+      "sha256": "a76b066e23ef71263d123135da3eafc654708144f91237f12368d4ca635d5d53",
+      "md5": "055fc9e67a9bd5e0d026ec2fd44483d2",
+      "bytes": 3108
+    },
+    "0348_clients_ciudad_estado": {
+      "sha256": "a6d47dc8c9746e784bb24c67534371c9d745054d372adc794bc24ffdb87e9aca",
+      "md5": "962ac26e03254da3f28aae08c1a1bff2",
+      "bytes": 3154
+    },
+    "0349_duplicados_dentro_del_legado": {
+      "sha256": "9453b21df832160c03ec8760d553cc0253bf887d10c7cde9f0979eee0fe15725",
+      "md5": "e76db206180cebaf42000d2c0fea1bf0",
+      "bytes": 5777
+    },
+    "0350_audit_d5_studio_access_link": {
+      "sha256": "d6d927e9b3feef568d129276f873534d59755a6c0022eb021f8ce03a820acd2d",
+      "md5": "02b21f300ec8c47b983b60ae7bb6d397",
+      "bytes": 9627
+    },
+    "0351_operario_rpc_exige_rol": {
+      "sha256": "e0706911de4be4a93af02b28847c3ba0afe526df5760278d714dda7073423f10",
+      "md5": "658c866a071c10783fffc949a2a0587e",
+      "bytes": 8454
+    },
+    "0352_invitacion_nominal": {
+      "sha256": "cd2e072ed1811f6bd2ace1a4a6b7e64e7f178724140944de4ffe0b003cb6a626",
+      "md5": "69189943b086ad018a818fb91730ab25",
+      "bytes": 4738,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0353_normaliza_telefonos_clientes": {
+      "sha256": "96522e5f191564a41cb5984192373da29d3e6b1919c2b2ae7f54d8da848bc3a3",
+      "md5": "11ae9033d0f12619948d814489ff76e8",
+      "bytes": 5505
+    },
+    "0354_studio_access_tokens": {
+      "sha256": "8d62aeb0a133df85bd66e863b6c22efa89174382d20a3c50770303007cd95b23",
+      "md5": "9798f6433cc1cff213f6a76a608aaf52",
+      "bytes": 6275
+    },
+    "0355_superadmin_llaves_del_sistema": {
+      "sha256": "ac577a5de4f7177d2ff8ba54a350677423ee440a17b08f20d2f9cebc48d3067c",
+      "md5": "14ad69520fa53f842908890962f96dfa",
+      "bytes": 13652
+    },
+    "0356_superadmin_legal_renditions_gate": {
+      "sha256": "fec88c55523ce9167b09ddf33669cdea7a2f64565be1881704b2417995881993",
+      "md5": "421e9e5240af05f6afcc173dd827fa49",
+      "bytes": 7835
+    },
+    "0357_role_module_overrides": {
+      "sha256": "592a5ae54ac7738facfcbec903a99521916b719b921e9b65ac58978f02bffc80",
+      "md5": "414b99066682f49a4a288f1dbdcafe98",
+      "bytes": 10617
+    },
+    "0358_merge_clients_exige_rol": {
+      "sha256": "a076cbf1a8e0f979ff2297cce5113592951ed3ef3a244ab6312a56c26187cbfa",
+      "md5": "406ba46e321f065cdb1114b5bf62cf91",
+      "bytes": 15904
+    },
+    "0359_confirm_payment_report_exige_rol": {
+      "sha256": "6cd9be8428c1dc6b2b343a3acfaafdfa651cd87c28dee4d0d87933fe4a69ca52",
+      "md5": "eb89b85daed61c459460cd7bdf5bde3a",
+      "bytes": 6290
+    },
+    "0360_portal_access_links": {
+      "sha256": "7338d4b7fd0b34ff18285a7cae67264f5806484f54334833127ae18b3783c759",
+      "md5": "9a8d53b965e95d79b752ab8dd5632e75",
+      "bytes": 7410,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0361_merge_clients_conserva_kommo_contact": {
+      "sha256": "f3b18ba36ff6d194d4ce6a87f26918394e3f265e967a61ba0391dd88766e8a2b",
+      "md5": "ca97f8895acae3474b9aaf4f5f356649",
+      "bytes": 16030
+    },
+    "0362_aliados_base": {
+      "sha256": "37be9570afbc9e31796dbfc7cb11ff9d7460112cb2bb333c51e2fe7f42934fc2",
+      "md5": "516f048507db825f7ac2684ad36e062a",
+      "bytes": 20135
+    },
+    "0362_kommo_lead_contacts": {
+      "sha256": "ef64543dc41c06962b16d4b12c3afb295976c97233262d6de2c84c9026dcd5c2",
+      "md5": "09e6e24999c5fbab4950fcc5684183ad",
+      "bytes": 7213
+    },
+    "0363_kommo_contacts_telefono": {
+      "sha256": "5e3a0987178b647365d46cbc91aec4fb12b2bef5a1913a2b6d71351d71973006",
+      "md5": "1599acc775bdc069f04009f7b50b3a40",
+      "bytes": 4750
+    },
+    "0363_storage_bug_replays_restrictive": {
+      "sha256": "689d95b56006b3c3f2cc60bacaebedda33c32845ca75d53bea8291f0a8f68ff2",
+      "md5": "85ec9cec5b08bf98ae67c1ab385ed0ee",
+      "bytes": 4300
+    },
+    "0364_kommo_outbox_fusiona_payload": {
+      "sha256": "66d1fe6c8e9d34f898db0cb44ae6cd2448e721bb8e2a2af6ddc9055a5731b876",
+      "md5": "d3ce1f3957acfe989fcab05804c46e4c",
+      "bytes": 7585
+    },
+    "0365_kommo_outbox_claim": {
+      "sha256": "f00de75bfbdc9d47c1eb040c61f1b42c238e419791a848c992d814ef86180ae6",
+      "md5": "7211eed9c5dbeba7a3a400c2030d1c78",
+      "bytes": 8004
+    },
+    "0366_kommo_outbox_fusiona_arrays": {
+      "sha256": "d1dd591ee25195a433067be5507feadf69620bc5be138f46753b55edee830da1",
+      "md5": "a367b3b09801b8901341317bc6a19529",
+      "bytes": 12951
+    },
+    "0367_client_markbox_historial": {
+      "sha256": "cc582919578ba6b4717d2e8a855c6f783467696853f8167493c36a8f1085caf9",
+      "md5": "582100926ba618e98fe535169ae7595a",
+      "bytes": 21993
+    },
+    "0368_public_calc_events": {
+      "sha256": "1f8d689bb6630f2393082299b001a3651345497d69d30764f3772716a23d33c9",
+      "md5": "5b9da1d576255ade9ce9bb57163d6f5f",
+      "bytes": 5008
+    },
+    "0369_rename_legacy_markboxes": {
+      "sha256": "246805245e35129ae7b723dcd135a33ece6221d35b30ba9ffad2008551a6bc85",
+      "md5": "ee8a67f929c29f24c4d9e9ce7c355ad5",
+      "bytes": 5042
+    },
+    "0370_lote_legado_solo_vendedor": {
+      "sha256": "7bf3cac04cf9a58c5125da30fa91c4a8dc842689028029ac8301a934d2c76c9f",
+      "md5": "7b3183ef3ca85505b133112a6bfbd677",
+      "bytes": 4074
+    },
+    "0371_insignia_pelada_del_aliado": {
+      "sha256": "bab96d05323d5479c679fbfa5a62ba1150c95dbd17f0119965d1bafada43568e",
+      "md5": "14fe06ef7d583e495dea6660d86cdc4f",
+      "bytes": 14061
+    },
+    "0372_insignia_no_choca_con_codigos": {
+      "sha256": "c7878ceeec784045628aa8badc600e3faa7d72ac889912733c88d2f94766f23c",
+      "md5": "9ddcbfeb11acba9e7f9b08b146ce23e1",
+      "bytes": 3714
+    },
+    "0373_lote_legado_con_nombre": {
+      "sha256": "503c20ad62f183f0570e37fddd361077ae54d169478b959d1e282486faba6efa",
+      "md5": "cfa472a1e0ca7565bbc8263d271ee8af",
+      "bytes": 3917
+    },
+    "0376_kommo_writeback_chequeo_optimista": {
+      "sha256": "11784eeec531af7bd7878900c8902c186ae2c356d2dd842c00e7ce93285eb805",
+      "md5": "7d74d10afb2cc5253b01a00511f63db7",
+      "bytes": 8283
+    },
+    "0377_kommo_outbox_post_idempotente": {
+      "sha256": "0db34c5c1ef1030b4c62e27779caff9eed360e94a2e453b9904ba468d1f07f7e",
+      "md5": "28e419917f47258cc829551aee7c8b1e",
+      "bytes": 9589
+    },
+    "0378_kommo_contact_estado_comercial": {
+      "sha256": "db79e3b77e0858ab26511bb82f266ed82c30e5931241bdf9c16f44af5a68efb2",
+      "md5": "c5c893429d60966e6af0b28cb8e4c896",
+      "bytes": 2609
+    },
+    "0379_legado_al_rango_8000": {
+      "sha256": "a09748e651b9773637663db010db3b905020b682bf8fd8f0d563979b4a62973a",
+      "md5": "037314e33863fa59c54c8bdd670b3ebd",
+      "bytes": 6417
+    },
+    "0380_lote_legado_devuelve_el_resumen": {
+      "sha256": "a35fcfa25870e7a6d5b594e9df452a1df211bd9d9f332f7a50ef42e6e6f59b5e",
+      "md5": "40032665cfe486789d95eba05356a7c4",
+      "bytes": 6449
+    },
+    "0381_verificar_resuelve_por_conjunto": {
+      "sha256": "4d15c6fd089b85098598c28632fea06b390afb2a77ba7af97e039572b6ba702f",
+      "md5": "f4a2d9703454f789d6f36a59e3abf08c",
+      "bytes": 3660
+    },
+    "0382_price_books": {
+      "sha256": "40caf0f8dbad377d58887a1e86d37922c7d849424ada2b8a1a1ba22ecea80494",
+      "md5": "01fe1316fa01e40b30fe88f0c1312454",
+      "bytes": 14926
+    },
+    "0383_clients_phone_last10_y_vinculo": {
+      "sha256": "ebc1fa1fb0a459ee6414e82459bd2c82e84dc88d2db4710d904d0af1cb99fa87",
+      "md5": "53c49c8fffb2403b2c83f573f507b42a",
+      "bytes": 9518,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0384_price_book_valor_pactado": {
+      "sha256": "23c44f0f338687a4af666bbc1ba0c1050c81b618ba8281b256770d9787c8446d",
+      "md5": "4161d7d00245701aa0c19085ea3fc606",
+      "bytes": 3517
+    },
+    "0385_news_posts_correo_muerto": {
+      "sha256": "4e35853f3833a4d418ba63360979377ec494131df8664ac6d1f6950a01e9e034",
+      "md5": "34f90379171733f560149f62acbf01f3",
+      "bytes": 2390
+    },
+    "0386_telegram_rutas_de_alerta": {
+      "sha256": "03bdd53b4bddd75534909c751b500ac181086ad76e135a946bc3698cb3718600",
+      "md5": "4e972f959cfe8abeadb85913666c86a5",
+      "bytes": 14214,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0387_audit_d5_studio_email_change": {
+      "sha256": "ed6261b7577f1e2553e7caef16feed02454ce7d27958c26615c8fe74897fb1ce",
+      "md5": "401005d927d3a8a2120b4818edc82d33",
+      "bytes": 8079
+    },
+    "0388_replay_gate_platform_admins_history": {
+      "sha256": "4b44dec368158e0e7801549f3fee01a890e34901028814bde77422affb90d6eb",
+      "md5": "b381bb48bf2bd10cab84ee2b14605585",
+      "bytes": 9266,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0389_aviso_que_cuelga_de_la_compra": {
+      "sha256": "cf94496f7bcecacae8c3906a7c68830900a8da70d3ab72244707562eb706f20a",
+      "md5": "c9b35a3955f25c6b1f6f3bb9bd17732c",
+      "bytes": 5642,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0390_kommo_tasks": {
+      "sha256": "4f8f601a036218a50171fd1529aaf33f26a3d57c4e4ac9014522041547d89c0e",
+      "md5": "c3ae86ae11f2fa3a016c2f85ae6600e6",
+      "bytes": 4898,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0391_kommo_leads_ultimo_mensaje": {
+      "sha256": "9b5c2b2e571fcf951828f86e9f49b38d85e4fe5c7dfb597d5fcb19bfbfeec1ba",
+      "md5": "922b6054d0ff70376955aa17de1ba471",
+      "bytes": 7059
+    },
+    "0392_factura_congela_documento_del_cliente": {
+      "sha256": "001e094bd9112f1ab0496caffb139342c555d8532bd4424b78daaa5c1fcdecc6",
+      "md5": "de38dfdd56c7dff466d77d3c4f32f086",
+      "bytes": 3151
+    },
+    "0393_academia_widget_alibaba_curso": {
+      "sha256": "6c2e6402b61f05f9e801f0667e546f010388948a0409e969d4f4798146ffdd5f",
+      "md5": "6dfb98ef6a0b5cd701e7af39e108d175",
+      "bytes": 2708
+    },
+    "0394_bug_reporter_tuteo_y_revoke_anon": {
+      "sha256": "4ae9ec600de65d6546450d18e722fed410921f78407a43fc1658645869d0a694",
+      "md5": "ca273463dac193cd2385e92e37355b30",
+      "bytes": 8387,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0394_bug_state_transitions_via_rpc_only": {
+      "sha256": "0a3715348c66cdefec294a2af800cb0dfe20ef3baa4d14b72cf4498d00b57534",
+      "md5": "db4ffee010332e37a2c501e82a1df9aa",
+      "bytes": 10635
+    },
+    "0394_documents_sin_borrado_duro": {
+      "sha256": "4482a355acbd17889b18a754e1217788381f997f3255cc735cfee1950e6f0369",
+      "md5": "b6d671014ccab1dca5eb4f822dc13486",
+      "bytes": 5380
+    },
+    "0397_bug_advance_state_tuteo_sobre_sdd0313": {
+      "sha256": "25b216149dd5ea4aa9913740a6811e0ea4a7d7931ed6b91f829787c9d46474c0",
+      "md5": "df6cf0dca29ed5fc75cb1212fceb301a",
+      "bytes": 7781
+    },
+    "0398_audit_comment_action_summary": {
+      "sha256": "9fbc46be1a69a8c82f40514bf8ee5819e52872217a65dca8330e0f46cc917b9d",
+      "md5": "dda11c79b3131943ab5251d1bf793e75",
+      "bytes": 14310,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0399_revoke_truncate_anon_authenticated": {
+      "sha256": "aa6de2759da77baf7c7ef567699d3adcd0521aaaefcd9c1b3ecb1c8121ed6fe2",
+      "md5": "b00023cd400046eba1c8015fdb94d279",
+      "bytes": 4474,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0400_revoke_public_verify_rpc_execute": {
+      "sha256": "cc971cd435badee497e951839f986055fdaa79a54d3fcb23936335982dbfa785",
+      "md5": "cacba6b5e88cbb4a12cdb6813e0b00e3",
+      "bytes": 1261,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0401_portal_brand_por_principal": {
+      "sha256": "882a24753db1e88b08b78c8be8fe30318f6b7f1d429389fdf8c9479929e8588f",
+      "md5": "5316823bf152618b7717c1b0582731eb",
+      "bytes": 1765,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0402_portal_hidden_statuses_por_principal": {
+      "sha256": "666c89bdfe5b9b11fe061287c1f94adf7b563cbb93c7bfecc812a2c0cb1fd058",
+      "md5": "b28cacbbd4d84d736ecd16f1016aa38d",
+      "bytes": 2068,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0403_portal_advisor_por_principal": {
+      "sha256": "3b512e3a32632a3d6a643e3d4589f9d6122542c81c509c97012069776e2bc3cb",
+      "md5": "bfae7279d28a8cf28961e0783ee23f36",
+      "bytes": 1711,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0404_portal_referidos_por_principal": {
+      "sha256": "ab554d797e553a4fbac90298417fdf80b38b8d89564c46fa3f9f22807d510bad",
+      "md5": "4f5ef947e393817f7c65f0710ff227e7",
+      "bytes": 2952,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0405_portal_perfil_privado_por_principal": {
+      "sha256": "3ea66e391013e8882b924c1b4167e312c6b7725ed1b7db94146dadbe855d7e77",
+      "md5": "60c500b5bf20603d28be7aa56f28ed64",
+      "bytes": 1617,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0406_portal_packing_lists_por_principal": {
+      "sha256": "04def67189d85aa7cc1a1fcf3824a528b33ef95c6f1530c20b54293cdbf2bfd1",
+      "md5": "1502718da4773838c51bf9a460952a95",
+      "bytes": 1785,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0407_invoices_write_rbac": {
+      "sha256": "764f952d01e3348a58bf5db3a2d87a16f0957f9f145adb120e71ca52ce79acd6",
+      "md5": "57b489f7c181f930a3dce82bb15dc449",
+      "bytes": 5355,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0408_mailing_admin_rbac": {
+      "sha256": "c0ae45425fa2b941b901718a5d543177ac29b58d34a5a5aebc3212837b50b22c",
+      "md5": "8b9baa29ad0e9d1d54cc69238d85d2bb",
+      "bytes": 14337,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0409_bank_reconciliation_rbac": {
+      "sha256": "aa48a0a20c056b248d0052ea6a35a4178ea02133ffd2193e6fbabca6cc6afca0",
+      "md5": "154d4b3e6c5cc3a192666bcad5fcc5dc",
+      "bytes": 6608,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0410_collections_mail_context": {
+      "sha256": "b38716224b1ea0aa028ba996531092936c6e784fe8c8fb229e4da470e6a858b0",
+      "md5": "e80119c3c381d20c009c7dbd569557f4",
+      "bytes": 7186,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0411_client_annual_billing_facade": {
+      "sha256": "a11cf36cb924db05a003d8e13dd11f201b7f123763ac81007f334418e68c47f9",
+      "md5": "f178a2d028f658b8d84da36005bc58ee",
+      "bytes": 5628,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0412_conversation_outstanding_facade": {
+      "sha256": "0d3553449b93199e4a2f4d2b64ee3011b996ed7d4d696ad216ec96fc645b576b",
+      "md5": "ed692e75b4ea9e3dba1799dbbfec613d",
+      "bytes": 4024,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0413_sales_order_invoice_facade": {
+      "sha256": "292f9e0568328f03950c507d6fbbf29ff1abab0747f89b31bf30e7f5d9b2d567",
+      "md5": "f501e4e17df340b6dc9dbf86e19c721a",
+      "bytes": 3337,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0414_invoices_read_rbac": {
+      "sha256": "c5716ef6705882d7ad81a89eacb4d403cc8d06531d8829bc1b55c3523b690c87",
+      "md5": "aeccccf65130ef47602b0b6f4a3c8f4e",
+      "bytes": 4804,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0415_mail_logs_read_rbac": {
+      "sha256": "e42e82bf0d1e889a6448509212423f4b4c44bf28baca71bf2e7a41cb96d4cc62",
+      "md5": "363c78b2019a07eb327c9656ebf2a1c2",
+      "bytes": 3470,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0416_portal_shipments_tenant_boundary": {
+      "sha256": "12516b16ba31bfc60e0026e4d4866c38868e5ab838ae73240d8e0f2a134374ec",
+      "md5": "1694bfd0ef0305e5f4a0bbd802b77c41",
+      "bytes": 4577
+    },
+    "0417_portal_prealertas_tenant_boundary": {
+      "sha256": "5513b447c324561df09979d9d34e315c8aaa0b01a883fe921c6bf26800038454",
+      "md5": "ae8b073dbf2df372603b240d1758dc40",
+      "bytes": 7767,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0418_portal_academia_tenant_boundary": {
+      "sha256": "88ec8140f70eaec0609c6d5f3ef7692406b146bb1094ad25d7d5e143210dfa02",
+      "md5": "a41faff0796d8581cea11b6810d7b021",
+      "bytes": 10071,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0419_portal_reclamos_tenant_boundary": {
+      "sha256": "705e3d5ec6b377ddd5b137b975cf027894b5b7ed101c67993c9528c6fae54e37",
+      "md5": "cd137f13102ea292ef792942dd743e20",
+      "bytes": 3949,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0420_portal_payment_reports_tenant_boundary": {
+      "sha256": "2ffc171ee19ef32c4569eaa8803efda3d58b8aefd3bcab01f2b493433dea4a3c",
+      "md5": "b1d7b9429b84df5eaefbe384fb109c60",
+      "bytes": 4849,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0421_payment_report_commands": {
+      "sha256": "726c970b4d72246c918308faaaf02b195f1e444ca1c11a057bc005879d9e2aca",
+      "md5": "6944ffddf61f4d20514ff78aad7f983f",
+      "bytes": 22086,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0424_portal_club_principal_tenant": {
+      "sha256": "bfbce7469dc90e2b82310e1e24886fa13224fcbbdbd5c9a6a785d0a53327f046",
+      "md5": "7dc9f0fa324ac8b1892b97b4f09a139c",
+      "bytes": 6696,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0425_portal_delivery_addresses_tenant_boundary": {
+      "sha256": "4eb6196046b7139b3046432a8873a9cdfe1b1b12210052a558ff3b60ffe2856f",
+      "md5": "6892e684f01f136c5c42cb3800067949",
+      "bytes": 4045,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0426_public_verify_atomic_reservation": {
+      "sha256": "3da756bba18b12e8f0f8b71d4e07e254ccda6a2a1a4896b7a0b3716046797d53",
+      "md5": "8e4f06a4ce6f02dfb0aa2af683a92e37",
+      "bytes": 5622,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0427_portal_delete_delivery_address_command": {
+      "sha256": "baf1115988a2a04126e38dd9c9eaeb05cae30b9f91719f1901adddda495cf74a",
+      "md5": "6c599937f5fee7d9093906811846ef58",
+      "bytes": 8595,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0428_portal_quotes_principal_tenant": {
+      "sha256": "421576d93bb7d6f620b04ac72395a963b29816a870a2e88bd39be811d8bf4831",
+      "md5": "ca3377f25bd8d5a7e15c95fc33496b78",
+      "bytes": 1984
+    },
+    "0429_portal_service_requests_principal_tenant": {
+      "sha256": "7829a5cdb2d1b6ef2c82becbf4bbdd725da2a16ceae55e5055bee22a630f589b",
+      "md5": "021402cccdc04332146975dc6d9ae286",
+      "bytes": 3941,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0430_portal_profile_change_requests_principal_tenant": {
+      "sha256": "7ac0199c7fc9dc69bbe9a39b8882f393daa1a2ad60b36c83b8473172abce5040",
+      "md5": "a0c4fd9e747a1027ae269d4f5052d01a",
+      "bytes": 2818,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0431_portal_post_message_principal_tenant": {
+      "sha256": "70f12b460d10cdb5b07acd24cce3cdb22475c057593cbcf4330dcfefa126f488",
+      "md5": "b780bad79bc4c4179bab2233efec64bc",
+      "bytes": 6041,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0432_portal_warehouse_boxes_tenant_boundary": {
+      "sha256": "a2057a141d229eea92281e382b89ca3ecda53281734c01fe03e4a609d351fbb4",
+      "md5": "e1de56e0c3888a5b4941b184b7e94426",
+      "bytes": 2706,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0433_portal_conversation_realtime_principal_tenant": {
+      "sha256": "51ec411ca496a00dc6dd3065c410c044faab899fcb7aeb835faf8f45c26deeea",
+      "md5": "668e8de4389cd11c420e227258c67524",
+      "bytes": 5633,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0434_portal_prealerta_addons_principal_tenant": {
+      "sha256": "85cb46f6162b61d6707455ada1796afbd0fdc3eaff6ac33c8fd38c3d7d30862a",
+      "md5": "f59e054988b67b57a3f52af1807aa93d",
+      "bytes": 3233,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0435_invoice_document_entity_rbac": {
+      "sha256": "65fb1570cc25b085241c90e54c8e83c4ca479201912fd388f80df60741ca3106",
+      "md5": "257da3c626481929a5adf59310c423d2",
+      "bytes": 11310
+    },
+    "0436_treasury_document_entity_rbac": {
+      "sha256": "6a85fb833ddf8b95fd8661dfa602293869788cfa288df8cde0895b9a308117c9",
+      "md5": "8792800103e9cf9c15ebeb21ab5613a3",
+      "bytes": 2974
+    },
+    "0437_accounting_document_entity_rbac": {
+      "sha256": "47eb24d108a8dc3a7663476c180d6932c8e31bcadde664098291708a2afc8355",
+      "md5": "42693b1bd9736a51d9552c4304908658",
+      "bytes": 2984
+    },
+    "0438_expense_document_entity_rbac": {
+      "sha256": "e832104b9645a7df490e55360e0045cc94e7dd13137ad6845d1d90e5ee95cdb2",
+      "md5": "5db2c301aa69115425fcff30a91738ad",
+      "bytes": 13633
+    },
+    "0439_shipment_document_entity_rbac": {
+      "sha256": "dd80ba9c51aec7016b0c894fce81fcf3185feedd44c2d01978edb121ecec1fe6",
+      "md5": "733228425c28b6ba3ef64aa6ecca3d74",
+      "bytes": 9743
+    },
+    "0440_client_document_entity_rbac": {
+      "sha256": "57cdcef36a6efd87a192fe38c272aee48ce7e05c58bf872e6e9360d0f12e0741",
+      "md5": "93b436d8b20de0e5c287cca57efc10fb",
+      "bytes": 5380
+    },
+    "0441_supplier_document_entity_rbac": {
+      "sha256": "94f528f286c2cc96695a4081631fb55d344c140f1bcf0d5fa8857203aeea0146",
+      "md5": "ad1d4b6330d5d2f4e490854050514b1c",
+      "bytes": 6074
+    },
+    "0442_naviera_document_entity_rbac": {
+      "sha256": "22f365572c7a4b8fad7c83c82ac4ad598dd2f910f8e090c7d923f863c678aa69",
+      "md5": "0297d9f14142a44f19c07abe697ab834",
+      "bytes": 4528
+    },
+    "0443_bitacora_document_entity_rbac": {
+      "sha256": "844815920f3830a20f314dcaacec772aa2b97365cf203f64b01a230f28e909d0",
+      "md5": "0b0878538d9ccf1f753a6d2beeba94a1",
+      "bytes": 6562
+    },
+    "0444_unlinked_document_entity_rbac": {
+      "sha256": "297be7156a75b0d9710823bf0e438dfc8a085e84158668755c13b28cf398792e",
+      "md5": "51bf2225e71335c2bc6bc8c7b50d62c6",
+      "bytes": 8186
+    },
+    "0445_portal_profile_edit_limit": {
+      "sha256": "5a256a83e1e8c056d7aae7ea6a22d39607d60b8c329683c6ee2aea9557eacd4b",
+      "md5": "af39bdd478c6542f4e709fd2b5db957f",
+      "bytes": 16017,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "con-crlf-final"
+      }
+    },
+    "0446_portal_profile_functional_remediation": {
+      "sha256": "dacd947a044774b031704a02ba5aa0a037b4c12bf1d134311517fd59af13352f",
+      "md5": "34333aab6c6124f6f8b4adabd29c922b",
+      "bytes": 13746
+    },
+    "0447_identity_photo_replacement_privacy_gate": {
+      "sha256": "e10a3f93ff44618ddd4bfb79bbd7f362154e528308f40cab6d91a754b0215443",
+      "md5": "79e24f91155ad724a0c194f434c5531b",
+      "bytes": 2976
+    },
+    "0448_restore_calculator_settings_0223_history": {
+      "sha256": "146d82978778894db6362af3ac49e385bba56282e0ac3ddc4b2c3e23c3941ae8",
+      "md5": "bb6d9c2fcd1be942804c3d0fed96d12a",
+      "bytes": 6223
+    },
+    "0449_prealerta_exact_box_reception": {
+      "sha256": "65bb32f52b322ba346a18665de462eb2dc4f57d1a3ddedf9bf96707d87574819",
+      "md5": "8f3c228d5d5644af07ffb3f7ec2cdd55",
+      "bytes": 11385
+    },
+    "0450_clients_aliado_mismo_tenant": {
+      "sha256": "7520f0b04f8317ba9631d0c2d7fb93d602bbe7b2220bd9a9f5ad22936a05d601",
+      "md5": "47c7fccc94d1208ad0ad4c8afcbe67e0",
+      "bytes": 9264,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0451_aliados_cadena_mismo_tenant": {
+      "sha256": "8db3622f5e62746d1871a3be722068bb7c8e97b7a2a40405714a9bb8c03ed1d8",
+      "md5": "f080433e7c647a462f240680ea87621d",
+      "bytes": 16477,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0452_portal_invoices_tenant_rls": {
+      "sha256": "3be07f10b43d7c1ecdcc163c0c500a590e3a500e5790aef32fc58d80db6fc305",
+      "md5": "85878be79c2bea3922e4a542de6e3b81",
+      "bytes": 10991,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0453_portal_helpers_principal_determinista": {
+      "sha256": "4f622ea95dd93ba54891081ffb6350e4abecdfa80ce54a22613e7eb0db34f30f",
+      "md5": "bceb07887ca0e4ddbd0c7a638ea645b4",
+      "bytes": 25194,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0454_borrar_cliente_revoca_portal": {
+      "sha256": "6f58da4e0ae9520d61f96658724578e8c3560c88ff0f40b3e442e7dc8d453e28",
+      "md5": "02623202e197dd9ff1e6de90b0340876",
+      "bytes": 30505,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0455_borrado_cliente_auditado": {
+      "sha256": "2bfe317984574c5c01a1d3401c02fe257398a0602d91a1e0e640b5e90789f0a4",
+      "md5": "a4b7398aac442b5279fc2b35930011fc",
+      "bytes": 23394,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0456_clients_write_rbac": {
+      "sha256": "b9eb45348e8a96e677784ab6890b80ac2469a5bb694eb88160e20695020d879a",
+      "md5": "8568f1084e0bc30bfbd605ab55742c31",
+      "bytes": 16131,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0457_document_import_workspaces": {
+      "sha256": "bd9a2cb03cb9a53893b7fd68757fb2376aebfcb18ae790e05ee0f7b29045c1f8",
+      "md5": "63caf6b3a4d59d0980a87e8292eeb256",
+      "bytes": 16101,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0458_tarifa_lectura_sin_vigencia": {
+      "sha256": "b22c9afa85bb66d8c485a6a7ecffbf5e98b76dd77ff6571d7442be6c9f3fe88e",
+      "md5": "43709f507946947b150919530b1f8fd9",
+      "bytes": 8498,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0459_tarifa_programada_a_futuro": {
+      "sha256": "20f988b2935b37d35ce66e97045053467408b815f091273241137cef5869ea5a",
+      "md5": "ed65e8474baef35aaf93664647751231",
+      "bytes": 13483,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0460_retencion_vinculo_portal_revocado": {
+      "sha256": "39226bf1004134f285f9c808fdf05d552e1ad0315d65215f8923a2b398aef430",
+      "md5": "d86cf096e91c58546dc7c90b032d0bc2",
+      "bytes": 27067,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0461_identity_photo_replacement_enable": {
+      "sha256": "eea1f91c6b7a808a48196ef9eb83cd3229949e1491263ba203c9d3649abb6573",
+      "md5": "1ff8d84a5e1b3c24c235ce53b9ece1f4",
+      "bytes": 4893,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0462_portal_profile_direct_edit": {
+      "sha256": "aab3c968574ed77e47855d0cee81201cf95e00bbddf7d9873eed1ad5c487bfa4",
+      "md5": "9dc2934f4f2577f9647b9c60c6287b0f",
+      "bytes": 16415,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0464_reporte_pago_factura_pagada": {
+      "sha256": "4279280385a343edd96e5970c611ef6d8a459872700e1a7c3e5c6bda5b69fd7a",
+      "md5": "44fabe4d2643844fbe489e2ba88fa4fb",
+      "bytes": 22209,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0465_anon_privilegios_residuales": {
+      "sha256": "12cd0db1b2062af03e5e567025620e0dfd295435f1d5d5b755d1d107d05b31e7",
+      "md5": "e87d496914c1344185718e758b3b4e5b",
+      "bytes": 15600,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0466_client_billing_identity": {
+      "sha256": "f041b9b3a89b9f9fc1cdc9ede57998b4589f5a57389b7c3c4c8fd69ce31ea40a",
+      "md5": "5d2416b1095de7ab0695e98c87abe9c4",
+      "bytes": 30024,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0467_cobro_factura_atomico": {
+      "sha256": "bb4c217419734466664573b5ba32e7404ac0b97e99e32ad19f80b98532ce01bd",
+      "md5": "e40de959683625eed6368ad5ea05d791",
+      "bytes": 23443,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0468_pago_proveedor_atomico": {
+      "sha256": "1bc7031d9e5dd329446d99f0904a28b4680357a3a700c3623c6acbf284814efc",
+      "md5": "83e8bc9873cbaf8c19329e895f4cbc06",
+      "bytes": 18871,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0469_recepcion_codigo_wr": {
+      "sha256": "1b933761e336d8983cb97fc4343d66b3dacf5832695e59f8f3dec996e48b84cd",
+      "md5": "fecfb30d51e00ff74abc09f863a6e72f",
+      "bytes": 9884,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0470_rls_escritura_cobros_proveedores": {
+      "sha256": "375805c5d604a3ebea3ff280382f5bc5ddf9da08e0d75dcdb10d5a6b881aeb09",
+      "md5": "12d0325909f684e497b0b2c406a97895",
+      "bytes": 26081,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0471_credito_referido_atomico": {
+      "sha256": "0eb0c023c0b40c747fbde1d4fee3ee77ebd06f6497d5de6c7c2c24af32958d66",
+      "md5": "7e4ed9e9d2943961dd5aa1147c11f384",
+      "bytes": 23416,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "sin-salto-final"
+      }
+    },
+    "0472_kommo_functions_base_url": {
+      "sha256": "e58bc5ff7c2cff86a09c5dd49108ed70ebf69a9c8728da5e81504d7a3eb9327d",
+      "md5": "1cfa2376c11a2c33325e3ef97b60a78c",
+      "bytes": 11161,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0473_document_entity_bitacora_task": {
+      "sha256": "3c882757b3f78d7595ddccdb38ca53153c92e9f00b82fb0a81c8d88628b5c84d",
+      "md5": "e4db161fb91db934d71585f9c8da86f8",
+      "bytes": 11078,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0474_documents_bitacora_bucket_backfill": {
+      "sha256": "62ec76d82176bee782a18a26575ed777a82af277f197c0f13e42216c0def7fc0",
+      "md5": "6f4bb32df48a6e8851c8ced80ca02361",
+      "bytes": 5786,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0475_pin_operarios_endurecer": {
+      "sha256": "dbdb6e419ebce0fcfced7939d03f3e81d0a4a32fa3ef514c9c2c54949e92afb8",
+      "md5": "1273d8a483ccc504e296befe53a6bcac",
+      "bytes": 61685,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0476_borrado_embarques_recepciones": {
+      "sha256": "15daa2f806a3990a82505980b3b6377a7514392d9aa6c51df90af65d7055a05d",
+      "md5": "9d1dd9e1254215fd27f031d0afb87cf5",
+      "bytes": 60552,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0477_naviera_zarpe_avanza_envios": {
+      "sha256": "bf8b9423b3af7224490678afe1d6a613df7ac669bc133759b86c927c8df2916f",
+      "md5": "b48c06524567b436ead2e910f476fbe7",
+      "bytes": 23525,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0479_portal_bandeja_avisos": {
+      "sha256": "5f01fe4d74c7561697b7a2b2058076bf55f7ad214c3d5e16536ba18e897874e3",
+      "md5": "52fe4141d6911ee24774f1d55e247f9a",
+      "bytes": 23428,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0480_operarios_editar_por_region": {
+      "sha256": "a18920b807c65f11a0fbffe7c76571c0099f17b29d9c8e5c84b6a404d58ecfc6",
+      "md5": "1c78864e72e1af78ea85a202e2cf85ec",
+      "bytes": 25024,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0482_naviera_autorizar_correlation_id": {
+      "sha256": "155a2f0e099739e71875d1d010a599b6040e57e4c5f3671f996daa899fcd7644",
+      "md5": "3572011a6f7cb9a464540fb93abc9f20",
+      "bytes": 12451,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0483_financiero_china_pago_correlation_id": {
+      "sha256": "5104b6d5043284168a50c31b4aba67cdd94b7cbf0c8393a7368076e67594d6bc",
+      "md5": "77857aa92a6993c67c41c6c9ea22f05b",
+      "bytes": 12245,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0484_seniat_liberar_correlation_id": {
+      "sha256": "03e321ec0d04a2f1de05f96f3c6b50800ec7ca7cfa8a4612881b208702353ddc",
+      "md5": "c14ece508e411586d3e273ee3141a171",
+      "bytes": 14158,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0485_reclamos_pagar_indemnizacion_correlation_id": {
+      "sha256": "f559b514df9c3f66b87a6188c458434677efd30c87e6dac715bb0c63bca1849d",
+      "md5": "0b3f2102aedd76f2fc28427853c2a5fa",
+      "bytes": 14878,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0486_tms_completar_ruta_correlation_id": {
+      "sha256": "13238d3d1ceb4352d04539540d17d5d265afa4dacf95b527814260dd3d20fa6c",
+      "md5": "27d3c0780be4dd3c47b1c0e295765c0a",
+      "bytes": 14382,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0487_ve_confirmar_entrega_correlation_id": {
+      "sha256": "b272c77dad37a1d9d1c42bdd676b4d0e4c455ee45ec9187aac84ecf06416a3e9",
+      "md5": "df7da355f211d28f942eaf6cca1ba4ad",
+      "bytes": 11852,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0488_inspecciones_retirar_reporte_correlation_id": {
+      "sha256": "7c0ac91d795b889528e2c7f062738e4d8cd17e700f3df30552434ed7779d21ba",
+      "md5": "e33240a0788e78e9a3a472ff8127e654",
+      "bytes": 12329,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0489_despacho_cancelar_od_correlation_id": {
+      "sha256": "1031443eb6db426bc17e06d1e5977f1bfce5b1bd0c870cbfdbad9c9526b47360",
+      "md5": "a7e21b8c948713ffdb151139cddafb78",
+      "bytes": 11563,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0490_carrier_tariffs_auditoria": {
+      "sha256": "dfa677fcfa065be759664289c0776c2f598b4dfb81d3edd71e5eedb58c7c2bb8",
+      "md5": "0e604805e0340ff2a1a09fe41d1b4268",
+      "bytes": 11173,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0491_freight_carriers_auditoria": {
+      "sha256": "f1d7853420640bbabd22d839f58bded83c2405d89ac6d48553a8c87c90f1bf2e",
+      "md5": "22c72cb6ae0ee8fa85040c8bbc469bd8",
+      "bytes": 12175,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0492_client_outstanding": {
+      "sha256": "5a72a4cde7b8f3e01b741d788051e5b8bd5b43506d6a90c199d6a328d7c07c8b",
+      "md5": "4ca60abd9d6e2d5ca37b8cea31bd58a9",
+      "bytes": 21978,
+      "ledger": {
+        "fecha": "2026-10-19",
+        "forma": "exacta"
+      }
+    },
+    "0493_cierre_contable_superclave": {
+      "sha256": "603a78db5ef8af008c8aa7061de5321ad06038b1c867d61500494ad3035f7374",
+      "md5": "b5ca301e14f3bec8401bdf0dc229393c",
+      "bytes": 51754,
+      "ledger": {
+        "fecha": "2026-10-20",
+        "forma": "exacta"
+      }
+    },
+    "0494_credito_referido_candado": {
+      "sha256": "c7047349a7a8df3be6008cb377979606122bc9471a33b4470e4db015494c274e",
+      "md5": "f1db4e44e2b3e5407b2cc6f4b96cab64",
+      "bytes": 49631,
+      "ledger": {
+        "fecha": "2026-10-20",
+        "forma": "exacta"
+      }
+    }
+  }
+}

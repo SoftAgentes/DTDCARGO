@@ -5,6 +5,8 @@
  *   1. Auth + verifica rol `admin` (no-admin → redirect /studio/dashboard),
  *      mismo patrón que /studio/usuarios.
  *   2. Compone los agregados existentes vía getDireccionData (no recalcula).
+ *      «Ingresos · mes» es la cifra oficial (facturado sin IVA, SDD-0557) con
+ *      el mayor al lado; utilidad y margen son del libro.
  *   3. Render: KPIs financieros · salud financiera + forecast · operación +
  *      comercial · alertas. Solo lectura, sin mutaciones.
  *
@@ -16,7 +18,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
-import { getDireccionData } from "@/lib/studio/direccion/queries";
+import { getDireccionData, textosFinancieros } from "@/lib/studio/direccion/queries";
 import { fmtUsd } from "@/lib/money";
 import { FinanceHealthCard } from "./_components/FinanceHealthCard";
 import { ForecastCard } from "./_components/ForecastCard";
@@ -42,7 +44,7 @@ export default async function DireccionPage() {
       <EmptyState
         eyebrow="Sin tenant"
         title="Tu cuenta no está vinculada a ningún tenant"
-        description="Pediles a un admin que te agregue al equipo."
+        description="Pídeles a un admin que te agregue al equipo."
       />
     );
   }
@@ -54,6 +56,8 @@ export default async function DireccionPage() {
 
   const data = await getDireccionData(supabase);
   const { finance, health, ops, commercial, forecast, alerts } = data;
+  // Los textos de los dos KPI salen de una función pura, con prueba.
+  const textos = textosFinancieros(finance);
 
   const today = new Date().toLocaleDateString("es-VE", {
     weekday: "long",
@@ -107,15 +111,25 @@ export default async function DireccionPage() {
         }}
       >
         <KpiCard
-          value={fmtUsd(finance.ingresos)}
-          label="Ingresos · mes"
-          sub={`${ops.activos} ${ops.activos === 1 ? "embarque activo" : "embarques activos"}`}
+          value={textos.ingreso.valor}
+          label={textos.ingreso.label}
+          sub={
+            <>
+              {textos.ingreso.periodo}
+              {textos.ingreso.detalle && (
+                <>
+                  <br />
+                  {textos.ingreso.detalle}
+                </>
+              )}
+            </>
+          }
           valueColor="var(--success)"
         />
         <KpiCard
-          value={fmtUsd(finance.utilidad)}
-          label="Utilidad neta"
-          sub={`Margen ${finance.margenPct.toFixed(1)}%`}
+          value={textos.utilidad.valor}
+          label={textos.utilidad.label}
+          sub={textos.utilidad.sub}
           valueColor={finance.utilidad >= 0 ? "var(--ink)" : "var(--danger)"}
         />
         <KpiCard

@@ -2,7 +2,7 @@
  * /studio/debug · Torre de control (SDD-0050).
  *
  * Un solo módulo con pestañas (`?tab=`, default `estado`) que junta las
- * herramientas de diagnóstico: Estado (entorno/deploys/integraciones · vivo),
+ * herramientas de diagnóstico: Estado (entorno/publicaciones/integraciones · vivo),
  * Bugs (Bug Reporter SDD-0036 · vivo), Norte (snapshot de build · Slice B) y
  * Radar (artefacto local · Slice C). Cada pestaña declara su modo (vivo /
  * snapshot / solo local) para no mentir sobre qué funciona en la web.
@@ -16,7 +16,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
 import { getEnvStatus } from "@/lib/studio/env-status";
-import { listRecentDeploys } from "@/lib/studio/vercel-deploys";
+import { cargarEstadoPublicaciones } from "@/lib/studio/publicaciones-loader";
 import {
   checkAllIntegrations,
   fetchRemoteHealth,
@@ -64,12 +64,13 @@ export default async function DebugPage({
     .maybeSingle<{ role: string }>();
   const isAdmin = link?.role === "admin";
 
-  // Corremos en paralelo: deploys + health local + health prod (si no es prod)
-  // + lista de bugs (read-only, ya filtrada por RLS según el caller).
+  // Corremos en paralelo: publicaciones del servidor (SDD-0547, archivo de solo
+  // lectura; nunca lanza) + health local + health prod (si no es prod) + lista
+  // de bugs (read-only, ya filtrada por RLS según el caller).
   const bugsFilters = parseBugAdminFilters({ tab: "tabla" });
-  const [deploysResult, healthByKey, remoteHealth, bugs, radarReport] =
+  const [publicaciones, healthByKey, remoteHealth, bugs, radarReport] =
     await Promise.all([
-      listRecentDeploys(10),
+      cargarEstadoPublicaciones(),
       checkAllIntegrations(),
       isProd
         ? Promise.resolve<FetchRemoteResult>({
@@ -119,7 +120,7 @@ export default async function DebugPage({
         estado={
           <EstadoTab
             status={s}
-            deploysResult={deploysResult}
+            publicaciones={publicaciones}
             healthByKey={healthByKey}
             remoteHealth={remoteHealth}
             siteUrl={siteUrl}

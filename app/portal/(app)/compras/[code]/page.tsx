@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   getPrealertaByCode,
   listPredeclaredBoxes,
@@ -62,9 +62,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  *
  * ## Seguridad
  *
- * `getPrealertaByCode` va con el cliente AUTENTICADO y filtra por
- * `client_markbox`: una compra ajena o inexistente devuelve null → 404, sin
- * distinguir entre los dos casos. Sólo con la propiedad ya probada se leen las
+ * `getPrealertaByCode` va con el cliente AUTENTICADO y filtra por el tenant y el
+ * `client_markbox` del principal (SDD-0552): una compra ajena, del mismo Shipping
+ * Mark en otro tenant o inexistente devuelve null → 404, sin distinguir entre
+ * los casos. Sólo con la propiedad ya probada se leen las
  * recepciones con el admin client — `warehouse_receipts_cn` tiene policy
  * "by tenant" y un cliente del portal no está en `user_tenants`, así que con su
  * sesión la consulta volvería vacía siempre y en silencio. Es el mismo patrón
@@ -76,17 +77,21 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
   const code = decodeURIComponent(rawCode);
 
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { client } = principal;
 
   const prealerta = await getPrealertaByCode(supabase, code, {
     markbox: client.markbox,
+    tenantId: principal.tenantId,
   });
   if (!prealerta) notFound();
 
   const [cajas, proveedores, servicios, recepcion, packing, avisos] = await Promise.all([
     listPredeclaredBoxes(supabase, prealerta.id),
-    listSuppliers(supabase, { markbox: client.markbox }),
+    // Tenant + Shipping Mark del principal (SDD-0554).
+    listSuppliers(supabase, { markbox: client.markbox, tenantId: principal.tenantId }),
+    // Ya filtra por el tenant del vínculo de sesión (SDD-0381).
     listPrealertaServiceRequests(supabase, { markbox: client.markbox }),
     // Propiedad ya probada arriba → recién ahora el admin client.
     listarRecepcionesDeCompra(createAdminClient(), prealerta.id),

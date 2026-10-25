@@ -156,8 +156,12 @@ describe("deleteShipment · la RPC decide", () => {
 
     const res = await correr();
 
+    // SDD-0560: `bloqueado` le dice a la pantalla que ofrezca el asistente.
     expect(res).toEqual({
-      value: { error: shipmentDeleteBlockReason({ bloqueos: { invoices: 1, expenses: 2 }, avisos: {} }) },
+      value: {
+        error: shipmentDeleteBlockReason({ bloqueos: { invoices: 1, expenses: 2 }, avisos: {} }),
+        bloqueado: true,
+      },
     });
     expect(res).toHaveProperty("value.error", expect.stringContaining("1 factura sin anular"));
     expect(redirectMock).not.toHaveBeenCalled();
@@ -167,9 +171,16 @@ describe("deleteShipment · la RPC decide", () => {
   it("entregado: lo dice con su propio motivo", async () => {
     rpcReply = { data: [fila("blocked", { delivered: 1 })], error: null };
 
+    // El asistente también se ofrece: explica por qué no hay pasos.
     expect(await correr()).toEqual({
-      value: { error: "No se puede eliminar: ya se entregó, y la entrega no se borra." },
+      value: { error: "No se puede eliminar: ya se entregó, y la entrega no se borra.", bloqueado: true },
     });
+  });
+
+  it("ya eliminado: no ofrece el asistente (no hay plan que mostrar)", async () => {
+    rpcReply = { data: [fila("blocked", { already_deleted: 1 })], error: null };
+
+    expect(await correr()).toEqual({ value: { error: "Ya estaba eliminado. Recarga la lista." } });
   });
 
   it("no encontrado (otro tenant, inexistente): no redirige", async () => {

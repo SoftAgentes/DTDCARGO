@@ -11,6 +11,16 @@ import type { Client, ClientTier } from "./client-types";
 // necesita para el "Ver más" y NO puede importar este archivo (cruce
 // server→client; el gate tiene un paso que lo vigila).
 import { CLIENTS_MAX, CLIENTS_PAGE } from "./client-types";
+import {
+  coerceClientOutstandingRows,
+  diaDeCaracas,
+  esSinPermiso,
+  resumirCuentaCliente,
+  SaldoClienteError,
+  type ClientOutstandingRow,
+  type EstadoCuentaCliente,
+} from "./client-account";
+import { INACTIVE_STATUSES } from "./shipment-queries";
 
 export type ClientFilters = {
   tier?: ClientTier | "all";
@@ -723,4 +733,121 @@ export function parseClientFiltersFromSearchParams(
     pendingReview: single("pending") === "1",
     limite,
   };
+}
+
+// ── SDD-0558 · El saldo del cliente ─────────────────────────────────────────
+
+/** Ids por llamada: 200 clientes × 4 monedas = 800 filas, bajo el tope de 1000. */
+const SALDO_LOTE = 200;
+
+/**
+ * El saldo por cliente y moneda de `client_outstanding` (migración 0492), la
+ * ÚNICA definición del saldo por cliente. En lotes de 200 ids. Lanza
+ * `SaldoClienteError` con el código del error (42501 si el rol no ve el saldo)
+ * o si una fila no valida: quien llama decide cómo degradar, nunca con un 0.
+ */
+export async function listClientOutstanding(
+  supabase: SupabaseClient,
+  clientIds: readonly string[],
+): Promise<ClientOutstandingRow[]> {
+  const ids = [...new Set(clientIds.filter((id) => typeof id === "string" && id !== ""))];
+  const filas: ClientOutstandingRow[] = [];
+  for (let i = 0; i < ids.length; i += SALDO_LOTE) {
+    const lote = ids.slice(i, i + SALDO_LOTE);
+    const { data, error } = await supabase.rpc("client_outstanding", { p_client_ids: lote });
+    if (error) {
+      throw new SaldoClienteError(`saldo: ${error.message}`, error.code ?? null);
+    }
+    filas.push(...coerceClientOutstandingRows(data));
+  }
+  return filas;
+}
+
+/**
+ * Embarques en curso (sin entregar, cancelar ni en borrador) de un conjunto de
+ * códigos, vivos. Misma lista de «fuera de curso» que el tracking operativo
+ * (`INACTIVE_STATUSES`). Cuenta en la base, sin traer filas.
+ */
+export async function countShipmentsInProgress(
+  supabase: SupabaseClient,
+  markboxes: readonly string[],
+): Promise<number> {
+  const codigos = [...new Set(markboxes.map((m) => m.trim()).filter(Boolean))];
+  if (codigos.length === 0) return 0;
+  const { count, error } = await supabase
+    .from("shipments")
+    .select("id", { count: "exact", head: true })
+    .in("client_markbox", codigos)
+    .is("deleted_at", null)
+    .not("status", "in", `(${INACTIVE_STATUSES.join(",")})`);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+/** Referencia corta para cruzar el mensaje de la ficha con el log (ERR-01). */
+function referenciaDeSoporte(): string {
+  return globalThis.crypto.randomUUID().slice(0, 8);
+}
+
+/**
+ * La cuenta del cliente para la cabecera de la ficha. NUNCA lanza:
+ *  - sin permiso para el saldo (`puedeVerSaldo` false, o un 42501 de la base),
+ *    no pide la función y devuelve `sin-permiso`: la cabecera no pinta dinero;
+ *  - si el cálculo falla, `error` con una referencia que queda en el log;
+ *  - si el conteo de embarques falla, el saldo sale igual y el conteo en null.
+ * `codigosConocidos` (vigente + historial) sirve para contar embarques cuando
+ * no hay saldo que traiga el conjunto completo de códigos.
+ */
+export async function getClientAccountState(
+  supabase: SupabaseClient,
+  client: { id: string; markbox: string; deleted_at?: string | null },
+  opciones: { puedeVerSaldo: boolean; codigosConocidos: readonly string[] },
+): Promise<EstadoCuentaCliente> {
+  const conocidos = [...new Set([client.markbox, ...opciones.codigosConocidos])];
+  const contar = async (codigos: readonly string[]): Promise<number | null> => {
+    try {
+      return await countShipmentsInProgress(supabase, codigos);
+    } catch (e) {
+      console.error("[saldo-cliente] embarques en curso:", e instanceof Error ? e.message : e);
+      return null;
+    }
+  };
+
+  // SDD-0568: un cliente eliminado no tiene saldo que calcular. client_outstanding
+  // (0492) filtra los clientes vivos y no devuelve fila; antes la ficha lo
+  // trataba como un error («No se pudo calcular el saldo»).
+  if (client.deleted_at) {
+    return {
+      tipo: "eliminado",
+      eliminadoEl: diaDeCaracas(client.deleted_at),
+      markboxes: conocidos,
+      embarquesEnCurso: await contar(conocidos),
+    };
+  }
+
+  if (!opciones.puedeVerSaldo) {
+    return { tipo: "sin-permiso", markboxes: conocidos, embarquesEnCurso: await contar(conocidos) };
+  }
+
+  try {
+    const filas = await listClientOutstanding(supabase, [client.id]);
+    const cuenta = resumirCuentaCliente(filas, client.id);
+    if (!cuenta) throw new SaldoClienteError("saldo: la ficha no devolvió fila");
+    return {
+      tipo: "ok",
+      cuenta: { ...cuenta, embarquesEnCurso: await contar(cuenta.markboxes) },
+    };
+  } catch (e) {
+    if (esSinPermiso(e)) {
+      return { tipo: "sin-permiso", markboxes: conocidos, embarquesEnCurso: await contar(conocidos) };
+    }
+    const referencia = referenciaDeSoporte();
+    console.error(`[saldo-cliente] ref=${referencia}`, e instanceof Error ? e.message : e);
+    return {
+      tipo: "error",
+      referencia,
+      markboxes: conocidos,
+      embarquesEnCurso: await contar(conocidos),
+    };
+  }
 }

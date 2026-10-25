@@ -5,17 +5,19 @@
  * le coticen un servicio; se crea un `quote` source='studio' (cliente conocido,
  * precio en 0) que el asesor cotiza en `/studio/cotizador`, y se le avisa.
  *
- * SEGURIDAD: el `markbox`/`nombre` salen de la SESIÓN (getPortalClient resuelve el
- * principal del portal vía get_portal_client_id, RLS-safe), NUNCA del FormData →
- * un cliente no puede crear cotizaciones a nombre de otro. El insert corre con
- * admin client (el cliente del portal no tiene RLS de INSERT sobre `quotes`; mismo
- * criterio que los demás writes del portal), pero scopeado al markbox de SU sesión.
+ * SEGURIDAD: tenant, `markbox` y `nombre` salen de la SESIÓN
+ * (`getPortalClientPrincipal`: vínculo activo, cliente vivo del mismo tenant),
+ * NUNCA del FormData → un cliente no puede crear cotizaciones a nombre de otro.
+ * El insert corre con admin client (el cliente del portal no tiene RLS de INSERT
+ * sobre `quotes`; mismo criterio que los demás writes del portal), pero scopeado
+ * al tenant y al markbox de SU sesión. SDD-0552: el tenant ya no se relee de
+ * `clients` con el admin.
  */
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   validateCotizacionRequest,
   buildCotizacionRow,
@@ -46,12 +48,14 @@ export async function requestCotizacionAction(
   });
   if (fieldErrors) return { fieldErrors };
 
-  // 2. Resolver al cliente DESDE LA SESIÓN (no del form).
+  // 2. Resolver al cliente y su tenant DESDE LA SESIÓN (no del form). La quote
+  //    debe vivir en SU tenant para que el asesor la vea.
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) {
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) {
     return { error: "Tu sesión expiró. Vuelve a entrar e intenta de nuevo." };
   }
+  const { client, tenantId } = principal;
 
   // 3. Admin client (service_role) para el insert + correlativo + aviso.
   let admin;
@@ -63,19 +67,7 @@ export async function requestCotizacionAction(
     };
   }
 
-  // 4. Tenant del cliente (la quote debe vivir en SU tenant para que el asesor la
-  //    vea). Lo leemos de su propio registro, no asumimos "primer tenant".
-  const { data: clientRow, error: tenantErr } = await admin
-    .from("clients")
-    .select("tenant_id")
-    .eq("id", client.id)
-    .maybeSingle<{ tenant_id: string }>();
-  if (tenantErr || !clientRow?.tenant_id) {
-    return { error: "No pudimos registrar tu cotización. Intenta más tarde." };
-  }
-  const tenantId = clientRow.tenant_id;
-
-  // 5. Correlativo EST-YYYY-NNNN (misma serie que el resto de estimados/cotizaciones).
+  // 4. Correlativo EST-YYYY-NNNN (misma serie que el resto de estimados/cotizaciones).
   const { data: codeData, error: codeErr } = await admin.rpc(
     "next_estimate_code",
     { p_tenant_id: tenantId },
@@ -85,7 +77,7 @@ export async function requestCotizacionAction(
   }
   const code = String(codeData);
 
-  // 6. Insert de la cotización (precio en 0 → lo cotiza el asesor).
+  // 5. Insert de la cotización (precio en 0 → lo cotiza el asesor).
   const row = buildCotizacionRow(input, {
     clientMarkbox: client.markbox,
     clientName: client.name,
@@ -99,7 +91,7 @@ export async function requestCotizacionAction(
     return { error: "No pudimos registrar tu cotización. Intenta de nuevo." };
   }
 
-  // 7. Avisar al asesor (best-effort: no rompe el alta).
+  // 6. Avisar al asesor (best-effort: no rompe el alta).
   await notifyCotizacionRequestToAdmin(admin, tenantId, {
     code,
     markbox: client.markbox,

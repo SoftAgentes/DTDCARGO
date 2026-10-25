@@ -27,6 +27,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { buildViewCsv } from "@/lib/studio/reports/export-csv";
 import {
   PERIOD_OPTIONS,
+  vistaDelEstado,
   type AgingReport,
   type AgingSide,
   type CarrierRow,
@@ -46,6 +47,7 @@ import {
   type RouteRow,
   type ServiceRow,
 } from "@/lib/studio/reports/types";
+import { notaDelMayorMezclado } from "@/lib/studio/accounting/ingreso-periodo";
 import {
   type BuilderRow,
   type ReportSourceId,
@@ -53,11 +55,13 @@ import {
 import { VolumeBars, Donut, Progress, HeaderRow, type DonutSlice } from "./charts";
 import { BuilderView } from "./BuilderView";
 import { fmtUsd, fmtUsdCompact } from "@/lib/money";
+import { IngresoDelPeriodoCard } from "@/app/studio/(app)/contabilidad/_components/IngresoDelPeriodoCard";
 
 type Category = "op" | "com" | "con" | "build" | "mix";
 
-// Tabs nivel-2 por categoría (value = ?rep=).
-const TABS_BY_CATEGORY: Record<Category, { value: string; label: string }[]> = {
+// Tabs nivel-2 por categoría (value = ?rep=). Exportado para que la prueba
+// de la SDD-0557 fije el rótulo sin montar el cliente; nadie más lo importa.
+export const TABS_BY_CATEGORY: Record<Category, { value: string; label: string }[]> = {
   op: [
     { value: "overview", label: "Overview" },
     { value: "routes", label: "Por ruta" },
@@ -74,7 +78,9 @@ const TABS_BY_CATEGORY: Record<Category, { value: string; label: string }[]> = {
     { value: "income", label: "Estado de resultados" },
     { value: "aging", label: "Aging CxC/CxP" },
     { value: "iva", label: "Posición IVA" },
-    { value: "cashflow", label: "Cashflow" },
+    // SDD-0557: no es un flujo de caja. El slug `cashflow` se conserva para
+    // que `?rep=cashflow` siga abriendo esta vista.
+    { value: "cashflow", label: "Facturado contra cobrado" },
   ],
   // El Constructor no tiene nivel-2 (la fuente/dim/métrica se eligen dentro).
   build: [],
@@ -1321,19 +1327,67 @@ function PipelineView({ data }: { data: PipelineReport }) {
 // Slice B — Contables · Estado de resultados
 // ═══════════════════════════════════════════════════════════════
 function IncomeStatementView({ income }: { income: IncomeStatement }) {
-  const empty = income.income === 0 && income.netIncome === 0;
-  if (empty) {
+  // SDD-0557: la decisión vive en `vistaDelEstado` (pura, con prueba), la
+  // misma que usa el CSV.
+  const vista = vistaDelEstado(income);
+  if (vista === "vacio") {
     return (
       <EmptyState
         eyebrow="Estado de resultados"
-        title="Sin movimiento contable en el período"
-        description="Cuando haya asientos asentados (ingresos, costos y gastos) en el rango, vas a ver acá el estado de resultados gerencial en USD."
+        title="Sin facturas ni movimiento contable en el período"
+        description="Cuando haya facturas emitidas o asientos asentados (ingresos, costos y gastos) en el rango, vas a ver acá el ingreso del período y el estado de resultados gerencial en USD."
       />
     );
   }
 
   return (
-    <Card eyebrow="Estado de resultados" title="Gerencial · USD funcional" style={{ maxWidth: 680, padding: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 680 }}>
+      <IngresoDelPeriodoCard ingreso={income.ingreso} />
+      {vista === "solo-facturado" ? (
+        <p
+          role="status"
+          style={{
+            margin: 0,
+            padding: "var(--s-4) var(--s-5)",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-lg)",
+            font: "500 12.5px/1.5 var(--f-sans)",
+            color: "var(--ink)",
+          }}
+        >
+          El mayor no tiene movimiento en el período ({income.range.from} → {income.range.to}): no
+          hay estado de resultados que mostrar. El ingreso de arriba sale de las facturas.
+        </p>
+      ) : (
+        <IncomeStatementCard income={income} />
+      )}
+    </div>
+  );
+}
+
+export function IncomeStatementCard({ income }: { income: IncomeStatement }) {
+  // SDD-0557 · con facturas en bolívares o yuanes asentadas por su nominal, el
+  // mayor mezcla monedas: la tarjeta lo dice en vez de llamarlo USD funcional.
+  const mezclado = notaDelMayorMezclado(income.ingreso);
+  return (
+    <Card eyebrow="Estado de resultados" title="Gerencial · USD funcional · desde el mayor" style={{ maxWidth: 680, padding: 0 }}>
+      {mezclado ? (
+        <p
+          role="note"
+          style={{
+            margin: "0 20px var(--s-3)",
+            padding: "var(--s-3) var(--s-4)",
+            background: "var(--warning-bg)",
+            border: "1px solid var(--warning)",
+            borderRadius: "var(--r-sm)",
+            font: "500 12.5px/1.5 var(--f-sans)",
+            color: "var(--ink)",
+          }}
+        >
+          {mezclado}
+        </p>
+      ) : null}
       <div style={{ padding: "0 0 var(--s-2)" }}>
         {income.rows.map((row) => (
           <div
@@ -1638,9 +1692,14 @@ function MiniStat({ label, value, sub }: { label: string; value: string; sub?: s
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Slice B — Contables · Cashflow facturado vs cobrado
+// Slice B — Contables · Facturado contra cobrado (slug `cashflow`)
 // ═══════════════════════════════════════════════════════════════
-function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
+// SDD-0557: el «Facturado» de esta vista es el TOTAL CON IVA (se compara con lo
+// cobrado, que también lo lleva) y no la cifra oficial sin IVA del Estado de
+// resultados: el KPI, la leyenda y la nota lo dicen. Exportada para su prueba.
+export const ROTULO_FACTURADO_CON_IVA = "Facturado con IVA";
+
+export function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
   const hasData =
     cashflow.totalBilled > 0 ||
     cashflow.totalCollected > 0 ||
@@ -1648,7 +1707,7 @@ function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
   if (!hasData) {
     return (
       <EmptyState
-        eyebrow="Cashflow"
+        eyebrow="Facturado contra cobrado"
         title="Sin facturación ni cobros en el período"
         description="Cuando emitas facturas y registres cobros, vas a ver acá la serie mensual de facturado vs cobrado y el saldo por cobrar."
       />
@@ -1667,19 +1726,21 @@ function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label="Facturado" sub="en el período" valueColor="var(--wine-text)" />
+        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label={ROTULO_FACTURADO_CON_IVA} sub="en el período" valueColor="var(--wine-text)" />
         <KpiCard value={fmtUsdCompact(cashflow.totalCollected)} label="Cobrado" sub="en el período" valueColor="var(--success)" />
         <KpiCard value={fmtUsdCompact(cashflow.outstanding)} label="Por cobrar" sub="saldo vivo total" />
         <KpiCard value={fmtUsdCompact(cashflow.overdue)} label="Vencido" sub="saldo vivo" valueColor="var(--danger)" />
       </div>
 
-      <Card eyebrow="Facturado vs cobrado" title="Serie mensual · USD">
+      <Card eyebrow="Facturado contra cobrado" title="Serie mensual · USD">
         <CashflowChart series={cashflow.series} />
       </Card>
 
-      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-        Facturado y cobrado del período se normalizan a USD (VES por fx de la
-        factura/recibo). <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
+      <p data-testid="facturado-cobrado-nota" style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+        Facturado con IVA y cobrado del período se normalizan a USD (VES por fx de la
+        factura/recibo). El facturado lleva el IVA porque se compara con lo cobrado; el
+        ingreso sin IVA está en el Estado de resultados.{" "}
+        <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
         Por cobrar y vencido son saldos vivos totales (no del rango). Diferencia
         facturado − cobrado del período: {fmtUsdCompact(pendiente)}.
       </p>
@@ -1708,7 +1769,7 @@ function CashflowChart({ series }: { series: CashflowReport["series"] }) {
 
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }} role="img" aria-label="Facturado vs cobrado por mes">
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }} role="img" aria-label="Facturado con IVA contra cobrado por mes">
         {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
           <line
             key={i}
@@ -1738,7 +1799,7 @@ function CashflowChart({ series }: { series: CashflowReport["series"] }) {
         })}
       </svg>
       <div style={{ display: "flex", gap: 18, marginTop: 8 }}>
-        <LegendDot color="var(--wine)" label="Facturado" />
+        <LegendDot color="var(--wine)" label={ROTULO_FACTURADO_CON_IVA} />
         <LegendDot color="var(--success)" label="Cobrado" />
       </div>
     </div>

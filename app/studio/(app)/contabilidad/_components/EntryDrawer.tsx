@@ -25,6 +25,8 @@ import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { fmtAmount } from "./format";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
+import { textoAvisoCierre } from "@/lib/studio/accounting/cierre-excepciones";
+import { CamposExcepcionCierre, excepcionCompleta } from "./CamposExcepcionCierre";
 
 interface Props {
   postableAccounts: Account[];
@@ -60,6 +62,17 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
   const [memo, setMemo] = useState("");
   const [lines, setLines] = useState<DraftLine[]>([emptyLine(), emptyLine()]);
   const [postOnCreate, setPostOnCreate] = useState(true);
+  // SDD-0566: si la fecha cae en período cerrado, el servidor devuelve el aviso
+  // y el mismo formulario lleva la superclave y el motivo. La superclave se
+  // vacía al enviar: el FormData ya la tomó y no queda en pantalla.
+  const [superclave, setSuperclave] = useState("");
+  const [motivoCierre, setMotivoCierre] = useState("");
+  // Si la persona mueve la fecha fuera del cierre, el aviso ya no aplica.
+  const cierre = state.cierre && entryDate <= state.cierre.closingDate ? state.cierre : null;
+  const enviar = (fd: FormData) => {
+    setSuperclave("");
+    formAction(fd);
+  };
 
   const sortedAccounts = postableAccounts
     .slice()
@@ -104,7 +117,10 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
   const filledLines = numericLines.filter(
     (l) => l.account_id && (l.debit > 0 || l.credit > 0),
   ).length;
-  const canSubmit = filledLines >= 2 && totals.balanced;
+  const canSubmit =
+    filledLines >= 2 &&
+    totals.balanced &&
+    (!cierre || excepcionCompleta(cierre, superclave, motivoCierre));
 
   const panelRef = useRef<HTMLElement>(null);
 
@@ -183,7 +199,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
 
         <form
           id="entry-drawer-form"
-          action={formAction}
+          action={enviar}
           style={{
             flex: 1,
             overflow: "auto",
@@ -358,7 +374,19 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
             )}
           </div>
 
-          {state.error && (
+          {cierre && (
+            <CamposExcepcionCierre
+              aviso={cierre}
+              superclave={superclave}
+              onSuperclave={setSuperclave}
+              motivo={motivoCierre}
+              onMotivo={setMotivoCierre}
+              disabled={isPending}
+              nombres={{ superclave: "cierre_superclave", motivo: "cierre_motivo" }}
+            />
+          )}
+
+          {state.error && !(cierre && state.error === textoAvisoCierre(cierre)) && (
             <p
               role="alert"
               style={{
@@ -510,7 +538,9 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
           >
             {isPending
               ? "Guardando…"
-              : postOnCreate
+              : cierre
+                ? "Crear con excepción"
+                : postOnCreate
                 ? "Crear y asentar"
                 : "Guardar borrador"}
           </button>

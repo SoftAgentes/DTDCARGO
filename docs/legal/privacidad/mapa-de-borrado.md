@@ -203,6 +203,14 @@ personales, pero se encontró acá y conviene mirarlo.
 | **Nominatim** | Direcciones enviadas a geocodificar | 🔴 sin contrato |
 | **Supabase / Vercel** | Todo / logs de request | 🔴 retención no verificada |
 
+> ⚠️ **Nota del 2026-10-19:** desde el corte del 2026-10-14 (02:00Z) los datos
+> vivos están en el servidor propio de Contabo. La fila de Supabase / Vercel
+> describe ahora la copia del corte en Supabase Cloud (pausa el 2026-10-28,
+> borrado posterior con OK de Sam) y los logs de Vercel, en pausa desde el
+> 2026-10-16. La fila del servidor y su borrado son parte del hallazgo H14 de
+> [`revision-traslado-contabo-2026-10-09.md`](revision-traslado-contabo-2026-10-09.md),
+> pendiente.
+
 ---
 
 ## 4 · Lo que bloquea, y quién lo destraba

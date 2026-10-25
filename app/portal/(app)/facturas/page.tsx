@@ -5,17 +5,23 @@ import {
   listMyInvoices,
   listMyShipments,
   listMyEstimates,
-  getPortalClient,
+  getPortalClientPrincipal,
 } from "@/lib/portal/portal-queries";
 import {
   formatInvoiceAmount,
-  invoiceBalance,
   isActiveShipmentStatus,
   type InvoiceCurrency,
   type PortalInvoiceRow,
   type PortalShipmentRow,
   type PortalEstimateRow,
 } from "@/lib/portal/portal-types";
+import {
+  esAnulada,
+  notaPagosEnAnuladas,
+  notaSobrepagos,
+  resumenDeCuenta,
+  saldoPorPagar,
+} from "@/lib/portal/saldo-de-cuenta";
 import { showNortePortal } from "@/lib/portal/demo";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon } from "@/components/Icon";
@@ -71,27 +77,29 @@ export default async function PortalInvoicesPage({
   // Rediseño Norte (founder 2026-06-20) GATEADO al demo: la card "ciclo"
   // (Estimado→Aprobado→Facturado) necesita estimados + envíos; sólo se cargan para
   // el demo (clientes reales: misma página, sin queries extra).
-  const client = await getPortalClient(supabase);
-  const demo = showNortePortal(client?.markbox);
+  // SDD-0549 · un solo principal de sesión: su cliente decide el demo y su
+  // tenant + Shipping Mark acotan los borradores por aceptar (sin releer
+  // `clients.tenant_id` con el admin client).
+  const principal = await getPortalClientPrincipal(supabase);
+  const demo = showNortePortal(principal?.client.markbox);
   const [todasLasFacturas, shipments, estimates, porAceptar] = await Promise.all([
     listMyInvoices(supabase),
     demo ? listMyShipments(supabase) : Promise.resolve<PortalShipmentRow[]>([]),
     demo ? listMyEstimates(supabase) : Promise.resolve<PortalEstimateRow[]>([]),
     // SDD-0543 · borradores DDP que esperan su aceptación de T&C: el portal los
     // oculta de la lista, pero el cliente tiene que saber que existen y cuánto son.
-    client
-      ? loadPendingAcceptanceForClient({ clientId: client.id, markbox: client.markbox })
+    principal
+      ? loadPendingAcceptanceForClient(principal)
       : Promise.resolve([]),
   ]);
   const sumaPorAceptar = totalPorAceptar(porAceptar);
   // Los KPIs siguen midiendo TODO (el saldo total no cambia porque filtres la
-  // vista); solo la lista se recorta.
+  // vista); solo la lista se recorta. «Por pagar» = `saldoPorPagar` > 0: una
+  // anulada nunca está por pagar (SDD-0556).
   const invoices = soloConSaldo
-    ? todasLasFacturas.filter(
-        (inv) =>
-          invoiceBalance({ total_amount: inv.total, paid_amount: inv.paid }) > 0,
-      )
+    ? todasLasFacturas.filter((inv) => saldoPorPagar(inv) > 0)
     : todasLasFacturas;
+  const ocultas = todasLasFacturas.length - invoices.length;
 
   const approvedCount = shipments.filter((s) =>
     isActiveShipmentStatus(s.status),
@@ -100,26 +108,14 @@ export default async function PortalInvoicesPage({
     "Hola DTD Cargo, soy cliente y tengo una consulta sobre mis facturas.",
   );
 
-  // ── KPIs por moneda dominante ──
-  const byCurrency = new Map<
-    InvoiceCurrency,
-    { total: number; paid: number; balance: number }
-  >();
-  for (const inv of todasLasFacturas) {
-    const e = byCurrency.get(inv.currency) ?? { total: 0, paid: 0, balance: 0 };
-    e.total += inv.total;
-    e.paid += inv.paid;
-    e.balance += invoiceBalance({ total_amount: inv.total, paid_amount: inv.paid });
-    byCurrency.set(inv.currency, e);
-  }
-  const currencies = [...byCurrency.keys()];
-  const primary =
-    currencies
-      .slice()
-      .sort((a, b) => (byCurrency.get(b)?.total ?? 0) - (byCurrency.get(a)?.total ?? 0))[0] ??
-    "USD";
-  const agg = byCurrency.get(primary) ?? { total: 0, paid: 0, balance: 0 };
-  const mixed = currencies.length > 1;
+  // ── KPIs: una sola definición de deuda (SDD-0556) ──
+  // Moneda dominante entre las vigentes; las anuladas no suman. Lo pagado en
+  // anuladas no se resta: se informa aparte, en la nota de abajo.
+  const r = resumenDeCuenta(todasLasFacturas);
+  const notaAnuladas = notaPagosEnAnuladas(r.pagosEnAnuladas);
+  // Con un sobrepago, facturado − pagado no da el saldo pendiente: la nota lo
+  // explica bajo los KPIs. En el estado de cuenta va la versión del libro.
+  const notaDeMas = notaSobrepagos(r.sobrepagos, r.currency, { donde: "kpis" });
 
   return (
     <div>
@@ -142,10 +138,11 @@ export default async function PortalInvoicesPage({
         >
           <span className="text-[13px] text-grey-700">
             Mostrando solo las facturas <strong className="text-ink">por pagar</strong>
-            {todasLasFacturas.length > invoices.length
-              ? ` · ${todasLasFacturas.length - invoices.length} pagada${
-                  todasLasFacturas.length - invoices.length === 1 ? "" : "s"
-                } oculta${todasLasFacturas.length - invoices.length === 1 ? "" : "s"}`
+            {/* Las ocultas son pagadas o anuladas: «sin saldo» dice las dos. */}
+            {ocultas > 0
+              ? ` · ${ocultas} factura${ocultas === 1 ? "" : "s"} sin saldo oculta${
+                  ocultas === 1 ? "" : "s"
+                }`
               : ""}
           </span>
           <Link
@@ -179,11 +176,14 @@ export default async function PortalInvoicesPage({
           estimatesCount={estimates.length}
           approvedCount={approvedCount}
           invoicesCount={invoices.length}
-          invoicedLabel={formatInvoiceAmount(agg.total, primary)}
+          invoicedLabel={formatInvoiceAmount(r.facturado, r.currency)}
         />
       ) : null}
 
-      {invoices.length === 0 ? (
+      {/* El vacío de «no tienes facturas» sale sólo si de verdad no hay
+          ninguna. Con `?saldo=1` y nada por pagar, los KPIs y la nota siguen a
+          la vista y la lista dice que no hay facturas por pagar (SDD-0556). */}
+      {todasLasFacturas.length === 0 ? (
         <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center">
           {/* SDD-0543 · con borradores por aceptar arriba, «no tienes facturas» se
               contradice: el vacío habla de facturas EMITIDAS y dice cuándo entran. */}
@@ -212,20 +212,32 @@ export default async function PortalInvoicesPage({
         <>
           {/* KPIs */}
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Kpi label="Total facturado" value={formatInvoiceAmount(agg.total, primary)} />
-            <Kpi label="Pagado" value={formatInvoiceAmount(agg.paid, primary)} />
+            <Kpi label="Total facturado" value={formatInvoiceAmount(r.facturado, r.currency)} />
+            <Kpi label="Pagado" value={formatInvoiceAmount(r.pagado, r.currency)} />
             <Kpi
               label="Saldo pendiente"
-              value={formatInvoiceAmount(agg.balance, primary)}
-              highlight={agg.balance > 0}
+              value={formatInvoiceAmount(r.porPagar, r.currency)}
+              highlight={r.porPagar > 0}
             />
           </div>
-          {mixed && (
+          {r.mixedCurrencies && (
             <p className="mt-3 text-[12px] text-grey-500">
-              Montos en {primary}. Tienes facturas en otras monedas — abre cada una
+              Montos en {r.currency}. Tienes facturas en otras monedas — abre cada una
               para ver su detalle.
             </p>
           )}
+          {/* En el estado de cuenta la misma nota va bajo el libro
+              (`StatementLedgerTable`); acá no se repite. */}
+          {notaAnuladas && !vistaCuenta ? (
+            <p className="mt-3 text-[12.5px] text-grey-700 leading-[1.5] max-w-[64ch]">
+              {notaAnuladas}
+            </p>
+          ) : null}
+          {notaDeMas && !vistaCuenta ? (
+            <p className="mt-3 text-[12.5px] text-grey-700 leading-[1.5] max-w-[64ch]">
+              {notaDeMas}
+            </p>
+          ) : null}
 
           {vistaCuenta ? (
             // El estado de cuenta se arma SIEMPRE con todas las facturas, aunque
@@ -263,6 +275,17 @@ export default async function PortalInvoicesPage({
                 </a>
               ) : null}
             </>
+          ) : invoices.length === 0 ? (
+            // `?saldo=1` sin nada por pagar: hay facturas, pero todas están
+            // pagadas o anuladas. No es «no tienes facturas».
+            <div className="mt-6 card-shadow bg-white border border-grey-200 rounded-[18px] p-8 text-center">
+              <div className="text-[15px] font-bold text-ink">
+                No tienes facturas por pagar.
+              </div>
+              <p className="mt-2 text-[13.5px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
+                Tus facturas están pagadas o anuladas. Usa «Ver todas» para revisarlas.
+              </p>
+            </div>
           ) : (
             <>
               {/* Mobile: cards */}
@@ -371,8 +394,12 @@ function TableRow({ inv }: { inv: PortalInvoiceRow }) {
       >
         {formatDate(inv.dueDate)}
       </span>
+      {/* SDD-0556 · una anulada sigue en la lista, con su monto tachado: se
+          ve el documento, pero no es deuda. El badge dice «Anulada». */}
       <span
-        className="text-[13px] font-bold text-ink text-right"
+        className={`text-[13px] font-bold text-right ${
+          esAnulada(inv) ? "line-through text-grey-500" : "text-ink"
+        }`}
         style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
       >
         {formatInvoiceAmount(inv.total, inv.currency)}

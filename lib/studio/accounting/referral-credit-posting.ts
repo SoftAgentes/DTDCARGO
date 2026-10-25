@@ -341,8 +341,9 @@ export const REVERT_REFERRAL_CREDITS_ERROR = "No se pudieron revertir los crédi
  *        esta SDD introdujo: antes nadie esperaba y se corrompía en silencio.
  *        Va primera porque **es nueva y es la que nadie va a sospechar**: quien
  *        vea `failure: "revert"` se va derecho a buscar un permiso.
- *        Los 8 s son del rol `authenticated`, con el que corren las RPC
- *        (INVOKER); medido en producción, no supuesto.
+ *        Los 8 s son del rol `authenticated`, el de la sesión que llama a las
+ *        RPC; medido en producción, no supuesto. (Desde la 0494 son SECURITY
+ *        DEFINER, pero el statement_timeout sigue siendo el de la sesión.)
  *        **Busca 57014, NO 55P03.** El `lock_timeout` del clúster es 0, así que
  *        la espera por el lock no vence nunca: lo que corta es el
  *        `statement_timeout`, y corta la sentencia entera. Quien busque
@@ -393,8 +394,10 @@ export type ReferralCreditRevertFailure = "revert" | "entries";
  * dos ventanas en las que se bajaba un abono que nunca había llegado a la
  * factura.
  *
- * Corre con el cliente del USUARIO, no con el admin client: la RPC es SECURITY
- * INVOKER y exige rol accounting/admin en el tenant, igual que las de la 0467.
+ * Corre con el cliente del USUARIO, no con el admin client: la RPC exige rol
+ * accounting/admin en el tenant de QUIEN LLAMA (auth.uid()), igual que las de la
+ * 0467. Hasta la 0494 era SECURITY INVOKER; desde la 0494 es DEFINER (SDD-0567),
+ * porque authenticated ya no tiene UPDATE de referrals, y la guarda no cambió.
  * `voidInvoice` y `applyReferralCredit` ya están detrás del mismo gate de dinero.
  *
  * Lo único que queda afuera son los ASIENTOS, best-effort y con el admin client,

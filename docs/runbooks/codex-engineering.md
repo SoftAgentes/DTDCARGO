@@ -257,6 +257,20 @@ de cada release. El SHA servido no se deduce de un HTTP 200 ni de un merge.
 La corrección modifica solo el workflow de calidad; no altera el pipeline de
 producción, no publica esta revisión, no mergea main y no despliega.
 
+> **Nota del 2026-10-19 · el párrafo anterior es histórico.** Desde el
+> 2026-10-16 Vercel está en pausa y sin integración de Git: ya no publica
+> `main` y su `ignoreCommand` no decide nada. La web corre en el servidor
+> propio y se publica sola con el vigilante (SDD-0541,
+> [publicación automática](publicacion-automatica-web.md)): cada push a `main`
+> construye su imagen `sha-*`, sin excluir documentación, y `:publicable`
+> avanza cuando la imagen y el CI están en verde. Un merge a `main` sigue siendo
+> un efecto productivo. La base es el Supabase del mismo servidor desde el
+> 2026-10-14 ([migraciones](aplicar-migraciones-prod.md)). En el párrafo de
+> abajo, el «ID de deployment READY» se lee como la evidencia de
+> `publicar-web.sh` (journal del vigilante y `publicaciones.json`), y el
+> redeploy de una versión conocida, como `publicar-web.sh volver` o
+> `publicar <sha>`, que corre la sesión de Contabo.
+
 Release requiere evidencia: autorización, PR/SHA integrado, checks aplicables,
 migraciones por nombre y una por vez según runbook, ID de deployment READY y
 SHA correcto, smoke test y plan de rollback. Si una migración debe preceder al

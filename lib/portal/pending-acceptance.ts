@@ -8,13 +8,16 @@
  * borrador semanas antes de emitirse: la lista y el estado de cuenta tienen que
  * decirle que existe, cuánto es y que el detalle se abre cuando acepte los T&C.
  *
- * Mismo camino que `loadPendingAcceptance` de la portada: admin client, tenant
- * resuelto por el id del cliente ya verificado por sesión, y lectura scopeada
- * por tenant + Shipping Mark en `portal-legal-queries`. Best-effort: cualquier
- * fallo devuelve vacío/null y la pantalla sigue.
+ * Identidad (SDD-0549): tenant y Shipping Mark salen del principal Portal que la
+ * página ya resolvió con `getPortalClientPrincipal(session)`. El admin client
+ * NO vuelve a leer `clients.tenant_id`: ese era el patrón que la SDD-0397 quitó
+ * de la acción de aceptar. La lectura queda scopeada por tenant + Shipping Mark
+ * en `portal-legal-queries`. Best-effort: cualquier fallo devuelve vacío/null y
+ * la pantalla sigue.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/db/admin";
+import type { PortalClientPrincipal } from "./portal-queries";
 import {
   getPendingAcceptanceInvoice,
   listPendingAcceptanceInvoices,
@@ -23,25 +26,20 @@ import {
   type PendingAcceptanceInvoice,
 } from "./portal-legal-queries";
 
-export interface PortalClientRef {
-  clientId: string;
-  markbox: string;
-}
+/** Lo que el loader necesita del principal Portal: su tenant y su Shipping Mark. */
+export type PendingAcceptancePrincipal = Pick<PortalClientPrincipal, "tenantId"> & {
+  client: Pick<PortalClientPrincipal["client"], "markbox">;
+};
 
-async function tenantDe(admin: SupabaseClient, clientId: string): Promise<string | null> {
-  const id = String(clientId ?? "").trim();
-  if (!id) return null;
-  const { data } = await admin
-    .from("clients")
-    .select("tenant_id")
-    .eq("id", id)
-    .maybeSingle<{ tenant_id: string }>();
-  const tenantId = String(data?.tenant_id ?? "").trim();
-  return tenantId || null;
+/** Tenant y Shipping Mark del principal, o null si falta alguno (falla cerrado). */
+function scopeDe(principal: PendingAcceptancePrincipal): { tenantId: string; markbox: string } | null {
+  const tenantId = String(principal?.tenantId ?? "").trim();
+  const markbox = String(principal?.client?.markbox ?? "").trim();
+  return tenantId && markbox ? { tenantId, markbox } : null;
 }
 
 /**
- * Las facturas en borrador de ese cliente que esperan su aceptación de T&C.
+ * Las facturas en borrador de ese principal que esperan su aceptación de T&C.
  *
  * El admin client se crea DENTRO del try (no como parámetro por defecto): si
  * falta la variable de entorno, `createAdminClient()` lanza, y un lanzamiento
@@ -49,16 +47,14 @@ async function tenantDe(admin: SupabaseClient, clientId: string): Promise<string
  * que es best-effort. `admin` se inyecta sólo en pruebas.
  */
 export async function loadPendingAcceptanceForClient(
-  ref: PortalClientRef,
+  principal: PendingAcceptancePrincipal,
   admin?: SupabaseClient,
 ): Promise<PendingAcceptanceInvoice[]> {
   try {
-    const markbox = String(ref.markbox ?? "").trim();
-    if (!markbox) return [];
+    const scope = scopeDe(principal);
+    if (!scope) return [];
     const db = admin ?? createAdminClient();
-    const tenantId = await tenantDe(db, ref.clientId);
-    if (!tenantId) return [];
-    return await listPendingAcceptanceInvoices(db, { tenantId, markbox });
+    return await listPendingAcceptanceInvoices(db, scope);
   } catch {
     return [];
   }
@@ -66,17 +62,16 @@ export async function loadPendingAcceptanceForClient(
 
 /** UNA factura por aceptar, por su código, o null si no es suya o ya no espera nada. */
 export async function loadPendingAcceptanceDetailForClient(
-  ref: PortalClientRef & { code: string },
+  principal: PendingAcceptancePrincipal,
+  code: string,
   admin?: SupabaseClient,
 ): Promise<PendingAcceptanceDetail | null> {
   try {
-    const markbox = String(ref.markbox ?? "").trim();
-    const code = String(ref.code ?? "").trim();
-    if (!markbox || !code) return null;
+    const scope = scopeDe(principal);
+    const codigo = String(code ?? "").trim();
+    if (!scope || !codigo) return null;
     const db = admin ?? createAdminClient();
-    const tenantId = await tenantDe(db, ref.clientId);
-    if (!tenantId) return null;
-    return await getPendingAcceptanceInvoice(db, { tenantId, markbox, code });
+    return await getPendingAcceptanceInvoice(db, { ...scope, code: codigo });
   } catch {
     return null;
   }

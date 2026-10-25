@@ -360,6 +360,67 @@ try {
     process.exit(1);
   }
   console.log(`${C.dim}   aislamiento multi-tenant verificado (barrido de 219 tablas + 2 tenants reales)${C.nc}`);
+
+  // SDD-0559 · La radiografía de integridad corre sobre el esquema COMPLETO, no sólo sobre las
+  // 8 migraciones de su fixture de PGlite: un renombre futuro de una columna que lee la rompe
+  // acá. Va por stdin, como en el VPS, una sola vez y en modo conteos. La forma: cinco columnas,
+  // `n` entero y monto_usd vacío. SCHEMA_REBUILD_RADIOGRAFIA apunta a otro archivo para el
+  // control rojo (una copia con una columna inexistente tiene que salir 1).
+  const RADIOGRAFIA = resolve(
+    process.cwd(),
+    process.env.SCHEMA_REBUILD_RADIOGRAFIA || "scripts/qa/radiografia-integridad.sql",
+  );
+  const radio = docker(
+    [
+      "exec", "-i", container,
+      "psql", "-U", "postgres", "-X", "-q", "-A", "-t", "-F", "|",
+      "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=terse", "-v", "SHOW_CONTEXT=never",
+    ],
+    { input: readFileSync(RADIOGRAFIA, "utf8") },
+  );
+  const filasRadio = (radio.stdout || "").split("\n").filter(Boolean);
+  const formaRadio =
+    filasRadio.length > 0 &&
+    filasRadio.every((f) => {
+      const c = f.split("|");
+      return c.length === 5 && /^\d+$/.test(c[3]) && c[4] === "";
+    });
+  if (radio.status !== 0 || !formaRadio) {
+    const err = `${radio.stdout || ""}${radio.stderr || ""}`.split("\n").find((l) => l.includes("ERROR:"));
+    console.log(`${C.red}[FAIL]${C.nc} la radiografía de integridad no corre sobre el esquema completo:`);
+    console.log(`${C.dim}   ${err ?? "salida con otra forma (se esperan 5 columnas, n entero y monto vacío)"}${C.nc}`);
+    process.exit(1);
+  }
+  console.log(`${C.dim}   radiografía de integridad verificada sobre el esquema completo (${filasRadio.length} filas, conteos)${C.nc}`);
+
+  // SDD-0567 · La radiografía de referidos (la que el Director corrió en producción el
+  // 2026-10-20) sobre el esquema completo: un renombre futuro de una columna que lee la
+  // rompe acá. Sobre la base vacía no devuelve filas; si devuelve, son tres columnas con
+  // dos conteos. SCHEMA_REBUILD_RADIOGRAFIA_REFERIDOS apunta a otro archivo para el control rojo.
+  const REFERIDOS = resolve(
+    process.cwd(),
+    process.env.SCHEMA_REBUILD_RADIOGRAFIA_REFERIDOS || "scripts/qa/radiografia-referidos.sql",
+  );
+  const refs = docker(
+    [
+      "exec", "-i", container,
+      "psql", "-U", "postgres", "-X", "-q", "-A", "-t", "-F", "|",
+      "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=terse", "-v", "SHOW_CONTEXT=never",
+    ],
+    { input: readFileSync(REFERIDOS, "utf8") },
+  );
+  const filasRefs = (refs.stdout || "").split("\n").filter(Boolean);
+  const formaRefs = filasRefs.every((f) => {
+    const c = f.split("|");
+    return c.length === 3 && /^\d+$/.test(c[1]) && /^\d+$/.test(c[2]);
+  });
+  if (refs.status !== 0 || !formaRefs) {
+    const err = `${refs.stdout || ""}${refs.stderr || ""}`.split("\n").find((l) => l.includes("ERROR:"));
+    console.log(`${C.red}[FAIL]${C.nc} la radiografía de referidos no corre sobre el esquema completo:`);
+    console.log(`${C.dim}   ${err ?? "salida con otra forma (se esperan 3 columnas y dos conteos)"}${C.nc}`);
+    process.exit(1);
+  }
+  console.log(`${C.dim}   radiografía de referidos verificada sobre el esquema completo (${filasRefs.length} filas, conteos)${C.nc}`);
 } finally {
   docker(["rm", "-f", container], { stdio: "ignore" });
 }

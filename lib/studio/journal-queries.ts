@@ -20,6 +20,14 @@ import type {
 const ENTRY_COLUMNS =
   "id, tenant_id, entry_code, entry_date, memo, status, source, invoice_id, receipt_id, bill_id, supplier_payment_id, posted_at, created_at, updated_at, deleted_at";
 
+/**
+ * Tope DECLARADO de la pantalla del libro diario (SDD-0557). Pintar miles de
+ * asientos no le sirve a nadie: la pantalla muestra los más recientes y dice
+ * «Mostrando N de M» con el total real de `countEntries`. El diario completo
+ * se descarga en CSV por `/api/studio/contabilidad/export?tipo=diario`.
+ */
+export const DIARIO_PANTALLA_MAX = 500;
+
 export type JournalFilters = {
   status?: EntryStatus | "all";
   q?: string;
@@ -92,7 +100,7 @@ export async function listEntries(
     .is("deleted_at", null)
     .order("entry_date", { ascending: false })
     .order("entry_code", { ascending: false })
-    .limit(500);
+    .limit(DIARIO_PANTALLA_MAX);
 
   if (filters.status && filters.status !== "all") {
     query = query.eq("status", filters.status);
@@ -114,6 +122,30 @@ export async function listEntries(
     entry.lines = rawLines.map(coerceLine);
     return entry;
   });
+}
+
+/**
+ * Totales REALES del diario (SDD-0557), sin el tope de pantalla: asientos vivos
+ * (no borrados, cualquier estado) y, de ellos, los asentados. Dos conteos
+ * `head`: no trae filas.
+ */
+export async function countEntries(
+  supabase: SupabaseClient,
+): Promise<{ total: number; asentados: number }> {
+  const [todos, asentados] = await Promise.all([
+    supabase
+      .from("journal_entries")
+      .select("id", { count: "exact", head: true })
+      .is("deleted_at", null),
+    supabase
+      .from("journal_entries")
+      .select("id", { count: "exact", head: true })
+      .is("deleted_at", null)
+      .eq("status", "asentado"),
+  ]);
+  if (todos.error) throw todos.error;
+  if (asentados.error) throw asentados.error;
+  return { total: todos.count ?? 0, asentados: asentados.count ?? 0 };
 }
 
 export async function getEntryByCode(

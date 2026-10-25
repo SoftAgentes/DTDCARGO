@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   getPendingAcceptanceInvoice,
   latestOrderAcceptanceDocs,
@@ -30,9 +30,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /**
  * Página de aceptación de T&C del cliente (SDD-0054 · Slice C + SDD-0067).
  *
- * Resuelve identidad por SESIÓN (getPortalClient) → con admin client (los
- * borradores los oculta el portal) lee la orden DDP pendiente + las docs
- * vigentes. Si no aplica (no es borrador / no DDP / ya aceptada / ajena) →
+ * Resuelve identidad por SESIÓN (`getPortalClientPrincipal`, SDD-0549) → con
+ * admin client (los borradores los oculta el portal) lee la orden DDP pendiente
+ * + las docs vigentes con el tenant y el Shipping Mark de ESE principal, sin
+ * releer `clients.tenant_id` con privilegios (mismo corte que la acción, 0397).
+ * Si no aplica (no es borrador / no DDP / ya aceptada / ajena) →
  * redirect a /portal/facturas. Render: resumen de la orden + cuerpo de los
  * documentos (colapsables) + AcceptanceForm con el copy del modal de
  * COPY_LEGAL_UI.md §1 (2 checkboxes; fallback pre-v3 vía buildAcceptanceCopy).
@@ -47,18 +49,11 @@ export default async function AcceptTermsPage({ params }: Props) {
   const code = decodeURIComponent(raw);
 
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) redirect("/entrar");
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) redirect("/entrar");
+  const { client, tenantId } = principal;
 
   const admin = createAdminClient();
-
-  const { data: clientRow } = await admin
-    .from("clients")
-    .select("tenant_id")
-    .eq("id", client.id)
-    .maybeSingle<{ tenant_id: string }>();
-  const tenantId = String(clientRow?.tenant_id ?? "").trim();
-  if (!tenantId) redirect("/portal/facturas");
 
   const order = await getPendingAcceptanceInvoice(admin, {
     tenantId,

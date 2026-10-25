@@ -47,6 +47,7 @@ import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import { isInvoiceStatus, statusLabel } from "@/lib/studio/invoice-types";
 import { lineaDocumentoCliente } from "@/lib/studio/invoice-client-doc";
 import { PDF, Membrete } from "./pdf-doc";
+import { indicacionPagosEnAnuladas } from "@/lib/portal/saldo-de-cuenta";
 
 // ╔═══════════════════════════════════════════════════════════╗
 // ║ Entrada                                                   ║
@@ -126,7 +127,9 @@ export type FacturaPdfEmisor = {
  * sale como antes. **Nunca inventa un RIF** — sin dato, no hay línea; una
  * factura con un identificador fiscal equivocado es peor que una sin él.
  */
-export function lineasDeEmisor(emisor?: FacturaPdfEmisor): string[] {
+export function lineasDeEmisor(
+  emisor?: Pick<FacturaPdfEmisor, "legalName" | "rif">,
+): string[] {
   if (!emisor) return [];
   const razon = emisor.legalName.trim();
   const rif = emisor.rif.trim();
@@ -218,9 +221,17 @@ export function calcularTotales(inv: FacturaPdfInput): FacturaPdfTotales {
     ivaAmount: round2(inv.ivaAmount),
     total,
     paid,
-    balance: round2(total - paid),
+    // SDD-0556 · una anulada no tiene saldo, aunque se le haya pagado una
+    // parte: el papel no puede pedirle al cliente que pague una factura que ya
+    // no existe. Lo abonado se sigue imprimiendo.
+    balance: facturaAnulada(inv) ? 0 : round2(total - paid),
     descuadre: Math.abs(sumaLineas - base) >= 0.01,
   };
+}
+
+/** ¿El papel es de una factura anulada? Decide el saldo y el aviso visible. */
+export function facturaAnulada(inv: Pick<FacturaPdfInput, "status">): boolean {
+  return inv.status === "anulada";
 }
 
 /** `USD 1,234.50` — código de moneda delante, como en el resto del ERP. */
@@ -454,6 +465,17 @@ export function FacturaDocument({
           ) : null}
         </View>
 
+        {/* SDD-0556 · «Estado: Anulada» va en letra chica en el meta; con el
+            total completo, el papel seguía pareciendo una factura vigente. */}
+        {facturaAnulada(invoice) ? (
+          <Text style={styles.aviso}>
+            Factura anulada: no hay saldo por pagar.
+            {t.paid > 0
+              ? ` Lo abonado (${montoConMoneda(t.paid, invoice.currency)}) no se descuenta de tu saldo pendiente: ${indicacionPagosEnAnuladas({ singular: true })}.`
+              : ""}
+          </Text>
+        ) : null}
+
         {/* El descuadre se DENUNCIA, no se corrige: el total que vale es el de
             la DB (el que se cobró). Callarlo dejaría un papel que no se puede
             reconstruir desde sus propias líneas. */}
@@ -472,7 +494,8 @@ export function FacturaDocument({
           </View>
         ) : null}
 
-        {emisor && emisor.cuentas.length > 0 ? (
+        {/* SDD-0556 · una anulada no se paga: no lleva «Datos para el pago». */}
+        {emisor && emisor.cuentas.length > 0 && !facturaAnulada(invoice) ? (
           <View style={{ marginTop: 18 }}>
             <Text style={styles.bloqueTitulo}>Datos para el pago</Text>
             {emisor.cuentas.map((c) => (

@@ -164,6 +164,7 @@ const cliente: PortalClient = {
 const kpis: PortalDashboardKpis = {
   activeShipments: 1,
   deliveredYtd: 0,
+  invoicesAvailable: true,
   invoicedTotal: 0,
   outstandingBalance: 0,
   currency: "USD",

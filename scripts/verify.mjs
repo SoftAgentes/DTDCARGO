@@ -480,8 +480,11 @@ export const STEPS = [
   // ¿Hay migraciones en el repo que nunca llegaron a prod? La 0228 estuvo DOS
   // rondas perdida y se construyó encima; se descubrió tarde y con un error que
   // no explicaba nada. Este paso consulta el ledger de prod (RPC 0239) y grita si
-  // un archivo del repo no está aplicado. DEGRADA CON GRACIA: sin creds/red/RPC
-  // → SKIP (no rojo), igual que el e2e. `retry: 1` porque toca la red.
+  // un archivo del repo no está aplicado. Solo mide en https://supabase.dtdcargo.com
+  // e imprime ese origen; Supabase Cloud, la copia congelada del corte del
+  // 2026-10-14, u otro host dan SKIP sin consultarlos (SDD-0548). DEGRADA CON
+  // GRACIA: sin creds/red/RPC → SKIP (no rojo), igual que el e2e. `retry: 1`
+  // porque toca la red.
   { name: "migrations-applied", argv: ["scripts/check-migrations-applied.mjs"], retry: 1 },
   // ¿El código alcanzable desde app depende de un símbolo que sólo nace en una
   // migración declarada pendiente? Repo contra repo: no usa red, credenciales ni SKIP.

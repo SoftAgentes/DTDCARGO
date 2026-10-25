@@ -9,6 +9,16 @@ en `main` (local), falta el gatillo de prod.
 > ⚠️ Esto es un **deploy financiero irreversible** (crea facturas + asiento
 > contable en prod). Leé los pre-requisitos antes de tocar nada.
 
+> ⚠️ **Nota del 2026-10-19 · registro histórico, no procedimiento vigente.** Este
+> runbook describe un deploy de junio de 2026, cuando producción era Supabase
+> Cloud (`xpfuzqombmjmxvprjgmi`) y Vercel publicaba `main`. Desde el corte del
+> 2026-10-14 (02:00Z) la base es el Supabase del servidor propio, y desde el
+> 2026-10-16 la web corre en ese servidor y se publica sola con el vigilante.
+> Hoy las migraciones se aplican con
+> [`aplicar-migraciones-prod.md`](aplicar-migraciones-prod.md) y la publicación
+> sigue [`publicacion-automatica-web.md`](publicacion-automatica-web.md). Cloud
+> es la copia del corte y se pausa el 2026-10-28: no lo uses para operar.
+
 ## Qué destraba
 
 `main` local quedó **adelante de `origin/main`** con todo el chain SDD-0072

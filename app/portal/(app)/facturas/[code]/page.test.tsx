@@ -15,6 +15,7 @@ const h = vi.hoisted(() => ({
   factura: null as unknown,
   pendiente: null as unknown,
   cliente: null as unknown,
+  consultas: [] as unknown[][],
 }));
 
 vi.mock("next/navigation", () => ({
@@ -26,11 +27,17 @@ vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => ({}) }));
 vi.mock("@/lib/portal/portal-queries", () => ({
   getMyInvoice: async () => h.factura,
+  // SDD-0549: el borrador se busca con el principal de sesión. `getPortalClient`
+  // se deja para que una versión que volviera a usarlo corra y falle por la aserción.
+  getPortalClientPrincipal: async () => (h.cliente ? { userId: "u1", tenantId: "t1", client: h.cliente } : null),
   getPortalClient: async () => h.cliente,
 }));
 vi.mock("@/lib/portal/pending-acceptance", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/portal/pending-acceptance")>()),
-  loadPendingAcceptanceDetailForClient: async () => h.pendiente,
+  loadPendingAcceptanceDetailForClient: async (...args: unknown[]) => {
+    h.consultas.push(args);
+    return h.pendiente;
+  },
 }));
 vi.mock("@/lib/portal/payment-report-queries", () => ({ listMyInvoiceReports: async () => [] }));
 
@@ -65,6 +72,7 @@ afterEach(() => {
   h.factura = null;
   h.pendiente = null;
   h.cliente = null;
+  h.consultas = [];
 });
 
 describe("/portal/facturas/[code] con un borrador por aceptar (SDD-0543)", () => {
@@ -93,5 +101,79 @@ describe("/portal/facturas/[code] con un borrador por aceptar (SDD-0543)", () =>
   it("sin cliente en sesión no consulta borradores: 404", async () => {
     h.pendiente = PENDIENTE;
     await expect(abrir()).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(h.consultas).toEqual([]);
+  });
+
+  it("busca el borrador con el tenant y el Shipping Mark del principal de sesión (SDD-0549)", async () => {
+    h.cliente = CLIENTE;
+    h.pendiente = PENDIENTE;
+    await abrir();
+    expect(h.consultas).toHaveLength(1);
+    const [principal, code] = h.consultas[0];
+    expect(principal).toMatchObject({ tenantId: "t1", client: { markbox: "DTD-8001" } });
+    expect(code).toBe("F-2026-0007");
+  });
+});
+
+/** Detalle de una factura emitida, como lo devuelve `getMyInvoice`. */
+function detalle(over: Record<string, unknown> = {}) {
+  return {
+    id: "inv-1",
+    tenantId: "t1",
+    clientRif: null,
+    clientDocKind: null,
+    code: "F-2026-0010",
+    clientName: "Cliente Prueba",
+    status: "emitida",
+    currency: "USD",
+    fxRate: null,
+    ivaRate: 0,
+    base: 1000,
+    ivaAmount: 0,
+    total: 1000,
+    paid: 300,
+    issuedAt: "2026-09-01",
+    dueDate: "2026-09-30",
+    lines: [{ desc: "Flete LCL", qty: 1, unitPrice: 1000 }],
+    notes: null,
+    shipmentId: null,
+    shipmentCode: null,
+    createdAt: "2026-09-01T00:00:00Z",
+    ...over,
+  };
+}
+
+describe("/portal/facturas/[code] de una factura anulada (SDD-0556)", () => {
+  it("una anulada con abono no muestra «Saldo pendiente» y dice que no hay nada que pagar", async () => {
+    // Antes: «Saldo pendiente USD 700.00» resaltado en una factura anulada.
+    h.cliente = CLIENTE;
+    h.factura = detalle({ status: "anulada" });
+    await abrir("F-2026-0010");
+    expect(screen.queryByText("Saldo pendiente")).toBeNull();
+    expect(screen.queryByText("USD 700.00")).toBeNull();
+    expect(
+      screen.getByText(/Esta factura está anulada: no tienes nada que pagar por ella\./),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Recibimos USD 300\.00 en pagos de esta factura\. Escríbele a tu asesor para aplicarlos a otra factura o pedir su devolución\./),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Reportar pago" })).toBeNull();
+  });
+
+  it("una anulada sin pagos no habla de pagos recibidos", async () => {
+    h.cliente = CLIENTE;
+    h.factura = detalle({ status: "anulada", paid: 0 });
+    await abrir("F-2026-0010");
+    expect(screen.getByText(/Esta factura está anulada/)).toBeInTheDocument();
+    expect(screen.queryByText(/Recibimos/)).toBeNull();
+  });
+
+  it("una viva con saldo sigue mostrando «Saldo pendiente» y sin el aviso de anulada", async () => {
+    h.cliente = CLIENTE;
+    h.factura = detalle();
+    await abrir("F-2026-0010");
+    expect(screen.getByText("Saldo pendiente")).toBeInTheDocument();
+    expect(screen.getByText("USD 700.00")).toBeInTheDocument();
+    expect(screen.queryByText(/Esta factura está anulada/)).toBeNull();
   });
 });

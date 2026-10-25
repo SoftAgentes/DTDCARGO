@@ -5,6 +5,27 @@
 > ProfileModal · Preferencias y recibir avisos de bugs críticos y
 > respuestas admin via chat de Telegram.
 
+> ⚠️ **Nota del 2026-10-19 · la web ya no corre en Vercel.** Desde el
+> 2026-10-16 la web corre en el servidor propio (VPS de Contabo) y se publica
+> sola con el vigilante ([`publicacion-automatica-web.md`](publicacion-automatica-web.md));
+> Vercel está en pausa. Donde abajo dice «Vercel producción»:
+>
+> - **Variables:** `TELEGRAM_BOT_TOKEN` y `TELEGRAM_WEBHOOK_SECRET` viven en el
+>   `.env` del servidor (`/srv/dtd-cargo/.env`, con
+>   `infra/ops/migrate/env-set.sh`); `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` va
+>   además como Variable del repo en GitHub, porque se fija al construir la
+>   imagen ([`servidor-contabo.md`](servidor-contabo.md) §3.1, puntos 2 y 3).
+>   Un cambio se aplica recreando el contenedor `web`, no con un redeploy.
+> - **Webhook:** el `setWebhook` lo corre la sesión de Contabo con
+>   `/srv/ops/web/telegram-webhook.sh set` (`infra/ops/web/telegram-webhook.sh`),
+>   que lee el token y el secreto del `.env` sin imprimirlos. Se hizo el
+>   2026-10-16 a las 07:06Z (registro en `servidor-contabo.md` §3.6). Para
+>   rotar: secreto nuevo en el `.env`, recrear `web` y volver a correr `set`.
+> - **Logs:** `docker logs dtd-cargo-web-1`.
+>
+> Todo eso lo hace la sesión de Contabo con el OK de Sam. Lo de abajo queda como
+> registro de cómo se hizo en Vercel.
+
 ## 1. Crear el bot con @BotFather
 
 1. Abrí Telegram, buscá `@BotFather` y mandale `/start`.
