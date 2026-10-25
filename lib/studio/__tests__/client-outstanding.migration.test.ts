@@ -25,6 +25,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
 import {
   ESTADOS_FACTURA_CON_SALDO,
@@ -103,7 +104,7 @@ function inline(file: string, vars: Record<string, string>, replace: Record<stri
 async function contract(options: { applyFix?: boolean; migration?: string } = {}) {
   const sql = inline(CONTRACT, { apply_fix: String(options.applyFix ?? true) },
     options.migration ? { [M0492]: options.migration } : {});
-  const db = new PGlite();
+  const db = await pgliteLimpio();
   try {
     const results = await db.exec(sql);
     const rows = results.flatMap((result) => result.rows as Record<string, unknown>[]);
@@ -124,7 +125,7 @@ function mutant(from: string, to: string): string {
 
 /** Una base con el esquema mínimo y la 0492 real, sin datos. */
 async function baseCon0492(): Promise<PGlite> {
-  const db = new PGlite();
+  const db = await pgliteLimpio();
   await db.exec(inline(SCHEMA, {}) + "\n" + FILE_0492);
   return db;
 }

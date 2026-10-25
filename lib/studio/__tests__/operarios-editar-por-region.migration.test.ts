@@ -37,6 +37,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { canEditModule, type ModuleAccessOverride } from "@/lib/studio/rbac";
 import { STUDIO_USER_ROLES, type StudioUserRole } from "@/lib/studio/user-types";
@@ -143,7 +144,7 @@ async function contract(options: { applyFix?: boolean; migration?: string; repla
   const replace = { ...(options.replace ?? {}) };
   if (options.migration) replace[M0480] = options.migration;
   const sql = psql(CONTRACT, { apply_fix: String(options.applyFix ?? true) }, replace);
-  const db = new PGlite({ extensions: { pgcrypto } });
+  const db = await pgliteLimpio({ pgcrypto });
   try {
     const results = await db.exec(sql);
     const rows = results.flatMap((result) => result.rows as Record<string, unknown>[]);
@@ -681,7 +682,7 @@ async function appEdit(role: StudioUserRole, override: Override): Promise<boolea
 }
 
 async function openFixture(migration?: string) {
-  const db = new PGlite({ extensions: { pgcrypto } });
+  const db = await pgliteLimpio({ pgcrypto });
   await db.exec(psql(CONTRACT, { fixture_only: "true" }, migration ? { [M0480]: migration } : {}));
   return db;
 }
