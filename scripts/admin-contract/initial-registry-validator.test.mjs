@@ -141,6 +141,9 @@ function freeze(x) {
 // All 29 new effective inputs and expectations exist before any validator call.
 const cases = data.cases.map(role => ({role, input: freeze(make(role)), expected: expected[role]}));
 freeze(cases);
+const cross = cases.find(c => c.role === 'FICT_CROSSED_INPUT');
+const envelope = freeze({marker: 'FICTITIOUS_ADMIN_DTO_FIXTURE_1',
+  caseRole: cross.role, units: cross.input.units});
 const codes = ['BAD_ENVELOPE', 'INVALID_FIELD', 'MISSING_REF', 'WRONG_KIND',
   'CYCLE', 'INVALID_ORDER', 'INCOMPLETE_EVIDENCE'];
 for (const current of cases) {
@@ -166,8 +169,6 @@ for (const current of cases) {
     if (want.only) assert.equal(result.issues.length, want.required.length);
     assert.equal(JSON.stringify(current.input), before, 'mutation of frozen fictitious input');
     if (current.role === 'FICT_CROSSED_INPUT') {
-      const envelope = {marker: 'FICTITIOUS_ADMIN_DTO_FIXTURE_1',
-        caseRole: current.role, units: current.input.units};
       for (const check of [validateFixtureDtos, validateFixtureReferences]) {
         assert.deepEqual(check(envelope), {structuralState: 'VALID',
           evidenceState: 'PRESENT_FICTITIOUS', scope: 'FICTITIOUS_STRUCTURE_ONLY', issues: []});
