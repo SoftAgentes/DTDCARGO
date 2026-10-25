@@ -166,7 +166,7 @@ describe("editar una ciudad", () => {
 
     const alerta = await within(panel).findByRole("alert");
     expect(alerta).toHaveTextContent("Esa ruta ya no está activa");
-    expect(alerta).toHaveFocus();
+    await waitFor(() => expect(alerta).toHaveFocus());
     expect(dialogo("Editar Valencia")).toBeVisible();
     expect(campo(panel, /^Venta \/m³/)).toHaveValue("111");
     expect(mocks.toast.success).not.toHaveBeenCalled();
