@@ -4,7 +4,7 @@ title: "Publicación automática de la web en el servidor propio"
 status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-10-16
-updated: 2026-10-16
+updated: 2026-10-20
 supersedes: null
 superseded_by: null
 related: ["0505"]
@@ -497,3 +497,85 @@ Modificados:
 
   Además, `compose.ensayo.yml` frena `vigilar`, la publicación a mano y `volver`.
   Cada nota tiene su prueba y su mutante (cifras en el handoff).
+
+## Continuación acotada · identidad del repositorio (2026-10-20)
+
+Estado: **implementado y validado localmente; PR borrador, integración e instalación pendientes**.
+Las casillas de aceptación anteriores corresponden al trabajo inicial, no
+certifican esta continuación. Registro propio:
+[handoff de identidad](../../../.agents/handoffs/0541-publicacion-identidad-softagentes.md).
+
+Sam aclaró que cambió el nombre del perfil de GitHub. La API del 2026-10-20,
+22:06:28Z, devuelve `SoftAgentes/DTDCARGO`, repo ID `1246490707`, owner `User`,
+login `SoftAgentes`, owner ID `285193249`. La ruta antigua resuelve al mismo repo;
+no se afirma traslado a una organización ni cambio de propietario.
+
+La acción de metadatos fijada por `build-image.yml` obtiene
+`org.opencontainers.image.source` de `repo.html_url`. El publicador de la base
+`d410ab2e23e74e5bcf7fdc7cc595371b24cc03a8` solo admite la URL antigua. El Director
+confirmó por lectura del VPS a las **22:07:19Z** que el script instalado conserva
+esa constante; la imagen servida y publicable seguían en `8e9e0f50…`. No se ha
+observado un fallo real de publicación de una imagen nueva ni esta continuación
+constituye una nueva lectura del servidor.
+
+### Contrato y frontera
+
+Opción A aceptada: origen canónico
+`https://github.com/SoftAgentes/DTDCARGO` y alias histórico
+`https://github.com/hailuwaycom-sketch/DTDCARGO`. Son **dos cadenas exactas**,
+comparadas sin distinguir mayúsculas, como el contrato previo. Un origen ajeno,
+vacío, con sufijo, barra final o esquema distinto queda fuera. No se consultan
+redirecciones HTTP ni se admite una fuente arbitraria mediante entorno o patrones.
+
+Ambas fuentes deben funcionar en publicación automática y manual; la recuperación
+conserva las imágenes anteriores. SHA/revisión/digest, migraciones, huellas,
+sharp, imagen previa, salud/smoke, rollback, congelación y locks mantienen sus
+garantías. El namespace GHCR y los workflows/promotor no cambian; no se fija una
+etiqueta antigua en el build. Acceso efectivo al paquete: **NO VERIFICADO**, sin
+inferir pérdida de permisos, credenciales o imágenes.
+
+Esta tarea solo prepara código local revisable y PR borrador tras validarlo. No
+autoriza instalar, mergear, publicar, modificar cuentas o reaplicar 0495. Se
+mantiene la prohibición de merge/deploy durante el bloqueo de GitHub y el orden de
+integración del Director. El procedimiento de solo script en el runbook es una
+preparación para una ventana posterior autorizada, no una acción ejecutada.
+
+### Aceptación de la continuación
+
+1. [x] ROJO funcional real contra el script original: el origen canónico nuevo
+   falla en las rutas automática y manual antes de cambiar el producto.
+2. [x] Verde Linux con dobles: ambas fuentes exactas y sus variantes de mayúsculas
+   publican el SHA/digest esperado por `vigilar`, `publicar <sha>` y `<sha>`.
+3. [x] Fuentes ajenas/vacías/ausentes, sufijos, barra final y `http` se rechazan
+   en esos caminos sin `up`, cambio del `.env` sintético ni cambio de contenedor;
+   el entorno tampoco puede autorizar una fuente ajena.
+4. [x] Smoke fallido de una imagen con origen nuevo vuelve a la imagen histórica;
+   la vuelta manual conserva imágenes anteriores de ambas fuentes.
+5. [x] Controles rojo/verde y mutantes de la identidad, incluido eliminar su
+   comprobación; regresiones previas conservadas, focal pertinente del promotor,
+   `bash -n`, docs/SDD y diff sin debilitar comprobaciones.
+6. [x] Procedimiento de respaldo/hash/instalación/reversión de solo script
+   revisable; handoff con resultados por SHA, pendientes de CI/release y conocimiento.
+7. [ ] Revisión del Director sobre el SHA publicado y PR borrador; instalación,
+   CI de release, imagen/digest, recibo 14/0 y Studio se registran por separado.
+
+Evidencia local del 2026-10-20, asociada a los blobs del commit
+`b6af34a3c88c835d50a8dc40c95b608da0d1f3f8`: ROJO 177/10/0 contra el original;
+verde completo 190/0/0 (144 comprobaciones previas y 46 de identidad); control
+vacío con 165 fallos; seis mutantes pertinentes muertos/cero vivos; promotor
+30/30; sintaxis, docs/SDD y diff correctos. Detalle, hashes y límites en el
+handoff. Conocimiento derivado pendiente: lectura de status interrumpida sin
+JSON; no se regeneraron Graphify, Archify ni preview de Obsidian. La instalación
+operativa y el recibo real 14/0 permanecen **NO EJECUTADOS**.
+
+### Allowlist exclusiva de esta continuación
+
+- `infra/ops/web/publicar-web.sh`
+- `infra/ops/tests/prueba-publicar-web.sh`
+- `docs/runbooks/publicacion-automatica-web.md`
+- `docs/specs/0541-publicacion-automatica-vps/spec.md`
+- `.agents/handoffs/0541-publicacion-identidad-softagentes.md` (nuevo)
+
+El listado histórico de la SDD no amplía estas cinco rutas. El handoff inicial
+se conserva. Si un check requiere el índice generado u otra ruta, el Worker lo
+informa al Director antes de editarla.

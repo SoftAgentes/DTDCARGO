@@ -65,7 +65,12 @@ if [ "${1:-}" = --mutantes ]; then
     motivo="
   mutar "acepta un sha corto" '[[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || { echo "uso: publicar' '[[ "${sha}" =~ ^[0-9a-f]+$ ]] || { echo "uso: publicar'
   mutar "no compara el commit de la etiqueta" '[ "${rev}" = "${sha}" ] || {' 'true || {'
-  mutar "no comprueba el origen" '[ "${f,,}" = "${FUENTE,,}" ] ||' 'true ||'
+  mutar "no comprueba el origen" '[[ "${f,,}" = "${FUENTE,,}" || "${f,,}" = "${FUENTE_HISTORICA,,}" ]] ||' 'true ||'
+  mutar "origen canónico ausente" '"${f,,}" = "${FUENTE,,}"' '"${f,,}" = "https://github.com/ajeno/DTDCARGO"'
+  mutar "origen histórico ausente" '"${f,,}" = "${FUENTE_HISTORICA,,}"' '"${f,,}" = "https://github.com/ajeno/DTDCARGO"'
+  mutar "origen distingue mayúsculas" '[[ "${f,,}" = "${FUENTE,,}" || "${f,,}" = "${FUENTE_HISTORICA,,}" ]] ||' '[[ "${f}" = "${FUENTE}" || "${f}" = "${FUENTE_HISTORICA}" ]] ||'
+  mutar "origen acepta prefijos" '[[ "${f,,}" = "${FUENTE,,}" || "${f,,}" = "${FUENTE_HISTORICA,,}" ]] ||' '[[ "${f,,}" = "${FUENTE,,}"* || "${f,,}" = "${FUENTE_HISTORICA,,}"* ]] ||'
+  mutar "origen controlado por entorno" 'readonly FUENTE=https://github.com/SoftAgentes/DTDCARGO' 'readonly FUENTE="${FUENTE:-https://github.com/SoftAgentes/DTDCARGO}"'
   mutar "avisa cada minuto" 'if [ "$(cat "${ESTADO}/ultimo-aviso" 2>/dev/null)" = "${clave}" ]; then' 'if false; then'
   mutar "sin copia del .env" 'cp -p "${DIR}/.env" "${b}" ||' 'true ||'
   mutar "cambiar_imagen acepta dos líneas DTD_WEB_IMAGE" '[ "${n}" = 1 ] || { MOTIVO="el .env tiene' 'true || { MOTIVO="el .env tiene'
@@ -452,6 +457,89 @@ reiniciar; echo 1 > "${D}/rc-sharp"; correr vigilar
 echo; echo "== validación de la imagen =="
 reiniciar; sed -i 's|^org.opencontainers.image.source=.*|org.opencontainers.image.source=https://github.com/otro/repo|' "${D}/img/${IB}/labels"; correr vigilar
 [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && ok "imagen de otro repositorio: no publica" || { ko "source rc=${RC}"; ver; }
+
+# Cambio de nombre del perfil (2026-10-20): se prueba el publicador completo,
+# incluido el efecto sobre compose, .env y contenedor, no el texto del guard.
+# Los fixtures generales conservan el alias histórico para medir compatibilidad.
+fuente_de_imagen() { # $1 = id, $2 = source sintético
+  sed -i "s|^org.opencontainers.image.source=.*|org.opencontainers.image.source=$2|" "${D}/img/$1/labels"
+}
+publicar_por_camino() {
+  case "$1" in
+    automatico) correr vigilar ;;
+    manual) correr publicar "${B}" ;;
+    interino) correr "${B}" ;;
+    *) echo "camino de prueba desconocido: $1" >&2; exit 2 ;;
+  esac
+}
+echo; echo "== identidad: fuente canónica y alias histórico exactos =="
+for camino in automatico manual interino; do
+  for fuente in \
+    'https://github.com/SoftAgentes/DTDCARGO' \
+    'HTTPS://GITHUB.COM/SOFTAGENTES/DTDCARGO' \
+    'https://github.com/hailuwaycom-sketch/DTDCARGO' \
+    'HTTPS://GITHUB.COM/HAILUWAYCOM-SKETCH/DTDCARGO'; do
+    reiniciar; fuente_de_imagen "${IB}" "${fuente}"; publicar_por_camino "${camino}"
+    [ "${RC}" = 0 ] && [ "$(ups)" = 1 ] && [ "$(imagen_env)" = "${IMG}:sha-${B}@${DB}" ] \
+      && [ "$(cat "${D}/cont/web")" = "${IB}" ] \
+      && ok "identidad ${camino}: publica ${fuente} con el SHA y digest previstos" \
+      || { ko "identidad ${camino} ${fuente}: rc=${RC}, up=$(ups), env=$(imagen_env)"; ver; }
+  done
+done
+
+echo; echo "== identidad: ninguna otra fuente puede publicar =="
+for camino in automatico manual interino; do
+  for fuente in \
+    '' \
+    'https://github.com/otro/repo' \
+    'https://github.com/SoftAgentes/DTDCARGO-otro' \
+    'https://github.com/hailuwaycom-sketch/DTDCARGO-otro' \
+    'https://github.com/SoftAgentes/DTDCARGO/' \
+    'https://github.com/hailuwaycom-sketch/DTDCARGO/' \
+    'http://github.com/SoftAgentes/DTDCARGO' \
+    'http://github.com/hailuwaycom-sketch/DTDCARGO'; do
+    reiniciar; fuente_de_imagen "${IB}" "${fuente}"; cp "${P}/.env" "${T}/env-origen-antes"
+    publicar_por_camino "${camino}"
+    [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && cmp -s "${P}/.env" "${T}/env-origen-antes" \
+      && [ "$(cat "${D}/cont/web")" = "${IA}" ] && grep -q 'no viene de' "${T}/salida.log" \
+      && ok "identidad ${camino}: rechaza ${fuente:-<vacía>} sin up ni cambio de .env o contenedor" \
+      || { ko "identidad rechazada ${camino} ${fuente:-<vacía>}: rc=${RC}, up=$(ups)"; ver; }
+  done
+  reiniciar; sed -i '/^org.opencontainers.image.source=/d' "${D}/img/${IB}/labels"
+  cp "${P}/.env" "${T}/env-origen-antes"; publicar_por_camino "${camino}"
+  [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && cmp -s "${P}/.env" "${T}/env-origen-antes" \
+    && [ "$(cat "${D}/cont/web")" = "${IA}" ] && grep -q 'no viene de' "${T}/salida.log" \
+    && ok "identidad ${camino}: source ausente tampoco publica" \
+    || { ko "identidad ausente ${camino}: rc=${RC}, up=$(ups)"; ver; }
+  reiniciar; fuente_de_imagen "${IB}" 'https://github.com/otro/repo'
+  cp "${P}/.env" "${T}/env-origen-antes"
+  FUENTE='https://github.com/otro/repo' FUENTE_HISTORICA='https://github.com/otro/repo' publicar_por_camino "${camino}"
+  [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && cmp -s "${P}/.env" "${T}/env-origen-antes" \
+    && [ "$(cat "${D}/cont/web")" = "${IA}" ] && grep -q 'no viene de' "${T}/salida.log" \
+    && ok "identidad ${camino}: el entorno no puede autorizar una fuente ajena" \
+    || { ko "identidad por entorno ${camino}: rc=${RC}, up=$(ups)"; ver; }
+done
+
+echo; echo "== identidad: vuelta atrás conserva la imagen histórica =="
+for camino in automatico manual; do
+  reiniciar; fuente_de_imagen "${IB}" 'https://github.com/SoftAgentes/DTDCARGO'
+  cp "${P}/.env" "${T}/env-origen-antes"; printf '1\n1\n' > "${D}/smoke-rcs"
+  publicar_por_camino "${camino}"
+  [ "${RC}" = 1 ] && [ "$(ups)" = 2 ] && cmp -s "${P}/.env" "${T}/env-origen-antes" \
+    && [ "$(cat "${D}/cont/web")" = "${IA}" ] && grep -q "^${DB} ${B} " "${O}/estado/rechazados" \
+    && ok "identidad ${camino}: smoke fallido de fuente nueva vuelve a la imagen del alias histórico" \
+    || { ko "identidad rollback ${camino}: rc=${RC}, up=$(ups), env=$(imagen_env)"; ver; }
+done
+for fuente_anterior in 'https://github.com/hailuwaycom-sketch/DTDCARGO' 'https://github.com/SoftAgentes/DTDCARGO'; do
+  reiniciar; fuente_de_imagen "${IA}" "${fuente_anterior}"
+  fuente_de_imagen "${IB}" 'https://github.com/SoftAgentes/DTDCARGO'
+  correr vigilar; rc_publicacion="${RC}"; correr volver
+  [ "${rc_publicacion}" = 0 ] && [ "${RC}" = 0 ] && [ "$(ups)" = 2 ] \
+    && [ "$(imagen_env)" = "${IMG}:sha-${A}" ] && [ "$(cat "${D}/cont/web")" = "${IA}" ] \
+    && ok "identidad: volver conserva la imagen previa de ${fuente_anterior}" \
+    || { ko "identidad volver ${fuente_anterior}: publicación=${rc_publicacion}, vuelta=${RC}, up=$(ups)"; ver; }
+done
+
 reiniciar; sed -i 's|^org.opencontainers.image.revision=.*|org.opencontainers.image.revision=main|' "${D}/img/${IB}/labels"; correr vigilar
 [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && ok "revisión que no es un sha de 40: no publica" || { ko "revision rc=${RC}"; ver; }
 reiniciar; echo 1 > "${D}/rc-pull"; correr vigilar

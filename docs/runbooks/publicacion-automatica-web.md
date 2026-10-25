@@ -116,6 +116,72 @@ ponerse al día. Mientras está congelado, `volver` funciona igual, y
 /srv/ops/web/publicar-web.sh volver              # la anterior; la de ahora queda rechazada hasta el próximo merge
 ```
 
+### Compatibilidad de identidad · preparación del 2026-10-20
+
+**Estado: corrección y pruebas locales completadas; integración, instalación y publicación pendientes.**
+Sam aclaró un cambio de nombre del perfil, no un traslado de propietario. La API
+del 2026-10-20 a las 22:06:28Z identifica `SoftAgentes/DTDCARGO`, repo `1246490707`,
+owner `User`/`SoftAgentes`/`285193249`; la referencia antigua sigue resolviendo al
+mismo repo. El Director comprobó a las 22:07:19Z que el script del VPS aún exige
+el origen antiguo y que servido/publicable siguen en `8e9e0f50…`. Son observaciones
+fechadas, no una garantía sobre el estado que tendrá el servidor al instalar.
+
+La continuación de SDD-0541 admite en el script candidato el origen canónico
+`https://github.com/SoftAgentes/DTDCARGO` junto al alias histórico exacto
+`https://github.com/hailuwaycom-sketch/DTDCARGO`. La comparación conserva igualdad
+sin distinguir mayúsculas, con un conjunto cerrado de dos fuentes. No se elimina
+el gate ni se resuelven redirecciones para decidir confianza. El build conservará
+su origen canónico natural; el paquete sigue en el namespace GHCR existente.
+Su acceso efectivo tras el cambio de nombre está **NO VERIFICADO**.
+
+El candidato del commit `b6af34a3c88c835d50a8dc40c95b608da0d1f3f8` pasó 190
+comprobaciones del harness local, seis mutantes de identidad y 30 pruebas del
+promotor, con dobles y sin registro/VPS/DB real. Eso no certifica el script
+instalado ni un nuevo deploy; los hashes y límites están en el handoff enlazado.
+
+Procedimiento revisable para **reemplazar solo el script**, todavía no ejecutado:
+
+1. GitHub Actions debe haberse recuperado conforme al prompt final de Sam y debe
+   existir autorización vigente para esta instalación concreta. El Director
+   comprueba esas condiciones y aprueba la revisión, el SHA y la ventana; no puede
+   revocar por sí solo la prohibición de Sam. Cualquier excepción exige una
+   autorización explícita de Sam. Coordinar una ventana con la
+   publicación congelada y sin trabajo operativo activo; documentar ese estado.
+   Esta preparación no activa congelación, cambia timers ni reanuda publicaciones.
+   La congelación evita que instalar el nuevo validador publique de inmediato una
+   imagen que ya estuviera retenida por el origen anterior.
+2. Preparar `infra/ops/web/publicar-web.sh` desde el **objeto Git exacto aprobado**,
+   conservando sus bytes, y registrar SHA Git, blob y SHA256 en el paquete. Validar
+   sintaxis y pruebas locales antes de transferirlo. Cotejar la identidad del
+   repositorio y el hash del script actualmente instalado; si no coincide con el
+   estado revisado de la ventana, detenerse y revisar la diferencia.
+3. En la ventana autorizada, adquirir el mismo lock exclusivo
+   `/run/lock/dtd-cargo-publicar.lock` que usa el publicador. Mientras se conserve
+   ese lock, respaldar únicamente `/srv/ops/web/publicar-web.sh` en una carpeta de
+   evidencia protegida de `/srv/ops/evidencias/`, con fecha UTC, propietario, modo y
+   SHA256. No copiar `.env`, credenciales ni estado de negocio.
+4. Copiar el candidato a un archivo temporal **en `/srv/ops/web/`**, con propietario
+   root y modo `700`. Comprobar su SHA256 contra el paquete aprobado y `bash -n`.
+   Sustituir el script mediante renombrado atómico dentro del mismo directorio,
+   nunca escribiendo sobre el archivo que otra shell pudiera estar leyendo.
+   Verificar nuevamente hash, propietario y modo finales, cerrar el manifiesto de
+   evidencia y liberar el lock. Cualquier discrepancia impide avanzar.
+5. Registrar por separado «script instalado» e «imagen publicada». Mantener la
+   congelación hasta que el Director compruebe identidad/CI/imagen y acceso GHCR
+   y autorice continuar. La publicación posterior sigue pasando por sus puertas,
+   referencia SHA/digest, imagen previa, salud y smoke 14/0; después corresponde
+   la revisión visible del Studio. Este procedimiento no promueve tags ni publica.
+6. **Reversión del archivo:** en la misma condición de congelación y lock, verificar
+   el SHA256 del respaldo, preparar un temporal root/700 y restaurar atómicamente
+   solo el script, comprobando el hash final. Restaurar el script no revierte una
+   imagen ni la DB; el validador antiguo volverá a rechazar orígenes canónicos
+   nuevos. Si ya cambió la imagen, el Director debe evaluar la recuperación de la
+   web por su procedimiento separado antes de reanudar.
+
+La restricción de merge/deploy durante el bloqueo de GitHub permanece vigente.
+No se reaplica 0495. Resultados y ownership de esta continuación:
+[handoff de identidad](../../.agents/handoffs/0541-publicacion-identidad-softagentes.md).
+
 Las imágenes construidas antes de la SDD-0541 no traen las etiquetas, así que el
 script no las publica: ni solo ni a mano. A una de ellas solo se vuelve con
 `volver`, si es la anterior (por ejemplo, `sha-8761618d…` después de la primera
