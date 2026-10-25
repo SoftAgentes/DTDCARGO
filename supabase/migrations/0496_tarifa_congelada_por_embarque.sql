@@ -41,6 +41,9 @@
 --   de findRateInBook) y, si es de la casa, la lista del cliente no puede tener
 --   la suya para esa ruta. Con p_dry_run devuelve lo que congelaría sin escribir
 --   ni bloquear. Nadie tiene TRUNCATE sobre la tabla.
+-- · Crear/reemplazar registra rate_snapshot_frozen/rate_snapshot_replaced con
+--   append_audit_event en la misma transacción. Un fallo del log cancela todo;
+--   la vista previa y los rechazos no emiten eventos de éxito.
 --
 -- ── Quién ───────────────────────────────────────────────────
 --   · ver (p_dry_run): admin, operations, warehouse, support, accounting;
@@ -182,6 +185,18 @@ begin
   end loop;
   if pg_catalog.to_regprocedure('auth.uid()') is null then
     raise exception '0496 requiere auth.uid()';
+  end if;
+
+  -- AUD-01: dependencia canónica, no un INSERT de log posterior desde la app.
+  if pg_catalog.to_regclass('public.entity_audit_log') is null
+     or pg_catalog.to_regclass('public.audit_entity_types') is null
+     or pg_catalog.to_regprocedure(
+       'public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)') is null then
+    raise exception '0496 requiere el contrato de auditoría y append_audit_event';
+  end if;
+  if not exists (select 1 from public.audit_entity_types
+                 where entity_type = 'warehouse_receipt_cn' and status = 'active') then
+    raise exception '0496 requiere la entidad de auditoría activa warehouse_receipt_cn';
   end if;
 
   if pg_catalog.to_regclass('public.shipment_rate_snapshots') is not null
@@ -449,6 +464,8 @@ declare
   v_book_pct numeric;
   v_new_id uuid;
   v_row public.shipment_rate_snapshots;
+  v_audit_before jsonb;
+  v_audit_id uuid;
   v_today date := (pg_catalog.now() at time zone 'America/Caracas')::date;
 begin
   if v_tenant is null or v_role is null
@@ -714,6 +731,13 @@ begin
       using errcode = '22023', hint = 'dtd-tarifa';
   end if;
 
+  -- La fila viva ya está bloqueada. Conservar el estado previo al reemplazo,
+  -- sin duplicar el Shipping Mark ni el motivo dentro del JSON de auditoría.
+  if v_live is not null then
+    select pg_catalog.to_jsonb(s) - 'client_markbox' - 'reason' into v_audit_before
+    from public.shipment_rate_snapshots s where s.id = v_live;
+  end if;
+
   v_new_id := pg_catalog.gen_random_uuid();
   if v_live is not null then
     update public.shipment_rate_snapshots
@@ -732,6 +756,25 @@ begin
     v_row.cbm, v_row.weight_kg, v_row.included_kg_per_cbm, v_row.reason, (select auth.uid())
   )
   returning * into v_row;
+
+  -- No se absorbe el error: fila nueva, marca anterior y evento son atómicos.
+  v_audit_id := public.append_audit_event(
+    v_tenant, 'warehouse_receipt_cn', v_row.receipt_id,
+    'user', v_row.frozen_by,
+    case when v_live is null then 'rate_snapshot_frozen' else 'rate_snapshot_replaced' end,
+    'rpc', 'succeeded', v_reason,
+    v_audit_before,
+    pg_catalog.to_jsonb(v_row) - 'client_markbox' - 'reason',
+    pg_catalog.jsonb_build_object(
+      'operation', 'congelar_tarifa_recepcion',
+      'snapshot_id', v_new_id, 'replaced_snapshot_id', v_live),
+    pg_catalog.concat('rate-snapshot:', v_new_id::text),
+    1, 'internal'
+  );
+  if v_audit_id is null then
+    raise exception 'TARIFA_AUDITORIA_NO_PERSISTIDA: no se pudo registrar la congelación'
+      using errcode = 'P0001', hint = 'dtd-tarifa';
+  end if;
 
   return next v_row;
   return;

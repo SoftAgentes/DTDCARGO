@@ -15,6 +15,47 @@
 begin;
 \ir _0496_tarifa_congelada_schema.sql
 
+-- SDD0571_AUDIT_FIXTURE_BEGIN
+-- DOBLE FICTICIO estrecho del contrato append_audit_event: permite observar la
+-- RPC real y forzar fallos del sink. NO revalida el writer canónico ni producción.
+create table public.audit_entity_types (entity_type text primary key, status text not null);
+insert into public.audit_entity_types values ('warehouse_receipt_cn', 'active');
+create table public.entity_audit_log (
+  id uuid primary key default pg_catalog.gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id),
+  entity_type text not null references public.audit_entity_types(entity_type),
+  entity_id uuid not null, actor_type text not null, actor_id uuid not null,
+  event_type text not null, source text not null, result text not null, reason text,
+  before_data jsonb, after_data jsonb, payload jsonb not null, correlation_id text,
+  schema_version integer not null, sensitivity text not null,
+  occurred_at timestamptz not null default pg_catalog.clock_timestamp()
+);
+revoke all on public.audit_entity_types, public.entity_audit_log from public, anon, authenticated, service_role;
+create function public.append_audit_event(
+  p_tenant_id uuid, p_entity_type text, p_entity_id uuid, p_actor_type text,
+  p_actor_id uuid, p_event_type text, p_source text, p_result text default 'succeeded',
+  p_reason text default null, p_before_data jsonb default null, p_after_data jsonb default null,
+  p_payload jsonb default '{}'::jsonb, p_correlation_id text default null,
+  p_schema_version integer default 1, p_sensitivity text default 'internal'
+) returns uuid language plpgsql security definer set search_path = '' as $audit_fixture$
+declare v_id uuid;
+begin
+  insert into public.entity_audit_log (
+    tenant_id, entity_type, entity_id, actor_type, actor_id, event_type, source,
+    result, reason, before_data, after_data, payload, correlation_id, schema_version, sensitivity
+  ) values (
+    p_tenant_id, p_entity_type, p_entity_id, p_actor_type, p_actor_id, p_event_type, p_source,
+    p_result, coalesce(nullif(pg_catalog.btrim(pg_catalog.current_setting('dtd.audit_reason', true)), ''), p_reason),
+    p_before_data, p_after_data, p_payload, p_correlation_id, p_schema_version, p_sensitivity
+  ) returning id into v_id;
+  return v_id;
+end;
+$audit_fixture$;
+alter function public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text) owner to postgres;
+revoke all on function public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text) from public, anon, authenticated, service_role;
+grant execute on function public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text) to service_role;
+-- SDD0571_AUDIT_FIXTURE_END
+
 create function pg_temp.fixture_id(p_label text) returns uuid language sql immutable as $$
   select md5('0496-synthetic-' || p_label)::uuid
 $$;
@@ -565,6 +606,134 @@ begin
   perform pg_temp.assert_true(pg_temp.todas('r-cascada') = 0, 'borrar la recepción arrastra su tarifa');
 end;
 $cascada$;
+
+-- ─── 14. AUD-01: evento obligatorio y atomicidad de esta RPC ────────────────
+-- Recepciones propias de estos oráculos; no dependen del total de casos legacy.
+insert into public.warehouse_receipts_cn
+  (id, tenant_id, receipt_code, client_markbox, total_cbm, total_weight_kg, destination_city)
+values
+  (pg_temp.fixture_id('r-audit'), pg_temp.fixture_id('tenant-A'), 'WR-AUDIT-FICTICIO', 'DTD-0001', 1, 100, 'Valencia'),
+  (pg_temp.fixture_id('r-audit-fail'), pg_temp.fixture_id('tenant-A'), 'WR-AUDIT-FAIL-FICTICIO', 'DTD-0001', 1, 100, 'Valencia');
+
+do $audit$
+declare v1 jsonb; v2 jsonb; v_rollback jsonb; v_preview jsonb;
+begin
+  v_preview := pg_temp.como('support-A', pg_temp.congelar('r-audit', 'tarifario', p_rate => 'rate-casa', p_dry => true));
+  perform pg_temp.assert_true(v_preview->>'id' is null and pg_temp.todas('r-audit') = 0
+    and not exists (select 1 from public.entity_audit_log where entity_id = pg_temp.fixture_id('r-audit')),
+    'dry-run no crea snapshot ni evento');
+
+  perform pg_temp.assert_true(pg_temp.codigo('support-A', pg_temp.congelar('r-audit', 'tarifario', p_rate => 'rate-casa')) = '42501',
+    'el rechazo auditado conserva la denegación específica');
+  perform pg_temp.assert_true(pg_temp.todas('r-audit') = 0
+    and not exists (select 1 from public.entity_audit_log where entity_id = pg_temp.fixture_id('r-audit')),
+    'un rechazo no deja snapshot ni evento de éxito');
+
+  v1 := pg_temp.como('warehouse-A', pg_temp.congelar('r-audit', 'tarifario', p_rate => 'rate-casa'));
+  perform pg_temp.assert_true(
+    (select count(*) from public.entity_audit_log where entity_id = pg_temp.fixture_id('r-audit')) = 1
+    and exists (select 1 from public.entity_audit_log e
+      where e.entity_type = 'warehouse_receipt_cn' and e.entity_id = pg_temp.fixture_id('r-audit')
+        and e.tenant_id = pg_temp.fixture_id('tenant-A') and e.actor_type = 'user'
+        and e.actor_id = pg_temp.fixture_id('warehouse-A') and e.event_type = 'rate_snapshot_frozen'
+        and e.source = 'rpc' and e.result = 'succeeded' and e.reason is null
+        and e.before_data is null and e.after_data->>'id' = v1->>'id'
+        and (e.after_data->>'per_cbm')::numeric = 850 and not (e.after_data ? 'client_markbox')
+        and not (e.after_data ? 'reason') and e.occurred_at is not null
+        and e.payload->>'operation' = 'congelar_tarifa_recepcion'
+        and e.payload->>'snapshot_id' = v1->>'id'
+        and e.payload->>'replaced_snapshot_id' is null
+        and e.correlation_id = 'rate-snapshot:' || (v1->>'id')),
+    'la creación guarda un evento canónico con actor tenant snapshot y correlación');
+
+  v2 := pg_temp.como('accounting-A', pg_temp.congelar('r-audit', 'manual',
+    p_per => 900, p_reason => 'Cambio ficticio de tarifa confirmado'));
+  perform pg_temp.assert_true(
+    (select count(*) from public.entity_audit_log where entity_id = pg_temp.fixture_id('r-audit')) = 2
+    and exists (select 1 from public.entity_audit_log e
+      where e.entity_id = pg_temp.fixture_id('r-audit') and e.event_type = 'rate_snapshot_replaced'
+        and e.actor_id = pg_temp.fixture_id('accounting-A') and e.actor_type = 'user'
+        and e.tenant_id = pg_temp.fixture_id('tenant-A') and e.source = 'rpc' and e.result = 'succeeded'
+        and e.reason = 'Cambio ficticio de tarifa confirmado'
+        and e.before_data->>'id' = v1->>'id' and e.before_data->>'superseded_by_id' is null
+        and e.after_data->>'id' = v2->>'id' and (e.after_data->>'per_cbm')::numeric = 900
+        and e.payload->>'replaced_snapshot_id' = v1->>'id'
+        and e.correlation_id = 'rate-snapshot:' || (v2->>'id')),
+    'el reemplazo guarda otro evento con antes después motivo y vínculo anterior');
+
+  v_preview := pg_temp.como('support-A', pg_temp.congelar('r-audit', 'tarifario', p_rate => 'rate-casa', p_dry => true));
+  perform pg_temp.assert_true(v_preview->>'superseded_by_id' = v2->>'id'
+    and (select count(*) from public.entity_audit_log where entity_id = pg_temp.fixture_id('r-audit')) = 2,
+    'dry-run con tarifa viva tampoco agrega eventos');
+  perform pg_temp.assert_true(pg_temp.codigo('admin-A', pg_temp.congelar('r-audit', 'tarifario', p_rate => 'rate-casa')) = '23505',
+    'reemplazo sin motivo conserva su rechazo específico');
+  perform pg_temp.assert_true(
+    (select count(*) from public.entity_audit_log where entity_id = pg_temp.fixture_id('r-audit')) = 2,
+    'rechazar el reemplazo no agrega eventos');
+
+  begin
+    v_rollback := pg_temp.como('accounting-A', pg_temp.congelar('r-audit', 'manual',
+      p_per => 910, p_reason => 'Reemplazo ficticio que será revertido'));
+    perform pg_temp.assert_true(
+      exists (select 1 from public.entity_audit_log where entity_id = pg_temp.fixture_id('r-audit')
+        and after_data->>'id' = v_rollback->>'id'),
+      'el reemplazo llegó al evento antes del rollback forzado');
+    raise exception using errcode = 'Z0496', message = 'rollback ficticio después de la RPC';
+  exception when sqlstate 'Z0496' then null;
+  end;
+  perform pg_temp.assert_true(pg_temp.todas('r-audit') = 2
+    and (select count(*) from public.entity_audit_log where entity_id = pg_temp.fixture_id('r-audit')) = 2
+    and exists (select 1 from public.shipment_rate_snapshots where id = (v2->>'id')::uuid
+      and superseded_at is null and superseded_by_id is null),
+    'rollback deshace evento snapshot nuevo y marca de la fila anterior');
+end;
+$audit$;
+
+-- Falla física del sink, no una búsqueda de cadenas en el fuente.
+create function pg_temp.fail_rate_audit() returns trigger language plpgsql as $$
+begin
+  if current_setting('test0496.audit_sink_mode', true) = 'null' then return null; end if;
+  raise exception 'TEST 0496: sink de auditoría rechazado' using errcode = 'P0001';
+end;
+$$;
+create trigger test0496_fail_rate_audit before insert on public.entity_audit_log
+  for each row when (new.entity_type = 'warehouse_receipt_cn'
+    and new.event_type in ('rate_snapshot_frozen', 'rate_snapshot_replaced'))
+  execute function pg_temp.fail_rate_audit();
+do $audit_failure$
+declare v_live uuid := (select id from public.shipment_rate_snapshots
+  where receipt_id = pg_temp.fixture_id('r-audit') and superseded_at is null);
+begin
+  perform set_config('test0496.audit_sink_mode', 'error', true);
+  perform pg_temp.assert_true(pg_temp.codigo('warehouse-A',
+    pg_temp.congelar('r-audit-fail', 'tarifario', p_rate => 'rate-casa')) = 'P0001',
+    'un fallo del log aborta la creación');
+  perform pg_temp.assert_true(pg_temp.todas('r-audit-fail') = 0
+    and not exists (select 1 from public.entity_audit_log where entity_id = pg_temp.fixture_id('r-audit-fail')),
+    'un fallo del log no deja snapshot ni evento de creación');
+  perform pg_temp.assert_true(pg_temp.codigo('accounting-A',
+    pg_temp.congelar('r-audit', 'manual', p_per => 920, p_reason => 'Fallo ficticio del sink en reemplazo')) = 'P0001',
+    'un fallo del log aborta el reemplazo');
+  perform pg_temp.assert_true(pg_temp.todas('r-audit') = 2
+    and exists (select 1 from public.shipment_rate_snapshots where id = v_live and superseded_at is null)
+    and (select count(*) from public.entity_audit_log where entity_id = pg_temp.fixture_id('r-audit')) = 2,
+    'un fallo del log restaura la anterior y no agrega snapshot ni evento');
+
+  perform set_config('test0496.audit_sink_mode', 'null', true);
+  perform pg_temp.assert_true(pg_temp.codigo('warehouse-A',
+    pg_temp.congelar('r-audit-fail', 'tarifario', p_rate => 'rate-casa')) = 'P0001',
+    'un evento sin identificador aborta la creación');
+  perform pg_temp.assert_true(pg_temp.codigo('accounting-A',
+    pg_temp.congelar('r-audit', 'manual', p_per => 930, p_reason => 'Evento ficticio sin identificador')) = 'P0001',
+    'un evento sin identificador aborta el reemplazo');
+  perform pg_temp.assert_true(pg_temp.todas('r-audit-fail') = 0 and pg_temp.todas('r-audit') = 2
+    and exists (select 1 from public.shipment_rate_snapshots where id = v_live and superseded_at is null)
+    and (select count(*) from public.entity_audit_log where entity_id = pg_temp.fixture_id('r-audit')) = 2,
+    'cancelar el INSERT del evento también revierte todas las mutaciones');
+end;
+$audit_failure$;
+drop trigger test0496_fail_rate_audit on public.entity_audit_log;
+
 
 select 'TEST 0496 GREEN: ' || nextval('pg_temp.assertion_count') - 1 || ' aserciones' as resultado;
 rollback;

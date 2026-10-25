@@ -24,6 +24,26 @@ const CONTRACT = resolve(ROOT, "supabase/tests/0496_tarifa_congelada_por_embarqu
 const SCHEMA = resolve(ROOT, "supabase/tests/_0496_tarifa_congelada_schema.sql");
 const M0496 = "0496_tarifa_congelada_por_embarque.sql";
 const FILE_0496 = readFileSync(resolve(ROOT, "supabase/migrations", M0496), "utf8");
+const AUDIT_CALL = `  v_audit_id := public.append_audit_event(
+    v_tenant, 'warehouse_receipt_cn', v_row.receipt_id,
+    'user', v_row.frozen_by,
+    case when v_live is null then 'rate_snapshot_frozen' else 'rate_snapshot_replaced' end,
+    'rpc', 'succeeded', v_reason,
+    v_audit_before,
+    pg_catalog.to_jsonb(v_row) - 'client_markbox' - 'reason',
+    pg_catalog.jsonb_build_object(
+      'operation', 'congelar_tarifa_recepcion',
+      'snapshot_id', v_new_id, 'replaced_snapshot_id', v_live),
+    pg_catalog.concat('rate-snapshot:', v_new_id::text),
+    1, 'internal'
+  );`;
+const CONTRACT_TEXT = readFileSync(CONTRACT, "utf8");
+const AUDIT_BEGIN = "-- SDD0571_AUDIT_FIXTURE_BEGIN";
+const AUDIT_END = "-- SDD0571_AUDIT_FIXTURE_END";
+if (CONTRACT_TEXT.split(AUDIT_BEGIN).length !== 2 || CONTRACT_TEXT.split(AUDIT_END).length !== 2) {
+  throw new Error("Fixture de auditoría0496 ausente o duplicada");
+}
+const AUDIT_FIXTURE_SQL = CONTRACT_TEXT.split(AUDIT_BEGIN)[1].split(AUDIT_END)[0];
 const SLOW = 240_000;
 
 const TRUE = /^(t|true|on|y|yes|1)$/i;
@@ -330,6 +350,30 @@ describe("SDD-0571 · 0496 tarifa congelada por recepción (PGlite)", () => {
       to: "    (select",
       fails: "TEST 0496: el otro tenant solo ve la suya",
     },
+    {
+      name: "sin persistir el evento aunque se invente un identificador",
+      from: AUDIT_CALL,
+      to: "  v_audit_id := pg_catalog.gen_random_uuid();",
+      fails: "TEST 0496: la creación guarda un evento canónico con actor tenant snapshot y correlación",
+    },
+    {
+      name: "sin distinguir el reemplazo en su evento",
+      from: "case when v_live is null then 'rate_snapshot_frozen' else 'rate_snapshot_replaced' end",
+      to: "'rate_snapshot_frozen'",
+      fails: "TEST 0496: el reemplazo guarda otro evento con antes después motivo y vínculo anterior",
+    },
+    {
+      name: "absorbiendo el error del log y fingiendo su identificador",
+      from: AUDIT_CALL,
+      to: "  begin\n" + AUDIT_CALL + "\n  exception when others then\n    v_audit_id := pg_catalog.gen_random_uuid();\n  end;",
+      fails: "TEST 0496: un fallo del log aborta la creación",
+    },
+    {
+      name: "aceptando un evento sin identificador",
+      from: "  if v_audit_id is null then",
+      to: "  if false then",
+      fails: "TEST 0496: un evento sin identificador aborta la creación",
+    },
   ];
 
   for (const m of MUTANTS) {
@@ -375,7 +419,7 @@ describe("SDD-0571 · 0496 tarifa congelada por recepción (PGlite)", () => {
     const db = new PGlite();
     try {
       const schema = inline(SCHEMA, {}).replace("  with recursive cliente as (", "  with recursive cliente as ( -- cambiado");
-      await db.exec(schema);
+      await db.exec(schema + "\n" + AUDIT_FIXTURE_SQL);
       await expect(db.exec(FILE_0496)).rejects.toThrow(
         /0496 abortado: public\.resolve_price_book\(uuid\) tiene otro cuerpo/,
       );
@@ -389,8 +433,24 @@ describe("SDD-0571 · 0496 tarifa congelada por recepción (PGlite)", () => {
   it("aplicada dos veces, la segunda aborta", async () => {
     const db = new PGlite();
     try {
-      await db.exec(inline(SCHEMA, {}) + "\n" + FILE_0496);
+      await db.exec(inline(SCHEMA, {}) + "\n" + AUDIT_FIXTURE_SQL + "\n" + FILE_0496);
       await expect(db.exec(FILE_0496)).rejects.toThrow(/0496 abortado: shipment_rate_snapshots o congelar_tarifa_recepcion ya existen/);
+    } finally {
+      await db.close();
+    }
+  }, SLOW);
+
+  it("el preflight exige auditoría antes de crear el dominio", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(inline(SCHEMA, {}));
+      await expect(db.exec(FILE_0496)).rejects.toThrow(
+        "0496 requiere el contrato de auditoría y append_audit_event",
+      );
+      const r = await db.query<{ t: string | null }>(
+        "select to_regclass('public.shipment_rate_snapshots')::text as t",
+      );
+      expect(r.rows[0].t).toBeNull();
     } finally {
       await db.close();
     }

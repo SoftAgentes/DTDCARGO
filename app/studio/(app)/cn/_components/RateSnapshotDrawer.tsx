@@ -391,7 +391,9 @@ export function RateSnapshotDrawer({
                   id={`${formId}-servicio`}
                   className="studio-input"
                   value={service}
+                  disabled={saving}
                   onChange={(e) => {
+                    if (saving) return;
                     const svc = e.target.value as ShipmentService;
                     cambiarEntrada(() => setService(svc));
                   }}

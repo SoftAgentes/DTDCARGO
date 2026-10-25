@@ -4,7 +4,7 @@ title: "Tarifa congelada por embarque: el precio por CBM queda guardado al recib
 status: in-progress
 author: "founder + Claude Opus 5.5"
 created: 2026-10-20
-updated: 2026-10-20
+updated: 2026-10-25
 supersedes: null
 superseded_by: null
 related: ["0008", "0016", "0061", "0072", "0269", "0476", "0543", "0567"]
@@ -236,3 +236,72 @@ Los criterios 12–14 y sus regresiones se prepararon sobre `b70be5d792ca4ee0417
 ## Validación
 
 Ver el handoff `.agents/handoffs/0571-tarifa-congelada-por-embarque.md`.
+
+## Corrección serial autorizada · 2026-10-25 · AUD-01 y servicio durante saving
+
+Esta ampliación se basa en la reasignación humana al mismo CORE y General
+exec-ad48ddc8-4f43-4250-a6dd-75f77f7dfb8d. Fuente directa ba43747a803ea9aec3b8750d1b461d69795834a5;
+rama nueva codex/sdd-0571-correcciones-20261025. No reescribe resultados históricos.
+La clasificación AUD-01 anterior describía los snapshots, pero no acreditaba un
+evento en el log canónico: la RPC retornaba después del INSERT sin emitirlo.
+
+### Auditoría obligatoria y atómica
+
+- Crear/reemplazar llama a public.append_audit_event antes de retornar, dentro de
+  la misma transacción de la fila nueva y la marca de reemplazo anterior.
+- Se reutiliza la entidad canónica warehouse_receipt_cn con entity_id de la
+  recepción, como en el patrón logístico0292. Eventos estables:
+  rate_snapshot_frozen y rate_snapshot_replaced; source rpc, result succeeded.
+- Tenant y actor user provienen del contexto de servidor y frozen_by/auth.uid;
+  nunca se convierte un actor desconocido en system. La correlación incluye el
+  UUID del snapshot nuevo. El payload enlaza snapshot_id y replaced_snapshot_id.
+- Before/after conservan la decisión y el vínculo anterior; se omite
+  client_markbox y no se duplica reason en esos objetos. El motivo validado se
+  entrega al writer canónico, conservando su wrapper0294 vigente.
+- No se absorbe el error del log. Un ID de evento null también aborta. Un fallo
+  revierte fila nueva, marca anterior y evento; dry-run sale antes de mutar o
+  auditar. Los rechazos no producen eventos de éxito comprometidos.
+- Preflight exige entity_audit_log, audit_entity_types, la firma canónica de
+  append_audit_event y warehouse_receipt_cn activa. No se amplían grants API ni
+  se modifica el writer compartido.
+- No se encontró auditoría equivalente en los dos triggers de0496: son guardas
+  de integridad. El bridge0292 sólo transforma INSERT legacy de actor operario
+  en el log y no duplica el nuevo evento user/rpc.
+
+### Coherencia del Drawer
+
+El selector de servicio permanece disabled durante saving y su manejador
+rechaza también un cambio sintético mientras guarda. A → intento de B →
+respuesta A conserva selección/carga A; tras éxito o rechazo, B puede elegirse
+de nuevo y carga B. Los errores siguen visibles y las guardas de preview,
+generaciones, tenant y permisos se conservan. No cambia estilo, componente
+numérico ni validación del formulario.
+
+### Oráculos y límites de esta corrección
+
+El contrato SQL conserva las aserciones existentes y añade observación de
+eventos reales de la RPC sobre fixture FICTICIO: identidad/tenant/actor,
+before/after/motivo/correlación, dry-run con y sin tarifa viva, rechazo,
+rollback forzado después de observar el evento, error del sink y cancelación
+del INSERT del evento. Los mutantes nuevos omiten el evento, confunden el tipo
+de reemplazo, absorben el error o aceptan ID null. El schema _0496 existente
+queda intacto: el test permitido aloja un doble estrecho del writer, expresamente
+sin acreditar su implementación canónica o producción. Los casos PGlite que
+requieren bootstrap reutilizan ese mismo bloque declarado del test.
+
+El Drawer añade promesas diferidas para éxito/rechazo y comprueba selección,
+cargas, feedback y desbloqueo, manteniendo los tests previos.
+
+Allowlist de esta fase: 0496 SQL y su test; tarifa-congelada.migration.test.ts;
+RateSnapshotDrawer.tsx y su test; esta spec; handoff sdd-0571-correcciones-20261025.
+Baseline: sólo se amplía la descripción de la espera0496 con los requisitos de
+auditoría que el operador debe leer antes de aplicar; cutoff y demás entradas
+se preservan.
+
+Estado del candidato: fuente corregida, validación funcional NO DISPONIBLE /
+NO EJECUTADA local por node_modules/Vitest ausentes en el nuevo worktree. No se
+instalan ni copian dependencias. Los resultados históricos no se transfieren.
+Se mantiene in-progress, 0496 PENDIENTE y MIGRATE-FIRST. CI y revisión del SHA,
+validación visual/canónica y autorización nominal de aplicación siguen
+pendientes. No se consultó ni aplicó producción, no se modifica otra PR ni se
+declara completado el plan contable. Handoff nuevo conserva evidencia y límites.
