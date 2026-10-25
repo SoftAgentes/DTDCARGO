@@ -47,7 +47,7 @@ describe.each([false, true])("SDD-0573 · bloqueo accesible, cierre=%s", (closed
   it.each(BLOCKED)("$name bloquea controles y no abre excepción", ({ source = "manual", protection }) => {
     mount([entry({ source, protection }), entry({ id: "a", entry_code: "A-2026-0002", source, protection, status: "asentado" })], closed ? CLOSED : null);
     for (const name of ["Asentar", "Eliminar", "Anular"]) {
-      const button = screen.getByRole("button", { name, exact: true });
+      const button = screen.getByRole("button", { name });
       expect(button).toBeDisabled();
       const id = button.getAttribute("aria-describedby")!;
       expect(document.getElementById(id)?.textContent?.trim()).toBeTruthy();
@@ -62,7 +62,7 @@ describe.each([false, true])("SDD-0573 · bloqueo accesible, cierre=%s", (closed
 describe("SDD-0573 · identidad y flujos conservados", () => {
   it("un DTO favorable no tapa metadata source/tenant ausente en la fila", () => {
     mount([entry({ source: undefined }), entry({ id: "n", entry_code: "A-2026-0002", tenant_id: undefined as unknown as string })]);
-    for (const b of screen.getAllByRole("button", { name: "Asentar", exact: true })) expect(b).toBeDisabled();
+    for (const b of screen.getAllByRole("button", { name: "Asentar" })) expect(b).toBeDisabled();
     expect(screen.getAllByRole("note")).toHaveLength(2);
   });
   it("original/reverso identificados no son certificación financiera ni un enlace construido desde UUID", () => {
@@ -73,7 +73,7 @@ describe("SDD-0573 · identidad y flujos conservados", () => {
     expect(screen.getAllByText(/Esto no verifica los importes/)).toHaveLength(2);
     expect(screen.getByText(/identificados: A-2026-0002/)).toBeInTheDocument();
     expect(container.querySelector('a[href*="entry_id"]')).toBeNull();
-    for (const b of screen.getAllByRole("button", { name: "Anular", exact: true })) expect(b).toBeDisabled();
+    for (const b of screen.getAllByRole("button", { name: "Anular" })) expect(b).toBeDisabled();
   });
 
   it("protección y aviso500 coexisten con totales reales, CSV y rango elegido", () => {
@@ -96,20 +96,20 @@ describe("SDD-0573 · acuse y recuperación del manual abierto", () => {
     if (kind === "throw") actions.postEntry.mockRejectedValueOnce(new Error(KEY));
     else actions.postEntry.mockResolvedValueOnce(kind === "sinok" ? {} : { error: "Revisión pendiente." });
     mount([entry()]);
-    fireEvent.click(screen.getByRole("button", { name: "Asentar", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Asentar" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(kind === "error" ? "Revisión pendiente." : "No se pudo confirmar el cambio");
-    await waitFor(() => expect(screen.getByRole("button", { name: "Asentar", exact: true })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Asentar" })).toBeEnabled());
     expect(actions.postEntry).toHaveBeenCalledTimes(1); expect(toast.show).not.toHaveBeenCalled();
     expect(document.body.textContent).not.toContain(KEY);
     // Nuevo gesto explícito, nunca retry automático por la respuesta incierta.
-    fireEvent.click(screen.getByRole("button", { name: "Asentar", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Asentar" }));
     await waitFor(() => expect(toast.show).toHaveBeenCalledExactlyOnceWith({ eventKey: "accounting:journal-entry:posted", tone: "success", message: "Asiento A-2026-0001 asentado", priority: "normal", scope: "module", dedupeKey: "accounting:journal-entry:posted:m" }));
   });
 
   it("Asentar pendiente no envía dos veces", async () => {
     const d = deferred<{ ok: boolean }>(); actions.postEntry.mockReturnValueOnce(d.promise);
     mount([entry()]);
-    const button = screen.getByRole("button", { name: "Asentar", exact: true });
+    const button = screen.getByRole("button", { name: "Asentar" });
     act(() => { fireEvent.click(button); fireEvent.click(button); });
     await waitFor(() => expect(actions.postEntry).toHaveBeenCalledTimes(1));
     await act(async () => d.resolve({ ok: true }));
@@ -120,56 +120,56 @@ describe("SDD-0573 · acuse y recuperación del manual abierto", () => {
     if (kind === "throw") actions.softDeleteEntry.mockRejectedValueOnce(new Error(KEY));
     else actions.softDeleteEntry.mockResolvedValueOnce(kind === "sinok" ? {} : { error: "No se eliminó." });
     mount([entry()]); fireEvent.click(screen.getByRole("button", { name: "Eliminar asiento A-2026-0001" }));
-    fireEvent.click(screen.getByRole("button", { name: "Sí", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Sí" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(kind === "error" ? "No se eliminó." : "No se pudo confirmar el cambio");
-    await waitFor(() => expect(screen.getByRole("button", { name: "Sí", exact: true })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Sí" })).toBeEnabled());
     expect(toast.show).not.toHaveBeenCalled(); expect(actions.softDeleteEntry).toHaveBeenCalledTimes(1);
     expect(document.body.textContent).not.toContain(KEY);
-    fireEvent.click(screen.getByRole("button", { name: "Sí", exact: true }));
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Sí", exact: true })).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Sí" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Sí" })).toBeNull());
     expect(toast.show).toHaveBeenCalledExactlyOnceWith({ eventKey: "accounting:journal-entry:draft-deleted", tone: "info", message: "Asiento A-2026-0001 eliminado", priority: "normal", scope: "module", dedupeKey: "accounting:journal-entry:draft-deleted:m" });
   });
 
   it("Eliminar pendiente no duplica el envío ni cierra la confirmación por sinok", async () => {
     const d = deferred<Record<string, never>>(); actions.softDeleteEntry.mockReturnValueOnce(d.promise);
     mount([entry()]); fireEvent.click(screen.getByRole("button", { name: "Eliminar asiento A-2026-0001" }));
-    const yes = screen.getByRole("button", { name: "Sí", exact: true });
+    const yes = screen.getByRole("button", { name: "Sí" });
     act(() => { fireEvent.click(yes); fireEvent.click(yes); });
     expect(actions.softDeleteEntry).toHaveBeenCalledTimes(1);
     await act(async () => d.resolve({}));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Sí", exact: true })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Sí" })).toBeEnabled());
     expect(toast.show).not.toHaveBeenCalled();
   });
 
   it.each(["sinok", "error", "throw"])("Anular %s conserva diálogo/motivo y finally libera pending", async (kind) => {
     if (kind === "throw") actions.voidEntry.mockRejectedValueOnce(new Error(KEY));
     else actions.voidEntry.mockResolvedValueOnce(kind === "sinok" ? {} : { error: "No se anuló." });
-    mount([entry({ status: "asentado" })]); fireEvent.click(screen.getByRole("button", { name: "Anular", exact: true }));
+    mount([entry({ status: "asentado" })]); fireEvent.click(screen.getByRole("button", { name: "Anular" }));
     const dialog = screen.getByRole("dialog");
     const reason = within(dialog).getByRole("textbox");
     await waitFor(() => expect(reason).toHaveFocus());
     fireEvent.input(reason, { target: { value: "Corrección de prueba" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Anular asiento", exact: true }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Anular asiento" }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent(kind === "error" ? "No se anuló." : "No se pudo confirmar el cambio");
-    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Anular asiento", exact: true })).toBeEnabled());
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Anular asiento" })).toBeEnabled());
     expect(reason).toHaveValue("Corrección de prueba"); expect(toast.show).not.toHaveBeenCalled();
     expect(document.body.textContent).not.toContain(KEY);
     fireEvent.input(reason, { target: { value: "Motivo revisado" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Anular asiento", exact: true }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Anular asiento" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(toast.show).toHaveBeenCalledExactlyOnceWith({ eventKey: "accounting:journal-entry:voided", tone: "success", message: "Asiento A-2026-0001 anulado", priority: "normal", scope: "module", dedupeKey: "accounting:journal-entry:voided:m" });
   });
 
   it("Anular pendiente no duplica el envío y sinok no cierra el diálogo", async () => {
     const d = deferred<Record<string, never>>(); actions.voidEntry.mockReturnValueOnce(d.promise);
-    mount([entry({ status: "asentado" })]); fireEvent.click(screen.getByRole("button", { name: "Anular", exact: true }));
+    mount([entry({ status: "asentado" })]); fireEvent.click(screen.getByRole("button", { name: "Anular" }));
     const dialog = screen.getByRole("dialog");
     fireEvent.input(within(dialog).getByRole("textbox"), { target: { value: "Corrección de prueba" } });
-    const button = within(dialog).getByRole("button", { name: "Anular asiento", exact: true });
+    const button = within(dialog).getByRole("button", { name: "Anular asiento" });
     act(() => { fireEvent.click(button); fireEvent.click(button); });
     expect(actions.voidEntry).toHaveBeenCalledTimes(1);
     await act(async () => d.resolve({}));
-    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Anular asiento", exact: true })).toBeEnabled());
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Anular asiento" })).toBeEnabled());
     expect(screen.getByRole("dialog")).toBe(dialog); expect(toast.show).not.toHaveBeenCalled();
   });
 });
@@ -183,19 +183,19 @@ describe.each(CLOSURES)("SDD-0573 · $action en0493", ({ action, op, hecho, stat
   it.each(["sinok", "throw"])("callback %s devuelve error, limpia clave y permite recuperación explícita", async (kind) => {
     if (kind === "throw") actions[action].mockRejectedValueOnce(new Error(KEY));
     else actions[action].mockResolvedValueOnce({ error: "" });
-    mount([entry({ status })], CLOSED); fireEvent.click(screen.getByRole("button", { name: open, exact: true }));
+    mount([entry({ status })], CLOSED); fireEvent.click(screen.getByRole("button", { name: open }));
     const dialog = screen.getByRole("dialog");
     const key = within(dialog).getByLabelText("Superclave del cierre");
     await waitFor(() => expect(key).toHaveFocus());
     fireEvent.change(key, { target: { value: KEY } });
     fireEvent.change(within(dialog).getByLabelText("Motivo del cambio"), { target: { value: "Corrección de prueba" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: submit, exact: true }));
+    fireEvent.click(within(dialog).getByRole("button", { name: submit }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("No se pudo confirmar el cambio");
     expect(key).toHaveValue(""); expect(within(dialog).getByLabelText("Motivo del cambio")).toHaveValue("Corrección de prueba");
     expect(toast.show).not.toHaveBeenCalled(); expect(actions[action]).toHaveBeenCalledTimes(1);
     expect(document.body.textContent).not.toContain(KEY);
     fireEvent.change(key, { target: { value: KEY } });
-    const send = within(dialog).getByRole("button", { name: submit, exact: true });
+    const send = within(dialog).getByRole("button", { name: submit });
     expect(send).toBeEnabled(); fireEvent.click(send);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(actions[action]).toHaveBeenCalledTimes(2);
@@ -203,11 +203,11 @@ describe.each(CLOSURES)("SDD-0573 · $action en0493", ({ action, op, hecho, stat
   });
   it("callback pendiente no duplica envío y el éxito confirmado cierra", async () => {
     const d = deferred<{ ok: boolean }>(); actions[action].mockReturnValueOnce(d.promise);
-    mount([entry({ status })], CLOSED); fireEvent.click(screen.getByRole("button", { name: open, exact: true }));
+    mount([entry({ status })], CLOSED); fireEvent.click(screen.getByRole("button", { name: open }));
     const dialog = screen.getByRole("dialog");
     fireEvent.change(within(dialog).getByLabelText("Superclave del cierre"), { target: { value: KEY } });
     fireEvent.change(within(dialog).getByLabelText("Motivo del cambio"), { target: { value: "Corrección de prueba" } });
-    const button = within(dialog).getByRole("button", { name: submit, exact: true });
+    const button = within(dialog).getByRole("button", { name: submit });
     act(() => { fireEvent.click(button); fireEvent.click(button); });
     expect(actions[action]).toHaveBeenCalledTimes(1);
     await act(async () => d.resolve({ ok: true }));
