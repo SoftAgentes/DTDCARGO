@@ -20,7 +20,10 @@ jobs:
   quality:
     name: Calidad local sin secretos
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    # 60 y no 45: el 2026-10-20 la PR #298 se cortó a los 45 min sin error de
+    # código (run 39417924823) y un push a main cerró en 43,7. Margen ante el
+    # crecimiento de las pruebas PGlite; un job colgado tarda 60 en cortarse.
+    timeout-minutes: 60
     env:
       CI: "true"
       NEXT_TELEMETRY_DISABLED: "1"
@@ -34,7 +37,7 @@ jobs:
         uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
         with:
           version: 11.19.0
-          runtime: node@24
+          runtime: node@24.22.1
           cache: true
           install: false
 
@@ -63,7 +66,12 @@ jobs:
         run: pnpm edge:check
 
       - name: Unitarios
-        run: pnpm test
+        # Vitest usa por defecto availableParallelism() - 1 workers. El runner
+        # de repo privado trae 2 vCPU, así que la suite corría en serie: el
+        # 2026-10-20 sumó 1.743 s de pruebas en 2.237 s de pared. 100 % = un
+        # worker por vCPU. Corren los mismos archivos y aserciones; en local la
+        # suite ya corre en paralelo.
+        run: pnpm test --maxWorkers=100%
 
       - name: Harness Director Worker
         run: pnpm harness:test

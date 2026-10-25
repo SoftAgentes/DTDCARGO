@@ -613,13 +613,20 @@ function ScopeCard({
   );
 }
 
-/** Fecha corta locale-aware para el hint del fx (sin segundos). */
-function formatDateShort(iso: string, locale: string): string {
+/**
+ * Fecha corta locale-aware para el hint del fx (sin segundos). SDD-0569: la
+ * precarga trae la fecha de valor (AAAA-MM-DD), un DÍA y no un instante; leída
+ * como medianoche UTC, en Caracas salía el día anterior. Un día se formatea en
+ * UTC; un instante, en la zona del navegador.
+ */
+export function formatDateShort(iso: string, locale: string): string {
   try {
+    const soloDia = /^\d{4}-\d{2}-\d{2}$/.test(iso);
     return new Intl.DateTimeFormat(locale, {
       day: "2-digit",
       month: "short",
-    }).format(new Date(iso));
+      ...(soloDia ? { timeZone: "UTC" } : {}),
+    }).format(new Date(soloDia ? `${iso}T00:00:00Z` : iso));
   } catch {
     return iso.slice(0, 10);
   }

@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPaged } from "@/lib/db/paginate";
+import { ultimaTasa } from "./fx-rates";
 import { EXPENSE_CATEGORY_ACCOUNT_CODE } from "./expense-types";
 import type {
   Expense,
@@ -268,20 +269,18 @@ export async function listShipmentsForPicker(
   return (data as ShipmentPick[] | null) ?? [];
 }
 
-/** Último fx_rate cargado por el tenant para un par (prefill del drawer). */
+/**
+ * La última tasa del tenant para un par (prefill del drawer). SDD-0569: sale de
+ * `fx_rates` (0495), no de `tenant_fx_history`; `setAt` es su fecha de valor.
+ */
 export async function getLastFxRate(
   supabase: SupabaseClient,
   currencyPair: string,
 ): Promise<{ rate: number; setAt: string } | null> {
-  const { data, error } = await supabase
-    .from("tenant_fx_history")
-    .select("rate, set_at")
-    .eq("currency_pair", currencyPair)
-    .order("set_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<{ rate: number; set_at: string }>();
-  if (error || !data) return null;
-  return { rate: Number(data.rate), setAt: data.set_at };
+  const moneda = currencyPair === "VES/USD" ? "VES" : currencyPair === "CNY/USD" ? "CNY" : null;
+  if (!moneda) return null;
+  const ultima = await ultimaTasa(supabase, moneda);
+  return ultima ? { rate: ultima.rate, setAt: ultima.validOn } : null;
 }
 
 export async function sumMyExpensesTodayUsd(

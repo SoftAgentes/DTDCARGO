@@ -9,77 +9,182 @@
   ],
   "degradations": [
     {
-      "id": "sdd-0567-credito-referido-candado",
-      "primarySymbol": "avanzar_referido",
-      "migration": "0494_credito_referido_candado",
+      "id": "sdd-0569-conversor-usd-tasas",
+      "primarySymbol": "fx_rate_on",
+      "migration": "0495_fx_rates_conversor_usd",
       "symbols": [
         {
-          "name": "acreditar_referido_con_motivo",
+          "name": "fx_rate_on",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/fidelizacion/actions.ts:244"
+            "lib/studio/fx-rates.ts:49"
           ]
         },
         {
-          "name": "avanzar_referido",
+          "name": "registrar_tasa_de_cambio",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/fidelizacion/actions.ts:275"
+            "app/studio/(app)/admin/exchange-rates-actions.ts:35"
           ]
         },
         {
-          "name": "vincular_asiento_del_credito",
-          "kind": "function",
+          "name": "fx_rates",
+          "kind": "table",
           "callSites": [
-            "app/studio/(app)/fidelizacion/actions.ts:550"
+            "lib/studio/fx-rates.ts:120"
           ]
         },
         {
-          "name": "referrals.accredited_reason",
+          "name": "invoices.fx_rate_source",
           "kind": "column",
           "callSites": [
-            "lib/studio/fidelizacion/queries.ts:151",
-            "lib/studio/fidelizacion/queries.ts:158",
-            "lib/studio/fidelizacion/types.ts:187"
+            "app/studio/(app)/facturacion/actions.ts:115",
+            "app/studio/(app)/facturacion/actions.ts:469",
+            "app/studio/(app)/facturacion/actions.ts:477",
+            "app/studio/(app)/facturacion/actions.ts:495",
+            "app/studio/(app)/facturacion/actions.ts:524",
+            "app/studio/(app)/facturacion/actions.ts:572",
+            "app/studio/(app)/facturacion/actions.ts:584",
+            "app/studio/(app)/facturacion/actions.ts:641",
+            "app/studio/(app)/facturacion/actions.ts:650"
           ]
         },
         {
-          "name": "referrals.sale_voided_at",
+          "name": "invoices.fx_rate_valid_on",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/fidelizacion/_components/ReferralDrawer.tsx:350",
-            "app/studio/(app)/fidelizacion/_components/ReferralDrawer.tsx:360",
-            "lib/studio/fidelizacion/queries.ts:151",
-            "lib/studio/fidelizacion/queries.ts:159",
-            "lib/studio/fidelizacion/types.ts:188"
+            "app/studio/(app)/facturacion/actions.ts:116",
+            "app/studio/(app)/facturacion/actions.ts:469",
+            "app/studio/(app)/facturacion/actions.ts:478",
+            "app/studio/(app)/facturacion/actions.ts:496",
+            "app/studio/(app)/facturacion/actions.ts:525",
+            "app/studio/(app)/facturacion/actions.ts:572",
+            "app/studio/(app)/facturacion/actions.ts:585",
+            "app/studio/(app)/facturacion/actions.ts:641",
+            "app/studio/(app)/facturacion/actions.ts:650"
+          ]
+        },
+        {
+          "name": "supplier_bills.fx_rate_source",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/facturacion/actions.ts:115",
+            "app/studio/(app)/facturacion/actions.ts:469",
+            "app/studio/(app)/facturacion/actions.ts:477",
+            "app/studio/(app)/facturacion/actions.ts:495",
+            "app/studio/(app)/facturacion/actions.ts:524",
+            "app/studio/(app)/facturacion/actions.ts:572",
+            "app/studio/(app)/facturacion/actions.ts:584",
+            "app/studio/(app)/facturacion/actions.ts:641",
+            "app/studio/(app)/facturacion/actions.ts:650",
+            "lib/studio/treasury/treasury-actions.ts:170"
+          ]
+        },
+        {
+          "name": "supplier_bills.fx_rate_valid_on",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/facturacion/actions.ts:116",
+            "app/studio/(app)/facturacion/actions.ts:469",
+            "app/studio/(app)/facturacion/actions.ts:478",
+            "app/studio/(app)/facturacion/actions.ts:496",
+            "app/studio/(app)/facturacion/actions.ts:525",
+            "app/studio/(app)/facturacion/actions.ts:572",
+            "app/studio/(app)/facturacion/actions.ts:585",
+            "app/studio/(app)/facturacion/actions.ts:641",
+            "app/studio/(app)/facturacion/actions.ts:650",
+            "lib/studio/treasury/treasury-actions.ts:170"
+          ]
+        },
+        {
+          "name": "invoices.fx_rate_is_override",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/facturacion/actions.ts:117",
+            "app/studio/(app)/facturacion/actions.ts:469",
+            "app/studio/(app)/facturacion/actions.ts:479",
+            "app/studio/(app)/facturacion/actions.ts:496",
+            "app/studio/(app)/facturacion/actions.ts:526",
+            "app/studio/(app)/facturacion/actions.ts:572",
+            "app/studio/(app)/facturacion/actions.ts:586",
+            "app/studio/(app)/facturacion/actions.ts:640",
+            "app/studio/(app)/facturacion/actions.ts:651"
+          ]
+        },
+        {
+          "name": "supplier_bills.fx_rate_is_override",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/facturacion/actions.ts:117",
+            "app/studio/(app)/facturacion/actions.ts:469",
+            "app/studio/(app)/facturacion/actions.ts:479",
+            "app/studio/(app)/facturacion/actions.ts:496",
+            "app/studio/(app)/facturacion/actions.ts:526",
+            "app/studio/(app)/facturacion/actions.ts:572",
+            "app/studio/(app)/facturacion/actions.ts:586",
+            "app/studio/(app)/facturacion/actions.ts:640",
+            "app/studio/(app)/facturacion/actions.ts:651",
+            "lib/studio/treasury/treasury-actions.ts:171"
+          ]
+        },
+        {
+          "name": "invoices.write_version",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/facturacion/actions.ts:469",
+            "app/studio/(app)/facturacion/actions.ts:480",
+            "app/studio/(app)/facturacion/actions.ts:541",
+            "app/studio/(app)/facturacion/actions.ts:572",
+            "app/studio/(app)/facturacion/actions.ts:587",
+            "app/studio/(app)/facturacion/actions.ts:672"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "lib/studio/fidelizacion/queries.ts:172",
-          "contains": "if (error?.code === \"42703\") ({ data, error } = await build(REFERRAL_COLUMNS));",
-          "degradation": "Sin 0494, referrals no tiene accredited_reason ni sale_voided_at y PostgREST responde 42703: selectReferrals vuelve a leer sin esas dos columnas y la lista de Fidelización se ve como hoy, sin el aviso de la venta anulada. Orden previsto: MIGRATE-FIRST (0494 antes de fusionar y desplegar), con el que esta ventana no existe."
+          "site": "lib/studio/fx-rates.ts:54",
+          "contains": "if (error) return null;",
+          "degradation": "Sin 0495, fx_rate_on no existe (PGRST202): tasaVigente devuelve null y tasaDelDocumento pide la tasa con «Falta la tasa de … escríbela aquí o cárgala en Admin › Tasas.»; no se guarda ninguna factura ni CxP en VES o CNY con una tasa inventada. Orden previsto: MIGRATE-FIRST (0495 antes de fusionar y desplegar), con el que esta ventana no existe."
         },
         {
-          "site": "app/studio/(app)/fidelizacion/actions.ts:248",
-          "contains": "if (error) return { error: errorDeReferido(error, \"No se pudo acreditar el referido. Intenta de nuevo.\") };",
-          "degradation": "Sin 0494, acreditar_referido_con_motivo no existe (PGRST202, sin el hint dtd-referidos): accreditReferral devuelve «No se pudo acreditar el referido. Intenta de nuevo.» y no escribe nada. Hoy la acción escribía con UPDATE directo, que la 0494 revoca."
+          "site": "lib/studio/fx-rates.ts:126",
+          "contains": "if (error || filas.length === 0) return null;",
+          "degradation": "Sin 0495, fx_rates no existe (42P01): ultimaTasa devuelve null; Admin › Tasas y Contabilidad › Tasas de cambio muestran «sin tasa cargada» y gastos y el móvil abren sin la tasa precargada (se escribe a mano)."
         },
         {
-          "site": "app/studio/(app)/fidelizacion/actions.ts:280",
-          "contains": "if (error) return { error: errorDeReferido(error, \"No se pudo cambiar el estado. Intenta de nuevo.\") };",
-          "degradation": "Sin 0494, avanzar_referido no existe: updateReferralStatus devuelve «No se pudo cambiar el estado. Intenta de nuevo.» sin escribir. El referido se puede marcar igual por la venta (disparador de 0250) y por el registro público."
+          "site": "app/studio/(app)/admin/exchange-rates-actions.ts:44",
+          "contains": "if (dbError.hint === \"dtd-fx\" && dbError.message) return { error: dbError.message };",
+          "degradation": "Sin 0495, registrar_tasa_de_cambio no existe (PGRST202, sin el hint dtd-fx): la acción devuelve «No se pudo guardar la tasa. Intenta de nuevo.» y no escribe nada."
         },
         {
-          "site": "app/studio/(app)/fidelizacion/actions.ts:554",
-          "contains": "if (linkErr) console.error(\"[referidos] enlace del asiento:\", linkErr.code, linkErr.message);",
-          "degradation": "Sin 0494, vincular_asiento_del_credito no existe: el crédito queda aplicado y su asiento creado, pero sin applied_entry_id. Es el mismo caso que ya cubre la reversión, que barre los asientos por journal_entries.referral_id (0237), y el enlace era best-effort antes de esta SDD."
+          "site": "app/studio/(app)/facturacion/actions.ts:437",
+          "contains": "if (error || !inserted) {",
+          "degradation": "Sin 0495, crear una factura en VES o CNY nombra fx_rate_source, fx_rate_valid_on y fx_rate_is_override (PGRST204): createInvoice devuelve «No se pudo crear la factura» y no inserta. En USD y USDT columnasDeTasa no nombra las columnas y la factura se crea como hoy."
         },
         {
-          "site": "app/studio/(app)/fidelizacion/_components/ReferralDrawer.tsx:350",
-          "contains": "{referral.sale_voided_at && (",
-          "degradation": "El aviso de la venta anulada solo se pinta con sale_voided_at: sin 0494 la lectura de respaldo lo deja en null y el cajón del crédito aplicado se ve como hoy."
+          "site": "app/studio/(app)/facturacion/actions.ts:548",
+          "contains": "if (error) return { error: `No se pudo guardar: ${error.message}` };",
+          "degradation": "Sin 0495, updateInvoice lee y escribe fx_rate_source, fx_rate_valid_on y fx_rate_is_override en cualquier moneda (42703 al leer): también requiere write_version; editar un borrador devuelve «Factura no encontrada.» y no escribe. Ocurre si se publica la app nueva sin aplicar antes la 0495; MIGRATE-FIRST evita esa combinación. El Director recuenta tenant_fx_history antes del apply y después del merge."
+        },
+        {
+          "site": "app/studio/(app)/facturacion/actions.ts:572",
+          "contains": "\"id, tenant_id, status, invoice_code, client_markbox, client_name, currency, fx_rate, fx_rate_source, fx_rate_valid_on, fx_rate_is_override, write_version, shipment_id, shipment_code, due_date, base_amount, iva_amount, total_amount\",",
+          "degradation": "Sin 0495, emitInvoice lee fuente, fecha, intención y write_version (42703): emitir devuelve «Factura no encontrada.» y no emite ni asienta. MIGRATE-FIRST evita publicar la app nueva sin estas columnas."
+        },
+        {
+          "site": "app/studio/(app)/facturacion/actions.ts:1019",
+          "contains": "if (error) return { error: `No se pudo duplicar la factura: ${error.message}` };",
+          "degradation": "Sin 0495, duplicar una factura en VES o CNY no encuentra fx_rate_on (devuelve «Falta la tasa…» sin consumir correlativo) o nombra las columnas nuevas (PGRST204); en USD y USDT duplica como hoy."
+        },
+        {
+          "site": "lib/studio/treasury/treasury-actions.ts:186",
+          "contains": "if (insErr || !insertedBill) {",
+          "degradation": "Sin 0495, una CxP en VES o CNY nombra fx_rate_source, fx_rate_valid_on y fx_rate_is_override (PGRST204): createBill devuelve «No se pudo crear la CxP» y no inserta; en USD y USDT se crea como hoy. Nota del gate: asocia cada columna por archivo, así que los sitios de facturacion/actions.ts figuran también bajo supplier_bills.* (son de invoices: el gate no distingue la tabla dentro del archivo)."
+        },
+        {
+          "site": "app/studio/(app)/facturacion/actions.ts:680",
+          "contains": "if (!emitted) return { error: CONFLICTO_FACTURA };",
+          "degradation": "Una actualización sin fila afectada no emite asiento ni correo: responde conflicto recuperable. El WHERE incluye tenant, versión integral, estado borrador, moneda y deleted_at null. Sin la 0495, leer write_version falla cerrado antes del UPDATE. MIGRATE-FIRST requiere el paquete reparado y OK nominal de Sam."
         }
       ]
     }

@@ -17,6 +17,7 @@
  */
 
 import type { InvoiceCurrency } from "../invoice-types";
+import { tasaPersistible } from "@/lib/shared/fx";
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -320,12 +321,24 @@ export function validateBillInput(input: Partial<BillInput>): {
     ? (input.currency as InvoiceCurrency)
     : "USD";
 
+  // SDD-0569: fuera de USD y USDT, la CxP necesita tasa para pasar a USD. La
+  // acción la precarga con la vigente (fx_rates) si no se escribió.
+  if (currency !== "USD" && currency !== "USDT") {
+    if (tasaPersistible(input.fxRate) === null) {
+      errors.fxRate =
+        currency === "VES"
+          ? "Indica la tasa para registrar la cuenta por pagar en bolívares."
+          : "Indica la tasa para registrar la cuenta por pagar en yuanes.";
+    }
+  }
+
   if (Object.keys(errors).length > 0) {
     return { fieldErrors: errors };
   }
 
-  const fxRate =
-    input.fxRate != null && Number.isFinite(Number(input.fxRate)) && Number(input.fxRate) > 0
+  const fxRate = currency !== "USD" && currency !== "USDT"
+    ? tasaPersistible(input.fxRate)
+    : input.fxRate != null && Number.isFinite(Number(input.fxRate)) && Number(input.fxRate) > 0
       ? Number(input.fxRate)
       : null;
 
