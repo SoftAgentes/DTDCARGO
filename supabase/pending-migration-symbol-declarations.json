@@ -172,7 +172,7 @@
           "degradation": "Sin 0495, emitInvoice lee fuente, fecha, intención y write_version (42703): emitir devuelve «Factura no encontrada.» y no emite ni asienta. MIGRATE-FIRST evita publicar la app nueva sin estas columnas."
         },
         {
-          "site": "app/studio/(app)/facturacion/actions.ts:1019",
+          "site": "app/studio/(app)/facturacion/actions.ts:1056",
           "contains": "if (error) return { error: `No se pudo duplicar la factura: ${error.message}` };",
           "degradation": "Sin 0495, duplicar una factura en VES o CNY no encuentra fx_rate_on (devuelve «Falta la tasa…» sin consumir correlativo) o nombra las columnas nuevas (PGRST204); en USD y USDT duplica como hoy."
         },
@@ -240,10 +240,10 @@
             "lib/studio/accounting/libro-control-queries.ts:81",
             "lib/studio/accounting/libro-control-queries.ts:94",
             "lib/studio/accounting/libro-control-queries.ts:220",
-            "lib/studio/accounting/libro-control-queries.ts:240",
-            "lib/studio/accounting/libro-control-queries.ts:247",
-            "lib/studio/accounting/libro-control-queries.ts:447",
-            "lib/studio/accounting/libro-control-queries.ts:460",
+            "lib/studio/accounting/libro-control-queries.ts:271",
+            "lib/studio/accounting/libro-control-queries.ts:278",
+            "lib/studio/accounting/libro-control-queries.ts:478",
+            "lib/studio/accounting/libro-control-queries.ts:491",
             "lib/studio/accounting/libro-control.ts:203",
             "lib/studio/accounting/libro-control.ts:215",
             "lib/studio/accounting/libro-control.ts:227",
@@ -251,6 +251,9 @@
             "lib/studio/accounting/libro-control.ts:235",
             "lib/studio/accounting/libro-control.ts:237",
             "lib/studio/accounting/libro-control.ts:239",
+            "lib/studio/accounting/ingreso-periodo.ts:295",
+            "lib/studio/accounting/ingreso-periodo.ts:296",
+            "lib/studio/accounting/ingreso-periodo.ts:348",
             "lib/studio/journal-queries.ts:26",
             "lib/studio/journal-queries.ts:27",
             "lib/studio/journal-queries.ts:39",
