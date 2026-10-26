@@ -878,12 +878,20 @@ export async function voidInvoice(
   if (error) {
     if (error.hint === "dtd-anular" && error.message) return { error: error.message + yaLiberado };
     if (error.code === "22023" && error.message?.startsWith("audit: reason")) {
-      return { error: "El motivo debe tener entre 4 y 1000 caracteres." };
+      return { error: "El motivo debe tener entre 4 y 1000 caracteres." + yaLiberado };
     }
     console.error("[facturacion] anular:", error.code, error.message);
     return { error: "No se pudo anular la factura. Intenta de nuevo." + yaLiberado };
   }
-  if (!changed) return { error: "La factura ya no admite anulación." + yaLiberado };
+  // Sólo null en el transporte y un booleano acreditan el ACK. Un valor
+  // inesperado no demuestra rechazo ni permite afirmar que no hubo efectos.
+  if (error !== null || (changed !== true && changed !== false)) {
+    return {
+      error:
+        "No se pudo confirmar la anulación de la factura. Revisa su estado antes de volver a intentar." + yaLiberado,
+    };
+  }
+  if (changed === false) return { error: "La factura ya no admite anulación." + yaLiberado };
 
   revalidatePath("/studio/facturacion");
   revalidatePath(`/studio/facturacion/${current.invoice_code}`);

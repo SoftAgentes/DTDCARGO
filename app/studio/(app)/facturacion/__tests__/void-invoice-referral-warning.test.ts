@@ -77,7 +77,7 @@ let recibosError: { message: string; code?: string } | null = null;
 let recibosAjenos = 0;
 /** Qué devolvió la RPC de anulación (`void_invoice_with_audit_reason`). */
 let rpcChanged: unknown = true;
-let rpcError: { message: string; code?: string; hint?: string | null } | null = null;
+let rpcError: { message: string; code?: string; hint?: string | null } | null | undefined | false = null;
 /** Llamadas a la RPC observadas. */
 let rpcCalls: { fn: string; args: unknown }[] = [];
 /** Los filtros de la consulta de recibos (el doble los aplica de verdad). */
@@ -472,5 +472,116 @@ describe("GO1 M1 · el conteo debe ser conocido antes de producir efectos", () =
     expect(orden).toEqual(["revertir", "anular"]);
     expect(revalidateSpy.mock.calls.map(([ruta]) => ruta)).toEqual(["/studio/fidelizacion"]);
     // Esto observa dos pasos separados; no acredita una transacción conjunta.
+  });
+});
+
+/**
+ * SDD-0573 · Datos FICTICIOS: cada valor se devuelve EXACTO por el doble.
+ * Se conserva el universo sintético inv-1/t-1 del test; no hay DB ni dinero real.
+ * Los casos y expectativas existen antes de invocar voidInvoice.
+ */
+const ACK_FICTICIOS_NO_BOOLEANOS: { nombre: string; data: unknown }[] = [
+  { nombre: "FICT_objeto_vacio", data: {} },
+  { nombre: "FICT_array_vacio", data: [] },
+  { nombre: "FICT_array_false", data: [false] },
+  { nombre: "FICT_string_false", data: "false" },
+  { nombre: "FICT_numero_uno", data: 1 },
+  { nombre: "FICT_null", data: null },
+  { nombre: "FICT_undefined", data: undefined },
+];
+const ERRORES_TRANSPORTE_FICTICIOS: { nombre: string; error: undefined | false }[] = [
+  { nombre: "FICT_error_ausente", error: undefined },
+  { nombre: "FICT_error_false", error: false },
+];
+const FICT_NO_CONFIRMADO =
+  "No se pudo confirmar la anulación de la factura. Revisa su estado antes de volver a intentar.";
+const FICT_AVISO_CREDITO =
+  "El crédito de referido que tenía aplicado ya volvió a estar disponible.";
+
+function expectAckSinExitoFinal(
+  res: { ok?: boolean; error?: string; warning?: string },
+  conCredito: boolean,
+): void {
+  expect(res.ok).toBeUndefined();
+  expect(res.warning).toBeUndefined();
+  expect(JSON.stringify(res)).not.toMatch(/la factura quedó anulada/i);
+  expect(rpcCalls).toEqual([
+    { fn: "void_invoice_with_audit_reason", args: { p_id: "inv-1", p_reason: MOTIVO } },
+  ]);
+  expect(orden).toEqual(conCredito ? ["revertir", "anular"] : ["anular"]);
+  expect(revertSpy).toHaveBeenCalledTimes(conCredito ? 1 : 0);
+  // Fidelización puede haber cambiado ANTES; sólo las tres finales se bloquean.
+  expect(revalidateSpy.mock.calls.map(([ruta]) => ruta))
+    .toEqual(conCredito ? ["/studio/fidelizacion"] : []);
+  expect(revalidateSpy).not.toHaveBeenCalledWith("/studio/facturacion");
+  expect(revalidateSpy).not.toHaveBeenCalledWith("/studio/facturacion/F-2026-0007");
+  expect(revalidateSpy).not.toHaveBeenCalledWith("/studio/contabilidad");
+}
+
+describe("voidInvoice · ACK estricto y transporte (FICTICIO)", () => {
+  for (const conCredito of [false, true]) {
+    describe(conCredito ? "FICT_con_credito_ya_liberado" : "FICT_sin_credito", () => {
+      it.each(ACK_FICTICIOS_NO_BOOLEANOS)("$nombre no confirma ni repite la mutación", async ({ data }) => {
+        fila = conCredito ? { ...CON_CREDITO } : { ...CON_CREDITO, status: "emitida", paid_amount: 0 };
+        rpcChanged = data;
+        revertResult = { ok: true, reverted: conCredito ? 1 : 0 };
+
+        const res = await voidInvoice("inv-1", MOTIVO);
+
+        expect(res.error).toBe(FICT_NO_CONFIRMADO + (conCredito ? " " + FICT_AVISO_CREDITO : ""));
+        expect(res.error).not.toMatch(/no se anuló|rollback|ningún efecto/i);
+        expectAckSinExitoFinal(res, conCredito);
+      });
+
+      it("FICT_data_true no domina un error nativo ni filtra su detalle", async () => {
+        fila = conCredito ? { ...CON_CREDITO } : { ...CON_CREDITO, status: "emitida", paid_amount: 0 };
+        rpcChanged = true;
+        const detalle = "FICT_NATIVE_DETAIL_NOT_PUBLIC";
+        rpcError = { code: "40P01", message: detalle, hint: null };
+        revertResult = { ok: true, reverted: conCredito ? 1 : 0 };
+
+        const res = await voidInvoice("inv-1", MOTIVO);
+
+        expect(res.error).toBe("No se pudo anular la factura. Intenta de nuevo." +
+          (conCredito ? " " + FICT_AVISO_CREDITO : ""));
+        expect(res.error).not.toContain(detalle);
+        expectAckSinExitoFinal(res, conCredito);
+      });
+
+      it.each(ERRORES_TRANSPORTE_FICTICIOS)("$nombre no acredita éxito aunque data sea true", async ({ error }) => {
+        fila = conCredito ? { ...CON_CREDITO } : { ...CON_CREDITO, status: "emitida", paid_amount: 0 };
+        rpcChanged = true;
+        rpcError = error;
+        revertResult = { ok: true, reverted: conCredito ? 1 : 0 };
+
+        const res = await voidInvoice("inv-1", MOTIVO);
+
+        expect(res.error).toBe(FICT_NO_CONFIRMADO + (conCredito ? " " + FICT_AVISO_CREDITO : ""));
+        expectAckSinExitoFinal(res, conCredito);
+      });
+    });
+  }
+
+  it("FICT_false sigue siendo ACK negativo válido y conserva el crédito ya liberado", async () => {
+    rpcChanged = false;
+    revertResult = { ok: true, reverted: 1 };
+
+    const res = await voidInvoice("inv-1", MOTIVO);
+
+    expect(res.error).toBe("La factura ya no admite anulación. " + FICT_AVISO_CREDITO);
+    expect(res.error).not.toBe(FICT_NO_CONFIRMADO + " " + FICT_AVISO_CREDITO);
+    expectAckSinExitoFinal(res, true);
+  });
+
+  it("FICT_22023 audit:reason conserva yaLiberado y el mensaje saneado", async () => {
+    rpcChanged = true;
+    revertResult = { ok: true, reverted: 1 };
+    rpcError = { code: "22023", message: "audit: reason FICT_PRIVATE_DETAIL", hint: null };
+
+    const res = await voidInvoice("inv-1", MOTIVO);
+
+    expect(res.error).toBe("El motivo debe tener entre 4 y 1000 caracteres. " + FICT_AVISO_CREDITO);
+    expect(res.error).not.toContain("FICT_PRIVATE_DETAIL");
+    expectAckSinExitoFinal(res, true);
   });
 });
