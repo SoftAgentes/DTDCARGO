@@ -118,13 +118,14 @@ describe("leerEntradaPlan · las listas con el predicado de cada guarda", () => 
     if (plan.estado === "en_curso") expect(plan.siguiente.clave).toBe("modulo:cn_receipts");
   });
 
-  it("un asiento vivo de la factura la marca: el plan se bloquea por B1", async () => {
+  it("un asiento vivo de la factura la marca, y ya no bloquea a la emitida (SDD-0573)", async () => {
     const t = store();
     t.journal_entries.push({ id: "a-4", invoice_id: "f-emitida", status: "asentado", deleted_at: null });
     const { client } = dobleListados(t);
-    const plan = await leerPlanDeBorrado(client, S);
-    expect(plan.estado).toBe("bloqueado");
-    if (plan.estado === "bloqueado") expect(plan.bloqueos.map((b) => b.clave)).toContain("asiento_vivo:f-emitida");
+    const e = await leerEntradaPlan(client, S);
+    expect(e.facturas?.find((f) => f.id === "f-emitida")?.asientoVivo).toBe(true);
+    const plan = await leerPlanDeBorrado(dobleListados(t).client, S);
+    expect(plan.estado).toBe("en_curso");
   });
 
   it("un asiento en borrador también es vivo (no anulado, no borrado)", async () => {
@@ -157,12 +158,13 @@ describe("leerEntradaPlan · falla cerrado", () => {
     expect((await leerPlanDeBorrado(dobleListados(t).client, S)).estado).toBe("no_encontrado");
   });
 
-  it("si falla la lectura de asientos: no se sabe, y no se ofrece anular", async () => {
+  it("si falla la lectura de asientos: no se sabe, y no se ofrece eliminar el borrador", async () => {
     const plan = await leerPlanDeBorrado(conFallo(dobleListados(store()).client, "journal_entries"), S);
     expect(plan.estado).toBe("bloqueado");
     if (plan.estado === "bloqueado") {
-      // En orden de código: F-2026-0001 (emitida) antes que F-2026-0002 (borrador).
-      expect(plan.bloqueos.map((b) => b.clave)).toEqual(["asiento_sin_comprobar:f-emitida", "asiento_sin_comprobar:f-borrador"]);
+      // SDD-0573: la emitida se anula igual (anular revierte lo que haya); el
+      // borrador, que el asistente elimina, no.
+      expect(plan.bloqueos.map((b) => b.clave)).toEqual(["asiento_sin_comprobar:f-borrador"]);
     }
   });
 

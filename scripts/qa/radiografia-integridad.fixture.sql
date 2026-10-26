@@ -96,6 +96,11 @@ alter table public.payment_reports
     and (cancelled_at is null or (status = 'reportado' and deleted_at is null))
   );
 
+-- SDD-0573: el vínculo del contra-asiento, como lo agrega la 0497 (la fixture no aplica la 0497:
+-- exige la auditoría D2 y el cierre, que la radiografía no lee).
+alter table public.journal_entries
+  add column reverses_entry_id uuid references public.journal_entries(id) on delete restrict;
+
 -- ── datos sintéticos ── (la prueba corre la radiografía sobre el esquema vacío antes de esta línea)
 create function pg_temp.id(p text) returns uuid language sql immutable as $$ select md5('0559-' || p)::uuid $$;
 create function pg_temp.t(p text) returns uuid language sql immutable as $$ select md5('0559-tenant-' || p)::uuid $$;
@@ -189,13 +194,13 @@ create function pg_temp.credito(p_t text, p_l text, p_estado text, p_monto numer
     case when p_borrado then now() end)
 $$;
 
--- Tenants B..T con su propio plan de cuentas mínimo (A lo sembraron las migraciones reales).
+-- Tenants B..U con su propio plan de cuentas mínimo (A lo sembraron las migraciones reales).
 insert into public.tenants (id, slug, display_name)
 select pg_temp.t(t), 'centinela-' || lower(t), 'CENTINELA-TENANT-' || t
-from unnest(array['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'S', 'T']) t;
+from unnest(array['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'S', 'T', 'U']) t;
 insert into public.accounts (tenant_id, code, name, type, is_postable)
 select pg_temp.t(t), c.code, 'CENTINELA-CUENTA', c.type::acct_type, true
-from unnest(array['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'S', 'T']) t
+from unnest(array['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'S', 'T', 'U']) t
 cross join (values ('1.1.1.1', 'A'), ('1.1.2', 'A'), ('2.1.1', 'P'), ('4.5', 'I'), ('5.1', 'CGS')) c(code, type);
 -- Subcuentas (D, E, J) y la cuenta puente 2.1.8 de los pagos sin referencia (I, K, T).
 insert into public.accounts (tenant_id, code, name, type, is_postable) values
@@ -579,3 +584,15 @@ select pg_temp.recibo('T', 'RT1', 'FT1', 360.00, false, 'VES', 36, true);
 select pg_temp.asiento('T', 'ART1', 'asentado', 'receipt', '1.1.1.1', '2.1.8', 10.00, 'RT1');
 select pg_temp.asiento('T', 'ART1X', 'asentado', 'receipt_reclass', '2.1.8', '1.1.2', 10.00, 'RT1');
 select pg_temp.vincula_recibo('RT1', 'ART1');
+
+-- ════ U (SDD-0573): una factura ANULADA con su asiento de venta y el contra-asiento de la 0497
+-- (invoice_reversal, con reverses_entry_id). El original queda asentado; el par suma cero en 1.1.2
+-- y en 4.5. Ambos siguen vivos en el BRUTO; sólo B1 neutraliza este par íntegro ════
+select pg_temp.factura('U', 'FU1', 'anulada', 'USD', 150.15, 0, '2026-07-14');
+select pg_temp.asiento('U', 'AFU1', 'asentado', 'invoice', '1.1.2', '4.5', 150.15, 'FU1');
+select pg_temp.asiento('U', 'RFU1', 'asentado', 'manual', '4.5', '1.1.2', 150.15);
+update public.journal_entries set source = 'invoice_reversal', invoice_id = pg_temp.id('FU1'),
+  reverses_entry_id = pg_temp.id('AFU1') where id = pg_temp.id('RFU1');
+-- Metadata conocida únicamente de este positivo, sin cambiar helper/estado/importes/fechas.
+update public.journal_entries set posted_at = timestamptz '2026-07-14 12:00:00+00'
+where id in (pg_temp.id('AFU1'), pg_temp.id('RFU1'));

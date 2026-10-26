@@ -65,7 +65,11 @@ const BASELINE = {
   //     facturas no borrador para «Por contabilizar» (Contabilidad, layout
   //     `accounting`). Al cliente cruzan código, fecha, moneda y monto; sin
   //     nombre ni RIF del cliente.
-  "lib/studio/accounting/libro-control-queries.ts": 2,
+  // SDD-0573 I2: +1 metadata por IDs fuera de emisión en contextoDelIngreso,
+  // llamado siempre por ingresoDelPeriodo con mayor (también precalculado).
+  // Sesión/RLS, tenant en documentos/headers/cuentas y validación relacional;
+  // layouts accounting/reports y Dirección admin-only. Sólo agregados al cliente.
+  "lib/studio/accounting/libro-control-queries.ts": 3,
   "lib/studio/costing/queries.ts": 2,
   "lib/studio/dashboard/dashboard-kpi-queries.ts": 1,
   // SDD-0495: +1 por `strandedReferralCredits`, que mira si las facturas donde
@@ -211,7 +215,8 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // SDD-0558: 45 → 44. La lectura de Kommo pasó a la 0492; recalculado sobre
     // origin/main bb6bb3e4 con la 0555, la 0556, la 0557 y la 0560 ya fusionadas.
     // SDD-0574: 44 → 45 por la lectura de `reporteSinFacturar`.
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(45);
+    // SDD-0573 I2: una lectura literal de metadata adicional, mismas 20 rutas del compuesto.
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(46);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {

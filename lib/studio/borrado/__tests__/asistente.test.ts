@@ -163,32 +163,49 @@ describe("el ejemplo de Sam: una factura emitida", () => {
   });
 });
 
-describe("regla 4 · factura con asiento vivo: falla cerrado", () => {
-  it("emitida con asiento vivo: bloqueado, sin ningún paso, y explica B1", () => {
-    const plan = bloqueado(calcularPlan(entrada({ invoices: 1 }, { facturas: [factura("F-9", { asientoVivo: true })] })));
-    expect(plan).not.toHaveProperty("pasos");
-    expect(plan.bloqueos).toHaveLength(1);
-    expect(plan.bloqueos[0].titulo).toBe("La factura F-9 tiene su asiento de venta vivo");
-    expect(plan.bloqueos[0].detalle).toContain("B1");
+describe("regla 4 · el asiento de la factura (SDD-0573: anular ya lo revierte)", () => {
+  /**
+   * Antes de la 0497 (B1), anular no revertía el asiento de venta y el
+   * asistente bloqueaba toda factura con asiento vivo. Ahora anular crea el
+   * contra-asiento en la misma transacción: la emitida con asiento se anula.
+   * El borrador sigue bloqueado: el asistente lo ELIMINA, y eso no revierte nada.
+   */
+  it("emitida con asiento vivo: se ofrece anularla, y el paso dice que se revierte", () => {
+    const plan = calcularPlan(entrada({ invoices: 1 }, { facturas: [factura("F-9", { asientoVivo: true })] }));
+    expect(plan.estado).not.toBe("bloqueado");
+    const pasos = "pasos" in plan ? plan.pasos : [];
+    const anular = pasos.find((p) => p.clave === "anular_factura:fac-F-9");
+    expect(anular).toBeDefined();
+    expect(anular?.consecuencia).toContain("se revierte con un contra-asiento");
+  });
+
+  it("emitida sin poder comprobar el asiento: también se anula (la base revierte lo que haya)", () => {
+    const plan = calcularPlan(entrada({ invoices: 1 }, { facturas: [factura("F-9", { asientoVivo: null })] }));
+    expect(plan.estado).not.toBe("bloqueado");
+  });
+
+  it("un borrador con asiento vivo no se ofrece: eliminarlo no lo revierte", () => {
+    const plan = bloqueado(
+      calcularPlan(entrada({ invoices: 1 }, { facturas: [factura("F-9", { estado: "borrador", asientoVivo: true })] })),
+    );
+    expect(plan.bloqueos.map((b) => b.clave)).toEqual(["asiento_vivo:fac-F-9"]);
+    expect(plan.bloqueos[0].titulo).toBe("El borrador F-9 tiene un asiento vivo");
     expect(plan.bloqueos[0].enlace?.href).toBe("/studio/facturacion/F-9");
   });
 
-  it("sin poder comprobar el asiento: también bloquea", () => {
-    const plan = bloqueado(calcularPlan(entrada({ invoices: 1 }, { facturas: [factura("F-9", { asientoVivo: null })] })));
+  it("un borrador sin poder comprobar su asiento tampoco", () => {
+    const plan = bloqueado(
+      calcularPlan(entrada({ invoices: 1 }, { facturas: [factura("F-9", { estado: "borrador", asientoVivo: null })] })),
+    );
     expect(plan.bloqueos[0].clave).toBe("asiento_sin_comprobar:fac-F-9");
   });
 
-  it("un borrador con asiento vivo tampoco se ofrece", () => {
-    const plan = calcularPlan(
-      entrada({ invoices: 1 }, { facturas: [factura("F-9", { estado: "borrador", asientoVivo: true })] }),
-    );
-    expect(plan.estado).toBe("bloqueado");
-  });
-
-  it("una sola factura con asiento vivo frena también la que sí se podría anular", () => {
+  it("un borrador con asiento vivo frena también la que sí se podría anular", () => {
     const plan = bloqueado(
       calcularPlan(
-        entrada({ invoices: 2 }, { facturas: [factura("F-1"), factura("F-2", { asientoVivo: true })] }),
+        entrada({ invoices: 2 }, {
+          facturas: [factura("F-1"), factura("F-2", { estado: "borrador", asientoVivo: true })],
+        }),
       ),
     );
     expect(plan.bloqueos.map((b) => b.clave)).toEqual(["asiento_vivo:fac-F-2"]);

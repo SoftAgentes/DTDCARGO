@@ -22,7 +22,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
-import { moduleEditDenial, tenantAdminGate } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleEditGate, tenantAdminGate } from "@/lib/studio/rbac-guard";
+import { journalEntryProtections } from "@/lib/studio/journal-queries";
 import {
   subcuentasDe,
   validateAccountInput,
@@ -141,8 +142,14 @@ async function enPeriodoCerrado(
     p_clave: excepcion.superclave || null,
     p_motivo: motivo,
   });
-  const r = resultadoDelCierre(data, error, operacion);
-  if (!r.ok) return { error: r.error, cierre: aviso };
+  // ABI0493: un truthy, array, error ausente o JSON ilegible no confirma nada.
+  if (error !== null) {
+    return { error: error && esMensajeDelCierre(error) && error.message ? error.message : mensajeDeMotivo("", operacion), cierre: aviso };
+  }
+  if (!data || typeof data !== "object" || Array.isArray(data) || data.ok !== true) {
+    const motivo = data && typeof data === "object" && !Array.isArray(data) && typeof data.motivo === "string" ? data.motivo : "";
+    return { error: mensajeDeMotivo(motivo, operacion), cierre: aviso };
+  }
   revalidatePath("/studio/contabilidad");
   return { ok: true };
 }
@@ -274,65 +281,82 @@ export async function createJournalEntry(
   return { ok: true, createdCode: entry_code };
 }
 
+const CAMBIO_NO_CONFIRMADO = "No se pudo confirmar el cambio. Recarga el diario antes de volver a intentarlo.";
+const PROTECCION_NO_COMPROBADA = "No se pudo comprobar la protección de este asiento. Recarga el diario y solicita revisión si el aviso continúa.";
+const ASIENTO_PROTEGIDO = "Este asiento está protegido por una factura o un vínculo de reverso. Revísalo desde la factura; no admite cambios manuales.";
+
+/** Lectura fresca, del ID y tenant del gate; nunca usa el DTO del navegador. */
+async function manualEntryForAction(supabase: Supa, id: string, tenantId: string): Promise<
+  { entry: { id: string; tenant_id: string; status: string; entry_date: string } } | { error: string }
+> {
+  if (typeof id !== "string" || !id.trim() || id !== id.trim() || typeof tenantId !== "string" || !tenantId.trim()) return { error: PROTECCION_NO_COMPROBADA };
+  const { data, error } = await supabase.from("journal_entries")
+    .select("id, tenant_id, entry_code, source, status, deleted_at, invoice_id, reverses_entry_id, entry_date")
+    .eq("id", id).eq("tenant_id", tenantId);
+  if (error !== null || !Array.isArray(data) || data.length !== 1 || !data[0] || typeof data[0] !== "object" || Array.isArray(data[0])) return { error: "Asiento no encontrado o no comprobable." };
+  const raw = data[0] as Record<string, unknown>;
+  if (raw.id !== id || raw.tenant_id !== tenantId) return { error: PROTECCION_NO_COMPROBADA };
+  const [protection] = await journalEntryProtections(supabase, [raw], tenantId);
+  if (protection?.state === "protegido") return { error: ASIENTO_PROTEGIDO };
+  if (protection?.state !== "sin_vinculo_visible" || protection.reading !== "completa" || protection.relation !== "ninguno_visible") return { error: PROTECCION_NO_COMPROBADA };
+  if (raw.deleted_at !== null || typeof raw.status !== "string" || typeof raw.entry_date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(raw.entry_date)) return { error: PROTECCION_NO_COMPROBADA };
+  return { entry: { id, tenant_id: tenantId, status: raw.status, entry_date: raw.entry_date } };
+}
+
 export async function postEntry(
   id: string,
   excepcion?: ExcepcionDelCierre,
 ): Promise<ResultadoDeAsiento> {
-  const supabase = await createClient();
-  const denial = await moduleEditDenial(supabase, "accounting");
-  if (denial) return { error: denial };
+  try {
+    const supabase = await createClient();
+    const gate = await moduleEditGate(supabase, "accounting");
+    if (gate.ok !== true) return { error: gate.denied };
+    const target = await manualEntryForAction(supabase, id, gate.tenantId);
+    if ("error" in target) return target;
+    const { entry } = target;
+    if (entry.status !== "borrador") {
+      return { error: "Solo los borradores pueden asentarse." };
+    }
 
-  const { data: entry, error: readErr } = await supabase
-    .from("journal_entries")
-    .select("id, tenant_id, entry_code, status, entry_date")
-    .eq("id", id)
-    .maybeSingle<{
-      id: string;
-      tenant_id: string;
-      entry_code: string;
-      status: string;
-      entry_date: string;
-    }>();
-  if (readErr || !entry) return { error: "Asiento no encontrado." };
-  if (entry.status !== "borrador") {
-    return { error: "Solo los borradores pueden asentarse." };
+    // Guard de período cerrado (SDD-0080). SDD-0566: con la excepción, por la RPC.
+    const settings = await getAccountingSettings(supabase);
+    if (isPeriodClosed(settings.closing_date, entry.entry_date)) {
+      return await enPeriodoCerrado(supabase, "asentar", "asentar_asiento_en_cierre", id, excepcion,
+        `Período contable cerrado al ${settings.closing_date}: no puedes asentar en período cerrado.`);
+    }
+
+    // Revalidar balanceado contra las líneas persistidas.
+    const { data: lines, error: linesErr } = await supabase
+      .from("journal_lines")
+      .select("debit, credit")
+      .eq("entry_id", id);
+    if (linesErr !== null || !Array.isArray(lines) || lines.some((row) => !row || typeof row !== "object")) return { error: CAMBIO_NO_CONFIRMADO };
+
+    const rows = (lines as { debit: number; credit: number }[] | null) ?? [];
+    if (rows.length < 2) {
+      return { error: "Un asiento necesita al menos 2 líneas para asentarse." };
+    }
+    const totals = entryTotals(
+      rows.map((r) => ({ debit: Number(r.debit), credit: Number(r.credit) })),
+    );
+    if (!totals.balanced) {
+      return {
+        error: `El asiento no balancea (debe ${totals.debit.toFixed(2)} ≠ haber ${totals.credit.toFixed(2)}).`,
+      };
+    }
+
+    const { error, count } = await supabase
+      .from("journal_entries")
+      .update({ status: "asentado", posted_at: new Date().toISOString() }, { count: "exact" })
+      .eq("id", id).eq("tenant_id", gate.tenantId).eq("status", "borrador").is("deleted_at", null);
+    if (error !== null || typeof count !== "number" || count !== 1) return { error: CAMBIO_NO_CONFIRMADO };
+
+    revalidatePath("/studio/contabilidad");
+    return { ok: true };
+  } catch {
+    // Respuesta perdida: no afirma rollback ni reintenta la mutación.
+    return { error: CAMBIO_NO_CONFIRMADO };
   }
-
-  // Guard de período cerrado (SDD-0080). SDD-0566: con la excepción, por la RPC.
-  const settings = await getAccountingSettings(supabase);
-  if (isPeriodClosed(settings.closing_date, entry.entry_date)) {
-    return await enPeriodoCerrado(supabase, "asentar", "asentar_asiento_en_cierre", id, excepcion,
-      `Período contable cerrado al ${settings.closing_date}: no puedes asentar en período cerrado.`);
-  }
-
-  // Revalidar balanceado contra las líneas persistidas.
-  const { data: lines, error: linesErr } = await supabase
-    .from("journal_lines")
-    .select("debit, credit")
-    .eq("entry_id", id);
-  if (linesErr) return { error: linesErr.message };
-
-  const rows = (lines as { debit: number; credit: number }[] | null) ?? [];
-  if (rows.length < 2) {
-    return { error: "Un asiento necesita al menos 2 líneas para asentarse." };
-  }
-  const totals = entryTotals(
-    rows.map((r) => ({ debit: Number(r.debit), credit: Number(r.credit) })),
-  );
-  if (!totals.balanced) {
-    return {
-      error: `El asiento no balancea (debe ${totals.debit.toFixed(2)} ≠ haber ${totals.credit.toFixed(2)}).`,
-    };
-  }
-
-  const { error } = await supabase
-    .from("journal_entries")
-    .update({ status: "asentado", posted_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) return { error: error.message };
-
-  revalidatePath("/studio/contabilidad");
-  return { ok: true };
 }
 
 export async function voidEntry(
@@ -343,84 +367,76 @@ export async function voidEntry(
   const reasonResult = validateAuditReason(reasonRaw);
   if (!reasonResult.ok) return { error: reasonResult.error };
 
-  const supabase = await createClient();
-  const denial = await moduleEditDenial(supabase, "accounting");
-  if (denial) return { error: denial };
+  try {
+    const supabase = await createClient();
+    const gate = await moduleEditGate(supabase, "accounting");
+    if (gate.ok !== true) return { error: gate.denied };
+    const target = await manualEntryForAction(supabase, id, gate.tenantId);
+    if ("error" in target) return target;
+    const { entry } = target;
+    if (entry.status !== "asentado") {
+      return { error: "Solo los asientos asentados pueden anularse." };
+    }
 
-  const { data: entry, error: readErr } = await supabase
-    .from("journal_entries")
-    .select("id, tenant_id, entry_code, status, source, entry_date")
-    .eq("id", id)
-    .maybeSingle<{
-      id: string;
-      tenant_id: string;
-      entry_code: string;
-      status: string;
-      source: string;
-      entry_date: string;
-    }>();
-  if (readErr || !entry) return { error: "Asiento no encontrado." };
-  if (entry.status !== "asentado") {
-    return { error: "Solo los asientos asentados pueden anularse." };
+    // Guard de período cerrado (SDD-0080): no anular asientos de período cerrado.
+    // SDD-0566: el motivo de la anulación es también el de la excepción; con la
+    // superclave (o en modo advertencia) se anula por la RPC.
+    const settings = await getAccountingSettings(supabase);
+    if (isPeriodClosed(settings.closing_date, entry.entry_date)) {
+      const pedida = superclave === undefined ? undefined : { superclave, motivo: reasonResult.reason };
+      return await enPeriodoCerrado(supabase, "anular", "anular_asiento_en_cierre", id, pedida,
+        `Período contable cerrado al ${settings.closing_date}: no puedes anular asientos de período cerrado.`);
+    }
+
+    const { data: changed, error } = await supabase.rpc(
+      "void_journal_entry_with_audit_reason",
+      {
+        p_id: id,
+        p_reason: reasonResult.reason,
+      },
+    );
+    if (error !== null || changed !== true) return { error: CAMBIO_NO_CONFIRMADO };
+
+    revalidatePath("/studio/contabilidad");
+    return { ok: true };
+  } catch {
+    return { error: CAMBIO_NO_CONFIRMADO };
   }
-
-  // Guard de período cerrado (SDD-0080): no anular asientos de período cerrado.
-  // SDD-0566: el motivo de la anulación es también el de la excepción; con la
-  // superclave (o en modo advertencia) se anula por la RPC.
-  const settings = await getAccountingSettings(supabase);
-  if (isPeriodClosed(settings.closing_date, entry.entry_date)) {
-    const pedida = superclave === undefined ? undefined : { superclave, motivo: reasonResult.reason };
-    return await enPeriodoCerrado(supabase, "anular", "anular_asiento_en_cierre", id, pedida,
-      `Período contable cerrado al ${settings.closing_date}: no puedes anular asientos de período cerrado.`);
-  }
-
-  const { data: changed, error } = await supabase.rpc(
-    "void_journal_entry_with_audit_reason",
-    {
-      p_id: id,
-      p_reason: reasonResult.reason,
-    },
-  );
-  if (error) return { error: error.message };
-  if (!changed) return { error: "El asiento ya no admite anulación." };
-
-  revalidatePath("/studio/contabilidad");
-  return { ok: true };
 }
 
 export async function softDeleteEntry(
   id: string,
   excepcion?: ExcepcionDelCierre,
 ): Promise<ResultadoDeAsiento> {
-  const supabase = await createClient();
-  const denial = await moduleEditDenial(supabase, "accounting");
-  if (denial) return { error: denial };
+  try {
+    const supabase = await createClient();
+    const gate = await moduleEditGate(supabase, "accounting");
+    if (gate.ok !== true) return { error: gate.denied };
+    const target = await manualEntryForAction(supabase, id, gate.tenantId);
+    if ("error" in target) return target;
+    const { entry } = target;
+    if (entry.status !== "borrador") {
+      return { error: "Solo los borradores pueden eliminarse." };
+    }
 
-  const { data: entry, error: readErr } = await supabase
-    .from("journal_entries")
-    .select("id, status, entry_date")
-    .eq("id", id)
-    .maybeSingle<{ id: string; status: string; entry_date: string }>();
-  if (readErr || !entry) return { error: "Asiento no encontrado." };
-  if (entry.status !== "borrador") {
-    return { error: "Solo los borradores pueden eliminarse." };
+    // Guard de período cerrado (SDD-0080). SDD-0566: con la excepción, por la RPC.
+    const settings = await getAccountingSettings(supabase);
+    if (isPeriodClosed(settings.closing_date, entry.entry_date)) {
+      return await enPeriodoCerrado(supabase, "eliminar", "eliminar_borrador_en_cierre", id, excepcion,
+        `Período contable cerrado al ${settings.closing_date}: no puedes eliminar asientos de período cerrado.`);
+    }
+
+    const { error, count } = await supabase
+      .from("journal_entries")
+      .update({ deleted_at: new Date().toISOString() }, { count: "exact" })
+      .eq("id", id).eq("tenant_id", gate.tenantId).eq("status", "borrador").is("deleted_at", null);
+    if (error !== null || typeof count !== "number" || count !== 1) return { error: CAMBIO_NO_CONFIRMADO };
+
+    revalidatePath("/studio/contabilidad");
+    return { ok: true };
+  } catch {
+    return { error: CAMBIO_NO_CONFIRMADO };
   }
-
-  // Guard de período cerrado (SDD-0080). SDD-0566: con la excepción, por la RPC.
-  const settings = await getAccountingSettings(supabase);
-  if (isPeriodClosed(settings.closing_date, entry.entry_date)) {
-    return await enPeriodoCerrado(supabase, "eliminar", "eliminar_borrador_en_cierre", id, excepcion,
-      `Período contable cerrado al ${settings.closing_date}: no puedes eliminar asientos de período cerrado.`);
-  }
-
-  const { error } = await supabase
-    .from("journal_entries")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) return { error: error.message };
-
-  revalidatePath("/studio/contabilidad");
-  return { ok: true };
 }
 
 // ── Cierre de período (SDD-0080, admin-only) ──────────────────

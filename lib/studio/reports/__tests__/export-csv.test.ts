@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { buildViewCsv, reportFilename, rowsToCsv } from "../export-csv";
-import { resumirIngreso } from "@/lib/studio/accounting/ingreso-periodo";
+import { resumirIngreso as resumirIngresoSinContexto } from "@/lib/studio/accounting/ingreso-periodo";
+import { resumirIngresoConContexto as resumirIngreso, datosReversoGo1, lectorReversoGo1, controlReversoGo1, RANGOS_REVERSO_GO1 } from "@/lib/studio/accounting/__tests__/ingreso-fixture";
+import { ingresoDelPeriodo } from "@/lib/studio/accounting/libro-control-queries";
 import type {
   AgingReport,
   CashflowReport,
@@ -297,5 +299,118 @@ describe("buildViewCsv · Estado de resultados (SDD-0557)", () => {
     expect(csv!.filename).toBe("reporte-contable-facturado-contra-cobrado-2026-06-04.csv");
     // El facturado de esta vista lleva IVA (se compara con lo cobrado).
     expect(csv!.content.split("\r\n")[0]).toBe("Mes,Facturado con IVA USD,Cobrado USD");
+  });
+});
+
+describe("I2 · CSV del puente y unidad", () => {
+  it("exporta oficial, ajuste y base con centavos sin reemplazar documento por mayor", async () => {
+    const d = datosReversoGo1({ base: 100.015, venta: 90 }); const rango = RANGOS_REVERSO_GO1.septiembre;
+    const ingreso = await ingresoDelPeriodo(lectorReversoGo1(d).client, rango, { mayor: controlReversoGo1(d, rango) });
+    const income: IncomeStatement = { rows: [], income: 90, netIncome: 90, range: rango, ingreso };
+    const csv = buildViewCsv({ category: "con", rep: "income", income, today: TODAY })!.content;
+    expect(csv).toContain("Ingreso facturado (sin IVA · USD · por emisión),0,");
+    expect(csv).toContain("Ajuste documental por anulaciones,100.02,");
+    expect(csv).toContain("Base comparada · facturado + ajuste,100.02,");
+    expect(csv).toContain("Diferencia base comparada − mayor (4.5),10.02,");
+  });
+  it("sin contexto mantiene archivo de revisión con celdas USD desconocidas vacías", () => {
+    const rango = RANGOS_REVERSO_GO1.combinado;
+    const ingreso = resumirIngresoSinContexto([], rango, { ventas: 0, ingresos: 0, ventasConMovimiento: false, facturasConAsiento: new Set<string>() });
+    const income: IncomeStatement = { rows: [], income: 0, netIncome: 0, range: rango, ingreso };
+    const csv = buildViewCsv({ category: "con", rep: "income", income, today: TODAY })!.content;
+    expect(csv).toContain("En el mayor · cuenta 4.5 · asientos de factura: unidad sin verificar,,");
+    expect(csv).toContain("Ajuste documental por anulaciones,,");
+    expect(csv).toContain("Base comparada · facturado + ajuste,,");
+    expect(csv).toContain("Control contra 4.5: Requiere revisión,,");
+    expect(csv).toContain("No se leyó el contexto documental");
+  });
+  it("nominal corrupto conserva causa y vacía las cifras del libro bajo Monto USD", async () => {
+    const d = datosReversoGo1({ currency: "CNY", base: 720, fxRate: 7.2 });
+    d.journal_lines = d.journal_lines.filter(l => l.id !== "reverso-ar-go1");
+    const rango = RANGOS_REVERSO_GO1.combinado;
+    const ingreso = await ingresoDelPeriodo(lectorReversoGo1(d).client, rango, { mayor: controlReversoGo1(d, rango) });
+    const income: IncomeStatement = { rows: [{ label: "Ingresos del libro", amount: 720, pct: null, emphasis: false }], income: 0, netIncome: 0, range: rango, ingreso };
+    const csv = buildViewCsv({ category: "con", rep: "income", income, today: TODAY })!.content;
+    expect(csv).toContain("Ingresos del libro,,");
+    expect(csv).toContain("nominal mixto (no USD),,");
+    expect(csv).toContain("Control contra 4.5: No comparable,,");
+    expect(csv).toContain("Causa del control:");
+  });
+});
+
+describe("SDD-0573 · CSV de income: porcentaje según unidad del mayor", () => {
+  // Datos ficticios: filas no vacías para observar ambos valores exportados.
+  const rango = { from: "2026-06-01", to: "2026-06-04" };
+  const mayor = {
+    ventas: 100,
+    ingresos: 100,
+    ventasConMovimiento: true,
+    facturasConAsiento: new Set(["fict-csv-1"]),
+  };
+  const documento = {
+    id: "fict-csv-1",
+    status: "emitida" as const,
+    issued_at: "2026-06-02",
+    currency: "USD",
+    fx_rate: null,
+    base_amount: 100,
+  };
+  const incomeConFila = (
+    ingreso: IncomeStatement["ingreso"],
+    pct: number | null | undefined,
+  ): IncomeStatement => ({
+    // El caso ausente comprueba también la frontera runtime de pct, sin
+    // cambiar el contrato productivo que exige number | null.
+    rows: [{
+      label: "Ingresos",
+      amount: 100,
+      emphasis: false,
+      ...(pct === undefined ? {} : { pct }),
+    } as IncomeStatement["rows"][number]],
+    income: 100,
+    netIncome: 100,
+    range: rango,
+    ingreso,
+  });
+
+  it("sin_verificar vacía monto y porcentaje de una fila 100/50", () => {
+    const ingreso = resumirIngresoSinContexto([documento], rango, mayor);
+    expect(ingreso.controlI2.unidadMayor).toBe("sin_verificar");
+    const csv = buildViewCsv({ category: "con", rep: "income", income: incomeConFila(ingreso, 50), today: TODAY });
+    expect(csv).not.toBeNull();
+    const lines = csv!.content.split("\r\n");
+    expect(lines[1]).toBe("Ingresos,,");
+    expect(lines).toContain("Control contra 4.5: Requiere revisión,,");
+    expect(lines).toContain("En el mayor · cuenta 4.5 · asientos de factura: unidad sin verificar,,");
+    expect(lines).toContain("Ingreso facturado (sin IVA · USD · por emisión),100,");
+  });
+
+  it("nominal_mixto vacía monto y porcentaje de una fila 100/50", () => {
+    const ingreso = resumirIngreso(
+      [{ ...documento, currency: "VES", fx_rate: 36.5, base_amount: 36500 }],
+      rango,
+      { ...mayor, ventas: 36500, ingresos: 36500 },
+    );
+    expect(ingreso.controlI2.unidadMayor).toBe("nominal_mixto");
+    const csv = buildViewCsv({ category: "con", rep: "income", income: incomeConFila(ingreso, 50), today: TODAY });
+    expect(csv).not.toBeNull();
+    const lines = csv!.content.split("\r\n");
+    expect(lines[1]).toBe("Ingresos,,");
+    expect(lines).toContain("Control contra 4.5: No comparable,,");
+    expect(lines).toContain("En el mayor · cuenta 4.5 · asientos de factura: nominal mixto (no USD),,");
+    expect(lines).toContain("Ingreso facturado (sin IVA · USD · por emisión),1000,");
+  });
+
+  it.each([
+    { caso: "porcentaje conocido", pct: 50, expected: "Ingresos,100,50" },
+    { caso: "cero legítimo", pct: 0, expected: "Ingresos,100,0" },
+    { caso: "porcentaje null", pct: null, expected: "Ingresos,100," },
+    { caso: "porcentaje ausente", pct: undefined, expected: "Ingresos,100," },
+  ])("usd conserva monto y $caso", ({ pct, expected }) => {
+    const ingreso = resumirIngreso([documento], rango, mayor);
+    expect(ingreso.controlI2.unidadMayor).toBe("usd");
+    const csv = buildViewCsv({ category: "con", rep: "income", income: incomeConFila(ingreso, pct), today: TODAY });
+    expect(csv).not.toBeNull();
+    expect(csv!.content.split("\r\n")[1]).toBe(expected);
   });
 });

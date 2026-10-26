@@ -39,6 +39,7 @@ const asiento = (n: number, status: JournalEntry["status"]): JournalEntry => ({
   memo: `Asiento ${n}`,
   status,
   source: "manual",
+  protection: { state: "sin_vinculo_visible", reading: "completa", relation: "ninguno_visible" },
   invoice_id: null,
   receipt_id: null,
   bill_id: null,
