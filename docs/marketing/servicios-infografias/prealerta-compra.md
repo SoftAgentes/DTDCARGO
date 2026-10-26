@@ -29,7 +29,7 @@ recibir tu carga sin errores.
 - **Se acabaron los grupos de WeChat**: el proveedor entrega los datos por el enlace. Solo lo
   contactas si hay algo puntual que preguntar.
 - Tu carga llega **identificada** desde la mesa del proveedor hasta el galpón — un solo código.
-- Ves el estado de tu compra en todo momento.
+- Tu compra queda **registrada en tu portal** desde el primer día.
 
 ## Reglas / condiciones importantes
 - Haz tu pre-alerta **antes de que la mercancía llegue** a nuestra bodega en China; así la recibimos a
