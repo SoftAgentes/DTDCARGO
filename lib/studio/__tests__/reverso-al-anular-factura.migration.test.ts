@@ -85,7 +85,7 @@ function inline(file: string, vars: Record<string, string>, replace: Record<stri
 }
 
 async function contract(options: { applyFix?: boolean; migration?: string; replace?: Record<string, string>; probe?: string } = {}) {
-  const replacements = { ...(options.migration ? { [M0497]: options.migration } : {}), ...(options.replace ?? {}) };
+  const replacements: Record<string, string> = { ...(options.migration ? { [M0497]: options.migration } : {}), ...(options.replace ?? {}) };
   if (options.probe) {
     const fixture = readFileSync(CONTRACT, "utf8");
     const marker = "-- ── 1. Quién anula y con qué motivo ──";

@@ -934,7 +934,7 @@ describe("T03 · lector completo y degradación de cabeceras", () => {
           },
         };
       },
-    } as typeof client;
+    } as unknown as typeof client;
   }
   const faltaColumna = { data: null, error: { code: "42703", message: "column journal_entries.reverses_entry_id does not exist" } };
 
@@ -1101,7 +1101,7 @@ describe("T03 · enmienda de conservación del transporte ajeno", () => {
           },
         };
       },
-    } as typeof client;
+    } as unknown as typeof client;
     const c = await cuadreDelLibro(transporteInvalido,
       { accounts: PLAN as unknown as Account[], saldos: {}, hoy: "2025-03-18" });
     expect(transportadas).toHaveLength(1);
