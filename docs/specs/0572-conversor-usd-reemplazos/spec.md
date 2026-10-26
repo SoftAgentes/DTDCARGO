@@ -667,3 +667,26 @@ docs/specs/0572-conversor-usd-reemplazos/spec.md
 docs/specs/README.md
 .agents/handoffs/0572-conversor-usd-sql.md
 ```
+
+### Corrección acotada #311 · cartera no disponible (2026-10-26)
+
+La disponibilidad de cartera que entrega la página se conserva también en las
+pestañas Clientes y Niveles. Cuando el lector real de clientes falla o agota el
+límite del paginador, Clientes comunica «Cartera no disponible» en vez de un vacío
+acreditado y Niveles conserva los beneficios, pero no presenta conteos de clientes
+como conocidos. Una cartera leída correctamente y vacía mantiene «Sin clientes»
+y los ceros verificables. El fallo exclusivo de la anual conserva la cartera y
+sus filtros, con facturación/nivel Por revisar según el contrato 0572-b.
+
+La bandera no cambia el orden de hooks ni la identidad de ClientesTab durante
+un rerender: búsqueda y foco en un tab visible se conservan al alternarla. No se
+añade recuperación de red, retry, efecto de foco ni regla financiera. Créditos,
+referidos, umbrales, importes, clasificación y navegación mantienen su contrato.
+
+Evidencia preparada: pruebas sintéticas de página → lector/paginador reales →
+componente y pestañas reales; error de clientes, cap de 60 páginas, vacío válido,
+fallo anual aislado y alternancia con búsqueda/foco. Se mantienen los siete casos
+previos de anual. Ejecución local NO DISPONIBLE / NO INVOCADA: el checkout aislado
+no contiene node_modules ni el entrypoint Vitest. No acredita UI real, aplicación
+de DB, aceptación financiera ni cierre de 2.1/QPG17/B. Handoff de esta reparación:
+.agents/handoffs/0572-fidelizacion-cartera-no-disponible-20261026.md.
