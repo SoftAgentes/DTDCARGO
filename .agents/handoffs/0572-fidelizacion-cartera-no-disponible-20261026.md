@@ -181,3 +181,15 @@ Sin publicación, PR, merge, despliegue, producción, DB real, proveedores,
 cuentas, contactos, PII, secretos o gasto. Automatización sigue PAUSADA.
 Los límites de 2.1/QPG17/B y las autoridades financieras históricas se conservan
 sin inferir aplicación, EJE ni consumo de claves.
+
+## Fe de errata P3 · oráculo de Espacio
+
+En020397e5, Espacio podía reutilizar la llamada de Enter al comprobar la misma
+ruta. No hay fallo productivo demostrado. Cada tecla limpia ahora sólo el
+historial de navigation.push y exige una llamada nueva, además de su ruta.
+Se conservan búsqueda, foco, otros14escenarios y todos los bytes de producto.
+
+Esta hija modifica sólo el focal y este handoff. La tabla anterior es histórica;
+pins del sucesor y FIN van fuera del commit. Siguen15definiciones/0ejecutadas,
+NOEJ por907d3b fechado, sin nuevo probe/Node/UI/CI. Git normal sin bypass de
+hooks/firma; SGE00.10 y restantes límites intactos.

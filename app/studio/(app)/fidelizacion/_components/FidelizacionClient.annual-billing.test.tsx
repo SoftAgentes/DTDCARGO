@@ -71,9 +71,13 @@ describe("0572 · disponibilidad de cartera sin perder estado local", () => {
   expect(screen.getByRole("textbox", { name: "Buscar cliente o Shipping Mark" })).toHaveValue("Beta");
   expect(screen.queryByText("Cliente ficticio Alfa")).not.toBeInTheDocument();
   const row = screen.getByRole("button", { name: /Cliente ficticio Beta/ });
+  navigation.push.mockClear();
   fireEvent.keyDown(row, { key: "Enter" });
+  expect(navigation.push).toHaveBeenCalledTimes(1);
   expect(navigation.push).toHaveBeenLastCalledWith("/studio/clientes/FICT_B");
+  navigation.push.mockClear();
   fireEvent.keyDown(row, { key: " " });
+  expect(navigation.push).toHaveBeenCalledTimes(1);
   expect(navigation.push).toHaveBeenLastCalledWith("/studio/clientes/FICT_B");
  });
 });
