@@ -218,16 +218,47 @@ async function contextoDelIngreso(
   supabase: SupabaseClient, rango: RangoFechas, facturas: readonly FacturaDeIngreso[],
 ): Promise<ContextoControlI2> {
   const columnas = "id, tenant_id, status, source, deleted_at, invoice_id, entry_date, reverses_entry_id";
+  // El paginador compartido tolera data:null. I2 necesita acreditar cada
+  // página antes de interpretar una ausencia; el dominio sigue en el puente.
+  async function paginaI2(nombre: string, pagina: PromiseLike<unknown>) {
+    const respuesta = await pagina;
+    if (!respuesta || typeof respuesta !== "object" || Array.isArray(respuesta)
+      || !("data" in respuesta) || !("error" in respuesta)) {
+      throw new Error(`${nombre}: respuesta de transporte ilegible.`);
+    }
+    if (respuesta.error !== null) {
+      // Conserva la identidad, código y causa del error nativo antes del paginador.
+      if (respuesta.error && typeof respuesta.error === "object" && !Array.isArray(respuesta.error)) {
+        throw respuesta.error;
+      }
+      throw new Error(`${nombre}: respuesta de error ilegible.`);
+    }
+    if (!Array.isArray(respuesta.data)) {
+      throw new Error(`${nombre}: la página no contiene un array de filas.`);
+    }
+    const filas: unknown[] = respuesta.data;
+    const legible = (fila: unknown): fila is Fila => {
+      if (!fila || typeof fila !== "object" || Array.isArray(fila) || !("id" in fila)
+        || typeof fila.id !== "string" || !fila.id.trim()) return false;
+      return Object.values(fila).every(v => v === null || typeof v === "string" || typeof v === "number");
+    };
+    if (!filas.every(legible)) {
+      throw new Error(`${nombre}: la página contiene una fila ilegible.`);
+    }
+    return { data: filas, error: null };
+  }
   async function porIds(nombre: string, ids: string[], pagina: Parameters<typeof fetchAllByIds>[1]) {
-    const { rows, complete } = await fetchAllByIds<Fila>([...new Set(ids)], pagina);
+    const { rows, complete } = await fetchAllByIds<Fila>([...new Set(ids)],
+      (lote, d, h) => paginaI2(nombre, pagina(lote, d, h)));
     if (!complete) throw new Error(`${nombre}: la lectura supera el tope; el control no se puede calcular completo.`);
     return rows;
   }
-  const asientos = await leerCompleto<Fila>("Ingreso I2 · candidatos del período", (d, h) =>
+  const asientos = await leerCompleto<Fila>("Ingreso I2 · candidatos del período", (d, h) => paginaI2(
+    "Ingreso I2 · candidatos del período",
     supabase.from("journal_entries").select(columnas)
       .in("source", ["invoice", "invoice_reversal"])
       .gte("entry_date", rango.from).lte("entry_date", rango.to)
-      .order("id", { ascending: true }).range(d, h));
+      .order("id", { ascending: true }).range(d, h)));
   const documentosIniciales = [...new Set([
     ...asientos.map(a => str(a.invoice_id)),
     ...facturas.filter(f => f.status === "anulada").map(f => f.id),
