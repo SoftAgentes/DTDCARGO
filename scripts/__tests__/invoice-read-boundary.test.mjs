@@ -104,6 +104,20 @@ const BASELINE = {
   // `client_outstanding` (0492), la definición única del saldo por cliente, por
   // `listClientOutstanding` en `client-queries.ts`. No nombra `invoices`.
   "lib/studio/payment-queries.ts": 1,
+  // SDD-0574: +1 archivo y +1 lectura. `reporteSinFacturar` («Embarques sin
+  // facturar», 4.5 del plan contable) lee `id, invoice_code, shipment_id,
+  // client_markbox, status` de las facturas vivas de un lote de envíos, para
+  // saber qué recepción ya tiene factura fiscal. Revisión del contrato:
+  //   · candado: la llaman SOLO dos server components — la página del reporte,
+  //     bajo el layout de Reportes (`requireModuleView("reports")`: accounting
+  //     + admin), y Dirección (`requireModuleView("direccion")` + rol admin);
+  //   · tenant: cliente de SESIÓN bajo `invoices_accounting_select` (0414,
+  //     accounting/admin del propio tenant); nunca el admin client;
+  //   · uso: solo lectura (ni escribe `invoices` ni toca `lib/studio/accounting`);
+  //     decide «facturada / pre-factura / sin factura» por envío y Shipping Mark.
+  //     Al cliente cruza el código de la pre-factura, nunca montos de factura.
+  // Columnas avisadas a la sesión «Contabilidad» el 2026-10-20 (pedido del Director).
+  "lib/studio/rate-snapshots/sin-facturar.ts": 1,
   "lib/studio/renditions/queries.ts": 3,
   "lib/studio/reports/queries.ts": 4,
 };
@@ -180,7 +194,8 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // SDD-0560: 18 → 19. Entra `lib/studio/borrado/asistente-servidor.ts`.
     // SDD-0557: 19 → 20. Entra `lib/studio/accounting/libro-control-queries.ts`.
     // SDD-0558: 20 → 19. Sale `lib/studio/kommo-contact-status.ts` entero.
-    expect(Object.keys(actual)).toHaveLength(19);
+    // SDD-0574: 19 → 20. Entra `lib/studio/rate-snapshots/sin-facturar.ts`.
+    expect(Object.keys(actual)).toHaveLength(20);
     // El total va aparte del mapa a propósito: si alguien «arregla» el mapa
     // moviendo una llamada de un archivo a otro, el mapa vuelve a cuadrar y
     // este número no.
@@ -195,7 +210,8 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // SDD-0557: 43 → 45 por `ingresoDelPeriodo` y `cuadreDelLibro`.
     // SDD-0558: 45 → 44. La lectura de Kommo pasó a la 0492; recalculado sobre
     // origin/main bb6bb3e4 con la 0555, la 0556, la 0557 y la 0560 ya fusionadas.
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(44);
+    // SDD-0574: 44 → 45 por la lectura de `reporteSinFacturar`.
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(45);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {
