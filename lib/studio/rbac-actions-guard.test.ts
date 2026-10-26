@@ -100,6 +100,18 @@ type Lista = Record<string, string>;
  * analizador reconozca. No se espera que esta lista se vacíe.
  */
 const EXCEPCIONES: Lista = {
+  // SDD-0571 · Las dos LEEN: `moduleViewDenial(supabase, "cn")` va al tope y
+  // domina todo. Lo único que el analizador cuenta como escritura es
+  // `rpc("congelar_tarifa_recepcion")` con `p_dry_run = true`, que NO escribe:
+  // la RPC (migr 0496) devuelve la fila calculada antes de cualquier UPDATE o
+  // INSERT, sin bloquear filas, y su contrato lo afirma («la vista previa no
+  // escribe»). La RPC además repite el candado de rol (admin, operations,
+  // warehouse, support, accounting) y de tenant.
+  "cn/rate-snapshot-actions.ts::loadRateDrawerAction":
+    "SDD-0571: gate de vista `cn` al tope; la única «escritura» es la RPC en p_dry_run, que no escribe (contrato 0496: «la vista previa no escribe») y repite rol y tenant.",
+  "cn/rate-snapshot-actions.ts::previewRateAction":
+    "SDD-0571: gate de vista `cn` al tope; la RPC va con p_dry_run=true (freezeRpcArgs(input, true)), no escribe y repite rol y tenant.",
+
   "actions.ts::signOut":
     "Cierra la sesión del PROPIO usuario (`supabase.auth.signOut()`); no hay privilegio de módulo que pedir.",
 
@@ -243,13 +255,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // antes de tocar nada y pasa el veredicto sin entrar en ninguna lista.
   // SDD-0531 sumó `tracking/[id]/datos-reservados-actions.ts` (75 → 76, con
   // prefijo 20 → 21) con una sola acción, `updateShipmentSinUbicacion`.
-  it("la superficie escaneada es la esperada (76 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0571 sumó `cn/rate-snapshot-actions.ts` (76 → 77, con prefijo 21 → 22):
+  // la tarifa congelada por recepción.
+  it("la superficie escaneada es la esperada (77 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 76,
+      total: 77,
       exactos: 55,
-      conPrefijo: 21,
+      conPrefijo: 22,
     });
   });
 
@@ -285,8 +299,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // del cierre y la superclave. Las tres llaman a `tenantAdminGate` antes de
   // tocar nada, como `setClosingDateAction`; la RLS admin-only de 0133
   // (accounting_settings) y las RPC de 0493 (`cierre_es_admin`) repiten el candado.
+  // SDD-0571 sumó las seis de `cn/rate-snapshot-actions.ts` (438 → 444):
+  // `freezeRateAction` y `freezePendingRatesAction` con `moduleEditDenial(…, "cn")`
+  // al tope; `freezeElevatedRateAction` y `previewElevatedRateAction` con
+  // `capabilityDenial(…, "fix_frozen_rate")` al tope (la vía excepcional de
+  // accounting y admin, sin tocar la matriz de `cn`); y `loadRateDrawerAction`
+  // y `previewRateAction`, de lectura con gate de vista, en EXCEPCIONES por la
+  // RPC en p_dry_run. La RPC de la 0496 repite rol y tenant en todas.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(438);
+    expect(reportes.length).toBe(444);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
@@ -295,7 +316,7 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
     expect({
       excepciones: Object.keys(EXCEPCIONES).length,
       deuda: Object.keys(DEUDA).length,
-    }).toEqual({ excepciones: 15, deuda: 24 });
+    }).toEqual({ excepciones: 17, deuda: 24 });
   });
 
   for (const { rel, r } of reportes) {

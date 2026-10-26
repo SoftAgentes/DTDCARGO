@@ -187,6 +187,46 @@
           "degradation": "Una actualización sin fila afectada no emite asiento ni correo: responde conflicto recuperable. El WHERE incluye tenant, versión integral, estado borrador, moneda y deleted_at null. Sin la 0495, leer write_version falla cerrado antes del UPDATE. MIGRATE-FIRST requiere el paquete reparado y OK nominal de Sam."
         }
       ]
+    },
+    {
+      "id": "sdd-0571-tarifa-congelada",
+      "primarySymbol": "congelar_tarifa_recepcion",
+      "migration": "0496_tarifa_congelada_por_embarque",
+      "symbols": [
+        {
+          "name": "congelar_tarifa_recepcion",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/cn/rate-snapshot-actions.ts:60"
+          ]
+        },
+        {
+          "name": "shipment_rate_snapshots",
+          "kind": "table",
+          "callSites": [
+            "app/studio/(app)/cn/rate-snapshot-actions.ts:282",
+            "lib/studio/rate-snapshots/queries.ts:31",
+            "lib/studio/rate-snapshots/queries.ts:53"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/rate-snapshots/queries.ts:36",
+          "contains": "if (isMissingRateSchema(error)) return { disponible: false };",
+          "degradation": "Sin 0496 la tabla shipment_rate_snapshots no existe y PostgREST responde 42P01/PGRST205: listLiveRatesForReceipts devuelve disponible: false y el Almacén CN pinta «No disponible» en la columna Tarifa, sin el botón «Congelar tarifas pendientes». La lista de recepciones se ve como hoy. Orden previsto: MIGRATE-FIRST (0496 antes de fusionar y desplegar), con el que esta ventana no existe."
+        },
+        {
+          "site": "lib/studio/rate-snapshots/queries.ts:58",
+          "contains": "if (isMissingRateSchema(error)) return null;",
+          "degradation": "listRateHistory devuelve null con la tabla ausente, y loadRateDrawerAction responde «no disponible» antes de pedir la propuesta: el cajón no llama a congelar_tarifa_recepcion."
+        },
+        {
+          "site": "app/studio/(app)/cn/rate-snapshot-actions.ts:63",
+          "contains": "if (isMissingRateSchema(error)) return { ok: false, errorKey: \"warehouse_cn.rate.unavailable\" };",
+          "degradation": "Si se llega a llamar a la RPC o a leer la tabla sin 0496 (42883/PGRST202 o 42P01/PGRST205), la acción responde el mensaje traducido «La tarifa congelada todavía no está disponible» en vez de un error crudo; congelar en lote corta en la primera."
+        }
+      ]
     }
   ]
 }
