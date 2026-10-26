@@ -182,6 +182,40 @@ También el correo «Factura emitida» pone `{{total_usd}}` con el monto en bol�
    - `costing/ui.test.ts:78-89` y `costing/types.test.ts:143-157`;
    - los contratos `0404_…test.sql` y `0411_…test.sql`.
 
+### Corrección local de suma exacta de #310 · 2026-10-26
+
+Autoridad humana nominal y continuación del Director
+`DIRECTOR-0572-PR310-CONTINUACION-CON-CHECKOUT-FISICO-ACREDITADO-20261026`,
+sobre la base fija `a30d85859c788070ffc3459a29e389cab015c7eb`. El delta se
+limita al helper, su focal existente, esta spec y el handoff nuevo
+`.agents/handoffs/0572-suma-usd-exacta-20261026.md`; no cambia consumidores,
+migraciones, tasas, posting ni el estado general de la SDD.
+
+`sumarEnUsd` conserva `{ usd: number, sinConvertir: number }`. Cada documento
+mantiene las validaciones y el redondeo decimal a centavos, mitad lejos de cero,
+del conversor individual. La suma usa esos centavos BigInt antes de cualquier
+paso por `number`; sólo el total final se convierte. Por eso una cancelación
+válida no se rechaza por un prefijo grande ni pierde un centavo individual.
+
+La salida debe reconstruir los mismos centavos desde el texto decimal canónico
+del número y desde su representación a dos decimales. Si alguna representación
+pierde centavos o no es finita, lanza `RangeError` con
+`sumarEnUsd: total fuera de rango para conservar centavos`.
+El desbordamiento de agregación no es falta de tasa, no incrementa
+`sinConvertir` ni devuelve cero, null o un total redondeado silenciosamente.
+No se impone un máximo al acumulador intermedio ni un tope indiscriminado de
+`MAX_SAFE_INTEGER` a los centavos cuando el total numérico final sí los conserva.
+
+La focal añade oráculos ficticios independientes: mezcla USD/CNY conocida,
+`9007199254740993` centavos (`2^53 + 1`) rechazados, documentos/prefijos
+convertibles, falta real de tasa, cancelación por orden y signos, conversión
+individual grande antes de `number`, bordes positivos/negativos e inmutabilidad.
+Los oráculos anteriores y el test compartido de `toUsd` se conservan.
+La suite combinada nueva queda **NO DISPONIBLE / NO EJECUTADA**: el guard propio
+confirmó ausencia de `node_modules` y Vitest en este WT. No se instalaron ni
+copiaron dependencias. La revisión fija y la validación funcional pendiente se
+coordinan aparte; esta reparación no acredita DB, producción ni cierre de 2.1.
+
 ## Qué NO cambia
 
 - Las tasas de los documentos: siguen congeladas como dejó la 0569.
