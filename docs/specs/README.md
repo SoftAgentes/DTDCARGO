@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 563 specs)
+### Índice de specs (generado · 564 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -596,11 +596,12 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0569 | Un solo conversor a USD, que falla cerrado, y una tabla de ta… | in-progress | interno |
 | 0570 | Pruebas PGlite sin initdb por caso: plantilla del cluster rec… | in-progress | interno |
 | 0571 | Tarifa congelada por embarque: el precio por CBM queda guarda… | in-progress | interno |
+| 0573 | Anular una factura revierte su asiento de venta, en la misma … | in-progress | interno |
 | 0574 | Embarques sin facturar: el reporte y las tarjetas en Dirección | in-progress | interno |
 | 0577 | Reintento de borrado disponible y consultas de archivos del P… | in-progress | interno |
 | 0579 | Promesas de seguimiento coherentes en FAQ y fuentes locales | done | interno |
 | 0580 | Shipping Mark CTA: altura intrínseca y recorrido móvil | done | interno |
 | 0581 | Diagnóstico local de medición Ads y CSP | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0573, 0575, 0576, 0578 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

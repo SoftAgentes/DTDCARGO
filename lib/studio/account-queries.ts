@@ -50,6 +50,31 @@ export async function listAccounts(
   return rows.sort((a, b) => compareCodes(a.code, b.code));
 }
 
+/** Catálogo completo transportado por la sesión; no certifica su integridad. */
+export async function listAccountsComplete(
+  supabase: SupabaseClient,
+): Promise<Account[]> {
+  const { rows, complete } = await fetchAllPaged<Record<string, unknown>>(async (d, h) => {
+    const respuesta = await supabase
+      .from("accounts")
+      .select(ACCOUNT_COLUMNS)
+      .order("id", { ascending: true })
+      .range(d, h);
+    if (respuesta.error) {
+      throw new Error(`Plan de cuentas completo: ${respuesta.error.message}`);
+    }
+    if (!Array.isArray(respuesta.data)
+      || respuesta.data.some((fila) => fila == null || typeof fila !== "object" || Array.isArray(fila))) {
+      throw new Error("Plan de cuentas completo: respuesta ilegible.");
+    }
+    return { data: respuesta.data, error: null };
+  });
+  if (!complete) {
+    throw new Error("Plan de cuentas completo: la lectura supera el tope de páginas.");
+  }
+  return rows.map(coerceAccount).sort((a, b) => compareCodes(a.code, b.code));
+}
+
 /**
  * SDD-0565 · El plan completo del tenant (id, código y padre), paginado.
  * Es la base de las dos reglas que impiden una cuenta huérfana: un plan
@@ -180,8 +205,9 @@ export function computeBalances(
 export async function accountBalances(
   supabase: SupabaseClient,
   opts: { upToDate?: string; fromDate?: string } = {},
+  planCompleto?: Account[],
 ): Promise<AccountBalanceMap> {
-  const accounts = await listAccounts(supabase);
+  const accounts = planCompleto === undefined ? await listAccounts(supabase) : planCompleto;
 
   // Traemos los ids de asientos asentados (con filtro de fecha opcional)
   // y luego sus líneas. Dos queries simples evitan depender de la forma del

@@ -34,6 +34,7 @@ import type {
 import { vistaDelEstado } from "./types";
 import {
   describirIngreso,
+  causaDelControlI2,
   ETIQUETA_ESTADO_INGRESO,
 } from "@/lib/studio/accounting/ingreso-periodo";
 
@@ -204,22 +205,31 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
       // bajo «Monto USD», porque mezcla el nominal en bolívares o yuanes.
       const estado = describirIngreso(ing).estado;
       const filaDelMayor: CsvValue[] =
-        estado === "no_comparable"
+        ing.controlI2.unidadMayor === "nominal_mixto"
           ? ["En el mayor · cuenta 4.5 · asientos de factura: nominal mixto (no USD)", "", ""]
+          : ing.controlI2.unidadMayor === "sin_verificar"
+            ? ["En el mayor · cuenta 4.5 · asientos de factura: unidad sin verificar", "", ""]
           : ["En el mayor · cuenta 4.5 · asientos de factura", ing.mayor?.ventas ?? "", ""];
       return {
         slug: "contable-estado-resultados",
         headers: ["Concepto", "Monto USD", "% s/ingresos"],
         rows: [
-          ...inc.rows.map((r): CsvValue[] => [r.label, r.amount, r.pct ?? ""]),
+          ...inc.rows.map((r): CsvValue[] => [
+            r.label,
+            ing.controlI2.unidadMayor === "usd" ? r.amount : "",
+            ing.controlI2.unidadMayor === "usd" ? r.pct ?? "" : "",
+          ]),
           ["Ingreso facturado (sin IVA · USD · por emisión)", ing.facturado.total, ""],
           ["Fondos de terceros incluidos en el facturado", ing.facturado.terceros, ""],
           filaDelMayor,
-          ["Diferencia facturado − mayor (4.5)", ing.diferenciaUsd ?? "", ""],
+          ["Ajuste documental por anulaciones", ing.ajusteAnulacionesUsd ?? "", ""],
+          ["Base comparada · facturado + ajuste", ing.baseComparacionUsd ?? "", ""],
+          [ing.controlI2.contribucionesAjuste > 0 ? "Diferencia base comparada − mayor (4.5)" : "Diferencia facturado − mayor (4.5)", ing.diferenciaUsd ?? "", ""],
           [`Control contra 4.5: ${ETIQUETA_ESTADO_INGRESO[estado]}`, "", ""],
+          ...(causaDelControlI2(ing) ? [[`Causa del control: ${causaDelControlI2(ing)}`, "", ""]] : []),
           // Solo las que tienen su asiento de factura vivo (decisión 7).
           ["Facturas del período en bolívares o yuanes con asiento de factura (cantidad)", ing.enOtraMoneda, ""],
-          ["Otros ingresos del mayor (4.6 y manuales · también a 4.5)", ing.mayor?.otrosIngresos ?? "", ""],
+          ["Otros ingresos del mayor (4.6 y manuales · también a 4.5)", ing.controlI2.unidadMayor === "usd" ? ing.mayor?.otrosIngresos ?? "" : "", ""],
           ["Facturas sin convertir (bolívares sin tasa o yuanes)", ing.sinConvertir, ""],
         ],
       };

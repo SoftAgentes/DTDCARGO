@@ -19,13 +19,16 @@ import { computeBalances } from "@/lib/studio/account-queries";
 import type { Account } from "@/lib/studio/account-types";
 import { balanceSheet, profitAndLoss } from "@/lib/studio/accounting/reports";
 import { balanceDeComprobacion, type ReportesDelLibro } from "@/lib/studio/accounting/libro-control";
-import { resumirIngreso, type IngresoPeriodo } from "@/lib/studio/accounting/ingreso-periodo";
+import { resumirIngreso as resumirIngresoSinContexto, type IngresoPeriodo } from "@/lib/studio/accounting/ingreso-periodo";
 import {
   FACTURAS_DEL_MES,
   FACTURAS_EN_USD,
   RANGO_MES,
   control,
+  resumirIngresoConContexto as resumirIngreso,
+  datosReversoGo1, lectorReversoGo1, controlReversoGo1, RANGOS_REVERSO_GO1,
 } from "@/lib/studio/accounting/__tests__/ingreso-fixture";
+import { ingresoDelPeriodo } from "@/lib/studio/accounting/libro-control-queries";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
@@ -181,5 +184,38 @@ describe("IngresoDelPeriodoCard (Contabilidad › Reportes y Reportes › Estado
     expect(
       screen.getByText(/Otros ingresos del mayor que no salen del asiento de una factura \(4\.6 y asientos manuales, también a 4\.5\): \$300\.00/),
     ).toBeInTheDocument();
+  });
+});
+
+describe("I2 · tarjeta del puente documental", () => {
+  it("mantiene oficial cero prominente y muestra ajuste/base/diferencia del reverso", async () => {
+    const datos = datosReversoGo1(); const rango = RANGOS_REVERSO_GO1.octubre;
+    const i = await ingresoDelPeriodo(lectorReversoGo1(datos).client, rango, { mayor: controlReversoGo1(datos, rango) });
+    render(<IngresoDelPeriodoCard ingreso={i} />);
+    expect(screen.getByTestId("ingreso-facturado")).toHaveTextContent("$0.00");
+    expect(screen.getByTestId("ingreso-puente")).toHaveTextContent(/Ajuste documental.*-\$100\.00/);
+    expect(screen.getByTestId("ingreso-puente")).toHaveTextContent(/Base comparada.*-\$100\.00/);
+    expect(screen.getByTestId("ingreso-puente")).toHaveTextContent(/Diferencia.*\$0\.00/);
+    expect(screen.getByTestId("ingreso-control")).toHaveAttribute("data-estado", "cuadra");
+  });
+  it("sin evidencia distingue null de cero, no muestra éxito ni cifra USD del mayor", () => {
+    const i = resumirIngresoSinContexto([], RANGO_MES, control(0, 0, true));
+    render(<IngresoDelPeriodoCard ingreso={i} />);
+    const controlVisible = screen.getByTestId("ingreso-control");
+    expect(controlVisible).toHaveAttribute("data-estado", "requiere_revision");
+    expect(controlVisible.querySelector(CHECK_DE_EXITO)).toBeNull();
+    expect(screen.getByTestId("ingreso-mayor-ventas")).toHaveTextContent(/^unidad sin verificar$/);
+    expect(screen.getByTestId("ingreso-puente")).toHaveTextContent("No disponible");
+    expect(screen.getByTestId("ingreso-puente")).toHaveTextContent(/No se leyó el contexto/);
+  });
+  it("nominal y corrupción muestran advertencia monetaria y causa de integridad a la vez", async () => {
+    const datos = datosReversoGo1({ currency: "VES", base: 3650, fxRate: 36.5 });
+    datos.journal_lines = datos.journal_lines.filter(l => l.id !== "reverso-ar-go1");
+    const rango = RANGOS_REVERSO_GO1.combinado;
+    const i = await ingresoDelPeriodo(lectorReversoGo1(datos).client, rango, { mayor: controlReversoGo1(datos, rango) });
+    render(<IngresoDelPeriodoCard ingreso={i} />);
+    expect(screen.getByTestId("ingreso-mayor-ventas")).toHaveTextContent("nominal mixto (no USD)");
+    expect(screen.getByTestId("ingreso-puente")).toHaveTextContent(/líneas|par de anulación/i);
+    expect(screen.getByTestId("ingreso-control").querySelector(CHECK_DE_EXITO)).toBeNull();
   });
 });
