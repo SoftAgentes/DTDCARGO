@@ -3413,6 +3413,12 @@ a.svp-it:hover .nm {
   align-items: center;
   gap: var(--s-4);
 }
+.home-surface .hero-ctas > .btn {
+  /* Mantiene la caja normal de 48px y deja crecer la etiqueta al envolver. */
+  height: auto;
+  min-height: var(--s-12);
+  padding-block: var(--s-3);
+}
 .home-surface .hero-feats {
   list-style: none;
   margin: var(--s-6) 0 0;
@@ -3476,7 +3482,8 @@ a.svp-it:hover .nm {
     display: none;
   }
   .home-surface .hero-grid {
-    grid-template-columns: 1fr;
+    /* El mínimo automático ensanchaba los CTA al ampliar texto al 200%. */
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--s-4);
     padding-top: var(--s-8);
     align-content: start;

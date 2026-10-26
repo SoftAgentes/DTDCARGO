@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 559 specs)
+### Índice de specs (generado · 560 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -597,6 +597,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0570 | Pruebas PGlite sin initdb por caso: plantilla del cluster rec… | in-progress | interno |
 | 0577 | Reintento de borrado disponible y consultas de archivos del P… | in-progress | interno |
 | 0579 | Promesas de seguimiento coherentes en FAQ y fuentes locales | done | interno |
+| 0580 | Shipping Mark CTA: altura intrínseca y recorrido móvil | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0571, 0572, 0573, 0574, 0575, 0576, 0578 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
