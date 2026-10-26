@@ -133,7 +133,7 @@ describe("ingresoDelPeriodo", () => {
           linea("l12", "e6", "ventas", 0, 50),
         ],
       },
-      { serverCap: SERVER_CAP },
+      { serverCap: SERVER_CAP, proyectar: true },
     );
     const i = await ingresoDelPeriodo(client, RANGO_MES);
     expect(i.mayor).toEqual({ ventas: 600, ventasConMovimiento: true, ingresos: 1100, otrosIngresos: 500 });
@@ -294,7 +294,12 @@ describe("reportesDelLibro", () => {
   it("P&L del rango; balance y comprobación al corte; ingreso con el control del período", async () => {
     const { client, filtros } = dobleListados(
       {
-        invoices: FACTURAS_EN_USD,
+        // FICTICIO local explícito: f1 es el documento enlazado a e1.
+        invoices: [{
+          id: "f1", tenant_id: "t", status: "emitida", issued_at: "2025-03-05",
+          currency: "USD", fx_rate: 1, base_amount: 1000,
+          fund_class: "local_revenue", deleted_at: null,
+        }],
         accounts: PLAN,
         journal_entries: [deFactura("e1", "2025-03-05", "asentado", { invoice_id: "f1" }), entrada("e0", "2025-02-10")],
         journal_lines: [
@@ -304,7 +309,7 @@ describe("reportesDelLibro", () => {
           linea("l4", "e0", "banco", 0, 300),
         ],
       },
-      { serverCap: SERVER_CAP },
+      { serverCap: SERVER_CAP, proyectar: true },
     );
     const r = await reportesDelLibro(client, RANGO_MES);
     expect(r.pnl.income).toBe(600);

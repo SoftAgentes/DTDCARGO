@@ -1,3 +1,4 @@
+import { dobleListados as dobleListadosPnlI2 } from "../../__tests__/listados-double";
 /**
  * Tests de queries de Reportes & Analytics (SDD-0052 · Slice A).
  *
@@ -689,30 +690,51 @@ function fictIncomeStub(rowsByTable: FictIncomeRows): {
 
 describe("incomeStatement", () => {
   it("aplica el rango del período a journal_entries y formatea las filas del P&L", async () => {
+    // FICTICIO: asiento manual en USD; no representa una factura ni entra al puente I2.
     // Cuentas raíz por tipo (I ingresos, CGS costo, G gasto) + sub-cuentas.
     const accounts = [
-      { id: "i", code: "4", type: "I", parent_id: null, is_postable: false },
-      { id: "i1", code: "4.1", type: "I", parent_id: "i", is_postable: true },
-      { id: "c", code: "5", type: "CGS", parent_id: null, is_postable: false },
-      { id: "c1", code: "5.1", type: "CGS", parent_id: "c", is_postable: true },
-      { id: "g", code: "6", type: "G", parent_id: null, is_postable: false },
-      { id: "g1", code: "6.1", type: "G", parent_id: "g", is_postable: true },
+      { id: "i", tenant_id: "t", code: "4", type: "I", parent_id: null, is_postable: false },
+      { id: "i1", tenant_id: "t", code: "4.1", type: "I", parent_id: "i", is_postable: true },
+      { id: "c", tenant_id: "t", code: "5", type: "CGS", parent_id: null, is_postable: false },
+      { id: "c1", tenant_id: "t", code: "5.1", type: "CGS", parent_id: "c", is_postable: true },
+      { id: "g", tenant_id: "t", code: "6", type: "G", parent_id: null, is_postable: false },
+      { id: "g1", tenant_id: "t", code: "6.1", type: "G", parent_id: "g", is_postable: true },
+      { id: "a", tenant_id: "t", code: "1", type: "A", parent_id: null, is_postable: false },
+      { id: "a1", tenant_id: "t", code: "1.1", type: "A", parent_id: "a", is_postable: true },
     ];
-    const journal_entries = [{ id: "e1" }];
+    const journal_entries = [{
+      id: "e1", tenant_id: "t", entry_code: "FICT-PNL-1", entry_date: "2026-06-01",
+      memo: "P&L manual ficticio USD", status: "asentado", source: "manual",
+      invoice_id: null, reverses_entry_id: null, deleted_at: null,
+      receipt_id: null, bill_id: null, supplier_payment_id: null,
+    }];
     const journal_lines = [
       // Ingreso 10000 (crédito en cuenta I → saldo natural acreedor).
-      { account_id: "i1", debit: 0, credit: 10000 },
+      { id: "l1", entry_id: "e1", account_id: "i1", debit: 0, credit: 10000 },
       // Costo 4000 (débito en cuenta CGS).
-      { account_id: "c1", debit: 4000, credit: 0 },
+      { id: "l2", entry_id: "e1", account_id: "c1", debit: 4000, credit: 0 },
       // Gasto 2000 (débito en cuenta G).
-      { account_id: "g1", debit: 2000, credit: 0 },
+      { id: "l3", entry_id: "e1", account_id: "g1", debit: 2000, credit: 0 },
+      // Contrapartida FICTICIA explícita: debe=haber=10000, sin alterar el P&L.
+      { id: "l4", entry_id: "e1", account_id: "a1", debit: 4000, credit: 0 },
     ];
-    const { client, calls } = stub({ accounts, journal_entries, journal_lines });
+    const { client, filtros } = dobleListadosPnlI2(
+      { accounts, journal_entries, journal_lines, invoices: [] },
+      { serverCap: SERVER_CAP, proyectar: true },
+    );
     const out = await incomeStatement(client, "YTD", NOW);
+    // Adaptación fiel del registro real de filtros; no fabrica consultas.
+    const calls = {
+      journal_entries: {
+        gte: filtros.filter((f) => f.table === "journal_entries" && f.op === "gte").map((f) => [f.col, f.val]),
+        lte: filtros.filter((f) => f.table === "journal_entries" && f.op === "lte").map((f) => [f.col, f.val]),
+      },
+    };
 
     // El rango YTD (1° enero) se aplica a entry_date de journal_entries.
     expect(calls.journal_entries.gte).toContainEqual(["entry_date", "2026-01-01"]);
     expect(calls.journal_entries.lte).toContainEqual(["entry_date", "2026-06-15"]);
+    expect(filtros).toContainEqual({ table: "journal_entries", op: "in", col: "source", val: ["invoice", "invoice_reversal"] });
 
     // P&L: ingresos 10000, cgs 4000, bruta 6000, gastos 2000, neta 4000.
     expect(out.income).toBe(10000);
