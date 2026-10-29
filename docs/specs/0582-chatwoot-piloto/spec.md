@@ -17,7 +17,7 @@ confidencialidad: interno
 
 Define:
 - el alcance del 100%;
-- las etapas E0–E9 y sus puertas;
+- las etapas E0–E10 y sus puertas;
 - la metodología de avance;
 - las reglas que debe cumplir cada SDD hija.
 
@@ -57,7 +57,8 @@ Respuestas y aportes:
 - embudo propio y reemplazos de lo que hoy hace Kommo en el ERP;
 - bot propio con modos;
 - guía interactiva;
-- corte, salida de Kommo y limpieza del ERP.
+- corte, salida de Kommo y limpieza del ERP;
+- dos números de WhatsApp, uno de leads y otro de clientes, con enrutamiento por segmento desde el ERP (línea base v2, E10).
 
 **Kommo sigue operando hasta el 100%.**
 
@@ -66,7 +67,8 @@ Respuestas y aportes:
 - rol «solo ver»;
 - panel junto al chat y tema por `DASHBOARD_SCRIPTS`;
 - atención móvil dentro de Studio;
-- integración de comentarios de IG y FB, si la matriz de paridad decide atenderlos a mano temporalmente.
+- integración de comentarios de IG y FB, si la matriz de paridad decide atenderlos a mano temporalmente;
+- n8n para pegamento no crítico, que se evalúa después del 100 % (ver «Cambio de alcance v2»).
 
 ## Decisiones técnicas (evidencia en la investigación)
 
@@ -122,14 +124,78 @@ Respuestas y aportes:
   - nunca entran en Git payloads, exportaciones, transcripciones ni capturas con datos personales;
   - los valores de Meta y las exportaciones van cifrados fuera del repo.
 
+## Cambio de alcance v2 (2026-10-29)
+
+Sam lo aprobó al aprobar el plan del Director en la app; no hay frase literal, así que se registra como «aprobación del plan v3 del Director, 2026-10-29». La línea base pasa de **v1, 99,75 días** a **v2, 109,25 días** (0.8, 4.9, 6.3 y E10 en el [checklist](checklist.md)). La evidencia está en el [registro E0](investigacion-2026-10-29-e0.md#línea-base-v2--fuentes-y-verificación-del-código-2026-10-29), filas V2-1 a V2-14. Etiquetas: **C** código, **D** documentación de un proveedor, **I** inferencia, **NV** no verificado.
+
+### Dos números en el mismo portafolio
+
+- **Número nuevo para el público y los leads,** conectado a la API y a Chatwoot (paso 4.9). El actual, el de `CONTACT.ve.whatsapp`, queda **solo para clientes**: sigue en Kommo y pasa a Chatwoot en el corte (E8), como ya estaba previsto. (Decisión de Sam, plan v3.)
+- **Va en el mismo portafolio, «Importador de China».** Con los usernames de WhatsApp, Meta identifica a cada usuario con un ID por portafolio (BSUID), y si el usuario adopta un username su teléfono puede no llegar en los webhooks (**D**, V2-1 y V2-2). Que un número de otro portafolio no le pueda escribir con ese ID se deduce del alcance por portafolio (**I**, V2-1).
+- El número nuevo arranca con un tope bajo de mensajes iniciados por DTD, que no limita atender (**NV**; se comprueba en 4.9).
+- Las prohibiciones del número actual no cambian. Cómo queda el número nuevo frente a la regla de «una sola cuenta de mensajes de DTD para Chatwoot» (decisión B) se confirma en 4.9 (**NV**).
+
+### Regla de segmentos (fuente única: el ERP)
+
+| Segmento | Regla | Número y embudo |
+|---|---|---|
+| **Cliente** | Algún `shipments` vivo (`deleted_at is null`, estado distinto de `draft` y `cancelled`) con un `client_markbox` de sus códigos vigente, histórico o fusionado. Contar o no la carga recibida en China (`warehouse_receipts_cn`) lo decide Sam en **0.8** | Número de clientes · embudo **Clientes** |
+| **Lead registrado** | Está en `clients` pero no cumple la regla de cliente | Número de leads · embudo **Leads**, etapa «Registrado / recontacto» |
+| **Lead nuevo** | No está en `clients`, o su teléfono es ambiguo o desconocido | Número de leads · embudo **Leads**, etapa «Nuevo» |
+
+- **Hoy el ERP no distingue cliente de registrado:** el router de Kommo trata como «cliente» a cualquiera que esté en `clients` (`supabase/functions/_shared/kommo-router.ts:85-111`, **C**, V2-4).
+- **El cruce es por `clients.phone_last10`** (`supabase/migrations/0383_clients_phone_last10_y_vinculo.sql:64-80`). Tiene índices pero no es única, así que más de un candidato se trata como desconocido, igual que hoy (`kommo-router.ts:108-110`) (**C**, V2-5).
+- **Los envíos se ligan por texto** en `shipments.client_markbox` (`supabase/migrations/0002_shipments.sql:36`). Los códigos viejos o fusionados salen de `client_outstanding` (`supabase/migrations/0492_client_outstanding.sql:215`). La carga en China está en `warehouse_receipts_cn` (`supabase/migrations/0008_warehouses_cn.sql:52`) (**C**, V2-6).
+- **La regla de «cliente» está pendiente de Sam en 0.8.** Hasta entonces, la tabla es la propuesta del plan v3.
+- La regla se calcula **siempre en el momento** y no se guarda como estado. Va en una función SQL de solo lectura, sin datos personales en la salida y con contrato en PGlite (10.1).
+- Un lead nuevo pasa a registrado al registrarse, y a cliente con su primer envío vivo. Su tarjeta cambia de embudo sola (6.3 y 10.5).
+
+### Redirección sin IA
+
+- **El bot no usa IA.** Dentro de la ventana de 24 h, al cliente que escribe al número de leads le contesta con un texto y un enlace `wa.me/<número de clientes>?text=…` (10.2).
+- Que esa respuesta no se cobre dentro de la ventana de servicio queda **NV**; se comprueba en 4.3 o 4.9.
+- **Botón CTA URL:** Meta documenta el mensaje interactivo `cta_url` (**D**, V2-3). Que Chatwoot lo envíe está **NV**, así que el enlace va en el texto.
+- **Usuario con username y sin teléfono (BSUID):** el bot no pide códigos ni teléfono. Contesta lo mismo a todos, «si ya eres cliente, escríbenos aquí», y guarda el BSUID (10.3). Así no revela si un número o un código existe. (Diseño, **I**.)
+- **No se le escribe al cliente desde el número de clientes.** Un mensaje iniciado por la empresa exige una plantilla pagada y consentimiento previo, y con el enlace basta, porque lo inicia el cliente (**I**: regla general de Meta, sin fuente leída en esta tarea).
+
+### Tickets del portal a los embudos
+
+- `conversations` lleva `client_id` (`supabase/migrations/0106_conversaciones.sql:45`). `conversation_messages` se liga por `conversation_id`; el plan v3 decía que las dos llevaban `client_id` (**C**, V2-7).
+- El enganche va justo después de `notifyConversationInbound` en `app/portal/(app)/mensajes/actions.ts:45` (**C**, V2-8). Un cliente va al embudo Clientes, y un registrado sin envío vivo va a Leads registrados (10.5, requiere 6.3).
+- **Web y portal con el número correcto (10.4):**
+  - El sitio público usa una sola constante, `CONTACT.ve.whatsapp` / `whatsappRaw` (`lib/design-tokens.ts:245-246`), con `buildWhatsAppLink` (`lib/design-tokens.ts:146-149`) en 44 archivos fuera de pruebas. Hay un número escrito a mano en `components/servicios/FichaF2.tsx:69` (**C**, V2-9).
+  - El portal sabe quién es la persona con `get_portal_client_id()` (`supabase/migrations/0080_portal_cliente.sql:40`), así que puede mostrar el número según su segmento (**C**, V2-10).
+
+### Decisión sobre n8n
+
+- **n8n no se usa para el enrutamiento: todo va en Studio.** Las razones:
+  1. Los datos sensibles se quedan en el ERP. n8n guarda por defecto los datos de cada ejecución, con teléfonos y mensajes (**I**, del plan v3; no se contrastó con la documentación de n8n). Además, necesitaría una llave de la base o un endpoint nuevo.
+  2. La regla es simple: tres casos y una respuesta. Va con pruebas, contratos SQL y el despliegue de siempre.
+  3. Es un servicio menos que asegurar, respaldar y actualizar en el VPS.
+  4. Studio ya tiene su motor de flujos «N8N-lite» (`supabase/migrations/0143_workflow_engine.sql:4`, **C**, V2-11).
+- **Se puede evaluar después del 100 %** para pegamento no crítico, como reportes y avisos: aislado, sin guardar ejecuciones y llamando solo a endpoints de Studio con secreto.
+- El bot con IA de E7 sigue con el motor de la v2 de esta spec.
+
+### Alerta de Meta «Datos restringidos»
+
+- Es **informativa** y no pide ninguna acción. La causa probable es la regla del DOJ de EE. UU. sobre «países de preocupación» (**I**, inferida; no hay fuente leída en esta tarea, V2-12).
+
+### Dependencias de los pasos nuevos
+
+- 4.3 (número de prueba) → 4.9 (número nuevo).
+- 2.3 (webhook de Chatwoot a Studio) → 10.1–10.3 → 10.6.
+- 6.3 → 10.5.
+- 10.4 va al final, con el número nuevo vivo.
+- E10 se reserva como SDD hija con `sdd:next --reserve` cuando arranque, después de 2.3.
+
 ## Metodología de avance
 
 - **Fórmula:** `avance = Σ días base de pasos aceptados ÷ Σ días base del alcance aprobado`, y **falta = 100 − avance**. Unidad: persona-día de 8 h.
-- **Línea base versionada.** La v1 del 2026-10-28 son 99,75 días en 10 etapas. Un cambio de alcance crea la v2 y muestra el % antes y después.
+- **Línea base versionada.** La v1 del 2026-10-28 son 99,75 días en 10 etapas. La **v2 del 2026-10-29** son 109,25 días en 11 etapas (ver «Cambio de alcance v2»). Cada cambio de alcance crea una versión nueva y muestra el % antes y después.
 - **Esfuerzo aparte.** El real y el restante reestimado se informan aparte y no mueven el %. Las esperas pesan 0 y bloquean.
 - **Estados:** `pendiente`, `en curso`, `entregado`, `aceptado`, `bloqueado`, `espera externa` y `descartado`. Solo `aceptado` suma.
 - **Cálculo:** `node scripts/avance-checklist.mjs docs/specs/0582-chatwoot-piloto/checklist.md`.
-- **Reporte en cada avance:** `Etapa N de 10 · <nombre> · paso <ID> · Avance X % (falta Y %) · Esfuerzo: real R d, restante D d · Fecha probable <rango> · Esperando: … · Necesito de ti: …`.
+- **Reporte en cada avance:** `Etapa N de 11 · <nombre> · paso <ID> · Avance X % (falta Y %) · Esfuerzo: real R d, restante D d · Fecha probable <rango> · Esperando: … · Necesito de ti: …`.
 - **Reestimación:** al cerrar cada etapa, con el motivo escrito.
 - **Calendario (inferencia):**
   - mínimo idealizado de 60 días con dos carriles;
@@ -175,3 +241,4 @@ El código del producto y la infraestructura se allowlistan en la SDD hija de ca
   Las decisiones del piloto anterior (máquina, ruta 2A/2B y dueño de la WABA) pasan a los pasos 0.2 y 0.3. La ruta queda fijada como «compartir el número API».
 - **2026-10-29 (E0):** decisiones de 0.2 en el [registro E0](investigacion-2026-10-29-e0.md): máquina = VPS actual del ERP (cambia G), Sam admin + 1 agente, tope del bot de US$25 al mes y «analiza mi contestación» en la IA de Kommo. Guías de 0.3–0.7 en [`e0-guias.md`](e0-guias.md). El DNS de `dtdcargo.com` está en Cloudflare, no en Hostinger.
 - **2026-10-29 (E0, tarde):** Sam aprobó («Apruebo todo», 2026-10-29) dejar el número en «Importador de China», la cuenta de mensajes propia de Chatwoot con plantillas y pago propios, y la vuelta atrás de 0.3. Se corrigieron la decisión B y las prohibiciones.
+- **2026-10-29 (línea base v2):** Sam aprobó el plan v3 del Director («aprobación del plan v3 del Director, 2026-10-29»): dos números, regla de segmentos, E10 y n8n fuera del enrutamiento. Alcance 99,75 → 109,25 días; avance en la rama de E0 5,0 % → 4,6 %, y con las aceptaciones de las otras ramas 7,8 % → 7,1 %. La regla de «cliente» queda para 0.8.
