@@ -73,3 +73,53 @@ bash levantar.sh --bajar
 - **rack-attack detrás de Cloudflare (E2-I3, NV).** El `req.ip` de Chatwoot podría ser la IP de Cloudflare, y entonces los topes por IP (login 5 cada 5 min, `req/ip`) se comparten entre usuarios. Le toca a E1 o E3: medirlo en el VPS con OK y, si hace falta, `trusted_proxies`.
 - **`ensayo-local.sh` de E1 no copia `marca/`** a su carpeta de prueba (`preparar_carpeta`), así que el ensayo monta una carpeta vacía en `/app/public/dtd-marca`. Es inofensivo, pero el ensayo no cubre la marca.
 - **Sesiones huérfanas:** un intento de SSO desde otro sitio crea la sesión en el servidor aunque el navegador no guarde la cookie (E2-R3), y cuenta para `MAX_USER_SESSIONS`.
+
+---
+
+# Paso 2.2 — la Bandeja en Studio (en curso, 2026-10-29)
+
+Pedido por la sesión coordinadora del programa («CRM Chatwoot»), a cuenta de Sam: su texto, tal como lo citó esa sesión, fue «listo avanza con lo demas». Diseño E2-D7 a E2-D15, allowlist y aceptación en [`spec.md`](../../docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md) §«Paso 2.2». Nada desplegado ni aplicado.
+
+## Qué quedó
+
+| Pieza | Dónde | Pruebas |
+|---|---|---|
+| Cabeceras: `frame-src` del chat y micrófono delegado, solo en `/studio/bandeja/:path*` | `next.config.ts`, `lib/runtime/chatwoot-origin.ts` | `next-config.test.ts` con el matcher de Next (una sola CSP y una sola Permissions-Policy por URL); 2 mutantes muertos |
+| Platform API (SSO y agente), configuración y marca `dtd_cw_sso` | `lib/studio/chatwoot/` | 35 casos; el `access_token` del agente no sale del cliente |
+| Migración 0503: flag `chatwoot_inbox` y `chatwoot_agent_links` con RLS | `supabase/migrations/0503_chatwoot_bandeja.sql` (**NO APLICADA**, declarada en `migrations-baseline.json`) | PGlite con la 0337 real: 26 aserciones, control rojo, 8 mutantes y reaplicación |
+| Módulo `bandeja`, RBAC (admin, commercial, support), flag con efecto `ruta`, i18n es-VE/zh-CN | `lib/studio/{modules,rbac,feature-flags-types}.ts`, `lib/i18n/*/bandeja.ts` | RBAC, view-guard, actions-guard (78 archivos, 447 acciones) y catálogo de flags |
+| Página, iframe, vínculos (solo admin, con el mismo correo) y `signOut` | `app/studio/(app)/bandeja/`, `app/studio/(app)/actions.ts` | acciones 19 (doble que filtra; 3 mutantes), componente 8, `signOut` 1 |
+| `/ui-check` | — | 3 ajustes aplicados: botones del sistema, `ConfirmDialog` y `ErrorAlert` |
+
+## Hallazgos de este paso
+
+- **Lookahead suelto (corregido aquí):** con `studio/bandeja` a secas en el catch-all, `/studio/bandejas` se quedaba sin **ninguna** cabecera de seguridad. Se acotó a `studio/bandeja(?:/|$)`.
+- **Platform API:** `GET /platform/api/v1/users/{id}` devuelve el `access_token` personal del agente. El cliente lo descarta.
+- **`signOut`:** la Platform API de 4.19.1 no revoca sesiones (E2-D13). Studio borra su marca y el próximo ingreso pide un SSO nuevo. La sesión del panel sigue viva en ese navegador para quien abra `chat.dtdcargo.com` directo, hasta 2 meses. El cierre real va en 2.7.
+- **`CHATWOOT_URL` se lee en el build** (cabeceras de `next.config.ts`) **y en runtime** (servidor). Si algún día cambia, hay que reconstruir la imagen.
+
+## Validación del paso 2.2 (hasta ahora)
+
+| Comprobación | Resultado |
+|---|---|
+| `tsc --noEmit` | PASÓ (exit 0) |
+| `eslint` de lo tocado | PASÓ |
+| Vitest puntual (cabeceras, chatwoot, 0503, RBAC, flags, i18n, Bandeja, signOut, env) | PASÓ |
+| `governance:check`, `components:check` | PASÓ |
+| `pnpm verify` | **NO EJECUTADO**: espera turno de la sesión coordinadora (una corrida pesada a la vez) |
+
+## Pendientes del paso 2.2
+
+- `pnpm verify` con turno.
+- Puertas que este paso no cruza, cada una con su OK nominal de Sam:
+  - aplicar la 0503 en producción;
+  - cargar `CHATWOOT_PLATFORM_TOKEN` y `CHATWOOT_ACCOUNT_ID` en el servidor de Studio;
+  - desplegar;
+  - encender `chatwoot_inbox`.
+- **AUD-01 (no conformidad pendiente):** los vínculos no dejan evento en `entity_audit_log`. Va en 2.5.
+- **E2-NV1:** `clipboard-write`, `autoplay` y el websocket dentro del iframe. Se miden en el QA de 2.6 contra un Chatwoot real.
+
+## FUERA DE ALCANCE DETECTADO (2.2)
+
+- **El mismo lookahead suelto existe hoy con `studio/bitacora`:** cualquier ruta que empiece así (por ejemplo `/studio/bitacora-x`) se queda sin las cabeceras de seguridad. Hoy no hay una ruta así; corregirlo es otra tarea.
+- **«Conversaciones» (SDD-0056)** es otra bandeja propia de Studio. Qué pasa con ella cuando Chatwoot sea la bandeja es una decisión de producto de Sam.
