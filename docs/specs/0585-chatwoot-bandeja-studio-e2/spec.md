@@ -118,6 +118,18 @@ Turno dado por la sesión coordinadora. Resultado global: **FALLÓ** (exit 1), c
 
 **Lo de este paso, medido aparte:** cabeceras, chatwoot, 0503 (PGlite y psql), RBAC, flags, i18n, Bandeja, `signOut` y `pending-migration-symbols`, todo en PASÓ.
 
+#### FUERA DE ALCANCE DETECTADO (verify del 2.2)
+
+Decisión del Director (2026-10-29): el 2.2 queda **entregado** con este verify. Los rojos de abajo no son de esta tarea y no se tocan sus archivos. Se resuelven al integrar, con un merge normal de la base, cuando cada dueño los corrija.
+
+| Rojo | Origen | Etiqueta | Dueño |
+|---|---|---|---|
+| sql-tests: `0467_reversion_credito_carrera`, `0497_reverso_al_anular_factura` y `0497_…_carrera` (el preflight de `excepcion_al_cierre_vigente(uuid)` no coincide) | Los `.test.sql` y las migraciones de esta rama son idénticos a `main` `ec5786bb8`, salvo la 0503 (comprobado por el Director). El rojo vendría de `main`; no se midió ahí porque `quality.yml` no corre sql-tests | I | SDD-0573 |
+| Vitest: `infra/chatwoot/cf-access/verificador.test.mjs` («No test suite found»: usa `node:test`) | E1 (`e93654ce3`). El CI de calidad corre `pnpm test`, así que **rompería `main` al integrar** | R | E1 (SDD-0583) |
+| Vitest: `scripts/__tests__/avance-checklist.test.mjs` («arranca en 0 %») | Exige 0 % y el programa ya daba 5,0 % en la base, desde que se aceptó E0 | R | E0 (SDD-0582) |
+| e2e: `sin-scroll-horizontal.spec.ts:119` (Shipping Mark → `/registro`) | Flaky por la compilación en frío de `next dev` en el sitio público. Aislado: falla el primer intento y pasa el reintento | R | Sin dueño por ahora (hallazgo) |
+| Vitest: timeouts de `PackingListProductsStep`, `supplier-flow` y `NewOperarioDrawer`; e2e colgado 22,6 min | Carga de la máquina (3 workers de Vitest caídos). Aislados pasan 37/37 | R | — |
+
 ### Gobernanza del paso 2.2
 
 | Política | Clasificación | Evidencia |

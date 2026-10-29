@@ -76,7 +76,7 @@ bash levantar.sh --bajar
 
 ---
 
-# Paso 2.2 — la Bandeja en Studio (en curso, 2026-10-29)
+# Paso 2.2 — la Bandeja en Studio (entregado, 2026-10-29)
 
 Pedido por la sesión coordinadora del programa («CRM Chatwoot»), a cuenta de Sam: su texto, tal como lo citó esa sesión, fue «listo avanza con lo demas». Diseño E2-D7 a E2-D15, allowlist y aceptación en [`spec.md`](../../docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md) §«Paso 2.2». Nada desplegado ni aplicado.
 
@@ -110,7 +110,7 @@ Pedido por la sesión coordinadora del programa («CRM Chatwoot»), a cuenta de 
 
 ## Pendientes del paso 2.2
 
-- Volver a correr `pnpm verify` cuando se resuelvan los rojos heredados (SDD-0573 en SQL, el `node:test` de E1 y la prueba del avance en 0 %). O que el Director acepte el cierre con la tabla de `spec.md`.
+- ~~verify verde~~: el Director dio el 2.2 por **entregado** con el verify del 2026-10-29 («el 2.2 queda ENTREGADO con el verify que tienes»). Falta la aceptación de Sam o del Director.
 - Puertas que este paso no cruza, cada una con su OK nominal de Sam:
   - aplicar la 0503 en producción;
   - cargar `CHATWOOT_PLATFORM_TOKEN` y `CHATWOOT_ACCOUNT_ID` en el servidor de Studio;
@@ -120,6 +120,15 @@ Pedido por la sesión coordinadora del programa («CRM Chatwoot»), a cuenta de 
 - **E2-NV1:** `clipboard-write`, `autoplay` y el websocket dentro del iframe. Se miden en el QA de 2.6 contra un Chatwoot real.
 
 ## FUERA DE ALCANCE DETECTADO (2.2)
+
+**Rojos del verify** (detalle y etiquetas en `spec.md` §«Validación del paso 2.2»):
+- **sql-tests 0467 y 0497×2** (I): los archivos son idénticos a `main` `ec5786bb8`, salvo la 0503. Es de SDD-0573.
+- **`infra/chatwoot/cf-access/verificador.test.mjs`** (R): usa `node:test`. Es de E1, y **rompería `main` al integrar**, porque el CI de calidad corre `pnpm test`.
+- **`avance-checklist.test.mjs` «arranca en 0 %»** (R): es de E0 (SDD-0582).
+- **e2e `sin-scroll-horizontal.spec.ts:119`** (R): flaky por compilación en frío de `next dev`. Sin dueño por ahora.
+- **Timeouts de Vitest y e2e colgado** (R): por carga de la máquina; aislados pasan.
+
+**Otros:**
 
 - **El mismo lookahead suelto existe hoy con `studio/bitacora`:** cualquier ruta que empiece así (por ejemplo `/studio/bitacora-x`) se queda sin las cabeceras de seguridad. Hoy no hay una ruta así; corregirlo es otra tarea.
 - **«Conversaciones» (SDD-0056)** es otra bandeja propia de Studio. Qué pasa con ella cuando Chatwoot sea la bandeja es una decisión de producto de Sam.
