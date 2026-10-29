@@ -57,11 +57,11 @@ Ejemplo de log (ID sintético): `[DTD] /register bloqueado (Phone Number ID prot
 | `ensayo-local.sh` completo de E1 con el montaje nuevo | NO EJECUTADO: es una corrida pesada de ~15 min con Traefik. El inicializador se cargó y aplicó en el mismo arranque de Rails que usan rails y sidekiq (L0, L1). Riesgo bajo; conviene correrlo antes del despliegue |
 | `pnpm verify` | NO APLICA: el cambio es infraestructura de Chatwoot y docs; no toca la app de DTD |
 
-Avance del programa sin cambio: **5,0 %** (solo suma `aceptado`); entregados sin aceptar: 1.1, 1.2, 1.3, 1.4, 1.7 y 4.2.
+Avance del programa: 5,0 % al entregar; **5,8 %** con 4.2 aceptado (2026-10-29).
 
 ## Pendiente de esta tarea
 
-1. **Aceptación de 4.2** por Sam (o el Director): commit propio que pase la fila a `aceptado`.
+1. ~~Aceptación de 4.2~~: **aceptado** por Sam el 2026-10-29 («Acepto todo», en la sesión del programa). No autoriza el despliegue (punto 2).
 2. **Puerta de despliegue (OK nominal de Sam, antes de 4.5):** copiar `rails/zz_dtd_proteccion_register.rb` y el `compose.yml` nuevo a `/srv/chatwoot`, escribir el Phone Number ID del número principal en el `.env` con `read -s` (runbook §8) y `docker compose up -d`. Comprobar dos líneas `activa: 1 ` y ninguna `modo cerrado`. Mientras no se despliegue, el VPS no tiene el inicializador, pero tampoco tiene bandejas de WhatsApp.
 3. Integración: la PR va sobre `codex/0582-e1-chatwoot-vps`; se integra después de la #329.
 
