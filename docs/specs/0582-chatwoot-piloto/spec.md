@@ -134,6 +134,7 @@ Respuestas y aportes:
   - mínimo idealizado de 60 días con dos carriles;
   - 15–19 semanas con esperas, es decir, del 2027-02-15 al 2027-03-15 si se arranca el 2026-11-02;
   - el vencimiento probable de Kommo es el 2027-02-28 (no verificado); puede hacer falta un mes más.
+  - **Actualizado el 2026-10-29 (E0-D5, T):** Kommo vence el 2027-05-29 con renovación automática activada (cobro el 2027-05-26). El margen frente al calendario es de unos 2,5 meses.
 
 ## Aceptación del programa
 

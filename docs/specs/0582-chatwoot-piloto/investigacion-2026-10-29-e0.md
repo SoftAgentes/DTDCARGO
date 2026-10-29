@@ -18,7 +18,14 @@ No contiene datos personales, tokens ni valores de Meta. Los números de teléfo
 | E0-D2 | **Roles:** Sam administrador + 1 agente que ve y contesta todas las bandejas | Chat, 2026-10-29 | Decisión |
 | E0-D3 | **Tope de gasto del bot: US$25 al mes**, con corte local duro que apaga el bot y pasa a humano | Chat, 2026-10-29 | Decisión |
 | E0-D4 | **«Analiza mi contestación» vive en la IA de Kommo.** Se respalda en 7.3 antes del corte | Chat, 2026-10-29 | Decisión |
-| E0-D5 | **Renovación de Kommo:** Sam la mira en Kommo (Configuración → Facturación). El repo solo tiene «Pro, 1 licencia, renueva 29.08.2026» | D(`docs/marketing/kommo-estado-y-pendientes.md:68`, 2026-08) | NV |
+| E0-D5 | **Kommo vence el 29.05.2027**, con la renovación automática **activada**; el próximo cobro es el 26.05.2027 (plan Pro, 1 licencia paga, 1/1 en uso). El paquete de créditos de IA de 50.000 está caducado desde el 29.08.2026, sin renovación automática | Kommo → Ajustes → Facturación, leído en el Chrome de Sam el 2026-10-29 | T |
+
+Consecuencias de E0-D5:
+- el calendario del plan (15–19 semanas, del 2027-02-15 al 2027-03-15) termina unos 2,5 meses **antes** del vencimiento; la fecha probable del 2027-02-28 que suponía la spec queda descartada;
+- para no pagar otro período, la renovación automática se desactiva antes del 26.05.2027, y solo después del acta de 8.6 (va con 8.12, con su OK nominal);
+- si E8 se atrasa más allá de mayo de 2027, Kommo se renueva solo.
+
+Sobre E0-D4: en Kommo no aparece ninguna función, agente ni Salesbot con ese nombre (K-15). La ubicación exacta se confirma con Sam en 7.3.
 
 ### Capacidad del VPS del ERP (para E0-D1)
 
@@ -69,7 +76,22 @@ Por M-6, la lectura por API de suscripciones y overrides se hace justo después 
 | K-11 | Ningún código escribe UTM, `gclid` ni `fbclid` en Kommo; los campos existen solo en Kommo | D(`docs/marketing/kommo-campos-y-cartera.md:14-18`) + `rg` | C |
 | K-12 | No hay inventario de plantillas de WhatsApp aprobadas por Meta en el repo | `rg` | C |
 
-La matriz de paridad de fuentes de leads y la plantilla de los 15 Salesbots están en [`e0-guias.md`](e0-guias.md#04).
+### Lectura en Kommo (Chrome de Sam, 2026-10-29, solo lectura)
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| K-13 | Los **15 Salesbots** están en la lista con los mismos nombres y todos aparecen atenuados (apagados). Los 4 «Ping 23 h» tienen el disparador «Último mensaje entrante» con una alerta roja, NPS tiene «Conversación cerrada» y los 10 restantes no tienen ninguno. Lanzamientos totales: 17, 368, 145 y 589 en los Ping; de 0 a 3.886 en los antiguos. Quedan 4 sesiones activas (2 en Carga marítima y 2 en Bienvenida) | Automatizaciones → Bots | T |
+| K-14 | Los **4 agentes de IA** (Cotizador, Reenganche, asistente de ventas y Atención al cliente de comercio minorista) están apagados, sin canal, con última actividad el 15.10.2026. Créditos usados en el ciclo: 48 de 2.250 | Agente de IA | T |
+| K-15 | Kommo Copilot, Respuesta sugerida de IA y Sugerencias de tareas de IA están **apagados**. Ninguna función se llama «analiza mi contestación» | Ajustes → Configuraciones de IA | T |
+| K-16 | 7 fuentes de conocimiento: el DOCX v7, «DTD FAQ 1» y «DTD FAQ 2», la URL del sitio y 3 textos que **solo viven en Kommo** (Datos clave, Productos y servicios, Descripción del negocio), usados por el agente. Todas tienen 0 usos | Ajustes → Fuentes de conocimiento de IA | T |
+| K-17 | 5 usuarios y 1 sola licencia paga (1/1 en uso) | Ajustes → Gestión de usuarios y Facturación | T |
+| K-18 | Integraciones instaladas: WhatsApp Business, Instagram, Facebook, WhatsApp Lite, Google Business Messages, Twilio, Google, 3 widgets NOVA (tintado de leads, «no es un lead activo» y análisis de llamadas con IA), la integración privada del ERP («CRM a DTDCARGO.COM») y la de 0.6. Hay 1 webhook configurado | Centro de integraciones | T |
+| K-19 | 7 plantillas de chat: 5 de WhatsApp **aprobadas** en la misma WABA (2 Utility y 3 Marketing: avisos de carga y reactivación) y 2 generales sin aprobación | Automatizaciones → Plantillas | T |
+| K-20 | En los ajustes del espacio **no hay exportación ni copia de seguridad** de chats, ni reglas de borrado de archivos. Kommo avisa que algunas fuentes de chat no guardan los archivos de más de 5 MB si no se descargan a tiempo | Ajustes → Configuración del espacio | T |
+| K-21 | Las plantillas aprobadas pertenecen a la WABA, no a Kommo: Chatwoot debería poder usarlas al conectar el mismo número | K-19 | I (se prueba en 4.5) |
+| K-22 | En E5, algunos adjuntos viejos pueden no estar disponibles (K-20) | K-20 | I (se mide en 5.2) |
+
+La matriz de paridad de fuentes de leads y la tabla de los 15 Salesbots están en [`e0-guias.md`](e0-guias.md#04).
 
 ## 0.5 — Correo
 

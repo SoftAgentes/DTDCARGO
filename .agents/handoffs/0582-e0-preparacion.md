@@ -11,9 +11,9 @@
 
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
-| 0.2 | en curso | 4 de 5 decisiones de Sam (E0-D1–D4) | Fecha de renovación de Kommo (Sam la mira) |
+| 0.2 | entregado | 5 decisiones; Kommo vence el 29.05.2027 con renovación automática (T) | Aceptación de Sam; ubicar «analiza mi contestación» en 7.3 |
 | 0.3 | en curso | Guía de 13 puntos, nota cifrada y vuelta atrás escritas; M-1–M-7 | Lectura en Meta con Sam; aprobación de la vuelta atrás |
-| 0.4 | en curso | Inventario del repo (K-1–K-12), tabla de los 15 Salesbots y matriz de paridad | Confirmar en Kommo «activo hoy», agentes, fuentes, usuarios, integraciones y backup |
+| 0.4 | entregado | Kommo leído en solo lectura (K-13–K-22, T): 15 bots y 4 agentes apagados, 7 fuentes, 7 plantillas, integraciones, sin exportación de chats | Aceptación de Sam |
 | 0.5 | en curso | DNS medido (T): Cloudflare, MX Hostinger, sin MX de `inbound.` | Paneles de Hostinger (tipo de `info@`, DKIM) y Resend (recepción, webhooks) |
 | 0.6 | aceptado | Historial leído con la integración nueva; paginación medida (X-1–X-17, R) | Aceptado por Sam («Acepto 0.6», 2026-10-29). Revocar la integración al cerrar E5 |
 | 0.7 | en curso | Plantilla de expedientes | Verificación del negocio y pago propio comprobados |
@@ -43,6 +43,7 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 ## Lo que se hizo en sistemas externos (todo lectura)
 
 - VPS del ERP: `free`, `df`, `docker stats`, `ps`, `vmstat` y PSI (05:20 UTC); `kommo_connections` (conteo y estado) y lectura del token de Vault en memoria para 0.6.
+- Kommo UI (lectura, 2026-10-29): Facturación, Configuraciones de IA, Fuentes de conocimiento, Usuarios (solo conteo), Bots, Agentes de IA, Plantillas y Centro de integraciones. Nada se cambió.
 - Kommo UI: se creó la integración privada de 0.6 (única escritura, autorizada).
 - Kommo API: `events`, `talks/{id}`, `talks/{id}/messages` (403), `account`. Nada escrito; ningún cuerpo de mensaje leído.
 - DNS público por `dns.google`.
@@ -62,9 +63,9 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 
 ## Pendientes de esta tarea
 
-1. Sam: fecha de renovación de Kommo (cierra 0.2).
+1. Sam: aceptar 0.1, 0.2 y 0.4.
 2. Sam + IA: lectura de Meta (0.3, 13 puntos) y aprobación de la vuelta atrás.
-3. Sam + IA: confirmar en Kommo la tabla de 15 Salesbots y los 7 puntos de 0.4.
+3. Hecho: Kommo leído el 2026-10-29.
 4. Sam + IA: Hostinger (`info@`, DKIM) y Resend (recepción, webhooks) para 0.5.
 5. Hay 3 tokens de la integración «DTD 0582 historial» vigentes 100 días y ninguno guardado; se pueden revocar en Kommo → la integración → Llaves y alcances, y la integración se revoca al cerrar E5.
 6. Sam: verificación del negocio y método de pago propio (0.7).

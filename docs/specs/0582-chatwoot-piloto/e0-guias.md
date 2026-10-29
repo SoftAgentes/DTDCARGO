@@ -67,23 +67,23 @@ Kommo → Configuración → Herramientas de comunicación → Salesbot, y Embud
 
 | Bot (id) | Grupo | Activo hoy | Disparador | Temporizador | Efecto | Reemplazo en el plan |
 |---|---|---|---|---|---|---|
-| 38249 Bienvenida horario oficina | Antiguo | ¿? | Ninguno (2026-08-06) | — | Saludo + menú A–H | Contenido a la base (7.4) |
-| 38711 Asignar asesor | Antiguo | ¿? | Ninguno | — | Cambia responsable, Round Robin | No aplica: 1 agente (E0-D2) |
-| 38713 Solicitud de datos | Antiguo | ¿? | Ninguno | — | Pide datos y los guarda | No: lo hace el registro web |
-| 38251 Carga marítima | Antiguo | ¿? | Ninguno | — | Condiciones del servicio | Base (7.4) |
-| 38777 Atención al cliente | Antiguo | ¿? | Ninguno | — | Imagen + cambia etapa | No |
-| 38773 Cursos | Antiguo | ¿? | Ninguno | — | Info de cursos | Base (7.4) |
-| 38775 Asesorías personalizadas | Antiguo | ¿? | Ninguno | — | Info del servicio | Base (7.4) |
-| 38715 Validación de proveedores | Antiguo | ¿? | Ninguno | — | Presencial vs. digital | Base (7.4) |
-| 38771 Validación de mercancía | Antiguo | ¿? | Ninguno | — | Almacén vs. fábrica | Base (7.4) |
-| 47639 NPS Bot | Antiguo | ¿? | Conversación cerrada | — | Encuesta (nunca corrió) | No |
-| 54707 Chat del sitio | Antiguo | ¿? | Ninguno | — | Vacío (nunca corrió) | No |
-| Ping 23 h — Leads Entrantes | Ping | ¿? | 23 h tras el último entrante | Siempre | Mensaje al cliente | 6.7 |
-| Seguimiento antes de que cierre la ventana de 24 horas | Ping | ¿? | 23 h tras el último entrante | Siempre | Mensaje al cliente (Contacto inicial) | 6.7 |
-| Ping 23 h — Recontacto | Ping | ¿? | 23 h tras el último entrante | Siempre | Mensaje al cliente | 6.7 |
-| Aviso interno — ventana de 24 h por cerrarse | Ping | ¿? | 23 h tras el último entrante | Siempre | Tarea interna (vence en 1 h) | 6.7 |
+| 38249 Bienvenida horario oficina | Antiguo | No | Ninguno (2026-08-06) | — | Saludo + menú A–H | Contenido a la base (7.4) |
+| 38711 Asignar asesor | Antiguo | No | Ninguno | — | Cambia responsable, Round Robin | No aplica: 1 agente (E0-D2) |
+| 38713 Solicitud de datos | Antiguo | No | Ninguno | — | Pide datos y los guarda | No: lo hace el registro web |
+| 38251 Carga marítima | Antiguo | No | Ninguno | — | Condiciones del servicio | Base (7.4) |
+| 38777 Atención al cliente | Antiguo | No | Ninguno | — | Imagen + cambia etapa | No |
+| 38773 Cursos | Antiguo | No | Ninguno | — | Info de cursos | Base (7.4) |
+| 38775 Asesorías personalizadas | Antiguo | No | Ninguno | — | Info del servicio | Base (7.4) |
+| 38715 Validación de proveedores | Antiguo | No | Ninguno | — | Presencial vs. digital | Base (7.4) |
+| 38771 Validación de mercancía | Antiguo | No | Ninguno | — | Almacén vs. fábrica | Base (7.4) |
+| 47639 NPS Bot | Antiguo | No | Conversación cerrada | — | Encuesta (nunca corrió) | No |
+| 54707 Chat del sitio | Antiguo | No | Ninguno | — | Vacío (nunca corrió) | No |
+| Ping 23 h — Leads Entrantes | Ping | No | 23 h tras el último entrante | Siempre | Mensaje al cliente | 6.7 |
+| Seguimiento antes de que cierre la ventana de 24 horas | Ping | No | 23 h tras el último entrante | Siempre | Mensaje al cliente (Contacto inicial) | 6.7 |
+| Ping 23 h — Recontacto | Ping | No | 23 h tras el último entrante | Siempre | Mensaje al cliente | 6.7 |
+| Aviso interno — ventana de 24 h por cerrarse | Ping | No | 23 h tras el último entrante | Siempre | Tarea interna (vence en 1 h) | 6.7 |
 
-Sam llena «Activo hoy» y corrige lo que haya cambiado desde agosto. Si hay más de 15 bots, se agregan filas.
+«Activo hoy» se leyó en Kommo el 2026-10-29 (K-13): los 15 están apagados y no hay bots nuevos.
 
 ### Otros puntos de 0.4
 
