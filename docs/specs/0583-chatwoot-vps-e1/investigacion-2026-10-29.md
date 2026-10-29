@@ -8,7 +8,7 @@ Fuente del código: la imagen `chatwoot/chatwoot:v4.19.1-ce`, digest `sha256:048
 
 | ID | Afirmación | Fuente | Etiqueta |
 |---|---|---|---|
-| T-1 | En el VPS: **Tailscale no está instalado**; Compose 5.6.0; corren `ops-traefik-traefik-1` y `ops-uptime-kuma-uptime-kuma-1`; redes edge `dtd_edge`, `loop-3d_edge`, `loop-3d-staging_edge`, `rent-awada-pruebas_edge`; `/srv/ops/backup/` tiene `age-recipients.txt` y `rclone/`; disco `/` 49 % usado (150 GB libres); presión de CPU `some` avg300 = 29,34 %; ufw permite 22, 80 y 443 desde cualquier origen | `ssh root@217.216.54.70` con `tailscale`, `docker ps --format {{.Names}}`, `docker network ls`, `ls`, `df`, `/proc/pressure/cpu`, `ufw status`. Sin leer contenedores, bases ni datos | T |
+| T-1 | En el VPS: **Tailscale no está instalado**; Compose 5.6.0; corren `ops-traefik-traefik-1` y `ops-uptime-kuma-uptime-kuma-1`; redes edge `dtd_edge`, `loop-3d_edge`, `loop-3d-staging_edge`, `rent-awada-pruebas_edge`; `/srv/ops/backup/` tiene `age-recipients.txt` y `rclone/`; disco `/` 49 % usado (150 GB libres); presión de CPU `some` avg300 = 29,34 %; ufw permite 22, 80 y 443 desde cualquier origen (**corregido por T-17**: Docker no pasa por ufw y 80/443 solo aceptan a Cloudflare) | `ssh root@217.216.54.70` con `tailscale`, `docker ps --format {{.Names}}`, `docker network ls`, `ls`, `df`, `/proc/pressure/cpu`, `ufw status`. Sin leer contenedores, bases ni datos | T |
 
 ## Despliegue en el VPS (puerta P1, «Autorizo P1» de Sam, 2026-10-29)
 
@@ -25,6 +25,17 @@ Fuente del código: la imagen `chatwoot/chatwoot:v4.19.1-ce`, digest `sha256:048
 | T-10 | DTD intacto: los 11 contenedores de `dtd-cargo` seguían «Up 4 days» / «Up 10 days»; web 200 en 0,88 s. Consumo de Chatwoot en el VPS al arrancar: rails 376 MiB, sidekiq 437 MiB, postgres 57 MiB, redis 4 MiB | `docker ps`, `docker stats` | R |
 | T-11 | Let's Encrypt rechazó el certificado de `chat.dtdcargo.com` (sin DNS), una vez, a las 15:52Z | log de Traefik | R |
 | T-12 | Primer respaldo real: 44 s, `success`, 4 archivos en `b2:dtdcargo-respaldos/chatwoot/chatwoot-20261029T155439Z` y `rclone check` sin diferencias (`dump_entradas=1146`, 0 filas de negocio); timers `chatwoot-respaldo` (06:30 UTC) y `chatwoot-vigilancia` (5 min) activos; monitores Push #6 y #7 creados en Uptime Kuma y en verde tras el primer latido | `systemctl`, log del respaldo, panel de Uptime Kuma | R |
+
+## DNS (puerta P2, «Autorizo P2» de Sam, 2026-10-29)
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| T-13 | Antes: ningún registro con «chat» entre los 19 de la zona; `dns.google` sin respuesta para A, AAAA y CNAME. La web, `supabase.`, `prueba.`, `supabase-prueba.` y `vps.` van con proxy de Cloudflare | panel DNS de Cloudflare (sesión de Sam), `dns.google` | T |
+| T-14 | Creado `A chat.dtdcargo.com → 217.216.54.70`, **Solo DNS**, TTL automático (20 de 200 registros). Cloudflare muestra el aviso «Tu dirección IP del servidor de origen está parcialmente expuesta» (aceptado en E1-D9) | panel DNS de Cloudflare, 16:11Z | T |
+| T-15 | La autoritativa (`cloudflare-dns.com`) responde `217.216.54.70` al instante; `dns.google` y el VPS siguen con el caché negativo del intento de las 15:52Z (SOA mínimo 1800 s); a las 16:25Z ya resuelven los dos | DoH, `getent` | R |
+| T-16 | Segundo intento de certificado (16:28Z, tras recrear `rails`): Let's Encrypt **no llega al puerto 80** («Timeout during connect (likely firewall problem)») y Traefik sigue con su certificado por defecto | log de Traefik, `openssl s_client` | R |
+| T-17 | Causa: desde el **2026-10-22** el VPS tiene `/usr/local/sbin/cloudflare-origin-firewall`, que pone en `DOCKER-USER` la cadena `CF-WEB-ORIGIN`: todo lo que entra por `eth0` a 80/443 solo pasa si viene de uno de los 15 rangos de Cloudflare; lo demás se descarta. ufw todavía muestra 80/443 abiertos, pero Docker no pasa por ufw. **Corrige T-1 y E1-D9**: el origen NO es público para la web; solo SSH (22) lo es | `iptables -S DOCKER-USER`, `iptables -S CF-WEB-ORIGIN`, `ls -la` del script | T |
+| T-18 | Consecuencia: con el registro sin proxy, ni Let's Encrypt ni los navegadores llegan a `chat.dtdcargo.com`. Por la tailnet (otra interfaz, no `eth0`) la regla no aplica | lectura de la regla (`-i eth0`) | C |
 
 ## Código de Chatwoot 4.19.1
 

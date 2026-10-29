@@ -82,11 +82,13 @@ Routers que declara `rails` (labels en `compose.yml`, prefijo = nombre del proye
 
 ## 4 · DNS (puerta P2) y administración (puerta P3)
 
-**DNS, en Cloudflare** (el DNS de `dtdcargo.com` está ahí, C-1 del registro E0): registro `A chat → 217.216.54.70`. Recomendación (E1-D9): **sin proxy** (nube gris).
+**DNS, en Cloudflare** (el DNS de `dtdcargo.com` está ahí, C-1 del registro E0): registro `A chat → 217.216.54.70`, creado el 2026-10-29 16:11Z **sin proxy** (P2). Recomendación revisada (E1-D9): **con proxy** (nube naranja).
 
-- Con proxy, Cloudflare termina TLS y ve cada mensaje: sería un tercero más con todas las conversaciones (revisión de datos E1, H3).
-- Con proxy, Rails ve la IP de Cloudflare y el límite por IP de Rack::Attack mete a todos en la misma bolsa, porque `TRUSTED_PROXY_CIDRS` del Traefik no incluye los rangos de Cloudflare.
-- Sin proxy, se expone la IP del VPS; hoy ya es pública (ufw deja 80 y 443 abiertos a todos y el SSH también).
+- **El origen solo acepta 80/443 desde Cloudflare.** Desde el 2026-10-22, `/usr/local/sbin/cloudflare-origin-firewall` pone la cadena `CF-WEB-ORIGIN` en `DOCKER-USER` y descarta todo lo que no venga de los rangos de Cloudflare por `eth0`. Sin proxy, Let's Encrypt no llega («Timeout during connect», 16:28Z) y los navegadores tampoco. ufw muestra 80/443 abiertos, pero Docker no pasa por ufw.
+- Con proxy, Cloudflare termina TLS y ve cada mensaje. Ya ve todo el tráfico de la web y de Supabase de DTD, con datos de clientes; Chatwoot le suma las conversaciones (revisión de datos E1, H9).
+- Con proxy, Rails ve la IP de Cloudflare y Rack::Attack mete a todos en la misma bolsa, porque `TRUSTED_PROXY_CIDRS` del Traefik no incluye los rangos de Cloudflare. Con dos personas atendiendo no muerde; queda anotado.
+- Abrir 80/443 a todos para que funcione sin proxy le quitaría la protección a todos los sitios del VPS: no se recomienda.
+- Por Tailscale (otra interfaz, no `eth0`) la regla no aplica: `/super_admin` sigue funcionando como en el párrafo de abajo.
 
 **`/super_admin` y `/monitoring`:** solo desde `100.64.0.0/10`. **El VPS no tiene Tailscale** (comprobado el 2026-10-29), así que hoy nadie entra por web, ni siquiera Sam. Mientras tanto, lo de super admin se hace por consola sobre SSH:
 

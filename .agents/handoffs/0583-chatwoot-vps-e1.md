@@ -69,7 +69,7 @@ Hecho en el VPS, en orden (evidencia T-2 a T-12 del [registro](../../docs/specs/
 - **No toca:** contenedores, redes, `.env` ni base de DTD; el compose de Traefik; ufw.
 - **Vuelta atrás:** `docker compose down`, `docker network disconnect chatwoot_edge ops-traefik-traefik-1`, `systemctl disable --now` de los dos timers.
 
-**P2 · Registro DNS en Cloudflare:** `A chat.dtdcargo.com → 217.216.54.70`. Pregunta para Sam: **sin proxy (recomendado)** o con proxy. El onboarding ya está cerrado. Después del registro: `docker compose up -d --force-recreate rails` para que Traefik pida el certificado otra vez, comprobar el certificado de Let's Encrypt, y crear en Uptime Kuma los dos monitores HTTP («Chatwoot · API» y «Chatwoot · versión»).
+**P2 · Registro DNS en Cloudflare:** ⚠️ **hecha a medias el 2026-10-29** («Autorizo P2», como respuesta a «¿… sin proxy?»). El registro `A chat.dtdcargo.com → 217.216.54.70`, **Solo DNS**, existe desde las 16:11Z. Pero el certificado no sale: desde el 2026-10-22 el VPS solo acepta 80/443 desde Cloudflare (`cloudflare-origin-firewall`; registro T-16 a T-18), así que sin proxy nadie llega. Hacen falta la decisión y el OK de Sam: **activar el proxy en ese registro (recomendado)**, o dejarlo así. Con el proxy activo: recrear `rails` (`docker compose up -d --force-recreate --no-deps rails`), comprobar el certificado de Let's Encrypt y crear en Uptime Kuma los dos monitores HTTP («Chatwoot · API» y «Chatwoot · versión»). Van 2 intentos fallidos de Let's Encrypt (15:52Z y 16:28Z); el tope es 5 por hora.
 
 **P3 · Instalar Tailscale en el VPS** y unirlo a la tailnet de Sam (`tailscale up --ssh`, runbook servidor-contabo §1.5). Habilita `/super_admin` por web.
 

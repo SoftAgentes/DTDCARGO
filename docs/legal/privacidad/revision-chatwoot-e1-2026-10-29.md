@@ -73,7 +73,7 @@ Chatwoot no borra nada solo. El punto 5 de la skill pide un plazo y un camino de
 Chatwoot avisa por correo a los agentes (asignación, mención, mensaje nuevo según `notification_settings.email_flags`). El correo sale por el SMTP de Hostinger y puede llevar el nombre del contacto y un extracto del mensaje. Hostinger ya trata el correo de DTD, pero esto amplía lo que recibe. **Arreglo:** en E2.7, dejar las notificaciones por correo de cada agente en lo mínimo (sin «mensaje nuevo») y usar el aviso de Studio.
 
 **H9 · Cloudflare vería todas las conversaciones si `chat.` va con proxy — ENCONTRADO (decisión de Sam).**
-Con la nube naranja, Cloudflare termina TLS y ve cada mensaje y adjunto. **Recomendación (E1-D9):** registro sin proxy. Va en el pedido de la puerta P2.
+Con la nube naranja, Cloudflare termina TLS y ve cada mensaje y adjunto. **Actualizado el 2026-10-29 tras P2:** el VPS solo acepta tráfico web desde Cloudflare (`cloudflare-origin-firewall`, desde el 2026-10-22), así que sin proxy Chatwoot no es alcanzable. Cloudflare ya trata todo el tráfico de la web y de Supabase de DTD con datos de clientes; con proxy suma el contenido de las conversaciones. **Recomendación (E1-D9 revisada):** con proxy, y declarar a Cloudflare en el inventario de terceros como encargado del tráfico web de todo DTD (hoy esa fila no existe en la tabla 1). Decide Sam.
 
 **H10 · Geolocalización y texto libre — ENCONTRADO (justificar).**
 Chatwoot guarda la ubicación que el cliente mande por WhatsApp (`attachments.coordinates_*`) y cualquier cosa que escriba. No hay forma de no recibirlo. La justificación por escrito (punto 2) es la recogida y entrega de carga; hay que decirlo en la política (§5) y aplicar H7.

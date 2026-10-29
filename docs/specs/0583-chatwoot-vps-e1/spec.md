@@ -53,7 +53,7 @@ confidencialidad: interno
 | E1-D6 | Sin access log de Traefik para los routers de Chatwoot (`observability.accesslogs=false`) | La URL del SSO lleva el correo del agente y un token, y las búsquedas llevan teléfonos; el log de Rails (filtrado) registra cada pedido |
 | E1-D7 | `DISABLE_TELEMETRY=true` y `ENABLE_PUSH_RELAY_SERVER=false` | Sin ellas, Chatwoot manda conteos de conversaciones al hub y el texto de cada notificación al relay de push (`lib/chatwoot_hub.rb`) |
 | E1-D8 | `/super_admin` y `/monitoring` solo desde `100.64.0.0/10` (`tailscale-only@file`). Mientras el VPS no tenga Tailscale (T, 2026-10-29), la administración va por `docker compose exec` sobre SSH | No hay acceso web de super admin desde internet en ningún momento |
-| E1-D9 | Recomendación de DNS: `chat.dtdcargo.com` en Cloudflare **sin proxy** (nube gris) | Con proxy, Cloudflare termina TLS y ve cada conversación (un tercero más) y Rails ve la IP de Cloudflare. El origen ya es público (ufw 80/443 abiertos a todos). Decide Sam en el OK de DNS |
+| E1-D9 | ~~Recomendación de DNS: sin proxy (nube gris)~~ **Revisada el 2026-10-29 tras P2:** el VPS solo acepta 80/443 desde Cloudflare (`cloudflare-origin-firewall`, desde el 2026-10-22; registro T-17), así que sin proxy Chatwoot no es alcanzable ni recibe certificado (T-16). Nueva recomendación: **con proxy**, como el resto de la web | Cloudflare ya procesa todo el tráfico de la web y de Supabase de DTD, con datos de clientes; Chatwoot le suma el contenido de las conversaciones. Abrir el origen a todos le quitaría la protección a todos los sitios del VPS. Decide Sam |
 
 ## Allowlist exacta
 
