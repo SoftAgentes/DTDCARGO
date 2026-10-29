@@ -130,6 +130,7 @@ Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar. Le expliqué 
 - ufw deja el SSH (22) abierto a todo internet; el runbook servidor-contabo dice cerrarlo cuando haya Tailscale.
 - `TRUSTED_PROXY_CIDRS` del Traefik no incluye los rangos de Cloudflare: con proxy, las apps detrás ven la IP de Cloudflare.
 - El PDF del DPA de Contabo sigue sin seguimiento en la raíz del checkout principal (ya anotado en la spec 0582).
+- `infra/chatwoot/cf-access/verificador.node-test.mjs` hoy solo corre en el ensayo local (fase U de `pruebas/ensayo-local.sh`); meterla en una puerta automática como `harness:test` es una tarea aparte, aún sin dueño.
 
 ## Registro de corridas
 
