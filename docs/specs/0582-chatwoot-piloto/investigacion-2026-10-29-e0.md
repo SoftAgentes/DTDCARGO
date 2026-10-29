@@ -108,10 +108,17 @@ Consecuencias:
 | X-8 | Orden de magnitud del historial: unos 2.400 entrantes al mes; con los salientes, del orden de 10⁵ mensajes en 2 años | I |
 | X-9 | Las cabeceras de límite de velocidad no aparecieron en las respuestas; 0,25 s entre llamadas no dio ningún 429 | R |
 | X-10 | El formulario «Crear integración» de Kommo ofrece a una integración privada el alcance «Historial de chats externos», junto a «Acceder a la información de la cuenta», «Enviar a chats externos» y los de archivos, usuarios y notificaciones. Crearla pide un logo de 400×272 y un código enviado al correo de la cuenta | T |
+| X-11 | El token de la integración nueva tiene los alcances `list_external_messages` y `crm`, y vence en 100 días | R |
+| X-12 | Con ese token, `GET /api/v4/talks/{id}/messages` responde **200 en las 20 conversaciones** de la muestra (10 de WhatsApp y 10 de Instagram), en 0,68 s como máximo | R |
+| X-13 | Campos del mensaje: `id`, `chat_id`, `type`, `message_type`, `text`, `created_at`, `sec_created_at`, `delivery_status`, `origin`, `author` (`id`, `type`, `name`, `user_id`, `avatar_url`), `recipient` (igual) y `attachment` (`type`, `file_name`, `link`). Alcanzan para conservar autor, fecha y adjuntos en 5.5 | R |
+| X-14 | En la muestra: 67 mensajes (46 entrantes y 21 salientes); autores `external` 46, `internal` 20 y `bot` 1; 3 adjuntos de tipo `picture`. Una conversación cubre 87 días | R |
+| X-15 | La respuesta trae `_page` y `_links.self`, sin enlace `next`. Dos conversaciones devolvieron exactamente 10 mensajes: puede ser un tope por página | R (tope: I) |
 
 **Integración nueva (2026-10-29, ~07:00 UTC):** con el OK de Sam («Sí, créala» a «crear en Kommo una integración privada con alcance de historial de chats, solo para repetir la prueba de 0.6»), se creó «DTD 0582 historial (solo lectura)» con solo dos alcances: información de la cuenta e historial de chats externos. Se escribió el código de verificación y la integración aparece en la lista de Kommo (T, ~07:30 UTC). El token de larga duración **no se ha generado ni pasado al VPS**: el procedimiento quedó en pausa hasta hacerlo con Sam en vivo. La IA no debe verlo: Sam lo pega directo en el VPS (`/dev/shm`). Se revoca al cerrar E5.
 
-**Qué falta para cerrar 0.6:** que el token de la integración nueva llegue al VPS. Con él se repite la misma prueba y se miden la paginación y los tipos de mensaje y adjunto. Si Kommo no concede ese alcance a una integración privada, E5 se rehace sobre la exportación nativa (decisión con Sam, posible cambio de alcance).
+**Token y prueba (2026-10-29, ~08:20 UTC):** Sam generó el token y lo mandó al VPS desde su portapapeles (`Get-Clipboard | ssh …`); la IA no lo vio. La prueba lo borró de `/dev/shm` al terminar (comprobado). En disco y aquí solo quedan conteos y nombres de campo.
+
+**Qué falta para cerrar 0.6:** medir la paginación (X-15): cómo se piden los mensajes después de los 10 primeros. Si Kommo no concede ese alcance a una integración privada, E5 se rehace sobre la exportación nativa (decisión con Sam, posible cambio de alcance).
 
 ## Reestimación (cierre de E0, parcial)
 
