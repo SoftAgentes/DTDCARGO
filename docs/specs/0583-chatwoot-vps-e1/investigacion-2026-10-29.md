@@ -41,6 +41,13 @@ Fuente del código: la imagen `chatwoot/chatwoot:v4.19.1-ce`, digest `sha256:048
 | T-21 | Por Cloudflare, desde afuera: `/api` → 200 con 4.19.1 y servicios `ok`, TLS verificado; `/app/login` → 200 con `frame-ancestors 'self' https://dtdcargo.com`, HSTS y sin `X-Frame-Options`; `/super_admin/sign_in`, `/monitoring/sidekiq` e `/installation/onboarding` → 403. DTD: web 200 y los 11 contenedores sin reiniciar | `curl` desde la PC de Sam y en el VPS | R |
 | T-22 | Monitores HTTP «Chatwoot · API» (60 s, 2 reintentos, palabra clave de los dos servicios `ok`) y «Chatwoot · versión» (3600 s, `"version":"4.19.1"`) creados y en verde («keyword is found»). Con los dos Push, los cuatro monitores de Chatwoot en verde | panel de Uptime Kuma, 16:56Z | T |
 
+## Platform App (puerta P4, «Autorizo P4» de Sam, 2026-10-29)
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| T-23 | Antes: 0 Platform Apps, 0 cuentas, 0 usuarios. Creados por `rails runner` + Platform API sobre `https://chat.dtdcargo.com`: Platform App «DTD Studio» (token de 24 caracteres), cuenta «DTD Cargo» (id 1, `locale=es`), usuario «Servicio DTD Studio» (id 1, `servicio-chatwoot@dtdcargo.com`, confirmado) con rol `administrator` (`account_users` → 200). Comprobado: GET de la cuenta propia → 200; sin token → 401; registro público sigue en `false`. Después: 1 app, 1 cuenta, 1 usuario | `/root/p4-chatwoot.sh` en el VPS | R |
+| T-24 | Token, ids, correo y clave del usuario de servicio en `/srv/chatwoot/secretos/platform-app.env` (carpeta 0700, archivo 0600, root); ningún valor impreso. El token también vive en la base (tabla `access_tokens`), así que el respaldo conjunto lo cubre | `ls -ld`, `awk` de nombre y largo | R |
+
 ## Código de Chatwoot 4.19.1
 
 | ID | Afirmación | Fuente | Etiqueta |

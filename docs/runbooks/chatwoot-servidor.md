@@ -176,4 +176,5 @@ Los usuarios de personas (Sam y la persona que atiende, E0-D2) los da de alta St
 | Fecha | Qué | Quién | Evidencia |
 |---|---|---|---|
 | 2026-10-29 | Configuración escrita y probada en local (`pruebas/ensayo-local.sh`). Nada en el VPS | Worker SDD-0583 | [registro](../specs/0583-chatwoot-vps-e1/investigacion-2026-10-29.md) |
+| 2026-10-29 17:0xZ | **P4** («Autorizo P4», Sam): Platform App «DTD Studio», cuenta «DTD Cargo» (id 1) y usuario de servicio administrador; secretos en `/srv/chatwoot/secretos/platform-app.env` (0600) | Worker SDD-0583 | registro T-23 y T-24 |
 | 2026-10-29 15:38–16:00Z | **P1** («Autorizo P1», Sam): `/srv/chatwoot` copiado (sha256 igual al repo), `.env` 0600 generado en el servidor, red `chatwoot_edge` y Traefik conectado en caliente (sin reinicio), `up` en 289 s, `rails` unhealthy por `FORCE_SSL` → healthcheck con `X-Forwarded-Proto: https` y `up` de nuevo, onboarding cerrado, comprobaciones 1–6 en verde, primer respaldo a B2, timers y monitores Push #6 y #7. DTD sin cambios | Worker SDD-0583 | registro, filas T-2 a T-12 |
