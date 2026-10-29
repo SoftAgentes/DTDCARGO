@@ -112,20 +112,22 @@ Consecuencias:
 | X-12 | Con ese token, `GET /api/v4/talks/{id}/messages` responde **200 en las 20 conversaciones** de la muestra (10 de WhatsApp y 10 de Instagram), en 0,68 s como máximo | R |
 | X-13 | Campos del mensaje: `id`, `chat_id`, `type`, `message_type`, `text`, `created_at`, `sec_created_at`, `delivery_status`, `origin`, `author` (`id`, `type`, `name`, `user_id`, `avatar_url`), `recipient` (igual) y `attachment` (`type`, `file_name`, `link`). Alcanzan para conservar autor, fecha y adjuntos en 5.5 | R |
 | X-14 | En la muestra: 67 mensajes (46 entrantes y 21 salientes); autores `external` 46, `internal` 20 y `bot` 1; 3 adjuntos de tipo `picture`. Una conversación cubre 87 días | R |
-| X-15 | La respuesta trae `_page` y `_links.self`, sin enlace `next`. Dos conversaciones devolvieron exactamente 10 mensajes: puede ser un tope por página | R (tope: I) |
+| X-15 | **Paginación:** sin parámetros, `talks/{id}/messages` devuelve la conversación entera (se vieron 134, 86 y 20 mensajes en una sola respuesta); no hay tope de 10. Con `limit` + `page` pagina y trae `_links.next`/`prev`/`first`; cuando no hay más, responde **204**. `page` sin `limit` da 204 en la página 2, y `offset` y `page[limit]` se ignoran. `limit=250` devolvió los 134 mensajes de la más larga | R |
+| X-16 | Medición de la paginación: con un 2.º OK nominal de Sam («Sí, autorizo» a revisar hasta 80 conversaciones solo para contar la primera página y leer completas hasta 5 de más de 10 mensajes, solo conteos). Se revisaron 80 y se recorrieron 5. El token se borró al terminar (comprobado) | R |
+| X-17 | En los eventos de los últimos 13 días no aparece ninguna conversación de Messenger (solo `waba` e `instagram_business`); la muestra no cubre Messenger | R |
 
 **Integración nueva (2026-10-29, ~07:00 UTC):** con el OK de Sam («Sí, créala» a «crear en Kommo una integración privada con alcance de historial de chats, solo para repetir la prueba de 0.6»), se creó «DTD 0582 historial (solo lectura)» con solo dos alcances: información de la cuenta e historial de chats externos. Se escribió el código de verificación y la integración aparece en la lista de Kommo (T, ~07:30 UTC). El token de larga duración **no se ha generado ni pasado al VPS**: el procedimiento quedó en pausa hasta hacerlo con Sam en vivo. La IA no debe verlo: Sam lo pega directo en el VPS (`/dev/shm`). Se revoca al cerrar E5.
 
 **Token y prueba (2026-10-29, ~08:20 UTC):** Sam generó el token y lo mandó al VPS desde su portapapeles (`Get-Clipboard | ssh …`); la IA no lo vio. La prueba lo borró de `/dev/shm` al terminar (comprobado). En disco y aquí solo quedan conteos y nombres de campo.
 
-**Qué falta para cerrar 0.6:** medir la paginación (X-15): cómo se piden los mensajes después de los 10 primeros. Si Kommo no concede ese alcance a una integración privada, E5 se rehace sobre la exportación nativa (decisión con Sam, posible cambio de alcance).
+**0.6 entregado.** Alcance (X-1, X-11), enumeración (X-4), volumen y profundidad (X-5, X-6), campos (X-13) y paginación (X-15) medidos en runtime. Para E5: enumerar por eventos `incoming_chat_message` y `outgoing_chat_message`, leer cada conversación con `limit` y `page` hasta el 204, y guardar `id` de Kommo para que la carga sea idempotente. Se generaron 3 tokens de 100 días para esta prueba; ninguno quedó guardado. La integración se revoca al cerrar E5. Si Kommo no concede ese alcance a una integración privada, E5 se rehace sobre la exportación nativa (decisión con Sam, posible cambio de alcance).
 
 ## Reestimación (cierre de E0, parcial)
 
 | Paso | Base | Restante reestimado | Motivo |
 |---|---|---|---|
 | 6.7 | 2 | 0,75 | K-1, K-2 y K-4: 11 bots sin disparador y los 15 apagados. Solo hay que reemplazar el aviso de ventana de 24 h (4 bots «Ping 23 h») y pasar el contenido útil del menú A–H a la base de conocimiento de 7.4 |
-| E5 (5.1–5.8) | 7,75 | 8,25 | X-1 y X-2: el token actual no lee mensajes. Se suma medio día a 5.3 para la integración nueva y su prueba. El volumen (X-5, X-8) cabe en un extractor incremental sin cambio de diseño. Si el alcance no se concede, se reestima sobre la exportación nativa. El ERP no espeja el contenido de los mensajes (C, migración 0391) |
+| E5 (5.1–5.8) | 7,75 | 7,75 | **Ratificado por 0.6.** La integración con alcance de historial ya existe y funciona (X-11, X-12); la paginación es simple (X-15); el volumen (X-5, X-8) cabe en un extractor incremental. El trabajo extra de la integración se hizo en 0.6. Riesgo que queda: Messenger sin muestra (X-17). El ERP no espeja el contenido de los mensajes (C, migración 0391) |
 | 7.3 | 0,5 | 0,5 | Hay que respaldar 3 fuentes de texto y «analiza mi contestación», que viven solo en Kommo (K-6, E0-D4) |
 | 7.4 | 1,5 | 1 | La base v7 y los textos de los 4 agentes ya están en el repo (K-5, K-6) |
 | 7.1 | 1 | 1 | El tope de US$25 (E0-D3) no cambia el trabajo |
