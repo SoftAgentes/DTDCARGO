@@ -101,19 +101,19 @@ La matriz de paridad de fuentes de leads y la tabla de los 15 Salesbots están e
 | C-2 | El MX de la raíz va a `mx1`/`mx2.hostinger.com`: el buzón sigue en Hostinger | `dns.google`, MX | T |
 | C-3 | SPF de la raíz: solo `include:_spf.mail.hostinger.com ~all`. DMARC: `p=none` | `dns.google`, TXT | T |
 | C-4 | Resend envía desde el subdominio `send.` (MX y SPF de Amazon SES) y tiene DKIM `resend._domainkey` publicado | `dns.google` | T |
-| C-5 | No encontramos el DKIM de Hostinger en los selectores habituales (`hostingermail1-3`, `default`) | `dns.google` | NV (puede usar otro selector) |
+| C-5 | El DKIM de Hostinger usa los selectores `hostingermail-a`, `-b` y `-c` (CNAME a `*.dkim.mail.hostinger.com`) y **está publicado** en Cloudflare. Hostinger marca en verde MX, SPF, DKIM y DMARC | hPanel → Emails → dtdcargo.com → Ajustes de dominio, y `dns.google`, 2026-10-29 | T |
 | C-6 | `inbound.dtdcargo.com` **no tiene MX**: el subdominio receptor del runbook de Resend Inbound no está publicado | `dns.google`, MX | T |
 | C-7 | El ERP recibe correo por `app/api/conversaciones/email/route.ts` (firma Svix, solo `email.received`). El consumidor guarda en `conversation_messages` si el remitente es un cliente; si no, lo descarta. No crea leads ni toca Kommo | `lib/studio/conversaciones/inbound-email.ts:205-273`; route `:143-153` | C |
 | C-8 | Resend Inbound **no tiene ningún consumidor**: los 3 dominios de la cuenta tienen `receiving: disabled` y el único webhook apunta a `dtdcargo.com/api/webhooks/resend` con eventos de envío (`email.sent`, `delivered`, `bounced`, `complained`, `opened`, `clicked`, `failed`, `delivery_delayed`), no de recepción | API de Resend (`GET /domains` y `GET /webhooks`) desde el VPS con la llave del ERP, sin imprimirla, 2026-10-29 | T |
 | C-13 | La cuenta de Resend del ERP también tiene los dominios `hailuway.com` y `loop3d.store` (los 3 verificados, región `us-east-1`); la llave del ERP los ve todos | Misma lectura | T |
 | C-9 | `info@` nunca es remitente en el código; es destinatario de 4 avisos al equipo y se publica en la web | `lib/studio/contact-lead-notify.ts:49` y 3 más; `lib/design-tokens.ts:200` | C |
-| C-10 | `info@` es un alias de Hostinger que reenvía al buzón real `vzla@` | D(`docs/marketing/identidad.md:134-161`, 2026-08-19) | NV |
+| C-10 | `info@` es un **alias** del único buzón real, `vzla@` (1/50 alias usados). Hostinger lo describe como dirección secundaria «para enviar y recibir». No hay reenviadores ni buzón comodín. Plan Premium Business Email, 1 de 2 buzones en uso, vence el 2028-05-21 con renovación automática | hPanel → Emails → dtdcargo.com (Buzones, Alias, Reenviadores, Catch-all), Chrome de Sam, 2026-10-29 | T |
 | C-11 | Remitente de la app: `noreply@` con `reply_to` `comercial@` (fila sembrada en `mail_config`); el de Auth es `no-responder@` por SMTP de Resend | `supabase/migrations/0018_mailing.sql:407-423`; D(handoff 0505 `:357`) | C (valores vivos: NV) |
 | C-12 | `app/studio/(app)/conversaciones/actions.ts:135-141` no responde por correo (decisión del 2026-07-05); la §6 de `docs/runbooks/setup-resend-inbound.md` está desfasada | Código | C |
 
 Consecuencias:
 - en 1.2 y 4.8, los registros DNS (`chat.`, SPF y DKIM nuevos) se cambian en **Cloudflare**, no en Hostinger; el OK de Hostinger de 4.8 cubre solo el buzón;
-- si `info@` es alias (C-10), Chatwoot no puede enviar como `info@` por SMTP (D-4): la bandeja de 4.8 conecta el buzón real y responde con «enviar como» o pasa `info@` a buzón.
+- `info@` es alias de `vzla@` (C-10): la bandeja de 4.8 conecta por IMAP/SMTP el buzón `vzla@`. Si responder como `info@` por SMTP falla (D-4 dice que los alias no envían desde aplicaciones externas; Hostinger dice que sí envían: NV, se prueba en 4.8), la salida es convertir `info@` en el 2.º buzón del plan, que está libre.
 
 ## 0.6 — Prueba de extracción de Kommo
 
