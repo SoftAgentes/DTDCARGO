@@ -7,10 +7,11 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const pedirEnlaceSso = vi.fn();
+const desvincular = vi.fn<(prev: unknown, fd: FormData) => Promise<{ ok: boolean; error: null }>>(async () => ({ ok: true, error: null }));
 vi.mock("../actions", () => ({
   pedirEnlaceSso: () => pedirEnlaceSso(),
   vincularAgente: vi.fn(async () => ({ ok: false, error: null })),
-  desvincularAgente: vi.fn(async () => ({ ok: false, error: null })),
+  desvincularAgente: (prev: unknown, fd: FormData) => desvincular(prev, fd),
 }));
 
 const { BandejaClient } = await import("../_components/BandejaClient");
@@ -83,5 +84,24 @@ describe("BandejaClient (SDD-0585)", () => {
     expect(screen.getByText("Agentes vinculados")).toBeTruthy();
     expect(screen.getByText("#7")).toBeTruthy();
     expect(screen.getByRole("option", { name: "Luis" })).toBeTruthy();
+  });
+
+  it("desvincular pide confirmación y solo borra al confirmar", async () => {
+    render(
+      <BandejaClient
+        estado="sin_vinculo"
+        panelUrl={PANEL}
+        inicioUrl={null}
+        admin={{ vinculos: [{ userId: "u1", nombre: "Ana", chatwootUserId: 7 }], miembros: [] }}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Desvincular" }));
+    expect(desvincular).not.toHaveBeenCalled();
+    const dialogo = await screen.findByRole("dialog");
+    expect(dialogo.textContent).toContain("Ana ya no podrá abrir la bandeja");
+    const botones = Array.from(dialogo.querySelectorAll("button")).filter((b) => b.textContent === "Desvincular");
+    await userEvent.click(botones[botones.length - 1]);
+    await waitFor(() => expect(desvincular).toHaveBeenCalledTimes(1));
+    expect((desvincular.mock.calls[0][1] as FormData).get("user_id")).toBe("u1");
   });
 });

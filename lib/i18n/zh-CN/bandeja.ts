@@ -35,6 +35,9 @@ export const bandeja: BandejaDict = {
   "bandeja.links.unlinking": "正在解除…",
   "bandeja.links.created": "用户已绑定",
   "bandeja.links.deleted": "绑定已删除",
+  "bandeja.links.unlink_confirm_title": "解除该用户的绑定？",
+  "bandeja.links.unlink_confirm_body": "{nombre} 在重新绑定之前将无法从 Studio 打开收件箱。",
+  "bandeja.links.cancel": "取消",
 
   // ── 操作错误 ─────────────────────────────────────────────
   "bandeja.error.denied": "你没有执行此操作的权限。",

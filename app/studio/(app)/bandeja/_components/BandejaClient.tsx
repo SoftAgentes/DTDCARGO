@@ -61,7 +61,7 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, admin }: Props) {
       href={panelUrl}
       target="_blank"
       rel="noopener noreferrer"
-      style={{ font: "600 13px/1 var(--f-sans)", color: "var(--wine-text)", padding: "var(--s-2) var(--s-3)" }}
+      className="studio-btn studio-btn-ghost studio-btn-sm"
     >
       {t("bandeja.action.open_tab")}
     </a>

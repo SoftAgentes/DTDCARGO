@@ -39,6 +39,10 @@ export const bandeja = {
   "bandeja.links.unlinking": "Desvinculando…",
   "bandeja.links.created": "Usuario vinculado",
   "bandeja.links.deleted": "Vínculo eliminado",
+  "bandeja.links.unlink_confirm_title": "¿Desvincular este usuario?",
+  "bandeja.links.unlink_confirm_body":
+    "{nombre} ya no podrá abrir la bandeja desde Studio hasta que lo vuelvas a vincular.",
+  "bandeja.links.cancel": "Cancelar",
 
   // ── Errores de las acciones ──────────────────────────────
   "bandeja.error.denied": "No tienes permiso para hacer esto.",
