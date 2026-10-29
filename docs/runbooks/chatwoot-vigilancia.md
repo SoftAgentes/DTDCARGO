@@ -1,7 +1,7 @@
 # Runbook · Vigilancia de Chatwoot y del ERP en el mismo VPS · SDD-0583
 
 **SDD:** [0583](../specs/0583-chatwoot-vps-e1/spec.md), paso 1.6 del programa [0582](../specs/0582-chatwoot-piloto/checklist.md)
-**Estado:** **en marcha en el VPS desde el 2026-10-29 15:55Z** (puerta P1, «Autorizo P1» de Sam). Timer cada 5 min y monitores Push #6 y #7 en Uptime Kuma, en verde. Las 72 h terminan el **2026-11-01 ~16:00Z**. Los dos monitores HTTP esperan el DNS (P2).
+**Estado:** **en marcha en el VPS desde el 2026-10-29 15:55Z** (puerta P1, «Autorizo P1» de Sam). Timer cada 5 min y monitores Push #6 y #7 en Uptime Kuma, en verde. Las 72 h terminan el **2026-11-01 ~16:00Z**. Los dos monitores HTTP, creados el mismo día tras el DNS (P2), también en verde.
 **Reutiliza:** el Uptime Kuma que ya corre en el host (`ops-uptime-kuma-uptime-kuma-1`, `https://vps.dtdcargo.com`, VPS-5 del registro E0). No se instala nada nuevo de monitoreo.
 
 ## 1 · Qué se vigila y por qué
@@ -10,8 +10,8 @@ Chatwoot vive en el VPS de la producción de DTD (E0-D1). La pregunta de las 72 
 
 | Monitor en Uptime Kuma | Tipo | Qué mira | Intervalo | Aviso | Estado |
 |---|---|---|---|---|---|
-| Chatwoot · API | HTTP(s) – palabra clave | `https://chat.dtdcargo.com/api` contiene `"queue_services":"ok","data_services":"ok"` (Redis y Postgres vivos, `api_controller.rb`) | 60 s, 2 reintentos | Telegram de Sam | se crea tras P2 (sin DNS daría «caído») |
-| Chatwoot · versión | HTTP(s) – palabra clave | la misma URL contiene `"version":"4.19.1"`: avisa si alguien cambió la imagen fuera de E3 | 1 h | Telegram | se crea tras P2 |
+| Chatwoot · API | HTTP(s) – palabra clave | `https://chat.dtdcargo.com/api` contiene `"queue_services":"ok","data_services":"ok"` (Redis y Postgres vivos, `api_controller.rb`) | 60 s, 2 reintentos | Telegram de Sam | creado 2026-10-29 16:56Z, verde |
+| Chatwoot · versión | HTTP(s) – palabra clave | la misma URL contiene `"version":"4.19.1"`: avisa si alguien cambió la imagen fuera de E3 | 1 h, 1 reintento | Telegram | creado 2026-10-29 16:56Z, verde |
 | Chatwoot · recursos del host | Push (#7) | `vigilar.sh` cada 5 min (§2): `up` dentro de umbrales, `down` con el motivo | 900 s, 0 reintentos | Telegram | creado 2026-10-29, verde |
 | Respaldo Chatwoot · latido | Push (#6) | `respaldo.sh` al terminar bien | 93.600 s (26 h), 0 reintentos | Telegram | creado 2026-10-29, verde |
 | (los de DTD, ya existentes) | — | web, gateway de Supabase, respaldo de DTD | — | sin cambios |

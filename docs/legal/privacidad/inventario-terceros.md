@@ -79,7 +79,7 @@ Chatwoot CE corre en el mismo servidor de Contabo (fila de arriba): **no es un t
 | Gravatar (Automattic, EE. UU.) | MD5 del correo de cada contacto | **apagado** (`DISABLE_GRAVATAR=true`) | `avatar_from_gravatar_job.rb:5-9` |
 | MaxMind | descarga de base de geolocalización por IP | **no se usa** (sin `IP_LOOKUP_API_KEY`) | `app/services/geocoder/setup_service.rb:7-10` |
 | Hostinger (SMTP) | correos de aviso a los agentes; pueden llevar nombre del contacto y extracto del mensaje | activo; reducir en E2.7 (H8) | `config/initializers/mailer.rb` |
-| Cloudflare | **todo el tráfico del panel en claro** si `chat.dtdcargo.com` va con proxy (como ya pasa con la web y Supabase de DTD) | sin proxy, Chatwoot no es alcanzable: el VPS solo acepta tráfico web de Cloudflare (H9 actualizado). Decisión de Sam | runbook `chatwoot-servidor.md` §4 |
+| Cloudflare | **todo el tráfico del panel en claro** (conversaciones y adjuntos), como ya pasa con la web y Supabase de DTD | **activo**: `chat.dtdcargo.com` va con proxy desde el 2026-10-29, por decisión de Sam (sin proxy, el VPS no deja entrar: solo acepta tráfico web de Cloudflare). Falta la fila de Cloudflare en la tabla 1 para todo DTD | runbook `chatwoot-servidor.md` §4 · revisión E1 H9 |
 | Backblaze (B2) | respaldos de Chatwoot **cifrados con `age`** (base, adjuntos y claves) | prefijo `chatwoot/`, 30 días | `infra/chatwoot/respaldo.sh` |
 | Meta (WhatsApp, Messenger, Instagram) | las conversaciones de esos canales | E4, pendiente | — |
 

@@ -82,7 +82,7 @@ Routers que declara `rails` (labels en `compose.yml`, prefijo = nombre del proye
 
 ## 4 · DNS (puerta P2) y administración (puerta P3)
 
-**DNS, en Cloudflare** (el DNS de `dtdcargo.com` está ahí, C-1 del registro E0): registro `A chat → 217.216.54.70`, creado el 2026-10-29 16:11Z **sin proxy** (P2). Recomendación revisada (E1-D9): **con proxy** (nube naranja).
+**DNS, en Cloudflare** (el DNS de `dtdcargo.com` está ahí, C-1 del registro E0): registro `A chat → 217.216.54.70`, creado el 2026-10-29 16:11Z sin proxy y pasado **a proxy (nube naranja) a las 16:49Z** (P2, «Sí, actívalo» / «Confirmo» de Sam). Certificado de Let's Encrypt emitido a las 16:52Z. Por qué con proxy:
 
 - **El origen solo acepta 80/443 desde Cloudflare.** Desde el 2026-10-22, `/usr/local/sbin/cloudflare-origin-firewall` pone la cadena `CF-WEB-ORIGIN` en `DOCKER-USER` y descarta todo lo que no venga de los rangos de Cloudflare por `eth0`. Sin proxy, Let's Encrypt no llega («Timeout during connect», 16:28Z) y los navegadores tampoco. ufw muestra 80/443 abiertos, pero Docker no pasa por ufw.
 - Con proxy, Cloudflare termina TLS y ve cada mensaje. Ya ve todo el tráfico de la web y de Supabase de DTD, con datos de clientes; Chatwoot le suma las conversaciones (revisión de datos E1, H9).

@@ -9,11 +9,11 @@
 | Paso | Estado | Qué |
 |---|---|---|
 | 1.1 | entregado | `infra/chatwoot/compose.yml`: imagen por etiqueta y digest, `prepare` que migra, pgvector 0.8.1-pg16, Redis 7.2.11, límites de CPU/memoria/PIDs, `cpu_shares: 512`, `oom_score_adj: 500`, red `chatwoot_edge` propia. **Desplegado en el VPS el 2026-10-29** (P1) |
-| 1.2 | entregado | Labels de Traefik: sin `X-Frame-Options`, `frame-ancestors` al origen de Studio, `/super_admin`, `/monitoring` e `/installation` solo desde `100.64.0.0/10`, sin access log. DNS, TLS y Tailscale escritos en el runbook, esperando sus OK |
+| 1.2 | entregado | Labels de Traefik: sin `X-Frame-Options`, `frame-ancestors` al origen de Studio, `/super_admin`, `/monitoring` e `/installation` solo desde `100.64.0.0/10`, sin access log. **DNS y TLS hechos en P2** (`chat.dtdcargo.com` con proxy de Cloudflare y certificado de Let's Encrypt). Tailscale espera P3 |
 | 1.3 | entregado | `.env.example` + `x-entorno` (variables una por una): registro cerrado, `MAX_USER_SESSIONS=5`, SMTP, cifrado de columnas, telemetría, relay de push y Gravatar apagados |
 | 1.4 | en curso | Procedimiento de Platform App, cuenta y usuario de servicio **probado en local**; se ejecuta tras el despliegue (P4) |
 | 1.5 | en curso | `respaldo.sh` / `restaurar.sh` / timer; restauración conjunta ensayada en local (57 s) con control de claves; timer activo en el VPS y primer respaldo en B2; falta el ensayo en el host (P5) |
-| 1.6 | espera externa | `vigilar.sh` cada 5 min en el VPS, monitores Push #6 y #7 en verde; 72 h hasta el 2026-11-01 ~16:00Z; los monitores HTTP, tras P2 |
+| 1.6 | espera externa | `vigilar.sh` cada 5 min en el VPS; los cuatro monitores de Uptime Kuma en verde (dos Push y, desde P2, dos HTTP); 72 h hasta el 2026-11-01 ~16:00Z |
 | 1.7 | entregado | Revisión `revisar-datos-ve` (H1–H11), redacción de logs probada con control, inventario de terceros §2 bis, nota sobre `/privacidad` |
 
 Avance del programa: sigue en **3,8 %** (solo `aceptado` suma). Entregados sin aceptar: 1.1, 1.2, 1.3, 1.7. Esperando: 1.6.
@@ -69,7 +69,15 @@ Hecho en el VPS, en orden (evidencia T-2 a T-12 del [registro](../../docs/specs/
 - **No toca:** contenedores, redes, `.env` ni base de DTD; el compose de Traefik; ufw.
 - **Vuelta atrás:** `docker compose down`, `docker network disconnect chatwoot_edge ops-traefik-traefik-1`, `systemctl disable --now` de los dos timers.
 
-**P2 · Registro DNS en Cloudflare:** ⚠️ **hecha a medias el 2026-10-29** («Autorizo P2», como respuesta a «¿… sin proxy?»). El registro `A chat.dtdcargo.com → 217.216.54.70`, **Solo DNS**, existe desde las 16:11Z. Pero el certificado no sale: desde el 2026-10-22 el VPS solo acepta 80/443 desde Cloudflare (`cloudflare-origin-firewall`; registro T-16 a T-18), así que sin proxy nadie llega. Hacen falta la decisión y el OK de Sam: **activar el proxy en ese registro (recomendado)**, o dejarlo así. Con el proxy activo: recrear `rails` (`docker compose up -d --force-recreate --no-deps rails`), comprobar el certificado de Let's Encrypt y crear en Uptime Kuma los dos monitores HTTP («Chatwoot · API» y «Chatwoot · versión»). Van 2 intentos fallidos de Let's Encrypt (15:52Z y 16:28Z); el tope es 5 por hora.
+**P2 · Registro DNS en Cloudflare:** ✅ **cerrada el 2026-10-29** (registro T-13 a T-22).
+- **Autorizaciones de Sam, literales:**
+  1. «Autorizo P2», en esta sesión, a la pregunta «¿Autorizas P2, crear chat.dtdcargo.com en Cloudflare sin proxy?»;
+  2. «Sí, actívalo», en la sesión del programa («CRM Chatwoot»), a «¿Activamos el proxy de Cloudflare para chat.dtdcargo.com?», con alcance «solo ese registro» y sin tocar otros registros ni ajustes de la zona;
+  3. «Confirmo», en esta sesión, a «¿Confirmas aquí activar el proxy solo en el registro chat.dtdcargo.com?».
+- 16:11Z: registro `A chat.dtdcargo.com → 217.216.54.70` creado sin proxy. Let's Encrypt no llegó (2 intentos fallidos): el VPS solo acepta 80/443 desde Cloudflare (`cloudflare-origin-firewall`, desde el 2026-10-22).
+- 16:49Z: proxy activado **solo en ese registro**. No se tocó ningún otro registro ni ajuste de la zona.
+- 16:52Z: certificado de Let's Encrypt emitido al tercer intento (vence el 2027-01-27). HTTPS verificado de punta a punta: `/api` 200, sin `X-Frame-Options`, `frame-ancestors` a `https://dtdcargo.com` y las rutas de administración en 403.
+- 16:56Z: los monitores HTTP «Chatwoot · API» y «Chatwoot · versión» creados y en verde. Los cuatro de Chatwoot, en verde.
 
 **P3 · Instalar Tailscale en el VPS** y unirlo a la tailnet de Sam (`tailscale up --ssh`, runbook servidor-contabo §1.5). Habilita `/super_admin` por web.
 

@@ -95,4 +95,5 @@ Registro de esta SDD: [`investigacion-2026-10-29.md`](investigacion-2026-10-29.m
 ## Seguimiento
 
 - **2026-10-29:** reserva y alcance. Configuración escrita y ensayo local (ver registro). Pedido de despliegue en el handoff.
-- **2026-10-29 (tarde):** Sam autorizó P1 («Autorizo P1»). Chatwoot desplegado en el VPS; el healthcheck de `rails` se corrigió por `FORCE_SSL` (T-7). Respaldo diario y vigilancia en marcha; empiezan las 72 h de 1.6. Siguen pendientes P2–P5.
+- **2026-10-29 (tarde):** Sam autorizó P1 («Autorizo P1»). Chatwoot desplegado en el VPS; el healthcheck de `rails` se corrigió por `FORCE_SSL` (T-7). Respaldo diario y vigilancia en marcha; empiezan las 72 h de 1.6.
+- **2026-10-29 (tarde):** P2 cerrada. El registro se creó sin proxy («Autorizo P2»); el origen solo acepta a Cloudflare (T-17), así que se activó el proxy («Sí, actívalo» y «Confirmo» de Sam) y salió el certificado de Let's Encrypt. HTTPS verificado y los cuatro monitores en verde. E1-D9 queda «con proxy». Siguen pendientes P3, P4, P5 y el SMTP.
