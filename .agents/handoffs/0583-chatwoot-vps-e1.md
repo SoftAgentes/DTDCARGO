@@ -84,7 +84,7 @@ Hecho en el VPS, en orden (evidencia T-2 a T-12 del [registro](../../docs/specs/
 - verificador del token activo en el VPS;
 - super admin de Chatwoot creado con ese correo.
 
-Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar.
+Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar. Le expliqué las dos puertas (Cloudflare decide quién ve la pantalla; Chatwoot, quién es super admin) y decidió la duración de la sesión, literal: «Dejar 6 h».
 
 **P4 · Platform App, cuenta «DTD Cargo» y usuario de servicio** en la instancia desplegada (runbook §6). El token va al gestor de Sam y a los secretos de Studio (E2).
 
