@@ -73,6 +73,10 @@ Consecuencias para E1 (sin cambiar los días base):
 | M-17 | Cuenta del número principal: nombre visible aprobado («Logistica China Venezuela DTD»), estado Conectado, calidad **Alta**, límite de mensajes «No disponible»; 1 persona con acceso total, 0 con acceso parcial y **1 socio** | Mismo panel, pestaña Resumen | T |
 | M-18 | El panel de la cuenta de WhatsApp tiene las pestañas del modelo nuevo: Socios, «Linked WhatsApp accounts», «Messaging accounts» y «Conversation routing» | Mismo panel | T |
 | M-19 | Meta pide **verificar la cuenta del usuario** («Se necesita verificación») antes de seguir; el aviso tapa las pestañas. Esa verificación la hace Sam, no la IA | Mismo panel | T |
+| M-20 | Tras la verificación de Sam, el panel del número muestra: **1 socio, Kommo, con control total**; **0 cuentas de WhatsApp vinculadas** (existe la opción «Vincular cuenta de WhatsApp», no se usó); **1 cuenta de mensajes vinculada, «Importador de China»**, con 1 persona con control total, 0 con control parcial y 1 socio | Cuentas de WhatsApp → número → Socios, «Linked WhatsApp accounts» y «Messaging accounts», 2026-10-30 | T |
+| M-21 | El enrutamiento de conversaciones del número está vacío: Meta dice que hacen falta al menos 2 responsables y hoy solo está Kommo | Pestaña «Conversation routing» | T |
+| M-22 | 1 persona con acceso total a la cuenta de WhatsApp (el usuario con el que entró Sam). El menú «⋯» de la cuenta ofrece «Asignar personas» y «Suprimir del portfolio empresarial»; se abrió solo para leerlo y no se eligió nada | Pestaña Personas y menú «⋯» | T |
+| M-23 | La extensión de Chrome se desconectó antes de leer cuentas de mensajes del portfolio, usuarios del sistema, apps, verificación, 2FA, pago, plantillas y webhooks | — | NO EJECUTADO |
 
 Sobre D-1 y NV-2: **el modelo nuevo de Meta ya se ve en la cuenta** (pestañas «Cuentas de WhatsApp» y «Cuentas de mensajes», aviso «Updates to your account» al entrar). Según la documentación de los BSP:
 - la cuenta de WhatsApp tiene el número y el perfil;
