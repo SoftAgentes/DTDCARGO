@@ -76,7 +76,17 @@ Consecuencias para E1 (sin cambiar los días base):
 | M-20 | Tras la verificación de Sam, el panel del número muestra: **1 socio, Kommo, con control total**; **0 cuentas de WhatsApp vinculadas** (existe la opción «Vincular cuenta de WhatsApp», no se usó); **1 cuenta de mensajes vinculada, «Importador de China»**, con 1 persona con control total, 0 con control parcial y 1 socio | Cuentas de WhatsApp → número → Socios, «Linked WhatsApp accounts» y «Messaging accounts», 2026-10-30 | T |
 | M-21 | El enrutamiento de conversaciones del número está vacío: Meta dice que hacen falta al menos 2 responsables y hoy solo está Kommo | Pestaña «Conversation routing» | T |
 | M-22 | 1 persona con acceso total a la cuenta de WhatsApp (el usuario con el que entró Sam). El menú «⋯» de la cuenta ofrece «Asignar personas» y «Suprimir del portfolio empresarial»; se abrió solo para leerlo y no se eligió nada | Pestaña Personas y menú «⋯» | T |
-| M-23 | La extensión de Chrome se desconectó antes de leer cuentas de mensajes del portfolio, usuarios del sistema, apps, verificación, 2FA, pago, plantillas y webhooks | — | NO EJECUTADO |
+| M-23 | La extensión de Chrome se desconectó un momento; al volver se completó la lectura (M-24 a M-31) | — | — |
+| M-24 | «Importador de China» tiene **3 cuentas de mensajes**: «Importador de China» (la del número, 1 socio), «Test WhatsApp Business Account» (0 socios) y **«Door tu door»** (1 socio, Kommo, **0 cuentas de WhatsApp conectadas**: es la 2.ª WABA vieja de M-3, sin número) | Configuración → Cuentas de mensajes | T |
+| M-25 | La cuenta de mensajes del número está **verificada y aprobada**, en USD, y tiene **método de pago propio: una Mastercard que coincide en los 4 últimos dígitos con la que paga la suscripción de Kommo** (tarjeta de DTD). «Door tu door» tiene la misma tarjeta | Cuentas de mensajes → Resumen | T |
+| M-26 | Portfolio: 3 personas (2 sin actividad), **0 usuarios del sistema**, **1 app propia («Whats DTD»)** con 1 persona, 0 socios y **0 activos conectados** | Configuración → Personas, Usuarios del sistema y Aplicaciones | T |
+| M-27 | **1 socio a nivel de portfolio, Kommo**, con acceso total a 4 activos de WhatsApp (las cuentas «Importador de China» y «Door tu door») | Configuración → Socios | T |
+| M-28 | Centro de seguridad: **la 2FA no se le exige a nadie** («Nadie»); hay un administrador alternativo; 0 usuarios inactivos de 90 días o más | Centro de seguridad | T |
+| M-29 | WhatsApp Manager: 1 cuenta de WhatsApp vinculada; número con nombre aprobado, sin nombre de usuario y sin cuenta empresarial oficial. Del 1 al 28 de octubre de 2026: 1.266 mensajes enviados y entregados, 2.103 recibidos y 1.003 de servicio gratuito | WhatsApp Manager → Números de teléfono → Insights y Perfil | T |
+| M-30 | **5 plantillas activas** (3 Marketing y 2 Servicio), con un tope de 5 de 6.000; el tope de 6.000 corresponde a un portfolio verificado | WhatsApp Manager → Administrar plantillas | T |
+| M-31 | El PIN de verificación en dos pasos del número **no se ve** en el panel nuevo, y los callbacks y overrides tampoco (M-6) | WhatsApp Manager | NV (se lee por API tras 4.1) |
+
+**Recomendación pendiente del sí de Sam** (de la sesión principal): dejar el número en «Importador de China», sin migrarlo. Razones: el modelo nuevo no permite mover un número a otro portfolio, ese portfolio está verificado y separa WhatsApp de la publicidad. Chatwoot se conectaría ahí con su app (la existente «Whats DTD» u otra nueva), su usuario del sistema, su cuenta de mensajes y su pago.
 
 Sobre D-1 y NV-2: **el modelo nuevo de Meta ya se ve en la cuenta** (pestañas «Cuentas de WhatsApp» y «Cuentas de mensajes», aviso «Updates to your account» al entrar). Según la documentación de los BSP:
 - la cuenta de WhatsApp tiene el número y el perfil;
@@ -91,9 +101,10 @@ Fuentes (D, consultadas el 2026-10-30): docs.360dialog.com/partner/onboarding/ne
 
 La prohibición «nada de una 2.ª cuenta de mensajería en el mismo usuario del sistema» se escribió con el modelo viejo, donde una 2.ª WABA implicaba registrar el número otra vez. Con el modelo nuevo, Chatwoot (integración directa de Cloud API con la app de DTD) **tiene que** tener su propia cuenta de mensajes. Redacción propuesta:
 
-- se permite **una** cuenta de mensajes propia de DTD para Chatwoot, creada al compartir el número con la app de DTD (4.1 y 4.5);
+- se permite **una** cuenta de mensajes propia de DTD para Chatwoot, en el portfolio «Importador de China», creada al compartir el número con la app de DTD (4.1 y 4.5);
 - sigue prohibido crear una 2.ª **cuenta de WhatsApp** para el número, registrarlo de nuevo (`/register`), `/deregister` y Embedded Signup sobre el número principal;
-- las 5 plantillas aprobadas de Kommo (K-19) **se recrean y se aprueban** en la cuenta de mensajes de DTD antes de 4.5; no se copian;
+- las 5 plantillas aprobadas de Kommo (K-19, M-30) **se recrean y se aprueban** en la cuenta de mensajes de DTD antes de 4.5; no se copian;
+- antes de 4.1, Sam exige la 2FA a los administradores de «Importador de China» (M-28);
 - el método de pago propio de 0.7 va en la cuenta de mensajes de DTD, no en la de Kommo.
 
 Hasta ese OK, la spec no cambia.
