@@ -155,7 +155,11 @@ services:
       - chatwoot_edge
       - interna
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      # Con FORCE_SSL=true, Rails contesta 301 a https a todo pedido sin
+      # X-Forwarded-Proto: https, y el healthcheck fallaba (medido en el VPS el
+      # 2026-10-29; Traefik no enruta a un contenedor unhealthy). La cabecera es la
+      # misma que pone Traefik; con FORCE_SSL=false no cambia nada.
+      test: ["CMD", "wget", "-qO-", "--header", "X-Forwarded-Proto: https", "http://127.0.0.1:3000/health"]
       interval: 30s
       timeout: 5s
       retries: 3
