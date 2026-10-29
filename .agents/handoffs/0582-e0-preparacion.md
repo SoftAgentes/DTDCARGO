@@ -14,7 +14,7 @@
 | 0.2 | aceptado | 5 decisiones; Kommo vence el 29.05.2027 con renovación automática (T) | Aceptado («Acepto los tres», 2026-10-29); ubicar «analiza mi contestación» en 7.3 |
 | 0.3 | en curso | Guía de 13 puntos, nota cifrada y vuelta atrás escritas; M-1–M-7 | Lectura en Meta con Sam; aprobación de la vuelta atrás |
 | 0.4 | aceptado | Kommo leído en solo lectura (K-13–K-22, T): 15 bots y 4 agentes apagados, 7 fuentes, 7 plantillas, integraciones, sin exportación de chats | Aceptado («Acepto los tres», 2026-10-29) |
-| 0.5 | entregado | `info@` = alias de `vzla@` (único buzón); DKIM, SPF, MX y DMARC en verde; Resend sin recepción (C-1–C-13, T) | Aceptación de Sam |
+| 0.5 | aceptado | `info@` = alias de `vzla@` (único buzón); DKIM, SPF, MX y DMARC en verde; Resend sin recepción (C-1–C-13, T) | Aceptado («Acepto 0.5», 2026-10-29) |
 | 0.6 | aceptado | Historial leído con la integración nueva; paginación medida (X-1–X-17, R) | Aceptado por Sam («Acepto 0.6», 2026-10-29). Revocar la integración al cerrar E5 |
 | 0.7 | en curso | Plantilla de expedientes | Verificación del negocio y pago propio comprobados |
 
