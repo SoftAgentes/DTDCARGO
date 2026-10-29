@@ -1,7 +1,14 @@
 # Runbook · Chatwoot en el VPS del ERP · SDD-0583
 
 **SDD:** [0583](../specs/0583-chatwoot-vps-e1/spec.md) (etapa E1 del programa [0582](../specs/0582-chatwoot-piloto/spec.md))
-**Estado:** **desplegado en el VPS el 2026-10-29 (~15:40–16:00Z)** con la puerta P1 («Autorizo P1» de Sam). Sin DNS (P2), sin Tailscale (P3) y sin Platform App (P4) todavía. Registro al final.
+**Estado:** **en producción desde el 2026-10-29** en `https://chat.dtdcargo.com`:
+- **P1** (despliegue): hecha.
+- **P2** (DNS con proxy de Cloudflare y certificado): hecha.
+- **P4** (Platform App y cuenta): hecha.
+- **Marca de DTD** (§6 bis): aplicada.
+- **P3** (acceso web a `/super_admin`): pospuesta. Hoy se administra por consola; Cloudflare Access está preparado en §4.1.
+
+Registro al final.
 **Relacionados:** [respaldo y restauración](chatwoot-respaldo-restauracion.md) · [vigilancia](chatwoot-vigilancia.md) · [servidor Contabo](servidor-contabo.md) · [revisión de datos personales](../legal/privacidad/revision-chatwoot-e1-2026-10-29.md)
 
 ## 1 · Qué se instala y dónde
@@ -194,6 +201,35 @@ unset T; shred -u /dev/shm/cw-platform-token
 ```
 
 Los usuarios de personas (Sam y la persona que atiende, E0-D2) los da de alta Studio en E2.7, no a mano aquí.
+
+## 6 bis · Marca de DTD Cargo (paso 1.3, «Autorizo la marca» de Sam, 2026-10-29)
+
+Pedido de Sam: «Poner un icono al lado del dominio que aparezca el logo de DTD… que ponga usuario y contraseña, y que no salga Chatwoot».
+
+- **Imágenes.** En `infra/chatwoot/marca/` están las copias sin tocar de `public/brand/`, con la misma huella sha256: `dtdcargo-isologo-primary.png` (`7238dbbb…`, fondo claro), `dtdcargo-isologo-reverse.png` (`e530b4cb…`, fondo oscuro; `BRAND.md`: el primary nunca va sobre navy) y `apple-touch-icon.png` (`a8c3c30e…`, 180×180, ícono de la pestaña). El compose las monta en solo lectura en `/app/public/dtd-marca`, una carpeta aparte para no tapar `brand-assets` de Chatwoot. Las sirve el propio chat.
+- **Valores** (`marca/aplicar-marca.rb`, en `InstallationConfig`):
+  - `INSTALLATION_NAME` y `BRAND_NAME` = «DTD Cargo»;
+  - `BRAND_URL` y `WIDGET_BRAND_URL` = `https://dtdcargo.com`;
+  - `TERMS_URL` = `/terminos` y `PRIVACY_URL` = `/privacidad`, las dos en dtdcargo.com;
+  - `DISPLAY_MANIFEST` = false: quita los favicons y el manifest de Chatwoot;
+  - `LOGO_THUMBNAIL`, `LOGO` y `LOGO_DARK` apuntan a `/dtd-marca/…`.
+
+  El idioma ya era `es` (`CHATWOOT_DEFAULT_LOCALE`). `ConfigLoader` corre en cada `prepare` con `reconcile_only_new: true`, así que no vuelve a poner los valores de Chatwoot.
+- **Aplicar o volver a aplicar:**
+  ```bash
+  cd /srv/chatwoot
+  docker compose cp marca/aplicar-marca.rb rails:/tmp/marca.rb
+  docker compose exec -T rails bundle exec rails runner /tmp/marca.rb
+  ```
+- **Comprobado desde afuera** (navegador, 2026-10-29):
+  - el título es «DTD Cargo» y el único ícono es `/dtd-marca/apple-touch-icon.png`;
+  - la pantalla dice «Iniciar sesión en DTD Cargo», «E-mail», «Contraseña» y «¿Olvidaste tu contraseña?»;
+  - «Chatwoot» aparece 0 veces en el texto visible;
+  - en modo claro se ve el primary y en oscuro solo el reverse.
+
+  Capturas sin datos personales: [claro](assets/chatwoot-marca-entrada-claro.jpg) y [oscuro](assets/chatwoot-marca-entrada-oscuro.jpg).
+- **Lo que no cambia en la edición CE:** el «Powered by Chatwoot» del widget y de los correos (`disable_branding` es premium). La etiqueta del campo dice «E-mail», que es la traducción al español de Chatwoot; cambiarla a «Correo electrónico» exigiría tocar las traducciones de la imagen, y no se hace.
+- **Vuelta atrás:** volver a poner los valores anteriores (están en la salida de `aplicar-marca.rb`) y restaurar `compose.yml.antes-marca`.
 
 ## 7 · Operación diaria
 

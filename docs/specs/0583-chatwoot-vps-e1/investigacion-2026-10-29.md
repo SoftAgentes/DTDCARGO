@@ -55,6 +55,14 @@ Fuente del código: la imagen `chatwoot/chatwoot:v4.19.1-ce`, digest `sha256:048
 | T-25 | P5 («Autorizo P5»): respaldo `chatwoot-20261029T183240Z` bajado de B2 (4 archivos) y restaurado con `restaurar.sh` en el proyecto `chatwoot-ensayo` (sin Traefik, `/srv/chatwoot-ensayo`). Integridad OK. Conteos iguales al manifiesto: cuentas 1, usuarios 1, el resto 0. Columnas cifradas `total=0 sobres=0`. Tiempos: claves 1 s, base 24 s, adjuntos 6 s, arranque 142 s, verificación 27 s, **total 200 s** (207 s con la bajada). `/api` 4.19.1 por dentro y `traefik.enable=false`. Después, `down -v` y carpeta borrada: 0 contenedores, 0 restos en `/dev/shm`. Producción de Chatwoot sana | `/srv/ops/evidencias/p5-llave-sam-20261029T183444Z.txt` | R |
 | T-26 | La llave del 2026-10-14 (`f4aab8d9…`) no apareció. Con «Autorizo las dos» de Sam y la coordinación del Director: respaldos viejos copiados a `archivo-llave-2026-10-14/` (115 objetos, 0 diferencias); llaves nuevas `Sam-2026-10-29` (`f0bdbaa91af5fc7c`) y `Emergencia-2026-10-29` (`f2b06f66dad23591`), generadas en la PC de Sam, con solo las públicas en el VPS; respaldos nuevos de DTD y Chatwoot; restauración de DTD 5 PASÓ (RTO 52 s) con la de emergencia; con la del gestor se descifran los 7 archivos. Detalle en `docs/runbooks/backup-restore-servidor.md`, «Registro · 2026-10-29» | evidencias `p5-llave-*` | R |
 
+## Marca de DTD (paso 1.3, «Autorizo la marca» de Sam, 2026-10-29)
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| T-27 | Antes: las 10 opciones de marca con los valores de Chatwoot, `locked=true` (`INSTALLATION_NAME`/`BRAND_NAME` «Chatwoot», `LOGO*` en `/brand-assets/*.svg`, `DISPLAY_MANIFEST` true). `ConfigLoader` corre con `reconcile_only_new: true` por omisión (`lib/config_loader.rb`, `db_enhancements.rake:5`), así que no pisa valores existentes. `RAILS_SERVE_STATIC_FILES=true` sirve `/app/public` | `rails runner`, código de la imagen | C + R |
+| T-28 | Aplicada: montaje `./marca:/app/public/dtd-marca:ro` (recreación de prepare/rails/sidekiq en 130 s; DTD 200); `aplicar-marca.rb` cambió las 10 opciones y limpió la caché (`BRAND_NAME` efectivo «DTD Cargo»); los 3 PNG responden 200 `image/png` desde `chat.dtdcargo.com/dtd-marca/` | VPS, 2026-10-29 | R |
+| T-29 | Desde afuera, en un navegador: título «DTD Cargo»; único `link rel=icon` → `/dtd-marca/apple-touch-icon.png`; texto «Iniciar sesión en DTD Cargo / E-mail / Contraseña / ¿Olvidaste tu contraseña?»; 0 apariciones de «Chatwoot» en el texto visible; con tema claro se ve el primary y con oscuro solo el reverse. Capturas `docs/runbooks/assets/chatwoot-marca-entrada-{claro,oscuro}.jpg` | navegador integrado | R |
+
 ## Código de Chatwoot 4.19.1
 
 | ID | Afirmación | Fuente | Etiqueta |

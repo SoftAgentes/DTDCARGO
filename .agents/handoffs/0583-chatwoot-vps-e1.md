@@ -90,7 +90,7 @@ Hecho en el VPS, en orden (evidencia T-2 a T-12 del [registro](../../docs/specs/
 - SMTP: usuario y clave de Hostinger (Sam), con ventana oculta.
 - Tras las 72 h (2026-11-01 ~16:00Z): `vigilar.sh --resumen --desde 2026-10-29T15:55:00Z` → fila 1.6, con el criterio corregido (contra la línea base, no un número fijo).
 - `/super_admin` con Cloudflare Access (§4.1 del runbook): preparado y probado en local (E1-R21, E1-R22); espera la confirmación de Sam en esta sesión, con el alcance de Zero Trust y del VPS.
-- Marca de DTD en Chatwoot (pedido de Sam por la sesión del programa): espera su OK en esta sesión.
+- ~~Marca de DTD en Chatwoot~~ **hecha el 2026-10-29** («Autorizo la marca»): título «DTD Cargo», ícono y logos de DTD (claro y oscuro según `BRAND.md`), pantalla de entrada en español, sin «Chatwoot» visible (T-27 a T-29; runbook §6 bis). Queda en la edición CE el «Powered by Chatwoot» del widget y de los correos, y la etiqueta «E-mail» de la traducción de Chatwoot.
 
 ## FUERA DE ALCANCE (coordinado por el Director) · cambio de llave de respaldos de DTD y Chatwoot
 
