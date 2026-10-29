@@ -146,12 +146,13 @@ Respuestas y aportes:
 
 ## Allowlist de esta SDD
 
-- `docs/specs/0582-chatwoot-piloto/{spec.md,checklist.md,instrucciones-ia.md,investigacion-2026-10-28.md,investigacion-2026-10-29-e0.md,e0-guias.md}`
+- `docs/specs/0582-chatwoot-piloto/{spec.md,checklist.md,instrucciones-ia.md,investigacion-2026-10-28.md,investigacion-2026-10-29-e0.md,e0-guias.md,guia-guion.md}`
 - `docs/specs/README.md` (índice regenerado)
 - `scripts/avance-checklist.mjs`
 - `scripts/__tests__/avance-checklist.test.mjs`
 - `.agents/handoffs/0582-chatwoot-piloto.md`
 - `.agents/handoffs/0582-e0-preparacion.md`
+- `.agents/handoffs/0582-e9-guion.md`
 
 El código del producto y la infraestructura se allowlistan en la SDD hija de cada etapa.
 
@@ -173,3 +174,4 @@ El código del producto y la infraestructura se allowlistan en la SDD hija de ca
 
   Las decisiones del piloto anterior (máquina, ruta 2A/2B y dueño de la WABA) pasan a los pasos 0.2 y 0.3. La ruta queda fijada como «compartir el número API».
 - **2026-10-29 (E0):** decisiones de 0.2 en el [registro E0](investigacion-2026-10-29-e0.md): máquina = VPS actual del ERP (cambia G), Sam admin + 1 agente, tope del bot de US$25 al mes y «analiza mi contestación» en la IA de Kommo. Guías de 0.3–0.7 en [`e0-guias.md`](e0-guias.md). El DNS de `dtdcargo.com` está en Cloudflare, no en Hostinger.
+- **2026-10-29 (E9):** guion de la guía (9.1) entregado en [`guia-guion.md`](guia-guion.md), pendiente del OK de Sam.

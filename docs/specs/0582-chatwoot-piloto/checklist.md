@@ -107,7 +107,7 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | 8.11 | E8 | Migración de borrado de tablas y columnas Kommo | IA | 0,5 | — | — | pendiente | Migración: OK nominal Sam; sin retorno | — |
 | 8.12 | E8 | Cancelar la licencia de Kommo | S | 0,25 | — | — | pendiente | Sin retorno; OK Sam | — |
 | 8.13 | E8 | Runbooks, retrospectiva y handoff (cierre de PRG-01) | IA | 0,5 | — | — | pendiente | 100 % | — |
-| 9.1 | E9 | Guion «Antes en Kommo → Ahora aquí» de las tareas diarias con Sam y la persona que atiende; textos en i18n | S+IA | 1 | — | — | pendiente | OK Sam (guion) | — |
+| 9.1 | E9 | Guion «Antes en Kommo → Ahora aquí» de las tareas diarias con Sam y la persona que atiende; textos en i18n | S+IA | 1 | 0,5 | 0 | entregado | OK Sam (guion) | `guia-guion.md` (6 recorridos, 24 tarjetas, preguntas S-1–S-9 y P-1–P-10); handoff `0582-e9-guion.md` |
 | 9.2 | E9 | Motor de guía propio y liviano en Studio: puntos anclados a `data-guia`, tarjeta pequeña, sin modal que bloquee, accesible y con la marca | IA | 2 | — | — | pendiente | — | — |
 | 9.3 | E9 | Estado por usuario: primera vez automática, botón «Guía», «No volver a mostrar», reanudar y reiniciar; tabla por usuario (patrón 0233) y caché con contrato de hidratación | IA | 1,5 | — | — | pendiente | Migración: OK Sam | — |
 | 9.4 | E9 | Guía dentro de Chatwoot: script por `DASHBOARD_SCRIPTS` activado por `postMessage`, selectores en un archivo y smoke en E3 | IA | 2 | — | — | pendiente | Despliegue: OK Sam | — |
