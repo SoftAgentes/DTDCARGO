@@ -86,7 +86,7 @@ Consecuencias para E1 (sin cambiar los días base):
 | M-30 | **5 plantillas activas** (3 Marketing y 2 Servicio), con un tope de 5 de 6.000; el tope de 6.000 corresponde a un portfolio verificado | WhatsApp Manager → Administrar plantillas | T |
 | M-31 | El PIN de verificación en dos pasos del número **no se ve** en el panel nuevo, y los callbacks y overrides tampoco (M-6) | WhatsApp Manager | NV (se lee por API tras 4.1) |
 
-**Recomendación pendiente del sí de Sam** (de la sesión principal): dejar el número en «Importador de China», sin migrarlo. Razones: el modelo nuevo no permite mover un número a otro portfolio, ese portfolio está verificado y separa WhatsApp de la publicidad. Chatwoot se conectaría ahí con su app (la existente «Whats DTD» u otra nueva), su usuario del sistema, su cuenta de mensajes y su pago.
+**Decisión de Sam («Apruebo todo», 2026-10-30):** dejar el número en «Importador de China», sin migrarlo. Razones: el modelo nuevo no permite mover un número a otro portfolio, ese portfolio está verificado y separa WhatsApp de la publicidad. Chatwoot se conectaría ahí con su app (la existente «Whats DTD» u otra nueva), su usuario del sistema, su cuenta de mensajes y su pago.
 
 Sobre D-1 y NV-2: **el modelo nuevo de Meta ya se ve en la cuenta** (pestañas «Cuentas de WhatsApp» y «Cuentas de mensajes», aviso «Updates to your account» al entrar). Según la documentación de los BSP:
 - la cuenta de WhatsApp tiene el número y el perfil;
@@ -97,7 +97,7 @@ Sobre D-1 y NV-2: **el modelo nuevo de Meta ya se ve en la cuenta** (pestañas �
 
 Fuentes (D, consultadas el 2026-10-30): docs.360dialog.com/partner/onboarding/new-whatsapp-account-model (revisada el 2026-10-08), support.gupshup.io (artículo «New WhatsApp Account structure / WAME»), unifyport.ai y connect.bitbytecore.com. Los topes que citan las guías (por ejemplo, 2 socios por cuenta de mensajes o 250 plantillas sin verificar) son NV.
 
-### Propuesta de corrección de la spec (pendiente del OK de Sam)
+### Corrección de la spec (aprobada por Sam, «Apruebo todo», 2026-10-30)
 
 La prohibición «nada de una 2.ª cuenta de mensajería en el mismo usuario del sistema» se escribió con el modelo viejo, donde una 2.ª WABA implicaba registrar el número otra vez. Con el modelo nuevo, Chatwoot (integración directa de Cloud API con la app de DTD) **tiene que** tener su propia cuenta de mensajes. Redacción propuesta:
 
@@ -107,7 +107,7 @@ La prohibición «nada de una 2.ª cuenta de mensajería en el mismo usuario del
 - antes de 4.1, Sam exige la 2FA a los administradores de «Importador de China» (M-28);
 - el método de pago propio de 0.7 va en la cuenta de mensajes de DTD, no en la de Kommo.
 
-Hasta ese OK, la spec no cambia.
+Aplicada en la decisión B y en las prohibiciones de la spec y de `instrucciones-ia.md`.
 
 Por M-6, la lectura por API de suscripciones y overrides se hace justo después de 4.1 y antes de 4.2 y 4.5. Queda escrita como condición previa de 4.5 en el checklist. La guía está en [`e0-guias.md`](e0-guias.md#03).
 
