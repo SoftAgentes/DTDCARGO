@@ -69,6 +69,10 @@ Consecuencias para E1 (sin cambiar los días base):
 | M-13 | Según Kommo, el **único número** conectado está en la cuenta de WhatsApp «Importador de China» (estado Aprobado), dentro de **otro portfolio de Meta, también llamado «Importador de China», que está Verificado**. Calidad Alta, límite de mensajes «Desconocido», método de pago «Activo», embudo Ventas DTD | Kommo → Centro de integraciones → WhatsApp Business → Configuración → detalle del número | T (vía Kommo) |
 | M-14 | Para cerrar 0.3 hace falta acceso de administrador al portfolio «Importador de China». No se sabe quién lo tiene; Kommo muestra una cuenta de Facebook conectada a su integración | M-8, M-12 y M-13 | I |
 | M-15 | La 2.ª WABA del 2026-08 (M-3) ya no aparece en Kommo: hay 1 solo número | Kommo, mismo panel | T |
+| M-16 | Con otra sesión de Facebook, el Chrome de Sam entra al portfolio **«Importador de China»**. Ahí hay **2 cuentas de WhatsApp**: la del número principal y un número de prueba de Meta (+1 555…, «Test Number», 0 socios) | Configuración → Cuentas de WhatsApp, 2026-10-30 | T |
+| M-17 | Cuenta del número principal: nombre visible aprobado («Logistica China Venezuela DTD»), estado Conectado, calidad **Alta**, límite de mensajes «No disponible»; 1 persona con acceso total, 0 con acceso parcial y **1 socio** | Mismo panel, pestaña Resumen | T |
+| M-18 | El panel de la cuenta de WhatsApp tiene las pestañas del modelo nuevo: Socios, «Linked WhatsApp accounts», «Messaging accounts» y «Conversation routing» | Mismo panel | T |
+| M-19 | Meta pide **verificar la cuenta del usuario** («Se necesita verificación») antes de seguir; el aviso tapa las pestañas. Esa verificación la hace Sam, no la IA | Mismo panel | T |
 
 Sobre D-1 y NV-2: **el modelo nuevo de Meta ya se ve en la cuenta** (pestañas «Cuentas de WhatsApp» y «Cuentas de mensajes», aviso «Updates to your account» al entrar). Según la documentación de los BSP:
 - la cuenta de WhatsApp tiene el número y el perfil;
