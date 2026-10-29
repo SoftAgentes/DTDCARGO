@@ -1,183 +1,172 @@
 ---
 sdd: "0582"
-title: "Piloto de Chatwoot con WhatsApp Cloud API y salida de Kommo por fases"
+title: "Programa Kommo → Chatwoot dentro de Studio, con checklist y avance medible"
 status: proposed
 author: "Claude Worker «Chatwoot piloto» (Sam)"
 created: 2026-10-28
-updated: 2026-10-28
+updated: 2026-10-29
 supersedes: null
 superseded_by: null
-related: ["0020", "0056", "0089", "0147", "0326", "0535", "0564"]
+related: ["0020", "0056", "0089", "0114", "0147", "0326", "0535", "0564"]
 confidencialidad: interno
 ---
 
-# SDD-0582 — Piloto de Chatwoot con WhatsApp Cloud API y salida de Kommo por fases
+# SDD-0582 — Programa Kommo → Chatwoot dentro de Studio
 
-> Esta SDD **no instala nada ni toca producción, Kommo ni Meta**. Describe cómo probar Chatwoot
-> autohospedado como bandeja de atención con WhatsApp y un bot propio, y bajo qué condiciones DTD
-> Cargo deja Kommo. Cada fase tiene su propia puerta de autorización de Sam.
+> Esta SDD es la **spec del programa**. No instala nada ni toca producción, Kommo, Meta ni Hostinger.
+
+Define:
+- el alcance del 100%;
+- las etapas E0–E9 y sus puertas;
+- la metodología de avance;
+- las reglas que debe cumplir cada SDD hija.
+
+El estado vivo está en [`checklist.md`](checklist.md). La evidencia, una por afirmación, está en [`investigacion-2026-10-28.md`](investigacion-2026-10-28.md). La IA ejecutora sigue [`instrucciones-ia.md`](instrucciones-ia.md).
 
 ## Pedido de Sam
 
-- 2026-10-28, tras el análisis comparativo de DTD Cargo y Chatwoot: «Piloto de Chatwoot».
-- 2026-10-28, mismo hilo (literal, extractos): «Vamos a hacer el piloto de Chatwoot. […] ¿Cómo
-  tengo que conectar WhatsApp con esta aplicación? […] Realmente quiero ya pasarme y salirme de
-  Kommo, porque la IA de Kommo me sale demasiado costosa.» «Lo único que podría pagar acá es cuando
-  genere los bots que voy a generar, que los pueda conectar.» Preguntas: «¿Puedo crear un número
-  nuevo y hacer el cambio online?» y «¿puedo agregar en Chatwoot dos canales, dos WhatsApp
-  diferentes?»
+Extractos literales del 2026-10-28:
 
-## Contexto
+- «Piloto de Chatwoot». «Realmente quiero ya pasarme y salirme de Kommo, porque la IA de Kommo me sale demasiado costosa.»
+- «requiero que investigues cómo puedo instalar este CRM, Chatwoot, para que lo pueda visualizar y trabajar adentro de mi ERP, no de forma externa».
+- «revisar cómo podemos pasar todo el historial y que sea lo menos drástico pasar el número de WhatsApp API». Canales: Instagram, Facebook, TikTok, WhatsApp y correo, «para que se puedan contestar ahí mismo». Conectar las IA «con el knowledge que tenemos de Kommo».
+- Metodología: «un checklist de todo con los pasos y los días pronosticados», indicando «en qué etapa estamos y qué porcentaje hace falta». El 100% va «desde la puesta en marcha adentro del VPS hasta la migración completa y funcionamiento». «seguiremos trabajando con Kommo hasta que ese 100% se complete».
 
-### Hoy (verificado en `main` ec5786bb8, 2026-10-28)
+Respuestas y aportes:
 
-- **Kommo** es la bandeja real de WhatsApp, Instagram y Facebook y el CRM de leads. El ERP lo
-  replica con las Edge Functions `kommo-webhook`, `kommo-sync`, `kommo-writeback` y
-  `kommo-push-client` (`supabase/functions/`), las tablas `kommo_contacts`/`kommo_leads` y la
-  lógica de atención de `lib/studio/kommo-atencion.ts` y `lib/studio/kommo-conversacion.ts`.
-- Costo de Kommo según `docs/marketing/kommo-estado-y-pendientes.md:68-86`: plan Pro US$45 por
-  licencia al mes más créditos de IA. El uso real estimado (15.000-18.000 créditos al mes) cae
-  entre el paquete de 5.000 (US$29) y el de 50.000 (US$99); no hay escalón intermedio. Los cuatro
-  agentes de IA atienden **solo WhatsApp** (l.93).
-- El ERP **no usa** la Cloud API de WhatsApp: solo enlaces `wa.me` (`lib/design-tokens.ts:149`,
-  `components/WhatsAppFAB.tsx`, `components/Footer.tsx`).
-- La bandeja propia de SDD-0056 cubre portal y correo; su Fase 3 (WhatsApp) está diferida por el
-  trámite de Meta (`docs/specs/0056-conversaciones/spec.md:135`).
-- Fuentes para un bot de estado: RPC `public_track_shipment` (migración 0326, con throttle y
-  minimización) y la skill `tracking-concierge` del runtime de agentes (`lib/studio/agents/`).
-  El tracking sigue incompleto: `TRACKING_EN_CONSTRUCCION = true`
-  (`lib/portal/tracking-en-construccion.ts:69`).
-- Servidor de producción: Contabo VPS 8 (24 GB), compartido con otros dos proyectos; la suma de
-  límites no debe pasar de 20 GB (`docs/runbooks/servidor-contabo.md`).
+1. **Bandeja dentro de Studio:** entra en el 100%.
+2. **WhatsApp:** solo el número API. «deja de tarea para que EN EL FUTURO… seamos tech provider de Meta».
+3. **Embudo:** propio en Studio.
+4. **Bot:** «bot propio contestando solo», gastando lo menos posible.
+5. **Actualizaciones de Chatwoot:** un botón en Studio que muestre qué implica cada versión, con análisis por IA.
+6. **OpenCode como API:** opción para el bot. «analiza mi contestación» ya está trabajado.
+7. **Usuarios y permisos en Studio:** «Actualmente es una sola persona, pero hay otra persona que puede ver y puede contestar».
+8. **Control de la IA:** un botón de encendido y apagado, y la «respuesta sugerida por la IA», que la persona copia o ignora.
+9. **Revisión de Codex del plan** (23 hallazgos): «Sí, incorpóralas».
+10. **Kommo fuera del ERP, sin rastro:** quitar todo lo de Kommo del ERP «para que ya no haya rastro de ello y trabajemos desde cero». Decidido: **al corte**, con los datos **exportados y luego borrados**.
+11. **Guía interactiva** en el ERP, «mostrando cómo se hacía en Kommo y cómo se hace aquí». Minimalista y poco intrusiva: aparece la primera vez y se activa o desactiva libremente.
 
-### Chatwoot (observado el 2026-10-28, v4.19.1 del 2026-10-24, commit `f785783022ab`)
+## Alcance del 100%
 
-- Licencia MIT fuera de `enterprise/`. Son de pago en producción, entre otros: Captain (IA), SLA,
-  auditoría, roles a medida, SAML y llamadas de voz (`config/features.yml`, `premium: true`).
-  **Bots propios, API, webhooks, automatizaciones, macros y widget son MIT.**
-- Pila: Rails 7.2 + Sidekiq + Postgres 16 con pgvector + Redis 7. Mínimo recomendado: 4 núcleos y
-  4 GB para unas 10.000 conversaciones al día.
-- WhatsApp: proveedores `whatsapp_cloud` (Meta directo) y `default` (360dialog); Twilio aparte.
-  `Channel::Whatsapp` valida `phone_number` **único en la instalación** y no hay tope de bandejas
-  en el núcleo: cada número es una bandeja.
-- Bot de agente: Chatwoot hace POST firmado (HMAC) a una URL propia en cada mensaje; el bot
-  responde por la Application API y pasa la conversación de `pending` a `open` para dar paso a un
-  humano.
-- Datos: todo en su Postgres; solo cifra credenciales, no mensajes ni contactos; sin retención
-  automática; al borrar un contacto se borran sus conversaciones.
+**Dentro:**
+- Chatwoot `v4.19.1-ce` en un VPS;
+- bandeja dentro de Studio, con usuarios y permisos;
+- actualizaciones gestionadas desde Studio;
+- WhatsApp (número API), Messenger, Instagram, TikTok (condicional) y correo;
+- historial de Kommo cargado;
+- embudo propio y reemplazos de lo que hoy hace Kommo en el ERP;
+- bot propio con modos;
+- guía interactiva;
+- corte, salida de Kommo y limpieza del ERP.
 
-### WhatsApp: reglas de Meta que condicionan el diseño
+**Kommo sigue operando hasta el 100%.**
 
-Fuentes: documentación de Meta for Developers consultada el 2026-10-28 (migración de números,
-Embedded Signup, coexistencia). Lo marcado INFERENCIA no está comprobado.
+**Fuera (después del 100%):**
+- DTD como Tech Provider de Meta;
+- rol «solo ver»;
+- panel junto al chat y tema por `DASHBOARD_SCRIPTS`;
+- atención móvil dentro de Studio;
+- integración de comentarios de IG y FB, si la matriz de paridad decide atenderlos a mano temporalmente.
 
-1. **Un número solo puede estar registrado en Cloud API una vez.** Dos plataformas no pueden
-   atender el mismo número a la vez por API.
-2. **Número nuevo:** se registra en la cuenta de WhatsApp (WABA) del portfolio de Meta de DTD,
-   necesita nombre visible aprobado y no puede estar activo en la app de WhatsApp. Empieza con
-   límites de envío bajos y calidad desconocida.
-3. **Mover el número actual:** Meta conserva nombre visible, calidad, límite de mensajes y
-   plantillas elegibles (estas vuelven a calidad UNKNOWN) si el número cambia de WABA; exige
-   apagar la verificación en dos pasos. **El historial de chats no se migra**: hay que exportarlo
-   de Kommo antes. Meta está cambiando su modelo de cuentas (beta) y la migración por Embedded
-   Signup no aplica a las cuentas del modelo nuevo.
-4. **Si la WABA ya es de DTD** (y Kommo solo tiene acceso compartido), Chatwoot puede conectarse
-   a la misma WABA con una app de Meta propia y un token de usuario del sistema, sin migrar
-   nada: el corte es desconectar Kommo y registrar el número en la app nueva. INFERENCIA: hay
-   que confirmar en Meta Business Suite quién es el dueño de la WABA.
-5. **Coexistencia** (app WhatsApp Business + API en el mismo número) exige ser Solution Partner o
-   Tech Provider de Meta. Queda fuera del piloto.
-6. Cobro de Meta por mensaje: lo paga DTD en cualquier plataforma; no es costo de Chatwoot.
+## Decisiones técnicas (evidencia en la investigación)
 
-## Alcance
+| ID | Decisión |
+|---|---|
+| A | **Modo híbrido.** El panel de Chatwoot va en un iframe sobre `chat.dtdcargo.com`. Son nativos de Studio el SSO (Platform API), el contador y el push, la tarjeta en la ficha, la Dashboard App «Ficha DTD» y las altas y bajas. Traefik quita `X-Frame-Options` y fija `frame-ancestors`. Studio añade `frame-src` y `Permissions-Policy`. La aceptación del SSO prueba cierre, baja, revocación y acceso directo. Si la prueba E2.1 falla, se abre en una pestaña aparte. |
+| B | **El número se comparte, no se migra,** y se protege: un initializer aborta `/register` para los Phone Number IDs protegidos. Los valores previos de Meta se guardan fuera de Git; la vuelta atrás los restaura. Pago propio en Meta antes de atender. |
+| C | **Historial** por `GET /api/v4/talks/{id}/messages`, probado en E0. Carga a una bandeja API «Archivo Kommo» en un modo sin efectos externos. Acta de conciliación antes de lo irreversible. |
+| D | **Canales:** cada trámite separado en expediente, app, configuración, demostración y revisión. Matriz de paridad de las fuentes de leads. |
+| E | **Correo:** inventario de `info@` primero, con pruebas de hilo, adjuntos, rebotes y caída. Resend Inbound no se cierra hasta conocer sus consumidores. |
+| F | **Bot `dtd-bot`:** Gemini de pago y GLM por API de respaldo, con corte de gasto local. Cola durable, modo comprobado antes de enviar, filtro de autor y privacidad. «Contesta solo» bloqueado hasta aprobar la excepción IA-01 acotada. |
+| G | **Máquina:** Contabo Cloud VPS 4 dedicado. Ahorro estimado frente a hoy: US$19,50–31,50 al mes, antes de respaldos e impuestos. |
+| H | **Actualizaciones:** RPO/RTO, ventana, drenaje, respaldo conjunto, prueba, producción y smoke. El análisis con IA solo informa. |
+| I | **Permisos de CE:** un agente ve por bandeja **o por equipo** y ve los contactos de la cuenta. Studio sincroniza rol, bandejas y equipos. |
+| J | **Limpieza de Kommo en el ERP:** 209 archivos al 2026-10-28. E6 construye los reemplazos. E8 detiene los productores, exporta cifrado, quita el código en una SDD de limpieza y borra tablas con migración aprobada. |
+| K | **Guía interactiva:** motor propio y liviano, con estado por usuario en la base (patrón de la 0233). Primera vez automática y botón «Guía». Dentro de Chatwoot, script por `DASHBOARD_SCRIPTS` activado por `postMessage`. |
 
-**Dentro:** diseño de la instalación del piloto, del canal de WhatsApp de prueba, del bot de
-estado, de la evidencia y de las puertas de decisión para retirar Kommo.
+**Límites de «sin rastro»:**
+- las migraciones aplicadas, el historial de Git y las specs y handoffs históricos se quedan;
+- `entity_audit_log` se cuenta y lo decide revisar-datos-ve;
+- en código vivo, pantallas, crons, funciones, secretos y tablas, **cero rastro**.
 
-**Fuera:** instalar en producción, tocar Kommo, Meta o la base de producción, Captain o cualquier
-función Enterprise, campañas de marketing por WhatsApp, Instagram y Facebook (fase 3), y retirar
-las Edge Functions de Kommo del ERP (otra SDD).
+## Prohibiciones del número de WhatsApp
 
-## Diseño por fases
+**Nunca:**
+- borrar el número en WhatsApp Manager;
+- `/deregister`;
+- Embedded Signup sobre el número principal;
+- una 2.ª cuenta de mensajería en el mismo usuario del sistema;
+- reintentar `/register`;
+- crear la bandeja del número principal sin el initializer de protección probado (4.2);
+- crearla sin el gate 0.3 aprobado.
 
-### Fase 0 — Instalación aislada (puerta: OK de Sam a la máquina)
+**Sin retorno, cada una con su OK nominal:**
+- quitar el canal en Kommo;
+- quitar a Kommo como socio en Meta;
+- borrar las tablas de Kommo;
+- cancelar la licencia.
 
-- **Máquina:** propuesta por defecto, una máquina distinta del VPS 8 de producción para no
-  acercarse al tope de 20 GB. Opciones en «Decisiones para Sam».
-- **Contenedores:** `rails`, `sidekiq`, `postgres` (pgvector/pg16) y `redis` del
-  `docker-compose.production.yaml` oficial, con **tag de versión fijo** (no `:latest`), base
-  propia (nunca la de DTD) y `ACTIVE_RECORD_ENCRYPTION_*` configurado.
-- Dominio con TLS (p. ej. `chat.dtdcargo.com`), cuentas solo para Sam y quien él nombre,
-  registro público cerrado (`ENABLE_ACCOUNT_SIGNUP=false`), respaldo diario de Postgres y del
-  almacenamiento.
-- SMTP de salida por Resend para avisos a agentes. Correo entrante: fuera del piloto.
+## Gobernanza
 
-### Fase 1 — WhatsApp de prueba y bot (puerta: OK de Sam al número y a Meta)
+- **Etapas con SDD hija.** Cada etapa con código o infraestructura es una tarea Worker con su SDD hija (`sdd:next --reserve`), rama, worktree, owner, allowlist, aceptación y PR. El Director coordina e integra.
+- **Puertas separadas.** Un OK no cubre otro:
+  - lectura de PII;
+  - carga de datos;
+  - despliegue;
+  - aplicación de migraciones (runbook de producción);
+  - acción irreversible en Meta o Kommo.
+- **IA-01:** el bot arranca en Sugerir. «Contesta solo» exige la excepción acotada del paso 7.2: bandejas, tipos de respuesta, herramientas, datos, prohibiciones, tope de gasto, responsable, revocación y suspensión.
+- **Privacidad:**
+  - revisar-datos-ve corre en E1, E5, E7 y E8;
+  - nunca entran en Git payloads, exportaciones, transcripciones ni capturas con datos personales;
+  - los valores de Meta y las exportaciones van cifrados fuera del repo.
 
-- **Número nuevo** dedicado al piloto (línea que reciba SMS o llamada y no esté en WhatsApp),
-  registrado en la WABA de DTD con app de Meta propia y proveedor `whatsapp_cloud`.
-- **Bot de estado** como bot de agente de Chatwoot: un endpoint propio verifica la firma HMAC,
-  identifica al cliente por teléfono y responde con datos mínimos del envío. Lee del ERP por un
-  camino de solo lectura con el mismo throttle y minimización que la RPC 0326. Pasa a humano
-  ante intención no reconocida, reclamo o petición explícita. Modelo: el runtime de agentes ya
-  existente (Anthropic/OpenRouter), con tope de gasto mensual.
-- Mientras dure el piloto, Kommo sigue intacto con el número principal.
+## Metodología de avance
 
-### Fase 2 — Corte del número principal (puerta: OK nominal de Sam con fecha y ventana)
+- **Fórmula:** `avance = Σ días base de pasos aceptados ÷ Σ días base del alcance aprobado`, y **falta = 100 − avance**. Unidad: persona-día de 8 h.
+- **Línea base versionada.** La v1 del 2026-10-28 son 99,75 días en 10 etapas. Un cambio de alcance crea la v2 y muestra el % antes y después.
+- **Esfuerzo aparte.** El real y el restante reestimado se informan aparte y no mueven el %. Las esperas pesan 0 y bloquean.
+- **Estados:** `pendiente`, `en curso`, `entregado`, `aceptado`, `bloqueado`, `espera externa` y `descartado`. Solo `aceptado` suma.
+- **Cálculo:** `node scripts/avance-checklist.mjs docs/specs/0582-chatwoot-piloto/checklist.md`.
+- **Reporte en cada avance:** `Etapa N de 10 · <nombre> · paso <ID> · Avance X % (falta Y %) · Esfuerzo: real R d, restante D d · Fecha probable <rango> · Esperando: … · Necesito de ti: …`.
+- **Reestimación:** al cerrar cada etapa, con el motivo escrito.
+- **Calendario (inferencia):**
+  - mínimo idealizado de 60 días con dos carriles;
+  - 15–19 semanas con esperas, es decir, del 2027-02-15 al 2027-03-15 si se arranca el 2026-11-02;
+  - el vencimiento probable de Kommo es el 2027-02-28 (no verificado); puede hacer falta un mes más.
 
-Elegir una de dos rutas según «Decisiones para Sam»:
+## Aceptación del programa
 
-- **2A, mismo número:** exportar historial y contactos de Kommo; confirmar la propiedad de la
-  WABA; apagar la verificación en dos pasos; desconectar en Kommo; registrar en Chatwoot;
-  verificar plantillas y webhooks; probar entrada y salida.
-- **2B, número nuevo definitivo:** el número de la fase 1 pasa a ser el principal; se cambian
-  `wa.me` de la web (`lib/design-tokens.ts:149`), anuncios y perfiles; Kommo queda recibiendo en
-  el número viejo con aviso automático del número nuevo hasta su vencimiento.
+- **Etapas:** cada paso del checklist está `aceptado` con evidencia (PR, commit, handoff o acta), o `descartado` con una línea base nueva aprobada.
+- **Actas:** de conciliación final firmada (8.6) y de corte (8.1).
+- **Bot:** «Contesta solo» activo solo si 7.2 está aprobado.
+- **Kommo:** `git grep -i kommo` en código vivo devuelve solo historia permitida (migraciones aplicadas, specs, handoffs). Las tablas están borradas con migración aprobada. La licencia está cancelada.
+- **Cierre durable (PRG-01):** runbooks, handoff y retrospectiva.
 
-### Fase 3 — Salida completa de Kommo (puerta: OK de Sam; SDD aparte)
+## Allowlist de esta SDD
 
-Instagram y Facebook en Chatwoot (requiere app de Meta con revisión de permisos de mensajería),
-reemplazo del CRM de leads y retiro de las integraciones `kommo-*` del ERP. Se especifica en una
-SDD propia cuando la fase 2 esté estable.
+- `docs/specs/0582-chatwoot-piloto/{spec.md,checklist.md,instrucciones-ia.md,investigacion-2026-10-28.md}`
+- `docs/specs/README.md` (índice regenerado)
+- `scripts/avance-checklist.mjs`
+- `scripts/__tests__/avance-checklist.test.mjs`
+- `.agents/handoffs/0582-chatwoot-piloto.md`
 
-## Decisiones para Sam
+El código del producto y la infraestructura se allowlistan en la SDD hija de cada etapa.
 
-1. **Máquina del piloto:** (a) VPS de Hermes, que ya está aislado (6 vCPU, 11 GiB), sumando sus
-   contenedores; (b) VPS nuevo pequeño solo para Chatwoot; (c) VPS 8 de producción, solo si se
-   acepta acercarse al tope de 20 GB.
-2. **Ruta de la fase 2:** 2A (mismo número, sin historial) o 2B (número nuevo con anuncio).
-3. **Dueño de la WABA actual:** confirmar en Meta Business Suite si el número de WhatsApp de
-   Kommo está en el portfolio de DTD o en el de Kommo.
-4. **Tope mensual de gasto del bot** (tokens de IA).
+## Fuera de alcance detectado (se informa, no se toca)
 
-## Gobernanza y privacidad
-
-- Antes de la fase 1 se corre `.claude/skills/revisar-datos-ve/SKILL.md` sobre Chatwoot y el bot,
-  se añade Chatwoot y Meta (WhatsApp Cloud) al inventario
-  `docs/legal/privacidad/inventario-terceros.md` y se revisa el texto de `/privacidad` sobre el
-  país de tratamiento.
-- Los datos del piloto son de clientes reales desde que el número de prueba reciba mensajes:
-  aplican las mismas reglas de PII que el ERP. Nada de contraseñas, tokens ni PII en Git.
-- Ninguna fase lee filas de producción sin autorización explícita.
-
-## Aceptación
-
-- **Fase 0:** Chatwoot responde por HTTPS en la versión fijada; registro público cerrado; un
-  respaldo restaurado en prueba; uso de memoria medido 72 h bajo el tope acordado.
-- **Fase 1:** el número de prueba recibe y envía; una plantilla aprobada se envía fuera de la
-  ventana de 24 h; el bot responde una consulta de estado con datos mínimos, rechaza un código
-  ajeno sin revelar datos y pasa a humano; las firmas HMAC inválidas se rechazan; el gasto de
-  tokens queda bajo el tope.
-- **Fase 2:** checklist de corte firmado por Sam; entrada y salida probadas en el número
-  principal; historial exportado y guardado fuera de Git.
-- Cada fase registra su evidencia en un handoff fechado.
-
-## Allowlist de archivos
-
-Esta SDD: `docs/specs/0582-chatwoot-piloto/spec.md`, el índice que regenere `docs:check` y
-`.agents/handoffs/0582-chatwoot-piloto.md`. El código del bot y la infraestructura se allowlistan
-en la PR de cada fase.
+- Anthropic y OpenAI no listan a Venezuela; Anthropic, desde el 2026-11-12. Puede afectar `lib/studio/agents/runtime`. Lo revisa el Director.
+- `/privacidad` dice que los datos se tratan en Venezuela (`app/privacidad/page.tsx:262-264`).
+- El PDF del DPA de Contabo está sin seguimiento en la raíz del checkout principal.
+- `kommo_unsorted.raw` guarda texto de clientes.
 
 ## Seguimiento
 
-- 2026-10-28: SDD propuesta. Nada instalado. Puertas abiertas: decisiones 1-4.
+- **2026-10-28:** SDD propuesta como piloto (fases 0–3).
+- **2026-10-29:** reescrita como programa:
+  - plan v2 con la revisión de Codex;
+  - decisiones 10 y 11 de Sam;
+  - línea base v1 de 99,75 días;
+  - nada instalado.
+
+  Las decisiones del piloto anterior (máquina, ruta 2A/2B y dueño de la WABA) pasan a los pasos 0.2 y 0.3. La ruta queda fijada como «compartir el número API».
