@@ -55,6 +55,46 @@ En el WebKit de Playwright (indicador de Safari) pasan el iframe y el SSO. Firef
 | 2.6 | revisar-datos-ve, `/ui-check`, QA de navegadores (incluye Firefox y Safari reales) y runbook | pendiente |
 | 2.7 | Usuarios y permisos: matriz real de CE, sincronización, pruebas por usuario y revocación del SSO | pendiente |
 
+## Paso 2.2 — la Bandeja en Studio
+
+Pedido el 2026-10-29 por la sesión coordinadora del programa («CRM Chatwoot»), a cuenta de Sam («listo avanza con lo demas»). Se programa en la rama de E2, sin desplegar ni aplicar nada.
+
+### Diseño
+
+| ID | Decisión |
+|---|---|
+| E2-D7 | **Módulo `bandeja`** («Bandeja», grupo COMERCIAL, `/studio/bandeja`). La lista de módulos ya tiene «Conversaciones» (SDD-0056), una bandeja propia que no es Chatwoot: qué pasa con ella es una decisión aparte (ver «Fuera de alcance detectado» en el handoff). |
+| E2-D8 | **RBAC:** `bandeja` la ven `admin` (implícito), `commercial` y `support`. Son los roles de quien atiende (E0-D2: Sam admin más una persona que ve y contesta). Ver la Bandeja no da permiso de editar nada en Studio: lo que la persona puede hacer en Chatwoot lo decide su rol de Chatwoot (2.7). |
+| E2-D9 | **Flag `chatwoot_inbox`**, apagado por omisión, con efecto `ruta`: el layout llama `requireFeatureEnabled("bandeja")` y el sidebar lo esconde. La migración redefine `feature_flag_catalog()` desde su última definición (0337) agregando la fila, y siembra la fila en los tenants existentes con `on conflict do nothing`. |
+| E2-D10 | **Vínculo usuario de Studio ↔ agente de Chatwoot** en `public.chatwoot_agent_links (tenant_id, user_id, chatwoot_user_id, created_by, created_at)`: uno a uno dentro del tenant. RLS: cada usuario lee su propia fila y el admin lee y escribe las del tenant (`is_tenant_admin()`). Lo crea solo un admin, y **solo si el correo del agente en Chatwoot (Platform API) es el mismo del usuario de Studio**. Un vínculo equivocado sería entrar a Chatwoot como otra persona. |
+| E2-D11 | **`lib/studio/chatwoot/`** (`server-only`): configuración por entorno (`CHATWOOT_URL`, `CHATWOOT_PLATFORM_TOKEN`, `CHATWOOT_ACCOUNT_ID`), cliente de la Platform API que nunca lanza (unión ok/error, patrón de SeaRates), y validación de que el enlace de SSO es del origen del chat. El token **solo** vive en el entorno del servidor. |
+| E2-D12 | **SSO solo cuando hace falta** (E2-D5): una cookie de Studio `dtd_cw_sso` (httpOnly, `Secure`, `SameSite=Lax`, de sesión, `path=/studio`) guarda el id del usuario al que se le pidió el último SSO. Si coincide con el usuario actual, el iframe abre el panel sin pedir otro. Si no hay o no coincide, el cliente pide el enlace por una server action y lo pone en el iframe. Hay un botón «Volver a entrar» que fuerza un SSO nuevo. El enlace nunca pasa por la URL de Studio. |
+| E2-D13 | **`signOut` de Studio** borra `dtd_cw_sso`, así que el próximo ingreso a Studio pide un SSO nuevo, que reemplaza la sesión del panel en el navegador. **Límite conocido:** la Platform API de 4.19.1 no revoca sesiones. La sesión del panel sigue viva en ese navegador si alguien abre `chat.dtdcargo.com` directo, hasta 2 meses (`token_lifespan`). El cierre real va en 2.7, por un script del panel (`DASHBOARD_SCRIPTS`) que llama al logout de Chatwoot cuando Studio se lo pide por `postMessage`; requiere despliegue en el VPS. |
+| E2-D14 | **Cabeceras** (E2-D2): `next.config.ts` agrega la regla `/studio/bandeja/:path*` con la CSP de Studio más `frame-src <origen del chat>` y la `Permissions-Policy` estricta con `microphone=(self "<origen del chat>")`, y la excluye del catch-all. El origen sale de `lib/runtime/chatwoot-origin.ts` (`CHATWOOT_URL`; por omisión `https://chat.dtdcargo.com`; solo https, o http en localhost), el mismo que usa el servidor. |
+| E2-D15 | **Estados de la página:** sin configurar (falta el token o la cuenta), sin vínculo (con el formulario de vínculos si eres admin), cargando, error de SSO (con reintento y «Abrir en pestaña aparte», E2-D6) y el panel. Textos en es-VE y zh-CN. |
+
+### Allowlist exacta (paso 2.2)
+
+- **Configuración:** `next.config.ts`; `.env.example` (bloque de Chatwoot); `infra/dtd-cargo/.env.example`.
+- **Origen del chat:** `lib/runtime/chatwoot-origin.ts`; `lib/runtime/__tests__/chatwoot-origin.test.ts`; `lib/runtime/__tests__/next-config.test.ts` (casos nuevos).
+- **Lógica:** `lib/studio/chatwoot/{config.ts,platform-api.ts,chatwoot-types.ts,links-queries.ts,sso-cookie.ts}`; `lib/studio/chatwoot/__tests__/{platform-api.test.ts,chatwoot-types.test.ts}`.
+- **Registro del módulo:** `lib/studio/modules.ts`, `lib/studio/rbac.ts`, `lib/studio/feature-flags-types.ts`; `lib/studio/__tests__/feature-flags-catalog.test.ts` (lee la última definición del catálogo, no solo la de 0337); `app/studio/_components/icons.tsx` (ícono `chat`).
+- **Textos:** `lib/i18n/es-VE/{chrome.ts,bandeja.ts}`, `lib/i18n/zh-CN/{chrome.ts,bandeja.ts}`, `lib/i18n/dict.ts`.
+- **Pantalla:** `app/studio/(app)/bandeja/{layout.tsx,page.tsx,actions.ts}`; `app/studio/(app)/bandeja/_components/{BandejaClient.tsx,VinculosAdmin.tsx}`; `app/studio/(app)/bandeja/__tests__/{actions.test.ts,BandejaClient.test.tsx}`.
+- **Cierre de sesión:** `app/studio/(app)/actions.ts`.
+- **Migración:** `supabase/migrations/0503_chatwoot_bandeja.sql`; `supabase/tests/0503_chatwoot_bandeja.test.sql`; `lib/studio/__tests__/chatwoot-bandeja.migration.test.ts`.
+- **Documentos:** `docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md`; `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 2.2); `docs/architecture/module-sdd-map.md`; `.agents/handoffs/0585-chatwoot-bandeja-studio-e2.md`.
+
+### Aceptación del paso 2.2
+
+1. **Cabeceras:** `next-config.test.ts`, con el matcher de rutas de Next, prueba que `/studio/bandeja` y sus sub-rutas reciben **una sola** CSP (con `frame-src` del chat) y **una sola** `Permissions-Policy` (con el micrófono delegado al chat). Prueba también que el resto de `/studio` sigue con `microphone=()` y sin `frame-src`.
+2. **Platform API:** sus pruebas cubren éxito, 401/404/5xx, red caída, sin configuración y un enlace de SSO de otro origen (rechazado).
+3. **Vínculo:** la acción rechaza a quien no es admin, un usuario de otro tenant y un correo distinto. Sin vínculo no hay SSO. Las pruebas usan dobles que aplican los filtros.
+4. **Migración:** el contrato en PGlite pasa, con el control rojo sin la migración. Cubre RLS (cada uno ve lo suyo; el admin, su tenant; nadie, otro tenant), unicidad y la fila del flag en tenants existentes y nuevos.
+5. **Registro:** `rbac.test.ts`, `rbac-view-guard`, `rbac-actions-guard`, `feature-flags-catalog` e i18n (typecheck) en verde.
+6. **Cierre:** `pnpm verify` PASÓ, coordinado con la sesión del programa (una corrida pesada a la vez).
+7. **Puertas que esta entrega no cruza:** aplicar la 0503 en producción (OK nominal de Sam, runbook), cargar el token y las variables en el servidor de Studio, y desplegar.
+
 ## Fuera de alcance de esta entrega
 
 - Cualquier cambio en Studio (`next.config.ts`, rutas, `lib/`): es de 2.2.
