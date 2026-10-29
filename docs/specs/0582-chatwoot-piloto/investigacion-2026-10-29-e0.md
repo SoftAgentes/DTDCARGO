@@ -57,7 +57,7 @@ Consecuencias para E1 (sin cambiar los días base):
 | M-6 | **Los callbacks y overrides no se ven en la interfaz de Meta.** Leerlos exige un token con acceso a la WABA, es decir, la app propia de DTD (4.1). Sin ella, el gate 0.3 solo cubre lo visible en Configuración del negocio y WhatsApp Manager | M-5 y M-1 | I |
 | M-7 | No encontramos documentado un `GET` del override por número | Búsqueda del 2026-10-29 | NV |
 
-### Lectura en Meta (2026-10-30, Chrome de Sam con el acceso de la oficina, solo lectura)
+### Lectura en Meta (2026-10-29, Chrome de Sam con el acceso de la oficina, solo lectura)
 
 | ID | Afirmación | Fuente | Etiqueta |
 |---|---|---|---|
@@ -69,11 +69,11 @@ Consecuencias para E1 (sin cambiar los días base):
 | M-13 | Según Kommo, el **único número** conectado está en la cuenta de WhatsApp «Importador de China» (estado Aprobado), dentro de **otro portfolio de Meta, también llamado «Importador de China», que está Verificado**. Calidad Alta, límite de mensajes «Desconocido», método de pago «Activo», embudo Ventas DTD | Kommo → Centro de integraciones → WhatsApp Business → Configuración → detalle del número | T (vía Kommo) |
 | M-14 | Para cerrar 0.3 hace falta acceso de administrador al portfolio «Importador de China». No se sabe quién lo tiene; Kommo muestra una cuenta de Facebook conectada a su integración | M-8, M-12 y M-13 | I |
 | M-15 | La 2.ª WABA del 2026-08 (M-3) ya no aparece en Kommo: hay 1 solo número | Kommo, mismo panel | T |
-| M-16 | Con otra sesión de Facebook, el Chrome de Sam entra al portfolio **«Importador de China»**. Ahí hay **2 cuentas de WhatsApp**: la del número principal y un número de prueba de Meta (+1 555…, «Test Number», 0 socios) | Configuración → Cuentas de WhatsApp, 2026-10-30 | T |
+| M-16 | Con otra sesión de Facebook, el Chrome de Sam entra al portfolio **«Importador de China»**. Ahí hay **2 cuentas de WhatsApp**: la del número principal y un número de prueba de Meta (+1 555…, «Test Number», 0 socios) | Configuración → Cuentas de WhatsApp, 2026-10-29 | T |
 | M-17 | Cuenta del número principal: nombre visible aprobado («Logistica China Venezuela DTD»), estado Conectado, calidad **Alta**, límite de mensajes «No disponible»; 1 persona con acceso total, 0 con acceso parcial y **1 socio** | Mismo panel, pestaña Resumen | T |
 | M-18 | El panel de la cuenta de WhatsApp tiene las pestañas del modelo nuevo: Socios, «Linked WhatsApp accounts», «Messaging accounts» y «Conversation routing» | Mismo panel | T |
 | M-19 | Meta pide **verificar la cuenta del usuario** («Se necesita verificación») antes de seguir; el aviso tapa las pestañas. Esa verificación la hace Sam, no la IA | Mismo panel | T |
-| M-20 | Tras la verificación de Sam, el panel del número muestra: **1 socio, Kommo, con control total**; **0 cuentas de WhatsApp vinculadas** (existe la opción «Vincular cuenta de WhatsApp», no se usó); **1 cuenta de mensajes vinculada, «Importador de China»**, con 1 persona con control total, 0 con control parcial y 1 socio | Cuentas de WhatsApp → número → Socios, «Linked WhatsApp accounts» y «Messaging accounts», 2026-10-30 | T |
+| M-20 | Tras la verificación de Sam, el panel del número muestra: **1 socio, Kommo, con control total**; **0 cuentas de WhatsApp vinculadas** (existe la opción «Vincular cuenta de WhatsApp», no se usó); **1 cuenta de mensajes vinculada, «Importador de China»**, con 1 persona con control total, 0 con control parcial y 1 socio | Cuentas de WhatsApp → número → Socios, «Linked WhatsApp accounts» y «Messaging accounts», 2026-10-29 | T |
 | M-21 | El enrutamiento de conversaciones del número está vacío: Meta dice que hacen falta al menos 2 responsables y hoy solo está Kommo | Pestaña «Conversation routing» | T |
 | M-22 | 1 persona con acceso total a la cuenta de WhatsApp (el usuario con el que entró Sam). El menú «⋯» de la cuenta ofrece «Asignar personas» y «Suprimir del portfolio empresarial»; se abrió solo para leerlo y no se eligió nada | Pestaña Personas y menú «⋯» | T |
 | M-23 | La extensión de Chrome se desconectó un momento; al volver se completó la lectura (M-24 a M-31) | — | — |
@@ -86,7 +86,7 @@ Consecuencias para E1 (sin cambiar los días base):
 | M-30 | **5 plantillas activas** (3 Marketing y 2 Servicio), con un tope de 5 de 6.000; el tope de 6.000 corresponde a un portfolio verificado | WhatsApp Manager → Administrar plantillas | T |
 | M-31 | El PIN de verificación en dos pasos del número **no se ve** en el panel nuevo, y los callbacks y overrides tampoco (M-6) | WhatsApp Manager | NV (se lee por API tras 4.1) |
 
-**Decisión de Sam («Apruebo todo», 2026-10-30):** dejar el número en «Importador de China», sin migrarlo. Razones: el modelo nuevo no permite mover un número a otro portfolio, ese portfolio está verificado y separa WhatsApp de la publicidad. Chatwoot se conectaría ahí con su app (la existente «Whats DTD» u otra nueva), su usuario del sistema, su cuenta de mensajes y su pago.
+**Decisión de Sam («Apruebo todo», 2026-10-29):** dejar el número en «Importador de China», sin migrarlo. Razones: el modelo nuevo no permite mover un número a otro portfolio, ese portfolio está verificado y separa WhatsApp de la publicidad. Chatwoot se conectaría ahí con su app (la existente «Whats DTD» u otra nueva), su usuario del sistema, su cuenta de mensajes y su pago.
 
 Sobre D-1 y NV-2: **el modelo nuevo de Meta ya se ve en la cuenta** (pestañas «Cuentas de WhatsApp» y «Cuentas de mensajes», aviso «Updates to your account» al entrar). Según la documentación de los BSP:
 - la cuenta de WhatsApp tiene el número y el perfil;
@@ -95,16 +95,16 @@ Sobre D-1 y NV-2: **el modelo nuevo de Meta ya se ve en la cuenta** (pestañas �
 - las plantillas **no pasan** de una cuenta de mensajes a otra;
 - la migración fue de fines de septiembre a mediados de octubre de 2026 y los IDs, tokens y endpoints viejos siguen hasta el primer semestre de 2028.
 
-Fuentes (D, consultadas el 2026-10-30): docs.360dialog.com/partner/onboarding/new-whatsapp-account-model (revisada el 2026-10-08), support.gupshup.io (artículo «New WhatsApp Account structure / WAME»), unifyport.ai y connect.bitbytecore.com. Los topes que citan las guías (por ejemplo, 2 socios por cuenta de mensajes o 250 plantillas sin verificar) son NV.
+Fuentes (D, consultadas el 2026-10-29): docs.360dialog.com/partner/onboarding/new-whatsapp-account-model (revisada el 2026-10-08), support.gupshup.io (artículo «New WhatsApp Account structure / WAME»), unifyport.ai y connect.bitbytecore.com. Los topes que citan las guías (por ejemplo, 2 socios por cuenta de mensajes o 250 plantillas sin verificar) son NV.
 
-### Corrección de la spec (aprobada por Sam, «Apruebo todo», 2026-10-30)
+### Corrección de la spec (aprobada por Sam, «Apruebo todo», 2026-10-29)
 
 La prohibición «nada de una 2.ª cuenta de mensajería en el mismo usuario del sistema» se escribió con el modelo viejo, donde una 2.ª WABA implicaba registrar el número otra vez. Con el modelo nuevo, Chatwoot (integración directa de Cloud API con la app de DTD) **tiene que** tener su propia cuenta de mensajes. Redacción propuesta:
 
 - se permite **una** cuenta de mensajes propia de DTD para Chatwoot, en el portfolio «Importador de China», creada al compartir el número con la app de DTD (4.1 y 4.5);
 - sigue prohibido crear una 2.ª **cuenta de WhatsApp** para el número, registrarlo de nuevo (`/register`), `/deregister` y Embedded Signup sobre el número principal;
 - las 5 plantillas aprobadas de Kommo (K-19, M-30) **se recrean y se aprueban** en la cuenta de mensajes de DTD antes de 4.5; no se copian;
-- antes de 4.1, Sam exige la 2FA a los administradores de «Importador de China» (M-28);
+- la 2FA de «Importador de China» queda sin exigir por decisión de Sam (2026-10-29, «No quiero activar el verificador de dos pasos de importador de China. Déjalo así por ahora. Quítalo del checklist y avancemos»): riesgo aceptado (M-28);
 - el método de pago propio de 0.7 va en la cuenta de mensajes de DTD, no en la de Kommo.
 
 Aplicada en la decisión B y en las prohibiciones de la spec y de `instrucciones-ia.md`.
