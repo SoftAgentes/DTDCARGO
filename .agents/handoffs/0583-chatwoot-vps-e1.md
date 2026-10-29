@@ -1,6 +1,6 @@
 # Handoff · SDD-0583 · E1 «Chatwoot en el VPS» (programa SDD-0582)
 
-- **Rama:** `codex/0582-e1-chatwoot-vps`, apilada sobre `codex/0582-e0-preparacion` (`21e4c7e0e`, PR draft #327). Worktree `DTD-worktrees/0582-e1-chatwoot-vps`, owner `claude-0582-e1`. **Sin push ni PR** (falta la autorización de Sam).
+- **Rama:** `codex/0582-e1-chatwoot-vps`, apilada sobre `codex/0582-e0-preparacion` (`21e4c7e0e`, PR draft #327). Worktree `DTD-worktrees/0582-e1-chatwoot-vps`, owner `claude-0582-e1`. **PR en borrador [SoftAgentes/DTDCARGO#329](https://github.com/SoftAgentes/DTDCARGO/pull/329)**, apilada sobre la #328 (E0). La publicó la sesión del programa con el OK de Sam («Sí, publícalas», dado en esa sesión) hasta `9bd78b77c`; los commits de P1 se suben con `git push` normal, sin force. Sin merge.
 - **Reserva:** SDD-0583 (`codex/sdd-reserve-0583-chatwoot-vps-e1` + `refs/dtd/reservations/0583`), incorporada con cherry-pick. Sin publicar a `origin`.
 - **Fecha:** 2026-10-29. Worker: Claude (sesión hija de la 0582).
 
