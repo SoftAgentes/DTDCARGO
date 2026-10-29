@@ -209,3 +209,24 @@ Consecuencias:
 | Resto de E7 | 13,5 | 13,5 | Sin evidencia nueva |
 
 Los días base no cambian: cambiar el peso exige la línea base v2 y el OK de Sam. Lo de arriba solo mueve «Días restantes».
+
+## Línea base v2 — fuentes y verificación del código (2026-10-29)
+
+Base del plan v3 del Director, aprobado por Sam («aprobación del plan v3 del Director, 2026-10-29»). Las citas de código se leyeron en `main` `ec5786bb8`. Las fuentes externas se abrieron el 2026-10-29. No se copian teléfonos, IDs de Meta ni datos de clientes.
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| V2-1 | El BSUID es un ID de usuario estable y único **por portafolio**; un mismo usuario tiene un BSUID distinto en cada portafolio. Con un username, el teléfono se omite de los webhooks salvo excepciones (Contact Book y caché de 30 días por número). Fechas: BSUID en webhooks entre marzo y abril de 2026, envío a BSUID desde inicios de julio de 2026 y disponibilidad general en el 2.º semestre de 2026. La guía no dice si otro número del mismo portafolio puede escribir por BSUID | [360dialog, «Usernames»](https://docs.360dialog.com/docs/alpha-usernames) | D (BSP); el «solo el mismo portafolio» es I |
+| V2-2 | Meta describe los BSUID como «scoped to a business portfolio and user»; el flujo de usernames puede omitir el teléfono en los eventos | [ChatArchitect, «Business-scoped user IDs»](https://support.chatarchitect.com/books/meta-whatsapp/page/business-scoped-user-ids-developer-documentation) | D (BSP) |
+| V2-3 | Meta documenta el mensaje interactivo `cta_url`, que asocia una URL a un botón. La página no habla de la ventana de servicio ni de plantillas | [Meta, «Interactive CTA URL messages»](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/interactive-cta-url-messages/) | D; que Chatwoot lo envíe es NV |
+| V2-4 | `decideRoute` devuelve «cliente» para cualquier fila de `clients` encontrada por contacto o por teléfono; no mira envíos | `supabase/functions/_shared/kommo-router.ts:85-111` | C |
+| V2-5 | `clients.phone_last10` es una columna generada; solo tiene índices no únicos, y más de un candidato da «ambiguo» | `supabase/migrations/0383_clients_phone_last10_y_vinculo.sql:64-80,84`; `0342_kommo_contact_link.sql:52`; `kommo-router.ts:108-110` | C |
+| V2-6 | `shipments.client_markbox` es texto (`DTD-XXXX`, sin FK); `client_outstanding` se define en la 0492; `warehouse_receipts_cn` existe | `supabase/migrations/0002_shipments.sql:36`; `0492_client_outstanding.sql:215`; `0008_warehouses_cn.sql:52` | C |
+| V2-7 | `conversations.client_id` es FK a `clients`; `conversation_messages` no tiene `client_id` y se liga por `conversation_id`. **Corrige el plan v3**, que decía que las dos lo llevaban | `supabase/migrations/0106_conversaciones.sql:15,45` | C |
+| V2-8 | El portal llama a `notifyConversationInbound` después de guardar el mensaje | `app/portal/(app)/mensajes/actions.ts:45` | C |
+| V2-9 | El número público sale de `CONTACT.ve.whatsapp` / `whatsappRaw` (líneas 245-246; el plan decía 244) y `buildWhatsAppLink` (146-149). `git grep -l buildWhatsAppLink` da 44 archivos fuera de pruebas (el plan decía «unos 41»). `FichaF2.tsx:69` lo tiene escrito a mano | `lib/design-tokens.ts:146-149,245-246`; `components/servicios/FichaF2.tsx:69` | C |
+| V2-10 | El portal identifica al cliente con `get_portal_client_id()` | `supabase/migrations/0080_portal_cliente.sql:40` | C |
+| V2-11 | La 0143 es la base del motor «N8N-lite» de Studio | `supabase/migrations/0143_workflow_engine.sql:4` | C |
+| V2-12 | La alerta de Meta «Datos restringidos» es informativa; la causa probable es la regla del DOJ de EE. UU. sobre «países de preocupación» | Plan v3 del Director; no se leyó fuente | I |
+| V2-13 | n8n guarda por defecto los datos de cada ejecución | Plan v3 del Director; no se contrastó con la documentación de n8n | I |
+| V2-14 | Respuesta gratis dentro de la ventana de 24 h y tope bajo inicial de mensajes del número nuevo | Plan v3 del Director | NV (4.3 y 4.9) |

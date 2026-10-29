@@ -64,7 +64,7 @@ Este documento sirve para cualquier agente de programación que tome un paso del
 3. **Correr** `node scripts/avance-checklist.mjs docs/specs/0582-chatwoot-piloto/checklist.md`.
 4. **Reportar con este formato exacto:**
 
-   `Etapa N de 10 · <nombre> · paso <ID> · Avance X % (falta Y %) · Esfuerzo: real R d, restante D d · Fecha probable <rango> · Esperando: … · Necesito de ti: …`
+   `Etapa N de 11 · <nombre> · paso <ID> · Avance X % (falta Y %) · Esfuerzo: real R d, restante D d · Fecha probable <rango> · Esperando: … · Necesito de ti: …`
 5. **Validación por check:** PASÓ, FALLÓ, NO EJECUTADO o NO DISPONIBLE. El cierre de producto es `pnpm verify`; para cambios solo de docs, `docs:check` y `sdd:check`.
 6. **Handoff** en `.agents/handoffs/`, con los pendientes de la tarea separados de **FUERA DE ALCANCE DETECTADO**.
 
