@@ -12,11 +12,11 @@
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
 | 0.2 | aceptado | 5 decisiones; Kommo vence el 29.05.2027 con renovación automática (T) | Aceptado («Acepto los tres», 2026-10-29); ubicar «analiza mi contestación» en 7.3 |
-| 0.3 | en curso | Guía de 13 puntos, nota cifrada y vuelta atrás escritas; M-1–M-7 | Lectura en Meta con Sam; aprobación de la vuelta atrás |
+| 0.3 | bloqueado | Portfolio «DTD Cargo» leído (M-8–M-12, T); el número está en el portfolio «Importador de China», verificado (M-13, vía Kommo) | Acceso de administrador a «Importador de China»; OK de Sam a la propuesta sobre el modelo nuevo de cuentas |
 | 0.4 | aceptado | Kommo leído en solo lectura (K-13–K-22, T): 15 bots y 4 agentes apagados, 7 fuentes, 7 plantillas, integraciones, sin exportación de chats | Aceptado («Acepto los tres», 2026-10-29) |
 | 0.5 | aceptado | `info@` = alias de `vzla@` (único buzón); DKIM, SPF, MX y DMARC en verde; Resend sin recepción (C-1–C-13, T) | Aceptado («Acepto 0.5», 2026-10-29) |
 | 0.6 | aceptado | Historial leído con la integración nueva; paginación medida (X-1–X-17, R) | Aceptado por Sam («Acepto 0.6», 2026-10-29). Revocar la integración al cerrar E5 |
-| 0.7 | en curso | Plantilla de expedientes | Verificación del negocio y pago propio comprobados |
+| 0.7 | en curso | «DTD Cargo» sin verificar; «Importador de China» verificado; Kommo dice método de pago «Activo» (de quién: NV) | Ver el pago en «Importador de China»; decidir el pago propio en la cuenta de mensajes de DTD |
 
 Evidencia: [registro E0](../../docs/specs/0582-chatwoot-piloto/investigacion-2026-10-29-e0.md) y [guías](../../docs/specs/0582-chatwoot-piloto/e0-guias.md).
 
@@ -49,7 +49,8 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 - DNS público por `dns.google`.
 - Hostinger (lectura en el Chrome de Sam): Emails → dtdcargo.com → Buzones, Alias, Reenviadores, Catch-all y Ajustes de dominio. Nada se cambió.
 - Resend: `GET /domains` y `GET /webhooks` desde el VPS con la llave del ERP en memoria (no se leyó ningún correo recibido).
-- Meta: solo se abrió la página de inicio de sesión.
+- Meta (2026-10-30, acceso de la oficina, solo lectura): Información del negocio, Personas, Socios, Usuarios del sistema, Apps, Cuentas de WhatsApp, Cuentas de mensajes, Páginas, Perfiles de Instagram, Enrutamiento, Apps conectadas, Centro de seguridad y Facturación. Se cerraron 2 avisos informativos (aprobación de pares y herramientas fijadas). Nada se cambió.
+- Kommo (2026-10-30, lectura): detalle del número en la integración WhatsApp Business.
 
 ## Validación
 
@@ -66,12 +67,13 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 ## Pendientes de esta tarea
 
 1. Hecho: 0.1, 0.2 y 0.4 aceptados por Sam el 2026-10-29.
-2. Sam + IA: lectura de Meta (0.3, 13 puntos) y aprobación de la vuelta atrás. **Pospuesto por Sam al 2026-10-30**: tiene que preguntar en la oficina qué acceso usar para Meta Business (el Chrome no tiene sesión).
+2. Sam: conseguir acceso de administrador al portfolio «Importador de China» (el de la oficina solo ve «DTD Cargo»). Con eso se terminan los 13 puntos de 0.3 y se aprueba la vuelta atrás.
+2b. Sam: OK o ajustes a la propuesta sobre el modelo nuevo de cuentas (registro E0, «Propuesta de corrección de la spec»).
 3. Hecho: Kommo leído el 2026-10-29.
 4. Hecho: Hostinger y Resend leídos (0.5 entregado).
 5. Hay 3 tokens de la integración «DTD 0582 historial» vigentes 100 días y ninguno guardado; se pueden revocar en Kommo → la integración → Llaves y alcances, y la integración se revoca al cerrar E5.
 6. Sam: verificación del negocio y método de pago propio (0.7). Va junto con 0.3, el 2026-10-30.
-7. Publicar la rama: sin autorización de push en este encargo.
+7. Rama publicada por la sesión principal como PR draft #328 (con la autorización de Sam «Sí, publícalas»). Los commits nuevos van con `git push` normal, sin force ni rebase.
 
 ## FUERA DE ALCANCE DETECTADO
 
