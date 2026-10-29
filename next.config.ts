@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 // Import RELATIVO a propósito: el loader de `next.config.ts` corre antes del
 // bundler y no resuelve el alias `@/`.
 import { originFromEnv } from "./lib/runtime/supabase-origin";
+import { chatwootOriginFromEnv } from "./lib/runtime/chatwoot-origin";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -304,6 +305,22 @@ const nextConfig: NextConfig = {
       "camera=(self), microphone=(self), geolocation=(self), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()";
     const ppStudioBitacora =
       "camera=(), microphone=(self), geolocation=(), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()";
+    // Bandeja de Chatwoot (SDD-0585, E2-D2/E2-D14): el panel va en un iframe de
+    // `chat.dtdcargo.com` y graba notas de voz. Hacen falta las DOS cosas: la
+    // CSP con `frame-src` del chat (sin ella el marco cae a `default-src 'self'`)
+    // y el micrófono delegado al origen del chat (con `microphone=()` el iframe
+    // recibe NotAllowedError aunque lleve `allow="microphone"`). Medido en la
+    // PoC 2.1 (I3, M2, M3). Mismo gotcha que Bitácora: la regla queda SOLA para
+    // su URL y el catch-all la excluye.
+    const chatwootOrigin = chatwootOriginFromEnv();
+    const ppStudioBandeja = `camera=(), microphone=(self "${chatwootOrigin}"), geolocation=(), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()`;
+    const bandejaHeaders = securityHeaders.map((h) =>
+      h.key === "Content-Security-Policy"
+        ? { key: h.key, value: `${cspHeader}; frame-src ${chatwootOrigin}` }
+        : h.key === "Permissions-Policy"
+          ? { key: h.key, value: ppStudioBandeja }
+          : h,
+    );
     const baseNoPP = securityHeaders.filter(
       (h) => h.key !== "Permissions-Policy",
     );
@@ -387,6 +404,12 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: ppStudioBitacora },
         ],
       },
+      // Bandeja de Chatwoot: CSP con frame-src del chat + micrófono delegado.
+      // Se excluye del catch-all de abajo.
+      {
+        source: "/studio/bandeja/:path*",
+        headers: bandejaHeaders,
+      },
       // Las CUATRO reglas de `/marca` son MUTUAMENTE EXCLUYENTES a propósito: si
       // dos matchearan, Next emite dos `Content-Security-Policy` y el navegador
       // aplica la intersección — el standalone quedaría bloqueado por la estricta.
@@ -449,7 +472,7 @@ const nextConfig: NextConfig = {
         // `marca` sin barra: cubre tanto `/marca` (el catálogo) como `/marca/…`.
         // Con `marca/` la raíz caía acá Y en su regla propia → CSP duplicada.
         source:
-          "/:path((?!m/|marca|norte\\.html|studio/bitacora|tarifas/embed|fcl/embed).*)",
+          "/:path((?!m/|marca|norte\\.html|studio/bitacora|studio/bandeja(?:/|$)|tarifas/embed|fcl/embed).*)",
         headers: securityHeaders,
       },
     ];
