@@ -12,13 +12,17 @@
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
 | 0.2 | aceptado | 5 decisiones; Kommo vence el 29.05.2027 con renovación automática (T) | Aceptado («Acepto los tres», 2026-10-29); ubicar «analiza mi contestación» en 7.3 |
-| 0.3 | entregado | «Importador de China» leído completo (M-16–M-31, T): 1 número, 1 socio (Kommo), 3 cuentas de mensajes, app «Whats DTD» sin activos, 5 plantillas, 2FA no exigida | Aceptación de Sam; OK a la vuelta atrás y a la propuesta; nota cifrada de Sam; PIN, callbacks y overrides por API tras 4.1 |
+| 0.3 | aceptado | «Importador de China» leído completo (M-16–M-31, T) | Aceptado («Apruebo todo», 2026-10-30). Nota cifrada de Sam con los valores; PIN, callbacks y overrides por API tras 4.1 |
 | 0.4 | aceptado | Kommo leído en solo lectura (K-13–K-22, T): 15 bots y 4 agentes apagados, 7 fuentes, 7 plantillas, integraciones, sin exportación de chats | Aceptado («Acepto los tres», 2026-10-29) |
 | 0.5 | aceptado | `info@` = alias de `vzla@` (único buzón); DKIM, SPF, MX y DMARC en verde; Resend sin recepción (C-1–C-13, T) | Aceptado («Acepto 0.5», 2026-10-29) |
 | 0.6 | aceptado | Historial leído con la integración nueva; paginación medida (X-1–X-17, R) | Aceptado por Sam («Acepto 0.6», 2026-10-29). Revocar la integración al cerrar E5 |
-| 0.7 | entregado | Portfolio verificado y pago propio (Mastercard de DTD) en la cuenta de mensajes del número (M-25, T) | Aceptación de Sam; App Review de Messenger e Instagram en E4 |
+| 0.7 | aceptado | Portfolio verificado y pago propio en la cuenta de mensajes del número (M-25, T) | Aceptado («Apruebo todo», 2026-10-30). App Review de Messenger e Instagram en E4 |
 
 Evidencia: [registro E0](../../docs/specs/0582-chatwoot-piloto/investigacion-2026-10-29-e0.md) y [guías](../../docs/specs/0582-chatwoot-piloto/e0-guias.md).
+
+## Cierre de E0 (2026-10-30)
+
+Los 7 pasos de E0 están aceptados: 5 de 5 días base. Real: 3,5 d frente a 5 d base. La reestimación de E5, 6.7 y E7 queda como está abajo; no hay cambio de línea base.
 
 ## Reestimación
 
@@ -34,6 +38,8 @@ Los días base no cambian (eso exige la línea base v2 y el OK de Sam).
 Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G de la spec se actualizó. Riesgo medido: presión de CPU `some` del 31 % a 5 min antes de sumar Chatwoot (VPS-4). Mitigación: límites por servicio en 1.1, respaldo fuera del host en 1.5 y vigilancia del ERP en 1.6; plan B, el VPS dedicado.
 
 ## Autorizaciones registradas
+
+- Meta, 2026-10-30: Sam, «Apruebo todo», 2026-10-30, a: dejar el número en «Importador de China»; cuenta de mensajes propia para Chatwoot con sus plantillas y pago; la vuelta atrás de 0.3; y aceptar 0.3 y 0.7. Se aplicó a la spec (decisión B y prohibiciones) e `instrucciones-ia.md`.
 
 - 0.6, lectura de PII: Sam, chat del 2026-10-29, respuesta literal «Sí, OK para esa lectura» a «leer por API, desde el VPS, los mensajes de hasta 20 conversaciones de Kommo con el token que ya usa el ERP, sin guardar su texto (solo conteos)». Se usó solo para eso; no cubre la integración nueva ni la carga.
 - 0.6, integración en Kommo: Sam, 2026-10-29, «Sí, créala». Se creó «DTD 0582 historial (solo lectura)» con dos alcances (información de la cuenta e historial de chats externos) y un logo liso de 400×272. La integración aparece creada en Kommo. El token aún no se generó ni llegó al VPS: Sam contestaba las preguntas sin estar mirando la pantalla y pidió entender el procedimiento, así que se pausó. Revocarla al cerrar E5.
@@ -60,7 +66,7 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 |---|---|
 | `node scripts/build-docs-index.mjs --check` (docs:check) | PASÓ (565 specs) |
 | `node scripts/check-numbering.mjs` (sdd:check) | PASÓ |
-| `node scripts/avance-checklist.mjs …/checklist.md` | PASÓ (parsea la tabla; avance 0,0 %) |
+| `node scripts/avance-checklist.mjs …/checklist.md` | PASÓ (avance 5,0 % al cierre de E0) |
 | `scripts/__tests__/avance-checklist.test.mjs` | NO EJECUTADO: es de Vitest y el worktree no tiene dependencias; el script no cambió |
 | `git diff --check` | PASÓ |
 | `pnpm verify` | NO APLICA: cambio solo de docs |
@@ -69,8 +75,8 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 ## Pendientes de esta tarea
 
 1. Hecho: 0.1, 0.2 y 0.4 aceptados por Sam el 2026-10-29.
-2. Hecho (2026-10-30): Sam entró a «Importador de China» y se leyó todo 0.3 y 0.7. Falta su aceptación, el OK a la vuelta atrás y su nota cifrada con los valores.
-2b. Sam: OK o ajustes a la propuesta sobre el modelo nuevo de cuentas (registro E0, «Propuesta de corrección de la spec»).
+2. Hecho (2026-10-30): 0.3 y 0.7 aceptados, propuesta y vuelta atrás aprobadas. Queda de Sam: la nota cifrada con los valores vistos y exigir la 2FA en «Importador de China» antes de 4.1.
+2b. Hecho: propuesta aprobada y aplicada a la spec.
 3. Hecho: Kommo leído el 2026-10-29.
 4. Hecho: Hostinger y Resend leídos (0.5 entregado).
 5. Hay 3 tokens de la integración «DTD 0582 historial» vigentes 100 días y ninguno guardado; se pueden revocar en Kommo → la integración → Llaves y alcances, y la integración se revoca al cerrar E5.

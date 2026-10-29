@@ -31,7 +31,7 @@ Este documento sirve para cualquier agente de programación que tome un paso del
 - no borrarlo;
 - nada de `/deregister`;
 - nada de Embedded Signup sobre el principal;
-- nada de una 2.ª cuenta de mensajería en el mismo usuario del sistema;
+- nada de una 2.ª cuenta de WhatsApp para el número ni de moverlo de portfolio; Chatwoot tiene exactamente una cuenta de mensajes propia (spec, decisión B);
 - no reintentar `/register`;
 - no crear la bandeja del número principal sin 4.2 probado y 0.3 aprobado.
 
