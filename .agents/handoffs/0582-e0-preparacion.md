@@ -12,15 +12,15 @@
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
 | 0.2 | aceptado | 5 decisiones; Kommo vence el 29.05.2027 con renovación automática (T) | Aceptado («Acepto los tres», 2026-10-29); ubicar «analiza mi contestación» en 7.3 |
-| 0.3 | aceptado | «Importador de China» leído completo (M-16–M-31, T) | Aceptado («Apruebo todo», 2026-10-30). Nota cifrada de Sam con los valores; PIN, callbacks y overrides por API tras 4.1 |
+| 0.3 | aceptado | «Importador de China» leído completo (M-16–M-31, T) | Aceptado («Apruebo todo», 2026-10-29). Nota cifrada de Sam con los valores; PIN, callbacks y overrides por API tras 4.1 |
 | 0.4 | aceptado | Kommo leído en solo lectura (K-13–K-22, T): 15 bots y 4 agentes apagados, 7 fuentes, 7 plantillas, integraciones, sin exportación de chats | Aceptado («Acepto los tres», 2026-10-29) |
 | 0.5 | aceptado | `info@` = alias de `vzla@` (único buzón); DKIM, SPF, MX y DMARC en verde; Resend sin recepción (C-1–C-13, T) | Aceptado («Acepto 0.5», 2026-10-29) |
 | 0.6 | aceptado | Historial leído con la integración nueva; paginación medida (X-1–X-17, R) | Aceptado por Sam («Acepto 0.6», 2026-10-29). Revocar la integración al cerrar E5 |
-| 0.7 | aceptado | Portfolio verificado y pago propio en la cuenta de mensajes del número (M-25, T) | Aceptado («Apruebo todo», 2026-10-30). App Review de Messenger e Instagram en E4 |
+| 0.7 | aceptado | Portfolio verificado y pago propio en la cuenta de mensajes del número (M-25, T) | Aceptado («Apruebo todo», 2026-10-29). App Review de Messenger e Instagram en E4 |
 
 Evidencia: [registro E0](../../docs/specs/0582-chatwoot-piloto/investigacion-2026-10-29-e0.md) y [guías](../../docs/specs/0582-chatwoot-piloto/e0-guias.md).
 
-## Cierre de E0 (2026-10-30)
+## Cierre de E0 (2026-10-29)
 
 Los 7 pasos de E0 están aceptados: 5 de 5 días base. Real: 3,5 d frente a 5 d base. La reestimación de E5, 6.7 y E7 queda como está abajo; no hay cambio de línea base.
 
@@ -39,7 +39,7 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 
 ## Autorizaciones registradas
 
-- Meta, 2026-10-30: Sam, «Apruebo todo», 2026-10-30, a: dejar el número en «Importador de China»; cuenta de mensajes propia para Chatwoot con sus plantillas y pago; la vuelta atrás de 0.3; y aceptar 0.3 y 0.7. Se aplicó a la spec (decisión B y prohibiciones) e `instrucciones-ia.md`.
+- Meta, 2026-10-29: Sam, «Apruebo todo», 2026-10-29, a: dejar el número en «Importador de China»; cuenta de mensajes propia para Chatwoot con sus plantillas y pago; la vuelta atrás de 0.3; y aceptar 0.3 y 0.7. Se aplicó a la spec (decisión B y prohibiciones) e `instrucciones-ia.md`.
 
 - 0.6, lectura de PII: Sam, chat del 2026-10-29, respuesta literal «Sí, OK para esa lectura» a «leer por API, desde el VPS, los mensajes de hasta 20 conversaciones de Kommo con el token que ya usa el ERP, sin guardar su texto (solo conteos)». Se usó solo para eso; no cubre la integración nueva ni la carga.
 - 0.6, integración en Kommo: Sam, 2026-10-29, «Sí, créala». Se creó «DTD 0582 historial (solo lectura)» con dos alcances (información de la cuenta e historial de chats externos) y un logo liso de 400×272. La integración aparece creada en Kommo. El token aún no se generó ni llegó al VPS: Sam contestaba las preguntas sin estar mirando la pantalla y pidió entender el procedimiento, así que se pausó. Revocarla al cerrar E5.
@@ -55,9 +55,9 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 - DNS público por `dns.google`.
 - Hostinger (lectura en el Chrome de Sam): Emails → dtdcargo.com → Buzones, Alias, Reenviadores, Catch-all y Ajustes de dominio. Nada se cambió.
 - Resend: `GET /domains` y `GET /webhooks` desde el VPS con la llave del ERP en memoria (no se leyó ningún correo recibido).
-- Meta (2026-10-30, acceso de la oficina, solo lectura): Información del negocio, Personas, Socios, Usuarios del sistema, Apps, Cuentas de WhatsApp, Cuentas de mensajes, Páginas, Perfiles de Instagram, Enrutamiento, Apps conectadas, Centro de seguridad y Facturación. Se cerraron 2 avisos informativos (aprobación de pares y herramientas fijadas). Nada se cambió.
-- Kommo (2026-10-30, lectura): detalle del número en la integración WhatsApp Business.
-- Meta «Importador de China» (2026-10-30, lectura, después de que Sam verificara su cuenta): Cuentas de WhatsApp (pestañas Resumen, Personas, Socios, cuentas vinculadas, cuentas de mensajes y enrutamiento), Cuentas de mensajes, Personas, Usuarios del sistema, Aplicaciones, Socios, Centro de seguridad y WhatsApp Manager (Números, Insights, Perfil y Plantillas). Se cerraron 2 avisos informativos. El menú «⋯» de la cuenta de WhatsApp («Asignar personas», «Suprimir del portfolio») se abrió y se cerró sin elegir nada.
+- Meta (2026-10-29, acceso de la oficina, solo lectura): Información del negocio, Personas, Socios, Usuarios del sistema, Apps, Cuentas de WhatsApp, Cuentas de mensajes, Páginas, Perfiles de Instagram, Enrutamiento, Apps conectadas, Centro de seguridad y Facturación. Se cerraron 2 avisos informativos (aprobación de pares y herramientas fijadas). Nada se cambió.
+- Kommo (2026-10-29, lectura): detalle del número en la integración WhatsApp Business.
+- Meta «Importador de China» (2026-10-29, lectura, después de que Sam verificara su cuenta): Cuentas de WhatsApp (pestañas Resumen, Personas, Socios, cuentas vinculadas, cuentas de mensajes y enrutamiento), Cuentas de mensajes, Personas, Usuarios del sistema, Aplicaciones, Socios, Centro de seguridad y WhatsApp Manager (Números, Insights, Perfil y Plantillas). Se cerraron 2 avisos informativos. El menú «⋯» de la cuenta de WhatsApp («Asignar personas», «Suprimir del portfolio») se abrió y se cerró sin elegir nada.
 - Se cerró, sin pulsar nada, una ventana de Kommo de «Inicio de sesión con Facebook para empresas» que pedía compartir «Importador de China» y crear una cuenta publicitaria. La IA no la abrió.
 
 ## Validación
@@ -75,12 +75,12 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 ## Pendientes de esta tarea
 
 1. Hecho: 0.1, 0.2 y 0.4 aceptados por Sam el 2026-10-29.
-2. Hecho (2026-10-30): 0.3 y 0.7 aceptados, propuesta y vuelta atrás aprobadas. Queda de Sam: la nota cifrada con los valores vistos y exigir la 2FA en «Importador de China» antes de 4.1.
+2. Hecho (2026-10-29): 0.3 y 0.7 aceptados, propuesta y vuelta atrás aprobadas. Queda de Sam: la nota cifrada con los valores vistos. La 2FA en «Importador de China» queda sin exigir por decisión de Sam (2026-10-29, «No quiero activar el verificador de dos pasos de importador de China. Déjalo así por ahora. Quítalo del checklist y avancemos»): riesgo aceptado (M-28).
 2b. Hecho: propuesta aprobada y aplicada a la spec.
 3. Hecho: Kommo leído el 2026-10-29.
 4. Hecho: Hostinger y Resend leídos (0.5 entregado).
 5. Hay 3 tokens de la integración «DTD 0582 historial» vigentes 100 días y ninguno guardado; se pueden revocar en Kommo → la integración → Llaves y alcances, y la integración se revoca al cerrar E5.
-6. Sam: verificación del negocio y método de pago propio (0.7). Va junto con 0.3, el 2026-10-30.
+6. Hecho: verificación del negocio y método de pago propio comprobados (0.7).
 7. Rama publicada por la sesión principal como PR draft #328 (con la autorización de Sam «Sí, publícalas»). Los commits nuevos van con `git push` normal, sin force ni rebase.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -94,4 +94,4 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 - En el VPS del ERP corren varias sesiones de Codex/Orca de varios proyectos (DTD, Loop 3D, Rent Awada) con días de antigüedad. Pueden explicar parte de la presión de CPU (VPS-4); lo revisa el Director antes de 1.1.
 - La cuenta de Resend del ERP mezcla dominios de DTD, Hailuway y Loop 3D, y la llave del ERP los ve todos (C-13).
 - La cuenta de mensajes «Door tu door» (2.ª WABA vieja, sin número) sigue con Kommo como socio y con la tarjeta de DTD. Conviene decidir si se retira; no es parte de E0.
-- En «Importador de China» la 2FA no se le exige a nadie (M-28).
+- En «Importador de China» la 2FA no se le exige a nadie (M-28); Sam decidió dejarlo así (riesgo aceptado).

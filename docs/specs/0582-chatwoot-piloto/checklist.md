@@ -60,7 +60,7 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | 3.2 | E3 | Vigilante de versiones (`GET /api` y releases) | IA | 1 | — | — | pendiente | — | — |
 | 3.3 | E3 | Pantalla «Actualizaciones» (solo admin) con «Analizar con IA» y «Pedir actualización». No despliega sola | IA | 1,5 | — | — | pendiente | — | — |
 | 3.4 | E3 | Análisis con IA del diff de versiones contra la superficie de DTD. Motor con proveedor, plan y escenario admitidos; OpenCode aislado y autenticado | IA | 1,5 | — | — | pendiente | OK Sam (motor) | — |
-| 4.1 | E4 | App de Meta de DTD (la existente «Whats DTD» u otra), usuario del sistema, token y cuenta de mensajes propia en «Importador de China»; antes, 2FA exigida a los administradores | S+IA | 0,5 | — | — | pendiente | — | Decisión B (2026-10-30) |
+| 4.1 | E4 | App de Meta de DTD (la existente «Whats DTD» u otra), usuario del sistema, token y cuenta de mensajes propia en «Importador de China» | S+IA | 0,5 | — | — | pendiente | — | Decisión B (2026-10-29) |
 | 4.2 | E4 | Protección de `/register`: initializer que aborta el registro para los Phone Number IDs protegidos, probado | IA | 0,75 | — | — | pendiente | — | — |
 | 4.3 | E4 | Número de prueba: alta manual, plantillas y pruebas | S+IA | 1 | — | — | pendiente | OK Sam (línea) | — |
 | 4.4 | E4 | Messenger como piloto: determinar nivel de acceso y demostración | IA | 1 | — | — | pendiente | — | — |
