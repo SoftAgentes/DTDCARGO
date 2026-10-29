@@ -15,7 +15,7 @@
 | 0.3 | en curso | Guía de 13 puntos, nota cifrada y vuelta atrás escritas; M-1–M-7 | Lectura en Meta con Sam; aprobación de la vuelta atrás |
 | 0.4 | en curso | Inventario del repo (K-1–K-12), tabla de los 15 Salesbots y matriz de paridad | Confirmar en Kommo «activo hoy», agentes, fuentes, usuarios, integraciones y backup |
 | 0.5 | en curso | DNS medido (T): Cloudflare, MX Hostinger, sin MX de `inbound.` | Paneles de Hostinger (tipo de `info@`, DKIM) y Resend (recepción, webhooks) |
-| 0.6 | pendiente | Protocolo de la prueba | OK nominal de lectura de PII |
+| 0.6 | en curso | Prueba corrida con el OK de Sam: 403 «Invalid scope» en `talks/{id}/messages`; enumeración, volumen y profundidad medidos (X-1–X-9, R) | OK aparte para crear en Kommo una integración con alcance de historial y repetir la prueba |
 | 0.7 | en curso | Plantilla de expedientes | Verificación del negocio y pago propio comprobados |
 
 Evidencia: [registro E0](../../docs/specs/0582-chatwoot-piloto/investigacion-2026-10-29-e0.md) y [guías](../../docs/specs/0582-chatwoot-piloto/e0-guias.md).
@@ -24,7 +24,7 @@ Evidencia: [registro E0](../../docs/specs/0582-chatwoot-piloto/investigacion-202
 
 - 6.7: restante 0,75 d (base 2). 11 Salesbots sin disparador y los 15 apagados; solo se reemplaza el aviso de ventana de 24 h.
 - 7.4: restante 1 d (base 1,5). Base v7 y textos de los 4 agentes ya están en el repo.
-- E5: sin cambio (7,75 d) hasta medir en 0.6.
+- E5: restante 8,25 d (base 7,75): +0,5 d en 5.3 por la integración nueva. Si Kommo no concede el alcance, se rehace sobre la exportación nativa.
 - Resto de E7: sin cambio.
 
 Los días base no cambian (eso exige la línea base v2 y el OK de Sam).
@@ -33,9 +33,39 @@ Los días base no cambian (eso exige la línea base v2 y el OK de Sam).
 
 Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G de la spec se actualizó. Riesgo medido: presión de CPU `some` del 31 % a 5 min antes de sumar Chatwoot (VPS-4). Mitigación: límites por servicio en 1.1, respaldo fuera del host en 1.5 y vigilancia del ERP en 1.6; plan B, el VPS dedicado.
 
+## Autorizaciones registradas
+
+- 0.6, lectura de PII: Sam, chat del 2026-10-29, respuesta literal «Sí, OK para esa lectura» a «leer por API, desde el VPS, los mensajes de hasta 20 conversaciones de Kommo con el token que ya usa el ERP, sin guardar su texto (solo conteos)». Se usó solo para eso; no cubre la integración nueva ni la carga.
+- 0.3–0.5 en Chrome: Sam eligió hacerlo juntos, pero el Chrome no tenía sesión en Meta y lo pospuso («Lo hacemos después»).
+
+## Lo que se hizo en sistemas externos (todo lectura)
+
+- VPS del ERP: `free`, `df`, `docker stats`, `ps`, `vmstat` y PSI (05:20 UTC); `kommo_connections` (conteo y estado) y lectura del token de Vault en memoria para 0.6.
+- Kommo API: `events`, `talks/{id}`, `talks/{id}/messages` (403), `account`. Nada escrito; ningún cuerpo de mensaje leído.
+- DNS público por `dns.google`.
+- Meta: solo se abrió la página de inicio de sesión.
+
 ## Validación
 
-Ver la sección final, que se actualiza al cerrar.
+| Check | Resultado |
+|---|---|
+| `node scripts/build-docs-index.mjs --check` (docs:check) | PASÓ (565 specs) |
+| `node scripts/check-numbering.mjs` (sdd:check) | PASÓ |
+| `node scripts/avance-checklist.mjs …/checklist.md` | PASÓ (parsea la tabla; avance 0,0 %) |
+| `scripts/__tests__/avance-checklist.test.mjs` | NO EJECUTADO: es de Vitest y el worktree no tiene dependencias; el script no cambió |
+| `git diff --check` | PASÓ |
+| `pnpm verify` | NO APLICA: cambio solo de docs |
+| Graphify / Archify / knowledge:status | NO EJECUTADO: docs de una spec sin código; lo publica el Director desde main |
+
+## Pendientes de esta tarea
+
+1. Sam: fecha de renovación de Kommo (cierra 0.2).
+2. Sam + IA: lectura de Meta (0.3, 13 puntos) y aprobación de la vuelta atrás.
+3. Sam + IA: confirmar en Kommo la tabla de 15 Salesbots y los 7 puntos de 0.4.
+4. Sam + IA: Hostinger (`info@`, DKIM) y Resend (recepción, webhooks) para 0.5.
+5. Sam: OK para crear en Kommo una integración privada con alcance de historial (0.6).
+6. Sam: verificación del negocio y método de pago propio (0.7).
+7. Publicar la rama: sin autorización de push en este encargo.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -43,3 +73,5 @@ Ver la sección final, que se actualiza al cerrar.
 - `docs/runbooks/setup-resend-inbound.md` §6 (respuesta por correo en el mismo hilo) no coincide con el código (`app/studio/(app)/conversaciones/actions.ts:135-141`).
 - La presión de CPU del VPS del ERP (31 % `some` a 5 min) existe sin Chatwoot: conviene que el Director mire qué la causa.
 - `docs/marketing/kommo-campos-y-cartera.md` contiene correos del personal.
+- El token de Kommo del ERP tiene alcances de más para lo que usa (`files_delete`, `users_add`, `users_activate`, `users_deactivate`) y vence en unos 533 días. Lo revisa el Director.
+- `docs/marketing/whatsapp-business.md` y otros documentos del repo citan dígitos del número de WhatsApp y un ID parcial de la 2.ª WABA.

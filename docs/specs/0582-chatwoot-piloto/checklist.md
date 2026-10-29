@@ -40,7 +40,7 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | 0.3 | E0 | Gate Meta (bloqueante): modelo de cuenta, propietarios, WABA, app del token, suscripciones, callbacks, overrides, enrutamiento, 2FA, pago y 2.º número. Valores previos fuera de Git y vuelta atrás escrita | S+IA | 0,75 | 0,25 | 0,5 | en curso | OK Sam; lectura en Meta con Sam | `e0-guias.md#03` (guía y vuelta atrás); M-1–M-7 |
 | 0.4 | E0 | Inventario de Kommo: backup, agentes, plantillas, 15 Salesbots (disparadores, temporizadores, efectos), integraciones y matriz de paridad de fuentes de leads | S+IA | 1 | 0,5 | 0,25 | en curso | Lectura en Kommo con Sam | `e0-guias.md#04`; K-1–K-12 |
 | 0.5 | E0 | Inventario de correo: `info@` (buzón, alias o reenvío), remitente SMTP y Resend Inbound (dominios, rutas, consumidores) | S+IA | 0,25 | 0,25 | 0,1 | en curso | Lectura en Hostinger y Resend con Sam | `e0-guias.md#05`; C-1–C-12 (DNS: T) |
-| 0.6 | E0 | Prueba de extracción de Kommo: `talks/{id}/messages`, alcance, plan, enumeración, paginación y muestra representativa | S+IA | 1 | — | 1 | pendiente | OK Sam (lectura de PII); ratifica E5 | Protocolo: `e0-guias.md#06` |
+| 0.6 | E0 | Prueba de extracción de Kommo: `talks/{id}/messages`, alcance, plan, enumeración, paginación y muestra representativa | S+IA | 1 | 0,5 | 0,5 | en curso | OK Sam (lectura de PII) dado el 2026-10-29; falta OK aparte para crear en Kommo una integración con alcance de historial; ratifica E5 | X-1–X-9: 403 «Invalid scope» (R) |
 | 0.7 | E0 | Expedientes de trámites largos (verificación del negocio) y método de pago propio en Meta comprobado | S+IA | 0,5 | 0,1 | 0,4 | en curso | Espera: 1–4 semanas | `e0-guias.md#07` |
 | 1.1 | E1 | Compose con `v4.19.1-ce` fija, Postgres pgvector, Redis, Sidekiq y límites | IA | 1 | — | — | pendiente | OK Sam (despliegue en VPS) | — |
 | 1.2 | E1 | DNS, TLS, Traefik, `frame-ancestors` acotado y `/super_admin` detrás de Tailscale | IA | 0,5 | — | — | pendiente | — | — |
@@ -70,7 +70,7 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | 4.8 | E4 | Correo: bandeja IMAP/SMTP, SPF/DKIM/DMARC y pruebas de hilo, adjuntos, rebotes y caída de más de 1 día | S+IA | 1,75 | — | — | pendiente | OK Sam (Hostinger y DNS en Cloudflare) | — |
 | 5.1 | E5 | Backup y CSV cifrados fuera de Git | S+IA | 0,5 | — | — | pendiente | — | — |
 | 5.2 | E5 | Medir volumen y decidir alcance | S+IA | 0,5 | — | — | pendiente | OK Sam | — |
-| 5.3 | E5 | Extractor idempotente e incremental, con instante de corte, a staging cifrado | IA | 1,5 | — | — | pendiente | — | — |
+| 5.3 | E5 | Extractor idempotente e incremental, con instante de corte, a staging cifrado | IA | 1,5 | — | 2 | pendiente | — | Reestimado por X-1/X-2 |
 | 5.4 | E5 | E.164, vínculo con el ERP y deduplicación | IA | 1,5 | — | — | pendiente | — | — |
 | 5.5 | E5 | Modo de importación sin efectos, bandeja «Archivo Kommo» y cargador que conserva IDs, autor y fecha | IA | 1,75 | — | — | pendiente | — | — |
 | 5.6 | E5 | Ensayo en copia: cero efectos externos y muestra revisada con Sam | S+IA | 1 | — | — | pendiente | OK Sam | — |

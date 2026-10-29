@@ -92,12 +92,30 @@ Consecuencias:
 - en 1.2 y 4.8, los registros DNS (`chat.`, SPF y DKIM nuevos) se cambian en **Cloudflare**, no en Hostinger; el OK de Hostinger de 4.8 cubre solo el buzón;
 - si `info@` es alias (C-10), Chatwoot no puede enviar como `info@` por SMTP (D-4): la bandeja de 4.8 conecta el buzón real y responde con «enviar como» o pasa `info@` a buzón.
 
+## 0.6 — Prueba de extracción de Kommo
+
+**Puerta:** OK nominal de Sam en el chat del 2026-10-29, respuesta literal «Sí, OK para esa lectura» a la pregunta de leer por API, desde el VPS, los mensajes de hasta 20 conversaciones con el token del ERP, sin guardar su texto. Se corrió en el VPS con el token de Vault en memoria. En disco y en este registro solo quedan conteos. Ningún cuerpo de mensaje llegó a imprimirse: el endpoint los negó.
+
+| ID | Resultado (2026-10-29, ~05:40 UTC) | Etiqueta |
+|---|---|---|
+| X-1 | `GET /api/v4/talks/{id}/messages` responde **403 «Invalid scope»** en las 20 conversaciones de la muestra (10 de WhatsApp y 10 de Instagram) | R |
+| X-2 | El token del ERP tiene los alcances `crm`, `files`, `files_delete`, `notifications`, `push_notifications`, `users_activate`, `users_add` y `users_deactivate`. **No tiene el de historial de chats** y vence en unos 533 días | R |
+| X-3 | `GET /api/v4/talks/{id}` sí responde 200 y trae `talk_id`, `chat_id`, `contact_id`, `entity_id`/`entity_type`, `origin`, `status`, `is_read`, `is_in_work`, `rate`, `source_id`, fechas y los leads y contactos enlazados. **No trae mensajes** | R |
+| X-4 | **Enumeración:** los eventos `incoming_chat_message` dan el `talk_id` y el origen. 1.000 eventos (10 páginas de 100, 0,4–0,8 s por página) cubren 12,6 días y 220 conversaciones distintas: 183 de `waba` y 37 de `instagram_business` | R |
+| X-5 | **Volumen:** 2.358 mensajes entrantes en los últimos 30 días (24 páginas), unos 79 al día | R |
+| X-6 | **Profundidad:** hay eventos entrantes en ventanas de 30 días que empiezan hace 30, 90, 180, 365 y 730 días: el historial alcanzable tiene al menos 2 años | R |
+| X-7 | Los eventos no traen el texto: sin el alcance de historial, el texto solo sale de la exportación nativa de Kommo | I (falta ver la exportación en 0.4, fila 7) |
+| X-8 | Orden de magnitud del historial: unos 2.400 entrantes al mes; con los salientes, del orden de 10⁵ mensajes en 2 años | I |
+| X-9 | Las cabeceras de límite de velocidad no aparecieron en las respuestas; 0,25 s entre llamadas no dio ningún 429 | R |
+
+**Qué falta para cerrar 0.6:** una integración privada de Kommo con el alcance de historial de chats. Crearla es **escritura en Kommo**: pide su propio OK de Sam. Con ella se repite la misma prueba y se miden la paginación y los tipos de mensaje y adjunto. Si Kommo no concede ese alcance a una integración privada, E5 se rehace sobre la exportación nativa (decisión con Sam, posible cambio de alcance).
+
 ## Reestimación (cierre de E0, parcial)
 
 | Paso | Base | Restante reestimado | Motivo |
 |---|---|---|---|
 | 6.7 | 2 | 0,75 | K-1, K-2 y K-4: 11 bots sin disparador y los 15 apagados. Solo hay que reemplazar el aviso de ventana de 24 h (4 bots «Ping 23 h») y pasar el contenido útil del menú A–H a la base de conocimiento de 7.4 |
-| E5 (5.1–5.8) | 7,75 | 7,75 | Sin cambio hasta 0.6: el volumen, el plan y el alcance de `talks/{id}/messages` no se han medido. El ERP no espeja el contenido de los mensajes (C, migración 0391), así que todo el historial sale de Kommo |
+| E5 (5.1–5.8) | 7,75 | 8,25 | X-1 y X-2: el token actual no lee mensajes. Se suma medio día a 5.3 para la integración nueva y su prueba. El volumen (X-5, X-8) cabe en un extractor incremental sin cambio de diseño. Si el alcance no se concede, se reestima sobre la exportación nativa. El ERP no espeja el contenido de los mensajes (C, migración 0391) |
 | 7.3 | 0,5 | 0,5 | Hay que respaldar 3 fuentes de texto y «analiza mi contestación», que viven solo en Kommo (K-6, E0-D4) |
 | 7.4 | 1,5 | 1 | La base v7 y los textos de los 4 agentes ya están en el repo (K-5, K-6) |
 | 7.1 | 1 | 1 | El tope de US$25 (E0-D3) no cambia el trabajo |
