@@ -15,7 +15,7 @@
 | 0.3 | en curso | Guía de 13 puntos, nota cifrada y vuelta atrás escritas; M-1–M-7 | Lectura en Meta con Sam; aprobación de la vuelta atrás |
 | 0.4 | en curso | Inventario del repo (K-1–K-12), tabla de los 15 Salesbots y matriz de paridad | Confirmar en Kommo «activo hoy», agentes, fuentes, usuarios, integraciones y backup |
 | 0.5 | en curso | DNS medido (T): Cloudflare, MX Hostinger, sin MX de `inbound.` | Paneles de Hostinger (tipo de `info@`, DKIM) y Resend (recepción, webhooks) |
-| 0.6 | entregado | Historial leído con la integración nueva; paginación medida (X-1–X-17, R) | Aceptación de Sam; revocar la integración al cerrar E5 |
+| 0.6 | aceptado | Historial leído con la integración nueva; paginación medida (X-1–X-17, R) | Aceptado por Sam («Acepto 0.6», 2026-10-29). Revocar la integración al cerrar E5 |
 | 0.7 | en curso | Plantilla de expedientes | Verificación del negocio y pago propio comprobados |
 
 Evidencia: [registro E0](../../docs/specs/0582-chatwoot-piloto/investigacion-2026-10-29-e0.md) y [guías](../../docs/specs/0582-chatwoot-piloto/e0-guias.md).
@@ -66,7 +66,7 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 2. Sam + IA: lectura de Meta (0.3, 13 puntos) y aprobación de la vuelta atrás.
 3. Sam + IA: confirmar en Kommo la tabla de 15 Salesbots y los 7 puntos de 0.4.
 4. Sam + IA: Hostinger (`info@`, DKIM) y Resend (recepción, webhooks) para 0.5.
-5. Sam: aceptar 0.6. Hay 3 tokens de la integración «DTD 0582 historial» vigentes 100 días y ninguno guardado; se pueden revocar en Kommo → la integración → Llaves y alcances, y la integración se revoca al cerrar E5.
+5. Hay 3 tokens de la integración «DTD 0582 historial» vigentes 100 días y ninguno guardado; se pueden revocar en Kommo → la integración → Llaves y alcances, y la integración se revoca al cerrar E5.
 6. Sam: verificación del negocio y método de pago propio (0.7).
 7. Publicar la rama: sin autorización de push en este encargo.
 
