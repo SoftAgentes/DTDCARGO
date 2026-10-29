@@ -36,12 +36,12 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | ID | Etapa | Paso | Resp. | Días base | Días reales | Días restantes | Estado | Puerta / espera | Evidencia |
 |---|---|---|---|---|---|---|---|---|---|
 | 0.1 | E0 | Programa SDD-0582: spec, checklist v1, instrucciones, registro de evidencia y script de avance | IA | 1,25 | — | 0 | entregado | PR → OK Sam | PR #327 |
-| 0.2 | E0 | Decisiones: máquina, roles, tope de gasto del bot, fecha de renovación de Kommo y dónde vive «analiza mi contestación» | S | 0,25 | — | — | pendiente | OK Sam | — |
-| 0.3 | E0 | Gate Meta (bloqueante): modelo de cuenta, propietarios, WABA, app del token, suscripciones, callbacks, overrides, enrutamiento, 2FA, pago y 2.º número. Valores previos fuera de Git y vuelta atrás escrita | S+IA | 0,75 | — | — | pendiente | OK Sam | — |
-| 0.4 | E0 | Inventario de Kommo: backup, agentes, plantillas, 15 Salesbots (disparadores, temporizadores, efectos), integraciones y matriz de paridad de fuentes de leads | S+IA | 1 | — | — | pendiente | — | — |
-| 0.5 | E0 | Inventario de correo: `info@` (buzón, alias o reenvío), remitente SMTP y Resend Inbound (dominios, rutas, consumidores) | S+IA | 0,25 | — | — | pendiente | — | — |
-| 0.6 | E0 | Prueba de extracción de Kommo: `talks/{id}/messages`, alcance, plan, enumeración, paginación y muestra representativa | S+IA | 1 | — | — | pendiente | OK Sam (lectura de PII); ratifica E5 | — |
-| 0.7 | E0 | Expedientes de trámites largos (verificación del negocio) y método de pago propio en Meta comprobado | S+IA | 0,5 | — | — | pendiente | Espera: 1–4 semanas | — |
+| 0.2 | E0 | Decisiones: máquina, roles, tope de gasto del bot, fecha de renovación de Kommo y dónde vive «analiza mi contestación» | S | 0,25 | 0,1 | 0,05 | en curso | OK Sam; falta la fecha de renovación de Kommo | `investigacion-2026-10-29-e0.md` (E0-D1–D5) |
+| 0.3 | E0 | Gate Meta (bloqueante): modelo de cuenta, propietarios, WABA, app del token, suscripciones, callbacks, overrides, enrutamiento, 2FA, pago y 2.º número. Valores previos fuera de Git y vuelta atrás escrita | S+IA | 0,75 | 0,25 | 0,5 | en curso | OK Sam; lectura en Meta con Sam | `e0-guias.md#03` (guía y vuelta atrás); M-1–M-7 |
+| 0.4 | E0 | Inventario de Kommo: backup, agentes, plantillas, 15 Salesbots (disparadores, temporizadores, efectos), integraciones y matriz de paridad de fuentes de leads | S+IA | 1 | 0,5 | 0,25 | en curso | Lectura en Kommo con Sam | `e0-guias.md#04`; K-1–K-12 |
+| 0.5 | E0 | Inventario de correo: `info@` (buzón, alias o reenvío), remitente SMTP y Resend Inbound (dominios, rutas, consumidores) | S+IA | 0,25 | 0,25 | 0,1 | en curso | Lectura en Hostinger y Resend con Sam | `e0-guias.md#05`; C-1–C-12 (DNS: T) |
+| 0.6 | E0 | Prueba de extracción de Kommo: `talks/{id}/messages`, alcance, plan, enumeración, paginación y muestra representativa | S+IA | 1 | — | 1 | pendiente | OK Sam (lectura de PII); ratifica E5 | Protocolo: `e0-guias.md#06` |
+| 0.7 | E0 | Expedientes de trámites largos (verificación del negocio) y método de pago propio en Meta comprobado | S+IA | 0,5 | 0,1 | 0,4 | en curso | Espera: 1–4 semanas | `e0-guias.md#07` |
 | 1.1 | E1 | Compose con `v4.19.1-ce` fija, Postgres pgvector, Redis, Sidekiq y límites | IA | 1 | — | — | pendiente | OK Sam (despliegue en VPS) | — |
 | 1.2 | E1 | DNS, TLS, Traefik, `frame-ancestors` acotado y `/super_admin` detrás de Tailscale | IA | 0,5 | — | — | pendiente | — | — |
 | 1.3 | E1 | Variables: cifrado, signup cerrado, `MAX_USER_SESSIONS` y SMTP | IA | 0,25 | — | — | pendiente | — | — |
@@ -64,10 +64,10 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | 4.2 | E4 | Protección de `/register`: initializer que aborta el registro para los Phone Number IDs protegidos, probado | IA | 0,75 | — | — | pendiente | — | — |
 | 4.3 | E4 | Número de prueba: alta manual, plantillas y pruebas | S+IA | 1 | — | — | pendiente | OK Sam (línea) | — |
 | 4.4 | E4 | Messenger como piloto: determinar nivel de acceso y demostración | IA | 1 | — | — | pendiente | — | — |
-| 4.5 | E4 | WhatsApp principal, convivencia corta (requiere 0.3, 4.2 y pago propio): entrega, estados y sin duplicados en ambos lados; vuelta atrás que restaura los valores previos | S+IA | 1,25 | — | — | pendiente | OK Sam; espera: 3 días | — |
+| 4.5 | E4 | WhatsApp principal, convivencia corta (requiere 0.3, 4.2, pago propio y la lectura por API de suscripciones y overrides tras 4.1, guardada en la nota cifrada): entrega, estados y sin duplicados en ambos lados; vuelta atrás que restaura los valores previos | S+IA | 1,25 | — | — | pendiente | OK Sam; espera: 3 días | — |
 | 4.6 | E4 | Instagram: demostración y envío a App Review | IA | 1 | — | — | pendiente | Espera: App Review | — |
 | 4.7 | E4 | TikTok: condicional, con salida si no hay elegibilidad | IA | 0,75 | — | — | pendiente | Espera: TikTok | — |
-| 4.8 | E4 | Correo: bandeja IMAP/SMTP, SPF/DKIM/DMARC y pruebas de hilo, adjuntos, rebotes y caída de más de 1 día | S+IA | 1,75 | — | — | pendiente | OK Sam (Hostinger) | — |
+| 4.8 | E4 | Correo: bandeja IMAP/SMTP, SPF/DKIM/DMARC y pruebas de hilo, adjuntos, rebotes y caída de más de 1 día | S+IA | 1,75 | — | — | pendiente | OK Sam (Hostinger y DNS en Cloudflare) | — |
 | 5.1 | E5 | Backup y CSV cifrados fuera de Git | S+IA | 0,5 | — | — | pendiente | — | — |
 | 5.2 | E5 | Medir volumen y decidir alcance | S+IA | 0,5 | — | — | pendiente | OK Sam | — |
 | 5.3 | E5 | Extractor idempotente e incremental, con instante de corte, a staging cifrado | IA | 1,5 | — | — | pendiente | — | — |
@@ -82,11 +82,11 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | 6.4 | E6 | Entrada de leads desde Chatwoot y la web, con atribución | IA | 2 | — | — | pendiente | — | — |
 | 6.5 | E6 | Migrar leads, etapas, tareas, mappings e IDs | IA | 1,5 | — | — | pendiente | OK nominal Sam (carga) | — |
 | 6.6 | E6 | Reemplazos de Kommo en el ERP: vista CRM nueva, conversión lead→cliente, etapas desde el cotizador, reporte por asesor, KPI de leads y alerta «sin atender» | IA | 2,5 | — | — | pendiente | — | — |
-| 6.7 | E6 | Reemplazar los Salesbots según el inventario de 0.4 (se reestima) | IA | 2 | — | — | pendiente | — | — |
+| 6.7 | E6 | Reemplazar los Salesbots según el inventario de 0.4 (se reestima) | IA | 2 | — | 0,75 | pendiente | — | Reestimado: `investigacion-2026-10-29-e0.md` |
 | 7.1 | E7 | Cuentas de pago (proyecto con facturación), retención y DPA registrados, y corte local duro de gasto | S+IA | 1 | — | — | pendiente | OK Sam | — |
 | 7.2 | E7 | Excepción IA-01 acotada, redactada para aprobar. Hasta entonces, solo Sugerir | S+IA | 0,5 | — | — | pendiente | OK Sam | — |
 | 7.3 | E7 | Respaldar el conocimiento de Kommo y ubicar «analiza mi contestación» | S+IA | 0,5 | — | — | pendiente | — | — |
-| 7.4 | E7 | Base de conocimiento canónica con reglas duras | IA | 1,5 | — | — | pendiente | — | — |
+| 7.4 | E7 | Base de conocimiento canónica con reglas duras | IA | 1,5 | — | 1 | pendiente | — | Reestimado: `investigacion-2026-10-29-e0.md` |
 | 7.5 | E7 | Prueba ciega de modelos | IA | 1,5 | — | — | pendiente | OK Sam (modelo) | — |
 | 7.6 | E7 | `dtd-bot`: cola durable antes del 2xx, watchdog, modo comprobado antes de enviar, invalidación si escribe una persona, filtro de autor, privacidad y dirección, respaldo y topes | IA | 5,5 | — | — | pendiente | — | — |
 | 7.7 | E7 | Modos desde Studio: interruptor por bandeja, Apagado / Sugerir / Contesta solo y horario | IA | 1,5 | — | — | pendiente | — | — |
