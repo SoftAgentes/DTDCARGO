@@ -14,6 +14,9 @@
 #      R1 respaldo.sh cifrado, R2 restaurar.sh con conteos iguales, R3 adjunto y
 #      secreto cifrado idénticos, R4 control: con otras claves el secreto no se recupera
 #      y R4b restaurar.sh lo detecta y sale ≠ 0
+#   D  Cloudflare Access (P3 sin Tailscale): D1 token válido abre /super_admin y nada más
+#      lo abre; D2 tokens malos y forjados → 403; D3 verificador caído → cierra; D4 log
+#      sin tokens ni correos
 #
 # Uso:  bash infra/chatwoot/pruebas/ensayo-local.sh [--conservar] [--solo-b]
 #   --conservar  no baja los stacks al final (para mirar a mano)
@@ -48,7 +51,7 @@ preparar_carpeta() {
   local dir="$1"
   mkdir -p "$dir"
   cp "$ORIGEN/compose.yml" "$ORIGEN/respaldo.sh" "$ORIGEN/restaurar.sh" "$dir/"
-  cp -r "$ORIGEN/rails" "$ORIGEN/pruebas" "$dir/"
+  cp -r "$ORIGEN/rails" "$ORIGEN/cf-access" "$ORIGEN/pruebas" "$dir/"
   cp "$ORIGEN/pruebas/compose.local.yml" "$dir/compose.override.yml"
 }
 
@@ -94,6 +97,7 @@ bajar_todo() {
     [ -d "$TRABAJO/${p#*:}" ] && bajar "$TRABAJO/${p#*:}" "${p%%:*}"
   done
   (cd "$ORIGEN/pruebas" && docker compose -f compose.traefik-prueba.yml down >/dev/null 2>&1)
+  docker rm -f jwks-prueba >/dev/null 2>&1
   docker network rm chatwoot_edge_prueba internet_prueba >/dev/null 2>&1
   return 0
 }
@@ -267,6 +271,58 @@ VERIF_S="$(runner "$S" chatwoot-sin-claves pruebas/verificar.rb 2>&1 | grep -E '
 H_SEC_S="$(echo "$VERIF_S" | sed -n 's/^huella_secreto=//p')"
 [ -n "$H_SEC_S" ] && [ "$H_SEC_S" != "$H_SEC_O" ]
 check R4 $? "control con otras claves: secreto ${H_SEC_S:0:12}… ≠ origen ${H_SEC_O:0:12}…; $(echo "$VERIF_S" | grep sobre) (sin las claves del .env el secreto no se recupera, y Chatwoot no avisa)"
+
+# ── D. Cloudflare Access en lugar de Tailscale (P3) ─────────────────────────
+# El stack real pasa al modo Access: perfil cf-access (servicio `acceso`) y el router de
+# administración con <proyecto>-cf-access@docker. «Cloudflare» lo simulan un servidor de
+# claves falso (jwks-prueba, en la red edge) y tokens firmados aquí; el cliente manda la
+# cabecera Cf-Access-Jwt-Assertion como la mandaría Cloudflare.
+log "== D. Cloudflare Access (forwardAuth al verificador del JWT)"
+J="$TRABAJO/jwks"; TEAM="http://jwks-prueba:8080"; AUD="aud-prueba-0583"; CORREO="sam.sintetico@example.test"
+# Ruta de Windows para node y docker: con MSYS_NO_PATHCONV, node lee «/tmp/…» como C:\tmp\…,
+# que no es el /tmp de Git Bash (se medía: claves y tokens quedaban en otra carpeta).
+mkdir -p "$J"; JW="$(cd "$J" && pwd -W 2>/dev/null || pwd)"
+node "$(cd "$ORIGEN/pruebas" && pwd -W 2>/dev/null || pwd)/firmar-jwt-prueba.mjs" "$JW" "$TEAM" "$AUD" "$CORREO" >/dev/null
+[ -s "$J/tokens.env" ] && [ -s "$J/cdn-cgi/access/certs" ] || mal D0 "no se generaron las claves y los tokens de prueba en $J"
+docker run -d --rm --name jwks-prueba --network chatwoot_edge_prueba -v "$JW:/srv:ro" \
+  node:24.22.1-alpine node -e "const h=require('http'),f=require('fs');h.createServer((q,s)=>{try{s.writeHead(200,{'content-type':'application/json'});s.end(f.readFileSync('/srv'+q.url.split('?')[0]))}catch{s.writeHead(404);s.end()}}).listen(8080)" >/dev/null
+cat >>"$D/.env" <<EOF
+CHATWOOT_CF_ACCESS_TEAM_DOMAIN=$TEAM
+CHATWOOT_CF_ACCESS_AUD=$AUD
+CHATWOOT_CF_ACCESS_EMAILS=$CORREO
+CHATWOOT_CF_ACCESS_PERMITIR_HTTP=1
+CHATWOOT_ADMIN_ALLOWLIST_MIDDLEWARE=chatwoot-prueba-cf-access@docker
+COMPOSE_PROFILES=cf-access
+EOF
+dc "$D" chatwoot-prueba up -d --wait >"$TRABAJO/access-up.txt" 2>&1; RC=$?
+check D0 $RC "modo Access arriba: servicio acceso sano y rails recreado con el middleware"
+tok() { sed -n "s/^$1=//p" "$J/tokens.env"; }
+admin() { # red ip ruta [token]
+  local red="$1" ip="$2" ruta="$3" t="${4:-}"
+  docker run --rm --network "$red" ${ip:+--ip "$ip"} curlimages/curl:8.17.0 -s -o /dev/null -w '%{http_code}' \
+    -H "Host: $HOST_CHAT" ${t:+-H "Cf-Access-Jwt-Assertion: $t"} "http://chatwoot-traefik-prueba-traefik-1$ruta"
+}
+SIN="$(admin internet_prueba "" /super_admin/sign_in)"
+OK="$(admin internet_prueba "" /super_admin/sign_in "$(tok VALIDO)")"
+MON="$(admin internet_prueba "" /monitoring/sidekiq)"
+TAIL="$(admin chatwoot_edge_prueba 100.64.250.201 /super_admin/sign_in)"
+[ "$SIN" = 403 ] && [ "$OK" = 200 ] && [ "$MON" = 403 ] && [ "$TAIL" = 403 ]
+check D1 $? "sin token /super_admin $SIN; con token válido $OK; /monitoring sin token $MON; desde la «tailnet» sin token $TAIL (Tailscale ya no abre)"
+MALOS=""; for c in AUD_MALA ISS_MALO VENCIDO FIRMA_AJENA CORREO_AJENO; do MALOS="$MALOS $c=$(admin internet_prueba "" /super_admin/sign_in "$(tok $c)")"; done
+FORJADO="$(admin internet_prueba "" /super_admin/sign_in "eyJhbGciOiJub25lIn0.eyJhdWQiOiJ4In0.")"
+# Solo vale si el token válido abre (D1): si nada abre, «todos 403» no prueba nada.
+[ "$OK" = 200 ] && [ "$(echo "$MALOS" | grep -o '=403' | wc -l | tr -d ' ')" = 5 ] && [ "$FORJADO" = 403 ]
+check D2 $? "tokens malos →$MALOS; forjado sin firma=$FORJADO"
+dc "$D" chatwoot-prueba stop acceso >/dev/null 2>&1
+CAIDO="$(admin internet_prueba "" /super_admin/sign_in "$(tok VALIDO)")"
+dc "$D" chatwoot-prueba start acceso >/dev/null 2>&1
+# Solo vale si D1 abrió con el token válido: si todo daba 404, «cierra» no prueba nada.
+[ "$OK" = 200 ] && [ "$CAIDO" != 200 ]
+check D3 $? "con el verificador caído, el mismo token válido que abría ($OK) da $CAIDO (cierra, no abre)"
+ALOG="$(dc "$D" chatwoot-prueba logs --no-color acceso 2>&1)"
+echo "$ALOG" | grep -q 'denegado: aud distinta' && ! echo "$ALOG" | grep -q -E "example\.test|$(tok VALIDO | cut -c1-24)"
+check D4 $? "el log del verificador da la razón ($(echo "$ALOG" | grep -o 'denegado: [a-zñáéíóú ]*' | sort -u | tr '\n' ';')) y no muestra tokens ni correos"
+docker rm -f jwks-prueba >/dev/null 2>&1
 
 log "== resultado: $FALLAS falla(s)"
 exit "$FALLAS"

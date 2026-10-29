@@ -60,7 +60,10 @@ confidencialidad: interno
 - `infra/chatwoot/{compose.yml,.env.example,.gitignore,README.md,respaldo.sh,restaurar.sh,vigilar.sh}`
 - `infra/chatwoot/rails/zz_dtd_redaccion_logs.rb`
 - `infra/chatwoot/systemd/{chatwoot-respaldo.service,chatwoot-respaldo.timer,chatwoot-vigilancia.service,chatwoot-vigilancia.timer}`
-- `infra/chatwoot/pruebas/{ensayo-local.sh,age-en-docker.sh,compose.local.yml,compose.sin-redaccion.yml,compose.traefik-prueba.yml,sonda-redaccion.rb,sembrar.rb,verificar.rb,vacio.rb}`
+- `infra/chatwoot/pruebas/{ensayo-local.sh,age-en-docker.sh,compose.local.yml,compose.sin-redaccion.yml,compose.traefik-prueba.yml,sonda-redaccion.rb,sembrar.rb,verificar.rb,vacio.rb,firmar-jwt-prueba.mjs}`
+- `infra/chatwoot/cf-access/{verificador.mjs,verificador.test.mjs}` (P3 con Cloudflare Access, agregado el 2026-10-29)
+- `infra/chatwoot/marca/{aplicar-marca.rb,dtdcargo-isologo-primary.png,dtdcargo-isologo-reverse.png,apple-touch-icon.png}` y `docs/runbooks/assets/chatwoot-marca-entrada-{claro,oscuro}.jpg` (marca de DTD, paso 1.3, agregado el 2026-10-29)
+- `docs/runbooks/backup-restore-servidor.md` y `docs/runbooks/servidor-contabo.md` (registro del cambio de llave de respaldos, coordinado por el Director)
 - `docs/runbooks/{chatwoot-servidor.md,chatwoot-respaldo-restauracion.md,chatwoot-vigilancia.md}`
 - `docs/legal/privacidad/revision-chatwoot-e1-2026-10-29.md`
 - `docs/legal/privacidad/inventario-terceros.md` (sección nueva de Chatwoot)
@@ -97,3 +100,4 @@ Registro de esta SDD: [`investigacion-2026-10-29.md`](investigacion-2026-10-29.m
 - **2026-10-29:** reserva y alcance. Configuración escrita y ensayo local (ver registro). Pedido de despliegue en el handoff.
 - **2026-10-29 (tarde):** Sam autorizó P1 («Autorizo P1»). Chatwoot desplegado en el VPS; el healthcheck de `rails` se corrigió por `FORCE_SSL` (T-7). Respaldo diario y vigilancia en marcha; empiezan las 72 h de 1.6.
 - **2026-10-29 (tarde):** P2 cerrada. El registro se creó sin proxy («Autorizo P2»); el origen solo acepta a Cloudflare (T-17), así que se activó el proxy («Sí, actívalo» y «Confirmo» de Sam) y salió el certificado de Let's Encrypt. HTTPS verificado y los cuatro monitores en verde. E1-D9 queda «con proxy». Siguen pendientes P3, P4, P5 y el SMTP.
+- **2026-10-29 (noche):** P5 cerrada (T-25). La llave de respaldos del 14-10 no apareció: se cambió a dos llaves nuevas, de Sam y de emergencia, con respaldos y pruebas el mismo día (T-26; coordinado por el Director). P4 hecha y P3 pospuesta. Cloudflare Access para `/super_admin`, preparado y probado en local.

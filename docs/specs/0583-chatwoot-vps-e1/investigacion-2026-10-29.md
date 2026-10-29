@@ -48,6 +48,21 @@ Fuente del código: la imagen `chatwoot/chatwoot:v4.19.1-ce`, digest `sha256:048
 | T-23 | Antes: 0 Platform Apps, 0 cuentas, 0 usuarios. Creados por `rails runner` + Platform API sobre `https://chat.dtdcargo.com`: Platform App «DTD Studio» (token de 24 caracteres), cuenta «DTD Cargo» (id 1, `locale=es`), usuario «Servicio DTD Studio» (id 1, `servicio-chatwoot@dtdcargo.com`, confirmado) con rol `administrator` (`account_users` → 200). Comprobado: GET de la cuenta propia → 200; sin token → 401; registro público sigue en `false`. Después: 1 app, 1 cuenta, 1 usuario | `/root/p4-chatwoot.sh` en el VPS | R |
 | T-24 | Token, ids, correo y clave del usuario de servicio en `/srv/chatwoot/secretos/platform-app.env` (carpeta 0700, archivo 0600, root); ningún valor impreso. El token también vive en la base (tabla `access_tokens`), así que el respaldo conjunto lo cubre | `ls -ld`, `awk` de nombre y largo | R |
 
+## P5 y llave de respaldos (2026-10-29)
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| T-25 | P5 («Autorizo P5»): respaldo `chatwoot-20261029T183240Z` bajado de B2 (4 archivos) y restaurado con `restaurar.sh` en el proyecto `chatwoot-ensayo` (sin Traefik, `/srv/chatwoot-ensayo`). Integridad OK. Conteos iguales al manifiesto: cuentas 1, usuarios 1, el resto 0. Columnas cifradas `total=0 sobres=0`. Tiempos: claves 1 s, base 24 s, adjuntos 6 s, arranque 142 s, verificación 27 s, **total 200 s** (207 s con la bajada). `/api` 4.19.1 por dentro y `traefik.enable=false`. Después, `down -v` y carpeta borrada: 0 contenedores, 0 restos en `/dev/shm`. Producción de Chatwoot sana | `/srv/ops/evidencias/p5-llave-sam-20261029T183444Z.txt` | R |
+| T-26 | La llave del 2026-10-14 (`f4aab8d9…`) no apareció. Con «Autorizo las dos» de Sam y la coordinación del Director: respaldos viejos copiados a `archivo-llave-2026-10-14/` (115 objetos, 0 diferencias); llaves nuevas `Sam-2026-10-29` (`f0bdbaa91af5fc7c`) y `Emergencia-2026-10-29` (`f2b06f66dad23591`), generadas en la PC de Sam, con solo las públicas en el VPS; respaldos nuevos de DTD y Chatwoot; restauración de DTD 5 PASÓ (RTO 52 s) con la de emergencia; con la del gestor se descifran los 7 archivos. Detalle en `docs/runbooks/backup-restore-servidor.md`, «Registro · 2026-10-29» | evidencias `p5-llave-*` | R |
+
+## Marca de DTD (paso 1.3, «Autorizo la marca» de Sam, 2026-10-29)
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| T-27 | Antes: las 10 opciones de marca con los valores de Chatwoot, `locked=true` (`INSTALLATION_NAME`/`BRAND_NAME` «Chatwoot», `LOGO*` en `/brand-assets/*.svg`, `DISPLAY_MANIFEST` true). `ConfigLoader` corre con `reconcile_only_new: true` por omisión (`lib/config_loader.rb`, `db_enhancements.rake:5`), así que no pisa valores existentes. `RAILS_SERVE_STATIC_FILES=true` sirve `/app/public` | `rails runner`, código de la imagen | C + R |
+| T-28 | Aplicada: montaje `./marca:/app/public/dtd-marca:ro` (recreación de prepare/rails/sidekiq en 130 s; DTD 200); `aplicar-marca.rb` cambió las 10 opciones y limpió la caché (`BRAND_NAME` efectivo «DTD Cargo»); los 3 PNG responden 200 `image/png` desde `chat.dtdcargo.com/dtd-marca/` | VPS, 2026-10-29 | R |
+| T-29 | Desde afuera, en un navegador: título «DTD Cargo»; único `link rel=icon` → `/dtd-marca/apple-touch-icon.png`; texto «Iniciar sesión en DTD Cargo / E-mail / Contraseña / ¿Olvidaste tu contraseña?»; 0 apariciones de «Chatwoot» en el texto visible; con tema claro se ve el primary y con oscuro solo el reverse. Capturas `docs/runbooks/assets/chatwoot-marca-entrada-{claro,oscuro}.jpg` | navegador integrado | R |
+
 ## Código de Chatwoot 4.19.1
 
 | ID | Afirmación | Fuente | Etiqueta |
@@ -97,6 +112,8 @@ Corridas: 1.ª 09:05Z (6 fallas: el ensayo mismo y el hallazgo del onboarding), 
 | E1-R18 | 1.6 · `vigilar.sh` en `docker:29-cli` contra el stack local | dos corridas `up · ok` con las 24 columnas; `--resumen` con p50/p95/máx; control con `UMBRAL_PSI_CPU300=0 UMBRAL_MEM_LIMITE=1` → `down` con cinco motivos | R |
 | E1-R19 | `docker compose config -q` con `.env.example` | valida; con un `.env` vacío se niega (`CHATWOOT_POSTGRES_PASSWORD falta en .env`, …) | R |
 | E1-R20 | 4.ª corrida completa (09:29Z) | **19/19 PASÓ**: R4b `restaurar.sh` con otras claves sale 1 con `CLAVES total=1 sobres=1`; arranque desde cero 52 s; restauración 68 s (claves 2, base 19, adjuntos 1, arranque 39, verificación 7). Al terminar no quedó ningún contenedor ni red de prueba | R |
+| E1-R21 | Verificador de Cloudflare Access (`cf-access/verificador.mjs`), pruebas unitarias: **19/19 PASÓ** (token válido; rechazo por formato, algoritmo, kid, firma —dos formas—, aud, iss, vencido, nbf, iat y correo; holgura de 60 s; caché de claves; configuración; servidor 200/403/404, cierre si las claves fallan y log sin token ni correo). Control: 5 mutantes (sin AUD, sin iss, sin firma, sin vencimiento y sin lista de correos) mueren todos (1–2 fallas cada uno) | `node --test --test-reporter=tap` | R |
+| E1-R22 | Ensayo local con fase D (18:09Z): **23/23 PASÓ**. Con el modo Access (perfil `cf-access` y `chatwoot-prueba-cf-access@docker`): `/super_admin` sin token → 403; con token válido → 200; `/monitoring` sin token → 403; desde la «tailnet» sin token → 403; tokens con AUD, iss, vencimiento, firma o correo ajenos → 403; token forjado sin firma → 403; con el verificador caído, el mismo token válido → 500 (cierra); el log del verificador solo da razones. Corridas previas: dos con fallas del propio ensayo (carpeta `cf-access/` sin copiar; rutas `/tmp` y `/c/…` que Node lee distinto que Git Bash); en una, D2 y D3 «pasaban» con todo en 403/404 y se endurecieron para exigir que D1 abra | `pruebas/ensayo-local.sh` | R |
 
 ## Inferencias y pendientes
 

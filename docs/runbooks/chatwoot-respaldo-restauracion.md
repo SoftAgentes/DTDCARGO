@@ -1,7 +1,7 @@
 # Runbook · Respaldo y restauración conjunta de Chatwoot · SDD-0583
 
 **SDD:** [0583](../specs/0583-chatwoot-vps-e1/spec.md), paso 1.5 del programa [0582](../specs/0582-chatwoot-piloto/checklist.md)
-**Estado:** scripts probados en local con datos sintéticos (2026-10-29). **En el VPS desde el 2026-10-29** (P1): timer diario activo y primer respaldo en B2 (`chatwoot-20261029T155439Z`, 44 s, `rclone check` sin diferencias). Falta la puerta P5 (ensayo de restauración en el host).
+**Estado:** **en el VPS desde el 2026-10-29**: timer diario activo, respaldos en B2 y **P5 hecha** el mismo día (restauración desde B2 en 200 s, §6). Desde el 2026-10-29 los respaldos se cifran para dos llaves: la de Sam (`f0bdbaa9…`, en su gestor) y la de emergencia (`f2b06f66…`, fuera de línea); ver `backup-restore-servidor.md`, «Registro · 2026-10-29».
 **RPO:** 24 h (respaldo diario). **RTO objetivo:** ≤ 2 h, de los que la restauración en sí mide ~1 min con datos de prueba (§5).
 **Base:** el mismo esquema que [backup-restore-servidor.md](backup-restore-servidor.md) de DTD: `age`, `/dev/shm`, `rclone copy` a B2, latido en Uptime Kuma.
 
@@ -102,3 +102,4 @@ El RTO real con datos reales se mide en la puerta P5 y se anota en §6.
 | Fecha | Dónde | Respaldo | Resultado | Tiempos (s) | Quién |
 |---|---|---|---|---|---|
 | 2026-10-29 | local (Docker Desktop) | sintético | OK: conteos, archivos, huellas y claves (E1-R14 a R16, R20) | 3.ª corrida: claves 2 · base 17 · adjuntos 1 · arranque 31 · verificación 6 · total 57. 4.ª: total 68 | Worker SDD-0583 |
+| 2026-10-29 18:37Z | **VPS (P5)**, proyecto `chatwoot-ensayo` sin Traefik | `chatwoot-20261029T183240Z`, bajado de B2 | **OK**: integridad, conteos, archivos y claves (`sobres=0`); `/api` 4.19.1 (T-25) | claves 1 · base 24 · adjuntos 6 · arranque 142 · verificación 27 · total 200 (207 con la bajada) | Worker SDD-0583, llave de emergencia pegada por Sam |

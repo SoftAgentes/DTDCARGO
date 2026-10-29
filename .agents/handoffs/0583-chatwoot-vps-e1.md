@@ -12,7 +12,7 @@
 | 1.2 | entregado | Labels de Traefik: sin `X-Frame-Options`, `frame-ancestors` al origen de Studio, `/super_admin`, `/monitoring` e `/installation` solo desde `100.64.0.0/10`, sin access log. **DNS y TLS hechos en P2** (`chat.dtdcargo.com` con proxy de Cloudflare y certificado de Let's Encrypt). Tailscale espera P3 |
 | 1.3 | entregado | `.env.example` + `x-entorno` (variables una por una): registro cerrado, `MAX_USER_SESSIONS=5`, SMTP, cifrado de columnas, telemetría, relay de push y Gravatar apagados |
 | 1.4 | entregado | **P4 hecha el 2026-10-29** («Autorizo P4»): Platform App «DTD Studio», cuenta «DTD Cargo» (id 1) y usuario de servicio administrador. Token, ids y clave en `/srv/chatwoot/secretos/platform-app.env` (0600); Sam los copia a su gestor con `ssh root@217.216.54.70 cat /srv/chatwoot/secretos/platform-app.env`, desde su terminal y no en el chat |
-| 1.5 | en curso | `respaldo.sh` / `restaurar.sh` / timer; restauración conjunta ensayada en local (57 s) con control de claves; timer activo en el VPS y primer respaldo en B2; falta el ensayo en el host (P5) |
+| 1.5 | entregado | `respaldo.sh` / `restaurar.sh` / timer; ensayo local (57 s) con control de claves; timer activo en el VPS. **P5 hecha el 2026-10-29** («Autorizo P5»): el respaldo bajado de B2 se restauró en 200 s, con conteos y claves iguales (T-25) |
 | 1.6 | espera externa | `vigilar.sh` cada 5 min en el VPS; los cuatro monitores de Uptime Kuma en verde (dos Push y, desde P2, dos HTTP); 72 h hasta el 2026-11-01 ~16:00Z |
 | 1.7 | entregado | Revisión `revisar-datos-ve` (H1–H11), redacción de logs probada con control, inventario de terceros §2 bis, nota sobre `/privacidad` |
 
@@ -83,14 +83,30 @@ Hecho en el VPS, en orden (evidencia T-2 a T-12 del [registro](../../docs/specs/
 
 **P4 · Platform App, cuenta «DTD Cargo» y usuario de servicio** en la instancia desplegada (runbook §6). El token va al gestor de Sam y a los secretos de Studio (E2).
 
-**P5 · Ensayo de restauración en el host:** bajar el último respaldo desde B2, restaurarlo como proyecto `chatwoot-ensayo` con host `chat-ensayo.dtdcargo.com` (sin DNS), medir el RTO y bajarlo. Requiere que Sam pegue su clave privada `age` en `/dev/shm` durante el ensayo.
+**P5 · Ensayo de restauración en el host:** ✅ **hecha el 2026-10-29** («Autorizo P5»). Resultado en T-25: bajado de B2, restaurado en `chatwoot-ensayo` sin Traefik y bajado al terminar. La llave usada fue la nueva de emergencia (sección de abajo).
 
 ## Pendiente de esta tarea
 
-- Push y PR solo con autorización de Sam.
 - SMTP: usuario y clave de Hostinger (Sam), con ventana oculta.
 - Tras las 72 h (2026-11-01 ~16:00Z): `vigilar.sh --resumen --desde 2026-10-29T15:55:00Z` → fila 1.6, con el criterio corregido (contra la línea base, no un número fijo).
-- P5 → fila 1.5. P4 → fila 1.4.
+- `/super_admin` con Cloudflare Access (§4.1 del runbook): preparado y probado en local (E1-R21, E1-R22); espera la confirmación de Sam en esta sesión, con el alcance de Zero Trust y del VPS.
+- ~~Marca de DTD en Chatwoot~~ **hecha el 2026-10-29** («Autorizo la marca»): título «DTD Cargo», ícono y logos de DTD (claro y oscuro según `BRAND.md`), pantalla de entrada en español, sin «Chatwoot» visible (T-27 a T-29; runbook §6 bis). Queda en la edición CE el «Powered by Chatwoot» del widget y de los correos, y la etiqueta «E-mail» de la traducción de Chatwoot.
+
+## FUERA DE ALCANCE (coordinado por el Director) · cambio de llave de respaldos de DTD y Chatwoot
+
+- **Autorizaciones.** El Director (sesión del programa) me encargó coordinarlo con condiciones. Sam lo autorizó en esta sesión, literal: «Autorizo las dos» (llave nueva para DTD y Chatwoot, y archivo de los respaldos viejos).
+- **Incidente.** La llave privada del 2026-10-14 (`f4aab8d9…`) no apareció. Sam pegó tres candidatas: una era una llave age válida de otro par. Es la segunda pérdida en 17 días; falló la custodia (el gestor guardaba un texto cortado).
+- **Hecho, en orden:**
+  1. Respaldos viejos copiados a `b2:dtdcargo-respaldos/archivo-llave-2026-10-14/`: 87 + 24 + 4 objetos, mismos bytes, 0 diferencias. No se borró nada. El bucket no tiene ciclo de vida; la retención de los scripts los borraba desde el 2026-11-13.
+  2. Llaves nuevas generadas en la PC de Sam, con solo las públicas en el VPS: `Sam-2026-10-29` (`f0bdbaa91af5fc7c`, gestor) y `Emergencia-2026-10-29` (`f2b06f66dad23591`, USB o papel). Cada una se pegó de vuelta desde donde se guardó.
+  3. `age-recipients.txt` con esas dos (copia `.bak-20261029`).
+  4. Respaldos nuevos: DTD PASÓ (base y configuración) y Chatwoot OK.
+  5. Pruebas del mismo día:
+     - DTD restaurado 5 PASÓ · 0 FALLÓ (RTO 52 s, Vault 4/4) con la llave de emergencia;
+     - Chatwoot P5 PASÓ con la de emergencia;
+     - la llave del gestor descifra los 7 archivos.
+- **Registro:** `docs/runbooks/backup-restore-servidor.md` («Registro · 2026-10-29») y `servidor-contabo.md` (fila de la 2.ª pérdida).
+- **Guiones que quedan en el VPS** (sin secretos, en `/root`): `recibir-clave-age.sh`, `agregar-publica-age.sh`, `p5-pruebas-llave.sh` y `comprobar-p1-chatwoot.sh`. En la PC de Sam, en la carpeta de notas: `nueva-llave-age-0583.ps1` y `probar-llave-0583.ps1`.
 - Reestimación de E1 al cerrar la etapa (real ≈ 0,35 d frente a 4,75 d base: la configuración salió mucho más rápida de lo estimado; lo que falta es sobre todo espera y puertas).
 
 ## Impacto documental

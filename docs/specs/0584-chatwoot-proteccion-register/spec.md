@@ -89,3 +89,4 @@ Corrida local en el registro de seguimiento de abajo y en el handoff `.agents/ha
 ## Seguimiento
 
 - **2026-10-29:** reserva, inicializador, prueba y runbook. `prueba-register.sh` (17:37Z, Docker 29.9.1, imagen por digest `04895c7b…`): **16/16 PASÓ**. Lista válida L0–L8, vacía V1–V2, inválida I1–I2; control sin el inicializador: 7 de 9 exigencias de L fallan y el `/register` del protegido llega al servidor falso, directo y por CW-1 (C1, C2). Fila 4.2 en `entregado`. Detalle en el handoff.
+- **2026-10-29 18:58Z:** merge de `codex/0582-e1-chatwoot-vps` (`16546aa2d`, marca 1.3 y Cloudflare Access). Conflicto en `compose.yml` resuelto conservando los dos montajes (marca y protección); `prueba-register.sh` copia también `marca/`. Prueba repetida sobre el merge: **16/16 PASÓ**, control rojo 7 de 9.

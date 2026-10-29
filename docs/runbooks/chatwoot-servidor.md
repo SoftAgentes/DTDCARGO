@@ -1,7 +1,14 @@
 # Runbook · Chatwoot en el VPS del ERP · SDD-0583
 
 **SDD:** [0583](../specs/0583-chatwoot-vps-e1/spec.md) (etapa E1 del programa [0582](../specs/0582-chatwoot-piloto/spec.md))
-**Estado:** **desplegado en el VPS el 2026-10-29 (~15:40–16:00Z)** con la puerta P1 («Autorizo P1» de Sam). Sin DNS (P2), sin Tailscale (P3) y sin Platform App (P4) todavía. Registro al final.
+**Estado:** **en producción desde el 2026-10-29** en `https://chat.dtdcargo.com`:
+- **P1** (despliegue): hecha.
+- **P2** (DNS con proxy de Cloudflare y certificado): hecha.
+- **P4** (Platform App y cuenta): hecha.
+- **Marca de DTD** (§6 bis): aplicada.
+- **P3** (acceso web a `/super_admin`): pospuesta. Hoy se administra por consola; Cloudflare Access está preparado en §4.1.
+
+Registro al final.
 **Relacionados:** [respaldo y restauración](chatwoot-respaldo-restauracion.md) · [vigilancia](chatwoot-vigilancia.md) · [servidor Contabo](servidor-contabo.md) · [revisión de datos personales](../legal/privacidad/revision-chatwoot-e1-2026-10-29.md)
 
 ## 1 · Qué se instala y dónde
@@ -101,6 +108,42 @@ docker compose exec rails bundle exec rails c      # consola, solo si hace falta
 
 **Decisión del 2026-10-29 (Sam, «Cerrado y consola»):** se queda así, sin acceso web, hasta que haga falta; entonces, preferiblemente con Cloudflare Access (con la verificación de `Cf-Access-Jwt-Assertion` en el origen, porque el firewall acepta cualquier IP de Cloudflare, también las de otras cuentas). La alternativa con Tailscale, para referencia: con Tailscale instalado (runbook servidor-contabo §1.5), Sam entra a `https://chat.dtdcargo.com/super_admin` desde su equipo resolviendo `chat.dtdcargo.com` a la IP de Tailscale del VPS (línea en su `hosts`, o DNS dividido de la tailnet). El certificado es el mismo, y Traefik ve la IP `100.x` y deja pasar. Que la regla deja pasar a la tailnet y frena a internet lo prueba el ensayo local (C4). Que la IP de origen llegue sin NAT por la interfaz de Tailscale está **NO VERIFICADO**: se comprueba al instalarla.
 
+### 4.1 · `/super_admin` con Cloudflare Access (P3 sin Tailscale)
+
+Preparado el 2026-10-29 tras el «ok avanza cludefare» de Sam en la sesión del programa. **No se aplica sin su confirmación en esta sesión** con el alcance de abajo. Probado en local: `cf-access/verificador.test.mjs` y la fase D de `pruebas/ensayo-local.sh`.
+
+**Cómo funciona.** Cloudflare Access pide el login (código por correo o Google) antes de dejar pasar `chat.dtdcargo.com/super_admin*`, y agrega a cada petición la cabecera `Cf-Access-Jwt-Assertion`, firmada por el *team domain*. En el VPS, Traefik pregunta por cada pedido a `/super_admin`, `/monitoring` e `/installation` al servicio `acceso` (forwardAuth). Ese servicio verifica:
+- la firma RS256 con las claves públicas de `<team>/cdn-cgi/access/certs`;
+- la AUD de la app y el `iss`;
+- que el token no esté vencido;
+- y que el correo esté en la lista.
+
+Si algo falla o el verificador no responde, Traefik **no** abre. Hace falta verificar en el origen porque el firewall del VPS deja pasar cualquier IP de Cloudflare, también las de otras cuentas: sin esa comprobación, alguien con su propia cuenta de Cloudflare podría apuntar a la IP del VPS y saltarse Access. `/monitoring` e `/installation` no están en la app de Access y siguen cerradas (sin token → 403).
+
+**Qué cambia en la cuenta de Cloudflare de Sam (Zero Trust):**
+1. Activar Zero Trust y elegir el nombre del equipo (`<equipo>.cloudflareaccess.com`), plan Free. **NO VERIFICADO:** si pide tarjeta para el plan gratis.
+2. Método de login: «One-time PIN» (código por correo), que ya viene activo; Google, opcional.
+3. Access → Applications → Add → **Self-hosted**: nombre «Chatwoot · super admin», dominio `chat.dtdcargo.com`, ruta `super_admin`, sesión de 8 h.
+4. Política «Allow»: Include → Emails → el correo de Sam. Nada más.
+5. Copiar la «Application Audience (AUD) Tag».
+
+No cambia ningún registro DNS, el modo SSL de la zona ni otra app.
+
+**Qué cambia en el VPS** (sin tocar DTD ni el compose de Traefik):
+1. Copiar a `/srv/chatwoot` el `compose.yml` nuevo y `cf-access/verificador.mjs`.
+2. Agregar al `.env`: `CHATWOOT_CF_ACCESS_TEAM_DOMAIN`, `CHATWOOT_CF_ACCESS_AUD`, `CHATWOOT_CF_ACCESS_EMAILS` (el correo de Sam), `CHATWOOT_ADMIN_ALLOWLIST_MIDDLEWARE=chatwoot-cf-access@docker` y `COMPOSE_PROFILES=cf-access`.
+3. `docker compose up -d --wait`: arranca `acceso` (Node 24 en solo lectura, sin capacidades, 96 MB) y recrea `rails` por los labels nuevos (unos 40 s sin Chatwoot; Traefik no se reinicia).
+4. Crear el super admin de Chatwoot por consola con el correo de Sam; la contraseña la pega Sam en una ventana oculta. Hoy no existe ninguno.
+
+**Comprobaciones:**
+- Desde afuera sin sesión: `/super_admin/sign_in` lleva al login de Cloudflare.
+- Con la sesión de Sam: se ve el login de Chatwoot.
+- Desde el VPS, saltándose Cloudflare: `curl -k --resolve chat.dtdcargo.com:443:127.0.0.1 https://chat.dtdcargo.com/super_admin/sign_in` da 403, sin cabecera y con un token inventado.
+- `/monitoring/sidekiq` da 403.
+- `docker compose logs acceso` muestra solo «permitido» o «denegado: <razón>».
+
+**Vuelta atrás:** quitar `CHATWOOT_ADMIN_ALLOWLIST_MIDDLEWARE` y `COMPOSE_PROFILES` del `.env` y correr `docker compose up -d --remove-orphans`. Todo vuelve a cerrado (`tailscale-only@file`). En Cloudflare se borra la app.
+
 ## 5 · Desplegar (puerta P1)
 
 ```bash
@@ -159,6 +202,35 @@ unset T; shred -u /dev/shm/cw-platform-token
 ```
 
 Los usuarios de personas (Sam y la persona que atiende, E0-D2) los da de alta Studio en E2.7, no a mano aquí.
+
+## 6 bis · Marca de DTD Cargo (paso 1.3, «Autorizo la marca» de Sam, 2026-10-29)
+
+Pedido de Sam: «Poner un icono al lado del dominio que aparezca el logo de DTD… que ponga usuario y contraseña, y que no salga Chatwoot».
+
+- **Imágenes.** En `infra/chatwoot/marca/` están las copias sin tocar de `public/brand/`, con la misma huella sha256: `dtdcargo-isologo-primary.png` (`7238dbbb…`, fondo claro), `dtdcargo-isologo-reverse.png` (`e530b4cb…`, fondo oscuro; `BRAND.md`: el primary nunca va sobre navy) y `apple-touch-icon.png` (`a8c3c30e…`, 180×180, ícono de la pestaña). El compose las monta en solo lectura en `/app/public/dtd-marca`, una carpeta aparte para no tapar `brand-assets` de Chatwoot. Las sirve el propio chat.
+- **Valores** (`marca/aplicar-marca.rb`, en `InstallationConfig`):
+  - `INSTALLATION_NAME` y `BRAND_NAME` = «DTD Cargo»;
+  - `BRAND_URL` y `WIDGET_BRAND_URL` = `https://dtdcargo.com`;
+  - `TERMS_URL` = `/terminos` y `PRIVACY_URL` = `/privacidad`, las dos en dtdcargo.com;
+  - `DISPLAY_MANIFEST` = false: quita los favicons y el manifest de Chatwoot;
+  - `LOGO_THUMBNAIL`, `LOGO` y `LOGO_DARK` apuntan a `/dtd-marca/…`.
+
+  El idioma ya era `es` (`CHATWOOT_DEFAULT_LOCALE`). `ConfigLoader` corre en cada `prepare` con `reconcile_only_new: true`, así que no vuelve a poner los valores de Chatwoot.
+- **Aplicar o volver a aplicar:**
+  ```bash
+  cd /srv/chatwoot
+  docker compose cp marca/aplicar-marca.rb rails:/tmp/marca.rb
+  docker compose exec -T rails bundle exec rails runner /tmp/marca.rb
+  ```
+- **Comprobado desde afuera** (navegador, 2026-10-29):
+  - el título es «DTD Cargo» y el único ícono es `/dtd-marca/apple-touch-icon.png`;
+  - la pantalla dice «Iniciar sesión en DTD Cargo», «E-mail», «Contraseña» y «¿Olvidaste tu contraseña?»;
+  - «Chatwoot» aparece 0 veces en el texto visible;
+  - en modo claro se ve el primary y en oscuro solo el reverse.
+
+  Capturas sin datos personales: [claro](assets/chatwoot-marca-entrada-claro.jpg) y [oscuro](assets/chatwoot-marca-entrada-oscuro.jpg).
+- **Lo que no cambia en la edición CE:** el «Powered by Chatwoot» del widget y de los correos (`disable_branding` es premium). La etiqueta del campo dice «E-mail», que es la traducción al español de Chatwoot; cambiarla a «Correo electrónico» exigiría tocar las traducciones de la imagen, y no se hace.
+- **Vuelta atrás:** volver a poner los valores anteriores (están en la salida de `aplicar-marca.rb`) y restaurar `compose.yml.antes-marca`.
 
 ## 7 · Operación diaria
 

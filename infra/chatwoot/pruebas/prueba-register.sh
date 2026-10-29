@@ -78,7 +78,7 @@ cuenta() { grep -c -- "$1" "$2" 2>/dev/null || true; }
 # ── Preparación: copia como /srv/chatwoot + overlay local + .env de prueba ────
 log "== prueba de /register · $(date -u +%Y-%m-%dT%H:%M:%SZ) · trabajo $TRABAJO"
 cp "$ORIGEN/compose.yml" "$D/"
-cp -r "$ORIGEN/rails" "$ORIGEN/pruebas" "$D/"
+cp -r "$ORIGEN/rails" "$ORIGEN/marca" "$ORIGEN/pruebas" "$D/"
 cp "$ORIGEN/pruebas/compose.local.yml" "$D/compose.override.yml"
 cat >"$D/.env" <<EOF
 CHATWOOT_HOST=chat.prueba.test
