@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -60,17 +60,32 @@ const FILAS_MIXTAS = [
 ];
 
 describe("avance-checklist", () => {
-  it("el checklist real del programa es válido y arranca en 0 %", () => {
+  // El checklist real cambia cada vez que Sam acepta un paso: aquí solo se fijan invariantes de
+  // la línea base, y el % se recalcula en la prueba con un lector propio de las filas.
+  it("el checklist real del programa es válido y su % sale solo de los aceptados", () => {
     const r = run(CHECKLIST_REAL, "--json");
     expect(r.stderr).toBe("");
     expect(r.status).toBe(0);
     const out = JSON.parse(r.stdout);
     expect(out.lineaBase).toEqual({ version: "v1", fecha: "2026-10-28", alcance: 99.75 });
-    expect(out.avance).toBe(0);
-    expect(out.falta).toBe(100);
-    expect(out.etapaActual).toMatchObject({ numero: 1, total: 10, id: "E0" });
-    expect(out.pasoActual).toBe("0.1");
     expect(out.etapas.map((e) => e.base)).toEqual([5, 4.75, 17.75, 5, 8, 7.75, 16, 16.5, 10, 9]);
+    const pesos = out.etapas.map((e) => (e.base / out.lineaBase.alcance) * 100);
+    expect(pesos.reduce((a, b) => a + b, 0)).toBeCloseTo(100, 10);
+
+    const filas = readFileSync(CHECKLIST_REAL, "utf8")
+      .split(/\r?\n/)
+      .filter((l) => /^\| \d+\.\d+ \|/.test(l))
+      .map((l) => l.split("|").map((c) => c.trim()))
+      .map((c) => ({ base: Number(c[5].replace(",", ".")), estado: c[8] }));
+    const sumar = (xs) => xs.reduce((a, f) => a + f.base, 0);
+    expect(sumar(filas)).toBeCloseTo(99.75, 10);
+    const aceptado = sumar(filas.filter((f) => f.estado === "aceptado"));
+    const esperado = Math.round((aceptado / 99.75) * 100 * 100) / 100;
+    expect(out.aceptado).toBeCloseTo(aceptado, 10);
+    expect(out.avance).toBe(esperado);
+    expect(out.falta).toBeCloseTo(100 - esperado, 10);
+    expect(out.avance).toBeGreaterThanOrEqual(0);
+    expect(out.avance).toBeLessThanOrEqual(100);
   });
 
   it("solo los aceptados suman al %; entregado y días reales son esfuerzo aparte", () => {
