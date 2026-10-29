@@ -312,6 +312,50 @@
           "degradation": "Sin RPC0497, el adapter devuelve ok:false/skipped:atomic-posting-unavailable. No usa INSERT REST de cabecera/líneas, no fallback ni retry. Otros errores/respuesta inválida quedan estado desconocido honesto; no se afirma ausencia ni rollback del commit. Huella fuente0497 SHA256 1b0a60a49d78997a98f04f8dd14c36f23662668850b4f9ead7d422afff386d04. MIGRATE-FIRST; fuente/SQL/catálogos/races NO EJECUTADOS."
         }
       ]
+    },
+    {
+      "id": "sdd-0585-chatwoot-bandeja",
+      "primarySymbol": "chatwoot_agent_links",
+      "migration": "0503_chatwoot_bandeja",
+      "symbols": [
+        {
+          "name": "chatwoot_agent_links",
+          "kind": "table",
+          "callSites": [
+            "app/studio/(app)/bandeja/actions.ts:109",
+            "app/studio/(app)/bandeja/actions.ts:129",
+            "lib/studio/chatwoot/links-queries.ts:20",
+            "lib/studio/chatwoot/links-queries.ts:34"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/feature-flag-guard.ts:44",
+          "contains": "if (!flags[flagKey]) {",
+          "degradation": "Sin 0503 no existe la fila chatwoot_inbox: listFeatureFlags cae al default apagado (FEATURE_FLAG_DEFAULTS) y el layout de /studio/bandeja redirige a /studio/dashboard?off=bandeja; el sidebar no muestra la Bandeja. Tampoco se puede encender: la RPC del panel (0289) hace UPDATE y no hay fila. Ninguna lectura de chatwoot_agent_links corre con el flag apagado."
+        },
+        {
+          "site": "lib/studio/chatwoot/links-queries.ts:25",
+          "contains": "if (error || !data) return null;",
+          "degradation": "Si igual se llegara a leer sin la tabla (42P01/PGRST205), getVinculoPropio devuelve null: la página muestra «sin agente» y pedirEnlaceSso responde unlinked sin pedir SSO a Chatwoot."
+        },
+        {
+          "site": "lib/studio/chatwoot/links-queries.ts:38",
+          "contains": "if (error || !data) return [];",
+          "degradation": "listVinculos devuelve la lista vacía: el admin ve «Todavía no hay usuarios vinculados»."
+        },
+        {
+          "site": "app/studio/(app)/bandeja/actions.ts:115",
+          "contains": "if (error) return { ok: false, error: error.code === \"23505\" ? \"duplicate\" : \"service\" };",
+          "degradation": "vincularAgente sin la tabla no inserta nada y responde «El servidor de mensajes no respondió», sin error crudo."
+        },
+        {
+          "site": "app/studio/(app)/bandeja/actions.ts:133",
+          "contains": "if (error) return { ok: false, error: \"service\" };",
+          "degradation": "desvincularAgente sin la tabla no borra nada y responde el mismo mensaje traducido."
+        }
+      ]
     }
   ]
 }
