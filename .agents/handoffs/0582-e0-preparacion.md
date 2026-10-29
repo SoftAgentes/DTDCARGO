@@ -36,7 +36,7 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 ## Autorizaciones registradas
 
 - 0.6, lectura de PII: Sam, chat del 2026-10-29, respuesta literal «Sí, OK para esa lectura» a «leer por API, desde el VPS, los mensajes de hasta 20 conversaciones de Kommo con el token que ya usa el ERP, sin guardar su texto (solo conteos)». Se usó solo para eso; no cubre la integración nueva ni la carga.
-- 0.6, integración en Kommo: Sam, 2026-10-29, «Sí, créala». Se creó «DTD 0582 historial (solo lectura)» con dos alcances (información de la cuenta e historial de chats externos) y un logo liso de 400×272. Sam escribió el código del correo. Revocarla al cerrar E5.
+- 0.6, integración en Kommo: Sam, 2026-10-29, «Sí, créala». Se creó «DTD 0582 historial (solo lectura)» con dos alcances (información de la cuenta e historial de chats externos) y un logo liso de 400×272. La integración aparece creada en Kommo. El token aún no se generó ni llegó al VPS: Sam contestaba las preguntas sin estar mirando la pantalla y pidió entender el procedimiento, así que se pausó. Revocarla al cerrar E5.
 - 0.3–0.5 en Chrome: Sam eligió hacerlo juntos, pero el Chrome no tenía sesión en Meta y lo pospuso («Lo hacemos después»).
 
 ## Lo que se hizo en sistemas externos (todo lectura)
