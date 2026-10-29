@@ -107,7 +107,6 @@ Consecuencias:
 | X-7 | Los eventos no traen el texto: sin el alcance de historial, el texto solo sale de la exportación nativa de Kommo | I (falta ver la exportación en 0.4, fila 7) |
 | X-8 | Orden de magnitud del historial: unos 2.400 entrantes al mes; con los salientes, del orden de 10⁵ mensajes en 2 años | I |
 | X-9 | Las cabeceras de límite de velocidad no aparecieron en las respuestas; 0,25 s entre llamadas no dio ningún 429 | R |
-
 | X-10 | El formulario «Crear integración» de Kommo ofrece a una integración privada el alcance «Historial de chats externos», junto a «Acceder a la información de la cuenta», «Enviar a chats externos» y los de archivos, usuarios y notificaciones. Crearla pide un logo de 400×272 y un código enviado al correo de la cuenta | T |
 
 **Integración nueva (2026-10-29, ~07:00 UTC):** con el OK de Sam («Sí, créala» a «crear en Kommo una integración privada con alcance de historial de chats, solo para repetir la prueba de 0.6»), se creó «DTD 0582 historial (solo lectura)» con solo dos alcances: información de la cuenta e historial de chats externos. Sam escribió el código de verificación. El token de larga duración lo genera y lo pega Sam directo en el VPS (`/dev/shm`); la IA no lo ve. Se revoca al cerrar E5.
