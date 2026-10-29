@@ -1,5 +1,6 @@
 // Pruebas del verificador de Cloudflare Access (SDD-0583). Solo datos sintéticos.
-//   node --test infra/chatwoot/cf-access/verificador.test.mjs
+// Se llama .node-test.mjs para que vitest (patrón *.test.*) no la tome: es de node:test.
+//   node --test infra/chatwoot/cf-access/verificador.node-test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";

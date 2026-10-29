@@ -116,7 +116,7 @@ docker compose exec rails bundle exec rails c      # consola, solo si hace falta
 
 En el VPS, el `.env` (copia en `.env.antes-access`) lleva `CHATWOOT_CF_ACCESS_*`, `CHATWOOT_ADMIN_ALLOWLIST_MIDDLEWARE=chatwoot-cf-access@docker` y `COMPOSE_PROFILES=cf-access`. El super admin de Chatwoot es `hailuway.com@gmail.com`, id 2, creado con `/root/crear-super-admin.sh`; la contraseña la escribió Sam sin eco y la guarda en su gestor.
 
-No se tocó la otra app de Access que ya existía. Probado en local antes (`cf-access/verificador.test.mjs` y la fase D de `pruebas/ensayo-local.sh`) y en el VPS después: registro T-30 a T-32.
+No se tocó la otra app de Access que ya existía. Probado en local antes (`cf-access/verificador.node-test.mjs` y la fase D de `pruebas/ensayo-local.sh`) y en el VPS después: registro T-30 a T-32.
 
 **Cómo entra Sam (dos puertas, a propósito):**
 1. Abre `https://chat.dtdcargo.com/super_admin`.
