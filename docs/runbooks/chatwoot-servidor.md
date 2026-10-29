@@ -1,7 +1,7 @@
 # Runbook · Chatwoot en el VPS del ERP · SDD-0583
 
 **SDD:** [0583](../specs/0583-chatwoot-vps-e1/spec.md) (etapa E1 del programa [0582](../specs/0582-chatwoot-piloto/spec.md))
-**Estado:** probado en local (2026-10-29). **Nada desplegado.** Cada sección que toca el VPS, el DNS o Tailscale dice qué puerta de Sam necesita.
+**Estado:** **desplegado en el VPS el 2026-10-29 (~15:40–16:00Z)** con la puerta P1 («Autorizo P1» de Sam). Sin DNS (P2), sin Tailscale (P3) y sin Platform App (P4) todavía. Registro al final.
 **Relacionados:** [respaldo y restauración](chatwoot-respaldo-restauracion.md) · [vigilancia](chatwoot-vigilancia.md) · [servidor Contabo](servidor-contabo.md) · [revisión de datos personales](../legal/privacidad/revision-chatwoot-e1-2026-10-29.md)
 
 ## 1 · Qué se instala y dónde
@@ -77,6 +77,8 @@ Routers que declara `rails` (labels en `compose.yml`, prefijo = nombre del proye
 `chatwoot-marco` borra `X-Frame-Options` (Rails manda `SAMEORIGIN`) y fija `Content-Security-Policy: frame-ancestors 'self' <CHATWOOT_FRAME_ANCESTORS>`. Chatwoot 4.19.1 no manda CSP propia (`config/initializers/content_security_policy.rb` vacío), así que la de Traefik no pisa nada. El otro lado del iframe (la `frame-src` y `Permissions-Policy` de Studio) es de E2.
 
 **TLS:** el resolver `letsencrypt` del Traefik compartido, con desafío HTTP-01. Funciona con o sin proxy de Cloudflare.
+
+**Sin DNS, Traefik intenta igual.** Al aparecer el router, Traefik pidió el certificado y Let's Encrypt lo rechazó (2026-10-29 15:52Z: «Unable to obtain ACME certificate for domains»). Traefik no reintenta solo; tras crear el DNS (P2) se fuerza un intento nuevo recreando `rails` (`docker compose up -d --force-recreate rails`), que vuelve a publicar el router. No recrear `rails` antes del DNS: cada intento fallido cuenta para el límite de Let's Encrypt de 5 fallas por hora y por dominio. Mientras tanto, Traefik sirve su certificado por defecto; las pruebas van con `curl -k --resolve chat.dtdcargo.com:443:217.216.54.70`.
 
 ## 4 · DNS (puerta P2) y administración (puerta P3)
 
@@ -172,3 +174,4 @@ Los usuarios de personas (Sam y la persona que atiende, E0-D2) los da de alta St
 | Fecha | Qué | Quién | Evidencia |
 |---|---|---|---|
 | 2026-10-29 | Configuración escrita y probada en local (`pruebas/ensayo-local.sh`). Nada en el VPS | Worker SDD-0583 | [registro](../specs/0583-chatwoot-vps-e1/investigacion-2026-10-29.md) |
+| 2026-10-29 15:38–16:00Z | **P1** («Autorizo P1», Sam): `/srv/chatwoot` copiado (sha256 igual al repo), `.env` 0600 generado en el servidor, red `chatwoot_edge` y Traefik conectado en caliente (sin reinicio), `up` en 289 s, `rails` unhealthy por `FORCE_SSL` → healthcheck con `X-Forwarded-Proto: https` y `up` de nuevo, onboarding cerrado, comprobaciones 1–6 en verde, primer respaldo a B2, timers y monitores Push #6 y #7. DTD sin cambios | Worker SDD-0583 | registro, filas T-2 a T-12 |

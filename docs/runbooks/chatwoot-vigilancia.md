@@ -1,19 +1,19 @@
 # Runbook · Vigilancia de Chatwoot y del ERP en el mismo VPS · SDD-0583
 
 **SDD:** [0583](../specs/0583-chatwoot-vps-e1/spec.md), paso 1.6 del programa [0582](../specs/0582-chatwoot-piloto/checklist.md)
-**Estado:** plan y script listos; `vigilar.sh` probado en un contenedor Linux contra el stack local (2026-10-29). En el VPS: **pendiente** de la puerta P1. La espera de 72 h empieza el día del despliegue.
+**Estado:** **en marcha en el VPS desde el 2026-10-29 15:55Z** (puerta P1, «Autorizo P1» de Sam). Timer cada 5 min y monitores Push #6 y #7 en Uptime Kuma, en verde. Las 72 h terminan el **2026-11-01 ~16:00Z**. Los dos monitores HTTP esperan el DNS (P2).
 **Reutiliza:** el Uptime Kuma que ya corre en el host (`ops-uptime-kuma-uptime-kuma-1`, `https://vps.dtdcargo.com`, VPS-5 del registro E0). No se instala nada nuevo de monitoreo.
 
 ## 1 · Qué se vigila y por qué
 
-Chatwoot vive en el VPS de la producción de DTD (E0-D1). La pregunta de las 72 h no es solo «¿Chatwoot anda?», sino **«¿DTD sigue igual con Chatwoot al lado?»**. Antes de Chatwoot la presión de CPU `some` ya rondaba el 29–31 % a 5 min (VPS-4, y 29,34 % leída el 2026-10-29 para este plan).
+Chatwoot vive en el VPS de la producción de DTD (E0-D1). La pregunta de las 72 h no es solo «¿Chatwoot anda?», sino **«¿DTD sigue igual con Chatwoot al lado?»**. **Línea base sin Chatwoot.** La presión de CPU `some` a 5 min rondaba el 29–31 % en E0 (VPS-4, y 29,34 % a las ~09:00Z del 2026-10-29). El mismo día, a las 15:38–15:44Z y **antes** de levantar Chatwoot, ya estaba en **40,7 %, 45,95 % y 44,85 %** (dos muestras de `vigilar.sh` en el CSV). La presión varía mucho durante el día sin Chatwoot: por eso el criterio de §4 compara contra la línea base, no contra un número fijo.
 
-| Monitor en Uptime Kuma | Tipo | Qué mira | Intervalo | Aviso |
-|---|---|---|---|---|
-| Chatwoot · API | HTTP(s) – palabra clave | `https://chat.dtdcargo.com/api` contiene `"queue_services":"ok","data_services":"ok"` (Redis y Postgres vivos, `api_controller.rb`) | 60 s, 2 reintentos | Telegram de Sam |
-| Chatwoot · versión | HTTP(s) – palabra clave | la misma URL contiene `"version":"4.19.1"`: avisa si alguien cambió la imagen fuera de E3 | 1 h | Telegram |
-| Chatwoot · recursos del host | Push | `vigilar.sh` cada 5 min (§2): `up` dentro de umbrales, `down` con el motivo | latido esperado cada 5 min, tolerancia 15 min | Telegram |
-| Respaldo Chatwoot · latido | Push | `respaldo.sh` al terminar bien | 26 h, 0 reintentos | Telegram |
+| Monitor en Uptime Kuma | Tipo | Qué mira | Intervalo | Aviso | Estado |
+|---|---|---|---|---|---|
+| Chatwoot · API | HTTP(s) – palabra clave | `https://chat.dtdcargo.com/api` contiene `"queue_services":"ok","data_services":"ok"` (Redis y Postgres vivos, `api_controller.rb`) | 60 s, 2 reintentos | Telegram de Sam | se crea tras P2 (sin DNS daría «caído») |
+| Chatwoot · versión | HTTP(s) – palabra clave | la misma URL contiene `"version":"4.19.1"`: avisa si alguien cambió la imagen fuera de E3 | 1 h | Telegram | se crea tras P2 |
+| Chatwoot · recursos del host | Push (#7) | `vigilar.sh` cada 5 min (§2): `up` dentro de umbrales, `down` con el motivo | 900 s, 0 reintentos | Telegram | creado 2026-10-29, verde |
+| Respaldo Chatwoot · latido | Push (#6) | `respaldo.sh` al terminar bien | 93.600 s (26 h), 0 reintentos | Telegram | creado 2026-10-29, verde |
 | (los de DTD, ya existentes) | — | web, gateway de Supabase, respaldo de DTD | — | sin cambios |
 
 Los monitores HTTP se crean en la UI de Uptime Kuma (no hay API de escritura que valga la pena aquí). Las dos URL Push van al `.env` de Chatwoot (`CHATWOOT_BACKUP_HEARTBEAT_URL`, `CHATWOOT_VIGILANCIA_HEARTBEAT_URL`, 0600, nunca a git).
@@ -69,8 +69,9 @@ El resumen va al handoff y a la fila 1.6 del checklist. **Criterio** para quedar
 
 | Señal | Se queda si | Si no |
 |---|---|---|
-| Presión de CPU a 5 min | p95 ≤ 45 % y nunca > 60 % más de 15 min seguidos | plan B |
-| Web de DTD | p95 del primer byte ≤ 1,5× la línea base (o ≤ 1,5 s si no hubo línea base) | plan B |
+| Presión de CPU a 5 min | nunca > 60 % más de 15 min seguidos, **y** p95 ≤ línea base + 10 puntos. Línea base: las muestras sin Chatwoot del 2026-10-29 (44,9–46,0 %) y, mejor, una hora de la semana en que Chatwoot esté bajado para una subida de versión. Corregido el 2026-10-29: el primer criterio («p95 ≤ 45 %») lo reprobaba el VPS sin Chatwoot | plan B |
+| CPU propia de Chatwoot | suma de rails + sidekiq + postgres + redis (columnas `*_cpu` del CSV, en % de un núcleo) con p95 ≤ 50 %: es lo que Chatwoot le quita a DTD, sin depender del ruido del resto del host | plan B si además falla la fila anterior |
+| Web de DTD | p95 del primer byte ≤ 1,5 s (línea base del 2026-10-29: 0,34–0,88 s medido desde el VPS) | plan B |
 | OOM o reinicios de Chatwoot | cero | subir el límite del servicio afectado o plan B |
 | Memoria de Chatwoot | p95 ≤ 80 % del límite | ajustar límites (cambio de compose, PR) |
 | Disco | crecimiento de adjuntos que deje > 6 meses de margen al 15 % libre | R2 para adjuntos (cambio de alcance) |

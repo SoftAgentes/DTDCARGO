@@ -10,6 +10,22 @@ Fuente del código: la imagen `chatwoot/chatwoot:v4.19.1-ce`, digest `sha256:048
 |---|---|---|---|
 | T-1 | En el VPS: **Tailscale no está instalado**; Compose 5.6.0; corren `ops-traefik-traefik-1` y `ops-uptime-kuma-uptime-kuma-1`; redes edge `dtd_edge`, `loop-3d_edge`, `loop-3d-staging_edge`, `rent-awada-pruebas_edge`; `/srv/ops/backup/` tiene `age-recipients.txt` y `rclone/`; disco `/` 49 % usado (150 GB libres); presión de CPU `some` avg300 = 29,34 %; ufw permite 22, 80 y 443 desde cualquier origen | `ssh root@217.216.54.70` con `tailscale`, `docker ps --format {{.Names}}`, `docker network ls`, `ls`, `df`, `/proc/pressure/cpu`, `ufw status`. Sin leer contenedores, bases ni datos | T |
 
+## Despliegue en el VPS (puerta P1, «Autorizo P1» de Sam, 2026-10-29)
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| T-2 | Antes de tocar: no existían `/srv/chatwoot` ni la red `chatwoot_edge`; Traefik en `dtd_edge`, `loop-3d_edge` y `rent-awada-pruebas_edge`, 0 reinicios desde el 2026-10-22 18:31Z; `age` y `flock` en el host; `rclone.conf` con sección `[b2]`; 1 clave pública en `age-recipients.txt`; 14,7 GiB disponibles; web de DTD 200 en 0,57 s | ssh, 15:38Z | T |
+| T-3 | Línea base sin Chatwoot: presión de CPU `some` avg300 40,71 % (15:38Z), 45,95 % y 44,85 % (15:43Z); TTFB de la web de DTD 0,34–0,43 s desde el VPS | `/proc/pressure/cpu`; `vigilar.sh` (dos muestras, CSV) | T |
+| T-4 | `/srv/chatwoot` copiado; `compose.yml` y el inicializador de redacción con el mismo sha256 que el repo | `sha256sum` en los dos lados | R |
+| T-5 | `.env` 0600 generado en el servidor: 24 variables con valor y 4 vacías a propósito (SMTP usuario y clave, dos latidos); ningún valor impreso | `awk` de nombre y largo | R |
+| T-6 | `chatwoot_edge` creada y `ops-traefik-traefik-1` conectado **sin reinicio** (mismo `StartedAt`, sano); la web de DTD siguió en 200 | `docker inspect`, `curl` | R |
+| T-7 | `docker compose up -d --wait`: `prepare` salió 0, postgres/redis/sidekiq sanos, **`rails` unhealthy**: con `FORCE_SSL=true` el healthcheck por http recibe 301 a https (con `X-Forwarded-Proto: https` responde `{"status":"woot"}`). Traefik no enruta a contenedores unhealthy. Arreglo: cabecera en el healthcheck; tras el `up`, los cuatro sanos | `wget -S`, `docker inspect` | R |
+| T-8 | Comprobaciones del runbook §5 contra el Traefik real (`--resolve`, sin DNS): `/api` → 4.19.1 con `queue_services` y `data_services` `ok`; registro `false` y `POST /api/v1/accounts` → 404; Gravatar apagado; `/app/login` → 200 con `content-security-policy: frame-ancestors 'self' https://dtdcargo.com`, HSTS y **sin** `X-Frame-Options`; `/super_admin/sign_in`, `/monitoring/sidekiq` e `/installation/onboarding` → 403; redacción activa en rails y sidekiq; 0 líneas del host de Chatwoot en el access log de Traefik | `/root/comprobar-p1-chatwoot.sh` | R |
+| T-9 | Onboarding cerrado por consola antes de cualquier DNS (`ONB=nil`) | `rails runner` | R |
+| T-10 | DTD intacto: los 11 contenedores de `dtd-cargo` seguían «Up 4 days» / «Up 10 days»; web 200 en 0,88 s. Consumo de Chatwoot en el VPS al arrancar: rails 376 MiB, sidekiq 437 MiB, postgres 57 MiB, redis 4 MiB | `docker ps`, `docker stats` | R |
+| T-11 | Let's Encrypt rechazó el certificado de `chat.dtdcargo.com` (sin DNS), una vez, a las 15:52Z | log de Traefik | R |
+| T-12 | Primer respaldo real: 44 s, `success`, 4 archivos en `b2:dtdcargo-respaldos/chatwoot/chatwoot-20261029T155439Z` y `rclone check` sin diferencias (`dump_entradas=1146`, 0 filas de negocio); timers `chatwoot-respaldo` (06:30 UTC) y `chatwoot-vigilancia` (5 min) activos; monitores Push #6 y #7 creados en Uptime Kuma y en verde tras el primer latido | `systemctl`, log del respaldo, panel de Uptime Kuma | R |
+
 ## Código de Chatwoot 4.19.1
 
 | ID | Afirmación | Fuente | Etiqueta |
@@ -67,5 +83,5 @@ Corridas: 1.ª 09:05Z (6 fallas: el ensayo mismo y el hallazgo del onboarding), 
 | E1-I1 | El consumo en reposo (≈0,95 GiB) deja margen bajo el techo de 3,7 GiB; con canales y uso real (E4) crecerá, sobre todo Sidekiq | I |
 | E1-I2 | La CPU es el riesgo (VPS-7): en reposo Chatwoot no la usa; el pico estará en E4/E5 (carga del historial) | I |
 | E1-NV1 | Que Traefik vea la IP `100.x` de Tailscale sin NAT en el VPS real | NV (puerta P3) |
-| E1-NV2 | Comportamiento con `FORCE_SSL=true` detrás del Traefik real (en local va en `false`, HTTP plano) | NV (puerta P1, comprobación 3 del runbook) |
+| E1-NV2 | ~~Comportamiento con `FORCE_SSL=true` detrás del Traefik real~~ → **resuelto en P1** (T-7, T-8): rompía el healthcheck; con la cabecera, todo en verde | R |
 | E1-NV3 | Certificado de Let's Encrypt para `chat.dtdcargo.com` | NV (puertas P1 y P2) |

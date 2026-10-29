@@ -1,7 +1,7 @@
 # Runbook · Respaldo y restauración conjunta de Chatwoot · SDD-0583
 
 **SDD:** [0583](../specs/0583-chatwoot-vps-e1/spec.md), paso 1.5 del programa [0582](../specs/0582-chatwoot-piloto/checklist.md)
-**Estado:** scripts probados en local con datos sintéticos (2026-10-29). En el VPS: **pendiente** de la puerta P1 (instalar el timer) y de la puerta P5 (ensayo en el host).
+**Estado:** scripts probados en local con datos sintéticos (2026-10-29). **En el VPS desde el 2026-10-29** (P1): timer diario activo y primer respaldo en B2 (`chatwoot-20261029T155439Z`, 44 s, `rclone check` sin diferencias). Falta la puerta P5 (ensayo de restauración en el host).
 **RPO:** 24 h (respaldo diario). **RTO objetivo:** ≤ 2 h, de los que la restauración en sí mide ~1 min con datos de prueba (§5).
 **Base:** el mismo esquema que [backup-restore-servidor.md](backup-restore-servidor.md) de DTD: `age`, `/dev/shm`, `rclone copy` a B2, latido en Uptime Kuma.
 
