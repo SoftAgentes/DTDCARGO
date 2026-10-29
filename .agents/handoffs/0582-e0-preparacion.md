@@ -12,11 +12,11 @@
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
 | 0.2 | aceptado | 5 decisiones; Kommo vence el 29.05.2027 con renovación automática (T) | Aceptado («Acepto los tres», 2026-10-29); ubicar «analiza mi contestación» en 7.3 |
-| 0.3 | bloqueado | Portfolio «DTD Cargo» leído (M-8–M-12, T); el número está en el portfolio «Importador de China», verificado (M-13, vía Kommo) | Acceso de administrador a «Importador de China»; OK de Sam a la propuesta sobre el modelo nuevo de cuentas |
+| 0.3 | entregado | «Importador de China» leído completo (M-16–M-31, T): 1 número, 1 socio (Kommo), 3 cuentas de mensajes, app «Whats DTD» sin activos, 5 plantillas, 2FA no exigida | Aceptación de Sam; OK a la vuelta atrás y a la propuesta; nota cifrada de Sam; PIN, callbacks y overrides por API tras 4.1 |
 | 0.4 | aceptado | Kommo leído en solo lectura (K-13–K-22, T): 15 bots y 4 agentes apagados, 7 fuentes, 7 plantillas, integraciones, sin exportación de chats | Aceptado («Acepto los tres», 2026-10-29) |
 | 0.5 | aceptado | `info@` = alias de `vzla@` (único buzón); DKIM, SPF, MX y DMARC en verde; Resend sin recepción (C-1–C-13, T) | Aceptado («Acepto 0.5», 2026-10-29) |
 | 0.6 | aceptado | Historial leído con la integración nueva; paginación medida (X-1–X-17, R) | Aceptado por Sam («Acepto 0.6», 2026-10-29). Revocar la integración al cerrar E5 |
-| 0.7 | en curso | «DTD Cargo» sin verificar; «Importador de China» verificado; Kommo dice método de pago «Activo» (de quién: NV) | Ver el pago en «Importador de China»; decidir el pago propio en la cuenta de mensajes de DTD |
+| 0.7 | entregado | Portfolio verificado y pago propio (Mastercard de DTD) en la cuenta de mensajes del número (M-25, T) | Aceptación de Sam; App Review de Messenger e Instagram en E4 |
 
 Evidencia: [registro E0](../../docs/specs/0582-chatwoot-piloto/investigacion-2026-10-29-e0.md) y [guías](../../docs/specs/0582-chatwoot-piloto/e0-guias.md).
 
@@ -51,6 +51,8 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 - Resend: `GET /domains` y `GET /webhooks` desde el VPS con la llave del ERP en memoria (no se leyó ningún correo recibido).
 - Meta (2026-10-30, acceso de la oficina, solo lectura): Información del negocio, Personas, Socios, Usuarios del sistema, Apps, Cuentas de WhatsApp, Cuentas de mensajes, Páginas, Perfiles de Instagram, Enrutamiento, Apps conectadas, Centro de seguridad y Facturación. Se cerraron 2 avisos informativos (aprobación de pares y herramientas fijadas). Nada se cambió.
 - Kommo (2026-10-30, lectura): detalle del número en la integración WhatsApp Business.
+- Meta «Importador de China» (2026-10-30, lectura, después de que Sam verificara su cuenta): Cuentas de WhatsApp (pestañas Resumen, Personas, Socios, cuentas vinculadas, cuentas de mensajes y enrutamiento), Cuentas de mensajes, Personas, Usuarios del sistema, Aplicaciones, Socios, Centro de seguridad y WhatsApp Manager (Números, Insights, Perfil y Plantillas). Se cerraron 2 avisos informativos. El menú «⋯» de la cuenta de WhatsApp («Asignar personas», «Suprimir del portfolio») se abrió y se cerró sin elegir nada.
+- Se cerró, sin pulsar nada, una ventana de Kommo de «Inicio de sesión con Facebook para empresas» que pedía compartir «Importador de China» y crear una cuenta publicitaria. La IA no la abrió.
 
 ## Validación
 
@@ -67,7 +69,7 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 ## Pendientes de esta tarea
 
 1. Hecho: 0.1, 0.2 y 0.4 aceptados por Sam el 2026-10-29.
-2. Sam: conseguir acceso de administrador al portfolio «Importador de China» (el de la oficina solo ve «DTD Cargo»). Con eso se terminan los 13 puntos de 0.3 y se aprueba la vuelta atrás.
+2. Hecho (2026-10-30): Sam entró a «Importador de China» y se leyó todo 0.3 y 0.7. Falta su aceptación, el OK a la vuelta atrás y su nota cifrada con los valores.
 2b. Sam: OK o ajustes a la propuesta sobre el modelo nuevo de cuentas (registro E0, «Propuesta de corrección de la spec»).
 3. Hecho: Kommo leído el 2026-10-29.
 4. Hecho: Hostinger y Resend leídos (0.5 entregado).
@@ -85,3 +87,5 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 - `docs/marketing/whatsapp-business.md` y otros documentos del repo citan dígitos del número de WhatsApp y un ID parcial de la 2.ª WABA.
 - En el VPS del ERP corren varias sesiones de Codex/Orca de varios proyectos (DTD, Loop 3D, Rent Awada) con días de antigüedad. Pueden explicar parte de la presión de CPU (VPS-4); lo revisa el Director antes de 1.1.
 - La cuenta de Resend del ERP mezcla dominios de DTD, Hailuway y Loop 3D, y la llave del ERP los ve todos (C-13).
+- La cuenta de mensajes «Door tu door» (2.ª WABA vieja, sin número) sigue con Kommo como socio y con la tarjeta de DTD. Conviene decidir si se retira; no es parte de E0.
+- En «Importador de China» la 2FA no se le exige a nadie (M-28).
