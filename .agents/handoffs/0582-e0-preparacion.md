@@ -15,7 +15,7 @@
 | 0.3 | en curso | Guía de 13 puntos, nota cifrada y vuelta atrás escritas; M-1–M-7 | Lectura en Meta con Sam; aprobación de la vuelta atrás |
 | 0.4 | en curso | Inventario del repo (K-1–K-12), tabla de los 15 Salesbots y matriz de paridad | Confirmar en Kommo «activo hoy», agentes, fuentes, usuarios, integraciones y backup |
 | 0.5 | en curso | DNS medido (T): Cloudflare, MX Hostinger, sin MX de `inbound.` | Paneles de Hostinger (tipo de `info@`, DKIM) y Resend (recepción, webhooks) |
-| 0.6 | en curso | Prueba corrida con el OK de Sam: 403 «Invalid scope» en `talks/{id}/messages`; enumeración, volumen y profundidad medidos (X-1–X-9, R) | Integración con alcance de historial creada con el OK de Sam; falta que Sam pegue el token en el VPS y repetir la prueba |
+| 0.6 | en curso | Prueba corrida con el OK de Sam: 403 «Invalid scope» en `talks/{id}/messages`; enumeración, volumen y profundidad medidos (X-1–X-9, R) | Historial leído con la integración nueva (X-11–X-15, R). Falta medir la paginación: la medición iba a leer más de las 20 conversaciones autorizadas y se detuvo; pide un OK nominal nuevo |
 | 0.7 | en curso | Plantilla de expedientes | Verificación del negocio y pago propio comprobados |
 
 Evidencia: [registro E0](../../docs/specs/0582-chatwoot-piloto/investigacion-2026-10-29-e0.md) y [guías](../../docs/specs/0582-chatwoot-piloto/e0-guias.md).
@@ -65,7 +65,7 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 2. Sam + IA: lectura de Meta (0.3, 13 puntos) y aprobación de la vuelta atrás.
 3. Sam + IA: confirmar en Kommo la tabla de 15 Salesbots y los 7 puntos de 0.4.
 4. Sam + IA: Hostinger (`info@`, DKIM) y Resend (recepción, webhooks) para 0.5.
-5. Sam: generar el token de larga duración de la integración y pegarlo en el VPS con `ssh -t root@217.216.54.70 "read -rs T && umask 077 && printf %s `$T > /dev/shm/k0582 && wc -c /dev/shm/k0582"` (PowerShell); después la IA repite la prueba y borra el archivo.
+5. Sam: OK nominal para medir la paginación (hasta 5 conversaciones de más de 10 mensajes, solo conteos). El token se manda con `Get-Clipboard | ssh root@217.216.54.70 'umask 077; cat > /dev/shm/k0582; wc -c /dev/shm/k0582'` y se borra al terminar. Versión anterior, que no funcionó: generar el token y pegarlo en el VPS con `ssh -t root@217.216.54.70 "read -rs T && umask 077 && printf %s `$T > /dev/shm/k0582 && wc -c /dev/shm/k0582"` (PowerShell); después la IA repite la prueba y borra el archivo.
 6. Sam: verificación del negocio y método de pago propio (0.7).
 7. Publicar la rama: sin autorización de push en este encargo.
 
