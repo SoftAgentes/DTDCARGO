@@ -11,9 +11,9 @@
 
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
-| 0.2 | entregado | 5 decisiones; Kommo vence el 29.05.2027 con renovación automática (T) | Aceptación de Sam; ubicar «analiza mi contestación» en 7.3 |
+| 0.2 | aceptado | 5 decisiones; Kommo vence el 29.05.2027 con renovación automática (T) | Aceptado («Acepto los tres», 2026-10-29); ubicar «analiza mi contestación» en 7.3 |
 | 0.3 | en curso | Guía de 13 puntos, nota cifrada y vuelta atrás escritas; M-1–M-7 | Lectura en Meta con Sam; aprobación de la vuelta atrás |
-| 0.4 | entregado | Kommo leído en solo lectura (K-13–K-22, T): 15 bots y 4 agentes apagados, 7 fuentes, 7 plantillas, integraciones, sin exportación de chats | Aceptación de Sam |
+| 0.4 | aceptado | Kommo leído en solo lectura (K-13–K-22, T): 15 bots y 4 agentes apagados, 7 fuentes, 7 plantillas, integraciones, sin exportación de chats | Aceptado («Acepto los tres», 2026-10-29) |
 | 0.5 | en curso | DNS (T) y Resend por API (T): recepción desactivada en los 3 dominios, sin consumidores de Inbound | Hostinger: tipo de `info@` y DKIM (necesita la sesión de Sam) |
 | 0.6 | aceptado | Historial leído con la integración nueva; paginación medida (X-1–X-17, R) | Aceptado por Sam («Acepto 0.6», 2026-10-29). Revocar la integración al cerrar E5 |
 | 0.7 | en curso | Plantilla de expedientes | Verificación del negocio y pago propio comprobados |
@@ -64,7 +64,7 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 
 ## Pendientes de esta tarea
 
-1. Sam: aceptar 0.1, 0.2 y 0.4.
+1. Hecho: 0.1, 0.2 y 0.4 aceptados por Sam el 2026-10-29.
 2. Sam + IA: lectura de Meta (0.3, 13 puntos) y aprobación de la vuelta atrás.
 3. Hecho: Kommo leído el 2026-10-29.
 4. Sam + IA: Hostinger (`info@`, DKIM) para 0.5. Resend ya se leyó por API.
