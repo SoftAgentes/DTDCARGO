@@ -339,6 +339,15 @@ Clave del recorrido: `guide.updates`. Pantalla: Studio → Actualizaciones (3.3)
 
 ## Preguntas
 
+**Estado al 2026-10-29:** Sam aceptó el guion («Acepto todo») sin contestar estas preguntas. Quedan abiertas como pendientes de los pasos siguientes y no bloquean la aceptación de 9.1. Mientras no tengan respuesta, valen las propuestas del guion y las rutas de «Antes en Kommo» siguen NV.
+
+| Preguntas | Se cierran en | Por qué ahí |
+|---|---|---|
+| S-3 | 9.2 | El motor carga las claves `guide.*` en los dos idiomas; hace falta saber si `zh-CN` se traduce o se oculta |
+| S-6, S-7 | 9.3 | Primera vez por pantalla o toda junta, y nombre y lugar del botón «Guía» |
+| S-1, S-2, S-4, S-5, S-8, S-9 | 9.5 | Cambian qué tarjetas ve cada rol y su texto |
+| P-1–P-10 | 9.5, a más tardar 9.6 | Cierran las rutas NV de «Antes en Kommo»; si no se contestan antes, se recogen en la prueba con la persona que atiende |
+
 ### Para Sam
 
 - **S-1.** ¿Quién mueve el interruptor de la IA: solo tú, o también la persona que atiende? El guion propone que solo tú.

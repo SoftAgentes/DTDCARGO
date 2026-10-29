@@ -13,13 +13,13 @@
 
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
-| 9.1 | entregado | [`guia-guion.md`](../../docs/specs/0582-chatwoot-piloto/guia-guion.md): 6 recorridos y 24 tarjetas (Bandeja 6, Embudo 4, Ficha DTD 4, IA 4, Usuarios 3, Actualizaciones 3), controles de la guía, formato de claves `guide.*` y de anclas, y 19 preguntas (S-1–S-9 para Sam, P-1–P-10 para la persona que atiende) | OK de Sam; respuestas de la persona que atiende para cerrar las rutas NV |
+| 9.1 | aceptado | [`guia-guion.md`](../../docs/specs/0582-chatwoot-piloto/guia-guion.md): 6 recorridos y 24 tarjetas (Bandeja 6, Embudo 4, Ficha DTD 4, IA 4, Usuarios 3, Actualizaciones 3), controles de la guía, formato de claves `guide.*` y de anclas, y 19 preguntas (S-1–S-9 para Sam, P-1–P-10 para la persona que atiende) | Nada para 9.1. Las 19 preguntas siguen abiertas y pasan a 9.2–9.6 (tabla en el guion) |
 
 **2026-10-29, merges de la base:** se resolvió el conflicto de `spec.md` (Seguimiento) conservando las dos líneas. La tarjeta B5 se ajustó a la decisión B actualizada: las plantillas se recrean y se aprueban en la cuenta de mensajes propia de Chatwoot; ya no se dice que «son las mismas».
 
-Avance tras el primer commit: 3,8 % (falta 96,2 %), sin cambio, porque solo `aceptado` suma. El script lista 9.1 en «Entregados sin aceptar».
+**2026-10-29, aceptación:** Sam aceptó 9.1 en la sesión del programa. A la pregunta «¿Aceptas los pasos entregados (1.1–1.5, 1.7, 4.2 y 9.1)?» respondió «Acepto todo». Llegó relayado por la sesión «CRM Chatwoot». La fila 9.1 pasó a `aceptado` en un commit propio.
 
-## Decisiones de redacción (propuestas, no autorizadas)
+## Decisiones de redacción (aceptadas con el guion; las que dependen de S-1 y S-6 siguen abiertas)
 
 - **Claves:** dominio nuevo `guide` en `lib/i18n/es-VE/guide.ts` y `lib/i18n/zh-CN/guide.ts`, con sufijos `.title`, `.what`, `.before` y `.now`. Sigue el formato plano de `lib/i18n/es-VE/users.ts` y `chrome.ts`.
 - **Anclas:** `<pantalla>.<elemento>`. Dentro de Chatwoot el nombre es la clave del archivo de selectores de 9.4; si el selector falta, la tarjeta cae al marco `bandeja.marco`.
@@ -54,8 +54,8 @@ Ejecutados con `node` directo porque el worktree no tiene `node_modules`; los tr
 
 ## Pendientes de esta tarea
 
-1. OK de Sam al guion → commit propio con la fila 9.1 en `aceptado`.
-2. Respuestas a S-1–S-9 y P-1–P-10 → ajustar las tarjetas y cerrar las rutas NV de «Antes en Kommo».
+1. Hecho: OK de Sam al guion y fila 9.1 en `aceptado`.
+2. Pasa a 9.2–9.6: respuestas a S-1–S-9 y P-1–P-10 para ajustar las tarjetas y cerrar las rutas NV de «Antes en Kommo». Quién cierra cada pregunta está en la tabla de «Preguntas» del guion.
 3. Integrar la PR #330 después de la #328 (está apilada). El merge lo decide el Director con Sam.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -65,4 +65,4 @@ Ejecutados con `node` directo porque el worktree no tiene `node_modules`; los tr
 
 ## HANDOFF AL DIRECTOR
 
-Rama `codex/0582-e9-guion` publicada en la PR draft #330, con la base E0 ya fusionada. Revisar el guion con Sam, recoger el OK y las respuestas, y decidir el merge después del de la #328.
+Rama `codex/0582-e9-guion` publicada en la PR draft #330, con la base E0 ya fusionada. 9.1 está aceptado («Acepto todo», 2026-10-29). Quedan las respuestas a las 19 preguntas para 9.2–9.6, y decidir el merge después del de la #328.

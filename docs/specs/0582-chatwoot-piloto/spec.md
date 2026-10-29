@@ -175,5 +175,5 @@ El código del producto y la infraestructura se allowlistan en la SDD hija de ca
 
   Las decisiones del piloto anterior (máquina, ruta 2A/2B y dueño de la WABA) pasan a los pasos 0.2 y 0.3. La ruta queda fijada como «compartir el número API».
 - **2026-10-29 (E0):** decisiones de 0.2 en el [registro E0](investigacion-2026-10-29-e0.md): máquina = VPS actual del ERP (cambia G), Sam admin + 1 agente, tope del bot de US$25 al mes y «analiza mi contestación» en la IA de Kommo. Guías de 0.3–0.7 en [`e0-guias.md`](e0-guias.md). El DNS de `dtdcargo.com` está en Cloudflare, no en Hostinger.
-- **2026-10-29 (E9):** guion de la guía (9.1) entregado en [`guia-guion.md`](guia-guion.md), pendiente del OK de Sam.
+- **2026-10-29 (E9):** guion de la guía (9.1) entregado en [`guia-guion.md`](guia-guion.md) y aceptado por Sam el mismo día («Acepto todo»). Sus preguntas abiertas pasan a 9.2–9.6 y no bloquean la aceptación.
 - **2026-10-29 (E0, tarde):** Sam aprobó («Apruebo todo», 2026-10-29) dejar el número en «Importador de China», la cuenta de mensajes propia de Chatwoot con plantillas y pago propios, y la vuelta atrás de 0.3. Se corrigieron la decisión B y las prohibiciones.
