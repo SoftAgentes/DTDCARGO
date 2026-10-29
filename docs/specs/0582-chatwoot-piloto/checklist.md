@@ -48,7 +48,7 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | 1.4 | E1 | Platform App, cuenta por API y usuario de servicio | IA | 0,5 | 0,02 | 0,3 | en curso | OK Sam (P4), después de P1 | Procedimiento probado en local (E1-R17); runbook `chatwoot-servidor.md` §6 |
 | 1.5 | E1 | Respaldo conjunto (Postgres, adjuntos, claves) en custodia separada, RPO/RTO y restauración conjunta ensayada | IA | 0,75 | — | — | pendiente | — | — |
 | 1.6 | E1 | Uptime Kuma, memoria, disco y adjuntos durante 72 h | IA | 0,25 | — | — | pendiente | Espera: 3 días | — |
-| 1.7 | E1 | revisar-datos-ve, redacción de logs (Rails, Sidekiq, proxy) probada con datos sintéticos, inventario de terceros y nota sobre `/privacidad` | IA | 1,5 | — | — | pendiente | — | — |
+| 1.7 | E1 | revisar-datos-ve, redacción de logs (Rails, Sidekiq, proxy) probada con datos sintéticos, inventario de terceros y nota sobre `/privacidad` | IA | 1,5 | 0,05 | 0 | entregado | — | SDD-0583: `revision-chatwoot-e1-2026-10-29.md` (H1 a H11); redacción con control (E1-R1 y R8); `inventario-terceros.md` §2 bis |
 | 2.1 | E2 | Prueba de concepto en Chrome, Edge, Firefox y Safari: iframe, SSO y micrófono | IA | 1 | — | — | pendiente | Sí/no; si no, pestaña aparte | — |
 | 2.2 | E2 | CSP (`frame-src`, `Permissions-Policy`), módulo, RBAC, flag, i18n, vínculos, `lib/studio/chatwoot`, SSO, capa persistente, página y `signOut` | IA | 5,5 | — | — | pendiente | Migración: OK Sam aparte | — |
 | 2.3 | E2 | Contador, webhook con push y tarjeta en la ficha | IA | 3,5 | — | — | pendiente | — | — |

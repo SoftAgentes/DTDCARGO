@@ -68,6 +68,23 @@ Evidencia acotada por archivo/línea en el
 
 ---
 
+## 2 bis · Chatwoot (SDD-0583, en preparación, 2026-10-29)
+
+Chatwoot CE corre en el mismo servidor de Contabo (fila de arriba): **no es un tercero**, es software propio. Lo que sí hay que contar son las salidas de Chatwoot hacia afuera. Revisión completa: [`revision-chatwoot-e1-2026-10-29.md`](revision-chatwoot-e1-2026-10-29.md). Hoy no tiene datos reales.
+
+| Destino | Qué recibiría | Estado en `infra/chatwoot/compose.yml` | Evidencia |
+|---|---|---|---|
+| `hub.2.chatwoot.com` (Chatwoot Inc., EE. UU.) | consulta de versión: id de instalación, versión, host y edición. Sin telemetría: **no** conteos de conversaciones ni mensajes | `DISABLE_TELEMETRY=true` | `lib/chatwoot_hub.rb:59-67` y `:88` (imagen 4.19.1) |
+| Relay de push del mismo hub | título y cuerpo de cada notificación a la app móvil | **apagado** (`ENABLE_PUSH_RELAY_SERVER=false`) | `push_notification_service.rb:115` |
+| Gravatar (Automattic, EE. UU.) | MD5 del correo de cada contacto | **apagado** (`DISABLE_GRAVATAR=true`) | `avatar_from_gravatar_job.rb:5-9` |
+| MaxMind | descarga de base de geolocalización por IP | **no se usa** (sin `IP_LOOKUP_API_KEY`) | `app/services/geocoder/setup_service.rb:7-10` |
+| Hostinger (SMTP) | correos de aviso a los agentes; pueden llevar nombre del contacto y extracto del mensaje | activo; reducir en E2.7 (H8) | `config/initializers/mailer.rb` |
+| Cloudflare | **todo el tráfico del panel en claro** si `chat.dtdcargo.com` va con proxy | decisión de Sam en el DNS (recomendado sin proxy, H9) | runbook `chatwoot-servidor.md` §4 |
+| Backblaze (B2) | respaldos de Chatwoot **cifrados con `age`** (base, adjuntos y claves) | prefijo `chatwoot/`, 30 días | `infra/chatwoot/respaldo.sh` |
+| Meta (WhatsApp, Messenger, Instagram) | las conversaciones de esos canales | E4, pendiente | — |
+
+---
+
 ## 3 · Los tres que hay que resolver primero
 
 ### 🔴 Nominatim — dirección de cliente a un tercero sin contrato
