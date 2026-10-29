@@ -79,7 +79,12 @@ Hecho en el VPS, en orden (evidencia T-2 a T-12 del [registro](../../docs/specs/
 - 16:52Z: certificado de Let's Encrypt emitido al tercer intento (vence el 2027-01-27). HTTPS verificado de punta a punta: `/api` 200, sin `X-Frame-Options`, `frame-ancestors` a `https://dtdcargo.com` y las rutas de administración en 403.
 - 16:56Z: los monitores HTTP «Chatwoot · API» y «Chatwoot · versión» creados y en verde. Los cuatro de Chatwoot, en verde.
 
-**P3 · Instalar Tailscale en el VPS** ⏸️ **pospuesta por Sam el 2026-10-29.** Le pregunté si lo mismo se podía hacer con Cloudflare: sí, con Cloudflare Access y la verificación del token en el origen. Su decisión, literal: «Cerrado y consola». `/super_admin`, `/monitoring` e `/installation` siguen en 403 para todos, y lo de super admin se hace por `docker compose exec` sobre SSH. Cuando haga falta el acceso web, la opción preferida es Cloudflare Access.
+**P3 · Instalar Tailscale en el VPS** ⏸️ **pospuesta por Sam el 2026-10-29.** Le pregunté si lo mismo se podía hacer con Cloudflare: sí, con Cloudflare Access y la verificación del token en el origen. Su decisión, literal: «Cerrado y consola». `/super_admin`, `/monitoring` e `/installation` siguen en 403 para todos, y lo de super admin se hace por `docker compose exec` sobre SSH. Cuando haga falta el acceso web, la opción preferida es Cloudflare Access. **Actualización del mismo día:** Sam pidió Access («ok avanza cludefare» en la sesión del programa, «Confirmo Access» aquí) y quedó **hecho**:
+- app de Access «Chatwoot · super admin», solo para `hailuway.com@gmail.com`, con sesión de 6 h;
+- verificador del token activo en el VPS;
+- super admin de Chatwoot creado con ese correo.
+
+Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar.
 
 **P4 · Platform App, cuenta «DTD Cargo» y usuario de servicio** en la instancia desplegada (runbook §6). El token va al gestor de Sam y a los secretos de Studio (E2).
 
@@ -89,7 +94,7 @@ Hecho en el VPS, en orden (evidencia T-2 a T-12 del [registro](../../docs/specs/
 
 - SMTP: usuario y clave de Hostinger (Sam), con ventana oculta.
 - Tras las 72 h (2026-11-01 ~16:00Z): `vigilar.sh --resumen --desde 2026-10-29T15:55:00Z` → fila 1.6, con el criterio corregido (contra la línea base, no un número fijo).
-- `/super_admin` con Cloudflare Access (§4.1 del runbook): preparado y probado en local (E1-R21, E1-R22); espera la confirmación de Sam en esta sesión, con el alcance de Zero Trust y del VPS.
+- ~~`/super_admin` con Cloudflare Access~~ hecho el 2026-10-29 («Confirmo Access»), runbook §4.1.
 - ~~Marca de DTD en Chatwoot~~ **hecha el 2026-10-29** («Autorizo la marca»): título «DTD Cargo», ícono y logos de DTD (claro y oscuro según `BRAND.md`), pantalla de entrada en español, sin «Chatwoot» visible (T-27 a T-29; runbook §6 bis). Queda en la edición CE el «Powered by Chatwoot» del widget y de los correos, y la etiqueta «E-mail» de la traducción de Chatwoot.
 
 ## FUERA DE ALCANCE (coordinado por el Director) · cambio de llave de respaldos de DTD y Chatwoot

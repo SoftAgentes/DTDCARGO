@@ -63,6 +63,14 @@ Fuente del código: la imagen `chatwoot/chatwoot:v4.19.1-ce`, digest `sha256:048
 | T-28 | Aplicada: montaje `./marca:/app/public/dtd-marca:ro` (recreación de prepare/rails/sidekiq en 130 s; DTD 200); `aplicar-marca.rb` cambió las 10 opciones y limpió la caché (`BRAND_NAME` efectivo «DTD Cargo»); los 3 PNG responden 200 `image/png` desde `chat.dtdcargo.com/dtd-marca/` | VPS, 2026-10-29 | R |
 | T-29 | Desde afuera, en un navegador: título «DTD Cargo»; único `link rel=icon` → `/dtd-marca/apple-touch-icon.png`; texto «Iniciar sesión en DTD Cargo / E-mail / Contraseña / ¿Olvidaste tu contraseña?»; 0 apariciones de «Chatwoot» en el texto visible; con tema claro se ve el primary y con oscuro solo el reverse. Capturas `docs/runbooks/assets/chatwoot-marca-entrada-{claro,oscuro}.jpg` | navegador integrado | R |
 
+## `/super_admin` con Cloudflare Access (P3 sin Tailscale; «Confirmo Access» de Sam, 2026-10-29)
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| T-30 | Zero Trust ya estaba activo (equipo `dawn-mud-1d9d`, plan Free) con una app ajena, «Defensa Samer · Privado», que no se tocó. Creada la app self-hosted «Chatwoot · super admin»: destino `chat.dtdcargo.com/super_admin`, sesión de 6 h, política «chatwoot-super-admin-sam» (Allow, Include Emails = `hailuway.com@gmail.com`, correo elegido por Sam). `<team>/cdn-cgi/access/certs` publica JWK RS256 con `kid` | panel de Cloudflare One (sesión de Sam); `curl` desde el VPS | T |
+| T-31 | VPS: `cf-access/verificador.mjs` (sha `420b0da7…` tras el arreglo del JSON roto), `.env` con las 5 variables (copia `.env.antes-access`), `up` en 107 s; `acceso` sano. Saltándose Cloudflare (`--resolve` a 127.0.0.1): sin token, token inventado, `alg none`, `kid` desconocido y JSON roto → 403. El log da «kid desconocido», lo que prueba que leyó las claves reales. `/monitoring` e `/installation` → 403. Por Cloudflare: `/super_admin/sign_in` → 302 a `dawn-mud-1d9d.cloudflareaccess.com/cdn-cgi/access/login/chat.dtdcargo.com`; `/app/login` → 200; `/api` → 4.19.1 | `curl`; `docker compose logs acceso` | R |
+| T-32 | Super admin de Chatwoot `hailuway.com@gmail.com` creado (id 2, `SuperAdmin`, confirmado; la contraseña la escribió Sam sin eco). Sam entró: `sign_in_count` 1 y último ingreso 19:31:51Z; el verificador registró 6 «permitido» | `rails runner`; logs | R |
+
 ## Código de Chatwoot 4.19.1
 
 | ID | Afirmación | Fuente | Etiqueta |
