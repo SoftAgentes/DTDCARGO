@@ -82,7 +82,7 @@ Pedido el 2026-10-29 por la sesión coordinadora del programa («CRM Chatwoot»)
 - **Textos:** `lib/i18n/es-VE/{chrome.ts,bandeja.ts}`, `lib/i18n/zh-CN/{chrome.ts,bandeja.ts}`, `lib/i18n/dict.ts`.
 - **Pantalla:** `app/studio/(app)/bandeja/{layout.tsx,page.tsx,actions.ts}`; `app/studio/(app)/bandeja/_components/{BandejaClient.tsx,VinculosAdmin.tsx}`; `app/studio/(app)/bandeja/__tests__/{actions.test.ts,BandejaClient.test.tsx}`.
 - **Cierre de sesión:** `app/studio/(app)/actions.ts`; `app/studio/(app)/__tests__/signout-bandeja.test.ts`.
-- **Migración:** `supabase/migrations/0503_chatwoot_bandeja.sql`; `supabase/tests/0503_chatwoot_bandeja.test.sql`; `lib/studio/__tests__/chatwoot-bandeja.migration.test.ts`; `supabase/migrations-baseline.json` (la 0503 declarada pendiente).
+- **Migración:** `supabase/migrations/0503_chatwoot_bandeja.sql`; `supabase/tests/0503_chatwoot_bandeja.test.sql`; `lib/studio/__tests__/chatwoot-bandeja.migration.test.ts`; `supabase/migrations-baseline.json` (la 0503 declarada pendiente); `supabase/pending-migration-symbol-declarations.json` (degradación sin 0503).
 - **Documentos:** `docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md`; `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 2.2); `docs/architecture/module-sdd-map.md`; `.agents/handoffs/0585-chatwoot-bandeja-studio-e2.md`.
 
 ### Aceptación del paso 2.2
@@ -94,6 +94,29 @@ Pedido el 2026-10-29 por la sesión coordinadora del programa («CRM Chatwoot»)
 5. **Registro:** `rbac.test.ts`, `rbac-view-guard`, `rbac-actions-guard`, `feature-flags-catalog` e i18n (typecheck) en verde.
 6. **Cierre:** `pnpm verify` PASÓ, coordinado con la sesión del programa (una corrida pesada a la vez).
 7. **Puertas que esta entrega no cruza:** aplicar la 0503 en producción (OK nominal de Sam, runbook), cargar el token y las variables en el servidor de Studio, y desplegar.
+
+### Validación del paso 2.2 — `pnpm verify` del 2026-10-29 (21:00Z a 22:09Z, punta `de4ea0747`)
+
+Turno dado por la sesión coordinadora. Resultado global: **FALLÓ** (exit 1), con 16 de 17 pasos medidos.
+
+| Paso | Resultado | De quién es |
+|---|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions | PASÓ | — |
+| test (Vitest) | FALLÓ: 1 suite y 4 casos | Ver abajo: ninguno es de este paso |
+| docs:check, numbering, feature-constants, components:check, governance:check | PASÓ | — |
+| migrations-applied | NO DISPONIBLE (SKIP): el worktree no tiene `.env.local` con la URL y la clave de servicio | Sin medir. No se copian secretos a worktrees |
+| pending-migration-symbols | FALLÓ → **corregido** en `ccf28367c` | De este paso: faltaba declarar `chatwoot_agent_links` (0503 pendiente). Ahora 0 ROJO · 4 AMARILLO |
+| sql-tests | FALLÓ: `0467_reversion_credito_carrera`, `0497_reverso_al_anular_factura` y `0497_…_carrera` | Heredado de SDD-0573, que está en la base: preflight de `excepcion_al_cierre_vigente(uuid)` y archivos no tocados aquí. **`0503_chatwoot_bandeja.test.sql` PASÓ** |
+| schema-rebuild | PASÓ | — |
+| e2e | FALLÓ: 1 rojo, 1 flaky y después colgado 22,6 min (el watchdog lo cortó) | El rojo es `sin-scroll-horizontal.spec.ts:119` (Shipping Mark → `/registro`, sitio público, no tocado). Aislado sale *flaky*: el primer intento espera la compilación en frío de `next dev` |
+| build | PASÓ | — |
+
+**Los rojos de Vitest:**
+- `infra/chatwoot/cf-access/verificador.test.mjs`: «No test suite found», porque usa `node:test` y Vitest no ve suites. Es de E1 (`e93654ce3`), que está en la base.
+- `scripts/__tests__/avance-checklist.test.mjs` («arranca en 0 %»): ya fallaba en la base, que daba 5,0 % desde que se aceptó E0. Es de SDD-0582.
+- `PackingListProductsStep`, `supplier-flow` y `NewOperarioDrawer`: timeouts bajo carga, con 3 workers de Vitest caídos. Aislados pasan 37/37.
+
+**Lo de este paso, medido aparte:** cabeceras, chatwoot, 0503 (PGlite y psql), RBAC, flags, i18n, Bandeja, `signOut` y `pending-migration-symbols`, todo en PASÓ.
 
 ### Gobernanza del paso 2.2
 

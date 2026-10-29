@@ -106,11 +106,11 @@ Pedido por la sesión coordinadora del programa («CRM Chatwoot»), a cuenta de 
 | `eslint` de lo tocado | PASÓ |
 | Vitest puntual (cabeceras, chatwoot, 0503, RBAC, flags, i18n, Bandeja, signOut, env) | PASÓ |
 | `governance:check`, `components:check` | PASÓ |
-| `pnpm verify` | **NO EJECUTADO**: espera turno de la sesión coordinadora (una corrida pesada a la vez) |
+| `pnpm verify` (2026-10-29, 21:00Z a 22:09Z) | **FALLÓ** (exit 1). Lo de este paso (pending-migration-symbols) se corrigió en `ccf28367c`. Los demás rojos son heredados o de carga: ver la tabla en `spec.md` §«Validación del paso 2.2». migrations-applied: NO DISPONIBLE (sin `.env.local`) |
 
 ## Pendientes del paso 2.2
 
-- `pnpm verify` con turno.
+- Volver a correr `pnpm verify` cuando se resuelvan los rojos heredados (SDD-0573 en SQL, el `node:test` de E1 y la prueba del avance en 0 %). O que el Director acepte el cierre con la tabla de `spec.md`.
 - Puertas que este paso no cruza, cada una con su OK nominal de Sam:
   - aplicar la 0503 en producción;
   - cargar `CHATWOOT_PLATFORM_TOKEN` y `CHATWOOT_ACCOUNT_ID` en el servidor de Studio;
