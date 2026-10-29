@@ -1,0 +1,87 @@
+/**
+ * SDD-0585 · BandejaClient: cuándo pide el SSO, qué pone en el iframe y qué
+ * muestra en cada estado.
+ */
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const pedirEnlaceSso = vi.fn();
+vi.mock("../actions", () => ({
+  pedirEnlaceSso: () => pedirEnlaceSso(),
+  vincularAgente: vi.fn(async () => ({ ok: false, error: null })),
+  desvincularAgente: vi.fn(async () => ({ ok: false, error: null })),
+}));
+
+const { BandejaClient } = await import("../_components/BandejaClient");
+
+const PANEL = "https://chat.dtdcargo.com/app/accounts/1/dashboard";
+const SSO = "https://chat.dtdcargo.com/app/login?email=ana%40example.test&sso_auth_token=t";
+const marco = () => document.querySelector("iframe");
+
+beforeEach(() => pedirEnlaceSso.mockReset());
+afterEach(cleanup);
+
+describe("BandejaClient (SDD-0585)", () => {
+  it("con la marca de este usuario: abre el panel directo, sin pedir SSO", () => {
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    expect(marco()?.getAttribute("src")).toBe(PANEL);
+    expect(marco()?.getAttribute("allow")).toBe("microphone");
+    expect(marco()?.hasAttribute("sandbox")).toBe(false);
+    expect(pedirEnlaceSso).not.toHaveBeenCalled();
+  });
+
+  it("sin marca: pide UN enlace al montar y lo pone en el iframe", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await waitFor(() => expect(marco()?.getAttribute("src")).toBe(SSO));
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+  });
+
+  it("«Volver a entrar» pide un enlace nuevo aunque ya haya panel", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    await userEvent.click(screen.getByRole("button", { name: "Volver a entrar" }));
+    await waitFor(() => expect(marco()?.getAttribute("src")).toBe(SSO));
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+  });
+
+  it("si el SSO falla: muestra el error, «Reintentar» y la pestaña aparte; sin iframe", async () => {
+    pedirEnlaceSso.mockResolvedValueOnce({ ok: false, error: "service" }).mockResolvedValueOnce({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    expect(await screen.findByText("No pudimos abrir la bandeja")).toBeTruthy();
+    expect(screen.getByText(/El servidor de mensajes no respondió/)).toBeTruthy();
+    expect(marco()).toBeNull();
+    const pestana = screen.getByRole("link", { name: "Abrir en pestaña aparte" });
+    expect(pestana.getAttribute("href")).toBe(PANEL);
+    expect(pestana.getAttribute("rel")).toContain("noopener");
+    await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    await waitFor(() => expect(marco()?.getAttribute("src")).toBe(SSO));
+  });
+
+  it.each([
+    ["sin_configurar", "La bandeja todavía no está conectada"],
+    ["sin_vinculo", "Tu usuario no tiene un agente de la bandeja"],
+  ] as const)("%s: muestra su estado y no pide SSO", (estado, titulo) => {
+    render(<BandejaClient estado={estado} panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    expect(screen.getByText(titulo)).toBeTruthy();
+    expect(marco()).toBeNull();
+    expect(pedirEnlaceSso).not.toHaveBeenCalled();
+  });
+
+  it("los vínculos solo se muestran si la página los manda (admin)", () => {
+    const { rerender } = render(<BandejaClient estado="sin_vinculo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    expect(screen.queryByText("Agentes vinculados")).toBeNull();
+    rerender(
+      <BandejaClient
+        estado="sin_vinculo"
+        panelUrl={PANEL}
+        inicioUrl={null}
+        admin={{ vinculos: [{ userId: "u1", nombre: "Ana", chatwootUserId: 7 }], miembros: [{ userId: "u2", nombre: "Luis" }] }}
+      />,
+    );
+    expect(screen.getByText("Agentes vinculados")).toBeTruthy();
+    expect(screen.getByText("#7")).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Luis" })).toBeTruthy();
+  });
+});
