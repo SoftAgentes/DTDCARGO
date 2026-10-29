@@ -56,7 +56,7 @@ bash levantar.sh --bajar
 
 ## Pendientes de esta tarea
 
-- **Aceptación de 2.1:** OK de Sam o del Director. La fila pasa a `aceptado` en un commit aparte.
+- ~~Aceptación de 2.1~~: **aceptado por Sam el 2026-10-29** («Acepto 2.1»), en un commit aparte.
 - **Firefox:** correr `matriz.mjs … firefox` si Sam autoriza descargar el Firefox de Playwright (~90 MB, cdn.playwright.dev). Si no, va al QA de 2.6 con Firefox de escritorio.
 - **Safari real** (macOS o iOS): en 2.6.
 - **E2-NV1:** `clipboard-write`, `autoplay` y el websocket de ActionCable dentro del iframe. Pasan a 2.2.
