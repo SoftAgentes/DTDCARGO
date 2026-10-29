@@ -2,7 +2,7 @@
 
 - **Owner:** Claude Worker (sesión lanzada por la sesión «Chatwoot piloto»), claim `local_e9-guion-91`
 - **Ruta:** `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\0582-e9-guion`
-- **Rama:** `codex/0582-e9-guion`, apilada sobre `codex/0582-e0-preparacion` (PR #328), que a su vez va sobre `codex/chatwoot-piloto` (PR draft #327). Nació de `21e4c7e0e`; el 2026-10-30 se le fusionó la base cerrada (`77a6922c6`, E0 con 7/7 aceptados).
+- **Rama:** `codex/0582-e9-guion`, apilada sobre `codex/0582-e0-preparacion` (PR #328), que a su vez va sobre `codex/chatwoot-piloto` (PR draft #327). Nació de `21e4c7e0e`; el 2026-10-29 se le fusionó la base cerrada (`77a6922c6`, E0 con 7/7 aceptados) y después su corrección (`b3452c1ae`: sin 2FA en 4.1 ni en la decisión B, y fechas de 0.3 y 0.7 al 2026-10-29).
 - **PR:** draft [#330](https://github.com/SoftAgentes/DTDCARGO/pull/330), publicada por la sesión «CRM Chatwoot» con la autorización de Sam («Sí, publícalas»). Sin merge.
 - **SDD:** 0582 (programa). 9.1 es solo documentación: no lleva SDD hija. El código de la guía (9.2–9.5) sí la lleva.
 - **Objetivo:** entregar el guion «Antes en Kommo → Ahora aquí» de las tareas diarias, con anclas `data-guia`, roles y claves i18n.
@@ -15,7 +15,7 @@
 |---|---|---|---|
 | 9.1 | entregado | [`guia-guion.md`](../../docs/specs/0582-chatwoot-piloto/guia-guion.md): 6 recorridos y 24 tarjetas (Bandeja 6, Embudo 4, Ficha DTD 4, IA 4, Usuarios 3, Actualizaciones 3), controles de la guía, formato de claves `guide.*` y de anclas, y 19 preguntas (S-1–S-9 para Sam, P-1–P-10 para la persona que atiende) | OK de Sam; respuestas de la persona que atiende para cerrar las rutas NV |
 
-**2026-10-30, merge de la base:** se resolvió el conflicto de `spec.md` (Seguimiento) conservando las dos líneas. La tarjeta B5 se ajustó a la decisión B actualizada: las plantillas se recrean y se aprueban en la cuenta de mensajes propia de Chatwoot; ya no se dice que «son las mismas».
+**2026-10-29, merges de la base:** se resolvió el conflicto de `spec.md` (Seguimiento) conservando las dos líneas. La tarjeta B5 se ajustó a la decisión B actualizada: las plantillas se recrean y se aprueban en la cuenta de mensajes propia de Chatwoot; ya no se dice que «son las mismas».
 
 Avance tras el primer commit: 3,8 % (falta 96,2 %), sin cambio, porque solo `aceptado` suma. El script lista 9.1 en «Entregados sin aceptar».
 
