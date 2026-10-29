@@ -100,6 +100,42 @@ docker compose exec rails bundle exec rails c      # consola, solo si hace falta
 
 **Decisión del 2026-10-29 (Sam, «Cerrado y consola»):** se queda así, sin acceso web, hasta que haga falta; entonces, preferiblemente con Cloudflare Access (con la verificación de `Cf-Access-Jwt-Assertion` en el origen, porque el firewall acepta cualquier IP de Cloudflare, también las de otras cuentas). La alternativa con Tailscale, para referencia: con Tailscale instalado (runbook servidor-contabo §1.5), Sam entra a `https://chat.dtdcargo.com/super_admin` desde su equipo resolviendo `chat.dtdcargo.com` a la IP de Tailscale del VPS (línea en su `hosts`, o DNS dividido de la tailnet). El certificado es el mismo, y Traefik ve la IP `100.x` y deja pasar. Que la regla deja pasar a la tailnet y frena a internet lo prueba el ensayo local (C4). Que la IP de origen llegue sin NAT por la interfaz de Tailscale está **NO VERIFICADO**: se comprueba al instalarla.
 
+### 4.1 · `/super_admin` con Cloudflare Access (P3 sin Tailscale)
+
+Preparado el 2026-10-29 tras el «ok avanza cludefare» de Sam en la sesión del programa. **No se aplica sin su confirmación en esta sesión** con el alcance de abajo. Probado en local: `cf-access/verificador.test.mjs` y la fase D de `pruebas/ensayo-local.sh`.
+
+**Cómo funciona.** Cloudflare Access pide el login (código por correo o Google) antes de dejar pasar `chat.dtdcargo.com/super_admin*`, y agrega a cada petición la cabecera `Cf-Access-Jwt-Assertion`, firmada por el *team domain*. En el VPS, Traefik pregunta por cada pedido a `/super_admin`, `/monitoring` e `/installation` al servicio `acceso` (forwardAuth). Ese servicio verifica:
+- la firma RS256 con las claves públicas de `<team>/cdn-cgi/access/certs`;
+- la AUD de la app y el `iss`;
+- que el token no esté vencido;
+- y que el correo esté en la lista.
+
+Si algo falla o el verificador no responde, Traefik **no** abre. Hace falta verificar en el origen porque el firewall del VPS deja pasar cualquier IP de Cloudflare, también las de otras cuentas: sin esa comprobación, alguien con su propia cuenta de Cloudflare podría apuntar a la IP del VPS y saltarse Access. `/monitoring` e `/installation` no están en la app de Access y siguen cerradas (sin token → 403).
+
+**Qué cambia en la cuenta de Cloudflare de Sam (Zero Trust):**
+1. Activar Zero Trust y elegir el nombre del equipo (`<equipo>.cloudflareaccess.com`), plan Free. **NO VERIFICADO:** si pide tarjeta para el plan gratis.
+2. Método de login: «One-time PIN» (código por correo), que ya viene activo; Google, opcional.
+3. Access → Applications → Add → **Self-hosted**: nombre «Chatwoot · super admin», dominio `chat.dtdcargo.com`, ruta `super_admin`, sesión de 8 h.
+4. Política «Allow»: Include → Emails → el correo de Sam. Nada más.
+5. Copiar la «Application Audience (AUD) Tag».
+
+No cambia ningún registro DNS, el modo SSL de la zona ni otra app.
+
+**Qué cambia en el VPS** (sin tocar DTD ni el compose de Traefik):
+1. Copiar a `/srv/chatwoot` el `compose.yml` nuevo y `cf-access/verificador.mjs`.
+2. Agregar al `.env`: `CHATWOOT_CF_ACCESS_TEAM_DOMAIN`, `CHATWOOT_CF_ACCESS_AUD`, `CHATWOOT_CF_ACCESS_EMAILS` (el correo de Sam), `CHATWOOT_ADMIN_ALLOWLIST_MIDDLEWARE=chatwoot-cf-access@docker` y `COMPOSE_PROFILES=cf-access`.
+3. `docker compose up -d --wait`: arranca `acceso` (Node 24 en solo lectura, sin capacidades, 96 MB) y recrea `rails` por los labels nuevos (unos 40 s sin Chatwoot; Traefik no se reinicia).
+4. Crear el super admin de Chatwoot por consola con el correo de Sam; la contraseña la pega Sam en una ventana oculta. Hoy no existe ninguno.
+
+**Comprobaciones:**
+- Desde afuera sin sesión: `/super_admin/sign_in` lleva al login de Cloudflare.
+- Con la sesión de Sam: se ve el login de Chatwoot.
+- Desde el VPS, saltándose Cloudflare: `curl -k --resolve chat.dtdcargo.com:443:127.0.0.1 https://chat.dtdcargo.com/super_admin/sign_in` da 403, sin cabecera y con un token inventado.
+- `/monitoring/sidekiq` da 403.
+- `docker compose logs acceso` muestra solo «permitido» o «denegado: <razón>».
+
+**Vuelta atrás:** quitar `CHATWOOT_ADMIN_ALLOWLIST_MIDDLEWARE` y `COMPOSE_PROFILES` del `.env` y correr `docker compose up -d --remove-orphans`. Todo vuelve a cerrado (`tailscale-only@file`). En Cloudflare se borra la app.
+
 ## 5 · Desplegar (puerta P1)
 
 ```bash

@@ -60,7 +60,9 @@ confidencialidad: interno
 - `infra/chatwoot/{compose.yml,.env.example,.gitignore,README.md,respaldo.sh,restaurar.sh,vigilar.sh}`
 - `infra/chatwoot/rails/zz_dtd_redaccion_logs.rb`
 - `infra/chatwoot/systemd/{chatwoot-respaldo.service,chatwoot-respaldo.timer,chatwoot-vigilancia.service,chatwoot-vigilancia.timer}`
-- `infra/chatwoot/pruebas/{ensayo-local.sh,age-en-docker.sh,compose.local.yml,compose.sin-redaccion.yml,compose.traefik-prueba.yml,sonda-redaccion.rb,sembrar.rb,verificar.rb,vacio.rb}`
+- `infra/chatwoot/pruebas/{ensayo-local.sh,age-en-docker.sh,compose.local.yml,compose.sin-redaccion.yml,compose.traefik-prueba.yml,sonda-redaccion.rb,sembrar.rb,verificar.rb,vacio.rb,firmar-jwt-prueba.mjs}`
+- `infra/chatwoot/cf-access/{verificador.mjs,verificador.test.mjs}` (P3 con Cloudflare Access, agregado el 2026-10-29)
+- `docs/runbooks/backup-restore-servidor.md` y `docs/runbooks/servidor-contabo.md` (registro del cambio de llave de respaldos, coordinado por el Director)
 - `docs/runbooks/{chatwoot-servidor.md,chatwoot-respaldo-restauracion.md,chatwoot-vigilancia.md}`
 - `docs/legal/privacidad/revision-chatwoot-e1-2026-10-29.md`
 - `docs/legal/privacidad/inventario-terceros.md` (sección nueva de Chatwoot)

@@ -208,6 +208,50 @@ services:
       # Se borra XFO y se fija frame-ancestors al origen de Studio y nada más.
       - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-marco.headers.customresponseheaders.X-Frame-Options="
       - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-marco.headers.contentsecuritypolicy=frame-ancestors 'self' ${CHATWOOT_FRAME_ANCESTORS:?CHATWOOT_FRAME_ANCESTORS (origen de Studio) falta en .env}"
+      # Cloudflare Access en lugar de Tailscale (P3, runbook §4): forwardAuth al verificador
+      # del JWT (servicio `acceso`). Se usa solo si CHATWOOT_ADMIN_ALLOWLIST_MIDDLEWARE vale
+      # `<proyecto>-cf-access@docker`; si el verificador no responde, Traefik no abre (cierra).
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-cf-access.forwardauth.address=http://${COMPOSE_PROJECT_NAME}-acceso:8080/verificar"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-cf-access.forwardauth.trustForwardHeader=false"
+
+  acceso:
+    # Verifica el JWT de Cloudflare Access (cf-access/verificador.mjs) para /super_admin.
+    # Solo con el perfil `cf-access` (COMPOSE_PROFILES=cf-access en el .env). Sin él, el
+    # router de administración sigue con tailscale-only@file y nadie entra por web.
+    # El VPS acepta cualquier IP de Cloudflare, también de otras cuentas: por eso no basta
+    # con que la petición «venga de Cloudflare» y hay que verificar la firma, la AUD y el iss.
+    image: node:24.22.1-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53
+    profiles: ["cf-access"]
+    restart: unless-stopped
+    logging: *logging
+    user: node
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    command: ["node", "/app/verificador.mjs"]
+    environment:
+      CF_ACCESS_TEAM_DOMAIN: ${CHATWOOT_CF_ACCESS_TEAM_DOMAIN:-}
+      CF_ACCESS_AUD: ${CHATWOOT_CF_ACCESS_AUD:-}
+      CF_ACCESS_EMAILS: ${CHATWOOT_CF_ACCESS_EMAILS:-}
+      CF_ACCESS_PERMITIR_HTTP: ${CHATWOOT_CF_ACCESS_PERMITIR_HTTP:-0}
+    volumes:
+      - ./cf-access/verificador.mjs:/app/verificador.mjs:ro
+    # Solo la red edge: Traefik lo alcanza por el alias y sale a internet por ella para leer
+    # las claves públicas de <team>/cdn-cgi/access/certs. No ve Postgres ni Redis.
+    networks:
+      chatwoot_edge:
+        aliases: ["${COMPOSE_PROJECT_NAME}-acceso"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/salud"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 96m
+          pids: 64
 
   sidekiq:
     <<: *chatwoot
