@@ -57,6 +57,39 @@ Consecuencias para E1 (sin cambiar los días base):
 | M-6 | **Los callbacks y overrides no se ven en la interfaz de Meta.** Leerlos exige un token con acceso a la WABA, es decir, la app propia de DTD (4.1). Sin ella, el gate 0.3 solo cubre lo visible en Configuración del negocio y WhatsApp Manager | M-5 y M-1 | I |
 | M-7 | No encontramos documentado un `GET` del override por número | Búsqueda del 2026-10-29 | NV |
 
+### Lectura en Meta (2026-10-30, Chrome de Sam con el acceso de la oficina, solo lectura)
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| M-8 | La cuenta de Facebook de la oficina ve **un solo portfolio, «DTD Cargo»**, con 2 activos: 1 página de Facebook y 1 perfil de Instagram. Es de INVERSIONES DTD SERVICES, C.A., se creó en febrero de 2024 y está **sin verificar** | Configuración → Información del negocio y selector de portfolios | T |
+| M-9 | En «DTD Cargo» hay **0 cuentas de WhatsApp, 0 cuentas de mensajes (Messaging accounts), 0 socios, 0 usuarios del sistema, 0 apps y 0 apps conectadas**. 2 personas con acceso total; la 2FA es obligatoria para administradores y 1 de las 2 todavía no la activó | Configuración → Cuentas, Usuarios, Integraciones y Centro de seguridad | T |
+| M-10 | En «DTD Cargo», Facturación tiene 1 cuenta publicitaria activa con tarjeta y **0 cuentas de mensajes**: WhatsApp no se paga desde este portfolio | Facturación y pagos | T |
+| M-11 | Messenger (página) e Instagram tienen **2 apps de socios conectadas: Kommo y Metricool**, sin rutas de enrutamiento configuradas | Integraciones → Enrutamiento de conversaciones | T |
+| M-12 | El WhatsApp Manager de la cuenta de WhatsApp de las plantillas de Kommo responde «Este contenido no está disponible» con este acceso | URL directa del WhatsApp Manager | T |
+| M-13 | Según Kommo, el **único número** conectado está en la cuenta de WhatsApp «Importador de China» (estado Aprobado), dentro de **otro portfolio de Meta, también llamado «Importador de China», que está Verificado**. Calidad Alta, límite de mensajes «Desconocido», método de pago «Activo», embudo Ventas DTD | Kommo → Centro de integraciones → WhatsApp Business → Configuración → detalle del número | T (vía Kommo) |
+| M-14 | Para cerrar 0.3 hace falta acceso de administrador al portfolio «Importador de China». No se sabe quién lo tiene; Kommo muestra una cuenta de Facebook conectada a su integración | M-8, M-12 y M-13 | I |
+| M-15 | La 2.ª WABA del 2026-08 (M-3) ya no aparece en Kommo: hay 1 solo número | Kommo, mismo panel | T |
+
+Sobre D-1 y NV-2: **el modelo nuevo de Meta ya se ve en la cuenta** (pestañas «Cuentas de WhatsApp» y «Cuentas de mensajes», aviso «Updates to your account» al entrar). Según la documentación de los BSP:
+- la cuenta de WhatsApp tiene el número y el perfil;
+- la cuenta de mensajes tiene las plantillas, la facturación, los webhooks y el throughput de **una** integración;
+- un mismo número se comparte con varias integraciones y cada una factura aparte;
+- las plantillas **no pasan** de una cuenta de mensajes a otra;
+- la migración fue de fines de septiembre a mediados de octubre de 2026 y los IDs, tokens y endpoints viejos siguen hasta el primer semestre de 2028.
+
+Fuentes (D, consultadas el 2026-10-30): docs.360dialog.com/partner/onboarding/new-whatsapp-account-model (revisada el 2026-10-08), support.gupshup.io (artículo «New WhatsApp Account structure / WAME»), unifyport.ai y connect.bitbytecore.com. Los topes que citan las guías (por ejemplo, 2 socios por cuenta de mensajes o 250 plantillas sin verificar) son NV.
+
+### Propuesta de corrección de la spec (pendiente del OK de Sam)
+
+La prohibición «nada de una 2.ª cuenta de mensajería en el mismo usuario del sistema» se escribió con el modelo viejo, donde una 2.ª WABA implicaba registrar el número otra vez. Con el modelo nuevo, Chatwoot (integración directa de Cloud API con la app de DTD) **tiene que** tener su propia cuenta de mensajes. Redacción propuesta:
+
+- se permite **una** cuenta de mensajes propia de DTD para Chatwoot, creada al compartir el número con la app de DTD (4.1 y 4.5);
+- sigue prohibido crear una 2.ª **cuenta de WhatsApp** para el número, registrarlo de nuevo (`/register`), `/deregister` y Embedded Signup sobre el número principal;
+- las 5 plantillas aprobadas de Kommo (K-19) **se recrean y se aprueban** en la cuenta de mensajes de DTD antes de 4.5; no se copian;
+- el método de pago propio de 0.7 va en la cuenta de mensajes de DTD, no en la de Kommo.
+
+Hasta ese OK, la spec no cambia.
+
 Por M-6, la lectura por API de suscripciones y overrides se hace justo después de 4.1 y antes de 4.2 y 4.5. Queda escrita como condición previa de 4.5 en el checklist. La guía está en [`e0-guias.md`](e0-guias.md#03).
 
 ## 0.4 — Kommo (lo que el repo ya sabe)
