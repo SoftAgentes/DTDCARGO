@@ -137,7 +137,7 @@ Clave del recorrido: `guide.inbox`. Pantalla: Studio → Bandeja, con el panel d
 - **Clave:** `guide.inbox.templates`
 - **Qué es:** «Si el cliente lleva más de 24 horas sin escribir, WhatsApp solo deja mandar una plantilla aprobada.»
 - **Antes en Kommo:** «Las plantillas estaban en Kommo, en Automatizaciones → Plantillas.» T (K-19): 7 plantillas, 5 de WhatsApp aprobadas en la WABA. Cómo se mandaban desde el chat: **NV**.
-- **Ahora aquí:** «En el chat, abre Plantillas, elige una y completa lo que pide. Son las mismas aprobadas de siempre.» **NV (E4: 4.3, 4.5).** Que sean las mismas: I (K-21), se prueba en 4.5.
+- **Ahora aquí:** «En el chat, abre Plantillas, elige una y completa lo que pide. Tienen el mismo texto que las de Kommo.» **NV (E4: 4.3, 4.5).** Las 5 de Kommo se recrean y se aprueban en la cuenta de mensajes propia de Chatwoot (decisión B, actualizada el 2026-10-30); el mismo texto se comprueba en 4.5.
 
 ### B6 · Dejar una nota
 

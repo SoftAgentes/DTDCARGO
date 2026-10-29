@@ -73,7 +73,7 @@ Respuestas y aportes:
 | ID | Decisión |
 |---|---|
 | A | **Modo híbrido.** El panel de Chatwoot va en un iframe sobre `chat.dtdcargo.com`. Son nativos de Studio el SSO (Platform API), el contador y el push, la tarjeta en la ficha, la Dashboard App «Ficha DTD» y las altas y bajas. Traefik quita `X-Frame-Options` y fija `frame-ancestors`. Studio añade `frame-src` y `Permissions-Policy`. La aceptación del SSO prueba cierre, baja, revocación y acceso directo. Si la prueba E2.1 falla, se abre en una pestaña aparte. |
-| B | **El número se comparte, no se migra,** y se protege: un initializer aborta `/register` para los Phone Number IDs protegidos. Los valores previos de Meta se guardan fuera de Git; la vuelta atrás los restaura. Pago propio en Meta antes de atender. |
+| B | **El número se comparte, no se migra,** y se protege: un initializer aborta `/register` para los Phone Number IDs protegidos. Los valores previos de Meta se guardan fuera de Git; la vuelta atrás los restaura. Pago propio en Meta antes de atender. **Actualizado el 2026-10-30 (Sam, «Apruebo todo», 2026-10-30):** el número se queda en el portfolio verificado «Importador de China». Con el modelo nuevo de Meta, Chatwoot usa **su propia cuenta de mensajes** en ese portfolio, con la app de DTD, su usuario del sistema, sus plantillas (las 5 de Kommo se recrean y se aprueban) y su pago propio. Antes de 4.1 se exige la 2FA a los administradores. Evidencia: [registro E0](investigacion-2026-10-29-e0.md), M-8 a M-31. |
 | C | **Historial** por `GET /api/v4/talks/{id}/messages`, probado en E0. Carga a una bandeja API «Archivo Kommo» en un modo sin efectos externos. Acta de conciliación antes de lo irreversible. |
 | D | **Canales:** cada trámite separado en expediente, app, configuración, demostración y revisión. Matriz de paridad de las fuentes de leads. |
 | E | **Correo:** inventario de `info@` primero, con pruebas de hilo, adjuntos, rebotes y caída. Resend Inbound no se cierra hasta conocer sus consumidores. |
@@ -95,7 +95,8 @@ Respuestas y aportes:
 - borrar el número en WhatsApp Manager;
 - `/deregister`;
 - Embedded Signup sobre el número principal;
-- una 2.ª cuenta de mensajería en el mismo usuario del sistema;
+- una 2.ª **cuenta de WhatsApp** para el número, o moverlo a otro portfolio;
+- más de una cuenta de mensajes de DTD para Chatwoot (se permite exactamente una, decisión B);
 - reintentar `/register`;
 - crear la bandeja del número principal sin el initializer de protección probado (4.2);
 - crearla sin el gate 0.3 aprobado.
@@ -175,3 +176,4 @@ El código del producto y la infraestructura se allowlistan en la SDD hija de ca
   Las decisiones del piloto anterior (máquina, ruta 2A/2B y dueño de la WABA) pasan a los pasos 0.2 y 0.3. La ruta queda fijada como «compartir el número API».
 - **2026-10-29 (E0):** decisiones de 0.2 en el [registro E0](investigacion-2026-10-29-e0.md): máquina = VPS actual del ERP (cambia G), Sam admin + 1 agente, tope del bot de US$25 al mes y «analiza mi contestación» en la IA de Kommo. Guías de 0.3–0.7 en [`e0-guias.md`](e0-guias.md). El DNS de `dtdcargo.com` está en Cloudflare, no en Hostinger.
 - **2026-10-29 (E9):** guion de la guía (9.1) entregado en [`guia-guion.md`](guia-guion.md), pendiente del OK de Sam.
+- **2026-10-30 (E0):** Sam aprobó («Apruebo todo», 2026-10-30) dejar el número en «Importador de China», la cuenta de mensajes propia de Chatwoot con plantillas y pago propios, y la vuelta atrás de 0.3. Se corrigieron la decisión B y las prohibiciones.

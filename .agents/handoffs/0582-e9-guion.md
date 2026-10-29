@@ -2,11 +2,12 @@
 
 - **Owner:** Claude Worker (sesión lanzada por la sesión «Chatwoot piloto»), claim `local_e9-guion-91`
 - **Ruta:** `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\0582-e9-guion`
-- **Rama:** `codex/0582-e9-guion`, apilada sobre `codex/0582-e0-preparacion` (`21e4c7e0e`), que a su vez va sobre `codex/chatwoot-piloto` (PR draft #327)
+- **Rama:** `codex/0582-e9-guion`, apilada sobre `codex/0582-e0-preparacion` (PR #328), que a su vez va sobre `codex/chatwoot-piloto` (PR draft #327). Nació de `21e4c7e0e`; el 2026-10-30 se le fusionó la base cerrada (`77a6922c6`, E0 con 7/7 aceptados).
+- **PR:** draft [#330](https://github.com/SoftAgentes/DTDCARGO/pull/330), publicada por la sesión «CRM Chatwoot» con la autorización de Sam («Sí, publícalas»). Sin merge.
 - **SDD:** 0582 (programa). 9.1 es solo documentación: no lleva SDD hija. El código de la guía (9.2–9.5) sí la lleva.
 - **Objetivo:** entregar el guion «Antes en Kommo → Ahora aquí» de las tareas diarias, con anclas `data-guia`, roles y claves i18n.
 - **Aceptación:** OK de Sam al guion. La PR solo con su autorización.
-- **Permisos de esta tarea:** sin acceso a Kommo ni a Meta, sin PII, sin push ni PR.
+- **Permisos de esta tarea:** sin acceso a Kommo ni a Meta, sin PII. Push de la rama propia autorizado por Sam a través de la sesión «CRM Chatwoot»; merge no.
 
 ## Estado al 2026-10-29
 
@@ -14,7 +15,9 @@
 |---|---|---|---|
 | 9.1 | entregado | [`guia-guion.md`](../../docs/specs/0582-chatwoot-piloto/guia-guion.md): 6 recorridos y 24 tarjetas (Bandeja 6, Embudo 4, Ficha DTD 4, IA 4, Usuarios 3, Actualizaciones 3), controles de la guía, formato de claves `guide.*` y de anclas, y 19 preguntas (S-1–S-9 para Sam, P-1–P-10 para la persona que atiende) | OK de Sam; respuestas de la persona que atiende para cerrar las rutas NV |
 
-Avance tras el commit: 3,8 % (falta 96,2 %), sin cambio, porque solo `aceptado` suma. El script lista 9.1 en «Entregados sin aceptar».
+**2026-10-30, merge de la base:** se resolvió el conflicto de `spec.md` (Seguimiento) conservando las dos líneas. La tarjeta B5 se ajustó a la decisión B actualizada: las plantillas se recrean y se aprueban en la cuenta de mensajes propia de Chatwoot; ya no se dice que «son las mismas».
+
+Avance tras el primer commit: 3,8 % (falta 96,2 %), sin cambio, porque solo `aceptado` suma. El script lista 9.1 en «Entregados sin aceptar».
 
 ## Decisiones de redacción (propuestas, no autorizadas)
 
@@ -53,7 +56,7 @@ Ejecutados con `node` directo porque el worktree no tiene `node_modules`; los tr
 
 1. OK de Sam al guion → commit propio con la fila 9.1 en `aceptado`.
 2. Respuestas a S-1–S-9 y P-1–P-10 → ajustar las tarjetas y cerrar las rutas NV de «Antes en Kommo».
-3. PR solo con autorización de Sam. La rama está apilada: conviene integrarla después de `codex/0582-e0-preparacion`.
+3. Integrar la PR #330 después de la #328 (está apilada). El merge lo decide el Director con Sam.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -62,4 +65,4 @@ Ejecutados con `node` directo porque el worktree no tiene `node_modules`; los tr
 
 ## HANDOFF AL DIRECTOR
 
-Rama `codex/0582-e9-guion` con un commit, sin push. Revisar el guion con Sam, recoger el OK y las respuestas, y decidir la PR junto con la de E0.
+Rama `codex/0582-e9-guion` publicada en la PR draft #330, con la base E0 ya fusionada. Revisar el guion con Sam, recoger el OK y las respuestas, y decidir el merge después del de la #328.
