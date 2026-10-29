@@ -14,7 +14,7 @@
 | 0.2 | entregado | 5 decisiones; Kommo vence el 29.05.2027 con renovación automática (T) | Aceptación de Sam; ubicar «analiza mi contestación» en 7.3 |
 | 0.3 | en curso | Guía de 13 puntos, nota cifrada y vuelta atrás escritas; M-1–M-7 | Lectura en Meta con Sam; aprobación de la vuelta atrás |
 | 0.4 | entregado | Kommo leído en solo lectura (K-13–K-22, T): 15 bots y 4 agentes apagados, 7 fuentes, 7 plantillas, integraciones, sin exportación de chats | Aceptación de Sam |
-| 0.5 | en curso | DNS medido (T): Cloudflare, MX Hostinger, sin MX de `inbound.` | Paneles de Hostinger (tipo de `info@`, DKIM) y Resend (recepción, webhooks) |
+| 0.5 | en curso | DNS (T) y Resend por API (T): recepción desactivada en los 3 dominios, sin consumidores de Inbound | Hostinger: tipo de `info@` y DKIM (necesita la sesión de Sam) |
 | 0.6 | aceptado | Historial leído con la integración nueva; paginación medida (X-1–X-17, R) | Aceptado por Sam («Acepto 0.6», 2026-10-29). Revocar la integración al cerrar E5 |
 | 0.7 | en curso | Plantilla de expedientes | Verificación del negocio y pago propio comprobados |
 
@@ -47,6 +47,7 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 - Kommo UI: se creó la integración privada de 0.6 (única escritura, autorizada).
 - Kommo API: `events`, `talks/{id}`, `talks/{id}/messages` (403), `account`. Nada escrito; ningún cuerpo de mensaje leído.
 - DNS público por `dns.google`.
+- Resend: `GET /domains` y `GET /webhooks` desde el VPS con la llave del ERP en memoria (no se leyó ningún correo recibido).
 - Meta: solo se abrió la página de inicio de sesión.
 
 ## Validación
@@ -66,7 +67,7 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 1. Sam: aceptar 0.1, 0.2 y 0.4.
 2. Sam + IA: lectura de Meta (0.3, 13 puntos) y aprobación de la vuelta atrás.
 3. Hecho: Kommo leído el 2026-10-29.
-4. Sam + IA: Hostinger (`info@`, DKIM) y Resend (recepción, webhooks) para 0.5.
+4. Sam + IA: Hostinger (`info@`, DKIM) para 0.5. Resend ya se leyó por API.
 5. Hay 3 tokens de la integración «DTD 0582 historial» vigentes 100 días y ninguno guardado; se pueden revocar en Kommo → la integración → Llaves y alcances, y la integración se revoca al cerrar E5.
 6. Sam: verificación del negocio y método de pago propio (0.7).
 7. Publicar la rama: sin autorización de push en este encargo.
@@ -80,3 +81,4 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 - El token de Kommo del ERP tiene alcances de más para lo que usa (`files_delete`, `users_add`, `users_activate`, `users_deactivate`) y vence en unos 533 días. Lo revisa el Director.
 - `docs/marketing/whatsapp-business.md` y otros documentos del repo citan dígitos del número de WhatsApp y un ID parcial de la 2.ª WABA.
 - En el VPS del ERP corren varias sesiones de Codex/Orca de varios proyectos (DTD, Loop 3D, Rent Awada) con días de antigüedad. Pueden explicar parte de la presión de CPU (VPS-4); lo revisa el Director antes de 1.1.
+- La cuenta de Resend del ERP mezcla dominios de DTD, Hailuway y Loop 3D, y la llave del ERP los ve todos (C-13).
