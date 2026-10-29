@@ -354,3 +354,19 @@ toma antes de la Fase 3, por escrito en el OK del corte:
 - `/srv/ops/backup/restore-real-prueba.sh` (llave pegada sin eco, en `/dev/shm`, borrada al salir): **5 PASÓ · 0 FALLÓ**, permisos de public idénticos, 3 secretos de Vault legibles con la raíz respaldada, **RTO 34 s**. Evidencia: `/srv/ops/evidencias/restore-real-20261014T015017Z.txt`.
 - Próxima: mensual (§3), con el mismo script.
 
+
+## Registro · 2026-10-29 · segunda llave perdida y cambio a dos llaves
+
+Coordinado por el Director del programa SDD-0582, ejecutado por el Worker de la SDD-0583. OK de Sam, literal: «Autorizo las dos» (llave nueva para los respaldos de DTD y de Chatwoot, y archivo de los respaldos viejos).
+
+- **Incidente.** La llave privada del 2026-10-14 (huella pública `f4aab8d945aa686a`) no apareció. Sam pegó tres candidatas; una era una llave age válida pero de otro par (probablemente la del 12-10). Es la segunda pérdida en 17 días. Lo que falló fue la custodia, no la prueba: la entrada del gestor guardaba un texto más corto que la llave (en el primer intento de hoy, la vuelta dio 45 caracteres en lugar de 74).
+- **Respaldos viejos, sin borrar nada.** Copiados (`rclone copy`) a `b2:dtdcargo-respaldos/archivo-llave-2026-10-14/`, fuera de la retención de 30 días: `db/dtd-cargo` 87 objetos y 847.900.543 bytes; `db/dtd-cargo-config` 24 y 740.976; `chatwoot` 4 y 426.929. El origen y el destino tienen los mismos conteos y tamaños, y `rclone check --one-way` da 0 diferencias. El bucket no tiene reglas de ciclo de vida. La retención de los scripts habría empezado a borrar los originales el 2026-11-13 a las 06:00 UTC.
+- **Dos llaves nuevas**, generadas en la PC de Sam (contenedor local `dtd-age`). Al VPS solo llegaron las públicas (`/root/agregar-publica-age.sh`, que rechaza privadas). En cada una, Sam pegó la llave de vuelta sacándola de donde la guardó:
+  - `Sam-2026-10-29`: huella `f0bdbaa91af5fc7c`. En su gestor, entrada «DTD Cargo · llave de respaldos (age) · Sam-2026-10-29».
+  - `Emergencia-2026-10-29`: huella `f2b06f66dad23591`. Fuera de línea (USB o papel), aparte del gestor.
+- **Destinatarios.** `age-recipients.txt` tiene solo esas dos líneas (600). Copias: `age-recipients.txt.bak-20261029` (la del 14-10) y `.bak-20261014` (la del 12-10).
+- **Respaldos nuevos de inmediato:** DTD `dtd-cargo-20261029T183145Z` (6,7 MB) y configuración `dtd-cargo-config-20261029T183231Z`, «RESULTADO: PASÓ», latido enviado. Chatwoot `chatwoot-20261029T183240Z`, `rclone check` sin diferencias.
+- **Pruebas del mismo día** (evidencias en `/srv/ops/evidencias/`):
+  - con la llave de **emergencia**, restauración de DTD (`restore-test.sh`): **5 PASÓ · 0 FALLÓ**, RTO 52 s, 4 de 4 secretos de Vault legibles. También P5 de Chatwoot, bajado de B2: **PASÓ**, 200 s, con conteos y claves iguales al manifiesto (`p5-llave-sam-20261029T183444Z.txt`). La llave se pegó en la pestaña de «sam», pero su huella dice emergencia;
+  - con la llave del **gestor**: los 7 archivos de los respaldos nuevos se descifran (`p5-llave-gestor-20261029T184050Z.txt`).
+- **Regla nueva de custodia:** al guardar una llave, comprobar en el gestor que el campo tiene 74 caracteres. Si el campo de contraseña la corta, usar el de notas. La prueba con la llave del gestor se hace sacándola del gestor, nunca del portapapeles.

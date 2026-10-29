@@ -48,6 +48,13 @@ Fuente del código: la imagen `chatwoot/chatwoot:v4.19.1-ce`, digest `sha256:048
 | T-23 | Antes: 0 Platform Apps, 0 cuentas, 0 usuarios. Creados por `rails runner` + Platform API sobre `https://chat.dtdcargo.com`: Platform App «DTD Studio» (token de 24 caracteres), cuenta «DTD Cargo» (id 1, `locale=es`), usuario «Servicio DTD Studio» (id 1, `servicio-chatwoot@dtdcargo.com`, confirmado) con rol `administrator` (`account_users` → 200). Comprobado: GET de la cuenta propia → 200; sin token → 401; registro público sigue en `false`. Después: 1 app, 1 cuenta, 1 usuario | `/root/p4-chatwoot.sh` en el VPS | R |
 | T-24 | Token, ids, correo y clave del usuario de servicio en `/srv/chatwoot/secretos/platform-app.env` (carpeta 0700, archivo 0600, root); ningún valor impreso. El token también vive en la base (tabla `access_tokens`), así que el respaldo conjunto lo cubre | `ls -ld`, `awk` de nombre y largo | R |
 
+## P5 y llave de respaldos (2026-10-29)
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| T-25 | P5 («Autorizo P5»): respaldo `chatwoot-20261029T183240Z` bajado de B2 (4 archivos) y restaurado con `restaurar.sh` en el proyecto `chatwoot-ensayo` (sin Traefik, `/srv/chatwoot-ensayo`). Integridad OK. Conteos iguales al manifiesto: cuentas 1, usuarios 1, el resto 0. Columnas cifradas `total=0 sobres=0`. Tiempos: claves 1 s, base 24 s, adjuntos 6 s, arranque 142 s, verificación 27 s, **total 200 s** (207 s con la bajada). `/api` 4.19.1 por dentro y `traefik.enable=false`. Después, `down -v` y carpeta borrada: 0 contenedores, 0 restos en `/dev/shm`. Producción de Chatwoot sana | `/srv/ops/evidencias/p5-llave-sam-20261029T183444Z.txt` | R |
+| T-26 | La llave del 2026-10-14 (`f4aab8d9…`) no apareció. Con «Autorizo las dos» de Sam y la coordinación del Director: respaldos viejos copiados a `archivo-llave-2026-10-14/` (115 objetos, 0 diferencias); llaves nuevas `Sam-2026-10-29` (`f0bdbaa91af5fc7c`) y `Emergencia-2026-10-29` (`f2b06f66dad23591`), generadas en la PC de Sam, con solo las públicas en el VPS; respaldos nuevos de DTD y Chatwoot; restauración de DTD 5 PASÓ (RTO 52 s) con la de emergencia; con la del gestor se descifran los 7 archivos. Detalle en `docs/runbooks/backup-restore-servidor.md`, «Registro · 2026-10-29» | evidencias `p5-llave-*` | R |
+
 ## Código de Chatwoot 4.19.1
 
 | ID | Afirmación | Fuente | Etiqueta |
