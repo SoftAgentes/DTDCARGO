@@ -42,10 +42,10 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | 0.5 | E0 | Inventario de correo: `info@` (buzón, alias o reenvío), remitente SMTP y Resend Inbound (dominios, rutas, consumidores) | S+IA | 0,25 | 0,3 | 0 | aceptado | — | C-1–C-13 (DNS, Resend y Hostinger: T); `e0-guias.md#05`; aceptado por Sam el 2026-10-29 («Acepto 0.5») |
 | 0.6 | E0 | Prueba de extracción de Kommo: `talks/{id}/messages`, alcance, plan, enumeración, paginación y muestra representativa | S+IA | 1 | 1 | 0 | aceptado | OK Sam (lectura de PII, 2 OK nominales) y OK de la integración, 2026-10-29; ratifica E5 | X-1–X-17 (R); `investigacion-2026-10-29-e0.md`; aceptado por Sam el 2026-10-29 («Acepto 0.6») |
 | 0.7 | E0 | Expedientes de trámites largos (verificación del negocio) y método de pago propio en Meta comprobado | S+IA | 0,5 | 0,1 | 0,4 | en curso | Espera: 1–4 semanas | `e0-guias.md#07` |
-| 1.1 | E1 | Compose con `v4.19.1-ce` fija, Postgres pgvector, Redis, Sidekiq y límites | IA | 1 | — | — | pendiente | OK Sam (despliegue en VPS) | — |
-| 1.2 | E1 | DNS, TLS, Traefik, `frame-ancestors` acotado y `/super_admin` detrás de Tailscale | IA | 0,5 | — | — | pendiente | — | — |
-| 1.3 | E1 | Variables: cifrado, signup cerrado, `MAX_USER_SESSIONS` y SMTP | IA | 0,25 | — | — | pendiente | — | — |
-| 1.4 | E1 | Platform App, cuenta por API y usuario de servicio | IA | 0,5 | — | — | pendiente | — | — |
+| 1.1 | E1 | Compose con `v4.19.1-ce` fija, Postgres pgvector, Redis, Sidekiq y límites | IA | 1 | 0,1 | 0 | entregado | OK Sam (despliegue en VPS, puerta P1 de SDD-0583) | SDD-0583: `infra/chatwoot/compose.yml`; ensayo local con 0 fallas (E1-R2, R10, R11, R19); handoff `0583-chatwoot-vps-e1.md`. El despliegue espera P1 |
+| 1.2 | E1 | DNS, TLS, Traefik, `frame-ancestors` acotado y `/super_admin` detrás de Tailscale | IA | 0,5 | 0,05 | 0 | entregado | DNS en Cloudflare (P2) y Tailscale (P3): OK Sam, cada uno aparte | SDD-0583: labels de Traefik, `/installation` también bloqueado (H6); E1-R4 a R7; runbook `chatwoot-servidor.md` §3–4 |
+| 1.3 | E1 | Variables: cifrado, signup cerrado, `MAX_USER_SESSIONS` y SMTP | IA | 0,25 | 0,03 | 0 | entregado | — | SDD-0583: `infra/chatwoot/.env.example` y `x-entorno`; E1-R3 y R9 |
+| 1.4 | E1 | Platform App, cuenta por API y usuario de servicio | IA | 0,5 | 0,02 | 0,3 | en curso | OK Sam (P4), después de P1 | Procedimiento probado en local (E1-R17); runbook `chatwoot-servidor.md` §6 |
 | 1.5 | E1 | Respaldo conjunto (Postgres, adjuntos, claves) en custodia separada, RPO/RTO y restauración conjunta ensayada | IA | 0,75 | — | — | pendiente | — | — |
 | 1.6 | E1 | Uptime Kuma, memoria, disco y adjuntos durante 72 h | IA | 0,25 | — | — | pendiente | Espera: 3 días | — |
 | 1.7 | E1 | revisar-datos-ve, redacción de logs (Rails, Sidekiq, proxy) probada con datos sintéticos, inventario de terceros y nota sobre `/privacidad` | IA | 1,5 | — | — | pendiente | — | — |
