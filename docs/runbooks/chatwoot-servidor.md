@@ -98,7 +98,7 @@ docker compose exec rails bundle exec rails runner 'p GlobalConfigService.accoun
 docker compose exec rails bundle exec rails c      # consola, solo si hace falta
 ```
 
-Con Tailscale instalado (puerta P3, runbook servidor-contabo §1.5), Sam entra a `https://chat.dtdcargo.com/super_admin` desde su equipo resolviendo `chat.dtdcargo.com` a la IP de Tailscale del VPS (línea en su `hosts`, o DNS dividido de la tailnet). El certificado es el mismo, y Traefik ve la IP `100.x` y deja pasar. Que la regla deja pasar a la tailnet y frena a internet lo prueba el ensayo local (C4). Que la IP de origen llegue sin NAT por la interfaz de Tailscale está **NO VERIFICADO**: se comprueba al instalarla.
+**Decisión del 2026-10-29 (Sam, «Cerrado y consola»):** se queda así, sin acceso web, hasta que haga falta; entonces, preferiblemente con Cloudflare Access (con la verificación de `Cf-Access-Jwt-Assertion` en el origen, porque el firewall acepta cualquier IP de Cloudflare, también las de otras cuentas). La alternativa con Tailscale, para referencia: con Tailscale instalado (runbook servidor-contabo §1.5), Sam entra a `https://chat.dtdcargo.com/super_admin` desde su equipo resolviendo `chat.dtdcargo.com` a la IP de Tailscale del VPS (línea en su `hosts`, o DNS dividido de la tailnet). El certificado es el mismo, y Traefik ve la IP `100.x` y deja pasar. Que la regla deja pasar a la tailnet y frena a internet lo prueba el ensayo local (C4). Que la IP de origen llegue sin NAT por la interfaz de Tailscale está **NO VERIFICADO**: se comprueba al instalarla.
 
 ## 5 · Desplegar (puerta P1)
 
