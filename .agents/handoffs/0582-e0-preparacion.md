@@ -66,11 +66,11 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 ## Pendientes de esta tarea
 
 1. Hecho: 0.1, 0.2 y 0.4 aceptados por Sam el 2026-10-29.
-2. Sam + IA: lectura de Meta (0.3, 13 puntos) y aprobación de la vuelta atrás.
+2. Sam + IA: lectura de Meta (0.3, 13 puntos) y aprobación de la vuelta atrás. **Pospuesto por Sam al 2026-10-30**: tiene que preguntar en la oficina qué acceso usar para Meta Business (el Chrome no tiene sesión).
 3. Hecho: Kommo leído el 2026-10-29.
 4. Hecho: Hostinger y Resend leídos (0.5 entregado).
 5. Hay 3 tokens de la integración «DTD 0582 historial» vigentes 100 días y ninguno guardado; se pueden revocar en Kommo → la integración → Llaves y alcances, y la integración se revoca al cerrar E5.
-6. Sam: verificación del negocio y método de pago propio (0.7).
+6. Sam: verificación del negocio y método de pago propio (0.7). Va junto con 0.3, el 2026-10-30.
 7. Publicar la rama: sin autorización de push en este encargo.
 
 ## FUERA DE ALCANCE DETECTADO
