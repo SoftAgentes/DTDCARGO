@@ -180,7 +180,10 @@ Pedido por el Director con el OK de Sam («ok»). Diseño E2-D16 a E2-D25 y allo
 
 ## Pendientes del paso 2.3
 
-- ~~`pnpm verify` con turno~~: corrido el 2026-10-30. Falta medir **sql-tests y schema-rebuild con Docker encendido**: quedaron SKIP.
+- ~~`pnpm verify` con turno~~: corrido el 2026-10-30.
+- ~~sql-tests y schema-rebuild con Docker~~: corridos el 2026-10-30. 0503 y 0504 PASÓ; los 3 rojos son de SDD-0573. schema-rebuild PASÓ.
+- ~~Hallazgo de Codex~~ (el evento quedaba procesado aunque fallara la acción): corregido en `19df1e51f`, con rojo primero. Ver `spec.md` §«Después del verify».
+- **Reproceso de eventos fallidos:** Chatwoot 4.19.1 no reintenta webhooks de cuenta (C). Un evento fallido espera una reentrega manual o un reproceso propio, que se propone para E10.
 - **Puertas,** cada una con su OK nominal de Sam:
   - aplicar la 0503 y la 0504;
   - cargar `CHATWOOT_WEBHOOK_SECRET` y `CHATWOOT_TENANT_ID`;

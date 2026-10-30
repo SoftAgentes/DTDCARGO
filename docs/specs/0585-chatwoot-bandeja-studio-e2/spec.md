@@ -206,6 +206,28 @@ Turno dado por el Director. Resultado global: **FALLÓ** (exit 1).
 
 **Lo de este paso, medido aparte:** 1029 pruebas puntuales PASÓ antes del verify, y PASÓ también el contrato de contraste repetido.
 
+#### Después del verify (2026-10-30)
+
+**`sql-tests` y `schema-rebuild` con Docker encendido.** Turno del Director. Se corrieron dos veces, antes y después del arreglo de abajo, la última a las 03:58Z:
+
+| Paso | Resultado | De quién es |
+|---|---|---|
+| sql-tests | FALLÓ: `0467_reversion_credito_carrera`, `0497_reverso_al_anular_factura` y `0497_…_carrera` | Heredado de SDD-0573, igual que en el 2.2. **`0503_chatwoot_bandeja` y `0504_chatwoot_eventos` PASÓ** en Postgres real |
+| schema-rebuild | PASÓ | 475 migraciones aplicadas desde cero; aislamiento multi-tenant verificado en 219 tablas, con las nuevas |
+| migrations-applied | NO DISPONIBLE | Sin `.env.local`; no se copian secretos |
+
+**Hallazgo de la revisión independiente de Codex, comprobado y corregido** (`19df1e51f`):
+- **El problema:** el evento se marcaba procesado al registrarlo, antes de las acciones. Si el aviso fallaba, la reentrega se descartaba como duplicado. Hoy eso pierde un push; en E10 dejaría a un cliente sin su redirección.
+- **Rojo primero:** 4 casos en Vitest más el contrato SQL, que no tenía `chatwoot_cerrar_evento`.
+- **El arreglo:**
+  - el evento pasa por `procesando` y termina en `procesado` o `fallido`;
+  - uno fallido, o colgado en procesando más de 5 minutos, se reclama;
+  - un duplicado real sigue siendo duplicado;
+  - `avisarPorPush` falla si no pudo encolar ningún aviso;
+  - la ruta responde 500 a un evento fallido.
+- **Verde:** el contrato 0504 da 15/15 (33 aserciones y 11 mutantes, 2 de ellos nuevos). Pasan 135 pruebas afectadas y mueren 2 mutantes de TypeScript.
+- **Lo que este arreglo no resuelve (evidencia C):** Chatwoot 4.19.1 **no reintenta** los webhooks de cuenta. `Webhooks::Trigger#execute` rescata cualquier error, también un 5xx; solo reintenta agentes bot, y el job corta a los 5 s. Así que un evento fallido espera una reentrega manual o un reproceso de Studio. El reproceso no está en este paso: se propone para E10, que lo necesita. Para eso habría que guardar, sin datos personales, lo mínimo para volver a correr las acciones (ids y asignado).
+
 ### Datos personales del paso 2.3 (revisar-datos-ve, alcance del cambio)
 
 Estados de la skill: ENCONTRADO, CORRECTO y NO VERIFICABLE.
