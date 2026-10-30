@@ -259,13 +259,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // la tarifa congelada por recepción.
   // SDD-0585 sumó `bandeja/actions.ts` (77 → 78, exactos 55 → 56): la Bandeja
   // de Chatwoot.
-  it("la superficie escaneada es la esperada (78 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0587 (paso 6.3) sumó `crm/tarjeta-actions.ts` (78 → 79, con prefijo
+  // 22 → 23): el tablero de los dos embudos y la ficha de la tarjeta.
+  it("la superficie escaneada es la esperada (79 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 78,
+      total: 79,
       exactos: 56,
-      conPrefijo: 22,
+      conPrefijo: 23,
     });
   });
 
@@ -325,8 +327,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `tenantAdminGate` antes de leer nada; lee con service_role el miembro, su
   // correo y los overrides del MISMO tenant, y escribe el vínculo con el cliente
   // de sesión (la RLS de 0503 repite el candado de admin).
+  // SDD-0587 (paso 6.3) sumó las seis de `crm/tarjeta-actions.ts` (450 → 456):
+  // `moverTarjetaAction`, `agregarNotaTarjetaAction`, `agregarTareaTarjetaAction`,
+  // `completarTareaTarjetaAction` y `cambiarDuenoTarjetaAction` llaman a
+  // `moduleEditGate(supabase, "kommo")` antes de tocar nada, y
+  // `cargarFichaTarjetaAction` a `moduleViewDenial(supabase, "kommo")`; las seis
+  // exigen además el rol de `crm_puede_usar()` (admin o commercial), que la RLS
+  // y la RPC `crm_mover_etapa` de la 0506 repiten.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(450);
+    expect(reportes.length).toBe(456);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

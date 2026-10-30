@@ -428,7 +428,12 @@ Rama `codex/0582-e6-tablero`, apilada sobre `codex/0582-e6-modelo` (PR #336). Si
 | `/ui-check` | PASÓ con 3 ajustes aplicados (espaciado con `var(--s-*)`, `ErrorAlert` del sistema, selector de 32 px) |
 | Gate de símbolos de migraciones pendientes | PASÓ: 0 ROJO, 7 AMARILLO declarados; la 0506 con `sdd-0587-crm-tablero`. Medido en `1d12270b6`, con `3c86f4053` integrado, que trae la resincronización de E2/E10 |
 | Prueba visual en el navegador con datos | NO EJECUTADO: hace falta una base con la 0506 aplicada |
-| `pnpm verify` | NO EJECUTADO: cola del Director (E10, E2, E6) |
+| `pnpm verify` completo sobre `4f277075a` (17:11Z–18:12Z, `node scripts/verify.mjs`) | FALLÓ: 16 de 17 pasos corridos; 3 rojos (test, sql-tests, e2e) y `migrations-applied` NO DISPONIBLE (worktree sin `.env.local`). Detalle por paso abajo |
+| verify · harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO · 7 AMARILLO), schema-rebuild, build | PASÓ |
+| verify · test (Vitest: 13 734 de 13 738) | FALLÓ. Propio: `rbac-actions-guard.test.ts` (2) contaba 78 archivos y 450 acciones; `tarjeta-actions.ts` suma 1 y 6, todas con candado. Corregido en el commit siguiente: 461 de 461 PASÓ. Ajenos: `infra-env-example.test.ts`, por cinco variables de E10 en el `.env.example` de la raíz sin documentar en el del servidor (`a319d4cdc`); y `TransportistasPanel.test.tsx`, que falló sólo en el reintento bajo carga y pasa solo |
+| verify · sql-tests | FALLÓ, ajeno: `0467_reversion_credito_carrera`, `0497_reverso_al_anular_factura` y `0497_reverso_al_anular_factura_carrera` (preflight de la 0497 sobre `excepcion_al_cierre_vigente`). El diff de 6.3 no toca migraciones ni contratos SQL |
+| verify · e2e (Playwright: 217–218 pasan) | FALLÓ, ajeno: `e2e/sin-scroll-horizontal.spec.ts:119` (CTA de Shipping Mark, página pública) en chromium, las dos vueltas; `auth.spec.ts:81` inestable. El diff de 6.3 no toca páginas públicas |
+| verify · migrations-applied | NO DISPONIBLE: el worktree no tiene credenciales de Supabase, y por regla no se copian |
 
 ### 15.3 revisar-datos-ve de 6.3
 
