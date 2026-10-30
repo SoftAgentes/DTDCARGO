@@ -58,6 +58,4 @@ PASÓ en `1d12270b6`, con `3c86f4053` (`e6-modelo` + `a319d4cdc` de E10) integra
 - **Límite de §15.1 (I):** la vuelta cliente → lead de una tarjeta sin historial en Clientes no se detecta; registrar el cambio de tablero al detectarlo es de 6.6.
 - **Notas no corregibles:** la 0506 solo da INSERT en `crm_notas`; la acción «Anonimizar ahora» de 6.6 lo cubre (revisar-datos-ve, punto 4).
 - **`node_modules` del checkout principal:** `jsdom@29.1.1` sin `lib/api.js`; cualquier prueba de componentes que use esa instalación falla al arrancar el worker de Vitest.
-- **Declaraciones vencidas de E2** en `supabase/pending-migration-symbol-declarations.json` (`sdd-0585-chatwoot-bandeja` y `sdd-0585-chatwoot-eventos`): líneas corridas en `webhook-procesar.ts` y `bandeja/actions.ts`. Ya estaba registrado en 6.2; lo corrige E2/E10.
-- **Gate de símbolos, rojo de E10:** las 4 funciones de la 0505 llamadas desde `lib/studio/chatwoot/enrutar.ts` no tienen declaración. Lo declara E10 en su PR (#335).
 - La pestaña «Dirección» calcula la analítica de Kommo en todas las pestañas, incluida «Embudos» (`page.tsx`, `getKommoAnalytics`): lectura de más que 6.6 puede quitar.
