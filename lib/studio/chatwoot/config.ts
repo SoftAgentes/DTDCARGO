@@ -30,3 +30,29 @@ export function chatwootConfig(): ChatwootConfig | null {
   if (!token || !/^[1-9][0-9]{0,9}$/.test(cuenta)) return null;
   return { origin: chatwootOriginFromEnv(process.env.CHATWOOT_URL), token, accountId: Number(cuenta) };
 }
+
+/**
+ * Configuración del webhook entrante (SDD-0585, E2-D16).
+ *
+ * - `CHATWOOT_WEBHOOK_SECRET`: el token del webhook de cuenta en Chatwoot (su
+ *   `secret`, que firma cada entrega). SECRETO.
+ * - `CHATWOOT_TENANT_ID`: el tenant de Studio al que pertenecen los eventos.
+ * - `CHATWOOT_ACCOUNT_ID`: los eventos de otra cuenta se ignoran.
+ *
+ * Falta algo → `null`: la ruta responde 503 y no toca la base.
+ */
+export interface ChatwootWebhookConfig {
+  secret: string;
+  tenantId: string;
+  accountId: number;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function chatwootWebhookConfig(): ChatwootWebhookConfig | null {
+  const secret = firstConfiguredSecret(process.env.CHATWOOT_WEBHOOK_SECRET);
+  const tenantId = (process.env.CHATWOOT_TENANT_ID ?? "").trim();
+  const cuenta = (process.env.CHATWOOT_ACCOUNT_ID ?? "").trim();
+  if (!secret || !UUID.test(tenantId) || !/^[1-9][0-9]{0,9}$/.test(cuenta)) return null;
+  return { secret, tenantId, accountId: Number(cuenta) };
+}

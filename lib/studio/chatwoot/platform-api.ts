@@ -103,3 +103,22 @@ export async function obtenerAgente(
     },
   };
 }
+
+/**
+ * Token de API del agente (SDD-0585, E2-D22), para leer Chatwoot COMO ese
+ * agente (con sus permisos) en la reconciliación. Solo servidor: no se guarda,
+ * no se registra y no sale de la server action que lo pide.
+ */
+export async function obtenerTokenAgente(
+  chatwootUserId: number,
+  cfg: ChatwootConfig | null = chatwootConfig(),
+): Promise<ChatwootResult<string>> {
+  if (!cfg) return { ok: false, error: "sin_configurar" };
+  const r = await pedir(cfg, `/platform/api/v1/users/${chatwootUserId}`);
+  if (!r.ok) return r;
+  const b = r.body as { id?: unknown; access_token?: unknown } | null;
+  if (b?.id !== chatwootUserId || typeof b.access_token !== "string" || !b.access_token) {
+    return { ok: false, error: "respuesta_invalida" };
+  }
+  return { ok: true, data: b.access_token };
+}
