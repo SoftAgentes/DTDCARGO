@@ -2,7 +2,7 @@
 
 - **Owner:** Claude Worker «E9 motor», sesión lanzada por la sesión del programa (`local_535053f4…`). Claim `local_e9-motor-00035d32`.
 - **Ruta:** `C:\Users\AKX generator\Desktop\Developer\DTDCARGO\.claude\worktrees\adoring-spence-69ff0b`
-- **Rama:** `codex/0582-e9-motor`, apilada sobre `codex/0582-e9-guion` (`37c64d114`, PR #330).
+- **Rama:** `codex/0582-e9-motor`. Nació apilada sobre `codex/0582-e9-guion` (`37c64d114`, PR #330); la #330 ya está en main y esta rama trajo `origin/main` por merge el 2026-10-30. El Director reapunta la #338 a `main`.
 - **SDD:** [0589](../../docs/specs/0589-guia-motor-studio/spec.md), reservada con `next-number.mjs --reserve guia-motor-studio --push`. Deja dos refs: `refs/heads/codex/sdd-reserve-0589-guia-motor-studio` (local) y `origin/codex/sdd-reserve-0589`. Se borran cuando la spec llegue a main.
 - **Objetivo:** motor de guía propio y liviano en Studio, con un recorrido de demostración.
 - **Aceptación:** criterios A1–A10 de la SDD. La puerta de la fila es «PR → OK Sam».
@@ -49,5 +49,5 @@ Nota de entorno: con 2,5 GB libres de 31, el pool `forks` de vitest no arrancó 
 
 ## FUERA DE ALCANCE DETECTADO
 
-- La base `codex/0582-e9-guion` tiene la línea base v1 del checklist (99,75 d), mientras que el programa ya va en v3 (115,5 d, rama `codex/0582-e0-preparacion`). Se resuelve al integrar las ramas apiladas, no en esta tarea.
+- ~~La base `codex/0582-e9-guion` tenía la línea base v1 del checklist.~~ Resuelto el 2026-10-30: la #330 ya está en main y esta rama trae `origin/main` por merge (sin rebase). Línea base v3 (115,5 d); la prueba del avance pasa 12/12.
 - Los textos del Dashboard están solo en español (por ejemplo, «Configurar»). Por eso la guía en zh-CN cita «Configurar» tal cual.
