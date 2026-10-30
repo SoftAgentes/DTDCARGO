@@ -101,12 +101,12 @@ Pesos = días base de la etapa ÷ 115,5, redondeados a décimas por resto mayor 
 | 5.6 | E5 | Ensayo en copia: cero efectos externos y muestra revisada con Sam | S+IA | 1 | — | — | pendiente | OK Sam | — |
 | 5.7 | E5 | Carga en producción | IA | 0,5 | — | — | pendiente | OK nominal Sam (carga y PII) | — |
 | 5.8 | E5 | Acta de conciliación parcial con conteos por canal y objeto | IA | 0,5 | — | — | pendiente | — | — |
-| 6.1 | E6 | SDD y contrato de sistema maestro por objeto y fase | IA | 2 | — | — | pendiente | OK Sam | — |
-| 6.2 | E6 | Modelo de datos y migración | IA | 2 | — | — | pendiente | Migración: OK Sam | — |
-| 6.3 | E6 | Tablero Kanban con dos embudos Leads/Clientes (paso automático de uno a otro) y ficha del lead | IA | 5 | — | — | pendiente | — | Línea base v2 (aprobación del plan v3 del Director, 2026-10-29): 4 → 5 días |
-| 6.4 | E6 | Entrada de leads desde Chatwoot y la web, con atribución | IA | 2 | — | — | pendiente | — | — |
-| 6.5 | E6 | Migrar leads, etapas, tareas, mappings e IDs | IA | 1,5 | — | — | pendiente | OK nominal Sam (carga) | — |
-| 6.6 | E6 | Reemplazos de Kommo en el ERP: vista CRM nueva, conversión lead→cliente, etapas desde el cotizador, reporte por asesor, KPI de leads y alerta «sin atender» | IA | 2,5 | — | — | pendiente | — | — |
+| 6.1 | E6 | SDD y contrato de sistema maestro por objeto y fase | IA | 2 | 1 | 0 | aceptado | OK Sam (contrato y decisiones D1–D10) | SDD-0587 `docs/specs/0587-chatwoot-contrato-sistema-maestro/spec.md`, PR #334; reestima 6.2–6.6 (§9); aceptado por Sam el 2026-10-30: a «Si te sirven todas mis recomendaciones de D1–D10, basta con que me digas "D1–D10 como recomiendas"» respondió «si» (pasado por el Director) |
+| 6.2 | E6 | Modelo de datos y migración | IA | 2 | — | 2,5 | pendiente | Migración: OK Sam | — |
+| 6.3 | E6 | Tablero Kanban con dos embudos Leads/Clientes (paso automático de uno a otro) y ficha del lead | IA | 5 | — | 4,5 | pendiente | — | Línea base v2 (aprobación del plan v3 del Director, 2026-10-29): 4 → 5 días |
+| 6.4 | E6 | Entrada de leads desde Chatwoot y la web, con atribución | IA | 2 | — | 2,5 | pendiente | — | — |
+| 6.5 | E6 | Migrar leads, etapas, tareas, mappings e IDs | IA | 1,5 | — | 1,5 | pendiente | OK nominal Sam (carga) | — |
+| 6.6 | E6 | Reemplazos de Kommo en el ERP: vista CRM nueva, conversión lead→cliente, etapas desde el cotizador, reporte por asesor, KPI de leads y alerta «sin atender» | IA | 2,5 | — | 2,5 | pendiente | — | — |
 | 6.7 | E6 | Reemplazar los Salesbots según el inventario de 0.4 (se reestima) y revisar con su costo los «Ping 23 h»: desde el 2026-10-01 cada respuesta cuenta contra el cupo de 1.000 | IA | 2,25 | — | 1 | pendiente | — | Reestimado: `investigacion-2026-10-29-e0.md`; Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): 2 → 2,25 d |
 | 7.1 | E7 | Cuentas de pago (proyecto con facturación), retención y DPA registrados, y corte local duro de gasto | S+IA | 1 | — | — | pendiente | OK Sam | — |
 | 7.2 | E7 | Excepción IA-01 acotada, redactada para aprobar. Hasta entonces, solo Sugerir | S+IA | 0,5 | — | — | pendiente | OK Sam | — |
