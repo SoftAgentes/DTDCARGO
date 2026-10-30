@@ -6,10 +6,12 @@
  * mantiene vivo con Supabase Realtime sobre `chatwoot_conversations` (0504),
  * que el webhook y la reconciliación actualizan. Sin texto ni datos del contacto.
  */
+import { useT } from "@/lib/i18n";
 import { useRealtimeTable } from "@/lib/studio/hooks/use-realtime-table";
 import { contarNoLeidas, type ConversacionNoLeida } from "@/lib/studio/chatwoot/conversations-queries";
 
 export function BandejaBadge({ tenantId, initial }: { tenantId: string; initial: ConversacionNoLeida[] }) {
+  const t = useT();
   const { data } = useRealtimeTable<ConversacionNoLeida>({
     table: "chatwoot_conversations",
     filter: `tenant_id=eq.${tenantId}`,
@@ -19,7 +21,7 @@ export function BandejaBadge({ tenantId, initial }: { tenantId: string; initial:
   if (n === 0) return null;
   return (
     <span
-      aria-label={`${n} sin leer`}
+      aria-label={t("bandeja.badge.aria", { n })}
       style={{
         minWidth: 18,
         height: 18,

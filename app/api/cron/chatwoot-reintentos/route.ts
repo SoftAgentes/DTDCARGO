@@ -9,7 +9,12 @@
  * intentos, espera 1, 2, 4 y 8 min y, al quinto, deja el evento «descartado»
  * (lo ve el admin en la Bandeja).
  *
- * También purga por plazo lo de E10 (SDD-0586, decisiones de Sam del
+ * También purga por plazo lo de la Bandeja (SDD-0585, 2.7; propuesta del
+ * Director sin objeción de Sam, 2026-10-30): eventos de más de 90 días,
+ * conversaciones sin actividad en 12 meses y el usuario de Chatwoot de un
+ * agente dado de baja hace más de 12 meses. Sin la 0508 responde `omitido`.
+ *
+ * Y purga por plazo lo de E10 (SDD-0586, decisiones de Sam del
  * 2026-10-30): BSUID con un año sin actividad y respuestas del bot de más de
  * 30 días (`purgarEnrutamientoChatwoot`).
  *
@@ -20,7 +25,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { matchesBearerSecret } from "@/lib/http/secret-compare";
+import { chatwootConfig, chatwootServicioUserId } from "@/lib/studio/chatwoot/config";
 import { purgarEnrutamientoChatwoot } from "@/lib/studio/chatwoot/enrutar";
+import { purgarBajasVencidas, purgarBandejaChatwoot } from "@/lib/studio/chatwoot/purga";
 import { reprocesarEventosChatwoot } from "@/lib/studio/chatwoot/webhook-procesar";
 
 export const dynamic = "force-dynamic";
@@ -42,8 +49,10 @@ export async function GET(req: NextRequest) {
 
   const admin = createAdminClient();
   const result = await reprocesarEventosChatwoot(admin);
-  const purga = await purgarEnrutamientoChatwoot(admin);
-  return NextResponse.json({ ok: true, ...result, purga });
+  const purgaBandeja = await purgarBandejaChatwoot(admin);
+  const purgaBajas = await purgarBajasVencidas(admin, chatwootConfig(), chatwootServicioUserId());
+  const purgaEnrutamiento = await purgarEnrutamientoChatwoot(admin);
+  return NextResponse.json({ ok: true, ...result, purgaBandeja, purgaBajas, purgaEnrutamiento });
 }
 
 export async function POST(req: NextRequest) {

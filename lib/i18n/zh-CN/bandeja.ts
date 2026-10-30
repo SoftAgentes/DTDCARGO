@@ -118,4 +118,10 @@ export const bandeja: BandejaDict = {
   "bandeja.salud.alerta.servicio_sin_configurar": "未配置服务用户（CHATWOOT_SERVICE_USER_ID）：无法统计人工管理员。",
   "bandeja.salud.alerta.vinculo_fuera_de_cuenta": "有绑定指向已不在账户中的坐席：{ids}。",
   "bandeja.salud.alerta.baja_bloqueada": "为避免账户没有管理员，一项移除已被阻止。",
+  "bandeja.salud.alerta.cierre_pendiente": "一项移除已离开账户，但其会话仍处于打开状态：下一次定时任务会重试。",
+  "bandeja.salud.alerta.degradacion_bloqueada": "为避免账户没有管理员，一项角色变更已被阻止。",
+  "bandeja.salud.alerta.matriz_incompleta": "未能应用权限矩阵中的全部权限：下一次定时任务会重试。",
+  "bandeja.salir.cerrando": "正在退出登录…",
+  "bandeja.salir.marco": "退出聊天会话",
+  "bandeja.badge.aria": "{n} 条未读",
 };

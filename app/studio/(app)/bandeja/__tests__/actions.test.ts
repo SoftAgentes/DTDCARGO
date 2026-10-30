@@ -64,6 +64,8 @@ const m = vi.hoisted(() => ({
   sso: vi.fn(),
   agente: vi.fn(),
   tokenAgente: vi.fn(),
+  clave: vi.fn(),
+  sincronizar: vi.fn(),
   listar: vi.fn(),
   aplicar: vi.fn(),
   cookieSet: vi.fn(),
@@ -80,7 +82,13 @@ vi.mock("@/lib/studio/rbac-guard", () => ({
 }));
 vi.mock("@/lib/studio/feature-flags-queries", () => ({ listFeatureFlags: async () => m.flags }));
 vi.mock("@/lib/studio/chatwoot/config", () => ({ chatwootConfig: () => m.cfg }));
-vi.mock("@/lib/studio/chatwoot/platform-api", () => ({ obtenerEnlaceSso: m.sso, obtenerAgente: m.agente, obtenerTokenAgente: m.tokenAgente }));
+vi.mock("@/lib/studio/chatwoot/platform-api", () => ({
+  obtenerEnlaceSso: m.sso,
+  obtenerAgente: m.agente,
+  obtenerTokenAgente: m.tokenAgente,
+  fijarClaveAleatoria: m.clave,
+}));
+vi.mock("@/lib/studio/chatwoot/agentes-usuario", () => ({ sincronizarAgenteDeUsuario: m.sincronizar }));
 vi.mock("@/lib/studio/chatwoot/account-api", () => ({ listarConversacionesRecientes: m.listar }));
 vi.mock("@/lib/studio/chatwoot/webhook-procesar", () => ({ aplicarConversacion: m.aplicar }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ set: m.cookieSet }) }));
@@ -178,12 +186,14 @@ describe("vincularAgente (SDD-0585)", () => {
     m.sesion = sesion;
     m.admin = adminDoble({
       user_tenants: [
-        { tenant_id: T1, user_id: ANA, disabled_at: null },
-        { tenant_id: T2, user_id: OTRO, disabled_at: null },
+        { tenant_id: T1, user_id: ANA, role: "commercial", disabled_at: null },
+        { tenant_id: T2, user_id: OTRO, role: "commercial", disabled_at: null },
         { tenant_id: T1, user_id: "20000000-0000-4000-8000-000000000004", disabled_at: "2026-10-01" },
       ],
     });
     m.agente.mockResolvedValue({ ok: true, data: { id: 7, email: "ana@example.test", name: "Ana", accountIds: [1] } });
+    m.clave.mockResolvedValue({ ok: true, data: null });
+    m.sincronizar.mockResolvedValue(undefined);
   });
 
   it("quien no es admin: denied, sin tocar nada", async () => {
@@ -236,6 +246,29 @@ describe("vincularAgente (SDD-0585)", () => {
       { tabla: "chatwoot_agent_links", fila: { tenant_id: T1, user_id: ANA, chatwoot_user_id: 7, created_by: ADMIN } },
     ]);
     expect(m.revalidate).toHaveBeenCalledWith("/studio/bandeja");
+  });
+
+  it("2.7 · cierra el acceso directo (clave aleatoria), borra la baja vieja y aplica la matriz", async () => {
+    const tablas = { user_tenants: [{ tenant_id: T1, user_id: ANA, role: "support", disabled_at: null }], chatwoot_agent_bajas: [{ tenant_id: T1, chatwoot_user_id: 7 }, { tenant_id: T1, chatwoot_user_id: 8 }] };
+    m.admin = adminDoble(tablas);
+    expect(await vincularAgente(INICIAL, form({ user_id: ANA, chatwoot_user_id: "7" }))).toEqual({ ok: true, error: null });
+    expect(m.clave).toHaveBeenCalledWith(7, CFG);
+    expect(tablas.chatwoot_agent_bajas).toEqual([{ tenant_id: T1, chatwoot_user_id: 8 }]);
+    expect(m.sincronizar).toHaveBeenCalledWith(ANA);
+  });
+
+  it("2.7 · a un admin de Studio no se le cambia la clave; si Chatwoot no deja cambiarla, el vínculo queda igual", async () => {
+    m.admin = adminDoble({ user_tenants: [{ tenant_id: T1, user_id: ANA, role: "admin", disabled_at: null }] });
+    expect(await vincularAgente(INICIAL, form({ user_id: ANA, chatwoot_user_id: "7" }))).toEqual({ ok: true, error: null });
+    expect(m.clave).not.toHaveBeenCalled();
+
+    m.admin = adminDoble({ user_tenants: [{ tenant_id: T1, user_id: ANA, role: "commercial", disabled_at: null }] });
+    m.sesion = dobleSupabase({ chatwoot_agent_links: [] });
+    m.clave.mockResolvedValueOnce({ ok: false, error: "no_autorizado" });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    expect(await vincularAgente(INICIAL, form({ user_id: ANA, chatwoot_user_id: "7" }))).toEqual({ ok: true, error: null });
+    expect(JSON.stringify(warn.mock.calls)).toContain("no_autorizado");
+    warn.mockRestore();
   });
 
   it("vínculo repetido (23505): duplicate", async () => {

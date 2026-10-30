@@ -29,13 +29,18 @@ Arrancar E10: 10.1 (función SQL del segmento), 10.2 (clasificar en el webhook d
 | `tsc --noEmit` del proyecto | PASÓ |
 | eslint de los archivos tocados | PASÓ |
 | `docs:check` y `sdd:check` | PASÓ |
-| `pnpm verify` | NO EJECUTADO: corrida pesada, espera turno del Director |
-| sql-tests con Docker (contrato 0505 en PostgreSQL 17) | NO EJECUTADO: corrida pesada, espera turno del Director |
+| `pnpm verify` completo con Docker sobre `a319d4cdc` | FALLÓ sin rojos propios: el único propio (infra-env-example) se corrigió (3/3); 2 timeouts por carga aislados 10/10; sql-tests y e2e con rojos heredados (SDD-0573 y Shipping Mark). Detalle en la spec, «Verify» |
+| sql-tests con Docker (contrato 0505 en PostgreSQL 17) | PASÓ (0503, 0504 y 0505) |
+| pending-migration-symbols | PASÓ: 0 ROJO · 6 AMARILLO, con la 0505 declarada |
 | Punta a punta con Chatwoot y el número de prueba | NO EJECUTADO: es 10.6 |
+
+## Aceptación
+
+- **10.1, 10.2 y 10.3 aceptados** por Sam el 2026-10-30 («Acepto todo», a la pregunta del Director sobre 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3). Filas del checklist en «aceptado»; avance de esta rama 18,6 % → 22,1 % (`avance-checklist`).
+- Aplicar la 0505 **no** entra en esa aceptación: requiere OK nominal de Sam al integrar.
 
 ## Pendientes de esta tarea
 
-- `pnpm verify` y sql-tests con turno del Director.
 - ~~Decisión de Sam~~: H-2 «1 año» y H-3 «30 días (Recomendado)» (2026-10-30); implementadas en la 0505 §4 y en el cron `chatwoot-reintentos`.
 - 10.4, 10.5 y 10.6.
 
