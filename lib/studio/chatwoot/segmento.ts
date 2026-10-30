@@ -59,10 +59,13 @@ export function respuestaPara(segmento: Segmento, sinTelefono: boolean, numeroCl
     };
   }
   if (segmento === "cliente") {
+    // No afirma «ya eres cliente»: el cruce es por los últimos 10 dígitos, sin
+    // código de país, y un número extranjero puede coincidir (SDD-0586, revisión
+    // de datos). Solo dice dónde atendemos a los clientes.
     return {
       tipo: "redireccion_cliente",
       texto:
-        `¡Hola! Como ya eres cliente de DTD Cargo, te atendemos por nuestro número de clientes. Escríbenos aquí: ${enlace}`,
+        `¡Hola! Gracias por escribir a DTD Cargo. A nuestros clientes los atendemos por nuestro número de clientes; escríbenos aquí y seguimos contigo: ${enlace}`,
     };
   }
   return null;

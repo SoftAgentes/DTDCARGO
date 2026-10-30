@@ -32,7 +32,13 @@ describe("segmento: respuesta del bot (SDD-0586)", () => {
     expect(respuestaPara("cliente", true, NUMERO)).toEqual(a);
     // Condicional («si ya eres cliente»): nunca afirma que lo es.
     expect(a?.texto).toContain("Si ya eres cliente");
-    expect(a?.texto).not.toContain("Como ya eres cliente");
+    expect(a?.texto).not.toBe(respuestaPara("cliente", false, NUMERO)?.texto);
+  });
+
+  it("ni la redirección afirma que la persona es cliente (el cruce no mira el código de país)", () => {
+    for (const r of [respuestaPara("cliente", false, NUMERO), respuestaPara("lead_nuevo", true, NUMERO)]) {
+      expect(r?.texto).not.toMatch(/(como|porque) ya eres cliente/i);
+    }
   });
 
   it("un solo mensaje con el enlace wa.me y un saludo codificado", () => {
