@@ -104,7 +104,8 @@ Pedido de Sam (2026-10-30): que los correos salgan «personalizados con DTD Carg
   ssh.exe root@217.216.54.70 "cd /srv/chatwoot && docker compose exec -T rails bundle exec rails runner /tmp/dtd-correo/vista-previa.rb </dev/null"
   ```
   Ya montado, se copia solo el guion (`docker compose cp correo/vista-previa.rb rails:/tmp/vista-previa.rb`) y toma las plantillas montadas.
-- **Aplicar** (con OK de Sam): copiar `correo/`, `rails/zz_dtd_correo.rb`, `marca/dtdcargo-isologo-correo.png` y `compose.yml` a `/srv/chatwoot` (antes `cp -p compose.yml compose.yml.antes-correo`), `docker compose up -d --wait` (recrea `rails` y `sidekiq`, unos 3 min sin chat), correr la vista previa con las plantillas montadas y mandar un correo de prueba a `hailuway.com@gmail.com`.
+- **Aplicar** (con OK de Sam; hecho, ver abajo): copiar `correo/`, `rails/zz_dtd_correo.rb`, `marca/dtdcargo-isologo-correo.png` y `compose.yml` a `/srv/chatwoot` (antes `cp -p compose.yml compose.yml.antes-correo`), `docker compose up -d --wait` (recrea `rails` y `sidekiq`, unos 3 min sin chat), correr la vista previa con las plantillas montadas y mandar un correo de prueba a `hailuway.com@gmail.com`.
+- **Aplicado el 2026-10-30** (registro T-45 y T-46). El `compose.yml` del VPS ya traía el cambio de SDD-0584: no se reemplazó el archivo, se le agregaron las 4 líneas después del montaje de `marca/` y se comprobó con `diff` y `config -q`. Mientras las ramas no estén juntas, en el VPS se editan líneas; no se copia el `compose.yml` de una sola rama.
 - **Vuelta atrás:** restaurar `compose.yml.antes-correo` y `docker compose up -d --wait`.
 - **Al subir de versión (E3):** comparar las plantillas nuevas de la imagen con las de `correo/views` (mismos nombres) y volver a correr la vista previa: si Chatwoot cambia los parámetros de los enlaces, hay que copiarlos.
 

@@ -105,7 +105,12 @@ Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar. Le expliqué 
   - **Vista previa en el servidor:** 14/14 PASÓ, sin enviar ni escribir nada. La página con los 14 correos está en la carpeta de notas de la sesión del programa (`correos-dtd-vista-previa.html`).
   - **Minimización:** los avisos a agentes ya no copian el nombre ni los mensajes del cliente.
   - **Estilo:** Sam eligió la estructura del diseño de Chatwoot (lo vio en una invitación real en inglés) y se rehízo así, con los colores de DTD. Hay un logo con ficha blanca para el modo oscuro (`marca/dtdcargo-isologo-correo.png`). Los avisos liquid salen de `correo/generar-avisos.sh` (T-44).
-  - **Pendiente, con OK de Sam:** aplicar en el VPS (copiar, incluido el logo nuevo de `marca/`, `compose.yml.antes-correo`, `up -d --wait` con ~3 min sin chat, vista previa con las plantillas montadas y un envío real a `hailuway.com@gmail.com`).
+  - **Aplicado el 2026-10-30** («Autorizo aplicarlos», T-45 y T-46):
+    - `up -d --wait` en 3 min, con los cinco servicios sanos;
+    - vista previa con las plantillas montadas: 14/14;
+    - correo de prueba real aceptado a las 05:55:22Z;
+    - falta que Sam confirme cómo llegó a Gmail.
+  - **Ojo al integrar:** el `compose.yml` del VPS es el de SDD-0584 (PR #331: protección de `/register`) **más** las 4 líneas del correo. Esta rama no trae el cambio de 0584, así que publicar su `compose.yml` tal cual en el VPS borraría esa protección. Hasta que las dos ramas se junten, en el VPS solo se editan líneas, nunca se reemplaza el archivo. Copia previa: `compose.yml.antes-correo`.
 - Tras las 72 h (2026-11-01 ~16:00Z): `vigilar.sh --resumen --desde 2026-10-29T15:55:00Z` → fila 1.6, con el criterio corregido (contra la línea base, no un número fijo).
 - ~~`/super_admin` con Cloudflare Access~~ hecho el 2026-10-29 («Confirmo Access»), runbook §4.1.
 - ~~Marca de DTD en Chatwoot~~ **hecha el 2026-10-29** («Autorizo la marca»): título «DTD Cargo», ícono y logos de DTD (claro y oscuro según `BRAND.md`), pantalla de entrada en español, sin «Chatwoot» visible (T-27 a T-29; runbook §6 bis). Queda en la edición CE el «Powered by Chatwoot» del widget y de los correos, y la etiqueta «E-mail» de la traducción de Chatwoot.
