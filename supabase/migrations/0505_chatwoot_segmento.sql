@@ -40,8 +40,9 @@
 -- 3. `chatwoot_contactos_bsuid`: los usuarios de WhatsApp sin teléfono (con
 --    username), por su BSUID (ID por portafolio de Meta), para vincularlos a
 --    una ficha después (10.3). Guarda solo el BSUID, la última conversación y
---    dos fechas. Retención: PENDIENTE de decisión de Sam (ver SDD-0586). La
---    lee el admin de su tenant (RLS); escribe solo service_role.
+--    dos fechas. La lee el admin de su tenant (RLS); escribe solo service_role.
+-- 4. `chatwoot_purgar_enrutamiento()`: borra los BSUID con un año sin
+--    actividad y las respuestas del bot de más de 30 días (Sam, 2026-10-30).
 --
 -- Las funciones son solo de service_role (el webhook de Chatwoot en Studio).
 set lock_timeout = '5s';
@@ -69,7 +70,8 @@ begin
   end if;
   if pg_catalog.to_regprocedure('public.chatwoot_segmento_contacto(uuid,text)') is not null
      or pg_catalog.to_regclass('public.chatwoot_respuestas_bot') is not null
-     or pg_catalog.to_regclass('public.chatwoot_contactos_bsuid') is not null then
+     or pg_catalog.to_regclass('public.chatwoot_contactos_bsuid') is not null
+     or pg_catalog.to_regprocedure('public.chatwoot_purgar_enrutamiento()') is not null then
     raise exception '0505: los objetos de segmento de Chatwoot ya existen; no se reaplica';
   end if;
 end;
@@ -272,7 +274,7 @@ create table public.chatwoot_contactos_bsuid (
 );
 
 comment on table public.chatwoot_contactos_bsuid is
-  'SDD-0586 (10.3): usuarios de WhatsApp sin teléfono, por su BSUID, para vincularlos a una ficha después. Sin nombre, teléfono ni texto. Retención pendiente de decisión de Sam. Lee el admin de su tenant; escribe solo service_role.';
+  'SDD-0586 (10.3): usuarios de WhatsApp sin teléfono, por su BSUID, para vincularlos a una ficha después. Sin nombre, teléfono ni texto. Se borra al año sin actividad (Sam, 2026-10-30). Lee el admin de su tenant; escribe solo service_role.';
 
 alter table public.chatwoot_contactos_bsuid enable row level security;
 -- RLS por tenant (pedido del Director, 2026-10-30): el admin ve los de su
@@ -302,6 +304,40 @@ $fn$;
 
 comment on function public.chatwoot_guardar_bsuid(uuid, text, bigint) is
   'SDD-0586 (10.3): guarda o actualiza el BSUID de un usuario sin teléfono. Solo service_role.';
+
+-- ─── 4. Purga por plazo (decisiones de Sam, 2026-10-30) ──────────────────────
+-- H-2: un BSUID se borra al año sin actividad («1 año»). H-3: el registro de
+-- respuestas del bot se borra a los 30 días («30 días (Recomendado)»). Como
+-- 30 días > 24 h, borrar una respuesta vieja nunca habilita una segunda dentro
+-- de la ventana. La llama el cron /api/cron/chatwoot-reintentos.
+create function public.chatwoot_purgar_enrutamiento()
+returns table (bsuid_borrados integer, respuestas_borradas integer)
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  v_bsuid      integer;
+  v_respuestas integer;
+begin
+  delete from public.chatwoot_contactos_bsuid b
+  where b.ultima_vez_at < pg_catalog.now() - interval '365 days';
+  get diagnostics v_bsuid = row_count;
+
+  delete from public.chatwoot_respuestas_bot r
+  where coalesce(r.enviada_at, r.reservada_at) < pg_catalog.now() - interval '30 days';
+  get diagnostics v_respuestas = row_count;
+
+  return query select v_bsuid, v_respuestas;
+end;
+$fn$;
+
+comment on function public.chatwoot_purgar_enrutamiento() is
+  'SDD-0586: borra los BSUID con un año sin actividad y las respuestas del bot de más de 30 días (decisiones de Sam, 2026-10-30). Solo service_role.';
+
+revoke all on function public.chatwoot_purgar_enrutamiento() from public;
+revoke all on function public.chatwoot_purgar_enrutamiento() from anon, authenticated;
+grant execute on function public.chatwoot_purgar_enrutamiento() to service_role;
 
 revoke all on function public.chatwoot_reservar_respuesta(uuid, bigint, text) from public;
 revoke all on function public.chatwoot_reservar_respuesta(uuid, bigint, text) from anon, authenticated;

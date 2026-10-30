@@ -17,14 +17,14 @@ Arrancar E10: 10.1 (función SQL del segmento), 10.2 (clasificar en el webhook d
 - **10.2:** manejador `clasificarContacto` en `MANEJADORES`. Responde primero, en 1 mensaje, una vez cada 24 h por conversación y nunca dos, con una reserva con estados (`reservada` → `enviada` | `incierta`). Después pone la etiqueta (la relee antes de escribir) y el equipo. El reproceso de 2.3 lee de Chatwoot lo que el evento no guardó.
 - **10.3:** respuesta neutra idéntica para todos y BSUID guardado en `chatwoot_contactos_bsuid`, con RLS por tenant: lee el admin y escribe solo `service_role` (condición del Director).
 - **Revisión de Codex:** 5 hallazgos (3 altos, 1 medio, 1 bajo), todos corregidos en `d4d5e18a2` con prueba y mutante. La tabla está en la spec.
-- **revisar-datos-ve** acotado al diff: 5 CORRECTO, 3 ENCONTRADO (H-1 corregido), 3 NO VERIFICABLE.
+- **revisar-datos-ve** acotado al diff: 5 CORRECTO, 3 ENCONTRADO (los tres corregidos), 3 NO VERIFICABLE.
 
 ## Validación
 
 | Comprobación | Estado |
 |---|---|
-| Contrato 0505 en PGlite: 58 aserciones, control rojo, 28 mutantes, reaplicación y preflight | PASÓ (33/33) |
-| `lib/studio/chatwoot`, webhook, cron y contratos 0503, 0504 y 0505 en PGlite (15 archivos) | PASÓ (200/200) sobre `d4d5e18a2` |
+| Contrato 0505 en PGlite: 67 aserciones, control rojo, 34 mutantes, reaplicación y preflight | PASÓ (39/39) |
+| `lib/studio/chatwoot`, webhook, cron y contratos 0503, 0504 y 0505 en PGlite (16 archivos, con la 2.4 de E2 fusionada) | PASÓ (220/220) |
 | Mutantes a mano del manejador (13), script en el scratchpad de la sesión | PASÓ: todos mueren |
 | `tsc --noEmit` del proyecto | PASÓ |
 | eslint de los archivos tocados | PASÓ |
@@ -36,7 +36,7 @@ Arrancar E10: 10.1 (función SQL del segmento), 10.2 (clasificar en el webhook d
 ## Pendientes de esta tarea
 
 - `pnpm verify` y sql-tests con turno del Director.
-- Decisión de Sam: retención del BSUID (propuesta 180 días sin vínculo) y purga de `chatwoot_respuestas_bot` (30 días).
+- ~~Decisión de Sam~~: H-2 «1 año» y H-3 «30 días (Recomendado)» (2026-10-30); implementadas en la 0505 §4 y en el cron `chatwoot-reintentos`.
 - 10.4, 10.5 y 10.6.
 
 ## FUERA DE ALCANCE DETECTADO

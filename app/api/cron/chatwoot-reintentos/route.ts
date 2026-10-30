@@ -9,6 +9,10 @@
  * intentos, espera 1, 2, 4 y 8 min y, al quinto, deja el evento «descartado»
  * (lo ve el admin en la Bandeja).
  *
+ * También purga por plazo lo de E10 (SDD-0586, decisiones de Sam del
+ * 2026-10-30): BSUID con un año sin actividad y respuestas del bot de más de
+ * 30 días (`purgarEnrutamientoChatwoot`).
+ *
  * Auth: CRON_SECRET en `Authorization: Bearer <secret>`, solo por cabecera,
  * como push-drain. Sin la 0504 responde 200 con `omitido` y no rompe.
  */
@@ -16,6 +20,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { matchesBearerSecret } from "@/lib/http/secret-compare";
+import { purgarEnrutamientoChatwoot } from "@/lib/studio/chatwoot/enrutar";
 import { reprocesarEventosChatwoot } from "@/lib/studio/chatwoot/webhook-procesar";
 
 export const dynamic = "force-dynamic";
@@ -35,8 +40,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: auth.reason }, { status: 403 });
   }
 
-  const result = await reprocesarEventosChatwoot(createAdminClient());
-  return NextResponse.json({ ok: true, ...result });
+  const admin = createAdminClient();
+  const result = await reprocesarEventosChatwoot(admin);
+  const purga = await purgarEnrutamientoChatwoot(admin);
+  return NextResponse.json({ ok: true, ...result, purga });
 }
 
 export async function POST(req: NextRequest) {

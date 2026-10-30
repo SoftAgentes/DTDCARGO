@@ -76,7 +76,7 @@ describe("SDD-0586 · 0505 segmento del contacto, respuestas del bot y BSUID (PG
   it("el contrato pasa entero con la 0505", async () => {
     const run = await contract();
     expect(run.error).toBeNull();
-    expect(run.green).toBe("TEST 0505 GREEN: 58 aserciones");
+    expect(run.green).toBe("TEST 0505 GREEN: 67 aserciones");
   }, SLOW);
 
   it("CONTROL ROJO: sin la 0505 la función no existe y el contrato cae", async () => {
@@ -206,6 +206,43 @@ describe("SDD-0586 · 0505 segmento del contacto, respuestas del bot y BSUID (PG
       "  on conflict (tenant_id, bsuid) do update\n    set conversation_id = excluded.conversation_id, ultima_vez_at = pg_catalog.now();",
       "  on conflict (tenant_id, bsuid) do update\n    set ultima_vez_at = pg_catalog.now();",
       /TEST 0505: el mismo BSUID es una fila con su última conversación/,
+    ],
+    // Plazos de Sam (2026-10-30): BSUID «1 año», respuestas «30 días (Recomendado)».
+    [
+      "BSUID a 180 días",
+      "  where b.ultima_vez_at < pg_catalog.now() - interval '365 days';",
+      "  where b.ultima_vez_at < pg_catalog.now() - interval '180 days';",
+      /TEST 0505: la purga informa cuántas filas borró/,
+    ],
+    [
+      "BSUID que nunca se purga",
+      "  where b.ultima_vez_at < pg_catalog.now() - interval '365 days';",
+      "  where b.ultima_vez_at < pg_catalog.now() - interval '3650 days';",
+      /TEST 0505: la purga informa cuántas filas borró/,
+    ],
+    [
+      "respuestas a 24 h",
+      "  where coalesce(r.enviada_at, r.reservada_at) < pg_catalog.now() - interval '30 days';",
+      "  where coalesce(r.enviada_at, r.reservada_at) < pg_catalog.now() - interval '24 hours';",
+      /TEST 0505: la purga informa cuántas filas borró/,
+    ],
+    [
+      "respuestas que nunca se purgan",
+      "  where coalesce(r.enviada_at, r.reservada_at) < pg_catalog.now() - interval '30 days';",
+      "  where coalesce(r.enviada_at, r.reservada_at) < pg_catalog.now() - interval '300 days';",
+      /TEST 0505: la purga informa cuántas filas borró/,
+    ],
+    [
+      "plazo desde la reserva",
+      "  where coalesce(r.enviada_at, r.reservada_at) < pg_catalog.now() - interval '30 days';",
+      "  where r.reservada_at < pg_catalog.now() - interval '30 days';",
+      /TEST 0505: la purga informa cuántas filas borró/,
+    ],
+    [
+      "purga abierta a authenticated",
+      "grant execute on function public.chatwoot_purgar_enrutamiento() to service_role;",
+      "grant execute on function public.chatwoot_purgar_enrutamiento() to service_role, authenticated;",
+      /TEST 0505: las funciones son solo de service_role: public.chatwoot_purgar_enrutamiento/,
     ],
     [
       "segmento abierto a authenticated",
