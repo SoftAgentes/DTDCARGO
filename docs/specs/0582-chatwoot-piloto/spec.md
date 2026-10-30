@@ -322,12 +322,13 @@ El procesador del webhook registra el evento primero y, si un manejador falla, s
 
 ## Allowlist de esta SDD
 
-- `docs/specs/0582-chatwoot-piloto/{spec.md,checklist.md,instrucciones-ia.md,investigacion-2026-10-28.md,investigacion-2026-10-29-e0.md,e0-guias.md}`
+- `docs/specs/0582-chatwoot-piloto/{spec.md,checklist.md,instrucciones-ia.md,investigacion-2026-10-28.md,investigacion-2026-10-29-e0.md,e0-guias.md,guia-guion.md}`
 - `docs/specs/README.md` (índice regenerado)
 - `scripts/avance-checklist.mjs`
 - `scripts/__tests__/avance-checklist.test.mjs`
 - `.agents/handoffs/0582-chatwoot-piloto.md`
 - `.agents/handoffs/0582-e0-preparacion.md`
+- `.agents/handoffs/0582-e9-guion.md`
 
 El código del producto y la infraestructura se allowlistan en la SDD hija de cada etapa.
 
@@ -349,6 +350,7 @@ El código del producto y la infraestructura se allowlistan en la SDD hija de ca
 
   Las decisiones del piloto anterior (máquina, ruta 2A/2B y dueño de la WABA) pasan a los pasos 0.2 y 0.3. La ruta queda fijada como «compartir el número API».
 - **2026-10-29 (E0):** decisiones de 0.2 en el [registro E0](investigacion-2026-10-29-e0.md): máquina = VPS actual del ERP (cambia G), Sam admin + 1 agente, tope del bot de US$25 al mes y «analiza mi contestación» en la IA de Kommo. Guías de 0.3–0.7 en [`e0-guias.md`](e0-guias.md). El DNS de `dtdcargo.com` está en Cloudflare, no en Hostinger.
+- **2026-10-29 (E9):** guion de la guía (9.1) entregado en [`guia-guion.md`](guia-guion.md) y aceptado por Sam el mismo día («Acepto todo»). Sus preguntas abiertas pasan a 9.2–9.6 y no bloquean la aceptación.
 - **2026-10-29 (E0, tarde):** Sam aprobó («Apruebo todo», 2026-10-29) dejar el número en «Importador de China», la cuenta de mensajes propia de Chatwoot con plantillas y pago propios, y la vuelta atrás de 0.3. Se corrigieron la decisión B y las prohibiciones.
 - **2026-10-29 (línea base v2):** Sam aprobó el plan v3 del Director («aprobación del plan v3 del Director, 2026-10-29»): dos números, regla de segmentos, E10 y n8n fuera del enrutamiento. Alcance 99,75 → 109,25 días; avance en la rama de E0 5,0 % → 4,6 %, y con las aceptaciones de las otras ramas 7,8 % → 7,1 %. La regla de «cliente» queda para 0.8.
 - **2026-10-29 (línea base v3):** Sam aprobó el análisis comparativo del Director («aprobación del análisis comparativo del Director, 2026-10-29»). Alcance 109,25 → 115,5 días (114,5 sin el 2.8 opcional). Avance en la rama de E0 4,6 % → 4,3 %, y con las otras ramas 7,1 % → 6,7 %. Se corrigen el costo de Meta (cobro desde el 2026-10-01) y la guía del PIN. 0.8 suma dos decisiones y la 2.3 no se acepta hasta arreglar la idempotencia.
