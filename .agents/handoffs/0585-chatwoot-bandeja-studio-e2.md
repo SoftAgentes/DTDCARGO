@@ -321,3 +321,44 @@ Decisión del Director (2026-10-30): **no se registra ahora**. La URL `https://d
 ### FUERA DE ALCANCE DETECTADO (2.4)
 
 - `getClientAccountState` (`lib/studio/client-queries.ts:801`, SDD-0558) registra `e.message` de PostgREST cuando falla el conteo de embarques. No se midió si ese mensaje puede llevar valores. Es código compartido de la ficha y no se tocó.
+
+---
+
+# Paso 2.5 — ciclo de vida de los agentes: Usuarios, cron y salud (entregado, 2026-10-30)
+
+Lo pidió el Director el 2026-10-30, en la misma rama. No hay migración. El trabajo se cortó con el reinicio de la PC (14:02Z) y se retomó sin descartar nada. El detalle está en SDD-0585 §«Paso 2.5» (E2-D36 a E2-D43).
+
+**Qué quedó:**
+- **Alta:** Bandeja › Vínculos › «Dar de alta» (`altaAgente`). Crea o adopta el agente por la Platform API, lo mete en la cuenta como agente y lo vincula. Solo para quien ve la Bandeja.
+- **Baja:**
+  - en Usuarios, al desactivar o cambiar el rol, en ese momento (`sincronizarAgenteDeUsuario`);
+  - en el cron diario `/api/cron/chatwoot-agentes`, a las 12:30 UTC, como red.
+
+  Nunca saca al usuario de servicio ni al último admin humano. Si Chatwoot no responde no hay baja: el vínculo queda y se reintenta.
+- **Salud:**
+  - alertas: Chatwoot no responde, cuenta **sin admin humano**, falta `CHATWOOT_SERVICE_USER_ID`, vínculos fuera de la cuenta y baja bloqueada;
+  - se ve en Bandeja › Vínculos;
+  - el cron avisa por push a los admins.
+- **Runbook:** `docs/runbooks/chatwoot-agentes.md`.
+
+**Validación** (puntual, porque E10 tiene el próximo turno de verify):
+- tsc y eslint PASÓ.
+- 1021 pruebas afectadas PASÓ, en 51 archivos.
+- `entorno-prueba-scripts` 2/2.
+- 17/17 mutantes muertos.
+- `pending-migration-symbols` 0 ROJO · 5 AMARILLO.
+- `build-crontab --check` (22 crons) y `check-rsc-boundary` PASÓ.
+- `pnpm verify` completo **NO EJECUTADO**: va después de E10 y E6, con turno del Director.
+
+**Puertas de integración del 2.5** (cada una con su OK):
+- El merge a `main` suma al crontab del VPS `30 12 * * * … /api/cron/chatwoot-agentes`. Sin la 0503 responde `omitido`; con la 0503 y sin `CHATWOOT_SERVICE_USER_ID`, alerta «falta configurar el usuario de servicio».
+- Cargar `CHATWOOT_SERVICE_USER_ID` en el `.env` del VPS. El valor está en `/srv/chatwoot/secretos/platform-app.env`.
+- La primera corrida en producción puede dar de baja a un agente vinculado si su usuario de Studio ya no ve la Bandeja. Conviene revisar los vínculos antes.
+
+**Pendiente de esta tarea:**
+- **AUD-01:** auditar en `entity_audit_log` el alta y la baja del vínculo. Necesita migración; el número se pidió al Director el 2026-10-30 y no llegó.
+
+### FUERA DE ALCANCE DETECTADO (2.5)
+
+- La baja no borra el usuario de Chatwoot (nombre y correo del empleado), a propósito, para conservar la asignación de sus conversaciones. Falta un plazo de borrado (`DELETE platform/api/v1/users/{id}`), para decidir en 2.6 o 2.7 con Sam. Es el ENCONTRADO de revisar-datos-ve.
+- Vitest toma el filtro de ruta como expresión regular: con `(app)` sin escapar, quedan archivos afuera en silencio. La validación puntual del 2.4 pudo contar de menos; el verify completo sobre `cf755a7a6` la cubre.

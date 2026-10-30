@@ -51,7 +51,7 @@ En el WebKit de Playwright (indicador de Safari) pasan el iframe y el SSO. Firef
 | 2.2 | CSP y `Permissions-Policy` de la ruta (E2-D2), módulo, RBAC, flag, i18n, vínculos, `lib/studio/chatwoot`, SSO (E2-D5), capa persistente, página y `signOut` | aceptado (Sam, 2026-10-30: «Acepto todo») |
 | 2.3 | Contador, webhook con push y tarjeta en la ficha | aceptado (Sam, 2026-10-30: «Acepto todo»), con el verify de `d714834be` registrado: FALLÓ solo por rojos heredados, unas 50 e2e NO EJECUTADAS (la corrida se colgó) y migrations-applied NO DISPONIBLE |
 | 2.4 | Dashboard App «Ficha DTD» | entregado (2026-10-30), sin registrar en el Chatwoot del VPS |
-| 2.5 | Ciclo de vida de los agentes: Usuarios, cron y salud | pendiente |
+| 2.5 | Ciclo de vida de los agentes: Usuarios, cron y salud | entregado (2026-10-30); AUD-01 pendiente de número de migración |
 | 2.6 | revisar-datos-ve, `/ui-check`, QA de navegadores (incluye Firefox y Safari reales) y runbook | pendiente |
 | 2.7 | Usuarios y permisos: matriz real de CE, sincronización, pruebas por usuario y revocación del SSO | pendiente |
 
@@ -136,7 +136,7 @@ Decisión del Director (2026-10-29): el 2.2 queda **entregado** con este verify.
 |---|---|---|
 | BTN-01 / AVS-01 | cumplimiento | Desvincular pasa por el `ConfirmDialog` canónico con `danger`; los botones son `studio-btn` (`VinculosAdmin.tsx`) |
 | CMP-01 | cumplimiento | `EmptyState`, `ActionButton`, `ConfirmDialog` y `ErrorAlert`; ningún consumidor nuevo de un `deprecated`; `components:check` PASÓ |
-| AUD-01 | **no conformidad, pendiente** | Crear o borrar un vínculo es una mutación con peso de seguridad (decide como quién entra el SSO) y hoy no deja evento en `entity_audit_log`. Queda para 2.5 (ciclo de vida de los agentes), con su propia migración y OK |
+| AUD-01 | **no conformidad, pendiente** | Crear o borrar un vínculo es una mutación con peso de seguridad (decide como quién entra el SSO) y hoy no deja evento en `entity_audit_log`. Queda para 2.5 (ciclo de vida de los agentes), con su propia migración y OK. **2.5 entregado sin ella:** el número se pidió al Director el 2026-10-30 y sigue pendiente |
 | IA-01 | no aplica | La Bandeja no llama a ningún modelo |
 | Datos personales | cumplimiento parcial; revisión formal en 2.6 | La tabla guarda solo ids. El correo del usuario se lee con `service_role` solo para compararlo y no se guarda ni se registra. El enlace de SSO (que lleva el correo) no se registra ni pasa por la URL de Studio |
 
@@ -399,6 +399,108 @@ Estados de la skill: ENCONTRADO, CORRECTO y NO VERIFICABLE.
 | **Logs compartidos de la cuenta** | NO VERIFICABLE | `getClientAccountState` (`lib/studio/client-queries.ts:801`, SDD-0558) registra `e.message` de PostgREST cuando falla el conteo. El contenido de ese mensaje no se midió aquí. Es código existente de la ficha y no se tocó |
 | **Otras Dashboard Apps en Chatwoot** | NO VERIFICABLE | Chatwoot manda el mismo contexto, con datos del contacto, a **toda** Dashboard App registrada (`postMessage` con `"*"`). Que no haya otras depende de la configuración del Chatwoot del VPS, que no se revisó |
 | **Retención** | CORRECTO | El paso no persiste nada nuevo. La retención de `chatwoot_conversations` sigue ENCONTRADA desde el 2.3, a decidir en 2.6 o E3 |
+
+## Paso 2.5 — ciclo de vida de los agentes: Usuarios, cron y salud
+
+Lo pidió el Director el 2026-10-30, en la misma rama y sin pausar. El pedido incluye lo que se encontró ese día en el VPS:
+- el superadmin no pertenece a ninguna cuenta;
+- el único admin de la cuenta 1 era la cuenta de servicio `servicio-chatwoot@dtdcargo.com`, hasta que se creó `vzla@dtdcargo.com` (usuario 3, administrator);
+- la salud tiene que alertar si la cuenta queda sin ningún admin humano.
+
+**Sin migración.** AUD-01 (auditar el vínculo) sí necesita una, y el número ya se le pidió al Director: queda **pendiente**. Nada se ejecutó contra el Chatwoot del VPS.
+
+### Lo que permite la Platform API de 4.19.1 (evidencia C, imagen `chatwoot/chatwoot:v4.19.1-ce`)
+
+- **Rutas** (`config/routes.rb`, namespace `:platform`):
+  - `users`: `create`, `show`, `update`, `destroy`, más `login` y `token`;
+  - `accounts/{id}/account_users`: `index`, `create` y un `destroy` de colección con `user_id`.
+- **Quién la puede usar:** la cuenta 1 la creó la Platform App (E1), así que es permisible. Por eso las tres de `account_users` sirven para **cualquier** usuario de la cuenta (`account_users_controller.rb`: `validate_platform_app_permissible` sobre la cuenta). `GET users/{id}` solo sirve para usuarios que creó o adoptó la app: `vzla@` no lo es, así que su correo no se puede leer.
+- **Qué devuelve `account_users#index`:** los `AccountUser`, con `user_id` y `role` (`agent` o `administrator`) y sin correos.
+- **Cómo crea usuarios** (`users#create`): adopta un usuario existente por correo (`User.from_email`) y salta la confirmación. La clave pasa por `password_has_required_content` (devise-secure_password): mayúscula, minúscula, número y signo.
+- **No hay revocación de sesiones** (E2-D13). Sacar a alguien de la cuenta le corta el acceso a **esa** cuenta: Chatwoot autoriza cada pedido contra `Current.account`.
+
+### Diseño
+
+| ID | Decisión |
+|---|---|
+| E2-D36 | **Alta desde Studio** (`altaAgente`, solo admin, en Bandeja › Vínculos). Recibe un miembro activo del tenant del admin cuyo rol, con los overrides de ese tenant, ve la Bandeja. Los pasos:<br>1. crea o adopta su usuario de Chatwoot con el nombre y el correo de Studio y una clave aleatoria de 32 caracteres que nadie usa (entra por SSO) y no se guarda;<br>2. lo mete en la cuenta como `agent`;<br>3. guarda el vínculo.<br>El rol `administrator` en Chatwoot es de la matriz (2.7). |
+| E2-D37 | **Candados del alta:**<br>- **Sin la 0503:** si la lectura de vínculos falla, responde «service» **antes** de tocar Chatwoot. Crear el agente y no poder guardar el vínculo lo dejaría en la cuenta sin dueño.<br>- **Agente de otra persona:** si el usuario adoptado ya está vinculado a otra persona, responde «duplicate» sin meterlo en la cuenta. |
+| E2-D38 | **Baja** (`sincronizarAgentes`). Un vínculo sobra si su usuario de Studio está desactivado, ya no es del tenant o perdió la Bandeja (rol u override). Los pasos:<br>1. se saca al agente de la cuenta (`DELETE account_users`);<br>2. si eso salió bien, o si ya no estaba en la cuenta, se borra el vínculo.<br>El usuario de Chatwoot **no se borra**: sus conversaciones conservan a quién estuvieron asignadas. |
+| E2-D39 | **Lo que nunca sale de la cuenta** (`bloqueoDeBaja`):<br>- el usuario de servicio (`CHATWOOT_SERVICE_USER_ID`);<br>- el **último admin humano**: el vínculo queda y la salud avisa «baja bloqueada». Sin el id de servicio, se cuenta a todos los demás admins, que es lo conservador.<br>**Si Chatwoot no responde no hay baja:** sin la lista de la cuenta no se puede comprobar el candado, y borrar solo el vínculo dejaría al agente adentro sin que nada lo vuelva a mirar. |
+| E2-D40 | **Desde Usuarios, al momento:** `disableUserAction` y `changeUserRoleAction` llaman a `sincronizarAgenteDeUsuario` **después** de confirmar, solo para ese usuario y en el tenant de Chatwoot (`CHATWOOT_TENANT_ID`). Nunca lanza ni cambia el resultado de Usuarios. |
+| E2-D41 | **Cron diario** `/api/cron/chatwoot-agentes`, a las 12:30 UTC (08:30 en Caracas), en `vercel.json` y en el crontab del VPS:<br>- con Bearer `CRON_SECRET`, sincroniza a todos los vínculos y es la red para lo que Usuarios no vio (un override, un fallo de Chatwoot en ese momento);<br>- sin configuración, sin tenant o sin la 0503, responde 200 `omitido`;<br>- la respuesta lleva solo conteos y códigos de alerta. |
+| E2-D42 | **Salud** (`evaluarSalud`). La calcula el cron y la página de la Bandeja para el admin, con estas alertas:<br>- `chatwoot_no_responde`;<br>- `sin_admin_humano`: ningún `administrator` de la cuenta además del de servicio, que es el caso del VPS antes de `vzla@`;<br>- `servicio_sin_configurar`: falta `CHATWOOT_SERVICE_USER_ID` y no se pueden contar humanos;<br>- `vinculo_fuera_de_cuenta`: el SSO entraría a una cuenta vacía;<br>- `baja_bloqueada`.<br>El superadmin no cuenta porque no es `AccountUser`. |
+| E2-D43 | **Aviso:** con alertas, el cron manda un push a cada admin activo del tenant (`tag: chatwoot-salud`). El cuerpo dice solo qué revisar, sin nombres, correos ni ids de Studio. |
+
+### Allowlist exacta (paso 2.5)
+
+- **Platform API y configuración:** `lib/studio/chatwoot/{platform-api.ts,config.ts}`; `lib/studio/chatwoot/__tests__/platform-agentes.test.ts`.
+- **Reglas y ciclo:** `lib/studio/chatwoot/{agentes-salud.ts,agentes-ciclo.ts,agentes-usuario.ts}`; `lib/studio/chatwoot/__tests__/{agentes-salud.test.ts,agentes-ciclo.test.ts,agentes-usuario.test.ts}`.
+- **Cron:** `app/api/cron/chatwoot-agentes/{route.ts,__tests__/route.test.ts}`; `vercel.json`; `infra/dtd-cargo/cron/crontab` (regenerado, 22); `scripts/__tests__/build-crontab.test.ts` (20 → 21).
+- **Bandeja:** `app/studio/(app)/bandeja/{actions.ts,page.tsx}`; `app/studio/(app)/bandeja/_components/{VinculosAdmin.tsx,BandejaClient.tsx}`; `app/studio/(app)/bandeja/__tests__/{alta-agente.test.ts,VinculosAdmin.test.tsx,BandejaClient.test.tsx}`.
+- **Usuarios:** `app/studio/(app)/usuarios/actions.ts`, solo las dos llamadas después de confirmar; `app/studio/(app)/usuarios/__tests__/baja-chatwoot.test.ts`.
+- **Textos:** `lib/i18n/{es-VE,zh-CN}/bandeja.ts`.
+- **Entorno:** `.env.example` e `infra/dtd-cargo/.env.example` (`CHATWOOT_SERVICE_USER_ID`).
+- **Contratos:**
+  - `lib/studio/rbac-actions-guard.test.ts` (inventario 449 → 450);
+  - `supabase/pending-migration-symbol-declarations.json`: sitios nuevos de `chatwoot_agent_links` y su degradación sin la 0503.
+- **Documentos:**
+  - `docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md`;
+  - `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 2.5);
+  - `.agents/handoffs/0585-chatwoot-bandeja-studio-e2.md`;
+  - `docs/runbooks/chatwoot-agentes.md`.
+
+### Aceptación del paso 2.5
+
+1. **Platform API:** forma de las cuatro llamadas, una clave con los cuatro tipos aunque el azar salga en ceros, solo el id en la respuesta y ningún fallo que lance.
+2. **Reglas:**
+   - el servicio nunca se saca;
+   - el último admin humano nunca se saca, aunque el de servicio siga siendo admin;
+   - el caso del VPS da `sin_admin_humano`.
+3. **Ciclo:**
+   - se da de baja al desactivado, al que salió del tenant y al que perdió la Bandeja por override;
+   - el override de otro tenant no cuenta;
+   - si Chatwoot no responde, no hay baja;
+   - si sacarlo falla, el vínculo queda;
+   - solo se borra el vínculo del tenant y del usuario;
+   - el push va a los admins activos, sin datos personales.
+4. **Alta:** casos de denied, invalid, not_member, `sin_bandeja`, duplicate (también el agente de otra persona) y «service» sin la 0503 sin crear nada. Los logs no llevan el correo.
+5. **Usuarios:** solo después de confirmar; un fallo de Chatwoot no cambia el resultado.
+6. **Cron:** 403 sin secreto, `omitido` sin configuración o sin la 0503, conteos y alertas.
+7. **Cierre:** pruebas afectadas, tsc, eslint y mutantes. El `pnpm verify` completo, con turno del Director después de E10 y E6.
+
+### Validación del paso 2.5 — 2026-10-30, puntual
+
+| Comprobación | Resultado |
+|---|---|
+| `tsc --noEmit` y `eslint` sobre lo tocado | PASÓ |
+| Vitest afectado: Bandeja, Usuarios, Ficha DTD, `lib/studio/chatwoot`, cron, `rbac-actions-guard` (450), `rbac-view-guard`, `build-crontab`, `app/studio/_components/__tests__`, `lib/runtime/__tests__` y `proxy-matcher-contract` | PASÓ: 51 archivos, 1021 pruebas |
+| `scripts/__tests__/entorno-prueba-scripts.test.mjs`, que lee `infra/dtd-cargo/.env.example` | PASÓ: 2/2, en 180 s |
+| `pending-migration-symbols` | PASÓ: 0 ROJO · 5 AMARILLO |
+| `build-crontab --check` y `check-rsc-boundary` | PASÓ: 22 crons |
+| **Rojo primero** | Las pruebas de Usuarios fallaron 2/4 antes de los ganchos |
+| **Rojos propios hallados en el camino, ya corregidos** | Dos:<br>- `BandejaClient.test.tsx` mockeaba `../actions` sin `altaAgente`, y además había dos selects con «Luis»; ahora la consulta se acota al formulario de vincular;<br>- sin la 0503, `altaAgente` habría creado el agente antes de fallar al guardar el vínculo (E2-D37) |
+| **Mutantes** (17) | 17 muertos. «Clave sin signo» sobrevivió primero porque el resto de la clave trae un signo por azar; se agregó la prueba con el azar en ceros |
+| `/ui-check` (inline) | OK. Tokens del sistema, el texto de las alertas además del color y el patrón de formulario de Vínculos |
+| `pnpm verify` completo | **NO EJECUTADO**: va después de E10 y E6, con turno del Director |
+| AUD-01 (auditoría del vínculo) | **PENDIENTE**: necesita una migración, y el número se pidió al Director el 2026-10-30 |
+
+**Nota sobre la validación del 2.4:** Vitest toma el filtro de ruta como expresión regular, y `(app)` es un grupo. La cuenta de «43 archivos» del 2.4 pudo dejar archivos afuera. La cobertura completa la dio el `pnpm verify` sobre `cf755a7a6`, que corrió las 13473 pruebas. Desde el 2.5 el filtro va sin paréntesis (`bandeja/__tests__`).
+
+### Datos personales del paso 2.5 (revisar-datos-ve, alcance del cambio)
+
+Estados de la skill: ENCONTRADO, CORRECTO y NO VERIFICABLE.
+
+| Punto | Estado | Evidencia |
+|---|---|---|
+| **Comunicación a un tercero** | CORRECTO | El alta manda a Chatwoot el nombre y el correo del **empleado** de Studio (`app/studio/(app)/bandeja/actions.ts:261`). Chatwoot está autohospedado en el mismo VPS (E1) y la finalidad es que la persona atienda. Solo pasa cuando el admin lo decide (`:211`) y la persona ve la Bandeja (`:238`) |
+| **Clave** | CORRECTO | Aleatoria, sin registro ni respuesta (`lib/studio/chatwoot/platform-api.ts:202` y `:224`); el agente entra por SSO |
+| **Logs** | CORRECTO | `[bandeja]` y `[chatwoot-agentes]` llevan solo códigos (`actions.ts:263` y `:278`; `agentes-ciclo.ts:87`, `:126` y `:139`). Lo prueba `alta-agente.test.ts` («los logs no llevan el correo») |
+| **Aviso push** | CORRECTO | El cuerpo dice qué revisar, sin nombres, correos ni ids (`agentes-ciclo.ts:173`) |
+| **Retención en Chatwoot tras la baja** | **ENCONTRADO** | La baja saca al agente de la cuenta pero **no borra** su usuario de Chatwoot (nombre y correo), a propósito: sus conversaciones conservan la asignación (E2-D38, `agentes-ciclo.ts:124`). Hace falta un plazo para borrarlo (`DELETE platform/api/v1/users/{id}`); se decide en 2.6 o 2.7 con Sam |
+| **Acceso tras la baja** | CORRECTO, con un límite | Sale de la cuenta (`agentes-ciclo.ts:124`) y Chatwoot le corta el acceso a ella. La sesión del panel no se revoca (E2-D13), pero ya no ve la cuenta |
+| **Admin humano** | CORRECTO | `bloqueoDeBaja` nunca saca al último (`agentes-salud.ts:69`) y la salud alerta (`:92`) |
+| **Usuarios de la cuenta creados fuera de Studio** (como `vzla@`) | NO VERIFICABLE | La Platform API no deja leer su correo, porque no son permisibles para la app. Studio solo ve su id y su rol |
 
 ## Fuera de alcance del paso 2.1
 
