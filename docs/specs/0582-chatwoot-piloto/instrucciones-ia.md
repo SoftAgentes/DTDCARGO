@@ -31,7 +31,7 @@ Este documento sirve para cualquier agente de programación que tome un paso del
 - no borrarlo;
 - nada de `/deregister`;
 - nada de Embedded Signup sobre el principal;
-- nada de una 2.ª cuenta de mensajería en el mismo usuario del sistema;
+- nada de una 2.ª cuenta de WhatsApp para el número ni de moverlo de portfolio; Chatwoot tiene exactamente una cuenta de mensajes propia (spec, decisión B);
 - no reintentar `/register`;
 - no crear la bandeja del número principal sin 4.2 probado y 0.3 aprobado.
 
@@ -64,7 +64,7 @@ Este documento sirve para cualquier agente de programación que tome un paso del
 3. **Correr** `node scripts/avance-checklist.mjs docs/specs/0582-chatwoot-piloto/checklist.md`.
 4. **Reportar con este formato exacto:**
 
-   `Etapa N de 10 · <nombre> · paso <ID> · Avance X % (falta Y %) · Esfuerzo: real R d, restante D d · Fecha probable <rango> · Esperando: … · Necesito de ti: …`
+   `Etapa N de 11 · <nombre> · paso <ID> · Avance X % (falta Y %) · Esfuerzo: real R d, restante D d · Fecha probable <rango> · Esperando: … · Necesito de ti: …`
 5. **Validación por check:** PASÓ, FALLÓ, NO EJECUTADO o NO DISPONIBLE. El cierre de producto es `pnpm verify`; para cambios solo de docs, `docs:check` y `sdd:check`.
 6. **Handoff** en `.agents/handoffs/`, con los pendientes de la tarea separados de **FUERA DE ALCANCE DETECTADO**.
 
