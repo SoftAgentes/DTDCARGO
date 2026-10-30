@@ -153,7 +153,7 @@ Sam lo aprobó al aprobar el plan del Director en la app; no hay frase literal, 
 ### Redirección sin IA
 
 - **El bot no usa IA.** Dentro de la ventana de 24 h, al cliente que escribe al número de leads le contesta con un texto y un enlace `wa.me/<número de clientes>?text=…` (10.2).
-- Que esa respuesta no se cobre dentro de la ventana de servicio queda **NV**; se comprueba en 4.3 o 4.9.
+- ~~Que esa respuesta no se cobre dentro de la ventana de servicio~~: **refutado en la v3**. Desde el 2026-10-01 cuenta contra el cupo de 1.000 mensajes de servicio gratis al mes del número (ver «Cambio de alcance v3»).
 - **Botón CTA URL:** Meta documenta el mensaje interactivo `cta_url` (**D**, V2-3). Que Chatwoot lo envíe está **NV**, así que el enlace va en el texto.
 - **Usuario con username y sin teléfono (BSUID):** el bot no pide códigos ni teléfono. Contesta lo mismo a todos, «si ya eres cliente, escríbenos aquí», y guarda el BSUID (10.3). Así no revela si un número o un código existe. (Diseño, **I**.)
 - **No se le escribe al cliente desde el número de clientes.** Un mensaje iniciado por la empresa exige una plantilla pagada y consentimiento previo, y con el enlace basta, porque lo inicia el cliente (**I**: regla general de Meta, sin fuente leída en esta tarea).
@@ -188,10 +188,86 @@ Sam lo aprobó al aprobar el plan del Director en la app; no hay frase literal, 
 - 10.4 va al final, con el número nuevo vivo.
 - E10 se reserva como SDD hija con `sdd:next --reserve` cuando arranque, después de 2.3.
 
+## Cambio de alcance v3 (2026-10-29)
+
+Sam aprobó el análisis comparativo del Director: el video y el kit de Basdonax, la guía de Meta en .docx, la calculadora de WhatsApp, el contraplan de Codex y el costo por chat. No hay frase literal, así que se registra como «aprobación del análisis comparativo del Director, 2026-10-29». La línea base pasa de **v2, 109,25 días** a **v3, 115,5 días** (**114,5 sin el 2.8 opcional**). La evidencia está en el [registro E0](investigacion-2026-10-29-e0.md#línea-base-v3--fuentes-2026-10-29), filas V3-1 a V3-12. Etiquetas: **C** código, **D** documentación de un proveedor o fuente leída, **I** inferencia, **NV** no verificado.
+
+### Pasos que cambian
+
+| Paso | Cambio | Días |
+|---|---|---:|
+| 0.8 | Dos decisiones más de Sam: bot con 1 o 3 globos por respuesta, y qué pasa cuando un cliente pierde su único envío vivo | +0,25 |
+| 2.3 | Acción pendiente durable en la misma transacción que el evento, con reintento recuperable; tope de tamaño del cuerpo; reconciliación recuperable | +1,5 |
+| 2.6 | Pruebas de caída del webhook | +0,5 |
+| 2.8 | **Opcional, nuevo.** Costo de referencia por chat en la Ficha DTD, sin migración | +1 |
+| 4.3 | Salida: si en 1 día no hay ida y vuelta con Chatwoot, se adelanta 4.9 | 0 |
+| 4.9 | Guía propia de alta corregida, ID nuevo en la lista protegida de 4.2, alarma del cupo de 1.000 y fallas de entrega | +0,75 |
+| 6.7 | Revisar con su costo los «Ping 23 h» | +0,25 |
+| 7.5 | Matriz de foto, audio, PDF y formato desconocido | +0,5 |
+| 7.6 | Frenos del bot con estado durable y falla cerrada; costo de la IA por llamada | +0,75 |
+| 7.7 | «Resolver» calla al bot y la opción «solo el primer mensaje» | +0,25 |
+| 7.9 | Pruebas de reinicio de los frenos y de pase a humano por formato | +0,5 |
+| **Total** | | **+6,25** |
+
+El análisis agrupa los +5,25 días por bloques (2.3/2.6, 4.1/4.3/4.9, 0.8/4.3/4.9/6.7, 7.6/7.9, 7.7 y 7.5/7.9). **El reparto por fila es de esta tarea (I)**: suma lo mismo y se puede mover dentro de cada bloque con una línea base nueva.
+
+### Corrección del supuesto de costos de Meta
+
+- **Desde el 2026-10-01, Meta cobra las respuestas.** Cada número tiene **1.000 mensajes de servicio entregados gratis al mes**; no se acumulan, y después se cobra cada mensaje según el mercado de quien recibe (**D**, V3-1). La frase «dentro de la ventana de 24 h la respuesta es gratis» (V2-14) **queda refutada** a partir de los 1.000 al mes.
+- **Mercado:** se cobra por el código de país del destinatario, y **Venezuela (+58) está en «Resto de Latinoamérica»** (**D**, V3-1).
+- **Tarifa de referencia: US$0,0113 por mensaje** para Resto de Latinoamérica, del tarifario de Meta de **enero de 2026** (copia de un BSP) y de la calculadora (**D**, V3-2). **La tarifa vigente desde octubre de 2026 es NV:** la página de precios remite a tablas en CSV y PDF que no se leyeron.
+- Cuenta **cada mensaje que sale del número**, lo escriba una persona o el bot (**D**, V3-1, según el análisis). El tope de US$25 al mes de la IA (E0-D3) no incluye a Meta.
+- **Impacto:**
+  - **E10 (10.2):** la respuesta de redirección cuenta contra el cupo de 1.000 del número de leads. Con dos números hay dos cupos (**I**).
+  - **E7:** el costo del bot es IA + Meta. Con 3 globos por respuesta se triplican los mensajes cobrables; lo decide Sam en 0.8.
+  - **6.7:** cada «Ping 23 h» que se reemplace ahora puede costar; se revisa con su costo.
+- **Orden de magnitud (I, con la tarifa de enero):** con ~1.960 respuestas al mes por WhatsApp (X-4 y X-5), ≈ US$11 al mes con 1 globo y ≈ US$55 con 3, antes de contar el segundo cupo.
+
+### Corrección de la guía del PIN
+
+- El `pin` de `/register` es el **PIN de verificación en dos pasos, de 6 dígitos**, no el código del SMS. Si el número no tiene uno, el que se envía queda como PIN nuevo (**D**, V3-3).
+- Meta limita `register` a **10 intentos por número en una ventana móvil de 72 h**; al pasarse da el error 133016 y bloquea el registro 72 h (**D**, V3-3).
+- Para 4.9: el PIN lo elige DTD, va en la nota cifrada y nunca en Git. Para el número principal no cambia nada: `/register` sigue prohibido (decisión B y 4.2).
+
+### Qué adoptamos del kit y qué no
+
+**Se adopta, con estado durable y no en memoria:**
+- frenos del bot: ráfagas, tope por conversación en 24 h, recortes de entrada y salida, y pase a humano si algo falla (7.6). El kit los tiene en memoria del proceso y se pierden al reiniciar (**D**, V3-5);
+- «resolver» calla al bot y «solo el primer mensaje» (7.7) (**D**, V3-5);
+- **falla cerrada**, al revés que el kit: ante la duda, `dtd-bot` no envía y pasa a humano (**D** sobre el kit, V3-6; **I** como regla nuestra);
+- fotos, audios y PDF con un proveedor aprobado, sin OpenAI, o pase a humano (7.5).
+
+**Se rechaza:**
+- **token sin vencimiento con todos los permisos**, guardado «donde quieras» y enviado en la URL (**D**, V3-7). Va por cabecera, con permisos mínimos y en la nota cifrada;
+- **Postgres expuesto a internet** (**D**, V3-7);
+- **acceso root** para el agente que despliega, en modo «bypass» (**D**, V3-7);
+- **OpenAI para los audios**: el kit lo obliga, y OpenAI y Anthropic no listan a Venezuela (**D**, V3-8);
+- **n8n para enrutar**: ya decidido en la v2. El kit tampoco lo usa, y su memoria aparte sería una tercera copia de datos personales (**D** sobre el kit, V3-5; **I** el impacto);
+- logs con los primeros 200 caracteres de cada mensaje (**D**, V3-5): va contra 1.7 y revisar-datos-ve.
+
+**Se confirma sin cambios:** Chatwoot v4.19.1 sí firma sus webhooks (`X-Chatwoot-Signature`), contra lo que dice el README del kit. Nuestra 2.3 ya lo verifica (**C** de Chatwoot, V3-9).
+
+### Decisiones nuevas en 0.8
+
+- **Bot con 1 o 3 globos por respuesta.** Cambia el costo de Meta (ver arriba).
+- **Cliente que pierde su único envío vivo** (cancelado o borrado): con la regla de la v2 vuelve a lead y le cambian el embudo y el número. Sam decide si eso pasa así o si se queda como cliente (**I**, V3-10).
+
+### 2.3: no se acepta hasta arreglar la idempotencia
+
+El procesador del webhook registra el evento primero y, si un manejador falla, solo deja un aviso y responde «procesado». Si Chatwoot reintenta, el duplicado se descarta y la acción se pierde (**C**, rama `codex/0582-e2-poc`, V3-11). Para el push da igual; para E10 no, porque un cliente podría quedarse sin su redirección. E2 lo está corrigiendo con una acción pendiente durable en la misma transacción. **La 2.3 no se acepta hasta ese arreglo.**
+
+### 2.8 opcional: costo de referencia por chat
+
+- En la Ficha DTD: «N mensajes enviados × tarifa = US$X», con la fecha y la fuente de la tarifa. Aclara que no descuenta los 1.000 gratis ni las plantillas.
+- Cuenta los salientes de la conversación por la API de Chatwoot en el momento, sin guardarlos. La tarifa es configuración con fecha y fuente.
+- Sin migración, sin tablas, sin tocar Meta y sin guardar texto ni teléfonos. Va después de 2.4.
+- Va en Studio y no en un fork de Chatwoot, porque v4.19.1 descarta el detalle de cobro que manda Meta (**C** de Chatwoot, V3-12).
+- La medición conciliada (unos 4 días) y el «portero» de Codex delante de Chatwoot quedan para **después del 100 %**.
+
 ## Metodología de avance
 
 - **Fórmula:** `avance = Σ días base de pasos aceptados ÷ Σ días base del alcance aprobado`, y **falta = 100 − avance**. Unidad: persona-día de 8 h.
-- **Línea base versionada.** La v1 del 2026-10-28 son 99,75 días en 10 etapas. La **v2 del 2026-10-29** son 109,25 días en 11 etapas (ver «Cambio de alcance v2»). Cada cambio de alcance crea una versión nueva y muestra el % antes y después.
+- **Línea base versionada.** La v1 del 2026-10-28 son 99,75 días en 10 etapas. La **v2 del 2026-10-29** son 109,25 días en 11 etapas (ver «Cambio de alcance v2»). La **v3 del mismo día** son 115,5 días, o 114,5 sin el 2.8 opcional (ver «Cambio de alcance v3»). Cada cambio de alcance crea una versión nueva y muestra el % antes y después.
 - **Esfuerzo aparte.** El real y el restante reestimado se informan aparte y no mueven el %. Las esperas pesan 0 y bloquean.
 - **Estados:** `pendiente`, `en curso`, `entregado`, `aceptado`, `bloqueado`, `espera externa` y `descartado`. Solo `aceptado` suma.
 - **Cálculo:** `node scripts/avance-checklist.mjs docs/specs/0582-chatwoot-piloto/checklist.md`.
@@ -242,3 +318,4 @@ El código del producto y la infraestructura se allowlistan en la SDD hija de ca
 - **2026-10-29 (E0):** decisiones de 0.2 en el [registro E0](investigacion-2026-10-29-e0.md): máquina = VPS actual del ERP (cambia G), Sam admin + 1 agente, tope del bot de US$25 al mes y «analiza mi contestación» en la IA de Kommo. Guías de 0.3–0.7 en [`e0-guias.md`](e0-guias.md). El DNS de `dtdcargo.com` está en Cloudflare, no en Hostinger.
 - **2026-10-29 (E0, tarde):** Sam aprobó («Apruebo todo», 2026-10-29) dejar el número en «Importador de China», la cuenta de mensajes propia de Chatwoot con plantillas y pago propios, y la vuelta atrás de 0.3. Se corrigieron la decisión B y las prohibiciones.
 - **2026-10-29 (línea base v2):** Sam aprobó el plan v3 del Director («aprobación del plan v3 del Director, 2026-10-29»): dos números, regla de segmentos, E10 y n8n fuera del enrutamiento. Alcance 99,75 → 109,25 días; avance en la rama de E0 5,0 % → 4,6 %, y con las aceptaciones de las otras ramas 7,8 % → 7,1 %. La regla de «cliente» queda para 0.8.
+- **2026-10-29 (línea base v3):** Sam aprobó el análisis comparativo del Director («aprobación del análisis comparativo del Director, 2026-10-29»). Alcance 109,25 → 115,5 días (114,5 sin el 2.8 opcional). Avance en la rama de E0 4,6 % → 4,3 %, y con las otras ramas 7,1 % → 6,7 %. Se corrigen el costo de Meta (cobro desde el 2026-10-01) y la guía del PIN. 0.8 suma dos decisiones y la 2.3 no se acepta hasta arreglar la idempotencia.
