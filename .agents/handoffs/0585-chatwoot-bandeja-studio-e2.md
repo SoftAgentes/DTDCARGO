@@ -399,3 +399,73 @@ Lo pidió el Director el 2026-10-30, solo con pruebas puntuales. Detalle en SDD-
 - **La prueba de «otro origen»** del e2e afirma una ausencia: también daría verde si la página no cargara por otro motivo. La prueba fuerte es la de las cabeceras, del mismo spec.
 
 **Corrección posterior (2.6):** el verify de E3, apilado sobre esta rama, encontró que `e2e/ficha-chat.spec.ts` no estaba en el inventario de specs que necesitan Supabase (`scripts/tests/verify-e2e-sin-supabase.node.mjs`). Ya está, y las cuentas de casos y omisiones salen del inventario, sin números fijos. La prueba del script pasa 15/15, con control rojo.
+
+---
+
+# Paso 2.7 — matriz, cierre del acceso directo, cierre forzado, token y purga (entregado, 2026-10-30)
+
+Lo pidió el Director el 2026-10-30, con las decisiones de Sam tomadas por selector ese mismo día:
+- «Apruebo la matriz (Recomendado)»;
+- «Sí, cerrarla (Recomendado)»;
+- «Sí, manda Studio (Recomendado)»;
+- «Quiero cierre forzado».
+
+**Propuesta del Director sin objeción de Sam** (no es un OK nominal): rotar el token y los plazos de 90 días y 12 meses. Detalle en SDD-0585 §«Paso 2.7» (E2-D44 a E2-D50).
+
+**Migración 0508**, provisional: el Director dijo que es la siguiente libre. El número se le pidió por mensaje, pero el mensaje no llegó a tiempo. Si asigna otro, hay que renombrar:
+- el archivo y su contrato;
+- la clave del baseline;
+- la declaración `sdd-0585-chatwoot-bajas`.
+
+**Qué quedó:**
+- **Matriz** en el cron diario y después de cada cambio en Usuarios o en la Bandeja:
+  - admin → `administrator` con todo;
+  - comercial → Leads;
+  - atención → Clientes.
+
+  Studio corrige roles, bandejas y equipos hechos a mano. Nunca toca la cuenta de servicio ni degrada al último admin humano.
+- **Acceso directo:** clave aleatoria en cada alta y en cada vínculo manual, salvo a un admin de Studio, que conserva su entrada de respaldo.
+- **Lo que CE 4.19.1 no permite:** apagar «olvidé mi clave» por rol. La alternativa es una regla de Traefik contra `POST /auth/password`, y su riesgo está en el runbook de agentes.
+- **Cierre forzado en la baja, del lado del servidor:**
+  1. SSO propio;
+  2. clave nueva, con lo que queda solo esa sesión;
+  3. borrado de todas las sesiones por la API de perfil;
+  4. comprobación de que no quede ninguna;
+  5. token de API rotado y comprobado.
+
+  Si falla, la baja queda pendiente y la salud avisa.
+- **Salida de Studio:** `/studio/cerrar-chat`, con el script del panel en `infra/chatwoot/panel/dashboard-scripts.html`.
+- **0508:** `chatwoot_agent_bajas` y la purga en el cron `chatwoot-reintentos`, con el patrón de E10:
+  - eventos, a los 90 días;
+  - conversaciones, a los 12 meses;
+  - usuario de Chatwoot de la baja, a los 12 meses.
+- **revisar-datos-ve del cambio:** cierra los dos ENCONTRADO de retención del 2.6. Queda NO VERIFICABLE qué hace `DeleteObjectJob` con las conversaciones del usuario borrado.
+
+**Puertas de integración nuevas** (cada una con OK de Sam; el runbook de agentes dice cómo):
+1. aplicar la 0508, después de la 0504;
+2. cargar en el `.env` del VPS los ids de la bandeja y el equipo Clientes, y los de Leads en el corte;
+3. pegar el script del panel en el Super Admin (`DASHBOARD_SCRIPTS`) y probarlo con una agente de prueba;
+4. la regla de Traefik contra «olvidé mi clave» (E1).
+
+**Validación:**
+- 980/980 pruebas afectadas;
+- 0508 en PGlite: 12 aserciones y 8/8 mutantes;
+- 33/33 mutantes de TypeScript (2 vivos en la primera vuelta, ahora con prueba);
+- tsc y eslint;
+- `pending-migration-symbols` 0 ROJO · 6 AMARILLO;
+- `migrations-lock` PASÓ;
+- el cierre contra un Chatwoot real: NO EJECUTADO;
+- `pnpm verify` completo: NO EJECUTADO, falta el turno.
+
+**Impacto documental:**
+- SDD-0585 §«Paso 2.7»; la propuesta quedó marcada como aprobada;
+- E2-D13 queda corregido: sí hay revocación del lado del servidor;
+- checklist, fila 2.7;
+- `docs/runbooks/chatwoot-agentes.md`, reescrito con la matriz, el cierre, las puertas y los plazos;
+- `docs/runbooks/chatwoot-bandeja.md`: la 0508, las variables y el script en «Encender», y los plazos en «Apagar».
+
+### FUERA DE ALCANCE DETECTADO (2.7)
+
+- **E10 tocará el mismo cron.** E10 (`codex/0582-e10-enrutamiento`) agrega su purga a `app/api/cron/chatwoot-reintentos/route.ts` y a su prueba. Al traer esta rama va a tener un conflicto chico ahí: hay que dejar las tres purgas (`purga`, `purgaBandeja` y `purgaBajas`). En los dos `.env.example`, E10 también declara `CHATWOOT_INBOX_LEADS_ID` y los equipos: hay que dejar una sola copia.
+- **El origen de Studio está fijo en el script del panel** (`https://dtdcargo.com` y `www`). Si Studio cambia de dominio, hay que editar el script y volver a pegarlo.
+- **rack-attack:** 5 entradas por IP cada 5 minutos. Todos los contenedores del VPS salen por la misma IP (NAT de Docker). Con más de 5 bajas juntas, los cierres que sobran quedan para el día siguiente.

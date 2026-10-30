@@ -9,6 +9,11 @@
  * intentos, espera 1, 2, 4 y 8 min y, al quinto, deja el evento «descartado»
  * (lo ve el admin en la Bandeja).
  *
+ * También purga por plazo lo de la Bandeja (SDD-0585, 2.7; propuesta del
+ * Director sin objeción de Sam, 2026-10-30): eventos de más de 90 días,
+ * conversaciones sin actividad en 12 meses y el usuario de Chatwoot de un
+ * agente dado de baja hace más de 12 meses. Sin la 0508 responde `omitido`.
+ *
  * Auth: CRON_SECRET en `Authorization: Bearer <secret>`, solo por cabecera,
  * como push-drain. Sin la 0504 responde 200 con `omitido` y no rompe.
  */
@@ -16,6 +21,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { matchesBearerSecret } from "@/lib/http/secret-compare";
+import { chatwootConfig, chatwootServicioUserId } from "@/lib/studio/chatwoot/config";
+import { purgarBajasVencidas, purgarBandejaChatwoot } from "@/lib/studio/chatwoot/purga";
 import { reprocesarEventosChatwoot } from "@/lib/studio/chatwoot/webhook-procesar";
 
 export const dynamic = "force-dynamic";
@@ -35,8 +42,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: auth.reason }, { status: 403 });
   }
 
-  const result = await reprocesarEventosChatwoot(createAdminClient());
-  return NextResponse.json({ ok: true, ...result });
+  const admin = createAdminClient();
+  const result = await reprocesarEventosChatwoot(admin);
+  const purgaBandeja = await purgarBandejaChatwoot(admin);
+  const purgaBajas = await purgarBajasVencidas(admin, chatwootConfig(), chatwootServicioUserId());
+  return NextResponse.json({ ok: true, ...result, purgaBandeja, purgaBajas });
 }
 
 export async function POST(req: NextRequest) {

@@ -45,6 +45,12 @@ describe("proxy · Ficha DTD sin sesión (E2-D29)", () => {
     expect(destino(await pedir("/studio/ficha-chat"))).toBeNull();
   });
 
+  it("2.7 · /studio/cerrar-chat (salida de Studio) pasa sin sesión; sus vecinas no", async () => {
+    expect(destino(await pedir("/studio/cerrar-chat"))).toBeNull();
+    expect(destino(await pedir("/studio/cerrar-chat/otra"))).toBe("/studio/login");
+    expect(destino(await pedir("/studio/cerrar-chats"))).toBe("/studio/login");
+  });
+
   it("el login sigue igual: con sesión manda al resumen", async () => {
     m.user = { id: "20000000-0000-4000-8000-000000000003" };
     expect(destino(await pedir("/studio/login"))).toBe("/studio/resumen");

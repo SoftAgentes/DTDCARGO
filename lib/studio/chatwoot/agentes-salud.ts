@@ -13,6 +13,7 @@
  *    agentes que ya no están en la cuenta (el SSO entraría a una cuenta vacía).
  */
 
+import type { StudioUserRole } from "@/lib/studio/user-types";
 import type { ChatwootError } from "./chatwoot-types";
 import type { MiembroCuenta } from "./platform-api";
 
@@ -20,6 +21,8 @@ export interface EstadoMiembroStudio {
   userId: string;
   activo: boolean;
   puedeBandeja: boolean;
+  /** Para la matriz del 2.7. */
+  rol?: StudioUserRole;
 }
 
 export interface VinculoAgente {
@@ -34,7 +37,10 @@ export type AlertaSalud =
   | "sin_admin_humano"
   | "servicio_sin_configurar"
   | "vinculo_fuera_de_cuenta"
-  | "baja_bloqueada";
+  | "baja_bloqueada"
+  | "cierre_pendiente"
+  | "degradacion_bloqueada"
+  | "matriz_incompleta";
 
 export interface SaludBandeja {
   alertas: AlertaSalud[];

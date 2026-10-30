@@ -3,6 +3,10 @@
  * SDD-0585 · paso 2.5 · `altaAgente`: el admin da de alta en Chatwoot a un
  * usuario de Studio. Crea (o adopta por correo) el usuario de Chatwoot, lo mete
  * en la cuenta como agente y guarda el vínculo. El doble APLICA los filtros.
+ *
+ * Paso 2.7: el rol de la cuenta sale de la matriz, cada alta que no es de un
+ * admin pone una clave aleatoria (cierre del acceso directo), y una baja vieja
+ * del mismo agente se borra.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -13,9 +17,11 @@ function doble(tablas: Tablas, opciones: { errorInsert?: { code: string }; sinTa
   const inserts: { tabla: string; fila: Fila }[] = [];
   const from = (tabla: string) => {
     const filtros: ((f: Fila) => boolean)[] = [];
+    let modo: "select" | "delete" = "select";
     const filas = () => (tablas[tabla] ?? []).filter((f) => filtros.every((p) => p(f)));
     const builder = {
       select: () => builder,
+      delete: () => ((modo = "delete"), builder),
       eq: (col: string, v: unknown) => (filtros.push((f) => f[col] === v), builder),
       is: (col: string, v: unknown) => (filtros.push((f) => (f[col] ?? null) === v), builder),
       maybeSingle: async () =>
@@ -26,7 +32,14 @@ function doble(tablas: Tablas, opciones: { errorInsert?: { code: string }; sinTa
         (tablas[tabla] ??= []).push(fila);
         return { error: null };
       },
-      then: (r: (v: { data: Fila[]; error: null }) => unknown) => Promise.resolve(r({ data: filas(), error: null })),
+      then: (r: (v: { data: Fila[] | null; error: null }) => unknown) => {
+        if (modo === "delete") {
+          const quitar = new Set(filas());
+          tablas[tabla] = (tablas[tabla] ?? []).filter((f) => !quitar.has(f));
+          return Promise.resolve(r({ data: null, error: null }));
+        }
+        return Promise.resolve(r({ data: filas(), error: null }));
+      },
     };
     return builder;
   };
@@ -38,6 +51,7 @@ const T2 = "10000000-0000-4000-8000-000000000002";
 const SAM = "20000000-0000-4000-8000-000000000001";
 const ANA = "20000000-0000-4000-8000-000000000003";
 const OPE = "20000000-0000-4000-8000-000000000006";
+const LUZ = "20000000-0000-4000-8000-000000000007";
 const CFG = { origin: "https://chat.ejemplo.test", token: "tok", accountId: 1 };
 
 const m = vi.hoisted(() => ({
@@ -47,6 +61,9 @@ const m = vi.hoisted(() => ({
   cfg: null as unknown,
   crear: vi.fn(),
   agregar: vi.fn(),
+  clave: vi.fn(),
+  sincronizar: vi.fn(),
+  orden: [] as string[],
   revalidate: vi.fn(),
   correos: {} as Record<string, string>,
 }));
@@ -66,7 +83,9 @@ vi.mock("@/lib/studio/chatwoot/platform-api", () => ({
   obtenerTokenAgente: vi.fn(),
   crearAgente: m.crear,
   agregarACuenta: m.agregar,
+  fijarClaveAleatoria: m.clave,
 }));
+vi.mock("@/lib/studio/chatwoot/agentes-usuario", () => ({ sincronizarAgenteDeUsuario: m.sincronizar }));
 vi.mock("@/lib/studio/chatwoot/account-api", () => ({ listarConversacionesRecientes: vi.fn(), obtenerConversacion: vi.fn() }));
 vi.mock("@/lib/studio/chatwoot/webhook-procesar", () => ({ aplicarConversacion: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ set: vi.fn() }) }));
@@ -86,11 +105,17 @@ function tablasBase(): Tablas {
     user_tenants: [
       { tenant_id: T1, user_id: ANA, role: "commercial", disabled_at: null },
       { tenant_id: T1, user_id: OPE, role: "operations", disabled_at: null },
+      { tenant_id: T1, user_id: LUZ, role: "admin", disabled_at: null },
       { tenant_id: T2, user_id: "20000000-0000-4000-8000-000000000009", role: "commercial", disabled_at: null },
     ],
     user_profiles: [{ user_id: ANA, first_name: "Ana", last_name: "Sintética" }],
     studio_role_module_overrides: [],
     chatwoot_agent_links: [{ tenant_id: T1, user_id: SAM, chatwoot_user_id: 3 }],
+    chatwoot_agent_bajas: [
+      { tenant_id: T1, chatwoot_user_id: 7 },
+      { tenant_id: T2, chatwoot_user_id: 7 },
+      { tenant_id: T1, chatwoot_user_id: 8 },
+    ],
   };
 }
 
@@ -111,9 +136,12 @@ beforeEach(() => {
   m.sesion = doble(tablas);
   m.gate = { ok: true, tenantId: T1, userId: SAM, role: "admin" };
   m.cfg = CFG;
-  m.correos = { [ANA]: "ana@example.test", [OPE]: "ope@example.test" };
+  m.correos = { [ANA]: "ana@example.test", [OPE]: "ope@example.test", [LUZ]: "luz@example.test" };
+  m.orden = [];
   m.crear.mockResolvedValue({ ok: true, data: 7 });
-  m.agregar.mockResolvedValue({ ok: true, data: null });
+  m.agregar.mockImplementation(async () => (m.orden.push("agregar"), { ok: true, data: null }));
+  m.clave.mockImplementation(async () => (m.orden.push("clave"), { ok: true, data: null }));
+  m.sincronizar.mockResolvedValue(undefined);
 });
 
 describe("altaAgente (SDD-0585, 2.5)", () => {
@@ -143,7 +171,7 @@ describe("altaAgente (SDD-0585, 2.5)", () => {
   it("alta completa: crea con nombre y correo de Studio, mete como agente y guarda el vínculo", async () => {
     expect(await altaAgente(INICIAL, form({ user_id: ANA }))).toEqual({ ok: true, error: null });
     expect(m.crear).toHaveBeenCalledWith({ nombre: "Ana Sintética", correo: "ana@example.test" }, CFG);
-    expect(m.agregar).toHaveBeenCalledWith(7, CFG);
+    expect(m.agregar).toHaveBeenCalledWith(7, CFG, "agent");
     expect(tablas.chatwoot_agent_links).toContainEqual({ tenant_id: T1, user_id: ANA, chatwoot_user_id: 7, created_by: SAM });
     expect(m.revalidate).toHaveBeenCalledWith("/studio/bandeja");
   });
@@ -166,6 +194,35 @@ describe("altaAgente (SDD-0585, 2.5)", () => {
     m.agregar.mockResolvedValueOnce({ ok: false, error: "red" });
     expect(await altaAgente(INICIAL, form({ user_id: ANA }))).toEqual({ ok: false, error: "service" });
     expect(tablas.chatwoot_agent_links.some((v) => v.user_id === ANA)).toBe(false);
+  });
+
+  it("2.7 · cierra el acceso directo: clave aleatoria ANTES de meterlo en la cuenta", async () => {
+    await altaAgente(INICIAL, form({ user_id: ANA }));
+    expect(m.clave).toHaveBeenCalledWith(7, CFG);
+    expect(m.orden).toEqual(["clave", "agregar"]);
+  });
+
+  it("2.7 · si la clave no se puede cambiar: service, sin meterlo en la cuenta ni vincularlo", async () => {
+    m.clave.mockResolvedValueOnce({ ok: false, error: "no_autorizado" });
+    expect(await altaAgente(INICIAL, form({ user_id: ANA }))).toEqual({ ok: false, error: "service" });
+    expect(m.agregar).not.toHaveBeenCalled();
+    expect(tablas.chatwoot_agent_links.some((v) => v.user_id === ANA)).toBe(false);
+  });
+
+  it("2.7 · un admin de Studio entra como administrator y conserva su clave (entrada de respaldo)", async () => {
+    m.crear.mockResolvedValueOnce({ ok: true, data: 11 });
+    expect(await altaAgente(INICIAL, form({ user_id: LUZ }))).toEqual({ ok: true, error: null });
+    expect(m.agregar).toHaveBeenCalledWith(11, CFG, "administrator");
+    expect(m.clave).not.toHaveBeenCalled();
+  });
+
+  it("2.7 · borra SOLO la baja vieja de ese agente en el tenant y aplica la matriz", async () => {
+    await altaAgente(INICIAL, form({ user_id: ANA }));
+    expect(tablas.chatwoot_agent_bajas).toEqual([
+      { tenant_id: T2, chatwoot_user_id: 7 },
+      { tenant_id: T1, chatwoot_user_id: 8 },
+    ]);
+    expect(m.sincronizar).toHaveBeenCalledWith(ANA);
   });
 
   it("sin correo en Auth: not_member", async () => {
