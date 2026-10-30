@@ -43,6 +43,36 @@ Las rutas llegan a Chatwoot y Traefik no hay que tocarlo.
 - `https://dtdcargo.com/privacidad` y `/terminos` responden 200. Son las URL que piden la App
   Review de Meta y la app de TikTok.
 
+## P0: página e Instagram del portafolio (R, Business Suite, 2026-10-30, solo lectura)
+
+Sam inició sesión en Facebook en el navegador integrado y yo solo leí. Aquí no van nombres de
+personas ni IDs.
+- **Página de Facebook: una sola, «Importador de China»** (página principal de la empresa).
+  - Es del portafolio «Importador de China».
+  - Tiene 2 personas con acceso total, una de ellas Sam, y 1 con acceso parcial: el perfil de
+    Instagram, con «Mensajes y llamadas».
+  - Tiene 1 activo conectado: el Instagram `@importadechinaavzla`.
+  - Seguidores en Facebook: 4.
+- **Instagram: un solo perfil en el portafolio, `@importadechinaavzla`.**
+  - Es propiedad de «Importador de China».
+  - Sam tiene acceso parcial, que incluye Mensajes.
+  - Business Suite pide «Es necesario que inicies sesión» en Instagram para ver las demás
+    configuraciones.
+  - Seguidores: 16.
+- **`@dtdcargo.ve`, el Instagram que enlaza dtdcargo.com, no está en el portafolio.** No se
+  puede saber desde aquí si es cuenta profesional ni quién la administra (NV). El portafolio
+  tampoco tiene ninguna página de Facebook «DTD Cargo».
+
+**Decisión para Sam (P0-b): qué cuentas se conectan a Chatwoot.**
+- *Opción 1:* `@dtdcargo.ve`, la marca pública del sitio, y una página de Facebook de DTD, que
+  hoy no existe. Instagram Business Login no exige que la cuenta esté en el portafolio, pero sí
+  que sea profesional. Sam tiene que poder iniciar sesión con ella.
+- *Opción 2:* conectar los que ya están en el portafolio, la página «Importador de China» y
+  `@importadechinaavzla`. Es el camino sin pasos previos, pero no es la marca que ve el cliente
+  en el sitio.
+
+Se pueden conectar los dos juegos (I).
+
 ## 4.4 Messenger: acceso, permisos y demostración
 
 **Acceso de Meta (D, documentación de Meta y de Chatwoot):**
@@ -176,7 +206,7 @@ evidencia», con la respuesta de TikTok. El costo es cero, porque Chatwoot ya tr
 
 | Puerta | Quién | Qué | ¿Escribe? |
 |---|---|---|---|
-| P0 | Sam (yo leo) | En Business Suite → Configuración → Cuentas: qué **página de Facebook** de DTD hay, de qué portafolio es y con qué rol está Sam; si `@dtdcargo.ve` está en «Cuentas de Instagram» y si es profesional. El navegador integrado no tiene sesión de Meta y Claude in Chrome no estaba conectado | No |
+| P0 | Sam (yo leo) | **Hecha** el 2026-10-30: ver la sección «P0». Queda la decisión P0-b, qué cuentas se conectan, y saber si `@dtdcargo.ve` es profesional | No |
 | P1 | Sam | En TikTok: si `@dtdcargo.ve` es Business Account y si acepta DM de todos | No |
 | P2 | Sam, con OK | En la app Whats DTD: agregar los productos **Messenger** e **Instagram API with Instagram Login**; dominio `chat.dtdcargo.com`; Facebook Login for Business con `https://chat.dtdcargo.com` | Meta |
 | P3 | Sam, con OK | Cargar en Chatwoot `FB_APP_ID`, `FB_APP_SECRET`, `FB_VERIFY_TOKEN` y los tres de Instagram. Hay dos formas: Sam los pega en `/super_admin/app_config` (detrás de Access), o un guion `read -rs` que los guarda con `rails runner` sin mostrarlos. Los verify tokens los genera el guion | Chatwoot |
