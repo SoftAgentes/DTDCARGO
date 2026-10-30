@@ -39,6 +39,8 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 
 ## Autorizaciones registradas
 
+- Enmienda del 0.8, 2026-10-30: Sam, «este whatapp va ser para cliente y el numero viejo paraleeds y leed registrados con numero de markbox» (texto que pasó el Director). Cubre escribir el nuevo reparto en la spec y el checklist; no cubre tocar Meta, Kommo ni Chatwoot.
+
 - 0.8, 2026-10-30: Sam respondió por el selector de la app; el Director pasó las respuestas literales: «¿Cuenta como cliente quien ya tiene carga recibida en China, aunque todavía no tenga envío creado?» → «Sí cuenta (Recomendado)»; «Si a un cliente le cancelan o borran su único envío, ¿qué pasa?» → «Vuelve a lead (Recomendado)»; «¿El bot responde con 1 mensaje o con 3?» → «1 mensaje (Recomendado)». Cubre aceptar 0.8 y escribir la regla. No cubre la migración de 10.1, que tiene su propio OK.
 
 - Línea base v3, 2026-10-29: Sam aprobó el análisis comparativo del Director (video y kit de Basdonax, guía de Meta, calculadora, contraplan de Codex y costo por chat). No hay frase literal; se registra como «aprobación del análisis comparativo del Director, 2026-10-29» (texto que pasó el Director). Cubre escribir la v3 en el checklist y la spec. Las decisiones nuevas de 0.8 y el 2.8 opcional siguen pendientes de Sam.
@@ -193,6 +195,13 @@ Por etapa:
   E9 Guía interactiva «Antes en Kommo → Ahora aquí» (termina antes de 8.1): 0 de 9 d (0,0 %)
   E10 Enrutamiento por segmento (SDD hija nueva; se reserva al arrancar, después de 2.3): 0 de 7,25 d (0,0 %)
 ```
+
+## Enmienda del 0.8: reparto de números (2026-10-30)
+
+- **Clientes → número nuevo** (termina en 5202), cuenta «DTD Cargo Clientes», en Chatwoot. **Leads nuevos y registrados → número viejo** (termina en 8021), que sigue en Kommo hasta 4.5 / E8.
+- Quedaron escritas (a) la web sin cambio y 10.4 reducido al portal; (b) 10.2 en automático solo con el viejo en Chatwoot, y antes aviso por portal, mensaje y equipo; (c) vigilar el escalado del tope inicial del número nuevo (en 4.9); (d) E10 solo intercambia configuración.
+- **Sin el número completo ni el ID de la cuenta en Git**, por la regla de no subir valores de Meta. Van los últimos dígitos y una huella sha256 corta del ID; los valores completos, en la nota cifrada. El número viejo ya es público en el repo (`.env.example`), pero se cita por la constante.
+- Días y % sin cambio (4,76 % en esta rama).
 
 ## Validación
 
