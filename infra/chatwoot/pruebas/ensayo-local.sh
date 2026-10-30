@@ -3,6 +3,8 @@
 # Nunca en el VPS. Solo datos sintéticos. Es una corrida pesada: una a la vez.
 #
 # Fases y comprobaciones (cada una imprime PASÓ o FALLÓ):
+#   U  U1 pruebas unitarias del verificador de Access con node --test (sin Docker;
+#      ni `pnpm test` ni `verify` las corren)
 #   A  control SIN redacción: los datos sintéticos TIENEN que aparecer en los logs
 #   B  stack real:
 #      C1 GET /api → versión 4.19.1           C5 access log: whoami sí, Chatwoot no
@@ -113,6 +115,13 @@ trap limpiar EXIT
 
 # ── Preparación ──────────────────────────────────────────────────────────────
 log "== ensayo local E1 · $(date -u +%Y-%m-%dT%H:%M:%SZ) · trabajo $TRABAJO"
+
+# ── U. Pruebas unitarias del verificador (node:test, sin Docker) ─────────────
+# Se llama .node-test.mjs para que vitest no la tome; este es el paso que la corre.
+log "== U. pruebas unitarias del verificador de Access"
+node --test --test-reporter=tap "$(cd "$ORIGEN/cf-access" && pwd -W 2>/dev/null || pwd)/verificador.node-test.mjs" >"$TRABAJO/verificador-unitarias.txt" 2>&1
+check U1 $? "node --test cf-access/verificador.node-test.mjs: $(grep -E '^# (pass|fail) ' "$TRABAJO/verificador-unitarias.txt" | tr '\n' ' ')"
+
 docker build -q -t dtd-age:local - >/dev/null <<'EOF'
 FROM alpine:3.22
 RUN apk add --no-cache age

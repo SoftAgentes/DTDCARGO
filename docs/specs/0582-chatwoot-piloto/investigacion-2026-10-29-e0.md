@@ -209,3 +209,43 @@ Consecuencias:
 | Resto de E7 | 13,5 | 13,5 | Sin evidencia nueva |
 
 Los días base no cambian: cambiar el peso exige la línea base v2 y el OK de Sam. Lo de arriba solo mueve «Días restantes».
+
+## Línea base v2 — fuentes y verificación del código (2026-10-29)
+
+Base del plan v3 del Director, aprobado por Sam («aprobación del plan v3 del Director, 2026-10-29»). Las citas de código se leyeron en `main` `ec5786bb8`. Las fuentes externas se abrieron el 2026-10-29. No se copian teléfonos, IDs de Meta ni datos de clientes.
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| V2-1 | El BSUID es un ID de usuario estable y único **por portafolio**; un mismo usuario tiene un BSUID distinto en cada portafolio. Con un username, el teléfono se omite de los webhooks salvo excepciones (Contact Book y caché de 30 días por número). Fechas: BSUID en webhooks entre marzo y abril de 2026, envío a BSUID desde inicios de julio de 2026 y disponibilidad general en el 2.º semestre de 2026. La guía no dice si otro número del mismo portafolio puede escribir por BSUID | [360dialog, «Usernames»](https://docs.360dialog.com/docs/alpha-usernames) | D (BSP); el «solo el mismo portafolio» es I |
+| V2-2 | Meta describe los BSUID como «scoped to a business portfolio and user»; el flujo de usernames puede omitir el teléfono en los eventos | [ChatArchitect, «Business-scoped user IDs»](https://support.chatarchitect.com/books/meta-whatsapp/page/business-scoped-user-ids-developer-documentation) | D (BSP) |
+| V2-3 | Meta documenta el mensaje interactivo `cta_url`, que asocia una URL a un botón. La página no habla de la ventana de servicio ni de plantillas | [Meta, «Interactive CTA URL messages»](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/interactive-cta-url-messages/) | D; que Chatwoot lo envíe es NV |
+| V2-4 | `decideRoute` devuelve «cliente» para cualquier fila de `clients` encontrada por contacto o por teléfono; no mira envíos | `supabase/functions/_shared/kommo-router.ts:85-111` | C |
+| V2-5 | `clients.phone_last10` es una columna generada; solo tiene índices no únicos, y más de un candidato da «ambiguo» | `supabase/migrations/0383_clients_phone_last10_y_vinculo.sql:64-80,84`; `0342_kommo_contact_link.sql:52`; `kommo-router.ts:108-110` | C |
+| V2-6 | `shipments.client_markbox` es texto (`DTD-XXXX`, sin FK); `client_outstanding` se define en la 0492; `warehouse_receipts_cn` existe | `supabase/migrations/0002_shipments.sql:36`; `0492_client_outstanding.sql:215`; `0008_warehouses_cn.sql:52` | C |
+| V2-7 | `conversations.client_id` es FK a `clients`; `conversation_messages` no tiene `client_id` y se liga por `conversation_id`. **Corrige el plan v3**, que decía que las dos lo llevaban | `supabase/migrations/0106_conversaciones.sql:15,45` | C |
+| V2-8 | El portal llama a `notifyConversationInbound` después de guardar el mensaje | `app/portal/(app)/mensajes/actions.ts:45` | C |
+| V2-9 | El número público sale de `CONTACT.ve.whatsapp` / `whatsappRaw` (líneas 245-246; el plan decía 244) y `buildWhatsAppLink` (146-149). `git grep -l buildWhatsAppLink` da 44 archivos fuera de pruebas (el plan decía «unos 41»). `FichaF2.tsx:69` lo tiene escrito a mano | `lib/design-tokens.ts:146-149,245-246`; `components/servicios/FichaF2.tsx:69` | C |
+| V2-10 | El portal identifica al cliente con `get_portal_client_id()` | `supabase/migrations/0080_portal_cliente.sql:40` | C |
+| V2-11 | La 0143 es la base del motor «N8N-lite» de Studio | `supabase/migrations/0143_workflow_engine.sql:4` | C |
+| V2-12 | La alerta de Meta «Datos restringidos» es informativa; la causa probable es la regla del DOJ de EE. UU. sobre «países de preocupación» | Plan v3 del Director; no se leyó fuente | I |
+| V2-13 | n8n guarda por defecto los datos de cada ejecución | Plan v3 del Director; no se contrastó con la documentación de n8n | I |
+| V2-14 | Respuesta gratis dentro de la ventana de 24 h y tope bajo inicial de mensajes del número nuevo | Plan v3 del Director | Respuesta gratis: **refutada por V3-1** (D) a partir de 1.000 al mes por número. Tope inicial: NV (4.9) |
+
+## Línea base v3 — fuentes (2026-10-29)
+
+Base: el análisis comparativo del Director, aprobado por Sam («aprobación del análisis comparativo del Director, 2026-10-29»). Ese análisis vive en las notas compartidas de la sesión, fuera de Git. Esta tarea leyó otra vez dos páginas de Meta (V3-1 y V3-3); lo demás se copia del análisis y dice quién lo leyó. No se copian teléfonos, tokens ni datos de clientes.
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| V3-1 | Desde las 0:00 del 2026-10-01, en la zona horaria de la cuenta de mensajes, Meta vuelve a cobrar los mensajes de servicio. Cada número tiene 1.000 mensajes de servicio entregados gratis al mes; no se acumulan y no hay cupo por WABA. El mercado es el código de país del destinatario y «Venezuela (VE) - 58» está en «Rest of Latin America». La página no trae tarifas: remite a tablas en CSV y PDF | [Meta, «Pricing»](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing), leída en esta tarea el 2026-10-29 | D. **Refuta V2-14** a partir de los 1.000 al mes |
+| V3-2 | Tarifa de referencia para Resto de Latinoamérica: US$0,0113 por mensaje, del tarifario de enero de 2026 y de la calculadora. La de octubre de 2026 no se pudo leer | [Copia del tarifario de enero de 2026 (Gupshup)](https://www.gupshup.ai/resources/wp-content/uploads/2025/12/USD_Jan2026.pdf) y [calculadora](https://github.com/fcori47/calculadora-whatsapp), leídas por el análisis | D (enero); **NV** (octubre) |
+| V3-3 | El `pin` de `register` es el PIN de verificación en dos pasos, de 6 dígitos; si no hay uno, el enviado queda como PIN nuevo. Límite: 10 solicitudes por número en una ventana móvil de 72 h (error 133016) | [Meta, «Registration»](https://developers.facebook.com/docs/whatsapp/cloud-api/reference/registration), leída en esta tarea el 2026-10-29 | D |
+| V3-4 | La guía en .docx del video pone el código del SMS en el `pin`, invita a repetir `register` y pasa el token en la URL | Guía de Meta 2026 (.docx de Sam), leída por el análisis | D |
+| V3-5 | Kit de Basdonax 1.1 (`c540ec6f`, MIT): frenos de ráfagas, tope por conversación, recortes, 1 o 3 globos y opciones de traspaso, todo en memoria del proceso; memoria del agente en su propio Postgres; registra 200 caracteres de cada mensaje; no usa n8n | [Repo `basdonax-ai-agentkit`](https://github.com/fcori47/basdonax-ai-agentkit): `frenos.py:11-15`, `webhook.py:321`, README, leídos por el análisis | D |
+| V3-6 | El kit «falla abierto»: si no logra consultar a Chatwoot, contesta igual | `src/agente/canales/chatwoot.py` (`lo_agarro_otro`), leído por Codex | D |
+| V3-7 | El video usa un token sin vencimiento con todos los permisos, guardado «donde quieras»; Postgres público por el 5432; MCP de Coolify con acceso root y el agente en «bypass permissions» | [Video `pwwgu9qhNUk`](https://www.youtube.com/watch?v=pwwgu9qhNUk), 29:01–30:12, 46:04–46:11 y 49:28–50:16, transcripción leída por el análisis | D |
+| V3-8 | El kit transcribe los audios siempre con OpenAI, aunque el agente use otro proveedor | `.env.example:217-221` del kit, leído por el análisis | D |
+| V3-9 | Chatwoot v4.19.1 firma sus webhooks: `X-Chatwoot-Signature`, `X-Chatwoot-Timestamp` y `X-Chatwoot-Delivery`, con un secreto por webhook | Chatwoot `lib/webhooks/trigger.rb:54-62` y `app/models/webhook.rb:7`, leídos por el análisis | C (Chatwoot) |
+| V3-10 | Con la regla de la v2, un cliente cuyo único envío vivo se cancela o borra vuelve a lead y le cambian el embudo y el número | Regla de segmentos de esta spec; hallazgo de Codex | I |
+| V3-11 | `procesarEventoChatwoot` registra el evento primero y, si un manejador falla, solo avisa y responde «procesado»; el reintento se descarta como duplicado | `lib/studio/chatwoot/webhook-procesar.ts`, rama `codex/0582-e2-poc`, hallazgo de Codex comprobado por el análisis | C |
+| V3-12 | Chatwoot v4.19.1 descarta el detalle de cobro (`pricing`) que manda Meta: `process_statuses` solo guarda el estado y el error | Chatwoot `app/services/whatsapp/incoming_message_base_service.rb:51-67`, leído por el análisis y por Codex | C (Chatwoot) |
