@@ -24,7 +24,7 @@
 ## Lo que se hizo en sistemas externos
 
 - VPS (lectura y archivos propios): `ls` de `/srv/ops`, `/srv/backups`, `/dev/shm`; herramientas; prueba de round-trip de `age` con llave efímera en `/dev/shm`; copia de `infra/ops/kommo-historial/` a `/srv/ops/kommo-historial/` (0700); carpeta `/srv/backups/kommo/` (0700). No se tocó `/dev/shm/k0582` (54 bytes, de otra sesión, no es un token de Kommo).
-- Kommo: nada todavía (el token no ha llegado).
+- Kommo (2026-10-31, ~00:30 CET, en el Chrome de Sam por Claude in Chrome, con su pedido literal «Abre Chrome, ahí está en Kommo, y crea la integración para ayudarle a seguir»): la integración «DTD 0582 historial (solo lectura)» de 0.6 seguía instalada, así que **no se creó otra**. En su pestaña «Llaves y alcances» se pulsó «Generar token de larga duración» con caducidad **30.11.2026**. El clic en «Copiar» lo negó el clasificador de la app (credencial); lo copió Sam y lo pegó con `pegar-token-kommo-e5-0582.ps1` a `/dev/shm/k0582-e5` (0600, 1035 bytes). `probar-token`: JWT, alcances `list_external_messages,crm`, 30 días, `GET /api/v4/account` HTTP 200, subdominio `dtdcargo`. No se tomaron capturas de la pestaña de llaves. Por el camino se abrió y cerró sin instalar la ficha de un widget de NOVA (clic desviado).
 
 ## Cierre
 

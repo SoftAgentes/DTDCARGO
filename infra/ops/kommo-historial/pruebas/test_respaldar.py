@@ -238,12 +238,30 @@ class PruebasCliente(unittest.TestCase):
         R.time.sleep = lambda s: None  # sin esperas reales en las pruebas
         self.api = R.Kommo("dtdcargo", TOKEN_FALSO, self.log, pausa=0.0, abrir=self.servidor)
 
-    def test_paginar_para_en_204(self):
+    def test_paginar_para_en_204_cuando_la_pagina_viene_llena(self):
+        paginas = list(self.api.paginar("/api/v4/contacts", {"with": "leads"}, "contacts", 2))
+        self.assertEqual(len(paginas), 1)
+        self.assertEqual(len(paginas[0][1]), 2)
+        self.assertIn("limit=2", self.servidor.peticiones[0])
+        self.assertIn("page=2", self.servidor.peticiones[1])
+        self.assertEqual(len(self.servidor.peticiones), 2)
+
+    def test_paginar_no_pide_la_siguiente_si_la_pagina_viene_corta(self):
         paginas = list(self.api.paginar("/api/v4/contacts", {"with": "leads"}, "contacts", 250))
         self.assertEqual(len(paginas), 1)
         self.assertEqual(len(paginas[0][1]), 2)
-        self.assertIn("limit=250", self.servidor.peticiones[0])
-        self.assertIn("page=2", self.servidor.peticiones[1])
+        self.assertEqual(len(self.servidor.peticiones), 1, self.servidor.peticiones)
+
+    def test_desde_ignora_una_creacion_de_cuenta_reciente(self):
+        with tempfile.TemporaryDirectory() as d:
+            st = R.Staging(d)
+            st.escribir_json("cuenta.json", {"_http": 200, "datos": {"created_at": AHORA - 3600}})
+            ex = R.Extractor(self.api, st, self.log, Args(desde=None))
+            self.assertEqual(R.utc(ex.desde())[:10], "2019-01-01")
+            st.escribir_json("cuenta.json", {"_http": 200, "datos": {"created_at": AHORA - 400 * DIA}})
+            self.assertEqual(ex.desde(), AHORA - 400 * DIA - DIA)
+            ex = R.Extractor(self.api, st, self.log, Args(desde="2024-06-01"))
+            self.assertEqual(R.utc(ex.desde())[:10], "2024-06-01")
 
     def test_reintenta_429_y_cuenta_codigos(self):
         codigo, talk = self.api.get("/api/v4/talks/11")

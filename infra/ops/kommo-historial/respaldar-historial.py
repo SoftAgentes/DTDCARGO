@@ -285,7 +285,8 @@ class Kommo:
         return 0, b"", "sin-respuesta"
 
     def paginar(self, ruta: str, params: dict | None, clave: str | None, limite: int):
-        """Recorre `page=1..` hasta 204, página vacía o sin `_embedded`. Rinde (página, elementos)."""
+        """Recorre `page=1..` hasta 204, página vacía, sin `_embedded` o página corta (< limite).
+        Rinde (página, elementos). Una página incompleta es la última: no se pide la siguiente."""
         pagina = 1
         while True:
             p = dict(params or {})
@@ -302,6 +303,8 @@ class Kommo:
             if not elementos:
                 return
             yield pagina, elementos
+            if len(elementos) < limite:
+                return
             pagina += 1
 
 
@@ -438,12 +441,16 @@ class Extractor:
                          {"with": "amojo_id,version,datetime_settings,drive_url,task_types,users_groups"})
 
     def desde(self) -> int:
+        """Inicio de la enumeración de eventos. `--desde` manda; si no, la creación de la cuenta,
+        salvo que Kommo devuelva una fecha reciente (en la cuenta de DTD `created_at` trae la hora de la
+        consulta, medido el 2026-10-30), en cuyo caso se parte del 2019-01-01."""
         if self.args.desde:
             return int(dt.datetime.strptime(self.args.desde, "%Y-%m-%d").replace(tzinfo=dt.timezone.utc).timestamp())
         try:
             c = (self.st.leer_json("cuenta.json") or {}).get("datos") or {}
-            if c.get("created_at"):
-                return int(c["created_at"]) - DIA
+            creada = segundos(c.get("created_at"))
+            if creada and creada < ahora() - 30 * DIA:
+                return creada - DIA
         except (FileNotFoundError, ValueError):
             pass
         return int(dt.datetime(2019, 1, 1, tzinfo=dt.timezone.utc).timestamp())
@@ -1148,6 +1155,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 def main(argv=None) -> int:
     args = construir_parser().parse_args(argv)
+    os.umask(0o077)  # todo lo que se cree (staging, .age, informes) nace sin permisos para otros
     log = Log(args.log)
     try:
         return {"probar-token": cmd_probar_token, "extraer": cmd_extraer, "informe": cmd_informe,
