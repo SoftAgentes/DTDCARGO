@@ -130,18 +130,35 @@ Sam lo aprobó al aprobar el plan del Director en la app; no hay frase literal, 
 
 ### Dos números en el mismo portafolio
 
-- **Número nuevo para el público y los leads,** conectado a la API y a Chatwoot (paso 4.9). El actual, el de `CONTACT.ve.whatsapp`, queda **solo para clientes**: sigue en Kommo y pasa a Chatwoot en el corte (E8), como ya estaba previsto. (Decisión de Sam, plan v3.)
+- ~~Número nuevo para el público y los leads; el actual, solo para clientes~~ (plan v3): **lo cambió Sam el 2026-10-30**, ver «Enmienda del 0.8» abajo. Hoy: **clientes → número nuevo (termina en 5202)**; **leads nuevos y registrados → número viejo (termina en 8021, el de `CONTACT.ve.whatsapp`)**.
 - **Va en el mismo portafolio, «Importador de China».** Con los usernames de WhatsApp, Meta identifica a cada usuario con un ID por portafolio (BSUID), y si el usuario adopta un username su teléfono puede no llegar en los webhooks (**D**, V2-1 y V2-2). Que un número de otro portafolio no le pueda escribir con ese ID se deduce del alcance por portafolio (**I**, V2-1).
-- El número nuevo arranca con un tope bajo de mensajes iniciados por DTD, que no limita atender (**NV**; se comprueba en 4.9).
+- El número nuevo arranca con un tope bajo de mensajes iniciados por DTD, que no limita atender (**NV**; se comprueba en 4.9). Como ahora es el de clientes, ese tope pesa: ver (c) en la enmienda.
 - Las prohibiciones del número actual no cambian. Cómo queda el número nuevo frente a la regla de «una sola cuenta de mensajes de DTD para Chatwoot» (decisión B) se confirma en 4.9 (**NV**).
+
+### Enmienda del 0.8: reparto de los números (2026-10-30)
+
+Sam cambió el reparto el 2026-10-30; su texto literal: «este whatapp va ser para cliente y el numero viejo paraleeds y leed registrados con numero de markbox». **0.8 sigue aceptado**; esto lo enmienda (S08-8 y S08-9).
+
+| Segmento | Número | Dónde se atiende |
+|---|---|---|
+| **Cliente** | número nuevo (termina en 5202), en la cuenta de mensajes nueva «DTD Cargo Clientes» (ID en la nota cifrada; huella sha256 `0c535f011d35`) | Chatwoot (4.9) |
+| **Lead nuevo y lead registrado (con markbox)** | número viejo (termina en 8021, el de `CONTACT.ve.whatsapp`) | Kommo hasta que pase a Chatwoot (4.5 / corte en E8) |
+
+Consecuencias:
+
+- **(a) La web pública no cambia de número.** Ya apunta al viejo, que queda para leads. 10.4 se achica: solo el portal muestra el número nuevo a los clientes. Los días de 10.4 no se tocan hasta reestimarla al arrancar.
+- **(b) La redirección automática del bot (10.2) solo opera cuando el número viejo pase a Chatwoot** (4.5 / E8). Mientras siga en Kommo, sus mensajes no llegan al webhook de Chatwoot (**I**). Hasta entonces, los clientes se pasan al número nuevo con aviso: en el portal, con un mensaje y por el equipo.
+- **(c) El número nuevo arranca con el tope inicial de mensajes que inicia DTD.** Los avisos a clientes salen de ahí, así que hay que vigilar su escalado (4.9). Ese tope no limita atender (**NV**).
+- **(d) En E10 solo se intercambia la configuración de números;** el código no cambia.
+- Las cifras del % no cambian: no se suman ni se quitan días.
 
 ### Regla de segmentos (fuente única: el ERP)
 
 | Segmento | Regla | Número y embudo |
 |---|---|---|
-| **Cliente** | Algún `shipments` vivo (`deleted_at is null` y estado distinto de `draft` y `cancelled`) **o** algún recibo vivo en `warehouse_receipts_cn` (`deleted_at is null`), con un `client_markbox` igual a uno de sus códigos: el vigente, los del historial o los de las fichas fusionadas en él (Sam, 0.8) | Número de clientes · embudo **Clientes** |
-| **Lead registrado** | Está en `clients` pero no cumple la regla de cliente | Número de leads · embudo **Leads**, etapa «Registrado / recontacto» |
-| **Lead nuevo** | No está en `clients`, o su teléfono es ambiguo o desconocido | Número de leads · embudo **Leads**, etapa «Nuevo» |
+| **Cliente** | Algún `shipments` vivo (`deleted_at is null` y estado distinto de `draft` y `cancelled`) **o** algún recibo vivo en `warehouse_receipts_cn` (`deleted_at is null`), con un `client_markbox` igual a uno de sus códigos: el vigente, los del historial o los de las fichas fusionadas en él (Sam, 0.8) | Número de clientes, el nuevo · embudo **Clientes** |
+| **Lead registrado** | Está en `clients` pero no cumple la regla de cliente | Número de leads, el viejo · embudo **Leads**, etapa «Registrado / recontacto» |
+| **Lead nuevo** | No está en `clients`, o su teléfono es ambiguo o desconocido | Número de leads, el viejo · embudo **Leads**, etapa «Nuevo» |
 
 - **Hoy el ERP no distingue cliente de registrado:** el router de Kommo trata como «cliente» a cualquiera que esté en `clients` (`supabase/functions/_shared/kommo-router.ts:85-111`, **C**, V2-4).
 - **El cruce es por `clients.phone_last10`** (`supabase/migrations/0383_clients_phone_last10_y_vinculo.sql:64-80`). Tiene índices pero no es única, así que más de un candidato se trata como desconocido, igual que hoy (`kommo-router.ts:108-110`) (**C**, V2-5).
@@ -163,17 +180,17 @@ Sam lo aprobó al aprobar el plan del Director en la app; no hay frase literal, 
 
 ### Redirección sin IA
 
-- **El bot no usa IA.** Dentro de la ventana de 24 h, al cliente que escribe al número de leads le contesta en **1 mensaje** (0.8) con un texto y un enlace `wa.me/<número de clientes>?text=…` (10.2).
+- **El bot no usa IA.** Dentro de la ventana de 24 h, al cliente que escribe al número de leads le contesta en **1 mensaje** (0.8) con un texto y un enlace `wa.me/<número de clientes>?text=…` (10.2). Solo funciona cuando el número viejo esté en Chatwoot: ver (b) en la enmienda del 0.8.
 - ~~Que esa respuesta no se cobre dentro de la ventana de servicio~~: **refutado en la v3**. Desde el 2026-10-01 cuenta contra el cupo de 1.000 mensajes de servicio gratis al mes del número (ver «Cambio de alcance v3»).
 - **Botón CTA URL:** Meta documenta el mensaje interactivo `cta_url` (**D**, V2-3). Que Chatwoot lo envíe está **NV**, así que el enlace va en el texto.
 - **Usuario con username y sin teléfono (BSUID):** el bot no pide códigos ni teléfono. Contesta lo mismo a todos, «si ya eres cliente, escríbenos aquí», y guarda el BSUID (10.3). Así no revela si un número o un código existe. (Diseño, **I**.)
-- **No se le escribe al cliente desde el número de clientes.** Un mensaje iniciado por la empresa exige una plantilla pagada y consentimiento previo, y con el enlace basta, porque lo inicia el cliente (**I**: regla general de Meta, sin fuente leída en esta tarea).
+- **No se le escribe al cliente desde el número de clientes.** Un mensaje iniciado por la empresa exige una plantilla pagada y consentimiento previo, y con el enlace basta, porque lo inicia el cliente (**I**: regla general de Meta, sin fuente leída en esta tarea). La excepción es el aviso de cambio de número de (b): si sale del número nuevo, es un mensaje iniciado por DTD y cuenta contra el tope de (c) (**I**).
 
 ### Tickets del portal a los embudos
 
 - `conversations` lleva `client_id` (`supabase/migrations/0106_conversaciones.sql:45`). `conversation_messages` se liga por `conversation_id`; el plan v3 decía que las dos llevaban `client_id` (**C**, V2-7).
 - El enganche va justo después de `notifyConversationInbound` en `app/portal/(app)/mensajes/actions.ts:45` (**C**, V2-8). Un cliente va al embudo Clientes, y un registrado sin envío vivo va a Leads registrados (10.5, requiere 6.3).
-- **Web y portal con el número correcto (10.4):**
+- **Web y portal con el número correcto (10.4):** la web no cambia y el portal muestra el número nuevo a los clientes (enmienda del 0.8, (a)).
   - El sitio público usa una sola constante, `CONTACT.ve.whatsapp` / `whatsappRaw` (`lib/design-tokens.ts:245-246`), con `buildWhatsAppLink` (`lib/design-tokens.ts:146-149`) en 44 archivos fuera de pruebas. Hay un número escrito a mano en `components/servicios/FichaF2.tsx:69` (**C**, V2-9).
   - El portal sabe quién es la persona con `get_portal_client_id()` (`supabase/migrations/0080_portal_cliente.sql:40`), así que puede mostrar el número según su segmento (**C**, V2-10).
 
@@ -193,10 +210,11 @@ Sam lo aprobó al aprobar el plan del Director en la app; no hay frase literal, 
 
 ### Dependencias de los pasos nuevos
 
-- 4.3 (número de prueba) → 4.9 (número nuevo).
+- 4.3 (número de prueba) → 4.9 (número nuevo, de clientes).
 - 2.3 (webhook de Chatwoot a Studio) → 10.1–10.3 → 10.6.
 - 6.3 → 10.5.
-- 10.4 va al final, con el número nuevo vivo.
+- 10.4 (solo el portal) va al final, con el número nuevo vivo.
+- 10.2 en automático solo después de 4.5 / E8, con el número viejo en Chatwoot.
 - E10 se reserva como SDD hija con `sdd:next --reserve` cuando arranque, después de 2.3.
 
 ## Cambio de alcance v3 (2026-10-29)
@@ -265,6 +283,7 @@ La v3 sumó dos preguntas a 0.8. Sam respondió por el selector el 2026-10-30 (S
 - **Bot: 1 mensaje por respuesta** («1 mensaje (Recomendado)»). Aplica a E7 (7.6) y a la redirección de E10 (10.2).
 - **Cliente que pierde su único envío vivo: vuelve a lead** («Vuelve a lead (Recomendado)»), salvo que tenga carga viva en China. Ver «Regla de segmentos» en la v2.
 - **La carga recibida en China cuenta como cliente** («Sí cuenta (Recomendado)»).
+- **Enmienda del mismo día:** clientes al número nuevo; leads nuevos y registrados al viejo. Ver «Enmienda del 0.8» en la v2.
 
 ### 2.3: no se acepta hasta arreglar la idempotencia
 
@@ -303,12 +322,13 @@ El procesador del webhook registra el evento primero y, si un manejador falla, s
 
 ## Allowlist de esta SDD
 
-- `docs/specs/0582-chatwoot-piloto/{spec.md,checklist.md,instrucciones-ia.md,investigacion-2026-10-28.md,investigacion-2026-10-29-e0.md,e0-guias.md}`
+- `docs/specs/0582-chatwoot-piloto/{spec.md,checklist.md,instrucciones-ia.md,investigacion-2026-10-28.md,investigacion-2026-10-29-e0.md,e0-guias.md,guia-guion.md}`
 - `docs/specs/README.md` (índice regenerado)
 - `scripts/avance-checklist.mjs`
 - `scripts/__tests__/avance-checklist.test.mjs`
 - `.agents/handoffs/0582-chatwoot-piloto.md`
 - `.agents/handoffs/0582-e0-preparacion.md`
+- `.agents/handoffs/0582-e9-guion.md`
 
 El código del producto y la infraestructura se allowlistan en la SDD hija de cada etapa.
 
@@ -330,7 +350,9 @@ El código del producto y la infraestructura se allowlistan en la SDD hija de ca
 
   Las decisiones del piloto anterior (máquina, ruta 2A/2B y dueño de la WABA) pasan a los pasos 0.2 y 0.3. La ruta queda fijada como «compartir el número API».
 - **2026-10-29 (E0):** decisiones de 0.2 en el [registro E0](investigacion-2026-10-29-e0.md): máquina = VPS actual del ERP (cambia G), Sam admin + 1 agente, tope del bot de US$25 al mes y «analiza mi contestación» en la IA de Kommo. Guías de 0.3–0.7 en [`e0-guias.md`](e0-guias.md). El DNS de `dtdcargo.com` está en Cloudflare, no en Hostinger.
+- **2026-10-29 (E9):** guion de la guía (9.1) entregado en [`guia-guion.md`](guia-guion.md) y aceptado por Sam el mismo día («Acepto todo»). Sus preguntas abiertas pasan a 9.2–9.6 y no bloquean la aceptación.
 - **2026-10-29 (E0, tarde):** Sam aprobó («Apruebo todo», 2026-10-29) dejar el número en «Importador de China», la cuenta de mensajes propia de Chatwoot con plantillas y pago propios, y la vuelta atrás de 0.3. Se corrigieron la decisión B y las prohibiciones.
 - **2026-10-29 (línea base v2):** Sam aprobó el plan v3 del Director («aprobación del plan v3 del Director, 2026-10-29»): dos números, regla de segmentos, E10 y n8n fuera del enrutamiento. Alcance 99,75 → 109,25 días; avance en la rama de E0 5,0 % → 4,6 %, y con las aceptaciones de las otras ramas 7,8 % → 7,1 %. La regla de «cliente» queda para 0.8.
 - **2026-10-29 (línea base v3):** Sam aprobó el análisis comparativo del Director («aprobación del análisis comparativo del Director, 2026-10-29»). Alcance 109,25 → 115,5 días (114,5 sin el 2.8 opcional). Avance en la rama de E0 4,6 % → 4,3 %, y con las otras ramas 7,1 % → 6,7 %. Se corrigen el costo de Meta (cobro desde el 2026-10-01) y la guía del PIN. 0.8 suma dos decisiones y la 2.3 no se acepta hasta arreglar la idempotencia.
 - **2026-10-30 (0.8):** Sam respondió por el selector: la carga recibida en China cuenta como cliente, quien pierde su único envío vuelve a lead y el bot responde en 1 mensaje. 0.8 aceptado y E0 completa. Sin cambio de línea base: avance en la rama de E0 4,3 % → 4,8 %, y con las otras ramas 6,7 % → 7,1 %.
+- **2026-10-30 (enmienda del 0.8):** Sam cambió el reparto de números («este whatapp va ser para cliente y el numero viejo paraleeds y leed registrados con numero de markbox»): clientes al número nuevo en «DTD Cargo Clientes»; leads nuevos y registrados al viejo, que sigue en Kommo hasta el corte. La web no cambia, 10.4 se achica al portal, 10.2 opera en automático solo con el viejo en Chatwoot y E10 solo intercambia configuración. Sin cambio de días ni de %.
