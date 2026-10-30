@@ -12,7 +12,7 @@
 
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
-| 9.2 | entregado | Motor, tarjeta, recorridos tipados, almacén con lugar para 9.3, i18n es-VE y zh-CN, montaje en el layout (5 líneas) y demostración en el Dashboard (`/studio/dashboard?guia=dashboard`) | `pnpm verify`, cuando el Director dé turno; OK de Sam |
+| 9.2 | entregado | Motor, tarjeta, recorridos tipados, almacén con lugar para 9.3, i18n es-VE y zh-CN, montaje en el layout (5 líneas) y demostración en el Dashboard (`/studio/dashboard?guia=dashboard`) | OK de Sam |
 
 ## Validación
 
@@ -25,7 +25,7 @@
 | ESLint de los archivos tocados | PASÓ: 0 errores y 0 avisos |
 | `docs:check` y `sdd:check` | PASÓ |
 | `/ui-check` | OK con ajustes menores. Se aplicó el foco visible. El píxel en vivo queda para 9.6 |
-| `pnpm verify` | NO EJECUTADO: hay cola. Se pide turno al Director |
+| `pnpm verify` (2026-10-30 18:15Z–19:37Z, punta `4efb7f89f`) | FALLÓ por rojos heredados, ninguno del diff. PASÓ: harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols, schema-rebuild y build. FALLÓ: `test` (avance-checklist «arranca en 0 %», que ya da 6,02 en la base `37c64d114`), `sql-tests` (0467/0497, SDD-0573) y `e2e` (`sin-scroll-horizontal:119` y `company-photo-carousel:93`, sitio público). NO DISPONIBLE: migrations-applied. Detalle en la SDD §5 |
 
 Nota de entorno: con 2,5 GB libres de 31, el pool `forks` de vitest no arrancó («Failed to start forks worker»). Con `--pool=threads --maxWorkers=1` corrió bien.
 

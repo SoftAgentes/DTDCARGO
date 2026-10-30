@@ -78,7 +78,12 @@ Usa solo tokens (`--bg-surface`, `--border-strong`, `--shadow-pop`, `--r-lg`, `-
 - `tsc --noEmit` del proyecto: **PASÓ**.
 - ESLint de los archivos tocados: **PASÓ**, 0 avisos.
 - `/ui-check`: **OK con ajustes menores**. Se aplicó el foco visible de la tarjeta. Queda la revisión visual en vivo (claro, oscuro, móvil y zoom al 200 %) para 9.6.
-- `pnpm verify`: **NO EJECUTADO**. Hay cola de corridas pesadas; el turno lo da el Director.
+- `pnpm verify` (turno del Director, 2026-10-30 18:15Z–19:37Z, punta `4efb7f89f`, `node scripts/verify.mjs`): **FALLÓ por rojos heredados; ninguno sale del diff de esta SDD**. Por comprobación:
+  - PASÓ: harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO, 3 AMARILLO declarados), schema-rebuild y build.
+  - FALLÓ `test` (heredado): en el reintento queda sólo `scripts/__tests__/avance-checklist.test.mjs` («arranca en 0 %»: espera 0 y da 6,02). Viene de la base `37c64d114` (9.1 aceptado), que ya da 6,02 sin esta rama; la fila 9.2 en «entregado» no suma al %. `origin/main` y la base actual ya traen la prueba nueva («su % sale solo de los aceptados»). En el primer intento también cayeron, por carga, `infra/ops/tests/migraciones.test.mjs` (timeout de 600 s) y un «Failed to start forks worker»; los dos pasaron en el reintento. 13.260 pruebas pasaron.
+  - FALLÓ `sql-tests` (heredado, SDD-0573): 0467_reversion_credito_carrera y 0497_reverso_al_anular_factura (normal y carrera).
+  - FALLÓ `e2e` (heredado, sólo sitio público): `sin-scroll-horizontal.spec.ts:119` (Shipping Mark) en los dos intentos; `company-photo-carousel.spec.ts:93` en el reintento (había pasado en el primero). Inestables que se recuperaron: `auth.spec.ts:81` y `:106`, `cbm-ayuda.spec.ts:111` y `sin-scroll-horizontal.spec.ts:208`. Ninguna prueba e2e cubre Studio ni la guía.
+  - NO DISPONIBLE: migrations-applied (el worktree no tiene `.env.local`, a propósito; esta SDD no trae migración).
 
 ## 6. Allowlist exacta
 
