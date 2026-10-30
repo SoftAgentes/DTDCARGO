@@ -56,6 +56,13 @@ export const bandeja = {
   "bandeja.status.snoozed": "En pausa",
   "bandeja.status.resolved": "Resuelta",
 
+  // ── Eventos descartados (2.3, v3; solo admin) ────────────
+  "bandeja.discarded.title": "Eventos que no se pudieron procesar",
+  "bandeja.discarded.help":
+    "Studio los reintentó 5 veces sin éxito. Revisa esas conversaciones en la Bandeja: puede faltar un aviso.",
+  "bandeja.discarded.message": "Mensaje nuevo · conversación #{n} · {intentos} intentos",
+  "bandeja.discarded.status": "Cambio de estado · conversación #{n} · {intentos} intentos",
+
   // ── Errores de las acciones ──────────────────────────────
   "bandeja.error.denied": "No tienes permiso para hacer esto.",
   "bandeja.error.invalid": "Revisa el usuario y el id del agente.",

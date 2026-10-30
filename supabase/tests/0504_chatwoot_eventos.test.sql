@@ -60,6 +60,19 @@ language sql stable security definer set search_path = '' as $$
 $$;
 grant execute on function public.get_user_tenant_id() to authenticated;
 
+-- Copia de 0386.
+create function public.is_tenant_admin() returns boolean
+language sql stable security definer set search_path = public as $fn$
+  select coalesce(exists (
+    select 1 from public.user_tenants ut
+    where ut.user_id = (select auth.uid())
+      and ut.tenant_id = (select public.get_user_tenant_id())
+      and ut.role = 'admin'
+      and ut.disabled_at is null
+  ), false);
+$fn$;
+grant execute on function public.is_tenant_admin() to authenticated;
+
 create publication supabase_realtime;
 
 insert into public.tenants values
@@ -67,7 +80,8 @@ insert into public.tenants values
   ('10000000-0000-0000-0000-000000000002', 'otro');
 insert into public.user_tenants values
   ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'commercial', null),
-  ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'admin', null);
+  ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'admin', null),
+  ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 'admin', null);
 -- T1: un cliente con 4125550101 (único), dos con 4125550102 (ambiguo), uno borrado con 4125550103.
 insert into public.clients (id, tenant_id, phone, deleted_at) values
   ('30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '+58 412-555-0101', null),
@@ -97,7 +111,8 @@ begin
   set local role service_role;
   select * into r from public.chatwoot_registrar_evento(
     p_tenant, p_key, case when p_key like 'conversation_status_changed%' then 'conversation_status_changed' else 'message_created' end,
-    p_conv, 3, p_status, p_unread, 7, p_phone, to_timestamp(p_ts), p_ts);
+    p_conv, 3, p_status, p_unread, 7, p_phone, to_timestamp(p_ts), p_ts,
+    nullif(split_part(p_key, ':', 2), '')::bigint, p_key like 'message_created%');
   reset role;
   return r;
 end;
@@ -112,6 +127,27 @@ begin
   v := public.chatwoot_cerrar_evento(p_tenant, p_key, p_ok);
   reset role;
   return v;
+end;
+$$;
+
+create function pg_temp.ve_eventos(p_user uuid) returns integer language plpgsql as $$
+declare v integer;
+begin
+  perform set_config('request.jwt.claim.sub', p_user::text, true);
+  set local role authenticated;
+  select count(*) into v from public.chatwoot_webhook_events;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', true);
+  return v;
+end;
+$$;
+
+-- Toma pendientes como el cron (service_role).
+create function pg_temp.tomar() returns table (clave text) language plpgsql as $$
+begin
+  set local role service_role;
+  return query select t.event_key from public.chatwoot_tomar_pendientes(20) t;
+  reset role;
 end;
 $$;
 
@@ -214,25 +250,90 @@ begin
 end;
 $reintento$;
 
+-- Reintento propio de Studio (v3): datos mínimos, espera creciente, tope y descartado.
+do $reproceso$
+declare
+  r record;
+  n integer;
+begin
+  r := pg_temp.evento('message_created:701', 70, 'open', 1, null, 1000);
+  perform pg_temp.assert_true(
+    (select message_id = 701 and avisar and assignee_id = 7 from public.chatwoot_webhook_events where event_key = 'message_created:701'),
+    'reproceso: el evento guarda id del mensaje, si avisa y el asignado (sin texto)');
+  perform pg_temp.cerrar('message_created:701', false);
+  perform pg_temp.assert_true(
+    (select next_attempt_at between now() + interval '59 seconds' and now() + interval '61 seconds'
+     from public.chatwoot_webhook_events where event_key = 'message_created:701'),
+    'reproceso: el primer fallo espera 1 minuto');
+  select count(*) into n from pg_temp.tomar() where clave = 'message_created:701';
+  perform pg_temp.assert_true(n = 0, 'reproceso: un fallido no se toma antes de su espera');
+
+  update public.chatwoot_webhook_events set next_attempt_at = now() - interval '1 second' where event_key = 'message_created:701';
+  select count(*) into n from pg_temp.tomar() where clave = 'message_created:701';
+  perform pg_temp.assert_true(n = 1, 'reproceso: cumplida la espera, el cron lo toma');
+  perform pg_temp.assert_true(
+    (select status = 'procesando' and attempts = 2 from public.chatwoot_webhook_events where event_key = 'message_created:701'),
+    'reproceso: tomarlo cuenta el intento y lo pasa a procesando');
+  select count(*) into n from pg_temp.tomar() where clave = 'message_created:701';
+  perform pg_temp.assert_true(n = 0, 'reproceso: lo que ya se tomó no se vuelve a tomar');
+  perform pg_temp.cerrar('message_created:701', false);
+  perform pg_temp.assert_true(
+    (select next_attempt_at between now() + interval '119 seconds' and now() + interval '121 seconds'
+     from public.chatwoot_webhook_events where event_key = 'message_created:701'),
+    'reproceso: el segundo fallo espera 2 minutos (espera creciente)');
+
+  -- Al quinto intento fallido, descartado.
+  update public.chatwoot_webhook_events set attempts = 5, status = 'procesando' where event_key = 'message_created:701';
+  perform pg_temp.cerrar('message_created:701', false);
+  perform pg_temp.assert_true(
+    (select status = 'descartado' and next_attempt_at is null from public.chatwoot_webhook_events where event_key = 'message_created:701'),
+    'reproceso: al quinto intento fallido queda descartado');
+  update public.chatwoot_webhook_events set updated_at = now() - interval '1 hour' where event_key = 'message_created:701';
+  select count(*) into n from pg_temp.tomar() where clave = 'message_created:701';
+  perform pg_temp.assert_true(n = 0, 'reproceso: un descartado no se vuelve a tomar');
+  r := pg_temp.evento('message_created:701', 70, 'open', 1, null, 1000);
+  perform pg_temp.assert_true(not r.nuevo, 'reproceso: una reentrega no revive un descartado');
+
+  -- Un colgado en procesando con los intentos agotados se descarta al tomar.
+  r := pg_temp.evento('message_created:801', 80, 'open', 1, null, 1000);
+  update public.chatwoot_webhook_events set attempts = 5, updated_at = now() - interval '10 minutes' where event_key = 'message_created:801';
+  select count(*) into n from pg_temp.tomar() where clave = 'message_created:801';
+  perform pg_temp.assert_true(n = 0, 'reproceso: un colgado sin intentos no se toma');
+  perform pg_temp.assert_true(
+    (select status = 'descartado' from public.chatwoot_webhook_events where event_key = 'message_created:801'),
+    'reproceso: un colgado sin intentos queda descartado');
+end;
+$reproceso$;
+
 do $acceso$
 begin
-  perform pg_temp.assert_true(pg_temp.ve('20000000-0000-0000-0000-000000000001') = 6, 'un usuario de T1 ve las conversaciones de T1');
+  perform pg_temp.assert_true(pg_temp.ve('20000000-0000-0000-0000-000000000001') = 8, 'un usuario de T1 ve las conversaciones de T1');
   perform pg_temp.assert_true(pg_temp.ve('20000000-0000-0000-0000-000000000002') = 1, 'un usuario de T2 ve solo las de T2');
+  perform pg_temp.assert_true(pg_temp.ve_eventos('20000000-0000-0000-0000-000000000001') = 0, 'quien no es admin no ve los eventos');
   perform pg_temp.assert_true(
-    not has_table_privilege('authenticated', 'public.chatwoot_webhook_events', 'SELECT'),
-    'authenticated no lee los eventos');
+    pg_temp.ve_eventos('20000000-0000-0000-0000-000000000003') = (select count(*) from public.chatwoot_webhook_events where tenant_id = '10000000-0000-0000-0000-000000000001'),
+    'el admin de T1 ve los eventos de T1 (para los descartados)');
+  perform pg_temp.assert_true(pg_temp.ve_eventos('20000000-0000-0000-0000-000000000002') = 1, 'el admin de T2 ve solo los de T2');
+  perform pg_temp.assert_true(
+    not has_table_privilege('authenticated', 'public.chatwoot_webhook_events', 'INSERT')
+    and not has_table_privilege('authenticated', 'public.chatwoot_webhook_events', 'UPDATE'),
+    'authenticated no escribe eventos');
   perform pg_temp.assert_true(
     not has_table_privilege('authenticated', 'public.chatwoot_conversations', 'INSERT')
     and not has_table_privilege('authenticated', 'public.chatwoot_conversations', 'UPDATE'),
     'authenticated no escribe conversaciones');
   perform pg_temp.assert_true(
-    not has_function_privilege('authenticated', 'public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision)', 'EXECUTE')
-    and not has_function_privilege('anon', 'public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision)', 'EXECUTE'),
+    not has_function_privilege('authenticated', 'public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean)', 'EXECUTE')
+    and not has_function_privilege('anon', 'public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean)', 'EXECUTE'),
     'la RPC es solo de service_role');
   perform pg_temp.assert_true(
     not has_function_privilege('authenticated', 'public.chatwoot_cerrar_evento(uuid, text, boolean)', 'EXECUTE')
     and not has_function_privilege('anon', 'public.chatwoot_cerrar_evento(uuid, text, boolean)', 'EXECUTE'),
     'cerrar el evento es solo de service_role');
+  perform pg_temp.assert_true(
+    not has_function_privilege('authenticated', 'public.chatwoot_tomar_pendientes(integer)', 'EXECUTE')
+    and not has_function_privilege('anon', 'public.chatwoot_tomar_pendientes(integer)', 'EXECUTE'),
+    'tomar pendientes es solo de service_role');
   perform pg_temp.assert_true(exists (
     select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'chatwoot_conversations'
   ), 'chatwoot_conversations entra en supabase_realtime');

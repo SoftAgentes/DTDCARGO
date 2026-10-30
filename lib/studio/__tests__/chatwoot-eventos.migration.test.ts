@@ -75,7 +75,7 @@ describe("SDD-0585 · 0504 eventos de Chatwoot, estado y cruce (PGlite)", () => 
   it("el contrato pasa entero con la 0504", async () => {
     const run = await contract();
     expect(run.error).toBeNull();
-    expect(run.green).toBe("TEST 0504 GREEN: 33 aserciones");
+    expect(run.green).toBe("TEST 0504 GREEN: 49 aserciones");
   }, SLOW);
 
   it("CONTROL ROJO: sin la 0504 la RPC no existe y el contrato cae", async () => {
@@ -129,15 +129,33 @@ describe("SDD-0585 · 0504 eventos de Chatwoot, estado y cruce (PGlite)", () => 
       /TEST 0504: un usuario de T1 ve las conversaciones de T1/,
     ],
     [
-      "eventos legibles",
-      "grant all on public.chatwoot_webhook_events to service_role;",
-      "grant all on public.chatwoot_webhook_events to service_role;\ngrant select on public.chatwoot_webhook_events to authenticated;",
-      /TEST 0504: authenticated no lee los eventos/,
+      "eventos legibles para cualquiera del tenant",
+      "  using (tenant_id = (select public.get_user_tenant_id()) and (select public.is_tenant_admin()));",
+      "  using (tenant_id = (select public.get_user_tenant_id()));",
+      /TEST 0504: quien no es admin no ve los eventos/,
+    ],
+    [
+      "sin espera creciente",
+      "make_interval(mins => power(2, e.attempts - 1)::integer)",
+      "make_interval(mins => 1)",
+      /TEST 0504: reproceso: el segundo fallo espera 2 minutos/,
+    ],
+    [
+      "sin tope de intentos",
+      "when not p_ok and e.attempts >= 5 then 'descartado'",
+      "when false then 'descartado'",
+      /TEST 0504: reproceso: al quinto intento fallido queda descartado/,
+    ],
+    [
+      "toma antes de la espera",
+      "(e.status = 'fallido' and e.next_attempt_at <= pg_catalog.now())",
+      "(e.status = 'fallido')",
+      /TEST 0504: reproceso: un fallido no se toma antes de su espera/,
     ],
     [
       "RPC abierta a authenticated",
-      "double precision) to service_role;",
-      "double precision) to service_role, authenticated;",
+      "double precision, bigint, boolean) to service_role;",
+      "double precision, bigint, boolean) to service_role, authenticated;",
       /TEST 0504: la RPC es solo de service_role/,
     ],
     [

@@ -63,6 +63,19 @@ describe("POST /api/chatwoot/webhook (SDD-0585)", () => {
     expect(m.procesar).not.toHaveBeenCalled();
   });
 
+  it("cuerpo por encima del tope: 413 antes de la firma, sin leerlo ni tocar la base", async () => {
+    const grande = new Request("https://dtdcargo.test/api/chatwoot/webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": String(10 * 1024 * 1024) },
+      body: "x",
+    });
+    const r = await POST(grande);
+    expect(r.status).toBe(413);
+    expect(grande.bodyUsed).toBe(false);
+    expect(m.admins).toBe(0);
+    expect(m.procesar).not.toHaveBeenCalled();
+  });
+
   it("JSON malo con firma buena: 400", async () => {
     const r = await POST(peticion(null, { cuerpo: "{no es json" }));
     expect(r.status).toBe(400);

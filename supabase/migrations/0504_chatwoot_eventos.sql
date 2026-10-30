@@ -8,7 +8,11 @@
 --    (procesando reciente o procesado) no vuelve a avisar ni a contar; uno
 --    FALLIDO, o colgado en procesando más de 5 min, se vuelve a procesar
 --    (hallazgo de la revisión de Codex: marcarlo procesado antes de las
---    acciones perdía el reintento). Solo service_role.
+--    acciones perdía el reintento). Guarda lo mínimo para volver a correr las
+--    acciones sin el payload (id del mensaje, si avisa, asignado): sin texto ni
+--    teléfonos. Reintento propio (v3): espera creciente 1, 2, 4, 8 min; al quinto
+--    intento fallido, «descartado». El admin del tenant los ve; escribe solo
+--    service_role.
 -- 2. `chatwoot_conversations`: el último estado conocido de cada conversación
 --    (estado, no leídos, asignado, bandeja, actividad) y el `client_id` cuando
 --    el teléfono del contacto cruza con UN solo cliente (E2-D19). Alimenta el
@@ -28,8 +32,9 @@ do $preflight$
 begin
   if pg_catalog.to_regclass('public.tenants') is null
      or pg_catalog.to_regclass('public.clients') is null
-     or pg_catalog.to_regprocedure('public.get_user_tenant_id()') is null then
-    raise exception '0504 requiere tenants, clients y get_user_tenant_id()';
+     or pg_catalog.to_regprocedure('public.get_user_tenant_id()') is null
+     or pg_catalog.to_regprocedure('public.is_tenant_admin()') is null then
+    raise exception '0504 requiere tenants, clients, get_user_tenant_id() e is_tenant_admin()';
   end if;
   if not exists (
     select 1 from pg_catalog.pg_attribute
@@ -50,22 +55,35 @@ create table public.chatwoot_webhook_events (
   event_key       text not null check (length(event_key) between 1 and 200),
   event           text not null check (event in ('message_created', 'conversation_status_changed')),
   conversation_id bigint not null check (conversation_id > 0),
-  status          text not null default 'procesando' check (status in ('procesando', 'procesado', 'fallido')),
+  status          text not null default 'procesando' check (status in ('procesando', 'procesado', 'fallido', 'descartado')),
   attempts        integer not null default 1 check (attempts >= 1),
+  -- Lo mínimo para reprocesar sin el payload (E2-D26): ids y una marca.
+  message_id      bigint check (message_id > 0),
+  avisar          boolean not null default false,
+  assignee_id     bigint,
+  next_attempt_at timestamptz,
   received_at     timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
   primary key (tenant_id, event_key)
 );
 
 create index chatwoot_webhook_events_received_idx on public.chatwoot_webhook_events (received_at);
+create index chatwoot_webhook_events_pendientes_idx
+  on public.chatwoot_webhook_events (next_attempt_at)
+  where status in ('fallido', 'procesando');
 
 comment on table public.chatwoot_webhook_events is
   'SDD-0585 E2-D18: eventos de Chatwoot ya procesados (idempotencia por clave semántica). Sin payload, texto ni datos personales. Solo service_role. E10 (clasificar) se engancha después del registro.';
 
 alter table public.chatwoot_webhook_events enable row level security;
+-- El admin ve los eventos de su tenant (los «descartado», en la Bandeja).
+create policy chatwoot_webhook_events_select_admin on public.chatwoot_webhook_events
+  for select to authenticated
+  using (tenant_id = (select public.get_user_tenant_id()) and (select public.is_tenant_admin()));
 create policy chatwoot_webhook_events_service_role_all on public.chatwoot_webhook_events
   for all to service_role using (true) with check (true);
 revoke all on public.chatwoot_webhook_events from public, anon, authenticated;
+grant select on public.chatwoot_webhook_events to authenticated;
 grant all on public.chatwoot_webhook_events to service_role;
 
 -- ─── 2. Estado por conversación ──────────────────────────────────────────────
@@ -125,7 +143,9 @@ create or replace function public.chatwoot_registrar_evento(
   p_assignee_id       bigint,
   p_phone_last10      text,
   p_last_activity_at  timestamptz,
-  p_source_updated_at double precision
+  p_source_updated_at double precision,
+  p_message_id        bigint default null,
+  p_avisar            boolean default false
 )
 returns table (nuevo boolean, aplicado boolean, client_id uuid)
 language plpgsql
@@ -144,15 +164,16 @@ begin
   -- Idempotencia: el mismo evento dos veces no hace nada la segunda, salvo que
   -- la primera haya fallado (o se haya colgado): entonces se reclama.
   if p_event_key is not null then
-    insert into public.chatwoot_webhook_events (tenant_id, event_key, event, conversation_id)
-    values (p_tenant_id, p_event_key, p_event, p_conversation_id)
+    insert into public.chatwoot_webhook_events (tenant_id, event_key, event, conversation_id, message_id, avisar, assignee_id)
+    values (p_tenant_id, p_event_key, p_event, p_conversation_id, p_message_id, coalesce(p_avisar, false), p_assignee_id)
     on conflict on constraint chatwoot_webhook_events_pkey do nothing;
     get diagnostics v_filas = row_count;
     if v_filas = 0 then
       update public.chatwoot_webhook_events e
-      set status = 'procesando', attempts = e.attempts + 1, updated_at = pg_catalog.now()
+      set status = 'procesando', attempts = e.attempts + 1, updated_at = pg_catalog.now(), next_attempt_at = null
       where e.tenant_id = p_tenant_id
         and e.event_key = p_event_key
+        and e.attempts < 5
         and (e.status = 'fallido'
              or (e.status = 'procesando' and e.updated_at < pg_catalog.now() - interval '5 minutes'));
       get diagnostics v_filas = row_count;
@@ -201,16 +222,17 @@ begin
 end;
 $fn$;
 
-comment on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision) is
+comment on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean) is
   'SDD-0585 E2-D18/E2-D19/E2-D22: registra un evento de Chatwoot (idempotente por event_key) y aplica el estado de la conversación si no es más viejo que lo guardado. event_key nulo = reconciliación por API. Solo service_role.';
 
-revoke all on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision) from public;
-revoke all on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision) from anon, authenticated;
-grant execute on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision) to service_role;
+revoke all on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean) from public;
+revoke all on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean) from anon, authenticated;
+grant execute on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean) to service_role;
 
--- Cierra un evento después de sus acciones: procesado si todas salieron bien,
--- fallido si alguna falló (y entonces la próxima entrega lo vuelve a procesar).
--- Solo pasa desde «procesando»: un evento ya procesado no vuelve a fallido.
+-- Cierra un evento después de sus acciones: procesado si todas salieron bien;
+-- si alguna falló, fallido con espera creciente (1, 2, 4, 8 min) o, en el quinto
+-- intento, descartado. Solo pasa desde «procesando»: un evento ya procesado no
+-- vuelve a fallido.
 create or replace function public.chatwoot_cerrar_evento(
   p_tenant_id uuid,
   p_event_key text,
@@ -225,7 +247,15 @@ declare
   v_filas integer;
 begin
   update public.chatwoot_webhook_events e
-  set status = case when p_ok then 'procesado' else 'fallido' end,
+  set status = case
+        when p_ok then 'procesado'
+        when not p_ok and e.attempts >= 5 then 'descartado'
+        else 'fallido'
+      end,
+      next_attempt_at = case
+        when p_ok or e.attempts >= 5 then null
+        else pg_catalog.now() + make_interval(mins => power(2, e.attempts - 1)::integer)
+      end,
       updated_at = pg_catalog.now()
   where e.tenant_id = p_tenant_id
     and e.event_key = p_event_key
@@ -241,3 +271,49 @@ comment on function public.chatwoot_cerrar_evento(uuid, text, boolean) is
 revoke all on function public.chatwoot_cerrar_evento(uuid, text, boolean) from public;
 revoke all on function public.chatwoot_cerrar_evento(uuid, text, boolean) from anon, authenticated;
 grant execute on function public.chatwoot_cerrar_evento(uuid, text, boolean) to service_role;
+
+-- Toma los eventos que toca reprocesar (cron /api/cron/chatwoot-reintentos):
+-- fallidos cuya espera venció y colgados en procesando más de 5 min. Los pasa a
+-- procesando y cuenta el intento; un colgado con los intentos agotados se
+-- descarta. FOR UPDATE SKIP LOCKED: dos corridas a la vez no toman el mismo.
+create or replace function public.chatwoot_tomar_pendientes(p_limite integer default 20)
+returns table (
+  tenant_id uuid, event_key text, event text, conversation_id bigint,
+  message_id bigint, avisar boolean, assignee_id bigint, attempts integer
+)
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+#variable_conflict use_column
+begin
+  update public.chatwoot_webhook_events e
+  set status = 'descartado', next_attempt_at = null, updated_at = pg_catalog.now()
+  where e.status = 'procesando'
+    and e.updated_at < pg_catalog.now() - interval '5 minutes'
+    and e.attempts >= 5;
+
+  return query
+  with candidatos as (
+    select e.tenant_id, e.event_key
+    from public.chatwoot_webhook_events e
+    where (e.status = 'fallido' and e.next_attempt_at <= pg_catalog.now())
+       or (e.status = 'procesando' and e.updated_at < pg_catalog.now() - interval '5 minutes')
+    order by e.received_at
+    limit greatest(least(coalesce(p_limite, 20), 100), 1)
+    for update skip locked
+  )
+  update public.chatwoot_webhook_events e
+  set status = 'procesando', attempts = e.attempts + 1, updated_at = pg_catalog.now(), next_attempt_at = null
+  from candidatos c
+  where e.tenant_id = c.tenant_id and e.event_key = c.event_key
+  returning e.tenant_id, e.event_key, e.event, e.conversation_id, e.message_id, e.avisar, e.assignee_id, e.attempts;
+end;
+$fn$;
+
+comment on function public.chatwoot_tomar_pendientes(integer) is
+  'SDD-0585 E2-D26: toma los eventos de Chatwoot a reprocesar (fallidos vencidos y colgados), cuenta el intento y descarta los colgados sin intentos. Solo service_role.';
+
+revoke all on function public.chatwoot_tomar_pendientes(integer) from public;
+revoke all on function public.chatwoot_tomar_pendientes(integer) from anon, authenticated;
+grant execute on function public.chatwoot_tomar_pendientes(integer) to service_role;

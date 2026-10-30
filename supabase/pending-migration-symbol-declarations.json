@@ -326,7 +326,7 @@
             "app/studio/(app)/bandeja/actions.ts:181",
             "lib/studio/chatwoot/links-queries.ts:20",
             "lib/studio/chatwoot/links-queries.ts:34",
-            "lib/studio/chatwoot/webhook-procesar.ts:76"
+            "lib/studio/chatwoot/webhook-procesar.ts:78"
           ]
         }
       ],
@@ -357,7 +357,7 @@
           "degradation": "desvincularAgente sin la tabla no borra nada y responde el mismo mensaje traducido."
         },
         {
-          "site": "lib/studio/chatwoot/webhook-procesar.ts:79",
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:81",
           "contains": "const vinculos = (data ?? []) as { user_id: string; chatwoot_user_id: number }[];",
           "degradation": "El aviso push del webhook sin la tabla no tiene vínculos: data llega null, la lista queda vacía y no se encola ningún push. El evento ya quedó registrado (0504)."
         }
@@ -373,7 +373,7 @@
           "kind": "function",
           "callSites": [
             "lib/studio/chatwoot/webhook-procesar.ts:44",
-            "lib/studio/chatwoot/webhook-procesar.ts:57"
+            "lib/studio/chatwoot/webhook-procesar.ts:59"
           ]
         },
         {
@@ -389,8 +389,23 @@
           "name": "chatwoot_cerrar_evento",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/webhook-procesar.ts:121",
-            "lib/studio/chatwoot/webhook-procesar.ts:126"
+            "lib/studio/chatwoot/webhook-procesar.ts:134",
+            "lib/studio/chatwoot/webhook-procesar.ts:139"
+          ]
+        },
+        {
+          "name": "chatwoot_tomar_pendientes",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/chatwoot/webhook-procesar.ts:168",
+            "lib/studio/chatwoot/webhook-procesar.ts:171"
+          ]
+        },
+        {
+          "name": "chatwoot_webhook_events",
+          "kind": "table",
+          "callSites": [
+            "lib/studio/chatwoot/conversations-queries.ts:81"
           ]
         }
       ],
@@ -401,12 +416,12 @@
           "degradation": "Sin 0504 la tabla chatwoot_conversations no existe (42P01/PGRST205): listNoLeidasBandeja devuelve [] y el layout pinta el sidebar sin badge de la Bandeja; el resto del shell no cambia."
         },
         {
-          "site": "lib/studio/chatwoot/conversations-queries.ts:59",
+          "site": "lib/studio/chatwoot/conversations-queries.ts:36",
           "contains": "if (error || !data) return [];",
           "degradation": "listConversacionesDeCliente devuelve [] y la ficha muestra «Sin conversaciones vinculadas»; solo con acceso a la Bandeja y el flag encendido, que sin 0503 tampoco existe."
         },
         {
-          "site": "lib/studio/chatwoot/webhook-procesar.ts:57",
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:59",
           "contains": "if (error) throw new Error(`chatwoot_registrar_evento: ${error.code ?? \"sin código\"}`);",
           "degradation": "Sin la RPC (42883/PGRST202) el webhook responde 500 sin registrar ni avisar, y la reconciliación de la Bandeja responde «service». El webhook no se registra en Chatwoot hasta aplicar 0503 y 0504 (puerta aparte)."
         },
@@ -416,9 +431,19 @@
           "degradation": "La suscripción Realtime a una tabla que no existe no entrega cambios: el badge se queda con lo inicial del layout (vacío sin 0504) y no pinta nada."
         },
         {
-          "site": "lib/studio/chatwoot/webhook-procesar.ts:126",
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:139",
           "contains": "if (error) console.warn(`[chatwoot] chatwoot_cerrar_evento: ${error.code ?? \"sin código\"}`);",
           "degradation": "Sin la función de cierre (42883/PGRST202) solo se registra el código: no hay evento que cerrar, porque sin 0504 tampoco existe chatwoot_registrar_evento y la ruta ya respondió 500 antes."
+        },
+        {
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:172",
+          "contains": "return { tomados: 0, procesados: 0, fallidos: 0, omitido: true };",
+          "degradation": "Sin 0504 el cron /api/cron/chatwoot-reintentos no encuentra la RPC (42883/PGRST202): registra el código y responde 200 con omitido, sin tomar ni reprocesar nada. No rompe el resto de los crons."
+        },
+        {
+          "site": "lib/studio/chatwoot/conversations-queries.ts:88",
+          "contains": "  return data as EventoDescartado[];",
+          "degradation": "listEventosDescartados sin la tabla devuelve [] y la Bandeja del admin no pinta la sección de eventos descartados."
         }
       ]
     }

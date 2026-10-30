@@ -23,6 +23,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { pedirEnlaceSso, reconciliarBandeja, type BandejaErrorCode } from "../actions";
 import { VinculosAdmin, type MiembroOpcion, type VinculoFila } from "./VinculosAdmin";
+import type { EventoDescartado } from "@/lib/studio/chatwoot/conversations-queries";
 
 export type BandejaEstado = "sin_configurar" | "sin_vinculo" | "listo";
 
@@ -32,7 +33,7 @@ interface Props {
   inicioUrl: string | null;
   /** `?c=N`: conversación a abrir (E2-D24). */
   conversacion?: number | null;
-  admin: { vinculos: VinculoFila[]; miembros: MiembroOpcion[] } | null;
+  admin: { vinculos: VinculoFila[]; miembros: MiembroOpcion[]; descartados?: EventoDescartado[] } | null;
 }
 
 type Fase = { tipo: "pidiendo" } | { tipo: "abriendo" } | { tipo: "abierto" } | { tipo: "error"; codigo: BandejaErrorCode };
@@ -153,6 +154,27 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
       )}
 
       {admin ? <VinculosAdmin vinculos={admin.vinculos} miembros={admin.miembros} /> : null}
+      {admin?.descartados?.length ? (
+        <section
+          aria-labelledby="bandeja-descartados"
+          style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)", padding: "var(--s-6)", display: "flex", flexDirection: "column", gap: "var(--s-2)" }}
+        >
+          <h2 id="bandeja-descartados" style={{ font: "800 16px/1.2 var(--f-display)", color: "var(--ink)", margin: 0 }}>
+            {t("bandeja.discarded.title")}
+          </h2>
+          <p style={{ margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>{t("bandeja.discarded.help")}</p>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "var(--s-1)" }}>
+            {admin.descartados.map((d) => (
+              <li key={d.event_key} style={{ font: "500 13px/1.4 var(--f-sans)", color: "var(--ink)" }}>
+                {t(d.event === "message_created" ? "bandeja.discarded.message" : "bandeja.discarded.status", {
+                  n: d.conversation_id,
+                  intentos: d.attempts,
+                })}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }

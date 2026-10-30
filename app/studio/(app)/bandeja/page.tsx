@@ -16,6 +16,7 @@ import { createClient } from "@/lib/db/server";
 import { getStudioAccess } from "@/lib/studio/rbac-guard";
 import { chatwootConfig } from "@/lib/studio/chatwoot/config";
 import { getVinculoPropio, listVinculos } from "@/lib/studio/chatwoot/links-queries";
+import { listEventosDescartados, type EventoDescartado } from "@/lib/studio/chatwoot/conversations-queries";
 import { parseChatwootUserId, urlPanel } from "@/lib/studio/chatwoot/chatwoot-types";
 import { SSO_COOKIE, ssoVigentePara } from "@/lib/studio/chatwoot/sso-cookie";
 import { listMembers } from "@/lib/studio/user-queries";
@@ -53,11 +54,12 @@ export default async function BandejaPage({
   const inicioUrl =
     estado === "listo" && access.userId && ssoVigentePara(marca, access.userId) ? panelUrl : null;
 
-  let admin: { vinculos: VinculoFila[]; miembros: MiembroOpcion[] } | null = null;
+  let admin: { vinculos: VinculoFila[]; miembros: MiembroOpcion[]; descartados: EventoDescartado[] } | null = null;
   if (access.role === "admin" && access.tenantId && cfg) {
-    const [vinculos, miembros] = await Promise.all([
+    const [vinculos, miembros, descartados] = await Promise.all([
       listVinculos(supabase, access.tenantId),
       listMembers(supabase, { tenantId: access.tenantId }),
+      listEventosDescartados(supabase, access.tenantId),
     ]);
     const nombres = new Map(miembros.map((m) => [m.user_id, nombreDe(m.profile)]));
     admin = {
@@ -69,6 +71,7 @@ export default async function BandejaPage({
       miembros: miembros
         .filter((m) => !vinculos.some((v) => v.user_id === m.user_id))
         .map((m) => ({ userId: m.user_id, nombre: nombreDe(m.profile) || m.user_id.slice(0, 8) })),
+      descartados,
     };
   }
 

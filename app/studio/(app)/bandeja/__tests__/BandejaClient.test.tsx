@@ -126,4 +126,26 @@ describe("BandejaClient (SDD-0585)", () => {
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} conversacion={12} admin={null} />);
     await waitFor(() => expect(pedirEnlaceSso).toHaveBeenCalledWith(12));
   });
+
+  it("el admin ve los eventos descartados (v3), sin texto de mensajes", () => {
+    render(
+      <BandejaClient
+        estado="sin_vinculo"
+        panelUrl={PANEL}
+        inicioUrl={null}
+        admin={{
+          vinculos: [],
+          miembros: [],
+          descartados: [{ event_key: "message_created:101", event: "message_created", conversation_id: 12, attempts: 5, updated_at: "2026-10-30T03:00:00.000Z" }],
+        }}
+      />,
+    );
+    expect(screen.getByText("Eventos que no se pudieron procesar")).toBeTruthy();
+    expect(screen.getByText("Mensaje nuevo · conversación #12 · 5 intentos")).toBeTruthy();
+  });
+
+  it("sin descartados no pinta la sección", () => {
+    render(<BandejaClient estado="sin_vinculo" panelUrl={PANEL} inicioUrl={null} admin={{ vinculos: [], miembros: [], descartados: [] }} />);
+    expect(screen.queryByText("Eventos que no se pudieron procesar")).toBeNull();
+  });
 });

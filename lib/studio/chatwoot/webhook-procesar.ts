@@ -39,7 +39,7 @@ export type ManejadorEvento = (ctx: ContextoChatwoot, evento: EventoChatwoot, re
 export async function aplicarConversacion(
   ctx: ContextoChatwoot,
   conversacion: ConversacionChatwoot,
-  evento: { clave: string; evento: EventoChatwoot["evento"] } | null,
+  evento: Pick<EventoChatwoot, "clave" | "evento" | "mensajeId" | "avisar"> | null,
 ): Promise<Registro> {
   const { data, error } = await ctx.admin.rpc("chatwoot_registrar_evento", {
     p_tenant_id: ctx.tenantId,
@@ -53,6 +53,8 @@ export async function aplicarConversacion(
     p_phone_last10: conversacion.telefonoUltimos10,
     p_last_activity_at: conversacion.ultimaActividad,
     p_source_updated_at: conversacion.fuenteActualizada,
+    p_message_id: evento?.mensajeId ?? null,
+    p_avisar: evento?.avisar ?? false,
   });
   if (error) throw new Error(`chatwoot_registrar_evento: ${error.code ?? "sin código"}`);
   const fila = (Array.isArray(data) ? data[0] : data) as
@@ -107,6 +109,17 @@ export async function procesarEventoChatwoot(
 ): Promise<{ estado: "duplicado" | "procesado" | "fallido"; aplicado: boolean }> {
   const registro = await aplicarConversacion(ctx, evento.conversacion, evento);
   if (!registro.nuevo) return { estado: "duplicado", aplicado: false };
+  const ok = await correrYCerrar(ctx, evento, registro, manejadores);
+  return { estado: ok ? "procesado" : "fallido", aplicado: registro.aplicado };
+}
+
+/** Corre los manejadores y cierra el evento: procesado si todos salieron bien. */
+async function correrYCerrar(
+  ctx: ContextoChatwoot,
+  evento: EventoChatwoot,
+  registro: Registro,
+  manejadores: readonly ManejadorEvento[],
+): Promise<boolean> {
   let ok = true;
   for (const manejador of manejadores) {
     try {
@@ -124,5 +137,63 @@ export async function procesarEventoChatwoot(
     p_ok: ok,
   });
   if (error) console.warn(`[chatwoot] chatwoot_cerrar_evento: ${error.code ?? "sin código"}`);
-  return { estado: ok ? "procesado" : "fallido", aplicado: registro.aplicado };
+  return ok;
+}
+
+/** Fila de `chatwoot_tomar_pendientes` (0504): lo mínimo, sin payload. */
+interface Pendiente {
+  tenant_id: string;
+  event_key: string;
+  event: EventoChatwoot["evento"];
+  conversation_id: number;
+  message_id: number | null;
+  avisar: boolean;
+  assignee_id: number | null;
+}
+
+/**
+ * Reintento propio de Studio (SDD-0585, E2-D26): Chatwoot 4.19.1 no reintenta
+ * webhooks de cuenta, así que el cron `/api/cron/chatwoot-reintentos` toma los
+ * eventos fallidos vencidos y los colgados, y vuelve a correr los manejadores
+ * con lo que el evento guardó (ids, asignado y si avisa). La base cuenta los
+ * intentos, espera 1, 2, 4 y 8 min y descarta al quinto. El estado de la
+ * conversación no se toca acá: ya se aplicó al registrar, y lo corrige la
+ * reconciliación. E10 reutiliza este camino para la redirección.
+ */
+export async function reprocesarEventosChatwoot(
+  admin: SupabaseClient,
+  manejadores: readonly ManejadorEvento[] = MANEJADORES,
+  limite = 20,
+): Promise<{ tomados: number; procesados: number; fallidos: number; omitido?: true }> {
+  const { data, error } = await admin.rpc("chatwoot_tomar_pendientes", { p_limite: limite });
+  if (error) {
+    // Sin 0504 (o con la base caída) el cron no rompe: lo intenta en la próxima corrida.
+    console.warn(`[chatwoot] chatwoot_tomar_pendientes: ${error.code ?? "sin código"}`);
+    return { tomados: 0, procesados: 0, fallidos: 0, omitido: true };
+  }
+  const filas = (data ?? []) as Pendiente[];
+  let procesados = 0;
+  for (const f of filas) {
+    const evento: EventoChatwoot = {
+      evento: f.event,
+      clave: f.event_key,
+      accountId: 0,
+      mensajeId: f.message_id,
+      avisar: f.avisar,
+      // Solo lo que los manejadores usan; el resto no se guardó a propósito.
+      conversacion: {
+        id: f.conversation_id,
+        inboxId: null,
+        estado: "open",
+        noLeidos: 0,
+        asignadoId: f.assignee_id,
+        ultimaActividad: null,
+        fuenteActualizada: 0,
+        telefonoUltimos10: null,
+      },
+    };
+    const ok = await correrYCerrar({ admin, tenantId: f.tenant_id }, evento, { nuevo: true, aplicado: false, clientId: null }, manejadores);
+    if (ok) procesados += 1;
+  }
+  return { tomados: filas.length, procesados, fallidos: filas.length - procesados };
 }

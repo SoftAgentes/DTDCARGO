@@ -4,10 +4,12 @@
  * Delgada a propósito: verificar → interpretar → procesar.
  *   1. Configuración (`CHATWOOT_WEBHOOK_SECRET`, `CHATWOOT_TENANT_ID`,
  *      `CHATWOOT_ACCOUNT_ID`). Falta algo → 503, sin tocar la base.
- *   2. Firma HMAC sobre el cuerpo CRUDO con anti-replay (E2-D16). Mala → 401.
- *   3. JSON e `interpretarEvento` (E2-D17): de otra cuenta o de otro tipo → 200
+ *   2. Tope de tamaño (256 KiB) ANTES de la firma: más grande → 413 sin
+ *      leerlo ni registrarlo (v3).
+ *   3. Firma HMAC sobre el cuerpo CRUDO con anti-replay (E2-D16). Mala → 401.
+ *   4. JSON e `interpretarEvento` (E2-D17): de otra cuenta o de otro tipo → 200
  *      `ignored` (Chatwoot no debe reintentar lo que no nos interesa).
- *   4. `procesarEventoChatwoot`: idempotente; el duplicado responde 200. Si un
+ *   5. `procesarEventoChatwoot`: idempotente; el duplicado responde 200. Si un
  *      manejador falló, el evento queda «fallido» (reintentable) y se responde
  *      500. Ojo: Chatwoot 4.19.1 NO reintenta webhooks de cuenta
  *      (`Webhooks::Trigger#execute` rescata el error; solo reintenta agentes
@@ -19,6 +21,7 @@ import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/db/admin";
 import { chatwootWebhookConfig } from "@/lib/studio/chatwoot/config";
+import { leerCuerpoAcotado } from "@/lib/studio/chatwoot/webhook-body";
 import { verificarFirmaChatwoot } from "@/lib/studio/chatwoot/webhook-signature";
 import { interpretarEvento } from "@/lib/studio/chatwoot/webhook-events";
 import { procesarEventoChatwoot } from "@/lib/studio/chatwoot/webhook-procesar";
@@ -30,7 +33,9 @@ export async function POST(req: Request) {
   const cfg = chatwootWebhookConfig();
   if (!cfg) return NextResponse.json({ ok: false, error: "no_configurado" }, { status: 503 });
 
-  const cuerpo = await req.text();
+  const leido = await leerCuerpoAcotado(req);
+  if (!leido.ok) return NextResponse.json({ ok: false, error: "tamano" }, { status: 413 });
+  const cuerpo = leido.texto;
   const firma = verificarFirmaChatwoot({
     cuerpo,
     timestamp: req.headers.get("x-chatwoot-timestamp"),

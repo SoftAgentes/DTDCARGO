@@ -16,6 +16,7 @@ describe("interpretarEvento (SDD-0585)", () => {
       evento: "message_created",
       clave: "message_created:101",
       accountId: 1,
+      mensajeId: 101,
       avisar: true,
       conversacion: {
         id: 12,
@@ -50,6 +51,7 @@ describe("interpretarEvento (SDD-0585)", () => {
     expect(e?.clave).toBe("conversation_status_changed:12:resolved:1761760100.5");
     expect(e?.conversacion.estado).toBe("resolved");
     expect(e?.avisar).toBe(false);
+    expect(e?.mensajeId).toBeNull();
   });
 
   it.each([

@@ -59,3 +59,31 @@ export async function listConversacionesDeCliente(
   if (error || !data) return [];
   return data as ConversacionDeCliente[];
 }
+
+export interface EventoDescartado {
+  event_key: string;
+  event: string;
+  conversation_id: number;
+  attempts: number;
+  updated_at: string;
+}
+
+/**
+ * Eventos que el reintento propio dejó «descartado» (0504, E2-D26), para el
+ * admin en la Bandeja. La RLS solo se los deja ver al admin del tenant.
+ */
+export async function listEventosDescartados(
+  supabase: SupabaseClient,
+  tenantId: string,
+  limite = 10,
+): Promise<EventoDescartado[]> {
+  const { data, error } = await supabase
+    .from("chatwoot_webhook_events")
+    .select("event_key, event, conversation_id, attempts, updated_at")
+    .eq("tenant_id", tenantId)
+    .eq("status", "descartado")
+    .order("updated_at", { ascending: false })
+    .limit(limite);
+  if (error || !data) return [];
+  return data as EventoDescartado[];
+}

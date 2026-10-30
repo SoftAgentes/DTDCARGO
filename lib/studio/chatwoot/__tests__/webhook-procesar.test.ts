@@ -14,7 +14,7 @@ const m = vi.hoisted(() => ({
 vi.mock("@/lib/studio/feature-flags-queries", () => ({ listFeatureFlags: async () => m.flags }));
 vi.mock("@/lib/studio/notify/operario-push-outbox", () => ({ enqueueUserPush: m.encolar, drainOperarioPushOutbox: m.drenar }));
 
-import { avisarPorPush, procesarEventoChatwoot } from "../webhook-procesar";
+import { avisarPorPush, procesarEventoChatwoot, reprocesarEventosChatwoot } from "../webhook-procesar";
 import { interpretarEvento, type EventoChatwoot } from "../webhook-events";
 import { TEXTO_SINTETICO, mensajeCreado } from "./webhook-fixtures";
 
@@ -68,6 +68,8 @@ describe("procesarEventoChatwoot (SDD-0585)", () => {
       p_unread_count: 2,
       p_assignee_id: 7,
       p_phone_last10: "4125550101",
+      p_message_id: 101,
+      p_avisar: true,
     });
     expect(JSON.stringify(args)).not.toContain(TEXTO_SINTETICO);
   });
@@ -153,5 +155,56 @@ describe("avisarPorPush (SDD-0585)", () => {
     m.flags = flags;
     await avisarPorPush({ admin: admin({ nuevo: true, aplicado: true, client_id: null }), tenantId: T1 }, e, registro);
     expect(m.encolar).not.toHaveBeenCalled();
+  });
+});
+
+describe("reprocesarEventosChatwoot (SDD-0585, v3)", () => {
+  const fila = (extra: Record<string, unknown> = {}) => ({
+    tenant_id: T1,
+    event_key: "message_created:101",
+    event: "message_created",
+    conversation_id: 12,
+    message_id: 101,
+    avisar: true,
+    assignee_id: 7,
+    attempts: 2,
+    ...extra,
+  });
+  function adminReproceso(filas: unknown[] | Error) {
+    type RpcReproceso = (nombre: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { code: string; message: string } | null }>;
+    const rpc = vi.fn<RpcReproceso>(async (nombre) => {
+      if (nombre === "chatwoot_tomar_pendientes") {
+        return filas instanceof Error ? { data: null, error: { code: "PGRST202", message: "x" } } : { data: filas, error: null };
+      }
+      return { data: true, error: null };
+    });
+    return { rpc, from: admin({ nuevo: true, aplicado: true, client_id: null }).from } as unknown as Parameters<typeof reprocesarEventosChatwoot>[0] & { rpc: typeof rpc };
+  }
+
+  it("toma los pendientes, corre los manejadores con lo guardado y cierra cada uno", async () => {
+    const a = adminReproceso([fila(), fila({ event_key: "message_created:102", message_id: 102, tenant_id: T2 })]);
+    const vistos: unknown[] = [];
+    const r = await reprocesarEventosChatwoot(a, [async (ctx, evento) => { vistos.push([ctx.tenantId, evento.clave, evento.mensajeId, evento.avisar, evento.conversacion.id, evento.conversacion.asignadoId]); }]);
+    expect(r).toEqual({ tomados: 2, procesados: 2, fallidos: 0 });
+    expect(vistos).toEqual([
+      [T1, "message_created:101", 101, true, 12, 7],
+      [T2, "message_created:102", 102, true, 12, 7],
+    ]);
+    const cierres = a.rpc.mock.calls.filter((c) => c[0] === "chatwoot_cerrar_evento").map((c) => (c as unknown[])[1]);
+    expect(cierres).toEqual([
+      { p_tenant_id: T1, p_event_key: "message_created:101", p_ok: true },
+      { p_tenant_id: T2, p_event_key: "message_created:102", p_ok: true },
+    ]);
+  });
+
+  it("un manejador que vuelve a fallar: se cierra como fallido (la base decide si descarta)", async () => {
+    const a = adminReproceso([fila()]);
+    const r = await reprocesarEventosChatwoot(a, [async () => { throw new Error("falla"); }]);
+    expect(r).toEqual({ tomados: 1, procesados: 0, fallidos: 1 });
+    expect(a.rpc.mock.calls.find((c) => c[0] === "chatwoot_cerrar_evento")?.[1]).toEqual({ p_tenant_id: T1, p_event_key: "message_created:101", p_ok: false });
+  });
+
+  it("sin la 0504 (no existe la RPC): no rompe el cron", async () => {
+    expect(await reprocesarEventosChatwoot(adminReproceso(new Error("x")), [])).toEqual({ tomados: 0, procesados: 0, fallidos: 0, omitido: true });
   });
 });

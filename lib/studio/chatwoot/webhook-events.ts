@@ -37,6 +37,8 @@ export interface EventoChatwoot {
   /** Clave de idempotencia (E2-D18). */
   clave: string;
   accountId: number;
+  /** Id del mensaje (message_created): lo guarda el evento para reprocesar sin el payload. */
+  mensajeId: number | null;
   conversacion: ConversacionChatwoot;
   /** Mensaje entrante y no privado: merece aviso push (E2-D20). */
   avisar: boolean;
@@ -91,6 +93,7 @@ export function interpretarEvento(payload: unknown): EventoChatwoot | null {
       evento: "message_created",
       clave: `message_created:${mensajeId}`,
       accountId,
+      mensajeId,
       conversacion,
       avisar: p.message_type === "incoming" && p.private !== true,
     };
@@ -104,6 +107,7 @@ export function interpretarEvento(payload: unknown): EventoChatwoot | null {
       evento: "conversation_status_changed",
       clave: `conversation_status_changed:${conversacion.id}:${conversacion.estado}:${conversacion.fuenteActualizada}`,
       accountId,
+      mensajeId: null,
       conversacion,
       avisar: false,
     };

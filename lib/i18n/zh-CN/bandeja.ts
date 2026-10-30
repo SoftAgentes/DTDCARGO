@@ -51,6 +51,12 @@ export const bandeja: BandejaDict = {
   "bandeja.status.snoozed": "已暂停",
   "bandeja.status.resolved": "已解决",
 
+  // ── 已放弃的事件（2.3，v3；仅管理员）────────────────────────
+  "bandeja.discarded.title": "未能处理的事件",
+  "bandeja.discarded.help": "Studio 已重试 5 次仍未成功。请在收件箱中查看这些会话：可能缺少提醒。",
+  "bandeja.discarded.message": "新消息 · 会话 #{n} · 尝试 {intentos} 次",
+  "bandeja.discarded.status": "状态变更 · 会话 #{n} · 尝试 {intentos} 次",
+
   // ── 操作错误 ─────────────────────────────────────────────
   "bandeja.error.denied": "你没有执行此操作的权限。",
   "bandeja.error.invalid": "请检查用户和坐席 ID。",
