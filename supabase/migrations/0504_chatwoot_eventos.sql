@@ -66,6 +66,8 @@ grant all on public.chatwoot_webhook_events to service_role;
 create table public.chatwoot_conversations (
   tenant_id         uuid not null references public.tenants(id) on delete cascade,
   conversation_id   bigint not null check (conversation_id > 0),
+  -- Clave de texto para useRealtimeTable (Studio identifica filas por `id`).
+  id                text generated always as (conversation_id::text) stored,
   inbox_id          bigint,
   status            text not null check (status in ('open', 'resolved', 'pending', 'snoozed')),
   unread_count      integer not null default 0 check (unread_count >= 0),

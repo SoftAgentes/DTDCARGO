@@ -9,6 +9,9 @@
  *   entrar» fuerza otro (cuando el panel muestra su pantalla de login).
  * - `allow="microphone"`: las notas de voz. La cabecera de la ruta lo delega al
  *   origen del chat (PoC 2.1: hacen falta el atributo y la cabecera).
+ * - Al montar con vínculo, `reconciliarBandeja` corrige el contador con lo que
+ *   el agente ve en Chatwoot (un agente que lee sin responder no dispara webhook).
+ * - `conversacion`: el SSO lleva la conversación y Chatwoot redirige a ella.
  * - Sin `sandbox`: el panel necesita scripts, su origen, formularios, ventanas
  *   emergentes y descargas, y un sandbox con todo eso no protege nada.
  */
@@ -18,7 +21,7 @@ import { useT } from "@/lib/i18n";
 import type { I18nKey } from "@/lib/i18n/dict";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
-import { pedirEnlaceSso, type BandejaErrorCode } from "../actions";
+import { pedirEnlaceSso, reconciliarBandeja, type BandejaErrorCode } from "../actions";
 import { VinculosAdmin, type MiembroOpcion, type VinculoFila } from "./VinculosAdmin";
 
 export type BandejaEstado = "sin_configurar" | "sin_vinculo" | "listo";
@@ -27,27 +30,37 @@ interface Props {
   estado: BandejaEstado;
   panelUrl: string | null;
   inicioUrl: string | null;
+  /** `?c=N`: conversación a abrir (E2-D24). */
+  conversacion?: number | null;
   admin: { vinculos: VinculoFila[]; miembros: MiembroOpcion[] } | null;
 }
 
 type Fase = { tipo: "pidiendo" } | { tipo: "abriendo" } | { tipo: "abierto" } | { tipo: "error"; codigo: BandejaErrorCode };
 
-export function BandejaClient({ estado, panelUrl, inicioUrl, admin }: Props) {
+export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null, admin }: Props) {
   const t = useT();
   const [src, setSrc] = useState<string | null>(inicioUrl);
   const [fase, setFase] = useState<Fase>(inicioUrl ? { tipo: "abriendo" } : { tipo: "pidiendo" });
   const pidioAlMontar = useRef(false);
+  const reconcilio = useRef(false);
 
   const pedir = useCallback(async () => {
     setFase({ tipo: "pidiendo" });
-    const r = await pedirEnlaceSso();
+    const r = await pedirEnlaceSso(conversacion ?? undefined);
     if (r.ok) {
       setSrc(r.url);
       setFase({ tipo: "abriendo" });
     } else {
       setFase({ tipo: "error", codigo: r.error });
     }
-  }, []);
+  }, [conversacion]);
+
+  useEffect(() => {
+    // Una reconciliación por montaje; si falla, el contador sigue con el webhook.
+    if (estado !== "listo" || reconcilio.current) return;
+    reconcilio.current = true;
+    void reconciliarBandeja().catch(() => undefined);
+  }, [estado]);
 
   useEffect(() => {
     // Un solo pedido automático por montaje (StrictMode monta dos veces en dev).

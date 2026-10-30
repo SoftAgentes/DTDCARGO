@@ -44,6 +44,18 @@ export const bandeja = {
     "{nombre} ya no podrá abrir la bandeja desde Studio hasta que lo vuelvas a vincular.",
   "bandeja.links.cancel": "Cancelar",
 
+  // ── Tarjeta en la ficha del cliente (2.3) ────────────────
+  "bandeja.card.title": "Conversaciones en la Bandeja",
+  "bandeja.card.empty": "Sin conversaciones vinculadas a este cliente.",
+  "bandeja.card.conversation": "Conversación #{n}",
+  "bandeja.card.unread": "{n} sin leer",
+  "bandeja.card.last_activity": "Última actividad: {fecha}",
+  "bandeja.card.open": "Abrir",
+  "bandeja.status.open": "Abierta",
+  "bandeja.status.pending": "Pendiente",
+  "bandeja.status.snoozed": "En pausa",
+  "bandeja.status.resolved": "Resuelta",
+
   // ── Errores de las acciones ──────────────────────────────
   "bandeja.error.denied": "No tienes permiso para hacer esto.",
   "bandeja.error.invalid": "Revisa el usuario y el id del agente.",

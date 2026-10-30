@@ -7,6 +7,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 
 export interface ConversacionNoLeida {
+  /** `conversation_id::text` (columna generada): la clave de useRealtimeTable. */
+  id: string;
   conversation_id: number;
   unread_count: number;
   status: string;
@@ -26,7 +28,7 @@ export async function listNoLeidasBandeja(
 ): Promise<ConversacionNoLeida[]> {
   const { data, error } = await supabase
     .from("chatwoot_conversations")
-    .select("conversation_id, unread_count, status")
+    .select("id, conversation_id, unread_count, status")
     .eq("tenant_id", tenantId)
     .eq("status", "open")
     .gt("unread_count", 0)

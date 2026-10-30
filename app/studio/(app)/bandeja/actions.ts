@@ -6,6 +6,10 @@
  *  - `pedirEnlaceSso`: enlace de un solo uso para el iframe (E2-D12). Lo pide el
  *    servidor con el token de la Platform App; el cliente solo recibe el enlace
  *    ya validado (origen del chat, `/app/login`). Deja la marca `dtd_cw_sso`.
+ *    Con `conversacion`, el enlace lleva `sso_account_id` y `sso_conversation_id`
+ *    y Chatwoot redirige a esa conversación tras el login (E2-D24).
+ *  - `reconciliarBandeja`: al abrir la Bandeja, lee con el token del PROPIO
+ *    agente las conversaciones recientes y aplica su estado (E2-D22).
  *  - `vincularAgente` / `desvincularAgente`: solo admin (E2-D10). El vínculo
  *    exige que el agente de Chatwoot sea de la cuenta de la empresa y tenga el
  *    MISMO correo que el usuario de Studio: el SSO entra como ese agente.
@@ -21,7 +25,9 @@ import { getStudioAccess, moduleViewDenial, tenantAdminGate } from "@/lib/studio
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { isModuleEnabled } from "@/lib/studio/feature-flags-types";
 import { chatwootConfig } from "@/lib/studio/chatwoot/config";
-import { obtenerAgente, obtenerEnlaceSso } from "@/lib/studio/chatwoot/platform-api";
+import { obtenerAgente, obtenerEnlaceSso, obtenerTokenAgente } from "@/lib/studio/chatwoot/platform-api";
+import { listarConversacionesRecientes } from "@/lib/studio/chatwoot/account-api";
+import { aplicarConversacion } from "@/lib/studio/chatwoot/webhook-procesar";
 import { getVinculoPropio } from "@/lib/studio/chatwoot/links-queries";
 import { isUuid, mismoCorreo, parseChatwootUserId } from "@/lib/studio/chatwoot/chatwoot-types";
 import { SSO_COOKIE, SSO_COOKIE_OPTIONS } from "@/lib/studio/chatwoot/sso-cookie";
@@ -43,7 +49,9 @@ export type EnlaceSsoResult = { ok: true; url: string } | { ok: false; error: Ba
 
 export type VinculoState = { ok: boolean; error: BandejaErrorCode | null };
 
-export async function pedirEnlaceSso(): Promise<EnlaceSsoResult> {
+export type ReconciliarResult = { ok: true; aplicadas: number } | { ok: false; error: BandejaErrorCode };
+
+export async function pedirEnlaceSso(conversacion?: number): Promise<EnlaceSsoResult> {
   const supabase = await createClient();
   const denial = await moduleViewDenial(supabase, "bandeja");
   if (denial) return { ok: false, error: "denied" };
@@ -65,8 +73,52 @@ export async function pedirEnlaceSso(): Promise<EnlaceSsoResult> {
     console.warn(`[bandeja] SSO no disponible: ${enlace.error}`);
     return { ok: false, error: "service" };
   }
+  const url = new URL(enlace.data);
+  const destino = parseChatwootUserId(conversacion);
+  if (destino !== null) {
+    url.searchParams.set("sso_account_id", String(cfg.accountId));
+    url.searchParams.set("sso_conversation_id", String(destino));
+  }
   (await cookies()).set(SSO_COOKIE, userId, SSO_COOKIE_OPTIONS);
-  return { ok: true, url: enlace.data };
+  return { ok: true, url: url.toString() };
+}
+
+export async function reconciliarBandeja(): Promise<ReconciliarResult> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "bandeja");
+  if (denial) return { ok: false, error: "denied" };
+  if (!isModuleEnabled("bandeja", await listFeatureFlags(supabase))) {
+    return { ok: false, error: "denied" };
+  }
+  const { tenantId, userId } = await getStudioAccess(supabase);
+  if (!tenantId || !userId) return { ok: false, error: "denied" };
+
+  const cfg = chatwootConfig();
+  if (!cfg) return { ok: false, error: "unconfigured" };
+  const vinculo = await getVinculoPropio(supabase, tenantId, userId);
+  if (!vinculo) return { ok: false, error: "unlinked" };
+
+  // El token del agente se usa acá y se descarta: no se devuelve ni se registra.
+  const token = await obtenerTokenAgente(vinculo.chatwoot_user_id, cfg);
+  if (!token.ok) return { ok: false, error: "service" };
+  const conversaciones = await listarConversacionesRecientes(cfg, token.data);
+  if (!conversaciones.ok) {
+    console.warn(`[bandeja] reconciliación no disponible: ${conversaciones.error}`);
+    return { ok: false, error: "service" };
+  }
+
+  // Escribe con service_role por la RPC de 0504 (solo service_role), en el
+  // tenant de la sesión. Lo que se aplica es lo que el agente ve en Chatwoot.
+  const ctx = { admin: createAdminClient(), tenantId };
+  let aplicadas = 0;
+  try {
+    for (const c of conversaciones.data) {
+      if ((await aplicarConversacion(ctx, c, null)).aplicado) aplicadas += 1;
+    }
+  } catch {
+    return { ok: false, error: "service" };
+  }
+  return { ok: true, aplicadas };
 }
 
 export async function vincularAgente(_prev: VinculoState, formData: FormData): Promise<VinculoState> {

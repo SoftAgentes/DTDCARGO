@@ -7,9 +7,11 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const pedirEnlaceSso = vi.fn();
+const reconciliar = vi.fn(async () => ({ ok: true, aplicadas: 0 }));
 const desvincular = vi.fn<(prev: unknown, fd: FormData) => Promise<{ ok: boolean; error: null }>>(async () => ({ ok: true, error: null }));
 vi.mock("../actions", () => ({
-  pedirEnlaceSso: () => pedirEnlaceSso(),
+  pedirEnlaceSso: (c?: number) => pedirEnlaceSso(c),
+  reconciliarBandeja: () => reconciliar(),
   vincularAgente: vi.fn(async () => ({ ok: false, error: null })),
   desvincularAgente: (prev: unknown, fd: FormData) => desvincular(prev, fd),
 }));
@@ -20,7 +22,10 @@ const PANEL = "https://chat.dtdcargo.com/app/accounts/1/dashboard";
 const SSO = "https://chat.dtdcargo.com/app/login?email=ana%40example.test&sso_auth_token=t";
 const marco = () => document.querySelector("iframe");
 
-beforeEach(() => pedirEnlaceSso.mockReset());
+beforeEach(() => {
+  pedirEnlaceSso.mockReset();
+  reconciliar.mockClear();
+});
 afterEach(cleanup);
 
 describe("BandejaClient (SDD-0585)", () => {
@@ -103,5 +108,22 @@ describe("BandejaClient (SDD-0585)", () => {
     await userEvent.click(botones[botones.length - 1]);
     await waitFor(() => expect(desvincular).toHaveBeenCalledTimes(1));
     expect((desvincular.mock.calls[0][1] as FormData).get("user_id")).toBe("u1");
+  });
+
+  it("con vínculo reconcilia UNA vez al montar; sin vínculo no", async () => {
+    const { rerender } = render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    await waitFor(() => expect(reconciliar).toHaveBeenCalledTimes(1));
+    rerender(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    expect(reconciliar).toHaveBeenCalledTimes(1);
+    cleanup();
+    reconciliar.mockClear();
+    render(<BandejaClient estado="sin_vinculo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    expect(reconciliar).not.toHaveBeenCalled();
+  });
+
+  it("con ?c=N pide el SSO de esa conversación", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} conversacion={12} admin={null} />);
+    await waitFor(() => expect(pedirEnlaceSso).toHaveBeenCalledWith(12));
   });
 });

@@ -322,10 +322,11 @@
           "name": "chatwoot_agent_links",
           "kind": "table",
           "callSites": [
-            "app/studio/(app)/bandeja/actions.ts:109",
-            "app/studio/(app)/bandeja/actions.ts:129",
+            "app/studio/(app)/bandeja/actions.ts:161",
+            "app/studio/(app)/bandeja/actions.ts:181",
             "lib/studio/chatwoot/links-queries.ts:20",
-            "lib/studio/chatwoot/links-queries.ts:34"
+            "lib/studio/chatwoot/links-queries.ts:34",
+            "lib/studio/chatwoot/webhook-procesar.ts:71"
           ]
         }
       ],
@@ -346,14 +347,65 @@
           "degradation": "listVinculos devuelve la lista vacía: el admin ve «Todavía no hay usuarios vinculados»."
         },
         {
-          "site": "app/studio/(app)/bandeja/actions.ts:115",
+          "site": "app/studio/(app)/bandeja/actions.ts:167",
           "contains": "if (error) return { ok: false, error: error.code === \"23505\" ? \"duplicate\" : \"service\" };",
           "degradation": "vincularAgente sin la tabla no inserta nada y responde «El servidor de mensajes no respondió», sin error crudo."
         },
         {
-          "site": "app/studio/(app)/bandeja/actions.ts:133",
+          "site": "app/studio/(app)/bandeja/actions.ts:185",
           "contains": "if (error) return { ok: false, error: \"service\" };",
           "degradation": "desvincularAgente sin la tabla no borra nada y responde el mismo mensaje traducido."
+        },
+        {
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:74",
+          "contains": "const vinculos = (data ?? []) as { user_id: string; chatwoot_user_id: number }[];",
+          "degradation": "El aviso push del webhook sin la tabla no tiene vínculos: data llega null, la lista queda vacía y no se encola ningún push. El evento ya quedó registrado (0504)."
+        }
+      ]
+    },
+    {
+      "id": "sdd-0585-chatwoot-eventos",
+      "primarySymbol": "chatwoot_registrar_evento",
+      "migration": "0504_chatwoot_eventos",
+      "symbols": [
+        {
+          "name": "chatwoot_registrar_evento",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/chatwoot/webhook-procesar.ts:40",
+            "lib/studio/chatwoot/webhook-procesar.ts:53"
+          ]
+        },
+        {
+          "name": "chatwoot_conversations",
+          "kind": "table",
+          "callSites": [
+            "app/studio/(app)/_components/BandejaBadge.tsx:14",
+            "lib/studio/chatwoot/conversations-queries.ts:30",
+            "lib/studio/chatwoot/conversations-queries.ts:53"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/chatwoot/conversations-queries.ts:36",
+          "contains": "if (error || !data) return [];",
+          "degradation": "Sin 0504 la tabla chatwoot_conversations no existe (42P01/PGRST205): listNoLeidasBandeja devuelve [] y el layout pinta el sidebar sin badge de la Bandeja; el resto del shell no cambia."
+        },
+        {
+          "site": "lib/studio/chatwoot/conversations-queries.ts:59",
+          "contains": "if (error || !data) return [];",
+          "degradation": "listConversacionesDeCliente devuelve [] y la ficha muestra «Sin conversaciones vinculadas»; solo con acceso a la Bandeja y el flag encendido, que sin 0503 tampoco existe."
+        },
+        {
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:53",
+          "contains": "if (error) throw new Error(`chatwoot_registrar_evento: ${error.code ?? \"sin código\"}`);",
+          "degradation": "Sin la RPC (42883/PGRST202) el webhook responde 500 sin registrar ni avisar, y la reconciliación de la Bandeja responde «service». El webhook no se registra en Chatwoot hasta aplicar 0503 y 0504 (puerta aparte)."
+        },
+        {
+          "site": "app/studio/(app)/_components/BandejaBadge.tsx:19",
+          "contains": "if (n === 0) return null;",
+          "degradation": "La suscripción Realtime a una tabla que no existe no entrega cambios: el badge se queda con lo inicial del layout (vacío sin 0504) y no pinta nada."
         }
       ]
     }

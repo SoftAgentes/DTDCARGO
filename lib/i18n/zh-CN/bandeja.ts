@@ -39,6 +39,18 @@ export const bandeja: BandejaDict = {
   "bandeja.links.unlink_confirm_body": "{nombre} 在重新绑定之前将无法从 Studio 打开收件箱。",
   "bandeja.links.cancel": "取消",
 
+  // ── 客户档案卡片（2.3）────────────────────────────────────
+  "bandeja.card.title": "收件箱中的会话",
+  "bandeja.card.empty": "该客户没有关联的会话。",
+  "bandeja.card.conversation": "会话 #{n}",
+  "bandeja.card.unread": "{n} 条未读",
+  "bandeja.card.last_activity": "最近活动：{fecha}",
+  "bandeja.card.open": "打开",
+  "bandeja.status.open": "进行中",
+  "bandeja.status.pending": "待处理",
+  "bandeja.status.snoozed": "已暂停",
+  "bandeja.status.resolved": "已解决",
+
   // ── 操作错误 ─────────────────────────────────────────────
   "bandeja.error.denied": "你没有执行此操作的权限。",
   "bandeja.error.invalid": "请检查用户和坐席 ID。",

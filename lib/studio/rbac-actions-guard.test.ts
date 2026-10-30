@@ -313,8 +313,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // (lee el vínculo propio y solo escribe la cookie de la marca), y
   // `vincularAgente` y `desvincularAgente` llaman a `tenantAdminGate` antes de
   // leer nada; la RLS de 0503 repite el candado de admin del tenant.
+  // SDD-0585 (paso 2.3) sumó `bandeja/actions.ts::reconciliarBandeja` (447 → 448):
+  // `moduleViewDenial(supabase, "bandeja")` al tope; lee el vínculo propio y escribe
+  // solo por la RPC `chatwoot_registrar_evento` (0504, únicamente service_role) en el
+  // tenant de la sesión, con lo que el propio agente ve en Chatwoot.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(447);
+    expect(reportes.length).toBe(448);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
