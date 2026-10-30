@@ -59,16 +59,16 @@ const FILAS_MIXTAS = [
   "| 1.2 | E1 | Pendiente | IA | 2 | — | — | pendiente | — | — |",
 ];
 
-// Línea base v2 del checklist real (2026-10-29): ID=días base de cada paso, en orden.
-const LINEA_BASE_V2 = [
-  "0.1=1.25 0.2=0.25 0.3=0.75 0.4=1 0.5=0.25 0.6=1 0.7=0.5 0.8=0.25",
+// Línea base v3 del checklist real (2026-10-29): ID=días base de cada paso, en orden.
+const LINEA_BASE = [
+  "0.1=1.25 0.2=0.25 0.3=0.75 0.4=1 0.5=0.25 0.6=1 0.7=0.5 0.8=0.5",
   "1.1=1 1.2=0.5 1.3=0.25 1.4=0.5 1.5=0.75 1.6=0.25 1.7=1.5",
-  "2.1=1 2.2=5.5 2.3=3.5 2.4=2.25 2.5=1.25 2.6=1.75 2.7=2.5",
+  "2.1=1 2.2=5.5 2.3=5 2.4=2.25 2.5=1.25 2.6=2.25 2.7=2.5 2.8=1",
   "3.1=1 3.2=1 3.3=1.5 3.4=1.5",
-  "4.1=0.5 4.2=0.75 4.3=1 4.4=1 4.5=1.25 4.6=1 4.7=0.75 4.8=1.75 4.9=1",
+  "4.1=0.5 4.2=0.75 4.3=1 4.4=1 4.5=1.25 4.6=1 4.7=0.75 4.8=1.75 4.9=1.75",
   "5.1=0.5 5.2=0.5 5.3=1.5 5.4=1.5 5.5=1.75 5.6=1 5.7=0.5 5.8=0.5",
-  "6.1=2 6.2=2 6.3=5 6.4=2 6.5=1.5 6.6=2.5 6.7=2",
-  "7.1=1 7.2=0.5 7.3=0.5 7.4=1.5 7.5=1.5 7.6=5.5 7.7=1.5 7.8=1.5 7.9=1 7.10=1 7.11=1",
+  "6.1=2 6.2=2 6.3=5 6.4=2 6.5=1.5 6.6=2.5 6.7=2.25",
+  "7.1=1 7.2=0.5 7.3=0.5 7.4=1.5 7.5=2 7.6=6.25 7.7=1.75 7.8=1.5 7.9=1.5 7.10=1 7.11=1",
   "8.1=1 8.2=0.5 8.3=0.25 8.4=0.5 8.5=0.5 8.6=0.75 8.7=0.75 8.8=0.25 8.9=0.75 8.10=3.5 8.11=0.5 8.12=0.25 8.13=0.5",
   "9.1=1 9.2=2 9.3=1.5 9.4=2 9.5=1.5 9.6=1",
   "10.1=1.5 10.2=2 10.3=0.5 10.4=1 10.5=1.25 10.6=1",
@@ -82,9 +82,11 @@ describe("avance-checklist", () => {
     expect(r.stderr).toBe("");
     expect(r.status).toBe(0);
     const out = JSON.parse(r.stdout);
-    expect(out.lineaBase).toEqual({ version: "v2", fecha: "2026-10-29", alcance: 109.25 });
-    expect(out.anterior).toEqual({ version: "v1", alcance: 99.75 });
-    const DIAS_ETAPA = [5.25, 4.75, 17.75, 5, 9, 7.75, 17, 16.5, 10, 9, 7.25];
+    const ALCANCE = 115.5;
+    const ALCANCE_ANTERIOR = 109.25;
+    expect(out.lineaBase).toEqual({ version: "v3", fecha: "2026-10-29", alcance: ALCANCE });
+    expect(out.anterior).toEqual({ version: "v2", alcance: ALCANCE_ANTERIOR });
+    const DIAS_ETAPA = [5.5, 4.75, 20.75, 5, 9.75, 7.75, 17.25, 18.5, 10, 9, 7.25];
     expect(out.etapas.map((e) => e.id)).toEqual(DIAS_ETAPA.map((_, i) => `E${i}`));
     expect(out.etapas.map((e) => e.base)).toEqual(DIAS_ETAPA);
     const pesos = out.etapas.map((e) => (e.base / out.lineaBase.alcance) * 100);
@@ -97,16 +99,16 @@ describe("avance-checklist", () => {
       .map((c) => ({ id: c[1], etapa: c[2], base: Number(c[5].replace(",", ".")), estado: c[8] }))
       .filter((f) => f.estado !== "descartado");
     const sumar = (xs) => xs.reduce((a, f) => a + f.base, 0);
-    expect(sumar(filas)).toBeCloseTo(109.25, 10);
+    expect(sumar(filas)).toBeCloseTo(ALCANCE, 10);
     // Los días base de cada paso son parte de la línea base: moverlos dentro de una etapa no cambia
     // los totales, así que se fija la firma completa. Cambiarla exige una línea base nueva.
-    expect(filas.map((f) => `${f.id}=${f.base}`).join(" ")).toBe(LINEA_BASE_V2);
+    expect(filas.map((f) => `${f.id}=${f.base}`).join(" ")).toBe(LINEA_BASE);
     const aceptado = sumar(filas.filter((f) => f.estado === "aceptado"));
     const pctDe = (alcance) => Math.round((aceptado / alcance) * 100 * 100) / 100;
     expect(out.aceptado).toBeCloseTo(aceptado, 10);
-    expect(out.avance).toBe(pctDe(109.25));
-    expect(out.avanceAntes).toBe(pctDe(99.75));
-    expect(out.falta).toBeCloseTo(100 - pctDe(109.25), 10);
+    expect(out.avance).toBe(pctDe(ALCANCE));
+    expect(out.avanceAntes).toBe(pctDe(ALCANCE_ANTERIOR));
+    expect(out.falta).toBeCloseTo(100 - pctDe(ALCANCE), 10);
     expect(out.avance).toBeGreaterThanOrEqual(0);
     expect(out.avance).toBeLessThanOrEqual(100);
 
@@ -117,7 +119,7 @@ describe("avance-checklist", () => {
       .map((c) => ({ id: c[1], dias: Number(c[3].replace(",", ".")), peso: c[4] }));
     expect(tabla.map((e) => e.id)).toEqual(out.etapas.map((e) => e.id));
     for (const e of tabla) expect(e.dias).toBeCloseTo(sumar(filas.filter((f) => f.etapa === e.id)), 10);
-    const exactos = DIAS_ETAPA.map((d) => (d / 109.25) * 1000);
+    const exactos = DIAS_ETAPA.map((d) => (d / ALCANCE) * 1000);
     const decimas = exactos.map(Math.floor);
     const orden = exactos.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]);
     for (const [, i] of orden.slice(0, 1000 - decimas.reduce((a, b) => a + b, 0))) decimas[i] += 1;
