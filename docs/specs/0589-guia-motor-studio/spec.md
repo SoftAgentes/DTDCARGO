@@ -17,6 +17,8 @@ Programa: [SDD-0582](../0582-chatwoot-piloto/spec.md) · checklist: [fila 9.2](.
 
 > Solo código de Studio. No toca producción, el VPS, Meta, Chatwoot ni la base. No trae migración: el estado por usuario es de 9.3.
 
+> **Aceptado.** Sam aceptó el 9.2 el 2026-10-30. Pregunta del Director: «¿Aceptas el 9.2 (motor de la guía)?». Respuesta literal de Sam: «Acepto el 9.2». La fila 9.2 del checklist pasa a `aceptado`. El diseño de 9.3 (§8) no entra en esta aceptación: es una propuesta con su propia puerta.
+
 ## 1. Problema
 
 El equipo que hoy atiende en Kommo necesita ver en la pantalla dónde está cada tarea en Studio. El guion de 9.1 fija los textos, las anclas y las claves. Falta el motor que los muestra.

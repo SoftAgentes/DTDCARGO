@@ -5,14 +5,14 @@
 - **Rama:** `codex/0582-e9-motor`. Nació apilada sobre `codex/0582-e9-guion` (`37c64d114`, PR #330); la #330 ya está en main y esta rama trajo `origin/main` por merge el 2026-10-30. El Director reapunta la #338 a `main`.
 - **SDD:** [0589](../../docs/specs/0589-guia-motor-studio/spec.md), reservada con `next-number.mjs --reserve guia-motor-studio --push`. Deja dos refs: `refs/heads/codex/sdd-reserve-0589-guia-motor-studio` (local) y `origin/codex/sdd-reserve-0589`. Se borran cuando la spec llegue a main.
 - **Objetivo:** motor de guía propio y liviano en Studio, con un recorrido de demostración.
-- **Aceptación:** criterios A1–A10 de la SDD. La puerta de la fila es «PR → OK Sam».
+- **Aceptación:** criterios A1–A10 de la SDD. La puerta de la fila es «PR → OK Sam». Sam aceptó el 9.2 el 2026-10-30. Pregunta del Director: «¿Aceptas el 9.2 (motor de la guía)?». Respuesta literal de Sam: «Acepto el 9.2».
 - **Permisos:** PR en borrador apilada sobre `codex/0582-e9-guion`, autorizada en el encargo. Sin merge. Nada en producción, el VPS, Meta ni Chatwoot. Cero PII. Sin corridas pesadas.
 
 ## Estado al 2026-10-30
 
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
-| 9.2 | entregado | Motor, tarjeta, recorridos tipados, almacén con lugar para 9.3, i18n es-VE y zh-CN, montaje en el layout (5 líneas) y demostración en el Dashboard (`/studio/dashboard?guia=dashboard`) | OK de Sam |
+| 9.2 | aceptado | Motor, tarjeta, recorridos tipados, almacén con lugar para 9.3, i18n es-VE y zh-CN, montaje en el layout (5 líneas) y demostración en el Dashboard (`/studio/dashboard?guia=dashboard`) | — |
 
 ## Validación
 
@@ -44,7 +44,7 @@ Nota de entorno: con 2,5 GB libres de 31, el pool `forks` de vitest no arrancó 
 
 ## Impacto documental
 
-- SDD-0589 nueva; la fila 9.2 del checklist del programa pasa a `entregado`; índice `docs/specs/README.md` regenerado.
+- SDD-0589 nueva; la fila 9.2 del checklist del programa pasa a `entregado` y, con el OK de Sam del 2026-10-30, a `aceptado`; índice `docs/specs/README.md` regenerado.
 - Graphify, Archify y Obsidian: no se ejecutaron en el worktree. Las fuentes nuevas son código y una spec; la publicación la hace el Director desde main integrado.
 
 ## FUERA DE ALCANCE DETECTADO
