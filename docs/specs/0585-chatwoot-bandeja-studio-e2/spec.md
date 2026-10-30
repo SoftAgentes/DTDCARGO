@@ -363,8 +363,24 @@ E10 programa en paralelo, así que el `pnpm verify` completo espera turno del Di
 | **Mutantes** (13: cada uno quita un amarre) | 13 muertos:<br>- `postMessage` a «*»;<br>- sin chequeo de ventana;<br>- sin chequeo de origen;<br>- sin chequeo de agente;<br>- sin candado de clientes;<br>- saldo sin el criterio compartido;<br>- `sin_acceso` como `service`;<br>- proxy por prefijo;<br>- catch-all sin `$`;<br>- `X-Frame-Options` que se queda;<br>- dinero sin permiso;<br>- una respuesta vieja que pisa;<br>- una conversación con otro id.<br>El del saldo sobrevivió la primera vez: con la regla de hoy es equivalente, porque quien ve clientes ve saldo (decisión 14). Se agregó una prueba que fija que la acción delega en `puedeVerSaldoCliente` |
 | `/ui-check` | OK con ajustes menores. Aplicados: la grilla con el mínimo medido de SDD-0558, `minmax(min(260px, 100%), 1fr)`, y el Shipping Mark como `<h1>`. Los enlaces a otra pestaña quedan como en la Bandeja |
 | `revisar-datos-ve` | Tabla de abajo: 9 CORRECTO y 2 NO VERIFICABLE |
-| `pnpm verify` completo | **NO EJECUTADO**, espera turno del Director |
-| Prueba en un Chatwoot real | **NO EJECUTADO**. Registrar la app en el VPS pide OK; el procedimiento está en `docs/runbooks/chatwoot-ficha-dtd.md` |
+| `pnpm verify` completo | Corrido con turno del Director sobre `cf755a7a6`. Detalle en la tabla siguiente |
+| Prueba en un Chatwoot real | **NO EJECUTADO**. La app se registra después del merge y del despliegue, con OK de Sam; hoy apuntaría a una página que no está en `main`. El procedimiento está en `docs/runbooks/chatwoot-ficha-dtd.md` |
+
+#### Verify completo del 2.4 — 2026-10-30 (06:30Z a 07:27Z, punta `cf755a7a6`, Docker 29.9.1)
+
+Resultado global: **FALLÓ** (exit 1). Midió 16 de 17 pasos; sin medir, migrations-applied.
+
+| Paso | Resultado | De quién es |
+|---|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, build | PASÓ | — |
+| schema-rebuild | PASÓ: 475 migraciones desde cero; aislamiento multi-tenant en 219 tablas | — |
+| pending-migration-symbols | FALLÓ → **corregido** | **Propio.** Al editar `bandeja/actions.ts`, las líneas declaradas se vencieron, y `pedirFichaDtd` sumó un sitio de llamada de `chatwoot_conversations`. Se resincronizaron las líneas y se declaró la degradación del sitio nuevo: sin la 0504 la acción responde «service» antes de leer. Repetido solo: 0 ROJO · 5 AMARILLO |
+| sql-tests | FALLÓ: 248 verdes y 3 rojos (`0467_reversion_credito_carrera` y los dos `0497_reverso_al_anular_factura`) | Heredado de SDD-0573, igual que en el 2.2 y el 2.3. **0503 y 0504 PASÓ** |
+| test (Vitest) | FALLÓ: 13470 verdes y 2 timeouts de 600 s; al reintento, 13471 y 1 | Por carga: `scripts/__tests__/entorno-prueba-scripts.test.mjs` e `infra/ops/tests/migraciones.test.mjs`, fuera del diff. **Aislados después: PASÓ 32/32** |
+| e2e | FALLÓ: 218 verdes, 1 rojo, 1 flaky y 20 saltadas, en las dos vueltas | El rojo es `sin-scroll-horizontal.spec.ts:119` (Shipping Mark), heredado. Flaky: `auth.spec.ts:81` y `calculadora-semantic-colors.spec.ts:53`. **No se colgó:** corrieron todas |
+| migrations-applied | NO DISPONIBLE (SKIP): sin `.env.local` | Sin medir |
+
+**Rojo propio:** uno, `pending-migration-symbols`, ya corregido en el commit de esta validación. Lo demás es heredado o por carga.
 
 ### Datos personales del paso 2.4 (revisar-datos-ve, alcance del cambio)
 
