@@ -99,7 +99,7 @@ Pesos = días base de la etapa ÷ 115,5, redondeados a décimas por resto mayor 
 | 5.6 | E5 | Ensayo en copia: cero efectos externos y muestra revisada con Sam | S+IA | 1 | — | — | pendiente | OK Sam | — |
 | 5.7 | E5 | Carga en producción | IA | 0,5 | — | — | pendiente | OK nominal Sam (carga y PII) | — |
 | 5.8 | E5 | Acta de conciliación parcial con conteos por canal y objeto | IA | 0,5 | — | — | pendiente | — | — |
-| 6.1 | E6 | SDD y contrato de sistema maestro por objeto y fase | IA | 2 | 1 | 0 | entregado | OK Sam (contrato y decisiones D1–D10) | SDD-0587 `docs/specs/0587-chatwoot-contrato-sistema-maestro/spec.md`; rama `codex/0582-e6-contrato`; reestima 6.2–6.6 (§9) |
+| 6.1 | E6 | SDD y contrato de sistema maestro por objeto y fase | IA | 2 | 1 | 0 | aceptado | OK Sam (contrato y decisiones D1–D10) | SDD-0587 `docs/specs/0587-chatwoot-contrato-sistema-maestro/spec.md`, PR #334; reestima 6.2–6.6 (§9); aceptado por Sam el 2026-10-30: a «Si te sirven todas mis recomendaciones de D1–D10, basta con que me digas "D1–D10 como recomiendas"» respondió «si» (pasado por el Director) |
 | 6.2 | E6 | Modelo de datos y migración | IA | 2 | — | 2,5 | pendiente | Migración: OK Sam | — |
 | 6.3 | E6 | Tablero Kanban con dos embudos Leads/Clientes (paso automático de uno a otro) y ficha del lead | IA | 5 | — | 4,5 | pendiente | — | Línea base v2 (aprobación del plan v3 del Director, 2026-10-29): 4 → 5 días |
 | 6.4 | E6 | Entrada de leads desde Chatwoot y la web, con atribución | IA | 2 | — | 2,5 | pendiente | — | — |

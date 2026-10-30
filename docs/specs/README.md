@@ -603,7 +603,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0580 | Shipping Mark CTA: altura intrínseca y recorrido móvil | done | interno |
 | 0581 | Diagnóstico local de medición Ads y CSP | done | interno |
 | 0582 | Programa Kommo → Chatwoot dentro de Studio, con checklist y a… | proposed | interno |
-| 0587 | Contrato de sistema maestro por objeto y fase: Studio, Chatwo… | proposed | interno |
+| 0587 | Contrato de sistema maestro por objeto y fase: Studio, Chatwo… | approved | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0583, 0584, 0585, 0586 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

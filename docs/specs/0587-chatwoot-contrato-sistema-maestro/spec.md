@@ -1,7 +1,7 @@
 ---
 sdd: "0587"
 title: "Contrato de sistema maestro por objeto y fase: Studio, Chatwoot y Kommo (E6 del programa SDD-0582, paso 6.1)"
-status: proposed
+status: approved
 author: "Claude Worker «E6 contrato» (Sam)"
 created: 2026-10-30
 updated: 2026-10-30
@@ -226,7 +226,9 @@ Studio **no** escribe en Chatwoot nombres, teléfonos, códigos ni notas. La Fic
 6. **Puertas:** OK nominal de Sam para la carga (fila 6.5) y lectura de PII si hay que leer notas. Acta con conteos por etapa y objeto antes y después.
 7. **Después:** el mapeo y las columnas `kommo_*` se exportan cifrados y se borran en 8.9–8.11.
 
-## 8. Decisiones abiertas para Sam
+## 8. Decisiones de Sam
+
+**Resueltas el 2026-10-30, todas según la recomendación:** D1 (a), D2 (a), D3 (a), D4 (a), D5 (b), D6 (a), D7 (a), D8 (a), D9 (a) y D10 (a). A la pregunta del Director «Si te sirven todas mis recomendaciones de D1–D10, basta con que me digas "D1–D10 como recomiendas"», Sam respondió «si» (texto literal que pasó el Director). La columna «Recomendación» queda como registro de lo que se aprobó.
 
 | # | Pregunta | Opciones | Recomendación |
 |---|---|---|---|
@@ -242,6 +244,8 @@ Studio **no** escribe en Chatwoot nombres, teléfonos, códigos ni notas. La Fic
 | D10 | Análisis de llamadas con IA (widget NOVA) | (a) Sin reemplazo · (b) buscar uno | **(a)**: Chatwoot no maneja llamadas en el alcance del 100 % |
 
 ### Lecturas vivas propuestas (no se hicieron)
+
+El «si» de Sam cubre D1–D10, **no** estas lecturas: cada una sigue pidiendo su OK. L3 hace falta antes de aplicar D7 en 6.4, y L1 confirma D4 antes de 6.5.
 
 | # | Qué | Para qué | Puerta |
 |---|---|---|---|
@@ -275,13 +279,13 @@ El código y las migraciones de E6 van en las SDD de 6.2 en adelante, cada una c
 
 ## 11. Aceptación de 6.1
 
-- [ ] Las tablas de §3 cubren los 11 objetos en las 3 fases.
-- [ ] Los dos tableros tienen etapas propuestas, el paso automático y el caso del cliente que vuelve a lead (§4).
-- [ ] La sincronización dice qué fluye, en qué sentido, con qué idempotencia y cómo se resuelven los conflictos (§5).
-- [ ] Cada Salesbot e integración del inventario de 0.4 tiene reemplazo y costo de Meta (§6).
-- [ ] El plan de migración está escrito y no se ejecutó (§7).
-- [ ] Sam respondió D1–D10 o las aceptó como están, y decidió qué lecturas L1–L4 se hacen.
-- [ ] `docs:check`, `sdd:check`, la prueba del avance y `git diff --check` en verde.
+- [x] Las tablas de §3 cubren los 11 objetos en las 3 fases.
+- [x] Los dos tableros tienen etapas propuestas, el paso automático y el caso del cliente que vuelve a lead (§4).
+- [x] La sincronización dice qué fluye, en qué sentido, con qué idempotencia y cómo se resuelven los conflictos (§5).
+- [x] Cada Salesbot e integración del inventario de 0.4 tiene reemplazo y costo de Meta (§6).
+- [x] El plan de migración está escrito y no se ejecutó (§7).
+- [x] Sam aceptó D1–D10 según la recomendación (2026-10-30, §8). Las lecturas L1–L4 quedan para 6.4 y 6.5, cada una con su OK.
+- [x] `docs:check`, `sdd:check`, la prueba del avance y `git diff --check` en verde.
 
 ## 12. Fuera de alcance detectado (se informa, no se toca)
 
@@ -290,3 +294,8 @@ El código y las migraciones de E6 van en las SDD de 6.2 en adelante, cada una c
 - El motor de flujos 0143 no reintenta: un paso fallido queda `failed` (`workflow-drain.ts:148-169`).
 - `convertLead` guarda `registration_channel = 'kommo'` (`kommo-convert.ts:216`): un valor con «kommo» en datos vivos que la SDD de limpieza (8.10) tiene que decidir.
 - La regla «sin rastro» y el mapeo de IDs de 6.5 chocan si el mapeo vive después de 8.11: este contrato lo resuelve borrándolo en 8.11 (§3).
+
+## 13. Seguimiento
+
+- **2026-10-30:** SDD propuesta y fila 6.1 entregada (PR #334, commit `1fae5e0a0`).
+- **2026-10-30:** Sam aceptó D1–D10 según la recomendación («si», pasado por el Director). Fila 6.1 aceptada: el avance del programa en esta rama pasa de 4,8 % a 6,5 % (7,5 ÷ 115,5 d, salida de `avance-checklist`). 6.2 espera la PR de E10 (0505) y los eventos de la 0504 antes de empezar.
