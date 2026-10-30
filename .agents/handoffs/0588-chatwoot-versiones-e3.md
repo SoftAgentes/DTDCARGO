@@ -43,8 +43,19 @@ El candado vive en la PR de 4.2 (SDD-0584), todavía sin desplegar. Mientras no 
 | `check-pending-migration-symbols` | 0507 declarada en AMARILLO. **El gate sale ROJO tras el merge de E2 por una declaración de E2** (ver FUERA DE ALCANCE) |
 | `/ui-check` | OK con ajustes menores; aplicados 3 (`--ink-mute` como texto → `--ink-soft`, notas en `--f-sans`, alineación sin px) |
 | Pantalla en el navegador | **NO EJECUTADO**: necesita sesión de Studio con datos y la 0507 aplicada en una base local; cubierto por las pruebas del panel |
-| `pnpm verify` | **NO EJECUTADO**: en cola, detrás de E10, E6.2, E2 y E6.3. Pido turno al Director |
+| `pnpm verify` (2026-10-30 16:03–17:07Z, sobre `b9e1e3e54`, a pedido de Sam: «Corre verify ya»; sin otro verify vivo al arrancar) | **FALLÓ** (exit 1): 14 de 17 pasos corrieron. **PASÓ:** lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check y build. **FALLÓ:** harness, test, pending-migration-symbols y e2e (detalle abajo). **NO DISPONIBLE:** migrations-applied (sin `.env.local` en el worktree), sql-tests y schema-rebuild (sin Docker) |
 | `knowledge:status` | structural/semantic INVALID y Archify/Obsidian PENDING en este worktree; Graphify no corrido (lo publica el Director) |
+
+### Los 4 rojos del verify
+
+| Paso | Causa | Estado |
+|---|---|---|
+| harness | `scripts/tests/verify-e2e-sin-supabase.node.mjs`: `e2e/ficha-chat.spec.ts` (paso 2.6 de E2) no estaba en el inventario | **Rojo heredado del 2.6, corregido en `850a6ff91`.** Tras hacer merge de E2 `5451c818d`: la prueba del script PASÓ 15/15 |
+| pending-migration-symbols | Declaración de E2 `BandejaBadge.tsx:19` vencida | Corregida por E2 en `5451c818d` (19→21). Tras el merge: 0 ROJO, 6 AMARILLO declarados (la 0507 entre ellos) |
+| test | 1.ª corrida: `infra/ops/tests/migraciones.test.mjs` › `prueba-migraciones-produccion.sh` cortado a los 600 s. Reintento: 13.600 pruebas pasaron, pero quedaron 2 «Failed to start forks worker» (`app/p/[token]/…`), falta de RAM con 4 GB libres | Ambiental: ninguna prueba de E3 falló. Sin repetir (corrida pesada) |
+| e2e | `e2e/sin-scroll-horizontal.spec.ts:119` (CTA de Shipping Mark → `/registro`, SDD-0580) excedió el `waitForURL` de 20 s en chromium en las dos corridas; en mobile-chrome, flaky | Ajeno al diff de E3 (sitio público). Sin repetir. FUERA DE ALCANCE |
+
+Después del merge de `5451c818d` también pasaron: `build-crontab --check` (22 crons de `vercel.json`) y 532 pruebas (las de E3, RBAC y crontab).
 
 ## COMMITS
 
@@ -56,7 +67,7 @@ El candado vive en la PR de 4.2 (SDD-0584), todavía sin desplegar. Mientras no 
 
 ## PENDIENTES DE ESTA TAREA
 
-1. `pnpm verify` con turno del Director.
+1. ~~`pnpm verify`~~: corrido, con los 4 rojos explicados arriba. Repetirlo con la máquina libre quedaría para el cierre global, si el Director lo pide.
 2. ~~Confirmar la 0507~~: asignada por el Director. Pidió además guardar las notas sin HTML crudo: `limpiarNotas` quita etiquetas y comentarios (prueba más un mutante que muere).
 3. Aplicar la 0507: OK nominal de Sam y runbook `aplicar-migraciones-prod`. Sin ella, todo responde `omitido`/«sin datos».
 4. Aceptación de Sam de 3.1 a 3.3 (PR → OK Sam).
