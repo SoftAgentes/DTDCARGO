@@ -71,7 +71,29 @@ Todo lo demás (NDJSON por entidad, `informe.json`, marcas de reanudación) se e
 
 ## 4. Resultado de 5.1
 
-Pendiente: se llena con la corrida (stamp, bytes, sha256 del paquete, conteo de adjuntos cifrados, duración, códigos HTTP).
+### 4.1 Token (2026-10-31, ~00:30 CET)
+
+La integración «DTD 0582 historial (solo lectura)» de 0.6 seguía instalada en Kommo; no se creó otra. Con el pedido de Sam («Abre Chrome, ahí está en Kommo, y crea la integración para ayudarle a seguir») se generó desde su Chrome un token de larga duración con caducidad **30.11.2026**. El clic en «Copiar» lo negó el clasificador de la app por ser una credencial: lo copió Sam y lo pegó con `pegar-token-kommo-e5-0582.ps1` a `/dev/shm/k0582-e5`. `probar-token`: JWT de 1035 bytes, alcances `list_external_messages,crm`, 30 días, `account_id` 31589859, `GET /api/v4/account` HTTP 200 y subdominio `dtdcargo` (**R**). Ni el token ni la pestaña de llaves aparecen en capturas, logs ni en este repo.
+
+### 4.2 Ensayo corto (2026-10-30 23:33–23:35 UTC, todo en tmpfs, borrado al terminar) — **R**
+
+`todo --max-talks 20 --max-eventos-ventanas 2 --sondear-huecos 20 --verificar-efimera`, staging y destino en `/dev/shm`:
+
+| Medida | Valor |
+|---|---|
+| Peticiones | 167: 132 × HTTP 200, 35 × 204, **0 × 429**, 91 s de red |
+| Listas completas | 4.237 contactos, 4.201 leads, 14 empresas, 7 no clasificados, 462 notas de leads, 572 de contactos, 0 de empresas, 68 tareas, 5 usuarios; campos: 20 de leads, 9 de contactos, 4 de empresas |
+| Eventos (ventana de 2 días) | 48: 33 entrantes y 15 salientes; 9 conversaciones distintas |
+| Sondeo de huecos | ids 4051..5057; de 20 ids sin eventos, **20 existen** → los ids de conversación son densos y la enumeración completa necesita el sondeo total (`--sondear-huecos -1`) |
+| Conversaciones leídas | 21 (todas HTTP 200): 16 `waba`, 5 `instagram_business`; 1,9–2,1 s por conversación con pausa de 0,25 s |
+| Mensajes | 292: 196 entrantes y 96 salientes; `message_type` text 271, picture 18, voice 2, contact 1; autores external 196, internal 93, bot 3; p50 3, p90 21, máx. 139 por conversación; 112 caracteres de texto promedio |
+| Adjuntos | 20 de 20 descargados (HTTP 200) desde `drive-g.kommo.com`: 13 jpeg, 5 png, 2 m4a; 2,1 MB en total, 106 KB promedio, 728 KB el mayor |
+| Paquete | `metadatos.tar.zst.age` de 402.799 bytes; round-trip con llave efímera: `age=0 tar=0 entradas=41`; 21 archivos cifrados, 2.528.130 bytes; destinatarios `Sam-2026-10-29` y `Emergencia-2026-10-29` (2 claves) |
+| Hallazgo | `GET /api/v4/account` devuelve `created_at` igual a la hora de la consulta: la enumeración por ventanas tiene que partir de `--desde` (corrida completa: 2019-01-01). Corregido en el script (`desde()`), con prueba |
+
+### 4.3 Corrida completa
+
+Arrancó el 2026-10-30 23:38 UTC como unidad transitoria `kommo-e5-respaldo` (systemd, `Nice=10`), con `--desde 2019-01-01 --sondear-huecos -1 --pausa 0.15`, staging `/dev/shm/kommo-e5` y destino `/srv/backups/kommo/kommo-20261030T233814Z/`. Resultado: pendiente (stamp, bytes, sha256, adjuntos cifrados, duración y códigos HTTP se anotan al terminar).
 
 ## 5. Resultado de 5.2 — volumen
 
