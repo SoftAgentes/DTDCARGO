@@ -1,15 +1,15 @@
-# Handoff — SDD-0588, etapa E3 del programa SDD-0582 (pasos 3.1, 3.2 y 3.3)
+# Handoff — SDD-0588, etapa E3 del programa SDD-0582 (pasos 3.1 a 3.4)
 
 - **Fecha:** 2026-10-30
 - **Worker:** Claude, owner `local_e3-versiones` (sesión iniciada por el Director `local_535053f4…`)
 - **Rama:** `codex/0582-e3-versiones`, en el worktree `.claude/worktrees/sad-kowalevski-241d34`
 - **Base:** apilada sobre `codex/0582-e2-poc`; mergeada su punta `c1d081b3b` (2026-10-30) antes de registrar el cron
 - **Reserva:** SDD-0588, local: `refs/heads/codex/sdd-reserve-0588-chatwoot-versiones-e3` en `74b81928`. El stub no se integra; la spec real vive en esta rama
-- **Migración:** **0507**, asignada por el Director el 2026-10-30. **NO APLICADA**, declarada en `migrations-baseline.json › pendingBelowCutoff`
+- **Migraciones:** **0507** (asignada por el Director el 2026-10-30) y **0509** (3.4; la siguiente libre que dio el Director, número pedido para esta tabla y sin respuesta todavía). Las dos **NO APLICADAS**, declaradas en `migrations-baseline.json › pendingBelowCutoff`
 
 ## OBJETIVO ORIGINAL
 
-E3 «Actualizaciones desde Studio»: 3.1 runbook de versiones, 3.2 vigilante de versiones y 3.3 pantalla «Actualizaciones» solo para admin, con «Pedir actualización», que deja un registro y no despliega nada. El 3.4 (IA) queda fuera.
+E3 «Actualizaciones desde Studio»: 3.1 runbook de versiones, 3.2 vigilante de versiones y 3.3 pantalla «Actualizaciones» solo para admin, con «Pedir actualización», que deja un registro y no despliega nada. El 3.4 (IA) quedó fuera hasta que Sam eligió el motor. El 2026-10-30, por selector, eligió «GLM de la oficina (Recomendado)», y el Director lo encargó con este alcance: paquete solo de código, informe por pieza propia con «seguro / revisar / no actualizar», llave propia del servidor, topes, timeout, respaldo sin IA, doble del motor y prueba negativa de secretos. Nada en el VPS de agentes ni en la oficina.
 
 ## COMPLETADO
 
@@ -18,6 +18,7 @@ E3 «Actualizaciones desde Studio»: 3.1 runbook de versiones, 3.2 vigilante de 
 | 3.1 | [`docs/runbooks/chatwoot-versiones.md`](../../docs/runbooks/chatwoot-versiones.md): RPO 0 mensajes / RTO ≤ 30 min, ventana de 21:00 a 23:00 en Caracas, de lunes a jueves, drenaje de Sidekiq (TSTP), respaldo conjunto en el momento, prueba en copia (`chatwoot-ensayo`), smoke S1–S10, recuperación del tráfico (Sidekiq, reintentos de Meta, reconciliación de Studio) y vuelta atrás a/b/c. Ampliado el 2026-10-30 a pedido del Director con el tercer initializer, `zz_dtd_revocar_sesiones.rb` (paso 2.7 de E2, texto tomado de su handoff 0585): fila en «Pieza propia», corrida `prueba-revocar-sesiones.sh` en §4 con su control C1 en rojo, y S6–S7 en el smoke, que pasa a S1–S12 | aceptado (2026-10-30); ampliación sin aceptar todavía |
 | 3.2 | `lib/studio/chatwoot/versiones{,-fuentes,-queries,-vigilante}.ts` y el cron `/api/cron/chatwoot-versiones` (13:15 UTC), registrado en `vercel.json` con el crontab regenerado. Guarda en `chatwoot_version_checks`; avisa por push a los admins una vez por versión | aceptado (2026-10-30) |
 | 3.3 | `/studio/admin/actualizaciones` (layout `requireModuleView("admin")`, acciones con `tenantAdminGate`): instalada, publicada, notas en texto plano, «Revisar ahora» y «Pedir actualización» → `chatwoot_update_requests`. Entrada: **una línea** en `admin/page.tsx` (grupo PRO) | aceptado (2026-10-30) |
+| 3.4 | «Analizar con IA» en `/studio/admin/actualizaciones`. Archivos: `lib/studio/chatwoot/analisis.ts` (paquete, cortes, prompt, lectura de la respuesta e informe sin IA), `analisis-superficie.ts` (lee del disco la superficie de DTD; en producción viaja por `outputFileTracingIncludes`), `analisis-motor.ts` (diff de GitHub, llamada a GLM, caché, tope y uno a la vez) y `analisis-queries.ts`. La acción `analizarConIa` solo analiza el salto pendiente. Guarda en `chatwoot_version_analyses` (0509). Llave en `DTD_CHATWOOT_IA_GLM_KEY`, declarada vacía en los dos `.env.example` | entregado |
 
 **Initializers de DTD en el runbook.** El candado de `/register` y la redacción de logs se comprueban así:
 - en el ensayo local, con los controles en rojo: A1 de `ensayo-local.sh` y C de `prueba-register.sh`;
@@ -26,7 +27,7 @@ E3 «Actualizaciones desde Studio»: 3.1 runbook de versiones, 3.2 vigilante de 
 
 El candado vive en la PR de 4.2 (SDD-0584), todavía sin desplegar. Mientras no lo esté, S2 y S3 se registran como NO APLICA.
 
-**Decisiones:** E3-D1 a E3-D8, en la [spec](../../docs/specs/0588-chatwoot-versiones-e3/spec.md).
+**Decisiones:** E3-D1 a E3-D14 (las del 3.4 son E3-D9 a E3-D14, con la tabla de IA-01 y la allowlist), en la [spec](../../docs/specs/0588-chatwoot-versiones-e3/spec.md).
 
 ## VALIDACIÓN
 
@@ -44,6 +45,14 @@ El candado vive en la PR de 4.2 (SDD-0584), todavía sin desplegar. Mientras no 
 | `/ui-check` | OK con ajustes menores; aplicados 3 (`--ink-mute` como texto → `--ink-soft`, notas en `--f-sans`, alineación sin px) |
 | Pantalla en el navegador | **NO EJECUTADO**: necesita sesión de Studio con datos y la 0507 aplicada en una base local; cubierto por las pruebas del panel |
 | `pnpm verify` (2026-10-30 16:03–17:07Z, sobre `b9e1e3e54`, a pedido de Sam: «Corre verify ya»; sin otro verify vivo al arrancar) | **FALLÓ** (exit 1): 14 de 17 pasos corrieron. **PASÓ:** lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check y build. **FALLÓ:** harness, test, pending-migration-symbols y e2e (detalle abajo). **NO DISPONIBLE:** migrations-applied (sin `.env.local` en el worktree), sql-tests y schema-rebuild (sin Docker) |
+| **3.4** · pruebas del análisis y de las acciones (`analisis.test.ts` 19, `analisis-superficie.test.ts` 7, `analisis-motor.test.ts` 18, `actions.test.ts` 14) | PASÓ 58/58, con doble del motor GLM y de GitHub. La prueba negativa arma el paquete con `.env`, `.env.example`, `secretos/`, un initializer y un diff con llaves, y valores reales en `process.env`; ninguno llega al mensaje del motor. El lector de superficie se prueba sobre un árbol trampa y sobre el repo real (0 archivos descartados por secreto) |
+| **3.4** · panel (`ActualizacionesPanel.test.tsx`) | PASÓ 15/15 (6 nuevas: botón, tope, informe con IA y sin IA, «no actualizar» y texto plano) |
+| **3.4** · mutantes de código (`mutantes-34.cjs` en el scratchpad, uno por vez, restaurando el archivo en `finally`) | 20 de 21 MUERTOS; control sin mutar 58/58 antes y después. Sobrevivía M10 (`sinDiff ||` en la recomendación sin IA): sin diff todas las piezas ya quedan en «medio», así que era código de más y se quitó |
+| **3.4** · PGlite de la 0509 (`chatwoot-analisis.migration.test.ts`) | PASÓ 14/14: contrato de 21 aserciones, control rojo, 9 mutantes, preflight de reaplicación y preflight sin la 0507 |
+| **3.4** · `rbac-actions-guard` (452 → 453 acciones), `next-config`, `build-crontab`, `versiones*` | PASÓ (458, 24, 11 y 27) |
+| **3.4** · `tsc --noEmit`, ESLint de los archivos tocados y `check-pending-migration-symbols` | PASÓ; 0 avisos; 0 ROJO, 8 AMARILLO (la 0509 declarada con 5 evidencias y las líneas de `actions.ts` resincronizadas) |
+| **3.4** · `/ui-check` del panel | Revisión en línea con la rúbrica: tokens `var(--*)`, `Badge` con texto para recomendación y riesgo, `ActionButton` ghost (el primario sigue siendo «Pedir actualización»), rutas en mono, sin HTML del motor. Sin hallazgos que corregir |
+| **3.4** · llamada real a Z.AI | **NO EJECUTADO**: usar la llave real es una puerta de integración con OK de Sam. URL `api.z.ai/api/coding/paas/v4`, modelo `glm-4.6` y términos del Coding Plan **NO VERIFICADOS** |
 | `knowledge:status` | structural/semantic INVALID y Archify/Obsidian PENDING en este worktree; Graphify no corrido (lo publica el Director) |
 
 ### Los 4 rojos del verify
@@ -70,6 +79,9 @@ Después del merge de `5451c818d` también pasaron: `build-crontab --check` (22 
 1. ~~`pnpm verify`~~: corrido, con los 4 rojos explicados arriba. Repetirlo con la máquina libre quedaría para el cierre global, si el Director lo pide.
 2. ~~Confirmar la 0507~~: asignada por el Director. Pidió además guardar las notas sin HTML crudo: `limpiarNotas` quita etiquetas y comentarios (prueba más un mutante que muere).
 3. Aplicar la 0507: OK nominal de Sam y runbook `aplicar-migraciones-prod`. Sin ella, todo responde `omitido`/«sin datos».
+5. Aplicar la 0509 (después de la 0507): OK nominal de Sam. Antes, el Director confirma o cambia el número.
+6. Puerta de integración del 3.4: con OK de Sam, poner la llave en el entorno del servidor de Studio (`DTD_CHATWOOT_IA_GLM_KEY`, propia; no la variable de la oficina) y hacer una corrida real, revisando antes los términos del Coding Plan. Sin la llave, el análisis sale «sin IA».
+7. Aceptación de Sam del 3.4 y de la ampliación del 3.1 (`zz_dtd_revocar_sesiones.rb`).
 4. ~~Aceptación de Sam de 3.1 a 3.3~~: aceptados el 2026-10-30 («Acepto todo», a la pregunta del Director «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?»).
 
 ## FUERA DE ALCANCE DETECTADO
@@ -81,9 +93,10 @@ Después del merge de `5451c818d` también pasaron: `build-crontab --check` (22 
 ## Impacto documental
 
 - Canónicos nuevos: `docs/runbooks/chatwoot-versiones.md` y `docs/specs/0588-chatwoot-versiones-e3/spec.md`; el índice `docs/specs/README.md` está regenerado.
-- Checklist de la 0582: filas 3.1 a 3.3 en `aceptado` (2026-10-30). En esta rama el avance pasa de 18,6 % a 21,6 % (25 ÷ 115,5), salida de `avance-checklist`.
+- 3.4: spec §«Paso 3.4» y §«Migración 0509»; runbook §3 paso 2 (el informe es un apoyo, no reemplaza el diff); fila de Z.AI en `docs/legal/privacidad/inventario-terceros.md` §2, entre los que no reciben datos personales.
+- Checklist de la 0582: filas 3.1 a 3.3 en `aceptado` (2026-10-30) y 3.4 en `entregado`. En esta rama el avance pasa de 18,6 % a 21,6 % (25 ÷ 115,5), salida de `avance-checklist`.
 - Graphify, Archify y Obsidian: pendientes para el Director desde la main integrada; aquí no se emitieron recibos.
 
 ## HANDOFF AL DIRECTOR
 
-SDD-0588. Migración 0507 por confirmar. PR en borrador apilada sobre E2. Falta el turno de `pnpm verify`. La declaración vencida de E2 bloquea el gate de símbolos en las dos ramas: es de E2.
+SDD-0588, pasos 3.1 a 3.4. 3.1 a 3.3 aceptados; 3.4 entregado. Migraciones 0507 y 0509 sin aplicar; la 0509 espera que el Director confirme el número. PR en borrador apilada sobre E2. Falta un `pnpm verify` verde (el del 2026-10-30 cayó por rojos ajenos) y la puerta de integración con la llave real de GLM.

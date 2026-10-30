@@ -57,6 +57,8 @@ En la rama de la subida, **nada en el VPS todavía**:
      app/controllers/api_controller.rb app/models/channel/whatsapp.rb config/routes.rb \n     app/channels/ app/models/user.rb Gemfile.lock
    ```
 
+   **Apoyo:** Studio › Administración › Actualizaciones › «Analizar con IA» (paso 3.4) da un informe con el riesgo por pieza propia y una recomendación. Es una ayuda para leer el diff, no lo reemplaza: un «seguro» del motor no salta este paso ni §4, y un informe «sin IA» solo dice qué piezas tienen archivos cambiados.
+
    Si cambió `facebook_api_client.rb`, `webhook_setup_service.rb` o `webhook_teardown_service.rb`, **el candado se revisa a mano** antes de seguir: los nombres de método que intercepta están en su cabecera. Si cambió `app/channels/room_channel.rb`, `app/controllers/platform/` o la versión de `devise_token_auth` en `Gemfile.lock`, **la revocación de sesiones se revisa a mano**: lo que medió en 4.19.1 está en la cabecera de `zz_dtd_revocar_sesiones.rb`.
 3. **Imagen nueva por digest.** `docker buildx imagetools inspect chatwoot/chatwoot:vX.Y.Z-ce` y copiar el digest `linux/amd64`. Cambiar en `compose.yml` **la etiqueta y el digest juntos**. Revisar si las notas cambian las imágenes de `pgvector` o `redis` (no se suben en el mismo salto salvo que la versión lo exija).
 4. **Actualizar las versiones esperadas** de las pruebas, que hoy dicen `4.19.1`: `pruebas/ensayo-local.sh` (C1 y la comprobación tras restaurar), la cabecera de los tres initializers («medido en la imagen …») y el monitor «Chatwoot · versión» de Uptime Kuma (§6, paso 6).
