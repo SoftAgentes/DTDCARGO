@@ -132,3 +132,63 @@ Pedido por la sesión coordinadora del programa («CRM Chatwoot»), a cuenta de 
 
 - **El mismo lookahead suelto existe hoy con `studio/bitacora`:** cualquier ruta que empiece así (por ejemplo `/studio/bitacora-x`) se queda sin las cabeceras de seguridad. Hoy no hay una ruta así; corregirlo es otra tarea.
 - **«Conversaciones» (SDD-0056)** es otra bandeja propia de Studio. Qué pasa con ella cuando Chatwoot sea la bandeja es una decisión de producto de Sam.
+
+---
+
+# Paso 2.3 — contador, webhook con push y tarjeta en la ficha (2026-10-29)
+
+Pedido por el Director con el OK de Sam («ok»). Diseño E2-D16 a E2-D25 y allowlist en [`spec.md`](../../docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md) §«Paso 2.3». La migración es la **0504**, dada por el Director. Nada desplegado ni aplicado, y el webhook no se registró en el Chatwoot del VPS.
+
+## Qué quedó
+
+| Pieza | Dónde | Pruebas |
+|---|---|---|
+| Migración 0504: `chatwoot_webhook_events`, `chatwoot_conversations` (en Realtime) y la RPC `chatwoot_registrar_evento` | `supabase/migrations/0504_chatwoot_eventos.sql` (**NO APLICADA**, declarada) | PGlite: 23 aserciones, control rojo, 9 mutantes y reaplicación |
+| Webhook `POST /api/chatwoot/webhook`, con firma HMAC y anti-replay de 5 min | `app/api/chatwoot/webhook/route.ts`, `lib/studio/chatwoot/webhook-*.ts` | Firma, interpretación, procesamiento y ruta; mutante de firma muerto |
+| Push al vinculado del asignado, o a todos, por el outbox | `webhook-procesar.ts` (`avisarPorPush`) | Destinatarios y casos sin aviso; mutante de filtro muerto |
+| Contador del sidebar, vivo por Realtime | `BandejaBadge.tsx`, `StudioSidebar.tsx`, `layout.tsx` | `BandejaBadge.test.tsx` |
+| Reconciliación con el token del agente | `bandeja/actions.ts` (`reconciliarBandeja`), `account-api.ts` | `actions.test.ts` y `account-api.test.ts` |
+| `?c=N` y SSO a una conversación | `bandeja/page.tsx`, `BandejaClient.tsx`, `pedirEnlaceSso(conversacion)` | `actions.test.ts` y `BandejaClient.test.tsx` |
+| Tarjeta en la ficha | `clientes/_components/ChatwootConversacionesCard.tsx`, `clientes/[markbox]/page.tsx` | `ChatwootConversacionesCard.test.tsx` |
+
+## Decisiones menores que tomé (registro pedido por el Director)
+
+- **Ruta del webhook:** `/api/chatwoot/webhook`, fuera de `/api/studio` porque no lleva sesión.
+- **Tenant:** viene de `CHATWOOT_TENANT_ID`, un solo tenant por cuenta. Los eventos de otra cuenta se ignoran con 200.
+- **Clave de idempotencia:**
+  - semántica, no el `X-Chatwoot-Delivery`, para que un reintento con otro id de entrega también se deduplique;
+  - de estado: `conversación:estado:updated_at`.
+- **Orden:** un evento más viejo (`updated_at`) se registra pero no pisa el estado.
+- **Reconciliación:**
+  - hasta 4 páginas (100 conversaciones) con `status=all` en orden de actividad, una vez por montaje;
+  - lo que el agente no ve en Chatwoot no se corrige con su token.
+- **Contador:**
+  - es el total del tenant, no el de cada agente: la vista por agente es de 2.7;
+  - `unread_count` es el de Chatwoot, con tope de 10 por conversación (`last(10)`), así que el badge cuenta conversaciones, no mensajes.
+- **Columna `id` generada en la 0504:** la necesita `useRealtimeTable`. La 0504 no está aplicada, así que se pudo cambiar.
+
+## Validación del paso 2.3 (hasta ahora)
+
+| Comprobación | Resultado |
+|---|---|
+| `tsc --noEmit` | PASÓ |
+| `eslint` de lo tocado | PASÓ |
+| Vitest puntual (48 archivos: Bandeja, sidebar, ficha, webhook, chatwoot, RBAC, flags, runtime y env) | PASÓ: 1029 |
+| Contrato 0504 en PGlite | PASÓ: 13/13 |
+| `pending-migration-symbols` | PASÓ: 0 ROJO · 5 AMARILLO |
+| `pnpm verify` | **NO EJECUTADO**: pedido el turno al Director |
+
+## Pendientes del paso 2.3
+
+- `pnpm verify` con turno.
+- **Puertas,** cada una con su OK nominal de Sam:
+  - aplicar la 0503 y la 0504;
+  - cargar `CHATWOOT_WEBHOOK_SECRET` y `CHATWOOT_TENANT_ID`;
+  - crear el webhook de cuenta en Chatwoot con `message_created` y `conversation_status_changed`, apuntado a `https://dtdcargo.com/api/chatwoot/webhook`;
+  - desplegar.
+- **Retención (ENCONTRADO por revisar-datos-ve):** fijar un plazo para `chatwoot_webhook_events` y `chatwoot_conversations`.
+
+## FUERA DE ALCANCE DETECTADO (2.3)
+
+- **El aviso de mensaje entrante a staff de «Conversaciones»** (SDD-0056) mete nombre y un extracto del mensaje en Telegram y en el push del portal (`conversation-inbound-notify.ts`, `conversation-reply-push.ts`). No hay una regla escrita contra datos personales en el cuerpo de un push. Se recomienda escribirla.
+- **El verificador de Resend compara la firma con `===`** (`resend-api.ts:240-296`), no en tiempo constante.

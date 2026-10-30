@@ -162,9 +162,9 @@ Pedido por el Director el 2026-10-29, con el OK de Sam («ok»). Va en la misma 
 ### Allowlist exacta (paso 2.3)
 
 - **Migración:** `supabase/migrations/0504_chatwoot_eventos.sql`; `supabase/tests/0504_chatwoot_eventos.test.sql`; `lib/studio/__tests__/chatwoot-eventos.migration.test.ts`; `supabase/migrations-baseline.json`; `supabase/pending-migration-symbol-declarations.json`.
-- **Lógica:** `lib/studio/chatwoot/{webhook-signature.ts,webhook-events.ts,webhook-procesar.ts,conversations-queries.ts,account-api.ts,platform-api.ts,chatwoot-types.ts,config.ts}`; `lib/studio/chatwoot/__tests__/{webhook-signature.test.ts,webhook-events.test.ts,webhook-procesar.test.ts,account-api.test.ts}`.
+- **Lógica:** `lib/studio/chatwoot/{webhook-signature.ts,webhook-events.ts,webhook-procesar.ts,conversations-queries.ts,account-api.ts,platform-api.ts,chatwoot-types.ts,config.ts}`; `lib/studio/chatwoot/__tests__/{webhook-signature.test.ts,webhook-events.test.ts,webhook-procesar.test.ts,account-api.test.ts,webhook-fixtures.ts}`.
 - **Ruta:** `app/api/chatwoot/webhook/route.ts`; `app/api/chatwoot/webhook/__tests__/route.test.ts`.
-- **Contador:** `app/studio/(app)/layout.tsx`; `app/studio/(app)/_components/StudioSidebar.tsx`; `app/studio/(app)/_components/BandejaBadge.tsx`.
+- **Contador:** `app/studio/(app)/layout.tsx`; `app/studio/(app)/_components/StudioSidebar.tsx`; `app/studio/(app)/_components/BandejaBadge.tsx`; `app/studio/(app)/_components/__tests__/BandejaBadge.test.tsx`.
 - **Bandeja:** `app/studio/(app)/bandeja/{page.tsx,actions.ts}`; `app/studio/(app)/bandeja/_components/BandejaClient.tsx`; `app/studio/(app)/bandeja/__tests__/{actions.test.ts,BandejaClient.test.tsx}`.
 - **Ficha:** `app/studio/(app)/clientes/[markbox]/page.tsx`; `app/studio/(app)/clientes/_components/ChatwootConversacionesCard.tsx`; `app/studio/(app)/clientes/_components/__tests__/ChatwootConversacionesCard.test.tsx`.
 - **Textos:** `lib/i18n/es-VE/bandeja.ts`, `lib/i18n/zh-CN/bandeja.ts`.
@@ -182,6 +182,22 @@ Pedido por el Director el 2026-10-29, con el OK de Sam («ok»). Va en la misma 
 6. **Reconciliación:** usa el token del agente vinculado, no lo devuelve al cliente y aplica con la RPC.
 7. **Tarjeta y contador:** pruebas del componente y del cálculo.
 8. **Cierre:** `pnpm verify`, con turno.
+### Datos personales del paso 2.3 (revisar-datos-ve, alcance del cambio)
+
+Estados de la skill: ENCONTRADO, CORRECTO y NO VERIFICABLE.
+
+| Punto | Estado | Evidencia |
+|---|---|---|
+| **Inventario:** `chatwoot_conversations` | CORRECTO | Guarda ids, estado, conteos, fechas y `client_id`. La finalidad es el contador y la tarjeta. Es metadato de una comunicación con una persona identificable cuando hay `client_id` (0504) |
+| **Inventario:** `chatwoot_webhook_events` | CORRECTO | Solo clave, tipo e id de conversación (0504) |
+| **Minimización** | CORRECTO | Sin texto, nombre, correo ni teléfono en tablas, logs, respuestas ni push: `webhook-events.ts` (`interpretarEvento`); `route.ts`, que no registra el cuerpo; `webhook-procesar.ts`, con el cuerpo del push sin datos. Lo prueban `webhook-events.test.ts` y `route.test.ts` |
+| **Cruce con el cliente** | CORRECTO | Solo con exactamente un cliente vivo del tenant (RPC de 0504, `v_cruces <> 1`). Ambiguo → `null`. El teléfono llega reducido a 10 dígitos y no se persiste |
+| **Retención** | **ENCONTRADO** | `chatwoot_webhook_events` y `chatwoot_conversations` no tienen plazo de borrado. El índice `received_at` queda listo para una purga. Plazo y job, a decidir en 2.6 o E3 con Sam |
+| **Acceso** | CORRECTO | La RLS por tenant en `chatwoot_conversations`; los eventos, solo `service_role`. La tarjeta y el contador, solo con acceso al módulo `bandeja` y el flag |
+| **Token del agente** | CORRECTO | Lo pide el servidor por la Platform API, lo usa y lo descarta (`actions.ts` `reconciliarBandeja`). No llega al cliente (`actions.test.ts`) |
+| **Logs del proxy y de Next en el servidor** | NO VERIFICABLE | Que el servidor de Studio no registre el cuerpo de `POST /api/chatwoot/webhook` depende de la configuración de Traefik del VPS (`infra/dtd-cargo`), que no se midió aquí |
+| **Tercero** | NO VERIFICABLE | Chatwoot es autohospedado en el mismo VPS (E1) y su inventario de terceros es de E1 |
+
 9. **Puertas que este paso no cruza:**
    - aplicar la 0504;
    - cargar `CHATWOOT_WEBHOOK_SECRET` y `CHATWOOT_TENANT_ID`;
