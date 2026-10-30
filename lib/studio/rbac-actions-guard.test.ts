@@ -259,12 +259,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // la tarifa congelada por recepción.
   // SDD-0585 sumó `bandeja/actions.ts` (77 → 78, exactos 55 → 56): la Bandeja
   // de Chatwoot.
-  it("la superficie escaneada es la esperada (78 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0588 sumó `admin/actualizaciones/actions.ts` (78 → 79, exactos 56 → 57):
+  // las versiones de Chatwoot.
+  it("la superficie escaneada es la esperada (79 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 78,
-      exactos: 56,
+      total: 79,
+      exactos: 57,
       conPrefijo: 22,
     });
   });
@@ -325,8 +327,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `tenantAdminGate` antes de leer nada; lee con service_role el miembro, su
   // correo y los overrides del MISMO tenant, y escribe el vínculo con el cliente
   // de sesión (la RLS de 0503 repite el candado de admin).
+  // SDD-0588 sumó `admin/actualizaciones/actions.ts::revisarVersionesAhora` y
+  // `::pedirActualizacion` (450 → 452): `tenantAdminGate` antes de leer nada; la
+  // revisión la escribe service_role (como el cron) y el pedido el cliente de
+  // sesión (la RLS de 0507 repite admin, tenant y requested_by = auth.uid()).
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(450);
+    expect(reportes.length).toBe(452);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

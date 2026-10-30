@@ -467,6 +467,67 @@
           "degradation": "Ficha DTD (2.4) sin 0504: aplicarConversacion lanza porque falta chatwoot_registrar_evento y pedirFichaDtd responde «service» antes de leer chatwoot_conversations; si la lectura llegara a fallar, fila sale null y la página dice «Sin ficha». La Dashboard App no se registra en Chatwoot hasta desplegar y aplicar 0503 y 0504 (puerta aparte)."
         }
       ]
+    },
+    {
+      "id": "sdd-0588-chatwoot-versiones",
+      "primarySymbol": "chatwoot_version_checks",
+      "migration": "0507_chatwoot_versiones",
+      "symbols": [
+        {
+          "name": "chatwoot_version_checks",
+          "kind": "table",
+          "callSites": [
+            "lib/studio/chatwoot/versiones-queries.ts:71",
+            "lib/studio/chatwoot/versiones-queries.ts:89",
+            "lib/studio/chatwoot/versiones-queries.ts:111"
+          ]
+        },
+        {
+          "name": "chatwoot_update_requests",
+          "kind": "table",
+          "callSites": [
+            "app/studio/(app)/admin/actualizaciones/actions.ts:61",
+            "lib/studio/chatwoot/versiones-queries.ts:121"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/chatwoot/versiones-queries.ts:78",
+          "contains": "if (error || !data) return null;",
+          "degradation": "Sin 0507 (42P01/PGRST205) ultimaRevision devuelve null: la pantalla Actualizaciones muestra «Todavía no hay revisiones» y pedirActualizacion responde «service» antes de insertar."
+        },
+        {
+          "site": "lib/studio/chatwoot/versiones-queries.ts:101",
+          "contains": "if (error || !data) {",
+          "degradation": "guardarRevision sin la tabla registra solo el código y devuelve null; vigilarVersiones responde omitido sin avisar ni purgar."
+        },
+        {
+          "site": "lib/studio/chatwoot/versiones-vigilante.ts:68",
+          "contains": "if (!revision) return { omitido: true, revision: null, avisados: 0 };",
+          "degradation": "Sin 0507 el vigilante no encola ningún push y devuelve omitido."
+        },
+        {
+          "site": "app/api/cron/chatwoot-versiones/route.ts:45",
+          "contains": "if (r.omitido || !r.revision) return NextResponse.json({ ok: true, omitido: true });",
+          "degradation": "El cron /api/cron/chatwoot-versiones responde 200 omitido sin la 0507; no rompe los demás crons."
+        },
+        {
+          "site": "app/studio/(app)/admin/actualizaciones/actions.ts:40",
+          "contains": "if (r.omitido) return { ok: false, error: \"service\" };",
+          "degradation": "«Revisar ahora» sin la 0507 responde «No se pudo completar» traducido, sin error crudo."
+        },
+        {
+          "site": "lib/studio/chatwoot/versiones-queries.ts:126",
+          "contains": "if (error || !Array.isArray(data)) return [];",
+          "degradation": "listarPedidos sin la tabla devuelve []: la pantalla dice «Todavía no hay pedidos de actualización»."
+        },
+        {
+          "site": "app/studio/(app)/admin/actualizaciones/actions.ts:56",
+          "contains": "if (!revision) return { ok: false, error: \"service\" };",
+          "degradation": "pedirActualizacion sin la 0507 no llega al insert de chatwoot_update_requests: responde «service» porque no hay revisión que citar. Nada se despliega en ningún caso (E3-D1)."
+        }
+      ]
     }
   ]
 }
