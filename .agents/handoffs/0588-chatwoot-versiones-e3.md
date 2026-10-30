@@ -70,7 +70,7 @@ Después del merge de `5451c818d` también pasaron: `build-crontab --check` (22 
 1. ~~`pnpm verify`~~: corrido, con los 4 rojos explicados arriba. Repetirlo con la máquina libre quedaría para el cierre global, si el Director lo pide.
 2. ~~Confirmar la 0507~~: asignada por el Director. Pidió además guardar las notas sin HTML crudo: `limpiarNotas` quita etiquetas y comentarios (prueba más un mutante que muere).
 3. Aplicar la 0507: OK nominal de Sam y runbook `aplicar-migraciones-prod`. Sin ella, todo responde `omitido`/«sin datos».
-4. Aceptación de Sam de 3.1 a 3.3 (PR → OK Sam).
+4. ~~Aceptación de Sam de 3.1 a 3.3~~: aceptados el 2026-10-30 («Acepto todo», a la pregunta del Director «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?»).
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -81,7 +81,7 @@ Después del merge de `5451c818d` también pasaron: `build-crontab --check` (22 
 ## Impacto documental
 
 - Canónicos nuevos: `docs/runbooks/chatwoot-versiones.md` y `docs/specs/0588-chatwoot-versiones-e3/spec.md`; el índice `docs/specs/README.md` está regenerado.
-- Checklist de la 0582: filas 3.1 a 3.3 en `entregado`. El % no se mueve (solo suma `aceptado`).
+- Checklist de la 0582: filas 3.1 a 3.3 en `aceptado` (2026-10-30). En esta rama el avance pasa de 18,6 % a 21,6 % (25 ÷ 115,5), salida de `avance-checklist`.
 - Graphify, Archify y Obsidian: pendientes para el Director desde la main integrada; aquí no se emitieron recibos.
 
 ## HANDOFF AL DIRECTOR
