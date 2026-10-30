@@ -31,7 +31,7 @@ Detalle en la SDD-0587 §15.1. Resumen:
 | ESLint de `crm/_components` y `lib/studio/crm-*` | PASÓ (0 errores; 2 avisos que ya estaban) |
 | `/ui-check` | PASÓ con 3 ajustes aplicados |
 | revisar-datos-ve | §15.3: 5 CORRECTO, 1 ENCONTRADO (notas no editables ni borrables → «Anonimizar ahora» de 6.6) |
-| Gate de símbolos de migraciones pendientes | 0506: AMARILLO declarado (`sdd-0587-crm-tablero`). El gate completo sale ROJO por lo ajeno (ver abajo) |
+| Gate de símbolos de migraciones pendientes | PASÓ: 0 ROJO (ver abajo) |
 | Prueba visual en navegador con datos | NO EJECUTADO: hace falta una base con la 0506 aplicada |
 | `pnpm verify` | NO EJECUTADO: cola del Director (E10 → E2 → E6). Pido turno |
 
@@ -39,11 +39,7 @@ Las pruebas se corrieron con `node node_modules/vitest/vitest.mjs` y un enlace `
 
 ## Gate de símbolos
 
-`node scripts/check-pending-migration-symbols.mjs` en esta rama sale **FALLÓ** antes de llegar a la 0506, por declaraciones vencidas de E2 (líneas corridas en `webhook-procesar.ts` y `bandeja/actions.ts`). Para medir lo mío corrí el gate sobre una copia temporal con esas líneas corregidas, sin guardarla en la rama:
-
-- `crm_tarjetas (0506_crm_modelo)`: **AMARILLO**, con la declaración nueva `sdd-0587-crm-tablero` (7 símbolos y 6 evidencias de degradación: sin la 0506 la pestaña dice «Los embudos todavía no están activos» y las demás pestañas no cambian).
-- Agregué mis dos sitios nuevos a las declaraciones de E2: `chatwoot_agent_links` (`tarjeta-actions.ts:209`) y `chatwoot_conversations` (`tarjeta-actions.ts:197`).
-- **ROJO que no es mío:** 4 funciones de la 0505 sin declarar (`chatwoot_cerrar_respuesta`, `chatwoot_guardar_bsuid`, `chatwoot_reservar_respuesta`, `chatwoot_segmento_contacto`), llamadas desde `lib/studio/chatwoot/enrutar.ts` (E10).
+PASÓ en `1d12270b6`, con `3c86f4053` (`e6-modelo` + `a319d4cdc` de E10) integrado: **0 ROJO, 7 AMARILLO declarados**. La 0506 queda declarada en `sdd-0587-crm-tablero` (7 símbolos, 6 evidencias). Mis dos sitios nuevos se suman a las declaraciones de E2 (`chatwoot_agent_links` en `tarjeta-actions.ts:209` y `chatwoot_conversations` en `tarjeta-actions.ts:197`). El rojo de antes (líneas vencidas de E2 y la 0505 sin declarar) lo resolvieron `f90aede00` y `632be86fd`.
 
 ## Impacto documental
 

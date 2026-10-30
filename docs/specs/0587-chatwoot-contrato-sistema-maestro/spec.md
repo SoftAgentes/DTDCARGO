@@ -426,7 +426,7 @@ Rama `codex/0582-e6-tablero`, apilada sobre `codex/0582-e6-modelo` (PR #336). Si
 | `tsc` acotado a los archivos de 6.3 y sus dependencias | PASÓ |
 | ESLint de `app/studio/(app)/crm/_components/` y `lib/studio/crm-*` | PASÓ: 0 errores; 2 avisos que ya estaban (`KommoClient.tsx:558`, `KommoBoardView.tsx:124`) |
 | `/ui-check` | PASÓ con 3 ajustes aplicados (espaciado con `var(--s-*)`, `ErrorAlert` del sistema, selector de 32 px) |
-| Gate de símbolos de migraciones pendientes | 0506: AMARILLO con la declaración `sdd-0587-crm-tablero`, medido en una copia con las líneas vencidas de E2 corregidas. En la rama sale FALLÓ por lo ajeno: declaraciones vencidas de E2 y 4 funciones de la 0505 (E10) sin declarar |
+| Gate de símbolos de migraciones pendientes | PASÓ: 0 ROJO, 7 AMARILLO declarados; la 0506 con `sdd-0587-crm-tablero`. Medido en `1d12270b6`, con `3c86f4053` integrado, que trae la resincronización de E2/E10 |
 | Prueba visual en el navegador con datos | NO EJECUTADO: hace falta una base con la 0506 aplicada |
 | `pnpm verify` | NO EJECUTADO: cola del Director (E10, E2, E6) |
 
