@@ -33,7 +33,9 @@ Hecho en el VPS, en orden (evidencia T-2 a T-12 del [registro](../../docs/specs/
 8. Timers instalados; primer respaldo a B2 (44 s, `rclone check` sin diferencias); primera vigilancia `up · ok`.
 9. Uptime Kuma (sesión de Sam en su Chrome): monitores Push «Respaldo Chatwoot · latido» (#6, 26 h) y «Chatwoot · recursos del host» (#7, 15 min), con aviso por Telegram; sus URL en el `.env` (0600, por stdin, sin imprimirlas); los dos en verde. Los dos HTTP («API» y «versión») se crean tras P2: sin DNS darían «caído».
 
-**Pendiente de Sam para que el correo funcione:** `CHATWOOT_SMTP_USERNAME` y `CHATWOOT_SMTP_PASSWORD` de la casilla de Hostinger que elija (sin ellos, Chatwoot no puede mandar avisos ni restablecer contraseñas). Se pegan con una ventana oculta, como en 0.6.
+**Correo saliente:** ~~pendiente de Sam~~ resuelto el 2026-10-29 con el buzón `notificaciones@dtdcargo.com` (ver «Pendiente de esta tarea» y runbook §2 bis).
+
+**FUERA DE ALCANCE DETECTADO (sesión «Hostinger config»):** en un intento de pegar la clave SMTP, Sam pegó en el campo visible un **token de Meta** (`EAA…`) que tenía en el portapapeles. No llegó al VPS ni a Git, pero quedó en pantalla en una pestaña del Terminal y en la transcripción de esa sesión. Recomendación hecha a Sam: revocarlo y emitir otro en Meta Business (Usuarios del sistema), y actualizar sus destinos (E4). Decide él; no se hizo nada.
 
 ## Hallazgos que cambian algo
 
@@ -79,7 +81,12 @@ Hecho en el VPS, en orden (evidencia T-2 a T-12 del [registro](../../docs/specs/
 - 16:52Z: certificado de Let's Encrypt emitido al tercer intento (vence el 2027-01-27). HTTPS verificado de punta a punta: `/api` 200, sin `X-Frame-Options`, `frame-ancestors` a `https://dtdcargo.com` y las rutas de administración en 403.
 - 16:56Z: los monitores HTTP «Chatwoot · API» y «Chatwoot · versión» creados y en verde. Los cuatro de Chatwoot, en verde.
 
-**P3 · Instalar Tailscale en el VPS** ⏸️ **pospuesta por Sam el 2026-10-29.** Le pregunté si lo mismo se podía hacer con Cloudflare: sí, con Cloudflare Access y la verificación del token en el origen. Su decisión, literal: «Cerrado y consola». `/super_admin`, `/monitoring` e `/installation` siguen en 403 para todos, y lo de super admin se hace por `docker compose exec` sobre SSH. Cuando haga falta el acceso web, la opción preferida es Cloudflare Access.
+**P3 · Instalar Tailscale en el VPS** ⏸️ **pospuesta por Sam el 2026-10-29.** Le pregunté si lo mismo se podía hacer con Cloudflare: sí, con Cloudflare Access y la verificación del token en el origen. Su decisión, literal: «Cerrado y consola». `/super_admin`, `/monitoring` e `/installation` siguen en 403 para todos, y lo de super admin se hace por `docker compose exec` sobre SSH. Cuando haga falta el acceso web, la opción preferida es Cloudflare Access. **Actualización del mismo día:** Sam pidió Access («ok avanza cludefare» en la sesión del programa, «Confirmo Access» aquí) y quedó **hecho**:
+- app de Access «Chatwoot · super admin», solo para `hailuway.com@gmail.com`, con sesión de 6 h;
+- verificador del token activo en el VPS;
+- super admin de Chatwoot creado con ese correo.
+
+Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar. Le expliqué las dos puertas (Cloudflare decide quién ve la pantalla; Chatwoot, quién es super admin) y decidió la duración de la sesión, literal: «Dejar 6 h».
 
 **P4 · Platform App, cuenta «DTD Cargo» y usuario de servicio** en la instancia desplegada (runbook §6). El token va al gestor de Sam y a los secretos de Studio (E2).
 
@@ -87,9 +94,14 @@ Hecho en el VPS, en orden (evidencia T-2 a T-12 del [registro](../../docs/specs/
 
 ## Pendiente de esta tarea
 
-- SMTP: usuario y clave de Hostinger (Sam), con ventana oculta.
+- ~~SMTP: usuario y clave de Hostinger (Sam), con ventana oculta.~~ **Hecho el 2026-10-29** (sesión «Hostinger config», T-33 a T-39; runbook §2 bis):
+  - Buzón propio `notificaciones@dtdcargo.com` (2 de 2 en el plan), con la clave en el gestor de Sam. Respuesta automática que remite a `vzla@dtdcargo.com`.
+  - Remitente `"DTD Cargo <notificaciones@dtdcargo.com>"`; copia `.env.antes-smtp`.
+  - `rails` y `sidekiq` recreados y sanos.
+  - Correo de prueba aceptado por Hostinger a las 22:31:31Z. Sam confirmó que llegó a Recibidos de `hailuway.com@gmail.com`.
+  - Sin probar todavía: los correos propios de Chatwoot (restablecer contraseña, invitación). Se prueban al invitar al primer agente.
 - Tras las 72 h (2026-11-01 ~16:00Z): `vigilar.sh --resumen --desde 2026-10-29T15:55:00Z` → fila 1.6, con el criterio corregido (contra la línea base, no un número fijo).
-- `/super_admin` con Cloudflare Access (§4.1 del runbook): preparado y probado en local (E1-R21, E1-R22); espera la confirmación de Sam en esta sesión, con el alcance de Zero Trust y del VPS.
+- ~~`/super_admin` con Cloudflare Access~~ hecho el 2026-10-29 («Confirmo Access»), runbook §4.1.
 - ~~Marca de DTD en Chatwoot~~ **hecha el 2026-10-29** («Autorizo la marca»): título «DTD Cargo», ícono y logos de DTD (claro y oscuro según `BRAND.md`), pantalla de entrada en español, sin «Chatwoot» visible (T-27 a T-29; runbook §6 bis). Queda en la edición CE el «Powered by Chatwoot» del widget y de los correos, y la etiqueta «E-mail» de la traducción de Chatwoot.
 
 ## FUERA DE ALCANCE (coordinado por el Director) · cambio de llave de respaldos de DTD y Chatwoot
@@ -125,6 +137,7 @@ Hecho en el VPS, en orden (evidencia T-2 a T-12 del [registro](../../docs/specs/
 - ufw deja el SSH (22) abierto a todo internet; el runbook servidor-contabo dice cerrarlo cuando haya Tailscale.
 - `TRUSTED_PROXY_CIDRS` del Traefik no incluye los rangos de Cloudflare: con proxy, las apps detrás ven la IP de Cloudflare.
 - El PDF del DPA de Contabo sigue sin seguimiento en la raíz del checkout principal (ya anotado en la spec 0582).
+- `infra/chatwoot/cf-access/verificador.node-test.mjs` hoy solo corre en el ensayo local (fase U de `pruebas/ensayo-local.sh`); meterla en una puerta automática como `harness:test` es una tarea aparte, aún sin dueño.
 
 ## Registro de corridas
 

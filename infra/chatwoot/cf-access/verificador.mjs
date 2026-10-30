@@ -29,7 +29,9 @@ const HOLGURA_S = 60;
 export function decodificar(token) {
   const partes = String(token ?? "").split(".");
   if (partes.length !== 3) throw new Error("formato");
-  const json = (b) => JSON.parse(Buffer.from(b, "base64url").toString("utf8"));
+  // Un JSON roto también es «token ilegible», no un fallo de las claves (medido en el VPS:
+  // un token con la cabecera cortada se registraba como «no se pudieron leer las claves»).
+  const json = (b) => { try { return JSON.parse(Buffer.from(b, "base64url").toString("utf8")); } catch { throw new Error("formato"); } };
   return { cabecera: json(partes[0]), carga: json(partes[1]), firmado: `${partes[0]}.${partes[1]}`, firma: Buffer.from(partes[2], "base64url") };
 }
 

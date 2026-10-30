@@ -21,7 +21,7 @@
 ## Evidencia
 
 **C (código de Chatwoot, etiqueta v4.19.1, commit `caab07a8f000`, leído con `git show` en un clon superficial del scratchpad):**
-- CW-1 confirmado tal cual: `webhook_setup_service.rb`, `phone_number_verified?` con `rescue StandardError … false` y `register_phone_number` con PIN aleatorio propio.
+- CW-1 confirmado tal cual: `webhook_setup_service.rb`, `phone_number_verified?` con `rescue StandardError … false` y `register_phone_number` con PIN aleatorio propio, que Meta toma como PIN de verificación en dos pasos (no el código del SMS; 10 `/register` cada 72 h; SDD-0582 V3-3).
 - `/deregister` **sí aplica**: `webhook_teardown_service.rb` lo llama al borrar una bandeja con `source == 'embedded_signup'`.
 - Las dos llamadas salen solo de `facebook_api_client.rb`, con HTTParty 0.24.0. Rails 7.2.3.1, Ruby 3.4.4.
 

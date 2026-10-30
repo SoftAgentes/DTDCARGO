@@ -7,12 +7,16 @@
 # (infra/chatwoot/compose.yml), igual que zz_dtd_redaccion_logs.rb.
 #
 # Por qué (decisión B de SDD-0582): el número principal de WhatsApp se COMPARTE con Kommo,
-# no se migra. Kommo lo registró en Meta con su PIN; si Chatwoot llama a /register con
-# otro PIN, o a /deregister, el número puede desconectarse de Kommo. Medido en la etiqueta
+# no se migra. Kommo lo registró en Meta. El `pin` de /register es el PIN de verificación
+# en dos pasos del número (6 dígitos, no el código del SMS): si el número no tiene uno, el
+# enviado queda como PIN nuevo, y Meta admite 10 /register por número cada 72 h (error
+# 133016; SDD-0582, V3-3). Un /register de Chatwoot, o un /deregister, puede desconectar
+# el número de Kommo o gastar ese cupo. Medido en la etiqueta
 # v4.19.1 de chatwoot/chatwoot (commit caab07a8f000):
 #   · CW-1. app/services/whatsapp/webhook_setup_service.rb: si la consulta de verificación
 #     falla, `phone_number_verified?` cae en `rescue … false`, `should_register_phone_number?`
-#     da true y `register_phone_number` llama a /register con un PIN aleatorio propio.
+#     da true y `register_phone_number` llama a /register con un PIN aleatorio propio
+#     (`fetch_or_create_pin`), que Meta toma como PIN de verificación en dos pasos.
 #   · app/services/whatsapp/webhook_teardown_service.rb: al borrar una bandeja creada por
 #     Embedded Signup, llama a /deregister.
 #   · Las dos llamadas salen de app/services/whatsapp/facebook_api_client.rb

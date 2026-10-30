@@ -10,6 +10,7 @@ compose.yml                 prepare (migra), rails, sidekiq, postgres+pgvector, 
 rails/zz_dtd_redaccion_logs.rb   redacción de logs (montado solo lectura sobre la imagen)
 respaldo.sh · restaurar.sh  respaldo y restauración CONJUNTOS (base, adjuntos, claves), cifrados con age
 vigilar.sh                  recursos del host, de Chatwoot y de la web de DTD → CSV + Push de Uptime Kuma
+pegar-smtp.sh               va a /root: Sam pega usuario y clave SMTP sin eco en el .env (runbook §2 bis)
 systemd/                    timers de respaldo (06:30 UTC) y vigilancia (5 min)
 pruebas/                    ensayo local con Docker (NUNCA en el VPS): ensayo-local.sh y sus piezas
 ```
