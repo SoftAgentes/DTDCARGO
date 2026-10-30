@@ -62,7 +62,7 @@ confidencialidad: interno
 - `infra/chatwoot/systemd/{chatwoot-respaldo.service,chatwoot-respaldo.timer,chatwoot-vigilancia.service,chatwoot-vigilancia.timer}`
 - `infra/chatwoot/pruebas/{ensayo-local.sh,age-en-docker.sh,compose.local.yml,compose.sin-redaccion.yml,compose.traefik-prueba.yml,sonda-redaccion.rb,sembrar.rb,verificar.rb,vacio.rb,firmar-jwt-prueba.mjs}`
 - `infra/chatwoot/cf-access/{verificador.mjs,verificador.node-test.mjs}` (P3 con Cloudflare Access, agregado el 2026-10-29)
-- `infra/chatwoot/marca/{aplicar-marca.rb,dtdcargo-isologo-primary.png,dtdcargo-isologo-reverse.png,apple-touch-icon.png}` y `docs/runbooks/assets/chatwoot-marca-entrada-{claro,oscuro}.jpg` (marca de DTD, paso 1.3, agregado el 2026-10-29)
+- `infra/chatwoot/aplicar-marca.rb` (movido desde `marca/` el 2026-10-30 para que no se publique), `infra/chatwoot/marca/{dtdcargo-isologo-primary.png,dtdcargo-isologo-reverse.png,apple-touch-icon.png,dtdcargo-isologo-correo.png}` y `docs/runbooks/assets/chatwoot-marca-entrada-{claro,oscuro}.jpg` (marca de DTD, paso 1.3, agregado el 2026-10-29)
 - `docs/runbooks/backup-restore-servidor.md` y `docs/runbooks/servidor-contabo.md` (registro del cambio de llave de respaldos, coordinado por el Director)
 - `docs/runbooks/{chatwoot-servidor.md,chatwoot-respaldo-restauracion.md,chatwoot-vigilancia.md}`
 - `docs/legal/privacidad/revision-chatwoot-e1-2026-10-29.md`

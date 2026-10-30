@@ -267,7 +267,7 @@ Los usuarios de personas (Sam y la persona que atiende, E0-D2) los da de alta St
 Pedido de Sam: «Poner un icono al lado del dominio que aparezca el logo de DTD… que ponga usuario y contraseña, y que no salga Chatwoot».
 
 - **Imágenes.** En `infra/chatwoot/marca/` están las copias sin tocar de `public/brand/`, con la misma huella sha256: `dtdcargo-isologo-primary.png` (`7238dbbb…`, fondo claro), `dtdcargo-isologo-reverse.png` (`e530b4cb…`, fondo oscuro; `BRAND.md`: el primary nunca va sobre navy) y `apple-touch-icon.png` (`a8c3c30e…`, 180×180, ícono de la pestaña). El compose las monta en solo lectura en `/app/public/dtd-marca`, una carpeta aparte para no tapar `brand-assets` de Chatwoot. Las sirve el propio chat.
-- **Valores** (`marca/aplicar-marca.rb`, en `InstallationConfig`):
+- **Valores** (`aplicar-marca.rb`, en `InstallationConfig`):
   - `INSTALLATION_NAME` y `BRAND_NAME` = «DTD Cargo»;
   - `BRAND_URL` y `WIDGET_BRAND_URL` = `https://dtdcargo.com`;
   - `TERMS_URL` = `/terminos` y `PRIVACY_URL` = `/privacidad`, las dos en dtdcargo.com;
@@ -278,7 +278,7 @@ Pedido de Sam: «Poner un icono al lado del dominio que aparezca el logo de DTD�
 - **Aplicar o volver a aplicar:**
   ```bash
   cd /srv/chatwoot
-  docker compose cp marca/aplicar-marca.rb rails:/tmp/marca.rb
+  docker compose cp aplicar-marca.rb rails:/tmp/marca.rb
   docker compose exec -T rails bundle exec rails runner /tmp/marca.rb
   ```
 - **Comprobado desde afuera** (navegador, 2026-10-29):
