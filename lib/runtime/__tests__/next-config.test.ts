@@ -197,3 +197,38 @@ describe("SDD-0585 · Bandeja de Chatwoot: frame-src y micrófono solo en su rut
     expect(values(headers, "Permissions-Policy")[0]).toContain('microphone=(self "https://chat.ejemplo.test")');
   });
 });
+
+describe("SDD-0585 · 2.4 · Ficha DTD: solo el chat la puede enmarcar (E2-D28)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  for (const pathname of ["/studio/ficha-chat"]) {
+    it(`${pathname}: una sola CSP con frame-ancestors del chat y sin X-Frame-Options`, async () => {
+      const headers = await headersFor(await loadConfig({}), pathname);
+      const csp = values(headers, "Content-Security-Policy");
+      expect(csp).toHaveLength(1);
+      expect(directive(csp[0], "frame-ancestors")).toBe("frame-ancestors https://chat.dtdcargo.com");
+      expect(values(headers, "X-Frame-Options")).toEqual([]);
+      // El resto de la CSP es la estricta: no enmarca nada ni delega el micrófono.
+      expect(() => directive(csp[0], "frame-src")).toThrow();
+      const pp = values(headers, "Permissions-Policy");
+      expect(pp).toHaveLength(1);
+      expect(pp[0]).toContain("microphone=()");
+      expect(values(headers, "Strict-Transport-Security")).toHaveLength(1);
+    });
+  }
+
+  for (const pathname of ["/studio/ficha-chats", "/studio/ficha-chat/otra", "/studio/clientes/DTD-0001"]) {
+    it(`${pathname}: no hereda la regla y sigue sin dejarse enmarcar`, async () => {
+      const headers = await headersFor(await loadConfig({}), pathname);
+      const csp = values(headers, "Content-Security-Policy");
+      expect(csp).toHaveLength(1);
+      expect(directive(csp[0], "frame-ancestors")).toBe("frame-ancestors 'none'");
+      expect(values(headers, "X-Frame-Options")).toEqual(["DENY"]);
+    });
+  }
+
+  it("CHATWOOT_URL cambia el origen de frame-ancestors", async () => {
+    const headers = await headersFor(await loadConfig({ CHATWOOT_URL: "https://chat.ejemplo.test/" }), "/studio/ficha-chat");
+    expect(directive(values(headers, "Content-Security-Policy")[0], "frame-ancestors")).toBe("frame-ancestors https://chat.ejemplo.test");
+  });
+});

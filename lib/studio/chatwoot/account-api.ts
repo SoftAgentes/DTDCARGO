@@ -56,3 +56,41 @@ export async function listarConversacionesRecientes(
   }
   return { ok: true, data: out };
 }
+
+/**
+ * UNA conversación, leída con el token DEL AGENTE (SDD-0585, paso 2.4, E2-D30).
+ *
+ * `GET /api/v1/accounts/{id}/conversations/{display_id}` hace
+ * `authorize @conversation, :show?` (`conversations_controller.rb#conversation`):
+ * si el agente no es de esa bandeja, Chatwoot responde 401 o 404. Es el amarre
+ * que pone Chatwoot: la Ficha DTD solo existe para una conversación que el
+ * propio agente puede abrir. La respuesta es la conversación en la raíz.
+ */
+export async function obtenerConversacion(
+  cfg: ChatwootConfig,
+  tokenAgente: string,
+  conversacionId: number,
+): Promise<ChatwootResult<ConversacionChatwoot>> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(`${cfg.origin}/api/v1/accounts/${cfg.accountId}/conversations/${conversacionId}`, {
+      headers: { api_access_token: tokenAgente, Accept: "application/json" },
+      signal: ctrl.signal,
+      cache: "no-store",
+      redirect: "error",
+    });
+    if (!res.ok) {
+      const error: ChatwootError =
+        res.status === 401 || res.status === 403 ? "no_autorizado" : res.status === 404 ? "no_encontrado" : `http_${res.status}`;
+      return { ok: false, error };
+    }
+    const c = interpretarConversacion(await res.json().catch(() => null));
+    if (!c || c.id !== conversacionId) return { ok: false, error: "respuesta_invalida" };
+    return { ok: true, data: c };
+  } catch {
+    return { ok: false, error: "red" };
+  } finally {
+    clearTimeout(timer);
+  }
+}

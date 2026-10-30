@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { listarConversacionesRecientes } from "../account-api";
+import { listarConversacionesRecientes, obtenerConversacion } from "../account-api";
 import { obtenerTokenAgente } from "../platform-api";
 import type { ChatwootConfig } from "../config";
 import { TEXTO_SINTETICO, conversacionSintetica } from "./webhook-fixtures";
@@ -56,5 +56,40 @@ describe("obtenerTokenAgente (SDD-0585)", () => {
   it("sin configuración no llama a la red", async () => {
     expect(await obtenerTokenAgente(7, null)).toEqual({ ok: false, error: "sin_configurar" });
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("obtenerConversacion (SDD-0585, 2.4, E2-D30)", () => {
+  it("pide UNA conversación con el token del agente y devuelve solo lo mínimo", async () => {
+    fetchSpy.mockResolvedValueOnce(json(conversacionSintetica({ id: 42 })));
+    const r = await obtenerConversacion(CFG, "tok-agente", 42);
+    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://chat.ejemplo.test/api/v1/accounts/1/conversations/42");
+    expect((init.headers as Record<string, string>).api_access_token).toBe("tok-agente");
+    expect(init.redirect).toBe("error");
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.id).toBe(42);
+    expect(JSON.stringify(r)).not.toContain(TEXTO_SINTETICO);
+  });
+
+  it("Chatwoot no se la muestra a ese agente (401, 403 o 404): no_autorizado o no_encontrado", async () => {
+    fetchSpy.mockResolvedValueOnce(json({}, 401));
+    expect(await obtenerConversacion(CFG, "tok", 42)).toEqual({ ok: false, error: "no_autorizado" });
+    fetchSpy.mockResolvedValueOnce(json({}, 403));
+    expect(await obtenerConversacion(CFG, "tok", 42)).toEqual({ ok: false, error: "no_autorizado" });
+    fetchSpy.mockResolvedValueOnce(json({}, 404));
+    expect(await obtenerConversacion(CFG, "tok", 42)).toEqual({ ok: false, error: "no_encontrado" });
+  });
+
+  it("una conversación con otro id del que se pidió es respuesta_invalida", async () => {
+    fetchSpy.mockResolvedValueOnce(json(conversacionSintetica({ id: 43 })));
+    expect(await obtenerConversacion(CFG, "tok", 42)).toEqual({ ok: false, error: "respuesta_invalida" });
+  });
+
+  it("red caída → red; forma rara → respuesta_invalida", async () => {
+    fetchSpy.mockRejectedValueOnce(new TypeError("fetch failed"));
+    expect(await obtenerConversacion(CFG, "tok", 42)).toEqual({ ok: false, error: "red" });
+    fetchSpy.mockResolvedValueOnce(json({ hola: 1 }));
+    expect(await obtenerConversacion(CFG, "tok", 42)).toEqual({ ok: false, error: "respuesta_invalida" });
   });
 });

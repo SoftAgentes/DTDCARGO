@@ -139,20 +139,31 @@ Sam lo aprobó al aprobar el plan del Director en la app; no hay frase literal, 
 
 | Segmento | Regla | Número y embudo |
 |---|---|---|
-| **Cliente** | Algún `shipments` vivo (`deleted_at is null`, estado distinto de `draft` y `cancelled`) con un `client_markbox` de sus códigos vigente, histórico o fusionado. Contar o no la carga recibida en China (`warehouse_receipts_cn`) lo decide Sam en **0.8** | Número de clientes · embudo **Clientes** |
+| **Cliente** | Algún `shipments` vivo (`deleted_at is null` y estado distinto de `draft` y `cancelled`) **o** algún recibo vivo en `warehouse_receipts_cn` (`deleted_at is null`), con un `client_markbox` igual a uno de sus códigos: el vigente, los del historial o los de las fichas fusionadas en él (Sam, 0.8) | Número de clientes · embudo **Clientes** |
 | **Lead registrado** | Está en `clients` pero no cumple la regla de cliente | Número de leads · embudo **Leads**, etapa «Registrado / recontacto» |
 | **Lead nuevo** | No está en `clients`, o su teléfono es ambiguo o desconocido | Número de leads · embudo **Leads**, etapa «Nuevo» |
 
 - **Hoy el ERP no distingue cliente de registrado:** el router de Kommo trata como «cliente» a cualquiera que esté en `clients` (`supabase/functions/_shared/kommo-router.ts:85-111`, **C**, V2-4).
 - **El cruce es por `clients.phone_last10`** (`supabase/migrations/0383_clients_phone_last10_y_vinculo.sql:64-80`). Tiene índices pero no es única, así que más de un candidato se trata como desconocido, igual que hoy (`kommo-router.ts:108-110`) (**C**, V2-5).
 - **Los envíos se ligan por texto** en `shipments.client_markbox` (`supabase/migrations/0002_shipments.sql:36`). Los códigos viejos o fusionados salen de `client_outstanding` (`supabase/migrations/0492_client_outstanding.sql:215`). La carga en China está en `warehouse_receipts_cn` (`supabase/migrations/0008_warehouses_cn.sql:52`) (**C**, V2-6).
-- **La regla de «cliente» está pendiente de Sam en 0.8.** Hasta entonces, la tabla es la propuesta del plan v3.
+- **La regla de «cliente» la decidió Sam en 0.8** (2026-10-30, por el selector, respuestas literales):
+  - «¿Cuenta como cliente quien ya tiene carga recibida en China, aunque todavía no tenga envío creado?» → «Sí cuenta (Recomendado)».
+  - «Si a un cliente le cancelan o borran su único envío, ¿qué pasa?» → «Vuelve a lead (Recomendado)».
+- **Envío vivo** (**C**): `shipments.deleted_at is null` (`supabase/migrations/0002_shipments.sql:48`) y `status` (`:40`) distinto de `draft` y `cancelled` (enum en `:15-29`).
+- **Recibo vivo = `deleted_at is null`** (**C**). Es el único criterio que define la tabla:
+  - tiene borrado suave (`supabase/migrations/0008_warehouses_cn.sql:78`) y sus índices filtran `where deleted_at is null` (`:87-97`);
+  - desde la 0476 solo se borra con `soft_delete_warehouse_receipts_cn_with_audit_reason`, con motivo (`supabase/migrations/0476_borrado_embarques_recepciones.sql:671`);
+  - no hay estado «anulado»: `warehouse_receipt_status` solo tiene `pendiente_consolidacion`, `consolidado` e `incidencia` (`0008_warehouses_cn.sql:8-12`).
+  - **Si un recibo en `incidencia` cuenta como carga recibida es NV y se decide en 10.1.**
+  - Una caja huérfana (`is_orphan`, sin `client_markbox`, `0008_warehouses_cn.sql:58-61`) no cuenta para nadie hasta que se le asigne dueño (**I**).
+- **Códigos del cliente** (**C**): el vigente en `clients.markbox`, el historial en `client_markbox_history` (`supabase/migrations/0367_client_markbox_historial.sql:39`) y las fichas fusionadas por `merged_into_client_id` (`supabase/migrations/0341_client_merge_duplicados.sql:41`; `resolve_markbox` en `:89`). `client_outstanding` ya arma ese conjunto (`supabase/migrations/0492_client_outstanding.sql:61-63` y `:259-290`); 10.1 lo reutiliza o copia su patrón.
+- **Quien pierde su único envío vivo** (cancelado o borrado) y no tiene carga viva en China **vuelve a lead registrado**. Como la regla se calcula en el momento, pasa solo: sin migración y sin marca guardada. Su tarjeta vuelve al embudo Leads (6.3 y 10.5). (Decisión de Sam; el mecanismo es **I**.)
 - La regla se calcula **siempre en el momento** y no se guarda como estado. Va en una función SQL de solo lectura, sin datos personales en la salida y con contrato en PGlite (10.1).
-- Un lead nuevo pasa a registrado al registrarse, y a cliente con su primer envío vivo. Su tarjeta cambia de embudo sola (6.3 y 10.5).
+- Un lead nuevo pasa a registrado al registrarse, y a cliente con su primer envío vivo o su primera carga recibida en China. Su tarjeta cambia de embudo sola (6.3 y 10.5).
 
 ### Redirección sin IA
 
-- **El bot no usa IA.** Dentro de la ventana de 24 h, al cliente que escribe al número de leads le contesta con un texto y un enlace `wa.me/<número de clientes>?text=…` (10.2).
+- **El bot no usa IA.** Dentro de la ventana de 24 h, al cliente que escribe al número de leads le contesta en **1 mensaje** (0.8) con un texto y un enlace `wa.me/<número de clientes>?text=…` (10.2).
 - ~~Que esa respuesta no se cobre dentro de la ventana de servicio~~: **refutado en la v3**. Desde el 2026-10-01 cuenta contra el cupo de 1.000 mensajes de servicio gratis al mes del número (ver «Cambio de alcance v3»).
 - **Botón CTA URL:** Meta documenta el mensaje interactivo `cta_url` (**D**, V2-3). Que Chatwoot lo envíe está **NV**, así que el enlace va en el texto.
 - **Usuario con username y sin teléfono (BSUID):** el bot no pide códigos ni teléfono. Contesta lo mismo a todos, «si ya eres cliente, escríbenos aquí», y guarda el BSUID (10.3). Así no revela si un número o un código existe. (Diseño, **I**.)
@@ -219,9 +230,9 @@ El análisis agrupa los +5,25 días por bloques (2.3/2.6, 4.1/4.3/4.9, 0.8/4.3/4
 - Cuenta **cada mensaje que sale del número**, lo escriba una persona o el bot (**D**, V3-1, según el análisis). El tope de US$25 al mes de la IA (E0-D3) no incluye a Meta.
 - **Impacto:**
   - **E10 (10.2):** la respuesta de redirección cuenta contra el cupo de 1.000 del número de leads. Con dos números hay dos cupos (**I**).
-  - **E7:** el costo del bot es IA + Meta. Con 3 globos por respuesta se triplican los mensajes cobrables; lo decide Sam en 0.8.
+  - **E7:** el costo del bot es IA + Meta. Sam decidió en 0.8 que responda en **1 mensaje** («1 mensaje (Recomendado)», 2026-10-30); con 3 globos se habrían triplicado los mensajes cobrables.
   - **6.7:** cada «Ping 23 h» que se reemplace ahora puede costar; se revisa con su costo.
-- **Orden de magnitud (I, con la tarifa de enero):** con ~1.960 respuestas al mes por WhatsApp (X-4 y X-5), ≈ US$11 al mes con 1 globo y ≈ US$55 con 3, antes de contar el segundo cupo.
+- **Orden de magnitud (I/NV):** con ~1.960 respuestas al mes por WhatsApp (X-4 y X-5) en **1 mensaje**, que es lo decidido, ≈ US$11 al mes después de los 1.000 gratis, con la tarifa de enero (la de octubre es NV). Con 3 globos habrían sido ≈ US$55. No cuenta el segundo cupo.
 
 ### Corrección de la guía del PIN
 
@@ -247,10 +258,13 @@ El análisis agrupa los +5,25 días por bloques (2.3/2.6, 4.1/4.3/4.9, 0.8/4.3/4
 
 **Se confirma sin cambios:** Chatwoot v4.19.1 sí firma sus webhooks (`X-Chatwoot-Signature`), contra lo que dice el README del kit. Nuestra 2.3 ya lo verifica (**C** de Chatwoot, V3-9).
 
-### Decisiones nuevas en 0.8
+### Decisiones de 0.8 (Sam, 2026-10-30)
 
-- **Bot con 1 o 3 globos por respuesta.** Cambia el costo de Meta (ver arriba).
-- **Cliente que pierde su único envío vivo** (cancelado o borrado): con la regla de la v2 vuelve a lead y le cambian el embudo y el número. Sam decide si eso pasa así o si se queda como cliente (**I**, V3-10).
+La v3 sumó dos preguntas a 0.8. Sam respondió por el selector el 2026-10-30 (S08-1 a S08-3):
+
+- **Bot: 1 mensaje por respuesta** («1 mensaje (Recomendado)»). Aplica a E7 (7.6) y a la redirección de E10 (10.2).
+- **Cliente que pierde su único envío vivo: vuelve a lead** («Vuelve a lead (Recomendado)»), salvo que tenga carga viva en China. Ver «Regla de segmentos» en la v2.
+- **La carga recibida en China cuenta como cliente** («Sí cuenta (Recomendado)»).
 
 ### 2.3: no se acepta hasta arreglar la idempotencia
 
@@ -330,3 +344,4 @@ El código del producto y la infraestructura se allowlistan en la SDD hija de ca
 - **2026-10-29 (E0, tarde):** Sam aprobó («Apruebo todo», 2026-10-29) dejar el número en «Importador de China», la cuenta de mensajes propia de Chatwoot con plantillas y pago propios, y la vuelta atrás de 0.3. Se corrigieron la decisión B y las prohibiciones.
 - **2026-10-29 (línea base v2):** Sam aprobó el plan v3 del Director («aprobación del plan v3 del Director, 2026-10-29»): dos números, regla de segmentos, E10 y n8n fuera del enrutamiento. Alcance 99,75 → 109,25 días; avance en la rama de E0 5,0 % → 4,6 %, y con las aceptaciones de las otras ramas 7,8 % → 7,1 %. La regla de «cliente» queda para 0.8.
 - **2026-10-29 (línea base v3):** Sam aprobó el análisis comparativo del Director («aprobación del análisis comparativo del Director, 2026-10-29»). Alcance 109,25 → 115,5 días (114,5 sin el 2.8 opcional). Avance en la rama de E0 4,6 % → 4,3 %, y con las otras ramas 7,1 % → 6,7 %. Se corrigen el costo de Meta (cobro desde el 2026-10-01) y la guía del PIN. 0.8 suma dos decisiones y la 2.3 no se acepta hasta arreglar la idempotencia.
+- **2026-10-30 (0.8):** Sam respondió por el selector: la carga recibida en China cuenta como cliente, quien pierde su único envío vuelve a lead y el bot responde en 1 mensaje. 0.8 aceptado y E0 completa. Sin cambio de línea base: avance en la rama de E0 4,3 % → 4,8 %, y con las otras ramas 6,7 % → 7,1 %.

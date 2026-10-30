@@ -317,8 +317,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `moduleViewDenial(supabase, "bandeja")` al tope; lee el vínculo propio y escribe
   // solo por la RPC `chatwoot_registrar_evento` (0504, únicamente service_role) en el
   // tenant de la sesión, con lo que el propio agente ve en Chatwoot.
+  // SDD-0585 (paso 2.4) sumó `bandeja/actions.ts::pedirFichaDtd` (448 → 449):
+  // `moduleViewDenial(supabase, "bandeja")` al tope; lee con el cliente de sesión
+  // y escribe solo por `aplicarConversacion` (la RPC de 0504, únicamente
+  // service_role), igual que `reconciliarBandeja`.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(448);
+    expect(reportes.length).toBe(449);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
