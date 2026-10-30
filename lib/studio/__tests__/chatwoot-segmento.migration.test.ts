@@ -76,7 +76,7 @@ describe("SDD-0586 · 0505 segmento del contacto, respuestas del bot y BSUID (PG
   it("el contrato pasa entero con la 0505", async () => {
     const run = await contract();
     expect(run.error).toBeNull();
-    expect(run.green).toBe("TEST 0505 GREEN: 46 aserciones");
+    expect(run.green).toBe("TEST 0505 GREEN: 58 aserciones");
   }, SLOW);
 
   it("CONTROL ROJO: sin la 0505 la función no existe y el contrato cae", async () => {
@@ -155,27 +155,45 @@ describe("SDD-0586 · 0505 segmento del contacto, respuestas del bot y BSUID (PG
     // cruza y sale lead_nuevo igual; la guarda solo ahorra la consulta.
     [
       "reserva siempre",
-      "    where (r.enviada_at is null and r.reservada_at < pg_catalog.now() - interval '10 minutes')",
-      "    where true or (r.enviada_at is null and r.reservada_at < pg_catalog.now() - interval '10 minutes')",
-      /TEST 0505: no se responde dos veces mientras la reserva está viva/,
-    ],
-    [
-      "reserva colgada no se reclama",
-      "(r.enviada_at is null and r.reservada_at < pg_catalog.now() - interval '10 minutes')",
-      "(false)",
-      /TEST 0505: una reserva sin confirmar de hace más de 10 min se reclama/,
+      "    where (r.estado = 'enviada' and r.enviada_at < pg_catalog.now() - interval '24 hours')",
+      "    where true or (r.estado = 'enviada' and r.enviada_at < pg_catalog.now() - interval '24 hours')",
+      /TEST 0505: una reserva viva da en_curso/,
     ],
     [
       "sin ventana de 24 h",
-      "\n       or r.enviada_at < pg_catalog.now() - interval '24 hours';",
-      ";",
+      "    where (r.estado = 'enviada' and r.enviada_at < pg_catalog.now() - interval '24 hours')",
+      "    where false and (r.estado = 'enviada' and r.enviada_at < pg_catalog.now() - interval '24 hours')",
       /TEST 0505: pasadas 24 h se puede responder otra vez/,
     ],
     [
-      "liberar no libera",
-      "    where r.tenant_id = p_tenant_id and r.conversation_id = p_conversation_id and r.enviada_at is null;\n  end if;",
-      "    where false;\n  end if;",
-      /TEST 0505: una reserva no enviada se libera/,
+      "incierta o colgada se reclama a los 10 min",
+      "       or (r.estado <> 'enviada' and r.reservada_at < pg_catalog.now() - interval '24 hours');",
+      "       or (r.estado <> 'enviada' and r.reservada_at < pg_catalog.now() - interval '10 minutes');",
+      /TEST 0505: una incierta sigue bloqueada antes de las 24 h/,
+    ],
+    [
+      "colgada da en_curso para siempre",
+      "  elsif v_estado = 'incierta' or v_reserva < pg_catalog.now() - interval '10 minutes' then",
+      "  elsif v_estado = 'incierta' then",
+      /TEST 0505: una reserva colgada más de 10 min cuenta como incierta/,
+    ],
+    [
+      "incierta reenvía",
+      "  elsif v_estado = 'incierta' or v_reserva < pg_catalog.now() - interval '10 minutes' then\n    return 'incierta';",
+      "  elsif v_estado = 'incierta' or v_reserva < pg_catalog.now() - interval '10 minutes' then\n    return 'enviar';",
+      /TEST 0505: un envío incierto no habilita otro/,
+    ],
+    [
+      "rechazo no libera",
+      "    delete from public.chatwoot_respuestas_bot r\n    where r.tenant_id = p_tenant_id and r.conversation_id = p_conversation_id and r.estado = 'reservada';",
+      "    delete from public.chatwoot_respuestas_bot r\n    where false;",
+      /TEST 0505: una reserva rechazada se libera/,
+    ],
+    [
+      "cerrar reabre una enviada",
+      "    where r.tenant_id = p_tenant_id and r.conversation_id = p_conversation_id and r.estado = 'reservada';\n  else",
+      "    where r.tenant_id = p_tenant_id and r.conversation_id = p_conversation_id;\n  else",
+      /TEST 0505: una enviada no pasa a incierta/,
     ],
     [
       "BSUID acepta teléfonos",
@@ -195,11 +213,32 @@ describe("SDD-0586 · 0505 segmento del contacto, respuestas del bot y BSUID (PG
       "grant execute on function public.chatwoot_segmento_contacto(uuid, text) to service_role, authenticated;",
       /TEST 0505: las funciones son solo de service_role: public.chatwoot_segmento_contacto/,
     ],
+    // Con RLS por tenant (pedido del Director) el admin lee: estos mutantes
+    // abren la POLÍTICA, no solo el GRANT, y caen en la lectura real
+    // (revisión de Codex: un GRANT sin política no cambia lo que se ve).
     [
-      "BSUID legible desde la API",
-      "grant all on public.chatwoot_contactos_bsuid to service_role;",
-      "grant all on public.chatwoot_contactos_bsuid to service_role;\ngrant select on public.chatwoot_contactos_bsuid to authenticated;",
-      /TEST 0505: las tablas nuevas no se leen desde la API/,
+      "BSUID de otro tenant",
+      "  using (tenant_id = (select public.get_user_tenant_id()) and (select public.is_tenant_admin()));",
+      "  using ((select public.is_tenant_admin()));",
+      /TEST 0505: el admin de T1 ve solo los BSUID de T1/,
+    ],
+    [
+      "BSUID para cualquiera del tenant",
+      "  using (tenant_id = (select public.get_user_tenant_id()) and (select public.is_tenant_admin()));",
+      "  using (tenant_id = (select public.get_user_tenant_id()));",
+      /TEST 0505: quien no es admin no ve los BSUID/,
+    ],
+    [
+      "BSUID escribible desde la API",
+      "grant select on public.chatwoot_contactos_bsuid to authenticated;",
+      "grant select, insert on public.chatwoot_contactos_bsuid to authenticated;",
+      /TEST 0505: solo service_role escribe en las tablas nuevas/,
+    ],
+    [
+      "respuestas legibles desde la API",
+      "grant all on public.chatwoot_respuestas_bot to service_role;",
+      "grant all on public.chatwoot_respuestas_bot to service_role;\ngrant select on public.chatwoot_respuestas_bot to authenticated;",
+      /TEST 0505: las respuestas del bot no se leen desde la API/,
     ],
   ];
 

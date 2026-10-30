@@ -26,7 +26,42 @@ $roles$;
 
 grant usage on schema public to anon, authenticated, service_role;
 
+create schema auth;
+grant usage on schema auth to anon, authenticated, service_role;
+create function auth.uid() returns uuid language sql stable set search_path = ''
+as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+grant execute on function auth.uid() to anon, authenticated, service_role;
+
 create table public.tenants (id uuid primary key, slug text);
+create table public.user_tenants (
+  user_id uuid not null, tenant_id uuid not null, role text not null,
+  disabled_at timestamptz
+);
+grant select on public.user_tenants to authenticated;
+
+-- Copia de 0453.
+create function public.get_user_tenant_id() returns uuid
+language sql stable security definer set search_path = '' as $$
+  select (pg_catalog.array_agg(ut.tenant_id))[1]
+  from public.user_tenants as ut
+  where ut.user_id = (select auth.uid())
+    and ut.disabled_at is null
+  having pg_catalog.count(*) = 1;
+$$;
+grant execute on function public.get_user_tenant_id() to authenticated;
+
+-- Copia de 0386.
+create function public.is_tenant_admin() returns boolean
+language sql stable security definer set search_path = public as $fn$
+  select coalesce(exists (
+    select 1 from public.user_tenants ut
+    where ut.user_id = (select auth.uid())
+      and ut.tenant_id = (select public.get_user_tenant_id())
+      and ut.role = 'admin'
+      and ut.disabled_at is null
+  ), false);
+$fn$;
+grant execute on function public.is_tenant_admin() to authenticated;
 
 -- Forma de 0383 (phone_last10 generada) + 0341 (merged_into_client_id).
 create table public.clients (
@@ -79,6 +114,11 @@ create table public.warehouse_receipts_cn (
 insert into public.tenants values
   ('10000000-0000-0000-0000-000000000001', 'dtd'),
   ('10000000-0000-0000-0000-000000000002', 'otro');
+-- 01 admin de T1 · 02 comercial de T1 · 03 admin de T2
+insert into public.user_tenants values
+  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'admin', null),
+  ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'commercial', null),
+  ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 'admin', null);
 
 -- T1. Cada ficha tiene su teléfono 412-555-02NN; el NN es el caso.
 insert into public.clients (id, tenant_id, markbox, phone, merged_into_client_id, deleted_at) values
@@ -161,8 +201,8 @@ begin
 end;
 $$;
 
-create function pg_temp.reservar(p_conv bigint, p_tipo text default 'redireccion_cliente') returns boolean language plpgsql as $$
-declare v boolean;
+create function pg_temp.reservar(p_conv bigint, p_tipo text default 'redireccion_cliente') returns text language plpgsql as $$
+declare v text;
 begin
   set local role service_role;
   v := public.chatwoot_reservar_respuesta('10000000-0000-0000-0000-000000000001', p_conv, p_tipo);
@@ -171,12 +211,25 @@ begin
 end;
 $$;
 
-create function pg_temp.cerrar(p_conv bigint, p_enviada boolean) returns boolean language plpgsql as $$
+create function pg_temp.cerrar(p_conv bigint, p_resultado text) returns boolean language plpgsql as $$
 declare v boolean;
 begin
   set local role service_role;
-  v := public.chatwoot_cerrar_respuesta('10000000-0000-0000-0000-000000000001', p_conv, p_enviada);
+  v := public.chatwoot_cerrar_respuesta('10000000-0000-0000-0000-000000000001', p_conv, p_resultado);
   reset role;
+  return v;
+end;
+$$;
+
+-- Cuántos BSUID ve un usuario autenticado (RLS real, no solo el GRANT).
+create function pg_temp.ve_bsuid(p_user uuid) returns integer language plpgsql as $$
+declare v integer;
+begin
+  perform set_config('request.jwt.claim.sub', p_user::text, true);
+  set local role authenticated;
+  select count(*) into v from public.chatwoot_contactos_bsuid;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', true);
   return v;
 end;
 $$;
@@ -262,26 +315,43 @@ begin
 end;
 $tenant$;
 
--- ── 2. Respuestas del bot: una por conversación cada 24 h ──
+-- ── 2. Respuestas del bot: una por conversación cada 24 h, nunca dos ──
 do $respuestas$
 begin
-  perform pg_temp.assert_true(pg_temp.reservar(501), 'la primera respuesta se reserva');
-  perform pg_temp.assert_true(not pg_temp.reservar(501), 'no se responde dos veces mientras la reserva está viva');
-  perform pg_temp.assert_true(pg_temp.cerrar(501, true), 'la respuesta enviada se confirma');
-  perform pg_temp.assert_true(not pg_temp.reservar(501), 'no se responde dos veces dentro de 24 h');
-  perform pg_temp.assert_true(pg_temp.reservar(502, 'neutra_sin_telefono'), 'otra conversación se reserva aparte');
-  perform pg_temp.assert_true(pg_temp.cerrar(502, false), 'una reserva no enviada se libera');
-  perform pg_temp.assert_true(pg_temp.reservar(502, 'neutra_sin_telefono'), 'una reserva liberada se puede volver a tomar');
-  perform pg_temp.assert_true(not pg_temp.cerrar(501, false), 'liberar no borra una respuesta ya enviada');
+  perform pg_temp.assert_true(pg_temp.reservar(501) = 'enviar', 'la primera respuesta se reserva');
+  perform pg_temp.assert_true(pg_temp.reservar(501) = 'en_curso', 'una reserva viva da en_curso: el evento no se da por terminado');
+  perform pg_temp.assert_true(pg_temp.cerrar(501, 'enviada'), 'la respuesta enviada se confirma');
+  perform pg_temp.assert_true(pg_temp.reservar(501) = 'ya_enviada', 'no se responde dos veces dentro de 24 h');
+  perform pg_temp.assert_true(not pg_temp.cerrar(501, 'rechazada'), 'rechazar no borra una respuesta ya enviada');
+  perform pg_temp.assert_true(not pg_temp.cerrar(501, 'incierta'), 'una enviada no pasa a incierta');
+  perform pg_temp.assert_true(pg_temp.reservar(502, 'neutra_sin_telefono') = 'enviar', 'otra conversación se reserva aparte');
+  perform pg_temp.assert_true(pg_temp.cerrar(502, 'rechazada'), 'una reserva rechazada se libera');
+  perform pg_temp.assert_true(pg_temp.reservar(502, 'neutra_sin_telefono') = 'enviar', 'una reserva rechazada se puede volver a tomar');
+  perform pg_temp.assert_true(pg_temp.cerrar(502, 'incierta'), 'un envío incierto se registra');
+  perform pg_temp.assert_true(pg_temp.reservar(502, 'neutra_sin_telefono') = 'incierta', 'un envío incierto no habilita otro');
+  perform pg_temp.assert_true(pg_temp.reservar(503) = 'enviar', 'tercera conversación');
+  begin
+    perform pg_temp.cerrar(503, 'otra');
+    perform pg_temp.assert_true(false, 'un resultado desconocido falla');
+  exception when sqlstate '22023' then
+    perform pg_temp.assert_true(true, 'un resultado desconocido falla');
+  end;
 end;
 $respuestas$;
+-- 501 enviada hace 25 h · 502 incierta hace 11 min · 503 reserva colgada hace 11 min · 504 incierta hace 25 h
 update public.chatwoot_respuestas_bot set enviada_at = now() - interval '25 hours' where conversation_id = 501;
-update public.chatwoot_respuestas_bot set reservada_at = now() - interval '11 minutes' where conversation_id = 502;
+update public.chatwoot_respuestas_bot set reservada_at = now() - interval '11 minutes' where conversation_id in (502, 503);
+insert into public.chatwoot_respuestas_bot (tenant_id, conversation_id, tipo, estado, reservada_at) values
+  ('10000000-0000-0000-0000-000000000001', 504, 'redireccion_cliente', 'incierta', now() - interval '25 hours');
 do $tiempo$
 begin
-  perform pg_temp.assert_true(pg_temp.reservar(501), 'pasadas 24 h se puede responder otra vez');
-  perform pg_temp.assert_true(pg_temp.reservar(502, 'neutra_sin_telefono'), 'una reserva sin confirmar de hace más de 10 min se reclama');
-  perform pg_temp.assert_true(not pg_temp.reservar(502, 'neutra_sin_telefono'), 'una reserva reclamada no se reclama dos veces');
+  perform pg_temp.assert_true(pg_temp.reservar(501) = 'enviar', 'pasadas 24 h se puede responder otra vez');
+  perform pg_temp.assert_true(pg_temp.reservar(502, 'neutra_sin_telefono') = 'incierta', 'una incierta sigue bloqueada antes de las 24 h');
+  perform pg_temp.assert_true(pg_temp.reservar(503) = 'incierta', 'una reserva colgada más de 10 min cuenta como incierta y no habilita otro envío');
+  perform pg_temp.assert_true(
+    (select estado from public.chatwoot_respuestas_bot where conversation_id = 503) = 'reservada',
+    'consultar una reserva colgada no la reabre');
+  perform pg_temp.assert_true(pg_temp.reservar(504) = 'enviar', 'una incierta de hace más de 24 h deja responder otra vez');
 end;
 $tiempo$;
 
@@ -303,6 +373,16 @@ begin
   end;
 end;
 $bsuid$;
+insert into public.chatwoot_contactos_bsuid (tenant_id, bsuid, conversation_id) values
+  ('10000000-0000-0000-0000-000000000002', 'VE.5550000000000000009', 701);
+do $bsuid_rls$
+begin
+  perform pg_temp.assert_true(pg_temp.ve_bsuid('20000000-0000-0000-0000-000000000001') = 1, 'el admin de T1 ve solo los BSUID de T1');
+  perform pg_temp.assert_true(pg_temp.ve_bsuid('20000000-0000-0000-0000-000000000003') = 1, 'el admin de T2 ve solo los BSUID de T2');
+  perform pg_temp.assert_true(pg_temp.ve_bsuid('20000000-0000-0000-0000-000000000002') = 0, 'quien no es admin no ve los BSUID');
+  perform pg_temp.assert_true(pg_temp.ve_bsuid('20000000-0000-0000-0000-000000000009') = 0, 'un usuario sin tenant no ve los BSUID');
+end;
+$bsuid_rls$;
 
 -- ── 4. Acceso y datos ──
 do $acceso$
@@ -312,7 +392,7 @@ begin
   foreach v_fn in array array[
     'public.chatwoot_segmento_contacto(uuid, text)',
     'public.chatwoot_reservar_respuesta(uuid, bigint, text)',
-    'public.chatwoot_cerrar_respuesta(uuid, bigint, boolean)',
+    'public.chatwoot_cerrar_respuesta(uuid, bigint, text)',
     'public.chatwoot_guardar_bsuid(uuid, text, bigint)'
   ] loop
     perform pg_temp.assert_true(
@@ -328,9 +408,14 @@ begin
   perform pg_temp.assert_true(
     not has_table_privilege('authenticated', 'public.chatwoot_respuestas_bot', 'SELECT')
     and not has_table_privilege('anon', 'public.chatwoot_respuestas_bot', 'SELECT')
-    and not has_table_privilege('authenticated', 'public.chatwoot_contactos_bsuid', 'SELECT')
     and not has_table_privilege('anon', 'public.chatwoot_contactos_bsuid', 'SELECT'),
-    'las tablas nuevas no se leen desde la API');
+    'las respuestas del bot no se leen desde la API y anon no lee BSUID');
+  perform pg_temp.assert_true(
+    not has_table_privilege('authenticated', 'public.chatwoot_contactos_bsuid', 'INSERT')
+    and not has_table_privilege('authenticated', 'public.chatwoot_contactos_bsuid', 'UPDATE')
+    and not has_table_privilege('authenticated', 'public.chatwoot_contactos_bsuid', 'DELETE')
+    and not has_table_privilege('authenticated', 'public.chatwoot_respuestas_bot', 'INSERT'),
+    'solo service_role escribe en las tablas nuevas');
   perform pg_temp.assert_true(exists (
     select 1 from pg_proc p
     where p.oid = 'public.chatwoot_segmento_contacto(uuid, text)'::regprocedure

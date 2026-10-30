@@ -34,14 +34,16 @@
 --    responder dos veces: cada mensaje que sale cuenta contra el cupo de 1.000
 --    gratis al mes de Meta. No guarda el texto ni el destinatario.
 --    `chatwoot_reservar_respuesta` reserva antes de enviar (una por
---    conversación cada 24 h; una reserva sin confirmar vence a los 10 min) y
---    `chatwoot_cerrar_respuesta` la confirma o la libera.
+--    conversación cada 24 h) y `chatwoot_cerrar_respuesta` la cierra como
+--    enviada, incierta o rechazada. Un resultado incierto o una reserva colgada
+--    nunca habilitan otro envío antes de las 24 h.
 -- 3. `chatwoot_contactos_bsuid`: los usuarios de WhatsApp sin teléfono (con
 --    username), por su BSUID (ID por portafolio de Meta), para vincularlos a
 --    una ficha después (10.3). Guarda solo el BSUID, la última conversación y
---    dos fechas. Retención: PENDIENTE de decisión de Sam (ver SDD-0586).
+--    dos fechas. Retención: PENDIENTE de decisión de Sam (ver SDD-0586). La
+--    lee el admin de su tenant (RLS); escribe solo service_role.
 --
--- Todo es solo de service_role (el webhook de Chatwoot en Studio).
+-- Las funciones son solo de service_role (el webhook de Chatwoot en Studio).
 set lock_timeout = '5s';
 set statement_timeout = '30s';
 
@@ -51,8 +53,10 @@ begin
      or pg_catalog.to_regclass('public.clients') is null
      or pg_catalog.to_regclass('public.client_markbox_history') is null
      or pg_catalog.to_regclass('public.shipments') is null
-     or pg_catalog.to_regclass('public.warehouse_receipts_cn') is null then
-    raise exception '0505 requiere tenants, clients, client_markbox_history, shipments y warehouse_receipts_cn';
+     or pg_catalog.to_regclass('public.warehouse_receipts_cn') is null
+     or pg_catalog.to_regprocedure('public.get_user_tenant_id()') is null
+     or pg_catalog.to_regprocedure('public.is_tenant_admin()') is null then
+    raise exception '0505 requiere tenants, clients, client_markbox_history, shipments, warehouse_receipts_cn, get_user_tenant_id() e is_tenant_admin()';
   end if;
   if (select pg_catalog.count(*) from pg_catalog.pg_attribute
       where not attisdropped and attnum > 0 and (
@@ -155,13 +159,21 @@ revoke all on function public.chatwoot_segmento_contacto(uuid, text) from anon, 
 grant execute on function public.chatwoot_segmento_contacto(uuid, text) to service_role;
 
 -- ─── 2. Respuestas automáticas por conversación ──────────────────────────────
+-- Estados: reservada (se va a enviar) → enviada | incierta. Un rechazo
+-- definitivo de Chatwoot borra la fila (no salió: se puede volver a intentar).
+-- «incierta» (red, 5xx o tiempo agotado: pudo haber salido) y una reserva que
+-- quedó más de 10 min sin cerrar (el proceso murió entre reservar y confirmar)
+-- NUNCA habilitan otro envío por vencimiento: preferimos no responder dos veces
+-- (revisión de Codex). Solo pasadas 24 h se puede responder de nuevo.
 create table public.chatwoot_respuestas_bot (
   tenant_id       uuid not null references public.tenants(id) on delete cascade,
   conversation_id bigint not null check (conversation_id > 0),
   tipo            text not null check (tipo in ('redireccion_cliente', 'neutra_sin_telefono')),
+  estado          text not null default 'reservada' check (estado in ('reservada', 'enviada', 'incierta')),
   reservada_at    timestamptz not null default now(),
   enviada_at      timestamptz,
-  primary key (tenant_id, conversation_id)
+  primary key (tenant_id, conversation_id),
+  check ((estado = 'enviada') = (enviada_at is not null))
 );
 
 comment on table public.chatwoot_respuestas_bot is
@@ -173,35 +185,54 @@ create policy chatwoot_respuestas_bot_service_role_all on public.chatwoot_respue
 revoke all on public.chatwoot_respuestas_bot from public, anon, authenticated;
 grant all on public.chatwoot_respuestas_bot to service_role;
 
--- Reserva la respuesta antes de enviarla. true = esta llamada puede enviar.
--- Se puede reservar si la conversación no tiene fila, si su última respuesta
--- salió hace más de 24 h, o si quedó una reserva sin confirmar de hace más de
--- 10 min (el envío anterior murió a medias).
+-- Reserva la respuesta antes de enviarla. Devuelve:
+--   'enviar'     esta llamada reservó: puede enviar;
+--   'ya_enviada' salió hace menos de 24 h: no se envía;
+--   'incierta'   pudo haber salido (o la reserva quedó colgada más de 10 min):
+--                no se envía;
+--   'en_curso'   otra entrega la reservó hace menos de 10 min: el llamador NO
+--                debe dar el evento por terminado (se reintenta después).
 create function public.chatwoot_reservar_respuesta(p_tenant_id uuid, p_conversation_id bigint, p_tipo text)
-returns boolean
+returns text
 language plpgsql
 security definer
 set search_path = ''
 as $fn$
 declare
-  v_filas integer;
+  v_filas   integer;
+  v_estado  text;
+  v_reserva timestamptz;
 begin
   insert into public.chatwoot_respuestas_bot as r (tenant_id, conversation_id, tipo)
   values (p_tenant_id, p_conversation_id, p_tipo)
   on conflict (tenant_id, conversation_id) do update
-    set tipo = excluded.tipo, reservada_at = pg_catalog.now(), enviada_at = null
-    where (r.enviada_at is null and r.reservada_at < pg_catalog.now() - interval '10 minutes')
-       or r.enviada_at < pg_catalog.now() - interval '24 hours';
+    set tipo = excluded.tipo, estado = 'reservada', reservada_at = pg_catalog.now(), enviada_at = null
+    where (r.estado = 'enviada' and r.enviada_at < pg_catalog.now() - interval '24 hours')
+       or (r.estado <> 'enviada' and r.reservada_at < pg_catalog.now() - interval '24 hours');
   get diagnostics v_filas = row_count;
-  return v_filas = 1;
+  if v_filas = 1 then
+    return 'enviar';
+  end if;
+
+  select r.estado, r.reservada_at into v_estado, v_reserva
+  from public.chatwoot_respuestas_bot r
+  where r.tenant_id = p_tenant_id and r.conversation_id = p_conversation_id;
+  if v_estado = 'enviada' then
+    return 'ya_enviada';
+  elsif v_estado = 'incierta' or v_reserva < pg_catalog.now() - interval '10 minutes' then
+    return 'incierta';
+  end if;
+  return 'en_curso';
 end;
 $fn$;
 
 comment on function public.chatwoot_reservar_respuesta(uuid, bigint, text) is
-  'SDD-0586: reserva la respuesta automática de una conversación (una cada 24 h). true = se puede enviar. Solo service_role.';
+  'SDD-0586: reserva la respuesta automática de una conversación (una cada 24 h). Devuelve enviar, ya_enviada, incierta o en_curso. Solo service_role.';
 
--- Cierra la reserva: enviada la confirma; no enviada la libera para el reintento.
-create function public.chatwoot_cerrar_respuesta(p_tenant_id uuid, p_conversation_id bigint, p_enviada boolean)
+-- Cierra una reserva: 'enviada' la confirma, 'incierta' la deja bloqueada hasta
+-- las 24 h y 'rechazada' (Chatwoot dijo que no) la borra para que se reintente.
+-- Solo actúa sobre una reserva abierta: nunca reabre una enviada.
+create function public.chatwoot_cerrar_respuesta(p_tenant_id uuid, p_conversation_id bigint, p_resultado text)
 returns boolean
 language plpgsql
 security definer
@@ -210,21 +241,24 @@ as $fn$
 declare
   v_filas integer;
 begin
-  if p_enviada then
-    update public.chatwoot_respuestas_bot r
-    set enviada_at = pg_catalog.now()
-    where r.tenant_id = p_tenant_id and r.conversation_id = p_conversation_id and r.enviada_at is null;
-  else
+  if p_resultado = 'rechazada' then
     delete from public.chatwoot_respuestas_bot r
-    where r.tenant_id = p_tenant_id and r.conversation_id = p_conversation_id and r.enviada_at is null;
+    where r.tenant_id = p_tenant_id and r.conversation_id = p_conversation_id and r.estado = 'reservada';
+  elsif p_resultado in ('enviada', 'incierta') then
+    update public.chatwoot_respuestas_bot r
+    set estado = p_resultado,
+        enviada_at = case when p_resultado = 'enviada' then pg_catalog.now() end
+    where r.tenant_id = p_tenant_id and r.conversation_id = p_conversation_id and r.estado = 'reservada';
+  else
+    raise exception 'chatwoot_cerrar_respuesta: resultado desconocido' using errcode = '22023';
   end if;
   get diagnostics v_filas = row_count;
   return v_filas = 1;
 end;
 $fn$;
 
-comment on function public.chatwoot_cerrar_respuesta(uuid, bigint, boolean) is
-  'SDD-0586: confirma (enviada) o libera (no enviada) la reserva de respuesta automática. Solo service_role.';
+comment on function public.chatwoot_cerrar_respuesta(uuid, bigint, text) is
+  'SDD-0586: cierra la reserva de respuesta automática como enviada, incierta o rechazada. Solo service_role.';
 
 -- ─── 3. Usuarios sin teléfono (BSUID) ────────────────────────────────────────
 create table public.chatwoot_contactos_bsuid (
@@ -238,12 +272,18 @@ create table public.chatwoot_contactos_bsuid (
 );
 
 comment on table public.chatwoot_contactos_bsuid is
-  'SDD-0586 (10.3): usuarios de WhatsApp sin teléfono, por su BSUID, para vincularlos a una ficha después. Sin nombre, teléfono ni texto. Retención pendiente de decisión de Sam. Solo service_role.';
+  'SDD-0586 (10.3): usuarios de WhatsApp sin teléfono, por su BSUID, para vincularlos a una ficha después. Sin nombre, teléfono ni texto. Retención pendiente de decisión de Sam. Lee el admin de su tenant; escribe solo service_role.';
 
 alter table public.chatwoot_contactos_bsuid enable row level security;
+-- RLS por tenant (pedido del Director, 2026-10-30): el admin ve los de su
+-- tenant, para vincularlos a una ficha. Nadie más que service_role escribe.
+create policy chatwoot_contactos_bsuid_select_admin on public.chatwoot_contactos_bsuid
+  for select to authenticated
+  using (tenant_id = (select public.get_user_tenant_id()) and (select public.is_tenant_admin()));
 create policy chatwoot_contactos_bsuid_service_role_all on public.chatwoot_contactos_bsuid
   for all to service_role using (true) with check (true);
 revoke all on public.chatwoot_contactos_bsuid from public, anon, authenticated;
+grant select on public.chatwoot_contactos_bsuid to authenticated;
 grant all on public.chatwoot_contactos_bsuid to service_role;
 
 create function public.chatwoot_guardar_bsuid(p_tenant_id uuid, p_bsuid text, p_conversation_id bigint)
@@ -266,9 +306,9 @@ comment on function public.chatwoot_guardar_bsuid(uuid, text, bigint) is
 revoke all on function public.chatwoot_reservar_respuesta(uuid, bigint, text) from public;
 revoke all on function public.chatwoot_reservar_respuesta(uuid, bigint, text) from anon, authenticated;
 grant execute on function public.chatwoot_reservar_respuesta(uuid, bigint, text) to service_role;
-revoke all on function public.chatwoot_cerrar_respuesta(uuid, bigint, boolean) from public;
-revoke all on function public.chatwoot_cerrar_respuesta(uuid, bigint, boolean) from anon, authenticated;
-grant execute on function public.chatwoot_cerrar_respuesta(uuid, bigint, boolean) to service_role;
+revoke all on function public.chatwoot_cerrar_respuesta(uuid, bigint, text) from public;
+revoke all on function public.chatwoot_cerrar_respuesta(uuid, bigint, text) from anon, authenticated;
+grant execute on function public.chatwoot_cerrar_respuesta(uuid, bigint, text) to service_role;
 revoke all on function public.chatwoot_guardar_bsuid(uuid, text, bigint) from public;
 revoke all on function public.chatwoot_guardar_bsuid(uuid, text, bigint) from anon, authenticated;
 grant execute on function public.chatwoot_guardar_bsuid(uuid, text, bigint) to service_role;

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { chatwootRouterConfig, type ChatwootRouterConfig } from "./config";
-import { asignarEquipo, enviarMensaje, leerEtiquetas, obtenerConversacion, ponerEtiquetas } from "./router-api";
+import { asignarEquipo, enviarMensaje, envioIncierto, leerEtiquetas, obtenerConversacion, ponerEtiquetas } from "./router-api";
 import { respuestaPara, etiquetasConSegmento, type Segmento } from "./segmento";
 import type { ContextoChatwoot, ManejadorEvento } from "./webhook-procesar";
 
@@ -20,7 +20,7 @@ import type { ContextoChatwoot, ManejadorEvento } from "./webhook-procesar";
  *      mensaje, sin IA, y una vez por conversación cada 24 h (reserva en la
  *      0505): cada mensaje cuenta contra el cupo de Meta. Va primero porque es
  *      lo que el contacto ve; si después falla la etiqueta, el reintento no
- *      vuelve a responder.
+ *      vuelve a responder. Ver `responderUnaVez`.
  *   3. Etiqueta del segmento (reemplaza las de otros segmentos y conserva el
  *      resto) y equipo: Clientes o Leads.
  *
@@ -65,11 +65,17 @@ export const clasificarContacto: ManejadorEvento = async (ctx, evento) => {
   const respuesta = respuestaPara(segmento, sinTelefono, cfg.numeroClientes);
   if (respuesta) await responderUnaVez(ctx, cfg, conv.id, respuesta.tipo, respuesta.texto);
 
-  const actuales = conv.etiquetas ?? (await leerOLanzar(cfg, conv.id));
-  const nuevas = etiquetasConSegmento(actuales, segmento);
-  if (nuevas) {
-    const r = await ponerEtiquetas(cfg, conv.id, nuevas);
-    if (!r.ok) throw new Error(`etiquetas: ${r.error}`);
+  // La copia del evento solo sirve para saltar la escritura si ya está bien.
+  // Para escribir se releen: el POST de Chatwoot reemplaza TODAS las etiquetas
+  // y una que un agente puso después del evento se perdería (revisión de
+  // Codex). Queda una ventana entre leer y escribir que Chatwoot no permite
+  // cerrar: no hay «agregar una etiqueta» atómico en la API de cuenta (NV, 10.6).
+  if (!conv.etiquetas || etiquetasConSegmento(conv.etiquetas, segmento)) {
+    const nuevas = etiquetasConSegmento(await leerOLanzar(cfg, conv.id), segmento);
+    if (nuevas) {
+      const r = await ponerEtiquetas(cfg, conv.id, nuevas);
+      if (!r.ok) throw new Error(`etiquetas: ${r.error}`);
+    }
   }
 
   const equipo = segmento === "cliente" ? cfg.teamClientesId : cfg.teamLeadsId;
@@ -86,11 +92,19 @@ async function leerOLanzar(cfg: ChatwootRouterConfig, conversacionId: number): P
 }
 
 /**
- * Reserva → envía → confirma. Si Chatwoot rechaza el envío (`http_*`), libera
- * la reserva y lanza: el reintento vuelve a responder. Si el resultado es
- * incierto (`red`), deja la reserva y sigue: preferimos no responder dos veces
- * (la persona igual queda etiquetada y en su equipo para un humano). Una
- * reserva sin confirmar vence a los 10 min.
+ * Reserva → envía → cierra (0505, revisión de Codex). Nunca se responde dos
+ * veces dentro de 24 h:
+ *   - `ya_enviada` o `incierta` (pudo haber salido): no se envía y se sigue;
+ *   - `en_curso` (otra entrega está enviando): se lanza, para que el evento NO
+ *     quede «procesado» con la redirección sin resolver; el reproceso lo retoma
+ *     y, pasados 10 min sin cierre, la base la da por incierta;
+ *   - enviado: se confirma; si la confirmación falla, se reintenta UNA vez y,
+ *     si sigue fallando, se lanza (el reintento verá `en_curso` o `incierta`,
+ *     nunca `enviar`);
+ *   - rechazo definitivo (4xx): se libera y se lanza, para responder después;
+ *   - incierto (red, tiempo agotado, 5xx, 408): se marca incierta y se sigue:
+ *     preferimos no responder dos veces (la persona igual queda etiquetada y
+ *     en su equipo para un humano).
  */
 async function responderUnaVez(
   ctx: ContextoChatwoot,
@@ -105,18 +119,23 @@ async function responderUnaVez(
     p_tipo: tipo,
   });
   if (reserva.error) throw new Error(`chatwoot_reservar_respuesta: ${reserva.error.code ?? "sin código"}`);
-  if (reserva.data !== true) return;
+  if (reserva.data === "ya_enviada" || reserva.data === "incierta") return;
+  if (reserva.data !== "enviar") throw new Error(`respuesta ${reserva.data === "en_curso" ? "en curso" : "con reserva desconocida"}`);
 
   const envio = await enviarMensaje(cfg, conversacionId, texto);
-  if (!envio.ok && envio.error === "red") {
-    console.warn("[chatwoot] respuesta del bot incierta; no se repite");
-    return;
+  const resultado = envio.ok ? "enviada" : envioIncierto(envio.error) ? "incierta" : "rechazada";
+  const cerrar = () =>
+    ctx.admin.rpc("chatwoot_cerrar_respuesta", {
+      p_tenant_id: ctx.tenantId,
+      p_conversation_id: conversacionId,
+      p_resultado: resultado,
+    });
+  let cierre = await cerrar();
+  if (cierre.error && resultado === "enviada") cierre = await cerrar();
+  if (cierre.error) {
+    console.warn(`[chatwoot] chatwoot_cerrar_respuesta: ${cierre.error.code ?? "sin código"}`);
+    if (resultado === "enviada") throw new Error("respuesta enviada sin confirmar");
   }
-  const cierre = await ctx.admin.rpc("chatwoot_cerrar_respuesta", {
-    p_tenant_id: ctx.tenantId,
-    p_conversation_id: conversacionId,
-    p_enviada: envio.ok,
-  });
-  if (cierre.error) console.warn(`[chatwoot] chatwoot_cerrar_respuesta: ${cierre.error.code ?? "sin código"}`);
-  if (!envio.ok) throw new Error(`respuesta: ${envio.error}`);
+  if (resultado === "incierta") console.warn("[chatwoot] respuesta del bot incierta; no se repite");
+  if (resultado === "rechazada" && !envio.ok) throw new Error(`respuesta: ${envio.error}`);
 }

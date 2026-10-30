@@ -14,7 +14,8 @@ const api = vi.hoisted(() => ({
   asignarEquipo: vi.fn(),
   enviarMensaje: vi.fn(),
 }));
-vi.mock("../router-api", () => api);
+// Solo la red es doble; `envioIncierto` (pura) es la real.
+vi.mock("../router-api", async (original) => ({ ...(await original<typeof import("../router-api")>()), ...api }));
 vi.mock("@/lib/studio/feature-flags-queries", () => ({ listFeatureFlags: async () => ({ chatwoot_inbox: false }) }));
 vi.mock("@/lib/studio/notify/operario-push-outbox", () => ({ enqueueUserPush: vi.fn(), drainOperarioPushOutbox: vi.fn() }));
 
@@ -39,11 +40,16 @@ const ENV = {
 
 type Rpc = (nombre: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { code: string } | null }>;
 
-function base(opciones: { segmento?: unknown; reserva?: boolean; falla?: string } = {}) {
+function base(opciones: { segmento?: unknown; reserva?: string; falla?: string; fallasCierre?: number } = {}) {
+  let fallasCierre = opciones.fallasCierre ?? 0;
   const rpc = vi.fn<Rpc>(async (nombre) => {
     if (nombre === opciones.falla) return { data: null, error: { code: "XX000" } };
+    if (nombre === "chatwoot_cerrar_respuesta" && fallasCierre > 0) {
+      fallasCierre -= 1;
+      return { data: null, error: { code: "57014" } };
+    }
     if (nombre === "chatwoot_segmento_contacto") return { data: opciones.segmento ?? "lead_nuevo", error: null };
-    if (nombre === "chatwoot_reservar_respuesta") return { data: opciones.reserva ?? true, error: null };
+    if (nombre === "chatwoot_reservar_respuesta") return { data: opciones.reserva ?? "enviar", error: null };
     if (nombre === "chatwoot_cerrar_respuesta") return { data: true, error: null };
     if (nombre === "chatwoot_guardar_bsuid") return { data: null, error: null };
     if (nombre === "chatwoot_tomar_pendientes") return { data: [], error: null };
@@ -65,7 +71,8 @@ beforeEach(() => {
   api.ponerEtiquetas.mockResolvedValue({ ok: true, data: null });
   api.asignarEquipo.mockResolvedValue({ ok: true, data: null });
   api.enviarMensaje.mockResolvedValue({ ok: true, data: null });
-  api.leerEtiquetas.mockResolvedValue({ ok: true, data: [] });
+  // Lo que Chatwoot tiene al releer: por defecto, lo mismo que la copia del evento.
+  api.leerEtiquetas.mockResolvedValue({ ok: true, data: ["urgente"] });
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -80,7 +87,7 @@ describe("clasificarContacto (SDD-0586, 10.2)", () => {
     expect(conv).toBe(12);
     expect(texto).toContain(`https://wa.me/${NUMERO_CLIENTES}?text=`);
     expect(a.rpc).toHaveBeenCalledWith("chatwoot_reservar_respuesta", { p_tenant_id: T1, p_conversation_id: 12, p_tipo: "redireccion_cliente" });
-    expect(a.rpc).toHaveBeenCalledWith("chatwoot_cerrar_respuesta", { p_tenant_id: T1, p_conversation_id: 12, p_enviada: true });
+    expect(a.rpc).toHaveBeenCalledWith("chatwoot_cerrar_respuesta", { p_tenant_id: T1, p_conversation_id: 12, p_resultado: "enviada" });
     expect(api.ponerEtiquetas).toHaveBeenCalledWith(expect.anything(), 12, ["urgente", "cliente"]);
     expect(api.asignarEquipo).toHaveBeenCalledWith(expect.anything(), 12, 21);
     // La respuesta sale antes que la etiqueta: si la etiqueta falla, el reintento no responde otra vez.
@@ -120,27 +127,64 @@ describe("clasificarContacto (SDD-0586, 10.2)", () => {
     expect(api.ponerEtiquetas).toHaveBeenCalledWith(expect.anything(), 12, ["vip", "lead-nuevo"]);
   });
 
-  it("ya respondida en las últimas 24 h (reserva tomada): no envía otra vez", async () => {
-    const a = base({ segmento: "cliente", reserva: false });
+  it.each(["ya_enviada", "incierta"])("reserva %s: no envía otra vez y sigue con etiqueta y equipo", async (reserva) => {
+    const a = base({ segmento: "cliente", reserva });
     await clasificarContacto({ admin: a, tenantId: T1 }, evento(), REGISTRO);
     expect(api.enviarMensaje).not.toHaveBeenCalled();
     expect(llamadas(a)).not.toContain("chatwoot_cerrar_respuesta");
     expect(api.asignarEquipo).toHaveBeenCalledWith(expect.anything(), 12, 21);
   });
 
-  it("Chatwoot rechaza el envío: libera la reserva y lanza para que el reintento responda", async () => {
-    const a = base({ segmento: "cliente" });
-    api.enviarMensaje.mockResolvedValueOnce({ ok: false, error: "http_500" });
-    await expect(clasificarContacto({ admin: a, tenantId: T1 }, evento(), REGISTRO)).rejects.toThrow(/respuesta: http_500/);
-    expect(a.rpc).toHaveBeenCalledWith("chatwoot_cerrar_respuesta", { p_tenant_id: T1, p_conversation_id: 12, p_enviada: false });
+  it("reserva en curso: lanza sin enviar, para que el evento no quede procesado con la redirección pendiente", async () => {
+    const a = base({ segmento: "cliente", reserva: "en_curso" });
+    await expect(clasificarContacto({ admin: a, tenantId: T1 }, evento(), REGISTRO)).rejects.toThrow(/respuesta en curso/);
+    expect(api.enviarMensaje).not.toHaveBeenCalled();
   });
 
-  it("envío incierto (red): deja la reserva, no lanza y sigue con etiqueta y equipo", async () => {
+  it("Chatwoot rechaza el envío (4xx): libera la reserva y lanza para que el reintento responda", async () => {
     const a = base({ segmento: "cliente" });
-    api.enviarMensaje.mockResolvedValueOnce({ ok: false, error: "red" });
+    api.enviarMensaje.mockResolvedValueOnce({ ok: false, error: "http_422" });
+    await expect(clasificarContacto({ admin: a, tenantId: T1 }, evento(), REGISTRO)).rejects.toThrow(/respuesta: http_422/);
+    expect(a.rpc).toHaveBeenCalledWith("chatwoot_cerrar_respuesta", { p_tenant_id: T1, p_conversation_id: 12, p_resultado: "rechazada" });
+  });
+
+  it.each(["red", "http_502", "http_504", "http_408"])(
+    "envío incierto (%s): lo marca incierto, no lanza y sigue con etiqueta y equipo",
+    async (error) => {
+      const a = base({ segmento: "cliente" });
+      api.enviarMensaje.mockResolvedValueOnce({ ok: false, error });
+      await clasificarContacto({ admin: a, tenantId: T1 }, evento(), REGISTRO);
+      expect(a.rpc).toHaveBeenCalledWith("chatwoot_cerrar_respuesta", { p_tenant_id: T1, p_conversation_id: 12, p_resultado: "incierta" });
+      expect(api.asignarEquipo).toHaveBeenCalledWith(expect.anything(), 12, 21);
+    },
+  );
+
+  it("si la confirmación falla una vez, la reintenta sin volver a enviar", async () => {
+    const a = base({ segmento: "cliente", fallasCierre: 1 });
     await clasificarContacto({ admin: a, tenantId: T1 }, evento(), REGISTRO);
-    expect(llamadas(a)).not.toContain("chatwoot_cerrar_respuesta");
-    expect(api.asignarEquipo).toHaveBeenCalledWith(expect.anything(), 12, 21);
+    expect(api.enviarMensaje).toHaveBeenCalledTimes(1);
+    expect(llamadas(a).filter((n) => n === "chatwoot_cerrar_respuesta")).toHaveLength(2);
+  });
+
+  it("si la confirmación falla dos veces, lanza sin volver a enviar", async () => {
+    const a = base({ segmento: "cliente", fallasCierre: 2 });
+    await expect(clasificarContacto({ admin: a, tenantId: T1 }, evento(), REGISTRO)).rejects.toThrow(/enviada sin confirmar/);
+    expect(api.enviarMensaje).toHaveBeenCalledTimes(1);
+    expect(api.ponerEtiquetas).not.toHaveBeenCalled();
+  });
+
+  it("relee las etiquetas antes de escribir: no borra la que un agente puso después del evento", async () => {
+    const a = base({ segmento: "cliente" });
+    api.leerEtiquetas.mockResolvedValueOnce({ ok: true, data: ["urgente", "prioridad"] });
+    await clasificarContacto({ admin: a, tenantId: T1 }, evento(), REGISTRO);
+    expect(api.ponerEtiquetas).toHaveBeenCalledWith(expect.anything(), 12, ["urgente", "prioridad", "cliente"]);
+  });
+
+  it("si al releer ya está la etiqueta del segmento, no escribe", async () => {
+    const a = base({ segmento: "cliente" });
+    api.leerEtiquetas.mockResolvedValueOnce({ ok: true, data: ["urgente", "cliente"] });
+    await clasificarContacto({ admin: a, tenantId: T1 }, evento(), REGISTRO);
+    expect(api.ponerEtiquetas).not.toHaveBeenCalled();
   });
 
   it("si el ERP falla, lanza sin responder ni etiquetar", async () => {
@@ -247,8 +291,10 @@ describe("reproceso y datos personales (SDD-0586)", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     api.enviarMensaje.mockResolvedValueOnce({ ok: false, error: "red" });
     await clasificarContacto({ admin: base({ segmento: "cliente" }), tenantId: T1 }, evento(), REGISTRO);
-    const a = base({ falla: "chatwoot_cerrar_respuesta" });
-    await clasificarContacto({ admin: a, tenantId: T1 }, evento({ meta: { sender: {} }, contact_inbox: { source_id: BSUID } }), REGISTRO);
+    const a = base({ fallasCierre: 2 });
+    await expect(
+      clasificarContacto({ admin: a, tenantId: T1 }, evento({ meta: { sender: {} }, contact_inbox: { source_id: BSUID } }), REGISTRO),
+    ).rejects.toThrow(/enviada sin confirmar/);
     const todo = JSON.stringify(warn.mock.calls);
     expect(warn).toHaveBeenCalled();
     for (const dato of ["4125550101", BSUID, ENV.CHATWOOT_ROUTER_TOKEN, NUMERO_CLIENTES]) expect(todo).not.toContain(dato);

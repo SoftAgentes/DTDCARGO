@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { asignarEquipo, enviarMensaje, leerEtiquetas, obtenerConversacion, ponerEtiquetas } from "../router-api";
+import { asignarEquipo, enviarMensaje, envioIncierto, leerEtiquetas, obtenerConversacion, ponerEtiquetas } from "../router-api";
 import type { ChatwootRouterConfig } from "../config";
 import { TELEFONO_SINTETICO, TEXTO_SINTETICO, conversacionSintetica } from "./webhook-fixtures";
 
@@ -27,6 +27,15 @@ const llamada = (i = 0) => {
   const [url, init] = fetchSpy.mock.calls[i] as [string, RequestInit];
   return { url, init, headers: init.headers as Record<string, string>, body: init.body ? JSON.parse(String(init.body)) : undefined };
 };
+
+describe("envioIncierto (SDD-0586, revisión de Codex)", () => {
+  it("red, 5xx y 408 son inciertos; los demás 4xx son rechazos", () => {
+    for (const e of ["red", "http_500", "http_502", "http_504", "http_408"] as const) expect(envioIncierto(e)).toBe(true);
+    for (const e of ["no_autorizado", "no_encontrado", "http_400", "http_422", "http_429", "respuesta_invalida"] as const) {
+      expect(envioIncierto(e)).toBe(false);
+    }
+  });
+});
 
 describe("router-api (SDD-0586)", () => {
   it("obtenerConversacion pide con el token del enrutador y devuelve solo lo mínimo", async () => {

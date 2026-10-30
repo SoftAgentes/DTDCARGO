@@ -18,9 +18,16 @@ import { interpretarConversacion, type ConversacionChatwoot } from "./webhook-ev
  *   POST /conversations/{id}/assignments  → { team_id }: asigna el equipo
  *   POST /conversations/{id}/messages     → la respuesta del bot, saliente y pública
  *
- * En el envío, `red` (caída o tiempo agotado) es INCIERTO: el mensaje pudo
- * haber salido. Un `http_*` es un rechazo: no salió.
+ * En el envío, `red` (caída o tiempo agotado), un 5xx y un 408 son INCIERTOS:
+ * un proxy puede responder 502/504 después de que Chatwoot aceptó el mensaje
+ * (revisión de Codex; NV contra el VPS). Los demás 4xx son rechazos: no salió.
  */
+
+export function envioIncierto(error: ChatwootError): boolean {
+  if (error === "red") return true;
+  const m = /^http_(\d{3})$/.exec(error);
+  return m !== null && (Number(m[1]) >= 500 || Number(m[1]) === 408);
+}
 
 const TIMEOUT_MS = 10_000;
 
