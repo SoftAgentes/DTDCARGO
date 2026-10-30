@@ -4,7 +4,7 @@
 - **Ruta:** `.claude/worktrees/sad-nash-bbeef2`
 - **Rama:** `codex/0582-e6-tablero`, desde `origin/codex/0582-e6-modelo` (`01aa6929c`, PR #336).
 - **SDD:** 0587 (aprobada; E6 sigue en esta SDD). Sección §15 y allowlist en §10.
-- **Programa:** SDD-0582, fila 6.3 del checklist → «entregado».
+- **Programa:** SDD-0582, fila 6.3 del checklist → «aceptado» (Sam, 2026-10-30).
 
 ## Objetivo
 
@@ -51,7 +51,7 @@ PASÓ en `1d12270b6`, con `3c86f4053` (`e6-modelo` + `a319d4cdc` de E10) integra
 
 - Volver a correr `pnpm verify` cuando la base traiga los arreglos de los rojos ajenos (Director).
 - Prueba visual con datos cuando haya una base con la 0506 (local o después de aplicarla).
-- Aceptación de 6.3 por Sam.
+- ~~Aceptación de 6.3 por Sam~~: hecha el 2026-10-30. A «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?» respondió «Acepto todo» (texto literal que pasó el Director). Fila 6.3 → aceptado; avance 22,1 % → 26,4 %.
 
 ## FUERA DE ALCANCE DETECTADO
 
