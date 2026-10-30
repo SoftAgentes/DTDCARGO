@@ -109,7 +109,7 @@ Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar. Le expliqué 
     - `up -d --wait` en 3 min, con los cinco servicios sanos;
     - vista previa con las plantillas montadas: 14/14;
     - correo de prueba real aceptado a las 05:55:22Z;
-    - falta que Sam confirme cómo llegó a Gmail.
+    - Sam confirmó que llegó y se ve bien en Gmail: «Llegó y se ve bien».
   - **Ojo al integrar:** el `compose.yml` del VPS es el de SDD-0584 (PR #331: protección de `/register`) **más** las 4 líneas del correo. Esta rama no trae el cambio de 0584, así que publicar su `compose.yml` tal cual en el VPS borraría esa protección. Hasta que las dos ramas se junten, en el VPS solo se editan líneas, nunca se reemplaza el archivo. Copia previa: `compose.yml.antes-correo`.
 - Tras las 72 h (2026-11-01 ~16:00Z): `vigilar.sh --resumen --desde 2026-10-29T15:55:00Z` → fila 1.6, con el criterio corregido (contra la línea base, no un número fijo).
 - ~~`/super_admin` con Cloudflare Access~~ hecho el 2026-10-29 («Confirmo Access»), runbook §4.1.
