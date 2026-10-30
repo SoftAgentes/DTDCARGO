@@ -1,8 +1,26 @@
-# Handoff — SDD-0587 · E6 paso 6.1 del programa SDD-0582 (contrato de sistema maestro)
+# Handoff — SDD-0587 · E6 del programa SDD-0582 (6.1 contrato y 6.2 modelo de datos)
 
 - **Owner:** Claude Worker «E6 contrato», lanzado por la sesión del Director del programa 0582; claim `local_e6contrato`
 - **Ruta:** `C:\Users\AKX generator\Desktop\Developer\DTDCARGO\.claude\worktrees\nice-spence-b2660e`
-- **Rama:** `codex/0582-e6-contrato`, apilada sobre `codex/0582-e0-preparacion` (`a0fa04215`)
+- **Rama de 6.1:** `codex/0582-e6-contrato`, apilada sobre `codex/0582-e0-preparacion` (`a0fa04215`), PR #334
+- **Rama de 6.2:** `codex/0582-e6-modelo`, desde `origin/codex/0582-e10-enrutamiento` (`231e471c1`, PR #335) con la rama de 6.1 fusionada encima (`5565c4888`)
+
+## 6.2 — modelo de datos (2026-10-30)
+
+- **Encargo:** el Director, 2026-10-30, al publicar E10 la PR #335: arrancar 6.2 con la migración **0506**, contrato en PGlite y mutantes, declarada y **sin aplicar**; sin corridas pesadas (E10 tiene el turno de verify).
+- **SDD:** sigue la 0587 (§14), sin reservar otra; la allowlist de 6.2 está en §10.
+- **Entregado:** `supabase/migrations/0506_crm_modelo.sql`, `supabase/tests/0506_crm_modelo.test.sql`, `lib/studio/__tests__/crm-modelo.migration.test.ts` y la entrada `0506_crm_modelo` en `supabase/migrations-baseline.json`. Fila 6.2 → `entregado` (real 0,75 d).
+- **Qué crea:** el núcleo único de la regla de segmentos por ficha, del que ahora depende `chatwoot_segmento_contacto` de la 0505; las tablas `crm_etapas` (D1 y D2 sembradas), `crm_tarjetas`, `crm_historial_etapas`, `crm_tareas`, `crm_notas` y `crm_ids_externos`; la RLS para admin y commercial; y las RPC de movimiento manual, movimiento automático idempotente y anonimización de D6.
+- **Deja a otros pasos:** eventos nuevos del webhook y alta de tarjeta (6.4), el cron de la retención y la acción «Anonimizar ahora» (6.6), esconder la tarjeta de una ficha borrada en suave (6.3). Detalle en la SDD, §14.1.
+
+| Comprobación (6.2) | Resultado |
+|---|---|
+| `crm-modelo.migration.test.ts` (Vitest de la instalación principal, un solo archivo) | PASÓ 39/39: contrato verde con 78 aserciones, control rojo, 34 mutantes, reaplicación, preflight y declaración |
+| `docs:check`, `sdd:check` (numeración), `git diff --check` | PASÓ |
+| `check-pending-migration-symbols.mjs` | Ver abajo: hereda rojos de la rama de E10 en las declaraciones de E2 (no de la 0506) |
+| ESLint del archivo de prueba | NO DISPONIBLE: ESLint no carga desde la instalación principal en este worktree |
+| `pnpm verify` y la reconstrucción del esquema | **NO EJECUTADO**: se pide turno al Director |
+| revisar-datos-ve del modelo | SDD §14.3: 6 CORRECTO, 2 ENCONTRADO (camino de supresión a pedido y aviso en `/privacidad`), 3 NO VERIFICABLE y 1 no aplica |
 - **SDD:** 0587, reserva local `codex/sdd-reserve-0587-chatwoot-contrato-sistema-maestro` + `refs/dtd/reservations/0587` (stub `e891e83b1`, traído con cherry-pick). La reserva **no se publicó** a `origin`: la PR lleva la spec
 - **Objetivo:** contrato de sistema maestro por objeto y fase, dos embudos, sincronización, reemplazos de Kommo con costo de Meta, plan de migración de leads, decisiones para Sam y reestimación de 6.2–6.7
 - **Permisos de esta tarea:** solo diseño y documentación. Sin producto, sin migraciones, sin producción, Kommo, Meta, VPS ni Chatwoot. Publicar la rama propia y abrir PR en borrador sobre `codex/0582-e0-preparacion`: autorizado en el encargo
@@ -49,7 +67,9 @@ L1 conteo de `kommo_leads` por etapa y antigüedad en el espejo de producción; 
 
 ## PENDIENTES DE ESTA TAREA
 
-- Ninguno para 6.1. Por orden del Director, **6.2 no empieza** hasta que E10 publique su PR (0505) y estén los eventos de la 0504; el Director avisa para apilarlo encima.
+- Ninguno para 6.1.
+- 6.2: turno de `pnpm verify` (lo da el Director); aceptación de 6.2 por Sam; OK nominal para aplicar la 0506, después de la 0505 y con el runbook.
+- 6.3 (tablero): no empezado en esta tarea.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -57,3 +77,4 @@ L1 conteo de `kommo_leads` por etapa y antigüedad en el espejo de producción; 
 - El drenaje del writeback de Kommo por pg_cron está comentado (`supabase/migrations/0136_*.sql:190`).
 - El motor de flujos 0143 no reintenta pasos fallidos (`lib/studio/workflow/workflow-drain.ts:148-169`, citado por el inventario).
 - `e0-guias.md` (3 pings escriben al cliente) y K-4 (2) no coinciden; 6.7 lo confirma.
+- `check-pending-migration-symbols.mjs` marca rojas, en la rama de E10, las declaraciones de E2 (`sdd-0585-chatwoot-eventos`): los sitios de `lib/studio/chatwoot/webhook-procesar.ts` se corrieron de línea (memoria «las declaraciones con archivo:línea se vencen»). Lo corrige E10 o E2, no 6.2.

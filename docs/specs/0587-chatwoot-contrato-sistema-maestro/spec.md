@@ -275,7 +275,14 @@ Los días base no cambian aquí: cambiarlos exige una línea base nueva con OK d
 - `docs/specs/README.md` (índice regenerado)
 - `.agents/handoffs/0587-chatwoot-contrato-sistema-maestro.md`
 
-El código y las migraciones de E6 van en las SDD de 6.2 en adelante, cada una con su allowlist.
+**6.2** (decisión de esta tarea: E6 sigue en esta SDD, como E2 en la 0585 y E10 en la 0586; no se reservó otra):
+
+- `supabase/migrations/0506_crm_modelo.sql`
+- `supabase/tests/0506_crm_modelo.test.sql`
+- `lib/studio/__tests__/crm-modelo.migration.test.ts`
+- `supabase/migrations-baseline.json` (solo la entrada `0506_crm_modelo`)
+
+Los pasos 6.3 en adelante suman aquí su allowlist al empezar.
 
 ## 11. Aceptación de 6.1
 
@@ -299,3 +306,76 @@ El código y las migraciones de E6 van en las SDD de 6.2 en adelante, cada una c
 
 - **2026-10-30:** SDD propuesta y fila 6.1 entregada (PR #334, commit `1fae5e0a0`).
 - **2026-10-30:** Sam aceptó D1–D10 según la recomendación («si», pasado por el Director). Fila 6.1 aceptada: el avance del programa en esta rama pasa de 4,8 % a 6,5 % (7,5 ÷ 115,5 d, salida de `avance-checklist`). 6.2 espera la PR de E10 (0505) y los eventos de la 0504 antes de empezar.
+- **2026-10-30:** el Director da la salida de 6.2 cuando E10 publica la PR #335 (`231e471c1`). 6.2 se programa en la rama `codex/0582-e6-modelo`, apilada sobre `codex/0582-e10-enrutamiento`, y queda entregado con la migración 0506 sin aplicar (§14).
+
+## 14. Paso 6.2 — modelo de datos (migración 0506, sin aplicar)
+
+Archivo: [`supabase/migrations/0506_crm_modelo.sql`](../../../supabase/migrations/0506_crm_modelo.sql). Declarada pendiente en `supabase/migrations-baseline.json`. **Aplicarla exige el OK nominal de Sam y el runbook de producción**, después de la 0505.
+
+### 14.1 Qué crea
+
+| Pieza | Qué hace | Regla del contrato que cumple |
+|---|---|---|
+| `crm_segmento_clientes(tenant, client_ids[])` y `crm_segmento_cliente(tenant, client_id)` | Núcleo único de la regla de 0.8, en conjunto y por ficha. Una ficha borrada o de otro tenant no sale (la escalar devuelve `lead_nuevo`) | §4.2.1: una sola definición |
+| `chatwoot_segmento_contacto` (0505) redefinida | Solo resuelve el teléfono a exactamente una ficha viva y delega en el núcleo. Misma firma y mismos grants | §4.2.1 |
+| `crm_segmento_tarjetas(tarjeta_ids[])` | Segmento de las tarjetas del tenant de quien llama, para el tablero; exige el módulo CRM | §4.1: el tablero no se guarda |
+| `crm_etapas` | 7 etapas de Leads (D1) y 4 de Clientes (D2) por tenant, `sistema = true`; sembradas en los tenants existentes y por trigger en los nuevos. El admin cambia nombre y orden y suma etapas propias; las de sistema no se apagan ni se borran | §4.3, §4.4 |
+| `crm_tarjetas` | Una por persona. Llaves únicas por tenant: ficha, contacto de Chatwoot y BSUID. Las dos etapas con su fecha y la del último movimiento manual; asesor del tenant; fuente y UTM fijos desde el alta (trigger); nombre visible y últimos 10 dígitos solo si no hay ficha (check) | §4.1, §5.4, D6, D9 |
+| `crm_historial_etapas` | Cada cambio de etapa, con clave de evento única para los automáticos | §4.5, §5.2 |
+| `crm_tareas`, `crm_notas` | Tareas (las automáticas con clave única) y notas de la tarjeta, solo agregables. Las notas del chat siguen en Chatwoot | §3, D5 (b), D8 |
+| `crm_ids_externos` | Mapeo de IDs de Kommo (lead, contacto, tarea, usuario), solo `service_role`. Se exporta y se borra en 8.11 | §3, §7 |
+| `crm_mover_etapa` | Movimiento manual (módulo CRM). Una etapa de cierre pide motivo; al salir de ella el motivo se borra | §4.3 |
+| `crm_mover_etapa_auto` | Movimiento automático: idempotente por clave; `omitido_manual` si la tarjeta se movió a mano después del evento | §5.2, §5.3 |
+| `crm_anonimizar_leads_perdidos` | D6: lead sin ficha, perdido y con 12 meses sin actividad → sin nombre, teléfono, contacto, BSUID ni motivos; se borran sus notas, tareas y mapeos | D6 |
+
+**Acceso:** leen y escriben `admin` y `commercial` del tenant (`crm_puede_usar()`), los mismos roles que el módulo `kommo` de `lib/studio/rbac.ts:99`. Las etapas las cambia solo el admin. Una tarjeta creada desde Studio lleva `fuente = 'manual'`; las demás las crea `service_role` (6.4). La etapa de una tarjeta no tiene GRANT de UPDATE: solo cambia por las RPC. Nadie borra tarjetas desde la API.
+
+**Lo que 6.2 deja a otros pasos:**
+- **Eventos nuevos del webhook (`conversation_created`, `conversation_updated`):** van en 6.4 junto con sus manejadores. La 0504 es de E2 y ampliar su `check` sin el código que los interpreta no cambia nada.
+- **Alta idempotente de tarjeta** desde los eventos: la llave única ya está; la RPC de alta va con 6.4.
+- **El cron de la retención:** la función existe; la ruta y su agenda (`vercel.json` y crontab del VPS) van con 6.6.
+- **Tarjeta de una ficha borrada en suave:** `clients` se borra en suave (0455). Su tarjeta queda y el segmento la da como `lead_nuevo`; el tablero de 6.3 tiene que esconderla.
+- **Permisos por usuario:** la RLS sigue el rol. Un permiso extra por usuario (overrides de `lib/studio/rbac-guard.ts`) no abre las tablas; si hace falta, es una decisión aparte.
+
+### 14.2 Evidencia
+
+| Comprobación | Resultado |
+|---|---|
+| Contrato `supabase/tests/0506_crm_modelo.test.sql` en PGlite (aplica la 0505 y la 0506 reales) | PASÓ: 78 aserciones |
+| Control rojo (sin la 0506) | PASÓ: cae en la primera aserción |
+| Mutantes | PASÓ: los 34 caen en la aserción que los nombra |
+| Reaplicación y preflight (sin la 0505) | PASÓ: abortan sin crear nada |
+| Declaración en `migrations-baseline.json` | PASÓ |
+| `pnpm verify` y la reconstrucción del esquema con todas las migraciones | **NO EJECUTADO**: E10 tiene el turno de verify; se pide al Director |
+
+### 14.3 revisar-datos-ve del modelo
+
+Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Citas de `supabase/migrations/0506_crm_modelo.sql`. Esto no es asesoría legal.
+
+**Resumen:** 6 CORRECTO (el 5 con una parte no verificable), 2 ENCONTRADO, 3 NO VERIFICABLE y 1 no aplica.
+
+**Inventario de datos del modelo:**
+
+| Dato | Dónde | De quién | Retención |
+|---|---|---|---|
+| Nombre visible | `crm_tarjetas.nombre_visible` (:306) | Lead sin ficha | Hasta 12 meses sin actividad si está perdido (:759) |
+| Últimos 10 dígitos del teléfono | `crm_tarjetas.phone_last10` (:307) | Lead sin ficha | Igual |
+| ID de contacto de Chatwoot y BSUID | `crm_tarjetas` (:302, :304) | Lead | Igual |
+| Notas y tareas (texto libre del equipo) | `crm_notas.texto` (:514), `crm_tareas.texto` (:492) | Puede nombrar a cualquiera | Con la tarjeta; se borran al anonimizar (:779) o al purgar la ficha (cascada, :301) |
+| Motivo de pérdida | `crm_tarjetas.motivo_perdida`, `crm_historial_etapas.motivo` (:466) | Lead | Se borran al anonimizar |
+| UTM y fuente | `crm_tarjetas` (:318-326) | Lead (no identifica sola) | Con la tarjeta |
+
+| # | Punto | Estado | Evidencia y comentario |
+|---|---|---|---|
+| 1 | Inventario | CORRECTO | Tabla de arriba; la prueba confirma que ninguna columna `crm_` guarda teléfono completo, correo, código ni mensajes |
+| 2 | Minimización | CORRECTO | Con ficha no se copian nombre ni teléfono (check, :339); solo 10 dígitos; sin texto de mensajes |
+| 3 | Consentimiento | NO VERIFICABLE | La base de licitud para guardar al lead que escribe por WhatsApp no está en el código; la decide Sam con su asesor |
+| 4 | Derechos | **ENCONTRADO** | No hay un camino para que una persona pida borrar su tarjeta antes de los 12 meses: la anonimización solo la corre `service_role` sobre perdidos (:759). Arreglo: en 6.6, una acción de admin «Anonimizar ahora» sobre una tarjeta, con la misma limpieza |
+| 5 | Borrado | CORRECTO / NO VERIFICABLE | Anonimizar quita los datos y borra notas, tareas, mapeos y motivos (:759-789), probado en PGlite. No se probó contra una base real; los respaldos y Chatwoot conservan su copia (punto 8) |
+| 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Depende del camino del punto 4 |
+| 7 | Política pública | **ENCONTRADO** | `/privacidad` no dice que se guarda al lead de WhatsApp ni su plazo (ya registrado como fuera de alcance en la SDD-0582). Arreglo: texto aprobado por Sam antes de 6.4 en producción |
+| 8 | Terceros | NO VERIFICABLE | Chatwoot guarda el contacto y la conversación completos y no tiene retención definida en el programa (E1/E5) |
+| 9 | Transferencia internacional | CORRECTO | El modelo vive en la base de DTD; no envía nada a terceros |
+| 10 | Decisiones automatizadas | CORRECTO | El segmento solo elige tablero y número; no niega servicio. La regla es pública en la SDD-0582 |
+| 11 | Aceptación electrónica | No aplica | El modelo no registra aceptaciones |
+| 12 | Titulares que no son usuarios | CORRECTO | El lead sin ficha es justo ese caso: se guarda lo mínimo y se anonimiza a los 12 meses (D6). Su aviso es el punto 7 |
