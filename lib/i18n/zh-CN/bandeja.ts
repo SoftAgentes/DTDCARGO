@@ -118,4 +118,5 @@ export const bandeja: BandejaDict = {
   "bandeja.salud.alerta.servicio_sin_configurar": "未配置服务用户（CHATWOOT_SERVICE_USER_ID）：无法统计人工管理员。",
   "bandeja.salud.alerta.vinculo_fuera_de_cuenta": "有绑定指向已不在账户中的坐席：{ids}。",
   "bandeja.salud.alerta.baja_bloqueada": "为避免账户没有管理员，一项移除已被阻止。",
+  "bandeja.badge.aria": "{n} 条未读",
 };
