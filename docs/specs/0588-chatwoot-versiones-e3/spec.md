@@ -54,9 +54,9 @@ Sin la 0507, todo degrada sin romper: el cron responde `omitido`, la pantalla di
 
 - [x] **3.1** Runbook con RPO/RTO, ventana, drenaje, respaldo conjunto, prueba en copia, producción, smoke y recuperación del tráfico; comprobación explícita del candado de `/register` y de la redacción de logs en §4 y S2–S5.
 - [x] **3.2** El cron compara `/api` con los releases, guarda la revisión sin datos personales y avisa una vez por versión nueva (pruebas puras, de fuentes, del vigilante con doble que filtra y de la ruta).
-- [ ] **3.3** Pantalla solo admin con versión instalada, disponible, notas y «Pedir actualización» que deja registro y no despliega; `/ui-check` pasado.
+- [x] **3.3** Pantalla solo admin con versión instalada, disponible, notas y «Pedir actualización» que deja registro y no despliega; `/ui-check` pasado (3 ajustes aplicados: `--ink-mute` como texto → `--ink-soft`, notas en `--f-sans`, alineación del icono sin px sueltos).
 - [ ] `pnpm verify` en el turno que asigne el Director.
-- [ ] Cron registrado en `vercel.json` y el crontab regenerado sobre la punta más nueva de `codex/0582-e2-poc`.
+- [x] Cron registrado en `vercel.json` (13:15 UTC) y el crontab regenerado sobre la punta de `codex/0582-e2-poc` del 2026-10-30 (`c1d081b3b`).
 
 ## Privacidad (revisar-datos-ve)
 
