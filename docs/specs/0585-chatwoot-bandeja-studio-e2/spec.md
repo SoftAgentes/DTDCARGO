@@ -593,6 +593,7 @@ Resultado: 3/3 PASÓ. Murieron los 4 mutantes:
 | `/privacidad`: `privacidad-chat` y `faq-seguimiento-coherente` | PASÓ: 14/14. La fecha fijada pasó de «13 de octubre» a «30 de octubre de 2026» a propósito |
 | Badge y contraste | PASÓ: 5/5 |
 | e2e de la Ficha | NO EJECUTADO; entra en el próximo verify |
+| **Rojo propio hallado por el verify de E3, corregido** | `e2e/ficha-chat.spec.ts` necesita Supabase y faltaba en el inventario fijo de `scripts/tests/verify-e2e-sin-supabase.node.mjs`. Ahora está en el inventario, y las cuentas de casos y omisiones salen del inventario: antes eran 5 y 15 escritos a mano; ahora son 8 y 24. La prueba del script pasa 15/15. Control rojo: sin la entrada, falla la prueba del inventario |
 | `pnpm verify` completo | NO EJECUTADO; con turno, después de E10 y E6.2 |
 
 ## Propuesta para el paso 2.7 — matriz real de permisos (para que Sam la apruebe; **no implementada**)
