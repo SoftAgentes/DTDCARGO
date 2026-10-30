@@ -366,6 +366,8 @@ Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Citas de
 
 **Resumen:** 6 CORRECTO (el 5 con una parte no verificable), 2 ENCONTRADO, 3 NO VERIFICABLE y 1 no aplica.
 
+**Destino de los ENCONTRADO** (Director, 2026-10-30): el punto 4, «Anonimizar ahora», va a **6.6**; el punto 7, la actualización de `/privacidad`, va a **2.6** (revisión de datos de E2).
+
 **Inventario de datos del modelo:**
 
 | Dato | Dónde | De quién | Retención |
@@ -382,10 +384,10 @@ Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Citas de
 | 1 | Inventario | CORRECTO | Tabla de arriba; la prueba confirma que ninguna columna `crm_` guarda teléfono completo, correo, código ni mensajes |
 | 2 | Minimización | CORRECTO | Con ficha no se copian nombre ni teléfono (check, :339); solo 10 dígitos; sin texto de mensajes |
 | 3 | Consentimiento | NO VERIFICABLE | La base de licitud para guardar al lead que escribe por WhatsApp no está en el código; la decide Sam con su asesor |
-| 4 | Derechos | **ENCONTRADO** | No hay un camino para que una persona pida borrar su tarjeta antes de los 12 meses: la anonimización solo la corre `service_role` sobre perdidos (:759). Arreglo: en 6.6, una acción de admin «Anonimizar ahora» sobre una tarjeta, con la misma limpieza |
+| 4 | Derechos | **ENCONTRADO** | No hay un camino para que una persona pida borrar su tarjeta antes de los 12 meses: la anonimización solo la corre `service_role` sobre perdidos (:759). Arreglo: una acción de admin «Anonimizar ahora» sobre una tarjeta, con la misma limpieza. **Va a 6.6** |
 | 5 | Borrado | CORRECTO / NO VERIFICABLE | Anonimizar quita los datos y borra notas, tareas, mapeos y motivos (:759-789), probado en PGlite. No se probó contra una base real; los respaldos y Chatwoot conservan su copia (punto 8) |
 | 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Depende del camino del punto 4 |
-| 7 | Política pública | **ENCONTRADO** | `/privacidad` no dice que se guarda al lead de WhatsApp ni su plazo (ya registrado como fuera de alcance en la SDD-0582). Arreglo: texto aprobado por Sam antes de 6.4 en producción |
+| 7 | Política pública | **ENCONTRADO** | `/privacidad` no dice que se guarda al lead de WhatsApp ni su plazo (ya registrado como fuera de alcance en la SDD-0582). Arreglo: texto aprobado por Sam antes de 6.4 en producción. **Va a 2.6** (revisión de datos de E2) |
 | 8 | Terceros | NO VERIFICABLE | Chatwoot guarda el contacto y la conversación completos y no tiene retención definida en el programa (E1/E5) |
 | 9 | Transferencia internacional | CORRECTO | El modelo vive en la base de DTD; no envía nada a terceros |
 | 10 | Decisiones automatizadas | CORRECTO | El segmento solo elige tablero y número; no niega servicio. La regla es pública en la SDD-0582 |

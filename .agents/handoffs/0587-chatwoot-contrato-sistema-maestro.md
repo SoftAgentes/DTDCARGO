@@ -20,7 +20,10 @@
 | `check-pending-migration-symbols.mjs` | Ver abajo: hereda rojos de la rama de E10 en las declaraciones de E2 (no de la 0506) |
 | ESLint del archivo de prueba | NO DISPONIBLE: ESLint no carga desde la instalación principal en este worktree |
 | `pnpm verify` y la reconstrucción del esquema | **NO EJECUTADO**: se pide turno al Director |
-| revisar-datos-ve del modelo | SDD §14.3: 6 CORRECTO, 2 ENCONTRADO (camino de supresión a pedido y aviso en `/privacidad`), 3 NO VERIFICABLE y 1 no aplica |
+| revisar-datos-ve del modelo | SDD §14.3: 6 CORRECTO, 2 ENCONTRADO, 3 NO VERIFICABLE y 1 no aplica. Destino de los ENCONTRADO (Director, 2026-10-30): «Anonimizar ahora» → 6.6; aviso en `/privacidad` → 2.6 (revisión de datos de E2) |
+| Fusión de la punta de E10 (`c4311d6b5`, purga por plazo) | `004ca56fd`; sin conflictos de contenido (el driver resolvió `migrations-baseline.json`); contrato de la 0506 otra vez 39/39 |
+
+**Verify:** en cola detrás de E10. Corre después de que E10 corrija `pending-migration-symbols` y yo fusione esa punta; el Director avisa el turno. 6.3 lo abre el Director en otra sesión apilada sobre #336.
 - **SDD:** 0587, reserva local `codex/sdd-reserve-0587-chatwoot-contrato-sistema-maestro` + `refs/dtd/reservations/0587` (stub `e891e83b1`, traído con cherry-pick). La reserva **no se publicó** a `origin`: la PR lleva la spec
 - **Objetivo:** contrato de sistema maestro por objeto y fase, dos embudos, sincronización, reemplazos de Kommo con costo de Meta, plan de migración de leads, decisiones para Sam y reestimación de 6.2–6.7
 - **Permisos de esta tarea:** solo diseño y documentación. Sin producto, sin migraciones, sin producción, Kommo, Meta, VPS ni Chatwoot. Publicar la rama propia y abrir PR en borrador sobre `codex/0582-e0-preparacion`: autorizado en el encargo

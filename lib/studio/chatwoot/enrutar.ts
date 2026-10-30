@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { chatwootRouterConfig, type ChatwootRouterConfig } from "./config";
 import { asignarEquipo, enviarMensaje, envioIncierto, leerEtiquetas, obtenerConversacion, ponerEtiquetas } from "./router-api";
 import { respuestaPara, etiquetasConSegmento, type Segmento } from "./segmento";
@@ -138,4 +140,23 @@ async function responderUnaVez(
   }
   if (resultado === "incierta") console.warn("[chatwoot] respuesta del bot incierta; no se repite");
   if (resultado === "rechazada" && !envio.ok) throw new Error(`respuesta: ${envio.error}`);
+}
+
+/**
+ * Purga por plazo (decisiones de Sam, 2026-10-30): borra los BSUID con un año
+ * sin actividad («1 año») y el registro de respuestas del bot de más de 30 días
+ * («30 días (Recomendado)»). Los plazos viven en la 0505
+ * (`chatwoot_purgar_enrutamiento`). La llama el cron `chatwoot-reintentos`; sin
+ * la 0505 (o con la base caída) no rompe: lo intenta en la próxima corrida.
+ */
+export async function purgarEnrutamientoChatwoot(
+  admin: SupabaseClient,
+): Promise<{ bsuid: number; respuestas: number } | { omitido: true }> {
+  const { data, error } = await admin.rpc("chatwoot_purgar_enrutamiento");
+  if (error) {
+    console.warn(`[chatwoot] chatwoot_purgar_enrutamiento: ${error.code ?? "sin código"}`);
+    return { omitido: true };
+  }
+  const fila = (Array.isArray(data) ? data[0] : data) as { bsuid_borrados?: number; respuestas_borradas?: number } | null;
+  return { bsuid: fila?.bsuid_borrados ?? 0, respuestas: fila?.respuestas_borradas ?? 0 };
 }

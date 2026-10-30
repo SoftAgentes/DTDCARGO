@@ -384,7 +384,40 @@ begin
 end;
 $bsuid_rls$;
 
--- ── 4. Acceso y datos ──
+-- ── 4. Purga por plazo (Sam, 2026-10-30: BSUID «1 año», respuestas «30 días») ──
+insert into public.chatwoot_contactos_bsuid (tenant_id, bsuid, conversation_id, primera_vez_at, ultima_vez_at) values
+  ('10000000-0000-0000-0000-000000000001', 'VE.5550000000000000366', 801, now() - interval '400 days', now() - interval '366 days'),
+  ('10000000-0000-0000-0000-000000000001', 'VE.5550000000000000364', 802, now() - interval '400 days', now() - interval '364 days');
+insert into public.chatwoot_respuestas_bot (tenant_id, conversation_id, tipo, estado, reservada_at, enviada_at) values
+  ('10000000-0000-0000-0000-000000000001', 901, 'redireccion_cliente', 'enviada', now() - interval '31 days', now() - interval '31 days'),
+  ('10000000-0000-0000-0000-000000000001', 902, 'redireccion_cliente', 'enviada', now() - interval '29 days', now() - interval '29 days'),
+  ('10000000-0000-0000-0000-000000000001', 903, 'neutra_sin_telefono', 'incierta', now() - interval '31 days', null),
+  ('10000000-0000-0000-0000-000000000001', 904, 'redireccion_cliente', 'enviada', now() - interval '31 days', now() - interval '29 days');
+do $purga$
+declare
+  v_bsuid integer;
+  v_respuestas integer;
+begin
+  set local role service_role;
+  select p.bsuid_borrados, p.respuestas_borradas into v_bsuid, v_respuestas from public.chatwoot_purgar_enrutamiento() p;
+  reset role;
+  perform pg_temp.assert_true(v_bsuid = 1 and v_respuestas = 2, 'la purga informa cuántas filas borró');
+  perform pg_temp.assert_true(not exists (select 1 from public.chatwoot_contactos_bsuid where bsuid = 'VE.5550000000000000366'),
+    'un BSUID con más de un año sin actividad se borra');
+  perform pg_temp.assert_true(exists (select 1 from public.chatwoot_contactos_bsuid where bsuid = 'VE.5550000000000000364'),
+    'un BSUID con menos de un año sin actividad se conserva');
+  perform pg_temp.assert_true(not exists (select 1 from public.chatwoot_respuestas_bot where conversation_id in (901, 903)),
+    'una respuesta de más de 30 días se borra, enviada o incierta');
+  perform pg_temp.assert_true(exists (select 1 from public.chatwoot_respuestas_bot where conversation_id = 902),
+    'una respuesta de menos de 30 días se conserva');
+  perform pg_temp.assert_true(exists (select 1 from public.chatwoot_respuestas_bot where conversation_id = 904),
+    'el plazo de una enviada corre desde el envío, no desde la reserva');
+  perform pg_temp.assert_true((select count(*) from public.chatwoot_respuestas_bot where conversation_id between 501 and 504) = 4,
+    'la purga no toca las respuestas recientes');
+end;
+$purga$;
+
+-- ── 5. Acceso y datos ──
 do $acceso$
 declare
   v_fn text;
@@ -393,7 +426,8 @@ begin
     'public.chatwoot_segmento_contacto(uuid, text)',
     'public.chatwoot_reservar_respuesta(uuid, bigint, text)',
     'public.chatwoot_cerrar_respuesta(uuid, bigint, text)',
-    'public.chatwoot_guardar_bsuid(uuid, text, bigint)'
+    'public.chatwoot_guardar_bsuid(uuid, text, bigint)',
+    'public.chatwoot_purgar_enrutamiento()'
   ] loop
     perform pg_temp.assert_true(
       has_function_privilege('service_role', v_fn, 'EXECUTE')

@@ -19,7 +19,7 @@ vi.mock("../router-api", async (original) => ({ ...(await original<typeof import
 vi.mock("@/lib/studio/feature-flags-queries", () => ({ listFeatureFlags: async () => ({ chatwoot_inbox: false }) }));
 vi.mock("@/lib/studio/notify/operario-push-outbox", () => ({ enqueueUserPush: vi.fn(), drainOperarioPushOutbox: vi.fn() }));
 
-import { clasificarContacto } from "../enrutar";
+import { clasificarContacto, purgarEnrutamientoChatwoot } from "../enrutar";
 import { reprocesarEventosChatwoot } from "../webhook-procesar";
 import { interpretarEvento, type ConversacionChatwoot, type EventoChatwoot } from "../webhook-events";
 import { TELEFONO_SINTETICO, conversacionSintetica, mensajeCreado } from "./webhook-fixtures";
@@ -298,6 +298,23 @@ describe("reproceso y datos personales (SDD-0586)", () => {
     const todo = JSON.stringify(warn.mock.calls);
     expect(warn).toHaveBeenCalled();
     for (const dato of ["4125550101", BSUID, ENV.CHATWOOT_ROUTER_TOKEN, NUMERO_CLIENTES]) expect(todo).not.toContain(dato);
+    warn.mockRestore();
+  });
+});
+
+describe("purgarEnrutamientoChatwoot (SDD-0586, plazos de Sam)", () => {
+  it("llama la purga de la 0505 y devuelve cuántas filas borró", async () => {
+    const rpc = vi.fn(async () => ({ data: [{ bsuid_borrados: 2, respuestas_borradas: 5 }], error: null }));
+    const admin = { rpc } as unknown as Parameters<typeof purgarEnrutamientoChatwoot>[0];
+    expect(await purgarEnrutamientoChatwoot(admin)).toEqual({ bsuid: 2, respuestas: 5 });
+    expect(rpc).toHaveBeenCalledWith("chatwoot_purgar_enrutamiento");
+  });
+
+  it("sin la 0505 o con la base caída no rompe: omitido, con solo el código en el aviso", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const admin = { rpc: async () => ({ data: null, error: { code: "PGRST202" } }) } as unknown as Parameters<typeof purgarEnrutamientoChatwoot>[0];
+    expect(await purgarEnrutamientoChatwoot(admin)).toEqual({ omitido: true });
+    expect(warn).toHaveBeenCalledWith("[chatwoot] chatwoot_purgar_enrutamiento: PGRST202");
     warn.mockRestore();
   });
 });
