@@ -9,6 +9,8 @@
  *   2. ¿Qué trae cada versión pendiente? (notas de Chatwoot, en texto plano)
  *   3. ¿Ya alguien pidió subir? «Pedir actualización» deja el registro y lo dice:
  *      no instala nada.
+ *   4. ¿Qué implica el salto para DTD? «Analizar con IA» (paso 3.4) muestra el
+ *      riesgo por pieza propia y una recomendación. Es un informe: tampoco instala.
  */
 
 import { useState } from "react";
@@ -18,7 +20,9 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { Icon } from "@/app/studio/_components/icons";
 import type { ErrorVersiones, EstadoVersiones, ReleaseChatwoot } from "@/lib/studio/chatwoot/versiones";
+import type { PiezaInforme, Recomendacion, Riesgo } from "@/lib/studio/chatwoot/analisis";
 import {
+  analizarConIa,
   pedirActualizacion,
   revisarVersionesAhora,
   type ActualizacionesErrorCode,
@@ -43,9 +47,22 @@ export interface PedidoVista {
   propio: boolean;
 }
 
+export interface AnalisisVista {
+  motor: "glm" | "sin_ia";
+  modelo: string | null;
+  recomendacion: Recomendacion;
+  resumen: string;
+  piezas: PiezaInforme[];
+  archivos: number;
+  recortado: boolean;
+  creadoTexto: string;
+}
+
 interface Props {
   revision: RevisionVista | null;
   pedidos: PedidoVista[];
+  /** El análisis más reciente del salto pendiente, si hay. */
+  analisis?: AnalisisVista | null;
 }
 
 const ERROR_ACCION: Record<ActualizacionesErrorCode, string> = {
@@ -53,6 +70,8 @@ const ERROR_ACCION: Record<ActualizacionesErrorCode, string> = {
   invalid: "La versión pedida no es válida.",
   stale: "La versión disponible cambió. Recarga la página y revisa de nuevo.",
   duplicate: "Esa versión ya está pedida.",
+  tope: "Ya se hicieron los análisis permitidos por hoy. Inténtalo otra vez mañana.",
+  en_curso: "Ya hay un análisis en curso. Espera a que termine y recarga la página.",
   service: "No se pudo completar. Inténtalo de nuevo en unos minutos.",
 };
 
@@ -67,6 +86,18 @@ const ESTADO: Record<EstadoVersiones, { tono: "success" | "info" | "danger"; tex
   al_dia: { tono: "success", texto: "Al día" },
   hay_nueva: { tono: "info", texto: "Versión nueva" },
   error: { tono: "danger", texto: "No se pudo revisar" },
+};
+
+const RECOMENDACION: Record<Recomendacion, { tono: "success" | "warning" | "danger"; texto: string }> = {
+  seguro: { tono: "success", texto: "Seguro" },
+  revisar: { tono: "warning", texto: "Revisar" },
+  no_actualizar: { tono: "danger", texto: "No actualizar" },
+};
+
+const RIESGO: Record<Riesgo, { tono: "success" | "warning" | "danger"; texto: string }> = {
+  bajo: { tono: "success", texto: "Riesgo bajo" },
+  medio: { tono: "warning", texto: "Riesgo medio" },
+  alto: { tono: "danger", texto: "Riesgo alto" },
 };
 
 const INICIAL: ActualizacionesState = { ok: false, error: null };
@@ -108,7 +139,41 @@ function BotonRevisar({ onError, variante }: { onError: (m: string) => void; var
   );
 }
 
-export function ActualizacionesPanel({ revision, pedidos }: Props) {
+function InformeAnalisis({ analisis }: { analisis: AnalisisVista }) {
+  const rec = RECOMENDACION[analisis.recomendacion];
+  return (
+    <div style={{ display: "grid", gap: "var(--s-3)", borderTop: "1px solid var(--border)", paddingTop: "var(--s-4)" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)", alignItems: "center" }}>
+        <span style={{ font: "700 14px/1.3 var(--f-sans)", color: "var(--ink)" }}>Análisis del salto</span>
+        <Badge tone={rec.tono}>{rec.texto}</Badge>
+        <span style={{ font: "400 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+          {analisis.motor === "glm" ? `Con IA (${analisis.modelo ?? "GLM"})` : "Sin IA"} · {analisis.creadoTexto}
+        </span>
+      </div>
+      <p style={{ ...cuerpo, color: "var(--ink)", whiteSpace: "pre-wrap" }}>{analisis.resumen}</p>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: "var(--s-2)" }}>
+        {analisis.piezas.map((p) => (
+          <li key={p.id} style={{ background: "var(--bg-base)", borderRadius: "var(--r-md)", padding: "var(--s-3) var(--s-4)", display: "grid", gap: "var(--s-1)" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)", alignItems: "center" }}>
+              <span style={{ font: "600 13.5px/1.4 var(--f-sans)", color: "var(--ink)" }}>{p.nombre}</span>
+              <Badge tone={RIESGO[p.riesgo].tono} size="sm">{RIESGO[p.riesgo].texto}</Badge>
+            </div>
+            <p style={{ ...cuerpo, whiteSpace: "pre-wrap" }}>{p.motivo}</p>
+            {p.archivos.length > 0 && (
+              <p style={{ ...cuerpo, font: "400 12px/1.5 var(--f-mono)", wordBreak: "break-all" }}>{p.archivos.join(" · ")}</p>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p style={{ ...cuerpo, font: "400 12.5px/1.5 var(--f-sans)" }}>
+        Es un informe: no instala nada. Al motor solo le llega código ({analisis.archivos} archivo{analisis.archivos === 1 ? "" : "s"}
+        {analisis.recortado ? ", recortado por tamaño" : ""}), nunca datos de clientes ni claves. La decisión de subir sigue siendo de Sam.
+      </p>
+    </div>
+  );
+}
+
+export function ActualizacionesPanel({ revision, pedidos, analisis = null }: Props) {
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
 
@@ -200,6 +265,25 @@ export function ActualizacionesPanel({ revision, pedidos }: Props) {
             después de la protección del número de WhatsApp y del borrado de datos en los registros.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-3)", alignItems: "center", justifyContent: "flex-end" }}>
+            {(!analisis || analisis.motor === "sin_ia") && (
+              <ActionButton
+                variant="ghost"
+                size="sm"
+                idleLabel={analisis ? "Intentar con IA otra vez" : "Analizar con IA"}
+                loadingLabel="Analizando…"
+                successLabel="Analizado"
+                successIcon={Icon.check(14)}
+                onAction={async () => {
+                  setError(null);
+                  const fd = new FormData();
+                  fd.set("from_version", revision.instalada ?? "");
+                  fd.set("to_version", revision.disponible ?? "");
+                  return aResultado(await analizarConIa(INICIAL, fd));
+                }}
+                onSuccess={() => toast.success("Análisis listo. Es un informe: no se instaló nada.")}
+                onError={setError}
+              />
+            )}
             {yaPedida ? (
               <p style={{ ...cuerpo, display: "flex", gap: "var(--s-2)", alignItems: "center", color: "var(--ink)" }}>
                 <span style={{ color: "var(--success)", display: "inline-flex" }}>{Icon.check(14)}</span>
@@ -224,9 +308,7 @@ export function ActualizacionesPanel({ revision, pedidos }: Props) {
               />
             )}
           </div>
-          <p style={{ ...cuerpo, font: "400 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
-            El análisis con IA de lo que cambia para DTD todavía no está activo.
-          </p>
+          {analisis && <InformeAnalisis analisis={analisis} />}
         </div>
       )}
 

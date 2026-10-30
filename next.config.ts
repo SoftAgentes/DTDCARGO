@@ -281,6 +281,15 @@ const nextConfig: NextConfig = {
     // Documentos de Marketing en el Studio (SDD-0158): el lector lee los `.md`
     // de docs/marketing por fs en runtime → deben viajar en el bundle en prod.
     "/studio/marketing/docs": ["./docs/marketing/**/*.md"],
+    // «Analizar con IA» de Actualizaciones (SDD-0588, paso 3.4) lee la superficie
+    // propia de DTD por fs (lib/studio/chatwoot/analisis-superficie.ts). Solo esas
+    // carpetas, sin subcarpetas: nunca `.env*`, `secretos/` ni `pruebas/`.
+    "/studio/admin/actualizaciones": [
+      "./infra/chatwoot/rails/*.rb",
+      "./infra/chatwoot/compose.yml",
+      "./infra/chatwoot/panel/*.html",
+      "./lib/studio/chatwoot/*.ts",
+    ],
   },
   async headers() {
     // El operario PWA (`/m/*`) necesita cámara (scan QR · QrScanner) y

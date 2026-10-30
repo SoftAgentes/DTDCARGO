@@ -331,8 +331,11 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `::pedirActualizacion` (450 → 452): `tenantAdminGate` antes de leer nada; la
   // revisión la escribe service_role (como el cron) y el pedido el cliente de
   // sesión (la RLS de 0507 repite admin, tenant y requested_by = auth.uid()).
+  // SDD-0588 (paso 3.4) sumó `::analizarConIa` (452 → 453): `tenantAdminGate`
+  // antes de leer nada; solo analiza el salto que muestra la última revisión del
+  // tenant y el informe lo escribe service_role (la 0509 no da INSERT a authenticated).
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(452);
+    expect(reportes.length).toBe(453);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

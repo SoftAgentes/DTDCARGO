@@ -5,7 +5,9 @@
  * `pedirActualizacion` deja un registro con el cliente del propio admin y no
  * llama a nada más: ni a Chatwoot ni al vigilante. Solo se puede pedir la versión
  * que la última revisión muestra como disponible. `revisarVersionesAhora` corre
- * el vigilante del tenant del admin. Sin admin, ninguna toca la base.
+ * el vigilante del tenant del admin. `analizarConIa` (3.4) analiza solo el salto
+ * pendiente, con el cliente de servicio y el usuario del gate. Sin admin, ninguna
+ * toca la base.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -19,6 +21,7 @@ const m = vi.hoisted(() => ({
   errorInsert: null as { code: string } | null,
   tocoBase: 0,
   revisar: vi.fn(),
+  analizar: vi.fn(),
   revalidate: vi.fn(),
   fetch: vi.fn(),
 }));
@@ -52,7 +55,10 @@ vi.mock("@/lib/studio/chatwoot/versiones-vigilante", () => ({
   revisarAhora: m.revisar,
 }));
 
-import { pedirActualizacion, revisarVersionesAhora } from "../actions";
+vi.mock("@/lib/studio/chatwoot/analisis-motor", () => ({ analizarSalto: m.analizar }));
+vi.mock("@/lib/studio/chatwoot/analisis-superficie", () => ({ leerSuperficieDtd: () => ({ archivos: [{ ruta: "x.rb", contenido: "x" }], excluidos: [] }) }));
+
+import { analizarConIa, pedirActualizacion, revisarVersionesAhora } from "../actions";
 
 const INICIAL = { ok: false, error: null };
 const conVersion = (v: string) => {
@@ -68,6 +74,7 @@ beforeEach(() => {
   m.errorInsert = null;
   m.tocoBase = 0;
   m.revisar.mockReset().mockResolvedValue({ omitido: false, revision: m.revision, avisados: 0 });
+  m.analizar.mockReset().mockResolvedValue({ ok: true, reutilizado: false, analisis: null, motor: "glm" });
   m.revalidate.mockReset();
   m.fetch.mockReset();
   vi.stubGlobal("fetch", m.fetch);
@@ -139,5 +146,54 @@ describe("revisarVersionesAhora (SDD-0588, 3.3)", () => {
   it("si no pudo guardar (sin la 0507): service", async () => {
     m.revisar.mockResolvedValueOnce({ omitido: true, revision: null, avisados: 0 });
     expect(await revisarVersionesAhora()).toEqual({ ok: false, error: "service" });
+  });
+});
+
+describe("analizarConIa (SDD-0588, 3.4)", () => {
+  const salto = (desde: string, hasta: string) => {
+    const fd = new FormData();
+    fd.set("from_version", desde);
+    fd.set("to_version", hasta);
+    return fd;
+  };
+
+  it("sin admin: denied, no lee nada y no analiza", async () => {
+    m.gate = { ok: false, denied: "No" };
+    expect(await analizarConIa(INICIAL, salto("4.19.1", "4.20.0"))).toEqual({ ok: false, error: "denied" });
+    expect(m.tocoBase).toBe(0);
+    expect(m.analizar).not.toHaveBeenCalled();
+  });
+
+  it("analiza el salto pendiente del tenant del admin con el cliente de servicio", async () => {
+    expect(await analizarConIa(INICIAL, salto("4.19.1", "4.20.0"))).toEqual({ ok: true, error: null });
+    const ctx = m.analizar.mock.calls[0][0];
+    expect(ctx).toMatchObject({ admin: { admin: true }, tenantId: T1, usuarioId: SAM, desde: "4.19.1", hasta: "4.20.0", checkId: 41 });
+    expect(ctx.superficie()).toEqual([{ ruta: "x.rb", contenido: "x" }]);
+    expect(m.inserts).toHaveLength(0);
+    expect(m.revalidate).toHaveBeenCalledWith("/studio/admin/actualizaciones");
+  });
+
+  it("versiones mal formadas: invalid sin leer nada", async () => {
+    for (const [d, h] of [["", "4.20.0"], ["4.19.1", "latest"], ["4.19.1/..", "4.20.0"]]) {
+      expect(await analizarConIa(INICIAL, salto(d, h))).toEqual({ ok: false, error: "invalid" });
+    }
+    expect(m.tocoBase).toBe(0);
+    expect(m.analizar).not.toHaveBeenCalled();
+  });
+
+  it("un salto que no es el pendiente: stale y no gasta llamadas", async () => {
+    expect(await analizarConIa(INICIAL, salto("4.18.0", "4.20.0"))).toEqual({ ok: false, error: "stale" });
+    expect(await analizarConIa(INICIAL, salto("4.19.1", "4.21.0"))).toEqual({ ok: false, error: "stale" });
+    m.revision = { ...(m.revision as object), estado: "al_dia" };
+    expect(await analizarConIa(INICIAL, salto("4.19.1", "4.20.0"))).toEqual({ ok: false, error: "stale" });
+    expect(m.analizar).not.toHaveBeenCalled();
+  });
+
+  it("los errores del motor llegan traducibles: tope, en_curso y service", async () => {
+    for (const error of ["tope", "en_curso", "service"]) {
+      m.analizar.mockResolvedValueOnce({ ok: false, error });
+      expect(await analizarConIa(INICIAL, salto("4.19.1", "4.20.0"))).toEqual({ ok: false, error });
+    }
+    expect(m.revalidate).not.toHaveBeenCalled();
   });
 });
