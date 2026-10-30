@@ -332,6 +332,12 @@ const nextConfig: NextConfig = {
           ? { key: h.key, value: cspHeader.replace("frame-ancestors 'none'", `frame-ancestors ${chatwootOrigin}`) }
           : h,
       );
+    // Salida de Studio (SDD-0585, paso 2.7, E2-D13): `/studio/cerrar-chat` abre
+    // el chat en un marco oculto para cerrar su sesión. Solo suma `frame-src`
+    // del chat; Studio sigue sin dejarse enmarcar y sin micrófono.
+    const cerrarChatHeaders = securityHeaders.map((h) =>
+      h.key === "Content-Security-Policy" ? { key: h.key, value: `${cspHeader}; frame-src ${chatwootOrigin}` } : h,
+    );
     const baseNoPP = securityHeaders.filter(
       (h) => h.key !== "Permissions-Policy",
     );
@@ -426,6 +432,11 @@ const nextConfig: NextConfig = {
         source: "/studio/ficha-chat",
         headers: fichaChatHeaders,
       },
+      // Salida de Studio: solo la ruta exacta. Se excluye del catch-all.
+      {
+        source: "/studio/cerrar-chat",
+        headers: cerrarChatHeaders,
+      },
       // Las CUATRO reglas de `/marca` son MUTUAMENTE EXCLUYENTES a propósito: si
       // dos matchearan, Next emite dos `Content-Security-Policy` y el navegador
       // aplica la intersección — el standalone quedaría bloqueado por la estricta.
@@ -488,7 +499,7 @@ const nextConfig: NextConfig = {
         // `marca` sin barra: cubre tanto `/marca` (el catálogo) como `/marca/…`.
         // Con `marca/` la raíz caía acá Y en su regla propia → CSP duplicada.
         source:
-          "/:path((?!m/|marca|norte\\.html|studio/bitacora|studio/bandeja(?:/|$)|studio/ficha-chat$|tarifas/embed|fcl/embed).*)",
+          "/:path((?!m/|marca|norte\\.html|studio/bitacora|studio/bandeja(?:/|$)|studio/ficha-chat$|studio/cerrar-chat$|tarifas/embed|fcl/embed).*)",
         headers: securityHeaders,
       },
     ];

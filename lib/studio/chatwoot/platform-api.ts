@@ -37,7 +37,7 @@ function errorDeEstado(status: number): ChatwootError {
 async function pedir(
   cfg: ChatwootConfig,
   path: string,
-  opciones: { method?: "GET" | "POST" | "DELETE"; body?: unknown; sinCuerpo?: boolean } = {},
+  opciones: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; sinCuerpo?: boolean } = {},
 ): Promise<{ ok: true; body: unknown } | { ok: false; error: ChatwootError }> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
@@ -176,15 +176,20 @@ export async function quitarDeCuenta(
   return r.ok ? { ok: true, data: null } : r;
 }
 
-/** Mete al usuario en la cuenta como agente. El rol de administrador es de la matriz (2.7). */
+/**
+ * Mete al usuario en la cuenta con ese rol, o le cambia el rol si ya está:
+ * `account_users#create` hace `find_or_initialize_by(user_id)` y `update!`. El
+ * rol sale de la matriz del 2.7 (`rolChatwootDe`).
+ */
 export async function agregarACuenta(
   chatwootUserId: number,
   cfg: ChatwootConfig | null = chatwootConfig(),
+  rol: RolCuenta = "agent",
 ): Promise<ChatwootResult<null>> {
   if (!cfg) return { ok: false, error: "sin_configurar" };
   const r = await pedir(cfg, `/platform/api/v1/accounts/${cfg.accountId}/account_users`, {
     method: "POST",
-    body: { user_id: chatwootUserId, role: "agent" },
+    body: { user_id: chatwootUserId, role: rol },
   });
   return r.ok ? { ok: true, data: null } : r;
 }
@@ -199,7 +204,7 @@ const SIGNOS = "!@#$%^&*-_=+";
  * `password_has_required_content` de 4.19.1 (mayúscula, minúscula, número y
  * signo) y no sale de esta función.
  */
-function claveAleatoria(largo = 32): string {
+export function claveAleatoria(largo = 32): string {
   const todos = MAYUSCULAS + MINUSCULAS + DIGITOS + SIGNOS;
   const azar = new Uint32Array(largo);
   crypto.getRandomValues(azar);
@@ -227,4 +232,38 @@ export async function crearAgente(
   const id = (r.body as { id?: unknown } | null)?.id;
   if (typeof id !== "number" || !Number.isInteger(id) || id <= 0) return { ok: false, error: "respuesta_invalida" };
   return { ok: true, data: id };
+}
+
+/**
+ * Pone una clave aleatoria nueva (SDD-0585, paso 2.7). Cierra el acceso directo:
+ * `users#create` adopta por correo a un usuario que ya existía SIN tocarle la
+ * clave, así que cada alta la cambia aquí. Además, con
+ * `remove_tokens_after_password_reset = true` (devise_token_auth de 4.19.1),
+ * cambiar la clave deja una sola sesión: la de vencimiento más lejano.
+ */
+export async function fijarClaveAleatoria(
+  chatwootUserId: number,
+  cfg: ChatwootConfig | null = chatwootConfig(),
+): Promise<ChatwootResult<null>> {
+  if (!cfg) return { ok: false, error: "sin_configurar" };
+  const r = await pedir(cfg, `/platform/api/v1/users/${chatwootUserId}`, {
+    method: "PATCH",
+    body: { password: claveAleatoria() },
+    sinCuerpo: true,
+  });
+  return r.ok ? { ok: true, data: null } : r;
+}
+
+/**
+ * Borra el usuario de Chatwoot (`DeleteObjectJob`, en segundo plano). Solo para
+ * las bajas de más de 12 meses (paso 2.7, propuesta del Director sin objeción de
+ * Sam); los candados están en `purgarBajasVencidas`.
+ */
+export async function borrarUsuario(
+  chatwootUserId: number,
+  cfg: ChatwootConfig | null = chatwootConfig(),
+): Promise<ChatwootResult<null>> {
+  if (!cfg) return { ok: false, error: "sin_configurar" };
+  const r = await pedir(cfg, `/platform/api/v1/users/${chatwootUserId}`, { method: "DELETE", sinCuerpo: true });
+  return r.ok ? { ok: true, data: null } : r;
 }

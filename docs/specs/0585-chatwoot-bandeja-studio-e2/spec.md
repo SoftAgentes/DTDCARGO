@@ -50,10 +50,10 @@ En el WebKit de Playwright (indicador de Safari) pasan el iframe y el SSO. Firef
 | 2.1 | PoC con banco reproducible, matriz y decisión | aceptado (Sam, 2026-10-29: «Acepto 2.1») |
 | 2.2 | CSP y `Permissions-Policy` de la ruta (E2-D2), módulo, RBAC, flag, i18n, vínculos, `lib/studio/chatwoot`, SSO (E2-D5), capa persistente, página y `signOut` | aceptado (Sam, 2026-10-30: «Acepto todo») |
 | 2.3 | Contador, webhook con push y tarjeta en la ficha | aceptado (Sam, 2026-10-30: «Acepto todo»), con el verify de `d714834be` registrado: FALLÓ solo por rojos heredados, unas 50 e2e NO EJECUTADAS (la corrida se colgó) y migrations-applied NO DISPONIBLE |
-| 2.4 | Dashboard App «Ficha DTD» | entregado (2026-10-30), sin registrar en el Chatwoot del VPS |
-| 2.5 | Ciclo de vida de los agentes: Usuarios, cron y salud | entregado (2026-10-30); AUD-01 pendiente de número de migración |
-| 2.6 | revisar-datos-ve, `/ui-check`, QA de navegadores (incluye Firefox y Safari reales) y runbook | pendiente |
-| 2.7 | Usuarios y permisos: matriz real de CE, sincronización, pruebas por usuario y revocación del SSO | pendiente |
+| 2.4 | Dashboard App «Ficha DTD» | aceptado (Sam, 2026-10-30: «Acepto todo»), con el verify de `cf755a7a6` registrado (su rojo propio, `pending-migration-symbols`, ya corregido); sin registrar en el Chatwoot del VPS |
+| 2.5 | Ciclo de vida de los agentes: Usuarios, cron y salud | aceptado (Sam, 2026-10-30: «Acepto todo»); `pnpm verify` propio NO EJECUTADO, como registra el paso; AUD-01 pendiente de número de migración |
+| 2.6 | revisar-datos-ve, `/ui-check`, QA de navegadores (incluye Firefox y Safari reales) y runbook | aceptado (Sam, 2026-10-30: «Acepto todo»); `pnpm verify` propio NO EJECUTADO (el verify de E3, apilado sobre esta rama, y E10 encontraron dos rojos propios, ya corregidos); Firefox NO DISPONIBLE |
+| 2.7 | Usuarios y permisos: matriz real de CE, sincronización, pruebas por usuario y revocación del SSO | entregado en la rama (§«Paso 2.7»), sin desplegar; la 0508 y el script del panel son puertas |
 
 ## Paso 2.2 — la Bandeja en Studio
 
@@ -69,7 +69,7 @@ Pedido el 2026-10-29 por la sesión coordinadora del programa («CRM Chatwoot»)
 | E2-D10 | **Vínculo usuario de Studio ↔ agente de Chatwoot** en `public.chatwoot_agent_links (tenant_id, user_id, chatwoot_user_id, created_by, created_at)`: uno a uno dentro del tenant. RLS: cada usuario lee su propia fila y el admin lee y escribe las del tenant (`is_tenant_admin()`). Lo crea solo un admin, y **solo si el correo del agente en Chatwoot (Platform API) es el mismo del usuario de Studio**. Un vínculo equivocado sería entrar a Chatwoot como otra persona. |
 | E2-D11 | **`lib/studio/chatwoot/`** (`server-only`): configuración por entorno (`CHATWOOT_URL`, `CHATWOOT_PLATFORM_TOKEN`, `CHATWOOT_ACCOUNT_ID`), cliente de la Platform API que nunca lanza (unión ok/error, patrón de SeaRates), y validación de que el enlace de SSO es del origen del chat. El token **solo** vive en el entorno del servidor. |
 | E2-D12 | **SSO solo cuando hace falta** (E2-D5): una cookie de Studio `dtd_cw_sso` (httpOnly, `Secure`, `SameSite=Lax`, de sesión, `path=/studio`) guarda el id del usuario al que se le pidió el último SSO. Si coincide con el usuario actual, el iframe abre el panel sin pedir otro. Si no hay o no coincide, el cliente pide el enlace por una server action y lo pone en el iframe. Hay un botón «Volver a entrar» que fuerza un SSO nuevo. El enlace nunca pasa por la URL de Studio. |
-| E2-D13 | **`signOut` de Studio** borra `dtd_cw_sso`, así que el próximo ingreso a Studio pide un SSO nuevo, que reemplaza la sesión del panel en el navegador. **Límite conocido:** la Platform API de 4.19.1 no revoca sesiones. La sesión del panel sigue viva en ese navegador si alguien abre `chat.dtdcargo.com` directo, hasta 2 meses (`token_lifespan`). El cierre real va en 2.7, por un script del panel (`DASHBOARD_SCRIPTS`) que llama al logout de Chatwoot cuando Studio se lo pide por `postMessage`; requiere despliegue en el VPS. |
+| E2-D13 | **`signOut` de Studio** borra `dtd_cw_sso`, así que el próximo ingreso a Studio pide un SSO nuevo, que reemplaza la sesión del panel en el navegador. **Límite conocido:** la Platform API de 4.19.1 no revoca sesiones. La sesión del panel sigue viva en ese navegador si alguien abre `chat.dtdcargo.com` directo, hasta 2 meses (`token_lifespan`). El cierre real va en 2.7, por un script del panel (`DASHBOARD_SCRIPTS`) que llama al logout de Chatwoot cuando Studio se lo pide por `postMessage`; requiere despliegue en el VPS. **Corregido en 2.7 (E2-D47, E2-D48):** la API de perfil de 4.19.1 sí revoca sesiones con el token del agente; la baja las cierra todas. |
 | E2-D14 | **Cabeceras** (E2-D2): `next.config.ts` agrega la regla `/studio/bandeja/:path*` con la CSP de Studio más `frame-src <origen del chat>` y la `Permissions-Policy` estricta con `microphone=(self "<origen del chat>")`, y la excluye del catch-all. El origen sale de `lib/runtime/chatwoot-origin.ts` (`CHATWOOT_URL`; por omisión `https://chat.dtdcargo.com`; solo https, o http en localhost), el mismo que usa el servidor. |
 | E2-D15 | **Estados de la página:** sin configurar (falta el token o la cuenta), sin vínculo (con el formulario de vínculos si eres admin), cargando, error de SSO (con reintento y «Abrir en pestaña aparte», E2-D6) y el panel. Textos en es-VE y zh-CN. |
 
@@ -502,6 +502,270 @@ Estados de la skill: ENCONTRADO, CORRECTO y NO VERIFICABLE.
 | **Admin humano** | CORRECTO | `bloqueoDeBaja` nunca saca al último (`agentes-salud.ts:69`) y la salud alerta (`:92`) |
 | **Usuarios de la cuenta creados fuera de Studio** (como `vzla@`) | NO VERIFICABLE | La Platform API no deja leer su correo, porque no son permisibles para la app. Studio solo ve su id y su rol |
 
+## Paso 2.6 — revisar-datos-ve, `/ui-check`, QA de navegadores, caídas del webhook y runbook
+
+Lo pidió el Director el 2026-10-30, solo con pruebas puntuales: E10 y E6.2 tienen los turnos de verify. Incluye la actualización de `/privacidad` que mandó E6.2 (SDD-0587 §14.3, punto 7), **sin desplegar**.
+
+### Revisión de datos personales de toda E2 (revisar-datos-ve)
+
+Consolida las revisiones del 2.2, 2.3, 2.4 y 2.5 y suma lo de este paso. Estados de la skill: ENCONTRADO, CORRECTO y NO VERIFICABLE.
+
+| # | Punto | Estado | Evidencia y arreglo |
+|---|---|---|---|
+| 1 | **Inventario** | CORRECTO | Tres tablas y una cookie:<br>- `chatwoot_agent_links`: usuario de Studio, id del agente y quién lo creó (0503);<br>- `chatwoot_conversations`: ids, estado, conteos, fechas y `client_id` (0504);<br>- `chatwoot_webhook_events`: clave, tipo, ids y lo mínimo para reintentar (0504);<br>- cookie `dtd_cw_sso`: solo el uuid del usuario de Studio.<br>La Ficha DTD no guarda nada. El alta manda a Chatwoot el nombre y el correo del empleado (`actions.ts`, `altaAgente`) |
+| 2 | **Minimización** | CORRECTO | Nada guarda texto de mensajes, nombres ni teléfonos completos:<br>- `interpretarEvento` toma solo ids y los últimos 10 dígitos, sin guardarlos;<br>- la Ficha toma del contexto de Chatwoot solo dos enteros (`dashboard-app.ts:52`);<br>- los avisos push no llevan datos personales. |
+| 3 | **Consentimiento** | No aplica a E2 | E2 no recoge datos del público. El aviso a quien escribe por WhatsApp es el punto 7 |
+| 4 | **Derechos** | NO VERIFICABLE | Hay dos caminos para el titular:<br>- **Studio:** el `client_id` de `chatwoot_conversations` se suelta solo al purgar el cliente (`on delete set null`);<br>- **Chatwoot:** la conversación completa vive allá.<br>No hay un camino de Studio para pedir que se borre la conversación en Chatwoot. Es del mapa de borrado (NV-3 de SDD-0586) |
+| 5 | **Borrado y retención** | **ENCONTRADO** (2) | **(a)** `chatwoot_webhook_events` y `chatwoot_conversations` no tienen plazo. **Propuesta para Sam:** borrar los eventos `procesado` y `descartado` a los 90 días, y las conversaciones sin actividad a los 12 meses, dentro de la purga del cron `chatwoot-reintentos` (patrón de E10). **(b)** El usuario de Chatwoot de un agente dado de baja no se borra (2.5). **Propuesta:** borrarlo a los 12 meses de la baja, con `DELETE platform/api/v1/users/{id}`. Las dos van a 2.7 o E3, con el OK de Sam |
+| 6 | **Trazabilidad** | **ENCONTRADO** | Crear o borrar un vínculo y las altas y bajas no dejan evento en `entity_audit_log` (AUD-01). **Arreglo:** un trigger en `chatwoot_agent_links`. Necesita migración; el número se pidió al Director el 2026-10-30 |
+| 7 | **Política pública** | CORRECTO **en la rama**, falta el OK | `/privacidad` (`app/privacidad/page.tsx`) suma el lead de WhatsApp, el BSUID con su año, la respuesta automática con sus 30 días, el lead perdido anonimizado a los 12 meses y a Meta como tercero. Lo fija `app/__tests__/privacidad-chat.test.ts`. **No se publica** sin el OK de Sam al texto y sin la 0505 y la 0506 en producción: el merge a `main` despliega solo |
+| 8 | **Terceros** | CORRECTO / NO VERIFICABLE | **CORRECTO:** Chatwoot es autohospedado y Meta transporta los mensajes; los dos están nombrados en `/privacidad`. **NO VERIFICABLE:** que toda Dashboard App de Chatwoot recibe el contexto con datos del contacto (`Frame.vue`, `postMessage` con `"*"`) y que no haya otras registradas depende de la configuración del VPS |
+| 9 | **Transferencia internacional** | NO VERIFICABLE | `/privacidad` dice que los datos se alojan en Estados Unidos. Desde SDD-0505 la base vive en el VPS de Contabo, y desde E1, Chatwoot también. La ubicación del VPS no se comprobó aquí; si no es Estados Unidos, el punto 5 de `/privacidad` hay que corregirlo, y eso es aparte del 2.6 |
+| 10 | **Decisiones automatizadas** | CORRECTO | E2 no decide nada sobre personas. El cruce con el cliente es determinista y, ante ambigüedad, no adivina (0504) |
+| 11 | **Valor probatorio** | No aplica | E2 no recoge aceptaciones |
+| 12 | **Titulares que no son usuarios** | CORRECTO | El contacto de WhatsApp sin ficha no deja datos en E2: sin cruce no hay `client_id`, y la Ficha dice «Sin ficha» |
+
+**Pendientes para Sam** (por el Director):
+- plazos 5a y 5b;
+- número de migración para AUD-01;
+- OK al texto de `/privacidad`;
+- ubicación del VPS para el punto 9.
+
+### `/ui-check` de la Bandeja y la Ficha
+
+| Prioridad | Hallazgo | Estado |
+|---|---|---|
+| media ⭐ | `BandejaBadge.tsx:22`: el `aria-label` («N sin leer») estaba fijo en español | **Corregido:** pasa por i18n (`bandeja.badge.aria`) |
+| baja | `BandejaClient.tsx:146`: `calc(100dvh - 180px)` usa un desplazamiento que no está medido | Anotado; se mide en 2.7 con la Bandeja real |
+| — | Ficha DTD: ancho medido de las tarjetas y `<h1>` (2.4) | Ya aplicado |
+
+Lo que está bien:
+- tokens del sistema y escala `--s-*`;
+- el padding del badge igual al del sidebar (`StudioSidebar.tsx:376`);
+- estados de carga, vacío, error y sin sesión;
+- tuteo y «Shipping Mark»;
+- las alertas de salud llevan texto, no solo color.
+
+### QA de navegadores
+
+| Navegador | Qué | Resultado |
+|---|---|---|
+| Chrome y Edge | iframe, SSO y micrófono de la Bandeja (PoC 2.1) | PASÓ (2.1, E2-R1 a R5) |
+| WebKit | iframe y SSO de la Bandeja (PoC 2.1) | PASÓ; micrófono NO DISPONIBLE (2.1) |
+| Chromium, mobile-chrome y mobile-safari | Ficha DTD sin sesión: no redirige, avisa, ofrece Studio en otra pestaña; `frame-ancestors` del chat y sin `X-Frame-Options`; desde otro origen el navegador la bloquea | **NO EJECUTADO todavía:** `e2e/ficha-chat.spec.ts` corre en el próximo `pnpm verify`, con turno |
+| Firefox | Todo | **NO DISPONIBLE**: no está instalado y descargarlo pide OK (2.1) |
+| Bandeja y Ficha con sesión real | SSO, Dashboard App y contexto real de Chatwoot | **NO EJECUTADO**: pide el despliegue y el registro en el Chatwoot del VPS (puertas del 2.4) |
+
+### Pruebas de caída del webhook
+
+`lib/studio/chatwoot/__tests__/caida-webhook.scenario.test.ts` corre las funciones reales de TypeScript contra la **0504 real en PGlite**. El doble solo traduce `admin.rpc` a SQL. Escenarios:
+1. **Falla el aviso:** el evento queda «fallido», el cron no lo toma antes de la espera, al vencer lo reintenta y queda «procesado», y una reentrega es «duplicado».
+2. **Cinco fallos seguidos:** queda «descartado» y el cron ya no lo toma.
+3. **Webhook perdido** (alguien lee sin responder): la reconciliación corrige el contador, un dato más viejo no lo pisa y no deja eventos.
+
+Resultado: 3/3 PASÓ. Murieron los 4 mutantes:
+- en TypeScript, un fallo que cuenta como éxito;
+- en SQL, tomar antes de la espera;
+- en SQL, el tope de intentos;
+- en SQL, el orden en la reconciliación.
+
+### Runbook
+
+`docs/runbooks/chatwoot-bandeja.md`: cómo se enciende (7 puertas en orden), una tabla de diagnóstico, cómo se recupera de una caída y cómo se apaga. Lo acompañan `chatwoot-ficha-dtd.md` (2.4) y `chatwoot-agentes.md` (2.5).
+
+### Allowlist exacta (paso 2.6)
+
+- **Política:** `app/privacidad/page.tsx`; `app/__tests__/privacidad-chat.test.ts`; `app/__tests__/faq-seguimiento-coherente.test.tsx`, solo la fecha de la política.
+- **Pruebas:** `lib/studio/chatwoot/__tests__/caida-webhook.scenario.test.ts`; `e2e/ficha-chat.spec.ts`.
+- **UI:** `app/studio/(app)/_components/BandejaBadge.tsx`; `lib/i18n/{es-VE,zh-CN}/bandeja.ts`.
+- **Documentos:**
+  - `docs/runbooks/chatwoot-bandeja.md`;
+  - `docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md`;
+  - `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 2.6);
+  - `.agents/handoffs/0585-chatwoot-bandeja-studio-e2.md`.
+
+### Validación del paso 2.6 — 2026-10-30, puntual
+
+| Comprobación | Resultado |
+|---|---|
+| `tsc --noEmit` | PASÓ |
+| Escenario de caída (PGlite) | PASÓ: 3/3, con 4/4 mutantes muertos |
+| `/privacidad`: `privacidad-chat` y `faq-seguimiento-coherente` | PASÓ: 14/14. La fecha fijada pasó de «13 de octubre» a «30 de octubre de 2026» a propósito |
+| Badge y contraste | PASÓ: 5/5 |
+| e2e de la Ficha | NO EJECUTADO; entra en el próximo verify |
+| **Rojo propio hallado por el verify de E3, corregido** | `e2e/ficha-chat.spec.ts` necesita Supabase y faltaba en el inventario fijo de `scripts/tests/verify-e2e-sin-supabase.node.mjs`. Ahora está en el inventario, y las cuentas de casos y omisiones salen del inventario: antes eran 5 y 15 escritos a mano; ahora son 8 y 24. La prueba del script pasa 15/15. Control rojo: sin la entrada, falla la prueba del inventario |
+| **Segundo rojo propio, hallado por E10, corregido** | El `aria-label` por i18n agregó dos líneas a `BandejaBadge.tsx`, y sus declaraciones de `pending-migration-symbols` quedaron desfasadas: el sitio de llamada pasó de 14 a 16 y la evidencia de 19 a 21. Se resincronizaron contra el archivo real: **0 ROJO · 5 AMARILLO**. Faltó repetir el gate después del ajuste del `/ui-check` |
+| `pnpm verify` completo | NO EJECUTADO; con turno, después de E10 y E6.2 |
+
+## Propuesta para el paso 2.7 — matriz real de permisos
+
+> **Aprobada por Sam el 2026-10-30** e implementada: ver §«Paso 2.7». Esta sección queda como la propuesta que se le presentó.
+
+### Lo que hay hoy en el Chatwoot del VPS (hallazgos del 2026-10-30)
+
+- **El superadmin** (`/super_admin`, detrás de Cloudflare Access) **no es de ninguna cuenta**: administra la instalación, no atiende.
+- **La cuenta 1 «DTD Cargo»** tiene dos administradores:
+  - el usuario de servicio `servicio-chatwoot@dtdcargo.com`, que usa la Platform App de Studio;
+  - `vzla@dtdcargo.com` (usuario 3), creado el 2026-10-30, el **único admin humano**.
+- **`vzla@` no lo creó Studio:** la Platform API no deja leer su correo, solo su id y su rol.
+
+### Cómo decide Chatwoot CE 4.19.1 (evidencia C, imagen `chatwoot/chatwoot:v4.19.1-ce`)
+
+| Qué | Regla en 4.19.1 |
+|---|---|
+| **Roles de cuenta** | `agent` y `administrator` (`account_user.rb`, `enum role`). Los roles personalizados (`custom_role_id`) son de Enterprise: en CE no hay |
+| **Ver una conversación** | Un admin, siempre. Un agente, si es de una **bandeja suya** (`inbox_access?`) **o de un equipo suyo** (`team_access?`) (`conversation_policy.rb`, `show?`) |
+| **Listar conversaciones** | Las de las bandejas asignadas al agente (`conversation_finder.rb`, `assigned_inboxes`), filtradas por `PermissionFilterService` |
+| **Contactos** | Todos los de la cuenta para cualquier agente. Varias acciones exigen `administrator` (`contact_policy.rb:11`, `:15` y `:51`). Cuáles son exactamente: **NO VERIFICABLE** con lo leído |
+| **API** | Cada usuario tiene su `access_token` con sus mismos permisos. Studio lo usa en el servidor para la reconciliación y la Ficha; un agente lo puede ver en su perfil de Chatwoot |
+| **Acceso directo** | `chat.dtdcargo.com` acepta usuario y clave. Los agentes que crea Studio tienen una clave aleatoria, pero con el SMTP de E1 pueden pedir «olvidé mi clave» y entrar **sin pasar por Studio** |
+
+### Propuesta de matriz
+
+| Rol de Studio | ¿Bandeja? | Rol en Chatwoot | Bandejas de Chatwoot | Equipo | Notas |
+|---|---|---|---|---|---|
+| `admin` (Sam) | Sí | `administrator` | Todas | Todos | Al menos uno siempre. La salud del 2.5 avisa si falta |
+| `commercial` | Sí | `agent` | Leads (número de leads, E10) | «Comercial» | Ve los contactos de la cuenta (regla de CE) |
+| `support` | Sí | `agent` | Clientes (número de clientes, E10) | «Atención» | Igual |
+| `operations`, `accounting`, `warehouse` y `marketing` | No (salvo override) | Sin cuenta | — | — | Un override que les dé la Bandeja los da de alta como `agent` sin bandejas, hasta que el admin las asigne |
+| Usuario de servicio | — | `administrator` | — | — | Nunca se toca; no cuenta como humano |
+| Superadmin | — | Fuera de la cuenta | — | — | Solo instalación. Se entra por Cloudflare Access |
+
+### Decisiones que pide la matriz (Sam)
+
+1. **¿Se aprueba la matriz de arriba?** Incluye qué rol de Studio va a qué bandeja y qué equipo.
+2. **Acceso directo:** ¿se cierra? La opción recomendada es **cerrarlo**: Studio pone una clave nueva y aleatoria en cada alta, y se apaga el «olvidé mi clave» para quien no es admin. Si no se puede apagar en CE, se documenta como riesgo aceptado.
+3. **El token de API del agente:** ¿se rota al dar de baja? Que lo rote la Platform API (`POST users/{id}/token`) queda **por comprobar**: en 4.19.1 esa ruta devuelve el token actual y no está claro que genere uno nuevo.
+4. **Sincronización:** ¿Studio manda en el rol y las bandejas, y pisa los cambios hechos a mano en Chatwoot? La opción recomendada es **sí**, en el cron diario, y nunca sobre el usuario de servicio ni el último admin humano.
+5. **Revocación del SSO:** la sesión del panel no se puede revocar por API en 4.19.1 (E2-D13). ¿Se acepta que la baja corte el acceso a la cuenta y no la sesión?
+
+Las respuestas literales están en §«Paso 2.7».
+
+## Paso 2.7 — matriz de permisos, cierre del acceso directo, cierre forzado, rotación del token y purga
+
+### Decisiones de Sam (2026-10-30, por selector; las transmitió el Director)
+
+| # | Pregunta | Respuesta literal |
+|---|---|---|
+| 1 | «¿Apruebas la matriz: tú admin con todo, comercial en Leads, atención en Clientes y el resto sin cuenta en Chatwoot?» | «Apruebo la matriz (Recomendado)» |
+| 2 | «¿Cerramos la entrada directa a chat.dtdcargo.com para los agentes (solo entran desde Studio)?» | «Sí, cerrarla (Recomendado)» |
+| 3 | «¿Studio manda en los permisos y corrige cambios hechos a mano en Chatwoot?» | «Sí, manda Studio (Recomendado)» |
+| 4 | «Al dar de baja a alguien, ¿aceptas que pierda el acceso a la cuenta aunque su sesión abierta no se pueda cerrar?» | «**Quiero cierre forzado**» |
+
+**Propuesta del Director sin objeción de Sam** (no es un OK nominal): el Director se la presentó como «doy por aprobadas si no me dices otra cosa» y Sam no objetó. Son dos:
+- comprobar si se puede rotar el token de API del agente dado de baja;
+- los plazos de borrado:
+  - eventos del webhook, a los 90 días;
+  - conversaciones sin actividad, a los 12 meses;
+  - usuario de Chatwoot de un agente dado de baja, a los 12 meses.
+
+**El reparto de las bandejas** (Director):
+- **Clientes** ya existe en Chatwoot: es el número nuevo, +58 412-1605202.
+- **Leads** será el número viejo cuando pase de Kommo a Chatwoot en el corte.
+
+La matriz se programa para las dos. La de Leads queda sin bandeja hasta el corte.
+
+### Lo que permite Chatwoot CE 4.19.1 (evidencia C, imagen `chatwoot/chatwoot:v4.19.1-ce`)
+
+**Roles, bandejas y equipos**
+- `account_users#create` de la Platform API hace `find_or_initialize_by(user_id)` + `update!(role)`: sirve para dar de alta y para **cambiar el rol**.
+- La Platform API no maneja bandejas ni equipos. Se usa la API de cuenta con el token de un `administrator`:
+  - bandejas: `inbox_members#show` y `#update` (`PATCH` que reemplaza la lista; `InboxPolicy#update?` exige admin);
+  - equipos: `team_members#index` y `#update` (`TeamMemberPolicy#update?` exige admin).
+- El usuario de servicio es administrator y lo creó la Platform App (E1, T-23), así que su token se lee con `GET platform/…/users/{id}`.
+
+**Acceso directo y «olvidé mi clave»**
+- `users#create` adopta por correo a un usuario existente **sin tocarle la clave** (`User.from_email(...) || User.new(...)`).
+- `users#update` sí acepta `password`.
+- `DeviseOverrides::PasswordsController#create` manda el correo de «olvidé mi clave» a **cualquier** usuario con ese correo. En CE **no hay un interruptor** para apagarlo por rol.
+
+**Sesiones**
+- `config/initializers/devise_token_auth.rb` trae `remove_tokens_after_password_reset = true`. En devise_token_auth 1.2.5, cambiar la clave deja **solo el token de vencimiento más lejano** (`tokens.max_by expiry`). `User#sync_user_sessions` borra los `user_sessions` sin token.
+- **La revocación del lado del servidor existe** en la API de perfil (`Api::V1::Profile::SessionsController`):
+  - `index` lista las sesiones con token vivo y registro en `user_sessions`;
+  - `destroy` borra el token y el registro;
+  - con el token de API del propio agente y sin cabecera `client`, ninguna es «la actual», así que todas se pueden borrar.
+- El SSO (`POST /auth/sign_in` con `sso_auth_token`) crea un token nuevo y lo registra (`track_user_session`).
+- **E2-D13 queda corregido:** la Platform API no revoca, pero la API de perfil sí.
+
+**Token de API**
+- `POST /api/v1/profile/reset_access_token` → `access_token.regenerate_token`: **rota**.
+- `platform/…/users/{id}/token` solo devuelve el token actual (`token.json.jbuilder`): **no rota**. Se contesta así la pregunta 3 de la propuesta.
+
+**Panel**
+- `DASHBOARD_SCRIPTS` es una configuración de instalación (Super Admin). `vueapp.html.erb` la pone al final del `<body>` en todo el panel salvo `sensitive_path?`, que es solo la de cambiar la clave.
+- El panel guarda sus credenciales en la cookie `cw_d_session_info` (JSON con `access-token`, `client` y `uid`). Su logout es `DELETE /auth/sign_out`.
+
+### Diseño
+
+| ID | Decisión |
+|---|---|
+| E2-D44 | **Matriz** (`lib/studio/chatwoot/matriz.ts`, pura):<br>- admin → `administrator`, con todas las bandejas y equipos configurados;<br>- `commercial` → `agent`, con la bandeja y el equipo Leads;<br>- `support` → `agent`, con la bandeja y el equipo Clientes;<br>- el resto de los roles con override de la Bandeja → `agent`, sin bandejas.<br>Los ids vienen de `CHATWOOT_INBOX_CLIENTES_ID`, `CHATWOOT_INBOX_LEADS_ID`, `CHATWOOT_TEAM_CLIENTES_ID` y `CHATWOOT_TEAM_LEADS_ID`. Los tres últimos son los mismos que lee E10. Un id vacío apaga esa parte; así queda Leads hasta el corte. |
+| E2-D45 | **Studio manda** (`aplicarMatriz`, cron diario y después de cada cambio en Usuarios o en la Bandeja):<br>1. da de alta en la cuenta al vinculado que no está y le fija el rol de la matriz;<br>2. reemplaza la lista de cada bandeja y equipo configurado. Saca a quien se agregó a mano sin vínculo y a quien cambió de rol.<br>**Candados:**<br>- el usuario de servicio nunca cambia de rol, y se queda en la bandeja donde ya estaba;<br>- no se degrada al último admin humano. Sin el id de servicio no se degrada a nadie («degradación bloqueada»);<br>- quien no está en la cuenta no entra en la lista, porque Chatwoot rechazaría el PATCH entero;<br>- una bandeja que no se pudo leer no se pisa;<br>- las promociones se aplican antes que las degradaciones.<br>A un miembro de la cuenta sin vínculo no se lo saca de la cuenta: eso sería una baja, y sin vínculo Studio no sabe de quién es. |
+| E2-D46 | **Cierre del acceso directo:**<br>- cada alta, y cada vínculo manual, pone una clave aleatoria nueva (`fijarClaveAleatoria`) que nadie conoce, **salvo a un admin de Studio**. El admin conserva su entrada directa como respaldo cuando Studio no responde;<br>- en el alta, si la clave no se puede cambiar, no se mete en la cuenta ni se vincula;<br>- en un vínculo manual a un usuario que no creó la Platform App, Chatwoot no deja cambiar la clave: se avisa y el vínculo queda.<br>**Lo que CE no permite:** apagar «olvidé mi clave» por rol. La alternativa queda escrita en el runbook de agentes: una regla de Traefik que responda 403 a `POST /auth/password` en `chat.dtdcargo.com`. Los admins recuperan la clave desde el superadmin. Es configuración del VPS: **puerta de integración** con OK de Sam.<br>**Riesgo, mientras no esté:** un agente puede pedir una clave nueva a su correo y entrar directo. Ve lo mismo que desde Studio, porque los permisos son de la cuenta, y la baja lo saca igual. |
+| E2-D47 | **Cierre forzado en la baja** (`cerrarSesionesAgente`), después de sacarlo de la cuenta:<br>1. lee el token de API del agente;<br>2. abre una sesión propia por SSO, que es la más nueva y queda registrada;<br>3. le pone una clave aleatoria: sobrevive solo esa sesión;<br>4. lista y borra todas las sesiones con la API de perfil;<br>5. comprueba que no quede ninguna;<br>6. rota el token de API y comprueba que cambió.<br>**Si un paso falla,** el vínculo queda, la salud avisa `cierre_pendiente` y la corrida siguiente lo reintenta, ya fuera de la cuenta. Un usuario que ya no existe en Chatwoot (404 al leer el token) no tiene nada que cerrar.<br>**Límites:**<br>- rack-attack da 5 entradas por IP cada 5 minutos: con más de 5 bajas juntas, las que sobran quedan para el día siguiente;<br>- si Chatwoot no registra la sesión del paso 2 (`track_user_session` rescata el error), ese token sobrevive. Solo Studio lo vio, no lo guarda y vence a los 2 meses. |
+| E2-D48 | **Cierre en el navegador al salir de Studio** (E2-D13). Si estaba la marca `dtd_cw_sso`, `signOut` pasa por `/studio/cerrar-chat`:<br>- la página abre `/app/login` del chat en un marco oculto y le manda `dtd:cerrar-sesion` al origen del chat;<br>- el script del panel (`infra/chatwoot/panel/dashboard-scripts.html`, en `DASHBOARD_SCRIPTS`) acepta el mensaje solo de `https://dtdcargo.com` o `www`, y solo de la ventana que lo enmarca. Llama a `DELETE /auth/sign_out` con la cookie, borra las cookies del panel y contesta `dtd:sesion-cerrada`;<br>- con la respuesta, o a los 4 s, sigue al login.<br>**Despliegue:** la página va en Studio. El script es configuración del Chatwoot del VPS: **puerta de integración** con OK de Sam. Hasta entonces la salida espera 4 s y sigue. |
+| E2-D49 | **Baja anotada** (0508, `chatwoot_agent_bajas`): id de Chatwoot y fecha. Un alta o un vínculo nuevo del mismo agente la borra. **Sin la 0508,** la baja avisa el código y sigue; solo se pierde la fecha. |
+| E2-D50 | **Purga por plazo** en el cron `chatwoot-reintentos`, con el patrón de E10:<br>- `chatwoot_purgar_bandeja()` borra los eventos `procesado` y `descartado` de más de 90 días y las conversaciones sin actividad en 12 meses (`coalesce(last_activity_at, updated_at)`);<br>- `purgarBajasVencidas` borra de Chatwoot el usuario de una baja de más de 12 meses (`DELETE platform/…/users/{id}`).<br>**Candados de la purga de usuarios:** nunca el de servicio, uno que esté en la cuenta o uno con vínculo (se conserva y se suelta la fila); sin la lista de la cuenta no se borra a nadie. Un 404 ya estaba borrado. Un 401 no lo creó la Platform App: se suelta la fila y se borra a mano desde el superadmin. Sin la 0508, `omitido`. |
+
+### Allowlist exacta (paso 2.7)
+
+- **Migración:** `supabase/migrations/0508_chatwoot_bajas_purga.sql`; `supabase/tests/0508_chatwoot_bajas_purga.test.sql`; `lib/studio/__tests__/chatwoot-bajas.migration.test.ts`; `supabase/migrations-baseline.json` (espera 0508).
+- **Matriz y cierre:**
+  - `lib/studio/chatwoot/{matriz.ts,miembros-api.ts,agentes-matriz.ts,cierre-sesion.ts,purga.ts}`;
+  - `lib/studio/chatwoot/{platform-api.ts,agentes-ciclo.ts,agentes-salud.ts}`;
+  - pruebas: `lib/studio/chatwoot/__tests__/{matriz,miembros-api,agentes-matriz,cierre-sesion,purga,dashboard-scripts}.test.ts`, `lib/studio/chatwoot/__tests__/{platform-agentes,agentes-ciclo}.test.ts`.
+- **Bandeja:** `app/studio/(app)/bandeja/actions.ts`; `app/studio/(app)/bandeja/__tests__/{alta-agente,actions}.test.ts`.
+- **Salida de Studio:**
+  - `app/studio/(app)/actions.ts` (`signOut`) y `app/studio/(app)/__tests__/signout-bandeja.test.ts`;
+  - `app/studio/(panel)/cerrar-chat/{page.tsx,_components/CerrarChatClient.tsx,__tests__/CerrarChatClient.test.tsx}`;
+  - `next.config.ts`; `proxy.ts`; `lib/runtime/__tests__/{next-config,proxy-ficha-chat}.test.ts`.
+- **Panel de Chatwoot:** `infra/chatwoot/panel/dashboard-scripts.html`. Se versiona aquí; desplegarlo es puerta.
+- **Cron:** `app/api/cron/chatwoot-reintentos/{route.ts,__tests__/route.test.ts}`.
+- **Textos y entorno:** `lib/i18n/{es-VE,zh-CN}/bandeja.ts`; `.env.example` e `infra/dtd-cargo/.env.example`.
+- **Contratos:** `supabase/pending-migration-symbol-declarations.json` (líneas movidas y la declaración `sdd-0585-chatwoot-bajas`).
+- **Documentos:**
+  - `docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md`;
+  - `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 2.7);
+  - `.agents/handoffs/0585-chatwoot-bandeja-studio-e2.md`;
+  - `docs/runbooks/{chatwoot-agentes,chatwoot-bandeja}.md`.
+
+### Aceptación del paso 2.7
+
+1. **Matriz:** los roles y destinos de la tabla de Sam; Leads vacío hasta el corte; Studio corrige roles, bandejas y equipos hechos a mano; los candados de E2-D45.
+2. **Acceso directo:** clave aleatoria antes de meterlo en la cuenta; un admin conserva la suya; sin clave nueva no hay alta.
+3. **Cierre forzado:** el orden de E2-D47 contra el doble de Chatwoot; ninguna sesión al final; el token rotado; cada paso que falla deja la baja pendiente y la salud lo dice.
+4. **Salida:** el script y la página solo aceptan su origen y su ventana; salir nunca se traba.
+5. **0508 y purga:** contrato en PGlite con los plazos exactos y los permisos; candados de la purga de usuarios; `omitido` sin la 0508.
+6. **Cierre:** pruebas afectadas, tsc, eslint, mutantes, `pending-migration-symbols` 0 ROJO y `migrations-lock` en verde. El `pnpm verify` completo, con turno.
+
+### Validación del paso 2.7 — 2026-10-30, puntual
+
+| Comprobación | Resultado |
+|---|---|
+| Lectura de Chatwoot 4.19.1 en la imagen `chatwoot/chatwoot:v4.19.1-ce` | Hecha: Platform `users` y `account_users`, `profiles#reset_access_token`, `profile/sessions`, `passwords#create`, `sessions#create` (SSO), `inbox_members`, `team_members`, sus políticas, devise_token_auth 1.2.5 y `dashboard_controller`. Evidencia C, sin correr Chatwoot (no se encendió Docker pesado: E6.3 tenía el verify en curso) |
+| Contrato de la 0508 en PGlite, con la 0504 real debajo | PASÓ: 12 aserciones. Control rojo y reaplicación, PASÓ. **8/8 mutantes muertos** |
+| Pruebas afectadas (44 archivos) | PASÓ: 980/980 |
+| Mutantes de TypeScript, del script del panel y de la salida | **33/33 muertos**. En la primera vuelta sobrevivieron 2: «la matriz incluye bajas que no se completaron» y «la purga borra al de servicio si no figura en la cuenta». Les faltaba una prueba; se agregaron y mueren |
+| `tsc --noEmit` y `eslint` sobre lo tocado | PASÓ |
+| `pending-migration-symbols` | PASÓ: **0 ROJO · 6 AMARILLO**. La declaración nueva `sdd-0585-chatwoot-bajas` cubre la 0508, y las líneas movidas están resincronizadas contra el archivo real |
+| `migrations-lock` | PASÓ: 0508 es espera sin sellar; 0 nuevas sin sellar |
+| Inventario RBAC (`rbac-actions-guard`) | PASÓ, sin cambios: el 2.7 no agrega server actions |
+| Cierre forzado y script del panel contra un Chatwoot de verdad | NO EJECUTADO: se probó contra dobles que siguen las rutas de 4.19.1. Probarlo en el Chatwoot local o en el del VPS con una agente de prueba es parte de la puerta del script (runbook de agentes) |
+| `pnpm verify` completo | NO EJECUTADO: lo pide el Director; E6.3 tenía el verify en curso |
+
+### Datos personales del paso 2.7 (revisar-datos-ve, alcance del cambio)
+
+| Punto | Estado | Evidencia |
+|---|---|---|
+| **Minimización** | CORRECTO | `chatwoot_agent_bajas` guarda solo el id de Chatwoot y la fecha. El contrato de la 0508 verifica que no haya columnas de correo, nombre ni usuario de Studio. Los miembros de bandejas y equipos se leen como ids; nombre y correo no salen de `miembros-api.ts` |
+| **Retención (5a y 5b de la revisión de E2)** | CORRECTO **en la rama**, falta aplicar la 0508 | Eventos a 90 días, conversaciones a 12 meses y usuario de Chatwoot de la baja a 12 meses (E2-D50). Propuesta del Director sin objeción de Sam. Cierra los dos ENCONTRADO del punto 5 del 2.6 |
+| **Acceso tras la baja** | CORRECTO | Sale de la cuenta, cierre forzado y token rotado (E2-D47). Corrige el límite de E2-D13 |
+| **Secretos en logs** | CORRECTO | El cierre no escribe nada (prueba «nada del cierre se escribe en los logs»). Los avisos llevan códigos y pasos, no tokens, correos ni ids de Studio |
+| **Script del panel** | CORRECTO | Lee solo la cookie de sesión del propio panel y la manda solo al logout del mismo origen. No manda datos a Studio, solo `dtd:sesion-cerrada` |
+| **Borrado del usuario de Chatwoot** | NO VERIFICABLE con lo leído | `DeleteObjectJob` corre en segundo plano en Chatwoot. Qué pasa con las conversaciones y mensajes que tenía asignados no se leyó en 4.19.1: queda para comprobar en el Chatwoot local antes de la primera purga real (12 meses después de la primera baja) |
+
+
 ## Fuera de alcance del paso 2.1
 
 - Cualquier cambio en Studio (`next.config.ts`, rutas, `lib/`): es de 2.2.
@@ -532,7 +796,10 @@ Los pasos 2.2 a 2.7 agregan aquí sus archivos antes de tocarlos.
 | Despliegue de Studio | La CSP y la `Permissions-Policy` nuevas en producción (merge a `main` = despliegue en el VPS) | 2.2 |
 | Usuarios de prueba en el Chatwoot de producción | Crear o usar una agente de prueba en `chat.dtdcargo.com` para el QA de 2.6 | 2.6 |
 | Migración | Capa persistente de 2.2 | 2.2 |
-| Matriz de permisos | Roles, bandejas y equipos reales | 2.7 |
+| Matriz de permisos | Roles, bandejas y equipos reales. Aprobada el 2026-10-30; falta cargar los ids en el VPS | 2.7 |
+| Migración 0508 | Bajas anotadas y purga por plazo | 2.7 |
+| Script del panel | `DASHBOARD_SCRIPTS` en el Super Admin de Chatwoot (cierre al salir de Studio) | 2.7 |
+| «Olvidé mi clave» | Regla de Traefik de E1 contra `POST /auth/password` | 2.7 |
 
 Esta entrega no pasa por ninguna puerta: todo es local.
 

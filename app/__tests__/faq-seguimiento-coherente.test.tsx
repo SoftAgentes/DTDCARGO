@@ -139,6 +139,7 @@ describe("fuentes estáticas alineadas y privacidad", () => {
     expect(plano(container.textContent)).toContain("El Shipping Mark o el número de envío que nos indicas al consultar con nuestro equipo el estado de tu carga.");
     expect(plano(container.textContent)).not.toContain("El código de rastreo que introduces");
     expect(plano(container.textContent)).toContain("cotizar, coordinar y dar seguimiento a tus envíos puerta a puerta.");
-    expect(plano(container.textContent)).toContain("13 de octubre de 2026");
+    // SDD-0585 (2.6): la fecha se movió al sumar los mensajes por WhatsApp y chat.
+    expect(plano(container.textContent)).toContain("30 de octubre de 2026");
   });
 });
