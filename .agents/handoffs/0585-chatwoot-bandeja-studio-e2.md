@@ -486,3 +486,33 @@ El Director lo habló con Sam: «Él quiere el cierre de verdad del lado del ser
 - en §4 (comprobación por comportamiento), un paso nuevo: `bash infra/chatwoot/pruebas/prueba-revocar-sesiones.sh` contra la imagen nueva, con 0 fallas y el control C1 en rojo. Si `RoomChannel` cambia de forma, el arranque se cae a propósito con «[DTD] revocar sesiones: faltan …».
 
 **Choques previsibles:** E4 (`codex/0582-e4-meta`) agrega su montaje y `DTD_WHATSAPP_IDS_PROTEGIDOS` en el mismo bloque de `compose.yml` y de `.env.example`. Al juntar las ramas hay que dejar las dos cosas.
+
+### Verify completo del 2.7 (turno del Director, 2026-10-30, 21:08Z a 21:50Z, punta `4075d8030`)
+
+- **FALLÓ solo por lo heredado o de carga;** no hay rojo propio. El detalle está en SDD-0585 §«Validación del paso 2.7».
+- **test:** 5 timeouts en `app/p/[token]` por carga. Corridos solos, pasan 47/47.
+- **sql-tests:** 0467 y 0497 (SDD-0573).
+- **e2e:** el de Shipping Mark.
+- **Lo demás:** PASÓ, incluidos `pending-migration-symbols`, schema-rebuild y build.
+- **migrations-applied:** NO DISPONIBLE.
+- **e2e:** el verify lo omitió porque el proceso desacoplado no veía los navegadores. Corrido aparte con el mismo comando: 225 PASÓ, y **`ficha-chat.spec.ts` 9/9**, la primera vez que corre.
+- **La primera corrida** (19:47Z) se cortó al terminar la sesión anterior y no cuenta.
+
+---
+
+# Paso 2.8 — costo de referencia por chat en la Ficha DTD (entregado, 2026-10-30)
+
+Sam lo decidió el 2026-10-30, por selector: «Sí, hacerlo (Recomendado)». Detalle en SDD-0585 §«Paso 2.8» (E2-D52 a E2-D54).
+
+- **Qué se ve:** en la Ficha DTD, con ficha y sin ella, «N mensajes enviados × US$ tarifa = US$ total», con el mercado, la vigencia y el enlace al tarifario. Aclara que no descuenta los 1.000 gratis ni distingue las plantillas.
+- **Tarifa:** la oficial de octubre, el archivo «USD list rates» de Meta (es un XLSX con nombre `.csv`), leída el 2026-10-30. Rest of Latin America cobra US$0,0113 por servicio. No hizo falta la de enero marcada NV.
+- **Generado:** `tarifas-meta-2026-10.ts` tiene 47 mercados y 145 prefijos. El generador está en el scratchpad de la sesión y no se versiona: una tarifa nueva es un archivo nuevo.
+- **Qué cuenta:** los salientes con `source_id` `wamid.`, sin notas ni fallidos, hasta 1000 mensajes. Si hay más, dice «Al menos».
+- **Datos personales:** sin migración ni escrituras. El teléfono solo elige el mercado.
+- **Validación:** 371/371 pruebas afectadas, 10/10 mutantes, `/ui-check` con 2 ajustes aplicados, tsc, eslint y `pending-migration-symbols` 0 ROJO.
+- **`pnpm verify` completo:** NO EJECUTADO.
+
+### FUERA DE ALCANCE DETECTADO (2.8)
+
+- **La tarifa cambia.** Meta publica tarifarios nuevos con fecha de vigencia (la próxima se anuncia en la misma página). Cuando salga, hay que generar `tarifas-meta-AAAA-MM.ts` y cambiar el import de `costo-chat.ts`; el vigilante de versiones de E3 podría avisarlo.
+- **Plantillas y franja gratuita:** contarlas aparte con su categoría y descontar los 1.000 gratis del mes por número necesitaría datos de facturación de Meta (Billing Hub), que Studio no tiene.
