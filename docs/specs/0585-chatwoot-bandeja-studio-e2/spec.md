@@ -230,6 +230,33 @@ Turno dado por el Director. Resultado global: **FALLÓ** (exit 1).
 - **Verde:** el contrato 0504 da 15/15 (33 aserciones y 11 mutantes, 2 de ellos nuevos). Pasan 135 pruebas afectadas y mueren 2 mutantes de TypeScript.
 - **Lo que este arreglo no resuelve (evidencia C):** Chatwoot 4.19.1 **no reintenta** los webhooks de cuenta. `Webhooks::Trigger#execute` rescata cualquier error, también un 5xx; solo reintenta agentes bot, y el job corta a los 5 s. Así que un evento fallido espera una reentrega manual o un reproceso de Studio. El reproceso no está en este paso: se propone para E10, que lo necesita. Para eso habría que guardar, sin datos personales, lo mínimo para volver a correr las acciones (ids y asignado).
 
+#### Verify completo de la v3 — 2026-10-30 (04:28Z a 05:28Z, punta `d714834be`, Docker 29.9.1)
+
+Turno del Director, con Docker encendido para que sql-tests y schema-rebuild entraran en la misma corrida. Resultado global: **FALLÓ** (exit 1).
+- **Medidos:** 16 de 17 pasos.
+- **Sin medir:** migrations-applied.
+
+| Paso | Resultado | De quién es |
+|---|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO · 5 AMARILLO), build | PASÓ | — |
+| schema-rebuild | PASÓ | 475 migraciones desde cero, con la 0503 y la 0504; aislamiento multi-tenant en 219 tablas |
+| sql-tests | FALLÓ: 248 verdes y 3 rojos (`0467_reversion_credito_carrera`, `0497_reverso_al_anular_factura` y `0497_…_carrera`) | Heredado de SDD-0573: los tres `.test.sql` son idénticos a `main`, igual que en el 2.2. **`0503_chatwoot_bandeja` y `0504_chatwoot_eventos` PASÓ** en Postgres real, ya con la 0504 de la v3 |
+| test (Vitest) | FALLÓ: 13403 verdes y 3 rojos en cada una de las dos vueltas | Ninguno propio: todos son timeouts por carga, en archivos fuera del diff. Detalle abajo |
+| e2e | FALLÓ: Shipping Mark y luego colgado | Ninguno propio. Detalle abajo |
+| migrations-applied | NO DISPONIBLE (SKIP): sin `.env.local` | Sin medir: no se copian secretos al worktree |
+
+**Los rojos de Vitest** (timeouts; ninguno de estos archivos está en el diff contra la base E1 `2d51991a5`):
+- **Primera vuelta:** `vitest/pglite-limpio.test.ts` (60 s), `app/p/[token]/PackingListProductsStep.test.tsx` (20 s) y `scripts/__tests__/entorno-prueba-scripts.test.mjs` (600 s).
+- **Reintento:** `scripts/__tests__/norte-bake.test.mjs` (20 s), `entorno-prueba-scripts.test.mjs` y `infra/ops/tests/migraciones.test.mjs` (600 s cada una).
+- **Aislados después del verify:** `pglite-limpio`, `PackingListProductsStep` y `norte-bake` PASÓ, 18/18. Los dos scripts bash de 600 s ya habían pasado aislados en el 2.3 (32/32) y no se repitieron.
+
+**Los rojos de e2e** (no hay archivos de `e2e/` ni `playwright.config.ts` en el diff):
+- `sin-scroll-horizontal.spec.ts:119` (Shipping Mark → `/registro`), en chromium y mobile-chrome, con su reintento. Es el mismo rojo heredado del 2.2 y del 2.3.
+- **Flaky:** `calculadora-semantic-colors.spec.ts:53` en dark falló en chromium y pasó al reintento.
+- **Colgado:** el watchdog cortó la corrida tras 10 min sin salida, en mobile-safari, después de `cbm-ayuda.spec.ts:111` (prueba 189 de 240). Iban 170 verdes y 14 saltadas; unas 50 quedaron sin medir. Que no sea de esta rama es una **inferencia**: lo que corría era la calculadora pública, y esta rama no la toca. No se comprobó repitiendo e2e.
+
+**Rojos propios:** ninguno, así que no hubo arreglo ni otra corrida.
+
 ### Datos personales del paso 2.3 (revisar-datos-ve, alcance del cambio)
 
 Estados de la skill: ENCONTRADO, CORRECTO y NO VERIFICABLE.

@@ -218,6 +218,40 @@ Pedido por el Director: «terminas las dos piezas de la v3 ahora, no las pasamos
 | Vitest afectado | PASÓ: 23 archivos, 710 pruebas |
 | `pending-migration-symbols` | PASÓ: 0 ROJO · 5 AMARILLO |
 | `build-crontab --check` | PASÓ: 21 crons |
-| `pnpm verify` y sql-tests | **NO EJECUTADO**, por indicación del Director: la sesión 4.2 puede estar corriendo lo suyo. La 0504 cambió desde la última corrida de sql-tests (03:58Z); falta repetirla con turno |
+| `pnpm verify` completo con Docker sobre `d714834be` (04:28Z a 05:28Z) | FALLÓ, **sin rojos propios**. Por paso, en la tabla de abajo |
 
-**Ojo al integrar:** el merge a `main` publica en el VPS y suma una línea al crontab del contenedor `cron`: `chatwoot-reintentos`, cada 5 minutos. Sin la 0504 aplicada, el cron responde 200 con `omitido` y no hace nada. Cuando se aplique, empieza a reprocesar.
+### Verify completo de la v3 (turno del Director)
+
+Docker 29.9.1 encendido. Medidos 16 de 17 pasos.
+
+| Paso | Resultado | De quién es |
+|---|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO · 5 AMARILLO), build | PASÓ | — |
+| schema-rebuild | PASÓ | 475 migraciones desde cero, con la 0503 y la 0504; aislamiento multi-tenant en 219 tablas |
+| sql-tests | FALLÓ: 248 verdes y 3 rojos (`0467_reversion_credito_carrera`, `0497_reverso_al_anular_factura` y `0497_…_carrera`) | Heredado de SDD-0573: los tres `.test.sql` son idénticos a `main`, igual que en el 2.2. **`0503_chatwoot_bandeja` y `0504_chatwoot_eventos` PASÓ** en Postgres real, ya con la 0504 de la v3 |
+| test (Vitest) | FALLÓ: 13403 verdes y 3 rojos en cada una de las dos vueltas | Ninguno propio: todos son timeouts por carga, en archivos fuera del diff. Detalle abajo |
+| e2e | FALLÓ: Shipping Mark y luego colgado | Ninguno propio. Detalle abajo |
+| migrations-applied | NO DISPONIBLE (SKIP): sin `.env.local` | Sin medir: no se copian secretos al worktree |
+
+**Los rojos de Vitest** (timeouts; ninguno de estos archivos está en el diff contra la base E1 `2d51991a5`):
+- **Primera vuelta:** `vitest/pglite-limpio.test.ts` (60 s), `app/p/[token]/PackingListProductsStep.test.tsx` (20 s) y `scripts/__tests__/entorno-prueba-scripts.test.mjs` (600 s).
+- **Reintento:** `scripts/__tests__/norte-bake.test.mjs` (20 s), `entorno-prueba-scripts.test.mjs` y `infra/ops/tests/migraciones.test.mjs` (600 s cada una).
+- **Aislados después del verify:** `pglite-limpio`, `PackingListProductsStep` y `norte-bake` PASÓ, 18/18. Los dos scripts bash de 600 s ya habían pasado aislados en el 2.3 (32/32) y no se repitieron.
+
+**Los rojos de e2e** (no hay archivos de `e2e/` ni `playwright.config.ts` en el diff):
+- `sin-scroll-horizontal.spec.ts:119` (Shipping Mark → `/registro`), en chromium y mobile-chrome, con su reintento. Es el mismo rojo heredado del 2.2 y del 2.3.
+- **Flaky:** `calculadora-semantic-colors.spec.ts:53` en dark falló en chromium y pasó al reintento.
+- **Colgado:** el watchdog cortó la corrida tras 10 min sin salida, en mobile-safari, después de `cbm-ayuda.spec.ts:111` (prueba 189 de 240). Iban 170 verdes y 14 saltadas; unas 50 quedaron sin medir. Que no sea de esta rama es una **inferencia**: lo que corría era la calculadora pública, y esta rama no la toca. No se comprobó repitiendo e2e.
+
+**Rojos propios:** ninguno, así que no hubo arreglo ni otra corrida.
+
+### Puerta de integración: el cron `chatwoot-reintentos`
+
+- **Llega al VPS con el merge a `main`.** `main` despliega solo en el VPS. El merge suma al crontab del contenedor `cron` esta línea: `*/5 * * * * curl … http://web:3000/api/cron/chatwoot-reintentos` (`infra/dtd-cargo/cron/crontab:26`, generada desde `vercel.json`). No hace falta otro paso de despliegue.
+- **Sin la 0504 responde `omitido`.** Si la 0504 no está aplicada, `chatwoot_tomar_pendientes` no existe y la ruta responde 200 con `{ ok: true, tomados: 0, procesados: 0, fallidos: 0, omitido: true }`. No falla y no escribe nada.
+- **Lo que deja en el log.** Cada 5 minutos, una línea `[chatwoot] chatwoot_tomar_pendientes: <código>`, con el código de PostgREST y sin datos personales. Es esperable mientras falte la 0504.
+- **Para el integrador:**
+  - Comprobar que `CRON_SECRET` está en el contenedor `cron`; ya lo usan los demás crons.
+  - Después del deploy, mirar que la ruta conteste `omitido` y no 403 ni 500.
+  - Al aplicar la 0504, con OK nominal de Sam y siguiendo el runbook, el cron empieza a reprocesar solo.
+  - Mientras no se registre el webhook en Chatwoot no habrá eventos, así que tomará 0.
