@@ -19,7 +19,8 @@ confidencialidad: interno
 
 ## Contexto
 
-- DTD tendrá dos números de WhatsApp: el nuevo, de leads, conectado a Chatwoot, y el actual, solo para clientes (línea base v2 de 0582).
+- DTD tendrá dos números de WhatsApp, uno para leads y otro para clientes. **Reparto vigente (Sam, 2026-10-30, comunicado por el Director):** los **clientes** van al número **nuevo** (cuenta «DTD Cargo Clientes») y los **leads nuevos y registrados** se quedan en el número **viejo**, que sigue en Kommo hasta el corte. Esto reemplaza el reparto de la línea base v2 (nuevo para leads, actual para clientes).
+- Para E10 solo cambia la configuración, no el código: la redirección de 10.2 corre en la bandeja del número viejo cuando pase a Chatwoot (4.5 / E8), y `WHATSAPP_NUMERO_CLIENTES` lleva el número nuevo. En 10.4 la web no cambia y el portal les muestra a los clientes el número nuevo. Los números van solo en la configuración.
 - **La regla de segmentos es de Sam** (0.8, 2026-10-30, por el selector): la carga recibida en China cuenta como cliente; quien pierde su único envío vuelve a lead; el bot responde en **1 mensaje**. Se calcula **siempre en el momento**, sin guardar estado.
 - Desde el 2026-10-01 **Meta cobra las respuestas** pasados 1.000 mensajes de servicio gratis al mes por número (v3 de 0582). Cada mensaje del bot cuenta.
 - **Chatwoot 4.19.1 no reintenta webhooks de cuenta** (SDD-0585). 2.3 dejó un reintento propio: el evento queda «fallido» si un manejador lanza, y el cron `chatwoot-reintentos` lo retoma con `reprocesarEventosChatwoot` / `chatwoot_tomar_pendientes`. E10 se engancha ahí.
@@ -44,6 +45,7 @@ confidencialidad: interno
 | E10-D14 | **Sin configuración no hace nada:** falta `CHATWOOT_ROUTER_TOKEN`, la bandeja, un equipo o el número → el manejador sale sin tocar nada y E2 sigue igual. Las variables se cargan **después** de aplicar la 0505 | Si se cargaran antes, la RPC fallaría, el evento quedaría fallido y se descartaría al quinto intento sin dañar nada |
 | E10-D15 | **`chatwoot_contactos_bsuid` con RLS por tenant:** el admin del tenant lee los suyos (para vincularlos a una ficha); escribe solo `service_role`. `chatwoot_respuestas_bot` sigue solo de `service_role` | Condición del Director al asignar la 0505 (2026-10-30). Probado con lectura real bajo `authenticated` (revisión de Codex, hallazgo 5) |
 | E10-D16 | **Plazos de Sam en SQL:** BSUID a los 365 días sin actividad y registro de respuestas a los 30 días, en `chatwoot_purgar_enrutamiento()` (solo `service_role`), llamada por el cron `chatwoot-reintentos` | Decisiones de Sam del 2026-10-30 (H-2 y H-3). Contrato §4 con un mutante por plazo |
+| E10-D17 | **Usuario de servicio: decisión a confirmar al integrar.** El token de `CHATWOOT_ROUTER_TOKEN` puede ser el del mismo usuario de servicio de la 2.5 (`CHATWOOT_SERVICE_USER_ID`, «Servicio DTD Studio»), que la salud de la Bandeja ya excluye de los admins humanos y que las bajas nunca tocan | Nota del Director (2026-10-30). Se confirma en 10.6 junto con el tipo de token que acepta la API (NV) |
 
 ## Lo que se entrega
 
@@ -67,7 +69,7 @@ confidencialidad: interno
 - [x] 10.2: al cliente, 1 mensaje sin IA con el enlace `wa.me` al número de configuración; etiqueta y equipo; una vez cada 24 h; nunca dos dentro de 24 h, ni ante un resultado incierto; los fallos dejan el evento fallido y el reproceso de 2.3 los retoma (`enrutar.test.ts`, 13 mutantes del manejador mueren).
 - [x] 10.3: respuesta neutra idéntica para cualquiera sin teléfono y se guarda el BSUID (`enrutar.test.ts`, contrato 0505 §3).
 - [x] Logs sin teléfono, BSUID, número ni token (prueba «los avisos de error no llevan…»).
-- [ ] `pnpm verify` y sql-tests con Docker: **NO EJECUTADO** (corrida pesada; espera turno del Director).
+- [x] `pnpm verify` completo con Docker sobre `a319d4cdc` (2026-10-30, 14:44Z a 16:03Z): **FALLÓ, sin rojos propios después de corregir uno.** Ver «Verify».
 - [ ] 0505 aplicada: **NO** (requiere OK nominal de Sam y el runbook).
 - [ ] Punta a punta con el número de prueba y el BSUID real: **10.6**.
 
@@ -101,6 +103,22 @@ Inventario técnico, no asesoría legal. Marco: Venezuela (CRBV arts. 28 y 60; S
 - **NV-3.** El mapa de borrado de una persona: al purgar un cliente o atender una solicitud de destrucción (CRBV art. 28) hay que incluir `chatwoot_contactos_bsuid`, `chatwoot_respuestas_bot` y la conversación en Chatwoot. No hay camino de borrado desde Studio para estas tablas (solo `service_role`).
 
 **Fuera de alcance:** redacción de la política y base de licitud para tratar el BSUID; eso es de un abogado.
+
+## Verify (2026-10-30)
+
+`pnpm verify` completo con Docker sobre `a319d4cdc`, con turno del Director, de 14:44Z a 16:03Z. Exit 1.
+
+| Comprobación | Estado | Detalle |
+|---|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions | PASÓ | — |
+| test | FALLÓ | 3 rojos. **Propio, corregido:** `infra-env-example` (las cinco variables del enrutamiento faltaban en `infra/dtd-cargo/.env.example`), aislado 3/3 PASÓ. **Por carga, fuera del diff:** `entorno-prueba-scripts` (SDD-0540, 600 s) y `pglite-limpio` (SDD-0570, 60 s); aislados 10/10 PASÓ. 13 566 pruebas PASÓ |
+| docs:check, numbering, feature-constants, components:check, governance:check | PASÓ | — |
+| migrations-applied | NO DISPONIBLE | Sin `.env.local` en el worktree (no se copian secretos) |
+| pending-migration-symbols | PASÓ | 0 ROJO · 6 AMARILLO declarados, la 0505 incluida |
+| sql-tests | FALLÓ | **0503, 0504 y 0505 PASÓ** en PostgreSQL 17. Heredados de SDD-0573: 0497, 0497 carrera y 0467 carrera (cae en el preflight de la 0497) |
+| schema-rebuild | PASÓ | — |
+| e2e | FALLÓ | Heredado: Shipping Mark (`sin-scroll-horizontal`, el mismo rojo de E2). Flakys de la web pública y del login en el primer intento; nada de Chatwoot ni de Studio |
+| build | PASÓ | — |
 
 ## Revisión de Codex (2026-10-30)
 
