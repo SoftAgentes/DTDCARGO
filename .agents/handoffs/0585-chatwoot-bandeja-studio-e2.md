@@ -397,3 +397,5 @@ Lo pidió el Director el 2026-10-30, solo con pruebas puntuales. Detalle en SDD-
 
 - **`/privacidad` §5** dice que los datos se alojan en Estados Unidos. Desde SDD-0505 la base vive en el VPS de Contabo, y la ubicación del VPS no se comprobó. Si no es Estados Unidos, ese punto hay que corregirlo, pero no es del 2.6.
 - **La prueba de «otro origen»** del e2e afirma una ausencia: también daría verde si la página no cargara por otro motivo. La prueba fuerte es la de las cabeceras, del mismo spec.
+
+**Corrección posterior (2.6):** el verify de E3, apilado sobre esta rama, encontró que `e2e/ficha-chat.spec.ts` no estaba en el inventario de specs que necesitan Supabase (`scripts/tests/verify-e2e-sin-supabase.node.mjs`). Ya está, y las cuentas de casos y omisiones salen del inventario, sin números fijos. La prueba del script pasa 15/15, con control rojo.
