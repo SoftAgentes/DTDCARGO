@@ -24,7 +24,15 @@
 | Fusión de la punta de E10 (`c4311d6b5`, purga por plazo) | `004ca56fd`; sin conflictos de contenido (el driver resolvió `migrations-baseline.json`); contrato de la 0506 otra vez 39/39 |
 | Fusión de la punta de E10 `a319d4cdc` (pedido del Director, 2026-10-30: trae `f90aede00` de E2, `632be86fd` de E10 y el 2.5 de E2) | Sin conflictos; `migrations-baseline.json` conserva la `0506_crm_modelo`. Gate `check-pending-migration-symbols.mjs`: **PASÓ, 0 ROJO** · 6 AMARILLO declarados · 3 homónimos descartados, exit 0. La 0506 no aparece porque ningún código de la app llama todavía sus símbolos (llega con 6.3). Contrato de la 0506: 39/39. `docs:check`, `sdd:check` y `git diff --check`: PASÓ |
 
-**Verify:** no se corrió aquí (E10 tiene el turno). Según el Director, el verify de E6.3 (#337), que fusiona esta punta, cuenta también para el 6.2.
+**Verify:** no se corrió aquí (E10 tenía el turno). Lo cubre el de E6.3 (#337) sobre `4f277075a` (17:11–18:12Z, 2026-10-30), que integra `3c86f4053`. Copiado de la SDD-0587 §15.2 de `codex/0582-e6-tablero` (`376ef8167`):
+
+| verify (6.3, cubre 6.2) | Resultado |
+|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO · 7 AMARILLO), schema-rebuild, build | PASÓ (13 de 17) |
+| test (Vitest 13 734 de 13 738) | FALLÓ, ninguno del 6.2: `rbac-actions-guard` (propio de 6.3, corregido en el commit siguiente); `infra-env-example` (5 variables de E10, corregido en su punta); `TransportistasPanel` inestable bajo carga |
+| sql-tests | FALLÓ, ajeno: 0467 y 0497 (SDD-0573). El contrato de la 0506 corre en Vitest y pasó |
+| e2e | FALLÓ, ajeno: Shipping Mark en `sin-scroll-horizontal.spec.ts:119`; `auth.spec.ts:81` inestable |
+| migrations-applied | NO DISPONIBLE: worktree sin credenciales de Supabase |
 - **SDD:** 0587, reserva local `codex/sdd-reserve-0587-chatwoot-contrato-sistema-maestro` + `refs/dtd/reservations/0587` (stub `e891e83b1`, traído con cherry-pick). La reserva **no se publicó** a `origin`: la PR lleva la spec
 - **Objetivo:** contrato de sistema maestro por objeto y fase, dos embudos, sincronización, reemplazos de Kommo con costo de Meta, plan de migración de leads, decisiones para Sam y reestimación de 6.2–6.7
 - **Permisos de esta tarea:** solo diseño y documentación. Sin producto, sin migraciones, sin producción, Kommo, Meta, VPS ni Chatwoot. Publicar la rama propia y abrir PR en borrador sobre `codex/0582-e0-preparacion`: autorizado en el encargo
@@ -72,7 +80,7 @@ L1 conteo de `kommo_leads` por etapa y antigüedad en el espejo de producción; 
 ## PENDIENTES DE ESTA TAREA
 
 - Ninguno para 6.1.
-- 6.2: turno de `pnpm verify` (lo da el Director); aceptación de 6.2 por Sam; OK nominal para aplicar la 0506, después de la 0505 y con el runbook.
+- 6.2: aceptación de 6.2 por Sam; OK nominal para aplicar la 0506, después de la 0505 y con el runbook.
 - 6.3 (tablero): no empezado en esta tarea.
 
 ## FUERA DE ALCANCE DETECTADO
