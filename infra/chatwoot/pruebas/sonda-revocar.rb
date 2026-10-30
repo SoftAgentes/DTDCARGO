@@ -94,7 +94,23 @@ if defined?(DtdRevocarSesiones)
   hecho :canal_viejo_revocado, canal.dtd_sesion_revocada? ? 'si' : 'no'
   canal.instance_variable_set(:@pubsub_token, agente.pubsub_token)
   hecho :canal_nuevo_revocado, canal.dtd_sesion_revocada? ? 'si' : 'no'
-  hecho :canal_temporizador, RoomChannel.periodic_timers.any? { |t, _| t == :dtd_verificar_sesion } ? 'si' : 'no'
+  # Rails 7.2 envuelve el método del temporizador en una lambda: se corre esa lambda sobre el
+  # canal, con una conexión falsa que anota cómo la cierran.
+  timer = RoomChannel.periodic_timers.find { |_, o| o[:every] == DtdRevocarSesiones::CADA }
+  hecho :canal_temporizador, timer ? 'si' : 'no'
+  cierres = []
+  conexion = Object.new
+  conexion.define_singleton_method(:close) { |**kw| cierres << kw }
+  canal.define_singleton_method(:connection) { conexion }
+  canal.define_singleton_method(:stop_all_streams) { cierres << :streams }
+  if timer
+    canal.instance_variable_set(:@pubsub_token, agente.pubsub_token)
+    canal.instance_exec(&timer.first)
+    hecho :canal_cierra_vigente, cierres.empty? ? 'no' : 'si'
+    canal.instance_variable_set(:@pubsub_token, pubsub_antes)
+    canal.instance_exec(&timer.first)
+    hecho :canal_cierre, cierres.map(&:to_s).join('|')
+  end
 else
   hecho :canal_viejo_revocado, 'no'
   hecho :canal_temporizador, 'no'
