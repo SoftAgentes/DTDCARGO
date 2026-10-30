@@ -47,9 +47,9 @@ En el WebKit de Playwright (indicador de Safari) pasan el iframe y el SSO. Firef
 
 | Paso | Entregable | Estado |
 |---|---|---|
-| 2.1 | PoC con banco reproducible, matriz y decisión | **esta entrega** |
-| 2.2 | CSP y `Permissions-Policy` de la ruta (E2-D2), módulo, RBAC, flag, i18n, vínculos, `lib/studio/chatwoot`, SSO (E2-D5), capa persistente, página y `signOut` | pendiente |
-| 2.3 | Contador, webhook con push y tarjeta en la ficha | pendiente |
+| 2.1 | PoC con banco reproducible, matriz y decisión | aceptado (Sam, 2026-10-29: «Acepto 2.1») |
+| 2.2 | CSP y `Permissions-Policy` de la ruta (E2-D2), módulo, RBAC, flag, i18n, vínculos, `lib/studio/chatwoot`, SSO (E2-D5), capa persistente, página y `signOut` | aceptado (Sam, 2026-10-30: «Acepto todo») |
+| 2.3 | Contador, webhook con push y tarjeta en la ficha | aceptado (Sam, 2026-10-30: «Acepto todo»), con el verify de `d714834be` registrado: FALLÓ solo por rojos heredados, unas 50 e2e NO EJECUTADAS (la corrida se colgó) y migrations-applied NO DISPONIBLE |
 | 2.4 | Dashboard App «Ficha DTD» | pendiente |
 | 2.5 | Ciclo de vida de los agentes: Usuarios, cron y salud | pendiente |
 | 2.6 | revisar-datos-ve, `/ui-check`, QA de navegadores (incluye Firefox y Safari reales) y runbook | pendiente |
