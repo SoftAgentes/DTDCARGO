@@ -65,6 +65,18 @@ docker stats --no-stream $(cd /srv/chatwoot && docker compose ps -q)
 du -sh /srv/chatwoot/data/*
 ```
 
+**Capacidad del VPS compartido** (propuesta del 2026-10-30, tras la observación del Director: load average ~9 con 33 sesiones en `who`, cadvisor y varios api-gw arriba en CPU, un `rails runner` de más de 180 s y timeouts de SSH a las 05:19Z y a las 14:36 hora del VPS). Al cierre, además, solo lectura:
+
+```bash
+nproc; cat /proc/loadavg; cat /proc/pressure/cpu        # carga frente a núcleos y presión real
+who -u | wc -l; who -u                                   # sesiones y su tiempo inactivo
+ps -eo pid,etimes,user,cmd --sort=-etimes | grep -E 'sshd: [^ ]+@' | head -40   # sesiones SSH viejas
+docker inspect --format '{{.Name}} nanocpus={{.HostConfig.NanoCpus}} quota={{.HostConfig.CpuQuota}} mem={{.HostConfig.Memory}}' $(docker ps -q)
+docker stats --no-stream --format '{{.CPUPerc}} {{.MemUsage}} {{.Name}}' | sort -rn | head -15
+```
+
+Se lee así: load ÷ `nproc` de forma sostenida > 1 es saturación del host, venga de donde venga. Las sesiones SSH con días de antigüedad y sin tty activo son candidatas a colgadas. Un contenedor con `nanocpus=0` y `quota=0` no tiene tope de CPU. Esto solo se mide y se reporta. Matar sesiones, cambiar límites o tocar contenedores de otros proyectos necesita OK de Sam.
+
 El resumen va al handoff y a la fila 1.6 del checklist. **Criterio** para quedarse en el VPS compartido (decisión G de la SDD-0582):
 
 | Señal | Se queda si | Si no |
