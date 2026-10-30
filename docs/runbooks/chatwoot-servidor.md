@@ -19,7 +19,8 @@ Chatwoot CE `v4.19.1-ce` en el mismo VPS que la producción de DTD (decisión E0
 /srv/chatwoot/                 ← copia de infra/chatwoot/ (sin pruebas/)
 ├── compose.yml                ← prepare, rails, sidekiq, postgres (pgvector), redis
 ├── .env                       ← 0600; generado aquí (§2); NUNCA en git
-├── rails/zz_dtd_redaccion_logs.rb
+├── rails/zz_dtd_redaccion_logs.rb · rails/zz_dtd_correo.rb
+├── correo/views/              ← plantillas de correo de DTD (§2 ter)
 ├── respaldo.sh · restaurar.sh · vigilar.sh
 └── data/                      ← postgres/, redis/, storage/ (adjuntos)
 /srv/backups/chatwoot/         ← respaldos cifrados locales, 7 días
@@ -80,6 +81,29 @@ Chatwoot manda tres correos: restablecer la contraseña, invitar agentes y avisa
 - **No pasar lógica entre comillas por PowerShell 5.1:** se come las comillas internas que recibe `ssh`. Por eso el `.ps1` solo llama al guion del servidor.
 - **Aplicar:** primero copia `cp -p .env .env.antes-smtp` (0600), después `docker compose up -d --wait`, que recrea `rails` y `sidekiq` con las mismas labels de Traefik y sin certificado nuevo.
 - **Probar:** desde `rails`, con un `ActionMailer::Base.mail(...).deliver_now` dirigido a `hailuway.com@gmail.com` (`</dev/null` dentro de guiones remotos).
+
+## 2 ter · Correos con la marca de DTD Cargo
+
+Pedido de Sam (2026-10-30): que los correos salgan «personalizados con DTD Cargo… con la firma y todo», no con el diseño del CRM.
+
+- **En Hostinger no hay nada que configurar para esto.** El dominio ya tiene MX, SPF (`include:_spf.mail.hostinger.com`), las tres DKIM `hostingermail-a/b/c` y DMARC `p=none` (consultado en 1.1.1.1 el 2026-10-30). La firma del webmail de Hostinger solo se agrega a lo que se escribe en el webmail; Chatwoot manda por SMTP y no la usa.
+- **Qué traía Chatwoot:** diseño propio (barra azul `#2781F6`, sin logo), pie «This email was sent by DTD Cargo» y textos y asuntos en inglés («Time to save the world…», «A new conversation [ID - 12] has been assigned to you»).
+- **Qué cambia:**
+  - [`correo/views/`](../../infra/chatwoot/correo/views): el diseño general (`layouts/mailer/base.liquid`) con logo, barra y botón vino, la firma (lema, dirección, teléfono, WhatsApp y web de `CONTACT` en `lib/design-tokens.ts`) y la nota «este buzón no lee respuestas, escríbenos a `vzla@dtdcargo.com`». Además, en español: contraseña, invitación y confirmación de correo (Devise); avisos de conversación nueva, asignada, mención y mensajes nuevos; canal de WhatsApp, Instagram, Facebook o correo desconectado; y el correo de prueba.
+  - [`rails/zz_dtd_correo.rb`](../../infra/chatwoot/rails/zz_dtd_correo.rb): antepone esas vistas a las de la imagen y pone los asuntos en español con «· DTD Cargo». Lo que no está en la lista sale con el asunto de Chatwoot, pero igual con el diseño de DTD.
+  - El compose monta los dos en solo lectura (`/app/dtd-correo/views` y `config/initializers`). Sin esas dos líneas vuelve todo lo de Chatwoot.
+- **Minimización** (`revisar-datos-ve`): los avisos a agentes ya no copian el nombre del contacto ni el texto de los mensajes, que Chatwoot sí ponía. Llevan el número de conversación, la bandeja y el botón para abrirla. El correo de los agentes queda fuera del chat (Gmail personal, teléfonos), por eso no se duplica ahí lo que dice el cliente.
+- **Fuera:** el desbloqueo de cuenta (la instalación no tiene la ruta `unlock`: la plantilla original tampoco se puede armar), los avisos SLA (edición Enterprise), las respuestas a clientes de una bandeja de correo (usan otro diseño salvo con la función premium `branded_email_templates`) y los avisos de importación, exportación y borrado de cuenta (siguen en inglés, con el diseño de DTD).
+- **Vista previa sin enviar nada** ([`correo/vista-previa.rb`](../../infra/chatwoot/correo/vista-previa.rb)): arma los 14 correos con datos inventados y objetos sin guardar, con entregas apagadas, y deja HTML y asuntos en `/tmp/dtd-correo/salida` del contenedor. Revisa diseño, «Chatwoot», restos en inglés, asunto con la marca y remitente. Antes de montar, toma las plantillas de `/tmp/dtd-correo`:
+  ```bash
+  # desde la PC: tar con dtd-correo/{views,zz_dtd_correo.rb,vista-previa.rb}
+  ssh.exe root@217.216.54.70 "cd /srv/chatwoot && docker compose exec -T rails sh -c 'rm -rf /tmp/dtd-correo && tar xf - -C /tmp'" < paquete.tar
+  ssh.exe root@217.216.54.70 "cd /srv/chatwoot && docker compose exec -T rails bundle exec rails runner /tmp/dtd-correo/vista-previa.rb </dev/null"
+  ```
+  Ya montado, se copia solo el guion (`docker compose cp correo/vista-previa.rb rails:/tmp/vista-previa.rb`) y toma las plantillas montadas.
+- **Aplicar** (con OK de Sam): copiar `correo/`, `rails/zz_dtd_correo.rb` y `compose.yml` a `/srv/chatwoot` (antes `cp -p compose.yml compose.yml.antes-correo`), `docker compose up -d --wait` (recrea `rails` y `sidekiq`, unos 3 min sin chat), correr la vista previa con las plantillas montadas y mandar un correo de prueba a `hailuway.com@gmail.com`.
+- **Vuelta atrás:** restaurar `compose.yml.antes-correo` y `docker compose up -d --wait`.
+- **Al subir de versión (E3):** comparar las plantillas nuevas de la imagen con las de `correo/views` (mismos nombres) y volver a correr la vista previa: si Chatwoot cambia los parámetros de los enlaces, hay que copiarlos.
 
 ## 3 · Red y Traefik (puerta P1)
 

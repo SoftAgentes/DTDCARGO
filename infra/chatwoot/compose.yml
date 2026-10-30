@@ -130,6 +130,10 @@ x-chatwoot: &chatwoot
     # /dtd-marca/. Carpeta aparte para no tapar /app/public/brand-assets de Chatwoot.
     # Los valores que los usan están en marca/aplicar-marca.rb (InstallationConfig).
     - ./marca:/app/public/dtd-marca:ro
+    # Correos de DTD (SDD-0583): diseño, firma y textos en español (correo/views) y los
+    # asuntos (rails/zz_dtd_correo.rb). Sin estas dos líneas vuelven los de Chatwoot.
+    - ./rails/zz_dtd_correo.rb:/app/config/initializers/zz_dtd_correo.rb:ro
+    - ./correo/views:/app/dtd-correo/views:ro
 
 services:
   prepare:

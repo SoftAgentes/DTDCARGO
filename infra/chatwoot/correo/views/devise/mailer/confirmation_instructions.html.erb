@@ -1,0 +1,65 @@
+<%#
+  SDD-0583 · confirmación de correo e invitación de agentes. Chatwoot usa esta misma
+  plantilla para los cuatro casos; la lógica y los enlaces son los de v4.19.1-ce
+  (devise/mailer/confirmation_instructions.html.erb), solo cambian textos y diseño.
+%>
+<%
+  nombre = @resource.name.presence || @resource.email
+  cuenta_usuario = @resource&.account_users&.first
+  quien_invita = cuenta_usuario&.inviter
+  equipo = cuenta_usuario&.account&.name
+  invitado = quien_invita.present? && @resource.unconfirmed_email.blank?
+
+  confirmacion = { confirmation_token: @token }
+  confirmacion[:route_url] = params[:redirect_url] if params[:redirect_url].present?
+
+  aviso = {
+    etiqueta: 'Bienvenida',
+    titulo: 'Confirma tu correo para empezar',
+    saludo: "Hola, #{nombre}:",
+    parrafos: ['Te damos la bienvenida al chat de DTD Cargo. Antes de entrar, necesitamos confirmar tu correo.'],
+    detalles: [],
+    boton: 'Confirmar mi cuenta',
+    url: frontend_url('auth/confirmation', **confirmacion),
+    nota_titulo: nil,
+    nota: nil
+  }
+
+  if @resource.unconfirmed_email.present?
+    aviso.merge!(
+      etiqueta: 'Cambio de correo',
+      titulo: 'Confirma tu correo nuevo',
+      parrafos: ['Recibimos un pedido para cambiar el correo de tu cuenta del chat de DTD Cargo. Confírmalo para terminar el cambio.'],
+      detalles: [['Correo nuevo', @resource.unconfirmed_email]],
+      boton: 'Confirmar el correo',
+      nota_titulo: '¿No lo pediste tú?',
+      nota: 'Ignora este correo y escríbenos a vzla@dtdcargo.com: tu correo no cambia si no lo confirmas.'
+    )
+  elsif @resource.confirmed?
+    aviso.merge!(
+      etiqueta: 'Cuenta lista',
+      titulo: 'Tu cuenta ya está activa',
+      parrafos: ['Tu cuenta del chat de DTD Cargo ya está confirmada. Usa el botón para entrar.'],
+      boton: 'Entrar al chat',
+      url: frontend_url('auth/sign_in')
+    )
+  elsif invitado
+    restablecer = { reset_password_token: @resource.send(:set_reset_password_token) }
+    restablecer[:route_url] = params[:redirect_url] if params[:redirect_url].present?
+    restablecer[:sso_account_id] = params[:sso_account_id] if params[:sso_account_id].present?
+    detalles = [['Te invitó', quien_invita.name]]
+    detalles << ['Equipo', equipo] if equipo.present?
+    aviso.merge!(
+      etiqueta: 'Invitación',
+      titulo: 'Te invitaron al chat de DTD Cargo',
+      parrafos: [
+        "#{quien_invita.name} te invitó a atender a los clientes de DTD Cargo desde el chat.",
+        'Para aceptar, elige tu contraseña. El enlace vence en 6 horas; si se vence, pide que te inviten de nuevo.'
+      ],
+      detalles: detalles,
+      boton: 'Aceptar la invitación',
+      url: frontend_url('auth/password/edit', **restablecer)
+    )
+  end
+%>
+<%= render partial: 'devise/mailer/dtd_aviso', locals: aviso %>

@@ -83,6 +83,17 @@ Fuente del código: la imagen `chatwoot/chatwoot:v4.19.1-ce`, digest `sha256:048
 | T-38 | `docker compose up -d --wait` en 185 s: `rails` y `sidekiq` recreados y sanos; `acceso`, `postgres` y `redis` sin reinicio. Dentro de los dos: `SMTP_USERNAME=notificaciones@dtdcargo.com`, largo de la clave 10, remitente nuevo. `chat.dtdcargo.com/api` → 200 | `docker compose ps`/`exec` | R |
 | T-39 | Prueba: `ActionMailer::Base.mail(...).deliver_now` desde `rails` (smtp, `smtp.hostinger.com:587`, `login`, STARTTLS) → aceptado sin excepción a las 22:31:31Z, a `hailuway.com@gmail.com`. Sam confirmó que llegó a Recibidos. No lo pude leer en Gmail: el conector pide permisos que no tiene | `rails runner`; Sam | R (envío aceptado) · NV por mí (la llegada la confirmó Sam) |
 
+## Correos con la marca de DTD (sesión «Hostinger config», 2026-10-30)
+
+Pedido de Sam: «que siempre venga personalizado, con la firma y todo». Respuesta a «¿Preparo las plantillas…?»: «Sí, prepáralas». Aplicar en el servidor queda para un OK aparte.
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| T-40 | DNS de dtdcargo.com: MX `mx1/mx2.hostinger.com`, SPF `v=spf1 include:_spf.mail.hostinger.com ~all`, DKIM `hostingermail-a/b/c._domainkey` → CNAME a `*.dkim.mail.hostinger.com`, DMARC `v=DMARC1; p=none`, sin BIMI. En Hostinger no falta nada para que el correo se acepte como del dominio | `Resolve-DnsName` contra 1.1.1.1 | T |
+| T-41 | Correos de Chatwoot 4.19.1 en la imagen: layout `layouts/mailer/base.liquid` con barra `#2781F6`, sin logo y pie «This email was sent by {BRAND_NAME}»; Devise y avisos a agentes en inglés; asuntos fijos en inglés en `conversation_notifications_mailer.rb` y `channel_notifications_mailer.rb`. `ApplicationMailer` antepone `EmailTemplate.resolver` (base) y agrega `app/views/mailers`. Los avisos a agentes copian el nombre del contacto y los últimos mensajes (`ConversationDrop#recent_messages`). Las respuestas a clientes solo usan `mailer/base` con `branded_email_templates` (premium). La instalación no tiene la ruta `unlock` | `docker compose exec rails` (lectura de archivos) | C |
+| T-42 | Plantillas nuevas en `infra/chatwoot/correo/views` (layout, 3 de Devise + bloque común, 5 de agentes, 4 de canales, correo de prueba) e inicializador `rails/zz_dtd_correo.rb` (vistas antepuestas y asuntos). Vista previa en el servidor, en un `rails runner` aparte con las plantillas en `/tmp` del contenedor, entregas apagadas y objetos sin guardar: **14/14 PASÓ**, 0 fallas (diseño DTD, sin «Chatwoot», sin restos en inglés, asunto con «DTD Cargo», remitente `notificaciones@`). La primera corrida dio 15 fallas: un comentario HTML del layout con la palabra «Chatwoot» llegaba al correo, `unlock_url` no existe, y la presencia en Redis necesita un id de agente. Revisión visual en el navegador integrado: logo, barra y botón vino, firma con dirección, teléfono y WhatsApp | `rails runner /tmp/dtd-correo/vista-previa.rb` (~05:40Z); navegador | R |
+| T-43 | Lo que sigue sin probar: el montaje real (compose) y un envío real con las plantillas nuevas. El servidor sigue con las plantillas de Chatwoot; `/tmp/dtd-correo` del contenedor `rails` se borra al recrearlo | — | NV |
+
 ## Código de Chatwoot 4.19.1
 
 | ID | Afirmación | Fuente | Etiqueta |

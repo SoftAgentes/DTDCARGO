@@ -100,6 +100,11 @@ Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar. Le expliqué 
   - `rails` y `sidekiq` recreados y sanos.
   - Correo de prueba aceptado por Hostinger a las 22:31:31Z. Sam confirmó que llegó a Recibidos de `hailuway.com@gmail.com`.
   - Sin probar todavía: los correos propios de Chatwoot (restablecer contraseña, invitación). Se prueban al invitar al primer agente.
+- **Correos con la marca de DTD** (pedido de Sam del 2026-10-30, «Sí, prepáralas»; T-40 a T-43; runbook §2 ter):
+  - **Hecho en el repo:** `infra/chatwoot/correo/views/` (diseño con logo y firma, textos en español), `rails/zz_dtd_correo.rb` (asuntos en español) y dos montajes en `compose.yml`.
+  - **Vista previa en el servidor:** 14/14 PASÓ, sin enviar ni escribir nada. La página con los 14 correos está en la carpeta de notas de la sesión del programa (`correos-dtd-vista-previa.html`).
+  - **Minimización:** los avisos a agentes ya no copian el nombre ni los mensajes del cliente.
+  - **Pendiente, con OK de Sam:** aplicar en el VPS (copiar, `compose.yml.antes-correo`, `up -d --wait` con ~3 min sin chat, vista previa con las plantillas montadas y un envío real a `hailuway.com@gmail.com`).
 - Tras las 72 h (2026-11-01 ~16:00Z): `vigilar.sh --resumen --desde 2026-10-29T15:55:00Z` → fila 1.6, con el criterio corregido (contra la línea base, no un número fijo).
 - ~~`/super_admin` con Cloudflare Access~~ hecho el 2026-10-29 («Confirmo Access»), runbook §4.1.
 - ~~Marca de DTD en Chatwoot~~ **hecha el 2026-10-29** («Autorizo la marca»): título «DTD Cargo», ícono y logos de DTD (claro y oscuro según `BRAND.md`), pantalla de entrada en español, sin «Chatwoot» visible (T-27 a T-29; runbook §6 bis). Queda en la edición CE el «Powered by Chatwoot» del widget y de los correos, y la etiqueta «E-mail» de la traducción de Chatwoot.
@@ -137,6 +142,8 @@ Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar. Le expliqué 
 - ufw deja el SSH (22) abierto a todo internet; el runbook servidor-contabo dice cerrarlo cuando haya Tailscale.
 - `TRUSTED_PROXY_CIDRS` del Traefik no incluye los rangos de Cloudflare: con proxy, las apps detrás ven la IP de Cloudflare.
 - El PDF del DPA de Contabo sigue sin seguimiento en la raíz del checkout principal (ya anotado en la spec 0582).
+- `https://chat.dtdcargo.com/dtd-marca/aplicar-marca.rb` responde 200 (2026-10-30): el compose monta toda la carpeta `marca/`, guion incluido, en `public/`. No tiene secretos, pero no debería publicarse. Arreglo posible: mover el guion fuera de `marca/` y ajustar el runbook §6 bis.
+- Las alertas de cobro que Sam quiere mandar por `notificaciones@` no salen de Chatwoot: las armaría Studio (ERP) con su propio diseño. Para que se vean iguales, conviene copiar este diseño y esta firma (tarea aparte).
 - `infra/chatwoot/cf-access/verificador.node-test.mjs` hoy solo corre en el ensayo local (fase U de `pruebas/ensayo-local.sh`); meterla en una puerta automática como `harness:test` es una tarea aparte, aún sin dueño.
 
 ## Registro de corridas
