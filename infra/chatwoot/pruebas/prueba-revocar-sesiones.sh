@@ -14,6 +14,7 @@
 #      R4 último admin humano: 409        R8 con otro admin humano, el primero sí se revoca
 #      R9 sin DTD_CHATWOOT_SERVICIO_ID: 503 y no revoca nada
 #      R10 RoomChannel: el pubsub viejo cuenta como revocado y hay temporizador de 30 s
+#      R12 la lambda del temporizador cierra el canal revocado sin reconectar, y no el vigente
 #   C  CONTROL sin el inicializador (compose.sin-revocar.yml lo tapa con vacio.rb): la ruta no
 #      existe (404) y las sesiones siguen vivas.
 # El inicializador entra por el compose.yml real, el mismo montaje que en el VPS.
@@ -126,7 +127,9 @@ exigir R7 '[ "$(h "$F" pubsub_rotado)" = si ] && [ "$(h "$F" api_rotado)" = si ]
   "pubsub_token y token de API rotados: el token viejo da 401"
 exigir R8 '[ "$(h "$F" admin_con_otro)" = 200 ]' "con otro admin humano en la cuenta, un admin sí se revoca"
 exigir R10 '[ "$(h "$F" canal_viejo_revocado)" = si ] && [ "$(h "$F" canal_nuevo_revocado)" = no ] && [ "$(h "$F" canal_temporizador)" = si ]' \
-  "RoomChannel: el pubsub viejo cuenta como revocado, el nuevo no, y hay temporizador"
+  "RoomChannel: el pubsub viejo cuenta como revocado, el nuevo no, y hay temporizador de 30 s"
+exigir R12 '[ "$(h "$F" canal_cierra_vigente)" = no ] && [ "$(h "$F" canal_cierre)" = "streams|{reason: \"unauthorized\", reconnect: false}" ]' \
+  "la lambda del temporizador no toca un canal vigente; con el pubsub viejo deja de escuchar y cierra sin reconectar"
 exigir R11 '! grep -E "\[DTD\].*@example\.test" "$F" >/dev/null' "los logs [DTD] no llevan correos"
 
 # ── C. Control sin el inicializador ──────────────────────────────────────────

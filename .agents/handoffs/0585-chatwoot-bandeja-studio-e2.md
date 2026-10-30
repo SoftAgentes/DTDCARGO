@@ -477,7 +477,7 @@ El Director lo habló con Sam: «Él quiere el cierre de verdad del lado del ser
 - **Montaje** en `infra/chatwoot/compose.yml`, con la variable en `x-entorno` y en `infra/chatwoot/.env.example`.
 - **Studio** lo llama primero. Con 404 (todavía no instalado) usa la API de perfil como respaldo. 409 y 503 dejan la baja pendiente.
 - **El script del panel** queda como complemento.
-- **Prueba local:** `infra/chatwoot/pruebas/prueba-revocar-sesiones.sh`, R0 a R11 y el control C1. **NO EJECUTADO** hasta que el Director dé turno de Docker: había un `pnpm verify` de otra sesión en curso.
+- **Prueba local:** `infra/chatwoot/pruebas/prueba-revocar-sesiones.sh`, con turno del Director, el 2026-10-30 a las 19:42Z. **PASÓ 14/14.** El control C1, sin el inicializador, da 404 y la sesión sigue viva. La primera vuelta dio 13/14 por un defecto de la sonda: en Rails 7.2 el temporizador se guarda como lambda. Se corrigió y se agregó R12.
 
 **Para el runbook de versiones de E3** (`docs/runbooks/chatwoot-versiones.md` vive solo en `codex/0582-e3-versiones`; no lo toqué):
 - en la tabla «Pieza propia», una fila nueva:
