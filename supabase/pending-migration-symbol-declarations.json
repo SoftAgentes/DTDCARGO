@@ -615,7 +615,7 @@
           "degradation": "contarAnalisis sin la tabla devuelve null en vez de 0: el tope diario no se puede comprobar."
         },
         {
-          "site": "lib/studio/chatwoot/analisis-motor.ts:178",
+          "site": "lib/studio/chatwoot/analisis-motor.ts:181",
           "contains": "if (hechos === null) return { ok: false, error: \"service\" };",
           "degradation": "Sin la 0509 analizarSalto se detiene antes de leer GitHub o llamar al motor: no gasta llamadas que no podría guardar."
         },

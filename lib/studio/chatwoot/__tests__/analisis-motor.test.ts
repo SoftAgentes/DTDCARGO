@@ -14,6 +14,7 @@ import { PIEZAS, type ArchivoFuente } from "../analisis";
 import {
   MAX_ANALISIS_DIA,
   MODELO_POR_DEFECTO,
+  URL_MOTOR_CODING_PLAN,
   URL_MOTOR_POR_DEFECTO,
   analizarSalto,
   compareUrl,
@@ -135,6 +136,13 @@ describe("configMotor", () => {
   });
   it("con llave usa la URL y el modelo por defecto", () => {
     expect(configMotor(ENV)).toEqual({ llave: LLAVE, url: URL_MOTOR_POR_DEFECTO, modelo: MODELO_POR_DEFECTO });
+  });
+  it("por defecto apunta a la API de pago de Z.AI, no al Coding Plan (E3-D15)", () => {
+    expect(URL_MOTOR_POR_DEFECTO).toBe("https://api.z.ai/api/paas/v4/chat/completions");
+    expect(URL_MOTOR_POR_DEFECTO).not.toContain("/coding/");
+  });
+  it("el endpoint del Coding Plan solo entra si se configura a propósito", () => {
+    expect(configMotor({ ...ENV, DTD_CHATWOOT_IA_GLM_URL: URL_MOTOR_CODING_PLAN })?.url).toBe(URL_MOTOR_CODING_PLAN);
   });
   it("rechaza una URL sin https o un modelo con forma rara", () => {
     expect(configMotor({ ...ENV, DTD_CHATWOOT_IA_GLM_URL: "http://x.test" })).toBeNull();

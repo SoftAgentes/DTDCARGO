@@ -60,7 +60,7 @@ Queda así:
 
 Esta decisión reemplaza a la anterior del mismo día («GLM de la oficina (Recomendado)», que apuntaba al Personal Coding Plan de la oficina). La anterior queda solo como historia.
 
-> **Orden del Director del 2026-10-30, después de esta decisión: «No implementes el 3.4 todavía».** Llegó cuando el 3.4 ya estaba hecho y publicado en esta rama (`7d66bd450`, punta `c2a91dcab`). No se revirtió nada. Le pregunté al Director si lo deja o lo saca de la rama. Mientras no conteste, el código sigue como está y la URL por defecto sigue apuntando al endpoint del Coding Plan. Con la API key de pago, el endpoint general es `https://api.z.ai/api/paas/v4/chat/completions` (NO VERIFICADO). Ese cambio queda para cuando se retome el 3.4.
+> **Orden del Director del 2026-10-30, después de esta decisión: «No implementes el 3.4 todavía».** Llegó cuando el 3.4 ya estaba hecho y publicado en esta rama (`7d66bd450`, punta `c2a91dcab`). No se revirtió nada. El Director respondió el mismo día que **se queda**, porque ya está hecho y bien protegido, y que la fila 3.4 **entra a la cola de `pnpm verify`** detrás del 2.7 de E2, que corre desde las 21:08Z. También pidió que el endpoint por defecto sea el de la API de pago (abajo, «Endpoints»).
 
 | ID | Decisión | Por qué |
 |---|---|---|
@@ -95,7 +95,16 @@ Esta decisión reemplaza a la anterior del mismo día («GLM de la oficina (Reco
 
 Pruebas y declaraciones: `lib/studio/chatwoot/__tests__/analisis{,-superficie,-motor}.test.ts`, `app/studio/(app)/admin/actualizaciones/__tests__/{actions,ActualizacionesPanel}.test.ts(x)`, `supabase/tests/0509_chatwoot_version_analyses.test.sql`, `lib/studio/__tests__/chatwoot-analisis.migration.test.ts`, `lib/studio/rbac-actions-guard.test.ts` (452 → 453), `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`.
 
-**NO VERIFICADO sin la llave real:** que la URL `https://api.z.ai/api/coding/paas/v4/chat/completions` y el modelo `glm-4.6` respondan con esta forma (OpenAI compatible) desde el servidor de Studio. Con la decisión E3-D15 (API key de pago aparte), ya no hace falta revisar los términos del Coding Plan. Lo que queda por verificar es el endpoint de la API de pago y el tope de US$50 al mes configurado en la cuenta. Las dos se pueden cambiar sin código con `DTD_CHATWOOT_IA_GLM_URL` y `DTD_CHATWOOT_IA_GLM_MODELO`.
+**Endpoints** (los dos son compatibles con OpenAI, `POST …/chat/completions`):
+
+| Endpoint | Cuándo | Cómo |
+|---|---|---|
+| `https://api.z.ai/api/paas/v4/chat/completions` · **API de pago de Z.AI** | **Por defecto** (`URL_MOTOR_POR_DEFECTO`). Va con la API key de pago que crea Sam, aparte del plan de la oficina y con su tope de US$50 al mes (E3-D15) | `DTD_CHATWOOT_IA_GLM_URL` vacía |
+| `https://api.z.ai/api/coding/paas/v4/chat/completions` · **Coding Plan** | **No se usa.** El plan es para herramientas de programación y no sabemos si sus términos admiten el uso desde una aplicación | Solo si se escribe a propósito en `DTD_CHATWOOT_IA_GLM_URL` (`URL_MOTOR_CODING_PLAN` queda documentada en el código) |
+
+Pruebas: `analisis-motor.test.ts` fija que el valor por defecto es la API de pago y no contiene `/coding/`, y que el Coding Plan solo entra si se configura.
+
+**NO VERIFICADO sin la llave real:** que la API de pago responda con esta forma y el modelo `glm-4.6` desde el servidor de Studio, y que el tope de US$50 al mes esté configurado en la cuenta. La llamada real a Z.AI es una puerta de integración con OK de Sam. La URL y el modelo se cambian sin tocar código con `DTD_CHATWOOT_IA_GLM_URL` y `DTD_CHATWOOT_IA_GLM_MODELO`.
 
 ## Migración 0507 (NO APLICADA)
 
@@ -105,7 +114,7 @@ Sin la 0507, todo degrada sin romper: el cron responde `omitido`, la pantalla di
 
 ## Migración 0509 (NO APLICADA)
 
-`supabase/migrations/0509_chatwoot_version_analyses.sql`, declarada en `migrations-baseline.json › pendingBelowCutoff`. Va después de la 0507 (de ella cuelga `check_id`). La 0509 es la siguiente libre que dio el Director el 2026-10-30. Le pedí confirmar el número para esta tabla y todavía no responde: si da otro, se renumera antes de fusionar. Contrato `supabase/tests/0509_chatwoot_version_analyses.test.sql` (21 aserciones) en `lib/studio/__tests__/chatwoot-analisis.migration.test.ts`: contrato verde, control rojo, 9 mutantes, preflight de reaplicación y preflight sin la 0507 (14/14 PASÓ).
+`supabase/migrations/0509_chatwoot_version_analyses.sql`, declarada en `migrations-baseline.json › pendingBelowCutoff`. Va después de la 0507 (de ella cuelga `check_id`). **0509 tomada por E3 y confirmada por el Director el 2026-10-30.** El Director no la había asignado: había pedido la 0508 libre para E9 y E2 la tomó. Después revisó la 0509 en todas las ramas y nadie más la usa. Contrato `supabase/tests/0509_chatwoot_version_analyses.test.sql` (21 aserciones) en `lib/studio/__tests__/chatwoot-analisis.migration.test.ts`: contrato verde, control rojo, 9 mutantes, preflight de reaplicación y preflight sin la 0507 (14/14 PASÓ).
 
 Sin la 0509: la pantalla no muestra informe y «Analizar con IA» responde un error traducido **antes** de leer GitHub o llamar al motor.
 

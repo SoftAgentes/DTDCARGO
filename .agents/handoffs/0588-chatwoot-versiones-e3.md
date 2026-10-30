@@ -5,7 +5,7 @@
 - **Rama:** `codex/0582-e3-versiones`, en el worktree `.claude/worktrees/sad-kowalevski-241d34`
 - **Base:** apilada sobre `codex/0582-e2-poc`; mergeada su punta `c1d081b3b` (2026-10-30) antes de registrar el cron
 - **Reserva:** SDD-0588, local: `refs/heads/codex/sdd-reserve-0588-chatwoot-versiones-e3` en `74b81928`. El stub no se integra; la spec real vive en esta rama
-- **Migraciones:** **0507** (asignada por el Director el 2026-10-30) y **0509** (3.4; la siguiente libre que dio el Director, número pedido para esta tabla y sin respuesta todavía). Las dos **NO APLICADAS**, declaradas en `migrations-baseline.json › pendingBelowCutoff`
+- **Migraciones:** **0507** (asignada por el Director el 2026-10-30) y **0509** (3.4). **0509 tomada por E3 y confirmada por el Director el 2026-10-30**: no estaba asignada (el Director había pedido la 0508 libre para E9 y E2 la tomó), y él la revisó en todas las ramas. Las dos **NO APLICADAS**, declaradas en `migrations-baseline.json › pendingBelowCutoff`
 
 ## OBJETIVO ORIGINAL
 
@@ -52,7 +52,7 @@ El candado vive en la PR de 4.2 (SDD-0584), todavía sin desplegar. Mientras no 
 | **3.4** · `rbac-actions-guard` (452 → 453 acciones), `next-config`, `build-crontab`, `versiones*` | PASÓ (458, 24, 11 y 27) |
 | **3.4** · `tsc --noEmit`, ESLint de los archivos tocados y `check-pending-migration-symbols` | PASÓ; 0 avisos; 0 ROJO, 8 AMARILLO (la 0509 declarada con 5 evidencias y las líneas de `actions.ts` resincronizadas) |
 | **3.4** · `/ui-check` del panel | Revisión en línea con la rúbrica: tokens `var(--*)`, `Badge` con texto para recomendación y riesgo, `ActionButton` ghost (el primario sigue siendo «Pedir actualización»), rutas en mono, sin HTML del motor. Sin hallazgos que corregir |
-| **3.4** · llamada real a Z.AI | **NO EJECUTADO**: usar la llave real es una puerta de integración con OK de Sam. URL `api.z.ai/api/coding/paas/v4`, modelo `glm-4.6` y términos del Coding Plan **NO VERIFICADOS** |
+| **3.4** · llamada real a Z.AI | **NO EJECUTADO**: usar la llave real es una puerta de integración con OK de Sam. Endpoint por defecto: la API de pago `api.z.ai/api/paas/v4`; el del Coding Plan (`coding/paas/v4`) solo se usa si se configura a propósito. La respuesta real y el modelo `glm-4.6` quedan **NO VERIFICADOS** |
 | `knowledge:status` | structural/semantic INVALID y Archify/Obsidian PENDING en este worktree; Graphify no corrido (lo publica el Director) |
 
 ### Los 4 rojos del verify
@@ -76,11 +76,11 @@ Después del merge de `5451c818d` también pasaron: `build-crontab --check` (22 
 
 ## PENDIENTES DE ESTA TAREA
 
-1. ~~`pnpm verify`~~: corrido, con los 4 rojos explicados arriba. Repetirlo con la máquina libre quedaría para el cierre global, si el Director lo pide.
+1. ~~`pnpm verify`~~: corrido, con los 4 rojos explicados arriba. El 3.4 entra a la cola de `pnpm verify` del Director, detrás del 2.7 de E2: el turno lo da él.
 2. ~~Confirmar la 0507~~: asignada por el Director. Pidió además guardar las notas sin HTML crudo: `limpiarNotas` quita etiquetas y comentarios (prueba más un mutante que muere).
 3. Aplicar la 0507: OK nominal de Sam y runbook `aplicar-migraciones-prod`. Sin ella, todo responde `omitido`/«sin datos».
 5. Aplicar la 0509 (después de la 0507): OK nominal de Sam. Antes, el Director confirma o cambia el número.
-8. **Decisión del motor (E3-D15), 2026-10-30:** «Solo GLM» y «US$50 al mes». Será una API key de pago de Z.AI aparte del plan de la oficina, con su propio tope, que crea Sam al arrancar. E7 usa el mismo proveedor y el mismo tope. Después, el Director pidió «No implementes el 3.4 todavía», cuando ya estaba publicado (`c2a91dcab`). Le pregunté si lo deja o lo saca; no revertí nada. Al retomarlo: cambiar la URL por defecto al endpoint de la API de pago (`api.z.ai/api/paas/v4`, NO VERIFICADO).
+8. **Decisión del motor (E3-D15), 2026-10-30:** «Solo GLM» y «US$50 al mes». Será una API key de pago de Z.AI aparte del plan de la oficina, con su propio tope, que crea Sam al arrancar. E7 usa el mismo proveedor y el mismo tope. Después, el Director pidió «No implementes el 3.4 todavía», cuando ya estaba publicado (`c2a91dcab`). Le pregunté si lo deja o lo saca, y respondió que **se queda** y que la fila 3.4 **entra a la cola de verify** detrás del 2.7 de E2. La URL por defecto ya es la de la API de pago (`api.z.ai/api/paas/v4`), con una prueba que lo fija; el Coding Plan solo entra si se configura a propósito.
 6. Puerta de integración del 3.4: con OK de Sam, poner la llave en el entorno del servidor de Studio (`DTD_CHATWOOT_IA_GLM_KEY`, propia; no la variable de la oficina) y hacer una corrida real con la API key de pago (E3-D15). Sin la llave, el análisis sale «sin IA».
 7. Aceptación de Sam del 3.4 y de la ampliación del 3.1 (`zz_dtd_revocar_sesiones.rb`).
 4. ~~Aceptación de Sam de 3.1 a 3.3~~: aceptados el 2026-10-30 («Acepto todo», a la pregunta del Director «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?»).

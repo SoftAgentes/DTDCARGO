@@ -43,7 +43,10 @@ export const TIMEOUT_MOTOR_MS = 120_000;
 const MAX_TOKENS_RESPUESTA = 4_000;
 const MAX_RESPUESTA = 60_000;
 
-export const URL_MOTOR_POR_DEFECTO = "https://api.z.ai/api/coding/paas/v4/chat/completions";
+// Por defecto, la API de pago de Z.AI (llave aparte, con su tope: SDD-0588 E3-D15). El
+// endpoint del Coding Plan es para herramientas de programación: solo por DTD_CHATWOOT_IA_GLM_URL.
+export const URL_MOTOR_POR_DEFECTO = "https://api.z.ai/api/paas/v4/chat/completions";
+export const URL_MOTOR_CODING_PLAN = "https://api.z.ai/api/coding/paas/v4/chat/completions";
 export const MODELO_POR_DEFECTO = "glm-4.6";
 const MODELO_RE = /^[A-Za-z0-9._-]{1,64}$/;
 
