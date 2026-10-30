@@ -50,9 +50,9 @@ En el WebKit de Playwright (indicador de Safari) pasan el iframe y el SSO. Firef
 | 2.1 | PoC con banco reproducible, matriz y decisión | aceptado (Sam, 2026-10-29: «Acepto 2.1») |
 | 2.2 | CSP y `Permissions-Policy` de la ruta (E2-D2), módulo, RBAC, flag, i18n, vínculos, `lib/studio/chatwoot`, SSO (E2-D5), capa persistente, página y `signOut` | aceptado (Sam, 2026-10-30: «Acepto todo») |
 | 2.3 | Contador, webhook con push y tarjeta en la ficha | aceptado (Sam, 2026-10-30: «Acepto todo»), con el verify de `d714834be` registrado: FALLÓ solo por rojos heredados, unas 50 e2e NO EJECUTADAS (la corrida se colgó) y migrations-applied NO DISPONIBLE |
-| 2.4 | Dashboard App «Ficha DTD» | entregado (2026-10-30), sin registrar en el Chatwoot del VPS |
-| 2.5 | Ciclo de vida de los agentes: Usuarios, cron y salud | entregado (2026-10-30); AUD-01 pendiente de número de migración |
-| 2.6 | revisar-datos-ve, `/ui-check`, QA de navegadores (incluye Firefox y Safari reales) y runbook | entregado (2026-10-30); e2e de la Ficha en el próximo verify; Firefox NO DISPONIBLE |
+| 2.4 | Dashboard App «Ficha DTD» | aceptado (Sam, 2026-10-30: «Acepto todo»), con el verify de `cf755a7a6` registrado (su rojo propio, `pending-migration-symbols`, ya corregido); sin registrar en el Chatwoot del VPS |
+| 2.5 | Ciclo de vida de los agentes: Usuarios, cron y salud | aceptado (Sam, 2026-10-30: «Acepto todo»); `pnpm verify` propio NO EJECUTADO, como registra el paso; AUD-01 pendiente de número de migración |
+| 2.6 | revisar-datos-ve, `/ui-check`, QA de navegadores (incluye Firefox y Safari reales) y runbook | aceptado (Sam, 2026-10-30: «Acepto todo»); `pnpm verify` propio NO EJECUTADO (el verify de E3, apilado sobre esta rama, y E10 encontraron dos rojos propios, ya corregidos); Firefox NO DISPONIBLE |
 | 2.7 | Usuarios y permisos: matriz real de CE, sincronización, pruebas por usuario y revocación del SSO | entregado en la rama (§«Paso 2.7»), sin desplegar; la 0508 y el script del panel son puertas |
 
 ## Paso 2.2 — la Bandeja en Studio
