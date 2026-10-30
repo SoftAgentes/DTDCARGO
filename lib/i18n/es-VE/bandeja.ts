@@ -124,6 +124,11 @@ export const bandeja = {
   "bandeja.salud.alerta.servicio_sin_configurar": "Falta configurar el usuario de servicio (CHATWOOT_SERVICE_USER_ID): no se puede contar a los administradores humanos.",
   "bandeja.salud.alerta.vinculo_fuera_de_cuenta": "Hay vínculos a agentes que ya no están en la cuenta: {ids}.",
   "bandeja.salud.alerta.baja_bloqueada": "Una baja quedó bloqueada para no dejar la cuenta sin administrador.",
+  "bandeja.salud.alerta.cierre_pendiente": "Una baja salió de la cuenta, pero sus sesiones siguen abiertas: el próximo cron lo reintenta.",
+  "bandeja.salud.alerta.degradacion_bloqueada": "Un cambio de rol quedó bloqueado para no dejar la cuenta sin administrador.",
+  "bandeja.salud.alerta.matriz_incompleta": "No se pudieron aplicar todos los permisos de la matriz: el próximo cron lo reintenta.",
+  "bandeja.salir.cerrando": "Cerrando tu sesión…",
+  "bandeja.salir.marco": "Cierre de la sesión del chat",
   "bandeja.badge.aria": "{n} sin leer",
 } as const satisfies Record<string, string>;
 

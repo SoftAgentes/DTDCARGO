@@ -22,15 +22,17 @@ El servidor de Chatwoot es de E1, en [chatwoot-servidor.md](chatwoot-servidor.md
 ## Encender (en orden, cada paso con su OK)
 
 1. **Merge a `main` y despliegue al VPS**, que es automático. Comprueba que `/studio/bandeja` tenga `frame-src https://chat.dtdcargo.com` y que `/studio/ficha-chat` tenga `frame-ancestors https://chat.dtdcargo.com`.
-2. **Migraciones 0503 y 0504**, siguiendo [aplicar-migraciones-prod.md](aplicar-migraciones-prod.md).
+2. **Migraciones 0503, 0504 y 0508** (bajas y purga, 2.7), en ese orden, siguiendo [aplicar-migraciones-prod.md](aplicar-migraciones-prod.md).
 3. **Variables en el `.env` del VPS,** contenedor `web`. El token y el secreto nunca van en Git:
    - `CHATWOOT_URL`, `CHATWOOT_PLATFORM_TOKEN` y `CHATWOOT_ACCOUNT_ID`;
    - `CHATWOOT_WEBHOOK_SECRET` y `CHATWOOT_TENANT_ID`;
-   - `CHATWOOT_SERVICE_USER_ID`.
+   - `CHATWOOT_SERVICE_USER_ID`;
+   - la matriz (2.7): `CHATWOOT_INBOX_CLIENTES_ID` y `CHATWOOT_TEAM_CLIENTES_ID`. Los de Leads, en el corte.
 4. **Flag `chatwoot_inbox`** encendido para el tenant, en Ajustes › Funciones.
 5. **Vínculos:** cada persona que atiende queda vinculada a su agente, en Bandeja › Vínculos (alta o vínculo manual).
 6. **Webhook de cuenta** en Chatwoot (Ajustes → Integraciones → Webhooks), con la URL `https://dtdcargo.com/api/chatwoot/webhook` y los eventos `message_created` y `conversation_status_changed`. El secreto que muestra Chatwoot va en `CHATWOOT_WEBHOOK_SECRET`.
 7. **Dashboard App** «Ficha DTD», según [chatwoot-ficha-dtd.md](chatwoot-ficha-dtd.md).
+8. **Script del panel** (`DASHBOARD_SCRIPTS`), para que salir de Studio cierre también el chat, según [chatwoot-agentes.md](chatwoot-agentes.md).
 
 ## Diagnóstico
 
@@ -61,4 +63,4 @@ Las tres situaciones están probadas de punta a punta, con la 0504 real en PGlit
 - **Flag `chatwoot_inbox` apagado:** desaparecen la Bandeja, el contador y los avisos, y Chatwoot sigue funcionando solo.
 - **Quitar el webhook en Chatwoot:** Studio deja de recibir eventos.
 
-No se borran datos: `chatwoot_conversations` y `chatwoot_webhook_events` quedan como estaban. Su plazo de conservación está pendiente (revisar-datos-ve de E2).
+No se borran datos: `chatwoot_conversations` y `chatwoot_webhook_events` quedan como estaban. Con la 0508, el cron `chatwoot-reintentos` borra los eventos procesados o descartados a los 90 días y las conversaciones sin actividad a los 12 meses (2.7; propuesta del Director sin objeción de Sam).
