@@ -1,36 +1,36 @@
-{% comment %}SDD-0583 · aviso a administradores: un canal dejó de recibir mensajes.{% endcomment %}
-<tr>
-  <td style="padding: 0 0 10px;">
-    <p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #7F0F1A;">Canal desconectado</p>
-  </td>
-</tr>
+{% comment %}SDD-0583 · aviso a administradores: un canal dejó de recibir mensajes. Generado por correo/generar-avisos.sh.{% endcomment %}
 <tr>
   <td style="padding: 0 0 16px;">
-    <h1 class="dtd-titulo" style="margin: 0; font-family: 'Archivo Black', Archivo, system-ui, sans-serif; font-size: 26px; line-height: 32px; font-weight: 900; color: #0F1E3D;">Se venció la conexión de Instagram</h1>
+    <span style="display: inline-block; padding: 6px 12px; border-radius: 999px; background-color: #F2F0EC; color: #7F0F1A; font-size: 12px; line-height: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">Canal desconectado</span>
+  </td>
+</tr>
+<tr>
+  <td style="padding: 0 0 14px;">
+    <h1 class="dtd-titulo" style="margin: 0; font-size: 32px; line-height: 38px; font-weight: 800; color: #0F1E3D;">Se venció la conexión de Instagram</h1>
   </td>
 </tr>
 <tr>
   <td style="padding: 0 0 10px;">
-    <p style="margin: 0; font-size: 15px; line-height: 23px; color: #333333;">Hola:</p>
+    <p style="margin: 0; font-size: 15px; line-height: 23px; color: #0F1E3D;">Hola:</p>
   </td>
 </tr>
 <tr>
   <td style="padding: 0 0 10px;">
-    <p style="margin: 0; font-size: 15px; line-height: 23px; color: #333333;">La conexión de Instagram de una bandeja del chat de DTD Cargo venció. Mientras no se vuelva a conectar, <strong>no llegan mensajes nuevos</strong> de esa bandeja.</p>
+    <p style="margin: 0; font-size: 15px; line-height: 23px; color: #333333;">La conexión de Instagram de una bandeja del chat de DTD Cargo venció. Mientras no se arregle, <strong>no llegan mensajes nuevos</strong> por ese canal.</p>
   </td>
 </tr>
 <tr>
-  <td style="padding: 0 0 10px;">
+  <td style="padding: 0 0 20px;">
     <p style="margin: 0; font-size: 15px; line-height: 23px; color: #333333;">Entra a la configuración de la bandeja y conéctala de nuevo.</p>
   </td>
 </tr>
 {% if action_url != nil and action_url != '' %}
 <tr>
-  <td style="padding: 8px 0 16px;">
-    <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0;">
+  <td style="padding: 0 0 20px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; margin: 0;">
       <tr>
-        <td bgcolor="#7F0F1A" style="border-radius: 8px; background-color: #7F0F1A;">
-          <a href="{{ action_url }}" style="display: inline-block; padding: 13px 28px; font-size: 15px; line-height: 20px; font-weight: 700; color: #FFFFFF; text-decoration: none; border-radius: 8px;">Volver a conectar Instagram</a>
+        <td bgcolor="#7F0F1A" style="border-radius: 14px; background-color: #7F0F1A;">
+          <a href="{{ action_url }}" style="display: block; width: 100%; box-sizing: border-box; padding: 14px 24px; font-size: 15px; line-height: 20px; font-weight: 700; color: #FFFFFF; text-align: center; text-decoration: none; border-radius: 14px;">Volver a conectar Instagram</a>
         </td>
       </tr>
     </table>
@@ -38,7 +38,7 @@
 </tr>
 <tr>
   <td style="padding: 0 0 20px;">
-    <p style="margin: 0; font-size: 13px; line-height: 20px; color: #6B6B6B;">Si el botón no abre, usa <a href="{{ action_url }}" style="color: #7F0F1A; text-decoration: underline;">este enlace</a>.</p>
+    <p style="margin: 0; font-size: 14px; line-height: 21px; color: #6B6B6B;">Si el botón no funciona, abre <a href="{{ action_url }}" style="color: #7F0F1A; font-weight: 600; text-decoration: none;">este enlace seguro</a>.</p>
   </td>
 </tr>
 {% endif %}

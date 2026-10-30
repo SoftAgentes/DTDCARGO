@@ -50,14 +50,14 @@
     detalles = [['Te invitó', quien_invita.name]]
     detalles << ['Equipo', equipo] if equipo.present?
     aviso.merge!(
-      etiqueta: 'Invitación',
-      titulo: 'Te invitaron al chat de DTD Cargo',
+      etiqueta: 'Invitación al equipo',
+      titulo: equipo.present? ? "Te invitaron a unirte a #{equipo}" : 'Te invitaron al chat de DTD Cargo',
       parrafos: [
-        "#{quien_invita.name} te invitó a atender a los clientes de DTD Cargo desde el chat.",
-        'Para aceptar, elige tu contraseña. El enlace vence en 6 horas; si se vence, pide que te inviten de nuevo.'
+        "#{quien_invita.name} te invitó a unirte al equipo de #{equipo.presence || 'DTD Cargo'} en el chat de atención a clientes.",
+        'Crea tu contraseña para empezar a trabajar con tu equipo. El enlace vence en 6 horas; si se vence, pide que te inviten de nuevo.'
       ],
       detalles: detalles,
-      boton: 'Aceptar la invitación',
+      boton: 'Aceptar invitación',
       url: frontend_url('auth/password/edit', **restablecer)
     )
   end

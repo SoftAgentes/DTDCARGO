@@ -1,67 +1,69 @@
 {% comment %}
   SDD-0583 · correo de DTD Cargo. Reemplaza layouts/mailer/base.liquid de Chatwoot
   (v4.19.1-ce) para todos los correos del sistema: contraseña, invitación, avisos a
-  agentes y avisos de canales. Los hex van literales porque los clientes de correo no
-  leen variables CSS (misma excepción que lib/studio/mail-signature-render.ts); son los
-  tokens de BRAND.md: wine #7F0F1A, ink #0F1E3D, base #FBFAF7, borde #E8E6E2,
-  texto secundario #6B6B6B. La firma usa los datos de CONTACT (lib/design-tokens.ts).
+  agentes y avisos de canales. Sigue la estructura del diseño de Chatwoot que eligió Sam
+  (tarjeta redondeada, etiqueta en píldora, recuadro de datos, botón ancho) con la marca
+  de DTD. Los hex van literales porque los clientes de correo no leen variables CSS (misma
+  excepción que lib/studio/mail-signature-render.ts); son los tokens de BRAND.md: wine
+  #7F0F1A, ink #0F1E3D, base #FBFAF7, elevated #F2F0EC, borde #E8E6E2, secundario #6B6B6B.
+  La firma usa los datos de CONTACT (lib/design-tokens.ts). El logo es el primary sobre
+  ficha blanca (marca/dtdcargo-isologo-correo.png): se ve igual en modo oscuro.
   Va en comentario de Liquid para que no llegue al correo.
 {% endcomment %}<!DOCTYPE html>
 <html lang="es">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light only">
-    <meta name="supported-color-schemes" content="light only">
     <title>DTD Cargo</title>
     <style type="text/css">
       @media only screen and (max-width: 600px) {
         .dtd-pagina { padding: 16px 8px 24px !important; }
         .dtd-contenido { padding: 28px 20px 8px !important; }
-        .dtd-firma { padding: 20px 20px 24px !important; }
-        .dtd-titulo { font-size: 22px !important; line-height: 28px !important; }
+        .dtd-cabecera { padding: 28px 20px 0 !important; }
+        .dtd-firma { padding: 20px 20px 28px !important; }
+        .dtd-titulo { font-size: 26px !important; line-height: 32px !important; }
       }
     </style>
   </head>
 
-  <body style="margin: 0; padding: 0; width: 100% !important; background-color: #FBFAF7; font-family: Archivo, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0F1E3D; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none;" bgcolor="#FBFAF7">
+  <body style="margin: 0; padding: 0; width: 100% !important; background-color: #FBFAF7; font-family: Archivo, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0F1E3D; font-size: 15px; line-height: 23px; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none;" bgcolor="#FBFAF7">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; background-color: #FBFAF7;" bgcolor="#FBFAF7">
       <tr>
         <td align="center" class="dtd-pagina" style="padding: 32px 16px 40px;" valign="top">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 600px; margin: 0 auto;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 640px; margin: 0 auto;">
             <tr>
               <td>
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; border: 1px solid #E8E6E2; border-radius: 12px; background-color: #FFFFFF; overflow: hidden;" bgcolor="#FFFFFF">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; border: 1px solid #E8E6E2; border-radius: 24px; background-color: #FFFFFF; box-shadow: 0 12px 32px rgba(15, 30, 61, 0.06); overflow: hidden;" bgcolor="#FFFFFF">
                   <tr>
-                    <td style="height: 4px; background-color: #7F0F1A; font-size: 0; line-height: 0;" bgcolor="#7F0F1A">&nbsp;</td>
+                    <td style="height: 6px; background-color: #7F0F1A; font-size: 0; line-height: 0;" bgcolor="#7F0F1A">&nbsp;</td>
                   </tr>
                   <tr>
-                    <td style="padding: 28px 36px 0;">
+                    <td class="dtd-cabecera" style="padding: 32px 36px 0;">
                       <a href="https://dtdcargo.com" style="text-decoration: none;">
-                        <img src="https://chat.dtdcargo.com/dtd-marca/dtdcargo-isologo-primary.png" width="56" height="58" alt="DTD Cargo" style="display: block; width: 56px; height: 58px; border: 0; outline: none;">
+                        <img src="https://chat.dtdcargo.com/dtd-marca/dtdcargo-isologo-correo.png" width="64" height="64" alt="DTD Cargo" style="display: block; width: 64px; height: 64px; border: 0; outline: none; border-radius: 14px;">
                       </a>
                     </td>
                   </tr>
                   <tr>
-                    <td class="dtd-contenido" style="padding: 24px 36px 8px; vertical-align: top;" valign="top">
+                    <td class="dtd-contenido" style="padding: 24px 36px 12px; vertical-align: top;" valign="top">
                       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%;">
                         {{ content_for_layout }}
                       </table>
                     </td>
                   </tr>
                   <tr>
-                    <td class="dtd-firma" style="padding: 20px 36px 28px; border-top: 1px solid #E8E6E2;">
-                      <p style="margin: 0 0 2px; font-family: 'Archivo Black', Archivo, system-ui, sans-serif; font-size: 15px; line-height: 20px; font-weight: 900;">
+                    <td class="dtd-firma" style="padding: 24px 36px 32px; border-top: 1px solid #E8E6E2;">
+                      <p style="margin: 0 0 2px; font-size: 16px; line-height: 22px; font-weight: 800;">
                         <span style="color: #7F0F1A;">DTD</span> <span style="color: #0F1E3D;">Cargo</span>
                       </p>
                       <p style="margin: 0 0 12px; font-size: 13px; line-height: 19px; color: #7F0F1A;">Con Confianza, de China a tu puerta.</p>
-                      <p style="margin: 0 0 4px; font-size: 12px; line-height: 18px; color: #6B6B6B;">
+                      <p style="margin: 0 0 4px; font-size: 13px; line-height: 19px; color: #6B6B6B;">
                         Torre Profesional Kokuy, Calle 151 (entre Av. Bolívar Norte y Av. Paseo Cabriales), Valencia, Carabobo, Venezuela
                       </p>
-                      <p style="margin: 0; font-size: 12px; line-height: 18px; color: #6B6B6B;">
-                        Teléfono <a href="tel:+582414147886" style="color: #0F1E3D; text-decoration: none;">+58 241 414 7886</a>
-                        &nbsp;·&nbsp; WhatsApp <a href="https://wa.me/584121668021" style="color: #7F0F1A; text-decoration: underline;">+58 412 166 8021</a>
-                        &nbsp;·&nbsp; <a href="https://dtdcargo.com" style="color: #0F1E3D; text-decoration: none;">www.dtdcargo.com</a>
+                      <p style="margin: 0; font-size: 13px; line-height: 19px; color: #6B6B6B;">
+                        Teléfono <a href="tel:+582414147886" style="color: #0F1E3D; font-weight: 600; text-decoration: none;">+58 241 414 7886</a>
+                        &nbsp;·&nbsp; WhatsApp <a href="https://wa.me/584121668021" style="color: #7F0F1A; font-weight: 600; text-decoration: none;">+58 412 166 8021</a>
+                        &nbsp;·&nbsp; <a href="https://dtdcargo.com" style="color: #0F1E3D; font-weight: 600; text-decoration: none;">www.dtdcargo.com</a>
                       </p>
                     </td>
                   </tr>
@@ -69,16 +71,16 @@
               </td>
             </tr>
             <tr>
-              <td style="padding: 20px 12px 0; text-align: center; font-size: 12px; line-height: 18px; color: #6B6B6B;">
+              <td style="padding: 20px 8px 0; text-align: center; font-size: 13px; line-height: 21px; color: #6B6B6B;">
                 Este correo sale de un buzón que solo envía avisos y no lee respuestas.
-                Para escribirnos, usa <a href="mailto:vzla@dtdcargo.com" style="color: #7F0F1A; text-decoration: underline;">vzla@dtdcargo.com</a>.
+                Para escribirnos, usa <a href="mailto:vzla@dtdcargo.com" style="color: #7F0F1A; font-weight: 600; text-decoration: none;">vzla@dtdcargo.com</a>.
               </td>
             </tr>
             {% if notification_settings_url != nil and notification_settings_url != '' %}
               <tr>
-                <td style="padding: 8px 12px 0; text-align: center; font-size: 12px; line-height: 18px; color: #6B6B6B;">
+                <td style="padding: 8px 8px 0; text-align: center; font-size: 13px; line-height: 21px; color: #6B6B6B;">
                   Recibes este aviso porque tienes activadas las notificaciones por correo.
-                  <a href="{{ notification_settings_url }}" style="color: #7F0F1A; text-decoration: underline;">Cambiar mis avisos</a>.
+                  <a href="{{ notification_settings_url }}" style="color: #7F0F1A; font-weight: 600; text-decoration: none;">Cambiar mis avisos</a>.
                 </td>
               </tr>
             {% endif %}
