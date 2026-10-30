@@ -39,6 +39,8 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 
 ## Autorizaciones registradas
 
+- 0.8, 2026-10-30: Sam respondió por el selector de la app; el Director pasó las respuestas literales: «¿Cuenta como cliente quien ya tiene carga recibida en China, aunque todavía no tenga envío creado?» → «Sí cuenta (Recomendado)»; «Si a un cliente le cancelan o borran su único envío, ¿qué pasa?» → «Vuelve a lead (Recomendado)»; «¿El bot responde con 1 mensaje o con 3?» → «1 mensaje (Recomendado)». Cubre aceptar 0.8 y escribir la regla. No cubre la migración de 10.1, que tiene su propio OK.
+
 - Línea base v3, 2026-10-29: Sam aprobó el análisis comparativo del Director (video y kit de Basdonax, guía de Meta, calculadora, contraplan de Codex y costo por chat). No hay frase literal; se registra como «aprobación del análisis comparativo del Director, 2026-10-29» (texto que pasó el Director). Cubre escribir la v3 en el checklist y la spec. Las decisiones nuevas de 0.8 y el 2.8 opcional siguen pendientes de Sam.
 
 - Línea base v2, 2026-10-29: Sam aprobó el plan v3 del Director en la app. No hay frase literal; se registra como «aprobación del plan v3 del Director, 2026-10-29» (texto que pasó el Director). Cubre escribir la v2 en el checklist y la spec. La regla de «cliente» queda para 0.8.
@@ -159,14 +161,47 @@ Por etapa:
   E10 Enrutamiento por segmento (SDD hija nueva; se reserva al arrancar, después de 2.3): 0 de 7,25 d (0,0 %)
 ```
 
+## Paso 0.8 aceptado (2026-10-30)
+
+- **0.8 → aceptado** con las tres respuestas de Sam (S08-1 a S08-3 en el registro). E0 queda completa: 5,5 de 5,5 días.
+- **Regla de «cliente»** en la spec: algún envío vivo o algún recibo vivo en China con uno de sus códigos (vigente, historial o fichas fusionadas). Se calcula en el momento y no se guarda; quien pierde su único envío y no tiene carga viva en China vuelve a lead registrado, sin migración.
+- **Recibo vivo = `deleted_at is null`** (C, S08-5): la tabla no tiene estado «anulado». **Si un recibo en `incidencia` cuenta es NV** y queda para 10.1 (S08-6).
+- **E7 (7.6) y E10 (10.2):** responden en 1 mensaje. Costo de referencia ≈ US$11 al mes con la tarifa de enero (I/NV).
+- **Sin cambio de línea base.** % en esta rama: 4,33 % → **4,76 %** (5 y 5,5 ÷ 115,5). Con las otras ramas (2.1, 4.2 y 9.1): 6,71 % → **7,14 %** (8,25 ÷ 115,5). La línea «avance antes» del script compara con la v2 (5,03 %), no con el estado previo a 0.8.
+- La prueba del avance no cambia: su lector calcula el % de los aceptados del checklist real, y la firma de línea base sigue igual.
+
+Salida de `node scripts/avance-checklist.mjs docs/specs/0582-chatwoot-piloto/checklist.md`:
+
+```text
+Etapa 2 de 11 · E1 Chatwoot en el VPS · paso 1.1 · Avance 4,8 % (falta 95,2 %) · Esfuerzo: real 3,5 d, restante 108,25 d
+Línea base v3 (2026-10-29) · alcance 115,5 d · aceptado 5,5 d
+Cambio de alcance: v2 109,25 d → v3 115,5 d · avance antes 5,0 % → ahora 4,8 %
+Ritmo real: 1,07 d base por día real · faltan ≈ 101,17 días de trabajo
+Entregados sin aceptar: ninguno
+Esperando: ninguno
+Bloqueados: ninguno
+Por etapa:
+  E0 Preparación y puertas: 5,5 de 5,5 d (100,0 %)
+  E1 Chatwoot en el VPS: 0 de 4,75 d (0,0 %)
+  E2 Bandeja en Studio, usuarios y permisos: 0 de 20,75 d (0,0 %)
+  E3 Actualizaciones desde Studio: 0 de 5 d (0,0 %)
+  E4 Canales en paralelo a Kommo: 0 de 9,75 d (0,0 %)
+  E5 Historial de Kommo: 0 de 7,75 d (0,0 %)
+  E6 Embudo propio y reemplazos: 0 de 17,25 d (0,0 %)
+  E7 Bot propio: 0 de 18,5 d (0,0 %)
+  E8 Corte, salida de Kommo y limpieza del ERP: 0 de 10 d (0,0 %)
+  E9 Guía interactiva «Antes en Kommo → Ahora aquí» (termina antes de 8.1): 0 de 9 d (0,0 %)
+  E10 Enrutamiento por segmento (SDD hija nueva; se reserva al arrancar, después de 2.3): 0 de 7,25 d (0,0 %)
+```
+
 ## Validación
 
 | Check | Resultado |
 |---|---|
 | `node scripts/build-docs-index.mjs --check` (docs:check) | PASÓ (565 specs) |
 | `node scripts/check-numbering.mjs` (sdd:check) | PASÓ |
-| `node scripts/avance-checklist.mjs …/checklist.md` | PASÓ (v3: 4,58 % → 4,33 % en esta rama) |
-| `scripts/__tests__/avance-checklist.test.mjs` | PASÓ (12/12, con el `node_modules` de main enlazado y quitado al terminar); v3: 8 mutantes muertos |
+| `node scripts/avance-checklist.mjs …/checklist.md` | PASÓ (v3: 4,58 % → 4,33 %; con 0.8 aceptado, 4,76 % en esta rama) |
+| `scripts/__tests__/avance-checklist.test.mjs` | PASÓ (12/12, con el `node_modules` de main enlazado y quitado al terminar); v3: 8 mutantes muertos; con 0.8 aceptado, otra vez 12/12 |
 | `git diff --check` | PASÓ |
 | `pnpm verify` | NO APLICA: cambio solo de docs |
 | Graphify / Archify / knowledge:status | NO EJECUTADO: docs de una spec sin código; lo publica el Director desde main |
