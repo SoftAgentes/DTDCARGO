@@ -24,6 +24,7 @@ import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { pedirEnlaceSso, reconciliarBandeja, type BandejaErrorCode } from "../actions";
 import { VinculosAdmin, type MiembroOpcion, type VinculoFila } from "./VinculosAdmin";
 import type { EventoDescartado } from "@/lib/studio/chatwoot/conversations-queries";
+import type { SaludBandeja } from "@/lib/studio/chatwoot/agentes-salud";
 
 export type BandejaEstado = "sin_configurar" | "sin_vinculo" | "listo";
 
@@ -33,7 +34,7 @@ interface Props {
   inicioUrl: string | null;
   /** `?c=N`: conversación a abrir (E2-D24). */
   conversacion?: number | null;
-  admin: { vinculos: VinculoFila[]; miembros: MiembroOpcion[]; descartados?: EventoDescartado[] } | null;
+  admin: { vinculos: VinculoFila[]; miembros: MiembroOpcion[]; descartados?: EventoDescartado[]; salud?: SaludBandeja | null } | null;
 }
 
 type Fase = { tipo: "pidiendo" } | { tipo: "abriendo" } | { tipo: "abierto" } | { tipo: "error"; codigo: BandejaErrorCode };
@@ -153,7 +154,7 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
         </div>
       )}
 
-      {admin ? <VinculosAdmin vinculos={admin.vinculos} miembros={admin.miembros} /> : null}
+      {admin ? <VinculosAdmin vinculos={admin.vinculos} miembros={admin.miembros} salud={admin.salud} /> : null}
       {admin?.descartados?.length ? (
         <section
           aria-labelledby="bandeja-descartados"

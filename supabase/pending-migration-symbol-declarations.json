@@ -322,8 +322,13 @@
           "name": "chatwoot_agent_links",
           "kind": "table",
           "callSites": [
-            "app/studio/(app)/bandeja/actions.ts:168",
-            "app/studio/(app)/bandeja/actions.ts:188",
+            "app/studio/(app)/bandeja/actions.ts:180",
+            "app/studio/(app)/bandeja/actions.ts:200",
+            "app/studio/(app)/bandeja/actions.ts:241",
+            "app/studio/(app)/bandeja/actions.ts:269",
+            "app/studio/(app)/bandeja/actions.ts:281",
+            "lib/studio/chatwoot/agentes-ciclo.ts:83",
+            "lib/studio/chatwoot/agentes-ciclo.ts:134",
             "lib/studio/chatwoot/links-queries.ts:20",
             "lib/studio/chatwoot/links-queries.ts:34",
             "lib/studio/chatwoot/webhook-procesar.ts:80"
@@ -347,12 +352,12 @@
           "degradation": "listVinculos devuelve la lista vacía: el admin ve «Todavía no hay usuarios vinculados»."
         },
         {
-          "site": "app/studio/(app)/bandeja/actions.ts:174",
+          "site": "app/studio/(app)/bandeja/actions.ts:186",
           "contains": "if (error) return { ok: false, error: error.code === \"23505\" ? \"duplicate\" : \"service\" };",
           "degradation": "vincularAgente sin la tabla no inserta nada y responde «El servidor de mensajes no respondió», sin error crudo."
         },
         {
-          "site": "app/studio/(app)/bandeja/actions.ts:192",
+          "site": "app/studio/(app)/bandeja/actions.ts:204",
           "contains": "if (error) return { ok: false, error: \"service\" };",
           "degradation": "desvincularAgente sin la tabla no borra nada y responde el mismo mensaje traducido."
         },
@@ -360,6 +365,16 @@
           "site": "lib/studio/chatwoot/webhook-procesar.ts:83",
           "contains": "const vinculos = (data ?? []) as { user_id: string; chatwoot_user_id: number }[];",
           "degradation": "El aviso push del webhook sin la tabla no tiene vínculos: data llega null, la lista queda vacía y no se encola ningún push. El evento ya quedó registrado (0504)."
+        },
+        {
+          "site": "app/studio/(app)/bandeja/actions.ts:248",
+          "contains": "if (errorVinculos) return { ok: false, error: \"service\" };",
+          "degradation": "Alta de agente (2.5) sin 0503: la lectura de chatwoot_agent_links falla y altaAgente responde «service» ANTES de crear o tocar nada en Chatwoot; sin 0503 tampoco existe el flag ni el formulario."
+        },
+        {
+          "site": "lib/studio/chatwoot/agentes-ciclo.ts:87",
+          "contains": "console.warn(`[chatwoot-agentes] vínculos no disponibles: ${error.code ?? \"sin código\"}`);",
+          "degradation": "Ciclo de agentes (2.5) sin 0503: sincronizarAgentes no lee vínculos y devuelve omitido sin llamar a Chatwoot; el cron chatwoot-agentes responde 200 omitido y la baja desde Usuarios no hace nada."
         }
       ]
     },
@@ -380,7 +395,7 @@
           "name": "chatwoot_conversations",
           "kind": "table",
           "callSites": [
-            "app/studio/(app)/bandeja/actions.ts:270",
+            "app/studio/(app)/bandeja/actions.ts:365",
             "app/studio/(app)/_components/BandejaBadge.tsx:14",
             "lib/studio/chatwoot/conversations-queries.ts:30",
             "lib/studio/chatwoot/conversations-queries.ts:53"
@@ -427,11 +442,6 @@
           "degradation": "Sin la RPC (42883/PGRST202) el webhook responde 500 sin registrar ni avisar, y la reconciliación de la Bandeja responde «service». El webhook no se registra en Chatwoot hasta aplicar 0503 y 0504 (puerta aparte)."
         },
         {
-          "site": "app/studio/(app)/bandeja/actions.ts:275",
-          "contains": "if (!fila?.client_id) return { ok: true, ficha: null };",
-          "degradation": "La Ficha DTD (2.4) lee chatwoot_conversations con la sesión después de aplicarConversacion; sin 0504 la RPC falla antes y la acción responde «service», y si la lectura no trae fila responde ficha nula: el panel muestra «sin ficha» y no expone datos."
-        },
-        {
           "site": "app/studio/(app)/_components/BandejaBadge.tsx:19",
           "contains": "if (n === 0) return null;",
           "degradation": "La suscripción Realtime a una tabla que no existe no entrega cambios: el badge se queda con lo inicial del layout (vacío sin 0504) y no pinta nada."
@@ -450,6 +460,11 @@
           "site": "lib/studio/chatwoot/conversations-queries.ts:88",
           "contains": "  return data as EventoDescartado[];",
           "degradation": "listEventosDescartados sin la tabla devuelve [] y la Bandeja del admin no pinta la sección de eventos descartados."
+        },
+        {
+          "site": "app/studio/(app)/bandeja/actions.ts:370",
+          "contains": "if (!fila?.client_id) return { ok: true, ficha: null };",
+          "degradation": "Ficha DTD (2.4) sin 0504: aplicarConversacion lanza porque falta chatwoot_registrar_evento y pedirFichaDtd responde «service» antes de leer chatwoot_conversations; si la lectura llegara a fallar, fila sale null y la página dice «Sin ficha». La Dashboard App no se registra en Chatwoot hasta desplegar y aplicar 0503 y 0504 (puerta aparte)."
         }
       ]
     },

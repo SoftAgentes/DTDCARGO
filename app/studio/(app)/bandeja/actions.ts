@@ -16,6 +16,10 @@
  *  - `pedirFichaDtd`: la ficha del cliente para la Dashboard App «Ficha DTD»
  *    (paso 2.4, E2-D30 a E2-D32). Recibe solo los dos ids del contexto de
  *    Chatwoot; el cliente sale de la base, nunca del teléfono del contexto.
+ *  - `altaAgente`: solo admin (paso 2.5). Da de alta en Chatwoot a un usuario
+ *    de Studio que ve la Bandeja: crea (o adopta por correo) su usuario, lo mete
+ *    en la cuenta como agente y guarda el vínculo. La baja la hacen Usuarios y
+ *    el cron `chatwoot-agentes` (`lib/studio/chatwoot/agentes-ciclo.ts`).
  *
  * Nunca se registra el enlace, el token ni un correo.
  */
@@ -28,13 +32,20 @@ import { getStudioAccess, moduleViewDenial, tenantAdminGate } from "@/lib/studio
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { isModuleEnabled } from "@/lib/studio/feature-flags-types";
 import { chatwootConfig } from "@/lib/studio/chatwoot/config";
-import { obtenerAgente, obtenerEnlaceSso, obtenerTokenAgente } from "@/lib/studio/chatwoot/platform-api";
+import {
+  agregarACuenta,
+  crearAgente,
+  obtenerAgente,
+  obtenerEnlaceSso,
+  obtenerTokenAgente,
+} from "@/lib/studio/chatwoot/platform-api";
 import { listarConversacionesRecientes, obtenerConversacion } from "@/lib/studio/chatwoot/account-api";
 import { aplicarConversacion } from "@/lib/studio/chatwoot/webhook-procesar";
 import { getVinculoPropio } from "@/lib/studio/chatwoot/links-queries";
 import { isUuid, mismoCorreo, parseChatwootUserId } from "@/lib/studio/chatwoot/chatwoot-types";
 import { SSO_COOKIE, SSO_COOKIE_OPTIONS } from "@/lib/studio/chatwoot/sso-cookie";
 import { canAccessModule } from "@/lib/studio/rbac";
+import type { StudioUserRole } from "@/lib/studio/user-types";
 import { puedeVerSaldoCliente, type EstadoCuentaCliente } from "@/lib/studio/client-account";
 import { getClientAccountState } from "@/lib/studio/client-queries";
 import { listMarkboxHistory } from "@/lib/studio/markbox-history-queries";
@@ -50,6 +61,7 @@ export type BandejaErrorCode =
   | "duplicate"
   | "unconfigured"
   | "unlinked"
+  | "sin_bandeja"
   | "service";
 
 export type EnlaceSsoResult = { ok: true; url: string } | { ok: false; error: BandejaErrorCode };
@@ -190,6 +202,89 @@ export async function desvincularAgente(_prev: VinculoState, formData: FormData)
     .eq("tenant_id", gate.tenantId)
     .eq("user_id", userId);
   if (error) return { ok: false, error: "service" };
+  revalidatePath("/studio/bandeja");
+  return { ok: true, error: null };
+}
+
+export async function altaAgente(_prev: VinculoState, formData: FormData): Promise<VinculoState> {
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { ok: false, error: "denied" };
+
+  const userId = formData.get("user_id");
+  if (!isUuid(userId)) return { ok: false, error: "invalid" };
+  const cfg = chatwootConfig();
+  if (!cfg) return { ok: false, error: "unconfigured" };
+
+  // Miembro activo del MISMO tenant del admin, con acceso a la Bandeja (rol y
+  // overrides de ese tenant). Correo y nombre: service_role, como en Usuarios.
+  const admin = createAdminClient();
+  const { data: miembro } = await admin
+    .from("user_tenants")
+    .select("user_id, role")
+    .eq("tenant_id", gate.tenantId)
+    .eq("user_id", userId)
+    .is("disabled_at", null)
+    .maybeSingle<{ user_id: string; role: StudioUserRole }>();
+  if (!miembro) return { ok: false, error: "not_member" };
+  const { data: filasOverride } = await admin
+    .from("studio_role_module_overrides")
+    .select("role, module_id, can_view, can_edit")
+    .eq("tenant_id", gate.tenantId);
+  const overrides: Record<string, { view: boolean; edit: boolean }> = {};
+  for (const o of (filasOverride ?? []) as { role: string; module_id: string; can_view: boolean; can_edit: boolean }[]) {
+    overrides[`${o.role}:${o.module_id}`] = { view: o.can_view, edit: o.can_edit };
+  }
+  if (!canAccessModule(miembro.role, "bandeja", overrides)) return { ok: false, error: "sin_bandeja" };
+
+  const { data: yaVinculado, error: errorVinculos } = await admin
+    .from("chatwoot_agent_links")
+    .select("user_id")
+    .eq("tenant_id", gate.tenantId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  // Sin la 0503 (o con la base caída) no se toca Chatwoot: crear el agente y
+  // después no poder guardar el vínculo lo dejaría en la cuenta sin dueño.
+  if (errorVinculos) return { ok: false, error: "service" };
+  if (yaVinculado) return { ok: false, error: "duplicate" };
+
+  const { data: auth, error: authError } = await admin.auth.admin.getUserById(userId);
+  const correo = auth?.user?.email;
+  if (authError || !correo) return { ok: false, error: "not_member" };
+  const { data: perfil } = await admin
+    .from("user_profiles")
+    .select("first_name, last_name")
+    .eq("user_id", userId)
+    .maybeSingle<{ first_name: string | null; last_name: string | null }>();
+  const nombre = `${perfil?.first_name ?? ""} ${perfil?.last_name ?? ""}`.trim() || correo.split("@")[0];
+
+  const creado = await crearAgente({ nombre, correo }, cfg);
+  if (!creado.ok) {
+    console.warn(`[bandeja] alta en Chatwoot no disponible: ${creado.error}`);
+    return { ok: false, error: "service" };
+  }
+  // `users#create` adopta un usuario existente por correo: si ese agente ya
+  // está vinculado a otra persona, no se toca la cuenta.
+  const { data: deOtro } = await admin
+    .from("chatwoot_agent_links")
+    .select("user_id")
+    .eq("tenant_id", gate.tenantId)
+    .eq("chatwoot_user_id", creado.data)
+    .maybeSingle();
+  if (deOtro) return { ok: false, error: "duplicate" };
+
+  const enCuenta = await agregarACuenta(creado.data, cfg);
+  if (!enCuenta.ok) {
+    console.warn(`[bandeja] no se pudo meter al agente en la cuenta: ${enCuenta.error}`);
+    return { ok: false, error: "service" };
+  }
+  const { error } = await supabase.from("chatwoot_agent_links").insert({
+    tenant_id: gate.tenantId,
+    user_id: userId,
+    chatwoot_user_id: creado.data,
+    created_by: gate.userId,
+  });
+  if (error) return { ok: false, error: error.code === "23505" ? "duplicate" : "service" };
   revalidatePath("/studio/bandeja");
   return { ok: true, error: null };
 }

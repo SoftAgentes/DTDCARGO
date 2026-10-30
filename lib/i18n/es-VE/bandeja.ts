@@ -107,6 +107,23 @@ export const bandeja = {
   "bandeja.ficha.error.sin_clientes": "Tu rol no ve fichas de clientes.",
   "bandeja.ficha.error.sin_acceso": "No tienes acceso a esta conversación.",
   "bandeja.ficha.error.service": "No pudimos cargar la ficha. Vuelve a intentarlo.",
+
+  // ── Ciclo de vida de los agentes (2.5): alta y salud ──
+  "bandeja.error.sin_bandeja": "Ese usuario no tiene acceso a la Bandeja por su rol.",
+  "bandeja.alta.title": "Dar de alta en la bandeja",
+  "bandeja.alta.help": "Crea su agente en el servidor de mensajes con el nombre y el correo de Studio, y lo vincula. Entra siempre por Studio, sin clave propia.",
+  "bandeja.alta.user": "Usuario de Studio",
+  "bandeja.alta.submit": "Dar de alta",
+  "bandeja.alta.submitting": "Dando de alta…",
+  "bandeja.alta.created": "Agente dado de alta y vinculado.",
+  "bandeja.alta.empty": "Todos los usuarios que ven la Bandeja ya tienen agente.",
+  "bandeja.salud.title": "Salud de la bandeja",
+  "bandeja.salud.ok": "Todo en orden: hay {n} administrador(es) humano(s) y los vínculos están dentro de la cuenta.",
+  "bandeja.salud.alerta.chatwoot_no_responde": "El servidor de mensajes no responde.",
+  "bandeja.salud.alerta.sin_admin_humano": "La cuenta no tiene ningún administrador humano: solo el usuario de servicio. Agrega un administrador desde el servidor de mensajes.",
+  "bandeja.salud.alerta.servicio_sin_configurar": "Falta configurar el usuario de servicio (CHATWOOT_SERVICE_USER_ID): no se puede contar a los administradores humanos.",
+  "bandeja.salud.alerta.vinculo_fuera_de_cuenta": "Hay vínculos a agentes que ya no están en la cuenta: {ids}.",
+  "bandeja.salud.alerta.baja_bloqueada": "Una baja quedó bloqueada para no dejar la cuenta sin administrador.",
 } as const satisfies Record<string, string>;
 
 export type BandejaDict = Record<keyof typeof bandeja, string>;

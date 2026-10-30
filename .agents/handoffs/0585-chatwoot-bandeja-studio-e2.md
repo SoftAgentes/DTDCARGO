@@ -291,13 +291,74 @@ Lo pidió el Director el 2026-10-30, en la misma rama y sin pausar. No hay migra
 - `check-rsc-boundary` y `components:check` PASÓ.
 - 13/13 mutantes muertos.
 - `/ui-check` con dos ajustes aplicados.
-- `pnpm verify` completo **NO EJECUTADO**: E10 programa en paralelo y falta el turno del Director.
+- `pnpm verify` completo con turno del Director, sobre `cf755a7a6`: FALLÓ con un rojo propio (`pending-migration-symbols`), ya corregido. Lo demás es heredado o por carga, y la tabla está más abajo.
 
 **Puertas que este paso no cruza** (cada una con su OK):
 - desplegar;
 - aplicar la 0503 y la 0504;
 - registrar la Dashboard App en el Chatwoot del VPS (`docs/runbooks/chatwoot-ficha-dtd.md`).
 
+### Verify completo del 2.4 (turno del Director, 06:30Z a 07:27Z)
+
+| Paso | Resultado | De quién es |
+|---|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, build | PASÓ | — |
+| schema-rebuild | PASÓ: 475 migraciones desde cero; aislamiento multi-tenant en 219 tablas | — |
+| pending-migration-symbols | FALLÓ → **corregido** | **Propio.** Al editar `bandeja/actions.ts`, las líneas declaradas se vencieron, y `pedirFichaDtd` sumó un sitio de llamada de `chatwoot_conversations`. Se resincronizaron las líneas y se declaró la degradación del sitio nuevo: sin la 0504 la acción responde «service» antes de leer. Repetido solo: 0 ROJO · 5 AMARILLO |
+| sql-tests | FALLÓ: 248 verdes y 3 rojos (`0467_reversion_credito_carrera` y los dos `0497_reverso_al_anular_factura`) | Heredado de SDD-0573, igual que en el 2.2 y el 2.3. **0503 y 0504 PASÓ** |
+| test (Vitest) | FALLÓ: 13470 verdes y 2 timeouts de 600 s; al reintento, 13471 y 1 | Por carga: `scripts/__tests__/entorno-prueba-scripts.test.mjs` e `infra/ops/tests/migraciones.test.mjs`, fuera del diff. **Aislados después: PASÓ 32/32** |
+| e2e | FALLÓ: 218 verdes, 1 rojo, 1 flaky y 20 saltadas, en las dos vueltas | El rojo es `sin-scroll-horizontal.spec.ts:119` (Shipping Mark), heredado. Flaky: `auth.spec.ts:81` y `calculadora-semantic-colors.spec.ts:53`. **No se colgó:** corrieron todas |
+| migrations-applied | NO DISPONIBLE (SKIP): sin `.env.local` | Sin medir |
+
+### Puerta de integración: registrar la Ficha DTD en Chatwoot
+
+Decisión del Director (2026-10-30): **no se registra ahora**. La URL `https://dtdcargo.com/studio/ficha-chat` todavía no existe en producción, porque no está en `main`. El orden es este:
+1. merge a `main`, con el despliegue automático al VPS;
+2. comprobar en producción que `/studio/ficha-chat` responde con `frame-ancestors https://chat.dtdcargo.com` y sin `X-Frame-Options`;
+3. aplicar la 0503 y la 0504, con OK nominal de Sam y siguiendo el runbook;
+4. registrar la Dashboard App, con OK de Sam y siguiendo `docs/runbooks/chatwoot-ficha-dtd.md`. De paso, revisar que no haya otras Dashboard Apps: todas reciben el contexto con datos del contacto.
+
 ### FUERA DE ALCANCE DETECTADO (2.4)
 
 - `getClientAccountState` (`lib/studio/client-queries.ts:801`, SDD-0558) registra `e.message` de PostgREST cuando falla el conteo de embarques. No se midió si ese mensaje puede llevar valores. Es código compartido de la ficha y no se tocó.
+
+---
+
+# Paso 2.5 — ciclo de vida de los agentes: Usuarios, cron y salud (entregado, 2026-10-30)
+
+Lo pidió el Director el 2026-10-30, en la misma rama. No hay migración. El trabajo se cortó con el reinicio de la PC (14:02Z) y se retomó sin descartar nada. El detalle está en SDD-0585 §«Paso 2.5» (E2-D36 a E2-D43).
+
+**Qué quedó:**
+- **Alta:** Bandeja › Vínculos › «Dar de alta» (`altaAgente`). Crea o adopta el agente por la Platform API, lo mete en la cuenta como agente y lo vincula. Solo para quien ve la Bandeja.
+- **Baja:**
+  - en Usuarios, al desactivar o cambiar el rol, en ese momento (`sincronizarAgenteDeUsuario`);
+  - en el cron diario `/api/cron/chatwoot-agentes`, a las 12:30 UTC, como red.
+
+  Nunca saca al usuario de servicio ni al último admin humano. Si Chatwoot no responde no hay baja: el vínculo queda y se reintenta.
+- **Salud:**
+  - alertas: Chatwoot no responde, cuenta **sin admin humano**, falta `CHATWOOT_SERVICE_USER_ID`, vínculos fuera de la cuenta y baja bloqueada;
+  - se ve en Bandeja › Vínculos;
+  - el cron avisa por push a los admins.
+- **Runbook:** `docs/runbooks/chatwoot-agentes.md`.
+
+**Validación** (puntual, porque E10 tiene el próximo turno de verify):
+- tsc y eslint PASÓ.
+- 1021 pruebas afectadas PASÓ, en 51 archivos.
+- `entorno-prueba-scripts` 2/2.
+- 17/17 mutantes muertos.
+- `pending-migration-symbols` 0 ROJO · 5 AMARILLO.
+- `build-crontab --check` (22 crons) y `check-rsc-boundary` PASÓ.
+- `pnpm verify` completo **NO EJECUTADO**: va después de E10 y E6, con turno del Director.
+
+**Puertas de integración del 2.5** (cada una con su OK):
+- El merge a `main` suma al crontab del VPS `30 12 * * * … /api/cron/chatwoot-agentes`. Sin la 0503 responde `omitido`; con la 0503 y sin `CHATWOOT_SERVICE_USER_ID`, alerta «falta configurar el usuario de servicio».
+- Cargar `CHATWOOT_SERVICE_USER_ID` en el `.env` del VPS. El valor está en `/srv/chatwoot/secretos/platform-app.env`.
+- La primera corrida en producción puede dar de baja a un agente vinculado si su usuario de Studio ya no ve la Bandeja. Conviene revisar los vínculos antes.
+
+**Pendiente de esta tarea:**
+- **AUD-01:** auditar en `entity_audit_log` el alta y la baja del vínculo. Necesita migración; el número se pidió al Director el 2026-10-30 y no llegó.
+
+### FUERA DE ALCANCE DETECTADO (2.5)
+
+- La baja no borra el usuario de Chatwoot (nombre y correo del empleado), a propósito, para conservar la asignación de sus conversaciones. Falta un plazo de borrado (`DELETE platform/api/v1/users/{id}`), para decidir en 2.6 o 2.7 con Sam. Es el ENCONTRADO de revisar-datos-ve.
+- Vitest toma el filtro de ruta como expresión regular: con `(app)` sin escapar, quedan archivos afuera en silencio. La validación puntual del 2.4 pudo contar de menos; el verify completo sobre `cf755a7a6` la cubre.
