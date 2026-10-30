@@ -17,13 +17,14 @@
 |---|---|
 | `crm-modelo.migration.test.ts` (Vitest de la instalación principal, un solo archivo) | PASÓ 39/39: contrato verde con 78 aserciones, control rojo, 34 mutantes, reaplicación, preflight y declaración |
 | `docs:check`, `sdd:check` (numeración), `git diff --check` | PASÓ |
-| `check-pending-migration-symbols.mjs` | Ver abajo: hereda rojos de la rama de E10 en las declaraciones de E2 (no de la 0506) |
+| `check-pending-migration-symbols.mjs` | Antes heredaba rojos de E2 en la rama de E10 (no de la 0506); tras fusionar `a319d4cdc`, 0 ROJO (ver abajo) |
 | ESLint del archivo de prueba | NO DISPONIBLE: ESLint no carga desde la instalación principal en este worktree |
 | `pnpm verify` y la reconstrucción del esquema | **NO EJECUTADO**: se pide turno al Director |
 | revisar-datos-ve del modelo | SDD §14.3: 6 CORRECTO, 2 ENCONTRADO, 3 NO VERIFICABLE y 1 no aplica. Destino de los ENCONTRADO (Director, 2026-10-30): «Anonimizar ahora» → 6.6; aviso en `/privacidad` → 2.6 (revisión de datos de E2) |
 | Fusión de la punta de E10 (`c4311d6b5`, purga por plazo) | `004ca56fd`; sin conflictos de contenido (el driver resolvió `migrations-baseline.json`); contrato de la 0506 otra vez 39/39 |
+| Fusión de la punta de E10 `a319d4cdc` (pedido del Director, 2026-10-30: trae `f90aede00` de E2, `632be86fd` de E10 y el 2.5 de E2) | Sin conflictos; `migrations-baseline.json` conserva la `0506_crm_modelo`. Gate `check-pending-migration-symbols.mjs`: **PASÓ, 0 ROJO** · 6 AMARILLO declarados · 3 homónimos descartados, exit 0. La 0506 no aparece porque ningún código de la app llama todavía sus símbolos (llega con 6.3). Contrato de la 0506: 39/39. `docs:check`, `sdd:check` y `git diff --check`: PASÓ |
 
-**Verify:** en cola detrás de E10. Corre después de que E10 corrija `pending-migration-symbols` y yo fusione esa punta; el Director avisa el turno. 6.3 lo abre el Director en otra sesión apilada sobre #336.
+**Verify:** no se corrió aquí (E10 tiene el turno). Según el Director, el verify de E6.3 (#337), que fusiona esta punta, cuenta también para el 6.2.
 - **SDD:** 0587, reserva local `codex/sdd-reserve-0587-chatwoot-contrato-sistema-maestro` + `refs/dtd/reservations/0587` (stub `e891e83b1`, traído con cherry-pick). La reserva **no se publicó** a `origin`: la PR lleva la spec
 - **Objetivo:** contrato de sistema maestro por objeto y fase, dos embudos, sincronización, reemplazos de Kommo con costo de Meta, plan de migración de leads, decisiones para Sam y reestimación de 6.2–6.7
 - **Permisos de esta tarea:** solo diseño y documentación. Sin producto, sin migraciones, sin producción, Kommo, Meta, VPS ni Chatwoot. Publicar la rama propia y abrir PR en borrador sobre `codex/0582-e0-preparacion`: autorizado en el encargo
@@ -80,4 +81,4 @@ L1 conteo de `kommo_leads` por etapa y antigüedad en el espejo de producción; 
 - El drenaje del writeback de Kommo por pg_cron está comentado (`supabase/migrations/0136_*.sql:190`).
 - El motor de flujos 0143 no reintenta pasos fallidos (`lib/studio/workflow/workflow-drain.ts:148-169`, citado por el inventario).
 - `e0-guias.md` (3 pings escriben al cliente) y K-4 (2) no coinciden; 6.7 lo confirma.
-- `check-pending-migration-symbols.mjs` marca rojas, en la rama de E10, las declaraciones de E2 (`sdd-0585-chatwoot-eventos`): los sitios de `lib/studio/chatwoot/webhook-procesar.ts` se corrieron de línea (memoria «las declaraciones con archivo:línea se vencen»). Lo corrige E10 o E2, no 6.2.
+- ~~`check-pending-migration-symbols.mjs` marca rojas, en la rama de E10, las declaraciones de E2 (`sdd-0585-chatwoot-eventos`)~~: resuelto por `f90aede00` (E2) y `632be86fd` (E10), fusionados aquí con `a319d4cdc`; el gate sale con 0 ROJO.

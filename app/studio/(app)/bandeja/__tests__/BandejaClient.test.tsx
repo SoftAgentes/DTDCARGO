@@ -2,7 +2,7 @@
  * SDD-0585 · BandejaClient: cuándo pide el SSO, qué pone en el iframe y qué
  * muestra en cada estado.
  */
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -14,6 +14,7 @@ vi.mock("../actions", () => ({
   reconciliarBandeja: () => reconciliar(),
   vincularAgente: vi.fn(async () => ({ ok: false, error: null })),
   desvincularAgente: (prev: unknown, fd: FormData) => desvincular(prev, fd),
+  altaAgente: vi.fn(async () => ({ ok: false, error: null })),
 }));
 
 const { BandejaClient } = await import("../_components/BandejaClient");
@@ -88,7 +89,9 @@ describe("BandejaClient (SDD-0585)", () => {
     );
     expect(screen.getByText("Agentes vinculados")).toBeTruthy();
     expect(screen.getByText("#7")).toBeTruthy();
-    expect(screen.getByRole("option", { name: "Luis" })).toBeTruthy();
+    // Luis sale en los dos formularios (vincular y, desde 2.5, dar de alta): se mira el de vincular.
+    const vincular = screen.getByRole("button", { name: "Vincular" }).closest("form")!;
+    expect(within(vincular).getByRole("option", { name: "Luis" })).toBeTruthy();
   });
 
   it("desvincular pide confirmación y solo borra al confirmar", async () => {

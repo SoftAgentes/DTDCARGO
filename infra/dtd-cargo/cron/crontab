@@ -3,7 +3,7 @@
 # Horarios en UTC (los mismos que agenda Vercel). ${CRON_SECRET} se queda literal:
 # lo resuelve el contenedor `cron` (entrypoint con envsubst, o sh -c) desde su entorno.
 
-# 20 crons de vercel.json, en su mismo orden.
+# 21 crons de vercel.json, en su mismo orden.
 * * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/document-import-drain
 17 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/document-import-cleanup
 0 11 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/ceo-brief
@@ -24,6 +24,7 @@
 */30 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/mail-health
 0 12 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/alta-health
 */5 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/chatwoot-reintentos
+30 12 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/chatwoot-agentes
 
 # Solo en el servidor (no están en vercel.json).
 # /api/cron/searates-refresh: semanal, lunes 06:00 UTC · no está en vercel.json · 20 rutas/corrida caben en el plan gratis de SeaRates (100/mes)

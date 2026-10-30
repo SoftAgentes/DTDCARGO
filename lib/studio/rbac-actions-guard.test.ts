@@ -321,8 +321,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `moduleViewDenial(supabase, "bandeja")` al tope; lee con el cliente de sesión
   // y escribe solo por `aplicarConversacion` (la RPC de 0504, únicamente
   // service_role), igual que `reconciliarBandeja`.
+  // SDD-0585 (paso 2.5) sumó `bandeja/actions.ts::altaAgente` (449 → 450):
+  // `tenantAdminGate` antes de leer nada; lee con service_role el miembro, su
+  // correo y los overrides del MISMO tenant, y escribe el vínculo con el cliente
+  // de sesión (la RLS de 0503 repite el candado de admin).
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(449);
+    expect(reportes.length).toBe(450);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

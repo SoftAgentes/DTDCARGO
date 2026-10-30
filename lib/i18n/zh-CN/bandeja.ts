@@ -101,4 +101,21 @@ export const bandeja: BandejaDict = {
   "bandeja.ficha.error.sin_clientes": "你的角色无法查看客户档案。",
   "bandeja.ficha.error.sin_acceso": "你无权访问此会话。",
   "bandeja.ficha.error.service": "无法加载档案，请重试。",
+
+  // ── 坐席生命周期（2.5）：开通与状态 ──
+  "bandeja.error.sin_bandeja": "该用户的角色无权访问收件箱。",
+  "bandeja.alta.title": "开通收件箱坐席",
+  "bandeja.alta.help": "用 Studio 中的姓名和邮箱在消息服务器上创建坐席并绑定。始终通过 Studio 登录，无需单独密码。",
+  "bandeja.alta.user": "Studio 用户",
+  "bandeja.alta.submit": "开通",
+  "bandeja.alta.submitting": "正在开通…",
+  "bandeja.alta.created": "坐席已开通并绑定。",
+  "bandeja.alta.empty": "所有可访问收件箱的用户都已有坐席。",
+  "bandeja.salud.title": "收件箱状态",
+  "bandeja.salud.ok": "一切正常：有 {n} 位人工管理员，所有绑定都在账户内。",
+  "bandeja.salud.alerta.chatwoot_no_responde": "消息服务器没有响应。",
+  "bandeja.salud.alerta.sin_admin_humano": "该账户没有人工管理员，只有服务用户。请在消息服务器中添加一位管理员。",
+  "bandeja.salud.alerta.servicio_sin_configurar": "未配置服务用户（CHATWOOT_SERVICE_USER_ID）：无法统计人工管理员。",
+  "bandeja.salud.alerta.vinculo_fuera_de_cuenta": "有绑定指向已不在账户中的坐席：{ids}。",
+  "bandeja.salud.alerta.baja_bloqueada": "为避免账户没有管理员，一项移除已被阻止。",
 };
