@@ -37,18 +37,24 @@ function errorDeEstado(status: number): ChatwootError {
 async function pedir(
   cfg: ChatwootConfig,
   path: string,
+  opciones: { method?: "GET" | "POST" | "DELETE"; body?: unknown; sinCuerpo?: boolean } = {},
 ): Promise<{ ok: true; body: unknown } | { ok: false; error: ChatwootError }> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
+    const headers: Record<string, string> = { api_access_token: cfg.token, Accept: "application/json" };
+    if (opciones.body !== undefined) headers["Content-Type"] = "application/json";
     const res = await fetch(`${cfg.origin}${path}`, {
-      method: "GET",
-      headers: { api_access_token: cfg.token, Accept: "application/json" },
+      method: opciones.method ?? "GET",
+      headers,
+      body: opciones.body === undefined ? undefined : JSON.stringify(opciones.body),
       signal: ctrl.signal,
       cache: "no-store",
       redirect: "error",
     });
     if (!res.ok) return { ok: false, error: errorDeEstado(res.status) };
+    // `DELETE …/account_users` responde `head :ok`: no hay cuerpo que leer.
+    if (opciones.sinCuerpo) return { ok: true, body: null };
     try {
       return { ok: true, body: await res.json() };
     } catch {
@@ -121,4 +127,104 @@ export async function obtenerTokenAgente(
     return { ok: false, error: "respuesta_invalida" };
   }
   return { ok: true, data: b.access_token };
+}
+
+// ─── Ciclo de vida de los agentes (SDD-0585, paso 2.5) ───────────────────────
+//
+// `config/routes.rb` de 4.19.1: `accounts/{id}/account_users` (index, create y
+// un destroy de colección con `user_id`) y `users` (create). La cuenta la creó
+// la Platform App (E1), así que es permisible: las tres de `account_users` sirven
+// para cualquier usuario de la cuenta. `users#create` reusa un usuario existente
+// por correo y lo vuelve permisible.
+
+export type RolCuenta = "agent" | "administrator";
+
+export interface MiembroCuenta {
+  userId: number;
+  rol: RolCuenta;
+}
+
+/** Los AccountUser de la cuenta: solo id y rol (la respuesta no trae correos). */
+export async function listarMiembrosCuenta(
+  cfg: ChatwootConfig | null = chatwootConfig(),
+): Promise<ChatwootResult<MiembroCuenta[]>> {
+  if (!cfg) return { ok: false, error: "sin_configurar" };
+  const r = await pedir(cfg, `/platform/api/v1/accounts/${cfg.accountId}/account_users`);
+  if (!r.ok) return r;
+  if (!Array.isArray(r.body)) return { ok: false, error: "respuesta_invalida" };
+  const data: MiembroCuenta[] = [];
+  for (const fila of r.body as Array<{ user_id?: unknown; role?: unknown }>) {
+    const userId = fila?.user_id;
+    if (typeof userId !== "number" || !Number.isInteger(userId) || userId <= 0) continue;
+    if (fila.role !== "agent" && fila.role !== "administrator") continue;
+    data.push({ userId, rol: fila.role });
+  }
+  return { ok: true, data };
+}
+
+/** Saca al usuario de la cuenta: pierde el acceso a ella. No borra el usuario ni sus conversaciones. */
+export async function quitarDeCuenta(
+  chatwootUserId: number,
+  cfg: ChatwootConfig | null = chatwootConfig(),
+): Promise<ChatwootResult<null>> {
+  if (!cfg) return { ok: false, error: "sin_configurar" };
+  const r = await pedir(cfg, `/platform/api/v1/accounts/${cfg.accountId}/account_users`, {
+    method: "DELETE",
+    body: { user_id: chatwootUserId },
+    sinCuerpo: true,
+  });
+  return r.ok ? { ok: true, data: null } : r;
+}
+
+/** Mete al usuario en la cuenta como agente. El rol de administrador es de la matriz (2.7). */
+export async function agregarACuenta(
+  chatwootUserId: number,
+  cfg: ChatwootConfig | null = chatwootConfig(),
+): Promise<ChatwootResult<null>> {
+  if (!cfg) return { ok: false, error: "sin_configurar" };
+  const r = await pedir(cfg, `/platform/api/v1/accounts/${cfg.accountId}/account_users`, {
+    method: "POST",
+    body: { user_id: chatwootUserId, role: "agent" },
+  });
+  return r.ok ? { ok: true, data: null } : r;
+}
+
+const MAYUSCULAS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const MINUSCULAS = "abcdefghijkmnopqrstuvwxyz";
+const DIGITOS = "23456789";
+const SIGNOS = "!@#$%^&*-_=+";
+
+/**
+ * Clave aleatoria que nadie usa: el agente entra por SSO (E2-D12). Cumple
+ * `password_has_required_content` de 4.19.1 (mayúscula, minúscula, número y
+ * signo) y no sale de esta función.
+ */
+function claveAleatoria(largo = 32): string {
+  const todos = MAYUSCULAS + MINUSCULAS + DIGITOS + SIGNOS;
+  const azar = new Uint32Array(largo);
+  crypto.getRandomValues(azar);
+  const elegir = (alfabeto: string, n: number) => alfabeto[n % alfabeto.length];
+  return [
+    elegir(MAYUSCULAS, azar[0]),
+    elegir(MINUSCULAS, azar[1]),
+    elegir(DIGITOS, azar[2]),
+    elegir(SIGNOS, azar[3]),
+    ...Array.from(azar.slice(4), (n) => elegir(todos, n)),
+  ].join("");
+}
+
+/** Crea el usuario de Chatwoot (o adopta el que ya tenga ese correo). Devuelve solo el id. */
+export async function crearAgente(
+  datos: { nombre: string; correo: string },
+  cfg: ChatwootConfig | null = chatwootConfig(),
+): Promise<ChatwootResult<number>> {
+  if (!cfg) return { ok: false, error: "sin_configurar" };
+  const r = await pedir(cfg, "/platform/api/v1/users", {
+    method: "POST",
+    body: { name: datos.nombre, email: datos.correo, password: claveAleatoria() },
+  });
+  if (!r.ok) return r;
+  const id = (r.body as { id?: unknown } | null)?.id;
+  if (typeof id !== "number" || !Number.isInteger(id) || id <= 0) return { ok: false, error: "respuesta_invalida" };
+  return { ok: true, data: id };
 }

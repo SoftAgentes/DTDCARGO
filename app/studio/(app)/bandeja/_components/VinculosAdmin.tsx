@@ -6,6 +6,9 @@
  * comprueba la cuenta y el correo del agente por la Platform API.
  *
  * Desvincular borra la fila: pasa por el ConfirmDialog canónico (BTN-01/AVS-01).
+ *
+ * Paso 2.5: «Dar de alta» crea el agente en Chatwoot y lo vincula; «Salud»
+ * muestra lo que calculó la página (admins humanos, vínculos fuera de la cuenta).
  */
 import { startTransition, useActionState, useState } from "react";
 
@@ -13,7 +16,8 @@ import { useT } from "@/lib/i18n";
 import type { I18nKey } from "@/lib/i18n/dict";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
-import { desvincularAgente, vincularAgente, type VinculoState } from "../actions";
+import { altaAgente, desvincularAgente, vincularAgente, type VinculoState } from "../actions";
+import type { SaludBandeja } from "@/lib/studio/chatwoot/agentes-salud";
 
 export interface VinculoFila {
   userId: string;
@@ -24,6 +28,8 @@ export interface VinculoFila {
 export interface MiembroOpcion {
   userId: string;
   nombre: string;
+  /** Paso 2.5: solo quien ve la Bandeja se puede dar de alta. Sin dato, se ofrece. */
+  puedeBandeja?: boolean;
 }
 
 const INICIAL: VinculoState = { ok: false, error: null };
@@ -72,7 +78,81 @@ function Desvincular({ fila }: { fila: VinculoFila }) {
   );
 }
 
-export function VinculosAdmin({ vinculos, miembros }: { vinculos: VinculoFila[]; miembros: MiembroOpcion[] }) {
+function Salud({ salud }: { salud: SaludBandeja }) {
+  const t = useT();
+  return (
+    <div role="status" aria-labelledby="bandeja-salud" style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)" }}>
+      <h3 id="bandeja-salud" style={{ font: "700 13px/1.3 var(--f-sans)", color: "var(--ink)", margin: 0 }}>
+        {t("bandeja.salud.title")}
+      </h3>
+      {salud.alertas.length === 0 ? (
+        <p style={{ margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
+          {t("bandeja.salud.ok", { n: salud.adminsHumanos ?? 0 })}
+        </p>
+      ) : (
+        <ul style={{ margin: 0, paddingLeft: "var(--s-5)", display: "flex", flexDirection: "column", gap: "var(--s-1)" }}>
+          {salud.alertas.map((a) => (
+            <li key={a} style={{ font: "500 13px/1.5 var(--f-sans)", color: "var(--danger-text)" }}>
+              {t(`bandeja.salud.alerta.${a}` as I18nKey, { ids: salud.vinculosFueraDeCuenta.map((id) => `#${id}`).join(", ") })}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function AltaAgente({ miembros: todos }: { miembros: MiembroOpcion[] }) {
+  const t = useT();
+  const miembros = todos.filter((m) => m.puedeBandeja !== false);
+  const [estado, accion, pendiente] = useActionState(altaAgente, INICIAL);
+  const error = useMensajeError(estado);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)", borderTop: "1px solid var(--border)", paddingTop: "var(--s-4)" }}>
+      <h3 style={{ font: "700 13px/1.3 var(--f-sans)", color: "var(--ink)", margin: 0 }}>{t("bandeja.alta.title")}</h3>
+      <p style={{ margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>{t("bandeja.alta.help")}</p>
+      {miembros.length === 0 ? (
+        <p style={{ margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>{t("bandeja.alta.empty")}</p>
+      ) : (
+        <form action={accion} style={{ display: "flex", alignItems: "flex-end", gap: "var(--s-3)", flexWrap: "wrap" }}>
+          <label className="studio-label" style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)" }}>
+            {t("bandeja.alta.user")}
+            <select name="user_id" required defaultValue="" className="studio-input" style={{ minWidth: 220 }}>
+              <option value="" disabled>
+                {t("bandeja.links.user_placeholder")}
+              </option>
+              {miembros.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" disabled={pendiente} className="studio-btn studio-btn-primary">
+            {pendiente ? t("bandeja.alta.submitting") : t("bandeja.alta.submit")}
+          </button>
+        </form>
+      )}
+      <ErrorAlert state={error} />
+      {estado.ok ? (
+        <p role="status" style={{ margin: 0, font: "500 13px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+          {t("bandeja.alta.created")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export function VinculosAdmin({
+  vinculos,
+  miembros,
+  salud,
+}: {
+  vinculos: VinculoFila[];
+  miembros: MiembroOpcion[];
+  /** Paso 2.5: la calcula la página con la Platform API; null si no se pudo. */
+  salud?: SaludBandeja | null;
+}) {
   const t = useT();
   const [estado, accion, pendiente] = useActionState(vincularAgente, INICIAL);
   const error = useMensajeError(estado);
@@ -88,6 +168,8 @@ export function VinculosAdmin({ vinculos, miembros }: { vinculos: VinculoFila[];
         </h2>
         <p style={{ margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>{t("bandeja.links.help")}</p>
       </div>
+
+      {salud ? <Salud salud={salud} /> : null}
 
       {vinculos.length === 0 ? (
         <p style={{ margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>{t("bandeja.links.empty")}</p>
@@ -134,6 +216,8 @@ export function VinculosAdmin({ vinculos, miembros }: { vinculos: VinculoFila[];
           {t("bandeja.links.created")}
         </p>
       ) : null}
+
+      <AltaAgente miembros={miembros} />
     </section>
   );
 }

@@ -81,6 +81,10 @@
     {
       "path": "/api/cron/chatwoot-reintentos",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/chatwoot-agentes",
+      "schedule": "30 12 * * *"
     }
   ]
 }

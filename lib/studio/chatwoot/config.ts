@@ -56,3 +56,25 @@ export function chatwootWebhookConfig(): ChatwootWebhookConfig | null {
   if (!secret || !UUID.test(tenantId) || !/^[1-9][0-9]{0,9}$/.test(cuenta)) return null;
   return { secret, tenantId, accountId: Number(cuenta) };
 }
+
+/**
+ * Id del usuario de servicio de Chatwoot (E1, paso 1.4: «Servicio DTD Studio»),
+ * para el ciclo de vida de los agentes (SDD-0585, paso 2.5). Es administrador de
+ * la cuenta pero no es una persona: la salud no lo cuenta como admin humano y
+ * las bajas nunca lo tocan. Vive en `/srv/chatwoot/secretos/platform-app.env`.
+ * Sin él → `null`: la salud dice que no lo puede medir.
+ */
+export function chatwootServicioUserId(): number | null {
+  const valor = (process.env.CHATWOOT_SERVICE_USER_ID ?? "").trim();
+  return /^[1-9][0-9]{0,9}$/.test(valor) ? Number(valor) : null;
+}
+
+/**
+ * Tenant de Studio al que pertenece la cuenta de Chatwoot (`CHATWOOT_TENANT_ID`,
+ * el mismo del webhook), para el cron de agentes (SDD-0585, paso 2.5). Sin un
+ * uuid válido → `null`.
+ */
+export function chatwootTenantId(): string | null {
+  const valor = (process.env.CHATWOOT_TENANT_ID ?? "").trim();
+  return UUID.test(valor) ? valor : null;
+}
