@@ -94,3 +94,102 @@ Usa solo tokens (`--bg-surface`, `--border-strong`, `--shadow-pop`, `--r-lg`, `-
 - La guía dentro de Chatwoot (`DASHBOARD_SCRIPTS`, `postMessage` y archivo de selectores): **9.4**.
 - Los recorridos por rol y las anclas en Bandeja, Embudo, Ficha DTD, IA, Usuarios y Actualizaciones: **9.5**.
 - La prueba con la persona que atiende, el `/ui-check` en vivo y el registro CMP: **9.6**.
+
+## 8. Diseño de 9.3 · estado por usuario (propuesta, sin código)
+
+> Pedido del Director (2026-10-30): diseñar 9.3 sin crear la migración. El número lo asigna él (0508 o la siguiente libre); aquí va como **NNNN**. Puerta de la fila 9.3: **OK de Sam a la migración**. Aplicarla en producción es otra puerta, con el [runbook](../../runbooks/aplicar-migraciones-prod.md).
+
+### 8.1 Qué tiene que resolver (fila 9.3 y guion)
+
+- **Primera vez automática:** al entrar por primera vez a una pantalla con recorrido, la guía arranca sola. Se propone por pantalla, no toda junta (S-6, todavía abierta).
+- **Botón «Guía»** (`guide.chrome.toggle`): abre o cierra la guía de la pantalla. Propuesta: en la barra superior de Studio (S-7).
+- **«No volver a mostrar»:** apaga el arranque automático de esa pantalla, no el botón.
+- **Reanudar y reiniciar:** «Seguir donde quedaste» y «Ver la guía desde el principio».
+- Que el estado siga a la persona entre equipos, y que el primer pintado no parpadee ni falle la hidratación.
+
+### 8.2 Tabla `user_guide_prefs` (patrón de la migración 0233)
+
+Copia la forma de `user_dashboard_prefs` (`supabase/migrations/0233_user_dashboard_prefs.sql`, **C**): una fila por (tenant, usuario), `jsonb` validado en la acción y RLS por dueño.
+
+```sql
+create table if not exists public.user_guide_prefs (
+  id          uuid primary key default gen_random_uuid(),
+  tenant_id   uuid not null references public.tenants(id) on delete cascade,
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  state       jsonb not null default '{}'::jsonb,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  unique (tenant_id, user_id)
+);
+-- touch_updated_at, grants a authenticated y service_role, sin anon, RLS activa.
+create policy user_guide_prefs_owner on public.user_guide_prefs
+  for all to authenticated
+  using (
+    user_id = (select auth.uid())
+    and tenant_id in (select ut.tenant_id from public.user_tenants ut
+                      where ut.user_id = (select auth.uid()) and ut.disabled_at is null)
+  )
+  with check (/* mismo predicado */);
+```
+
+- **Una mejora sobre la 0233:** la policy exige `disabled_at is null`, como hace la 0200 con `user_tenants` (`0200_rbac_disabled_enforcement.sql:96`, **C**). La 0233 no lo exige: un usuario desactivado conserva su fila del Dashboard. Ese hallazgo queda fuera de alcance y no se toca aquí.
+- **Forma del `state`** (versionada):
+
+  ```ts
+  { v: 1, recorridos: { [recorridoId]: { pasoId: string | null; terminado: boolean; noMostrar: boolean; vistoEn: string /* ISO */ } } }
+  ```
+
+  La valida `validarEstadoGuia()` en la acción. Al leer se descartan los recorridos y pasos que ya no están en `RECORRIDOS`, para que el catálogo cambie sin migrar datos (como `validateDashboardConfigInput`).
+- **Alternativa descartada:** una fila por recorrido. Da más filas y más escrituras, y no simplifica la evolución del catálogo, que se resuelve igual al leer.
+- **Datos personales:** solo ids de recorrido y de paso, booleanos y una fecha. Ligados a `user_id`, describen si un empleado vio la guía. Es poco, pero 9.3 pasa por `.claude/skills/revisar-datos-ve/SKILL.md` antes de la PR (finalidad, minimización y borrado en cascada con el usuario).
+- **Pruebas de contrato** en PGlite (`NNNN_*.migration.test.ts`):
+  - el dueño lee y escribe su fila;
+  - otro usuario del mismo tenant no la ve;
+  - un usuario desactivado queda sin acceso;
+  - `unique (tenant_id, user_id)` se cumple;
+  - `anon` no tiene grants.
+
+### 8.3 Caché y contrato de hidratación
+
+1. **El servidor manda.** El layout de Studio lee la fila en el mismo `Promise.all` que ya tiene, sin que un error tumbe el shell (`.catch(() => null)`), y pasa `estadoInicial` a `<GuiaMotor>`. El primer render del servidor y el del cliente salen del mismo dato: **ningún render lee `localStorage`**, así que no hay desajuste de hidratación.
+2. **Implementación de `GuiaAlmacen` para 9.3** (`almacen.ts`):
+   - `leer` responde desde memoria, sembrada con `estadoInicial`;
+   - `guardar` actualiza la memoria, copia a `localStorage` (`dtd.guia.v1.*`, igual que hoy) y agenda la acción `guardarEstadoGuiaAction` con espera de 650 ms, igual que el autosave del Dashboard.
+3. **Al montar,** como hace el Dashboard: si llegó `estadoInicial`, se escribe sobre `localStorage`. Si el servidor falló (`null`), se lee `localStorage` **en un efecto**, después de hidratar, y se usa como respaldo hasta la próxima escritura.
+4. **Conflictos:** gana la última escritura. Dos pestañas abiertas pueden pisarse el paso actual; no hay pérdida que importe.
+
+### 8.4 Arranque y controles (cambios al motor)
+
+- **Primera vez:** efecto tras montar. Si la ruta tiene recorrido y su estado no existe (nunca visto) y no tiene `noMostrar`, se llama `iniciarGuia(id, { origen: "auto" })` y se guarda `vistoEn` **antes** de abrir, para que recargar no lo repita.
+- **API:** `iniciarGuia(id, { desde?: pasoId, origen: "auto" | "boton" | "url" })`. `desde` abre en ese paso si su ancla existe; si no, en el primero presente (mismo salto de hoy).
+- **Estado abierto/cerrado para el botón:** un almacén mínimo con `useSyncExternalStore` (`estaAbierta()`, `suscribir()`). El botón lleva `aria-pressed` y alterna `toggle_on_aria` / `toggle_off_aria`.
+- **Botón «Guía»:**
+  - con progreso a medias, reanuda en `pasoId`;
+  - terminada o nunca vista, empieza en el primer paso;
+  - sin recorrido para la pantalla, no se muestra.
+- **Tarjeta:**
+  - con `origen: "auto"`, el primer paso muestra «No volver a mostrar», que guarda `noMostrar: true` y cierra;
+  - cuando reanuda, muestra «Ver la guía desde el principio».
+  - Las dos acciones son botones `ghost` pequeños: no mutan datos de negocio y no necesitan `ActionButton`.
+- **Sin cambios** en el formato de los recorridos ni en la navegación de 9.2.
+
+### 8.5 Allowlist prevista de 9.3
+
+- `supabase/migrations/NNNN_user_guide_prefs.sql` y `NNNN_user_guide_prefs.migration.test.ts`
+- `lib/studio/guia/estado-types.ts` (validador) y `lib/studio/guia/estado-queries.ts`
+- `app/studio/(app)/_actions/guia.ts`: la acción `guardarEstadoGuiaAction`, junto a `comments.ts`, la acción transversal que ya existe ahí.
+- `lib/studio/guia/almacen.ts`, `app/studio/_components/guia/GuiaMotor.tsx` y `GuiaTarjeta.tsx`, más un `GuiaBoton.tsx` nuevo
+- `app/studio/(app)/layout.tsx` (lectura y prop) y `app/studio/(app)/_components/StudioTopbar.tsx` (el botón). Ojo: el topbar es compartido; ese cambio se coordina con el Director según quién lo esté tocando.
+- `lib/i18n/*/guide.ts`, si hacen falta claves nuevas.
+
+### 8.6 Aceptación prevista de 9.3
+
+- Contrato SQL en verde (§8.2).
+- La primera visita arranca sola una vez por pantalla.
+- «No volver a mostrar» la apaga y el botón la sigue abriendo.
+- Reanudar abre en el paso guardado y reiniciar abre en el primero.
+- Hidratación: el primer render no lee `localStorage`; una prueba lo comprueba con `localStorage` sembrado distinto de `estadoInicial`.
+- Si la lectura del servidor falla, el shell no se cae y la guía funciona con `localStorage`.
+- Si el usuario está desactivado, no tiene acceso a su fila (RLS).
+
+**Preguntas que cambian el diseño:** S-6 (por pantalla o toda junta) cambia solo cuándo se llama el arranque automático. S-7 (nombre y lugar del botón) cambia solo dónde se monta `GuiaBoton`.
