@@ -469,3 +469,20 @@ Lo pidió el Director el 2026-10-30, con las decisiones de Sam tomadas por selec
 - **E10 tocará el mismo cron.** E10 (`codex/0582-e10-enrutamiento`) agrega su purga a `app/api/cron/chatwoot-reintentos/route.ts` y a su prueba. Al traer esta rama va a tener un conflicto chico ahí: hay que dejar las tres purgas (`purga`, `purgaBandeja` y `purgaBajas`). En los dos `.env.example`, E10 también declara `CHATWOOT_INBOX_LEADS_ID` y los equipos: hay que dejar una sola copia.
 - **El origen de Studio está fijo en el script del panel** (`https://dtdcargo.com` y `www`). Si Studio cambia de dominio, hay que editar el script y volver a pegarlo.
 - **rack-attack:** 5 entradas por IP cada 5 minutos. Todos los contenedores del VPS salen por la misma IP (NAT de Docker). Con más de 5 bajas juntas, los cierres que sobran quedan para el día siguiente.
+
+### Cierre forzado del lado del servidor: initializer (2.7, precisión del Director, 2026-10-30)
+
+El Director lo habló con Sam: «Él quiere el cierre de verdad del lado del servidor, y CE es MIT, así que podemos modificarlo». Lo que quedó:
+- **`infra/chatwoot/rails/zz_dtd_revocar_sesiones.rb`** (E2-D51) agrega la ruta privada `POST /platform/api/v1/users/:id/dtd_revocar_sesiones`, con el token de la Platform App y solo para los usuarios de esa app. Vacía `users.tokens`, borra `user_sessions` y rota el `pubsub_token` y el token de API; `RoomChannel` cierra el tiempo real a los 30 s. Rechaza con 409 al de servicio y al último admin humano, y sin `DTD_CHATWOOT_SERVICIO_ID` responde 503. No toca `enterprise/`.
+- **Montaje** en `infra/chatwoot/compose.yml`, con la variable en `x-entorno` y en `infra/chatwoot/.env.example`.
+- **Studio** lo llama primero. Con 404 (todavía no instalado) usa la API de perfil como respaldo. 409 y 503 dejan la baja pendiente.
+- **El script del panel** queda como complemento.
+- **Prueba local:** `infra/chatwoot/pruebas/prueba-revocar-sesiones.sh`, R0 a R11 y el control C1. **NO EJECUTADO** hasta que el Director dé turno de Docker: había un `pnpm verify` de otra sesión en curso.
+
+**Para el runbook de versiones de E3** (`docs/runbooks/chatwoot-versiones.md` vive solo en `codex/0582-e3-versiones`; no lo toqué):
+- en la tabla «Pieza propia», una fila nueva:
+  `| Revocación de sesiones desde Studio (paso 2.7) | rails/zz_dtd_revocar_sesiones.rb | la baja de un agente ya no cierra sus sesiones: Studio deja la baja «pendiente» (409/503) o cae al respaldo por la API de perfil (404); el tiempo real abierto no se corta |`
+- el texto «Los dos initializers» pasa a «Los tres initializers»;
+- en §4 (comprobación por comportamiento), un paso nuevo: `bash infra/chatwoot/pruebas/prueba-revocar-sesiones.sh` contra la imagen nueva, con 0 fallas y el control C1 en rojo. Si `RoomChannel` cambia de forma, el arranque se cae a propósito con «[DTD] revocar sesiones: faltan …».
+
+**Choques previsibles:** E4 (`codex/0582-e4-meta`) agrega su montaje y `DTD_WHATSAPP_IDS_PROTEGIDOS` en el mismo bloque de `compose.yml` y de `.env.example`. Al juntar las ramas hay que dejar las dos cosas.
