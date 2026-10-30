@@ -68,6 +68,13 @@ describe("limpiarNotas", () => {
     expect(limpio).not.toContain("\r");
   });
 
+  it("no guarda HTML crudo: quita etiquetas y comentarios, deja el texto", () => {
+    const limpio = limpiarNotas('<!-- oculto --><details><summary>Cambios</summary>\n<img src="x" onerror="alert(1)">* fix: <b>algo</b> 2 < 3\n</details>');
+    expect(limpio).not.toMatch(/<[A-Za-z!/]|oculto|onerror/);
+    expect(limpio).toContain("Cambios");
+    expect(limpio).toContain("* fix: algo 2 < 3");
+  });
+
   it("la sección de contribuidores al final también sale", () => {
     expect(limpiarNotas("* fix: x\n\n## New Contributors\n* @otra made their first contribution")).toBe("* fix: x");
   });

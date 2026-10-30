@@ -38,7 +38,7 @@ confidencialidad: interno
 | E3-D1 | **El pedido es un registro, no un despliegue.** «Pedir actualización» inserta una fila y lo dice en pantalla; nada en Studio tiene credenciales del VPS | Decisión H: el análisis «solo informa», y la puerta de despliegue de la 0582 es un OK nominal de Sam |
 | E3-D2 | **Un pedido por versión destino y tenant** (`unique (tenant_id, to_version)`). Pedir otra vez la misma responde «ya pedida» | El registro es para el Director y Sam; repetirlo no agrega información |
 | E3-D3 | **El vigilante solo lee fuentes públicas sin credenciales:** `/api` de Chatwoot (pública) y la API de releases de GitHub sin token. Una revisión al día; «Revisar ahora» reutiliza una de menos de 10 min | GitHub admite 60 pedidos por hora por IP sin token; no hace falta un secreto nuevo |
-| E3-D4 | **Sin datos personales en las revisiones.** Las notas de Chatwoot nombran a quien contribuye (`by @usuario in …`, «New Contributors»); se quitan antes de guardar. Las notas se muestran como **texto plano**, y el enlace solo si apunta a `github.com/chatwoot/chatwoot/releases/` | revisar-datos-ve (§ abajo); contenido de un tercero |
+| E3-D4 | **Sin datos personales en las revisiones.** Las notas de Chatwoot nombran a quien contribuye (`by @usuario in …`, «New Contributors»); se quitan antes de guardar, igual que todo HTML crudo (etiquetas y comentarios). Las notas se muestran como **texto plano**, y el enlace solo si apunta a `github.com/chatwoot/chatwoot/releases/` | revisar-datos-ve (§ abajo); contenido de un tercero |
 | E3-D5 | **Aviso una vez por versión:** el push sale solo si la última revisión **sin error** no mostraba esa misma versión. Un error de lectura no avisa: un `/api` caído ya lo avisa Uptime Kuma | Evitar ruido sin perder el aviso |
 | E3-D6 | **Escribe solo service_role** en `chatwoot_version_checks`; el admin solo lee. Los pedidos los crea el admin con su propio cliente (RLS: admin, su tenant, `requested_by = auth.uid()`, revisión citada visible) | Que nadie pueda fabricar una «versión disponible» desde Studio |
 | E3-D7 | **Navegación de una línea:** una sección más en Administración (grupo PRO), con `requireModuleView("admin")` en el layout y `requireRole("admin")` en cada acción | Pedido del Director para minimizar conflictos con E2 y E6.3 |
@@ -46,7 +46,7 @@ confidencialidad: interno
 
 ## Migración 0507 (NO APLICADA)
 
-`supabase/migrations/0507_chatwoot_versiones.sql`, declarada en `migrations-baseline.json › pendingBelowCutoff`. Número pedido al Director el 2026-10-30 (`sdd:next` lo da como el siguiente libre). Contrato `supabase/tests/0507_chatwoot_versiones.test.sql` (26 aserciones) en `lib/studio/__tests__/chatwoot-versiones.migration.test.ts`: contrato verde, control rojo, 9 mutantes que caen en su aserción y preflight de reaplicación.
+`supabase/migrations/0507_chatwoot_versiones.sql`, declarada en `migrations-baseline.json › pendingBelowCutoff`. Número **asignado por el Director** el 2026-10-30, comprobado contra todas las ramas y worktrees (la más alta ocupada era la 0506). Contrato `supabase/tests/0507_chatwoot_versiones.test.sql` (26 aserciones) en `lib/studio/__tests__/chatwoot-versiones.migration.test.ts`: contrato verde, control rojo, 9 mutantes que caen en su aserción y preflight de reaplicación.
 
 Sin la 0507, todo degrada sin romper: el cron responde `omitido`, la pantalla dice «Todavía no hay revisiones» y «Pedir actualización» responde un error traducido.
 

@@ -75,6 +75,9 @@ export function limpiarNotas(texto: string): string {
   const sinContribuidores = texto.replace(/(^|\n)#{1,6}\s*New Contributors[\s\S]*?(?=\n#{1,6}\s|\n\*\*Full Changelog|$)/i, "$1");
   const limpio = sinContribuidores
     .replace(/\r\n/g, "\n")
+    // Sin HTML crudo: GitHub admite etiquetas en las notas (<img>, <details>…).
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<\/?[A-Za-z][^>]*>/g, "")
     .replace(/\s+by @[A-Za-z0-9-]+(?:\[bot\])?(?= in |\s|$)/g, "")
     .replace(/@[A-Za-z0-9-]+(?:\[bot\])?/g, "@…")
     .replace(/\n{3,}/g, "\n\n")

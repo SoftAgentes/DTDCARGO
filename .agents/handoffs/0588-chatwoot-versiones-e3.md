@@ -5,7 +5,7 @@
 - **Rama:** `codex/0582-e3-versiones`, en el worktree `.claude/worktrees/sad-kowalevski-241d34`
 - **Base:** apilada sobre `codex/0582-e2-poc`; mergeada su punta `c1d081b3b` (2026-10-30) antes de registrar el cron
 - **Reserva:** SDD-0588, local: `refs/heads/codex/sdd-reserve-0588-chatwoot-versiones-e3` en `74b81928`. El stub no se integra; la spec real vive en esta rama
-- **Migración:** **0507** (`sdd:next` la dio como siguiente libre; se la pedí al Director el 2026-10-30 y no hubo respuesta hasta el cierre). **NO APLICADA**, declarada en `migrations-baseline.json › pendingBelowCutoff`
+- **Migración:** **0507**, asignada por el Director el 2026-10-30. **NO APLICADA**, declarada en `migrations-baseline.json › pendingBelowCutoff`
 
 ## OBJETIVO ORIGINAL
 
@@ -57,7 +57,7 @@ El candado vive en la PR de 4.2 (SDD-0584), todavía sin desplegar. Mientras no 
 ## PENDIENTES DE ESTA TAREA
 
 1. `pnpm verify` con turno del Director.
-2. Confirmación del número 0507 por el Director (si asigna otro: renombrar el archivo, el contrato, la prueba, el baseline y la declaración).
+2. ~~Confirmar la 0507~~: asignada por el Director. Pidió además guardar las notas sin HTML crudo: `limpiarNotas` quita etiquetas y comentarios (prueba más un mutante que muere).
 3. Aplicar la 0507: OK nominal de Sam y runbook `aplicar-migraciones-prod`. Sin ella, todo responde `omitido`/«sin datos».
 4. Aceptación de Sam de 3.1 a 3.3 (PR → OK Sam).
 
