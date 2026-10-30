@@ -4,7 +4,9 @@
  * El payload trae el texto del mensaje, el nombre, el correo y el teléfono del
  * contacto. De acá sale SOLO lo que Studio necesita: ids, estado, no leídos,
  * asignado, bandeja, fechas y los últimos 10 dígitos del teléfono (para cruzar
- * con `clients.phone_last10`, sin guardarlo). Nada más cruza este archivo.
+ * con `clients.phone_last10`, sin guardarlo). Para E10 (SDD-0586) también
+ * las etiquetas, el equipo y, solo si no hay teléfono, el BSUID
+ * (`contact_inbox.source_id`). Nada más cruza este archivo.
  *
  * Formas (`app/models/message.rb#webhook_data`,
  * `app/presenters/conversations/event_data_presenter.rb#webhook_data`):
@@ -30,6 +32,16 @@ export interface ConversacionChatwoot {
   fuenteActualizada: number;
   /** Últimos 10 dígitos del teléfono del contacto, o null. No se guarda. */
   telefonoUltimos10: string | null;
+  /**
+   * E10 (10.3): BSUID del usuario de WhatsApp SIN teléfono (`contact_inbox.source_id`
+   * cuando el contacto no trae `phone_number` y el id no es solo dígitos). Solo
+   * viene si no hay teléfono. Que Chatwoot 4.19.1 lo ponga ahí es NV (10.6).
+   */
+  bsuid?: string;
+  /** E10: etiquetas de la conversación (`labels`), si vinieron. */
+  etiquetas?: string[];
+  /** E10: equipo asignado (`meta.team.id`); null = sin equipo; ausente = no vino. */
+  equipoId?: number | null;
 }
 
 export interface EventoChatwoot {
@@ -68,6 +80,9 @@ export function interpretarConversacion(raw: unknown): ConversacionChatwoot | nu
   const meta = obj(c.meta);
   const actividad = numero(c.last_activity_at);
   const noLeidos = numero(c.unread_count);
+  const telefono = ultimos10(obj(meta?.sender)?.phone_number);
+  const bsuid = telefono ? null : bsuidDe(obj(c.contact_inbox)?.source_id);
+  const etiquetas = Array.isArray(c.labels) ? c.labels.filter((l): l is string => typeof l === "string") : undefined;
   return {
     id,
     inboxId: entero(c.inbox_id),
@@ -76,8 +91,21 @@ export function interpretarConversacion(raw: unknown): ConversacionChatwoot | nu
     asignadoId: entero(obj(meta?.assignee)?.id),
     ultimaActividad: actividad && actividad > 0 ? new Date(actividad * 1000).toISOString() : null,
     fuenteActualizada: numero(c.updated_at) ?? actividad ?? 0,
-    telefonoUltimos10: ultimos10(obj(meta?.sender)?.phone_number),
+    telefonoUltimos10: telefono,
+    ...(bsuid ? { bsuid } : {}),
+    ...(etiquetas ? { etiquetas } : {}),
+    ...(meta && "team" in meta ? { equipoId: entero(obj(meta.team)?.id) } : {}),
   };
+}
+
+/**
+ * Un BSUID aceptable: la misma forma que exige `chatwoot_contactos_bsuid` (0505).
+ * Solo dígitos sería un teléfono (wa_id) y no se toma.
+ */
+export function bsuidDe(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const s = v.trim();
+  return /^[A-Za-z0-9._:-]{1,128}$/.test(s) && !/^[0-9]+$/.test(s) ? s : null;
 }
 
 export function interpretarEvento(payload: unknown): EventoChatwoot | null {
