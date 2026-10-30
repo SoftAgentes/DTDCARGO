@@ -140,7 +140,57 @@ Decisión del Director (2026-10-29): el 2.2 queda **entregado** con este verify.
 | IA-01 | no aplica | La Bandeja no llama a ningún modelo |
 | Datos personales | cumplimiento parcial; revisión formal en 2.6 | La tabla guarda solo ids. El correo del usuario se lee con `service_role` solo para compararlo y no se guarda ni se registra. El enlace de SSO (que lleva el correo) no se registra ni pasa por la URL de Studio |
 
-## Fuera de alcance de esta entrega
+## Paso 2.3 — contador, webhook con push y tarjeta en la ficha
+
+Pedido por el Director el 2026-10-29, con el OK de Sam («ok»). Va en la misma rama. No se registra el webhook en el Chatwoot del VPS ni se toca Meta: eso pide su propio OK. Las pruebas son locales y con payloads sintéticos.
+
+### Diseño
+
+| ID | Decisión |
+|---|---|
+| E2-D16 | **Webhook** `POST /api/chatwoot/webhook` (`runtime = "nodejs"`):<br>- lee el cuerpo crudo y verifica la firma de Chatwoot 4.19.1: `X-Chatwoot-Signature: sha256=<hex>`, con `HMAC-SHA256(secreto, "<X-Chatwoot-Timestamp>.<cuerpo>")` (`lib/webhooks/trigger.rb`). La comparación es en tiempo constante (`sameSecret`);<br>- **anti-replay:** rechaza un timestamp a más de 5 minutos del reloj;<br>- sin `CHATWOOT_WEBHOOK_SECRET` o `CHATWOOT_TENANT_ID` responde 503; con firma mala, 401; con JSON malo, 400;<br>- un evento ajeno (otra cuenta, otro tipo) recibe 200 `ignored`;<br>- la ruta es delgada: verificar → interpretar → procesar. |
+| E2-D17 | **Eventos:** `message_created` y `conversation_status_changed`. `interpretarEvento` es pura y se queda solo con ids, estado, `unread_count`, asignado, bandeja, fechas y los últimos 10 dígitos del teléfono del contacto. **Nunca toma el texto, el nombre ni el teléfono completo.** |
+| E2-D18 | **Idempotencia y orden:** la RPC `chatwoot_registrar_evento` (`service_role`, una transacción):<br>- inserta el evento en `chatwoot_webhook_events` con clave semántica: `message_created:<id del mensaje>` y `conversation_status_changed:<conversación>:<estado>:<updated_at>`. Un duplicado no hace nada más;<br>- actualiza `chatwoot_conversations` solo si el evento no es más viejo que lo guardado (`source_updated_at`). |
+| E2-D19 | **Cruce con el cliente:** la RPC busca `clients.phone_last10` (no es único) en el tenant, sin borrados. Con **exactamente un** cliente guarda `client_id`; con cero o más de uno, `null`. No adivina. |
+| E2-D20 | **Push:** solo en un `message_created` **nuevo**, entrante y no privado, y con el flag `chatwoot_inbox` encendido. Va por el outbox durable (`enqueueUserPush`, deduplica 60 s por `tag`):<br>- destinatario: el usuario vinculado al agente asignado o, sin asignado, a todos los vinculados del tenant;<br>- **cuerpo sin datos personales:** «Tienes un mensaje nuevo en la conversación #N», con la URL `/studio/bandeja?c=N`. |
+| E2-D21 | **Contador** en el sidebar (módulo `bandeja`): conversaciones abiertas con `unread_count > 0`. El layout lo calcula en el servidor y se mantiene vivo con Supabase Realtime (`useRealtimeTable`, la tabla entra en la publicación `supabase_realtime`). Ve el total del tenant; la vista por agente es de 2.7. |
+| E2-D22 | **Reconciliación** (decisión del Director): al abrir la Bandeja, la server action `reconciliarBandeja` pide con el token **del propio agente vinculado** las primeras 4 páginas de conversaciones (`GET /api/v1/accounts/{id}/conversations?status=all`, orden por actividad) y aplica estado y `unread_count` con la misma RPC. Así corrige lo que el webhook no ve (un agente que lee sin responder no dispara ningún evento). El token del agente se pide por la Platform API, se usa en el servidor y no se guarda. |
+| E2-D23 | **Tarjeta en la ficha** (`/studio/clientes/[markbox]`): las 5 conversaciones más recientes con ese `client_id`, con número, estado, no leídos, última actividad y un enlace a `/studio/bandeja?c=N`. Solo con acceso al módulo `bandeja` y el flag encendido. Si el cruce fue ambiguo no hay `client_id`, y la tarjeta no muestra nada. |
+| E2-D24 | **Enlace a una conversación:** `?c=N` abre el iframe en `/app/accounts/{id}/conversations/N`. Si hace falta SSO, el enlace lleva `sso_account_id` y `sso_conversation_id`, y Chatwoot redirige solo a esa conversación después del login (`getLoginRedirectURL`). |
+| E2-D25 | **Base para E10:** `procesarEventoChatwoot` registra el evento y después corre una lista de manejadores. Hoy hay uno: el aviso push. E10 (10.2 `clasificar`) agrega el suyo a esa lista sin tocar la ruta ni la firma. |
+
+### Allowlist exacta (paso 2.3)
+
+- **Migración:** `supabase/migrations/0504_chatwoot_eventos.sql`; `supabase/tests/0504_chatwoot_eventos.test.sql`; `lib/studio/__tests__/chatwoot-eventos.migration.test.ts`; `supabase/migrations-baseline.json`; `supabase/pending-migration-symbol-declarations.json`.
+- **Lógica:** `lib/studio/chatwoot/{webhook-signature.ts,webhook-events.ts,webhook-procesar.ts,conversations-queries.ts,account-api.ts,platform-api.ts,chatwoot-types.ts,config.ts}`; `lib/studio/chatwoot/__tests__/{webhook-signature.test.ts,webhook-events.test.ts,webhook-procesar.test.ts,account-api.test.ts}`.
+- **Ruta:** `app/api/chatwoot/webhook/route.ts`; `app/api/chatwoot/webhook/__tests__/route.test.ts`.
+- **Contador:** `app/studio/(app)/layout.tsx`; `app/studio/(app)/_components/StudioSidebar.tsx`; `app/studio/(app)/_components/BandejaBadge.tsx`.
+- **Bandeja:** `app/studio/(app)/bandeja/{page.tsx,actions.ts}`; `app/studio/(app)/bandeja/_components/BandejaClient.tsx`; `app/studio/(app)/bandeja/__tests__/{actions.test.ts,BandejaClient.test.tsx}`.
+- **Ficha:** `app/studio/(app)/clientes/[markbox]/page.tsx`; `app/studio/(app)/clientes/_components/ChatwootConversacionesCard.tsx`; `app/studio/(app)/clientes/_components/__tests__/ChatwootConversacionesCard.test.tsx`.
+- **Textos:** `lib/i18n/es-VE/bandeja.ts`, `lib/i18n/zh-CN/bandeja.ts`.
+- **Entorno:** `.env.example` e `infra/dtd-cargo/.env.example` (`CHATWOOT_WEBHOOK_SECRET`, `CHATWOOT_TENANT_ID`).
+- **Contratos:** `lib/studio/rbac-actions-guard.test.ts` (inventario).
+- **Documentos:** `docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md`; `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 2.3); `.agents/handoffs/0585-chatwoot-bandeja-studio-e2.md`.
+
+### Aceptación del paso 2.3
+
+1. **Firma:** pruebas de firma buena, mala, sin cabeceras, timestamp vencido o del futuro, y cuerpo alterado.
+2. **Ruta:** 503 sin configuración, 401 con firma mala (sin tocar la base), 400 con JSON malo, 200 `ignored` con otra cuenta u otro evento, y 200 al procesar.
+3. **Interpretación:** el texto, el nombre y el teléfono completo no salen de `interpretarEvento`. Con fixtures sintéticos.
+4. **Migración 0504:** contrato en PGlite con control rojo y mutantes. Cubre la idempotencia, el orden (un evento viejo no pisa uno nuevo), el cruce ambiguo (`null`), la RLS (cada tenant ve lo suyo; `chatwoot_webhook_events` cerrada a `authenticated`) y la RPC solo para `service_role`.
+5. **Push:** solo en un mensaje entrante, nuevo y no privado, con el flag encendido. El destinatario es el vinculado asignado o todos los vinculados. Sin datos personales en el cuerpo.
+6. **Reconciliación:** usa el token del agente vinculado, no lo devuelve al cliente y aplica con la RPC.
+7. **Tarjeta y contador:** pruebas del componente y del cálculo.
+8. **Cierre:** `pnpm verify`, con turno.
+9. **Puertas que este paso no cruza:**
+   - aplicar la 0504;
+   - cargar `CHATWOOT_WEBHOOK_SECRET` y `CHATWOOT_TENANT_ID`;
+   - registrar el webhook en el Chatwoot del VPS;
+   - desplegar.
+
+   Cada una, con su OK nominal de Sam.
+
+## Fuera de alcance del paso 2.1
 
 - Cualquier cambio en Studio (`next.config.ts`, rutas, `lib/`): es de 2.2.
 - El VPS, el Chatwoot de producción, Traefik y Cloudflare: la PoC no los toca y E2-D4 no pide cambios.
