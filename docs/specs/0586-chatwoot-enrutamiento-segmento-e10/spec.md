@@ -113,6 +113,8 @@ Revisión estática de los commits `c1d174908` a `3bb3c2e5e`, sin ejecutar nada.
 | 4 | Media | Las etiquetas se escribían desde la copia del webhook y podían borrar una puesta después | Se releen antes de escribir; queda la ventana NV de la API |
 | 5 | Baja | El mutante de lectura de BSUID solo probaba el GRANT | Lectura real bajo `authenticated` y mutantes de la política |
 
+Segunda pasada de Codex sobre `d4d5e18a2` (estática, sin ejecutar nada): los 5 hallazgos y la RLS por tenant del BSUID quedan **CERRADOS**, sin defectos nuevos. Queda reconocida la ventana entre leer y escribir etiquetas (hallazgo 4), que es una limitación de la API y no una regresión.
+
 ## Pendientes de esta SDD
 
 - 10.4, 10.5 y 10.6 (ver checklist).
