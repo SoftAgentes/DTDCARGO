@@ -34,6 +34,11 @@ Arrancar E10: 10.1 (función SQL del segmento), 10.2 (clasificar en el webhook d
 | pending-migration-symbols | PASÓ: 0 ROJO · 6 AMARILLO, con la 0505 declarada |
 | Punta a punta con Chatwoot y el número de prueba | NO EJECUTADO: es 10.6 |
 
+## Aceptación
+
+- **10.1, 10.2 y 10.3 aceptados** por Sam el 2026-10-30 («Acepto todo», a la pregunta del Director sobre 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3). Filas del checklist en «aceptado»; avance de esta rama 18,6 % → 22,1 % (`avance-checklist`).
+- Aplicar la 0505 **no** entra en esa aceptación: requiere OK nominal de Sam al integrar.
+
 ## Pendientes de esta tarea
 
 - ~~Decisión de Sam~~: H-2 «1 año» y H-3 «30 días (Recomendado)» (2026-10-30); implementadas en la 0505 §4 y en el cron `chatwoot-reintentos`.
