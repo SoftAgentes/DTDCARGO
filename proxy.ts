@@ -127,9 +127,12 @@ export async function proxy(request: NextRequest) {
    * redirigirla al login deja el marco en blanco, porque el login no se deja
    * enmarcar. Sin sesión, la página dice «Inicia sesión en Studio» y no lee
    * nada; la server action repite el candado. Solo la ruta exacta.
+   *
+   * `/studio/cerrar-chat` (paso 2.7, E2-D13) es el paso de salida: `signOut`
+   * manda ahí ya sin sesión, para cerrar también la del chat. No lee nada.
    */
   function rendersOwnSignedOutState(p: string): boolean {
-    return p === "/studio/ficha-chat";
+    return p === "/studio/ficha-chat" || p === "/studio/cerrar-chat";
   }
 
   // ─── /studio/** ─────────────────────────────────────────────

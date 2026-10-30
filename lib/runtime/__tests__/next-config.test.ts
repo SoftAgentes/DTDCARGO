@@ -232,3 +232,27 @@ describe("SDD-0585 · 2.4 · Ficha DTD: solo el chat la puede enmarcar (E2-D28)"
     expect(directive(values(headers, "Content-Security-Policy")[0], "frame-ancestors")).toBe("frame-ancestors https://chat.ejemplo.test");
   });
 });
+
+describe("SDD-0585 · 2.7 · salida de Studio: frame-src del chat solo en /studio/cerrar-chat (E2-D13)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("/studio/cerrar-chat: una sola CSP con frame-src del chat; sigue sin dejarse enmarcar y sin micrófono", async () => {
+    const headers = await headersFor(await loadConfig({}), "/studio/cerrar-chat");
+    const csp = values(headers, "Content-Security-Policy");
+    expect(csp).toHaveLength(1);
+    expect(directive(csp[0], "frame-src")).toBe("frame-src https://chat.dtdcargo.com");
+    expect(directive(csp[0], "frame-ancestors")).toBe("frame-ancestors 'none'");
+    expect(values(headers, "X-Frame-Options")).toEqual(["DENY"]);
+    const pp = values(headers, "Permissions-Policy");
+    expect(pp).toHaveLength(1);
+    expect(pp[0]).toContain("microphone=()");
+  });
+
+  for (const pathname of ["/studio/cerrar-chats", "/studio/cerrar-chat/otra"]) {
+    it(`${pathname}: no hereda la regla`, async () => {
+      const csp = values(await headersFor(await loadConfig({}), pathname), "Content-Security-Policy");
+      expect(csp).toHaveLength(1);
+      expect(() => directive(csp[0], "frame-src")).toThrow();
+    });
+  }
+});

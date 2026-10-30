@@ -35,6 +35,7 @@ import { chatwootConfig } from "@/lib/studio/chatwoot/config";
 import {
   agregarACuenta,
   crearAgente,
+  fijarClaveAleatoria,
   obtenerAgente,
   obtenerEnlaceSso,
   obtenerTokenAgente,
@@ -42,6 +43,8 @@ import {
 import { listarConversacionesRecientes, obtenerConversacion } from "@/lib/studio/chatwoot/account-api";
 import { aplicarConversacion } from "@/lib/studio/chatwoot/webhook-procesar";
 import { getVinculoPropio } from "@/lib/studio/chatwoot/links-queries";
+import { rolChatwootDe } from "@/lib/studio/chatwoot/matriz";
+import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuario";
 import { isUuid, mismoCorreo, parseChatwootUserId } from "@/lib/studio/chatwoot/chatwoot-types";
 import { SSO_COOKIE, SSO_COOKIE_OPTIONS } from "@/lib/studio/chatwoot/sso-cookie";
 import { canAccessModule } from "@/lib/studio/rbac";
@@ -157,11 +160,11 @@ export async function vincularAgente(_prev: VinculoState, formData: FormData): P
   const admin = createAdminClient();
   const { data: miembro } = await admin
     .from("user_tenants")
-    .select("user_id")
+    .select("user_id, role")
     .eq("tenant_id", gate.tenantId)
     .eq("user_id", userId)
     .is("disabled_at", null)
-    .maybeSingle();
+    .maybeSingle<{ user_id: string; role: StudioUserRole }>();
   if (!miembro) return { ok: false, error: "not_member" };
   const { data: auth, error: authError } = await admin.auth.admin.getUserById(userId);
   const correo = auth?.user?.email;
@@ -184,8 +187,36 @@ export async function vincularAgente(_prev: VinculoState, formData: FormData): P
     created_by: gate.userId,
   });
   if (error) return { ok: false, error: error.code === "23505" ? "duplicate" : "service" };
+  // SDD-0585 2.7: un vínculo manual también cierra el acceso directo, salvo a un
+  // admin. Si el usuario no lo creó la Platform App, Chatwoot no deja cambiarle
+  // la clave: se avisa y el vínculo queda igual.
+  if (miembro.role !== "admin") {
+    const clave = await fijarClaveAleatoria(chatwootUserId, cfg);
+    if (!clave.ok) console.warn(`[bandeja] vínculo sin clave nueva: ${clave.error}`);
+  }
+  await despuesDelVinculo(admin, gate.tenantId, userId, chatwootUserId);
   revalidatePath("/studio/bandeja");
   return { ok: true, error: null };
+}
+
+/**
+ * Después de un vínculo nuevo (SDD-0585, 2.7): una baja vieja de ese agente ya
+ * no vale (no se borra a los 12 meses), y la matriz le pone sus bandejas y
+ * equipos. Nada de esto cambia el resultado: el cron diario lo repite.
+ */
+async function despuesDelVinculo(
+  admin: ReturnType<typeof createAdminClient>,
+  tenantId: string,
+  userId: string,
+  chatwootUserId: number,
+): Promise<void> {
+  const { error } = await admin
+    .from("chatwoot_agent_bajas")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("chatwoot_user_id", chatwootUserId);
+  if (error) console.warn(`[bandeja] baja anterior sin borrar: ${error.code ?? "sin código"}`);
+  await sincronizarAgenteDeUsuario(userId);
 }
 
 export async function desvincularAgente(_prev: VinculoState, formData: FormData): Promise<VinculoState> {
@@ -273,7 +304,18 @@ export async function altaAgente(_prev: VinculoState, formData: FormData): Promi
     .maybeSingle();
   if (deOtro) return { ok: false, error: "duplicate" };
 
-  const enCuenta = await agregarACuenta(creado.data, cfg);
+  // SDD-0585 2.7, cierre del acceso directo: `users#create` adopta por correo a
+  // un usuario existente SIN cambiarle la clave. Cada alta pone una aleatoria
+  // que nadie conoce; se entra por Studio. A un admin no: es la entrada de
+  // respaldo cuando Studio no responde.
+  if (miembro.role !== "admin") {
+    const clave = await fijarClaveAleatoria(creado.data, cfg);
+    if (!clave.ok) {
+      console.warn(`[bandeja] alta sin clave nueva: ${clave.error}`);
+      return { ok: false, error: "service" };
+    }
+  }
+  const enCuenta = await agregarACuenta(creado.data, cfg, rolChatwootDe(miembro.role));
   if (!enCuenta.ok) {
     console.warn(`[bandeja] no se pudo meter al agente en la cuenta: ${enCuenta.error}`);
     return { ok: false, error: "service" };
@@ -285,6 +327,7 @@ export async function altaAgente(_prev: VinculoState, formData: FormData): Promi
     created_by: gate.userId,
   });
   if (error) return { ok: false, error: error.code === "23505" ? "duplicate" : "service" };
+  await despuesDelVinculo(admin, gate.tenantId, userId, creado.data);
   revalidatePath("/studio/bandeja");
   return { ok: true, error: null };
 }

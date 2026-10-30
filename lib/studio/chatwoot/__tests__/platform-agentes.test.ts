@@ -11,7 +11,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { agregarACuenta, crearAgente, listarMiembrosCuenta, quitarDeCuenta } from "../platform-api";
+import { agregarACuenta, borrarUsuario, crearAgente, fijarClaveAleatoria, listarMiembrosCuenta, quitarDeCuenta } from "../platform-api";
 import { chatwootServicioUserId, type ChatwootConfig } from "../config";
 
 const CFG: ChatwootConfig = { origin: "https://chat.ejemplo.test", token: "tok-plataforma", accountId: 1 };
@@ -146,5 +146,43 @@ describe("chatwootServicioUserId (2.5)", () => {
     expect(chatwootServicioUserId()).toBeNull();
     vi.stubEnv("CHATWOOT_SERVICE_USER_ID", "uno");
     expect(chatwootServicioUserId()).toBeNull();
+  });
+});
+
+describe("matriz y cierre (2.7)", () => {
+  it("agregarACuenta lleva el rol de la matriz (account_users#create también cambia el rol)", async () => {
+    fetchSpy.mockResolvedValueOnce(json({ id: 10, user_id: 3, role: "administrator" }));
+    expect(await agregarACuenta(3, CFG, "administrator")).toEqual({ ok: true, data: null });
+    const { url, init, body } = llamada();
+    expect(url).toBe("https://chat.ejemplo.test/platform/api/v1/accounts/1/account_users");
+    expect(init.method).toBe("POST");
+    expect(body).toEqual({ user_id: 3, role: "administrator" });
+  });
+
+  it("fijarClaveAleatoria: PATCH users/{id} con una clave nueva cada vez, sin leer el cuerpo", async () => {
+    fetchSpy.mockResolvedValueOnce(new Response("no es json", { status: 200 }));
+    fetchSpy.mockResolvedValueOnce(new Response("no es json", { status: 200 }));
+    expect(await fijarClaveAleatoria(7, CFG)).toEqual({ ok: true, data: null });
+    await fijarClaveAleatoria(7, CFG);
+    const uno = llamada(0);
+    expect(uno.url).toBe("https://chat.ejemplo.test/platform/api/v1/users/7");
+    expect(uno.init.method).toBe("PATCH");
+    expect(Object.keys(uno.body)).toEqual(["password"]);
+    expect(uno.body.password).not.toBe(llamada(1).body.password);
+  });
+
+  it("fijarClaveAleatoria: 401 (usuario ajeno a la app) → no_autorizado; sin config → sin_configurar", async () => {
+    fetchSpy.mockResolvedValueOnce(new Response("", { status: 401 }));
+    expect(await fijarClaveAleatoria(7, CFG)).toEqual({ ok: false, error: "no_autorizado" });
+    expect(await fijarClaveAleatoria(7, null)).toEqual({ ok: false, error: "sin_configurar" });
+  });
+
+  it("borrarUsuario: DELETE users/{id}; 404 → no_encontrado", async () => {
+    fetchSpy.mockResolvedValueOnce(new Response(null, { status: 200 }));
+    expect(await borrarUsuario(7, CFG)).toEqual({ ok: true, data: null });
+    expect(llamada().url).toBe("https://chat.ejemplo.test/platform/api/v1/users/7");
+    expect(llamada().init.method).toBe("DELETE");
+    fetchSpy.mockResolvedValueOnce(new Response("", { status: 404 }));
+    expect(await borrarUsuario(7, CFG)).toEqual({ ok: false, error: "no_encontrado" });
   });
 });
