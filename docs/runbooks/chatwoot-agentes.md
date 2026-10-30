@@ -42,14 +42,16 @@ Saca de una bandeja a quien se agregó sin vínculo. No lo saca de la cuenta: la
 ### La baja, paso a paso
 
 1. Lo saca de la cuenta.
-2. **Cierre forzado:**
-   - Studio abre una sesión propia por SSO;
-   - le pone una clave aleatoria, con lo que queda solo esa sesión;
-   - borra todas sus sesiones con la API de perfil de Chatwoot;
-   - comprueba que no quede ninguna;
-   - rota su token de API.
+2. **Cierre forzado,** con la ruta privada `dtd_revocar_sesiones` del inicializador `rails/zz_dtd_revocar_sesiones.rb`:
+   - vacía todas sus sesiones del panel;
+   - rota su `pubsub_token` (el tiempo real se corta a los 30 s) y su token de API.
 
-   El navegador del agente vuelve al login en su próximo clic.
+   Studio comprueba después que el token cambió y que no quedó ninguna sesión. El navegador del agente vuelve al login en su próximo clic.
+
+   **Mientras el inicializador no esté instalado** (la ruta da 404), Studio usa la API de perfil de Chatwoot:
+   - abre una sesión propia por SSO;
+   - le pone una clave aleatoria, con lo que queda solo esa sesión;
+   - borra todas las sesiones y rota el token.
 3. Anota la fecha de la baja (0508).
 4. Borra el vínculo.
 
@@ -77,13 +79,21 @@ Un id vacío apaga esa parte de la matriz.
    - la baja funciona igual, pero no se anota la fecha y nadie borra el usuario a los 12 meses;
    - la purga responde `omitido`.
 2. **Variables de la matriz** en el `.env` del VPS. Leads, recién en el corte.
-3. **Script del panel** (`DASHBOARD_SCRIPTS`), para que salir de Studio cierre la sesión del chat en ese navegador:
+3. **Inicializador de revocación** (`rails/zz_dtd_revocar_sesiones.rb`), el cierre forzado de verdad:
+   - antes, correr `bash infra/chatwoot/pruebas/prueba-revocar-sesiones.sh` en local: tiene que dar 0 fallas, con el control en rojo;
+   - copiar el inicializador y el `compose.yml` nuevos a `/srv/chatwoot` (sha256 igual al repo);
+   - cargar en `/srv/chatwoot/.env` `DTD_CHATWOOT_SERVICIO_ID` con el id del usuario de servicio (el mismo de `CHATWOOT_SERVICE_USER_ID`);
+   - recrear `rails`;
+   - comprobar en el log de arranque «[DTD] revocación de sesiones activa».
+
+   Sin la variable, la ruta responde 503 y Studio deja la baja «pendiente» (no cae al respaldo).
+4. **Script del panel** (`DASHBOARD_SCRIPTS`), complemento para que salir de Studio cierre la sesión del chat en ese navegador:
    - en `https://chat.dtdcargo.com/super_admin` (detrás de Cloudflare Access), ir a Settings › «Dashboard Scripts»;
    - pegar el contenido de `infra/chatwoot/panel/dashboard-scripts.html`, comentario incluido;
    - comprobar: abrir la Bandeja, salir de Studio y abrir `chat.dtdcargo.com` en ese navegador. Tiene que pedir login.
 
    Sin el script, la salida espera 4 s y sigue al login: la sesión del chat queda abierta en ese navegador hasta la próxima entrada a Studio, como antes del 2.7.
-4. **Apagar «olvidé mi clave» para los agentes.** CE 4.19.1 no tiene un interruptor por rol. La alternativa es una regla de Traefik de E1 que responda 403 a `POST /auth/password` en `chat.dtdcargo.com`:
+5. **Apagar «olvidé mi clave» para los agentes.** CE 4.19.1 no tiene un interruptor por rol. La alternativa es una regla de Traefik de E1 que responda 403 a `POST /auth/password` en `chat.dtdcargo.com`:
    - un admin que olvide su clave la cambia desde el superadmin;
    - **riesgo mientras no esté:** un agente puede pedir una clave nueva a su correo y entrar directo. Ve lo mismo que desde Studio, porque los permisos son de la cuenta, y la baja lo saca igual.
 
@@ -96,7 +106,7 @@ Un id vacío apaga esa parte de la matriz.
 | Falta configurar el usuario de servicio | No está `CHATWOOT_SERVICE_USER_ID` | Cargarlo en el `.env` del VPS, con OK de Sam |
 | Hay vínculos a agentes que ya no están en la cuenta | Alguien sacó al agente desde Chatwoot | La matriz lo vuelve a meter en la próxima corrida. Si no, darlo de alta otra vez o desvincularlo |
 | Una baja quedó bloqueada | Se desactivó en Studio al último admin humano de la cuenta | Agregar otro administrador humano; la baja se completa en la próxima corrida |
-| Una baja salió de la cuenta, pero sus sesiones siguen abiertas | El cierre forzado falló en algún paso; el aviso del log `[chatwoot-agentes]` dice cuál | Se reintenta solo. Si se repite: `entrada http_429` es rack-attack (5 entradas por IP cada 5 min), se resuelve al día siguiente; `token no_autorizado` es un usuario que no creó Studio y se cierra a mano desde el superadmin |
+| Una baja salió de la cuenta, pero sus sesiones siguen abiertas | El cierre forzado falló en algún paso; el aviso del log `[chatwoot-agentes]` dice cuál | Se reintenta solo. Si se repite:<br>- `revocar http_503`: falta `DTD_CHATWOOT_SERVICIO_ID` en Chatwoot;<br>- `revocar http_409`: es el de servicio o el último admin humano;<br>- `entrada http_429` (respaldo): rack-attack, 5 entradas por IP cada 5 min; se resuelve al día siguiente;<br>- `token no_autorizado`: un usuario que no creó Studio; se cierra a mano desde el superadmin |
 | Un cambio de rol quedó bloqueado | La matriz iba a bajar al último admin humano a `agent` | Agregar otro administrador humano |
 | No se pudieron aplicar todos los permisos | Falló un rol, una bandeja o un equipo | Revisar los logs `[chatwoot-matriz]` del contenedor `web`; se reintenta en la próxima corrida |
 
