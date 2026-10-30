@@ -53,6 +53,7 @@ const m = vi.hoisted(() => ({
   cfg: null as unknown,
   tokenAgente: vi.fn(),
   obtener: vi.fn(),
+  enviados: vi.fn(),
   aplicar: vi.fn(),
   cuenta: vi.fn(),
   historial: vi.fn(),
@@ -69,7 +70,11 @@ vi.mock("@/lib/studio/rbac-guard", () => ({
 vi.mock("@/lib/studio/feature-flags-queries", () => ({ listFeatureFlags: async () => m.flags }));
 vi.mock("@/lib/studio/chatwoot/config", () => ({ chatwootConfig: () => m.cfg }));
 vi.mock("@/lib/studio/chatwoot/platform-api", () => ({ obtenerEnlaceSso: vi.fn(), obtenerAgente: vi.fn(), obtenerTokenAgente: m.tokenAgente }));
-vi.mock("@/lib/studio/chatwoot/account-api", () => ({ listarConversacionesRecientes: vi.fn(), obtenerConversacion: m.obtener }));
+vi.mock("@/lib/studio/chatwoot/account-api", () => ({
+  listarConversacionesRecientes: vi.fn(),
+  obtenerConversacion: m.obtener,
+  contarEnviadosWhatsapp: m.enviados,
+}));
 vi.mock("@/lib/studio/chatwoot/webhook-procesar", () => ({ aplicarConversacion: m.aplicar }));
 vi.mock("@/lib/studio/client-queries", () => ({ getClientAccountState: m.cuenta }));
 vi.mock("@/lib/studio/markbox-history-queries", () => ({ listMarkboxHistory: m.historial }));
@@ -107,11 +112,22 @@ beforeEach(() => {
   m.sesion = dobleSupabase(tablasBase());
   m.tokenAgente.mockResolvedValue({ ok: true, data: "tok-agente" });
   m.obtener.mockResolvedValue({ ok: true, data: CONVERSACION });
+  m.enviados.mockResolvedValue({ ok: true, data: { enviados: 37, completo: true, telefono: "+584125550101" } });
   m.aplicar.mockResolvedValue({ nuevo: false, aplicado: true, clientId: CLIENTE });
   m.cuenta.mockResolvedValue(CUENTA_OK);
   m.historial.mockResolvedValue([{ markbox: "VIEJO-01" }]);
   m.saldo = null;
 });
+
+const COSTO = {
+  enviados: 37,
+  completo: true,
+  mercado: "Rest of Latin America",
+  tarifa: 0.0113,
+  total: 0.4181,
+  vigenteDesde: "2026-10-01",
+  fuente: "https://developers.facebook.com/docs/whatsapp/pricing",
+};
 
 describe("pedirFichaDtd (SDD-0585, 2.4)", () => {
   it("sin permiso de la Bandeja: denied, sin tocar Chatwoot ni la base", async () => {
@@ -190,7 +206,7 @@ describe("pedirFichaDtd (SDD-0585, 2.4)", () => {
 
   it("sin client_id (cruce ambiguo o sin cruce): «sin ficha»", async () => {
     m.obtener.mockResolvedValueOnce({ ok: true, data: { ...CONVERSACION, id: 50 } });
-    expect(await pedirFichaDtd(50, 3)).toEqual({ ok: true, ficha: null });
+    expect(await pedirFichaDtd(50, 3)).toEqual({ ok: true, ficha: null, costo: COSTO });
     expect(m.cuenta).not.toHaveBeenCalled();
   });
 
@@ -203,7 +219,7 @@ describe("pedirFichaDtd (SDD-0585, 2.4)", () => {
     const tablas = tablasBase();
     tablas.clients = [];
     m.sesion = dobleSupabase(tablas);
-    expect(await pedirFichaDtd(42, 3)).toEqual({ ok: true, ficha: null });
+    expect(await pedirFichaDtd(42, 3)).toEqual({ ok: true, ficha: null, costo: COSTO });
   });
 
   it("con cliente: código, anteriores, cuenta, segmento vacío y enlace a la ficha", async () => {
@@ -216,6 +232,7 @@ describe("pedirFichaDtd (SDD-0585, 2.4)", () => {
         cuenta: CUENTA_OK,
         enlace: "/studio/clientes/DTD-0001",
       },
+      costo: COSTO,
     });
     expect(m.cuenta).toHaveBeenCalledWith(
       m.sesion,
@@ -257,5 +274,41 @@ describe("pedirFichaDtd (SDD-0585, 2.4)", () => {
     for (const dato of [CLIENTE, "DTD-0001", "4125550101", "tok-agente"]) expect(todo).not.toContain(dato);
     warn.mockRestore();
     error.mockRestore();
+  });
+});
+
+describe("pedirFichaDtd · costo de referencia del chat (2.8)", () => {
+  it("cuenta con el token DEL agente y la misma conversación, y devuelve el costo sin el teléfono", async () => {
+    const r = await pedirFichaDtd(42, 3);
+    expect(m.enviados).toHaveBeenCalledWith(CFG, "tok-agente", 42);
+    expect(r.ok && r.costo).toEqual(COSTO);
+    expect(JSON.stringify(r)).not.toContain("4125550101");
+  });
+
+  it("sin ficha también trae el costo: es del chat, no del cliente", async () => {
+    m.obtener.mockResolvedValueOnce({ ok: true, data: { ...CONVERSACION, id: 50 } });
+    expect(await pedirFichaDtd(50, 3)).toEqual({ ok: true, ficha: null, costo: COSTO });
+  });
+
+  it("si contar falla, la ficha sale igual, sin costo, y el log lleva solo el código", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    m.enviados.mockResolvedValueOnce({ ok: false, error: "http_500" });
+    const r = await pedirFichaDtd(42, 3);
+    expect(r.ok && r.ficha?.markbox).toBe("DTD-0001");
+    expect(r.ok && r.costo).toBeNull();
+    expect(JSON.stringify(warn.mock.calls)).toContain("http_500");
+    warn.mockRestore();
+  });
+
+  it("contacto sin teléfono E.164: sin costo", async () => {
+    m.enviados.mockResolvedValueOnce({ ok: true, data: { enviados: 4, completo: true, telefono: null } });
+    const r = await pedirFichaDtd(42, 3);
+    expect(r.ok && r.costo).toBeNull();
+  });
+
+  it("si Chatwoot no le muestra la conversación, no se cuenta nada", async () => {
+    m.obtener.mockResolvedValueOnce({ ok: false, error: "no_autorizado" });
+    await pedirFichaDtd(42, 3);
+    expect(m.enviados).not.toHaveBeenCalled();
   });
 });

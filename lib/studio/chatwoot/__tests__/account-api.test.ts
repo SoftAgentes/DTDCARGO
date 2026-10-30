@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { listarConversacionesRecientes, obtenerConversacion } from "../account-api";
+import { contarEnviadosWhatsapp, listarConversacionesRecientes, obtenerConversacion } from "../account-api";
 import { obtenerTokenAgente } from "../platform-api";
 import type { ChatwootConfig } from "../config";
 import { TEXTO_SINTETICO, conversacionSintetica } from "./webhook-fixtures";
@@ -91,5 +91,66 @@ describe("obtenerConversacion (SDD-0585, 2.4, E2-D30)", () => {
     expect(await obtenerConversacion(CFG, "tok", 42)).toEqual({ ok: false, error: "red" });
     fetchSpy.mockResolvedValueOnce(json({ hola: 1 }));
     expect(await obtenerConversacion(CFG, "tok", 42)).toEqual({ ok: false, error: "respuesta_invalida" });
+  });
+});
+
+describe("contarEnviadosWhatsapp (SDD-0585, 2.8)", () => {
+  const msg = (id: number, extra: Record<string, unknown> = {}) => ({
+    id,
+    message_type: 1,
+    private: false,
+    source_id: `wamid.sintetico${id}`,
+    content: TEXTO_SINTETICO,
+    ...extra,
+  });
+  const pagina = (payload: unknown[], telefono: string | null = "+584125550101") =>
+    json({ meta: { contact: { phone_number: telefono, name: "Contacto Sintético" } }, payload });
+
+  it("cuenta solo los salientes entregados por WhatsApp: ni entrantes, ni notas, ni fallidos, ni otros canales", async () => {
+    fetchSpy.mockResolvedValueOnce(
+      pagina([
+        msg(1),
+        msg(2),
+        msg(3, { message_type: 0 }),
+        msg(4, { private: true }),
+        msg(5, { source_id: null }),
+        msg(6, { source_id: "web-123" }),
+        msg(7, { message_type: 2 }),
+      ]),
+    );
+    const r = await contarEnviadosWhatsapp(CFG, "tok-agente", 42);
+    expect(r).toEqual({ ok: true, data: { enviados: 2, completo: true, telefono: "+584125550101" } });
+    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://chat.ejemplo.test/api/v1/accounts/1/conversations/42/messages?after=0");
+    expect((init.headers as Record<string, string>).api_access_token).toBe("tok-agente");
+    expect(JSON.stringify(r)).not.toContain(TEXTO_SINTETICO);
+    expect(JSON.stringify(r)).not.toContain("Contacto Sintético");
+  });
+
+  it("pagina de a 100 con el id del último; si llega al tope, completo es false", async () => {
+    const llena = (desde: number) => Array.from({ length: 100 }, (_, i) => msg(desde + i));
+    fetchSpy.mockResolvedValueOnce(pagina(llena(1))).mockResolvedValueOnce(pagina(llena(101), null)).mockResolvedValueOnce(pagina([msg(201)]));
+    const r = await contarEnviadosWhatsapp(CFG, "tok", 42, 3);
+    expect(r).toEqual({ ok: true, data: { enviados: 201, completo: true, telefono: "+584125550101" } });
+    expect((fetchSpy.mock.calls[1] as [string])[0]).toMatch(/after=100$/);
+    expect((fetchSpy.mock.calls[2] as [string])[0]).toMatch(/after=200$/);
+
+    fetchSpy.mockReset();
+    fetchSpy.mockResolvedValueOnce(pagina(llena(1))).mockResolvedValueOnce(pagina(llena(101)));
+    expect(await contarEnviadosWhatsapp(CFG, "tok", 42, 2)).toEqual({ ok: true, data: { enviados: 200, completo: false, telefono: "+584125550101" } });
+  });
+
+  it("sin teléfono en el contacto: telefono null", async () => {
+    fetchSpy.mockResolvedValueOnce(pagina([msg(1)], ""));
+    expect(await contarEnviadosWhatsapp(CFG, "tok", 42)).toEqual({ ok: true, data: { enviados: 1, completo: true, telefono: null } });
+  });
+
+  it("401 → no_autorizado; red → red; forma rara → respuesta_invalida", async () => {
+    fetchSpy.mockResolvedValueOnce(json({}, 401));
+    expect(await contarEnviadosWhatsapp(CFG, "tok", 42)).toEqual({ ok: false, error: "no_autorizado" });
+    fetchSpy.mockRejectedValueOnce(new TypeError("fetch failed"));
+    expect(await contarEnviadosWhatsapp(CFG, "tok", 42)).toEqual({ ok: false, error: "red" });
+    fetchSpy.mockResolvedValueOnce(json({ payload: "x" }));
+    expect(await contarEnviadosWhatsapp(CFG, "tok", 42)).toEqual({ ok: false, error: "respuesta_invalida" });
   });
 });
