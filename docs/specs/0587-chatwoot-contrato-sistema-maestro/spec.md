@@ -307,6 +307,7 @@ Los pasos 6.3 en adelante suman aquí su allowlist al empezar.
 - **2026-10-30:** SDD propuesta y fila 6.1 entregada (PR #334, commit `1fae5e0a0`).
 - **2026-10-30:** Sam aceptó D1–D10 según la recomendación («si», pasado por el Director). Fila 6.1 aceptada: el avance del programa en esta rama pasa de 4,8 % a 6,5 % (7,5 ÷ 115,5 d, salida de `avance-checklist`). 6.2 espera la PR de E10 (0505) y los eventos de la 0504 antes de empezar.
 - **2026-10-30:** el Director da la salida de 6.2 cuando E10 publica la PR #335 (`231e471c1`). 6.2 se programa en la rama `codex/0582-e6-modelo`, apilada sobre `codex/0582-e10-enrutamiento`, y queda entregado con la migración 0506 sin aplicar (§14).
+- **2026-10-30:** Sam aceptó 6.2: a «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?» respondió «Acepto todo» (texto literal que pasó el Director, sesión «CRM Chatwoot»). Fila 6.2 aceptada; el avance del programa en la rama `codex/0582-e6-modelo` pasa de 20,4 % a 22,1 % (25,5 ÷ 115,5 d, salida de `avance-checklist`, con las aceptaciones de las otras ramas ya fusionadas). Aplicar la 0506 sigue siendo una puerta aparte: OK nominal de Sam al integrar, después de la 0505 y con el runbook de producción.
 
 ## 14. Paso 6.2 — modelo de datos (migración 0506, sin aplicar)
 
