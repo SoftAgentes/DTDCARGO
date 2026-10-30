@@ -594,6 +594,7 @@ Resultado: 3/3 PASÓ. Murieron los 4 mutantes:
 | Badge y contraste | PASÓ: 5/5 |
 | e2e de la Ficha | NO EJECUTADO; entra en el próximo verify |
 | **Rojo propio hallado por el verify de E3, corregido** | `e2e/ficha-chat.spec.ts` necesita Supabase y faltaba en el inventario fijo de `scripts/tests/verify-e2e-sin-supabase.node.mjs`. Ahora está en el inventario, y las cuentas de casos y omisiones salen del inventario: antes eran 5 y 15 escritos a mano; ahora son 8 y 24. La prueba del script pasa 15/15. Control rojo: sin la entrada, falla la prueba del inventario |
+| **Segundo rojo propio, hallado por E10, corregido** | El `aria-label` por i18n agregó dos líneas a `BandejaBadge.tsx`, y sus declaraciones de `pending-migration-symbols` quedaron desfasadas: el sitio de llamada pasó de 14 a 16 y la evidencia de 19 a 21. Se resincronizaron contra el archivo real: **0 ROJO · 5 AMARILLO**. Faltó repetir el gate después del ajuste del `/ui-check` |
 | `pnpm verify` completo | NO EJECUTADO; con turno, después de E10 y E6.2 |
 
 ## Propuesta para el paso 2.7 — matriz real de permisos (para que Sam la apruebe; **no implementada**)
