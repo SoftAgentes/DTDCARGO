@@ -1,0 +1,115 @@
+# Checklist — SDD-0582 programa Kommo → Chatwoot
+
+Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
+
+> Fuente única del avance. Se actualiza en el mismo commit que cierra cada paso. El cálculo sale de:
+>
+> `node scripts/avance-checklist.mjs docs/specs/0582-chatwoot-piloto/checklist.md`
+
+**Reglas**
+
+- **Fórmula:** `avance = Σ días base de pasos aceptados ÷ alcance`. Solo `aceptado` suma.
+- **Esfuerzo:** «Días reales» y «Días restantes» miden esfuerzo y no mueven el %.
+- **Estados:** `pendiente`, `en curso`, `entregado`, `aceptado`, `bloqueado`, `espera externa` y `descartado`.
+- **Unidad:** persona-día de 8 h.
+- **Cambios de alcance:** descartar un paso o cambiar el alcance exige una línea base nueva (`v2`) con la línea `Línea base anterior: v1 · alcance 99,75`. El script muestra el % antes y después.
+- **Esperas:** pesan 0. Se anotan en «Puerta / espera» y el paso pasa a `espera externa` mientras duren.
+- **Responsables:** S = Sam · IA = IA ejecutora · S+IA = juntos.
+
+## Etapas
+
+| Etapa | Nombre |
+|---|---|
+| E0 | Preparación y puertas |
+| E1 | Chatwoot en el VPS |
+| E2 | Bandeja en Studio, usuarios y permisos |
+| E3 | Actualizaciones desde Studio |
+| E4 | Canales en paralelo a Kommo |
+| E5 | Historial de Kommo |
+| E6 | Embudo propio y reemplazos |
+| E7 | Bot propio |
+| E8 | Corte, salida de Kommo y limpieza del ERP |
+| E9 | Guía interactiva «Antes en Kommo → Ahora aquí» (termina antes de 8.1) |
+
+## Pasos
+
+| ID | Etapa | Paso | Resp. | Días base | Días reales | Días restantes | Estado | Puerta / espera | Evidencia |
+|---|---|---|---|---|---|---|---|---|---|
+| 0.1 | E0 | Programa SDD-0582: spec, checklist v1, instrucciones, registro de evidencia y script de avance | IA | 1,25 | — | 0 | entregado | PR → OK Sam | PR #327 |
+| 0.2 | E0 | Decisiones: máquina, roles, tope de gasto del bot, fecha de renovación de Kommo y dónde vive «analiza mi contestación» | S | 0,25 | — | — | pendiente | OK Sam | — |
+| 0.3 | E0 | Gate Meta (bloqueante): modelo de cuenta, propietarios, WABA, app del token, suscripciones, callbacks, overrides, enrutamiento, 2FA, pago y 2.º número. Valores previos fuera de Git y vuelta atrás escrita | S+IA | 0,75 | — | — | pendiente | OK Sam | — |
+| 0.4 | E0 | Inventario de Kommo: backup, agentes, plantillas, 15 Salesbots (disparadores, temporizadores, efectos), integraciones y matriz de paridad de fuentes de leads | S+IA | 1 | — | — | pendiente | — | — |
+| 0.5 | E0 | Inventario de correo: `info@` (buzón, alias o reenvío), remitente SMTP y Resend Inbound (dominios, rutas, consumidores) | S+IA | 0,25 | — | — | pendiente | — | — |
+| 0.6 | E0 | Prueba de extracción de Kommo: `talks/{id}/messages`, alcance, plan, enumeración, paginación y muestra representativa | S+IA | 1 | — | — | pendiente | OK Sam (lectura de PII); ratifica E5 | — |
+| 0.7 | E0 | Expedientes de trámites largos (verificación del negocio) y método de pago propio en Meta comprobado | S+IA | 0,5 | — | — | pendiente | Espera: 1–4 semanas | — |
+| 1.1 | E1 | Compose con `v4.19.1-ce` fija, Postgres pgvector, Redis, Sidekiq y límites | IA | 1 | — | — | pendiente | OK Sam (despliegue en VPS) | — |
+| 1.2 | E1 | DNS, TLS, Traefik, `frame-ancestors` acotado y `/super_admin` detrás de Tailscale | IA | 0,5 | — | — | pendiente | — | — |
+| 1.3 | E1 | Variables: cifrado, signup cerrado, `MAX_USER_SESSIONS` y SMTP | IA | 0,25 | — | — | pendiente | — | — |
+| 1.4 | E1 | Platform App, cuenta por API y usuario de servicio | IA | 0,5 | — | — | pendiente | — | — |
+| 1.5 | E1 | Respaldo conjunto (Postgres, adjuntos, claves) en custodia separada, RPO/RTO y restauración conjunta ensayada | IA | 0,75 | — | — | pendiente | — | — |
+| 1.6 | E1 | Uptime Kuma, memoria, disco y adjuntos durante 72 h | IA | 0,25 | — | — | pendiente | Espera: 3 días | — |
+| 1.7 | E1 | revisar-datos-ve, redacción de logs (Rails, Sidekiq, proxy) probada con datos sintéticos, inventario de terceros y nota sobre `/privacidad` | IA | 1,5 | — | — | pendiente | — | — |
+| 2.1 | E2 | Prueba de concepto en Chrome, Edge, Firefox y Safari: iframe, SSO y micrófono | IA | 1 | — | — | pendiente | Sí/no; si no, pestaña aparte | — |
+| 2.2 | E2 | CSP (`frame-src`, `Permissions-Policy`), módulo, RBAC, flag, i18n, vínculos, `lib/studio/chatwoot`, SSO, capa persistente, página y `signOut` | IA | 5,5 | — | — | pendiente | Migración: OK Sam aparte | — |
+| 2.3 | E2 | Contador, webhook con push y tarjeta en la ficha | IA | 3,5 | — | — | pendiente | — | — |
+| 2.4 | E2 | Dashboard App «Ficha DTD» | IA | 2,25 | — | — | pendiente | — | — |
+| 2.5 | E2 | Ciclo de vida de los agentes: Usuarios, cron y salud | IA | 1,25 | — | — | pendiente | — | — |
+| 2.6 | E2 | revisar-datos-ve, `/ui-check`, QA de navegadores y runbook | IA | 1,75 | — | — | pendiente | PR → OK Sam | — |
+| 2.7 | E2 | Usuarios y permisos: matriz real de CE (bandejas, equipos, contactos, API, acceso directo), sincronización, pruebas por usuario y revocación del SSO | IA | 2,5 | — | — | pendiente | OK Sam (matriz) | — |
+| 3.1 | E3 | Runbook de versiones: RPO/RTO, ventana, drenaje, respaldo conjunto, prueba, producción, smoke y recuperación del tráfico | IA | 1 | — | — | pendiente | — | — |
+| 3.2 | E3 | Vigilante de versiones (`GET /api` y releases) | IA | 1 | — | — | pendiente | — | — |
+| 3.3 | E3 | Pantalla «Actualizaciones» (solo admin) con «Analizar con IA» y «Pedir actualización». No despliega sola | IA | 1,5 | — | — | pendiente | — | — |
+| 3.4 | E3 | Análisis con IA del diff de versiones contra la superficie de DTD. Motor con proveedor, plan y escenario admitidos; OpenCode aislado y autenticado | IA | 1,5 | — | — | pendiente | OK Sam (motor) | — |
+| 4.1 | E4 | App de Meta de DTD, usuario del sistema y token | S+IA | 0,5 | — | — | pendiente | — | — |
+| 4.2 | E4 | Protección de `/register`: initializer que aborta el registro para los Phone Number IDs protegidos, probado | IA | 0,75 | — | — | pendiente | — | — |
+| 4.3 | E4 | Número de prueba: alta manual, plantillas y pruebas | S+IA | 1 | — | — | pendiente | OK Sam (línea) | — |
+| 4.4 | E4 | Messenger como piloto: determinar nivel de acceso y demostración | IA | 1 | — | — | pendiente | — | — |
+| 4.5 | E4 | WhatsApp principal, convivencia corta (requiere 0.3, 4.2 y pago propio): entrega, estados y sin duplicados en ambos lados; vuelta atrás que restaura los valores previos | S+IA | 1,25 | — | — | pendiente | OK Sam; espera: 3 días | — |
+| 4.6 | E4 | Instagram: demostración y envío a App Review | IA | 1 | — | — | pendiente | Espera: App Review | — |
+| 4.7 | E4 | TikTok: condicional, con salida si no hay elegibilidad | IA | 0,75 | — | — | pendiente | Espera: TikTok | — |
+| 4.8 | E4 | Correo: bandeja IMAP/SMTP, SPF/DKIM/DMARC y pruebas de hilo, adjuntos, rebotes y caída de más de 1 día | S+IA | 1,75 | — | — | pendiente | OK Sam (Hostinger) | — |
+| 5.1 | E5 | Backup y CSV cifrados fuera de Git | S+IA | 0,5 | — | — | pendiente | — | — |
+| 5.2 | E5 | Medir volumen y decidir alcance | S+IA | 0,5 | — | — | pendiente | OK Sam | — |
+| 5.3 | E5 | Extractor idempotente e incremental, con instante de corte, a staging cifrado | IA | 1,5 | — | — | pendiente | — | — |
+| 5.4 | E5 | E.164, vínculo con el ERP y deduplicación | IA | 1,5 | — | — | pendiente | — | — |
+| 5.5 | E5 | Modo de importación sin efectos, bandeja «Archivo Kommo» y cargador que conserva IDs, autor y fecha | IA | 1,75 | — | — | pendiente | — | — |
+| 5.6 | E5 | Ensayo en copia: cero efectos externos y muestra revisada con Sam | S+IA | 1 | — | — | pendiente | OK Sam | — |
+| 5.7 | E5 | Carga en producción | IA | 0,5 | — | — | pendiente | OK nominal Sam (carga y PII) | — |
+| 5.8 | E5 | Acta de conciliación parcial con conteos por canal y objeto | IA | 0,5 | — | — | pendiente | — | — |
+| 6.1 | E6 | SDD y contrato de sistema maestro por objeto y fase | IA | 2 | — | — | pendiente | OK Sam | — |
+| 6.2 | E6 | Modelo de datos y migración | IA | 2 | — | — | pendiente | Migración: OK Sam | — |
+| 6.3 | E6 | Tablero Kanban y ficha del lead | IA | 4 | — | — | pendiente | — | — |
+| 6.4 | E6 | Entrada de leads desde Chatwoot y la web, con atribución | IA | 2 | — | — | pendiente | — | — |
+| 6.5 | E6 | Migrar leads, etapas, tareas, mappings e IDs | IA | 1,5 | — | — | pendiente | OK nominal Sam (carga) | — |
+| 6.6 | E6 | Reemplazos de Kommo en el ERP: vista CRM nueva, conversión lead→cliente, etapas desde el cotizador, reporte por asesor, KPI de leads y alerta «sin atender» | IA | 2,5 | — | — | pendiente | — | — |
+| 6.7 | E6 | Reemplazar los Salesbots según el inventario de 0.4 (se reestima) | IA | 2 | — | — | pendiente | — | — |
+| 7.1 | E7 | Cuentas de pago (proyecto con facturación), retención y DPA registrados, y corte local duro de gasto | S+IA | 1 | — | — | pendiente | OK Sam | — |
+| 7.2 | E7 | Excepción IA-01 acotada, redactada para aprobar. Hasta entonces, solo Sugerir | S+IA | 0,5 | — | — | pendiente | OK Sam | — |
+| 7.3 | E7 | Respaldar el conocimiento de Kommo y ubicar «analiza mi contestación» | S+IA | 0,5 | — | — | pendiente | — | — |
+| 7.4 | E7 | Base de conocimiento canónica con reglas duras | IA | 1,5 | — | — | pendiente | — | — |
+| 7.5 | E7 | Prueba ciega de modelos | IA | 1,5 | — | — | pendiente | OK Sam (modelo) | — |
+| 7.6 | E7 | `dtd-bot`: cola durable antes del 2xx, watchdog, modo comprobado antes de enviar, invalidación si escribe una persona, filtro de autor, privacidad y dirección, respaldo y topes | IA | 5,5 | — | — | pendiente | — | — |
+| 7.7 | E7 | Modos desde Studio: interruptor por bandeja, Apagado / Sugerir / Contesta solo y horario | IA | 1,5 | — | — | pendiente | — | — |
+| 7.8 | E7 | Respuesta sugerida: nota privada y botón Copiar en la Ficha DTD | IA | 1,5 | — | — | pendiente | — | — |
+| 7.9 | E7 | Pruebas IA-01: inyección, cancelación, doble ejecución, fallback, apagar mientras genera, caída tras el acuse y nota propia que vuelve | IA | 1 | — | — | pendiente | — | — |
+| 7.10 | E7 | Evaluación final y ajuste | IA | 1 | — | — | pendiente | — | — |
+| 7.11 | E7 | Modo sombra (Sugerir sobre tráfico real) | IA | 1 | — | — | pendiente | Espera: 7 días (en 8.1) | — |
+| 8.1 | E8 | Convivencia final de 7 días, capacitación con la guía de E9, ensayo y checklist de corte firmado | S+IA | 1 | — | — | pendiente | OK nominal Sam con fecha; requiere E9 | — |
+| 8.2 | E8 | Instante de corte y corte de WhatsApp: se apagan la IA y los Salesbots de Kommo y el bot queda en el modo aprobado | S+IA | 0,5 | — | — | pendiente | — | — |
+| 8.3 | E8 | Corte de Messenger e Instagram en el Enrutamiento | S+IA | 0,25 | — | — | pendiente | — | — |
+| 8.4 | E8 | Monitoreo; Kommo de respaldo con límite declarado (no tiene lo enviado desde Chatwoot) | IA | 0,5 | — | — | pendiente | Espera: 1–2 semanas | — |
+| 8.5 | E8 | Extracción incremental final y 2.º backup | IA | 0,5 | — | — | pendiente | — | — |
+| 8.6 | E8 | Acta de conciliación final firmada por Sam (puerta de 8.7–8.12) | S+IA | 0,75 | — | — | pendiente | OK Sam | — |
+| 8.7 | E8 | Detener productores de Kommo (push del alta, writeback del cotizador, crons, webhook) y resolver o congelar la outbox | IA | 0,75 | — | — | pendiente | PR; despliegue: OK Sam | — |
+| 8.8 | E8 | Quitar el canal en Kommo y a Kommo como socio en Meta | S+IA | 0,25 | — | — | pendiente | Sin retorno; OK Sam | — |
+| 8.9 | E8 | Exportar cifradas fuera de Git las tablas y columnas Kommo; revisar-datos-ve del borrado con conteo de `entity_audit_log` y respaldos | IA | 0,75 | — | — | pendiente | OK Sam (lectura de PII) | — |
+| 8.10 | E8 | SDD de limpieza: vista y módulo Kommo, `lib/studio/kommo-*`, edge functions, crons, variables, secretos y scripts de ops; `clients` al vínculo propio; `git grep -i kommo` solo con historia | IA | 3,5 | — | — | pendiente | PR → OK Sam | — |
+| 8.11 | E8 | Migración de borrado de tablas y columnas Kommo | IA | 0,5 | — | — | pendiente | Migración: OK nominal Sam; sin retorno | — |
+| 8.12 | E8 | Cancelar la licencia de Kommo | S | 0,25 | — | — | pendiente | Sin retorno; OK Sam | — |
+| 8.13 | E8 | Runbooks, retrospectiva y handoff (cierre de PRG-01) | IA | 0,5 | — | — | pendiente | 100 % | — |
+| 9.1 | E9 | Guion «Antes en Kommo → Ahora aquí» de las tareas diarias con Sam y la persona que atiende; textos en i18n | S+IA | 1 | — | — | pendiente | OK Sam (guion) | — |
+| 9.2 | E9 | Motor de guía propio y liviano en Studio: puntos anclados a `data-guia`, tarjeta pequeña, sin modal que bloquee, accesible y con la marca | IA | 2 | — | — | pendiente | — | — |
+| 9.3 | E9 | Estado por usuario: primera vez automática, botón «Guía», «No volver a mostrar», reanudar y reiniciar; tabla por usuario (patrón 0233) y caché con contrato de hidratación | IA | 1,5 | — | — | pendiente | Migración: OK Sam | — |
+| 9.4 | E9 | Guía dentro de Chatwoot: script por `DASHBOARD_SCRIPTS` activado por `postMessage`, selectores en un archivo y smoke en E3 | IA | 2 | — | — | pendiente | Despliegue: OK Sam | — |
+| 9.5 | E9 | Recorridos por rol: Bandeja, Embudo, Ficha DTD e IA; para admin, además, Usuarios y Actualizaciones | IA | 1,5 | — | — | pendiente | — | — |
+| 9.6 | E9 | `/ui-check`, prueba con la persona que atiende y ajustes | S+IA | 1 | — | — | pendiente | PR → OK Sam | — |
