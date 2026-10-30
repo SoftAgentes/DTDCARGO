@@ -1,6 +1,25 @@
 # Checklist — SDD-0582 programa Kommo → Chatwoot
 
-Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
+Línea base: v3 · 2026-10-29 · alcance 115,5 persona-días
+Línea base anterior: v2 · alcance 109,25
+
+> **Cambio de alcance v3** (Sam, aprobación del análisis comparativo del Director, 2026-10-29): ajustes del análisis del video y el kit de Basdonax, la guía de Meta, la calculadora y el contraplan de Codex, más el costo de referencia por chat. Suma +5,25 días repartidos en 0.8, 2.3, 2.6, 4.9, 6.7, 7.5, 7.6, 7.7 y 7.9, y el paso **opcional 2.8** (+1). Alcance 109,25 → **115,5 días**; **sin el 2.8 serían 114,5**. No se descarta nada.
+>
+> - **En esta rama** (5 días aceptados de E0): **4,6 % → 4,3 %**, salida de `avance-checklist`.
+> - **Con las aceptaciones de las otras ramas** (2.1, 4.2 y 9.1; se juntan al integrar), 7,75 días: **7,1 % → 6,7 %** (7,75 ÷ 109,25 y 7,75 ÷ 115,5).
+>
+> Detalle y evidencia: [spec, «Cambio de alcance v3»](spec.md#cambio-de-alcance-v3-2026-10-29).
+
+> **0.8 aceptado** (Sam, 2026-10-30, por el selector): la carga recibida en China cuenta como cliente, quien pierde su único envío vuelve a lead y el bot responde en 1 mensaje. Con eso E0 queda completa. No cambia la línea base: en esta rama **4,3 % → 4,8 %**; con las otras ramas (2.1, 4.2 y 9.1) **6,7 % → 7,1 %** (8,25 ÷ 115,5). Regla en la [spec, «Regla de segmentos»](spec.md#regla-de-segmentos-fuente-única-el-erp).
+>
+> **Enmienda del 0.8** (Sam, 2026-10-30): clientes al número nuevo; leads nuevos y registrados al viejo, que sigue en Kommo hasta el corte. Cambian los textos de 4.9, 10.2 y 10.4; días y % iguales. Ver la [spec, «Enmienda del 0.8»](spec.md#enmienda-del-08-reparto-de-los-números-2026-10-30).
+
+> **Cambio de alcance v2** (historia; la vigente es la v3) (Sam, aprobación del plan v3 del Director, 2026-10-29): dos números de WhatsApp (leads y clientes) y enrutamiento por segmento desde el ERP. Se suman 0.8 (+0,25), 4.9 (+1), 6.3 pasa de 4 a 5 días (+1) y la etapa E10 (+7,25): 99,75 → 109,25 días. No se descarta nada y no se pierde nada aceptado; el % baja solo porque crece el denominador.
+>
+> - **En esta rama** (`codex/0582-e0-preparacion`, aceptados 5 días de E0): **5,0 % → 4,6 %**, salida de `avance-checklist`.
+> - **Con las aceptaciones de las otras ramas** (2.1, 4.2 y 9.1; se juntan al integrar), 7,75 días aceptados: **7,8 % → 7,1 %** (7,75 ÷ 99,75 y 7,75 ÷ 109,25).
+>
+> Detalle y evidencia: [spec, «Cambio de alcance v2»](spec.md#cambio-de-alcance-v2-2026-10-29).
 
 > Fuente única del avance. Se actualiza en el mismo commit que cierra cada paso. El cálculo sale de:
 >
@@ -18,18 +37,21 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 
 ## Etapas
 
-| Etapa | Nombre |
-|---|---|
-| E0 | Preparación y puertas |
-| E1 | Chatwoot en el VPS |
-| E2 | Bandeja en Studio, usuarios y permisos |
-| E3 | Actualizaciones desde Studio |
-| E4 | Canales en paralelo a Kommo |
-| E5 | Historial de Kommo |
-| E6 | Embudo propio y reemplazos |
-| E7 | Bot propio |
-| E8 | Corte, salida de Kommo y limpieza del ERP |
-| E9 | Guía interactiva «Antes en Kommo → Ahora aquí» (termina antes de 8.1) |
+| Etapa | Nombre | Días base | Peso |
+|---|---|---|---|
+| E0 | Preparación y puertas | 5,5 | 4,8 % |
+| E1 | Chatwoot en el VPS | 4,75 | 4,1 % |
+| E2 | Bandeja en Studio, usuarios y permisos | 20,75 | 18,0 % |
+| E3 | Actualizaciones desde Studio | 5 | 4,3 % |
+| E4 | Canales en paralelo a Kommo | 9,75 | 8,4 % |
+| E5 | Historial de Kommo | 7,75 | 6,7 % |
+| E6 | Embudo propio y reemplazos | 17,25 | 14,9 % |
+| E7 | Bot propio | 18,5 | 16,0 % |
+| E8 | Corte, salida de Kommo y limpieza del ERP | 10 | 8,7 % |
+| E9 | Guía interactiva «Antes en Kommo → Ahora aquí» (termina antes de 8.1) | 9 | 7,8 % |
+| E10 | Enrutamiento por segmento (SDD hija nueva; se reserva al arrancar, después de 2.3) | 7,25 | 6,3 % |
+
+Pesos = días base de la etapa ÷ 115,5, redondeados a décimas por resto mayor para que sumen 100 %. Son informativos: el % se calcula por pasos.
 
 ## Pasos
 
@@ -42,6 +64,7 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | 0.5 | E0 | Inventario de correo: `info@` (buzón, alias o reenvío), remitente SMTP y Resend Inbound (dominios, rutas, consumidores) | S+IA | 0,25 | 0,3 | 0 | aceptado | — | C-1–C-13 (DNS, Resend y Hostinger: T); `e0-guias.md#05`; aceptado por Sam el 2026-10-29 («Acepto 0.5») |
 | 0.6 | E0 | Prueba de extracción de Kommo: `talks/{id}/messages`, alcance, plan, enumeración, paginación y muestra representativa | S+IA | 1 | 1 | 0 | aceptado | OK Sam (lectura de PII, 2 OK nominales) y OK de la integración, 2026-10-29; ratifica E5 | X-1–X-17 (R); `investigacion-2026-10-29-e0.md`; aceptado por Sam el 2026-10-29 («Acepto 0.6») |
 | 0.7 | E0 | Expedientes de trámites largos (verificación del negocio) y método de pago propio en Meta comprobado | S+IA | 0,5 | 0,3 | 0 | aceptado | Verificación y pago propio ya existen en «Importador de China» (M-13, M-25); App Review se abre en E4 | `e0-guias.md#07`; M-8, M-13, M-25; aceptado por Sam («Apruebo todo», 2026-10-29) |
+| 0.8 | E0 | Decisiones de Sam: dos números y regla de segmentos (regla de «cliente», con o sin carga recibida en China); qué pasa cuando un cliente pierde su único envío vivo (vuelve a lead o no); bot con 1 o 3 globos por respuesta (costo de Meta) | S | 0,5 | — | 0 | aceptado | OK Sam | Línea base v2 (aprobación del plan v3 del Director, 2026-10-29); Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): +0,25 d; spec «Cambio de alcance v2» y «v3»; aceptado por Sam el 2026-10-30 por el selector: carga en China «Sí cuenta (Recomendado)», pierde su único envío «Vuelve a lead (Recomendado)», bot «1 mensaje (Recomendado)»; los dos números ya venían de la v2; S08-1–S08-7; enmienda de Sam del 2026-10-30: clientes al número nuevo y leads al viejo (S08-8 y S08-9) |
 | 1.1 | E1 | Compose con `v4.19.1-ce` fija, Postgres pgvector, Redis, Sidekiq y límites | IA | 1 | — | — | pendiente | OK Sam (despliegue en VPS) | — |
 | 1.2 | E1 | DNS, TLS, Traefik, `frame-ancestors` acotado y `/super_admin` detrás de Tailscale | IA | 0,5 | — | — | pendiente | — | — |
 | 1.3 | E1 | Variables: cifrado, signup cerrado, `MAX_USER_SESSIONS` y SMTP | IA | 0,25 | — | — | pendiente | — | — |
@@ -51,23 +74,25 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | 1.7 | E1 | revisar-datos-ve, redacción de logs (Rails, Sidekiq, proxy) probada con datos sintéticos, inventario de terceros y nota sobre `/privacidad` | IA | 1,5 | — | — | pendiente | — | — |
 | 2.1 | E2 | Prueba de concepto en Chrome, Edge, Firefox y Safari: iframe, SSO y micrófono | IA | 1 | — | — | pendiente | Sí/no; si no, pestaña aparte | — |
 | 2.2 | E2 | CSP (`frame-src`, `Permissions-Policy`), módulo, RBAC, flag, i18n, vínculos, `lib/studio/chatwoot`, SSO, capa persistente, página y `signOut` | IA | 5,5 | — | — | pendiente | Migración: OK Sam aparte | — |
-| 2.3 | E2 | Contador, webhook con push y tarjeta en la ficha | IA | 3,5 | — | — | pendiente | — | — |
+| 2.3 | E2 | Contador, webhook con push y tarjeta en la ficha; acción pendiente durable en la misma transacción que el evento, con reintento recuperable; tope de tamaño del cuerpo y reconciliación recuperable | IA | 5 | — | — | pendiente | No se acepta hasta arreglar la idempotencia: hoy el evento queda procesado aunque la acción falle (E2 lo está corrigiendo); E10 depende de esto | Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): 3,5 → 5 d; hallazgo de Codex en `lib/studio/chatwoot/webhook-procesar.ts` (rama `codex/0582-e2-poc`) |
 | 2.4 | E2 | Dashboard App «Ficha DTD» | IA | 2,25 | — | — | pendiente | — | — |
 | 2.5 | E2 | Ciclo de vida de los agentes: Usuarios, cron y salud | IA | 1,25 | — | — | pendiente | — | — |
-| 2.6 | E2 | revisar-datos-ve, `/ui-check`, QA de navegadores y runbook | IA | 1,75 | — | — | pendiente | PR → OK Sam | — |
+| 2.6 | E2 | revisar-datos-ve, `/ui-check`, QA de navegadores, pruebas de caída del webhook (reintento y reconciliación) y runbook | IA | 2,25 | — | — | pendiente | PR → OK Sam | Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): 1,75 → 2,25 d |
 | 2.7 | E2 | Usuarios y permisos: matriz real de CE (bandejas, equipos, contactos, API, acceso directo), sincronización, pruebas por usuario y revocación del SSO | IA | 2,5 | — | — | pendiente | OK Sam (matriz) | — |
+| 2.8 | E2 | **(Opcional)** Costo de referencia por chat en la Ficha DTD: mensajes salientes de la conversación × tarifa de Meta del mercado del destinatario, con fecha y fuente de la tarifa; informativo, sin migración, sin guardar texto ni teléfonos | IA | 1 | — | — | pendiente | Opcional: OK Sam; después de 2.4; tarifa de octubre cargada desde el tarifario oficial de Meta | Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): +1 d; sin este paso el alcance sería 114,5 |
 | 3.1 | E3 | Runbook de versiones: RPO/RTO, ventana, drenaje, respaldo conjunto, prueba, producción, smoke y recuperación del tráfico | IA | 1 | — | — | pendiente | — | — |
 | 3.2 | E3 | Vigilante de versiones (`GET /api` y releases) | IA | 1 | — | — | pendiente | — | — |
 | 3.3 | E3 | Pantalla «Actualizaciones» (solo admin) con «Analizar con IA» y «Pedir actualización». No despliega sola | IA | 1,5 | — | — | pendiente | — | — |
 | 3.4 | E3 | Análisis con IA del diff de versiones contra la superficie de DTD. Motor con proveedor, plan y escenario admitidos; OpenCode aislado y autenticado | IA | 1,5 | — | — | pendiente | OK Sam (motor) | — |
 | 4.1 | E4 | App de Meta de DTD (la existente «Whats DTD» u otra), usuario del sistema, token y cuenta de mensajes propia en «Importador de China» | S+IA | 0,5 | — | — | pendiente | — | Decisión B (2026-10-29) |
 | 4.2 | E4 | Protección de `/register`: initializer que aborta el registro para los Phone Number IDs protegidos, probado | IA | 0,75 | — | — | pendiente | — | — |
-| 4.3 | E4 | Número de prueba: alta manual, plantillas y pruebas | S+IA | 1 | — | — | pendiente | OK Sam (línea) | — |
+| 4.3 | E4 | Número de prueba: alta manual, plantillas y pruebas. Salida: si en 1 día de intentos no hay ida y vuelta con Chatwoot, se adelanta 4.9 con la línea real | S+IA | 1 | — | — | pendiente | OK Sam (línea) | Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): salida sin días extra |
 | 4.4 | E4 | Messenger como piloto: determinar nivel de acceso y demostración | IA | 1 | — | — | pendiente | — | — |
 | 4.5 | E4 | WhatsApp principal, convivencia corta (requiere 0.3, 4.2, pago propio y la lectura por API de suscripciones y overrides tras 4.1, guardada en la nota cifrada): entrega, estados y sin duplicados en ambos lados; vuelta atrás que restaura los valores previos | S+IA | 1,25 | — | — | pendiente | OK Sam; espera: 3 días | — |
 | 4.6 | E4 | Instagram: demostración y envío a App Review | IA | 1 | — | — | pendiente | Espera: App Review | — |
 | 4.7 | E4 | TikTok: condicional, con salida si no hay elegibilidad | IA | 0,75 | — | — | pendiente | Espera: TikTok | — |
 | 4.8 | E4 | Correo: bandeja IMAP/SMTP, SPF/DKIM/DMARC y pruebas de hilo, adjuntos, rebotes y caída de más de 1 día | S+IA | 1,75 | — | — | pendiente | OK Sam (Hostinger y DNS en Cloudflare) | — |
+| 4.9 | E4 | Número de clientes (enmienda del 0.8, 2026-10-30): línea, cuenta de mensajes «DTD Cargo Clientes» en Importador de China, nombre visible, verificación y bandeja Clientes en Chatwoot. Guía propia de alta: PIN de verificación en dos pasos elegido por DTD y guardado en la nota cifrada, máximo 10 `register` cada 72 h, token por cabecera con permisos mínimos y sin Postman en la nube; el ID nuevo entra en la lista protegida de 4.2; alarma del cupo de 1.000 mensajes de servicio por número detección de fallas de entrega y vigilancia del escalado del tope inicial de mensajes que inicia DTD | S+IA | 1,75 | — | — | pendiente | OK Sam (línea); requiere 4.3 | Línea base v2 (aprobación del plan v3 del Director, 2026-10-29); Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): 1 → 1,75 d; enmienda del 0.8: pasa a ser el número de clientes |
 | 5.1 | E5 | Backup y CSV cifrados fuera de Git | S+IA | 0,5 | — | — | pendiente | — | — |
 | 5.2 | E5 | Medir volumen y decidir alcance | S+IA | 0,5 | — | — | pendiente | OK Sam | — |
 | 5.3 | E5 | Extractor idempotente e incremental, con instante de corte, a staging cifrado | IA | 1,5 | — | 1,5 | pendiente | — | Ratificado por 0.6 (X-15) |
@@ -78,20 +103,20 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | 5.8 | E5 | Acta de conciliación parcial con conteos por canal y objeto | IA | 0,5 | — | — | pendiente | — | — |
 | 6.1 | E6 | SDD y contrato de sistema maestro por objeto y fase | IA | 2 | — | — | pendiente | OK Sam | — |
 | 6.2 | E6 | Modelo de datos y migración | IA | 2 | — | — | pendiente | Migración: OK Sam | — |
-| 6.3 | E6 | Tablero Kanban y ficha del lead | IA | 4 | — | — | pendiente | — | — |
+| 6.3 | E6 | Tablero Kanban con dos embudos Leads/Clientes (paso automático de uno a otro) y ficha del lead | IA | 5 | — | — | pendiente | — | Línea base v2 (aprobación del plan v3 del Director, 2026-10-29): 4 → 5 días |
 | 6.4 | E6 | Entrada de leads desde Chatwoot y la web, con atribución | IA | 2 | — | — | pendiente | — | — |
 | 6.5 | E6 | Migrar leads, etapas, tareas, mappings e IDs | IA | 1,5 | — | — | pendiente | OK nominal Sam (carga) | — |
 | 6.6 | E6 | Reemplazos de Kommo en el ERP: vista CRM nueva, conversión lead→cliente, etapas desde el cotizador, reporte por asesor, KPI de leads y alerta «sin atender» | IA | 2,5 | — | — | pendiente | — | — |
-| 6.7 | E6 | Reemplazar los Salesbots según el inventario de 0.4 (se reestima) | IA | 2 | — | 0,75 | pendiente | — | Reestimado: `investigacion-2026-10-29-e0.md` |
+| 6.7 | E6 | Reemplazar los Salesbots según el inventario de 0.4 (se reestima) y revisar con su costo los «Ping 23 h»: desde el 2026-10-01 cada respuesta cuenta contra el cupo de 1.000 | IA | 2,25 | — | 1 | pendiente | — | Reestimado: `investigacion-2026-10-29-e0.md`; Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): 2 → 2,25 d |
 | 7.1 | E7 | Cuentas de pago (proyecto con facturación), retención y DPA registrados, y corte local duro de gasto | S+IA | 1 | — | — | pendiente | OK Sam | — |
 | 7.2 | E7 | Excepción IA-01 acotada, redactada para aprobar. Hasta entonces, solo Sugerir | S+IA | 0,5 | — | — | pendiente | OK Sam | — |
 | 7.3 | E7 | Respaldar el conocimiento de Kommo y ubicar «analiza mi contestación» | S+IA | 0,5 | — | — | pendiente | — | — |
 | 7.4 | E7 | Base de conocimiento canónica con reglas duras | IA | 1,5 | — | 1 | pendiente | — | Reestimado: `investigacion-2026-10-29-e0.md` |
-| 7.5 | E7 | Prueba ciega de modelos | IA | 1,5 | — | — | pendiente | OK Sam (modelo) | — |
-| 7.6 | E7 | `dtd-bot`: cola durable antes del 2xx, watchdog, modo comprobado antes de enviar, invalidación si escribe una persona, filtro de autor, privacidad y dirección, respaldo y topes | IA | 5,5 | — | — | pendiente | — | — |
-| 7.7 | E7 | Modos desde Studio: interruptor por bandeja, Apagado / Sugerir / Contesta solo y horario | IA | 1,5 | — | — | pendiente | — | — |
+| 7.5 | E7 | Prueba ciega de modelos, con la matriz de foto, audio, PDF y formato desconocido: proveedor aprobado (sin OpenAI) o pase a humano | IA | 2 | — | — | pendiente | OK Sam (modelo) | Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): 1,5 → 2 d |
+| 7.6 | E7 | `dtd-bot`: cola durable antes del 2xx, watchdog, modo comprobado antes de enviar, invalidación si escribe una persona, filtro de autor, privacidad y dirección, respaldo y topes. Frenos con estado durable: juntar ráfagas (8 s de inactividad, máximo 24 s, configurable), tope de mensajes por conversación en 24 h que pasa a humano, recorte de entrada (2.000 caracteres) y salida (4.096), y falla cerrada: ante la duda no envía y pasa a humano con aviso en Studio. Anota el costo de la IA por llamada. Responde en 1 mensaje por turno (0.8) | IA | 6,25 | — | — | pendiente | — | Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): 5,5 → 6,25 d |
+| 7.7 | E7 | Modos desde Studio: interruptor por bandeja, Apagado / Sugerir / Contesta solo y horario; «resolver» calla al bot y la opción «solo el primer mensaje» | IA | 1,75 | — | — | pendiente | — | Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): 1,5 → 1,75 d |
 | 7.8 | E7 | Respuesta sugerida: nota privada y botón Copiar en la Ficha DTD | IA | 1,5 | — | — | pendiente | — | — |
-| 7.9 | E7 | Pruebas IA-01: inyección, cancelación, doble ejecución, fallback, apagar mientras genera, caída tras el acuse y nota propia que vuelve | IA | 1 | — | — | pendiente | — | — |
+| 7.9 | E7 | Pruebas IA-01: inyección, cancelación, doble ejecución, fallback, apagar mientras genera, caída tras el acuse y nota propia que vuelve; reinicio con los frenos a mitad de camino y pase a humano por formato no admitido | IA | 1,5 | — | — | pendiente | — | Línea base v3 (aprobación del análisis comparativo del Director, 2026-10-29): 1 → 1,5 d |
 | 7.10 | E7 | Evaluación final y ajuste | IA | 1 | — | — | pendiente | — | — |
 | 7.11 | E7 | Modo sombra (Sugerir sobre tráfico real) | IA | 1 | — | — | pendiente | Espera: 7 días (en 8.1) | — |
 | 8.1 | E8 | Convivencia final de 7 días, capacitación con la guía de E9, ensayo y checklist de corte firmado | S+IA | 1 | — | — | pendiente | OK nominal Sam con fecha; requiere E9 | — |
@@ -113,3 +138,9 @@ Línea base: v1 · 2026-10-28 · alcance 99,75 persona-días
 | 9.4 | E9 | Guía dentro de Chatwoot: script por `DASHBOARD_SCRIPTS` activado por `postMessage`, selectores en un archivo y smoke en E3 | IA | 2 | — | — | pendiente | Despliegue: OK Sam | — |
 | 9.5 | E9 | Recorridos por rol: Bandeja, Embudo, Ficha DTD e IA; para admin, además, Usuarios y Actualizaciones | IA | 1,5 | — | — | pendiente | — | — |
 | 9.6 | E9 | `/ui-check`, prueba con la persona que atiende y ajustes | S+IA | 1 | — | — | pendiente | PR → OK Sam | — |
+| 10.1 | E10 | Regla de segmento en el ERP (decidida en 0.8): cliente = envío vivo o recibo vivo en China con alguno de sus códigos; función SQL de solo lectura, sin datos personales en la salida, `service_role`, contrato en PGlite. Decide si `incidencia` cuenta | IA | 1,5 | — | — | pendiente | Migración: OK Sam; requiere 2.3 (0.8 ya aceptado) | — |
+| 10.2 | E10 | Endpoint `clasificar` con secreto (patrón `lib/http/secret-compare.ts`) y webhook de Chatwoot que pone etiqueta, equipo y la respuesta de redirección sin IA, en 1 mensaje; en automático solo cuando el número viejo esté en Chatwoot | IA | 2 | — | — | pendiente | Requiere 10.1, y el número viejo en Chatwoot (4.5 / E8) | — |
+| 10.3 | E10 | Usuarios sin teléfono (BSUID): respuesta neutra y se guarda el BSUID | IA | 0,5 | — | — | pendiente | — | — |
+| 10.4 | E10 | Portal: muestra el número nuevo a los clientes. La web no cambia (ya apunta al viejo, que queda para leads). Se achica; se reestima al arrancar | IA | 1 | — | — | pendiente | Despliegue: OK Sam; con el número de 4.9 vivo | Enmienda del 0.8 (Sam, 2026-10-30) |
+| 10.5 | E10 | Tickets del portal a los embudos (Clientes / Leads registrados) | IA | 1,25 | — | — | pendiente | Requiere 6.3 | — |
+| 10.6 | E10 | revisar-datos-ve y prueba de punta a punta con el número de prueba | IA | 1 | — | — | pendiente | — | — |
