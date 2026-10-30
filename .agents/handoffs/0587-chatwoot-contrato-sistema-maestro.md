@@ -42,6 +42,7 @@
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
 | 6.1 | **aceptado** (2026-10-30) | [SDD-0587](../../docs/specs/0587-chatwoot-contrato-sistema-maestro/spec.md) `approved`: §3 maestro por objeto (11 objetos × 3 fases), §4 tableros Leads (7 etapas) y Clientes (4), §5 sincronización, §6 reemplazos (15 bots + integraciones), §7 migración, §8 D1–D10 resueltas y L1–L4 propuestas, §9 reestimación | Nada para 6.1. Las lecturas L1–L4 piden su OK en 6.4 y 6.5 |
+| 6.2 | **aceptado** (2026-10-30) | Migración 0506 declarada y sin aplicar, contrato PGlite, revisar-datos-ve (SDD-0587 §14); verify cubierto por el de 6.3 | Aplicar la 0506: puerta aparte con OK nominal de Sam al integrar, después de la 0505 |
 
 Avance del programa en esta rama: **4,8 % → 6,5 %** (7,5 ÷ 115,5 d, salida de `avance-checklist`) al aceptar 6.1. Días restantes nuevos en el checklist: 6.2 → 2,5; 6.3 → 4,5; 6.4 → 2,5; 6.5 → 1,5; 6.6 → 2,5 (6.7 ya estaba en 1). Total E6 restante 14,5 d frente a 15,25 base. Los días base no cambian.
 
@@ -76,11 +77,12 @@ L1 conteo de `kommo_leads` por etapa y antigüedad en el espejo de producción; 
 ## Autorizaciones registradas
 
 - 6.1, 2026-10-30: el Director le preguntó a Sam «Si te sirven todas mis recomendaciones de D1–D10, basta con que me digas "D1–D10 como recomiendas"», y Sam respondió «si» (texto literal que pasó el Director, sesión «CRM Chatwoot»). Cubre aceptar 6.1 y resolver D1–D10 según la recomendación: D1 (a), D2 (a), D3 (a), D4 (a), D5 (b), D6 (a), D7 (a), D8 (a), D9 (a) y D10 (a). **No cubre** las lecturas L1–L4, ninguna migración ni empezar 6.2.
+- 6.2, 2026-10-30: el Director le preguntó a Sam «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?» y Sam respondió «Acepto todo» (texto literal que pasó el Director, sesión «CRM Chatwoot»). Cubre aceptar 6.2. **No cubre** aplicar la 0506, que es una puerta aparte con OK nominal al integrar.
 
 ## PENDIENTES DE ESTA TAREA
 
 - Ninguno para 6.1.
-- 6.2: aceptación de 6.2 por Sam; OK nominal para aplicar la 0506, después de la 0505 y con el runbook.
+- 6.2: aceptado. Solo queda el OK nominal de Sam para aplicar la 0506, al integrar, después de la 0505 y con el runbook.
 - 6.3 (tablero): no empezado en esta tarea.
 
 ## FUERA DE ALCANCE DETECTADO
