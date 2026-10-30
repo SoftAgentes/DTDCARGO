@@ -25,7 +25,7 @@ confidencialidad: interno
 
 | Paso | Entrega |
 |---|---|
-| 3.1 | [Runbook de versiones](../../runbooks/chatwoot-versiones.md): RPO/RTO, ventana, drenaje de Sidekiq, respaldo conjunto en el momento, prueba en copia, paso a producción, smoke S1–S10 y recuperación del tráfico. Comprobación explícita de los dos initializers, por línea de arranque **y** por comportamiento |
+| 3.1 | [Runbook de versiones](../../runbooks/chatwoot-versiones.md): RPO/RTO, ventana, drenaje de Sidekiq, respaldo conjunto en el momento, prueba en copia, paso a producción, smoke S1–S10 y recuperación del tráfico. Comprobación explícita de los dos initializers, por línea de arranque **y** por comportamiento. Ampliado el 2026-10-30 a pedido del Director con el tercer initializer, `zz_dtd_revocar_sesiones.rb` (paso 2.7 de E2, texto tomado de su handoff 0585): fila en «Pieza propia», corrida `prueba-revocar-sesiones.sh` en §4 con su control C1 en rojo, y S6–S7 en el smoke, que pasa a S1–S12 |
 | 3.2 | Vigilante: cron diario `/api/cron/chatwoot-versiones` que compara `GET https://chat.dtdcargo.com/api` con los releases públicos de `chatwoot/chatwoot` y guarda la revisión en `chatwoot_version_checks` (0507). Avisa por push a los admins una vez por versión nueva |
 | 3.3 | Pantalla **Administración › Actualizaciones** (`/studio/admin/actualizaciones`), solo para admin: versión instalada, disponible, notas de cada versión pendiente, «Revisar ahora» y «Pedir actualización», que guarda un registro en `chatwoot_update_requests` (0507) y **no despliega nada** |
 
