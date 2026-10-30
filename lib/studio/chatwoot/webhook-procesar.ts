@@ -9,13 +9,17 @@ import type { ConversacionChatwoot, EventoChatwoot } from "./webhook-events";
 /**
  * Procesamiento de un evento de Chatwoot ya verificado (SDD-0585, E2-D18 a D20, D25).
  *
- * 1. `chatwoot_registrar_evento` (0504) registra el evento y aplica el estado en
- *    una transacción. Un duplicado no sigue.
+ * 1. `chatwoot_registrar_evento` (0504) registra el evento (en «procesando») y
+ *    aplica el estado en una transacción. Un duplicado real no sigue.
  * 2. Después corre la lista de manejadores. Hoy hay uno: el aviso push. E10
  *    (10.2 `clasificar`) agrega el suyo a `MANEJADORES` sin tocar la ruta.
+ * 3. `chatwoot_cerrar_evento` lo cierra: «procesado» si todos salieron bien,
+ *    «fallido» si alguno falló. Un fallido se vuelve a procesar en la próxima
+ *    entrega (hallazgo de la revisión de Codex: cerrarlo antes perdía el
+ *    reintento; en E10 dejaría a un cliente sin su redirección).
  *
- * Un manejador que falla no tumba los demás ni el registro: se loguea el código,
- * nunca el payload.
+ * Un manejador que falla no tumba los demás: se loguea el código, nunca el
+ * payload, y la ruta responde 500.
  */
 
 export interface Registro {
@@ -63,6 +67,7 @@ export async function aplicarConversacion(
  * datos personales en el cuerpo: solo el número de conversación.
  */
 export const avisarPorPush: ManejadorEvento = async (ctx, evento, registro) => {
+  // Sin `registro.nuevo` no se llega acá; la guarda queda por si se llama suelto.
   if (!evento.avisar || !registro.nuevo) return;
   const flags = await listFeatureFlags(ctx.admin, ctx.tenantId);
   if (!flags.chatwoot_inbox) return;
@@ -86,6 +91,10 @@ export const avisarPorPush: ManejadorEvento = async (ctx, evento, registro) => {
     });
     if (id) encolados += 1;
   }
+  if (destinatarios.length > 0 && encolados === 0) {
+    // Nadie recibió el aviso: que el evento quede fallido y se reintente.
+    throw new Error("push no encolado");
+  }
   if (encolados > 0) await drainOperarioPushOutbox(ctx.admin);
 };
 
@@ -95,15 +104,25 @@ export async function procesarEventoChatwoot(
   ctx: ContextoChatwoot,
   evento: EventoChatwoot,
   manejadores: readonly ManejadorEvento[] = MANEJADORES,
-): Promise<{ estado: "duplicado" | "procesado"; aplicado: boolean }> {
+): Promise<{ estado: "duplicado" | "procesado" | "fallido"; aplicado: boolean }> {
   const registro = await aplicarConversacion(ctx, evento.conversacion, evento);
   if (!registro.nuevo) return { estado: "duplicado", aplicado: false };
+  let ok = true;
   for (const manejador of manejadores) {
     try {
       await manejador(ctx, evento, registro);
     } catch (e) {
+      ok = false;
       console.warn(`[chatwoot] manejador ${manejador.name || "anónimo"} falló: ${e instanceof Error ? e.name : "error"}`);
     }
   }
-  return { estado: "procesado", aplicado: registro.aplicado };
+  // Si el cierre mismo falla, el evento queda en «procesando» y la RPC lo
+  // reclama pasados 5 minutos: nunca queda «procesado» sin haberlo sido.
+  const { error } = await ctx.admin.rpc("chatwoot_cerrar_evento", {
+    p_tenant_id: ctx.tenantId,
+    p_event_key: evento.clave,
+    p_ok: ok,
+  });
+  if (error) console.warn(`[chatwoot] chatwoot_cerrar_evento: ${error.code ?? "sin código"}`);
+  return { estado: ok ? "procesado" : "fallido", aplicado: registro.aplicado };
 }

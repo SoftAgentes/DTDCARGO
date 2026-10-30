@@ -75,7 +75,7 @@ describe("SDD-0585 · 0504 eventos de Chatwoot, estado y cruce (PGlite)", () => 
   it("el contrato pasa entero con la 0504", async () => {
     const run = await contract();
     expect(run.error).toBeNull();
-    expect(run.green).toBe("TEST 0504 GREEN: 23 aserciones");
+    expect(run.green).toBe("TEST 0504 GREEN: 33 aserciones");
   }, SLOW);
 
   it("CONTROL ROJO: sin la 0504 la RPC no existe y el contrato cae", async () => {
@@ -87,9 +87,21 @@ describe("SDD-0585 · 0504 eventos de Chatwoot, estado y cruce (PGlite)", () => 
   const MUTANTES: [string, string, string, RegExp][] = [
     [
       "sin idempotencia",
-      "    if v_filas = 0 then\n      return query select false, false, null::uuid;",
-      "    if false then\n      return query select false, false, null::uuid;",
+      "      if v_filas = 0 then\n        return query select false, false, null::uuid;",
+      "      if false then\n        return query select false, false, null::uuid;",
       /TEST 0504: el mismo evento otra vez no hace nada/,
+    ],
+    [
+      "un evento fallido no se reclama",
+      "        and (e.status = 'fallido'\n",
+      "        and (false\n",
+      /TEST 0504: reintento: tras fallar, la reentrega se vuelve a procesar/,
+    ],
+    [
+      "un evento procesado puede volver a fallido",
+      "    and e.event_key = p_event_key\n    and e.status = 'procesando';",
+      "    and e.event_key = p_event_key;",
+      /TEST 0504: reintento: un evento procesado no vuelve a fallido/,
     ],
     [
       "sin el candado de orden",

@@ -326,7 +326,7 @@
             "app/studio/(app)/bandeja/actions.ts:181",
             "lib/studio/chatwoot/links-queries.ts:20",
             "lib/studio/chatwoot/links-queries.ts:34",
-            "lib/studio/chatwoot/webhook-procesar.ts:71"
+            "lib/studio/chatwoot/webhook-procesar.ts:76"
           ]
         }
       ],
@@ -357,7 +357,7 @@
           "degradation": "desvincularAgente sin la tabla no borra nada y responde el mismo mensaje traducido."
         },
         {
-          "site": "lib/studio/chatwoot/webhook-procesar.ts:74",
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:79",
           "contains": "const vinculos = (data ?? []) as { user_id: string; chatwoot_user_id: number }[];",
           "degradation": "El aviso push del webhook sin la tabla no tiene vínculos: data llega null, la lista queda vacía y no se encola ningún push. El evento ya quedó registrado (0504)."
         }
@@ -372,8 +372,8 @@
           "name": "chatwoot_registrar_evento",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/webhook-procesar.ts:40",
-            "lib/studio/chatwoot/webhook-procesar.ts:53"
+            "lib/studio/chatwoot/webhook-procesar.ts:44",
+            "lib/studio/chatwoot/webhook-procesar.ts:57"
           ]
         },
         {
@@ -383,6 +383,14 @@
             "app/studio/(app)/_components/BandejaBadge.tsx:14",
             "lib/studio/chatwoot/conversations-queries.ts:30",
             "lib/studio/chatwoot/conversations-queries.ts:53"
+          ]
+        },
+        {
+          "name": "chatwoot_cerrar_evento",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/chatwoot/webhook-procesar.ts:121",
+            "lib/studio/chatwoot/webhook-procesar.ts:126"
           ]
         }
       ],
@@ -398,7 +406,7 @@
           "degradation": "listConversacionesDeCliente devuelve [] y la ficha muestra «Sin conversaciones vinculadas»; solo con acceso a la Bandeja y el flag encendido, que sin 0503 tampoco existe."
         },
         {
-          "site": "lib/studio/chatwoot/webhook-procesar.ts:53",
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:57",
           "contains": "if (error) throw new Error(`chatwoot_registrar_evento: ${error.code ?? \"sin código\"}`);",
           "degradation": "Sin la RPC (42883/PGRST202) el webhook responde 500 sin registrar ni avisar, y la reconciliación de la Bandeja responde «service». El webhook no se registra en Chatwoot hasta aplicar 0503 y 0504 (puerta aparte)."
         },
@@ -406,6 +414,11 @@
           "site": "app/studio/(app)/_components/BandejaBadge.tsx:19",
           "contains": "if (n === 0) return null;",
           "degradation": "La suscripción Realtime a una tabla que no existe no entrega cambios: el badge se queda con lo inicial del layout (vacío sin 0504) y no pinta nada."
+        },
+        {
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:126",
+          "contains": "if (error) console.warn(`[chatwoot] chatwoot_cerrar_evento: ${error.code ?? \"sin código\"}`);",
+          "degradation": "Sin la función de cierre (42883/PGRST202) solo se registra el código: no hay evento que cerrar, porque sin 0504 tampoco existe chatwoot_registrar_evento y la ruta ya respondió 500 antes."
         }
       ]
     }

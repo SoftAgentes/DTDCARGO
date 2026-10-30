@@ -103,6 +103,18 @@ begin
 end;
 $$;
 
+-- Cierra un evento como lo hace procesarEventoChatwoot después de los manejadores.
+create function pg_temp.cerrar(p_key text, p_ok boolean,
+  p_tenant uuid default '10000000-0000-0000-0000-000000000001') returns boolean language plpgsql as $$
+declare v boolean;
+begin
+  set local role service_role;
+  v := public.chatwoot_cerrar_evento(p_tenant, p_key, p_ok);
+  reset role;
+  return v;
+end;
+$$;
+
 create function pg_temp.ve(p_user uuid) returns integer language plpgsql as $$
 declare v integer;
 begin
@@ -173,9 +185,38 @@ begin
 end;
 $eventos$;
 
+-- Ciclo de vida del evento (hallazgo de la revisión de Codex): un manejador que
+-- falla no puede dejar el evento «procesado», o la reentrega se descarta.
+do $reintento$
+declare
+  r record;
+begin
+  r := pg_temp.evento('message_created:501', 50, 'open', 1, null, 1000);
+  perform pg_temp.assert_true(r.nuevo, 'reintento: la primera entrega es nueva');
+  r := pg_temp.evento('message_created:501', 50, 'open', 1, null, 1000);
+  perform pg_temp.assert_true(not r.nuevo, 'reintento: otra entrega mientras se procesa es duplicado');
+  perform pg_temp.assert_true(pg_temp.cerrar('message_created:501', false), 'reintento: el evento se cierra como fallido');
+  r := pg_temp.evento('message_created:501', 50, 'open', 1, null, 1000);
+  perform pg_temp.assert_true(r.nuevo, 'reintento: tras fallar, la reentrega se vuelve a procesar');
+  perform pg_temp.assert_true(
+    (select attempts = 2 and status = 'procesando' from public.chatwoot_webhook_events where event_key = 'message_created:501'),
+    'reintento: cuenta el segundo intento');
+  perform pg_temp.assert_true(pg_temp.cerrar('message_created:501', true), 'reintento: el evento se cierra como procesado');
+  r := pg_temp.evento('message_created:501', 50, 'open', 1, null, 1000);
+  perform pg_temp.assert_true(not r.nuevo, 'reintento: ya procesado, la reentrega es duplicado');
+  perform pg_temp.assert_true(not pg_temp.cerrar('message_created:501', false), 'reintento: un evento procesado no vuelve a fallido');
+
+  r := pg_temp.evento('message_created:601', 60, 'open', 1, null, 1000);
+  update public.chatwoot_webhook_events set updated_at = now() - interval '6 minutes'
+  where event_key = 'message_created:601';
+  r := pg_temp.evento('message_created:601', 60, 'open', 1, null, 1000);
+  perform pg_temp.assert_true(r.nuevo, 'reintento: un evento colgado en procesando más de 5 min se reclama');
+end;
+$reintento$;
+
 do $acceso$
 begin
-  perform pg_temp.assert_true(pg_temp.ve('20000000-0000-0000-0000-000000000001') = 4, 'un usuario de T1 ve las conversaciones de T1');
+  perform pg_temp.assert_true(pg_temp.ve('20000000-0000-0000-0000-000000000001') = 6, 'un usuario de T1 ve las conversaciones de T1');
   perform pg_temp.assert_true(pg_temp.ve('20000000-0000-0000-0000-000000000002') = 1, 'un usuario de T2 ve solo las de T2');
   perform pg_temp.assert_true(
     not has_table_privilege('authenticated', 'public.chatwoot_webhook_events', 'SELECT'),
@@ -188,6 +229,10 @@ begin
     not has_function_privilege('authenticated', 'public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision)', 'EXECUTE')
     and not has_function_privilege('anon', 'public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision)', 'EXECUTE'),
     'la RPC es solo de service_role');
+  perform pg_temp.assert_true(
+    not has_function_privilege('authenticated', 'public.chatwoot_cerrar_evento(uuid, text, boolean)', 'EXECUTE')
+    and not has_function_privilege('anon', 'public.chatwoot_cerrar_evento(uuid, text, boolean)', 'EXECUTE'),
+    'cerrar el evento es solo de service_role');
   perform pg_temp.assert_true(exists (
     select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'chatwoot_conversations'
   ), 'chatwoot_conversations entra en supabase_realtime');

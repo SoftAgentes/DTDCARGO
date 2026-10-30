@@ -27,9 +27,11 @@ const LINKS = [
 ];
 
 function admin(rpcResultado: { nuevo: boolean; aplicado: boolean; client_id: string | null } | Error) {
-  const rpc = vi.fn(async () =>
-    rpcResultado instanceof Error ? { data: null, error: { code: "XX000", message: "x" } } : { data: [rpcResultado], error: null },
-  );
+  type Rpc = (nombre: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { code: string; message: string } | null }>;
+  const rpc = vi.fn<Rpc>(async (nombre) => {
+    if (nombre === "chatwoot_cerrar_evento") return { data: null, error: null };
+    return rpcResultado instanceof Error ? { data: null, error: { code: "XX000", message: "x" } } : { data: [rpcResultado], error: null };
+  });
   const from = (tabla: string) => {
     const filtros: ((f: Record<string, unknown>) => boolean)[] = [];
     const b = {
@@ -48,6 +50,8 @@ const evento = (extra: Record<string, unknown> = {}) => interpretarEvento(mensaj
 beforeEach(() => {
   vi.clearAllMocks();
   m.flags = { chatwoot_inbox: true };
+  // clearAllMocks no reinicia lo que un caso dejó con mockResolvedValue.
+  m.encolar.mockResolvedValue("evt-1");
 });
 
 describe("procesarEventoChatwoot (SDD-0585)", () => {
@@ -75,15 +79,33 @@ describe("procesarEventoChatwoot (SDD-0585)", () => {
     expect(manejador).not.toHaveBeenCalled();
   });
 
-  it("un manejador que falla no tumba el resto (la base de E10)", async () => {
+  const cierres = (a: ReturnType<typeof admin>) =>
+    a.rpc.mock.calls.filter((c) => c[0] === "chatwoot_cerrar_evento").map((c) => c[1]);
+
+  it("todo bien: cierra el evento como procesado", async () => {
+    const a = admin({ nuevo: true, aplicado: true, client_id: null });
+    const r = await procesarEventoChatwoot({ admin: a, tenantId: T1 }, evento(), [async () => {}]);
+    expect(r.estado).toBe("procesado");
+    expect(cierres(a)).toEqual([{ p_tenant_id: T1, p_event_key: "message_created:101", p_ok: true }]);
+  });
+
+  it("un manejador que falla: corre el resto, el evento queda FALLIDO (reintentable) y no procesado", async () => {
+    const a = admin({ nuevo: true, aplicado: true, client_id: null });
     const segundo = vi.fn(async () => {});
     const r = await procesarEventoChatwoot(
-      { admin: admin({ nuevo: true, aplicado: true, client_id: null }), tenantId: T1 },
+      { admin: a, tenantId: T1 },
       evento(),
       [async () => { throw new Error("falla"); }, segundo],
     );
-    expect(r.estado).toBe("procesado");
+    expect(r.estado).toBe("fallido");
     expect(segundo).toHaveBeenCalledTimes(1);
+    expect(cierres(a)).toEqual([{ p_tenant_id: T1, p_event_key: "message_created:101", p_ok: false }]);
+  });
+
+  it("duplicado real: no cierra nada (lo cerró la primera entrega)", async () => {
+    const a = admin({ nuevo: false, aplicado: false, client_id: null });
+    await procesarEventoChatwoot({ admin: a, tenantId: T1 }, evento(), [async () => {}]);
+    expect(cierres(a)).toEqual([]);
   });
 
   it("si la RPC falla, lanza (la ruta responde 500)", async () => {
@@ -93,6 +115,13 @@ describe("procesarEventoChatwoot (SDD-0585)", () => {
 
 describe("avisarPorPush (SDD-0585)", () => {
   const nuevo = { nuevo: true, aplicado: true, clientId: null };
+
+  it("si no se pudo encolar ningún aviso, falla (para que el evento quede reintentable)", async () => {
+    m.encolar.mockResolvedValue(null as unknown as string);
+    await expect(
+      avisarPorPush({ admin: admin({ nuevo: true, aplicado: true, client_id: null }), tenantId: T1 }, evento(), nuevo),
+    ).rejects.toThrow(/push/);
+  });
 
   it("con asignado vinculado: solo a ese usuario, sin datos personales en el cuerpo", async () => {
     await avisarPorPush({ admin: admin({ nuevo: true, aplicado: true, client_id: null }), tenantId: T1 }, evento(), nuevo);

@@ -7,7 +7,11 @@
  *   2. Firma HMAC sobre el cuerpo CRUDO con anti-replay (E2-D16). Mala → 401.
  *   3. JSON e `interpretarEvento` (E2-D17): de otra cuenta o de otro tipo → 200
  *      `ignored` (Chatwoot no debe reintentar lo que no nos interesa).
- *   4. `procesarEventoChatwoot`: idempotente; el duplicado responde 200.
+ *   4. `procesarEventoChatwoot`: idempotente; el duplicado responde 200. Si un
+ *      manejador falló, el evento queda «fallido» (reintentable) y se responde
+ *      500. Ojo: Chatwoot 4.19.1 NO reintenta webhooks de cuenta
+ *      (`Webhooks::Trigger#execute` rescata el error; solo reintenta agentes
+ *      bot), así que el 500 sirve a una reentrega manual o a un reproceso propio.
  *
  * No se registra el cuerpo, ni cabeceras con la firma, ni el texto del mensaje.
  */
@@ -48,6 +52,7 @@ export async function POST(req: Request) {
 
   try {
     const r = await procesarEventoChatwoot({ admin: createAdminClient(), tenantId: cfg.tenantId }, evento);
+    if (r.estado === "fallido") return NextResponse.json({ ok: false, error: "manejador" }, { status: 500 });
     return NextResponse.json({ ok: true, resultado: r.estado });
   } catch (e) {
     console.error(`[chatwoot-webhook] ${evento.evento} no se registró: ${e instanceof Error ? e.message : "error"}`);

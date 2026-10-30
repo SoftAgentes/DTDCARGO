@@ -94,6 +94,20 @@ describe("POST /api/chatwoot/webhook (SDD-0585)", () => {
     expect(m.procesar).toHaveBeenCalledTimes(1);
   });
 
+  it("si un manejador falló (evento fallido): 500, para que una reentrega lo procese", async () => {
+    m.procesar.mockResolvedValue({ estado: "fallido", aplicado: true });
+    const r = await POST(peticion(mensajeCreado()));
+    expect(r.status).toBe(500);
+    expect(await r.json()).toEqual({ ok: false, error: "manejador" });
+  });
+
+  it("duplicado real: 200 con resultado duplicado", async () => {
+    m.procesar.mockResolvedValue({ estado: "duplicado", aplicado: false });
+    const r = await POST(peticion(mensajeCreado()));
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ ok: true, resultado: "duplicado" });
+  });
+
   it("si el registro falla: 500 y el log no lleva el texto", async () => {
     const espia = vi.spyOn(console, "error").mockImplementation(() => {});
     m.procesar.mockRejectedValue(new Error("chatwoot_registrar_evento: XX000"));

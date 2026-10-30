@@ -3,9 +3,12 @@
 --    supabase/migrations-baseline.json › pendingBelowCutoff. Aplicarla exige el
 --    OK nominal de Sam para este archivo y el runbook aplicar-migraciones-prod.
 --
--- 1. `chatwoot_webhook_events`: una fila por evento procesado, con clave
---    semántica (E2-D18). La PK hace la idempotencia: un reintento de Chatwoot
---    no vuelve a avisar ni a contar. Solo service_role.
+-- 1. `chatwoot_webhook_events`: una fila por evento, con clave semántica
+--    (E2-D18) y su estado: procesando → procesado | fallido. Un duplicado real
+--    (procesando reciente o procesado) no vuelve a avisar ni a contar; uno
+--    FALLIDO, o colgado en procesando más de 5 min, se vuelve a procesar
+--    (hallazgo de la revisión de Codex: marcarlo procesado antes de las
+--    acciones perdía el reintento). Solo service_role.
 -- 2. `chatwoot_conversations`: el último estado conocido de cada conversación
 --    (estado, no leídos, asignado, bandeja, actividad) y el `client_id` cuando
 --    el teléfono del contacto cruza con UN solo cliente (E2-D19). Alimenta el
@@ -47,7 +50,10 @@ create table public.chatwoot_webhook_events (
   event_key       text not null check (length(event_key) between 1 and 200),
   event           text not null check (event in ('message_created', 'conversation_status_changed')),
   conversation_id bigint not null check (conversation_id > 0),
+  status          text not null default 'procesando' check (status in ('procesando', 'procesado', 'fallido')),
+  attempts        integer not null default 1 check (attempts >= 1),
   received_at     timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
   primary key (tenant_id, event_key)
 );
 
@@ -107,7 +113,7 @@ begin
 end;
 $realtime$;
 
--- ─── 3. Registrar un evento (o reconciliar) ──────────────────────────────────
+-- ─── 3. Registrar un evento (o reconciliar) y cerrarlo ───────────────────────
 create or replace function public.chatwoot_registrar_evento(
   p_tenant_id         uuid,
   p_event_key         text,
@@ -135,15 +141,25 @@ begin
     raise exception 'chatwoot_registrar_evento: tenant y conversación son obligatorios';
   end if;
 
-  -- Idempotencia: el mismo evento dos veces no hace nada la segunda.
+  -- Idempotencia: el mismo evento dos veces no hace nada la segunda, salvo que
+  -- la primera haya fallado (o se haya colgado): entonces se reclama.
   if p_event_key is not null then
     insert into public.chatwoot_webhook_events (tenant_id, event_key, event, conversation_id)
     values (p_tenant_id, p_event_key, p_event, p_conversation_id)
     on conflict on constraint chatwoot_webhook_events_pkey do nothing;
     get diagnostics v_filas = row_count;
     if v_filas = 0 then
-      return query select false, false, null::uuid;
-      return;
+      update public.chatwoot_webhook_events e
+      set status = 'procesando', attempts = e.attempts + 1, updated_at = pg_catalog.now()
+      where e.tenant_id = p_tenant_id
+        and e.event_key = p_event_key
+        and (e.status = 'fallido'
+             or (e.status = 'procesando' and e.updated_at < pg_catalog.now() - interval '5 minutes'));
+      get diagnostics v_filas = row_count;
+      if v_filas = 0 then
+        return query select false, false, null::uuid;
+        return;
+      end if;
     end if;
   end if;
 
@@ -191,3 +207,37 @@ comment on function public.chatwoot_registrar_evento(uuid, text, text, bigint, b
 revoke all on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision) from public;
 revoke all on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision) from anon, authenticated;
 grant execute on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision) to service_role;
+
+-- Cierra un evento después de sus acciones: procesado si todas salieron bien,
+-- fallido si alguna falló (y entonces la próxima entrega lo vuelve a procesar).
+-- Solo pasa desde «procesando»: un evento ya procesado no vuelve a fallido.
+create or replace function public.chatwoot_cerrar_evento(
+  p_tenant_id uuid,
+  p_event_key text,
+  p_ok        boolean
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  v_filas integer;
+begin
+  update public.chatwoot_webhook_events e
+  set status = case when p_ok then 'procesado' else 'fallido' end,
+      updated_at = pg_catalog.now()
+  where e.tenant_id = p_tenant_id
+    and e.event_key = p_event_key
+    and e.status = 'procesando';
+  get diagnostics v_filas = row_count;
+  return v_filas = 1;
+end;
+$fn$;
+
+comment on function public.chatwoot_cerrar_evento(uuid, text, boolean) is
+  'SDD-0585 E2-D18: cierra un evento de Chatwoot como procesado o fallido después de sus acciones. Solo service_role.';
+
+revoke all on function public.chatwoot_cerrar_evento(uuid, text, boolean) from public;
+revoke all on function public.chatwoot_cerrar_evento(uuid, text, boolean) from anon, authenticated;
+grant execute on function public.chatwoot_cerrar_evento(uuid, text, boolean) to service_role;
