@@ -321,6 +321,17 @@ const nextConfig: NextConfig = {
           ? { key: h.key, value: ppStudioBandeja }
           : h,
     );
+    // Ficha DTD (SDD-0585, paso 2.4, E2-D28): la Dashboard App que Chatwoot
+    // enmarca al lado de cada conversación. SOLO el chat puede enmarcarla:
+    // `frame-ancestors <chat>` y sin `X-Frame-Options` (no sabe nombrar un
+    // origen; con DENY el navegador la bloquearía). El resto, la CSP estricta.
+    const fichaChatHeaders = securityHeaders
+      .filter((h) => h.key !== "X-Frame-Options")
+      .map((h) =>
+        h.key === "Content-Security-Policy"
+          ? { key: h.key, value: cspHeader.replace("frame-ancestors 'none'", `frame-ancestors ${chatwootOrigin}`) }
+          : h,
+      );
     const baseNoPP = securityHeaders.filter(
       (h) => h.key !== "Permissions-Policy",
     );
@@ -410,6 +421,11 @@ const nextConfig: NextConfig = {
         source: "/studio/bandeja/:path*",
         headers: bandejaHeaders,
       },
+      // Ficha DTD: solo la ruta exacta, sin subrutas. Se excluye del catch-all.
+      {
+        source: "/studio/ficha-chat",
+        headers: fichaChatHeaders,
+      },
       // Las CUATRO reglas de `/marca` son MUTUAMENTE EXCLUYENTES a propósito: si
       // dos matchearan, Next emite dos `Content-Security-Policy` y el navegador
       // aplica la intersección — el standalone quedaría bloqueado por la estricta.
@@ -472,7 +488,7 @@ const nextConfig: NextConfig = {
         // `marca` sin barra: cubre tanto `/marca` (el catálogo) como `/marca/…`.
         // Con `marca/` la raíz caía acá Y en su regla propia → CSP duplicada.
         source:
-          "/:path((?!m/|marca|norte\\.html|studio/bitacora|studio/bandeja(?:/|$)|tarifas/embed|fcl/embed).*)",
+          "/:path((?!m/|marca|norte\\.html|studio/bitacora|studio/bandeja(?:/|$)|studio/ficha-chat$|tarifas/embed|fcl/embed).*)",
         headers: securityHeaders,
       },
     ];

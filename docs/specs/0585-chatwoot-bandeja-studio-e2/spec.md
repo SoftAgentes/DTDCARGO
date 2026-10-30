@@ -50,7 +50,7 @@ En el WebKit de Playwright (indicador de Safari) pasan el iframe y el SSO. Firef
 | 2.1 | PoC con banco reproducible, matriz y decisión | aceptado (Sam, 2026-10-29: «Acepto 2.1») |
 | 2.2 | CSP y `Permissions-Policy` de la ruta (E2-D2), módulo, RBAC, flag, i18n, vínculos, `lib/studio/chatwoot`, SSO (E2-D5), capa persistente, página y `signOut` | aceptado (Sam, 2026-10-30: «Acepto todo») |
 | 2.3 | Contador, webhook con push y tarjeta en la ficha | aceptado (Sam, 2026-10-30: «Acepto todo»), con el verify de `d714834be` registrado: FALLÓ solo por rojos heredados, unas 50 e2e NO EJECUTADAS (la corrida se colgó) y migrations-applied NO DISPONIBLE |
-| 2.4 | Dashboard App «Ficha DTD» | pendiente |
+| 2.4 | Dashboard App «Ficha DTD» | entregado (2026-10-30), sin registrar en el Chatwoot del VPS |
 | 2.5 | Ciclo de vida de los agentes: Usuarios, cron y salud | pendiente |
 | 2.6 | revisar-datos-ve, `/ui-check`, QA de navegadores (incluye Firefox y Safari reales) y runbook | pendiente |
 | 2.7 | Usuarios y permisos: matriz real de CE, sincronización, pruebas por usuario y revocación del SSO | pendiente |
@@ -280,6 +280,109 @@ Estados de la skill: ENCONTRADO, CORRECTO y NO VERIFICABLE.
    - desplegar.
 
    Cada una, con su OK nominal de Sam.
+
+## Paso 2.4 — Dashboard App «Ficha DTD»
+
+El Director lo pidió el 2026-10-30, en la misma rama y sin pausar. Tiene que mostrar, al lado de cada conversación de Chatwoot, la ficha del cliente desde Studio con estos datos:
+- código;
+- segmento: el hueco queda listo para cuando E10 lo exponga;
+- envíos activos;
+- saldo, **solo para los roles que ya lo ven en Studio**.
+
+**Otras condiciones del pedido:**
+- autenticación y firma entre Chatwoot y Studio;
+- cero datos personales en los logs;
+- «sin ficha» si el teléfono es ambiguo;
+- el lugar del 2.8 preparado, sin implementarlo.
+
+**Sin migración:** usa la 0503 (vínculos) y la 0504 (`chatwoot_conversations.client_id`). La Dashboard App **no se registra en el Chatwoot del VPS**: eso pide su propio OK.
+
+### Lo que hace Chatwoot 4.19.1 con una Dashboard App (evidencia C, imagen `chatwoot/chatwoot:v4.19.1-ce`)
+
+- **Cómo la carga.** `app/javascript/dashboard/components/widgets/DashboardApp/Frame.vue` monta un `<iframe :src="url">` sin `sandbox` ni `allow`. La URL es fija, sin plantillas, y la guarda `DashboardApp#content` (`app/models/dashboard_app.rb`, solo `https?://`).
+- **Cómo pasa el contexto.** Al cargar, y cuando la app manda `chatwoot-dashboard-app:fetch-info`, Chatwoot envía `postMessage(JSON.stringify({ event: "appContext", data }), "*")`. En `data` van `conversation`, `contact`, `currentAgent: { id, name, email }`, `customAttributes` y `theme` (`light` o `dark`).
+- **No hay firma:** el contexto viaja en claro y a cualquier origen (`"*"`), con el nombre, el teléfono y el correo del contacto. Cualquier página que enmarque la app puede mandar un `appContext` falso, así que **el contexto no es una credencial**.
+
+### Diseño
+
+| ID | Decisión |
+|---|---|
+| E2-D27 | **Ruta propia** `/studio/ficha-chat`, fuera del layout con sidebar: grupo `(panel)`, sin layout propio; la página pone su `LocaleProvider` y el tema lo manda Chatwoot. Es la URL que se registra como Dashboard App: `https://dtdcargo.com/studio/ficha-chat`. |
+| E2-D28 | **Quién la puede enmarcar:** una regla de cabeceras solo para esa ruta, con `frame-ancestors <origen del chat>` y sin `X-Frame-Options`. El catch-all la excluye. El resto de la CSP es la estricta del sitio. Nadie más que `chat.dtdcargo.com` puede enmarcarla. |
+| E2-D29 | **Autenticación: la sesión de Studio.** La cookie de Supabase es `SameSite=Lax`. Studio (`dtdcargo.com`) y el chat (`chat.dtdcargo.com`) son el mismo sitio, así que la cookie viaja dentro del iframe.<br>- **Sin sesión**, la página muestra «Inicia sesión en Studio», con un enlace que abre en otra pestaña. El proxy deja pasar **solo esta ruta exacta** sin sesión, porque redirigir al login dentro del iframe da un marco en blanco: el login no se deja enmarcar.<br>- **La página no lee datos sin sesión:** la server action repite el candado. |
+| E2-D30 | **«Firma» entre Chatwoot y Studio.** Chatwoot no firma el contexto, así que la confianza se arma con cinco amarres y ninguno depende del contexto:<br>1. el `postMessage` se acepta solo si `event.origin` es el del chat y `event.source` es `window.parent`;<br>2. del contexto salen **solo dos enteros**, el id de la conversación y el del agente. El nombre, el teléfono y el correo se descartan en el navegador y nunca llegan al servidor;<br>3. el agente del contexto tiene que ser el **vinculado a la sesión de Studio** (0503). Si no, «Esta sesión de Studio es de otra persona»;<br>4. el servidor pide la conversación a Chatwoot **con el token de ese agente** (Platform API, como en la reconciliación). Si Chatwoot no se la muestra a ese agente (401, 403 o 404), no hay ficha. Así la firma de esa respuesta la pone Chatwoot: decide sus propios permisos de bandeja;<br>5. el cliente sale de `chatwoot_conversations.client_id`, que cruzó la base (0504). **Nunca del teléfono del contexto.** |
+| E2-D31 | **Cruce y «sin ficha»:** la respuesta de Chatwoot se aplica con la misma RPC de la reconciliación (`chatwoot_registrar_evento` con clave nula). Así la conversación existe aunque el webhook no haya llegado, y el `client_id` lo decide la regla de E2-D19: exactamente un cliente vivo con ese `phone_last10`. Con cero o más de uno, la página dice «Sin ficha». No ofrece candidatos ni muestra el teléfono. |
+| E2-D32 | **Qué muestra y a quién:**<br>- **El candado de la Bandeja:** `moduleViewDenial(supabase, "bandeja")` y el flag `chatwoot_inbox`.<br>- **Sin el módulo `clients`:** «Tu rol no ve fichas de clientes».<br>- **Lo que se lee:** el cliente, con el cliente **de sesión** (la RLS de `clients` repite el candado), y la cuenta con `getClientAccountState`, la misma función de la cabecera de la ficha (SDD-0558).<br>- **El saldo:** solo con `puedeVerSaldoCliente`, el mismo criterio que la 0492. Sin permiso, esa parte no se pinta.<br>- **Lo que se pinta:** código vigente, códigos anteriores, envíos en curso, saldo por moneda (abierto y vencido) y un enlace «Abrir en Studio» a la ficha, en otra pestaña.<br>- **Sin el nombre del cliente:** el agente ya lo ve en Chatwoot. |
+| E2-D33 | **Huecos preparados, sin implementar:**<br>- **Segmento:** `segmento: "cliente" \| "lead_registrado" \| null`. Hoy es siempre `null` y no se pinta; E10 lo llena con la regla de SDD-0582 §«Regla de segmentos».<br>- **2.8:** la vista recibe `costoChat` opcional (cantidad, tarifa, fecha y fuente). Hoy no se pasa y no se pinta. |
+| E2-D34 | **Logs y errores:**<br>- los logs llevan solo el código del error de Chatwoot o de PostgREST;<br>- nunca un id de cliente, un código, un teléfono, un nombre ni el contexto de Chatwoot;<br>- el cliente recibe códigos de error que traduce con `bandeja.ficha.error.<código>`. |
+| E2-D35 | **Tema e idioma:** la página toma el `theme` que manda Chatwoot (`data-theme="dark"`) para combinar con el panel. El idioma sale del perfil del usuario, como en el resto de Studio. |
+
+### Allowlist exacta (paso 2.4)
+
+- **Página:** `app/studio/(panel)/ficha-chat/page.tsx`; `app/studio/(panel)/ficha-chat/_components/{FichaDtdClient.tsx,FichaDtdView.tsx}`; `app/studio/(panel)/ficha-chat/__tests__/{FichaDtdClient.test.tsx,FichaDtdView.test.tsx}`.
+- **Acción:** `app/studio/(app)/bandeja/actions.ts` (`pedirFichaDtd`); `app/studio/(app)/bandeja/__tests__/ficha-dtd-action.test.ts`.
+- **Lógica:** `lib/studio/chatwoot/{dashboard-app.ts,account-api.ts}`; `lib/studio/chatwoot/__tests__/{dashboard-app.test.ts,account-api.test.ts}`.
+- **Cabeceras y proxy:** `next.config.ts`; `lib/runtime/__tests__/next-config.test.ts`; `proxy.ts`; `lib/runtime/__tests__/proxy-ficha-chat.test.ts`.
+- **Textos:** `lib/i18n/es-VE/bandeja.ts` y `lib/i18n/zh-CN/bandeja.ts`.
+- **Contratos:** `lib/studio/rbac-actions-guard.test.ts` (inventario 448 → 449).
+- **Documentos:**
+  - `docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md`;
+  - `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 2.4);
+  - `.agents/handoffs/0585-chatwoot-bandeja-studio-e2.md`;
+  - `docs/runbooks/chatwoot-ficha-dtd.md`: cómo se registra la app en Chatwoot. Se escribe, no se ejecuta.
+
+### Aceptación del paso 2.4
+
+1. **Contexto:** un `postMessage` de otro origen o de otra ventana se ignora. Del contexto salen solo los dos ids: una prueba con un contexto sintético completo comprueba que el nombre, el teléfono y el correo no llegan a la acción.
+2. **Acción:** pruebas del camino que no tiene que mostrar datos:
+   - sin Bandeja, `denied`;
+   - sin vínculo, `unlinked`;
+   - con otro agente, `otro_agente`;
+   - si Chatwoot no muestra la conversación, `sin_acceso`;
+   - sin `client_id`, «sin ficha»;
+   - sin el módulo `clients`, `sin_clientes`;
+   - sin permiso de saldo, no hay dinero en la respuesta.
+
+   Tampoco hay datos personales en los logs.
+3. **Cabeceras:** la ruta tiene `frame-ancestors` con el origen del chat y no tiene `X-Frame-Options`, el catch-all no la toca y `/studio/ficha-chats` no hereda la regla.
+4. **Proxy:** sin sesión deja pasar solo `/studio/ficha-chat` exacta. Otra ruta de Studio sigue yendo al login.
+5. **Vista:** prueba de cada estado y de que el saldo no se pinta sin permiso.
+6. **Revisiones:** `/ui-check` y `revisar-datos-ve` del cambio.
+7. **Cierre:** pruebas afectadas, `tsc` y `eslint`. El `pnpm verify` completo, con turno del Director.
+
+### Validación del paso 2.4 — 2026-10-30, puntual y sin `pnpm verify`
+
+E10 programa en paralelo, así que el `pnpm verify` completo espera turno del Director.
+
+| Comprobación | Resultado |
+|---|---|
+| `tsc --noEmit` y `eslint` sobre lo tocado | PASÓ |
+| Vitest afectado y contratos de Studio: `rbac-actions-guard` (449), `rbac-view-guard`, `rbac-subroute-guard`, `studio-api-auth-guard`, `privacidad-cn`, `app/studio/_components/__tests__` (contraste incluido), `signout-bandeja`, `proxy-matcher-contract`, Bandeja, Ficha DTD, `lib/studio/chatwoot`, `lib/runtime/__tests__` y las tarjetas de la ficha | PASÓ: 43 archivos, 1021 pruebas |
+| `check-rsc-boundary` y `components:check` | PASÓ |
+| **Rojo primero** | Antes de escribir el código fallaron 23 pruebas por falta de `dashboard-app`, `obtenerConversacion` y `pedirFichaDtd`, 2 de cabeceras y 1 del proxy |
+| **Mutantes** (13: cada uno quita un amarre) | 13 muertos:<br>- `postMessage` a «*»;<br>- sin chequeo de ventana;<br>- sin chequeo de origen;<br>- sin chequeo de agente;<br>- sin candado de clientes;<br>- saldo sin el criterio compartido;<br>- `sin_acceso` como `service`;<br>- proxy por prefijo;<br>- catch-all sin `$`;<br>- `X-Frame-Options` que se queda;<br>- dinero sin permiso;<br>- una respuesta vieja que pisa;<br>- una conversación con otro id.<br>El del saldo sobrevivió la primera vez: con la regla de hoy es equivalente, porque quien ve clientes ve saldo (decisión 14). Se agregó una prueba que fija que la acción delega en `puedeVerSaldoCliente` |
+| `/ui-check` | OK con ajustes menores. Aplicados: la grilla con el mínimo medido de SDD-0558, `minmax(min(260px, 100%), 1fr)`, y el Shipping Mark como `<h1>`. Los enlaces a otra pestaña quedan como en la Bandeja |
+| `revisar-datos-ve` | Tabla de abajo: 9 CORRECTO y 2 NO VERIFICABLE |
+| `pnpm verify` completo | **NO EJECUTADO**, espera turno del Director |
+| Prueba en un Chatwoot real | **NO EJECUTADO**. Registrar la app en el VPS pide OK; el procedimiento está en `docs/runbooks/chatwoot-ficha-dtd.md` |
+
+### Datos personales del paso 2.4 (revisar-datos-ve, alcance del cambio)
+
+Estados de la skill: ENCONTRADO, CORRECTO y NO VERIFICABLE.
+
+| Punto | Estado | Evidencia |
+|---|---|---|
+| **Inventario** | CORRECTO | No hay tablas, columnas ni almacenamiento nuevos. La ficha lee `chatwoot_conversations` (0504), `clients` y la cuenta (`getClientAccountState`), y no guarda nada propio (`app/studio/(app)/bandeja/actions.ts:224-300`) |
+| **Minimización: el contexto de Chatwoot** | CORRECTO | Chatwoot manda el nombre, el teléfono y el correo del contacto (`Frame.vue`, evidencia C). Del contexto salen solo dos enteros y el tema (`lib/studio/chatwoot/dashboard-app.ts:52`), y la acción recibe solo esos dos ids (`FichaDtdClient.tsx:52`). Lo prueban `dashboard-app.test.ts` y `FichaDtdClient.test.tsx` con un contexto sintético completo |
+| **Minimización: lo que se pinta** | CORRECTO | Código, códigos anteriores, envíos y cuenta. Sin nombre, teléfono ni documento (`FichaDtdView.tsx`); el agente ya ve el contacto en Chatwoot |
+| **Cruce con el cliente** | CORRECTO | El `client_id` sale de la base (`actions.ts:270`), con la regla de exactamente un cliente vivo de la 0504. Con un cruce ambiguo se ve «Sin ficha», sin candidatos (`actions.ts:275`) |
+| **Acceso** | CORRECTO | Cinco candados:<br>- el módulo `bandeja` y el flag (`actions.ts:226`);<br>- el agente vinculado a la sesión (`actions.ts:243`);<br>- el módulo `clients` (`actions.ts:244`);<br>- el permiso de Chatwoot sobre la conversación (`account-api.ts`, `obtenerConversacion`);<br>- la RLS de `clients` con el cliente de sesión (`actions.ts:277`).<br>El saldo sigue el criterio de la ficha (`actions.ts:290`), y la vista no pinta dinero sin permiso (`FichaDtdView.tsx:139`) |
+| **Quién la enmarca** | CORRECTO | `frame-ancestors` solo del chat y sin `X-Frame-Options` (`next.config.ts:328`). El proxy deja pasar sin sesión solo la ruta exacta (`proxy.ts:131`), y sin sesión no se lee nada |
+| **Logs** | CORRECTO | `[ficha-dtd]` registra solo el código de Chatwoot o de PostgREST (`actions.ts:250`, `:256` y `:264`). Lo prueba `ficha-dtd-action.test.ts` («los logs no llevan ids de cliente, códigos ni teléfonos») |
+| **Token del agente** | CORRECTO | Lo pide el servidor, lo usa y lo descarta; no llega al navegador (`actions.ts:248-254`) |
+| **Logs compartidos de la cuenta** | NO VERIFICABLE | `getClientAccountState` (`lib/studio/client-queries.ts:801`, SDD-0558) registra `e.message` de PostgREST cuando falla el conteo. El contenido de ese mensaje no se midió aquí. Es código existente de la ficha y no se tocó |
+| **Otras Dashboard Apps en Chatwoot** | NO VERIFICABLE | Chatwoot manda el mismo contexto, con datos del contacto, a **toda** Dashboard App registrada (`postMessage` con `"*"`). Que no haya otras depende de la configuración del Chatwoot del VPS, que no se revisó |
+| **Retención** | CORRECTO | El paso no persiste nada nuevo. La retención de `chatwoot_conversations` sigue ENCONTRADA desde el 2.3, a decidir en 2.6 o E3 |
 
 ## Fuera de alcance del paso 2.1
 

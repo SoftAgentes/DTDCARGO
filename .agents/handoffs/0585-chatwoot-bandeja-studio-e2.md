@@ -255,3 +255,49 @@ Docker 29.9.1 encendido. Medidos 16 de 17 pasos.
   - Después del deploy, mirar que la ruta conteste `omitido` y no 403 ni 500.
   - Al aplicar la 0504, con OK nominal de Sam y siguiendo el runbook, el cron empieza a reprocesar solo.
   - Mientras no se registre el webhook en Chatwoot no habrá eventos, así que tomará 0.
+
+---
+
+# Paso 2.4 — Dashboard App «Ficha DTD» (entregado, 2026-10-30)
+
+Lo pidió el Director el 2026-10-30, en la misma rama y sin pausar. No hay migración. Diseño, allowlist, validación y revisar-datos-ve: SDD-0585 §«Paso 2.4» (E2-D27 a E2-D35).
+
+**Qué quedó:**
+- **Página:** `/studio/ficha-chat`, en el grupo `(panel)` y sin sidebar. Es la URL que se registra como Dashboard App.
+- **Acción:** `pedirFichaDtd`, en `bandeja/actions.ts`.
+- **Lógica:** `lib/studio/chatwoot/dashboard-app.ts` filtra el contexto, y `obtenerConversacion` pide la conversación con el token del agente.
+- **Cabeceras:** `frame-ancestors` solo del chat y sin `X-Frame-Options`.
+- **Proxy:** sin sesión deja pasar solo esa ruta exacta.
+- **Textos** en es-VE y zh-CN.
+- **Runbook de registro,** sin ejecutar.
+
+**Lo que hay que saber:**
+- **El contexto no es una credencial.** Chatwoot 4.19.1 no firma el contexto de una Dashboard App: lo manda con `postMessage(…, "*")` y con nombre, teléfono y correo del contacto (`Frame.vue`, evidencia C). Por eso la «firma» se arma de otro modo:
+  - la sesión de Studio;
+  - el agente vinculado, que tiene que ser el del contexto;
+  - la conversación pedida a Chatwoot con el token de ese agente;
+  - el `client_id` que decidió la base.
+
+  Del contexto solo salen los dos ids.
+- **Todas las apps reciben el contexto.** Chatwoot manda ese contexto a toda Dashboard App registrada. Al registrar la nuestra, conviene revisar que no haya otras (revisar-datos-ve: NO VERIFICABLE).
+- **Huecos preparados:**
+  - `FichaDtd.segmento` es siempre `null` hasta que E10 lo exponga;
+  - `FichaDtdView` recibe `costoChat` (el 2.8 opcional) y hoy nadie lo pasa.
+- **Para E10:** el tipo `SegmentoFicha` ya está en `bandeja/actions.ts` (`"cliente" | "lead_registrado"`). Con eso basta para llenar el campo en `pedirFichaDtd` sin tocar la vista.
+
+**Validación:**
+- tsc y eslint PASÓ.
+- 1021 pruebas afectadas PASÓ, en 43 archivos.
+- `check-rsc-boundary` y `components:check` PASÓ.
+- 13/13 mutantes muertos.
+- `/ui-check` con dos ajustes aplicados.
+- `pnpm verify` completo **NO EJECUTADO**: E10 programa en paralelo y falta el turno del Director.
+
+**Puertas que este paso no cruza** (cada una con su OK):
+- desplegar;
+- aplicar la 0503 y la 0504;
+- registrar la Dashboard App en el Chatwoot del VPS (`docs/runbooks/chatwoot-ficha-dtd.md`).
+
+### FUERA DE ALCANCE DETECTADO (2.4)
+
+- `getClientAccountState` (`lib/studio/client-queries.ts:801`, SDD-0558) registra `e.message` de PostgREST cuando falla el conteo de embarques. No se midió si ese mensaje puede llevar valores. Es código compartido de la ficha y no se tocó.
