@@ -33,7 +33,9 @@ Hecho en el VPS, en orden (evidencia T-2 a T-12 del [registro](../../docs/specs/
 8. Timers instalados; primer respaldo a B2 (44 s, `rclone check` sin diferencias); primera vigilancia `up · ok`.
 9. Uptime Kuma (sesión de Sam en su Chrome): monitores Push «Respaldo Chatwoot · latido» (#6, 26 h) y «Chatwoot · recursos del host» (#7, 15 min), con aviso por Telegram; sus URL en el `.env` (0600, por stdin, sin imprimirlas); los dos en verde. Los dos HTTP («API» y «versión») se crean tras P2: sin DNS darían «caído».
 
-**Pendiente de Sam para que el correo funcione:** `CHATWOOT_SMTP_USERNAME` y `CHATWOOT_SMTP_PASSWORD` de la casilla de Hostinger que elija (sin ellos, Chatwoot no puede mandar avisos ni restablecer contraseñas). Se pegan con una ventana oculta, como en 0.6.
+**Correo saliente:** ~~pendiente de Sam~~ resuelto el 2026-10-29 con el buzón `notificaciones@dtdcargo.com` (ver «Pendiente de esta tarea» y runbook §2 bis).
+
+**FUERA DE ALCANCE DETECTADO (sesión «Hostinger config»):** en un intento de pegar la clave SMTP, Sam pegó en el campo visible un **token de Meta** (`EAA…`) que tenía en el portapapeles. No llegó al VPS ni a Git, pero quedó en pantalla en una pestaña del Terminal y en la transcripción de esa sesión. Recomendación hecha a Sam: revocarlo y emitir otro en Meta Business (Usuarios del sistema), y actualizar sus destinos (E4). Decide él; no se hizo nada.
 
 ## Hallazgos que cambian algo
 
@@ -92,7 +94,12 @@ Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar. Le expliqué 
 
 ## Pendiente de esta tarea
 
-- SMTP: usuario y clave de Hostinger (Sam), con ventana oculta.
+- ~~SMTP: usuario y clave de Hostinger (Sam), con ventana oculta.~~ **Hecho el 2026-10-29** (sesión «Hostinger config», T-33 a T-39; runbook §2 bis):
+  - Buzón propio `notificaciones@dtdcargo.com` (2 de 2 en el plan), con la clave en el gestor de Sam. Respuesta automática que remite a `vzla@dtdcargo.com`.
+  - Remitente `"DTD Cargo <notificaciones@dtdcargo.com>"`; copia `.env.antes-smtp`.
+  - `rails` y `sidekiq` recreados y sanos.
+  - Correo de prueba aceptado por Hostinger a las 22:31:31Z. Sam confirmó que llegó a Recibidos de `hailuway.com@gmail.com`.
+  - Sin probar todavía: los correos propios de Chatwoot (restablecer contraseña, invitación). Se prueban al invitar al primer agente.
 - Tras las 72 h (2026-11-01 ~16:00Z): `vigilar.sh --resumen --desde 2026-10-29T15:55:00Z` → fila 1.6, con el criterio corregido (contra la línea base, no un número fijo).
 - ~~`/super_admin` con Cloudflare Access~~ hecho el 2026-10-29 («Confirmo Access»), runbook §4.1.
 - ~~Marca de DTD en Chatwoot~~ **hecha el 2026-10-29** («Autorizo la marca»): título «DTD Cargo», ícono y logos de DTD (claro y oscuro según `BRAND.md`), pantalla de entrada en español, sin «Chatwoot» visible (T-27 a T-29; runbook §6 bis). Queda en la edición CE el «Powered by Chatwoot» del widget y de los correos, y la etiqueta «E-mail» de la traducción de Chatwoot.

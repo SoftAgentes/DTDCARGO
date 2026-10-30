@@ -63,6 +63,24 @@ awk -F= '/^CHATWOOT_/ { printf "%-45s %3d\n", $1, length($2) }' .env
 docker compose config -q && echo config-ok
 ```
 
+## 2 bis · Correo saliente (SMTP de Hostinger)
+
+Chatwoot manda tres correos: restablecer la contraseña, invitar agentes y avisar de asignaciones. Sin SMTP no manda ninguno.
+
+- **Buzón:** `notificaciones@dtdcargo.com`, creado el 2026-10-29 en hPanel → Emails → dtdcargo.com → Buzones (plan Premium Business Email, 2 de 2 en uso). `info@` no sirve: es un alias de `vzla@` y no puede iniciar sesión. La clave la creó Sam y vive en su gestor.
+- **Respuestas al buzón:** tiene una respuesta automática de Hostinger (hPanel → Respuesta automática, creada el 2026-10-29 a pedido de Sam, sin fecha de fin). Remitente «DTD Cargo», asunto «Buzón solo de notificaciones». El texto dice que el buzón solo envía notificaciones y que la información se manda a `vzla@dtdcargo.com`. Hostinger manda una sola por remitente cada 24 h.
+- **En el `.env`:** `CHATWOOT_MAILER_SENDER_EMAIL="DTD Cargo <notificaciones@dtdcargo.com>"` (el remitente es el mismo buzón que inicia sesión; si no, Hostinger lo rechaza). `smtp.hostinger.com`, 587, STARTTLS, `login`.
+- **Pegar usuario y clave:** el guion [`pegar-smtp.sh`](../../infra/chatwoot/pegar-smtp.sh) se copia a `/root/pegar-smtp.sh` (0700) y Sam lo corre desde su PC con `ssh.exe -t root@217.216.54.70 'bash /root/pegar-smtp.sh'`, o con el lanzador `.ps1` que solo hace esa llamada.
+  - El usuario trae `notificaciones@dtdcargo.com` por omisión: Enter lo acepta, así nadie pega nada visible.
+  - La clave se pide dos veces y no se ve.
+  - Solo escribe si las dos líneas están vacías.
+  - Rechaza comillas simples y espacios.
+  - Escribe la clave entre comillas simples, que compose lee literales (`$` y `#` no se tocan; comprobado con `docker compose config`).
+  - Al final muestra solo los largos.
+- **No pasar lógica entre comillas por PowerShell 5.1:** se come las comillas internas que recibe `ssh`. Por eso el `.ps1` solo llama al guion del servidor.
+- **Aplicar:** primero copia `cp -p .env .env.antes-smtp` (0600), después `docker compose up -d --wait`, que recrea `rails` y `sidekiq` con las mismas labels de Traefik y sin certificado nuevo.
+- **Probar:** desde `rails`, con un `ActionMailer::Base.mail(...).deliver_now` dirigido a `hailuway.com@gmail.com` (`</dev/null` dentro de guiones remotos).
+
 ## 3 · Red y Traefik (puerta P1)
 
 El Traefik compartido (`ops-traefik-traefik-1`) solo ve las redes edge a las que está conectado. Chatwoot usa la suya:
