@@ -182,6 +182,30 @@ Pedido por el Director el 2026-10-29, con el OK de Sam («ok»). Va en la misma 
 6. **Reconciliación:** usa el token del agente vinculado, no lo devuelve al cliente y aplica con la RPC.
 7. **Tarjeta y contador:** pruebas del componente y del cálculo.
 8. **Cierre:** `pnpm verify`, con turno.
+### Validación del paso 2.3 — `pnpm verify` del 2026-10-30 (02:32Z a 03:30Z, punta `250574457`)
+
+Turno dado por el Director. Resultado global: **FALLÓ** (exit 1).
+- **Medidos:** 14 pasos.
+- **Sin medir:** 3. Docker Desktop estaba apagado, así que sql-tests y schema-rebuild salieron SKIP. migrations-applied no tiene `.env.local`.
+
+| Paso | Resultado | De quién es |
+|---|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO · 5 AMARILLO), build | PASÓ | — |
+| migrations-applied | NO DISPONIBLE (SKIP): sin `.env.local` | Sin medir |
+| sql-tests | NO DISPONIBLE (SKIP): Docker apagado | Sin medir. El contrato de la 0504 PASÓ en PGlite (13/13) |
+| schema-rebuild | NO DISPONIBLE (SKIP): Docker apagado | Sin medir |
+| test (Vitest) | FALLÓ: 5 | Detalle abajo: **uno propio, ya corregido** |
+| e2e | FALLÓ: 2 rojos y 2 flaky | `sin-scroll-horizontal.spec.ts:119` (Shipping Mark → `/registro`) en chromium y mobile-chrome. Es el mismo rojo del 2.2: sitio público, no tocado. Flaky: `auth.spec.ts:49` y `:81`, y `cbm-ayuda.spec.ts:111` |
+
+**Los rojos de Vitest:**
+- **Propio, corregido en el commit de esta validación.** `dark-theme-contrast-contract`: `BandejaBadge.tsx` pintaba la tinta invertida sobre `--wine`, que en el tema Oscuro da 2,51. Pasó a `--ink-side-strong`, blanco en los dos temas. Repetido: el contrato y `BandejaBadge.test.tsx` pasan 5/5.
+- **Por carga, aislados PASÓ 32/32 en 3 min.** `infra/ops/tests/migraciones.test.mjs` (`prueba-migraciones-produccion.sh`) y `scripts/__tests__/entorno-prueba-scripts.test.mjs` se pasaron de 10 min dentro del verify. Son bash con dobles, sin Docker, y no los toqué.
+- **Heredados del 2.2:**
+  - `infra/chatwoot/cf-access/verificador.test.mjs` usa `node:test`. Es de E1.
+  - `scripts/__tests__/avance-checklist.test.mjs` exige «arranca en 0 %». Es de E0.
+
+**Lo de este paso, medido aparte:** 1029 pruebas puntuales PASÓ antes del verify, y PASÓ también el contrato de contraste repetido.
+
 ### Datos personales del paso 2.3 (revisar-datos-ve, alcance del cambio)
 
 Estados de la skill: ENCONTRADO, CORRECTO y NO VERIFICABLE.

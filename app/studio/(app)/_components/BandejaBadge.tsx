@@ -29,7 +29,9 @@ export function BandejaBadge({ tenantId, initial }: { tenantId: string; initial:
         justifyContent: "center",
         borderRadius: 9,
         background: "var(--wine)",
-        color: "var(--ink-inv)",
+        // Sobre vino (oscuro en los dos temas) va la tinta «side», blanca en
+        // ambos; la invertida da 2,51 en Oscuro (dark-theme-contrast-contract).
+        color: "var(--ink-side-strong)",
         font: "800 10px/1 var(--f-mono)",
         flexShrink: 0,
       }}

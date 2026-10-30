@@ -135,7 +135,7 @@ Pedido por la sesión coordinadora del programa («CRM Chatwoot»), a cuenta de 
 
 ---
 
-# Paso 2.3 — contador, webhook con push y tarjeta en la ficha (2026-10-29)
+# Paso 2.3 — contador, webhook con push y tarjeta en la ficha (entregado, 2026-10-30)
 
 Pedido por el Director con el OK de Sam («ok»). Diseño E2-D16 a E2-D25 y allowlist en [`spec.md`](../../docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md) §«Paso 2.3». La migración es la **0504**, dada por el Director. Nada desplegado ni aplicado, y el webhook no se registró en el Chatwoot del VPS.
 
@@ -176,11 +176,11 @@ Pedido por el Director con el OK de Sam («ok»). Diseño E2-D16 a E2-D25 y allo
 | Vitest puntual (48 archivos: Bandeja, sidebar, ficha, webhook, chatwoot, RBAC, flags, runtime y env) | PASÓ: 1029 |
 | Contrato 0504 en PGlite | PASÓ: 13/13 |
 | `pending-migration-symbols` | PASÓ: 0 ROJO · 5 AMARILLO |
-| `pnpm verify` | **NO EJECUTADO**: pedido el turno al Director |
+| `pnpm verify` (2026-10-30, 02:32Z a 03:30Z) | **FALLÓ** (exit 1). El rojo propio (contraste de `BandejaBadge`) se corrigió. Los demás son de carga (aislados PASÓ 32/32) o heredados del 2.2. sql-tests, schema-rebuild y migrations-applied: NO DISPONIBLE. Detalle en `spec.md` §«Validación del paso 2.3» |
 
 ## Pendientes del paso 2.3
 
-- `pnpm verify` con turno.
+- ~~`pnpm verify` con turno~~: corrido el 2026-10-30. Falta medir **sql-tests y schema-rebuild con Docker encendido**: quedaron SKIP.
 - **Puertas,** cada una con su OK nominal de Sam:
   - aplicar la 0503 y la 0504;
   - cargar `CHATWOOT_WEBHOOK_SECRET` y `CHATWOOT_TENANT_ID`;
