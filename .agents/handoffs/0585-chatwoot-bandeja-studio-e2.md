@@ -195,3 +195,29 @@ Pedido por el Director con el OK de Sam («ok»). Diseño E2-D16 a E2-D25 y allo
 
 - **El aviso de mensaje entrante a staff de «Conversaciones»** (SDD-0056) mete nombre y un extracto del mensaje en Telegram y en el push del portal (`conversation-inbound-notify.ts`, `conversation-reply-push.ts`). No hay una regla escrita contra datos personales en el cuerpo de un push. Se recomienda escribirla.
 - **El verificador de Resend compara la firma con `===`** (`resend-api.ts:240-296`), no en tiempo constante.
+
+---
+
+# Paso 2.3 — piezas de la v3: tope de tamaño y reintento propio (entregado, 2026-10-30)
+
+Pedido por el Director: «terminas las dos piezas de la v3 ahora, no las pasamos a E10». Commit `84e68c809`, con rojo primero (7 casos en Vitest, 2 archivos sin módulo y el contrato SQL). Decisión E2-D26 en `spec.md`.
+
+| Pieza | Dónde | Pruebas |
+|---|---|---|
+| Tope de 256 KiB antes de la firma → 413 | `lib/studio/chatwoot/webhook-body.ts`, `route.ts` | `webhook-body.test.ts` (Content-Length, flujo sin Content-Length, bytes y no caracteres) y la ruta; 2 mutantes muertos |
+| El evento guarda lo mínimo, espera creciente, descartado al quinto intento | 0504 (`chatwoot_webhook_events`, `chatwoot_cerrar_evento`, `chatwoot_tomar_pendientes`) | Contrato 0504: 18/18, 49 aserciones y 14 mutantes (4 nuevos: espera, tope, toma temprana y lectura de no-admin) |
+| Reproceso con lo guardado | `reprocesarEventosChatwoot` en `webhook-procesar.ts` | Reproceso, nuevo fallo y sin 0504 |
+| Cron cada 5 min | `app/api/cron/chatwoot-reintentos/route.ts`, `vercel.json`, `infra/dtd-cargo/cron/crontab` | Ruta (403 sin secreto) y `build-crontab.test.ts` (20 crons) |
+| Descartados visibles para el admin | `bandeja/page.tsx`, `BandejaClient.tsx`, RLS de 0504 | `BandejaClient.test.tsx` y contrato (no-admin 0, admin de T1 sí, T2 no) |
+
+**Validación:**
+
+| Comprobación | Resultado |
+|---|---|
+| `tsc` y `eslint` | PASÓ |
+| Vitest afectado | PASÓ: 23 archivos, 710 pruebas |
+| `pending-migration-symbols` | PASÓ: 0 ROJO · 5 AMARILLO |
+| `build-crontab --check` | PASÓ: 21 crons |
+| `pnpm verify` y sql-tests | **NO EJECUTADO**, por indicación del Director: la sesión 4.2 puede estar corriendo lo suyo. La 0504 cambió desde la última corrida de sql-tests (03:58Z); falta repetirla con turno |
+
+**Ojo al integrar:** el merge a `main` publica en el VPS y suma una línea al crontab del contenedor `cron`: `chatwoot-reintentos`, cada 5 minutos. Sin la 0504 aplicada, el cron responde 200 con `omitido` y no hace nada. Cuando se aplique, empieza a reprocesar.
