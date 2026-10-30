@@ -486,3 +486,14 @@ El Director lo habló con Sam: «Él quiere el cierre de verdad del lado del ser
 - en §4 (comprobación por comportamiento), un paso nuevo: `bash infra/chatwoot/pruebas/prueba-revocar-sesiones.sh` contra la imagen nueva, con 0 fallas y el control C1 en rojo. Si `RoomChannel` cambia de forma, el arranque se cae a propósito con «[DTD] revocar sesiones: faltan …».
 
 **Choques previsibles:** E4 (`codex/0582-e4-meta`) agrega su montaje y `DTD_WHATSAPP_IDS_PROTEGIDOS` en el mismo bloque de `compose.yml` y de `.env.example`. Al juntar las ramas hay que dejar las dos cosas.
+
+### Verify completo del 2.7 (turno del Director, 2026-10-30, 21:08Z a 21:50Z, punta `4075d8030`)
+
+- **FALLÓ solo por lo heredado o de carga;** no hay rojo propio. El detalle está en SDD-0585 §«Validación del paso 2.7».
+- **test:** 5 timeouts en `app/p/[token]` por carga. Corridos solos, pasan 47/47.
+- **sql-tests:** 0467 y 0497 (SDD-0573).
+- **e2e:** el de Shipping Mark.
+- **Lo demás:** PASÓ, incluidos `pending-migration-symbols`, schema-rebuild y build.
+- **migrations-applied:** NO DISPONIBLE.
+- **e2e:** el verify lo omitió porque el proceso desacoplado no veía los navegadores. Corrido aparte con el mismo comando: 225 PASÓ, y **`ficha-chat.spec.ts` 9/9**, la primera vez que corre.
+- **La primera corrida** (19:47Z) se cortó al terminar la sesión anterior y no cuenta.

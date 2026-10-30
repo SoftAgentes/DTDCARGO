@@ -762,7 +762,25 @@ La matriz se programa para las dos. La de Leads queda sin bandeja hasta el corte
 | Inicializador: `ruby -c` en la imagen `v4.19.1-ce` (inicializador y sonda) y `bash -n` del script | PASÓ |
 | Studio, con la ruta como camino principal | PASÓ: `cierre-sesion` 22/22 y `platform-agentes` 17/17. **5/5 mutantes muertos**: un 409 que cae al respaldo, sin comprobar la rotación, sin comprobar las sesiones, comprobación con el token viejo y conteo sin validar |
 | `prueba-revocar-sesiones.sh` en el Chatwoot local `v4.19.1-ce` (turno del Director, 2026-10-30T19:42Z, Docker 29.9.1) | **PASÓ: 14/14, 0 fallas.** Comprueba:<br>- dos sesiones vivas quedan fuera (401) después de la llamada;<br>- 401 sin token y con el de otra Platform App;<br>- 409 para el de servicio y para el último admin humano, y 503 sin la variable;<br>- tokens, `user_sessions`, `pubsub_token` y token de API: todo vaciado o rotado;<br>- el temporizador de `RoomChannel` cierra sin reconectar y no toca un canal vigente;<br>- los logs no llevan correos.<br>**Control C1, sin el inicializador:** 404 y la sesión sigue viva.<br>La primera vuelta (19:37Z) dio 13/14: R10 buscaba el temporizador por nombre, y en Rails 7.2 `periodically` lo envuelve en una lambda. Era la sonda, no el inicializador: el temporizador estaba, con `every: 30`. Se corrigió la sonda para que corra esa lambda, y se agregó R12 |
-| `pnpm verify` completo | NO EJECUTADO: lo pide el Director; E6.3 tenía el verify en curso |
+| `pnpm verify` completo | Corrido con turno del Director sobre `4075d8030`. **FALLÓ solo por rojos heredados o de carga**; ninguno propio. Detalle en la tabla siguiente |
+
+#### Verify completo del 2.7 — 2026-10-30 (21:08Z a 21:50Z, punta `4075d8030`, Docker 29.9.1)
+
+La primera corrida (19:47Z) se cortó a las 20:04Z al terminar la sesión anterior, en el reintento de `test`, así que no cuenta. Esta segunda se lanzó desacoplada de la sesión.
+
+| Comprobación | Resultado | Propio o heredado |
+|---|---|---|
+| harness, lint (0 errores, 15 avisos), rsc-boundary, typecheck, edge-functions | PASÓ | — |
+| docs:check, numbering, feature-constants, components:check, governance:check | PASÓ | — |
+| `pending-migration-symbols` | PASÓ: 0 ROJO · 6 AMARILLO | — |
+| schema-rebuild | PASÓ | — |
+| build de producción | PASÓ | — |
+| test | FALLÓ. Primera vuelta: 17 rojos en 4 archivos. Después del reintento: 5 rojos en 2 archivos, `app/p/[token]/supplier-flow.test.tsx` y `standard-format.test.tsx`, todos `Test timed out in 20000ms`. Antes, 3 «Failed to start forks worker», que en esta máquina es falta de RAM. **Los 4 archivos que llegaron a fallar, corridos solos después, pasan 47/47** | **Carga**, no del 2.7: E2 no toca `app/p/` ni `vitest/`. Las 13672 pruebas restantes pasaron, incluidas las del 2.7 y la migración 0508 en PGlite |
+| sql-tests | FALLÓ: `0467_reversion_credito_carrera`, `0497_reverso_al_anular_factura` y `0497_reverso_al_anular_factura_carrera` | **Heredado** (SDD-0573, ya conocido) |
+| migrations-applied | NO DISPONIBLE: el worktree no tiene `NEXT_PUBLIC_SUPABASE_URL` ni `SUPABASE_SERVICE_ROLE_KEY` | — |
+| e2e dentro del verify | NO EJECUTADO: el proceso desacoplado no veía `%LOCALAPPDATA%\ms-playwright`. Los navegadores sí están instalados | — |
+| e2e aparte, el mismo comando del paso (`playwright test`), 21:52Z, 15,1 min | 225 PASÓ, 20 omitidas, 3 flaky y 1 FALLÓ: `sin-scroll-horizontal.spec.ts` (CTA de Shipping Mark, timeout de 60 s). Además, un worker que no cerró a los 300 s. **`e2e/ficha-chat.spec.ts` PASÓ 9/9** (3 casos × chromium, mobile-chrome y mobile-safari), la primera vez que corre | El rojo es **heredado** (e2e de Shipping Mark, ya conocido). La Ficha queda cubierta |
+| Firefox | NO DISPONIBLE | — |
 
 ### Datos personales del paso 2.7 (revisar-datos-ve, alcance del cambio)
 
