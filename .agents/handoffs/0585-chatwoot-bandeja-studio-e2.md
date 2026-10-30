@@ -362,3 +362,38 @@ Lo pidió el Director el 2026-10-30, en la misma rama. No hay migración. El tra
 
 - La baja no borra el usuario de Chatwoot (nombre y correo del empleado), a propósito, para conservar la asignación de sus conversaciones. Falta un plazo de borrado (`DELETE platform/api/v1/users/{id}`), para decidir en 2.6 o 2.7 con Sam. Es el ENCONTRADO de revisar-datos-ve.
 - Vitest toma el filtro de ruta como expresión regular: con `(app)` sin escapar, quedan archivos afuera en silencio. La validación puntual del 2.4 pudo contar de menos; el verify completo sobre `cf755a7a6` la cubre.
+
+---
+
+# Paso 2.6 — revisión de E2, QA, caídas, runbook y /privacidad (entregado, 2026-10-30)
+
+Lo pidió el Director el 2026-10-30, solo con pruebas puntuales. Detalle en SDD-0585 §«Paso 2.6». La propuesta del 2.7 queda en la misma SDD, **sin implementar**.
+
+**Qué quedó:**
+- **revisar-datos-ve de toda E2:** 12 puntos, con 3 ENCONTRADO:
+  - retención de eventos y conversaciones (se proponen 90 días y 12 meses);
+  - el usuario de Chatwoot sigue tras la baja (se proponen 12 meses);
+  - AUD-01.
+
+  Además, 3 NO VERIFICABLE: derechos sobre la conversación en Chatwoot, otras Dashboard Apps y la ubicación del VPS frente a lo que dice `/privacidad`.
+- **`/privacidad`:** lead de WhatsApp, BSUID (1 año sin actividad), respuesta automática (30 días), lead perdido (anonimizado a los 12 meses) y Meta como tercero. La fecha pasa a «30 de octubre de 2026». Lo fija `app/__tests__/privacidad-chat.test.ts`.
+- **`/ui-check`:** el `aria-label` del badge pasa por i18n.
+- **Caídas del webhook:** escenario de punta a punta con la 0504 real en PGlite (3/3 y 4/4 mutantes).
+- **QA de navegadores:** `e2e/ficha-chat.spec.ts` (chromium, mobile-chrome y WebKit) entra en el próximo verify; Firefox NO DISPONIBLE.
+- **Runbook:** `docs/runbooks/chatwoot-bandeja.md`.
+
+**Puertas de integración nuevas:**
+- **`/privacidad` se publica con el merge a `main`.** Antes hacen falta tres cosas: el OK de Sam al texto y la 0505 (E10) y la 0506 (E6.2) aplicadas con sus crons. Lo publicado obliga: no puede prometer plazos que todavía no corren.
+- **El e2e de la Ficha** corre por primera vez en el verify de esta rama. Si falla, hay que mirar `requiereSupabase` y el `frame-ancestors` del entorno local.
+
+**Pendientes para Sam** (por el Director):
+- plazos de retención 5a y 5b;
+- número de migración para AUD-01;
+- OK al texto de `/privacidad`;
+- ubicación del VPS;
+- las 5 decisiones de la matriz del 2.7.
+
+### FUERA DE ALCANCE DETECTADO (2.6)
+
+- **`/privacidad` §5** dice que los datos se alojan en Estados Unidos. Desde SDD-0505 la base vive en el VPS de Contabo, y la ubicación del VPS no se comprobó. Si no es Estados Unidos, ese punto hay que corregirlo, pero no es del 2.6.
+- **La prueba de «otro origen»** del e2e afirma una ausencia: también daría verde si la página no cargara por otro motivo. La prueba fuerte es la de las cabeceras, del mismo spec.

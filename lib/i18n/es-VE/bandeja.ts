@@ -124,6 +124,7 @@ export const bandeja = {
   "bandeja.salud.alerta.servicio_sin_configurar": "Falta configurar el usuario de servicio (CHATWOOT_SERVICE_USER_ID): no se puede contar a los administradores humanos.",
   "bandeja.salud.alerta.vinculo_fuera_de_cuenta": "Hay vínculos a agentes que ya no están en la cuenta: {ids}.",
   "bandeja.salud.alerta.baja_bloqueada": "Una baja quedó bloqueada para no dejar la cuenta sin administrador.",
+  "bandeja.badge.aria": "{n} sin leer",
 } as const satisfies Record<string, string>;
 
 export type BandejaDict = Record<keyof typeof bandeja, string>;
