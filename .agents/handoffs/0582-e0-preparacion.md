@@ -39,6 +39,10 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 
 ## Autorizaciones registradas
 
+- Línea base v3, 2026-10-29: Sam aprobó el análisis comparativo del Director (video y kit de Basdonax, guía de Meta, calculadora, contraplan de Codex y costo por chat). No hay frase literal; se registra como «aprobación del análisis comparativo del Director, 2026-10-29» (texto que pasó el Director). Cubre escribir la v3 en el checklist y la spec. Las decisiones nuevas de 0.8 y el 2.8 opcional siguen pendientes de Sam.
+
+- Línea base v2, 2026-10-29: Sam aprobó el plan v3 del Director en la app. No hay frase literal; se registra como «aprobación del plan v3 del Director, 2026-10-29» (texto que pasó el Director). Cubre escribir la v2 en el checklist y la spec. La regla de «cliente» queda para 0.8.
+
 - Meta, 2026-10-29: Sam, «Apruebo todo», 2026-10-29, a: dejar el número en «Importador de China»; cuenta de mensajes propia para Chatwoot con sus plantillas y pago; la vuelta atrás de 0.3; y aceptar 0.3 y 0.7. Se aplicó a la spec (decisión B y prohibiciones) e `instrucciones-ia.md`.
 
 - 0.6, lectura de PII: Sam, chat del 2026-10-29, respuesta literal «Sí, OK para esa lectura» a «leer por API, desde el VPS, los mensajes de hasta 20 conversaciones de Kommo con el token que ya usa el ERP, sin guardar su texto (solo conteos)». Se usó solo para eso; no cubre la integración nueva ni la carga.
@@ -60,14 +64,109 @@ Sam eligió el VPS actual del ERP en lugar de un VPS 4 dedicado. La decisión G 
 - Meta «Importador de China» (2026-10-29, lectura, después de que Sam verificara su cuenta): Cuentas de WhatsApp (pestañas Resumen, Personas, Socios, cuentas vinculadas, cuentas de mensajes y enrutamiento), Cuentas de mensajes, Personas, Usuarios del sistema, Aplicaciones, Socios, Centro de seguridad y WhatsApp Manager (Números, Insights, Perfil y Plantillas). Se cerraron 2 avisos informativos. El menú «⋯» de la cuenta de WhatsApp («Asignar personas», «Suprimir del portfolio») se abrió y se cerró sin elegir nada.
 - Se cerró, sin pulsar nada, una ventana de Kommo de «Inicio de sesión con Facebook para empresas» que pedía compartir «Importador de China» y crear una cuenta publicitaria. La IA no la abrió.
 
+## Línea base v2 (2026-10-29)
+
+Encargo del Director tras la aprobación del plan v3: 0.8, 4.9, 6.3 de 4 a 5 días y la etapa E10 (10.1–10.6). Alcance 99,75 → 109,25 días. Pesos de etapa por resto mayor en décimas, que suman 100 %. Sección «Cambio de alcance v2» en la spec y filas V2-1 a V2-14 en el registro E0.
+
+- **El % de esta rama no es el del plan.** Aquí solo están aceptados los 5 días de E0, así que da 5,0 % → 4,6 %. El 7,8 % → 7,1 % del plan incluye 2.1, 4.2 y 9.1, aceptados en otras ramas; se juntan al integrar. El checklist pone las dos cifras.
+- **Correcciones al plan v3, leídas en `main` `ec5786bb8`:**
+  - `conversation_messages` no tiene `client_id`; se liga por `conversation_id` (V2-7).
+  - `CONTACT.ve.whatsapp` está en las líneas 245-246 de `lib/design-tokens.ts`, no en la 244.
+  - `buildWhatsAppLink` aparece en 44 archivos fuera de pruebas, no en «unos 41» (V2-9).
+- **Prueba del avance:** fija la v2 (alcance, anterior, días por etapa, firma de ID=días de cada paso y pesos de la tabla de etapas) y recalcula el % antes y después por su cuenta. La firma es nueva: sin ella, mover días entre dos pasos de la misma etapa no hacía fallar nada.
+- **Mutantes, todos muertos** (el control sin mutar dio 12/12):
+  - contar `entregado` en el %;
+  - el mismo, con 1.1 entregado en el real;
+  - peso de 0.1 +1 sin tocar el alcance;
+  - peso de 0.1 +1 con el alcance y la tabla de etapas ajustados;
+  - mover 0,25 d de 10.4 a 10.3;
+  - peso de E10 en la tabla, 6,6 % → 6,7 %;
+  - % con días reales.
+
+Salida de `node scripts/avance-checklist.mjs docs/specs/0582-chatwoot-piloto/checklist.md`:
+
+```text
+Etapa 1 de 11 · E0 Preparación y puertas · paso 0.8 · Avance 4,6 % (falta 95,4 %) · Esfuerzo: real 3,5 d, restante 102,5 d
+Línea base v2 (2026-10-29) · alcance 109,25 d · aceptado 5 d
+Cambio de alcance: v1 99,75 d → v2 109,25 d · avance antes 5,0 % → ahora 4,6 %
+Ritmo real: 1,07 d base por día real · faltan ≈ 95,79 días de trabajo
+Entregados sin aceptar: ninguno
+Esperando: ninguno
+Bloqueados: ninguno
+Por etapa:
+  E0 Preparación y puertas: 5 de 5,25 d (95,2 %)
+  E1 Chatwoot en el VPS: 0 de 4,75 d (0,0 %)
+  E2 Bandeja en Studio, usuarios y permisos: 0 de 17,75 d (0,0 %)
+  E3 Actualizaciones desde Studio: 0 de 5 d (0,0 %)
+  E4 Canales en paralelo a Kommo: 0 de 9 d (0,0 %)
+  E5 Historial de Kommo: 0 de 7,75 d (0,0 %)
+  E6 Embudo propio y reemplazos: 0 de 17 d (0,0 %)
+  E7 Bot propio: 0 de 16,5 d (0,0 %)
+  E8 Corte, salida de Kommo y limpieza del ERP: 0 de 10 d (0,0 %)
+  E9 Guía interactiva «Antes en Kommo → Ahora aquí» (termina antes de 8.1): 0 de 9 d (0,0 %)
+  E10 Enrutamiento por segmento (SDD hija nueva; se reserva al arrancar, después de 2.3): 0 de 7,25 d (0,0 %)
+```
+
+## Línea base v3 (2026-10-29)
+
+Encargo del Director tras la aprobación del análisis comparativo. Alcance 109,25 → **115,5 días** (114,5 sin el 2.8 opcional).
+
+- **Pasos:**
+  - 0.8 (+0,25), 2.3 (+1,5), 2.6 (+0,5), 4.9 (+0,75), 6.7 (+0,25), 7.5 (+0,5), 7.6 (+0,75), 7.7 (+0,25) y 7.9 (+0,5);
+  - 2.8 opcional, nuevo (+1);
+  - 4.3 gana la salida, sin días.
+
+  El análisis agrupa los +5,25 por bloques; **el reparto por fila es mío (I)** y está dicho en la spec.
+- **% exacto en esta rama:** 4,58 % → **4,33 %** (5 ÷ 109,25 y 5 ÷ 115,5). Con las aceptaciones de las otras ramas (7,75 d): 7,1 % → 6,7 %.
+- **Leído otra vez en esta tarea:** las páginas de precios y de registro de Meta (V3-1 y V3-3, D). Lo demás (video, kit, calculadora, Chatwoot y Codex) viene del análisis y la fila dice quién lo leyó.
+- **Correcciones:**
+  - V2-14 queda refutada a partir de 1.000 respuestas al mes por número;
+  - el `pin` de `register` es el de verificación en dos pasos, con un tope de 10 cada 72 h;
+  - la tarifa de octubre para +58 queda NV (la de enero es US$0,0113).
+- **2.3:** queda con la puerta «no se acepta hasta arreglar la idempotencia».
+- **Prueba del avance:** pasa a la v3 (alcance y anterior como constantes, días por etapa, firma ID=días y pesos de la tabla).
+- **Mutantes, todos muertos** (el control dio 12/12):
+  - contar `entregado`;
+  - el mismo, con 1.1 entregado en el real;
+  - peso de 0.1 +1;
+  - peso de 0.1 +1 con alcance y tabla ajustados;
+  - mover 0,25 d entre 10.3 y 10.4;
+  - peso de E10 en la tabla;
+  - descartar el 2.8 sin línea base nueva;
+  - % con días reales.
+
+Salida de `node scripts/avance-checklist.mjs docs/specs/0582-chatwoot-piloto/checklist.md`:
+
+```text
+Etapa 1 de 11 · E0 Preparación y puertas · paso 0.8 · Avance 4,3 % (falta 95,7 %) · Esfuerzo: real 3,5 d, restante 108,75 d
+Línea base v3 (2026-10-29) · alcance 115,5 d · aceptado 5 d
+Cambio de alcance: v2 109,25 d → v3 115,5 d · avance antes 4,6 % → ahora 4,3 %
+Ritmo real: 1,07 d base por día real · faltan ≈ 101,64 días de trabajo
+Entregados sin aceptar: ninguno
+Esperando: ninguno
+Bloqueados: ninguno
+Por etapa:
+  E0 Preparación y puertas: 5 de 5,5 d (90,9 %)
+  E1 Chatwoot en el VPS: 0 de 4,75 d (0,0 %)
+  E2 Bandeja en Studio, usuarios y permisos: 0 de 20,75 d (0,0 %)
+  E3 Actualizaciones desde Studio: 0 de 5 d (0,0 %)
+  E4 Canales en paralelo a Kommo: 0 de 9,75 d (0,0 %)
+  E5 Historial de Kommo: 0 de 7,75 d (0,0 %)
+  E6 Embudo propio y reemplazos: 0 de 17,25 d (0,0 %)
+  E7 Bot propio: 0 de 18,5 d (0,0 %)
+  E8 Corte, salida de Kommo y limpieza del ERP: 0 de 10 d (0,0 %)
+  E9 Guía interactiva «Antes en Kommo → Ahora aquí» (termina antes de 8.1): 0 de 9 d (0,0 %)
+  E10 Enrutamiento por segmento (SDD hija nueva; se reserva al arrancar, después de 2.3): 0 de 7,25 d (0,0 %)
+```
+
 ## Validación
 
 | Check | Resultado |
 |---|---|
 | `node scripts/build-docs-index.mjs --check` (docs:check) | PASÓ (565 specs) |
 | `node scripts/check-numbering.mjs` (sdd:check) | PASÓ |
-| `node scripts/avance-checklist.mjs …/checklist.md` | PASÓ (avance 5,0 % al cierre de E0) |
-| `scripts/__tests__/avance-checklist.test.mjs` | NO EJECUTADO: es de Vitest y el worktree no tiene dependencias; el script no cambió |
+| `node scripts/avance-checklist.mjs …/checklist.md` | PASÓ (v3: 4,58 % → 4,33 % en esta rama) |
+| `scripts/__tests__/avance-checklist.test.mjs` | PASÓ (12/12, con el `node_modules` de main enlazado y quitado al terminar); v3: 8 mutantes muertos |
 | `git diff --check` | PASÓ |
 | `pnpm verify` | NO APLICA: cambio solo de docs |
 | Graphify / Archify / knowledge:status | NO EJECUTADO: docs de una spec sin código; lo publica el Director desde main |

@@ -1,5 +1,6 @@
 // Pruebas del verificador de Cloudflare Access (SDD-0583). Solo datos sintéticos.
-//   node --test infra/chatwoot/cf-access/verificador.test.mjs
+// Se llama .node-test.mjs para que vitest (patrón *.test.*) no la tome: es de node:test.
+//   node --test infra/chatwoot/cf-access/verificador.node-test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
@@ -97,9 +98,11 @@ test("servidor HTTP: 200/403/404, cierra si las claves fallan y no escribe token
     assert.equal(await pedir("/verificar"), 403);
     assert.equal(await pedir("/verificar", { "Cf-Access-Jwt-Assertion": valido }), 200);
     assert.equal(await pedir("/verificar", { "Cf-Access-Jwt-Assertion": firmar({ ...BUENA, aud: "otra" }) }), 403);
+    // Cabecera con JSON cortado: razón «token ilegible», no «claves».
+    assert.equal(await pedir("/verificar", { "Cf-Access-Jwt-Assertion": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ingi.eyJhdWQiOiJ4In0.YWJj" }), 403);
     fallar = true;
     assert.equal(await pedir("/verificar", { "Cf-Access-Jwt-Assertion": valido }), 403);
   } finally { srv.close(); }
-  assert.deepEqual(lineas, ["denegado: sin cabecera", "permitido", "denegado: aud distinta", "denegado: no se pudieron leer las claves"]);
+  assert.deepEqual(lineas, ["denegado: sin cabecera", "permitido", "denegado: aud distinta", "denegado: token ilegible", "denegado: no se pudieron leer las claves"]);
   assert.ok(lineas.every((l) => !l.includes("example.test") && !l.includes(valido.slice(0, 20))));
 });

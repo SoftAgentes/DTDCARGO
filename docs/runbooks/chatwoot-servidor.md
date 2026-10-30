@@ -63,6 +63,24 @@ awk -F= '/^CHATWOOT_/ { printf "%-45s %3d\n", $1, length($2) }' .env
 docker compose config -q && echo config-ok
 ```
 
+## 2 bis · Correo saliente (SMTP de Hostinger)
+
+Chatwoot manda tres correos: restablecer la contraseña, invitar agentes y avisar de asignaciones. Sin SMTP no manda ninguno.
+
+- **Buzón:** `notificaciones@dtdcargo.com`, creado el 2026-10-29 en hPanel → Emails → dtdcargo.com → Buzones (plan Premium Business Email, 2 de 2 en uso). `info@` no sirve: es un alias de `vzla@` y no puede iniciar sesión. La clave la creó Sam y vive en su gestor.
+- **Respuestas al buzón:** tiene una respuesta automática de Hostinger (hPanel → Respuesta automática, creada el 2026-10-29 a pedido de Sam, sin fecha de fin). Remitente «DTD Cargo», asunto «Buzón solo de notificaciones». El texto dice que el buzón solo envía notificaciones y que la información se manda a `vzla@dtdcargo.com`. Hostinger manda una sola por remitente cada 24 h.
+- **En el `.env`:** `CHATWOOT_MAILER_SENDER_EMAIL="DTD Cargo <notificaciones@dtdcargo.com>"` (el remitente es el mismo buzón que inicia sesión; si no, Hostinger lo rechaza). `smtp.hostinger.com`, 587, STARTTLS, `login`.
+- **Pegar usuario y clave:** el guion [`pegar-smtp.sh`](../../infra/chatwoot/pegar-smtp.sh) se copia a `/root/pegar-smtp.sh` (0700) y Sam lo corre desde su PC con `ssh.exe -t root@217.216.54.70 'bash /root/pegar-smtp.sh'`, o con el lanzador `.ps1` que solo hace esa llamada.
+  - El usuario trae `notificaciones@dtdcargo.com` por omisión: Enter lo acepta, así nadie pega nada visible.
+  - La clave se pide dos veces y no se ve.
+  - Solo escribe si las dos líneas están vacías.
+  - Rechaza comillas simples y espacios.
+  - Escribe la clave entre comillas simples, que compose lee literales (`$` y `#` no se tocan; comprobado con `docker compose config`).
+  - Al final muestra solo los largos.
+- **No pasar lógica entre comillas por PowerShell 5.1:** se come las comillas internas que recibe `ssh`. Por eso el `.ps1` solo llama al guion del servidor.
+- **Aplicar:** primero copia `cp -p .env .env.antes-smtp` (0600), después `docker compose up -d --wait`, que recrea `rails` y `sidekiq` con las mismas labels de Traefik y sin certificado nuevo.
+- **Probar:** desde `rails`, con un `ActionMailer::Base.mail(...).deliver_now` dirigido a `hailuway.com@gmail.com` (`</dev/null` dentro de guiones remotos).
+
 ## 3 · Red y Traefik (puerta P1)
 
 El Traefik compartido (`ops-traefik-traefik-1`) solo ve las redes edge a las que está conectado. Chatwoot usa la suya:
@@ -109,7 +127,21 @@ docker compose exec rails bundle exec rails c      # consola, solo si hace falta
 
 ### 4.1 · `/super_admin` con Cloudflare Access (P3 sin Tailscale)
 
-Preparado el 2026-10-29 tras el «ok avanza cludefare» de Sam en la sesión del programa. **No se aplica sin su confirmación en esta sesión** con el alcance de abajo. Probado en local: `cf-access/verificador.test.mjs` y la fase D de `pruebas/ensayo-local.sh`.
+**Activo desde el 2026-10-29 (~19:15Z).** Sam dijo «ok avanza cludefare» en la sesión del programa y confirmó aquí con «Confirmo Access». En Zero Trust (equipo `dawn-mud-1d9d`, plan Free, ya activo):
+- app self-hosted «Chatwoot · super admin», con destino `chat.dtdcargo.com/super_admin` y sesión de 6 h (no hay opción de 8 h);
+- política «chatwoot-super-admin-sam»: Allow, Include Emails = `hailuway.com@gmail.com`;
+- AUD `1593e415…d4d0` (no es secreta).
+
+En el VPS, el `.env` (copia en `.env.antes-access`) lleva `CHATWOOT_CF_ACCESS_*`, `CHATWOOT_ADMIN_ALLOWLIST_MIDDLEWARE=chatwoot-cf-access@docker` y `COMPOSE_PROFILES=cf-access`. El super admin de Chatwoot es `hailuway.com@gmail.com`, id 2, creado con `/root/crear-super-admin.sh`; la contraseña la escribió Sam sin eco y la guarda en su gestor.
+
+No se tocó la otra app de Access que ya existía. Probado en local antes (`cf-access/verificador.node-test.mjs` y la fase D de `pruebas/ensayo-local.sh`) y en el VPS después: registro T-30 a T-32.
+
+**Cómo entra Sam (dos puertas, a propósito):**
+1. Abre `https://chat.dtdcargo.com/super_admin`.
+2. Cloudflare pide su correo y le manda un código. Esa sesión dura 6 h: mientras no venza, no vuelve a pedirla.
+3. Aparece el login propio de super admin de Chatwoot: el mismo correo y la contraseña del super admin.
+
+La primera puerta decide quién puede siquiera ver la pantalla; la segunda, quién es super admin. El trabajo diario (`/app`, y la bandeja dentro de Studio en E2) no pasa por Cloudflare Access.
 
 **Cómo funciona.** Cloudflare Access pide el login (código por correo o Google) antes de dejar pasar `chat.dtdcargo.com/super_admin*`, y agrega a cada petición la cabecera `Cf-Access-Jwt-Assertion`, firmada por el *team domain*. En el VPS, Traefik pregunta por cada pedido a `/super_admin`, `/monitoring` e `/installation` al servicio `acceso` (forwardAuth). Ese servicio verifica:
 - la firma RS256 con las claves públicas de `<team>/cdn-cgi/access/certs`;
