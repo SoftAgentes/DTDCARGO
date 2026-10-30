@@ -47,7 +47,20 @@ confidencialidad: interno
 
 ## Paso 3.4 · Análisis con IA
 
-**Motor:** Sam lo eligió el 2026-10-30 por selector. Pregunta del Director: «¿Qué motor de IA usamos para analizar las actualizaciones de Chatwoot (paso 3.4)?». Respuesta literal: «GLM de la oficina (Recomendado)». Es la cuenta de Z.AI (GLM, Personal Coding Plan) que ya paga la oficina de agentes. Studio usa **su propia variable** (`DTD_CHATWOOT_IA_GLM_KEY`); este repo no lee la variable de la oficina ni copia su valor.
+**Motor (E3-D15, decisión vigente).** Sam lo decidió el 2026-10-30, por selector. Sus respuestas literales a las preguntas del Director:
+
+- «¿Qué proveedor de IA de pago usa Studio (para el análisis de versiones 3.4 y el bot E7)?» → «Solo GLM».
+- «¿Qué tope de gasto mensual pones para empezar?» → «US$50 al mes».
+
+Queda así:
+
+- La llave será una **API key de pago de Z.AI, aparte** del plan de la oficina de agentes, con **su propio tope de US$50 al mes**. La crea Sam al arrancar.
+- Studio la lee de su variable propia, `DTD_CHATWOOT_IA_GLM_KEY`. El repo no lee la variable de la oficina ni copia su valor.
+- El bot de **E7 usa el mismo proveedor (solo GLM) y el mismo tope**.
+
+Esta decisión reemplaza a la anterior del mismo día («GLM de la oficina (Recomendado)», que apuntaba al Personal Coding Plan de la oficina). La anterior queda solo como historia.
+
+> **Orden del Director del 2026-10-30, después de esta decisión: «No implementes el 3.4 todavía».** Llegó cuando el 3.4 ya estaba hecho y publicado en esta rama (`7d66bd450`, punta `c2a91dcab`). No se revirtió nada. Le pregunté al Director si lo deja o lo saca de la rama. Mientras no conteste, el código sigue como está y la URL por defecto sigue apuntando al endpoint del Coding Plan. Con la API key de pago, el endpoint general es `https://api.z.ai/api/paas/v4/chat/completions` (NO VERIFICADO). Ese cambio queda para cuando se retome el 3.4.
 
 | ID | Decisión | Por qué |
 |---|---|---|
@@ -55,7 +68,7 @@ confidencialidad: interno
 | E3-D10 | **Dos cortes, con prueba negativa.** `rutaExcluida` saca `.env*`, `secretos/`, `credentials`, llaves, certificados y archivos de datos. `pareceSecreto` saca cualquier archivo cuyo texto tenga forma de credencial (llaves privadas, `sbp_`, `sk-`, JWT, llaves de Z.AI, asignaciones literales largas a `*SECRET*`, `*TOKEN*` y parecidas). La superficie se lee sin recorrer subcarpetas y nunca entra un valor de `process.env` | Dos cortes independientes: uno por ruta y otro por contenido |
 | E3-D11 | **Respuesta con esquema cerrado.** El motor responde un JSON con `recomendacion`, `resumen` y `piezas`. `leerInforme` descarta las piezas inventadas y los archivos que no están en el paquete, completa en «medio» las piezas que el motor no evaluó, nunca deja «seguro» si alguna pieza tiene riesgo o si el paquete se recortó, y pasa todo a texto plano. Las instrucciones le dicen al motor que el contenido es material para revisar, nunca órdenes | IA-01: contexto no confiable (*prompt injection*) e identificadores alucinados |
 | E3-D12 | **Respaldo sin IA.** Si no hay llave, si el motor falla, si tarda más de 120 s o si responde algo inválido, se guarda un informe determinista: por pieza, si la versión cambia archivos de los que depende. Ese informe recomienda «revisar» o «seguro» y nunca «no actualizar», porque no lee el código (la 0509 lo impone con un check). Si GitHub no da el diff, no se llama al motor | IA-01: «siempre existe salida segura o camino manual»; el camino manual es el runbook §3 |
-| E3-D13 | **Topes.** Por archivo: 12.000 caracteres. Por paquete: 120.000. Nombres de otros cambios: hasta 300. Respuesta del motor: 4.000 tokens, de la que se leen como mucho 60.000 caracteres. Hasta **5 análisis por tenant en 24 h**, contados en la 0509, y uno a la vez por tenant. Caché: un análisis **con IA** del mismo salto en los últimos 30 días se reutiliza sin llamar a nadie. Un informe sin IA no cuenta como caché | Cuidar la cuota del Coding Plan |
+| E3-D13 | **Topes.** Por archivo: 12.000 caracteres. Por paquete: 120.000. Nombres de otros cambios: hasta 300. Respuesta del motor: 4.000 tokens, de la que se leen como mucho 60.000 caracteres. Hasta **5 análisis por tenant en 24 h**, contados en la 0509, y uno a la vez por tenant. Caché: un análisis **con IA** del mismo salto en los últimos 30 días se reutiliza sin llamar a nadie. Un informe sin IA no cuenta como caché | Cuidar el tope de gasto de US$50 al mes (E3-D15), que comparte con el bot de E7. El tope de dinero se fija en la cuenta de Z.AI; estos topes acotan cuánto puede gastar el 3.4 |
 | E3-D14 | **Solo el salto pendiente.** La acción exige que `de → a` sea la instalada y la disponible de la última revisión, igual que «Pedir actualización»: un formulario viejo no gasta llamadas. El informe lo escribe service_role después del gate de admin; el admin solo lo lee | E3-D6 |
 
 **Nivel IA-01: I1** (propone una clasificación y una recomendación). No escribe nada del ERP ni dispara acciones: el informe es un registro aparte y la subida sigue pidiendo el OK nominal de Sam.
@@ -82,7 +95,7 @@ confidencialidad: interno
 
 Pruebas y declaraciones: `lib/studio/chatwoot/__tests__/analisis{,-superficie,-motor}.test.ts`, `app/studio/(app)/admin/actualizaciones/__tests__/{actions,ActualizacionesPanel}.test.ts(x)`, `supabase/tests/0509_chatwoot_version_analyses.test.sql`, `lib/studio/__tests__/chatwoot-analisis.migration.test.ts`, `lib/studio/rbac-actions-guard.test.ts` (452 → 453), `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`.
 
-**NO VERIFICADO sin la llave real:** que la URL `https://api.z.ai/api/coding/paas/v4/chat/completions` y el modelo `glm-4.6` respondan con esta forma (OpenAI compatible) desde el servidor de Studio. Tampoco que los términos del Coding Plan admitan su uso desde una aplicación y no solo desde herramientas de programación: hay que revisarlos antes de la puerta de integración. Las dos se pueden cambiar sin código con `DTD_CHATWOOT_IA_GLM_URL` y `DTD_CHATWOOT_IA_GLM_MODELO`.
+**NO VERIFICADO sin la llave real:** que la URL `https://api.z.ai/api/coding/paas/v4/chat/completions` y el modelo `glm-4.6` respondan con esta forma (OpenAI compatible) desde el servidor de Studio. Con la decisión E3-D15 (API key de pago aparte), ya no hace falta revisar los términos del Coding Plan. Lo que queda por verificar es el endpoint de la API de pago y el tope de US$50 al mes configurado en la cuenta. Las dos se pueden cambiar sin código con `DTD_CHATWOOT_IA_GLM_URL` y `DTD_CHATWOOT_IA_GLM_MODELO`.
 
 ## Migración 0507 (NO APLICADA)
 

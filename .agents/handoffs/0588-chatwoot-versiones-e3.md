@@ -80,7 +80,8 @@ Después del merge de `5451c818d` también pasaron: `build-crontab --check` (22 
 2. ~~Confirmar la 0507~~: asignada por el Director. Pidió además guardar las notas sin HTML crudo: `limpiarNotas` quita etiquetas y comentarios (prueba más un mutante que muere).
 3. Aplicar la 0507: OK nominal de Sam y runbook `aplicar-migraciones-prod`. Sin ella, todo responde `omitido`/«sin datos».
 5. Aplicar la 0509 (después de la 0507): OK nominal de Sam. Antes, el Director confirma o cambia el número.
-6. Puerta de integración del 3.4: con OK de Sam, poner la llave en el entorno del servidor de Studio (`DTD_CHATWOOT_IA_GLM_KEY`, propia; no la variable de la oficina) y hacer una corrida real, revisando antes los términos del Coding Plan. Sin la llave, el análisis sale «sin IA».
+8. **Decisión del motor (E3-D15), 2026-10-30:** «Solo GLM» y «US$50 al mes». Será una API key de pago de Z.AI aparte del plan de la oficina, con su propio tope, que crea Sam al arrancar. E7 usa el mismo proveedor y el mismo tope. Después, el Director pidió «No implementes el 3.4 todavía», cuando ya estaba publicado (`c2a91dcab`). Le pregunté si lo deja o lo saca; no revertí nada. Al retomarlo: cambiar la URL por defecto al endpoint de la API de pago (`api.z.ai/api/paas/v4`, NO VERIFICADO).
+6. Puerta de integración del 3.4: con OK de Sam, poner la llave en el entorno del servidor de Studio (`DTD_CHATWOOT_IA_GLM_KEY`, propia; no la variable de la oficina) y hacer una corrida real con la API key de pago (E3-D15). Sin la llave, el análisis sale «sin IA».
 7. Aceptación de Sam del 3.4 y de la ampliación del 3.1 (`zz_dtd_revocar_sesiones.rb`).
 4. ~~Aceptación de Sam de 3.1 a 3.3~~: aceptados el 2026-10-30 («Acepto todo», a la pregunta del Director «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?»).
 
