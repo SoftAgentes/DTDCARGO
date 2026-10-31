@@ -68,8 +68,21 @@ selector, y el Director me la pasó con la cita literal. A la pregunta «¿Qué 
 y Facebook conectamos a Chatwoot?», Sam respondió **«Las dos marcas»**. Es una decisión de
 alcance, no un OK de escritura: cada paso que escriba en Meta o en Chatwoot sigue pidiendo el OK
 de Sam en esta sesión.
-- **Importador de China:** la página «Importador de China» y `@importadechinaavzla`. Ya están
-  en el portafolio, así que esta marca se puede preparar ya, desde P2.
+- ~~**Importador de China:** la página «Importador de China» y `@importadechinaavzla`. Ya están
+  en el portafolio, así que esta marca se puede preparar ya, desde P2.~~ **Fuera del piloto
+  desde el 2026-10-31.** Ver la decisión de abajo.
+
+**Cambio de decisión de Sam, en esta sesión, el 2026-10-31.**
+- Sam preguntó si convenía renombrar la página «Importador de China» a «DTD Cargo».
+- Yo recomendé no hacerlo:
+  - habría dos páginas «DTD Cargo» de dueños distintos;
+  - la página comparte portafolio con el negocio verificado, el WhatsApp y la app;
+  - ese día ya hubo varios cambios en esa app.
+- Sam respondió, literal: «No vamos a avanzar nada con lo de [cuenta A], quedémonos así.» El
+  nombre de la persona va reemplazado por la etiqueta de la cuenta.
+- Queda **solo la marca DTD Cargo**: página «DTD Cargo» y `@dtdcargo.ve`, de la cuenta B.
+- La página «Importador de China», `@importadechinaavzla`, sus portafolios y sus nombres no se
+  tocan, no se renombran y no se conectan a Chatwoot.
 - **DTD Cargo:** `@dtdcargo.ve` y una página de Facebook «DTD Cargo». Antes hacen falta los tres
   pasos previos de Sam que están abajo. Yo no escribo en Meta.
 
