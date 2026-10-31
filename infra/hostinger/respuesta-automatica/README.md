@@ -4,6 +4,8 @@ Parte de SDD-0583. El buzón `notificaciones@dtdcargo.com` (Hostinger Mail, plan
 
 [`vista-previa.html`](vista-previa.html) es la fuente: trae el asunto, la versión con formato (opción A), la versión solo texto (opción B), botones para copiar cada una y los pasos para pegarlas. Se abre con doble clic en Chrome.
 
+Diseño aprobado por Sam el 2026-10-31 («Aprobado, abre la PR»). Esa aprobación cubre el diseño y la PR. No cubre aplicarla en Hostinger: eso lo hace Sam, o una sesión con su OK nominal.
+
 ## Qué acepta el editor de Hostinger
 
 | Punto | Estado | Fuente |
