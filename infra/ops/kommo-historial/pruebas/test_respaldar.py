@@ -76,11 +76,13 @@ class ServidorFalso:
     def __init__(self):
         self.peticiones = []
         self.dio_429 = False
+        self.prohibir = set()  # rutas que responden 403 «Not enough rights»
         t0 = AHORA - 500 * DIA
         self.cuenta = {"id": 31589859, "subdomain": "dtdcargo", "created_at": t0, "name": NOMBRE_SECRETO}
         self.eventos_in = [self._evento(1, 10, "waba", AHORA - 5 * DIA), self._evento(2, 10, "waba", AHORA - 4 * DIA),
                            self._evento(3, 11, "instagram_business", AHORA - 400 * DIA), self._evento(4, 12, "waba", AHORA - 3 * DIA),
-                           self._evento(5, 15, "waba", AHORA - 2 * DIA)]
+                           self._evento(5, 15, "waba", AHORA - 2 * DIA),
+                           self._evento(7, 16, "waba", AHORA - 2 * DIA), self._evento(8, 17, "waba", AHORA - DIA)]
         self.eventos_out = [self._evento(6, 10, "waba", AHORA - 4 * DIA, "outgoing_chat_message")]
         self.talks = {
             10: {"talk_id": 10, "contact_id": 500, "origin": "waba", "status": "closed", "created_at": AHORA - 20 * DIA,
@@ -91,6 +93,11 @@ class ServidorFalso:
                  "updated_at": AHORA - DIA, "entity_type": "lead", "entity_id": 7},
             15: {"talk_id": 15, "contact_id": 502, "origin": "waba", "status": "closed", "created_at": AHORA - 2 * DIA,
                  "updated_at": AHORA - 2 * DIA, "entity_type": "lead", "entity_id": 9},
+            # 16 existe pero la integración no la ve (403 en el talk); 17 se ve, pero sus mensajes dan 403
+            16: {"talk_id": 16, "contact_id": 503, "origin": "waba", "status": "closed", "created_at": AHORA - 2 * DIA,
+                 "updated_at": AHORA - 2 * DIA, "entity_type": "lead", "entity_id": 10},
+            17: {"talk_id": 17, "contact_id": 504, "origin": "waba", "status": "closed", "created_at": AHORA - DIA,
+                 "updated_at": AHORA - DIA, "entity_type": "lead", "entity_id": 11},
         }
         self.mensajes = {
             10: [mensaje("m1", 10, AHORA - 5 * DIA), mensaje("m2", 10, AHORA - 4 * DIA, "outgoing"),
@@ -99,6 +106,7 @@ class ServidorFalso:
             11: [mensaje("m4", 11, AHORA - 400 * DIA)],
             13: [mensaje("m5", 13, AHORA - DIA)],
             15: [],
+            17: [mensaje("m6", 17, AHORA - DIA)],  # nunca llega: la ruta de mensajes de 17 da 403
         }
         self.contactos = [{"id": 500, "name": NOMBRE_SECRETO, "created_at": AHORA - 30 * DIA,
                            "custom_fields_values": [{"field_code": "PHONE", "values": [{"value": TELEFONO_SECRETO}]}]},
@@ -120,6 +128,8 @@ class ServidorFalso:
             return respuesta(200, b"JPEGDATA-" + TEXTO_SECRETO.encode(), "image/jpeg")
         if "Authorization" not in req.headers and "Authorization" not in {k.title(): v for k, v in req.header_items()}:
             return respuesta(401, {"title": "Unauthorized"})
+        if p in self.prohibir or p in ("/api/v4/talks/16", "/api/v4/talks/16/messages", "/api/v4/talks/17/messages"):
+            return respuesta(403, {"title": "Forbidden", "status": 403, "detail": "Not enough rights"})
         if p == "/api/v4/account":
             return respuesta(200, self.cuenta)
         if p == "/api/v4/users":
@@ -200,7 +210,7 @@ class PruebasUtilidades(unittest.TestCase):
     def test_ids_de_eventos(self):
         s = ServidorFalso()
         idx = R.ids_de_eventos(s.eventos_in + s.eventos_out)
-        self.assertEqual(sorted(idx), [10, 11, 12, 15])
+        self.assertEqual(sorted(idx), [10, 11, 12, 15, 16, 17])
         self.assertEqual(idx[10]["n"], 3)
         self.assertEqual(idx[10]["origen"], "waba")
         self.assertEqual(idx[10]["primero"], AHORA - 5 * DIA)
@@ -273,6 +283,17 @@ class PruebasCliente(unittest.TestCase):
     def test_404_devuelve_none(self):
         self.assertEqual(self.api.get("/api/v4/talks/999"), (404, None))
 
+    def test_403_solo_se_tolera_donde_se_pide(self):
+        self.assertEqual(self.api.get("/api/v4/talks/16", tolerar_403=True), (403, None))
+        self.assertEqual(self.api.codigos["403"], 1)
+        with self.assertRaises(R.ErrorFatal) as cm:
+            self.api.get("/api/v4/talks/16")
+        self.assertIn("sin derechos", str(cm.exception))
+        paginas = list(self.api.paginar("/api/v4/talks/17/messages", None, "messages", 250, tolerar_403=True))
+        self.assertEqual(paginas, [])
+        with self.assertRaises(R.ErrorFatal):
+            list(self.api.paginar("/api/v4/talks/17/messages", None, "messages", 250))
+
     def test_sin_token_es_fatal(self):
         api = R.Kommo("dtdcargo", "", self.log, pausa=0.0, abrir=self.servidor)
         api._peticion = lambda url, con_token: (401, b"{}", "application/json")
@@ -336,8 +357,12 @@ class PruebasExtraccionCompleta(unittest.TestCase):
     def test_extraccion_informe_y_sin_datos_personales(self):
         st, args, log = self.extraer()
         talks = list(st.leer_ndjson("talks.ndjson"))
-        self.assertEqual(sorted(t["_talk_id"] for t in talks), [10, 11, 12, 13, 15])
+        self.assertEqual(sorted(t["_talk_id"] for t in talks), [10, 11, 12, 13, 15, 16, 17])
         self.assertEqual([t["_http"] for t in talks if t["_talk_id"] == 12], [404])
+        self.assertEqual([(t["_http"], t["talk"]) for t in talks if t["_talk_id"] == 16], [(403, None)])
+        self.assertEqual([t["_http"] for t in talks if t["_talk_id"] == 17], [200])
+        self.assertEqual(st.marcados("talks-sin-acceso"), {"16"})
+        self.assertEqual(st.marcados("mensajes-sin-acceso"), {"17"})
         mensajes = list(st.leer_ndjson("mensajes.ndjson"))
         self.assertEqual(len(mensajes), 5)
         self.assertTrue(all("_talk_id" in m for m in mensajes))
@@ -353,11 +378,14 @@ class PruebasExtraccionCompleta(unittest.TestCase):
         self.assertEqual(huecos["existen"], 1)
 
         r = R.informe(st, log, ahora_ts=AHORA)
-        self.assertEqual(r["conversaciones"]["total_consultadas"], 5)
-        self.assertEqual(r["conversaciones"]["por_http"], {"200": 4, "404": 1})
-        self.assertEqual(r["conversaciones"]["contactos_unicos"], 3)
-        self.assertEqual(r["conversaciones"]["contactos_unicos_con_actividad_12m"], 2)
-        self.assertEqual(r["conversaciones"]["pares_contacto_canal"], 3)
+        self.assertEqual(r["conversaciones"]["total_consultadas"], 7)
+        self.assertEqual(r["conversaciones"]["por_http"], {"200": 5, "404": 1, "403": 1})
+        self.assertEqual(r["conversaciones"]["sin_acceso_403"], 1)
+        self.assertEqual(r["conversaciones"]["mensajes_sin_acceso_403"], 1)
+        self.assertEqual(r["huecos_sondeo"]["sin_acceso_403"], 0)
+        self.assertEqual(r["conversaciones"]["contactos_unicos"], 4)
+        self.assertEqual(r["conversaciones"]["contactos_unicos_con_actividad_12m"], 3)
+        self.assertEqual(r["conversaciones"]["pares_contacto_canal"], 4)
         self.assertEqual(r["mensajes"]["total"], 5)
         self.assertEqual(r["mensajes"]["por_type"], {"incoming": 4, "outgoing": 1})
         self.assertEqual(r["mensajes"]["conversaciones_con_actividad_12m"], 2)
@@ -379,6 +407,8 @@ class PruebasExtraccionCompleta(unittest.TestCase):
             logtxt = f.read()
         for marca in (TEXTO_SECRETO, NOMBRE_SECRETO, TELEFONO_SECRETO, "sig=zzz", TOKEN_FALSO):
             self.assertNotIn(marca, logtxt, f"{marca} se filtró en el log")
+        self.assertIn("HTTP 403 en /api/v4/talks/16: sin derechos sobre ese recurso", logtxt)
+        self.assertIn("HTTP 403 en /api/v4/talks/17/messages: sin derechos sobre ese recurso", logtxt)
         self.assertIn("conversaciones: listas", logtxt)
 
     def test_reanudar_no_repite_lo_hecho(self):
@@ -390,11 +420,49 @@ class PruebasExtraccionCompleta(unittest.TestCase):
         st = R.Staging(self.staging)
         self.assertEqual(len(list(st.leer_ndjson("mensajes.ndjson"))), 5)
 
+    def test_reanudar_horas_despues_conserva_el_ancla_de_las_ventanas(self):
+        st, _a, _l = self.extraer(sin_adjuntos=True, sondear_huecos=0)
+        ventanas_1 = st.marcados("listo-eventos-ventanas")
+        with open(st.ruta_de("eventos-hasta.txt"), encoding="utf-8") as f:
+            ancla = int(f.read())
+        self.assertEqual(ancla, max(int(k.split(":")[2]) for k in ventanas_1))
+        os.remove(st.ruta_de("eventos-hasta.txt"))  # staging de la versión 1.0: sin ancla guardada
+        n1 = len(self.servidor.peticiones)
+        ahora_real = R.ahora
+        R.ahora = lambda: AHORA + 3 * 3600
+        try:
+            st, _a, _l = self.extraer(sin_adjuntos=True, sondear_huecos=0)
+        finally:
+            R.ahora = ahora_real
+        eventos_2 = [u for u in self.servidor.peticiones[n1:] if "/api/v4/events" in u]
+        self.assertEqual(len(eventos_2), 2, eventos_2)  # solo la ventana de cola, una por tipo
+        self.assertTrue(all(f"from%5D={ancla - DIA}" in u for u in eventos_2), eventos_2)
+        with open(st.ruta_de("eventos-hasta.txt"), encoding="utf-8") as f:
+            self.assertEqual(int(f.read()), ancla)
+        self.assertEqual(len(st.marcados("listo-eventos-ventanas")), len(ventanas_1) + 2)
+        filas = list(st.leer_ndjson("eventos.ndjson"))
+        self.assertEqual(len(filas), 8)
+        self.assertEqual(len(R.ids_de_eventos(filas)), 6)
+
+    def test_eventos_unicos_quita_repetidos(self):
+        s = ServidorFalso()
+        e = s.eventos_in[0]
+        idx = R.ids_de_eventos([e, dict(e), s.eventos_out[0]])
+        self.assertEqual(idx[10]["n"], 2)
+        self.assertEqual(R.contar_eventos([e, dict(e), {"type": "x", "created_at": AHORA}])["total"], 2)
+
     def test_ensayo_con_max_talks_y_sin_adjuntos(self):
         st, _args, _log = self.extraer(max_talks=2, sin_adjuntos=True, sondear_huecos=0)
         talks = list(st.leer_ndjson("talks.ndjson"))
-        self.assertEqual(sorted(t["_talk_id"] for t in talks), [12, 15])
+        self.assertEqual(sorted(t["_talk_id"] for t in talks), [16, 17])
         self.assertFalse(st.existe("adjuntos.ndjson"))
+
+    def test_403_en_una_lista_sigue_siendo_fatal(self):
+        self.servidor.prohibir.add("/api/v4/contacts")
+        with self.assertRaises(R.ErrorFatal) as cm:
+            self.extraer()
+        self.assertIn("HTTP 403 en /api/v4/contacts", str(cm.exception))
+        self.assertNotIn("venció", str(cm.exception))
 
     @unittest.skipUnless(all(shutil.which(x) for x in ("age", "age-keygen", "tar", "zstd")), "hacen falta age, tar y zstd")
     def test_empaquetar_cifra_y_borra_el_staging(self):

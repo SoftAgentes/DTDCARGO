@@ -47,7 +47,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 SUBDOMINIO_POR_DEFECTO = "dtdcargo"
 DOMINIO = "kommo.com"
 LIMITE_LISTAS = 250
@@ -55,6 +55,7 @@ LIMITE_EVENTOS = 100
 LIMITE_MENSAJES = 250
 TIPOS_EVENTOS_CHAT = ("incoming_chat_message", "outgoing_chat_message")
 VENTANA_EVENTOS_DIAS = 30
+COLA_EVENTOS_SEGUNDOS = 600  # al reanudar más tarde que esto, se baja una ventana de cola hasta ahora
 HOSTS_CON_TOKEN = (".kommo.com", ".amocrm.com", ".amocrm.ru")
 DIA = 86400
 
@@ -220,8 +221,11 @@ class Kommo:
         self.codigos[str(codigo)] += 1
         return codigo, cuerpo, tipo
 
-    def get(self, ruta: str, params: dict | None = None, intentos: int = 6) -> tuple[int, dict | None]:
-        """Devuelve (código, json). 204 y 404 dan (código, None). 401/403 lanzan ErrorFatal."""
+    def get(self, ruta: str, params: dict | None = None, intentos: int = 6,
+            tolerar_403: bool = False) -> tuple[int, dict | None]:
+        """Devuelve (código, json). 204 y 404 dan (código, None). 401 lanza ErrorFatal; 403 también, salvo con
+        `tolerar_403` (Kommo responde 403 «Not enough rights» en conversaciones sueltas que el usuario de la
+        integración no puede ver: se registran y se sigue, en vez de tumbar una corrida de horas)."""
         url = self.base + ruta
         if params:
             url += ("&" if "?" in ruta else "?") + urllib.parse.urlencode(params, doseq=True)
@@ -244,8 +248,13 @@ class Kommo:
                     raise ErrorFatal(f"respuesta no JSON en {ruta}") from e
             if codigo in (204, 404):
                 return codigo, None
-            if codigo in (401, 403):
-                raise ErrorFatal(f"HTTP {codigo} en {ruta}: el token no alcanza o venció")
+            if codigo == 403 and tolerar_403:
+                self.log(f"  HTTP 403 en {ruta}: sin derechos sobre ese recurso (se registra y se sigue)")
+                return codigo, None
+            if codigo == 401:
+                raise ErrorFatal(f"HTTP 401 en {ruta}: el token no vale o venció")
+            if codigo == 403:
+                raise ErrorFatal(f"HTTP 403 en {ruta}: sin derechos (alcance de la integración o recurso vedado)")
             if codigo == 429 or codigo >= 500:
                 if intento == intentos:
                     raise ErrorFatal(f"HTTP {codigo} persistente en {ruta}")
@@ -284,7 +293,7 @@ class Kommo:
             return codigo, cuerpo, tipo
         return 0, b"", "sin-respuesta"
 
-    def paginar(self, ruta: str, params: dict | None, clave: str | None, limite: int):
+    def paginar(self, ruta: str, params: dict | None, clave: str | None, limite: int, tolerar_403: bool = False):
         """Recorre `page=1..` hasta 204, página vacía, sin `_embedded` o página corta (< limite).
         Rinde (página, elementos). Una página incompleta es la última: no se pide la siguiente."""
         pagina = 1
@@ -292,7 +301,7 @@ class Kommo:
             p = dict(params or {})
             p["limit"] = limite
             p["page"] = pagina
-            codigo, datos = self.get(ruta, p)
+            codigo, datos = self.get(ruta, p, tolerar_403=tolerar_403)
             if codigo != 200 or not datos:
                 return
             emb = datos.get("_embedded") or {}
@@ -370,10 +379,23 @@ class Staging:
 # --------------------------------------------------------------------------- extracción
 
 
+def eventos_unicos(eventos):
+    """Quita eventos repetidos por `id` (la ventana de cola de una reanudación se solapa con la más
+    reciente, y Kommo repite alguno en el borde de una página)."""
+    vistos: set = set()
+    for ev in eventos:
+        k = ev.get("id")
+        if k is not None:
+            if k in vistos:
+                continue
+            vistos.add(k)
+        yield ev
+
+
 def ids_de_eventos(eventos) -> dict[int, dict]:
     """De los eventos de chat saca {talk_id: {origen, entidad, entidad_id, primero, ultimo, n}}."""
     talks: dict[int, dict] = {}
-    for ev in eventos:
+    for ev in eventos_unicos(eventos):
         for va in ev.get("value_after") or []:
             m = (va or {}).get("message") or {}
             tid = m.get("talk_id")
@@ -456,9 +478,28 @@ class Extractor:
         return int(dt.datetime(2019, 1, 1, tzinfo=dt.timezone.utc).timestamp())
 
     # ---- eventos de chat por ventanas
+    def ancla_eventos(self, marcas: set[str]) -> int:
+        """Fin fijo de las ventanas de eventos. Se decide en la primera corrida y se guarda en el staging:
+        si se calculara de nuevo con la hora de la reanudación, ninguna ventana coincidiría con las ya
+        marcadas y se bajarían (y duplicarían) las 96 otra vez. Un staging de la versión 1.0 no trae el
+        archivo: se toma el fin de la primera ventana marcada, que es la más reciente de esa corrida."""
+        ruta = self.st.ruta_de("eventos-hasta.txt")
+        if self.st.existe("eventos-hasta.txt"):
+            with open(ruta, encoding="utf-8") as f:
+                return int(f.read().strip())
+        if marcas:
+            with open(self.st.ruta_de("listo-eventos-ventanas"), encoding="utf-8") as f:
+                hasta = int(f.readline().strip().split(":")[2])
+        else:
+            hasta = ahora() + DIA
+        with open(ruta, "w", encoding="utf-8") as f:
+            f.write(str(hasta))
+        return hasta
+
     def eventos(self):
-        desde, hasta = self.desde(), ahora() + DIA
+        desde = self.desde()
         marcas = self.st.marcados("listo-eventos-ventanas")
+        hasta = self.ancla_eventos(marcas)
         archivo = "eventos.ndjson"
         total = sum(1 for _ in self.st.leer_ndjson(archivo)) if marcas else 0
         if not marcas:
@@ -467,6 +508,11 @@ class Extractor:
         vent = list(ventanas(desde, hasta))
         if self.args.max_eventos_ventanas:
             vent = vent[: self.args.max_eventos_ventanas]
+        elif ahora() - (hasta - DIA) >= COLA_EVENTOS_SEGUNDOS:
+            # Reanudación horas después: una ventana de cola desde la hora de la primera corrida hasta ahora.
+            # Se solapa un poco con la ventana más reciente; los repetidos se quitan al leer (eventos_unicos).
+            vent.insert(0, (hasta - DIA, ahora() + DIA))
+            self.log(f"eventos: ventana de cola desde {utc(hasta - DIA)} (ancla de la primera corrida)")
         self.log(f"eventos: {len(vent)} ventanas de {VENTANA_EVENTOS_DIAS} días desde {utc(desde)}")
         for a, b in vent:
             n_ventana = 0
@@ -502,15 +548,20 @@ class Extractor:
         inicio = time.monotonic()
         hechas = 0
         for tid in pendientes:
-            codigo, talk = self.api.get(f"/api/v4/talks/{tid}")
+            codigo, talk = self.api.get(f"/api/v4/talks/{tid}", tolerar_403=True)
             self.st.anexar_ndjson("talks.ndjson", [{"_http": codigo, "_talk_id": tid, "talk": talk}])
             n_msj = 0
             if codigo == 200:
+                antes_403 = self.api.codigos["403"]
                 for _pagina, mensajes in self.api.paginar(f"/api/v4/talks/{tid}/messages", None, "messages",
-                                                          LIMITE_MENSAJES):
+                                                          LIMITE_MENSAJES, tolerar_403=True):
                     for m in mensajes:
                         m["_talk_id"] = tid
                     n_msj += self.st.anexar_ndjson("mensajes.ndjson", mensajes)
+                if self.api.codigos["403"] > antes_403:
+                    self.st.marcar("mensajes-sin-acceso", f"{tid}")
+            elif codigo == 403:
+                self.st.marcar("talks-sin-acceso", f"{tid}")
             self.st.marcar("listo-talks", f"{tid}")
             hechas += 1
             if hechas % 50 == 0 or hechas == len(pendientes):
@@ -527,22 +578,27 @@ class Extractor:
         indice = ids_de_eventos(self.st.leer_ndjson("eventos.ndjson"))
         if not indice:
             return
-        vistos = set(indice) | {int(x) for x in self.st.marcados("talks-extra")} | {int(x) for x in self.st.marcados("huecos-no")}
+        vistos = set(indice)
+        for marca in ("talks-extra", "huecos-no", "talks-sin-acceso"):
+            vistos |= {int(x) for x in self.st.marcados(marca)}
         lo, hi = min(indice), max(indice)
         huecos = [i for i in range(lo, hi + 1) if i not in vistos]
         muestra = huecos if n < 0 or n >= len(huecos) else random.Random(582).sample(huecos, n)
         self.log(f"huecos: ids {lo}..{hi}, {len(huecos)} sin eventos; sondeo {len(muestra)}")
-        existen = 0
+        existen = sin_acceso = 0
         for tid in sorted(muestra):
-            codigo, _ = self.api.get(f"/api/v4/talks/{tid}")
+            codigo, _ = self.api.get(f"/api/v4/talks/{tid}", tolerar_403=True)
             if codigo == 200:
                 existen += 1
                 self.st.marcar("talks-extra", str(tid))
+            elif codigo == 403:
+                sin_acceso += 1  # existe, pero el usuario de la integración no la ve
+                self.st.marcar("talks-sin-acceso", str(tid))
             else:
                 self.st.marcar("huecos-no", str(tid))
         self.st.escribir_json("huecos-sondeo.json", {"rango": [lo, hi], "huecos": len(huecos), "sondeados": len(muestra),
-                                                     "existen": existen, "fecha": utc(ahora())})
-        self.log(f"huecos: {existen} de {len(muestra)} sondeados existen")
+                                                     "existen": existen, "sin_acceso_403": sin_acceso, "fecha": utc(ahora())})
+        self.log(f"huecos: {existen} de {len(muestra)} sondeados existen; {sin_acceso} sin acceso (403)")
         if existen:
             self.talks()
 
@@ -866,7 +922,7 @@ def contar_eventos(eventos) -> dict:
     por_tipo: collections.Counter = collections.Counter()
     por_anio: collections.Counter = collections.Counter()
     primero, ultimo, n = None, None, 0
-    for ev in eventos:
+    for ev in eventos_unicos(eventos):
         n += 1
         por_tipo[str(ev.get("type"))] += 1
         ts = ev.get("created_at")
@@ -909,6 +965,8 @@ def informe(st: Staging, log: Log, ahora_ts: int | None = None) -> dict:
     ultimo_por_talk = msj.pop("_ultimo_por_talk")
     msj.pop("_chat_por_talk")
     talks = contar_talks(st.leer_ndjson("talks.ndjson"), indice, ultimo_por_talk, ahora_ts)
+    talks["sin_acceso_403"] = len(st.marcados("talks-sin-acceso"))
+    talks["mensajes_sin_acceso_403"] = len(st.marcados("mensajes-sin-acceso"))
     contactos = contar_contactos(st.leer_ndjson("contactos.ndjson"))
     adj = contar_adjuntos(st.leer_ndjson("adjuntos.ndjson"))
     notas = {}
@@ -955,6 +1013,8 @@ def informe_md(r: dict) -> str:
               "## Resumen\n",
               _tabla({"Conversaciones (talks) consultadas": t["total_consultadas"],
                       "Conversaciones vistas en los eventos": t["en_eventos"],
+                      "Conversaciones sin acceso (HTTP 403)": t["sin_acceso_403"],
+                      "Conversaciones con mensajes sin acceso (HTTP 403)": t["mensajes_sin_acceso_403"],
                       "Conversaciones con mensajes": m["conversaciones_con_mensajes"],
                       "Conversaciones con actividad en los últimos 12 meses": m["conversaciones_con_actividad_12m"],
                       "Conversaciones con actividad en los últimos 24 meses": m["conversaciones_con_actividad_24m"],

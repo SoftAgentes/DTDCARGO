@@ -93,7 +93,14 @@ La integración «DTD 0582 historial (solo lectura)» de 0.6 seguía instalada e
 
 ### 4.3 Corrida completa
 
-Arrancó el 2026-10-30 23:38 UTC como unidad transitoria `kommo-e5-respaldo` (systemd, `Nice=10`), con `--desde 2019-01-01 --sondear-huecos -1 --pausa 0.15`, staging `/dev/shm/kommo-e5` y destino `/srv/backups/kommo/kommo-20261030T233814Z/`. Resultado: pendiente (stamp, bytes, sha256, adjuntos cifrados, duración y códigos HTTP se anotan al terminar).
+Arrancó el 2026-10-30 23:38 UTC como unidad transitoria `kommo-e5-respaldo` (systemd, `Nice=10`), con `--desde 2019-01-01 --sondear-huecos -1 --pausa 0.15`, staging `/dev/shm/kommo-e5` y destino `/srv/backups/kommo/kommo-20261030T233814Z/`.
+
+**Incidente y reanudación (2026-10-31 01:05–01:17 UTC).** Con 4.350 de 4.715 conversaciones leídas, `GET /api/v4/talks/4718` respondió HTTP 403 «Not enough rights» y el script (1.0.0) lo trató como token vencido: la unidad salió con código 2. Diagnóstico: el token seguía vivo (las conversaciones 4717, 4719, 4720 y 5057 respondían 200) y el 403 era solo de esa conversación, que el usuario de la integración no ve. Dos correcciones, con pruebas (23 en verde en la PC y en el VPS):
+
+1. Un 403 en `/talks/{id}` o `/talks/{id}/messages` se registra (`talks-sin-acceso`, `mensajes-sin-acceso`, fila en el informe) y se sigue; un 401, o un 403 en una lista o en `/account`, sigue siendo fatal.
+2. Al reanudar, la versión 1.0.0 recalculaba las ventanas de eventos desde la hora nueva, ninguna coincidía con las marcadas y empezó a bajar las 96 otra vez, duplicando eventos en el staging (se detectó a la tercera ventana). Se paró la unidad, se devolvió `eventos.ndjson` al tamaño exacto que tenía al cerrar esa etapa en la primera corrida (32.421.929 bytes, 54.200 líneas, 54.191 `id` distintos) y se fijó el fin de las ventanas en el staging (`eventos-hasta.txt`, ancla 2026-10-30 23:38:58 UTC); una ventana de cola desde el ancla recoge lo nuevo y los repetidos se descartan por `id` al leer. Quedaron 4 claves de ventana de esa reanudación en `listo-eventos-ventanas` que no coinciden con ninguna ventana del ancla: inertes.
+
+Relanzada a las 01:17 UTC (script 1.1.0): 96 ventanas saltadas, cola con 4 eventos nuevos (54.204 en total, 4.717 conversaciones en los eventos, 342 pendientes) y la 4718 anotada como sin acceso. Resultado final: pendiente (stamp, bytes, sha256, adjuntos cifrados, duración y códigos HTTP se anotan al terminar).
 
 ## 5. Resultado de 5.2 — volumen
 

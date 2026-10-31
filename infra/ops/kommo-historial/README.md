@@ -18,7 +18,8 @@ del host. No tiene dependencias de Python.
 | En disco solo `.age`, `.sha256`, `manifiesto.json` e informes de conteos | `/srv/backups/kommo/kommo-<stamp>/` |
 | Log y pantalla sin datos personales | Ids, conteos, códigos HTTP, nombres de campo y hosts; nunca texto, nombres, teléfonos ni enlaces firmados. La prueba `test_extraccion_informe_y_sin_datos_personales` lo comprueba con marcas |
 | Solo lectura en Kommo | Solo `GET` |
-| Reanudable | Cada entidad y cada conversación quedan marcadas en el staging; repetir el mismo comando sigue donde iba |
+| Reanudable | Cada entidad, ventana de eventos y conversación quedan marcadas en el staging; repetir el mismo comando sigue donde iba. El fin de las ventanas de eventos se fija en la primera corrida (`eventos-hasta.txt`): al reanudar horas después no se vuelven a bajar, solo se añade una ventana de cola desde esa hora, y los eventos repetidos se descartan por `id` al leer |
+| Un 403 en una conversación no tumba la corrida | Kommo responde 403 «Not enough rights» en conversaciones sueltas que el usuario de la integración no ve (la 4718 en la corrida de 2026-10-31). Se anotan en `talks-sin-acceso` / `mensajes-sin-acceso`, salen en el informe y se sigue; un 401, o un 403 en una lista o en `/account`, sigue siendo fatal |
 | Descifra solo Sam | `age -R /srv/ops/backup/age-recipients.txt` (claves públicas de los respaldos: Sam y emergencia). La privada nunca está en el VPS ni en Git |
 
 ## Qué respalda
@@ -57,7 +58,7 @@ del host. No tiene dependencias de Python.
      --log /srv/backups/kommo/respaldo.log
    journalctl -u kommo-e5-respaldo -f        # o: tail -f /srv/backups/kommo/respaldo.log
    ```
-   Si se corta, repetir el mismo comando: reanuda. Dura del orden de horas (una petición cada 0,25 s; Kommo admite 7/s pero el ERP también usa la cuenta).
+   Si se corta, repetir el mismo comando: reanuda sin volver a bajar las ventanas de eventos ni las conversaciones ya hechas. Dura del orden de horas (una petición cada 0,25 s; Kommo admite 7/s pero el ERP también usa la cuenta).
 6. **Al terminar:** comprobar `manifiesto.json` y los `.sha256`, borrar el token (`rm -f /dev/shm/k0582-e5`), comprobar que `/dev/shm/kommo-e5` no existe y copiar `informe.md` a `docs/specs/0590-kommo-historial-e5/`.
 7. **Al cerrar E5:** revocar la integración en Kommo (0.6).
 
