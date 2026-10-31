@@ -18,8 +18,8 @@
 
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
-| 5.1 | **entregado** | Script `infra/ops/kommo-historial/respaldar-historial.py` 1.1.1 con 24 pruebas (verde en la PC y en el VPS); copia en `/srv/ops/kommo-historial/`. Respaldo `kommo-20261030T233814Z` en `/srv/backups/kommo/` (VPS, 0700): metadatos `tar.zst.age` de 7.500.141 bytes (sha256 `c92eef454dee…fd8a`, igual al `.sha256`), 3.577 adjuntos `.age` (2.099.458.961 bytes), `manifiesto.json` (3.578 entradas con sha256), `informe.*`; claves Sam-2026-10-29 y Emergencia-2026-10-29. Staging en tmpfs borrado por el script; token borrado a mano (02:35 UTC) | Aceptación de Sam/Director. Fuera del respaldo por Kommo: 12 conversaciones con 403 y 15 adjuntos con 404 (spec §5.6) |
-| 5.2 | **entregado** | Spec §5 (volumen por año, canal, actividad, adjuntos, otras entidades, estimación Chatwoot, límites), `informe-volumen.md` (copia literal del informe, solo conteos), §6 revisar-datos-ve con los conteos y líneas vigentes, §7 recomendación: **todo lo legible + regla de retención escrita antes de 5.7** | Decisión de Sam con el Director sobre la retención (§6.3) y aceptación |
+| 5.1 | **entregado** | Script `infra/ops/kommo-historial/respaldar-historial.py` 1.1.1 con 24 pruebas (verde en la PC y en el VPS); copia en `/srv/ops/kommo-historial/`. Respaldo `kommo-20261030T233814Z` en `/srv/backups/kommo/` (VPS, 0700): metadatos `tar.zst.age` de 7.500.141 bytes (sha256 `c92eef454dee…fd8a`, igual al `.sha256`), 3.577 adjuntos `.age` (2.099.458.961 bytes), `manifiesto.json` (3.578 entradas con sha256), `informe.*`; claves Sam-2026-10-29 y Emergencia-2026-10-29. Staging en tmpfs borrado por el script; token borrado a mano (02:35 UTC) | Aceptación técnica del Director dada (2026-10-31 ~09:35 UTC, comprobación propia solo con lecturas); falta la de Sam, que el Director pide en bloque. Fuera del respaldo por Kommo: 12 conversaciones con 403 y 15 adjuntos con 404 (spec §5.6) |
+| 5.2 | **entregado** | Spec §5 (volumen por año, canal, actividad, adjuntos, otras entidades, estimación Chatwoot, límites), `informe-volumen.md` (copia literal del informe, solo conteos), §6 revisar-datos-ve con los conteos y líneas vigentes, §7 recomendación: **todo lo legible + regla de retención escrita antes de 5.7** | Aceptación técnica del Director dada (2026-10-31 ~09:35 UTC, comprobación propia solo con lecturas); falta la de Sam, que el Director pide en bloque. Decisión de Sam sobre la retención (§6.3) y el asesor/bots (§7): el Director se la está preguntando; sus respuestas literales se registran aquí al llegar |
 
 ## Lo que se hizo en sistemas externos
 
@@ -43,13 +43,15 @@
 - Informe sin datos personales: PASÓ (prueba con marcas + revisión a ojo del informe real: 0 teléfonos, correos o enlaces).
 - Limpieza: `/dev/shm/kommo-e5` no existe; `/dev/shm/k0582-e5` borrado; unidad `kommo-e5-respaldo` recogida: PASÓ (comprobado por `ls` y `systemctl`).
 - `corepack pnpm docs:index` + `docs:check`: PASÓ (567 specs). `corepack pnpm sdd:check`: PASÓ (sin números repetidos). `git diff --check`: PASÓ.
+- CI de la PR («Calidad local sin secretos»): PASÓ en 27 min 29 s sobre `1aa89e70a` (lo comprobó el Director a las ~09:35 UTC y `gh pr view 342` lo da como SUCCESS).
 - `pnpm verify`: NO EJECUTADO — el diff es un script de operaciones en Python, docs, checklist y handoff; no toca Next/Studio ni la base, y hay cola de verify (una corrida pesada a la vez).
 - `pnpm knowledge:status`: INVALID global — grafo de `main` `6d022e94b`, estructural y semántico pendientes para cientos de archivos del repo (los míos entre ellos: handoff, spec, `informe-volumen.md`), Archify sin runtime, Obsidian pendiente. Es el estado normal de un worktree: la publicación de Graphify/Obsidian la hace el Director desde `main`.
 
 **PR / BRANCH.** `codex/0582-e5-historial` → PR [SoftAgentes/DTDCARGO#342](https://github.com/SoftAgentes/DTDCARGO/pull/342) (borrador contra `main`). Commits: `c9bb3b165` (reserva), `469231610`, `c000955fa`, `7b2061e71`, `88b718fbb`, `5131a6a9a`, `c7d470f08` y el commit de cierre (HEAD de la PR). Sin merge ni despliegue (no autorizados).
 
 **PENDIENTES DE ESTA TAREA (gate humano).**
-- Aceptación de 5.1 y 5.2 por Sam/Director (filas `entregado`).
+- Aceptación de 5.1 y 5.2 por Sam (la técnica del Director ya está, 2026-10-31 ~09:35 UTC; las filas siguen en `entregado` hasta la de Sam, que el Director pide en bloque).
+- Registrar aquí y en la spec las respuestas literales de Sam a §6.3 y §7 cuando el Director las pase.
 - Decisión de retención (spec §6.3 y §7): regla para leads sin servicio y plazo del respaldo `.age`; o cambiar `/privacidad` (E1, fila 1.7).
 - Si el Director quiere la PR lista para revisión en vez de borrador: `gh pr ready 342`.
 
@@ -58,9 +60,21 @@
 - Ids de conversación 1..99 sin sondear (el menor visto en eventos es 100): 99 peticiones, para 5.3, que vuelve a pedir el token.
 - Revocar la integración «DTD 0582 historial (solo lectura)» al cerrar E5 (el token generado caduca el 30.11.2026).
 - `docs/legal/privacidad/registro-tratamiento.md` sin filas para conversaciones (texto y adjuntos); `inventario-terceros.md:40` sin la anotación de copia propia cifrada; `app/privacidad` promete 30 días de respaldos y borrar consultas sin servicio.
-- Copia del `.age` a R2/B2 como los demás respaldos: decisión del Director (evaluación de proveedor ya hecha).
+- Copia del `.age` a R2/B2: **NO por ahora** (Director, 2026-10-31 ~09:35 UTC); se decide junto con el 2.º respaldo de 8.5 (evaluación de proveedor ya hecha).
 - Espacio libre en el disco del VPS para 2 GB más de adjuntos en Chatwoot: no medido; va en 5.5/5.6.
 - `/dev/shm/k0582` (54 bytes, 2026-10-29, de otra sesión): no se tocó.
 - El informe compacto (solo conteos) quedó en el journal del VPS por el stdout del script.
 
 **HANDOFF AL DIRECTOR.** SDD-0590, PR #342 (borrador), rama `codex/0582-e5-historial`. 5.1 y 5.2 entregados con la evidencia de arriba. Recomendación: cargar todo lo legible en «Archivo Kommo» con regla de retención escrita antes de 5.7 (spec §7). Decisiones que necesita Sam: retención (§6.3), nombre del asesor y bots en el Archivo (§6.2 punto 12, §7). 5.3 en adelante necesita otro OK de Sam y volver a pegar el token.
+
+## Actualización (2026-10-31, «~09:35Z» según el Director): aceptación técnica del Director
+
+Mensaje del Director (sesión «CRM Chatwoot») a esta sesión. Lo comprobó por su cuenta, solo con lecturas:
+
+- `/srv/backups/kommo/kommo-20261030T233814Z`: 3.578 `.age` (3.577 adjuntos y los metadatos), 2,0G según `du` (los 2.106.959.102 bytes del manifiesto), root 0700/0600. `sha256sum -c` de los metadatos: OK.
+- `/dev/shm`: ya no está `kommo-e5`; solo queda el `k0582` viejo (55 bytes), que no es de esta tarea.
+- CI de la PR #342: «Calidad local sin secretos» PASÓ en 27 min 29 s (sobre `1aa89e70a`).
+- **Aceptación técnica del Director: dada.** Falta la de Sam, que el Director pide en bloque con las demás; las filas 5.1 y 5.2 siguen en `entregado`.
+- Decisiones de §6.3 y §7 (retención del `.age`, leads sin servicio, nombre del asesor y bots): el Director se las está preguntando a Sam y pasará sus respuestas literales para registrarlas aquí y en la spec.
+- Instrucción del Director: **no arrancar 5.3 ni pedir otro token** hasta su aviso.
+- Copia del `.age` a R2/B2: **NO por ahora**; se decide junto con el 2.º respaldo de 8.5.

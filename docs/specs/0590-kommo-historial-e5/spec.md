@@ -116,6 +116,8 @@ Relanzada a las 01:17 UTC (script 1.1.0): 96 ventanas saltadas, cola con 4 event
 
 Tiempos y red: extracción en tres tramos, 23:38–01:05, 01:17–02:11 y 02:13–02:34 UTC (87 + 54 + 21 min); pausa de 0,15 s más el tiempo de Kommo (≈1,05–1,1 s por conversación o adjunto); **0 × HTTP 429** en todo el log; 2 reintentos de red en el último tramo (uno fue el `IncompleteRead`, que ahora se reintenta). Cobertura: 4.717 conversaciones consultadas (4.715 × 200, 1 × 404, 1 × 403) más 11 con 403 en el sondeo; 3.592 adjuntos referidos, 3.577 descargados y 15 con 404 en Kommo (el enlace ya no existe). Al terminar: staging `/dev/shm/kommo-e5` borrado por el script, token `/dev/shm/k0582-e5` borrado a mano a las 02:35 UTC, unidad recogida (`--collect`). El informe compacto quedó también en el journal del VPS (stdout del script): solo conteos.
 
+**Comprobación independiente del Director (2026-10-31, ~09:35 UTC, solo lecturas).** 3.578 `.age` en el destino (3.577 adjuntos y los metadatos), 2,0G según `du` (los 2.106.959.102 bytes del manifiesto), root 0700/0600; `sha256sum -c` de los metadatos OK; `/dev/shm` sin `kommo-e5`. CI de la PR («Calidad local sin secretos») PASÓ en 27 min 29 s. Aceptación técnica del Director dada; la de Sam, pendiente (la pide en bloque).
+
 ## 5. Resultado de 5.2 — volumen (R)
 
 Fuente: `informe.md` de la corrida `kommo-20261030T233814Z` (script 1.1.1, 2026-10-31 02:33:40 UTC), copiado literal en [`informe-volumen.md`](informe-volumen.md). Solo conteos, años, valores de enumeración y nombres de campo. Corte: último mensaje 2026-10-31 00:51 UTC; primero 2023-08-23.
@@ -261,7 +263,7 @@ Condiciones que acompañan al «todo» (decisiones de Sam con el Director, no se
 - **Retención** (§6.3): conversaciones de contactos que 5.4 no vincule a un cliente del ERP y sin mensajes en 24 meses → anonimizar o borrar en una fecha escrita; las de clientes, mientras dure la relación y lo que exija la ley. Si Sam prefiere no fijar plazo, hay que cambiar la política (`/privacidad`, fila 1.7 de E1): hoy promete lo contrario.
 - **Lo que no se carga en 5.5:** `author.avatar_url`, campos propios de Kommo que el ERP no usa, y los 11.749 mensajes de bots solo si Sam quiere verlos (propuesta: cargarlos como «Bot Kommo» para no romper el hilo). Nombre del asesor: completo, de pila o «DTD Cargo» (§6.2, punto 12).
 - **Fuera del Archivo por fuerza:** las 12 conversaciones con 403 y los 15 adjuntos con 404 (§5.6). Si alguna importa, Sam la abre en Kommo antes de E8.
-- **El respaldo `.age`** se conserva hasta el acta final (8.6) y la verificación de la carga; después se borra o se guarda como archivo frío con fecha (§6.3). Copiarlo a R2/B2: decisión del Director.
+- **El respaldo `.age`** se conserva hasta el acta final (8.6) y la verificación de la carga; después se borra o se guarda como archivo frío con fecha (§6.3). Copiarlo a R2/B2: **no por ahora** (Director, 2026-10-31); se decide junto con el 2.º respaldo de 8.5.
 
 Alternativa acotada, si Sam cambia de idea: 24 meses de actividad (3.842 conversaciones, 81 %) es el único corte por fecha que no deja fuera a casi ningún cliente de 2025–2026; 12 meses (2.096, 44 %) pierde 2024 y 2025 enteros y no se recomienda.
 
@@ -269,4 +271,4 @@ Alternativa acotada, si Sam cambia de idea: 24 meses de actividad (3.842 convers
 
 - 5.3 a 5.8 (extractor incremental con instante de corte, E.164 y vínculo con el ERP, modo de importación, ensayo, carga en producción y acta): otro OK de Sam.
 - Revocar la integración «DTD 0582 historial (solo lectura)» en Kommo: al cerrar E5 (0.6).
-- Copiar el `.age` a un remoto (R2/B2) como los otros respaldos: decisión del Director; el script no lo hace.
+- Copiar el `.age` a un remoto (R2/B2) como los otros respaldos: **no por ahora** (Director, 2026-10-31), se decide junto con el 2.º respaldo de 8.5; el script no lo hace.
