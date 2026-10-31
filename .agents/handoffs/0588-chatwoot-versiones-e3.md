@@ -64,6 +64,24 @@ El candado vive en la PR de 4.2 (SDD-0584), todavía sin desplegar. Mientras no 
 | test | 1.ª corrida: `infra/ops/tests/migraciones.test.mjs` › `prueba-migraciones-produccion.sh` cortado a los 600 s. Reintento: 13.600 pruebas pasaron, pero quedaron 2 «Failed to start forks worker» (`app/p/[token]/…`), falta de RAM con 4 GB libres | Ambiental: ninguna prueba de E3 falló. Sin repetir (corrida pesada) |
 | e2e | `e2e/sin-scroll-horizontal.spec.ts:119` (CTA de Shipping Mark → `/registro`, SDD-0580) excedió el `waitForURL` de 20 s en chromium en las dos corridas; en mobile-chrome, flaky | Ajeno al diff de E3 (sitio público). Sin repetir. FUERA DE ALCANCE |
 
+### Verify completo del 3.4 — 2026-10-31 (09:26Z a 10:06Z, punta `b04e63abcca1c715817cb9cd30f0db5b9f0e3d76`, Docker 29.9.1)
+
+Turno del Director (2026-10-31 09:25Z), que antes comprobó con `@()` que no había procesos pesados vivos y que `4579948d2` (punta de E2) es ancestro de la punta. La corrida cubre el 3.4 y el código de 2.7 y 2.8 de E2. Se lanzó con `corepack pnpm verify` desde la sesión, y esta vez el e2e sí encontró los navegadores. Log en el scratchpad de la sesión (`verify-b04e63a.log`, 15.330 líneas). Exit 1; 16 de 17 pasos corrieron.
+
+| Comprobación | Resultado | Propio, heredado o de carga |
+|---|---|---|
+| harness, lint (0 errores), rsc-boundary, typecheck, edge-functions (4) | PASÓ | — |
+| test | PASÓ: 933 archivos y 13.855 pruebas (1 omitida), en 660 s. Sin «Failed to start forks worker» ni timeouts | — |
+| docs:check (568 specs), numbering, feature-constants (6), components:check, governance:check | PASÓ | — |
+| migrations-applied | NO DISPONIBLE: el worktree no tiene `NEXT_PUBLIC_SUPABASE_URL` ni `SUPABASE_SERVICE_ROLE_KEY` | — |
+| pending-migration-symbols | PASÓ: 0 ROJO · 8 AMARILLO (0507 y 0509 entre ellos) | — |
+| sql-tests (Postgres en Docker) | FALLÓ: 251 contratos pasan y 3 fallan: `0467_reversion_credito_carrera`, `0497_reverso_al_anular_factura` y `0497_reverso_al_anular_factura_carrera` (el preflight de la 0497 sobre `excepcion_al_cierre_vigente(uuid)` no coincide). `0507_chatwoot_versiones` y `0509_chatwoot_version_analyses` **pasan** | **Heredado** (SDD-0573, el mismo trío que en el verify del 2.7) |
+| schema-rebuild | PASÓ: 496 migraciones (478 aplicadas y 18 solo de ledger), aislamiento de 219 tablas | — |
+| e2e (249 casos, 8 workers, 5,9 min) | FALLÓ: 228 PASÓ, 20 omitidas y 1 FALLÓ: `e2e/sin-scroll-horizontal.spec.ts:119` en chromium (CTA de Shipping Mark → `/registro`, `waitForURL` de 20 s, también en el reintento). Dos casos pasaron en el reintento: `company-photo-carousel` y `calculadora-semantic-colors`. `e2e/ficha-chat.spec.ts` PASÓ en chromium, mobile-chrome y mobile-safari | **Heredado** (Shipping Mark, sitio público, el mismo rojo del verify del 2.7) |
+| build de producción | PASÓ; `tsconfig.json` restaurado | — |
+
+No hubo rojos de carga, así que no hizo falta re-correr nada aislado.
+
 Después del merge de `5451c818d` también pasaron: `build-crontab --check` (22 crons de `vercel.json`) y 532 pruebas (las de E3, RBAC y crontab).
 
 ## COMMITS
@@ -76,7 +94,7 @@ Después del merge de `5451c818d` también pasaron: `build-crontab --check` (22 
 
 ## PENDIENTES DE ESTA TAREA
 
-1. ~~`pnpm verify`~~: corrido, con los 4 rojos explicados arriba. El 3.4 entra a la cola de `pnpm verify` del Director, detrás del 2.7 de E2: el turno lo da él.
+1. ~~`pnpm verify`~~: corrido, con los 4 rojos explicados arriba. El 3.4 entró a la cola de `pnpm verify` del Director, detrás del 2.7 de E2. La segunda corrida (2026-10-31, sobre `b04e63abc`) falló solo por rojos heredados: 3 contratos SQL de SDD-0573 y Shipping Mark. Sigue abierto hasta un verify verde, que depende de arreglar esos rojos ajenos.
 2. ~~Confirmar la 0507~~: asignada por el Director. Pidió además guardar las notas sin HTML crudo: `limpiarNotas` quita etiquetas y comentarios (prueba más un mutante que muere).
 3. Aplicar la 0507: OK nominal de Sam y runbook `aplicar-migraciones-prod`. Sin ella, todo responde `omitido`/«sin datos».
 5. Aplicar la 0509 (después de la 0507): OK nominal de Sam. Antes, el Director confirma o cambia el número.
