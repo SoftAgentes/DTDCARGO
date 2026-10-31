@@ -93,14 +93,21 @@ personas, correos, teléfonos ni IDs.
   - Tiene un activo conectado: la página «DTD Cargo».
   - Esa cuenta tiene acceso parcial, que incluye Mensajes.
 - Que `@dtdcargo.ve` sea cuenta profesional se deduce de que es un perfil de Instagram de un
-  portafolio con una página conectada (I). Que tenga activado «Permitir acceso a los mensajes»
-  es NV: se ve en la app de Instagram.
+  portafolio con una página conectada (I).
+- **Mensajes de Instagram (R, 2026-10-31):** la bandeja de Business Suite de la página «DTD
+  Cargo» carga las conversaciones de Instagram Direct sin ningún aviso de permiso. No leí las
+  conversaciones. De ahí se deduce que «Permitir acceso a los mensajes» está activado, porque
+  la bandeja de Meta lo necesita igual que la API (I). La prueba definitiva es que el webhook
+  de Instagram reciba el primer mensaje en P5.
+- Instagram en el navegador pide un captcha al iniciar sesión. No lo resuelvo; Sam lo resuelve
+  o lo revisa en el teléfono.
 - La cuenta de Meta de Sam con la que se hizo P0 no tiene vinculado `@dtdcargo.ve` ni administra
   la página «DTD Cargo» (R).
 
 **Qué cambia en la guía:**
 - El paso 3 ya está hecho: la página existe y está vinculada.
-- El paso 1 queda solo en el interruptor de mensajes.
+- El paso 1 también parece hecho (I): la bandeja de Business Suite ya recibe los mensajes de
+  Instagram.
 - El paso 2, pasar `@dtdcargo.ve` al portafolio «Importador de China», **ya no es necesario**.
 
 La app «Whats DTD» puede pedir acceso a la página y al Instagram de otro portafolio por OAuth (D).
@@ -284,7 +291,7 @@ evidencia», con la respuesta de TikTok. El costo es cero, porque Chatwoot ya tr
 | Puerta | Quién | Qué | ¿Escribe? |
 |---|---|---|---|
 | P0 | Sam (yo leo) | **Hecha** el 2026-10-30: ver la sección «P0». Decisión P0-b: «Las dos marcas» (Sam, 2026-10-30) | No |
-| P0-c | Sam | Marca DTD Cargo. Lectura **hecha** el 2026-10-31: portafolio propio «DTD Cargo», con la página «DTD Cargo» conectada a `@dtdcargo.ve`. Queda activar «Permitir acceso a los mensajes» en Instagram y elegir ruta: A, rol en la app para la cuenta que administra DTD Cargo, o B, mover los activos | Meta (lo hace Sam) |
+| P0-c | Sam | Marca DTD Cargo. Lectura **hecha** el 2026-10-31: portafolio propio «DTD Cargo», con la página «DTD Cargo» conectada a `@dtdcargo.ve`. Los mensajes de Instagram ya entran a la bandeja de Business Suite (I: el permiso de mensajes está activo). Queda elegir ruta: A, rol en la app para la cuenta que administra DTD Cargo, o B, mover los activos | Meta (lo hace Sam) |
 | P1 | Sam | En TikTok: si `@dtdcargo.ve` es Business Account y si acepta DM de todos | No |
 | P2 | Sam, con OK | En la app Whats DTD: agregar los productos **Messenger** e **Instagram API with Instagram Login**; dominio `chat.dtdcargo.com`; Facebook Login for Business con `https://chat.dtdcargo.com` | Meta |
 | P3 | Sam, con OK | Cargar en Chatwoot `FB_APP_ID`, `FB_APP_SECRET`, `FB_VERIFY_TOKEN` y los tres de Instagram. Hay dos formas: Sam los pega en `/super_admin/app_config` (detrás de Access), o un guion `read -rs` que los guarda con `rails runner` sin mostrarlos. Los verify tokens los genera el guion | Chatwoot |
