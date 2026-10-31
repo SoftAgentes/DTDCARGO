@@ -63,15 +63,55 @@ personas ni IDs.
   puede saber desde aquí si es cuenta profesional ni quién la administra (NV). El portafolio
   tampoco tiene ninguna página de Facebook «DTD Cargo».
 
-**Decisión para Sam (P0-b): qué cuentas se conectan a Chatwoot.**
-- *Opción 1:* `@dtdcargo.ve`, la marca pública del sitio, y una página de Facebook de DTD, que
-  hoy no existe. Instagram Business Login no exige que la cuenta esté en el portafolio, pero sí
-  que sea profesional. Sam tiene que poder iniciar sesión con ella.
-- *Opción 2:* conectar los que ya están en el portafolio, la página «Importador de China» y
-  `@importadechinaavzla`. Es el camino sin pasos previos, pero no es la marca que ve el cliente
-  en el sitio.
+**Decisión P0-b, tomada por Sam el 2026-10-30.** La tomó en la sesión del Director, con un
+selector, y el Director me la pasó con la cita literal. A la pregunta «¿Qué cuentas de Instagram
+y Facebook conectamos a Chatwoot?», Sam respondió **«Las dos marcas»**. Es una decisión de
+alcance, no un OK de escritura: cada paso que escriba en Meta o en Chatwoot sigue pidiendo el OK
+de Sam en esta sesión.
+- **Importador de China:** la página «Importador de China» y `@importadechinaavzla`. Ya están
+  en el portafolio, así que esta marca se puede preparar ya, desde P2.
+- **DTD Cargo:** `@dtdcargo.ve` y una página de Facebook «DTD Cargo». Antes hacen falta los tres
+  pasos previos de Sam que están abajo. Yo no escribo en Meta.
 
-Se pueden conectar los dos juegos (I).
+**Dato nuevo de Sam en esta sesión (2026-10-30):** «El Instagram está conectado a otro Facebook.
+Me avisas y yo te paso la conexión.» Entonces `@dtdcargo.ve` ya está vinculado a un Facebook que
+no es el de este portafolio. Todavía no sé si es una página o un perfil personal (NV). Lo leo
+cuando Sam entre con esa cuenta en el navegador integrado. De eso depende el paso 3: traer la
+página que ya existe o crear una nueva.
+
+### Guía para Sam: tres pasos previos para la marca DTD Cargo
+
+Estos tres pasos los hace Sam con sus cuentas. Yo solo leo después que quedaron bien. Los
+nombres de los menús son de la interfaz en español de octubre de 2026 y pueden variar un poco (D).
+
+1. **Que `@dtdcargo.ve` sea cuenta profesional y deje entrar a las apps a los mensajes.**
+   - En la app de Instagram, con la sesión de `@dtdcargo.ve`, ve a Perfil → menú ☰ →
+     *Configuración y actividad* → *Tipo de cuenta y herramientas*.
+   - Si aparece *Cambiar a cuenta profesional*, tócalo y elige **Empresa**.
+   - Si aparece *Cambiar a cuenta personal*, no lo toques: la cuenta ya es profesional.
+   - Luego ve a *Configuración y actividad* → *Mensajes y respuestas a historias* →
+     *Controles de mensajes* (o *Herramientas conectadas*). Activa **«Permitir acceso a los
+     mensajes»**. Sin esto, la API de Instagram no entrega los mensajes a Chatwoot (D).
+2. **Agregar `@dtdcargo.ve` al portafolio «Importador de China».**
+   - En `business.facebook.com` → *Configuración* → *Cuentas* → *Perfiles de Instagram* →
+     *Agregar*.
+   - Inicia sesión con `@dtdcargo.ve` cuando lo pida.
+   - Al terminar, `@dtdcargo.ve` aparece en la lista junto a `@importadechinaavzla`.
+3. **Página «DTD Cargo» vinculada a `@dtdcargo.ve`.** Cuál camino toca lo decide la lectura del
+   otro Facebook:
+   - **3a. Si el otro Facebook ya tiene una página de DTD:**
+     - Desde ese Facebook, dale a tu Facebook personal **control total** de la página: en la
+       página, *Configuración* → *Acceso a la página* → *Agregar persona nueva*.
+     - Después, en el portafolio: *Cuentas* → *Páginas* → *Agregar* → **Reclamar una página**.
+   - **3b. Si es un perfil personal y no una página:**
+     - En el portafolio: *Cuentas* → *Páginas* → *Agregar* → **Crear una página nueva** con el
+       nombre «DTD Cargo».
+     - En la página nueva: *Configuración* → *Cuentas vinculadas* → *Instagram* → *Conectar
+       cuenta*, con `@dtdcargo.ve`.
+     - Si Instagram dice que la cuenta ya está vinculada a otra página, primero hay que
+       desvincularla desde el otro Facebook.
+
+Cuando estén los tres, leo el portafolio y anoto en esta sección lo que quedó.
 
 ## 4.4 Messenger: acceso, permisos y demostración
 
@@ -206,7 +246,8 @@ evidencia», con la respuesta de TikTok. El costo es cero, porque Chatwoot ya tr
 
 | Puerta | Quién | Qué | ¿Escribe? |
 |---|---|---|---|
-| P0 | Sam (yo leo) | **Hecha** el 2026-10-30: ver la sección «P0». Queda la decisión P0-b, qué cuentas se conectan, y saber si `@dtdcargo.ve` es profesional | No |
+| P0 | Sam (yo leo) | **Hecha** el 2026-10-30: ver la sección «P0». Decisión P0-b: «Las dos marcas» (Sam, 2026-10-30) | No |
+| P0-c | Sam | Marca DTD Cargo: los tres pasos previos de la guía de la sección «P0». Antes, Sam me pasa la sesión del otro Facebook para que yo lea la página o el perfil vinculado a `@dtdcargo.ve` | Meta (lo hace Sam) |
 | P1 | Sam | En TikTok: si `@dtdcargo.ve` es Business Account y si acepta DM de todos | No |
 | P2 | Sam, con OK | En la app Whats DTD: agregar los productos **Messenger** e **Instagram API with Instagram Login**; dominio `chat.dtdcargo.com`; Facebook Login for Business con `https://chat.dtdcargo.com` | Meta |
 | P3 | Sam, con OK | Cargar en Chatwoot `FB_APP_ID`, `FB_APP_SECRET`, `FB_VERIFY_TOKEN` y los tres de Instagram. Hay dos formas: Sam los pega en `/super_admin/app_config` (detrás de Access), o un guion `read -rs` que los guarda con `rails runner` sin mostrarlos. Los verify tokens los genera el guion | Chatwoot |
