@@ -15,9 +15,11 @@
 - Navegador integrado: el logo carga, el botón de copiar funciona sin errores y a 375 px no hay desborde.
 - `pnpm docs:check`: PASÓ. `pnpm verify`: NO EJECUTADO, porque no hay código de producto.
 
+- Aplicada en hPanel el 2026-10-31 cerca de las 19:05Z por la sesión «Hostinger config», a pedido de Sam en su chat: «Abre Hostinger y hazlo tú por mí». Según esa sesión, el editor es CKEditor 5 sin General HTML Support: borra los `style` y el logo, y conserva párrafos, negritas, enlaces, `<br>` y encabezados. Esta sesión no lo comprobó. Detalle en el README, § «Estado».
+
 ## Pendiente de esta tarea
 
-- Aplicarla en hPanel: la aplica Sam, o una sesión con su OK nominal. Después, la prueba de recepción del paso 7 del README.
+- La prueba de recepción del paso 7 del README.
 
 ## FUERA DE ALCANCE DETECTADO
 

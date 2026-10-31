@@ -14,12 +14,12 @@ Diseño aprobado por Sam el 2026-10-31 («Aprobado, abre la PR»). Esa aprobaci�
 | Sin emojis en asunto ni mensaje: si los hay, no guarda | Documentado | mismas páginas |
 | Campos: dirección, asunto, fechas de inicio y fin («Sin fecha límite»), mensaje | Documentado | mismas páginas |
 | Una vez por remitente cada 24 h | Visto en hPanel el 2026-10-29 (T-34); la ayuda no lo dice | investigación de SDD-0583 |
-| Editor de código HTML | NO VERIFICADO: la ayuda no lo menciona | — |
-| Qué formato conserva al pegar (color, negrita, enlaces, imagen) | NO VERIFICADO: se ve al pegar en el editor | — |
+| Editor de código HTML | No hay. Es CKEditor 5 sin General HTML Support, y su casilla «Vista previa de HTML» solo muestra el resultado | medido en el editor el 2026-10-31 por la sesión «Hostinger config» |
+| Qué formato conserva al pegar | Conserva párrafos, `<strong>`, enlaces, `<br>` y encabezados. Borra todos los `style` (colores, márgenes, tamaños) y la imagen del logo | misma medición |
 | Límite de largo del mensaje | NO VERIFICADO: la ayuda no da uno | — |
 | El campo `body` de la API de correo acepta HTML | NO VERIFICADO; además pide un token de la API, que no se usa en esta tarea | espejo de la documentación de la API, no la página oficial |
 
-Por eso la opción A usa solo párrafos, negritas, color y enlaces. Son los elementos que un editor de texto enriquecido suele conservar al pegar. No lleva tablas, botones ni la tarjeta de los correos de Chatwoot. El logo va como imagen remota (`chat.dtdcargo.com/dtd-marca/dtdcargo-isologo-correo.png`, el mismo de [`base.liquid`](../../chatwoot/correo/views/layouts/mailer/base.liquid), que hoy vive en la rama `claude/hostinger-config-4b501f`). Si el editor lo quita, el mensaje queda completo.
+Por eso la opción A usa solo párrafos, negritas, color y enlaces. Son los elementos que un editor de texto enriquecido suele conservar al pegar. No lleva tablas, botones ni la tarjeta de los correos de Chatwoot. En Hostinger se pierden el color y el logo; quedan la estructura, las negritas y los enlaces. El logo va como imagen remota (`chat.dtdcargo.com/dtd-marca/dtdcargo-isologo-correo.png`, el mismo de [`base.liquid`](../../chatwoot/correo/views/layouts/mailer/base.liquid), que hoy vive en la rama `claude/hostinger-config-4b501f`). Si el editor lo quita, el mensaje queda completo.
 
 ## Diseño
 
@@ -36,9 +36,17 @@ Los aplica Sam en hPanel, o una sesión solo con su OK nominal. Están también 
 2. En **Administrar respuestas automáticas**, menú **⋮** de la de `notificaciones@dtdcargo.com` → **Editar**.
 3. **Asunto:** borrar el actual («Buzón solo de notificaciones»), pulsar «Copiar asunto» y pegar.
 4. **Mensaje:** borrar el texto actual, pulsar «Copiar mensaje con formato» y pegar con **Ctrl+V**. Ctrl+Shift+V quita el formato.
-5. Revisar en el editor el logo, «DTD» en vino y el enlace a vzla@. Si todo quedó sin formato, borrar y pegar la opción B.
+5. Revisar en el editor el título, las negritas y el enlace a vzla@. El logo y los colores no aparecen: el editor los borra. Si todo quedó sin formato, borrar y pegar la opción B.
 6. Dejar las fechas (desde 2026-10-29, sin fecha límite) y pulsar **Guardar**.
 7. Probar: escribir a `notificaciones@dtdcargo.com` desde un correo que no le haya escrito en las últimas 24 h y mirar cómo llega, en el celular y en la computadora.
+
+## Estado: aplicada el 2026-10-31
+
+Datos que pasó la sesión «Hostinger config»; esta sesión no los comprobó. La aplicó esa sesión cerca de las 19:05Z, a pedido de Sam en su propio chat: «Abre Hostinger y hazlo tú por mí». Al recargar el editor quedó así:
+
+- **Asunto:** «DTD Cargo | Este buzón solo envía avisos». **Remitente:** «DTD Cargo», sin cambios. **Fechas:** desde 2026-10-29, sin fecha límite.
+- **Mensaje:** el texto de la opción A, sin estilos. El título va como `<h3>`, `notificaciones@` y `vzla@` en negrita, `vzla@` como enlace `mailto`, un párrafo vacío antes de la firma y «DTD Cargo» en negrita. El teléfono, el WhatsApp y la web van como enlaces, y la dirección en la última línea.
+- Falta la prueba de recepción del paso 7.
 
 Para volver atrás, el texto anterior era: «Este correo es solamente para enviar notificaciones y no recibe respuestas. Si desea enviarnos alguna información, escríbanos a vzla@dtdcargo.com. Gracias, DTD Cargo.»
 
