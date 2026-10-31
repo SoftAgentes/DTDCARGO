@@ -123,6 +123,22 @@ Access, además, esa persona necesita un rol en la app. Las dos rutas:
   - Es más cambio y mezcla dos marcas en un portafolio.
   - Solo conviene si Sam quiere administrar todo desde uno.
 
+**Decisión de Sam, en esta sesión, el 2026-10-31.** A la pregunta «¿Por qué ruta conectamos DTD
+Cargo?», respondió **«el rol en la app.»** La ruta elegida es la A. La decisión no autoriza
+escribir en Meta: cada escritura lleva su OK nominal en esta sesión.
+
+Escrituras que pide la ruta A, en orden:
+1. **Rol de Facebook.** En la app Whats DTD, *Roles de la app* → *Agregar personas* → **Tester**,
+   con el Facebook que administra «DTD Cargo». Tester es el rol mínimo que alcanza para el OAuth
+   en Standard Access (D). Ese Facebook acepta la invitación en
+   `developers.facebook.com/requests`, y quizá Meta le pida registrarse como desarrollador (D).
+2. **Rol de Instagram.** Va después de P2, cuando la app ya tiene el producto de Instagram.
+   - En *Roles de la app* → *Testers de Instagram* se agrega `@dtdcargo.ve`.
+   - La cuenta acepta en Instagram: *Configuración* → *Apps y sitios web* → *Invitaciones de
+     tester*.
+   - Instagram Business Login lo exige mientras la app esté en modo de desarrollo o en
+     Standard Access (D).
+
 ### Guía para Sam: tres pasos previos para la marca DTD Cargo (escrita antes de la lectura de arriba; vale la nota «Qué cambia»)
 
 Estos tres pasos los hace Sam con sus cuentas. Yo solo leo después que quedaron bien. Los
@@ -291,7 +307,7 @@ evidencia», con la respuesta de TikTok. El costo es cero, porque Chatwoot ya tr
 | Puerta | Quién | Qué | ¿Escribe? |
 |---|---|---|---|
 | P0 | Sam (yo leo) | **Hecha** el 2026-10-30: ver la sección «P0». Decisión P0-b: «Las dos marcas» (Sam, 2026-10-30) | No |
-| P0-c | Sam | Marca DTD Cargo. Lectura **hecha** el 2026-10-31: portafolio propio «DTD Cargo», con la página «DTD Cargo» conectada a `@dtdcargo.ve`. Los mensajes de Instagram ya entran a la bandeja de Business Suite (I: el permiso de mensajes está activo). Queda elegir ruta: A, rol en la app para la cuenta que administra DTD Cargo, o B, mover los activos | Meta (lo hace Sam) |
+| P0-c | Sam | Marca DTD Cargo. Lectura **hecha** el 2026-10-31: portafolio propio «DTD Cargo», con la página «DTD Cargo» conectada a `@dtdcargo.ve`. Los mensajes de Instagram ya entran a la bandeja de Business Suite (I: el permiso de mensajes está activo). Ruta elegida por Sam (2026-10-31): «el rol en la app.», es decir la A. Faltan las dos invitaciones de tester, Facebook e Instagram, cada una con su OK | Meta (lo hace Sam) |
 | P1 | Sam | En TikTok: si `@dtdcargo.ve` es Business Account y si acepta DM de todos | No |
 | P2 | Sam, con OK | En la app Whats DTD: agregar los productos **Messenger** e **Instagram API with Instagram Login**; dominio `chat.dtdcargo.com`; Facebook Login for Business con `https://chat.dtdcargo.com` | Meta |
 | P3 | Sam, con OK | Cargar en Chatwoot `FB_APP_ID`, `FB_APP_SECRET`, `FB_VERIFY_TOKEN` y los tres de Instagram. Hay dos formas: Sam los pega en `/super_admin/app_config` (detrás de Access), o un guion `read -rs` que los guarda con `rails runner` sin mostrarlos. Los verify tokens los genera el guion | Chatwoot |
