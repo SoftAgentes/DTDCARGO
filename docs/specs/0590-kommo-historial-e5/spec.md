@@ -4,7 +4,7 @@ title: "Historial de Kommo: respaldo cifrado fuera de Git y medición del volume
 status: in-progress
 author: "Claude Worker «E5 historial» (Sam)"
 created: 2026-10-30
-updated: 2026-10-30
+updated: 2026-10-31
 supersedes: null
 superseded_by: null
 related: ["0582", "0043", "0082", "0391", "0535", "0587"]
@@ -231,15 +231,17 @@ Volumen de la corrida (§5): 4.237 contactos (2.567 con teléfono, 149 con corre
 | 9 | Transferencia internacional | `NO VERIFICABLE` | Dónde aloja Kommo (❓ en el inventario). El respaldo queda en EE. UU. (Contabo US East), como dice la política (`app/privacidad/page.tsx:267-270`). El equipo de China no accede al respaldo. Si el Archivo Kommo se ve desde China (2.7 / 5.5), aplica PIPL arts. 38–40 y 28 (rostros) |
 | 10 | Decisiones automatizadas | no aplica | Los 15 Salesbots y los 4 agentes de IA están apagados (K-13, K-14); el respaldo no decide nada |
 | 11 | Valor probatorio | no aplica | No hay aceptación electrónica. `.sha256` y `manifiesto.json` prueban integridad del paquete, no autoría ni fecha certificada |
-| 12 | Titulares que no son usuarios | `ENCONTRADO` | Leads que nunca se registraron, terceros nombrados en los mensajes y los **empleados** (`usuarios.ndjson › name, email`; `mensajes.ndjson › author.name`). Ninguno pasó por la política del Portal. **Arreglo:** retención acotada (6.3); que 5.5 muestre al asesor como «DTD Cargo» o por nombre de pila (decisión de Sam); un aviso a la persona que atiende de que su nombre queda en el Archivo |
+| 12 | Titulares que no son usuarios | `ENCONTRADO` | Leads que nunca se registraron, terceros nombrados en los mensajes y los **empleados** (`usuarios.ndjson › name, email`; `mensajes.ndjson › author.name`). Ninguno pasó por la política del Portal. **Arreglo:** retención acotada (6.3, decidida por Sam el 2026-10-31); 5.5 muestra al asesor por **nombre de pila** (Sam, 2026-10-31: «Nombre de pila (Recomendado)»); un aviso a la persona que atiende de que su nombre queda en el Archivo |
 
-### 6.3 Retención propuesta (decisión de Sam con el Director; no se aplica en esta SDD)
+### 6.3 Retención decidida (Sam, 2026-10-31; se aplica en 5.4–5.7 y 8.6, no en esta SDD)
 
-| Copia | Propuesta | Por qué |
-|---|---|---|
-| Respaldo `.age` de 5.1 (y el de 8.5) | Conservar hasta que se firme el acta final (8.6) y se verifique la carga; después **borrar**, salvo que Sam lo conserve como archivo frío con fecha de borrado escrita (por ejemplo 12 meses tras el corte, por reclamos) | SC 332/2001 (temporalidad) y la promesa de 30 días de la política |
-| Archivo Kommo en Chatwoot, conversaciones de **clientes** (con servicio) | Mientras la relación esté activa y lo que exija la ley, como la política | `app/privacidad/page.tsx:290-300` |
-| Archivo Kommo, conversaciones de **leads sin servicio** | Plazo fijo desde el último mensaje (por ejemplo 24 meses) y borrado o anonimización | «se eliminan o anonimizan» (`:296`); SC 759/2025 (derecho al olvido) |
+| Copia | Propuesta | Decisión (Sam, 2026-10-31) | Por qué |
+|---|---|---|---|
+| Respaldo `.age` de 5.1 (y el de 8.5) | Conservar hasta que se firme el acta final (8.6) y se verifique la carga; después **borrar**, salvo que Sam lo conserve como archivo frío con fecha de borrado escrita (por ejemplo 12 meses tras el corte, por reclamos) | **«12 meses tras el corte (Recomendado)»**: archivo frío con fecha de borrado escrita, corte + 12 meses; la fecha concreta se escribe cuando se fije el corte (E8) | SC 332/2001 (temporalidad) y la promesa de 30 días de la política |
+| Archivo Kommo en Chatwoot, conversaciones de **clientes** (con servicio) | Mientras la relación esté activa y lo que exija la ley, como la política | Sin cambio: como la política (no se preguntó) | `app/privacidad/page.tsx:290-300` |
+| Archivo Kommo, conversaciones de **leads sin servicio** | Plazo fijo desde el último mensaje (por ejemplo 24 meses) y borrado o anonimización | **«Anonimizar a los 24 meses (Recomendado)»**: 24 meses desde el último mensaje; depende del vínculo con el ERP de 5.4 | «se eliminan o anonimizan» (`:296`); SC 759/2025 (derecho al olvido) |
+
+Decisiones de Sam del 2026-10-31 (~09:40 UTC), dadas en el chat del Director y copiadas literales por él: 1. Respaldo `.age`: **«12 meses tras el corte (Recomendado)»** → archivo frío con fecha de borrado escrita: corte + 12 meses. 2. Leads sin servicio en el Archivo Kommo: **«Anonimizar a los 24 meses (Recomendado)»** → 24 meses desde el último mensaje; depende del vínculo con el ERP de 5.4. 3. Asesor en el Archivo: **«Nombre de pila (Recomendado)»**. 4. Bots: **«Sí, como «Bot Kommo» (Recomendado)»**. Decisiones del Director (misma fecha): el `.age` no se copia a R2/B2 por ahora (se revisa con el 2.º respaldo de 8.5); la revocación de la integración queda para el cierre de E5, después de 5.3; con esto la política `/privacidad` no cambia y la fila 1.7 de E1 sigue como está.
 
 ### 6.4 Documentos canónicos que cambian
 
@@ -258,17 +260,17 @@ Pide una segunda opinión: otro modelo sobre el mismo inventario. Esta revisión
 3. **La licencia de Kommo termina (E8) y Kommo no exporta chats (K-20):** lo que no se cargue y no quede en el respaldo se pierde. El respaldo `.age` de 5.1 ya protege el conjunto completo; el Archivo decide qué se *ve*.
 4. **El 56 % de las conversaciones lleva un año sin actividad y el 22 % de los mensajes los escribió un bot:** el Archivo será sobre todo consulta ocasional. Conviene que 5.5 cargue la bandeja plegada (cerrada, solo lectura, sin notificaciones) para que no estorbe en el trabajo diario.
 
-Condiciones que acompañan al «todo» (decisiones de Sam con el Director, no se aplican en esta SDD):
+Condiciones que acompañan al «todo» (decididas el 2026-10-31 por Sam y el Director, §6.3; se aplican en 5.4–5.7 y 8.6, no en esta SDD):
 
-- **Retención** (§6.3): conversaciones de contactos que 5.4 no vincule a un cliente del ERP y sin mensajes en 24 meses → anonimizar o borrar en una fecha escrita; las de clientes, mientras dure la relación y lo que exija la ley. Si Sam prefiere no fijar plazo, hay que cambiar la política (`/privacidad`, fila 1.7 de E1): hoy promete lo contrario.
-- **Lo que no se carga en 5.5:** `author.avatar_url`, campos propios de Kommo que el ERP no usa, y los 11.749 mensajes de bots solo si Sam quiere verlos (propuesta: cargarlos como «Bot Kommo» para no romper el hilo). Nombre del asesor: completo, de pila o «DTD Cargo» (§6.2, punto 12).
+- **Retención** (§6.3, decidido por Sam el 2026-10-31): conversaciones de contactos que 5.4 no vincule a un cliente del ERP → **anonimizar a los 24 meses** desde el último mensaje; las de clientes, mientras dure la relación y lo que exija la ley. La política `/privacidad` no cambia (Director): la fila 1.7 de E1 sigue como está.
+- **Lo que no se carga en 5.5:** `author.avatar_url` y campos propios de Kommo que el ERP no usa. Los 11.749 mensajes de bots **sí se cargan, como «Bot Kommo»** (Sam, 2026-10-31), para no romper el hilo. Nombre del asesor: **de pila** (Sam, 2026-10-31; §6.2, punto 12).
 - **Fuera del Archivo por fuerza:** las 12 conversaciones con 403 y los 15 adjuntos con 404 (§5.6). Si alguna importa, Sam la abre en Kommo antes de E8.
-- **El respaldo `.age`** se conserva hasta el acta final (8.6) y la verificación de la carga; después se borra o se guarda como archivo frío con fecha (§6.3). Copiarlo a R2/B2: **no por ahora** (Director, 2026-10-31); se decide junto con el 2.º respaldo de 8.5.
+- **El respaldo `.age`** se conserva como archivo frío con fecha de borrado escrita: **corte + 12 meses** (Sam, 2026-10-31; §6.3); la fecha concreta se escribe cuando se fije el corte (E8). Copiarlo a R2/B2: **no por ahora** (Director, 2026-10-31); se decide junto con el 2.º respaldo de 8.5.
 
 Alternativa acotada, si Sam cambia de idea: 24 meses de actividad (3.842 conversaciones, 81 %) es el único corte por fecha que no deja fuera a casi ningún cliente de 2025–2026; 12 meses (2.096, 44 %) pierde 2024 y 2025 enteros y no se recomienda.
 
 ## 8. Fuera de alcance de esta SDD
 
 - 5.3 a 5.8 (extractor incremental con instante de corte, E.164 y vínculo con el ERP, modo de importación, ensayo, carga en producción y acta): otro OK de Sam.
-- Revocar la integración «DTD 0582 historial (solo lectura)» en Kommo: al cerrar E5 (0.6).
+- Revocar la integración «DTD 0582 historial (solo lectura)» en Kommo: al cerrar E5 (0.6), después de 5.3 (Director, 2026-10-31).
 - Copiar el `.age` a un remoto (R2/B2) como los otros respaldos: **no por ahora** (Director, 2026-10-31), se decide junto con el 2.º respaldo de 8.5; el script no lo hace.

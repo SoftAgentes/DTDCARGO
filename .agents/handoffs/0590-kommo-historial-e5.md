@@ -13,13 +13,15 @@
 ## Autorizaciones registradas
 
 - Sam, 2026-10-30, por el selector (texto que pasó el Director): «¿Qué historial de Kommo pasamos a Chatwoot (bandeja "Archivo Kommo", solo lectura)?» → **«Todo el historial»**. «¿Autorizas leer el historial de Kommo (con datos personales) para medir el volumen y preparar esa carga?» → **«Sí, autorizo la lectura»**. Cubre leer y contar; el alcance «todo» es la preferencia de Sam y lo confirma el Director con los números. No cubre cargar en Chatwoot.
+- Sam, 2026-10-31 (~09:40 UTC), en el chat del Director (texto copiado literal por el Director): 1. Respaldo `.age`: **«12 meses tras el corte (Recomendado)»** → archivo frío con fecha de borrado escrita: corte + 12 meses. 2. Leads sin servicio en el Archivo Kommo: **«Anonimizar a los 24 meses (Recomendado)»** → 24 meses desde el último mensaje; depende del vínculo con el ERP de 5.4. 3. Asesor en el Archivo: **«Nombre de pila (Recomendado)»**. 4. Bots: **«Sí, como «Bot Kommo» (Recomendado)»**. Son decisiones de retención y de presentación para 5.4–5.7 y 8.6; no autorizan cargar en Chatwoot ni arrancar 5.3.
+- Director, 2026-10-31: el `.age` no se copia a R2/B2 por ahora (se revisa con el 2.º respaldo de 8.5); la revocación de la integración queda para el cierre de E5, después de 5.3; la política `/privacidad` no cambia y la fila 1.7 de E1 sigue como está. Instrucción: commit y push en esta rama; no arrancar 5.3 hasta su aviso.
 
 ## Estado
 
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
 | 5.1 | **entregado** | Script `infra/ops/kommo-historial/respaldar-historial.py` 1.1.1 con 24 pruebas (verde en la PC y en el VPS); copia en `/srv/ops/kommo-historial/`. Respaldo `kommo-20261030T233814Z` en `/srv/backups/kommo/` (VPS, 0700): metadatos `tar.zst.age` de 7.500.141 bytes (sha256 `c92eef454dee…fd8a`, igual al `.sha256`), 3.577 adjuntos `.age` (2.099.458.961 bytes), `manifiesto.json` (3.578 entradas con sha256), `informe.*`; claves Sam-2026-10-29 y Emergencia-2026-10-29. Staging en tmpfs borrado por el script; token borrado a mano (02:35 UTC) | Aceptación técnica del Director dada (2026-10-31 ~09:35 UTC, comprobación propia solo con lecturas); falta la de Sam, que el Director pide en bloque. Fuera del respaldo por Kommo: 12 conversaciones con 403 y 15 adjuntos con 404 (spec §5.6) |
-| 5.2 | **entregado** | Spec §5 (volumen por año, canal, actividad, adjuntos, otras entidades, estimación Chatwoot, límites), `informe-volumen.md` (copia literal del informe, solo conteos), §6 revisar-datos-ve con los conteos y líneas vigentes, §7 recomendación: **todo lo legible + regla de retención escrita antes de 5.7** | Aceptación técnica del Director dada (2026-10-31 ~09:35 UTC, comprobación propia solo con lecturas); falta la de Sam, que el Director pide en bloque. Decisión de Sam sobre la retención (§6.3) y el asesor/bots (§7): el Director se la está preguntando; sus respuestas literales se registran aquí al llegar |
+| 5.2 | **entregado** | Spec §5 (volumen por año, canal, actividad, adjuntos, otras entidades, estimación Chatwoot, límites), `informe-volumen.md` (copia literal del informe, solo conteos), §6 revisar-datos-ve con los conteos y líneas vigentes, §7 recomendación: **todo lo legible + regla de retención escrita antes de 5.7** | Aceptación técnica del Director dada (2026-10-31 ~09:35 UTC, comprobación propia solo con lecturas); falta la de Sam, que el Director pide en bloque. Retención, asesor y bots: **decididos por Sam el 2026-10-31** (texto literal en «Autorizaciones registradas»; spec §6.3 y §7) |
 
 ## Lo que se hizo en sistemas externos
 
@@ -51,15 +53,14 @@
 
 **PENDIENTES DE ESTA TAREA (gate humano).**
 - Aceptación de 5.1 y 5.2 por Sam (la técnica del Director ya está, 2026-10-31 ~09:35 UTC; las filas siguen en `entregado` hasta la de Sam, que el Director pide en bloque).
-- Registrar aquí y en la spec las respuestas literales de Sam a §6.3 y §7 cuando el Director las pase.
-- Decisión de retención (spec §6.3 y §7): regla para leads sin servicio y plazo del respaldo `.age`; o cambiar `/privacidad` (E1, fila 1.7).
+- Retención, asesor y bots: **decididos** por Sam el 2026-10-31 y registrados (spec §6.3/§7, «Autorizaciones registradas»). Se aplican en 5.4–5.7 y 8.6, no aquí.
 - Si el Director quiere la PR lista para revisión en vez de borrador: `gh pr ready 342`.
 
 **FUERA DE ALCANCE DETECTADO.**
 - 12 conversaciones que la integración no puede leer (403 «Not enough rights»; ids dentro del paquete) y 15 adjuntos cuyo enlace ya no existe (404): si alguna importa, abrirla en Kommo con un usuario con más derechos antes de E8.
 - Ids de conversación 1..99 sin sondear (el menor visto en eventos es 100): 99 peticiones, para 5.3, que vuelve a pedir el token.
-- Revocar la integración «DTD 0582 historial (solo lectura)» al cerrar E5 (el token generado caduca el 30.11.2026).
-- `docs/legal/privacidad/registro-tratamiento.md` sin filas para conversaciones (texto y adjuntos); `inventario-terceros.md:40` sin la anotación de copia propia cifrada; `app/privacidad` promete 30 días de respaldos y borrar consultas sin servicio.
+- Revocar la integración «DTD 0582 historial (solo lectura)» al cerrar E5, después de 5.3 (Director, 2026-10-31); el token generado caduca el 30.11.2026.
+- `docs/legal/privacidad/registro-tratamiento.md` sin filas para conversaciones (texto y adjuntos); `inventario-terceros.md:40` sin la anotación de copia propia cifrada; `app/privacidad` promete 30 días de respaldos y borrar consultas sin servicio; con las decisiones de Sam del 2026-10-31 la política no cambia (Director): la fila 1.7 de E1 sigue como está.
 - Copia del `.age` a R2/B2: **NO por ahora** (Director, 2026-10-31 ~09:35 UTC); se decide junto con el 2.º respaldo de 8.5 (evaluación de proveedor ya hecha).
 - Espacio libre en el disco del VPS para 2 GB más de adjuntos en Chatwoot: no medido; va en 5.5/5.6.
 - `/dev/shm/k0582` (54 bytes, 2026-10-29, de otra sesión): no se tocó.
@@ -75,6 +76,6 @@ Mensaje del Director (sesión «CRM Chatwoot») a esta sesión. Lo comprobó por
 - `/dev/shm`: ya no está `kommo-e5`; solo queda el `k0582` viejo (55 bytes), que no es de esta tarea.
 - CI de la PR #342: «Calidad local sin secretos» PASÓ en 27 min 29 s (sobre `1aa89e70a`).
 - **Aceptación técnica del Director: dada.** Falta la de Sam, que el Director pide en bloque con las demás; las filas 5.1 y 5.2 siguen en `entregado`.
-- Decisiones de §6.3 y §7 (retención del `.age`, leads sin servicio, nombre del asesor y bots): el Director se las está preguntando a Sam y pasará sus respuestas literales para registrarlas aquí y en la spec.
+- Decisiones de §6.3 y §7 (retención del `.age`, leads sin servicio, nombre del asesor y bots): llegaron a las ~09:40 UTC y quedaron registradas en «Autorizaciones registradas» y en la spec §6.3/§7.
 - Instrucción del Director: **no arrancar 5.3 ni pedir otro token** hasta su aviso.
 - Copia del `.age` a R2/B2: **NO por ahora**; se decide junto con el 2.º respaldo de 8.5.
