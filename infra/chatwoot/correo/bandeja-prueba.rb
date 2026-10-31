@@ -6,7 +6,7 @@
 #
 #   docker compose cp correo/bandeja-prueba.rb rails:/tmp/bandeja-prueba.rb
 #   docker compose exec -T rails bundle exec rails runner /tmp/bandeja-prueba.rb crear
-#   ... estado | apagar-imap | encender-imap | recuperar N | borrar
+#   ... estado | apagar-imap | encender-imap | recuperar N | duplicados | borrar
 #
 # Imprime solo ids, conteos y dominios de remitente: nunca direcciones, asuntos ni contenido.
 NOMBRE = 'Correo · pruebas'
@@ -97,6 +97,11 @@ when 'responder'
 when 'recuperar'
   Inboxes::FetchImapEmailsJob.perform_now(bandeja.channel, ARGV.fetch(1).to_i)
   estado(bandeja)
+when 'duplicados'
+  # P7: después de recuperar, ningún Message-ID entrante debe estar dos veces.
+  repetidos = bandeja.messages.incoming.where.not(source_id: nil).unscope(:order)
+                     .group(:source_id).having('COUNT(*) > 1').count
+  puts "mensajes entrantes #{bandeja.messages.incoming.count} · Message-ID repetidos #{repetidos.size}"
 when 'borrar'
   inbox = bandeja
   abort 'sin bandeja de prueba' unless inbox
@@ -108,5 +113,5 @@ when 'borrar'
   contactos.each { |c| c.destroy! if c.conversations.reload.none? }
   puts "borrada la bandeja #{inbox.id}; quedan #{Channel::Email.where(email: CORREO).count} canales con ese buzón"
 else
-  abort 'acción: crear | estado | traer | apagar-imap | encender-imap | recuperar N | borrar'
+  abort 'acción: crear | estado | traer | apagar-imap | encender-imap | reglas | rebote DIR | responder N | recuperar N | duplicados | borrar'
 end
