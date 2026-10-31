@@ -132,6 +132,19 @@ Escrituras que pide la ruta A, en orden:
    con el Facebook que administra «DTD Cargo». Tester es el rol mínimo que alcanza para el OAuth
    en Standard Access (D). Ese Facebook acepta la invitación en
    `developers.facebook.com/requests`, y quizá Meta le pida registrarse como desarrollador (D).
+   - **Hecho el 2026-10-31.** OK de Sam en esta sesión, literal: **«Autorizo invitarlo»**. Más
+     tarde precisó: «Haces tú todo y yo solamente le doy al botón».
+     - La invitación se mandó desde la cuenta que administra la app con el rol **Evaluador**, que
+       es el tester en la interfaz en español.
+     - Releí *Roles de la aplicación* (R): la cuenta B figura como «Evaluador · Pendiente». Las
+       demás filas no cambiaron: un administrador y el usuario del sistema de Chatwoot como
+       desarrollador.
+     - Para que no se mezclen las cuentas, aquí van con letra. **Cuenta A** administra la app y
+       el WhatsApp. **Cuenta B** administra el portafolio «DTD Cargo» y `@dtdcargo.ve`. Sam lo
+       recordó así: el número está en una cuenta y el portafolio de Instagram en la otra.
+     - Falta que la cuenta B acepte. Hoy no es desarrolladora de Meta (R): `developers.facebook.com`
+       la manda a la portada. Registrarse como desarrollador es crear una cuenta, y eso lo hace
+       Sam; después la invitación aparece y se acepta.
 2. **Rol de Instagram.** Va después de P2, cuando la app ya tiene el producto de Instagram.
    - En *Roles de la app* → *Testers de Instagram* se agrega `@dtdcargo.ve`.
    - La cuenta acepta en Instagram: *Configuración* → *Apps y sitios web* → *Invitaciones de
