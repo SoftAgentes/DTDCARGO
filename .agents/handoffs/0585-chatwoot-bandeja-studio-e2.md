@@ -510,7 +510,7 @@ Sam lo decidió el 2026-10-30, por selector: «Sí, hacerlo (Recomendado)». Det
 - **Qué cuenta:** los salientes con `source_id` `wamid.`, sin notas ni fallidos, hasta 1000 mensajes. Si hay más, dice «Al menos».
 - **Datos personales:** sin migración ni escrituras. El teléfono solo elige el mercado.
 - **Validación:** 371/371 pruebas afectadas, 10/10 mutantes, `/ui-check` con 2 ajustes aplicados, tsc, eslint y `pending-migration-symbols` 0 ROJO.
-- **`pnpm verify` completo:** NO EJECUTADO en esta rama. El Director (2026-10-31) lo delegó a la corrida de E3 sobre `b04e63abc` (`codex/0582-e3-versiones`), que tiene a `4579948d2` como ancestro (comprobado con `git merge-base --is-ancestor`) y cubre 2.7, 2.8 y 3.4 juntos. Resultado PENDIENTE: citarlo aquí, con el SHA verificado, cuando E3 lo registre.
+- **`pnpm verify` completo:** no se corrió en esta rama; lo cubre el verify de E3 sobre `b04e63abcca1c715817cb9cd30f0db5b9f0e3d76` (rama `codex/0582-e3-versiones`, 2026-10-31 09:26Z a 10:06Z, registrado por el Director), que tiene a `4579948d2` como ancestro (`git merge-base --is-ancestor`, comprobado) y cubre el código del 2.7 y el 2.8: FALLÓ (exit 1) solo por heredados, 16 de 17 pasos. PASÓ: harness, lint, rsc-boundary, typecheck, edge-functions, test (13.855, sin forks ni timeouts), docs:check, numbering, feature-constants, components, governance, pending-symbols (0 ROJO · 8 AMARILLO), schema-rebuild y build. NO DISPONIBLE: migrations-applied. FALLÓ por heredados: sql-tests 0467_reversion_credito_carrera y los dos 0497_reverso_al_anular_factura (SDD-0573); e2e, el CTA de Shipping Mark (sin-scroll-horizontal:119, chromium). e2e 228 PASÓ; ficha-chat PASÓ en los 3 proyectos.
 
 ### FUERA DE ALCANCE DETECTADO (2.8)
 
