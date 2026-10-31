@@ -142,9 +142,15 @@ Escrituras que pide la ruta A, en orden:
      - Para que no se mezclen las cuentas, aquí van con letra. **Cuenta A** administra la app y
        el WhatsApp. **Cuenta B** administra el portafolio «DTD Cargo» y `@dtdcargo.ve`. Sam lo
        recordó así: el número está en una cuenta y el portafolio de Instagram en la otra.
-     - Falta que la cuenta B acepte. Hoy no es desarrolladora de Meta (R): `developers.facebook.com`
-       la manda a la portada. Registrarse como desarrollador es crear una cuenta, y eso lo hace
-       Sam; después la invitación aparece y se acepta.
+     - La cuenta B no era desarrolladora de Meta (R): `developers.facebook.com` la mandaba a la
+       portada. Sam la registró (crear la cuenta le toca a él).
+     - La invitación de antes del registro nunca le llegó (R: «No tienes solicitudes de
+       desarrolladores pendientes»). Dentro del mismo OK, quité la fila pendiente y la volví a
+       mandar como Evaluador. Esta vez el buscador sí encontró a la cuenta B.
+     - **Aceptada el 2026-10-31.** Sam la aceptó desde la cuenta B («listo llego y acepte») y
+       Meta mostró «Aceptaste la solicitud de Whats DTD». Al releer *Roles de la aplicación* (R),
+       la cuenta B figura como **Evaluador sin «Pendiente»**. El administrador y el usuario del
+       sistema de Chatwoot no cambiaron.
 2. **Rol de Instagram.** Va después de P2, cuando la app ya tiene el producto de Instagram.
    - En *Roles de la app* → *Testers de Instagram* se agrega `@dtdcargo.ve`.
    - La cuenta acepta en Instagram: *Configuración* → *Apps y sitios web* → *Invitaciones de
@@ -320,7 +326,7 @@ evidencia», con la respuesta de TikTok. El costo es cero, porque Chatwoot ya tr
 | Puerta | Quién | Qué | ¿Escribe? |
 |---|---|---|---|
 | P0 | Sam (yo leo) | **Hecha** el 2026-10-30: ver la sección «P0». Decisión P0-b: «Las dos marcas» (Sam, 2026-10-30) | No |
-| P0-c | Sam | Marca DTD Cargo. Lectura **hecha** el 2026-10-31: portafolio propio «DTD Cargo», con la página «DTD Cargo» conectada a `@dtdcargo.ve`. Los mensajes de Instagram ya entran a la bandeja de Business Suite (I: el permiso de mensajes está activo). Ruta elegida por Sam (2026-10-31): «el rol en la app.», es decir la A. Faltan las dos invitaciones de tester, Facebook e Instagram, cada una con su OK | Meta (lo hace Sam) |
+| P0-c | Sam | Marca DTD Cargo. Lectura **hecha** el 2026-10-31: portafolio propio «DTD Cargo», con la página «DTD Cargo» conectada a `@dtdcargo.ve`. Los mensajes de Instagram ya entran a la bandeja de Business Suite (I: el permiso de mensajes está activo). Ruta elegida por Sam (2026-10-31): «el rol en la app.», es decir la A. La cuenta B ya es Evaluador aceptado de Whats DTD (2026-10-31). Falta el tester de Instagram, `@dtdcargo.ve`, después de P2 y con su OK | Meta (lo hace Sam) |
 | P1 | Sam | En TikTok: si `@dtdcargo.ve` es Business Account y si acepta DM de todos | No |
 | P2 | Sam, con OK | En la app Whats DTD: agregar los productos **Messenger** e **Instagram API with Instagram Login**; dominio `chat.dtdcargo.com`; Facebook Login for Business con `https://chat.dtdcargo.com` | Meta |
 | P3 | Sam, con OK | Cargar en Chatwoot `FB_APP_ID`, `FB_APP_SECRET`, `FB_VERIFY_TOKEN` y los tres de Instagram. Hay dos formas: Sam los pega en `/super_admin/app_config` (detrás de Access), o un guion `read -rs` que los guarda con `rails runner` sin mostrarlos. Los verify tokens los genera el guion | Chatwoot |
