@@ -53,8 +53,8 @@ En el WebKit de Playwright (indicador de Safari) pasan el iframe y el SSO. Firef
 | 2.4 | Dashboard App «Ficha DTD» | aceptado (Sam, 2026-10-30: «Acepto todo»), con el verify de `cf755a7a6` registrado (su rojo propio, `pending-migration-symbols`, ya corregido); sin registrar en el Chatwoot del VPS |
 | 2.5 | Ciclo de vida de los agentes: Usuarios, cron y salud | aceptado (Sam, 2026-10-30: «Acepto todo»); `pnpm verify` propio NO EJECUTADO, como registra el paso; AUD-01 pendiente de número de migración |
 | 2.6 | revisar-datos-ve, `/ui-check`, QA de navegadores (incluye Firefox y Safari reales) y runbook | aceptado (Sam, 2026-10-30: «Acepto todo»); `pnpm verify` propio NO EJECUTADO (el verify de E3, apilado sobre esta rama, y E10 encontraron dos rojos propios, ya corregidos); Firefox NO DISPONIBLE |
-| 2.7 | Usuarios y permisos: matriz real de CE, sincronización, pruebas por usuario y revocación del SSO | entregado en la rama (§«Paso 2.7»), sin desplegar; la 0508 y el script del panel son puertas |
-| 2.8 | Costo de referencia por chat en la Ficha DTD | entregado en la rama (§«Paso 2.8»), sin desplegar ni migración |
+| 2.7 | Usuarios y permisos: matriz real de CE, sincronización, pruebas por usuario y revocación del SSO | aceptado (Sam, 2026-10-31: «Acepto los 5 (Recomendado)»), con el verify de E3 sobre `b04e63abc` (ancestro de `4579948d2`); sin desplegar; la 0508, el inicializador y el script del panel siguen siendo puertas |
+| 2.8 | Costo de referencia por chat en la Ficha DTD | aceptado (Sam, 2026-10-31: «Acepto los 5 (Recomendado)»), con el verify de E3 sobre `b04e63abc` (ancestro de `4579948d2`); sin desplegar ni migración |
 
 ## Paso 2.2 — la Bandeja en Studio
 
