@@ -83,6 +83,25 @@ Con la opción B no se compra buzón, así que no hay cupo para uno nuevo. **El 
 
 Ninguna prueba toca la producción de DTD. Usan el Chatwoot vivo, pero solo la bandeja de prueba.
 
+### 6.1 Resultados de PC-1 (en curso)
+
+Sam autorizó la prueba en el chat del Worker («Autorizo la prueba», 2026-10-30). La bandeja 3 «Correo · pruebas» (canal 1) se creó el 2026-10-30 a las ~21:20Z con `infra/chatwoot/correo/bandeja-prueba.rb crear`. Los correos de prueba vinieron de `vzla@` y de una cuenta de Hotmail, no de `hailuway.com@gmail.com`. La evidencia se leyó con conteos, horas, dominios y prefijos de `Message-ID`: sin contenido ni direcciones completas.
+
+| # | Resultado | Evidencia |
+|---|---|---|
+| P1 | **PASÓ** | Dos correos (de `vzla@` y de Hotmail) llegaron al buzón a las 21:27:10Z y 21:27:23Z; las conversaciones #6 y #7 se crearon a las 21:27:42Z y 21:27:43Z, con el asunto correcto |
+| P2 | **PASÓ** (hilo y remitente); variante `info@` **NO EJECUTADO** | La respuesta del chat salió de `notificaciones@` a las 22:15:22Z (estado `sent`). La respuesta de Sam llegó a las 06:13:06Z del 31 y entró a la **misma** conversación #6 a las 06:13:21Z, con `in_reply_to` igual al `Message-ID` que generó Chatwoot (`conversation/…`). La variante de §4.1 (dirección distinta del usuario SMTP) no se puede probar en `notificaciones@`, que no tiene alias |
+| P3 | PENDIENTE | Falta el correo con un PDF y una foto |
+| P4 | **Hallazgo** | El rebote de `mailchannels.net` («Undelivered Mail Returned to Sender») entró a las 21:23Z como conversación **aparte** (#5) con `auto_reply=true`; no se enhebra a la conversación saliente (#4). Ver el hallazgo de reglas abajo |
+| P5 | **PASÓ** | Lectura IMAP en modo `EXAMINE`: lo que trajo Chatwoot sigue sin leer. Solo aparecen leídos los dos correos de `vzla@` que Sam abrió en el webmail |
+| P6 | **PASÓ** (en ~9 h) | El buzón tiene activa la respuesta automática de Hostinger «Buzón solo de notificaciones». No apareció ninguna conversación en cadena: siguen las mismas 5 conversaciones |
+| P7 | PENDIENTE | Se hace después de P3 y P8: IMAP apagado más de 26 h |
+| P8 | Reglas creadas; «legal» PENDIENTE | Las reglas «Prueba correo · legal» y «Prueba correo · sistema» están activas y limitadas a la bandeja 3. Falta el correo con «Privacidad» en el asunto. La conversación #3 (soporte de Hostinger) es un caso real de «no-cliente» |
+
+**Hallazgo de reglas (P4/P8).** En Chatwoot 4.19.1, `AutomationRuleListener` ignora las conversaciones con `additional_attributes['auto_reply']` en `conversation_created` y `conversation_opened`, y los mensajes `auto_reply_email?` en `message_created`. Por eso **ninguna regla puede etiquetar ni resolver rebotes ni respuestas automáticas**: la regla «sistema» de §4.1 no sirve para eso. Opciones: (a) que el agente los resuelva a mano, porque son pocos; (b) una tarea periódica de DTD que etiquete «sistema» y resuelva las conversaciones `auto_reply=true` de la bandeja. Decide Sam antes de PC-3.
+
+**Respuesta automática.** Si el buzón que lee la bandeja tiene una respuesta automática encendida, el cliente que contesta un correo del chat recibe también esa respuesta. En `notificaciones@` es aceptable porque es temporal; en `vzla@` hay que confirmar que no tiene ninguna antes de PC-3.
+
 ## 7. Puertas (cada una con OK nominal de Sam, nombrando la operación)
 
 | Puerta | Operación | Dónde |
