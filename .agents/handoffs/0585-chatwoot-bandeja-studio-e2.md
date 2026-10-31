@@ -516,3 +516,12 @@ Sam lo decidió el 2026-10-30, por selector: «Sí, hacerlo (Recomendado)». Det
 
 - **La tarifa cambia.** Meta publica tarifarios nuevos con fecha de vigencia (la próxima se anuncia en la misma página). Cuando salga, hay que generar `tarifas-meta-AAAA-MM.ts` y cambiar el import de `costo-chat.ts`; el vigilante de versiones de E3 podría avisarlo.
 - **Plantillas y franja gratuita:** contarlas aparte con su categoría y descontar los 1.000 gratis del mes por número necesitaría datos de facturación de Meta (Billing Hub), que Studio no tiene.
+
+---
+
+# Aceptación del 2.7 y el 2.8 (2026-10-31)
+
+Sam los aceptó el 2026-10-31, hacia las 10:15Z, en el chat del Director. Texto literal: «Acepto los 5 (Recomendado)». La pregunta cubría 2.7, 2.8, 3.4, 5.1 y 5.2, y aclaraba que aceptar no fusiona ni despliega nada antes del 1 de noviembre. El Director lo transmitió por mensaje entre sesiones.
+
+- **Evidencia de verify:** la corrida de E3 sobre `b04e63abcca1c715817cb9cd30f0db5b9f0e3d76`, que tiene a `4579948d2` como ancestro (comprobado). FALLÓ solo por heredados: 0467, 0497 y el CTA de Shipping Mark.
+- **Sigue igual:** nada fusionado ni desplegado. Las puertas del 2.7 siguen pendientes del OK de Sam: aplicar la 0508, cargar los ids de la matriz, instalar `zz_dtd_revocar_sesiones.rb`, pegar `DASHBOARD_SCRIPTS` y la regla de Traefik.
