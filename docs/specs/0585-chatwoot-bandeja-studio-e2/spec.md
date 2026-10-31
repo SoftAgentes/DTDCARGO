@@ -642,7 +642,7 @@ Resultado: 3/3 PASÓ. Murieron los 4 mutantes:
 | `tsc` y `eslint` | PASÓ |
 | `pending-migration-symbols` | PASÓ: 0 ROJO · 6 AMARILLO, con las líneas resincronizadas |
 | Inventario RBAC | Sin cambios: `pedirFichaDtd` ya existía |
-| `pnpm verify` completo | NO EJECUTADO: el 2.8 es chico y no tiene migración; entra en el próximo verify con turno |
+| `pnpm verify` completo | No se corrió en esta rama: lo cubre el verify de E3 sobre `b04e63abcca1c715817cb9cd30f0db5b9f0e3d76` (rama `codex/0582-e3-versiones`, 2026-10-31 09:26Z a 10:06Z, registrado por el Director), que tiene a `4579948d2` como ancestro (`git merge-base --is-ancestor`, comprobado) y cubre el código del 2.7 y el 2.8: FALLÓ (exit 1) solo por heredados, 16 de 17 pasos. PASÓ: harness, lint, rsc-boundary, typecheck, edge-functions, test (13.855, sin forks ni timeouts), docs:check, numbering, feature-constants, components, governance, pending-symbols (0 ROJO · 8 AMARILLO), schema-rebuild y build. NO DISPONIBLE: migrations-applied. FALLÓ por heredados: sql-tests 0467_reversion_credito_carrera y los dos 0497_reverso_al_anular_factura (SDD-0573); e2e, el CTA de Shipping Mark (sin-scroll-horizontal:119, chromium). e2e 228 PASÓ; ficha-chat PASÓ en los 3 proyectos |
 
 ### Datos personales del paso 2.8 (revisar-datos-ve, alcance del cambio)
 
