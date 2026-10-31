@@ -19,7 +19,7 @@ Diseño aprobado por Sam el 2026-10-31 («Aprobado, abre la PR»). Esa aprobaci�
 | Límite de largo del mensaje | NO VERIFICADO: la ayuda no da uno | — |
 | El campo `body` de la API de correo acepta HTML | NO VERIFICADO; además pide un token de la API, que no se usa en esta tarea | espejo de la documentación de la API, no la página oficial |
 
-Por eso la opción A usa solo párrafos, negritas, color y enlaces. Son los elementos que un editor de texto enriquecido suele conservar al pegar. No lleva tablas, botones ni la tarjeta de los correos de Chatwoot. El logo va como imagen remota (`chat.dtdcargo.com/dtd-marca/dtdcargo-isologo-correo.png`, el mismo de [`base.liquid`](../../chatwoot/correo/views/layouts/mailer/base.liquid)). Si el editor lo quita, el mensaje queda completo.
+Por eso la opción A usa solo párrafos, negritas, color y enlaces. Son los elementos que un editor de texto enriquecido suele conservar al pegar. No lleva tablas, botones ni la tarjeta de los correos de Chatwoot. El logo va como imagen remota (`chat.dtdcargo.com/dtd-marca/dtdcargo-isologo-correo.png`, el mismo de [`base.liquid`](../../chatwoot/correo/views/layouts/mailer/base.liquid), que hoy vive en la rama `claude/hostinger-config-4b501f`). Si el editor lo quita, el mensaje queda completo.
 
 ## Diseño
 
