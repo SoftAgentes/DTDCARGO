@@ -349,6 +349,15 @@ evidencia», con la respuesta de TikTok. El costo es cero, porque Chatwoot ya tr
   - El riesgo es que una URL del dominio devuelva texto ajeno. No permite meter eventos falsos (I).
   - Propuesta: un override `zz_dtd_*`, como el de SDD-0584, que compare el token recibido. Es
     código para producción y va con SDD, prueba y OK de Sam; no lo hice aquí.
+  - **Decisión de Sam, dada al Director el 2026-10-31.** El Director preguntó «¿Sumo el arreglo
+    de /bot a las decisiones del sábado?» y Sam respondió «Sí, súmalo». El arreglo entra en la
+    lista de decisiones del sábado, después del cierre de 1.6, y ese día se elige SDD y
+    responsable. La decisión no autoriza implementar ni tocar Chatwoot o Meta ahora.
+  - Lectura independiente del Director:
+    - (R) El código ignora `_verify_token`.
+    - (R) Con curl y un token falso, `/bot` responde 200, repite el challenge, no trae
+      `Content-Type` y trae `nosniff`.
+    - (I) Los navegadores no deberían interpretarla como HTML; no se probó.
 
 - **Allowlist.** La de SDD-0582 no nombra los handoffs de E4 (`0582-e4-meta.md`,
   `0582-e4-canales.md`) ni un archivo de investigación propio. Por eso la investigación de esta
