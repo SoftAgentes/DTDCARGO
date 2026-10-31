@@ -100,7 +100,7 @@ Después del merge de `5451c818d` también pasaron: `build-crontab --check` (22 
 5. Aplicar la 0509 (después de la 0507): OK nominal de Sam. Antes, el Director confirma o cambia el número.
 8. **Decisión del motor (E3-D15), 2026-10-30:** «Solo GLM» y «US$50 al mes». Será una API key de pago de Z.AI aparte del plan de la oficina, con su propio tope, que crea Sam al arrancar. E7 usa el mismo proveedor y el mismo tope. Después, el Director pidió «No implementes el 3.4 todavía», cuando ya estaba publicado (`c2a91dcab`). Le pregunté si lo deja o lo saca, y respondió que **se queda** y que la fila 3.4 **entra a la cola de verify** detrás del 2.7 de E2. La URL por defecto ya es la de la API de pago (`api.z.ai/api/paas/v4`), con una prueba que lo fija; el Coding Plan solo entra si se configura a propósito.
 6. Puerta de integración del 3.4: con OK de Sam, poner la llave en el entorno del servidor de Studio (`DTD_CHATWOOT_IA_GLM_KEY`, propia; no la variable de la oficina) y hacer una corrida real con la API key de pago (E3-D15). Sin la llave, el análisis sale «sin IA».
-7. Aceptación de Sam del 3.4 y de la ampliación del 3.1 (`zz_dtd_revocar_sesiones.rb`).
+7. ~~Aceptación de Sam del 3.4~~: **aceptado** (Sam, 2026-10-31 (~10:15Z), en el chat del Director: «Acepto los 5 (Recomendado)». La pregunta cubría 2.7, 2.8, 3.4, 5.1 y 5.2 y decía que aceptar no fusiona ni despliega nada hasta el 1 de noviembre). Queda la aceptación de la ampliación del 3.1 (`zz_dtd_revocar_sesiones.rb`).
 4. ~~Aceptación de Sam de 3.1 a 3.3~~: aceptados el 2026-10-30 («Acepto todo», a la pregunta del Director «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?»).
 
 ## FUERA DE ALCANCE DETECTADO
@@ -118,4 +118,4 @@ Después del merge de `5451c818d` también pasaron: `build-crontab --check` (22 
 
 ## HANDOFF AL DIRECTOR
 
-SDD-0588, pasos 3.1 a 3.4. 3.1 a 3.3 aceptados; 3.4 entregado. Migraciones 0507 y 0509 sin aplicar; la 0509 espera que el Director confirme el número. PR en borrador apilada sobre E2. Falta un `pnpm verify` verde (el del 2026-10-30 cayó por rojos ajenos) y la puerta de integración con la llave real de GLM.
+SDD-0588, pasos 3.1 a 3.4. 3.1 a 3.4 aceptados (3.4 el 2026-10-31). Migraciones 0507 y 0509 sin aplicar; la 0509 espera que el Director confirme el número. PR en borrador apilada sobre E2. Falta un `pnpm verify` verde (el del 2026-10-30 cayó por rojos ajenos) y la puerta de integración con la llave real de GLM.
