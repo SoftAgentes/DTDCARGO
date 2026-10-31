@@ -18,14 +18,49 @@
 
 | Paso | Estado | Qué hay | Qué falta |
 |---|---|---|---|
-| 5.1 | en curso | Script `infra/ops/kommo-historial/respaldar-historial.py` con 17 pruebas (verde local y en el VPS); copia en `/srv/ops/kommo-historial/`; destino `/srv/backups/kommo/`; cifrado para `/srv/ops/backup/age-recipients.txt` (Sam-2026-10-29 y Emergencia-2026-10-29) | El token de larga duración de la integración «DTD 0582 historial (solo lectura)»: lo genera Sam en Kommo y lo pega con `pegar-token-kommo-e5-0582.ps1` (notas compartidas). Ensayo corto, corrida completa, sha256 y manifiesto |
-| 5.2 | en curso | `informe` del script (conteos por año y tipo, actividad 12 meses, estimación Chatwoot); revisar-datos-ve redactado en la spec §6 (inventario, 12 puntos, retención propuesta) a falta de los conteos | Correrlo sobre el respaldo; completar §5 y §6 con los números; recomendación §7 |
+| 5.1 | **entregado** | Script `infra/ops/kommo-historial/respaldar-historial.py` 1.1.1 con 24 pruebas (verde en la PC y en el VPS); copia en `/srv/ops/kommo-historial/`. Respaldo `kommo-20261030T233814Z` en `/srv/backups/kommo/` (VPS, 0700): metadatos `tar.zst.age` de 7.500.141 bytes (sha256 `c92eef454dee…fd8a`, igual al `.sha256`), 3.577 adjuntos `.age` (2.099.458.961 bytes), `manifiesto.json` (3.578 entradas con sha256), `informe.*`; claves Sam-2026-10-29 y Emergencia-2026-10-29. Staging en tmpfs borrado por el script; token borrado a mano (02:35 UTC) | Aceptación de Sam/Director. Fuera del respaldo por Kommo: 12 conversaciones con 403 y 15 adjuntos con 404 (spec §5.6) |
+| 5.2 | **entregado** | Spec §5 (volumen por año, canal, actividad, adjuntos, otras entidades, estimación Chatwoot, límites), `informe-volumen.md` (copia literal del informe, solo conteos), §6 revisar-datos-ve con los conteos y líneas vigentes, §7 recomendación: **todo lo legible + regla de retención escrita antes de 5.7** | Decisión de Sam con el Director sobre la retención (§6.3) y aceptación |
 
 ## Lo que se hizo en sistemas externos
 
 - VPS (lectura y archivos propios): `ls` de `/srv/ops`, `/srv/backups`, `/dev/shm`; herramientas; prueba de round-trip de `age` con llave efímera en `/dev/shm`; copia de `infra/ops/kommo-historial/` a `/srv/ops/kommo-historial/` (0700); carpeta `/srv/backups/kommo/` (0700). No se tocó `/dev/shm/k0582` (54 bytes, de otra sesión, no es un token de Kommo).
 - Kommo (2026-10-31, ~00:30 CET, en el Chrome de Sam por Claude in Chrome, con su pedido literal «Abre Chrome, ahí está en Kommo, y crea la integración para ayudarle a seguir»): la integración «DTD 0582 historial (solo lectura)» de 0.6 seguía instalada, así que **no se creó otra**. En su pestaña «Llaves y alcances» se pulsó «Generar token de larga duración» con caducidad **30.11.2026**. El clic en «Copiar» lo negó el clasificador de la app (credencial); lo copió Sam y lo pegó con `pegar-token-kommo-e5-0582.ps1` a `/dev/shm/k0582-e5` (0600, 1035 bytes). `probar-token`: JWT, alcances `list_external_messages,crm`, 30 días, `GET /api/v4/account` HTTP 200, subdominio `dtdcargo`. No se tomaron capturas de la pestaña de llaves. Por el camino se abrió y cerró sin instalar la ficha de un widget de NOVA (clic desviado).
 
-## Cierre
+## Cierre (2026-10-31, 03:10 UTC)
 
-Pendiente: se completa al terminar 5.2.
+**OBJETIVO ORIGINAL.** 5.1: respaldo completo del historial de Kommo, reproducible, cifrado con `age`, fuera de Git, en el VPS. 5.2: conteos por año y tipo, actividad en 12 meses, estimación de carga y tamaño en Chatwoot, revisar-datos-ve del inventario y recomendación «todo» o acotado. Sin cargar nada en Chatwoot ni tocar Meta ni la base de Studio.
+
+**COMPLETADO.**
+- `infra/ops/kommo-historial/`: `respaldar-historial.py` 1.1.1 (stdlib; `probar-token`, `extraer`, `informe`, `empaquetar`, `todo`), `pruebas/test_respaldar.py` (24 pruebas con servidor falso: paginación, 429, 404, 403 tolerado solo por conversación, lectura cortada, token solo a hosts de Kommo, 0600, reanudación con ancla, eventos únicos, informe sin PII, paquete y round-trip) y `README.md` (reglas, procedimiento, restauración, opciones).
+- Respaldo `kommo-20261030T233814Z` (detalle en la tabla de estado y en la spec §4.3). Tres tramos: 23:38–01:05 (403 en una conversación, tratado como fatal por la 1.0.0), 01:17–02:11 (`IncompleteRead` en un adjunto) y 02:13–02:34 UTC; cada corte se corrigió en el script con prueba y la corrida se reanudó sobre el mismo staging. 0 × HTTP 429.
+- Spec `docs/specs/0590-kommo-historial-e5/spec.md` §1–§8 completas; `informe-volumen.md`; checklist 5.1 y 5.2 en `entregado` (`avance-checklist.mjs`: «Entregados sin aceptar: 5.1, 5.2»); `docs/legal/privacidad/mapa-de-borrado.md` §F con la fila del respaldo y su volumen; `docs/specs/README.md` regenerado.
+- Conteos clave: 4.715 conversaciones legibles (4.230 personas; waba 2.636, Instagram 1.680, Facebook 377), 54.187 mensajes (22 % de bots), 3.577 adjuntos (2,10 GB), 4.237 contactos (61 % con teléfono), 4.201 leads; 44 % de las conversaciones con actividad en 12 meses, 81 % en 24. Chatwoot: ≈ 67 MB de base + 2 GB de adjuntos; < 1 h por API en lotes o ≈ 30 min por SQL (estimación).
+
+**VALIDACIÓN.**
+- Pruebas del script: PASÓ — `python -I infra/ops/kommo-historial/pruebas/test_respaldar.py`: 24 en el VPS (Python 3.12, con `age`/`zstd`); 22 + 2 saltadas en la PC (0600 y paquete no aplican en Windows).
+- sha256 del paquete igual al `.sha256`, recalculado tras la corrida: PASÓ. Manifiesto: 3.578 entradas, 2.106.959.102 bytes = 3.577 adjuntos en disco + paquete: PASÓ.
+- Descifrado del paquete real: NO EJECUTADO por diseño (solo Sam tiene la llave); el round-trip con llave efímera PASÓ en el ensayo (spec §4.2).
+- Informe sin datos personales: PASÓ (prueba con marcas + revisión a ojo del informe real: 0 teléfonos, correos o enlaces).
+- Limpieza: `/dev/shm/kommo-e5` no existe; `/dev/shm/k0582-e5` borrado; unidad `kommo-e5-respaldo` recogida: PASÓ (comprobado por `ls` y `systemctl`).
+- `corepack pnpm docs:index` + `docs:check`: PASÓ (567 specs). `corepack pnpm sdd:check`: PASÓ (sin números repetidos). `git diff --check`: PASÓ.
+- `pnpm verify`: NO EJECUTADO — el diff es un script de operaciones en Python, docs, checklist y handoff; no toca Next/Studio ni la base, y hay cola de verify (una corrida pesada a la vez).
+- `pnpm knowledge:status`: INVALID global — grafo de `main` `6d022e94b`, estructural y semántico pendientes para cientos de archivos del repo (los míos entre ellos: handoff, spec, `informe-volumen.md`), Archify sin runtime, Obsidian pendiente. Es el estado normal de un worktree: la publicación de Graphify/Obsidian la hace el Director desde `main`.
+
+**PR / BRANCH.** `codex/0582-e5-historial` → PR [SoftAgentes/DTDCARGO#342](https://github.com/SoftAgentes/DTDCARGO/pull/342) (borrador contra `main`). Commits: `c9bb3b165` (reserva), `469231610`, `c000955fa`, `7b2061e71`, `88b718fbb`, `5131a6a9a`, `c7d470f08` y el commit de cierre (HEAD de la PR). Sin merge ni despliegue (no autorizados).
+
+**PENDIENTES DE ESTA TAREA (gate humano).**
+- Aceptación de 5.1 y 5.2 por Sam/Director (filas `entregado`).
+- Decisión de retención (spec §6.3 y §7): regla para leads sin servicio y plazo del respaldo `.age`; o cambiar `/privacidad` (E1, fila 1.7).
+- Si el Director quiere la PR lista para revisión en vez de borrador: `gh pr ready 342`.
+
+**FUERA DE ALCANCE DETECTADO.**
+- 12 conversaciones que la integración no puede leer (403 «Not enough rights»; ids dentro del paquete) y 15 adjuntos cuyo enlace ya no existe (404): si alguna importa, abrirla en Kommo con un usuario con más derechos antes de E8.
+- Ids de conversación 1..99 sin sondear (el menor visto en eventos es 100): 99 peticiones, para 5.3, que vuelve a pedir el token.
+- Revocar la integración «DTD 0582 historial (solo lectura)» al cerrar E5 (el token generado caduca el 30.11.2026).
+- `docs/legal/privacidad/registro-tratamiento.md` sin filas para conversaciones (texto y adjuntos); `inventario-terceros.md:40` sin la anotación de copia propia cifrada; `app/privacidad` promete 30 días de respaldos y borrar consultas sin servicio.
+- Copia del `.age` a R2/B2 como los demás respaldos: decisión del Director (evaluación de proveedor ya hecha).
+- Espacio libre en el disco del VPS para 2 GB más de adjuntos en Chatwoot: no medido; va en 5.5/5.6.
+- `/dev/shm/k0582` (54 bytes, 2026-10-29, de otra sesión): no se tocó.
+- El informe compacto (solo conteos) quedó en el journal del VPS por el stdout del script.
+
+**HANDOFF AL DIRECTOR.** SDD-0590, PR #342 (borrador), rama `codex/0582-e5-historial`. 5.1 y 5.2 entregados con la evidencia de arriba. Recomendación: cargar todo lo legible en «Archivo Kommo» con regla de retención escrita antes de 5.7 (spec §7). Decisiones que necesita Sam: retención (§6.3), nombre del asesor y bots en el Archivo (§6.2 punto 12, §7). 5.3 en adelante necesita otro OK de Sam y volver a pegar el token.

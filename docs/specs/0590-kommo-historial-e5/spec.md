@@ -104,15 +104,92 @@ Relanzada a las 01:17 UTC (script 1.1.0): 96 ventanas saltadas, cola con 4 event
 
 **Segundo corte (02:11 UTC).** Con 2.481 de 3.592 adjuntos cifrados (2.473 × HTTP 200, 8 × 404), un adjunto llegó cortado a mitad del cuerpo (`http.client.IncompleteRead`): esa excepción no es `OSError` y el script no la reintentaba. Corregido en 1.1.1 (`ERRORES_RED` incluye `http.client.HTTPException`, con prueba de reintento y de agotamiento) y relanzada a las 02:13 UTC con 1.111 adjuntos pendientes. Esa reanudación volvió a escribir `huecos-sondeo.json` con 0/0 (nada que sondear); se restauró a mano con los valores del log y de los marcadores (243/243/0/11, con una nota dentro del JSON) antes de que se generara el informe, y el script ya conserva el sondeo real al reanudar.
 
-Resultado final: pendiente (stamp, bytes, sha256, adjuntos cifrados, duración y códigos HTTP se anotan al terminar).
+**Resultado (R).** Terminó el 2026-10-31 02:34:19 UTC. Destino `/srv/backups/kommo/kommo-20261030T233814Z/` (0700, root):
 
-## 5. Resultado de 5.2 — volumen
+| Archivo | Medida |
+|---|---|
+| `kommo-20261030T233814Z-metadatos.tar.zst.age` | 7.500.141 bytes; sha256 `c92eef454deee6101a65055a80294bf7285297753d0dcca81c7c3cd921f3fd8a` (igual al `.sha256`, recalculado al cerrar) |
+| `adjuntos/<message_id>.<ext>.age` | 3.577 archivos, 2.099.458.961 bytes (2,10 GB) |
+| `manifiesto.json` | versión 1.1.1; 3.578 entradas (`archivo`, `bytes`, `sha256`); 2.106.959.102 bytes cifrados; destinatarios `Sam-2026-10-29` y `Emergencia-2026-10-29` (2 claves) |
+| `informe.json`, `informe.md` | solo conteos; copia literal en [`informe-volumen.md`](informe-volumen.md) |
+| `respaldo.log` | 40 KB: ids, conteos y códigos HTTP; sin datos personales |
 
-Pendiente: se llena con `informe.md` de la corrida (copia en [`informe-volumen.md`](informe-volumen.md)).
+Tiempos y red: extracción en tres tramos, 23:38–01:05, 01:17–02:11 y 02:13–02:34 UTC (87 + 54 + 21 min); pausa de 0,15 s más el tiempo de Kommo (≈1,05–1,1 s por conversación o adjunto); **0 × HTTP 429** en todo el log; 2 reintentos de red en el último tramo (uno fue el `IncompleteRead`, que ahora se reintenta). Cobertura: 4.717 conversaciones consultadas (4.715 × 200, 1 × 404, 1 × 403) más 11 con 403 en el sondeo; 3.592 adjuntos referidos, 3.577 descargados y 15 con 404 en Kommo (el enlace ya no existe). Al terminar: staging `/dev/shm/kommo-e5` borrado por el script, token `/dev/shm/k0582-e5` borrado a mano a las 02:35 UTC, unidad recogida (`--collect`). El informe compacto quedó también en el journal del VPS (stdout del script): solo conteos.
+
+## 5. Resultado de 5.2 — volumen (R)
+
+Fuente: `informe.md` de la corrida `kommo-20261030T233814Z` (script 1.1.1, 2026-10-31 02:33:40 UTC), copiado literal en [`informe-volumen.md`](informe-volumen.md). Solo conteos, años, valores de enumeración y nombres de campo. Corte: último mensaje 2026-10-31 00:51 UTC; primero 2023-08-23.
+
+### 5.1 Por año y tipo
+
+| Año | Conversaciones creadas | Mensajes | Entrantes / salientes | Contactos creados | Leads creados |
+|---|---|---|---|---|---|
+| 2023 | 4 | 8 | 2 / 6 | 2 | — |
+| 2024 | 1.404 | 15.633 | 8.018 / 7.615 | 1.197 | 1.192 |
+| 2025 | 1.276 | 18.759 | 9.333 / 9.426 | 1.200 | 1.190 |
+| 2026 (al 31-oct) | 2.031 | 19.787 | 11.401 / 8.386 | 1.838 | 1.819 |
+| **Total** | **4.715** | **54.187** | 28.754 / 25.433 | **4.237** | 4.201 |
+
+Los adjuntos no se desglosan por año (el script no lo calcula; sale del paquete descifrado si hace falta).
+
+| Canal (`origin`) | Conversaciones | Mensajes |
+|---|---|---|
+| `waba` (WhatsApp Business API) | 2.636 | 41.804 |
+| `instagram_business` | 1.680 | 9.235 |
+| `facebook` | 377 | 2.858 |
+| `officialwhatsapp` | 21 | 287 |
+| `onlinechat` | 1 | 3 |
+
+### 5.2 Actividad y forma de las conversaciones
+
+| Medida | Valor |
+|---|---|
+| Conversaciones con actividad en los últimos 12 meses | **2.096 de 4.715 (44 %)** |
+| Conversaciones con actividad en los últimos 24 meses | 3.842 (81 %); 873 llevan más de dos años sin mensajes |
+| Mensajes en conversaciones activas (12 meses) | 22.217 de 54.187 (41 %) |
+| Contactos únicos en las conversaciones | 4.230 (4.261 pares contacto–canal: 31 personas escriben por dos canales) |
+| Contactos únicos con actividad (12 meses) | 1.899 (45 %) |
+| Estado en Kommo | `in_work` 3.949 · `closed` 766 |
+| Mensajes por conversación | p50 6 · p90 25 · p99 99 · máx. 512 · promedio 11,5 |
+| Autor | externo 28.719 · interno 13.719 · **bot 11.749 (22 %)** |
+| Texto | 51.095 mensajes con texto; 5,97 M caracteres; 117 promedio; 11.853 el mayor |
+| Entrega (`delivery_status`) | sent 28.732 · seen 19.860 · delivered 4.848 · error 747 |
+
+### 5.3 Adjuntos
+
+| Medida | Valor |
+|---|---|
+| Referidos en mensajes | 3.592 (6,6 % de los mensajes); descargados 3.577; 15 con 404 en Kommo |
+| Por tipo | picture 2.036 · voice 750 · video 520 · file 266 (218 PDF, 28 XLSX, 4 XLS, 1 DOC, 1 ZIP, 1 MHT) · audio 20 |
+| Extensiones más frecuentes | jpeg 1.017 · m4a 743 · jpg 554 · mp4 516 · png 363 · pdf 218 · jpe 110 · ogg 24 |
+| Tamaño | 2.097.909.847 bytes (2,10 GB); promedio 586 KB; p50 99 KB; p90 2,66 MB; mayor 46,8 MB |
+| Origen | `drive-g.kommo.com` 3.471 · `drive-c.kommo.com` 121 |
+
+### 5.4 Otras entidades
+
+Leads 4.201 · empresas 14 · no clasificados 7 · tareas 68 · usuarios 5 · notas de leads 462 (`common` 434, `ai_result` 27, `geolocation` 1) · notas de contactos 572 (`link_followed` 569, `amomail_message` 2, `geolocation` 1) · notas de empresas 0. Contactos con teléfono **2.567 de 4.237 (61 %)** y con correo 149 (3,5 %): unos 1.670 contactos (Instagram y Facebook, sobre todo) no traen teléfono, lo que acota el vínculo por E.164 de 5.4.
+
+### 5.5 Estimación de carga en Chatwoot (I)
+
+| Medida | Todo | Solo 12 meses de actividad |
+|---|---|---|
+| Filas | messages 54.187 · conversations 4.717 (4.261 si se juntan por contacto y canal) · contacts 4.230 · attachments 3.577 | messages 22.217 · conversations 2.096 · contacts 1.899 · attachments ≈ 41 % (no se midió) |
+| Base de datos | ≈ 67 MB (filas × tamaño típico de `messages`, `conversations`, `contacts`+`contact_inboxes`, `attachments`+`active_storage`; índices y TOAST ×1,6) | ≈ 28 MB |
+| Almacenamiento de adjuntos | 1,95 GiB (disco del VPS o S3 compatible; espacio libre no medido aquí) | ≈ 0,8 GiB |
+| Tiempo de carga | por API: 3,5 h a 5 peticiones/s o 0,9 h a 20/s · por SQL / `rails runner` en lotes: ≈ 29 min | ≈ 41 % |
+
+Es una estimación, no una medición: la cifra real sale del ensayo en copia (5.6).
+
+### 5.6 Límites de la medición
+
+- **12 conversaciones no legibles** con el usuario de la integración (HTTP 403 «Not enough rights»: la 4718 y 11 ids del sondeo). Existen, pero ni el respaldo ni el Archivo Kommo las tendrán salvo que Sam las abra en Kommo con un usuario con más derechos; ids en `huecos-sondeo.json` y `talks-sin-acceso` dentro del paquete.
+- **15 adjuntos con 404**: el enlace ya no existe en Kommo; quedan anotados en `adjuntos.ndjson` con `http: 404`.
+- El sondeo total cubrió los ids 100..5059 (243 sin eventos: 232 × 404, 11 × 403, **0 legibles fuera de los eventos**): la enumeración por eventos es completa en ese rango. Los ids 1..99 no se sondearon (el menor id visto en eventos es 100); comprobarlos cuesta 99 peticiones y se hace en 5.3, que vuelve a necesitar el token.
+- Los eventos únicos son 54.195 frente a 54.187 mensajes leídos: la diferencia (8) son mensajes de las 12 conversaciones vedadas y de la 404.
 
 ## 6. revisar-datos-ve del inventario
 
-Método: `.claude/skills/revisar-datos-ve/SKILL.md` (tres estados: `ENCONTRADO`, `CORRECTO`, `NO VERIFICABLE`; nada entra sin `archivo:línea`). Marco: Venezuela (CRBV arts. 28 y 60, SC 332/2001, SC 759/2025, Ley Especial contra los Delitos Informáticos arts. 20–22). PIPL solo si el historial llega al equipo de China: hoy no (el respaldo lo descifra solo Sam); si el Archivo Kommo queda visible desde China en 2.7, aplica y se decide allí. **No es asesoría legal.** Los conteos de esta sección se completan con la corrida (§5).
+Método: `.claude/skills/revisar-datos-ve/SKILL.md` (tres estados: `ENCONTRADO`, `CORRECTO`, `NO VERIFICABLE`; nada entra sin `archivo:línea`). Marco: Venezuela (CRBV arts. 28 y 60, SC 332/2001, SC 759/2025, Ley Especial contra los Delitos Informáticos arts. 20–22). PIPL solo si el historial llega al equipo de China: hoy no (el respaldo lo descifra solo Sam); si el Archivo Kommo queda visible desde China en 2.7, aplica y se decide allí. **No es asesoría legal.** Conteos de la corrida: §5.
 
 ### 6.1 Inventario de datos personales del respaldo
 
@@ -122,7 +199,7 @@ Los titulares: leads y clientes que escribieron a DTD (muchos nunca se registrar
 |---|---|---|---|---|---|
 | `contactos.ndjson › name, first_name, last_name` | Nombre del lead o cliente | Atención y venta en Kommo; vínculo con el ERP (5.4) | Relación con quien escribe a DTD (precontractual o contractual) | Kommo: indefinida (el sync nunca borra, `docs/legal/privacidad/mapa-de-borrado.md:162`); respaldo: **sin plazo definido → hallazgo** | Kommo · Sam (único que descifra) |
 | `contactos.ndjson › custom_fields_values[PHONE, EMAIL]` | Teléfono, correo | Contacto; E.164 y vínculo con `clients` (5.4) | ídem | ídem | ídem |
-| `contactos.ndjson › custom_fields_values[otros]`, `leads.ndjson › custom_fields_values` | Campos propios de Kommo (se enumeran por nombre al correr) | **Finalidad no evidente en el código** para los que el ERP no usa (K-11: UTM, `gclid`, `fbclid` que nadie escribe) | — | ídem | ídem |
+| `contactos.ndjson › custom_fields_values[otros]`, `leads.ndjson › custom_fields_values` | Campos propios de Kommo: 20 de leads, 9 de contactos y 4 de empresas (definiciones en `campos-*.ndjson` dentro del paquete; el informe no lista sus nombres) | **Finalidad no evidente en el código** para los que el ERP no usa (K-11: UTM, `gclid`, `fbclid` que nadie escribe) | — | ídem | ídem |
 | `talks.ndjson › contact_id, chat_id, entity_id, _embedded.contacts/leads` | Vínculo conversación ↔ contacto ↔ lead | Cargar el Archivo Kommo con el contacto correcto | ídem | ídem | ídem |
 | `mensajes.ndjson › text` | Texto libre de cada mensaje | Historial de atención (Archivo Kommo) | ídem | ídem | 🔴 texto libre: puede traer cédula, dirección, pagos o salud; se trata como **dato sensible potencial** |
 | `mensajes.ndjson › author.name, recipient.name, author.user_id` | Quién escribió: el cliente o el asesor | Autoría en el Archivo (5.5) | ídem · relación laboral para los asesores | ídem | Incluye **empleados** (punto 12) |
@@ -133,20 +210,22 @@ Los titulares: leads y clientes que escribieron a DTD (muchos nunca se registrar
 | `usuarios.ndjson › name, email, lang` | **Empleados** de DTD en Kommo | Autores del Archivo | Relación laboral | ídem | Titulares que no son usuarios del ERP (punto 12) |
 | `eventos.ndjson`, `talks-indice.json`, `huecos-sondeo.json` | Ids, fechas, origen | Enumeración | — | ídem | Sin datos personales directos |
 | `cuenta.json`, `embudos.json`, `campos-*.ndjson` | Cuenta, etapas y definiciones de campos | Contexto | — | ídem | No personales (ids de usuario) |
-| `informe.json`, `informe.md`, `manifiesto.json`, `respaldo.log` | Conteos, ids, códigos HTTP, hosts, nombres de campo | Evidencia de 5.2 | — | En claro en el VPS y en el repo | Sin datos personales (**CORRECTO**, prueba `pruebas/test_respaldar.py:318-363`) |
+| `informe.json`, `informe.md`, `manifiesto.json`, `respaldo.log` | Conteos, ids, códigos HTTP, hosts, nombres de campo | Evidencia de 5.2 | — | En claro en el VPS y en el repo | Sin datos personales (**CORRECTO**, prueba `pruebas/test_respaldar.py:382-437`; el informe real se revisó a ojo: 0 teléfonos, correos o enlaces) |
+
+Volumen de la corrida (§5): 4.237 contactos (2.567 con teléfono, 149 con correo), 4.715 conversaciones de 4.230 personas, 54.187 mensajes (51.095 con texto; 11.749 escritos por bots), 3.577 adjuntos cifrados (2.036 fotos, 750 notas de voz, 520 videos, 266 archivos, 20 audios), 462 + 572 notas, 68 tareas y 5 usuarios de DTD.
 
 ### 6.2 Los doce puntos
 
 | # | Punto | Estado | Evidencia y arreglo |
 |---|---|---|---|
-| 1 | Inventario | `ENCONTRADO` | La tabla 6.1. Campos sin finalidad: `avatar_url` y los campos propios de Kommo que el ERP no usa. **Arreglo:** 5.5 carga solo `text`, `type`, `created_at`, `author.type/name` y adjuntos; nada de `avatar_url` ni campos sin uso. La lista de campos reales se completa con la corrida (§5, «Campos presentes») |
-| 2 | Minimización y proporcionalidad | `CORRECTO` en el script · `ENCONTRADO` en el alcance | El respaldo toma **todo** a propósito: Kommo no exporta chats (K-20) y E8 cancela la licencia; sin respaldo el historial se pierde. La minimización va en la carga (5.5) y en la retención (6.3). En el script: el log y el informe no llevan valores (`respaldar-historial.py:157` y prueba `:318-363`); el token solo viaja a hosts de Kommo (`:58`, `:262`; prueba `:264`); nada en claro en disco (`:314` staging 0700 en tmpfs, `:566` adjuntos cifrados desde memoria, `:642` borra el staging); archivo del token 0600 obligatorio (`:109`) |
+| 1 | Inventario | `ENCONTRADO` | La tabla 6.1. Campos sin finalidad: `avatar_url` y los campos propios de Kommo que el ERP no usa. **Arreglo:** 5.5 carga solo `text`, `type`, `created_at`, `author.type/name` y adjuntos; nada de `avatar_url` ni campos sin uso. Campos reales de la corrida (nombres): conversación `account_id, chat_id, contact_id, created_at, entity_id, entity_type, is_in_work, is_read, origin, rate, source_id, status, talk_id, updated_at`; mensaje `attachment, author, chat_id, created_at, delivery_status, id, message_type, origin, recipient, sec_created_at, text, type`; contacto `account_id, closest_task_at, created_at, created_by, custom_fields_values, first_name, group_id, id, is_deleted, is_unsorted, last_name, name, responsible_user_id, updated_at, updated_by` |
+| 2 | Minimización y proporcionalidad | `CORRECTO` en el script · `ENCONTRADO` en el alcance | El respaldo toma **todo** a propósito: Kommo no exporta chats (K-20) y E8 cancela la licencia; sin respaldo el historial se pierde. La minimización va en la carga (5.5) y en la retención (6.3). En el script: el log y el informe no llevan valores (`respaldar-historial.py:162` y prueba `:382-437`); el token solo viaja a hosts de Kommo (`:60`, `:275`; prueba `:328`); nada en claro en disco (`:330` staging 0700 en tmpfs, `:636` adjuntos cifrados desde memoria, `:713` borra el staging); archivo del token 0600 obligatorio (`:115`) |
 | 3 | Consentimiento con evidencia | `NO VERIFICABLE` | El consentimiento de quien escribió a DTD por WhatsApp o Instagram no consta en el repo: la base es la relación con el titular. Mover el historial a un archivo de solo lectura propio no es un fin nuevo, pero no hay consentimiento separado y la política pública no nombra el CRM (genérica por decisión: `docs/legal/DTDCARGO_Politicas_Digitales_v3_para_abogada.md:33`). Lo revisa la abogada |
 | 4 | Derechos como caminos reales | `ENCONTRADO` | `app/privacidad/page.tsx:296-303` promete que las consultas que no derivan en servicio «se eliminan o anonimizan» y que lo eliminado «desaparece de los respaldos» a los 30 días. Un paquete `.age` inmutable con todo el historial no deja borrar a una persona sin reconstruirlo. **Arreglo:** retención fija (6.3) y procedimiento de borrado por persona: descifrar en tmpfs, quitar sus filas y adjuntos, volver a empaquetar (`empaquetar --conservar-staging` ya lo permite) |
-| 5 | El borrado que borra de verdad | `ENCONTRADO` | Escondite n.º 6 («exports y respaldos») nuevo: `/srv/backups/kommo/kommo-<stamp>/` y el 2.º respaldo de 8.5. El espejo de Kommo ya era «el hallazgo más serio del mapa» (`docs/legal/privacidad/mapa-de-borrado.md:140-170`). `CORRECTO`: staging borrado al empaquetar (`:642`), nada en `/tmp`, log sin PII. **Arreglo:** fila nueva en el mapa §F (6.4) |
+| 5 | El borrado que borra de verdad | `ENCONTRADO` | Escondite n.º 6 («exports y respaldos») nuevo: `/srv/backups/kommo/kommo-<stamp>/` y el 2.º respaldo de 8.5. El espejo de Kommo ya era «el hallazgo más serio del mapa» (`docs/legal/privacidad/mapa-de-borrado.md:140-170`). `CORRECTO`: staging borrado al empaquetar (`:713`; comprobado tras la corrida: `/dev/shm` sin `kommo-e5`), nada en `/tmp`, log sin PII. **Arreglo:** fila nueva en el mapa §F (6.4) |
 | 6 | Trazabilidad de las solicitudes | `NO VERIFICABLE` | No se revisó en esta tarea; no cambia con ella |
 | 7 | Política pública de tratamiento | `ENCONTRADO` | La política dice «copias de respaldo … 30 días» (`app/privacidad/page.tsx:302`) y «consultas que no derivan en servicio … se eliminan o anonimizan» (`:296`). Un Archivo Kommo con conversaciones de leads que nunca contrataron y sin plazo contradice las dos frases. **Arreglo:** fijar plazos coherentes (6.3) o actualizar la política; E1 ya prevé una nota sobre `/privacidad` (fila 1.7; `docs/legal/privacidad/revision-chatwoot-e1-2026-10-29.md` en la rama de E1, NV en main) |
-| 8 | Inventario de terceros | `CORRECTO` · `NO VERIFICABLE` | Ningún tercero nuevo: Kommo ya tiene los datos (`docs/legal/privacidad/inventario-terceros.md:40`, política y contrato ❓) y el VPS es el de DTD en Contabo (`:44`). El script no manda datos a nadie más (`:58`, `:262`). La copia a R2/B2 no se hace aquí; si el Director la pide, cae en la evaluación ya hecha para los respaldos (`docs/legal/privacidad/evaluacion-proveedor-respaldo-externo.md`) |
+| 8 | Inventario de terceros | `CORRECTO` · `NO VERIFICABLE` | Ningún tercero nuevo: Kommo ya tiene los datos (`docs/legal/privacidad/inventario-terceros.md:40`, política y contrato ❓) y el VPS es el de DTD en Contabo (`:44`). El script no manda datos a nadie más (`:60`, `:275`). La copia a R2/B2 no se hace aquí; si el Director la pide, cae en la evaluación ya hecha para los respaldos (`docs/legal/privacidad/evaluacion-proveedor-respaldo-externo.md`) |
 | 9 | Transferencia internacional | `NO VERIFICABLE` | Dónde aloja Kommo (❓ en el inventario). El respaldo queda en EE. UU. (Contabo US East), como dice la política (`app/privacidad/page.tsx:267-270`). El equipo de China no accede al respaldo. Si el Archivo Kommo se ve desde China (2.7 / 5.5), aplica PIPL arts. 38–40 y 28 (rostros) |
 | 10 | Decisiones automatizadas | no aplica | Los 15 Salesbots y los 4 agentes de IA están apagados (K-13, K-14); el respaldo no decide nada |
 | 11 | Valor probatorio | no aplica | No hay aceptación electrónica. `.sha256` y `manifiesto.json` prueban integridad del paquete, no autoría ni fecha certificada |
@@ -162,7 +241,7 @@ Los titulares: leads y clientes que escribieron a DTD (muchos nunca se registrar
 
 ### 6.4 Documentos canónicos que cambian
 
-- `docs/legal/privacidad/mapa-de-borrado.md` §F: fila nueva para el respaldo del historial de Kommo (se agrega en esta PR con el stamp de la corrida).
+- `docs/legal/privacidad/mapa-de-borrado.md` §F: fila nueva para el respaldo del historial de Kommo (en esta PR, con el stamp y el volumen de la corrida).
 - `docs/legal/privacidad/registro-tratamiento.md`: no tiene filas para las conversaciones (texto y adjuntos); propuesta, no se edita aquí.
 - `docs/legal/privacidad/inventario-terceros.md:40` (Kommo): sin tercero nuevo; anotar que desde 5.1 existe copia propia cifrada.
 
@@ -170,7 +249,21 @@ Pide una segunda opinión: otro modelo sobre el mismo inventario. Esta revisión
 
 ## 7. Recomendación de alcance
 
-Pendiente.
+**Recomendación: cargar todo lo legible (4.715 conversaciones, 54.187 mensajes, 3.577 adjuntos) en la bandeja «Archivo Kommo», como pidió Sam, con una regla de retención escrita antes de 5.7.** Razones:
+
+1. **Cabe y es barato.** ≈ 67 MB de base y 2 GB de adjuntos; menos de una hora por API en lotes o media hora por SQL (§5.5). Acotar a 12 meses ahorraría ≈ 40 MB y ≈ 1,2 GB: nada que justifique perder historial.
+2. **Lo que se recorta por fecha no es lo que la política manda recortar.** La política pública promete borrar o anonimizar las *consultas que no derivan en servicio* (`app/privacidad/page.tsx:296`), no las conversaciones viejas: una conversación de 2024 con un cliente que sigue embarcando es historial contractual; una de 2026 con un lead que nunca compró es lo que hay que acotar. Separar unas de otras necesita el vínculo con el ERP (5.4, por E.164), que todavía no existe. Cortar hoy por fecha (24 meses → 3.842 conversaciones, 81 %) dejaría fuera 873 conversaciones de 2024, muchas de clientes, y seguiría cargando leads sin servicio de 2025 y 2026.
+3. **La licencia de Kommo termina (E8) y Kommo no exporta chats (K-20):** lo que no se cargue y no quede en el respaldo se pierde. El respaldo `.age` de 5.1 ya protege el conjunto completo; el Archivo decide qué se *ve*.
+4. **El 56 % de las conversaciones lleva un año sin actividad y el 22 % de los mensajes los escribió un bot:** el Archivo será sobre todo consulta ocasional. Conviene que 5.5 cargue la bandeja plegada (cerrada, solo lectura, sin notificaciones) para que no estorbe en el trabajo diario.
+
+Condiciones que acompañan al «todo» (decisiones de Sam con el Director, no se aplican en esta SDD):
+
+- **Retención** (§6.3): conversaciones de contactos que 5.4 no vincule a un cliente del ERP y sin mensajes en 24 meses → anonimizar o borrar en una fecha escrita; las de clientes, mientras dure la relación y lo que exija la ley. Si Sam prefiere no fijar plazo, hay que cambiar la política (`/privacidad`, fila 1.7 de E1): hoy promete lo contrario.
+- **Lo que no se carga en 5.5:** `author.avatar_url`, campos propios de Kommo que el ERP no usa, y los 11.749 mensajes de bots solo si Sam quiere verlos (propuesta: cargarlos como «Bot Kommo» para no romper el hilo). Nombre del asesor: completo, de pila o «DTD Cargo» (§6.2, punto 12).
+- **Fuera del Archivo por fuerza:** las 12 conversaciones con 403 y los 15 adjuntos con 404 (§5.6). Si alguna importa, Sam la abre en Kommo antes de E8.
+- **El respaldo `.age`** se conserva hasta el acta final (8.6) y la verificación de la carga; después se borra o se guarda como archivo frío con fecha (§6.3). Copiarlo a R2/B2: decisión del Director.
+
+Alternativa acotada, si Sam cambia de idea: 24 meses de actividad (3.842 conversaciones, 81 %) es el único corte por fecha que no deja fuera a casi ningún cliente de 2025–2026; 12 meses (2.096, 44 %) pierde 2024 y 2025 enteros y no se recomienda.
 
 ## 8. Fuera de alcance de esta SDD
 
