@@ -642,7 +642,7 @@ Resultado: 3/3 PASÓ. Murieron los 4 mutantes:
 | `tsc` y `eslint` | PASÓ |
 | `pending-migration-symbols` | PASÓ: 0 ROJO · 6 AMARILLO, con las líneas resincronizadas |
 | Inventario RBAC | Sin cambios: `pedirFichaDtd` ya existía |
-| `pnpm verify` completo | NO EJECUTADO: el 2.8 es chico y no tiene migración; entra en el próximo verify con turno |
+| `pnpm verify` completo | NO EJECUTADO en esta rama. El Director (2026-10-31) lo delegó a la corrida de E3 sobre `b04e63abc` (rama `codex/0582-e3-versiones`), que tiene a `4579948d2` como ancestro (`git merge-base --is-ancestor`, comprobado) y cubre 2.7, 2.8 y 3.4. Resultado PENDIENTE: se cita aquí cuando E3 lo registre |
 
 ### Datos personales del paso 2.8 (revisar-datos-ve, alcance del cambio)
 

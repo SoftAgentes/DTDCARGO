@@ -510,7 +510,7 @@ Sam lo decidió el 2026-10-30, por selector: «Sí, hacerlo (Recomendado)». Det
 - **Qué cuenta:** los salientes con `source_id` `wamid.`, sin notas ni fallidos, hasta 1000 mensajes. Si hay más, dice «Al menos».
 - **Datos personales:** sin migración ni escrituras. El teléfono solo elige el mercado.
 - **Validación:** 371/371 pruebas afectadas, 10/10 mutantes, `/ui-check` con 2 ajustes aplicados, tsc, eslint y `pending-migration-symbols` 0 ROJO.
-- **`pnpm verify` completo:** NO EJECUTADO.
+- **`pnpm verify` completo:** NO EJECUTADO en esta rama. El Director (2026-10-31) lo delegó a la corrida de E3 sobre `b04e63abc` (`codex/0582-e3-versiones`), que tiene a `4579948d2` como ancestro (comprobado con `git merge-base --is-ancestor`) y cubre 2.7, 2.8 y 3.4 juntos. Resultado PENDIENTE: citarlo aquí, con el SHA verificado, cuando E3 lo registre.
 
 ### FUERA DE ALCANCE DETECTADO (2.8)
 
