@@ -300,6 +300,31 @@ class PruebasCliente(unittest.TestCase):
         with self.assertRaises(R.ErrorFatal):
             api.get("/api/v4/account")
 
+    def test_lectura_incompleta_se_reintenta_y_no_tumba_la_corrida(self):
+        import http.client
+        intentos = []
+
+        def abrir(req, timeout=None):
+            intentos.append(req.full_url)
+            if len(intentos) == 1:
+                raise http.client.IncompleteRead(b"x" * 10, 5)  # la respuesta se corta a mitad del cuerpo
+            return respuesta(200, b"datos-completos", "application/octet-stream")
+
+        api = R.Kommo("dtdcargo", TOKEN_FALSO, self.log, pausa=0.0, abrir=abrir)
+        codigo, datos, _tipo = api.descargar("https://drive-x.kommo.com/f/1", 10 ** 6)
+        self.assertEqual((codigo, datos), (200, b"datos-completos"))
+        self.assertEqual(len(intentos), 2)
+        self.assertEqual(api.codigos["red"], 1)
+
+        def siempre_cortado(req, timeout=None):
+            raise http.client.RemoteDisconnected("se cerró la conexión")
+
+        api = R.Kommo("dtdcargo", TOKEN_FALSO, self.log, pausa=0.0, abrir=siempre_cortado)
+        self.assertEqual(api.descargar("https://drive-x.kommo.com/f/1", 10 ** 6)[0], 0)
+        with self.assertRaises(R.ErrorFatal) as cm:
+            api.get("/api/v4/talks/10", intentos=2)
+        self.assertIn("red agotada", str(cm.exception))
+
     def test_descargar_manda_token_solo_a_kommo(self):
         vistos = []
 
@@ -419,6 +444,8 @@ class PruebasExtraccionCompleta(unittest.TestCase):
         self.assertLess(n2, 5, f"la segunda corrida hizo {n2} peticiones")
         st = R.Staging(self.staging)
         self.assertEqual(len(list(st.leer_ndjson("mensajes.ndjson"))), 5)
+        huecos = st.leer_json("huecos-sondeo.json")  # la reanudación no pisa el sondeo real con 0/0
+        self.assertEqual((huecos["huecos"], huecos["sondeados"], huecos["existen"]), (2, 2, 1))
 
     def test_reanudar_horas_despues_conserva_el_ancla_de_las_ventanas(self):
         st, _a, _l = self.extraer(sin_adjuntos=True, sondear_huecos=0)

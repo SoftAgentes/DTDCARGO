@@ -33,6 +33,7 @@ import base64
 import collections
 import datetime as dt
 import hashlib
+import http.client
 import io
 import json
 import os
@@ -47,7 +48,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 SUBDOMINIO_POR_DEFECTO = "dtdcargo"
 DOMINIO = "kommo.com"
 LIMITE_LISTAS = 250
@@ -58,6 +59,9 @@ VENTANA_EVENTOS_DIAS = 30
 COLA_EVENTOS_SEGUNDOS = 600  # al reanudar más tarde que esto, se baja una ventana de cola hasta ahora
 HOSTS_CON_TOKEN = (".kommo.com", ".amocrm.com", ".amocrm.ru")
 DIA = 86400
+# Fallos de red que se reintentan. http.client.HTTPException cubre IncompleteRead (respuesta cortada a
+# mitad de un adjunto, visto el 2026-10-31) y RemoteDisconnected; no son OSError y tumbaban la corrida.
+ERRORES_RED = (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException)
 
 # --------------------------------------------------------------------------- utilidades
 
@@ -233,7 +237,7 @@ class Kommo:
         for intento in range(1, intentos + 1):
             try:
                 codigo, cuerpo, _ = self._peticion(url, con_token=True)
-            except (urllib.error.URLError, TimeoutError, OSError) as e:
+            except ERRORES_RED as e:
                 self.codigos["red"] += 1
                 if intento == intentos:
                     raise ErrorFatal(f"red agotada en {ruta}: {type(e).__name__}") from e
@@ -273,7 +277,7 @@ class Kommo:
         for intento in range(1, intentos + 1):
             try:
                 codigo, cuerpo, tipo = self._peticion(url, con_token=con_token)
-            except (urllib.error.URLError, TimeoutError, OSError) as e:
+            except ERRORES_RED as e:
                 self.codigos["red"] += 1
                 if intento == intentos:
                     return 0, b"", type(e).__name__
@@ -583,6 +587,9 @@ class Extractor:
             vistos |= {int(x) for x in self.st.marcados(marca)}
         lo, hi = min(indice), max(indice)
         huecos = [i for i in range(lo, hi + 1) if i not in vistos]
+        if not huecos and self.st.existe("huecos-sondeo.json"):
+            self.log("huecos: ya sondeados en una corrida anterior (se conserva huecos-sondeo.json)")
+            return
         muestra = huecos if n < 0 or n >= len(huecos) else random.Random(582).sample(huecos, n)
         self.log(f"huecos: ids {lo}..{hi}, {len(huecos)} sin eventos; sondeo {len(muestra)}")
         existen = sin_acceso = 0
