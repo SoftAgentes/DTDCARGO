@@ -79,7 +79,44 @@ no es el de este portafolio. Todavía no sé si es una página o un perfil perso
 cuando Sam entre con esa cuenta en el navegador integrado. De eso depende el paso 3: traer la
 página que ya existe o crear una nueva.
 
-### Guía para Sam: tres pasos previos para la marca DTD Cargo
+### Lectura del otro Facebook (R, Business Suite, 2026-10-31, solo lectura)
+
+Sam inició sesión con la otra cuenta de Meta en su Chrome y yo solo leí. Aquí no van nombres de
+personas, correos, teléfonos ni IDs.
+- **Existe un segundo portafolio, «DTD Cargo»,** distinto de «Importador de China».
+- **Página de Facebook «DTD Cargo»:**
+  - Es propiedad del portafolio «DTD Cargo».
+  - Esa cuenta tiene acceso total.
+  - El Instagram tiene acceso parcial, que incluye «Mensajes y llamadas».
+- **Instagram `@dtdcargo.ve`:**
+  - Es propiedad del portafolio «DTD Cargo».
+  - Tiene un activo conectado: la página «DTD Cargo».
+  - Esa cuenta tiene acceso parcial, que incluye Mensajes.
+- Que `@dtdcargo.ve` sea cuenta profesional se deduce de que es un perfil de Instagram de un
+  portafolio con una página conectada (I). Que tenga activado «Permitir acceso a los mensajes»
+  es NV: se ve en la app de Instagram.
+- La cuenta de Meta de Sam con la que se hizo P0 no tiene vinculado `@dtdcargo.ve` ni administra
+  la página «DTD Cargo» (R).
+
+**Qué cambia en la guía:**
+- El paso 3 ya está hecho: la página existe y está vinculada.
+- El paso 1 queda solo en el interruptor de mensajes.
+- El paso 2, pasar `@dtdcargo.ve` al portafolio «Importador de China», **ya no es necesario**.
+
+La app «Whats DTD» puede pedir acceso a la página y al Instagram de otro portafolio por OAuth (D).
+La condición es que quien inicie sesión en Chatwoot tenga control de esos activos. En Standard
+Access, además, esa persona necesita un rol en la app. Las dos rutas:
+- **(A) Recomendada:** dejar la marca DTD Cargo en su portafolio.
+  - La cuenta que administra «DTD Cargo» recibe un rol en la app Whats DTD: tester o
+    desarrollador. Es una escritura en Meta que hace Sam con OK.
+  - En P4, esa misma cuenta hace el OAuth de Messenger.
+  - Para Instagram, el OAuth lo hace `@dtdcargo.ve` con su propio usuario.
+  - No se mueve ningún activo.
+- **(B):** compartir o mover la página y el Instagram al portafolio «Importador de China».
+  - Es más cambio y mezcla dos marcas en un portafolio.
+  - Solo conviene si Sam quiere administrar todo desde uno.
+
+### Guía para Sam: tres pasos previos para la marca DTD Cargo (escrita antes de la lectura de arriba; vale la nota «Qué cambia»)
 
 Estos tres pasos los hace Sam con sus cuentas. Yo solo leo después que quedaron bien. Los
 nombres de los menús son de la interfaz en español de octubre de 2026 y pueden variar un poco (D).
@@ -247,7 +284,7 @@ evidencia», con la respuesta de TikTok. El costo es cero, porque Chatwoot ya tr
 | Puerta | Quién | Qué | ¿Escribe? |
 |---|---|---|---|
 | P0 | Sam (yo leo) | **Hecha** el 2026-10-30: ver la sección «P0». Decisión P0-b: «Las dos marcas» (Sam, 2026-10-30) | No |
-| P0-c | Sam | Marca DTD Cargo: los tres pasos previos de la guía de la sección «P0». Antes, Sam me pasa la sesión del otro Facebook para que yo lea la página o el perfil vinculado a `@dtdcargo.ve` | Meta (lo hace Sam) |
+| P0-c | Sam | Marca DTD Cargo. Lectura **hecha** el 2026-10-31: portafolio propio «DTD Cargo», con la página «DTD Cargo» conectada a `@dtdcargo.ve`. Queda activar «Permitir acceso a los mensajes» en Instagram y elegir ruta: A, rol en la app para la cuenta que administra DTD Cargo, o B, mover los activos | Meta (lo hace Sam) |
 | P1 | Sam | En TikTok: si `@dtdcargo.ve` es Business Account y si acepta DM de todos | No |
 | P2 | Sam, con OK | En la app Whats DTD: agregar los productos **Messenger** e **Instagram API with Instagram Login**; dominio `chat.dtdcargo.com`; Facebook Login for Business con `https://chat.dtdcargo.com` | Meta |
 | P3 | Sam, con OK | Cargar en Chatwoot `FB_APP_ID`, `FB_APP_SECRET`, `FB_VERIFY_TOKEN` y los tres de Instagram. Hay dos formas: Sam los pega en `/super_admin/app_config` (detrás de Access), o un guion `read -rs` que los guarda con `rails runner` sin mostrarlos. Los verify tokens los genera el guion | Chatwoot |
