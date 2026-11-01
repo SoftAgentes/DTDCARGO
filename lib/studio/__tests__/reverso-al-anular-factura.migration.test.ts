@@ -317,6 +317,64 @@ async function midnightContract(migration = FILE_0497) {
   return evidence;
 }
 
+/**
+ * D2/M4: el motivo se acota en el cuerpo. La cabecera lo restauraba sola ante un error
+ * y el cuerpo no, así que cada salida se prueba con una sesión real: begin, savepoint y
+ * rollback van por separado, sobre el fixture ya confirmado. El testigo anota el motivo
+ * visible en cada escritura y puede forzar un error justo ahí.
+ */
+const TESTIGO_MOTIVO = `
+create table public.i3b_testigo(n bigserial primary key, evento text not null, valor text);
+create function public.i3b_testigo_ver() returns trigger language plpgsql security definer set search_path = public as $t$
+begin
+  if pg_catalog.current_setting('i3b.falla', true) = tg_table_name then
+    raise exception 'I3B falla forzada';
+  end if;
+  insert into public.i3b_testigo(evento, valor)
+  values (tg_table_name || ':' || tg_op, pg_catalog.current_setting('dtd.audit_reason', true));
+  return coalesce(new, old);
+end;
+$t$;
+create trigger i3b_testigo before insert on public.journal_lines for each row execute function public.i3b_testigo_ver();
+create trigger i3b_testigo before insert on public.journal_entries for each row execute function public.i3b_testigo_ver();
+create trigger i3b_testigo before update on public.invoices for each row execute function public.i3b_testigo_ver();
+create function pg_temp.motivo_factura(p_label text, p_status text default 'emitida', p_total numeric default 100) returns uuid language sql as $f$
+  insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,
+    base_amount,iva_amount,total_amount,paid_amount,status,issued_at)
+  values(pg_temp.fixture_id('motivo-'||p_label),pg_temp.fixture_id('tenant-A'),'F-MOTIVO-'||p_label,'DTD-I3B','Cliente sintético','USD',
+    p_total,0,p_total,0,p_status::public.invoice_status,date '2026-10-10')
+  returning id
+$f$;
+create function pg_temp.motivo_post(p_label text) returns jsonb language sql as $f$
+  select pg_temp.as_actor(null, format('select public.post_invoice_journal_entry_atomic(%L::uuid,%L::uuid)',
+    pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('motivo-'||p_label)), 'service_role')
+$f$;
+create function pg_temp.motivo_anular(p_label text) returns jsonb language sql as $f$
+  select pg_temp.as_actor('accounting-A', pg_temp.void_sql('motivo-'||p_label))
+$f$;
+`;
+const ANULAR_ABIERTA = "select pg_temp.as_actor('accounting-A', pg_temp.void_sql('inv-abierta'));";
+const ANULAR_BORRADOR = "select pg_temp.as_actor('accounting-A', pg_temp.void_sql('inv-borrador'));";
+const FALLA_FORZADA = "I3B falla forzada";
+
+async function conSesion(prueba: (db: PGlite, motivo: () => Promise<string | null>) => Promise<void>) {
+  const db = new PGlite({ extensions: { pgcrypto } });
+  try {
+    const fixture = readFileSync(CONTRACT, "utf8");
+    expect(fixture.split(SEQUENTIAL_MARKER)).toHaveLength(2);
+    await db.exec(inline(CONTRACT, { apply_fix: "true" }, {
+      "0497_reverso_al_anular_factura.test.sql": fixture.slice(0, fixture.indexOf(SEQUENTIAL_MARKER)),
+    }));
+    await db.exec(TESTIGO_MOTIVO);
+    await db.exec("commit;");
+    expect(db.isInTransaction()).toBe(false);
+    await prueba(db, async () => onlyRow<string | null>(
+      await db.exec("select current_setting('dtd.audit_reason',true) as valor;"), "valor"));
+  } finally {
+    await db.close();
+  }
+}
+
 describe("SDD-0573 · 0497 reverso al anular una factura (PGlite)", () => {
   it("el contrato pasa con 0497", async () => {
     const result = await contract();
@@ -662,22 +720,172 @@ describe("SDD-0573 · 0497 reverso al anular una factura (PGlite)", () => {
     expect(FILE_0497.match(/\bset\s+"?[a-z_]\w*\.[a-z_]\w*"?\s*(=|to\b)/gi)).toBeNull();
   }, SLOW);
 
-  it("la anulación, por sus dos salidas, restaura el motivo exterior y no lo deja en los eventos", async () => {
-    const result = await contract({ probe: `
-select set_config('dtd.audit_reason','I3B motivo exterior',true);
-select pg_temp.assert_true(pg_temp.anular('accounting-A','inv-abierta')='true','anula con asiento de venta');
-select pg_temp.assert_true(current_setting('dtd.audit_reason',true)='I3B motivo exterior','con asiento: restaura el motivo exterior');
-select pg_temp.assert_true(pg_temp.anular('accounting-A','inv-borrador')='true','anula sin asiento');
-select pg_temp.assert_true(current_setting('dtd.audit_reason',true)='I3B motivo exterior','sin asiento: restaura el motivo exterior');
-select pg_temp.assert_true((select count(*) from public.entity_audit_log a
-  where a.entity_id in (pg_temp.fixture_id('inv-abierta'),pg_temp.fixture_id('inv-borrador'))
-    and a.event_type='invoice_voided' and a.reason='Factura emitida por error')=2,'cada evento lleva el motivo del documento');
-select pg_temp.assert_true(not exists(select 1 from public.entity_audit_log a where a.reason='I3B motivo exterior'),
-  'el motivo exterior no entra a ningún evento');
-select set_config('dtd.audit_reason','',true);
-` });
-    expect(result.error).toBeNull();
-  }, SLOW);
+  describe("el motivo de auditoría en cada salida", () => {
+    const MOTIVO_EXTERIOR = "I3B motivo exterior";
+    const MOTIVO_DOCUMENTO = "Factura emitida por error";
+    const exterior = `select set_config('dtd.audit_reason','${MOTIVO_EXTERIOR}',true);`;
+    const testigo = async (db: PGlite) => (await db.query<{ evento: string; valor: string | null }>(
+      "select evento, valor from public.i3b_testigo order by n")).rows.map((row) => row.evento + "=" + (row.valor ?? "NULL"));
+    const estado = async (db: PGlite, label: string) => onlyRow<string>(
+      await db.exec(`select pg_temp.estado('${label}') as valor;`), "valor");
+    const reversos = async (db: PGlite, label: string) => onlyRow<string>(await db.exec(
+      `select count(*)::text as valor from public.journal_entries where invoice_id = pg_temp.fixture_id('${label}') and source = 'invoice_reversal';`), "valor");
+    const conMotivoExterior = async (db: PGlite) => onlyRow<string>(await db.exec(
+      `select count(*)::text as valor from public.entity_audit_log where reason = '${MOTIVO_EXTERIOR}';`), "valor");
+
+    it("éxito: vuelve el valor exterior y el motivo existe solo durante el UPDATE", async () => {
+      await conSesion(async (db, motivo) => {
+        await db.exec("select pg_temp.motivo_factura('exito');");
+        await db.exec("truncate public.i3b_testigo;");
+        await db.exec("begin;");
+        await db.exec(exterior);
+        expect((onlyRow<Record<string, string>>(await db.exec("select pg_temp.motivo_post('exito') as r;"), "r")).outcome).toBe("posted");
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        expect(onlyRow<boolean>(await db.exec("select pg_temp.motivo_anular('exito') as r;"), "r")).toBe(true);
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        await db.exec(ANULAR_BORRADOR);
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        await db.exec("commit;");
+        expect(await testigo(db)).toEqual([
+          "journal_lines:INSERT=", "journal_lines:INSERT=", "journal_entries:INSERT=",
+          "journal_lines:INSERT=", "journal_lines:INSERT=", "journal_entries:INSERT=",
+          `invoices:UPDATE=${MOTIVO_DOCUMENTO}`,
+          `invoices:UPDATE=${MOTIVO_DOCUMENTO}`,
+        ]);
+        expect(await conMotivoExterior(db)).toBe("0");
+      });
+    }, SLOW);
+
+    it("éxito sin transacción abierta: el valor de la sesión sigue igual", async () => {
+      await conSesion(async (db, motivo) => {
+        await db.exec(`set dtd.audit_reason = '${MOTIVO_EXTERIOR}';`);
+        await db.exec(ANULAR_ABIERTA);
+        expect(db.isInTransaction()).toBe(false);
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        expect(await reversos(db, "inv-abierta")).toBe("1");
+        expect(await conMotivoExterior(db)).toBe("0");
+      });
+    }, SLOW);
+
+    it("retornos tempranos: no tocan el valor exterior ni escriben", async () => {
+      await conSesion(async (db, motivo) => {
+        await db.exec("begin;");
+        await db.exec(exterior);
+        await db.exec("select pg_temp.motivo_factura('borrador','borrador');");
+        await db.exec("select pg_temp.motivo_factura('cero','emitida',0);");
+        await db.exec("truncate public.i3b_testigo;");
+        const razones: Record<string, string> = {};
+        for (const [etiqueta, sql] of [
+          ["inexistente", `select pg_temp.as_actor(null, format('select public.post_invoice_journal_entry_atomic(%L::uuid,%L::uuid)',
+            pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('motivo-no-existe')), 'service_role') as r;`],
+          ["borrador", "select pg_temp.motivo_post('borrador') as r;"],
+          ["cero", "select pg_temp.motivo_post('cero') as r;"],
+        ] as const) {
+          razones[etiqueta] = (onlyRow<Record<string, string>>(await db.exec(sql), "r")).reason;
+          expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        }
+        expect(razones).toEqual({ inexistente: "invoice_unavailable", borrador: "invoice_not_postable", cero: "zero_total" });
+        expect(onlyRow<boolean>(await db.exec(
+          "select pg_temp.as_actor('accounting-A', pg_temp.void_sql('inv-pagada')) as r;"), "r")).toBe(false);
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        expect(await testigo(db)).toEqual([]);
+        await db.exec("rollback;");
+      });
+    }, SLOW);
+
+    it("cada return posterior al primer cambio del motivo restaura antes de salir", () => {
+      const RESTAURA = "perform pg_catalog.set_config('dtd.audit_reason', coalesce(v_motivo_exterior, ''), true);";
+      for (const name of ["post_invoice_journal_entry_atomic", "void_invoice_with_audit_reason"]) {
+        const cuerpo = FILE_0497.match(new RegExp(
+          "create(?: or replace)? function public\\." + name + "\\([\\s\\S]*?\\bas \\$function\\$([\\s\\S]*?)\\$function\\$;", "i"))![1];
+        const lineas = cuerpo.split("\n").map((linea) => linea.trim());
+        const primero = lineas.findIndex((linea) => linea.includes("set_config('dtd.audit_reason'"));
+        expect(primero).toBeGreaterThan(0);
+        const salidas = lineas.flatMap((linea, i) => (i > primero && /^return\b/.test(linea) ? [i] : []));
+        expect(salidas.length).toBeGreaterThan(0);
+        for (const i of salidas) expect(lineas[i - 1]).toBe(RESTAURA);
+      }
+    });
+
+    it.each([
+      ["anulación con asiento, con el motivo ya puesto", "invoices", ANULAR_ABIERTA, "inv-abierta"],
+      ["anulación sin asiento, con el motivo ya puesto", "invoices", ANULAR_BORRADOR, "inv-borrador"],
+      ["anulación con asiento, antes de poner el motivo", "journal_entries", ANULAR_ABIERTA, "inv-abierta"],
+    ])("excepción capturada con savepoint: %s", async (_name, tabla, anular, factura) => {
+      await conSesion(async (db, motivo) => {
+        const antes = await estado(db, factura);
+        await db.exec(`set i3b.falla = '${tabla}';`);
+        await db.exec("begin;");
+        await db.exec(exterior);
+        await db.exec("savepoint s;");
+        await expect(db.exec(anular)).rejects.toThrow(FALLA_FORZADA);
+        await db.exec("rollback to savepoint s;");
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        expect(await estado(db, factura)).toBe(antes);
+        expect(await reversos(db, factura)).toBe("0");
+        expect(await conMotivoExterior(db)).toBe("0");
+        await db.exec("rollback;");
+      });
+    }, SLOW);
+
+    it("excepción capturada con savepoint: asiento de venta nuevo", async () => {
+      await conSesion(async (db, motivo) => {
+        await db.exec("select pg_temp.motivo_factura('savepoint');");
+        await db.exec("set i3b.falla = 'journal_entries';");
+        await db.exec("begin;");
+        await db.exec(exterior);
+        await db.exec("savepoint s;");
+        await expect(db.exec("select pg_temp.motivo_post('savepoint');")).rejects.toThrow(FALLA_FORZADA);
+        await db.exec("rollback to savepoint s;");
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        await db.exec("rollback;");
+      });
+    }, SLOW);
+
+    it.each([
+      ["sin transacción abierta", false],
+      ["dentro de una transacción que se deshace", true],
+    ])("excepción sin capturar, %s: no queda nada en la sesión", async (_name, conTransaccion) => {
+      await conSesion(async (db, motivo) => {
+        await db.exec("set i3b.falla = 'invoices';");
+        for (const previo of [MOTIVO_EXTERIOR, ""]) {
+          await db.exec(`set dtd.audit_reason = '${previo}';`);
+          if (conTransaccion) await db.exec("begin;");
+          await expect(db.exec(ANULAR_ABIERTA)).rejects.toThrow(FALLA_FORZADA);
+          if (conTransaccion) await db.exec("rollback;");
+          expect(db.isInTransaction()).toBe(false);
+          expect(await motivo()).toBe(previo);
+          expect(onlyRow<string>(await db.exec("select current_user::text as valor;"), "valor")).toBe("postgres");
+        }
+        await db.exec("reset dtd.audit_reason;");
+        expect(await motivo() ?? "").toBe("");
+        await expect(db.exec(ANULAR_ABIERTA)).rejects.toThrow(FALLA_FORZADA);
+        expect(await motivo() ?? "").toBe("");
+        expect(await reversos(db, "inv-abierta")).toBe("0");
+      });
+    }, SLOW);
+
+    it("colisión de código: el reintento conserva el motivo exacto y restaura el exterior", async () => {
+      await conSesion(async (db, motivo) => {
+        await db.exec(`create sequence public.i3b_intentos;
+create or replace function public.next_entry_code(p_tenant_id uuid) returns text language plpgsql security definer set search_path = public as $c$
+declare n bigint := nextval('public.i3b_intentos');
+begin
+  if n <= 2 then return 'A-2026-0101'; end if;
+  return 'A-2026-0901';
+end;
+$c$;`);
+        await db.exec("begin;");
+        await db.exec(exterior);
+        await db.exec(ANULAR_ABIERTA);
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        await db.exec("commit;");
+        expect(onlyRow<string>(await db.exec("select last_value::text as valor from public.i3b_intentos;"), "valor")).toBe("3");
+        expect((await testigo(db)).filter((fila) => fila.startsWith("invoices:"))).toEqual([`invoices:UPDATE=${MOTIVO_DOCUMENTO}`]);
+        expect(await conMotivoExterior(db)).toBe("0");
+      });
+    }, SLOW);
+  });
 
   it("el preflight aborta si void_invoice_with_audit_reason no es la de la 0294", async () => {
     const antes = "    and status <> 'pagada'\n    and status <> 'anulada';";
