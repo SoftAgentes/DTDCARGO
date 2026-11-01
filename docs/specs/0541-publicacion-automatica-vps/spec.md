@@ -4,7 +4,7 @@ title: "Publicación automática de la web en el servidor propio"
 status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-10-16
-updated: 2026-10-20
+updated: 2026-11-01
 supersedes: null
 superseded_by: null
 related: ["0505"]
@@ -579,3 +579,68 @@ operativa y el recibo real 14/0 permanecen **NO EJECUTADOS**.
 El listado histórico de la SDD no amplía estas cinco rutas. El handoff inicial
 se conserva. Si un check requiere el índice generado u otra ruta, el Worker lo
 informa al Director antes de editarla.
+
+## Continuación acotada · dirección de la imagen (2026-11-01)
+
+Estado: **implementado y validado localmente; integración, instalación y encendido
+pendientes**. Registro propio:
+[handoff de la dirección](../../../.agents/handoffs/0541-imagen-softagentes.md).
+
+Medido por el Director el 2026-11-01 desde el VPS con `docker manifest inspect`:
+`ghcr.io/softagentes/dtdcargo:publicable` responde (revisión `8e9e0f505`) y
+`ghcr.io/hailuwaycom-sketch/dtdcargo` da «manifest unknown» en `:publicable` y en
+`:sha-8e9e0f505322cd57b3230cce6b16b45b5554cb8a`. Eso deja sin efecto, solo en la
+dirección de la imagen, la frase de la continuación del 2026-10-20 «el namespace
+GHCR y los workflows/promotor no cambian». La parte de las dos fuentes exactas
+sigue igual.
+
+### Contrato
+
+- Una sola dirección de imagen: `ghcr.io/softagentes/dtdcargo`, en `build-image.yml`,
+  `build-image-prueba.yml`, `publicable.mjs`, `publicar-web.sh` y staging. Sin lista
+  de direcciones ni respaldo a la vieja.
+- `FUENTE` y `FUENTE_HISTORICA` no cambian: una imagen en la dirección nueva con
+  cualquiera de los dos orígenes exactos se acepta, y cualquier otro se rechaza.
+- Lo que el servidor ya tiene con el nombre viejo sirve de vuelta atrás mientras esté
+  en el disco. Si no está, no se publica, y la limpieza no lo toca.
+- Staging rechaza una imagen de la dirección vieja.
+- Ninguna huella cambia: `compose.yml` y `.env.example` quedan fuera de esta
+  continuación, con su valor por defecto viejo, que producción no usa.
+
+No debilita las validaciones de SHA, digest, identidad, migraciones ni huellas.
+No autoriza fusionar, instalar, encender workflows ni el timer, mover etiquetas,
+tocar `PUBLICABLE_CONGELADO` ni aplicar migraciones. La ventana está en el
+[runbook](../../runbooks/publicacion-automatica-web.md#dirección-de-la-imagen--preparación-del-2026-11-01).
+
+### Aceptación de esta continuación
+
+1. [x] ROJO real: con la prueba nueva contra el script sin cambiar falla, y el
+   promotor también.
+2. [x] Verde en Linux con dobles que distinguen direcciones: `vigilar`, `publicar`
+   y `revisar` bajan y fijan la dirección nueva, con los dos orígenes.
+3. [x] Con la anterior en la dirección vieja: publica sin intentar bajarla, la vuelta
+   atrás automática y `volver` llegan a ella, y sin copia local no publica.
+4. [x] La limpieza no toca la dirección vieja. El mismo digest bajo la dirección
+   nueva cuenta como al día.
+5. [x] Candado en Vitest: todas las constantes coinciden con la del promotor, y
+   workflows, `infra/ops/web` e `infra/ops/staging` no nombran el registro viejo.
+6. [x] Mutantes de dirección, origen y limpieza muertos. Huellas idénticas antes y
+   después. `docs:check`, `sdd:check` y `git diff --check` limpios.
+7. [ ] Después del merge: V1 a V6 del runbook. V4 es lo que demuestra que
+   `GITHUB_TOKEN` puede escribir en la dirección nueva, hoy **NO VERIFICADO**.
+
+### Allowlist exclusiva de esta continuación
+
+- `.github/workflows/build-image.yml`, `.github/workflows/build-image-prueba.yml`,
+  `.github/workflows/publicable.yml`
+- `infra/ops/web/publicar-web.sh`, `infra/ops/web/publicable.mjs`
+- `infra/ops/staging/lib-prueba.sh`, `infra/ops/staging/env-prueba.sh`,
+  `infra/ops/staging/desplegar-prueba.sh`, `infra/ops/staging/verificar-aislamiento.sh`
+- `infra/ops/tests/prueba-publicar-web.sh`,
+  `infra/ops/tests/prueba-scripts-entorno-prueba.sh`,
+  `infra/ops/tests/publicable.test.mjs`
+- `infra/dtd-cargo/README.md`
+- `docs/runbooks/publicacion-automatica-web.md`, `docs/runbooks/entorno-prueba.md`,
+  `docs/runbooks/servidor-contabo.md`
+- `docs/specs/0541-publicacion-automatica-vps/spec.md`
+- `.agents/handoffs/0541-imagen-softagentes.md` (nuevo)

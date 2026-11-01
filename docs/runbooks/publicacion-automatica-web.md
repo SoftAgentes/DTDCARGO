@@ -2,7 +2,7 @@
 
 **SDD:** [0541](../specs/0541-publicacion-automatica-vps/spec.md) · depende de la
 [0505](../specs/0505-dockerizar-dtd-cargo-contabo/spec.md)
-**Estado:** INSTALADO Y ENCENDIDO el 2026-10-16 a las 14:23:41Z (timer `dtd-cargo-publicar.timer`). El registro de la instalación está al final de este runbook.
+**Estado:** INSTALADO Y ENCENDIDO el 2026-10-16 a las 14:23:41Z (timer `dtd-cargo-publicar.timer`). El registro de la instalación está al final de este runbook. **Congelado a propósito desde el 2026-10-25** (workflows apagados, timer apagado, `PUBLICABLE_CONGELADO=si`); para volver, ver [Dirección de la imagen](#dirección-de-la-imagen--preparación-del-2026-11-01).
 **Quién:**
 
 - La sesión de Contabo instala y opera en el VPS.
@@ -59,7 +59,7 @@ NO VERIFICADOS: anotar en el paso C5 cuándo vence.
 | C2 | Copiar de `M0` los scripts: `install -m 700 publicar-web.sh huellas-fuera-de-imagen.sh /srv/ops/web/`. `smoke-web.sh` ya está. La interfaz del interino se conserva: `publicar-web.sh <sha>` | `sha256sum /srv/ops/web/{publicar-web,huellas-fuera-de-imagen}.sh` igual a `git show M0:infra/ops/web/<archivo> \| sha256sum` en la máquina de la sesión |
 | C3 | Copiar las unidades: `install -m 644 dtd-cargo-publicar.service dtd-cargo-publicar.timer /etc/systemd/system/ && systemctl daemon-reload`. **No** encender todavía | `systemd-analyze verify /etc/systemd/system/dtd-cargo-publicar.service` sin errores; `systemctl is-enabled dtd-cargo-publicar.timer` → `disabled` |
 | C4 | `/srv/ops/web/publicar.env` (root, 600) con `PUBLICAR_KUMA_PUSH_URL=` pegado por Sam sin mostrarlo. Opcional: `PUBLICAR_TELEGRAM_CHAT_ID=`. Ninguna línea vacía: si no hay chat, la línea no va. Prueba de avisos, sin riesgo de publicar: `publicar-web.sh congelar "prueba de avisos"`, después `publicar-web.sh vigilar` (congelado, solo le avisa a Kuma) y `publicar-web.sh descongelar` | `stat -c '%a %U' /srv/ops/web/publicar.env` → `600 root`; `publicar-web.sh estado` → «Uptime Kuma: configurado» (y Telegram, si se cargó); el monitor de Kuma pasa a verde con «congelado: prueba de avisos»; si hay chat, llegan los mensajes de congelar y descongelar |
-| C5 | El login de GHCR | `docker pull -q ghcr.io/hailuwaycom-sketch/dtdcargo:publicable` sale 0. Anotar el vencimiento del token si se puede ver |
+| C5 | El login de GHCR | `docker pull -q ghcr.io/softagentes/dtdcargo:publicable` sale 0. Anotar el vencimiento del token si se puede ver |
 | C6 | `publicar-web.sh revisar` | Esperado: «PUERTAS: pasan». Si dice que faltan migraciones: ver C7. Si dice que los compose o el cron difieren: ver C8 |
 | C7 | Solo con la decisión B1 de Sam: `publicar-web.sh aceptar-pendiente 0422_payment_report_command_boundary` y `… 0423_payment_report_historical_identity`. **Cualquier otra que falte: parar** y avisar al Director, porque el ledger no tiene algo que `main` espera | `publicar-web.sh revisar` → la lista de faltantes ya no las nombra; `cat /srv/ops/web/estado/aceptadas.log` |
 | C8 | Si `revisar` dice que `compose.yml`, `compose.supabase.yml` o `cron/*` difieren: copiar esos archivos de `M0` a `/srv/dtd-cargo/`. Si cambió `cron/`: `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml build cron && … up -d --no-deps cron` | `publicar-web.sh revisar` → «huellas: … iguales al repo» o solo avisos |
@@ -181,6 +181,62 @@ Procedimiento revisable para **reemplazar solo el script**, todavía no ejecutad
 La restricción de merge/deploy durante el bloqueo de GitHub permanece vigente.
 No se reaplica 0495. Resultados y ownership de esta continuación:
 [handoff de identidad](../../.agents/handoffs/0541-publicacion-identidad-softagentes.md).
+
+### Dirección de la imagen · preparación del 2026-11-01
+
+**Estado: cambio y pruebas locales completos; integración, instalación y publicación pendientes.**
+El paquete se mudó con el nombre del perfil. Medido por el Director el 2026-11-01
+desde el VPS con `docker manifest inspect`: `ghcr.io/softagentes/dtdcargo:publicable`
+responde (revisión `8e9e0f505`) y `ghcr.io/hailuwaycom-sketch/dtdcargo` da «manifest
+unknown». Workflows, promotor, script, staging, pruebas y runbooks pasan a
+`ghcr.io/softagentes/dtdcargo`. Resultados: [handoff](../../.agents/handoffs/0541-imagen-softagentes.md).
+
+| Qué | Cómo queda |
+|---|---|
+| Dirección de la imagen | Una sola, `ghcr.io/softagentes/dtdcargo`. No hay lista de direcciones aceptadas ni respaldo a la vieja |
+| Origen (`org.opencontainers.image.source`) | Sigue aceptando las dos fuentes exactas. El `:publicable` de hoy es una imagen en la dirección nueva con el origen viejo, y pasa |
+| Lo que el servidor ya tiene con el nombre viejo | Sirve de vuelta atrás mientras esté en el disco, porque no hace falta bajarlo. Si no está, el script no publica: «la imagen anterior … no está en el servidor y no se pudo bajar» |
+| Limpieza | Solo borra imágenes de la dirección nueva. Las de la vieja se quedan hasta que alguien las borre a mano (unos 520 MB cada una) |
+| Huellas | Esta preparación no cambia ninguna: el sha256 de `huellas-fuera-de-imagen.sh repo . --etiqueta` es el mismo antes y después. Por eso `infra/dtd-cargo/compose.yml:47` y `.env.example:36` conservan la dirección vieja como valor por defecto. En producción no se usan, porque el script exige una línea `DTD_WEB_IMAGE` no vacía |
+
+**NO VERIFICADO: que `GITHUB_TOKEN` pueda escribir en la dirección nueva.** El
+workflow pide `packages: write`, y la última corrida en verde es del 2026-10-20,
+antes del cambio de nombre. El token de `gh` de esta máquina no tiene
+`read:packages`, así que los ajustes del paquete no se pudieron leer (HTTP 403).
+Lo demuestra el paso V4, sin riesgo para la web: si falla, no se publica nada.
+
+**No enciendas el timer antes de V5.** `:publicable` sigue en `8e9e0f505`, un
+ancestro de lo que corre hoy (`929cabf51`). El vigilante no compara antigüedad:
+publica cualquier digest distinto del que corre. Las puertas tampoco lo frenan:
+entre esos dos commits no cambian los compose ni el cron, y la última migración de
+`8e9e0f505` es la 0494, ya aplicada. La web retrocedería sola.
+
+La ventana, con `M` = un commit de `main` que ya trae este cambio. Los workflows
+corren desde `main`, así que nada de esto sirve antes del merge. Todo necesita el
+OK de Sam para esta ventana.
+
+| # | Quién | Paso | Comprobación |
+|---|---|---|---|
+| V1 | Sesión de Contabo | Lectura. La imagen que corre y la anterior están en el disco: `docker image inspect -f '{{.Id}}' "$(grep '^DTD_WEB_IMAGE=' /srv/dtd-cargo/.env \| cut -d= -f2-)"`, y lo mismo con el valor de `/srv/ops/web/estado/anterior` | Responde un id igual a `docker inspect -f '{{.Image}}' dtd-cargo-web-1`. Si la que corre no está, parar: nada se puede publicar |
+| V2 | Sesión de Contabo | Lectura. Timer apagado y congelado: `systemctl is-enabled dtd-cargo-publicar.timer`; `test -f /srv/ops/web/CONGELADO`. Si no está congelado: `publicar-web.sh congelar "instalación de la dirección softagentes"` | `disabled`, y el archivo existe |
+| V3 | Sesión de Contabo | Instalar solo `publicar-web.sh` de `M`, con los pasos 2 a 5 del [procedimiento de solo script](#compatibilidad-de-identidad--preparación-del-2026-10-20): candado, respaldo con hash, temporal root/700 y renombrado atómico. `huellas-fuera-de-imagen.sh` no cambió desde la instalación | `sha256sum /srv/ops/web/publicar-web.sh` igual a `git show M:infra/ops/web/publicar-web.sh \| sha256sum`; `sha256sum` de huellas empieza con `f813a73425fee9ff`; `publicar-web.sh estado` responde |
+| V4 | Director | `gh workflow enable build-image.yml -R SoftAgentes/DTDCARGO`, después `gh workflow run build-image.yml -R SoftAgentes/DTDCARGO --ref main` y `gh run watch <id> --exit-status`. Desde aquí cada merge a `main` arma imagen y mueve `:main`, sin tocar la web | Sale 0, y el paso «Etiquetas para el servidor» muestra las tres `org.dtdcargo.*`. En el VPS, `docker manifest inspect ghcr.io/softagentes/dtdcargo:sha-<M>` responde. Si dice `denied`: Sam, en los ajustes del paquete › Manage Actions access, le da rol Write a `DTDCARGO` |
+| V5 | Director | `gh workflow enable publicable.yml -R SoftAgentes/DTDCARGO`, `gh variable delete PUBLICABLE_CONGELADO -R SoftAgentes/DTDCARGO`, `gh workflow run publicable.yml -R SoftAgentes/DTDCARGO -f simular=true` y, si el resumen da `M`, otra vez sin `simular`. Con la variable puesta, `simular` solo responde «congelado» y no decide | El resumen dice «`:publicable` → `M`». Desde aquí la etiqueta se mueve sola con cada verde: sin el timer no publica nada |
+| V6 | Sesión de Contabo | `publicar-web.sh revisar` | «imagen: …:publicable → commit `M`», sin «no viene de» ni «no pude bajar». Mientras falten 0496 y 0497: «PUERTAS: NO · faltan en la base …», que es lo esperado |
+
+Aquí termina la ventana: el timer sigue apagado y `CONGELADO` sigue puesto. La
+publicación es otro paso, después de las migraciones y con su propio OK:
+`publicar-web.sh descongelar` y `systemctl enable --now dtd-cargo-publicar.timer`.
+
+**Marcha atrás.** Script: el paso 6 del procedimiento de solo script (el validador
+y la dirección viejos vuelven a dar «manifest unknown»). Workflows:
+`gh variable set PUBLICABLE_CONGELADO --body si -R SoftAgentes/DTDCARGO`, y
+`gh workflow disable` de los dos. Las imágenes y las etiquetas no se borran.
+
+**Staging.** Los scripts de `/srv/ops/staging/` también cambian de dirección. Se
+copian de `M` la próxima vez que se usen; no bloquean la publicación. Desde ahí no
+aceptan una imagen de la dirección vieja, así que hay que armar una con
+`build-image-prueba.yml`.
 
 Las imágenes construidas antes de la SDD-0541 no traen las etiquetas, así que el
 script no las publica: ni solo ni a mano. A una de ellas solo se vuelve con

@@ -2,7 +2,7 @@ name: Imagen Docker
 
 # SDD-0505 · construye la imagen de DTD Cargo y la publica en GHCR.
 #
-# Publica `ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha completo>` en cada push a
+# Publica `ghcr.io/softagentes/dtdcargo:sha-<sha completo>` en cada push a
 # main (y en una corrida manual) y, solo desde main, mueve también `:main`.
 # Nunca `:latest`: una etiqueta mutable sin SHA no dice qué código corre.
 #
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
-      IMAGE: ghcr.io/hailuwaycom-sketch/dtdcargo
+      IMAGE: ghcr.io/softagentes/dtdcargo
     steps:
       - name: Descargar el repositorio
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
