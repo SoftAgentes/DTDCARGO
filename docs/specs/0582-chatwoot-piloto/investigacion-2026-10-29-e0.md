@@ -249,3 +249,19 @@ Base: el análisis comparativo del Director, aprobado por Sam («aprobación del
 | V3-10 | Con la regla de la v2, un cliente cuyo único envío vivo se cancela o borra vuelve a lead y le cambian el embudo y el número | Regla de segmentos de esta spec; hallazgo de Codex | I |
 | V3-11 | `procesarEventoChatwoot` registra el evento primero y, si un manejador falla, solo avisa y responde «procesado»; el reintento se descarta como duplicado | `lib/studio/chatwoot/webhook-procesar.ts`, rama `codex/0582-e2-poc`, hallazgo de Codex comprobado por el análisis | C |
 | V3-12 | Chatwoot v4.19.1 descarta el detalle de cobro (`pricing`) que manda Meta: `process_statuses` solo guarda el estado y el error | Chatwoot `app/services/whatsapp/incoming_message_base_service.rb:51-67`, leído por el análisis y por Codex | C (Chatwoot) |
+
+## 0.8 — Decisiones de Sam y esquema de la regla de segmentos (2026-10-30)
+
+Respuestas de Sam por el selector de la app, literales, que pasó el Director (sesión «CRM Chatwoot»). El código se citó desde main `ec5786bb8`, solo lectura; no se leyó ninguna fila de la base.
+
+| ID | Afirmación | Fuente | Etiqueta |
+|---|---|---|---|
+| S08-1 | «¿Cuenta como cliente quien ya tiene carga recibida en China, aunque todavía no tenga envío creado?» → «Sí cuenta (Recomendado)» | Sam, 2026-10-30 | Decisión |
+| S08-2 | «Si a un cliente le cancelan o borran su único envío, ¿qué pasa?» → «Vuelve a lead (Recomendado)» | Sam, 2026-10-30 | Decisión |
+| S08-3 | «¿El bot responde con 1 mensaje o con 3?» → «1 mensaje (Recomendado)» | Sam, 2026-10-30 | Decisión |
+| S08-4 | Envío vivo: `deleted_at is null` y `status` fuera de `draft` y `cancelled` | `supabase/migrations/0002_shipments.sql:15-29,40,48` | C |
+| S08-5 | `warehouse_receipts_cn` solo tiene borrado suave (`deleted_at`), sus índices filtran `deleted_at is null` y el borrado gobernado pide motivo | `0008_warehouses_cn.sql:78,87-97`; `0476_borrado_embarques_recepciones.sql:671` | C |
+| S08-6 | No hay estado «anulado» en los recibos: `pendiente_consolidacion`, `consolidado` e `incidencia`. Si `incidencia` cuenta es NV para 10.1 | `0008_warehouses_cn.sql:8-12,73` | C / NV |
+| S08-7 | Los códigos de un cliente son el vigente, el historial (`client_markbox_history`) y los de las fichas fusionadas (`merged_into_client_id`); `client_outstanding` ya los junta | `0367_client_markbox_historial.sql:39`; `0341_client_merge_duplicados.sql:41,89`; `0492_client_outstanding.sql:61-63,259-290` | C |
+| S08-8 | Enmienda del 0.8: «este whatapp va ser para cliente y el numero viejo paraleeds y leed registrados con numero de markbox» | Sam, 2026-10-30, texto que pasó el Director | Decisión |
+| S08-9 | El número de clientes termina en 5202 y va en la cuenta de mensajes «DTD Cargo Clientes» (ID en la nota cifrada; huella sha256 `0c535f011d35`); el viejo termina en 8021. En Git solo van los últimos dígitos y la huella; el valor completo vive en la nota cifrada | Director, 2026-10-30; no se leyó Meta en esta tarea | NV |
