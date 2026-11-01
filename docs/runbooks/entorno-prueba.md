@@ -154,7 +154,7 @@ La puerta de prueba deja pasar solo la IP de Sam y el propio VPS. Las dos variab
 2. **Contabo.** Despliega:
 
    ```bash
-   /srv/ops/staging/desplegar-prueba.sh --project dtd-cargo-staging --sha <sha> --image ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<sha> --pr <número> --quien "<sesión>"
+   /srv/ops/staging/desplegar-prueba.sh --project dtd-cargo-staging --sha <sha> --image ghcr.io/softagentes/dtdcargo:prueba-sha-<sha> --pr <número> --quien "<sesión>"
    ```
 
    El script hace, en orden:
