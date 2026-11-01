@@ -568,6 +568,12 @@ create function public.i3_journal_entry_final()
 returns trigger language plpgsql volatile security definer set search_path = ''
 as $function$
 begin
+  -- La aserción solo cuenta asientos de venta o de reverso. Otro asiento con invoice_id,
+  -- como el de un crédito de referido, no puede cambiar su resultado.
+  if (tg_op = 'INSERT' or (old.source in ('invoice','invoice_reversal') or old.reverses_entry_id is not null) is not true)
+     and (tg_op = 'DELETE' or (new.source in ('invoice','invoice_reversal') or new.reverses_entry_id is not null) is not true) then
+    return null;
+  end if;
   if tg_op <> 'INSERT' then perform public.i3_assert_invoice_final(old.invoice_id); end if;
   if tg_op <> 'DELETE' then perform public.i3_assert_invoice_final(new.invoice_id); end if;
   return null;
@@ -578,6 +584,18 @@ create function public.i3_invoice_final()
 returns trigger language plpgsql volatile security definer set search_path = ''
 as $function$
 begin
+  -- De la factura, la aserción solo lee id, tenant_id, deleted_at y status. Un UPDATE que
+  -- no los cambia, o que mueve el estado entre los cuatro vivos, no puede romper el par.
+  -- Afirmar ahí congelaría las facturas de antes de la 0497 cuya venta no cuadra.
+  if tg_op = 'UPDATE'
+     and new.id is not distinct from old.id
+     and new.tenant_id is not distinct from old.tenant_id
+     and new.deleted_at is not distinct from old.deleted_at
+     and (new.status is not distinct from old.status
+       or (old.status::text in ('emitida','parcial','vencida','pagada')
+         and new.status::text in ('emitida','parcial','vencida','pagada'))) then
+    return null;
+  end if;
   if tg_op <> 'INSERT' then perform public.i3_assert_invoice_final(old.id); end if;
   if tg_op <> 'DELETE' then perform public.i3_assert_invoice_final(new.id); end if;
   return null;
@@ -970,8 +988,8 @@ begin
       ('public.i3_journal_entry_guard()','a82e26776290eb51e73a08392d7d51ba','plpgsql','trigger',true,'v',array['search_path=""']::text[],array[]::text[],0),
       ('public.i3_journal_line_guard()','623893ae4724af5359c820d70270c7cc','plpgsql','trigger',true,'v',array['search_path=""']::text[],array[]::text[],0),
       ('public.i3_invoice_guard()','637aaf6c7bd814b52487860345e6f0ad','plpgsql','trigger',true,'v',array['search_path=""']::text[],array[]::text[],0),
-      ('public.i3_journal_entry_final()','6c5b873a11a19f22a7ca8cee5921ca24','plpgsql','trigger',true,'v',array['search_path=""']::text[],array[]::text[],0),
-      ('public.i3_invoice_final()','8ec1d7a86931583d14e5780cdbb1dcb2','plpgsql','trigger',true,'v',array['search_path=""']::text[],array[]::text[],0),
+      ('public.i3_journal_entry_final()','4ce86c1249167255fceecffa748de3dd','plpgsql','trigger',true,'v',array['search_path=""']::text[],array[]::text[],0),
+      ('public.i3_invoice_final()','fd6fa33c6820578c0f7437f598ffb346','plpgsql','trigger',true,'v',array['search_path=""']::text[],array[]::text[],0),
       ('public.post_invoice_journal_entry_atomic(uuid,uuid)','c72a9358ec04f565a80fb822504a5629','plpgsql','jsonb',true,'v',array['search_path=""']::text[],array['p_tenant_id','p_invoice_id']::text[],0),
       ('public.void_invoice_with_audit_reason(uuid,text)','ab48314832efcf3251331617874e0a1b','plpgsql','boolean',true,'v',array['search_path=""']::text[],array['p_id','p_reason']::text[],0)
   ) pin(signature,body_md5,lang,return_type,definer,volatility,config,argnames,defaults)

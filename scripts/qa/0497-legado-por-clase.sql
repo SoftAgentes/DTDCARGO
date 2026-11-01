@@ -1,12 +1,13 @@
--- SDD-0573 · A2 · Qué facturas congelaría la 0497 · SOLO LECTURA · conteos por clase.
+-- SDD-0573 · A2 · Qué facturas no cuadran para la 0497 · SOLO LECTURA · conteos por clase.
 --
--- Desde la 0497, `i3_invoice_final_check` corre en todo UPDATE de `invoices` y, al
--- confirmar, `i3_assert_invoice_final` falla con 23514 si la factura y su venta no
--- cuadran. Una factura de antes que ya esté en ese estado no se podría actualizar más:
--- ni registrar un cobro, ni anular un recibo. Este archivo cuenta esas facturas ANTES de
--- aplicar la 0497, con la misma lógica: por eso no usa ningún objeto de la 0497.
--- `lib/studio/__tests__/reverso-al-anular-factura.migration.test.ts` compara este
--- conteo con el resultado de la función real sobre las mismas filas.
+-- Desde la 0497, `i3_invoice_final_check` llama a `i3_assert_invoice_final` cuando la
+-- factura entra o sale de `anulada` o `borrador`, cuando cambia su `deleted_at` o su
+-- tenant, y en INSERT y DELETE. La aserción falla con 23514 si la factura y su venta no
+-- cuadran. Una factura de antes en ese estado sigue aceptando un cobro o un renombre,
+-- pero no esas transiciones, y `void` y `post` piden revisión. Este archivo cuenta esas
+-- facturas ANTES de aplicar la 0497, con la misma lógica: por eso no usa ningún objeto
+-- de la 0497. `lib/studio/__tests__/reverso-al-anular-factura.migration.test.ts` compara
+-- este conteo con el resultado de la función real sobre las mismas filas.
 --
 -- SALIDA (una sola tabla): clase · estado_factura · n. Solo etiquetas y conteos: ni ids,
 -- ni códigos, ni montos, ni nombres, ni tenant. Lee filas de negocio por dentro, así que
@@ -24,7 +25,7 @@
 --     anulada_sin_reverso
 --   Mensaje «Estado de factura y par contable incompatibles.»
 --     estado_sin_venta_posible
---   Sin congelar: sana (tiene su venta y cuadra) · sin_venta (no tiene asiento de venta).
+--   Cuadran: sana (tiene su venta y cuadra) · sin_venta (no tiene asiento de venta).
 \set ON_ERROR_STOP on
 begin transaction read only;
 set local lock_timeout = '5s';

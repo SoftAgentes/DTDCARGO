@@ -783,25 +783,164 @@ $real$;`);
       });
     }, SLOW);
 
-    it("el mecanismo: tras la 0497, actualizar una factura de legado falla al confirmar", async () => {
-      await sobreFixtureSinLa0497(async (db) => {
-        await db.exec(SEMBRAR);
-        await db.exec(FILE_0497);
-        await db.exec("begin;");
-        await db.exec("update public.invoices set paid_amount = paid_amount where id = pg_temp.fixture_id('a2-anulada-v');");
-        await expect(db.exec("commit;")).rejects.toThrow("La venta original requiere revisión.");
-        await db.exec("begin;");
-        await db.exec("update public.invoices set paid_amount = paid_amount where id = pg_temp.fixture_id('a2-sana');");
-        await db.exec("commit;");
-        expect(db.isInTransaction()).toBe(false);
-      });
-    }, SLOW);
-
     it("con la 0497 aplicada, el conteo se niega en vez de contar mal", async () => {
       await sobreFixtureSinLa0497(async (db) => {
         await db.exec(FILE_0497);
         await expect(contar(db)).rejects.toThrow("Este conteo es de antes de la 0497");
         if (db.isInTransaction()) await db.exec("rollback;");
+      });
+    }, SLOW);
+
+    // Decisión de Sam, 2026-11-01: la guarda revisa cuando cambia el estado de la factura,
+    // si se borra o si se toca su asiento de venta. Una factura de antes no se congela.
+    const UNA_VENTA_ANULADA = "pg_temp.fixture_id('a2-anulada-v')";
+    const confirmar = async (db: PGlite, ...sentencias: string[]) => {
+      await db.exec("begin;");
+      for (const sentencia of sentencias) await db.exec(sentencia);
+      await db.exec("commit;");
+    };
+    const confirmarFalla = async (db: PGlite, mensaje: string, ...sentencias: string[]) => {
+      await db.exec("begin;");
+      for (const sentencia of sentencias) await db.exec(sentencia);
+      await expect(db.exec("commit;")).rejects.toThrow(mensaje);
+      expect(db.isInTransaction()).toBe(false);
+    };
+
+    it("una factura de legado acepta lo que no cambia su par", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec(`
+select pg_temp.a2_factura('credito','anulada');
+select pg_temp.a2_venta('credito',null,'anulado');
+select pg_temp.a2_buenas('credito');
+insert into public.journal_entries(id,tenant_id,entry_code,entry_date,memo,status,source,invoice_id,posted_at)
+values(pg_temp.fixture_id('a2-e-credito-r'),pg_temp.fixture_id('tenant-A'),'A-A2-CR',date '2026-10-10','Crédito sintético','asentado','referral_credit',pg_temp.fixture_id('a2-credito'),now());
+select pg_temp.a2_buenas('credito-r');`);
+        await db.exec(FILE_0497);
+        for (const label of ["anulada-v", "doble", "anulada", "tenant", "credito"]) {
+          await confirmar(db, `update public.invoices set client_markbox = 'DTD-NUEVA', paid_amount = paid_amount where id = pg_temp.fixture_id('a2-${label}');`);
+        }
+        // Un cobro mueve el estado entre los vivos. Es el hueco conocido: la venta sigue anulada.
+        await confirmar(db, `update public.invoices set paid_amount = 10, status = 'parcial' where id = ${UNA_VENTA_ANULADA};`);
+        await confirmar(db, `update public.invoices set paid_amount = 100, status = 'pagada' where id = ${UNA_VENTA_ANULADA};`);
+        expect(onlyRow<string>(await db.exec(`select status::text as valor from public.invoices where id = ${UNA_VENTA_ANULADA};`), "valor")).toBe("pagada");
+        // Anular el asiento del crédito de una factura de legado.
+        await confirmar(db, "update public.journal_entries set status = 'anulado' where id = pg_temp.fixture_id('a2-e-credito-r');");
+      });
+    }, SLOW);
+
+    it("una factura de legado sigue sin poder cambiar lo que importa", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec("select pg_temp.a2_factura('borrador-anulada','borrador'); select pg_temp.a2_venta('borrador-anulada',null,'anulado'); select pg_temp.a2_buenas('borrador-anulada');");
+        await db.exec(FILE_0497);
+        // Hacia anulada, desde borrador y hacia borrador: pasan por la aserción al confirmar.
+        await confirmarFalla(db, "La venta original requiere revisión.", `update public.invoices set status = 'anulada' where id = ${UNA_VENTA_ANULADA};`);
+        await confirmarFalla(db, "La venta original requiere revisión.", "update public.invoices set status = 'emitida' where id = pg_temp.fixture_id('a2-borrador-anulada');");
+        await confirmarFalla(db, "La venta original requiere revisión.", `update public.invoices set status = 'borrador' where id = ${UNA_VENTA_ANULADA};`);
+        // Reabrir y borrar: los frena la guarda de fila, antes de llegar al final.
+        await expect(db.exec("update public.invoices set status = 'emitida' where id = pg_temp.fixture_id('a2-anulada');"))
+          .rejects.toThrow("No se desvincula ni reabre una factura con asiento automático.");
+        await expect(db.exec(`update public.invoices set deleted_at = now() where id = ${UNA_VENTA_ANULADA};`))
+          .rejects.toThrow("No se desvincula ni reabre una factura con asiento automático.");
+        await expect(db.exec(`delete from public.invoices where id = ${UNA_VENTA_ANULADA};`))
+          .rejects.toThrow("No se desvincula ni reabre una factura con asiento automático.");
+      });
+    }, SLOW);
+
+    it("sin la guarda de fila, el final sigue frenando reabrir, borrar y cambiar de tenant", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec("select pg_temp.a2_factura('anulada-anulada','anulada'); select pg_temp.a2_venta('anulada-anulada',null,'anulado'); select pg_temp.a2_buenas('anulada-anulada');");
+        await db.exec(FILE_0497);
+        await db.exec("alter table public.invoices disable trigger i3_invoice_guard;");
+        await confirmarFalla(db, "La venta original requiere revisión.", "update public.invoices set status = 'emitida' where id = pg_temp.fixture_id('a2-anulada-anulada');");
+        await confirmarFalla(db, "La relación contable de la factura requiere revisión.", "update public.invoices set deleted_at = now() where id = pg_temp.fixture_id('a2-sana');");
+        await confirmarFalla(db, "La venta original requiere revisión.", "update public.invoices set tenant_id = pg_temp.fixture_id('tenant-B') where id = pg_temp.fixture_id('a2-sana');");
+      });
+    }, SLOW);
+
+    it("una factura sana sigue frenada al anularla sin reverso o al volverla borrador", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec(FILE_0497);
+        await confirmarFalla(db, "Una factura anulada con venta requiere su reverso íntegro.", "update public.invoices set status = 'anulada' where id = pg_temp.fixture_id('a2-sana');");
+        await confirmarFalla(db, "Estado de factura y par contable incompatibles.", "update public.invoices set status = 'borrador' where id = pg_temp.fixture_id('a2-sana');");
+      });
+    }, SLOW);
+
+    // Lo que la conducta no alcanza a mostrar: una factura recién insertada o borrada no
+    // tiene asientos que contar, y el FK impide cambiarle el id a una que los tenga. Con
+    // un espía en la aserción, se comprueba a quién llama cada operación.
+    const ESPIA = `
+create table public.i3b_espia(id uuid);
+create or replace function public.i3_assert_invoice_final(p_invoice_id uuid) returns void language sql security definer set search_path = '' as $f$
+  insert into public.i3b_espia values (p_invoice_id);
+$f$;
+alter table public.invoices disable trigger i3_invoice_guard;
+alter table public.journal_entries disable trigger i3_journal_entry_guard;
+alter table public.journal_entries drop constraint journal_entries_reverso_coherente;`;
+    const llamadas = async (db: PGlite, sentencia: string) => {
+      await db.exec("truncate public.i3b_espia;");
+      await confirmar(db, sentencia);
+      return (await db.query<{ n: number }>("select count(*)::int as n from public.i3b_espia")).rows[0].n;
+    };
+    const FACTURA = "pg_temp.fixture_id('a2-sana')";
+    const ESTADO = (label: string, status: string) =>
+      `update public.invoices set status = '${status}' where id = pg_temp.fixture_id('a2-${label}');`;
+    it.each([
+      ["INSERT", "select pg_temp.a2_factura('espia-nueva');", 1],
+      ["DELETE", "delete from public.invoices where id = pg_temp.fixture_id('a2-sin-venta');", 1],
+      ["id", `update public.invoices set id = pg_temp.fixture_id('a2-sin-venta-2') where id = pg_temp.fixture_id('a2-espia-sin-venta');`, 2],
+      ["tenant", `update public.invoices set tenant_id = pg_temp.fixture_id('tenant-B') where id = ${FACTURA};`, 2],
+      ["deleted_at", `update public.invoices set deleted_at = now() where id = ${FACTURA};`, 2],
+      ["emitida a anulada", ESTADO("sana", "anulada"), 2],
+      ["emitida a borrador", ESTADO("sana", "borrador"), 2],
+      ["anulada a emitida", ESTADO("anulada", "emitida"), 2],
+      ["borrador a emitida", ESTADO("estado", "emitida"), 2],
+      ["borrador a anulada", ESTADO("estado", "anulada"), 2],
+      ["anulada a borrador", ESTADO("anulada", "borrador"), 2],
+      ["otra columna", `update public.invoices set paid_amount = 1 where id = ${FACTURA};`, 0],
+      ["sin cambio de estado en una anulada", "update public.invoices set paid_amount = 1 where id = pg_temp.fixture_id('a2-anulada');", 0],
+      ["emitida a parcial", ESTADO("sana", "parcial"), 0],
+      ["emitida a pagada", ESTADO("sana", "pagada"), 0],
+      ["emitida a vencida", ESTADO("sana", "vencida"), 0],
+    ])("el filtro de la factura: %s", async (_name, sentencia, esperadas) => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec("select pg_temp.a2_factura('espia-sin-venta');");
+        await db.exec(FILE_0497);
+        await db.exec(ESPIA);
+        expect(await llamadas(db, sentencia)).toBe(esperadas);
+      });
+    }, SLOW);
+
+    const ASIENTO = (label: string, source: string, reverso = "null") => `insert into public.journal_entries
+      (id,tenant_id,entry_code,entry_date,memo,status,source,invoice_id,reverses_entry_id,posted_at)
+      values(pg_temp.fixture_id('a2-esp-${label}'),pg_temp.fixture_id('tenant-A'),'A-ESP-${label}',date '2026-10-10','Espía','asentado','${source}',
+        pg_temp.fixture_id('a2-sana'),${reverso},now());`;
+    const VENTA_SANA = "pg_temp.fixture_id('a2-e-sana')";
+    it.each([
+      ["insertar una venta", ASIENTO("v", "invoice"), 1],
+      ["insertar un reverso", ASIENTO("r", "invoice_reversal"), 1],
+      ["insertar con reverses_entry_id", ASIENTO("c", "manual", VENTA_SANA), 1],
+      ["insertar un manual", ASIENTO("m", "manual"), 0],
+      ["insertar un crédito", ASIENTO("x", "referral_credit"), 0],
+      ["tocar una venta", `update public.journal_entries set memo = 'x' where id = ${VENTA_SANA};`, 2],
+      ["borrar una venta", `delete from public.journal_entries where id = ${VENTA_SANA};`, 1],
+      ["una venta deja de serlo", `update public.journal_entries set source = 'manual' where id = ${VENTA_SANA};`, 2],
+      ["un manual pasa a venta", "update public.journal_entries set source = 'invoice' where id = pg_temp.fixture_id('a2-esp-previo');", 2],
+      ["un manual deja de tener reverses_entry_id", "update public.journal_entries set reverses_entry_id = null where id = pg_temp.fixture_id('a2-esp-previo-r');", 2],
+      ["un manual pasa a tener reverses_entry_id", `update public.journal_entries set reverses_entry_id = ${VENTA_SANA} where id = pg_temp.fixture_id('a2-esp-previo');`, 2],
+      ["tocar un manual", "update public.journal_entries set memo = 'x' where id = pg_temp.fixture_id('a2-esp-previo');", 0],
+      ["borrar un manual", "delete from public.journal_entries where id = pg_temp.fixture_id('a2-esp-previo');", 0],
+    ])("el filtro del asiento: %s", async (_name, sentencia, esperadas) => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec(FILE_0497);
+        await db.exec(ESPIA);
+        await db.exec(ASIENTO("previo", "manual") + ASIENTO("previo-r", "manual", "pg_temp.fixture_id('a2-e-anulada')"));
+        expect(await llamadas(db, sentencia)).toBe(esperadas);
       });
     }, SLOW);
   });
