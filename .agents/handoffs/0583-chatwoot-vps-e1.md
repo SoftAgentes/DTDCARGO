@@ -100,7 +100,8 @@ Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar. Le expliqué 
   - `rails` y `sidekiq` recreados y sanos.
   - Correo de prueba aceptado por Hostinger a las 22:31:31Z. Sam confirmó que llegó a Recibidos de `hailuway.com@gmail.com`.
   - Sin probar todavía: los correos propios de Chatwoot (restablecer contraseña, invitación). Se prueban al invitar al primer agente.
-- Tras las 72 h (2026-11-01 ~16:00Z): `vigilar.sh --resumen --desde 2026-10-29T15:55:00Z` → fila 1.6, con el criterio corregido (contra la línea base, no un número fijo).
+- Tras las 72 h (2026-11-01 ~16:00Z): `vigilar.sh --resumen --desde 2026-10-29T15:55:00Z` → fila 1.6, con el criterio corregido (contra la línea base, no un número fijo). Sumar las medidas de capacidad del runbook `chatwoot-vigilancia.md` §4 (`nproc`, sesiones SSH colgadas, límites de CPU por contenedor), solo lectura.
+  - Riesgo de capacidad del VPS compartido (observación del Director, 2026-10-30): load average 8,90 / 9,16 / 8,63 con 33 sesiones en `who` a las 14:35 hora del VPS. Memoria: 24 GB, 13,7 disponibles. Arriba en CPU: cadvisor (38 %), varios api-gw (15–25 %) y dtd-cargo-staging-db (15 %); Chatwoot no aparecía. Un `rails runner` de más de 180 s. Timeouts de SSH a las 05:19Z y a las 14:36 hora del VPS, más un `RedisClient::ReadTimeoutError` de sidekiq a las 05:19Z que se recuperó solo. (I) La carga viene de otros proyectos y de las sesiones abiertas, no de Chatwoot. No se mató ni cambió nada: requiere OK de Sam.
 - ~~`/super_admin` con Cloudflare Access~~ hecho el 2026-10-29 («Confirmo Access»), runbook §4.1.
 - ~~Marca de DTD en Chatwoot~~ **hecha el 2026-10-29** («Autorizo la marca»): título «DTD Cargo», ícono y logos de DTD (claro y oscuro según `BRAND.md`), pantalla de entrada en español, sin «Chatwoot» visible (T-27 a T-29; runbook §6 bis). Queda en la edición CE el «Powered by Chatwoot» del widget y de los correos, y la etiqueta «E-mail» de la traducción de Chatwoot.
 
