@@ -18,8 +18,10 @@
  *      aplicar.sh y el cuerpo vivo de next_entry_code.
  *   5. Las RPC como `authenticated` y `service_role` sobre el esquema completo. Conviven
  *      con invoices_seal_billing_titular, invoices_referral_sale_voided, referrals_candado_trg
- *      e invoices_write_version. Incluye cobro, crédito, renombre, salidas con excepción
- *      y las filas de legado.
+ *      e invoices_write_version. Incluye cobro, crédito, renombre y salidas con excepción.
+ *      Las filas de legado pasan por cada camino que escribe una factura anulada: renombre,
+ *      lote de renombre, anular un recibo, revertir un crédito y anular el asiento del
+ *      crédito. Lo que la guarda sigue frenando se comprueba con su error.
  *   6. Los contratos de 0496 y 0497 en una base nueva, como `postgres`.
  *
  * Límites: tablas casi vacías, sin concurrencia, Auth y Storage son los stubs del repo, sin
@@ -80,9 +82,11 @@ function sql(texto, { rol = "postgres", db = "postgres" } = {}) {
 // ── Filas sembradas ANTES de la 0497 ───────────────────────────────────────────────
 const ID_CONTABLE = "05730000-0000-4000-8000-000000000001";
 const ID_COMERCIAL = "05730000-0000-4000-8000-000000000002";
+const ID_ADMIN = "05730000-0000-4000-8000-000000000003";
 const SEMBRAR_AUTH = `insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, raw_app_meta_data) values
   ('${ID_CONTABLE}','00000000-0000-0000-0000-000000000000','authenticated','authenticated','contabilidad@prueba.example.test','{}','{}'),
-  ('${ID_COMERCIAL}','00000000-0000-0000-0000-000000000000','authenticated','authenticated','comercial@prueba.example.test','{}','{}');`;
+  ('${ID_COMERCIAL}','00000000-0000-0000-0000-000000000000','authenticated','authenticated','comercial@prueba.example.test','{}','{}'),
+  ('${ID_ADMIN}','00000000-0000-0000-0000-000000000000','authenticated','authenticated','admin@prueba.example.test','{}','{}');`;
 const TENANT = "(select id from public.tenants where slug = 'dtd')";
 const CUENTA = (code) => `(select id from public.accounts where tenant_id = ${TENANT} and code = '${code}')`;
 const FACTURA = (label, markbox, status, total = 100, iva = 0) => `insert into public.invoices
@@ -96,13 +100,17 @@ insert into public.journal_lines (entry_id,account_id,debit,credit,line_memo) va
   (md5('m1-e-${entry}')::uuid,${CUENTA("4.5")},0,100,'Sintética');`;
 const CLIENTE = (label) => `insert into public.clients (id,tenant_id,markbox,name)
   values (md5('m1-c-${label}')::uuid,${TENANT},'M1-${label}','Cliente PRUEBA ${label}');`;
+const COMO_CONTABLE = `set local role authenticated; select set_config('request.jwt.claim.sub','${ID_CONTABLE}',true);`;
+const COMO_COMERCIAL = `set local role authenticated; select set_config('request.jwt.claim.sub','${ID_COMERCIAL}',true);`;
+const COMO_ADMIN = `set local role authenticated; select set_config('request.jwt.claim.sub','${ID_ADMIN}',true);`;
 const SEMBRAR = `begin;
 insert into public.user_profiles (user_id,first_name,last_name) values
-  ('${ID_CONTABLE}','Contabilidad','PRUEBA'), ('${ID_COMERCIAL}','Comercial','PRUEBA')
+  ('${ID_CONTABLE}','Contabilidad','PRUEBA'), ('${ID_COMERCIAL}','Comercial','PRUEBA'), ('${ID_ADMIN}','Admin','PRUEBA')
   on conflict (user_id) do nothing;
 insert into public.user_tenants (user_id,tenant_id,role) values
-  ('${ID_CONTABLE}',${TENANT},'accounting'), ('${ID_COMERCIAL}',${TENANT},'commercial');
-${["A", "B", "C", "D", "E", "L"].map(CLIENTE).join("\n")}
+  ('${ID_CONTABLE}',${TENANT},'accounting'), ('${ID_COMERCIAL}',${TENANT},'commercial'), ('${ID_ADMIN}',${TENANT},'admin');
+${["A", "B", "C", "D", "E", "F", "G", "L"].map(CLIENTE).join("\n")}
+insert into public.clients (id,tenant_id,markbox,name) values (md5('m1-c-Z')::uuid,${TENANT},'DTD-Z1','Cliente PRUEBA legado');
 ${FACTURA("l1", "M1-L", "emitida")}
 ${VENTA("l1", "l1", "anulado")}
 ${FACTURA("l2", "M1-L", "anulada")}
@@ -110,11 +118,36 @@ ${VENTA("l2", "l2")}
 ${FACTURA("l3", "M1-L", "emitida")}
 ${VENTA("l3", "l3-1")}
 ${VENTA("l3", "l3-2")}
+${FACTURA("lz", "DTD-Z1", "anulada")}
+${VENTA("lz", "lz", "anulado")}
+commit;
+-- venta_anulada|anulada, armada como se armó en producción: con cobro y con crédito vivos,
+-- anulada con la RPC de la 0294 y con su venta anulada a mano desde el Libro diario.
+insert into public.referrals (id,tenant_id,referral_code,referrer_client_id,referrer_markbox,referred_name,referred_client_id,status)
+  values (md5('m1-r3')::uuid,${TENANT},'M1-R3',md5('m1-c-F')::uuid,'M1-F','Referido PRUEBA 3',md5('m1-c-G')::uuid,'registrado');
+${FACTURA("lgv", "M1-G", "emitida")}
+${FACTURA("la", "M1-F", "emitida", 200)}
+insert into public.journal_entries (id,tenant_id,entry_code,entry_date,memo,status,source,invoice_id,posted_at)
+  values (md5('m1-e-la')::uuid,${TENANT},'M1-la',current_date,'Venta sintética','asentado','invoice',md5('m1-la')::uuid,now());
+insert into public.journal_lines (entry_id,account_id,debit,credit,line_memo) values
+  (md5('m1-e-la')::uuid,${CUENTA("1.1.2")},200,0,'Sintética'), (md5('m1-e-la')::uuid,${CUENTA("4.5")},0,200,'Sintética');
+begin; ${COMO_CONTABLE}
+select public.register_collection_receipt(md5('m1-la')::uuid,40,${CUENTA("1.1.1.1")},'transferencia',current_date,'M1-LA',null,'cliente',null,null,true);
+select public.apply_referral_credit(md5('m1-r3')::uuid,md5('m1-la')::uuid);
+commit;
+insert into public.journal_entries (id,tenant_id,entry_code,entry_date,memo,status,source,invoice_id,referral_id,posted_at)
+  values (md5('m1-e-la-cr')::uuid,${TENANT},'M1-la-cr',current_date,'Crédito sintético','asentado','referral_credit',md5('m1-la')::uuid,md5('m1-r3')::uuid,now());
+insert into public.journal_lines (entry_id,account_id,debit,credit,line_memo) values
+  (md5('m1-e-la-cr')::uuid,${CUENTA("4.5")},80,0,'Sintética'), (md5('m1-e-la-cr')::uuid,${CUENTA("1.1.2")},0,80,'Sintética');
+begin; ${COMO_CONTABLE}
+select public.void_invoice_with_audit_reason(md5('m1-la')::uuid,'Motivo M1 de legado');
+commit;
+begin;
+select set_config('dtd.audit_reason','Motivo M1 del Libro diario',true);
+update public.journal_entries set status = 'anulado' where id = md5('m1-e-la')::uuid;
 commit;`;
 
 // ── Después de la 0497. Cada sección se abre con su marca y se compara abajo ───────
-const COMO_CONTABLE = `set local role authenticated; select set_config('request.jwt.claim.sub','${ID_CONTABLE}',true);`;
-const COMO_COMERCIAL = `set local role authenticated; select set_config('request.jwt.claim.sub','${ID_COMERCIAL}',true);`;
 const POST = (label) => `begin; set local role service_role;
 select public.post_invoice_journal_entry_atomic(${TENANT},md5('m1-${label}')::uuid);
 commit;`;
@@ -276,22 +309,90 @@ reset dtd.audit_reason;
 ${VOID("l1")}
 \\echo @@l_post_venta_anulada
 ${POST("l1")}
-\\echo @@l_cobro_congelado
+\\echo @@l_cobro_hueco_conocido
 begin; ${COMO_CONTABLE}
 select public.register_collection_receipt(md5('m1-l1')::uuid,10,${CUENTA("1.1.1.1")},'transferencia',current_date,'M1',null,'cliente',null,null,true);
 commit;
-select paid_amount, (select count(*) from public.payment_receipts where invoice_id = md5('m1-l1')::uuid) from public.invoices where id = md5('m1-l1')::uuid;
-\\echo @@l_renombre_congelado
+select status, paid_amount, (select count(*) from public.payment_receipts where invoice_id = md5('m1-l1')::uuid and deleted_at is null) from public.invoices where id = md5('m1-l1')::uuid;
+\\echo @@l_cobro_hasta_pagada
+begin; ${COMO_CONTABLE}
+select public.register_collection_receipt(md5('m1-l1')::uuid,90,${CUENTA("1.1.1.1")},'transferencia',current_date,'M1',null,'cliente',null,null,true);
+commit;
+select i.status, i.paid_amount, e.status from public.invoices i join public.journal_entries e on e.invoice_id = i.id and e.source = 'invoice' where i.id = md5('m1-l1')::uuid;
+\\echo @@l_renombre_legado
 begin; ${COMO_COMERCIAL}
 select public.rename_client_markbox(md5('m1-c-L')::uuid,'M1-L2','Motivo M1 del renombre');
 commit;
 select client_markbox from public.invoices where id = md5('m1-l1')::uuid;
-\\echo @@l_dos_ventas_congelada
+select client_markbox from public.invoices where id = md5('m1-l2')::uuid;
+\\echo @@l_dos_ventas_otra_columna
 update public.invoices set notes = 'M1' where id = md5('m1-l3')::uuid;
+select notes from public.invoices where id = md5('m1-l3')::uuid;
 \\echo @@l_anulada_sin_reverso_void
 ${VOID("l2")}
-\\echo @@l_anulada_sin_reverso_update
+\\echo @@l_anulada_sin_reverso_otra_columna
 update public.invoices set notes = 'M1' where id = md5('m1-l2')::uuid;
+select notes from public.invoices where id = md5('m1-l2')::uuid;
+
+\\echo @@la_clase
+select i.status, e.status from public.invoices i join public.journal_entries e on e.invoice_id = i.id and e.source = 'invoice' where i.id = md5('m1-la')::uuid;
+select status, paid_amount from public.invoices where id = md5('m1-la')::uuid;
+\\echo @@la_renombrar
+begin; ${COMO_COMERCIAL}
+select public.rename_client_markbox(md5('m1-c-F')::uuid,'M1-F2','Motivo M1 del renombre');
+commit;
+select client_markbox, status from public.invoices where id = md5('m1-la')::uuid;
+\\echo @@la_anular_recibo
+select id as recibo_la from public.payment_receipts where invoice_id = md5('m1-la')::uuid and deleted_at is null \\gset
+begin; ${COMO_CONTABLE}
+select public.void_collection_receipt(:'recibo_la'::uuid,'Motivo M1 del recibo');
+commit;
+select status, paid_amount from public.invoices where id = md5('m1-la')::uuid;
+\\echo @@la_revertir_credito
+begin; ${COMO_CONTABLE}
+select public.revert_referral_credits(md5('m1-la')::uuid,md5('m1-r3')::uuid);
+commit;
+select status, paid_amount from public.invoices where id = md5('m1-la')::uuid;
+select status from public.referrals where id = md5('m1-r3')::uuid;
+\\echo @@la_anular_asiento_credito
+begin; set local role service_role;
+update public.journal_entries set status = 'anulado' where id = md5('m1-e-la-cr')::uuid;
+commit;
+select status from public.journal_entries where id = md5('m1-e-la-cr')::uuid;
+\\echo @@lz_lote_legado
+begin; ${COMO_ADMIN}
+select public.rename_legacy_markboxes(10,false,'Motivo M1 del lote');
+commit;
+select client_markbox from public.invoices where id = md5('m1-lz')::uuid;
+select markbox from public.clients where id = md5('m1-c-Z')::uuid;
+
+-- Lo que la guarda sigue frenando, sobre el esquema completo y con el rol real.
+${FACTURA("g1", "M1-A", "emitida")}
+${POST("g1")}
+\\echo @@g_sana_a_anulada_sin_reverso
+begin;
+update public.invoices set status = 'anulada' where id = md5('m1-g1')::uuid;
+commit;
+\\echo @@g_sana_a_borrador
+begin;
+update public.invoices set status = 'borrador' where id = md5('m1-g1')::uuid;
+commit;
+\\echo @@g_legado_a_anulada
+begin;
+update public.invoices set status = 'anulada' where id = md5('m1-l3')::uuid;
+commit;
+\\echo @@g_anulada_reabrir
+update public.invoices set status = 'emitida' where id = md5('m1-la')::uuid;
+\\echo @@g_borrar
+update public.invoices set deleted_at = now() where id = md5('m1-g1')::uuid;
+\\echo @@g_delete
+delete from public.invoices where id = md5('m1-g1')::uuid;
+\\echo @@g_tenant
+update public.invoices set tenant_id = gen_random_uuid() where id = md5('m1-g1')::uuid;
+\\echo @@g_asiento_inmutable
+update public.journal_entries set memo = 'Otro' where id = (select id from public.journal_entries where invoice_id = md5('m1-g1')::uuid and source = 'invoice');
+\\echo @@g_sigue_sana
+select status, deleted_at is null, paid_amount from public.invoices where id = md5('m1-g1')::uuid;
 \\echo @@fin
 `;
 
@@ -331,11 +432,27 @@ const ESPERADO = [
   ["e_exito_conserva_sesion", /COMMIT[\s\S]*M1 sesion\|0/, /ERROR/, "éxito: queda el valor de la sesión y no entra a ningún evento"],
   ["l_void_venta_anulada", /Los antecedentes de venta requieren revisión/, null, "legado, venta anulada: void lo rechaza"],
   ["l_post_venta_anulada", /"reason": "existing_sale_requires_review"/, /ERROR/, "legado, venta anulada: post pide revisión"],
-  ["l_cobro_congelado", /ERROR:\s+La venta original requiere revisión[\s\S]*0\.00\|0/, null, "A2: un cobro sobre esa factura falla al confirmar y no deja nada"],
-  ["l_renombre_congelado", /ERROR:\s+La (venta original|relación contable)[\s\S]*M1-L\b/, null, "A2: renombrar al cliente falla al confirmar y no deja nada"],
-  ["l_dos_ventas_congelada", /La relación contable de la factura requiere revisión/, null, "A2: factura con dos ventas congelada"],
+  ["l_cobro_hueco_conocido", /COMMIT[\s\S]*parcial\|10\.00\|1/, /ERROR/, "hueco conocido: una emitida con la venta anulada se puede cobrar"],
+  ["l_cobro_hasta_pagada", /COMMIT[\s\S]*pagada\|100\.00\|anulado/, /ERROR/, "hueco conocido: esa factura llega a pagada con la venta anulada"],
+  ["l_renombre_legado", /COMMIT[\s\S]*M1-L2\nM1-L2/, /ERROR/, "legado: renombrar a su cliente ya no falla"],
+  ["l_dos_ventas_otra_columna", /UPDATE 1[\s\S]*M1/, /ERROR/, "legado con dos ventas: otra columna ya no falla"],
   ["l_anulada_sin_reverso_void", /\nf\n/, /ERROR/, "legado, anulada sin reverso: void devuelve false"],
-  ["l_anulada_sin_reverso_update", /Una factura anulada con venta requiere su reverso íntegro/, null, "A2: anulada sin reverso congelada"],
+  ["l_anulada_sin_reverso_otra_columna", /UPDATE 1[\s\S]*M1/, /ERROR/, "legado, anulada sin reverso: otra columna ya no falla"],
+  ["la_clase", /anulada\|anulado[\s\S]*anulada\|120\.00/, null, "la fila venta_anulada|anulada, con cobro y crédito vivos"],
+  ["la_renombrar", /COMMIT[\s\S]*M1-F2\|anulada/, /ERROR/, "venta_anulada|anulada: rename_client_markbox pasa"],
+  ["la_anular_recibo", /COMMIT[\s\S]*anulada\|80\.00/, /ERROR/, "venta_anulada|anulada: void_collection_receipt pasa, baja el pagado y no la revive"],
+  ["la_revertir_credito", /COMMIT[\s\S]*anulada\|0\.00[\s\S]*acreditado/, /ERROR/, "venta_anulada|anulada: revert_referral_credits pasa"],
+  ["la_anular_asiento_credito", /COMMIT[\s\S]*anulado/, /ERROR/, "venta_anulada|anulada: anular el asiento referral_credit pasa"],
+  ["lz_lote_legado", /COMMIT[\s\S]*DTD-8\d{3}\nDTD-8\d{3}/, /ERROR/, "venta_anulada|anulada: rename_legacy_markboxes pasa"],
+  ["g_sana_a_anulada_sin_reverso", /ERROR:\s+Una factura anulada con venta requiere su reverso íntegro/, null, "sigue frenando: anular sin reverso"],
+  ["g_sana_a_borrador", /ERROR:\s+Estado de factura y par contable incompatibles/, null, "sigue frenando: volver a borrador con venta"],
+  ["g_legado_a_anulada", /ERROR:\s+La relación contable de la factura requiere revisión/, null, "sigue frenando: legado con dos ventas hacia anulada"],
+  ["g_anulada_reabrir", /No se desvincula ni reabre/, null, "sigue frenando: reabrir una anulada"],
+  ["g_borrar", /No se desvincula ni reabre/, null, "sigue frenando: borrar con deleted_at"],
+  ["g_delete", /No se desvincula ni reabre/, null, "sigue frenando: DELETE"],
+  ["g_tenant", /No se desvincula ni reabre/, null, "sigue frenando: cambiar de tenant"],
+  ["g_asiento_inmutable", /El asiento automático es inmutable/, null, "sigue frenando: tocar el asiento de venta"],
+  ["g_sigue_sana", /emitida\|t\|0\.00/, null, "ningún intento frenado dejó rastro en la factura"],
 ];
 
 function secciones(texto) {
@@ -400,8 +517,8 @@ try {
   const conteo = docker(["exec", NOMBRE, "psql", "-U", "postgres", "-d", "postgres", "-X", "-At", "-F", "|", "-f",
     copiar("conteo.sql", readFileSync(resolve(ROOT, "scripts/qa/0497-legado-por-clase.sql"), "utf8"))]);
   const filasConteo = (conteo.stdout || "").split("\n").filter((l) => /^[a-z_0-9]+\|[a-z]+\|\d+$/.test(l)).sort();
-  const conteoEsperado = ["anulada_sin_reverso|anulada|1", "dos_o_mas_ventas|emitida|1", "venta_anulada|emitida|1"];
-  if (conteo.status === 0 && JSON.stringify(filasConteo) === JSON.stringify(conteoEsperado)) ok("el conteo por clase ve las tres filas de legado");
+  const conteoEsperado = ["anulada_sin_reverso|anulada|1", "dos_o_mas_ventas|emitida|1", "sin_venta|emitida|1", "venta_anulada|anulada|2", "venta_anulada|emitida|1"];
+  if (conteo.status === 0 && JSON.stringify(filasConteo) === JSON.stringify(conteoEsperado)) ok("el conteo por clase ve las filas de legado");
   else ko("conteo por clase", `${filasConteo.join("\n")}\n${conteo.stderr || ""}`);
 
   for (const m of [M0496, M0497]) {
@@ -436,6 +553,27 @@ try {
     if (s === undefined) ko(`${etiqueta}: la sección no corrió`);
     else if (debe.test(s) && !(noDebe && noDebe.test(s))) ok(texto);
     else ko(`${texto} (${etiqueta})`, s);
+  }
+
+  // La alarma del hueco conocido: el B3 de la radiografía tiene que ver esa factura. Se corre
+  // con la venta anulada y otra vez con la venta viva: la diferencia es esa fila y nada más.
+  const rutaRadiografia = copiar("radiografia.sql", readFileSync(resolve(ROOT, "scripts/qa/radiografia-integridad.sql"), "utf8"));
+  const facturasB3 = () => {
+    const r = docker(["exec", NOMBRE, "psql", "-U", "postgres", "-d", "postgres", "-X", "-q", "-A", "-F", "|", "-P", "footer=off",
+      "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=terse", "-v", "SHOW_CONTEXT=never", "-f", rutaRadiografia]);
+    const fila = (r.stdout || "").split("\n").find((l) => l.startsWith("50|"));
+    return { status: r.status, n: fila ? Number(fila.split("|")[3]) : null, err: r.stderr || "" };
+  };
+  const conVentaAnulada = facturasB3();
+  sql("alter table public.journal_entries disable trigger i3_journal_entry_guard");
+  const revivir = sql("update public.journal_entries set status = 'asentado', posted_at = now() where id = md5('m1-e-l1')::uuid");
+  sql("alter table public.journal_entries enable trigger i3_journal_entry_guard");
+  const conVentaViva = facturasB3();
+  if (conVentaAnulada.status === 0 && conVentaViva.status === 0 && revivir.status === 0
+      && conVentaAnulada.n !== null && conVentaAnulada.n - conVentaViva.n === 1) {
+    ok(`la radiografía corre con la 0497 y su B3 ve la factura viva con la venta anulada (${conVentaAnulada.n} con ella, ${conVentaViva.n} sin ella)`);
+  } else {
+    ko("la radiografía no ve el hueco conocido: no hay alarma", `con la venta anulada: ${conVentaAnulada.n} ${conVentaAnulada.err}\ncon la venta viva: ${conVentaViva.n} ${conVentaViva.err}\n${revivir.err}`);
   }
 
   for (const test of [`${M0496}.test.sql`, `${M0497}.test.sql`]) {

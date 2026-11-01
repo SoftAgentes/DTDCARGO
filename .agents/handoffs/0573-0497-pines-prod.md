@@ -90,15 +90,15 @@ Nueve mutantes, con el pin recalculado para que no mueran por el pin: todos muer
 
 ### 3b. La clase de fallo: 0496 y 0497 con el rol real, sobre el esquema completo
 
-PGlite y `postgres:17` corren como superusuario, y el contrato de la 0497 carga un subconjunto de migraciones (sin 0197, 0466, 0494 ni 0495). `infra/ops/tests/prueba-0497-rol-real.mjs` cubre las dos cosas. Es corrida pesada, no entra al CI y da 54 de 54 con la imagen de producción `supabase/postgres:17.6.1.136`, sin red. Rol `postgres`: `super=false`, `createrole=true`, `createdb=true`, `bypassrls=true`, sin SET sobre el parámetro. Las esperas 0422 y 0423 no se aplican, como en producción.
+PGlite y `postgres:17` corren como superusuario, y el contrato de la 0497 carga un subconjunto de migraciones (sin 0197, 0466, 0494 ni 0495). `infra/ops/tests/prueba-0497-rol-real.mjs` cubre las dos cosas. Es corrida pesada, no entra al CI y da 71 de 71 con la imagen de producción `supabase/postgres:17.6.1.136`, sin red. Rol `postgres`: `super=false`, `createrole=true`, `createdb=true`, `bypassrls=true`, sin SET sobre el parámetro. Las esperas 0422 y 0423 no se aplican, como en producción.
 
 | Capa | Resultado |
 |---|---|
 | Reconstrucción como `postgres` hasta la 0495 | PASÓ, 469 migraciones en unos 20 s |
 | **Control en rojo:** un parámetro propio en la cabecera | `permission denied to set parameter "dtd.audit_reason"`. La prueba detecta la clase |
-| 0496: previa, apply, verificación del paquete real | PASÓ; apply 328 ms |
+| 0496: previa, apply, verificación del paquete real | PASÓ; apply 504 ms |
 | `next_entry_code` con el cuerpo vivo | md5 `06b5756a18361fc4d85cec6f6dc4b3bc` |
-| 0497: previa, apply, verificación del paquete real | PASÓ; apply 376 ms |
+| 0497: previa, apply, verificación del paquete real | PASÓ; apply 485 ms |
 | Funciones con parámetro propio en la cabecera | 0 |
 | Contrato 0496 y contrato 0497, en base nueva, como `postgres` | PASÓ, 102 y 144 aserciones |
 
@@ -125,26 +125,62 @@ PGlite y `postgres:17` corren como superusuario, y el contrato de la 0497 carga 
 - **Las carreras no corren con el rol real:** su guarda exige que `anon`, `authenticated` y `service_role` no existan, y en esta imagen existen. Corren en `postgres:17` como superusuario.
 - Auth y Storage son los stubs del repo, no GoTrue ni storage-api. No hay PostgREST: las RPC se llaman por SQL.
 
-### 3c. A2: las guardas congelan facturas de antes
+### 3c. A2: las guardas congelaban facturas de antes
 
-Hallazgo de la revisión independiente. **Mecanismo verificado; si existen en producción, no se sabe.** `i3_invoice_final_check` corre en todo UPDATE de `invoices` y falla al confirmar con 23514 si la factura y su venta no cuadran. Medido en la imagen real, con filas de legado sembradas antes de la 0497:
+Hallazgo de la revisión independiente: `i3_invoice_final_check` corría en todo UPDATE de `invoices` y fallaba al confirmar si la factura y su venta no cuadraban. Un cobro o un renombre de marca sobre una de esas facturas fallaba sin camino de reparación. Medido en la imagen real con filas sembradas.
 
-| Sobre una factura de legado | Resultado |
+**Conteo en producción.** `scripts/qa/0497-legado-por-clase.sql` sale de la lógica real de `i3_assert_invoice_final`, y una prueba lo compara con la función real sobre las mismas filas. Sam autorizó, literal: «Sí, solo conteos (Recomendado)», contar por tipo las facturas viejas con el asiento en mal estado, solo números, sin filas, sin montos y sin clientes. Lo corrió el Director el 2026-11-01 a las 18:30Z, sobre `66b755c13`, en solo lectura:
+
+| Clase | Estado de la factura | n |
+|---|---|---:|
+| `sin_venta` | `borrador` | 1 |
+| `sin_venta` | `emitida` | 3 |
+| `sin_venta` | `pagada` | 1 |
+| `sin_venta` | `parcial` | 1 |
+| `venta_anulada` | `anulada` | 1 |
+
+**Una factura quedaba congelada.** Su saldo es cero, porque la factura y su asiento están anulados: no es un error contable, solo no cumple la regla nueva. **Inferencia del Director:** es una factura de prueba. No se verificó.
+
+**Decisión de Sam, 2026-11-01, literal: «Ajustar la guarda (Recomendado)».** El Director le explicó que la guarda solo revisaría cuando cambia el estado de la factura, si se borra o si se toca su asiento de venta; que no se toca ningún dato; y que cuesta repetir `verify` y otra revisión independiente. **No se autoriza leer ni escribir esa fila.**
+
+**La regla, en el cuerpo de las dos funciones:**
+
+- **`i3_invoice_final`:** en INSERT y DELETE, siempre. En UPDATE, solo si cambia `id`, `tenant_id` o `deleted_at`, o si `status` cambia y alguno de los dos valores está fuera de `emitida, parcial, vencida, pagada`.
+- **`i3_journal_entry_final`:** solo si el asiento viejo o el nuevo es `invoice`, `invoice_reversal` o tiene `reverses_entry_id`.
+
+**La regla es más precisa que lo que se le explicó a Sam.** Un cambio de estado entre los cuatro vivos no se revisa. Conviene que lo vea así en el OK nominal.
+
+**Hueco conocido, aceptado por el Director el 2026-11-01, con condiciones.** Una factura `emitida` que ya llegue con la venta anulada se puede cobrar hasta `pagada`. Medido con `register_collection_receipt` en la imagen real, sobre `venta_anulada|emitida` sembrada: `l_cobro_hueco_conocido` y `l_cobro_hasta_pagada`. **Es más laxo que la 0497 sin filtro, donde fallaría al confirmar, e igual que hoy en producción.**
+
+- Sin el filtro fallaría al confirmar. Con el filtro es igual que hoy en producción, sin la 0497.
+- Hoy no hay ninguna fila así en estados vivos, según el conteo.
+- Después del apply no encontré camino para crearla: `i3_journal_entry_guard` hace inmutable el asiento de venta.
+- Solo entraría una que aparezca antes del apply, entre la puerta y el COMMIT.
+- `void` y `post` la siguen rechazando.
+
+**Se pierde la alarma al tocar una fila rota, y la reemplaza el B3 de la radiografía.** `0497-legado-por-clase.sql` se niega con la 0497 aplicada, y `i3_assert_invoice_final` no corre en solo lectura porque usa `for update`. `scripts/qa/radiografia-integridad.sql` sí corre con la 0497 aplicada, y su fila 50 ve esa factura: **4 con la venta anulada, 3 con la venta viva**, sobre la misma base. Es alarma por corrida, no al momento de tocar la fila, y no dice cuál es.
+
+**Lo que queda probado:**
+
+| Prueba | Resultado |
 |---|---|
-| Emitida, con la venta anulada desde el Libro diario: **registrar un cobro** | `ERROR: La venta original requiere revisión`; no deja recibo ni pagado |
-| **Renombrar la marca** de su cliente | falla igual y no cambia nada |
-| Con dos ventas: cualquier UPDATE | `La relación contable de la factura requiere revisión` |
-| Anulada sin reverso: cualquier UPDATE | `Una factura anulada con venta requiere su reverso íntegro` |
-| Esa misma venta anulada: void y post | void rechazado con «Los antecedentes de venta requieren revisión»; post pide revisión |
+| Fila `venta_anulada\|anulada` con cobro y crédito vivos: `rename_client_markbox`, `rename_legacy_markboxes`, `void_collection_receipt`, `revert_referral_credits` y anular el asiento `referral_credit` | Pasan en la imagen real |
+| Sigue frenando, con su error: hacia `anulada` y `borrador`, reabrir, borrar, DELETE, tenant, tocar el asiento de venta | Imagen real y PGlite |
+| Sin la guarda de fila, la aserción frena sola reabrir, borrar y cambiar de tenant | PGlite |
+| **Espía en la aserción**, 29 operaciones: a quién llama cada una | PGlite. Hace falta porque un INSERT o DELETE no tiene asientos que contar, y el FK impide cambiar el `id` a una factura que los tenga: ahí la conducta no distingue |
+| Mutantes del filtro: sin él y con cada una de las 13 condiciones quitada | 14 de 14 mueren |
+| Carreras reales en `postgres:17` | La línea 873 da `"commit": "ERROR"` con «requiere su reverso íntegro»; la 1029 da «Estado de factura y par contable incompatibles». 244 aserciones |
+| `0497-legado-por-clase.sql` contra `i3_assert_invoice_final` | Cada clase suma una y los totales por mensaje coinciden |
 
-**No hay camino de reparación dentro de la 0497.** Renombrar una marca toca todas las facturas del cliente, también las anuladas, así que una sola anulada sin reverso le bloquearía el renombre a ese cliente. La radiografía de la SDD-0559 ya mide «anulados con asiento vivo», así que esa clase puede tener filas.
+### Lista de control de la ventana
 
-**Conteo:** `scripts/qa/0497-legado-por-clase.sql`. Solo lectura, sin filas: `clase · estado_factura · n`. Va antes de la 0497 y se niega si ya está aplicada. Sale de la lógica real de `i3_assert_invoice_final`, y una prueba lo compara con la función real sobre las mismas filas: cada clase suma una y los totales por mensaje coinciden. Todas las clases se pueden contar sin mostrar filas, aunque por dentro las lee, así que en producción pide autorización. **Lo corre el Director cuando Sam autorice. No lo he corrido en producción.**
+Para el apply en producción. Nada de esto corre solo.
 
-**Qué hacer según el resultado (propuesta, sin cambiar nada todavía):**
-
-- **Solo `sana` y `sin_venta`:** A2 no frena. Después de la 0497 no aparecen filas nuevas de legado, porque la guarda de asiento no deja anular uno automático. Conviene correr el conteo justo antes del apply: hasta entonces, el Libro diario todavía puede anular una venta.
-- **Con filas en otras clases:** decidir entre dos caminos. Uno es acotar `i3_invoice_final_check` con un `WHEN` a las transiciones que importan (a y desde `anulada`, `deleted_at`, tenant). El otro es reparar esas filas antes, con su propia migración. Las dos cambian la 0497 o agregan otra, y necesitan tu decisión. Si la 0497 cambia, hay que repetir pines, prueba con rol real, `verify` y previa.
+1. **Puerta justo antes del apply:** correr `scripts/qa/0497-legado-por-clase.sql` y comparar **todas** las filas contra la lista exacta, salvo `sin_venta`. Hoy: `venta_anulada|anulada=1` y nada más. Cualquier otra fila, también `venta_anulada|anulada=2`, frena el apply. **En particular, cualquier `venta_anulada` en `emitida`, `parcial`, `vencida` o `pagada` detiene la ventana:** es el hueco conocido. Atención con `anulada_sin_reverso`: la crea anular desde Facturación con la `void` vieja, y es lo más probable antes del apply.
+2. **Hueco residual, que la puerta no cierra:** entre el conteo y el COMMIT, una anulación o una transacción en curso no se ve. Si en ese momento alguien anula una venta desde el Libro diario, la factura entra a la 0497 con la venta anulada y se puede cobrar. Se achica contando justo antes y con quien usa el sistema avisado. Antes de la ventana, Sam detiene Codex y Orca.
+3. **Justo después del apply:** PostgREST ve la RPC nueva (§6).
+4. **Conteo después de publicar, contra la línea base de hoy:** `sin_venta` con `emitida 3, pagada 1, parcial 1`. Si sube, se emitió una factura en la ventana y quedó sin asiento. El archivo de la puerta se niega con la 0497 aplicada, así que este conteo necesita su propia consulta, con la misma autorización.
+5. **Después de publicar, correr `scripts/qa/radiografia-integridad.sql`:** su B3 es la alarma de una factura viva sin venta. En la prueba con el rol real ve la factura viva con la venta anulada (§3c). Si sube la fila 50, hay que revisarlo.
 
 ### 4. Rojos de `sql-tests` que venían de antes
 
@@ -195,8 +231,9 @@ Con rol contabilidad o admin, salvo donde se indica:
 
 | Comprobación | Estado | Detalle |
 |---|---|---|
-| Prueba de contrato (`reverso-al-anular-factura.migration.test.ts`, PGlite) | PASÓ | 82 de 82 |
-| `infra/ops/tests/prueba-0497-rol-real.mjs` | PASÓ | 54 de 54; §3b |
+| Prueba de contrato (`reverso-al-anular-factura.migration.test.ts`, PGlite) | PASÓ | 114 de 114 |
+| Mutantes del motivo y del filtro, con el pin recalculado | PASÓ | 9 y 14, ninguno sobrevive. Los del motivo corrieron antes del filtro, que no cambia esas dos funciones |
+| `infra/ops/tests/prueba-0497-rol-real.mjs` | PASÓ | 71 de 71; §3b y §3c |
 | Contratos reales en `postgres:17`, runner de esta rama | PASÓ | 4 de 4 |
 | `run-sql-tests-salida.node.mjs` en Linux (`node:24`) | PASÓ | 3 de 3; mutante sin `maxBuffer` muere. En Windows se salta: el doble de docker es un script de sh |
 | `migrations-lock`, `docs:check`, `sdd:check`, símbolos pendientes | PASÓ | símbolos: 0 ROJO, 3 AMARILLO declarados |
@@ -205,18 +242,16 @@ Con rol contabilidad o admin, salvo donde se indica:
 | Ensayo en el entorno de prueba | NO EJECUTADO | después de `verify` y de que la #345 esté en main; lo avisa el Director |
 | Lectura previa 0496 y 0497 | PASÓ | abajo |
 
-Identidad vigente, copiada de la salida de `preparar.mjs` sobre `1e8511405`. La cabecera de la 0497 cambió el blob, así que estos valores reemplazan a los anteriores. Los commits posteriores no tocan las migraciones. La lectura previa sobre la cabeza final, con su evidencia, va en el informe al Director.
+Identidad vigente, copiada de la salida de `preparar.mjs` sobre `c09acce20`. El filtro cambió el blob, así que estos valores reemplazan a los anteriores. Los commits posteriores no tocan las migraciones. La lectura previa sobre la cabeza final, con su evidencia, va en el informe al Director.
 
 | Migración | Blob | Bytes | md5 del blob | md5 de `aplicar.sql` |
 |---|---|---:|---|---|
 | `0496_tarifa_congelada_por_embarque` (SDD-0571) | `0f424008e0b8` | 45610 | `075eab7fae8d9dfb2b06f88335087f8d` | `d3be5cbcdc4d1960e1306d2a9a6a4926` |
-| `0497_reverso_al_anular_factura` (SDD-0573) | `71f9227dbfe5` | 78415 | `08cb7a480e020f0d1a81ace9f0a9e6b7` | `d4a2b28d9781dc55c691945895b8ad58` |
-
-En la lectura previa anterior de la 0497 (`previa-0497-dtd-cargo-20261101T170941Z`, solo cambia la cabecera): 0 sesiones esperando locks, 0 transacciones largas; 13 funciones `nueva` y `void_invoice_with_audit_reason` `igual` a la 0294.
+| `0497_reverso_al_anular_factura` (SDD-0573) | `7f8450fa6417` | 79544 | `86a8bdbc8bdcaf5586157db018c1164c` | `2f6948f17f5f2ebc4a295f82f363baad` |
 
 ## COMMITS
 
-`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · más el del conteo de legado y la prueba con el rol real.
+`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · más el de esta evidencia.
 
 ## PR / BRANCH
 
@@ -225,7 +260,8 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 ## PENDIENTES DE ESTA TAREA
 
 - Que Sam vea el cambio de mecanismo D2/M4 al pedirle el OK nominal.
-- **A2:** el conteo en producción, con la autorización de Sam, y la decisión según el resultado.
+- Que Sam vea el filtro de la guarda y el hueco conocido en el OK nominal, con la regla exacta.
+- Otra revisión independiente del filtro, antes del ensayo.
 - Ensayo en prueba, con el aviso del Director.
 
 ## Propuesta de ensayo en prueba, 0492–0497 (NO EJECUTADO)
@@ -256,7 +292,8 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **`edge-functions` está en rojo y no viene de esta rama.** `deno check` falla con TS7031 y TS7006 en `supabase/functions/kommo-webhook/index.ts:388,391`. Esta rama no toca `supabase/functions/` (`git diff` vacío contra la base) y ese archivo no cambia desde el 2026-10-15. Verifies anteriores lo dieron PASÓ. **Inferencia:** importa `jsr:@supabase/supabase-js@2` sin lockfile, así que la versión flota y puede haber cambiado sus tipos. No lo comprobé.
+- **`edge-functions` está en rojo, y falla igual sobre `main`.** `deno check` da TS7031 y TS7006 en `supabase/functions/kommo-webhook/index.ts:388,391`. Medido exportando `supabase/functions` de `origin/main` (`1c2286f1f`) y corriendo el mismo comando con `deno 2.9.6`: 2 errores iguales. Ese árbol es idéntico al de esta rama. **Causa:** `jsr:@supabase/supabase-js@2` flota, sin lockfile; hoy resuelve `postgrest-js@2.116.0`. Fijando `supabase-js@2.90.0`, el mismo chequeo da exit 0. No es una causa completa: con `2.58.0` también da 2 errores, y no miré cuáles.
+- **5 facturas `sin_venta` que no son borrador** (`emitida 3, pagada 1, parcial 1`): no tienen asiento de venta. Parece el defecto B3. **Inferencia,** sin revisar esas filas.
 - **Las pruebas de migración no corren con el rol de producción en el CI.** PGlite y `postgres:17` son superusuario. `infra/ops/tests/prueba-0497-rol-real.mjs` queda como corrida manual y solo para esta migración. Una opción: generalizarla al gate de migraciones.
 - **El ledger de `_supabase-platform-stubs.supabase.sql` no tiene `created_by`, `idempotency_key` ni `rollback`:** un `aplicar.sql` real falla ahí. Lo sorteé en mi arnés con un `alter table`.
 - **La 0495 está en el ledger de producción pero sigue en `pendingBelowCutoff` y sin sellar.** Falta su cierre del runbook §6.
