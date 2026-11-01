@@ -360,6 +360,7 @@ no se eximen»). Consecuencias:
 | `bash infra/ops/tests/prueba-migraciones-produccion.sh` | Con dobles de docker, ssh y scp: rechazos de `preparar.mjs`, guardas de `aplicar.sh`, en seco, el orden previa → apply → verificación, los códigos 5/6/7, la evidencia, el candado, la autorización nominal, el lote y ssh caído |
 | `bash … --mutantes` | Control rojo (scripts vacíos) y cada guarda quitada tiene que hacer caer la suite |
 | `pnpm vitest run infra/ops/tests/migraciones.test.mjs` | Las funciones de `preparar.mjs`; paridad byte a byte con `lib/migracion.sh`; contra PostgreSQL embebido (PGlite) la lectura previa, la deriva, el apply y la verificación; el cuerpo extraído igual al `prosrc` en funciones reales; `retirar-espera.mjs`, con el sello y su md5 |
+| `node infra/ops/tests/prueba-0497-rol-real.mjs --paquetes <carpeta>` | Docker, **corrida pesada**. La 0496 y la 0497 con el rol de producción (`postgres` sin superusuario, imagen real, esquema completo): paquetes reales, RPC con filas sembradas, salidas con excepción, legado y contratos. PGlite y `postgres:17` corren como superusuario y no ven esto |
 | `node --test scripts/tests/migrations-lock.node.mjs` (también en `pnpm harness:test`) | El candado sobre el repo real y su ancla de creación; cada regla (`FORMATO`, `FALTA`, `CAMBIADA`, `ESPERA`, `SIN_SELLO`, `HISTORIA`) sobre copias; `sellar`, `excepcion`, `ledger` (exacta, variantes de Cloud, contradicciones), `crear` y los códigos de la CLI |
 
 Nada de esto se conecta al servidor ni a una base real.

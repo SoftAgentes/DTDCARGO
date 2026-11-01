@@ -652,6 +652,160 @@ describe("SDD-0573 · 0497 reverso al anular una factura (PGlite)", () => {
     expect(result.error).toBe("0497 requiere invoices, journal_entries, journal_lines, payment_receipts, accounting_settings, user_tenants, get_user_tenant_id(), next_entry_code(uuid) y auth.uid()");
   }, SLOW);
 
+  // A2: desde la 0497, una factura de antes cuya venta no cuadra no se puede actualizar.
+  // scripts/qa/0497-legado-por-clase.sql las cuenta antes de aplicarla, con la misma
+  // lógica; acá se compara ese conteo con la función real sobre las mismas filas.
+  describe("el conteo de legado por clase", () => {
+    const CONTEO = resolve(ROOT, "scripts/qa/0497-legado-por-clase.sql");
+    const ANTES_DE_0497 = "\\if :apply_fix\n\\ir ../migrations/0497_reverso_al_anular_factura.sql";
+    const MENSAJE_DE_CLASE: Record<string, string> = {
+      factura_borrada_con_venta: "La relación contable de la factura requiere revisión.",
+      dos_o_mas_ventas: "La relación contable de la factura requiere revisión.",
+      venta_de_otro_tenant: "La venta original requiere revisión.",
+      venta_en_borrador: "La venta original requiere revisión.",
+      venta_anulada: "La venta original requiere revisión.",
+      venta_borrada: "La venta original requiere revisión.",
+      venta_sin_codigo: "La venta original requiere revisión.",
+      venta_sin_fecha_de_asiento: "La venta original requiere revisión.",
+      venta_con_fecha_invalida: "La venta original requiere revisión.",
+      lineas_ninguna: "La venta original requiere revisión.",
+      lineas_solo_una: "La venta original requiere revisión.",
+      lineas_cuenta_no_clasificable: "La venta original requiere revisión.",
+      lineas_importe_invalido: "La venta original requiere revisión.",
+      lineas_sin_cxc_o_ingreso: "La venta original requiere revisión.",
+      lineas_descuadradas: "La venta original requiere revisión.",
+      anulada_sin_reverso: "Una factura anulada con venta requiere su reverso íntegro.",
+      estado_sin_venta_posible: "Estado de factura y par contable incompatibles.",
+      sana: "ok",
+      sin_venta: "ok",
+    };
+    // Una factura por clase, con la venta armada para caer solo en esa. Fixture, antes de la 0497.
+    const SEMBRAR = `
+create function pg_temp.a2_factura(p_label text, p_status text default 'emitida', p_deleted timestamptz default null) returns uuid language sql as $f$
+  insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,
+    base_amount,iva_amount,total_amount,paid_amount,status,issued_at,deleted_at)
+  values(pg_temp.fixture_id('a2-'||p_label),pg_temp.fixture_id('tenant-A'),'F-A2-'||p_label,'DTD-I3B','Cliente sintético','USD',
+    100,0,100,0,p_status::public.invoice_status,date '2026-10-10',p_deleted)
+  returning id
+$f$;
+create function pg_temp.a2_venta(p_label text, p_entry text default null, p_status text default 'asentado', p_code text default null,
+  p_deleted timestamptz default null, p_posted timestamptz default now(), p_tenant text default 'tenant-A') returns uuid language sql as $f$
+  insert into public.journal_entries(id,tenant_id,entry_code,entry_date,memo,status,source,invoice_id,posted_at,deleted_at)
+  values(pg_temp.fixture_id('a2-e-'||coalesce(p_entry,p_label)),pg_temp.fixture_id(p_tenant),
+    coalesce(p_code,'A-A2-'||coalesce(p_entry,p_label)),date '2026-10-10','Venta sintética',p_status::public.entry_status,'invoice',
+    pg_temp.fixture_id('a2-'||p_label),p_posted,p_deleted)
+  returning id
+$f$;
+create function pg_temp.a2_linea(p_label text, p_cuenta text, p_debe numeric, p_haber numeric) returns void language sql as $f$
+  insert into public.journal_lines(entry_id,account_id,debit,credit,line_memo)
+  values(pg_temp.fixture_id('a2-e-'||p_label),pg_temp.fixture_id(p_cuenta),p_debe,p_haber,'Línea sintética')
+$f$;
+create function pg_temp.a2_buenas(p_label text) returns void language sql as $f$
+  select pg_temp.a2_linea(p_label,'clientes',100,0); select pg_temp.a2_linea(p_label,'ventas',0,100);
+$f$;
+select pg_temp.a2_factura('borrada','emitida',now()); select pg_temp.a2_venta('borrada'); select pg_temp.a2_buenas('borrada');
+select pg_temp.a2_factura('doble'); select pg_temp.a2_venta('doble','doble-1'); select pg_temp.a2_venta('doble','doble-2');
+select pg_temp.a2_factura('tenant'); select pg_temp.a2_venta('tenant',null,'asentado',null,null,now(),'tenant-B'); select pg_temp.a2_buenas('tenant');
+select pg_temp.a2_factura('borrador-v'); select pg_temp.a2_venta('borrador-v',null,'borrador',null,null,null); select pg_temp.a2_buenas('borrador-v');
+select pg_temp.a2_factura('anulada-v'); select pg_temp.a2_venta('anulada-v',null,'anulado'); select pg_temp.a2_buenas('anulada-v');
+select pg_temp.a2_factura('borrada-v'); select pg_temp.a2_venta('borrada-v',null,'asentado',null,now()); select pg_temp.a2_buenas('borrada-v');
+select pg_temp.a2_factura('codigo'); select pg_temp.a2_venta('codigo',null,'asentado','   '); select pg_temp.a2_buenas('codigo');
+select pg_temp.a2_factura('sin-fecha'); select pg_temp.a2_venta('sin-fecha',null,'asentado',null,null,null); select pg_temp.a2_buenas('sin-fecha');
+select pg_temp.a2_factura('infinita'); select pg_temp.a2_venta('infinita',null,'asentado',null,null,'infinity'); select pg_temp.a2_buenas('infinita');
+select pg_temp.a2_factura('ninguna'); select pg_temp.a2_venta('ninguna');
+select pg_temp.a2_factura('una'); select pg_temp.a2_venta('una'); select pg_temp.a2_linea('una','clientes',100,0);
+select pg_temp.a2_factura('cuenta'); select pg_temp.a2_venta('cuenta'); select pg_temp.a2_linea('cuenta','caja',100,0); select pg_temp.a2_linea('cuenta','ventas',0,100);
+select pg_temp.a2_factura('importe'); select pg_temp.a2_venta('importe'); select pg_temp.a2_linea('importe','clientes',0,100); select pg_temp.a2_linea('importe','ventas',100,0);
+select pg_temp.a2_factura('sin-cxc'); select pg_temp.a2_venta('sin-cxc'); select pg_temp.a2_linea('sin-cxc','ventas',0,50); select pg_temp.a2_linea('sin-cxc','ventas',0,50);
+select pg_temp.a2_factura('descuadre'); select pg_temp.a2_venta('descuadre'); select pg_temp.a2_linea('descuadre','clientes',100,0); select pg_temp.a2_linea('descuadre','ventas',0,90);
+select pg_temp.a2_factura('anulada','anulada'); select pg_temp.a2_venta('anulada'); select pg_temp.a2_buenas('anulada');
+select pg_temp.a2_factura('estado','borrador'); select pg_temp.a2_venta('estado'); select pg_temp.a2_buenas('estado');
+select pg_temp.a2_factura('sana'); select pg_temp.a2_venta('sana'); select pg_temp.a2_buenas('sana');
+select pg_temp.a2_factura('sin-venta');
+`;
+    async function sobreFixtureSinLa0497(prueba: (db: PGlite) => Promise<void>) {
+      const db = new PGlite({ extensions: { pgcrypto } });
+      try {
+        const fixture = readFileSync(CONTRACT, "utf8");
+        expect(fixture.split(ANTES_DE_0497)).toHaveLength(2);
+        await db.exec(inline(CONTRACT, { apply_fix: "false" }, {
+          "0497_reverso_al_anular_factura.test.sql": fixture.slice(0, fixture.indexOf(ANTES_DE_0497)),
+        }));
+        await db.exec("commit;");
+        await prueba(db);
+      } finally {
+        await db.close();
+      }
+    }
+    const contar = async (db: PGlite) => {
+      const filas = (await db.exec(inline(CONTEO, {})))
+        .flatMap((result) => result.rows as { clase?: string; estado_factura?: string; n?: number | string }[])
+        .filter((fila) => fila.clase !== undefined);
+      const total: Record<string, number> = {};
+      for (const fila of filas) total[fila.clase!] = (total[fila.clase!] ?? 0) + Number(fila.n);
+      expect(db.isInTransaction()).toBe(false);
+      return total;
+    };
+
+    it("cada clase suma una fila y su conteo coincide con la función real", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        const antes = await contar(db);
+        await db.exec(SEMBRAR);
+        const despues = await contar(db);
+        for (const clase of Object.keys(MENSAJE_DE_CLASE)) {
+          expect([clase, (despues[clase] ?? 0) - (antes[clase] ?? 0)]).toEqual([clase, 1]);
+        }
+        expect(Object.keys(despues).filter((clase) => !(clase in MENSAJE_DE_CLASE))).toEqual([]);
+
+        await db.exec(FILE_0497);
+        await db.exec(`do $real$
+declare f record; v_mensaje text;
+begin
+  create temporary table a2_real(mensaje text not null);
+  for f in select id from public.invoices loop
+    begin
+      perform public.i3_assert_invoice_final(f.id);
+      insert into a2_real values ('ok');
+    exception when check_violation then
+      get stacked diagnostics v_mensaje = message_text;
+      insert into a2_real values (v_mensaje);
+    end;
+  end loop;
+end;
+$real$;`);
+        const porMensaje = (await db.query<{ mensaje: string; n: number }>(
+          "select mensaje, count(*)::int as n from a2_real group by mensaje order by mensaje")).rows;
+        const esperado: Record<string, number> = {};
+        for (const [clase, n] of Object.entries(despues)) {
+          esperado[MENSAJE_DE_CLASE[clase]] = (esperado[MENSAJE_DE_CLASE[clase]] ?? 0) + n;
+        }
+        expect(Object.fromEntries(porMensaje.map((fila) => [fila.mensaje, fila.n]))).toEqual(esperado);
+      });
+    }, SLOW);
+
+    it("el mecanismo: tras la 0497, actualizar una factura de legado falla al confirmar", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec(FILE_0497);
+        await db.exec("begin;");
+        await db.exec("update public.invoices set paid_amount = paid_amount where id = pg_temp.fixture_id('a2-anulada-v');");
+        await expect(db.exec("commit;")).rejects.toThrow("La venta original requiere revisión.");
+        await db.exec("begin;");
+        await db.exec("update public.invoices set paid_amount = paid_amount where id = pg_temp.fixture_id('a2-sana');");
+        await db.exec("commit;");
+        expect(db.isInTransaction()).toBe(false);
+      });
+    }, SLOW);
+
+    it("con la 0497 aplicada, el conteo se niega en vez de contar mal", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(FILE_0497);
+        await expect(contar(db)).rejects.toThrow("Este conteo es de antes de la 0497");
+        if (db.isInTransaction()) await db.exec("rollback;");
+      });
+    }, SLOW);
+  });
+
   // El cuerpo vivo de producción (medido el 2026-11-01) es el de la 0078 con otro
   // formato. Se arma desde la 0078 y su md5 tiene que ser el que la 0497 acepta.
   const FILE_0078 = readFileSync(resolve(ROOT, "supabase/migrations/0078_contabilidad.sql"), "utf8").replace(/\r\n/g, "\n");
@@ -798,12 +952,16 @@ describe("SDD-0573 · 0497 reverso al anular una factura (PGlite)", () => {
       for (const name of ["post_invoice_journal_entry_atomic", "void_invoice_with_audit_reason"]) {
         const cuerpo = FILE_0497.match(new RegExp(
           "create(?: or replace)? function public\\." + name + "\\([\\s\\S]*?\\bas \\$function\\$([\\s\\S]*?)\\$function\\$;", "i"))![1];
-        const lineas = cuerpo.split("\n").map((linea) => linea.trim());
+        const lineas = cuerpo.split("\n").map((linea) => linea.trim()).filter((linea) => !linea.startsWith("--"));
         const primero = lineas.findIndex((linea) => linea.includes("set_config('dtd.audit_reason'"));
         expect(primero).toBeGreaterThan(0);
-        const salidas = lineas.flatMap((linea, i) => (i > primero && /^return\b/.test(linea) ? [i] : []));
+        // \b y no ^: un `then return` en medio de la línea también es una salida.
+        const salidas = lineas.flatMap((linea, i) => (i > primero && /\breturn\b/i.test(linea) ? [i] : []));
         expect(salidas.length).toBeGreaterThan(0);
-        for (const i of salidas) expect(lineas[i - 1]).toBe(RESTAURA);
+        for (const i of salidas) {
+          expect(lineas[i]).toMatch(/^return\b/);
+          expect(lineas[i - 1]).toBe(RESTAURA);
+        }
       }
     });
 

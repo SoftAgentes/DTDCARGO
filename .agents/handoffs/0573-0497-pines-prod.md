@@ -82,37 +82,69 @@ El motivo se vacía al entrar al bloque que escribe y se devuelve el valor exter
 | Excepción sin capturar | sin transacción y en una que se deshace, con valor previo, con valor vacío y sin valor: no queda nada en la sesión y el rol vuelve a `postgres` |
 | Colisión de código | el reintento conserva el motivo exacto y restaura el exterior |
 
-**Retornos tempranos:** una prueba de estructura exige que cada `return` posterior al primer cambio del motivo venga justo después de la restauración. Todos los anteriores salen sin haberlo tocado. No encontré ningún camino que no restaure.
+**Retornos tempranos:** una prueba de estructura exige que cada salida posterior al primer cambio del motivo vaya en su propia línea, justo después de la restauración; un `then return` también cuenta. Todos los anteriores salen sin haberlo tocado. No encontré ningún camino que no restaure.
 
-Ocho mutantes, con el pin recalculado para que no mueran por el pin: todos mueren por comportamiento o por esa estructura.
+Nueve mutantes, con el pin recalculado para que no mueran por el pin: todos mueren por comportamiento o por esa estructura.
 
 **Límite:** el `set_config('', true)` que sigue al UPDATE no tiene un testigo propio, porque después no hay otra escritura hasta salir. Esa línea ya existía antes de este cambio.
 
-### 3b. La clase de fallo: 0496 y 0497 con el rol real
+### 3b. La clase de fallo: 0496 y 0497 con el rol real, sobre el esquema completo
 
-Encargo del Director: PGlite y `postgres:17` corren como superusuario y pueden esconder otros permisos. Medido en local con `supabase/postgres:17.6.1.136`, la imagen de producción, sin red. Rol `postgres`: `super=false`, `createrole=true`, `createdb=true`, `bypassrls=true`, sin SET sobre el parámetro. Las esperas 0422 y 0423 no se aplican, como en producción.
+PGlite y `postgres:17` corren como superusuario, y el contrato de la 0497 carga un subconjunto de migraciones (sin 0197, 0466, 0494 ni 0495). `infra/ops/tests/prueba-0497-rol-real.mjs` cubre las dos cosas. Es corrida pesada, no entra al CI y da 54 de 54 con la imagen de producción `supabase/postgres:17.6.1.136`, sin red. Rol `postgres`: `super=false`, `createrole=true`, `createdb=true`, `bypassrls=true`, sin SET sobre el parámetro. Las esperas 0422 y 0423 no se aplican, como en producción.
 
 | Capa | Resultado |
 |---|---|
-| Reconstrucción como `postgres` hasta la 0495 | PASÓ, 469 migraciones en 16 s |
-| **Control en rojo:** la 0497 de main | `psql:…:721: ERROR: permission denied to set parameter "dtd.audit_reason"`. El arnés detecta la clase |
-| 0496: previa, apply, verificación del paquete real | PASÓ; apply 305 ms |
-| `next_entry_code` con el cuerpo vivo | md5 `06b5756a18361fc4d85cec6f6dc4b3bc`, 388 caracteres |
-| 0497: previa, apply, verificación del paquete real | PASÓ; apply 332 ms |
-| Ledger después del apply | md5 `075eab7f…` y `fdac29d9…`, iguales a los blobs |
+| Reconstrucción como `postgres` hasta la 0495 | PASÓ, 469 migraciones en unos 20 s |
+| **Control en rojo:** un parámetro propio en la cabecera | `permission denied to set parameter "dtd.audit_reason"`. La prueba detecta la clase |
+| 0496: previa, apply, verificación del paquete real | PASÓ; apply 328 ms |
+| `next_entry_code` con el cuerpo vivo | md5 `06b5756a18361fc4d85cec6f6dc4b3bc` |
+| 0497: previa, apply, verificación del paquete real | PASÓ; apply 376 ms |
 | Funciones con parámetro propio en la cabecera | 0 |
-| Contrato 0496 en base nueva, como `postgres` | PASÓ, 102 aserciones |
-| Contrato 0497 en base nueva, como `postgres` | PASÓ, 144 aserciones |
+| Contrato 0496 y contrato 0497, en base nueva, como `postgres` | PASÓ, 102 y 144 aserciones |
 
-**No aparece ninguna otra falla de permisos:** ni triggers, ni `alter constraint`, ni GRANT, ni en las RPC al ejecutarse, que el contrato corre con los roles `authenticated` y `service_role`.
+**Las RPC sobre el esquema completo, con filas sembradas (M1).** Como `authenticated` y `service_role`, conviviendo con `invoices_seal_billing_titular`, `invoices_referral_sale_voided`, `referrals_candado_trg` e `invoices_write_version`:
+
+| Escenario | Resultado |
+|---|---|
+| Post y post repetido | `posted`, luego `already_posted`; tres líneas cuadradas |
+| Void de una venta con IVA | anulada, `write_version` sube a 1, un reverso con sus tres líneas, motivo exacto en `invoice_voided` |
+| Titular sellado | sigue congelado: `invoice_titular_frozen` |
+| Venta que acreditó un referido | se acredita con la venta; al anularla, el referido vuelve a `registrado` |
+| Crédito aplicado | void rechazado con «aplicado sin recibo»; revertido el crédito, void pasa |
+| Cobro vivo | factura `parcial`, void rechazado; anulado el cobro, void pasa |
+| Renombrar la marca | pasa con una factura sana |
+| Rol comercial; `authenticated` en post | se niega; `permission denied for function` |
+| Excepción con savepoint, con y sin asiento | valor exterior intacto, rol `postgres`, factura `emitida`, sin reverso |
+| Excepción sin capturar, en transacción y sin ella, con y sin valor previo | queda el valor de la sesión o ninguno |
+
+**No aparece ninguna otra falla de permisos ni de convivencia:** ni triggers, ni `alter constraint`, ni GRANT, ni las RPC al ejecutarse.
 
 **Lo que esto no cubre:**
 
 - Los tiempos son sobre tablas casi vacías, sin concurrencia.
-- El CHECK del reverso corre sobre tablas vacías; con datos reales sigue NO VERIFICADO.
 - **Las carreras no corren con el rol real:** su guarda exige que `anon`, `authenticated` y `service_role` no existan, y en esta imagen existen. Corren en `postgres:17` como superusuario.
-- Las salidas con excepción se probaron en PGlite. Con el rol real corrió el contrato secuencial.
-- Auth y Storage son los stubs del repo, no GoTrue ni storage-api.
+- Auth y Storage son los stubs del repo, no GoTrue ni storage-api. No hay PostgREST: las RPC se llaman por SQL.
+
+### 3c. A2: las guardas congelan facturas de antes
+
+Hallazgo de la revisión independiente. **Mecanismo verificado; si existen en producción, no se sabe.** `i3_invoice_final_check` corre en todo UPDATE de `invoices` y falla al confirmar con 23514 si la factura y su venta no cuadran. Medido en la imagen real, con filas de legado sembradas antes de la 0497:
+
+| Sobre una factura de legado | Resultado |
+|---|---|
+| Emitida, con la venta anulada desde el Libro diario: **registrar un cobro** | `ERROR: La venta original requiere revisión`; no deja recibo ni pagado |
+| **Renombrar la marca** de su cliente | falla igual y no cambia nada |
+| Con dos ventas: cualquier UPDATE | `La relación contable de la factura requiere revisión` |
+| Anulada sin reverso: cualquier UPDATE | `Una factura anulada con venta requiere su reverso íntegro` |
+| Esa misma venta anulada: void y post | void rechazado con «Los antecedentes de venta requieren revisión»; post pide revisión |
+
+**No hay camino de reparación dentro de la 0497.** Renombrar una marca toca todas las facturas del cliente, también las anuladas, así que una sola anulada sin reverso le bloquearía el renombre a ese cliente. La radiografía de la SDD-0559 ya mide «anulados con asiento vivo», así que esa clase puede tener filas.
+
+**Conteo:** `scripts/qa/0497-legado-por-clase.sql`. Solo lectura, sin filas: `clase · estado_factura · n`. Va antes de la 0497 y se niega si ya está aplicada. Sale de la lógica real de `i3_assert_invoice_final`, y una prueba lo compara con la función real sobre las mismas filas: cada clase suma una y los totales por mensaje coinciden. Todas las clases se pueden contar sin mostrar filas, aunque por dentro las lee, así que en producción pide autorización. **Lo corre el Director cuando Sam autorice. No lo he corrido en producción.**
+
+**Qué hacer según el resultado (propuesta, sin cambiar nada todavía):**
+
+- **Solo `sana` y `sin_venta`:** A2 no frena. Después de la 0497 no aparecen filas nuevas de legado, porque la guarda de asiento no deja anular uno automático. Conviene correr el conteo justo antes del apply: hasta entonces, el Libro diario todavía puede anular una venta.
+- **Con filas en otras clases:** decidir entre dos caminos. Uno es acotar `i3_invoice_final_check` con un `WHEN` a las transiciones que importan (a y desde `anulada`, `deleted_at`, tenant). El otro es reparar esas filas antes, con su propia migración. Las dos cambian la 0497 o agregan otra, y necesitan tu decisión. Si la 0497 cambia, hay que repetir pines, prueba con rol real, `verify` y previa.
 
 ### 4. Rojos de `sql-tests` que venían de antes
 
@@ -139,11 +171,16 @@ Medido con `pg_locks` sobre el fixture (PGlite, sin concurrencia), en una transa
 
 Se sostienen hasta el COMMIT, porque todo va en una transacción. Tamaño en producción: `journal_entries` 204.800 bytes, `journal_lines` 65.536 bytes, `invoices` 90.112 bytes. Tiempo sobre el fixture: 56 ms. **Tiempo esperado en producción: menos de 1 s. Es una estimación, no una medida:** se mide en el ensayo. `lock_timeout` de 5 s y `statement_timeout` de 30 s: si una sesión bloquea, aborta sin cambiar nada.
 
-**NO VERIFICADO.** El CHECK `journal_entries_reverso_coherente` valida las filas actuales: abortaría si ya hubiera una fila con `source='invoice_reversal'`. No lo medí porque el encargo es sin filas de negocio. Si pasa, aborta sin daño. Se puede medir con un conteo, con OK.
+**El CHECK `journal_entries_reverso_coherente`** valida las filas actuales y abortaría si ya hubiera una con `source='invoice_reversal'`. Lo midió el Director en producción, en una transacción de solo lectura, con la autorización de Sam, literal: «Sí, solo el conteo (Recomendado)». Resultado: `count(*)` = **0**. No frena la 0497 hoy. No cubre lo que entre hasta el apply; por lectura de `929cabf51`, ni `app/`, `lib/`, `components/`, `supabase/functions/` ni sus migraciones nombran ese `source`, así que esa web no lo crea.
 
-**Hora: sí conviene una de poco tráfico, por la ventana y no por los locks.** Entre el apply y la web nueva, la web vieja (`929cabf51`) no puede asentar ventas: inserta la cabecera primero, la guarda responde 23514 (contrato I3B05) y la web solo lo escribe en el log, así que **la factura queda emitida sin asiento**. Mientras la 0497 no entre junto con la web nueva, nadie debería emitir facturas. M8 ya lo prevé: «pueda degradar posting legado». La anulación vieja sí sigue andando, y ahora crea el reverso.
+**Hora: sí conviene una de poco tráfico, por la ventana y no por los locks.** Entre el apply y la web nueva, la web vieja (`929cabf51`):
+
+- **No puede asentar ventas:** inserta la cabecera primero, la guarda responde 23514 (contrato I3B05) y la web solo lo escribe en el log, así que **la factura queda emitida sin asiento**. Mientras la 0497 no entre junto con la web nueva, nadie debería emitir facturas. M8 ya lo prevé: «pueda degradar posting legado».
+- **Anula con reverso, salvo con crédito aplicado o cobro vivo.** La `void` nueva rechaza `paid_amount>0` con 55000. La web vieja revertía el crédito **después** de anular, así que en la ventana esa factura no se anula desde su pantalla: muestra el error. Medido en la imagen real: `n3_void_con_credito`. El camino es revertir el crédito primero; la anulación con asiento y sin crédito está probada en `n1_void`.
 
 ### 6. Pantallas a revisar después de aplicar
+
+**Antes de las pantallas, PostgREST tiene que ver la RPC nueva.** La 0497 no hace `notify pgrst`, y un `PGRST202` deja la factura sin asiento. Producción tiene `pgrst_ddl_watch` y `pgrst_drop_watch` activos (`enabled=O`, medido el 2026-11-01), que deberían refrescar la caché con el DDL, pero no se ha comprobado con esta migración. Comprobarlo: `POST /rest/v1/rpc/post_invoice_journal_entry_atomic` con la llave `service_role` y dos UUID que no existen tiene que responder `invoice_unavailable`, sin escribir nada. Si responde `PGRST202`: `notify pgrst, 'reload schema';` y repetir.
 
 Con rol contabilidad o admin, salvo donde se indica:
 
@@ -158,29 +195,28 @@ Con rol contabilidad o admin, salvo donde se indica:
 
 | Comprobación | Estado | Detalle |
 |---|---|---|
-| Prueba de contrato (`reverso-al-anular-factura.migration.test.ts`, PGlite) | PASÓ | 79 de 79 |
-| Aplicación completa con el rol real | PASÓ | §3b |
+| Prueba de contrato (`reverso-al-anular-factura.migration.test.ts`, PGlite) | PASÓ | 82 de 82 |
+| `infra/ops/tests/prueba-0497-rol-real.mjs` | PASÓ | 54 de 54; §3b |
 | Contratos reales en `postgres:17`, runner de esta rama | PASÓ | 4 de 4 |
 | `run-sql-tests-salida.node.mjs` en Linux (`node:24`) | PASÓ | 3 de 3; mutante sin `maxBuffer` muere. En Windows se salta: el doble de docker es un script de sh |
 | `migrations-lock`, `docs:check`, `sdd:check`, símbolos pendientes | PASÓ | símbolos: 0 ROJO, 3 AMARILLO declarados |
 | ESLint de los archivos tocados y `tsc --noEmit` del proyecto | PASÓ | exit 0 en los dos |
-| `pnpm verify` | NO EJECUTADO | el Director lo da en un turno aparte |
-| `run-sql-tests` completo (255 archivos) | NO EJECUTADO | va con ese turno |
-| Ensayo en el entorno de prueba | NO EJECUTADO | el Director pidió la propuesta primero |
+| `pnpm verify` | Se detuvo sobre `4c3501b1b` por orden del Director; se repite sobre la cabeza final | el resultado va en el informe |
+| Ensayo en el entorno de prueba | NO EJECUTADO | después de `verify` y de que la #345 esté en main; lo avisa el Director |
 | Lectura previa 0496 y 0497 | PASÓ | abajo |
 
-Lectura previa e identidad sobre `f80a0fce2a69acb1053376bf401825ae5097252d`, copiadas de la salida de `preparar.mjs`. El commit que agrega esta tabla solo toca este handoff, así que los blobs no cambian. La repetición sobre la cabeza final va en el informe al Director.
+Identidad vigente, copiada de la salida de `preparar.mjs` sobre `1e8511405`. La cabecera de la 0497 cambió el blob, así que estos valores reemplazan a los anteriores. Los commits posteriores no tocan las migraciones. La lectura previa sobre la cabeza final, con su evidencia, va en el informe al Director.
 
-| Migración | Blob | Bytes | md5 del blob | md5 de `aplicar.sql` | Evidencia |
-|---|---|---:|---|---|---|
-| `0496_tarifa_congelada_por_embarque` (SDD-0571) | `0f424008e0b8` | 45610 | `075eab7fae8d9dfb2b06f88335087f8d` | `d3be5cbcdc4d1960e1306d2a9a6a4926` | `/srv/ops/evidencias/previa-0496-dtd-cargo-20261101T170923Z` |
-| `0497_reverso_al_anular_factura` (SDD-0573) | `643a317d6531` | 78309 | `fdac29d9f107f14bd8aadda6b3742d80` | `4c7229645fc83f5632f170d7ebc617ae` | `/srv/ops/evidencias/previa-0497-dtd-cargo-20261101T170941Z` |
+| Migración | Blob | Bytes | md5 del blob | md5 de `aplicar.sql` |
+|---|---|---:|---|---|
+| `0496_tarifa_congelada_por_embarque` (SDD-0571) | `0f424008e0b8` | 45610 | `075eab7fae8d9dfb2b06f88335087f8d` | `d3be5cbcdc4d1960e1306d2a9a6a4926` |
+| `0497_reverso_al_anular_factura` (SDD-0573) | `71f9227dbfe5` | 78415 | `08cb7a480e020f0d1a81ace9f0a9e6b7` | `d4a2b28d9781dc55c691945895b8ad58` |
 
-En la previa de la 0497: 0 sesiones esperando locks, 0 transacciones largas; 13 funciones `nueva` y `void_invoice_with_audit_reason` `igual` a la 0294.
+En la lectura previa anterior de la 0497 (`previa-0497-dtd-cargo-20261101T170941Z`, solo cambia la cabecera): 0 sesiones esperando locks, 0 transacciones largas; 13 funciones `nueva` y `void_invoice_with_audit_reason` `igual` a la 0294.
 
 ## COMMITS
 
-`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · más los de las pruebas por salida y el registro en D2/M4.
+`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · más el del conteo de legado y la prueba con el rol real.
 
 ## PR / BRANCH
 
@@ -189,14 +225,14 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 ## PENDIENTES DE ESTA TAREA
 
 - Que Sam vea el cambio de mecanismo D2/M4 al pedirle el OK nominal.
-- Turno para `pnpm verify`.
-- Ensayo en prueba: la propuesta está abajo y espera revisión del Director.
+- **A2:** el conteo en producción, con la autorización de Sam, y la decisión según el resultado.
+- Ensayo en prueba, con el aviso del Director.
 
 ## Propuesta de ensayo en prueba, 0492–0497 (NO EJECUTADO)
 
 **Estado medido, solo lectura:** ledger de prueba con 483 filas, última `0491_freight_carriers_auditoria`. Web `cfa7da01` del 2026-10-16. Base con 164 MiB de 1 GiB; el VPS tiene 13,5 GB disponibles.
 
-**Recomiendo no resetear.** El runbook §4 pide reset, pero prueba tiene datos reales de consolidados que Sam autorizó (§2.1) y el reset los borra. Propongo incremental, con un respaldo antes. Es una desviación del runbook y la decides tú.
+**Sin reset, decidido por Sam.** El runbook §4 pide reset, pero prueba tiene datos reales de consolidados que Sam autorizó (§2.1) y el reset los borra. El Director aceptó la propuesta incremental con respaldo, y Sam eligió el 2026-11-01, literal: «Sin borrar, con respaldo (Recomendado)». Va después de `verify` y de que la #345 esté en main, y lo avisa el Director.
 
 | Paso | Qué | Tiempo estimado |
 |---|---|---|
@@ -220,7 +256,8 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Las pruebas de migración no corren con el rol de producción.** PGlite y `postgres:17` son superusuario, así que esta clase de defecto no se detecta hasta el apply. La comprobación de §3b fue un script de una sola vez y no queda en el repo. `pnpm schema:rebuild:supabase` ya reconstruye como `postgres` en la imagen real, pero no corre el apply empaquetado ni los contratos, y no está en `verify`. Una opción: agregarlo como paso del CI o del gate de migraciones.
+- **`edge-functions` está en rojo y no viene de esta rama.** `deno check` falla con TS7031 y TS7006 en `supabase/functions/kommo-webhook/index.ts:388,391`. Esta rama no toca `supabase/functions/` (`git diff` vacío contra la base) y ese archivo no cambia desde el 2026-10-15. Verifies anteriores lo dieron PASÓ. **Inferencia:** importa `jsr:@supabase/supabase-js@2` sin lockfile, así que la versión flota y puede haber cambiado sus tipos. No lo comprobé.
+- **Las pruebas de migración no corren con el rol de producción en el CI.** PGlite y `postgres:17` son superusuario. `infra/ops/tests/prueba-0497-rol-real.mjs` queda como corrida manual y solo para esta migración. Una opción: generalizarla al gate de migraciones.
 - **El ledger de `_supabase-platform-stubs.supabase.sql` no tiene `created_by`, `idempotency_key` ni `rollback`:** un `aplicar.sql` real falla ahí. Lo sorteé en mi arnés con un `alter table`.
 - **La 0495 está en el ledger de producción pero sigue en `pendingBelowCutoff` y sin sellar.** Falta su cierre del runbook §6.
 - **Una factura emitida entre el apply y la web nueva queda sin asiento.** Conviene un conteo de control después de publicar, con OK. Revisar si hace falta un camino para asentarla.
