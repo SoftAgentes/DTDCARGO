@@ -1476,4 +1476,6 @@ Encargo del Director después de que la lectura previa de la 0497 parara en `nex
 
 **Ventana con la web vieja.** Entre el apply y la web nueva, una factura emitida queda sin asiento, y una con crédito aplicado no se anula desde su pantalla, porque la `void` nueva rechaza `paid_amount>0` y esa web revierte el crédito después de anular.
 
-**Límites.** La 0497 sigue NO APLICADA. El ensayo en prueba sigue sin ejecutar: Sam eligió «Sin borrar, con respaldo (Recomendado)» y lo avisa el Director. El OK nominal de Sam para aplicar no se ha pedido ni tomado.
+**Ensayo en prueba, 2026-11-01.** 0492 a 0497 aplicadas en `dtd-cargo-staging` sin borrar, con respaldo, como eligió Sam, literal: «Sin borrar, con respaldo (Recomendado)». La 0497 aplicó en 343 ms sobre 178 asientos sintéticos, con `journal_entries` bloqueada unos 105 ms. Con la web de producción (`929cabf51`), una factura emitida queda sin asiento sin que la persona vea un error; `scripts/qa/0497-control-posterior.sql` la detecta y `post_invoice_journal_entry_atomic` la asienta. PostgREST ve la RPC nueva sin recargar a mano. Falta el smoke de Sam. Detalle y evidencia en `.agents/handoffs/0573-0497-pines-prod.md`.
+
+**Límites.** La 0497 sigue NO APLICADA en producción. **De la base no hay vuelta atrás escrita ni probada:** queda una migración nueva o restaurar un respaldo y perder lo escrito después. El OK nominal de Sam para aplicar no se ha pedido ni tomado.

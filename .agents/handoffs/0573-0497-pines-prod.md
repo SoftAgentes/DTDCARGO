@@ -238,7 +238,7 @@ Con rol contabilidad o admin, salvo donde se indica:
 | `migrations-lock`, `docs:check`, `sdd:check`, símbolos pendientes | PASÓ | símbolos: 0 ROJO, 3 AMARILLO declarados |
 | ESLint de los archivos tocados y `tsc --noEmit` del proyecto | PASÓ | exit 0 en los dos |
 | `pnpm verify` sobre `dab79b99f` | **FALLÓ** (exit 1), 16 de 17 pasos medidos | Tabla de abajo |
-| Ensayo en el entorno de prueba | NO EJECUTADO | lo avisa el Director |
+| Ensayo en el entorno de prueba | PASÓ, salvo el smoke de Sam | 0492–0497 aplicadas, Smoke A y recorrido previo del Smoke B; detalle en «Ensayo en prueba» |
 | Lectura previa 0496 y 0497 | PASÓ | abajo |
 
 **Logs de esta validación,** fuera del repo, en `0573-evidencia/` dentro de la carpeta de notas del grupo de sesiones (`local_535053f4-40c2-4124-a280-63f4fc882820`): `rol-real.log`, `mutantes-filtro.log`, `mutantes-motivo.log`, `contrato.log` y `verify-dab79b99f.log`, con los scripts de los mutantes al lado.
@@ -280,36 +280,88 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 
 - Que Sam vea el cambio de mecanismo D2/M4 al pedirle el OK nominal.
 - Que Sam vea el filtro de la guarda y el hueco conocido en el OK nominal, con la regla exacta.
-- Otra revisión independiente del filtro, antes del ensayo.
-- Ensayo en prueba, con el aviso del Director.
+- Smoke B de Sam, con el guion en `.agents/handoffs/smokes-app-l14-0454-0472-guion.md`, bloque 7. Antes, su IP en el borde (FUERA DE ALCANCE).
 
-## Propuesta de ensayo en prueba, 0492–0497 (NO EJECUTADO)
+## Ensayo en prueba, 0492–0497 (2026-11-01, 21:12–21:55Z)
 
-**Estado medido, solo lectura:** ledger de prueba con 483 filas, última `0491_freight_carriers_auditoria`. Web `cfa7da01` del 2026-10-16. Base con 164 MiB de 1 GiB; el VPS tiene 13,5 GB disponibles.
+Encargo del Director: incremental y con respaldo. Autorización de Sam, literal: «Sin borrar, con respaldo (Recomendado)». Solo `dtd-cargo-staging`. Paquetes de `db84f6ffdfae5cad8222ef99b81f58f52cf87d5d`, blob de la 0497 `7f8450fa6417`. Evidencia en el VPS: `/srv/ops/evidencias/ensayo-0573-20261101T211302Z`, más las `apply-049N-dtd-cargo-staging-*` y `prueba-desplegar-*`. Copia de los logs, sin secretos, en `0573-evidencia/ensayo/` de la carpeta de notas.
 
-**Sin reset, decidido por Sam.** El runbook §4 pide reset, pero prueba tiene datos reales de consolidados que Sam autorizó (§2.1) y el reset los borra. El Director aceptó la propuesta incremental con respaldo, y Sam eligió el 2026-11-01, literal: «Sin borrar, con respaldo (Recomendado)». Va después de `verify` y de que la #345 esté en main, y lo avisa el Director.
+**Lo que mi propuesta decía mal.** La web de prueba no era `cfa7da01`: era una imagen parchada a mano el 2026-10-25 (`7d6d2c84…`), sin registro en `EN-PRUEBA.txt`. Los «164 MiB» eran RAM; la base pesa 43 MB. Y prueba tenía **0 asientos**, con sus 33 facturas en borrador, así que el CHECK y el índice no habrían corrido sobre ninguna fila.
 
-| Paso | Qué | Tiempo estimado |
+**Cómo lo resolví, y fue decisión mía:**
+
+- **Web vieja igual a producción.** Construí `prueba-sha-929cabf51…` y la usé en el Smoke A. Elimina el riesgo de tener una web distinta.
+- **Filas sintéticas antes de la 0497,** con memo «PRUEBA ensayo 0573»: 23 facturas `F-0573-*` y 160 asientos manuales. Quedó `journal_entries` en 245.760 bytes y `journal_lines` en 147.456, por encima de producción (204.800 y 65.536), con las mismas clases de legado.
+- **Dos cuentas sintéticas,** `comercial@` y `contabilidad@prueba.example.test`, con claves en `secretos/cuentas-prueba.txt`.
+
+**Puerta y respaldo:**
+
+| Comprobación | Resultado |
+|---|---|
+| `verificar-aislamiento.sh` antes de escribir | 22 PASÓ, 0 FALLÓ, 1 AVISO (`--sin-bundle`, porque la web corría por id). Bundle de esa imagen revisado a mano: 101 con el host de prueba, 0 con el de producción, 0 con la ref de Cloud |
+| El mismo, en cada despliegue | 27 PASÓ, 0 FALLÓ, 0 AVISO |
+| Redes en común entre las dos bases | 0 |
+| Correo e integraciones antes de la web nueva | Auth a `mailpit:1025`; web sin Resend, Telegram ni Kommo; 95 claves de integración vacías; Vault sin Kommo; `kommo_connections` en 0 |
+| Respaldo | `/srv/ops/respaldos/prueba-ensayo-0573-20261101T211302Z/prueba.dump`, 4.775.774 bytes, sha256 `d9b0b6d7f991372b8a4e849240ed28b0b29ed9b6a0bfecd33f4602c5418caeb9`; `pg_restore --list` salió 0 con 6.297 entradas. **Restauración completa: NO EJECUTADA** |
+| Scripts de `/srv/ops/staging` | Son los de `main` `1c2286f1f`. Cambiaron 4 de 15: `desplegar-prueba`, `env-prueba`, `lib-prueba` y `verificar-aislamiento`. Los anteriores en `ops-staging-antes.tgz` y `*.bak-20261101`; hashes en `scripts-antes.sha256` y `scripts-despues.sha256` |
+
+**Apply, medido con filas:**
+
+| Migración | De «apply: inicio» al COMMIT registrado | md5 del ledger |
 |---|---|---|
-| 1 | `pg_dump` de la base de prueba a `/srv/ops`, para poder volver | 2 min |
-| 2 | `preparar.mjs --proyecto dtd-cargo-staging` de las seis migraciones, desde una sola cabeza | 2 min |
-| 3 | `aplicar-remoto.sh --proyecto dtd-cargo-staging --paso previa`, de a una | 5 min |
-| 4 | Apply en lote, con `--esperada … --paquete …` en orden, parando en la primera falla | 5 min |
-| 5 | Smoke A: web vieja con base nueva, pantallas de arriba | 15 min |
-| 6 | Imagen de la cabeza (`build-image-prueba.yml`) y `desplegar-prueba.sh` | 15 min |
-| 7 | Smoke B por rol, y «aprobado en prueba» de Sam | 30 min, con Sam |
+| 0492 | 273 ms | `4ca60abd…`, igual a producción |
+| 0493 | 547 ms | `b5ca301e…`, igual a producción |
+| 0494 | 818 ms | `f1db4e44…`, igual a producción |
+| 0495 | 384 ms | `c0c9dac8…`, igual a producción |
+| 0496 | 386 ms | `075eab7f…` |
+| 0497 | 343 ms | `86a8bdbc…` |
 
-**Riesgos:**
+**Locks de la 0497, por muestreo de `pg_locks` cada ~10 ms:** `journal_lines` `AccessExclusiveLock` unos 116 ms, `journal_entries` `AccessExclusiveLock` unos 105 ms, `invoices` `ShareRowExclusiveLock` unos 74 ms. Los tres locks se concedieron sin que el muestreo los viera en espera. **Un lector de `journal_entries` tuvo que esperar: tardó 103,5 ms,** justo al soltarse el lock, contra una mediana de 1 ms. Los lectores de `invoices` no se frenaron dentro de la ventana. Son tiempos con el VPS en uso normal y sin tráfico en prueba; en producción una transacción larga ajena puede alargarlos, y `lock_timeout` de 5 s la corta sin cambiar nada.
 
-1. **Qué agrega sobre §3b:** GoTrue y storage-api de verdad, tablas con datos (el CHECK y el índice corren sobre filas), la web vieja contra la base nueva y los smokes por rol. Los permisos del rol ya se probaron en local.
-2. **Prueba no cubre el cuerpo vivo:** tiene el `next_entry_code` de la 0078 (393 caracteres). Esa rama la cubren §3b, PGlite y la lectura previa de producción.
-3. **Volver atrás cuesta:** sin reset, solo con el respaldo del paso 1. Con reset se pierden los datos reales.
-4. **La web de prueba es más vieja que la de producción.** Asienta igual, cabecera primero, así que sirve para la ventana, pero no es la misma imagen.
-5. **La evidencia vale para un SHA.** Un commit que toque la 0497 obliga a repetir. Conviene ensayar después de tu revisión.
-6. **Hay que confirmar la imagen:** `build-image-prueba.yml` depende de las variables `PRUEBA_*` y el repo cambió de dueño. No lo verifiqué; la sesión `publicacion-softagentes` lleva ese frente.
-7. **Una sola ranura:** prueba muestra una rama a la vez.
+**PostgREST (B1):** antes del apply, la RPC da `PGRST202`. Después, el primer pedido da HTTP 200 `invoice_unavailable`, sin `notify` a mano. `pgrst_ddl_watch` y `pgrst_drop_watch` están activos en prueba, como en producción.
+
+**CHECK e índice:** corrieron sobre 178 asientos y 356 líneas. Conteo previo: `sana` emitida 13, pagada 2, parcial 2; `sin_venta` borrador 34, emitida 3, pagada 1, parcial 1; `venta_anulada|anulada` 1. El control posterior dio esas mismas filas, y el conteo previo se niega con la 0497 aplicada.
+
+**Smoke A, web `929cabf51` con la 0497:** lo que la ventana de producción va a vivir.
+
+| Caso | Qué pasó |
+|---|---|
+| Control antes de la 0497: emitir | `emitida`, con su venta. Prueba que la web y la base estaban sanas |
+| Emitir al crear, y borrador → emitir | **La persona ve «creada» y «emitida» sin ningún error. La factura queda SIN asiento.** Solo el log del web lo dice: `[contabilidad] asiento de factura F-2026-0035 no creado: Las líneas de venta no son la fórmula nominal íntegra.` |
+| Detectarla | El control posterior da `sin_venta\|emitida\|emitida_en_la_ventana\|2` |
+| Repararla | `post_invoice_journal_entry_atomic` con `service_role` responde `posted`. Probado en `emitida`, `parcial` y `pagada`; la factura pasa a `sana`. La fecha del asiento es la de emisión, y si ese período ya cerró la RPC lo rechaza. **La web no tiene botón para esto:** en producción sería una escritura con OK |
+| Anular con venta y sin cobro | `anulada`, con reverso |
+| Anular con cobro vivo | Rechazo y factura intacta: «La factura tiene 1 cobro(s) vivo(s): anúlalos primero en Cobranzas.» |
+| Anular el cobro y después la factura | Pasa, con reverso |
+| Cobrar, parcial y total | Pasan |
+| Cobrar una sin venta de antes | Pasa. Es el hueco conocido |
+| Anular una sin venta | `anulada`, sin reverso |
+| Anular asiento automático o reverso | Rechazo: «El asiento automático es inmutable; revisa su factura y reverso.» La web vieja todavía ofrece el botón |
+| Anular asiento manual | Pasa |
+| Comercial | Facturación lo devuelve al Dashboard |
+| Lecturas: facturación, contabilidad, cobranzas, reportes | HTTP 200, sin pantalla de error |
+
+**Límite del control posterior que encontré:** `issued_at` es una fecha, así que una factura sin venta emitida el mismo día **antes** del apply y tocada después sale como `emitida_en_la_ventana`. Medido con `F-0573-2001`, que sembré ese mismo día. Falla hacia avisar de más. Se compara contra el conteo previo; no cambié el script.
+
+**Imagen de la cabeza, `prueba-sha-db84f6ffd…`, ya desplegada.** Recorrido previo del Smoke B con cuentas de contabilidad, comercial y admin: emitir asienta por la RPC en los dos caminos; anular deja venta y reverso; con cobro vivo, «Anular» está deshabilitado y explica por qué; en el libro diario, «Anular» de un automático está deshabilitado; «Por contabilizar» lista las de sin venta y no las anuladas con reverso; 0 errores de página. Mailpit con 0 mensajes y `mail_logs` con 0 filas en la última hora.
+
+**Vuelta atrás, sin rodeos: de la base no hay.**
+
+- **0496 y 0497:** no existe migración de reversa, ni escrita ni probada. La 0497 cambia cuerpos de funciones, agrega guardas, columna, CHECK y FK, y a partir del primer reverso real hay filas que la web vieja no entiende. El runbook §8 lo dice: se deshace con una migración nueva, numerada, con su PR, sus pruebas y OK nominal.
+- **Restaurar un respaldo** es lo único que devuelve la base, y pierde todo lo escrito después. Producción tiene su respaldo diario (el último, 2026-11-01 06:05Z). Conviene un `pg_dump` con `pg_restore --list` justo antes del apply. La restauración del respaldo de este ensayo no la probé.
+- **Lo que sí se puede:** volver la **web** a `929cabf51`. Eso deja la ventana del Smoke A: todo funciona, salvo que las facturas nuevas quedan sin asiento, se detectan con el control posterior y se reparan con la RPC.
+- **Un apply que falla no deja nada:** va en una transacción con su fila del ledger.
+
+**Estado en que queda prueba:** ledger con 489 filas, última `0497`; web `db84f6ffd`; lista de IP del `.env` con la IP actual de Sam, reemplazada por `ips-prueba.sh`, porque esta PC recibía 403. Producción no se tocó: su web y su ledger de 499 filas siguen igual.
 
 ## FUERA DE ALCANCE DETECTADO
+
+- **Sam no puede entrar a prueba todavía.** Prueba está detrás de Cloudflare desde el 2026-10-22 y los routers `*-cloudflare@file` de `/srv/edge/traefik/dynamic/cloudflare-private.yml` tienen su propia lista de IP, con la IP vieja de Sam. `ips-prueba.sh` no la toca y el runbook §2.1 no lo dice: `--aplicar` termina bien y Sam sigue en 403. Ese archivo es del borde compartido y no está en el repo, así que no lo edité: lo pedí al Director.
+- **`desplegar-prueba.sh` con su `--ip` por omisión ya no sirve:** `127.0.0.1` da 403 y su smoke falla después de cambiar la imagen. Funciona con `--ip 217.216.54.70`. Además, su `docker pull` esconde el motivo de una falla, y el smoke corre antes de que Traefik vea el contenedor: el primer pedido dio 404 y salió con 6 con la imagen ya puesta. Repetir el comando lo arregló.
+- **`EN-PRUEBA.txt` no se entera de un cambio a mano.** Decía `cfa7da01` con otra imagen corriendo desde el 2026-10-25.
+- **El `compose.yml` de prueba no es el de `main`:** le falta el volumen `estado-publicacion`. Y `compose.staging.yml` tiene en el servidor `healthcheck.interval: 30s`, que `main` no tiene. No los toqué.
+- **0422 y 0423 no están en ningún ledger,** ni en prueba ni en producción. Sigue siendo así; no es de esta tarea.
+- **Mi medición imprimió el comienzo de llaves TLS.** Un `grep` sobre los volúmenes de Traefik abrió `acme.json` y mostró en esta sesión las primeras ~100 letras de varias llaves privadas. No hay nada en Git ni en estos documentos. Decidir si se rota es del Director.
 
 - **`edge-functions` dio rojo local dos veces y no era del código.** `deno check` dio TS7031 y TS7006 en `supabase/functions/kommo-webhook/index.ts:388,391` en los `verify` de `4c3501b1b` y `66b755c13`. **Corrijo lo que escribí antes:** dije que la causa era la versión flotante de `jsr:@supabase/supabase-js@2`, y no lo es. Con caché de Deno vacía, el árbol de `origin/main` da exit 0 con `2.90.0`, `2.110.0`, `2.115.0`, `2.116.0`, `2.117.0` y `2.118.0`, y también sin fijar versión. El rojo salía con la caché de esta máquina, y `main` fallaba igual en esa misma caché, con `supabase/functions` idéntico a esta rama. Después de mis corridas, esa caché también da exit 0 y el `verify` de `dab79b99f` lo dio verde. **Inferencia:** caché de Deno desactualizada en esta máquina; ya no se puede comprobar porque se refrescó. Por eso el CI, que parte de una caché limpia, no lo mostraba.
 - **Otra vía a facturas inválidas, que ya existía:** un `PATCH` directo con `is_postable=false` sobre la cuenta 4.5 vuelve inválidas las ventas del tenant, porque la 0497 no pone guardas sobre `accounts` y la RLS es `for all` por tenant. La acción de Contabilidad lo impide con movimientos; el `PATCH` directo no. El permiso ya existía, y el filtro le quita el ruido: esas ventas ya no congelan un cobro. Corrijo lo que dije: esto no es solo por SQL directo.
