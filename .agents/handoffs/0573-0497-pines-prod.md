@@ -259,12 +259,14 @@ Con rol contabilidad o admin, salvo donde se indica:
 
 **Lectura:** no hay un rojo atribuible a esta rama, pero el `verify` no cerró en verde y sigue siendo FALLÓ. Lo que corrió después son pruebas puntuales y el CI. Los commits posteriores a `dab79b99f` no tocan el blob.
 
-Identidad vigente, copiada de la salida de `preparar.mjs` sobre `c09acce20`. El filtro cambió el blob, así que estos valores reemplazan a los anteriores. Los commits posteriores no tocan las migraciones. La lectura previa sobre la cabeza final, con su evidencia, va en el informe al Director.
+Identidad vigente y lectura previa, copiadas de la salida de `preparar.mjs` y `aplicar-remoto.sh` sobre `1e31a642f19ddf577bbd863da8f94b957cc74aa0`. Los commits posteriores solo tocan este handoff. **La lectura previa PASÓ en las dos**, con scripts del servidor iguales al checkout.
 
-| Migración | Blob | Bytes | md5 del blob | md5 de `aplicar.sql` |
-|---|---|---:|---|---|
-| `0496_tarifa_congelada_por_embarque` (SDD-0571) | `0f424008e0b8` | 45610 | `075eab7fae8d9dfb2b06f88335087f8d` | `d3be5cbcdc4d1960e1306d2a9a6a4926` |
-| `0497_reverso_al_anular_factura` (SDD-0573) | `7f8450fa6417` | 79544 | `86a8bdbc8bdcaf5586157db018c1164c` | `2f6948f17f5f2ebc4a295f82f363baad` |
+| Migración | Blob | Bytes | md5 del blob | md5 de `aplicar.sql` | Evidencia de la lectura previa |
+|---|---|---:|---|---|---|
+| `0496_tarifa_congelada_por_embarque` (SDD-0571) | `0f424008e0b8` | 45610 | `075eab7fae8d9dfb2b06f88335087f8d` | `d3be5cbcdc4d1960e1306d2a9a6a4926` | `/srv/ops/evidencias/previa-0496-dtd-cargo-20261101T205838Z` |
+| `0497_reverso_al_anular_factura` (SDD-0573) | `7f8450fa6417` | 79544 | `86a8bdbc8bdcaf5586157db018c1164c` | `2f6948f17f5f2ebc4a295f82f363baad` | `/srv/ops/evidencias/previa-0497-dtd-cargo-20261101T205857Z` |
+
+En la de la 0497: 0 sesiones esperando locks, 0 transacciones largas, 13 funciones `nueva`, `void_invoice_with_audit_reason` `igual` a la 0294 y `previa.err` vacío.
 
 ## COMMITS
 
