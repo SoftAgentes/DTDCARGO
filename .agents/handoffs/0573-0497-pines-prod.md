@@ -70,12 +70,49 @@ ERROR:  permission denied to set parameter "dtd.audit_reason"
 
 La misma función sin ese parámetro se crea sin error. PGlite y `sql-tests` corren como superusuario, por eso nunca salió. El apply habría fallado con código 6, sin daño, pero después de pedir el OK de Sam.
 
-**Corrección, en commit propio, que se puede descartar** (`cf7810fe5`, y su huella en un commit aparte; hay que reaplicarla si se descarta). Es un cambio al mecanismo D2/M4 y **falta la aceptación del Director**. El motivo se vacía al entrar al bloque que escribe y se devuelve el valor exterior antes de salir, como en la 0421. Un error lo deshace la transacción o el subbloque que lo captura. Las aserciones de comportamiento de D2/M4 se conservan y agregué dos pruebas:
+**Corrección, en commit propio** (`cf7810fe5`). Es un cambio al mecanismo D2/M4, **autorizado por el Director el 2026-11-01; pendiente de que Sam lo vea en el OK nominal**. Queda registrado en D2/M4 de la spec. El Director descartó `GRANT SET ON PARAMETER`.
 
-- El motor niega ese SET sin superusuario, y la 0497 no lo usa.
-- La anulación restaura el motivo por sus dos salidas y no lo deja en los eventos.
+El motivo se vacía al entrar al bloque que escribe y se devuelve el valor exterior antes de salir, como en la 0421. La cabecera restauraba sola ante un error y el cuerpo no: ahí lo deshace la transacción o el subbloque que lo captura. Cada salida está probada con una sesión real, en PGlite:
 
-Cinco mutantes, con el pin recalculado para que no mueran por el pin: todos mueren por comportamiento. La alternativa, `GRANT SET ON PARAMETER` por `supabase_admin` fuera del ledger, no la recomiendo: deja una dependencia fuera de las migraciones.
+| Salida | Lo que se comprueba |
+|---|---|
+| Éxito, en transacción y sin ella | vuelve el valor exterior. El testigo anota el motivo en cada escritura: vacío en líneas y cabecera, el del documento solo en el UPDATE de la factura |
+| Retornos tempranos | `invoice_unavailable`, `invoice_not_postable`, `zero_total` y factura pagada: no tocan el valor exterior ni escriben |
+| Excepción capturada con savepoint | con asiento y sin asiento con el motivo ya puesto, con asiento antes de ponerlo, y asiento de venta nuevo: el valor exterior intacto, factura sin cambios, sin reverso |
+| Excepción sin capturar | sin transacción y en una que se deshace, con valor previo, con valor vacío y sin valor: no queda nada en la sesión y el rol vuelve a `postgres` |
+| Colisión de código | el reintento conserva el motivo exacto y restaura el exterior |
+
+**Retornos tempranos:** una prueba de estructura exige que cada `return` posterior al primer cambio del motivo venga justo después de la restauración. Todos los anteriores salen sin haberlo tocado. No encontré ningún camino que no restaure.
+
+Ocho mutantes, con el pin recalculado para que no mueran por el pin: todos mueren por comportamiento o por esa estructura.
+
+**Límite:** el `set_config('', true)` que sigue al UPDATE no tiene un testigo propio, porque después no hay otra escritura hasta salir. Esa línea ya existía antes de este cambio.
+
+### 3b. La clase de fallo: 0496 y 0497 con el rol real
+
+Encargo del Director: PGlite y `postgres:17` corren como superusuario y pueden esconder otros permisos. Medido en local con `supabase/postgres:17.6.1.136`, la imagen de producción, sin red. Rol `postgres`: `super=false`, `createrole=true`, `createdb=true`, `bypassrls=true`, sin SET sobre el parámetro. Las esperas 0422 y 0423 no se aplican, como en producción.
+
+| Capa | Resultado |
+|---|---|
+| Reconstrucción como `postgres` hasta la 0495 | PASÓ, 469 migraciones en 16 s |
+| **Control en rojo:** la 0497 de main | `psql:…:721: ERROR: permission denied to set parameter "dtd.audit_reason"`. El arnés detecta la clase |
+| 0496: previa, apply, verificación del paquete real | PASÓ; apply 305 ms |
+| `next_entry_code` con el cuerpo vivo | md5 `06b5756a18361fc4d85cec6f6dc4b3bc`, 388 caracteres |
+| 0497: previa, apply, verificación del paquete real | PASÓ; apply 332 ms |
+| Ledger después del apply | md5 `075eab7f…` y `fdac29d9…`, iguales a los blobs |
+| Funciones con parámetro propio en la cabecera | 0 |
+| Contrato 0496 en base nueva, como `postgres` | PASÓ, 102 aserciones |
+| Contrato 0497 en base nueva, como `postgres` | PASÓ, 144 aserciones |
+
+**No aparece ninguna otra falla de permisos:** ni triggers, ni `alter constraint`, ni GRANT, ni en las RPC al ejecutarse, que el contrato corre con los roles `authenticated` y `service_role`.
+
+**Lo que esto no cubre:**
+
+- Los tiempos son sobre tablas casi vacías, sin concurrencia.
+- El CHECK del reverso corre sobre tablas vacías; con datos reales sigue NO VERIFICADO.
+- **Las carreras no corren con el rol real:** su guarda exige que `anon`, `authenticated` y `service_role` no existan, y en esta imagen existen. Corren en `postgres:17` como superusuario.
+- Las salidas con excepción se probaron en PGlite. Con el rol real corrió el contrato secuencial.
+- Auth y Storage son los stubs del repo, no GoTrue ni storage-api.
 
 ### 4. Rojos de `sql-tests` que venían de antes
 
@@ -121,14 +158,15 @@ Con rol contabilidad o admin, salvo donde se indica:
 
 | Comprobación | Estado | Detalle |
 |---|---|---|
-| Prueba de contrato (`reverso-al-anular-factura.migration.test.ts`, PGlite) | PASÓ | 69 de 69 |
+| Prueba de contrato (`reverso-al-anular-factura.migration.test.ts`, PGlite) | PASÓ | 79 de 79 |
+| Aplicación completa con el rol real | PASÓ | §3b |
 | Contratos reales en `postgres:17`, runner de esta rama | PASÓ | 4 de 4 |
 | `run-sql-tests-salida.node.mjs` en Linux (`node:24`) | PASÓ | 3 de 3; mutante sin `maxBuffer` muere. En Windows se salta: el doble de docker es un script de sh |
 | `migrations-lock`, `docs:check`, `sdd:check`, símbolos pendientes | PASÓ | símbolos: 0 ROJO, 3 AMARILLO declarados |
 | ESLint de los archivos tocados y `tsc --noEmit` del proyecto | PASÓ | exit 0 en los dos |
-| `pnpm verify` | NO EJECUTADO | pedí turno al Director; sin respuesta al escribir esto |
-| `run-sql-tests` completo (255 archivos) | NO EJECUTADO | va con el turno de `verify` |
-| Apply con el rol real | NO EJECUTADO | es el ensayo en prueba |
+| `pnpm verify` | NO EJECUTADO | el Director lo da en un turno aparte |
+| `run-sql-tests` completo (255 archivos) | NO EJECUTADO | va con ese turno |
+| Ensayo en el entorno de prueba | NO EJECUTADO | el Director pidió la propuesta primero |
 | Lectura previa 0496 y 0497 | PASÓ | abajo |
 
 Lectura previa e identidad sobre `f80a0fce2a69acb1053376bf401825ae5097252d`, copiadas de la salida de `preparar.mjs`. El commit que agrega esta tabla solo toca este handoff, así que los blobs no cambian. La repetición sobre la cabeza final va en el informe al Director.
@@ -142,7 +180,7 @@ En la previa de la 0497: 0 sesiones esperando locks, 0 transacciones largas; 13 
 
 ## COMMITS
 
-`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · más el de huellas, spec y este handoff.
+`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · más los de las pruebas por salida y el registro en D2/M4.
 
 ## PR / BRANCH
 
@@ -150,9 +188,9 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Aceptación del Director del cambio de mecanismo D2/M4.
+- Que Sam vea el cambio de mecanismo D2/M4 al pedirle el OK nominal.
 - Turno para `pnpm verify`.
-- Ensayo en prueba, con su turno. Propuesta abajo.
+- Ensayo en prueba: la propuesta está abajo y espera revisión del Director.
 
 ## Propuesta de ensayo en prueba, 0492–0497 (NO EJECUTADO)
 
@@ -172,8 +210,8 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 
 **Riesgos:**
 
-1. **Es la primera prueba con el rol real**, y por eso la más valiosa: una falla de permisos saldría acá y no en producción. Otra sorpresa de este tipo en 0492–0497 frena el lote.
-2. **Prueba no cubre el cuerpo vivo:** tiene el `next_entry_code` de la 0078 (393 caracteres). Esa rama la cubren la prueba de PGlite y la lectura previa de producción.
+1. **Qué agrega sobre §3b:** GoTrue y storage-api de verdad, tablas con datos (el CHECK y el índice corren sobre filas), la web vieja contra la base nueva y los smokes por rol. Los permisos del rol ya se probaron en local.
+2. **Prueba no cubre el cuerpo vivo:** tiene el `next_entry_code` de la 0078 (393 caracteres). Esa rama la cubren §3b, PGlite y la lectura previa de producción.
 3. **Volver atrás cuesta:** sin reset, solo con el respaldo del paso 1. Con reset se pierden los datos reales.
 4. **La web de prueba es más vieja que la de producción.** Asienta igual, cabecera primero, así que sirve para la ventana, pero no es la misma imagen.
 5. **La evidencia vale para un SHA.** Un commit que toque la 0497 obliga a repetir. Conviene ensayar después de tu revisión.
@@ -182,7 +220,8 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Las pruebas de migración no corren con el rol de producción.** PGlite y `postgres:17` son superusuario, así que esta clase de defecto no se detecta hasta el apply. Una opción: correr `sql-tests` o un humo de apply sobre `supabase/postgres` con `postgres` sin superusuario. Lo mismo vale para futuras migraciones con un parámetro propio en la cabecera.
+- **Las pruebas de migración no corren con el rol de producción.** PGlite y `postgres:17` son superusuario, así que esta clase de defecto no se detecta hasta el apply. La comprobación de §3b fue un script de una sola vez y no queda en el repo. `pnpm schema:rebuild:supabase` ya reconstruye como `postgres` en la imagen real, pero no corre el apply empaquetado ni los contratos, y no está en `verify`. Una opción: agregarlo como paso del CI o del gate de migraciones.
+- **El ledger de `_supabase-platform-stubs.supabase.sql` no tiene `created_by`, `idempotency_key` ni `rollback`:** un `aplicar.sql` real falla ahí. Lo sorteé en mi arnés con un `alter table`.
 - **La 0495 está en el ledger de producción pero sigue en `pendingBelowCutoff` y sin sellar.** Falta su cierre del runbook §6.
 - **Una factura emitida entre el apply y la web nueva queda sin asiento.** Conviene un conteo de control después de publicar, con OK. Revisar si hace falta un camino para asentarla.
 - `0497_…_carrera.test.sql` imprime evidencia cruda de 500 KB por corrida. Ya no rompe, pero ensucia.
