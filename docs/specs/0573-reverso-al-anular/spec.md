@@ -4,7 +4,7 @@ title: "Anular una factura revierte su asiento de venta, en la misma transacció
 status: in-progress
 author: "founder"
 created: 2026-10-20
-updated: 2026-10-21
+updated: 2026-11-01
 supersedes: null
 superseded_by: null
 related: ["0566", "0567", "0560", "0569", "0570", "0571", "0572"]
@@ -1453,3 +1453,19 @@ Root recuperó después el outer histórico REAL en `C:/tmp/director-traspaso-20
 **PR/branch, pendientes y handoff al Director.** Misma rama `codex/sdd-0573-core-reparacion-20261021`, ownerworker-0573core-01a15a4e-ddf0-7d82-8656-d9dc56b58468 y claimB4 retenido; PR320/base tempranae834/unión55 se conservan como frontera de revisión. Respaldo normal DRAFT posterior queda PENDIENTE de revisión nominal del SHA y despacho; NO PUSH/PRedit en esta fase. SDD siguein-progress; W60 no acredita2.1global ni suma150/175/239/129/4. PG17/Q/carreraentera con8financieros,14/A-B,M8,reconstrucción/composiciones/propagación/canónica-build/UI visible/conocimiento/producción siguen pendientes, sin absorber otros trabajos.0497productivaUNAPPLIED/MIGRATE-FIRST requiere aprobación nominal futura;0495irrepetible y monitorfiscalpausado.
 
 Impacto documental guardado sólo en esta tarea y estas dos fuentes canónicas propias. Graphify/Archify/cobertura semántica/Obsidian/generación/publicación de conocimiento:NO EJECUTADOS por el alcance documental acotado. Nuevas pruebas/Nodeproducto/parser/discovery/SQLDB/API/VPS/managers/install/build/verify y cualquier otraheavy:NO EJECUTADOS. No se declara ausencia global de procesos ni se libera claim. FUERA DE ALCANCE DETECTADO: ninguno nuevo absorbido; la NC observada permanece explícita. Siguiente acción exclusiva del Director/General: revisar hija fija/preservaciones antes de respaldarla; devolución formal al cerrar, sin activar fase posterior.
+
+## 2026-11-01 · La 0497 queda aplicable en producción
+
+Encargo del Director después de que la lectura previa de la 0497 parara en `next_entry_code` (evidencia `/srv/ops/evidencias/previa-0497-dtd-cargo-20261101T161957Z`). Detalle y tabla completa en `.agents/handoffs/0573-0497-pines-prod.md`.
+
+**Medición.** Catálogo de producción en solo lectura, sin filas de negocio. De las diez funciones que fija el preflight, nueve coinciden con md5 exacto, y también el resto de sus condiciones: firmas, config, dueños, restricciones, FK, columnas, RLS, triggers y ACL. `next_entry_code` difiere solo en formato: su md5 sin espacios es igual al de la 0078 (`30ce8b9d8606d79b2f20bc07f3a6ac73`). No hay ninguna deriva de lógica.
+
+**Decisión sobre el pin.** Se aceptan dos cuerpos exactos de `next_entry_code`, solo para esa función: el de la 0078 (`6954cb3efb9db4ca131266964d4ed524`), que reconstruyen las pruebas, y el vivo (`06b5756a18361fc4d85cec6f6dc4b3bc`). No se usa el md5 sin espacios de la 0492 y la 0493, porque el candado exacto es más estricto: un formato desconocido también aborta.
+
+**Defecto que el preflight no ve.** La 0497 creaba `post_invoice_journal_entry_atomic` y `void_invoice_with_audit_reason` con un parámetro propio en la cabecera (D2/M4). En producción `postgres` no es superusuario y no tiene SET sobre ese parámetro. Una sonda con rollback en el entorno de prueba, con la misma imagen y el mismo rol, dio `permission denied to set parameter "dtd.audit_reason"`. PGlite y `sql-tests` corren como superusuario y no lo detectan. El apply habría fallado con código 6, sin daño.
+
+**Cambio de mecanismo en D2/M4, pendiente de la aceptación del Director.** El motivo se acota en el cuerpo, como en la 0421: se vacía al entrar al bloque que escribe y se devuelve el valor exterior antes de salir. Si hay un error, lo deshace la transacción o el subbloque que lo captura. El comportamiento contratado no cambia: motivo exacto solo en `invoice_voided`, sin contaminar otros eventos, y contexto exterior restaurado. Cambian el md5 y la config esperada de las dos funciones en el postflight.
+
+**Rojos de `sql-tests` que venían de antes.** Los dos contratos de la 0497 estaban verdes y el runner los mataba por pasar de 1 MiB de salida (`ENOBUFS`). `0467_reversion_credito_carrera` era un rojo real de su fixture, que cargaba la 0497 sin la 0493. Corregidos sin tocar ninguna aserción.
+
+**Límites.** La 0497 sigue NO APLICADA. El ensayo en prueba, que es la primera comprobación con el rol real, sigue pendiente de turno del Director. La OK nominal de Sam tampoco se pidió ni se tomó.
