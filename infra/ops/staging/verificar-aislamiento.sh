@@ -19,7 +19,7 @@
 #   5. El .env no tiene líneas `X=` vacías ni marcas `<...>`: con "" el `??` de
 #      la app no cae al respaldo (runbook servidor-contabo §3.6, 2026-10-15).
 #   6. La puerta del web (PRUEBA_WEB_USUARIOS) tiene usuarios con bcrypt.
-#   7. La imagen es `ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<40 hex>`.
+#   7. La imagen es `ghcr.io/softagentes/dtdcargo:prueba-sha-<40 hex>`.
 #   8. Vault de prueba sin kommo_cron_key, kommo_token_dtd_v1 ni
 #      functions_base_url, y sin filas en kommo_connections (salvo --sin-base).
 #   9. El bundle de la imagen nombra el host de prueba y no el de producción ni
@@ -33,7 +33,7 @@
 # Uso (en el VPS):
 #   verificar-aislamiento.sh --env /srv/dtd-cargo-staging/.env --prod-env /srv/dtd-cargo/.env \
 #       [--project dtd-cargo-staging] [--example /srv/dtd-cargo-staging/.env.example] \
-#       [--image ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<sha>] \
+#       [--image ghcr.io/softagentes/dtdcargo:prueba-sha-<sha>] \
 #       [--permitir CLAVE]… [--sin-base] [--sin-bundle] [--exigir-sin-ga] [--evidence <archivo>]
 #
 # Códigos: 0 todo PASÓ (puede haber AVISO) · 1 algo FALLÓ · 2 uso inválido.
@@ -51,7 +51,7 @@ SIN_BUNDLE=0
 EXIGIR_SIN_GA=0
 EVIDENCE=""
 PROD_PROJECT="${PROD_COMPOSE_PROJECT:-dtd-cargo}"
-IMAGE_REPO="ghcr.io/hailuwaycom-sketch/dtdcargo"
+IMAGE_REPO="ghcr.io/softagentes/dtdcargo"
 CLOUD_REF="xpfuzqombmjmxvprjgmi"
 
 usage() { sed -n '2,36p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }

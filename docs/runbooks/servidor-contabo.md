@@ -314,9 +314,9 @@ El entorno de prueba usa 3.072 MiB de límites en total:
 Con prueba, DTD Cargo suma unos 12,5 GiB de límites. Sam decide si acepta ese medio GB (D10 de la SDD-0540).
 
 Imagen de la app: la construye CI en GHCR
-(`ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha>` y `:main`). La de prueba sale
+(`ghcr.io/softagentes/dtdcargo:sha-<sha>` y `:main`). La de prueba sale
 de otro workflow (`build-image-prueba.yml`, solo a mano) como
-`ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<sha>`: nunca se despliega en
+`ghcr.io/softagentes/dtdcargo:prueba-sha-<sha>`: nunca se despliega en
 producción, y los scripts de prueba no aceptan otra etiqueta. El servidor
 necesita `docker login ghcr.io` con un token de solo lectura de paquetes
 (`read:packages`), guardado en Dokploy (Registries) o en el keyring de
