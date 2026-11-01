@@ -22,6 +22,7 @@ const MIB = 1024 * 1024;
 const SOLO_POSIX = { skip: process.platform === "win32" && "el doble de docker es un script de sh" };
 
 function correr({ bytes, salida }) {
+  const { PATH: rutas = "" } = process.env;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sql-tests-salida-"));
   try {
     fs.mkdirSync(path.join(dir, "supabase", "tests"), { recursive: true });
@@ -40,7 +41,7 @@ esac
     return spawnSync(process.execPath, [SCRIPT], {
       cwd: dir,
       encoding: "utf8",
-      env: { ...process.env, VERIFY_SKIP_SQL: "", PATH: `${path.join(dir, "bin")}${path.delimiter}${process.env.PATH}` },
+      env: { ...process.env, VERIFY_SKIP_SQL: "", PATH: `${path.join(dir, "bin")}${path.delimiter}${rutas}` },
     });
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });

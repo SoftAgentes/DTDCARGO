@@ -1,4 +1,5 @@
--- SDD-0573 / I3-B. Candidata local de FUENTE; controles NO EJECUTADOS.
+-- SDD-0573 / I3-B. Anular una factura revierte su asiento; la venta se asienta por RPC.
+-- Controles y evidencia: supabase/tests/0497_*.test.sql, su prueba en PGlite y la spec.
 -- ⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en
 --    supabase/migrations-baseline.json › pendingBelowCutoff. Aplicar exige OK
 --    nominal de Sam para este archivo. MIGRATE-FIRST no autoriza apply/merge.
