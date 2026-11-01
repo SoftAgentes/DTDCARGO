@@ -90,7 +90,7 @@ Nueve mutantes, con el pin recalculado para que no mueran por el pin: todos muer
 
 ### 3b. La clase de fallo: 0496 y 0497 con el rol real, sobre el esquema completo
 
-PGlite y `postgres:17` corren como superusuario, y el contrato de la 0497 carga un subconjunto de migraciones (sin 0197, 0466, 0494 ni 0495). `infra/ops/tests/prueba-0497-rol-real.mjs` cubre las dos cosas. Es corrida pesada, no entra al CI y da 71 de 71 con la imagen de producción `supabase/postgres:17.6.1.136`, sin red. Rol `postgres`: `super=false`, `createrole=true`, `createdb=true`, `bypassrls=true`, sin SET sobre el parámetro. Las esperas 0422 y 0423 no se aplican, como en producción.
+PGlite y `postgres:17` corren como superusuario, y el contrato de la 0497 carga un subconjunto de migraciones (sin 0197, 0466, 0494 ni 0495). `infra/ops/tests/prueba-0497-rol-real.mjs` cubre las dos cosas. Es corrida pesada, no entra al CI y da 77 de 77 con la imagen de producción `supabase/postgres:17.6.1.136`, sin red. Rol `postgres`: `super=false`, `createrole=true`, `createdb=true`, `bypassrls=true`, sin SET sobre el parámetro. Las esperas 0422 y 0423 no se aplican, como en producción.
 
 | Capa | Resultado |
 |---|---|
@@ -150,15 +150,14 @@ Hallazgo de la revisión independiente: `i3_invoice_final_check` corría en todo
 
 **La regla es más precisa que lo que se le explicó a Sam.** Un cambio de estado entre los cuatro vivos no se revisa. Conviene que lo vea así en el OK nominal.
 
-**Hueco conocido, aceptado por el Director el 2026-11-01, con condiciones.** Una factura `emitida` que ya llegue con la venta anulada se puede cobrar hasta `pagada`. Medido con `register_collection_receipt` en la imagen real, sobre `venta_anulada|emitida` sembrada: `l_cobro_hueco_conocido` y `l_cobro_hasta_pagada`. **Es más laxo que la 0497 sin filtro, donde fallaría al confirmar, e igual que hoy en producción.**
+**Hueco conocido, aceptado por el Director el 2026-11-01, con condiciones.** El filtro no mira la clase: **cualquier factura viva cuya venta no cuadra se puede cobrar hasta `pagada`.** Con la venta anulada, con dos ventas, con líneas descuadradas, con la venta borrada o de otro tenant, entre otras. Medido con `register_collection_receipt` en la imagen real, con venta anulada y con dos ventas (`l_cobro_hueco_conocido`, `l_cobro_hasta_pagada`, `l_cobro_dos_ventas`), y para las 14 clases vivas en la prueba de contrato. **Es más laxo que la 0497 sin filtro, donde fallaría al confirmar, e igual que hoy en producción.** El Director decidió no agregar una comprobación dentro de la 0497 para el hueco residual: se queda la puerta del conteo, con avisar a quien usa el sistema.
 
-- Sin el filtro fallaría al confirmar. Con el filtro es igual que hoy en producción, sin la 0497.
 - Hoy no hay ninguna fila así en estados vivos, según el conteo.
 - Después del apply no encontré camino para crearla: `i3_journal_entry_guard` hace inmutable el asiento de venta.
 - Solo entraría una que aparezca antes del apply, entre la puerta y el COMMIT.
 - `void` y `post` la siguen rechazando.
 
-**Se pierde la alarma al tocar una fila rota, y la reemplaza el B3 de la radiografía.** `0497-legado-por-clase.sql` se niega con la 0497 aplicada, y `i3_assert_invoice_final` no corre en solo lectura porque usa `for update`. `scripts/qa/radiografia-integridad.sql` sí corre con la 0497 aplicada, y su fila 50 ve esa factura: **4 con la venta anulada, 3 con la venta viva**, sobre la misma base. Es alarma por corrida, no al momento de tocar la fila, y no dice cuál es.
+**Se pierde la alarma al tocar una fila rota, y la reemplaza un control por corrida.** `scripts/qa/0497-control-posterior.sql` corre con la 0497 aplicada, solo lectura, con conteos por clase. Se apoya en `i3_original_valid` y `i3_mirror_valid`, y dos pruebas lo comparan con `i3_assert_invoice_final` por mensaje: PGlite y la imagen real. Su columna `lectura` separa `emitida_en_la_ventana` (sin asiento, emitida desde la hora del ledger) de `entro_por_el_hueco` (viva y no cuadra). La radiografía también corre con la 0497 y su fila 50 ve esa factura (5 con la venta anulada, 4 con la venta viva), pero no ve todas las clases: no ve `venta_de_otro_tenant`, `venta_sin_codigo`, las dos de fecha, `lineas_ninguna`, `lineas_cuenta_no_clasificable`, `lineas_importe_invalido`, `lineas_sin_cxc_o_ingreso` ni `estado_sin_venta_posible`. Es alarma por corrida, no al momento de tocar la fila.
 
 **Lo que queda probado:**
 
@@ -179,8 +178,8 @@ Para el apply en producción. Nada de esto corre solo.
 1. **Puerta justo antes del apply:** correr `scripts/qa/0497-legado-por-clase.sql` y comparar **todas** las filas contra la lista exacta, salvo `sin_venta`. Hoy: `venta_anulada|anulada=1` y nada más. Cualquier otra fila, también `venta_anulada|anulada=2`, frena el apply. **En particular, cualquier `venta_anulada` en `emitida`, `parcial`, `vencida` o `pagada` detiene la ventana:** es el hueco conocido. Atención con `anulada_sin_reverso`: la crea anular desde Facturación con la `void` vieja, y es lo más probable antes del apply.
 2. **Hueco residual, que la puerta no cierra:** entre el conteo y el COMMIT, una anulación o una transacción en curso no se ve. Si en ese momento alguien anula una venta desde el Libro diario, la factura entra a la 0497 con la venta anulada y se puede cobrar. Se achica contando justo antes y con quien usa el sistema avisado. Antes de la ventana, Sam detiene Codex y Orca.
 3. **Justo después del apply:** PostgREST ve la RPC nueva (§6).
-4. **Conteo después de publicar, contra la línea base de hoy:** `sin_venta` con `emitida 3, pagada 1, parcial 1`. Si sube, se emitió una factura en la ventana y quedó sin asiento. El archivo de la puerta se niega con la 0497 aplicada, así que este conteo necesita su propia consulta, con la misma autorización.
-5. **Después de publicar, correr `scripts/qa/radiografia-integridad.sql`:** su B3 es la alarma de una factura viva sin venta. En la prueba con el rol real ve la factura viva con la venta anulada (§3c). Si sube la fila 50, hay que revisarlo.
+4. **Después de publicar, correr `scripts/qa/0497-control-posterior.sql`, con autorización de Sam,** y comparar contra la línea base de hoy: `sin_venta` con `emitida 3, pagada 1, parcial 1` y `venta_anulada|anulada=1`. Su columna `lectura` dice qué es cada cosa: `emitida_en_la_ventana` es una factura que hay que asentar; `entro_por_el_hueco` es una factura que entró al apply sin cuadrar.
+5. **Correr también `scripts/qa/radiografia-integridad.sql`:** su fila 50 cuenta las facturas vivas sin venta viva. No reemplaza el control de arriba, que ve más clases.
 
 ### 4. Rojos de `sql-tests` que venían de antes
 
@@ -231,16 +230,34 @@ Con rol contabilidad o admin, salvo donde se indica:
 
 | Comprobación | Estado | Detalle |
 |---|---|---|
-| Prueba de contrato (`reverso-al-anular-factura.migration.test.ts`, PGlite) | PASÓ | 114 de 114 |
+| Prueba de contrato (`reverso-al-anular-factura.migration.test.ts`, PGlite) | PASÓ | 131 de 131 |
 | Mutantes del motivo y del filtro, con el pin recalculado | PASÓ | 9 y 14, ninguno sobrevive. Los del motivo corrieron antes del filtro, que no cambia esas dos funciones |
-| `infra/ops/tests/prueba-0497-rol-real.mjs` | PASÓ | 71 de 71; §3b y §3c |
+| `infra/ops/tests/prueba-0497-rol-real.mjs` | PASÓ | 77 de 77; §3b y §3c. Se niega si `--paquetes` trae otro blob: probado con el paquete anterior, sale con 3 |
 | Contratos reales en `postgres:17`, runner de esta rama | PASÓ | 4 de 4 |
 | `run-sql-tests-salida.node.mjs` en Linux (`node:24`) | PASÓ | 3 de 3; mutante sin `maxBuffer` muere. En Windows se salta: el doble de docker es un script de sh |
 | `migrations-lock`, `docs:check`, `sdd:check`, símbolos pendientes | PASÓ | símbolos: 0 ROJO, 3 AMARILLO declarados |
 | ESLint de los archivos tocados y `tsc --noEmit` del proyecto | PASÓ | exit 0 en los dos |
-| `pnpm verify` | Se detuvo sobre `4c3501b1b` por orden del Director; se repite sobre la cabeza final | el resultado va en el informe |
-| Ensayo en el entorno de prueba | NO EJECUTADO | después de `verify` y de que la #345 esté en main; lo avisa el Director |
+| `pnpm verify` sobre `dab79b99f` | **FALLÓ** (exit 1), 16 de 17 pasos medidos | Tabla de abajo |
+| Ensayo en el entorno de prueba | NO EJECUTADO | lo avisa el Director |
 | Lectura previa 0496 y 0497 | PASÓ | abajo |
+
+**Logs de esta validación,** fuera del repo, en `0573-evidencia/` dentro de la carpeta de notas del grupo de sesiones (`local_535053f4-40c2-4124-a280-63f4fc882820`): `rol-real.log`, `mutantes-filtro.log`, `mutantes-motivo.log`, `contrato.log` y `verify-dab79b99f.log`, con los scripts de los mutantes al lado.
+
+**El `verify` sobre `dab79b99f`, paso por paso.**
+
+| Paso | Estado | Detalle |
+|---|---|---|
+| `harness`, `lint`, `rsc-boundary`, `typecheck`, `edge-functions` | PASÓ | |
+| `test` | **FALLÓ**, sin ninguna aserción en rojo | Dos intentos: 13221 y 13170 pruebas pasadas, 0 fallidas. El exit 1 viene de «Failed to start forks worker… Timeout waiting for worker to respond», 2 y 6 archivos. Esos 6 archivos, aislados: PASÓ, 118 de 118. Es carga de la máquina, no el código |
+| `docs:check`, `numbering`, `feature-constants`, `components:check`, `governance:check` | PASÓ | |
+| `migrations-applied` | NO DISPONIBLE | sin `.env.local`; no se copiaron secretos |
+| `pending-migration-symbols` | PASÓ | 0 ROJO, 3 AMARILLO declarados |
+| `sql-tests` | PASÓ | 249 contratos, incluidos los tres que estaban en rojo |
+| `schema-rebuild` | PASÓ | |
+| `e2e` | **FALLÓ** | Un spec en los dos intentos: `sin-scroll-horizontal.spec.ts:119`, timeout de 20 s en un test de 60 s. Más `auth.spec.ts:81`, flaky en el primero. 218 y 219 pasadas. Aislados, sin carga: PASÓ, 3 de 3 cada uno, con el primero tardando 35 s. Esta rama no toca `e2e/`, `app/` ni `components/` |
+| `build` | PASÓ | |
+
+**Lectura:** no hay un rojo atribuible a esta rama, pero el `verify` no cerró en verde y sigue siendo FALLÓ. Lo que corrió después son pruebas puntuales y el CI. Los commits posteriores a `dab79b99f` no tocan el blob.
 
 Identidad vigente, copiada de la salida de `preparar.mjs` sobre `c09acce20`. El filtro cambió el blob, así que estos valores reemplazan a los anteriores. Los commits posteriores no tocan las migraciones. La lectura previa sobre la cabeza final, con su evidencia, va en el informe al Director.
 
@@ -292,7 +309,8 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **`edge-functions` está en rojo, y falla igual sobre `main`.** `deno check` da TS7031 y TS7006 en `supabase/functions/kommo-webhook/index.ts:388,391`. Medido exportando `supabase/functions` de `origin/main` (`1c2286f1f`) y corriendo el mismo comando con `deno 2.9.6`: 2 errores iguales. Ese árbol es idéntico al de esta rama. **Causa:** `jsr:@supabase/supabase-js@2` flota, sin lockfile; hoy resuelve `postgrest-js@2.116.0`. Fijando `supabase-js@2.90.0`, el mismo chequeo da exit 0. No es una causa completa: con `2.58.0` también da 2 errores, y no miré cuáles.
+- **`edge-functions` dio rojo local dos veces y no era del código.** `deno check` dio TS7031 y TS7006 en `supabase/functions/kommo-webhook/index.ts:388,391` en los `verify` de `4c3501b1b` y `66b755c13`. **Corrijo lo que escribí antes:** dije que la causa era la versión flotante de `jsr:@supabase/supabase-js@2`, y no lo es. Con caché de Deno vacía, el árbol de `origin/main` da exit 0 con `2.90.0`, `2.110.0`, `2.115.0`, `2.116.0`, `2.117.0` y `2.118.0`, y también sin fijar versión. El rojo salía con la caché de esta máquina, y `main` fallaba igual en esa misma caché, con `supabase/functions` idéntico a esta rama. Después de mis corridas, esa caché también da exit 0 y el `verify` de `dab79b99f` lo dio verde. **Inferencia:** caché de Deno desactualizada en esta máquina; ya no se puede comprobar porque se refrescó. Por eso el CI, que parte de una caché limpia, no lo mostraba.
+- **Otra vía a facturas inválidas, que ya existía:** un `PATCH` directo con `is_postable=false` sobre la cuenta 4.5 vuelve inválidas las ventas del tenant, porque la 0497 no pone guardas sobre `accounts` y la RLS es `for all` por tenant. La acción de Contabilidad lo impide con movimientos; el `PATCH` directo no. El permiso ya existía, y el filtro le quita el ruido: esas ventas ya no congelan un cobro. Corrijo lo que dije: esto no es solo por SQL directo.
 - **5 facturas `sin_venta` que no son borrador** (`emitida 3, pagada 1, parcial 1`): no tienen asiento de venta. Parece el defecto B3. **Inferencia,** sin revisar esas filas.
 - **Las pruebas de migración no corren con el rol de producción en el CI.** PGlite y `postgres:17` son superusuario. `infra/ops/tests/prueba-0497-rol-real.mjs` queda como corrida manual y solo para esta migración. Una opción: generalizarla al gate de migraciones.
 - **El ledger de `_supabase-platform-stubs.supabase.sql` no tiene `created_by`, `idempotency_key` ni `rollback`:** un `aplicar.sql` real falla ahí. Lo sorteé en mi arnés con un `alter table`.

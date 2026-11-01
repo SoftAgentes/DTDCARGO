@@ -829,6 +829,122 @@ select pg_temp.a2_buenas('credito-r');`);
       });
     }, SLOW);
 
+    // El hueco conocido no depende de la clase: un cobro mueve el estado entre los vivos y
+    // no pasa por la aserción, sea cual sea el motivo por el que la venta no cuadra.
+    it.each(["doble", "tenant", "borrador-v", "anulada-v", "borrada-v", "codigo", "sin-fecha", "infinita",
+      "ninguna", "una", "cuenta", "importe", "sin-cxc", "descuadre"])(
+      "hueco conocido: la factura viva «%s», cuya venta no cuadra, se cobra hasta pagada", async (label) => {
+        await sobreFixtureSinLa0497(async (db) => {
+          await db.exec(SEMBRAR);
+          await db.exec(FILE_0497);
+          const factura = `pg_temp.fixture_id('a2-${label}')`;
+          await confirmar(db, `update public.invoices set paid_amount = 10, status = 'parcial' where id = ${factura};`);
+          await confirmar(db, `update public.invoices set paid_amount = 100, status = 'pagada' where id = ${factura};`);
+          expect(onlyRow<string>(await db.exec(`select status::text as valor from public.invoices where id = ${factura};`), "valor")).toBe("pagada");
+          // Pero la aserción sigue viendo que no cuadra.
+          await expect(db.exec(`select public.i3_assert_invoice_final(${factura});`)).rejects.toThrow(/requiere revisión/);
+        });
+      }, SLOW,
+    );
+
+    // Después del apply, el control posterior reemplaza la alarma que perdió la guarda.
+    const CONTROL = resolve(ROOT, "scripts/qa/0497-control-posterior.sql");
+    const MENSAJE_DEL_CONTROL: Record<string, string> = {
+      ...MENSAJE_DE_CLASE,
+      reverso_sin_venta: "La relación contable de la factura requiere revisión.",
+      otros_asientos_en_el_par: "La relación contable de la factura requiere revisión.",
+      par_de_anulacion_invalido: "El par de anulación requiere revisión.",
+      sana_anulada_con_reverso: "ok",
+    };
+    const LEDGER = `create schema if not exists supabase_migrations;
+create table if not exists supabase_migrations.schema_migrations(version text primary key, name text);
+insert into supabase_migrations.schema_migrations values
+  (to_char(clock_timestamp() at time zone 'UTC','YYYYMMDDHH24MISS'),'0497_reverso_al_anular_factura');`;
+    const leerControl = async (db: PGlite) => (await db.exec(inline(CONTROL, {})))
+      .flatMap((result) => result.rows as { clase?: string; estado_factura?: string; lectura?: string; n?: number | string }[])
+      .filter((fila) => fila.clase !== undefined)
+      .map((fila) => ({ clase: fila.clase!, estado: fila.estado_factura!, lectura: fila.lectura!, n: Number(fila.n) }));
+    const realPorMensaje = async (db: PGlite) => {
+      await db.exec(`do $real$
+declare f record; v_mensaje text;
+begin
+  create temporary table if not exists a2_real(mensaje text not null);
+  truncate a2_real;
+  for f in select id from public.invoices loop
+    begin
+      perform public.i3_assert_invoice_final(f.id);
+      insert into a2_real values ('ok');
+    exception when check_violation then
+      get stacked diagnostics v_mensaje = message_text;
+      insert into a2_real values (v_mensaje);
+    end;
+  end loop;
+end;
+$real$;`);
+      return Object.fromEntries((await db.query<{ mensaje: string; n: number }>(
+        "select mensaje, count(*)::int as n from a2_real group by mensaje")).rows.map((fila) => [fila.mensaje, fila.n]));
+    };
+    const esperar = (ms: number) => new Promise((listo) => { setTimeout(listo, ms); });
+
+    it("el control posterior coincide con la aserción real y separa la ventana del hueco", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec(FILE_0497);
+        await esperar(1100);
+        await db.exec(LEDGER);
+        await esperar(1100);
+        // Una anulación de la 0497, con su reverso.
+        await confirmar(db, "select set_config('request.jwt.claim.sub', pg_temp.fixture_id('accounting-A')::text, true);",
+          "set local role authenticated;",
+          "select public.void_invoice_with_audit_reason(pg_temp.fixture_id('a2-sana'), 'Motivo sintético del control');");
+        // Emitida en la ventana, sin asiento: lo que deja la web vieja.
+        await db.exec(`insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,base_amount,iva_amount,total_amount,paid_amount,status,issued_at)
+          values(pg_temp.fixture_id('a2-ventana'),pg_temp.fixture_id('tenant-A'),'F-A2-VENTANA','DTD-I3B','Cliente sintético','USD',100,0,100,0,'emitida',current_date);`);
+        const filas = await leerControl(db);
+        expect(db.isInTransaction()).toBe(false);
+        const de = (clase: string, estado: string) => filas.find((fila) => fila.clase === clase && fila.estado === estado);
+        // La factura sin venta de antes del apply no se confunde con la de la ventana.
+        expect(filas.filter((fila) => fila.lectura === "sin_venta_de_antes").map((fila) => fila.estado)).toContain("emitida");
+        expect(filas.filter((fila) => fila.lectura === "emitida_en_la_ventana")).toEqual(
+          [{ clase: "sin_venta", estado: "emitida", lectura: "emitida_en_la_ventana", n: 1 }]);
+        expect(de("venta_anulada", "emitida")).toMatchObject({ lectura: "entro_por_el_hueco" });
+        expect(de("dos_o_mas_ventas", "emitida")).toMatchObject({ lectura: "entro_por_el_hueco" });
+        expect(de("sana_anulada_con_reverso", "anulada")).toMatchObject({ lectura: "cuadra" });
+        expect(de("anulada_sin_reverso", "anulada")).toMatchObject({ lectura: "legado_fuera_de_los_vivos" });
+        expect(filas.map((fila) => fila.clase)).not.toContain("venta_invalida_sin_clasificar");
+        const esperado: Record<string, number> = {};
+        for (const fila of filas) {
+          const mensaje = MENSAJE_DEL_CONTROL[fila.clase];
+          expect([fila.clase, mensaje === undefined]).toEqual([fila.clase, false]);
+          esperado[mensaje] = (esperado[mensaje] ?? 0) + fila.n;
+        }
+        expect(await realPorMensaje(db)).toEqual(esperado);
+      });
+    }, SLOW);
+
+    it("cada clase del control posterior coincide con la del conteo previo", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        const antes = await contar(db);
+        await db.exec(FILE_0497);
+        await db.exec(LEDGER);
+        const despues: Record<string, number> = {};
+        for (const fila of await leerControl(db)) despues[fila.clase] = (despues[fila.clase] ?? 0) + fila.n;
+        expect(despues).toEqual(antes);
+      });
+    }, SLOW);
+
+    it("el control posterior se niega sin la 0497, o si la 0497 no está en el ledger", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await expect(leerControl(db)).rejects.toThrow("Este control es de después de la 0497");
+        if (db.isInTransaction()) await db.exec("rollback;");
+        await db.exec(FILE_0497);
+        await db.exec("create schema if not exists supabase_migrations; create table if not exists supabase_migrations.schema_migrations(version text primary key, name text);");
+        await expect(leerControl(db)).rejects.toThrow("La 0497 no está en el ledger");
+        if (db.isInTransaction()) await db.exec("rollback;");
+      });
+    }, SLOW);
+
     it("una factura de legado sigue sin poder cambiar lo que importa", async () => {
       await sobreFixtureSinLa0497(async (db) => {
         await db.exec(SEMBRAR);

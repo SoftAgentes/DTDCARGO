@@ -34,7 +34,7 @@ set local statement_timeout = '60s';
 do $guarda$
 begin
   if pg_catalog.to_regprocedure('public.i3_assert_invoice_final(uuid)') is not null then
-    raise exception 'Este conteo es de antes de la 0497: con ella aplicada, usar public.i3_assert_invoice_final.';
+    raise exception 'Este conteo es de antes de la 0497: con ella aplicada, usar scripts/qa/0497-control-posterior.sql.';
   end if;
 end;
 $guarda$;

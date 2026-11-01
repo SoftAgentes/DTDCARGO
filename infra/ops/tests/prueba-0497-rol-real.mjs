@@ -28,6 +28,7 @@
  * PostgREST. Las carreras no corren aquí: su guarda exige que los roles no existan.
  */
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -45,6 +46,17 @@ if (!PAQUETES) {
 }
 
 const docker = (args, opts = {}) => spawnSync("docker", args, { encoding: "utf8", maxBuffer: 1 << 28, ...opts });
+// El paquete tiene que ser del blob de este checkout: si no, esta prueba no diría nada de él.
+for (const m of [M0496, M0497]) {
+  const identidad = readFileSync(join(PAQUETES, m, "IDENTIDAD.txt"), "utf8");
+  const campo = (nombre) => identidad.match(new RegExp(`^${nombre}=(.*)$`, "m"))?.[1];
+  const archivo = readFileSync(resolve(ROOT, `supabase/migrations/${m}.sql`));
+  const md5 = createHash("md5").update(archivo).digest("hex");
+  if (campo("blob_md5") !== md5 || campo("blob_bytes") !== String(archivo.length) || campo("nombre") !== m) {
+    console.log(`RECHAZADO · el paquete de ${m} es de otro blob: el paquete dice ${campo("blob_md5")}, ${campo("blob_bytes")} bytes; el checkout, ${md5}, ${archivo.length} bytes`);
+    process.exit(3);
+  }
+}
 if (docker(["info", "--format", "{{.ServerVersion}}"]).status !== 0) {
   console.log("NO DISPONIBLE · Docker no responde");
   process.exit(2);
@@ -328,6 +340,11 @@ select client_markbox from public.invoices where id = md5('m1-l2')::uuid;
 \\echo @@l_dos_ventas_otra_columna
 update public.invoices set notes = 'M1' where id = md5('m1-l3')::uuid;
 select notes from public.invoices where id = md5('m1-l3')::uuid;
+\\echo @@l_cobro_dos_ventas
+begin; ${COMO_CONTABLE}
+select public.register_collection_receipt(md5('m1-l3')::uuid,100,${CUENTA("1.1.1.1")},'transferencia',current_date,'M1',null,'cliente',null,null,true);
+commit;
+select status, paid_amount, (select count(*) from public.journal_entries where invoice_id = md5('m1-l3')::uuid and source = 'invoice') from public.invoices where id = md5('m1-l3')::uuid;
 \\echo @@l_anulada_sin_reverso_void
 ${VOID("l2")}
 \\echo @@l_anulada_sin_reverso_otra_columna
@@ -436,6 +453,7 @@ const ESPERADO = [
   ["l_cobro_hasta_pagada", /COMMIT[\s\S]*pagada\|100\.00\|anulado/, /ERROR/, "hueco conocido: esa factura llega a pagada con la venta anulada"],
   ["l_renombre_legado", /COMMIT[\s\S]*M1-L2\nM1-L2/, /ERROR/, "legado: renombrar a su cliente ya no falla"],
   ["l_dos_ventas_otra_columna", /UPDATE 1[\s\S]*M1/, /ERROR/, "legado con dos ventas: otra columna ya no falla"],
+  ["l_cobro_dos_ventas", /COMMIT[\s\S]*pagada\|100\.00\|2/, /ERROR/, "hueco conocido: una factura con dos ventas también se cobra hasta pagada"],
   ["l_anulada_sin_reverso_void", /\nf\n/, /ERROR/, "legado, anulada sin reverso: void devuelve false"],
   ["l_anulada_sin_reverso_otra_columna", /UPDATE 1[\s\S]*M1/, /ERROR/, "legado, anulada sin reverso: otra columna ya no falla"],
   ["la_clase", /anulada\|anulado[\s\S]*anulada\|120\.00/, null, "la fila venta_anulada|anulada, con cobro y crédito vivos"],
@@ -554,6 +572,60 @@ try {
     else if (debe.test(s) && !(noDebe && noDebe.test(s))) ok(texto);
     else ko(`${texto} (${etiqueta})`, s);
   }
+
+  // El control posterior: con el esquema completo, cada clase da el mensaje real de la aserción,
+  // y el hueco y la ventana salen separados. El cruce con la función real va en esta prueba
+  // porque esa función usa `for update` y no corre en el archivo de solo lectura.
+  const MENSAJE = {
+    sana: "ok", sana_anulada_con_reverso: "ok", sin_venta: "ok",
+    factura_borrada_con_venta: "La relación contable de la factura requiere revisión.",
+    reverso_sin_venta: "La relación contable de la factura requiere revisión.",
+    dos_o_mas_ventas: "La relación contable de la factura requiere revisión.",
+    otros_asientos_en_el_par: "La relación contable de la factura requiere revisión.",
+    anulada_sin_reverso: "Una factura anulada con venta requiere su reverso íntegro.",
+    par_de_anulacion_invalido: "El par de anulación requiere revisión.",
+    estado_sin_venta_posible: "Estado de factura y par contable incompatibles.",
+  };
+  // Una factura de la ventana: emitida ahora, sin asiento, como la deja la web vieja.
+  spawnSync(process.execPath, ["-e", "setTimeout(()=>{},1100)"]);
+  sql(FACTURA("ventana", "M1-A", "emitida"));
+  const ctrl = docker(["exec", NOMBRE, "psql", "-U", "postgres", "-d", "postgres", "-X", "-At", "-F", "|", "-f",
+    copiar("control.sql", readFileSync(resolve(ROOT, "scripts/qa/0497-control-posterior.sql"), "utf8"))]);
+  const filasControl = (ctrl.stdout || "").split("\n").filter((l) => /^[a-z_0-9]+\|[a-z]+\|[a-z_]+\|\d+$/.test(l));
+  const fila = (clase, estado, lectura) => filasControl.some((l) => l.startsWith(`${clase}|${estado}|${lectura}|`));
+  const totalPorMensaje = {};
+  for (const l of filasControl) {
+    const [clase, , , n] = l.split("|");
+    const mensaje = MENSAJE[clase] ?? "La venta original requiere revisión.";
+    totalPorMensaje[mensaje] = (totalPorMensaje[mensaje] ?? 0) + Number(n);
+  }
+  const real = sql(`do $real$
+declare f record; v_mensaje text;
+begin
+  create temporary table a2_real(mensaje text not null);
+  for f in select id from public.invoices loop
+    begin
+      perform public.i3_assert_invoice_final(f.id);
+      insert into a2_real values ('ok');
+    exception when check_violation then
+      get stacked diagnostics v_mensaje = message_text;
+      insert into a2_real values (v_mensaje);
+    end;
+  end loop;
+end;
+$real$; select mensaje, count(*) from a2_real group by mensaje;`);
+  const totalReal = Object.fromEntries(real.out.split("\n").filter((l) => l.includes("|")).map((l) => { const [m, n] = l.split("|"); return [m, Number(n)]; }));
+  const orden = (o) => JSON.stringify(Object.entries(o).sort());
+  if (ctrl.status === 0 && filasControl.length > 0 && orden(totalPorMensaje) === orden(totalReal)) ok(`el control posterior coincide con la aserción real, por mensaje, en ${filasControl.length} filas`);
+  else ko("el control posterior no coincide con la aserción real", `control: ${orden(totalPorMensaje)}\nreal: ${orden(totalReal)}\n${ctrl.stderr || ""}\n${real.err}`);
+  if (fila("sin_venta", "emitida", "emitida_en_la_ventana")) ok("el control posterior ve la factura emitida en la ventana");
+  else ko("el control posterior no ve la factura de la ventana", filasControl.join("\n"));
+  if (fila("venta_anulada", "pagada", "entro_por_el_hueco") && fila("dos_o_mas_ventas", "pagada", "entro_por_el_hueco")) ok("el control posterior separa lo que entró por el hueco, con venta anulada y con dos ventas");
+  else ko("el control posterior no ve el hueco", filasControl.join("\n"));
+  if (fila("venta_anulada", "anulada", "legado_fuera_de_los_vivos")) ok("el control posterior no confunde la anulada de legado con el hueco");
+  else ko("el control posterior confunde la anulada de legado", filasControl.join("\n"));
+  if (!filasControl.some((l) => l.startsWith("venta_invalida_sin_clasificar|"))) ok("el control posterior clasifica todas las ventas inválidas");
+  else ko("el control posterior tiene ventas sin clasificar", filasControl.join("\n"));
 
   // La alarma del hueco conocido: el B3 de la radiografía tiene que ver esa factura. Se corre
   // con la venta anulada y otra vez con la venta viva: la diferencia es esa fila y nada más.
