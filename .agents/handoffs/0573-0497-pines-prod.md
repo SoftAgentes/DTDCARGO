@@ -129,9 +129,16 @@ Con rol contabilidad o admin, salvo donde se indica:
 | `pnpm verify` | NO EJECUTADO | pedí turno al Director; sin respuesta al escribir esto |
 | `run-sql-tests` completo (255 archivos) | NO EJECUTADO | va con el turno de `verify` |
 | Apply con el rol real | NO EJECUTADO | es el ensayo en prueba |
-| Lectura previa 0496 y 0497 | ver abajo | |
+| Lectura previa 0496 y 0497 | PASÓ | abajo |
 
-Lectura previa e identidad: se completan abajo. Valen para la cabeza nombrada.
+Lectura previa e identidad sobre `f80a0fce2a69acb1053376bf401825ae5097252d`, copiadas de la salida de `preparar.mjs`. El commit que agrega esta tabla solo toca este handoff, así que los blobs no cambian. La repetición sobre la cabeza final va en el informe al Director.
+
+| Migración | Blob | Bytes | md5 del blob | md5 de `aplicar.sql` | Evidencia |
+|---|---|---:|---|---|---|
+| `0496_tarifa_congelada_por_embarque` (SDD-0571) | `0f424008e0b8` | 45610 | `075eab7fae8d9dfb2b06f88335087f8d` | `d3be5cbcdc4d1960e1306d2a9a6a4926` | `/srv/ops/evidencias/previa-0496-dtd-cargo-20261101T170923Z` |
+| `0497_reverso_al_anular_factura` (SDD-0573) | `643a317d6531` | 78309 | `fdac29d9f107f14bd8aadda6b3742d80` | `4c7229645fc83f5632f170d7ebc617ae` | `/srv/ops/evidencias/previa-0497-dtd-cargo-20261101T170941Z` |
+
+En la previa de la 0497: 0 sesiones esperando locks, 0 transacciones largas; 13 funciones `nueva` y `void_invoice_with_audit_reason` `igual` a la 0294.
 
 ## COMMITS
 
