@@ -2,9 +2,24 @@
 
 Fecha: 2026-11-01. Owner: `local_0541-imagen-softagentes`, sesión Worker abierta por el Director.
 Worktree: `.claude/worktrees/funny-chatterjee-390769`. Rama: `claude/0541-imagen-softagentes-f62ac9`.
-Base: `6d022e94b`. Estado: **IMPLEMENTADO Y VALIDADO LOCALMENTE; integración, instalación y encendido pendientes**.
+Base: `6d022e94b`. Estado: **INTEGRADO en la PR #345 (`1c2286f1f`) y VENTANA V1 A V6 EJECUTADA; la publicación sigue detenida y es otro paso**.
 
-Límites del encargo, cumplidos: sin merge, sin instalar en el VPS, sin encender timer ni workflows, sin tocar `PUBLICABLE_CONGELADO`, GHCR ni etiquetas, sin migraciones. `compose.yml` no cambió.
+Límites del encargo, cumplidos por esta sesión: sin merge, sin instalar en el VPS, sin encender timer ni workflows, sin tocar `PUBLICABLE_CONGELADO`, GHCR ni etiquetas, sin migraciones. `compose.yml` no cambió. La integración y la ventana las hicieron el Director y la sesión de Contabo.
+
+## VENTANA DEL 2026-11-01
+
+Ejecutada de 19:17Z a 19:26Z. El OK es de Sam, dado a la sesión Director, que lo transmite así: «Sí, pasos V1 a V6 (Recomendado)». Resultados por paso: [runbook](../../docs/runbooks/publicacion-automatica-web.md#dirección-de-la-imagen--preparación-del-2026-11-01).
+
+| Qué | Cómo se comprobó |
+|---|---|
+| Corridas `41341050688`, `41341563619` y `41341633174`, en verde sobre `1c2286f1f` | `gh run view` |
+| `build-image.yml` y `publicable.yml` activos; `PUBLICABLE_CONGELADO` ya no existe | `gh workflow list`; `gh variable list`, solo nombres |
+| Script `f71d27594e568f2b`, blob `397dbc7b…`; anterior `663f9e7e946caec9`, igual a `1bb7ab9fa`; huellas `f813a73425fee9ff` | `git show` y `sha256sum`, en Git. La copia del VPS la midió la sesión de la ventana |
+| «Calidad continua» en verde sobre `M` | Corrida `41334833317` |
+| Imagen en disco, `CONGELADO`, timer, `revisar`, salud de la web y digest `sha256:b2d48a17…` | **NO VERIFICADO por esta sesión:** informe del Director |
+| `929cabf51` no es ancestro de `M`, pero su único commit propio ya está por contenido | `git cherry` da `-`, y sus cinco archivos son iguales en `M` |
+
+`CONGELADO` no existía antes de V2. El estado del runbook decía «congelado» y nombraba timer, workflows y variable, sin esta llave del servidor. Corregí la nota del paso.
 
 ## OBJETIVO ORIGINAL
 
@@ -21,7 +36,7 @@ Repuntar la imagen a `ghcr.io/softagentes/dtdcargo` en workflows, script, stagin
 | | `infra/ops/staging/lib-prueba.sh:8` · `env-prueba.sh:18,50` · `desplegar-prueba.sh:10,26` · `verificar-aislamiento.sh:22,36,54` | Cambiada |
 | | `infra/ops/tests/prueba-publicar-web.sh` (2) · `prueba-scripts-entorno-prueba.sh` (7) · `publicable.test.mjs` (2) | Cambiada |
 | | `infra/dtd-cargo/README.md:36` · `docs/runbooks/publicacion-automatica-web.md:62` · `entorno-prueba.md:157` · `servidor-contabo.md:317,319` | Cambiada |
-| **Dirección de imagen en archivo con huella** | `infra/dtd-cargo/compose.yml:47` (bloqueante) · `infra/dtd-cargo/.env.example:36` (solo avisa) | **NO cambiada.** Ver «Decisión para el Director» |
+| **Dirección de imagen en archivo con huella** | `infra/dtd-cargo/compose.yml:47` (bloqueante) · `infra/dtd-cargo/.env.example:36` (solo avisa) | **NO cambiada.** Van en una PR aparte; ver pendientes |
 | **Alias de origen** | `publicar-web.sh:62` (`FUENTE_HISTORICA`) · etiquetas `source` de `prueba-publicar-web.sh` · `publicacion-automatica-web.md:131` · contrato de la spec | Conservado |
 | **URL del repo, no de imagen** | `lib/studio/publicaciones-types.ts:33` y sus pruebas (`publicaciones-types.test.ts:356`, `PublicacionesServidor.test.tsx:95,158`) · `docs/architecture/stack-tecnico.md:5` · `docs/runbooks/entorno-prueba.md:68` | No se tocan: el alias resuelve al mismo repo (`gh api`: id 1246490707). Ver fuera de alcance |
 | **Historia** | `.agents/handoffs` (171 líneas, 121 archivos) · `docs/specs` (21, 14) · audits, governance, marketing, assets (10) · `servidor-contabo.md:695,919` | Igual |
@@ -42,7 +57,9 @@ Repuntar la imagen a `ghcr.io/softagentes/dtdcargo` en workflows, script, stagin
 - Staging rechaza una imagen `prueba-sha` de la dirección vieja en `env-prueba`, `verificar-aislamiento` y `desplegar-prueba`.
 - Dos mutantes nuevos: «dirección de imagen vieja» y «la limpieza toca otras direcciones».
 
-### ¿`build-image.yml` puede publicar en esa dirección? **NO VERIFICADO**
+### ¿`build-image.yml` puede publicar en esa dirección? **SÍ, comprobado en V4**
+
+La corrida `41341050688` salió en verde con `GITHUB_TOKEN`. Lo que se sabía antes, sin ejecutarla:
 
 | Hecho | Evidencia |
 |---|---|
@@ -51,8 +68,6 @@ Repuntar la imagen a `ghcr.io/softagentes/dtdcargo` en workflows, script, stagin
 | Última corrida en verde: **antes** del cambio de nombre | `39453056216`, 2026-10-20 15:56Z, `8e9e0f505`. El `:publicable` de esa corrida lleva el origen viejo |
 | El paquete se mudó con el perfil | Medición del Director desde el VPS. `users/hailuwaycom-sketch/packages/container/dtdcargo` da 404 |
 | Ajustes del paquete y acceso de Actions | **No se pudieron leer:** el token de `gh` no tiene `read:packages` (HTTP 403) |
-
-Ningún push de `GITHUB_TOKEN` se ha medido en el nombre nuevo. Lo demuestra V4 del runbook, sin riesgo para la web. Si da `denied`, Sam, en los ajustes del paquete › Manage Actions access, le da rol Write a `DTDCARGO`.
 
 ### Variables y secretos de `build-image.yml`, sin valores
 
@@ -81,49 +96,38 @@ Ningún push de `GITHUB_TOKEN` se ha medido en el nombre nuevo. Lo demuestra V4 
 | `prueba-scripts-entorno-prueba.sh` vía Vitest, en Git Bash | **PASÓ** |
 | Esa misma prueba en `node:24` | **No sirve de verde:** 68/16 con `mawk`, y 81/3 con `gawk`. Sobre la base da los mismos rojos (66/16 y 79/3): son del contenedor, no del cambio. Las aserciones nuevas pasan |
 | Vitest focal: `publicable`, `entorno-prueba-scripts`, `build-image-prueba-workflow`, `entorno-prueba-runbook`, `ci-workflow-contract`, `pruebas-linux` | **PASÓ:** 135/135 sobre el árbol final |
-| `pruebas-linux.sh` completo | **NO EJECUTADO** local. Lo corre «Calidad continua» en esta PR |
+| `pruebas-linux.sh` completo | **NO EJECUTADO** local. «Calidad local sin secretos» de la PR #345 salió en verde, y «Calidad continua» también sobre `M` |
 | Huellas (`huellas-fuera-de-imagen.sh repo . --etiqueta`) | **PASÓ:** sha16 `7d07d4cca1c09296`, idéntico antes y después |
 | actionlint de los tres workflows | **PASÓ** |
 | shellcheck `--severity=warning` | **PASÓ sin avisos nuevos:** 11 avisos, los mismos que la base, por archivo y código |
 | `docs:check`, `sdd:check`, `git diff --check` | **PASÓ** |
 | `pnpm verify` | **NO EJECUTADO:** cambio de infraestructura; el encargo pide turno y no hizo falta |
-| Registro GHCR, VPS y GitHub Actions reales | **NO EJECUTADO:** todo con dobles |
+| Registro GHCR, VPS y GitHub Actions reales | **NO EJECUTADO por las pruebas de la PR:** todo con dobles. Lo cubrió después la ventana |
 
 Docker Desktop estaba apagado: lo arranqué para estas pruebas y lo apagué al terminar, sin contenedores vivos.
 
 ## COMMITS
 
 - `ea8ca60d7` fix(infra): SDD-0541 — la imagen vive en ghcr.io/softagentes/dtdcargo
-- El commit de documentación que trae este handoff. Su SHA está en la PR.
+- `0c108378f` docs(sdd): SDD-0541 — ventana para volver a publicar desde softagentes
+- `1c2286f1f` merge de la PR #345, hecho por el Director.
+- El commit de `claude/0541-registro-ventana` que trae este registro de la ventana. Su SHA está en su PR.
 
-Script a instalar: blob `397dbc7b565eb8be004d0e215b37971fdb2d6c40`, sha16 `f71d27594e568f2b`. Volver a medir en `M`, por si otra PR lo toca.
+Script instalado: blob `397dbc7b565eb8be004d0e215b37971fdb2d6c40`, sha16 `f71d27594e568f2b`, medidos en `1c2286f1f`.
 
 ## PR / BRANCH
 
-Rama `claude/0541-imagen-softagentes-f62ac9`, PR en borrador contra `main`.
+- Código y ventana: rama `claude/0541-imagen-softagentes-f62ac9`, PR #345, fusionada.
+- Registro de la ventana: rama `claude/0541-registro-ventana`, solo documentación, en borrador. La integra el Director cuando convenga, porque cada merge a `main` arma imagen y mueve `:publicable`.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. **Decisión para el Director: `compose.yml:47` y `.env.example:36`.** Siguen con la dirección vieja como valor por defecto.
+1. **Publicar.** Es otro paso, después de las migraciones y con su propio OK: `publicar-web.sh descongelar` y `systemctl enable --now dtd-cargo-publicar.timer`. Lo que salga será la punta de `:publicable`, no `1c2286f1f`: correr `revisar` justo antes.
+2. **`compose.yml:47` y `.env.example:36`: decisión del 2026-11-01, PR aparte.** Siguen con la dirección vieja como valor por defecto. Se repuntan en la próxima PR que toque `compose.yml`, junto con el comentario del bot de deploy de sus líneas 60-61, e instalados en su ventana.
    - En producción no se usan: el script exige una línea `DTD_WEB_IMAGE` no vacía. Si faltara, el pull falla a la vista.
    - Staging tampoco: `env-prueba.sh` fija el valor con `--set`.
-   - Ninguna PR abierta toca esos archivos, y entre `929cabf51` y `main` no cambiaron, así que hoy esta PR no suma ningún paso de copia a la ventana.
-   - **Recomendación:** dejarlos para la próxima PR que toque `compose.yml`, junto con el comentario del bot de deploy de sus líneas 60-61, que también espera eso. Cambiarlos ahora obliga a copiar `compose.yml` en la ventana.
-2. CI de esta PR.
-3. Ventana V1 a V6: el [runbook](../../docs/runbooks/publicacion-automatica-web.md#dirección-de-la-imagen--preparación-del-2026-11-01) tiene los comandos y comprobaciones. En corto:
-   - **V1-V2 (Contabo):** lectura. Imagen en el disco, timer apagado, congelado.
-   - **V3 (Contabo):** instalar solo `publicar-web.sh` con el procedimiento de solo script.
-   - **V4 (Director):** `gh workflow enable build-image.yml`, `gh workflow run build-image.yml --ref main`, `gh run watch <id> --exit-status`.
-   - **V5 (Director):** `gh workflow enable publicable.yml`, `gh variable delete PUBLICABLE_CONGELADO`, `gh workflow run publicable.yml -f simular=true` y después sin `simular`.
-   - **V6 (Contabo):** `publicar-web.sh revisar`.
-
-**Trampa medida: no encender el timer antes de V5.**
-- `:publicable` sigue en `8e9e0f505`, ancestro de lo que corre (`929cabf51`, `git merge-base --is-ancestor`).
-- El vigilante no compara antigüedad: publica cualquier digest distinto del que corre.
-- Las puertas tampoco lo frenan: entre esos dos commits no cambian los compose ni el cron, y la última migración de `8e9e0f505` es la 0494, ya aplicada.
-- Con el script nuevo y el timer encendido, la web retrocedería sola.
-
-**Otra comprobación que depende del VPS (V1):** no pude ver qué dice hoy `DTD_WEB_IMAGE`. Si la imagen que corre no está en el disco, el script no publica, porque no habría vuelta atrás.
+   - Ninguna prueba vigila esas dos líneas.
+3. **Scripts de staging en el VPS.** V3 instaló solo `publicar-web.sh`. Los de `/srv/ops/staging/` se copian de `main` la próxima vez que se usen.
 
 **Limpieza:** las imágenes de la dirección vieja se quedan en el disco, unos 520 MB cada una, hasta que alguien las borre a mano.
 
@@ -138,8 +142,8 @@ Rama `claude/0541-imagen-softagentes-f62ac9`, PR en borrador contra `main`.
 
 ## HANDOFF AL DIRECTOR
 
-Listo para tu revisión; no fusionar sin OK. El orden de tu plan no cambia: esta PR, luego la 0497, luego la ventana. Necesito tu decisión sobre el punto 1 de pendientes.
+Sin decisiones abiertas de esta tarea. La PR del registro no se fusiona desde aquí; es solo documentación y la integras cuando convenga.
 
-**Impacto documental:** actualizados `publicacion-automatica-web.md`, `entorno-prueba.md`, `servidor-contabo.md`, `infra/dtd-cargo/README.md` y la spec 0541 (continuación con contrato, aceptación y allowlist). `docs/specs/README.md` no hizo falta: `docs:check` pasa.
+**Impacto documental:** actualizados `publicacion-automatica-web.md`, `entorno-prueba.md`, `servidor-contabo.md`, `infra/dtd-cargo/README.md` y la spec 0541 (continuación con contrato, aceptación y allowlist). `docs/specs/README.md` no hizo falta: `docs:check` pasa. El registro de la ventana toca el runbook, este handoff y la línea de estado de la spec.
 
 **Conocimiento:** `knowledge:status` da `structural` y `semantic` en INVALID por pendientes globales que no son de esta tarea. Las fuentes tocadas no están en `semanticPilot` de `scripts/knowledge-policy.json`. Graphify, Archify y la vista previa de Obsidian: **NO EJECUTADOS**; los publicas tú desde `main` integrado.

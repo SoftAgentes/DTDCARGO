@@ -582,8 +582,8 @@ informa al Director antes de editarla.
 
 ## Continuación acotada · dirección de la imagen (2026-11-01)
 
-Estado: **implementado y validado localmente; integración, instalación y encendido
-pendientes**. Registro propio:
+Estado: **integrado en la PR #345 e instalado en la ventana V1 a V6 del 2026-11-01;
+publicación pendiente, con su propio OK**. Registro propio:
 [handoff de la dirección](../../../.agents/handoffs/0541-imagen-softagentes.md).
 
 Medido por el Director el 2026-11-01 desde el VPS con `docker manifest inspect`:
