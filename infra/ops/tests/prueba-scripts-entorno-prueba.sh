@@ -35,8 +35,8 @@ huella() { sha256sum < "$1" | cut -c1-64; }
 
 SHA_A="0123456789abcdef0123456789abcdef01234567"
 SHA_B="89abcdef0123456789abcdef0123456789abcdef"
-IMG_A="ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-${SHA_A}"
-IMG_B="ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-${SHA_B}"
+IMG_A="ghcr.io/softagentes/dtdcargo:prueba-sha-${SHA_A}"
+IMG_B="ghcr.io/softagentes/dtdcargo:prueba-sha-${SHA_B}"
 P=zz540-staging
 PD="${T}/srv/${P}"
 EV="${T}/evid"
@@ -69,8 +69,11 @@ grep -qF -- "$(val "${PD}/.env" POSTGRES_PASSWORD)" "${T}/envp.log" && ko "la sa
 antes="$(huella "${PD}/.env")"
 bash "${S}/staging/env-prueba.sh" --example "${PD}/.env.example" --out "${PD}/.env" --image "${IMG_A}" > /dev/null 2>&1; rc=$?
 [[ ${rc} -eq 3 && "$(huella "${PD}/.env")" == "${antes}" ]] && ok "sin --force no pisa un .env (3)" || ko "pisó el .env rc=${rc}"
-bash "${S}/staging/env-prueba.sh" --example "${PD}/.env.example" --out "${T}/otro.env" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:sha-${SHA_A}" > /dev/null 2>&1; rc=$?
+bash "${S}/staging/env-prueba.sh" --example "${PD}/.env.example" --out "${T}/otro.env" --image "ghcr.io/softagentes/dtdcargo:sha-${SHA_A}" > /dev/null 2>&1; rc=$?
 [[ ${rc} -eq 2 && ! -e "${T}/otro.env" ]] && ok "imagen sha-* (de producción): rechaza (2)" || ko "aceptó una imagen sha-* rc=${rc}"
+# La dirección de antes del cambio de nombre del perfil da «manifest unknown».
+bash "${S}/staging/env-prueba.sh" --example "${PD}/.env.example" --out "${T}/otro.env" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-${SHA_A}" > /dev/null 2>&1; rc=$?
+[[ ${rc} -eq 2 && ! -e "${T}/otro.env" ]] && ok "prueba-sha de la dirección vieja: rechaza (2)" || ko "aceptó la dirección vieja rc=${rc}"
 
 echo "== 2. verificar-aislamiento.sh: limpio da 0, una clave de producción copiada falla"
 cat > "${T}/prod/.env" <<EOF
@@ -130,8 +133,10 @@ va "${T}/rojo5.env" > "${T}/va-rojo5.log" 2>&1; rc=$?
 cp "${T}/limpio.env" "${T}/rojo6.env"; fijar "${T}/rojo6.env" "APP_ENV=production"
 va "${T}/rojo6.env" > /dev/null 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && ok "APP_ENV=production → falla" || ko "APP_ENV rc=${rc}"
-va "${T}/limpio.env" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:sha-${SHA_A}" > "${T}/va-img.log" 2>&1; rc=$?
+va "${T}/limpio.env" --image "ghcr.io/softagentes/dtdcargo:sha-${SHA_A}" > "${T}/va-img.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'la imagen no es' "${T}/va-img.log" && ok "imagen sha-* → falla" || ko "imagen sha-* rc=${rc}"
+va "${T}/limpio.env" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-${SHA_A}" > "${T}/va-img.log" 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && grep -q 'la imagen no es' "${T}/va-img.log" && ok "prueba-sha de la dirección vieja → falla" || ko "dirección vieja rc=${rc}"
 DOBLE_VAULT=1 va "${T}/limpio.env" > "${T}/va-vault.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'Vault de prueba: 1' "${T}/va-vault.log" && ok "Vault con una clave de Kommo → falla" || ko "Vault rc=${rc}"
 DOBLE_BUNDLE="3 2 0 0 0 1 1" va "${T}/limpio.env" > "${T}/va-bundle.log" 2>&1; rc=$?
@@ -260,11 +265,12 @@ dobles_limpiar_log
 dp() { bash "${S}/staging/desplegar-prueba.sh" --project-dir "${PD}" --prod-env "${T}/prod/.env" --evidence-dir "${EV}" "$@"; }
 dp --project dtd-cargo --sha "${SHA_B}" --image "${IMG_B}" > /dev/null 2>&1; r1=$?
 dp --project zz540 --sha "${SHA_B}" --image "${IMG_B}" > /dev/null 2>&1; r2=$?
-dp --project "${P}" --sha "${SHA_B}" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:sha-${SHA_B}" > /dev/null 2>&1; r3=$?
+dp --project "${P}" --sha "${SHA_B}" --image "ghcr.io/softagentes/dtdcargo:sha-${SHA_B}" > /dev/null 2>&1; r3=$?
 dp --project "${P}" --sha "${SHA_B}" --image "${IMG_A}" > /dev/null 2>&1; r4=$?
-dp --project "${P}" --sha "${SHA_B}" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:main" > /dev/null 2>&1; r5=$?
-[[ ${r1} -eq 3 && ${r2} -eq 3 && ${r3} -eq 3 && ${r4} -eq 3 && ${r5} -eq 3 && "$(dobles_llamadas)" == 0 ]] \
-  && ok "rechaza dtd-cargo, sin -staging, sha-*, la imagen de otro SHA y :main (3), sin llamar a docker" || ko "guardas de desplegar ${r1} ${r2} ${r3} ${r4} ${r5}"
+dp --project "${P}" --sha "${SHA_B}" --image "ghcr.io/softagentes/dtdcargo:main" > /dev/null 2>&1; r5=$?
+dp --project "${P}" --sha "${SHA_B}" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-${SHA_B}" > /dev/null 2>&1; r6=$?
+[[ ${r1} -eq 3 && ${r2} -eq 3 && ${r3} -eq 3 && ${r4} -eq 3 && ${r5} -eq 3 && ${r6} -eq 3 && "$(dobles_llamadas)" == 0 ]] \
+  && ok "rechaza dtd-cargo, sin -staging, sha-*, la imagen de otro SHA, :main y la dirección vieja (3), sin llamar a docker" || ko "guardas de desplegar ${r1} ${r2} ${r3} ${r4} ${r5} ${r6}"
 antes="$(huella "${PD}/.env")"
 dp --project "${P}" --sha "${SHA_B}" --image "${IMG_B}" --dry-run > /dev/null 2>&1; rc=$?
 [[ ${rc} -eq 0 && "$(dobles_llamadas)" == 0 && "$(huella "${PD}/.env")" == "${antes}" ]] && ok "--dry-run no toca nada" || ko "desplegar dry-run rc=${rc}"
@@ -307,7 +313,7 @@ cr --project zz541-staging --confirm zz541-staging --bundle "${T}/no-existe" > "
 cr --project zz541-staging --confirm zz541-staging > "${T}/cr.log" 2>&1; rc=$?
 [[ ${rc} -eq 0 && -f "${PN}/.env" && -f "${PN}/secretos/clave-web.txt" && -f "${PN}/secretos/cuentas-prueba.txt" ]] && grep -q 'base lista' "${T}/cr.log" \
   && ! grep -q 'up -d api-gw' "${DOBLE_DIR}/docker.log" && ok "sin --con-dns: .env, base, semilla y clave; no levanta api-gw" || { ko "crear rc=${rc}"; cat "${T}/cr.log"; }
-[[ "$(val "${PN}/.env" DTD_WEB_IMAGE)" == "ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-${FXSHA}" ]] && ok "imagen de prueba del SHA de main" || ko "imagen de crear"
+[[ "$(val "${PN}/.env" DTD_WEB_IMAGE)" == "ghcr.io/softagentes/dtdcargo:prueba-sha-${FXSHA}" ]] && ok "imagen de prueba del SHA de main" || ko "imagen de crear"
 DOBLE_IP=10.9.9.9 cr --project zz541-staging --confirm zz541-staging --solo-arrancar --con-dns > "${T}/cr-dns.log" 2>&1; rc=$?
 [[ ${rc} -eq 6 ]] && ! grep -q 'up -d api-gw' "${DOBLE_DIR}/docker.log" && ok "DNS que no resuelve al VPS: sale 6 y no levanta api-gw" || ko "DNS malo rc=${rc}"
 cr --project zz541-staging --confirm zz541-staging --solo-arrancar --con-dns > "${T}/cr-dns2.log" 2>&1; rc=$?
