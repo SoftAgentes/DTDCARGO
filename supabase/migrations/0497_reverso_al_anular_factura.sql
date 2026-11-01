@@ -19,6 +19,12 @@ declare
   v_config text[];
   -- PG17 pg_get_expr mantiene orden, tipos y literales; no borra espacios.
   v_append_defaults constant text := $defaults$'succeeded'::text, NULL::text, NULL::jsonb, NULL::jsonb, '{}'::jsonb, NULL::text, 1, 'internal'::text$defaults$;
+  -- DERIVA DE 0078, medida en producción el 2026-11-01 (solo el catálogo):
+  -- next_entry_code vive con el `where` en una línea y sin una línea en blanco
+  -- (388 caracteres). Sin espacios, su md5 es el de la 0078 (30ce8b9d…): la lógica
+  -- es la misma. Se aceptan dos cuerpos exactos: el de la 0078, que reconstruyen
+  -- las pruebas, y este. Cualquier otro aborta, aunque difiera solo en formato.
+  v_next_entry_code_vivo constant text := '06b5756a18361fc4d85cec6f6dc4b3bc';
 begin
   -- Precondición nominal heredada, antes de DDL y de otros pins de M9.
   if pg_catalog.to_regclass('public.invoices') is null or pg_catalog.to_regclass('public.journal_entries') is null
@@ -68,7 +74,9 @@ begin
        or v_proc.prorettype <> pg_catalog.to_regtype(v.return_type)
        or v_proc.proconfig is distinct from v.config
        or (select l.lanname from pg_catalog.pg_language l where l.oid=v_proc.prolang) <> v.lang
-       or pg_catalog.md5(pg_catalog.replace(v_proc.prosrc,E'\r\n',E'\n')) <> v.body_md5 then
+       or (pg_catalog.md5(pg_catalog.replace(v_proc.prosrc,E'\r\n',E'\n')) <> v.body_md5
+           and not (v.signature='public.next_entry_code(uuid)'
+             and pg_catalog.md5(pg_catalog.replace(v_proc.prosrc,E'\r\n',E'\n'))=v_next_entry_code_vivo)) then
       raise exception '0497: preflight función/cuerpo/config de % no coincide.',v.signature;
     end if;
     if (v.defaults=0 and v_proc.proargdefaults is not null)
@@ -888,6 +896,7 @@ declare
   v_code pg_catalog.pg_constraint%rowtype;
   v_fk pg_catalog.pg_constraint%rowtype;
   v_append_defaults constant text := $defaults$'succeeded'::text, NULL::text, NULL::jsonb, NULL::jsonb, '{}'::jsonb, NULL::text, 1, 'internal'::text$defaults$;
+  v_next_entry_code_vivo constant text := '06b5756a18361fc4d85cec6f6dc4b3bc'; -- ver el preflight
 begin
   if not exists (select 1 from pg_catalog.pg_proc p
       where p.oid=pg_catalog.to_regprocedure('public.void_invoice_with_audit_reason(uuid,text)')
@@ -924,7 +933,9 @@ begin
        or v_proc.prorettype <> pg_catalog.to_regtype(v.return_type)
        or v_proc.proconfig is distinct from v.config
        or (select l.lanname from pg_catalog.pg_language l where l.oid=v_proc.prolang) <> v.lang
-       or pg_catalog.md5(pg_catalog.replace(v_proc.prosrc,E'\r\n',E'\n')) <> v.body_md5 then
+       or (pg_catalog.md5(pg_catalog.replace(v_proc.prosrc,E'\r\n',E'\n')) <> v.body_md5
+           and not (v.signature='public.next_entry_code(uuid)'
+             and pg_catalog.md5(pg_catalog.replace(v_proc.prosrc,E'\r\n',E'\n'))=v_next_entry_code_vivo)) then
       raise exception '0497: postflight predecesor conservado función/cuerpo/config de % no coincide.',v.signature;
     end if;
     if (v.defaults=0 and v_proc.proargdefaults is not null)

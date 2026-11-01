@@ -594,6 +594,58 @@ describe("SDD-0573 · 0497 reverso al anular una factura (PGlite)", () => {
     expect(result.error).toBe("0497 requiere invoices, journal_entries, journal_lines, payment_receipts, accounting_settings, user_tenants, get_user_tenant_id(), next_entry_code(uuid) y auth.uid()");
   }, SLOW);
 
+  // El cuerpo vivo de producción (medido el 2026-11-01) es el de la 0078 con otro
+  // formato. Se arma desde la 0078 y su md5 tiene que ser el que la 0497 acepta.
+  const FILE_0078 = readFileSync(resolve(ROOT, "supabase/migrations/0078_contabilidad.sql"), "utf8").replace(/\r\n/g, "\n");
+  const CUERPO_0078 = FILE_0078.slice(
+    FILE_0078.indexOf("$$", FILE_0078.indexOf("function public.next_entry_code(p_tenant_id uuid)")) + 2,
+    FILE_0078.indexOf("$$;", FILE_0078.indexOf("function public.next_entry_code(p_tenant_id uuid)")),
+  );
+  const WHERE_0078 = "  where tenant_id = p_tenant_id\n    and entry_code like 'A-' || v_year || '-%';\n\n";
+  const WHERE_VIVO = "  where tenant_id = p_tenant_id and entry_code like 'A-' || v_year || '-%';\n";
+  expect(CUERPO_0078.split(WHERE_0078)).toHaveLength(2);
+  const CUERPO_VIVO = CUERPO_0078.split(WHERE_0078).join(WHERE_VIVO);
+  const nextEntryCode = (cuerpo: string) => "create or replace function public.next_entry_code(p_tenant_id uuid) "
+    + "returns text language plpgsql security definer set search_path = public as $vivo$" + cuerpo + "$vivo$;";
+  const SUMA = "), 0) + 1";
+
+  it("el cuerpo vivo de next_entry_code es la 0078 con otro formato, y su md5 es el pin", () => {
+    expect(createHash("md5").update(CUERPO_0078, "utf8").digest("hex")).toBe("6954cb3efb9db4ca131266964d4ed524");
+    expect(createHash("md5").update(CUERPO_VIVO, "utf8").digest("hex")).toBe("06b5756a18361fc4d85cec6f6dc4b3bc");
+    expect(CUERPO_VIVO).toHaveLength(388);
+    const sinEspacios = (cuerpo: string) => cuerpo.replace(/\s/g, "");
+    expect(sinEspacios(CUERPO_VIVO)).toBe(sinEspacios(CUERPO_0078));
+    expect(CUERPO_VIVO.split(SUMA)).toHaveLength(2);
+  });
+
+  it("next_entry_code con el cuerpo vivo de producción: el contrato entero pasa", async () => {
+    const result = await contract({ migration: mutant("do $preflight$", nextEntryCode(CUERPO_VIVO) + "\ndo $preflight$") });
+    expect(result.error).toBeNull();
+    expect(result.green).toMatch(/^TEST 0497 GREEN/);
+  }, SLOW);
+
+  it.each([
+    ["el cuerpo vivo con otra lógica", () => nextEntryCode(CUERPO_VIVO.split(SUMA).join("), 0) + 2"))],
+    ["la 0078 con otra lógica", () => nextEntryCode(CUERPO_0078.split(SUMA).join("), 0) + 2"))],
+    ["el cuerpo vivo con un formato desconocido", () => nextEntryCode(CUERPO_VIVO + "\n")],
+  ])("el preflight aborta con %s en next_entry_code", async (_name, ddl) => {
+    const result = await contract({ migration: mutant("do $preflight$", ddl() + "\ndo $preflight$") });
+    expect(result.error).toBe("0497: preflight función/cuerpo/config de public.next_entry_code(uuid) no coincide.");
+  }, SLOW);
+
+  it("el postflight aborta si next_entry_code cambió de lógica durante la migración", async () => {
+    const otra = nextEntryCode(CUERPO_VIVO.split(SUMA).join("), 0) + 2"));
+    const result = await contract({ migration: mutant("do $postflight$", otra + "\ndo $postflight$") });
+    expect(result.error).toBe("0497: postflight predecesor conservado función/cuerpo/config de public.next_entry_code(uuid) no coincide.");
+  }, SLOW);
+
+  it("el md5 vivo de next_entry_code no vale para otra función", async () => {
+    const otra = "create or replace function public.journal_lines_validate_closing() returns trigger language plpgsql "
+      + "set search_path = public as $vivo$" + CUERPO_VIVO + "$vivo$;";
+    const result = await contract({ migration: mutant("do $preflight$", otra + "\ndo $preflight$") });
+    expect(result.error).toBe("0497: preflight función/cuerpo/config de public.journal_lines_validate_closing() no coincide.");
+  }, SLOW);
+
   it("el preflight aborta si void_invoice_with_audit_reason no es la de la 0294", async () => {
     const antes = "    and status <> 'pagada'\n    and status <> 'anulada';";
     expect(FILE_0294.split(antes)).toHaveLength(2);
