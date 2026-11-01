@@ -1023,7 +1023,7 @@ do $test$ declare result jsonb; begin
 result:=pg_temp.i3b_post('context-outer');
 perform pg_temp.assert_true(result->>'outcome'='posted'
   and current_setting('dtd.audit_reason',true)='I3B contexto exterior',
-  'I3B13 SET de función restaura contexto exterior no vacío');
+  'I3B13 la función restaura contexto exterior no vacío');
 end; $test$;
 select pg_temp.assert_true(not exists(select 1 from public.entity_audit_log a join public.journal_entries e on e.id=a.entity_id
   where e.invoice_id=pg_temp.fixture_id('i3b-context-outer') and a.event_type='journal_entry_posted'

@@ -646,6 +646,39 @@ describe("SDD-0573 · 0497 reverso al anular una factura (PGlite)", () => {
     expect(result.error).toBe("0497: preflight función/cuerpo/config de public.journal_lines_validate_closing() no coincide.");
   }, SLOW);
 
+  // PGlite y sql-tests corren como superusuario, y el rol postgres de producción no
+  // lo es: el motor le niega crear una función con un parámetro propio en su cabecera.
+  it("sin superusuario, un parámetro propio en la cabecera se niega, y la 0497 no lo usa", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec("create role i3b_sin_super nologin; create schema i3b_sonda authorization i3b_sin_super; set role i3b_sin_super;");
+      await db.exec("create function i3b_sonda.con_search_path() returns int language sql set search_path = '' as 'select 1';");
+      await expect(db.exec(
+        "create function i3b_sonda.con_propio() returns int language sql set dtd.audit_reason = '' as 'select 1';",
+      )).rejects.toThrow('permission denied to set parameter "dtd.audit_reason"');
+    } finally {
+      await db.close();
+    }
+    expect(FILE_0497.match(/\bset\s+"?[a-z_]\w*\.[a-z_]\w*"?\s*(=|to\b)/gi)).toBeNull();
+  }, SLOW);
+
+  it("la anulación, por sus dos salidas, restaura el motivo exterior y no lo deja en los eventos", async () => {
+    const result = await contract({ probe: `
+select set_config('dtd.audit_reason','I3B motivo exterior',true);
+select pg_temp.assert_true(pg_temp.anular('accounting-A','inv-abierta')='true','anula con asiento de venta');
+select pg_temp.assert_true(current_setting('dtd.audit_reason',true)='I3B motivo exterior','con asiento: restaura el motivo exterior');
+select pg_temp.assert_true(pg_temp.anular('accounting-A','inv-borrador')='true','anula sin asiento');
+select pg_temp.assert_true(current_setting('dtd.audit_reason',true)='I3B motivo exterior','sin asiento: restaura el motivo exterior');
+select pg_temp.assert_true((select count(*) from public.entity_audit_log a
+  where a.entity_id in (pg_temp.fixture_id('inv-abierta'),pg_temp.fixture_id('inv-borrador'))
+    and a.event_type='invoice_voided' and a.reason='Factura emitida por error')=2,'cada evento lleva el motivo del documento');
+select pg_temp.assert_true(not exists(select 1 from public.entity_audit_log a where a.reason='I3B motivo exterior'),
+  'el motivo exterior no entra a ningún evento');
+select set_config('dtd.audit_reason','',true);
+` });
+    expect(result.error).toBeNull();
+  }, SLOW);
+
   it("el preflight aborta si void_invoice_with_audit_reason no es la de la 0294", async () => {
     const antes = "    and status <> 'pagada'\n    and status <> 'anulada';";
     expect(FILE_0294.split(antes)).toHaveLength(2);

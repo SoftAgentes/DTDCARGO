@@ -599,11 +599,17 @@ create constraint trigger i3_invoice_final_check
 after insert or update or delete on public.invoices
 deferrable initially deferred for each row execute function public.i3_invoice_final();
 
+-- El motivo de auditoría se acota en el cuerpo, como en la 0421, y no en la cabecera:
+-- en producción postgres no es superusuario, y crear una función con un parámetro
+-- propio en su cabecera da «permission denied to set parameter» (medido el
+-- 2026-11-01). Se vacía antes de escribir y se devuelve el valor exterior antes de
+-- salir. Si hay un error, lo deshace la transacción o el subbloque que lo captura.
 create function public.post_invoice_journal_entry_atomic(p_tenant_id uuid, p_invoice_id uuid)
 returns jsonb language plpgsql volatile security definer
-set search_path = '' set dtd.audit_reason = ''
+set search_path = ''
 as $function$
 declare
+  v_motivo_exterior text := pg_catalog.current_setting('dtd.audit_reason', true);
   v_inv public.invoices%rowtype;
   v_entry public.journal_entries%rowtype;
   v_all integer;
@@ -698,6 +704,7 @@ begin
     public.i3_journal_entry_final_check, public.i3_invoice_final_check immediate;
   for v_intento in 1..3 loop
     begin
+      perform pg_catalog.set_config('dtd.audit_reason', '', true);
       set constraints public.journal_lines_entry_id_fkey,
         public.i3_journal_entry_final_check, public.i3_invoice_final_check deferred;
       v_code := public.next_entry_code(p_tenant_id);
@@ -714,6 +721,7 @@ begin
       perform public.i3_assert_invoice_final(p_invoice_id);
       set constraints public.journal_lines_entry_id_fkey,
         public.i3_journal_entry_final_check, public.i3_invoice_final_check immediate;
+      perform pg_catalog.set_config('dtd.audit_reason', coalesce(v_motivo_exterior, ''), true);
       return pg_catalog.jsonb_build_object('version',1,'outcome','posted','reason','posted',
         'invoice_id',p_invoice_id,'entry_id',v_nuevo,'entry_code',v_code,
         'entry_date',pg_catalog.to_char(v_inv.issued_at,'YYYY-MM-DD'));
@@ -730,9 +738,10 @@ $function$;
 
 create or replace function public.void_invoice_with_audit_reason(p_id uuid, p_reason text)
 returns boolean language plpgsql volatile security definer
-set search_path = '' set dtd.audit_reason = ''
+set search_path = ''
 as $function$
 declare
+  v_motivo_exterior text := pg_catalog.current_setting('dtd.audit_reason', true);
   v_reason text := nullif(pg_catalog.btrim(p_reason), '');
   v_tenant uuid;
   v_hoy date;
@@ -827,6 +836,7 @@ begin
       public.i3_journal_entry_final_check, public.i3_invoice_final_check immediate;
     for v_intento in 1..3 loop
       begin
+        perform pg_catalog.set_config('dtd.audit_reason', '', true);
         set constraints public.journal_lines_entry_id_fkey,
           public.i3_journal_entry_final_check, public.i3_invoice_final_check deferred;
         v_code := public.next_entry_code(v_tenant);
@@ -842,6 +852,7 @@ begin
         perform public.i3_assert_invoice_final(p_id);
         set constraints public.journal_lines_entry_id_fkey,
           public.i3_journal_entry_final_check, public.i3_invoice_final_check immediate;
+        perform pg_catalog.set_config('dtd.audit_reason', coalesce(v_motivo_exterior, ''), true);
         return true;
       exception when unique_violation then
         get stacked diagnostics v_schema = schema_name, v_table = table_name, v_constraint = constraint_name;
@@ -854,6 +865,7 @@ begin
   end if;
   perform pg_catalog.set_config('dtd.audit_reason', v_reason, true);
   update public.invoices set status = 'anulada' where id = p_id;
+  perform pg_catalog.set_config('dtd.audit_reason', coalesce(v_motivo_exterior, ''), true);
   return true;
 end;
 $function$;
@@ -900,7 +912,7 @@ declare
 begin
   if not exists (select 1 from pg_catalog.pg_proc p
       where p.oid=pg_catalog.to_regprocedure('public.void_invoice_with_audit_reason(uuid,text)')
-      and p.prosecdef and p.proconfig=array['search_path=""','dtd.audit_reason=']) then
+      and p.prosecdef and p.proconfig=array['search_path=""']) then
     raise exception '0497: postflight — void_invoice_with_audit_reason tiene que ser DEFINER con search_path vacío';
   end if;
   if pg_catalog.has_function_privilege('anon','public.void_invoice_with_audit_reason(uuid,text)','EXECUTE')
@@ -959,8 +971,8 @@ begin
       ('public.i3_invoice_guard()','637aaf6c7bd814b52487860345e6f0ad','plpgsql','trigger',true,'v',array['search_path=""']::text[],array[]::text[],0),
       ('public.i3_journal_entry_final()','6c5b873a11a19f22a7ca8cee5921ca24','plpgsql','trigger',true,'v',array['search_path=""']::text[],array[]::text[],0),
       ('public.i3_invoice_final()','8ec1d7a86931583d14e5780cdbb1dcb2','plpgsql','trigger',true,'v',array['search_path=""']::text[],array[]::text[],0),
-      ('public.post_invoice_journal_entry_atomic(uuid,uuid)','ddc746bd3510af63eb3daf3b47c342db','plpgsql','jsonb',true,'v',array['search_path=""','dtd.audit_reason=']::text[],array['p_tenant_id','p_invoice_id']::text[],0),
-      ('public.void_invoice_with_audit_reason(uuid,text)','df593256d4e6381a787969818863355d','plpgsql','boolean',true,'v',array['search_path=""','dtd.audit_reason=']::text[],array['p_id','p_reason']::text[],0)
+      ('public.post_invoice_journal_entry_atomic(uuid,uuid)','c72a9358ec04f565a80fb822504a5629','plpgsql','jsonb',true,'v',array['search_path=""']::text[],array['p_tenant_id','p_invoice_id']::text[],0),
+      ('public.void_invoice_with_audit_reason(uuid,text)','ab48314832efcf3251331617874e0a1b','plpgsql','boolean',true,'v',array['search_path=""']::text[],array['p_id','p_reason']::text[],0)
   ) pin(signature,body_md5,lang,return_type,definer,volatility,config,argnames,defaults)
   loop
     select p.* into v_proc from pg_catalog.pg_proc p
