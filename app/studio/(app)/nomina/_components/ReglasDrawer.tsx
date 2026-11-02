@@ -21,7 +21,7 @@ import {
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { savePayrollRulesAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
-import { submitKeepingDraft } from "@/app/studio/_components/ui/submitKeepingDraft";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const FORM_ID = "reglas-form";
 const initial: NominaActionState = {};

@@ -16,7 +16,7 @@ import type { NominaActionState, Employee } from "@/lib/studio/nomina/employee-t
 import { COMM_TYPES, commTypeLabel, commTypeRequiresAck } from "@/lib/studio/nomina/comms-types";
 import { sendCommAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
-import { submitKeepingDraft } from "@/app/studio/_components/ui/submitKeepingDraft";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const FORM_ID = "enviar-comunicacion-form";
 const initial: NominaActionState = {};

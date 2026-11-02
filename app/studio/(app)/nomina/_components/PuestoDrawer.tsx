@@ -29,7 +29,7 @@ import {
   softDeletePositionAction,
 } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
-import { submitKeepingDraft } from "@/app/studio/_components/ui/submitKeepingDraft";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const FORM_ID = "puesto-form";
 const initial: NominaActionState = {};

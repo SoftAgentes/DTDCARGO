@@ -19,7 +19,7 @@ import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { registerLoanInstallmentAction, cancelLoanAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
 import { fmtUsd } from "@/lib/money";
-import { submitKeepingDraft } from "@/app/studio/_components/ui/submitKeepingDraft";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const FORM_ID = "cuota-prestamo-form";
 const initial: NominaActionState = {};

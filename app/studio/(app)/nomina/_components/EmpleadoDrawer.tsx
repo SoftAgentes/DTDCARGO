@@ -33,7 +33,7 @@ import {
   softDeleteEmployeeAction,
 } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
-import { submitKeepingDraft } from "@/app/studio/_components/ui/submitKeepingDraft";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const FORM_ID = "empleado-form";
 const initial: NominaActionState = {};
