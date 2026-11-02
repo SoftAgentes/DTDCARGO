@@ -14,12 +14,9 @@ Rama: `claude/a2-aislamiento-sin-ga-d5dbcb` · PR en borrador contra `main` (sin
 - `infra/ops/tests/prueba-scripts-entorno-prueba.sh`: el doble de bundle por defecto pasa a «GA solo fuera de static»; casos nuevos: GA en static ⇒ FALLÓ, Ads en static ⇒ FALLÓ, GA solo en servidor/.map ⇒ PASÓ con aviso, sin cuentas de static ⇒ FALLÓ, `--tolerar-ga` ⇒ AVISO, alias ⇒ FALLÓ, sin IDs en la salida.
 - Control rojo: con `VA_ANTERIOR=<ruta al script de HEAD previo>` la prueba comprueba que la versión anterior deja pasar GA en static (rc=0). Se corrió manualmente contra `git show <base>:infra/ops/staging/verificar-aislamiento.sh`.
 
-## Pendiente de actualizar en otro lado (lo hace A4)
+## Documentación (ampliada por el Director General)
 
-`docs/runbooks/entorno-prueba.md` (no editado aquí):
-- §1 línea 24: «…`verificar-aislamiento.sh --exigir-sin-ga` lo exige… sale AVISO, o FALLÓ con `--exigir-sin-ga`» → ahora FALLÓ por defecto; `--tolerar-ga` lo baja a AVISO; `--exigir-sin-ga` es alias.
-- Línea ~180: «`verificar-aislamiento.sh --exigir-sin-ga` decide con…» → quitar la bandera como requisito.
-- `.github/workflows/build-image-prueba.yml` línea 170 también nombra `--exigir-sin-ga` en un mensaje (no editado; fuera de la lista permitida).
+Hecho en esta misma PR, solo esas líneas: `docs/runbooks/entorno-prueba.md` (línea 24 y ~180) y el mensaje de `.github/workflows/build-image-prueba.yml` (~170). A4 cerró la #355 sin incluirlos.
 
 ## Pruebas
 
@@ -38,4 +35,4 @@ Rama: `claude/a2-aislamiento-sin-ga-d5dbcb` · PR en borrador contra `main` (sin
 ## Checklist
 
 Listo: script, pruebas, control rojo, handoff.
-Pendiente: edición del runbook (A4), revisión del Director, decisión de merge.
+Pendiente: repetir vitest «dobles» una prueba a la vez y contra `main` (turno del Subdirector), revisión del Director, decisión de merge.
