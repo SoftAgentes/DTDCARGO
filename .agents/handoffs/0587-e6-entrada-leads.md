@@ -35,7 +35,7 @@ Detalle en la SDD-0587 §16. Resumen:
 | Punta a punta con Chatwoot real | NO EJECUTADO: fuera del encargo |
 | revisar-datos-ve | §16.8: 7 CORRECTO, 1 ENCONTRADO, 3 NO VERIFICABLE, 1 no aplica |
 
-Las pruebas corren con `node node_modules/vitest/vitest.mjs` y un `node_modules` enlazado (junction, ignorado por Git) al del checkout principal, con el mismo `pnpm-lock.yaml`. **Con la junction no se usa `pnpm`:** vaciaría la instalación original.
+Las pruebas corrieron con `node node_modules/vitest/vitest.mjs` y un `node_modules` enlazado (junction, ignorado por Git) al del checkout principal, con el mismo `pnpm-lock.yaml`. La junction ya se quitó: este worktree queda sin dependencias. Si se vuelve a crear, **no se usa `pnpm`:** vaciaría la instalación original.
 
 ## Impacto documental
 
