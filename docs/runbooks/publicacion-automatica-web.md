@@ -205,7 +205,7 @@ guardar imagen-storage-node-24.22.1 node-runtime-patch:c99920016d60-24.22.1-no-r
 - `prueba-sha-929cabf51…` no reemplaza a la de la web: se construye para prueba, con otros
   valores públicos en el bundle.
 - `node-runtime-patch:c99920016d60-24.22.1` no reemplaza a la de `storage`: es otra imagen,
-  `ee760a6d2788`, sin el sufijo `-no-refresh`.
+  `ee760a6d2788`, con Node pero sin `DB_ALLOW_MIGRATION_REFRESH=false`.
 - Restaurar con `gunzip -c imagen.tar.gz | docker load` está **NO PROBADO**. Al probarlo,
   `docker image inspect` tiene que dar el mismo id: la línea del `.env` y el compose de
   `loop-3d` dependen de él.
@@ -226,10 +226,18 @@ huellas. `volver` no pasa por las puertas, así que la marcha atrás no cambia.
 **Por qué hay una variable.** En el servidor, la línea 347 de `compose.supabase.yml` se editó
 a mano el 2026-10-25 a las 03:51Z. Fija `sha256:7ec9901d34a3…`
 (`node-runtime-patch:c99920016d60-24.22.1-no-refresh`), una copia de la oficial armada en el
-servidor con Node actualizado. `node -v` dentro de `dtd-cargo-storage-1` da `v24.22.1`,
-aunque la imagen sigue declarando `NODE_VERSION=24.21.0`. El motivo es inferido: el handoff
-de Node 24.22.1 del 2026-10-25 dice que los parches locales de Contabo se conservan, y el
-informe del parche no se encontró.
+servidor. Según `docker image history`, le agrega dos cosas, y volver a la oficial pierde
+las dos:
+
+| Qué agrega | Efecto | Cómo se comprobó |
+|---|---|---|
+| Node 24.22.1 en `/usr/local/bin/node` | La oficial trae 24.21.0 | `node -v` en `dtd-cargo-storage-1` da `v24.22.1`, aunque la imagen sigue declarando `NODE_VERSION=24.21.0` |
+| `ENV DB_ALLOW_MIGRATION_REFRESH=false` | Si los hashes de `storage.migrations` no coinciden con los de la imagen, `storage` no arranca. Sin esa variable, los reescribe en la base al arrancar, sin avisar | Código de la imagen, `internal/database/migrations/migrate.js`. Los tres contenedores la tienen, y no está en ningún compose ni en el repo: **vive solo en la imagen** |
+
+El motivo es inferido: el handoff de Node 24.22.1 del 2026-10-25 dice que los parches locales
+de Contabo se conservan, y el informe del parche no se encontró. Por qué se agregó la
+variable está NO VERIFICADO. Lo más probable es que fuera para que cambiar Node no pudiera
+escribir en la base, pero es una inferencia.
 
 Hasta ahora `revisar` no lo mostraba, porque para en las migraciones. Al aplicar la 0496 y la
 0497 dirá «el servidor no tiene la misma copia», y su mensaje manda a copiar el archivo del
@@ -244,7 +252,7 @@ puesto no hay apuro: los 5 minutos de K5 no aplican. Todos los pasos corren en `
 | W1 | Lectura: `sha256sum compose.yml compose.supabase.yml .env.example`, `grep -c '^DTD_STORAGE_IMAGE=' .env` y el hash de `storage`, con el bloque de abajo | Empiezan con `1a67944a24958c08`, `a00bd8adfa66438a` y `c63acb8bf8a1f7e8`. La cuenta da 0. El hash es `c62280716fed4bab…`, igual a la etiqueta. Si no, parar |
 | W2 | Con `flock /run/lock/dtd-cargo-publicar.lock`, copiar los tres archivos a `/srv/ops/evidencias/compose-softagentes-<hora>/` con su `SHA256SUMS`. El `.env` no se copia: tiene secretos, y para deshacer basta quitar una línea | `sha256sum -c SHA256SUMS` |
 | W3 | **Primero la línea**, con el mismo candado: `test -z "$(tail -c1 .env)" && printf 'DTD_STORAGE_IMAGE=%s\n' sha256:7ec9901d34a3173a6ccbb6ccf1c58f8833e7a9850757b9efc2a1b8438807d586 >> .env`. Si el archivo no termina en salto de línea, no escribe: parar | La cuenta da 1. `stat -c %a .env` no cambia. El hash de `storage` no cambia |
-| W4 | **Después, los archivos:** copiar los tres de `X` a un temporal en `/srv/dtd-cargo/`, en modo 644, y renombrar | Cada `sha256sum` igual a `git show X:infra/dtd-cargo/<archivo> \| sha256sum`. Con solo este cambio empiezan con `483f923fd4339358`, `8510b279049ca345` y `e10f404d06cf10ca` |
+| W4 | **Después, los archivos:** copiar los tres de `X` a un temporal en `/srv/dtd-cargo/`, en modo 644, y renombrar | Cada `sha256sum` igual a `git show X:infra/dtd-cargo/<archivo> \| sha256sum`. Con solo este cambio empiezan con `483f923fd4339358`, `8510b279049ca345` y `4945f3f0ee5bf29d` |
 | W5 | Comprobar con el bloque de abajo, sin correr `up` | `config -q` sale 0. La imagen es una sola línea, `sha256:7ec9901d34a3…`, sin `storage-api`. El hash es igual a la etiqueta: `storage` no se recrearía. `docker inspect -f '{{.State.StartedAt}}'` de `dtd-cargo-storage-1` y `dtd-cargo-web-1` no cambia. **Si resuelve a otra cosa, parar y deshacer** |
 
 ```bash

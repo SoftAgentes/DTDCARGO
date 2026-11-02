@@ -52,10 +52,12 @@ Queda escrito que no es una recuperación completa. Con la web `929cabf51` sobre
 Hallazgo de esta tarea, y decisión del Director del 2026-11-02. Medido con `huellas-fuera-de-imagen.sh servidor /srv/dtd-cargo` contra la etiqueta de `:publicable` (`1c2286f1f`): `compose.supabase.yml` da `482f540c7e0e61f0` en la etiqueta y `a00bd8adfa66438a` en el servidor. Las otras ocho rutas coinciden.
 
 - **Diferencia:** una línea, la imagen de `storage`. El servidor tiene `sha256:7ec9901d34a3…`, editado el 2026-10-25 03:51Z; el repo tenía `supabase/storage-api:v1.77.6`.
-- **Esa imagen:** `node-runtime-patch:c99920016d60-24.22.1-no-refresh`, derivada de la oficial, 1,48 GB, armada el 2026-10-25 03:36Z. `node -v` dentro de `dtd-cargo-storage-1` da `v24.22.1`, aunque la imagen declara `NODE_VERSION=24.21.0`.
-- **Solo está en el disco del VPS.** La etiqueta es local, y `docker manifest inspect` no responde. La oficial también está en el disco.
+- **Esa imagen:** `node-runtime-patch:c99920016d60-24.22.1-no-refresh`, derivada de la oficial, 1,48 GB, armada el 2026-10-25 03:36Z. `docker image history` muestra dos agregados sobre la oficial.
+- **Node:** `node -v` dentro de `dtd-cargo-storage-1` da `v24.22.1`, aunque la imagen declara `NODE_VERSION=24.21.0`.
+- **`ENV DB_ALLOW_MIGRATION_REFRESH=false`:** no estaba en el análisis del Director ni en el mío de antes. Según `internal/database/migrations/migrate.js` de la imagen, si los hashes de `storage.migrations` no coinciden, con `false` no arranca; sin ella, los reescribe en la base al arrancar. Los tres contenedores la tienen, y no está en ningún compose ni en el repo: vive solo en la imagen.
+- **Solo está en el disco del VPS.** La etiqueta es local, y `docker manifest inspect` no responde. La oficial también está en el disco. La hermana `node-runtime-patch:c99920016d60-24.22.1` (`ee760a6d2788`) tiene Node pero no esa variable: no la reemplaza.
 - **Por qué no salió en V6:** `puertas()` para en la primera cerrada, y «faltan 2 de 258» tapó esta. Al aplicar la 0496 y la 0497, `revisar` dirá «el servidor no tiene la misma copia», y su mensaje manda a copiar el archivo del repo.
-- **Motivo del parche:** inferido. El handoff de Node 24.22.1 dice que los parches locales de Contabo se conservan; el informe del parche no se encontró.
+- **Motivo del parche:** inferido. El handoff de Node 24.22.1 dice que los parches locales de Contabo se conservan; el informe del parche no se encontró. Por qué se agregó la variable: NO VERIFICADO.
 
 Qué cambia:
 
@@ -67,7 +69,7 @@ Qué cambia:
 |---|---|---|
 | `compose.yml` | `1a67944a24958c08` | `483f923fd4339358` |
 | `compose.supabase.yml` | `a00bd8adfa66438a` | `8510b279049ca345` |
-| `.env.example` | `c63acb8bf8a1f7e8` | `e10f404d06cf10ca` |
+| `.env.example` | `c63acb8bf8a1f7e8` | `4945f3f0ee5bf29d` |
 | Las otras seis | | Sin cambios |
 
 Medido en el VPS el 2026-11-02 a las 02:28Z, solo lectura:
@@ -124,4 +126,6 @@ Encender el timer es un paso aparte, con su propio OK.
 
 ## HANDOFF AL DIRECTOR
 
-Antes de pedir el OK de publicar, instalar esta PR en la ventana y repetir la comparación de huellas. `revisar` no alcanza mientras falten migraciones. El detalle y la evidencia están en la nota de la carpeta compartida, `0541-commit-exacto-worker.md`.
+Antes de pedir el OK de publicar, instalar esta PR en la ventana y repetir la comparación de huellas. `revisar` no alcanza mientras falten migraciones.
+
+Decisión abierta: `DB_ALLOW_MIGRATION_REFRESH=false` vive solo en la imagen. Un servidor con la oficial, como un entorno de prueba con su `.env` nuevo, reescribe los hashes si no coinciden. Declararla en `compose.supabase.yml` lo evitaría, pero cambia el hash de `storage` y lo recrea en el próximo `up`, así que necesita su propia ventana. Recomiendo dejarla fuera de esta PR. El detalle y la evidencia están en la nota de la carpeta compartida, `0541-commit-exacto-worker.md`.

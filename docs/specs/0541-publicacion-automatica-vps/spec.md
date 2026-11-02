@@ -660,8 +660,9 @@ publicar. Registro: [handoff](../../../.agents/handoffs/0541-publicar-commit-exa
   comentario de `compose.yml` deja de nombrar el bot de deploy retirado por la SDD-0551.
 - La imagen de `storage` en `compose.supabase.yml` pasa a
   `${DTD_STORAGE_IMAGE:-supabase/storage-api:v1.77.6}`. Es decisión del Director del
-  2026-11-02, para no perder la copia con Node actualizado que corre el servidor. En un
-  servidor sin la línea va la oficial, y `.env.example` la documenta comentada.
+  2026-11-02, para no perder la copia que corre el servidor, con Node actualizado y
+  `DB_ALLOW_MIGRATION_REFRESH=false`. En un servidor sin la línea va la oficial, y
+  `.env.example` la documenta comentada.
 - Las huellas de esos tres archivos cambian y las demás no. Instalarlos es parte de la
   ventana de publicar, descrita en el
   [runbook](../../runbooks/publicacion-automatica-web.md#instalar-composeyml-composesupabaseyml-y-envexample):
