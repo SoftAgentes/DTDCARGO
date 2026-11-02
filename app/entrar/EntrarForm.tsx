@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
+import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
   ArrowIcon,
   CheckIcon,
@@ -14,7 +15,6 @@ import { requestMagicLink, type PortalLoginState } from "./actions";
 import { signOutAction } from "@/app/portal/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
-import { buildWhatsAppLink } from "@/lib/design-tokens";
 
 const initialMagic: PortalLoginState = {};
 

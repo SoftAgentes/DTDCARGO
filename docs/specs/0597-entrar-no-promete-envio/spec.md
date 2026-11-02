@@ -140,7 +140,7 @@ No cambian los cupos ni el hash. Reintentar gasta cupo igual que el primer pedid
 
 Sin migraciones, sin variables nuevas y sin tocar producción ni prueba.
 
-**Cruce con la PR #358 (SDD-0596):** toca el import y el `<form>` de la fila 1 de `EntrarForm`. Esta spec no toca esas líneas, y `defaultValue={magicState.email ?? …}` se complementa con `submitKeepingDraft`. El orden se comprueba con un merge de prueba local cuando las dos estén listas.
+**Cruce con la PR #358 (SDD-0596):** toca un import y el `<form>` de la fila 1 de `EntrarForm`. El primer merge de prueba chocó en el import, porque los dos lo añadían en la misma línea; el de esta spec se movió. `defaultValue={magicState.email ?? …}` se complementa con `submitKeepingDraft`. Con el merge de prueba solo se comprobó el texto: las pruebas sobre el resultado se corren cuando las dos estén listas.
 
 ## Gobernanza
 

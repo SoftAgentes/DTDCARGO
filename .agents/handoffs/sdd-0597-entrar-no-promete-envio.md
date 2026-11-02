@@ -80,7 +80,7 @@ Los SHA quedan en la PR: la rama es la fuente de estado.
 
 - [ ] `pnpm verify`, con turno del Director.
 - [ ] Medición contra GoTrue real con Mailpit, con turno del Director. Si contradice la lectura del código, se revisa el plan B.
-- [ ] Merge de prueba local con la PR #358, sin publicarlo, cuando las dos estén listas.
+- [ ] Merge de prueba local con la PR #358 y pruebas sobre el resultado, sin publicarlo, cuando las dos estén listas. Hecho ya con `git merge-tree`, solo a nivel de texto: el primero chocó en un import de `EntrarForm`, el mío se movió y queda limpio.
 - [ ] Al desplegar a prueba, cuando Sam termine: pedir el enlace con el cliente de la semilla y leerlo en `/correo/`, y ver la pantalla con el servidor real.
 - [ ] `status` de la spec: queda en `in-progress` hasta tener lo anterior.
 
