@@ -2,17 +2,25 @@ import "server-only";
 
 import type { ChatwootConfig } from "./config";
 import type { ChatwootError } from "./chatwoot-types";
-import { fijarClaveAleatoria, obtenerEnlaceSso, obtenerTokenAgente } from "./platform-api";
+import { fijarClaveAleatoria, obtenerEnlaceSso, obtenerTokenAgente, revocarSesiones } from "./platform-api";
 
 /**
  * Cierre forzado de las sesiones de un agente dado de baja (SDD-0585, paso 2.7).
  * Sam, 2026-10-30: «Quiero cierre forzado».
  *
- * La Platform API de 4.19.1 no revoca sesiones (E2-D13), pero la API de
- * perfil sí, con el token de API del propio agente (`Api::V1::Profile::SessionsController`:
- * `index` y `destroy`, que borra el token de devise_token_auth y su
- * `user_session`). Lo que ese listado no ve son los tokens sin `user_session`,
- * así que primero se deja una sola sesión y es una que Studio controla:
+ * **Camino principal, del lado del servidor** (Director, 2026-10-30): la ruta
+ * privada `POST platform/…/users/{id}/dtd_revocar_sesiones` que agrega
+ * `infra/chatwoot/rails/zz_dtd_revocar_sesiones.rb`. Vacía los tokens del panel
+ * (`users.tokens` de devise_token_auth), borra `user_sessions`, rota el
+ * `pubsub_token` (el tiempo real se corta a los 30 s) y el token de API. Studio
+ * comprueba después que el token cambió y que no queda ninguna sesión.
+ *
+ * **Respaldo, mientras el inicializador no esté instalado** (la ruta da 404):
+ * la API de perfil de 4.19.1, con el token de API del propio agente
+ * (`Api::V1::Profile::SessionsController`: `index` y `destroy`, que borra el
+ * token de devise_token_auth y su `user_session`). Lo que ese listado no ve son
+ * los tokens sin `user_session`, así que primero se deja una sola sesión y es
+ * una que Studio controla:
  *
  *  1. Lee el token de API del agente (`GET platform/…/users/{id}`).
  *  2. Abre una sesión propia por SSO (`/login` + `POST /auth/sign_in` con el
@@ -35,10 +43,21 @@ import { fijarClaveAleatoria, obtenerEnlaceSso, obtenerTokenAgente } from "./pla
  * correo que lleva, ni los tokens. Los errores son códigos.
  */
 
-export type PasoCierre = "token" | "enlace" | "entrada" | "clave" | "sesiones" | "quedan_sesiones" | "rotacion";
+export type PasoCierre =
+  | "token"
+  | "revocar"
+  | "enlace"
+  | "entrada"
+  | "clave"
+  | "sesiones"
+  | "quedan_sesiones"
+  | "rotacion";
+
+/** Por dónde se cerró: la ruta del inicializador o, sin él, la API de perfil. */
+export type ViaCierre = "servidor" | "api_de_perfil";
 
 export type ResultadoCierre =
-  | { ok: true; data: { sesionesCerradas: number } }
+  | { ok: true; data: { sesionesCerradas: number; via: ViaCierre } }
   | { ok: false; paso: PasoCierre; error: ChatwootError };
 
 const TIMEOUT_MS = 10_000;
@@ -91,6 +110,21 @@ export async function cerrarSesionesAgente(chatwootUserId: number, cfg: Chatwoot
   const token = await obtenerTokenAgente(chatwootUserId, cfg);
   if (!token.ok) return { ok: false, paso: "token", error: token.error };
 
+  const revocada = await revocarSesiones(chatwootUserId, cfg);
+  if (revocada.ok) {
+    const nuevo = await obtenerTokenAgente(chatwootUserId, cfg);
+    if (!nuevo.ok) return { ok: false, paso: "rotacion", error: nuevo.error };
+    if (nuevo.data === token.data) return { ok: false, paso: "rotacion", error: "respuesta_invalida" };
+    const quedan = await listarSesiones(cfg, nuevo.data);
+    if (!quedan.ok) return { ok: false, paso: "sesiones", error: quedan.error };
+    if (quedan.ids.length > 0) return { ok: false, paso: "quedan_sesiones", error: "respuesta_invalida" };
+    return { ok: true, data: { sesionesCerradas: revocada.data, via: "servidor" } };
+  }
+  // El usuario existe (el paso de arriba lo leyó): un 404 aquí es la ruta, que
+  // todavía no está instalada. Cualquier otro error (409 del de servicio o del
+  // último admin, 503 sin configurar) no cae al respaldo: queda pendiente.
+  if (revocada.error !== "no_encontrado") return { ok: false, paso: "revocar", error: revocada.error };
+
   const enlace = await obtenerEnlaceSso(chatwootUserId, cfg);
   if (!enlace.ok) return { ok: false, paso: "enlace", error: enlace.error };
   // `validarEnlaceSso` ya exige el origen del chat, `/app/login`, el correo y el token.
@@ -121,5 +155,5 @@ export async function cerrarSesionesAgente(chatwootUserId: number, cfg: Chatwoot
   if (!nuevo.ok) return { ok: false, paso: "rotacion", error: nuevo.error };
   if (nuevo.data === token.data) return { ok: false, paso: "rotacion", error: "respuesta_invalida" };
 
-  return { ok: true, data: { sesionesCerradas: sesiones.ids.length } };
+  return { ok: true, data: { sesionesCerradas: sesiones.ids.length, via: "api_de_perfil" } };
 }

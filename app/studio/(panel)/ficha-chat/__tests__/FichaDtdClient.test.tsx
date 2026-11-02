@@ -110,6 +110,25 @@ describe("FichaDtdClient (SDD-0585, 2.4)", () => {
     expect(screen.getByText("Sin ficha")).toBeTruthy();
   });
 
+  it("2.8 · pasa el costo del chat a la vista, con ficha y sin ficha", async () => {
+    const costo = {
+      enviados: 3,
+      completo: true,
+      mercado: "Rest of Latin America",
+      tarifa: 0.0113,
+      total: 0.0339,
+      vigenteDesde: "2026-10-01",
+      fuente: "https://developers.facebook.com/docs/whatsapp/pricing",
+    };
+    pedirFichaDtd.mockResolvedValueOnce({ ok: true, ficha: FICHA, costo }).mockResolvedValueOnce({ ok: true, ficha: null, costo });
+    render(<FichaDtdClient origenChat={CHAT} conSesion loginUrl="/studio/login" />);
+    mandar(contexto(42));
+    await waitFor(() => expect(screen.getByText(/3 mensajes enviados/)).toBeTruthy());
+    mandar(contexto(43));
+    await waitFor(() => expect(screen.getByText("Sin ficha")).toBeTruthy());
+    expect(screen.getByText(/3 mensajes enviados/)).toBeTruthy();
+  });
+
   it("error de la acción: lo muestra y reintenta con el mismo contexto", async () => {
     pedirFichaDtd.mockResolvedValueOnce({ ok: false, error: "service" });
     render(<FichaDtdClient origenChat={CHAT} conSesion loginUrl="/studio/login" />);

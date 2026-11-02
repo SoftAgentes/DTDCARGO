@@ -138,7 +138,8 @@ Segunda pasada de Codex sobre `d4d5e18a2` (estática, sin ejecutar nada): los 5 
 
 ## Pendientes de esta SDD
 
-- 10.4, 10.5 y 10.6 (ver checklist).
+- 10.4, 10.5 y 10.6 (ver checklist); se programan después de integrar a `main`.
+- **10.5 destrabado:** su dependencia, el 6.3, ya está aceptada. Sam lo reafirmó el 2026-10-30 (comunicado por el Director): «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets».
 - ~~`pnpm verify` y sql-tests con Docker~~: corridos el 2026-10-30 (ver «Verify»).
 - Aplicar la 0505: OK nominal de Sam al integrar (la aceptación del 2026-10-30 no lo cubre).
 - ~~Número de migración~~: el Director confirmó la **0505** (2026-10-30), comprobada en todas las ramas, remotas y worktrees.

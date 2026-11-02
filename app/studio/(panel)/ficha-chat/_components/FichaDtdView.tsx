@@ -9,8 +9,9 @@
  * dinero, ni la etiqueta del saldo. El nombre del cliente no va: el agente ya
  * lo ve en Chatwoot.
  *
- * Huecos preparados, sin implementar: `segmento` (lo llena E10) y `costoChat`
- * (el 2.8 opcional, que pasa su propio componente).
+ * Huecos: `segmento` (lo llena E10) y `costoChat`. El 2.8 lo llena con
+ * `CostoChatCard` cuando el estado trae `costo`, con ficha o sin ella: el costo
+ * es del chat, no del cliente.
  */
 
 import type { ReactNode } from "react";
@@ -20,14 +21,16 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { formatInvoiceAmount } from "@/lib/portal/portal-types";
 import { fechaCorta, type ClientAccountSummary } from "@/lib/studio/client-account";
 import type { FichaDtd, FichaDtdError } from "@/app/studio/(app)/bandeja/actions";
+import type { CostoChat } from "@/lib/studio/chatwoot/costo-chat";
+import { CostoChatCard } from "./CostoChatCard";
 
 export type EstadoFichaDtd =
   | { tipo: "esperando" }
   | { tipo: "cargando" }
   | { tipo: "sin_sesion"; loginUrl: string }
   | { tipo: "error"; error: FichaDtdError }
-  | { tipo: "sin_ficha" }
-  | { tipo: "ficha"; ficha: FichaDtd };
+  | { tipo: "sin_ficha"; costo?: CostoChat | null }
+  | { tipo: "ficha"; ficha: FichaDtd; costo?: CostoChat | null };
 
 const PANEL = {
   display: "flex",
@@ -168,10 +171,12 @@ export function FichaDtdView({
 }: {
   estado: EstadoFichaDtd;
   onRetry?: () => void;
-  /** Hueco del 2.8 (costo de referencia por chat). Sin implementar: hoy nadie lo pasa. */
+  /** Hueco del 2.8. Si no se pasa, se pinta `CostoChatCard` con el `costo` del estado. */
   costoChat?: ReactNode;
 }) {
   const t = useT();
+  const costoDelEstado = estado.tipo === "ficha" || estado.tipo === "sin_ficha" ? estado.costo : null;
+  const costo = costoChat ?? (costoDelEstado ? <CostoChatCard costo={costoDelEstado} /> : undefined);
   let cuerpo: ReactNode;
   switch (estado.tipo) {
     case "esperando":
@@ -213,10 +218,15 @@ export function FichaDtdView({
       );
       break;
     case "sin_ficha":
-      cuerpo = <Mensaje titulo={t("bandeja.ficha.none.title")} cuerpo={t("bandeja.ficha.none.body")} />;
+      cuerpo = (
+        <>
+          <Mensaje titulo={t("bandeja.ficha.none.title")} cuerpo={t("bandeja.ficha.none.body")} />
+          {costo ? <section data-hueco="costo-chat">{costo}</section> : null}
+        </>
+      );
       break;
     case "ficha":
-      cuerpo = <Ficha ficha={estado.ficha} costoChat={costoChat} />;
+      cuerpo = <Ficha ficha={estado.ficha} costoChat={costo} />;
       break;
   }
   return (
