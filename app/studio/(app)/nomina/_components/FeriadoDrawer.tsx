@@ -15,6 +15,7 @@ import { HOLIDAY_SCOPE_OPTIONS } from "@/lib/studio/nomina/attendance-types";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { createHolidayAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/app/studio/_components/ui/submitKeepingDraft";
 
 const FORM_ID = "feriado-form";
 const initial: NominaActionState = {};
@@ -36,7 +37,7 @@ export function FeriadoDrawer({ onClose }: { onClose: () => void }) {
     >
       <form
         id={FORM_ID}
-        action={formAction}
+        onSubmit={submitKeepingDraft(formAction, isPending)}
         style={{
           flex: 1,
           overflow: "auto",

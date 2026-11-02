@@ -21,6 +21,7 @@ import {
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { savePayrollRulesAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/app/studio/_components/ui/submitKeepingDraft";
 
 const FORM_ID = "reglas-form";
 const initial: NominaActionState = {};
@@ -77,7 +78,7 @@ export function ReglasDrawer({
     >
       <form
         id={FORM_ID}
-        action={formAction}
+        onSubmit={submitKeepingDraft(formAction, isPending)}
         style={{
           flex: 1,
           overflow: "auto",

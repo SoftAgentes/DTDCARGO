@@ -16,6 +16,7 @@ import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import type { EmployeeRegistration } from "@/lib/studio/nomina/registration-types";
 import { approveRegistrationAction, rejectRegistrationAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/app/studio/_components/ui/submitKeepingDraft";
 
 const initial: NominaActionState = {};
 
@@ -99,7 +100,7 @@ export function RevisarSolicitudDrawer({
         </div>
 
         {mode === "aprobar" ? (
-          <form id="aprobar-solicitud-form" action={aAction} style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+          <form id="aprobar-solicitud-form" onSubmit={submitKeepingDraft(aAction, aPending)} style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
             <p style={{ font: "400 12px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
               Al aprobar se crea la ficha del empleado. El <strong>sueldo lo defines tú</strong>, no el
               candidato.
@@ -115,7 +116,7 @@ export function RevisarSolicitudDrawer({
             {aState.error && <ErrorBox>{aState.error}</ErrorBox>}
           </form>
         ) : (
-          <form id="rechazar-solicitud-form" action={rAction} style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+          <form id="rechazar-solicitud-form" onSubmit={submitKeepingDraft(rAction, rPending)} style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
             <Field label="Motivo del rechazo" error={rState.fieldErrors?.rejection_reason} required>
               <textarea name="rejection_reason" className="studio-input" rows={3} style={{ resize: "vertical" }} placeholder="Por qué no procede esta solicitud" required />
             </Field>

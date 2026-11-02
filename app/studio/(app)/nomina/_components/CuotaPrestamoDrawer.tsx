@@ -19,6 +19,7 @@ import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { registerLoanInstallmentAction, cancelLoanAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
 import { fmtUsd } from "@/lib/money";
+import { submitKeepingDraft } from "@/app/studio/_components/ui/submitKeepingDraft";
 
 const FORM_ID = "cuota-prestamo-form";
 const initial: NominaActionState = {};
@@ -52,7 +53,7 @@ export function CuotaPrestamoDrawer({
     >
       <form
         id={FORM_ID}
-        action={formAction}
+        onSubmit={submitKeepingDraft(formAction, isPending)}
         style={{
           flex: 1,
           overflow: "auto",

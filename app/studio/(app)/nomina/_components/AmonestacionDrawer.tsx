@@ -24,6 +24,7 @@ import type { Employee } from "@/lib/studio/nomina/employee-types";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { emitirAmonestacionAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/app/studio/_components/ui/submitKeepingDraft";
 
 const FORM_ID = "amonestacion-form";
 const initial: NominaActionState = {};
@@ -90,7 +91,7 @@ export function AmonestacionDrawer({
     >
       <form
         id={FORM_ID}
-        action={formAction}
+        onSubmit={submitKeepingDraft(formAction, isPending)}
         style={{
           flex: 1,
           overflow: "auto",

@@ -15,6 +15,7 @@ import {
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { createInviteAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/app/studio/_components/ui/submitKeepingDraft";
 
 const FORM_ID = "generar-invitacion-form";
 const initial: NominaActionState = {};
@@ -76,7 +77,7 @@ export function GenerarInvitacionDrawer({ onClose }: { onClose: () => void }) {
       ) : (
         <form
           id={FORM_ID}
-          action={formAction}
+          onSubmit={submitKeepingDraft(formAction, isPending)}
           style={{ flex: 1, overflow: "auto", padding: "20px 22px", display: "flex", flexDirection: "column", gap: "var(--s-4)" }}
         >
           <Field label="Cargo sugerido" error={state.fieldErrors?.cargo}>
