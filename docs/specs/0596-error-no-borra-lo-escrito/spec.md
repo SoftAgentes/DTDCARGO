@@ -203,6 +203,14 @@ Los tramos 1 y 2 traen el mismo ayudante en la misma ruta, así que combinan sin
 - `docs/specs/0596-error-no-borra-lo-escrito/spec.md`, `docs/specs/README.md`
 - `.agents/handoffs/sdd-0596-error-no-borra-portal.md`
 
+## Allowlist del tramo 2
+
+- `lib/shared/submit-keeping-draft.ts` (nuevo)
+- `app/studio/(app)/nomina/_components/__tests__/conservar-lo-escrito.test.tsx` (nuevo)
+- En `app/studio/(app)/nomina/_components/`: `AmonestacionDrawer.tsx`, `AsistenciaDrawer.tsx`, `CuotaPrestamoDrawer.tsx`, `EmpleadoDrawer.tsx`, `EnviarComunicacionDrawer.tsx`, `FeriadoDrawer.tsx`, `GenerarCorteDrawer.tsx`, `GenerarFiniquitoDrawer.tsx`, `GenerarInvitacionDrawer.tsx`, `PagoPrestadorDrawer.tsx`, `PrestadorDrawer.tsx`, `PrestamoDrawer.tsx`, `PuestoDrawer.tsx`, `ReglasDrawer.tsx`, `RevisarSolicitudDrawer.tsx`
+- `docs/specs/0596-error-no-borra-lo-escrito/spec.md`, `docs/specs/README.md`
+- `.agents/handoffs/sdd-0596-error-no-borra-nomina.md`
+
 ## Aceptación del tramo 1
 
 1. Tras una respuesta con error, cada formulario conserva lo escrito y los archivos, salvo la clave de `AcceptInvitationForm`.
