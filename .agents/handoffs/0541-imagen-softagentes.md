@@ -14,9 +14,10 @@ Ejecutada de 19:17Z a 19:26Z. El OK es de Sam, dado a la sesión Director, que l
 |---|---|
 | Corridas `41341050688`, `41341563619` y `41341633174`, en verde sobre `1c2286f1f` | `gh run view` |
 | `build-image.yml` y `publicable.yml` activos; `PUBLICABLE_CONGELADO` ya no existe | `gh workflow list`; `gh variable list`, solo nombres |
-| Script `f71d27594e568f2b`, blob `397dbc7b…`; anterior `663f9e7e946caec9`, igual a `1bb7ab9fa`; huellas `f813a73425fee9ff` | `git show` y `sha256sum`, en Git. La copia del VPS la midió la sesión de la ventana |
+| Script `f71d27594e568f2b`, blob `397dbc7b…`; anterior `663f9e7e946caec9`, igual a `1bb7ab9fa`; huellas `f813a73425fee9ff` | `git show` y `sha256sum`, en Git. La copia del VPS, sin contar el anterior, se midió el 2026-11-02 a las 00:14Z |
 | «Calidad continua» en verde sobre `M` | Corrida `41334833317` |
-| Imagen en disco, `CONGELADO`, timer, `revisar`, salud de la web y digest `sha256:b2d48a17…` | **NO VERIFICADO por esta sesión:** informe del Director |
+| Imagen en disco, `CONGELADO` de las 19:17:36Z, timer `disabled` e `inactive`, salud de la web y digest `sha256:b2d48a17…` | Medidos por esta sesión el 2026-11-02 a las 00:14Z, solo lectura y sin abrir el `.env` |
+| `revisar` en V6 | **NO VERIFICADO por esta sesión:** informe del Director. No se repitió |
 | `929cabf51` no es ancestro de `M`, pero su único commit propio ya está por contenido | `git cherry` da `-`, y sus cinco archivos son iguales en `M` |
 
 `CONGELADO` no existía antes de V2. El estado del runbook decía «congelado» y nombraba timer, workflows y variable, sin esta llave del servidor. Corregí la nota del paso.
@@ -36,7 +37,7 @@ Repuntar la imagen a `ghcr.io/softagentes/dtdcargo` en workflows, script, stagin
 | | `infra/ops/staging/lib-prueba.sh:8` · `env-prueba.sh:18,50` · `desplegar-prueba.sh:10,26` · `verificar-aislamiento.sh:22,36,54` | Cambiada |
 | | `infra/ops/tests/prueba-publicar-web.sh` (2) · `prueba-scripts-entorno-prueba.sh` (7) · `publicable.test.mjs` (2) | Cambiada |
 | | `infra/dtd-cargo/README.md:36` · `docs/runbooks/publicacion-automatica-web.md:62` · `entorno-prueba.md:157` · `servidor-contabo.md:317,319` | Cambiada |
-| **Dirección de imagen en archivo con huella** | `infra/dtd-cargo/compose.yml:47` (bloqueante) · `infra/dtd-cargo/.env.example:36` (solo avisa) | **NO cambiada.** Van en una PR aparte; ver pendientes |
+| **Dirección de imagen en archivo con huella** | `infra/dtd-cargo/compose.yml:47` (bloqueante) · `infra/dtd-cargo/.env.example:36` (solo avisa) | **NO cambiada aquí.** Van en la PR #348; ver pendientes |
 | **Alias de origen** | `publicar-web.sh:62` (`FUENTE_HISTORICA`) · etiquetas `source` de `prueba-publicar-web.sh` · `publicacion-automatica-web.md:131` · contrato de la spec | Conservado |
 | **URL del repo, no de imagen** | `lib/studio/publicaciones-types.ts:33` y sus pruebas (`publicaciones-types.test.ts:356`, `PublicacionesServidor.test.tsx:95,158`) · `docs/architecture/stack-tecnico.md:5` · `docs/runbooks/entorno-prueba.md:68` | No se tocan: el alias resuelve al mismo repo (`gh api`: id 1246490707). Ver fuera de alcance |
 | **Historia** | `.agents/handoffs` (171 líneas, 121 archivos) · `docs/specs` (21, 14) · audits, governance, marketing, assets (10) · `servidor-contabo.md:695,919` | Igual |
@@ -122,12 +123,12 @@ Script instalado: blob `397dbc7b565eb8be004d0e215b37971fdb2d6c40`, sha16 `f71d27
 
 ## PENDIENTES DE ESTA TAREA
 
-1. **Publicar.** Es otro paso, después de las migraciones y con su propio OK: `publicar-web.sh descongelar` y `systemctl enable --now dtd-cargo-publicar.timer`. Lo que salga será la punta de `:publicable`, no `1c2286f1f`: correr `revisar` justo antes.
-2. **`compose.yml:47` y `.env.example:36`: decisión del 2026-11-01, PR aparte.** Siguen con la dirección vieja como valor por defecto. Se repuntan en la próxima PR que toque `compose.yml`, junto con el comentario del bot de deploy de sus líneas 60-61, e instalados en su ventana.
+1. **Publicar.** Es otro paso, después de las migraciones y con su propio OK, por commit exacto: `publicar-web.sh publicar <sha> --aunque-congelado`, con el timer apagado. Encender es aparte y con su OK: `publicar-web.sh descongelar` y `systemctl enable --now dtd-cargo-publicar.timer`, y entra la punta de `:publicable` en ese minuto. Correr `revisar` justo antes de cada uno.
+2. **`compose.yml:47` y `.env.example:36`: en la PR #348.** Siguen con la dirección vieja como valor por defecto hasta que se integre. Esa PR los repunta junto con el comentario del bot de deploy de sus líneas 60-61, agrega la prueba de los dos literales y describe la ventana de instalarlos.
    - En producción no se usan: el script exige una línea `DTD_WEB_IMAGE` no vacía. Si faltara, el pull falla a la vista.
    - Staging tampoco: `env-prueba.sh` fija el valor con `--set`.
-   - Ninguna prueba vigila esas dos líneas.
-3. **Scripts de staging en el VPS.** V3 instaló solo `publicar-web.sh`. Los de `/srv/ops/staging/` se copian de `main` la próxima vez que se usen.
+3. **`compose.supabase.yml` bloquea publicar, decisión abierta.** Difiere del repo en la imagen de `storage`, y `revisar` lo tapa porque para en las migraciones. Medido el 2026-11-02. Detalle y opciones: `.agents/handoffs/0541-publicar-commit-exacto.md`, que llega con la PR #348.
+4. **Scripts de staging en el VPS.** V3 instaló solo `publicar-web.sh`. Los de `/srv/ops/staging/` se copian de `main` la próxima vez que se usen.
 
 **Limpieza:** las imágenes de la dirección vieja se quedan en el disco, unos 520 MB cada una, hasta que alguien las borre a mano.
 
@@ -142,7 +143,7 @@ Script instalado: blob `397dbc7b565eb8be004d0e215b37971fdb2d6c40`, sha16 `f71d27
 
 ## HANDOFF AL DIRECTOR
 
-Sin decisiones abiertas de esta tarea. La PR del registro no se fusiona desde aquí; es solo documentación y la integras cuando convenga.
+La única decisión abierta es `compose.supabase.yml`, el pendiente 3, y bloquea publicar. La PR del registro no se fusiona desde aquí; es solo documentación y la integras cuando convenga.
 
 **Impacto documental:** actualizados `publicacion-automatica-web.md`, `entorno-prueba.md`, `servidor-contabo.md`, `infra/dtd-cargo/README.md` y la spec 0541 (continuación con contrato, aceptación y allowlist). `docs/specs/README.md` no hizo falta: `docs:check` pasa. El registro de la ventana toca el runbook, este handoff y la línea de estado de la spec.
 

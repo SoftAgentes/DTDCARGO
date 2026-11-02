@@ -197,7 +197,7 @@ unknown». Workflows, promotor, script, staging, pruebas y runbooks pasan a
 | Origen (`org.opencontainers.image.source`) | Sigue aceptando las dos fuentes exactas. El `:publicable` de antes de la ventana (`8e9e0f505`) era una imagen en la dirección nueva con el origen viejo, y pasaba |
 | Lo que el servidor ya tiene con el nombre viejo | Sirve de vuelta atrás mientras esté en el disco, porque no hace falta bajarlo. Si no está, el script no publica: «la imagen anterior … no está en el servidor y no se pudo bajar» |
 | Limpieza | Solo borra imágenes de la dirección nueva. Las de la vieja se quedan hasta que alguien las borre a mano (unos 520 MB cada una) |
-| Huellas | Esta preparación no cambia ninguna: el sha256 de `huellas-fuera-de-imagen.sh repo . --etiqueta` es el mismo antes y después. Por eso `infra/dtd-cargo/compose.yml:47` y `.env.example:36` conservan la dirección vieja como valor por defecto. En producción no se usan, porque el script exige una línea `DTD_WEB_IMAGE` no vacía. Se repuntan en una PR aparte, la próxima que toque `compose.yml`, instalada en su ventana |
+| Huellas | Esta preparación no cambia ninguna: el sha256 de `huellas-fuera-de-imagen.sh repo . --etiqueta` es el mismo antes y después. Por eso `infra/dtd-cargo/compose.yml:47` y `.env.example:36` conservan la dirección vieja como valor por defecto. En producción no se usan, porque el script exige una línea `DTD_WEB_IMAGE` no vacía. Se repuntan en la PR #348, instalada en su ventana |
 
 **Comprobado en V4: `GITHUB_TOKEN` escribe en la dirección nueva.** La corrida
 `41341050688` es la primera de `build-image.yml` desde el 2026-10-20, antes del
@@ -225,12 +225,17 @@ debajo de la tabla, que se conserva por si hay que repetirla.
 | V6 | Sesión de Contabo | `publicar-web.sh revisar` | «imagen: …:publicable → commit `M`», sin «no viene de» ni «no pude bajar». Mientras falten 0496 y 0497: «PUERTAS: NO · faltan en la base …», que es lo esperado |
 
 Aquí termina la ventana: el timer sigue apagado y `CONGELADO` sigue puesto. La
-publicación es otro paso, después de las migraciones y con su propio OK:
-`publicar-web.sh descongelar` y `systemctl enable --now dtd-cargo-publicar.timer`.
+publicación es otro paso, después de las migraciones y con su propio OK, y se hace por
+commit exacto: `publicar-web.sh publicar <sha> --aunque-congelado`. Encender es un paso
+aparte, también con su OK: `publicar-web.sh descongelar` y
+`systemctl enable --now dtd-cargo-publicar.timer`. Esos dos solos no fijan qué sale:
+entra lo que diga `:publicable` en ese minuto. El procedimiento llega con la PR #348.
 
 **Resultado del 2026-11-01.** Lo informó el Director. Corridas, estado de los
-workflows, variable y hashes de Git se cotejaron después con `gh` y `git`; lo medido
-dentro del VPS y el digest no se volvieron a medir.
+workflows, variable y hashes de Git se cotejaron después con `gh` y `git`. Lo de dentro
+del VPS se volvió a medir el 2026-11-02 a las 00:14Z, solo lectura y sin abrir el
+`.env`: digest de `:publicable`, imágenes en disco, hora de `CONGELADO`, timer, script,
+huellas y salud de la web coinciden. `revisar` no se repitió.
 
 | # | Resultado |
 |---|---|
@@ -244,10 +249,19 @@ dentro del VPS y el digest no se volvieron a medir.
 
 **Antes de publicar.**
 
-- `:publicable` ya no es fija: se mueve con cada merge a `main` en verde. Lo que salga
-  será esa punta, no `1c2286f1f`. Correr `publicar-web.sh revisar` justo antes.
-- Las puertas lo frenan mientras falten migraciones. Encender el timer no autoriza
-  aplicarlas; tienen su propio OK.
+- `:publicable` ya no es fija: se mueve con cada merge a `main` en verde. Lo que entra
+  al encender el timer es esa punta, no `1c2286f1f`. Para salir con un commit elegido
+  se publica por sha, con el timer apagado, corriendo `publicar-web.sh revisar "<sha>"`
+  justo antes.
+- Las puertas lo frenan mientras falten migraciones. Ni publicar ni encender el timer
+  autoriza aplicarlas; tienen su propio OK.
+- `revisar` responde con la primera puerta cerrada, en este orden: migraciones, huellas
+  y sharp. «Faltan en la base…» no dice nada de las otras dos, y hoy tapa una:
+  `compose.supabase.yml` difiere del repo en la imagen de `storage`, un parche local de
+  Node 24.22.1 editado en el servidor el 2026-10-25. Medido el 2026-11-02 con
+  `huellas-fuera-de-imagen.sh servidor /srv/dtd-cargo`. **Bloquea publicar** en cuanto se
+  apliquen la 0496 y la 0497, y copiar el archivo del repo quitaría el parche en el
+  próximo `up` de `storage`. La decisión está abierta; las opciones llegan con la PR #348.
 - `M` no retrocede lo que corre, aunque `git merge-base --is-ancestor 929cabf51 M` diga
   que no es ancestro. `929cabf51` tiene un solo commit fuera de `M`, y ya está por
   contenido: `git cherry M 929cabf51` da `-`, y sus cinco archivos son iguales en `M`.
