@@ -1046,6 +1046,8 @@ $real$;`);
     const limitesDe = async (migracion: string) => {
       let leidos: { sesion: unknown; ledger: unknown; alConfirmar: unknown; despues: unknown } | undefined;
       await sobreFixtureSinLa0497(async (db) => {
+        // Valores propios: el fixture ya dejó en la sesión los 5 s y 30 s de otra migración con `set`.
+        await db.exec("set lock_timeout = '7s'; set statement_timeout = '77s';");
         const sesion = (await db.query(LIMITES)).rows[0];
         await db.exec(`begin;
 ${migracion}
