@@ -11,7 +11,15 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { agregarACuenta, borrarUsuario, crearAgente, fijarClaveAleatoria, listarMiembrosCuenta, quitarDeCuenta } from "../platform-api";
+import {
+  agregarACuenta,
+  borrarUsuario,
+  crearAgente,
+  fijarClaveAleatoria,
+  listarMiembrosCuenta,
+  quitarDeCuenta,
+  revocarSesiones,
+} from "../platform-api";
 import { chatwootServicioUserId, type ChatwootConfig } from "../config";
 
 const CFG: ChatwootConfig = { origin: "https://chat.ejemplo.test", token: "tok-plataforma", accountId: 1 };
@@ -184,5 +192,24 @@ describe("matriz y cierre (2.7)", () => {
     expect(llamada().init.method).toBe("DELETE");
     fetchSpy.mockResolvedValueOnce(new Response("", { status: 404 }));
     expect(await borrarUsuario(7, CFG)).toEqual({ ok: false, error: "no_encontrado" });
+  });
+});
+
+describe("revocarSesiones (2.7, ruta del inicializador)", () => {
+  it("POST a la ruta privada con el token de la Platform App; devuelve el conteo", async () => {
+    fetchSpy.mockResolvedValueOnce(json({ revocadas: 2 }));
+    expect(await revocarSesiones(7, CFG)).toEqual({ ok: true, data: 2 });
+    expect(llamada().url).toBe("https://chat.ejemplo.test/platform/api/v1/users/7/dtd_revocar_sesiones");
+    expect(llamada().init.method).toBe("POST");
+    expect((llamada().init.headers as Record<string, string>).api_access_token).toBe("tok-plataforma");
+  });
+
+  it("404 sin el inicializador, 409 rechazado, conteo raro inválido", async () => {
+    fetchSpy.mockResolvedValueOnce(new Response("", { status: 404 }));
+    expect(await revocarSesiones(7, CFG)).toEqual({ ok: false, error: "no_encontrado" });
+    fetchSpy.mockResolvedValueOnce(new Response("{}", { status: 409 }));
+    expect(await revocarSesiones(7, CFG)).toEqual({ ok: false, error: "http_409" });
+    fetchSpy.mockResolvedValueOnce(json({ revocadas: -1 }));
+    expect(await revocarSesiones(7, CFG)).toEqual({ ok: false, error: "respuesta_invalida" });
   });
 });

@@ -82,6 +82,7 @@ Fuente del código: la imagen `chatwoot/chatwoot:v4.19.1-ce`, digest `sha256:048
 | T-37 | Copia `/srv/chatwoot/.env.antes-smtp` (0600). Remitente → `"DTD Cargo <notificaciones@dtdcargo.com>"`, y el resto del `.env` es idéntico (`diff` sin las 3 líneas). Usuario (27) y clave (10), entre comillas simples, `.env` 0600 | VPS, nombres y largos | R |
 | T-38 | `docker compose up -d --wait` en 185 s: `rails` y `sidekiq` recreados y sanos; `acceso`, `postgres` y `redis` sin reinicio. Dentro de los dos: `SMTP_USERNAME=notificaciones@dtdcargo.com`, largo de la clave 10, remitente nuevo. `chat.dtdcargo.com/api` → 200 | `docker compose ps`/`exec` | R |
 | T-39 | Prueba: `ActionMailer::Base.mail(...).deliver_now` desde `rails` (smtp, `smtp.hostinger.com:587`, `login`, STARTTLS) → aceptado sin excepción a las 22:31:31Z, a `hailuway.com@gmail.com`. Sam confirmó que llegó a Recibidos. No lo pude leer en Gmail: el conector pide permisos que no tiene | `rails runner`; Sam | R (envío aceptado) · NV por mí (la llegada la confirmó Sam) |
+| T-40 | Cierre de las 72 h (2026-11-01 16:22Z, solo lectura): 845 muestras; presión de CPU p95 98,85 (58,63 sin 18:00–06:00Z; 53,85 sin 18:00–07:30Z), rachas de hasta 550 min; CPU propia de Chatwoot p95 40,1 %; web de DTD p95 0,67 s; sin OOM. Detalle en el handoff, «Cierre de la vigilancia» | `vigilar.sh --resumen`, `docker stats`, `du`, journal (conteos) y cálculo propio sobre el CSV | R (la causa del episodio: I) |
 
 ## Código de Chatwoot 4.19.1
 

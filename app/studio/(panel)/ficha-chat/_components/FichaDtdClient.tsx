@@ -39,7 +39,11 @@ export function FichaDtdClient({
     let siguiente: EstadoFichaDtd;
     try {
       const r = await pedirFichaDtd(ctx.conversacionId, ctx.agenteId);
-      siguiente = !r.ok ? { tipo: "error", error: r.error } : r.ficha ? { tipo: "ficha", ficha: r.ficha } : { tipo: "sin_ficha" };
+      siguiente = !r.ok
+        ? { tipo: "error", error: r.error }
+        : r.ficha
+          ? { tipo: "ficha", ficha: r.ficha, costo: r.costo }
+          : { tipo: "sin_ficha", costo: r.costo };
     } catch {
       siguiente = { tipo: "error", error: "service" };
     }

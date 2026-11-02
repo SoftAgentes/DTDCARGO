@@ -94,3 +94,64 @@ export async function obtenerConversacion(
     clearTimeout(timer);
   }
 }
+
+/**
+ * Mensajes que DTD envió por WhatsApp en UNA conversación (SDD-0585, paso 2.8), con el
+ * token DEL AGENTE: Chatwoot autoriza la conversación igual que en la Ficha.
+ *
+ * `GET …/conversations/{id}/messages?after=N` devuelve hasta 100 mensajes en orden,
+ * con `meta.contact` (`messages_controller#index` y `MessageFinder#messages_after` de
+ * 4.19.1). Cuenta los salientes (`message_type` 1), no privados, con `source_id`
+ * `wamid.…`: el id que pone Meta al aceptar el envío, así que no cuenta notas internas,
+ * mensajes de otros canales ni envíos fallidos. Lee hasta `paginas` páginas; si hay más,
+ * `completo` es false.
+ *
+ * Del contenido no se lee nada. El teléfono del contacto sale solo para elegir el
+ * mercado de la tarifa y no se guarda ni se registra.
+ */
+export async function contarEnviadosWhatsapp(
+  cfg: ChatwootConfig,
+  tokenAgente: string,
+  conversacionId: number,
+  paginas = 10,
+): Promise<ChatwootResult<{ enviados: number; completo: boolean; telefono: string | null }>> {
+  let enviados = 0;
+  let telefono: string | null = null;
+  let despues = 0;
+  for (let pagina = 1; pagina <= paginas; pagina += 1) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+    let lote: Array<{ id?: unknown; message_type?: unknown; private?: unknown; source_id?: unknown }>;
+    try {
+      const res = await fetch(
+        `${cfg.origin}/api/v1/accounts/${cfg.accountId}/conversations/${conversacionId}/messages?after=${despues}`,
+        { headers: { api_access_token: tokenAgente, Accept: "application/json" }, signal: ctrl.signal, cache: "no-store", redirect: "error" },
+      );
+      if (!res.ok) {
+        const error: ChatwootError =
+          res.status === 401 || res.status === 403 ? "no_autorizado" : res.status === 404 ? "no_encontrado" : `http_${res.status}`;
+        return { ok: false, error };
+      }
+      const body = (await res.json().catch(() => null)) as { meta?: { contact?: { phone_number?: unknown } }; payload?: unknown } | null;
+      if (!Array.isArray(body?.payload)) return { ok: false, error: "respuesta_invalida" };
+      if (pagina === 1) {
+        const tel = body.meta?.contact?.phone_number;
+        telefono = typeof tel === "string" && tel.trim() ? tel : null;
+      }
+      lote = body.payload as typeof lote;
+    } catch {
+      return { ok: false, error: "red" };
+    } finally {
+      clearTimeout(timer);
+    }
+    for (const m of lote) {
+      if (m?.message_type === 1 && m.private !== true && typeof m.source_id === "string" && m.source_id.startsWith("wamid.")) {
+        enviados += 1;
+      }
+    }
+    const ultimo = lote.at(-1)?.id;
+    if (lote.length < 100 || typeof ultimo !== "number") return { ok: true, data: { enviados, completo: true, telefono } };
+    despues = ultimo;
+  }
+  return { ok: true, data: { enviados, completo: false, telefono } };
+}
