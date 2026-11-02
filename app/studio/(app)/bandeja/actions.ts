@@ -40,7 +40,8 @@ import {
   obtenerEnlaceSso,
   obtenerTokenAgente,
 } from "@/lib/studio/chatwoot/platform-api";
-import { listarConversacionesRecientes, obtenerConversacion } from "@/lib/studio/chatwoot/account-api";
+import { contarEnviadosWhatsapp, listarConversacionesRecientes, obtenerConversacion } from "@/lib/studio/chatwoot/account-api";
+import { estimarCosto, type CostoChat } from "@/lib/studio/chatwoot/costo-chat";
 import { aplicarConversacion } from "@/lib/studio/chatwoot/webhook-procesar";
 import { getVinculoPropio } from "@/lib/studio/chatwoot/links-queries";
 import { rolChatwootDe } from "@/lib/studio/chatwoot/matriz";
@@ -354,8 +355,14 @@ export interface FichaDtd {
   enlace: string;
 }
 
-/** `ficha: null` es «sin ficha»: sin cruce, cruce ambiguo o cliente que la RLS no deja ver. */
-export type FichaDtdResult = { ok: true; ficha: FichaDtd | null } | { ok: false; error: FichaDtdError };
+/**
+ * `ficha: null` es «sin ficha»: sin cruce, cruce ambiguo o cliente que la RLS no deja ver.
+ * `costo` (paso 2.8) es el costo de referencia del chat, también sin ficha: null si no se
+ * pudo leer o si el contacto no tiene un teléfono del que salga el mercado.
+ */
+export type FichaDtdResult =
+  | { ok: true; ficha: FichaDtd | null; costo: CostoChat | null }
+  | { ok: false; error: FichaDtdError };
 
 const idDeContexto = (v: unknown): number | null => (typeof v === "number" ? parseChatwootUserId(v) : null);
 
@@ -395,6 +402,12 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
     return { ok: false, error: "service" };
   }
 
+  // Paso 2.8: costo de referencia del chat. Informativo: si falla, la ficha sale igual.
+  // El teléfono solo elige el mercado y no sale de `estimarCosto`.
+  const enviados = await contarEnviadosWhatsapp(cfg, token.data, conversacion);
+  if (!enviados.ok) console.warn(`[ficha-dtd] costo del chat no disponible: ${enviados.error}`);
+  const costo = enviados.ok ? estimarCosto(enviados.data) : null;
+
   // E2-D31: la misma RPC de la reconciliación; el cruce con el cliente lo decide la base.
   try {
     await aplicarConversacion({ admin: createAdminClient(), tenantId }, leida.data, null);
@@ -410,13 +423,13 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
     .eq("tenant_id", tenantId)
     .eq("conversation_id", conversacion)
     .maybeSingle<{ client_id: string | null }>();
-  if (!fila?.client_id) return { ok: true, ficha: null };
+  if (!fila?.client_id) return { ok: true, ficha: null, costo };
   const { data: cliente } = await supabase
     .from("clients")
     .select("id, markbox, deleted_at")
     .eq("id", fila.client_id)
     .maybeSingle<{ id: string; markbox: string; deleted_at: string | null }>();
-  if (!cliente) return { ok: true, ficha: null };
+  if (!cliente) return { ok: true, ficha: null, costo };
 
   let codigosConocidos: string[] = [];
   try {
@@ -436,5 +449,6 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
       cuenta,
       enlace: `/studio/clientes/${encodeURIComponent(cliente.markbox)}`,
     },
+    costo,
   };
 }

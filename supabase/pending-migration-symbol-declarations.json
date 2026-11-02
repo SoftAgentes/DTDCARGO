@@ -322,11 +322,11 @@
           "name": "chatwoot_agent_links",
           "kind": "table",
           "callSites": [
-            "app/studio/(app)/bandeja/actions.ts:183",
-            "app/studio/(app)/bandeja/actions.ts:231",
-            "app/studio/(app)/bandeja/actions.ts:272",
-            "app/studio/(app)/bandeja/actions.ts:300",
-            "app/studio/(app)/bandeja/actions.ts:323",
+            "app/studio/(app)/bandeja/actions.ts:184",
+            "app/studio/(app)/bandeja/actions.ts:232",
+            "app/studio/(app)/bandeja/actions.ts:273",
+            "app/studio/(app)/bandeja/actions.ts:301",
+            "app/studio/(app)/bandeja/actions.ts:324",
             "lib/studio/chatwoot/agentes-ciclo.ts:98",
             "lib/studio/chatwoot/agentes-ciclo.ts:167",
             "lib/studio/chatwoot/agentes-ciclo.ts:217",
@@ -354,12 +354,12 @@
           "degradation": "listVinculos devuelve la lista vacía: el admin ve «Todavía no hay usuarios vinculados»."
         },
         {
-          "site": "app/studio/(app)/bandeja/actions.ts:189",
+          "site": "app/studio/(app)/bandeja/actions.ts:190",
           "contains": "if (error) return { ok: false, error: error.code === \"23505\" ? \"duplicate\" : \"service\" };",
           "degradation": "vincularAgente sin la tabla no inserta nada y responde «El servidor de mensajes no respondió», sin error crudo."
         },
         {
-          "site": "app/studio/(app)/bandeja/actions.ts:235",
+          "site": "app/studio/(app)/bandeja/actions.ts:236",
           "contains": "if (error) return { ok: false, error: \"service\" };",
           "degradation": "desvincularAgente sin la tabla no borra nada y responde el mismo mensaje traducido."
         },
@@ -369,7 +369,7 @@
           "degradation": "El aviso push del webhook sin la tabla no tiene vínculos: data llega null, la lista queda vacía y no se encola ningún push. El evento ya quedó registrado (0504)."
         },
         {
-          "site": "app/studio/(app)/bandeja/actions.ts:279",
+          "site": "app/studio/(app)/bandeja/actions.ts:280",
           "contains": "if (errorVinculos) return { ok: false, error: \"service\" };",
           "degradation": "Alta de agente (2.5) sin 0503: la lectura de chatwoot_agent_links falla y altaAgente responde «service» ANTES de crear o tocar nada en Chatwoot; sin 0503 tampoco existe el flag ni el formulario."
         },
@@ -397,7 +397,7 @@
           "name": "chatwoot_conversations",
           "kind": "table",
           "callSites": [
-            "app/studio/(app)/bandeja/actions.ts:408",
+            "app/studio/(app)/bandeja/actions.ts:421",
             "app/studio/(app)/_components/BandejaBadge.tsx:16",
             "lib/studio/chatwoot/conversations-queries.ts:30",
             "lib/studio/chatwoot/conversations-queries.ts:53"
@@ -464,8 +464,8 @@
           "degradation": "listEventosDescartados sin la tabla devuelve [] y la Bandeja del admin no pinta la sección de eventos descartados."
         },
         {
-          "site": "app/studio/(app)/bandeja/actions.ts:413",
-          "contains": "if (!fila?.client_id) return { ok: true, ficha: null };",
+          "site": "app/studio/(app)/bandeja/actions.ts:426",
+          "contains": "if (!fila?.client_id) return { ok: true, ficha: null, costo };",
           "degradation": "Ficha DTD (2.4) sin 0504: aplicarConversacion lanza porque falta chatwoot_registrar_evento y pedirFichaDtd responde «service» antes de leer chatwoot_conversations; si la lectura llegara a fallar, fila sale null y la página dice «Sin ficha». La Dashboard App no se registra en Chatwoot hasta desplegar y aplicar 0503 y 0504 (puerta aparte)."
         }
       ]
@@ -572,7 +572,7 @@
           "name": "chatwoot_agent_bajas",
           "kind": "table",
           "callSites": [
-            "app/studio/(app)/bandeja/actions.ts:214",
+            "app/studio/(app)/bandeja/actions.ts:215",
             "lib/studio/chatwoot/agentes-ciclo.ts:160",
             "lib/studio/chatwoot/purga.ts:102"
           ]
@@ -595,7 +595,7 @@
           "degradation": "Sin 0508 la tabla chatwoot_agent_bajas no existe (42P01/PGRST205): la baja registra el código y sigue (sale de la cuenta, cierre forzado, borra el vínculo). Lo único que se pierde es la fecha para borrar el usuario de Chatwoot a los 12 meses."
         },
         {
-          "site": "app/studio/(app)/bandeja/actions.ts:218",
+          "site": "app/studio/(app)/bandeja/actions.ts:219",
           "contains": "if (error) console.warn(`[bandeja] baja anterior sin borrar: ${error.code ?? \"sin código\"}`);",
           "degradation": "Alta o vínculo sin 0508: borrar la baja vieja falla con 42P01, se registra el código y el alta queda igual; no hay bajas guardadas que borrar."
         },

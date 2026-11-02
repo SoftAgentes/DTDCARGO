@@ -469,3 +469,59 @@ Lo pidió el Director el 2026-10-30, con las decisiones de Sam tomadas por selec
 - **E10 tocará el mismo cron.** E10 (`codex/0582-e10-enrutamiento`) agrega su purga a `app/api/cron/chatwoot-reintentos/route.ts` y a su prueba. Al traer esta rama va a tener un conflicto chico ahí: hay que dejar las tres purgas (`purga`, `purgaBandeja` y `purgaBajas`). En los dos `.env.example`, E10 también declara `CHATWOOT_INBOX_LEADS_ID` y los equipos: hay que dejar una sola copia.
 - **El origen de Studio está fijo en el script del panel** (`https://dtdcargo.com` y `www`). Si Studio cambia de dominio, hay que editar el script y volver a pegarlo.
 - **rack-attack:** 5 entradas por IP cada 5 minutos. Todos los contenedores del VPS salen por la misma IP (NAT de Docker). Con más de 5 bajas juntas, los cierres que sobran quedan para el día siguiente.
+
+### Cierre forzado del lado del servidor: initializer (2.7, precisión del Director, 2026-10-30)
+
+El Director lo habló con Sam: «Él quiere el cierre de verdad del lado del servidor, y CE es MIT, así que podemos modificarlo». Lo que quedó:
+- **`infra/chatwoot/rails/zz_dtd_revocar_sesiones.rb`** (E2-D51) agrega la ruta privada `POST /platform/api/v1/users/:id/dtd_revocar_sesiones`, con el token de la Platform App y solo para los usuarios de esa app. Vacía `users.tokens`, borra `user_sessions` y rota el `pubsub_token` y el token de API; `RoomChannel` cierra el tiempo real a los 30 s. Rechaza con 409 al de servicio y al último admin humano, y sin `DTD_CHATWOOT_SERVICIO_ID` responde 503. No toca `enterprise/`.
+- **Montaje** en `infra/chatwoot/compose.yml`, con la variable en `x-entorno` y en `infra/chatwoot/.env.example`.
+- **Studio** lo llama primero. Con 404 (todavía no instalado) usa la API de perfil como respaldo. 409 y 503 dejan la baja pendiente.
+- **El script del panel** queda como complemento.
+- **Prueba local:** `infra/chatwoot/pruebas/prueba-revocar-sesiones.sh`, con turno del Director, el 2026-10-30 a las 19:42Z. **PASÓ 14/14.** El control C1, sin el inicializador, da 404 y la sesión sigue viva. La primera vuelta dio 13/14 por un defecto de la sonda: en Rails 7.2 el temporizador se guarda como lambda. Se corrigió y se agregó R12.
+
+**Para el runbook de versiones de E3** (`docs/runbooks/chatwoot-versiones.md` vive solo en `codex/0582-e3-versiones`; no lo toqué):
+- en la tabla «Pieza propia», una fila nueva:
+  `| Revocación de sesiones desde Studio (paso 2.7) | rails/zz_dtd_revocar_sesiones.rb | la baja de un agente ya no cierra sus sesiones: Studio deja la baja «pendiente» (409/503) o cae al respaldo por la API de perfil (404); el tiempo real abierto no se corta |`
+- el texto «Los dos initializers» pasa a «Los tres initializers»;
+- en §4 (comprobación por comportamiento), un paso nuevo: `bash infra/chatwoot/pruebas/prueba-revocar-sesiones.sh` contra la imagen nueva, con 0 fallas y el control C1 en rojo. Si `RoomChannel` cambia de forma, el arranque se cae a propósito con «[DTD] revocar sesiones: faltan …».
+
+**Choques previsibles:** E4 (`codex/0582-e4-meta`) agrega su montaje y `DTD_WHATSAPP_IDS_PROTEGIDOS` en el mismo bloque de `compose.yml` y de `.env.example`. Al juntar las ramas hay que dejar las dos cosas.
+
+### Verify completo del 2.7 (turno del Director, 2026-10-30, 21:08Z a 21:50Z, punta `4075d8030`)
+
+- **FALLÓ solo por lo heredado o de carga;** no hay rojo propio. El detalle está en SDD-0585 §«Validación del paso 2.7».
+- **test:** 5 timeouts en `app/p/[token]` por carga. Corridos solos, pasan 47/47.
+- **sql-tests:** 0467 y 0497 (SDD-0573).
+- **e2e:** el de Shipping Mark.
+- **Lo demás:** PASÓ, incluidos `pending-migration-symbols`, schema-rebuild y build.
+- **migrations-applied:** NO DISPONIBLE.
+- **e2e:** el verify lo omitió porque el proceso desacoplado no veía los navegadores. Corrido aparte con el mismo comando: 225 PASÓ, y **`ficha-chat.spec.ts` 9/9**, la primera vez que corre.
+- **La primera corrida** (19:47Z) se cortó al terminar la sesión anterior y no cuenta.
+
+---
+
+# Paso 2.8 — costo de referencia por chat en la Ficha DTD (entregado, 2026-10-30)
+
+Sam lo decidió el 2026-10-30, por selector: «Sí, hacerlo (Recomendado)». Detalle en SDD-0585 §«Paso 2.8» (E2-D52 a E2-D54).
+
+- **Qué se ve:** en la Ficha DTD, con ficha y sin ella, «N mensajes enviados × US$ tarifa = US$ total», con el mercado, la vigencia y el enlace al tarifario. Aclara que no descuenta los 1.000 gratis ni distingue las plantillas.
+- **Tarifa:** la oficial de octubre, el archivo «USD list rates» de Meta (es un XLSX con nombre `.csv`), leída el 2026-10-30. Rest of Latin America cobra US$0,0113 por servicio. No hizo falta la de enero marcada NV.
+- **Generado:** `tarifas-meta-2026-10.ts` tiene 47 mercados y 145 prefijos. El generador está en el scratchpad de la sesión y no se versiona: una tarifa nueva es un archivo nuevo.
+- **Qué cuenta:** los salientes con `source_id` `wamid.`, sin notas ni fallidos, hasta 1000 mensajes. Si hay más, dice «Al menos».
+- **Datos personales:** sin migración ni escrituras. El teléfono solo elige el mercado.
+- **Validación:** 371/371 pruebas afectadas, 10/10 mutantes, `/ui-check` con 2 ajustes aplicados, tsc, eslint y `pending-migration-symbols` 0 ROJO.
+- **`pnpm verify` completo:** no se corrió en esta rama; lo cubre el verify de E3 sobre `b04e63abcca1c715817cb9cd30f0db5b9f0e3d76` (rama `codex/0582-e3-versiones`, 2026-10-31 09:26Z a 10:06Z, registrado por el Director), que tiene a `4579948d2` como ancestro (`git merge-base --is-ancestor`, comprobado) y cubre el código del 2.7 y el 2.8: FALLÓ (exit 1) solo por heredados, 16 de 17 pasos. PASÓ: harness, lint, rsc-boundary, typecheck, edge-functions, test (13.855, sin forks ni timeouts), docs:check, numbering, feature-constants, components, governance, pending-symbols (0 ROJO · 8 AMARILLO), schema-rebuild y build. NO DISPONIBLE: migrations-applied. FALLÓ por heredados: sql-tests 0467_reversion_credito_carrera y los dos 0497_reverso_al_anular_factura (SDD-0573); e2e, el CTA de Shipping Mark (sin-scroll-horizontal:119, chromium). e2e 228 PASÓ; ficha-chat PASÓ en los 3 proyectos.
+
+### FUERA DE ALCANCE DETECTADO (2.8)
+
+- **La tarifa cambia.** Meta publica tarifarios nuevos con fecha de vigencia (la próxima se anuncia en la misma página). Cuando salga, hay que generar `tarifas-meta-AAAA-MM.ts` y cambiar el import de `costo-chat.ts`; el vigilante de versiones de E3 podría avisarlo.
+- **Plantillas y franja gratuita:** contarlas aparte con su categoría y descontar los 1.000 gratis del mes por número necesitaría datos de facturación de Meta (Billing Hub), que Studio no tiene.
+
+---
+
+# Aceptación del 2.7 y el 2.8 (2026-10-31)
+
+Sam los aceptó el 2026-10-31, hacia las 10:15Z, en el chat del Director. Texto literal: «Acepto los 5 (Recomendado)». La pregunta cubría 2.7, 2.8, 3.4, 5.1 y 5.2, y aclaraba que aceptar no fusiona ni despliega nada antes del 1 de noviembre. El Director lo transmitió por mensaje entre sesiones.
+
+- **Evidencia de verify:** la corrida de E3 sobre `b04e63abcca1c715817cb9cd30f0db5b9f0e3d76`, que tiene a `4579948d2` como ancestro (comprobado). FALLÓ solo por heredados: 0467, 0497 y el CTA de Shipping Mark.
+- **Sigue igual:** nada fusionado ni desplegado. Las puertas del 2.7 siguen pendientes del OK de Sam: aplicar la 0508, cargar los ids de la matriz, instalar `zz_dtd_revocar_sesiones.rb`, pegar `DASHBOARD_SCRIPTS` y la regla de Traefik.
