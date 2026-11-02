@@ -290,9 +290,9 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 - Parte de Sam en prueba: R10 y los pasos 1, 2 y 7. El guion ya está listo; se lo pasa el Director. **Antes hay que poner su IP en las listas de prueba:** ver FUERA DE ALCANCE; hoy le da 403.
 - Después de la parte de Sam, y no antes: comprobar en la base lo que hizo, y correr los pasos 3, 4, 5, 6, 8 y 9 del bloque 7. NO EJECUTADOS.
 - Revisión de Sam del guion. La cabeza final será la que lleve ese texto.
-- CI de la cabeza final: el de `a0cbbb179` FALLÓ por una cita mía en la spec, ya corregida; falta leer el de la cabeza que la corrige.
+- CI: PASÓ sobre `26fe3f84f`, los 19 pasos. La cabeza final todavía puede cambiar con la revisión de Sam, y entonces toca leerlo otra vez.
 - M1 y M4: hechos, sin aplicar nada. El ensayo con el rol real y la Vitest pasaron. Ver «Tercer emisor y marcha atrás».
-- `pnpm verify`: FALLÓ sobre `a0cbbb179`, con turno del Director General. Sin cerrar: `sin-scroll-horizontal.spec.ts:119` y los rojos de carga de `test`. Si hace falta otra corrida o aislarlos, lo decide el Director General. Ver «`pnpm verify` sobre `a0cbbb179`».
+- `pnpm verify`: FALLÓ sobre `a0cbbb179`, y el Director General decidió no repetirlo. Lo que dio rojo pasa aislado; `TransportistasPanel` se confirma al fusionar `main`. Ver «`pnpm verify` sobre `a0cbbb179`».
 
 ## Ensayo en prueba, 0492–0497 (2026-11-01, 21:12–21:55Z)
 
@@ -702,17 +702,30 @@ Una sola corrida, con turno del Director General. **FALLÓ, exit 1,** 94 min, 16
 
 **El rojo mío, en `test` y en el CI:** `scripts/__tests__/spec-migration-refs.test.ts`. La prueba toma todo `NNNN_nombre.sql` citado en una spec como migración, y la spec citaba el desarme por su nombre desde `5378fb9ca`. Falló en los dos intentos y en el CI `41494684527`, que terminó en Unitarios a las 18:14Z con 1 rojo y 13322 pasadas, y saltó los pasos siguientes, build incluido. Lancé `verify` con ese CI en curso, sin rojo y sin verde. Corregido en la spec, sin tocar la prueba: `:258` dice ahora «el desarme de la 0497 en `supabase/desarmes/`», y lo mismo en el párrafo «Tercer emisor y marcha atrás». La prueba sola: PASÓ, 5 de 5. El nombre exacto sigue en este handoff y en el runbook, donde la prueba no mira.
 
-**El resto de `test`, no concluyente:** ni rojo de esta rama ni verde.
+**El resto de `test`: carga, porque aislado pasa.** `verify` sigue FALLÓ; esto solo dice de dónde vinieron esos rojos.
 
 - Son 16 y 18 rojos en otro conjunto en cada intento: `vitest/pglite-limpio.test.ts` y `app/p/[token]/`, `supplier-flow`, `PackingListProductsStep` y `standard-format`, casi todos «Test timed out». En el segundo se suman `prefill` y `TransportistasPanel`, por aserción.
 - La memoria libre llegó a 0,00 GB a las 17:59:10Z, 8 s después de arrancar Vitest, y la suma de tiempo de pruebas fue 14786 s y 12549 s, contra 2065 s en el CI.
 - En el CI de la misma cabeza pasaron todos esos archivos. Esta rama no toca `app/`, `components/`, `e2e/` ni `vitest/`.
 - No salió «Failed to start forks worker»: mi vigía lo buscaba y por eso no cortó la corrida. Sí salió una vez «Timeout terminating forks worker».
-- `TransportistasPanel` es el rojo conocido, con arreglo `f59e662de` en main y no en esta rama.
+- `TransportistasPanel` es el rojo conocido, con arreglo `f59e662de` en main y no en esta rama. No se aisló, por decisión del Director General; se confirma al fusionar `main`.
 
-**`e2e`:** es el mismo spec que falló en `dab79b99f`, y entonces pasó aislado. Esta vez **no lo aislé**: el turno era de una sola corrida. Sigue FALLÓ.
+**`e2e`:** es el mismo spec que falló en `dab79b99f`, y entonces también pasó aislado. El paso sigue FALLÓ en `verify`.
 
-Logs: `verify-a0cbbb179.log` y `ci-41494684527.log` en `0573-evidencia/`.
+**Aislados sobre `26fe3f84f`, con turno del Director General,** `--maxWorkers=1` y `E2E_WORKERS=1`. Tope de 15 minutos: gastados 484 s. Cada uno se midió antes de lanzarlo: 3 GB libres o más y 0 corridas pesadas. Los exit son los del proceso hijo, sin tuberías.
+
+| Comprobación | Estado | Detalle |
+|---|---|---|
+| `sin-scroll-horizontal.spec.ts:119`, chromium y mobile-chrome | PASÓ, 2 de 2, sin reintentos, exit 0 | 47,9 s y 38,1 s, de un límite de 60 s. 19:35Z, 125 s en total; mínimo 4,08 GB libres. Espera `/registro`: el CTA del inicio pulsado con Enter y con toque |
+| El mismo spec contra `origin/main` | NO EJECUTADO | Solo tocaba si fallaba aislado |
+| `pglite-limpio` y `app/p/[token]/`, incluido `prefill` | PASÓ, 7 de 7 archivos, 76 de 76 pruebas, exit 0 | 20:25Z, 359 s; mínimo 5,59 GB libres. Arrancó con 7,16 GB y CPU al 100 %: otra corrida acababa de terminar |
+| `auth.spec.ts:81`, `company-photo-carousel.spec.ts:93`, `TransportistasPanel` | NO EJECUTADOS | No entraron en el turno |
+
+Mi primer intento del segundo no corrió: el vigía se contó a sí mismo, porque el nombre de su log decía «vitest», y esperó 45 minutos. No gastó presupuesto. Corregido, excluyendo su propio PID. Después esperó 1 minuto a una Vitest de otra sesión.
+
+**CI de `26fe3f84f`, run `41510867512`: PASÓ, 19:32–20:08Z.** Los 19 pasos con `success`, leídos uno por uno: ESLint, Frontera RSC, TypeScript, Edge Functions, Unitarios (13323 pasadas, 1 SKIP), Harness, Pruebas bash de operaciones, Documentación SDD, Numeración, Código contra migraciones pendientes, Constantes de features, Registro de componentes, Gobernanza, **Build sin secretos** y Árbol reproducible. `quality.yml` no tiene `continue-on-error` ni tuberías que tapen un exit. El CI no corre `e2e`, ni `sql-tests`, ni `schema-rebuild`: esos vienen de `verify` sobre `a0cbbb179`.
+
+Logs: `verify-a0cbbb179.log`, `ci-41494684527.log`, `ci-41510867512.log`, `aislado-e2e-cabeza.log` y `aislado-carga.log` en `0573-evidencia/`.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -744,7 +757,7 @@ Logs: `verify-a0cbbb179.log` y `ci-41494684527.log` en `0573-evidencia/`.
 - **La 0495 está en el ledger de producción pero sigue en `pendingBelowCutoff` y sin sellar.** Falta su cierre del runbook §6.
 - **Una factura emitida entre el apply y la web nueva queda sin asiento.** Conviene un conteo de control después de publicar, con OK. Revisar si hace falta un camino para asentarla.
 - `0497_…_carrera.test.sql` imprime evidencia cruda de 500 KB por corrida. Ya no rompe, pero ensucia.
-- **`e2e/sin-scroll-horizontal.spec.ts:119` falló en los dos últimos `verify`,** en los dos intentos de cada uno, y no pertenece a esta rama. En `dab79b99f` pasó aislado; en `a0cbbb179` no se aisló. Un rojo que se repite en cada `verify` deja de distinguir un fallo nuevo.
+- **`e2e/sin-scroll-horizontal.spec.ts:119` falló en los dos últimos `verify`,** en los dos intentos de cada uno, y no pertenece a esta rama. Aislado pasa las dos veces, con 38 a 48 s de un límite de 60. Espera `/registro`, una de las dos pantallas en uso. Un rojo que se repite en cada `verify` deja de distinguir un fallo nuevo, justo en esa pantalla.
 
 ## HANDOFF AL DIRECTOR
 
