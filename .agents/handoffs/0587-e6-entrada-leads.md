@@ -26,11 +26,11 @@ Detalle en la SDD-0587 §16. Resumen:
 | Comprobación | Resultado |
 |---|---|
 | Contrato PGlite, control rojo, reaplicación y preflight | PASÓ |
-| Pruebas puntuales (8 archivos, 182 pruebas) | PASÓ |
-| `tsc` acotado y ESLint de los archivos tocados | PASÓ |
-| `infra-env-example` | PASÓ |
-| Mutantes del contrato y de `/registro` | PENDIENTE: turno del Director General |
-| `pnpm verify` | NO EJECUTADO: turno del Director General |
+| Pruebas puntuales, ya con E10 fusionada (42 archivos, 490 pruebas) | PASÓ |
+| `tsc` acotado, ya fusionado; ESLint de los archivos tocados, antes del merge | PASÓ |
+| Gate de símbolos de migraciones pendientes | PASÓ: 0 ROJO, 9 AMARILLO declarados |
+| Mutantes: 43 del contrato y 7 de `/registro` y del manejador | PENDIENTE: turno concedido por el Director General, con vigía |
+| `pnpm verify` | NO EJECUTADO: el Director General lo corre en la punta de la tanda A al integrar, y lo pide el Subdirector después de publicar |
 | Punta a punta con Chatwoot real | NO EJECUTADO: fuera del encargo |
 | revisar-datos-ve | §16.8: 7 CORRECTO, 1 ENCONTRADO, 3 NO VERIFICABLE, 1 no aplica |
 
@@ -45,8 +45,9 @@ Las pruebas corren con `node node_modules/vitest/vitest.mjs` y un `node_modules`
 
 ## PENDIENTES DE ESTA TAREA
 
-- Traer `codex/0582-e10-enrutamiento` con merge cuando la otra sesión avise y antes de abrir la PR, si ya está publicada.
-- Mutantes y `pnpm verify`, con turno del Director General.
+- Registrar el resultado de la tanda de mutantes.
+- `codex/0582-e10-enrutamiento` ya se trajo con merge (`ca3907529`). Si la otra sesión avisa de otro cambio, se trae otra vez, sin rebase.
+- **Al resolver ese merge se perdieron dos cosas de 6.3 en las declaraciones de símbolos:** el grupo `sdd-0587-crm-tablero` y dos sitios de `tarjeta-actions.ts`. El gate lo detectó y ya están repuestos. Quien vuelva a fusionar E2 o E10 debe correr el gate después: el driver de merge semántico rechaza el conflicto, y tomar una sola versión del archivo borra lo de la otra.
 
 ## Puertas que quedan para Sam
 

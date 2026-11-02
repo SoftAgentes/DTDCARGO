@@ -297,11 +297,11 @@ begin
   t := pg_temp.tarjeta(100, '10000000-0000-0000-0000-000000000002');
   perform pg_temp.assert_true(r.creada and t.client_id = '30000000-0000-0000-0000-000000000019', 'otro tenant: otra tarjeta y su propia ficha');
 
-  r := pg_temp.entrada(null, '4125550301', 'Con BSUID', null, null, now(), '10000000-0000-0000-0000-000000000001', 'instagram', 'VE.bsuid-uno');
+  r := pg_temp.entrada(null, null, 'Con BSUID', null, null, now(), '10000000-0000-0000-0000-000000000001', 'instagram', 'VE.bsuid-uno');
   perform pg_temp.assert_true(
     r.creada and (select x.fuente = 'instagram' from public.crm_tarjetas x where x.bsuid = 'VE.bsuid-uno'),
     'sin contacto, la llave es el BSUID');
-  r := pg_temp.entrada(null, '4125550301', 'Con BSUID', null, null, now(), '10000000-0000-0000-0000-000000000001', 'instagram', 'VE.bsuid-uno');
+  r := pg_temp.entrada(null, null, 'Con BSUID', null, null, now(), '10000000-0000-0000-0000-000000000001', 'instagram', 'VE.bsuid-uno');
   perform pg_temp.assert_true(not r.creada, 'el BSUID tampoco duplica');
 
   begin
@@ -412,6 +412,18 @@ begin
   perform pg_temp.assert_true(
     r.tarjeta_id = (pg_temp.tarjeta(116)).id and (pg_temp.tarjeta(115)).client_id is null,
     'con ficha, manda la tarjeta de la ficha; la otra no se toca');
+
+  -- La tarjeta de la ficha no tiene contacto, y ese contacto es de otra: no se le quita.
+  r := pg_temp.entrada(118, null, 'Con Contacto');
+  insert into public.clients (id, tenant_id, markbox, phone) values
+    ('30000000-0000-0000-0000-000000000020', '10000000-0000-0000-0000-000000000001', 'DTD-1020', '+584125550407');
+  insert into public.crm_tarjetas (tenant_id, client_id, fuente)
+  values ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000020', 'manual');
+  r := pg_temp.entrada(118, '4125550407', 'Con Contacto');
+  perform pg_temp.assert_true(
+    (pg_temp.tarjeta(118)).client_id is null
+    and r.tarjeta_id = (select x.id from public.crm_tarjetas x where x.client_id = '30000000-0000-0000-0000-000000000020' and x.chatwoot_contact_id is null),
+    'un contacto que ya es de otra tarjeta no se copia');
 
   -- La actividad sube, y un evento viejo no la baja.
   antes := now() - interval '10 days';
@@ -588,12 +600,26 @@ begin
   perform pg_temp.entrada(143, '4125550404', 'Primera', null, null, now() - interval '2 days');
   update public.crm_tarjetas x set created_at = now() - interval '2 days' where x.chatwoot_contact_id = 143;
   perform pg_temp.entrada(144, '4125550404', 'Segunda', null, null);
+  perform pg_temp.assert_true(
+    (pg_temp.tarjeta(144)).id is not null and (pg_temp.tarjeta(144)).id <> (pg_temp.tarjeta(143)).id,
+    'un contacto nuevo con el mismo teléfono no le quita la tarjeta a otro');
   insert into public.clients (id, tenant_id, markbox, phone) values
     ('30000000-0000-0000-0000-000000000017', '10000000-0000-0000-0000-000000000001', 'DTD-1017', '+584125550404');
   v := pg_temp.web('30000000-0000-0000-0000-000000000017');
   perform pg_temp.assert_true(
     v = 'ligada' and (pg_temp.tarjeta(143)).client_id = '30000000-0000-0000-0000-000000000017' and (pg_temp.tarjeta(144)).client_id is null,
     'con dos tarjetas de ese teléfono se liga la más vieja');
+
+  -- La ficha ya tiene tarjeta y hay otra sin ligar con su teléfono: no se toca.
+  perform pg_temp.entrada(145, '4125550406', 'Sin Ligar', null, null);
+  insert into public.clients (id, tenant_id, markbox, phone) values
+    ('30000000-0000-0000-0000-000000000021', '10000000-0000-0000-0000-000000000001', 'DTD-1021', '+584125550406');
+  insert into public.crm_tarjetas (tenant_id, client_id, fuente)
+  values ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000021', 'manual');
+  v := pg_temp.web('30000000-0000-0000-0000-000000000021');
+  perform pg_temp.assert_true(
+    v = 'existente' and (pg_temp.tarjeta(145)).client_id is null,
+    'con tarjeta propia, la web no liga otra');
 
   -- Ficha borrada o de otro tenant: error, sin tarjeta.
   begin

@@ -555,11 +555,12 @@ El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó
 |---|---|
 | Contrato `supabase/tests/0513_crm_entrada_leads.test.sql` en PGlite (aplica la 0503, 0504, 0505, 0506 y 0513 reales) | PASÓ |
 | Control rojo (sin la 0513), reaplicación y preflight sin la 0506 | PASÓ |
-| Pruebas puntuales: `entrada-leads` (38), `webhook-events` (43), `webhook-procesar` (16), `enrutar` (31), `route` (15), `registro-atribucion` (13), `register-tarjeta-crm` (23), `register-atribucion-oculta` (3) | PASÓ: 182 |
-| `tsc` acotado a los archivos de 6.4 y sus dependencias; ESLint de los archivos tocados | PASÓ |
-| `infra-env-example` | PASÓ |
-| Mutantes del contrato (42) y de `/registro` | PENDIENTE: piden turno del Director General |
-| `pnpm verify` | NO EJECUTADO: pide turno del Director General |
+| Pruebas puntuales, ya con `codex/0582-e10-enrutamiento` fusionada: `lib/studio/chatwoot`, ruta del webhook, `app/registro`, atribución y contratos de `.env` | PASÓ: 490 pruebas en 42 archivos |
+| `tsc` acotado a los archivos de 6.4 y sus dependencias, ya fusionado | PASÓ |
+| ESLint de los archivos tocados, antes del merge | PASÓ |
+| Gate de símbolos de migraciones pendientes | PASÓ: 0 ROJO, 9 AMARILLO declarados; la 0513 en `sdd-0587-crm-entrada` |
+| Mutantes: 43 del contrato y 7 de `/registro` y del manejador | PENDIENTE: turno concedido por el Director General, con vigía |
+| `pnpm verify` | NO EJECUTADO: el Director General lo corre en la punta de la tanda A al integrar, y lo pide el Subdirector después de publicar |
 | Prueba de punta a punta con Chatwoot y con producción | NO EJECUTADO: fuera de este encargo |
 
 ### 16.8 revisar-datos-ve de 6.4

@@ -123,9 +123,9 @@ describe("SDD-0587 · 0513 entrada de leads (PGlite)", () => {
       "no busca por contacto",
       "         or t.chatwoot_contact_id = p_contact_id\n",
       "",
-      /crm_tarjetas_contacto_uq|TEST 0513/,
+      /conflicto sin tarjeta/,
     ],
-    ["no busca por BSUID", "         or t.bsuid = p_bsuid\n", "", /TEST 0513: el BSUID tampoco duplica/],
+    ["no busca por BSUID", "         or t.bsuid = p_bsuid\n", "", /conflicto sin tarjeta/],
     [
       "no encuentra la manual por teléfono",
       "         or (t.phone_last10 = p_phone_last10 and t.client_id is null and t.chatwoot_contact_id is null))",
@@ -136,13 +136,19 @@ describe("SDD-0587 · 0513 entrada de leads (PGlite)", () => {
       "la manual por teléfono le quita la de un contacto",
       "and t.client_id is null and t.chatwoot_contact_id is null))",
       "and t.client_id is null))",
-      /TEST 0513/,
+      /TEST 0513: un contacto nuevo con el mismo teléfono no le quita la tarjeta a otro/,
     ],
     [
       "la ficha no manda en la búsqueda",
       "             when t.client_id = p_client_id then 0\n",
       "",
-      /TEST 0513: con ficha, manda la tarjeta de la ficha/,
+      /crm_tarjetas_client_uq/,
+    ],
+    [
+      "le copia un contacto que es de otra tarjeta",
+      "      chatwoot_contact_id = coalesce(t.chatwoot_contact_id, case when not exists (\n        select 1 from public.crm_tarjetas x\n        where x.tenant_id = p_tenant_id and x.chatwoot_contact_id = p_contact_id and x.id <> v_tarjeta\n      ) then p_contact_id end),",
+      "      chatwoot_contact_id = coalesce(t.chatwoot_contact_id, p_contact_id),",
+      /crm_tarjetas_contacto_uq/,
     ],
     // Segmento y etapa.
     [
@@ -285,7 +291,7 @@ describe("SDD-0587 · 0513 entrada de leads (PGlite)", () => {
       "la web crea otra en vez de existente",
       "  where t.tenant_id = p_tenant_id and t.client_id = p_client_id;\n  if v_tarjeta is not null then\n    return query select v_tarjeta, 'existente'::text;\n    return;\n  end if;\n\n  if public.crm_ficha_por_telefono(p_tenant_id, v_telefono) = p_client_id then",
       "  where false;\n\n  if public.crm_ficha_por_telefono(p_tenant_id, v_telefono) = p_client_id then",
-      /TEST 0513: (correr dos veces no crea otra|en la web tampoco)/,
+      /crm_tarjetas_client_uq/,
     ],
     [
       "la web no liga",
