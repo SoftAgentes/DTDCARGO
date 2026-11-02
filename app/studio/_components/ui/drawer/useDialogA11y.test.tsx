@@ -6,7 +6,7 @@
  * hace eso: el foco se queda en el botón, así que `soltarFoco` lo hace a mano.
  * Medido en un navegador real en la spec; aquí se fija el comportamiento.
  */
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect, useRef } from "react";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -36,21 +36,32 @@ type Props = {
   bloqueado?: boolean;
   enabled?: boolean;
   inicioEnNombre?: boolean;
+  aviso?: boolean;
+  avisoNoEnfocable?: boolean;
 };
 
-function Panel({ pending = false, invalido = false, sinBoton = false, bloqueado = false, enabled, inicioEnNombre }: Props) {
+function Panel({ pending = false, invalido = false, sinBoton = false, bloqueado = false, enabled, inicioEnNombre, aviso, avisoNoEnfocable }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const nombre = useRef<HTMLInputElement>(null);
   useDialogA11y(ref, { onClose: () => {}, pending, enabled, initialFocusRef: inicioEnNombre ? nombre : undefined });
   return (
     <div ref={ref} role="dialog" aria-modal="true" aria-label="Panel" tabIndex={-1}>
-      <input ref={nombre} aria-label="Nombre" />
-      <input aria-label="Correo" aria-invalid={invalido ? true : undefined} />
-      {!sinBoton && (
-        <button type="button" disabled={pending || bloqueado}>
-          Guardar
-        </button>
-      )}
+      <form aria-label="Formulario" onSubmit={(e) => e.preventDefault()}>
+        <input ref={nombre} aria-label="Nombre" />
+        <input aria-label="Notas" />
+        <input aria-label="Correo" aria-invalid={invalido ? true : undefined} />
+        {!sinBoton && (
+          <button type="button" disabled={pending || bloqueado}>
+            Guardar
+          </button>
+        )}
+        {aviso && (
+          <p role="alert" tabIndex={-1}>
+            No se pudo guardar.
+          </p>
+        )}
+        {avisoNoEnfocable && <p role="alert">Sólo se anuncia.</p>}
+      </form>
     </div>
   );
 }
@@ -149,6 +160,80 @@ describe("al terminar el envío con el foco perdido", () => {
     vista.rerender(<Pagina bloqueado />);
     expect(boton("Guardar")).toBeDisabled();
     expect(panel()).toHaveFocus();
+  });
+});
+
+describe("el primer error, con el foco perdido", () => {
+  it("un aviso enfocable va antes que el campo con error", async () => {
+    const { vista } = await enviar();
+    soltarFoco();
+    vista.rerender(<Pagina invalido aviso />);
+    expect(screen.getByRole("alert")).toHaveFocus();
+  });
+
+  it("un aviso que sólo se anuncia no le quita el foco al campo con error", async () => {
+    const { vista } = await enviar();
+    soltarFoco();
+    vista.rerender(<Pagina invalido avisoNoEnfocable />);
+    expect(campo("Correo")).toHaveFocus();
+  });
+
+  it("el mismo aviso de antes vuelve a recibir el foco en otro intento fallido", async () => {
+    const { vista } = await enviar();
+    soltarFoco();
+    vista.rerender(<Pagina aviso />);
+    const aviso = screen.getByRole("alert");
+    expect(aviso).toHaveFocus();
+    boton("Guardar").focus();
+    vista.rerender(<Pagina aviso pending />);
+    soltarFoco();
+    vista.rerender(<Pagina aviso />);
+    expect(aviso).toHaveFocus();
+  });
+});
+
+describe("al enviar con Enter, que deja el foco en el campo", () => {
+  async function enviarConEnter(props: Props = {}) {
+    const user = userEvent.setup();
+    const vista = render(<Pagina {...props} />);
+    await user.click(campo("Nombre"));
+    fireEvent.submit(screen.getByRole("form", { name: "Formulario" }));
+    vista.rerender(<Pagina {...props} pending />);
+    return { user, vista };
+  }
+
+  it("si la persona sigue en ese campo, el foco va al primer campo con error", async () => {
+    const { vista } = await enviarConEnter();
+    expect(campo("Nombre")).toHaveFocus();
+    vista.rerender(<Pagina invalido />);
+    expect(campo("Correo")).toHaveFocus();
+  });
+
+  it("si hay un aviso enfocable, va al aviso", async () => {
+    const { vista } = await enviarConEnter();
+    vista.rerender(<Pagina invalido aviso />);
+    expect(screen.getByRole("alert")).toHaveFocus();
+  });
+
+  it("si ya pasó a otro campo durante el envío, no se lo quita", async () => {
+    const { user, vista } = await enviarConEnter();
+    await user.click(campo("Notas"));
+    vista.rerender(<Pagina invalido />);
+    expect(campo("Notas")).toHaveFocus();
+  });
+
+  it("sin errores se queda en el campo", async () => {
+    const { vista } = await enviarConEnter();
+    vista.rerender(<Pagina />);
+    expect(campo("Nombre")).toHaveFocus();
+  });
+
+  it("un envío anterior no cuenta para el siguiente cambio de estado", async () => {
+    const { vista } = await enviarConEnter();
+    vista.rerender(<Pagina />);
+    vista.rerender(<Pagina pending />);
+    vista.rerender(<Pagina invalido />);
+    expect(campo("Nombre")).toHaveFocus();
   });
 });
 
