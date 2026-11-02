@@ -412,12 +412,15 @@ describe("la dirección de la imagen", () => {
     ["infra/ops/web/publicar-web.sh", /^IMAGEN=(\S+)$/m],
     ["infra/ops/staging/lib-prueba.sh", /^PRUEBA_IMAGE_REPO="(\S+)"$/m],
     ["infra/ops/staging/verificar-aislamiento.sh", /^IMAGE_REPO="(\S+)"$/m],
+    // Valores por defecto: producción no los usa, pero un servidor nuevo sí.
+    ["infra/dtd-cargo/compose.yml", /^\s*image:\s*\$\{DTD_WEB_IMAGE:-([^:}\s]+):main\}\s*$/m],
+    ["infra/dtd-cargo/.env.example", /^DTD_WEB_IMAGE=([^:\s]+):main$/m],
   ])("%s usa la misma dirección que el promotor", (ruta, patron) => {
     expect(`ghcr.io/${IMAGEN}`).toBe(DIRECCION);
     expect(leer(ruta).match(patron)?.[1]).toBe(DIRECCION);
   });
 
-  it.each([".github/workflows", "infra/ops/web", "infra/ops/staging"])(
+  it.each([".github/workflows", "infra/ops/web", "infra/ops/staging", "infra/dtd-cargo"])(
     "%s ya no nombra el registro de la dirección vieja",
     (carpeta) => {
       const con = fs
