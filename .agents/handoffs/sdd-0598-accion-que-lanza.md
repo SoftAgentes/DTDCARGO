@@ -39,7 +39,8 @@ Si la acción lanza, 18 formularios en 16 archivos de portal, registro, `entrar`
 | `/ui-check` del diff | Sin cambios visuales; copy en tuteo |
 | `next dev` con Server Action real | **NO EJECUTADO:** sin turno. **Es lo más importante que falta:** corte, `redirect()`, POST antes de hidratar y su resultado al hidratar |
 | Mutantes, demás pruebas vecinas, `tsc` completo, `pnpm verify` | **NO EJECUTADO:** sin turno |
-| CI de la PR | **NO DISPONIBLE** mientras apunte a la rama de #358: el check de calidad sólo corre contra `main`. Corre al reapuntarla |
+| Check obligatorio de la PR | **NO DISPONIBLE** mientras apunte a la rama de #358: sólo corre contra `main`, y además necesita un push después de reapuntarla |
+| `quality.yml` por `workflow_dispatch` sobre la rama | Lanzado en GitHub, sin usar esta máquina. Es evidencia y no cuenta para la regla de `main`. El resultado queda en el cuerpo de la PR |
 | Graphify, Archify, Obsidian | NO EJECUTADO: los publica la dirección desde main |
 
 **Sin medir:** lector de pantalla, portal con sesión real, archivo por encima del límite, envío colgado, y los avisos con los estilos reales del portal.
@@ -67,11 +68,15 @@ Rama `codex/accion-que-lanza`, en PR en borrador contra `codex/error-no-borra-po
 3. **Archivo por encima de `bodySizeLimit`:** por lectura, el aviso sale, pero reintentar falla igual.
 4. **`app/portal/(app)/error.tsx`:** dice «no se perdió nada» sin saberlo y tiene un voseo, «Volvé».
 5. **Botones de una sola acción:** si lanzan, la pantalla de error reemplaza la página con lo que otro formulario tuviera escrito.
-6. **Posible solape:** `codex/sdd-reserve-0597-entrar-no-promete-envio` es una reserva de otra tarea sobre `entrar`. No encontré su worktree ni su PR. Esta rama cambia el mecanismo de `EntrarForm` y un texto suyo.
+6. **Solape real con SDD-0597, sin integrar:** la sesión «Que /entrar no diga 'Revisa tu correo' si no salió», en `.claude/worktrees/sad-jones-d0695e`, reescribe las mismas líneas de `app/entrar/EntrarForm.tsx`, con cambios sin commit a la fecha: renombra `MagicSent` a `MagicRequested` y `sent` a `requested`, y cambia el `defaultValue` del correo. La segunda rama en entrar tendrá conflicto. Al resolverlo no se puede perder:
+   - `useActionKeepingDraft(requestMagicLink, initialMagic, aviso)` en lugar de `useActionState`.
+   - `{...magicFormProps}` **en los dos formularios**, el principal y el de reenviar. Un `action` sin su `onSubmit` no atrapa nada, y su resultado no llega a `state`.
+   - `lastEmail`: con la acción que lanza, el estado es sólo `{ error }`, así que `magicState.email` no alcanza.
+   - `la-accion-lanza.test.tsx` busca «Revisa tu correo» y «Reenviar enlace»: hay que ajustarla al texto de SDD-0597.
 
 ## HANDOFF AL DIRECTOR
 
-- **Orden:** #358 primero, después esta.
+- **Orden:** #358 primero, después esta. Si SDD-0597 entra antes, los conflictos de `EntrarForm` caen en estas dos, y los resuelvo aquí con la lista de arriba.
 - Cuando des el turno de `next dev`, esta rama lo aprovecha. Primero `next dev`, porque puede cambiar el diseño de los dos `useActionState`; después los mutantes.
 - **Decisión para Sam:** si las cinco acciones que duplican llevan identificador de intento. El aviso reduce el riesgo; no lo elimina.
 
