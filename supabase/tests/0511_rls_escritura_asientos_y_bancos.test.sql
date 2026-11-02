@@ -129,14 +129,8 @@ revoke all on function public.audit_d1_execute(uuid, text, uuid, jsonb, text) fr
 grant execute on function public.audit_d1_execute(uuid, text, uuid, jsonb, text) to authenticated, service_role;
 
 -- Supabase le da a service_role todo sobre public por default privileges. La
--- fixture lo replica para poder comprobarlo. La policy de journal_entries de
--- producción ya no filtra deleted_at; se deja igual a la medida el 2026-11-02.
+-- fixture lo replica para poder comprobarlo.
 grant all on all tables in schema public to service_role;
-drop policy "journal_entries by tenant" on public.journal_entries;
-create policy "journal_entries by tenant" on public.journal_entries for all
-  to authenticated
-  using (tenant_id = public.get_user_tenant_id())
-  with check (tenant_id = public.get_user_tenant_id());
 
 create function pg_temp.fid(p_label text) returns uuid language sql immutable as $$
   select md5('0511-synthetic-' || p_label)::uuid
