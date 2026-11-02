@@ -31,7 +31,7 @@ import type {
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { PrealertaServiceGallery } from "../../_components/PrealertaAddons";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
-import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const supplierInitial: SupplierActionState = {};
 const deleteSupplierInitial: DeleteSupplierActionState = {};
@@ -351,9 +351,10 @@ function EditSupplierForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, formProps, pending] = useActionKeepingDraft(
     updateSupplierAction,
     supplierInitial,
+    "No pudimos confirmar si los cambios se guardaron. Lo que escribiste sigue aquí. Intenta de nuevo.",
   );
   const uid = useId();
 
@@ -363,8 +364,7 @@ function EditSupplierForm({
 
   return (
     <form
-      action={action}
-      onSubmit={submitKeepingDraft(action, pending)}
+      {...formProps}
       className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col gap-3"
     >
       <input type="hidden" name="supplierId" value={supplier.id} />
@@ -451,9 +451,10 @@ function AddSupplierForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, formProps, pending] = useActionKeepingDraft(
     createSupplierAction,
     supplierInitial,
+    "No pudimos confirmar si el proveedor se guardó. Lo que escribiste sigue aquí. Intenta de nuevo: si ya quedó, te lo avisaremos.",
   );
   const uid = useId();
 
@@ -463,8 +464,7 @@ function AddSupplierForm({
 
   return (
     <form
-      action={action}
-      onSubmit={submitKeepingDraft(action, pending)}
+      {...formProps}
       className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col gap-3"
     >
       <FieldLabel htmlFor={`${uid}-name`}>Nombre del proveedor</FieldLabel>

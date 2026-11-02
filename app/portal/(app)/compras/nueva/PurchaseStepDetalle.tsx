@@ -11,7 +11,7 @@
  * Sólo tokens `var(--*)`. Tema oscuro por default.
  */
 
-import { useActionState, useEffect, useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowIcon } from "@/components/Icon";
@@ -24,7 +24,7 @@ import type { PrealertaActionState } from "@/lib/studio/prealertas/types";
 import { PREALERTA_DESCRIPCION_PENDIENTE } from "@/lib/studio/prealertas/types";
 import { updatePrealertaDetalleAction } from "../../proveedores/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
-import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const initial: PrealertaActionState = {};
 
@@ -82,9 +82,10 @@ export function PurchaseStepDetalle({
     guardado?.description && guardado.description !== PREALERTA_DESCRIPCION_PENDIENTE
       ? guardado.description
       : "";
-  const [state, action, pending] = useActionState(
+  const [state, formProps, pending] = useActionKeepingDraft(
     updatePrealertaDetalleAction,
     initial,
+    "No pudimos confirmar si el detalle se guardó. Lo que escribiste sigue aquí. Intenta de nuevo.",
   );
   const uid = useId();
   const [touched, setTouched] = useState({
@@ -166,8 +167,7 @@ export function PurchaseStepDetalle({
       </div>
 
       <form
-        action={action}
-        onSubmit={submitKeepingDraft(action, pending)}
+        {...formProps}
         className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start"
       >
         <input type="hidden" name="prealertaCode" value={code} />

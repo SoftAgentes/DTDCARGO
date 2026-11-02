@@ -1,6 +1,5 @@
 "use client";
 
-import { useActionState } from "react";
 import Link from "next/link";
 import {
   requestCotizacionAction,
@@ -9,7 +8,7 @@ import {
 import { COTIZACION_SERVICES } from "@/lib/portal/cotizacion-request";
 import { SERVICE_LABELS } from "@/lib/portal/portal-types";
 import { ArrowIcon } from "@/components/Icon";
-import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const INPUT =
   "w-full rounded-[12px] border border-grey-200 bg-white px-3.5 py-2.5 text-[14px] text-ink outline-none transition-colors focus:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ink)]";
@@ -27,10 +26,11 @@ export function CotizacionRequestForm({
 }: {
   defaultDestination: string;
 }) {
-  const [state, formAction, pending] = useActionState<
-    CotizacionRequestState,
-    FormData
-  >(requestCotizacionAction, {});
+  const [state, formProps, pending] = useActionKeepingDraft<CotizacionRequestState>(
+    requestCotizacionAction,
+    {},
+    "No pudimos confirmar si tu cotización se registró. Lo que escribiste sigue aquí. Antes de enviarla de nuevo, revisa Cotizaciones en otra pestaña.",
+  );
 
   if (state.ok && state.createdCode) {
     return (
@@ -75,9 +75,10 @@ export function CotizacionRequestForm({
   }
 
   return (
-    <form action={formAction} onSubmit={submitKeepingDraft(formAction, pending)} className="mt-8 flex flex-col gap-5 max-w-[640px]">
+    <form {...formProps} className="mt-8 flex flex-col gap-5 max-w-[640px]">
       {state.error ? (
         <div
+          role="alert"
           className="rounded-[12px] border px-4 py-3 text-[13px]"
           style={{
             borderColor:
