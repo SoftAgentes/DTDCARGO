@@ -64,7 +64,6 @@ const CASOS: Caso[] = [
   ["NewPurchaseWizard", <NewPurchaseWizard key="d" suppliers={[PROVEEDOR]} addons={[ADDON]} preselected={PROVEEDOR} />],
   ["PurchaseStepDetalle", <PurchaseStepDetalle key="e" code="P-1" modo="suelto" guardado={{ description: "Guardada", boxes: 2, estValueUsd: 10, trackingCn: "T1" }} />],
   ["CotizacionRequestForm", <CotizacionRequestForm key="f" defaultDestination="Caracas" />],
-  ["AcceptanceForm", <AcceptanceForm key="g" invoiceCode="F-1" copy={COPY} />],
   ["PortalMessageForm", <PortalMessageForm key="h" />],
   ["PortalAddresses, agregar", <PortalAddresses key="i" addresses={[]} cities={[]} />, /Agregar/],
   ["PortalAddresses, editar", <PortalAddresses key="j" addresses={[DIRECCION]} cities={[]} />, /^Editar/],
@@ -124,6 +123,9 @@ describe("una respuesta con errores conserva lo escrito", () => {
     expect(foto(elFormulario(container))).toEqual(escrito);
   });
 
+});
+
+describe("lo que no debe conservarse", () => {
   it("AcceptInvitationForm conserva nombre y apellido, y vacía la clave", async () => {
     const { container } = render(<AcceptInvitationForm token="t" email="a@example.test" role={"staff" as never} />);
     const form = elFormulario(container);
@@ -136,6 +138,25 @@ describe("una respuesta con errores conserva lo escrito", () => {
     expect(despues.first_name).toBe("Texto de prueba");
     expect(despues.last_name).toBe("Texto de prueba");
     expect(despues.password).toBe("");
+  });
+
+  it("AcceptanceForm vuelve a pedir las dos casillas: cada intento de aceptar es un acto explícito", async () => {
+    const { container } = render(<AcceptanceForm invoiceCode="F-1" copy={COPY} />);
+    const form = elFormulario(container);
+    llenar(form);
+    expect(foto(form)).toEqual([["accept_docs", "true"], ["accept_merchant", "true"]]);
+    fireEvent.submit(form);
+    expect(await screen.findByText(MSG)).toBeInTheDocument();
+    await act(async () => {});
+
+    expect(foto(elFormulario(container))).toEqual([["accept_docs", "false"], ["accept_merchant", "false"]]);
+  });
+
+  it.each(CASOS)("%s no tiene campos de clave ni de código de un solo uso", (_nombre, ui, abrir) => {
+    const { container } = render(ui);
+    if (abrir) fireEvent.click(screen.getAllByRole("button", { name: abrir })[0]);
+    const sensibles = container.querySelectorAll('input[type="password"], input[autocomplete="one-time-code"], input[name*="password" i], input[name*="otp" i]');
+    expect(sensibles).toHaveLength(0);
   });
 });
 
