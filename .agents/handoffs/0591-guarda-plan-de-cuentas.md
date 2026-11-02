@@ -29,8 +29,11 @@ Allowlist y aceptación en `docs/specs/0591-guarda-plan-de-cuentas/spec.md`.
 | Contrato en `postgres:17` con psql | PASÓ, 101 aserciones | control rojo: `commercial-A pudo dar de alta en accounts` |
 | Preflight contra el catálogo de producción | PASÓ, solo lectura y con ROLLBACK | 2026-11-02 |
 | `docs:check`, `sdd:check`, `governance:check`, `pending-migration-symbols`, ESLint del archivo | PASÓ | |
-| CI «Calidad local sin secretos» | pendiente al publicar | |
-| `pnpm verify` | NO EJECUTADO: espera turno pesado | |
+| CI «Calidad continua» sobre `e8e87cd89` | PASÓ | lint, tsc, unitarios, build y gates |
+| `check-schema-rebuild.mjs` | PASÓ | 474 migraciones desde cero; aislamiento en 219 tablas |
+| `run-sql-tests.mjs` | FALLÓ: 3 rojos ajenos; la 0510 pasa | `0467_reversion_credito_carrera`, `0497_reverso_al_anular_factura` y su `_carrera`. Control: los mismos 3, con el mismo error, en `main` `1c2286f1f` |
+| `pnpm verify` | NO EJECUTADO | Saldría rojo por esos 3 contratos, y hay poca RAM libre. Repetirlo después de integrar la #344 |
+| e2e | NO EJECUTADO | Sin cambios de app; corre contra un Supabase sintético |
 | Aplicar en producción | NO EJECUTADO: exige OK de Sam | |
 
 Un mutante sobrevivió la primera vuelta: el WITH CHECK de UPDATE sin el tenant. Faltaba una prueba, no sobraba código: si la sentencia lee alguna columna, Postgres aplica también la policy de SELECT a la fila nueva, y eso tapaba la falta. El contrato agregó el caso sin leer columnas.
