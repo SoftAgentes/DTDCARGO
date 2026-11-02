@@ -177,11 +177,13 @@ Hallazgo de la revisión independiente: `i3_invoice_final_check` corría en todo
 
 Para el apply en producción. Nada de esto corre solo.
 
+0. **Respaldo justo antes del apply:** un `pg_dump` de producción, después de la pausa de emisión y antes de la puerta, con su verificación. Es el último recurso si el desarme no alcanza: restaurarlo pierde solo lo escrito desde ese momento.
 1. **Puerta justo antes del apply:** correr `scripts/qa/0497-legado-por-clase.sql`. **Línea base: 0 filas,** medida por el Director el 2026-11-02. Cualquier fila con `puerta = FRENA` detiene el apply: sin el filtro, esa factura quedaría congelada. Una fila `pasa` es una factura emitida desde el borrado, y hay que explicarla.
-2. **Hueco residual, que la puerta no cierra:** entre el conteo y el COMMIT, una anulación o una transacción en curso no se ve. Si en ese momento alguien anula una venta desde el Libro diario, la factura entra a la 0497 inválida y **queda congelada, sin reparación desde la app.** Lo cierra la pausa de emisión, que coordina el Director.
+2. **Hueco residual, que la puerta no cierra:** entre el conteo y el COMMIT, una anulación o una transacción en curso no se ve. Si en ese momento alguien anula una venta desde el Libro diario, la factura entra a la 0497 inválida y **queda congelada, sin reparación desde la app.** Lo cierra la pausa de emisión, que coordina el Director. **La pausa incluye no consolidar recepciones con OV:** Almacén CN también emite.
 3. **Justo después del apply:** PostgREST ve la RPC nueva (§6).
 4. **Después de publicar, correr `scripts/qa/0497-control-posterior.sql`, con autorización de Sam,** y comparar contra la línea base: **0 filas.** Su columna `diagnostico` no dice de dónde vino cada fila: lo que aparezca es lo emitido desde el borrado, y hay que revisarlo. Una `sin_venta` viva es lo que deja la web vieja.
 5. **Correr también `scripts/qa/radiografia-integridad.sql`:** su fila 50 cuenta las facturas vivas sin venta viva. No reemplaza el control de arriba, que ve más clases.
+6. **Si cobrar o anular quedan frenados sin arreglo:** el desarme, `supabase/desarmes/0497_desarme.sql`, con OK nominal de Sam. Ver «Tercer emisor y marcha atrás».
 
 ### 4. Rojos de `sql-tests` que venían de antes
 
@@ -289,6 +291,7 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 - Después de la parte de Sam, y no antes: comprobar en la base lo que hizo, y correr los pasos 3, 4, 5, 6, 8 y 9 del bloque 7. NO EJECUTADOS.
 - Revisión de Sam del guion. La cabeza final será la que lleve ese texto.
 - CI de la cabeza final: NO EJECUTADO. Lo coordina el Director.
+- M1 y M4: ensayo con el rol real y pruebas en PGlite, NO EJECUTADOS, a la espera de turno. B1 y B2, sin confirmar. Ver «Tercer emisor y marcha atrás».
 - Revisión independiente del blob final y `pnpm verify`: NO EJECUTADOS. Los decide el Director.
 
 ## Ensayo en prueba, 0492–0497 (2026-11-01, 21:12–21:55Z)
@@ -548,9 +551,9 @@ SHA256 de la 0497: `056811e9e2b7cf74dc3cc01b0e24e95ec4eb1c9dd47caa7e1e718f109439
 | `pnpm verify` | NO EJECUTADO | El último es FALLÓ en `dab79b99f`, por e2e. No se pidió repetirlo |
 | `sql-tests` completo y `schema-rebuild` | NO EJECUTADO | Solo los contratos de arriba |
 | `migrations-applied` | NO DISPONIBLE | Sin `.env.local` |
-| CI de la cabeza | NO EJECUTADO | Lo dispara esta publicación; no lo observé |
+| CI de la cabeza | PASÓ en `66e93cf57` | 1 check, 0 rojos, medido con `gh pr view`. Una cabeza nueva lo vuelve a disparar |
 | Restaurar y aplicar este blob en un contenedor desechable | PASÓ | 36 de 36, ver «Rehacer prueba» |
-| Ensayo en prueba con este blob | NO EJECUTADO | Espera el paso 4, que corre Sam |
+| Ensayo en prueba con este blob | PASÓ | Ver «Rehacer prueba». La parte de Sam sigue pendiente |
 | R1 a R10 y bloque 7 | NO EJECUTADOS | Dependen de rehacer prueba |
 | Revisión independiente de este blob | NO EJECUTADO | |
 
@@ -633,6 +636,42 @@ Tres fallos del recorrido eran de mi arnés, no del producto: mandé el document
 
 **Lo que queda en prueba, además de lo anterior:** `DTD-9039`, de nombre «PRUEBA Registro 0573», con su usuario; `F-2026-0034`, y `F-0573-1008`, `-5002` y `-5003` ya recorridas, con su reverso y su recibo; filas de `portal_registro_throttle`, y de `mail_logs` en cola. Estado medido al final: ledger 489, 60 facturas, 182 asientos, 8 usuarios, 48 clientes. `data/db.antes-20261102T141631Z` y `data/db.fallida-20261102T132829Z` siguen ahí; no se borran sin evidencia ni OK.
 
+## Tercer emisor y marcha atrás (2026-11-02)
+
+Hallazgos M1 y M4 de la revisión independiente del blob `25dd38460aa2`. **El blob no cambia.** Desde hoy reporto al Director General, por decisión de Sam.
+
+**M1, el tercer emisor.** Consolidar una recepción con OV (`app/studio/(app)/cn/actions.ts:570-577`) llama a `sales_order_claim_and_invoice`, que inserta la factura `emitida` en su transacción (`0128:330-344`), y después pide el asiento, fuera de ella y best-effort (`lib/studio/sales-orders/actions.ts:553-556,630`). Estaba fuera de mi plan. En producción hay 0 órdenes de venta, medido por el Subdirector, así que hoy no hay riesgo. La pausa de emisión incluye no consolidar recepciones con OV.
+
+**M4, la marcha atrás.** `supabase/desarmes/0497_desarme.sql`, sin número y sin aplicar. Usarlo es decisión de Sam, no un paso del procedimiento.
+
+| Qué hace | Detalle |
+|---|---|
+| Quita | Los cinco triggers `i3_*` |
+| Devuelve | `void_invoice_with_audit_reason` al cuerpo de la 0294 (md5 `76644e17…`), `security invoker`, y a la ACL de antes de la 0497, medida en producción: `authenticated` y `service_role` |
+| Ajusta | `post_invoice_journal_entry_atomic`, **no pedido en el encargo.** Nombra dos de esos triggers en sus tres `SET CONSTRAINTS` y sin este cambio fallaría siempre: la web nueva emitiría sin asiento, y solo quedaría un error en el registro |
+| Conserva | Toda fila, `reverses_entry_id` con su índice, su CHECK y su FK, la FK diferible de las líneas y las funciones `i3_*`, sin uso y sin permisos |
+| Se protege | Preflight con los md5 de las dos funciones y los cinco triggers: si hubo otra migración encima, o se corre dos veces, aborta |
+
+**Qué pierde:**
+
+- **Anular no revierte.** La factura queda anulada y su venta sigue asentada, sin reverso: es el defecto original de esta SDD. Ninguna de las dos webs lo compensa: las dos solo llaman a la RPC. El ingreso queda contado de más hasta repararla.
+- **La base deja de frenar** anular con cobros vivos o crédito aplicado, y cambiar a mano un asiento automático.
+- **Volver a armar pide una migración nueva,** y antes reparar lo anulado en el intervalo: el control posterior lo lista como `anulada_sin_reverso`, y con las guardas puestas esas facturas quedarían congeladas.
+- **Lo que no recupera:** si el daño es de datos y no de la guarda, queda el `pg_dump` de justo antes del apply, y perder lo escrito después.
+
+**Cambio en la spec:** su §258 prohibía «quitar guardas a datos usados», y este desarme las quita. Quedó escrito como decisión de Sam en el momento, con el estado real revisado antes.
+
+**B3, medido por el Subdirector en producción, catálogo, ~16:40Z:** las 7 tablas son de `postgres`, con RLS y sin FORCE; `postgres` tiene `rolbypassrls` y no es superusuario.
+
+**B1 y B2:** NO CONFIRMADOS. No tengo el texto de la revisión, y se lo pedí al Director General.
+
+| Comprobación | Estado | Detalle |
+|---|---|---|
+| Contrato de la 0497 con el escenario I3B19, en `postgres:17` | PASÓ, 155 aserciones | La primera corrida dio un rojo de mi prueba: leía en la misma sentencia lo que la RPC acababa de escribir |
+| Escenario de la 0128 con el rol real y el esquema completo | NO EJECUTADO | Espera turno. Una corrida cortada a los ~2 min, sin resultado, cuando el Director General pidió no usar Docker sin avisar |
+| Ensayo del desarme con el rol real | NO EJECUTADO | Igual |
+| Pruebas del desarme y contrato en PGlite | NO EJECUTADO | Espera turno |
+
 ## FUERA DE ALCANCE DETECTADO
 
 - **El cobro rechazado no dice por qué.** Quien cobra ve «No se pudo registrar el cobro.», y nada más. `COLLECTION_REJECTIONS` (`lib/studio/collections-actions.ts`) no tiene los tres mensajes de la 0497: «La venta original requiere revisión.», «La relación contable de la factura requiere revisión.» y «El par de anulación requiere revisión.». Es un cambio de producto, fuera de esta PR: lo decide el Director con lo que diga Sam en el 7b. **No revisé los otros caminos** que escriben una factura, como anular un recibo o renombrar la marca.
@@ -653,7 +692,7 @@ Tres fallos del recorrido eran de mi arnés, no del producto: mandé el document
 - **Mi medición imprimió el comienzo de llaves TLS.** Un `grep` sobre los volúmenes de Traefik abrió `acme.json` y mostró en esta sesión las primeras ~100 letras de varias llaves privadas. No hay nada en Git ni en estos documentos. Decidir si se rota es del Director.
 
 - **`edge-functions` dio rojo local dos veces y no era del código.** `deno check` dio TS7031 y TS7006 en `supabase/functions/kommo-webhook/index.ts:388,391` en los `verify` de `4c3501b1b` y `66b755c13`. **Corrijo lo que escribí antes:** dije que la causa era la versión flotante de `jsr:@supabase/supabase-js@2`, y no lo es. Con caché de Deno vacía, el árbol de `origin/main` da exit 0 con `2.90.0`, `2.110.0`, `2.115.0`, `2.116.0`, `2.117.0` y `2.118.0`, y también sin fijar versión. El rojo salía con la caché de esta máquina, y `main` fallaba igual en esa misma caché, con `supabase/functions` idéntico a esta rama. Después de mis corridas, esa caché también da exit 0 y el `verify` de `dab79b99f` lo dio verde. **Inferencia:** caché de Deno desactualizada en esta máquina; ya no se puede comprobar porque se refrescó. Por eso el CI, que parte de una caché limpia, no lo mostraba.
-- **Otra vía a facturas inválidas, que ya existía:** un `PATCH` directo con `is_postable=false` sobre la cuenta 4.5 vuelve inválidas las ventas del tenant, porque la 0497 no pone guardas sobre `accounts` y la RLS es `for all` por tenant. La acción de Contabilidad lo impide con movimientos; el `PATCH` directo no. El permiso ya existía, y el filtro le quita el ruido: esas ventas ya no congelan un cobro. Corrijo lo que dije: esto no es solo por SQL directo. **Medido en la segunda revisión.**
+- **Otra vía a facturas inválidas, que ya existía:** un `PATCH` directo con `is_postable=false` sobre la cuenta 4.5 vuelve inválidas las ventas del tenant, porque la 0497 no pone guardas sobre `accounts` y la RLS es `for all` por tenant. La acción de Contabilidad lo impide con movimientos; el `PATCH` directo no. El permiso ya existía y, sin el filtro, esas ventas frenan el cobro hasta volver el valor. Corrijo lo que dije: esto no es solo por SQL directo. **Medido en la segunda revisión.**
 - **`journal_entries` y `journal_lines` tampoco filtran por rol:** cualquier staff pasa la policy (`0078:153,161`). Con la 0497, las guardas protegen los automáticos, no los manuales.
 - **`mig_revisar` no detecta el hueco de los límites:** `mig_envolver` agrega la fila del ledger sin límites propios, y un `reset lock_timeout` al final del archivo los suelta antes. 0490, 0491 y 0495, ya aplicadas, lo traen, igual que el fixture de `infra/ops/tests/migraciones.test.mjs`. Una opción: rechazarlo en `revisarMigracion`, o que el envoltorio ponga sus propios `set local` antes del INSERT.
 - **El mensaje de VES sin tasa usa la fecha UTC:** a las 00:39Z del 2 de noviembre dijo «para el 2026-11-02», cuando en Caracas era el 1. Después de las 20:00 de Caracas, emitir en VES pediría la tasa de mañana (**inferido** para emitir; el texto lo vi).

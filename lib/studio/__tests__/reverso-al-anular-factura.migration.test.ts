@@ -11,7 +11,7 @@
  * sólo su propia función TEST; M9 conserva deliberadamente el pin anterior.
  * PGlite no demuestra concurrencia, locks ni COMMIT entre conexiones PG17.
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1568,6 +1568,79 @@ $c$;`);
     expect(stage.committed).not.toBe(true);
     expect(result.secondVoid).toBe("NO EJECUTADO: no se alcanzó");
   }, SLOW);
+
+  describe("el desarme, supabase/desarmes/0497_desarme.sql", () => {
+    const DESARME = readFileSync(resolve(ROOT, "supabase/desarmes/0497_desarme.sql"), "utf8").replace(/\r\n/g, "\n");
+    const cuerpo = (archivo: string, nombre: string) => {
+      const m = archivo.replace(/\r\n/g, "\n").match(
+        new RegExp(`function public\\.${nombre}\\([\\s\\S]*?\\bas \\$function\\$([\\s\\S]*?)\\$function\\$;`),
+      );
+      expect(m).not.toBeNull();
+      return m![1];
+    };
+    const POST = "post_invoice_journal_entry_atomic";
+    const VOID = "void_invoice_with_audit_reason";
+    const venta = (inv: string) => `(select count(*) from public.journal_entries e
+      where e.invoice_id = pg_temp.fixture_id('${inv}') and e.source = 'invoice' and e.status = 'asentado')`;
+    const reversos = (inv: string) => `(select count(*) from public.journal_entries e
+      where e.invoice_id = pg_temp.fixture_id('${inv}') and e.source = 'invoice_reversal')`;
+
+    it("no es una migración, y copia los cuerpos de la 0294 y de la 0497", () => {
+      expect(readdirSync(resolve(ROOT, "supabase/migrations")).filter((f) => f.includes("desarme"))).toEqual([]);
+      expect(cuerpo(DESARME, VOID)).toBe(cuerpo(FILE_0294, VOID));
+      // Solo salen los dos nombres de triggers, en los tres SET CONSTRAINTS.
+      const conNombres = /public\.journal_lines_entry_id_fkey,\s+public\.i3_journal_entry_final_check, public\.i3_invoice_final_check/g;
+      const post0497 = cuerpo(FILE_0497, POST);
+      expect(post0497.match(conNombres)).toHaveLength(3);
+      expect(cuerpo(DESARME, POST)).toBe(post0497.replace(conNombres, "public.journal_lines_entry_id_fkey"));
+    });
+
+    it("lo frenado pasa, anular y asentar funcionan, y se ve lo que se pierde", async () => {
+      const result = await contract({ probe: `${DESARME}
+select pg_temp.assert_true(not exists (select 1 from pg_trigger where not tgisinternal and left(tgname, 3) = 'i3_'),
+  'desarme: no queda ningún trigger');
+update public.invoices set notes = 'Desarme' where id = pg_temp.fixture_id('inv-doble');
+select pg_temp.assert_true((select notes = 'Desarme' from public.invoices where id = pg_temp.fixture_id('inv-doble')),
+  'desarme: se escribe una factura con dos ventas');
+select pg_temp.assert_true(pg_temp.anular('accounting-A', 'inv-abierta') = 'true', 'desarme: anula');
+select pg_temp.assert_true(pg_temp.estado('inv-abierta') = 'anulada' and ${reversos("inv-abierta")} = 0 and ${venta("inv-abierta")} = 1,
+  'desarme: anulada, sin reverso y con la venta asentada');
+select pg_temp.assert_true(pg_temp.anular('accounting-A', 'inv-recibo') = 'true', 'desarme: la base deja anular con un cobro vivo');
+update public.journal_entries set memo = 'Otro' where id = pg_temp.fixture_id('e-futuro');
+select pg_temp.assert_true((select memo = 'Otro' from public.journal_entries where id = pg_temp.fixture_id('e-futuro')),
+  'desarme: un asiento automático se puede cambiar');
+insert into public.invoices (id, tenant_id, invoice_code, client_markbox, client_name, currency, base_amount, iva_amount, total_amount, paid_amount, status, issued_at)
+values (pg_temp.fixture_id('inv-desarme'), pg_temp.fixture_id('tenant-A'), 'F-0497-DESARME', 'DTD-0497', 'Cliente 0497', 'USD', 100, 16, 116, 0, 'emitida', current_date);
+select pg_temp.assert_true(pg_temp.as_actor('accounting-A', format('select public.${POST}(%L::uuid,%L::uuid)',
+    pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('inv-desarme')), 'service_role')->>'outcome' = 'posted',
+  'desarme: asentar sigue funcionando');
+select pg_temp.assert_true(${venta("inv-desarme")} = 1, 'desarme: la venta quedó');
+select pg_temp.assert_true((select count(*) from public.journal_entries where reverses_entry_id is not null) = 0
+  and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'journal_entries' and column_name = 'reverses_entry_id'),
+  'desarme: conserva la columna');
+` });
+      expect(result.error).toBeNull();
+    }, SLOW);
+
+    it("control en rojo: sin el ajuste, quitar los triggers rompe asentar", async () => {
+      const soloQuitar = DESARME.split("\n").filter((l) => l.startsWith("drop trigger ")).join("\n");
+      expect(soloQuitar.split("\n")).toHaveLength(5);
+      const result = await contract({ probe: `${soloQuitar}
+insert into public.invoices (id, tenant_id, invoice_code, client_markbox, client_name, currency, base_amount, iva_amount, total_amount, paid_amount, status, issued_at)
+values (pg_temp.fixture_id('inv-desarme'), pg_temp.fixture_id('tenant-A'), 'F-0497-DESARME', 'DTD-0497', 'Cliente 0497', 'USD', 100, 16, 116, 0, 'emitida', current_date);
+select pg_temp.as_actor('accounting-A', format('select public.${POST}(%L::uuid,%L::uuid)',
+  pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('inv-desarme')), 'service_role');
+` });
+      expect(result.error).toMatch(/constraint "(public\.)?i3_journal_entry_final_check" does not exist/);
+    }, SLOW);
+
+    it("aborta si la función no es la de la 0497", async () => {
+      const result = await contract({ probe: `create or replace function public.${VOID}(p_id uuid, p_reason text)
+returns boolean language plpgsql security definer set search_path = '' as $f$ begin return false; end; $f$;
+${DESARME}` });
+      expect(result.error).toMatch(/^Desarme abortado: void_invoice_with_audit_reason no es la de la 0497/);
+    }, SLOW);
+  });
 
   it("la 0497 espera en pendingBelowCutoff, MIGRATE-FIRST y con OK nominal de Sam", () => {
     const baseline = JSON.parse(readFileSync(resolve(ROOT, "supabase/migrations-baseline.json"), "utf8")) as {

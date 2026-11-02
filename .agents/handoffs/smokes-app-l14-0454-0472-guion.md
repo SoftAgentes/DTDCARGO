@@ -581,6 +581,9 @@ Eso queda sin aceptar, y no se registra como aprobado por ti. Puedes mirarlo en 
 - **Período cerrado con superclave (0493):** no lo probé en prueba, porque cierra la contabilidad de
   todo el entorno. Lo cubren las pruebas automáticas.
 - **Crédito de referido aplicado:** no lo probé en prueba. Lo probé con el rol real en local.
+- **La factura de Almacén CN, la que sale al consolidar una recepción con orden de venta:** no la recorro en
+  pantalla. Tiene su prueba automática, con su asiento, su cobro y su anulación. En producción hay 0 órdenes
+  de venta.
 - **La ventana con la web vieja:** ya la probé con la web de producción, y está en el informe del
   Director.
 

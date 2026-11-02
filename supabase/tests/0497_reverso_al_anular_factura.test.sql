@@ -116,6 +116,27 @@ alter function public.journal_entries_validate_closing() set search_path = publi
 alter function public.journal_lines_validate_closing() set search_path = public;
 \ir ../migrations/0493_cierre_contable_superclave.sql
 
+-- El tercer emisor: la factura de Almacén CN nace emitida en la RPC de la 0128. Cascarones con lo que
+-- esa RPC lee o escribe, los mismos de su propio contrato.
+alter table public.invoices add column sales_order_id uuid;
+create table public.sales_orders (
+  id uuid primary key, tenant_id uuid not null, sales_order_code text not null, client_markbox text,
+  client_name text, total_usd numeric(14,2), status text not null default 'confirmada',
+  service text not null default 'consolidado', deleted_at timestamptz
+);
+create table public.prealertas (
+  id uuid primary key, tenant_id uuid not null, sales_order_id uuid references public.sales_orders(id),
+  boxes int not null default 0, invoice_id uuid references public.invoices(id) on delete set null,
+  invoiced_at timestamptz, deleted_at timestamptz
+);
+create table public.warehouse_receipts_cn (
+  id uuid primary key, tenant_id uuid not null, receipt_code text not null, client_markbox text, client_name text,
+  is_orphan boolean not null default false, total_cbm numeric(12,3), total_weight_kg numeric(12,2),
+  prealerta_id uuid references public.prealertas(id), sales_order_id uuid references public.sales_orders(id),
+  deleted_at timestamptz
+);
+\ir ../migrations/0128_sales_order_invoicing_hardening.sql
+
 create function pg_temp.fixture_id(p_label text) returns uuid language sql immutable as $$
   select md5('0497-synthetic-' || p_label)::uuid
 $$;
@@ -1238,6 +1259,65 @@ set constraints public.journal_lines_entry_id_fkey,
 select pg_temp.m2_void_case('draft-only');
 select pg_temp.m2_void_case('posted-and-draft');
 select pg_temp.m2b1_run();
+
+-- 19. El tercer emisor. Consolidar una recepción con OV llama a la RPC de la 0128, que emite en su
+-- transacción, y después al asiento, fuera de ella. Con IVA, para que la venta tenga tres líneas.
+update public.tenants set iva_enabled = true where id = pg_temp.fixture_id('tenant-A');
+insert into public.sales_orders (id, tenant_id, sales_order_code, client_markbox, client_name, total_usd)
+select pg_temp.fixture_id('ov-'||l), pg_temp.fixture_id('tenant-A'), 'OV-0497-'||l, 'DTD-0497', 'Cliente 0497', 116
+from unnest(array['a','b']) l;
+insert into public.prealertas (id, tenant_id, sales_order_id, boxes)
+select pg_temp.fixture_id('caja-'||l), pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('ov-'||l), 1
+from unnest(array['a','b']) l;
+insert into public.warehouse_receipts_cn (id, tenant_id, receipt_code, client_markbox, client_name, total_cbm, total_weight_kg, prealerta_id)
+select pg_temp.fixture_id('wr-'||l), pg_temp.fixture_id('tenant-A'), 'WR-0497-'||l, 'DTD-0497', 'Cliente 0497', 1, 1, pg_temp.fixture_id('caja-'||l)
+from unnest(array['a','b']) l;
+create function pg_temp.emitir_cn(p_caso text) returns text language sql as $$
+  select pg_temp.as_actor('accounting-A', format('select public.sales_order_claim_and_invoice(%L::uuid,%L::uuid)',
+    pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('wr-'||p_caso)), 'service_role')->>'outcome'
+$$;
+create function pg_temp.factura_cn(p_caso text) returns uuid language sql as $$
+  select invoice_id from public.prealertas where id = pg_temp.fixture_id('caja-'||p_caso)
+$$;
+create function pg_temp.asentar_cn(p_caso text) returns text language sql as $$
+  select pg_temp.as_actor('accounting-A', format('select public.post_invoice_journal_entry_atomic(%L::uuid,%L::uuid)',
+    pg_temp.fixture_id('tenant-A'), pg_temp.factura_cn(p_caso)), 'service_role')->>'outcome'
+$$;
+create function pg_temp.anular_cn(p_caso text) returns text language sql as $$
+  select (pg_temp.as_actor('accounting-A', format('select to_jsonb(public.void_invoice_with_audit_reason(%L::uuid,%L))',
+    pg_temp.factura_cn(p_caso), 'Recepción con OV de prueba')))::text
+$$;
+select pg_temp.assert_true(pg_temp.emitir_cn('a') = 'invoiced', 'I3B19 la 0128 emite');
+select pg_temp.assert_true(exists (select 1 from public.invoices i where i.id = pg_temp.factura_cn('a')
+    and i.status = 'emitida' and i.sales_order_id = pg_temp.fixture_id('ov-a')
+    and i.base_amount = 100 and i.iva_amount = 16 and i.total_amount = 116)
+  and not exists (select 1 from public.journal_entries e where e.invoice_id = pg_temp.factura_cn('a')),
+  'I3B19 nace emitida, con su OV y sin asiento');
+select pg_temp.assert_true(pg_temp.asentar_cn('a') = 'posted', 'I3B19 asienta la factura de la 0128');
+select pg_temp.assert_true((select count(*) = 3 and sum(l.debit) = 116 and sum(l.credit) = 116
+    and bool_and(e.entry_date = i.issued_at) and bool_and(e.source = 'invoice' and e.status = 'asentado')
+  from public.journal_lines l join public.journal_entries e on e.id = l.entry_id
+    join public.invoices i on i.id = e.invoice_id where e.invoice_id = pg_temp.factura_cn('a')),
+  'I3B19 la venta tiene sus tres líneas, cuadra y lleva la fecha de la factura');
+select pg_temp.assert_true(pg_temp.asentar_cn('a') = 'already_posted'
+  and (select count(*) = 1 from public.journal_entries e where e.invoice_id = pg_temp.factura_cn('a')),
+  'I3B19 asentar otra vez no duplica');
+select pg_temp.assert_true(pg_temp.anular_cn('a') = 'true', 'I3B19 anula la factura de la 0128');
+select pg_temp.assert_true(exists (select 1 from public.invoices i where i.id = pg_temp.factura_cn('a') and i.status = 'anulada')
+  and (select count(*) = 1 from public.journal_entries e where e.invoice_id = pg_temp.factura_cn('a') and e.source = 'invoice_reversal')
+  and (select count(*) = 1 from public.journal_entries e where e.invoice_id = pg_temp.factura_cn('a') and e.source = 'invoice' and e.status = 'asentado')
+  and not exists (select 1 from public.journal_lines l join public.journal_entries e on e.id = l.entry_id
+    where e.invoice_id = pg_temp.factura_cn('a') group by l.account_id having sum(l.debit - l.credit) <> 0),
+  'I3B19 queda anulada, con su venta y un reverso que la cancela');
+select pg_temp.assert_true(pg_temp.factura_cn('a') is not null, 'I3B19 la caja sigue ligada a su factura');
+-- El asiento es best-effort: si falló al emitir, la factura de la 0128 se anula sin reverso.
+select pg_temp.assert_true(pg_temp.emitir_cn('b') = 'invoiced', 'I3B19 la 0128 emite la segunda');
+select pg_temp.assert_true(pg_temp.anular_cn('b') = 'true', 'I3B19 anula la segunda');
+select pg_temp.assert_true(exists (select 1 from public.invoices i where i.id = pg_temp.factura_cn('b') and i.status = 'anulada')
+  and not exists (select 1 from public.journal_entries e where e.invoice_id = pg_temp.factura_cn('b')),
+  'I3B19 sin asiento, se anula sin reverso');
+set constraints public.journal_lines_entry_id_fkey,
+  public.i3_journal_entry_final_check,public.i3_invoice_final_check immediate;
 
 select 'TEST 0497 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 rollback;

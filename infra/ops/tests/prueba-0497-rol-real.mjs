@@ -24,7 +24,11 @@
  *      Las filas de legado pasan por cada camino que escribe una factura: cobro, renombre, lote
  *      de renombre, anular un recibo, revertir un crédito y anular el asiento del crédito. Sin
  *      filtro, todos fallan al confirmar con su error y la factura queda como estaba.
- *   6. Los contratos de 0496 y 0497 en una base nueva, como `postgres`.
+ *      También el tercer emisor: la factura de Almacén CN, que nace emitida en la RPC de la 0128,
+ *      con su asiento, su cobro y su anulación.
+ *   6. El desarme, supabase/desarmes/0497_desarme.sql, sobre ese mismo esquema con la 0497: el cobro
+ *      que la guarda frenaba pasa, anular y asentar funcionan, y se mide lo que se pierde.
+ *   7. Los contratos de 0496 y 0497 en una base nueva, como `postgres`.
  *
  * Límites: tablas casi vacías, sin concurrencia, Auth y Storage son los stubs del repo, sin
  * PostgREST. Las carreras no corren aquí: su guarda exige que los roles no existan.
@@ -348,6 +352,72 @@ begin; ${COMO_CONTABLE}
 select public.post_invoice_journal_entry_atomic(${TENANT},md5('m1-n5')::uuid);
 rollback;
 
+-- El tercer emisor: consolidar una recepción con OV llama a la RPC de la 0128 y, fuera de su
+-- transacción, al asiento. Con IVA, para que la venta tenga sus tres líneas.
+update public.tenants set iva_enabled = true where id = ${TENANT};
+insert into public.warehouses_cn (id,code,hub_code,hub_name_es,hub_name_cn) values (md5('m1-w')::uuid,'M1-W','M1','Prueba','Prueba');
+insert into public.sales_orders (id,tenant_id,sales_order_code,client_markbox,client_name,total_usd) values
+  (md5('m1-ov1')::uuid,${TENANT},'OV-M1-1','M1-A','Cliente PRUEBA',116), (md5('m1-ov2')::uuid,${TENANT},'OV-M1-2','M1-A','Cliente PRUEBA',116);
+insert into public.prealertas (id,tenant_id,client_markbox,code,description,boxes,sales_order_id) values
+  (md5('m1-pre1')::uuid,${TENANT},'M1-A','M1-PRE-1','Caja sintética',1,md5('m1-ov1')::uuid),
+  (md5('m1-pre2')::uuid,${TENANT},'M1-A','M1-PRE-2','Caja sintética',1,md5('m1-ov2')::uuid);
+insert into public.warehouse_receipts_cn (id,tenant_id,receipt_code,warehouse_id,client_markbox,client_name,boxes,total_cbm,total_weight_kg,prealerta_id) values
+  (md5('m1-wr1')::uuid,${TENANT},'WR-M1-1',md5('m1-w')::uuid,'M1-A','Cliente PRUEBA',1,1,1,md5('m1-pre1')::uuid),
+  (md5('m1-wr2')::uuid,${TENANT},'WR-M1-2',md5('m1-w')::uuid,'M1-A','Cliente PRUEBA',1,1,1,md5('m1-pre2')::uuid);
+\\echo @@n7_emitir_desde_cn
+begin; set local role service_role;
+select (public.sales_order_claim_and_invoice(${TENANT},md5('m1-wr1')::uuid))->>'invoice_id' as inv_cn \\gset
+commit;
+select status, base_amount, iva_amount, total_amount, sales_order_id = md5('m1-ov1')::uuid,
+  (select count(*) from public.journal_entries e where e.invoice_id = i.id) from public.invoices i where i.id = :'inv_cn'::uuid;
+\\echo @@n7_post
+begin; set local role service_role;
+select public.post_invoice_journal_entry_atomic(${TENANT},:'inv_cn'::uuid);
+commit;
+\\echo @@n7_lineas
+select count(*), sum(l.debit), sum(l.credit), bool_and(e.entry_date = i.issued_at) from public.journal_lines l
+  join public.journal_entries e on e.id = l.entry_id join public.invoices i on i.id = e.invoice_id where e.invoice_id = :'inv_cn'::uuid;
+\\echo @@n7_post_otra_vez
+begin; set local role service_role;
+select public.post_invoice_journal_entry_atomic(${TENANT},:'inv_cn'::uuid);
+commit;
+\\echo @@n7_cobro
+begin; ${COMO_CONTABLE}
+select public.register_collection_receipt(:'inv_cn'::uuid,40,${CUENTA("1.1.1.1")},'transferencia',current_date,'M1',null,'cliente',null,null,true);
+commit;
+select status, paid_amount from public.invoices where id = :'inv_cn'::uuid;
+\\echo @@n7_void_con_cobro
+begin; ${COMO_CONTABLE}
+select public.void_invoice_with_audit_reason(:'inv_cn'::uuid,'Motivo M1 de Almacén');
+commit;
+\\echo @@n7_anular_cobro
+select id as recibo_cn from public.payment_receipts where invoice_id = :'inv_cn'::uuid and deleted_at is null \\gset
+begin; ${COMO_CONTABLE}
+select public.void_collection_receipt(:'recibo_cn'::uuid,'Motivo M1 del recibo');
+commit;
+select status, paid_amount from public.invoices where id = :'inv_cn'::uuid;
+\\echo @@n7_void
+begin; ${COMO_CONTABLE}
+select public.void_invoice_with_audit_reason(:'inv_cn'::uuid,'Motivo M1 de Almacén');
+commit;
+\\echo @@n7_estado
+select i.status,
+  (select count(*) from public.journal_entries e where e.invoice_id = i.id and e.source = 'invoice_reversal'),
+  (select count(*) from public.journal_entries e where e.invoice_id = i.id and e.source = 'invoice' and e.status = 'asentado'),
+  (select count(*) from (select l.account_id from public.journal_lines l join public.journal_entries e on e.id = l.entry_id
+     where e.invoice_id = i.id and e.source in ('invoice','invoice_reversal') group by l.account_id having sum(l.debit - l.credit) <> 0) x),
+  (select p.invoice_id = i.id from public.prealertas p where p.id = md5('m1-pre1')::uuid)
+from public.invoices i where i.id = :'inv_cn'::uuid;
+\\echo @@n7_sin_asiento
+begin; set local role service_role;
+select (public.sales_order_claim_and_invoice(${TENANT},md5('m1-wr2')::uuid))->>'invoice_id' as inv_cn2 \\gset
+commit;
+begin; ${COMO_CONTABLE}
+select public.void_invoice_with_audit_reason(:'inv_cn2'::uuid,'Motivo M1 de Almacén');
+commit;
+select status, (select count(*) from public.journal_entries e where e.invoice_id = i.id) from public.invoices i where i.id = :'inv_cn2'::uuid;
+update public.tenants set iva_enabled = false where id = ${TENANT};
+
 -- Salidas con excepción: un testigo fuerza el error ya puesto el motivo.
 create function public.m1_falla() returns trigger language plpgsql security definer set search_path = public as $t$
 begin
@@ -528,6 +598,16 @@ const ESPERADO = [
   ["n5_renombrar", /COMMIT[\s\S]*M1-E2/, /ERROR/, "renombrar la marca pasa con una factura sana"],
   ["n6_comercial_no_anula", /Solo admin o contabilidad anulan/, null, "el rol comercial no anula"],
   ["n6_authenticated_no_asienta", /permission denied for function post_invoice_journal_entry_atomic/, null, "authenticated no asienta"],
+  ["n7_emitir_desde_cn", /emitida\|100\.00\|16\.00\|116\.00\|t\|0/, /ERROR/, "Almacén CN: la RPC de la 0128 emite, sin asiento todavía"],
+  ["n7_post", /"outcome": "posted"[\s\S]*COMMIT/, /ERROR/, "Almacén CN: post de la factura emitida por la 0128"],
+  ["n7_lineas", /3\|116\.00\|116\.00\|t/, null, "Almacén CN: la venta tiene sus tres líneas, cuadra y lleva la fecha de la factura"],
+  ["n7_post_otra_vez", /"outcome": "already_posted"/, /ERROR/, "Almacén CN: post repetido no duplica"],
+  ["n7_cobro", /COMMIT[\s\S]*parcial\|40\.00/, /ERROR/, "Almacén CN: cobro registrado, factura parcial"],
+  ["n7_void_con_cobro", /cobro\(s\) vivo\(s\)/, null, "Almacén CN: void rechaza con cobro vivo"],
+  ["n7_anular_cobro", /COMMIT[\s\S]*emitida\|0\.00/, /ERROR/, "Almacén CN: cobro anulado, factura emitida"],
+  ["n7_void", /\nt\n[\s\S]*COMMIT/, /ERROR/, "Almacén CN: void como authenticated"],
+  ["n7_estado", /anulada\|1\|1\|0\|t/, null, "Almacén CN: anulada, con su venta y un reverso que la cancela, y la caja sigue ligada"],
+  ["n7_sin_asiento", /\nt\n[\s\S]*COMMIT[\s\S]*anulada\|0/, /ERROR/, "Almacén CN: si el asiento falló al emitir, void anula sin reverso"],
   ["e_savepoint_con_asiento", /M1 falla forzada[\s\S]*postgres\|M1 exterior\|emitida\|0/, null, "excepción con savepoint, con asiento: nada cambia"],
   ["e_savepoint_sin_asiento", /M1 falla forzada[\s\S]*postgres\|M1 exterior\|emitida/, null, "excepción con savepoint, sin asiento: nada cambia"],
   ["e_sin_capturar_en_transaccion", /M1 falla forzada[\s\S]*postgres\|M1 sesion/, null, "excepción sin capturar en transacción: queda el valor de la sesión"],
@@ -559,6 +639,107 @@ const ESPERADO = [
   ["g_sigue_sana", /emitida\|t\|0\.00/, null, "ningún intento frenado dejó rastro en la factura"],
 ];
 
+// ── El desarme. Antes, con la 0497 armada; después, sin los triggers y con void de la 0294 ──
+const COBRO = (label, monto) => `begin; ${COMO_CONTABLE}
+select public.register_collection_receipt(md5('m1-${label}')::uuid,${monto},${CUENTA("1.1.1.1")},'transferencia',current_date,'M1',null,'cliente',null,null,true);
+commit;
+select status, paid_amount from public.invoices where id = md5('m1-${label}')::uuid;`;
+const CUENTA_VENTA = (postable) => `update public.accounts set is_postable = ${postable} where tenant_id = ${TENANT} and code = '4.5';`;
+const DESARME_ANTES = `
+${FACTURA("d1", "M1-A", "emitida")}
+${POST("d1")}
+${FACTURA("d2", "M1-A", "emitida")}
+${POST("d2")}
+${FACTURA("d3", "M1-A", "emitida")}
+${POST("d3")}
+${COBRO("d3", 40)}
+${FACTURA("d4", "M1-A", "emitida")}
+${POST("d4")}
+\\echo @@a_cobro_frenado
+${CUENTA_VENTA(false)}
+${COBRO("d1", 10)}
+\\echo @@a_cobro_dos_ventas_frenado
+${COBRO("l3", 100)}
+\\echo @@a_fin
+`;
+const DESARME_DESPUES = `
+\\echo @@d_cobro_vuelve
+${COBRO("d1", 10)}
+${CUENTA_VENTA(true)}
+\\echo @@d_cobro_dos_ventas_vuelve
+${COBRO("l3", 100)}
+\\echo @@d_void
+${VOID("d2", COMO_CONTABLE, "Motivo M1 del desarme")}
+\\echo @@d_void_estado
+select i.status,
+  (select count(*) from public.journal_entries e where e.invoice_id = i.id and e.source = 'invoice_reversal'),
+  (select count(*) from public.journal_entries e where e.invoice_id = i.id and e.source = 'invoice' and e.status = 'asentado'),
+  (select count(*) from public.entity_audit_log a where a.entity_id = i.id and a.event_type = 'invoice_voided' and a.reason = 'Motivo M1 del desarme')
+from public.invoices i where i.id = md5('m1-d2')::uuid;
+\\echo @@d_post_web_nueva
+${FACTURA("d5", "M1-A", "emitida", 116, 16)}
+${POST("d5")}
+\\echo @@d_post_lineas
+select count(*), sum(l.debit), sum(l.credit) from public.journal_lines l join public.journal_entries e on e.id = l.entry_id where e.invoice_id = md5('m1-d5')::uuid;
+\\echo @@d_post_otra_vez
+${POST("d5")}
+\\echo @@d_post_almacen_cn
+${FACTURA("d7", "M1-A", "emitida")}
+${POST("d7")}
+\\echo @@d_web_vieja
+${FACTURA("d6", "M1-A", "emitida")}
+begin; set local role service_role;
+insert into public.journal_entries (id,tenant_id,entry_code,entry_date,memo,status,source,invoice_id,posted_at)
+  values (md5('m1-e-d6')::uuid,${TENANT},'M1-d6',current_date,'Factura','asentado','invoice',md5('m1-d6')::uuid,now());
+insert into public.journal_lines (entry_id,account_id,debit,credit,line_memo) values
+  (md5('m1-e-d6')::uuid,${CUENTA("1.1.2")},100,0,'Sintética'), (md5('m1-e-d6')::uuid,${CUENTA("4.5")},0,100,'Sintética');
+commit;
+\\echo @@d_el_par_de_antes_sigue
+select i.status,
+  (select count(*) from public.journal_entries e where e.invoice_id = i.id and e.source = 'invoice_reversal' and e.reverses_entry_id is not null and e.status = 'asentado')
+from public.invoices i where i.id = md5('m1-n1')::uuid;
+\\echo @@p_void_con_cobro
+begin; ${COMO_CONTABLE}
+select public.void_invoice_with_audit_reason(md5('m1-d3')::uuid,'Motivo M1 del desarme');
+select status, paid_amount, (select count(*) from public.payment_receipts r where r.invoice_id = i.id and r.deleted_at is null) from public.invoices i where i.id = md5('m1-d3')::uuid;
+rollback;
+\\echo @@p_comercial_anula
+begin; ${COMO_COMERCIAL}
+select public.void_invoice_with_audit_reason(md5('m1-d4')::uuid,'Motivo M1 del desarme');
+select status from public.invoices where id = md5('m1-d4')::uuid;
+rollback;
+\\echo @@p_asiento_editable
+begin;
+update public.journal_entries set memo = 'Otro' where id = (select id from public.journal_entries where invoice_id = md5('m1-d4')::uuid and source = 'invoice');
+rollback;
+\\echo @@p_anular_venta_a_mano
+begin;
+update public.journal_entries set status = 'anulado' where id = (select id from public.journal_entries where invoice_id = md5('m1-d4')::uuid and source = 'invoice');
+rollback;
+\\echo @@fin
+`;
+const ESPERADO_ANTES = [
+  ["a_cobro_frenado", /La venta original requiere revisión[\s\S]*emitida\|0\.00/, null, "antes del desarme: con la cuenta de venta cambiada, el cobro se frena"],
+  ["a_cobro_dos_ventas_frenado", /La relación contable de la factura requiere revisión/, null, "antes del desarme: una factura con dos ventas no se cobra"],
+];
+const ESPERADO_DESPUES = [
+  ["d_cobro_vuelve", /COMMIT[\s\S]*parcial\|10\.00/, /ERROR/, "desarme: el cobro frenado pasa"],
+  ["d_cobro_dos_ventas_vuelve", /COMMIT[\s\S]*pagada\|100\.00/, /ERROR/, "desarme: la factura con dos ventas se cobra"],
+  ["d_void", /\nt\n[\s\S]*COMMIT/, /ERROR/, "desarme: anular funciona como authenticated"],
+  ["d_void_estado", /anulada\|0\|1\|1/, null, "desarme: anulada con su motivo, sin reverso y con la venta asentada. Esto es lo que se pierde"],
+  ["d_post_web_nueva", /"outcome": "posted"/, /ERROR/, "desarme: la web nueva sigue asentando"],
+  ["d_post_lineas", /3\|116\.00\|116\.00/, null, "desarme: la venta de la web nueva tiene sus tres líneas"],
+  ["d_post_otra_vez", /"outcome": "already_posted"/, /ERROR/, "desarme: post repetido no duplica"],
+  ["d_post_almacen_cn", /"outcome": "posted"/, /ERROR/, "desarme: una factura sana sigue asentando"],
+  ["d_web_vieja", /COMMIT/, /ERROR/, "desarme: la web vieja vuelve a asentar con cabecera y líneas"],
+  ["d_el_par_de_antes_sigue", /anulada\|1/, null, "desarme: el par anulado antes sigue con su reverso"],
+  ["p_void_con_cobro", /\nt\n[\s\S]*anulada\|40\.00\|1/, /ERROR/, "lo que se pierde: la base deja anular con un cobro vivo"],
+  ["p_asiento_editable", /UPDATE 1/, /ERROR/, "lo que se pierde: un asiento automático se puede cambiar"],
+  ["p_anular_venta_a_mano", /UPDATE 1/, /ERROR/, "lo que se pierde: una venta se puede anular a mano y su factura sigue viva"],
+];
+const CONTEO_FILAS = "select (select count(*) from public.invoices), (select count(*) from public.journal_entries), (select count(*) from public.journal_lines), (select count(*) from public.payment_receipts), (select count(*) from public.journal_entries where reverses_entry_id is not null)";
+const CATALOGO_VOID = "select proacl::text, prosecdef, proconfig::text, md5(replace(prosrc,E'\\r\\n',E'\\n')) from pg_proc where oid = to_regprocedure('public.void_invoice_with_audit_reason(uuid,text)')";
+
 function secciones(texto) {
   const salida = {};
   let actual = null;
@@ -578,7 +759,7 @@ const hasta0495 = readdirSync(resolve(ROOT, "supabase/migrations")).filter((f) =
   .filter((f) => f.slice(0, 4) <= "0495" && !LEDGER_ONLY.includes(f) && !saltar.has(f));
 
 docker(["rm", "-f", "-v", NOMBRE], { stdio: "ignore" });
-const up = docker(["run", "--rm", "-d", "--name", NOMBRE, "--network", "none", "-e", "POSTGRES_PASSWORD=postgres",
+const up = docker(["run", "--rm", "-d", "--name", NOMBRE, "--network", "none", "--memory", "1g", "-e", "POSTGRES_PASSWORD=postgres",
   "-v", `${resolve(ROOT, "supabase")}:/sb:ro`, "-v", `${resolve(PAQUETES)}:/paq:ro`, IMG,
   "postgres", "-c", "config_file=/etc/postgresql/postgresql.conf", "-c", "fsync=off", "-c", "full_page_writes=off"]);
 if (up.status !== 0) { console.log(`NO DISPONIBLE · no levantó ${IMG}: ${up.stderr}`); process.exit(2); }
@@ -625,6 +806,8 @@ try {
   if (conteo.status === 0 && JSON.stringify(filasConteo) === JSON.stringify(conteoEsperado)) ok("el conteo por clase ve las filas de legado");
   else ko("conteo por clase", `${filasConteo.join("\n")}\n${conteo.stderr || ""}`);
 
+  // Cómo está void antes de la 0497: es a lo que el desarme tiene que volver.
+  const voidAntes = sql(CATALOGO_VOID).out;
   for (const m of [M0496, M0497]) {
     if (m === M0497) {
       // El cuerpo VIVO de producción, medido el 2026-11-01: la 0078 con otro formato.
@@ -735,6 +918,49 @@ $real$; select mensaje, count(*) from a2_real group by mensaje;`);
   } else {
     ko("la radiografía no ve la factura viva con la venta anulada: no hay alarma", `con la venta anulada: ${conVentaAnulada.n} ${conVentaAnulada.err}\ncon la venta viva: ${conVentaViva.n} ${conVentaViva.err}\n${revivir.err}`);
   }
+
+  // El desarme, sobre este mismo esquema con la 0497 y sus filas.
+  const correr = (nombre, texto) => {
+    const salida = docker(["exec", NOMBRE, "sh", "-c", `psql -U postgres -d postgres -X -At -F '|' -v VERBOSITY=terse -v SHOW_CONTEXT=never -f ${copiar(nombre, texto)} 2>&1`]);
+    return secciones(salida.stdout || "");
+  };
+  const comparar = (seccionesCorridas, esperado) => {
+    for (const [etiqueta, debe, noDebe, texto] of esperado) {
+      const s = seccionesCorridas[etiqueta];
+      if (s === undefined) ko(`${etiqueta}: la sección no corrió`);
+      else if (debe.test(s) && !(noDebe && noDebe.test(s))) ok(texto);
+      else ko(`${texto} (${etiqueta})`, s);
+    }
+  };
+  const antesDesarme = correr("desarme-antes.sql", DESARME_ANTES);
+  if (!("a_fin" in antesDesarme)) ko("el control de antes del desarme no llegó al final");
+  comparar(antesDesarme, ESPERADO_ANTES);
+  const filasAntes = sql(CONTEO_FILAS).out;
+  const desarme = archivo("/sb/desarmes/0497_desarme.sql", { extra: ["--single-transaction"] });
+  if (desarme.status === 0) ok(`desarme aplicado como postgres, en ${desarme.ms} ms`);
+  else { ko(`desarme: ${primerError(desarme.err + desarme.out)}`); throw new Error("desarme"); }
+  const filasDespues = sql(CONTEO_FILAS).out;
+  if (filasAntes && filasAntes === filasDespues) ok(`desarme: no cambia ni borra ninguna fila (${filasDespues})`);
+  else ko("desarme: cambiaron las filas", `${filasAntes}\n${filasDespues}`);
+  const triggers = sql("select count(*) from pg_trigger where not tgisinternal and tgname like 'i3\\_%'").out;
+  if (triggers === "0") ok("desarme: no queda ningún trigger de la 0497"); else ko(`desarme: quedan ${triggers} triggers`);
+  const voidDespues = sql(CATALOGO_VOID).out;
+  if (voidAntes && voidDespues === voidAntes) ok("desarme: void vuelve al cuerpo, al modo y a los permisos de antes de la 0497");
+  else ko("desarme: void no es el de antes de la 0497", `antes:   ${voidAntes}\ndespués: ${voidDespues}`);
+  const conserva = sql("select exists (select 1 from pg_attribute where attrelid = 'public.journal_entries'::regclass and attname = 'reverses_entry_id' and not attisdropped), to_regclass('public.journal_entries_un_reverso') is not null, (select condeferrable from pg_constraint where conname = 'journal_lines_entry_id_fkey'), (select count(*) from pg_proc where proname like 'i3\\_%')").out;
+  if (conserva === "t|t|t|12") ok("desarme: conserva la columna, el índice, la FK diferible y las doce funciones sin uso");
+  else ko(`desarme: no conservó lo esperado: ${conserva}`);
+  const otraVez = archivo("/sb/desarmes/0497_desarme.sql", { extra: ["--single-transaction"] });
+  if (otraVez.status !== 0 && /Desarme abortado/.test(otraVez.err + otraVez.out)) ok("desarme: correrlo otra vez aborta en su preflight");
+  else ko("desarme: correrlo otra vez no abortó", otraVez.err + otraVez.out);
+  const despuesDesarme = correr("desarme-despues.sql", DESARME_DESPUES);
+  if (!("fin" in despuesDesarme)) ko("los escenarios del desarme no llegaron al final");
+  comparar(despuesDesarme, ESPERADO_DESPUES);
+  console.log(`MEDIDO · comercial, con void de la 0294, sobre una factura emitida:${despuesDesarme.p_comercial_anula.replace(/\s+/g, " ").slice(0, 160)}`);
+  const ctrlDesarme = docker(["exec", NOMBRE, "psql", "-U", "postgres", "-d", "postgres", "-X", "-At", "-F", "|", "-f",
+    copiar("control-desarme.sql", readFileSync(resolve(ROOT, "scripts/qa/0497-control-posterior.sql"), "utf8"))]);
+  if ((ctrlDesarme.stdout || "").split("\n").some((l) => l.startsWith("anulada_sin_reverso|anulada|"))) ok("desarme: el control posterior lista lo anulado sin reverso, que hay que reparar antes de volver a armar");
+  else ko("desarme: el control posterior no ve lo anulado sin reverso", ctrlDesarme.stdout || ctrlDesarme.stderr || "");
 
   for (const test of [`${M0496}.test.sql`, `${M0497}.test.sql`]) {
     const base = `contrato_${test.slice(0, 4)}`;
