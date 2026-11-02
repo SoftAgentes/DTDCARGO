@@ -30,6 +30,8 @@ Límites: no provocar fallas de Resend en producción, no leer filas de clientes
 - **`lib/studio/mail/resend-api.ts`:** `resendPuedeEnviar()`, sobre el mismo `envioSimulado` de `resendSend`.
 - **Runbooks y semilla:** `entorno-prueba.md`, `setup-portal-auth.md` y `sembrar-prueba.sh`.
 
+- **Comodines del correo, a pedido de Sam.** Literal: «Haz esta tarea aquí: "Escapar comodines del correo en /entrar"». `lib/shared/email-literal.ts` escapa `%`, `_` y `\`, y compara el resultado, porque PostgREST convierte `*` en `%` y eso no se puede escapar. Lo usan `app/entrar/actions.ts` y `lib/studio/portal/sin-acceso.ts`. Va en esta misma PR y SDD por decisión mía, avisada al Director General: mismo archivo y misma retención, y una PR apilada no tendría el check de `quality`. Si la prefiere aparte, el commit se separa.
+
 **Ajustes que salieron de `/ui-check` y del navegador:**
 
 | Hallazgo | Medido | Arreglo |
@@ -48,8 +50,11 @@ Límites: no provocar fallas de Resend en producción, no leer filas de clientes
 | Comprobación | Resultado |
 |---|---|
 | Control rojo: `entrar-no-promete-envio.test.tsx` contra el código de la base | PASÓ: 27 de 31 en rojo. Las 4 verdes son invariantes que ya se cumplían |
-| `app/entrar` y `sin-promesa-rastreo-restantes.test.tsx` | PASÓ: 67 pruebas |
-| Mutantes | PASÓ: 29 de 29 mueren, control verde antes y después de cada tanda. La primera (24) corrió antes de los ajustes de arriba; la segunda (5) cubre esos ajustes |
+| Control rojo de los comodines, sin escape ni `sameEmail` | PASÓ: 11 de 92 en rojo, entre ellas `_`, `%` y `*`. La última prueba añadida no estaba en esa corrida |
+| `app/entrar` y `email-literal.test.ts`, con un solo worker | PASÓ: 92 pruebas, antes de la última, que pasó aparte en su archivo. Incluye correos reales con `_`, `+`, `%`, `*` y mayúsculas |
+| `sin-promesa-rastreo-restantes.test.tsx` | PASÓ antes de los comodines. Se repite con `verify` |
+| Mutantes | PASÓ: 40 de 40 mueren, en tres tandas. La primera (24) corrió antes de los ajustes de arriba; la segunda (5) cubre esos ajustes; la tercera (11) cubre los comodines. En esa tercera sobrevivió «sin-acceso sin escape»: faltaba la prueba de un parecido que aparece primero en el ERP. Añadida, muere |
+| Un mutante quedó puesto al matar mi runner | Corregido antes de hacer commit: `sameEmail` quedó en `return true` al detener la corrida por el pedido de un solo worker. Lo vi leyendo los archivos, y la tanda se repitió sobre un commit con `git status` limpio al final |
 | Navegador real: componente real, React de producción, Tailwind compilado y acción simulada | PASÓ: foco, contador, cerrojo, correo conservado por el reinicio real de React 19, y 375 px |
 | `eslint` de los archivos tocados, `docs:check`, `sdd:check`, `governance:check`, `components:check`, `git diff --check` | PASÓ |
 | `sembrar-prueba.sh` | `bash -n` PASÓ. `infra/ops/tests/prueba-scripts-entorno-prueba.sh`: NO EJECUTADO, solo cambia un texto que esa prueba no afirma (leído) |
@@ -70,6 +75,8 @@ Los SHA quedan en la PR: la rama es la fuente de estado.
 1. `fix(web): SDD-0597 — /entrar no afirma que salió un correo que no salió`
 2. `docs(runbooks): SDD-0597 — cómo llega el enlace del Portal en prueba y dónde sirve el plan B`
 3. `docs(sdd): SDD-0597 — spec y handoff`
+4. `fix(web): SDD-0597 — el correo de /entrar se compara literal, no como patrón`, aparte, como pidió el Director General
+5. `test(web): SDD-0597 — un parecido que aparece primero no le quita la fila a un cliente del ERP`
 
 ## PR / BRANCH
 
@@ -79,14 +86,14 @@ Los SHA quedan en la PR: la rama es la fuente de estado.
 ## PENDIENTES DE ESTA TAREA
 
 - [ ] `pnpm verify`, con turno del Director.
-- [ ] Medición contra GoTrue real con Mailpit, con turno del Director. Si contradice la lectura del código, se revisa el plan B.
+- [ ] Medición contra GoTrue real con Mailpit y PostgREST v14.17, con turno del Director. Si GoTrue contradice la lectura del código, se revisa el plan B. Si el escape no pasa bien por PostgREST, **no se integra**: un cliente con `_` en el correo dejaría de poder entrar. El script está en el scratchpad de la sesión; se corre con `bash medir-gotrue.sh <raíz del worktree>`.
 - [ ] Merge de prueba local con la PR #358 y pruebas sobre el resultado, sin publicarlo, cuando las dos estén listas. Hecho ya con `git merge-tree`, solo a nivel de texto: el primero chocó en un import de `EntrarForm`, el mío se movió y queda limpio.
 - [ ] Al desplegar a prueba, cuando Sam termine: pedir el enlace con el cliente de la semilla y leerlo en `/correo/`, y ver la pantalla con el servidor real.
 - [ ] `status` de la spec: queda en `in-progress` hasta tener lo anterior.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Comodines en `.ilike("email", email)`** (por lectura, sin provocarlo), detalle en la spec: `a_b@x.com` coincide con el cliente `a.b@x.com`, se crea un `auth.users` y le llega un enlace. No da acceso, porque `portal_bind_session` compara exacto, pero es un oráculo para quien tenga esa dirección y rompe el invariante de SDD-0278. Propuesto como tarea aparte.
+- **El mismo patrón de `.ilike` en otros sitios** (por lectura, sin provocarlo; tabla en la spec): el `From` del correo entrante (`inbound-email.ts:117`), que puede meter un mensaje en el hilo de otro cliente; la invitación (`app/invitar/[token]/actions.ts:144`), que puede dejar el `auth_user_id` en la ficha de nómina de otra persona; y la baja firmada (`unsubscribe-request.ts:108`), que puede dar de baja a un parecido.
 - **Oráculo por tiempo de respuesta** (por lectura, sin medir): un correo con cuenta acuña y llama a Resend; uno sin cuenta, no. Ya existía.
 - **Agotar el cupo de un tercero:** cualquiera puede gastar los 5 pedidos por hora de un correo ajeno. Ya existía en silencio; ahora la persona lo ve.
 - **«Da igual dónde lo abras»** no es cierto para el enlace de Auth (PKCE). Solo aplica sin Resend, y queda en `entorno-prueba.md`.
@@ -95,8 +102,12 @@ Los SHA quedan en la PR: la rama es la fuente de estado.
 
 ## HANDOFF AL DIRECTOR
 
-- **Pido:** un turno para `verify` y para la medición de GoTrue, juntos o por separado. Condiciones de la medición: las tuyas, 1 GB por contenedor, 127.0.0.1, borrado al terminar y 5 minutos de tope.
-- **Retenida:** no integrar antes de terminar la salida a producción.
+- **Reporto al Director General** desde el 2026-11-02: Sam le pasó la salida a producción.
+- **En cola, sin arrancar hasta su aviso:** `verify` va después de 0497, #356, guardas #351 y #352, y foco #358 y #360. La medición en Docker espera a que haya memoria libre: GoTrue con Mailpit y PostgREST v14.17, 1 GB por contenedor, 127.0.0.1, borrado al terminar y 5 minutos de tope.
+- **Mientras tanto:** solo pruebas sueltas de `app/entrar` y `eslint` de lo tocado, con `--maxWorkers=1`, y sin tocar prueba.
+- **Comodines:** en esta PR y SDD, como commit aparte. Aceptado por el Director General.
+- **Decisión de Sam sobre Resend y el plan B:** la presenta el Director General. En la spec va marcada como inferida. No se la pregunto por mi lado.
+- **Retenida:** nada de portal o registro entra a `main` antes de publicar.
 - **Impacto documental:** `entorno-prueba.md` y `setup-portal-auth.md`, actualizados en esta rama. Sin cambios en AGENTS ni en políticas.
 - **Conocimiento:** Graphify y Archify no se regeneraron: `knowledge:status` dio NO DISPONIBLE en este worktree. Queda pendiente para la integración.
 - **Nota personal `entrar-plan-b-429`:** su texto dice borrarla cuando el plan B esté arreglado. Sigue vigente hasta que esto esté en producción y prueba.

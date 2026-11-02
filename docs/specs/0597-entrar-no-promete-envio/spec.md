@@ -110,6 +110,29 @@ No cambian los cupos ni el hash. Reintentar gasta cupo igual que el primer pedid
 - **Reintentar por Auth tras un fallo de Resend, recordando el fallo:** con la misma clave en los dos lados, no rescataría una caída real.
 - **Cuenta regresiva en el botón:** el cupo por hora ya frena el abuso, y el texto ya orienta el tiempo de espera.
 
+### El correo se compara literal, no como patrón
+
+**Pedido de Sam, literal:** «Haz esta tarea aquí: "Escapar comodines del correo en /entrar"». Salió del recorrido de esta misma spec, porque es otra forma de revelar si un correo existe.
+
+**El problema, por lectura, sin provocarlo en producción:** `.ilike("email", email)` parece una igualdad sin mayúsculas, pero `%` y `_` son comodines, y PostgREST además convierte `*` en `%`. Quien escriba `a_b@x.com` coincide con el cliente `a.b@x.com`, y entonces:
+
+- Si ese cliente tiene acceso, `mintPortalMagicToken` crea un `auth.users` confirmado para `a_b@x.com` y le llega un enlace válido.
+- Si no tiene acceso, le llega el aviso de SDD-0279, y el equipo recibe otro con el nombre y el Shipping Mark de un cliente que nadie nombró.
+- Con `%@x.com` o `*@x.com`, cualquiera escoge el dominio y no el correo, y cada variante tiene su propio cupo por correo.
+
+**No da acceso a datos:** `portal_bind_session` compara exacto (`0080_portal_cliente.sql`), y el aviso va sin nombre ni Shipping Mark. Pero rompe el invariante de SDD-0278, «sólo se crea para quien el equipo habilitó», y recibir algo le confirma a esa persona que una dirección parecida es cliente.
+
+**Decisión:** `lib/shared/email-literal.ts`, con dos funciones que hacen falta juntas:
+
+- `emailIlikePattern` escapa `%`, `_` y `\`. No se quitan ni se rechazan: `_` es común en un correo de verdad, y el patrón escapado encuentra su fila aunque haya un parecido primero.
+- `sameEmail` compara el resultado. `*` no se puede escapar: PostgREST lo cambia antes de llegar a Postgres, y `\*` quedaría en `\%` (`star` en `Query/SqlFragment.hs`, leído en v14.1).
+
+Rechazar `*` también lo cerraría, pero dejaría fuera a un cliente real con ese carácter. No se puede saber si existe sin leer filas de clientes.
+
+**Descartado:**
+- **`.eq` con el correo en minúsculas:** `client_users.email` y `clients.email` son `text` sin normalizar, y `clients` viene de importaciones y planillas. Dejaría sin entrar a quien tenga mayúsculas guardadas.
+- **Una función SQL con `lower(email) = lower($1)`:** es lo más limpio, pero pide migración, y esta PR no la necesita.
+
 ## Aceptación
 
 1. Con el envío fallido, en el primer intento y en los siguientes, la pantalla no afirma que salió nada.
@@ -120,6 +143,8 @@ No cambian los cupos ni el hash. Reintentar gasta cupo igual que el primer pedid
 6. Queda rastro del fallo, sin el correo de la persona.
 7. El reintento conserva el foco, no envía dos veces y se nota en pantalla.
 8. El runbook y la semilla de prueba dicen lo que de verdad pasa.
+9. Un correo parecido o con comodines no alcanza a ningún cliente: no se acuña enlace, no se crea cuenta de Auth, no sale correo ni aviso, y la respuesta es la misma de un correo desconocido.
+10. Quien escribe su correo de verdad sigue entrando, con `_`, `%`, `*` o mayúsculas, aunque un parecido aparezca primero.
 
 ## Allowlist
 
@@ -128,8 +153,11 @@ No cambian los cupos ni el hash. Reintentar gasta cupo igual que el primer pedid
 | `app/entrar/actions.ts` | estado `requested`, cerrojos que hablan, plan B antes de acuñar, rastro |
 | `app/entrar/EntrarForm.tsx` | textos, reintento, foco, salida por WhatsApp, contraste del aviso |
 | `lib/studio/mail/resend-api.ts` | `resendPuedeEnviar()` |
+| `lib/shared/email-literal.ts` | nuevo: `emailIlikePattern` y `sameEmail` |
+| `lib/shared/__tests__/email-literal.test.ts` | nuevo: el patrón contra Postgres en PGlite |
+| `lib/studio/portal/sin-acceso.ts` | compara el correo literal |
 | `app/entrar/__tests__/entrar-no-promete-envio.test.tsx` | nuevo: la acción real con dobles en el borde de red |
-| `app/entrar/__tests__/actions.test.ts` | el estado nuevo; los dos casos que exigían un `/otp` condenado a 429 pasan a exigir lo contrario |
+| `app/entrar/__tests__/actions.test.ts` | el estado nuevo; los dos casos que exigían un `/otp` condenado a 429 pasan a exigir lo contrario; las filas del doble traen `email` |
 | `app/entrar/__tests__/entrar-dos-filas.test.tsx` | el nombre nuevo del componente; las aserciones no cambian |
 | `docs/runbooks/entorno-prueba.md` | cómo llega el enlace en prueba y sus límites |
 | `docs/runbooks/setup-portal-auth.md` | dónde sirve el plan B y qué hay en producción |
@@ -160,24 +188,41 @@ Sin migraciones, sin variables nuevas y sin tocar producción ni prueba.
 | Comprobación | Resultado |
 |---|---|
 | Control rojo: el archivo nuevo contra el código de la base | PASÓ: 27 de 31 en rojo. Las 4 verdes son invariantes que ya se cumplían, como que un correo desconocido no recibe nada |
-| `app/entrar` y `app/__tests__/sin-promesa-rastreo-restantes.test.tsx` | PASÓ: 67 pruebas |
-| Mutantes | PASÓ: 29 de 29 mueren, control verde antes y después |
+| Control rojo de los comodines: sin escape ni `sameEmail` | PASÓ: 11 de 92 en rojo, entre ellas `_`, `%` y `*`. La prueba que se añadió después (ver «Mutantes») no estaba en esa corrida |
+| `app/entrar` y `lib/shared/__tests__/email-literal.test.ts`, con un solo worker | PASÓ: 92 pruebas, antes de añadir esa última, que pasó aparte en su archivo. Incluye correos reales con `_`, `+`, `%`, `*` y mayúsculas |
+| `app/__tests__/sin-promesa-rastreo-restantes.test.tsx` | PASÓ antes de los comodines, que no tocan ese componente. Se repite con `verify` |
+| Mutantes | PASÓ: 40 de 40 mueren. Uno sobrevivió («sin-acceso sin escape») y faltaba una prueba: un parecido que aparece primero le quitaba la fila al cliente real del ERP. Añadida, muere |
 | `/ui-check` y navegador real: el componente real, React de producción y Tailwind compilado, con la acción simulada | PASÓ, con cuatro ajustes aplicados (ver el handoff). Falta verlo con el servidor real |
 | `eslint` de los archivos tocados, `docs:check`, `sdd:check`, `governance:check`, `components:check`, `git diff --check` | PASÓ |
 | `pnpm verify` | NO EJECUTADO: pide turno al Director |
 | Medición contra GoTrue v2.197.0 real con Mailpit | NO EJECUTADO: el único intento autorizado falló antes de medir, por un error de ruta de mi script, y la ventana cerró |
+| El escape contra PostgREST v14.17 real con `supabase-js` | NO EJECUTADO: va en esa misma medición. **Hasta tenerla no se integra:** si el `\` no pasara bien por esa capa, un cliente con `_` en el correo dejaría de poder entrar. PGlite solo cubre Postgres |
 | Enlace en `/correo/` de prueba, con esta imagen | NO EJECUTADO: Sam está revisando prueba, y esta PR no se ha desplegado allí |
 
 **Lo que no se comprobó:** no se provocó ninguna falla de Resend en producción, ni se leyeron filas de clientes.
 
 ## Fuera de alcance detectado
 
-- **Comodines en `.ilike("email", email)` (por lectura, sin provocarlo):** `app/entrar/actions.ts` y `lib/studio/portal/sin-acceso.ts` pasan el correo sin escapar, y `_` y `%` son comodines. Quien escriba `a_b@x.com` coincide con el cliente `a.b@x.com`: se crea un `auth.users` confirmado para `a_b@x.com`, y le llega un enlace válido, o el aviso de cliente sin acceso. **No da acceso:** `portal_bind_session` compara exacto (`0080_portal_cliente.sql`), y el aviso va sin nombre ni Shipping Mark. Pero recibir algo le confirma a esa persona que una dirección parecida es cliente, rompe el invariante «sólo se crea para quien el equipo habilitó» y cada variante esquiva el cerrojo por correo.
+- **El mismo patrón de `.ilike` en otros sitios (por lectura, sin provocarlo).** No se tocan aquí:
+
+  | Sitio | De dónde viene el valor | Qué puede pasar con un `_` |
+  |---|---|---|
+  | `lib/studio/conversaciones/inbound-email.ts:117` | el `From` de un correo entrante | `a_b@x.com` coincide con el cliente `a.b@x.com`, y su mensaje entra al hilo de ese cliente |
+  | `app/invitar/[token]/actions.ts:144` | el correo de la invitación | el `auth_user_id` queda en la ficha de nómina de `a.b@x.com`, si está libre |
+  | `lib/studio/mail/unsubscribe-request.ts:108` | el correo del enlace firmado | la baja de `a_b@x.com` también le quita el permiso de marketing a `a.b@x.com` |
+
+  Comprobados sin este problema: `lib/studio/quote-queries.ts:208` compara después con `prospectMatches`. `app/registro/actions.ts` y `app/api/registro/check/route.ts` buscan por `rif`, validado antes con `normalizeDocument`. El resto de los `.ilike` del repo son búsquedas del Studio con sesión, y no se revisaron uno por uno.
 - **Oráculo por tiempo de respuesta (por lectura, sin medir):** un correo con cuenta acuña y llama a Resend; uno sin cuenta, no. Ya existía, y esta spec no lo cierra.
 - **Agotar el cupo de un tercero:** cualquiera puede gastar los 5 pedidos por hora de un correo ajeno. Ya existía en silencio. Ahora la persona al menos lo ve.
 - **«Da igual dónde lo abras»** no es cierto para el enlace de Auth (PKCE). Solo aplica sin Resend, es decir en prueba. Queda en `entorno-prueba.md`.
 - **`RecoveryForm` de Studio** también dice «Revisa tu correo», pero en condicional. No se revisó si su envío puede fallar en silencio.
 
-## Propuesta para Sam (no decidida)
+## Decisión pendiente de Sam: Resend y el plan B
 
-Que Auth tenga otra clave o, mejor, otro proveedor SMTP. Hoy el plan B no protege de la falla para la que existe. Es un cambio de configuración en producción y necesita su aprobación concreta.
+La presenta el Director General.
+
+- **Medido:** el SMTP de Auth en producción es Resend, con la misma clave que usa `web` (ver «Configuración de Auth en producción»).
+- **INFERIDO, sin provocar ninguna falla:** una caída de Resend o de esa clave se lleva también el plan B. Hoy el plan B no protegería de la falla para la que existe, y quien ya es cliente solo tendría la salida por WhatsApp.
+- **Opciones:** dejarlo así, porque la pantalla ya es honesta y hay salida humana; darle a Auth otra clave, que cubre una clave revocada pero no una caída de Resend; o darle otro proveedor SMTP, que cubre las dos cosas, y además habría que cambiar el orden del plan B para aprovecharlo.
+
+Cualquier cambio es de configuración en producción y necesita su aprobación concreta.
