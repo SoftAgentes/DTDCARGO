@@ -655,6 +655,21 @@ ${POST("d3")}
 ${COBRO("d3", 40)}
 ${FACTURA("d4", "M1-A", "emitida")}
 ${POST("d4")}
+insert into public.sales_orders (id,tenant_id,sales_order_code,client_markbox,client_name,total_usd) values (md5('m1-ov3')::uuid,${TENANT},'OV-M1-3','M1-A','Cliente PRUEBA',100);
+insert into public.prealertas (id,tenant_id,client_markbox,code,description,boxes,sales_order_id) values (md5('m1-pre3')::uuid,${TENANT},'M1-A','M1-PRE-3','Caja sintética',1,md5('m1-ov3')::uuid);
+insert into public.warehouse_receipts_cn (id,tenant_id,receipt_code,warehouse_id,client_markbox,client_name,boxes,total_cbm,total_weight_kg,prealerta_id) values
+  (md5('m1-wr3')::uuid,${TENANT},'WR-M1-3',md5('m1-w')::uuid,'M1-A','Cliente PRUEBA',1,1,1,md5('m1-pre3')::uuid);
+-- Control en rojo: quitar los triggers sin ajustar el asiento lo rompe. Se deshace entero.
+\\echo @@c_sin_ajuste
+begin;
+${readFileSync(resolve(ROOT, "supabase/desarmes/0497_desarme.sql"), "utf8").split(/\r?\n/).filter((l) => l.startsWith("drop trigger ")).join("\n")}
+${FACTURA("c1", "M1-A", "emitida")}
+set local role service_role;
+select public.post_invoice_journal_entry_atomic(${TENANT},md5('m1-c1')::uuid);
+rollback;
+\\echo @@c_sigue_armada
+select count(*) from pg_trigger where not tgisinternal and left(tgname, 3) = 'i3_';
+select count(*) from public.invoices where id = md5('m1-c1')::uuid;
 \\echo @@a_cobro_frenado
 ${CUENTA_VENTA(false)}
 ${COBRO("d1", 10)}
@@ -680,12 +695,20 @@ from public.invoices i where i.id = md5('m1-d2')::uuid;
 ${FACTURA("d5", "M1-A", "emitida", 116, 16)}
 ${POST("d5")}
 \\echo @@d_post_lineas
-select count(*), sum(l.debit), sum(l.credit) from public.journal_lines l join public.journal_entries e on e.id = l.entry_id where e.invoice_id = md5('m1-d5')::uuid;
+select i.status, count(*), sum(l.debit), sum(l.credit) from public.journal_lines l join public.journal_entries e on e.id = l.entry_id
+  join public.invoices i on i.id = e.invoice_id where e.invoice_id = md5('m1-d5')::uuid and e.source = 'invoice' and e.status = 'asentado' group by i.status;
 \\echo @@d_post_otra_vez
 ${POST("d5")}
-\\echo @@d_post_almacen_cn
-${FACTURA("d7", "M1-A", "emitida")}
-${POST("d7")}
+\\echo @@d_emitir_almacen_cn
+begin; set local role service_role;
+select (public.sales_order_claim_and_invoice(${TENANT},md5('m1-wr3')::uuid))->>'invoice_id' as inv_cn3 \\gset
+commit;
+begin; set local role service_role;
+select public.post_invoice_journal_entry_atomic(${TENANT},:'inv_cn3'::uuid);
+commit;
+select i.status, (select count(*) from public.journal_entries e where e.invoice_id = i.id and e.source = 'invoice' and e.status = 'asentado'),
+  (select count(*) from public.journal_lines l join public.journal_entries e on e.id = l.entry_id where e.invoice_id = i.id)
+from public.invoices i where i.id = :'inv_cn3'::uuid;
 \\echo @@d_web_vieja
 ${FACTURA("d6", "M1-A", "emitida")}
 begin; set local role service_role;
@@ -719,6 +742,8 @@ rollback;
 \\echo @@fin
 `;
 const ESPERADO_ANTES = [
+  ["c_sin_ajuste", /constraint "(public\.)?i3_\w+" does not exist/, /"outcome": "posted"/, "control en rojo: sin el ajuste, quitar los triggers rompe el asiento"],
+  ["c_sigue_armada", /\n5\n0\n/, null, "el control no dejó rastro: siguen los cinco triggers y no quedó la factura"],
   ["a_cobro_frenado", /La venta original requiere revisión[\s\S]*emitida\|0\.00/, null, "antes del desarme: con la cuenta de venta cambiada, el cobro se frena"],
   ["a_cobro_dos_ventas_frenado", /La relación contable de la factura requiere revisión/, null, "antes del desarme: una factura con dos ventas no se cobra"],
 ];
@@ -727,18 +752,20 @@ const ESPERADO_DESPUES = [
   ["d_cobro_dos_ventas_vuelve", /COMMIT[\s\S]*pagada\|100\.00/, /ERROR/, "desarme: la factura con dos ventas se cobra"],
   ["d_void", /\nt\n[\s\S]*COMMIT/, /ERROR/, "desarme: anular funciona como authenticated"],
   ["d_void_estado", /anulada\|0\|1\|1/, null, "desarme: anulada con su motivo, sin reverso y con la venta asentada. Esto es lo que se pierde"],
-  ["d_post_web_nueva", /"outcome": "posted"/, /ERROR/, "desarme: la web nueva sigue asentando"],
-  ["d_post_lineas", /3\|116\.00\|116\.00/, null, "desarme: la venta de la web nueva tiene sus tres líneas"],
+  ["d_post_web_nueva", /"outcome": "posted"/, /ERROR/, "desarme: emitir con la web nueva sigue asentando"],
+  ["d_post_lineas", /emitida\|3\|116\.00\|116\.00/, null, "desarme: la factura emitida queda con su asiento y sus tres líneas"],
   ["d_post_otra_vez", /"outcome": "already_posted"/, /ERROR/, "desarme: post repetido no duplica"],
-  ["d_post_almacen_cn", /"outcome": "posted"/, /ERROR/, "desarme: una factura sana sigue asentando"],
+  ["d_emitir_almacen_cn", /"outcome": "posted"[\s\S]*emitida\|1\|2/, /ERROR/, "desarme: la factura de Almacén CN queda con su asiento"],
   ["d_web_vieja", /COMMIT/, /ERROR/, "desarme: la web vieja vuelve a asentar con cabecera y líneas"],
   ["d_el_par_de_antes_sigue", /anulada\|1/, null, "desarme: el par anulado antes sigue con su reverso"],
   ["p_void_con_cobro", /\nt\n[\s\S]*anulada\|40\.00\|1/, /ERROR/, "lo que se pierde: la base deja anular con un cobro vivo"],
+  ["p_comercial_anula", /\nf\n/, /ERROR|\nanulada\n/, "lo que no se pierde: la RLS sigue sin dejar anular a comercial, que recibe false"],
   ["p_asiento_editable", /UPDATE 1/, /ERROR/, "lo que se pierde: un asiento automático se puede cambiar"],
   ["p_anular_venta_a_mano", /UPDATE 1/, /ERROR/, "lo que se pierde: una venta se puede anular a mano y su factura sigue viva"],
 ];
 const CONTEO_FILAS = "select (select count(*) from public.invoices), (select count(*) from public.journal_entries), (select count(*) from public.journal_lines), (select count(*) from public.payment_receipts), (select count(*) from public.journal_entries where reverses_entry_id is not null)";
-const CATALOGO_VOID = "select proacl::text, prosecdef, proconfig::text, md5(replace(prosrc,E'\\r\\n',E'\\n')) from pg_proc where oid = to_regprocedure('public.void_invoice_with_audit_reason(uuid,text)')";
+// La ACL se compara ordenada: el orden depende de cómo se otorgó, y producción tiene otro que el esquema reconstruido.
+const CATALOGO_VOID = "select (select array_agg(a::text order by a::text) from unnest(proacl) a), prosecdef, proconfig::text, md5(replace(prosrc,E'\\r\\n',E'\\n')) from pg_proc where oid = to_regprocedure('public.void_invoice_with_audit_reason(uuid,text)')";
 
 function secciones(texto) {
   const salida = {};
@@ -947,7 +974,22 @@ $real$; select mensaje, count(*) from a2_real group by mensaje;`);
   const voidDespues = sql(CATALOGO_VOID).out;
   if (voidAntes && voidDespues === voidAntes) ok("desarme: void vuelve al cuerpo, al modo y a los permisos de antes de la 0497");
   else ko("desarme: void no es el de antes de la 0497", `antes:   ${voidAntes}\ndespués: ${voidDespues}`);
-  const conserva = sql("select exists (select 1 from pg_attribute where attrelid = 'public.journal_entries'::regclass and attname = 'reverses_entry_id' and not attisdropped), to_regclass('public.journal_entries_un_reverso') is not null, (select condeferrable from pg_constraint where conname = 'journal_lines_entry_id_fkey'), (select count(*) from pg_proc where proname like 'i3\\_%')").out;
+  // Control en rojo de esa comparación: ordenar la ACL no la relaja. Misma consulta, misma igualdad, y se deshace.
+  const FIRMA_VOID = "public.void_invoice_with_audit_reason(uuid,text)";
+  const CONTROLES_ACL = [
+    ["x_privilegio", `grant execute on function ${FIRMA_VOID} to authenticated with grant option;`, /authenticated=X\*\/postgres/, "control en rojo de la ACL: una entrada que cambia de privilegios no pasa"],
+    ["x_falta", `revoke execute on function ${FIRMA_VOID} from service_role;`, /^(?!.*service_role)/, "control en rojo de la ACL: una entrada que falta no pasa"],
+    ["x_sobra", `grant execute on function ${FIRMA_VOID} to anon;`, /anon=X\/postgres/, "control en rojo de la ACL: una entrada que sobra no pasa"],
+  ];
+  const salidaAcl = correr("controles-acl.sql", CONTROLES_ACL.map(([e, cambio]) => `\\echo @@${e}\nbegin;\n${cambio}\n${CATALOGO_VOID};\nrollback;`).join("\n") + "\n\\echo @@fin\n");
+  for (const [e, , pista, texto] of CONTROLES_ACL) {
+    const linea = (salidaAcl[e] || "").split("\n").find((l) => l.includes("76644e17876d0caaa46e727de5946138")) ?? "";
+    if (linea && linea !== voidAntes && pista.test(linea)) ok(texto);
+    else ko(`${texto} (${e})`, `antes:        ${voidAntes}\ncon el cambio: ${linea}`);
+  }
+  if (sql(CATALOGO_VOID).out === voidAntes) ok("los controles de la ACL no dejaron rastro");
+  else ko("los controles de la ACL dejaron rastro", sql(CATALOGO_VOID).out);
+  const conserva =sql("select exists (select 1 from pg_attribute where attrelid = 'public.journal_entries'::regclass and attname = 'reverses_entry_id' and not attisdropped), to_regclass('public.journal_entries_un_reverso') is not null, (select condeferrable from pg_constraint where conname = 'journal_lines_entry_id_fkey'), (select count(*) from pg_proc where proname like 'i3\\_%')").out;
   if (conserva === "t|t|t|12") ok("desarme: conserva la columna, el índice, la FK diferible y las doce funciones sin uso");
   else ko(`desarme: no conservó lo esperado: ${conserva}`);
   const otraVez = archivo("/sb/desarmes/0497_desarme.sql", { extra: ["--single-transaction"] });
@@ -956,7 +998,6 @@ $real$; select mensaje, count(*) from a2_real group by mensaje;`);
   const despuesDesarme = correr("desarme-despues.sql", DESARME_DESPUES);
   if (!("fin" in despuesDesarme)) ko("los escenarios del desarme no llegaron al final");
   comparar(despuesDesarme, ESPERADO_DESPUES);
-  console.log(`MEDIDO · comercial, con void de la 0294, sobre una factura emitida:${despuesDesarme.p_comercial_anula.replace(/\s+/g, " ").slice(0, 160)}`);
   const ctrlDesarme = docker(["exec", NOMBRE, "psql", "-U", "postgres", "-d", "postgres", "-X", "-At", "-F", "|", "-f",
     copiar("control-desarme.sql", readFileSync(resolve(ROOT, "scripts/qa/0497-control-posterior.sql"), "utf8"))]);
   if ((ctrlDesarme.stdout || "").split("\n").some((l) => l.startsWith("anulada_sin_reverso|anulada|"))) ok("desarme: el control posterior lista lo anulado sin reverso, que hay que reparar antes de volver a armar");

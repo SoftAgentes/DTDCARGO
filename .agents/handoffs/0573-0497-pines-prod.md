@@ -276,7 +276,7 @@ En la de la 0497: 0 sesiones esperando locks, 0 transacciones largas, 13 funcion
 
 ## COMMITS
 
-`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · `dab79b99f` y `1e31a642f` rol real y control posterior · `db84f6ffd` y `24d970e1e` evidencia y ensayo · `fda48edb1` límites hasta el COMMIT y control sin procedencia · `b58e36bd3` segunda revisión y medición de `accounts` · `493b8659b` sale el filtro · `9620a283b` guion · `7982e7ff8` prueba de los límites · `2a56eaef6` decisiones de Sam y blob final · `cb51bfd8e` rehacer prueba, pasos 1 a 3 · más el de esta evidencia.
+`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · `dab79b99f` y `1e31a642f` rol real y control posterior · `db84f6ffd` y `24d970e1e` evidencia y ensayo · `fda48edb1` límites hasta el COMMIT y control sin procedencia · `b58e36bd3` segunda revisión y medición de `accounts` · `493b8659b` sale el filtro · `9620a283b` guion · `7982e7ff8` prueba de los límites · `2a56eaef6` decisiones de Sam y blob final · `cb51bfd8e` rehacer prueba, pasos 1 a 3 · `0cef65a90` y `66e93cf57` prueba rehecha · `5378fb9ca` tercer emisor y desarme · más el de esta evidencia.
 
 ## PR / BRANCH
 
@@ -291,7 +291,7 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 - Después de la parte de Sam, y no antes: comprobar en la base lo que hizo, y correr los pasos 3, 4, 5, 6, 8 y 9 del bloque 7. NO EJECUTADOS.
 - Revisión de Sam del guion. La cabeza final será la que lleve ese texto.
 - CI de la cabeza final: NO EJECUTADO. Lo coordina el Director.
-- M1 y M4: ensayo con el rol real y pruebas en PGlite, NO EJECUTADOS, a la espera de turno. B1 y B2, sin confirmar. Ver «Tercer emisor y marcha atrás».
+- M1 y M4: ensayo con el rol real PASÓ. Vitest del contrato en PGlite y de las pruebas del desarme, NO EJECUTADA, a la espera de memoria. Ver «Tercer emisor y marcha atrás».
 - Revisión independiente del blob final y `pnpm verify`: NO EJECUTADOS. Los decide el Director.
 
 ## Ensayo en prueba, 0492–0497 (2026-11-01, 21:12–21:55Z)
@@ -663,14 +663,23 @@ Hallazgos M1 y M4 de la revisión independiente del blob `25dd38460aa2`. **El bl
 
 **B3, medido por el Subdirector en producción, catálogo, ~16:40Z:** las 7 tablas son de `postgres`, con RLS y sin FORCE; `postgres` tiene `rolbypassrls` y no es superusuario.
 
-**B1 y B2:** NO CONFIRMADOS. No tengo el texto de la revisión, y se lo pedí al Director General.
+**B1 y B2, confirmados por lectura, sin correrlos; el `40P01` es inferencia.** El Director General se los presenta a Sam en el OK nominal: **no están aceptados.**
+
+- **B1:** anular la factura la toma `FOR UPDATE` (`0497:779-781`) y después sus asientos, incluido el del crédito (`:797-800`). Anular ese asiento desde el Libro diario (`contabilidad/actions.ts:392`, `0294:133-137`) lo toma primero, y pide la factura al confirmar (`:596-598`, `:333`). Son órdenes opuestos. Solo se alcanza con `paid_amount` en 0 (`:793`), el asiento vivo y dos personas a la vez. Postgres abortaría una, sin nada a medias. La prueba de carrera no lo cubre: tiene 0 `referral_credit`.
+- **B2:** el INSERT de la cabecera del crédito (`referral-credit-posting.ts:207-220`) toma `KEY SHARE` sobre la factura por la FK no diferible, y al confirmar pide `FOR UPDATE` (`:333`). Dos a la vez sobre la misma factura se esperan entre sí. Se deshace limpio porque, si falla el asiento, la acción revierte el crédito (`fidelizacion/actions.ts:533-541`). Si esa reversión también falla, el mensaje pide revisar el saldo a mano.
 
 | Comprobación | Estado | Detalle |
 |---|---|---|
 | Contrato de la 0497 con el escenario I3B19, en `postgres:17` | PASÓ, 155 aserciones | La primera corrida dio un rojo de mi prueba: leía en la misma sentencia lo que la RPC acababa de escribir |
-| Escenario de la 0128 con el rol real y el esquema completo | NO EJECUTADO | Espera turno. Una corrida cortada a los ~2 min, sin resultado, cuando el Director General pidió no usar Docker sin avisar |
-| Ensayo del desarme con el rol real | NO EJECUTADO | Igual |
-| Pruebas del desarme y contrato en PGlite | NO EJECUTADO | Espera turno |
+| Rol real y esquema completo: Almacén CN y desarme | PASÓ, **125 de 125** | 96 s, `--memory 1g`, sin red. Pico del contenedor 179 MiB, muestreado cada 10 s; mínimo 2,04 GB libres. `rol-real-m1-segunda.out` |
+| Almacén CN | PASÓ | La RPC 0128 emite sin asiento; post deja tres líneas que cuadran; repetir no duplica; cobro; void rechazado con cobro vivo; void con reverso; sin asiento, se anula sin reverso |
+| Desarme | PASÓ | 393 ms en la primera corrida. Filas iguales, 0 triggers, y correrlo otra vez aborta. El cobro frenado pasa, anular funciona, y emitir deja factura con su asiento por la web nueva y por Almacén CN. La forma de la web vieja, cabecera y líneas, se simuló por SQL. **Las dos webs no corrieron** |
+| Control en rojo del ajuste | PASÓ | Sin él, quitar los triggers rompe post con `constraint does not exist`. No deja rastro |
+| Lo que se pierde, medido | PASÓ | Anulada sin reverso y con la venta asentada; la base deja anular con cobro vivo, cambiar a mano un asiento automático y anular una venta a mano. El control posterior lista lo anulado sin reverso. Comercial sigue sin poder anular, por la RLS |
+| Control en rojo de la ACL | PASÓ, 3 de 3 | Un privilegio que cambia, una entrada que falta y una que sobra dan rojo con la misma comparación |
+| Pruebas del desarme y contrato en PGlite | NO EJECUTADO | 2,29 GB libres de los 3 que exige el turno. El Director General decide cuándo |
+
+Primera corrida, `rol-real-m1-primera.out`: 119 PASÓ, 1 FALLÓ. La ACL coincidía en contenido y mi comparación era por texto; el orden depende de cómo se otorgó, y producción tiene otro que el esquema reconstruido. Antes hubo otra, cortada a los ~2 min y sin resultado, cuando el Director General pidió no usar Docker sin avisar.
 
 ## FUERA DE ALCANCE DETECTADO
 
