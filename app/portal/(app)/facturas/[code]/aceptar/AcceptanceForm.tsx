@@ -9,6 +9,7 @@ import {
   type AcceptanceFormState,
 } from "./actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const initial: AcceptanceFormState = {};
 
@@ -88,6 +89,7 @@ export function AcceptanceForm({
   return (
     <form
       action={formAction}
+      onSubmit={submitKeepingDraft(formAction, pending)}
       className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8"
     >
       {/* Título + cuerpo del modal (COPY_LEGAL_UI.md §1) */}

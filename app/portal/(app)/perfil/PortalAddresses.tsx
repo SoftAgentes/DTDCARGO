@@ -15,6 +15,7 @@ import {
 } from "./address-actions";
 import { ArrowIcon, CheckIcon } from "@/components/Icon";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const initial: AddressActionState = {};
 
@@ -347,6 +348,7 @@ function AddForm({
   return (
     <form
       action={action}
+      onSubmit={submitKeepingDraft(action, pending)}
       className="mt-4 rounded-[12px] border border-grey-200 bg-white p-4 flex flex-col gap-3"
     >
       <AddressFields cities={cities} errors={fe} />
@@ -393,7 +395,7 @@ function EditForm({
   }, [state.ok, onDone]);
 
   return (
-    <form action={action} className="flex w-full flex-col gap-3">
+    <form action={action} onSubmit={submitKeepingDraft(action, pending)} className="flex w-full flex-col gap-3">
       <input type="hidden" name="addressId" value={address.id} />
       <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine-text">
         Editar dirección

@@ -9,6 +9,7 @@ import {
 import { COTIZACION_SERVICES } from "@/lib/portal/cotizacion-request";
 import { SERVICE_LABELS } from "@/lib/portal/portal-types";
 import { ArrowIcon } from "@/components/Icon";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const INPUT =
   "w-full rounded-[12px] border border-grey-200 bg-white px-3.5 py-2.5 text-[14px] text-ink outline-none transition-colors focus:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ink)]";
@@ -74,7 +75,7 @@ export function CotizacionRequestForm({
   }
 
   return (
-    <form action={formAction} className="mt-8 flex flex-col gap-5 max-w-[640px]">
+    <form action={formAction} onSubmit={submitKeepingDraft(formAction, pending)} className="mt-8 flex flex-col gap-5 max-w-[640px]">
       {state.error ? (
         <div
           className="rounded-[12px] border px-4 py-3 text-[13px]"
