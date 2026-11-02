@@ -276,7 +276,7 @@ En la de la 0497: 0 sesiones esperando locks, 0 transacciones largas, 13 funcion
 
 ## COMMITS
 
-`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · `dab79b99f` y `1e31a642f` rol real y control posterior · `db84f6ffd` y `24d970e1e` evidencia y ensayo · `fda48edb1` límites hasta el COMMIT y control sin procedencia · `b58e36bd3` segunda revisión y medición de `accounts` · `493b8659b` sale el filtro · `9620a283b` guion · `7982e7ff8` prueba de los límites · `2a56eaef6` decisiones de Sam y blob final · `cb51bfd8e` rehacer prueba, pasos 1 a 3 · `0cef65a90` y `66e93cf57` prueba rehecha · `5378fb9ca` tercer emisor y desarme · `c16556096` ensayo y control de la ACL · más el de esta evidencia.
+`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · `dab79b99f` y `1e31a642f` rol real y control posterior · `db84f6ffd` y `24d970e1e` evidencia y ensayo · `fda48edb1` límites hasta el COMMIT y control sin procedencia · `b58e36bd3` segunda revisión y medición de `accounts` · `493b8659b` sale el filtro · `9620a283b` guion · `7982e7ff8` prueba de los límites · `2a56eaef6` decisiones de Sam y blob final · `cb51bfd8e` rehacer prueba, pasos 1 a 3 · `0cef65a90` y `66e93cf57` prueba rehecha · `5378fb9ca` tercer emisor y desarme · `c16556096` ensayo y control de la ACL · `a0cbbb179` Vitest del contrato y del desarme · más el de la cita de la spec y el resultado de `verify`.
 
 ## PR / BRANCH
 
@@ -290,10 +290,9 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 - Parte de Sam en prueba: R10 y los pasos 1, 2 y 7. El guion ya está listo; se lo pasa el Director. **Antes hay que poner su IP en las listas de prueba:** ver FUERA DE ALCANCE; hoy le da 403.
 - Después de la parte de Sam, y no antes: comprobar en la base lo que hizo, y correr los pasos 3, 4, 5, 6, 8 y 9 del bloque 7. NO EJECUTADOS.
 - Revisión de Sam del guion. La cabeza final será la que lleve ese texto.
-- CI de la cabeza final: NO EJECUTADO. Lo coordina el Director.
+- CI de la cabeza final: el de `a0cbbb179` FALLÓ por una cita mía en la spec, ya corregida; falta leer el de la cabeza que la corrige.
 - M1 y M4: hechos, sin aplicar nada. El ensayo con el rol real y la Vitest pasaron. Ver «Tercer emisor y marcha atrás».
-- `pnpm verify` de la cabeza final: NO EJECUTADO. Lo da el Director General después de publicar.
-- Revisión independiente del blob final y `pnpm verify`: NO EJECUTADOS. Los decide el Director.
+- `pnpm verify`: FALLÓ sobre `a0cbbb179`, con turno del Director General. Sin cerrar: `sin-scroll-horizontal.spec.ts:119` y los rojos de carga de `test`. Si hace falta otra corrida o aislarlos, lo decide el Director General. Ver «`pnpm verify` sobre `a0cbbb179`».
 
 ## Ensayo en prueba, 0492–0497 (2026-11-01, 21:12–21:55Z)
 
@@ -679,9 +678,41 @@ Hallazgos M1 y M4 de la revisión independiente del blob `25dd38460aa2`. **El bl
 | Lo que se pierde, medido | PASÓ | Anulada sin reverso y con la venta asentada; la base deja anular con cobro vivo, cambiar a mano un asiento automático y anular una venta a mano. El control posterior lista lo anulado sin reverso. Comercial sigue sin poder anular, por la RLS |
 | Control en rojo de la ACL | PASÓ, 3 de 3 | Un privilegio que cambia, una entrada que falta y una que sobra dan rojo con la misma comparación |
 | Contrato en PGlite y las 4 pruebas del desarme | PASÓ, **148 de 148** | 509 s, `--maxWorkers=1`, con 3,69 GB libres y CPU 32 % al arrancar; mínimo 2,46 GB. El Director General subió el tope a 16 min: con el de 8 la habría cortado. `vitest-m1.out` |
-| `tsc` y `pnpm verify` sobre esta cabeza | NO EJECUTADO | `verify` espera turno del Director General. No hay `tsc` local sobre el archivo de prueba: lo cubre el CI |
+| `tsc` y `pnpm verify` | Ver abajo | `verify` sobre `a0cbbb179`: FALLÓ, y `typecheck` PASÓ dentro de él |
 
 Primera corrida, `rol-real-m1-primera.out`: 119 PASÓ, 1 FALLÓ. La ACL coincidía en contenido y mi comparación era por texto; el orden depende de cómo se otorgó, y producción tiene otro que el esquema reconstruido. Antes hubo otra, cortada a los ~2 min y sin resultado, cuando el Director General pidió no usar Docker sin avisar.
+
+### `pnpm verify` sobre `a0cbbb179` (2026-11-02, 17:51–19:25Z)
+
+Una sola corrida, con turno del Director General. **FALLÓ, exit 1,** 94 min, 16 de 17 pasos medidos. El blob de la 0497 sigue `25dd38460aa2`. Al terminar: árbol limpio, `tsconfig.json` sin `.next-verify`, 0 contenedores.
+
+| Paso | Estado | Detalle |
+|---|---|---|
+| `harness` | PASÓ | 3 SKIP: el doble de docker es un script de sh y en Windows se salta |
+| `lint`, `rsc-boundary`, `typecheck` | PASÓ | |
+| `edge-functions` | PASÓ | 4 funciones |
+| `test` | **FALLÓ** | Dos intentos: 17 y 19 rojos, 13305 y 13303 pasadas, 1 SKIP. Un rojo mío, ya corregido, y el resto no concluyente por carga. Abajo |
+| `docs:check`, `numbering`, `feature-constants`, `components:check`, `governance:check` | PASÓ | |
+| `migrations-applied` | NO DISPONIBLE | SKIP: sin `.env.local`; no se copiaron secretos |
+| `pending-migration-symbols` | PASÓ | 0 ROJO, 3 AMARILLO declarados |
+| `sql-tests` | PASÓ | 249 contratos en `postgres:17`, incluidas la 0496, la 0497 y su carrera |
+| `schema-rebuild` | PASÓ | 491 migraciones: 473 aplicadas desde cero y 18 sólo-ledger; aislamiento en 219 tablas |
+| `e2e` | **FALLÓ** | `sin-scroll-horizontal.spec.ts:119`, en chromium y mobile-chrome, en los dos intentos: `waitForURL` agota 20 s tras pulsar el CTA. Flaky en el primero: `auth.spec.ts:81` y `company-photo-carousel.spec.ts:93`. 216 y 218 pasadas, 20 SKIP. Además, «worker-21 process did not exit within 300000ms» |
+| `build` | PASÓ | `tsconfig.json` restaurado |
+
+**El rojo mío, en `test` y en el CI:** `scripts/__tests__/spec-migration-refs.test.ts`. La prueba toma todo `NNNN_nombre.sql` citado en una spec como migración, y la spec citaba el desarme por su nombre desde `5378fb9ca`. Falló en los dos intentos y en el CI `41494684527`, que terminó en Unitarios a las 18:14Z con 1 rojo y 13322 pasadas, y saltó los pasos siguientes, build incluido. Lancé `verify` con ese CI en curso, sin rojo y sin verde. Corregido en la spec, sin tocar la prueba: `:258` dice ahora «el desarme de la 0497 en `supabase/desarmes/`», y lo mismo en el párrafo «Tercer emisor y marcha atrás». La prueba sola: PASÓ, 5 de 5. El nombre exacto sigue en este handoff y en el runbook, donde la prueba no mira.
+
+**El resto de `test`, no concluyente:** ni rojo de esta rama ni verde.
+
+- Son 16 y 18 rojos en otro conjunto en cada intento: `vitest/pglite-limpio.test.ts` y `app/p/[token]/`, `supplier-flow`, `PackingListProductsStep` y `standard-format`, casi todos «Test timed out». En el segundo se suman `prefill` y `TransportistasPanel`, por aserción.
+- La memoria libre llegó a 0,00 GB a las 17:59:10Z, 8 s después de arrancar Vitest, y la suma de tiempo de pruebas fue 14786 s y 12549 s, contra 2065 s en el CI.
+- En el CI de la misma cabeza pasaron todos esos archivos. Esta rama no toca `app/`, `components/`, `e2e/` ni `vitest/`.
+- No salió «Failed to start forks worker»: mi vigía lo buscaba y por eso no cortó la corrida. Sí salió una vez «Timeout terminating forks worker».
+- `TransportistasPanel` es el rojo conocido, con arreglo `f59e662de` en main y no en esta rama.
+
+**`e2e`:** es el mismo spec que falló en `dab79b99f`, y entonces pasó aislado. Esta vez **no lo aislé**: el turno era de una sola corrida. Sigue FALLÓ.
+
+Logs: `verify-a0cbbb179.log` y `ci-41494684527.log` en `0573-evidencia/`.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -713,6 +744,7 @@ Primera corrida, `rol-real-m1-primera.out`: 119 PASÓ, 1 FALLÓ. La ACL coincid�
 - **La 0495 está en el ledger de producción pero sigue en `pendingBelowCutoff` y sin sellar.** Falta su cierre del runbook §6.
 - **Una factura emitida entre el apply y la web nueva queda sin asiento.** Conviene un conteo de control después de publicar, con OK. Revisar si hace falta un camino para asentarla.
 - `0497_…_carrera.test.sql` imprime evidencia cruda de 500 KB por corrida. Ya no rompe, pero ensucia.
+- **`e2e/sin-scroll-horizontal.spec.ts:119` falló en los dos últimos `verify`,** en los dos intentos de cada uno, y no pertenece a esta rama. En `dab79b99f` pasó aislado; en `a0cbbb179` no se aisló. Un rojo que se repite en cada `verify` deja de distinguir un fallo nuevo.
 
 ## HANDOFF AL DIRECTOR
 
