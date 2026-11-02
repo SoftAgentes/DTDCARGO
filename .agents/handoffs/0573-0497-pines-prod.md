@@ -153,11 +153,11 @@ Hallazgo de la revisión independiente: `i3_invoice_final_check` corría en todo
 **Hueco conocido, aceptado por el Director el 2026-11-01, con condiciones.** El filtro no mira la clase: **cualquier factura viva cuya venta no cuadra se puede cobrar hasta `pagada`.** Con la venta anulada, con dos ventas, con líneas descuadradas, con la venta borrada o de otro tenant, entre otras. Medido con `register_collection_receipt` en la imagen real, con venta anulada y con dos ventas (`l_cobro_hueco_conocido`, `l_cobro_hasta_pagada`, `l_cobro_dos_ventas`), y para las 14 clases vivas en la prueba de contrato. **Es más laxo que la 0497 sin filtro, donde fallaría al confirmar, e igual que hoy en producción.** El Director decidió no agregar una comprobación dentro de la 0497 para el hueco residual: se queda la puerta del conteo, con avisar a quien usa el sistema.
 
 - Hoy no hay ninguna fila así en estados vivos, según el conteo.
-- Después del apply no encontré camino para crearla: `i3_journal_entry_guard` hace inmutable el asiento de venta.
-- Solo entraría una que aparezca antes del apply, entre la puerta y el COMMIT.
+- **Corrijo lo que escribí aquí:** decía que después del apply no hay camino para crearla, y es falso. `i3_journal_entry_guard` hace inmutable el asiento de venta, pero `i3_original_valid` lee `is_postable`, código y jerarquía actuales de `accounts`, y los siete roles del tenant pueden cambiarlos por PostgREST. Medido en prueba: una venta sana queda inválida sin tocarla y se cobra hasta `pagada`. Ver «Segunda revisión».
+- También entra una que aparezca antes del apply, entre la puerta y el COMMIT.
 - `void` y `post` la siguen rechazando.
 
-**Se pierde la alarma al tocar una fila rota, y la reemplaza un control por corrida.** `scripts/qa/0497-control-posterior.sql` corre con la 0497 aplicada, solo lectura, con conteos por clase. Se apoya en `i3_original_valid` y `i3_mirror_valid`, y dos pruebas lo comparan con `i3_assert_invoice_final` por mensaje: PGlite y la imagen real. Su columna `lectura` separa `emitida_en_la_ventana` (sin asiento, emitida desde la hora del ledger) de `entro_por_el_hueco` (viva y no cuadra). La radiografía también corre con la 0497 y su fila 50 ve esa factura (5 con la venta anulada, 4 con la venta viva), pero no ve todas las clases: no ve `venta_de_otro_tenant`, `venta_sin_codigo`, las dos de fecha, `lineas_ninguna`, `lineas_cuenta_no_clasificable`, `lineas_importe_invalido`, `lineas_sin_cxc_o_ingreso` ni `estado_sin_venta_posible`. Es alarma por corrida, no al momento de tocar la fila.
+**Se pierde la alarma al tocar una fila rota, y la reemplaza un control por corrida.** `scripts/qa/0497-control-posterior.sql` corre con la 0497 aplicada, solo lectura, con conteos por clase. Se apoya en `i3_original_valid` y `i3_mirror_valid`, y dos pruebas lo comparan con `i3_assert_invoice_final` por mensaje: PGlite y la imagen real. Su columna `diagnostico` dice cómo está la fila ahora, no de dónde vino: `sin_venta_fechas_recientes` depende de `issued_at` y `greatest(created_at, updated_at)`, no de la transición, y `viva_no_cuadra` no dice cuándo quedó así. La radiografía también corre con la 0497 y su fila 50 ve esa factura (5 con la venta anulada, 4 con la venta viva), pero no ve todas las clases: no ve `venta_de_otro_tenant`, `venta_sin_codigo`, las dos de fecha, `lineas_ninguna`, `lineas_cuenta_no_clasificable`, `lineas_importe_invalido`, `lineas_sin_cxc_o_ingreso` ni `estado_sin_venta_posible`. Es alarma por corrida, no al momento de tocar la fila.
 
 **Lo que queda probado:**
 
@@ -178,7 +178,7 @@ Para el apply en producción. Nada de esto corre solo.
 1. **Puerta justo antes del apply:** correr `scripts/qa/0497-legado-por-clase.sql` y comparar **todas** las filas contra la lista exacta, salvo `sin_venta`. Hoy: `venta_anulada|anulada=1` y nada más. Cualquier otra fila, también `venta_anulada|anulada=2`, frena el apply. **En particular, cualquier `venta_anulada` en `emitida`, `parcial`, `vencida` o `pagada` detiene la ventana:** es el hueco conocido. Atención con `anulada_sin_reverso`: la crea anular desde Facturación con la `void` vieja, y es lo más probable antes del apply.
 2. **Hueco residual, que la puerta no cierra:** entre el conteo y el COMMIT, una anulación o una transacción en curso no se ve. Si en ese momento alguien anula una venta desde el Libro diario, la factura entra a la 0497 con la venta anulada y se puede cobrar. Se achica contando justo antes y con quien usa el sistema avisado. Antes de la ventana, Sam detiene Codex y Orca.
 3. **Justo después del apply:** PostgREST ve la RPC nueva (§6).
-4. **Después de publicar, correr `scripts/qa/0497-control-posterior.sql`, con autorización de Sam,** y comparar contra la línea base de hoy: `sin_venta` con `emitida 3, pagada 1, parcial 1` y `venta_anulada|anulada=1`. Su columna `lectura` dice qué es cada cosa: `emitida_en_la_ventana` es una factura que hay que asentar; `entro_por_el_hueco` es una factura que entró al apply sin cuadrar.
+4. **Después de publicar, correr `scripts/qa/0497-control-posterior.sql`, con autorización de Sam,** y comparar contra la línea base de hoy: `sin_venta` con `emitida 3, pagada 1, parcial 1` y `venta_anulada|anulada=1`. Su columna `diagnostico` no dice de dónde vino cada fila: lo que creció contra la línea base es lo que hay que revisar.
 5. **Correr también `scripts/qa/radiografia-integridad.sql`:** su fila 50 cuenta las facturas vivas sin venta viva. No reemplaza el control de arriba, que ve más clases.
 
 ### 4. Rojos de `sql-tests` que venían de antes
@@ -259,7 +259,9 @@ Con rol contabilidad o admin, salvo donde se indica:
 
 **Lectura:** no hay un rojo atribuible a esta rama, pero el `verify` no cerró en verde y sigue siendo FALLÓ. Lo que corrió después son pruebas puntuales y el CI. Los commits posteriores a `dab79b99f` no tocan el blob.
 
-Identidad vigente y lectura previa, copiadas de la salida de `preparar.mjs` y `aplicar-remoto.sh` sobre `1e31a642f19ddf577bbd863da8f94b957cc74aa0`. Los commits posteriores solo tocan este handoff. **La lectura previa PASÓ en las dos**, con scripts del servidor iguales al checkout.
+**Identidad vigente hasta la segunda revisión; la 0497 ya no es esta:** ver «Segunda revisión de Codex».
+
+Identidad y lectura previa, copiadas de la salida de `preparar.mjs` y `aplicar-remoto.sh` sobre `1e31a642f19ddf577bbd863da8f94b957cc74aa0`. **La lectura previa PASÓ en las dos**, con scripts del servidor iguales al checkout.
 
 | Migración | Blob | Bytes | md5 del blob | md5 de `aplicar.sql` | Evidencia de la lectura previa |
 |---|---|---:|---|---|---|
@@ -270,7 +272,7 @@ En la de la 0497: 0 sesiones esperando locks, 0 transacciones largas, 13 funcion
 
 ## COMMITS
 
-`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · más el de esta evidencia.
+`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · `dab79b99f` y `1e31a642f` rol real y control posterior · `db84f6ffd` y `24d970e1e` evidencia y ensayo · `fda48edb1` límites hasta el COMMIT y control sin procedencia, **local, sin publicar** · más el de esta evidencia, también local.
 
 ## PR / BRANCH
 
@@ -280,7 +282,9 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 
 - Que Sam vea el cambio de mecanismo D2/M4 al pedirle el OK nominal.
 - Que Sam vea el filtro de la guarda y el hueco conocido en el OK nominal, con la regla exacta.
-- Smoke B de Sam, con el guion en `.agents/handoffs/smokes-app-l14-0454-0472-guion.md`, bloque 7. Antes, su IP en el borde (FUERA DE ALCANCE).
+- Smoke de Sam, con el guion en `.agents/handoffs/smokes-app-l14-0454-0472-guion.md`, bloque 7. **Frenado por el Director.** La versión corta está reescrita en el árbol, sin commit, y copiada en `0573-guion-bloque7-frenado.md` de la carpeta de notas.
+- Con el blob final, y una sola vez: `preparar.mjs`, lectura previa, rol real, contrato y mutantes. Lo pide el Director: «Corre una sola vez, sobre el blob final.»
+- Decisión de Sam sobre las 7 facturas de producción y, con ella, sobre el filtro.
 
 ## Ensayo en prueba, 0492–0497 (2026-11-01, 21:12–21:55Z)
 
@@ -328,20 +332,20 @@ Encargo del Director: incremental y con respaldo. Autorización de Sam, literal:
 |---|---|
 | Control antes de la 0497: emitir | `emitida`, con su venta. Prueba que la web y la base estaban sanas |
 | Emitir al crear, y borrador → emitir | **La persona ve «creada» y «emitida» sin ningún error. La factura queda SIN asiento.** Solo el log del web lo dice: `[contabilidad] asiento de factura F-2026-0035 no creado: Las líneas de venta no son la fórmula nominal íntegra.` |
-| Detectarla | El control posterior da `sin_venta\|emitida\|emitida_en_la_ventana\|2` |
+| Detectarla | El control posterior da `sin_venta\|emitida\|emitida_en_la_ventana\|2`. Esa etiqueta hoy se llama `sin_venta_fechas_recientes` y no prueba procedencia |
 | Repararla | `post_invoice_journal_entry_atomic` con `service_role` responde `posted`. Probado en `emitida`, `parcial` y `pagada`; la factura pasa a `sana`. La fecha del asiento es la de emisión, y si ese período ya cerró la RPC lo rechaza. **La web no tiene botón para esto:** en producción sería una escritura con OK |
 | Anular con venta y sin cobro | `anulada`, con reverso |
 | Anular con cobro vivo | Rechazo y factura intacta: «La factura tiene 1 cobro(s) vivo(s): anúlalos primero en Cobranzas.» |
 | Anular el cobro y después la factura | Pasa, con reverso |
 | Cobrar, parcial y total | Pasan |
-| Cobrar una sin venta de antes | Pasa. Es el hueco conocido |
+| Cobrar una sin venta de antes | Pasa. **Corrijo:** no es el hueco del filtro. Sin asientos, la aserción sale con `return` también sin filtro |
 | Anular una sin venta | `anulada`, sin reverso |
 | Anular asiento automático o reverso | Rechazo: «El asiento automático es inmutable; revisa su factura y reverso.» La web vieja todavía ofrece el botón |
 | Anular asiento manual | Pasa |
 | Comercial | Facturación lo devuelve al Dashboard |
 | Lecturas: facturación, contabilidad, cobranzas, reportes | HTTP 200, sin pantalla de error |
 
-**Límite del control posterior que encontré:** `issued_at` es una fecha, así que una factura sin venta emitida el mismo día **antes** del apply y tocada después sale como `emitida_en_la_ventana`. Medido con `F-0573-2001`, que sembré ese mismo día. Falla hacia avisar de más. Se compara contra el conteo previo; no cambié el script.
+**Límite del control posterior que encontré:** `issued_at` es una fecha, así que una factura sin venta emitida el mismo día **antes** del apply y tocada después salía como `emitida_en_la_ventana`. Medido con `F-0573-2001`, que sembré ese mismo día. **Corrijo:** dije que falla solo hacia avisar de más, y falla en los dos sentidos: una emitida después del apply con `issued_at` anterior cae en las viejas. Ver «Segunda revisión».
 
 **Imagen de la cabeza, `prueba-sha-db84f6ffd…`, ya desplegada.** Recorrido previo del Smoke B con cuentas de contabilidad, comercial y admin: emitir asienta por la RPC en los dos caminos; anular deja venta y reverso; con cobro vivo, «Anular» está deshabilitado y explica por qué; en el libro diario, «Anular» de un automático está deshabilitado; «Por contabilizar» lista las de sin venta y no las anuladas con reverso; 0 errores de página. Mailpit con 0 mensajes y `mail_logs` con 0 filas en la última hora.
 
@@ -354,6 +358,144 @@ Encargo del Director: incremental y con respaldo. Autorización de Sam, literal:
 
 **Estado en que queda prueba:** ledger con 489 filas, última `0497`; web `db84f6ffd`; lista de IP del `.env` con la IP actual de Sam, reemplazada por `ips-prueba.sh`, porque esta PC recibía 403. Producción no se tocó: su web y su ledger de 499 filas siguen igual.
 
+## Segunda revisión de Codex (2026-11-01 y 02)
+
+Autorización de Sam, transmitida por el Director, literal: «Sí, corrígelos». No cubre producción.
+
+Después, el Director frenó los puntos 2, 3, 4, 5 y 6, y dejó seguir el 1 y el 7. La razón, con las palabras de Sam que me transmitió: «El sistema no tiene facturas todavía, estamos en modo de prueba. Realmente lo único funcional es el portal del cliente y el número de registros que lleva». Si Sam decide borrar las 7 facturas de producción, el filtro de la guarda puede salir y el blob cambia otra vez. **Nada de esto es un OK para borrar ni para quitar el filtro.**
+
+| Punto | Estado |
+|---|---|
+| 1. Límites hasta el COMMIT | Hecho en `fda48edb1`, local. La 0497 usa `set local`, sin `reset`: sin esas líneas, el archivo es idéntico al blob `7f8450fa6417`, y los 14 cuerpos de función también. La 0496 no tiene el hueco: `set` sin `reset`. Pruebas escritas: PGlite con siete mutantes, y ledger bloqueado con su control en rojo en `prueba-0497-rol-real.mjs`. **NO EJECUTADAS:** el Director retuvo el turno pesado |
+| 2. Paso 7 en dos casos | **Frenado.** Sembrado en prueba, y guion sin commit |
+| 3. Control sin procedencia | **Frenado, pero ya va dentro de `fda48edb1`,** en el mismo commit que el punto 1. Etiquetas nuevas y dos pruebas nuevas, sin correr |
+| 4. Bloque 7, versión corta | **Frenado.** Guion sin commit. La parte del Worker, NO EJECUTADA; solo ensayé su lectura de los pasos 4, 6 y 9 |
+| 5. `accounts` | **Frenado como propuesta.** La medición queda abajo, y vale aunque no haya facturas |
+| 6. Pausa de emisión | **Frenado como propuesta,** en `0573-propuestas-5-6-7.md` de la carpeta de notas |
+| 7. Recuperación | Propuesta en esa misma nota. **NO EJECUTADO** |
+
+**Identidad, copiada de la salida sobre `fda48edb194a0d33814aaeadbb6b216dddaa65d5`. Puede cambiar otra vez.**
+
+| Migración | Blob | Bytes | md5 del blob | md5 de `aplicar.sql` | Lectura previa, PASÓ |
+|---|---|---:|---|---|---|
+| `0496_tarifa_congelada_por_embarque` | `0f424008e0b8` | 45610 | `075eab7fae8d9dfb2b06f88335087f8d` | `d3be5cbcdc4d1960e1306d2a9a6a4926` | `/srv/ops/evidencias/previa-0496-dtd-cargo-20261102T003018Z` |
+| `0497_reverso_al_anular_factura` | `26e0ec58a2e5` | 79577 | `9912b305301239c4ce38a1910e14645d` | `bfe0d2d57e3dbe477985c8b9f736f362` | `/srv/ops/evidencias/previa-0497-dtd-cargo-20261102T003045Z` |
+
+**Me equivoqué en `fda48edb1`:** dejé vencida la huella SHA256 de la 0497 en `supabase/migrations-baseline.json` y en `supabase/pending-migration-symbol-declarations.json`. Ninguna prueba la compara. La corregí en el commit de esta sección: `2bf40f9d04d58423…`.
+
+### Medición: los siete roles pueden cambiar `accounts`
+
+Medido el 2026-11-02 cerca de las 00:25Z. Evidencia en `/srv/ops/evidencias/ensayo-0573-20261101T211302Z/`, y copia con sus scripts en `0573-evidencia/accounts/` de la carpeta de notas. sha256 de los archivos en el VPS: `accounts-matriz.txt` `2f91a909…`, `accounts-patch-http.txt` `b84f361f…`, `accounts-catalogo.txt` `2514c1b4…`.
+
+**El catálogo es igual en producción y en prueba:** `authenticated` con SELECT, INSERT, UPDATE y DELETE, una sola policy `accounts by tenant` con `tenant_id = get_user_tenant_id()` (md5 `66a11a077aab377358bfa522855d1ccf`), RLS activa, y solo los disparadores `accounts_touch` y `audit_d2_accounts`. `get_user_tenant_id` da `5ff0c51c26a49419c34abc78f1d95c37` en las dos. En producción hay 8 usuarios activos: admin 4, accounting 2, marketing 1, warehouse 1.
+
+**Bajo RLS, con rollback, solo en prueba.** Comando:
+
+```bash
+docker exec -i dtd-cargo-staging-db-1 psql -U postgres -d postgres -X -At -F'|' < /srv/ops/paquetes/ensayo-0573/accounts-matriz.sql
+```
+
+Salida exacta. El error del final es de mi consulta de comprobación, una columna ambigua. La línea `despues_rollback` es esa consulta corregida: 4.5 sigue postable, `F-0573-1004` sigue emitida y la cuenta comercial sigue en su rol.
+
+```text
+BEGIN
+SET
+SET
+DO
+CREATE TABLE
+CREATE FUNCTION
+DO
+(anon)|is_postable|4.5|ERROR 42501: permission denied for table accounts
+(usuario sin tenant, como el portal)|is_postable|4.5|0 fila(s)
+accounting|code|4.5|1 fila(s)
+accounting|is_postable|1.1.2|1 fila(s)
+accounting|is_postable|4.5|1 fila(s)
+accounting|name|4.5|1 fila(s)
+accounting|parent_id|4.5|1 fila(s)
+admin|code|4.5|1 fila(s)
+admin|is_postable|1.1.2|1 fila(s)
+admin|is_postable|4.5|1 fila(s)
+admin|name|4.5|1 fila(s)
+admin|parent_id|4.5|1 fila(s)
+commercial|code|4.5|1 fila(s)
+commercial|is_postable|1.1.2|1 fila(s)
+commercial|is_postable|4.5|1 fila(s)
+commercial|name|4.5|1 fila(s)
+commercial|parent_id|4.5|1 fila(s)
+marketing|code|4.5|1 fila(s)
+marketing|is_postable|1.1.2|1 fila(s)
+marketing|is_postable|4.5|1 fila(s)
+marketing|name|4.5|1 fila(s)
+marketing|parent_id|4.5|1 fila(s)
+operations|code|4.5|1 fila(s)
+operations|is_postable|1.1.2|1 fila(s)
+operations|is_postable|4.5|1 fila(s)
+operations|name|4.5|1 fila(s)
+operations|parent_id|4.5|1 fila(s)
+support|code|4.5|1 fila(s)
+support|is_postable|1.1.2|1 fila(s)
+support|is_postable|4.5|1 fila(s)
+support|name|4.5|1 fila(s)
+support|parent_id|4.5|1 fila(s)
+warehouse|code|4.5|1 fila(s)
+warehouse|is_postable|1.1.2|1 fila(s)
+warehouse|is_postable|4.5|1 fila(s)
+warehouse|name|4.5|1 fila(s)
+warehouse|parent_id|4.5|1 fila(s)
+CREATE TABLE
+GRANT
+DO
+1 aserción antes|ok
+2 comercial cambia is_postable de 4.5|1 fila(s)
+3 aserción después|La venta original requiere revisión.
+4 contabilidad cobra el total|cobro aceptado · estado pagada
+ROLLBACK
+ERROR:  column reference "role" is ambiguous at character 258
+despues_rollback|t|emitida|commercial
+```
+
+**El PATCH real, por el borde y PostgREST, con el JWT de cada cuenta, sobre una cuenta sintética sin movimientos que se borra al salir.** Solo hay tres cuentas en prueba. Comando:
+
+```bash
+bash /srv/ops/paquetes/ensayo-0573/accounts-patch-http.sh </dev/null
+```
+
+```text
+9.9.9.0573|t
+INSERT 0 1
+admin_correo: login HTTP 200 · token sí
+  PATCH {"is_postable":false} → HTTP 200 · 1 fila(s) · base: f
+  PATCH {"is_postable":true} → HTTP 200 · 1 fila(s) · base: t
+  PATCH {"code":"9.9.9.0573"} → HTTP 200 · 1 fila(s) · base: t
+  PATCH {"parent_id":null} → HTTP 200 · 1 fila(s) · base: t
+contabilidad_correo: login HTTP 200 · token sí
+  PATCH {"is_postable":false} → HTTP 200 · 1 fila(s) · base: f
+  PATCH {"is_postable":true} → HTTP 200 · 1 fila(s) · base: t
+  PATCH {"code":"9.9.9.0573"} → HTTP 200 · 1 fila(s) · base: t
+  PATCH {"parent_id":null} → HTTP 200 · 1 fila(s) · base: t
+comercial_correo: login HTTP 200 · token sí
+  PATCH {"is_postable":false} → HTTP 200 · 1 fila(s) · base: f
+  PATCH {"is_postable":true} → HTTP 200 · 1 fila(s) · base: t
+  PATCH {"code":"9.9.9.0573"} → HTTP 200 · 1 fila(s) · base: t
+  PATCH {"parent_id":null} → HTTP 200 · 1 fila(s) · base: t
+```
+
+**Lo que no se midió:** el rastro en `entity_audit_log`, porque la matriz terminó en rollback; y que «Por contabilizar» no liste la venta invalidada, que sale de leer su fórmula.
+
+### Lo que queda en prueba por esta revisión
+
+Solo sintéticos, en `dtd-cargo-staging`. El Director pidió dejarlos y no seguir sembrando ni recorriendo.
+
+| Qué | Estado |
+|---|---|
+| `F-0573-5001` | `emitida`, con su venta anulada, para el paso 7b. Se creó apagando `i3_journal_entry_guard` e `i3_journal_entry_final_check` dentro de su transacción. Encendidas al salir, comprobado |
+| `F-0573-5002` | Gemela, igual a la anterior, recorrida hasta `pagada` por la pantalla, con los recibos `R-2026-0006` y `R-2026-0007` |
+| `F-0573-5003` | Gemela de `F-0573-3001`, sin venta, recorrida hasta `pagada`, con el recibo `R-2026-0008` |
+| Recepción `WR-2026-0001` y tarifa con destino `PRUEBA-0573` | Para el paso 9, 0496. Solo vi su vista previa, sin congelar: 0 filas en `shipment_rate_snapshots` |
+| Cuenta `9.9.9.0573` | Borrada al terminar el PATCH: 0 filas |
+
+La 0497 de prueba sigue siendo la del blob `7f8450fa6417`: su ledger dice `86a8bdbc…`, que ya no es el del checkout. Con el blob final, prueba se rehace; no se le aplica nada encima.
+
 ## FUERA DE ALCANCE DETECTADO
 
 - **Sam no puede entrar a prueba todavía.** Prueba está detrás de Cloudflare desde el 2026-10-22 y los routers `*-cloudflare@file` de `/srv/edge/traefik/dynamic/cloudflare-private.yml` tienen su propia lista de IP, con la IP vieja de Sam. `ips-prueba.sh` no la toca y el runbook §2.1 no lo dice: `--aplicar` termina bien y Sam sigue en 403. Ese archivo es del borde compartido y no está en el repo, así que no lo edité: lo pedí al Director.
@@ -364,7 +506,10 @@ Encargo del Director: incremental y con respaldo. Autorización de Sam, literal:
 - **Mi medición imprimió el comienzo de llaves TLS.** Un `grep` sobre los volúmenes de Traefik abrió `acme.json` y mostró en esta sesión las primeras ~100 letras de varias llaves privadas. No hay nada en Git ni en estos documentos. Decidir si se rota es del Director.
 
 - **`edge-functions` dio rojo local dos veces y no era del código.** `deno check` dio TS7031 y TS7006 en `supabase/functions/kommo-webhook/index.ts:388,391` en los `verify` de `4c3501b1b` y `66b755c13`. **Corrijo lo que escribí antes:** dije que la causa era la versión flotante de `jsr:@supabase/supabase-js@2`, y no lo es. Con caché de Deno vacía, el árbol de `origin/main` da exit 0 con `2.90.0`, `2.110.0`, `2.115.0`, `2.116.0`, `2.117.0` y `2.118.0`, y también sin fijar versión. El rojo salía con la caché de esta máquina, y `main` fallaba igual en esa misma caché, con `supabase/functions` idéntico a esta rama. Después de mis corridas, esa caché también da exit 0 y el `verify` de `dab79b99f` lo dio verde. **Inferencia:** caché de Deno desactualizada en esta máquina; ya no se puede comprobar porque se refrescó. Por eso el CI, que parte de una caché limpia, no lo mostraba.
-- **Otra vía a facturas inválidas, que ya existía:** un `PATCH` directo con `is_postable=false` sobre la cuenta 4.5 vuelve inválidas las ventas del tenant, porque la 0497 no pone guardas sobre `accounts` y la RLS es `for all` por tenant. La acción de Contabilidad lo impide con movimientos; el `PATCH` directo no. El permiso ya existía, y el filtro le quita el ruido: esas ventas ya no congelan un cobro. Corrijo lo que dije: esto no es solo por SQL directo.
+- **Otra vía a facturas inválidas, que ya existía:** un `PATCH` directo con `is_postable=false` sobre la cuenta 4.5 vuelve inválidas las ventas del tenant, porque la 0497 no pone guardas sobre `accounts` y la RLS es `for all` por tenant. La acción de Contabilidad lo impide con movimientos; el `PATCH` directo no. El permiso ya existía, y el filtro le quita el ruido: esas ventas ya no congelan un cobro. Corrijo lo que dije: esto no es solo por SQL directo. **Medido en la segunda revisión; Sam decide.**
+- **`journal_entries` y `journal_lines` tampoco filtran por rol:** cualquier staff pasa la policy (`0078:153,161`). Con la 0497, las guardas protegen los automáticos, no los manuales.
+- **`mig_revisar` no detecta el hueco de los límites:** `mig_envolver` agrega la fila del ledger sin límites propios, y un `reset lock_timeout` al final del archivo los suelta antes. 0490, 0491 y 0495, ya aplicadas, lo traen, igual que el fixture de `infra/ops/tests/migraciones.test.mjs`. Una opción: rechazarlo en `revisarMigracion`, o que el envoltorio ponga sus propios `set local` antes del INSERT.
+- **El mensaje de VES sin tasa usa la fecha UTC:** a las 00:39Z del 2 de noviembre dijo «para el 2026-11-02», cuando en Caracas era el 1. Después de las 20:00 de Caracas, emitir en VES pediría la tasa de mañana (**inferido** para emitir; el texto lo vi).
 - **5 facturas `sin_venta` que no son borrador** (`emitida 3, pagada 1, parcial 1`): no tienen asiento de venta. Parece el defecto B3. **Inferencia,** sin revisar esas filas.
 - **Las pruebas de migración no corren con el rol de producción en el CI.** PGlite y `postgres:17` son superusuario. `infra/ops/tests/prueba-0497-rol-real.mjs` queda como corrida manual y solo para esta migración. Una opción: generalizarla al gate de migraciones.
 - **El ledger de `_supabase-platform-stubs.supabase.sql` no tiene `created_by`, `idempotency_key` ni `rollback`:** un `aplicar.sql` real falla ahí. Lo sorteé en mi arnés con un `alter table`.
