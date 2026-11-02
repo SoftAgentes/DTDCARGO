@@ -17,6 +17,10 @@
 # pg_restore como supabase_admin abre public a anon y authenticated.
 # --acl-verify-only compara sin corregir (sirve de control rojo junto con --dr).
 #
+# Event triggers: la prueba exige que restore.sh informe «iguales» contra el índice
+# del dump, que el dump traiga `ensure_rls` si trae su función (si no, el origen ya
+# lo perdió) y, con esa función, que una tabla nueva de public nazca con RLS de verdad.
+#
 # Uso:
 #   restore-test.sh --file <x.dump.age> --roles <x-roles.sql.age> --age-identity <clave> \
 #       [--config <x-config.tar.age>] [--expect <tabla>=<filas>]… [--vault-readable] \
@@ -47,7 +51,7 @@ WORK_ROOT="/dev/shm"
 EVIDENCE=""
 
 usage() {
-  sed -n '2,30p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,34p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 log() {
@@ -201,20 +205,30 @@ errors="$(grep -c '^pg_restore: error:' "${WORK_ROOT%/}/${name}.log" || true)"
 # `|| true`: con pipefail, cero errores (grep sin coincidencias) no puede matar la prueba.
 { grep '^pg_restore: error:' "${WORK_ROOT%/}/${name}.log" || true; } | sed 's/^pg_restore: error: //' | cut -c1-140 \
   | sort | uniq -c | sort -rn | head -n 8 | while read -r line; do log "      ${line}"; done
-if (( restore_rc != 0 && restore_rc != 4 && restore_rc != 8 )); then
+if (( restore_rc != 0 && restore_rc != 4 && restore_rc != 8 && restore_rc != 9 )); then
   tail -n 15 "${WORK_ROOT%/}/${name}.log" | while read -r line; do log "      ${line}"; done
 fi
 acl_line="$(grep -o 'permisos de public: .*' "${WORK_ROOT%/}/${name}.log" | tail -n 1 || true)"
+evt_line="$(grep -o 'event triggers: esperados .*' "${WORK_ROOT%/}/${name}.log" | tail -n 1 || true)"
+evt_perdido="$(grep -c 'ensure_rls no venía en el dump' "${WORK_ROOT%/}/${name}.log" || true)"
 rm -f -- "${WORK_ROOT%/}/${name}.log"
 log "3/5 restore.sh salió ${restore_rc} con ${errors} errores de pg_restore"
 log "      ${acl_line:-permisos de public: restore.sh no informó nada}"
-check "restore.sh terminó (0 limpio, 4 con advertencias u 8 con permisos distintos)" "ok" "$( [[ ${restore_rc} == 0 || ${restore_rc} == 4 || ${restore_rc} == 8 ]] && echo ok || echo "${restore_rc}")"
+log "      ${evt_line:-event triggers: restore.sh no informó nada}"
+check "restore.sh terminó (0 limpio, 4 con advertencias, 8 con permisos distintos o 9 sin event triggers)" "ok" "$( [[ ${restore_rc} == 0 || ${restore_rc} == 4 || ${restore_rc} == 8 || ${restore_rc} == 9 ]] && echo ok || echo "${restore_rc}")"
 case "${acl_line}" in
   *" · iguales") acl_state="iguales" ;;
   *DISTINTOS*) acl_state="DISTINTOS" ;;
   *) acl_state="no verificados" ;;
 esac
 check "permisos de public iguales a los del origen (huella)" "iguales" "${acl_state}"
+case "${evt_line}" in
+  *" · iguales") evt_state="iguales" ;;
+  *FALTAN*) evt_state="${evt_line##*· }" ;;
+  *) evt_state="no verificados" ;;
+esac
+check "event triggers iguales a los del dump" "iguales" "${evt_state}"
+check "el dump trae ensure_rls si trae su función (si no, el origen ya lo perdió)" "0" "${evt_perdido}"
 
 sql() {
   docker exec "${name}-db" psql -U supabase_admin -h localhost -d restore_test -v ON_ERROR_STOP=1 -Atq -c "$1"
@@ -222,6 +236,13 @@ sql() {
 
 # 4. Comprobaciones.
 log "4/5 comprobaciones"
+# El catálogo dice que el trigger está; esto mide que hace su trabajo, como `postgres`
+# (supautils no dispara estos triggers para un superusuario: medido, sin el role nace
+# sin RLS). restore_test es de supabase_admin, así que `postgres` necesita el grant.
+# El rollback deshace el grant y la tabla.
+if [[ "$(sql "select to_regprocedure('public.rls_auto_enable()') is not null" 2>/dev/null)" == "t" ]]; then
+  check "una tabla nueva de public nace con RLS (ensure_rls)" "t" "$(sql "begin; grant create on schema public to postgres; set local role postgres; create table public.restore_test_ensure_rls (id int); select relrowsecurity from pg_catalog.pg_class where oid = 'public.restore_test_ensure_rls'::pg_catalog.regclass; rollback;" 2>&1 | tail -n1)"
+fi
 for e in ${EXPECTS[@]+"${EXPECTS[@]}"}; do
   check "count(*) ${e%%=*}" "${e#*=}" "$(sql "select count(*) from ${e%%=*}" 2>&1 | tail -n1)"
 done

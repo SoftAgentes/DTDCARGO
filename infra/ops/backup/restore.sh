@@ -22,6 +22,12 @@
 # se busca al lado del dump. `--acl-verify-only` compara sin corregir. Un destino
 # destructivo sin archivo de permisos se rechaza salvo `--skip-acl`.
 #
+# Event triggers (lib/event-triggers.sh): pg_restore no puede crear `ensure_rls`,
+# que activa RLS en las tablas nuevas de public. Se lo saca del índice, se recrea
+# como `postgres` después de restaurar y se compara la base contra el índice del
+# dump: tienen que estar todos sus event triggers, con su dueño, y `ensure_rls`
+# exacto. Si no, sale 9. No hay opción para saltarse esta comprobación.
+#
 # Dumps cifrados (`.age`, los que deja pg-dump-to-s3.sh): hace falta
 # `--age-identity <archivo>` con la clave PRIVADA. Antes de descifrar compara el
 # sha256 del cifrado con el `.sha256` hermano (o `--sums`); el claro se escribe
@@ -38,10 +44,12 @@
 #       [--acl <x-acl.sql[.age]>] [--acl-verify-only | --skip-acl] \
 #       [--i-know-this-destroys-prod] [--dry-run]
 #
-# Códigos de salida: 0 ok · 2 uso inválido · 3 RECHAZADO por la guarda ·
+# Códigos de salida: 0 ok · 2 uso inválido o dump ilegible · 3 RECHAZADO por la guarda ·
 # 4 restaurado con advertencias de pg_restore (lee el log antes de confiar) ·
 # 5 el sha256 del cifrado no coincide (no se descifró nada) ·
-# 8 restaurado, pero los permisos de public NO son los del origen (huella distinta).
+# 8 restaurado, pero los permisos de public NO son los del origen (huella distinta) ·
+# 9 restaurado, pero faltan event triggers del dump o `ensure_rls` no quedó como debe
+#   (las tablas nuevas de public pueden nacer sin RLS).
 #
 # Restore de prueba mensual: restore-test.sh (contenedor desechable en memoria).
 set -euo pipefail
@@ -50,6 +58,9 @@ umask 077
 # ACL_FINGERPRINT_SQL (permisos de public para los roles cliente).
 # shellcheck source=../lib/acl.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/acl.sh"
+# EVT_* y evt_* (event triggers de la base restaurada).
+# shellcheck source=../lib/event-triggers.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/event-triggers.sh"
 
 FILE=""
 PROJECT=""
@@ -72,7 +83,7 @@ PROD_PROJECT="${PROD_COMPOSE_PROJECT:-dtd-cargo}"
 LIVE_DB="${PROD_DB_NAME:-postgres}"
 
 usage() {
-  sed -n '2,46p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,54p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 log() {
@@ -150,10 +161,10 @@ if (( ! DRY_RUN )); then
   [[ -z "${ACL}" || -f "${ACL}" ]] || die "no existe ${ACL}"
   [[ -n "${PGPASSWORD-}" ]] || die "PGPASSWORD no está en el entorno"
   command -v docker >/dev/null || die "docker no está en el PATH"
+  [[ -d "${WORK_ROOT}" && -w "${WORK_ROOT}" ]] || die "--work-dir ${WORK_ROOT} no existe o no se puede escribir"
   if (( encrypted )); then
     command -v age >/dev/null || die "age no está instalado en el host (apt-get install age)"
     [[ -f "${AGE_IDENTITY}" ]] || die "no existe la identidad age ${AGE_IDENTITY}"
-    [[ -d "${WORK_ROOT}" && -w "${WORK_ROOT}" ]] || die "--work-dir ${WORK_ROOT} no existe o no se puede escribir"
   fi
 fi
 
@@ -179,6 +190,8 @@ docker_pg=(docker run --rm -i --label "${run_label}" --network "${NETWORK}" -e P
 # interactiva de la guarda se lee después de db_exists).
 psql_admin=(docker run --rm --label "${run_label}" --network "${NETWORK}" -e PGPASSWORD "${PG_IMAGE}"
   psql -h "${HOST}" -U "${PGUSER_}" -d postgres -v ON_ERROR_STOP=1 -Atq)
+psql_target=(docker run --rm --label "${run_label}" --network "${NETWORK}" -e PGPASSWORD "${PG_IMAGE}"
+  psql -h "${HOST}" -U "${PGUSER_}" -d "${TARGET}" -v ON_ERROR_STOP=1 -Atq)
 
 db_exists() {
   local found
@@ -247,7 +260,7 @@ if (( encrypted )); then
     [[ -f "${guess}" ]] && SUMS="${guess}"
   fi
   if [[ -n "${SUMS}" ]]; then
-    log "0/5 sha256 de los cifrados contra $(basename "${SUMS}")"
+    log "0/6 sha256 de los cifrados contra $(basename "${SUMS}")"
     if (( ! DRY_RUN )); then
       for f in "${FILE}" ${ROLES:+"${ROLES}"} ${ACL:+"${ACL}"}; do
         [[ "${f}" == *.age ]] || continue
@@ -258,7 +271,7 @@ if (( encrypted )); then
       done
     fi
   else
-    log "0/5 sin .sha256 al lado ni --sums: se descifra sin comparar huellas"
+    log "0/6 sin .sha256 al lado ni --sums: se descifra sin comparar huellas"
   fi
   if (( ! DRY_RUN )); then
     if [[ "$(head -c 21 "${AGE_IDENTITY}")" != "age-encryption.org/v1" && "$(readlink -f "${AGE_IDENTITY}")" != "$(readlink -f "${WORK_ROOT}")"/* ]]; then
@@ -268,7 +281,7 @@ if (( encrypted )); then
   else
     work="${WORK_ROOT%/}/restore-${PROJECT}-XXXXXX"
   fi
-  log "0/5 age -d → ${work} (memoria)"
+  log "0/6 age -d → ${work} (memoria)"
   if [[ "${FILE}" == *.age ]]; then
     dump_path="${work}/$(basename "${FILE%.age}")"
     run age -d -i "${AGE_IDENTITY}" -o "${dump_path}" "${FILE}"
@@ -288,13 +301,28 @@ if (( ! DRY_RUN )); then
   file_abs="$(readlink -f "${dump_path}")"
 fi
 
+# Índice del dump, antes de tocar el destino: dice qué event triggers tienen que
+# quedar. Y el que se le da a pg_restore va sin `ensure_rls`, que no puede crear.
+indice=""
+indice_restore=""
+if (( DRY_RUN )); then
+  printf '+ docker run --network none -v %q:/restore.dump:ro %q pg_restore --list /restore.dump\n' "${file_abs}" "${PG_IMAGE}"
+else
+  [[ -n "${work}" ]] || work="$(mktemp -d "${WORK_ROOT%/}/restore-${PROJECT}-XXXXXX")"
+  indice="${work}/indice.txt"
+  indice_restore="${work}/indice-restore.txt"
+  docker run --rm --label "${run_label}" --network none -v "${file_abs}:/restore.dump:ro" "${PG_IMAGE}" \
+    pg_restore --list /restore.dump > "${indice}" || die "pg_restore no pudo leer el índice de $(basename "${dump_path}"): no se tocó el destino"
+  { grep -vE "${EVT_INDICE_ENSURE_RLS_RE}" "${indice}" || true; } > "${indice_restore}"
+fi
+
 # 1. Roles (opcional). `CREATE ROLE` de roles que ya existen da error: esperado,
 #    por eso ON_ERROR_STOP=0 solo aquí. Se quitan las cláusulas PASSWORD: traen
 #    los hashes del ORIGEN y le cambiarían la contraseña al usuario con el que
 #    este mismo script se conecta. Las contraseñas de los roles las fija el .env
 #    del destino (en un DR, el .env restaurado del respaldo de configuración).
 if [[ -n "${roles_path}" ]]; then
-  log "1/5 roles desde $(basename "${roles_path}") sin contraseñas (errores de 'ya existe' son normales)"
+  log "1/6 roles desde $(basename "${roles_path}") sin contraseñas (errores de 'ya existe' son normales)"
   if (( DRY_RUN )); then
     printf '+ sed -E %q %q | %s psql -h %q -U %q -d postgres -v ON_ERROR_STOP=0 -q\n' "s/ PASSWORD '[^']*'//" "${roles_path}" "docker run … ${PG_IMAGE}" "${HOST}" "${PGUSER_}"
   else
@@ -302,11 +330,11 @@ if [[ -n "${roles_path}" ]]; then
       | "${docker_pg[@]}" psql -h "${HOST}" -U "${PGUSER_}" -d postgres -v ON_ERROR_STOP=0 -q || true
   fi
 else
-  log "1/5 sin --roles: se asume que los roles ya existen en el destino"
+  log "1/6 sin --roles: se asume que los roles ya existen en el destino"
 fi
 
 # 2. Crear la base si no existe (en producción la guarda ya garantizó que no existe).
-log "2/5 create database ${TARGET} (si no existe)"
+log "2/6 create database ${TARGET} (si no existe)"
 if (( DRY_RUN )); then
   printf '+ %s psql … -c %q\n' "docker run … ${PG_IMAGE}" "create database ${TARGET}"
 elif ! db_exists; then
@@ -316,21 +344,27 @@ fi
 # 3. Restaurar. El archivo se monta en el contenedor para poder usar --jobs.
 #    pg_restore devuelve 1 si hubo advertencias (extensiones ya presentes, etc.):
 #    se registra y se sigue a la verificación, pero el script no sale 0.
-log "3/5 pg_restore --clean --if-exists --jobs ${JOBS}"
+#    Sin `ensure_rls` en el índice, --clean no lo quita, y si la base ya lo tiene el
+#    DROP de su función falla por dependencia: se quita antes.
+log "3/6 pg_restore --clean --if-exists --jobs ${JOBS}, sin ensure_rls"
 restore_rc=0
 if (( DRY_RUN )); then
-  printf '+ docker run --rm --network %q -e PGPASSWORD -v %q:/restore.dump:ro %q pg_restore -h %q -U %q -d %q --clean --if-exists --jobs %q /restore.dump\n' \
+  printf '+ %s psql -h %q -U %q -d %q -Atq -c %q\n' "docker run … ${PG_IMAGE}" "${HOST}" "${PGUSER_}" "${TARGET}" "${EVT_ENSURE_RLS_QUITAR_SQL}"
+  printf '+ docker run --rm --network %q -e PGPASSWORD -v %q:/restore.dump:ro -v <índice sin ensure_rls>:/restore.list:ro %q pg_restore -h %q -U %q -d %q --clean --if-exists --jobs %q -L /restore.list /restore.dump\n' \
     "${NETWORK}" "${file_abs}" "${PG_IMAGE}" "${HOST}" "${PGUSER_}" "${TARGET}" "${JOBS}"
 else
-  docker run --rm --label "${run_label}" --network "${NETWORK}" -e PGPASSWORD -v "${file_abs}:/restore.dump:ro" "${PG_IMAGE}" \
-    pg_restore -h "${HOST}" -U "${PGUSER_}" -d "${TARGET}" --clean --if-exists --jobs "${JOBS}" /restore.dump \
+  if evt_indice_exige_ensure_rls "${indice}"; then
+    "${psql_target[@]}" -c "${EVT_ENSURE_RLS_QUITAR_SQL}" || die "no se pudo quitar ensure_rls del destino: no se restauró nada"
+  fi
+  docker run --rm --label "${run_label}" --network "${NETWORK}" -e PGPASSWORD -v "${file_abs}:/restore.dump:ro" -v "${indice_restore}:/restore.list:ro" "${PG_IMAGE}" \
+    pg_restore -h "${HOST}" -U "${PGUSER_}" -d "${TARGET}" --clean --if-exists --jobs "${JOBS}" -L /restore.list /restore.dump \
     || restore_rc=$?
 fi
 
 # 4. Permisos de public: los del origen, comprobados por huella (lib/acl.sh).
 acl_rc=0
 if [[ -z "${acl_path}" ]]; then
-  log "4/5 permisos de public: NO verificados (sin archivo de permisos${ACL_MODE:+, modo ${ACL_MODE}})"
+  log "4/6 permisos de public: NO verificados (sin archivo de permisos${ACL_MODE:+, modo ${ACL_MODE}})"
 elif (( DRY_RUN )); then
   [[ "${ACL_MODE}" == "sync" ]] && printf '+ %s psql -h %q -U %q -d %q -1 -v ON_ERROR_STOP=1 < %q\n' "docker run … ${PG_IMAGE}" "${HOST}" "${PGUSER_}" "${TARGET}" "${acl_path}"
   printf '+ %s psql -h %q -U %q -d %q -Atq -c %q\n' "docker run … ${PG_IMAGE}" "${HOST}" "${PGUSER_}" "${TARGET}" 'ACL_FINGERPRINT_SQL (lib/acl.sh)'
@@ -338,10 +372,10 @@ else
   acl_expected="$(head -n 1 "${acl_path}" | sed -n 's/^-- huella-acl: //p')"
   [[ "${acl_expected}" =~ ^[0-9]+:([0-9a-f]{32}|-)$ ]] || die "$(basename "${ACL}") no empieza con '-- huella-acl: <cantidad>:<md5>'"
   if [[ "${ACL_MODE}" == "sync" ]]; then
-    log "4/5 permisos de public: igualar a los del origen (una transacción)"
+    log "4/6 permisos de public: igualar a los del origen (una transacción)"
     "${docker_pg[@]}" psql -h "${HOST}" -U "${PGUSER_}" -d "${TARGET}" -1 -v ON_ERROR_STOP=1 -q < "${acl_path}" > /dev/null || acl_rc=$?
   else
-    log "4/5 permisos de public: solo comparar (--acl-verify-only)"
+    log "4/6 permisos de public: solo comparar (--acl-verify-only)"
   fi
   acl_actual="$(docker run --rm --label "${run_label}" --network "${NETWORK}" -e PGPASSWORD "${PG_IMAGE}" \
     psql -h "${HOST}" -U "${PGUSER_}" -d "${TARGET}" -v ON_ERROR_STOP=1 -Atq -c "${ACL_FINGERPRINT_SQL}" || echo '?')"
@@ -355,8 +389,36 @@ else
   fi
 fi
 
-# 5. Verificación: una consulta real sobre la base restaurada.
-log "5/5 select count(*) from ${VERIFY_TABLE}"
+# 5. Event triggers: recrear `ensure_rls` y comparar la base con el índice del dump.
+evt_rc=0
+if (( DRY_RUN )); then
+  log "5/6 event triggers: recrear ensure_rls y comparar con el índice del dump"
+  printf '+ %s psql -h %q -U %q -d %q -Atq -c %q\n' "docker run … ${PG_IMAGE}" "${HOST}" "${PGUSER_}" "${TARGET}" "${EVT_ENSURE_RLS_CREAR_SQL}"
+  printf '+ %s psql -h %q -U %q -d %q -Atq -c %q\n' "docker run … ${PG_IMAGE}" "${HOST}" "${PGUSER_}" "${TARGET}" 'EVT_FOTO_SQL (lib/event-triggers.sh)'
+else
+  evt_nota=""
+  if evt_indice_exige_ensure_rls "${indice}"; then
+    log "5/6 event triggers: recrear ensure_rls como postgres y comparar con el índice del dump"
+    if ! evt_indice_trae_ensure_rls "${indice}"; then
+      log "ADVERTENCIA: ensure_rls no venía en el dump, aunque sí su función: el origen ya lo había perdido. Se recrea aquí; revisa pg_event_trigger en el origen."
+    fi
+    "${psql_target[@]}" -c "${EVT_ENSURE_RLS_CREAR_SQL}" || evt_nota=" (no se pudo recrear ensure_rls)"
+  else
+    log "5/6 event triggers: comparar con el índice del dump (este dump no usa ensure_rls)"
+  fi
+  evt_foto="$("${psql_target[@]}" -c "${EVT_FOTO_SQL}" || echo '?')"
+  evt_faltantes="$(evt_faltan "${indice}" "${evt_foto}" | paste -sd ' ' -)"
+  evt_cuenta="esperados $(evt_esperados "${indice}" | wc -l | tr -d ' ') · restaurada $(printf '%s\n' "${evt_foto}" | grep -c '|' || true)"
+  if [[ -z "${evt_faltantes}" ]]; then
+    log "event triggers: ${evt_cuenta} · iguales"
+  else
+    log "event triggers: ${evt_cuenta} · FALTAN ${evt_faltantes}${evt_nota}"
+    evt_rc=9
+  fi
+fi
+
+# 6. Verificación: una consulta real sobre la base restaurada.
+log "6/6 select count(*) from ${VERIFY_TABLE}"
 if (( DRY_RUN )); then
   printf '+ %s psql -h %q -U %q -d %q -Atq -c %q\n' "docker run … ${PG_IMAGE}" "${HOST}" "${PGUSER_}" "${TARGET}" "select count(*) from ${VERIFY_TABLE}"
   log "dry-run: nada ejecutado · plan aceptado por la guarda"
@@ -365,9 +427,15 @@ fi
 count="$("${docker_pg[@]}" psql -h "${HOST}" -U "${PGUSER_}" -d "${TARGET}" -v ON_ERROR_STOP=1 -Atq -c "select count(*) from ${VERIFY_TABLE}")"
 log "verificación: ${VERIFY_TABLE} tiene ${count} filas en ${PROJECT}/${TARGET}"
 
+if (( evt_rc != 0 )); then
+  log "faltan event triggers: no des esta base por restaurada. Sin ensure_rls, las tablas nuevas de public nacen sin RLS."
+fi
 if (( acl_rc != 0 )); then
   log "los permisos de public NO quedaron como en el origen: no expongas esta base (PostgREST/anon) hasta igualarlos."
   exit 8
+fi
+if (( evt_rc != 0 )); then
+  exit 9
 fi
 if (( restore_rc != 0 )); then
   log "pg_restore terminó con código ${restore_rc}: hubo advertencias. Léelas antes de dar el restore por bueno."
