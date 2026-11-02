@@ -21,9 +21,9 @@
  *   5. Las RPC como `authenticated` y `service_role` sobre el esquema completo. Conviven
  *      con invoices_seal_billing_titular, invoices_referral_sale_voided, referrals_candado_trg
  *      e invoices_write_version. Incluye cobro, crédito, renombre y salidas con excepción.
- *      Las filas de legado pasan por cada camino que escribe una factura anulada: renombre,
- *      lote de renombre, anular un recibo, revertir un crédito y anular el asiento del
- *      crédito. Lo que la guarda sigue frenando se comprueba con su error.
+ *      Las filas de legado pasan por cada camino que escribe una factura: cobro, renombre, lote
+ *      de renombre, anular un recibo, revertir un crédito y anular el asiento del crédito. Sin
+ *      filtro, todos fallan al confirmar con su error y la factura queda como estaba.
  *   6. Los contratos de 0496 y 0497 en una base nueva, como `postgres`.
  *
  * Límites: tablas casi vacías, sin concurrencia, Auth y Storage son los stubs del repo, sin
@@ -413,16 +413,11 @@ reset dtd.audit_reason;
 ${VOID("l1")}
 \\echo @@l_post_venta_anulada
 ${POST("l1")}
-\\echo @@l_cobro_hueco_conocido
+\\echo @@l_cobro_legado
 begin; ${COMO_CONTABLE}
 select public.register_collection_receipt(md5('m1-l1')::uuid,10,${CUENTA("1.1.1.1")},'transferencia',current_date,'M1',null,'cliente',null,null,true);
 commit;
 select status, paid_amount, (select count(*) from public.payment_receipts where invoice_id = md5('m1-l1')::uuid and deleted_at is null) from public.invoices where id = md5('m1-l1')::uuid;
-\\echo @@l_cobro_hasta_pagada
-begin; ${COMO_CONTABLE}
-select public.register_collection_receipt(md5('m1-l1')::uuid,90,${CUENTA("1.1.1.1")},'transferencia',current_date,'M1',null,'cliente',null,null,true);
-commit;
-select i.status, i.paid_amount, e.status from public.invoices i join public.journal_entries e on e.invoice_id = i.id and e.source = 'invoice' where i.id = md5('m1-l1')::uuid;
 \\echo @@l_renombre_legado
 begin; ${COMO_COMERCIAL}
 select public.rename_client_markbox(md5('m1-c-L')::uuid,'M1-L2','Motivo M1 del renombre');
@@ -541,19 +536,18 @@ const ESPERADO = [
   ["e_exito_conserva_sesion", /COMMIT[\s\S]*M1 sesion\|0/, /ERROR/, "éxito: queda el valor de la sesión y no entra a ningún evento"],
   ["l_void_venta_anulada", /Los antecedentes de venta requieren revisión/, null, "legado, venta anulada: void lo rechaza"],
   ["l_post_venta_anulada", /"reason": "existing_sale_requires_review"/, /ERROR/, "legado, venta anulada: post pide revisión"],
-  ["l_cobro_hueco_conocido", /COMMIT[\s\S]*parcial\|10\.00\|1/, /ERROR/, "hueco conocido: una emitida con la venta anulada se puede cobrar"],
-  ["l_cobro_hasta_pagada", /COMMIT[\s\S]*pagada\|100\.00\|anulado/, /ERROR/, "hueco conocido: esa factura llega a pagada con la venta anulada"],
-  ["l_renombre_legado", /COMMIT[\s\S]*M1-L2\nM1-L2/, /ERROR/, "legado: renombrar a su cliente ya no falla"],
-  ["l_dos_ventas_otra_columna", /UPDATE 1[\s\S]*M1/, /ERROR/, "legado con dos ventas: otra columna ya no falla"],
-  ["l_cobro_dos_ventas", /COMMIT[\s\S]*pagada\|100\.00\|2/, /ERROR/, "hueco conocido: una factura con dos ventas también se cobra hasta pagada"],
+  ["l_cobro_legado", /La venta original requiere revisión[\s\S]*emitida\|0\.00\|0/, null, "legado: una emitida con la venta anulada no se cobra, y queda como estaba"],
+  ["l_renombre_legado", /requiere[\s\S]*M1-L\nM1-L\n/, null, "legado: renombrar a su cliente falla, y la marca queda igual"],
+  ["l_dos_ventas_otra_columna", /La relación contable de la factura requiere revisión/, /UPDATE 1/, "legado con dos ventas: otra columna falla"],
+  ["l_cobro_dos_ventas", /La relación contable de la factura requiere revisión[\s\S]*emitida\|0\.00\|2/, null, "legado: una factura con dos ventas no se cobra"],
   ["l_anulada_sin_reverso_void", /\nf\n/, /ERROR/, "legado, anulada sin reverso: void devuelve false"],
-  ["l_anulada_sin_reverso_otra_columna", /UPDATE 1[\s\S]*M1/, /ERROR/, "legado, anulada sin reverso: otra columna ya no falla"],
+  ["l_anulada_sin_reverso_otra_columna", /Una factura anulada con venta requiere su reverso íntegro/, /UPDATE 1/, "legado, anulada sin reverso: otra columna falla"],
   ["la_clase", /anulada\|anulado[\s\S]*anulada\|120\.00/, null, "la fila venta_anulada|anulada, con cobro y crédito vivos"],
-  ["la_renombrar", /COMMIT[\s\S]*M1-F2\|anulada/, /ERROR/, "venta_anulada|anulada: rename_client_markbox pasa"],
-  ["la_anular_recibo", /COMMIT[\s\S]*anulada\|80\.00/, /ERROR/, "venta_anulada|anulada: void_collection_receipt pasa, baja el pagado y no la revive"],
-  ["la_revertir_credito", /COMMIT[\s\S]*anulada\|0\.00[\s\S]*acreditado/, /ERROR/, "venta_anulada|anulada: revert_referral_credits pasa"],
-  ["la_anular_asiento_credito", /COMMIT[\s\S]*anulado/, /ERROR/, "venta_anulada|anulada: anular el asiento referral_credit pasa"],
-  ["lz_lote_legado", /COMMIT[\s\S]*DTD-8\d{3}\nDTD-8\d{3}/, /ERROR/, "venta_anulada|anulada: rename_legacy_markboxes pasa"],
+  ["la_renombrar", /La venta original requiere revisión[\s\S]*M1-F\|anulada/, null, "venta_anulada|anulada: rename_client_markbox falla"],
+  ["la_anular_recibo", /La venta original requiere revisión[\s\S]*anulada\|120\.00/, null, "venta_anulada|anulada: void_collection_receipt falla, y el pagado no cambia"],
+  ["la_revertir_credito", /La venta original requiere revisión[\s\S]*anulada\|120\.00[\s\S]*aplicado/, null, "venta_anulada|anulada: revert_referral_credits falla"],
+  ["la_anular_asiento_credito", /La venta original requiere revisión[\s\S]*asentado/, null, "venta_anulada|anulada: anular el asiento referral_credit falla"],
+  ["lz_lote_legado", /requiere revisión[\s\S]*DTD-Z1\nDTD-Z1/, null, "venta_anulada|anulada: rename_legacy_markboxes falla, y la marca queda igual"],
   ["g_sana_a_anulada_sin_reverso", /ERROR:\s+Una factura anulada con venta requiere su reverso íntegro/, null, "sigue frenando: anular sin reverso"],
   ["g_sana_a_borrador", /ERROR:\s+Estado de factura y par contable incompatibles/, null, "sigue frenando: volver a borrador con venta"],
   ["g_legado_a_anulada", /ERROR:\s+La relación contable de la factura requiere revisión/, null, "sigue frenando: legado con dos ventas hacia anulada"],
@@ -626,8 +620,8 @@ try {
 
   const conteo = docker(["exec", NOMBRE, "psql", "-U", "postgres", "-d", "postgres", "-X", "-At", "-F", "|", "-f",
     copiar("conteo.sql", readFileSync(resolve(ROOT, "scripts/qa/0497-legado-por-clase.sql"), "utf8"))]);
-  const filasConteo = (conteo.stdout || "").split("\n").filter((l) => /^[a-z_0-9]+\|[a-z]+\|\d+$/.test(l)).sort();
-  const conteoEsperado = ["anulada_sin_reverso|anulada|1", "dos_o_mas_ventas|emitida|1", "sin_venta|emitida|1", "venta_anulada|anulada|2", "venta_anulada|emitida|1"];
+  const filasConteo = (conteo.stdout || "").split("\n").filter((l) => /^[a-z_0-9]+\|[a-z]+\|\d+\|(pasa|FRENA)$/.test(l)).sort();
+  const conteoEsperado = ["anulada_sin_reverso|anulada|1|FRENA", "dos_o_mas_ventas|emitida|1|FRENA", "sin_venta|emitida|1|pasa", "venta_anulada|anulada|2|FRENA", "venta_anulada|emitida|1|FRENA"];
   if (conteo.status === 0 && JSON.stringify(filasConteo) === JSON.stringify(conteoEsperado)) ok("el conteo por clase ve las filas de legado");
   else ko("conteo por clase", `${filasConteo.join("\n")}\n${conteo.stderr || ""}`);
 
@@ -714,14 +708,14 @@ $real$; select mensaje, count(*) from a2_real group by mensaje;`);
   else ko("el control posterior no coincide con la aserción real", `control: ${orden(totalPorMensaje)}\nreal: ${orden(totalReal)}\n${ctrl.stderr || ""}\n${real.err}`);
   if (fila("sin_venta", "emitida", "sin_venta_fechas_recientes")) ok("el control posterior ve la factura viva sin venta con fechas recientes");
   else ko("el control posterior no ve la factura sin venta con fechas recientes", filasControl.join("\n"));
-  if (fila("venta_anulada", "pagada", "viva_no_cuadra") && fila("dos_o_mas_ventas", "pagada", "viva_no_cuadra")) ok("el control posterior separa las vivas que no cuadran, con venta anulada y con dos ventas");
+  if (fila("venta_anulada", "emitida", "viva_no_cuadra") && fila("dos_o_mas_ventas", "emitida", "viva_no_cuadra")) ok("el control posterior separa las vivas que no cuadran, con venta anulada y con dos ventas");
   else ko("el control posterior no ve las vivas que no cuadran", filasControl.join("\n"));
   if (fila("venta_anulada", "anulada", "no_viva_no_cuadra")) ok("el control posterior no confunde la anulada con su venta anulada con una viva");
   else ko("el control posterior confunde la anulada con su venta anulada", filasControl.join("\n"));
   if (!filasControl.some((l) => l.startsWith("venta_invalida_sin_clasificar|"))) ok("el control posterior clasifica todas las ventas inválidas");
   else ko("el control posterior tiene ventas sin clasificar", filasControl.join("\n"));
 
-  // La alarma del hueco conocido: el B3 de la radiografía tiene que ver esa factura. Se corre
+  // La alarma de una factura viva con la venta anulada: el B3 de la radiografía tiene que verla. Se corre
   // con la venta anulada y otra vez con la venta viva: la diferencia es esa fila y nada más.
   const rutaRadiografia = copiar("radiografia.sql", readFileSync(resolve(ROOT, "scripts/qa/radiografia-integridad.sql"), "utf8"));
   const facturasB3 = () => {
@@ -739,7 +733,7 @@ $real$; select mensaje, count(*) from a2_real group by mensaje;`);
       && conVentaAnulada.n !== null && conVentaAnulada.n - conVentaViva.n === 1) {
     ok(`la radiografía corre con la 0497 y su B3 ve la factura viva con la venta anulada (${conVentaAnulada.n} con ella, ${conVentaViva.n} sin ella)`);
   } else {
-    ko("la radiografía no ve el hueco conocido: no hay alarma", `con la venta anulada: ${conVentaAnulada.n} ${conVentaAnulada.err}\ncon la venta viva: ${conVentaViva.n} ${conVentaViva.err}\n${revivir.err}`);
+    ko("la radiografía no ve la factura viva con la venta anulada: no hay alarma", `con la venta anulada: ${conVentaAnulada.n} ${conVentaAnulada.err}\ncon la venta viva: ${conVentaViva.n} ${conVentaViva.err}\n${revivir.err}`);
   }
 
   for (const test of [`${M0496}.test.sql`, `${M0497}.test.sql`]) {

@@ -1,15 +1,17 @@
--- SDD-0573 · A2 · Qué facturas no cuadran para la 0497 · SOLO LECTURA · conteos por clase.
+-- SDD-0573 · A2 · PUERTA del apply de la 0497 · SOLO LECTURA · conteos por clase.
 --
--- Desde la 0497, `i3_invoice_final_check` llama a `i3_assert_invoice_final` cuando la
--- factura entra o sale de `anulada` o `borrador`, cuando cambia su `deleted_at` o su
--- tenant, y en INSERT y DELETE. La aserción falla con 23514 si la factura y su venta no
--- cuadran. Una factura de antes en ese estado sigue aceptando un cobro o un renombre,
--- pero no esas transiciones, y `void` y `post` piden revisión. Este archivo cuenta esas
--- facturas ANTES de aplicar la 0497, con la misma lógica: por eso no usa ningún objeto
--- de la 0497. `lib/studio/__tests__/reverso-al-anular-factura.migration.test.ts` compara
--- este conteo con el resultado de la función real sobre las mismas filas.
+-- Desde la 0497, `i3_invoice_final_check` corre en todo cambio de `invoices` y, al confirmar,
+-- `i3_assert_invoice_final` falla con 23514 si la factura y su venta no cuadran. Una factura
+-- que ya esté en ese estado no se podría actualizar más: ni un cobro, ni un renombre, ni anular
+-- un recibo, y la app no tiene cómo repararla. Este archivo la busca ANTES de aplicar la 0497,
+-- con la misma lógica: por eso no usa ningún objeto de la 0497.
+-- `lib/studio/__tests__/reverso-al-anular-factura.migration.test.ts` compara este conteo con el
+-- resultado de la función real sobre las mismas filas.
 --
--- SALIDA (una sola tabla): clase · estado_factura · n. Solo etiquetas y conteos: ni ids,
+-- ES UNA PUERTA: cualquier fila con `puerta = FRENA` detiene el apply. Línea base medida por el
+-- Director en producción el 2026-11-02, después de borrar las 7 facturas de prueba: 0 filas.
+--
+-- SALIDA (una sola tabla): clase · estado_factura · n · puerta. Solo etiquetas y conteos: ni ids,
 -- ni códigos, ni montos, ni nombres, ni tenant. Lee filas de negocio por dentro, así que
 -- correrlo en producción pide autorización aunque no las muestre.
 --
@@ -125,7 +127,8 @@ todas as (
   select 'sin_venta', i.status::text from public.invoices i
   where not exists (select 1 from public.journal_entries e where e.invoice_id = i.id and e.source = 'invoice')
 )
-select clase, estado_factura, count(*) as n
+select clase, estado_factura, count(*) as n,
+  case when clase in ('sana', 'sin_venta') then 'pasa' else 'FRENA' end as puerta
 from todas
 group by clase, estado_factura
 order by clase, estado_factura;

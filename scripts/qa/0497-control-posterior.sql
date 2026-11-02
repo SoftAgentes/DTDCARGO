@@ -1,8 +1,12 @@
 -- SDD-0573 · Control después de aplicar la 0497 · SOLO LECTURA · conteos por clase.
 --
--- La guarda de la 0497 ya no afirma en un cobro ni en un renombre, así que una factura viva
--- cuya venta no cuadra no avisa al tocarla. Este archivo es esa alarma, por corrida. Va con
--- la 0497 aplicada; antes de aplicarla, scripts/qa/0497-legado-por-clase.sql. Se apoya en
+-- La guarda de la 0497 afirma en toda escritura, así que tocar una factura cuya venta no cuadra
+-- falla al confirmar. Lo que nadie toca no avisa: una factura sin asiento de venta, que la
+-- aserción no revisa, y una venta que quedó inválida por un cambio en `accounts`. Este archivo
+-- es esa alarma, por corrida. Línea base de producción, medida el 2026-11-02 con la 0497 sin
+-- aplicar y las 7 facturas de prueba ya borradas: 0 filas en el conteo previo, así que aquí se
+-- espera lo que se haya emitido desde entonces y nada más. Va con la 0497 aplicada; antes de
+-- aplicarla, scripts/qa/0497-legado-por-clase.sql. Se apoya en
 -- `i3_original_valid` y `i3_mirror_valid`, y
 -- `lib/studio/__tests__/reverso-al-anular-factura.migration.test.ts` lo compara con
 -- `i3_assert_invoice_final` sobre las mismas filas. Esa función no corre aquí: usa `for update`.
@@ -21,9 +25,10 @@
 --   sin_venta_fechas_viejas     Sin asiento de venta y fuera de ese criterio: borradores, anuladas
 --                               y vivas con otras fechas. Una factura emitida después del apply con
 --                               `issued_at` anterior cae aquí: no prueba que sea de antes.
---   viva_no_cuadra              Viva, con un par que no cuadra. Se puede cobrar. Pudo llegar así o
---                               quedar así después: `i3_original_valid` lee `is_postable`, código y
---                               jerarquía actuales de `accounts`, y cambiarlos invalida una venta sana.
+--   viva_no_cuadra              Viva, con un par que no cuadra. No se puede cobrar ni renombrar:
+--                               falla al confirmar. Pudo llegar así o quedar así después:
+--                               `i3_original_valid` lee `is_postable`, código y jerarquía actuales de
+--                               `accounts`, y cambiarlos invalida una venta sana. Volver el valor la repara.
 --   no_viva_no_cuadra           No cuadra y no está viva, como una anulada con su venta anulada.
 --
 -- Clases, en el orden de `i3_assert_invoice_final`; cada factura cae en la primera que falla:
