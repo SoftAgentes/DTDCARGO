@@ -29,7 +29,8 @@ Detalle en la SDD-0587 §16. Resumen:
 | Pruebas puntuales, ya con E10 fusionada (42 archivos, 490 pruebas) | PASÓ |
 | `tsc` acotado, ya fusionado; ESLint de los archivos tocados, antes del merge | PASÓ |
 | Gate de símbolos de migraciones pendientes | PASÓ: 0 ROJO, 9 AMARILLO declarados |
-| Mutantes: 43 del contrato y 7 de `/registro` y del manejador | PENDIENTE: turno concedido por el Director General, con vigía |
+| Mutantes del contrato, sobre `fac203f66` | PASÓ: 43 de 43 caen |
+| Mutantes de `/registro` y del manejador, sobre `fac203f66` | PASÓ: 7 de 7 caen, controles en verde antes y después y árbol limpio al final |
 | `pnpm verify` | NO EJECUTADO: el Director General lo corre en la punta de la tanda A al integrar, y lo pide el Subdirector después de publicar |
 | Punta a punta con Chatwoot real | NO EJECUTADO: fuera del encargo |
 | revisar-datos-ve | §16.8: 7 CORRECTO, 1 ENCONTRADO, 3 NO VERIFICABLE, 1 no aplica |
@@ -45,9 +46,12 @@ Las pruebas corren con `node node_modules/vitest/vitest.mjs` y un `node_modules`
 
 ## PENDIENTES DE ESTA TAREA
 
-- Registrar el resultado de la tanda de mutantes.
-- `codex/0582-e10-enrutamiento` ya se trajo con merge (`ca3907529`). Si la otra sesión avisa de otro cambio, se trae otra vez, sin rebase.
-- **Al resolver ese merge se perdieron dos cosas de 6.3 en las declaraciones de símbolos:** el grupo `sdd-0587-crm-tablero` y dos sitios de `tarjeta-actions.ts`. El gate lo detectó y ya están repuestos. Quien vuelva a fusionar E2 o E10 debe correr el gate después: el driver de merge semántico rechaza el conflicto, y tomar una sola versión del archivo borra lo de la otra.
+- `codex/0582-e6-tablero` ya se trajo con merge (`7071fd3a8`), y con ella la #335 y la #336. Si cambia otra vez, se trae igual, sin rebase.
+- **Al resolver el merge de E10 se perdieron dos cosas de 6.3 en las declaraciones de símbolos:** el grupo `sdd-0587-crm-tablero` y dos sitios de `tarjeta-actions.ts`. El gate lo detectó y ya están repuestos. Quien vuelva a fusionar esta cadena debe comparar los dos lados grupo por grupo y correr el gate después: el driver de merge semántico rechaza el conflicto, y tomar una sola versión del archivo borra lo de la otra.
+
+## La tanda de mutantes, tal como pasó
+
+Se corrió una sola vez, con el turno del Director General. Una carrera mía: detuve el vigía para hacer un merge justo cuando lanzaba la tanda (16:45:01). La parte SQL siguió viva y no se tocó; es en memoria y no modifica archivos. Un segundo vigía la esperó, midió otra vez las condiciones y corrió la parte TypeScript, dentro del mismo tope de 10 minutos. Nada se relanzó, y el merge se hizo después, con el árbol limpio. Los mutantes corrieron sobre `fac203f66`. El merge de `7071fd3a8` no cambió ningún archivo, porque la rama ya traía ese contenido: `2a1381caa` tiene el mismo árbol, así que la evidencia sigue valiendo.
 
 ## Puertas que quedan para Sam
 

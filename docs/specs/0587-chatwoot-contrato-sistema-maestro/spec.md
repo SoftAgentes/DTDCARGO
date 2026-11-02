@@ -531,7 +531,7 @@ El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó
 - [x] **Un fallo de la tarjeta no rompe ni demora el registro** (`register-tarjeta-crm.test.ts`: base con error, promesa rechazada, llamada que lanza, promesa que no termina y `after()` que lanza).
 - [x] No cambia nada visible para quien se registra (`register-atribucion-oculta.test.tsx`: mismo texto, solo campos ocultos).
 - [x] D7 detrás de un interruptor apagado, sin cambiar la conducta de hoy (§16.4).
-- [ ] Control rojo y mutantes (§16.7).
+- [x] Control rojo y mutantes (§16.7): 43 de 43 del contrato y 7 de 7 de `/registro` y del manejador caen.
 - [ ] `pnpm verify` (§16.7).
 - [ ] Prueba de punta a punta con un Chatwoot real: fuera de este encargo; se hace al integrar.
 - [ ] L3, y con ella D7: puerta de Sam.
@@ -559,7 +559,8 @@ El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó
 | `tsc` acotado a los archivos de 6.4 y sus dependencias, ya fusionado | PASÓ |
 | ESLint de los archivos tocados, antes del merge | PASÓ |
 | Gate de símbolos de migraciones pendientes | PASÓ: 0 ROJO, 9 AMARILLO declarados; la 0513 en `sdd-0587-crm-entrada` |
-| Mutantes: 43 del contrato y 7 de `/registro` y del manejador | PENDIENTE: turno concedido por el Director General, con vigía |
+| Mutantes del contrato, sobre `fac203f66` (turno del Director General, una sola tanda) | PASÓ: 43 de 43 caen, cada uno en lo que lo nombra (31,6 s) |
+| Mutantes de `/registro` y del manejador, sobre `fac203f66` | PASÓ: 7 de 7 caen, con control en verde antes y después y árbol limpio al final |
 | `pnpm verify` | NO EJECUTADO: el Director General lo corre en la punta de la tanda A al integrar, y lo pide el Subdirector después de publicar |
 | Prueba de punta a punta con Chatwoot y con producción | NO EJECUTADO: fuera de este encargo |
 
