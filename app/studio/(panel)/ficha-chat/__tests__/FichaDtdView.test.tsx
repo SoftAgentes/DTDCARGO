@@ -133,3 +133,41 @@ describe("FichaDtdView (SDD-0585, 2.4)", () => {
     expect(screen.getByRole("alert").textContent).toContain("Esta sesión de Studio es de otra persona.");
   });
 });
+
+describe("FichaDtdView · costo de referencia del chat (2.8)", () => {
+  const COSTO = {
+    enviados: 37,
+    completo: true,
+    mercado: "Rest of Latin America",
+    tarifa: 0.0113,
+    total: 0.4181,
+    vigenteDesde: "2026-10-01",
+    fuente: "https://developers.facebook.com/docs/whatsapp/pricing",
+  };
+
+  it("con ficha: «N mensajes × tarifa = total», mercado, fecha y fuente, y la aclaración", () => {
+    render(<FichaDtdView estado={{ tipo: "ficha", ficha: ficha(), costo: COSTO }} />);
+    const hueco = document.querySelector("[data-hueco='costo-chat']") as HTMLElement;
+    expect(hueco.textContent).toContain("37 mensajes enviados × US$ 0,0113 = US$ 0,42");
+    expect(hueco.textContent).toContain("Tarifa de servicio de Meta para «Rest of Latin America», vigente desde el 1 oct 2026.");
+    expect(screen.getByRole("link", { name: "Tarifario oficial" }).getAttribute("href")).toBe(COSTO.fuente);
+    expect(hueco.textContent).toContain("no descuenta los 1.000 mensajes gratis del mes ni distingue las plantillas");
+    expect(screen.getByRole("region", { name: "Costo de referencia de este chat" })).toBeTruthy();
+  });
+
+  it("sin ficha también se ve: el costo es del chat", () => {
+    render(<FichaDtdView estado={{ tipo: "sin_ficha", costo: COSTO }} />);
+    expect(screen.getByText("Sin ficha")).toBeTruthy();
+    expect(document.querySelector("[data-hueco='costo-chat']")?.textContent).toContain("37 mensajes enviados");
+  });
+
+  it("si la conversación tenía más mensajes de los leídos, dice «Al menos»", () => {
+    render(<FichaDtdView estado={{ tipo: "ficha", ficha: ficha(), costo: { ...COSTO, enviados: 1000, completo: false, total: 11.3 } }} />);
+    expect(document.querySelector("[data-hueco='costo-chat']")?.textContent).toContain("Al menos 1.000 mensajes enviados × US$ 0,0113 = US$ 11,30");
+  });
+
+  it("sin costo (no se pudo leer o no hay teléfono): no deja rastro", () => {
+    render(<FichaDtdView estado={{ tipo: "sin_ficha", costo: null }} />);
+    expect(document.querySelector("[data-hueco='costo-chat']")).toBeNull();
+  });
+});

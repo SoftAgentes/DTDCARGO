@@ -42,7 +42,7 @@ Arrancar E10: 10.1 (función SQL del segmento), 10.2 (clasificar en el webhook d
 ## Pendientes de esta tarea
 
 - ~~Decisión de Sam~~: H-2 «1 año» y H-3 «30 días (Recomendado)» (2026-10-30); implementadas en la 0505 §4 y en el cron `chatwoot-reintentos`.
-- 10.4, 10.5 y 10.6.
+- 10.4, 10.5 y 10.6, después de integrar a `main`. 10.5 queda destrabado (6.3 aceptado); pedido de Sam del 2026-10-30 citado en la spec.
 
 ## FUERA DE ALCANCE DETECTADO
 

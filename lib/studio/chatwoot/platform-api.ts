@@ -267,3 +267,22 @@ export async function borrarUsuario(
   const r = await pedir(cfg, `/platform/api/v1/users/${chatwootUserId}`, { method: "DELETE", sinCuerpo: true });
   return r.ok ? { ok: true, data: null } : r;
 }
+
+/**
+ * Revoca todas las sesiones del usuario del lado del servidor (SDD-0585, 2.7):
+ * la ruta privada que agrega `infra/chatwoot/rails/zz_dtd_revocar_sesiones.rb`.
+ * Devuelve cuántas sesiones del panel había. Sin el inicializador, 404
+ * (`no_encontrado`); con el de servicio o el último admin humano, 409; sin
+ * `DTD_CHATWOOT_SERVICIO_ID` en Chatwoot, 503.
+ */
+export async function revocarSesiones(
+  chatwootUserId: number,
+  cfg: ChatwootConfig | null = chatwootConfig(),
+): Promise<ChatwootResult<number>> {
+  if (!cfg) return { ok: false, error: "sin_configurar" };
+  const r = await pedir(cfg, `/platform/api/v1/users/${chatwootUserId}/dtd_revocar_sesiones`, { method: "POST" });
+  if (!r.ok) return r;
+  const n = (r.body as { revocadas?: unknown } | null)?.revocadas;
+  if (typeof n !== "number" || !Number.isInteger(n) || n < 0) return { ok: false, error: "respuesta_invalida" };
+  return { ok: true, data: n };
+}

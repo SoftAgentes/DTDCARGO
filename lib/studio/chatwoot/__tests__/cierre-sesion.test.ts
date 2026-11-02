@@ -68,12 +68,58 @@ afterEach(() => vi.restoreAllMocks());
 
 const cabeceras = (i: number) => llamadas[i].init.headers as Record<string, string>;
 
-describe("cerrarSesionesAgente (2.7)", () => {
-  it("camino feliz: el orden exacto y ninguna sesión al final", async () => {
-    const r = await cerrarSesionesAgente(ID, CFG);
-    expect(r).toEqual({ ok: true, data: { sesionesCerradas: 1 } });
+describe("cerrarSesionesAgente · ruta del servidor (zz_dtd_revocar_sesiones.rb)", () => {
+  const RUTA = `POST /platform/api/v1/users/${ID}/dtd_revocar_sesiones`;
+  beforeEach(() => {
+    rutas[RUTA] = () => {
+      sesiones = [];
+      tokenActual = "tok-agente-nuevo";
+      return json({ revocadas: 2 });
+    };
+  });
+
+  it("con el inicializador: revoca, comprueba el token nuevo y que no quede ninguna sesión, sin SSO ni clave", async () => {
+    expect(await cerrarSesionesAgente(ID, CFG)).toEqual({ ok: true, data: { sesionesCerradas: 2, via: "servidor" } });
     expect(llamadas.map((l) => l.clave)).toEqual([
       `GET /platform/api/v1/users/${ID}`,
+      RUTA,
+      `GET /platform/api/v1/users/${ID}`,
+      "GET /api/v1/profile/sessions",
+    ]);
+    // La ruta va con el token de la Platform App; la comprobación, con el token NUEVO del agente.
+    expect(cabeceras(1).api_access_token).toBe("tok-plataforma");
+    expect(cabeceras(3).api_access_token).toBe("tok-agente-nuevo");
+  });
+
+  it("409 (de servicio o último admin) o 503 (sin configurar): pendiente, sin caer al respaldo", async () => {
+    for (const status of [409, 503]) {
+      llamadas = [];
+      rutas[RUTA] = () => new Response("{}", { status });
+      expect(await cerrarSesionesAgente(ID, CFG)).toEqual({ ok: false, paso: "revocar", error: `http_${status}` });
+      expect(llamadas.some((l) => l.clave === "POST /auth/sign_in")).toBe(false);
+    }
+  });
+
+  it("si el token no cambió o quedó una sesión: falla en «rotacion» o «quedan_sesiones»", async () => {
+    rutas[RUTA] = () => json({ revocadas: 1 });
+    expect(await cerrarSesionesAgente(ID, CFG)).toEqual({ ok: false, paso: "rotacion", error: "respuesta_invalida" });
+    rutas[RUTA] = () => ((tokenActual = "tok-otro"), json({ revocadas: 1 }));
+    expect(await cerrarSesionesAgente(ID, CFG)).toEqual({ ok: false, paso: "quedan_sesiones", error: "respuesta_invalida" });
+  });
+
+  it("una respuesta sin el conteo no se toma por buena", async () => {
+    rutas[RUTA] = () => json({ ok: true });
+    expect(await cerrarSesionesAgente(ID, CFG)).toEqual({ ok: false, paso: "revocar", error: "respuesta_invalida" });
+  });
+});
+
+describe("cerrarSesionesAgente · respaldo sin el inicializador (API de perfil)", () => {
+  it("camino feliz: el orden exacto y ninguna sesión al final", async () => {
+    const r = await cerrarSesionesAgente(ID, CFG);
+    expect(r).toEqual({ ok: true, data: { sesionesCerradas: 1, via: "api_de_perfil" } });
+    expect(llamadas.map((l) => l.clave)).toEqual([
+      `GET /platform/api/v1/users/${ID}`,
+      `POST /platform/api/v1/users/${ID}/dtd_revocar_sesiones`,
       `GET /platform/api/v1/users/${ID}/login`,
       "POST /auth/sign_in",
       `PATCH /platform/api/v1/users/${ID}`,
@@ -95,7 +141,7 @@ describe("cerrarSesionesAgente (2.7)", () => {
 
   it("la clave nueva cumple las reglas de Chatwoot y no se repite", async () => {
     await cerrarSesionesAgente(ID, CFG);
-    const clave = JSON.parse(String(llamadas[3].init.body)).password as string;
+    const clave = JSON.parse(String(llamadas[4].init.body)).password as string;
     expect(clave).toHaveLength(32);
     expect(clave).toMatch(/[A-Z]/);
     expect(clave).toMatch(/[a-z]/);
@@ -105,7 +151,7 @@ describe("cerrarSesionesAgente (2.7)", () => {
 
   it("las sesiones se listan y borran con el token VIEJO del agente y SIN cabecera client (ninguna es «la actual»)", async () => {
     await cerrarSesionesAgente(ID, CFG);
-    for (const i of [4, 5, 6, 7]) {
+    for (const i of [5, 6, 7, 8]) {
       expect(cabeceras(i).api_access_token).toBe("tok-agente-viejo");
       expect(cabeceras(i).client).toBeUndefined();
     }
@@ -118,7 +164,7 @@ describe("cerrarSesionesAgente (2.7)", () => {
     rutas["DELETE /api/v1/profile/sessions/41"] = () => ((sesiones = sesiones.filter((s) => s !== 41)), new Response(null));
     rutas["DELETE /api/v1/profile/sessions/42"] = () => ((sesiones = sesiones.filter((s) => s !== 42)), new Response(null));
     const r = await cerrarSesionesAgente(ID, CFG);
-    expect(r).toEqual({ ok: true, data: { sesionesCerradas: 3 } });
+    expect(r).toEqual({ ok: true, data: { sesionesCerradas: 3, via: "api_de_perfil" } });
   });
 
   it("una sesión que ya no estaba (404 al borrarla) no es un fallo", async () => {
