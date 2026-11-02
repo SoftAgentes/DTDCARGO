@@ -670,6 +670,30 @@ describe("/entrar · el correo se compara literal, no como patrón", () => {
       expect(aceptadosPorResend()).toBe(1);
     });
 
+    it("en el ERP, un parecido que aparece primero tampoco le quita su fila", async () => {
+      // `.limit(1)` se queda con la primera: sin el escape, esa es la del parecido,
+      // `sameEmail` la descarta y el aviso del cliente real nunca sale.
+      mocks.tablas.clients.unshift({
+        id: "cli-parecido",
+        tenant_id: "tenant-1",
+        markbox: "DTD-0001",
+        name: "Empresa Parecida",
+        email: "otra.empresa@example.com",
+      });
+      mocks.tablas.clients.push({
+        id: "cli-2",
+        tenant_id: "tenant-1",
+        markbox: "DTD-5678",
+        name: "Otra Empresa",
+        email: "otra_empresa@example.com",
+      });
+
+      await pedir("otra_empresa@example.com");
+
+      expect(mocks.avisarClienteSinAcceso).toHaveBeenCalledOnce();
+      expect(mocks.avisarClienteSinAcceso.mock.calls[0][1].markbox).toBe("DTD-5678");
+    });
+
     it("el aviso del ERP sigue saliendo para el correo exacto", async () => {
       mocks.tablas.clients.push({
         id: "cli-2",
