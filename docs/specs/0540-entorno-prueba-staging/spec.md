@@ -478,7 +478,7 @@ Con una PR real que traiga una migración:
 
 ### Estado de aceptación de D1 a D11 (2026-11-02, a la aprobación de la spec)
 
-Se pasa la spec a `approved` porque las Fases 1 a 3 ya están hechas y en uso (§9 y §10) con D1, D2, D3 y D7 aceptadas por Sam con texto literal. La tabla separa lo que Sam aceptó, con su fuente, de lo que se ejecutó con la recomendación del §4 sin respuesta suya. **Nada de la columna «Pendiente» se da por aceptado.**
+Se pasa la spec a `approved` porque las Fases 1 a 3 ya están hechas y en uso (§9 y §10) con D1, D2, D3 y D7 aceptadas por Sam con texto literal. La tabla separa lo que Sam aceptó, con su fuente, de lo que se ejecutó con la recomendación del §4 sin respuesta suya. Las filas que dicen «Aceptada por Sam el 2026-11-02» se confirmaron por nombre después de abrir la PR.
 
 | # | Estado | Evidencia |
 |---|---|---|
@@ -486,15 +486,15 @@ Se pasa la spec a `approved` porque las Fases 1 a 3 ya están hechas y en uso (�
 | D2 | Aceptada por Sam (sintéticos) y excepción fechada con datos reales de consolidados | §8, filas ~07:50Z y ~16:40Z (texto literal); §10, fila 2026-10-16 23:28Z |
 | D3 | Aceptada por Sam | §8, fila ~07:50Z (texto literal) |
 | D4 | Decidida por Sam con una **variante** de la recomendación: «Solo desde mis IP», más la clave web. No es la opción «clave sin allowlist» del §4 | §10, fila 2026-10-16 16:42Z (texto literal de Sam). La puerta con clave sin allowlist sigue **pendiente de confirmación nominal** si se quiere abrir a otras redes |
-| D5 | **Pendiente de confirmación nominal.** Se aplicó la recomendación (despliegue a prueba sin OK por despliegue) | §8, última fila; handoff `0540-fase-1-entorno-prueba.md` («Con la recomendación del §4») |
-| D6 | **Pendiente de confirmación nominal.** La regla de «toda migración por prueba» se siguió como práctica, pero Sam no la aceptó como regla. Su texto propuesto va en el handoff `a1-sdd-0540-approved.md` y no está activo en AGENTS ni en `project-rules.md` | §8, última fila; spec §3, Fase 5 |
+| D5 | **Aceptada por Sam el 2026-11-02** (texto literal: «Confirmo todas», respuesta a «¿Confirmas D5, D6, D8, D9, D10 y D11 por nombre?»). Se aplicó la recomendación (despliegue a prueba sin OK por despliegue) | §8, última fila; handoff `0540-fase-1-entorno-prueba.md` («Con la recomendación del §4») |
+| D6 | **Aceptada por Sam el 2026-11-02** (texto literal: «Confirmo todas», respuesta a «¿Confirmas D5, D6, D8, D9, D10 y D11 por nombre?»). La regla de «toda migración por prueba» se siguió como práctica, pero Sam no la aceptó como regla. Su texto propuesto va en el handoff `a1-sdd-0540-approved.md` y no está activo en AGENTS ni en `project-rules.md` | §8, última fila; spec §3, Fase 5 |
 | D7 | Aceptada por Sam (desconectar la integración de Git de Vercel **ya**). **NO VERIFICADO** en el repo que la desconexión se ejecutó: Vercel se opera fuera del repo | §8, fila ~07:50Z (texto literal) |
-| D8 | **Pendiente de confirmación nominal.** Se aplicó «ninguna integración» | handoff `0540-fase-1-entorno-prueba.md` |
-| D9 | **Pendiente de confirmación nominal.** Correos de la app en modo simulado, aplicado en la SDD-0544 con la recomendación | handoff `0544-prueba-producto-minimo.md`, punto «D9 y D11 por nombre» |
-| D10 | **Pendiente de confirmación nominal.** Límites de 3.072 MiB aplicados con la recomendación | handoff `0540-fase-1-entorno-prueba.md`; §2.8 |
-| D11 | **Pendiente de confirmación nominal.** El aviso se implementó (SDD-0544) y Sam dijo que veía la franja, lo que es una observación y no una aceptación de la decisión | §10, fila 2026-10-16 20:43–21:15Z; handoff `0544-prueba-producto-minimo.md` |
+| D8 | **Aceptada por Sam el 2026-11-02** (texto literal: «Confirmo todas», respuesta a «¿Confirmas D5, D6, D8, D9, D10 y D11 por nombre?»). Se aplicó «ninguna integración» | handoff `0540-fase-1-entorno-prueba.md` |
+| D9 | **Aceptada por Sam el 2026-11-02** (texto literal: «Confirmo todas», respuesta a «¿Confirmas D5, D6, D8, D9, D10 y D11 por nombre?»). Correos de la app en modo simulado, aplicado en la SDD-0544 con la recomendación | handoff `0544-prueba-producto-minimo.md`, punto «D9 y D11 por nombre» |
+| D10 | **Aceptada por Sam el 2026-11-02** (texto literal: «Confirmo todas», respuesta a «¿Confirmas D5, D6, D8, D9, D10 y D11 por nombre?»). Límites de 3.072 MiB aplicados con la recomendación | handoff `0540-fase-1-entorno-prueba.md`; §2.8 |
+| D11 | **Aceptada por Sam el 2026-11-02** (texto literal: «Confirmo todas», respuesta a «¿Confirmas D5, D6, D8, D9, D10 y D11 por nombre?»). El aviso se implementó (SDD-0544) y Sam dijo que veía la franja, lo que es una observación y no una aceptación de la decisión | §10, fila 2026-10-16 20:43–21:15Z; handoff `0544-prueba-producto-minimo.md` |
 
-Hasta que Sam las confirme por nombre, D5, D6, D8, D9, D10 y D11 rigen solo como práctica vigente, no como política aprobada.
+D5, D6, D8, D9, D10 y D11 quedaron confirmadas por nombre el 2026-11-02. La regla D6 como texto en `AGENTS.md` o `project-rules.md` sigue sin activarse: Sam aceptó la decisión, no ese texto.
 
 ## 9 · Seguimiento de la Fase 1 (PR #251)
 

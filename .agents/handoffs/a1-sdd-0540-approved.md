@@ -17,7 +17,7 @@
 | D1, D2, D3 | Aceptadas por Sam, texto literal en §8 |
 | D7 | Aceptada por Sam (desconectar Vercel de GitHub ya). Su ejecución es **NO VERIFICADO** desde el repo |
 | D4 | Sam eligió una variante: «Solo desde mis IP» (§10). La opción «clave sin allowlist» del §4 no la aceptó |
-| D5, D6, D8, D9, D10, D11 | **Pendientes de confirmación nominal.** Rigen como práctica con la recomendación del §4 |
+| D5, D6, D8, D9, D10, D11 | Aceptadas por Sam el 2026-11-02: «Confirmo todas» (pregunta nominal con las seis) |
 
 ## PROPUESTA NO ACTIVA — regla D6 (la decide Sam)
 
@@ -39,8 +39,8 @@ Justificación: producción usa datos reales; prueba reproduce exactamente la ve
 
 ## PENDIENTES DE ESTA TAREA
 
-- Sam confirma D5, D6, D8, D9, D10 y D11 por nombre (y la variante de D4 si quiere abrir otras redes).
-- Sam aprueba o rechaza el texto de la regla D6.
+- Sam aprueba o rechaza el texto de la regla D6 para AGENTS/project-rules (aceptó la decisión D6, no el texto).
+- Variante de D4: solo si Sam quiere abrir otras redes.
 
 ## FUERA DE ALCANCE DETECTADO
 
