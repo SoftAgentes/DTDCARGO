@@ -178,6 +178,28 @@ describe("editar una ciudad", () => {
     expect(enviado().get("priceUsdCbm")).toBe("111");
   });
 
+  it("un segundo error con el mismo texto devuelve el foco al aviso, y escribir no se lo quita a la persona", async () => {
+    mocks.save.mockResolvedValue({ error: "Esa ruta ya no está activa con este transportista." });
+    montar();
+    fireEvent.click(screen.getByRole("button", { name: "Editar Valencia" }));
+    const panel = dialogo("Editar Valencia");
+    const guardar = within(panel).getByRole("button", { name: "Guardar cambios" });
+    fireEvent.click(guardar);
+    const alerta = await within(panel).findByRole("alert");
+    await waitFor(() => expect(alerta).toHaveFocus());
+
+    // Lo que hace el navegador al hacer clic: el foco pasa al botón.
+    guardar.focus();
+    fireEvent.click(guardar);
+    await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(alerta).toHaveFocus());
+
+    const venta = campo(panel, /^Venta \/m³/);
+    venta.focus();
+    escribir(venta, "111");
+    expect(venta).toHaveFocus();
+  });
+
   it("muestra los errores por campo del servidor", async () => {
     mocks.save.mockResolvedValueOnce({
       fieldErrors: { costUsdCbm: "No puede ser negativo.", dispatchFrequencyDays: "Días enteros, mayor que cero." },
@@ -392,6 +414,30 @@ describe("cambio en lote", () => {
     expect(mocks.toast.warning).toHaveBeenCalledWith(
       "Precios actualizados en 1 de 2 ciudades de Benito. Las demás ya no estaban activas.",
     );
+  });
+
+  it("un segundo error con el mismo texto devuelve el foco al aviso, y escribir no se lo quita a la persona", async () => {
+    mocks.bulk.mockResolvedValue({ error: "No se cambió ninguna." });
+    montar();
+    marcar("Valencia");
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar precios" }));
+    const panel = dialogo("Cambiar precios en lote");
+    const venta = campo(panel, /^Venta nueva/);
+    escribir(venta, "130");
+    const aplicar = within(panel).getByRole("button", { name: "Aplicar a 1 ciudad" });
+    fireEvent.click(aplicar);
+    const alerta = await within(panel).findByRole("alert");
+    await waitFor(() => expect(alerta).toHaveFocus());
+
+    // Lo que hace el navegador al hacer clic: el foco pasa al botón.
+    aplicar.focus();
+    fireEvent.click(aplicar);
+    await waitFor(() => expect(mocks.bulk).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(alerta).toHaveFocus());
+
+    venta.focus();
+    escribir(venta, "131");
+    expect(venta).toHaveFocus();
   });
 
   it("la casilla del encabezado marca sólo las ciudades visibles por la búsqueda", () => {

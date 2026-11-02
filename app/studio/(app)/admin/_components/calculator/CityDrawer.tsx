@@ -69,9 +69,11 @@ export function CityDrawer({ mode, city, onClose }: Props) {
     }
   }, [state.ok, state.createdId, mode, onClose, toast, router]);
 
+  // Depende de `isPending` y no de `state.error`: un segundo error con el mismo
+  // texto no lo cambia, y el botón deshabilitado ya soltó el foco fuera del panel.
   useEffect(() => {
-    if (state.error) errorRef.current?.focus();
-  }, [state.error]);
+    if (!isPending && state.error) errorRef.current?.focus();
+  }, [state, isPending]);
 
   const title = mode === "create" ? "Nueva ciudad" : "Editar ciudad";
 
