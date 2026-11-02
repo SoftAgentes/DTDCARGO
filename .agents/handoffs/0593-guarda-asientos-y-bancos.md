@@ -29,8 +29,11 @@ Allowlist y aceptación en `docs/specs/0593-guarda-asientos-y-bancos/spec.md`.
 | Contrato en `postgres:17` con psql | PASÓ, 175 aserciones | control rojo: `commercial-A pudo crear un asiento` |
 | Preflight contra el catálogo de producción | PASÓ, solo lectura y con ROLLBACK | 2026-11-02 |
 | `docs:check`, `sdd:check`, `governance:check`, `pending-migration-symbols`, ESLint del archivo | PASÓ | |
-| CI «Calidad local sin secretos» | pendiente al publicar | |
-| `pnpm verify` | NO EJECUTADO: espera turno pesado | |
+| CI «Calidad continua» sobre `6a3523d15` | en curso al escribir esto | |
+| `check-schema-rebuild.mjs` | PASÓ | 474 migraciones desde cero; aislamiento en 219 tablas |
+| `run-sql-tests.mjs` | FALLÓ: 3 rojos ajenos; la 0511 pasa | `0467_reversion_credito_carrera`, `0497_reverso_al_anular_factura` y su `_carrera`. Control: los mismos 3, con el mismo error, en `main` `1c2286f1f` |
+| `pnpm verify` | NO EJECUTADO | Saldría rojo por esos 3 contratos, y hay poca RAM libre. Repetirlo después de integrar la #344 |
+| e2e | NO EJECUTADO | Sin cambios de app; corre contra un Supabase sintético |
 | Aplicar en producción | NO EJECUTADO: exige OK de Sam | |
 
 **Límite:** `audit_d1_execute` es un doble en el contrato; el preflight comprueba en producción que la real es DEFINER de postgres. Esa pantalla no se probó de punta a punta: conviene guardar una cuenta bancaria como administrador en prueba después de aplicar la migración allí.
