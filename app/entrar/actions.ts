@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getRequestIp } from "@/lib/http/request-ip";
+import { emailIlikePattern, sameEmail } from "@/lib/shared/email-literal";
 import { resendPuedeEnviar } from "@/lib/studio/mail/resend-api";
 import { mintPortalMagicToken, portalOpenUrl } from "@/lib/studio/portal/magic-link";
 import { sendPortalMagicLinkEmail } from "@/lib/studio/portal/magic-link-email";
@@ -155,14 +156,17 @@ export async function requestMagicLink(
 
   const { data: clientUser, error: clientUserError } = await admin
     .from("client_users")
-    .select("id, tenant_id")
-    .ilike("email", email)
+    .select("id, tenant_id, email")
+    .ilike("email", emailIlikePattern(email))
     .in("status", ["invited", "active"])
     .limit(1)
-    .maybeSingle<{ id: string; tenant_id: string }>();
+    .maybeSingle<{ id: string; tenant_id: string; email: string }>();
   // Una consulta caída falla igual para cualquier correo: decirlo no revela nada.
   if (clientUserError) return { error: NO_PUDIMOS_ATENDER, email };
-  if (!clientUser) {
+  // `sameEmail` y no sólo la fila: `*` no se puede escapar (ver `email-literal.ts`).
+  // Sin esto se le acuña un enlace y una cuenta de Auth al correo que escribió, sin
+  // que el equipo lo haya habilitado.
+  if (!clientUser || !sameEmail(clientUser.email, email)) {
     // SDD-0279 · sin fila de acceso NO quiere decir "desconocido". La mayoría de
     // los clientes vivos del ERP nunca fue invitada al portal: pedían el enlace
     // y esperaban para siempre un correo que nadie mandaba.

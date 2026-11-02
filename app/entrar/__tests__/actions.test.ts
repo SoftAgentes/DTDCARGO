@@ -6,9 +6,10 @@ const mocks = vi.hoisted(() => ({
   throttleCounts: {} as Record<string, number>,
   throttleError: null as { message: string } | null,
   insertError: null as { message: string } | null,
-  clientUser: { id: "client-user-1", tenant_id: "tenant-1" } as {
+  clientUser: { id: "client-user-1", tenant_id: "tenant-1", email: "cliente@example.com" } as {
     id: string;
     tenant_id: string;
+    email: string;
   } | null,
   clientUserError: null as { message: string } | null,
   inserted: [] as Array<{ ip: string }>,
@@ -21,6 +22,7 @@ const mocks = vi.hoisted(() => ({
     tenant_id: string;
     markbox: string;
     name: string;
+    email: string;
   } | null,
   clienteError: null as { message: string } | null,
   /** Filtros que el código aplicó sobre `clients`, para poder afirmarlos. */
@@ -140,7 +142,11 @@ describe("enlace de acceso al portal", () => {
     mocks.throttleCounts = {};
     mocks.throttleError = null;
     mocks.insertError = null;
-    mocks.clientUser = { id: "client-user-1", tenant_id: "tenant-1" };
+    mocks.clientUser = {
+      id: "client-user-1",
+      tenant_id: "tenant-1",
+      email: "cliente@example.com",
+    };
     mocks.clientUserError = null;
     mocks.inserted.length = 0;
     mocks.cliente = null;
@@ -304,6 +310,7 @@ describe("enlace de acceso al portal", () => {
         tenant_id: "tenant-1",
         markbox: "DTD-1234",
         name: "Comercial Andina",
+        email: "cliente@example.com",
       };
 
       await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(OK);
@@ -367,6 +374,7 @@ describe("enlace de acceso al portal", () => {
         tenant_id: "tenant-1",
         markbox: "DTD-1234",
         name: "Comercial Andina",
+        email: "cliente@example.com",
       };
       // 5 toques ya gastados en la ventana → el segundo cerrojo corta antes.
       mocks.throttleCounts["portal-login-mail"] = 5;

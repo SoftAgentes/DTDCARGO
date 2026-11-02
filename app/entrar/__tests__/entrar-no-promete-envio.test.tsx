@@ -88,6 +88,29 @@ vi.mock("@/lib/db/server", () => ({
   }),
 }));
 
+/**
+ * `ILIKE` como lo ve PostgREST: `*` pasa a ser `%` antes de llegar a Postgres. Sin los
+ * comodines de verdad, este doble no podría probar el escape.
+ */
+function coincideIlike(texto: string, patron: string): boolean {
+  const literal = (c: string) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const p = patron.replaceAll("*", "%");
+  let regex = "";
+  for (let i = 0; i < p.length; i += 1) {
+    if (p[i] === "\\") {
+      i += 1;
+      regex += literal(p[i] ?? "");
+    } else if (p[i] === "%") {
+      regex += "[\\s\\S]*";
+    } else if (p[i] === "_") {
+      regex += "[\\s\\S]";
+    } else {
+      regex += literal(p[i]);
+    }
+  }
+  return new RegExp(`^${regex}$`, "i").test(texto);
+}
+
 /** Tabla en memoria que SÍ aplica `.eq`, `.ilike`, `.in`, `.gte` e `.is`. */
 function tabla<T extends Record<string, unknown>>(
   filas: T[],
@@ -110,7 +133,7 @@ function tabla<T extends Record<string, unknown>>(
       return chain;
     },
     ilike: (col: string, valor: string) => {
-      filtros.push((fila) => String(fila[col]).toLowerCase() === valor.toLowerCase());
+      filtros.push((fila) => coincideIlike(String(fila[col]), valor));
       return chain;
     },
     in: (col: string, valores: unknown[]) => {
@@ -549,6 +572,118 @@ describe("/entrar · el freno anti-abuso", () => {
 
     expect(conCuenta.estado.error).toMatch(/no pudimos atender/i);
     expect(sinCuenta.estado).toEqual({ ...conCuenta.estado, email: NADIE });
+  });
+});
+
+describe("/entrar · el correo se compara literal, no como patrón", () => {
+  const CON_PUNTO = "juan.perez@example.com";
+  const CON_GUION_BAJO = "juan_perez@example.com";
+
+  /** Lo que nunca le puede pasar a quien escribió un parecido. */
+  function nadaSalio() {
+    expect(mocks.acunados).toBe(0);
+    expect(fetchResend).not.toHaveBeenCalled();
+    expect(mocks.otpRespuestas).toEqual([]);
+    expect(mocks.avisarClienteSinAcceso).not.toHaveBeenCalled();
+  }
+
+  describe("con un cliente que tiene acceso", () => {
+    beforeEach(() => {
+      mocks.authUsers.add(CON_PUNTO);
+      mocks.tablas.clientUsers.push({
+        id: "cu-3",
+        tenant_id: "tenant-1",
+        email: CON_PUNTO,
+        status: "active",
+      });
+    });
+
+    it.each([
+      CON_GUION_BAJO,
+      "juan%@example.com",
+      "%@example.com",
+      "*@example.com",
+      "juan*@example.com",
+      "j__n.perez@example.com",
+    ])("%s no lo alcanza: ni enlace, ni cuenta de Auth, ni correo", async (parecido) => {
+      const usuariosAntes = mocks.authUsers.size;
+
+      const { estado } = await pedir(parecido);
+
+      nadaSalio();
+      expect(mocks.authUsers.size).toBe(usuariosAntes);
+      // La misma respuesta que para cualquier correo desconocido.
+      expect(estado).toEqual({ requested: true, requests: 1, email: parecido });
+    });
+  });
+
+  it.each(["del_erp@example.com", "del%@example.com", "%@example.com", "*@example.com"])(
+    "%s no dispara el aviso de un cliente del ERP que nadie nombró",
+    async (parecido) => {
+      await pedir(parecido);
+
+      nadaSalio();
+    },
+  );
+
+  describe("quien escribe su correo de verdad sigue entrando", () => {
+    /** Da de alta un correo con acceso y con su cuenta de Auth. */
+    function conAcceso(guardado: string) {
+      mocks.authUsers.add(guardado.toLowerCase());
+      mocks.tablas.clientUsers.push({
+        id: `cu-${guardado}`,
+        tenant_id: "tenant-1",
+        email: guardado,
+        status: "active",
+      });
+    }
+
+    it.each([
+      [CON_GUION_BAJO, CON_GUION_BAJO],
+      ["juan+dtd@example.com", "juan+dtd@example.com"],
+      ["Juan+DTD@Example.com", "juan+dtd@example.com"],
+      ["a%b@example.com", "a%b@example.com"],
+      ["a*b@example.com", "a*b@example.com"],
+      ["Juan_Perez@Example.COM", "juan_perez@example.com"],
+      ["juan_perez@example.com", "JUAN_PEREZ@Example.com"],
+    ])("guardado %s, escrito %s", async (guardado, escrito) => {
+      conAcceso(guardado);
+
+      await pedir(escrito);
+
+      expect(aceptadosPorResend()).toBe(1);
+    });
+
+    it("un parecido que aparece primero no le quita su fila", async () => {
+      // `mail_config` sólo existe para `tenant-1`: si toma la fila de otro inquilino,
+      // el envío falla y se ve.
+      mocks.tablas.clientUsers.unshift({
+        id: "cu-parecido",
+        tenant_id: "tenant-otro",
+        email: CON_PUNTO,
+        status: "active",
+      });
+      conAcceso(CON_GUION_BAJO);
+
+      await pedir(CON_GUION_BAJO);
+
+      expect(aceptadosPorResend()).toBe(1);
+    });
+
+    it("el aviso del ERP sigue saliendo para el correo exacto", async () => {
+      mocks.tablas.clients.push({
+        id: "cli-2",
+        tenant_id: "tenant-1",
+        markbox: "DTD-5678",
+        name: "Otra Empresa",
+        email: "Otra_Empresa@Example.com",
+      });
+
+      await pedir("otra_empresa@example.com");
+
+      expect(mocks.avisarClienteSinAcceso).toHaveBeenCalledOnce();
+      expect(mocks.avisarClienteSinAcceso.mock.calls[0][1].markbox).toBe("DTD-5678");
+    });
   });
 });
 
