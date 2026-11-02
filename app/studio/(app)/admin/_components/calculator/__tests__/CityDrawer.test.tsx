@@ -109,4 +109,30 @@ describe("CityDrawer original · única opción de entrega", () => {
     expect(screen.queryByRole("checkbox")).toBeNull();
     expect(mocks.update).not.toHaveBeenCalled();
   });
+
+  // SDD-0592: el navegador suelta el foco al deshabilitar el botón. jsdom no, e ignora
+  // `blur()` en un control deshabilitado: se habilita sólo para soltarlo. El campo con
+  // error recibe el foco porque se marca con `aria-invalid`.
+  it.each([
+    ["label", /^Nombre/],
+    ["slug", /^Identificador/],
+    ["km", /^Km desde Valencia/],
+    ["sort_order", /^Orden/],
+  ])("un error sólo en %s marca ese campo y le lleva el foco al terminar el envío", async (name, etiqueta) => {
+    let resolve!: (value: { fieldErrors: Record<string, string> }) => void;
+    mocks.update.mockImplementationOnce(() => new Promise((r) => { resolve = r; }));
+    render(<CityDrawer mode="edit" city={city} onClose={mocks.close} />);
+    const guardar = screen.getByRole<HTMLButtonElement>("button", { name: "Guardar cambios" });
+    guardar.focus();
+    fireEvent.click(guardar);
+    await waitFor(() => expect(guardar).toBeDisabled());
+    guardar.disabled = false;
+    guardar.blur();
+    guardar.disabled = true;
+    await act(async () => resolve({ fieldErrors: { [name]: "Revisa este dato." } }));
+    const campo = screen.getByLabelText(etiqueta);
+    expect(campo).toHaveAttribute("aria-invalid", "true");
+    await waitFor(() => expect(campo).toHaveFocus());
+    expect(mocks.close).not.toHaveBeenCalled();
+  });
 });
