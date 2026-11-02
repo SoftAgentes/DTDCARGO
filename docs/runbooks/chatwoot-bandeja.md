@@ -14,7 +14,7 @@ El servidor de Chatwoot es de E1, en [chatwoot-servidor.md](chatwoot-servidor.md
 |---|---|---|
 | Página | `/studio/bandeja` | El panel de Chatwoot en un iframe, con SSO de un solo uso. `?c=N` abre la conversación N |
 | Contador | Sidebar, ítem «Bandeja» | Cuenta las conversaciones abiertas con no leídos. Lo actualizan el webhook y la reconciliación, y se mantiene vivo con Realtime |
-| Webhook | `POST /api/chatwoot/webhook` | Recibe `message_created` y `conversation_status_changed`, firmados, de hasta 256 KiB. Aplica el estado y avisa por push |
+| Webhook | `POST /api/chatwoot/webhook` | Recibe `message_created` y `conversation_status_changed`, firmados, de hasta 256 KiB. Aplica el estado y avisa por push. Con la entrada de leads (SDD-0587, 6.4) también `conversation_created` y `conversation_updated`: crea la tarjeta del CRM y le da asesor. Solo registra `conversation_updated` si cambió el asignado |
 | Reintento | Cron `chatwoot-reintentos`, cada 5 min | Reprocesa los eventos fallidos con espera de 1, 2, 4 y 8 min. Al quinto intento quedan «descartados» y el admin los ve en la Bandeja |
 | Agentes | Cron `chatwoot-agentes`, diario a las 12:30 UTC | Altas, bajas y salud de la cuenta |
 | Ficha | `/studio/ficha-chat` | La Dashboard App al lado de cada conversación |
@@ -33,6 +33,13 @@ El servidor de Chatwoot es de E1, en [chatwoot-servidor.md](chatwoot-servidor.md
 6. **Webhook de cuenta** en Chatwoot (Ajustes → Integraciones → Webhooks), con la URL `https://dtdcargo.com/api/chatwoot/webhook` y los eventos `message_created` y `conversation_status_changed`. El secreto que muestra Chatwoot va en `CHATWOOT_WEBHOOK_SECRET`.
 7. **Dashboard App** «Ficha DTD», según [chatwoot-ficha-dtd.md](chatwoot-ficha-dtd.md).
 8. **Script del panel** (`DASHBOARD_SCRIPTS`), para que salir de Studio cierre también el chat, según [chatwoot-agentes.md](chatwoot-agentes.md).
+
+**Entrada de leads** (SDD-0587, 6.4), después de lo anterior y en este orden:
+
+1. **Migraciones 0505, 0506 y 0513**, en ese orden. Si los eventos nuevos llegan antes que la 0513, el `check` de la 0504 los rechaza y la ruta responde 500.
+2. **Bandejas:** `CHATWOOT_INBOX_LEADS_ID` y `CHATWOOT_INBOX_CLIENTES_ID` son las que dicen la fuente de WhatsApp. Un WhatsApp en otra bandeja no crea tarjeta, y el log lo dice. La bandeja API «Archivo Kommo» tampoco.
+3. **Sumar al webhook de cuenta** los eventos `conversation_created` y `conversation_updated`. Si no se suman, la tarjeta se crea igual con el primer mensaje entrante, pero el asesor solo llega si el mensaje ya trae al asignado.
+4. **D7, dejar de empujar el alta web a Kommo,** es una puerta aparte: `CRM_ALTA_WEB_SIN_KOMMO=1` exige la lectura L3 con OK de Sam (SDD-0587 §8).
 
 ## Diagnóstico
 

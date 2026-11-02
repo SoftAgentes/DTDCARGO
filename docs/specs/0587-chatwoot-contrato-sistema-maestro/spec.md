@@ -4,7 +4,7 @@ title: "Contrato de sistema maestro por objeto y fase: Studio, Chatwoot y Kommo 
 status: approved
 author: "Claude Worker «E6 contrato» (Sam)"
 created: 2026-10-30
-updated: 2026-10-30
+updated: 2026-11-02
 supersedes: null
 superseded_by: null
 related: ["0582", "0585", "0586", "0043", "0084", "0106", "0143", "0157"]
@@ -89,7 +89,7 @@ Programa: [SDD-0582](../0582-chatwoot-piloto/spec.md) · checklist: [fila 6.1](.
 ### 4.2 Dos ajustes que el contrato les pide a E2 y E10
 
 1. **La regla de segmentos por `client_id`.** La función de E10 recibe un teléfono (0505:8-31). El tablero necesita calcularla por ficha y en conjunto. **Tiene que haber una sola definición de la regla:** se recomienda que la 0505, que no está aplicada, exponga un núcleo por `client_id` y que la versión por teléfono lo use. Si no llega a tiempo, 6.2 lo hace refactorizando, sin duplicar la regla.
-2. **Eventos del webhook.** La 0504 solo admite `message_created` y `conversation_status_changed` (0504:56). 6.4 necesita además `conversation_created` (alta de la tarjeta) y `conversation_updated` (asignado y etiquetas). Que Chatwoot 4.19.1 los emita es **NV** en esta tarea; se confirma en `app/listeners/webhook_listener.rb`. Si la 0504 se aplica antes, 6.2 amplía el `check` con una migración propia.
+2. **Eventos del webhook.** La 0504 solo admite `message_created` y `conversation_status_changed` (0504:56). 6.4 necesita además `conversation_created` (alta de la tarjeta) y `conversation_updated` (asignado y etiquetas). Que Chatwoot 4.19.1 los emita es **NV** en esta tarea; se confirma en `app/listeners/webhook_listener.rb`. Si la 0504 se aplica antes, 6.2 amplía el `check` con una migración propia. **Resuelto en 6.4:** los emite (§16.2) y el `check` se amplía en la migración de ese paso (§16.3).
 
 ### 4.3 Tablero Leads (etapas propuestas, decisión D1)
 
@@ -293,7 +293,22 @@ Los días base no cambian aquí: cambiarlos exige una línea base nueva con OK d
 - `supabase/pending-migration-symbol-declarations.json` (solo la entrada `sdd-0587-crm-tablero`)
 - `.agents/handoffs/0587-e6-tablero.md`
 
-Los pasos 6.4 en adelante suman aquí su allowlist al empezar.
+**6.4** (entrada de leads desde Chatwoot y la web, con atribución; misma SDD):
+
+- `supabase/migrations/0513_crm_entrada_leads.sql`, `supabase/tests/0513_crm_entrada_leads.test.sql`, `lib/studio/__tests__/crm-entrada.migration.test.ts`
+- `supabase/migrations-baseline.json` (solo la entrada `0513_crm_entrada_leads`)
+- `supabase/pending-migration-symbol-declarations.json` (la entrada `sdd-0587-crm-entrada` y las líneas de E2 en `webhook-procesar.ts` que este paso corre)
+- `lib/studio/chatwoot/entrada-leads.ts` (nuevo), `webhook-events.ts`, `webhook-procesar.ts` (lista de manejadores y contexto), `router-api.ts` (`obtenerConversacionYContacto`), `config.ts` (`chatwootBandejasWhatsapp`)
+- `app/api/chatwoot/webhook/route.ts` (pasa el contacto a parte)
+- `lib/studio/crm-alta-web.ts` y `lib/public/registro-atribucion.ts` (nuevos)
+- `app/registro/actions.ts` (paso 6c y el interruptor en el paso 11), `app/registro/page.tsx` (lee los UTM), `app/registro/RegisterForm.tsx` (solo los campos ocultos)
+- Pruebas: `lib/studio/chatwoot/__tests__/entrada-leads.test.ts`, `webhook-events.test.ts`, `webhook-fixtures.ts`, `enrutar.test.ts` (el doble del reproceso), `app/api/chatwoot/webhook/__tests__/route.test.ts`, `lib/public/__tests__/registro-atribucion.test.ts`, `app/registro/__tests__/register-tarjeta-crm.test.ts`, `app/registro/__tests__/register-atribucion-oculta.test.tsx`
+- `.env.example` e `infra/dtd-cargo/.env.example` (solo `CRM_ALTA_WEB_SIN_KOMMO`)
+- `docs/runbooks/chatwoot-bandeja.md` (eventos y orden de encendido)
+- `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 6.4)
+- `.agents/handoffs/0587-e6-entrada-leads.md`
+
+Los pasos 6.5 en adelante suman aquí su allowlist al empezar.
 
 ## 11. Aceptación de 6.1
 
@@ -321,6 +336,7 @@ Los pasos 6.4 en adelante suman aquí su allowlist al empezar.
 - **2026-10-30:** 6.3 se programa en la rama `codex/0582-e6-tablero`, apilada sobre `codex/0582-e6-modelo`, y queda entregado sin migración nueva (§15). `pnpm verify` corrió sobre `4f277075a` (§15.2): el rojo propio quedó corregido y los demás son ajenos.
 - **2026-10-30:** Sam aceptó 6.2: a «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?» respondió «Acepto todo» (texto literal que pasó el Director, sesión «CRM Chatwoot»). Fila 6.2 aceptada; el avance del programa en la rama `codex/0582-e6-modelo` pasa de 20,4 % a 22,1 % (25,5 ÷ 115,5 d, salida de `avance-checklist`, con las aceptaciones de las otras ramas ya fusionadas). Aplicar la 0506 sigue siendo una puerta aparte: OK nominal de Sam al integrar, después de la 0505 y con el runbook de producción.
 - **2026-10-30:** Sam aceptó 6.3: a «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?» respondió «Acepto todo» (texto literal que pasó el Director, sesión «CRM Chatwoot»). Fila 6.3 aceptada; el avance del programa en la rama `codex/0582-e6-tablero` pasa de 22,1 % a 26,4 % (30,5 ÷ 115,5 d, salida de `avance-checklist`). La prueba visual con datos sigue pendiente hasta que haya una base con la 0506, y aplicarla es una puerta aparte con OK nominal de Sam.
+- **2026-11-02:** Sam dijo «Sí, arranca» al paso 6.4 (texto que pasó el Subdirector). Se programa en la rama `claude/0582-e6-entrada-leads-ef62df`, apilada sobre `codex/0582-e6-tablero`, y queda entregado con la migración 0513 sin aplicar y D7 detrás de un interruptor apagado (§16).
 
 ## 14. Paso 6.2 — modelo de datos (migración 0506, sin aplicar)
 
@@ -449,3 +465,132 @@ Sobre lo que 6.3 suma al modelo de §14.3. Esto no es asesoría legal.
 | 5 | Borrado | CORRECTO | La tarjeta de una ficha borrada en suave no se pinta (`crm-tablero-queries.ts:83`) y su ficha no se abre (`tarjeta-actions.ts:189`) |
 | 8 | Terceros | CORRECTO | No se envía nada fuera. De Chatwoot solo se leen estado y asignado de la conversación, sin texto |
 | — | Fixtures | CORRECTO | Nombres de prueba y Shipping Marks inventados (`DTD-01xx`); sin teléfonos ni correos |
+
+## 16. Paso 6.4 — entrada de leads desde Chatwoot y la web, con atribución
+
+Rama `claude/0582-e6-entrada-leads-ef62df`, apilada sobre `codex/0582-e6-tablero` (PR #337). Migración [`supabase/migrations/0513_crm_entrada_leads.sql`](../../../supabase/migrations/0513_crm_entrada_leads.sql), **sin aplicar**: exige el OK nominal de Sam y el runbook de producción, después de la 0503, la 0504 y la 0506.
+
+### 16.1 Qué quedó
+
+| Pieza | Dónde | Regla del contrato |
+|---|---|---|
+| `conversation_created` o mensaje entrante → tarjeta. Lead nuevo en «Nuevo»; lead registrado o cliente en «Registrado / recontacto» (el cliente aparece en Clientes, y si vuelve a lead ya está donde §4.5 pide). Lleva su fuente, nombre visible y últimos 10 solo si no hay ficha | `entrarLead` (`lib/studio/chatwoot/entrada-leads.ts`) → `crm_entrada_chatwoot` | §4.1, §4.3, §5.1, D6 |
+| Si la tarjeta ya existe, se completa lo que falta (ficha si el teléfono cruza con una sola, contacto, BSUID, asesor, actividad) y no se pisa nada. Una ficha borrada o fusionada ya no retiene la tarjeta: pasa a la que cruce hoy, o queda como lead a la vista | `crm_entrada_chatwoot` | §3, §4.1, §5.3 |
+| Quien estaba en «Perdido» y escribe vuelve a «Registrado / recontacto», sin el motivo y con una tarea. Un movimiento manual posterior gana. `conversation_created` solo no lo saca: hace falta un mensaje entrante | `crm_volver_a_recontacto` sobre `crm_mover_etapa_auto` | §4.3, §5.3, §6.2 |
+| `conversation_updated` con cambio de asignado → asesor a la tarjeta que no lo tiene, por `chatwoot_agent_links`. Si la ficha tiene asesor activo, manda ese. No crea tarjetas. Un bot asignado no es asesor | `crm_asesor_desde_chatwoot` | §5.4, D9 |
+| La fuente sale del canal: `whatsapp_leads` o `whatsapp_clientes` por bandeja, `instagram`, `messenger`, `correo`. **Sin fuente no hay tarjeta:** la bandeja API «Archivo Kommo» de E5 no crea leads y un WhatsApp en otra bandeja no se atribuye a ciegas | `fuenteDeCanal` | §3 |
+| El nombre no entra en `EventoChatwoot`: viaja aparte, en `ContactoEntrada`, y solo lo recibe `entrarLead`. Si el «nombre» de Chatwoot es un teléfono o un correo, no se guarda | `interpretarContacto`, `nombreVisibleDe` (`webhook-events.ts`) | D6; la prueba de E2 que exige que el nombre no salga de `interpretarEvento` sigue igual |
+| Reproceso: el evento no guardó el contacto, así que se relee de Chatwoot con el token de E10. Sin token no hace nada y el siguiente mensaje crea la tarjeta | `obtenerConversacionYContacto` | §5.2, E2-D26 |
+| Sin la migración, las RPC responden que no existen y el manejador avisa sin lanzar: un evento fallido repetiría el push en cada reintento | `fallarSalvoSinMigracion` | E2-D25 |
+| Alta desde `/registro`: tarjeta nueva en «Nuevo» con fuente `web_registro`, el `origen` en `fuente_detalle` y los UTM. Si el lead ya escribió y su teléfono cruza con esta única ficha, se liga y conserva etapa, fuente y atribución; solo sale de «Perdido» | `crm_alta_tarjeta_web`, `altaTarjetaWeb` (`lib/studio/crm-alta-web.ts`), paso 6c de `app/registro/actions.ts` | §3, §4.1, §4.5, §5.1 |
+| **El registro no se toca.** La tarjeta corre en `after()`, después de responder, y `altaTarjetaWeb` no lanza. Va antes de los pasos que pueden volver con un aviso, porque la ficha ya existe. Lo único nuevo en la página son campos ocultos con los UTM que llegaron; la action los vuelve a validar | `app/registro/actions.ts`, `lib/public/registro-atribucion.ts` | Pedido de Sam |
+| Se puede correr dos veces sin efecto doble: llave única de §4.1 con `on conflict do nothing`; lo demás, con `coalesce` y clave de evento | Las tres RPC | §5.2 |
+
+### 16.2 Los eventos en Chatwoot 4.19.1 (**C**, leído en la etiqueta `v4.19.1`)
+
+- `WebhookListener#conversation_created` y `#conversation_updated` existen (`app/listeners/webhook_listener.rb`). El payload es `conversation.webhook_data` más `event`; el segundo trae también `changed_attributes`.
+- `conversation_updated` se dispara si cambia `assignee_id`, pero también con equipo, etiquetas, estado y más (`list_of_keys` en `app/models/conversation.rb`). **E10 lo provoca en cada clasificación**, así que `interpretarEvento` ignora el que no cambia al asignado: no deja fila ni manejador.
+- `changed_attributes` es `[{ atributo: { previous_value, current_value } }]` (`app/listeners/base_listener.rb`).
+- `meta.sender` trae `id`, `name` y `phone_number` en el webhook y en la API de cuenta. El canal viene en `channel` en el webhook y en `meta.channel` en la API (`event_data_presenter.rb`, `_conversation.json.jbuilder`).
+- `meta.assignee` también puede ser un agente bot, con `assignee_type: "AgentBot"` y otra secuencia de ids.
+- Instagram conectado por una página de Facebook viaja como `Channel::FacebookPage` con `additional_attributes.type = "instagram_direct_message"` (`messages/instagram/messenger/message_builder.rb`).
+
+Esto se leyó en el código. **Falta verlo contra un Chatwoot corriendo:** no se tocó ni prueba ni el servidor.
+
+### 16.3 Decisión: migración nueva, sin editar la 0504
+
+Se amplía el `check` en la 0513. Evidencia:
+
+1. La RPC de alta hace falta de todos modos (§14.1), así que ya hay una migración de este paso.
+2. La 0504 es de E2, en la PR #332, un eslabón más abajo de la pila, y otra sesión la está fusionando. Editarla mezcla los dos pasos y cambia un archivo que Sam ya aceptó con su contrato.
+3. Con migración propia da igual si la 0504 ya se aplicó. `migrations-baseline.json` la declara pendiente, pero **no se comprobó contra producción** (NO VERIFICADO): leer producción está fuera de este encargo. Editarla solo sería seguro si eso se comprueba.
+4. Ninguna función de la 0504 mira el valor de `event`, solo el `check` lo restringe. La purga de la 0508 tampoco.
+
+El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó.
+
+### 16.4 D7: dejar de empujar a Kommo
+
+**Puerta sin abrir.** `CRM_ALTA_WEB_SIN_KOMMO` (`altaWebSinKommo`, `lib/studio/crm-alta-web.ts`) está apagado: solo `"1"` lo enciende, y vacío o cualquier otro valor deja la conducta de hoy, probado valor por valor. **Falta, en este orden:** la lectura L3 con OK de Sam (si `KOMMO_PUSH_DRY_RUN` vale `"false"`, solo sí o no); decidir con ese resultado; cargar la variable en el `.env` del servidor. Mientras esté apagado, un alta web de F2 nace con dos maestros, que es lo que D7 evita al encenderlo.
+
+### 16.5 Límites conocidos
+
+- **Las pruebas no bloquean de verdad:** PGlite tiene una conexión y la carrera se simula con un trigger que inserta la misma llave. La carrera real con `dblink` necesita Docker.
+- **Dos tarjetas de una persona no se fusionan.** Pasa si escribió sin teléfono (tarjeta del contacto), se registró (tarjeta de la ficha) y después Chatwoot conoce su teléfono. Manda la de la ficha y la otra queda igual. Fusionarlas toca historial, tareas y notas; no hay regla en el contrato (**propuesta para 6.5 o 6.6**).
+- **Si la tarjeta web falla, no se reintenta:** se crea cuando la persona escriba por Chatwoot, en «Registrado / recontacto» y con fuente de WhatsApp, o en la carga de 6.5. La atribución de esa alta se pierde. Un reintento pediría una cola en una ruta que no debe demorar.
+- **UTM solo si llegan a `/registro`, y hoy casi ninguno llega.** Ningún enlace del sitio los lleva: los que apuntan ahí usan `?origen=`, `?est=` o `?ref=`, y los UTM de `/enlaces` van a otras páginas. Así que, por ahora, la atribución guardada es sobre todo el `origen`, salvo que un anuncio apunte directo a `/registro`. Conservarlos mientras la persona navega es una decisión aparte (cookie o almacenamiento del navegador, con su análisis de privacidad): **no se hizo**.
+- **`conversation_updated` puede llegar antes que la tarjeta:** no hace nada, y el asesor llega con el siguiente mensaje, que trae el asignado.
+- **Canales fuera del mapa** (`Channel::WebWidget`, Telegram, SMS y otros) no crean tarjeta. Si se conecta uno, hay que sumarlo a `fuenteDeCanal` y al `check` de `crm_tarjetas.fuente`.
+
+### 16.6 Aceptación de 6.4
+
+- [x] `conversation_created` o el primer mensaje entrante crea la tarjeta en la etapa que dice el segmento, con su fuente.
+- [x] `conversation_updated` con asignado da asesor a la tarjeta que no lo tiene, por `chatwoot_agent_links`, sin pisar a nadie.
+- [x] Los manejadores corren dos veces sin efecto doble (contrato PGlite y prueba del manejador).
+- [x] Que Chatwoot 4.19.1 emite los eventos está confirmado en su fuente (§16.2) y la 0504 los admite con la migración nueva (§16.3).
+- [x] `/registro` crea o liga la tarjeta con fuente web y su `origen`, y guarda los UTM.
+- [x] **Un fallo de la tarjeta no rompe ni demora el registro** (`register-tarjeta-crm.test.ts`: base con error, promesa rechazada, llamada que lanza, promesa que no termina y `after()` que lanza).
+- [x] No cambia nada visible para quien se registra (`register-atribucion-oculta.test.tsx`: mismo texto, solo campos ocultos).
+- [x] D7 detrás de un interruptor apagado, sin cambiar la conducta de hoy (§16.4).
+- [ ] Control rojo y mutantes (§16.7).
+- [ ] `pnpm verify` (§16.7).
+- [ ] Prueba de punta a punta con un Chatwoot real: fuera de este encargo; se hace al integrar.
+- [ ] L3, y con ella D7: puerta de Sam.
+- [ ] Aplicar la 0513: puerta de Sam.
+- [ ] Aceptación de Sam de la fila 6.4.
+
+**Clasificación de gobernanza** ([AGENT-BRIEF](../../governance/AGENT-BRIEF.md)):
+
+| Política | Clasificación | Evidencia |
+|---|---|---|
+| SGE-00 | cumplimiento | El permiso vive en la base: las RPC son solo de `service_role` y las piezas internas no tienen grant de nadie (contrato). No hay superficie nueva para el usuario |
+| AUD-01 | **no conformidad, pendiente** | Crear una tarjeta, ligarla a una ficha o darle asesor no deja evento en `entity_audit_log`. Los cambios de etapa sí quedan en `crm_historial_etapas`, pero con su propio contrato. **Arreglo propuesto:** un trigger en `crm_tarjetas` con ids y sin datos personales, en 6.6, que además agrega la acción «Anonimizar ahora». Pide ampliar `entity_audit_log_entity_type_check` desde su última definición, por eso no entra aquí |
+| AUD-02 | no aplica | No cambia quién consulta, retiene ni exporta la bitácora |
+| MP-01 | no aplica | Nada se borra ni se archiva desde aquí. El motivo de «Perdido» se limpia al volver, igual que en `crm_mover_etapa` |
+| FRM-01 / ERR-01 | cumplimiento | El formulario y sus errores no cambian. Un fallo de la tarjeta no le llega a quien se registra: queda en el log con su código |
+| BTN-01, A11Y-01, VIS-01, TBL-01 | no aplica | Sin pantalla nueva: en `/registro` solo se suman campos ocultos. `/ui-check` no aplica por lo mismo |
+
+### 16.7 Evidencia
+
+| Comprobación | Resultado |
+|---|---|
+| Contrato `supabase/tests/0513_crm_entrada_leads.test.sql` en PGlite (aplica la 0503, 0504, 0505, 0506 y 0513 reales) | PASÓ |
+| Control rojo (sin la 0513), reaplicación y preflight sin la 0506 | PASÓ |
+| Pruebas puntuales: `entrada-leads` (38), `webhook-events` (43), `webhook-procesar` (16), `enrutar` (31), `route` (15), `registro-atribucion` (13), `register-tarjeta-crm` (23), `register-atribucion-oculta` (3) | PASÓ: 182 |
+| `tsc` acotado a los archivos de 6.4 y sus dependencias; ESLint de los archivos tocados | PASÓ |
+| `infra-env-example` | PASÓ |
+| Mutantes del contrato (43) y de `/registro` | PENDIENTE: piden turno del Director General |
+| `pnpm verify` | NO EJECUTADO: pide turno del Director General |
+| Prueba de punta a punta con Chatwoot y con producción | NO EJECUTADO: fuera de este encargo |
+
+### 16.8 revisar-datos-ve de 6.4
+
+Sobre lo que 6.4 suma al modelo de §14.3 y §15.3. Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Esto no es asesoría legal.
+
+**Resumen:** 7 CORRECTO, 1 ENCONTRADO, 3 NO VERIFICABLE y 1 no aplica.
+
+**Inventario que suma este paso:**
+
+| Dato | Dónde | De quién | Retención |
+|---|---|---|---|
+| Nombre visible, últimos 10 dígitos, ID de contacto, BSUID: ya estaban en el modelo y ahora se llenan solos | `crm_tarjetas` | Lead sin ficha | 12 meses sin actividad si está perdido (§14.3) |
+| Origen (`fuente_detalle`) y UTM de quien se registra | `crm_tarjetas` | Quien se registra por la web | Con la tarjeta; se borra con la ficha (`on delete cascade`). Al anonimizar se conserva: no identifica sola |
+| UTM en campos ocultos del formulario | `RegisterForm.tsx` | Quien se registra | Solo mientras viaja |
+
+| # | Punto | Estado | Evidencia y comentario |
+|---|---|---|---|
+| 1 | Inventario | CORRECTO | Tabla de arriba. `crm_entrada_chatwoot` y `crm_alta_tarjeta_web` no reciben correo, documento, texto ni teléfono completo (`entrada-leads.test.ts`, `register-tarjeta-crm.test.ts`) |
+| 2 | Minimización | CORRECTO | Un «nombre» que es teléfono o correo no se guarda (`nombreVisibleDe`, `webhook-events.ts`). Los UTM pasan por una lista corta de caracteres, sin `@`, `=` ni `%` (`registro-atribucion.ts`). El nombre no entra en `EventoChatwoot`. Con ficha no se copia nada |
+| 3 | Consentimiento | NO VERIFICABLE | Sigue el punto 3 de §14.3: la tarjeta se crea sola con el primer mensaje, sin un acto de la persona. La base de licitud la decide Sam con su asesor. Los UTM de la web tampoco tienen consentimiento propio: se guardan sin pasar por el banner de cookies, porque son de la URL y no de una cookie |
+| 4 | Derechos | NO VERIFICABLE | Depende de «Anonimizar ahora» de 6.6 (§14.3). Lo nuevo no le agrega un camino: se ve y se corrige en la ficha de la tarjeta, salvo la fuente y los UTM, que son fijos |
+| 5 | Borrado | CORRECTO | Una tarjeta anonimizada no revive: quien vuelve a escribir empieza en una tarjeta nueva (contrato). Con ficha, se va con la purga (`on delete cascade`, 0506). No se probó contra una base real |
+| 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Igual que §14.3. Además, ver AUD-01 en §16.6 |
+| 7 | Política pública | **ENCONTRADO** | `/privacidad` ya cubre al lead de WhatsApp y su plazo (2.6), pero **no dice que se guarde por qué enlace o campaña llegó quien se registra**: «Registro de cliente» (`app/privacidad/page.tsx:60-61`) no lo nombra, y «medir nuestras campañas» (`:204-206`) lo condiciona a aceptar cookies, cosa que estos UTM no hacen. **Arreglo:** sumar a «Registro de cliente»: «También guardamos el enlace o la campaña por la que llegaste, si la dirección los trae». Es texto público que obliga, así que **no se tocó: lo aprueba Sam antes de llevar 6.4 a producción** |
+| 8 | Terceros | CORRECTO | No se envía nada nuevo fuera: el dato entra desde Chatwoot y desde el formulario. Con D7 apagado, Kommo recibe lo mismo de hoy. La retención dentro de Chatwoot sigue sin definir (§14.3, punto 8) |
+| 9 | Transferencia internacional | CORRECTO | Todo vive en la base de DTD. Solo admin y comercial leen tarjetas (RLS de la 0506) |
+| 10 | Decisiones automatizadas | CORRECTO | El segmento y la vuelta desde «Perdido» solo eligen etapa; no niegan servicio ni escriben al cliente. La tarea es interna y con texto fijo |
+| 11 | Aceptación electrónica | No aplica | Este paso no registra aceptaciones |
+| 12 | Titulares que no son usuarios | CORRECTO | El lead sin ficha sigue siendo este caso: lo mínimo, con su plazo de 12 meses, y el aviso ya está en `/privacidad`. El asesor es un empleado y solo queda su id |
+| — | Logs | CORRECTO | Solo códigos (`entrada-leads.ts`, `crm-alta-web.ts`); las dos pruebas comprueban que no salgan nombre, teléfono, correo ni BSUID |
+| — | Fixtures | CORRECTO | Solo nombres de prueba, teléfonos 555 y correos `example.test` |
+
+La skill recomienda una segunda opinión: otro modelo puede auditar este mismo diff. **Lo que hace falta de un abogado:** la base de licitud y la redacción final del punto 7.

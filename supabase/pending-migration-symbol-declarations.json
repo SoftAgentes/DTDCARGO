@@ -333,7 +333,7 @@
             "lib/studio/chatwoot/links-queries.ts:20",
             "lib/studio/chatwoot/links-queries.ts:34",
             "lib/studio/chatwoot/purga.ts:62",
-            "lib/studio/chatwoot/webhook-procesar.ts:80",
+            "lib/studio/chatwoot/webhook-procesar.ts:84",
             "app/studio/(app)/crm/tarjeta-actions.ts:209"
           ]
         }
@@ -365,7 +365,7 @@
           "degradation": "desvincularAgente sin la tabla no borra nada y responde el mismo mensaje traducido."
         },
         {
-          "site": "lib/studio/chatwoot/webhook-procesar.ts:83",
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:87",
           "contains": "const vinculos = (data ?? []) as { user_id: string; chatwoot_user_id: number }[];",
           "degradation": "El aviso push del webhook sin la tabla no tiene vínculos: data llega null, la lista queda vacía y no se encola ningún push. El evento ya quedó registrado (0504)."
         },
@@ -390,8 +390,8 @@
           "name": "chatwoot_registrar_evento",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/webhook-procesar.ts:46",
-            "lib/studio/chatwoot/webhook-procesar.ts:61"
+            "lib/studio/chatwoot/webhook-procesar.ts:50",
+            "lib/studio/chatwoot/webhook-procesar.ts:65"
           ]
         },
         {
@@ -409,16 +409,16 @@
           "name": "chatwoot_cerrar_evento",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/webhook-procesar.ts:136",
-            "lib/studio/chatwoot/webhook-procesar.ts:141"
+            "lib/studio/chatwoot/webhook-procesar.ts:140",
+            "lib/studio/chatwoot/webhook-procesar.ts:145"
           ]
         },
         {
           "name": "chatwoot_tomar_pendientes",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/webhook-procesar.ts:170",
-            "lib/studio/chatwoot/webhook-procesar.ts:173"
+            "lib/studio/chatwoot/webhook-procesar.ts:174",
+            "lib/studio/chatwoot/webhook-procesar.ts:177"
           ]
         },
         {
@@ -441,7 +441,7 @@
           "degradation": "listConversacionesDeCliente devuelve [] y la ficha muestra «Sin conversaciones vinculadas»; solo con acceso a la Bandeja y el flag encendido, que sin 0503 tampoco existe."
         },
         {
-          "site": "lib/studio/chatwoot/webhook-procesar.ts:61",
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:65",
           "contains": "if (error) throw new Error(`chatwoot_registrar_evento: ${error.code ?? \"sin código\"}`);",
           "degradation": "Sin la RPC (42883/PGRST202) el webhook responde 500 sin registrar ni avisar, y la reconciliación de la Bandeja responde «service». El webhook no se registra en Chatwoot hasta aplicar 0503 y 0504 (puerta aparte)."
         },
@@ -451,12 +451,12 @@
           "degradation": "La suscripción Realtime a una tabla que no existe no entrega cambios: el badge se queda con lo inicial del layout (vacío sin 0504) y no pinta nada."
         },
         {
-          "site": "lib/studio/chatwoot/webhook-procesar.ts:141",
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:145",
           "contains": "if (error) console.warn(`[chatwoot] chatwoot_cerrar_evento: ${error.code ?? \"sin código\"}`);",
           "degradation": "Sin la función de cierre (42883/PGRST202) solo se registra el código: no hay evento que cerrar, porque sin 0504 tampoco existe chatwoot_registrar_evento y la ruta ya respondió 500 antes."
         },
         {
-          "site": "lib/studio/chatwoot/webhook-procesar.ts:174",
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:178",
           "contains": "return { tomados: 0, procesados: 0, fallidos: 0, omitido: true };",
           "degradation": "Sin 0504 el cron /api/cron/chatwoot-reintentos no encuentra la RPC (42883/PGRST202): registra el código y responde 200 con omitido, sin tomar ni reprocesar nada. No rompe el resto de los crons."
         },
@@ -700,6 +700,49 @@
           "site": "app/studio/(app)/crm/tarjeta-actions.ts:320",
           "contains": "if (error) return { error: \"No se pudo guardar la nota.\" };",
           "degradation": "Las escrituras de notas, tareas y dueño fallan con un mensaje y sin efecto cuando las tablas no existen."
+        }
+      ]
+    },
+    {
+      "id": "sdd-0587-crm-entrada",
+      "primarySymbol": "crm_entrada_chatwoot",
+      "migration": "0513_crm_entrada_leads",
+      "symbols": [
+        {
+          "name": "crm_entrada_chatwoot",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/chatwoot/entrada-leads.ts:50",
+            "lib/studio/chatwoot/entrada-leads.ts:61"
+          ]
+        },
+        {
+          "name": "crm_asesor_desde_chatwoot",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/chatwoot/entrada-leads.ts:37",
+            "lib/studio/chatwoot/entrada-leads.ts:44"
+          ]
+        },
+        {
+          "name": "crm_alta_tarjeta_web",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/crm-alta-web.ts:18",
+            "lib/studio/crm-alta-web.ts:28"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/chatwoot/entrada-leads.ts:114",
+          "contains": "if (SIN_MIGRACION.has(codigo)) {",
+          "degradation": "Sin 0513 las RPC responden que no existen (PGRST202/42883): entrarLead avisa con el código y no lanza, así que el evento se cierra como procesado y el push y la clasificación siguen igual. La tarjeta se crea con el primer mensaje después de aplicarla."
+        },
+        {
+          "site": "lib/studio/crm-alta-web.ts:28",
+          "contains": "if (error) console.warn(`[registerClientAction] tarjeta del CRM sin crear: ${error.code ?? \"sin código\"}`);",
+          "degradation": "Sin 0513 el alta de /registro sigue igual: la RPC corre en after(), después de responder, y altaTarjetaWeb no lanza. Queda un aviso con el código en el log."
         }
       ]
     }
