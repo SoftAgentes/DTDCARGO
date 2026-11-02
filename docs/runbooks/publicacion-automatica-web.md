@@ -237,7 +237,8 @@ las dos:
 El motivo es inferido: el handoff de Node 24.22.1 del 2026-10-25 dice que los parches locales
 de Contabo se conservan, y el informe del parche no se encontró. Por qué se agregó la
 variable está NO VERIFICADO. Lo más probable es que fuera para que cambiar Node no pudiera
-escribir en la base, pero es una inferencia.
+escribir en la base, pero es una inferencia. Queda fuera del compose a propósito: declararla
+cambia el hash de `storage` y lo recrea en el próximo `up`.
 
 Hasta ahora `revisar` no lo mostraba, porque para en las migraciones. Al aplicar la 0496 y la
 0497 dirá «el servidor no tiene la misma copia», y su mensaje manda a copiar el archivo del

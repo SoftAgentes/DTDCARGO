@@ -680,7 +680,7 @@ publicar. Registro: [handoff](../../../.agents/handoffs/0541-publicar-commit-exa
 6. [x] La prueba de `storage` falla si vuelve el literal o el id fijo, si cambia el valor por
    defecto, si `.env.example` deja la línea activa, si el overlay de prueba fija la imagen o
    si la prueba de la base efímera deja de encontrarla.
-7. [ ] Linux: el CI «Calidad continua» de la PR.
+7. [x] Linux: el CI «Calidad continua» de la PR, corrida `41379296547` sobre `9d0758286`.
 8. [ ] Después del merge: la ventana del runbook, con el OK de Sam.
 
 ### Allowlist exclusiva de esta continuación

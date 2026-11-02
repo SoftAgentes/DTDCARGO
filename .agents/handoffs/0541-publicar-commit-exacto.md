@@ -98,7 +98,8 @@ Medido en el VPS el 2026-11-02 a las 02:28Z, solo lectura:
 | `prueba-compose-prueba.sh`, con `docker compose config` real y un `.env` falso, sin motor de Docker | PASÓ, 10 de 10 |
 | Hash de `storage` en local, compose 5.6.0 y `.env` falso | Literal del servidor, literal con la línea y archivo nuevo con la línea dan el mismo. Sin la línea cambia, y es el control rojo. Línea vacía: cae a la oficial |
 | `prueba-resetear-base-efimera.sh` | NO EJECUTADO, es una corrida pesada con Docker. Solo se probó que su patrón encuentra la imagen |
-| `prueba-publicar-web.sh` en Linux | PENDIENTE: lo corre el CI «Calidad continua» de la PR. Docker Desktop está apagado y no tiene turno aquí |
+| `prueba-publicar-web.sh` en Linux, corrida `41379296547` sobre `9d0758286` | PASÓ: 214 PASÓ, exit 0. Son los 209 de Git Bash más los 5 rojos de allí, así que esos 5, incluidos los dos de `lector: sin salida`, no se reproducen en Linux. El CI solo imprime el total, no cada línea |
+| Resto de esa corrida | PASÓ: Unitarios 13241 pasan y 1 se omite, ESLint, TypeScript, Edge Functions, `docs:check`, `sdd:check`, build sin secretos y árbol reproducible |
 | `docs:check`, `sdd:check`, `git diff --check` | PASÓ |
 | `pnpm verify` | NO EJECUTADO: el cambio de producto es nulo y la máquina es compartida; lo mide el CI |
 
@@ -128,4 +129,4 @@ Encender el timer es un paso aparte, con su propio OK.
 
 Antes de pedir el OK de publicar, instalar esta PR en la ventana y repetir la comparación de huellas. `revisar` no alcanza mientras falten migraciones.
 
-Decisión abierta: `DB_ALLOW_MIGRATION_REFRESH=false` vive solo en la imagen. Un servidor con la oficial, como un entorno de prueba con su `.env` nuevo, reescribe los hashes si no coinciden. Declararla en `compose.supabase.yml` lo evitaría, pero cambia el hash de `storage` y lo recrea en el próximo `up`, así que necesita su propia ventana. Recomiendo dejarla fuera de esta PR. El detalle y la evidencia están en la nota de la carpeta compartida, `0541-commit-exacto-worker.md`.
+Decisión del 2026-11-02, respuesta literal en esta sesión: «Sí, déjala fuera». `DB_ALLOW_MIGRATION_REFRESH=false` sigue viviendo solo en la imagen y no entra en esta PR. Declararla en `compose.supabase.yml` cambia el hash de `storage` y lo recrea en el próximo `up`, así que necesitaría su propia ventana. Límite que queda: un servidor con la oficial, como un entorno de prueba con su `.env` nuevo, reescribe los hashes si no coinciden. El detalle y la evidencia están en la nota de la carpeta compartida, `0541-commit-exacto-worker.md`.
