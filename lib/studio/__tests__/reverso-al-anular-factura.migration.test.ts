@@ -861,9 +861,9 @@ create table if not exists supabase_migrations.schema_migrations(version text pr
 insert into supabase_migrations.schema_migrations values
   (to_char(clock_timestamp() at time zone 'UTC','YYYYMMDDHH24MISS'),'0497_reverso_al_anular_factura');`;
     const leerControl = async (db: PGlite) => (await db.exec(inline(CONTROL, {})))
-      .flatMap((result) => result.rows as { clase?: string; estado_factura?: string; lectura?: string; n?: number | string }[])
+      .flatMap((result) => result.rows as { clase?: string; estado_factura?: string; diagnostico?: string; n?: number | string }[])
       .filter((fila) => fila.clase !== undefined)
-      .map((fila) => ({ clase: fila.clase!, estado: fila.estado_factura!, lectura: fila.lectura!, n: Number(fila.n) }));
+      .map((fila) => ({ clase: fila.clase!, estado: fila.estado_factura!, diagnostico: fila.diagnostico!, n: Number(fila.n) }));
     const realPorMensaje = async (db: PGlite) => {
       await db.exec(`do $real$
 declare f record; v_mensaje text;
@@ -886,7 +886,7 @@ $real$;`);
     };
     const esperar = (ms: number) => new Promise((listo) => { setTimeout(listo, ms); });
 
-    it("el control posterior coincide con la aserción real y separa la ventana del hueco", async () => {
+    it("el control posterior coincide con la aserción real y da un diagnóstico por fila", async () => {
       await sobreFixtureSinLa0497(async (db) => {
         await db.exec(SEMBRAR);
         await db.exec(FILE_0497);
@@ -897,20 +897,19 @@ $real$;`);
         await confirmar(db, "select set_config('request.jwt.claim.sub', pg_temp.fixture_id('accounting-A')::text, true);",
           "set local role authenticated;",
           "select public.void_invoice_with_audit_reason(pg_temp.fixture_id('a2-sana'), 'Motivo sintético del control');");
-        // Emitida en la ventana, sin asiento: lo que deja la web vieja.
+        // Sin asiento y con fechas de después del apply: lo que deja la web vieja.
         await db.exec(`insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,base_amount,iva_amount,total_amount,paid_amount,status,issued_at)
           values(pg_temp.fixture_id('a2-ventana'),pg_temp.fixture_id('tenant-A'),'F-A2-VENTANA','DTD-I3B','Cliente sintético','USD',100,0,100,0,'emitida',current_date);`);
         const filas = await leerControl(db);
         expect(db.isInTransaction()).toBe(false);
         const de = (clase: string, estado: string) => filas.find((fila) => fila.clase === clase && fila.estado === estado);
-        // La factura sin venta de antes del apply no se confunde con la de la ventana.
-        expect(filas.filter((fila) => fila.lectura === "sin_venta_de_antes").map((fila) => fila.estado)).toContain("emitida");
-        expect(filas.filter((fila) => fila.lectura === "emitida_en_la_ventana")).toEqual(
-          [{ clase: "sin_venta", estado: "emitida", lectura: "emitida_en_la_ventana", n: 1 }]);
-        expect(de("venta_anulada", "emitida")).toMatchObject({ lectura: "entro_por_el_hueco" });
-        expect(de("dos_o_mas_ventas", "emitida")).toMatchObject({ lectura: "entro_por_el_hueco" });
-        expect(de("sana_anulada_con_reverso", "anulada")).toMatchObject({ lectura: "cuadra" });
-        expect(de("anulada_sin_reverso", "anulada")).toMatchObject({ lectura: "legado_fuera_de_los_vivos" });
+        expect(filas.filter((fila) => fila.diagnostico === "sin_venta_fechas_viejas").map((fila) => fila.estado)).toContain("emitida");
+        expect(filas.filter((fila) => fila.diagnostico === "sin_venta_fechas_recientes")).toEqual(
+          [{ clase: "sin_venta", estado: "emitida", diagnostico: "sin_venta_fechas_recientes", n: 1 }]);
+        expect(de("venta_anulada", "emitida")).toMatchObject({ diagnostico: "viva_no_cuadra" });
+        expect(de("dos_o_mas_ventas", "emitida")).toMatchObject({ diagnostico: "viva_no_cuadra" });
+        expect(de("sana_anulada_con_reverso", "anulada")).toMatchObject({ diagnostico: "cuadra" });
+        expect(de("anulada_sin_reverso", "anulada")).toMatchObject({ diagnostico: "no_viva_no_cuadra" });
         expect(filas.map((fila) => fila.clase)).not.toContain("venta_invalida_sin_clasificar");
         const esperado: Record<string, number> = {};
         for (const fila of filas) {
@@ -920,6 +919,111 @@ $real$;`);
         }
         expect(await realPorMensaje(db)).toEqual(esperado);
       });
+    }, SLOW);
+
+    // Las etiquetas dicen cómo está la fila, no de dónde vino. Estos casos son la razón.
+    it("el diagnóstico no es procedencia: las fechas fallan en los dos sentidos", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        const factura = (label: string, emision: string) => `insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,base_amount,iva_amount,total_amount,paid_amount,status,issued_at)
+          values(pg_temp.fixture_id('${label}'),pg_temp.fixture_id('tenant-A'),'F-${label}','DTD-I3B','Cliente sintético','USD',100,0,100,0,'emitida',${emision});`;
+        await db.exec(factura("a2-hoy-antes", "current_date"));
+        await db.exec(FILE_0497);
+        await esperar(1100);
+        await db.exec(LEDGER);
+        await esperar(1100);
+        const viejas = (filas: Awaited<ReturnType<typeof leerControl>>) =>
+          filas.find((fila) => fila.clase === "sin_venta" && fila.estado === "emitida" && fila.diagnostico === "sin_venta_fechas_viejas")?.n ?? 0;
+        const antes = await leerControl(db);
+        expect(antes.filter((fila) => fila.diagnostico === "sin_venta_fechas_recientes")).toEqual([]);
+        // Emitida antes del apply y tocada después: sale con fechas recientes.
+        await db.exec("update public.invoices set notes = 'Tocada', updated_at = now() where id = pg_temp.fixture_id('a2-hoy-antes');");
+        // Emitida después del apply con fecha anterior: sale con fechas viejas.
+        await db.exec(factura("a2-ayer", "current_date - 1"));
+        const despues = await leerControl(db);
+        expect(despues.filter((fila) => fila.diagnostico === "sin_venta_fechas_recientes")).toEqual(
+          [{ clase: "sin_venta", estado: "emitida", diagnostico: "sin_venta_fechas_recientes", n: 1 }]);
+        expect(viejas(despues) - viejas(antes)).toBe(0); // Una salió de viejas y otra entró.
+      });
+    }, SLOW);
+
+    it("el diagnóstico no es procedencia: una venta sana se invalida desde accounts y se sigue cobrando", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec(FILE_0497);
+        await db.exec(LEDGER);
+        const factura = "pg_temp.fixture_id('a2-sana')";
+        await db.exec(`select public.i3_assert_invoice_final(${factura});`);
+        const antes = await leerControl(db);
+        expect(antes.find((fila) => fila.clase === "sana" && fila.estado === "emitida")).toMatchObject({ diagnostico: "cuadra" });
+        await db.exec("update public.accounts set is_postable = false where id = pg_temp.fixture_id('ventas');");
+        const despues = await leerControl(db);
+        expect(despues.find((fila) => fila.clase === "sana" && fila.estado === "emitida")).toBeUndefined();
+        expect(despues.find((fila) => fila.clase === "lineas_cuenta_no_clasificable" && fila.estado === "emitida"))
+          .toMatchObject({ diagnostico: "viva_no_cuadra" });
+        await expect(db.exec(`select public.i3_assert_invoice_final(${factura});`)).rejects.toThrow("La venta original requiere revisión.");
+        await confirmar(db, `update public.invoices set paid_amount = 100, status = 'pagada' where id = ${factura};`);
+        expect(onlyRow<string>(await db.exec(`select status::text as valor from public.invoices where id = ${factura};`), "valor")).toBe("pagada");
+      });
+    }, SLOW);
+
+    // aplicar.sql agrega la fila del ledger DESPUÉS del archivo. Si el archivo suelta los límites,
+    // esa fila y el COMMIT esperan sin límite con los locks tomados. Aquí se leen en los dos puntos:
+    // el COMMIT, con un disparador diferido. El bloqueo de verdad va en prueba-0497-rol-real.mjs.
+    const LIMITES = "select current_setting('lock_timeout') as lock_t, current_setting('statement_timeout') as stmt_t";
+    const limitesDe = async (migracion: string) => {
+      let leidos: { sesion: unknown; ledger: unknown; alConfirmar: unknown; despues: unknown } | undefined;
+      await sobreFixtureSinLa0497(async (db) => {
+        const sesion = (await db.query(LIMITES)).rows[0];
+        await db.exec(`begin;
+${migracion}
+create table public.z_limites(punto text primary key, lock_t text, stmt_t text);
+create function public.z_limites_leer() returns trigger language plpgsql as $z$
+begin
+  insert into public.z_limites select 'al_confirmar', current_setting('lock_timeout'), current_setting('statement_timeout');
+  return null;
+end;
+$z$;
+create constraint trigger z_al_confirmar after insert on public.z_limites deferrable initially deferred
+  for each row when (new.punto = 'ledger') execute function public.z_limites_leer();
+insert into public.z_limites select 'ledger', current_setting('lock_timeout'), current_setting('statement_timeout');
+commit;`);
+        const fila = async (punto: string) => (await db.query(`select lock_t, stmt_t from public.z_limites where punto = '${punto}'`)).rows[0];
+        leidos = { sesion, ledger: await fila("ledger"), alConfirmar: await fila("al_confirmar"), despues: (await db.query(LIMITES)).rows[0] };
+      });
+      return leidos!;
+    };
+    const LIMITES_0497 = { lock_t: "5s", stmt_t: "30s" };
+
+    it("los límites valen para la fila del ledger y el COMMIT, y no quedan en la sesión", async () => {
+      const { sesion, ledger, alConfirmar, despues } = await limitesDe(FILE_0497);
+      expect(ledger).toEqual(LIMITES_0497);
+      expect(alConfirmar).toEqual(LIMITES_0497);
+      expect(sesion).not.toEqual(LIMITES_0497);
+      expect(despues).toEqual(sesion);
+    }, SLOW);
+
+    const SET_LOCK = "set local lock_timeout = '5s'; -- local: valen hasta el COMMIT, también para la fila del ledger\n";
+    const SET_STMT = "set local statement_timeout = '30s';\n";
+    const CON_RESET = (texto: string, ...parametros: string[]) => texto + parametros.map((p) => `\nreset ${p};`).join("") + "\n";
+    const SIN_LOCAL = () => mutant(SET_LOCK, "set lock_timeout = '5s';\n").split(SET_STMT).join("set statement_timeout = '30s';\n");
+    it.each([
+      ["como estaba: set sin local y reset al final", () => CON_RESET(SIN_LOCAL(), "statement_timeout", "lock_timeout"), "ledger"],
+      ["reset de los dos", () => CON_RESET(FILE_0497, "statement_timeout", "lock_timeout"), "ledger"],
+      ["reset solo de lock_timeout", () => CON_RESET(FILE_0497, "lock_timeout"), "ledger"],
+      ["reset solo de statement_timeout", () => CON_RESET(FILE_0497, "statement_timeout"), "ledger"],
+      ["sin el límite de locks", () => mutant(SET_LOCK, ""), "ledger"],
+      ["sin el límite de sentencia", () => mutant(SET_STMT, ""), "ledger"],
+      ["set sin local: los límites se quedan en la sesión", SIN_LOCAL, "despues"],
+    ] as const)("mutante de los límites, %s: muere", async (_nombre, armar, punto) => {
+      const { sesion, ledger, alConfirmar, despues } = await limitesDe(armar());
+      if (punto === "ledger") {
+        expect(ledger).not.toEqual(LIMITES_0497);
+        expect(alConfirmar).not.toEqual(LIMITES_0497);
+      } else {
+        expect(ledger).toEqual(LIMITES_0497);
+        expect(despues).not.toEqual(sesion);
+      }
     }, SLOW);
 
     it("cada clase del control posterior coincide con la del conteo previo", async () => {

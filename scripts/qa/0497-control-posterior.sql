@@ -7,18 +7,24 @@
 -- `lib/studio/__tests__/reverso-al-anular-factura.migration.test.ts` lo compara con
 -- `i3_assert_invoice_final` sobre las mismas filas. Esa función no corre aquí: usa `for update`.
 --
--- SALIDA (una sola tabla): clase · estado_factura · lectura · n. Solo etiquetas y conteos: ni
+-- SALIDA (una sola tabla): clase · estado_factura · diagnostico · n. Solo etiquetas y conteos: ni
 -- ids, ni códigos, ni montos, ni nombres, ni tenant. Lee filas de negocio por dentro, así que
 -- correrlo en producción pide autorización aunque no las muestre.
 --
--- Cómo leer la columna `lectura`:
---   emitida_en_la_ventana        Factura viva sin asiento de venta, emitida desde que se aplicó
---                                la 0497. La web vieja no pudo asentarla. Hay que asentarla.
---   entro_por_el_hueco           Factura viva cuya venta no cuadra. Después del apply no hay
---                                camino para crearla, así que entró antes y se puede cobrar.
---   legado_fuera_de_los_vivos    No cuadra y no está viva, como una anulada con su venta anulada.
---   sin_venta_de_antes           Sin asiento de venta desde antes del apply.
---   cuadra                       Tiene su venta y cuadra, con su reverso si está anulada.
+-- La columna `diagnostico` dice cómo está la fila AHORA, no de dónde vino. Ninguna columna guarda
+-- la transición, así que ni las fechas ni la hora del apply prueban quién la dejó así. Para saber
+-- qué cambió, comparar estas filas contra el conteo previo (scripts/qa/0497-legado-por-clase.sql).
+--   cuadra                      Tiene su venta y cuadra, con su reverso si está anulada.
+--   sin_venta_fechas_recientes  Viva y sin asiento de venta, con `issued_at` desde el día del apply
+--                               y `created_at` o `updated_at` después de él. Puede ser de la web
+--                               vieja, o de antes: emitida ese día antes del apply y tocada después.
+--   sin_venta_fechas_viejas     Sin asiento de venta y fuera de ese criterio: borradores, anuladas
+--                               y vivas con otras fechas. Una factura emitida después del apply con
+--                               `issued_at` anterior cae aquí: no prueba que sea de antes.
+--   viva_no_cuadra              Viva, con un par que no cuadra. Se puede cobrar. Pudo llegar así o
+--                               quedar así después: `i3_original_valid` lee `is_postable`, código y
+--                               jerarquía actuales de `accounts`, y cambiarlos invalida una venta sana.
+--   no_viva_no_cuadra           No cuadra y no está viva, como una anulada con su venta anulada.
 --
 -- Clases, en el orden de `i3_assert_invoice_final`; cada factura cae en la primera que falla:
 --   sin_venta · factura_borrada_con_venta · reverso_sin_venta · dos_o_mas_ventas ·
@@ -163,16 +169,16 @@ leida as (
       when c.clase = 'sin_venta'
         and c.estado_factura in ('emitida','parcial','vencida','pagada')
         and c.issued_at >= (ap.t at time zone 'America/Caracas')::date
-        and greatest(c.created_at, c.updated_at) >= ap.t then 'emitida_en_la_ventana'
-      when c.clase = 'sin_venta' then 'sin_venta_de_antes'
-      when c.estado_factura in ('emitida','parcial','vencida','pagada') then 'entro_por_el_hueco'
-      else 'legado_fuera_de_los_vivos'
-    end as lectura
+        and greatest(c.created_at, c.updated_at) >= ap.t then 'sin_venta_fechas_recientes'
+      when c.clase = 'sin_venta' then 'sin_venta_fechas_viejas'
+      when c.estado_factura in ('emitida','parcial','vencida','pagada') then 'viva_no_cuadra'
+      else 'no_viva_no_cuadra'
+    end as diagnostico
   from clasificacion c cross join aplicada ap
 )
-select clase, estado_factura, lectura, count(*) as n
+select clase, estado_factura, diagnostico, count(*) as n
 from leida
-group by clase, estado_factura, lectura
-order by lectura, clase, estado_factura;
+group by clase, estado_factura, diagnostico
+order by diagnostico, clase, estado_factura;
 
 rollback;

@@ -15,7 +15,9 @@
  *   2. Control en rojo: un parámetro propio en una cabecera falla con este rol.
  *   3. Filas de legado sembradas antes de la 0497, y scripts/qa/0497-legado-por-clase.sql.
  *   4. Los paquetes reales de 0496 y 0497: previa, apply y verificación, con los flags de
- *      aplicar.sh y el cuerpo vivo de next_entry_code.
+ *      aplicar.sh y el cuerpo vivo de next_entry_code. Antes, cada aplicar.sql con el ledger
+ *      bloqueado: aborta dentro del límite y suelta los locks. La 0497 lleva su control en
+ *      rojo: con los límites soltados antes de la fila del ledger, espera con los locks tomados.
  *   5. Las RPC como `authenticated` y `service_role` sobre el esquema completo. Conviven
  *      con invoices_seal_billing_titular, invoices_referral_sale_voided, referrals_candado_trg
  *      e invoices_write_version. Incluye cobro, crédito, renombre y salidas con excepción.
@@ -89,6 +91,96 @@ function archivo(ruta, { rol = "postgres", db = "postgres", extra = [] } = {}) {
 function sql(texto, { rol = "postgres", db = "postgres" } = {}) {
   const r = docker(["exec", NOMBRE, "psql", "-U", rol, "-d", db, "-X", "-At", "-F", "|", "-v", "ON_ERROR_STOP=1", "-c", texto]);
   return { status: r.status, out: (r.stdout || "").trim(), err: (r.stderr || "").trim() };
+}
+
+// ── El ledger bloqueado ────────────────────────────────────────────────────────────
+// aplicar.sql agrega la fila del ledger después del archivo: esa espera tiene que tener límite.
+// SHARE deja leer el ledger, que es lo que hace el preflight, y frena solo el INSERT.
+const APP_BLOQUEO = "bloqueo_ledger_0497";
+const APP_CONTROL = "control_ledger_0497";
+const pausa = (ms) => spawnSync(process.execPath, ["-e", `setTimeout(()=>{},${ms})`]);
+const LOCKS_FUERTES = `select count(*) from pg_locks l join pg_class c on c.oid = l.relation join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and l.pid <> pg_backend_pid() and l.mode in ('AccessExclusiveLock','ExclusiveLock','ShareRowExclusiveLock')`;
+function bloquearLedger() {
+  const r = docker(["exec", "-d", "-e", `PGAPPNAME=${APP_BLOQUEO}`, NOMBRE, "psql", "-U", "postgres", "-d", "postgres", "-X", "-c",
+    "begin; lock table supabase_migrations.schema_migrations in share mode; select pg_sleep(300); rollback;"]);
+  if (r.status !== 0) throw new Error(`no bloqueó el ledger: ${r.stderr}`);
+  for (let n = 0; n < 40; n += 1) {
+    const v = sql(`select count(*) from pg_locks l join pg_stat_activity a using (pid)
+      where a.application_name = '${APP_BLOQUEO}' and l.granted and l.mode = 'ShareLock'
+        and l.relation = 'supabase_migrations.schema_migrations'::regclass`);
+    if (v.out === "1") return;
+    pausa(250);
+  }
+  throw new Error("el ledger no quedó bloqueado");
+}
+function soltar(app) {
+  sql(`select pg_terminate_backend(pid) from pg_stat_activity where application_name = '${app}'`);
+  for (let n = 0; n < 40; n += 1) {
+    if (sql(`select count(*) from pg_stat_activity where application_name = '${app}'`).out === "0") return;
+    pausa(250);
+  }
+  throw new Error(`${app} no terminó`);
+}
+// La marca de lo que deja cada migración si confirmara.
+const NO_QUEDO = {
+  [M0496]: "to_regclass('public.shipment_rate_snapshots') is null",
+  [M0497]: "to_regprocedure('public.i3_assert_invoice_final(uuid)') is null",
+};
+function nadaQuedo(m) {
+  return sql(`select ${NO_QUEDO[m]} and not exists (select 1 from supabase_migrations.schema_migrations where name = '${m}')`).out === "t";
+}
+const MARCA_LEDGER = "\ninsert into supabase_migrations.schema_migrations (";
+function conLedgerBloqueado(m) {
+  const texto = readFileSync(join(PAQUETES, m, "aplicar.sql"), "utf8");
+  const lineaLedger = texto.slice(0, texto.indexOf(MARCA_LEDGER)).split("\n").length + 1;
+  bloquearLedger();
+  try {
+    const r = archivo(`/paq/${m}/aplicar.sql`);
+    const salida = r.err + r.out;
+    const cayo = salida.match(/aplicar\.sql:(\d+): ERROR:\s+canceling statement due to lock timeout/);
+    if (r.status !== 0 && cayo && Number(cayo[1]) >= lineaLedger) ok(`${m.slice(0, 4)} con el ledger bloqueado: cae en la fila del ledger, línea ${cayo[1]} de aplicar.sql, en ${r.ms} ms`);
+    else ko(`${m.slice(0, 4)} con el ledger bloqueado: no cayó por el límite en la fila del ledger (línea ${lineaLedger}), ${r.ms} ms`, salida);
+    if (r.ms >= 5000 && r.ms < 25000) ok(`${m.slice(0, 4)} con el ledger bloqueado: esperó el límite y no más`);
+    else ko(`${m.slice(0, 4)} con el ledger bloqueado: tardó ${r.ms} ms`);
+    const locks = sql(LOCKS_FUERTES).out;
+    if (locks === "0") ok(`${m.slice(0, 4)} con el ledger bloqueado: soltó los locks con el ledger todavía bloqueado`);
+    else ko(`${m.slice(0, 4)} con el ledger bloqueado: quedan ${locks} locks fuertes`);
+    if (nadaQuedo(m)) ok(`${m.slice(0, 4)} con el ledger bloqueado: no quedó nada de la migración`);
+    else ko(`${m.slice(0, 4)} con el ledger bloqueado: quedó algo aplicado`);
+  } finally {
+    soltar(APP_BLOQUEO);
+  }
+}
+// El control: los límites soltados justo antes de la fila, como estaba la 0497. Se mata antes de
+// soltar el ledger, para que no confirme.
+function controlSinLimites(m) {
+  const texto = readFileSync(join(PAQUETES, m, "aplicar.sql"), "utf8");
+  const i = texto.indexOf(MARCA_LEDGER);
+  const ruta = copiar("control-ledger.sql", texto.slice(0, i) + "\nreset statement_timeout;\nreset lock_timeout;" + texto.slice(i));
+  bloquearLedger();
+  try {
+    const r = docker(["exec", "-d", "-e", `PGAPPNAME=${APP_CONTROL}`, NOMBRE, "psql", "-U", "postgres", "-d", "postgres", ...FLAGS, "-f", ruta]);
+    if (r.status !== 0) throw new Error(`no arrancó el control: ${r.stderr}`);
+    const esperando = `select count(*) from pg_stat_activity where application_name = '${APP_CONTROL}' and wait_event_type = 'Lock' and query like 'insert into supabase_migrations%'`;
+    let llego = false;
+    for (let n = 0; n < 120 && !llego; n += 1) {
+      llego = sql(esperando).out === "1";
+      if (!llego) pausa(250);
+    }
+    if (!llego) { ko("control de los límites: nunca llegó a la fila del ledger"); return; }
+    pausa(8000); // Más que los 5 s del límite.
+    const sigue = sql(esperando).out;
+    const retiene = sql(`select count(*) from pg_locks l join pg_stat_activity a using (pid) join pg_class c on c.oid = l.relation
+      where a.application_name = '${APP_CONTROL}' and l.granted and l.mode = 'AccessExclusiveLock' and c.relname in ('journal_entries','journal_lines')`).out;
+    if (sigue === "1" && retiene === "2") ok("control en rojo: con los límites soltados antes del ledger, sigue esperando pasado el límite y con journal_entries y journal_lines tomadas");
+    else ko(`el control no reprodujo el defecto: esta prueba no lo detecta (sigue ${sigue}, locks ${retiene})`);
+  } finally {
+    soltar(APP_CONTROL);
+    soltar(APP_BLOQUEO);
+  }
+  if (nadaQuedo(m)) ok("control de los límites: terminado sin confirmar");
+  else ko("control de los límites: quedó algo aplicado");
 }
 
 // ── Filas sembradas ANTES de la 0497 ───────────────────────────────────────────────
@@ -552,6 +644,8 @@ try {
       if (v.status === 0 && md5 === "06b5756a18361fc4d85cec6f6dc4b3bc") ok("next_entry_code con el cuerpo vivo de producción");
       else ko(`next_entry_code vivo: md5 ${md5}`, v.err);
     }
+    conLedgerBloqueado(m);
+    if (m === M0497) controlSinLimites(m);
     for (const paso of ["previa", "aplicar", "verificar"]) {
       const r = archivo(`/paq/${m}/${paso}.sql`);
       if (r.status === 0) ok(`${m.slice(0, 4)} ${paso}${paso === "aplicar" ? ` en ${r.ms} ms` : ""}`);
@@ -574,7 +668,7 @@ try {
   }
 
   // El control posterior: con el esquema completo, cada clase da el mensaje real de la aserción,
-  // y el hueco y la ventana salen separados. El cruce con la función real va en esta prueba
+  // y cada fila su diagnóstico. El cruce con la función real va en esta prueba
   // porque esa función usa `for update` y no corre en el archivo de solo lectura.
   const MENSAJE = {
     sana: "ok", sana_anulada_con_reverso: "ok", sin_venta: "ok",
@@ -586,13 +680,13 @@ try {
     par_de_anulacion_invalido: "El par de anulación requiere revisión.",
     estado_sin_venta_posible: "Estado de factura y par contable incompatibles.",
   };
-  // Una factura de la ventana: emitida ahora, sin asiento, como la deja la web vieja.
+  // Emitida ahora, sin asiento, como la deja la web vieja.
   spawnSync(process.execPath, ["-e", "setTimeout(()=>{},1100)"]);
   sql(FACTURA("ventana", "M1-A", "emitida"));
   const ctrl = docker(["exec", NOMBRE, "psql", "-U", "postgres", "-d", "postgres", "-X", "-At", "-F", "|", "-f",
     copiar("control.sql", readFileSync(resolve(ROOT, "scripts/qa/0497-control-posterior.sql"), "utf8"))]);
   const filasControl = (ctrl.stdout || "").split("\n").filter((l) => /^[a-z_0-9]+\|[a-z]+\|[a-z_]+\|\d+$/.test(l));
-  const fila = (clase, estado, lectura) => filasControl.some((l) => l.startsWith(`${clase}|${estado}|${lectura}|`));
+  const fila = (clase, estado, diagnostico) => filasControl.some((l) => l.startsWith(`${clase}|${estado}|${diagnostico}|`));
   const totalPorMensaje = {};
   for (const l of filasControl) {
     const [clase, , , n] = l.split("|");
@@ -618,12 +712,12 @@ $real$; select mensaje, count(*) from a2_real group by mensaje;`);
   const orden = (o) => JSON.stringify(Object.entries(o).sort());
   if (ctrl.status === 0 && filasControl.length > 0 && orden(totalPorMensaje) === orden(totalReal)) ok(`el control posterior coincide con la aserción real, por mensaje, en ${filasControl.length} filas`);
   else ko("el control posterior no coincide con la aserción real", `control: ${orden(totalPorMensaje)}\nreal: ${orden(totalReal)}\n${ctrl.stderr || ""}\n${real.err}`);
-  if (fila("sin_venta", "emitida", "emitida_en_la_ventana")) ok("el control posterior ve la factura emitida en la ventana");
-  else ko("el control posterior no ve la factura de la ventana", filasControl.join("\n"));
-  if (fila("venta_anulada", "pagada", "entro_por_el_hueco") && fila("dos_o_mas_ventas", "pagada", "entro_por_el_hueco")) ok("el control posterior separa lo que entró por el hueco, con venta anulada y con dos ventas");
-  else ko("el control posterior no ve el hueco", filasControl.join("\n"));
-  if (fila("venta_anulada", "anulada", "legado_fuera_de_los_vivos")) ok("el control posterior no confunde la anulada de legado con el hueco");
-  else ko("el control posterior confunde la anulada de legado", filasControl.join("\n"));
+  if (fila("sin_venta", "emitida", "sin_venta_fechas_recientes")) ok("el control posterior ve la factura viva sin venta con fechas recientes");
+  else ko("el control posterior no ve la factura sin venta con fechas recientes", filasControl.join("\n"));
+  if (fila("venta_anulada", "pagada", "viva_no_cuadra") && fila("dos_o_mas_ventas", "pagada", "viva_no_cuadra")) ok("el control posterior separa las vivas que no cuadran, con venta anulada y con dos ventas");
+  else ko("el control posterior no ve las vivas que no cuadran", filasControl.join("\n"));
+  if (fila("venta_anulada", "anulada", "no_viva_no_cuadra")) ok("el control posterior no confunde la anulada con su venta anulada con una viva");
+  else ko("el control posterior confunde la anulada con su venta anulada", filasControl.join("\n"));
   if (!filasControl.some((l) => l.startsWith("venta_invalida_sin_clasificar|"))) ok("el control posterior clasifica todas las ventas inválidas");
   else ko("el control posterior tiene ventas sin clasificar", filasControl.join("\n"));
 

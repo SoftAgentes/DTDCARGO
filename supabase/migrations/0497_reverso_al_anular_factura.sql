@@ -6,8 +6,8 @@
 -- Autoridad: 0573-I3B-encargo-fuente-director.md (b307acc5).
 -- Líneas antes de cabecera, FK diferible, admisión protegida READ COMMITTED.
 -- No prueba procedencia RPC, commit exterior, ausencia de deadlocks o DB real.
-set lock_timeout = '5s';
-set statement_timeout = '30s';
+set local lock_timeout = '5s'; -- local: valen hasta el COMMIT, también para la fila del ledger
+set local statement_timeout = '30s';
 
 do $preflight$
 declare
@@ -1251,5 +1251,3 @@ begin
   end if;
 end;
 $postflight$;
-reset statement_timeout;
-reset lock_timeout;
