@@ -86,6 +86,7 @@ Los SHA quedan en la PR: la rama es la fuente de estado.
 
 ## FUERA DE ALCANCE DETECTADO
 
+- **Comodines en `.ilike("email", email)`** (por lectura, sin provocarlo), detalle en la spec: `a_b@x.com` coincide con el cliente `a.b@x.com`, se crea un `auth.users` y le llega un enlace. No da acceso, porque `portal_bind_session` compara exacto, pero es un oráculo para quien tenga esa dirección y rompe el invariante de SDD-0278. Propuesto como tarea aparte.
 - **Oráculo por tiempo de respuesta** (por lectura, sin medir): un correo con cuenta acuña y llama a Resend; uno sin cuenta, no. Ya existía.
 - **Agotar el cupo de un tercero:** cualquiera puede gastar los 5 pedidos por hora de un correo ajeno. Ya existía en silencio; ahora la persona lo ve.
 - **«Da igual dónde lo abras»** no es cierto para el enlace de Auth (PKCE). Solo aplica sin Resend, y queda en `entorno-prueba.md`.

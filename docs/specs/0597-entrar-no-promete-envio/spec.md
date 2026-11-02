@@ -172,6 +172,7 @@ Sin migraciones, sin variables nuevas y sin tocar producción ni prueba.
 
 ## Fuera de alcance detectado
 
+- **Comodines en `.ilike("email", email)` (por lectura, sin provocarlo):** `app/entrar/actions.ts` y `lib/studio/portal/sin-acceso.ts` pasan el correo sin escapar, y `_` y `%` son comodines. Quien escriba `a_b@x.com` coincide con el cliente `a.b@x.com`: se crea un `auth.users` confirmado para `a_b@x.com`, y le llega un enlace válido, o el aviso de cliente sin acceso. **No da acceso:** `portal_bind_session` compara exacto (`0080_portal_cliente.sql`), y el aviso va sin nombre ni Shipping Mark. Pero recibir algo le confirma a esa persona que una dirección parecida es cliente, rompe el invariante «sólo se crea para quien el equipo habilitó» y cada variante esquiva el cerrojo por correo.
 - **Oráculo por tiempo de respuesta (por lectura, sin medir):** un correo con cuenta acuña y llama a Resend; uno sin cuenta, no. Ya existía, y esta spec no lo cierra.
 - **Agotar el cupo de un tercero:** cualquiera puede gastar los 5 pedidos por hora de un correo ajeno. Ya existía en silencio. Ahora la persona al menos lo ve.
 - **«Da igual dónde lo abras»** no es cierto para el enlace de Auth (PKCE). Solo aplica sin Resend, es decir en prueba. Queda en `entorno-prueba.md`.
