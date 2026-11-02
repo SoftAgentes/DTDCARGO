@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 567 specs)
+### Índice de specs (generado · 568 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -605,6 +605,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0582 | Programa Kommo → Chatwoot dentro de Studio, con checklist y a… | proposed | interno |
 | 0587 | Contrato de sistema maestro por objeto y fase: Studio, Chatwo… | approved | interno |
 | 0592 | El foco no se sale del modal durante el envío ni con errores … | in-progress | interno |
+| 0595 | El primer error recibe el foco: primer tramo en Nómina y flota | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0583, 0584, 0585, 0586, 0588, 0589, 0590, 0591 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0583, 0584, 0585, 0586, 0588, 0589, 0590, 0591, 0593, 0594 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
