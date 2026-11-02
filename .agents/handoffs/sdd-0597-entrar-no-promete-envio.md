@@ -93,7 +93,7 @@ Los SHA quedan en la PR: la rama es la fuente de estado.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **El mismo patrón de `.ilike` en otros sitios** (por lectura, sin provocarlo; tabla en la spec): el `From` del correo entrante (`inbound-email.ts:117`), que puede meter un mensaje en el hilo de otro cliente; la invitación (`app/invitar/[token]/actions.ts:144`), que puede dejar el `auth_user_id` en la ficha de nómina de otra persona; y la baja firmada (`unsubscribe-request.ts:108`), que puede dar de baja a un parecido.
+- **El mismo patrón de `.ilike` en otros sitios** (por lectura, sin provocarlo; tabla en la spec): el `From` del correo entrante (`inbound-email.ts:117`), que puede meter un mensaje en el hilo de otro cliente; la invitación (`app/invitar/[token]/actions.ts:144`), que puede dejar el `auth_user_id` en la ficha de nómina de otra persona; y la baja firmada (`unsubscribe-request.ts:108`), que puede dar de baja a un parecido. **No entran a esta PR**, por decisión del Director General: van como tarea aparte después de publicar. Hay tarjeta para Sam.
 - **Oráculo por tiempo de respuesta** (por lectura, sin medir): un correo con cuenta acuña y llama a Resend; uno sin cuenta, no. Ya existía.
 - **Agotar el cupo de un tercero:** cualquiera puede gastar los 5 pedidos por hora de un correo ajeno. Ya existía en silencio; ahora la persona lo ve.
 - **«Da igual dónde lo abras»** no es cierto para el enlace de Auth (PKCE). Solo aplica sin Resend, y queda en `entorno-prueba.md`.
@@ -103,7 +103,7 @@ Los SHA quedan en la PR: la rama es la fuente de estado.
 ## HANDOFF AL DIRECTOR
 
 - **Reporto al Director General** desde el 2026-11-02: Sam le pasó la salida a producción.
-- **En cola, sin arrancar hasta su aviso:** `verify` va después de 0497, #356, guardas #351 y #352, y foco #358 y #360. La medición en Docker espera a que haya memoria libre: GoTrue con Mailpit y PostgREST v14.17, 1 GB por contenedor, 127.0.0.1, borrado al terminar y 5 minutos de tope.
+- **En cola, sin arrancar hasta su aviso:** `verify` va después de 0497, #356, guardas #351 y #352, y foco #358 y #360. La medición en Docker corre antes de ese `verify`, con su aviso y 3 GB libres, y es condición de integrar: GoTrue con Mailpit y PostgREST v14.17, 1 GB por contenedor, 127.0.0.1, borrado al terminar y 5 minutos de tope.
 - **Mientras tanto:** solo pruebas sueltas de `app/entrar` y `eslint` de lo tocado, con `--maxWorkers=1`, y sin tocar prueba.
 - **Comodines:** en esta PR y SDD, como commit aparte. Aceptado por el Director General.
 - **Decisión de Sam sobre Resend y el plan B:** la presenta el Director General. En la spec va marcada como inferida. No se la pregunto por mi lado.
