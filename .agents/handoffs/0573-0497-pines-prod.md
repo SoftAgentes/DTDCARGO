@@ -274,7 +274,7 @@ En la de la 0497: 0 sesiones esperando locks, 0 transacciones largas, 13 funcion
 
 ## COMMITS
 
-`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · `dab79b99f` y `1e31a642f` rol real y control posterior · `db84f6ffd` y `24d970e1e` evidencia y ensayo · `fda48edb1` límites hasta el COMMIT y control sin procedencia · `b58e36bd3` segunda revisión y medición de `accounts` · `493b8659b` sale el filtro · `9620a283b` guion · `7982e7ff8` prueba de los límites · más el de esta evidencia.
+`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · `dab79b99f` y `1e31a642f` rol real y control posterior · `db84f6ffd` y `24d970e1e` evidencia y ensayo · `fda48edb1` límites hasta el COMMIT y control sin procedencia · `b58e36bd3` segunda revisión y medición de `accounts` · `493b8659b` sale el filtro · `9620a283b` guion · `7982e7ff8` prueba de los límites · `2a56eaef6` decisiones de Sam y blob final · `cb51bfd8e` rehacer prueba, pasos 1 a 3 · más el de esta evidencia.
 
 ## PR / BRANCH
 
@@ -284,9 +284,11 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 
 - Que Sam vea el cambio de mecanismo D2/M4 al pedirle el OK nominal.
 - Que Sam vea en el OK nominal la regla exacta: toda escritura de una factura o de un asiento con factura afirma el par al confirmar.
-- **Rehacer prueba con el blob final:** opción A, decidida por el Director. Pasos 1 a 3 hechos; falta que Sam corra el paso 4, y después los míos. Ver «Rehacer prueba».
-- En prueba, después de eso: R1 a R10 de portal y registro, los pasos 3, 4, 5, 6, 8 y 9 del bloque 7 y el recorrido previo del 7b. NO EJECUTADOS. El guion no se le pasa a Sam antes.
+- **Rehacer prueba con el blob final:** hecho, pasos 1 a 10. Ver «Rehacer prueba». Falta la parte de Sam.
+- Parte de Sam en prueba: R10 y los pasos 1, 2 y 7. El guion ya está listo; se lo pasa el Director.
+- Después de la parte de Sam, y no antes: comprobar en la base lo que hizo, y correr los pasos 3, 4, 5, 6, 8 y 9 del bloque 7. NO EJECUTADOS.
 - Revisión de Sam del guion. La cabeza final será la que lleve ese texto.
+- CI de la cabeza final: NO EJECUTADO. Lo coordina el Director.
 - Revisión independiente del blob final y `pnpm verify`: NO EJECUTADOS. Los decide el Director.
 
 ## Ensayo en prueba, 0492–0497 (2026-11-01, 21:12–21:55Z)
@@ -561,7 +563,8 @@ Decisión del Director: opción A, restaurar el respaldo del ensayo. Entra en la
 | 1. Puerta | PASÓ. `verificar-aislamiento` 22 PASÓ, 0 FALLÓ, 1 AVISO. 0 redes en común. Desde 2026-11-01 21:13Z, nada ajeno: 0 facturas, 0 clientes, 0 usuarios y 0 entradas de otras cuentas |
 | 2. Respaldo del ensayo, en un contenedor desechable con red interna | PASÓ, **36 de 36, en 71 s.** `restore.sh` en 34 s. Ledger 483, 33 facturas, 0 asientos, permisos iguales por huella. Aplicó 0492 a 0496, sembró 26 facturas y 179 asientos, la puerta dio FRENA en las 2 clases inválidas, y la 0497 del blob final aplicó en 381 ms con md5 `77d3ad86…` en el ledger. La regla nueva rechaza el cobro de `F-0573-5001`, y `F-0573-3001`, sin venta, pasa. Contenedor borrado |
 | 3. Respaldo nuevo del estado actual | PASÓ. `/srv/ops/respaldos/prueba-antes-de-rehacer-20261102T132046Z/prueba.dump`, 5.078.137 bytes, sha256 `2ccca8bc5dd588e90fcd1e153c1397f577952f0118f6ad83ee6ee3b0ef176704`. `pg_restore --list` salió 0, con 6.511 entradas |
-| 4. Restaurar en prueba | **NO EJECUTADO.** Lo corre Sam, con `/srv/ops/evidencias/rehacer-prueba-20261102/restaurar-prueba.sh`, sha `7e9c8ec0ca37a473` |
+| 4. Restaurar en prueba | PASÓ. Lo corrió Sam, con `/srv/ops/evidencias/rehacer-prueba-20261102/restaurar-prueba.sh`, sha `7e9c8ec0ca37a473`: `restaurada prueba 20261102T141631Z`. Medido por el Director a las 14:23Z: LISTO, ledger 483, 33 facturas, 0 asientos, 5 usuarios, 47 clientes y `ensure_rls` presente; producción igual |
+| 5 a 10 | Abajo, en «Pasos 5 a 10» |
 
 **Hallazgo del paso 2:** `pg_restore` no puede crear `ensure_rls`: «Superuser owned event trigger must execute a superuser owned function». `restore.sh` sale 4, como advertencia, y la base queda sin ese event trigger. El guion de Sam lo recrea con `set role postgres`, y el contenedor lo probó. Ver FUERA DE ALCANCE.
 
@@ -577,8 +580,65 @@ Decisión del Director: opción A, restaurar el respaldo del ensayo. Entra en la
 
 **Qué cambié en el script, sin tocar el repo:** nada se mueve antes de que una persona escriba `RESTAURAR PRUEBA`, con 5 minutos de espera; `restore.sh` corre con 10 minutos de tope; y un Ctrl+C no corta la vuelta atrás. La negativa la probé en una copia con el compose anulado: no cambió nada, y 12 contenedores siguen arriba.
 
+### Pasos 5 a 10
+
+Prueba, 2026-11-02. Sin `ssh -t`. Evidencia en `/srv/ops/evidencias/rehacer-prueba-20261102/` y en `/srv/ops/evidencias/apply-049N-dtd-cargo-staging-20261102T14*`, en el VPS; el recorrido, en `0573-evidencia/rehacer/`, en la carpeta de notas.
+
+**«errors ignored on restore: 3»: no hay un tercer error.** Con el mismo dump y los mismos flags, en contenedores desechables con registro de errores: con `--jobs 2`, `pg_restore` cuenta 3, y con `--jobs 1`, 2. **El servidor registra 2 en los dos casos,** los dos de `ensure_rls`. Es el conteo de la restauración en paralelo. Lo medí en contenedor, no en prueba, cuyo servidor no registra ERROR; el registro de prueba trae esas mismas 2 líneas y el mismo «3». Evidencia: `tercer-error.log`.
+
+**Paso 5, 0492 a 0496, sin filas de asientos todavía.** Verificación PASÓ en todas:
+
+| Migración | Apply |
+|---|---|
+| 0492 | 322 ms |
+| 0493 | 902 ms |
+| 0494 | 463 ms |
+| 0495 | 407 ms |
+| 0496 | 487 ms |
+
+**Paso 6, semilla sintética.** 26 facturas `F-0573-*`, para 59 en total, 179 asientos y 358 líneas: `invoices` 155.648 bytes, `journal_entries` 245.760, `journal_lines` 147.456. Puerta: `sana` y `sin_venta`, `pasa`; `venta_anulada`, `FRENA` en 3 facturas, sembradas a propósito para el 7b. En producción frenaría; allí hay 0 facturas.
+
+**Paso 7, 0497 con esas filas.** Apply **434 ms**, de 14:30:24.267 a .701, con md5 `77d3ad861b328bfa5e67dcf7b7fa42cf` y 78448 bytes en el ledger.
+
+| Tabla | Lock | Ventana | Duró |
+|---|---|---|---|
+| `journal_entries` | AccessExclusive | .522 a .646 | ~124 ms |
+| `journal_lines` | AccessExclusive | .522 a .646 | ~124 ms |
+| `invoices` | ShareRowExclusive | .551 a .646 | ~95 ms |
+
+| Lector | Lecturas | Mediana | Dentro de la ventana |
+|---|---|---|---|
+| `journal_entries` | 2.292 | 1,2 ms | **Esperó 130,6 ms,** y siguió al soltarse el lock, a las 14:30:24.649 |
+| `invoices` | 2.307 | 0,9 ms | No esperó: ShareRowExclusive no frena lectores |
+
+Ninguna lectura dio error. Hubo lecturas de hasta 291,8 ms fuera de la ventana, antes y después: es ruido del VPS, no de la migración.
+
+**Pasos 8 y 9.** Cuentas `accounting`, `admin` y `commercial` con clave nueva, en `secretos/cuentas-prueba.txt`; la copia anterior queda como `.bak-<ts>`. `WR-2026-0001` y tarifa `PRUEBA-0573`. Pila arriba con 12 servicios, **sin cambiar la imagen:** `prueba-sha-db84f6ffd…`. Aislamiento 27 PASÓ, 0 FALLÓ, 0 AVISO. PostgREST responde HTTP 200 con `invoice_unavailable`. Sin variables de salida en la web, `kommo_connections` 0, ledger 489, 7 event triggers.
+
+**Paso 10, bloque 7 con gemelas.** Aviso de entorno visible. Salieron como dice el guion:
+
+| Paso | Gemela | Resultado |
+|---|---|---|
+| 1 | `F-2026-0034` | Venta `A-2026-0180` asentada |
+| 2 | `F-0573-1008` | «Factura F-0573-1008 anulada», con su reverso y «Original y reverso identificados» |
+| 7a | `F-0573-5003` | «Cobro total registrado en F-0573-5003 · recibo R-2026-0001», pagada, sin asientos |
+| Por contabilizar | | `5001` y `5002`, «Asiento anulado»; `5003` y `3001`, «Sin asiento»; `1008` no sale |
+| 7b | `F-0573-5002` | **Rechazado. Aviso rojo: «No se pudo registrar el cobro.»,** sin motivo. Sigue emitida, 0 recibos, y el panel sigue abierto con «Al día» |
+
+El motivo de la base, «La venta original requiere revisión.», se pierde en `collectionRejection` (`lib/studio/collections-actions.ts:130`): solo traduce los mensajes de `COLLECTION_REJECTIONS`, y los de la 0497 no están. Ver FUERA DE ALCANCE.
+
+**R1 a R9, portal y registro.** El detalle por fila está en el guion, bloque 7. En resumen: R1, R2, R3, R5, R6, R7 y R9, PASÓ; R8, PASÓ en admin y commercial, y support NO DISPONIBLE, porque no hay cuenta de ese rol. **R4: el enlace no llega al buzón de prueba, FALLÓ.** Con un enlace acuñado en memoria, por la misma llamada de `/entrar` y sin imprimirlo, `/abrir` lleva a `/portal`. `/aceptar` no se vio, porque `F-0573-1004` no está por aceptar y devuelve a la lista.
+
+Tres fallos del recorrido eran de mi arnés, no del producto: mandé el documento sin la letra, la espera del chequeo era más corta que la respuesta por el túnel, y esperaba el banner en `/`, donde por diseño no sale. Corregí el guion en el banner, en la bienvenida y en `DTD-9001`, que sí tiene acceso al portal desde la semilla.
+
+**Lo que queda en prueba, además de lo anterior:** `DTD-9039`, de nombre «PRUEBA Registro 0573», con su usuario; `F-2026-0034`, y `F-0573-1008`, `-5002` y `-5003` ya recorridas, con su reverso y su recibo; filas de `portal_registro_throttle`, y de `mail_logs` en cola. Estado medido al final: ledger 489, 60 facturas, 182 asientos, 8 usuarios, 48 clientes. `data/db.antes-20261102T141631Z` y `data/db.fallida-20261102T132829Z` siguen ahí; no se borran sin evidencia ni OK.
+
 ## FUERA DE ALCANCE DETECTADO
 
+- **El cobro rechazado no dice por qué.** Quien cobra ve «No se pudo registrar el cobro.», y nada más. `COLLECTION_REJECTIONS` (`lib/studio/collections-actions.ts`) no tiene los tres mensajes de la 0497: «La venta original requiere revisión.», «La relación contable de la factura requiere revisión.» y «El par de anulación requiere revisión.». Es un cambio de producto, fuera de esta PR: lo decide el Director con lo que diga Sam en el 7b. **No revisé los otros caminos** que escriben una factura, como anular un recibo o renombrar la marca.
+- **El plan B de `/entrar` no entrega nunca.** `app/entrar/actions.ts` acuña con `generate_link` y, si Resend no entrega, llama a `signInWithOtp`. Ese `/otp` da `429: For security purposes, you can only request this after 59 seconds`, porque acuñar ya contó como envío, y `GOTRUE_SMTP_MAX_FREQUENCY` es `60s` en prueba y en producción. La acción no mira ese error, y la pantalla dice «Revisa tu correo» sin que salga nada. **Medido en prueba, que no tiene Resend.** En producción, `RESEND_API_KEY` está definida, medido por nombre, sin leer el valor. Así que allí solo pasaría si Resend falla o rechaza (**inferido;** no lo provoqué). El portal es de lo poco en uso real, y ésta es una de sus puertas. Bajar esa frecuencia, o saltar el plan B cuando se acuñó, lo arreglaría (**inferido**).
+- **El runbook y la semilla de prueba prometen un enlace que no llega.** `docs/runbooks/entorno-prueba.md:140` pide «Portal con el enlace mágico leído en `/correo/`», y `infra/ops/staging/sembrar-prueba.sh:87` escribe esa misma nota dentro del valor de `portal_correo`, cosa que además rompe a quien use ese valor como correo.
+- **A 188 px de ancho, la página de inicio mide 287 px.** El CTA entra sin recorte, y la página se desplaza de lado. Lo medí como aproximación de 375 px con zoom al 200 %. Pendiente de mirar con un zoom real.
 - **`restore.sh` deja una restauración sin `ensure_rls`, y solo avisa.** En producción, tampoco lo recrea un DR: las tablas nuevas de `public` nacerían sin RLS automática. La prueba real del 2026-10-29 trae el mismo error, y salió 5 de 5 porque no lo comprueba. Falta recrearlo en `restore.sh` y comprobarlo en `restore-test.sh`.
 
 - **Guarda sobre `accounts`:** no va en este blob. Es una tarea aparte, que propone el Director. **Condición de Sam: tiene que estar antes del uso real del ERP.** Sin el filtro, un PATCH de cualquier rol a una cuenta de venta frena los cobros de todo el tenant hasta volver el valor: es ruidoso y reversible, no silencioso.

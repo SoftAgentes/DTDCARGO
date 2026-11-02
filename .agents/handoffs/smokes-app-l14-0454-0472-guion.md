@@ -439,18 +439,16 @@ logra entrar o cobrar, **para el bloque y avísame**: eso sí es una regresión 
 
 ## Bloque 7 · Ensayo en prueba: portal y registro primero, después facturas (SDD-0573)
 
-> **Director: no se lo pases todavía.** Prueba sigue con la 0497 vieja, la del filtro. Este texto vale
-> cuando prueba esté rehecha con el blob final y sus datos sintéticos sembrados de nuevo.
-
 **Unos 15 minutos para ti.** Elegiste, literal, «Versión corta, 10 min», y eso no cambia: son los pasos
 1, 2 y 7. Se suman 5 minutos de portal y registro, R10, porque es lo único en uso real y va primero.
 Lo demás lo corre la sesión Worker de la SDD-0573 con un navegador automático, comparando contra la
 base. Eso no cuenta como aprobado por ti: abajo dice qué aceptación se omite.
 
 Lo preparó esa sesión el 2026-11-01 y 02, sobre la imagen
-`prueba-sha-db84f6ffdfae5cad8222ef99b81f58f52cf87d5d`. Los pasos 1, 2 y 7a ya los recorrí con un navegador
-automático en facturas gemelas. **El 7b con la regla nueva no:** lo recorro cuando prueba esté rehecha,
-antes de que te llegue este guion. Lo que pido es tu ojo: que lo que ves tenga sentido para quien factura.
+`prueba-sha-db84f6ffdfae5cad8222ef99b81f58f52cf87d5d`, con la 0497 final ya aplicada en prueba. Los pasos 1,
+2, 7a y 7b ya los recorrí el 2026-11-02 con un navegador automático, en facturas gemelas: `F-2026-0034`,
+`F-0573-1008`, `F-0573-5003` y `F-0573-5002`. Salieron como dice abajo, y las tuyas siguen sin tocar. Lo que
+pido es tu ojo: que lo que ves tenga sentido para quien factura.
 
 **Qué cambia, en una frase.** Desde la 0497, anular una factura deja su asiento de venta intacto y
 crea un **reverso** que lo cancela, y la base deja de aceptar asientos automáticos editados a mano.
@@ -464,8 +462,8 @@ crea un **reverso** que lo cancela, y la base deja de aceptar asientos automáti
 - **Cuenta:** `contabilidad@prueba.example.test`, rol accounting. Su clave está en
   `/srv/dtd-cargo-staging/secretos/cuentas-prueba.txt`, línea `clave_contabilidad`. Se lee por SSH y
   no va al chat ni a un documento.
-- **No sale nada real:** sin Resend, Telegram ni Kommo. Si algún correo saliera, cae en el buzón
-  `https://prueba.dtdcargo.com/correo/`.
+- **No sale nada real:** sin Resend, Telegram ni Kommo. Los correos de la web quedan en cola, sin salir: no
+  te llegará ninguno, ni hace falta para esta parte.
 - **Datos:** usa solo el cliente `DTD-9001` («Cliente PRUEBA C.A.») y las facturas de abajo. Las otras
   facturas en borrador son de los consolidados reales que cargaste en octubre: no las toques. El libro
   diario trae 160 asientos «PRUEBA ensayo 0573: relleno», que puse para que las tablas tuvieran el
@@ -478,25 +476,31 @@ siguiente.
 
 Entre `929cabf51` y `main`, ningún archivo de producto cambia en `app/portal`, `app/registro` ni
 `lib/portal`; los alcanzan el consentimiento de cookies, un CTA móvil y tipos. Aun así va primero:
-`smoke-web.sh` no mira estas rutas, y publicar podría romperlas con todo en verde. R1 a R9 los corre el
-Worker; **R10 es tuyo.**
+`smoke-web.sh` no mira estas rutas, y publicar podría romperlas con todo en verde. R1 a R9 ya los corrió el
+Worker el 2026-11-02, con un navegador automático y contra la base; **R10 es tuyo.**
 
 | # | Quién | Pantalla | Qué debe pasar | Obtenido |
 |---|---|---|---|---|
-| R1 | Anónimo | `/registro` | Alta express: Shipping Mark `DTD-NNNN` al instante, con su fila en `clients` y `client_users`, y la bienvenida en el buzón de prueba | Pendiente |
-| R2 | Anónimo | `/registro`, repetido | Con el mismo documento, «ya eres cliente», sin segunda fila. Con el campo trampa lleno, nada se escribe | Pendiente |
-| R3 | Anónimo | `/api/registro/check` | Responde a un documento libre y a uno usado | Pendiente |
-| R4 | Cliente nuevo | `/entrar`, con el enlace del correo → `/portal` | Entra sin pantalla de espera | Pendiente |
-| R5 | Cliente nuevo | `/portal/perfil`, `/perfil/empresa`, `/envios`, `/facturas`, `/finanzas`, `/documentos`, `/mensajes`, `/soporte` | Todas abren vacías o «Al día», sin error | Pendiente |
-| R6 | Cliente con factura | `/portal/facturas`, su detalle, `/aceptar`, `/reportar`, `/comprobante`, `/finanzas` | El saldo coincide con `client_outstanding`. Hay que sembrar ese cliente: `DTD-9001` no tiene acceso al portal | Pendiente |
-| R7 | Cliente con factura anulada | `/portal/facturas` | Una anulada con reverso no suma al saldo | Pendiente |
-| R8 | commercial, support, admin | Studio › Clientes › la ficha del nuevo | Aparece, con «Acceso al portal» y la revisión de identidad | Pendiente |
-| R9 | Anónimo | `/`, con el banner: aceptar, rechazar, recargar; móvil 375 px y zoom 200 % | La decisión persiste, y el CTA a `/registro` no se corta | Pendiente |
+| R1 | Anónimo | `/registro` | Alta express: Shipping Mark `DTD-NNNN` al instante, con su fila en `clients` y `client_users`. La bienvenida no sale en prueba: queda en cola | PASÓ. `DTD-9039`, aprobado, 1 acceso, de 47 a 48 clientes |
+| R2 | Anónimo | `/registro`, repetido | Con el mismo documento, aviso y sin segunda fila. Con el campo trampa lleno, nada se escribe | PASÓ. «Esta cédula ya tiene una cuenta en DTD Cargo» y no deja seguir. Si el aviso no llega a tiempo, el servidor lo rechaza igual: siguen 48. El campo trampa está en la página; lleno no lo envié, lo cubre `register-antiabuse.test.ts` |
+| R3 | Anónimo | `/api/registro/check` | Responde a un documento libre y a uno usado | PASÓ. Con la letra, `V-…`: libre `exists:false`, usado `exists:true`. Sin la letra responde `false`, por diseño: no lo chequea |
+| R4 | Cliente nuevo | `/entrar`, con el enlace → `/portal` | Entra sin pantalla de espera | **El enlace no llega al buzón de prueba: FALLÓ, ver abajo.** Con un enlace acuñado en memoria, `/abrir` › «Entrar a mi portal» lleva a `/portal`: PASÓ |
+| R5 | Cliente nuevo | `/portal`, `/perfil`, `/perfil/empresa`, `/envios`, `/facturas`, `/finanzas`, `/documentos`, `/mensajes`, `/soporte` | Todas abren vacías o «Al día», sin error | PASÓ, 9 de 9. `/mensajes` lleva a `/soporte` |
+| R6 | Cliente con factura: `DTD-9001` | `/portal/facturas`, su detalle, `/aceptar`, `/reportar`, `/comprobante`, `/finanzas` | El saldo coincide con `client_outstanding` | PASÓ. El saldo de `/finanzas` es `open_amount`. No lista el borrador. **`/aceptar` no se vio:** `F-0573-1004` no está por aceptar, y devuelve a la lista |
+| R7 | Cliente con factura anulada: `DTD-9001` | `/portal/facturas` | Una anulada con reverso no suma al saldo | PASÓ. `F-0573-1008` tiene su venta y su reverso; el portal la lista, y el saldo no la suma |
+| R8 | commercial, admin | Studio › Clientes › ficha de `DTD-9039` | Aparece, con «Acceso al portal» y la revisión de identidad | PASÓ en los dos. support: NO DISPONIBLE, prueba no tiene cuenta de ese rol |
+| R9 | Anónimo | Banner en `/registro` y `/entrar`: aceptar, rechazar, recargar. CTA en `/`, móvil 375 px y zoom 200 % | La decisión persiste, y el CTA a `/registro` no se corta | PASÓ, 12 de 12. El banner sale solo en esas dos rutas, por diseño; en `/` no. Zoom aproximado con un viewport de 188 px: el CTA entra, y la página mide 287 px de ancho |
+
+**R4, por qué el enlace no llega.** `/entrar` acuña el enlace y lo manda por Resend, que prueba no tiene. Cae al
+plan B, y Auth lo rechaza: `429`, «you can only request this after 59 seconds», porque acuñar ya contó como
+envío. La pantalla igual dice «Revisa tu correo». No te frena: R10 no entra al portal.
 
 R10. [ ] **Tu ojo sobre el registro** (5 min). En una ventana de incógnito:
    - `/privacidad`: cambió una línea, de «código de rastreo» a «Shipping Mark o número de envío». Es texto
      legal: dime si te parece bien.
-   - `/registro`: llénalo con «PRUEBA Sam» y un alias tuyo. Dime si se entiende y si algo te frena.
+   - `/registro`: llénalo con «PRUEBA Sam» y datos inventados, no los tuyos: cédula `31000573`, un WhatsApp y
+     un correo cualquiera. Al entrar verás el aviso de cookies; elige lo que quieras. Dime si se entiende y si
+     algo te frena.
 
 ### Tu parte, con contabilidad
 
@@ -525,8 +529,10 @@ R10. [ ] **Tu ojo sobre el registro** (5 min). En una ventana de incógnito:
      anulado. La sembré así a propósito.
      - Contabilidad › «Por contabilizar»: la lista con la marca «Asiento anulado».
      - Cobranzas › su fila › «Registrar cobro» por **5.00**. Esperado: **no entra,** y la factura sigue
-       «Emitida», sin recibo. La base responde «La venta original requiere revisión.». **Qué texto
-       muestra la pantalla todavía no lo sé: anótalo y dime si se entiende.**
+       «Emitida», sin recibo. Arriba del panel sale un aviso rojo: **«No se pudo registrar el cobro.»**, sin
+       decir por qué. La base sí da el motivo, «La venta original requiere revisión.», pero ese texto no
+       llega a la pantalla, y el panel sigue abierto, con la factura «Al día». **Dime si eso le alcanza a
+       quien cobra, o qué debería decir.**
    - **La regla exacta, desde que dijiste «Sí, quítalo»:** toda escritura de una factura se revisa al
      guardar. Si su venta no cuadra, no se guarda: ni un cobro, ni un renombre de marca, ni anular un
      recibo. Antes habías elegido «Ajustar la guarda», que dejaba pasar esos cobros para no congelar
