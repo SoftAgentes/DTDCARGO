@@ -157,6 +157,8 @@ La puerta de prueba deja pasar solo la IP de Sam y el propio VPS. Las dos variab
    /srv/ops/staging/desplegar-prueba.sh --project dtd-cargo-staging --sha <sha> --image ghcr.io/softagentes/dtdcargo:prueba-sha-<sha> --pr <número> --quien "<sesión>"
    ```
 
+   El paquete `ghcr.io/softagentes/dtdcargo` es **privado** (medido el 2026-11-02, ver el [handoff A4](../../.agents/handoffs/a4-ghcr-visibilidad.md)): el `pull` necesita que el servidor ya tenga hecho `docker login ghcr.io` con un token de solo lectura (`read:packages`). Si el `pull` da `denied` o `unauthorized`, el login falta o venció: lo rehace Sam, no el script.
+
    El script hace, en orden:
    - `pull`;
    - `verificar-aislamiento.sh` completo (si falla, no cambia nada);
