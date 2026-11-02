@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({
   obtenerConversacion: vi.fn(),
+  obtenerConversacionYContacto: vi.fn(),
   leerEtiquetas: vi.fn(),
   ponerEtiquetas: vi.fn(),
   asignarEquipo: vi.fn(),
@@ -54,6 +55,7 @@ function base(opciones: { segmento?: unknown; reserva?: string; falla?: string; 
     if (nombre === "chatwoot_guardar_bsuid") return { data: null, error: null };
     if (nombre === "chatwoot_tomar_pendientes") return { data: [], error: null };
     if (nombre === "chatwoot_cerrar_evento") return { data: true, error: null };
+    if (nombre === "crm_entrada_chatwoot") return { data: [], error: null };
     throw new Error(`RPC inesperada ${nombre}`);
   });
   return { rpc } as unknown as Parameters<typeof clasificarContacto>[0]["admin"] & { rpc: typeof rpc };
@@ -273,6 +275,11 @@ describe("reproceso y datos personales (SDD-0586)", () => {
     a.rpc.mockImplementationOnce(async () => ({ data: [pendiente], error: null }));
     const conv = interpretarEvento(mensajeCreado())!.conversacion as ConversacionChatwoot;
     api.obtenerConversacion.mockResolvedValueOnce({ ok: true, data: { ...conv, etiquetas: [] } });
+    // SDD-0587: entrarLead también corre en el reproceso y lee su propia copia.
+    api.obtenerConversacionYContacto.mockResolvedValueOnce({
+      ok: true,
+      data: { conversacion: conv, contacto: { contactoId: 5, nombre: null, canal: "Channel::Whatsapp", asignadoEsBot: false } },
+    });
 
     const r = await reprocesarEventosChatwoot(a);
     expect(api.obtenerConversacion).toHaveBeenCalledWith(expect.anything(), 12);

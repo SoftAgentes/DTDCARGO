@@ -2,7 +2,7 @@ import "server-only";
 
 import type { ChatwootRouterConfig } from "./config";
 import type { ChatwootError, ChatwootResult } from "./chatwoot-types";
-import { interpretarConversacion, type ConversacionChatwoot } from "./webhook-events";
+import { interpretarContacto, interpretarConversacion, type ContactoEntrada, type ConversacionChatwoot } from "./webhook-events";
 
 /**
  * API de cuenta de Chatwoot para el enrutamiento por segmento (SDD-0586, E10).
@@ -72,6 +72,19 @@ export async function obtenerConversacion(
   if (!r.ok) return r;
   const c = interpretarConversacion(r.data);
   return c ? { ok: true, data: c } : { ok: false, error: "respuesta_invalida" };
+}
+
+/** Para el reproceso de la entrada de leads (SDD-0587, 6.4): la conversación y su contacto. */
+export async function obtenerConversacionYContacto(
+  cfg: ChatwootRouterConfig,
+  conversacionId: number,
+): Promise<ChatwootResult<{ conversacion: ConversacionChatwoot; contacto: ContactoEntrada }>> {
+  const r = await llamar(cfg, String(conversacionId));
+  if (!r.ok) return r;
+  const conversacion = interpretarConversacion(r.data);
+  return conversacion
+    ? { ok: true, data: { conversacion, contacto: interpretarContacto(r.data) } }
+    : { ok: false, error: "respuesta_invalida" };
 }
 
 export async function leerEtiquetas(cfg: ChatwootRouterConfig, conversacionId: number): Promise<ChatwootResult<string[]>> {

@@ -127,3 +127,16 @@ export function chatwootRouterConfig(): ChatwootRouterConfig | null {
     numeroClientes: numero,
   };
 }
+
+/**
+ * Bandejas de WhatsApp para la fuente de la tarjeta (SDD-0587, 6.4): las mismas
+ * `CHATWOOT_INBOX_LEADS_ID` y `CHATWOOT_INBOX_CLIENTES_ID` de 2.7. Vacía o
+ * inválida → `null`.
+ */
+export function chatwootBandejasWhatsapp(): { leads: number | null; clientes: number | null } {
+  const id = (v: string | undefined) => {
+    const valor = (v ?? "").trim();
+    return ID.test(valor) ? Number(valor) : null;
+  };
+  return { leads: id(process.env.CHATWOOT_INBOX_LEADS_ID), clientes: id(process.env.CHATWOOT_INBOX_CLIENTES_ID) };
+}

@@ -50,3 +50,21 @@ export function estadoCambiado(extra: Record<string, unknown> = {}) {
     ...extra,
   };
 }
+
+/** SDD-0587: el evento lleva el canal arriba, como `Conversations::EventDataPresenter#push_data`. */
+export function conversacionCreada(extra: Record<string, unknown> = {}) {
+  return {
+    ...conversacionSintetica({ channel: "Channel::Whatsapp" }),
+    event: "conversation_created",
+    ...extra,
+  };
+}
+
+export function conversacionAsignada(extra: Record<string, unknown> = {}) {
+  return {
+    ...conversacionSintetica({ channel: "Channel::Whatsapp", updated_at: 1_761_760_200.75 }),
+    event: "conversation_updated",
+    changed_attributes: [{ assignee_id: { previous_value: null, current_value: 7 } }],
+    ...extra,
+  };
+}

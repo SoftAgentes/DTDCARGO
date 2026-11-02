@@ -5,7 +5,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { drainOperarioPushOutbox, enqueueUserPush } from "@/lib/studio/notify/operario-push-outbox";
 import { clasificarContacto } from "./enrutar";
-import type { ConversacionChatwoot, EventoChatwoot } from "./webhook-events";
+import { entrarLead } from "./entrada-leads";
+import type { ContactoEntrada, ConversacionChatwoot, EventoChatwoot } from "./webhook-events";
 
 /**
  * Procesamiento de un evento de Chatwoot ya verificado (SDD-0585, E2-D18 a D20, D25).
@@ -14,7 +15,8 @@ import type { ConversacionChatwoot, EventoChatwoot } from "./webhook-events";
  *    aplica el estado en una transacción. Un duplicado real no sigue.
  * 2. Después corre la lista de manejadores: el aviso push y, desde E10
  *    (SDD-0586, 10.2 y 10.3), `clasificarContacto`, que etiqueta, asigna equipo
- *    y redirige al cliente. Ninguno toca la ruta.
+ *    y redirige al cliente, y desde 6.4 (SDD-0587) `entrarLead`, que crea o
+ *    completa la tarjeta del CRM. Ninguno toca la ruta.
  * 3. `chatwoot_cerrar_evento` lo cierra: «procesado» si todos salieron bien,
  *    «fallido» si alguno falló. Un fallido se vuelve a procesar en la próxima
  *    entrega (hallazgo de la revisión de Codex: cerrarlo antes perdía el
@@ -33,6 +35,8 @@ export interface Registro {
 export interface ContextoChatwoot {
   admin: SupabaseClient;
   tenantId: string;
+  /** Del payload del webhook. No viene en el reproceso, que lo lee de Chatwoot. */
+  contacto?: ContactoEntrada;
 }
 
 export type ManejadorEvento = (ctx: ContextoChatwoot, evento: EventoChatwoot, registro: Registro) => Promise<void>;
@@ -102,7 +106,7 @@ export const avisarPorPush: ManejadorEvento = async (ctx, evento, registro) => {
   if (encolados > 0) await drainOperarioPushOutbox(ctx.admin);
 };
 
-export const MANEJADORES: readonly ManejadorEvento[] = [avisarPorPush, clasificarContacto];
+export const MANEJADORES: readonly ManejadorEvento[] = [avisarPorPush, clasificarContacto, entrarLead];
 
 export async function procesarEventoChatwoot(
   ctx: ContextoChatwoot,
