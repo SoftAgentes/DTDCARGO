@@ -127,7 +127,7 @@ Script instalado: blob `397dbc7b565eb8be004d0e215b37971fdb2d6c40`, sha16 `f71d27
 2. **`compose.yml:47` y `.env.example:36`: en la PR #348.** Siguen con la dirección vieja como valor por defecto hasta que se integre. Esa PR los repunta junto con el comentario del bot de deploy de sus líneas 60-61, agrega la prueba de los dos literales y describe la ventana de instalarlos.
    - En producción no se usan: el script exige una línea `DTD_WEB_IMAGE` no vacía. Si faltara, el pull falla a la vista.
    - Staging tampoco: `env-prueba.sh` fija el valor con `--set`.
-3. **`compose.supabase.yml` bloquea publicar, decisión abierta.** Difiere del repo en la imagen de `storage`, y `revisar` lo tapa porque para en las migraciones. Medido el 2026-11-02. Detalle y opciones: `.agents/handoffs/0541-publicar-commit-exacto.md`, que llega con la PR #348.
+3. **`compose.supabase.yml` bloquea publicar, hasta instalar la PR #348.** Difiere del repo en la imagen de `storage`, y `revisar` lo tapa porque para en las migraciones. Medido el 2026-11-02. El Director decidió usar la variable `DTD_STORAGE_IMAGE`. Detalle: `.agents/handoffs/0541-publicar-commit-exacto.md`, que llega con esa PR.
 4. **Scripts de staging en el VPS.** V3 instaló solo `publicar-web.sh`. Los de `/srv/ops/staging/` se copian de `main` la próxima vez que se usen.
 
 **Limpieza:** las imágenes de la dirección vieja se quedan en el disco, unos 520 MB cada una, hasta que alguien las borre a mano.
@@ -143,7 +143,7 @@ Script instalado: blob `397dbc7b565eb8be004d0e215b37971fdb2d6c40`, sha16 `f71d27
 
 ## HANDOFF AL DIRECTOR
 
-La única decisión abierta es `compose.supabase.yml`, el pendiente 3, y bloquea publicar. La PR del registro no se fusiona desde aquí; es solo documentación y la integras cuando convenga.
+Sin decisiones abiertas de esta tarea. `compose.supabase.yml`, el pendiente 3, sigue bloqueando publicar hasta instalar la PR #348. La PR del registro no se fusiona desde aquí; es solo documentación y la integras cuando convenga.
 
 **Impacto documental:** actualizados `publicacion-automatica-web.md`, `entorno-prueba.md`, `servidor-contabo.md`, `infra/dtd-cargo/README.md` y la spec 0541 (continuación con contrato, aceptación y allowlist). `docs/specs/README.md` no hizo falta: `docs:check` pasa. El registro de la ventana toca el runbook, este handoff y la línea de estado de la spec.
 

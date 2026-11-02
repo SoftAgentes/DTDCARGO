@@ -261,7 +261,8 @@ huellas y salud de la web coinciden. `revisar` no se repitió.
   Node 24.22.1 editado en el servidor el 2026-10-25. Medido el 2026-11-02 con
   `huellas-fuera-de-imagen.sh servidor /srv/dtd-cargo`. **Bloquea publicar** en cuanto se
   apliquen la 0496 y la 0497, y copiar el archivo del repo quitaría el parche en el
-  próximo `up` de `storage`. La decisión está abierta; las opciones llegan con la PR #348.
+  próximo `up` de `storage`. Lo resuelve la PR #348, con la variable `DTD_STORAGE_IMAGE`
+  y una línea en el `.env` durante la ventana. Hasta instalarla, no copiar ese archivo.
 - `M` no retrocede lo que corre, aunque `git merge-base --is-ancestor 929cabf51 M` diga
   que no es ancestro. `929cabf51` tiene un solo commit fuera de `M`, y ya está por
   contenido: `git cherry M 929cabf51` da `-`, y sus cinco archivos son iguales en `M`.
