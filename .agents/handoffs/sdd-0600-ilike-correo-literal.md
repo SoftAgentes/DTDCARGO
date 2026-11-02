@@ -36,6 +36,7 @@ Terminado es: spec con allowlist, PR en borrador contra `main` y handoff. Sin to
 | Mutantes | PASÓ: 10 de 11 mueren, sobre un commit y con `git status` limpio al final. El otro es equivalente: el `.update` repite el filtro de tenant. Quitando los dos filtros, muere |
 | `eslint` de lo tocado, `docs:check`, `sdd:check`, `git diff --check` | PASÓ |
 | `git merge-tree` con la #361 (`eae277a35`) y la #358 (`cf81cbf30`) | PASÓ: limpio, solo a nivel de texto |
+| Conteo en producción: ¿alguna ficha enlazada a una cuenta con otro correo? | PASÓ, medido por el Director General el 2026-11-02 a las 18:52Z, con exit 0 y terminando en `rollback`: `por_comodin` = 0, `correo_distinto` = 1. **No es incidente:** hoy no queda huella de este defecto. No prueba que nunca pasó: un enlace ya deshecho no deja rastro, y una ficha que cambió de correo después ya no cuenta en `por_comodin`. Autorización de Sam, literal: «Sí, autorizo el conteo». Los datos no se registran aquí |
 | `pnpm verify`, incluido `tsc` | NO EJECUTADO: pide turno al Director General |
 | El escape contra PostgREST v14.17 real | NO EJECUTADO: va en la corrida de la #361. **Condición de integrar** |
 | `pnpm knowledge:status` | NO EJECUTADO en este worktree: no corre `pnpm` por la junction, y dio NO DISPONIBLE en el de la #361 |
@@ -64,7 +65,7 @@ Los SHA quedan en la PR. Un commit por daño, para poder revisarlos y separarlos
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **¿Ya pasó en producción?** No se sabe. Propuesta para Sam: un conteo, sin imprimir datos, de fichas cuyo `auth_user_id` apunta a una cuenta con otro correo. Si da más de cero, alguien pudo ver recibos ajenos. Necesita su autorización: no se hizo.
+- **La ficha del `correo_distinto`:** el conteo de abajo dio 1, que no es este defecto. Revisarla necesita otro OK de Sam, y eso lo lleva el Director General. No se investiga desde aquí.
 - **El remitente sin cliente queda en el log en texto plano** (`app/api/conversaciones/email/route.ts:146`, `:151`), y este cambio manda ahí a los parecidos.
 - **La baja no deja cuándo se retiró el consentimiento** (`unsubscribe-request.ts:120`). Arreglarlo pide migración.
 - **Qué autentica el `From`:** no encontré SPF ni DKIM en el código. Quien falsifique el `From` exacto de un cliente no queda cubierto.
@@ -75,6 +76,5 @@ Los SHA quedan en la PR. Un commit por daño, para poder revisarlos y separarlos
 
 - **Reporto al Director General.** Número y límites, suyos. No arranco `verify` ni Docker sin su aviso.
 - **Retenida:** no se integra antes de publicar, por su decisión. Sam pidió hacer el trabajo; integrarlo sigue siendo decisión del Director General.
-- **Para que decida o se lo presente a Sam:** el conteo de fichas de arriba. Es el dato que dice si esto es un riesgo o un incidente.
 - **Impacto documental:** ninguno en runbooks. La spec y este handoff.
 - **Conocimiento:** Graphify y Archify no se regeneraron. Queda pendiente para la integración.

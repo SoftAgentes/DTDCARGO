@@ -25,7 +25,7 @@ Salió de la SDD-0597 (PR #361), que corrigió el mismo patrón en `/entrar` y d
 
 `.ilike("email", correo)` parece una igualdad sin mayúsculas, pero `%` y `_` son comodines, y PostgREST convierte `*` en `%`. El código lo daba por exacto: `inbound-email.ts` decía «case-insensitive exact (sin %)».
 
-Reproducido con dobles que aplican los comodines de verdad, sin tocar producción. **No se sabe si pasó alguna vez en producción:** ver «No verificable».
+Reproducido con dobles que aplican los comodines de verdad, sin provocarlo en producción. **Hoy no queda huella en producción de la ficha mal enlazada,** aunque eso no prueba que nunca pasó: ver «No verificable».
 
 | Sitio | De dónde viene el correo | El daño, reproducido |
 |---|---|---|
@@ -107,7 +107,7 @@ Sin migraciones, sin variables nuevas y sin tocar producción ni prueba.
 | CORRECTO | Sigue sin pisar una ficha ya enlazada | `app/invitar/[token]/actions.ts`, doble filtro `auth_user_id is null` | | |
 
 **No verificable:**
-- **¿Ya pasó en producción?** Es la pregunta más importante, y no se responde leyendo el código. Propuesta, con autorización de Sam: un conteo sin imprimir datos de fichas cuyo `auth_user_id` apunta a una cuenta con otro correo. Otro igual para la baja no es posible: no queda rastro (ver el hallazgo sobre la fecha de retiro).
+- **¿Ya pasó en producción?** Solo se puede responder en parte. Con autorización de Sam («Sí, autorizo el conteo»), el Director General contó las fichas cuyo `auth_user_id` apunta a una cuenta con otro correo, el 2026-11-02 a las 18:52Z, sin imprimir datos: `por_comodin` = 0 y `correo_distinto` = 1. **No es incidente:** hoy no queda huella de este defecto. Cero no prueba que nunca pasó, porque un enlace ya deshecho no deja rastro y una ficha que cambió de correo después ya no cuenta en `por_comodin`. `correo_distinto` no es este defecto, y revisar esa ficha es una decisión aparte de Sam. Un conteo igual para la baja no es posible: no queda rastro (ver el hallazgo sobre la fecha de retiro).
 - **Comportamiento contra una base real:** solo se probó con dobles y PGlite. La medición contra PostgREST está en cola.
 - **Base de licitud y retención** de cada campo: abogado.
 - **Qué autentica el `From`:** no encontré SPF ni DKIM en `app/api/webhooks` ni en `lib/studio/conversaciones`. Quien falsifique el `From` exacto de un cliente no queda cubierto por esta spec; puede que Resend lo filtre antes.
@@ -123,6 +123,7 @@ Sin migraciones, sin variables nuevas y sin tocar producción ni prueba.
 | Mutantes | PASÓ: 10 de 11 mueren. El otro («la baja no mira el tenant») es equivalente, porque el `.update` repite el filtro. Quitando los dos filtros, muere |
 | `eslint` de lo tocado, `docs:check`, `sdd:check` | PASÓ |
 | `git merge-tree` con la #361 y la #358 | PASÓ: limpio, solo a nivel de texto |
+| Conteo de fichas en producción, por el Director General | `por_comodin` = 0 y `correo_distinto` = 1, a las 18:52Z del 2026-11-02. Ver «No verificable» |
 | `pnpm verify`, incluido `tsc` | NO EJECUTADO: pide turno al Director General |
 | El escape contra PostgREST v14.17 real | NO EJECUTADO: va en la corrida de la #361 |
 
