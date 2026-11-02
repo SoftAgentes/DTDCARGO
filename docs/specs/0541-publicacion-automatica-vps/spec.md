@@ -658,9 +658,14 @@ publicar. Registro: [handoff](../../../.agents/handoffs/0541-publicar-commit-exa
 - Encender el timer es un paso aparte, y entra lo que diga `:publicable` en ese momento.
 - `compose.yml` y `.env.example` pasan a `ghcr.io/softagentes/dtdcargo:main`, y el
   comentario de `compose.yml` deja de nombrar el bot de deploy retirado por la SDD-0551.
-- Las huellas de esos dos archivos cambian y las demás no. Instalarlos es parte de la
+- La imagen de `storage` en `compose.supabase.yml` pasa a
+  `${DTD_STORAGE_IMAGE:-supabase/storage-api:v1.77.6}`. Es decisión del Director del
+  2026-11-02, para no perder la copia con Node actualizado que corre el servidor. En un
+  servidor sin la línea va la oficial, y `.env.example` la documenta comentada.
+- Las huellas de esos tres archivos cambian y las demás no. Instalarlos es parte de la
   ventana de publicar, descrita en el
-  [runbook](../../runbooks/publicacion-automatica-web.md#instalar-composeyml-y-envexample-con-la-dirección-nueva).
+  [runbook](../../runbooks/publicacion-automatica-web.md#instalar-composeyml-composesupabaseyml-y-envexample):
+  primero la línea en el `.env` del servidor, después los archivos.
 
 ### Aceptación de esta continuación
 
@@ -671,13 +676,18 @@ publicar. Registro: [handoff](../../../.agents/handoffs/0541-publicar-commit-exa
    las dos vueltas atrás llegan al id.
 4. [x] Prueba de que `revisar` para en la primera puerta.
 5. [x] Mutantes nuevos muertos.
-6. [ ] Linux: el CI «Calidad continua» de la PR.
-7. [ ] Después del merge: la ventana del runbook, con el OK de Sam.
+6. [x] La prueba de `storage` falla si vuelve el literal o el id fijo, si cambia el valor por
+   defecto, si `.env.example` deja la línea activa, si el overlay de prueba fija la imagen o
+   si la prueba de la base efímera deja de encontrarla.
+7. [ ] Linux: el CI «Calidad continua» de la PR.
+8. [ ] Después del merge: la ventana del runbook, con el OK de Sam.
 
 ### Allowlist exclusiva de esta continuación
 
-- `infra/dtd-cargo/compose.yml`, `infra/dtd-cargo/.env.example`
-- `infra/ops/tests/publicable.test.mjs`, `infra/ops/tests/prueba-publicar-web.sh`
+- `infra/dtd-cargo/compose.yml`, `infra/dtd-cargo/compose.supabase.yml`, `infra/dtd-cargo/.env.example`
+- `infra/ops/tests/publicable.test.mjs`, `infra/ops/tests/prueba-publicar-web.sh`,
+  `infra/ops/tests/prueba-resetear-base-efimera.sh`
+- `scripts/__tests__/entorno-prueba-compose.test.mjs`
 - `docs/runbooks/publicacion-automatica-web.md`
 - `docs/specs/0541-publicacion-automatica-vps/spec.md`
 - `.agents/handoffs/0541-publicar-commit-exacto.md` (nuevo)

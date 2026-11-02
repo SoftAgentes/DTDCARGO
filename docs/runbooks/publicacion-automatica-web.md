@@ -177,65 +177,112 @@ Después de cualquier vuelta con la 0497 aplicada:
 4. Reparar con `post_invoice_journal_entry_atomic`: es una escritura en producción, con
    su OK. La web no tiene botón para eso.
 
-**Conservar `sha256:cd041ea44058…`.** Es una propuesta: no está hecho. Hoy la protege que
-está en uso. `limpiar_imagenes` solo toca `ghcr.io/softagentes/dtdcargo`, y no hay cron ni
-timer con `prune`. Pero al dejar de correr, un `docker image prune -a` o un
-`docker system prune -a` a mano la borra, y no hay de dónde bajarla.
+**Conservar `sha256:cd041ea44058…` y `sha256:7ec9901d34a3…`.** Es una propuesta: no está
+hecho, y espera el OK de Sam. La segunda es la de `storage`, descrita en
+[Instalar los compose](#instalar-composeyml-composesupabaseyml-y-envexample). Las dos
+existen solo en el disco del VPS, sin copia en ningún registro, y hoy las protege que están
+en uso. `limpiar_imagenes` solo toca `ghcr.io/softagentes/dtdcargo`, y no hay cron ni timer
+con `prune`. Pero al dejar de correr, un `docker image prune -a` o un
+`docker system prune -a` a mano las borra, y no hay de dónde bajarlas. La de `storage` la
+usan tres contenedores, de tres proyectos.
 
 ```bash
 # Antes de publicar, con el OK de esa ventana.
-install -d -m 700 /srv/ops/respaldos/imagen-web-929cabf51
-docker save manual-node-release/dtd:sha-929cabf51fa2ae565ffaf4f42e2c1d95529d3e3b \
-  | gzip > /srv/ops/respaldos/imagen-web-929cabf51/imagen.tar.gz
-( cd /srv/ops/respaldos/imagen-web-929cabf51 && sha256sum imagen.tar.gz > SHA256SUMS && sha256sum -c SHA256SUMS )
+guardar() { # $1 carpeta, $2 etiqueta
+  install -d -m 700 "/srv/ops/respaldos/$1"
+  ( set -o pipefail; docker save "$2" | gzip > "/srv/ops/respaldos/$1/imagen.tar.gz" ) || return 1
+  ( cd "/srv/ops/respaldos/$1" && sha256sum imagen.tar.gz > SHA256SUMS && sha256sum -c SHA256SUMS )
+}
+guardar imagen-web-929cabf51 manual-node-release/dtd:sha-929cabf51fa2ae565ffaf4f42e2c1d95529d3e3b
+guardar imagen-storage-node-24.22.1 node-runtime-patch:c99920016d60-24.22.1-no-refresh
 ```
 
+- Sin comprimir son 523 MB y 1,48 GB; comprimidas, sin medir. El 2026-11-02 había 173 GB libres.
 - Una copia fuera del servidor: por `scp` a la PC de Sam.
-- Subirla a GHCR es la segunda opción. Falta saber si el login de root escribe (NO
+- Subirlas a GHCR es la segunda opción. Falta saber si el login de root escribe (NO
   VERIFICADO), y necesita otro nombre de paquete: con una etiqueta bajo
   `ghcr.io/softagentes/dtdcargo`, la imagen entra en `limpiar_imagenes`.
-- `prueba-sha-929cabf51…` no la reemplaza: se construye para prueba, con otros valores
-  públicos en el bundle.
-- Restaurar con `gunzip -c imagen.tar.gz | docker load` está **NO PROBADO**.
+- `prueba-sha-929cabf51…` no reemplaza a la de la web: se construye para prueba, con otros
+  valores públicos en el bundle.
+- `node-runtime-patch:c99920016d60-24.22.1` no reemplaza a la de `storage`: es otra imagen,
+  `ee760a6d2788`, sin el sufijo `-no-refresh`.
+- Restaurar con `gunzip -c imagen.tar.gz | docker load` está **NO PROBADO**. Al probarlo,
+  `docker image inspect` tiene que dar el mismo id: la línea del `.env` y el compose de
+  `loop-3d` dependen de él.
 
-### Instalar `compose.yml` y `.env.example` con la dirección nueva
+### Instalar `compose.yml`, `compose.supabase.yml` y `.env.example`
 
-`compose.yml` es huella bloqueante y `.env.example` solo avisa. Cambian el valor por
-defecto de la imagen y un comentario. No cambia lo que corre, porque `DTD_WEB_IMAGE`
-está definida. `X` es el commit que se va a publicar, y tiene que contener ese cambio:
-con los archivos nuevos en el servidor, un commit anterior ya no pasa la puerta de
+`compose.yml` y `compose.supabase.yml` son huellas bloqueantes, y `.env.example` solo avisa.
+No cambia lo que corre. `X` es el commit que se va a publicar, y tiene que contener este
+cambio: con los archivos nuevos en el servidor, un commit anterior ya no pasa la puerta de
 huellas. `volver` no pasa por las puertas, así que la marcha atrás no cambia.
 
+- **`compose.yml` y `.env.example`:** cambian el valor por defecto de la imagen de la web y
+  un comentario. `DTD_WEB_IMAGE` está definida, así que ese valor no se usa.
+- **`compose.supabase.yml`:** la imagen de `storage` pasa a
+  `${DTD_STORAGE_IMAGE:-supabase/storage-api:v1.77.6}`, y el servidor la fija con una línea
+  en su `.env`, igual que la web.
+
+**Por qué hay una variable.** En el servidor, la línea 347 de `compose.supabase.yml` se editó
+a mano el 2026-10-25 a las 03:51Z. Fija `sha256:7ec9901d34a3…`
+(`node-runtime-patch:c99920016d60-24.22.1-no-refresh`), una copia de la oficial armada en el
+servidor con Node actualizado. `node -v` dentro de `dtd-cargo-storage-1` da `v24.22.1`,
+aunque la imagen sigue declarando `NODE_VERSION=24.21.0`. El motivo es inferido: el handoff
+de Node 24.22.1 del 2026-10-25 dice que los parches locales de Contabo se conservan, y el
+informe del parche no se encontró.
+
+Hasta ahora `revisar` no lo mostraba, porque para en las migraciones. Al aplicar la 0496 y la
+0497 dirá «el servidor no tiene la misma copia», y su mensaje manda a copiar el archivo del
+repo. Copiarlo sin la línea no cambia nada en ese momento, pero el próximo `up` de `storage`
+vuelve a la oficial, sin aviso. Por eso la línea va primero.
+
 Es parte de la ventana de publicar, antes de P2. Con el timer apagado y `CONGELADO`
-puesto no hay apuro: los 5 minutos de K5 no aplican.
+puesto no hay apuro: los 5 minutos de K5 no aplican. Todos los pasos corren en `/srv/dtd-cargo`.
 
 | # | Paso (root, en el VPS) | Comprobación |
 |---|---|---|
-| W1 | Lectura: `sha256sum /srv/dtd-cargo/compose.yml /srv/dtd-cargo/.env.example` | Empiezan con `1a67944a24958c08` y `c63acb8bf8a1f7e8`. Si no, parar |
-| W2 | Con `flock /run/lock/dtd-cargo-publicar.lock`, copiar los dos archivos a `/srv/ops/evidencias/compose-softagentes-<hora>/` con su `SHA256SUMS` | `sha256sum -c SHA256SUMS` |
-| W3 | Copiar los dos de `X` a un temporal en `/srv/dtd-cargo/`, en modo 644, y renombrar | Cada `sha256sum` igual a `git show X:infra/dtd-cargo/<archivo> \| sha256sum`. Con solo este cambio empiezan con `483f923fd4339358` y `c7960019fb74accb` |
-| W4 | `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml config -q`. Sin `-q` imprime secretos | Sale 0. Nadie corre `up`: `docker inspect -f '{{.State.StartedAt}}' dtd-cargo-web-1` no cambia |
+| W1 | Lectura: `sha256sum compose.yml compose.supabase.yml .env.example`, `grep -c '^DTD_STORAGE_IMAGE=' .env` y el hash de `storage`, con el bloque de abajo | Empiezan con `1a67944a24958c08`, `a00bd8adfa66438a` y `c63acb8bf8a1f7e8`. La cuenta da 0. El hash es `c62280716fed4bab…`, igual a la etiqueta. Si no, parar |
+| W2 | Con `flock /run/lock/dtd-cargo-publicar.lock`, copiar los tres archivos a `/srv/ops/evidencias/compose-softagentes-<hora>/` con su `SHA256SUMS`. El `.env` no se copia: tiene secretos, y para deshacer basta quitar una línea | `sha256sum -c SHA256SUMS` |
+| W3 | **Primero la línea**, con el mismo candado: `test -z "$(tail -c1 .env)" && printf 'DTD_STORAGE_IMAGE=%s\n' sha256:7ec9901d34a3173a6ccbb6ccf1c58f8833e7a9850757b9efc2a1b8438807d586 >> .env`. Si el archivo no termina en salto de línea, no escribe: parar | La cuenta da 1. `stat -c %a .env` no cambia. El hash de `storage` no cambia |
+| W4 | **Después, los archivos:** copiar los tres de `X` a un temporal en `/srv/dtd-cargo/`, en modo 644, y renombrar | Cada `sha256sum` igual a `git show X:infra/dtd-cargo/<archivo> \| sha256sum`. Con solo este cambio empiezan con `483f923fd4339358`, `8510b279049ca345` y `e10f404d06cf10ca` |
+| W5 | Comprobar con el bloque de abajo, sin correr `up` | `config -q` sale 0. La imagen es una sola línea, `sha256:7ec9901d34a3…`, sin `storage-api`. El hash es igual a la etiqueta: `storage` no se recrearía. `docker inspect -f '{{.State.StartedAt}}'` de `dtd-cargo-storage-1` y `dtd-cargo-web-1` no cambia. **Si resuelve a otra cosa, parar y deshacer** |
 
-Para deshacer, restaurar las copias de W2 igual que en W3. El OK de Sam tiene que nombrar
-«copiar `compose.yml` y `.env.example` de `X` a `/srv/dtd-cargo`».
+```bash
+cd /srv/dtd-cargo
+C='docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml'
+$C config -q                                               # sin -q imprime secretos
+$C config --images | grep -E 'storage-api|^sha256:7ec9'    # solo nombres de imagen
+$C config --hash storage                                   # solo un hash
+docker inspect -f '{{index .Config.Labels "com.docker.compose.config-hash"}}' dtd-cargo-storage-1
+```
 
-**Antes hay que resolver `compose.supabase.yml`, que hoy bloquea cualquier publicación.**
-Medido el 2026-11-02: difiere del repo en una línea, la imagen de `storage`, editada en el
-servidor el 2026-10-25 a las 03:51Z. El servidor tiene `sha256:7ec9901d34a3…`
-(`node-runtime-patch:c99920016d60-24.22.1-no-refresh`, derivada de la oficial con Node
-24.22.1) y el repo `supabase/storage-api:v1.77.6` (Node 24.21.0). La usan
-`dtd-cargo-storage-1`, `dtd-cargo-staging-storage-1` y `loop-3d-storage-1`.
+Lo que respalda esos resultados, sin tocar el servidor:
 
-`revisar` no lo muestra porque para en las migraciones. Al aplicar la 0496 y la 0497 dirá
-«el servidor no tiene la misma copia», y su mensaje manda a copiar el archivo del repo.
-Copiarlo sin decidir no cambia nada en ese momento, pero el próximo `up` de `storage`
-vuelve a la imagen oficial, sin aviso.
+- Medido en el VPS el 2026-11-02 a las 02:28Z, con compose 5.6.0: `config --hash storage` da
+  `c62280716fed4bab…`, igual a la etiqueta del contenedor.
+- Probado en local con esa misma versión de compose y un `.env` falso: agregar la línea no
+  cambia el hash de `storage`, instalar el archivo tampoco, y sin la línea sí cambia. Una
+  línea vacía cae a la oficial.
+- Al agregar la línea, de los servicios sin perfil solo cambia el hash de `web`, porque su
+  `env_file` lee todo el `.env`. Se aplica cuando se publique, no antes.
 
-| Opción | Qué hace | Costo |
+Para deshacer, en este orden, para que el archivo nuevo nunca quede sin la línea:
+
+1. Con el candado, restaurar los tres archivos de W2 igual que en W4.
+2. Con el candado, quitar la línea:
+   `( umask 077; grep -v '^DTD_STORAGE_IMAGE=' .env > .env.sin-linea ) && chown --reference=.env .env.sin-linea && chmod --reference=.env .env.sin-linea && mv -f .env.sin-linea .env`
+3. Comprobar como en W1: mismas huellas, cuenta 0 y hash `c62280716fed4bab…`.
+
+El OK de Sam tiene que nombrar «agregar `DTD_STORAGE_IMAGE` al `.env` de `/srv/dtd-cargo` y
+copiar `compose.yml`, `compose.supabase.yml` y `.env.example` de `X`».
+
+Los otros dos proyectos que corren esa imagen, medidos el 2026-11-02 por las etiquetas de sus
+contenedores:
+
+| Proyecto | Qué lee | ¿Le afecta? |
 |---|---|---|
-| Variable, como `web` | `image: ${DTD_STORAGE_IMAGE:-supabase/storage-api:v1.77.6}` en el repo, y una línea en el `.env` del servidor con el id actual | Una línea más en el `.env` durante la ventana. `storage` no se recrea, porque su imagen efectiva no cambia |
-| Copiar el archivo del repo | El servidor queda igual al repo | `storage` sigue parchada hasta el próximo `up`; ahí pierde el parche |
-| Escribir el id en el repo | Las huellas coinciden sin tocar el servidor | Rompe cualquier servidor que no tenga esa imagen local, como una restauración |
+| `dtd-cargo-staging` | Su propia copia, `/srv/dtd-cargo-staging/compose.supabase.yml`, con la misma huella `a00bd8adfa66438a` y el mismo id en la línea 347 | Hoy no: esta ventana no toca esa carpeta. **Sí cuando se copie `infra/dtd-cargo` ahí:** antes hace falta la misma línea en su `.env`, o el próximo `up` de `storage` vuelve a la oficial. Su hash hoy es `1f74912975489e72…`. `verificar-aislamiento.sh` no rechaza el valor repetido, porque el nombre no cuenta como secreto. Un `.env` nuevo de `env-prueba.sh` no trae la línea, porque el ejemplo la deja comentada, y usa la oficial |
+| `loop-3d` | Su propio `/srv/loop-3d/compose.yml`, con el id escrito en la línea 387 | No. No lee estos archivos, y esta ventana no lo toca. Solo comparte la imagen |
 
 ### Compatibilidad de identidad · preparación del 2026-10-20
 
