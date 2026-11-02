@@ -142,6 +142,12 @@ La puerta de prueba deja pasar solo la IP de Sam y el propio VPS. Las dos variab
     - Realtime;
     - service worker y manifiesto de la PWA detrás de la clave.
 
+    Cómo llega el enlace del Portal: con `APP_ENV=staging` Resend no puede enviar, así que `/entrar` no acuña nada y le pide el enlace a Auth, que lo deja en Mailpit. Antes de la [SDD-0597](../specs/0597-entrar-no-promete-envio/spec.md) acuñaba primero, y el `/otp` siguiente daba 429: el buzón se quedaba vacío. Lo que cambia frente a producción:
+    - Es el enlace de Auth (PKCE): se abre en el mismo navegador que lo pidió. En otro, cae en el aviso «Abriste el enlace en un navegador distinto». `/abrir` no se ejercita por este camino.
+    - Un segundo pedido antes de 60 s (`GOTRUE_SMTP_MAX_FREQUENCY`) no sale. Mailpit se queda con el anterior.
+    - Solo recibe enlace quien ya tiene `auth.users`. El cliente de la semilla lo tiene; uno recién invitado desde el Studio, no: Auth responde 422.
+    - La pantalla es la misma haya salido o no, a propósito. Para saber qué pasó, mira `/correo/`, o busca en el log del web `[entrar] Auth no mandó el enlace:`, que trae el código (429, 422).
+
 ## 3 · Subir una rama a prueba
 
 1. **Director.** Construye la imagen del head:
