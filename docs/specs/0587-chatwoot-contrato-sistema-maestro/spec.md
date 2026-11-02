@@ -558,7 +558,7 @@ El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó
 | Pruebas puntuales: `entrada-leads` (38), `webhook-events` (43), `webhook-procesar` (16), `enrutar` (31), `route` (15), `registro-atribucion` (13), `register-tarjeta-crm` (23), `register-atribucion-oculta` (3) | PASÓ: 182 |
 | `tsc` acotado a los archivos de 6.4 y sus dependencias; ESLint de los archivos tocados | PASÓ |
 | `infra-env-example` | PASÓ |
-| Mutantes del contrato (43) y de `/registro` | PENDIENTE: piden turno del Director General |
+| Mutantes del contrato (42) y de `/registro` | PENDIENTE: piden turno del Director General |
 | `pnpm verify` | NO EJECUTADO: pide turno del Director General |
 | Prueba de punta a punta con Chatwoot y con producción | NO EJECUTADO: fuera de este encargo |
 

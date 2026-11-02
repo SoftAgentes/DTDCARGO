@@ -327,6 +327,7 @@
             "app/studio/(app)/bandeja/actions.ts:273",
             "app/studio/(app)/bandeja/actions.ts:301",
             "app/studio/(app)/bandeja/actions.ts:324",
+            "app/studio/(app)/crm/tarjeta-actions.ts:209",
             "lib/studio/chatwoot/agentes-ciclo.ts:98",
             "lib/studio/chatwoot/agentes-ciclo.ts:167",
             "lib/studio/chatwoot/agentes-ciclo.ts:217",
@@ -398,6 +399,7 @@
           "kind": "table",
           "callSites": [
             "app/studio/(app)/bandeja/actions.ts:421",
+            "app/studio/(app)/crm/tarjeta-actions.ts:197",
             "app/studio/(app)/_components/BandejaBadge.tsx:16",
             "lib/studio/chatwoot/conversations-queries.ts:30",
             "lib/studio/chatwoot/conversations-queries.ts:53"
