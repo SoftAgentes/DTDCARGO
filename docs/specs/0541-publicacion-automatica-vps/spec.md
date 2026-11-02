@@ -644,3 +644,40 @@ tocar `PUBLICABLE_CONGELADO` ni aplicar migraciones. La ventana está en el
   `docs/runbooks/servidor-contabo.md`
 - `docs/specs/0541-publicacion-automatica-vps/spec.md`
 - `.agents/handoffs/0541-imagen-softagentes.md` (nuevo)
+
+## Continuación acotada · commit exacto, marcha atrás y valores por defecto (2026-11-02)
+
+Estado: **implementado y validado localmente; integración e instalación pendientes**.
+Sam lo autorizó, literal: «Sí, corrígelos». No cubre instalar en el VPS, descongelar ni
+publicar. Registro: [handoff](../../../.agents/handoffs/0541-publicar-commit-exacto.md).
+
+### Contrato
+
+- Publicar un commit elegido no pasa por `descongelar` ni por el timer. Usa
+  `publicar <sha> --aunque-congelado`, que ya existe. `publicar-web.sh` no cambia.
+- Encender el timer es un paso aparte, y entra lo que diga `:publicable` en ese momento.
+- `compose.yml` y `.env.example` pasan a `ghcr.io/softagentes/dtdcargo:main`, y el
+  comentario de `compose.yml` deja de nombrar el bot de deploy retirado por la SDD-0551.
+- Las huellas de esos dos archivos cambian y las demás no. Instalarlos es parte de la
+  ventana de publicar, descrita en el
+  [runbook](../../runbooks/publicacion-automatica-web.md#instalar-composeyml-y-envexample-con-la-dirección-nueva).
+
+### Aceptación de esta continuación
+
+1. [x] La prueba cubre los dos literales, con control rojo contra los valores viejos.
+2. [x] `infra/dtd-cargo` entra en la lista de carpetas que no nombran el registro viejo.
+3. [x] Prueba con dobles del camino real: la web en un id suelto y `CONGELADO` puesto.
+   Publica `X`, sigue congelado, el vigilante no lo pisa, un merge posterior sí entra, y
+   las dos vueltas atrás llegan al id.
+4. [x] Prueba de que `revisar` para en la primera puerta.
+5. [x] Mutantes nuevos muertos.
+6. [ ] Linux: el CI «Calidad continua» de la PR.
+7. [ ] Después del merge: la ventana del runbook, con el OK de Sam.
+
+### Allowlist exclusiva de esta continuación
+
+- `infra/dtd-cargo/compose.yml`, `infra/dtd-cargo/.env.example`
+- `infra/ops/tests/publicable.test.mjs`, `infra/ops/tests/prueba-publicar-web.sh`
+- `docs/runbooks/publicacion-automatica-web.md`
+- `docs/specs/0541-publicacion-automatica-vps/spec.md`
+- `.agents/handoffs/0541-publicar-commit-exacto.md` (nuevo)

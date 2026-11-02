@@ -116,6 +116,127 @@ ponerse al día. Mientras está congelado, `volver` funciona igual, y
 /srv/ops/web/publicar-web.sh volver              # la anterior; la de ahora queda rechazada hasta el próximo merge
 ```
 
+### Publicar un commit exacto y encender después
+
+`descongelar` y el timer no fijan qué sale: `vigilar` publica lo que diga
+`:publicable` en ese minuto, y esa etiqueta se mueve con cada merge en verde. Para
+salir con un commit elegido, `publicar <sha>` ya lo permite, sin cambiar el script ni
+instalar nada. Encender es otro paso, con su propio OK.
+
+| # | Paso | Comprobación |
+|---|---|---|
+| P1 | Elegir `X`, los 40 hex, y nombrarlo en el OK de Sam. Que sea lo que `publicar-web.sh revisar`, sin sha, da como `:publicable`: `publicar` no mira el CI, y esa etiqueta solo llega a un commit con imagen y CI en verde | «imagen: …:publicable → commit `X`» |
+| P2 | `publicar-web.sh revisar "$X"` | «PUERTAS: pasan». Anotar el digest de la línea «imagen» |
+| P3 | Con el timer apagado y `CONGELADO` puesto: `publicar-web.sh publicar "$X" --aunque-congelado` | Sale 0 y dice «PUBLICADA». En `publicar-web.sh estado`, `corre` es `…:sha-X@<digest de P2>` y `CONGELADO` sigue. Después, la revisión visible que diga el OK |
+| E1 | Cuando toque encender, con su propio OK: `publicar-web.sh revisar`, sin sha, y `publicar-web.sh estado` | Si `:publicable` es `X`, no entra nada. Si es otro commit, ese entra en cuanto enciendas, salvo que esté en `rechazadas` |
+| E2 | `publicar-web.sh descongelar` y `systemctl enable --now dtd-cargo-publicar.timer` | `journalctl -u dtd-cargo-publicar.service -n 20` → «al día: `X`» |
+
+Límites:
+
+- `publicar` no recibe el digest: lo resuelve al bajar `sha-X`. Volver a correr
+  `build-image.yml` sobre `X` movería esa etiqueta. Por eso P3 compara con el digest
+  de P2, y ese workflow no se corre a mano durante la ventana.
+- Un merge entre P1 y P3 no cambia lo que sale. Entre P3 y E2 sí cambia lo que entra
+  al encender: repetir E1 si hubo alguno.
+- Si `:publicable` no es `X`, P3 la deja rechazada hasta el próximo merge, y después
+  de E2 Kuma queda en rojo con «rechazada» hasta entonces.
+- `revisar` responde con la primera puerta cerrada, en este orden: migraciones, huellas
+  y sharp. «Faltan en la base…» no dice nada de las otras dos.
+
+### Qué recupera una marcha atrás
+
+Hay dos caminos, y hoy no llevan a la misma imagen. Medido el 2026-11-02 a las 00:14Z,
+solo lectura y sin abrir el `.env`: el valor vivo sale de
+`docker inspect -f '{{.Config.Image}}'` del contenedor.
+
+| Camino | A qué imagen va | En el disco | En el registro |
+|---|---|---|---|
+| Falla la publicación: vuelve solo al `DTD_WEB_IMAGE` anterior | `sha256:cd041ea44058…`, revisión `929cabf51`, Node 24.22.1, armada a mano el 2026-10-25 y con la etiqueta `manual-node-release/dtd:sha-929cabf51…`. No trae `source` ni `org.dtdcargo.*`, así que `publicar` nunca la acepta | Sí | **No.** `sha-929cabf51…` da «manifest unknown» en las dos direcciones: es la única copia |
+| `volver`, antes de la primera publicación buena | El valor de `estado/anterior`: `ghcr.io/hailuwaycom-sketch/dtdcargo:sha-f9b86db1…@sha256:1ce9a254…`, revisión `f9b86db1b`, Node 24.21.0. No es la anterior de lo que corre, porque `929cabf51` se puso a mano y el script no lo registró. Son 4 commits atrás, sin migraciones de diferencia | Sí, sin etiqueta, solo por digest | Con ese nombre, no. La misma imagen responde en `ghcr.io/softagentes/dtdcargo:sha-f9b86db1…` |
+| `volver`, después de una publicación buena | `estado/anterior` pasa a `sha256:cd041ea44058…`: la primera fila | Sí | No |
+
+**Si la publicación falla y vuelve sola, `volver` no es el paso siguiente.** `estado/anterior`
+no se reescribe, así que bajaría la web a `f9b86db1b`.
+
+**Ninguno de los dos es una recuperación completa.** Vuelve el sitio, no la contabilidad:
+
+- De la base no hay vuelta atrás escrita para la 0496 ni la 0497.
+- Con la web `929cabf51` sobre la base con la 0497, una factura emitida queda sin
+  asiento, y quien factura ve «creada» y «emitida», sin ningún error. Lo midió el ensayo
+  en prueba del 2026-11-01 (SDD-0573).
+- La prueba rápida 14/0 no lo detecta: `smoke-web.sh` no inicia sesión ni escribe.
+- El camino automático tiene el mismo efecto, y no pregunta.
+
+Después de cualquier vuelta con la 0497 aplicada:
+
+1. Si el timer está encendido, `publicar-web.sh congelar "<motivo>"`: el próximo merge
+   se publicaría solo.
+2. Avisar para que nadie emita facturas hasta resolverlo.
+3. Correr `scripts/qa/0497-control-posterior.sql` y mirar `emitida_en_la_ventana`. Lee
+   filas de negocio por dentro, así que en producción pide autorización.
+4. Reparar con `post_invoice_journal_entry_atomic`: es una escritura en producción, con
+   su OK. La web no tiene botón para eso.
+
+**Conservar `sha256:cd041ea44058…`.** Es una propuesta: no está hecho. Hoy la protege que
+está en uso. `limpiar_imagenes` solo toca `ghcr.io/softagentes/dtdcargo`, y no hay cron ni
+timer con `prune`. Pero al dejar de correr, un `docker image prune -a` o un
+`docker system prune -a` a mano la borra, y no hay de dónde bajarla.
+
+```bash
+# Antes de publicar, con el OK de esa ventana.
+install -d -m 700 /srv/ops/respaldos/imagen-web-929cabf51
+docker save manual-node-release/dtd:sha-929cabf51fa2ae565ffaf4f42e2c1d95529d3e3b \
+  | gzip > /srv/ops/respaldos/imagen-web-929cabf51/imagen.tar.gz
+( cd /srv/ops/respaldos/imagen-web-929cabf51 && sha256sum imagen.tar.gz > SHA256SUMS && sha256sum -c SHA256SUMS )
+```
+
+- Una copia fuera del servidor: por `scp` a la PC de Sam.
+- Subirla a GHCR es la segunda opción. Falta saber si el login de root escribe (NO
+  VERIFICADO), y necesita otro nombre de paquete: con una etiqueta bajo
+  `ghcr.io/softagentes/dtdcargo`, la imagen entra en `limpiar_imagenes`.
+- `prueba-sha-929cabf51…` no la reemplaza: se construye para prueba, con otros valores
+  públicos en el bundle.
+- Restaurar con `gunzip -c imagen.tar.gz | docker load` está **NO PROBADO**.
+
+### Instalar `compose.yml` y `.env.example` con la dirección nueva
+
+`compose.yml` es huella bloqueante y `.env.example` solo avisa. Cambian el valor por
+defecto de la imagen y un comentario. No cambia lo que corre, porque `DTD_WEB_IMAGE`
+está definida. `X` es el commit que se va a publicar, y tiene que contener ese cambio:
+con los archivos nuevos en el servidor, un commit anterior ya no pasa la puerta de
+huellas. `volver` no pasa por las puertas, así que la marcha atrás no cambia.
+
+Es parte de la ventana de publicar, antes de P2. Con el timer apagado y `CONGELADO`
+puesto no hay apuro: los 5 minutos de K5 no aplican.
+
+| # | Paso (root, en el VPS) | Comprobación |
+|---|---|---|
+| W1 | Lectura: `sha256sum /srv/dtd-cargo/compose.yml /srv/dtd-cargo/.env.example` | Empiezan con `1a67944a24958c08` y `c63acb8bf8a1f7e8`. Si no, parar |
+| W2 | Con `flock /run/lock/dtd-cargo-publicar.lock`, copiar los dos archivos a `/srv/ops/evidencias/compose-softagentes-<hora>/` con su `SHA256SUMS` | `sha256sum -c SHA256SUMS` |
+| W3 | Copiar los dos de `X` a un temporal en `/srv/dtd-cargo/`, en modo 644, y renombrar | Cada `sha256sum` igual a `git show X:infra/dtd-cargo/<archivo> \| sha256sum`. Con solo este cambio empiezan con `483f923fd4339358` y `c7960019fb74accb` |
+| W4 | `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml config -q`. Sin `-q` imprime secretos | Sale 0. Nadie corre `up`: `docker inspect -f '{{.State.StartedAt}}' dtd-cargo-web-1` no cambia |
+
+Para deshacer, restaurar las copias de W2 igual que en W3. El OK de Sam tiene que nombrar
+«copiar `compose.yml` y `.env.example` de `X` a `/srv/dtd-cargo`».
+
+**Antes hay que resolver `compose.supabase.yml`, que hoy bloquea cualquier publicación.**
+Medido el 2026-11-02: difiere del repo en una línea, la imagen de `storage`, editada en el
+servidor el 2026-10-25 a las 03:51Z. El servidor tiene `sha256:7ec9901d34a3…`
+(`node-runtime-patch:c99920016d60-24.22.1-no-refresh`, derivada de la oficial con Node
+24.22.1) y el repo `supabase/storage-api:v1.77.6` (Node 24.21.0). La usan
+`dtd-cargo-storage-1`, `dtd-cargo-staging-storage-1` y `loop-3d-storage-1`.
+
+`revisar` no lo muestra porque para en las migraciones. Al aplicar la 0496 y la 0497 dirá
+«el servidor no tiene la misma copia», y su mensaje manda a copiar el archivo del repo.
+Copiarlo sin decidir no cambia nada en ese momento, pero el próximo `up` de `storage`
+vuelve a la imagen oficial, sin aviso.
+
+| Opción | Qué hace | Costo |
+|---|---|---|
+| Variable, como `web` | `image: ${DTD_STORAGE_IMAGE:-supabase/storage-api:v1.77.6}` en el repo, y una línea en el `.env` del servidor con el id actual | Una línea más en el `.env` durante la ventana. `storage` no se recrea, porque su imagen efectiva no cambia |
+| Copiar el archivo del repo | El servidor queda igual al repo | `storage` sigue parchada hasta el próximo `up`; ahí pierde el parche |
+| Escribir el id en el repo | Las huellas coinciden sin tocar el servidor | Rompe cualquier servidor que no tenga esa imagen local, como una restauración |
+
 ### Compatibilidad de identidad · preparación del 2026-10-20
 
 **Estado: corrección y pruebas locales completadas; integración, instalación y publicación pendientes.**
