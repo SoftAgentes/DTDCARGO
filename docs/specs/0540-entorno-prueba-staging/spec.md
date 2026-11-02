@@ -1,10 +1,10 @@
 ---
 sdd: "0540"
 title: "Entorno de prueba de DTD Cargo con base separada en el VPS (diseño)"
-status: proposed
+status: approved
 author: "Claude Worker (Sam)"
 created: 2026-10-16
-updated: 2026-10-17
+updated: 2026-11-02
 supersedes: null
 superseded_by: null
 related: ["0505", "0506", "0518"]
@@ -475,6 +475,26 @@ Con una PR real que traiga una migración:
 | 2026-10-16 ~07:50Z | **D7, cambiada**: desconectar la integración de Git de Vercel **hoy**, sin esperar a que prueba esté arriba. Así deja de existir el riesgo de §1.2 (un Preview que escribe en la base de producción) | «y también vamos a desconectar Vercel de GitHub ya que no tiene sentido esperar hasta el 20» | Director |
 | 2026-10-16 ~16:40Z | **D2, excepción con fecha**: se cargan en prueba los **datos reales de los consolidados en camino** (packing lists con clientes reales), solo para probar esa carga antes de producción. Condiciones del Director: (1) la carga la hace la sesión de la SDD-0543 desde su worktree; (2) avisar antes de cualquier reset de prueba mientras dure; (3) al pasar a producción o descartar, los datos reales se borran de prueba con evidencia (reset o destroy); (4) la clave del web de prueba no se comparte fuera de Sam. El resto de prueba sigue con la semilla sintética | «autorizo cargar datos reales de los consolidados en prueba» | Director |
 | — | D4, D5, D6, D8, D9, D10 y D11 | Sin respuesta explícita. Sam aprobó «la idea» en conjunto: la Fase 1 (solo repo) avanza con la recomendación del §4 en cada una, y cada decisión se confirma por nombre antes de la Fase 3 (servidor) | Director |
+
+### Estado de aceptación de D1 a D11 (2026-11-02, a la aprobación de la spec)
+
+Se pasa la spec a `approved` porque las Fases 1 a 3 ya están hechas y en uso (§9 y §10) con D1, D2, D3 y D7 aceptadas por Sam con texto literal. La tabla separa lo que Sam aceptó, con su fuente, de lo que se ejecutó con la recomendación del §4 sin respuesta suya. **Nada de la columna «Pendiente» se da por aceptado.**
+
+| # | Estado | Evidencia |
+|---|---|---|
+| D1 | Aceptada por Sam | §8, fila 2026-10-16 ~07:50Z (texto literal) |
+| D2 | Aceptada por Sam (sintéticos) y excepción fechada con datos reales de consolidados | §8, filas ~07:50Z y ~16:40Z (texto literal); §10, fila 2026-10-16 23:28Z |
+| D3 | Aceptada por Sam | §8, fila ~07:50Z (texto literal) |
+| D4 | Decidida por Sam con una **variante** de la recomendación: «Solo desde mis IP», más la clave web. No es la opción «clave sin allowlist» del §4 | §10, fila 2026-10-16 16:42Z (texto literal de Sam). La puerta con clave sin allowlist sigue **pendiente de confirmación nominal** si se quiere abrir a otras redes |
+| D5 | **Pendiente de confirmación nominal.** Se aplicó la recomendación (despliegue a prueba sin OK por despliegue) | §8, última fila; handoff `0540-fase-1-entorno-prueba.md` («Con la recomendación del §4») |
+| D6 | **Pendiente de confirmación nominal.** La regla de «toda migración por prueba» se siguió como práctica, pero Sam no la aceptó como regla. Su texto propuesto va en el handoff `a1-sdd-0540-approved.md` y no está activo en AGENTS ni en `project-rules.md` | §8, última fila; spec §3, Fase 5 |
+| D7 | Aceptada por Sam (desconectar la integración de Git de Vercel **ya**). **NO VERIFICADO** en el repo que la desconexión se ejecutó: Vercel se opera fuera del repo | §8, fila ~07:50Z (texto literal) |
+| D8 | **Pendiente de confirmación nominal.** Se aplicó «ninguna integración» | handoff `0540-fase-1-entorno-prueba.md` |
+| D9 | **Pendiente de confirmación nominal.** Correos de la app en modo simulado, aplicado en la SDD-0544 con la recomendación | handoff `0544-prueba-producto-minimo.md`, punto «D9 y D11 por nombre» |
+| D10 | **Pendiente de confirmación nominal.** Límites de 3.072 MiB aplicados con la recomendación | handoff `0540-fase-1-entorno-prueba.md`; §2.8 |
+| D11 | **Pendiente de confirmación nominal.** El aviso se implementó (SDD-0544) y Sam dijo que veía la franja, lo que es una observación y no una aceptación de la decisión | §10, fila 2026-10-16 20:43–21:15Z; handoff `0544-prueba-producto-minimo.md` |
+
+Hasta que Sam las confirme por nombre, D5, D6, D8, D9, D10 y D11 rigen solo como práctica vigente, no como política aprobada.
 
 ## 9 · Seguimiento de la Fase 1 (PR #251)
 
