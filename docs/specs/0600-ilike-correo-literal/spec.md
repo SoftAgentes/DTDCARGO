@@ -1,16 +1,134 @@
 ---
 sdd: "0600"
-title: "RESERVADO — ilike-correo-literal"
-status: draft
-author: "Codex"
+title: "Un correo no se compara como patrón: correo entrante, invitación y baja"
+status: in-progress
+author: "Sam (founder) + Claude Code"
 created: 2026-11-02
 updated: 2026-11-02
 supersedes: null
 superseded_by: null
-related: []
+related: ["0056", "0082", "0113", "0140", "0597"]
 confidencialidad: interno
 ---
 
-# SDD-0600 — RESERVADO
+# SDD-0600 · Un correo no se compara como patrón: correo entrante, invitación y baja
 
-Reserva del 2026-11-02. Completar en la rama de trabajo e integrar mediante PR.
+## Pedido
+
+**Sam, literal:** «Haz esta tarea aquí: "Comodines de .ilike: correo entrante, invitación y baja"».
+
+Salió de la SDD-0597 (PR #361), que corrigió el mismo patrón en `/entrar` y dejó estos tres sitios fuera de su alcance.
+
+**Límites del Director General:** rama, worktree y PR en borrador propios desde `origin/main`. Sin `verify` ni Docker hasta su aviso, sin tocar prueba y sin integrar antes de publicar. Pidió pruebas con control rojo del daño concreto en cada sitio, no solo del escape, y que la invitación pase por `revisar-datos-ve`.
+
+## Qué pasaba
+
+`.ilike("email", correo)` parece una igualdad sin mayúsculas, pero `%` y `_` son comodines, y PostgREST convierte `*` en `%`. El código lo daba por exacto: `inbound-email.ts` decía «case-insensitive exact (sin %)».
+
+Reproducido con dobles que aplican los comodines de verdad, sin tocar producción. **No se sabe si pasó alguna vez en producción:** ver «No verificable».
+
+| Sitio | De dónde viene el correo | El daño, reproducido |
+|---|---|---|
+| `lib/studio/conversaciones/inbound-email.ts` | el `From` de un correo entrante | `juan_perez@` y `*@ejemplo.com` entran al hilo de `juan.perez@`. Y un parecido en otro tenant vuelve «ambiguo» al cliente real, cuyo correo se pierde |
+| `app/invitar/[token]/actions.ts` | el correo de la invitación | La invitada `ana_diaz@` queda enlazada a la ficha de nómina de `ana.diaz@`. Con ese enlace, `app/m/emp` le muestra esa ficha y sus recibos (`app/m/emp/page.tsx:6`) |
+| `lib/studio/mail/unsubscribe-request.ts` | el correo del enlace firmado | La baja de `juan_perez@` también le quita el permiso de marketing a `juan.perez@`, que nunca la pidió |
+
+Los dos últimos no los provoca alguien de afuera a propósito: la invitación la escribe el equipo y el enlace de baja va firmado. Pasan solos, porque `_` es común en un correo real y solo hace falta que exista un parecido.
+
+**Por qué nadie lo vio:** el doble de `inbound-email.test.ts` comparaba exacto, y la baja de marketing y el enlace con la ficha no tenían prueba.
+
+## Decisión
+
+Reutiliza `lib/shared/email-literal.ts` de la SDD-0597: `emailIlikePattern` escapa `%`, `_` y `\`, y `sameEmail` compara el resultado, porque `*` no se puede escapar. El archivo es idéntico al de la #361, y git fusiona limpio dos altas iguales (medido con `merge-tree`).
+
+- **Correo entrante:** filtra los resultados con `sameEmail`.
+- **Invitación y baja:** un `.update` con `.ilike` no deja descartar nada después. Ahora se leen primero las filas, se filtran y se actualiza por `id`, repitiendo en el `.update` los filtros que protegen (`tenant_id`, y `auth_user_id is null` en la ficha).
+- **El escape se mantiene aunque aquí no cambie el resultado.** Estos sitios no usan `.limit(1)`, así que `sameEmail` ya decide. El escape evita traer de la base filas que después se descartan, y protege si mañana alguien añade un `.limit`.
+- **La baja sigue confirmando aunque no encuentre filas,** como antes, y avisa el error si no puede leer o escribir.
+
+**Descartado:**
+- **`.eq` con el correo en minúsculas:** `clients.email` viene de importaciones y planillas, sin normalizar; dejaría sin reconocer a quien tenga mayúsculas guardadas.
+- **Función SQL con `lower(email) = lower($1)`:** es lo más limpio, pero pide migración, y esto no la necesita.
+- **Apilar sobre la #361:** esa PR está retenida, y una PR apilada no tiene el check de `quality`.
+
+## Aceptación
+
+1. Un `From` parecido o con comodines no entra al hilo de otro cliente, ni vuelve ambiguo a nadie.
+2. El `auth_user_id` no queda en la ficha de otra persona. Tampoco pisa una ficha enlazada, ni toca otro tenant ni una ficha borrada.
+3. La baja no le quita el marketing a un parecido, ni toca otro tenant.
+4. Los correos reales siguen funcionando en los tres sitios, con `_`, `+`, `%`, `*` o mayúsculas.
+5. La baja no confirma si no pudo leer o escribir. Un fallo al buscar la ficha no tumba la aceptación de la invitación.
+6. **No se integra sin medir el escape contra PostgREST real.** Si el `\` no pasara bien por esa capa, un cliente con `_` no recibiría su hilo, y su baja diría «Listo» sin hacer nada. Se aprovecha la corrida de la #361, sin pedir otra.
+
+## Allowlist
+
+| Archivo | Cambio |
+|---|---|
+| `lib/shared/email-literal.ts` | nuevo, idéntico al de la #361 |
+| `lib/shared/__tests__/email-literal.test.ts` | nuevo, idéntico al de la #361 |
+| `lib/shared/__tests__/coincide-ilike.ts` | nuevo: la imitación de `ILIKE` para los dobles |
+| `lib/shared/__tests__/coincide-ilike.test.ts` | nuevo: esa imitación contra Postgres, en PGlite |
+| `lib/studio/conversaciones/inbound-email.ts` | compara el remitente literal |
+| `lib/studio/conversaciones/__tests__/inbound-email.test.ts` | el doble aplica comodines; casos nuevos |
+| `app/invitar/[token]/actions.ts` | lee, filtra y enlaza por `id` |
+| `app/invitar/[token]/__tests__/vinculo-ficha-empleado.test.ts` | nuevo |
+| `lib/studio/mail/unsubscribe-request.ts` | lee, filtra y da de baja por `id` |
+| `lib/studio/mail/__tests__/unsubscribe-marketing-literal.test.ts` | nuevo |
+| `docs/specs/0600-ilike-correo-literal/spec.md` | esta spec |
+| `docs/specs/README.md` | índice generado |
+| `.agents/handoffs/sdd-0600-ilike-correo-literal.md` | handoff |
+
+Sin migraciones, sin variables nuevas y sin tocar producción ni prueba.
+
+## Datos personales (`revisar-datos-ve`)
+
+**Alcance:** solo lo que toca este diff. No se recorrieron los doce puntos, y esto no dice nada de los que quedan fuera. No se leyeron filas. **No es asesoría legal:** es un inventario técnico y una lista de preguntas para un abogado.
+
+**Resumen:** 5 ENCONTRADO (3 corregidos aquí, 2 sin corregir), 2 CORRECTO, 4 NO VERIFICABLE.
+
+| Campo | Qué es | Finalidad en el código | Base de licitud y retención | Quién más lo ve |
+|---|---|---|---|---|
+| `nomina_employees.email` | correo del empleado | enlazar su login con su ficha | NO VERIFICABLE: abogado | equipo de nómina |
+| `nomina_employees.auth_user_id` | cuenta que ve esa ficha | acceso a `/m/emp` | NO VERIFICABLE: abogado | el empleado enlazado |
+| `clients.email` | correo del cliente | reconocer al remitente, dar la baja | NO VERIFICABLE: abogado | equipo |
+| `clients.email_marketing_optin_at` | consentimiento de marketing | enviar o no marketing | NO VERIFICABLE: abogado | equipo |
+| `From` y cuerpo del correo entrante | mensaje de quien escribe, que puede no ser cliente (punto 12) | atender la conversación | NO VERIFICABLE: abogado | equipo |
+
+**Hallazgos, por gravedad:**
+
+| Estado | Qué | Dónde | Norma | Arreglo |
+|---|---|---|---|---|
+| ENCONTRADO, corregido | Un login podía quedar enlazado a la ficha de otra persona y ver sus recibos | `app/invitar/[token]/actions.ts:149`, `:151`; `app/m/emp/page.tsx:6` | CRBV art. 28 · SC 332/2001, finalidad y calidad. Si ocurrió, qué implica frente a los arts. 20 a 22 de la Ley de Delitos Informáticos es pregunta para un abogado | Esta spec |
+| ENCONTRADO, corregido | El mensaje de un tercero quedaba en el hilo de un cliente | `lib/studio/conversaciones/inbound-email.ts:118`, `:123` | CRBV arts. 28 y 60 · SC 332/2001, calidad | Esta spec |
+| ENCONTRADO, corregido | Se le retiraba el consentimiento a quien no lo pidió | `lib/studio/mail/unsubscribe-request.ts:112`, `:115` | SC 332/2001, autonomía | Esta spec |
+| ENCONTRADO, **sin corregir** | El remitente sin cliente queda en el log en texto plano, y este cambio manda ahí a los parecidos | `app/api/conversaciones/email/route.ts:146`, `:151` | SC 332/2001, temporalidad | Registrar el `email_id` y un hash del correo |
+| ENCONTRADO, **sin corregir** | La baja deja `email_marketing_optin_at` en `NULL`: no queda cuándo se retiró. No encontré auditoría de esa columna (`0293…:517` cubre `email` y `phone`) | `lib/studio/mail/unsubscribe-request.ts:120` | SC 332/2001: la carga de probar el consentimiento es de quien trata los datos | Una columna con la fecha de retiro, o una tabla de consentimientos. Pide migración |
+| CORRECTO | Las filas leídas no salen del servidor, y no se añade ningún log con el correo | `app/invitar/[token]/actions.ts:151`; `lib/studio/mail/unsubscribe-request.ts:115` | | |
+| CORRECTO | Sigue sin pisar una ficha ya enlazada | `app/invitar/[token]/actions.ts`, doble filtro `auth_user_id is null` | | |
+
+**No verificable:**
+- **¿Ya pasó en producción?** Es la pregunta más importante, y no se responde leyendo el código. Propuesta, con autorización de Sam: un conteo sin imprimir datos de fichas cuyo `auth_user_id` apunta a una cuenta con otro correo. Otro igual para la baja no es posible: no queda rastro (ver el hallazgo sobre la fecha de retiro).
+- **Comportamiento contra una base real:** solo se probó con dobles y PGlite. La medición contra PostgREST está en cola.
+- **Base de licitud y retención** de cada campo: abogado.
+- **Qué autentica el `From`:** no encontré SPF ni DKIM en `app/api/webhooks` ni en `lib/studio/conversaciones`. Quien falsifique el `From` exacto de un cliente no queda cubierto por esta spec; puede que Resend lo filtre antes.
+
+**Segunda opinión:** conviene que otro modelo revise este diff.
+
+## Validación
+
+| Comprobación | Resultado |
+|---|---|
+| Control rojo: las pruebas nuevas contra el código anterior | PASÓ: 19 en rojo. Correo entrante 7, baja 3, invitación 9 |
+| Pruebas de los tres sitios, `email-literal`, `coincide-ilike` y la ruta del correo entrante, con un solo worker | PASÓ: 128 pruebas en 9 archivos |
+| Mutantes | PASÓ: 10 de 11 mueren. El otro («la baja no mira el tenant») es equivalente, porque el `.update` repite el filtro. Quitando los dos filtros, muere |
+| `eslint` de lo tocado, `docs:check`, `sdd:check` | PASÓ |
+| `git merge-tree` con la #361 y la #358 | PASÓ: limpio, solo a nivel de texto |
+| `pnpm verify`, incluido `tsc` | NO EJECUTADO: pide turno al Director General |
+| El escape contra PostgREST v14.17 real | NO EJECUTADO: va en la corrida de la #361 |
+
+## Fuera de alcance detectado
+
+- Los dos hallazgos sin corregir de la tabla anterior: el remitente en el log y la fecha de retiro del marketing.
+- Lo que no autentica el `From`.
+- `.ilike` con búsquedas de texto del Studio con sesión (`kommo-convert.ts:105`, `kommo-queries.ts:180`, `destination-change.ts:38`, entre otros): `%`/`_` amplían una búsqueda, sin daño comprobado. No se revisaron uno por uno.
+- `coincideIlike` está también dentro de la prueba de la #361. Cuando las dos estén en `main`, esa copia se puede cambiar por esta.
