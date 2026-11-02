@@ -22,7 +22,7 @@ Hecho en esta misma PR, solo esas líneas: `docs/runbooks/entorno-prueba.md` (l�
 
 - `bash infra/ops/tests/prueba-scripts-entorno-prueba.sh` suelta: PASÓ (84 PASÓ · 0 FALLÓ · 3 NO VERIFICADO, rc=0). Con `VA_ANTERIOR` apuntando al script previo: 85 PASÓ, incluido el control rojo (la versión anterior deja pasar GA en static, rc=0).
 - `prueba-aplicar-migracion.sh` y `prueba-smoke-web-credenciales.sh` sueltas: rc=0 (36 PASÓ; 15 PASÓ · 1 NO VERIFICADO).
-- `vitest run scripts/__tests__/entorno-prueba`: 37 de 38 pasan; falla «las pruebas con dobles salen con 0 FALLÓ» (`expected 3840 to be 0`, un código de salida de bash, sin líneas `FALLÓ`), reproducido 2 veces. Ese test corre las tres pruebas anteriores **en paralelo**; sueltas dan rc=0. **NO CONCLUYENTE**: no se comprobó si ocurre también en `main` ni cuál de las tres sale con 3840; el Director pidió no seguir con corridas pesadas (RAM < 2 GB). Pendiente: repetir con una corrida a la vez / PC libre.
+- `vitest run scripts/__tests__/entorno-prueba`: 37 de 38 pasaban; el test «las pruebas con dobles salen con 0 FALLÓ» dio `expected 3840 to be 0` dos veces con la PC cargada (tres pruebas bash en paralelo + otras sesiones). Repetido en turno liviano (`--maxWorkers=1`, solo ese test, sin `restore-test-*`, sin otras corridas pesadas): **rama 3/3 PASÓ** (155 s, 160 s, 343 s; CPU antes 49/48/31 %) y **main 3/3 PASÓ** (157 s, 166 s, 143 s; CPU antes 48/4/29 %). Conclusión: el 3840 fue carga/tiempo del equipo, no el cambio; no reapareció.
 - NO EJECUTADO: `pnpm verify`, build, suites Docker.
 - No aplican pruebas de producto (`pnpm verify`, build): el cambio es solo de scripts de ops; no se tocó código de la app.
 - No se tocó el VPS ni se ejecutó nada contra él.
@@ -35,4 +35,4 @@ Hecho en esta misma PR, solo esas líneas: `docs/runbooks/entorno-prueba.md` (l�
 ## Checklist
 
 Listo: script, pruebas, control rojo, handoff.
-Pendiente: repetir vitest «dobles» una prueba a la vez y contra `main` (turno del Subdirector), revisión del Director, decisión de merge.
+Pendiente: revisión del Director, decisión de merge.
