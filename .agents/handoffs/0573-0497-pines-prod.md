@@ -276,7 +276,7 @@ En la de la 0497: 0 sesiones esperando locks, 0 transacciones largas, 13 funcion
 
 ## COMMITS
 
-`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · `dab79b99f` y `1e31a642f` rol real y control posterior · `db84f6ffd` y `24d970e1e` evidencia y ensayo · `fda48edb1` límites hasta el COMMIT y control sin procedencia · `b58e36bd3` segunda revisión y medición de `accounts` · `493b8659b` sale el filtro · `9620a283b` guion · `7982e7ff8` prueba de los límites · `2a56eaef6` decisiones de Sam y blob final · `cb51bfd8e` rehacer prueba, pasos 1 a 3 · `0cef65a90` y `66e93cf57` prueba rehecha · `5378fb9ca` tercer emisor y desarme · más el de esta evidencia.
+`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · `dab79b99f` y `1e31a642f` rol real y control posterior · `db84f6ffd` y `24d970e1e` evidencia y ensayo · `fda48edb1` límites hasta el COMMIT y control sin procedencia · `b58e36bd3` segunda revisión y medición de `accounts` · `493b8659b` sale el filtro · `9620a283b` guion · `7982e7ff8` prueba de los límites · `2a56eaef6` decisiones de Sam y blob final · `cb51bfd8e` rehacer prueba, pasos 1 a 3 · `0cef65a90` y `66e93cf57` prueba rehecha · `5378fb9ca` tercer emisor y desarme · `c16556096` ensayo y control de la ACL · más el de esta evidencia.
 
 ## PR / BRANCH
 
@@ -291,7 +291,8 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 - Después de la parte de Sam, y no antes: comprobar en la base lo que hizo, y correr los pasos 3, 4, 5, 6, 8 y 9 del bloque 7. NO EJECUTADOS.
 - Revisión de Sam del guion. La cabeza final será la que lleve ese texto.
 - CI de la cabeza final: NO EJECUTADO. Lo coordina el Director.
-- M1 y M4: ensayo con el rol real PASÓ. Vitest del contrato en PGlite y de las pruebas del desarme, NO EJECUTADA, a la espera de memoria. Ver «Tercer emisor y marcha atrás».
+- M1 y M4: hechos, sin aplicar nada. El ensayo con el rol real y la Vitest pasaron. Ver «Tercer emisor y marcha atrás».
+- `pnpm verify` de la cabeza final: NO EJECUTADO. Lo da el Director General después de publicar.
 - Revisión independiente del blob final y `pnpm verify`: NO EJECUTADOS. Los decide el Director.
 
 ## Ensayo en prueba, 0492–0497 (2026-11-01, 21:12–21:55Z)
@@ -677,7 +678,8 @@ Hallazgos M1 y M4 de la revisión independiente del blob `25dd38460aa2`. **El bl
 | Control en rojo del ajuste | PASÓ | Sin él, quitar los triggers rompe post con `constraint does not exist`. No deja rastro |
 | Lo que se pierde, medido | PASÓ | Anulada sin reverso y con la venta asentada; la base deja anular con cobro vivo, cambiar a mano un asiento automático y anular una venta a mano. El control posterior lista lo anulado sin reverso. Comercial sigue sin poder anular, por la RLS |
 | Control en rojo de la ACL | PASÓ, 3 de 3 | Un privilegio que cambia, una entrada que falta y una que sobra dan rojo con la misma comparación |
-| Pruebas del desarme y contrato en PGlite | NO EJECUTADO | 2,29 GB libres de los 3 que exige el turno. El Director General decide cuándo |
+| Contrato en PGlite y las 4 pruebas del desarme | PASÓ, **148 de 148** | 509 s, `--maxWorkers=1`, con 3,69 GB libres y CPU 32 % al arrancar; mínimo 2,46 GB. El Director General subió el tope a 16 min: con el de 8 la habría cortado. `vitest-m1.out` |
+| `tsc` y `pnpm verify` sobre esta cabeza | NO EJECUTADO | `verify` espera turno del Director General. No hay `tsc` local sobre el archivo de prueba: lo cubre el CI |
 
 Primera corrida, `rol-real-m1-primera.out`: 119 PASÓ, 1 FALLÓ. La ACL coincidía en contenido y mi comparación era por texto; el orden depende de cómo se otorgó, y producción tiene otro que el esquema reconstruido. Antes hubo otra, cortada a los ~2 min y sin resultado, cuando el Director General pidió no usar Docker sin avisar.
 
