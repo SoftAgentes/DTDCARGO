@@ -107,10 +107,12 @@ fijar() { # $1 archivo, $2 línea completa CLAVE=valor
   local k="${2%%=*}"; grep -vE "^${k}=" "$1" > "$1.t"; printf '%s\n' "$2" >> "$1.t"; mv "$1.t" "$1"
 }
 fijar "${T}/limpio.env" "PRUEBA_WEB_USUARIOS='sam:\$2a\$10\$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0'"
+# Por defecto el bundle de los dobles trae GA/Ads solo fuera de static (lo normal en la Fase 2).
+export DOBLE_BUNDLE="3 0 0 2 1 1 1 0 0"
 va() { bash "${S}/staging/verificar-aislamiento.sh" --env "$1" --prod-env "${T}/prod/.env" --project "${P}" --example "${PD}/.env.example" "${@:2}"; }
 va "${T}/limpio.env" > "${T}/va-limpio.log" 2>&1; rc=$?
 [[ ${rc} -eq 0 ]] && grep -q '· 0 FALLÓ ·' "${T}/va-limpio.log" && ok "limpio → 0 ($(grep RESULTADO "${T}/va-limpio.log"))" || { ko "limpio rc=${rc}"; grep FALLÓ "${T}/va-limpio.log"; }
-grep -q 'AVISO · bundle del navegador con Google Analytics' "${T}/va-limpio.log" && ok "GA y Ads en el bundle del navegador salen como AVISO (Fase 2)" || ko "sin aviso de GA"
+grep -q 'PASÓ  · bundle del navegador (.next/static) sin Google Analytics ni Ads' "${T}/va-limpio.log" && ok "limpio: static sin GA ni Ads pasa por defecto" || ko "sin PASÓ de GA"
 cp "${T}/limpio.env" "${T}/rojo.env"; fijar "${T}/rojo.env" "SUPABASE_SERVICE_ROLE_KEY=$(val "${T}/prod/.env" SERVICE_ROLE_KEY)"
 va "${T}/rojo.env" > "${T}/va-rojo.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'FALLÓ · valores iguales a un secreto de producción (por sha256): SUPABASE_SERVICE_ROLE_KEY' "${T}/va-rojo.log" \
@@ -146,17 +148,25 @@ DOBLE_BUNDLE="3 0 0 2 1 0 1" va "${T}/limpio.env" > "${T}/va-anon.log" 2>&1; rc=
 DOBLE_BUNDLE="3 0 0 2 1 1 0" va "${T}/limpio.env" > "${T}/va-cookie.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'bundle sin la cookie de este .env' "${T}/va-cookie.log" && ok "imagen construida con otra cookie → falla" || ko "cookie rc=${rc}"
 grep -qF -- "$(val "${T}/limpio.env" NEXT_PUBLIC_SUPABASE_ANON_KEY)" "${DOBLE_DIR}/docker.log" && ko "la anon viajó en los argumentos de docker run" || ok "la anon viaja a docker run por entorno"
-va "${T}/limpio.env" --exigir-sin-ga > /dev/null 2>&1; rc=$?
-[[ ${rc} -eq 1 ]] && ok "--exigir-sin-ga con GA en el bundle → falla" || ko "--exigir-sin-ga rc=${rc}"
-# Fase 2 (SDD-0544): decide .next/static, lo que llega al navegador.
-DOBLE_BUNDLE="3 0 0 2 1 1 1 0 0" va "${T}/limpio.env" --exigir-sin-ga > "${T}/va-sin-ga.log" 2>&1; rc=$?
-[[ ${rc} -eq 0 ]] && grep -q 'PASÓ  · bundle del navegador (.next/static) sin Google Analytics ni Ads' "${T}/va-sin-ga.log" \
-  && grep -q 'AVISO · el servidor (.next fuera de static) nombra GA' "${T}/va-sin-ga.log" \
-  && ok "--exigir-sin-ga: GA solo en el servidor → pasa con aviso" || ko "sin GA en static rc=${rc}"
+# Fase 2 (SDD-0544): decide .next/static, lo que llega al navegador; exigir 0 es el valor por defecto.
+DOBLE_BUNDLE="3 0 0 2 1 1 1 1 0" va "${T}/limpio.env" > "${T}/va-ga-static.log" 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && grep -q 'FALLÓ · bundle del navegador con Google Analytics (1) o Ads (0)' "${T}/va-ga-static.log"   && ok "GA en .next/static → FALLÓ por defecto" || ko "GA en static rc=${rc}"
+DOBLE_BUNDLE="3 0 0 2 1 1 1 0 1" va "${T}/limpio.env" > /dev/null 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && ok "Ads en .next/static → FALLÓ por defecto" || ko "Ads en static rc=${rc}"
+DOBLE_BUNDLE="3 0 0 2 1 1 1 0 0" va "${T}/limpio.env" > "${T}/va-ga-server.log" 2>&1; rc=$?
+[[ ${rc} -eq 0 ]] && grep -q 'PASÓ  · bundle del navegador (.next/static) sin Google Analytics ni Ads' "${T}/va-ga-server.log"   && grep -q 'AVISO · el servidor (.next fuera de static) nombra GA' "${T}/va-ga-server.log"   && ok "GA solo en servidor/.map (fuera de static) → PASÓ con aviso" || ko "GA solo en servidor rc=${rc}"
+DOBLE_BUNDLE="3 0 0 2 1 1 1" va "${T}/limpio.env" > /dev/null 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && ok "sin las cuentas de static decide con todo .next (más estricto) → FALLÓ" || ko "sin cuentas de static rc=${rc}"
+DOBLE_BUNDLE="3 0 0 2 1 1 1 1 1" va "${T}/limpio.env" --tolerar-ga > "${T}/va-tolerar.log" 2>&1; rc=$?
+[[ ${rc} -eq 0 ]] && grep -q 'AVISO · bundle del navegador con Google Analytics (1) y Ads (1): tolerado con --tolerar-ga' "${T}/va-tolerar.log"   && ok "--tolerar-ga: GA en static → AVISO explícito" || ko "--tolerar-ga rc=${rc}"
 DOBLE_BUNDLE="3 0 0 2 1 1 1 1 0" va "${T}/limpio.env" --exigir-sin-ga > /dev/null 2>&1; rc=$?
-[[ ${rc} -eq 1 ]] && ok "--exigir-sin-ga: GA en .next/static → falla" || ko "GA en static rc=${rc}"
-DOBLE_BUNDLE="3 0 0 2 1 1 1" va "${T}/limpio.env" --exigir-sin-ga > /dev/null 2>&1; rc=$?
-[[ ${rc} -eq 1 ]] && ok "--exigir-sin-ga sin las cuentas de static decide con todo .next (más estricto) → falla" || ko "sin cuentas de static rc=${rc}"
+[[ ${rc} -eq 1 ]] && ok "--exigir-sin-ga (alias) sigue aceptado y falla con GA en static" || ko "alias --exigir-sin-ga rc=${rc}"
+grep -qE 'G-25CD7BZH98|AW-561290482' "${T}"/va-ga-*.log "${T}/va-tolerar.log" && ko "la salida de GA imprime un ID" || ok "la salida de GA no imprime los IDs"
+# Control rojo: el script anterior (GA en static = AVISO por defecto) no falla en el mismo caso.
+if [[ -n "${VA_ANTERIOR-}" && -f "${VA_ANTERIOR}" ]]; then
+  DOBLE_BUNDLE="3 0 0 2 1 1 1 1 0" bash "${VA_ANTERIOR}" --env "${T}/limpio.env" --prod-env "${T}/prod/.env" --project "${P}" --example "${PD}/.env.example" > /dev/null 2>&1; rc=$?
+  [[ ${rc} -eq 0 ]] && ok "control rojo: la versión anterior deja pasar GA en static (rc=0); la nueva falla" || ko "control rojo: la versión anterior rc=${rc}"
+fi
 va "${PD}/.env" --sin-base > "${T}/va-marcador.log" 2>&1; rc=$?
 [[ ${rc} -eq 0 ]] && grep -q 'AVISO · puerta del web cerrada con el marcador' "${T}/va-marcador.log" && ok "--sin-base: el marcador de la puerta es AVISO" || ko "marcador --sin-base rc=${rc}"
 va "${PD}/.env" > /dev/null 2>&1; rc=$?
