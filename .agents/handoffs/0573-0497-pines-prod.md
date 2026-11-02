@@ -285,7 +285,7 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 - Que Sam vea el cambio de mecanismo D2/M4 al pedirle el OK nominal.
 - Que Sam vea en el OK nominal la regla exacta: toda escritura de una factura o de un asiento con factura afirma el par al confirmar.
 - **Rehacer prueba con el blob final:** hecho, pasos 1 a 10. Ver «Rehacer prueba». Falta la parte de Sam.
-- Parte de Sam en prueba: R10 y los pasos 1, 2 y 7. El guion ya está listo; se lo pasa el Director.
+- Parte de Sam en prueba: R10 y los pasos 1, 2 y 7. El guion ya está listo; se lo pasa el Director. **Antes hay que poner su IP en las listas de prueba:** ver FUERA DE ALCANCE; hoy le da 403.
 - Después de la parte de Sam, y no antes: comprobar en la base lo que hizo, y correr los pasos 3, 4, 5, 6, 8 y 9 del bloque 7. NO EJECUTADOS.
 - Revisión de Sam del guion. La cabeza final será la que lleve ese texto.
 - CI de la cabeza final: NO EJECUTADO. Lo coordina el Director.
@@ -645,7 +645,7 @@ Tres fallos del recorrido eran de mi arnés, no del producto: mandé el document
 - **Una línea en el postflight cerraría la ventana del conteo:** afirmar cada factura dentro de la transacción de la 0497, con los locks ya tomados, haría que un apply con una fila inválida aborte limpio. No lo hice: cambia el blob, y las pruebas que siembran legado antes del apply. Queda para decidir.
 - **`smoke-web.sh` no mira `/registro`, `/portal` ni `/api/registro/check`,** y decide la vuelta atrás. Publicar podría romperlos en verde.
 
-- **Sam no puede entrar a prueba todavía.** Prueba está detrás de Cloudflare desde el 2026-10-22 y los routers `*-cloudflare@file` de `/srv/edge/traefik/dynamic/cloudflare-private.yml` tienen su propia lista de IP, con la IP vieja de Sam. `ips-prueba.sh` no la toca y el runbook §2.1 no lo dice: `--aplicar` termina bien y Sam sigue en 403. Ese archivo es del borde compartido y no está en el repo, así que no lo edité: lo pedí al Director.
+- **Sam no puede entrar a prueba todavía.** Medido otra vez el 2026-11-02, desde esta PC: 403 con «Forbidden» en `/`, `/registro`, `/correo/` y `/studio/login`, y su IP actual en 0 de las listas: `cloudflare-private.yml`, `middlewares.yml` y el `.env` de prueba. No imprimo la IP. Si Sam entra desde otra red, cuenta la IP de esa red. Mi recorrido no lo notó porque va por un túnel al borde. Prueba está detrás de Cloudflare desde el 2026-10-22 y los routers `*-cloudflare@file` de `/srv/edge/traefik/dynamic/cloudflare-private.yml` tienen su propia lista de IP, con la IP vieja de Sam. `ips-prueba.sh` no la toca y el runbook §2.1 no lo dice: `--aplicar` termina bien y Sam sigue en 403. Ese archivo es del borde compartido y no está en el repo, así que no lo edité: lo pedí al Director.
 - **`desplegar-prueba.sh` con su `--ip` por omisión ya no sirve:** `127.0.0.1` da 403 y su smoke falla después de cambiar la imagen. Funciona con `--ip 217.216.54.70`. Además, su `docker pull` esconde el motivo de una falla, y el smoke corre antes de que Traefik vea el contenedor: el primer pedido dio 404 y salió con 6 con la imagen ya puesta. Repetir el comando lo arregló.
 - **`EN-PRUEBA.txt` no se entera de un cambio a mano.** Decía `cfa7da01` con otra imagen corriendo desde el 2026-10-25.
 - **El `compose.yml` de prueba no es el de `main`:** le falta el volumen `estado-publicacion`. Y `compose.staging.yml` tiene en el servidor `healthcheck.interval: 30s`, que `main` no tiene. No los toqué.

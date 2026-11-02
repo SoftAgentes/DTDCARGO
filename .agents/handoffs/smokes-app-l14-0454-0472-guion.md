@@ -458,7 +458,8 @@ crea un **reverso** que lo cancela, y la base deja de aceptar asientos automáti
 - **Dirección:** `https://prueba.dtdcargo.com`. Arriba de cada pantalla sale el aviso «Entorno de
   prueba». Si no lo ves, no sigas.
 - **Puerta:** el navegador te pide usuario y clave antes de la página. Están en el servidor, en
-  `/srv/dtd-cargo-staging/secretos/clave-web.txt` (`usuario:clave`).
+  `/srv/dtd-cargo-staging/secretos/clave-web.txt` (`usuario:clave`). **Si ves «Forbidden» antes de que te
+  pida la clave,** tu IP no está en la lista de prueba: no es un fallo del bloque, avísale al Director y para.
 - **Cuenta:** `contabilidad@prueba.example.test`, rol accounting. Su clave está en
   `/srv/dtd-cargo-staging/secretos/cuentas-prueba.txt`, línea `clave_contabilidad`. Se lee por SSH y
   no va al chat ni a un documento.
