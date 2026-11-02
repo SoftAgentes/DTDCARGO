@@ -38,7 +38,8 @@ export function NewPurchaseForm({
   const [state, formProps, pending] = useActionKeepingDraft(
     createPrealertaAction,
     prealertaInitial,
-    "No pudimos confirmar si tu compra se registró. Lo que escribiste sigue aquí. Antes de registrarla de nuevo, revisa Mis compras en otra pestaña.",
+    "No pudimos confirmar si tu compra se registró. Lo que escribiste sigue aquí. Intenta de nuevo: no se registrará dos veces.",
+    { requestId: true },
   );
   const uid = useId();
   const [supplierId, setSupplierId] = useState<string>(preselected?.id ?? "");
@@ -50,6 +51,11 @@ export function NewPurchaseForm({
   if (done) {
     return (
       <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
+        {state.replayed && (
+          <p role="status" className="mb-4 text-[13px] text-grey-700 leading-[1.5]">
+            Ya estaba registrada desde tu primer envío. Si cambiaste algo después, escríbele a tu asesor.
+          </p>
+        )}
         <PurchaseDone code={state.prealertaCode!} shareToken={state.shareToken} />
       </div>
     );

@@ -159,6 +159,56 @@ describe("lo que no es un fallo sigue su camino", () => {
   });
 });
 
+describe("el identificador del intento", () => {
+  function ConIntento({ requestId = true }: { requestId?: boolean }) {
+    const [state, formProps] = useActionKeepingDraft(accion, {}, AVISO, { requestId });
+    return (
+      <form {...formProps}>
+        <input name="nota" defaultValue="" aria-label="Nota" />
+        {state.error && <p role="alert">{state.error}</p>}
+        {state.ok && <p role="status">Listo</p>}
+      </form>
+    );
+  }
+  const idDe = (llamada: number) => accion.mock.calls[llamada][1].get("request_id");
+
+  it("se repite en cada reintento, también si la persona cambió el texto", async () => {
+    accion.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce({ error: "Tu sesión expiró." });
+    render(<ConIntento />);
+    const nota = escribirYEnviar("200 sillas");
+    await screen.findByText(AVISO);
+
+    fireEvent.change(nota, { target: { value: "300 sillas" } });
+    fireEvent.submit(nota.form!);
+    await screen.findByText("Tu sesión expiró.");
+
+    expect(idDe(0)).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+    expect(idDe(1)).toBe(idDe(0));
+    expect(accion.mock.calls[1][1].get("nota")).toBe("300 sillas");
+  });
+
+  it("cambia después de ok: un formulario que queda a la vista no choca consigo mismo", async () => {
+    accion.mockResolvedValue({ ok: true });
+    render(<ConIntento />);
+    const nota = escribirYEnviar("primero");
+    await screen.findByRole("status");
+
+    fireEvent.submit(nota.form!);
+    await waitFor(() => expect(accion).toHaveBeenCalledTimes(2));
+
+    expect(idDe(1)).not.toBe(idDe(0));
+  });
+
+  it("sin pedirlo, el envío no lleva identificador", async () => {
+    accion.mockResolvedValue({ ok: true });
+    render(<ConIntento requestId={false} />);
+    escribirYEnviar("primero");
+    await screen.findByRole("status");
+
+    expect(idDe(0)).toBeNull();
+  });
+});
+
 describe("antes de hidratar", () => {
   /**
    * Lo que una Server Action trae para servir sin JavaScript. `useActionState` la liga con `bind`,

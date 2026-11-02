@@ -23,7 +23,8 @@ export function PortalMessageForm({ prefill }: { prefill?: string }) {
   const [state, formProps, pending] = useActionKeepingDraft(
     sendPortalMessageAction,
     initial,
-    "No pudimos confirmar si tu mensaje llegó. Sigue aquí. Antes de enviarlo de nuevo, revisa la conversación en otra pestaña.",
+    "No pudimos confirmar si tu mensaje llegó. Sigue aquí. Intenta de nuevo: no se enviará dos veces.",
+    { requestId: true },
   );
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -53,6 +54,12 @@ export function PortalMessageForm({ prefill }: { prefill?: string }) {
         />
       </label>
       {state.error && <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>}
+      {state.replayed && (
+        <p role="status" className="text-[13px] text-grey-700 leading-[1.5]">
+          Tu mensaje ya había llegado en tu primer envío. Si lo cambiaste después, envía el cambio en
+          otro mensaje.
+        </p>
+      )}
       <div className="flex justify-end">
         <button
           type="submit"
