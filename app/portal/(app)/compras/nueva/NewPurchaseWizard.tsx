@@ -46,6 +46,7 @@ import {
   buildPurchaseOrderLines,
 } from "@/lib/portal/purchase-order-lines";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const prealertaInitial: PrealertaActionState = {};
 
@@ -162,6 +163,7 @@ export function NewPurchaseWizard({
 
       <form
         action={action}
+        onSubmit={submitKeepingDraft(action, pending)}
         className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start"
       >
         {/* Marca del asistente: habilita registrar la compra sin detalle. */}
