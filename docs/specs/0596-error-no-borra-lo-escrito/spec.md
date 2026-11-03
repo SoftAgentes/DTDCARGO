@@ -157,7 +157,7 @@ Clasificación con `.claude/skills/revisar-datos-ve/SKILL.md`, limitada a lo que
 | La clave no reaparece tras un error | `CORRECTO` | `AcceptInvitationForm.tsx:54` |
 | La foto de cédula no se conserva | `CORRECTO` | `CedulaPhotoRow.tsx:60` |
 | Lo escrito y los archivos siguen en la página tras el error, hasta enviar bien o salir | `ENCONTRADO` | Es el propósito del cambio, no un defecto: direcciones, contactos, mensajes y documentos quedan en la página abierta, igual que mientras se escribían. `PortalAddresses.tsx:398`, `PortalFormField.tsx:86` |
-| Antes de hidratar, los datos no pasan por la URL | `NO VERIFICABLE` | El diseño conserva `action`, pero leer el código no lo demuestra. Falta `next dev`, con turno |
+| Antes de hidratar, los datos no pasan por la URL | `CORRECTO` | Medido el 2026-11-03 con `next dev` y Server Action real: POST `multipart/form-data` y URL sin datos, en una ruta de prueba y en `/entrar`. `use-action-keeping-draft.ts:76`. Detalle en la spec 0598 |
 | Equipo compartido, autocompletado y restauración del navegador al volver atrás | `NO VERIFICABLE` | Dependen del navegador y del equipo; no se miden en el repositorio |
 
 El cambio no captura ni mueve datos nuevos: sólo deja de borrar en la pantalla lo que la persona ya escribió. Lo que sí cambia es cuánto tiempo sigue visible en una página abierta.
@@ -240,7 +240,9 @@ Todas estas medidas usan una acción simulada, con la forma de la respuesta de l
 
 **`pnpm verify` sobre `5fd452355`:** salió con exit 1 por `build`, por un `node_modules` con enlaces fuera del root. Reparado, `build`, `sql-tests` y `schema-rebuild` pasaron de a uno sobre el mismo SHA. El detalle por comprobación, con los primeros intentos, está en el handoff.
 
-**Pendiente de turno:** `next dev` con server action real, incluido el criterio 6, y mutantes.
+**`next dev` con server action real, incluido el criterio 6:** PASÓ el 2026-11-03, sobre `2204318f5`, la punta de #362. Detalle en `docs/specs/0598-accion-que-lanza-no-borra/spec.md`.
+
+**Pendiente de turno:** mutantes.
 
 **Sin medir:** lector de pantalla, portal con sesión real, y archivos en `NewPurchaseWizard`, `PurchaseStepDetalle` y `PortalClaims`.
 

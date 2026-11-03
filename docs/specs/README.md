@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 572 specs)
+### Índice de specs (generado · 573 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -610,6 +610,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0597 | /entrar no dice que salió un correo que no salió | in-progress | interno |
 | 0598 | Un corte de red no borra el formulario | in-progress | interno |
 | 0599 | Reintentar un envío del portal no lo duplica | in-progress | interno |
+| 0600 | Un correo no se compara como patrón: correo entrante, invitac… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0583, 0584, 0585, 0586, 0588, 0589, 0590, 0592, 0594, 0595 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
