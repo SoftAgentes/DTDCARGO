@@ -10,10 +10,10 @@
 | Pieza | Estado | Qué falta |
 |---|---|---|
 | Dashboard App «Ficha DTD» (2.4) | No está: 0 filas | Registrarla después de publicar. Antes, la pestaña abriría una ruta que no existe en producción |
-| Equipos (2.7) | La cuenta no tiene ninguno | Crear «Clientes» y «Leads». De ahí sale `CHATWOOT_TEAM_CLIENTES_ID` |
+| Equipos (2.7) | **Hecho el 2026-11-03:** `clientes` (1) y `leads` (2) | Nada. `CHATWOOT_TEAM_CLIENTES_ID` = 1; el de Leads, en el corte |
 | Bandejas (2.7) | 1 «WhatsApp · prueba 0582», 2 «Clientes», 3 «Correo · pruebas», 4 «DTD Cargo», 5 «dtdcargo.ve» | Nada. Leads llega en el corte |
 | `zz_dtd_revocar_sesiones.rb` (2.7) | No está en `rails/`; `DTD_CHATWOOT_SERVICIO_ID` sin valor; 0 líneas de arranque | Prueba local, copiarlo, dos piezas en el compose vivo y recrear `rails` |
-| `DASHBOARD_SCRIPTS` (2.7) | Vacío | Cargar `infra/chatwoot/panel/dashboard-scripts.html`. Solo actúa cuando Studio lo llame |
+| `DASHBOARD_SCRIPTS` (2.7) | **Hecho el 2026-11-03:** igual al repo por sha256 `7c1d7ff0a95d…` | Probar el cierre de sesión cuando Studio esté publicado. Solo actúa cuando Studio lo llame |
 | Regla de Traefik contra «olvidé mi clave» (2.7) | No está en el compose vivo ni en `dynamic/`, y tampoco en el compose del repo | Escribirla como etiquetas de `rails`; recrearlo aplica las dos cosas juntas |
 | Webhook de cuenta | 0 filas | Al encender: prueba primero, y producción después de publicar |
 | Variables de `web` | 0 de `CHATWOOT_*` en producción y en prueba | Van después de la 0505 |
@@ -39,7 +39,10 @@
 
 ## PENDIENTES DE ESTA TAREA
 
-- **Escribir en Chatwoot vivo:** equipos, `DASHBOARD_SCRIPTS`, inicializador y regla de Traefik. Nada de esto está hecho. Falta que Sam confirme que su mandato también me cubre a mí. Reiniciar `rails` lleva aviso previo al Director General.
+- **Autorización a mi nombre:** Sam, 2026-11-03, en esta sesión, a «¿Tu mandato me cubre para crear equipos, script del panel y cuenta de prueba?»: «Sí, te cubre».
+- **Hecho con ella:** equipos y `DASHBOARD_SCRIPTS`, sin reinicios ni canales. Evidencia, estado anterior y `marcha-atras.rb` en `/srv/ops/evidencias/chatwoot-e2-config-20261103T213453Z`. El panel carga sin errores de consola; el script aparece en `/app/login`. Las 15 conversaciones sin equipo siguen igual.
+- **Falta, con turno de Docker:** ensayar en local y luego crear la cuenta y la app de prueba, con `example.test` y notificaciones apagadas.
+- **Inicializador y regla de Traefik:** sin hacer. Antes, `prueba-revocar-sesiones.sh` en local; recrear `rails` lleva aviso previo al Director General.
 - Registrar la hora de la #352 (`8b6b3a0e1`, 2026-11-03T20:01:19Z) en la SDD-0593 con el próximo cambio de esa zona.
 - Traer `main` a la punta una sola vez, al abrirse el turno de la tanda A.
 

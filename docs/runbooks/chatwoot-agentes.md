@@ -88,10 +88,10 @@ Un id vacío apaga esa parte de la matriz.
    - comprobar en el log de arranque «[DTD] revocación de sesiones activa».
 
    Sin la variable, la ruta responde 503 y Studio deja la baja «pendiente» (no cae al respaldo).
-4. **Script del panel** (`DASHBOARD_SCRIPTS`), complemento para que salir de Studio cierre la sesión del chat en ese navegador:
+4. **Script del panel** (`DASHBOARD_SCRIPTS`), complemento para que salir de Studio cierre la sesión del chat en ese navegador. **Cargado el 2026-11-03** con el OK de Sam, igual al archivo por sha256 (evidencia y marcha atrás en `/srv/ops/evidencias/chatwoot-e2-config-20261103T213453Z`). Si el archivo cambia:
    - en `https://chat.dtdcargo.com/super_admin` (detrás de Cloudflare Access), ir a Settings › «Dashboard Scripts»;
    - pegar el contenido de `infra/chatwoot/panel/dashboard-scripts.html`, comentario incluido;
-   - comprobar: abrir la Bandeja, salir de Studio y abrir `chat.dtdcargo.com` en ese navegador. Tiene que pedir login.
+   - comprobar, ya con Studio publicado: abrir la Bandeja, salir de Studio y abrir `chat.dtdcargo.com` en ese navegador. Tiene que pedir login.
 
    Sin el script, la salida espera 4 s y sigue al login: la sesión del chat queda abierta en ese navegador hasta la próxima entrada a Studio, como antes del 2.7.
 5. **Apagar «olvidé mi clave» para los agentes.** CE 4.19.1 no tiene un interruptor por rol. La alternativa es una regla de Traefik de E1 que responda 403 a `POST /auth/password` en `chat.dtdcargo.com`:

@@ -54,9 +54,9 @@ Medidas en el VPS el 2026-11-03. Van después de la 0505, en `/srv/dtd-cargo/.en
 | `CHATWOOT_TENANT_ID` | El id de su tenant | El id de su tenant | `select id from public.tenants` en la base de ese entorno, al cargarla |
 | `CHATWOOT_SERVICE_USER_ID` | `1` | Su usuario | `secretos/platform-app.env`; en prueba, `secretos/platform-app-prueba.env` |
 | `CHATWOOT_INBOX_CLIENTES_ID` | `2` | Su bandeja | Bandeja «Clientes»; en prueba, la de su cuenta |
-| `CHATWOOT_TEAM_CLIENTES_ID` | Pendiente | Su equipo | La cuenta no tiene equipos todavía: sale al crear «Clientes» |
+| `CHATWOOT_TEAM_CLIENTES_ID` | `1` | Su equipo | Equipo `clientes`, creado el 2026-11-03. Chatwoot guarda los nombres en minúscula |
 | `CHATWOOT_INBOX_LEADS_ID` | Vacía | Vacía | Hasta el corte. Sin ella no hay enrutamiento |
-| `CHATWOOT_TEAM_LEADS_ID` | Vacía | Vacía | Hasta el corte |
+| `CHATWOOT_TEAM_LEADS_ID` | Vacía; será `2` | Vacía | Equipo `leads`, ya creado. Se carga en el corte |
 | `WHATSAPP_NUMERO_CLIENTES` | Vacía | Vacía | Hasta el corte: necesita el OK del número de clientes |
 | `CRM_ALTA_WEB_SIN_KOMMO` | Vacía | Vacía | D7: solo con la lectura L3 y el OK de Sam |
 
