@@ -1,12 +1,12 @@
 # Handoff — los CTA de registro y la recarga de `next dev`
 
-- Fecha: 2026-11-02. Task ID: `e2e-cta-registro-recarga-hmr`.
+- Fecha: 2026-11-02, con el `verify` del 2026-11-03. Task ID: `e2e-cta-registro-recarga-hmr`.
 - Owner: `local_competent-heisenberg-d6c479` (Worker Claude Code). Encargo del Director General.
 - Worktree: `.claude/worktrees/competent-heisenberg-d6c479`.
-- Rama: `claude/e2e-cta-registro-cronometro`, con base en `05c51067b`, igual a `origin/main` hasta el último fetch.
+- Rama: `claude/e2e-cta-registro-cronometro`, con base en `05c51067b` y merge de `origin/main` `9d3bf7443` en `089e298ba`.
 - SDD: no aplica. Cambia solo el harness de e2e; no toca producto, Studio ni base de datos.
-- Estado de tarea: lista-para-revision, PR en borrador.
-- Permisos: rama propia y PR en borrador contra `main`, sin merge. Turno de máquina del Director General: 6 corridas, tope 35 min.
+- Estado de tarea: lista-para-revision, PR en borrador. **`pnpm verify` no salió verde**: lo decide el Director General.
+- Permisos: rama propia y PR en borrador contra `main`, sin merge. Turnos de máquina del Director General: 6 corridas con tope de 35 min, y un `verify`.
 
 ## OBJETIVO ORIGINAL
 
@@ -88,35 +88,90 @@ Otras comprobaciones:
 | `corepack pnpm docs:check` y `sdd:check` | **PASÓ** |
 | `corepack pnpm knowledge:status` | **PASÓ**, exit 0. Lista enlaces rotos de specs ajenas a esta tarea |
 | Impacto documental | `e2e/README.md` actualizado. Sin cambios en otros documentos canónicos |
-| `pnpm verify` | **NO EJECUTADO**: el turno lo excluía |
-| Otros specs en mobile-chrome y mobile-safari con el `Retry-After` | **NO EJECUTADO**: solo los corre `verify` |
-| `corepack pnpm harness:test` | **NO EJECUTADO**: se corrió solo el archivo afectado |
+| `pnpm verify` | **FALLÓ** por el paso `test`: detalle en la sección siguiente |
+| Otros specs en mobile-chrome y mobile-safari con el `Retry-After` | **PASÓ**, dentro de `verify` |
 | Graphify | **NO EJECUTADO**: lo publica el Director desde `main` |
+
+## VERIFY COMPLETO
+
+`pnpm verify` **FALLÓ**, exit 1, por el paso `test`. Se corrió una vez y no se repitió.
+
+- SHA medido: `089e298baf448d40f93732e2c1db465e002f2578`, con el árbol limpio.
+- Corrió de 13:37:25Z a 14:33:54Z, 56,5 min.
+- Antes de lanzarlo: 0 corridas pesadas ajenas, 9,7 GB libres, CPU al 65 %, Docker en `running`. Durante la corrida no se midieron procesos ajenos, solo CPU y memoria. Al terminar: 0 procesos residuales.
+
+| Paso | Resultado | Detalle |
+|---|---|---|
+| `harness` | **PASÓ** | |
+| `lint` | **PASÓ** | 0 errores, 15 avisos |
+| `rsc-boundary` | **PASÓ** | |
+| `typecheck` | **PASÓ** | |
+| `edge-functions` | **PASÓ** | 4 funciones compilan |
+| `test` | **FALLÓ** | Rojo en los dos intentos, por razones distintas |
+| `docs:check` | **PASÓ** | 566 specs |
+| `numbering` | **PASÓ** | |
+| `feature-constants` | **PASÓ** | 6 banderas |
+| `components:check` | **PASÓ** | |
+| `governance:check` | **PASÓ** | |
+| `migrations-applied` | **NO DISPONIBLE** | SKIP: el worktree no tiene `NEXT_PUBLIC_SUPABASE_URL` ni `SUPABASE_SERVICE_ROLE_KEY`. `verify` lo marca como crítico sin medir |
+| `pending-migration-symbols` | **PASÓ** | 0 rojos, 1 amarillo declarado, 3 homónimos descartados |
+| `sql-tests` | **PASÓ** | 249 contratos |
+| `schema-rebuild` | **PASÓ** | 473 migraciones aplicadas y 18 solo de ledger, de 491 |
+| `e2e` | **PASÓ** | 228 pasan, 1 pasa al reintentar, 20 omitidas, 6,3 min |
+| `build` | **PASÓ** | |
+
+**El paso `test`**, con la hora de Caracas que imprime vitest:
+
+| Intento | Inicio | Duración | Archivos | Pruebas | Por qué salió con error |
+|---|---|---|---|---|---|
+| 1.º | 09:46:05 | 1338,40 s | 1 falla, 881 pasan, 1 omitido (883) | 1 falla, 13331 pasan, 1 omitida (13333) | `infra/ops/tests/migraciones.test.mjs`, `prueba-migraciones-produccion.sh sale con 0 FALLÓ`: `Test timed out in 600000ms` |
+| Reintento | 10:08:27 | 874,83 s | 881 pasan, 1 omitido (882) | 13323 pasan, 1 omitida (13324) | 0 pruebas fallidas y 1 error: `Failed to start forks worker` para `app/p/[token]/PackingListProductsStep.test.tsx`, `Timeout waiting for worker to respond` |
+
+- **La PR no toca nada de eso.** Sus 6 archivos son del e2e, su harness y este handoff. `prueba-migraciones-produccion.sh` no cambia desde el 2026-10-17.
+- **Por conteo, cada prueba pasó en algún intento.** La que venció en el 1.º no falló en el reintento. Las 9 pruebas de diferencia entre los dos coinciden con los 9 `it` de `PackingListProductsStep`, que no falló en el 1.º. Eso no convierte el paso en verde.
+- **Carga medida.** CPU a 95 % o más en 63 de 87 muestras del 1.º y en 47 de 61 del reintento. Memoria libre mínima: 2,9 GB a las 09:49:13 y 2,3 GB a las 10:09:31. El handoff de SDD-0550 midió ese script en 282 s bajo carga; aquí pasó de 600 s.
+- **Sin medir.** Si el script estaba lento o colgado en el 1.º, cuánto tardó en el reintento y en qué instante falló el worker. Atribuirlo a la carga o a la memoria es inferencia.
+
+**Las pruebas que pidió revisar el Director General**, medidas en el paso `e2e`:
+
+| Prueba | chromium | mobile-chrome | mobile-safari |
+|---|---|---|---|
+| Los 4 CTA, `sin-scroll-horizontal.spec.ts:126` (antes `:119`) | 4 de 4 al primer intento, 17,4-17,5 s | 4 de 4 al primer intento, 11,3-11,4 s | 4 de 4 al primer intento |
+| `auth.spec.ts:49` | Pasa al primer intento, 13,9 s | Pasa al primer intento, 12,4 s | Pasa al primer intento, 2,2 s |
+| `auth.spec.ts:81` | **Falla al primer intento**, 20,6 s; pasa al reintentar, 16,4 s | Pasa al primer intento, 17,1 s | Pasa al primer intento |
+
+- **`auth.spec.ts:81` en chromium.** El error es `page.goto: net::ERR_ABORTED` en la línea 84. Al fallar, la página ya mostraba el `h1` «Este enlace no existe». Playwright lo cuenta como flaky; aquí no se le da ese nombre porque la causa no está medida.
+- **Inferencia.** La firma es compatible con la recarga de HMR, y `auth.spec.ts` no usa `evitarRecargaDeHmr`, pero `on-first-retry` no graba el primer intento.
+- **Reintento.** No se colgó: es el único de toda la corrida, y el watchdog no actuó.
 
 ## COMMITS
 
 - `92e62cd4d` fix(e2e): el Supabase sintético no hace esperar 7 s a cada lectura.
 - `baa3a257c` fix(e2e): los CTA de registro no pierden la navegación por la recarga de next dev.
 - `10afc8651` fix(e2e): la espera de los CTA cubre la primera compilación de /registro.
-- Este handoff: commit que contiene este documento.
+- `d6369a677` chore(harness): handoff de los CTA de registro y la recarga de next dev.
+- `089e298ba` merge de `origin/main` `9d3bf7443`, el SHA que midió `verify`.
+- Commit que registra este resultado: solo cambia este documento.
 
 ## PR / BRANCH
 
-Rama `claude/e2e-cta-registro-cronometro`, PR en borrador contra `main`. La URL está en el reporte al Director.
+Rama `claude/e2e-cta-registro-cronometro`, [PR #365](https://github.com/SoftAgentes/DTDCARGO/pull/365) en borrador contra `main`.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Un `pnpm verify` completo sobre la rama, cuando el Director General dé turno. Mide el `Retry-After` en los specs de los proyectos móviles, que no se corrieron.
+- `pnpm verify` no salió verde y no se repitió. El Director General decide el siguiente paso.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **`company-photo-carousel.spec.ts`, 3 flaky.** Fallaron al primer intento en la corrida 3 y en la PR #344, y pasaron al reintentar. En la #344 no estaba este cambio, y el primero muestra el mismo error: `8 de 8` no aparece. La causa no está medida: el spec pulsa sin `esperarHidratado`, así que puede ser hidratación o esta misma recarga.
-- **Otros specs siguen expuestos a la recarga.** `evitarRecargaDeHmr` solo cubre estos 4 CTA. Cualquier prueba que espere algo largo durante la primera pasada por las rutas puede perderlo igual.
+- **`company-photo-carousel.spec.ts`, 3 flaky.** Fallaron al primer intento en la corrida 3 y en la PR #344, y pasaron al reintentar. En la #344 no estaba este cambio, y el primero muestra el mismo error: `8 de 8` no aparece. La causa no está medida: el spec pulsa sin `esperarHidratado`, así que puede ser hidratación o esta misma recarga. En el `verify` del 2026-11-03 pasaron al primer intento.
+- **Otros specs siguen expuestos a la recarga.** `evitarRecargaDeHmr` solo cubre estos 4 CTA. Cualquier prueba que espere algo largo durante la primera pasada por las rutas puede perderlo igual. `auth.spec.ts:81` podría ser un caso, sin medir.
+- **El paso `test` de `verify`.** Rojo por el tope de 600 s de `prueba-migraciones-produccion.sh` y por un worker de vitest que no arrancó. Ninguno de los dos viene de esta PR.
 - **Aviso de hidratación en `/`.** `next dev` registra `A tree hydrated but some attributes…` con estilos del CTA en la diferencia, 1 vez en la corrida 4 y varias en la #344. No coincide con el rojo y no lo investigué, así que no puedo decir si es del producto o de una prueba que altera el DOM.
 - **`/registro` ante un 503 real.** Con Supabase respondiendo 503, `listRegisterCities` retrasa el render 7 s antes de caer a texto libre. Solo se midió contra el sintético. No es un defecto de hoy, pero `/registro` está en uso real.
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** revisar la PR y decidir cuándo correr `verify` e integrarla. No toca `app/`, `components/` ni `proxy.ts`, pero sí la prueba de los CTA a `/registro`. Tú decides si entra antes de la primera publicación.
+- **Siguiente acción:** decidir qué hacer con el `verify` en rojo por el paso `test`, y si se integra. La PR no toca `app/`, `components/` ni `proxy.ts`, pero sí la prueba de los CTA a `/registro`.
+- **Rama detrás de `main`:** `main` ya va por `6795c4a06`, con la #367. Esa PR no toca los archivos de esta, y `merge-tree` no da conflictos. No lo traje: el merge cambiaría el SHA medido.
 - **Títulos nuevos:** la prueba `los dos CTA navegan…` ya no existe; ahora son 4 con `el CTA de … navega a registro con …`.
 - **Ownership:** liberado al cerrar.
