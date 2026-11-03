@@ -26,7 +26,9 @@ Sam, literal, transmitido por el Director General: «Mejorarlo antes de usar el 
 | `docs:check`, `sdd:check`, `governance:check`, `components:check` | PASÓ |
 | Rechazo real en prueba, con el JWT de `accounting` | PASÓ: HTTP 400, `23514`, «La venta original requiere revisión.», factura igual y recibos de 2 a 2 |
 | Sin respuesta | Leído en `postgrest-js` 2.106.1, `status: 0` y `code: ""`. No lo provoqué en prueba |
-| El aviso en pantalla, `tsc`, `verify`, mutantes, Docker | NO EJECUTADO: la imagen no tiene este código, y hay un `verify` ajeno |
+| `tsc` y `verify` | NO EJECUTADO: esperan el turno del Director General, detrás de `/entrar` |
+| El aviso en pantalla | NO EJECUTADO, y **condición antes de publicar**: prueba tiene una sola ranura, reservada para la tanda A, y el Director General decidió no redesplegar por esto |
+| Mutantes, Docker | NO EJECUTADO |
 
 ## COMMITS
 
@@ -38,10 +40,10 @@ Rama publicada y PR en borrador contra `main`, con autorización del Director Ge
 
 ## PENDIENTES DE ESTA TAREA
 
-- `tsc`, `verify` y las pruebas fuera de este archivo: NO EJECUTADO. Turno pedido al Director General; va detrás de `/entrar` en la cola.
-- Mirar el aviso en pantalla: requiere la imagen de esta rama en prueba. NO EJECUTADO, con el mismo turno.
+- `tsc`, `verify` y las pruebas fuera de este archivo: NO EJECUTADO. El turno va detrás de `/entrar`, y avisa el Director General. Traer `main` en ese turno, una sola vez.
+- **Condición antes de publicar:** mirar el aviso en pantalla. NO EJECUTADO. Se mira en la subida de la tanda A, que subirá `main` entero; si la PR ya está en `main` para entonces, se comprueba ahí sin otro despliegue. No redesplegar prueba por esto: orden del Director General, porque prueba tiene una sola ranura y la tanda A la necesita.
 - Borrar las dos refs de la reserva 0601: solo cuando la spec esté en `main`, según el procedimiento.
-- Liberar el claim `worker-aviso-cobro` al cerrar.
+- El claim `worker-aviso-cobro` queda liberado hasta el turno. Antes de tocar la rama: `claim --owner worker-aviso-cobro` y `guard`.
 
 ## FUERA DE ALCANCE DETECTADO
 

@@ -86,6 +86,7 @@ Los tres casos dejan `console.error` con el código de la factura y el código d
 5. El registro lleva factura y código, nunca el texto de la base.
 6. Ningún camino crea el asiento del cobro si no hay recibo.
 7. Sam aprueba el texto antes de publicarlo. Cumplido: «Apruebo las tres», registrado arriba.
+8. Antes de publicar, el aviso se ve en pantalla en prueba. **NO EJECUTADO.** Prueba tiene una sola ranura, reservada para la tanda A, que subirá `main` entero, y el Director General decidió no redesplegar por esto. Se mira en esa subida; si esta spec ya está en `main` para entonces, se comprueba ahí sin otro despliegue.
 
 ## Fuera de alcance
 
