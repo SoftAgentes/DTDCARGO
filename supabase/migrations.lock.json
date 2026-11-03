@@ -3078,6 +3078,15 @@
         "fecha": "2026-11-03",
         "forma": "exacta"
       }
+    },
+    "0510_rls_escritura_accounts": {
+      "sha256": "f236c923b22a11886ef2d780a3206243929a410e1c0daf294fb390f9c41dde20",
+      "md5": "53c078ff06e1b1b889a1f79295ac10e1",
+      "bytes": 12056,
+      "ledger": {
+        "fecha": "2026-11-03",
+        "forma": "exacta"
+      }
     }
   }
 }
