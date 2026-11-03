@@ -922,10 +922,11 @@ select pg_temp.a2_buenas('credito-r');`);
       par_de_anulacion_invalido: "El par de anulación requiere revisión.",
       sana_anulada_con_reverso: "ok",
     };
-    const LEDGER = `create schema if not exists supabase_migrations;
+    const ledgerEn = (hora: string) => `create schema if not exists supabase_migrations;
 create table if not exists supabase_migrations.schema_migrations(version text primary key, name text);
 insert into supabase_migrations.schema_migrations values
-  (to_char(clock_timestamp() at time zone 'UTC','YYYYMMDDHH24MISS'),'0497_reverso_al_anular_factura');`;
+  (to_char(${hora} at time zone 'UTC','YYYYMMDDHH24MISS'),'0497_reverso_al_anular_factura');`;
+    const LEDGER = ledgerEn("clock_timestamp()");
     const leerControl = async (db: PGlite) => (await db.exec(inline(CONTROL, {})))
       .flatMap((result) => result.rows as { clase?: string; estado_factura?: string; diagnostico?: string; n?: number | string }[])
       .filter((fila) => fila.clase !== undefined)
@@ -965,7 +966,7 @@ $real$;`);
           "select public.void_invoice_with_audit_reason(pg_temp.fixture_id('a2-sana'), 'Motivo sintético del control');");
         // Sin asiento y con fechas de después del apply: lo que deja la web vieja.
         await db.exec(`insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,base_amount,iva_amount,total_amount,paid_amount,status,issued_at)
-          values(pg_temp.fixture_id('a2-ventana'),pg_temp.fixture_id('tenant-A'),'F-A2-VENTANA','DTD-I3B','Cliente sintético','USD',100,0,100,0,'emitida',current_date);`);
+          values(pg_temp.fixture_id('a2-ventana'),pg_temp.fixture_id('tenant-A'),'F-A2-VENTANA','DTD-I3B','Cliente sintético','USD',100,0,100,0,'emitida',(now() at time zone 'America/Caracas')::date);`);
         const filas = await leerControl(db);
         expect(db.isInTransaction()).toBe(false);
         const de = (clase: string, estado: string) => filas.find((fila) => fila.clase === clase && fila.estado === estado);
@@ -988,16 +989,23 @@ $real$;`);
     }, SLOW);
 
     // Las etiquetas dicen cómo está la fila, no de dónde vino. Estos casos son la razón.
-    it("el diagnóstico no es procedencia: las fechas fallan en los dos sentidos", async () => {
+    // La hora va fija: el control usa la fecha de Caracas del apply, y `current_date` es la de la sesión, que en el CI
+    // es UTC: de 00:00Z a 04:00Z su ayer es el hoy de Caracas. El apply va después de lo sembrado, emitido el 2026-10-10,
+    // y antes de cualquier now(): al tocar una factura, su `updated_at` real siempre queda después del apply.
+    it.each([
+      { franja: "antes de la medianoche UTC", apply: "2026-10-20 23:30:00+00", hoy: "2026-10-20" },
+      { franja: "entre la medianoche UTC y la de Caracas", apply: "2026-10-21 03:30:00+00", hoy: "2026-10-20" },
+      { franja: "después de la medianoche de Caracas", apply: "2026-10-21 04:30:00+00", hoy: "2026-10-21" },
+    ])("el diagnóstico no es procedencia: las fechas fallan en los dos sentidos, $franja", async ({ apply, hoy }) => {
       await sobreFixtureSinLa0497(async (db) => {
         await db.exec(SEMBRAR);
-        const factura = (label: string, emision: string) => `insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,base_amount,iva_amount,total_amount,paid_amount,status,issued_at)
-          values(pg_temp.fixture_id('${label}'),pg_temp.fixture_id('tenant-A'),'F-${label}','DTD-I3B','Cliente sintético','USD',100,0,100,0,'emitida',${emision});`;
-        await db.exec(factura("a2-hoy-antes", "current_date"));
+        const antesDelApply = `timestamptz '${apply}' - interval '1 hour'`;
+        const despuesDelApply = `timestamptz '${apply}' + interval '1 hour'`;
+        const factura = (label: string, emision: string, hora: string) => `insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,base_amount,iva_amount,total_amount,paid_amount,status,issued_at,created_at,updated_at)
+          values(pg_temp.fixture_id('${label}'),pg_temp.fixture_id('tenant-A'),'F-${label}','DTD-I3B','Cliente sintético','USD',100,0,100,0,'emitida',${emision},${hora},${hora});`;
+        await db.exec(factura("a2-hoy-antes", `date '${hoy}'`, antesDelApply));
         await db.exec(FILE_0497);
-        await esperar(1100);
-        await db.exec(LEDGER);
-        await esperar(1100);
+        await db.exec(ledgerEn(`timestamptz '${apply}'`));
         const viejas = (filas: Awaited<ReturnType<typeof leerControl>>) =>
           filas.find((fila) => fila.clase === "sin_venta" && fila.estado === "emitida" && fila.diagnostico === "sin_venta_fechas_viejas")?.n ?? 0;
         const antes = await leerControl(db);
@@ -1005,7 +1013,7 @@ $real$;`);
         // Emitida antes del apply y tocada después: sale con fechas recientes.
         await db.exec("update public.invoices set notes = 'Tocada', updated_at = now() where id = pg_temp.fixture_id('a2-hoy-antes');");
         // Emitida después del apply con fecha anterior: sale con fechas viejas.
-        await db.exec(factura("a2-ayer", "current_date - 1"));
+        await db.exec(factura("a2-ayer", `date '${hoy}' - 1`, despuesDelApply));
         const despues = await leerControl(db);
         expect(despues.filter((fila) => fila.diagnostico === "sin_venta_fechas_recientes")).toEqual(
           [{ clase: "sin_venta", estado: "emitida", diagnostico: "sin_venta_fechas_recientes", n: 1 }]);
