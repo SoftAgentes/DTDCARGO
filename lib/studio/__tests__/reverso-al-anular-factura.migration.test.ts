@@ -1650,13 +1650,11 @@ ${DESARME}` });
     }, SLOW);
   });
 
-  it("la 0497 espera en pendingBelowCutoff, MIGRATE-FIRST y con OK nominal de Sam", () => {
+  it("aplicada al servidor propio el 2026-11-03 con el OK nominal de Sam: ya no es una espera y la cabecera «NO APLICADA» no se corrige", () => {
     const baseline = JSON.parse(readFileSync(resolve(ROOT, "supabase/migrations-baseline.json"), "utf8")) as {
       pendingBelowCutoff: Record<string, string>;
     };
-    const espera = baseline.pendingBelowCutoff["0497_reverso_al_anular_factura"];
-    expect(espera).toContain("MIGRATE-FIRST");
-    expect(espera).toContain("Requiere OK nominal de Sam");
+    expect(baseline.pendingBelowCutoff["0497_reverso_al_anular_factura"]).toBeUndefined();
     expect(FILE_0497).toContain(
       "⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en\n--    supabase/migrations-baseline.json › pendingBelowCutoff",
     );

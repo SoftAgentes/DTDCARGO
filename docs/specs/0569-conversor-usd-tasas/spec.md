@@ -4,7 +4,7 @@ title: "Un solo conversor a USD, que falla cerrado, y una tabla de tasas con fue
 status: in-progress
 author: "founder"
 created: 2026-10-20
-updated: 2026-10-20
+updated: 2026-11-03
 supersedes: null
 superseded_by: null
 related: ["0557", "0563", "0496"]
@@ -324,3 +324,21 @@ Cada hallazgo se confirmó con su prueba en rojo antes de corregirlo, y tiene su
 ## Validación
 
 Ver el handoff `.agents/handoffs/0569-conversor-usd-tasas.md`.
+
+## 2026-11-03 · La 0495 aplicada en producción: cierre del runbook §6
+
+La 0495 se aplicó el 2026-10-20 y hasta hoy seguía declarada como espera. Este cierre solo lo pone al día. Lo que antes en esta spec dice «0495 no aplicada» es de su fecha. La identidad la leyó el Director General de la evidencia del servidor y del ledger. Este cierre no consultó producción. El md5 y los bytes sí se comprobaron contra el archivo. Detalle en `.agents/handoffs/0569-cierre-0495.md`.
+
+| Dato | Valor |
+|---|---|
+| COMMIT | 2026-10-20T21:31:22.712Z |
+| `version` del ledger | `20261020213122` |
+| `created_by` | `servidor-propio:psql:SDD-0569` |
+| md5 y bytes | `c0c9dac855a516179085950a187737d7`, 28118 |
+| Filas del ledger | 499, por inferencia: 498 después de la 0494 y 499 medidas el 2026-11-02. No es una lectura de ese momento |
+| Evidencia | `/srv/ops/evidencias/apply-0495-dtd-cargo-20261020T213121Z` |
+| Texto de `AUTORIZACION.txt` | «autorizo aplicar la migración 0495_fx_rates_conversor_usd en producción» |
+| Merge | la #301, 2026-10-20T21:31:24Z, `d410ab2e2` |
+| Sello en el candado | sha256 `964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7`, `ledger` exacta |
+
+La 0495 salió de `pendingBelowCutoff` y de las declaraciones de símbolos, que quedan vacías. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Una base sin la 0495 sigue respondiendo «sin tasa cargada»; ese camino no se quitó.

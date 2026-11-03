@@ -284,6 +284,7 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 
 ## PENDIENTES DE ESTA TAREA
 
+- **Actualización, 2026-11-03:** la 0496 y la 0497 están aplicadas y la web publicada. Cierre del runbook §6 en `.agents/handoffs/0571-0573-cierre-0496-0497.md`. Lo que sigue es lo que estaba pendiente antes de eso.
 - Que Sam vea el cambio de mecanismo D2/M4 al pedirle el OK nominal.
 - Que Sam vea en el OK nominal la regla exacta: toda escritura de una factura o de un asiento con factura afirma el par al confirmar.
 - **Rehacer prueba con el blob final:** hecho, pasos 1 a 10. Ver «Rehacer prueba».
