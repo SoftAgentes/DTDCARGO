@@ -4,7 +4,7 @@ title: "Un correo no se compara como patrón: correo entrante, invitación y baj
 status: in-progress
 author: "Sam (founder) + Claude Code"
 created: 2026-11-02
-updated: 2026-11-02
+updated: 2026-11-03
 supersedes: null
 superseded_by: null
 related: ["0056", "0082", "0113", "0140", "0597"]
@@ -19,7 +19,7 @@ confidencialidad: interno
 
 Salió de la SDD-0597 (PR #361), que corrigió el mismo patrón en `/entrar` y dejó estos tres sitios fuera de su alcance.
 
-**Límites del Director General:** rama, worktree y PR en borrador propios desde `origin/main`. Sin `verify` ni Docker hasta su aviso, sin tocar prueba y sin integrar antes de publicar. Pidió pruebas con control rojo del daño concreto en cada sitio, no solo del escape, y que la invitación pase por `revisar-datos-ve`.
+**Límites del Director General:** rama, worktree y PR en borrador propios desde `origin/main`. Sin `verify` ni Docker hasta su aviso, y sin tocar prueba. Pidió pruebas con control rojo del daño concreto en cada sitio, no solo del escape, y que la invitación pase por `revisar-datos-ve`. La primera publicación ya salió, y esta PR entra en el mandato de Sam para las fases 2, 3 y 4: la fusiona el Director General.
 
 ## Qué pasaba
 
@@ -49,7 +49,7 @@ Reutiliza `lib/shared/email-literal.ts` de la SDD-0597: `emailIlikePattern` esca
 **Descartado:**
 - **`.eq` con el correo en minúsculas:** `clients.email` viene de importaciones y planillas, sin normalizar; dejaría sin reconocer a quien tenga mayúsculas guardadas.
 - **Función SQL con `lower(email) = lower($1)`:** es lo más limpio, pero pide migración, y esto no la necesita.
-- **Apilar sobre la #361:** esa PR está retenida, y una PR apilada no tiene el check de `quality`.
+- **Apilar sobre la #361:** cuando se decidió esa PR estaba retenida, y una PR apilada no tiene el check de `quality`.
 
 ## Aceptación
 
@@ -58,14 +58,14 @@ Reutiliza `lib/shared/email-literal.ts` de la SDD-0597: `emailIlikePattern` esca
 3. La baja no le quita el marketing a un parecido, ni toca otro tenant.
 4. Los correos reales siguen funcionando en los tres sitios, con `_`, `+`, `%`, `*` o mayúsculas.
 5. La baja no confirma si no pudo leer o escribir. Un fallo al buscar la ficha no tumba la aceptación de la invitación.
-6. **No se integra sin medir el escape contra PostgREST real.** Si el `\` no pasara bien por esa capa, un cliente con `_` no recibiría su hilo, y su baja diría «Listo» sin hacer nada. Se aprovecha la corrida de la #361, sin pedir otra.
+6. **No se integra sin medir el escape contra PostgREST real.** Si el `\` no pasara bien por esa capa, un cliente con `_` no recibiría su hilo, y su baja diría «Listo» sin hacer nada. Medido el 2026-11-03: ver «Validación».
 
 ## Allowlist
 
 | Archivo | Cambio |
 |---|---|
-| `lib/shared/email-literal.ts` | nuevo, idéntico al de la #361 |
-| `lib/shared/__tests__/email-literal.test.ts` | nuevo, idéntico al de la #361 |
+| `lib/shared/email-literal.ts` | sin cambios: ya en `main` por la #361 |
+| `lib/shared/__tests__/email-literal.test.ts` | sin cambios: ya en `main` por la #361 |
 | `lib/shared/__tests__/coincide-ilike.ts` | nuevo: la imitación de `ILIKE` para los dobles |
 | `lib/shared/__tests__/coincide-ilike.test.ts` | nuevo: esa imitación contra Postgres, en PGlite |
 | `lib/studio/conversaciones/inbound-email.ts` | compara el remitente literal |
@@ -108,7 +108,7 @@ Sin migraciones, sin variables nuevas y sin tocar producción ni prueba.
 
 **No verificable:**
 - **¿Ya pasó en producción?** Solo se puede responder en parte. Con autorización de Sam («Sí, autorizo el conteo»), el Director General contó las fichas cuyo `auth_user_id` apunta a una cuenta con otro correo, el 2026-11-02 a las 18:52Z, sin imprimir datos: `por_comodin` = 0 y `correo_distinto` = 1. **No es incidente:** hoy no queda huella de este defecto. Cero no prueba que nunca pasó, porque un enlace ya deshecho no deja rastro y una ficha que cambió de correo después ya no cuenta en `por_comodin`. `correo_distinto` no es este defecto, y revisar esa ficha es una decisión aparte de Sam. Un conteo igual para la baja no es posible: no queda rastro (ver el hallazgo sobre la fecha de retiro).
-- **Comportamiento contra una base real:** solo se probó con dobles y PGlite. La medición contra PostgREST está en cola.
+- **Comportamiento contra una base real:** las cadenas de los tres caminos se midieron contra PostgREST real, con tablas mínimas y datos sintéticos (ver «Validación»). No corrieron el código de la app contra el esquema real, ni contra producción.
 - **Base de licitud y retención** de cada campo: abogado.
 - **Qué autentica el `From`:** no encontré SPF ni DKIM en `app/api/webhooks` ni en `lib/studio/conversaciones`. Quien falsifique el `From` exacto de un cliente no queda cubierto por esta spec; puede que Resend lo filtre antes.
 
@@ -119,13 +119,44 @@ Sin migraciones, sin variables nuevas y sin tocar producción ni prueba.
 | Comprobación | Resultado |
 |---|---|
 | Control rojo: las pruebas nuevas contra el código anterior | PASÓ: 19 en rojo. Correo entrante 7, baja 3, invitación 9 |
-| Pruebas de los tres sitios, `email-literal`, `coincide-ilike` y la ruta del correo entrante, con un solo worker | PASÓ: 128 pruebas en 9 archivos |
 | Mutantes | PASÓ: 10 de 11 mueren. El otro («la baja no mira el tenant») es equivalente, porque el `.update` repite el filtro. Quitando los dos filtros, muere |
-| `eslint` de lo tocado, `docs:check`, `sdd:check` | PASÓ |
-| `git merge-tree` con la #361 y la #358 | PASÓ: limpio, solo a nivel de texto |
 | Conteo de fichas en producción, por el Director General | `por_comodin` = 0 y `correo_distinto` = 1, a las 18:52Z del 2026-11-02. Ver «No verificable» |
-| `pnpm verify`, incluido `tsc` | NO EJECUTADO: pide turno al Director General |
-| El escape contra PostgREST v14.17 real | NO EJECUTADO: va en la corrida de la #361 |
+
+### Medición contra PostgREST real (2026-11-03)
+
+PostgREST v14.17 y Postgres, 2 contenedores de 1 GB, con el `supabase-js` y el `email-literal.ts` del repo. **PASÓ: 28 de 28.** Son copias de las cadenas de `select` y `update` de cada sitio, y la medición comprueba antes que siguen escritas así en sus archivos. No es el código de la app corriendo.
+
+| Camino | Casos | Resultado |
+|---|---|---|
+| Correo entrante | 11: `_`, `+`, `*`, mayúsculas, el mismo correo en dos tenants, cliente borrado, y `%` o `*` como comodín | solo el correo exacto |
+| Invitación | 8: `_`, `+`, mayúsculas, `%` o `*` como comodín, ficha con login y ficha borrada | enlaza solo la ficha exacta, con el `update` por `id` |
+| Baja | 6: `_`, `+`, `*`, `%`, dos filas con el mismo correo y correo sin fila | da de baja solo el correo exacto, con el `update` por `id`, sin tocar otro tenant |
+
+### `pnpm verify` sobre `bfc6cc9f0`
+
+Exit 1. Corrieron 16 de 17 pasos, de las 20:32Z a las 22:13Z, con `node_modules` propio, 0 pesadas ajenas al lanzar y Docker en `running` las 81 muestras.
+
+| Paso | Resultado |
+|---|---|
+| `harness`, `lint`, `rsc-boundary`, `typecheck`, `edge-functions` | PASÓ |
+| `test` | **FALLÓ por carga, sin relación con este diff.** Primer intento: 13.286 bien, 4 mal en 3 archivos, y 3 errores de workers. Reintento: 13.452 bien, 14 mal en 6 archivos. Hubo tiempos agotados, workers que no arrancaron y búsquedas de texto en pantalla que no llegaron a tiempo, con un mínimo de 0,7 GB libres. **Aislados sobre el mismo SHA, con un solo worker: PASÓ, 192 de 192 en 10 archivos, en 513 s** |
+| `docs:check`, `numbering`, `feature-constants`, `components:check`, `governance:check`, `pending-migration-symbols` | PASÓ |
+| `migrations-applied` | NO EJECUTADO: este worktree no tiene `.env.local`. Esta PR no trae migraciones |
+| `sql-tests`, `schema-rebuild` | PASÓ, con Docker arriba |
+| `e2e` | PASÓ con aviso, al reintento. Primer intento: falla `company-photo-carousel.spec.ts:93` y `smoke.spec.ts:150` inestable. Reintento: 226 bien, 20 omitidas, 3 inestables (`auth.spec.ts:81`, `company-photo-carousel.spec.ts:93`, `smoke.spec.ts:150`), y el proceso salió ≠ 0 por el worker de WebKit, que `verify` absuelve. Ninguna depende de esta spec |
+| `build` | PASÓ |
+
+### Cierre de la diferencia con `main`, sobre `30099400c`
+
+Mientras corría `verify` entró a `main` la #361. Con `main` en `8feae0e8b` y un solo worker:
+
+| Comprobación | Resultado |
+|---|---|
+| Los tres sitios, `email-literal`, `coincide-ilike`, la ruta del correo entrante, las pruebas de baja, `token-get-idempotente` y `app/entrar` | PASÓ: 209 pruebas en 13 archivos |
+| `typecheck` | PASÓ |
+| `eslint` de lo tocado | PASÓ |
+| `docs:check` y `sdd:check` | PASÓ |
+
 
 ## Fuera de alcance detectado
 
