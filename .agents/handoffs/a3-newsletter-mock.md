@@ -32,12 +32,13 @@ Rama: `claude/a3-newsletter-mock-staging-27a0da`. PR en borrador contra `main`; 
 - Vitest `lib/studio/newsletter` + `lib/studio/mail`: PASÓ (10 archivos, 92 pruebas).
 - `tsc --noEmit`: PASÓ (exit 0).
 - ESLint de archivos tocados: PASÓ (exit 0, con node_modules propio instalado en el worktree).
-- `pnpm verify`: NO EJECUTADO, por falta de turno. Lo lancé por error tras un «sí» de Sam sin turno del Director; el Director ordenó detenerlo y lo maté (árbol por PID). Salida parcial incompleta; no cuenta como evidencia. ESLint sí corrió después con node_modules propio: PASÓ (exit 0).
+- `pnpm verify` sobre `7090c7d32` (con turno del Director, una sola corrida): FALLÓ, VERIFY_EXIT=1 (06:31Z). `test` FALLÓ en sus dos pasadas por tiempo agotado con «Failed to start forks worker» en 4 archivos; `e2e` FALLÓ en `e2e/sin-scroll-horizontal.spec.ts:119` (conocido: viene de `next dev`, arreglo en la #365), flaky `e2e/auth.spec.ts:81`; `build` OK; `migrations-applied` sin medir. Según el Director, el log no llegó a esta sesión; lo reporto tal como me lo pasó.
+- Los 4 archivos de `test` que fallaron, corridos solos (0 pesadas ajenas, 8,11 GB libres, `--reporter=default --pool=forks`): PASÓ. `document-entity-bitacora-task.migration.test.ts` 20/20, `infra/ops/tests/migraciones.test.mjs` 30/30 (189 s), `scripts/__tests__/entorno-prueba-scripts.test.mjs` 2/2 (197 s), `PackingListProductsStep.test.tsx` 9/9. Con esa medición, los rojos de `test` son de carga/tiempo y no de mi diff. Mi diff no toca ninguno de esos archivos.
 - Revisión de voseo: sin formas de voseo en lo escrito.
 
 ## Pendientes de esta tarea
 
-- `pnpm verify` cuando el Subdirector dé turno.
+- `pnpm verify` completo limpio: pendiente; lo decide el Director.
 
 ## FUERA DE ALCANCE DETECTADO
 
