@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 567 specs)
+### Índice de specs (generado · 568 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -564,7 +564,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0537 | Tarifario de transportistas editable por ciudad, con rutas y … | in-progress | interno |
 | 0538 | Contrato 0475: el bloque 5 lee el último restablecimiento por… | in-progress | interno |
 | 0539 | Transportistas: lote sin ids en la URL, escrituras honestas y… | in-progress | interno |
-| 0540 | Entorno de prueba de DTD Cargo con base separada en el VPS (d… | proposed | interno |
+| 0540 | Entorno de prueba de DTD Cargo con base separada en el VPS (d… | approved | interno |
 | 0541 | Publicación automática de la web en el servidor propio | in-progress | interno |
 | 0542 | Dashboard: los enlaces internos llevan a una pantalla que existe | in-progress | interno |
 | 0543 | Consolidados en camino: carga de contenedores desde el packin… | in-progress | interno |
@@ -604,7 +604,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0581 | Diagnóstico local de medición Ads y CSP | done | interno |
 | 0582 | Programa Kommo → Chatwoot dentro de Studio, con checklist y a… | proposed | interno |
 | 0587 | Contrato de sistema maestro por objeto y fase: Studio, Chatwo… | approved | interno |
+| 0591 | Cambiar el plan de cuentas queda para accounting y admin | in-progress | interno |
 | 0600 | Un correo no se compara como patrón: correo entrante, invitac… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0583, 0584, 0585, 0586, 0588, 0589, 0590, 0591, 0592, 0593, 0594, 0595, 0596, 0597, 0598, 0599 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0583, 0584, 0585, 0586, 0588, 0589, 0590, 0592, 0593, 0594, 0595, 0596, 0597, 0598, 0599 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
