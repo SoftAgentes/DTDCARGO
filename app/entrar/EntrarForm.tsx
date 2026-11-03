@@ -14,6 +14,7 @@ import { requestMagicLink, type PortalLoginState } from "./actions";
 import { signOutAction } from "@/app/portal/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const initialMagic: PortalLoginState = {};
 
@@ -169,7 +170,7 @@ export function EntrarForm({
                     Ya soy cliente de DTD Cargo.
                   </p>
 
-                  <form action={magicAction} className="mt-4 flex flex-col gap-2">
+                  <form action={magicAction} onSubmit={submitKeepingDraft(magicAction, magicPending)} className="mt-4 flex flex-col gap-2">
                     <label className="flex flex-col gap-1.5">
                       <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-grey-700">
                         Correo

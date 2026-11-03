@@ -31,6 +31,7 @@ import type {
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { PrealertaServiceGallery } from "../../_components/PrealertaAddons";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const supplierInitial: SupplierActionState = {};
 const deleteSupplierInitial: DeleteSupplierActionState = {};
@@ -363,6 +364,7 @@ function EditSupplierForm({
   return (
     <form
       action={action}
+      onSubmit={submitKeepingDraft(action, pending)}
       className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col gap-3"
     >
       <input type="hidden" name="supplierId" value={supplier.id} />
@@ -462,6 +464,7 @@ function AddSupplierForm({
   return (
     <form
       action={action}
+      onSubmit={submitKeepingDraft(action, pending)}
       className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col gap-3"
     >
       <FieldLabel htmlFor={`${uid}-name`}>Nombre del proveedor</FieldLabel>
