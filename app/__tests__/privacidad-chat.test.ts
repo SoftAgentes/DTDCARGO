@@ -31,6 +31,12 @@ describe("/privacidad · mensajes por WhatsApp y chat (SDD-0585, 2.6)", () => {
     expect(texto).toMatch(/respuestas automáticas, a los <strong>30 días/);
   });
 
+  it("«Registro de cliente» dice que guardamos el enlace o la campaña (SDD-0587, 6.4)", () => {
+    expect(texto).toMatch(
+      /"Registro de cliente", "[^"]*También guardamos el enlace o la campaña por la que llegaste, si la dirección los trae\.[^"]*"/,
+    );
+  });
+
   it("la fecha de la política se movió con el cambio", () => {
     expect(texto).toContain('const UPDATED = "30 de octubre de 2026";');
   });

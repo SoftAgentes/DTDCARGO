@@ -307,6 +307,7 @@ Los días base no cambian aquí: cambiarlos exige una línea base nueva con OK d
 - `docs/runbooks/chatwoot-bandeja.md` (eventos y orden de encendido)
 - `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 6.4)
 - `.agents/handoffs/0587-e6-entrada-leads.md`
+- `app/privacidad/page.tsx` y `app/__tests__/privacidad-chat.test.ts` (solo la frase de la campaña, §16.8 punto 7, con el OK de Sam del 2026-11-03)
 
 Los pasos 6.5 en adelante suman aquí su allowlist al empezar.
 
@@ -533,10 +534,10 @@ El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó
 - [x] D7 detrás de un interruptor apagado, sin cambiar la conducta de hoy (§16.4).
 - [x] Control rojo y mutantes (§16.7): 43 de 43 del contrato y 7 de 7 de `/registro` y del manejador caen.
 - [ ] `pnpm verify` (§16.7).
-- [ ] Prueba de punta a punta con un Chatwoot real: fuera de este encargo; se hace al integrar.
+- [ ] Prueba de punta a punta con un Chatwoot real: fuera de este encargo; se hace en prueba antes de llevarlo a producción. Es el límite de la aceptación de abajo.
 - [ ] L3, y con ella D7: puerta de Sam.
 - [ ] Aplicar la 0513: puerta de Sam.
-- [ ] Aceptación de Sam de la fila 6.4.
+- [x] Aceptación de Sam de la fila 6.4 (2026-11-03, en el chat del Director General, por el selector, a «¿Aceptas el paso 6.4? Sus pruebas de código pasan, pero nunca corrió contra un Chatwoot real»: «Acepto, con ese límite»; lo registra el Subdirector según la nota del Director General). Queda aceptado el código. El límite: sin probar contra un Chatwoot real, y esa prueba se hace en prueba antes de llevarlo a producción; dos tarjetas de la misma persona no se fusionan (§16.5); crear o ligar una tarjeta no deja rastro en la auditoría (AUD-01, abajo). No aplica ninguna migración: la 0513 lleva su propio OK.
 
 **Clasificación de gobernanza** ([AGENT-BRIEF](../../governance/AGENT-BRIEF.md)):
 
@@ -563,12 +564,13 @@ El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó
 | Mutantes de `/registro` y del manejador, sobre `fac203f66` | PASÓ: 7 de 7 caen, con control en verde antes y después y árbol limpio al final |
 | `pnpm verify` | NO EJECUTADO: el Director General lo corre en la punta de la tanda A al integrar, y lo pide el Subdirector después de publicar |
 | Prueba de punta a punta con Chatwoot y con producción | NO EJECUTADO: fuera de este encargo |
+| Frase de `/privacidad` frente al texto aprobado (2026-11-03) | PASÓ con `node`: cada párrafo aprobado está igual en `page.tsx` y la frase está dentro de «Registro de cliente». `privacidad-chat.test.ts` NO EJECUTADO en este commit: había otra corrida pesada; lo corre `verify` en la punta de la tanda A |
 
 ### 16.8 revisar-datos-ve de 6.4
 
 Sobre lo que 6.4 suma al modelo de §14.3 y §15.3. Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Esto no es asesoría legal.
 
-**Resumen:** 7 CORRECTO, 1 ENCONTRADO, 3 NO VERIFICABLE y 1 no aplica.
+**Resumen:** 8 CORRECTO, 3 NO VERIFICABLE y 1 no aplica. El punto 7 fue ENCONTRADO y se corrigió el 2026-11-03.
 
 **Inventario que suma este paso:**
 
@@ -586,7 +588,7 @@ Sobre lo que 6.4 suma al modelo de §14.3 y §15.3. Estados de la skill: **ENCON
 | 4 | Derechos | NO VERIFICABLE | Depende de «Anonimizar ahora» de 6.6 (§14.3). Lo nuevo no le agrega un camino: se ve y se corrige en la ficha de la tarjeta, salvo la fuente y los UTM, que son fijos |
 | 5 | Borrado | CORRECTO | Una tarjeta anonimizada no revive: quien vuelve a escribir empieza en una tarjeta nueva (contrato). Con ficha, se va con la purga (`on delete cascade`, 0506). No se probó contra una base real |
 | 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Igual que §14.3. Además, ver AUD-01 en §16.6 |
-| 7 | Política pública | **ENCONTRADO** | `/privacidad` ya cubre al lead de WhatsApp y su plazo (2.6), pero **no dice que se guarde por qué enlace o campaña llegó quien se registra**: «Registro de cliente» (`app/privacidad/page.tsx:60-61`) no lo nombra, y «medir nuestras campañas» (`:204-206`) lo condiciona a aceptar cookies, cosa que estos UTM no hacen. **Arreglo:** sumar a «Registro de cliente»: «También guardamos el enlace o la campaña por la que llegaste, si la dirección los trae». Es texto público que obliga, así que **no se tocó: lo aprueba Sam antes de llevar 6.4 a producción** |
+| 7 | Política pública | CORRECTO | `/privacidad` no decía que se guarde por qué enlace o campaña llegó quien se registra, y «medir nuestras campañas» lo condiciona a aceptar cookies, cosa que estos UTM no hacen. **Corregido:** «Registro de cliente» (`app/privacidad/page.tsx`) suma «También guardamos el enlace o la campaña por la que llegaste, si la dirección los trae.». Sam aprobó el texto exacto el 2026-11-03 («Apruebo el texto», en el chat del Director General). **Sale solo con la tanda A y las piezas que describe,** y la fecha se ajusta al publicar. Si cambia una palabra, se le vuelve a preguntar |
 | 8 | Terceros | CORRECTO | No se envía nada nuevo fuera: el dato entra desde Chatwoot y desde el formulario. Con D7 apagado, Kommo recibe lo mismo de hoy. La retención dentro de Chatwoot sigue sin definir (§14.3, punto 8) |
 | 9 | Transferencia internacional | CORRECTO | Todo vive en la base de DTD. Solo admin y comercial leen tarjetas (RLS de la 0506) |
 | 10 | Decisiones automatizadas | CORRECTO | El segmento y la vuelta desde «Perdido» solo eligen etapa; no niegan servicio ni escriben al cliente. La tarea es interna y con texto fijo |
@@ -595,4 +597,4 @@ Sobre lo que 6.4 suma al modelo de §14.3 y §15.3. Estados de la skill: **ENCON
 | — | Logs | CORRECTO | Solo códigos (`entrada-leads.ts`, `crm-alta-web.ts`); las dos pruebas comprueban que no salgan nombre, teléfono, correo ni BSUID |
 | — | Fixtures | CORRECTO | Solo nombres de prueba, teléfonos 555 y correos `example.test` |
 
-La skill recomienda una segunda opinión: otro modelo puede auditar este mismo diff. **Lo que hace falta de un abogado:** la base de licitud y la redacción final del punto 7.
+La skill recomienda una segunda opinión: otro modelo puede auditar este mismo diff. **Lo que hace falta de un abogado:** la base de licitud. La redacción del punto 7 ya la aprobó Sam, y el pase de abogado sigue sin hacerse.

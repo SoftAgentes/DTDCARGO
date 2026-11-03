@@ -4,7 +4,7 @@
 - **Ruta:** `.claude/worktrees/0582-e6-entrada-leads-ef62df`
 - **Rama:** `claude/0582-e6-entrada-leads-ef62df`, desde `codex/0582-e6-tablero` (`f06dec60a`, PR #337).
 - **SDD:** 0587 (aprobada). Sección §16 y allowlist en §10.
-- **Programa:** SDD-0582, fila 6.4 del checklist → entregado, sin aceptar.
+- **Programa:** SDD-0582, fila 6.4 del checklist → aceptado el 2026-11-03, con límite (ver «Decisiones de Sam del 2026-11-03»).
 - **Permisos del encargo:** publicar la rama propia y abrir PR en borrador. Sin merge, sin producción, sin el servidor de Chatwoot ni prueba.
 
 ## Objetivo
@@ -40,7 +40,7 @@ Las pruebas corrieron con `node node_modules/vitest/vitest.mjs` y un `node_modul
 ## Impacto documental
 
 - SDD-0587: §4.2 (resuelto), §10 (allowlist 6.4), §13 y §16 (nuevo).
-- Checklist 0582: fila 6.4 → entregado, 0,5 d reales, 0 restantes. Sin aceptar: el avance no se mueve.
+- Checklist 0582: fila 6.4 → aceptado, 0,5 d reales, 0 restantes. Suma sus 2 días base al avance.
 - `docs/runbooks/chatwoot-bandeja.md`: eventos y orden de encendido.
 - `knowledge:status`, Graphify y Archify: NO EJECUTADO en este worktree (corrida pesada; los publica el Director desde main).
 
@@ -53,12 +53,21 @@ Las pruebas corrieron con `node node_modules/vitest/vitest.mjs` y un `node_modul
 
 Se corrió una sola vez, con el turno del Director General. Una carrera mía: detuve el vigía para hacer un merge justo cuando lanzaba la tanda (16:45:01). La parte SQL siguió viva y no se tocó; es en memoria y no modifica archivos. Un segundo vigía la esperó, midió otra vez las condiciones y corrió la parte TypeScript, dentro del mismo tope de 10 minutos. Nada se relanzó, y el merge se hizo después, con el árbol limpio. Los mutantes corrieron sobre `fac203f66`. El merge de `7071fd3a8` no cambió ningún archivo, porque la rama ya traía ese contenido: `2a1381caa` tiene el mismo árbol, así que la evidencia sigue valiendo.
 
+## Decisiones de Sam del 2026-11-03
+
+Dadas en el chat del Director General, por el selector. Las registra el Subdirector a nombre del Director General, que las relayó; el texto completo está en su nota `decisiones-sam-20261103.md`. Ninguna autoriza migraciones, variables, fusiones ni publicación.
+
+- **Fila 6.4:** «Acepto, con ese límite». Queda aceptado el código. El límite: sin probar contra un Chatwoot real, y esa prueba se hace en prueba antes de producción; dos tarjetas de la misma persona no se fusionan; crear o ligar una tarjeta no deja rastro en la auditoría. La 0513 lleva su propio OK.
+- **`/privacidad`:** «Apruebo el texto». Vale para el texto exacto, con la frase de la campaña en «Registro de cliente». Sale solo con la tanda A y las piezas que describe; la fecha se ajusta al publicar.
+- **Publicación automática:** «Apagada; publicar por tandas». La tanda A sale entera.
+
+**Dónde va la frase:** después de la primera oración de «Registro de cliente», y no al final de la entrada. Al final quedaría pegada a «La dirección detallada (calle, edificio…)», y «si la dirección los trae» se leería como la dirección postal. No cambia ninguna palabra de lo aprobado.
+
 ## Puertas que quedan para Sam
 
 - Aplicar la 0513, con el runbook, después de la 0503, 0504 y 0506 y antes de suscribir el webhook a los eventos nuevos.
+- La prueba con un Chatwoot real, en prueba y antes de producción: es el límite de su aceptación.
 - Lectura L3 y, con ella, D7.
-- La frase de `/privacidad` sobre la campaña (§16.8, punto 7), antes de llevar 6.4 a producción.
-- Aceptar la fila 6.4.
 
 ## FUERA DE ALCANCE DETECTADO
 

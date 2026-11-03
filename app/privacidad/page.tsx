@@ -22,9 +22,11 @@ const DESC =
 // la foto de perfil pasó a guardarse sin metadatos. El 2026-10-30 (SDD-0585,
 // paso 2.6) se sumaron los mensajes por WhatsApp y chat: el seguimiento del
 // lead (SDD-0587), el BSUID y la respuesta automática (SDD-0586) con sus plazos.
+// SDD-0587, paso 6.4, suma a «Registro de cliente» el enlace o la campaña.
 // OJO: este texto describe tablas y crons que entran con las PR de E2, E6 y E10.
-// No se publica (merge a main) sin el OK de Sam al texto y sin esas piezas en
-// producción: lo publicado obliga por haberse publicado.
+// Sam aprobó este texto exacto el 2026-11-03: si cambia una palabra, se le vuelve
+// a preguntar. Sale solo con la tanda A y esas piezas en producción, y la fecha se
+// ajusta al publicar: lo publicado obliga por haberse publicado.
 const UPDATED = "30 de octubre de 2026";
 
 export const metadata: Metadata = {
@@ -58,7 +60,7 @@ const CAPTURA: [string, string][] = [
   ],
   [
     "Registro de cliente",
-    "Nombre, documento de identidad (cédula o RIF), correo, teléfono y la ciudad y el estado a donde entregamos tu mercancía. Al registrarte se genera tu número de cliente (Shipping Mark). La dirección detallada (calle, edificio, punto de referencia) la agregas después, en tu perfil del Portal.",
+    "Nombre, documento de identidad (cédula o RIF), correo, teléfono y la ciudad y el estado a donde entregamos tu mercancía. También guardamos el enlace o la campaña por la que llegaste, si la dirección los trae. Al registrarte se genera tu número de cliente (Shipping Mark). La dirección detallada (calle, edificio, punto de referencia) la agregas después, en tu perfil del Portal.",
   ],
   [
     "Portal del Cliente",
