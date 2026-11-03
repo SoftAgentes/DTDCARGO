@@ -16,7 +16,8 @@ name: Imagen Docker
 # Los `NEXT_PUBLIC_*` se inlinean en el bundle en `next build`, así que viajan
 # como build args desde VARIABLES del repositorio (Settings → Variables), nunca
 # desde secrets: todo lo que entra por build arg queda legible dentro de la
-# imagen pública. Un secret ahí sería un secret publicado.
+# imagen. El paquete GHCR es privado (el servidor baja con `docker login`), pero
+# un secret ahí quedaría en cada capa y en cualquier copia de la imagen.
 
 on:
   push:

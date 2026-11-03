@@ -3052,6 +3052,15 @@
         "forma": "exacta"
       }
     },
+    "0495_fx_rates_conversor_usd": {
+      "sha256": "964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7",
+      "md5": "c0c9dac855a516179085950a187737d7",
+      "bytes": 28118,
+      "ledger": {
+        "fecha": "2026-11-03",
+        "forma": "exacta"
+      }
+    },
     "0496_tarifa_congelada_por_embarque": {
       "sha256": "1856b60aae8f4d382e3b4ad618ec51fe0c70a5041a0ad1d3db7973e4d4718755",
       "md5": "075eab7fae8d9dfb2b06f88335087f8d",
