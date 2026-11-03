@@ -24,6 +24,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { emailIlikePattern, sameEmail } from "@/lib/shared/email-literal";
 
 export interface ClienteSinAcceso {
   id: string;
@@ -59,12 +60,15 @@ export async function findClienteSinAcceso(
     // avisar.
     const { data, error } = await supabaseAdmin
       .from("clients")
-      .select("id, tenant_id, markbox, name")
-      .ilike("email", clean)
+      .select("id, tenant_id, markbox, name, email")
+      .ilike("email", emailIlikePattern(clean))
       .is("deleted_at", null)
       .limit(1)
-      .maybeSingle<ClienteSinAcceso>();
-    if (error || !data) return null;
+      .maybeSingle<ClienteSinAcceso & { email: string | null }>();
+    // SDD-0597 · `sameEmail` porque `*` no se puede escapar (ver `email-literal.ts`).
+    // Sin esto, escribir `%@dominio` o un parecido le avisaría al equipo de un
+    // cliente que nadie nombró.
+    if (error || !data || !sameEmail(data.email, clean)) return null;
     return data;
   } catch {
     return null;

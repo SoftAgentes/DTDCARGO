@@ -13,10 +13,10 @@
  *  1. Las dos filas existen y se llaman como se acordó.
  *  2. Crear cuenta es un `.btn` de ancho completo, NO un enlace suelto — si
  *     vuelve a ser un link chiquito, esto se pone rojo.
- *  3. La salida está TAMBIÉN en "Revisa tu correo". Sin esta tercera, el
+ *  3. La salida está TAMBIÉN en el estado de pedido recibido. Sin esta tercera, el
  *     callejón sin salida vuelve en el próximo refactor sin que nadie se entere.
  *
- * PRUEBA DE MUTACIÓN — borrar `<CrearCuentaBoton />` de `MagicSent` deja verde
+ * PRUEBA DE MUTACIÓN — borrar `<CrearCuentaBoton />` de `MagicRequested` deja verde
  * a (1) y (2) y rojo sólo a (3): esa es la aserción que de verdad cubre el bug.
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -29,7 +29,7 @@ vi.mock("@/app/portal/actions", () => ({
   signOutAction: vi.fn(async () => {}),
 }));
 
-import { EntrarForm, MagicSent } from "../EntrarForm";
+import { EntrarForm, MagicRequested } from "../EntrarForm";
 
 const props = { notice: null, authedNotBound: false };
 
@@ -92,7 +92,7 @@ describe("/entrar · las dos filas", () => {
   });
 });
 
-describe('/entrar · "Revisa tu correo" NO es un callejón sin salida', () => {
+describe("/entrar · el pedido recibido NO es un callejón sin salida", () => {
   const sent = {
     email: "sam@ejemplo.com",
     action: vi.fn(),
@@ -100,7 +100,7 @@ describe('/entrar · "Revisa tu correo" NO es un callejón sin salida', () => {
   };
 
   it("sigue ofreciendo crear cuenta después de pedir el enlace", () => {
-    render(<MagicSent {...sent} />);
+    render(<MagicRequested {...sent} />);
 
     const boton = crearCuenta();
     expect(boton.getAttribute("href")).toBe("/registro");
@@ -109,7 +109,7 @@ describe('/entrar · "Revisa tu correo" NO es un callejón sin salida', () => {
   });
 
   it("explica por qué puede no llegar el correo", () => {
-    render(<MagicSent {...sent} />);
+    render(<MagicRequested {...sent} />);
 
     expect(screen.getByText(/no te llega nada/i)).toBeTruthy();
   });
@@ -118,7 +118,7 @@ describe('/entrar · "Revisa tu correo" NO es un callejón sin salida', () => {
     // Mismo componente, sin email: la salida no depende de ningún dato del
     // servidor. Si algún día se condicionara a "la cuenta no existe", estaría
     // filtrando justo lo que `actions.ts` se cuida de no decir.
-    render(<MagicSent {...sent} email="" />);
+    render(<MagicRequested {...sent} email="" />);
 
     expect(screen.getByText(/no te llega nada/i)).toBeTruthy();
     expect(crearCuenta()).toBeTruthy();
