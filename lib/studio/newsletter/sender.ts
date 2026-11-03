@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { resendBatchSend, type ResendSendInput } from "@/lib/studio/mail/resend-api";
+import {
+  RESEND_SIMULADO_PRUEBA,
+  resendBatchSend,
+  type ResendSendInput,
+} from "@/lib/studio/mail/resend-api";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import {
   buildUnsubscribeUrl,
@@ -94,6 +98,15 @@ async function loadMailConfig(admin: SupabaseClient, tenantId: string): Promise<
   return data;
 }
 
+const MENSAJE_SIN_LLAVE = "RESEND_API_KEY no está configurada.";
+const MENSAJE_ENTORNO_PRUEBA =
+  "Estás en el entorno de prueba: el envío está simulado a propósito y no sale ningún correo real.";
+
+/** `mock_no_key` tiene dos causas: llave ausente o envío simulado por el entorno de prueba. */
+function mensajeSinEnvio(porEntornoDePrueba: boolean): string {
+  return porEntornoDePrueba ? MENSAJE_ENTORNO_PRUEBA : MENSAJE_SIN_LLAVE;
+}
+
 export async function sendNewsletterTest(
   admin: SupabaseClient,
   tenantId: string,
@@ -122,7 +135,16 @@ export async function sendNewsletterTest(
     },
   });
   if (!result.ok) return { ok: false, error: result.error };
-  if (result.queued) return { ok: false, error: "RESEND_API_KEY no está configurada; la prueba no salió." };
+  if (result.queued) {
+    // Mismo orden que `envioSimulado`: sin llave manda la ausencia; con llave, staging.
+    const porEntornoDePrueba = Boolean(process.env.RESEND_API_KEY) && resolveAppEnv() === "staging";
+    return {
+      ok: false,
+      error: porEntornoDePrueba
+        ? `${MENSAJE_ENTORNO_PRUEBA} La prueba no salió.`
+        : "RESEND_API_KEY no está configurada; la prueba no salió.",
+    };
+  }
   return { ok: true, sent: 1, remaining: 0 };
 }
 
@@ -260,7 +282,12 @@ export async function sendNewsletterCampaignBatch(
       await failRecipients(admin, recipients.map((r) => r.id), result.error);
       await refreshCampaignCounters(admin, campaign.id, tenantId);
     }
-    return { ok: false, error: result.error === "mock_no_key" ? "RESEND_API_KEY no está configurada." : result.error };
+    return {
+      ok: false,
+      error: result.error === "mock_no_key"
+        ? mensajeSinEnvio(result.code === RESEND_SIMULADO_PRUEBA)
+        : result.error,
+    };
   }
 
   const now = new Date().toISOString();
