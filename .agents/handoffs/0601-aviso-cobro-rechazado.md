@@ -10,7 +10,9 @@ Sam, literal, transmitido por el Director General: «Mejorarlo antes de usar el 
 
 - **Reserva:** `sdd:next --reserve aviso-cobro-rechazado --expect 0601`. Las dos refs son locales; no se publicaron.
 - **Medición en prueba:** el motivo real llega con HTTP 400 y código `23514`, y la factura no cambia. Detalle en la spec.
-- **Código:** `avisoDeCobroNoRegistrado` en `lib/studio/collections-actions.ts`, con tres avisos. Los textos están en la spec, **pendientes del OK de Sam**.
+- **Código:** `avisoDeCobroNoRegistrado` en `lib/studio/collections-actions.ts`, con tres avisos. Los textos están en la spec.
+- **OK de Sam a los textos:** literal, «Apruebo las tres», en el chat de Director General, 2026-11-03 ~18:05Z, viendo las tres frases exactas y la excepción a ERR-01. También vio el aviso de que hoy no existe pantalla para reparar esa factura. Lo transmitió el Director General y se registra a su nombre.
+- **Decisiones del Director General:** la excepción a ERR-01 queda aceptada para este aviso, declarada en la spec con su alcance. La falta de clave de idempotencia y la pantalla de reparación van abajo, en «FUERA DE ALCANCE DETECTADO».
 - **Pruebas:** bloque «aviso del cobro no registrado · SDD-0601» en `collections-identify.test.ts`. El caso «error interno cualquiera» de la prueba de carrera cambia al texto nuevo, porque el cambio es justo ese; no se debilita: sigue comprobando que no se muestre el texto de la base.
 
 ## VALIDACIÓN
@@ -32,18 +34,20 @@ Se leen en la rama.
 
 ## PR / BRANCH
 
-Sin publicar. No hay PR hasta el OK de Sam a la frase.
+Rama publicada y PR en borrador contra `main`, con autorización del Director General. La PR la integra el Director.
 
 ## PENDIENTES DE ESTA TAREA
 
-- OK de Sam a los textos, por el Director General. Si cambia el texto, se cambian el código y la prueba.
-- Publicar la rama y abrir la PR, cuando el Director lo diga.
-- Mirar el aviso en pantalla: requiere la imagen de esta rama en prueba. NO EJECUTADO.
-- `verify`, y las pruebas fuera de este archivo: NO EJECUTADO, por el `verify` ajeno.
+- `tsc`, `verify` y las pruebas fuera de este archivo: NO EJECUTADO. Turno pedido al Director General; va detrás de `/entrar` en la cola.
+- Mirar el aviso en pantalla: requiere la imagen de esta rama en prueba. NO EJECUTADO, con el mismo turno.
+- Borrar las dos refs de la reserva 0601: solo cuando la spec esté en `main`, según el procedimiento.
+- Liberar el claim `worker-aviso-cobro` al cerrar.
 
 ## FUERA DE ALCANCE DETECTADO
 
-Está en la sección «Fuera de alcance» de la spec. Lo más importante: **no encontré pantalla para reparar una venta inválida,** así que el administrador que reciba el aviso podría no poder arreglarla sin ayuda técnica; y la RPC de cobro no tiene clave de idempotencia.
+- **Clave de idempotencia en `register_collection_receipt`:** no conformidad heredada con ERR-01, por decisión del Director General. Es migración aparte; el aviso solo lo mitiga, pidiendo revisar antes de reintentar.
+- **Pantalla para reparar una venta inválida:** no encontré ninguna, así que el administrador que reciba el aviso podría no poder arreglarla sin ayuda técnica. Sam lo vio al aprobar.
+- El resto está en la sección «Fuera de alcance» de la spec.
 
 ## IMPACTO DOCUMENTAL Y CONOCIMIENTO
 

@@ -1,7 +1,7 @@
 ---
 sdd: "0601"
 title: "Aviso del cobro no registrado: por qué y a quién acudir"
-status: draft
+status: in-progress
 author: "Claude"
 created: 2026-11-03
 updated: 2026-11-03
@@ -36,7 +36,9 @@ El segundo fue un error de mi guion, y prueba que existe otro camino al texto ge
 
 ### Los tres avisos
 
-`F-2026-0031` es el código real de la factura. **Pendientes del OK de Sam.**
+`F-2026-0031` es el código real de la factura.
+
+**Aprobados por Sam.** Literal, «Apruebo las tres», en el chat de Director General, 2026-11-03 ~18:05Z, viendo estas tres frases exactas y la excepción a ERR-01 de la tabla de gobernanza. También vio el aviso de que hoy no existe pantalla para reparar esa factura. Lo transmitió el Director General y se registra a su nombre.
 
 | Caso | Cuándo | Aviso |
 |---|---|---|
@@ -44,7 +46,7 @@ El segundo fue un error de mi guion, y prueba que existe otro camino al texto ge
 | Otro rechazo | Respuesta HTTP ≥ 400 con código de Postgres o de PostgREST, sin traducción | «No se registró el cobro y la factura F-2026-0031 sigue igual: el sistema lo rechazó por un motivo que no reconoce. Avísale a un administrador con el número de factura.» |
 | Sin confirmar | Sin respuesta, o respuesta sin recibo | «No se pudo confirmar si el cobro entró: se perdió la comunicación con el sistema. Recarga la página y revisa la factura F-2026-0031 antes de intentarlo otra vez. Si sigue fallando, avísale a un administrador.» |
 
-**«Un administrador»** sigue el uso del Studio («pídele acceso a un administrador», `DeniedToast`). Es decisión de Sam si prefiere otro destino. Quien cobra tiene rol `accounting` o `admin`, así que «Contabilidad» no serviría de destino.
+**«Un administrador»** sigue el uso del Studio («pídele acceso a un administrador», `DeniedToast`), y va en las frases que Sam aprobó. Quien cobra tiene rol `accounting` o `admin`, así que «Contabilidad» no serviría de destino.
 
 ### Qué no cambia
 
@@ -71,8 +73,8 @@ Los tres casos dejan `console.error` con el código de la factura y el código d
 | ERR-01: qué ocurrió, qué se conservó y qué puede hacer la persona | Cumplimiento en los tres avisos |
 | ERR-01: el error aparece cerca de su causa, sin depender de un toast | Cumplimiento: no cambia el bloque que ya existe |
 | ERR-01: el servidor traduce a copy seguro, sin SQL ni PII | Cumplimiento, con prueba |
-| ERR-01: reintentar no duplica la mutación | **No conformidad heredada.** La RPC no tiene clave de idempotencia. El aviso lo mitiga: pide revisar antes de reintentar. Queda abajo, fuera de alcance |
-| ERR-01: fallo de sistema con ID de soporte | **Excepción propuesta:** en lugar de un ID, el número de factura y el rastro en el servidor. Decide el Director |
+| ERR-01: reintentar no duplica la mutación | **No conformidad heredada.** La RPC no tiene clave de idempotencia. El aviso lo mitiga: pide revisar antes de reintentar. Por decisión del Director General queda abajo, fuera de alcance |
+| ERR-01: fallo de sistema con ID de soporte | **Excepción aceptada por el Director General,** y vista por Sam al aprobar. En lugar de un ID, el número de factura en el aviso y el rastro en el servidor. Alcance: solo los tres avisos de esta spec; no vale para otras operaciones ni pantallas |
 | ERR-01: el primer error recibe foco | No aplica a este cambio: no se toca el bloque |
 
 ## Aceptación
@@ -83,12 +85,12 @@ Los tres casos dejan `console.error` con el código de la factura y el código d
 4. Los rechazos `PAYMENT_*` conservan su mensaje y no pasan por el registro.
 5. El registro lleva factura y código, nunca el texto de la base.
 6. Ningún camino crea el asiento del cobro si no hay recibo.
-7. Sam aprueba el texto antes de publicarlo.
+7. Sam aprueba el texto antes de publicarlo. Cumplido: «Apruebo las tres», registrado arriba.
 
 ## Fuera de alcance
 
-- **Clave de idempotencia en `register_collection_receipt`.** Es migración aparte.
-- **Reparar una venta inválida.** No encontré pantalla para eso: «Por contabilizar» es de solo lectura, y el asiento de venta solo se crea al emitir. Si es así, el administrador que reciba el aviso no puede arreglarla sin ayuda técnica.
+- **Clave de idempotencia en `register_collection_receipt`.** No conformidad heredada con ERR-01. Es migración aparte.
+- **Reparar una venta inválida.** No encontré pantalla para eso: «Por contabilizar» es de solo lectura, y el asiento de venta solo se crea al emitir. Si es así, el administrador que reciba el aviso no puede arreglarla sin ayuda técnica. Sam lo vio al aprobar los avisos.
 - **El panel sigue abierto con «Al día»** después del rechazo (visto en la SDD-0573).
 - **Los mismos motivos de la 0497 en identificar y anular un recibo:** no los revisé.
 - **`readErr` da «Factura no encontrada.»** también si falla la conexión.
