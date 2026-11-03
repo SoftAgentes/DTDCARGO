@@ -23,7 +23,7 @@ SDD-0598 evita que un corte de red borre el formulario y avisa con honestidad qu
 
 **Decisión de Sam, literal: «Sí, con candado»,** a la pregunta «¿Apruebas el diseño con candado en la base?», con esta spec en propuesta y su alternativa a la vista. No autoriza aplicar nada en producción: eso es un OK nominal aparte.
 
-**Límite:** nada que toque portal o registro entra a `main` antes de publicar. Este tramo va después de #358 y #360, sobre las que está apilado.
+**Límite:** este tramo va después de #360, sobre la que está apilado. #358 ya entró. Lo integra el Director General.
 
 ## Qué duplicaba, y cuánto daño hacía
 
@@ -115,8 +115,8 @@ Comparar contenido en vez de usar un candado: «mismo cliente, mismo contenido, 
 
 ## Orden de despliegue
 
-1. Salida a producción: 0496, 0497 y publicación. Después, #358 y #360.
-2. Con OK nominal de Sam: aplicar la 0512, con su lectura previa.
+1. #360 entra a `main`. #358 ya entró.
+2. Con el mandato de Sam del 2026-11-03, el Director General aplica la 0512, de a una y con lectura previa y conteo: primero en prueba y luego en `dtd-cargo`.
 3. Integrar y publicar este tramo. Retirar la espera con `infra/ops/migraciones/retirar-espera.mjs`.
 4. Otra migración retira la firma vieja de `portal_post_message`.
 
@@ -209,4 +209,4 @@ Clasificación con `.claude/skills/revisar-datos-ve/SKILL.md`, limitada a lo que
 
 ## Estado
 
-Implementado en PR en borrador, apilada sobre #360 y retenida. No se integra antes de publicar, y no funciona hasta aplicar la 0512.
+Implementado en la PR #362, en borrador, apilada sobre #360. No funciona hasta aplicar la 0512.

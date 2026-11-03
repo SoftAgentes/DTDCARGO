@@ -1,11 +1,11 @@
 # SDD-0599: reintentar un envío del portal no lo duplica
 
 - **Fecha:** 2026-11-02. **Owner:** `claude-sweet-curie-8102cb`.
-- **Ruta:** `DTD-worktrees/reintento-no-duplica`. **Rama:** `codex/reintento-no-duplica`. **Base:** `codex/accion-que-lanza` en `dc049dcb5` (PR #360, apilada sobre #358).
+- **Ruta:** `DTD-worktrees/reintento-no-duplica`. **Rama:** `codex/reintento-no-duplica`. **Base:** `codex/accion-que-lanza` (PR #360, que ya apunta a `main`). #358 y #361 ya entraron.
 - **SDD:** 0599, reservada con `sdd:next --reserve`, sin publicar: `codex/sdd-reserve-0599-reintento-no-duplica`, `refs/dtd/reservations/0599`. **Migración 0512:** libre en todas las ramas al escribirla, sin reservar. La confirma el Director General.
-- **Límite:** nada entra a `main` antes de publicar. **La 0512 está sin aplicar:** aplicarla exige OK nominal de Sam.
+- **Límite:** esta sesión no fusiona ni aplica. **La 0512 está sin aplicar.** Sam dio el mandato al Director General el 2026-11-03, con este texto en su nota `mandato-fases-2-3-4.md`: «Aplicar, primero en prueba y luego en dtd-cargo, de a una y con lectura previa: 0512_portal_intento_sin_duplicar (con su conteo previo)…». Lo ejecuta el Director General.
 - **Reporta a:** Director General, `local_25e2dded-103b-4eaa-b10e-6527564b9cad`.
-- **Ojo:** `node_modules` es una junction al de `error-no-borra-portal`. **No correr `pnpm` en este worktree:** reinstala y rompe el original. Usar `node node_modules/vitest/vitest.mjs` y `node scripts/...`.
+- **`node_modules`:** propio desde el 2026-11-03, instalado sin red, con los 1.768 enlaces dentro del worktree. Antes era una junction, y `next build` no sirve con una.
 
 ## OBJETIVO ORIGINAL
 
@@ -38,9 +38,12 @@ Un reintento con el mismo identificador devuelve la compra, cotización, reclamo
 | `la-accion-lanza.test.tsx`, `use-action-keeping-draft.test.tsx` | PASÓ, 46 de 46 |
 | `principal-tenant-actions`, `actions-tenant-scope`, `PortalClaims`, `PortalAddresses`, `NewPurchaseWizard` | PASÓ, 38 de 38, una por una con `--maxWorkers=1` |
 | ESLint de los archivos tocados | PASÓ |
-| `tsc` limitado a los archivos tocados | Sin errores en ellos; 1 ajeno de la configuración limitada |
+| `tsc` limitado a los archivos tocados, repetido tras traer `main` | Sin errores en ellos; 1 ajeno de la configuración limitada |
 | `check-pending-migration-symbols.mjs` | PASÓ, `0 ROJO`. **Los sitios citan número de línea: al editar esas acciones hay que actualizarlos** |
 | `docs:check`, `sdd:check` | PASÓ |
+| Tras traer `main` en `8feae0e8b`, `--maxWorkers=1`: `app/entrar/__tests__`, `conservar-lo-escrito`, `la-accion-lanza`, `reintento-no-duplica`, `portal-intento-sin-duplicar`, `use-action-keeping-draft` | PASÓ, 190 de 190 en 8 archivos |
+| Tras traer `main`: lados de `migrations-baseline.json` y de las declaraciones | Comparados por clave. `main` retiró 0495, 0496, 0497 y sus tres grupos. Queda 0512 con su grupo, sin cambios. Gate: `0 ROJO · 1 AMARILLO declarado` |
+| Tras traer `main`: `0512_portal_intento_sin_duplicar.sql` | Sin cambios, md5 `bdf2326d98f8fe993aedc19235d7ae00` |
 | `next dev`, contrato en `supabase/postgres` con el rol real | **NO EJECUTADO:** sin turno. **PGlite tiene una conexión y corre como superusuario:** no prueba la carrera ni los permisos reales |
 | Mutantes de las acciones, demás pruebas vecinas, `tsc` completo, `pnpm verify` | **NO EJECUTADO:** sin turno |
 | Check obligatorio de la PR | **NO DISPONIBLE** mientras apunte a la rama de #360 |
@@ -57,13 +60,13 @@ Un reintento con el mismo identificador devuelve la compra, cotización, reclamo
 
 ## PR / BRANCH
 
-Rama `codex/reintento-no-duplica`, en PR en borrador contra `codex/accion-que-lanza`, **retenida**. El número queda en la propia PR.
+Rama `codex/reintento-no-duplica`, PR #362 en borrador contra `codex/accion-que-lanza`.
 
 ## PENDIENTES DE ESTA TAREA
 
 1. Con turno del Director General: `next dev`, contrato con el rol real, mutantes, pruebas vecinas, `tsc` completo.
-2. Con OK de Sam: conteo de filas y lectura previa en producción.
-3. Con OK nominal de Sam, después de la salida, #358 y #360: aplicar la 0512.
+2. Director General, con el mandato de Sam: conteo de filas y lectura previa, primero en prueba.
+3. Director General, con el mandato de Sam: aplicar la 0512, primero en prueba y luego en `dtd-cargo`.
 4. Reapuntar la PR a `main` cuando #360 entre, y esperar el check en verde.
 5. Integrar, publicar y retirar la espera con `retirar-espera.mjs`.
 6. Otra migración retira la firma vieja de `portal_post_message`.
@@ -75,9 +78,9 @@ Rama `codex/reintento-no-duplica`, en PR en borrador contra `codex/accion-que-la
 
 ## HANDOFF AL DIRECTOR
 
-- **Orden:** #358, #360 y esta.
+- **Orden:** #360 y esta. #358 ya entró.
 - **Migrate-first:** la web nueva con la base vieja no se rompe, pero el aviso «no se registrará dos veces» sería falso. Aplicar antes de publicar este código.
-- **Número de migración:** confirma la 0512 antes de que entre otra con el mismo número.
+- **Número de migración:** el Director General confirmó la 0512. La próxima libre es la 0513.
 
 ### Impacto documental
 
