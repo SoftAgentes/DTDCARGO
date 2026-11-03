@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { emailIlikePattern, sameEmail } from "@/lib/shared/email-literal";
 import { canonicalizeEmail } from "@/lib/studio/email-utils";
 import {
   unsubscribeSecret,
@@ -101,12 +102,26 @@ async function processUnsubscribe(
       .eq("email", email);
     updateError = error;
   } else {
-    const { error } = await admin
+    // SDD-0600 · se leen primero las filas: un `.update` con `.ilike` le quitaba el
+    // permiso también a un parecido (`a_b@` alcanza a `a.b@`), y `*` no se puede
+    // escapar (ver `email-literal.ts`).
+    const { data: filas, error: readError } = await admin
       .from("clients")
-      .update({ email_marketing_optin_at: null })
+      .select("id, email")
       .eq("tenant_id", payload.tenantId)
-      .ilike("email", email);
-    updateError = error;
+      .ilike("email", emailIlikePattern(email));
+    updateError = readError;
+    const ids = (filas ?? [])
+      .filter((fila) => sameEmail(fila.email, email))
+      .map((fila) => fila.id);
+    if (ids.length > 0) {
+      const { error } = await admin
+        .from("clients")
+        .update({ email_marketing_optin_at: null })
+        .eq("tenant_id", payload.tenantId)
+        .in("id", ids);
+      updateError = error;
+    }
   }
 
   if (updateError) {
