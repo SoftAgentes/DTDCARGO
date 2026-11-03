@@ -104,6 +104,9 @@ if [ "${1:-}" = --mutantes ]; then
   mutar "sin la negativa del ensayo" '[ ! -f "${DIR}/compose.ensayo.yml" ] ||' 'true ||'
   mutar "el no-op deja :publicable rechazada" 'if [ "${rc}" = 0 ] && [ "${PUBLICADA}" = 1 ] && bajar' 'if [ "${rc}" = 0 ] && bajar'
   mutar "volver a la misma imagen" 'if [ "${id_ant}" = "$(imagen_que_corre)" ]; then' 'if false; then'
+  mutar "--aunque-congelado no alcanza" 'if [ -f "${CONGELADO}" ] && [ "${2:-}" != --aunque-congelado ]; then' 'if [ -f "${CONGELADO}" ]; then'
+  mutar "publicar a mano descongela" '  publicar_imagen "${sha}" "${dig}" a-mano; rc=$?' '  rm -f "${CONGELADO}"; publicar_imagen "${sha}" "${dig}" a-mano; rc=$?'
+  mutar "publicar no registra la anterior" 'printf '"'"'%s\n'"'"' "${previo}" > "${ESTADO}/anterior"' ':'
   mutar "Telegram sin recorte" '"text=${1:0:3500}"' '"text=$1"'
   mutar "Kuma sin recorte" '"msg=${2:0:200}"' '"msg=$2"'
   mutar "publica a mano y el vigilante la pisa" '      marcar_rechazo "${pdig}" "${prev}"' '      true "${pdig}" "${prev}"'
@@ -675,6 +678,61 @@ correr volver
 [ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${A}" ] && [ "$(cat "${D}/cont/web")" = "${IA}" ] && grep -q "^${DX} ${X} vuelta atrás a mano" "${O}/estado/rechazados" \
   && ok "volver: vuelve a la anterior y deja la de ahora rechazada" || { ko "volver rc=${RC} env=$(imagen_env)"; ver; }
 correr volver; [ "${RC}" = 1 ] && ok "volver otra vez: ya corre la anterior, no hace nada" || ko "volver dos veces rc=${RC}"
+
+# La forma que tiene producción desde el 2026-10-25: DTD_WEB_IMAGE es un id suelto,
+# esa imagen no está en ningún registro y estado/anterior sigue en otra imagen de la
+# dirección vieja. Sobre eso, el camino que se va a usar: un commit exacto con
+# CONGELADO puesto y el timer apagado.
+echo; echo "== commit exacto, con la web en un id suelto y CONGELADO puesto =="
+V="$(hx commit-v | cut -c1-40)"; IV="$(hx id-v)"; DV="sha256:$(hx dig-v)"
+W="$(hx commit-w | cut -c1-40)"; IW="$(hx id-w)"; DW="sha256:$(hx dig-w)"
+web_por_id() {
+  echo "manual-node-release/dtd" > "${D}/img/${IA}/repos"
+  rm -f "${D}/reg/$(printf '%s' "${IMG}:sha-${A}" | tr '/:@' '___')"
+  sed -i "s|^DTD_WEB_IMAGE=.*|DTD_WEB_IMAGE=sha256:${IA}|" "${P}/.env"
+  imagen "${V}" "${IV}" "${DV}" 50; etiquetar_local "${IV}" "sha-${V}"; echo "${IMG_VIEJA}" > "${D}/img/${IV}/repos"
+  rm -f "${D}/reg/$(printf '%s' "${IMG}:sha-${V}" | tr '/:@' '___')"
+  mkdir -p "${O}/estado"; echo "${IMG_VIEJA}:sha-${V}@${DV}" > "${O}/estado/anterior"
+  imagen "${X}" "${IX}" "${DX}" 300
+  correr congelar "ventana de prueba"
+}
+reiniciar; web_por_id; correr publicar "${X}" --aunque-congelado
+[ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${X}@${DX}" ] && [ "$(cat "${D}/cont/web")" = "${IX}" ] && [ -f "${O}/CONGELADO" ] \
+  && ok "--aunque-congelado publica ese commit por digest y deja CONGELADO puesto" || { ko "exacto rc=${RC}, env=$(imagen_env)"; ver; }
+[ "$(cat "${O}/estado/anterior")" = "sha256:${IA}" ] && ok "estado/anterior pasa de la dirección vieja al id que corría" || ko "anterior: $(cat "${O}/estado/anterior")"
+grep -q "^${DB} ${B} reemplazada a mano" "${O}/estado/rechazados" && ok "la :publicable distinta queda fuera hasta el próximo merge" || ko "sin rechazo de :publicable"
+: > "${D}/compose.log"; correr vigilar
+[ "${RC}" = 0 ] && [ "$(ups)" = 0 ] && grep -q 'congelado: ventana de prueba' "${T}/salida.log" && ok "con CONGELADO, el vigilante no toca lo publicado" || { ko "vigilar congelado rc=${RC}"; ver; }
+correr descongelar; : > "${D}/compose.log"; correr vigilar
+[ "$(ups)" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${X}@${DX}" ] && grep -q 'rechazada antes' "${T}/salida.log" \
+  && ok "al encender después, esa :publicable no pisa el commit exacto" || { ko "pisó el exacto: env=$(imagen_env)"; ver; }
+imagen "${W}" "${IW}" "${DW}" 400; en_registro publicable "${IW}"; correr revisar
+grep -q "commit ${W}" "${T}/salida.log" && ok "revisar sin sha dice qué entraría al encender" || { ko "revisar sin sha"; ver; }
+: > "${D}/compose.log"; correr vigilar
+[ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${W}@${DW}" ] && ok "pero un merge posterior sí entra: por eso encender es un paso aparte" || { ko "merge posterior rc=${RC}, env=$(imagen_env)"; ver; }
+reiniciar; web_por_id; en_registro publicable "${IX}"; correr publicar "${X}" --aunque-congelado; correr descongelar; : > "${D}/compose.log"; correr vigilar
+[ "$(ups)" = 0 ] && grep -q "al día: ${X:0:8}" "${T}/salida.log" && [ ! -s "${O}/estado/rechazados" ] \
+  && ok "si X es :publicable: al encender queda al día, sin rechazos" || { ko "X es :publicable"; ver; }
+reiniciar; web_por_id; cp "${P}/.env" "${T}/env-id"; printf '1\n1\n' > "${D}/smoke-rcs"; correr publicar "${X}" --aunque-congelado
+[ "${RC}" = 1 ] && [ "$(ups)" = 2 ] && cmp -s "${P}/.env" "${T}/env-id" && [ "$(cat "${D}/cont/web")" = "${IA}" ] && [ -f "${O}/CONGELADO" ] && grep -q "^${DX} ${X} " "${O}/estado/rechazados" \
+  && ok "la prueba rápida falla: vuelve sola al id que corría, con el .env igual" || { ko "vuelta al id rc=${RC}, up=$(ups), env=$(imagen_env)"; ver; }
+[ "$(cat "${O}/estado/anterior")" = "${IMG_VIEJA}:sha-${V}@${DV}" ] && ok "tras esa vuelta, estado/anterior sigue en la vieja: volver no es el paso siguiente" || ko "anterior tras la vuelta: $(cat "${O}/estado/anterior")"
+reiniciar; web_por_id; correr publicar "${X}" --aunque-congelado; rc_publicacion="${RC}"; correr volver
+[ "${rc_publicacion}" = 0 ] && [ "${RC}" = 0 ] && [ "$(imagen_env)" = "sha256:${IA}" ] && [ "$(cat "${D}/cont/web")" = "${IA}" ] && grep -q "^${DX} ${X} vuelta atrás a mano" "${O}/estado/rechazados" \
+  && ! grep -q '^pull -q sha256:' "${D}/llamadas.log" && ok "volver llega al id que corría, sin bajar nada" || { ko "volver al id: publicación=${rc_publicacion}, vuelta=${RC}, env=$(imagen_env)"; ver; }
+reiniciar; web_por_id; rm -f "${D}/img/${IA}/local"; cp "${P}/.env" "${T}/env-id"; correr publicar "${X}" --aunque-congelado
+[ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && cmp -s "${P}/.env" "${T}/env-id" && grep -q 'no está en el servidor y no se pudo bajar' "${T}/salida.log" \
+  && ok "si ese id ya no está en el disco: no publica, porque no hay de dónde bajarlo" || { ko "id sin copia rc=${RC}, up=$(ups)"; ver; }
+
+# `revisar` responde con la primera puerta cerrada, no con todas: una negativa por
+# migraciones no dice nada de las huellas (medido en producción el 2026-11-02).
+echo; echo "== las puertas paran en la primera =="
+reiniciar; printf '%s\n' 0001_init 0300_alfa > "${D}/ledger"; echo '# a mano' >> "${P}/compose.supabase.yml"; correr revisar
+[ "${RC}" = 1 ] && grep -q 'PUERTAS: NO · faltan en la base' "${T}/salida.log" && ! grep -q 'compose.supabase.yml' "${T}/salida.log" \
+  && ok "con migraciones faltantes, revisar no dice nada de las huellas" || { ko "orden de puertas rc=${RC}"; ver; }
+printf '%s\n' 0001_init 0300_alfa 0301_beta 0302_gama > "${D}/ledger"; correr revisar
+[ "${RC}" = 1 ] && grep -q 'PUERTAS: NO · el servidor no tiene la misma copia' "${T}/salida.log" && grep -q 'compose.supabase.yml' "${T}/salida.log" \
+  && ok "aplicadas las migraciones, aparece la huella que estaba tapada" || { ko "huella tapada rc=${RC}"; ver; }
 
 echo; echo "== limpieza de imágenes =="
 # Conservar = 2. La anterior (A) es la MÁS VIEJA de todas: si se conserva es por
