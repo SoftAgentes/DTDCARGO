@@ -21,7 +21,7 @@ Cómo se crea, se usa, se resetea y se destruye el entorno de prueba del VPS. Es
 - **No es producción.** Nada de aquí escribe en `dtd-cargo`. Todos los scripts rechazan el proyecto `dtd-cargo` y cualquier proyecto que no termine en `-staging`.
 
 Fase 2 ([SDD-0544](../specs/0544-prueba-producto-minimo/spec.md)), desde una imagen construida con ese código:
-- **Sin Google Analytics ni Ads.** `build-image-prueba.yml` construye con `NEXT_PUBLIC_GA_ID=off` y falla si `.next/static` nombra `G-25CD7BZH98` o `AW-561290482`. El smoke lo comprueba con `--sin-ga` (§3) y `verificar-aislamiento.sh --exigir-sin-ga` lo exige en `.next/static`. Una imagen construida antes de la Fase 2 todavía trae GA: sale AVISO, o FALLÓ con `--exigir-sin-ga`.
+- **Sin Google Analytics ni Ads.** `build-image-prueba.yml` construye con `NEXT_PUBLIC_GA_ID=off` y falla si `.next/static` nombra `G-25CD7BZH98` o `AW-561290482`. El smoke lo comprueba con `--sin-ga` (§3) y `verificar-aislamiento.sh` lo exige por defecto en `.next/static`. Una imagen construida antes de la Fase 2 todavía trae GA: sale FALLÓ; `--tolerar-ga` lo baja a AVISO (`--exigir-sin-ga` sigue aceptado como alias sin efecto).
 - **Aviso «Entorno de prueba»** arriba de cada pantalla (sitio público, Studio, Portal y `/m`), con `APP_ENV=staging`. El workflow también lo manda al build (`APP_ENV=staging`) para las páginas que se prerenderizan.
 - **Correos de la app simulados aunque haya llave**: con `APP_ENV=staging`, `resendSend` no llama a Resend y el `mail_log` queda en `queued` con `no_key`. La consulta de cédulas usa un provider simulado y la ficha cae al piso manual.
 
@@ -179,7 +179,7 @@ La puerta de prueba deja pasar solo la IP de Sam y el propio VPS. Las dos variab
    - `--sin-ga` invierte la regla de Google Analytics. La imagen de prueba (Fase 2, SDD-0544) se construye con `NEXT_PUBLIC_GA_ID=off`, así que se exige que ni el HTML ni los chunks de la portada traigan GA, Ads ni googletagmanager.
    - `--supabase-host supabase-prueba.dtdcargo.com` es el host que tiene que nombrar la CSP en `connect-src`, en lugar del de producción.
 
-   `verificar-aislamiento.sh --exigir-sin-ga` decide con `/app/.next/static`, que es lo que llega al navegador. Si solo el código del servidor nombra el ID, sale PASÓ con aviso, y el `--sin-ga` del smoke lo confirma en el HTML.
+   `verificar-aislamiento.sh` decide con `/app/.next/static`, que es lo que llega al navegador. Si solo el código del servidor nombra el ID, sale PASÓ con aviso, y el `--sin-ga` del smoke lo confirma en el HTML.
 4. **Sam.** Abre `https://prueba.dtdcargo.com`. El panel de entorno del Studio muestra `staging`, el SHA y las integraciones en `mock`.
 
 Una sola ranura: prueba muestra una rama a la vez y el Director decide el turno.
