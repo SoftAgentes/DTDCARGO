@@ -72,8 +72,8 @@
 --
 -- SDD-0573 (migr 0497): anular una factura con recibos vivos, o con pagado sin
 -- recibo, se RECHAZA (hint dtd-anular), y anular crea el contra-asiento. Como
--- cada escenario arranca con un cobro de 300, el fixture aplica ahora la 0133 y
--- la 0497, y los escenarios DESPUÉS miden el código vivo:
+-- cada escenario arranca con un cobro de 300, el fixture aplica ahora la 0133, la
+-- 0493 y la 0497, y los escenarios DESPUÉS miden el código vivo:
 --   · 1, 2, 5 y 6 primero intentan anular con el recibo vivo y EXIGEN el rechazo
 --     nuevo; después anulan el recibo (y en 1, revierten el crédito) y corren la
 --     misma carrera, sobre una factura que ya se puede anular. La propiedad de
@@ -270,8 +270,16 @@ begin
     pg_read_file('/sb/migrations/0237_referral_credit_apply.sql'),
     pg_read_file('/sb/migrations/0238_referrals_accredited_at.sql'),
     pg_read_file('/sb/migrations/0471_credito_referido_atomico.sql'),
-    -- SDD-0573: el cierre de período (que la 0497 exige) y la 0497.
+    -- SDD-0573: el cierre de período y el cierre con superclave, que la 0497 exige,
+    -- y la 0497. Como en su contrato, la 0493 pide la matriz de módulos de 0357 y
+    -- los triggers del cierre con el search_path de 0210.
+    'create table public.studio_role_module_overrides (tenant_id uuid not null references public.tenants(id),'
+      || ' role text not null, module_id text not null, can_view boolean, can_edit boolean,'
+      || ' primary key (tenant_id, role, module_id));',
     pg_read_file('/sb/migrations/0133_period_close.sql'),
+    'alter function public.journal_entries_validate_closing() set search_path = public;',
+    'alter function public.journal_lines_validate_closing() set search_path = public;',
+    pg_read_file('/sb/migrations/0493_cierre_contable_superclave.sql'),
     pg_read_file('/sb/migrations/0497_reverso_al_anular_factura.sql'),
     -- ANTES · la anulación de la 0294 tal cual, con otro nombre: la 0497 la
     -- reemplazó, y las fases viejas la siguen corriendo.

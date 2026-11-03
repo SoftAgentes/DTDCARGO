@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { esperarHidratado } from "./_helpers/hidratacion";
+import { evitarRecargaDeHmr } from "./_helpers/sin-recarga-hmr";
 
 /**
  * Contrato: la web pública no tiene scroll horizontal en pantallas angostas.
@@ -116,28 +117,34 @@ async function comprobarShippingMark(page: Page) {
 
 test.describe("activación de Shipping Mark", () => {
 test.use({ hasTouch: true });
-test("los dos CTA navegan a registro con teclado y toque sin enviar datos", async ({ page }, testInfo) => {
-  const navigation: { selector:string; method:string; milliseconds:number }[] = [];
-  for (const selector of [".hero-ctas", ".final-ctas"]) {
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    const cta = page.locator(`${selector} > a[href='/registro']`);
-    await esperarHidratado(cta, "CTA Shipping Mark");
-    await cta.focus();
-    await expect(cta).toBeFocused();
-    let start = Date.now();
-    await Promise.all([page.waitForURL(/\/registro$/, { timeout:20_000 }), cta.press("Enter")]);
-    navigation.push({selector,method:"Enter",milliseconds:Date.now()-start});
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    const touchCta = page.locator(`${selector} > a[href='/registro']`);
-    await esperarHidratado(touchCta, "CTA Shipping Mark para toque");
-    start = Date.now();
-    await Promise.all([page.waitForURL(/\/registro$/, { timeout:20_000 }), touchCta.tap()]);
-    navigation.push({selector,method:"tap",milliseconds:Date.now()-start});
+// Una prueba por CTA y método, no una sola con las cuatro: cada una abre `/` y
+// navega, y bajo carga un solo `goto` a `/` midió 24 s. Juntas compartían los 60 s.
+// Los 35 s de la espera son de `next dev`, no un contrato de latencia: la primera
+// compilación de /registro midió 17,8 s con la CPU al 100 %, y 35 + 24 caben en 60.
+for (const selector of [".hero-ctas", ".final-ctas"]) {
+  for (const method of ["Enter", "tap"] as const) {
+    test(`el CTA de ${selector} navega a registro con ${method} sin enviar datos`, async ({ page }, testInfo) => {
+      await evitarRecargaDeHmr(page);
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      const cta = page.locator(`${selector} > a[href='/registro']`);
+      await esperarHidratado(cta, "CTA Shipping Mark");
+      if (method === "Enter") {
+        await cta.focus();
+        await expect(cta).toBeFocused();
+      }
+      const start = Date.now();
+      await Promise.all([
+        page.waitForURL(/\/registro$/, { timeout:35_000 }),
+        method === "Enter" ? cta.press("Enter") : cta.tap(),
+      ]);
+      await testInfo.attach("navegaciones-locales", {
+        body:JSON.stringify([{selector,method,milliseconds:Date.now()-start}]),
+        contentType:"application/json",
+      });
+    });
   }
-  await testInfo.attach("navegaciones-locales", { body:JSON.stringify(navigation),contentType:"application/json" });
-});
+}
 });
 
 /**

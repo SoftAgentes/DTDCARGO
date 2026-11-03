@@ -26,15 +26,15 @@
 #      la ref de Cloud, y lleva la anon de este .env (salvo --sin-bundle): una
 #      imagen construida con otra anon da 401 en el navegador. Google Analytics y
 #      Ads: decide /app/.next/static, que es lo único que llega al navegador. Si
-#      están ahí, sale AVISO, o FALLÓ con --exigir-sin-ga (imagen de la Fase 2,
-#      SDD-0544). Si solo los nombra el código del servidor, sale PASÓ con un
+#      están ahí, FALLÓ (imagen de la Fase 2, SDD-0544); --tolerar-ga lo baja a
+#      AVISO para una imagen anterior a esa fase. Si solo los nombra el código del servidor, sale PASÓ con un
 #      aviso, y se confirma en el HTML con smoke-web.sh --sin-ga.
 #
 # Uso (en el VPS):
 #   verificar-aislamiento.sh --env /srv/dtd-cargo-staging/.env --prod-env /srv/dtd-cargo/.env \
 #       [--project dtd-cargo-staging] [--example /srv/dtd-cargo-staging/.env.example] \
 #       [--image ghcr.io/softagentes/dtdcargo:prueba-sha-<sha>] \
-#       [--permitir CLAVE]… [--sin-base] [--sin-bundle] [--exigir-sin-ga] [--evidence <archivo>]
+#       [--permitir CLAVE]… [--sin-base] [--sin-bundle] [--tolerar-ga] [--evidence <archivo>]
 #
 # Códigos: 0 todo PASÓ (puede haber AVISO) · 1 algo FALLÓ · 2 uso inválido.
 set -uo pipefail
@@ -48,7 +48,7 @@ IMAGE=""
 PERMITIDAS=()
 SIN_BASE=0
 SIN_BUNDLE=0
-EXIGIR_SIN_GA=0
+TOLERAR_GA=0
 EVIDENCE=""
 PROD_PROJECT="${PROD_COMPOSE_PROJECT:-dtd-cargo}"
 IMAGE_REPO="ghcr.io/softagentes/dtdcargo"
@@ -68,7 +68,8 @@ while [[ $# -gt 0 ]]; do
     --permitir) [[ "${2-}" =~ ^[A-Z_][A-Z0-9_]*$ ]] || die "--permitir espera un nombre de variable: '${2-}'"; PERMITIDAS+=("$2"); shift 2 ;;
     --sin-base) SIN_BASE=1; shift ;;
     --sin-bundle) SIN_BUNDLE=1; shift ;;
-    --exigir-sin-ga) EXIGIR_SIN_GA=1; shift ;;
+    --tolerar-ga) TOLERAR_GA=1; shift ;;
+    --exigir-sin-ga) shift ;; # alias: exigirlo ya es el comportamiento por defecto
     --evidence) setopt EVIDENCE "${2-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "argumento desconocido: $1 (ver --help)" ;;
@@ -299,8 +300,8 @@ else
     if (( s_ga + s_ads == 0 )); then
       ok "bundle del navegador (.next/static) sin Google Analytics ni Ads"
       (( c_ga + c_ads > 0 )) && av "el servidor (.next fuera de static) nombra GA (${c_ga}) o Ads (${c_ads}): no llega al navegador; confirmar en el HTML con smoke-web.sh --sin-ga"
-    elif (( EXIGIR_SIN_GA )); then ko "bundle del navegador con Google Analytics (${s_ga}) o Ads (${s_ads})"
-    else av "bundle del navegador con Google Analytics (${s_ga}) y Ads (${s_ads}): apagarlos es la Fase 2 de la SDD-0540"; fi
+    elif (( TOLERAR_GA )); then av "bundle del navegador con Google Analytics (${s_ga}) y Ads (${s_ads}): tolerado con --tolerar-ga; la imagen de la Fase 2 (SDD-0544) no los trae"
+    else ko "bundle del navegador con Google Analytics (${s_ga}) o Ads (${s_ads}): la imagen de prueba tiene que construirse con NEXT_PUBLIC_GA_ID=off"; fi
   fi
 fi
 

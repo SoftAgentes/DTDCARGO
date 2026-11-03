@@ -238,10 +238,12 @@ Los tramos 1 y 2 traen el mismo ayudante en la misma ruta, así que combinan sin
 
 Todas estas medidas usan una acción simulada, con la forma de la respuesta de la acción real.
 
-**Pendiente de turno del Director:** `next dev` con server action real, incluido el criterio 6; mutantes, ESLint, tipos, pruebas vecinas en local y `pnpm verify`.
+**`pnpm verify` sobre `5fd452355`:** salió con exit 1 por `build`, por un `node_modules` con enlaces fuera del root. Reparado, `build`, `sql-tests` y `schema-rebuild` pasaron de a uno sobre el mismo SHA. El detalle por comprobación, con los primeros intentos, está en el handoff.
+
+**Pendiente de turno:** `next dev` con server action real, incluido el criterio 6, y mutantes.
 
 **Sin medir:** lector de pantalla, portal con sesión real, y archivos en `NewPurchaseWizard`, `PurchaseStepDetalle` y `PortalClaims`.
 
 ## Estado
 
-Implementado en la PR retenida de este tramo. No se integra antes de publicar.
+Implementado en la PR de este tramo. La retención por la salida a producción terminó; la integra el Director General.
