@@ -1491,3 +1491,27 @@ Encargo del Director después de que la lectura previa de la 0497 parara en `nex
 **`verify` de la cabeza fusionada con main, 2026-11-03.** FALLÓ, exit 1, por un solo spec de `e2e`, `sin-scroll-horizontal.spec.ts:119` en chromium, que espera `/registro`. Pasaron `test`, `sql-tests`, `schema-rebuild` y `build`, y el CI de esa cabeza pasó entero. El detalle, en `.agents/handoffs/0573-0497-pines-prod.md`.
 
 **Límites.** La 0497 sigue NO APLICADA en producción. **La marcha atrás de la base está escrita y sin aplicar,** y recupera cobrar y anular, no lo que la 0497 trajo: **anular vuelve a dejar la venta viva, sin reverso,** y la base deja de frenar anular con cobros vivos y cambiar a mano un asiento automático. Si eso no alcanza, queda restaurar un respaldo y perder lo escrito después; por eso el plan pide un `pg_dump` justo antes del apply. El OK nominal de Sam para aplicar no se ha pedido ni tomado.
+
+## 2026-11-03 · La 0497 aplicada en producción: cierre del runbook §6
+
+Aplicada en el servidor propio, en lote después de la 0496 (SDD-0571). Lo que antes en esta spec dice «NO APLICADA» es de su fecha. Los valores vienen de la salida del apply, copiados del mensaje del Director General. Este cierre no consultó producción. El md5 y los bytes sí se comprobaron contra el archivo. Detalle en `.agents/handoffs/0571-0573-cierre-0496-0497.md`.
+
+| Dato | Valor |
+|---|---|
+| COMMIT | 2026-11-03T11:48:56.965Z |
+| `version` del ledger | `20261103114856` |
+| md5 y bytes | `77d3ad861b328bfa5e67dcf7b7fa42cf`, 78448 |
+| Filas del ledger, después del lote | 501 |
+| Evidencia | `/srv/ops/evidencias/apply-0497-dtd-cargo-20261103T114855Z` |
+| Conteo previo `0497-legado-por-clase.sql` | 0 filas |
+| Control posterior | 0 filas |
+| OK literal de Sam | «OK, de día» y «Arranca, páralos tú». No cubre el timer ni el desarme |
+| Merge | la #344, 2026-11-03T04:29:36Z, `dac99762e`, antes del apply |
+| Publicación | `publicar-web-20261103T114923Z-publicar-dac99762`, PUBLICADA 11:49:50Z, 14 PASÓ y 0 FALLÓ. `CONGELADO` puesto y timer apagado |
+| Ventana | `/srv/ops/evidencias/ventana-publicacion-20261103T113712Z` |
+| Compose | `compose-softagentes-20261103T113937Z` |
+| Respaldo | `dtd-cargo-20261103T114123Z` |
+| Imágenes | `/srv/ops/respaldos/imagen-web-929cabf51` e `imagen-storage-node-24.22.1` |
+| Sello en el candado | sha256 `056811e9e2b7cf74dc3cc01b0e24e95ec4eb1c9dd47caa7e1e718f1094392e3e`, `ledger` exacta |
+
+La 0497 salió de `pendingBelowCutoff` y de las declaraciones de símbolos. Su huella de esas dos declaraciones se fue con ellas, y es el mismo sha256 sellado. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. `supabase/desarmes/0497_desarme.sql` no se aplicó en este cierre ni lo cubre ese OK.
