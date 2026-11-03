@@ -15,13 +15,15 @@ shopt -s extglob
 ENTORNO="${1:-}"
 [ $# -gt 0 ] && shift
 case "$ENTORNO" in
-  produccion) ENV_WEB=/srv/dtd-cargo/.env; DB=dtd-cargo-db-1; SITIO=https://dtdcargo.com ;;
-  prueba) ENV_WEB=/srv/dtd-cargo-staging/.env; DB=dtd-cargo-staging-db-1; SITIO=https://prueba.dtdcargo.com ;;
+  produccion) ENV_WEB=/srv/dtd-cargo/.env; DB=dtd-cargo-db-1; SITIO=https://dtdcargo.com; ARCHIVO=platform-app.env ;;
+  # Prueba usa su propia cuenta y su propia Platform App: nunca los tokens de producción,
+  # que alcanzan la cuenta real.
+  prueba) ENV_WEB=/srv/dtd-cargo-staging/.env; DB=dtd-cargo-staging-db-1; SITIO=https://prueba.dtdcargo.com; ARCHIVO=platform-app-prueba.env ;;
   *) echo "Uso: $0 prueba|produccion [NOMBRE...]" >&2; exit 2 ;;
 esac
 # Solo para su prueba: infra/chatwoot/pruebas/prueba-pegar-secretos-web.sh.
 ENV_WEB="${PEGAR_ENV_WEB:-$ENV_WEB}"
-PLATFORM_ENV="${PEGAR_PLATFORM_ENV:-/srv/chatwoot/secretos/platform-app.env}"
+PLATFORM_ENV="${PEGAR_SECRETOS:-/srv/chatwoot/secretos}/$ARCHIVO"
 URL_WEBHOOK="$SITIO/api/chatwoot/webhook"
 TODOS=(CHATWOOT_PLATFORM_TOKEN CHATWOOT_ROUTER_TOKEN CHATWOOT_WEBHOOK_SECRET)
 MAX_INTENTOS=3
@@ -132,7 +134,7 @@ if [ ${#VALORES[@]} -gt 0 ]; then
   for n in "${!VALORES[@]}"; do printf "%s='%s'\n" "$n" "${VALORES[$n]}" >> "$TMP"; done
   # cat > conserva el archivo, su dueño y sus permisos.
   cat "$TMP" > "$ENV_WEB"
-  echo "Escrito en $ENV_WEB. `web` los lee cuando se recree; eso va aparte."
+  echo "Escrito en $ENV_WEB. El contenedor web los lee cuando se recree; eso va aparte."
 fi
 unset VALORES
 

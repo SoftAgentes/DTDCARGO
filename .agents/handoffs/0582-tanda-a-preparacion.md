@@ -45,8 +45,7 @@
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **El webhook hacia prueba recibe lo de las bandejas reales,** porque Studio solo filtra por cuenta. La bandeja 5 tuvo actividad el 2026-11-03. Antes de suscribirlo, decidir la ventana y cómo se limpia lo recibido; puede cambiar el riesgo del paso 4 del mandato.
-- **El cron `chatwoot-agentes` de prueba actúa sobre el mismo Chatwoot.** Con la bandeja real configurada sacaría a quien no tenga vínculo en prueba. Por eso prueba usa la bandeja 1.
+- **Un webhook sobre la cuenta 1 hacia prueba quedó descartado por el Director General,** porque copiaría a prueba datos de clientes. La alternativa medida, una segunda cuenta con su Platform App, está en `docs/runbooks/chatwoot-bandeja.md`, «Prueba no se conecta a la cuenta real», con lo que cubre y lo que no. Leída en el código de la imagen; no ejecutada.
 
 ## Impacto documental
 

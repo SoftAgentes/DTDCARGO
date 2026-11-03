@@ -50,11 +50,11 @@ Medidas en el VPS el 2026-11-03. Van después de la 0505, en `/srv/dtd-cargo/.en
 | Variable | Producción | Prueba | De dónde sale |
 |---|---|---|---|
 | `CHATWOOT_URL` | `https://chat.dtdcargo.com` | Igual | `CHATWOOT_HOST` de `/srv/chatwoot/.env` |
-| `CHATWOOT_ACCOUNT_ID` | `1` | Igual | Cuenta «DTD Cargo» |
+| `CHATWOOT_ACCOUNT_ID` | `1` | Su cuenta | Cuenta «DTD Cargo»; prueba tiene la suya, ver abajo |
 | `CHATWOOT_TENANT_ID` | El id de su tenant | El id de su tenant | `select id from public.tenants` en la base de ese entorno, al cargarla |
-| `CHATWOOT_SERVICE_USER_ID` | `1` | Igual | `secretos/platform-app.env` |
-| `CHATWOOT_INBOX_CLIENTES_ID` | `2` | `1` | Bandeja «Clientes»; en prueba, «WhatsApp · prueba 0582», para que su cron no toque las bandejas reales |
-| `CHATWOOT_TEAM_CLIENTES_ID` | Pendiente | Pendiente | La cuenta no tiene equipos todavía: sale al crear «Clientes» |
+| `CHATWOOT_SERVICE_USER_ID` | `1` | Su usuario | `secretos/platform-app.env`; en prueba, `secretos/platform-app-prueba.env` |
+| `CHATWOOT_INBOX_CLIENTES_ID` | `2` | Su bandeja | Bandeja «Clientes»; en prueba, la de su cuenta |
+| `CHATWOOT_TEAM_CLIENTES_ID` | Pendiente | Su equipo | La cuenta no tiene equipos todavía: sale al crear «Clientes» |
 | `CHATWOOT_INBOX_LEADS_ID` | Vacía | Vacía | Hasta el corte. Sin ella no hay enrutamiento |
 | `CHATWOOT_TEAM_LEADS_ID` | Vacía | Vacía | Hasta el corte |
 | `WHATSAPP_NUMERO_CLIENTES` | Vacía | Vacía | Hasta el corte: necesita el OK del número de clientes |
@@ -64,11 +64,30 @@ Medidas en el VPS el 2026-11-03. Van después de la 0505, en `/srv/dtd-cargo/.en
 
 | Secreto | Si se pulsa Enter |
 |---|---|
-| `CHATWOOT_PLATFORM_TOKEN` | Lo toma de `secretos/platform-app.env` |
-| `CHATWOOT_ROUTER_TOKEN` | Lo toma del token de acceso del usuario de servicio |
+| `CHATWOOT_PLATFORM_TOKEN` | Lo toma de `secretos/platform-app.env`; en prueba, de `secretos/platform-app-prueba.env` |
+| `CHATWOOT_ROUTER_TOKEN` | Lo toma del token de acceso del usuario de servicio de ese archivo |
 | `CHATWOOT_WEBHOOK_SECRET` | Lo toma del webhook de ese entorno. Si el webhook no existe, lo deja sin cargar y sale con 5: se crea y se corre otra vez con ese nombre |
 
-**El webhook de cuenta llega a todas las bandejas.** Studio solo filtra por cuenta (`app/api/chatwoot/webhook/route.ts`). Un webhook hacia prueba recibe también lo que entre por las bandejas reales, con nombres y teléfonos: se crea solo para la prueba y se borra al terminarla.
+### Prueba no se conecta a la cuenta real
+
+**Un webhook sobre la cuenta 1 hacia prueba está descartado.** Un webhook de cuenta recibe todas sus bandejas, y Studio solo filtra por cuenta (`app/api/chatwoot/webhook/route.ts`): copiaría a prueba nombres y teléfonos de clientes. El cron `chatwoot-agentes` de prueba, además, actuaría sobre los agentes reales.
+
+**La forma medida, todavía sin crear,** es una segunda cuenta en el mismo Chatwoot (leído en la imagen `v4.19.1-ce`, no ejecutado):
+- **Una Platform App propia de prueba, no la de producción.** La API solo deja tocar lo que esa app creó o adoptó (`validate_platform_app_permissible`), así que su token no alcanza la cuenta 1.
+- **Sin correos reales.** `POST /platform/api/v1/users` adopta un usuario existente si el correo coincide (`User.from_email`). Un usuario de prueba con el correo de un agente real le daría a prueba control sobre él. Solo direcciones `example.test`.
+- **La puerta de prueba responde 401 al webhook.** Chatwoot no manda credenciales en la URL (`ssrf_filter` no las usa). Hace falta una ruta exacta a `/api/chatwoot/webhook` sin la clave y con la misma lista de IP, en el borde compartido. El webhook sigue firmado.
+- **Marcha atrás:** borrar el webhook, suspender la cuenta (`status`) y revocar el token de esa app. Borrar la cuenta es un borrado físico y lo decide Sam.
+
+| Qué prueba | Bandeja | Cubierto |
+|---|---|---|
+| Entrega firmada real de Chatwoot 4.19.1 a Studio | Cualquiera | Sí |
+| `conversation_created` crea la tarjeta | Correo, sin IMAP ni SMTP, conversación sin mensaje | Sí, con fuente `correo` |
+| `conversation_updated` da asesor | La misma | Sí |
+| Mensaje entrante: contador y aviso | API | Sí, sin tarjeta: `fuenteDeCanal` no mapea `Channel::Api` |
+| Enrutamiento por segmento (E10) | API como `CHATWOOT_INBOX_LEADS_ID` | Sí: solo mira el id de la bandeja |
+| Tarjeta por primer mensaje entrante y vuelta desde «Perdido» | — | **No:** Chatwoot solo admite mensajes entrantes por API en bandejas API |
+| Fuente WhatsApp, teléfono y BSUID de un mensaje real | — | **No:** una bandeja de WhatsApp sin Meta dispara sus trabajos de plantillas y salud contra Meta |
+| El panel dentro de prueba | — | Solo agregando `https://prueba.dtdcargo.com` a `CHATWOOT_FRAME_ANCESTORS`, que recrea `rails` |
 
 ## Diagnóstico
 
