@@ -3,10 +3,10 @@
 - Fecha: 2026-11-02, con el `verify` del 2026-11-03. Task ID: `e2e-cta-registro-recarga-hmr`.
 - Owner: `local_competent-heisenberg-d6c479` (Worker Claude Code). Encargo del Director General.
 - Worktree: `.claude/worktrees/competent-heisenberg-d6c479`.
-- Rama: `claude/e2e-cta-registro-cronometro`, con base en `05c51067b` y merge de `origin/main` `9d3bf7443` en `089e298ba`.
+- Rama: `claude/e2e-cta-registro-cronometro`, con base en `05c51067b` y merges de `origin/main`: `9d3bf7443` en `089e298ba`, y después `6795c4a06`.
 - SDD: no aplica. Cambia solo el harness de e2e; no toca producto, Studio ni base de datos.
-- Estado de tarea: lista-para-revision, PR en borrador. **`pnpm verify` no salió verde**: lo decide el Director General.
-- Permisos: rama propia y PR en borrador contra `main`, sin merge. Turnos de máquina del Director General: 6 corridas con tope de 35 min, y un `verify`.
+- Estado de tarea: lista-para-revision, PR en borrador. **`pnpm verify` FALLÓ** y el Director General decidió no relanzarlo. Las dos pruebas de ese rojo pasan a solas.
+- Permisos: rama propia y PR en borrador contra `main`, sin merge. Turnos de máquina del Director General: 6 corridas con tope de 35 min, un `verify` y una corrida aislada.
 
 ## OBJETIVO ORIGINAL
 
@@ -144,6 +144,31 @@ Otras comprobaciones:
 - **Inferencia.** La firma es compatible con la recarga de HMR, y `auth.spec.ts` no usa `evitarRecargaDeHmr`, pero `on-first-retry` no graba el primer intento.
 - **Reintento.** No se colgó: es el único de toda la corrida, y el watchdog no actuó.
 
+## CORRIDA AISLADA
+
+Turno del Director General para aclarar el rojo del paso `test`. El `verify` de arriba sigue como **FALLÓ**: esta corrida no lo reemplaza.
+
+- SHA medido: `ab84f0cd3`, que respecto de `089e298ba` solo agrega este handoff.
+- Corrió de 14:41:01Z a 14:42:21Z, con los dos archivos en la misma corrida.
+- Antes de lanzarla: 0 corridas pesadas ajenas, 14,6 GB libres, CPU al 7 %, Docker arriba con 0 contenedores.
+- Se usó `--reporter=default --pool=forks`, más un reporte JSON para leer las duraciones. El filtro fue el nombre del archivo, para evitar los corchetes de la ruta.
+
+| Archivo | Resultado | Pruebas | Duración |
+|---|---|---|---|
+| `app/p/[token]/PackingListProductsStep.test.tsx` | **PASÓ** | 9 de 9 | 16,7 s |
+| `infra/ops/tests/migraciones.test.mjs` | **PASÓ** | 30 de 30 | 79,1 s |
+
+Exit 0, con 2 archivos y 39 pruebas: el reporte JSON confirma que corrieron los dos.
+
+| `prueba-migraciones-produccion.sh` | Duración |
+|---|---|
+| Esta corrida, a solas | **69,0 s** (68972 ms) |
+| Medición de A3 hoy, a solas, según el Director General | 189 s |
+| Handoff de SDD-0550, bajo carga | 282 s |
+| `verify` de arriba, 1.er intento | Más de 600 s, venció |
+
+A solas el script termina y el worker arranca. No se reprodujo ninguno de los dos errores. Que la causa en `verify` sea la carga sigue siendo inferencia: no se midió si en ese intento el script estaba lento o colgado.
+
 ## COMMITS
 
 - `92e62cd4d` fix(e2e): el Supabase sintético no hace esperar 7 s a cada lectura.
@@ -151,7 +176,9 @@ Otras comprobaciones:
 - `10afc8651` fix(e2e): la espera de los CTA cubre la primera compilación de /registro.
 - `d6369a677` chore(harness): handoff de los CTA de registro y la recarga de next dev.
 - `089e298ba` merge de `origin/main` `9d3bf7443`, el SHA que midió `verify`.
-- Commit que registra este resultado: solo cambia este documento.
+- `ab84f0cd3` chore(harness): resultado de verify sobre 089e298ba. Es el SHA de la corrida aislada.
+- Commit que registra la corrida aislada: solo cambia este documento.
+- Merge de `origin/main` `6795c4a06`, la cabeza de la PR. Ninguna corrida pesada se hizo sobre él: lo mide el CI.
 
 ## PR / BRANCH
 
@@ -159,19 +186,21 @@ Rama `claude/e2e-cta-registro-cronometro`, [PR #365](https://github.com/SoftAgen
 
 ## PENDIENTES DE ESTA TAREA
 
-- `pnpm verify` no salió verde y no se repitió. El Director General decide el siguiente paso.
+- El CI de la cabeza. El Director General integra la PR cuando pase.
 
 ## FUERA DE ALCANCE DETECTADO
 
 - **`company-photo-carousel.spec.ts`, 3 flaky.** Fallaron al primer intento en la corrida 3 y en la PR #344, y pasaron al reintentar. En la #344 no estaba este cambio, y el primero muestra el mismo error: `8 de 8` no aparece. La causa no está medida: el spec pulsa sin `esperarHidratado`, así que puede ser hidratación o esta misma recarga. En el `verify` del 2026-11-03 pasaron al primer intento.
-- **Otros specs siguen expuestos a la recarga.** `evitarRecargaDeHmr` solo cubre estos 4 CTA. Cualquier prueba que espere algo largo durante la primera pasada por las rutas puede perderlo igual. `auth.spec.ts:81` podría ser un caso, sin medir.
-- **El paso `test` de `verify`.** Rojo por el tope de 600 s de `prueba-migraciones-produccion.sh` y por un worker de vitest que no arrancó. Ninguno de los dos viene de esta PR.
+- **Otros specs siguen expuestos a la recarga.** `evitarRecargaDeHmr` solo cubre estos 4 CTA. Cualquier prueba que espere algo largo durante la primera pasada por las rutas puede perderlo igual.
+- **`auth.spec.ts:81` en chromium.** Falló al primer intento en el `verify` con `net::ERR_ABORTED` y pasó al reintentar. La causa no está medida; la recarga de HMR es una posibilidad.
+- **El tope de 600 s de `prueba-migraciones-produccion.sh`.** Lo excedió dentro de `verify`, contra 69 s a solas. Ni el tope ni el script vienen de esta PR.
+- **El worker de vitest que no arrancó.** Fue en el reintento de `test`, con `PackingListProductsStep`. A solas arranca y pasa 9 de 9.
 - **Aviso de hidratación en `/`.** `next dev` registra `A tree hydrated but some attributes…` con estilos del CTA en la diferencia, 1 vez en la corrida 4 y varias en la #344. No coincide con el rojo y no lo investigué, así que no puedo decir si es del producto o de una prueba que altera el DOM.
 - **`/registro` ante un 503 real.** Con Supabase respondiendo 503, `listRegisterCities` retrasa el render 7 s antes de caer a texto libre. Solo se midió contra el sintético. No es un defecto de hoy, pero `/registro` está en uso real.
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** decidir qué hacer con el `verify` en rojo por el paso `test`, y si se integra. La PR no toca `app/`, `components/` ni `proxy.ts`, pero sí la prueba de los CTA a `/registro`.
-- **Rama detrás de `main`:** `main` ya va por `6795c4a06`, con la #367. Esa PR no toca los archivos de esta, y `merge-tree` no da conflictos. No lo traje: el merge cambiaría el SHA medido.
+- **Siguiente acción:** integrar la PR cuando pase el CI de la cabeza, como dijiste. No toca `app/`, `components/` ni `proxy.ts`, pero sí la prueba de los CTA a `/registro`.
+- **Merge de `main`:** traje `6795c4a06`, con la #367, después de la corrida aislada. Esa PR no toca los archivos de esta, y el merge no dio conflictos.
 - **Títulos nuevos:** la prueba `los dos CTA navegan…` ya no existe; ahora son 4 con `el CTA de … navega a registro con …`.
 - **Ownership:** liberado al cerrar.
