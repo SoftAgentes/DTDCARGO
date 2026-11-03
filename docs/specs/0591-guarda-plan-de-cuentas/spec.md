@@ -4,7 +4,7 @@ title: "Cambiar el plan de cuentas queda para accounting y admin"
 status: in-progress
 author: "Sam + Claude Opus 5.5"
 created: 2026-11-02
-updated: 2026-11-02
+updated: 2026-11-03
 supersedes: null
 superseded_by: null
 related: ["0040", "0085", "0139", "0492", "0573"]
@@ -146,3 +146,22 @@ el archivo, por `docs/runbooks/aplicar-migraciones-prod.md`.
    tenant, medido en producción el 2026-11-02. `company_bank_accounts` también.
    Necesitan su propio inventario de escritores, porque el posting corre desde
    varios módulos.
+
+## 2026-11-03 · La 0510 aplicada en producción: cierre del runbook §6
+
+La 0510 se aplicó hoy. Lo que antes en esta spec dice que no está aplicada es de su fecha. La identidad la pasó el Director General, de la salida del apply. Este cierre no consultó producción. El md5 y los bytes sí se comprobaron contra el archivo. Detalle en `.agents/handoffs/0591-guarda-plan-de-cuentas.md`.
+
+| Dato | Valor |
+|---|---|
+| COMMIT | 2026-11-03T17:02:55.956Z |
+| `version` del ledger | `20261103170255` |
+| md5 y bytes | `53c078ff06e1b1b889a1f79295ac10e1`, 12056 |
+| Filas del ledger | 503 después de aplicar también la 0511, leído por el Director General. 502 después de la 0510 es **inferencia**: no es una lectura de ese momento |
+| Respaldo previo | `dtd-cargo-20261103T170055Z` |
+| Evidencia | `/srv/ops/evidencias/apply-0510-dtd-cargo-20261103T170254Z` |
+| Ensayo en prueba | `ensayo-0510-0511-prueba-20261103T163820Z`, 6 puntos PASÓ, según el Director General. Punto 5: se puso una cuenta sintética con rol `operations` y se devolvió. Sin ejecutar: asientos por pantalla |
+| OK literal de Sam | «Autorizo: prueba y luego producción», en el chat del Director General, a «¿Autorizas aplicar las guardas contables 0510 y 0511 en dtd-cargo y fusionar sus PR #351 y #352?». Condición: primero en prueba, comprobando guardar una cuenta bancaria como administrador; si algo falla en prueba, parar y avisar |
+| Merge | Lo hace el Director General después de leer el CI; su hora se registra al fusionar |
+| Sello en el candado | sha256 `f236c923b22a11886ef2d780a3206243929a410e1c0daf294fb390f9c41dde20`, `ledger` exacta |
+
+La 0510 salió de `pendingBelowCutoff`. No tenía declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Ninguna prueba afirmaba la espera, así que no cambió ninguna. La web no cambia ni se publica con este cierre.
