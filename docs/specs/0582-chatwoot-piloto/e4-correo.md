@@ -110,7 +110,7 @@ Sam autorizó la prueba en el chat del Worker («Autorizo la prueba», 2026-10-3
 |---|---|---|
 | PC-1 | Crear la bandeja temporal «Correo · pruebas» sobre `notificaciones@` (la clave la carga Sam en la pantalla o con un guion sin eco), correr P1–P8 y **borrar la bandeja** al terminar. P7 la deja con IMAP apagado más de 26 h | Chatwoot vivo |
 | PC-2 | Revisión `revisar-datos-ve` del flujo `vzla@` → Chatwoot y la línea nueva del inventario de terceros. **Hecha el 2026-10-31:** [`revision-chatwoot-correo-2026-10-31.md`](../../legal/privacidad/revision-chatwoot-correo-2026-10-31.md) (5 hallazgos, 5 correctos, 4 no verificables) y fila nueva en `inventario-terceros.md` §2 bis | Repo (sin puerta de producción, pero antes de PC-3) |
-| PC-3 | Crear la bandeja «Correo · vzla@» en Chatwoot sobre `vzla@` (la clave la carga Sam), con sus miembros y las reglas de §4.1 **creadas antes** de encender IMAP | Chatwoot vivo |
+| PC-3 | Crear la bandeja «Correo · vzla@» en Chatwoot sobre `vzla@` (la clave la carga Sam), con sus miembros y las reglas de §4.1 **creadas antes** de encender IMAP. La regla legal asigna a Sam: «Yo, Sam» (2026-11-03, en el chat del Director General; lo registra el Subdirector). Eso no crea la bandeja ni la autoriza | Chatwoot vivo |
 | PC-4 | (Aparte, con PR) mandar los 4 avisos internos del ERP a los admins en vez de a `info@` | Código del ERP |
 
 DNS y Hostinger: ninguna puerta, porque no hay cambio.

@@ -66,7 +66,7 @@ Marcos: **Venezuela** (CRBV arts. 28 y 60; Ley Especial contra los Delitos Infor
 
 **H5 · El canal legal necesita un responsable, no solo una etiqueta — ENCONTRADO (medido en PC-1).**
 - **Lo que pasa hoy:** los asuntos «Privacidad» y «Gerencia» tienen plazos (`lib/legal-public.ts:73` y `:77`). En la prueba, la regla le puso la etiqueta y prioridad urgente en 6 s (P8), pero **no asignó a nadie**.
-- **Arreglo en PC-3:** la regla real agrega `assign_agent` (o `assign_team`) con la persona que Sam nombre, para que el plazo de los derechos ARCO tenga dueño.
+- **Arreglo en PC-3:** la regla real agrega `assign_agent` (o `assign_team`) con la persona que Sam nombre, para que el plazo de los derechos ARCO tenga dueño. **Responsable nombrado el 2026-11-03:** «Yo, Sam» (Sam, en el chat del Director General, por el selector, a «Responsable de los mensajes legales de vzla@ en Chatwoot»; lo registra el Subdirector). No crea la bandeja ni la autoriza.
 
 ## 4 · Correcto
 
