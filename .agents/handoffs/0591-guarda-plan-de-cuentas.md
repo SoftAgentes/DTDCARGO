@@ -52,7 +52,7 @@ Lo hizo el Subdirector, con turno del Director General. La identidad la pasó é
 | Evidencia | `/srv/ops/evidencias/apply-0510-dtd-cargo-20261103T170254Z` |
 | Ensayo en prueba | `ensayo-0510-0511-prueba-20261103T163820Z` y `0573-evidencia/ensayo-0510/` en las notas: 6 puntos PASÓ, según el Director General. Punto 5: se puso una cuenta sintética con rol `operations` y se devolvió. Sin ejecutar: asientos por pantalla |
 | OK literal de Sam | «Autorizo: prueba y luego producción», en el chat del Director General, a «¿Autorizas aplicar las guardas contables 0510 y 0511 en dtd-cargo y fusionar sus PR #351 y #352?» |
-| Merge | Pendiente: lo hace el Director General después de leer el CI |
+| Merge | la #351, 2026-11-03T18:11:29Z, `6e89a4117`. Hora que pasó el Director General; se anota aquí con la #352 |
 
 **Lo que cambia en el repo:** `retirar-espera.mjs` con ese md5 la saca de `pendingBelowCutoff`, sin declaraciones de símbolos que quitar, y la sella con `ledger` exacta, sha256 `f236c923b22a11886ef2d780a3206243929a410e1c0daf294fb390f9c41dde20`. `migrations-lock.mjs` sale con 0. El `.sql` no se tocó.
 
