@@ -44,7 +44,8 @@ Un reintento con el mismo identificador devuelve la compra, cotización, reclamo
 | Tras traer `main` en `8feae0e8b`, `--maxWorkers=1`: `app/entrar/__tests__`, `conservar-lo-escrito`, `la-accion-lanza`, `reintento-no-duplica`, `portal-intento-sin-duplicar`, `use-action-keeping-draft` | PASÓ, 190 de 190 en 8 archivos |
 | Tras traer `main`: lados de `migrations-baseline.json` y de las declaraciones | Comparados por clave. `main` retiró 0495, 0496, 0497 y sus tres grupos. Queda 0512 con su grupo, sin cambios. Gate: `0 ROJO · 1 AMARILLO declarado` |
 | Tras traer `main`: `0512_portal_intento_sin_duplicar.sql` | Sin cambios, md5 `bdf2326d98f8fe993aedc19235d7ae00` |
-| `next dev`, contrato en `supabase/postgres` con el rol real | **NO EJECUTADO:** sin turno. **PGlite tiene una conexión y corre como superusuario:** no prueba la carrera ni los permisos reales |
+| `next dev` con Server Action real, sobre `2204318f5`, ruta temporal sin commit | PASÓ: `lanza`, `error` y `ok` llevan el mismo identificador, y el envío siguiente a `ok` lleva otro. El POST antes de hidratar llega sin identificador, como dice el diseño. Sin base: esto no prueba el candado |
+| Contrato en `supabase/postgres` con el rol real | **NO EJECUTADO:** va en `verify`. **PGlite tiene una conexión y corre como superusuario:** no prueba la carrera ni los permisos reales |
 | Mutantes de las acciones, demás pruebas vecinas, `tsc` completo, `pnpm verify` | **NO EJECUTADO:** sin turno |
 | Check obligatorio de la PR | **NO DISPONIBLE** mientras apunte a la rama de #360 |
 | Filas por tabla y lectura previa en producción | **NO EJECUTADO:** necesita OK de Sam. No se leyó producción |
