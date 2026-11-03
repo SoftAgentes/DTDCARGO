@@ -24,6 +24,7 @@ import type { PrealertaActionState } from "@/lib/studio/prealertas/types";
 import { PREALERTA_DESCRIPCION_PENDIENTE } from "@/lib/studio/prealertas/types";
 import { updatePrealertaDetalleAction } from "../../proveedores/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const initial: PrealertaActionState = {};
 
@@ -166,6 +167,7 @@ export function PurchaseStepDetalle({
 
       <form
         action={action}
+        onSubmit={submitKeepingDraft(action, pending)}
         className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start"
       >
         <input type="hidden" name="prealertaCode" value={code} />
