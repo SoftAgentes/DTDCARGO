@@ -19,7 +19,7 @@ Sam, 2026-11-02, literal: «Haz esta tarea aquí: "Que un corte de red no borre 
 
 Es el hallazgo que SDD-0596 dejó sin arreglar. SDD-0596 cubre la acción que **responde** con un error. Esta cubre la que **lanza**.
 
-**Límite:** nada que toque portal o registro entra a `main` antes de publicar. Esta rama está apilada sobre la de SDD-0596 (PR #358), porque toca los mismos formularios, y se retiene igual.
+**Límite:** nació apilada sobre la rama de SDD-0596 (PR #358), porque toca los mismos formularios. #358 ya está en `main` y esta PR apunta a `main` desde el 2026-11-03. La integra el Director General.
 
 ## Causa
 
@@ -85,7 +85,7 @@ Cada intento genera un registro nuevo. No hay nada en la base que lo impida.
 | `DataChangeEditor` | `updateMyProfileAction` | El segundo intento responde `no_changes` (`perfil/actions.ts:332`) |
 | `BillingIdentityForm` | `saveBillingIdentityAction` | RPC `portal_upsert_my_billing_identity` |
 | `PurchaseStepDetalle` | `updatePrealertaDetalleAction` | Los campos se sobrescriben. **Los adjuntos no:** cada intento sube el archivo otra vez (`proveedores/actions.ts:100`). Un documento repetido se ve y no daña la compra |
-| `EntrarForm` | `requestMagicLink` | Otro enlace, con límite de envíos (`entrar/actions.ts:109`) |
+| `EntrarForm` | `requestMagicLink` | Otro enlace, con límite de envíos (`entrar/actions.ts:142`) |
 
 ### Sin tocar
 
@@ -135,7 +135,7 @@ Sólo cuando la acción lanzó (`use-action-keeping-draft.ts:69`). El botón des
 ### Dos ajustes para que el aviso sea cierto
 
 - **`CotizacionRequestForm`** no anunciaba sus errores: ahora tiene `role="alert"`. Es el único de los 18 sin él.
-- **`EntrarForm`:** si fallaba «Reenviar enlace», volvía al formulario con el correo vacío mientras el aviso decía que seguía ahí. Ahora conserva el último correo usado. Sirve también con una respuesta de error.
+- **`EntrarForm`:** si fallaba «Pedir otro enlace», volvía al formulario con el correo vacío mientras el aviso decía que seguía ahí. Ahora conserva el último correo usado. Sirve también con una respuesta de error.
 
 ### Descartado
 
@@ -230,4 +230,4 @@ Clasificación con `.claude/skills/revisar-datos-ve/SKILL.md`, limitada a lo que
 
 ## Estado
 
-Implementado en una PR en borrador, apilada sobre #358 y retenida. No se integra antes de publicar.
+Implementado en la PR #360, en borrador, contra `main`. La integra el Director General, antes de #362.

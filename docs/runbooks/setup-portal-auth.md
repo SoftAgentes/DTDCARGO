@@ -36,10 +36,12 @@ Lo que sigue describe el camino por **Supabase Auth con PKCE**, que hoy es el
   (eso se movió con SDD-0276).
 - El TTL medido en el dashboard es **`MAILER_OTP_EXP = 3600 s`** (1 hora). El
   SMTP tiene además **"Minimum interval per user" = 60 s**: dos pedidos seguidos
-  al mismo correo dan 429 y el segundo NO sale.
+  al mismo correo dan 429 y el segundo NO sale. **Acuñar cuenta como pedido:**
+  `generateLink` escribe `recovery_sent_at`, así que el `/otp` de los 60 s
+  siguientes también da 429 (SDD-0597).
 
 **La plantilla Magic Link del dashboard sigue haciendo falta**: es la que se usa
-cuando el camino nuevo falla y se cae al viejo. No la borres.
+cuando se va por el camino viejo. No la borres.
 
 ## Cómo funciona (para entender qué tocar)
 
@@ -95,21 +97,31 @@ Qué necesita cada camino de entrada:
   firmada con el `JWT_SECRET` del stack) y la `NEXT_PUBLIC_SUPABASE_URL` del
   host propio. Deja igual el proveedor Email encendido: es un toggle, no
   infraestructura, y el plan B lo exige.
-- **Plan B (`signInWithOtp` PKCE, `app/entrar/actions.ts:44-50`)**: es el
-  camino al que se cae si acuñar o enviar falla. Necesita **todo** lo de la
+- **Plan B (`signInWithOtp` PKCE, `sendMagicLinkLegacy` en
+  `app/entrar/actions.ts`)**: sirve sólo donde todavía no se acuñó nada, es decir
+  cuando Resend no puede enviar (sin `RESEND_API_KEY`, o con `APP_ENV=staging`),
+  cuando acuñar falla y cuando falta el cliente admin. Necesita **todo** lo de la
   tabla: SMTP, `GOTRUE_URI_ALLOW_LIST` con `/portal/callback` y la plantilla
   Magic Link servida por `auth-templates`. Si falta cualquiera, el plan B no
-  entrega y un fallo del camino normal deja al cliente sin puerta.
+  entrega.
+- **Si Resend falla después de acuñar no hay plan B.** El `/otp` daría 429 por el
+  intervalo mínimo. Además, en producción el SMTP de Auth es Resend con la misma
+  clave (medido el 2026-11-02 por sha256, sin registrarlo), así que una caída de
+  Resend o de esa clave se llevaría también el plan B (inferido, sin provocar
+  ninguna falla). La persona ve lo mismo que si hubiera salido: la pantalla no
+  afirma el envío y le ofrece pedir otro o escribir por WhatsApp. El fallo queda
+  en `mail_logs` con `status=failed`, y `/api/cron/mail-health` avisa al equipo
+  cada 30 min.
 
 Prueba de humo, al levantar el stack y después de cada cambio del `.env` de
 Auth: en el Studio, invita un cliente de prueba (fila en `client_users` con
 status `invited`), pide el enlace desde `/entrar` con ese correo y abre el
 correo en **otro** navegador (o en el teléfono). Debe caer en `/abrir`, apretar
 el botón y entrar al portal: eso prueba el camino `token_hash` y que `verifyOtp`
-llega al GoTrue propio. Para probar el plan B sin romper el normal, pide un
-segundo enlace con `signInWithOtp` desde un script contra staging: el correo
-tiene que salir por el SMTP de GoTrue con la plantilla branded y el enlace a
-`/portal/callback`.
+llega al GoTrue propio. El plan B se prueba en staging, donde `/entrar` va siempre
+por ahí porque Resend está simulado: pide el enlace con el cliente de la semilla y
+espera 60 s entre pedidos. El correo tiene que salir por el SMTP de GoTrue con la
+plantilla branded y el enlace a `/portal/callback`.
 
 Lo que no cambia: `MAILER_OTP_EXP` sigue en 3600 s y el intervalo mínimo en
 60 s porque son los valores medidos en producción, no porque GoTrue los traiga

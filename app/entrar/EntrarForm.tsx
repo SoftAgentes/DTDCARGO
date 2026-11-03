@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type FormEventHandler } from "react";
+import { useEffect, useRef, useState, type FormEventHandler } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
+import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
   ArrowIcon,
   CheckIcon,
@@ -59,7 +60,7 @@ const SIDE_RESUMEN = TRACKING_EN_CONSTRUCCION
  * entrar cuando lo que ocurre es que llega un correo.
  *
  * 🔴 **Por qué `CrearCuentaBoton` es un componente y no JSX suelto.** Tiene que
- * aparecer en DOS sitios: la fila 2 y el estado "Revisa tu correo". Antes de
+ * aparecer en DOS sitios: la fila 2 y el estado de pedido recibido. Antes de
  * SDD-0276 sólo estaba en el primero —y como un enlace de 12,5 px— así que
  * quien no tenía cuenta escribía su correo, veía "Revisa tu correo", no le
  * llegaba nada (el login **no** crea usuarios: `shouldCreateUser: false`) y se
@@ -85,7 +86,7 @@ export function EntrarForm({
     initialMagic,
     "No pudimos confirmar si el enlace salió. Tu correo sigue aquí. Revisa tu bandeja y, si no llegó, pídelo de nuevo.",
   );
-  // Si falla «Reenviar enlace», el formulario vuelve a montarse: su correo es el que ya se usó.
+  // Si falla «Pedir otro enlace», el formulario vuelve a montarse: su correo es el que ya se usó.
   const [lastEmail, setLastEmail] = useState<string | null>(null);
   if (magicState.email && magicState.email !== lastEmail) setLastEmail(magicState.email);
 
@@ -131,9 +132,10 @@ export function EntrarForm({
               WebkitBackdropFilter: "var(--glass-blur)",
             }}
           >
-            {magicState.sent ? (
-              <MagicSent
+            {magicState.requested ? (
+              <MagicRequested
                 email={magicState.email ?? ""}
+                requests={magicState.requests}
                 {...magicFormProps}
                 pending={magicPending}
               />
@@ -194,7 +196,12 @@ export function EntrarForm({
                     </label>
 
                     {magicState.error && (
-                      <PortalFieldError nivel="formulario">
+                      // Fondo sólido: sobre el glass este rojo da 3,9:1, por debajo de AA,
+                      // y es el texto que dice que no salió ningún enlace.
+                      <PortalFieldError
+                        nivel="formulario"
+                        className="rounded-[8px] bg-white px-2.5 py-2"
+                      >
                         {magicState.error}
                       </PortalFieldError>
                     )}
@@ -355,30 +362,41 @@ function CrearCuentaBoton({ className = "" }: { className?: string }) {
 }
 
 /**
- * Estado "Revisa tu correo" tras enviar el enlace.
+ * Estado de pedido recibido.
  *
- * 🔴 El bloque de abajo NO es decorativo: es la salida del callejón. El login no
- * distingue —a propósito, por anti-enumeración— entre un correo con cuenta y uno
- * sin ella, así que esta pantalla se le muestra igual a los dos. Sin esta salida,
- * quien no tiene cuenta se queda mirando un "te enviamos un enlace" que nunca va
- * a llegar. Y como se muestra SIEMPRE, no revela si el correo existe.
+ * 🔴 Esta pantalla no puede afirmar que el correo salió (SDD-0597). El login no
+ * distingue —a propósito, por anti-enumeración— entre un correo con cuenta, uno
+ * sin ella y un envío que falló, así que se les muestra igual a los tres. Por eso
+ * va en condicional, y por eso dice "pedido recibido", que es lo único que se sabe.
+ *
+ * 🔴 El bloque de abajo NO es decorativo: es la salida del callejón. Quien no tiene
+ * cuenta puede crearla, y quien ya es cliente tiene a quién escribirle en vez de
+ * crear una segunda cuenta. Y como se muestra SIEMPRE, no revela si el correo existe.
  *
  * Se EXPORTA sólo para poder probarlo suelto: `fireEvent.submit` no dispara el
  * `useActionState` de React 19 en jsdom (medido en este repo), así que llegar
  * acá desde el formulario dentro de un test es imposible. Mismo recurso que
  * `StepDone` en `app/registro/RegisterForm.tsx`.
  */
-export function MagicSent({
+export function MagicRequested({
   email,
+  requests = 1,
   action,
   onSubmit,
   pending,
 }: {
   email: string;
+  /** Pedidos seguidos: es lo que hace notar en pantalla que un reintento se recibió. */
+  requests?: number;
   action: (formData: FormData) => void;
   onSubmit?: FormEventHandler<HTMLFormElement>;
   pending: boolean;
 }) {
+  // El formulario de donde venía el foco ya no existe. Sin esto, el foco cae en
+  // `body` y un lector de pantalla no se entera del cambio.
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => headingRef.current?.focus(), []);
+
   return (
     <div className="flex flex-col justify-center flex-1 gap-3">
       <span
@@ -388,40 +406,69 @@ export function MagicSent({
         <MailIcon size={26} />
       </span>
       <h1
-        className="text-[24px] sm:text-[26px] leading-[1.1] text-ink"
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-[24px] sm:text-[26px] leading-[1.1] text-ink outline-none"
         style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
       >
-        Revisa tu correo
+        Si tienes acceso, revisa tu correo
       </h1>
-      <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[34ch]">
-        Te enviamos un enlace de acceso
+      <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[46ch]">
+        Recibimos tu pedido
         {email ? (
           <>
-            {" "}a <strong className="text-ink">{email}</strong>
+            {" "}para <strong className="text-ink [overflow-wrap:anywhere]">{email}</strong>
           </>
         ) : null}
-        . Ábrelo y entrarás automáticamente — sin contraseña. Vale por una hora, es
-        de un solo uso y da igual dónde lo abras. Si no lo ves, revisa spam o pídelo
-        de nuevo.
+        . Si ese correo tiene acceso al portal, debería llegarte un enlace en un par
+        de minutos. Ábrelo y entrarás automáticamente — sin contraseña. Vale por una
+        hora, es de un solo uso y da igual dónde lo abras. Si no lo ves, revisa spam
+        o pide otro.
       </p>
-      <form action={action} onSubmit={onSubmit} className="mt-1 flex items-center gap-4">
+      <form action={action} onSubmit={onSubmit} className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
         <input type="hidden" name="email" value={email} />
         <button
           type="submit"
-          disabled={pending}
+          // `aria-disabled` y no `disabled`: un botón deshabilitado suelta el foco a
+          // `body` (medido en navegador; jsdom no lo ve), y el teclado perdería el
+          // sitio justo al reintentar. El doble envío se frena en el clic.
+          aria-disabled={pending}
           aria-busy={pending}
-          className="text-[13px] font-semibold text-wine-text hover:text-wine-deep disabled:opacity-60"
+          onClick={(event) => {
+            if (pending) event.preventDefault();
+          }}
+          // A11Y-01: es el camino de reintento, y se usa sobre todo desde el teléfono.
+          className="inline-flex items-center min-h-[44px] sm:min-h-[32px] text-[13px] font-semibold text-wine-text hover:text-wine-deep aria-disabled:opacity-60"
         >
-          {pending ? "Reenviando…" : "Reenviar enlace"}
+          {pending ? "Pidiendo…" : "Pedir otro enlace"}
         </button>
-        <span className="inline-flex items-center gap-1.5 text-[12.5px] text-grey-500">
-          <CheckIcon size={13} /> Enviado
+        <span
+          role="status"
+          className="inline-flex items-center gap-1.5 text-[12.5px] text-grey-700"
+        >
+          <CheckIcon size={13} className="flex-shrink-0" />
+          {requests > 1
+            ? `Recibimos ${requests} pedidos. Usa el último enlace que te llegue.`
+            : "Pedido recibido"}
         </span>
       </form>
 
       <div className="mt-4 rounded-[10px] border border-grey-300 bg-white/60 p-4">
         <p className="text-[12.5px] text-grey-700 leading-[1.5]">
-          ¿No te llega nada? Puede que todavía no tengas cuenta con nosotros.
+          ¿No te llega nada? Puede que ese correo no tenga cuenta con nosotros, o que
+          el envío haya fallado.
+        </p>
+        <p className="mt-2 text-[12.5px] text-grey-700 leading-[1.5]">
+          Si ya eres cliente,{" "}
+          <a
+            href={buildWhatsAppLink("Hola DTD Cargo, soy cliente y no me llega el enlace para entrar a mi portal.")}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-wine-text underline underline-offset-2 hover:text-wine-deep"
+          >
+            escríbenos por WhatsApp
+          </a>
+          . Si es tu primera vez, crea tu cuenta.
         </p>
         <CrearCuentaBoton className="mt-3" />
       </div>
