@@ -276,7 +276,7 @@ En la de la 0497: 0 sesiones esperando locks, 0 transacciones largas, 13 funcion
 
 ## COMMITS
 
-`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · `dab79b99f` y `1e31a642f` rol real y control posterior · `db84f6ffd` y `24d970e1e` evidencia y ensayo · `fda48edb1` límites hasta el COMMIT y control sin procedencia · `b58e36bd3` segunda revisión y medición de `accounts` · `493b8659b` sale el filtro · `9620a283b` guion · `7982e7ff8` prueba de los límites · `2a56eaef6` decisiones de Sam y blob final · `cb51bfd8e` rehacer prueba, pasos 1 a 3 · `0cef65a90` y `66e93cf57` prueba rehecha · `5378fb9ca` tercer emisor y desarme · `c16556096` ensayo y control de la ACL · `a0cbbb179` Vitest del contrato y del desarme · más el de la cita de la spec y el resultado de `verify`.
+`3d7c681dc` pines · `cf7810fe5` motivo sin SET en la cabecera · `8fa1c3dc8` rojos de `sql-tests` · `f80a0fce2` y `3a5c47cca` huellas, spec y handoff · `6faefc691` pruebas por salida · `4c3501b1b` registro en D2/M4 · `1e8511405` cabecera, prueba del runner y de estructura · `7d58c604d` conteo de legado y prueba con el rol real · `66b755c13` merge de main con la #345 · `c09acce20` filtro de la guarda · `dab79b99f` y `1e31a642f` rol real y control posterior · `db84f6ffd` y `24d970e1e` evidencia y ensayo · `fda48edb1` límites hasta el COMMIT y control sin procedencia · `b58e36bd3` segunda revisión y medición de `accounts` · `493b8659b` sale el filtro · `9620a283b` guion · `7982e7ff8` prueba de los límites · `2a56eaef6` decisiones de Sam y blob final · `cb51bfd8e` rehacer prueba, pasos 1 a 3 · `0cef65a90` y `66e93cf57` prueba rehecha · `5378fb9ca` tercer emisor y desarme · `c16556096` ensayo y control de la ACL · `a0cbbb179` Vitest del contrato y del desarme · `26fe3f84f` cita de la spec y `verify` · `501c11350` aislados · `cb96ab571` merge de main · más el de este registro.
 
 ## PR / BRANCH
 
@@ -286,13 +286,12 @@ Rama propia, PR en borrador contra `main`. Sin fusionar.
 
 - Que Sam vea el cambio de mecanismo D2/M4 al pedirle el OK nominal.
 - Que Sam vea en el OK nominal la regla exacta: toda escritura de una factura o de un asiento con factura afirma el par al confirmar.
-- **Rehacer prueba con el blob final:** hecho, pasos 1 a 10. Ver «Rehacer prueba». Falta la parte de Sam.
-- Parte de Sam en prueba: R10 y los pasos 1, 2 y 7. El guion ya está listo; se lo pasa el Director. **Antes hay que poner su IP en las listas de prueba:** ver FUERA DE ALCANCE; hoy le da 403.
-- Después de la parte de Sam, y no antes: comprobar en la base lo que hizo, y correr los pasos 3, 4, 5, 6, 8 y 9 del bloque 7. NO EJECUTADOS.
-- Revisión de Sam del guion. La cabeza final será la que lleve ese texto.
-- CI: PASÓ sobre `26fe3f84f`, los 19 pasos. La cabeza final todavía puede cambiar con la revisión de Sam, y entonces toca leerlo otra vez.
+- **Rehacer prueba con el blob final:** hecho, pasos 1 a 10. Ver «Rehacer prueba».
+- Parte de Sam en prueba, R10 y los pasos 1, 2 y 7: **omitida, no aprobada.** Literal: «Sí, omítela». Ver «`verify` de la cabeza fusionada, pasos del Worker y R10».
+- Lo que el Director General le pregunta a Sam: su opinión sobre el texto del registro y si el mensaje del cobro rechazado alcanza.
+- CI de la cabeza final: PASÓ sobre `cb96ab571`, los 19 pasos. El commit de este registro solo cambia documentos, y su CI hay que leerlo aparte.
 - M1 y M4: hechos, sin aplicar nada. El ensayo con el rol real y la Vitest pasaron. Ver «Tercer emisor y marcha atrás».
-- `pnpm verify`: FALLÓ sobre `a0cbbb179`, y el Director General decidió no repetirlo. Lo que dio rojo pasa aislado; `TransportistasPanel` se confirma al fusionar `main`. Ver «`pnpm verify` sobre `a0cbbb179`».
+- `pnpm verify`: FALLÓ sobre `cb96ab571`, exit 1, por un spec de `e2e`. Si eso frena la fusión lo decide el Director General.
 
 ## Ensayo en prueba, 0492–0497 (2026-11-01, 21:12–21:55Z)
 
@@ -727,6 +726,40 @@ Mi primer intento del segundo no corrió: el vigía se contó a sí mismo, porqu
 
 Logs: `verify-a0cbbb179.log`, `ci-41494684527.log`, `ci-41510867512.log`, `aislado-e2e-cabeza.log` y `aislado-carga.log` en `0573-evidencia/`.
 
+## `verify` de la cabeza fusionada, pasos del Worker y R10 (2026-11-02 y 03)
+
+Fusión de `05c51067b`, que trae #348, #346 y `f59e662de`: cabeza `cb96ab571`. Blob de la 0497 `25dd38460aa2`, md5 `77d3ad861b328bfa5e67dcf7b7fa42cf`, sin cambios. Respecto de main, ningún código de producto difiere: solo `reverso-al-anular-factura.migration.test.ts`, `scripts/run-sql-tests.mjs` y su prueba, más documentos, SQL y operaciones.
+
+**`pnpm verify` sobre `cb96ab571`: FALLÓ, exit 1.** 23:35:57Z a 00:21:22Z, 45 min, 16 de 17 pasos medidos, con turno del Director General. Docker arriba toda la corrida, por muestreo de cada minuto, y 0 corridas ajenas, por muestreo de cada 2 minutos. Sin errores de memoria en la salida. Al terminar: árbol limpio y `tsconfig.json` sin `.next-verify`.
+
+| Paso | Estado | Detalle |
+|---|---|---|
+| `harness`, `lint`, `rsc-boundary`, `typecheck`, `edge-functions` | PASÓ | `harness` con 3 SKIP: el doble de docker no corre en Windows |
+| `test` | PASÓ, en el primer intento | 13330 pasadas, 1 SKIP. **`TransportistasPanel` pasó,** ya con `f59e662de` |
+| `docs:check`, `numbering`, `feature-constants`, `components:check`, `governance:check` | PASÓ | |
+| `migrations-applied` | NO DISPONIBLE | SKIP: sin `.env.local`; no se copiaron secretos |
+| `pending-migration-symbols` | PASÓ | 0 ROJO, 3 AMARILLO declarados |
+| `sql-tests` | PASÓ | 249 contratos en `postgres:17` |
+| `schema-rebuild` | PASÓ | 491 migraciones: 473 aplicadas desde cero y 18 sólo-ledger |
+| `e2e` | **FALLÓ** | Dos intentos: 1 fallido y 1 flaky, y 1 fallido y 4 flaky. 218 y 215 pasadas, 20 SKIP. **`sin-scroll-horizontal.spec.ts:119` falló en chromium en los dos,** con su reintento, y pasó en mobile-chrome y mobile-safari. Flaky: `calculadora-semantic-colors.spec.ts:53` en el primero; `auth.spec.ts:81` y tres de `company-photo-carousel.spec.ts` en el segundo. Además, «worker-N process did not exit within 300000ms» en cada intento |
+| `build` | PASÓ | |
+
+**Memoria.** Al arrancar, 9,78 GB. Mínimo por minuto: 2,97 GB a las 23:40:59Z, en 46 muestras; ninguna bajo 1 GB. Mínimo cada 5 s: 0,19 GB a las 23:40:09Z, durante `test`, que pasó igual. Desde las 23:55Z, mientras corría `e2e`, el mínimo por minuto fue 9,30 GB: **este rojo ya no se explica por falta de memoria.**
+
+**`sin-scroll-horizontal.spec.ts:119`.** `waitForURL` no ve `/registro` en 20 s después de pulsar Enter en el CTA del inicio. En el primer tiro la espera ve tres navegaciones a `/`, y sigue en esa página. Con 8 workers falla, y con 1 pasó: 2 de 2 sobre `26fe3f84f`. **No sé la causa;** que sea contención de `next dev` con 8 workers es una inferencia, sin medir. No lo corrí contra `origin/main`: la condición era que fallara aislado. La rama no toca `e2e/`, `app/` ni `components/`.
+
+**CI de `cb96ab571`, run `41543569983`: PASÓ, 23:12–23:51Z.** Los 19 pasos con `success`, leídos uno por uno, con Unitarios (13330 pasadas, 1 SKIP) y Build sin secretos. Este CI no corre `e2e`, `sql-tests` ni `schema-rebuild`.
+
+**Docker.** Encendido para este turno: sin él, `sql-tests` y `schema-rebuild` dan SKIP. Se apagó a las 23:16:06Z, con salida ordenada, 199,5 s después de arrancarlo con `docker desktop start --timeout 200`: la inferencia, sin reproducirla, es que lo apagó esa opción. Sin ella siguió arriba. La parada de las 20:18Z, antes de que yo lo tocara, sigue sin explicar. Queda encendido, a pedido del Director General.
+
+**La parte de Sam: omitida, no aprobada.** Literal: «Sí, omítela», a «¿Omito tu revisión y sigo solo con la medición?», 2026-11-03 ~00:05Z, leído por el Director General. R10 y los pasos 1, 2 y 7 quedan sin ojo humano, además de 3, 4, 5, 6, 8 y 9. R1 a R9 y las gemelas de 1, 2, 7a y 7b son lo que hay, y no son su revisión. No autoriza aplicar ni publicar. Sam aceptó solo la línea de `/privacidad`, literal: «Sí, va bien», a «¿Te parece bien "Shipping Mark o número de envío" en /privacidad?».
+
+**Pasos 3, 4, 5, 6, 8 y 9, en prueba, 01:10–01:15Z:** 30 PASÓ y 1 FALLÓ, que es de mi comparación: esperaba 3 decimales en `weight_kg` y `excess_weight_kg`, que guardan 2; leída directo, la fila coincide. Antes corrí el modo de solo lectura: 18 de 18. Resultados por paso, en el guion. `F-0573-1005`, `F-0573-3001` y `F-0573-5001` siguen sin tocar, medido en la base. Se escribió solo lo del guion: `F-0573-1006` anulada con su recibo anulado, el asiento manual `A-2026-0179`, la tasa VES y el congelado de `WR-2026-0001`.
+
+**R10 automática, 01:16Z:** el registro pasó, y dejó `DTD-9040` con 1 acceso activo, de 48 a 49 en `clients` y de 2 a 3 en `client_users`. La línea de `/privacidad` está a la vista. Mi primer selector no la encontró, 12 PASÓ y 1 FALLÓ, porque esa fila no es `p` ni `li`; la leí aparte. El navegador no opina sobre el texto: eso sigue NO EJECUTADO.
+
+Logs en `0573-evidencia/`: `verify-cabeza-fusionada.log`, su `.memoria.csv`, `ci-41543569983.log`; en `rehacer/`, `parte-ensayo.out`, `parte-correr.out`, `r10-auto.out` y las capturas.
+
 ## FUERA DE ALCANCE DETECTADO
 
 - **El cobro rechazado no dice por qué.** Quien cobra ve «No se pudo registrar el cobro.», y nada más. `COLLECTION_REJECTIONS` (`lib/studio/collections-actions.ts`) no tiene los tres mensajes de la 0497: «La venta original requiere revisión.», «La relación contable de la factura requiere revisión.» y «El par de anulación requiere revisión.». Es un cambio de producto, fuera de esta PR: lo decide el Director con lo que diga Sam en el 7b. **No revisé los otros caminos** que escriben una factura, como anular un recibo o renombrar la marca.
@@ -757,7 +790,7 @@ Logs: `verify-a0cbbb179.log`, `ci-41494684527.log`, `ci-41510867512.log`, `aisla
 - **La 0495 está en el ledger de producción pero sigue en `pendingBelowCutoff` y sin sellar.** Falta su cierre del runbook §6.
 - **Una factura emitida entre el apply y la web nueva queda sin asiento.** Conviene un conteo de control después de publicar, con OK. Revisar si hace falta un camino para asentarla.
 - `0497_…_carrera.test.sql` imprime evidencia cruda de 500 KB por corrida. Ya no rompe, pero ensucia.
-- **`e2e/sin-scroll-horizontal.spec.ts:119` falló en los dos últimos `verify`,** en los dos intentos de cada uno, y no pertenece a esta rama. Aislado pasa las dos veces, con 38 a 48 s de un límite de 60. Espera `/registro`, una de las dos pantallas en uso. Un rojo que se repite en cada `verify` deja de distinguir un fallo nuevo, justo en esa pantalla.
+- **`e2e/sin-scroll-horizontal.spec.ts:119` falló en los tres últimos `verify`,** en los dos intentos de cada uno, y no pertenece a esta rama. El último tenía memoria de sobra. Aislado pasa las dos veces, con 38 a 48 s de un límite de 60. Espera `/registro`, una de las dos pantallas en uso. Un rojo que se repite en cada `verify` deja de distinguir un fallo nuevo, justo en esa pantalla.
 
 ## HANDOFF AL DIRECTOR
 

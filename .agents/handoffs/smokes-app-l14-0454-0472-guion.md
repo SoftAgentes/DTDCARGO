@@ -24,7 +24,7 @@
 | 4 | Borrar un cliente: revoca el Portal y deja auditoría (0454, SDD-0467; 0455, SDD-0469) | Aplicadas el 2026-09-15 | El cierre de SDD-0467 y la evidencia que falta en SDD-0469 |
 | 5 | Tesorería: pagar y anular órdenes de pago a proveedores (0468, SDD-0489; 0470, SDD-0492) | 0468 aplicada el 2026-09-19 a las 20:05; 0470 el 2026-09-19 a las 22:13 | El último paso del release de SDD-0489, que es este smoke |
 | 6 | Cobranzas: cobrar, identificar un pago sin referencia y anular un recibo (0467, SDD-0488) | Aplicada el 2026-09-18 a las 22:19 | El último paso del release de SDD-0488, que es este smoke |
-| 7 | Portal y registro primero; después facturas, cobros y libro diario, con la web nueva y la base nueva, en prueba (0497, SDD-0573). Versión corta: tú, R10 y los pasos 1, 2 y 7 | **Sin aplicar en producción** | Tu «aprobado en prueba: R10 y pasos 1, 2 y 7», comprobado en la base, que el Director cita al pedirte el OK nominal. No lo reemplaza |
+| 7 | Portal y registro primero; después facturas, cobros y libro diario, con la web nueva y la base nueva, en prueba (0497, SDD-0573). **Omitiste tu parte: R10 y los pasos 1, 2 y 7** | **Sin aplicar en producción** | Nada con tu aceptación. El Director cita tu omisión y lo medido al pedirte el OK nominal, y no lo reemplazan |
 
 Los bloques 5 y 6 son independientes de los bloques 1 a 4 y entre sí: no comparten cliente, factura
 ni proveedor, y puedes hacerlos en cualquier orden o en otro día. Las horas son de Caracas.
@@ -439,16 +439,18 @@ logra entrar o cobrar, **para el bloque y avísame**: eso sí es una regresión 
 
 ## Bloque 7 · Ensayo en prueba: portal y registro primero, después facturas (SDD-0573)
 
-**Unos 15 minutos para ti.** Elegiste, literal, «Versión corta, 10 min», y eso no cambia: son los pasos
-1, 2 y 7. Se suman 5 minutos de portal y registro, R10, porque es lo único en uso real y va primero.
-Lo demás lo corre la sesión Worker de la SDD-0573 con un navegador automático, comparando contra la
-base. Eso no cuenta como aprobado por ti: abajo dice qué aceptación se omite.
+**Omitiste tu parte.** Literal: «Sí, omítela», a «¿Omito tu revisión y sigo solo con la medición?»,
+2026-11-03 ~00:05Z, leído por el Director General. R10 y los pasos 1, 2 y 7 quedan **omitidos, no
+aprobados,** y eso no autoriza aplicar ni publicar. Solo aceptaste una línea, la de `/privacidad`: está abajo,
+en R10. El texto de tu parte queda como referencia, por si quieres hacerla después. Lo demás lo corrió la
+sesión Worker de la SDD-0573 con un navegador automático, comparando contra la base: abajo dice qué
+aceptación se omite.
 
 Lo preparó esa sesión el 2026-11-01 y 02, sobre la imagen
 `prueba-sha-db84f6ffdfae5cad8222ef99b81f58f52cf87d5d`, con la 0497 final ya aplicada en prueba. Los pasos 1,
 2, 7a y 7b ya los recorrí el 2026-11-02 con un navegador automático, en facturas gemelas: `F-2026-0034`,
 `F-0573-1008`, `F-0573-5003` y `F-0573-5002`. Salieron como dice abajo, y las tuyas siguen sin tocar. Lo que
-pido es tu ojo: que lo que ves tenga sentido para quien factura.
+falta es tu ojo: que lo que se ve tenga sentido para quien factura.
 
 **Qué cambia, en una frase.** Desde la 0497, anular una factura deja su asiento de venta intacto y
 crea un **reverso** que lo cancela, y la base deja de aceptar asientos automáticos editados a mano.
@@ -478,7 +480,8 @@ siguiente.
 Entre `929cabf51` y `main`, ningún archivo de producto cambia en `app/portal`, `app/registro` ni
 `lib/portal`; los alcanzan el consentimiento de cookies, un CTA móvil y tipos. Aun así va primero:
 `smoke-web.sh` no mira estas rutas, y publicar podría romperlas con todo en verde. R1 a R9 ya los corrió el
-Worker el 2026-11-02, con un navegador automático y contra la base; **R10 es tuyo.**
+Worker el 2026-11-02, con un navegador automático y contra la base. **R10 era tuyo y lo omitiste;** abajo está
+su pasada automática, que no reemplaza tu opinión.
 
 | # | Quién | Pantalla | Qué debe pasar | Obtenido |
 |---|---|---|---|---|
@@ -496,14 +499,29 @@ Worker el 2026-11-02, con un navegador automático y contra la base; **R10 es tu
 plan B, y Auth lo rechaza: `429`, «you can only request this after 59 seconds», porque acuñar ya contó como
 envío. La pantalla igual dice «Revisa tu correo». No te frena: R10 no entra al portal.
 
-R10. [ ] **Tu ojo sobre el registro** (5 min). En una ventana de incógnito:
+R10. [ ] **Tu ojo sobre el registro** (5 min, omitido). En una ventana de incógnito:
    - `/privacidad`: cambió una línea, de «código de rastreo» a «Shipping Mark o número de envío». Es texto
      legal: dime si te parece bien.
    - `/registro`: llénalo con «PRUEBA Sam» y datos inventados, no los tuyos: cédula `31000573`, un WhatsApp y
      un correo cualquiera. Al entrar verás el aviso de cookies; elige lo que quieras. Dime si se entiende y si
      algo te frena.
 
-### Tu parte, con contabilidad
+**R10, pasada automática, 2026-11-03, 01:16Z, sin cuenta real.** No reemplaza tu opinión sobre el texto: esa
+te la pregunta el Director.
+
+| Qué | Obtenido |
+|---|---|
+| `/privacidad`, como la ve un visitante | Fila «Seguimiento de envío», literal: «El Shipping Mark o el número de envío que nos indicas al consultar con nuestro equipo el estado de tu carga.» «código de rastreo» ya no aparece |
+| Tu aceptación de esa línea | Literal: «Sí, va bien», a «¿Te parece bien "Shipping Mark o número de envío" en /privacidad?». **Cubre solo esa línea.** La pregunta la resumía: la frase completa es la de la fila de arriba |
+| `/registro` con «PRUEBA Sam», cédula `31000573` y datos inventados | PASÓ. `DTD-9040`, `V-31000573`, canal portal, aprobado. `clients` de 48 a 49 y `client_users` de 2 a 3: una fila en cada una, con 1 acceso activo. Salió el aviso de cookies; elegí Rechazar. 0 errores de página |
+| Si se entiende y si algo frena | NO EJECUTADO: el navegador no opina |
+
+### Tu parte, con contabilidad: omitida
+
+No la hiciste: `F-0573-1005`, `F-0573-3001` y `F-0573-5001` siguen como se sembraron, medido en la base el
+2026-11-03 a las 01:15Z. Hasta que corrí mis pasos, a las 01:10Z, la cuenta de contabilidad no tenía accesos
+desde el 2026-11-02 a las 14:42Z. Lo que hay son las gemelas de arriba, con un navegador automático; no son tu
+revisión.
 
 1. [ ] **Emitir** (4 min). Facturación › «+ Nueva factura».
    - Shipping Mark `DTD-9001`, Nombre «Cliente PRUEBA C.A.», Moneda USD.
@@ -547,34 +565,44 @@ R10. [ ] **Tu ojo sobre el registro** (5 min). En una ventana de incógnito:
      de cobrarse hasta volver el valor. La guarda sobre el plan de cuentas es una tarea aparte; tu
      condición es que esté antes del uso real del ERP.
 
-### Lo que corre el Worker después de tu parte
+### Lo que corrió el Worker, sin tu parte
 
-No te toca. Cada número se saca de la base justo antes de leer la pantalla, y se comparan los dos. La
-columna «Obtenido» se llena cuando corra, ni antes ni con tu parte.
+Corrió el 2026-11-03, 01:10–01:15Z, con un navegador automático, después de `verify` y con 0 corridas pesadas.
+Cada número se saca de la base justo antes de leer la pantalla, y se comparan los dos. **30 PASÓ y 1 FALLÓ, que
+es de mi comparación:** ver la tarifa, en el paso 9.
+
+**Cambió el alcance de los pasos 6 y 9,** porque tu parte no se hizo y tus tres facturas siguen sin tocar.
+`F-0573-1005` no se lista en «Por contabilizar» porque sigue emitida con su venta viva, no porque esté anulada.
+El saldo del paso 9 cuenta las tres como vivas. Lo esperado sale de la base, así que no hubo que cambiar ningún
+valor; cambia lo que significan.
 
 | Paso | Qué hace, con qué cuenta | Esperado | Obtenido |
 |---|---|---|---|
-| 3 | Contabilidad: cobra 5.00 de `F-0573-1006`, intenta anular, anula el recibo y anula la factura | «Anular» deshabilitado con «Tiene 1 cobro(s) vivo(s): para anularla, anúlalos primero en Cobranzas.»; al final, anulada, con venta y reverso | Pendiente |
-| 4 | Contabilidad: libro diario, venta de `F-0573-1007` | «Anular» deshabilitado con «Asiento automático o vinculado protegido. Revísalo desde la factura; no admite cambios manuales.» | Pendiente |
-| 5 | Contabilidad: anula un asiento «PRUEBA ensayo 0573: relleno» | «Asiento A-2026-NNNN anulado», y en la base `anulado` | Pendiente |
-| 6 | Contabilidad: «Por contabilizar» | «Factura: X sin asiento de N vivas», igual a la consulta a la base; lista las sin venta y `F-0573-5001`, y no `F-0573-1005` | Pendiente |
-| 6 | Contabilidad: Reportes › «Ingreso del período», mes en curso | Cifra grande = suma de `base_amount` de las vivas emitidas en el período. Control 4.5 = `credit - debit` de los asientos de venta y reverso vivos. **El control tiene que decir «Requiere revisión»,** porque prueba tiene ventas anuladas sembradas | Pendiente |
-| 8 | Comercial: `/studio/facturacion`, `/studio/contabilidad`, `/studio/cobranzas` | Cada una vuelve al Dashboard | Pendiente |
-| 9 | Admin: saldo de `DTD-9001` (0492) | «Saldo abierto» = suma de `total_amount - paid_amount` de sus facturas vivas, igual a `client_outstanding` | Pendiente |
-| 9 | Admin: Contabilidad › «Tasas de cambio» (0495) | Primero, factura en VES sin tasa: no se crea, con «Falta la tasa de bolívares para el AAAA-MM-DD: escríbela aquí o cárgala en Admin › Tasas.». Después, registra una tasa sintética y `fx_rate_on` la devuelve | Pendiente |
-| 9 | Admin: Almacén CN › «Tarifa · a facturar» (0496), con una recepción y una tarifa sintéticas: 2,5 m³, 1.500 kg, 100.00 por m³, mínimo 50.00 | Vista previa: a facturar **250.00** y **250 kg** de exceso. Congelar: «Tarifa de WR-… congelada: a facturar $250.00», y una fila en `shipment_rate_snapshots` con esos números | Pendiente |
+| 3 | Contabilidad: cobra 5.00 de `F-0573-1006`, intenta anular, anula el recibo y anula la factura | «Anular» deshabilitado con «Tiene 1 cobro(s) vivo(s): para anularla, anúlalos primero en Cobranzas.»; al final, anulada, con venta y reverso | PASÓ. Recibo `R-2026-0002`; «Anular» deshabilitado con ese texto; recibo anulado; `F-0573-1006` anulada, con venta y reverso, según la base. El aviso de la anulación no lo capturé |
+| 4 | Contabilidad: libro diario, venta de `F-0573-1007` | «Anular» deshabilitado con «Asiento automático o vinculado protegido. Revísalo desde la factura; no admite cambios manuales.» | PASÓ. `A-2026-0007`: deshabilitado, con el motivo |
+| 5 | Contabilidad: anula un asiento «PRUEBA ensayo 0573: relleno» | «Asiento A-2026-NNNN anulado», y en la base `anulado` | PASÓ. «Asiento A-2026-0179 anulado», y en la base `anulado` |
+| 6 | Contabilidad: «Por contabilizar» | «Factura: X sin asiento de N vivas», igual a la consulta a la base; lista las sin venta y `F-0573-5001`, y no `F-0573-1005` | PASÓ. 8 sin asiento de 23 vivas y 3 anuladas aparte, igual a la base. `F-0573-5001` «Asiento anulado», `F-0573-3001` «Sin asiento», y `F-0573-1005` no se lista |
+| 6 | Contabilidad: Reportes › «Ingreso del período», mes en curso | Cifra grande = suma de `base_amount` de las vivas emitidas en el período. Control 4.5 = `credit - debit` de los asientos de venta y reverso vivos. **El control tiene que decir «Requiere revisión»,** porque prueba tiene ventas anuladas sembradas | PASÓ. Del 2026-11-01 al 03: cifra grande 230.00 y mayor 4.5 150.00, iguales a la base. El control dice «Requiere revisión» |
+| 8 | Comercial: `/studio/facturacion`, `/studio/contabilidad`, `/studio/cobranzas` | Cada una vuelve al Dashboard | PASÓ. Las tres terminan en `/studio/dashboard` |
+| 9 | Admin: saldo de `DTD-9001` (0492) | «Saldo abierto» = suma de `total_amount - paid_amount` de sus facturas vivas, igual a `client_outstanding` | PASÓ. USD 175.00, 19 facturas. Igual a la suma de la base y a `client_outstanding`, leído con la identidad de admin |
+| 9 | Admin: Contabilidad › «Tasas de cambio» (0495) | Primero, factura en VES sin tasa: no se crea, con «Falta la tasa de bolívares para el AAAA-MM-DD: escríbela aquí o cárgala en Admin › Tasas.». Después, registra una tasa sintética y `fx_rate_on` la devuelve | PASÓ. En VES sin tasa, el error literal con `2026-11-03`, y 60 facturas antes y después. «Tasa registrada», y `fx_rate_on` devuelve 100 |
+| 9 | Admin: Almacén CN › «Tarifa · a facturar» (0496), con una recepción y una tarifa sintéticas: 2,5 m³, 1.500 kg, 100.00 por m³, mínimo 50.00 | Vista previa: a facturar **250.00** y **250 kg** de exceso. Congelar: «Tarifa de WR-… congelada: a facturar $250.00», y una fila en `shipment_rate_snapshots` con esos números | PASÓ en pantalla y en la base. `WR-2026-0001`: vista previa 250.00 y 250 kg; «Tarifa de WR-2026-0001 congelada: a facturar $250.00»; fila `casa, 100.00, 50.00, 2.500, 1500.00, 250.00, 250.00`. **El FALLÓ es mío:** mi esperado traía 3 decimales, y `weight_kg` y `excess_weight_kg` guardan 2. Los números coinciden |
 
 ### Qué aceptación humana se omite
 
-Por tu elección, nadie con criterio de negocio mira las pantallas de los pasos 3, 4, 5, 6, 8 y 9. El
-navegador comprueba que está el texto esperado y que el número coincide con la base. **No comprueba:**
+Literal: «Sí, omítela». Nadie con criterio de negocio miró R10 ni los pasos 1, 2, 3, 4, 5, 6, 7, 8 y 9. R1 a R9
+y las gemelas de 1, 2, 7a y 7b son lo que hay, con un navegador automático: no son tu revisión. El navegador
+comprueba que está el texto esperado y que el número coincide con la base. **No comprueba:**
 
+- que el registro se entienda, ni si algo frena a quien lo llena;
+- que emitir y anular una factura tengan sentido para quien factura, ni si «No se pudo registrar el cobro.» le
+  alcanza a quien cobra;
 - que los mensajes de Cobranzas y del libro diario se entiendan;
 - que «Ingreso del período», «Por contabilizar» y el saldo del cliente tengan sentido para quien
   factura;
 - que el cajón de tarifa se entienda, ni que su vista previa alcance para decidir antes de congelar.
 
-Eso queda sin aceptar, y no se registra como aprobado por ti. Puedes mirarlo en prueba cuando quieras.
+Eso queda sin aceptar, y no se registra como aceptado por ti. Puedes mirarlo en prueba cuando quieras.
 
 ### Qué no cubre este bloque
 
@@ -590,18 +618,16 @@ Eso queda sin aceptar, y no se registra como aprobado por ti. Puedes mirarlo en 
 ### Qué queda en prueba después
 
 Las facturas y asientos de este bloque, sus recibos, las dos cuentas nuevas, la tasa, la recepción y la
-tarifa sintéticas, y el cliente y las facturas del recorrido de portal y registro. Nada de esto toca
-producción. Si después quieres dejar prueba como estaba, hay un respaldo de antes del ensayo en el
+tarifa sintéticas, y los clientes y las facturas del recorrido de portal y registro, incluido `DTD-9040`, de
+R10. Nada de esto toca producción. Si después quieres dejar prueba como estaba, hay un respaldo de antes del ensayo en el
 servidor; volver a él borra todo lo que se haya hecho desde entonces.
 
-### Cómo me respondes este bloque
+### Cómo queda este bloque
 
-Un solo mensaje al Director, con el paso y el texto exacto de lo que no coincidió, y la frase
-**«aprobado en prueba: R10 y pasos 1, 2 y 7»** si todo sale bien. Antes de registrarla, el Worker comprueba
-en la base de prueba que esos pasos ocurrieron: tu registro de R10, tu factura nueva con su venta,
-`F-0573-1005` anulada con su reverso, `F-0573-3001` pagada, y `F-0573-5001` todavía emitida y sin recibo.
-Eso **no** autoriza aplicar nada en producción: el OK nominal de 0496 y 0497 te lo pide el Director aparte,
-con este resultado y con lo que el ensayo midió.
+No hace falta que respondas nada de esta parte: la omitiste. Lo que sigue abierto te lo pregunta el Director.
+Si un día haces tu parte, el Worker comprueba en la base de prueba que ocurrió antes de registrarla. Nada de
+esto autoriza aplicar en producción: el OK nominal de 0496 y 0497 te lo pide el Director aparte, con lo que el
+ensayo midió y con lo que quedó sin aceptar.
 
 ## Cómo me respondes
 
