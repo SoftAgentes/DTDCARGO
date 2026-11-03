@@ -176,7 +176,7 @@ Clasificación con `.claude/skills/revisar-datos-ve/SKILL.md`, limitada a lo que
 
 1. **Identificador de intento en las cinco acciones que duplican.** Es lo que corrige `err-01.md:31`. Exige migraciones, con aprobación concreta de Sam. No se decide aquí.
 2. **Un envío que se cuelga sin responder.** No hay tiempo límite: el formulario se queda en «Enviando…». Next atiende las acciones en cola, así que soltarlo no bastaría.
-3. **Archivo por encima de `bodySizeLimit`** (`next.config.ts:234`). Por lectura, ahora muestra el aviso y conserva lo escrito, pero el reintento volvería a fallar igual. Sin medir.
+3. **Archivo por encima de `bodySizeLimit`** (`next.config.ts:234`). Medido con 13 MB: responde 500, muestra el aviso y conserva lo escrito y el archivo. Reintentar con el mismo archivo vuelve a dar 500; sin él, entra. El aviso no dice que la causa es el tamaño.
 4. **`app/portal/(app)/error.tsx`:** dice «no se perdió nada» sin saberlo y tiene un voseo, «Volvé». Se sigue viendo en los botones de una sola acción y en errores de pantalla.
 5. **Botones de una sola acción:** si lanzan, la pantalla de error reemplaza la página, con lo que otro formulario de esa página tuviera escrito.
 
@@ -224,9 +224,34 @@ Clasificación con `.claude/skills/revisar-datos-ve/SKILL.md`, limitada a lo que
 | `docs:check`, `sdd:check` | Ver el cuerpo de la PR |
 | `/ui-check` del diff | Sin clases, tokens ni maquetación nuevos; copy en tuteo. Un hallazgo fuera del diff: `error.tsx` |
 
-**Pendiente de turno:** `next dev` con Server Action real: corte, `redirect()` en `EntrarButton` y `AdvanceToCotizacionButton`, envío antes de hidratar con un POST de verdad, y su resultado al hidratar. También mutantes, las demás pruebas vecinas, `tsc` completo y `pnpm verify`.
+### Con `next dev` y Server Action real (2026-11-03)
 
-**Sin medir:** lector de pantalla, portal con sesión real, archivo por encima del límite, envío colgado, y los avisos con los estilos reales del portal: el arnés no carga Tailwind.
+Sobre `2204318f5`, la punta de #362, que contiene `16b62342f` de esta rama. Ruta temporal sin commit, `next dev --webpack`, Chromium de Playwright y un Supabase sintético que rechaza todo. Sin producción ni red externa. **El diseño de los dos `useActionState` no cambia.**
+
+| Caso | Resultado |
+|---|---|
+| HTML del servidor | PASÓ: `method="POST"`, `multipart/form-data`, campos `$ACTION_`, sin `javascript:` |
+| Sin JavaScript, la acción responde | PASÓ: POST nativo, URL sin datos, resultado visible, también el de error |
+| `form.submit()` con JavaScript, el envío de antes de hidratar | PASÓ: POST, URL sin datos, resultado visible al hidratar y sin errores de hidratación |
+| Después de ese POST | PASÓ: el siguiente envío va por `onSubmit` y su estado sigue la cadena del POST (1, luego 2). Una acción que lanza da el aviso y no desmonta |
+| La acción responde con error | PASÓ: aviso visible y campo intacto. El foco no va al aviso |
+| La acción lanza | PASÓ: aviso, campo y archivo intactos, foco en el aviso |
+| Red cortada y `next dev` parado | PASÓ: aviso y campo intactos, por el router real. Reintentar con la red de vuelta entra |
+| `redirect()` | PASÓ: navega, sin aviso |
+| `notFound()` | PASÓ: muestra la 404, sin aviso |
+| Identificador de acción desconocido | PASÓ: 404 con `x-nextjs-action-not-found`, aviso de página desactualizada y campo intacto. Se alteró la cabecera con Playwright; no se renombró la acción |
+| Doble clic, dos clics a 50 ms, Enter dos veces | PASÓ: la acción corre una vez. Tres `requestSubmit()` en el mismo instante corren tres veces, porque `pending` aún no se pintó; ningún gesto de una persona llega ahí |
+| `/entrar` | PASÓ: antes de hidratar va por POST con el correo fuera de la URL. Con la red cortada: aviso, correo intacto y foco en el aviso |
+| `/registro`, red cortada en el último paso | PASÓ: aviso y datos intactos. El foco queda en `body`: no usa el ayudante. Su HTML trae `action="javascript:throw…"`, porque su `action` es una función de cliente, igual que antes: antes de hidratar no envía nada |
+| Archivo de 13 MB | Medido: ver «Fuera de alcance» |
+
+**Límite medido:** sin JavaScript, si la acción lanza, responde 500 y lo escrito se pierde. `onSubmit` sólo existe después de hidratar, así que este diseño no lo cubre.
+
+`EntrarButton` y `AdvanceToCotizacionButton` salen de lo pendiente: esta PR no los toca, y usan su propio `useActionState`.
+
+**Pendiente de turno:** mutantes y `pnpm verify` sobre la punta de #362, que incluye las pruebas vecinas y el `tsc` completo.
+
+**Sin medir:** `next start`, donde el error llega enmascarado; lector de pantalla, portal con sesión real, envío colgado, y los avisos con los estilos reales del portal.
 
 ## Estado
 
