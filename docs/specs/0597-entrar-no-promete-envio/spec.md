@@ -4,7 +4,7 @@ title: "/entrar no dice que salió un correo que no salió"
 status: in-progress
 author: "Sam (founder) + Claude Code"
 created: 2026-11-02
-updated: 2026-11-02
+updated: 2026-11-03
 supersedes: null
 superseded_by: null
 related: ["0094", "0276", "0278", "0279", "0544", "0573", "0596"]
@@ -21,7 +21,7 @@ Al recorrer el entorno de prueba el 2026-11-02 (SDD-0573), el enlace de acceso d
 - No revela si el correo existe.
 - Deja un camino para volver a intentar, respetando el anti-abuso.
 
-**Límite:** toca el portal, así que la PR queda retenida hasta terminar la salida a producción.
+**Límite:** toca el portal, así que la PR quedó retenida hasta la primera publicación. Esa publicación ya salió, y la fusión queda en manos del Director General.
 
 ## Qué pasaba
 
@@ -45,7 +45,7 @@ Esperar no arregla nada: cada intento vuelve a acuñar, y eso reinicia la ventan
 
 Así que el plan B de SDD-0278 no podía entregar nada después de un acuñado: el `/otp` daba 429 siempre. Y la acción no miraba el error de `signInWithOtp`.
 
-**Evidencia:** lectura del código en esa etiqueta, y el 429 medido en prueba el 2026-11-02 durante la SDD-0573. La medición propia contra GoTrue real sigue NO EJECUTADA (ver «Validación»).
+**Evidencia:** lectura del código en esa etiqueta, el 429 medido en prueba el 2026-11-02 durante la SDD-0573, y la medición propia contra GoTrue real del 2026-11-03 (ver «Validación»).
 
 ## Configuración de Auth en producción
 
@@ -125,7 +125,7 @@ No cambian los cupos ni el hash. Reintentar gasta cupo igual que el primer pedid
 **Decisión:** `lib/shared/email-literal.ts`, con dos funciones que hacen falta juntas:
 
 - `emailIlikePattern` escapa `%`, `_` y `\`. No se quitan ni se rechazan: `_` es común en un correo de verdad, y el patrón escapado encuentra su fila aunque haya un parecido primero.
-- `sameEmail` compara el resultado. `*` no se puede escapar: PostgREST lo cambia antes de llegar a Postgres, y `\*` quedaría en `\%` (`star` en `Query/SqlFragment.hs`, leído en v14.1).
+- `sameEmail` compara el resultado. `*` no se puede escapar: PostgREST lo cambia antes de llegar a Postgres, y `\*` quedaría en `\%` (`star` en `Query/SqlFragment.hs`, leído en v14.1, y medido en v14.17: `juan*@` devuelve tres filas).
 
 Rechazar `*` también lo cerraría, pero dejaría fuera a un cliente real con ese carácter. No se puede saber si existe sin leer filas de clientes.
 
@@ -168,7 +168,7 @@ Rechazar `*` también lo cerraría, pero dejaría fuera a un cliente real con es
 
 Sin migraciones, sin variables nuevas y sin tocar producción ni prueba.
 
-**Cruce con la PR #358 (SDD-0596):** toca un import y el `<form>` de la fila 1 de `EntrarForm`. El primer merge de prueba chocó en el import, porque los dos lo añadían en la misma línea; el de esta spec se movió. `defaultValue={magicState.email ?? …}` se complementa con `submitKeepingDraft`. Con el merge de prueba solo se comprobó el texto: las pruebas sobre el resultado se corren cuando las dos estén listas.
+**Cruce con la PR #358 (SDD-0596):** toca un import y el `<form>` de la fila 1 de `EntrarForm`. El primer merge de prueba chocó en el import, porque los dos lo añadían en la misma línea; el de esta spec se movió. `defaultValue={magicState.email ?? …}` se complementa con `submitKeepingDraft`. La #358 entró a `main` primero, y los dos cambios juntos se probaron en el cierre (ver «Validación»).
 
 ## Gobernanza
 
@@ -189,21 +189,59 @@ Sin migraciones, sin variables nuevas y sin tocar producción ni prueba.
 |---|---|
 | Control rojo: el archivo nuevo contra el código de la base | PASÓ: 27 de 31 en rojo. Las 4 verdes son invariantes que ya se cumplían, como que un correo desconocido no recibe nada |
 | Control rojo de los comodines: sin escape ni `sameEmail` | PASÓ: 11 de 92 en rojo, entre ellas `_`, `%` y `*`. La prueba que se añadió después (ver «Mutantes») no estaba en esa corrida |
-| `app/entrar` y `lib/shared/__tests__/email-literal.test.ts`, con un solo worker | PASÓ: 92 pruebas, antes de añadir esa última, que pasó aparte en su archivo. Incluye correos reales con `_`, `+`, `%`, `*` y mayúsculas |
-| `app/__tests__/sin-promesa-rastreo-restantes.test.tsx` | PASÓ antes de los comodines, que no tocan ese componente. Se repite con `verify` |
 | Mutantes | PASÓ: 40 de 40 mueren. Uno sobrevivió («sin-acceso sin escape») y faltaba una prueba: un parecido que aparece primero le quitaba la fila al cliente real del ERP. Añadida, muere |
-| `/ui-check` y navegador real: el componente real, React de producción y Tailwind compilado, con la acción simulada | PASÓ, con cuatro ajustes aplicados (ver el handoff). Falta verlo con el servidor real |
-| `eslint` de los archivos tocados, `docs:check`, `sdd:check`, `governance:check`, `components:check`, `git diff --check` | PASÓ |
-| `pnpm verify` | NO EJECUTADO: pide turno al Director |
-| Medición contra GoTrue v2.197.0 real con Mailpit | NO EJECUTADO: el único intento autorizado falló antes de medir, por un error de ruta de mi script, y la ventana cerró |
-| El escape contra PostgREST v14.17 real con `supabase-js` | NO EJECUTADO: va en esa misma medición. **Hasta tenerla no se integra:** si el `\` no pasara bien por esa capa, un cliente con `_` en el correo dejaría de poder entrar. PGlite solo cubre Postgres |
-| Enlace en `/correo/` de prueba, con esta imagen | NO EJECUTADO: Sam está revisando prueba, y esta PR no se ha desplegado allí |
+| `/ui-check` y navegador real: el componente real, React de producción y Tailwind compilado, con la acción simulada | PASÓ, con cuatro ajustes aplicados (ver el handoff) |
+| Enlace en `/correo/` de prueba, con esta imagen | NO EJECUTADO: esta PR no se ha desplegado allí |
+
+### Medición contra servicios reales (2026-11-03)
+
+En Docker local, 4 contenedores de 1 GB, puertos solo en 127.0.0.1, sin OOM y borrados al terminar. Las imágenes son las de `infra/dtd-cargo`.
+
+| Con qué | Qué se hizo | Resultado |
+|---|---|---|
+| GoTrue v2.197.0 y Mailpit | `generate_link` y después `/otp` | 429 `over_email_send_rate_limit`, buzón en 0 |
+| | `/otp` sin acuñar | 200, y llega a Mailpit |
+| | otro `/otp` en seguida | 429, el buzón sigue en 1 |
+| | `/otp` de un correo sin cuenta | 422 `otp_disabled`, buzón en 0 |
+| | `generate_link` otra vez, en seguida | 200: acuñar no está frenado |
+| | `/otp` a los 61 s | 200, buzón en 2 |
+| | `generate_link` y `/otp` a los 61 s | 429: cada acuñado reinicia la ventana |
+| PostgREST v14.17 con `supabase-js` y `emailIlikePattern` | 12 casos, entre ellos `_`, `+`, `%`, `\`, `*` y mayúsculas | PASÓ, 12 de 12: el escape pasa bien por esa capa y un correo real sigue encontrando su fila |
+
+Fueron dos corridas. En la primera, PostgREST respondió `PGRST300` en todo porque no le di secreto JWT: error mío, no resultado. Y ahí el `/otp` a los 61 s dio 429 con 3 s restantes; en la segunda dio 200, con el reloj del contenedor en 0 s de diferencia. Esa diferencia no la medí en la primera: **queda sin explicar.**
+
+### `pnpm verify` sobre `d4a54bb81`
+
+Exit 1. Corrieron 16 de 17 pasos, con 0 pesadas ajenas al lanzar y Docker en `running` las 71 min.
+
+| Paso | Resultado |
+|---|---|
+| `harness`, `lint`, `rsc-boundary`, `typecheck`, `edge-functions` | PASÓ |
+| `test` | **FALLÓ por tiempo, no por una aserción.** Primer intento: 13.416 bien, 1 mal (`migraciones.test.mjs`). Reintento: 13.415 bien, 2 mal (ese y `entorno-prueba-scripts.test.mjs`). Las dos vencieron sus 600 s. **Aisladas sobre el mismo SHA: PASÓ, 32 de 32 en 322 s**, y `prueba-migraciones-produccion.sh` tardó 139 s. Durante la corrida hubo un mínimo de 1,8 GB libres y una copia de 740 MB por error mío |
+| `docs:check`, `numbering`, `feature-constants`, `components:check`, `governance:check`, `pending-migration-symbols` | PASÓ |
+| `migrations-applied` | NO EJECUTADO: este worktree no tiene `.env.local`. Esta PR no trae migraciones |
+| `sql-tests`, `schema-rebuild` | PASÓ, con Docker arriba |
+| `e2e` | PASÓ al reintento. Primer intento: falla `company-photo-carousel.spec.ts:93` y `auth.spec.ts:81` inestable. Reintento: 227 bien, 20 omitidas, y `auth.spec.ts:81` y `sin-scroll-horizontal.spec.ts:215` inestables. Ninguna depende de esta spec |
+| `build` | PASÓ |
+
+### Cierre de la diferencia con `main`, sobre `6ad57f8d1`
+
+Mientras corría `verify` entró a `main` la #358, que también toca `EntrarForm`. Por eso se probaron juntas, sobre `main` en `8b6b3a0e1`, una cosa a la vez y con un solo worker.
+
+| Comprobación | Resultado |
+|---|---|
+| `app/entrar`, `conservar-lo-escrito`, `email-literal`, `sin-promesa-rastreo-restantes` | PASÓ: 131 pruebas en 6 archivos |
+| `typecheck` | PASÓ |
+| `e2e/auth.spec.ts`, los de Portal | PASÓ, 2 de 2. **Solo dibujan `/entrar`, no lo envían:** no prueban los dos cambios juntos |
+| Spec temporal, sin commitear: envía el formulario contra `next dev` y la server action real | PASÓ: llega al pedido recibido con el foco en el título, sin afirmar el envío y sin el correo en la URL; el reintento dice «Recibimos 2 pedidos» y conserva el foco. La primera corrida falló por un selector mío: `getByRole("alert")` también encuentra el anunciador de rutas de Next, siempre vacío |
+| Enviar y caer en el cerrojo, conservando el correo, en navegador con `submitKeepingDraft` | NO EJECUTADO como e2e: el camino del spec fue el de pedido recibido. Lo cubre `conservar-lo-escrito`, en jsdom |
+| Spec de e2e del repo que envíe `/entrar` | NO EJECUTADO: no existe ninguno |
 
 **Lo que no se comprobó:** no se provocó ninguna falla de Resend en producción, ni se leyeron filas de clientes.
 
 ## Fuera de alcance detectado
 
-- **El mismo patrón de `.ilike` en otros sitios (por lectura, sin provocarlo).** No se tocan aquí:
+- **El mismo patrón de `.ilike` en otros sitios.** No se tocan aquí; van en la SDD-0600 (PR #363):
 
   | Sitio | De dónde viene el valor | Qué puede pasar con un `_` |
   |---|---|---|
