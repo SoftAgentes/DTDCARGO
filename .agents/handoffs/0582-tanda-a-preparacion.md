@@ -34,15 +34,16 @@
 | Mutantes a mano del guion | Ver el mensaje del commit |
 | El guion contra el VPS real | NO EJECUTADO |
 | `docs:check`, `sdd:check` | PASÓ |
-| `prueba-revocar-sesiones.sh` (Docker) | NO EJECUTADO: corrida pesada, pide turno |
+| `prueba-revocar-sesiones.sh` (Docker), 2026-11-03 | PASÓ, 0 fallas, con control sin inicializador |
+| `prueba-cuenta-prueba.sh` (Docker), 2026-11-03 | PASÓ, 0 fallas, con control de correo. La primera corrida falló por la sonda: el adaptador en línea no admite diferidos. La entrega se intercepta: no prueba la red, el borde ni la firma contra Studio |
 | `pnpm verify` en la punta | NO EJECUTADO: lo corre el Director General |
 
 ## PENDIENTES DE ESTA TAREA
 
 - **Autorización a mi nombre:** Sam, 2026-11-03, en esta sesión, a «¿Tu mandato me cubre para crear equipos, script del panel y cuenta de prueba?»: «Sí, te cubre».
 - **Hecho con ella:** equipos y `DASHBOARD_SCRIPTS`, sin reinicios ni canales. Evidencia, estado anterior y `marcha-atras.rb` en `/srv/ops/evidencias/chatwoot-e2-config-20261103T213453Z`. El panel carga sin errores de consola; el script aparece en `/app/login`. Las 15 conversaciones sin equipo siguen igual.
-- **Falta, con turno de Docker:** ensayar en local y luego crear la cuenta y la app de prueba, con `example.test` y notificaciones apagadas.
-- **Inicializador y regla de Traefik:** sin hacer. Antes, `prueba-revocar-sesiones.sh` en local; recrear `rails` lleva aviso previo al Director General.
+- **Cuenta y app de prueba: hechas el 2026-11-03,** ensayadas antes en local. Cuenta 2, usuarios 4 y 5, bandejas 6 (API) y 7 (correo), equipos 3 y 4. Los tokens están en `secretos/platform-app-prueba.env`, 600. Evidencia en `/srv/ops/evidencias/chatwoot-cuenta-prueba-20261103T224846Z`. Con el token real, 401 sobre la cuenta 1 y su usuario, y 200 sobre la 2. **Sin webhook todavía.** Al terminar la prueba: borrar webhook, suspender cuenta y revocar token, sin borrar la cuenta.
+- **Inicializador y regla de Traefik:** sin hacer. `prueba-revocar-sesiones.sh` ya dio 0 fallas el 2026-11-03. La regla falta escribirla en el compose del repo, sin copiar ese compose al VPS. Recrear `rails` lleva aviso previo al Director General.
 - Registrar la hora de la #352 (`8b6b3a0e1`, 2026-11-03T20:01:19Z) en la SDD-0593 con el próximo cambio de esa zona.
 - Traer `main` a la punta una sola vez, al abrirse el turno de la tanda A.
 

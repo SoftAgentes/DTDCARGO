@@ -50,14 +50,14 @@ Medidas en el VPS el 2026-11-03. Van después de la 0505, en `/srv/dtd-cargo/.en
 | Variable | Producción | Prueba | De dónde sale |
 |---|---|---|---|
 | `CHATWOOT_URL` | `https://chat.dtdcargo.com` | Igual | `CHATWOOT_HOST` de `/srv/chatwoot/.env` |
-| `CHATWOOT_ACCOUNT_ID` | `1` | Su cuenta | Cuenta «DTD Cargo»; prueba tiene la suya, ver abajo |
+| `CHATWOOT_ACCOUNT_ID` | `1` | `2` | Cuenta «DTD Cargo»; en prueba, «DTD Prueba» |
 | `CHATWOOT_TENANT_ID` | El id de su tenant | El id de su tenant | `select id from public.tenants` en la base de ese entorno, al cargarla |
-| `CHATWOOT_SERVICE_USER_ID` | `1` | Su usuario | `secretos/platform-app.env`; en prueba, `secretos/platform-app-prueba.env` |
-| `CHATWOOT_INBOX_CLIENTES_ID` | `2` | Su bandeja | Bandeja «Clientes»; en prueba, la de su cuenta |
-| `CHATWOOT_TEAM_CLIENTES_ID` | `1` | Su equipo | Equipo `clientes`, creado el 2026-11-03. Chatwoot guarda los nombres en minúscula |
-| `CHATWOOT_INBOX_LEADS_ID` | Vacía | Vacía | Hasta el corte. Sin ella no hay enrutamiento |
-| `CHATWOOT_TEAM_LEADS_ID` | Vacía; será `2` | Vacía | Equipo `leads`, ya creado. Se carga en el corte |
-| `WHATSAPP_NUMERO_CLIENTES` | Vacía | Vacía | Hasta el corte: necesita el OK del número de clientes |
+| `CHATWOOT_SERVICE_USER_ID` | `1` | `4` | `secretos/platform-app.env`; en prueba, `secretos/platform-app-prueba.env` |
+| `CHATWOOT_INBOX_CLIENTES_ID` | `2` | `7` | Bandeja «Clientes»; en prueba, «Prueba correo» |
+| `CHATWOOT_TEAM_CLIENTES_ID` | `1` | `3` | Equipos `clientes`, creados el 2026-11-03. Chatwoot guarda los nombres en minúscula |
+| `CHATWOOT_INBOX_LEADS_ID` | Vacía | `6` | En producción, hasta el corte: sin ella no hay enrutamiento. En prueba, «Prueba API», para probarlo |
+| `CHATWOOT_TEAM_LEADS_ID` | Vacía; será `2` | `4` | Equipos `leads`, ya creados. En producción se carga en el corte |
+| `WHATSAPP_NUMERO_CLIENTES` | Vacía | `15555550100` | En producción, hasta el corte: necesita el OK del número de clientes. En prueba, un número ficticio |
 | `CRM_ALTA_WEB_SIN_KOMMO` | Vacía | Vacía | D7: solo con la lectura L3 y el OK de Sam |
 
 **Los 3 secretos** se cargan con `bash /srv/chatwoot/pegar-secretos-web.sh prueba|produccion`, en una terminal con `ssh -t`. Cada uno se pega sin eco, o con Enter se toma del servidor sin mostrarlo. No corre sin la 0505 de ese entorno y no pisa un valor existente.
@@ -72,7 +72,9 @@ Medidas en el VPS el 2026-11-03. Van después de la 0505, en `/srv/dtd-cargo/.en
 
 **Un webhook sobre la cuenta 1 hacia prueba está descartado.** Un webhook de cuenta recibe todas sus bandejas, y Studio solo filtra por cuenta (`app/api/chatwoot/webhook/route.ts`): copiaría a prueba nombres y teléfonos de clientes. El cron `chatwoot-agentes` de prueba, además, actuaría sobre los agentes reales.
 
-**Decisión de Sam, 2026-11-03, «Probar WhatsApp al publicar»:** lo registra el Subdirector según el Director General. Prueba usa una segunda cuenta en el mismo Chatwoot, sin datos reales, y lo que depende de un WhatsApp real se prueba en producción justo después de publicar la tanda A. Leído en la imagen `v4.19.1-ce`; todavía sin crear ni ejecutar.
+**Decisión de Sam, 2026-11-03, «Probar WhatsApp al publicar»:** lo registra el Subdirector según el Director General. Prueba usa una segunda cuenta en el mismo Chatwoot, sin datos reales, y lo que depende de un WhatsApp real se prueba en producción justo después de publicar la tanda A.
+
+**Creada el 2026-11-03** con `infra/chatwoot/crear-cuenta-prueba.rb`, con el OK de Sam: cuenta 2, usuarios 4 y 5, bandejas 6 y 7, equipos 3 y 4, sin webhooks ni canales. Evidencia en `/srv/ops/evidencias/chatwoot-cuenta-prueba-20261103T224846Z`. Ensayada antes en local con `infra/chatwoot/pruebas/prueba-cuenta-prueba.sh`, 0 fallas. Medido en el VPS con el token real: 401 sobre la cuenta 1 y su usuario, 200 sobre la cuenta 2. Falta probar la entrega real, que necesita la tanda A en prueba y la ruta del borde.
 
 - **Una Platform App propia de prueba, no la de producción.** La API solo deja tocar lo que esa app creó o adoptó (`validate_platform_app_permissible`), así que su token no alcanza la cuenta 1.
 - **Solo correos `example.test`.** `POST /platform/api/v1/users` adopta un usuario existente si el correo coincide (`User.from_email`). Un usuario de prueba con el correo de un agente real le daría a prueba control sobre él.
