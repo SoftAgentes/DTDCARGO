@@ -564,7 +564,7 @@ El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó
 | Mutantes de `/registro` y del manejador, sobre `fac203f66` | PASÓ: 7 de 7 caen, con control en verde antes y después y árbol limpio al final |
 | `pnpm verify` | NO EJECUTADO: el Director General lo corre en la punta de la tanda A al integrar, y lo pide el Subdirector después de publicar |
 | Prueba de punta a punta con Chatwoot y con producción | NO EJECUTADO: fuera de este encargo |
-| Frase de `/privacidad` frente al texto aprobado (2026-11-03) | PASÓ con `node`: cada párrafo aprobado está igual en `page.tsx` y la frase está dentro de «Registro de cliente». `privacidad-chat.test.ts` NO EJECUTADO en este commit: había otra corrida pesada; lo corre `verify` en la punta de la tanda A |
+| Frase de `/privacidad` frente al texto aprobado (2026-11-03) | PASÓ con `node`: cada párrafo aprobado está igual en `page.tsx` y la frase está dentro de «Registro de cliente». `privacidad-chat.test.ts`: PASÓ, 5 de 5 |
 
 ### 16.8 revisar-datos-ve de 6.4
 
@@ -588,7 +588,7 @@ Sobre lo que 6.4 suma al modelo de §14.3 y §15.3. Estados de la skill: **ENCON
 | 4 | Derechos | NO VERIFICABLE | Depende de «Anonimizar ahora» de 6.6 (§14.3). Lo nuevo no le agrega un camino: se ve y se corrige en la ficha de la tarjeta, salvo la fuente y los UTM, que son fijos |
 | 5 | Borrado | CORRECTO | Una tarjeta anonimizada no revive: quien vuelve a escribir empieza en una tarjeta nueva (contrato). Con ficha, se va con la purga (`on delete cascade`, 0506). No se probó contra una base real |
 | 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Igual que §14.3. Además, ver AUD-01 en §16.6 |
-| 7 | Política pública | CORRECTO | `/privacidad` no decía que se guarde por qué enlace o campaña llegó quien se registra, y «medir nuestras campañas» lo condiciona a aceptar cookies, cosa que estos UTM no hacen. **Corregido:** «Registro de cliente» (`app/privacidad/page.tsx`) suma «También guardamos el enlace o la campaña por la que llegaste, si la dirección los trae.». Sam aprobó el texto exacto el 2026-11-03 («Apruebo el texto», en el chat del Director General). **Sale solo con la tanda A y las piezas que describe,** y la fecha se ajusta al publicar. Si cambia una palabra, se le vuelve a preguntar |
+| 7 | Política pública | CORRECTO | `/privacidad` no decía que se guarde por qué enlace o campaña llegó quien se registra, y «medir nuestras campañas» lo condiciona a aceptar cookies, cosa que estos UTM no hacen. **Corregido:** «Registro de cliente» (`app/privacidad/page.tsx`) suma «También guardamos la campaña por la que llegaste, si el enlace la trae.». Sam aprobó el texto el 2026-11-03 («Apruebo el texto», en el chat del Director General) y ese mismo día cambió esta frase («Usar «el enlace»»), porque la primera redacción decía «si la dirección los trae» y se podía leer como la dirección postal. **Sale solo con la tanda A y las piezas que describe,** y la fecha se ajusta al publicar. Si cambia una palabra, se le vuelve a preguntar |
 | 8 | Terceros | CORRECTO | No se envía nada nuevo fuera: el dato entra desde Chatwoot y desde el formulario. Con D7 apagado, Kommo recibe lo mismo de hoy. La retención dentro de Chatwoot sigue sin definir (§14.3, punto 8) |
 | 9 | Transferencia internacional | CORRECTO | Todo vive en la base de DTD. Solo admin y comercial leen tarjetas (RLS de la 0506) |
 | 10 | Decisiones automatizadas | CORRECTO | El segmento y la vuelta desde «Perdido» solo eligen etapa; no niegan servicio ni escriben al cliente. La tarea es interna y con texto fijo |

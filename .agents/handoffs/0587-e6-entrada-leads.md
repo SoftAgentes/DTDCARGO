@@ -59,9 +59,10 @@ Dadas en el chat del Director General, por el selector. Las registra el Subdirec
 
 - **Fila 6.4:** «Acepto, con ese límite». Queda aceptado el código. El límite: sin probar contra un Chatwoot real, y esa prueba se hace en prueba antes de producción; dos tarjetas de la misma persona no se fusionan; crear o ligar una tarjeta no deja rastro en la auditoría. La 0513 lleva su propio OK.
 - **`/privacidad`:** «Apruebo el texto». Vale para el texto exacto, con la frase de la campaña en «Registro de cliente». Sale solo con la tanda A y las piezas que describe; la fecha se ajusta al publicar.
+- **Frase de la campaña, ~18:05Z:** «Usar «el enlace»». Reemplaza a la aprobada antes. Texto exacto: «También guardamos la campaña por la que llegaste, si el enlace la trae.»
 - **Publicación automática:** «Apagada; publicar por tandas». La tanda A sale entera.
 
-**Dónde va la frase:** después de la primera oración de «Registro de cliente», y no al final de la entrada. Al final quedaría pegada a «La dirección detallada (calle, edificio…)», y «si la dirección los trae» se leería como la dirección postal. No cambia ninguna palabra de lo aprobado.
+**Dónde va la frase:** después de la primera oración de «Registro de cliente». Sam no fijó el lugar. La primera redacción decía «si la dirección los trae», que se podía leer como la dirección postal; se le avisó y la cambió.
 
 ## Puertas que quedan para Sam
 
