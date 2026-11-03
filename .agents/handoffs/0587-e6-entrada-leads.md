@@ -67,7 +67,7 @@ Dadas en el chat del Director General, por el selector. Las registra el Subdirec
 ## Puertas que quedan para Sam
 
 - Aplicar la 0513, con el runbook, después de la 0503, 0504 y 0506 y antes de suscribir el webhook a los eventos nuevos.
-- La prueba con un Chatwoot real, en prueba y antes de producción: es el límite de su aceptación.
+- La prueba con un Chatwoot real, partida por su decisión del 2026-11-03, «Probar WhatsApp al publicar», que relayó el Director General: una parte en prueba con cuenta aparte, y otra en producción justo después de publicar la tanda A, desde su teléfono al número de prueba. Si falla la tarjeta, se quita el webhook. Detalle en `docs/runbooks/chatwoot-bandeja.md`.
 - Lectura L3 y, con ella, D7.
 
 ## FUERA DE ALCANCE DETECTADO

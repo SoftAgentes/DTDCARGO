@@ -534,7 +534,7 @@ El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó
 - [x] D7 detrás de un interruptor apagado, sin cambiar la conducta de hoy (§16.4).
 - [x] Control rojo y mutantes (§16.7): 43 de 43 del contrato y 7 de 7 de `/registro` y del manejador caen.
 - [ ] `pnpm verify` (§16.7).
-- [ ] Prueba de punta a punta con un Chatwoot real: fuera de este encargo; se hace en prueba antes de llevarlo a producción. Es el límite de la aceptación de abajo.
+- [ ] Prueba de punta a punta con un Chatwoot real: fuera de este encargo. Sam cambió cómo se hace el 2026-11-03, en el chat del Director General: «Probar WhatsApp al publicar». En prueba, con cuenta aparte y sin datos reales: entrega firmada, conversación creada → tarjeta, asignar asesor, mensaje entrante (contador y aviso) y enrutamiento. En producción, justo después de publicar la tanda A, desde su teléfono al número de prueba: tarjeta por primer mensaje, volver desde «Perdido», fuente WhatsApp, teléfono y BSUID reales. Si falla la tarjeta, se quita el webhook.
 - [ ] L3, y con ella D7: puerta de Sam.
 - [ ] Aplicar la 0513: puerta de Sam.
 - [x] Aceptación de Sam de la fila 6.4 (2026-11-03, en el chat del Director General, por el selector, a «¿Aceptas el paso 6.4? Sus pruebas de código pasan, pero nunca corrió contra un Chatwoot real»: «Acepto, con ese límite»; lo registra el Subdirector según la nota del Director General). Queda aceptado el código. El límite: sin probar contra un Chatwoot real, y esa prueba se hace en prueba antes de llevarlo a producción; dos tarjetas de la misma persona no se fusionan (§16.5); crear o ligar una tarjeta no deja rastro en la auditoría (AUD-01, abajo). No aplica ninguna migración: la 0513 lleva su propio OK.

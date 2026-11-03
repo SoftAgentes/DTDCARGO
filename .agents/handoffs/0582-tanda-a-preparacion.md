@@ -45,7 +45,7 @@
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Un webhook sobre la cuenta 1 hacia prueba quedó descartado por el Director General,** porque copiaría a prueba datos de clientes. La alternativa medida, una segunda cuenta con su Platform App, está en `docs/runbooks/chatwoot-bandeja.md`, «Prueba no se conecta a la cuenta real», con lo que cubre y lo que no. Leída en el código de la imagen; no ejecutada.
+- **Un webhook sobre la cuenta 1 hacia prueba quedó descartado por el Director General,** porque copiaría a prueba datos de clientes. Sam decidió, en su chat, «Probar WhatsApp al publicar»: segunda cuenta en prueba y lo de WhatsApp real en producción justo después de publicar. Detalle en `docs/runbooks/chatwoot-bandeja.md`, «Prueba no se conecta a la cuenta real». Leído en el código de la imagen; no ejecutado.
 
 ## Impacto documental
 

@@ -72,22 +72,26 @@ Medidas en el VPS el 2026-11-03. Van después de la 0505, en `/srv/dtd-cargo/.en
 
 **Un webhook sobre la cuenta 1 hacia prueba está descartado.** Un webhook de cuenta recibe todas sus bandejas, y Studio solo filtra por cuenta (`app/api/chatwoot/webhook/route.ts`): copiaría a prueba nombres y teléfonos de clientes. El cron `chatwoot-agentes` de prueba, además, actuaría sobre los agentes reales.
 
-**La forma medida, todavía sin crear,** es una segunda cuenta en el mismo Chatwoot (leído en la imagen `v4.19.1-ce`, no ejecutado):
-- **Una Platform App propia de prueba, no la de producción.** La API solo deja tocar lo que esa app creó o adoptó (`validate_platform_app_permissible`), así que su token no alcanza la cuenta 1.
-- **Sin correos reales.** `POST /platform/api/v1/users` adopta un usuario existente si el correo coincide (`User.from_email`). Un usuario de prueba con el correo de un agente real le daría a prueba control sobre él. Solo direcciones `example.test`.
-- **La puerta de prueba responde 401 al webhook.** Chatwoot no manda credenciales en la URL (`ssrf_filter` no las usa). Hace falta una ruta exacta a `/api/chatwoot/webhook` sin la clave y con la misma lista de IP, en el borde compartido. El webhook sigue firmado.
-- **Marcha atrás:** borrar el webhook, suspender la cuenta (`status`) y revocar el token de esa app. Borrar la cuenta es un borrado físico y lo decide Sam.
+**Decisión de Sam, 2026-11-03, «Probar WhatsApp al publicar»:** lo registra el Subdirector según el Director General. Prueba usa una segunda cuenta en el mismo Chatwoot, sin datos reales, y lo que depende de un WhatsApp real se prueba en producción justo después de publicar la tanda A. Leído en la imagen `v4.19.1-ce`; todavía sin crear ni ejecutar.
 
-| Qué prueba | Bandeja | Cubierto |
+- **Una Platform App propia de prueba, no la de producción.** La API solo deja tocar lo que esa app creó o adoptó (`validate_platform_app_permissible`), así que su token no alcanza la cuenta 1.
+- **Solo correos `example.test`.** `POST /platform/api/v1/users` adopta un usuario existente si el correo coincide (`User.from_email`). Un usuario de prueba con el correo de un agente real le daría a prueba control sobre él.
+- **Notificaciones apagadas en los agentes de prueba.** Asignar una conversación puede intentar avisar por SMTP a `example.test`.
+- **La puerta de prueba responde 401 al webhook.** Chatwoot no manda credenciales en la URL (`ssrf_filter` no las usa). Sam autorizó abrir en el borde de prueba solo `/api/chatwoot/webhook`, sin la clave y con la misma lista de IP; la abre el Director General. El webhook sigue firmado.
+- **Al terminar:** borrar el webhook, suspender la cuenta (`status`) y revocar el token de esa app. **La cuenta no se borra.**
+
+**En producción, justo después de publicar la tanda A,** Sam escribe desde su teléfono al número de prueba, y se comprueba lo que queda como «Al publicar» en la tabla. **Si falla la tarjeta, se quita el webhook.**
+
+| Qué prueba | Bandeja | Dónde se cubre |
 |---|---|---|
-| Entrega firmada real de Chatwoot 4.19.1 a Studio | Cualquiera | Sí |
-| `conversation_created` crea la tarjeta | Correo, sin IMAP ni SMTP, conversación sin mensaje | Sí, con fuente `correo` |
-| `conversation_updated` da asesor | La misma | Sí |
-| Mensaje entrante: contador y aviso | API | Sí, sin tarjeta: `fuenteDeCanal` no mapea `Channel::Api` |
-| Enrutamiento por segmento (E10) | API como `CHATWOOT_INBOX_LEADS_ID` | Sí: solo mira el id de la bandeja |
-| Tarjeta por primer mensaje entrante y vuelta desde «Perdido» | — | **No:** Chatwoot solo admite mensajes entrantes por API en bandejas API |
-| Fuente WhatsApp, teléfono y BSUID de un mensaje real | — | **No:** una bandeja de WhatsApp sin Meta dispara sus trabajos de plantillas y salud contra Meta |
-| El panel dentro de prueba | — | Solo agregando `https://prueba.dtdcargo.com` a `CHATWOOT_FRAME_ANCESTORS`, que recrea `rails` |
+| Entrega firmada real de Chatwoot 4.19.1 a Studio | Cualquiera | Prueba |
+| `conversation_created` crea la tarjeta | Correo, sin IMAP ni SMTP, conversación sin mensaje | Prueba, con fuente `correo` |
+| `conversation_updated` da asesor | La misma | Prueba |
+| Mensaje entrante: contador y aviso | API | Prueba, sin tarjeta: `fuenteDeCanal` no mapea `Channel::Api` |
+| Enrutamiento por segmento (E10) | API como `CHATWOOT_INBOX_LEADS_ID` | Prueba: solo mira el id de la bandeja |
+| Tarjeta por primer mensaje entrante y vuelta desde «Perdido» | Número de prueba | **Al publicar:** en prueba no se puede, porque Chatwoot solo admite mensajes entrantes por API en bandejas API |
+| Fuente WhatsApp, teléfono y BSUID de un mensaje real | Número de prueba | **Al publicar:** una bandeja de WhatsApp sin Meta dispararía sus trabajos de plantillas y salud contra Meta |
+| El panel dentro de prueba | — | Sin cubrir: pide agregar `https://prueba.dtdcargo.com` a `CHATWOOT_FRAME_ANCESTORS`, que recrea `rails` |
 
 ## Diagnóstico
 
