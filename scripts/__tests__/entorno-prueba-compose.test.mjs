@@ -60,6 +60,32 @@ function unir(archivos) {
 
 const ARCHIVOS_PRUEBA = ["compose.yml", "compose.supabase.yml", "compose.staging.yml"];
 
+describe("SDD-0541 · imagen de storage", () => {
+  const OFICIAL = "supabase/storage-api:v1.77.6";
+
+  it("el servidor la elige con DTD_STORAGE_IMAGE, y sin esa línea va la oficial", () => {
+    const { services } = loadYaml(leer("compose.supabase.yml"));
+    expect(services.storage.image).toBe(`\${DTD_STORAGE_IMAGE:-${OFICIAL}}`);
+  });
+
+  it("el overlay de prueba no la fija por su cuenta", () => {
+    const { services } = loadYaml(leer("compose.staging.yml"));
+    expect(services.storage?.image).toBeUndefined();
+  });
+
+  it(".env.example la documenta comentada: un servidor nuevo usa la oficial", () => {
+    const ejemplo = leer(".env.example");
+    expect(ejemplo).toMatch(/^# DTD_STORAGE_IMAGE=sha256:[0-9a-f]{64}$/m);
+    expect(ejemplo).not.toMatch(/^DTD_STORAGE_IMAGE=/m);
+  });
+
+  it("la prueba de la base efímera sigue encontrando la oficial en el compose", () => {
+    const guion = readFileSync(resolve("infra/ops/tests/prueba-resetear-base-efimera.sh"), "utf8");
+    const [, patron] = guion.match(/^IMG_STORAGE="\$\(grep -oE '([^']+)'/m);
+    expect(leer("compose.supabase.yml").match(new RegExp(patron))?.[0]).toBe(OFICIAL);
+  });
+});
+
 describe("SDD-0540 · overlay del entorno de prueba", () => {
   it("cumple todas las reglas del revisor y suma exactamente 3.072 MiB", () => {
     const { lineas, fallas, totalMiB } = revisar(unir(ARCHIVOS_PRUEBA));
