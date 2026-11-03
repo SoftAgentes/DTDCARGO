@@ -1514,4 +1514,4 @@ Aplicada en el servidor propio, en lote después de la 0496 (SDD-0571). Lo que a
 | Imágenes | `/srv/ops/respaldos/imagen-web-929cabf51` e `imagen-storage-node-24.22.1` |
 | Sello en el candado | sha256 `056811e9e2b7cf74dc3cc01b0e24e95ec4eb1c9dd47caa7e1e718f1094392e3e`, `ledger` exacta |
 
-La 0497 salió de `pendingBelowCutoff` y de las declaraciones de símbolos. Su huella de esas dos declaraciones se fue con ellas, y es el mismo sha256 sellado. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. `supabase/desarmes/0497_desarme.sql` no se aplicó en este cierre ni lo cubre ese OK.
+La 0497 salió de `pendingBelowCutoff` y de las declaraciones de símbolos. Su huella de esas dos declaraciones se fue con ellas, y es el mismo sha256 sellado. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. El desarme de la 0497, en `supabase/desarmes/`, no se aplicó en este cierre ni lo cubre ese OK.
