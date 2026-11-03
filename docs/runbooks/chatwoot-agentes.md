@@ -81,7 +81,8 @@ Un id vacío apaga esa parte de la matriz.
 2. **Variables de la matriz** en el `.env` del VPS. Leads, recién en el corte.
 3. **Inicializador de revocación** (`rails/zz_dtd_revocar_sesiones.rb`), el cierre forzado de verdad:
    - antes, correr `bash infra/chatwoot/pruebas/prueba-revocar-sesiones.sh` en local: tiene que dar 0 fallas, con el control en rojo;
-   - copiar el inicializador y el `compose.yml` nuevos a `/srv/chatwoot` (sha256 igual al repo);
+   - copiar el inicializador a `/srv/chatwoot/rails/` (sha256 igual al repo);
+   - **no copiar el `compose.yml` de la rama:** el del VPS tiene montajes que todavía no están en ella, entre ellos la protección de `/register` de WhatsApp y los correos. Se le agregan a mano, con respaldo, las dos piezas de la revocación: `DTD_CHATWOOT_SERVICIO_ID` en el entorno y el montaje del inicializador;
    - cargar en `/srv/chatwoot/.env` `DTD_CHATWOOT_SERVICIO_ID` con el id del usuario de servicio (el mismo de `CHATWOOT_SERVICE_USER_ID`);
    - recrear `rails`;
    - comprobar en el log de arranque «[DTD] revocación de sesiones activa».

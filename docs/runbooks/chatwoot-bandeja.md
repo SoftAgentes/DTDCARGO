@@ -28,6 +28,8 @@ El servidor de Chatwoot es de E1, en [chatwoot-servidor.md](chatwoot-servidor.md
    - `CHATWOOT_WEBHOOK_SECRET` y `CHATWOOT_TENANT_ID`;
    - `CHATWOOT_SERVICE_USER_ID`;
    - la matriz (2.7): `CHATWOOT_INBOX_CLIENTES_ID` y `CHATWOOT_TEAM_CLIENTES_ID`. Los de Leads, en el corte.
+
+   Valores en «[Variables del `.env` de `web`](#variables-del-env-de-web)». Los secretos se cargan con `infra/chatwoot/pegar-secretos-web.sh`.
 4. **Flag `chatwoot_inbox`** encendido para el tenant, en Ajustes › Funciones.
 5. **Vínculos:** cada persona que atiende queda vinculada a su agente, en Bandeja › Vínculos (alta o vínculo manual).
 6. **Webhook de cuenta** en Chatwoot (Ajustes → Integraciones → Webhooks), con la URL `https://dtdcargo.com/api/chatwoot/webhook` y los eventos `message_created` y `conversation_status_changed`. El secreto que muestra Chatwoot va en `CHATWOOT_WEBHOOK_SECRET`.
@@ -40,6 +42,33 @@ El servidor de Chatwoot es de E1, en [chatwoot-servidor.md](chatwoot-servidor.md
 2. **Bandejas:** `CHATWOOT_INBOX_LEADS_ID` y `CHATWOOT_INBOX_CLIENTES_ID` son las que dicen la fuente de WhatsApp. Un WhatsApp en otra bandeja no crea tarjeta, y el log lo dice. La bandeja API «Archivo Kommo» tampoco.
 3. **Sumar al webhook de cuenta** los eventos `conversation_created` y `conversation_updated`. Si no se suman, la tarjeta se crea igual con el primer mensaje entrante, pero el asesor solo llega si el mensaje ya trae al asignado.
 4. **D7, dejar de empujar el alta web a Kommo,** es una puerta aparte: `CRM_ALTA_WEB_SIN_KOMMO=1` exige la lectura L3 con OK de Sam (SDD-0587 §8).
+
+## Variables del `.env` de `web`
+
+Medidas en el VPS el 2026-11-03. Van después de la 0505, en `/srv/dtd-cargo/.env` (producción) o `/srv/dtd-cargo-staging/.env` (prueba). `web` las lee al recrearse.
+
+| Variable | Producción | Prueba | De dónde sale |
+|---|---|---|---|
+| `CHATWOOT_URL` | `https://chat.dtdcargo.com` | Igual | `CHATWOOT_HOST` de `/srv/chatwoot/.env` |
+| `CHATWOOT_ACCOUNT_ID` | `1` | Igual | Cuenta «DTD Cargo» |
+| `CHATWOOT_TENANT_ID` | El id de su tenant | El id de su tenant | `select id from public.tenants` en la base de ese entorno, al cargarla |
+| `CHATWOOT_SERVICE_USER_ID` | `1` | Igual | `secretos/platform-app.env` |
+| `CHATWOOT_INBOX_CLIENTES_ID` | `2` | `1` | Bandeja «Clientes»; en prueba, «WhatsApp · prueba 0582», para que su cron no toque las bandejas reales |
+| `CHATWOOT_TEAM_CLIENTES_ID` | Pendiente | Pendiente | La cuenta no tiene equipos todavía: sale al crear «Clientes» |
+| `CHATWOOT_INBOX_LEADS_ID` | Vacía | Vacía | Hasta el corte. Sin ella no hay enrutamiento |
+| `CHATWOOT_TEAM_LEADS_ID` | Vacía | Vacía | Hasta el corte |
+| `WHATSAPP_NUMERO_CLIENTES` | Vacía | Vacía | Hasta el corte: necesita el OK del número de clientes |
+| `CRM_ALTA_WEB_SIN_KOMMO` | Vacía | Vacía | D7: solo con la lectura L3 y el OK de Sam |
+
+**Los 3 secretos** se cargan con `bash /srv/chatwoot/pegar-secretos-web.sh prueba|produccion`, en una terminal con `ssh -t`. Cada uno se pega sin eco, o con Enter se toma del servidor sin mostrarlo. No corre sin la 0505 de ese entorno y no pisa un valor existente.
+
+| Secreto | Si se pulsa Enter |
+|---|---|
+| `CHATWOOT_PLATFORM_TOKEN` | Lo toma de `secretos/platform-app.env` |
+| `CHATWOOT_ROUTER_TOKEN` | Lo toma del token de acceso del usuario de servicio |
+| `CHATWOOT_WEBHOOK_SECRET` | Lo toma del webhook de ese entorno. Si el webhook no existe, lo deja sin cargar y sale con 5: se crea y se corre otra vez con ese nombre |
+
+**El webhook de cuenta llega a todas las bandejas.** Studio solo filtra por cuenta (`app/api/chatwoot/webhook/route.ts`). Un webhook hacia prueba recibe también lo que entre por las bandejas reales, con nombres y teléfonos: se crea solo para la prueba y se borra al terminarla.
 
 ## Diagnóstico
 
