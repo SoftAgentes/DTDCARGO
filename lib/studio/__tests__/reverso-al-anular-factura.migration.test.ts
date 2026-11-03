@@ -11,7 +11,7 @@
  * sólo su propia función TEST; M9 conserva deliberadamente el pin anterior.
  * PGlite no demuestra concurrencia, locks ni COMMIT entre conexiones PG17.
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -317,6 +317,64 @@ async function midnightContract(migration = FILE_0497) {
   return evidence;
 }
 
+/**
+ * D2/M4: el motivo se acota en el cuerpo. La cabecera lo restauraba sola ante un error
+ * y el cuerpo no, así que cada salida se prueba con una sesión real: begin, savepoint y
+ * rollback van por separado, sobre el fixture ya confirmado. El testigo anota el motivo
+ * visible en cada escritura y puede forzar un error justo ahí.
+ */
+const TESTIGO_MOTIVO = `
+create table public.i3b_testigo(n bigserial primary key, evento text not null, valor text);
+create function public.i3b_testigo_ver() returns trigger language plpgsql security definer set search_path = public as $t$
+begin
+  if pg_catalog.current_setting('i3b.falla', true) = tg_table_name then
+    raise exception 'I3B falla forzada';
+  end if;
+  insert into public.i3b_testigo(evento, valor)
+  values (tg_table_name || ':' || tg_op, pg_catalog.current_setting('dtd.audit_reason', true));
+  return coalesce(new, old);
+end;
+$t$;
+create trigger i3b_testigo before insert on public.journal_lines for each row execute function public.i3b_testigo_ver();
+create trigger i3b_testigo before insert on public.journal_entries for each row execute function public.i3b_testigo_ver();
+create trigger i3b_testigo before update on public.invoices for each row execute function public.i3b_testigo_ver();
+create function pg_temp.motivo_factura(p_label text, p_status text default 'emitida', p_total numeric default 100) returns uuid language sql as $f$
+  insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,
+    base_amount,iva_amount,total_amount,paid_amount,status,issued_at)
+  values(pg_temp.fixture_id('motivo-'||p_label),pg_temp.fixture_id('tenant-A'),'F-MOTIVO-'||p_label,'DTD-I3B','Cliente sintético','USD',
+    p_total,0,p_total,0,p_status::public.invoice_status,date '2026-10-10')
+  returning id
+$f$;
+create function pg_temp.motivo_post(p_label text) returns jsonb language sql as $f$
+  select pg_temp.as_actor(null, format('select public.post_invoice_journal_entry_atomic(%L::uuid,%L::uuid)',
+    pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('motivo-'||p_label)), 'service_role')
+$f$;
+create function pg_temp.motivo_anular(p_label text) returns jsonb language sql as $f$
+  select pg_temp.as_actor('accounting-A', pg_temp.void_sql('motivo-'||p_label))
+$f$;
+`;
+const ANULAR_ABIERTA = "select pg_temp.as_actor('accounting-A', pg_temp.void_sql('inv-abierta'));";
+const ANULAR_BORRADOR = "select pg_temp.as_actor('accounting-A', pg_temp.void_sql('inv-borrador'));";
+const FALLA_FORZADA = "I3B falla forzada";
+
+async function conSesion(prueba: (db: PGlite, motivo: () => Promise<string | null>) => Promise<void>) {
+  const db = new PGlite({ extensions: { pgcrypto } });
+  try {
+    const fixture = readFileSync(CONTRACT, "utf8");
+    expect(fixture.split(SEQUENTIAL_MARKER)).toHaveLength(2);
+    await db.exec(inline(CONTRACT, { apply_fix: "true" }, {
+      "0497_reverso_al_anular_factura.test.sql": fixture.slice(0, fixture.indexOf(SEQUENTIAL_MARKER)),
+    }));
+    await db.exec(TESTIGO_MOTIVO);
+    await db.exec("commit;");
+    expect(db.isInTransaction()).toBe(false);
+    await prueba(db, async () => onlyRow<string | null>(
+      await db.exec("select current_setting('dtd.audit_reason',true) as valor;"), "valor"));
+  } finally {
+    await db.close();
+  }
+}
+
 describe("SDD-0573 · 0497 reverso al anular una factura (PGlite)", () => {
   it("el contrato pasa con 0497", async () => {
     const result = await contract();
@@ -594,6 +652,840 @@ describe("SDD-0573 · 0497 reverso al anular una factura (PGlite)", () => {
     expect(result.error).toBe("0497 requiere invoices, journal_entries, journal_lines, payment_receipts, accounting_settings, user_tenants, get_user_tenant_id(), next_entry_code(uuid) y auth.uid()");
   }, SLOW);
 
+  // A2: desde la 0497, una factura de antes cuya venta no cuadra no se puede actualizar.
+  // scripts/qa/0497-legado-por-clase.sql las cuenta antes de aplicarla, con la misma
+  // lógica; acá se compara ese conteo con la función real sobre las mismas filas.
+  describe("el conteo de legado por clase", () => {
+    const CONTEO = resolve(ROOT, "scripts/qa/0497-legado-por-clase.sql");
+    const ANTES_DE_0497 = "\\if :apply_fix\n\\ir ../migrations/0497_reverso_al_anular_factura.sql";
+    const MENSAJE_DE_CLASE: Record<string, string> = {
+      factura_borrada_con_venta: "La relación contable de la factura requiere revisión.",
+      dos_o_mas_ventas: "La relación contable de la factura requiere revisión.",
+      venta_de_otro_tenant: "La venta original requiere revisión.",
+      venta_en_borrador: "La venta original requiere revisión.",
+      venta_anulada: "La venta original requiere revisión.",
+      venta_borrada: "La venta original requiere revisión.",
+      venta_sin_codigo: "La venta original requiere revisión.",
+      venta_sin_fecha_de_asiento: "La venta original requiere revisión.",
+      venta_con_fecha_invalida: "La venta original requiere revisión.",
+      lineas_ninguna: "La venta original requiere revisión.",
+      lineas_solo_una: "La venta original requiere revisión.",
+      lineas_cuenta_no_clasificable: "La venta original requiere revisión.",
+      lineas_importe_invalido: "La venta original requiere revisión.",
+      lineas_sin_cxc_o_ingreso: "La venta original requiere revisión.",
+      lineas_descuadradas: "La venta original requiere revisión.",
+      anulada_sin_reverso: "Una factura anulada con venta requiere su reverso íntegro.",
+      estado_sin_venta_posible: "Estado de factura y par contable incompatibles.",
+      sana: "ok",
+      sin_venta: "ok",
+    };
+    // Una factura por clase, con la venta armada para caer solo en esa. Fixture, antes de la 0497.
+    const SEMBRAR = `
+create function pg_temp.a2_factura(p_label text, p_status text default 'emitida', p_deleted timestamptz default null) returns uuid language sql as $f$
+  insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,
+    base_amount,iva_amount,total_amount,paid_amount,status,issued_at,deleted_at)
+  values(pg_temp.fixture_id('a2-'||p_label),pg_temp.fixture_id('tenant-A'),'F-A2-'||p_label,'DTD-I3B','Cliente sintético','USD',
+    100,0,100,0,p_status::public.invoice_status,date '2026-10-10',p_deleted)
+  returning id
+$f$;
+create function pg_temp.a2_venta(p_label text, p_entry text default null, p_status text default 'asentado', p_code text default null,
+  p_deleted timestamptz default null, p_posted timestamptz default now(), p_tenant text default 'tenant-A') returns uuid language sql as $f$
+  insert into public.journal_entries(id,tenant_id,entry_code,entry_date,memo,status,source,invoice_id,posted_at,deleted_at)
+  values(pg_temp.fixture_id('a2-e-'||coalesce(p_entry,p_label)),pg_temp.fixture_id(p_tenant),
+    coalesce(p_code,'A-A2-'||coalesce(p_entry,p_label)),date '2026-10-10','Venta sintética',p_status::public.entry_status,'invoice',
+    pg_temp.fixture_id('a2-'||p_label),p_posted,p_deleted)
+  returning id
+$f$;
+create function pg_temp.a2_linea(p_label text, p_cuenta text, p_debe numeric, p_haber numeric) returns void language sql as $f$
+  insert into public.journal_lines(entry_id,account_id,debit,credit,line_memo)
+  values(pg_temp.fixture_id('a2-e-'||p_label),pg_temp.fixture_id(p_cuenta),p_debe,p_haber,'Línea sintética')
+$f$;
+create function pg_temp.a2_buenas(p_label text) returns void language sql as $f$
+  select pg_temp.a2_linea(p_label,'clientes',100,0); select pg_temp.a2_linea(p_label,'ventas',0,100);
+$f$;
+select pg_temp.a2_factura('borrada','emitida',now()); select pg_temp.a2_venta('borrada'); select pg_temp.a2_buenas('borrada');
+select pg_temp.a2_factura('doble'); select pg_temp.a2_venta('doble','doble-1'); select pg_temp.a2_venta('doble','doble-2');
+select pg_temp.a2_factura('tenant'); select pg_temp.a2_venta('tenant',null,'asentado',null,null,now(),'tenant-B'); select pg_temp.a2_buenas('tenant');
+select pg_temp.a2_factura('borrador-v'); select pg_temp.a2_venta('borrador-v',null,'borrador',null,null,null); select pg_temp.a2_buenas('borrador-v');
+select pg_temp.a2_factura('anulada-v'); select pg_temp.a2_venta('anulada-v',null,'anulado'); select pg_temp.a2_buenas('anulada-v');
+select pg_temp.a2_factura('borrada-v'); select pg_temp.a2_venta('borrada-v',null,'asentado',null,now()); select pg_temp.a2_buenas('borrada-v');
+select pg_temp.a2_factura('codigo'); select pg_temp.a2_venta('codigo',null,'asentado','   '); select pg_temp.a2_buenas('codigo');
+select pg_temp.a2_factura('sin-fecha'); select pg_temp.a2_venta('sin-fecha',null,'asentado',null,null,null); select pg_temp.a2_buenas('sin-fecha');
+select pg_temp.a2_factura('infinita'); select pg_temp.a2_venta('infinita',null,'asentado',null,null,'infinity'); select pg_temp.a2_buenas('infinita');
+select pg_temp.a2_factura('ninguna'); select pg_temp.a2_venta('ninguna');
+select pg_temp.a2_factura('una'); select pg_temp.a2_venta('una'); select pg_temp.a2_linea('una','clientes',100,0);
+select pg_temp.a2_factura('cuenta'); select pg_temp.a2_venta('cuenta'); select pg_temp.a2_linea('cuenta','caja',100,0); select pg_temp.a2_linea('cuenta','ventas',0,100);
+select pg_temp.a2_factura('importe'); select pg_temp.a2_venta('importe'); select pg_temp.a2_linea('importe','clientes',0,100); select pg_temp.a2_linea('importe','ventas',100,0);
+select pg_temp.a2_factura('sin-cxc'); select pg_temp.a2_venta('sin-cxc'); select pg_temp.a2_linea('sin-cxc','ventas',0,50); select pg_temp.a2_linea('sin-cxc','ventas',0,50);
+select pg_temp.a2_factura('descuadre'); select pg_temp.a2_venta('descuadre'); select pg_temp.a2_linea('descuadre','clientes',100,0); select pg_temp.a2_linea('descuadre','ventas',0,90);
+select pg_temp.a2_factura('anulada','anulada'); select pg_temp.a2_venta('anulada'); select pg_temp.a2_buenas('anulada');
+select pg_temp.a2_factura('estado','borrador'); select pg_temp.a2_venta('estado'); select pg_temp.a2_buenas('estado');
+select pg_temp.a2_factura('sana'); select pg_temp.a2_venta('sana'); select pg_temp.a2_buenas('sana');
+select pg_temp.a2_factura('sin-venta');
+`;
+    async function sobreFixtureSinLa0497(prueba: (db: PGlite) => Promise<void>) {
+      const db = new PGlite({ extensions: { pgcrypto } });
+      try {
+        const fixture = readFileSync(CONTRACT, "utf8");
+        expect(fixture.split(ANTES_DE_0497)).toHaveLength(2);
+        await db.exec(inline(CONTRACT, { apply_fix: "false" }, {
+          "0497_reverso_al_anular_factura.test.sql": fixture.slice(0, fixture.indexOf(ANTES_DE_0497)),
+        }));
+        await db.exec("commit;");
+        await prueba(db);
+      } finally {
+        await db.close();
+      }
+    }
+    const contar = async (db: PGlite) => {
+      const filas = (await db.exec(inline(CONTEO, {})))
+        .flatMap((result) => result.rows as { clase?: string; estado_factura?: string; n?: number | string }[])
+        .filter((fila) => fila.clase !== undefined);
+      const total: Record<string, number> = {};
+      for (const fila of filas) total[fila.clase!] = (total[fila.clase!] ?? 0) + Number(fila.n);
+      expect(db.isInTransaction()).toBe(false);
+      return total;
+    };
+
+    it("cada clase suma una fila y su conteo coincide con la función real", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        const antes = await contar(db);
+        await db.exec(SEMBRAR);
+        const despues = await contar(db);
+        for (const clase of Object.keys(MENSAJE_DE_CLASE)) {
+          expect([clase, (despues[clase] ?? 0) - (antes[clase] ?? 0)]).toEqual([clase, 1]);
+        }
+        expect(Object.keys(despues).filter((clase) => !(clase in MENSAJE_DE_CLASE))).toEqual([]);
+
+        await db.exec(FILE_0497);
+        await db.exec(`do $real$
+declare f record; v_mensaje text;
+begin
+  create temporary table a2_real(mensaje text not null);
+  for f in select id from public.invoices loop
+    begin
+      perform public.i3_assert_invoice_final(f.id);
+      insert into a2_real values ('ok');
+    exception when check_violation then
+      get stacked diagnostics v_mensaje = message_text;
+      insert into a2_real values (v_mensaje);
+    end;
+  end loop;
+end;
+$real$;`);
+        const porMensaje = (await db.query<{ mensaje: string; n: number }>(
+          "select mensaje, count(*)::int as n from a2_real group by mensaje order by mensaje")).rows;
+        const esperado: Record<string, number> = {};
+        for (const [clase, n] of Object.entries(despues)) {
+          esperado[MENSAJE_DE_CLASE[clase]] = (esperado[MENSAJE_DE_CLASE[clase]] ?? 0) + n;
+        }
+        expect(Object.fromEntries(porMensaje.map((fila) => [fila.mensaje, fila.n]))).toEqual(esperado);
+      });
+    }, SLOW);
+
+    it("con la 0497 aplicada, el conteo se niega en vez de contar mal", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(FILE_0497);
+        await expect(contar(db)).rejects.toThrow("Este conteo es de antes de la 0497");
+        if (db.isInTransaction()) await db.exec("rollback;");
+      });
+    }, SLOW);
+
+    // Decisión de Sam, 2026-11-02, «Sí, quítalo»: toda escritura de una factura o de un asiento
+    // con factura afirma el par al confirmar. Sustituye al filtro del 2026-11-01, que existía para
+    // no congelar las facturas de antes; las de producción ya no existen.
+    const UNA_VENTA_ANULADA = "pg_temp.fixture_id('a2-anulada-v')";
+    const confirmar = async (db: PGlite, ...sentencias: string[]) => {
+      await db.exec("begin;");
+      for (const sentencia of sentencias) await db.exec(sentencia);
+      await db.exec("commit;");
+    };
+    const confirmarFalla = async (db: PGlite, mensaje: string, ...sentencias: string[]) => {
+      await db.exec("begin;");
+      for (const sentencia of sentencias) await db.exec(sentencia);
+      await expect(db.exec("commit;")).rejects.toThrow(mensaje);
+      expect(db.isInTransaction()).toBe(false);
+    };
+
+    it("el mecanismo: tras la 0497, actualizar una factura de legado falla al confirmar", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        const CREDITO = (factura: string, entry: string, code: string) => `insert into public.journal_entries(id,tenant_id,entry_code,entry_date,memo,status,source,invoice_id,posted_at)
+values(pg_temp.fixture_id('${entry}'),pg_temp.fixture_id('tenant-A'),'${code}',date '2026-10-10','Crédito sintético','asentado','referral_credit',pg_temp.fixture_id('${factura}'),now());`;
+        await db.exec(`
+select pg_temp.a2_factura('credito','anulada');
+select pg_temp.a2_venta('credito',null,'anulado');
+select pg_temp.a2_buenas('credito');
+${CREDITO("a2-credito", "a2-e-credito-r", "A-A2-CR")}
+select pg_temp.a2_buenas('credito-r');
+${CREDITO("a2-sana", "a2-e-sana-cr", "A-A2-SCR")}
+select pg_temp.a2_buenas('sana-cr');`);
+        await db.exec(FILE_0497);
+        for (const [label, mensaje] of [
+          ["anulada-v", "La venta original requiere revisión."],
+          ["doble", "La relación contable de la factura requiere revisión."],
+          ["anulada", "Una factura anulada con venta requiere su reverso íntegro."],
+          ["tenant", "La venta original requiere revisión."],
+          ["credito", "La venta original requiere revisión."],
+        ]) {
+          await confirmarFalla(db, mensaje, `update public.invoices set client_markbox = 'DTD-NUEVA', paid_amount = paid_amount where id = pg_temp.fixture_id('a2-${label}');`);
+        }
+        // El asiento del crédito no cambia el par, pero afirma igual.
+        await confirmarFalla(db, "La venta original requiere revisión.", "update public.journal_entries set status = 'anulado' where id = pg_temp.fixture_id('a2-e-credito-r');");
+        // Una factura sana pasa por lo mismo: el cambio, el cobro y el asiento de su crédito.
+        const SANA = "pg_temp.fixture_id('a2-sana')";
+        await confirmar(db, `update public.invoices set client_markbox = 'DTD-NUEVA', paid_amount = paid_amount where id = ${SANA};`);
+        await confirmar(db, `update public.invoices set paid_amount = 10, status = 'parcial' where id = ${SANA};`);
+        await confirmar(db, `update public.invoices set paid_amount = 100, status = 'pagada' where id = ${SANA};`);
+        await confirmar(db, "update public.journal_entries set status = 'anulado' where id = pg_temp.fixture_id('a2-e-sana-cr');");
+        expect(onlyRow<string>(await db.exec(`select status::text as valor from public.invoices where id = ${SANA};`), "valor")).toBe("pagada");
+      });
+    }, SLOW);
+
+    // Ninguna clase se cobra: el cobro falla al confirmar y la factura queda como estaba.
+    it.each(["doble", "tenant", "borrador-v", "anulada-v", "borrada-v", "codigo", "sin-fecha", "infinita",
+      "ninguna", "una", "cuenta", "importe", "sin-cxc", "descuadre"])(
+      "la factura viva «%s», cuya venta no cuadra, no se cobra", async (label) => {
+        await sobreFixtureSinLa0497(async (db) => {
+          await db.exec(SEMBRAR);
+          await db.exec(FILE_0497);
+          const factura = `pg_temp.fixture_id('a2-${label}')`;
+          await confirmarFalla(db, "requiere revisión", `update public.invoices set paid_amount = 10, status = 'parcial' where id = ${factura};`);
+          expect(onlyRow<string>(await db.exec(`select status::text as valor from public.invoices where id = ${factura};`), "valor")).toBe("emitida");
+        });
+      }, SLOW,
+    );
+
+    // El control: con cada parte del filtro de vuelta, lo de arriba deja de fallar.
+    const VUELVE_FACTURA = `  if tg_op = 'UPDATE'
+     and new.id is not distinct from old.id
+     and new.tenant_id is not distinct from old.tenant_id
+     and new.deleted_at is not distinct from old.deleted_at
+     and (new.status is not distinct from old.status
+       or (old.status::text in ('emitida','parcial','vencida','pagada')
+         and new.status::text in ('emitida','parcial','vencida','pagada'))) then
+    return null;
+  end if;
+`;
+    const VUELVE_ASIENTO = `  if (tg_op = 'INSERT' or (old.source in ('invoice','invoice_reversal') or old.reverses_entry_id is not null) is not true)
+     and (tg_op = 'DELETE' or (new.source in ('invoice','invoice_reversal') or new.reverses_entry_id is not null) is not true) then
+    return null;
+  end if;
+`;
+    it("mutante: con el filtro de la factura de vuelta, una venta anulada se cobra", async () => {
+      const desde = "  if tg_op <> 'INSERT' then perform public.i3_assert_invoice_final(old.id); end if;\n";
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec(mutant(desde, VUELVE_FACTURA + desde, "public.i3_invoice_final()", true));
+        await confirmar(db, `update public.invoices set paid_amount = 10, status = 'parcial' where id = ${UNA_VENTA_ANULADA};`);
+        expect(onlyRow<string>(await db.exec(`select status::text as valor from public.invoices where id = ${UNA_VENTA_ANULADA};`), "valor")).toBe("parcial");
+      });
+    }, SLOW);
+
+    it("mutante: con el filtro del asiento de vuelta, el crédito de una factura de legado se anula", async () => {
+      const desde = "  if tg_op <> 'INSERT' then perform public.i3_assert_invoice_final(old.invoice_id); end if;\n";
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec(`
+select pg_temp.a2_factura('credito','anulada');
+select pg_temp.a2_venta('credito',null,'anulado');
+select pg_temp.a2_buenas('credito');
+insert into public.journal_entries(id,tenant_id,entry_code,entry_date,memo,status,source,invoice_id,posted_at)
+values(pg_temp.fixture_id('a2-e-credito-r'),pg_temp.fixture_id('tenant-A'),'A-A2-CR',date '2026-10-10','Crédito sintético','asentado','referral_credit',pg_temp.fixture_id('a2-credito'),now());
+select pg_temp.a2_buenas('credito-r');`);
+        await db.exec(mutant(desde, VUELVE_ASIENTO + desde, "public.i3_journal_entry_final()", true));
+        await confirmar(db, "update public.journal_entries set status = 'anulado' where id = pg_temp.fixture_id('a2-e-credito-r');");
+      });
+    }, SLOW);
+
+    // La puerta: lo que la aserción rechaza frena el apply, y nada más.
+    it("el conteo marca FRENA toda clase que la aserción rechaza, y solo esas", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        const filas = (await db.exec(inline(CONTEO, {})))
+          .flatMap((result) => result.rows as { clase?: string; puerta?: string }[])
+          .filter((fila) => fila.clase !== undefined);
+        expect(filas.length).toBeGreaterThan(2);
+        for (const fila of filas) {
+          expect([fila.clase, fila.puerta]).toEqual([fila.clase, MENSAJE_DE_CLASE[fila.clase!] === "ok" ? "pasa" : "FRENA"]);
+        }
+      });
+    }, SLOW);
+
+    // El control posterior ve lo que nadie toca: una factura sin asientos, o una venta que quedó
+    // inválida por un cambio en accounts. Tocarla ya falla; dejarla quieta no avisa.
+    const CONTROL = resolve(ROOT, "scripts/qa/0497-control-posterior.sql");
+    const MENSAJE_DEL_CONTROL: Record<string, string> = {
+      ...MENSAJE_DE_CLASE,
+      reverso_sin_venta: "La relación contable de la factura requiere revisión.",
+      otros_asientos_en_el_par: "La relación contable de la factura requiere revisión.",
+      par_de_anulacion_invalido: "El par de anulación requiere revisión.",
+      sana_anulada_con_reverso: "ok",
+    };
+    const ledgerEn = (hora: string) => `create schema if not exists supabase_migrations;
+create table if not exists supabase_migrations.schema_migrations(version text primary key, name text);
+insert into supabase_migrations.schema_migrations values
+  (to_char(${hora} at time zone 'UTC','YYYYMMDDHH24MISS'),'0497_reverso_al_anular_factura');`;
+    const LEDGER = ledgerEn("clock_timestamp()");
+    const leerControl = async (db: PGlite) => (await db.exec(inline(CONTROL, {})))
+      .flatMap((result) => result.rows as { clase?: string; estado_factura?: string; diagnostico?: string; n?: number | string }[])
+      .filter((fila) => fila.clase !== undefined)
+      .map((fila) => ({ clase: fila.clase!, estado: fila.estado_factura!, diagnostico: fila.diagnostico!, n: Number(fila.n) }));
+    const realPorMensaje = async (db: PGlite) => {
+      await db.exec(`do $real$
+declare f record; v_mensaje text;
+begin
+  create temporary table if not exists a2_real(mensaje text not null);
+  truncate a2_real;
+  for f in select id from public.invoices loop
+    begin
+      perform public.i3_assert_invoice_final(f.id);
+      insert into a2_real values ('ok');
+    exception when check_violation then
+      get stacked diagnostics v_mensaje = message_text;
+      insert into a2_real values (v_mensaje);
+    end;
+  end loop;
+end;
+$real$;`);
+      return Object.fromEntries((await db.query<{ mensaje: string; n: number }>(
+        "select mensaje, count(*)::int as n from a2_real group by mensaje")).rows.map((fila) => [fila.mensaje, fila.n]));
+    };
+    const esperar = (ms: number) => new Promise((listo) => { setTimeout(listo, ms); });
+
+    it("el control posterior coincide con la aserción real y da un diagnóstico por fila", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec(FILE_0497);
+        await esperar(1100);
+        await db.exec(LEDGER);
+        await esperar(1100);
+        // Una anulación de la 0497, con su reverso.
+        await confirmar(db, "select set_config('request.jwt.claim.sub', pg_temp.fixture_id('accounting-A')::text, true);",
+          "set local role authenticated;",
+          "select public.void_invoice_with_audit_reason(pg_temp.fixture_id('a2-sana'), 'Motivo sintético del control');");
+        // Sin asiento y con fechas de después del apply: lo que deja la web vieja.
+        await db.exec(`insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,base_amount,iva_amount,total_amount,paid_amount,status,issued_at)
+          values(pg_temp.fixture_id('a2-ventana'),pg_temp.fixture_id('tenant-A'),'F-A2-VENTANA','DTD-I3B','Cliente sintético','USD',100,0,100,0,'emitida',(now() at time zone 'America/Caracas')::date);`);
+        const filas = await leerControl(db);
+        expect(db.isInTransaction()).toBe(false);
+        const de = (clase: string, estado: string) => filas.find((fila) => fila.clase === clase && fila.estado === estado);
+        expect(filas.filter((fila) => fila.diagnostico === "sin_venta_fechas_viejas").map((fila) => fila.estado)).toContain("emitida");
+        expect(filas.filter((fila) => fila.diagnostico === "sin_venta_fechas_recientes")).toEqual(
+          [{ clase: "sin_venta", estado: "emitida", diagnostico: "sin_venta_fechas_recientes", n: 1 }]);
+        expect(de("venta_anulada", "emitida")).toMatchObject({ diagnostico: "viva_no_cuadra" });
+        expect(de("dos_o_mas_ventas", "emitida")).toMatchObject({ diagnostico: "viva_no_cuadra" });
+        expect(de("sana_anulada_con_reverso", "anulada")).toMatchObject({ diagnostico: "cuadra" });
+        expect(de("anulada_sin_reverso", "anulada")).toMatchObject({ diagnostico: "no_viva_no_cuadra" });
+        expect(filas.map((fila) => fila.clase)).not.toContain("venta_invalida_sin_clasificar");
+        const esperado: Record<string, number> = {};
+        for (const fila of filas) {
+          const mensaje = MENSAJE_DEL_CONTROL[fila.clase];
+          expect([fila.clase, mensaje === undefined]).toEqual([fila.clase, false]);
+          esperado[mensaje] = (esperado[mensaje] ?? 0) + fila.n;
+        }
+        expect(await realPorMensaje(db)).toEqual(esperado);
+      });
+    }, SLOW);
+
+    // Las etiquetas dicen cómo está la fila, no de dónde vino. Estos casos son la razón.
+    // La hora va fija: el control usa la fecha de Caracas del apply, y `current_date` es la de la sesión, que en el CI
+    // es UTC: de 00:00Z a 04:00Z su ayer es el hoy de Caracas. El apply va después de lo sembrado, emitido el 2026-10-10,
+    // y antes de cualquier now(): al tocar una factura, su `updated_at` real siempre queda después del apply.
+    it.each([
+      { franja: "antes de la medianoche UTC", apply: "2026-10-20 23:30:00+00", hoy: "2026-10-20" },
+      { franja: "entre la medianoche UTC y la de Caracas", apply: "2026-10-21 03:30:00+00", hoy: "2026-10-20" },
+      { franja: "después de la medianoche de Caracas", apply: "2026-10-21 04:30:00+00", hoy: "2026-10-21" },
+    ])("el diagnóstico no es procedencia: las fechas fallan en los dos sentidos, $franja", async ({ apply, hoy }) => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        const antesDelApply = `timestamptz '${apply}' - interval '1 hour'`;
+        const despuesDelApply = `timestamptz '${apply}' + interval '1 hour'`;
+        const factura = (label: string, emision: string, hora: string) => `insert into public.invoices(id,tenant_id,invoice_code,client_markbox,client_name,currency,base_amount,iva_amount,total_amount,paid_amount,status,issued_at,created_at,updated_at)
+          values(pg_temp.fixture_id('${label}'),pg_temp.fixture_id('tenant-A'),'F-${label}','DTD-I3B','Cliente sintético','USD',100,0,100,0,'emitida',${emision},${hora},${hora});`;
+        await db.exec(factura("a2-hoy-antes", `date '${hoy}'`, antesDelApply));
+        await db.exec(FILE_0497);
+        await db.exec(ledgerEn(`timestamptz '${apply}'`));
+        const viejas = (filas: Awaited<ReturnType<typeof leerControl>>) =>
+          filas.find((fila) => fila.clase === "sin_venta" && fila.estado === "emitida" && fila.diagnostico === "sin_venta_fechas_viejas")?.n ?? 0;
+        const antes = await leerControl(db);
+        expect(antes.filter((fila) => fila.diagnostico === "sin_venta_fechas_recientes")).toEqual([]);
+        // Emitida antes del apply y tocada después: sale con fechas recientes.
+        await db.exec("update public.invoices set notes = 'Tocada', updated_at = now() where id = pg_temp.fixture_id('a2-hoy-antes');");
+        // Emitida después del apply con fecha anterior: sale con fechas viejas.
+        await db.exec(factura("a2-ayer", `date '${hoy}' - 1`, despuesDelApply));
+        const despues = await leerControl(db);
+        expect(despues.filter((fila) => fila.diagnostico === "sin_venta_fechas_recientes")).toEqual(
+          [{ clase: "sin_venta", estado: "emitida", diagnostico: "sin_venta_fechas_recientes", n: 1 }]);
+        expect(viejas(despues) - viejas(antes)).toBe(0); // Una salió de viejas y otra entró.
+      });
+    }, SLOW);
+
+    it("el diagnóstico no es procedencia: una venta sana se invalida desde accounts, deja de cobrarse y se repara", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec(FILE_0497);
+        await db.exec(LEDGER);
+        const factura = "pg_temp.fixture_id('a2-sana')";
+        const COBRO = `update public.invoices set paid_amount = 100, status = 'pagada' where id = ${factura};`;
+        const estado = async () => onlyRow<string>(await db.exec(`select status::text as valor from public.invoices where id = ${factura};`), "valor");
+        await db.exec(`select public.i3_assert_invoice_final(${factura});`);
+        const antes = await leerControl(db);
+        expect(antes.find((fila) => fila.clase === "sana" && fila.estado === "emitida")).toMatchObject({ diagnostico: "cuadra" });
+        await db.exec("update public.accounts set is_postable = false where id = pg_temp.fixture_id('ventas');");
+        const despues = await leerControl(db);
+        expect(despues.find((fila) => fila.clase === "sana" && fila.estado === "emitida")).toBeUndefined();
+        expect(despues.find((fila) => fila.clase === "lineas_cuenta_no_clasificable" && fila.estado === "emitida"))
+          .toMatchObject({ diagnostico: "viva_no_cuadra" });
+        await expect(db.exec(`select public.i3_assert_invoice_final(${factura});`)).rejects.toThrow("La venta original requiere revisión.");
+        await confirmarFalla(db, "La venta original requiere revisión.", COBRO);
+        expect(await estado()).toBe("emitida");
+        // Se repara volviendo el valor: las líneas no cambiaron.
+        await db.exec("update public.accounts set is_postable = true where id = pg_temp.fixture_id('ventas');");
+        await confirmar(db, COBRO);
+        expect(await estado()).toBe("pagada");
+      });
+    }, SLOW);
+
+    // aplicar.sql agrega la fila del ledger DESPUÉS del archivo. Si el archivo suelta los límites,
+    // esa fila y el COMMIT esperan sin límite con los locks tomados. Aquí se leen en los dos puntos:
+    // el COMMIT, con un disparador diferido. El bloqueo de verdad va en prueba-0497-rol-real.mjs.
+    const LIMITES = "select current_setting('lock_timeout') as lock_t, current_setting('statement_timeout') as stmt_t";
+    const limitesDe = async (migracion: string) => {
+      let leidos: { sesion: unknown; ledger: unknown; alConfirmar: unknown; despues: unknown } | undefined;
+      await sobreFixtureSinLa0497(async (db) => {
+        // Valores propios: el fixture ya dejó en la sesión los 5 s y 30 s de otra migración con `set`.
+        await db.exec("set lock_timeout = '7s'; set statement_timeout = '77s';");
+        const sesion = (await db.query(LIMITES)).rows[0];
+        await db.exec(`begin;
+${migracion}
+create table public.z_limites(punto text primary key, lock_t text, stmt_t text);
+create function public.z_limites_leer() returns trigger language plpgsql as $z$
+begin
+  insert into public.z_limites select 'al_confirmar', current_setting('lock_timeout'), current_setting('statement_timeout');
+  return null;
+end;
+$z$;
+create constraint trigger z_al_confirmar after insert on public.z_limites deferrable initially deferred
+  for each row when (new.punto = 'ledger') execute function public.z_limites_leer();
+insert into public.z_limites select 'ledger', current_setting('lock_timeout'), current_setting('statement_timeout');
+commit;`);
+        const fila = async (punto: string) => (await db.query(`select lock_t, stmt_t from public.z_limites where punto = '${punto}'`)).rows[0];
+        leidos = { sesion, ledger: await fila("ledger"), alConfirmar: await fila("al_confirmar"), despues: (await db.query(LIMITES)).rows[0] };
+      });
+      return leidos!;
+    };
+    const LIMITES_0497 = { lock_t: "5s", stmt_t: "30s" };
+
+    it("los límites valen para la fila del ledger y el COMMIT, y no quedan en la sesión", async () => {
+      const { sesion, ledger, alConfirmar, despues } = await limitesDe(FILE_0497);
+      expect(ledger).toEqual(LIMITES_0497);
+      expect(alConfirmar).toEqual(LIMITES_0497);
+      expect(sesion).not.toEqual(LIMITES_0497);
+      expect(despues).toEqual(sesion);
+    }, SLOW);
+
+    const SET_LOCK = "set local lock_timeout = '5s'; -- local: valen hasta el COMMIT, también para la fila del ledger\n";
+    const SET_STMT = "set local statement_timeout = '30s';\n";
+    const CON_RESET = (texto: string, ...parametros: string[]) => texto + parametros.map((p) => `\nreset ${p};`).join("") + "\n";
+    const SIN_LOCAL = () => mutant(SET_LOCK, "set lock_timeout = '5s';\n").split(SET_STMT).join("set statement_timeout = '30s';\n");
+    it.each([
+      ["como estaba: set sin local y reset al final", () => CON_RESET(SIN_LOCAL(), "statement_timeout", "lock_timeout"), "ledger"],
+      ["reset de los dos", () => CON_RESET(FILE_0497, "statement_timeout", "lock_timeout"), "ledger"],
+      ["reset solo de lock_timeout", () => CON_RESET(FILE_0497, "lock_timeout"), "ledger"],
+      ["reset solo de statement_timeout", () => CON_RESET(FILE_0497, "statement_timeout"), "ledger"],
+      ["sin el límite de locks", () => mutant(SET_LOCK, ""), "ledger"],
+      ["sin el límite de sentencia", () => mutant(SET_STMT, ""), "ledger"],
+      ["set sin local: los límites se quedan en la sesión", SIN_LOCAL, "despues"],
+    ] as const)("mutante de los límites, %s: muere", async (_nombre, armar, punto) => {
+      const { sesion, ledger, alConfirmar, despues } = await limitesDe(armar());
+      if (punto === "ledger") {
+        expect(ledger).not.toEqual(LIMITES_0497);
+        expect(alConfirmar).not.toEqual(LIMITES_0497);
+      } else {
+        expect(ledger).toEqual(LIMITES_0497);
+        expect(despues).not.toEqual(sesion);
+      }
+    }, SLOW);
+
+    it("cada clase del control posterior coincide con la del conteo previo", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        const antes = await contar(db);
+        await db.exec(FILE_0497);
+        await db.exec(LEDGER);
+        const despues: Record<string, number> = {};
+        for (const fila of await leerControl(db)) despues[fila.clase] = (despues[fila.clase] ?? 0) + fila.n;
+        expect(despues).toEqual(antes);
+      });
+    }, SLOW);
+
+    it("el control posterior se niega sin la 0497, o si la 0497 no está en el ledger", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await expect(leerControl(db)).rejects.toThrow("Este control es de después de la 0497");
+        if (db.isInTransaction()) await db.exec("rollback;");
+        await db.exec(FILE_0497);
+        await db.exec("create schema if not exists supabase_migrations; create table if not exists supabase_migrations.schema_migrations(version text primary key, name text);");
+        await expect(leerControl(db)).rejects.toThrow("La 0497 no está en el ledger");
+        if (db.isInTransaction()) await db.exec("rollback;");
+      });
+    }, SLOW);
+
+    it("una factura de legado sigue sin poder cambiar lo que importa", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec("select pg_temp.a2_factura('borrador-anulada','borrador'); select pg_temp.a2_venta('borrador-anulada',null,'anulado'); select pg_temp.a2_buenas('borrador-anulada');");
+        await db.exec(FILE_0497);
+        // Hacia anulada, desde borrador y hacia borrador: pasan por la aserción al confirmar.
+        await confirmarFalla(db, "La venta original requiere revisión.", `update public.invoices set status = 'anulada' where id = ${UNA_VENTA_ANULADA};`);
+        await confirmarFalla(db, "La venta original requiere revisión.", "update public.invoices set status = 'emitida' where id = pg_temp.fixture_id('a2-borrador-anulada');");
+        await confirmarFalla(db, "La venta original requiere revisión.", `update public.invoices set status = 'borrador' where id = ${UNA_VENTA_ANULADA};`);
+        // Reabrir y borrar: los frena la guarda de fila, antes de llegar al final.
+        await expect(db.exec("update public.invoices set status = 'emitida' where id = pg_temp.fixture_id('a2-anulada');"))
+          .rejects.toThrow("No se desvincula ni reabre una factura con asiento automático.");
+        await expect(db.exec(`update public.invoices set deleted_at = now() where id = ${UNA_VENTA_ANULADA};`))
+          .rejects.toThrow("No se desvincula ni reabre una factura con asiento automático.");
+        await expect(db.exec(`delete from public.invoices where id = ${UNA_VENTA_ANULADA};`))
+          .rejects.toThrow("No se desvincula ni reabre una factura con asiento automático.");
+      });
+    }, SLOW);
+
+    it("sin la guarda de fila, el final sigue frenando reabrir, borrar y cambiar de tenant", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec("select pg_temp.a2_factura('anulada-anulada','anulada'); select pg_temp.a2_venta('anulada-anulada',null,'anulado'); select pg_temp.a2_buenas('anulada-anulada');");
+        await db.exec(FILE_0497);
+        await db.exec("alter table public.invoices disable trigger i3_invoice_guard;");
+        await confirmarFalla(db, "La venta original requiere revisión.", "update public.invoices set status = 'emitida' where id = pg_temp.fixture_id('a2-anulada-anulada');");
+        await confirmarFalla(db, "La relación contable de la factura requiere revisión.", "update public.invoices set deleted_at = now() where id = pg_temp.fixture_id('a2-sana');");
+        await confirmarFalla(db, "La venta original requiere revisión.", "update public.invoices set tenant_id = pg_temp.fixture_id('tenant-B') where id = pg_temp.fixture_id('a2-sana');");
+      });
+    }, SLOW);
+
+    it("una factura sana sigue frenada al anularla sin reverso o al volverla borrador", async () => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec(FILE_0497);
+        await confirmarFalla(db, "Una factura anulada con venta requiere su reverso íntegro.", "update public.invoices set status = 'anulada' where id = pg_temp.fixture_id('a2-sana');");
+        await confirmarFalla(db, "Estado de factura y par contable incompatibles.", "update public.invoices set status = 'borrador' where id = pg_temp.fixture_id('a2-sana');");
+      });
+    }, SLOW);
+
+    // Lo que la conducta no alcanza a mostrar: una factura recién insertada o borrada no
+    // tiene asientos que contar, y el FK impide cambiarle el id a una que los tenga. Con
+    // un espía en la aserción, se comprueba a quién llama cada operación.
+    const ESPIA = `
+create table public.i3b_espia(id uuid);
+create or replace function public.i3_assert_invoice_final(p_invoice_id uuid) returns void language sql security definer set search_path = '' as $f$
+  insert into public.i3b_espia values (p_invoice_id);
+$f$;
+alter table public.invoices disable trigger i3_invoice_guard;
+alter table public.journal_entries disable trigger i3_journal_entry_guard;
+alter table public.journal_entries drop constraint journal_entries_reverso_coherente;`;
+    const llamadas = async (db: PGlite, sentencia: string) => {
+      await db.exec("truncate public.i3b_espia;");
+      await confirmar(db, sentencia);
+      return (await db.query<{ n: number }>("select count(*)::int as n from public.i3b_espia")).rows[0].n;
+    };
+    const FACTURA = "pg_temp.fixture_id('a2-sana')";
+    const ESTADO = (label: string, status: string) =>
+      `update public.invoices set status = '${status}' where id = pg_temp.fixture_id('a2-${label}');`;
+    it.each([
+      ["INSERT", "select pg_temp.a2_factura('espia-nueva');", 1],
+      ["DELETE", "delete from public.invoices where id = pg_temp.fixture_id('a2-sin-venta');", 1],
+      ["id", `update public.invoices set id = pg_temp.fixture_id('a2-sin-venta-2') where id = pg_temp.fixture_id('a2-espia-sin-venta');`, 2],
+      ["tenant", `update public.invoices set tenant_id = pg_temp.fixture_id('tenant-B') where id = ${FACTURA};`, 2],
+      ["deleted_at", `update public.invoices set deleted_at = now() where id = ${FACTURA};`, 2],
+      ["emitida a anulada", ESTADO("sana", "anulada"), 2],
+      ["emitida a borrador", ESTADO("sana", "borrador"), 2],
+      ["anulada a emitida", ESTADO("anulada", "emitida"), 2],
+      ["borrador a emitida", ESTADO("estado", "emitida"), 2],
+      ["borrador a anulada", ESTADO("estado", "anulada"), 2],
+      ["anulada a borrador", ESTADO("anulada", "borrador"), 2],
+      ["otra columna", `update public.invoices set paid_amount = 1 where id = ${FACTURA};`, 2],
+      ["sin cambio de estado en una anulada", "update public.invoices set paid_amount = 1 where id = pg_temp.fixture_id('a2-anulada');", 2],
+      ["emitida a parcial", ESTADO("sana", "parcial"), 2],
+      ["emitida a pagada", ESTADO("sana", "pagada"), 2],
+      ["emitida a vencida", ESTADO("sana", "vencida"), 2],
+    ])("la factura afirma en todo cambio: %s", async (_name, sentencia, esperadas) => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec("select pg_temp.a2_factura('espia-sin-venta');");
+        await db.exec(FILE_0497);
+        await db.exec(ESPIA);
+        expect(await llamadas(db, sentencia)).toBe(esperadas);
+      });
+    }, SLOW);
+
+    const ASIENTO = (label: string, source: string, reverso = "null") => `insert into public.journal_entries
+      (id,tenant_id,entry_code,entry_date,memo,status,source,invoice_id,reverses_entry_id,posted_at)
+      values(pg_temp.fixture_id('a2-esp-${label}'),pg_temp.fixture_id('tenant-A'),'A-ESP-${label}',date '2026-10-10','Espía','asentado','${source}',
+        pg_temp.fixture_id('a2-sana'),${reverso},now());`;
+    const VENTA_SANA = "pg_temp.fixture_id('a2-e-sana')";
+    it.each([
+      ["insertar una venta", ASIENTO("v", "invoice"), 1],
+      ["insertar un reverso", ASIENTO("r", "invoice_reversal"), 1],
+      ["insertar con reverses_entry_id", ASIENTO("c", "manual", VENTA_SANA), 1],
+      ["insertar un manual", ASIENTO("m", "manual"), 1],
+      ["insertar un crédito", ASIENTO("x", "referral_credit"), 1],
+      ["tocar una venta", `update public.journal_entries set memo = 'x' where id = ${VENTA_SANA};`, 2],
+      ["borrar una venta", `delete from public.journal_entries where id = ${VENTA_SANA};`, 1],
+      ["una venta deja de serlo", `update public.journal_entries set source = 'manual' where id = ${VENTA_SANA};`, 2],
+      ["un manual pasa a venta", "update public.journal_entries set source = 'invoice' where id = pg_temp.fixture_id('a2-esp-previo');", 2],
+      ["un manual deja de tener reverses_entry_id", "update public.journal_entries set reverses_entry_id = null where id = pg_temp.fixture_id('a2-esp-previo-r');", 2],
+      ["un manual pasa a tener reverses_entry_id", `update public.journal_entries set reverses_entry_id = ${VENTA_SANA} where id = pg_temp.fixture_id('a2-esp-previo');`, 2],
+      ["tocar un manual", "update public.journal_entries set memo = 'x' where id = pg_temp.fixture_id('a2-esp-previo');", 2],
+      ["borrar un manual", "delete from public.journal_entries where id = pg_temp.fixture_id('a2-esp-previo');", 1],
+    ])("el asiento con factura afirma en todo cambio: %s", async (_name, sentencia, esperadas) => {
+      await sobreFixtureSinLa0497(async (db) => {
+        await db.exec(SEMBRAR);
+        await db.exec(FILE_0497);
+        await db.exec(ESPIA);
+        await db.exec(ASIENTO("previo", "manual") + ASIENTO("previo-r", "manual", "pg_temp.fixture_id('a2-e-anulada')"));
+        expect(await llamadas(db, sentencia)).toBe(esperadas);
+      });
+    }, SLOW);
+  });
+
+  // El cuerpo vivo de producción (medido el 2026-11-01) es el de la 0078 con otro
+  // formato. Se arma desde la 0078 y su md5 tiene que ser el que la 0497 acepta.
+  const FILE_0078 = readFileSync(resolve(ROOT, "supabase/migrations/0078_contabilidad.sql"), "utf8").replace(/\r\n/g, "\n");
+  const CUERPO_0078 = FILE_0078.slice(
+    FILE_0078.indexOf("$$", FILE_0078.indexOf("function public.next_entry_code(p_tenant_id uuid)")) + 2,
+    FILE_0078.indexOf("$$;", FILE_0078.indexOf("function public.next_entry_code(p_tenant_id uuid)")),
+  );
+  const WHERE_0078 = "  where tenant_id = p_tenant_id\n    and entry_code like 'A-' || v_year || '-%';\n\n";
+  const WHERE_VIVO = "  where tenant_id = p_tenant_id and entry_code like 'A-' || v_year || '-%';\n";
+  expect(CUERPO_0078.split(WHERE_0078)).toHaveLength(2);
+  const CUERPO_VIVO = CUERPO_0078.split(WHERE_0078).join(WHERE_VIVO);
+  const nextEntryCode = (cuerpo: string) => "create or replace function public.next_entry_code(p_tenant_id uuid) "
+    + "returns text language plpgsql security definer set search_path = public as $vivo$" + cuerpo + "$vivo$;";
+  const SUMA = "), 0) + 1";
+
+  it("el cuerpo vivo de next_entry_code es la 0078 con otro formato, y su md5 es el pin", () => {
+    expect(createHash("md5").update(CUERPO_0078, "utf8").digest("hex")).toBe("6954cb3efb9db4ca131266964d4ed524");
+    expect(createHash("md5").update(CUERPO_VIVO, "utf8").digest("hex")).toBe("06b5756a18361fc4d85cec6f6dc4b3bc");
+    expect(CUERPO_VIVO).toHaveLength(388);
+    const sinEspacios = (cuerpo: string) => cuerpo.replace(/\s/g, "");
+    expect(sinEspacios(CUERPO_VIVO)).toBe(sinEspacios(CUERPO_0078));
+    expect(CUERPO_VIVO.split(SUMA)).toHaveLength(2);
+  });
+
+  it("next_entry_code con el cuerpo vivo de producción: el contrato entero pasa", async () => {
+    const result = await contract({ migration: mutant("do $preflight$", nextEntryCode(CUERPO_VIVO) + "\ndo $preflight$") });
+    expect(result.error).toBeNull();
+    expect(result.green).toMatch(/^TEST 0497 GREEN/);
+  }, SLOW);
+
+  it.each([
+    ["el cuerpo vivo con otra lógica", () => nextEntryCode(CUERPO_VIVO.split(SUMA).join("), 0) + 2"))],
+    ["la 0078 con otra lógica", () => nextEntryCode(CUERPO_0078.split(SUMA).join("), 0) + 2"))],
+    ["el cuerpo vivo con un formato desconocido", () => nextEntryCode(CUERPO_VIVO + "\n")],
+  ])("el preflight aborta con %s en next_entry_code", async (_name, ddl) => {
+    const result = await contract({ migration: mutant("do $preflight$", ddl() + "\ndo $preflight$") });
+    expect(result.error).toBe("0497: preflight función/cuerpo/config de public.next_entry_code(uuid) no coincide.");
+  }, SLOW);
+
+  it("el postflight aborta si next_entry_code cambió de lógica durante la migración", async () => {
+    const otra = nextEntryCode(CUERPO_VIVO.split(SUMA).join("), 0) + 2"));
+    const result = await contract({ migration: mutant("do $postflight$", otra + "\ndo $postflight$") });
+    expect(result.error).toBe("0497: postflight predecesor conservado función/cuerpo/config de public.next_entry_code(uuid) no coincide.");
+  }, SLOW);
+
+  it("el md5 vivo de next_entry_code no vale para otra función", async () => {
+    const otra = "create or replace function public.journal_lines_validate_closing() returns trigger language plpgsql "
+      + "set search_path = public as $vivo$" + CUERPO_VIVO + "$vivo$;";
+    const result = await contract({ migration: mutant("do $preflight$", otra + "\ndo $preflight$") });
+    expect(result.error).toBe("0497: preflight función/cuerpo/config de public.journal_lines_validate_closing() no coincide.");
+  }, SLOW);
+
+  // PGlite y sql-tests corren como superusuario, y el rol postgres de producción no
+  // lo es: el motor le niega crear una función con un parámetro propio en su cabecera.
+  it("sin superusuario, un parámetro propio en la cabecera se niega, y la 0497 no lo usa", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec("create role i3b_sin_super nologin; create schema i3b_sonda authorization i3b_sin_super; set role i3b_sin_super;");
+      await db.exec("create function i3b_sonda.con_search_path() returns int language sql set search_path = '' as 'select 1';");
+      await expect(db.exec(
+        "create function i3b_sonda.con_propio() returns int language sql set dtd.audit_reason = '' as 'select 1';",
+      )).rejects.toThrow('permission denied to set parameter "dtd.audit_reason"');
+    } finally {
+      await db.close();
+    }
+    expect(FILE_0497.match(/\bset\s+"?[a-z_]\w*\.[a-z_]\w*"?\s*(=|to\b)/gi)).toBeNull();
+  }, SLOW);
+
+  describe("el motivo de auditoría en cada salida", () => {
+    const MOTIVO_EXTERIOR = "I3B motivo exterior";
+    const MOTIVO_DOCUMENTO = "Factura emitida por error";
+    const exterior = `select set_config('dtd.audit_reason','${MOTIVO_EXTERIOR}',true);`;
+    const testigo = async (db: PGlite) => (await db.query<{ evento: string; valor: string | null }>(
+      "select evento, valor from public.i3b_testigo order by n")).rows.map((row) => row.evento + "=" + (row.valor ?? "NULL"));
+    const estado = async (db: PGlite, label: string) => onlyRow<string>(
+      await db.exec(`select pg_temp.estado('${label}') as valor;`), "valor");
+    const reversos = async (db: PGlite, label: string) => onlyRow<string>(await db.exec(
+      `select count(*)::text as valor from public.journal_entries where invoice_id = pg_temp.fixture_id('${label}') and source = 'invoice_reversal';`), "valor");
+    const conMotivoExterior = async (db: PGlite) => onlyRow<string>(await db.exec(
+      `select count(*)::text as valor from public.entity_audit_log where reason = '${MOTIVO_EXTERIOR}';`), "valor");
+
+    it("éxito: vuelve el valor exterior y el motivo existe solo durante el UPDATE", async () => {
+      await conSesion(async (db, motivo) => {
+        await db.exec("select pg_temp.motivo_factura('exito');");
+        await db.exec("truncate public.i3b_testigo;");
+        await db.exec("begin;");
+        await db.exec(exterior);
+        expect((onlyRow<Record<string, string>>(await db.exec("select pg_temp.motivo_post('exito') as r;"), "r")).outcome).toBe("posted");
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        expect(onlyRow<boolean>(await db.exec("select pg_temp.motivo_anular('exito') as r;"), "r")).toBe(true);
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        await db.exec(ANULAR_BORRADOR);
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        await db.exec("commit;");
+        expect(await testigo(db)).toEqual([
+          "journal_lines:INSERT=", "journal_lines:INSERT=", "journal_entries:INSERT=",
+          "journal_lines:INSERT=", "journal_lines:INSERT=", "journal_entries:INSERT=",
+          `invoices:UPDATE=${MOTIVO_DOCUMENTO}`,
+          `invoices:UPDATE=${MOTIVO_DOCUMENTO}`,
+        ]);
+        expect(await conMotivoExterior(db)).toBe("0");
+      });
+    }, SLOW);
+
+    it("éxito sin transacción abierta: el valor de la sesión sigue igual", async () => {
+      await conSesion(async (db, motivo) => {
+        await db.exec(`set dtd.audit_reason = '${MOTIVO_EXTERIOR}';`);
+        await db.exec(ANULAR_ABIERTA);
+        expect(db.isInTransaction()).toBe(false);
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        expect(await reversos(db, "inv-abierta")).toBe("1");
+        expect(await conMotivoExterior(db)).toBe("0");
+      });
+    }, SLOW);
+
+    it("retornos tempranos: no tocan el valor exterior ni escriben", async () => {
+      await conSesion(async (db, motivo) => {
+        await db.exec("begin;");
+        await db.exec(exterior);
+        await db.exec("select pg_temp.motivo_factura('borrador','borrador');");
+        await db.exec("select pg_temp.motivo_factura('cero','emitida',0);");
+        await db.exec("truncate public.i3b_testigo;");
+        const razones: Record<string, string> = {};
+        for (const [etiqueta, sql] of [
+          ["inexistente", `select pg_temp.as_actor(null, format('select public.post_invoice_journal_entry_atomic(%L::uuid,%L::uuid)',
+            pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('motivo-no-existe')), 'service_role') as r;`],
+          ["borrador", "select pg_temp.motivo_post('borrador') as r;"],
+          ["cero", "select pg_temp.motivo_post('cero') as r;"],
+        ] as const) {
+          razones[etiqueta] = (onlyRow<Record<string, string>>(await db.exec(sql), "r")).reason;
+          expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        }
+        expect(razones).toEqual({ inexistente: "invoice_unavailable", borrador: "invoice_not_postable", cero: "zero_total" });
+        expect(onlyRow<boolean>(await db.exec(
+          "select pg_temp.as_actor('accounting-A', pg_temp.void_sql('inv-pagada')) as r;"), "r")).toBe(false);
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        expect(await testigo(db)).toEqual([]);
+        await db.exec("rollback;");
+      });
+    }, SLOW);
+
+    it("cada return posterior al primer cambio del motivo restaura antes de salir", () => {
+      const RESTAURA = "perform pg_catalog.set_config('dtd.audit_reason', coalesce(v_motivo_exterior, ''), true);";
+      for (const name of ["post_invoice_journal_entry_atomic", "void_invoice_with_audit_reason"]) {
+        const cuerpo = FILE_0497.match(new RegExp(
+          "create(?: or replace)? function public\\." + name + "\\([\\s\\S]*?\\bas \\$function\\$([\\s\\S]*?)\\$function\\$;", "i"))![1];
+        const lineas = cuerpo.split("\n").map((linea) => linea.trim()).filter((linea) => !linea.startsWith("--"));
+        const primero = lineas.findIndex((linea) => linea.includes("set_config('dtd.audit_reason'"));
+        expect(primero).toBeGreaterThan(0);
+        // \b y no ^: un `then return` en medio de la línea también es una salida.
+        const salidas = lineas.flatMap((linea, i) => (i > primero && /\breturn\b/i.test(linea) ? [i] : []));
+        expect(salidas.length).toBeGreaterThan(0);
+        for (const i of salidas) {
+          expect(lineas[i]).toMatch(/^return\b/);
+          expect(lineas[i - 1]).toBe(RESTAURA);
+        }
+      }
+    });
+
+    it.each([
+      ["anulación con asiento, con el motivo ya puesto", "invoices", ANULAR_ABIERTA, "inv-abierta"],
+      ["anulación sin asiento, con el motivo ya puesto", "invoices", ANULAR_BORRADOR, "inv-borrador"],
+      ["anulación con asiento, antes de poner el motivo", "journal_entries", ANULAR_ABIERTA, "inv-abierta"],
+    ])("excepción capturada con savepoint: %s", async (_name, tabla, anular, factura) => {
+      await conSesion(async (db, motivo) => {
+        const antes = await estado(db, factura);
+        await db.exec(`set i3b.falla = '${tabla}';`);
+        await db.exec("begin;");
+        await db.exec(exterior);
+        await db.exec("savepoint s;");
+        await expect(db.exec(anular)).rejects.toThrow(FALLA_FORZADA);
+        await db.exec("rollback to savepoint s;");
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        expect(await estado(db, factura)).toBe(antes);
+        expect(await reversos(db, factura)).toBe("0");
+        expect(await conMotivoExterior(db)).toBe("0");
+        await db.exec("rollback;");
+      });
+    }, SLOW);
+
+    it("excepción capturada con savepoint: asiento de venta nuevo", async () => {
+      await conSesion(async (db, motivo) => {
+        await db.exec("select pg_temp.motivo_factura('savepoint');");
+        await db.exec("set i3b.falla = 'journal_entries';");
+        await db.exec("begin;");
+        await db.exec(exterior);
+        await db.exec("savepoint s;");
+        await expect(db.exec("select pg_temp.motivo_post('savepoint');")).rejects.toThrow(FALLA_FORZADA);
+        await db.exec("rollback to savepoint s;");
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        await db.exec("rollback;");
+      });
+    }, SLOW);
+
+    it.each([
+      ["sin transacción abierta", false],
+      ["dentro de una transacción que se deshace", true],
+    ])("excepción sin capturar, %s: no queda nada en la sesión", async (_name, conTransaccion) => {
+      await conSesion(async (db, motivo) => {
+        await db.exec("set i3b.falla = 'invoices';");
+        for (const previo of [MOTIVO_EXTERIOR, ""]) {
+          await db.exec(`set dtd.audit_reason = '${previo}';`);
+          if (conTransaccion) await db.exec("begin;");
+          await expect(db.exec(ANULAR_ABIERTA)).rejects.toThrow(FALLA_FORZADA);
+          if (conTransaccion) await db.exec("rollback;");
+          expect(db.isInTransaction()).toBe(false);
+          expect(await motivo()).toBe(previo);
+          expect(onlyRow<string>(await db.exec("select current_user::text as valor;"), "valor")).toBe("postgres");
+        }
+        await db.exec("reset dtd.audit_reason;");
+        expect(await motivo() ?? "").toBe("");
+        await expect(db.exec(ANULAR_ABIERTA)).rejects.toThrow(FALLA_FORZADA);
+        expect(await motivo() ?? "").toBe("");
+        expect(await reversos(db, "inv-abierta")).toBe("0");
+      });
+    }, SLOW);
+
+    it("colisión de código: el reintento conserva el motivo exacto y restaura el exterior", async () => {
+      await conSesion(async (db, motivo) => {
+        await db.exec(`create sequence public.i3b_intentos;
+create or replace function public.next_entry_code(p_tenant_id uuid) returns text language plpgsql security definer set search_path = public as $c$
+declare n bigint := nextval('public.i3b_intentos');
+begin
+  if n <= 2 then return 'A-2026-0101'; end if;
+  return 'A-2026-0901';
+end;
+$c$;`);
+        await db.exec("begin;");
+        await db.exec(exterior);
+        await db.exec(ANULAR_ABIERTA);
+        expect(await motivo()).toBe(MOTIVO_EXTERIOR);
+        await db.exec("commit;");
+        expect(onlyRow<string>(await db.exec("select last_value::text as valor from public.i3b_intentos;"), "valor")).toBe("3");
+        expect((await testigo(db)).filter((fila) => fila.startsWith("invoices:"))).toEqual([`invoices:UPDATE=${MOTIVO_DOCUMENTO}`]);
+        expect(await conMotivoExterior(db)).toBe("0");
+      });
+    }, SLOW);
+  });
+
   it("el preflight aborta si void_invoice_with_audit_reason no es la de la 0294", async () => {
     const antes = "    and status <> 'pagada'\n    and status <> 'anulada';";
     expect(FILE_0294.split(antes)).toHaveLength(2);
@@ -684,6 +1576,79 @@ describe("SDD-0573 · 0497 reverso al anular una factura (PGlite)", () => {
     expect(stage.committed).not.toBe(true);
     expect(result.secondVoid).toBe("NO EJECUTADO: no se alcanzó");
   }, SLOW);
+
+  describe("el desarme, supabase/desarmes/0497_desarme.sql", () => {
+    const DESARME = readFileSync(resolve(ROOT, "supabase/desarmes/0497_desarme.sql"), "utf8").replace(/\r\n/g, "\n");
+    const cuerpo = (archivo: string, nombre: string) => {
+      const m = archivo.replace(/\r\n/g, "\n").match(
+        new RegExp(`function public\\.${nombre}\\([\\s\\S]*?\\bas \\$function\\$([\\s\\S]*?)\\$function\\$;`),
+      );
+      expect(m).not.toBeNull();
+      return m![1];
+    };
+    const POST = "post_invoice_journal_entry_atomic";
+    const VOID = "void_invoice_with_audit_reason";
+    const venta = (inv: string) => `(select count(*) from public.journal_entries e
+      where e.invoice_id = pg_temp.fixture_id('${inv}') and e.source = 'invoice' and e.status = 'asentado')`;
+    const reversos = (inv: string) => `(select count(*) from public.journal_entries e
+      where e.invoice_id = pg_temp.fixture_id('${inv}') and e.source = 'invoice_reversal')`;
+
+    it("no es una migración, y copia los cuerpos de la 0294 y de la 0497", () => {
+      expect(readdirSync(resolve(ROOT, "supabase/migrations")).filter((f) => f.includes("desarme"))).toEqual([]);
+      expect(cuerpo(DESARME, VOID)).toBe(cuerpo(FILE_0294, VOID));
+      // Solo salen los dos nombres de triggers, en los tres SET CONSTRAINTS.
+      const conNombres = /public\.journal_lines_entry_id_fkey,\s+public\.i3_journal_entry_final_check, public\.i3_invoice_final_check/g;
+      const post0497 = cuerpo(FILE_0497, POST);
+      expect(post0497.match(conNombres)).toHaveLength(3);
+      expect(cuerpo(DESARME, POST)).toBe(post0497.replace(conNombres, "public.journal_lines_entry_id_fkey"));
+    });
+
+    it("lo frenado pasa, anular y asentar funcionan, y se ve lo que se pierde", async () => {
+      const result = await contract({ probe: `${DESARME}
+select pg_temp.assert_true(not exists (select 1 from pg_trigger where not tgisinternal and left(tgname, 3) = 'i3_'),
+  'desarme: no queda ningún trigger');
+update public.invoices set notes = 'Desarme' where id = pg_temp.fixture_id('inv-doble');
+select pg_temp.assert_true((select notes = 'Desarme' from public.invoices where id = pg_temp.fixture_id('inv-doble')),
+  'desarme: se escribe una factura con dos ventas');
+select pg_temp.assert_true(pg_temp.anular('accounting-A', 'inv-abierta') = 'true', 'desarme: anula');
+select pg_temp.assert_true(pg_temp.estado('inv-abierta') = 'anulada' and ${reversos("inv-abierta")} = 0 and ${venta("inv-abierta")} = 1,
+  'desarme: anulada, sin reverso y con la venta asentada');
+select pg_temp.assert_true(pg_temp.anular('accounting-A', 'inv-recibo') = 'true', 'desarme: la base deja anular con un cobro vivo');
+update public.journal_entries set memo = 'Otro' where id = pg_temp.fixture_id('e-futuro');
+select pg_temp.assert_true((select memo = 'Otro' from public.journal_entries where id = pg_temp.fixture_id('e-futuro')),
+  'desarme: un asiento automático se puede cambiar');
+insert into public.invoices (id, tenant_id, invoice_code, client_markbox, client_name, currency, base_amount, iva_amount, total_amount, paid_amount, status, issued_at)
+values (pg_temp.fixture_id('inv-desarme'), pg_temp.fixture_id('tenant-A'), 'F-0497-DESARME', 'DTD-0497', 'Cliente 0497', 'USD', 100, 16, 116, 0, 'emitida', current_date);
+select pg_temp.assert_true(pg_temp.as_actor('accounting-A', format('select public.${POST}(%L::uuid,%L::uuid)',
+    pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('inv-desarme')), 'service_role')->>'outcome' = 'posted',
+  'desarme: asentar sigue funcionando');
+select pg_temp.assert_true(${venta("inv-desarme")} = 1, 'desarme: la venta quedó');
+select pg_temp.assert_true((select count(*) from public.journal_entries where reverses_entry_id is not null) = 0
+  and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'journal_entries' and column_name = 'reverses_entry_id'),
+  'desarme: conserva la columna');
+` });
+      expect(result.error).toBeNull();
+    }, SLOW);
+
+    it("control en rojo: sin el ajuste, quitar los triggers rompe asentar", async () => {
+      const soloQuitar = DESARME.split("\n").filter((l) => l.startsWith("drop trigger ")).join("\n");
+      expect(soloQuitar.split("\n")).toHaveLength(5);
+      const result = await contract({ probe: `${soloQuitar}
+insert into public.invoices (id, tenant_id, invoice_code, client_markbox, client_name, currency, base_amount, iva_amount, total_amount, paid_amount, status, issued_at)
+values (pg_temp.fixture_id('inv-desarme'), pg_temp.fixture_id('tenant-A'), 'F-0497-DESARME', 'DTD-0497', 'Cliente 0497', 'USD', 100, 16, 116, 0, 'emitida', current_date);
+select pg_temp.as_actor('accounting-A', format('select public.${POST}(%L::uuid,%L::uuid)',
+  pg_temp.fixture_id('tenant-A'), pg_temp.fixture_id('inv-desarme')), 'service_role');
+` });
+      expect(result.error).toMatch(/constraint "(public\.)?i3_journal_entry_final_check" does not exist/);
+    }, SLOW);
+
+    it("aborta si la función no es la de la 0497", async () => {
+      const result = await contract({ probe: `create or replace function public.${VOID}(p_id uuid, p_reason text)
+returns boolean language plpgsql security definer set search_path = '' as $f$ begin return false; end; $f$;
+${DESARME}` });
+      expect(result.error).toMatch(/^Desarme abortado: void_invoice_with_audit_reason no es la de la 0497/);
+    }, SLOW);
+  });
 
   it("la 0497 espera en pendingBelowCutoff, MIGRATE-FIRST y con OK nominal de Sam", () => {
     const baseline = JSON.parse(readFileSync(resolve(ROOT, "supabase/migrations-baseline.json"), "utf8")) as {
