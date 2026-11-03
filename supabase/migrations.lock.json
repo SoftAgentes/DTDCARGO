@@ -3051,6 +3051,42 @@
         "fecha": "2026-10-20",
         "forma": "exacta"
       }
+    },
+    "0495_fx_rates_conversor_usd": {
+      "sha256": "964abe064db544ac2b6f19592a24d3d45d6bef68c0ffa2e1e43279d2b20e8ab7",
+      "md5": "c0c9dac855a516179085950a187737d7",
+      "bytes": 28118,
+      "ledger": {
+        "fecha": "2026-11-03",
+        "forma": "exacta"
+      }
+    },
+    "0496_tarifa_congelada_por_embarque": {
+      "sha256": "1856b60aae8f4d382e3b4ad618ec51fe0c70a5041a0ad1d3db7973e4d4718755",
+      "md5": "075eab7fae8d9dfb2b06f88335087f8d",
+      "bytes": 45610,
+      "ledger": {
+        "fecha": "2026-11-03",
+        "forma": "exacta"
+      }
+    },
+    "0497_reverso_al_anular_factura": {
+      "sha256": "056811e9e2b7cf74dc3cc01b0e24e95ec4eb1c9dd47caa7e1e718f1094392e3e",
+      "md5": "77d3ad861b328bfa5e67dcf7b7fa42cf",
+      "bytes": 78448,
+      "ledger": {
+        "fecha": "2026-11-03",
+        "forma": "exacta"
+      }
+    },
+    "0510_rls_escritura_accounts": {
+      "sha256": "f236c923b22a11886ef2d780a3206243929a410e1c0daf294fb390f9c41dde20",
+      "md5": "53c078ff06e1b1b889a1f79295ac10e1",
+      "bytes": 12056,
+      "ledger": {
+        "fecha": "2026-11-03",
+        "forma": "exacta"
+      }
     }
   }
 }

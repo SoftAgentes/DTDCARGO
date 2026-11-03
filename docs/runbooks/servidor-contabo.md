@@ -319,7 +319,8 @@ de otro workflow (`build-image-prueba.yml`, solo a mano) como
 `ghcr.io/softagentes/dtdcargo:prueba-sha-<sha>`: nunca se despliega en
 producción, y los scripts de prueba no aceptan otra etiqueta. El servidor
 necesita `docker login ghcr.io` con un token de solo lectura de paquetes
-(`read:packages`), guardado en Dokploy (Registries) o en el keyring de
+(`read:packages`) porque el paquete es **privado** (medido el 2026-11-02: un
+pedido anónimo de token a GHCR da 401, y a una imagen pública 200). El token está guardado en Dokploy (Registries) o en el keyring de
 `deploy`, nunca en el `.env` del compose. Desplegar es fijar el tag en `.env`
 (la variable está en `infra/dtd-cargo/.env.example`) y correr
 `docker compose pull web && docker compose up -d web cron`.
