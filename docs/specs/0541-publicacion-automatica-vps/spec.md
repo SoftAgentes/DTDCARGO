@@ -4,7 +4,7 @@ title: "Publicación automática de la web en el servidor propio"
 status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-10-16
-updated: 2026-10-20
+updated: 2026-11-01
 supersedes: null
 superseded_by: null
 related: ["0505"]
@@ -579,3 +579,116 @@ operativa y el recibo real 14/0 permanecen **NO EJECUTADOS**.
 El listado histórico de la SDD no amplía estas cinco rutas. El handoff inicial
 se conserva. Si un check requiere el índice generado u otra ruta, el Worker lo
 informa al Director antes de editarla.
+
+## Continuación acotada · dirección de la imagen (2026-11-01)
+
+Estado: **integrado en la PR #345 e instalado en la ventana V1 a V6 del 2026-11-01;
+publicación pendiente, con su propio OK**. Registro propio:
+[handoff de la dirección](../../../.agents/handoffs/0541-imagen-softagentes.md).
+
+Medido por el Director el 2026-11-01 desde el VPS con `docker manifest inspect`:
+`ghcr.io/softagentes/dtdcargo:publicable` responde (revisión `8e9e0f505`) y
+`ghcr.io/hailuwaycom-sketch/dtdcargo` da «manifest unknown» en `:publicable` y en
+`:sha-8e9e0f505322cd57b3230cce6b16b45b5554cb8a`. Eso deja sin efecto, solo en la
+dirección de la imagen, la frase de la continuación del 2026-10-20 «el namespace
+GHCR y los workflows/promotor no cambian». La parte de las dos fuentes exactas
+sigue igual.
+
+### Contrato
+
+- Una sola dirección de imagen: `ghcr.io/softagentes/dtdcargo`, en `build-image.yml`,
+  `build-image-prueba.yml`, `publicable.mjs`, `publicar-web.sh` y staging. Sin lista
+  de direcciones ni respaldo a la vieja.
+- `FUENTE` y `FUENTE_HISTORICA` no cambian: una imagen en la dirección nueva con
+  cualquiera de los dos orígenes exactos se acepta, y cualquier otro se rechaza.
+- Lo que el servidor ya tiene con el nombre viejo sirve de vuelta atrás mientras esté
+  en el disco. Si no está, no se publica, y la limpieza no lo toca.
+- Staging rechaza una imagen de la dirección vieja.
+- Ninguna huella cambia: `compose.yml` y `.env.example` quedan fuera de esta
+  continuación, con su valor por defecto viejo, que producción no usa.
+
+No debilita las validaciones de SHA, digest, identidad, migraciones ni huellas.
+No autoriza fusionar, instalar, encender workflows ni el timer, mover etiquetas,
+tocar `PUBLICABLE_CONGELADO` ni aplicar migraciones. La ventana está en el
+[runbook](../../runbooks/publicacion-automatica-web.md#dirección-de-la-imagen--preparación-del-2026-11-01).
+
+### Aceptación de esta continuación
+
+1. [x] ROJO real: con la prueba nueva contra el script sin cambiar falla, y el
+   promotor también.
+2. [x] Verde en Linux con dobles que distinguen direcciones: `vigilar`, `publicar`
+   y `revisar` bajan y fijan la dirección nueva, con los dos orígenes.
+3. [x] Con la anterior en la dirección vieja: publica sin intentar bajarla, la vuelta
+   atrás automática y `volver` llegan a ella, y sin copia local no publica.
+4. [x] La limpieza no toca la dirección vieja. El mismo digest bajo la dirección
+   nueva cuenta como al día.
+5. [x] Candado en Vitest: todas las constantes coinciden con la del promotor, y
+   workflows, `infra/ops/web` e `infra/ops/staging` no nombran el registro viejo.
+6. [x] Mutantes de dirección, origen y limpieza muertos. Huellas idénticas antes y
+   después. `docs:check`, `sdd:check` y `git diff --check` limpios.
+7. [ ] Después del merge: V1 a V6 del runbook. V4 es lo que demuestra que
+   `GITHUB_TOKEN` puede escribir en la dirección nueva, hoy **NO VERIFICADO**.
+
+### Allowlist exclusiva de esta continuación
+
+- `.github/workflows/build-image.yml`, `.github/workflows/build-image-prueba.yml`,
+  `.github/workflows/publicable.yml`
+- `infra/ops/web/publicar-web.sh`, `infra/ops/web/publicable.mjs`
+- `infra/ops/staging/lib-prueba.sh`, `infra/ops/staging/env-prueba.sh`,
+  `infra/ops/staging/desplegar-prueba.sh`, `infra/ops/staging/verificar-aislamiento.sh`
+- `infra/ops/tests/prueba-publicar-web.sh`,
+  `infra/ops/tests/prueba-scripts-entorno-prueba.sh`,
+  `infra/ops/tests/publicable.test.mjs`
+- `infra/dtd-cargo/README.md`
+- `docs/runbooks/publicacion-automatica-web.md`, `docs/runbooks/entorno-prueba.md`,
+  `docs/runbooks/servidor-contabo.md`
+- `docs/specs/0541-publicacion-automatica-vps/spec.md`
+- `.agents/handoffs/0541-imagen-softagentes.md` (nuevo)
+
+## Continuación acotada · commit exacto, marcha atrás y valores por defecto (2026-11-02)
+
+Estado: **implementado y validado localmente; integración e instalación pendientes**.
+Sam lo autorizó, literal: «Sí, corrígelos». No cubre instalar en el VPS, descongelar ni
+publicar. Registro: [handoff](../../../.agents/handoffs/0541-publicar-commit-exacto.md).
+
+### Contrato
+
+- Publicar un commit elegido no pasa por `descongelar` ni por el timer. Usa
+  `publicar <sha> --aunque-congelado`, que ya existe. `publicar-web.sh` no cambia.
+- Encender el timer es un paso aparte, y entra lo que diga `:publicable` en ese momento.
+- `compose.yml` y `.env.example` pasan a `ghcr.io/softagentes/dtdcargo:main`, y el
+  comentario de `compose.yml` deja de nombrar el bot de deploy retirado por la SDD-0551.
+- La imagen de `storage` en `compose.supabase.yml` pasa a
+  `${DTD_STORAGE_IMAGE:-supabase/storage-api:v1.77.6}`. Es decisión del Director del
+  2026-11-02, para no perder la copia que corre el servidor, con Node actualizado y
+  `DB_ALLOW_MIGRATION_REFRESH=false`. En un servidor sin la línea va la oficial, y
+  `.env.example` la documenta comentada.
+- Las huellas de esos tres archivos cambian y las demás no. Instalarlos es parte de la
+  ventana de publicar, descrita en el
+  [runbook](../../runbooks/publicacion-automatica-web.md#instalar-composeyml-composesupabaseyml-y-envexample):
+  primero la línea en el `.env` del servidor, después los archivos.
+
+### Aceptación de esta continuación
+
+1. [x] La prueba cubre los dos literales, con control rojo contra los valores viejos.
+2. [x] `infra/dtd-cargo` entra en la lista de carpetas que no nombran el registro viejo.
+3. [x] Prueba con dobles del camino real: la web en un id suelto y `CONGELADO` puesto.
+   Publica `X`, sigue congelado, el vigilante no lo pisa, un merge posterior sí entra, y
+   las dos vueltas atrás llegan al id.
+4. [x] Prueba de que `revisar` para en la primera puerta.
+5. [x] Mutantes nuevos muertos.
+6. [x] La prueba de `storage` falla si vuelve el literal o el id fijo, si cambia el valor por
+   defecto, si `.env.example` deja la línea activa, si el overlay de prueba fija la imagen o
+   si la prueba de la base efímera deja de encontrarla.
+7. [x] Linux: el CI «Calidad continua» de la PR, corrida `41379296547` sobre `9d0758286`.
+8. [ ] Después del merge: la ventana del runbook, con el OK de Sam.
+
+### Allowlist exclusiva de esta continuación
+
+- `infra/dtd-cargo/compose.yml`, `infra/dtd-cargo/compose.supabase.yml`, `infra/dtd-cargo/.env.example`
+- `infra/ops/tests/publicable.test.mjs`, `infra/ops/tests/prueba-publicar-web.sh`,
+  `infra/ops/tests/prueba-resetear-base-efimera.sh`
+- `scripts/__tests__/entorno-prueba-compose.test.mjs`
+- `docs/runbooks/publicacion-automatica-web.md`
+- `docs/specs/0541-publicacion-automatica-vps/spec.md`
+- `.agents/handoffs/0541-publicar-commit-exacto.md` (nuevo)

@@ -36,7 +36,7 @@ export function nombreDeLaMoneda(currency: string): string {
 
 /**
  * La tasa vigente al día `onDate` (AAAA-MM-DD). null si no hay ninguna (la base
- * lanza FX_RATE_MISSING) o si la base todavía no tiene la 0495 (PGRST202).
+ * lanza FX_RATE_MISSING) o si la base no tiene la 0495 (PGRST202).
  */
 export async function tasaVigente(
   supabase: SupabaseClient,
