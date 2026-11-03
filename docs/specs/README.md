@@ -564,7 +564,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0537 | Tarifario de transportistas editable por ciudad, con rutas y … | in-progress | interno |
 | 0538 | Contrato 0475: el bloque 5 lee el último restablecimiento por… | in-progress | interno |
 | 0539 | Transportistas: lote sin ids en la URL, escrituras honestas y… | in-progress | interno |
-| 0540 | Entorno de prueba de DTD Cargo con base separada en el VPS (d… | proposed | interno |
+| 0540 | Entorno de prueba de DTD Cargo con base separada en el VPS (d… | approved | interno |
 | 0541 | Publicación automática de la web en el servidor propio | in-progress | interno |
 | 0542 | Dashboard: los enlaces internos llevan a una pantalla que existe | in-progress | interno |
 | 0543 | Consolidados en camino: carga de contenedores desde el packin… | in-progress | interno |
