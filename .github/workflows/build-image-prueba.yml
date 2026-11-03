@@ -167,7 +167,7 @@ jobs:
             echo '```'
             echo "Sin despliegue: la sesión de Contabo corre desplegar-prueba.sh."
             echo ""
-            echo "Google Analytics y Ads: 0 archivos en .next/static (SDD-0544). En todo .next: GA ${GA} · Ads ${ADS}; si no es 0, verificar-aislamiento.sh --exigir-sin-ga va a fallar."
+            echo "Google Analytics y Ads: 0 archivos en .next/static (SDD-0544). En todo .next: GA ${GA} · Ads ${ADS}; fuera de static no falla; en static, verificar-aislamiento.sh falla."
           } >> "$GITHUB_STEP_SUMMARY"
         env:
           GA: ${{ steps.bundle.outputs.ga }}
