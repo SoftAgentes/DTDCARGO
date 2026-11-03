@@ -23,6 +23,7 @@ import type { ClaimEvidenceItem } from "@/lib/studio/reclamos/claim-evidence";
 import { createPortalClaimAction, type PortalClaimState } from "../actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 import { StatusIcon } from "@/components/StatusIcon";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const initial: PortalClaimState = {};
 
@@ -114,7 +115,7 @@ export function PortalClaims({
           Cuéntanos qué pasó. El monto y la cobertura los evalúa tu asesor.
         </p>
 
-        <form ref={formRef} action={action} className="mt-4 flex flex-col gap-3.5">
+        <form ref={formRef} action={action} onSubmit={submitKeepingDraft(action, pending)} className="mt-4 flex flex-col gap-3.5">
           <label className="flex flex-col gap-1.5">
             <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
               Tipo de problema
