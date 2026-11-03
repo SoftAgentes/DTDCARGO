@@ -76,8 +76,10 @@ Rama `codex/accion-que-lanza`, en PR en borrador contra `codex/error-no-borra-po
 
 ## HANDOFF AL DIRECTOR
 
-- **Orden:** #358 primero, después esta. Si SDD-0597 entra antes, los conflictos de `EntrarForm` caen en estas dos, y los resuelvo aquí con la lista de arriba.
-- Cuando des el turno de `next dev`, esta rama lo aprovecha. Primero `next dev`, porque puede cambiar el diseño de los dos `useActionState`; después los mutantes.
+- **Orden, decidido por el Director General el 2026-11-03:** #358 → #361 → resolver aquí y en #362 el conflicto de `EntrarForm`, con la lista de arriba → medir.
+- **Una sola corrida de `verify`, sobre la punta de la #362, aceptada por el Director General.** Antes de lanzarla: traer `main`, darle a `reintento-no-duplica` su propio `node_modules` y mantener Docker despierto.
+- **Hueco declarado de esa decisión:** esta PR sola no tiene e2e propio. Si entra sin la #362, porque la 0512 espera a Sam, ese estado queda cubierto por su CI y por la punta, no por un `verify` suyo.
+- Después de esa corrida, de a uno y cada uno con su turno: `next dev` con Server Action real y los 29 mutantes. Primero `next dev`, porque puede cambiar el diseño de los dos `useActionState`.
 - **Decisión para Sam:** si las cinco acciones que duplican llevan identificador de intento. El aviso reduce el riesgo; no lo elimina.
 
 ### Impacto documental
