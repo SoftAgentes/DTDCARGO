@@ -119,6 +119,8 @@ test.describe("activación de Shipping Mark", () => {
 test.use({ hasTouch: true });
 // Una prueba por CTA y método, no una sola con las cuatro: cada una abre `/` y
 // navega, y bajo carga un solo `goto` a `/` midió 24 s. Juntas compartían los 60 s.
+// Los 35 s de la espera son de `next dev`, no un contrato de latencia: la primera
+// compilación de /registro midió 17,8 s con la CPU al 100 %, y 35 + 24 caben en 60.
 for (const selector of [".hero-ctas", ".final-ctas"]) {
   for (const method of ["Enter", "tap"] as const) {
     test(`el CTA de ${selector} navega a registro con ${method} sin enviar datos`, async ({ page }, testInfo) => {
@@ -133,7 +135,7 @@ for (const selector of [".hero-ctas", ".final-ctas"]) {
       }
       const start = Date.now();
       await Promise.all([
-        page.waitForURL(/\/registro$/, { timeout:20_000 }),
+        page.waitForURL(/\/registro$/, { timeout:35_000 }),
         method === "Enter" ? cta.press("Enter") : cta.tap(),
       ]);
       await testInfo.attach("navegaciones-locales", {
