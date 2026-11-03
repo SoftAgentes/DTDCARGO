@@ -4,7 +4,7 @@ title: "Escribir asientos queda para accounting y admin; las cuentas bancarias, 
 status: in-progress
 author: "Sam + Claude Opus 5.5"
 created: 2026-11-02
-updated: 2026-11-02
+updated: 2026-11-03
 supersedes: null
 superseded_by: null
 related: ["0040", "0120", "0299", "0492", "0566", "0573", "0591"]
@@ -151,3 +151,22 @@ archivo, por `docs/runbooks/aplicar-migraciones-prod.md`.
    sólo pidan el tenant, en lugar de ir tabla por tabla.
 3. **La lectura de asientos es de todo el equipo**, incluido marketing. Es la deuda
    deliberada de la 0407, y para cerrarla hay que revisar qué módulos consumen agregados.
+
+## 2026-11-03 · La 0511 aplicada en producción: cierre del runbook §6
+
+La 0511 se aplicó hoy. Lo que antes en esta spec dice que no está aplicada es de su fecha. La identidad la pasó el Director General, de la salida del apply. Este cierre no consultó producción. El md5 y los bytes sí se comprobaron contra el archivo. Detalle en `.agents/handoffs/0593-guarda-asientos-y-bancos.md`.
+
+| Dato | Valor |
+|---|---|
+| COMMIT | 2026-11-03T17:03:14.436Z |
+| `version` del ledger | `20261103170314` |
+| md5 y bytes | `f9522a5b7550940e1fc96cc3bcba776e`, 16896 |
+| Filas del ledger | 503, leído por el Director General |
+| Respaldo previo | `dtd-cargo-20261103T170055Z` |
+| Evidencia | `/srv/ops/evidencias/apply-0511-dtd-cargo-20261103T170313Z` |
+| Ensayo en prueba | `ensayo-0510-0511-prueba-20261103T163820Z`, 6 puntos PASÓ, según el Director General. Guardar, editar y borrar una cuenta bancaria como administrador pasó por pantalla. Punto 5: se puso una cuenta sintética con rol `operations` y se devolvió. Sin ejecutar: asientos por pantalla |
+| OK literal de Sam | «Autorizo: prueba y luego producción», en el chat del Director General, a «¿Autorizas aplicar las guardas contables 0510 y 0511 en dtd-cargo y fusionar sus PR #351 y #352?». Condición: primero en prueba, comprobando guardar una cuenta bancaria como administrador; si algo falla en prueba, parar y avisar |
+| Merge | Lo hace el Director General después de leer el CI; su hora se registra al fusionar |
+| Sello en el candado | sha256 `819e9912e1fb005cfcc1fd52cd3b7178be4a0966bf4d2bd4750154a0f8535be7`, `ledger` exacta |
+
+La 0511 salió de `pendingBelowCutoff`. No tenía declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Ninguna prueba afirmaba la espera, así que no cambió ninguna. La web no cambia ni se publica con este cierre.
