@@ -22,6 +22,7 @@ import {
   PrealertaServiceVideo,
 } from "../../../../_components/PrealertaAddons";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const initial: ServiceRequestActionState = {};
 
@@ -161,6 +162,7 @@ function AddServiceForm({
   return (
     <form
       action={action}
+      onSubmit={submitKeepingDraft(action, pending)}
       className="card-shadow bg-white border border-grey-200 rounded-[14px] p-4 flex flex-col gap-3"
     >
       <input type="hidden" name="prealertaCode" value={prealertaCode} />

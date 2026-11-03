@@ -15,6 +15,7 @@ import type { PrealertaActionState } from "@/lib/studio/prealertas/types";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { createPrealertaAction } from "../../proveedores/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const prealertaInitial: PrealertaActionState = {};
 
@@ -65,7 +66,7 @@ export function NewPurchaseForm({
       />
 
       {/* Form de la compra */}
-      <form action={action} className="mt-5 flex flex-col gap-4">
+      <form action={action} onSubmit={submitKeepingDraft(action, pending)} className="mt-5 flex flex-col gap-4">
         <input type="hidden" name="supplierId" value={supplierId} />
 
         {/* WeChat del proveedor: ID/número O captura del contacto */}

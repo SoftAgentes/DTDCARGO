@@ -7,6 +7,7 @@ import {
   type PortalMessageState,
 } from "./actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const initial: PortalMessageState = {};
 
@@ -31,7 +32,7 @@ export function PortalMessageForm({ prefill }: { prefill?: string }) {
   }, [state, router]);
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-3">
+    <form ref={formRef} action={action} onSubmit={submitKeepingDraft(action, pending)} className="flex flex-col gap-3">
       <label className="flex flex-col gap-1.5">
         <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
           Tu mensaje
