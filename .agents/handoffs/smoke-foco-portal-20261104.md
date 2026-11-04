@@ -1,9 +1,9 @@
 # Smoke con sesión real: foco en el Studio y formularios del portal
 
 - **Fecha:** 2026-11-04. **Owner:** `claude-sweet-curie-8102cb`.
-- **Ruta:** `DTD-worktrees/id-intento-carrera`. **Rama:** `codex/smoke-foco-portal`, desde `main` en `fe35eb2d1`, sin publicar: va después de la publicación de las 12:45Z.
+- **Ruta:** `DTD-worktrees/id-intento-carrera`. **Rama:** `codex/smoke-foco-portal`, desde `main` en `fe35eb2d1`, con `main` traído en `92e2bb706`. Sale en PR en borrador con el OK de Sam, «Sí, prepárala»; la integración la decide el Director General.
 - **Alcance:** registrar el smoke que quedó pendiente en los handoffs de SDD-0537, 0592, 0595, 0596, 0598 y 0599, y corregir la espera de tres pruebas. No cambia el producto.
-- **Autorización de Sam, literal, en esta sesión:** «Sí, prueba.dtdcargo.com», a la pregunta de si autorizaba entrar con las cuentas de prueba cuando llegara el turno. El turno lo dio el Director General, después de su `verify`.
+- **Autorización de Sam, literal, en esta sesión:** «Sí, prueba.dtdcargo.com», a la pregunta de si autorizaba entrar con las cuentas de prueba cuando llegara el turno. El turno lo dio el Director General, después de su `verify`. Para la corrida de Nómina, con la clave de la puerta rotada, Sam contestó aparte «Sí, smoke de Nómina».
 
 ## Resultado
 
@@ -41,7 +41,32 @@ Los conteos de ciudades, camiones, cuentas, préstamos y tarifas vivas quedaron 
 
 Sin errores de página, y 0 líneas de error de estas acciones en el log del web. La entrada por el enlace de `/correo/` dejó en el portal las dos veces.
 
-**Es esperado, no un rojo:** en Nómina lo escrito se borra tras el error. `codex/error-no-borra` no está en este commit.
+**Es esperado, no un rojo:** en Nómina lo escrito se borra tras el error. `codex/error-no-borra` no está en este commit. Entró después con la #370, y se midió en la corrida de abajo.
+
+### Nómina, corrida aparte
+
+**Sobre la imagen `prueba-sha-55a65a602…`, 22:42Z a 22:44Z, con un solo Chromium y la cuenta `admin`: 19 PASÓ · 0 FALLÓ · 0 NO EJECUTADO.** Cierra el pendiente 3 de `sdd-0596-error-no-borra-nomina.md`. La pidió el Director General para decidir la tanda B.
+
+| Panel | Error provocado | Campos conservados | Foco tras el error | Filas nuevas |
+|---|---|---|---|---|
+| `EmpleadoDrawer` | Correo sin dominio con punto | 13 | `email` | 0 en `nomina_employees` |
+| `PrestamoDrawer` | Monto 0 | 7, empleado incluido | `principal_usd` | 0 en `nomina_loans` |
+| `GenerarCorteDrawer` | Fin antes del inicio | 4 | `period_end` | 0 en `nomina_payroll_runs` |
+
+- **Qué midió:** dos envíos por panel, con clic y con Enter después de editar la nota. Los dos POST de la acción tuvieron respuesta, apareció el mensaje del validador y el panel siguió abierto. El foco quedó en el campo con error, inválido y dentro del panel. Sin errores de página.
+- **Cómo se provocó:** con valores que el navegador deja pasar y el validador rechaza, para que el error lo devuelva la acción real sin escribir. Cortar con CDP en etapa `Request` haría lanzar a la acción, y eso mide SDD-0598, que Nómina no tiene.
+- **Contraste:** sobre `fe35eb2d1`, el mismo caso de préstamo dejó el empleado vacío. Es el único «antes» con sesión real; en Empleado y Corte no hay.
+- **Datos:** prueba tiene datos reales. Sin capturas; los valores se compararon en memoria y el registro solo trae estados, nombres de campo y conteos.
+
+**Sin medir en Nómina:**
+
+- Un error general que devuelva el servidor. Solo se midieron `fieldErrors`; usa el mismo envío, por lectura.
+- Que el validador responda antes de cualquier escritura. Es por lectura de `actions.ts`, y los conteos solo lo respaldan en la tabla de cada panel.
+- Los otros 12 paneles, otros roles y otros navegadores.
+- Un corte de red, que sigue fuera de alcance. Corregir y enviar con éxito, porque escribiría.
+- Nómina en producción: esto se midió en prueba. Entre `55a65a602` y `92e2bb706` no cambió ningún archivo de `app/studio/(app)/nomina` ni de `lib/studio/nomina`.
+
+**Rastro en prueba, inferido:** entrar con `admin` debió de crear una sesión de Auth y actualizar su último acceso. No se consultó esa fila, y el escenario no cierra sesión.
 
 ## Límites
 
@@ -82,14 +107,18 @@ De `DTD-9001`: 3 cotizaciones y 5 compras nuevas con sus adjuntos, 6 con la de l
 | Lo mismo con un mutante del hook: la acción sin atrapar lo que lanza | FALLÓ, como se esperaba: 26 de 46 en rojo, 145 s. Esperar más solo alarga el rojo |
 | `conservar-lo-escrito`, un worker | PASÓ, 30 de 30 |
 | `docs:check`, `sdd:check` | PASÓ |
+| Smoke de Nómina | PASÓ, 19 de 19. `smoke-nomina.log`, en la misma carpeta, fuera de Git |
+| Tras traer `main` en `92e2bb706`: las tres pruebas, un worker | PASÓ, 76 de 76, 63 s |
+| Tras traer `main` en `92e2bb706`: ESLint de las tres pruebas | PASÓ |
+| Tras traer `main` en `92e2bb706`: `docs:check`, `sdd:check` | PASÓ |
 | `pnpm verify` | NO EJECUTADO: solo cambian pruebas y documentos |
 
 ## FUERA DE ALCANCE DETECTADO
 
 1. **La espera de 1 s es de toda la suite.** Se podría subir en `vitest.setup.ts`, y también alcanzaría a otros archivos. No lo hice: es una decisión que afecta a todos.
 2. **`migraciones.test.mjs` y `entorno-prueba-scripts.test.mjs`** agotaron sus 600 s en ese `verify`, en intentos distintos, y aislados pasan. Es lo que lleva a `verify` a exit 1. Ajeno a este cambio.
-3. **Nómina sin SDD-0598:** `PrestamoDrawer.tsx:31` usa `useActionState` directo, por lectura. Espera la decisión de Sam sobre `codex/error-no-borra`.
+3. **Nómina sin SDD-0598:** la #370 trajo lo de SDD-0596, no lo de SDD-0598. `PrestamoDrawer` sigue con `useActionState` sin envolver, por lectura, así que un corte de red puede borrar lo escrito.
 
 ## Impacto documental
 
-Este handoff. Sin spec nueva, y no cambian políticas. Los handoffs de cada SDD quedan como evidencia fechada.
+Este handoff y el pendiente 3 de `sdd-0596-error-no-borra-nomina.md`. Sin spec nueva, y no cambian políticas. Los demás handoffs de cada SDD quedan como evidencia fechada.
