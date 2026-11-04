@@ -3,7 +3,7 @@
  *
  * React y `next/navigation` son reales: el error de redirección es el que recibe el cliente.
  */
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, configure, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { redirect, notFound } from "next/navigation";
 import { Component, useEffect, useRef, type ReactNode } from "react";
 import { hydrateRoot } from "react-dom/client";
@@ -11,6 +11,9 @@ import { renderToString } from "react-dom/server";
 import { UnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OUTDATED_PAGE_MESSAGE, useActionKeepingDraft } from "../use-action-keeping-draft";
+
+// Con la suite entera, un envío puede seguir en curso más de 1 s, que es lo que `findBy` y `waitFor` esperan por defecto.
+configure({ asyncUtilTimeout: 5_000 });
 
 type State = { ok?: boolean; error?: string };
 const accion = vi.fn<(state: State, formData: FormData) => Promise<State>>();

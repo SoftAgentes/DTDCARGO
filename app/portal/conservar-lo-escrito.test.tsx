@@ -5,9 +5,12 @@
  * aunque esta devuelva un error. Cada formulario se llena, recibe un error y debe conservar
  * sus campos: es lo que pide FRM-01 («Cambios sin guardar se conservan»).
  */
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, configure, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Con la suite entera, un envío puede seguir en curso más de 1 s, que es lo que `findBy` y `waitFor` esperan por defecto.
+configure({ asyncUtilTimeout: 5_000 });
 
 const h = vi.hoisted(() => {
   const accion = vi.fn();
