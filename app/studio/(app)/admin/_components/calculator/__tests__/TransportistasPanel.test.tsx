@@ -11,6 +11,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CarrierTariff, FreightCarrier } from "@/lib/studio/freight-carriers/types";
 import { TransportistasPanel } from "../TransportistasPanel";
 
+// El Scheduler de React avanza con `setImmediate` y RTL cierra cada `findBy*` con
+// `setTimeout(0)`: cuál corre primero depende de la carga, y una aserción que corre
+// antes de un efecto pasivo falla sólo a veces. Con este retraso el Scheduler llega
+// después, y esa aserción falla de forma repetible. Va antes de que cargue React.
+vi.hoisted(() => {
+  const lento = (fn: (...a: unknown[]) => void, ...a: unknown[]) => setTimeout(fn, 15, ...a);
+  (globalThis as { setImmediate: unknown }).setImmediate = lento;
+});
+
 const mocks = vi.hoisted(() => ({
   save: vi.fn(),
   remove: vi.fn(),
@@ -394,10 +403,29 @@ describe("cambio en lote", () => {
 
     const alerta = await within(panel).findByRole("alert");
     expect(alerta).toHaveTextContent("No se cambió ninguna");
-    expect(alerta).toHaveFocus();
+    // El foco lo mueve un efecto pasivo, que React corre en otra tarea después
+    // del commit que pinta el aviso: existir y tener el foco no son un mismo instante.
+    await waitFor(() => expect(alerta).toHaveFocus());
     expect(mocks.toast.success).not.toHaveBeenCalled();
     fireEvent.click(within(panel).getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(barra()).toHaveTextContent("1 ciudad seleccionada");
+  });
+
+  it("el diálogo no le quita el foco al aviso cuando el panel se vuelve a pintar", async () => {
+    mocks.bulk.mockResolvedValueOnce({ error: "No se cambió ninguna." });
+    const { rerender } = montar();
+    marcar("Valencia");
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar precios" }));
+    const panel = dialogo("Cambiar precios en lote");
+    escribir(campo(panel, /^Venta nueva/), "130");
+    fireEvent.click(within(panel).getByRole("button", { name: "Aplicar a 1 ciudad" }));
+
+    const alerta = await within(panel).findByRole("alert");
+    await waitFor(() => expect(alerta).toHaveFocus());
+    // Props nuevas del servidor: `onClose` cambia, pero el foco inicial del panel es sólo al abrir.
+    rerender(<TransportistasPanel carriers={CARRIERS} tariffs={[...TARIFAS]} cities={CITIES} isAdmin />);
+    expect(alerta).toHaveFocus();
   });
 
   it("si el servidor cambió menos de las elegidas, el aviso dice cuántas", async () => {

@@ -163,6 +163,24 @@ export async function uploadClaimEvidenceBatch(
   return { uploaded };
 }
 
+/**
+ * Los archivos que el reclamo todavía no tiene, por nombre y tamaño. Para un reintento
+ * (SDD-0599): no sube otra vez lo que el primer envío ya dejó. Si no puede leer, los
+ * deja todos, y a lo sumo queda un archivo repetido.
+ */
+export async function evidenceNotYetUploaded(
+  db: SupabaseClient,
+  args: { claimId: string; files: File[] },
+): Promise<File[]> {
+  if (args.files.length === 0) return [];
+  const { data } = await db
+    .from("client_claim_evidence")
+    .select("file_name, size_bytes")
+    .eq("claim_id", args.claimId);
+  const yaEstan = new Set((data ?? []).map((e) => `${e.file_name}|${e.size_bytes}`));
+  return args.files.filter((file) => !yaEstan.has(`${file.name.slice(0, 200)}|${file.size}`));
+}
+
 export type ClaimEvidenceItem = {
   id: string;
   claimId: string;
