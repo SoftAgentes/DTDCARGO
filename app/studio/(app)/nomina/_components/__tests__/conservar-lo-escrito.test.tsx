@@ -168,6 +168,13 @@ describe("una respuesta con errores conserva lo escrito", () => {
     expect(datos.get("concept")).toBe("Texto de prueba");
   });
 
+  // Sin `action`, jsdom no nota la diferencia; el navegador sí mandaría los campos por la URL.
+  it("evita el envío nativo del navegador", async () => {
+    render(<PrestamoDrawer employees={EMPLEADOS} onClose={cerrar} />);
+    expect(fireEvent.submit(formulario())).toBe(false);
+    await waitFor(() => expect(mocks.accion).toHaveBeenCalledOnce());
+  });
+
   it("no envía dos veces mientras la primera sigue en curso", async () => {
     let responder!: (v: unknown) => void;
     mocks.accion.mockImplementationOnce(() => new Promise((r) => { responder = r; }));
