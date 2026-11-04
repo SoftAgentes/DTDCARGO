@@ -3096,6 +3096,15 @@
         "fecha": "2026-11-03",
         "forma": "exacta"
       }
+    },
+    "0512_portal_intento_sin_duplicar": {
+      "sha256": "2ae37ec09f0fdaf2eaf71179a514319c7053aeb85b82fdd8194bc3efbc1566c4",
+      "md5": "bdf2326d98f8fe993aedc19235d7ae00",
+      "bytes": 11817,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
     }
   }
 }

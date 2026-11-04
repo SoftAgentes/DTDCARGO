@@ -29,7 +29,8 @@ export function CotizacionRequestForm({
   const [state, formProps, pending] = useActionKeepingDraft<CotizacionRequestState>(
     requestCotizacionAction,
     {},
-    "No pudimos confirmar si tu cotización se registró. Lo que escribiste sigue aquí. Antes de enviarla de nuevo, revisa Cotizaciones en otra pestaña.",
+    "No pudimos confirmar si tu cotización se registró. Lo que escribiste sigue aquí. Intenta de nuevo: no se registrará dos veces.",
+    { requestId: true },
   );
 
   if (state.ok && state.createdCode) {
@@ -65,6 +66,11 @@ export function CotizacionRequestForm({
           </span>{" "}
           y te va a enviar el precio. La verás acá apenas la cotice.
         </p>
+        {state.replayed && (
+          <p role="status" className="mt-2 text-[13px] text-grey-700 max-w-[46ch] mx-auto leading-[1.5]">
+            Ya estaba registrada desde tu primer envío. Si cambiaste algo después, escríbele a tu asesor.
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link href="/portal/cotizaciones" className="btn btn-primary inline-flex">
             Ver mis cotizaciones <ArrowIcon size={15} />

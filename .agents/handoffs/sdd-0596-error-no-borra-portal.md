@@ -39,7 +39,7 @@ Tras una respuesta con error, 13 formularios en 11 archivos de portal, `entrar` 
 | Componentes reales, `RegisterForm` y otros tres | PASÓ: nada perdido con una respuesta de error |
 | Lectura de las pruebas vecinas (`NewPurchaseWizard`, `PurchaseStepDetalle`, `PortalAddresses`, `SuppliersClient`, `PortalClaims`, `entrar-dos-filas`, `action-result-contract`) | Ninguna depende de `action` ni del reinicio. **Por lectura, sin correrlas** |
 | `docs:check`, `sdd:check` | Ver el cuerpo de la PR |
-| Mutantes | **NO EJECUTADO:** el Director General los programó después de la pila, con su turno |
+| 21 mutantes, sobre `76f775f67` | 20 muertos y 1 vivo: nada comprobaba que `PortalClaims` se limpiara al enviar bien. Con esa prueba, sobre `dfda5614e`: **21 de 21 muertos** |
 | `next dev` con server action real, y envío antes de hidratar (criterio 6) | PASÓ el 2026-11-03, sobre `2204318f5`, la punta de #362: POST y URL sin datos, y el resultado sigue al hidratar. Detalle en la spec 0598 |
 | ESLint, `tsc`, suite y pruebas vecinas en local | Ver `pnpm verify`, abajo |
 | Graphify, Archify, Obsidian | NO EJECUTADO: los publica el Director desde main |
@@ -90,9 +90,7 @@ Rama `codex/error-no-borra-portal`, en la PR en borrador [#358](https://github.c
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Con turno del Director General: mutantes.
-2. «Calidad local sin secretos» en verde sobre la cabeza con `main` traído.
-3. Smoke en el portal con sesión real: provocar un error en una cotización y comprobar que lo escrito sigue ahí, con archivos adjuntos en una compra.
+1. Smoke en el portal con sesión real: provocar un error en una cotización y comprobar que lo escrito sigue ahí, con archivos adjuntos en una compra.
 
 ## FUERA DE ALCANCE DETECTADO
 

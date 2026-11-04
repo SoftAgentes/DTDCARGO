@@ -38,7 +38,9 @@ Si la acción lanza, 18 formularios en 16 archivos de portal, registro, `entrar`
 | `docs:check`, `sdd:check` | Ver el cuerpo de la PR |
 | `/ui-check` del diff | Sin cambios visuales; copy en tuteo |
 | `next dev` con Server Action real, sobre `2204318f5`, la punta de #362 | PASÓ: 33 casos en verde y 13 medidos, en dos pasadas. La primera dio además 2 rojos de `notFound` por mi comprobación: leía los primeros 200 caracteres de `body`, y ahí está Agentation. La segunda leyó `main` y midió la 404 en verde, sólo sin identificador. El detalle está en la spec. **El diseño de los dos `useActionState` no cambia** |
-| Mutantes, demás pruebas vecinas, `tsc` completo, `pnpm verify` | **NO EJECUTADO:** con turno, después de traer `main` |
+| 29 mutantes, sobre `76f775f67` | 28 muertos y 1 vivo, el esperado: que el segundo hook ignore el resultado del POST lo cubre la medición de `next dev` |
+| Pruebas vecinas, `tsc` completo, `pnpm verify` | Sobre `d3dd68c73`, la punta de #362: **exit 1 por `test`**, con 4 archivos ajenos al diff que pasan aislados, 59 de 59. El detalle está en el handoff de SDD-0599 |
+| Carrera en una prueba propia, `use-action-keeping-draft.test.tsx` | Comprobaba el foco sin esperar al efecto. Rojo 2 de 23 corridas. Corregida en la rama de #362: esta PR ya estaba cerrada |
 | Tras traer `main` en `8feae0e8b`, `--maxWorkers=1`: `app/entrar/__tests__`, `conservar-lo-escrito`, `la-accion-lanza`, `use-action-keeping-draft` | PASÓ, 138 de 138 en 6 archivos |
 | Tras traer `main`: ESLint de `EntrarForm.tsx` y `la-accion-lanza.test.tsx`, `docs:check`, `numbering` | PASÓ |
 | Check obligatorio de la PR | Apunta a `main` desde el 2026-11-03. Lo lee el Director General |
@@ -54,14 +56,11 @@ Si la acción lanza, 18 formularios en 16 archivos de portal, registro, `entrar`
 
 ## PR / BRANCH
 
-Rama `codex/accion-que-lanza`, PR #360 en borrador contra `main`.
+Rama `codex/accion-que-lanza`, PR #360, fusionada por el Director General: `main` en `764f1fc00`. Este registro entra por la rama de #362.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Con turno: mutantes, pruebas vecinas, `tsc` completo.
-2. Esperar «Calidad local sin secretos» en verde sobre la cabeza de esta PR.
-3. Smoke en el portal con sesión real: cortar la red al enviar una cotización y una compra con adjuntos.
-4. Integrar: lo hace el Director General, antes de #362.
+1. Smoke en el portal con sesión real: cortar la red al enviar una cotización y una compra con adjuntos.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -80,9 +79,8 @@ Rama `codex/accion-que-lanza`, PR #360 en borrador contra `main`.
 
 ## HANDOFF AL DIRECTOR
 
-- **Orden, decidido por el Director General el 2026-11-03:** #358 → #361 → resolver aquí y en #362 el conflicto de `EntrarForm` → `next dev` → traer `main` cuando entre #363 → `verify` sobre la punta de #362 → mutantes. `next dev` ya pasó.
-- **Una sola corrida de `verify`, sobre la punta de la #362, aceptada por el Director General,** con Docker despierto y al menos 6 GB libres.
-- **Hueco declarado de esa decisión:** esta PR sola no tiene e2e propio. Si entra sin la #362, porque la 0512 espera a Sam, ese estado queda cubierto por su CI y por la punta, no por un `verify` suyo.
+- **Orden, decidido por el Director General el 2026-11-03:** #358 → #361 → resolver aquí y en #362 el conflicto de `EntrarForm` → `next dev` → traer `main` cuando entre #363 → `verify` sobre la punta de #362 → mutantes. Hecho.
+- **Hueco declarado:** esta PR no tuvo un `verify` propio. Aceptada con su CI y con la punta de #362.
 
 ### Impacto documental
 
