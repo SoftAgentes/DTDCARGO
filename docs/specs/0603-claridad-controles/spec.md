@@ -94,7 +94,8 @@ Sin migraciones, rutas, acciones de servidor, permisos ni dependencias nuevas. N
 - `Badge` no pinta fondo, relleno ni borde redondeado.
 - «Compacto» se aplica al momento, se recuerda por navegador y comparte la preferencia de Administración › Apariencia (SDD-0120).
 - Sin elección previa, el Studio abre compacto y oscuro. Quien ya eligió otra cosa la conserva.
-- Al imprimir pasa a claro y vuelve al terminar. Los paneles dentro de Chatwoot (`/studio/ficha-chat`, `/studio/cerrar-chat`) siguen el tema de Chatwoot.
+- Lo impreso sale en claro, por CSS (`tokens.css`), también al generar un PDF. Los paneles dentro de Chatwoot (`/studio/ficha-chat`, `/studio/cerrar-chat`) no reciben tema ni densidad: siguen a Chatwoot.
+- En la imagen de prueba, medido en Chromium real: un PDF de una pantalla del Studio se lee sobre papel blanco; las dos rutas de Chatwoot no llevan `data-theme` ni `data-density`; la carga no parpadea en claro.
 - Sin colores inventados en las reglas de botón.
 
 ### Gate VIS-01
