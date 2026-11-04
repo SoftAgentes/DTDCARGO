@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/db/server";
+import { publicOrigin } from "@/lib/runtime/public-origin";
 
 /**
  * Callback del magic-link de Supabase Auth para el portal (SDD-0042).
@@ -25,7 +26,8 @@ import { createClient } from "@/lib/db/server";
  * causa tiene ahora su propio código y su propio mensaje.
  */
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  const origin = publicOrigin(request.url);
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
