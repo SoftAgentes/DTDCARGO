@@ -1,0 +1,355 @@
+# Chatwoot CE en el VPS del ERP (SDD-0583 · etapa E1 del programa SDD-0582).
+#
+#   prepare   → one-shot: `rails db:chatwoot_prepare` (crea la base o migra). Corre
+#               en cada `up` y rails/sidekiq esperan a que salga 0.
+#   rails     → Puma (panel, API, ActionCable), detrás de Traefik en CHATWOOT_HOST.
+#   sidekiq   → trabajos: correo, webhooks, canales, crons de Chatwoot.
+#   postgres  → Postgres 16 con pgvector (el esquema de 4.19 hace `enable_extension "vector"`).
+#   redis     → colas de Sidekiq y ActionCable. Sin desalojo: perder una llave es perder un trabajo.
+#
+# Convive con la producción de DTD en el mismo host (decisión E0-D1 de Sam). Por eso:
+#   · Límites duros de CPU y memoria por servicio: el techo de Chatwoot completo es
+#     2,75 vCPU y 3,7 GiB (sin contar `prepare`, que solo vive durante un despliegue).
+#   · `cpu_shares: 512` (la mitad del peso por defecto): con la CPU disputada, el
+#     planificador le da a cada contenedor de DTD el doble de turno que a Chatwoot.
+#     La presión `some` del host ya era del 31 % antes de Chatwoot (VPS-4).
+#   · `oom_score_adj: 500`: si el host se queda sin memoria, el kernel mata primero
+#     un proceso de Chatwoot y no la base de DTD.
+#
+# Aislamiento (misma idea que infra/dtd-cargo/compose.yml):
+#   · `chatwoot_edge` red EXTERNA compartida solo con Traefik. Solo `rails` la toca.
+#     No es `dtd_edge`: Chatwoot no ve el `web` ni el `api-gw` de DTD.
+#   · `interna`  `internal: true`: Postgres y Redis viven solo aquí.
+#   · `salida`   bridge normal para lo que sale a internet (Sidekiq → SMTP, Meta,
+#     webhooks). `rails` sale por `chatwoot_edge`.
+#   · Ningún `ports:` ni `container_name`.
+#
+# Las variables NO entran con `env_file`, entran una por una (`x-entorno`). Una línea
+# vacía en el .env llega como "" y Chatwoot la lee con ENV.fetch: `MAX_USER_SESSIONS=`
+# daría un tope de 0 sesiones y `LOG_LEVEL=` tumba el arranque. Además, así ningún
+# secreto que no sea de Chatwoot llega al contenedor.
+#
+#   docker network create chatwoot_edge                       # una vez por host
+#   docker compose --env-file .env config -q                   # valida
+#   docker compose up -d                                       # prepare → rails + sidekiq
+#
+# Runbook: docs/runbooks/chatwoot-servidor.md.
+
+name: chatwoot
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-imagen: &imagen
+  # Fija por etiqueta Y por digest (medido con `docker pull` el 2026-10-29). Subir de
+  # versión es la etapa E3: runbook de versiones, nunca un `pull` suelto.
+  image: chatwoot/chatwoot:v4.19.1-ce@sha256:04895c7bd0550d9e74b45b7202787b56f7ee4e891ebbde0c429c8c32901b97cf
+
+x-entorno: &entorno
+  RAILS_ENV: production
+  NODE_ENV: production
+  INSTALLATION_ENV: docker
+  SECRET_KEY_BASE: ${CHATWOOT_SECRET_KEY_BASE:?CHATWOOT_SECRET_KEY_BASE falta en .env}
+  FRONTEND_URL: ${CHATWOOT_FRONTEND_URL:?CHATWOOT_FRONTEND_URL (https://chat.dtdcargo.com) falta en .env}
+  DEFAULT_LOCALE: ${CHATWOOT_DEFAULT_LOCALE:-es}
+  # Traefik termina TLS y manda X-Forwarded-Proto: https. Con true, Rails marca las
+  # cookies `secure` y redirige lo que llegue en http. Solo la prueba local lo apaga.
+  FORCE_SSL: ${CHATWOOT_FORCE_SSL:-true}
+  # Registro cerrado. Ojo: Chatwoot guarda este valor en la base (InstallationConfig)
+  # y la base manda sobre el entorno; el runbook comprueba el valor efectivo tras
+  # cada despliegue. Las cuentas nuevas se crean por la Platform API (paso 1.4).
+  ENABLE_ACCOUNT_SIGNUP: "false"
+  # Sesiones simultáneas por usuario (devise_overrides/sessions_controller.rb:116,
+  # 25 por defecto). Dos personas, cada una con Studio y quizá el teléfono.
+  MAX_USER_SESSIONS: ${CHATWOOT_MAX_USER_SESSIONS:-5}
+  # Sin telemetría al hub de Chatwoot (lib/chatwoot_hub.rb:88 y :122): con la variable
+  # definida no se envían conteos de cuentas, usuarios, conversaciones ni mensajes.
+  # La consulta de versión nueva (CW-13) sigue mandando host y versión.
+  DISABLE_TELEMETRY: "true"
+  # Sin relay de push por hub.2.chatwoot.com: el aviso al agente lo da Studio (E2),
+  # y el relay le mandaría a un tercero el título y el cuerpo de cada notificación.
+  ENABLE_PUSH_RELAY_SERVER: "false"
+  # Sin Gravatar: por cada contacto con correo, Chatwoot le pide a gravatar.com el avatar
+  # con el MD5 del correo (app/jobs/avatar/avatar_from_gravatar_job.rb). Un MD5 de un
+  # correo no es anónimo: se revierte con una lista de correos.
+  DISABLE_GRAVATAR: "true"
+  # Sin IP_LOOKUP_API_KEY no se descarga la base de MaxMind ni se geolocaliza la IP de
+  # nadie (app/services/geocoder/setup_service.rb). No se declara a propósito.
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_USERNAME: chatwoot
+  POSTGRES_PASSWORD: ${CHATWOOT_POSTGRES_PASSWORD:?CHATWOOT_POSTGRES_PASSWORD falta en .env}
+  POSTGRES_DATABASE: chatwoot_production
+  REDIS_URL: redis://redis:6379
+  REDIS_PASSWORD: ${CHATWOOT_REDIS_PASSWORD:?CHATWOOT_REDIS_PASSWORD falta en .env}
+  # Cifrado de columnas (config/application.rb:75): tokens de WhatsApp y Facebook,
+  # contraseñas IMAP/SMTP de las bandejas, secretos de webhooks y 2FA. Sin estas tres
+  # claves, un respaldo restaurado no puede leer ninguno: viajan en el respaldo conjunto.
+  ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${CHATWOOT_AR_ENCRYPTION_PRIMARY_KEY:?CHATWOOT_AR_ENCRYPTION_PRIMARY_KEY falta en .env}
+  ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${CHATWOOT_AR_ENCRYPTION_DETERMINISTIC_KEY:?CHATWOOT_AR_ENCRYPTION_DETERMINISTIC_KEY falta en .env}
+  ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: ${CHATWOOT_AR_ENCRYPTION_KEY_DERIVATION_SALT:?CHATWOOT_AR_ENCRYPTION_KEY_DERIVATION_SALT falta en .env}
+  # Adjuntos en disco (volumen respaldado con la base). R2 queda para después del piloto.
+  ACTIVE_STORAGE_SERVICE: local
+  RAILS_LOG_TO_STDOUT: "true"
+  LOG_LEVEL: ${CHATWOOT_LOG_LEVEL:-info}
+  # Puma en modo simple (sin forks) y 5 hilos; Sidekiq con 5. Con dos personas
+  # atendiendo sobra, y cada worker extra de Puma son ~400 MB.
+  WEB_CONCURRENCY: "0"
+  RAILS_MAX_THREADS: "5"
+  SIDEKIQ_CONCURRENCY: ${CHATWOOT_SIDEKIQ_CONCURRENCY:-5}
+  # Correo saliente (notificaciones a agentes, restablecer contraseña). Sin
+  # SMTP_ADDRESS Chatwoot cae a sendmail, que la imagen no trae: por eso es obligatorio.
+  MAILER_SENDER_EMAIL: ${CHATWOOT_MAILER_SENDER_EMAIL:?CHATWOOT_MAILER_SENDER_EMAIL falta en .env}
+  SMTP_ADDRESS: ${CHATWOOT_SMTP_ADDRESS:?CHATWOOT_SMTP_ADDRESS falta en .env}
+  SMTP_PORT: ${CHATWOOT_SMTP_PORT:-587}
+  SMTP_DOMAIN: ${CHATWOOT_SMTP_DOMAIN:-dtdcargo.com}
+  SMTP_USERNAME: ${CHATWOOT_SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${CHATWOOT_SMTP_PASSWORD:-}
+  SMTP_AUTHENTICATION: ${CHATWOOT_SMTP_AUTHENTICATION:-login}
+  SMTP_ENABLE_STARTTLS_AUTO: ${CHATWOOT_SMTP_ENABLE_STARTTLS_AUTO:-true}
+  SMTP_OPENSSL_VERIFY_MODE: ${CHATWOOT_SMTP_OPENSSL_VERIFY_MODE:-peer}
+
+x-chatwoot: &chatwoot
+  <<: *imagen
+  restart: unless-stopped
+  logging: *logging
+  entrypoint: docker/entrypoints/rails.sh
+  environment: *entorno
+  cpu_shares: 512
+  oom_score_adj: 500
+  volumes:
+    - ${CHATWOOT_DATA_DIR:-./data}/storage:/app/storage
+    # Redacción de logs (paso 1.7): saca payloads, argumentos de trabajos y datos de
+    # contacto de los logs de Rails y Sidekiq. Se monta solo lectura sobre la imagen
+    # sin modificarla; el runbook de versiones (E3) lo vuelve a probar en cada subida.
+    - ./rails/zz_dtd_redaccion_logs.rb:/app/config/initializers/zz_dtd_redaccion_logs.rb:ro
+    # Marca de DTD (paso 1.3): logos e ícono oficiales servidos por el propio chat en
+    # /dtd-marca/. Carpeta aparte para no tapar /app/public/brand-assets de Chatwoot.
+    # Los valores que los usan están en marca/aplicar-marca.rb (InstallationConfig).
+    - ./marca:/app/public/dtd-marca:ro
+
+services:
+  prepare:
+    <<: *chatwoot
+    restart: "no"
+    command: ["bundle", "exec", "rails", "db:chatwoot_prepare"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - interna
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1536m
+
+  rails:
+    <<: *chatwoot
+    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+    depends_on:
+      prepare:
+        condition: service_completed_successfully
+    networks:
+      - chatwoot_edge
+      - interna
+    healthcheck:
+      # Con FORCE_SSL=true, Rails contesta 301 a https a todo pedido sin
+      # X-Forwarded-Proto: https, y el healthcheck fallaba (medido en el VPS el
+      # 2026-10-29; Traefik no enruta a un contenedor unhealthy). La cabecera es la
+      # misma que pone Traefik; con FORCE_SSL=false no cambia nada.
+      test: ["CMD", "wget", "-qO-", "--header", "X-Forwarded-Proto: https", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1536m
+          pids: 512
+    # Routers con el nombre del proyecto (`-p`), como en infra/dtd-cargo: un segundo
+    # Chatwoot (ensayo de restauración) no pisa al primero detrás del mismo Traefik.
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${CHATWOOT_EDGE_NETWORK:-chatwoot_edge}"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-rails.loadbalancer.server.port=3000"
+      # Panel, API y ActionCable. Sin `buffering`: rompe los websockets (ver
+      # infra/ops/traefik/dynamic/middlewares.yml).
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-chat.rule=Host(`${CHATWOOT_HOST:?CHATWOOT_HOST falta en .env}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-chat.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-chat.tls=${CHATWOOT_TLS:-true}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-chat.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-chat.service=${COMPOSE_PROJECT_NAME}-rails"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-chat.middlewares=${COMPOSE_PROJECT_NAME}-marco@docker,${CHATWOOT_HEADERS_MIDDLEWARE:-security-headers@file}"
+      # Sin access log de Traefik para Chatwoot (paso 1.7): la URL del SSO lleva el
+      # correo del agente y un token en la query, y las búsquedas de contactos llevan
+      # teléfonos y nombres. El registro de cada pedido queda en el log de Rails, con
+      # los parámetros filtrados.
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-chat.observability.accesslogs=false"
+      # /super_admin, /monitoring (Sidekiq web) e /installation: solo desde la tailnet
+      # (100.64.0.0/10). Desde internet, Traefik responde 403 antes de llegar a Rails.
+      # /installation/onboarding es la pantalla en la que el PRIMER visitante de una
+      # instalación nueva crea el super admin (onboarding_controller.rb, medido en el
+      # ensayo local): no puede quedar abierta ni un minuto. Mientras el VPS no tenga
+      # Tailscale, la administración va por consola sobre SSH (runbook §4).
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.rule=Host(`${CHATWOOT_HOST}`) && (PathPrefix(`/super_admin`) || PathPrefix(`/monitoring`) || PathPrefix(`/installation`))"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.priority=1000"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.tls=${CHATWOOT_TLS:-true}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.service=${COMPOSE_PROJECT_NAME}-rails"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.middlewares=${CHATWOOT_ADMIN_ALLOWLIST_MIDDLEWARE:-tailscale-only@file},${COMPOSE_PROJECT_NAME}-marco@docker,${CHATWOOT_HEADERS_MIDDLEWARE:-security-headers@file}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.observability.accesslogs=false"
+      # Iframe en Studio (decisión A de SDD-0582): Rails manda X-Frame-Options:
+      # SAMEORIGIN por defecto (CW-6) y no manda CSP (content_security_policy.rb vacío).
+      # Se borra XFO y se fija frame-ancestors al origen de Studio y nada más.
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-marco.headers.customresponseheaders.X-Frame-Options="
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-marco.headers.contentsecuritypolicy=frame-ancestors 'self' ${CHATWOOT_FRAME_ANCESTORS:?CHATWOOT_FRAME_ANCESTORS (origen de Studio) falta en .env}"
+      # Cloudflare Access en lugar de Tailscale (P3, runbook §4): forwardAuth al verificador
+      # del JWT (servicio `acceso`). Se usa solo si CHATWOOT_ADMIN_ALLOWLIST_MIDDLEWARE vale
+      # `<proyecto>-cf-access@docker`; si el verificador no responde, Traefik no abre (cierra).
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-cf-access.forwardauth.address=http://${COMPOSE_PROJECT_NAME}-acceso:8080/verificar"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-cf-access.forwardauth.trustForwardHeader=false"
+
+  acceso:
+    # Verifica el JWT de Cloudflare Access (cf-access/verificador.mjs) para /super_admin.
+    # Solo con el perfil `cf-access` (COMPOSE_PROFILES=cf-access en el .env). Sin él, el
+    # router de administración sigue con tailscale-only@file y nadie entra por web.
+    # El VPS acepta cualquier IP de Cloudflare, también de otras cuentas: por eso no basta
+    # con que la petición «venga de Cloudflare» y hay que verificar la firma, la AUD y el iss.
+    image: node:24.22.1-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53
+    profiles: ["cf-access"]
+    restart: unless-stopped
+    logging: *logging
+    user: node
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    command: ["node", "/app/verificador.mjs"]
+    environment:
+      CF_ACCESS_TEAM_DOMAIN: ${CHATWOOT_CF_ACCESS_TEAM_DOMAIN:-}
+      CF_ACCESS_AUD: ${CHATWOOT_CF_ACCESS_AUD:-}
+      CF_ACCESS_EMAILS: ${CHATWOOT_CF_ACCESS_EMAILS:-}
+      CF_ACCESS_PERMITIR_HTTP: ${CHATWOOT_CF_ACCESS_PERMITIR_HTTP:-0}
+    volumes:
+      - ./cf-access/verificador.mjs:/app/verificador.mjs:ro
+    # Solo la red edge: Traefik lo alcanza por el alias y sale a internet por ella para leer
+    # las claves públicas de <team>/cdn-cgi/access/certs. No ve Postgres ni Redis.
+    networks:
+      chatwoot_edge:
+        aliases: ["${COMPOSE_PROJECT_NAME}-acceso"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/salud"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 96m
+          pids: 64
+
+  sidekiq:
+    <<: *chatwoot
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+    depends_on:
+      prepare:
+        condition: service_completed_successfully
+    networks:
+      - interna
+      - salida
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f '^sidekiq' >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 1280m
+          pids: 512
+
+  postgres:
+    image: pgvector/pgvector:0.8.1-pg16
+    restart: unless-stopped
+    logging: *logging
+    cpu_shares: 512
+    oom_score_adj: 500
+    environment:
+      POSTGRES_DB: chatwoot_production
+      POSTGRES_USER: chatwoot
+      POSTGRES_PASSWORD: ${CHATWOOT_POSTGRES_PASSWORD:?CHATWOOT_POSTGRES_PASSWORD falta en .env}
+    # Memoria a la medida del límite de 768 MB: dos personas atendiendo no necesitan
+    # más de 40 conexiones (Puma 5 + Sidekiq 5 + crons + consola).
+    command:
+      - postgres
+      - -c
+      - shared_buffers=192MB
+      - -c
+      - effective_cache_size=512MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - max_connections=40
+    volumes:
+      - ${CHATWOOT_DATA_DIR:-./data}/postgres:/var/lib/postgresql/data
+    networks:
+      - interna
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatwoot -d chatwoot_production"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 768m
+
+  redis:
+    image: redis:7.2.11-alpine
+    restart: unless-stopped
+    logging: *logging
+    cpu_shares: 512
+    oom_score_adj: 500
+    environment:
+      REDIS_PASSWORD: ${CHATWOOT_REDIS_PASSWORD:?CHATWOOT_REDIS_PASSWORD falta en .env}
+      REDISCLI_AUTH: ${CHATWOOT_REDIS_PASSWORD:?CHATWOOT_REDIS_PASSWORD falta en .env}
+    # appendonly: los trabajos encolados sobreviven a un reinicio. noeviction: con la
+    # memoria llena Redis rechaza escrituras en vez de borrar trabajos en silencio.
+    command:
+      - sh
+      - -c
+      - exec redis-server --requirepass "$$REDIS_PASSWORD" --appendonly yes --maxmemory 160mb --maxmemory-policy noeviction
+    volumes:
+      - ${CHATWOOT_DATA_DIR:-./data}/redis:/data
+    networks:
+      - interna
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 192m
+
+networks:
+  chatwoot_edge:
+    external: true
+    name: ${CHATWOOT_EDGE_NETWORK:-chatwoot_edge}
+  interna:
+    internal: true
+  salida: {}
