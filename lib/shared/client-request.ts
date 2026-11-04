@@ -19,7 +19,7 @@ export function isClientRequestConflict(error: DbError): boolean {
   return error?.code === "23505" && (error.message ?? "").includes("client_request_uidx");
 }
 
-/** La columna no existe: la base va sin 0512. El orden previsto es aplicarla antes, y esto evita romper si falla. */
+/** La columna no existe: una base sin 0512. Producción ya la tiene; esto evita romper en otra base, como una restauración vieja. */
 export function isMissingClientRequestColumn(error: DbError): boolean {
   return (error?.code === "PGRST204" || error?.code === "42703") && (error.message ?? "").includes("client_request_id");
 }
