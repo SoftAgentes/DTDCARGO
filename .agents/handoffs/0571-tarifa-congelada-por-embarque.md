@@ -177,6 +177,8 @@ El Director ordenó pausar: a Sam se le acaba el saldo de Claude y **Codex conti
 
 ## PENDIENTES DE ESTA TAREA
 
+**Actualización, 2026-11-03:** la 0496 está aplicada, en lote con la 0497. Cierre del runbook §6 en `.agents/handoffs/0571-0573-cierre-0496-0497.md`. Lo que sigue es de antes de eso.
+
 1. ~~`pnpm verify`~~ hecho sobre `a81dbbd7` (16/17, sin fallos). ~~Revisión de diseño y seguridad~~ hechas y corregidas. ~~Previa de los md5~~ hecha (deriva de `resolve_price_book` aceptada).
 2. Que el Director confirme la cabeza de la #307 y cierre la revisión de seguridad sobre ella.
 3. OK nominal de Sam nombrando `0496_tarifa_congelada_por_embarque`, aplicación por el runbook (MIGRATE-FIRST) y smoke en Almacén CN; recién después, fusionar la #307. El CI de GitHub, al regularizar la facturación: `gh run rerun` de «Calidad local sin secretos».

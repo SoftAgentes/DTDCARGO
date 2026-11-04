@@ -63,8 +63,9 @@ de WebKit deja el proceso colgado; el límite es por proyecto y no afecta a
 > le pasa a ese `next dev` su URL y una anon key visible que no es secreta.
 >
 > - `proxy.ts` crea su cliente y las pruebas con `requiereSupabase()` **corren**.
->   Sin sesión, `getUser()` no sale a la red, y el deny-only responde 503 a
->   cualquier otra llamada.
+>   Sin sesión, `getUser()` no sale a la red, y el deny-only responde 503 con
+>   `Retry-After: 0` a cualquier otra llamada. Sin esa cabecera, cada lectura de
+>   postgrest-js espera 7 s de backoff.
 > - La decisión es una sola, `planSupabaseE2E` en
 >   `e2e/_helpers/supabase-publico.cjs`, y la comparten la config, los specs (por
 >   `metadata.supabaseE2E.modo`) y `pnpm verify`. Verify comprueba antes que el
