@@ -65,7 +65,12 @@ Comprobado también con el arreglo, en el lote: escribir después del error deja
 | `tsc` acotado a las pruebas y sus importaciones (configuración temporal; incluye los tres paneles) | PASÓ, 0 errores |
 | `governance:check`, `components:check`, `docs:check`, `sdd:check` | PASÓ |
 | `knowledge:status` en este worktree | Sale con exit 0, pero reporta capas en INVALID y PENDING. No lo investigué ni comparé con main; Graphify lo publica el Director |
-| `pnpm verify` | NO EJECUTADO: es corrida pesada y pide turno al Director. El CI de la PR corre la suite y el build. **Es cambio de producto: la PR no debería salir de borrador sin decidir esto** |
+| Tras traer `main` en `5a70ffc4f`, sobre `f2795afc5`, `--maxWorkers=1`: `TransportistasPanel.test.tsx` y `CityDrawer.test.tsx` | PASÓ, 31 de 31 |
+| Mutantes, sobre `f2795afc5` | PASÓ, 9 de 9 mueren, con control verde antes y después |
+| ESLint de los cinco archivos, sobre `f2795afc5` | PASÓ |
+| Combinación con #350 y #353: `f2795afc5` sobre `cb6a99f5c`, con un merge sin commit | PASÓ: sin conflictos, 76 de 76 en 6 archivos |
+| «Calidad local sin secretos» sobre `419b56bd2`, antes de traer `main` | PASÓ. Sobre la cabeza nueva, NO EJECUTADO: la rama no se publicó todavía |
+| `pnpm verify` | NO EJECUTADO, y propongo no correrlo: el diff son tres paneles del Studio y sus pruebas. Lo único que `verify` suma al CI es `sql-tests`, `schema-rebuild`, `migrations-applied` y `e2e`: no hay SQL, y ningún e2e abre estos paneles. Lo decide el Director General |
 | Graphify, Archify, Obsidian | NO EJECUTADO: los publica el Director desde main |
 
 ## COMMITS
@@ -79,9 +84,8 @@ Rama `codex/foco-error-repetido`, en PR en borrador contra `main`. El número qu
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Ver «Calidad local sin secretos» en verde sobre la cabeza de la PR.
-2. Decidir el turno de `pnpm verify`.
-3. Smoke en el Studio con sesión real: fallar dos veces seguidas con el mismo error y pulsar Tab. Hoy sólo hay medición con acciones simuladas.
+1. Publicar la rama cuando el Director General lo indique, y ver «Calidad local sin secretos» en verde sobre esa cabeza.
+2. Smoke en el Studio con sesión real: fallar dos veces seguidas con el mismo error y pulsar Tab. Hoy sólo hay medición con acciones simuladas.
 
 ## FUERA DE ALCANCE DETECTADO
 
