@@ -1010,33 +1010,6 @@
   outline-offset: -2px;
 }
 
-/* Selector de vista Mes/Semana/Agenda + tabs nivel-1 del calendario */
-.studio-cal-viewbtn {
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--ink-soft);
-  font: 500 12.5px/1 var(--f-sans);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
-}
-.studio-cal-viewbtn:hover:not([aria-selected="true"]) {
-  color: var(--ink);
-}
-.studio-cal-viewbtn[aria-selected="true"] {
-  background: var(--bg-surface);
-  color: var(--ink);
-  font-weight: 700;
-  box-shadow: var(--shadow-xs);
-}
-.studio-cal-viewbtn:focus-visible {
-  outline: 2px solid var(--wine);
-  outline-offset: 2px;
-}
 .studio-cal-filterrow {
   transition: background var(--dur) var(--ease);
 }
@@ -1421,9 +1394,22 @@ details[open] > .calc-why-summary .calc-why-chev {
   color: var(--ink-inv);
 }
 
-/* ── Pestañas de módulo (SDD-0274) ────────────────────────────────────────
-   Secciones hermanas del mismo módulo, con su cantidad al lado. El subrayado
-   vino marca la activa; `aria-selected` lleva el estado real. */
+/* ── Pestañas de módulo (SDD-0274, SDD-0603) ──────────────────────────────
+   Secciones hermanas del mismo módulo, con su cantidad al lado. El relleno de tinta
+   marca la activa (BD-037). `aria-selected` o `aria-pressed` lleva el estado real;
+   `data-activa` solo pinta. El contenedor envuelve: sin recorte en zoom ni en
+   pantallas angostas (A11Y-01 §13). */
+.studio-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--s-1);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+}
 .studio-tab {
   display: inline-flex;
   align-items: center;
@@ -1452,8 +1438,16 @@ details[open] > .calc-why-summary .calc-why-chev {
   color: var(--ink-inv);
   font-weight: 800;
 }
+.studio-tab:disabled {
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+.studio-tab-n[data-alerta="true"] {
+  color: var(--wine-text);
+  font-weight: 800;
+}
 .studio-tab-n {
-  font: 600 10.5px/1 var(--f-mono);
+  font: 600 12px/1 var(--f-mono);
   font-variant-numeric: tabular-nums;
   background: var(--bg-elevated);
   color: var(--ink-soft);

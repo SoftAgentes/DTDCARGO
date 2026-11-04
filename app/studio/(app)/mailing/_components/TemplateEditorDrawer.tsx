@@ -87,12 +87,8 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
       <div
         role="tablist"
         aria-label="Vista template"
-        style={{
-          padding: "12px 24px 0",
-          display: "flex",
-          gap: 4,
-          background: "var(--bg-surface)",
-        }}
+        className="studio-tabs"
+        style={{ margin: "12px 24px 0" }}
       >
         {(["editor", "preview"] as const).map((v) => (
           <button
@@ -100,21 +96,9 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
             type="button"
             role="tab"
             aria-selected={view === v}
+            data-activa={view === v ? "true" : undefined}
             onClick={() => setView(v)}
-            style={{
-              padding: "8px 16px",
-              border: "none",
-              background:
-                view === v ? "var(--bg-elevated, #F2F0EC)" : "transparent",
-              color: view === v ? "var(--ink)" : "var(--ink-soft)",
-              borderRadius: "6px 6px 0 0",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: view === v ? 600 : 500,
-              transition:
-                "background-color var(--dur, 180ms) var(--ease, ease-out), color var(--dur, 180ms) var(--ease, ease-out)",
-            }}
+            className="studio-tab"
           >
             {v === "editor" ? "Editor" : "Preview"}
           </button>

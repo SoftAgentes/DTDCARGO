@@ -230,13 +230,7 @@ export function BugsAdminClient({
         <div
           role="tablist"
           aria-label="Vistas Bug Tracker"
-          style={{
-            display: "inline-flex",
-            background: "var(--bg-elevated, #F2F0EC)",
-            borderRadius: 8,
-            padding: 4,
-            gap: 2,
-          }}
+          className="studio-tabs"
         >
           {(["kanban", "tabla", "cerrados", "stats"] as const).map((tab) => (
             <TabButton
@@ -389,21 +383,9 @@ function TabButton({
       type="button"
       role="tab"
       aria-selected={active}
+      data-activa={active ? "true" : undefined}
       onClick={onClick}
-      style={{
-        padding: "8px 16px",
-        border: "none",
-        background: active ? "var(--bg-surface, #FFFFFF)" : "transparent",
-        color: active ? "var(--ink)" : "var(--ink-soft)",
-        borderRadius: 6,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 13,
-        fontWeight: active ? 600 : 500,
-        boxShadow: active ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-        transition:
-          "background-color var(--dur, 180ms) var(--ease, ease-out), color var(--dur, 180ms) var(--ease, ease-out), box-shadow var(--dur, 180ms) var(--ease, ease-out)",
-      }}
+      className="studio-tab"
     >
       {label}
     </button>
