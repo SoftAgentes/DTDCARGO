@@ -278,6 +278,9 @@ const nextConfig: NextConfig = {
     // como data-URI leído de `public/brand/` por fs → trazarlo para prod (si el
     // fs falla, el reporte degrada al wordmark de texto, sin romper).
     "/api/studio/bitacora/export": ["./public/brand/**"],
+    // Packing list pre-llenado del proveedor (SDD-0602): el GET lee la plantilla
+    // de `public/templates/` por fs → trazarla para prod.
+    "/p/[token]/packlist": ["./public/templates/dtd-packing-list-invoice.xlsx"],
     // Documentos de Marketing en el Studio (SDD-0158): el lector lee los `.md`
     // de docs/marketing por fs en runtime → deben viajar en el bundle en prod.
     "/studio/marketing/docs": ["./docs/marketing/**/*.md"],

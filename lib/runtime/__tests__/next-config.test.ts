@@ -9,6 +9,7 @@
  * Storage en el servidor propio no la detecta ninguna prueba: el servidor no falla,
  * falla el navegador.
  */
+import { existsSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NextConfig } from "next";
 
@@ -140,6 +141,16 @@ describe("SDD-0581 · CSP de medición sin relajar defensas públicas", () => {
     expect(directive(csp, "base-uri")).toBe("base-uri 'self'");
     expect(directive(csp, "form-action")).toBe("form-action 'self'");
     expect(directive(csp, "frame-ancestors")).toBe("frame-ancestors 'none'");
+  });
+});
+
+describe("SDD-0602 · la plantilla del packing list viaja con su ruta", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("el GET la lee por fs: tiene que estar trazada y existir en el repo", async () => {
+    const trazadas = (await loadConfig({})).outputFileTracingIncludes?.["/p/[token]/packlist"] ?? [];
+    expect(trazadas).toEqual(["./public/templates/dtd-packing-list-invoice.xlsx"]);
+    expect(existsSync(trazadas[0])).toBe(true);
   });
 });
 
