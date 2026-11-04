@@ -277,13 +277,15 @@ describe("SDD-0599 · el identificador del intento", () => {
 
 describe("SDD-0599 · si el primer envío ya había llegado, la pantalla lo dice", () => {
   const YA_ESTABA = /Ya estaba registrad[ao] desde tu primer envío\. Si cambiaste algo después, escríbele a tu asesor\./;
+  // `NewPurchaseWizard` es la pantalla más pesada: con carga pasa de medio segundo, y `findBy` espera 1 s.
+  const yaEstaba = () => screen.findByText(YA_ESTABA, undefined, { timeout: 5_000 });
 
   it("CotizacionRequestForm", async () => {
     h.accion.mockResolvedValue({ ok: true, createdCode: "EST-1", replayed: true });
     const { container } = render(<Barrera><CotizacionRequestForm defaultDestination="Caracas" /></Barrera>);
     fireEvent.submit(elFormulario(container));
 
-    expect(await screen.findByText(YA_ESTABA)).toBeInTheDocument();
+    expect(await yaEstaba()).toBeInTheDocument();
   });
 
   it("NewPurchaseForm", async () => {
@@ -291,7 +293,7 @@ describe("SDD-0599 · si el primer envío ya había llegado, la pantalla lo dice
     const { container } = render(<Barrera><NewPurchaseForm suppliers={[PROVEEDOR]} addons={[ADDON]} preselected={PROVEEDOR} /></Barrera>);
     fireEvent.submit(elFormulario(container));
 
-    expect(await screen.findByText(YA_ESTABA)).toBeInTheDocument();
+    expect(await yaEstaba()).toBeInTheDocument();
   });
 
   it("NewPurchaseWizard", async () => {
@@ -299,7 +301,7 @@ describe("SDD-0599 · si el primer envío ya había llegado, la pantalla lo dice
     const { container } = render(<Barrera><NewPurchaseWizard suppliers={[PROVEEDOR]} addons={[ADDON]} preselected={PROVEEDOR} /></Barrera>);
     fireEvent.submit(elFormulario(container));
 
-    expect(await screen.findByText(YA_ESTABA)).toBeInTheDocument();
+    expect(await yaEstaba()).toBeInTheDocument();
   });
 
   it("PortalClaims", async () => {
@@ -307,7 +309,7 @@ describe("SDD-0599 · si el primer envío ya había llegado, la pantalla lo dice
     const { container } = render(<Barrera><PortalClaims claims={[]} shipments={[{ id: "e1", code: "S-1" }]} evidence={{}} /></Barrera>);
     fireEvent.submit(elFormulario(container));
 
-    expect(await screen.findByText(YA_ESTABA)).toBeInTheDocument();
+    expect(await yaEstaba()).toBeInTheDocument();
   });
 
   it("PortalMessageForm", async () => {
