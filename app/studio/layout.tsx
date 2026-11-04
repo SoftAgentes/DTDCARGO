@@ -9,10 +9,8 @@
  * Script inline de FOUC: aplica tema y densidad antes del primer paint. Por defecto,
  * oscuro y compacto (BD-037), salvo que la persona haya elegido otra cosa.
  *
- * Dos excepciones (SDD-0603):
- * - Los paneles que viven dentro de Chatwoot siguen el tema de Chatwoot.
- * - Al imprimir se pasa a claro: en oscuro la letra es clara y sobre papel blanco no
- *   se lee. Al terminar vuelve el tema que había.
+ * Los paneles que viven dentro de Chatwoot no reciben ni tema ni densidad: siguen a
+ * Chatwoot (SDD-0603). Lo impreso pasa a claro por CSS, en `tokens.css`.
  */
 
 import "./studio.css";
@@ -45,21 +43,12 @@ const THEME_FOUC_SCRIPT = `
 try {
   var h = document.documentElement;
   var p = location.pathname;
-  var enChatwoot = p.indexOf('/studio/ficha-chat') === 0 || p.indexOf('/studio/cerrar-chat') === 0;
-  var t = localStorage.getItem('studio_theme');
-  if (t !== 'light' && !enChatwoot) h.setAttribute('data-theme', 'dark');
-  var d = localStorage.getItem('studio_density');
-  if (d === 'spacious') h.setAttribute('data-density', 'spacious');
-  else if (d !== 'normal') h.setAttribute('data-density', 'compact');
-  var antes = null;
-  window.addEventListener('beforeprint', function () {
-    antes = h.getAttribute('data-theme');
-    h.removeAttribute('data-theme');
-  });
-  window.addEventListener('afterprint', function () {
-    if (antes) h.setAttribute('data-theme', antes);
-    antes = null;
-  });
+  if (p.indexOf('/studio/ficha-chat') !== 0 && p.indexOf('/studio/cerrar-chat') !== 0) {
+    if (localStorage.getItem('studio_theme') !== 'light') h.setAttribute('data-theme', 'dark');
+    var d = localStorage.getItem('studio_density');
+    if (d === 'spacious') h.setAttribute('data-density', 'spacious');
+    else if (d !== 'normal') h.setAttribute('data-density', 'compact');
+  }
 } catch (e) {}
 `.trim();
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { DENSITY_KEY, THEME_KEY, readDensity, readTheme } from "../appearance-prefs";
 
 /**
@@ -13,10 +13,16 @@ const layout = readFileSync(join(process.cwd(), "app/studio/layout.tsx"), "utf8"
 const script = layout.match(/const THEME_FOUC_SCRIPT = `([\s\S]*?)`\.trim\(\);/)?.[1] ?? "";
 
 function correr(pathname = "/studio/dashboard") {
-  const oyentes: Record<string, () => void> = {};
-  const ventana = { addEventListener: (nombre: string, f: () => void) => (oyentes[nombre] = f) };
-  new Function("location", "window", script)({ pathname }, ventana);
-  return oyentes;
+  new Function("location", script)({ pathname });
+}
+
+/** Tokens de un bloque de CSS, sin comentarios: nombre → valor. */
+function tokensDe(bloque: string): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const r of bloque.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
+    if (!m.has(r[1])) m.set(r[1], r[2].trim().replace(/\s+/g, " "));
+  }
+  return m;
 }
 
 const html = document.documentElement;
@@ -26,7 +32,6 @@ describe("apariencia predeterminada del Studio · SDD-0603", () => {
     localStorage.clear();
     html.removeAttribute("data-theme");
     html.removeAttribute("data-density");
-    vi.restoreAllMocks();
   });
 
   it("existe el script que se va a ejecutar", () => {
@@ -58,24 +63,22 @@ describe("apariencia predeterminada del Studio · SDD-0603", () => {
     expect(readDensity()).toBe("spacious");
   });
 
-  it.each(["/studio/ficha-chat", "/studio/cerrar-chat"])("%s sigue el tema de Chatwoot, no el predeterminado", (ruta) => {
+  it.each(["/studio/ficha-chat", "/studio/cerrar-chat"])("%s sigue a Chatwoot: ni tema ni densidad", (ruta) => {
     correr(ruta);
     expect(html.hasAttribute("data-theme")).toBe(false);
+    expect(html.hasAttribute("data-density")).toBe(false);
   });
 
-  it("al imprimir pasa a claro y al terminar vuelve al tema que había", () => {
-    const oyentes = correr();
-    oyentes.beforeprint();
-    expect(html.hasAttribute("data-theme")).toBe(false);
-    oyentes.afterprint();
-    expect(html.getAttribute("data-theme")).toBe("dark");
-  });
-
-  it("al imprimir en claro no inventa un tema al terminar", () => {
-    localStorage.setItem(THEME_KEY, "light");
-    const oyentes = correr();
-    oyentes.beforeprint();
-    oyentes.afterprint();
-    expect(html.hasAttribute("data-theme")).toBe(false);
+  it("al imprimir, cada token que el oscuro sobrescribe vuelve a su valor claro", () => {
+    const css = readFileSync(join(process.cwd(), "app/studio/tokens.css"), "utf8");
+    const iOscuro = css.indexOf('[data-theme="dark"] {');
+    const iImpresion = css.indexOf("@media print {");
+    expect(iImpresion).toBeGreaterThan(iOscuro);
+    const claro = tokensDe(css.slice(0, iOscuro));
+    const oscuro = tokensDe(css.slice(iOscuro, iImpresion));
+    const impresion = tokensDe(css.slice(iImpresion, css.indexOf('[data-density="compact"]')));
+    expect(oscuro.size).toBeGreaterThan(20);
+    expect([...impresion.keys()].sort()).toEqual([...oscuro.keys()].sort());
+    for (const [nombre, valor] of impresion) expect([nombre, valor]).toEqual([nombre, claro.get(nombre)]);
   });
 });
