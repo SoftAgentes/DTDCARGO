@@ -628,8 +628,9 @@ Publicada en `dtd-cargo` la imagen de `fe35eb2d1` a las 12:41:54Z, con el webhoo
 | W1 | 2 `message_created`, 13:08:07Z y 13:08:41Z, `procesado` al primer intento | PASÓ |
 | W2 | 1 tarjeta a las 13:08:08Z: `whatsapp_clientes`, etapa `nuevo`, con teléfono y contacto, sin ficha | PASÓ |
 | W3 | Bandeja 2, 2 no leídos | PASÓ |
-| W4 | Sam ve su tarjeta en Embudos | NO EJECUTADO a las 19:45Z |
-| W5 y W6 | Pasar a Perdido y volver a escribir: 0 filas en `crm_historial_etapas` y 0 tareas de recontacto desde las 12:37Z | NO EJECUTADO a las 19:45Z |
+| W4 | Sam ve su tarjeta en Embudos. Contestó «Sí, la veo»; es su ojo, sin medida aparte | PASÓ, según Sam |
+| W5 | Pasar la tarjeta a Perdido con motivo. A las 21:49Z no se ha hecho. Sí hay 2 cambios `manual` con actor y sin motivo: 21:02:28Z, la de Instagram, `nuevo` → `negociacion`; 21:02:31Z, la de WhatsApp, `nuevo` → `aceptado_esperando_carga`. Prueban que mover deja historial | PENDIENTE |
+| W6 | Volver a escribir desde Perdido: depende de W5. 0 tareas de recontacto a las 21:49Z | PENDIENTE |
 | W7 | El segundo mensaje no duplicó la tarjeta. Falta repetirlo después de W6 | Parcial |
 | W8 | Sin agentes vinculados; el asesor ya se probó en prueba | NO APLICA |
 | BSUID | Solo se guarda de un usuario sin teléfono, y este lo trae | NO VERIFICABLE |
@@ -651,4 +652,4 @@ La conversación existía desde 2026-10-30T17:01:12Z, así que la tarjeta nació
 - Si el 5202 o cualquier otra bandeja con eco crearía una tarjeta igual cuando alguien de DTD escribe desde el teléfono. El código de Chatwoot lo permite en WhatsApp si Meta entrega `smb_message_echoes`; no se sabe si los entrega para ese número.
 - El primer entrante real de Instagram tras el corte: sigue sin llegar.
 
-**La decisión es de Sam:** si alguien a quien DTD le escribió primero cuenta como lead. Se la presenta el Director General. Esa tarjeta no se borra ni se mueve, y el código no cambia hasta que decida.
+**La decisión es de Sam:** si alguien a quien DTD le escribió primero cuenta como lead. Se la presenta el Director General. El código no cambia hasta que decida, y las sesiones no borran ni mueven esa tarjeta. Sam la movió a `negociacion` a las 21:02:28Z; eso no se toma como su decisión.

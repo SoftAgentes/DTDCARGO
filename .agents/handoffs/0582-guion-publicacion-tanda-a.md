@@ -2,7 +2,7 @@
 
 Lo preparó el Subdirector el 2026-11-04. Vale para `M` = `fe35eb2d1db84e83ec974a9b15fb2b833a8b7ea9`.
 
-**Ejecutado el mismo día.** `M` quedó publicada a las 12:41:54Z, y sus pasos 6 y 7 dieron 0 fallas. Del paso 8, W1 a W3 pasaron; W4 a W6 siguen sin hacer. El resultado está al final de la SDD-0587. Lo de abajo es el plan tal como se escribió antes de la ventana, salvo donde dice otra cosa.
+**Ejecutado el mismo día.** `M` quedó publicada a las 12:41:54Z, y sus pasos 6 y 7 dieron 0 fallas. Del paso 8, W1 a W3 pasaron y W4 pasó según Sam; W5 y W6 siguen pendientes. El resultado está al final de la SDD-0587. Lo de abajo es el plan tal como se escribió antes de la ventana, salvo donde dice otra cosa.
 
 - **Quién hace qué:** DG es el Director General, Sub es el Subdirector y Sam es Sam.
 - **Producción ya tenía, antes de la ventana:** las 6 migraciones, las 6 variables sin secreto, y `rails` de Chatwoot recreado con la regla de «olvidé mi clave» y el inicializador de revocación.
@@ -254,7 +254,7 @@ Tiene que imprimir `1` y `0`. Con eso no llega nada más a Studio. Chatwoot sigu
 
 ## PENDIENTES DE ESTA TAREA
 
-- W4, W5 y W6 con Sam, y repetir W7 después. Se miden con conteos desde las 12:37Z, así que no hace falta vigía mientras tanto.
+- W5 y W6 con Sam, y repetir W7 después. Se miden con conteos desde las 12:37Z y van en un commit aparte, cuando ocurran.
 - El primer entrante real de Instagram tras el corte.
 - Los pasos de la sección 9 que no dicen «Hecho»: Ficha DTD, cierre de sesión desde Studio y `verificar-aislamiento.sh` de prueba.
 
