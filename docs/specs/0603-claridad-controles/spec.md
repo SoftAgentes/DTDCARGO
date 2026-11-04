@@ -169,7 +169,6 @@ Rama `codex/0603-t2-pestanas`, partiendo del tramo 1. Sin PR hasta que el tramo 
 - `app/studio/(app)/tms/_components/TmsClient.tsx`
 - `app/studio/(app)/usuarios/_components/UsersClient.tsx`
 - `app/studio/_components/wiring/ProfileModal.tsx`
-- `app/studio/layout.tsx`
 
 ### Aceptación del tramo 2
 
