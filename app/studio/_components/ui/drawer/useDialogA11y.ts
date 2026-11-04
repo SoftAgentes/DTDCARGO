@@ -11,6 +11,9 @@
  *  - Focus-trap: Tab cicla dentro del panel.
  *  - Foco perdido: el botón que se deshabilita durante el envío lo suelta a
  *    `body`. Tab no sale del panel y, al terminar `pending`, vuelve adentro.
+ *  - Primer error: al terminar `pending`, el foco va al aviso enfocable o al primer
+ *    campo con `aria-invalid`, si se perdió o si la persona envió con Enter y sigue
+ *    en ese campo.
  *
  * Lo usa `DrawerShell` internamente. Los overlays ricos que NO encajan en el
  * header de DrawerShell (editores con tabs, previews casi-fullscreen) lo llaman
@@ -75,6 +78,7 @@ export function useDialogA11y(
   },
 ) {
   const lastFocusedRef = useRef<HTMLElement | null>(null);
+  const submitFocusRef = useRef<Element | null>(null);
 
   // Dónde estaba la persona, para devolverla ahí si el foco se pierde. Va antes
   // del foco inicial para contarlo: en ConfirmDialog suele ser el único.
@@ -84,8 +88,15 @@ export function useDialogA11y(
     function remember(e: FocusEvent) {
       lastFocusedRef.current = e.target as HTMLElement;
     }
+    function rememberSubmit() {
+      submitFocusRef.current = document.activeElement;
+    }
     panel.addEventListener("focusin", remember);
-    return () => panel.removeEventListener("focusin", remember);
+    panel.addEventListener("submit", rememberSubmit);
+    return () => {
+      panel.removeEventListener("focusin", remember);
+      panel.removeEventListener("submit", rememberSubmit);
+    };
   }, [panelRef, enabled]);
 
   // Foco inicial + restauración al cerrar.
@@ -144,17 +155,25 @@ export function useDialogA11y(
     return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [panelRef, pending, onClose, enabled]);
 
-  // Al terminar el envío, el foco perdido vuelve al panel: al primer campo con
-  // error (ERR-01) o a donde estaba. Si el panel enfoca su propio aviso, este
-  // efecto corre antes (hijo) o ya no encuentra el foco perdido, y el aviso gana.
+  // Al terminar el envío, el foco va al primer error bloqueante (ERR-01): un aviso
+  // enfocable o, si no hay, el primer campo con error. Si el panel enfoca su propio
+  // aviso, este efecto corre antes (hijo) o ya no aplica (uso directo), y el aviso gana.
   useEffect(() => {
     const panel = panelRef.current;
-    if (!enabled || pending || !panel || !isTopmostDialog(panel) || !isFocusLost()) return;
-    const candidates = [
-      panel.querySelector<HTMLElement>('[aria-invalid="true"]'),
-      lastFocusedRef.current,
-      panel,
-    ];
+    if (!enabled || pending || !panel) return;
+    const submitFocus = submitFocusRef.current;
+    submitFocusRef.current = null;
+    if (!isTopmostDialog(panel)) return;
+    const firstError =
+      panel.querySelector<HTMLElement>('[role="alert"][tabindex="-1"]') ??
+      panel.querySelector<HTMLElement>('[aria-invalid="true"]');
+    if (!isFocusLost()) {
+      // Con Enter el foco se queda en el campo. Sólo se mueve si la persona sigue
+      // ahí: a quien ya pasó a otro control no se le quita.
+      if (document.activeElement === submitFocus) firstError?.focus();
+      return;
+    }
+    const candidates = [firstError, lastFocusedRef.current, panel];
     // Un candidato deshabilitado o que ya no está no recibe el foco: se pasa al siguiente.
     for (const el of candidates) {
       el?.focus();
