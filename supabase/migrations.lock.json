@@ -3087,6 +3087,24 @@
         "fecha": "2026-11-03",
         "forma": "exacta"
       }
+    },
+    "0511_rls_escritura_asientos_y_bancos": {
+      "sha256": "819e9912e1fb005cfcc1fd52cd3b7178be4a0966bf4d2bd4750154a0f8535be7",
+      "md5": "f9522a5b7550940e1fc96cc3bcba776e",
+      "bytes": 16896,
+      "ledger": {
+        "fecha": "2026-11-03",
+        "forma": "exacta"
+      }
+    },
+    "0512_portal_intento_sin_duplicar": {
+      "sha256": "2ae37ec09f0fdaf2eaf71179a514319c7053aeb85b82fdd8194bc3efbc1566c4",
+      "md5": "bdf2326d98f8fe993aedc19235d7ae00",
+      "bytes": 11817,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
     }
   }
 }

@@ -205,8 +205,13 @@ cifra en el registro (§8):
    a las de producción al momento del dump.
 2. `--vault-readable`: todos los secretos de Vault se descifran con la raíz del
    respaldo de configuración. Si falla, el que falló es el respaldo de §4.
-3. `select jobname from cron.job` dentro de la prueba (o `--expect cron.job=3`).
-4. RTO: desde el `rclone copy` hasta el último PASÓ, en minutos. Si pasa de
+3. `select jobname from cron.job`: **no se puede en base nueva ni con `--dr`**, porque
+   `pg_cron` solo se crea en la base `postgres` (ver «Qué no se restaura igual»). Se
+   comprueba en un restore sobre `--target postgres`.
+4. Event triggers (SDD-0594): `restore.sh` informa «iguales» contra el índice del
+   dump, el dump trae `ensure_rls` y una tabla nueva de `public` nace con RLS. Si
+   falla alguna, el resultado es FALLÓ aunque lo demás pase.
+5. RTO: desde el `rclone copy` hasta el último PASÓ, en minutos. Si pasa de
    4 h, el procedimiento se corrige antes del mes siguiente.
 
 El smoke con la app (Studio, Portal, una foto) no forma parte de la prueba
@@ -241,6 +246,93 @@ sintético con permisos como los de producción, 60 PASÓ · 0 FALLÓ):
 
 La prueba mensual corre en base nueva; una vez por trimestre conviene agregarle
 `--dr` para ensayar la condición real.
+
+### Event triggers: `ensure_rls` no sale del dump (SDD-0594)
+
+`ensure_rls` activa RLS en toda tabla nueva de `public`. Hasta la SDD-0594, una
+restauración dejaba la base sin él y lo único que quedaba era una advertencia: las
+pruebas reales del 14 y del 29 de octubre traían sus dos errores y salieron 5 de 5.
+El corte y el rehacer de prueba del 2026-11-02 lo recrearon a mano.
+
+**Por qué se pierde.** `pg_restore` corre como `supabase_admin`, porque los otros seis
+event triggers exigen superusuario. `ensure_rls` dispara una función de `postgres`, y
+supautils rechaza que un superusuario dispare la función de un rol que no lo es:
+
+```text
+ERROR:  Superuser owned event trigger must execute a superuser owned function
+ERROR:  event trigger "ensure_rls" does not exist
+```
+
+**Qué hace ahora `restore.sh`** (`infra/ops/lib/event-triggers.sh`):
+
+1. Lee el índice del dump antes de tocar el destino, sin red. Si no se lee, sale 2.
+2. Se lo da a `pg_restore` sin `ensure_rls` (`-L`), así no hay errores que normalizar.
+   Si el destino ya lo tiene, lo quita antes: si no, `--clean` falla al borrar su función.
+3. Lo recrea con `set role postgres` y la definición de la migración 0277.
+4. Compara la base con el índice: cada event trigger del dump, con su dueño, y
+   `ensure_rls` exacto (dueño, función, estado y etiquetas). Lo informa en una línea:
+   `event triggers: esperados 7 · restaurada 7 · iguales`.
+5. Si falta alguno, escribe `FALTAN <nombres>` y **sale 9**. No hay opción para saltárselo.
+
+Ensayo local del 2026-11-02, con la imagen del VPS y datos sintéticos:
+
+| Corrida | Antes | Con la SDD-0594 |
+|---|---|---|
+| `--target postgres`, stack nuevo | Sale 4, 2 errores, 6 event triggers | Sale 0, 0 errores, 7 event triggers, `ensure_rls` exacto |
+| Otra vez encima de esa base | No medido | Sale 0, 0 errores |
+| `restore-test.sh`, base nueva y `--dr` | No medido en este ensayo; las pruebas reales salían 5 de 5 | 8 PASÓ · 0 FALLÓ, con entre 15 y 17 errores según la corrida, todos de `pg_cron` (§«Qué no se restaura igual») |
+
+Una tabla nueva de `public` nace con RLS si la crea `postgres` y **sin RLS si la crea
+`supabase_admin`**: supautils no dispara estos triggers para un superusuario. Por eso la
+prueba mide con `set local role postgres`. Las migraciones de producción van como
+`postgres` (`infra/ops/migraciones/aplicar.sh`), así que a ellas sí las cubre; una tabla
+creada a mano como `supabase_admin` no queda protegida.
+
+`ensure_rls` se exige si el dump trae el trigger **o su función**. Un dump con la función
+y sin el trigger viene de un origen que ya lo perdió: `restore.sh` lo recrea, avisa con
+una `ADVERTENCIA` y `restore-test.sh` da FALLÓ, porque el que hay que revisar es el
+origen. Un proyecto de la plantilla no trae ninguno de los dos y no se le exige.
+
+**Si sale 9:** no des esa base por restaurada ni la expongas. Lee los `FALTAN`. Para
+`ensure_rls`, comprueba que exista `public.rls_auto_enable()` con dueño `postgres` y
+corre, con `--user supabase_admin`, el comando de `EVT_ENSURE_RLS_CREAR_SQL`. Otro event
+trigger perdido no tiene receta: es un fallo nuevo y se investiga como incidente.
+
+```sql
+select evtname, pg_get_userbyid(evtowner), evtfoid::regproc, evtenabled, evttags
+from pg_event_trigger order by 1;
+```
+
+Con esa consulta producción da 7 filas (medido el 2026-11-02, §«Qué no se restaura
+igual»). `ensure_rls` es el único con dueño `postgres`; los otros seis son de `supabase_admin`.
+
+### Qué no se restaura igual
+
+Inventario de lo que exige superusuario o queda fuera de un `pg_dump -Fc` de la base
+(sin `--create`). Fuentes, todas del 2026-11-02 salvo que se indique: catálogo de
+producción y de prueba y el índice de un dump de prueba, por solo lectura; las
+evidencias reales del 14 y del 29 de octubre; y un ensayo en Docker local con
+`supabase/postgres:17.6.1.136` y datos sintéticos. Los dumps de producción no se
+abrieron: están cifrados con la llave de Sam.
+
+| Objeto | En producción | Qué pasa al restaurar | Qué lo cubre |
+|---|---|---|---|
+| `ensure_rls` | 1, función de `postgres` | **Se perdía** en toda restauración, con dos errores | `restore.sh` lo recrea (SDD-0594) |
+| Otros event triggers | 6, de `supabase_admin` con funciones de `supabase_admin` | Se restauran; como `postgres`, no (88 errores, medido el 2026-10-09) | Comparación con el índice; `--user supabase_admin` |
+| `pg_cron` y sus 3 trabajos | Solo en la base `postgres` | **Se pierde en base nueva y con `--dr`**: `can only create extension in database postgres` (19 de los 21 errores de las pruebas reales). Sobre `--target postgres` se restaura, trabajos incluidos (ensayo local, sin errores) | Nada, ni hace falta: es propio de la prueba, no de un DR. Por eso `--expect cron.job=N` no pasa en la prueba mensual y `restore-test.sh` sale con `restore.sh` en 4 |
+| `ALTER DATABASE postgres SET app.settings.jwt_exp` | 1 | **No viaja en el dump**. La imagen sola no lo trae (ensayo local); lo pone `infra/dtd-cargo/supabase/volumes/db/jwt.sql` al crear el stack, con `JWT_EXP` del `.env` | El `.env` respaldado (§4) |
+| Permisos y comentario de la base `postgres` | ACL con `dashboard_user`, `supabase_etl_admin` y `supabase_storage_admin`; 1 comentario | **No viajan en el dump**, pero la imagen recién creada trae la misma ACL y un comentario (ensayo local) | La imagen, fijada por tag |
+| `ALTER ROLE … SET` globales | 10 roles | Viajan en `-roles.sql`, sin comparación automática | Prueba tiene los mismos parámetros, por nombre |
+| Publicaciones | `supabase_realtime` (11 tablas) y `supabase_realtime_messages_publication` (1) | Están en el índice y las pruebas reales no dan error por ellas; sin comparación automática | Prueba las tiene iguales |
+| Extensiones | 9, dos solo en producción (`hypopg`, `index_advisor`) | Salvo `pg_cron`, las pruebas reales no dan error por ellas | — |
+| Default ACL, objetos de superusuario en `_realtime` y `realtime` | 30 y 5 | Las pruebas reales no dan error por ellos | Prueba tiene las mismas cifras |
+| Suscripciones, FDW, servidores, lenguajes propios, tablespaces, etiquetas de seguridad | 0 | No aplica | — |
+
+Lo que este inventario no demuestra: nunca se restauró un dump **de producción** sobre
+`--target postgres`. Ese destino se midió con un dump de prueba y con el ensayo sintético;
+los dumps de producción, en base nueva. `--dr` no lo reemplaza, porque ahí `pg_cron` falla.
+Y solo los event triggers tienen comparación automática: una publicación perdida sin
+error no la detecta ninguna comprobación.
 
 Un restore que falla **es un incidente**: se arregla la causa antes del
 siguiente dump, no se anota «ver el mes que viene».
@@ -353,4 +445,10 @@ toma antes de la Fase 3, por escrito en el OK del corte:
 - Respaldo `dtd-cargo-20261014T014837Z` (6,1 MB) + configuración `dtd-cargo-config-20261014T014859Z`, con la llave age **nueva** de Sam (huella pública `f4aab8d945aa686a`; la del 12-10 se perdió y sus respaldos de 00:10Z y 00:31Z son ilegibles).
 - `/srv/ops/backup/restore-real-prueba.sh` (llave pegada sin eco, en `/dev/shm`, borrada al salir): **5 PASÓ · 0 FALLÓ**, permisos de public idénticos, 3 secretos de Vault legibles con la raíz respaldada, **RTO 34 s**. Evidencia: `/srv/ops/evidencias/restore-real-20261014T015017Z.txt`.
 - Próxima: mensual (§3), con el mismo script.
+
+## Registro · 2026-11-02 · hallazgo sobre las pruebas anteriores (SDD-0594)
+
+- Las pruebas reales del 2026-10-14 y del 2026-10-29 salieron 5 PASÓ, pero no comprobaban `ensure_rls`: sus evidencias traen los dos errores, y `restore.sh` había salido 4. Sobre los dumps en sí no dicen nada malo: el trigger viene en el índice.
+- Desde la SDD-0594, una corrida correcta da **7 comprobaciones**, 1 más con `--vault-readable` y una por cada `--expect`: `restore-real-prueba.sh` da 8. Un resultado de 5 PASÓ ya no es la cifra esperada.
+- Pendiente de la primera corrida real con el script nuevo, después de instalarlo: esperar `event triggers: esperados 7 · restaurada 7 · iguales`.
 
