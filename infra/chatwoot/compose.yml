@@ -65,6 +65,9 @@ x-entorno: &entorno
   # Sesiones simultáneas por usuario (devise_overrides/sessions_controller.rb:116,
   # 25 por defecto). Dos personas, cada una con Studio y quizá el teléfono.
   MAX_USER_SESSIONS: ${CHATWOOT_MAX_USER_SESSIONS:-5}
+  # Usuario de servicio de Studio (E1, paso 1.4): la revocación de sesiones (SDD-0585, 2.7)
+  # nunca lo toca. Vacío = la ruta responde 503 (falla cerrado).
+  DTD_CHATWOOT_SERVICIO_ID: ${DTD_CHATWOOT_SERVICIO_ID:-}
   # Sin telemetría al hub de Chatwoot (lib/chatwoot_hub.rb:88 y :122): con la variable
   # definida no se envían conteos de cuentas, usuarios, conversaciones ni mensajes.
   # La consulta de versión nueva (CW-13) sigue mandando host y versión.
@@ -135,6 +138,10 @@ x-chatwoot: &chatwoot
     # principal se comparte con Kommo (decisión B) y un /register de Chatwoot podría
     # desconectarlo. Lee DTD_WHATSAPP_IDS_PROTEGIDOS; vacía o mal formada, bloquea todo.
     - ./rails/zz_dtd_proteccion_register.rb:/app/config/initializers/zz_dtd_proteccion_register.rb:ro
+    # Revocación de sesiones desde Studio (SDD-0585, paso 2.7): ruta privada de la Platform
+    # API que cierra todas las sesiones de un agente dado de baja. Sin DTD_CHATWOOT_SERVICIO_ID
+    # responde 503 y no revoca a nadie. El runbook de versiones (E3) lo prueba en cada subida.
+    - ./rails/zz_dtd_revocar_sesiones.rb:/app/config/initializers/zz_dtd_revocar_sesiones.rb:ro
     # Marca de DTD (paso 1.3): logos e ícono oficiales servidos por el propio chat en
     # /dtd-marca/. Carpeta aparte para no tapar /app/public/brand-assets de Chatwoot.
     # Los valores que los usan están en marca/aplicar-marca.rb (InstallationConfig).
@@ -216,6 +223,20 @@ services:
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.service=${COMPOSE_PROJECT_NAME}-rails"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.middlewares=${CHATWOOT_ADMIN_ALLOWLIST_MIDDLEWARE:-tailscale-only@file},${COMPOSE_PROJECT_NAME}-marco@docker,${CHATWOOT_HEADERS_MIDDLEWARE:-security-headers@file}"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.observability.accesslogs=false"
+      # «Olvidé mi clave» apagado (SDD-0585, paso 2.7): CE no tiene interruptor por rol, y con
+      # el SMTP un agente podría pedir una clave nueva y entrar sin pasar por Studio. Traefik
+      # responde 403 antes de llegar a Rails; la lista solo admite el loopback del propio
+      # Traefik, que nadie usa. Un admin que olvide su clave la cambia desde el superadmin.
+      # PathPrefix: Rails también acepta /auth/password.json (pruebas/prueba-regla-clave.sh).
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.rule=Host(`${CHATWOOT_HOST}`) && Method(`POST`) && PathPrefix(`/auth/password`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.priority=1000"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.tls=${CHATWOOT_TLS:-true}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.service=${COMPOSE_PROJECT_NAME}-rails"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.middlewares=${COMPOSE_PROJECT_NAME}-nadie@docker,${CHATWOOT_HEADERS_MIDDLEWARE:-security-headers@file}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.observability.accesslogs=false"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-nadie.ipallowlist.sourcerange=127.0.0.1/32"
       # Iframe en Studio (decisión A de SDD-0582): Rails manda X-Frame-Options:
       # SAMEORIGIN por defecto (CW-6) y no manda CSP (content_security_policy.rb vacío).
       # Se borra XFO y se fija frame-ancestors al origen de Studio y nada más.

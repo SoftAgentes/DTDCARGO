@@ -19,8 +19,15 @@ const DESC =
 // el registro pasó a pedir ciudad y estado de entrega (migr 0348) y el texto
 // todavía decía que la dirección se agregaba después, en el Portal. El
 // 2026-09-19 (SDD-0487) el Portal empezó a recoger la empresa para facturar y
-// la foto de perfil pasó a guardarse sin metadatos.
-const UPDATED = "13 de octubre de 2026";
+// la foto de perfil pasó a guardarse sin metadatos. El 2026-10-30 (SDD-0585,
+// paso 2.6) se sumaron los mensajes por WhatsApp y chat: el seguimiento del
+// lead (SDD-0587), el BSUID y la respuesta automática (SDD-0586) con sus plazos.
+// SDD-0587, paso 6.4, suma a «Registro de cliente» la campaña por la que llegó.
+// OJO: este texto describe tablas y crons que entran con las PR de E2, E6 y E10.
+// Sam aprobó este texto exacto el 2026-11-03: si cambia una palabra, se le vuelve
+// a preguntar. Sale solo con la tanda A y esas piezas en producción: lo publicado
+// obliga por haberse publicado.
+const UPDATED = "4 de noviembre de 2026";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
@@ -44,12 +51,16 @@ const CAPTURA: [string, string][] = [
     "Nombre, correo, teléfono/WhatsApp y el mensaje que escribes.",
   ],
   [
+    "Mensajes por WhatsApp y chat",
+    "Si nos escribes por WhatsApp u otro canal de chat: tu nombre y tu teléfono tal como aparecen en ese canal y el contenido de la conversación. Si no muestras tu teléfono, WhatsApp nos da en su lugar un código anónimo de tu cuenta (BSUID). Si todavía no eres cliente, guardamos tu nombre visible y los últimos 10 dígitos de tu teléfono para dar seguimiento a tu consulta.",
+  ],
+  [
     "Estimado / Calculadora",
     "Datos del envío (tipo de carga, volumen/peso, origen-destino) y el contacto que dejas para enviarte el estimado (EST-XXXX).",
   ],
   [
     "Registro de cliente",
-    "Nombre, documento de identidad (cédula o RIF), correo, teléfono y la ciudad y el estado a donde entregamos tu mercancía. Al registrarte se genera tu número de cliente (Shipping Mark). La dirección detallada (calle, edificio, punto de referencia) la agregas después, en tu perfil del Portal.",
+    "Nombre, documento de identidad (cédula o RIF), correo, teléfono y la ciudad y el estado a donde entregamos tu mercancía. También guardamos la campaña por la que llegaste, si el enlace la trae. Al registrarte se genera tu número de cliente (Shipping Mark). La dirección detallada (calle, edificio, punto de referencia) la agregas después, en tu perfil del Portal.",
   ],
   [
     "Portal del Cliente",
@@ -172,6 +183,13 @@ export default function PrivacidadPage() {
                   comprobantes o facturas.
                 </li>
                 <li>
+                  <strong>Atender tus mensajes por WhatsApp y chat:</strong>{" "}
+                  saber si ya eres cliente para que te atienda el equipo que
+                  corresponde, darle seguimiento a tu consulta y, al primer
+                  mensaje, enviarte una respuesta automática. Guardamos un registro
+                  de esas respuestas automáticas para no repetirlas.
+                </li>
+                <li>
                   <strong>Facturarte a tu nombre o al de tu empresa:</strong> si
                   agregas una empresa en tu perfil, usamos su razón social, su RIF
                   y, si lo cargas, su domicilio fiscal para emitir las facturas que
@@ -231,6 +249,12 @@ export default function PrivacidadPage() {
                 <li>
                   <strong>Proveedor de envío de correos</strong> para mensajes
                   transaccionales (bienvenida, estimados, facturas).
+                </li>
+                <li>
+                  <strong>Meta (WhatsApp)</strong>, que transporta los mensajes
+                  que nos envías y te enviamos por WhatsApp. Las conversaciones
+                  las atendemos en nuestro propio sistema de atención, alojado en
+                  nuestro servidor.
                 </li>
                 <li>
                   <strong>Herramientas de analítica y publicidad</strong>{" "}
@@ -296,6 +320,18 @@ export default function PrivacidadPage() {
                   Los datos de <strong>contacto/consultas</strong> que no derivan
                   en servicio se conservan solo lo necesario para atenderte y luego
                   se eliminan o anonimizan.
+                </li>
+                <li>
+                  Si nos escribiste por <strong>WhatsApp o chat</strong> y no
+                  llegaste a ser cliente, cuando tu consulta queda cerrada sin
+                  servicio <strong>anonimizamos</strong> sus datos de seguimiento
+                  (nombre, teléfono, identificadores del chat y notas) a los{" "}
+                  <strong>12 meses sin actividad</strong>.
+                </li>
+                <li>
+                  El <strong>código anónimo de WhatsApp (BSUID)</strong> se borra
+                  al <strong>año sin actividad</strong>, y el registro de las
+                  respuestas automáticas, a los <strong>30 días</strong>.
                 </li>
                 <li>
                   Las <strong>copias de respaldo</strong> se conservan{" "}

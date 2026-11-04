@@ -26,6 +26,8 @@ import { users as usersES } from "./es-VE/users";
 import { users as usersCN } from "./zh-CN/users";
 import { expenses as expensesES } from "./es-VE/expenses";
 import { expenses as expensesCN } from "./zh-CN/expenses";
+import { bandeja as bandejaES } from "./es-VE/bandeja";
+import { bandeja as bandejaCN } from "./zh-CN/bandeja";
 import type { Locale } from "./locales";
 import { DEFAULT_LOCALE } from "./locales";
 
@@ -38,6 +40,7 @@ const dicts = {
     ...errorsES,
     ...usersES,
     ...expensesES,
+    ...bandejaES,
   },
   "zh-CN": {
     ...chromeCN,
@@ -47,6 +50,7 @@ const dicts = {
     ...errorsCN,
     ...usersCN,
     ...expensesCN,
+    ...bandejaCN,
   },
 } as const;
 

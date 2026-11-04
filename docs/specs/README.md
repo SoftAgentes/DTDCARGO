@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 568 specs)
+### Índice de specs (generado · 583 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -564,7 +564,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0537 | Tarifario de transportistas editable por ciudad, con rutas y … | in-progress | interno |
 | 0538 | Contrato 0475: el bloque 5 lee el último restablecimiento por… | in-progress | interno |
 | 0539 | Transportistas: lote sin ids en la URL, escrituras honestas y… | in-progress | interno |
-| 0540 | Entorno de prueba de DTD Cargo con base separada en el VPS (d… | proposed | interno |
+| 0540 | Entorno de prueba de DTD Cargo con base separada en el VPS (d… | approved | interno |
 | 0541 | Publicación automática de la web en el servidor propio | in-progress | interno |
 | 0542 | Dashboard: los enlaces internos llevan a una pantalla que existe | in-progress | interno |
 | 0543 | Consolidados en camino: carga de contenedores desde el packin… | in-progress | interno |
@@ -605,7 +605,22 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0582 | Programa Kommo → Chatwoot dentro de Studio, con checklist y a… | proposed | interno |
 | 0583 | Chatwoot CE en el VPS del ERP (etapa E1 del programa SDD-0582) | in-progress | interno |
 | 0584 | Protección de /register y /deregister de WhatsApp en Chatwoot… | in-progress | interno |
+| 0585 | Bandeja de Chatwoot dentro de Studio, usuarios y permisos (et… | in-progress | interno |
+| 0586 | Enrutamiento por segmento desde el ERP (etapa E10 del program… | in-progress | interno |
 | 0587 | Contrato de sistema maestro por objeto y fase: Studio, Chatwo… | approved | interno |
+| 0588 | Actualizaciones de Chatwoot desde Studio (etapa E3 del progra… | in-progress | interno |
+| 0591 | Cambiar el plan de cuentas queda para accounting y admin | in-progress | interno |
+| 0592 | El foco no se sale del modal durante el envío ni con errores … | in-progress | interno |
+| 0593 | Escribir asientos queda para accounting y admin; las cuentas … | in-progress | interno |
+| 0594 | restore.sh recrea ensure_rls y compara los event triggers con… | in-progress | interno |
+| 0595 | El primer error recibe el foco: primer tramo en Nómina y flota | in-progress | interno |
+| 0596 | Un error no borra lo que la persona escribió | in-progress | interno |
+| 0597 | /entrar no dice que salió un correo que no salió | in-progress | interno |
+| 0598 | Un corte de red no borra el formulario | in-progress | interno |
+| 0599 | Reintentar un envío del portal no lo duplica | in-progress | interno |
+| 0600 | Un correo no se compara como patrón: correo entrante, invitac… | in-progress | interno |
+| 0601 | Aviso del cobro no registrado: por qué y a quién acudir | in-progress | interno |
+| 0602 | Las redirecciones propias no mandan a la dirección donde escu… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0585, 0586 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0589, 0590 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

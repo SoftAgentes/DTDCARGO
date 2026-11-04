@@ -14,7 +14,7 @@
  *    grande verde con CTA "Iniciar sesión" en lugar de error rojo + form.
  */
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ROLE_LABELS,
@@ -22,6 +22,7 @@ import {
   type UserActionState,
 } from "@/lib/studio/user-types";
 import { acceptInvitationFormAction } from "../actions";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const INITIAL: UserActionState = {};
 const REVEAL_PASSWORD_MS = 3000;
@@ -34,11 +35,13 @@ interface Props {
 
 export function AcceptInvitationForm({ token, email, role }: Props) {
   const router = useRouter();
-  const [state, formAction, isPending] = useActionState(
+  const [state, formProps, isPending] = useActionKeepingDraft(
     acceptInvitationFormAction,
     INITIAL,
+    "No pudimos confirmar si tu cuenta quedó activa. Tu nombre sigue aquí; la clave hay que escribirla otra vez. Intenta de nuevo: si ya quedó activa, te lo avisaremos.",
   );
   const [showPassword, setShowPassword] = useState(false);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   // Auto-ocultar contraseña 3s después de mostrarla
   useEffect(() => {
@@ -46,6 +49,11 @@ export function AcceptInvitationForm({ token, email, role }: Props) {
     const timer = setTimeout(() => setShowPassword(false), REVEAL_PASSWORD_MS);
     return () => clearTimeout(timer);
   }, [showPassword]);
+
+  // Tras un error se conserva lo demás, no la clave: un dato sensible no reaparece (FRM-01).
+  useEffect(() => {
+    if (!isPending && (state.error || state.fieldErrors) && passwordRef.current) passwordRef.current.value = "";
+  }, [state, isPending]);
 
   // Redirect al success (cuenta creada)
   useEffect(() => {
@@ -87,7 +95,7 @@ export function AcceptInvitationForm({ token, email, role }: Props) {
 
   return (
     <form
-      action={formAction}
+      {...formProps}
       style={{ display: "flex", flexDirection: "column", gap: 16 }}
     >
       <input type="hidden" name="token" value={token} />
@@ -139,6 +147,7 @@ export function AcceptInvitationForm({ token, email, role }: Props) {
       <FormField label="Password (mín 8 caracteres)" error={state.fieldErrors?.password}>
         <div style={{ position: "relative" }}>
           <input
+            ref={passwordRef}
             name="password"
             type={showPassword ? "text" : "password"}
             required

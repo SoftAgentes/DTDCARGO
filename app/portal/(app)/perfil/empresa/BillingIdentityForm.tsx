@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 import type { BillingIdentity, BillingKind } from "@/lib/portal/billing-identity";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 import { saveBillingIdentityAction, type BillingActionState } from "../billing-actions";
@@ -24,7 +25,11 @@ export function BillingIdentityForm({
   markbox: string;
   current: BillingIdentity | null;
 }) {
-  const [state, action, pending] = useActionState(saveBillingIdentityAction, initial);
+  const [state, formProps, pending] = useActionKeepingDraft(
+    saveBillingIdentityAction,
+    initial,
+    "No pudimos confirmar si tus datos se guardaron. Lo que escribiste sigue aquí. Intenta de nuevo.",
+  );
   const router = useRouter();
   const isCompany = kind === "empresa";
   const mode = current ? "edit" : "add";
@@ -42,7 +47,7 @@ export function BillingIdentityForm({
   const err = state.fieldErrors ?? {};
 
   return (
-    <form action={action} noValidate className="mt-6 flex flex-col gap-5">
+    <form {...formProps} noValidate className="mt-6 flex flex-col gap-5">
       <input type="hidden" name="mode" value={mode} />
       {state.error ? <PortalFieldError nivel="formulario">{state.error}</PortalFieldError> : null}
 

@@ -69,9 +69,11 @@ export function CityDrawer({ mode, city, onClose }: Props) {
     }
   }, [state.ok, state.createdId, mode, onClose, toast, router]);
 
+  // Depende de `isPending` y no de `state.error`: un segundo error con el mismo
+  // texto no lo cambia, y el botón deshabilitado ya soltó el foco fuera del panel.
   useEffect(() => {
-    if (state.error) errorRef.current?.focus();
-  }, [state.error]);
+    if (!isPending && state.error) errorRef.current?.focus();
+  }, [state, isPending]);
 
   const title = mode === "create" ? "Nueva ciudad" : "Editar ciudad";
 
@@ -115,6 +117,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
               onChange={(e) => setLabel(e.target.value)}
               placeholder="Barquisimeto"
               required
+              aria-invalid={state.fieldErrors?.label ? true : undefined}
             />
             {state.fieldErrors?.label && (
               <FieldError msg={state.fieldErrors.label} />
@@ -138,6 +141,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
               }}
               placeholder="barquisimeto"
               style={{ fontFamily: "var(--f-mono)" }}
+              aria-invalid={state.fieldErrors?.slug ? true : undefined}
             />
             <p
               style={{
@@ -170,6 +174,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
                 required
                 placeholder="220"
                 defaultValue={city?.km ?? null}
+                aria-invalid={state.fieldErrors?.km ? true : undefined}
               />
               {state.fieldErrors?.km && <FieldError msg={state.fieldErrors.km} />}
             </div>
@@ -186,6 +191,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
                 className="studio-input"
                 defaultValue={city?.sort_order ?? 0}
                 placeholder="0"
+                aria-invalid={state.fieldErrors?.sort_order ? true : undefined}
               />
               {state.fieldErrors?.sort_order && (
                 <FieldError msg={state.fieldErrors.sort_order} />

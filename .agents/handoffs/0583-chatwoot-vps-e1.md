@@ -13,10 +13,10 @@
 | 1.3 | entregado | `.env.example` + `x-entorno` (variables una por una): registro cerrado, `MAX_USER_SESSIONS=5`, SMTP, cifrado de columnas, telemetría, relay de push y Gravatar apagados |
 | 1.4 | entregado | **P4 hecha el 2026-10-29** («Autorizo P4»): Platform App «DTD Studio», cuenta «DTD Cargo» (id 1) y usuario de servicio administrador. Token, ids y clave en `/srv/chatwoot/secretos/platform-app.env` (0600); Sam los copia a su gestor con `ssh root@217.216.54.70 cat /srv/chatwoot/secretos/platform-app.env`, desde su terminal y no en el chat |
 | 1.5 | entregado | `respaldo.sh` / `restaurar.sh` / timer; ensayo local (57 s) con control de claves; timer activo en el VPS. **P5 hecha el 2026-10-29** («Autorizo P5»): el respaldo bajado de B2 se restauró en 200 s, con conteos y claves iguales (T-25) |
-| 1.6 | espera externa | `vigilar.sh` cada 5 min en el VPS; los cuatro monitores de Uptime Kuma en verde (dos Push y, desde P2, dos HTTP); 72 h hasta el 2026-11-01 ~16:00Z |
+| 1.6 | aceptado | `vigilar.sh` cada 5 min en el VPS; los cuatro monitores de Uptime Kuma (dos Push y, desde P2, dos HTTP); 72 h cerradas el 2026-11-01. **La fila de presión de CPU falla**: ver «Cierre de la vigilancia». Aceptado por Sam el 2026-11-01 |
 | 1.7 | entregado | Revisión `revisar-datos-ve` (H1–H11), redacción de logs probada con control, inventario de terceros §2 bis, nota sobre `/privacidad` |
 
-Avance del programa: sigue en **3,8 %** (solo `aceptado` suma). Entregados sin aceptar: 1.1, 1.2, 1.3, 1.7. Esperando: 1.6.
+Estado al 2026-11-01: 1.1–1.5 y 1.7 aceptados por Sam («Acepto todo», 2026-10-30, a la pregunta del Director). 1.6 aceptado por Sam el 2026-11-01. Sin entregados por aceptar en E1. Avance: salida de `scripts/avance-checklist.mjs`.
 
 ## P1 ejecutada (2026-10-29, 15:38–16:00Z)
 
@@ -92,6 +92,44 @@ Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar. Le expliqué 
 
 **P5 · Ensayo de restauración en el host:** ✅ **hecha el 2026-10-29** («Autorizo P5»). Resultado en T-25: bajado de B2, restaurado en `chatwoot-ensayo` sin Traefik y bajado al terminar. La llave usada fue la nueva de emergencia (sección de abajo).
 
+## Cierre de la vigilancia de 72 h (1.6), 2026-11-01
+
+Medido el 2026-11-01 a las 16:22Z, **solo lectura**, por encargo del Director: `vigilar.sh --resumen --desde 2026-10-29T15:55:00Z`, `docker stats`, `du`, las medidas de capacidad del runbook §4 y cálculos propios sobre una copia del CSV. No se cambió nada en el VPS. **845 muestras** entre 2026-10-29T15:55:49Z y 2026-11-01T16:18:59Z (72,4 h de calendario, sin huecos de más de 7 min): 686 `up` y 159 `down`. Motivos de `down`: 156 presión de CPU, 2 web de DTD (2026-10-30 04:44Z y 04:59Z) y 1 «rails no corre» (2026-10-29 19:15Z, sin atribuir).
+
+| Señal (runbook §4) | Medido | Resultado |
+|---|---|---|
+| Presión de CPU a 5 min: nunca > 60 % más de 15 min, y p95 ≤ línea base + 10 (46,0 + 10 = 56) | p50 42,37; **p95 98,85**; máx 99,52; 156 muestras > 60 (18,5 %); racha más larga 550 min | **FALLA** |
+| CPU propia de Chatwoot, p95 ≤ 50 % | p95 40,1 %; máx 291,8 (2026-10-30 16:38Z); suma de `*_cpu`, cálculo propio | cumple |
+| Web de DTD, p95 ≤ 1,5 s | p50 0,22 s; p95 0,67 s; máx 6,09 s; 4 muestras > 1,5 s | cumple |
+| OOM o reinicios de Chatwoot | columna `oom` en 0, `reinicios` en 0; sin `Killed process` en el kernel | cumple |
+| Memoria de Chatwoot, p95 ≤ 80 % del límite | rails 26,19 %; sidekiq 48,02 %; postgres 8,75 %; redis 4,21 % | cumple |
+| Disco: adjuntos con > 6 meses de margen | adjuntos 1 → 1 MiB; `data`: postgres 77 M, redis 7,3 M, storage 300 K | cumple |
+
+Por la tabla del runbook, la consecuencia literal de esa primera fila es el plan B (VPS dedicado, cambio de alcance con OK de Sam). **No se decide aquí.** El criterio se vuelve a leer al cerrar E4, como manda el runbook, porque estas 72 h fueron de poco uso.
+
+**Presión de CPU, con y sin el episodio** (no se borra ninguno):
+
+| Corte | Muestras | p95 | Máx | > 60 | Rachas > 15 min |
+|---|---|---:|---:|---:|---|
+| Total | 845 | **98,85** | 99,52 | 156 | 4 (20, 21, 125 y 550 min) |
+| Sin 2026-10-31 18:00Z → 2026-11-01 06:00Z (ventana que propuso el Director) | 703 | 58,63 | 99,52 | 33 | sigue en pie el final del episodio (06:04–07:21Z) |
+| Sin 2026-10-31 18:00Z → 2026-11-01 07:30Z (episodio completo) | 686 | **53,85** | 82,97 | 17 | 2 (2026-10-29 17:00–17:21Z y 2026-10-31 13:33–13:54Z) |
+
+- El corte de las 06:00Z se queda corto: el episodio llega hasta las 07:21Z. Lo delimita la presión de memoria, que fuera de él tiene p95 0 y sube de 2026-10-31 18:22Z a 2026-11-01 07:41Z, con un resto mínimo a las 08:37Z.
+- **Aun sin el episodio completo, la fila no pasa entera:** el p95 queda bajo 56, pero las dos rachas de 20 y 21 min superan los 15 min. La primera cae en el día del despliegue; la segunda no la atribuí.
+
+**De dónde viene el episodio.**
+
+- (R) Dentro de él, la CPU propia de Chatwoot no sube: p95 35,7 frente a 41,0 fuera. La web de DTD tampoco se resintió: p95 0,61 s, máx 1,05 s. La carga a 1 min llegó a 178,66, con p95 de 113,25 (fuera: p95 12,26, máx 24,33). La memoria disponible nunca bajó de 11.057 MiB y no hubo OOM de kernel.
+- (R) En el journal, entre 18:00Z y 07:30Z: 569 sesiones SSH de `codex-dtdcargo`, 158 de root, 137 de `orca-dtdcargo`, 29 de `codex-rentawada`, 26 de `codex-loop3d`, 9 de `orca-rentawada` y 7 de `orca-loop3d`; `codex-project-ssh-enter` 616 veces. Son conteos, sin IP ni comandos.
+- (I) La causa es esa actividad y no Chatwoot. No sé qué corrió dentro de esas sesiones. Tampoco sé por qué hubo presión de memoria con 11 GB disponibles: puede ser un contenedor contra su propio límite, pero no lo comprobé.
+
+**Capacidad al cierre** (foto de un instante, a las 16:22Z): 8 núcleos; carga 5,46 / 7,03 / 7,38 (bajo `nproc`); presión de CPU a 5 min 29,84; memoria 24.031 MiB, 13.532 disponibles; 0 sesiones en `who` y 3 sesiones SSH, todas de menos de 1 día (las 33 que vio el Director ya no están); **32 de 48 contenedores sin tope de CPU**. Arriba en CPU: `observabilidad-proyectos-cadvisor-1` 90,22 %, `dtd-cargo-staging-db-1` 21,47 %, `loop-3d-kuma-1` 11,38 %.
+
+Coincide con la medición del Director en lo central (p95 98,85; 156 sobre 60; los mismos motivos de `down`). Difieren dos detalles menores: él contó 846 muestras y yo 845, y él calculó la CPU propia en p95 39,4 y yo en 40,1, y no averigüé por qué; (I) debe ser el método de percentil o el corte.
+
+**Decisión de Sam (2026-11-01), decisión G: Chatwoot se queda en este VPS.** Pregunta del Director: «¿Aceptas el 1.6 y dejas Chatwoot en este VPS?». Respuesta literal de Sam: «Sí, acepto el 1.6». No la vi directamente: me la transmitió el Director, igual que su registro de que Sam aceptó conociendo que la fila de presión de CPU falla (p95 98,85 en total; 53,85 sin el episodio, con dos rachas de 20 y 21 min sobre 60). El plan B no se activa. El criterio se vuelve a leer al cerrar E4.
+
 ## Pendiente de esta tarea
 
 - ~~SMTP: usuario y clave de Hostinger (Sam), con ventana oculta.~~ **Hecho el 2026-10-29** (sesión «Hostinger config», T-33 a T-39; runbook §2 bis):
@@ -100,7 +138,7 @@ Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar. Le expliqué 
   - `rails` y `sidekiq` recreados y sanos.
   - Correo de prueba aceptado por Hostinger a las 22:31:31Z. Sam confirmó que llegó a Recibidos de `hailuway.com@gmail.com`.
   - Sin probar todavía: los correos propios de Chatwoot (restablecer contraseña, invitación). Se prueban al invitar al primer agente.
-- Tras las 72 h (2026-11-01 ~16:00Z): `vigilar.sh --resumen --desde 2026-10-29T15:55:00Z` → fila 1.6, con el criterio corregido (contra la línea base, no un número fijo). Sumar las medidas de capacidad del runbook `chatwoot-vigilancia.md` §4 (`nproc`, sesiones SSH colgadas, límites de CPU por contenedor), solo lectura.
+- ~~Tras las 72 h: resumen y medidas de capacidad → fila 1.6~~ hecho el 2026-11-01: ver «Cierre de la vigilancia». Sam aceptó la 1.6 el 2026-11-01. Lo que sigue en pie: volver a leer el criterio al cerrar E4 (runbook §4).
   - Riesgo de capacidad del VPS compartido (observación del Director, 2026-10-30): load average 8,90 / 9,16 / 8,63 con 33 sesiones en `who` a las 14:35 hora del VPS. Memoria: 24 GB, 13,7 disponibles. Arriba en CPU: cadvisor (38 %), varios api-gw (15–25 %) y dtd-cargo-staging-db (15 %); Chatwoot no aparecía. Un `rails runner` de más de 180 s. Timeouts de SSH a las 05:19Z y a las 14:36 hora del VPS, más un `RedisClient::ReadTimeoutError` de sidekiq a las 05:19Z que se recuperó solo. (I) La carga viene de otros proyectos y de las sesiones abiertas, no de Chatwoot. No se mató ni cambió nada: requiere OK de Sam.
 - ~~`/super_admin` con Cloudflare Access~~ hecho el 2026-10-29 («Confirmo Access»), runbook §4.1.
 - ~~Marca de DTD en Chatwoot~~ **hecha el 2026-10-29** («Autorizo la marca»): título «DTD Cargo», ícono y logos de DTD (claro y oscuro según `BRAND.md`), pantalla de entrada en español, sin «Chatwoot» visible (T-27 a T-29; runbook §6 bis). Queda en la edición CE el «Powered by Chatwoot» del widget y de los correos, y la etiqueta «E-mail» de la traducción de Chatwoot.
@@ -129,6 +167,9 @@ Sam ya entró una vez (T-30 a T-32). Tailscale sigue sin instalar. Le expliqué 
 - Graphify/Obsidian: no se tocaron (lo publica el Director desde main integrado).
 
 ## FUERA DE ALCANCE DETECTADO
+
+- Capacidad del VPS compartido, medida al cierre de la 1.6: 32 de 48 contenedores sin tope de CPU, cadvisor entre 38 % y 90 % de un núcleo, y picos de carga por sesiones de agentes (hasta 178 a 1 min). Ponerles topes o limitar esas sesiones es decisión aparte de Sam, sin dueño.
+- Disco del host: el libre de `/` bajó de 50 % a 48 % en 3 días, y no por Chatwoot (sus datos suman ~85 MB). (I) A ese ritmo llegaría al 15 % en unos 50 días; es una extrapolación con poco dato y redondeo a puntos enteros. Conviene mirarlo, sin dueño.
 
 - El monitor de Uptime Kuma «Publicación web DTD · vigilante» está **caído** (63 de 63 latidos en rojo al 2026-10-29; último evento «no pude bajar :publicable» el 2026-10-22). No es de Chatwoot; lo revisa el Director o la sesión de publicación de la web.
 - La presión de CPU del VPS sin Chatwoot subió del 29–31 % (E0) a 41–46 % el 2026-10-29 por la tarde.

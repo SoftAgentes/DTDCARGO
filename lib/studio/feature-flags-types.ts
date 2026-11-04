@@ -33,6 +33,8 @@ export type FeatureFlagKey =
   | "backup_auto"
   | "sso"
   | "marketing_news"
+  // SDD-0585: Bandeja de Chatwoot. Sembrado por el catálogo de 0503.
+  | "chatwoot_inbox"
   // Sembrado por 0066 y por el catálogo de 0337, y LEÍDO por la PWA de
   // bodeguero. Faltaba acá, así que el panel de admin nunca lo mostró: la
   // migración dice "para que el panel pueda tocarlo" y el panel no lo veía.
@@ -79,6 +81,7 @@ export const FEATURE_FLAG_DEFAULTS: FeatureFlags = {
   // Default off · habilitar manualmente cuando migrations 0053-0056
   // (seo_drafts, news_writers, news_posts, seed) estén aplicadas a prod.
   marketing_news: false,
+  chatwoot_inbox: false,
   "dispatch.show_warehouse_location": false,
 };
 
@@ -111,6 +114,7 @@ export const FEATURE_FLAG_LABELS: Record<FeatureFlagKey, string> = {
   backup_auto: "Backup automático",
   sso: "Single Sign-On",
   marketing_news: "Marketing · Generador de Noticias Web",
+  chatwoot_inbox: "Bandeja de Chatwoot dentro de Studio",
   "dispatch.show_warehouse_location":
     "Bodeguero · mostrar pasillo/zona/estante del paquete",
 };
@@ -128,6 +132,7 @@ export const MODULE_FLAG_MAP: Partial<Record<string, FeatureFlagKey>> = {
   qrqueue: "mobile_operator",
   operarios: "mobile_operator",
   "noticias-web": "marketing_news",
+  bandeja: "chatwoot_inbox",
   // Cuando se porten estos módulos del v1.7, los enchufamos:
   // "audit-log": "audit_log",
   // "conciliacion": "audit_log", // o flag propio si crece
@@ -203,6 +208,8 @@ export const FEATURE_FLAG_EFFECT: Record<FeatureFlagKey, FeatureFlagEffect> = {
   mobile_operator: "ruta",
   /** `marketing/noticias-web/page.tsx:62` lee `flags.marketing_news` directo. */
   marketing_news: "ruta",
+  /** `bandeja/layout.tsx` → requireFeatureEnabled("bandeja") (SDD-0585). */
+  chatwoot_inbox: "ruta",
   /** Sólo esconde "no-olvidar" del sidebar; la ruta no lo consulta. */
   vault: "sidebar",
   /** `app/m/ve/bodeguero/page.tsx` lo consulta por `.eq("key", …)`. */

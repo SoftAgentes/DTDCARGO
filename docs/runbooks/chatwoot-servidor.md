@@ -20,7 +20,7 @@ Chatwoot CE `v4.19.1-ce` en el mismo VPS que la producción de DTD (decisión E0
 ├── compose.yml                ← prepare, rails, sidekiq, postgres (pgvector), redis
 ├── .env                       ← 0600; generado aquí (§2); NUNCA en git
 ├── rails/zz_dtd_redaccion_logs.rb
-├── rails/zz_dtd_proteccion_register.rb   ← §8 (SDD-0584); aún no desplegado
+├── rails/zz_dtd_proteccion_register.rb   ← §8 (SDD-0584)
 ├── respaldo.sh · restaurar.sh · vigilar.sh
 └── data/                      ← postgres/, redis/, storage/ (adjuntos)
 /srv/backups/chatwoot/         ← respaldos cifrados locales, 7 días

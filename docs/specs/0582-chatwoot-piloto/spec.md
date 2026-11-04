@@ -80,7 +80,7 @@ Respuestas y aportes:
 | D | **Canales:** cada trámite separado en expediente, app, configuración, demostración y revisión. Matriz de paridad de las fuentes de leads. |
 | E | **Correo:** inventario de `info@` primero, con pruebas de hilo, adjuntos, rebotes y caída. Resend Inbound no se cierra hasta conocer sus consumidores. |
 | F | **Bot `dtd-bot`:** Gemini de pago y GLM por API de respaldo, con corte de gasto local. Cola durable, modo comprobado antes de enviar, filtro de autor y privacidad. «Contesta solo» bloqueado hasta aprobar la excepción IA-01 acotada. |
-| G | **Máquina (decisión de Sam del 2026-10-29, paso 0.2):** el VPS actual del ERP (Contabo Cloud VPS 8), con límites de CPU y memoria por servicio y respaldo fuera del host. La medición de capacidad está en el [registro E0](investigacion-2026-10-29-e0.md) (VPS-1 a VPS-7). Si la vigilancia de 1.6 sale mal, el plan B es un Cloud VPS 4 dedicado, como cambio de alcance con OK de Sam. |
+| G | **Máquina (decisión de Sam del 2026-10-29, paso 0.2):** el VPS actual del ERP (Contabo Cloud VPS 8), con límites de CPU y memoria por servicio y respaldo fuera del host. La medición de capacidad está en el [registro E0](investigacion-2026-10-29-e0.md) (VPS-1 a VPS-7). Si la vigilancia de 1.6 sale mal, el plan B es un Cloud VPS 4 dedicado, como cambio de alcance con OK de Sam. **Ratificada por Sam el 2026-11-01 al cerrar la 1.6** («¿Aceptas el 1.6 y dejas Chatwoot en este VPS?» → «Sí, acepto el 1.6», transmitido por el Director): Chatwoot se queda en este VPS, aunque la fila de presión de CPU falla (p95 98,85 en total; 53,85 sin el episodio del 2026-10-31 al 2026-11-01, con dos rachas de 20 y 21 min sobre 60). El plan B no se activa. El criterio se vuelve a leer al cerrar E4 ([runbook de vigilancia §4](../../runbooks/chatwoot-vigilancia.md)). |
 | H | **Actualizaciones:** RPO/RTO, ventana, drenaje, respaldo conjunto, prueba, producción y smoke. El análisis con IA solo informa. |
 | I | **Permisos de CE:** un agente ve por bandeja **o por equipo** y ve los contactos de la cuenta. Studio sincroniza rol, bandejas y equipos. |
 | J | **Limpieza de Kommo en el ERP:** 209 archivos al 2026-10-28. E6 construye los reemplazos. E8 detiene los productores, exporta cifrado, quita el código en una SDD de limpieza y borra tablas con migración aprobada. |
@@ -288,6 +288,17 @@ La v3 sumó dos preguntas a 0.8. Sam respondió por el selector el 2026-10-30 (S
 ### 2.3: no se acepta hasta arreglar la idempotencia
 
 El procesador del webhook registra el evento primero y, si un manejador falla, solo deja un aviso y responde «procesado». Si Chatwoot reintenta, el duplicado se descarta y la acción se pierde (**C**, rama `codex/0582-e2-poc`, V3-11). Para el push da igual; para E10 no, porque un cliente podría quedarse sin su redirección. E2 lo está corrigiendo con una acción pendiente durable en la misma transacción. **La 2.3 no se acepta hasta ese arreglo.**
+
+**Actualización (E2, 2026-10-30): la idempotencia está corregida en `19df1e51f`.**
+- El evento entra en «procesando» en la misma transacción que el estado de la conversación, y se cierra «procesado» solo si todas las acciones salen bien. Si alguna falla, queda «fallido» y la ruta responde 500.
+- Un evento fallido, o colgado más de 5 minutos, se vuelve a procesar en la próxima entrega. Un duplicado real se sigue descartando.
+- Se probó con rojo primero. El contrato 0504 da 15/15.
+
+**Siguen pendientes de lo que pide la v3:**
+- **El reintento propio de Studio.** Chatwoot 4.19.1 no reintenta webhooks de cuenta (**C**: `Webhooks::Trigger#execute` rescata el error y solo reintenta agentes bot), así que un evento fallido espera una reentrega o un reproceso.
+- **El tope de tamaño del cuerpo.**
+
+Están en la fila 2.3 del checklist.
 
 ### 2.8 opcional: costo de referencia por chat
 
