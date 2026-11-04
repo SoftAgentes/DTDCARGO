@@ -172,6 +172,20 @@ describe("Puerta HTTP de importación documental", () => {
     }
   });
 
+  it("en el contenedor, el origen propio es el público: 0.0.0.0 no abre nada (SDD-0602)", async () => {
+    // Ahí `req.nextUrl.origin` es la dirección donde escucha el servidor, y sumarla
+    // le daba cookies del cliente a `https://0.0.0.0:3000`, que no es el portal.
+    vi.stubEnv("APP_ENV", "production");
+    const contenedor = (origin: string) =>
+      documentImportRequest(new NextRequest("https://0.0.0.0:3000/api/document-import?action=capabilities", { headers: { origin } }));
+
+    expect((await contenedor(SITE)).headers.get("access-control-allow-origin")).toBe(SITE);
+    const denied = await contenedor("https://0.0.0.0:3000");
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toMatchObject({ code: "origin_denied" });
+    expect(denied.headers.get("access-control-allow-origin")).toBeNull();
+  });
+
   it("niega toda escritura que llegue sin Origin, antes de tocar la base", async () => {
     const res = await call({ method: "POST", body: JSON.stringify({ action: "save", workspaceId: WORKSPACE_ID }) });
     expect(res.status).toBe(403);
