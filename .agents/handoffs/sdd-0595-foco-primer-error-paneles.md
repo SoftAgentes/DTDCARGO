@@ -33,13 +33,19 @@ Sam, literal: «Haz esta tarea aquí: "Llevar el foco al primer error en todos l
 | Control de la tanda: cuatro archivos, `--maxWorkers=1` | PASÓ, 40 de 40, antes y después |
 | Mutantes del hook y de `Field`: E1 a E10 y F1 a F10 | PASÓ, 20 de 20 mueren |
 | Mutantes de flota: T1 | PASÓ, muere |
-| Mutantes de flota: T2 a T6 | **NO EJECUTADO:** venció el tope propio de 6,5 min dentro del turno. Cubren el campo numérico y de texto, `FieldSelect`, el `id` del mensaje y marcar sin error. Hay pruebas escritas para todos, pero no se comprobó que fallen |
+| Mutantes de flota: T2 a T6, sobre `cb6a99f5c` | PASÓ, 5 de 5 mueren, con control verde antes y después. Cubren el campo numérico y de texto, `FieldSelect`, el `id` del mensaje y marcar sin error |
 | ESLint de los siete archivos | PASÓ |
 | `tsc` acotado a las pruebas y sus importaciones (configuración temporal) | PASÓ, 0 errores |
 | `merge-tree` con `origin/main` y con #349 | Ver la descripción de la PR. Combinar y probar no se ejecutó: no hay turno |
 | `docs:check`, `sdd:check`, `governance:check`, `components:check` | PASÓ |
-| Consumidores directos del hook (`ConfirmDialog`, `PinViewDialog`, etc.) con este cambio | **NO EJECUTADO:** sin turno. Pasaron con el hook de #350, antes de este tramo |
-| Suite completa y `pnpm verify` | NO EJECUTADO: sin turno. El CI de la PR es la primera corrida de toda la suite con el cambio |
+| Tras traer `main` en `5a70ffc4f`, sobre `cb6a99f5c`, `--maxWorkers=1`: seis archivos del tramo, con `CityDrawer` y `TransportistasPanel` | PASÓ, 73 de 73 |
+| Consumidores directos del hook (`ConfirmDialog`, `PinViewDialog`, `ClientDrawer.confirm-delete`, `InvoiceDrawer` (2), `GenerateBLModal`), sobre `cb6a99f5c` | PASÓ, 48 de 48 en 6 archivos. **Muestra, no la suite** |
+| Pruebas de Nómina y flota, sobre `cb6a99f5c` | PASÓ, 24 de 24 en 5 archivos |
+| ESLint de los siete archivos, sobre `cb6a99f5c` | PASÓ |
+| Combinación con #349: `f2795afc5` sobre `cb6a99f5c`, con un merge sin commit | PASÓ: sin conflictos, 76 de 76 en 6 archivos |
+| Combinación con Nómina: `cb6a99f5c` sobre `a20a37e16`, con un merge sin commit | PASÓ: sin conflictos, 54 de 54 en 4 archivos |
+| «Calidad local sin secretos» sobre `ee8cfb1f1`, antes de traer `main` | PASÓ: es la suite completa con este cambio. Sobre la cabeza nueva, NO EJECUTADO: la rama no se publicó todavía |
+| `pnpm verify` | NO EJECUTADO, y propongo no correrlo: lo único que suma al CI es `sql-tests`, `schema-rebuild`, `migrations-applied` y `e2e`. No hay SQL, y el hook sólo se usa en el Studio, donde ningún e2e abre un panel sin sesión. Lo decide el Director General |
 | Graphify, Archify, Obsidian | NO EJECUTADO: los publica el Director desde main |
 
 ### Registro de turnos
@@ -62,10 +68,8 @@ Rama `codex/foco-primer-error`, en PR en borrador contra `main`. Hasta integrar 
 ## PENDIENTES DE ESTA TAREA
 
 1. Integrar antes la #350.
-2. «Calidad local sin secretos» en verde sobre la cabeza de la PR.
-3. Turno de `pnpm verify`.
-4. Mutantes T2 a T6, si el Director da el turno.
-5. Smoke en el Studio con sesión real: en Nómina, provocar un error por campo y comprobar a dónde va el foco, tras un clic y tras Enter.
+2. Publicar la rama cuando el Director General lo indique, y ver «Calidad local sin secretos» en verde sobre esa cabeza.
+3. Smoke en el Studio con sesión real: en Nómina, provocar un error por campo y comprobar a dónde va el foco, tras un clic y tras Enter.
 
 ## FUERA DE ALCANCE DETECTADO
 
