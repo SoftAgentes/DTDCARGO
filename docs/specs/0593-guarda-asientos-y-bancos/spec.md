@@ -166,7 +166,7 @@ La 0511 se aplicó hoy. Lo que antes en esta spec dice que no está aplicada es 
 | Evidencia | `/srv/ops/evidencias/apply-0511-dtd-cargo-20261103T170313Z` |
 | Ensayo en prueba | `ensayo-0510-0511-prueba-20261103T163820Z`, 6 puntos PASÓ, según el Director General. Guardar, editar y borrar una cuenta bancaria como administrador pasó por pantalla. Punto 5: se puso una cuenta sintética con rol `operations` y se devolvió. Sin ejecutar: asientos por pantalla |
 | OK literal de Sam | «Autorizo: prueba y luego producción», en el chat del Director General, a «¿Autorizas aplicar las guardas contables 0510 y 0511 en dtd-cargo y fusionar sus PR #351 y #352?». Condición: primero en prueba, comprobando guardar una cuenta bancaria como administrador; si algo falla en prueba, parar y avisar |
-| Merge | Lo hace el Director General después de leer el CI; su hora se registra al fusionar |
+| Merge | #352, 2026-11-03T20:01:19Z, `8b6b3a0e1`, por el Director General |
 | Sello en el candado | sha256 `819e9912e1fb005cfcc1fd52cd3b7178be4a0966bf4d2bd4750154a0f8535be7`, `ledger` exacta |
 
 La 0511 salió de `pendingBelowCutoff`. No tenía declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Ninguna prueba afirmaba la espera, así que no cambió ninguna. La web no cambia ni se publica con este cierre.
