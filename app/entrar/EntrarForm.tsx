@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type FormEventHandler } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
@@ -15,7 +15,7 @@ import { requestMagicLink, type PortalLoginState } from "./actions";
 import { signOutAction } from "@/app/portal/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
-import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const initialMagic: PortalLoginState = {};
 
@@ -81,10 +81,14 @@ export function EntrarForm({
   /** Email precargado desde el correo de invitación (`?email=…`). */
   prefillEmail?: string | null;
 }) {
-  const [magicState, magicAction, magicPending] = useActionState(
+  const [magicState, magicFormProps, magicPending] = useActionKeepingDraft(
     requestMagicLink,
     initialMagic,
+    "No pudimos confirmar si el enlace salió. Tu correo sigue aquí. Revisa tu bandeja y, si no llegó, pídelo de nuevo.",
   );
+  // Si falla «Pedir otro enlace», el formulario vuelve a montarse: su correo es el que ya se usó.
+  const [lastEmail, setLastEmail] = useState<string | null>(null);
+  if (magicState.email && magicState.email !== lastEmail) setLastEmail(magicState.email);
 
   return (
     <div
@@ -132,7 +136,7 @@ export function EntrarForm({
               <MagicRequested
                 email={magicState.email ?? ""}
                 requests={magicState.requests}
-                action={magicAction}
+                {...magicFormProps}
                 pending={magicPending}
               />
             ) : (
@@ -172,7 +176,7 @@ export function EntrarForm({
                     Ya soy cliente de DTD Cargo.
                   </p>
 
-                  <form action={magicAction} onSubmit={submitKeepingDraft(magicAction, magicPending)} className="mt-4 flex flex-col gap-2">
+                  <form {...magicFormProps} className="mt-4 flex flex-col gap-2">
                     <label className="flex flex-col gap-1.5">
                       <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-grey-700">
                         Correo
@@ -182,7 +186,7 @@ export function EntrarForm({
                         name="email"
                         required
                         autoFocus
-                        defaultValue={magicState.email ?? prefillEmail ?? undefined}
+                        defaultValue={lastEmail ?? prefillEmail ?? undefined}
                         autoComplete="email"
                         inputMode="email"
                         placeholder="tucorreo@ejemplo.com"
@@ -378,12 +382,14 @@ export function MagicRequested({
   email,
   requests = 1,
   action,
+  onSubmit,
   pending,
 }: {
   email: string;
   /** Pedidos seguidos: es lo que hace notar en pantalla que un reintento se recibió. */
   requests?: number;
   action: (formData: FormData) => void;
+  onSubmit?: FormEventHandler<HTMLFormElement>;
   pending: boolean;
 }) {
   // El formulario de donde venía el foco ya no existe. Sin esto, el foco cae en
@@ -419,7 +425,7 @@ export function MagicRequested({
         hora, es de un solo uso y da igual dónde lo abras. Si no lo ves, revisa spam
         o pide otro.
       </p>
-      <form action={action} className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+      <form action={action} onSubmit={onSubmit} className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
         <input type="hidden" name="email" value={email} />
         <button
           type="submit"
