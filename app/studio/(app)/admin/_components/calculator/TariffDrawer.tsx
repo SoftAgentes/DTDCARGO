@@ -87,9 +87,11 @@ export function TariffDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
+  // Depende de `isPending` y no de `state.error`: un segundo error con el mismo
+  // texto no lo cambia, y el botón deshabilitado ya soltó el foco fuera del panel.
   useEffect(() => {
-    if (state.error) errorRef.current?.focus();
-  }, [state.error]);
+    if (!isPending && state.error) errorRef.current?.focus();
+  }, [state, isPending]);
 
   const margen = costo != null && venta != null ? Math.round((venta - costo) * 100) / 100 : null;
   const tono = margen == null ? null : margenTone(margen);
