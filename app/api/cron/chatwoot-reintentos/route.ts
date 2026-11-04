@@ -14,6 +14,10 @@
  * conversaciones sin actividad en 12 meses y el usuario de Chatwoot de un
  * agente dado de baja hace más de 12 meses. Sin la 0508 responde `omitido`.
  *
+ * Y purga por plazo lo de E10 (SDD-0586, decisiones de Sam del
+ * 2026-10-30): BSUID con un año sin actividad y respuestas del bot de más de
+ * 30 días (`purgarEnrutamientoChatwoot`).
+ *
  * Auth: CRON_SECRET en `Authorization: Bearer <secret>`, solo por cabecera,
  * como push-drain. Sin la 0504 responde 200 con `omitido` y no rompe.
  */
@@ -22,6 +26,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { matchesBearerSecret } from "@/lib/http/secret-compare";
 import { chatwootConfig, chatwootServicioUserId } from "@/lib/studio/chatwoot/config";
+import { purgarEnrutamientoChatwoot } from "@/lib/studio/chatwoot/enrutar";
 import { purgarBajasVencidas, purgarBandejaChatwoot } from "@/lib/studio/chatwoot/purga";
 import { reprocesarEventosChatwoot } from "@/lib/studio/chatwoot/webhook-procesar";
 
@@ -46,7 +51,8 @@ export async function GET(req: NextRequest) {
   const result = await reprocesarEventosChatwoot(admin);
   const purgaBandeja = await purgarBandejaChatwoot(admin);
   const purgaBajas = await purgarBajasVencidas(admin, chatwootConfig(), chatwootServicioUserId());
-  return NextResponse.json({ ok: true, ...result, purgaBandeja, purgaBajas });
+  const purgaEnrutamiento = await purgarEnrutamientoChatwoot(admin);
+  return NextResponse.json({ ok: true, ...result, purgaBandeja, purgaBajas, purgaEnrutamiento });
 }
 
 export async function POST(req: NextRequest) {

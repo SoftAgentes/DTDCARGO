@@ -136,6 +136,7 @@ describe("avisarPorPush (SDD-0585)", () => {
       body: "Tienes un mensaje nuevo en la conversación #12.",
       url: "/studio/bandeja?c=12",
       tag: "chatwoot-conversacion-12",
+      claveEvento: "message_created:101",
     });
     expect(m.drenar).toHaveBeenCalledTimes(1);
   });

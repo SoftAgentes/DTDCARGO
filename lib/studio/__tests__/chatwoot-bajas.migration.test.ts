@@ -149,8 +149,8 @@ describe("SDD-0585 · 0508 bajas de agentes y purga por plazo (PGlite)", () => {
     expect(run.error).toMatch(/0508: las bajas de Chatwoot ya existen/);
   }, SLOW);
 
-  it("la 0508 queda declarada pendiente hasta que Sam la autorice", () => {
-    expect(BASELINE.pendingBelowCutoff["0508_chatwoot_bajas_purga"]).toMatch(/SDD-0585/);
+  it("la 0508 salió de la espera al aplicarse, y su cabecera no se corrige (runbook §6)", () => {
+    expect(BASELINE.pendingBelowCutoff["0508_chatwoot_bajas_purga"]).toBeUndefined();
     expect(FILE_0508).toMatch(/NO APLICADA A PRODUCCIÓN/);
   });
 });

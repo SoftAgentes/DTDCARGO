@@ -27,6 +27,7 @@ import {
   softDeleteAttendanceAction,
 } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const FORM_ID = "asistencia-form";
 const initial: NominaActionState = {};
@@ -66,7 +67,7 @@ export function AsistenciaDrawer({
     >
       <form
         id={FORM_ID}
-        action={formAction}
+        onSubmit={submitKeepingDraft(formAction, isPending)}
         style={{
           flex: 1,
           overflow: "auto",

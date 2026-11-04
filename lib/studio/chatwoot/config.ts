@@ -78,3 +78,65 @@ export function chatwootTenantId(): string | null {
   const valor = (process.env.CHATWOOT_TENANT_ID ?? "").trim();
   return UUID.test(valor) ? valor : null;
 }
+
+/**
+ * Configuración del enrutamiento por segmento (SDD-0586, E10, pasos 10.2 y 10.3).
+ *
+ * - `CHATWOOT_ROUTER_TOKEN`: token de acceso del usuario de servicio que pone
+ *   etiquetas, asigna equipo y responde en nombre de DTD. SECRETO.
+ * - `CHATWOOT_INBOX_LEADS_ID`: la bandeja del número de leads. Solo ahí se
+ *   clasifica y se redirige; el número de clientes nunca se redirige a sí mismo.
+ * - `CHATWOOT_TEAM_CLIENTES_ID` y `CHATWOOT_TEAM_LEADS_ID`: los equipos.
+ * - `WHATSAPP_NUMERO_CLIENTES`: el número de clientes, solo dígitos con código
+ *   de país (sin «+»), para el enlace `wa.me`. No va escrito en el código.
+ * - `CHATWOOT_URL` y `CHATWOOT_ACCOUNT_ID`, como la Bandeja.
+ *
+ * Falta algo → `null`: el manejador no hace nada y E2 sigue igual. Se cargan
+ * después de aplicar la 0505.
+ */
+export interface ChatwootRouterConfig {
+  origin: string;
+  token: string;
+  accountId: number;
+  inboxLeadsId: number;
+  teamClientesId: number;
+  teamLeadsId: number;
+  numeroClientes: string;
+}
+
+const ID = /^[1-9][0-9]{0,9}$/;
+
+export function chatwootRouterConfig(): ChatwootRouterConfig | null {
+  const token = firstConfiguredSecret(process.env.CHATWOOT_ROUTER_TOKEN);
+  const ids = [
+    process.env.CHATWOOT_ACCOUNT_ID,
+    process.env.CHATWOOT_INBOX_LEADS_ID,
+    process.env.CHATWOOT_TEAM_CLIENTES_ID,
+    process.env.CHATWOOT_TEAM_LEADS_ID,
+  ].map((v) => (v ?? "").trim());
+  const numero = (process.env.WHATSAPP_NUMERO_CLIENTES ?? "").trim();
+  if (!token || !ids.every((v) => ID.test(v)) || !/^[1-9][0-9]{9,14}$/.test(numero)) return null;
+  const [accountId, inboxLeadsId, teamClientesId, teamLeadsId] = ids.map(Number);
+  return {
+    origin: chatwootOriginFromEnv(process.env.CHATWOOT_URL),
+    token,
+    accountId,
+    inboxLeadsId,
+    teamClientesId,
+    teamLeadsId,
+    numeroClientes: numero,
+  };
+}
+
+/**
+ * Bandejas de WhatsApp para la fuente de la tarjeta (SDD-0587, 6.4): las mismas
+ * `CHATWOOT_INBOX_LEADS_ID` y `CHATWOOT_INBOX_CLIENTES_ID` de 2.7. Vacía o
+ * inválida → `null`.
+ */
+export function chatwootBandejasWhatsapp(): { leads: number | null; clientes: number | null } {
+  const id = (v: string | undefined) => {
+    const valor = (v ?? "").trim();
+    return ID.test(valor) ? Number(valor) : null;
+  };
+  return { leads: id(process.env.CHATWOOT_INBOX_LEADS_ID), clientes: id(process.env.CHATWOOT_INBOX_CLIENTES_ID) };
+}

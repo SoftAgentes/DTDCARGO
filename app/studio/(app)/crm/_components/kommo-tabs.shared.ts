@@ -5,11 +5,16 @@
  * `debug-tabs.shared.ts` de la Torre de control (SDD-0050).
  */
 
-export type KommoTabKey = "direccion" | "tablero" | "asesor" | "recuperacion";
+/** `embudos` = tablero del CRM propio (SDD-0587 · 6.3); las demás leen el espejo de Kommo. */
+export type KommoTabKey = "direccion" | "tablero" | "asesor" | "recuperacion" | "embudos";
 
 export function isKommoTab(v: string | undefined | null): v is KommoTabKey {
   return (
-    v === "direccion" || v === "tablero" || v === "asesor" || v === "recuperacion"
+    v === "direccion" ||
+    v === "tablero" ||
+    v === "asesor" ||
+    v === "recuperacion" ||
+    v === "embudos"
   );
 }
 
@@ -23,4 +28,5 @@ export const KOMMO_TABS: ReadonlyArray<{ key: KommoTabKey; label: string }> = [
   { key: "tablero", label: "Tablero" },
   { key: "asesor", label: "Asesor" },
   { key: "recuperacion", label: "Recuperación" },
+  { key: "embudos", label: "Embudos" },
 ];

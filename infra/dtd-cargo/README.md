@@ -33,7 +33,7 @@ staging contra la copia). Las variables críticas llevan `${VAR:?...}`: sin
 `.env` el compose se niega a arrancar en vez de levantar una app a medias.
 
 Desplegar una versión nueva = fijar `DTD_WEB_IMAGE` en `.env`
-(`ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha>`) y
+(`ghcr.io/softagentes/dtdcargo:sha-<sha>`) y
 `docker compose pull web && docker compose up -d web cron`.
 
 ## Claves JWT (ANON_KEY / SERVICE_ROLE_KEY)

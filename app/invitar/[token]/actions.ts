@@ -19,6 +19,7 @@
 
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import { emailIlikePattern, sameEmail } from "@/lib/shared/email-literal";
 import {
   validateAcceptInvitationInput,
   type UserActionState,
@@ -134,14 +135,29 @@ export async function acceptInvitationFormAction(
   // ficha (nomina_employees.auth_user_id). Best-effort: solo rellena cuando aún
   // no hay enlace y el email coincide — nunca pisa uno existente. No rompe el
   // accept si falla (el vínculo es conveniencia, no requisito del acceso).
+  //
+  // SDD-0600 · se leen primero las filas: un `.update` con `.ilike` enlazaba también a
+  // un parecido (`a_b@` alcanza a `a.b@`), y `app/m/emp` le abre a quien queda enlazado
+  // los recibos de esa ficha. `*` no se puede escapar (ver `email-literal.ts`).
   try {
-    await supabaseAdmin
+    const { data: fichas } = await supabaseAdmin
       .from("nomina_employees")
-      .update({ auth_user_id: createResp.user.id })
+      .select("id, email")
       .eq("tenant_id", invitation.tenant_id)
       .is("auth_user_id", null)
       .is("deleted_at", null)
-      .ilike("email", invitation.email);
+      .ilike("email", emailIlikePattern(invitation.email));
+    const ids = (fichas ?? [])
+      .filter((ficha) => sameEmail(ficha.email, invitation.email))
+      .map((ficha) => ficha.id);
+    if (ids.length > 0) {
+      await supabaseAdmin
+        .from("nomina_employees")
+        .update({ auth_user_id: createResp.user.id })
+        .eq("tenant_id", invitation.tenant_id)
+        .is("auth_user_id", null)
+        .in("id", ids);
+    }
   } catch (err) {
     console.error("[acceptInvitation] employee link skipped:", err);
   }
