@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 import { ChatIcon } from "@/components/Icon";
 import Link from "next/link";
 import {
@@ -51,7 +52,11 @@ export function DataChangeEditor({
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState<Values>(current);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
-  const [state, action, pending] = useActionState(updateMyProfileAction, initial);
+  const [state, formProps, pending] = useActionKeepingDraft(
+    updateMyProfileAction,
+    initial,
+    "No pudimos confirmar si tus datos se guardaron. Lo que escribiste sigue aquí. Intenta de nuevo.",
+  );
   const [cancelState, cancelAction, cancelPending] = useActionState(
     cancelDataChangeRequestAction,
     initial,
@@ -142,7 +147,7 @@ export function DataChangeEditor({
           </div>
         )
       ) : (
-        <form action={action} className="mt-3 flex flex-col gap-4">
+        <form {...formProps} className="mt-3 flex flex-col gap-4">
           <p className="text-[12.5px] text-grey-500 leading-[1.5]">
             Cambia solo lo que necesites corregir. Tu código (Shipping Mark) y tu
             email no se editan aquí.

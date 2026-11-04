@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
 import { ArrowIcon, CheckIcon } from "@/components/Icon";
 import { ShareProviderButton } from "../../../_components/ShareProviderButton";
@@ -15,7 +15,7 @@ import type { PrealertaActionState } from "@/lib/studio/prealertas/types";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { createPrealertaAction } from "../../proveedores/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
-import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const prealertaInitial: PrealertaActionState = {};
 
@@ -35,9 +35,10 @@ export function NewPurchaseForm({
   addons: PrealertaAddon[];
   preselected: SupplierView | null;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, formProps, pending] = useActionKeepingDraft(
     createPrealertaAction,
     prealertaInitial,
+    "No pudimos confirmar si tu compra se registró. Lo que escribiste sigue aquí. Antes de registrarla de nuevo, revisa Mis compras en otra pestaña.",
   );
   const uid = useId();
   const [supplierId, setSupplierId] = useState<string>(preselected?.id ?? "");
@@ -66,7 +67,7 @@ export function NewPurchaseForm({
       />
 
       {/* Form de la compra */}
-      <form action={action} onSubmit={submitKeepingDraft(action, pending)} className="mt-5 flex flex-col gap-4">
+      <form {...formProps} className="mt-5 flex flex-col gap-4">
         <input type="hidden" name="supplierId" value={supplierId} />
 
         {/* WeChat del proveedor: ID/número O captura del contacto */}

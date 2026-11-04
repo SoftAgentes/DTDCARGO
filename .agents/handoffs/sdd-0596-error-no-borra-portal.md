@@ -40,7 +40,7 @@ Tras una respuesta con error, 13 formularios en 11 archivos de portal, `entrar` 
 | Lectura de las pruebas vecinas (`NewPurchaseWizard`, `PurchaseStepDetalle`, `PortalAddresses`, `SuppliersClient`, `PortalClaims`, `entrar-dos-filas`, `action-result-contract`) | Ninguna depende de `action` ni del reinicio. **Por lectura, sin correrlas** |
 | `docs:check`, `sdd:check` | Ver el cuerpo de la PR |
 | Mutantes | **NO EJECUTADO:** el Director General los programó después de la pila, con su turno |
-| `next dev` con server action real, y envío antes de hidratar (criterio 6) | **NO EJECUTADO:** mismo motivo. **Es la comprobación más importante que falta** |
+| `next dev` con server action real, y envío antes de hidratar (criterio 6) | PASÓ el 2026-11-03, sobre `2204318f5`, la punta de #362: POST y URL sin datos, y el resultado sigue al hidratar. Detalle en la spec 0598 |
 | ESLint, `tsc`, suite y pruebas vecinas en local | Ver `pnpm verify`, abajo |
 | Graphify, Archify, Obsidian | NO EJECUTADO: los publica el Director desde main |
 
@@ -90,7 +90,7 @@ Rama `codex/error-no-borra-portal`, en la PR en borrador [#358](https://github.c
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Con turno del Director General: `next dev` con server action real y sin hidratar, y mutantes. Si la PR entra antes, el criterio 6 sigue `NO VERIFICABLE`.
+1. Con turno del Director General: mutantes.
 2. «Calidad local sin secretos» en verde sobre la cabeza con `main` traído.
 3. Smoke en el portal con sesión real: provocar un error en una cotización y comprobar que lo escrito sigue ahí, con archivos adjuntos en una compra.
 
