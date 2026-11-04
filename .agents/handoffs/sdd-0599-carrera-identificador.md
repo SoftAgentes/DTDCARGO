@@ -19,7 +19,7 @@ Confirmada. El identificador se renueva en un `useEffect` del hook, y ese efecto
 
 Sí, pero sólo en el hueco de milisegundos entre pintar y correr el efecto, y hacia el lado seguro. Un envío que caiga ahí reusa el identificador del que ya entró: el servidor responde `replayed` y la pantalla dice que ya estaba registrado. No duplica ni pierde lo escrito, porque el formulario sigue a la vista. El tamaño del hueco en un navegador real está **sin medir**.
 
-**No se cambió el hook.** Decidir en `onSubmit` a partir de `state` quitaría el hueco, pero abriría otro peor: un doble toque que cayera ahí crearía otra fila, en lugar de responder `replayed`. No hace falta para corregir esta prueba, y cambiaría código ya medido con mutantes.
+**No se cambió el hook.** Decidir en `onSubmit` a partir de `state` quitaría el hueco: un envío ahí llevaría otro identificador, igual que uno hecho milisegundos después. Para una persona no gana nada, porque hoy ese envío responde `replayed` y no duplica. No hace falta para corregir esta prueba, y cambiaría código ya medido con mutantes. Sería una simplificación válida en otra tarea.
 
 ## COMPLETADO
 
@@ -41,6 +41,9 @@ Con un worker.
 | `use-action-keeping-draft.test.tsx`, sobre `2eeb30d8e`, con 16 procesos de carga | PASÓ, 40 de 40 corridas |
 | Lo mismo, sin carga añadida | PASÓ, 30 de 30 corridas |
 | Mutantes del hook, sobre `2eeb30d8e` | PASÓ, 7 de 7 mueren: identificador tras `ok`, en cada intento, sin pedirlo, y el foco |
+| `la-accion-lanza.test.tsx`, sobre `2eeb30d8e`, con 16 procesos de carga | 34 de 35 corridas. Ver el rojo abierto |
+| Las tres pruebas, con la espera de 5 s, sin carga añadida | PASÓ, 76 de 76, una corrida. **No se repitió con carga:** a 1 de 35, pocas corridas no distinguirían |
+| Mutante que quita el aviso de `NewPurchaseWizard`, con la espera de 5 s | Muere |
 | ESLint de las dos pruebas | PASÓ |
 | `tsc` limitado a las dos pruebas | Sin errores en ellas; 1 ajeno de la configuración limitada |
 | `pnpm verify` | NO EJECUTADO: otra sesión trabaja con un worker, y son sólo pruebas |
