@@ -19,6 +19,7 @@ import {
   type PortalDouble,
   type Row,
 } from "@/lib/portal/__tests__/portal-tenant-double";
+import { isMissingClientRequestColumn } from "@/lib/shared/client-request";
 
 const h = vi.hoisted(() => ({
   db: null as unknown,
@@ -185,6 +186,9 @@ const cotizacion = (extra: Record<string, string> = {}) =>
 const reclamo = (extra: Record<string, string | File> = {}) =>
   form({ claim_type: "otro", description: "Llegó una caja abierta", ...extra });
 const rpcDe = (double: PortalDouble, nombre: string) => double.rpcCalls.filter((c) => c.name === nombre);
+const BORRADA = "2026-11-01T00:00:00Z";
+/** Más largo que los 200 caracteres que guarda la columna. */
+const NOMBRE_LARGO = `${"a".repeat(250)}.pdf`;
 
 beforeEach(() => {
   h.subidas.length = 0;
@@ -277,6 +281,51 @@ describe("compras", () => {
     expect(double.store.prealerta_documents.map((d) => d.file_name)).toEqual(["packing.pdf", "factura.pdf"]);
   });
 
+  it("un adjunto de nombre largo tampoco se repite, aunque se guarde recortado", async () => {
+    montar();
+    await createPrealertaAction({}, compra({ request_id: INTENTO, doc_packing: pdf(NOMBRE_LARGO) }));
+    await createPrealertaAction({}, compra({ request_id: INTENTO, doc_packing: pdf(NOMBRE_LARGO) }));
+
+    expect(h.subidas).toHaveLength(1);
+  });
+
+  it("un adjunto borrado se puede volver a subir", async () => {
+    montar({
+      prealertas: [{ id: "pre-1", tenant_id: TENANT_A, client_markbox: MARKBOX, code: "P-1", client_request_id: INTENTO, deleted_at: null }],
+      prealerta_documents: [{
+        id: "doc-1", tenant_id: TENANT_A, prealerta_id: "pre-1", doc_type: "packing", file_name: "packing.pdf", size_bytes: pdf("packing.pdf").size, deleted_at: BORRADA,
+      }],
+    });
+    const resultado = await createPrealertaAction({}, compra({ request_id: INTENTO, doc_packing: pdf("packing.pdf") }));
+
+    expect(resultado.replayed).toBe(true);
+    expect(h.subidas).toHaveLength(1);
+  });
+
+  it("el reintento pide el servicio que el primer envío no alcanzó a pedir", async () => {
+    const double = montar();
+    await createPrealertaAction({}, compra({ request_id: INTENTO }));
+    expect(double.store.prealerta_service_requests ?? []).toHaveLength(0);
+
+    const segundo = await createPrealertaAction({}, compra({ request_id: INTENTO, consent: "on", addon: "cotizar_medir" }));
+
+    expect(segundo.replayed).toBe(true);
+    expect(double.store.prealerta_service_requests.map((s) => s.addon_code)).toEqual(["cotizar_medir"]);
+  });
+
+  // El índice no mira `deleted_at`: el intento sigue tomado. No es un envío que haya quedado bien.
+  it("una compra borrada no se responde como si el reintento hubiera entrado", async () => {
+    const double = montar({
+      prealertas: [{ id: "borrada", tenant_id: TENANT_A, client_markbox: MARKBOX, code: "BORRADA-1", client_request_id: INTENTO, deleted_at: BORRADA }],
+    });
+    const resultado = await createPrealertaAction({}, compra({ request_id: INTENTO }));
+
+    expect(resultado.replayed).toBeUndefined();
+    expect(resultado.prealertaCode).toBeUndefined();
+    expect(resultado.error).toBeTruthy();
+    expect(double.store.prealertas).toHaveLength(1);
+  });
+
   it("completar el detalle dos veces tampoco repite el adjunto", async () => {
     const double = montar({
       prealertas: [{ id: "pre-1", tenant_id: TENANT_A, client_markbox: MARKBOX, code: "P-1", supplier_id: "sup-a", status: "anunciada", deleted_at: null }],
@@ -334,6 +383,28 @@ describe("cotizaciones", () => {
     expect(double.store.quotes).toHaveLength(2);
   });
 
+  it("el mismo identificador en otro tenant no encuentra esa cotización", async () => {
+    const double = montar({
+      quotes: [{ id: "ajena", tenant_id: TENANT_B, client_markbox: MARKBOX, quote_code: "EST-AJENA", client_request_id: INTENTO, deleted_at: null }],
+    });
+    const resultado = await requestCotizacionAction({}, cotizacion({ request_id: INTENTO }));
+
+    expect(resultado).toEqual({ ok: true, createdCode: "EST-1" });
+    expect(double.store.quotes).toHaveLength(2);
+  });
+
+  it("una cotización borrada no se responde como si el reintento hubiera entrado", async () => {
+    const double = montar({
+      quotes: [{ id: "borrada", tenant_id: TENANT_A, client_markbox: MARKBOX, quote_code: "EST-BORRADA", client_request_id: INTENTO, deleted_at: BORRADA }],
+    });
+    const resultado = await requestCotizacionAction({}, cotizacion({ request_id: INTENTO }));
+
+    expect(resultado.replayed).toBeUndefined();
+    expect(resultado.createdCode).toBeUndefined();
+    expect(resultado.error).toBeTruthy();
+    expect(double.store.quotes).toHaveLength(1);
+  });
+
   it("sin 0512 la cotización entra sin candado, sin romper", async () => {
     const double = montar({}, { sin0512: true });
     const resultado = await requestCotizacionAction({}, cotizacion({ request_id: INTENTO }));
@@ -384,6 +455,57 @@ describe("reclamos", () => {
 
     expect(resultado).toMatchObject({ ok: true, createdCode: "RC-1" });
     expect(double.store.client_claims).toHaveLength(2);
+  });
+
+  it("el mismo identificador en otro tenant no encuentra ese reclamo", async () => {
+    const double = montar({
+      client_claims: [{ id: "ajeno", tenant_id: TENANT_B, client_markbox: MARKBOX, claim_code: "RC-AJENO", client_request_id: INTENTO, deleted_at: null }],
+    });
+    const resultado = await createPortalClaimAction({}, reclamo({ request_id: INTENTO }));
+
+    expect(resultado).toMatchObject({ ok: true, createdCode: "RC-1" });
+    expect(double.store.client_claims).toHaveLength(2);
+  });
+
+  it("un reclamo borrado no se responde como si el reintento hubiera entrado", async () => {
+    const double = montar({
+      client_claims: [{ id: "borrado", tenant_id: TENANT_A, client_markbox: MARKBOX, claim_code: "RC-BORRADO", client_request_id: INTENTO, deleted_at: BORRADA }],
+    });
+    const resultado = await createPortalClaimAction({}, reclamo({ request_id: INTENTO }));
+
+    expect(resultado.replayed).toBeUndefined();
+    expect(resultado.createdCode).toBeUndefined();
+    expect(resultado.error).toBeTruthy();
+    expect(double.store.client_claims).toHaveLength(1);
+  });
+
+  it("el reintento avisa si un archivo no se pudo tomar", async () => {
+    montar();
+    await createPortalClaimAction({}, reclamo({ request_id: INTENTO }));
+    const segundo = await createPortalClaimAction({}, reclamo({
+      request_id: INTENTO,
+      evidence: new File(["x"], "programa.exe", { type: "application/x-msdownload" }),
+    }));
+
+    expect(segundo).toMatchObject({ replayed: true, evidenceSkipped: true });
+  });
+
+  it("la evidencia de otro reclamo no cuenta como subida", async () => {
+    const double = montar({
+      client_claims: [{ id: "gano", tenant_id: TENANT_A, client_markbox: MARKBOX, claim_code: "RC-GANO", client_request_id: INTENTO, deleted_at: null }],
+      client_claim_evidence: [{ id: "de-otro", tenant_id: TENANT_A, claim_id: "otro", file_name: "foto.pdf", size_bytes: pdf("foto.pdf").size }],
+    });
+    await createPortalClaimAction({}, reclamo({ request_id: INTENTO, evidence: pdf("foto.pdf") }));
+
+    expect(double.store.client_claim_evidence).toHaveLength(2);
+  });
+
+  it("la evidencia de nombre largo tampoco se repite, aunque se guarde recortada", async () => {
+    const double = montar();
+    await createPortalClaimAction({}, reclamo({ request_id: INTENTO, evidence: pdf(NOMBRE_LARGO) }));
+    await createPortalClaimAction({}, reclamo({ request_id: INTENTO, evidence: pdf(NOMBRE_LARGO) }));
+
+    expect(double.store.client_claim_evidence).toHaveLength(1);
   });
 
   it("sin 0512 el reclamo entra sin candado, sin romper", async () => {
@@ -437,6 +559,23 @@ describe("mensajes", () => {
     expect(rpcDe(double, "portal_post_message").map((c) => c.args)).toEqual([{ p_body: "Hola" }]);
     expect(h.avisoMensaje).toHaveBeenCalledOnce();
   });
+
+  it("si la firma nueva falla por otra razón, no reenvía sin candado", async () => {
+    conRespuesta("conv-1");
+    const llamadas: Row[] = [];
+    h.db = {
+      ...(h.db as object),
+      rpc: async (_nombre: string, args: Row) => {
+        llamadas.push(args);
+        return { data: null, error: { code: "XX000", message: "falla de la base" } };
+      },
+    };
+    const resultado = await sendPortalMessageAction({}, form({ body: "Hola", request_id: INTENTO }));
+
+    expect(resultado.error).toBeTruthy();
+    expect(llamadas).toEqual([{ p_body: "Hola", p_request_id: INTENTO }]);
+    expect(h.avisoMensaje).not.toHaveBeenCalled();
+  });
 });
 
 describe("direcciones", () => {
@@ -462,6 +601,20 @@ describe("direcciones", () => {
     expect(vivas(double)).toHaveLength(2);
   });
 
+  it.each([
+    ["el nombre", { label: "Oficina" }],
+    ["la ciudad", { city: "Valencia" }],
+    ["la ciudad del catálogo", { citySlug: "valencia" }],
+    ["el estado", { state: "Carabobo" }],
+    ["la referencia", { reference: "Al lado del banco" }],
+  ])("si cambia %s, es otra dirección", async (_campo, cambio) => {
+    const double = montar();
+    await addAddressAction({}, direccion());
+    await addAddressAction({}, direccion(cambio));
+
+    expect(vivas(double)).toHaveLength(2);
+  });
+
   it("si la repetida se pide como predeterminada, queda predeterminada, sin otra fila", async () => {
     const double = montar();
     await addAddressAction({}, direccion());
@@ -469,5 +622,14 @@ describe("direcciones", () => {
 
     expect(vivas(double)).toHaveLength(1);
     expect(vivas(double)[0].is_default).toBe(true);
+  });
+});
+
+describe("qué error es cuál", () => {
+  it("la columna faltante es la del candado, no otra", () => {
+    expect(isMissingClientRequestColumn({ code: "PGRST204", message: "Could not find the 'client_request_id' column" })).toBe(true);
+    expect(isMissingClientRequestColumn({ code: "42703", message: "column quotes.client_request_id does not exist" })).toBe(true);
+    expect(isMissingClientRequestColumn({ code: "PGRST204", message: "Could not find the 'otra_columna' column" })).toBe(false);
+    expect(isMissingClientRequestColumn(null)).toBe(false);
   });
 });
