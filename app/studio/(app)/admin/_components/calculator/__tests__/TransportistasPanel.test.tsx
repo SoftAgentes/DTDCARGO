@@ -222,6 +222,25 @@ describe("editar una ciudad", () => {
     expect(dialogo("Editar Valencia")).toBeVisible();
   });
 
+  it("con errores sólo por campo, al terminar el envío el foco va al primer campo con error (SDD-0592)", async () => {
+    let resolve!: (value: { fieldErrors: Record<string, string> }) => void;
+    mocks.save.mockImplementationOnce(() => new Promise((r) => { resolve = r; }));
+    montar();
+    fireEvent.click(screen.getByRole("button", { name: "Editar Valencia" }));
+    const panel = dialogo("Editar Valencia");
+    const guardar = within(panel).getByRole<HTMLButtonElement>("button", { name: "Guardar cambios" });
+    guardar.focus();
+    fireEvent.click(guardar);
+    await waitFor(() => expect(guardar).toBeDisabled());
+    // El navegador suelta el foco de un botón que se deshabilita. jsdom no, e ignora
+    // `blur()` en un control deshabilitado: se habilita sólo para soltarlo.
+    guardar.disabled = false;
+    guardar.blur();
+    guardar.disabled = true;
+    await act(async () => resolve({ fieldErrors: { costUsdCbm: "No puede ser negativo." } }));
+    await waitFor(() => expect(campo(panel, /^Costo \/m³/)).toHaveFocus());
+  });
+
   it("avisa si la venta en ft³ de referencia quedó desfasada de la venta por m³", () => {
     montar();
     fireEvent.click(screen.getByRole("button", { name: "Editar Valencia" }));
