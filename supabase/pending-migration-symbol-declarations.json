@@ -7,5 +7,110 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "sdd-0588-chatwoot-analisis",
+      "primarySymbol": "chatwoot_version_analyses",
+      "migration": "0509_chatwoot_version_analyses",
+      "symbols": [
+        {
+          "name": "chatwoot_version_analyses",
+          "kind": "table",
+          "callSites": [
+            "lib/studio/chatwoot/analisis-queries.ts:73",
+            "lib/studio/chatwoot/analisis-queries.ts:88",
+            "lib/studio/chatwoot/analisis-queries.ts:113"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/chatwoot/analisis-queries.ts:81",
+          "contains": "if (error || !data) return null;",
+          "degradation": "Sin 0509 (42P01/PGRST205) ultimoAnalisis devuelve null: la pantalla Actualizaciones no muestra informe y la caché no reutiliza nada."
+        },
+        {
+          "site": "lib/studio/chatwoot/analisis-queries.ts:92",
+          "contains": "if (error || typeof count !== \"number\") return null;",
+          "degradation": "contarAnalisis sin la tabla devuelve null en vez de 0: el tope diario no se puede comprobar."
+        },
+        {
+          "site": "lib/studio/chatwoot/analisis-motor.ts:181",
+          "contains": "if (hechos === null) return { ok: false, error: \"service\" };",
+          "degradation": "Sin la 0509 analizarSalto se detiene antes de leer GitHub o llamar al motor: no gasta llamadas que no podría guardar."
+        },
+        {
+          "site": "lib/studio/chatwoot/analisis-queries.ts:128",
+          "contains": "if (error) {",
+          "degradation": "guardarAnalisis sin la tabla registra solo el código del error y devuelve false."
+        },
+        {
+          "site": "app/studio/(app)/admin/actualizaciones/actions.ts:111",
+          "contains": "if (!r.ok) return { ok: false, error: r.error };",
+          "degradation": "«Analizar con IA» sin la 0509 responde «No se pudo completar» traducido, sin error crudo. Nada se despliega en ningún caso."
+        }
+      ]
+    },
+    {
+      "id": "sdd-0588-chatwoot-versiones",
+      "primarySymbol": "chatwoot_version_checks",
+      "migration": "0507_chatwoot_versiones",
+      "symbols": [
+        {
+          "name": "chatwoot_version_checks",
+          "kind": "table",
+          "callSites": [
+            "lib/studio/chatwoot/versiones-queries.ts:71",
+            "lib/studio/chatwoot/versiones-queries.ts:89",
+            "lib/studio/chatwoot/versiones-queries.ts:111"
+          ]
+        },
+        {
+          "name": "chatwoot_update_requests",
+          "kind": "table",
+          "callSites": [
+            "app/studio/(app)/admin/actualizaciones/actions.ts:67",
+            "lib/studio/chatwoot/versiones-queries.ts:121"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/chatwoot/versiones-queries.ts:78",
+          "contains": "if (error || !data) return null;",
+          "degradation": "Sin 0507 (42P01/PGRST205) ultimaRevision devuelve null: la pantalla Actualizaciones muestra «Todavía no hay revisiones» y pedirActualizacion responde «service» antes de insertar."
+        },
+        {
+          "site": "lib/studio/chatwoot/versiones-queries.ts:101",
+          "contains": "if (error || !data) {",
+          "degradation": "guardarRevision sin la tabla registra solo el código y devuelve null; vigilarVersiones responde omitido sin avisar ni purgar."
+        },
+        {
+          "site": "lib/studio/chatwoot/versiones-vigilante.ts:68",
+          "contains": "if (!revision) return { omitido: true, revision: null, avisados: 0 };",
+          "degradation": "Sin 0507 el vigilante no encola ningún push y devuelve omitido."
+        },
+        {
+          "site": "app/api/cron/chatwoot-versiones/route.ts:45",
+          "contains": "if (r.omitido || !r.revision) return NextResponse.json({ ok: true, omitido: true });",
+          "degradation": "El cron /api/cron/chatwoot-versiones responde 200 omitido sin la 0507; no rompe los demás crons."
+        },
+        {
+          "site": "app/studio/(app)/admin/actualizaciones/actions.ts:46",
+          "contains": "if (r.omitido) return { ok: false, error: \"service\" };",
+          "degradation": "«Revisar ahora» sin la 0507 responde «No se pudo completar» traducido, sin error crudo."
+        },
+        {
+          "site": "lib/studio/chatwoot/versiones-queries.ts:126",
+          "contains": "if (error || !Array.isArray(data)) return [];",
+          "degradation": "listarPedidos sin la tabla devuelve []: la pantalla dice «Todavía no hay pedidos de actualización»."
+        },
+        {
+          "site": "app/studio/(app)/admin/actualizaciones/actions.ts:62",
+          "contains": "if (!revision) return { ok: false, error: \"service\" };",
+          "degradation": "pedirActualizacion sin la 0507 no llega al insert de chatwoot_update_requests: responde «service» porque no hay revisión que citar. Nada se despliega en ningún caso (E3-D1)."
+        }
+      ]
+    }
+  ]
 }
