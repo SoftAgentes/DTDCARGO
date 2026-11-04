@@ -1,0 +1,82 @@
+# Handoff · SDD-0587 paso 6.4 — entrada de leads desde Chatwoot y la web, con atribución
+
+- **Owner:** Claude Worker «E6 entrada de leads» (claim `local_0582-e6-entrada-leads`), encargado por el Subdirector (`local_535053f4-40c2-4124-a280-63f4fc882820`).
+- **Ruta:** `.claude/worktrees/0582-e6-entrada-leads-ef62df`
+- **Rama:** `claude/0582-e6-entrada-leads-ef62df`, desde `codex/0582-e6-tablero` (`f06dec60a`, PR #337).
+- **SDD:** 0587 (aprobada). Sección §16 y allowlist en §10.
+- **Programa:** SDD-0582, fila 6.4 del checklist → aceptado el 2026-11-03, con límite (ver «Decisiones de Sam del 2026-11-03»).
+- **Permisos del encargo:** publicar la rama propia y abrir PR en borrador. Sin merge, sin producción, sin el servidor de Chatwoot ni prueba.
+
+## Objetivo
+
+Crear la tarjeta del CRM propio cuando alguien entra por Chatwoot o se registra en `/registro`, con su fuente y atribución, y dar asesor con la asignación de Chatwoot. Que todo pueda correr dos veces sin efecto doble y que un fallo no rompa ni demore el registro.
+
+## Qué quedó
+
+Detalle en la SDD-0587 §16. Resumen:
+
+- **Migración `0513_crm_entrada_leads` (sin aplicar):** amplía el `check` de eventos de la 0504 y crea `crm_entrada_chatwoot`, `crm_asesor_desde_chatwoot` y `crm_alta_tarjeta_web`, más piezas internas sin grant. Se decidió no editar la 0504 (§16.3).
+- **`entrarLead`** (`lib/studio/chatwoot/entrada-leads.ts`) en la lista de manejadores de `procesarEventoChatwoot`.
+- **`interpretarEvento`** admite los dos eventos; `conversation_updated` solo si cambió el asignado. El nombre viaja aparte, en `ContactoEntrada`.
+- **`/registro`:** paso 6c con `after()`; UTM en campos ocultos, validados en la page y otra vez en la action (`lib/public/registro-atribucion.ts`).
+- **D7:** `CRM_ALTA_WEB_SIN_KOMMO`, apagado. Solo `"1"` lo enciende. No se hizo la lectura L3.
+
+## Validación
+
+| Comprobación | Resultado |
+|---|---|
+| Contrato PGlite, control rojo, reaplicación y preflight | PASÓ |
+| Pruebas puntuales, ya con E10 fusionada (42 archivos, 490 pruebas) | PASÓ |
+| `tsc` acotado, ya fusionado; ESLint de los archivos tocados, antes del merge | PASÓ |
+| Gate de símbolos de migraciones pendientes | PASÓ: 0 ROJO, 9 AMARILLO declarados |
+| Mutantes del contrato, sobre `fac203f66` | PASÓ: 43 de 43 caen |
+| Mutantes de `/registro` y del manejador, sobre `fac203f66` | PASÓ: 7 de 7 caen, controles en verde antes y después y árbol limpio al final |
+| `pnpm verify` | NO EJECUTADO: el Director General lo corre en la punta de la tanda A al integrar, y lo pide el Subdirector después de publicar |
+| Punta a punta con Chatwoot real | NO EJECUTADO: fuera del encargo |
+| revisar-datos-ve | §16.8: 7 CORRECTO, 1 ENCONTRADO, 3 NO VERIFICABLE, 1 no aplica |
+
+Las pruebas corrieron con `node node_modules/vitest/vitest.mjs` y un `node_modules` enlazado (junction, ignorado por Git) al del checkout principal, con el mismo `pnpm-lock.yaml`. La junction ya se quitó: este worktree queda sin dependencias. Si se vuelve a crear, **no se usa `pnpm`:** vaciaría la instalación original.
+
+## Impacto documental
+
+- SDD-0587: §4.2 (resuelto), §10 (allowlist 6.4), §13 y §16 (nuevo).
+- Checklist 0582: fila 6.4 → aceptado, 0,5 d reales, 0 restantes. Suma sus 2 días base al avance.
+- `docs/runbooks/chatwoot-bandeja.md`: eventos y orden de encendido.
+- `knowledge:status`, Graphify y Archify: NO EJECUTADO en este worktree (corrida pesada; los publica el Director desde main).
+
+## PENDIENTES DE ESTA TAREA
+
+- `codex/0582-e6-tablero` ya se trajo con merge (`7071fd3a8`), y con ella la #335 y la #336. Si cambia otra vez, se trae igual, sin rebase.
+- **Al resolver el merge de E10 se perdieron dos cosas de 6.3 en las declaraciones de símbolos:** el grupo `sdd-0587-crm-tablero` y dos sitios de `tarjeta-actions.ts`. El gate lo detectó y ya están repuestos. Quien vuelva a fusionar esta cadena debe comparar los dos lados grupo por grupo y correr el gate después: el driver de merge semántico rechaza el conflicto, y tomar una sola versión del archivo borra lo de la otra.
+
+## La tanda de mutantes, tal como pasó
+
+Se corrió una sola vez, con el turno del Director General. Una carrera mía: detuve el vigía para hacer un merge justo cuando lanzaba la tanda (16:45:01). La parte SQL siguió viva y no se tocó; es en memoria y no modifica archivos. Un segundo vigía la esperó, midió otra vez las condiciones y corrió la parte TypeScript, dentro del mismo tope de 10 minutos. Nada se relanzó, y el merge se hizo después, con el árbol limpio. Los mutantes corrieron sobre `fac203f66`. El merge de `7071fd3a8` no cambió ningún archivo, porque la rama ya traía ese contenido: `2a1381caa` tiene el mismo árbol, así que la evidencia sigue valiendo.
+
+## Decisiones de Sam del 2026-11-03
+
+Dadas en el chat del Director General, por el selector. Las registra el Subdirector a nombre del Director General, que las relayó; el texto completo está en su nota `decisiones-sam-20261103.md`. Ninguna autoriza migraciones, variables, fusiones ni publicación.
+
+- **Fila 6.4:** «Acepto, con ese límite». Queda aceptado el código. El límite: sin probar contra un Chatwoot real, y esa prueba se hace en prueba antes de producción; dos tarjetas de la misma persona no se fusionan; crear o ligar una tarjeta no deja rastro en la auditoría. La 0513 lleva su propio OK.
+- **`/privacidad`:** «Apruebo el texto». Vale para el texto exacto, con la frase de la campaña en «Registro de cliente». Sale solo con la tanda A y las piezas que describe; la fecha se ajusta al publicar.
+- **Frase de la campaña, ~18:05Z:** «Usar «el enlace»». Reemplaza a la aprobada antes. Texto exacto: «También guardamos la campaña por la que llegaste, si el enlace la trae.»
+- **Publicación automática:** «Apagada; publicar por tandas». La tanda A sale entera.
+
+**Dónde va la frase:** después de la primera oración de «Registro de cliente». Sam no fijó el lugar. La primera redacción decía «si la dirección los trae», que se podía leer como la dirección postal; se le avisó y la cambió.
+
+## Puertas que quedan para Sam
+
+- Aplicar la 0513, con el runbook, después de la 0503, 0504 y 0506 y antes de suscribir el webhook a los eventos nuevos.
+- La prueba con un Chatwoot real, partida por su decisión del 2026-11-03, «Probar WhatsApp al publicar», que relayó el Director General: una parte en prueba con cuenta aparte, y otra en producción justo después de publicar la tanda A, desde su teléfono al número de prueba. Si falla la tarjeta, se quita el webhook. Detalle en `docs/runbooks/chatwoot-bandeja.md`.
+- Lectura L3 y, con ella, D7.
+
+## FUERA DE ALCANCE DETECTADO
+
+- **AUD-01:** crear una tarjeta, ligarla o darle asesor no deja evento en `entity_audit_log`. Propuesta en §16.6, para 6.6.
+- **Dos tarjetas de una persona no se fusionan** (§16.5): falta una regla en el contrato.
+- **El reproceso repite el aviso push:** cuando cualquier manejador falla, el cron vuelve a correrlos todos (`reprocesarEventosChatwoot`), y `avisarPorPush` encola otro push. La notificación lleva `tag` por conversación, así que el teléfono la reemplaza, pero es trabajo de más. Es de E2. Por eso `entrarLead` no lanza cuando falta la migración.
+- **`RegisterForm.tsx` no enlaza `/privacidad` dentro del formulario;** el enlace está en el pie de la página.
+
+## Cierre del runbook §6, 2026-11-04
+
+`0506`, `0513` aplicadas en `dtd-cargo` por el Director General y selladas en el candado. Datos completos en `docs/specs/0587-chatwoot-contrato-sistema-maestro/spec.md`, «cierre del runbook §6». Merge: lo hace el Director General, de a una, con su hora al fusionar. OK literal: «Doy el mandato», punto 2.

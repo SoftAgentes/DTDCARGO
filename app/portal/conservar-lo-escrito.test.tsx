@@ -132,12 +132,12 @@ describe("lo que no debe conservarse", () => {
     llenar(form);
     fireEvent.submit(form);
     expect(await screen.findByText(MSG)).toBeInTheDocument();
-    await act(async () => {});
+    // La clave la vacía un efecto, que puede correr después de que el aviso aparezca.
+    await waitFor(() => expect(Object.fromEntries(foto(elFormulario(container))).password).toBe(""));
 
     const despues = Object.fromEntries(foto(elFormulario(container)));
     expect(despues.first_name).toBe("Texto de prueba");
     expect(despues.last_name).toBe("Texto de prueba");
-    expect(despues.password).toBe("");
   });
 
   it("AcceptanceForm vuelve a pedir las dos casillas: cada intento de aceptar es un acto explícito", async () => {

@@ -36,6 +36,7 @@ import {
   type BulkAccessResult,
 } from "@/lib/studio/access-link-bulk";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuario";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
 import {
@@ -267,6 +268,9 @@ export async function changeUserRoleAction(
         "Cambio de rol sin motivo declarado",
       ),
     });
+    // SDD-0585 (2.5): si el rol nuevo no ve la Bandeja, su agente sale de
+    // Chatwoot. No lanza ni cambia este resultado; el cron diario reintenta.
+    await sincronizarAgenteDeUsuario(targetUserId).catch(() => undefined);
     revalidatePath("/studio/usuarios");
     return { ok: true, userId: targetUserId };
   } catch (err) {
@@ -364,6 +368,9 @@ export async function disableUserAction(
     };
   }
 
+  // SDD-0585 (2.5): el agente de Chatwoot del suspendido sale de la cuenta.
+  // No lanza ni cambia este resultado; el cron diario reintenta.
+  await sincronizarAgenteDeUsuario(targetUserId).catch(() => undefined);
   revalidatePath("/studio/usuarios");
   return { ok: true, userId: targetUserId };
 }

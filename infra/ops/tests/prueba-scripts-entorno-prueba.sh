@@ -125,6 +125,23 @@ va "${T}/rojo3.env" > "${T}/va-rojo3.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'integraciones con valor en prueba: RESEND_API_KEY' "${T}/va-rojo3.log" && ok "una integración encendida → falla" || ko "integración rc=${rc}"
 va "${T}/rojo3.env" --permitir RESEND_API_KEY > "${T}/va-perm.log" 2>&1; rc=$?
 [[ ${rc} -eq 0 ]] && grep -q 'AVISO · RESEND_API_KEY tiene valor y está permitida' "${T}/va-perm.log" && ok "con --permitir pasa como AVISO" || ko "--permitir rc=${rc}"
+# Chatwoot: prueba tiene su propia cuenta, nunca la real (runbook chatwoot-bandeja).
+cp "${T}/limpio.env" "${T}/cw.env"
+printf 'CHATWOOT_URL=https://chat.dtdcargo.com\nCHATWOOT_ACCOUNT_ID=2\nCHATWOOT_PLATFORM_TOKEN=token-solo-de-prueba-0585\nWHATSAPP_NUMERO_CLIENTES=15555550100\n' >> "${T}/cw.env"
+va "${T}/cw.env" > "${T}/va-cw.log" 2>&1; rc=$?
+[[ ${rc} -eq 0 ]] && grep -q 'PASÓ  · cuenta de Chatwoot propia de prueba' "${T}/va-cw.log" && ok "Chatwoot con su propia cuenta y el .env.example de la rama → pasa" || { ko "Chatwoot propio rc=${rc}"; grep FALLÓ "${T}/va-cw.log"; }
+cp "${T}/cw.env" "${T}/cw-rojo.env"; fijar "${T}/cw-rojo.env" "CHATWOOT_ACCOUNT_ID=1"
+va "${T}/cw-rojo.env" > "${T}/va-cw-rojo.log" 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && grep -q 'CHATWOOT_ACCOUNT_ID es la cuenta real' "${T}/va-cw-rojo.log" && ok "control rojo: la cuenta real de Chatwoot, sin dato en producción → falla" || ko "cuenta real rc=${rc}"
+mkdir -p "${T}/prod-cw"; cp "${T}/prod/.env" "${T}/prod-cw/.env"
+printf "CHATWOOT_ACCOUNT_ID=2\nCHATWOOT_PLATFORM_TOKEN='token-solo-de-prueba-0585'\nWHATSAPP_NUMERO_CLIENTES=15555550100\n" >> "${T}/prod-cw/.env"
+bash "${S}/staging/verificar-aislamiento.sh" --env "${T}/cw.env" --prod-env "${T}/prod-cw/.env" --project "${P}" --example "${PD}/.env.example" > "${T}/va-cw-prod.log" 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && grep -q 'CHATWOOT_ACCOUNT_ID es la cuenta real' "${T}/va-cw-prod.log" && ok "control rojo: la misma cuenta que producción → falla" || ko "misma cuenta rc=${rc}"
+grep -q 'valores iguales a un secreto de producción (por sha256): CHATWOOT_PLATFORM_TOKEN' "${T}/va-cw-prod.log" && ok "control rojo: el token de producción copiado → falla y lo nombra" || ko "token de producción sin nombrar"
+grep -q 'WHATSAPP_NUMERO_CLIENTES es el número real' "${T}/va-cw-prod.log" && ok "control rojo: el número real de clientes → falla" || ko "número real sin nombrar"
+cp "${T}/cw.env" "${T}/cw-d7.env"; printf 'CRM_ALTA_WEB_SIN_KOMMO=1\n' >> "${T}/cw-d7.env"
+va "${T}/cw-d7.env" > "${T}/va-cw-d7.log" 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && grep -q 'integraciones con valor en prueba: CRM_ALTA_WEB_SIN_KOMMO' "${T}/va-cw-d7.log" && ok "CRM_ALTA_WEB_SIN_KOMMO sigue prohibida → falla" || ko "D7 rc=${rc}"
 cp "${T}/limpio.env" "${T}/rojo4.env"; printf 'IDENTITY_CNE_PROVIDER=\n' >> "${T}/rojo4.env"
 va "${T}/rojo4.env" > "${T}/va-rojo4.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'líneas X= vacías' "${T}/va-rojo4.log" && ok "una línea X= vacía → falla" || ko "vacía rc=${rc}"

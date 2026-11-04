@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { localRedirect } from "@/lib/http/local-redirect";
 import { emailIlikePattern, sameEmail } from "@/lib/shared/email-literal";
 import { canonicalizeEmail } from "@/lib/studio/email-utils";
 import {
@@ -29,7 +30,7 @@ export async function handleUnsubscribeGet(
     : result.status >= 500 ? "error" : "invalido";
 
   // La confirmación pública elimina el token de la URL final del navegador.
-  return NextResponse.redirect(new URL(`/email/baja?estado=${state}`, req.url), 303);
+  return localRedirect(`/email/baja?estado=${state}`, 303);
 }
 
 export async function handleUnsubscribePost(

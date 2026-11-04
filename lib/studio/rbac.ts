@@ -89,6 +89,9 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   quotes: ["commercial", "operations", "accounting", "support"],
   clients: ["commercial", "operations", "accounting", "support"],
   conversaciones: ["commercial", "operations", "support"],
+  // Bandeja de Chatwoot (SDD-0585, E2-D8): quien atiende. Verla no edita nada en
+  // Studio; lo que cada persona puede hacer adentro lo decide su rol de Chatwoot.
+  bandeja: ["commercial", "support"],
   // CRM (id interno "kommo", rótulo visible "CRM"). El placeholder vacío
   // "CRM · Leads" se eliminó en el rebrand del 2026-08-11; `support` no hereda
   // su acceso — ampliarle el alcance es una decisión de permisos aparte, no un
