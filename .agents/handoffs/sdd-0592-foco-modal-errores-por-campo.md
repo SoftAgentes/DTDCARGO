@@ -46,7 +46,12 @@ La medición también cambió el código dos veces:
 | ESLint de los cinco archivos | PASÓ |
 | `tsc` acotado a las pruebas y sus importaciones (configuración temporal) | PASÓ, 0 errores |
 | `governance:check`, `components:check`, `docs:check`, `sdd:check` | PASÓ |
-| Suite completa y `pnpm verify` en local | NO EJECUTADO: sin turno del Director. **El hook es compartido: el CI de la PR es la primera corrida de toda la suite con este cambio** |
+| Tras traer `main` en `5a70ffc4f`, sobre `0e9615494`, `--maxWorkers=1`: las tres pruebas tocadas | PASÓ, 48 de 48 |
+| Consumidores directos, sobre `0e9615494` | PASÓ, 48 de 48 en 6 archivos. **Muestra, no la suite** |
+| Mutantes, sobre `0e9615494` | PASÓ, 19 de 19 mueren, con control verde antes y después |
+| ESLint de los cinco archivos, sobre `0e9615494` | PASÓ |
+| «Calidad local sin secretos» sobre `c1a624c2a`, antes de traer `main` | PASÓ: es la suite completa con el hook compartido. Sobre la cabeza nueva, NO EJECUTADO: la rama no se publicó todavía |
+| `pnpm verify` | NO EJECUTADO, y propongo no correrlo: lo único que suma al CI es `sql-tests`, `schema-rebuild`, `migrations-applied` y `e2e`. No hay SQL, y el hook sólo se usa en el Studio, donde ningún e2e abre un panel sin sesión. Lo decide el Director General |
 | Graphify, Archify, Obsidian | NO EJECUTADO: los publica el Director desde main |
 
 jsdom no suelta el foco al deshabilitar un botón e ignora `blur()` en un control deshabilitado. Las pruebas lo simulan habilitándolo un instante; el comportamiento real está medido en el navegador.
@@ -62,9 +67,8 @@ Rama `codex/foco-trampa-drawershell`, en PR en borrador contra `main`. El númer
 
 ## PENDIENTES DE ESTA TAREA
 
-1. «Calidad local sin secretos» en verde sobre la cabeza de la PR.
-2. Decidir el turno de `pnpm verify`.
-3. Smoke en el Studio con sesión real, en un panel de cada tipo: `DrawerShell`, uno con hook directo y `ConfirmDialog`. Provocar un error por campo, pulsar Tab y comprobar que el foco no sale.
+1. Publicar la rama cuando el Director General lo indique, y ver «Calidad local sin secretos» en verde sobre esa cabeza.
+2. Smoke en el Studio con sesión real, en un panel de cada tipo: `DrawerShell`, uno con hook directo y `ConfirmDialog`. Provocar un error por campo, pulsar Tab y comprobar que el foco no sale.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -78,7 +82,7 @@ Rama `codex/foco-trampa-drawershell`, en PR en borrador contra `main`. El númer
 
 - Revisar sobre todo que el cambio en el hook compartido esté bien acotado. Las pruebas de «no le quita el foco a nadie» fijan ese límite.
 - Combina con #347 y #349 sin conflictos, en cualquier orden. Con #349 integrada, un segundo error general idéntico vuelve al aviso; sin ella, vuelve al botón, siempre dentro del panel.
-- El turno de `pnpm verify` es decisión tuya. No lo corrí.
+- No corrí `pnpm verify`, y propongo no correrlo. La razón está en «Validación». La decisión es tuya.
 
 ### Impacto documental
 
