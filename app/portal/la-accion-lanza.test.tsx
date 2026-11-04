@@ -173,10 +173,11 @@ describe("la acción lanza: el formulario sigue, con lo escrito y un aviso hones
     sinPantallaDeError();
     expect(aviso).toHaveTextContent(/la clave hay que escribirla otra vez/);
     expect(aviso.textContent).toMatch(CANDADO);
+    // La clave la vacía un efecto, que puede correr después de que el aviso aparezca.
+    await waitFor(() => expect(Object.fromEntries(foto(elFormulario(container))).password).toBe(""));
     const despues = Object.fromEntries(foto(elFormulario(container)));
     expect(despues.first_name).toBe("Texto de prueba");
     expect(despues.last_name).toBe("Texto de prueba");
-    expect(despues.password).toBe("");
   });
 
   it("RegisterForm conserva los cuatro pasos y sigue en Confirmar", async () => {
