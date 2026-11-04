@@ -266,9 +266,9 @@ export function KommoClient({
               maxWidth: "64ch",
             }}
           >
-            Embudo comercial, cruzado con la plata real del ERP. Los datos de
-            Kommo se sincronizan una vez al día. En Embudos, lo que mueves o
-            guardas queda en Studio.
+            Embudo comercial, cruzado con la plata real del ERP. Dirección,
+            Tablero, Asesor y Recuperación se sincronizan una vez al día. En
+            Embudos, lo que mueves o guardas queda en Studio.
           </p>
         </div>
         <div
