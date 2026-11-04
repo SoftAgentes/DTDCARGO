@@ -14,7 +14,7 @@
  *    grande verde con CTA "Iniciar sesión" en lugar de error rojo + form.
  */
 
-import { useActionState, useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ROLE_LABELS,
@@ -22,7 +22,7 @@ import {
   type UserActionState,
 } from "@/lib/studio/user-types";
 import { acceptInvitationFormAction } from "../actions";
-import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const INITIAL: UserActionState = {};
 const REVEAL_PASSWORD_MS = 3000;
@@ -35,9 +35,10 @@ interface Props {
 
 export function AcceptInvitationForm({ token, email, role }: Props) {
   const router = useRouter();
-  const [state, formAction, isPending] = useActionState(
+  const [state, formProps, isPending] = useActionKeepingDraft(
     acceptInvitationFormAction,
     INITIAL,
+    "No pudimos confirmar si tu cuenta quedó activa. Tu nombre sigue aquí; la clave hay que escribirla otra vez. Intenta de nuevo: si ya quedó activa, te lo avisaremos.",
   );
   const [showPassword, setShowPassword] = useState(false);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -94,8 +95,7 @@ export function AcceptInvitationForm({ token, email, role }: Props) {
 
   return (
     <form
-      action={formAction}
-      onSubmit={submitKeepingDraft(formAction, isPending)}
+      {...formProps}
       style={{ display: "flex", flexDirection: "column", gap: 16 }}
     >
       <input type="hidden" name="token" value={token} />

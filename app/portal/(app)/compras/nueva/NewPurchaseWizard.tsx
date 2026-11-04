@@ -18,7 +18,7 @@
  * `--color-on-accent`, jamás `text-white`.
  */
 
-import { useActionState, useCallback, useId, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import Link from "next/link";
 import { ArrowIcon } from "@/components/Icon";
 import {
@@ -46,7 +46,7 @@ import {
   buildPurchaseOrderLines,
 } from "@/lib/portal/purchase-order-lines";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
-import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const prealertaInitial: PrealertaActionState = {};
 
@@ -59,9 +59,10 @@ export function NewPurchaseWizard({
   addons: PrealertaAddon[];
   preselected: SupplierView | null;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, formProps, pending] = useActionKeepingDraft(
     createPrealertaAction,
     prealertaInitial,
+    "No pudimos confirmar si tu compra se registró. Lo que escribiste sigue aquí. Antes de registrarla de nuevo, revisa Mis compras en otra pestaña.",
   );
   const uid = useId();
   const [supplierId, setSupplierId] = useState<string>(preselected?.id ?? "");
@@ -162,8 +163,7 @@ export function NewPurchaseWizard({
       </div>
 
       <form
-        action={action}
-        onSubmit={submitKeepingDraft(action, pending)}
+        {...formProps}
         className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start"
       >
         {/* Marca del asistente: habilita registrar la compra sin detalle. */}
