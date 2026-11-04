@@ -261,12 +261,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // de Chatwoot.
   // SDD-0587 (paso 6.3) sumó `crm/tarjeta-actions.ts` (78 → 79, con prefijo
   // 22 → 23): el tablero de los dos embudos y la ficha de la tarjeta.
-  it("la superficie escaneada es la esperada (79 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0588 sumó `admin/actualizaciones/actions.ts` (79 → 80, exactos 56 → 57):
+  // las versiones de Chatwoot.
+  it("la superficie escaneada es la esperada (80 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 79,
-      exactos: 56,
+      total: 80,
+      exactos: 57,
       conPrefijo: 23,
     });
   });
@@ -334,8 +336,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `cargarFichaTarjetaAction` a `moduleViewDenial(supabase, "kommo")`; las seis
   // exigen además el rol de `crm_puede_usar()` (admin o commercial), que la RLS
   // y la RPC `crm_mover_etapa` de la 0506 repiten.
+  // SDD-0588 sumó `admin/actualizaciones/actions.ts::revisarVersionesAhora` y
+  // `::pedirActualizacion` (456 → 458): `tenantAdminGate` antes de leer nada; la
+  // revisión la escribe service_role (como el cron) y el pedido el cliente de
+  // sesión (la RLS de 0507 repite admin, tenant y requested_by = auth.uid()).
+  // SDD-0588 (paso 3.4) sumó `::analizarConIa` (458 → 459): `tenantAdminGate`
+  // antes de leer nada; solo analiza el salto que muestra la última revisión del
+  // tenant y el informe lo escribe service_role (la 0509 no da INSERT a authenticated).
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(456);
+    expect(reportes.length).toBe(459);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
