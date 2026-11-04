@@ -7,7 +7,7 @@ import { PIEZAS, type Informe, type MotivoRespaldo, type PiezaInforme, type Reco
 /**
  * Lecturas y escrituras de `chatwoot_version_analyses` (0509, SDD-0588, paso 3.4).
  * La escribe solo service_role (la acción, después del gate de admin); la lee el
- * admin del tenant. Sin la 0509 (pendiente) las lecturas devuelven null o 0 y la
+ * admin del tenant. Sin la 0509 las lecturas devuelven null o 0 y la
  * escritura devuelve false: la pantalla no muestra informe.
  */
 
