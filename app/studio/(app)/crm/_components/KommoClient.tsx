@@ -266,9 +266,9 @@ export function KommoClient({
               maxWidth: "64ch",
             }}
           >
-            Tablero <strong>solo lectura</strong> del embudo comercial, cruzado
-            con la plata real del ERP. Se sincroniza una vez al día. Esta
-            pantalla todavía no modifica nada.
+            Embudo comercial, cruzado con la plata real del ERP. Los datos de
+            Kommo se sincronizan una vez al día. En Embudos, lo que mueves o
+            guardas queda en Studio.
           </p>
         </div>
         <div
