@@ -130,9 +130,9 @@ Imagen construida con el `Dockerfile` del repo, `HOSTNAME=0.0.0.0` y `NODE_ENV=p
 - **Dominio distinto del horneado (`otro-dominio.test`):** redirecciones y sesión se quedan en ese dominio; el preflight de ese dominio da 403, como corresponde. Tres corridas: dos con 9 de 9, y una con 8 de 9.
 - **Mantenimiento:** `/mantenimiento/entrar` responde `307 /portal`, relativo. Por eso `maintenance.ts` es excepción de la guarda.
 
-**No explicado:** en una de las tres corridas bajo `otro-dominio.test`, `curl` agotó sus 25 s al seguir `/ir` móvil hasta `/studio/login` (exit 28). El `Location` fue el correcto, el log del contenedor no trae errores y no se repitió. Esa pantalla no está en este diff.
+**No explicado:** en una de las tres corridas bajo `otro-dominio.test`, `curl` agotó sus 25 s al seguir `/ir` móvil hasta `/studio/login` (exit 28). El `Location` fue el correcto, el log del contenedor no trae errores y no se repitió en las otras dos. Esa pantalla no está en este diff. Queda como rojo sin explicar, no como carga: no medí carga en esa corrida. Si se repite, se mira.
 
-**No cubre:** es un doble de Supabase, no GoTrue real, y un borde propio, no Traefik ni Cloudflare. Falta comprobarlo en prueba al subir `main` para la tanda A, siguiendo el enlace desde `/correo/` hasta `/portal`.
+**No cubre:** es un doble de Supabase, no GoTrue real, y un borde propio, no Traefik ni Cloudflare. Falta comprobarlo en prueba cuando suba `main` allí, siguiendo el enlace desde `/correo/` hasta `/portal`: lo hace esta misma sesión, cuando el Director General avise.
 
 ### Pruebas
 
@@ -142,13 +142,15 @@ Imagen construida con el `Dockerfile` del repo, `HOSTNAME=0.0.0.0` y `NODE_ENV=p
 | Las tres pruebas de baja que ya existían, en rojo contra la base | 15 de 31. Esperaban un `Location` con host. Se cambió el literal esperado, sin aflojar nada: siguen comparando exacto |
 | Mutantes | PASÓ: 48 de 48, con `git status` limpio al final. 47 mueren sobre `ac6d20191`. El otro, «excepción de más», sobrevivió, destapó un hueco de la guarda y muere desde `cb1f3f99b` |
 | Cada mutante, contra una sola suite | Las cuatro rutas mueren con su propia prueba, sin la guarda; y la guarda sola ve el callback, Bitácora, la baja y el packlist |
-| `pnpm verify` | NO EJECUTADO: pide turno al Director General |
+| `pnpm verify` | NO EJECUTADO en esta rama, por decisión del Director General: lo cubre el `verify` que él corre sobre el commit fijo de `main` antes de publicar la tanda A, con esta PR adentro. Si destapa algo de aquí, vuelve a esta spec |
 
 Ver en la PR el cierre de `typecheck`, `eslint`, `docs:check` y `sdd:check` sobre la cabeza.
 
 ## Fuera de alcance detectado
 
-- **La cookie de sesión sale sin `Secure` ni `HttpOnly`** (`Path`, `Expires`, `Max-Age`, `SameSite`), medido en la imagen. `HttpOnly` no encaja si el cliente del navegador la lee (inferido del uso de `createBrowserClient`); `Secure` sí podría ir. Es igual antes y después de este cambio, y no lo toqué.
-- **`smoke-web` sigue sin mirar estas rutas.** Una línea que falle si `/portal/callback` responde con host `0.0.0.0` habría detectado este defecto al publicar.
-- **La imagen de prueba trae `https://dtdcargo.com` literal en 7 archivos de `.next/server`.** No revisé si alguno es un enlace que saca de prueba a producción.
+Los tres primeros los lleva el Director General en su lista. Aquí no se tocan.
+
+- **La cookie de sesión sale sin `Secure` ni `HttpOnly`.** Cómo se midió: `curl -D -` a `/portal/callback` por el borde TLS, en las imágenes de la base y la final, leyendo los atributos del `Set-Cookie` sin imprimir el valor. En las dos: `Path`, `Expires`, `Max-Age`, `SameSite`. El código solo fija el nombre (`lib/db/session-cookie.ts`). `HttpOnly` no encaja si el cliente del navegador la lee (inferido del uso de `createBrowserClient`); `Secure` sí podría ir. No se midió en producción.
+- **`smoke-web` sigue sin mirar estas rutas.** Cómo se midió: `grep -cE 'portal/callback|email/unsubscribe|/ir/|packlist' infra/ops/web/smoke-web.sh` da 0. Una línea que falle si `/portal/callback` responde con host `0.0.0.0` habría detectado este defecto al publicar.
+- **La imagen de prueba trae `https://dtdcargo.com` literal en 7 archivos de `.next/server`.** Cómo se midió: `grep -rlF https://dtdcargo.com .next/server | wc -l` dentro de `:prueba-sha-56cb9f6d5602217520ed1e43169d7e50a715920d`, sin red. Solo se contaron: no abrí esos archivos ni sé si alguno es un enlace que saca de prueba a producción.
 - **Desde cuándo daba 500 el Excel del proveedor:** inferido que desde el corte al servidor propio; no leí filas ni logs de producción.

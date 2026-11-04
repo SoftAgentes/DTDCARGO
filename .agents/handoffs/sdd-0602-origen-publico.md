@@ -3,7 +3,7 @@
 Fecha: 2026-11-04. Task ID: `sdd-0602-origen-publico`.
 Owner / sesión escritora: `origen-publico-sad-jones` (Worker Claude Code, la misma sesión de las SDD-0597 y 0600).
 
-Estado: **PR en borrador, esperando el aviso del Director General para entrar en la cola, después de la #364.** Sin traer `main` a propósito: el cruce se midió con `merge-tree` contra `615adf39e` y no hay conflictos. `verify` no se corrió: pide turno.
+Estado: **PR en borrador, esperando el aviso del Director General para entrar en la cola, después de la #364.** Sin traer `main` a propósito: el cruce se midió con `merge-tree` contra `615adf39e` y no hay conflictos. Hasta su aviso no se trae `main` ni se publica, aunque Auto-fix avise. La cabeza publicada es `0c0cce70c`; los commits locales posteriores solo traen documentación y salen con ese aviso. `verify` no se corre en esta rama: lo cubre el del Director General sobre el commit fijo de `main`.
 
 - **Worktree:** `DTD-worktrees/origen-publico`, con `node_modules` propio.
 - **Rama:** `codex/origen-publico`, desde `ec56a4ac4`.
@@ -31,11 +31,11 @@ El detalle está en la spec. Por SHA:
 |---|---|---|
 | Medición de la base | `ec56a4ac4` | Reproduce el defecto: 9 de 9 redirecciones a `0.0.0.0`, Chromium `ERR_ADDRESS_INVALID`, Excel 500 |
 | Medición de la imagen final | `ac6d20191` | PASÓ: redirecciones, sesión con token y con PKCE, Chromium, Excel completo, preflight |
-| Bajo un dominio distinto | `ac6d20191` | Dos corridas de 9 de 9. Una con 8 de 9, por un `curl` exit 28 que no se repitió y no está explicado |
+| Bajo un dominio distinto | `ac6d20191` | Dos corridas de 9 de 9. Una con 8 de 9, por un `curl` exit 28. Rojo sin explicar, no carga: si se repite, se mira |
 | Build sin la variable | `cb1f3f99b` | El build muere con `ERR_INVALID_URL`, sin imagen |
 | Control rojo | `ac6d20191` | PASÓ: 19 causales, más 15 de las pruebas de baja existentes, que esperaban host |
 | Mutantes | `ac6d20191`, `cb1f3f99b` | PASÓ: 48 de 48 |
-| `pnpm verify` | | NO EJECUTADO: pide turno |
+| `pnpm verify` | | NO EJECUTADO en esta rama, por decisión del Director General: lo cubre el que él corre sobre el commit fijo de `main` antes de publicar la tanda A, con esta PR adentro. Si destapa algo de aquí, me llama |
 | `pnpm knowledge:status` | | NO EJECUTADO en este worktree |
 
 Entre `ac6d20191` y la cabeza solo cambian una prueba de la guarda y documentación: la imagen medida tiene el código final de la app. El cierre de `typecheck`, `eslint`, `docs:check` y `sdd:check` está en la PR.
@@ -58,18 +58,19 @@ Los SHA quedan en la PR. La historia conserva el primer intento:
 
 ## PENDIENTES DE ESTA TAREA
 
-- [ ] Turno de `verify` del Director General.
-- [ ] Traer `main` una vez, cuando él avise. `docs/specs/README.md` choca en GitHub cada vez que se mueve `main`, porque allá no está el driver.
-- [ ] Comprobar en prueba, al subir `main` para la tanda A, el enlace desde `/correo/` hasta `/portal`. Lo hace quien publique.
+- [ ] Traer `main` una vez y publicar, cuando el Director General avise. La #369 va después de la #364. `docs/specs/README.md` choca en GitHub cada vez que se mueve `main`, porque allá no está el driver.
+- [ ] Seguir en prueba el enlace desde `/correo/` hasta `/portal`, cuando suba `main` allí y él avise. Lo hago yo.
 - [ ] Al comprobarlo, borrar la nota de memoria `entrar-plan-b-429`.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- La cookie de sesión sale sin `Secure`. Medido en la imagen, igual antes y después.
-- `smoke-web` sigue sin mirar estas rutas.
-- La imagen de prueba trae `https://dtdcargo.com` literal en 7 archivos de `.next/server`. Sin revisar.
+Los tres primeros los lleva el Director General en su lista. No se tocan aquí.
+
+- **La cookie de sesión sale sin `Secure`.** Medido con `curl -D -` a `/portal/callback` por el borde TLS, en las imágenes de la base y la final, leyendo los atributos sin imprimir el valor: `Path`, `Expires`, `Max-Age`, `SameSite` en las dos. No se midió en producción.
+- **`smoke-web` sigue sin mirar estas rutas.** `grep -cE 'portal/callback|email/unsubscribe|/ir/|packlist' infra/ops/web/smoke-web.sh` da 0.
+- **La imagen de prueba trae `https://dtdcargo.com` literal en 7 archivos.** `grep -rlF https://dtdcargo.com .next/server | wc -l` dentro de `:prueba-sha-56cb9f6d5602217520ed1e43169d7e50a715920d`, sin red. Solo se contaron; no los abrí.
 - Desde cuándo daba 500 el Excel del proveedor: inferido que desde el corte al servidor propio.
-- El `curl` exit 28 en `/studio/login` móvil, una vez.
+- El `curl` exit 28 en `/studio/login` móvil, una vez: rojo sin explicar, no carga. Si se repite, se mira.
 
 ## HANDOFF AL DIRECTOR
 
