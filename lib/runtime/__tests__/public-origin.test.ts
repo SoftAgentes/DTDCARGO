@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { publicOrigin } from "../public-origin";
 
@@ -20,6 +21,11 @@ describe("publicOrigin · entornos publicados", () => {
 
   it("sin APP_ENV, NODE_ENV=production también usa el dominio configurado", () => {
     expect(publicOrigin(CONTENEDOR, { NODE_ENV: "production", NEXT_PUBLIC_SITE_URL: PRODUCCION })).toBe(PRODUCCION);
+  });
+
+  it("admite un dominio http, como el de un despliegue sin TLS", () => {
+    const sitio = "http://web.interno.test:8080";
+    expect(publicOrigin(CONTENEDOR, { APP_ENV: "staging", NEXT_PUBLIC_SITE_URL: sitio })).toBe(sitio);
   });
 
   it("toma solo el origen: ni barra final ni ruta se cuelan en el destino", () => {
@@ -69,5 +75,13 @@ describe("publicOrigin · lee el entorno del proceso", () => {
     vi.stubEnv("APP_ENV", "staging");
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", PRUEBA);
     expect(publicOrigin(CONTENEDOR)).toBe(PRUEBA);
+  });
+
+  it("lee la variable escrita completa: es lo único que Next reemplaza en el build", () => {
+    // La imagen no trae `NEXT_PUBLIC_SITE_URL` en su entorno de ejecución (medido en
+    // las de `main` y prueba). Sin esta línea, `{ ...process.env }` pasa estas pruebas
+    // y en el contenedor vuelve a `0.0.0.0`.
+    const fuente = readFileSync("lib/runtime/public-origin.ts", "utf8");
+    expect(fuente).toContain("NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL");
   });
 });
