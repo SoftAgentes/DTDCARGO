@@ -8,6 +8,7 @@
  */
 
 import { NextResponse, type NextRequest } from "next/server";
+import { publicOrigin } from "@/lib/runtime/public-origin";
 
 export const dynamic = "force-dynamic";
 
@@ -33,5 +34,5 @@ export async function GET(
       ? `/m/erp/bitacora/tarea/${id}`
       : `/studio/bitacora?task=${id}`;
 
-  return NextResponse.redirect(new URL(dest, req.url));
+  return NextResponse.redirect(new URL(dest, publicOrigin(req.url)));
 }
