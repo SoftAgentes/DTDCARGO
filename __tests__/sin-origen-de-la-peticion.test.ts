@@ -172,10 +172,10 @@ describe("SDD-0602 · nadie saca el dominio de la petición", () => {
   });
 
   it("las excepciones son estas dos y siguen haciendo falta", () => {
-    expect([...excepcionesUsadas].sort()).toEqual([
-      "lib/runtime/maintenance.ts redirect-clonado",
-      "lib/studio/document-import/http.ts host-de-la-peticion",
-    ]);
+    const esperadas = ["lib/runtime/maintenance.ts redirect-clonado", "lib/studio/document-import/http.ts host-de-la-peticion"];
+    const declaradas = Object.entries(EXCEPCIONES).flatMap(([ruta, reglas]) => reglas.map((regla) => `${ruta} ${regla}`));
+    expect(declaradas.sort()).toEqual(esperadas);
+    expect([...excepcionesUsadas].sort()).toEqual(esperadas);
   });
 });
 
