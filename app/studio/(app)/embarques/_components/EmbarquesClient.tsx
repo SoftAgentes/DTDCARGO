@@ -812,13 +812,13 @@ function GroupedTable({
   // SDD-0507: «Adjuntos» va antes de «Creado», sólo si se pudo contar.
   const columnas =
     adjuntos === null
-      ? "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px 84px"
-      : "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 96px 90px 84px";
+      ? "24px 130px minmax(120px, 1fr) 130px 130px 110px 70px 90px 84px"
+      : "24px 130px minmax(120px, 1fr) 130px 130px 110px 70px 96px 90px 84px";
   // SDD-0522: la fila es [casilla | botón con el resto]. El botón usa las
   // mismas columnas sin la primera, así el encabezado y las filas no se
   // desalinean (24px + gap + resto, igual que el encabezado).
   const columnasDatos = columnas.replace(/^24px /, "");
-  const anchoMinimo = adjuntos === null ? 918 : 1024;
+  const anchoMinimo = adjuntos === null ? 1008 : 1114;
   return (
     <div
       style={{

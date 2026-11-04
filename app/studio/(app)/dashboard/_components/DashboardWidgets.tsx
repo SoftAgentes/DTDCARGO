@@ -335,7 +335,9 @@ export function QuickActionsWidget() {
               gap: 6,
               padding: "12px 14px",
               borderRadius: "var(--r-md)",
-              background: "var(--bg-elevated)",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--ink)",
+              boxShadow: "var(--shadow-sm)",
               textDecoration: "none",
             }}
           >

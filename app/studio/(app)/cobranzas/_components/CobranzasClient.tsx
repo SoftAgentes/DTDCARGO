@@ -64,7 +64,7 @@ const STAGE_FILTERS: { value: StageFilter; label: string }[] = [
   })),
 ];
 
-const GRID = "130px 1.4fr 110px 130px 1fr 120px";
+const GRID = "130px 1.4fr 110px 130px 1fr 120px 84px";
 
 export function CobranzasClient({
   receivables,
@@ -584,6 +584,7 @@ function ReceivablesTable({
         <span>Vencimiento</span>
         <span>Última gestión</span>
         <span style={{ textAlign: "right" }}>Estado</span>
+        <span />
       </div>
 
       {rows.map((r, i) => {
@@ -726,6 +727,7 @@ function ReceivablesTable({
                 {stageLabel(r.stage)}
               </Badge>
             </span>
+            <span className="studio-fila-abrir">Abrir</span>
           </div>
         );
       })}

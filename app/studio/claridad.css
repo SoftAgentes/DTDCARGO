@@ -210,6 +210,79 @@
   color: inherit !important;
 }
 
+/* Pestañas hechas a mano en cada módulo (texto suelto con subrayado en línea): se
+   ven igual que las demás. El activo se reconoce por su subrayado vino. */
+.studio-sys main button[style*="border-bottom"] {
+  min-height: 36px;
+  padding: 0 var(--s-3) !important;
+  border-radius: var(--r-md) !important;
+  color: var(--ink) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap;
+}
+.studio-sys main button[style*="border-bottom"]:hover {
+  background: var(--bg-elevated) !important;
+}
+.studio-sys main button[style*="solid var(--wine"] {
+  border-bottom-color: transparent !important;
+  background: var(--ink) !important;
+  color: var(--ink-inv) !important;
+  font-weight: 800 !important;
+  box-shadow: var(--shadow-sm);
+}
+.studio-sys main button[style*="solid var(--wine"]:hover {
+  background: var(--ink) !important;
+}
+.studio-sys main button[style*="solid var(--wine"] span {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+/* Filas que se abren (27 módulos): una flecha fija en el margen derecho de la fila.
+   Va por fuera de la grilla, así que no corre las columnas. */
+.studio-tracking-row {
+  position: relative;
+  cursor: pointer;
+}
+.studio-tracking-row::after {
+  content: "›";
+  position: absolute;
+  top: 50%;
+  right: var(--s-1);
+  width: var(--s-4);
+  transform: translateY(-50%);
+  color: var(--ink);
+  font: 800 20px/1 var(--f-sans);
+  text-align: center;
+}
+.studio-tracking-row:has(> .studio-fila-abrir)::after {
+  content: none;
+}
+
+/* Enlaces de texto dentro de una pantalla: subrayados. No aplica a filas ni
+   tarjetas enteras, que ya son grilla, flex o llevan borde. */
+.studio-sys main a[href]:not(.studio-btn):not(.studio-tracking-row):not([role="tab"]):not([style*="grid"]):not([style*="flex"]):not([style*="border"]):not(:has(div, section, article, h1, h2, h3, h4, p)) {
+  text-decoration: underline !important;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* Menús de «más acciones»: contorno, como cualquier otro control. */
+.studio-sys main button[aria-haspopup="menu"] {
+  min-height: 32px;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--ink-soft) !important;
+  border-radius: var(--r-md) !important;
+  color: var(--ink) !important;
+}
+.studio-sys main button[aria-haspopup="menu"]:hover {
+  background: var(--ink) !important;
+  border-color: var(--ink) !important;
+  color: var(--ink-inv) !important;
+}
+
 /* Filtros con conteo */
 .studio-chip {
   border-color: var(--ink-soft);
@@ -283,6 +356,18 @@
   border-color: var(--ink) !important;
 }
 
+/* Encabezado de un grupo plegable: el chevron se ve como control. */
+.emb-group-header > :first-child {
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--ink-soft);
+  border-radius: var(--r-sm);
+  color: var(--ink) !important;
+}
+
 /* ── Cerrar un panel ────────────────────────────────────────────────────── */
 .studio-cerrar-panel {
   display: inline-flex;
@@ -325,7 +410,8 @@
   font: 700 13px/1 var(--f-sans);
   white-space: nowrap;
 }
-button:hover > .studio-fila-abrir {
+button:hover > .studio-fila-abrir,
+[role="button"]:hover > .studio-fila-abrir {
   background: var(--ink);
   color: var(--ink-inv);
 }

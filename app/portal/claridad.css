@@ -70,11 +70,52 @@
   font-weight: 800;
 }
 
+/* Filtros de una sola elección, como los de Mis envíos. */
+.portal-sys main button[aria-pressed] {
+  color: var(--color-ink);
+  font-size: 14px;
+}
+.portal-sys main button[aria-pressed]:hover {
+  background: var(--color-white);
+}
+.portal-sys main button[aria-pressed="true"],
+.portal-sys main button[aria-pressed="true"]:hover {
+  background: var(--color-ink);
+  color: var(--color-white);
+  font-weight: 800;
+}
+.portal-sys main button[aria-pressed="true"] * {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Tarjetas y píldoras que se oprimen: contorno que se ve, sin llegar al del botón. */
+.portal-sys main a[class*="border"]:not(.btn),
+.portal-sys main button[class*="border"]:not(.btn):not([aria-pressed]) {
+  border-color: var(--color-grey-500);
+}
+.portal-sys main a[class*="border"]:not(.btn):hover,
+.portal-sys main button[class*="border"]:not(.btn):not([aria-pressed]):hover {
+  border-color: var(--color-ink);
+}
+
+/* Enlaces de texto: subrayados. No aplica a botones, tarjetas ni pestañas. */
+.portal-sys main a[href]:not(.btn):not([class*="border"]):not([class*="rounded"]):not([class*="bg-"]):not(.portal-subtabs a):not(:has(div, section, article, h1, h2, h3, h4)) {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
 /* ── Campos ─────────────────────────────────────────────────────────────── */
+/* Algunos campos no traían borde, solo un fondo apenas distinto. */
 .portal-sys input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="range"]),
 .portal-sys select,
 .portal-sys textarea {
-  border-color: var(--color-grey-500);
+  border: 1.5px solid var(--color-grey-500);
+}
+/* Subir un archivo: el contorno viene en línea. */
+.portal-sys label[style*="border-color"] {
+  border-color: var(--color-grey-500) !important;
 }
 .portal-sys input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="range"]):hover,
 .portal-sys select:hover,
@@ -108,6 +149,11 @@
 }
 
 /* ── Barra lateral: letra que se lee sobre el navy ──────────────────────── */
+/* Texto secundario en oscuro: el mismo valor de --ink-soft oscuro del Norte. */
+[data-portal-theme="dark"] {
+  --color-grey-500: #a8b0c4;
+}
+
 .portal-sys,
 [data-portal-theme="dark"] {
   --portal-nav-ink: var(--portal-nav-on-active);
