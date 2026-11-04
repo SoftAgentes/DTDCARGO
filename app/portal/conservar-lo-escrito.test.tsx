@@ -194,4 +194,14 @@ describe("el envío sigue igual", () => {
     fireEvent.submit(form);
     await waitFor(() => expect(cuerpo.value).toBe(""));
   });
+
+  it("el formulario de reclamos también se limpia al enviar bien", async () => {
+    h.accion.mockResolvedValueOnce({ ok: true, createdCode: "RC-1" });
+    const { container } = render(<PortalClaims claims={[]} shipments={[{ id: "e1", code: "S-1" }]} evidence={{}} />);
+    const form = elFormulario(container);
+    const descripcion = form.querySelector<HTMLTextAreaElement>('[name="description"]')!;
+    fireEvent.change(descripcion, { target: { value: "Llegó una caja abierta" } });
+    fireEvent.submit(form);
+    await waitFor(() => expect(descripcion.value).toBe(""));
+  });
 });
