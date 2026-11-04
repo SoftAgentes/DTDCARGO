@@ -249,10 +249,18 @@ Sobre `2204318f5`, la punta de #362, que contiene `16b62342f` de esta rama. Ruta
 
 `EntrarButton` y `AdvanceToCotizacionButton` salen de lo pendiente: esta PR no los toca, y usan su propio `useActionState`.
 
-**Pendiente de turno:** mutantes y `pnpm verify` sobre la punta de #362, que incluye las pruebas vecinas y el `tsc` completo.
+### Mutantes (2026-11-03)
+
+29 sobre `76f775f67`: 28 muertos y 1 vivo. El vivo es el esperado: que el segundo hook ignore el resultado del POST no lo ve Vitest, y lo cubre la medición de arriba, con el estado siguiendo la cadena del POST (1, luego 2).
+
+Al correr el control salió una carrera en una prueba propia: `use-action-keeping-draft.test.tsx` comprobaba el foco en cuanto aparecía el aviso, y lo pone un efecto. Dio rojo 2 de 23 corridas. Se corrigió con `waitFor`, y el mutante que quita el foco sigue muriendo.
+
+### `pnpm verify` (2026-11-03)
+
+Sobre `d3dd68c73`, la punta de #362, que contenía `76f775f67` de esta rama. Exit 1 por `test`, con 4 archivos ajenos al diff que pasan aislados. El detalle está en `docs/specs/0599-reintento-no-duplica/spec.md`. Incluye las pruebas vecinas y el `tsc` completo. **Hueco declarado:** esta PR no tuvo un `verify` propio, sino su CI y esa punta.
 
 **Sin medir:** `next start`, donde el error llega enmascarado; lector de pantalla, portal con sesión real, envío colgado, y los avisos con los estilos reales del portal.
 
 ## Estado
 
-Implementado en la PR #360, en borrador, contra `main`. La integra el Director General, antes de #362.
+Implementado y fusionado en la PR #360, con `main` en `764f1fc00`. Este registro entra por la rama de #362.

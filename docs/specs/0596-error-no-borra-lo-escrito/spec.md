@@ -242,7 +242,7 @@ Todas estas medidas usan una acción simulada, con la forma de la respuesta de l
 
 **`next dev` con server action real, incluido el criterio 6:** PASÓ el 2026-11-03, sobre `2204318f5`, la punta de #362. Detalle en `docs/specs/0598-accion-que-lanza-no-borra/spec.md`.
 
-**Pendiente de turno:** mutantes.
+**Mutantes (2026-11-03):** 21 sobre `76f775f67`, 20 muertos y 1 vivo: nada comprobaba que `PortalClaims` se limpiara al enviar bien. Era un hueco de prueba, ya cubierto en `conservar-lo-escrito.test.tsx`. Sobre `dfda5614e`, la rama de #362 con esa prueba: **21 de 21 muertos**.
 
 **Sin medir:** lector de pantalla, portal con sesión real, y archivos en `NewPurchaseWizard`, `PurchaseStepDetalle` y `PortalClaims`.
 

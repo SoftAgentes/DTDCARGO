@@ -62,7 +62,8 @@ export function NewPurchaseWizard({
   const [state, formProps, pending] = useActionKeepingDraft(
     createPrealertaAction,
     prealertaInitial,
-    "No pudimos confirmar si tu compra se registró. Lo que escribiste sigue aquí. Antes de registrarla de nuevo, revisa Mis compras en otra pestaña.",
+    "No pudimos confirmar si tu compra se registró. Lo que escribiste sigue aquí. Intenta de nuevo: no se registrará dos veces.",
+    { requestId: true },
   );
   const uid = useId();
   const [supplierId, setSupplierId] = useState<string>(preselected?.id ?? "");
@@ -135,12 +136,19 @@ export function NewPurchaseWizard({
     };
     if (phase === "detalle") {
       return (
-        <PurchaseStepDetalle
-          code={code}
-          order={order}
-          onDone={goToConfirm}
-          onProgress={setDetalleChecklist}
-        />
+        <>
+          {state.replayed && (
+            <p role="status" className="mb-4 text-[13px] text-grey-700 leading-[1.5]">
+              Ya estaba registrada desde tu primer envío. Si cambiaste algo después, escríbele a tu asesor.
+            </p>
+          )}
+          <PurchaseStepDetalle
+            code={code}
+            order={order}
+            onDone={goToConfirm}
+            onProgress={setDetalleChecklist}
+          />
+        </>
       );
     }
     return (

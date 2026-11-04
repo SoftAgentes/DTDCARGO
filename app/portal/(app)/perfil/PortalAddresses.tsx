@@ -340,7 +340,7 @@ function AddForm({
   const [state, formProps, pending] = useActionKeepingDraft(
     addAddressAction,
     initial,
-    "No pudimos confirmar si la dirección se guardó. Lo que escribiste sigue aquí. Antes de agregarla de nuevo, revisa tus direcciones en otra pestaña.",
+    "No pudimos confirmar si la dirección se guardó. Lo que escribiste sigue aquí. Intenta de nuevo: no se guardará dos veces.",
   );
   const fe = state.fieldErrors;
 
