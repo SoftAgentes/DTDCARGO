@@ -19,7 +19,7 @@ function SubTabs({ tabs, ariaLabel }: { tabs: SubTab[]; ariaLabel: string }) {
   return (
     <nav
       aria-label={ariaLabel}
-      className="mb-7 flex items-center gap-1 border-b border-grey-200 overflow-x-auto no-scrollbar"
+      className="portal-subtabs mb-7"
     >
       {tabs.map((t) => {
         const active = t.match(pathname);
@@ -28,11 +28,7 @@ function SubTabs({ tabs, ariaLabel }: { tabs: SubTab[]; ariaLabel: string }) {
             key={t.href}
             href={t.href}
             aria-current={active ? "page" : undefined}
-            className={`flex-shrink-0 whitespace-nowrap text-[13px] font-semibold px-3 py-2.5 border-b-2 -mb-px transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-              active
-                ? "border-wine text-ink"
-                : "border-transparent text-grey-500 hover:text-ink"
-            }`}
+            className="flex-shrink-0 whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             {t.label}
           </Link>

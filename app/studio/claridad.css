@@ -1,0 +1,337 @@
+/* Rediseño prueba · qué se oprime, qué avisa y qué solo se lee (Sam, 2026-11-04).
+
+   Se carga después de studio.css y solo vive en esta rama de prueba. Una regla,
+   en todo el Studio:
+     1. Lo que se oprime tiene relleno o contorno fuerte, sombra y un verbo.
+     2. Lo que avisa es una franja plana con icono, sin contorno ni sombra.
+     3. Lo que solo se lee es texto, sin cajón.
+   Las tarjetas conservan su borde suave: el contorno fuerte queda para lo oprimible.
+
+   Solo tokens del sistema. El `!important` va únicamente donde hay que ganarle a un
+   estilo en línea de una pantalla: es lo que permite verlo en todo el ERP sin un
+   barrido de archivos. Antes de producción, esas reglas se migran por SDD. */
+
+/* ── 1. Botones ─────────────────────────────────────────────────────────── */
+.studio-btn {
+  gap: var(--s-2);
+  min-height: 40px;
+  padding: 0 var(--s-4);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  font: 700 14px/1 var(--f-sans);
+  letter-spacing: 0;
+  box-shadow: var(--shadow-sm);
+}
+.studio-btn:hover:not(:disabled) {
+  box-shadow: var(--shadow-md);
+}
+.studio-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: var(--shadow-xs);
+}
+.studio-btn:focus-visible {
+  outline: 2px solid var(--wine-text);
+  outline-offset: 2px;
+}
+.studio-btn-sm {
+  min-height: 36px;
+  padding: 0 var(--s-3);
+  font-size: 13.5px;
+}
+.studio-btn-xs {
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.studio-btn-primary {
+  color: var(--ink-side-strong);
+}
+
+.studio-btn-dark,
+.studio-btn-dark:hover:not(:disabled),
+[data-theme="dark"] .studio-btn-dark,
+[data-theme="dark"] .studio-btn-dark:hover:not(:disabled) {
+  background: var(--ink);
+  border-color: transparent;
+  color: var(--ink-inv);
+}
+
+/* El secundario deja de ser blanco sobre blanco: contorno de tinta y, al pasar el
+   cursor, se invierte. Medido: 1,48:1 antes, 16,49:1 después. */
+.studio-btn-ghost {
+  background: var(--bg-surface);
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.studio-btn-ghost:hover:not(:disabled) {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ink-inv);
+}
+
+/* BRAND ♿: sobre --warning va --on-warning, nunca blanco (3,14:1). */
+.studio-btn-warning {
+  color: var(--on-warning);
+}
+.studio-btn-warning:hover:not(:disabled) {
+  background: var(--warning);
+}
+
+.studio-btn-danger {
+  color: var(--ink-side-strong);
+}
+.studio-btn-danger:hover:not(:disabled) {
+  background: var(--danger);
+}
+[data-theme="dark"] .studio-btn-danger {
+  color: var(--ink-inv);
+}
+
+/* Deshabilitado: la raya y el fondo plano lo dicen sin borrar el texto. */
+.studio-btn:disabled {
+  background: var(--bg-elevated);
+  border: 1px dashed var(--ink-soft);
+  color: var(--ink-soft);
+  box-shadow: none;
+  opacity: 1;
+}
+.studio-btn[aria-busy="true"],
+.studio-btn[aria-busy="true"]:disabled {
+  border-style: solid;
+  color: var(--ink);
+  opacity: 1;
+}
+/* Listo: icono verde y texto neutro, sin recolorear la acción (BRAND §Estados). */
+.studio-btn-success,
+.studio-btn-success:disabled {
+  background: var(--bg-surface);
+  border: 1px solid var(--success);
+  color: var(--ink);
+  box-shadow: none;
+}
+.studio-btn-success svg {
+  color: var(--success);
+}
+
+/* Enlaces de texto y nombres que abren algo: subrayados siempre. */
+.studio-link-quiet {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--ink-soft);
+}
+.studio-link-quiet:hover,
+.studio-link-quiet:focus-visible {
+  color: var(--wine-text);
+  text-decoration-thickness: 2px;
+  text-decoration-color: currentColor;
+}
+
+/* ── Campos ─────────────────────────────────────────────────────────────── */
+.studio-label {
+  margin-bottom: 6px;
+  font: 600 13.5px/1.2 var(--f-sans);
+  color: var(--ink);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.studio-input {
+  min-height: 40px;
+  border-color: var(--ink-soft);
+  border-radius: var(--r-md);
+  font: 500 14px/1.2 var(--f-sans);
+}
+.studio-input:focus-visible {
+  border-color: var(--wine-text);
+  box-shadow: 0 0 0 1px var(--wine-text);
+}
+.studio-input[aria-invalid="true"],
+.studio-input[aria-invalid="true"]:focus-visible {
+  box-shadow: 0 0 0 1px var(--danger);
+}
+.studio-input:disabled {
+  border-style: dashed;
+}
+
+/* ── Pestañas: un control con partes, no letras sueltas ─────────────────── */
+.studio-sys [role="tablist"] {
+  display: inline-flex !important;
+  flex-wrap: wrap;
+  gap: var(--s-1) !important;
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--s-1) !important;
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--r-lg) !important;
+}
+.studio-sys [role="tab"],
+.studio-tab {
+  display: inline-flex !important;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 36px;
+  margin: 0 !important;
+  padding: 0 var(--s-3) !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: var(--r-md) !important;
+  box-shadow: none !important;
+  color: var(--ink) !important;
+  font: 600 14px/1 var(--f-sans) !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.studio-sys [role="tab"]:hover:not([aria-selected="true"]),
+.studio-tab:hover:not([data-activa="true"]) {
+  background: var(--bg-surface) !important;
+}
+.studio-sys [role="tab"]:focus-visible,
+.studio-tab:focus-visible {
+  outline: 2px solid var(--wine-text);
+  outline-offset: 2px;
+}
+.studio-sys [role="tab"][aria-selected="true"],
+.studio-tab[data-activa="true"] {
+  background: var(--ink) !important;
+  color: var(--ink-inv) !important;
+  font-weight: 800 !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+/* Los contadores de dentro traen su color en línea: sobre la pestaña activa heredan. */
+.studio-sys [role="tab"][aria-selected="true"] span,
+.studio-tab[data-activa="true"] span {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+/* Filtros con conteo */
+.studio-chip {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+  font-size: 13.5px;
+}
+.studio-chip[data-activo="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ink-inv);
+}
+.studio-chip[data-activo="true"] .studio-chip-n {
+  color: var(--ink-inv);
+}
+
+/* ── 2. Mensajes: franja plana, sin contorno ni sombra ──────────────────── */
+.studio-sys [role="alert"]:not(:empty) {
+  background: var(--danger-bg) !important;
+  border: 0 !important;
+  border-radius: var(--r-md) !important;
+  box-shadow: none !important;
+  color: var(--ink) !important;
+  font-size: 14px !important;
+}
+/* Los avisos con fondo de estado están escritos pantalla por pantalla (59 archivos
+   solo con el dorado): se les quita el contorno y el texto de color, que no llega a
+   AA. Texto neutro y señal localizada, como pide BRAND §Estados. */
+.studio-sys div[style*="var(--warning-bg)"],
+.studio-sys div[style*="var(--success-bg)"],
+.studio-sys div[style*="var(--danger-bg)"],
+.studio-sys div[style*="var(--info-bg)"],
+.studio-sys p[style*="var(--warning-bg)"],
+.studio-sys p[style*="var(--success-bg)"],
+.studio-sys p[style*="var(--danger-bg)"],
+.studio-sys p[style*="var(--info-bg)"] {
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--ink) !important;
+}
+
+/* ── Barra superior ─────────────────────────────────────────────────────── */
+.studio-topbar__actions > button,
+.studio-topbar__actions > a,
+.studio-topbar__actions > div:not(.studio-topbar__user) > button,
+.studio-topbar__actions > div:not(.studio-topbar__user) > a {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--ink-soft) !important;
+  color: var(--ink) !important;
+}
+.studio-topbar__actions > button:hover,
+.studio-topbar__actions > a:hover,
+.studio-topbar__actions > div:not(.studio-topbar__user) > button:hover,
+.studio-topbar__actions > div:not(.studio-topbar__user) > a:hover {
+  background: var(--ink) !important;
+  color: var(--ink-inv) !important;
+}
+.studio-topbar__user-button {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--ink-soft);
+}
+.studio-topbar__user-button:hover {
+  border-color: var(--ink);
+}
+.studio-topbar__search > button {
+  height: 40px !important;
+  background: var(--bg-surface) !important;
+  border-color: var(--ink-soft) !important;
+  color: var(--ink) !important;
+}
+.studio-topbar__search > button:hover {
+  border-color: var(--ink) !important;
+}
+
+/* ── Cerrar un panel ────────────────────────────────────────────────────── */
+.studio-cerrar-panel {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 36px;
+  padding: 0 var(--s-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--ink-soft);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font: 700 13.5px/1 var(--f-sans);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.studio-cerrar-panel:hover:not(:disabled) {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ink-inv);
+}
+.studio-cerrar-panel svg {
+  flex-shrink: 0;
+}
+
+/* Un botón sin clase dentro de una fila: la señal de que la fila se abre. */
+.studio-fila-abrir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--ink);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-xs);
+  color: var(--ink);
+  font: 700 13px/1 var(--f-sans);
+  white-space: nowrap;
+}
+button:hover > .studio-fila-abrir {
+  background: var(--ink);
+  color: var(--ink-inv);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-btn:active:not(:disabled) {
+    transform: none;
+  }
+}

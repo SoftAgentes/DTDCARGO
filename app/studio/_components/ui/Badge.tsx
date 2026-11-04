@@ -28,10 +28,10 @@ const TONES: Record<BadgeTone, { bg: string; fg: string; dot?: string }> = {
   neutral: { bg: "var(--neutral-bg)", fg: "var(--ink)" },
 };
 
-const SIZES: Record<BadgeSize, { h: number; px: number; fs: number }> = {
-  xs: { h: 16, px: 5, fs: 9.5 },
-  sm: { h: 18, px: 6, fs: 10.5 },
-  md: { h: 22, px: 8, fs: 11.5 },
+const SIZES: Record<BadgeSize, { fs: number }> = {
+  xs: { fs: 12 },
+  sm: { fs: 12.5 },
+  md: { fs: 13.5 },
 };
 
 export function Badge({
@@ -40,21 +40,16 @@ export function Badge({
   children,
   style,
 }: BadgeProps) {
-  const { bg, fg, dot: toneDot } = TONES[tone];
-  const { h, px, fs } = SIZES[size];
+  const { fg, dot: toneDot } = TONES[tone];
+  const { fs } = SIZES[size];
   return (
     <span
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 5,
-        height: h,
-        padding: `0 ${px}px`,
-        background: bg,
+        gap: 6,
         color: fg,
-        borderRadius: "var(--r-sm)",
-        font: `700 ${fs}px/1 var(--f-sans)`,
-        letterSpacing: "0.02em",
+        font: `500 ${fs}px/1.2 var(--f-sans)`,
         whiteSpace: "nowrap",
         ...style,
       }}

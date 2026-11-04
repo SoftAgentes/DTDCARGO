@@ -17,7 +17,7 @@ export function FieldLabel({
   children: React.ReactNode;
 }) {
   const className =
-    "text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500";
+    "text-[13.5px] font-semibold text-ink";
   if (htmlFor) {
     return (
       <label htmlFor={htmlFor} className={className}>

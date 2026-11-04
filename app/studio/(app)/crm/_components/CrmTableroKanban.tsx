@@ -133,7 +133,7 @@ export function CrmTableroKanban({
                     margin: 0,
                     flex: 1,
                     minWidth: 0,
-                    font: "700 12.5px/1.2 var(--f-sans)",
+                    font: "700 14px/1.2 var(--f-sans)",
                     color: "var(--ink)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -152,9 +152,12 @@ export function CrmTableroKanban({
                     Cierre
                   </Badge>
                 )}
-                <Badge tone="neutral" size="sm">
+                <span
+                  aria-label={`${tarjetas.length} en esta etapa`}
+                  style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink)" }}
+                >
                   {tarjetas.length}
-                </Badge>
+                </span>
               </header>
 
               <div
@@ -285,7 +288,7 @@ function TarjetaCard({
           border: 0,
           padding: 0,
           cursor: "pointer",
-          font: "600 13px/1.3 var(--f-sans)",
+          font: "700 14px/1.3 var(--f-sans)",
           color: t.nombre ? "var(--ink)" : "var(--ink-soft)",
           overflow: "hidden",
           textOverflow: "ellipsis",
@@ -406,10 +409,10 @@ function TarjetaCard({
             style={{
               marginTop: "var(--s-2)",
               width: "100%",
-              font: "500 12px/1 var(--f-sans)",
-              // Alto ≥ 32 px: objetivo táctil del estándar de botones del Studio.
-              minHeight: 32,
+              font: "600 13.5px/1 var(--f-sans)",
+              minHeight: 36,
               padding: "var(--s-1) var(--s-2)",
+              cursor: "pointer",
             }}
           >
             <option value="" disabled>

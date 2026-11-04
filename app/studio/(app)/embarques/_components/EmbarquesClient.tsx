@@ -288,13 +288,9 @@ export function EmbarquesClient({
 
       {/* Tabs */}
       <div
-        style={{
-          display: "flex",
-          gap: "var(--s-1)",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: "var(--s-4)",
-          overflowX: "auto",
-        }}
+        role="tablist"
+        aria-label="Filtrar embarques"
+        style={{ marginBottom: "var(--s-4)" }}
       >
         {(
           [
@@ -309,6 +305,8 @@ export function EmbarquesClient({
             <button
               key={t.value}
               type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => setTab(t.value)}
               style={{
                 padding: "10px 14px",
@@ -814,13 +812,13 @@ function GroupedTable({
   // SDD-0507: «Adjuntos» va antes de «Creado», sólo si se pudo contar.
   const columnas =
     adjuntos === null
-      ? "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px"
-      : "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 96px 90px";
+      ? "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px 84px"
+      : "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 96px 90px 84px";
   // SDD-0522: la fila es [casilla | botón con el resto]. El botón usa las
   // mismas columnas sin la primera, así el encabezado y las filas no se
   // desalinean (24px + gap + resto, igual que el encabezado).
   const columnasDatos = columnas.replace(/^24px /, "");
-  const anchoMinimo = adjuntos === null ? 824 : 930;
+  const anchoMinimo = adjuntos === null ? 918 : 1024;
   return (
     <div
       style={{
@@ -991,6 +989,7 @@ function GroupedTable({
                   <span style={{ textAlign: "right" }}>CBM</span>
                   {adjuntos !== null && <span>Adjuntos</span>}
                   <span>Creado</span>
+                  <span />
                 </div>
                 {group.shipments.map((s) => {
                   const pct = computeProgress(s.status);
@@ -1060,8 +1059,8 @@ function GroupedTable({
                       >
                       <span
                         style={{
-                          font: "700 12px/1 var(--f-mono)",
-                          color: "var(--ink)",
+                          font: "700 13px/1 var(--f-mono)",
+                          color: "var(--wine-text)",
                           letterSpacing: "0.02em",
                         }}
                       >
@@ -1132,6 +1131,10 @@ function GroupedTable({
                         }}
                       >
                         {formatDate(s.created_at)}
+                      </span>
+                      <span className="studio-fila-abrir">
+                        Abrir
+                        {Icon.chevR(12)}
                       </span>
                       </button>
                       {/* SDD-0522 · BTN-01 §6: el motivo de una casilla

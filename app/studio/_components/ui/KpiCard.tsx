@@ -46,7 +46,8 @@ export function KpiCard({
   // En feature el texto va sobre el vino → cream (AA). El valor mantiene su color
   // salvo que sea feature (ahí va cream/blanco para leer sobre el degradado).
   const valColor = feature ? "var(--ink-inv)" : valueColor;
-  const labelColor = feature ? "var(--ink-inv-soft)" : "var(--ink-soft)";
+  const labelColor = feature ? "var(--ink-inv)" : "var(--ink)";
+  const subColor = feature ? "var(--ink-inv-soft)" : "var(--ink-soft)";
 
   return (
     <div
@@ -101,10 +102,8 @@ export function KpiCard({
       <div
         style={{
           position: "relative",
-          font: "600 11.5px/1 var(--f-sans)",
+          font: "600 14px/1.2 var(--f-sans)",
           color: labelColor,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
         }}
       >
         {label}
@@ -113,8 +112,8 @@ export function KpiCard({
         <div
           style={{
             position: "relative",
-            font: "500 11px/1.4 var(--f-sans)",
-            color: labelColor,
+            font: "400 13px/1.4 var(--f-sans)",
+            color: subColor,
             marginTop: 2,
           }}
         >

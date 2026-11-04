@@ -11,6 +11,7 @@
  */
 
 import "./studio.css";
+import "./claridad.css";
 import type { Metadata } from "next";
 import { sora, nunitoSans } from "@/lib/fonts";
 
