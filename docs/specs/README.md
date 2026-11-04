@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 579 specs)
+### Índice de specs (generado · 580 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -605,6 +605,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0582 | Programa Kommo → Chatwoot dentro de Studio, con checklist y a… | proposed | interno |
 | 0583 | Chatwoot CE en el VPS del ERP (etapa E1 del programa SDD-0582) | in-progress | interno |
 | 0585 | Bandeja de Chatwoot dentro de Studio, usuarios y permisos (et… | in-progress | interno |
+| 0586 | Enrutamiento por segmento desde el ERP (etapa E10 del program… | in-progress | interno |
 | 0587 | Contrato de sistema maestro por objeto y fase: Studio, Chatwo… | approved | interno |
 | 0591 | Cambiar el plan de cuentas queda para accounting y admin | in-progress | interno |
 | 0592 | El foco no se sale del modal durante el envío ni con errores … | in-progress | interno |
@@ -618,5 +619,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0600 | Un correo no se compara como patrón: correo entrante, invitac… | in-progress | interno |
 | 0601 | Aviso del cobro no registrado: por qué y a quién acudir | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0584, 0586, 0588, 0589, 0590 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0584, 0588, 0589, 0590 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

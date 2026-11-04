@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { drainOperarioPushOutbox, enqueueUserPush } from "@/lib/studio/notify/operario-push-outbox";
+import { clasificarContacto } from "./enrutar";
 import type { ConversacionChatwoot, EventoChatwoot } from "./webhook-events";
 
 /**
@@ -11,8 +12,9 @@ import type { ConversacionChatwoot, EventoChatwoot } from "./webhook-events";
  *
  * 1. `chatwoot_registrar_evento` (0504) registra el evento (en «procesando») y
  *    aplica el estado en una transacción. Un duplicado real no sigue.
- * 2. Después corre la lista de manejadores. Hoy hay uno: el aviso push. E10
- *    (10.2 `clasificar`) agrega el suyo a `MANEJADORES` sin tocar la ruta.
+ * 2. Después corre la lista de manejadores: el aviso push y, desde E10
+ *    (SDD-0586, 10.2 y 10.3), `clasificarContacto`, que etiqueta, asigna equipo
+ *    y redirige al cliente. Ninguno toca la ruta.
  * 3. `chatwoot_cerrar_evento` lo cierra: «procesado» si todos salieron bien,
  *    «fallido» si alguno falló. Un fallido se vuelve a procesar en la próxima
  *    entrega (hallazgo de la revisión de Codex: cerrarlo antes perdía el
@@ -100,7 +102,7 @@ export const avisarPorPush: ManejadorEvento = async (ctx, evento, registro) => {
   if (encolados > 0) await drainOperarioPushOutbox(ctx.admin);
 };
 
-export const MANEJADORES: readonly ManejadorEvento[] = [avisarPorPush];
+export const MANEJADORES: readonly ManejadorEvento[] = [avisarPorPush, clasificarContacto];
 
 export async function procesarEventoChatwoot(
   ctx: ContextoChatwoot,
