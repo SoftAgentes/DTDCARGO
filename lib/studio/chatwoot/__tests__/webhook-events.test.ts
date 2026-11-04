@@ -1,10 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { interpretarConversacion, interpretarEvento, ultimos10 } from "../webhook-events";
+import {
+  interpretarContacto,
+  interpretarContactoDelEvento,
+  interpretarConversacion,
+  interpretarEvento,
+  nombreVisibleDe,
+  ultimos10,
+} from "../webhook-events";
 import {
   CORREO_SINTETICO,
   NOMBRE_SINTETICO,
   TEXTO_SINTETICO,
+  conversacionAsignada,
+  conversacionCreada,
   conversacionSintetica,
   estadoCambiado,
   mensajeCreado,
@@ -67,6 +76,122 @@ describe("interpretarEvento (SDD-0585)", () => {
     expect(interpretarEvento(null)).toBeNull();
     expect(interpretarEvento("message_created")).toBeNull();
     expect(interpretarEvento([mensajeCreado()])).toBeNull();
+  });
+});
+
+describe("eventos de la entrada de leads (SDD-0587, 6.4)", () => {
+  it("conversation_created: clave por conversación y no avisa", () => {
+    const e = interpretarEvento(conversacionCreada());
+    expect(e).toMatchObject({ evento: "conversation_created", clave: "conversation_created:12", accountId: 1, mensajeId: null, avisar: false });
+    expect(e?.conversacion).toMatchObject({ id: 12, inboxId: 3, telefonoUltimos10: "4125550101" });
+  });
+
+  it("conversation_updated con cambio de asignado: la clave distingue asignado y fecha", () => {
+    const e = interpretarEvento(conversacionAsignada());
+    expect(e).toMatchObject({ evento: "conversation_updated", clave: "conversation_updated:12:7:1761760200.75", avisar: false });
+    const sinAsignado = interpretarEvento(conversacionAsignada({ meta: { sender: {}, assignee: null } }));
+    expect(sinAsignado?.clave).toBe("conversation_updated:12:sin:1761760200.75");
+  });
+
+  it.each([
+    ["etiquetas", [{ label_list: { previous_value: [], current_value: ["x"] } }]],
+    ["equipo", [{ team_id: { previous_value: null, current_value: 21 } }]],
+    ["sin cambios", []],
+    ["sin la lista", undefined],
+    ["forma rara", "assignee_id"],
+  ])("conversation_updated sin cambio de asignado (%s): no se registra", (_caso, cambios) => {
+    expect(interpretarEvento(conversacionAsignada({ changed_attributes: cambios }))).toBeNull();
+  });
+
+  it.each([
+    ["conversation_created", conversacionCreada],
+    ["conversation_updated", conversacionAsignada],
+  ])("%s sin cuenta o con estado desconocido → null", (_nombre, fabrica) => {
+    expect(interpretarEvento(fabrica({ account: null }))).toBeNull();
+    expect(interpretarEvento(fabrica({ status: "archivada" }))).toBeNull();
+  });
+
+  it("el nombre, el correo y el teléfono completo no salen en el evento: viajan solo en el contacto", () => {
+    const fuera = JSON.stringify([interpretarEvento(conversacionCreada()), interpretarEvento(conversacionAsignada())]);
+    for (const dato of [TEXTO_SINTETICO, NOMBRE_SINTETICO, CORREO_SINTETICO, "+58", "412-555"]) {
+      expect(fuera).not.toContain(dato);
+    }
+    const contacto = JSON.stringify(interpretarContactoDelEvento(conversacionCreada()));
+    expect(contacto).toContain(NOMBRE_SINTETICO);
+    for (const dato of [TEXTO_SINTETICO, CORREO_SINTETICO, "+58", "412-555"]) {
+      expect(contacto).not.toContain(dato);
+    }
+  });
+});
+
+describe("interpretarContacto (SDD-0587, 6.4)", () => {
+  it("del webhook: contacto, nombre y canal de arriba", () => {
+    expect(interpretarContacto(conversacionCreada())).toEqual({
+      contactoId: 5,
+      nombre: NOMBRE_SINTETICO,
+      canal: "Channel::Whatsapp",
+      asignadoEsBot: false,
+    });
+  });
+
+  it("en message_created la conversación viene anidada", () => {
+    const m = mensajeCreado({ sender: { id: 999, name: "Quien Escribe" }, conversation: conversacionSintetica({ channel: "Channel::Email" }) });
+    expect(interpretarContactoDelEvento(m)).toMatchObject({ contactoId: 5, nombre: NOMBRE_SINTETICO, canal: "Channel::Email" });
+  });
+
+  it("de la API de cuenta: el canal viene en meta", () => {
+    const c = conversacionSintetica({ meta: { sender: { id: 6, name: "Por API" }, channel: "Channel::Instagram" } });
+    expect(interpretarContacto(c)).toMatchObject({ contactoId: 6, canal: "Channel::Instagram" });
+  });
+
+  it("Instagram conectado por una página de Facebook cuenta como Instagram; Messenger no", () => {
+    const pagina = (tipo?: string) =>
+      interpretarContacto(conversacionSintetica({ channel: "Channel::FacebookPage", additional_attributes: tipo ? { type: tipo } : {} })).canal;
+    expect(pagina("instagram_direct_message")).toBe("Channel::Instagram");
+    expect(pagina()).toBe("Channel::FacebookPage");
+    expect(pagina("otra_cosa")).toBe("Channel::FacebookPage");
+  });
+
+  it("un bot asignado se marca: su id no es de un agente", () => {
+    const c = conversacionSintetica({ meta: { sender: { id: 5 }, assignee: { id: 7 }, assignee_type: "AgentBot" } });
+    expect(interpretarContacto(c).asignadoEsBot).toBe(true);
+  });
+
+  it("lo que no sirve queda en null; nunca lanza", () => {
+    const vacio = { contactoId: null, nombre: null, canal: null, asignadoEsBot: false };
+    expect(interpretarContacto(null)).toEqual(vacio);
+    expect(interpretarContacto("x")).toEqual(vacio);
+    expect(interpretarContactoDelEvento(undefined)).toEqual(vacio);
+    expect(interpretarContacto(conversacionSintetica({ meta: { sender: { id: "5", name: 7 } } }))).toMatchObject({ contactoId: null, nombre: null });
+  });
+});
+
+describe("nombreVisibleDe (SDD-0587, D6)", () => {
+  it.each([
+    ["  Ana   María  ", "Ana María"],
+    ["José Ñáñez", "José Ñáñez"],
+    ["李明", "李明"],
+    ["Ana 2", "Ana 2"],
+    ["Importadora 123456", "Importadora 123456"],
+  ])("%j → %j", (entra, sale) => {
+    expect(nombreVisibleDe(entra)).toBe(sale);
+  });
+
+  it.each([
+    ["el teléfono como nombre", "+58 412-555-0101"],
+    ["solo dígitos", "04125550101"],
+    ["teléfono dentro del nombre", "Ana 0412 555 0101"],
+    ["correo", "ana.sintetica@example.test"],
+    ["vacío", "   "],
+    ["sin letras", "12345"],
+    ["no es texto", 7],
+    ["nada", undefined],
+  ])("%s → null", (_caso, entra) => {
+    expect(nombreVisibleDe(entra)).toBeNull();
+  });
+
+  it("se recorta a 120", () => {
+    expect(nombreVisibleDe("a".repeat(500))).toHaveLength(120);
   });
 });
 

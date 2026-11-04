@@ -214,6 +214,20 @@ services:
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.service=${COMPOSE_PROJECT_NAME}-rails"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.middlewares=${CHATWOOT_ADMIN_ALLOWLIST_MIDDLEWARE:-tailscale-only@file},${COMPOSE_PROJECT_NAME}-marco@docker,${CHATWOOT_HEADERS_MIDDLEWARE:-security-headers@file}"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-admin.observability.accesslogs=false"
+      # «Olvidé mi clave» apagado (SDD-0585, paso 2.7): CE no tiene interruptor por rol, y con
+      # el SMTP un agente podría pedir una clave nueva y entrar sin pasar por Studio. Traefik
+      # responde 403 antes de llegar a Rails; la lista solo admite el loopback del propio
+      # Traefik, que nadie usa. Un admin que olvide su clave la cambia desde el superadmin.
+      # PathPrefix: Rails también acepta /auth/password.json (pruebas/prueba-regla-clave.sh).
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.rule=Host(`${CHATWOOT_HOST}`) && Method(`POST`) && PathPrefix(`/auth/password`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.priority=1000"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.tls=${CHATWOOT_TLS:-true}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.service=${COMPOSE_PROJECT_NAME}-rails"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.middlewares=${COMPOSE_PROJECT_NAME}-nadie@docker,${CHATWOOT_HEADERS_MIDDLEWARE:-security-headers@file}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-clave.observability.accesslogs=false"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-nadie.ipallowlist.sourcerange=127.0.0.1/32"
       # Iframe en Studio (decisión A de SDD-0582): Rails manda X-Frame-Options:
       # SAMEORIGIN por defecto (CW-6) y no manda CSP (content_security_policy.rb vacío).
       # Se borra XFO y se fija frame-ancestors al origen de Studio y nada más.

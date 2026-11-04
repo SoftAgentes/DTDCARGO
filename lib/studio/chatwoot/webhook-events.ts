@@ -13,6 +13,9 @@
  *   - message_created: { event, id, message_type, private, account: {id},
  *     conversation: <conversación> }
  *   - conversation_status_changed: <conversación> + { event, changed_attributes }
+ *   - conversation_created: <conversación> + { event } (SDD-0587, 6.4)
+ *   - conversation_updated: <conversación> + { event, changed_attributes }; solo
+ *     interesa si cambió el asignado (`app/listeners/webhook_listener.rb`)
  *   - <conversación>: { id (display_id), inbox_id, status, unread_count,
  *     meta: { sender: { phone_number }, assignee: { id } }, last_activity_at
  *     (epoch s), updated_at (epoch s con decimales), account: {id} }
@@ -45,7 +48,7 @@ export interface ConversacionChatwoot {
 }
 
 export interface EventoChatwoot {
-  evento: "message_created" | "conversation_status_changed";
+  evento: "message_created" | "conversation_status_changed" | "conversation_created" | "conversation_updated";
   /** Clave de idempotencia (E2-D18). */
   clave: string;
   accountId: number;
@@ -141,5 +144,92 @@ export function interpretarEvento(payload: unknown): EventoChatwoot | null {
     };
   }
 
+  if (p.event === "conversation_created") {
+    const conversacion = interpretarConversacion(p);
+    const accountId = entero(obj(p.account)?.id);
+    if (!conversacion || !accountId) return null;
+    return {
+      evento: "conversation_created",
+      clave: `conversation_created:${conversacion.id}`,
+      accountId,
+      mensajeId: null,
+      conversacion,
+      avisar: false,
+    };
+  }
+
+  if (p.event === "conversation_updated") {
+    // Etiquetas, equipo y demás también disparan este evento: E10 mismo lo provoca
+    // en cada clasificación. Sin cambio de asignado no se registra nada.
+    if (!cambioElAsignado(p.changed_attributes)) return null;
+    const conversacion = interpretarConversacion(p);
+    const accountId = entero(obj(p.account)?.id);
+    if (!conversacion || !accountId) return null;
+    return {
+      evento: "conversation_updated",
+      clave: `conversation_updated:${conversacion.id}:${conversacion.asignadoId ?? "sin"}:${conversacion.fuenteActualizada}`,
+      accountId,
+      mensajeId: null,
+      conversacion,
+      avisar: false,
+    };
+  }
+
   return null;
+}
+
+/** `changed_attributes` es `[{ atributo: { previous_value, current_value } }]` (`base_listener.rb`). */
+function cambioElAsignado(cambios: unknown): boolean {
+  return Array.isArray(cambios) && cambios.some((c) => obj(c) !== null && "assignee_id" in (c as Obj));
+}
+
+/**
+ * Datos del contacto para la entrada de leads (SDD-0587, 6.4). Van APARTE de
+ * `EventoChatwoot` a propósito: el nombre es el único dato de una persona que
+ * Studio guarda del lead sin ficha (D6) y solo lo necesita `entrarLead`. Ningún
+ * otro manejador lo recibe y nada lo escribe en los logs.
+ */
+export interface ContactoEntrada {
+  /** `meta.sender.id`: la llave de la tarjeta del lead sin ficha (§4.1). */
+  contactoId: number | null;
+  nombre: string | null;
+  /** `channel` (webhook) o `meta.channel` (API de cuenta), como `Channel::Whatsapp`. */
+  canal: string | null;
+  /** Chatwoot asigna también agentes bot, con otra secuencia de ids: no son asesores. */
+  asignadoEsBot: boolean;
+}
+
+/**
+ * Nombre visible del lead (D6), o null si lo que hay no es un nombre: Chatwoot
+ * usa el teléfono o el correo cuando el contacto no trae otro, y esos no se
+ * guardan aquí.
+ */
+export function nombreVisibleDe(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const nombre = v.replace(/\s+/g, " ").trim().slice(0, 120).trim();
+  if (!/\p{L}/u.test(nombre) || nombre.includes("@") || /(\d[\s().-]*){7}/.test(nombre)) return null;
+  return nombre;
+}
+
+/** Una conversación de Chatwoot (webhook o API de cuenta) → el contacto de la entrada. */
+export function interpretarContacto(raw: unknown): ContactoEntrada {
+  const c = obj(raw);
+  const meta = obj(c?.meta);
+  const sender = obj(meta?.sender);
+  const canal = c?.channel ?? meta?.channel;
+  // Instagram conectado por una página de Facebook viaja como canal de Facebook
+  // (`messages/instagram/messenger/message_builder.rb`).
+  const instagramPorPagina = canal === "Channel::FacebookPage" && obj(c?.additional_attributes)?.type === "instagram_direct_message";
+  return {
+    contactoId: entero(sender?.id),
+    nombre: nombreVisibleDe(sender?.name),
+    canal: instagramPorPagina ? "Channel::Instagram" : typeof canal === "string" ? canal : null,
+    asignadoEsBot: meta?.assignee_type === "AgentBot",
+  };
+}
+
+/** El contacto de un evento: en `message_created` la conversación viene anidada. */
+export function interpretarContactoDelEvento(payload: unknown): ContactoEntrada {
+  const p = obj(payload);
+  return interpretarContacto(p?.event === "message_created" ? p.conversation : p);
 }

@@ -253,8 +253,8 @@ describe("SDD-0587 · 0506 modelo de datos del CRM (PGlite)", () => {
     expect(run.error).toMatch(/0506 requiere la 0505/);
   }, SLOW);
 
-  it("la 0506 queda declarada pendiente hasta que Sam la autorice", () => {
-    expect(BASELINE.pendingBelowCutoff["0506_crm_modelo"]).toMatch(/SDD-0587/);
+  it("la 0506 salió de la espera al aplicarse, y su cabecera no se corrige (runbook §6)", () => {
+    expect(BASELINE.pendingBelowCutoff["0506_crm_modelo"]).toBeUndefined();
     expect(FILE_0506).toMatch(/NO APLICADA A PRODUCCIÓN/);
   });
 });

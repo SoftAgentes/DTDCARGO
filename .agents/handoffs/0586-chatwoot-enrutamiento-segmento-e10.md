@@ -53,3 +53,7 @@ Arrancar E10: 10.1 (función SQL del segmento), 10.2 (clasificar en el webhook d
 
 - Spec nueva SDD-0586 e índice de specs regenerado. Las filas 10.1 a 10.3 del checklist de 0582 se actualizan en esta rama.
 - Graphify, Archify y Obsidian: no se regeneraron en el worktree (los publica el Director desde main integrado). `knowledge:status` corrió en modo `integrated` y solo informa enlaces rotos antiguos, ajenos a este diff.
+
+## Cierre del runbook §6, 2026-11-04
+
+`0505` aplicadas en `dtd-cargo` por el Director General y selladas en el candado. Datos completos en `docs/specs/0586-chatwoot-enrutamiento-segmento-e10/spec.md`, «cierre del runbook §6». Merge: lo hace el Director General, de a una, con su hora al fusionar. OK literal: «Doy el mandato», punto 2.

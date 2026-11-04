@@ -5,7 +5,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { drainOperarioPushOutbox, enqueueUserPush } from "@/lib/studio/notify/operario-push-outbox";
 import { clasificarContacto } from "./enrutar";
-import type { ConversacionChatwoot, EventoChatwoot } from "./webhook-events";
+import { entrarLead } from "./entrada-leads";
+import type { ContactoEntrada, ConversacionChatwoot, EventoChatwoot } from "./webhook-events";
 
 /**
  * Procesamiento de un evento de Chatwoot ya verificado (SDD-0585, E2-D18 a D20, D25).
@@ -14,7 +15,8 @@ import type { ConversacionChatwoot, EventoChatwoot } from "./webhook-events";
  *    aplica el estado en una transacción. Un duplicado real no sigue.
  * 2. Después corre la lista de manejadores: el aviso push y, desde E10
  *    (SDD-0586, 10.2 y 10.3), `clasificarContacto`, que etiqueta, asigna equipo
- *    y redirige al cliente. Ninguno toca la ruta.
+ *    y redirige al cliente, y desde 6.4 (SDD-0587) `entrarLead`, que crea o
+ *    completa la tarjeta del CRM. Ninguno toca la ruta.
  * 3. `chatwoot_cerrar_evento` lo cierra: «procesado» si todos salieron bien,
  *    «fallido» si alguno falló. Un fallido se vuelve a procesar en la próxima
  *    entrega (hallazgo de la revisión de Codex: cerrarlo antes perdía el
@@ -33,6 +35,8 @@ export interface Registro {
 export interface ContextoChatwoot {
   admin: SupabaseClient;
   tenantId: string;
+  /** Del payload del webhook. No viene en el reproceso, que lo lee de Chatwoot. */
+  contacto?: ContactoEntrada;
 }
 
 export type ManejadorEvento = (ctx: ContextoChatwoot, evento: EventoChatwoot, registro: Registro) => Promise<void>;
@@ -69,6 +73,12 @@ export async function aplicarConversacion(
  * Aviso push de mensaje entrante (E2-D20). Al usuario vinculado al agente
  * asignado; sin asignado (o asignado sin vínculo), a todos los vinculados. Sin
  * datos personales en el cuerpo: solo el número de conversación.
+ *
+ * Un aviso por evento y persona, en cualquier camino. Un reintento corre esto otra
+ * vez si falló cualquier manejador, así que el outbox guarda la clave del evento y
+ * se encola solo para quien todavía no la tiene: el que ya encoló no repite, y el
+ * que falló antes de encolar sí avisa. Quien murió entre encolar y drenar lo recoge
+ * el cron `push-drain`.
  */
 export const avisarPorPush: ManejadorEvento = async (ctx, evento, registro) => {
   // Sin `registro.nuevo` no se llega acá; la guarda queda por si se llama suelto.
@@ -84,25 +94,49 @@ export const avisarPorPush: ManejadorEvento = async (ctx, evento, registro) => {
   const asignado = vinculos.filter((v) => v.chatwoot_user_id === evento.conversacion.asignadoId);
   const destinatarios = asignado.length > 0 ? asignado : vinculos;
 
+  const ya = await yaAvisados(ctx, evento.clave);
+  const faltan = destinatarios.filter((v) => !ya.has(v.user_id));
+
   const n = evento.conversacion.id;
   let encolados = 0;
-  for (const v of destinatarios) {
+  for (const v of faltan) {
     const id = await enqueueUserPush(ctx.admin, ctx.tenantId, v.user_id, {
       title: "Bandeja · mensaje nuevo",
       body: `Tienes un mensaje nuevo en la conversación #${n}.`,
       url: `/studio/bandeja?c=${n}`,
       tag: `chatwoot-conversacion-${n}`,
+      claveEvento: evento.clave,
     });
     if (id) encolados += 1;
   }
-  if (destinatarios.length > 0 && encolados === 0) {
-    // Nadie recibió el aviso: que el evento quede fallido y se reintente.
-    throw new Error("push no encolado");
-  }
   if (encolados > 0) await drainOperarioPushOutbox(ctx.admin);
+  // A alguien le faltó el aviso: que el evento quede fallido y se reintente solo con él.
+  if (encolados < faltan.length) throw new Error("push no encolado");
 };
 
-export const MANEJADORES: readonly ManejadorEvento[] = [avisarPorPush, clasificarContacto];
+/** Quién ya tiene en el outbox el aviso de este evento. Si no se sabe, lanza: mejor reintentar que repetir. */
+async function yaAvisados(ctx: ContextoChatwoot, clave: string): Promise<Set<string>> {
+  const { data, error } = await ctx.admin
+    .from("outbox_push_events")
+    .select("target_id")
+    .eq("tenant_id", ctx.tenantId)
+    .eq("payload->>clave_evento", clave);
+  if (error) throw new Error(`outbox_push_events: ${error.code ?? "sin código"}`);
+  return new Set(((data ?? []) as { target_id: string }[]).map((f) => f.target_id));
+}
+
+export const MANEJADORES: readonly ManejadorEvento[] = [avisarPorPush, clasificarContacto, entrarLead];
+
+/** Nombres explícitos: en el build de producción `fn.name` queda minificado (`f`, `i`). */
+const NOMBRE_MANEJADOR: ReadonlyMap<ManejadorEvento, string> = new Map([
+  [avisarPorPush, "avisarPorPush"],
+  [clasificarContacto, "clasificarContacto"],
+  [entrarLead, "entrarLead"],
+]);
+
+export function nombreManejador(manejador: ManejadorEvento): string {
+  return NOMBRE_MANEJADOR.get(manejador) ?? (manejador.name || "anónimo");
+}
 
 export async function procesarEventoChatwoot(
   ctx: ContextoChatwoot,
@@ -128,7 +162,7 @@ async function correrYCerrar(
       await manejador(ctx, evento, registro);
     } catch (e) {
       ok = false;
-      console.warn(`[chatwoot] manejador ${manejador.name || "anónimo"} falló: ${e instanceof Error ? e.name : "error"}`);
+      console.warn(`[chatwoot] manejador ${nombreManejador(manejador)} falló: ${e instanceof Error ? e.name : "error"}`);
     }
   }
   // Si el cierre mismo falla, el evento queda en «procesando» y la RPC lo

@@ -188,6 +188,20 @@ INTEGRACIONES_EXTRA=(SMTP_HOST SMTP_USER SMTP_PASS KOMMO_WEBHOOK_SECRET KOMMO_PU
   NEXT_PUBLIC_VAPID_PUBLIC_KEY NEXT_PUBLIC_TELEGRAM_BOT_USERNAME NEXT_PUBLIC_GA_ID NEXT_PUBLIC_HAILUWAY_API
   STORAGE_S3_BUCKET STORAGE_S3_ENDPOINT STORAGE_S3_REGION STORAGE_S3_ACCESS_KEY_ID STORAGE_S3_SECRET_ACCESS_KEY
   BACKUP_HEARTBEAT_URL JWT_KEYS JWT_JWKS ANON_KEY_ASYMMETRIC SERVICE_ROLE_KEY_ASYMMETRIC SUPABASE_PUBLISHABLE_KEY SUPABASE_SECRET_KEY)
+# Chatwoot sí puede tener valor: prueba usa su propia cuenta en el mismo chat (decisión de
+# Sam, 2026-11-03; runbook chatwoot-bandeja). Lo que no puede es la cuenta real ni su número:
+# se exige abajo, y que los tokens no sean los de producción lo cubre el punto 1.
+CHATWOOT_DE_PRUEBA=(CHATWOOT_URL CHATWOOT_PLATFORM_TOKEN CHATWOOT_ACCOUNT_ID CHATWOOT_WEBHOOK_SECRET CHATWOOT_TENANT_ID
+  CHATWOOT_SERVICE_USER_ID CHATWOOT_INBOX_CLIENTES_ID CHATWOOT_INBOX_LEADS_ID CHATWOOT_TEAM_CLIENTES_ID
+  CHATWOOT_TEAM_LEADS_ID CHATWOOT_ROUTER_TOKEN WHATSAPP_NUMERO_CLIENTES)
+if [[ -n "${PV[CHATWOOT_ACCOUNT_ID]-}" ]]; then
+  # Sin el dato en producción vale 1: la cuenta «DTD Cargo», medida en el VPS.
+  if [[ "${PV[CHATWOOT_ACCOUNT_ID]}" == "${PRV[CHATWOOT_ACCOUNT_ID]:-1}" ]]; then ko "CHATWOOT_ACCOUNT_ID es la cuenta real de Chatwoot"
+  else ok "cuenta de Chatwoot propia de prueba"; fi
+fi
+if [[ -n "${PV[WHATSAPP_NUMERO_CLIENTES]-}" && "${PV[WHATSAPP_NUMERO_CLIENTES]}" == "${PRV[WHATSAPP_NUMERO_CLIENTES]-}" ]]; then
+  ko "WHATSAPP_NUMERO_CLIENTES es el número real de clientes"
+fi
 if [[ ! -f "${EXAMPLE}" ]]; then
   ko "no encuentro ${EXAMPLE}: sin el bloque de integraciones no se puede comprobar"
 else
@@ -202,6 +216,7 @@ else
     encendidas=()
     for k in "${bloque[@]}" "${INTEGRACIONES_EXTRA[@]}"; do
       [[ -n "${PV[${k}]-}" ]] || continue
+      [[ " ${CHATWOOT_DE_PRUEBA[*]} " == *" ${k} "* ]] && continue
       permitida=0
       for p in ${PERMITIDAS[@]+"${PERMITIDAS[@]}"}; do [[ "${p}" == "${k}" ]] && permitida=1; done
       (( permitida )) && av "${k} tiene valor y está permitida con --permitir" || encendidas+=("${k}")

@@ -7,7 +7,15 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TEXTO_SINTETICO, estadoCambiado, mensajeCreado } from "@/lib/studio/chatwoot/__tests__/webhook-fixtures";
+import {
+  NOMBRE_SINTETICO,
+  TEXTO_SINTETICO,
+  conversacionAsignada,
+  conversacionCreada,
+  conversacionSintetica,
+  estadoCambiado,
+  mensajeCreado,
+} from "@/lib/studio/chatwoot/__tests__/webhook-fixtures";
 
 const m = vi.hoisted(() => ({ admins: 0, procesar: vi.fn() }));
 vi.mock("@/lib/db/admin", () => ({
@@ -105,6 +113,27 @@ describe("POST /api/chatwoot/webhook (SDD-0585)", () => {
     const r = await POST(peticion(estadoCambiado()));
     expect(r.status).toBe(200);
     expect(m.procesar).toHaveBeenCalledTimes(1);
+  });
+
+  it("SDD-0587 · conversation_created y conversation_updated con asignado: procesan", async () => {
+    await POST(peticion(conversacionCreada()));
+    await POST(peticion(conversacionAsignada()));
+    const claves = m.procesar.mock.calls.map((c) => (c[1] as { clave: string }).clave);
+    expect(claves).toEqual(["conversation_created:12", "conversation_updated:12:7:1761760200.75"]);
+  });
+
+  it("SDD-0587 · conversation_updated sin cambio de asignado: 200 ignored, sin procesar", async () => {
+    const r = await POST(peticion(conversacionAsignada({ changed_attributes: [{ label_list: { previous_value: [], current_value: ["x"] } }] })));
+    expect(await r.json()).toEqual({ ok: true, ignored: "evento" });
+    expect(m.procesar).not.toHaveBeenCalled();
+  });
+
+  it("SDD-0587 · el contacto pasa aparte del evento y el nombre no vuelve en la respuesta", async () => {
+    const r = await POST(peticion(mensajeCreado({ conversation: conversacionSintetica({ channel: "Channel::Whatsapp" }) })));
+    expect(await r.text()).not.toContain(NOMBRE_SINTETICO);
+    const [ctx, evento] = m.procesar.mock.calls[0] as [{ contacto: unknown }, unknown];
+    expect(ctx.contacto).toEqual({ contactoId: 5, nombre: NOMBRE_SINTETICO, canal: "Channel::Whatsapp", asignadoEsBot: false });
+    expect(JSON.stringify(evento)).not.toContain(NOMBRE_SINTETICO);
   });
 
   it("si un manejador falló (evento fallido): 500, para que una reentrega lo procese", async () => {

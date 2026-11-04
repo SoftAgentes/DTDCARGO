@@ -81,21 +81,24 @@ Un id vacío apaga esa parte de la matriz.
 2. **Variables de la matriz** en el `.env` del VPS. Leads, recién en el corte.
 3. **Inicializador de revocación** (`rails/zz_dtd_revocar_sesiones.rb`), el cierre forzado de verdad:
    - antes, correr `bash infra/chatwoot/pruebas/prueba-revocar-sesiones.sh` en local: tiene que dar 0 fallas, con el control en rojo;
-   - copiar el inicializador y el `compose.yml` nuevos a `/srv/chatwoot` (sha256 igual al repo);
+   - copiar el inicializador a `/srv/chatwoot/rails/` (sha256 igual al repo);
+   - **no copiar el `compose.yml` de la rama:** el del VPS tiene montajes que todavía no están en ella, entre ellos la protección de `/register` de WhatsApp y los correos. Se le agregan a mano, con respaldo, las dos piezas de la revocación: `DTD_CHATWOOT_SERVICIO_ID` en el entorno y el montaje del inicializador;
    - cargar en `/srv/chatwoot/.env` `DTD_CHATWOOT_SERVICIO_ID` con el id del usuario de servicio (el mismo de `CHATWOOT_SERVICE_USER_ID`);
    - recrear `rails`;
    - comprobar en el log de arranque «[DTD] revocación de sesiones activa».
 
    Sin la variable, la ruta responde 503 y Studio deja la baja «pendiente» (no cae al respaldo).
-4. **Script del panel** (`DASHBOARD_SCRIPTS`), complemento para que salir de Studio cierre la sesión del chat en ese navegador:
+4. **Script del panel** (`DASHBOARD_SCRIPTS`), complemento para que salir de Studio cierre la sesión del chat en ese navegador. **Cargado el 2026-11-03** con el OK de Sam, igual al archivo por sha256 (evidencia y marcha atrás en `/srv/ops/evidencias/chatwoot-e2-config-20261103T213453Z`). Si el archivo cambia:
    - en `https://chat.dtdcargo.com/super_admin` (detrás de Cloudflare Access), ir a Settings › «Dashboard Scripts»;
    - pegar el contenido de `infra/chatwoot/panel/dashboard-scripts.html`, comentario incluido;
-   - comprobar: abrir la Bandeja, salir de Studio y abrir `chat.dtdcargo.com` en ese navegador. Tiene que pedir login.
+   - comprobar, ya con Studio publicado: abrir la Bandeja, salir de Studio y abrir `chat.dtdcargo.com` en ese navegador. Tiene que pedir login.
 
    Sin el script, la salida espera 4 s y sigue al login: la sesión del chat queda abierta en ese navegador hasta la próxima entrada a Studio, como antes del 2.7.
-5. **Apagar «olvidé mi clave» para los agentes.** CE 4.19.1 no tiene un interruptor por rol. La alternativa es una regla de Traefik de E1 que responda 403 a `POST /auth/password` en `chat.dtdcargo.com`:
+5. **Apagar «olvidé mi clave» para los agentes.** CE 4.19.1 no tiene un interruptor por rol. La alternativa es una regla de Traefik que responde 403 a `POST /auth/password` en `chat.dtdcargo.com`. Está escrita como etiquetas de `rails` en `infra/chatwoot/compose.yml` (routers `-clave`, middleware `-nadie`), y `infra/chatwoot/pruebas/prueba-regla-clave.sh` la ensaya contra Rails real, con control de correo:
+   - en el VPS se agregaron a mano al compose vivo, con respaldo y sin copiar el del repo, el 2026-11-04: 80 s de corte medidos, evidencia en `/srv/ops/evidencias/chatwoot-rails-20261104T082839Z`;
    - un admin que olvide su clave la cambia desde el superadmin;
    - **riesgo mientras no esté:** un agente puede pedir una clave nueva a su correo y entrar directo. Ve lo mismo que desde Studio, porque los permisos son de la cuenta, y la baja lo saca igual.
+   - **Lo que no cubre:** un correo de cambio de clave enviado antes de instalarla sirve hasta que venza su token, porque `PUT /auth/password` sigue abierto.
 
 ## Alertas de salud y qué hacer
 

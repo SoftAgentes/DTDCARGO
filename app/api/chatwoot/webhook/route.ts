@@ -23,7 +23,7 @@ import { createAdminClient } from "@/lib/db/admin";
 import { chatwootWebhookConfig } from "@/lib/studio/chatwoot/config";
 import { leerCuerpoAcotado } from "@/lib/studio/chatwoot/webhook-body";
 import { verificarFirmaChatwoot } from "@/lib/studio/chatwoot/webhook-signature";
-import { interpretarEvento } from "@/lib/studio/chatwoot/webhook-events";
+import { interpretarContactoDelEvento, interpretarEvento } from "@/lib/studio/chatwoot/webhook-events";
 import { procesarEventoChatwoot } from "@/lib/studio/chatwoot/webhook-procesar";
 
 export const runtime = "nodejs";
@@ -56,7 +56,10 @@ export async function POST(req: Request) {
   if (evento.accountId !== cfg.accountId) return NextResponse.json({ ok: true, ignored: "cuenta" });
 
   try {
-    const r = await procesarEventoChatwoot({ admin: createAdminClient(), tenantId: cfg.tenantId }, evento);
+    const r = await procesarEventoChatwoot(
+      { admin: createAdminClient(), tenantId: cfg.tenantId, contacto: interpretarContactoDelEvento(payload) },
+      evento,
+    );
     if (r.estado === "fallido") return NextResponse.json({ ok: false, error: "manejador" }, { status: 500 });
     return NextResponse.json({ ok: true, resultado: r.estado });
   } catch (e) {
