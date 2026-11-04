@@ -86,7 +86,7 @@
             "lib/studio/chatwoot/links-queries.ts:20",
             "lib/studio/chatwoot/links-queries.ts:34",
             "lib/studio/chatwoot/purga.ts:62",
-            "lib/studio/chatwoot/webhook-procesar.ts:84"
+            "lib/studio/chatwoot/webhook-procesar.ts:90"
           ]
         }
       ],
@@ -117,7 +117,7 @@
           "degradation": "desvincularAgente sin la tabla no borra nada y responde el mismo mensaje traducido."
         },
         {
-          "site": "lib/studio/chatwoot/webhook-procesar.ts:87",
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:93",
           "contains": "const vinculos = (data ?? []) as { user_id: string; chatwoot_user_id: number }[];",
           "degradation": "El aviso push del webhook sin la tabla no tiene vínculos: data llega null, la lista queda vacía y no se encola ningún push. El evento ya quedó registrado (0504)."
         },
@@ -161,16 +161,16 @@
           "name": "chatwoot_cerrar_evento",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/webhook-procesar.ts:140",
-            "lib/studio/chatwoot/webhook-procesar.ts:145"
+            "lib/studio/chatwoot/webhook-procesar.ts:170",
+            "lib/studio/chatwoot/webhook-procesar.ts:175"
           ]
         },
         {
           "name": "chatwoot_tomar_pendientes",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/webhook-procesar.ts:174",
-            "lib/studio/chatwoot/webhook-procesar.ts:177"
+            "lib/studio/chatwoot/webhook-procesar.ts:204",
+            "lib/studio/chatwoot/webhook-procesar.ts:207"
           ]
         },
         {
@@ -203,12 +203,12 @@
           "degradation": "La suscripción Realtime a una tabla que no existe no entrega cambios: el badge se queda con lo inicial del layout (vacío sin 0504) y no pinta nada."
         },
         {
-          "site": "lib/studio/chatwoot/webhook-procesar.ts:145",
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:175",
           "contains": "if (error) console.warn(`[chatwoot] chatwoot_cerrar_evento: ${error.code ?? \"sin código\"}`);",
           "degradation": "Sin la función de cierre (42883/PGRST202) solo se registra el código: no hay evento que cerrar, porque sin 0504 tampoco existe chatwoot_registrar_evento y la ruta ya respondió 500 antes."
         },
         {
-          "site": "lib/studio/chatwoot/webhook-procesar.ts:178",
+          "site": "lib/studio/chatwoot/webhook-procesar.ts:208",
           "contains": "return { tomados: 0, procesados: 0, fallidos: 0, omitido: true };",
           "degradation": "Sin 0504 el cron /api/cron/chatwoot-reintentos no encuentra la RPC (42883/PGRST202): registra el código y responde 200 con omitido, sin tomar ni reprocesar nada. No rompe el resto de los crons."
         },

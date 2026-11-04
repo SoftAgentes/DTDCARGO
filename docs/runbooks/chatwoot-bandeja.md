@@ -95,6 +95,8 @@ Medidas en el VPS el 2026-11-03. Van después de la 0505, en `/srv/dtd-cargo/.en
 | Fuente WhatsApp, teléfono y BSUID de un mensaje real | Número de prueba | **Al publicar:** una bandeja de WhatsApp sin Meta dispararía sus trabajos de plantillas y salud contra Meta |
 | El panel dentro de prueba | — | Sin cubrir: pide agregar `https://prueba.dtdcargo.com` a `CHATWOOT_FRAME_ANCESTORS`, que recrea `rails` |
 
+**Cómo se repite.** `infra/chatwoot/pruebas/prueba-punta-a-punta.sh <N>` y `prueba-reproceso.sh <N>`, en el VPS y en ese orden, copiados a `/srv/ops/paquetes` y con `</dev/null`. Los dos se niegan si `CHATWOOT_ACCOUNT_ID` no es 2, y el reproceso comprueba un aviso por evento en cada camino. Hacen falta la imagen, las variables y secretos, el webhook y la ruta abierta en el borde. Al terminar, el cierre es el de arriba: la cuenta no se borra.
+
 ## Diagnóstico
 
 | Síntoma | Causa probable | Qué mirar o hacer |

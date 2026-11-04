@@ -45,7 +45,11 @@
 - **Cuenta y app de prueba: hechas el 2026-11-03,** ensayadas antes en local. Cuenta 2, usuarios 4 y 5, bandejas 6 (API) y 7 (correo), equipos 3 y 4. Los tokens están en `secretos/platform-app-prueba.env`, 600. Evidencia en `/srv/ops/evidencias/chatwoot-cuenta-prueba-20261103T224846Z`. Con el token real, 401 sobre la cuenta 1 y su usuario, y 200 sobre la 2. **Sin webhook todavía.** Al terminar la prueba: borrar webhook, suspender cuenta y revocar token, sin borrar la cuenta.
 - **Inicializador y regla de Traefik:** sin instalar en el VPS. `prueba-revocar-sesiones.sh` ya dio 0 fallas el 2026-11-03. La regla está escrita en el compose del repo y `prueba-regla-clave.sh` dio 0 fallas el mismo día, con Rails real, control de correo y control sin la regla. En el VPS se agregan a mano, sin copiar el compose. Recrear `rails` lleva aviso previo al Director General.
 - Registrar la hora de la #352 (`8b6b3a0e1`, 2026-11-03T20:01:19Z) en la SDD-0593 con el próximo cambio de esa zona.
-- Traer `main` a la punta una sola vez, al abrirse el turno de la tanda A.
+- **Prueba con la tanda A, 2026-11-04:** imagen, migraciones, variables y secretos cargados, webhook creado y ruta abierta en el borde por el Director General. Evidencia en `/srv/ops/evidencias/chatwoot-e2e-prueba/`. La primera corrida de punta a punta dio 0 fallas sobre `5fbb25045`.
+- **El ensayo destapó avisos repetidos (E2-D55):** cada reintento encolaba otro. El Director General ordenó corregirlo antes de producción: «corrígelo ahora». Sin tocar migraciones.
+- **`verificar-aislamiento.sh` acepta la cuenta propia de Chatwoot:** con el `.env.example` de la rama daba FALLÓ en esas variables. La copia de `/srv/ops` en el VPS sigue siendo la vieja, y `/srv/dtd-cargo-staging/.env.example` también; copiar los dos juntos.
+- **Cron en prueba, sin instalar:** `dtd-cargo-cron:local` es la misma imagen en los dos proyectos. Las rutas se corren a mano desde el contenedor.
+- **Al cerrar la prueba** (lo avisa el Director General): cerrar la ruta, borrar el webhook, suspender la cuenta, revocar el token, apagar el flag `chatwoot_inbox` y borrar el vínculo del agente 5 en prueba. La clave de la puerta se rota después, porque se imprimió en esta sesión; Sam guarda la nueva.
 
 ## FUERA DE ALCANCE DETECTADO
 
