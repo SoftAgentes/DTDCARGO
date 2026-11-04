@@ -17,14 +17,14 @@ La migración mecánica la hizo un subagente, solo editando, en 39 archivos. La 
 
 ## Validación
 
-- Tipos, ESLint, Vitest, `docs:check`, `components:check`: NO EJECUTADOS. El Director pidió solo edición en esta rama hasta dar turno.
+- Turno liviano del Director sobre `c79f4529d`: tipos PASÓ; ESLint de lo tocado PASÓ; Vitest focal de 33 carpetas PASÓ (190 archivos, 2.105 pruebas); `docs:check` y `components:check` PASARON.
+- **Verde falso corregido después de ese turno:** la expresión de `pestanas-contract.test.ts` no encontraba ninguna pestaña, así que su segunda prueba no vigilaba nada. Reescrita con un piso de 25 etiquetas, y un mutante con estilo en línea muere.
 - `git diff --check`: PASÓ.
 - `pnpm verify`: NO EJECUTADO.
 - Vista en prueba: NO EJECUTADA. Nada de este tramo se ha visto en pantalla, en claro ni en oscuro.
 
 ## Pendientes de esta tarea
 
-- Turno para tipos, lint y pruebas focales.
 - Verlo en una imagen de prueba, en especial selectores compactos y Nómina.
 - CRM, cuando termine Chatwoot: quitar `app/studio/(app)/crm/` de `PENDIENTES` en `pestanas-contract.test.ts`.
 

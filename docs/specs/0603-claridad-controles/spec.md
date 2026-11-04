@@ -120,6 +120,10 @@ Rama `codex/0603-t2-pestanas`, partiendo del tramo 1. Sin PR hasta que el tramo 
 
 **Dos semánticas, una forma.** Los grupos que ya eran `tablist` siguen siéndolo. Los 12 hechos a mano nunca lo fueron y no tienen flechas ni `tabpanel`, que A11Y-01 §11 exige a un `tablist`: quedan como `role="group"` con botones `aria-pressed`. Se ven igual. Ser pestañas formales sería otro cambio, de comportamiento.
 
+**No es solo visual.** En esos 12 grupos cambia lo que anuncia un lector de pantalla: antes eran botones sin estado, y ahora se anuncian como grupo con nombre y botones presionados o no. Es una mejora, pero un cambio de lo que oye quien lo usa. No cambia el orden de foco ni el teclado.
+
+**Los tramos se ven juntos, se fusionan por separado.** La imagen de prueba sale de esta rama, que contiene el tramo 1: Sam ve los dos a la vez, y el tramo 1 solo no lo ve nadie. Cada tramo lleva su `verify` sobre su SHA final.
+
 **Fuera, a propósito:**
 - CRM: `KommoClient.tsx`, `KommoBoardView.tsx`, `LeadDrawer.tsx`, hasta que termine Chatwoot. Son las pestañas de la captura de Sam, y este tramo no las cambia todavía.
 - Parecen pestañas pero son otro patrón, sin decidir: `ReportesClient.tsx:363` (nivel 1, con opciones deshabilitadas), `InventarioClient.tsx:72`, `ConversationList.tsx:123`, `DocumentosHubClient.tsx:365`, `DiplomasClient.tsx:90`, `ComposeView.tsx:243`, `DispatchDashboardClient.tsx:72`, `LangToggle.tsx:69`.

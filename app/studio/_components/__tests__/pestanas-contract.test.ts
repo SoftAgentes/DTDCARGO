@@ -36,13 +36,20 @@ describe("pestañas · SDD-0603", () => {
   });
 
   it("toda pestaña formal usa su clase, sin estilo en línea", () => {
-    const sueltas: string[] = [];
-    for (const f of archivos) {
-      const s = readFileSync(join(process.cwd(), f), "utf8");
-      for (const m of s.matchAll(/<button\b(?:(?!>\s*\n?\s*[{\w<]).)*?role="tab"[\s\S]*?>/g)) {
-        if (!m[0].includes('className="studio-tab"') || /\bstyle=/.test(m[0])) sueltas.push(f);
+    const etiquetas: { archivo: string; texto: string }[] = [];
+    for (const archivo of archivos) {
+      const s = readFileSync(join(process.cwd(), archivo), "utf8");
+      for (let i = s.indexOf('role="tab"'); i !== -1; i = s.indexOf('role="tab"', i + 1)) {
+        const inicio = Math.max(s.lastIndexOf("<button", i), s.lastIndexOf("<Link", i), s.lastIndexOf("<a ", i));
+        const cierre = s.slice(i).search(/\n\s*>/);
+        etiquetas.push({ archivo, texto: s.slice(inicio, cierre < 0 ? i + 400 : i + cierre) });
       }
     }
+    // Sin este piso, una búsqueda que no encuentra nada también daría verde.
+    expect(etiquetas.length).toBeGreaterThanOrEqual(25);
+    const sueltas = etiquetas
+      .filter((e) => !e.texto.includes('className="studio-tab"') || /\bstyle=/.test(e.texto))
+      .map((e) => e.archivo);
     expect(sueltas).toEqual([]);
   });
 });
