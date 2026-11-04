@@ -3,7 +3,7 @@
 Fecha: 2026-11-04. Task ID: `sdd-0602-origen-publico`.
 Owner / sesión escritora: `origen-publico-sad-jones` (Worker Claude Code, la misma sesión de las SDD-0597 y 0600).
 
-Estado: **PR en borrador, esperando el aviso del Director General para entrar en la cola, después de la #364.** Sin traer `main` a propósito: el cruce se midió con `merge-tree` contra `615adf39e` y no hay conflictos. Hasta su aviso no se trae `main` ni se publica, aunque Auto-fix avise. La cabeza publicada es `0c0cce70c`; los commits locales posteriores solo traen documentación y salen con ese aviso. `verify` no se corre en esta rama: lo cubre el del Director General sobre el commit fijo de `main`.
+Estado: **PR en borrador, con `main` traído una vez en su turno (`d62b06f6b`, después de la #364). La saca de borrador, la vigila y la fusiona el Director General.** Choque real solo en `lib/runtime/__tests__/next-config.test.ts`: dos altas al final, se conservan las dos. El índice de specs se regeneró sobre el merge. `verify` no se corre en esta rama: lo cubre el del Director General sobre el commit fijo de `main`.
 
 - **Worktree:** `DTD-worktrees/origen-publico`, con `node_modules` propio.
 - **Rama:** `codex/origen-publico`, desde `ec56a4ac4`.
@@ -38,7 +38,9 @@ El detalle está en la spec. Por SHA:
 | `pnpm verify` | | NO EJECUTADO en esta rama, por decisión del Director General: lo cubre el que él corre sobre el commit fijo de `main` antes de publicar la tanda A, con esta PR adentro. Si destapa algo de aquí, me llama |
 | `pnpm knowledge:status` | | NO EJECUTADO en este worktree |
 
-Entre `ac6d20191` y la cabeza solo cambian una prueba de la guarda y documentación: la imagen medida tiene el código final de la app. El cierre de `typecheck`, `eslint`, `docs:check` y `sdd:check` está en la PR.
+Entre `ac6d20191` y el último commit propio solo cambian una prueba de la guarda y documentación: la imagen medida tiene el código final de esta spec, sin lo que trajo `main` después.
+
+**Sobre el merge con `d62b06f6b`, `86abe5600`:** la guarda (31 pruebas, con las 3 rutas nuevas de `main` en su barrido), las pruebas de esta spec con `app/entrar` y `next-config` (229 en 15 archivos, un worker), `typecheck`, `eslint` de lo resuelto, `docs:check` y `sdd:check`: PASÓ. El diff contra `main` sigue siendo de 21 archivos. La imagen no se volvió a medir sobre el merge.
 
 ## COMMITS
 
@@ -58,7 +60,7 @@ Los SHA quedan en la PR. La historia conserva el primer intento:
 
 ## PENDIENTES DE ESTA TAREA
 
-- [ ] Traer `main` una vez y publicar, cuando el Director General avise. La #369 va después de la #364. `docs/specs/README.md` choca en GitHub cada vez que se mueve `main`, porque allá no está el driver.
+- [x] Traer `main` una vez y publicar, con el aviso del Director General. `docs/specs/README.md` choca en GitHub cada vez que se mueve `main`, porque allá no está el driver.
 - [ ] Seguir en prueba el enlace desde `/correo/` hasta `/portal`, cuando suba `main` allí y él avise. Lo hago yo.
 - [ ] Al comprobarlo, borrar la nota de memoria `entrar-plan-b-429`.
 
