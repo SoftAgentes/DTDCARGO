@@ -432,7 +432,7 @@
   color: var(--ink-inv);
 }
 .studio-btn-ghost:focus-visible {
-  outline: 2px solid var(--studio-wine);
+  outline: 2px solid var(--wine-text);
   outline-offset: 2px;
 }
 
@@ -523,6 +523,15 @@
 @media (max-width: 767px) {
   .studio-densidad__texto {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-btn {
+    transition: none;
+  }
+  .studio-btn:active:not(:disabled) {
+    transform: none;
   }
 }
 
@@ -1522,7 +1531,7 @@ details[open] > .calc-why-summary .calc-why-chev {
 }
 [data-density="compact"] .studio-input {
   min-height: 36px;
-  padding: 6px 10px;
+  padding: var(--s-1) var(--s-3);
   font-size: 13.5px;
 }
 [data-density="compact"] .studio-tab {

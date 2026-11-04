@@ -125,7 +125,7 @@ describe("claridad de controles · SDD-0603", () => {
 
   it("la vista compacta conserva el mínimo táctil en sus tokens", () => {
     const compacto = tokensCss.slice(tokensCss.indexOf('[data-density="compact"]'));
-    expect(valor(compacto, "--sb-item-y")).toBe("7px");
-    expect(valor(bloqueClaro, "--sb-item-y")).toBe("11px");
+    expect(valor(compacto, "--sb-item-y")).toBe("8px");
+    expect(valor(bloqueClaro, "--sb-item-y")).toBe("12px");
   });
 });

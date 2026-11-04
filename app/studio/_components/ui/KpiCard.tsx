@@ -43,11 +43,11 @@ export function KpiCard({
 
   const showHighlight = highlightWhenPositive && isPositive;
 
-  // En feature el texto va sobre el vino → cream (AA). El valor mantiene su color
-  // salvo que sea feature (ahí va cream/blanco para leer sobre el degradado).
-  const valColor = feature ? "var(--ink-inv)" : valueColor;
-  const labelColor = feature ? "var(--ink-inv)" : "var(--ink)";
-  const subColor = feature ? "var(--ink-inv-soft)" : "var(--ink-soft)";
+  // En feature el texto va sobre el vino, que es oscuro en los dos temas: --ink-side*,
+  // que no voltea. --ink-inv daba navy sobre vino en oscuro (2,51:1, SDD-0603).
+  const valColor = feature ? "var(--ink-side-strong)" : valueColor;
+  const labelColor = feature ? "var(--ink-side-strong)" : "var(--ink)";
+  const subColor = feature ? "var(--ink-side)" : "var(--ink-soft)";
 
   return (
     <div

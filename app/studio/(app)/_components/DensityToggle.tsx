@@ -28,6 +28,7 @@ export function DensityToggle() {
     <button
       type="button"
       className="studio-densidad"
+      aria-label="Compacto"
       aria-pressed={compacto}
       title={compacto ? "Volver a la vista normal" : "Ver más compacto"}
       onClick={() => applyDensity(compacto ? "normal" : "compact")}

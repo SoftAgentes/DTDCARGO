@@ -110,4 +110,4 @@ Sin migraciones, rutas, acciones de servidor, permisos ni dependencias nuevas. N
 
 - `pnpm verify` se corre con turno del Director.
 - Sin PR hasta que el Director dé turno. La publicación a producción sigue congelada.
-- `Badge` lleva letra de 12 a 13,5 px en lugar de 9,5 a 11,5: en tablas angostas puede recortar. No se midió pantalla por pantalla en este tramo; se comprueba en prueba antes de fusionar.
+- `Badge` lleva letra de 12 a 13,5 px en lugar de 9,5 a 11,5, pero pierde su relleno lateral. Medido con Nunito Sans real: el estado más largo, «En bodega VE», pasa de 97,8 a 99,9 px en tamaño `sm`, y mide 107,2 px en `md`. No se midió pantalla por pantalla; se comprueba en prueba antes de fusionar.
