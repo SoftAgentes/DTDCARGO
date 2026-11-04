@@ -522,6 +522,7 @@ El preflight exige la 0503, la 0504 y la 0506, y aborta si la 0513 ya se aplicó
 - **UTM solo si llegan a `/registro`, y hoy casi ninguno llega.** Ningún enlace del sitio los lleva: los que apuntan ahí usan `?origen=`, `?est=` o `?ref=`, y los UTM de `/enlaces` van a otras páginas. Así que, por ahora, la atribución guardada es sobre todo el `origen`, salvo que un anuncio apunte directo a `/registro`. Conservarlos mientras la persona navega es una decisión aparte (cookie o almacenamiento del navegador, con su análisis de privacidad): **no se hizo**.
 - **`conversation_updated` puede llegar antes que la tarjeta:** no hace nada, y el asesor llega con el siguiente mensaje, que trae el asignado.
 - **Canales fuera del mapa** (`Channel::WebWidget`, Telegram, SMS y otros) no crean tarjeta. Si se conecta uno, hay que sumarlo a `fuenteDeCanal` y al `check` de `crm_tarjetas.fuente`.
+- **Una conversación que abre DTD también crea tarjeta:** visto en producción el 2026-11-04. Está al final de esta spec, en «Pendiente de E6», y lo decide Sam.
 
 ### 16.6 Aceptación de 6.4
 
@@ -612,6 +613,43 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 - **OK literal de Sam:** «Doy el mandato», en el chat del Director General, a «¿Das el mandato para terminar las fases 2, 3 y 4 sin detenerme?», 2026-11-03 ~20:10Z. Punto 2 del texto que vio: «Aplicar, primero en prueba y luego en dtd-cargo, de a una y con lectura previa». Registrado a nombre del Director General; el texto íntegro está en `AUTORIZACION.txt` de cada evidencia.
 - **Ensayo en prueba:** las seis aplicadas de a una el 2026-11-04 sobre `5fbb25045`. Sobre la imagen de `56cb9f6d5`, sin cambio de blobs, `prueba-punta-a-punta.sh` dio 48 PASÓ y `prueba-reproceso.sh` 35 PASÓ, con 0 fallas. Evidencia en `/srv/ops/evidencias/chatwoot-e2e-prueba/`. Lo que depende de un WhatsApp real se prueba al publicar (`docs/runbooks/chatwoot-bandeja.md`).
 - **Respaldo previo:** no se tomó uno antes de este apply. Fue una omisión del Director General, no una decisión. El más reciente es `dtd-cargo-20261103T170055Z`, unas 11,5 horas antes, el que tomó para la 0510 y la 0511. Él lo acepta porque las seis son objetos nuevos y aditivos y la marcha atrás no depende de restaurar. El automático corre a las 06:00Z y la publicación lleva el suyo.
-- **Merge:** lo hace el Director General después de leer el CI; su hora se registra al fusionar.
+- **Merge:** #336, 2026-11-04T08:19:50Z, `6cc14bd9c`; #337 (el tablero), 2026-11-04T09:05:05Z, `60d265fbc`; #364, 2026-11-04T09:55:14Z, `d62b06f6b`. Todas por el Director General.
 - **Lectura de esta nota:** los datos salen de `IDENTIDAD.txt` y `registro.txt` de cada evidencia. Este cierre no consultó tablas de producción. El md5 y los bytes se comprobaron contra el archivo al sellar.
 - **Espera:** salieron de `pendingBelowCutoff` y de las declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Las pruebas que afirmaban la espera ahora afirman que salió. Los comentarios condicionales del código («sin la 0506…») siguen siendo ciertos para otro entorno y no cambian. La web no cambia ni se publica con este cierre.
+
+## 2026-11-04 · Al publicar: la prueba de WhatsApp y un pendiente de E6
+
+Publicada en `dtd-cargo` la imagen de `fe35eb2d1` a las 12:41:54Z, con el webhook de la cuenta 1 creado por Sam a las 12:37:58Z; las dos horas son las que reportó el Director General. Lo de abajo son conteos y horas, sin contenido de mensajes ni datos de personas.
+
+### La prueba desde el 5202
+
+| # | Medida | Estado |
+|---|---|---|
+| W1 | 2 `message_created`, 13:08:07Z y 13:08:41Z, `procesado` al primer intento | PASÓ |
+| W2 | 1 tarjeta a las 13:08:08Z: `whatsapp_clientes`, etapa `nuevo`, con teléfono y contacto, sin ficha | PASÓ |
+| W3 | Bandeja 2, 2 no leídos | PASÓ |
+| W4 | Sam ve su tarjeta en Embudos. Contestó «Sí, la veo»; es su ojo, sin medida aparte | PASÓ, según Sam |
+| W5 | Pasar la tarjeta a Perdido con motivo. A las 21:49Z no se ha hecho. Sí hay 2 cambios `manual` con actor y sin motivo: 21:02:28Z, la de Instagram, `nuevo` → `negociacion`; 21:02:31Z, la de WhatsApp, `nuevo` → `aceptado_esperando_carga`. Prueban que mover deja historial | PENDIENTE |
+| W6 | Volver a escribir desde Perdido: depende de W5. 0 tareas de recontacto a las 21:49Z | PENDIENTE |
+| W7 | El segundo mensaje no duplicó la tarjeta. Falta repetirlo después de W6 | Parcial |
+| W8 | Sin agentes vinculados; el asesor ya se probó en prueba | NO APLICA |
+| BSUID | Solo se guarda de un usuario sin teléfono, y este lo trae | NO VERIFICABLE |
+
+La conversación existía desde 2026-10-30T17:01:12Z, así que la tarjeta nació del mensaje entrante y no de `conversation_created`. Es el camino que prueba no podía cubrir (`docs/runbooks/chatwoot-bandeja.md`). Que esos dos mensajes sean de Sam es inferencia por la hora y la bandeja, hasta que lo confirme.
+
+### Pendiente de E6: una conversación que abre DTD crea una tarjeta de lead
+
+**Lo medido** (Chatwoot y `dtd-cargo`, 19:50Z). En la bandeja 5, Instagram, desde el corte de `rails` de las 08:29:22Z hay 0 entrantes, 2 salientes sin remitente (18:22:02Z y 19:33:20Z) y 1 mensaje de actividad (19:33:23Z). El último entrante es de 2026-11-03T14:31:08Z. El saliente de las 19:33:20Z abrió una conversación nueva, y a las 19:33:22Z nació una tarjeta `instagram`, etapa `nuevo`, sin teléfono ni ficha y con contacto. Esa persona no había escrito en esa conversación.
+
+**Lo leído.**
+- `lib/studio/chatwoot/entrada-leads.ts:25` deja entrar todo `conversation_created`, sin mirar quién escribió. Pasa igual con una conversación que un agente abra desde Chatwoot en una bandeja con fuente.
+- En Chatwoot 4.19.1, `app/jobs/webhooks/instagram_events_job.rb` trata `is_echo` como un saliente de la cuenta.
+- En WhatsApp, `app/jobs/webhooks/whatsapp_events_job.rb` hace lo mismo con el campo `smb_message_echoes`, y `app/services/whatsapp/incoming_message_base_service.rb:172` deja el remitente vacío.
+
+**Lo inferido.** Alguien de DTD escribió desde la app de Instagram y a Chatwoot le llegó el eco. Sale de ver saliente sin remitente; no se comprobó en Meta. Si es así, la entrada de Meta a Chatwoot sigue viva tras el corte.
+
+**Lo no medido.**
+- Si el 5202 o cualquier otra bandeja con eco crearía una tarjeta igual cuando alguien de DTD escribe desde el teléfono. El código de Chatwoot lo permite en WhatsApp si Meta entrega `smb_message_echoes`; no se sabe si los entrega para ese número.
+- El primer entrante real de Instagram tras el corte: sigue sin llegar.
+
+**La decisión es de Sam:** si alguien a quien DTD le escribió primero cuenta como lead. Se la presenta el Director General. El código no cambia hasta que decida, y las sesiones no borran ni mueven esa tarjeta. Sam la movió a `negociacion` a las 21:02:28Z; eso no se toma como su decisión.

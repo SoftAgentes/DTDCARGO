@@ -359,6 +359,7 @@ const SECTIONS: AdminSection[] = [
     sddRef: "SDD-0020",
     href: "/studio/admin/agentes",
   },
+  { id: "chatwoot-updates", group: "PRO", label: "Actualizaciones de Chatwoot", icon: "refresh", description: "Versión instalada de la Bandeja, la publicada y qué trae cada una. Pedir una actualización la deja registrada; no instala nada.", href: "/studio/admin/actualizaciones", sddRef: "SDD-0588" },
 ];
 
 const GROUP_ORDER: SectionGroup[] = ["BÁSICO", "MARCA", "INTERMEDIO", "PRO"];

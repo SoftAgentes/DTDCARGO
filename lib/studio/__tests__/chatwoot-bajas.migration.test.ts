@@ -9,8 +9,8 @@
  * CONTROL ROJO: sin 0508 el contrato cae en la primera aserción (la purga no existe).
  * MUTANTES: cada uno es una 0508 coherente con un defecto y tiene que caer en
  * la aserción que lo nombra.
- * PENDIENTE: la 0508 está declarada en migrations-baseline.json hasta que Sam
- * la autorice y se aplique.
+ * APLICADA: la 0508 salió de la espera el 2026-11-04 (runbook §6); una prueba lo
+ * fija.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";

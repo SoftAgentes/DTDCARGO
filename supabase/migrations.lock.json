@@ -3115,10 +3115,28 @@
         "forma": "exacta"
       }
     },
+    "0507_chatwoot_versiones": {
+      "sha256": "852d9adac1653ccefb88da730182d53b0a4cb753b2d8851387c1405d5fbdf489",
+      "md5": "a04d4f7a18f700146e8cf7580da01d0a",
+      "bytes": 6532,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
+    },
     "0508_chatwoot_bajas_purga": {
       "sha256": "5174fb2d63ed8b1d02e268d70bbb8094a295f69057dbe30950e121f6c63eff5b",
       "md5": "3439930d2ee8d7b055fc43f7c2f83270",
       "bytes": 5295,
+      "ledger": {
+        "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
+    },
+    "0509_chatwoot_version_analyses": {
+      "sha256": "081a57aa5d6107a1cbf18dd11b11a800ca06cd984c15f6eead1cedbe119906d3",
+      "md5": "563f4ce0987a33876d5340000b28c90c",
+      "bytes": 4966,
       "ledger": {
         "fecha": "2026-11-04",
         "forma": "exacta"
