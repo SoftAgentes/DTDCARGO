@@ -10,13 +10,13 @@ describe("DensityToggle · SDD-0603", () => {
   });
   afterEach(cleanup);
 
-  it("nace en normal y sin marcar", () => {
+  it("sin elección previa, nace marcado: compacto es el predeterminado", () => {
     render(<DensityToggle />);
-    expect(screen.getByRole("button", { name: "Compacto" }).getAttribute("aria-pressed")).toBe("false");
-    expect(document.documentElement.dataset.density).toBeUndefined();
+    expect(screen.getByRole("button", { name: "Compacto" }).getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("al oprimirlo aplica compacto, lo guarda y se marca", () => {
+  it("al oprimirlo desde normal aplica compacto, lo guarda y se marca", () => {
+    localStorage.setItem(DENSITY_KEY, "normal");
     render(<DensityToggle />);
     act(() => {
       fireEvent.click(screen.getByRole("button", { name: "Compacto" }));

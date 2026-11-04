@@ -378,8 +378,9 @@ cumplirlas todas.
 - `xs` (32 px) · chips, badges interactivas, micro-acciones en cells.
 - `min-width: max-content` para evitar reflow entre estados.
 - `gap: var(--s-2)` entre icono y label.
-- Densidad: el botón «Compacto» de la barra superior (`DensityToggle`) cambia la
-  preferencia del usuario. Nada que se oprima baja de 32 px (SDD-0603).
+- Densidad: el Studio abre compacto y oscuro por defecto; el botón «Compacto» de la
+  barra superior (`DensityToggle`) y el del tema cambian la preferencia del usuario.
+  Nada que se oprima baja de 32 px (SDD-0603).
 
 ### Regla 3 · Estados (anti-doble-submit + feedback)
 

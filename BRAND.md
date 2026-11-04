@@ -305,7 +305,7 @@ Aprobada por Sam el 2026-11-04. Aplica a Studio y Portal, y se adopta por tramos
 - **Lo que solo se lee** es texto. Los estados van con texto e icono, sin cajón.
 - **El vino** queda para la acción principal y la identidad. **La selección** (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con icono vino. Es una excepción registrada a VIS-01 §3.
 - **Las tarjetas** conservan su borde suave: el contorno fuerte queda para lo oprimible.
-- **Vista «Compacto»:** cada persona la elige en la barra superior. Nada que se oprima baja de 32 px.
+- **Vista predeterminada:** compacta y en tema oscuro; cada persona puede cambiarlas en la barra superior. Nada que se oprima baja de 32 px. Al imprimir se pasa a claro.
 
 ---
 

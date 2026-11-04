@@ -484,9 +484,9 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 - **Fecha:** 2026-11-04
 - **Tipo:** Cambio normativo, con excepción a VIS-01 §3 en el color de selección
 - **Estado:** Aprobada por Sam; se adopta por tramos (SDD-0603). Hasta fusionar cada tramo, producción sigue como estaba.
-- **Autorizado por:** Sam (founder). Literal, por selector, viendo este texto y el BRAND-CHECK: «Apruebo, en azul (Recommended)».
+- **Autorizado por:** Sam (founder). Literal, por selector, viendo el texto y el BRAND-CHECK: «Apruebo, en azul (Recommended)». Después, por chat, sobre los predeterminados: «que damos con compacto y prederteminado ocuro».
 - **Aplica a:** Studio y Portal. La web pública no cambia.
-- **Decisión:** Lo que se oprime lleva relleno o contorno de tinta; lo que avisa es una franja plana sin contorno; los estados son texto con icono, sin cajón. El vino queda para la acción principal y la identidad. La selección (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con icono vino. Cada persona puede elegir la vista «Compacto»; nada que se oprima baja de 32 px.
+- **Decisión:** Lo que se oprime lleva relleno o contorno de tinta; lo que avisa es una franja plana sin contorno; los estados son texto con icono, sin cajón. El vino queda para la acción principal y la identidad. La selección (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con icono vino. La vista predeterminada es compacta y en tema oscuro; cada persona puede cambiarlas. Nada que se oprima baja de 32 px.
 - **Contexto:** el contorno del botón secundario y de los campos medía 1,48:1 contra la tarjeta (mínimo 3:1), y botones, avisos y estados compartían el mismo cajón claro.
 - **Excepción:** VIS-01 §3 asigna la selección al vino. Un relleno vino en cada pestaña competiría con la acción principal (VIS-01 §5). Revisión: al cerrar el tramo de pestañas de SDD-0603.
 - **Regla viva en:** `BRAND.md` §Controles · `app/studio/studio.css` · `app/studio/CLAUDE.md` · SDD-0603.

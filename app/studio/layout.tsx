@@ -6,8 +6,13 @@
  *
  * Los route groups (auth) y (app) tienen sus propios sub-layouts.
  *
- * Script inline de FOUC: aplica `data-theme="dark"` antes del primer paint
- * cuando localStorage.studio_theme === "dark". Evita parpadeo light → dark.
+ * Script inline de FOUC: aplica tema y densidad antes del primer paint. Por defecto,
+ * oscuro y compacto (BD-037), salvo que la persona haya elegido otra cosa.
+ *
+ * Dos excepciones (SDD-0603):
+ * - Los paneles que viven dentro de Chatwoot siguen el tema de Chatwoot.
+ * - Al imprimir se pasa a claro: en oscuro la letra es clara y sobre papel blanco no
+ *   se lee. Al terminar vuelve el tema que había.
  */
 
 import "./studio.css";
@@ -38,10 +43,23 @@ export const metadata: Metadata = {
 
 const THEME_FOUC_SCRIPT = `
 try {
+  var h = document.documentElement;
+  var p = location.pathname;
+  var enChatwoot = p.indexOf('/studio/ficha-chat') === 0 || p.indexOf('/studio/cerrar-chat') === 0;
   var t = localStorage.getItem('studio_theme');
-  if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  if (t !== 'light' && !enChatwoot) h.setAttribute('data-theme', 'dark');
   var d = localStorage.getItem('studio_density');
-  if (d === 'compact' || d === 'spacious') document.documentElement.setAttribute('data-density', d);
+  if (d === 'spacious') h.setAttribute('data-density', 'spacious');
+  else if (d !== 'normal') h.setAttribute('data-density', 'compact');
+  var antes = null;
+  window.addEventListener('beforeprint', function () {
+    antes = h.getAttribute('data-theme');
+    h.removeAttribute('data-theme');
+  });
+  window.addEventListener('afterprint', function () {
+    if (antes) h.setAttribute('data-theme', antes);
+    antes = null;
+  });
 } catch (e) {}
 `.trim();
 

@@ -30,6 +30,7 @@ import type { BugNotification } from "@/lib/studio/bug-types";
 import { useT, useLocale } from "@/lib/i18n";
 import {
   APPEARANCE_EVENT,
+  DEFAULT_THEME,
   applyTheme,
   readTheme,
 } from "@/app/studio/_components/appearance-prefs";
@@ -60,7 +61,7 @@ export function StudioTopbar({
   const locale = useLocale();
   const t = useT();
   const moduleLabel = pathToModuleLabel(pathname, locale);
-  const theme = useSyncExternalStore(subscribeTheme, readTheme, () => "light");
+  const theme = useSyncExternalStore(subscribeTheme, readTheme, () => DEFAULT_THEME);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   // Modifier según OS: ⌘ en Mac, Ctrl en Windows/Linux (hook compartido).

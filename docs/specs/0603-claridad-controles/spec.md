@@ -23,6 +23,7 @@ confidencialidad: interno
 - Sobre una captura del CRM: «Es una issue del CRM, adentro de eso, y se ve muy pálido. [...] La idea es que lo hagamos en todo el ERP completo, más que en la página web, en el ERP y en el portal del cliente.»
 - Tras verlo en prueba, por botón: «Prepara la adopción». Por texto: «Me gusta. Prepara todo y adopción».
 - Por selector, viendo el BRAND-CHECK y el texto exacto de BD-037: «Apruebo, en azul (Recommended)». Como siguiente tramo: «Pestañas (Recommended)».
+- Por chat, tras comparar Normal y Compacto: «que damos con compacto y prederteminado ocuro». Se lee como compacto y oscuro por defecto en el Studio.
 
 Cubre preparar. No cubre fusionar ni publicar: para fusionar, el Director General pide un OK aparte con el tramo a la vista.
 
@@ -50,7 +51,7 @@ Las tarjetas conservan su borde suave: el contorno fuerte queda para lo oprimibl
 
 Cambia la apariencia respecto al Norte, que es la fuente de apariencia. Aprobada por Sam y registrada en `docs/design/studio/_norte/BRAND-DECISIONS.md` y `BRAND.md`:
 
-> **BD-037 · Claridad de controles (Studio y Portal).** Lo que se oprime lleva relleno o contorno de tinta; lo que avisa es una franja plana sin contorno; los estados son texto con icono, sin cajón. El vino queda para la acción principal y la identidad. La selección (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con icono vino. Cada persona puede elegir la vista «Compacto»; nada que se oprima baja de 32 px.
+> **BD-037 · Claridad de controles (Studio y Portal).** Lo que se oprime lleva relleno o contorno de tinta; lo que avisa es una franja plana sin contorno; los estados son texto con icono, sin cajón. El vino queda para la acción principal y la identidad. La selección (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con icono vino. La vista predeterminada es compacta y en tema oscuro; cada persona puede cambiarlas. Nada que se oprima baja de 32 px.
 
 **BRAND-CHECK.** VIS-01 §3 y BRAND §Estados asignan la selección al vino. Aquí va en tinta, porque un relleno vino en cada pestaña compite con la acción principal y rompe el límite de una acción E4 por contexto (VIS-01 §5). Sam vio esta versión en prueba y la aprobó. Superficie: Studio y Portal. Tokens: `--ink`, `--ink-inv`. Contraste: 16,49:1 en claro, 13,08:1 en oscuro. Revisión de la excepción: al cerrar el tramo de pestañas.
 
@@ -77,7 +78,8 @@ AGENT-BRIEF prohíbe el barrido masivo: la adopción avanza por tramos, cada uno
 - `app/studio/studio.css`, `app/studio/tokens.css`
 - `app/studio/_components/ui/`: `Badge.tsx`, `Badge.test.tsx`, `ErrorAlert.tsx`, `KpiCard.tsx`, `SegmentedControl.tsx`, `ActionMenu.tsx`, `drawer/DrawerShell.tsx`
 - `app/studio/(app)/_components/`: `StudioSidebar.tsx`, `StudioTopbar.tsx`, `NotificationBell.tsx`, `ConversationsIndicator.tsx`, `DensityToggle.tsx`, `DensityToggle.test.tsx`
-- `app/studio/_components/__tests__/claridad-controles-contract.test.ts`
+- `app/studio/_components/__tests__/claridad-controles-contract.test.ts`, `app/studio/_components/__tests__/apariencia-predeterminada.test.ts`
+- `app/studio/layout.tsx`, `app/studio/_components/appearance-prefs.ts`, `app/studio/(app)/admin/_components/AppearanceSection.tsx`
 - `app/studio/CLAUDE.md`, `docs/governance/components/segmented-control.json`, `docs/governance/generated/`
 - `docs/specs/0603-claridad-controles/spec.md`, `docs/specs/README.md`, `.agents/handoffs/0603-claridad-controles.md`
 - `BRAND.md`, `docs/design/studio/_norte/BRAND-DECISIONS.md`
@@ -91,6 +93,8 @@ Sin migraciones, rutas, acciones de servidor, permisos ni dependencias nuevas. N
 - Nada que se oprima baja de 32 px, tampoco en la vista compacta.
 - `Badge` no pinta fondo, relleno ni borde redondeado.
 - «Compacto» se aplica al momento, se recuerda por navegador y comparte la preferencia de Administración › Apariencia (SDD-0120).
+- Sin elección previa, el Studio abre compacto y oscuro. Quien ya eligió otra cosa la conserva.
+- Al imprimir pasa a claro y vuelve al terminar. Los paneles dentro de Chatwoot (`/studio/ficha-chat`, `/studio/cerrar-chat`) siguen el tema de Chatwoot.
 - Sin colores inventados en las reglas de botón.
 
 ### Gate VIS-01
@@ -103,12 +107,13 @@ Sin migraciones, rutas, acciones de servidor, permisos ni dependencias nuevas. N
 | Contraste | Cumple: medido y vigilado por contrato. |
 | Tokens | Cumple. Dos tokens nuevos de medida, `--sb-item-y` y `--kpi-fs`; ningún color. |
 | Estados sin color | Cumple: `Badge` conserva texto e icono. |
-| Light/dark | Cumple: el contrato corre en los dos. |
+| Light/dark | Cumple en contrato. Falta recorrer en oscuro todas las pantallas: ver Límites. |
 | Móvil | **No conformidad previa, sin resolver:** a 375 px el menú lateral del Studio ocupa casi toda la pantalla y el CRM desborda 145 px. Este tramo no cambia su ancho. |
 | Movimiento reducido | Cumple: la transición es de color; `transform` de 1 px al oprimir. |
 
 ## Límites
 
+- **Oscuro por defecto sube el riesgo:** hasta ahora, en oscuro solo se revisó el CRM y un detalle de embarque en la rama de prueba. Una pantalla con colores fijos puede verse mal, y se recorre entera en la imagen de este tramo antes de fusionar. Lo impreso se comprueba en esa misma pasada.
 - `pnpm verify` se corre con turno del Director.
 - Sin PR hasta que el Director dé turno. La publicación a producción sigue congelada.
 - `Badge` lleva letra de 12 a 13,5 px en lugar de 9,5 a 11,5, pero pierde su relleno lateral. Medido con Nunito Sans real: el estado más largo, «En bodega VE», pasa de 97,8 a 99,9 px en tamaño `sm`, y mide 107,2 px en `md`. No se midió pantalla por pantalla; se comprueba en prueba antes de fusionar.

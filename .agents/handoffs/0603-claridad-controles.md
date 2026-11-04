@@ -14,6 +14,7 @@
 - Texto: «Me gusta. Prepara todo y adopción, y simplemente déjame ver si puedo hacer un poco más compacto o algún botón para ver un ejemplo.»
 - Selector: «Sí, en prueba.dtdcargo.com (Recommended)», «Sigue sin ellos» y «Sí, recórrelo tapado (Recommended)».
 - Selector, viendo el BRAND-CHECK y el texto de BD-037: «Apruebo, en azul (Recommended)». Siguiente tramo: «Pestañas (Recommended)».
+- Chat, tras comparar Normal y Compacto: «que damos con compacto y prederteminado ocuro».
 
 Cubre preparar. No cubre fusionar ni publicar. El Director General pide un OK aparte de Sam, con el tramo a la vista, y da el turno de PR.
 
@@ -28,9 +29,12 @@ Ver `docs/specs/0603-claridad-controles/spec.md`. Piezas compartidas del Studio,
 - Vitest focal (contrato nuevo, `DensityToggle`, `Badge`, `SegmentedControl`, `ActionMenu`, `ConfirmDialog`, contraste oscuro): PASÓ, 8 archivos y 66 pruebas.
 - Mutantes del contrato: 2 de 2 muertos (contorno pálido del secundario; botón compacto bajo 32 px).
 - `docs:check`, `sdd:check`, `governance:check`, `components:check`: PASÓ.
-- `pnpm verify`: NO EJECUTADO; se pide turno al Director.
-- `next build`: NO EJECUTADO en este tramo. La rama de prueba sí compiló en su imagen, con otro contenido.
+- `pnpm verify` sobre `88514c0d3`, antes de compacto y oscuro: exit 1 y no vale para el SHA actual; hace falta otro turno. Pasos en OK, build incluido; `test` FALLÓ por tiempo agotado en las dos pasadas; `migrations-applied` NO DISPONIBLE, sin `.env.local`. Aislados, los 5 archivos rojos y los 57 cuyo worker no arrancó PASARON.
 - Vista en prueba de este tramo: NO EJECUTADA. Lo visto en prueba es la rama de prueba, que además trae los atajos que este tramo no adopta.
+
+## Lo que tapaba la rama de prueba
+
+`studio.css` traía una segunda regla `.studio-btn-ghost:hover` que, con el texto invertido, dejaba el secundario ilegible al pasar el cursor. En la rama de prueba no se veía porque `claridad.css` cargaba después. Quedó quitada, y el contrato exige una sola regla. Por casos así, lo visto en esa rama no sirve como evidencia de este tramo.
 
 ## Pendientes de esta tarea
 
@@ -46,5 +50,5 @@ Ver `docs/specs/0603-claridad-controles/spec.md`. Piezas compartidas del Studio,
 
 - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx:104`: «En aduana» sale como advertencia; BRAND.md dice que por sí sola no prueba riesgo.
 - `components/BrandMark.tsx:32`: «DTD» en vino sobre navy casi no se lee en la variante reverse (BD-017 mide 1,56:1). Está así por regla de marca; es decisión de Sam.
-- Studio en teléfono: a 375 px el menú lateral ocupa casi toda la pantalla y el CRM desborda 145 px. Medido sobre la rama de prueba; falta medirlo en `fe35eb2d1`.
-- React #418 en `/studio/tms` y `/studio/clientes`, medido sobre la rama de prueba. Falta medirlo en `fe35eb2d1`. Es inferencia que no venga del rediseño.
+- Studio en teléfono: a 375 px el menú lateral (248 px) ocupa casi toda la pantalla y el CRM desborda 145 px. Medido igual en `fe35eb2d1`: no viene del rediseño.
+- React #418 en `/studio/tms` y `/studio/clientes`: 3 de 3 cargas en `fe35eb2d1` con la zona del navegador y 0 de 1 con UTC. No viene del rediseño. Inferido, no medido: que producción lo tenga igual, y que la causa sea formatear fechas con la zona del navegador (`ClientsClient.tsx:597`). Avisado al Director.
