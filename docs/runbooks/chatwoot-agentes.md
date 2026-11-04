@@ -94,9 +94,11 @@ Un id vacío apaga esa parte de la matriz.
    - comprobar, ya con Studio publicado: abrir la Bandeja, salir de Studio y abrir `chat.dtdcargo.com` en ese navegador. Tiene que pedir login.
 
    Sin el script, la salida espera 4 s y sigue al login: la sesión del chat queda abierta en ese navegador hasta la próxima entrada a Studio, como antes del 2.7.
-5. **Apagar «olvidé mi clave» para los agentes.** CE 4.19.1 no tiene un interruptor por rol. La alternativa es una regla de Traefik de E1 que responda 403 a `POST /auth/password` en `chat.dtdcargo.com`:
+5. **Apagar «olvidé mi clave» para los agentes.** CE 4.19.1 no tiene un interruptor por rol. La alternativa es una regla de Traefik que responde 403 a `POST /auth/password` en `chat.dtdcargo.com`. Está escrita como etiquetas de `rails` en `infra/chatwoot/compose.yml` (routers `-clave`, middleware `-nadie`), y `infra/chatwoot/pruebas/prueba-regla-clave.sh` la ensaya contra Rails real, con control de correo:
+   - en el VPS se agregan esas etiquetas a mano al compose vivo, con respaldo, sin copiar el del repo, y recrear `rails` las aplica;
    - un admin que olvide su clave la cambia desde el superadmin;
    - **riesgo mientras no esté:** un agente puede pedir una clave nueva a su correo y entrar directo. Ve lo mismo que desde Studio, porque los permisos son de la cuenta, y la baja lo saca igual.
+   - **Lo que no cubre:** un correo de cambio de clave enviado antes de instalarla sirve hasta que venza su token, porque `PUT /auth/password` sigue abierto.
 
 ## Alertas de salud y qué hacer
 
