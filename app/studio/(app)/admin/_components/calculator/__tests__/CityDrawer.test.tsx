@@ -101,6 +101,26 @@ describe("CityDrawer original · única opción de entrega", () => {
     expect(mocks.toast.success).toHaveBeenCalledOnce();
   });
 
+  it("un segundo error con el mismo texto devuelve el foco al aviso, y escribir no se lo quita a la persona", async () => {
+    mocks.update.mockResolvedValue({ error: "No se pudo guardar la ciudad. Tu selección se conserva; intenta de nuevo." });
+    render(<CityDrawer mode="edit" city={city} onClose={mocks.close} />);
+    const guardar = screen.getByRole("button", { name: "Guardar cambios" });
+    fireEvent.click(guardar);
+    const alerta = await screen.findByRole("alert");
+    await waitFor(() => expect(alerta).toHaveFocus());
+
+    // Lo que hace el navegador al hacer clic: el foco pasa al botón.
+    guardar.focus();
+    fireEvent.click(guardar);
+    await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(alerta).toHaveFocus());
+
+    const nombre = screen.getByLabelText(/^Nombre/);
+    nombre.focus();
+    fireEvent.change(nombre, { target: { value: "Acarigua Centro" } });
+    expect(nombre).toHaveFocus();
+  });
+
   it("no-admin conserva lectura de estados y no abre controles de edición", () => {
     render(<CiudadesPanel cities={[city]} isAdmin={false} />);
     expect(screen.getByText("Incluida")).toBeVisible();
