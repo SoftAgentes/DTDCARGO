@@ -366,18 +366,20 @@ cumplirlas todas.
 |---|---|---|
 | `primary` (wine) | Acción principal de la pantalla. **Una sola** por contexto. | "Enviar cotización", "Crear cliente", "Convertir a embarque" |
 | `dark` (navy) | Acción secundaria importante pero no destructive. | "Marcar despachado", "Asignar ruta" |
-| `ghost` (outline) | Acciones secundarias, cancelar, navegación. | "Editar", "Cancelar", "Cerrar" |
+| `ghost` (contorno de tinta) | Acciones secundarias, cancelar, navegación. | "Editar", "Cancelar", "Cerrar" |
 | `danger` (red) | Acciones destructivas o de rechazo. | "Eliminar", "Rechazar", "Cancelar embarque" |
 | `warning` (gold) | Requiere atención · no destructiva pero significativa. | "Marcar excepción", "On hold" |
 | `success` (green) | **NUNCA como idle** · solo flash transitorio post-éxito. | (estado interno de ActionButton) |
 
 ### Regla 2 · Tamaños y proporciones
 
-- `default` · botones primarios del header de página.
-- `sm` · botones en drawers, modals, tablas, listados.
-- `xs` · chips, badges interactivas, micro-acciones en cells.
+- `default` (40 px, 36 en compacto) · botones primarios del header de página.
+- `sm` (36 px, 32 en compacto) · botones en drawers, modals, tablas, listados.
+- `xs` (32 px) · chips, badges interactivas, micro-acciones en cells.
 - `min-width: max-content` para evitar reflow entre estados.
-- `gap: 6px` entre icono y label.
+- `gap: var(--s-2)` entre icono y label.
+- Densidad: el botón «Compacto» de la barra superior (`DensityToggle`) cambia la
+  preferencia del usuario. Nada que se oprima baja de 32 px (SDD-0603).
 
 ### Regla 3 · Estados (anti-doble-submit + feedback)
 

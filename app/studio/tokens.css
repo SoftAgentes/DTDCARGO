@@ -159,6 +159,9 @@
   --sb-collapsed: 64px;
   --topbar-h: 60px;
   --content-max: 1440px;
+  /* SDD-0603: medidas de estilos en línea que siguen a la densidad. */
+  --sb-item-y: 11px;
+  --kpi-fs: 30px;
 
   /* ── Typography ────────────────────────────────────────── */
   /* SISTEMA (Norte): Nunito Sans (cuerpo) + Sora (títulos). El switch de marca
@@ -345,6 +348,8 @@
   --s-6: 18px;
   --s-8: 24px;
   --topbar-h: 52px;
+  --sb-item-y: 7px;
+  --kpi-fs: 24px;
 }
 [data-density="spacious"] {
   --s-3: 16px;
