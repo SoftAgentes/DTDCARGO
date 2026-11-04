@@ -5,7 +5,7 @@
  */
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { redirect, notFound } from "next/navigation";
-import { Component, type ReactNode } from "react";
+import { Component, useEffect, useRef, type ReactNode } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { UnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
@@ -155,6 +155,8 @@ describe("lo que no es un fallo sigue su camino", () => {
     escribirYEnviar("200 sillas");
 
     const aviso = await screen.findByRole("alert");
+    // El foco lo movería un efecto: sin esperarlo, esto pasaría aunque el foco fuera a moverse.
+    await act(async () => {});
     expect(aviso).toHaveTextContent("Tu sesión expiró.");
     expect(aviso).not.toHaveFocus();
   });
@@ -163,8 +165,14 @@ describe("lo que no es un fallo sigue su camino", () => {
 describe("el identificador del intento", () => {
   function ConIntento({ requestId = true }: { requestId?: boolean }) {
     const [state, formProps] = useActionKeepingDraft(accion, {}, AVISO, { requestId });
+    // Los efectos corren en orden: este va después de los del hook, así que la marca dice que ya
+    // corrieron. `state` llega a la pantalla antes que ellos, porque pueden correr tras pintar.
+    const formulario = useRef<HTMLFormElement>(null);
+    useEffect(() => {
+      if (state.ok) formulario.current?.setAttribute("data-efectos", "corridos");
+    }, [state]);
     return (
-      <form {...formProps}>
+      <form ref={formulario} {...formProps}>
         <input name="nota" defaultValue="" aria-label="Nota" />
         {state.error && <p role="alert">{state.error}</p>}
         {state.ok && <p role="status">Listo</p>}
@@ -193,6 +201,8 @@ describe("el identificador del intento", () => {
     render(<ConIntento />);
     const nota = escribirYEnviar("primero");
     await screen.findByRole("status");
+    // Reenviar apenas sale el aviso daba rojo 1 de cada 20 corridas: el efecto aún no había corrido.
+    await waitFor(() => expect(nota.form).toHaveAttribute("data-efectos", "corridos"));
 
     fireEvent.submit(nota.form!);
     await waitFor(() => expect(accion).toHaveBeenCalledTimes(2));

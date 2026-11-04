@@ -156,7 +156,8 @@ describe("la acción lanza: el formulario sigue, con lo escrito y un aviso hones
     sinPantallaDeError();
     expect(aviso).toHaveTextContent(/sigue aquí/i);
     expect(aviso.textContent).toMatch(clase);
-    expect(aviso.closest('[role="alert"]')).toHaveFocus();
+    // El foco lo pone un efecto, que puede correr después de que el aviso aparezca.
+    await waitFor(() => expect(aviso.closest('[role="alert"]')).toHaveFocus());
     expect(foto(elFormulario(container))).toEqual(escrito);
   });
 
