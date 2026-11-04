@@ -13,10 +13,10 @@
 | 1.3 | entregado | `.env.example` + `x-entorno` (variables una por una): registro cerrado, `MAX_USER_SESSIONS=5`, SMTP, cifrado de columnas, telemetría, relay de push y Gravatar apagados |
 | 1.4 | entregado | **P4 hecha el 2026-10-29** («Autorizo P4»): Platform App «DTD Studio», cuenta «DTD Cargo» (id 1) y usuario de servicio administrador. Token, ids y clave en `/srv/chatwoot/secretos/platform-app.env` (0600); Sam los copia a su gestor con `ssh root@217.216.54.70 cat /srv/chatwoot/secretos/platform-app.env`, desde su terminal y no en el chat |
 | 1.5 | entregado | `respaldo.sh` / `restaurar.sh` / timer; ensayo local (57 s) con control de claves; timer activo en el VPS. **P5 hecha el 2026-10-29** («Autorizo P5»): el respaldo bajado de B2 se restauró en 200 s, con conteos y claves iguales (T-25) |
-| 1.6 | entregado | `vigilar.sh` cada 5 min en el VPS; los cuatro monitores de Uptime Kuma (dos Push y, desde P2, dos HTTP); 72 h cerradas el 2026-11-01. **La fila de presión de CPU falla**: ver «Cierre de la vigilancia». Sin aceptar: lo decide Sam |
+| 1.6 | aceptado | `vigilar.sh` cada 5 min en el VPS; los cuatro monitores de Uptime Kuma (dos Push y, desde P2, dos HTTP); 72 h cerradas el 2026-11-01. **La fila de presión de CPU falla**: ver «Cierre de la vigilancia». Aceptado por Sam el 2026-11-01 |
 | 1.7 | entregado | Revisión `revisar-datos-ve` (H1–H11), redacción de logs probada con control, inventario de terceros §2 bis, nota sobre `/privacidad` |
 
-Estado al 2026-11-01: 1.1–1.5 y 1.7 aceptados por Sam («Acepto todo», 2026-10-30, a la pregunta del Director). Entregado sin aceptar: 1.6. Avance: salida de `scripts/avance-checklist.mjs`.
+Estado al 2026-11-01: 1.1–1.5 y 1.7 aceptados por Sam («Acepto todo», 2026-10-30, a la pregunta del Director). 1.6 aceptado por Sam el 2026-11-01. Sin entregados por aceptar en E1. Avance: salida de `scripts/avance-checklist.mjs`.
 
 ## P1 ejecutada (2026-10-29, 15:38–16:00Z)
 
@@ -128,6 +128,8 @@ Por la tabla del runbook, la consecuencia literal de esa primera fila es el plan
 
 Coincide con la medición del Director en lo central (p95 98,85; 156 sobre 60; los mismos motivos de `down`). Difieren dos detalles menores: él contó 846 muestras y yo 845, y él calculó la CPU propia en p95 39,4 y yo en 40,1, y no averigüé por qué; (I) debe ser el método de percentil o el corte.
 
+**Decisión de Sam (2026-11-01), decisión G: Chatwoot se queda en este VPS.** Pregunta del Director: «¿Aceptas el 1.6 y dejas Chatwoot en este VPS?». Respuesta literal de Sam: «Sí, acepto el 1.6». No la vi directamente: me la transmitió el Director, igual que su registro de que Sam aceptó conociendo que la fila de presión de CPU falla (p95 98,85 en total; 53,85 sin el episodio, con dos rachas de 20 y 21 min sobre 60). El plan B no se activa. El criterio se vuelve a leer al cerrar E4.
+
 ## Pendiente de esta tarea
 
 - ~~SMTP: usuario y clave de Hostinger (Sam), con ventana oculta.~~ **Hecho el 2026-10-29** (sesión «Hostinger config», T-33 a T-39; runbook §2 bis):
@@ -136,7 +138,7 @@ Coincide con la medición del Director en lo central (p95 98,85; 156 sobre 60; l
   - `rails` y `sidekiq` recreados y sanos.
   - Correo de prueba aceptado por Hostinger a las 22:31:31Z. Sam confirmó que llegó a Recibidos de `hailuway.com@gmail.com`.
   - Sin probar todavía: los correos propios de Chatwoot (restablecer contraseña, invitación). Se prueban al invitar al primer agente.
-- ~~Tras las 72 h: resumen y medidas de capacidad → fila 1.6~~ hecho el 2026-11-01: ver «Cierre de la vigilancia». Queda en manos de Sam aceptar la 1.6 y decidir qué hacer con la fila de presión de CPU. El criterio se vuelve a leer al cerrar E4 (runbook §4).
+- ~~Tras las 72 h: resumen y medidas de capacidad → fila 1.6~~ hecho el 2026-11-01: ver «Cierre de la vigilancia». Sam aceptó la 1.6 el 2026-11-01. Lo que sigue en pie: volver a leer el criterio al cerrar E4 (runbook §4).
   - Riesgo de capacidad del VPS compartido (observación del Director, 2026-10-30): load average 8,90 / 9,16 / 8,63 con 33 sesiones en `who` a las 14:35 hora del VPS. Memoria: 24 GB, 13,7 disponibles. Arriba en CPU: cadvisor (38 %), varios api-gw (15–25 %) y dtd-cargo-staging-db (15 %); Chatwoot no aparecía. Un `rails runner` de más de 180 s. Timeouts de SSH a las 05:19Z y a las 14:36 hora del VPS, más un `RedisClient::ReadTimeoutError` de sidekiq a las 05:19Z que se recuperó solo. (I) La carga viene de otros proyectos y de las sesiones abiertas, no de Chatwoot. No se mató ni cambió nada: requiere OK de Sam.
 - ~~`/super_admin` con Cloudflare Access~~ hecho el 2026-10-29 («Confirmo Access»), runbook §4.1.
 - ~~Marca de DTD en Chatwoot~~ **hecha el 2026-10-29** («Autorizo la marca»): título «DTD Cargo», ícono y logos de DTD (claro y oscuro según `BRAND.md`), pantalla de entrada en español, sin «Chatwoot» visible (T-27 a T-29; runbook §6 bis). Queda en la edición CE el «Powered by Chatwoot» del widget y de los correos, y la etiqueta «E-mail» de la traducción de Chatwoot.

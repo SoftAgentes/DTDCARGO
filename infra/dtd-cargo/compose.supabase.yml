@@ -343,8 +343,8 @@ services:
   storage:
     # Igual que auth: la versión de esquema de Cloud. v1.77.6 es el último parche
     # que termina en la migración 0072 (la de Cloud el 2026-10-12); desde v1.77.7
-    # llega la 0073.
-    image: supabase/storage-api:v1.77.6
+    # llega la 0073. Un servidor con su propia copia la fija en DTD_STORAGE_IMAGE.
+    image: ${DTD_STORAGE_IMAGE:-supabase/storage-api:v1.77.6}
     restart: unless-stopped
     logging: *logging
     depends_on:
