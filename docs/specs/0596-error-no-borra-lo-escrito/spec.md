@@ -166,12 +166,12 @@ El cambio no captura ni mueve datos nuevos: sólo deja de borrar en la pantalla 
 
 | Tramo | Estado | Integración |
 |---|---|---|
-| **1. Portal, entrar e invitar: 13 formularios en 11 archivos** | PR en borrador | **Retenida: espera a que termine la salida a producción** |
-| 2. Nómina: 15 paneles | Rama `codex/error-no-borra`, commits locales, sin publicar | PR aparte; la decide el Director |
+| **1. Portal, entrar e invitar: 13 formularios en 11 archivos** | Fusionado en la PR #358 | Hecho |
+| 2. Nómina: 15 paneles | Rama `codex/error-no-borra`, con `main` traído y sin publicar. 20 de 20 mutantes muertos | PR aparte; la decide el Director General |
 | 3. Resto del ERP y apps móviles | Sin tocar | Más adelante. Algunos pueden querer el vaciado, como un login con su clave |
-| Cuando la acción lanza | Sin tocar | Decisión aparte: ver el hallazgo de arriba |
+| Cuando la acción lanza | En portal, registro, `entrar` e `invitar`, corregido en SDD-0598. En Nómina y el resto del Studio, sin tocar | Decisión aparte |
 
-Los tramos 1 y 2 traen el mismo ayudante en la misma ruta, así que combinan sin conflicto en cualquier orden. No se mezclan en una PR.
+El tramo 2 usa el ayudante que ya entró con el tramo 1. No se mezclan en una PR.
 
 ## Gobernanza
 

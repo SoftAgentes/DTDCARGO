@@ -23,6 +23,7 @@ import {
 } from "@/lib/studio/nomina/settlement-types";
 import { generarFiniquitoAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const FORM_ID = "generar-finiquito-form";
 const initial: NominaActionState = {};
@@ -59,7 +60,7 @@ export function GenerarFiniquitoDrawer({
     >
       <form
         id={FORM_ID}
-        action={formAction}
+        onSubmit={submitKeepingDraft(formAction, isPending)}
         style={{
           flex: 1,
           overflow: "auto",
