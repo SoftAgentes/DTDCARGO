@@ -137,3 +137,21 @@ Sin la 0509: la pantalla no muestra informe y «Analizar con IA» responde un er
 | Informe y uuid de quien lo pidió | `chatwoot_version_analyses` | Datos técnicos sobre código; `requested_by` solo con el uuid y `on delete set null`; tope de 64 KiB por informe |
 
 Nada de lo que sale a la red lleva datos de clientes: el pedido a GitHub no tiene parámetros propios, el de `/api` no lleva credenciales y al motor solo le llega código, con la llave únicamente en la cabecera `Authorization`.
+
+## 2026-11-04 · La 0507 y la 0509 aplicadas en producción: cierre del runbook §6
+
+Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no están aplicadas es de su fecha.
+
+| Migración | COMMIT | `version` del ledger | md5 y bytes | Filas del ledger | PR | Evidencia, en `/srv/ops/evidencias/` | Sello en el candado, `ledger` exacta |
+|---|---|---|---|---|---|---|---|
+| `0507_chatwoot_versiones` | 2026-11-04T21:11:07.833Z | `20261104211107` | `a04d4f7a18f700146e8cf7580da01d0a`, 6532 | 511 | #339 | `apply-0507-dtd-cargo-20261104T211106Z` | `852d9adac1653ccefb88da730182d53b0a4cb753b2d8851387c1405d5fbdf489` |
+| `0509_chatwoot_version_analyses` | 2026-11-04T21:11:29.767Z | `20261104211129` | `563f4ce0987a33876d5340000b28c90c`, 4966 | 512 | #339 | `apply-0509-dtd-cargo-20261104T211128Z` | `081a57aa5d6107a1cbf18dd11b11a800ca06cd984c15f6eead1cedbe119906d3` |
+
+- **OK literal de Sam:** «Doy el mandato», en el chat del Director General, a «¿Das el mandato para terminar las fases 2, 3 y 4 sin detenerme?», 2026-11-03 ~20:10Z. El punto 2 del texto que vio nombra las dos: «Aplicar, primero en prueba y luego en dtd-cargo, de a una y con lectura previa». Registrado a nombre del Director General; el texto íntegro está en `AUTORIZACION.txt` de cada evidencia.
+- **Ensayo en prueba:** aplicadas de a una a las 20:34Z sobre `55a65a602`, con lectura previa, apply y verificación PASÓ, sin cambio de blobs. Evidencia: `apply-0507-dtd-cargo-staging-20261104T203428Z` y `apply-0509-dtd-cargo-staging-20261104T203444Z`. Según el Director General, sobre esa imagen `/api/cron/chatwoot-versiones` respondió 200 con `al_dia`, 4.19.1 contra 4.19.1, y dejó una fila.
+- **Respaldo previo:** el más reciente en `/srv/backups/dtd-cargo` al cerrar es `dtd-cargo-20261104T123031Z`, de la ventana de publicación, unas 8,7 horas antes. No hay uno posterior. Son dos tablas nuevas, sin datos que restaurar.
+- **Merge:** #339, 2026-11-04T20:33:11Z, `55a65a602`, por el Director General, con CI verde en `db2176c13`.
+- **Publicación:** todavía no. La web publicada sigue en `fe35eb2d1`, que no usa estas tablas. El cron `chatwoot-versiones` entra con el crontab nuevo, en la ventana de esa publicación.
+- **Motor de IA:** las 3 variables `DTD_CHATWOOT_IA_GLM_*` están vacías, según el Director General. La llave es gasto de Sam y queda fuera del mandato, así que el análisis usa el respaldo sin IA. El **NO VERIFICADO** de la API de pago sigue en pie.
+- **Lectura de esta nota:** COMMIT y md5 salen de `IDENTIDAD.txt` y `registro.txt` de cada evidencia. Del ledger se leyó el `version` de estas dos y el total: 512. La fila de cada una sale de ese total y del orden. El md5 y los bytes se comprobaron contra el archivo al sellar.
+- **Espera:** salieron de `pendingBelowCutoff` y de las declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Las pruebas que afirmaban la espera ahora afirman que salió. Los comentarios condicionales del código («sin la 0507…») siguen siendo ciertos para otro entorno y no cambian.

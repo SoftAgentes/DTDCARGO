@@ -82,7 +82,7 @@ Medidas en el VPS el 2026-11-03. Van después de la 0505, en `/srv/dtd-cargo/.en
 - **La puerta de prueba responde 401 al webhook.** Chatwoot no manda credenciales en la URL (`ssrf_filter` no las usa). Sam autorizó abrir en el borde de prueba solo `/api/chatwoot/webhook`, sin la clave y con la misma lista de IP; la abre el Director General. El webhook sigue firmado.
 - **Al terminar:** borrar el webhook, suspender la cuenta (`status`) y revocar el token de esa app. **La cuenta no se borra.**
 
-**En producción, justo después de publicar la tanda A,** Sam escribe desde su teléfono al número de prueba, y se comprueba lo que queda como «Al publicar» en la tabla. **Si falla la tarjeta, se quita el webhook.**
+**En producción, justo después de publicar la tanda A,** Sam escribe desde su teléfono al 5202, la bandeja 2 «Clientes», y se comprueba lo que queda como «Al publicar» en la tabla. **Si falla la tarjeta, se quita el webhook.** No sirve el 5938, «WhatsApp · prueba 0582»: esa bandeja no está en `CHATWOOT_INBOX_LEADS_ID` ni en `CHATWOOT_INBOX_CLIENTES_ID`, así que no crea tarjeta. Resultado del 2026-11-04 en la SDD-0587, al final.
 
 | Qué prueba | Bandeja | Dónde se cubre |
 |---|---|---|
@@ -91,8 +91,8 @@ Medidas en el VPS el 2026-11-03. Van después de la 0505, en `/srv/dtd-cargo/.en
 | `conversation_updated` da asesor | La misma | Prueba |
 | Mensaje entrante: contador y aviso | API | Prueba, sin tarjeta: `fuenteDeCanal` no mapea `Channel::Api` |
 | Enrutamiento por segmento (E10) | API como `CHATWOOT_INBOX_LEADS_ID` | Prueba: solo mira el id de la bandeja |
-| Tarjeta por primer mensaje entrante y vuelta desde «Perdido» | Número de prueba | **Al publicar:** en prueba no se puede, porque Chatwoot solo admite mensajes entrantes por API en bandejas API |
-| Fuente WhatsApp, teléfono y BSUID de un mensaje real | Número de prueba | **Al publicar:** una bandeja de WhatsApp sin Meta dispararía sus trabajos de plantillas y salud contra Meta |
+| Tarjeta por primer mensaje entrante y vuelta desde «Perdido» | 5202 | **Al publicar:** en prueba no se puede, porque Chatwoot solo admite mensajes entrantes por API en bandejas API |
+| Fuente WhatsApp, teléfono y BSUID de un mensaje real | 5202; el BSUID, solo de un usuario sin teléfono | **Al publicar:** una bandeja de WhatsApp sin Meta dispararía sus trabajos de plantillas y salud contra Meta |
 | El panel dentro de prueba | — | Sin cubrir: pide agregar `https://prueba.dtdcargo.com` a `CHATWOOT_FRAME_ANCESTORS`, que recrea `rails` |
 
 **Cómo se repite.** `infra/chatwoot/pruebas/prueba-punta-a-punta.sh <N>` y `prueba-reproceso.sh <N>`, en el VPS y en ese orden, copiados a `/srv/ops/paquetes` y con `</dev/null`. Los dos se niegan si `CHATWOOT_ACCOUNT_ID` no es 2, y el reproceso comprueba un aviso por evento en cada camino. Hacen falta la imagen, las variables y secretos, el webhook y la ruta abierta en el borde. Al terminar, el cierre es el de arriba: la cuenta no se borra.

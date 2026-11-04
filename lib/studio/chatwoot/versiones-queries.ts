@@ -12,7 +12,7 @@ import type { EstadoVersiones, ErrorVersiones, ReleaseChatwoot, ResultadoVersion
  * - `chatwoot_update_requests`: la escribe el admin con SU cliente (la RLS exige
  *   admin, su tenant y requested_by = auth.uid()).
  *
- * Sin la 0507 (pendiente) las lecturas devuelven null o [] y las escrituras
+ * Sin la 0507 las lecturas devuelven null o [] y las escrituras
  * devuelven error: la pantalla dice «sin datos» y el cron responde `omitido`.
  */
 

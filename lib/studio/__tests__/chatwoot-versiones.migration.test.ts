@@ -10,8 +10,8 @@
  * CONTROL ROJO: sin 0507 el contrato cae en la primera aserción.
  * MUTANTES: cada uno es una 0507 coherente con un defecto y tiene que caer en
  * la aserción que lo nombra.
- * PENDIENTE: la 0507 está declarada en migrations-baseline.json hasta que Sam
- * la autorice y se aplique.
+ * APLICADA: la 0507 salió de la espera el 2026-11-04 (runbook §6); la última
+ * prueba lo fija.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -156,8 +156,8 @@ describe("SDD-0588 · 0507 revisiones y pedidos de versiones de Chatwoot (PGlite
     expect(run.error).toMatch(/0507: las tablas de versiones de Chatwoot ya existen/);
   }, SLOW);
 
-  it("la 0507 queda declarada pendiente hasta que Sam la autorice", () => {
-    expect(BASELINE.pendingBelowCutoff["0507_chatwoot_versiones"]).toMatch(/SDD-0588/);
+  it("la 0507 salió de la espera al aplicarse, y su cabecera no se corrige (runbook §6)", () => {
+    expect(BASELINE.pendingBelowCutoff["0507_chatwoot_versiones"]).toBeUndefined();
     expect(FILE_0507).toMatch(/NO APLICADA A PRODUCCIÓN/);
   });
 });
