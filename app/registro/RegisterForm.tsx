@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { actionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 import Link from "next/link";
 import {
   ArrowIcon,
@@ -158,7 +159,13 @@ export function RegisterForm({
   /** Catálogo de ciudades del paso 2 (migr 0348). Vacío → texto libre. */
   cities?: RegisterCity[];
 }) {
-  const [state, action, pending] = useActionState(registerClientAction, initial);
+  const [state, action, pending] = useActionState(
+    actionKeepingDraft(
+      registerClientAction,
+      "No pudimos confirmar si tu cuenta se creó. Tus datos siguen aquí. Intenta de nuevo: si ya quedó, te lo avisaremos.",
+    ),
+    initial,
+  );
   const [data, setData] = useState<FormData0>(EMPTY);
   const [step, setStep] = useState(0); // 0..3 (paso 5 = éxito, vía state.markbox)
   // Campo a enfocar tras saltar de paso desde el resumen de errores. Va en un
