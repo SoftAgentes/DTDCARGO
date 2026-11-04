@@ -17,6 +17,7 @@ import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { countActiveAlerts } from "@/lib/studio/expense-alerts-queries";
 import { listNotificationsForUser } from "@/lib/studio/bug-queries";
 import { listUnreadConversationsForBadge } from "@/lib/studio/conversaciones/conversations-queries";
+import { listNoLeidasBandeja, type ConversacionNoLeida } from "@/lib/studio/chatwoot/conversations-queries";
 import type { BugNotification } from "@/lib/studio/bug-types";
 import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { LocaleProvider } from "@/lib/i18n";
@@ -142,6 +143,7 @@ export default async function StudioAppLayout({
     initialNotifications,
     initialUnreadConversations,
     roleModuleOverrides,
+    bandejaNoLeidas,
   ] = await Promise.all([
     listFeatureFlags(supabase),
     countActiveAlerts(supabase),
@@ -158,6 +160,11 @@ export default async function StudioAppLayout({
     // Matriz editable (SDD-0252, migr 0357): sólo importa para no-admin — el
     // sidebar sólo ESCONDE módulos (UX), el gate real es requireModuleView.
     role && role !== "admin" ? getRoleModuleOverrides(supabase) : Promise.resolve({}),
+    // Badge de la Bandeja de Chatwoot (SDD-0585, E2-D21). RLS scopea al tenant;
+    // el sidebar solo lo pinta si el item se ve. Best-effort.
+    tenantLink?.tenant_id
+      ? listNoLeidasBandeja(supabase, tenantLink.tenant_id).catch(() => [] as ConversacionNoLeida[])
+      : Promise.resolve([] as ConversacionNoLeida[]),
   ]);
 
   return (
@@ -177,6 +184,7 @@ export default async function StudioAppLayout({
             <StudioSidebar
               featureFlags={featureFlags}
               expenseAlertCount={expenseAlertCount}
+              bandeja={{ tenantId: tenantLink?.tenant_id ?? null, initial: bandejaNoLeidas }}
               role={role}
               warehouseScope={warehouseScope}
               overrides={roleModuleOverrides}

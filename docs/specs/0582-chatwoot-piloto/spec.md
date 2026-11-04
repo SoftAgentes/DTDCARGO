@@ -289,6 +289,17 @@ La v3 sumó dos preguntas a 0.8. Sam respondió por el selector el 2026-10-30 (S
 
 El procesador del webhook registra el evento primero y, si un manejador falla, solo deja un aviso y responde «procesado». Si Chatwoot reintenta, el duplicado se descarta y la acción se pierde (**C**, rama `codex/0582-e2-poc`, V3-11). Para el push da igual; para E10 no, porque un cliente podría quedarse sin su redirección. E2 lo está corrigiendo con una acción pendiente durable en la misma transacción. **La 2.3 no se acepta hasta ese arreglo.**
 
+**Actualización (E2, 2026-10-30): la idempotencia está corregida en `19df1e51f`.**
+- El evento entra en «procesando» en la misma transacción que el estado de la conversación, y se cierra «procesado» solo si todas las acciones salen bien. Si alguna falla, queda «fallido» y la ruta responde 500.
+- Un evento fallido, o colgado más de 5 minutos, se vuelve a procesar en la próxima entrega. Un duplicado real se sigue descartando.
+- Se probó con rojo primero. El contrato 0504 da 15/15.
+
+**Siguen pendientes de lo que pide la v3:**
+- **El reintento propio de Studio.** Chatwoot 4.19.1 no reintenta webhooks de cuenta (**C**: `Webhooks::Trigger#execute` rescata el error y solo reintenta agentes bot), así que un evento fallido espera una reentrega o un reproceso.
+- **El tope de tamaño del cuerpo.**
+
+Están en la fila 2.3 del checklist.
+
 ### 2.8 opcional: costo de referencia por chat
 
 - En la Ficha DTD: «N mensajes enviados × tarifa = US$X», con la fecha y la fuente de la tarifa. Aclara que no descuenta los 1.000 gratis ni las plantillas.

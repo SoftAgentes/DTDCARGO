@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 // Import RELATIVO a propósito: el loader de `next.config.ts` corre antes del
 // bundler y no resuelve el alias `@/`.
 import { originFromEnv } from "./lib/runtime/supabase-origin";
+import { chatwootOriginFromEnv } from "./lib/runtime/chatwoot-origin";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -304,6 +305,39 @@ const nextConfig: NextConfig = {
       "camera=(self), microphone=(self), geolocation=(self), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()";
     const ppStudioBitacora =
       "camera=(), microphone=(self), geolocation=(), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()";
+    // Bandeja de Chatwoot (SDD-0585, E2-D2/E2-D14): el panel va en un iframe de
+    // `chat.dtdcargo.com` y graba notas de voz. Hacen falta las DOS cosas: la
+    // CSP con `frame-src` del chat (sin ella el marco cae a `default-src 'self'`)
+    // y el micrófono delegado al origen del chat (con `microphone=()` el iframe
+    // recibe NotAllowedError aunque lleve `allow="microphone"`). Medido en la
+    // PoC 2.1 (I3, M2, M3). Mismo gotcha que Bitácora: la regla queda SOLA para
+    // su URL y el catch-all la excluye.
+    const chatwootOrigin = chatwootOriginFromEnv();
+    const ppStudioBandeja = `camera=(), microphone=(self "${chatwootOrigin}"), geolocation=(), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()`;
+    const bandejaHeaders = securityHeaders.map((h) =>
+      h.key === "Content-Security-Policy"
+        ? { key: h.key, value: `${cspHeader}; frame-src ${chatwootOrigin}` }
+        : h.key === "Permissions-Policy"
+          ? { key: h.key, value: ppStudioBandeja }
+          : h,
+    );
+    // Ficha DTD (SDD-0585, paso 2.4, E2-D28): la Dashboard App que Chatwoot
+    // enmarca al lado de cada conversación. SOLO el chat puede enmarcarla:
+    // `frame-ancestors <chat>` y sin `X-Frame-Options` (no sabe nombrar un
+    // origen; con DENY el navegador la bloquearía). El resto, la CSP estricta.
+    const fichaChatHeaders = securityHeaders
+      .filter((h) => h.key !== "X-Frame-Options")
+      .map((h) =>
+        h.key === "Content-Security-Policy"
+          ? { key: h.key, value: cspHeader.replace("frame-ancestors 'none'", `frame-ancestors ${chatwootOrigin}`) }
+          : h,
+      );
+    // Salida de Studio (SDD-0585, paso 2.7, E2-D13): `/studio/cerrar-chat` abre
+    // el chat en un marco oculto para cerrar su sesión. Solo suma `frame-src`
+    // del chat; Studio sigue sin dejarse enmarcar y sin micrófono.
+    const cerrarChatHeaders = securityHeaders.map((h) =>
+      h.key === "Content-Security-Policy" ? { key: h.key, value: `${cspHeader}; frame-src ${chatwootOrigin}` } : h,
+    );
     const baseNoPP = securityHeaders.filter(
       (h) => h.key !== "Permissions-Policy",
     );
@@ -387,6 +421,22 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: ppStudioBitacora },
         ],
       },
+      // Bandeja de Chatwoot: CSP con frame-src del chat + micrófono delegado.
+      // Se excluye del catch-all de abajo.
+      {
+        source: "/studio/bandeja/:path*",
+        headers: bandejaHeaders,
+      },
+      // Ficha DTD: solo la ruta exacta, sin subrutas. Se excluye del catch-all.
+      {
+        source: "/studio/ficha-chat",
+        headers: fichaChatHeaders,
+      },
+      // Salida de Studio: solo la ruta exacta. Se excluye del catch-all.
+      {
+        source: "/studio/cerrar-chat",
+        headers: cerrarChatHeaders,
+      },
       // Las CUATRO reglas de `/marca` son MUTUAMENTE EXCLUYENTES a propósito: si
       // dos matchearan, Next emite dos `Content-Security-Policy` y el navegador
       // aplica la intersección — el standalone quedaría bloqueado por la estricta.
@@ -449,7 +499,7 @@ const nextConfig: NextConfig = {
         // `marca` sin barra: cubre tanto `/marca` (el catálogo) como `/marca/…`.
         // Con `marca/` la raíz caía acá Y en su regla propia → CSP duplicada.
         source:
-          "/:path((?!m/|marca|norte\\.html|studio/bitacora|tarifas/embed|fcl/embed).*)",
+          "/:path((?!m/|marca|norte\\.html|studio/bitacora|studio/bandeja(?:/|$)|studio/ficha-chat$|studio/cerrar-chat$|tarifas/embed|fcl/embed).*)",
         headers: securityHeaders,
       },
     ];

@@ -257,12 +257,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // prefijo 20 → 21) con una sola acción, `updateShipmentSinUbicacion`.
   // SDD-0571 sumó `cn/rate-snapshot-actions.ts` (76 → 77, con prefijo 21 → 22):
   // la tarifa congelada por recepción.
-  it("la superficie escaneada es la esperada (77 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0585 sumó `bandeja/actions.ts` (77 → 78, exactos 55 → 56): la Bandeja
+  // de Chatwoot.
+  it("la superficie escaneada es la esperada (78 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 77,
-      exactos: 55,
+      total: 78,
+      exactos: 56,
       conPrefijo: 22,
     });
   });
@@ -306,8 +308,25 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // accounting y admin, sin tocar la matriz de `cn`); y `loadRateDrawerAction`
   // y `previewRateAction`, de lectura con gate de vista, en EXCEPCIONES por la
   // RPC en p_dry_run. La RPC de la 0496 repite rol y tenant en todas.
+  // SDD-0585 sumó las tres de `bandeja/actions.ts` (444 → 447):
+  // `pedirEnlaceSso` lleva `moduleViewDenial(supabase, "bandeja")` al tope
+  // (lee el vínculo propio y solo escribe la cookie de la marca), y
+  // `vincularAgente` y `desvincularAgente` llaman a `tenantAdminGate` antes de
+  // leer nada; la RLS de 0503 repite el candado de admin del tenant.
+  // SDD-0585 (paso 2.3) sumó `bandeja/actions.ts::reconciliarBandeja` (447 → 448):
+  // `moduleViewDenial(supabase, "bandeja")` al tope; lee el vínculo propio y escribe
+  // solo por la RPC `chatwoot_registrar_evento` (0504, únicamente service_role) en el
+  // tenant de la sesión, con lo que el propio agente ve en Chatwoot.
+  // SDD-0585 (paso 2.4) sumó `bandeja/actions.ts::pedirFichaDtd` (448 → 449):
+  // `moduleViewDenial(supabase, "bandeja")` al tope; lee con el cliente de sesión
+  // y escribe solo por `aplicarConversacion` (la RPC de 0504, únicamente
+  // service_role), igual que `reconciliarBandeja`.
+  // SDD-0585 (paso 2.5) sumó `bandeja/actions.ts::altaAgente` (449 → 450):
+  // `tenantAdminGate` antes de leer nada; lee con service_role el miembro, su
+  // correo y los overrides del MISMO tenant, y escribe el vínculo con el cliente
+  // de sesión (la RLS de 0503 repite el candado de admin).
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(444);
+    expect(reportes.length).toBe(450);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

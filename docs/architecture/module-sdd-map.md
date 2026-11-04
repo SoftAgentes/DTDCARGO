@@ -64,6 +64,7 @@
 | Inventario de Consolidación (WMS) | 0081 | `app/studio/(app)/inventario/` *(propuesto)* | `lib/studio/inventory/` *(propuesto)* — derivación sobre warehouse_receipts_* + consolidations (SDD-0047) |
 | Nómina / RRHH (empleados + prestadores) | 0103, 0109, 0226 | `app/studio/(app)/nomina/` | `lib/studio/nomina/` · `supabase/migrations/{0160,0161,0179,0316}` (anulación R3 de finiquito gobernada) |
 | Bitácora (actas IA + tareas del equipo) | 0146, 0210 | `app/studio/(app)/bitacora/` + `app/m/erp/bitacora/` | `lib/studio/bitacora/` · `supabase/migrations/{0214,0215,0216}` |
+| Bandeja de Chatwoot (iframe + SSO, programa Kommo → Chatwoot) | 0582, 0583, 0585 | `app/studio/(app)/bandeja/` | `lib/studio/chatwoot/` · `lib/runtime/chatwoot-origin.ts` · `supabase/migrations/0503` · `infra/chatwoot/` |
 
 ## Móvil PWA (operario)
 
