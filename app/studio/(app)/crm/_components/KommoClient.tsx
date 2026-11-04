@@ -94,6 +94,7 @@ export function KommoClient({
   direccion,
   tablero,
   recuperacion,
+  embudos,
   overview,
   pipelines,
   statuses,
@@ -114,6 +115,8 @@ export function KommoClient({
   tablero: ReactNode;
   /** Slot server-renderizado con la campaña de recuperación (SDD-0157). */
   recuperacion: ReactNode;
+  /** Slot server-renderizado con los embudos del CRM propio (SDD-0587 · 6.3). */
+  embudos: ReactNode;
   overview: KommoOverview;
   pipelines: KommoPipelineRow[];
   statuses: KommoStatusRow[];
@@ -263,9 +266,9 @@ export function KommoClient({
               maxWidth: "64ch",
             }}
           >
-            Tablero <strong>solo lectura</strong> del embudo comercial, cruzado
-            con la plata real del ERP. Se sincroniza una vez al día. Esta
-            pantalla todavía no modifica nada.
+            Embudo comercial, cruzado con la plata real del ERP. Dirección,
+            Tablero, Asesor y Recuperación se sincronizan una vez al día. En
+            Embudos, lo que mueves o guardas queda en Studio.
           </p>
         </div>
         <div
@@ -334,6 +337,8 @@ export function KommoClient({
         tablero
       ) : tab === "recuperacion" ? (
         recuperacion
+      ) : tab === "embudos" ? (
+        embudos
       ) : (
         <>
           {/* Toolbar del worklist */}

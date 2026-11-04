@@ -20,6 +20,7 @@ async function loadConfig(env: Record<string, string | undefined>): Promise<Next
   vi.resetModules();
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", undefined);
   vi.stubEnv("DTD_STANDALONE", undefined);
+  vi.stubEnv("CHATWOOT_URL", undefined);
   for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
   const mod = await import("../../../next.config");
   return mod.default;
@@ -151,4 +152,118 @@ describe("SDD-0602 · la plantilla del packing list viaja con su ruta", () => {
     expect(trazadas).toEqual(["./public/templates/dtd-packing-list-invoice.xlsx"]);
     expect(existsSync(trazadas[0])).toBe(true);
   });
+});
+
+/**
+ * Cabeceras que el navegador recibe para una URL: todas las reglas cuyo
+ * `source` matchea, con el MISMO matcher que usa Next al servirlas. Varias
+ * `Permissions-Policy` o varias CSP sobre una URL se intersectan, así que lo que
+ * importa es cuántas llegan y qué dicen, no qué regla las declara.
+ */
+async function headersFor(cfg: NextConfig, pathname: string): Promise<{ key: string; value: string }[]> {
+  const { getPathMatch } = await import("next/dist/shared/lib/router/utils/path-match");
+  const entries = (await cfg.headers!()) as HeaderEntry[];
+  return entries
+    .filter((entry) => getPathMatch(entry.source, { removeUnnamedParams: true, strict: true })(pathname) !== false)
+    .flatMap((entry) => entry.headers);
+}
+
+const values = (headers: { key: string; value: string }[], key: string) =>
+  headers.filter((header) => header.key === key).map((header) => header.value);
+
+describe("SDD-0585 · Bandeja de Chatwoot: frame-src y micrófono solo en su ruta", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  for (const pathname of ["/studio/bandeja", "/studio/bandeja/conversacion/12"]) {
+    it(`${pathname}: una sola CSP con frame-src del chat y una sola Permissions-Policy con el micrófono delegado`, async () => {
+      const headers = await headersFor(await loadConfig({}), pathname);
+      const csp = values(headers, "Content-Security-Policy");
+      const pp = values(headers, "Permissions-Policy");
+      expect(csp).toHaveLength(1);
+      expect(pp).toHaveLength(1);
+      expect(directive(csp[0], "frame-src")).toBe("frame-src https://chat.dtdcargo.com");
+      expect(pp[0]).toContain('microphone=(self "https://chat.dtdcargo.com")');
+      expect(pp[0]).toContain("camera=()");
+      // Studio sigue sin dejarse enmarcar (E2-D3).
+      expect(directive(csp[0], "frame-ancestors")).toBe("frame-ancestors 'none'");
+      expect(values(headers, "X-Frame-Options")).toEqual(["DENY"]);
+    });
+  }
+
+  for (const pathname of ["/studio/dashboard", "/studio/bandejas", "/studio/conversaciones"]) {
+    it(`${pathname}: sigue sin frame-src y con microphone=()`, async () => {
+      const headers = await headersFor(await loadConfig({}), pathname);
+      const csp = values(headers, "Content-Security-Policy");
+      const pp = values(headers, "Permissions-Policy");
+      expect(csp).toHaveLength(1);
+      expect(pp).toHaveLength(1);
+      expect(() => directive(csp[0], "frame-src")).toThrow();
+      expect(pp[0]).toContain("microphone=()");
+    });
+  }
+
+  it("CHATWOOT_URL cambia el origen en las dos cabeceras a la vez", async () => {
+    const headers = await headersFor(await loadConfig({ CHATWOOT_URL: "https://chat.ejemplo.test/" }), "/studio/bandeja");
+    expect(directive(values(headers, "Content-Security-Policy")[0], "frame-src")).toBe("frame-src https://chat.ejemplo.test");
+    expect(values(headers, "Permissions-Policy")[0]).toContain('microphone=(self "https://chat.ejemplo.test")');
+  });
+});
+
+describe("SDD-0585 · 2.4 · Ficha DTD: solo el chat la puede enmarcar (E2-D28)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  for (const pathname of ["/studio/ficha-chat"]) {
+    it(`${pathname}: una sola CSP con frame-ancestors del chat y sin X-Frame-Options`, async () => {
+      const headers = await headersFor(await loadConfig({}), pathname);
+      const csp = values(headers, "Content-Security-Policy");
+      expect(csp).toHaveLength(1);
+      expect(directive(csp[0], "frame-ancestors")).toBe("frame-ancestors https://chat.dtdcargo.com");
+      expect(values(headers, "X-Frame-Options")).toEqual([]);
+      // El resto de la CSP es la estricta: no enmarca nada ni delega el micrófono.
+      expect(() => directive(csp[0], "frame-src")).toThrow();
+      const pp = values(headers, "Permissions-Policy");
+      expect(pp).toHaveLength(1);
+      expect(pp[0]).toContain("microphone=()");
+      expect(values(headers, "Strict-Transport-Security")).toHaveLength(1);
+    });
+  }
+
+  for (const pathname of ["/studio/ficha-chats", "/studio/ficha-chat/otra", "/studio/clientes/DTD-0001"]) {
+    it(`${pathname}: no hereda la regla y sigue sin dejarse enmarcar`, async () => {
+      const headers = await headersFor(await loadConfig({}), pathname);
+      const csp = values(headers, "Content-Security-Policy");
+      expect(csp).toHaveLength(1);
+      expect(directive(csp[0], "frame-ancestors")).toBe("frame-ancestors 'none'");
+      expect(values(headers, "X-Frame-Options")).toEqual(["DENY"]);
+    });
+  }
+
+  it("CHATWOOT_URL cambia el origen de frame-ancestors", async () => {
+    const headers = await headersFor(await loadConfig({ CHATWOOT_URL: "https://chat.ejemplo.test/" }), "/studio/ficha-chat");
+    expect(directive(values(headers, "Content-Security-Policy")[0], "frame-ancestors")).toBe("frame-ancestors https://chat.ejemplo.test");
+  });
+});
+
+describe("SDD-0585 · 2.7 · salida de Studio: frame-src del chat solo en /studio/cerrar-chat (E2-D13)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("/studio/cerrar-chat: una sola CSP con frame-src del chat; sigue sin dejarse enmarcar y sin micrófono", async () => {
+    const headers = await headersFor(await loadConfig({}), "/studio/cerrar-chat");
+    const csp = values(headers, "Content-Security-Policy");
+    expect(csp).toHaveLength(1);
+    expect(directive(csp[0], "frame-src")).toBe("frame-src https://chat.dtdcargo.com");
+    expect(directive(csp[0], "frame-ancestors")).toBe("frame-ancestors 'none'");
+    expect(values(headers, "X-Frame-Options")).toEqual(["DENY"]);
+    const pp = values(headers, "Permissions-Policy");
+    expect(pp).toHaveLength(1);
+    expect(pp[0]).toContain("microphone=()");
+  });
+
+  for (const pathname of ["/studio/cerrar-chats", "/studio/cerrar-chat/otra"]) {
+    it(`${pathname}: no hereda la regla`, async () => {
+      const csp = values(await headersFor(await loadConfig({}), pathname), "Content-Security-Policy");
+      expect(csp).toHaveLength(1);
+      expect(() => directive(csp[0], "frame-src")).toThrow();
+    });
+  }
 });

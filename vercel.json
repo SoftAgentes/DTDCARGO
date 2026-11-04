@@ -77,6 +77,14 @@
     {
       "path": "/api/cron/alta-health",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/chatwoot-reintentos",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/chatwoot-agentes",
+      "schedule": "30 12 * * *"
     }
   ]
 }
