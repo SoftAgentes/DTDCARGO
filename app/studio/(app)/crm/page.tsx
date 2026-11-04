@@ -34,7 +34,8 @@ import type {
   KommoCustomFieldRow,
   KommoStageMap,
 } from "@/lib/studio/kommo-types";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { resolverTablero } from "@/lib/studio/crm-tablero";
 import {
   filterRecoveryRows,
   getRecoveryUniverse,
@@ -45,6 +46,7 @@ import { DireccionTab } from "./_components/DireccionTab";
 import { KommoBoardView } from "./_components/KommoBoardView";
 import { KommoClient } from "./_components/KommoClient";
 import { RecoveryTab } from "./_components/RecoveryTab";
+import { CrmEmbudosCargando, CrmEmbudosSlot } from "./_components/CrmEmbudosSlot";
 import { resolveKommoTab } from "./_components/kommo-tabs.shared";
 
 /** Tope de leads traídos por embudo para el Tablero kanban. */
@@ -192,6 +194,15 @@ export default async function KommoPage({
     );
   }
 
+  // Embudos del CRM propio (SDD-0587 · 6.3): se lee dentro de su Suspense, así
+  // la pestaña muestra su estado de carga en vez de congelar la página.
+  const embudos: ReactNode =
+    tab === "embudos" ? (
+      <Suspense fallback={<CrmEmbudosCargando />}>
+        <CrmEmbudosSlot tableroInicial={resolverTablero(single("embudo"))} />
+      </Suspense>
+    ) : null;
+
   // Worklist (Asesor): leads filtrados; converted/valor se derivan del análisis.
   const leads = tab === "asesor" ? await listKommoLeads(supabase, filters) : [];
   const visibleConverted: Record<number, string> = {};
@@ -249,6 +260,7 @@ export default async function KommoPage({
       }
       tablero={tablero}
       recuperacion={recuperacion}
+      embudos={embudos}
       overview={overview}
       pipelines={pipelines}
       statuses={statuses}

@@ -282,7 +282,18 @@ Los días base no cambian aquí: cambiarlos exige una línea base nueva con OK d
 - `lib/studio/__tests__/crm-modelo.migration.test.ts`
 - `supabase/migrations-baseline.json` (solo la entrada `0506_crm_modelo`)
 
-Los pasos 6.3 en adelante suman aquí su allowlist al empezar.
+**6.3** (tablero y ficha; misma SDD):
+
+- `lib/studio/crm-tablero.ts`, `lib/studio/crm-tablero-queries.ts`, `lib/studio/crm-ficha.ts`
+- `app/studio/(app)/crm/tarjeta-actions.ts`
+- `app/studio/(app)/crm/page.tsx` (pestaña «Embudos» y su `Suspense`)
+- `app/studio/(app)/crm/_components/kommo-tabs.shared.ts` y `KommoClient.tsx` (solo la pestaña y su slot)
+- `app/studio/(app)/crm/_components/CrmEmbudosSlot.tsx`, `CrmEmbudosClient.tsx`, `CrmTableroKanban.tsx`, `TarjetaFichaDrawer.tsx`
+- Pruebas: `lib/studio/__tests__/crm-tablero.test.ts`, `lib/studio/__tests__/crm-tablero-queries.test.ts`, `app/studio/(app)/crm/__tests__/tarjeta-actions-gate.test.ts`, `app/studio/(app)/crm/_components/CrmTableroKanban.test.tsx`, `app/studio/(app)/crm/_components/CrmEmbudosClient.test.tsx`
+- `supabase/pending-migration-symbol-declarations.json` (solo la entrada `sdd-0587-crm-tablero`)
+- `.agents/handoffs/0587-e6-tablero.md`
+
+Los pasos 6.4 en adelante suman aquí su allowlist al empezar.
 
 ## 11. Aceptación de 6.1
 
@@ -307,7 +318,9 @@ Los pasos 6.3 en adelante suman aquí su allowlist al empezar.
 - **2026-10-30:** SDD propuesta y fila 6.1 entregada (PR #334, commit `1fae5e0a0`).
 - **2026-10-30:** Sam aceptó D1–D10 según la recomendación («si», pasado por el Director). Fila 6.1 aceptada: el avance del programa en esta rama pasa de 4,8 % a 6,5 % (7,5 ÷ 115,5 d, salida de `avance-checklist`). 6.2 espera la PR de E10 (0505) y los eventos de la 0504 antes de empezar.
 - **2026-10-30:** el Director da la salida de 6.2 cuando E10 publica la PR #335 (`231e471c1`). 6.2 se programa en la rama `codex/0582-e6-modelo`, apilada sobre `codex/0582-e10-enrutamiento`, y queda entregado con la migración 0506 sin aplicar (§14).
+- **2026-10-30:** 6.3 se programa en la rama `codex/0582-e6-tablero`, apilada sobre `codex/0582-e6-modelo`, y queda entregado sin migración nueva (§15). `pnpm verify` corrió sobre `4f277075a` (§15.2): el rojo propio quedó corregido y los demás son ajenos.
 - **2026-10-30:** Sam aceptó 6.2: a «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?» respondió «Acepto todo» (texto literal que pasó el Director, sesión «CRM Chatwoot»). Fila 6.2 aceptada; el avance del programa en la rama `codex/0582-e6-modelo` pasa de 20,4 % a 22,1 % (25,5 ÷ 115,5 d, salida de `avance-checklist`, con las aceptaciones de las otras ramas ya fusionadas). Aplicar la 0506 sigue siendo una puerta aparte: OK nominal de Sam al integrar, después de la 0505 y con el runbook de producción.
+- **2026-10-30:** Sam aceptó 6.3: a «¿Aceptas lo entregado: 2.4–2.6, 3.1–3.3, 6.2, 6.3 y 10.1–10.3?» respondió «Acepto todo» (texto literal que pasó el Director, sesión «CRM Chatwoot»). Fila 6.3 aceptada; el avance del programa en la rama `codex/0582-e6-tablero` pasa de 22,1 % a 26,4 % (30,5 ÷ 115,5 d, salida de `avance-checklist`). La prueba visual con datos sigue pendiente hasta que haya una base con la 0506, y aplicarla es una puerta aparte con OK nominal de Sam.
 
 ## 14. Paso 6.2 — modelo de datos (migración 0506, sin aplicar)
 
@@ -382,3 +395,57 @@ Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Citas de
 | 10 | Decisiones automatizadas | CORRECTO | El segmento solo elige tablero y número; no niega servicio. La regla es pública en la SDD-0582 |
 | 11 | Aceptación electrónica | No aplica | El modelo no registra aceptaciones |
 | 12 | Titulares que no son usuarios | CORRECTO | El lead sin ficha es justo ese caso: se guarda lo mínimo y se anonimiza a los 12 meses (D6). Su aviso es el punto 7 |
+
+## 15. Paso 6.3 — tablero de dos embudos y ficha de la tarjeta
+
+Rama `codex/0582-e6-tablero`, apilada sobre `codex/0582-e6-modelo` (PR #336). Sin migración nueva: usa la 0506 tal como quedó en 6.2. Mientras la 0506 no esté aplicada, la pestaña lo dice («Falta aplicar la migración 0506») en vez de romperse.
+
+### 15.1 Qué quedó
+
+| Pieza | Dónde | Regla del contrato |
+|---|---|---|
+| Pestaña **Embudos** en `/studio/crm`, con selector Leads / Clientes (conteo por embudo) y búsqueda por nombre o Shipping Mark | `page.tsx` (`Suspense`), `CrmEmbudosSlot.tsx`, `CrmEmbudosClient.tsx` | §4.1. Convive con las pestañas de Kommo durante F2; 6.6 las reemplaza |
+| Columnas desde `crm_etapas`, en el orden del admin. Una etapa propia apagada solo aparece si aún tiene tarjetas | `armarColumnas` (`lib/studio/crm-tablero.ts`) | D1, D2 |
+| Mover arrastrando (HTML5 nativo, como Bitácora) o con el selector «Mover a…» de cada tarjeta, accesible por teclado (DND-01). Una etapa de cierre pide motivo (`ConfirmDialog`). El movimiento es optimista y vuelve atrás si el servidor dice que no | `CrmTableroKanban.tsx`, `moverTarjetaAction` → `crm_mover_etapa` | §4.3, §5.3: la RPC fija `etapa_*_manual_at`, que es lo que hace ganar al manual posterior frente a `crm_mover_etapa_auto` |
+| Paso automático entre embudos: el tablero sale del segmento de `crm_segmento_tarjetas` en cada lectura. La tarjeta dice de dónde vino («Vino de Leads · …» o «Volvió de Clientes · …») | `ubicarTarjeta` | §4.1, §4.5 |
+| Cliente que vuelve a lead → «Registrado / recontacto» si su último movimiento fue en Clientes; en cuanto alguien la mueve a mano en Leads, manda su etapa guardada | `ubicarTarjeta` + `rastrosDesdeHistorial` | §4.5, §5.3 |
+| Tarjeta de una ficha borrada en suave (o que ya no se ve) se esconde y se cuenta al pie; las anonimizadas tampoco se pintan | `separarVisibles`, `.is("anonimizada_at", null)` | Pendiente de §14.1 |
+| Ficha: resumen (las dos etapas, motivo, fuente, UTM, fechas, enlace a la ficha del cliente), **dueño de la tarjeta** (se cambia aquí) separado de **quién contesta el chat** (lectura de `chatwoot_conversations` + `chatwoot_agent_links`; se cambia en Chatwoot), tareas (crear y marcar hechas), notas (agregar) e historial de etapas | `TarjetaFichaDrawer.tsx`, `cargarFichaTarjetaAction` y los verbos de `tarjeta-actions.ts` | D9, §5.4, D5 (b) |
+| Antigüedad en la etapa con punto dorado desde 30 días (reemplazo del «tintado» de NOVA, §6.2) y tareas vencidas en rojo | `CrmTableroKanban.tsx` | §6.2 |
+| Estados: cargando (`Suspense`), vacío (con las escondidas), sin modelo, error con «Reintentar», búsqueda sin resultados y vista de lectura | `CrmEmbudosSlot.tsx`, `CrmEmbudosClient.tsx` | BRAND §Estados obligatorios |
+
+**Permisos.** Dos candados en cada verbo y en la pantalla: el módulo `kommo` (con sus desvíos) y el rol de la RLS de la 0506 (`rolUsaCrm` = admin o commercial, el mismo predicado que `crm_puede_usar()`). Un desvío que le abra el módulo a otro rol no abre las tablas, así que la pantalla dice «Tu rol no usa el CRM propio» antes de que la base responda con un error. La llave de servicio solo se usa para nombres del equipo (`listTenantAdvisors`, como la ficha del cliente) y para traducir el agente de Chatwoot a un usuario, acotado al tenant.
+
+**Límite conocido (I).** Una tarjeta que fue cliente sin moverse nunca en Clientes (entró a «Activo» por defecto) no deja rastro en el historial: si vuelve a lead, aparece en su etapa guardada de Leads y no en «Registrado / recontacto». Registrar el cambio de tablero al detectarlo es de 6.6, que lleva los movimientos automáticos (`crm_mover_etapa_auto` con clave de evento).
+
+### 15.2 Evidencia
+
+| Comprobación | Resultado |
+|---|---|
+| Pruebas puntuales: `crm-tablero` (14), `crm-tablero-queries` (10, doble que aplica los filtros), `CrmTableroKanban` (6), `CrmEmbudosClient` (5), `tarjeta-actions-gate` (24) | PASÓ |
+| Pruebas vecinas: todo `app/studio/(app)/crm` y el contrato PGlite de la 0506 (`crm-modelo.migration.test.ts`) | PASÓ: 10 archivos, 180 pruebas |
+| Mutantes: sin `.is("anonimizada_at", null)`; sin esconder la ficha borrada; sin la vuelta a recontacto; sin el candado de rol en `puertaEdicion` | PASÓ: los 4 caen |
+| `tsc` acotado a los archivos de 6.3 y sus dependencias | PASÓ |
+| ESLint de `app/studio/(app)/crm/_components/` y `lib/studio/crm-*` | PASÓ: 0 errores; 2 avisos que ya estaban (`KommoClient.tsx:558`, `KommoBoardView.tsx:124`) |
+| `/ui-check` | PASÓ con 3 ajustes aplicados (espaciado con `var(--s-*)`, `ErrorAlert` del sistema, selector de 32 px) |
+| Gate de símbolos de migraciones pendientes | PASÓ: 0 ROJO, 7 AMARILLO declarados; la 0506 con `sdd-0587-crm-tablero`. Medido en `1d12270b6`, con `3c86f4053` integrado, que trae la resincronización de E2/E10 |
+| Prueba visual en el navegador con datos | NO EJECUTADO: hace falta una base con la 0506 aplicada |
+| `pnpm verify` completo sobre `4f277075a` (17:11Z–18:12Z, `node scripts/verify.mjs`) | FALLÓ: 16 de 17 pasos corridos; 3 rojos (test, sql-tests, e2e) y `migrations-applied` NO DISPONIBLE (worktree sin `.env.local`). Detalle por paso abajo |
+| verify · harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO · 7 AMARILLO), schema-rebuild, build | PASÓ |
+| verify · test (Vitest: 13 734 de 13 738) | FALLÓ. Propio: `rbac-actions-guard.test.ts` (2) contaba 78 archivos y 450 acciones; `tarjeta-actions.ts` suma 1 y 6, todas con candado. Corregido en el commit siguiente: 461 de 461 PASÓ. Ajenos: `infra-env-example.test.ts`, por cinco variables de E10 en el `.env.example` de la raíz sin documentar en el del servidor (`a319d4cdc`); y `TransportistasPanel.test.tsx`, que falló sólo en el reintento bajo carga y pasa solo |
+| verify · sql-tests | FALLÓ, ajeno: `0467_reversion_credito_carrera`, `0497_reverso_al_anular_factura` y `0497_reverso_al_anular_factura_carrera` (preflight de la 0497 sobre `excepcion_al_cierre_vigente`). El diff de 6.3 no toca migraciones ni contratos SQL |
+| verify · e2e (Playwright: 217–218 pasan) | FALLÓ, ajeno: `e2e/sin-scroll-horizontal.spec.ts:119` (CTA de Shipping Mark, página pública) en chromium, las dos vueltas; `auth.spec.ts:81` inestable. El diff de 6.3 no toca páginas públicas |
+| verify · migrations-applied | NO DISPONIBLE: el worktree no tiene credenciales de Supabase, y por regla no se copian |
+
+### 15.3 revisar-datos-ve de 6.3
+
+Sobre lo que 6.3 suma al modelo de §14.3. Esto no es asesoría legal.
+
+| # | Punto | Estado | Evidencia |
+|---|---|---|---|
+| 1 | Inventario | CORRECTO | 6.3 no crea campos. Lee nombre visible, Shipping Mark y nombre de la ficha; escribe notas, tareas, dueño y etapa por las tablas de la 0506 |
+| 2 | Minimización | CORRECTO | El tablero no lee `phone_last10` ni BSUID (`lib/studio/crm-tablero-queries.ts:27-28`); la ficha tampoco (`tarjeta-actions.ts:134`). Ningún `console` con datos en los archivos nuevos |
+| 4 | Derechos | **ENCONTRADO** | Una nota no se corrige ni se borra desde la pantalla (la 0506 solo da INSERT). La ficha lo avisa y pide no pegar datos de más (`TarjetaFichaDrawer.tsx:473`). Arreglo: la acción «Anonimizar ahora» de 6.6 (§14.3, punto 4) |
+| 5 | Borrado | CORRECTO | La tarjeta de una ficha borrada en suave no se pinta (`crm-tablero-queries.ts:83`) y su ficha no se abre (`tarjeta-actions.ts:189`) |
+| 8 | Terceros | CORRECTO | No se envía nada fuera. De Chatwoot solo se leen estado y asignado de la conversación, sin texto |
+| — | Fixtures | CORRECTO | Nombres de prueba y Shipping Marks inventados (`DTD-01xx`); sin teléfonos ni correos |
