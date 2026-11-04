@@ -25,9 +25,9 @@ const DESC =
 // SDD-0587, paso 6.4, suma a «Registro de cliente» la campaña por la que llegó.
 // OJO: este texto describe tablas y crons que entran con las PR de E2, E6 y E10.
 // Sam aprobó este texto exacto el 2026-11-03: si cambia una palabra, se le vuelve
-// a preguntar. Sale solo con la tanda A y esas piezas en producción, y la fecha se
-// ajusta al publicar: lo publicado obliga por haberse publicado.
-const UPDATED = "30 de octubre de 2026";
+// a preguntar. Sale solo con la tanda A y esas piezas en producción: lo publicado
+// obliga por haberse publicado.
+const UPDATED = "4 de noviembre de 2026";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",

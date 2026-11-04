@@ -38,6 +38,6 @@ describe("/privacidad · mensajes por WhatsApp y chat (SDD-0585, 2.6)", () => {
   });
 
   it("la fecha de la política se movió con el cambio", () => {
-    expect(texto).toContain('const UPDATED = "30 de octubre de 2026";');
+    expect(texto).toContain('const UPDATED = "4 de noviembre de 2026";');
   });
 });
