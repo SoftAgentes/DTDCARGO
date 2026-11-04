@@ -14,7 +14,7 @@
 # el 2026-10-16 (primera publicación sin Vercel) y conserva su interfaz:
 # `publicar-web.sh <sha>`.
 #
-# Qué hace `vigilar`: baja ghcr.io/hailuwaycom-sketch/dtdcargo:publicable (la
+# Qué hace `vigilar`: baja ghcr.io/softagentes/dtdcargo:publicable (la
 # etiqueta que mueve el workflow publicable.yml solo con imagen y CI en verde),
 # lee el commit de la etiqueta org.opencontainers.image.revision y, si no es lo
 # que corre, lo publica:
@@ -52,7 +52,7 @@
 # · 3 uso · 4 entorno (flock, permisos).
 set -uo pipefail
 
-IMAGEN=ghcr.io/hailuwaycom-sketch/dtdcargo
+IMAGEN=ghcr.io/softagentes/dtdcargo
 ETIQUETA=publicable
 PROYECTO=dtd-cargo
 HOST_WEB=dtdcargo.com

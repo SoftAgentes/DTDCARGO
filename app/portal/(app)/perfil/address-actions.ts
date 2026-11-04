@@ -10,6 +10,8 @@ import {
 } from "@/lib/studio/client-address-types";
 import {
   insertClientDeliveryAddress,
+  isSameDeliveryAddress,
+  listClientDeliveryAddresses,
   updateClientDeliveryAddress,
   clearDefaultForClient,
   setDefaultDeliveryAddress,
@@ -43,10 +45,19 @@ export async function addAddressAction(
   if (!parsed.ok) return { fieldErrors: parsed.errors };
 
   try {
-    if (parsed.value.isDefault) {
-      await clearDefaultForClient(supabase, client.id);
+    // Un reintento, o la misma dirección otra vez, no crea una fila más (SDD-0599).
+    const vigentes = await listClientDeliveryAddresses(supabase, client.id);
+    const igual = vigentes.find((address) => isSameDeliveryAddress(address, parsed.value));
+    if (igual) {
+      if (parsed.value.isDefault && !igual.isDefault) {
+        await setDefaultDeliveryAddress(supabase, client.id, igual.id);
+      }
+    } else {
+      if (parsed.value.isDefault) {
+        await clearDefaultForClient(supabase, client.id);
+      }
+      await insertClientDeliveryAddress(supabase, client.id, parsed.value);
     }
-    await insertClientDeliveryAddress(supabase, client.id, parsed.value);
   } catch (err) {
     // El detalle NUNCA va al cliente (convención apiError), pero SÍ al log: el
     // hueco `city_slug` (0347) estuvo 34 días roto en silencio justamente porque
