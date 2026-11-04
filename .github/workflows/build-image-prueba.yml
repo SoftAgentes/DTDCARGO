@@ -1,7 +1,7 @@
 name: Imagen Docker de prueba
 
 # SDD-0540 §2.5 · construye la imagen del ENTORNO DE PRUEBA de un SHA y la publica
-# en GHCR como `ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<sha completo>`.
+# en GHCR como `ghcr.io/softagentes/dtdcargo:prueba-sha-<sha completo>`.
 #
 # Solo a mano (`workflow_dispatch`), nunca en push ni en pull_request: una PR no
 # publica nada sola. Lo dispara el Director (o el Worker con permiso de publicar):
@@ -52,7 +52,7 @@ jobs:
     timeout-minutes: 45
     environment: prueba
     env:
-      IMAGE: ghcr.io/hailuwaycom-sketch/dtdcargo
+      IMAGE: ghcr.io/softagentes/dtdcargo
       SHA: ${{ inputs.sha }}
       PRUEBA_HOST: supabase-prueba.dtdcargo.com
       PROD_HOST: supabase.dtdcargo.com
@@ -167,7 +167,7 @@ jobs:
             echo '```'
             echo "Sin despliegue: la sesión de Contabo corre desplegar-prueba.sh."
             echo ""
-            echo "Google Analytics y Ads: 0 archivos en .next/static (SDD-0544). En todo .next: GA ${GA} · Ads ${ADS}; si no es 0, verificar-aislamiento.sh --exigir-sin-ga va a fallar."
+            echo "Google Analytics y Ads: 0 archivos en .next/static (SDD-0544). En todo .next: GA ${GA} · Ads ${ADS}; fuera de static no falla; en static, verificar-aislamiento.sh falla."
           } >> "$GITHUB_STEP_SUMMARY"
         env:
           GA: ${{ steps.bundle.outputs.ga }}

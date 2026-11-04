@@ -11,9 +11,10 @@ compose (plantilla en `infra/templates/proyecto/`, DTD Cargo en `infra/dtd-cargo
 | `uptime-kuma/` | Monitor de disponibilidad con avisos | `louislam/uptime-kuma:2.5.5` |
 | `backup/pg-dump-to-s3.sh` | Dump diario + roles + permisos de `public` con su huella, **cifrados con age** (claros solo en `/dev/shm`), copia a R2/B2 con rclone y retención | `supabase/postgres:17.6.1.136`, `rclone/rclone:1.75.1`, `age` del host |
 | `backup/config-backup.sh` | `.env` + clave raíz de pgsodium/Vault (volumen `db-config`), cifrados, solo cuando cambian | ídem |
-| `backup/restore.sh` | Restore en base nueva o staging, con guarda contra pisar producción; descifra `.age` en memoria; iguala los permisos de `public` a los del origen y los compara por huella (sale 8 si difieren) | `supabase/postgres:17.6.1.136` |
-| `backup/restore-test.sh` | Restore de prueba mensual en un contenedor desechable con PGDATA en tmpfs; `--dr` ensaya sobre la base `postgres` de la imagen | ídem |
+| `backup/restore.sh` | Restore en base nueva o staging, con guarda contra pisar producción; descifra `.age` en memoria; iguala los permisos de `public` a los del origen y los compara por huella (sale 8 si difieren); recrea `ensure_rls` y compara los event triggers con el índice del dump (sale 9 si falta alguno) | `supabase/postgres:17.6.1.136` |
+| `backup/restore-test.sh` | Restore de prueba mensual en un contenedor desechable con PGDATA en tmpfs; `--dr` ensaya sobre la base `postgres` de la imagen; falla si faltan event triggers o si una tabla nueva nace sin RLS | ídem |
 | `lib/acl.sh` | SQL de permisos de `public` (igualar y huella), compartido por el import y los respaldos; se carga con `source` | — |
+| `lib/event-triggers.sh` | `ensure_rls` y la comparación de event triggers contra el índice del dump (SDD-0594); se carga con `source` | — |
 | `migrate/import-from-cloud.sh` | Copia de Supabase Cloud a un staging (Fase 2): dump en memoria, tablas de log fuera, verificación por conteos | CLI `supabase` 2.118.0, ídem |
 | `staging/destroy-staging.sh` | Borra los datos de un staging al cerrar el ensayo, con evidencia | — |
 | `staging/*-prueba.sh`, `staging/verificar-aislamiento.sh` | Entorno de prueba con datos sintéticos (SDD-0540): `.env`, clave del web, aislamiento, semilla, reset de la base, creación y despliegue. Procedimiento: `docs/runbooks/entorno-prueba.md` | las del compose del proyecto |
@@ -117,7 +118,8 @@ Un backup que nunca se restauró no es un backup. Una vez al mes, en el VPS, con
 `restore-test.sh`: levanta un `supabase/postgres` desechable con PGDATA en tmpfs y
 red interna sin puertos, restaura con `restore.sh` como `supabase_admin`, compara
 `--expect tabla=filas`, comprueba con `--config` + `--vault-readable` que la raíz
-respaldada abre los secretos de Vault, y destruye todo. La clave privada entra a
+respaldada abre los secretos de Vault, exige los event triggers del dump y una tabla
+nueva con RLS, y destruye todo. La clave privada entra a
 `/dev/shm` solo mientras dura la prueba. Pasos y registro:
 `docs/runbooks/backup-restore-servidor.md` §3 y §8.
 
@@ -128,7 +130,10 @@ coincide) y descifra en `/dev/shm`. Al aplicar los roles quita las cláusulas
 `PASSWORD` del origen: si no, le cambiaría la contraseña al usuario con el que
 se conecta. `exit 4` significa advertencias de `pg_restore`: léelas antes de dar
 el restore por bueno (como `postgres` salen errores de event triggers, que
-exigen superusuario: usa `--user supabase_admin`).
+exigen superusuario: usa `--user supabase_admin`). `exit 9` significa que faltan
+event triggers del dump o que `ensure_rls` no quedó como debe: las tablas nuevas de
+`public` pueden nacer sin RLS, y esa base no se da por restaurada
+(`docs/runbooks/backup-restore-servidor.md` §3).
 
 ### Staging de la Fase 2 y traslado desde Cloud
 

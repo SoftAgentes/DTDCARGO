@@ -9,6 +9,11 @@
  *  - Restauración del foco al elemento previo al desmontar.
  *  - Escape para cerrar (respeta `pending`).
  *  - Focus-trap: Tab cicla dentro del panel.
+ *  - Foco perdido: el botón que se deshabilita durante el envío lo suelta a
+ *    `body`. Tab no sale del panel y, al terminar `pending`, vuelve adentro.
+ *  - Primer error: al terminar `pending`, el foco va al aviso enfocable o al primer
+ *    campo con `aria-invalid`, si se perdió o si la persona envió con Enter y sigue
+ *    en ese campo.
  *
  * Lo usa `DrawerShell` internamente. Los overlays ricos que NO encajan en el
  * header de DrawerShell (editores con tabs, previews casi-fullscreen) lo llaman
@@ -18,7 +23,7 @@
  * El panel debe tener `tabIndex={-1}` para poder recibir el foco inicial.
  */
 
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -29,6 +34,16 @@ const MODAL_SELECTOR = '[role="dialog"][aria-modal="true"]';
 function isTopmostDialog(panel: HTMLElement): boolean {
   const dialogs = document.querySelectorAll<HTMLElement>(MODAL_SELECTOR);
   return dialogs.length === 0 || dialogs.item(dialogs.length - 1) === panel;
+}
+
+/**
+ * El foco no está en ningún control: quedó en `body` o, según el navegador, en
+ * el control que se deshabilitó. Un control válido fuera del panel, como un menú
+ * flotante en un portal, no cuenta como perdido.
+ */
+function isFocusLost(): boolean {
+  const active = document.activeElement;
+  return !active || active === document.body || active.matches(":disabled");
 }
 
 export function useDialogA11y(
@@ -62,6 +77,28 @@ export function useDialogA11y(
     initialFocusRef?: RefObject<HTMLElement | null>;
   },
 ) {
+  const lastFocusedRef = useRef<HTMLElement | null>(null);
+  const submitFocusRef = useRef<Element | null>(null);
+
+  // Dónde estaba la persona, para devolverla ahí si el foco se pierde. Va antes
+  // del foco inicial para contarlo: en ConfirmDialog suele ser el único.
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!enabled || !panel) return;
+    function remember(e: FocusEvent) {
+      lastFocusedRef.current = e.target as HTMLElement;
+    }
+    function rememberSubmit() {
+      submitFocusRef.current = document.activeElement;
+    }
+    panel.addEventListener("focusin", remember);
+    panel.addEventListener("submit", rememberSubmit);
+    return () => {
+      panel.removeEventListener("focusin", remember);
+      panel.removeEventListener("submit", rememberSubmit);
+    };
+  }, [panelRef, enabled]);
+
   // Foco inicial + restauración al cerrar.
   useEffect(() => {
     if (!enabled) return;
@@ -100,6 +137,11 @@ export function useDialogA11y(
       }
       const firstEl = focusables[0];
       const lastEl = focusables[focusables.length - 1];
+      if (isFocusLost()) {
+        e.preventDefault();
+        (e.shiftKey ? lastEl : firstEl).focus();
+        return;
+      }
       const active = document.activeElement as HTMLElement | null;
       if (e.shiftKey && (active === firstEl || active === panel)) {
         e.preventDefault();
@@ -112,4 +154,30 @@ export function useDialogA11y(
     document.addEventListener("keydown", onKeyDown, true);
     return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [panelRef, pending, onClose, enabled]);
+
+  // Al terminar el envío, el foco va al primer error bloqueante (ERR-01): un aviso
+  // enfocable o, si no hay, el primer campo con error. Si el panel enfoca su propio
+  // aviso, este efecto corre antes (hijo) o ya no aplica (uso directo), y el aviso gana.
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!enabled || pending || !panel) return;
+    const submitFocus = submitFocusRef.current;
+    submitFocusRef.current = null;
+    if (!isTopmostDialog(panel)) return;
+    const firstError =
+      panel.querySelector<HTMLElement>('[role="alert"][tabindex="-1"]') ??
+      panel.querySelector<HTMLElement>('[aria-invalid="true"]');
+    if (!isFocusLost()) {
+      // Con Enter el foco se queda en el campo. Sólo se mueve si la persona sigue
+      // ahí: a quien ya pasó a otro control no se le quita.
+      if (document.activeElement === submitFocus) firstError?.focus();
+      return;
+    }
+    const candidates = [firstError, lastFocusedRef.current, panel];
+    // Un candidato deshabilitado o que ya no está no recibe el foco: se pasa al siguiente.
+    for (const el of candidates) {
+      el?.focus();
+      if (document.activeElement === el) break;
+    }
+  }, [panelRef, pending, enabled]);
 }
