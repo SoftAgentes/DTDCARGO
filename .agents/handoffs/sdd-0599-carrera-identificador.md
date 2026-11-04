@@ -14,6 +14,7 @@ Confirmada. El identificador se renueva en un `useEffect` del hook, y ese efecto
 | El archivo sin corregir, sin carga añadida | Rojo en 1 de 15 corridas, en esa prueba |
 | El archivo sin corregir, con 16 procesos de carga | Rojo en 1 de 20 corridas, en esa prueba |
 | Sonda temporal que reenvía en el instante en que aparece el aviso, con un render de más de 5 ms | Mismo identificador, 5 de 5 |
+| El archivo sin corregir, con el `setImmediate` del Scheduler retrasado 15 y 40 ms | Rojo siempre, en esa prueba: es el orden malo, forzado |
 
 ## Si existe para una persona
 
@@ -27,10 +28,11 @@ Sí, pero sólo en el hueco de milisegundos entre pintar y correr el efecto, y h
 |---|---|
 | `use-action-keeping-draft.test.tsx`, «cambia después de ok» | Espera una marca que pone un efecto declarado después de los del hook. Es por orden, no por tiempo |
 | `use-action-keeping-draft.test.tsx`, «una respuesta con error» | Espera el efecto antes de afirmar que el foco no se movió. Podía pasar en falso |
-| `la-accion-lanza.test.tsx`, formularios | `toHaveFocus` con `waitFor`. Tenía `act` antes, que casi siempre basta |
+| `la-accion-lanza.test.tsx`, formularios | `toHaveFocus` con `waitFor`. Con `act` antes, y el orden malo forzado, daba rojo en 11 a 16 de 32 |
+| `la-accion-lanza.test.tsx` y `conservar-lo-escrito.test.tsx`, `AcceptInvitationForm` | Espera a que el efecto vacíe la clave. Con el orden malo forzado daba rojo en las dos |
 | `la-accion-lanza.test.tsx`, «la pantalla lo dice» | Espera 5 s en lugar de 1 s. Ver el rojo abierto, abajo |
 
-`conservar-lo-escrito.test.tsx` no tiene este patrón: sus esperas ya usan `waitFor` o `act`.
+**Repetir no bastaba:** en 35 corridas con carga, ninguna de estas dio rojo por foco ni por clave. Lo destapó forzar el orden malo.
 
 ## VALIDACIÓN
 
@@ -43,7 +45,11 @@ Con un worker.
 | Mutantes del hook, sobre `2eeb30d8e` | PASÓ, 7 de 7 mueren: identificador tras `ok`, en cada intento, sin pedirlo, y el foco |
 | `la-accion-lanza.test.tsx`, sobre `2eeb30d8e`, con 16 procesos de carga | 34 de 35 corridas. Ver el rojo abierto |
 | Las tres pruebas, con la espera de 5 s, sin carga añadida | PASÓ, 76 de 76, una corrida. **No se repitió con carga:** a 1 de 35, pocas corridas no distinguirían |
+| Las tres pruebas con el orden malo forzado, 15 y 40 ms, en su versión final | PASÓ: 14 de 14, 32 de 32 y 30 de 30, en las dos esperas |
+| Otras diez pruebas en `main`, con el orden malo forzado, 15 y 40 ms: `useDialogA11y`, `CityDrawer`, `TransportistasPanel`, `PrestamoDrawer.foco`, `form-bits`, `TruckDrawer.campos`, `PortalClaims` y tres de `app/entrar/__tests__` | PASÓ, sin cambios: no tienen este patrón |
 | Mutante que quita el aviso de `NewPurchaseWizard`, con la espera de 5 s | Muere |
+| Mutante que no vacía la clave de `AcceptInvitationForm`, en las dos pruebas | Muere en las dos |
+| Las tres pruebas en su versión final, sin carga añadida | PASÓ, 76 de 76, una corrida |
 | ESLint de las dos pruebas | PASÓ |
 | `tsc` limitado a las dos pruebas | Sin errores en ellas; 1 ajeno de la configuración limitada |
 | `pnpm verify` | NO EJECUTADO: otra sesión trabaja con un worker, y son sólo pruebas |
