@@ -48,6 +48,10 @@ function docker(args, opts = {}) {
   return spawnSync("docker", args, { encoding: "utf8", ...opts });
 }
 
+// Un contrato puede imprimir más de 1 MiB, el máximo por omisión de spawnSync. Pasado
+// ese máximo, Node mata a psql con ENOBUFS y un contrato verde sale en rojo (SDD-0573).
+const PSQL_MAX_BUFFER = 64 * 1024 * 1024;
+
 /**
  * Codigo de salida del SALTO — no es 0 a proposito.
  *
@@ -120,14 +124,15 @@ try {
       "psql", "-U", "postgres", "-q",
       "-v", "ON_ERROR_STOP=1",
       "-f", `/sb/tests/${f}`,
-    ]);
+    ], { maxBuffer: PSQL_MAX_BUFFER });
     if (res.status === 0) {
       console.log(`${C.green}   ✓${C.nc} ${C.dim}${f}${C.nc}`);
     } else {
       failed.push(f);
-      const err = `${res.stdout || ""}${res.stderr || ""}`
+      // Un error del spawn (ENOBUFS, timeout) no es un ERROR de psql: se dice cuál.
+      const err = (res.error ? [`el runner cortó a psql: ${res.error.code ?? res.error.message}`] : `${res.stdout || ""}${res.stderr || ""}`
         .split("\n")
-        .filter((l) => l.includes("ERROR:"))
+        .filter((l) => l.includes("ERROR:")))
         .slice(0, 2)
         .join("\n      ");
       console.log(`${C.red}   ✗ ${f}${C.nc}`);

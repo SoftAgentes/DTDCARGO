@@ -54,6 +54,7 @@ confidencialidad: interno
 | E1-D7 | `DISABLE_TELEMETRY=true` y `ENABLE_PUSH_RELAY_SERVER=false` | Sin ellas, Chatwoot manda conteos de conversaciones al hub y el texto de cada notificación al relay de push (`lib/chatwoot_hub.rb`) |
 | E1-D8 | `/super_admin` y `/monitoring` solo desde `100.64.0.0/10` (`tailscale-only@file`). Mientras el VPS no tenga Tailscale (T, 2026-10-29), la administración va por `docker compose exec` sobre SSH. **Decisión de Sam del 2026-10-29 («Cerrado y consola»):** P3 se pospone; `/super_admin` queda cerrado para todos y no se instala ni Tailscale ni Cloudflare Access hasta que haga falta. Cuando haga falta, la opción preferida es Cloudflare Access con verificación del token `Cf-Access-Jwt-Assertion` en el origen | No hay acceso web de super admin desde internet en ningún momento; E2 entra por la Platform API (P4) |
 | E1-D9 | ~~Recomendación de DNS: sin proxy (nube gris)~~ **Revisada el 2026-10-29 tras P2:** el VPS solo acepta 80/443 desde Cloudflare (`cloudflare-origin-firewall`, desde el 2026-10-22; registro T-17), así que sin proxy Chatwoot no es alcanzable ni recibe certificado (T-16). Nueva recomendación: **con proxy**, como el resto de la web | Cloudflare ya procesa todo el tráfico de la web y de Supabase de DTD, con datos de clientes; Chatwoot le suma el contenido de las conversaciones. Abrir el origen a todos le quitaría la protección a todos los sitios del VPS. Decide Sam |
+| E1-D10 | Chatwoot se queda en este VPS (decisión G de la SDD-0582), ratificado por Sam el 2026-11-01: «¿Aceptas el 1.6 y dejas Chatwoot en este VPS?» → «Sí, acepto el 1.6», transmitido por el Director | La fila de presión de CPU falla (p95 98,85 en total; 53,85 sin el episodio, con dos rachas de 20 y 21 min sobre 60), pero las otras cinco señales cumplen y (I) el episodio viene de actividad ajena a Chatwoot. El plan B no se activa y el criterio se vuelve a leer al cerrar E4 |
 
 ## Allowlist exacta
 
@@ -69,6 +70,7 @@ confidencialidad: interno
 - `docs/legal/privacidad/inventario-terceros.md` (sección nueva de Chatwoot)
 - `docs/specs/0583-chatwoot-vps-e1/{spec.md,investigacion-2026-10-29.md}`
 - `docs/specs/0582-chatwoot-piloto/checklist.md` (filas 1.1–1.7)
+- `docs/specs/0582-chatwoot-piloto/spec.md` (solo la fila de la decisión G, por encargo del Director, 2026-11-01)
 - `docs/specs/README.md` (índice regenerado)
 - `.agents/handoffs/0583-chatwoot-vps-e1.md`
 

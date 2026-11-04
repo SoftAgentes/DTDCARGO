@@ -51,6 +51,12 @@ export function crearServidorDenyOnly() {
       respuesta.end();
       return;
     }
+    // postgrest-js reintenta los GET con 503 tres veces, esperando 1 + 2 + 4 s si
+    // no hay `Retry-After`. Sin esta cabecera, cada lectura costaba 7 s (medido el
+    // 2026-11-02: 7,03-7,07 s, contra 28-47 ms con ella) y una página con una
+    // lectura, como /registro, se comía el presupuesto de las pruebas. Sigue
+    // negando todo: el status y el cuerpo no cambian.
+    respuesta.setHeader("retry-after", "0");
     respuesta.writeHead(503);
     respuesta.end(JSON.stringify(RESPUESTA_DENEGADA));
   });

@@ -21,7 +21,10 @@ REPO="$(cd "${S}/../.." && pwd)"
 SCRIPT="${PUBLICAR_WEB_SH:-${S}/web/publicar-web.sh}"
 HUELLAS="${S}/web/huellas-fuera-de-imagen.sh"
 UNITS="${REPO}/infra/dtd-cargo/systemd"
-IMG=ghcr.io/hailuwaycom-sketch/dtdcargo
+IMG=ghcr.io/softagentes/dtdcargo
+# Donde vivió el paquete hasta el cambio de nombre del perfil: hoy da «manifest
+# unknown», pero el servidor puede tener copias locales con este nombre.
+IMG_VIEJA=ghcr.io/hailuwaycom-sketch/dtdcargo
 
 if [ "${1:-}" = --mutantes ]; then
   # Cada mutante quita una garantía. Si la suite sigue verde, falta una prueba
@@ -71,6 +74,8 @@ if [ "${1:-}" = --mutantes ]; then
   mutar "origen distingue mayúsculas" '[[ "${f,,}" = "${FUENTE,,}" || "${f,,}" = "${FUENTE_HISTORICA,,}" ]] ||' '[[ "${f}" = "${FUENTE}" || "${f}" = "${FUENTE_HISTORICA}" ]] ||'
   mutar "origen acepta prefijos" '[[ "${f,,}" = "${FUENTE,,}" || "${f,,}" = "${FUENTE_HISTORICA,,}" ]] ||' '[[ "${f,,}" = "${FUENTE,,}"* || "${f,,}" = "${FUENTE_HISTORICA,,}"* ]] ||'
   mutar "origen controlado por entorno" 'readonly FUENTE=https://github.com/SoftAgentes/DTDCARGO' 'readonly FUENTE="${FUENTE:-https://github.com/SoftAgentes/DTDCARGO}"'
+  mutar "dirección de imagen vieja" 'IMAGEN=ghcr.io/softagentes/dtdcargo' 'IMAGEN=ghcr.io/hailuwaycom-sketch/dtdcargo'
+  mutar "la limpieza toca otras direcciones" "--format '{{.ID}}' \"\${IMAGEN}\" 2>/dev/null" "--format '{{.ID}}' 2>/dev/null"
   mutar "avisa cada minuto" 'if [ "$(cat "${ESTADO}/ultimo-aviso" 2>/dev/null)" = "${clave}" ]; then' 'if false; then'
   mutar "sin copia del .env" 'cp -p "${DIR}/.env" "${b}" ||' 'true ||'
   mutar "cambiar_imagen acepta dos líneas DTD_WEB_IMAGE" '[ "${n}" = 1 ] || { MOTIVO="el .env tiene' 'true || { MOTIVO="el .env tiene'
@@ -99,6 +104,9 @@ if [ "${1:-}" = --mutantes ]; then
   mutar "sin la negativa del ensayo" '[ ! -f "${DIR}/compose.ensayo.yml" ] ||' 'true ||'
   mutar "el no-op deja :publicable rechazada" 'if [ "${rc}" = 0 ] && [ "${PUBLICADA}" = 1 ] && bajar' 'if [ "${rc}" = 0 ] && bajar'
   mutar "volver a la misma imagen" 'if [ "${id_ant}" = "$(imagen_que_corre)" ]; then' 'if false; then'
+  mutar "--aunque-congelado no alcanza" 'if [ -f "${CONGELADO}" ] && [ "${2:-}" != --aunque-congelado ]; then' 'if [ -f "${CONGELADO}" ]; then'
+  mutar "publicar a mano descongela" '  publicar_imagen "${sha}" "${dig}" a-mano; rc=$?' '  rm -f "${CONGELADO}"; publicar_imagen "${sha}" "${dig}" a-mano; rc=$?'
+  mutar "publicar no registra la anterior" 'printf '"'"'%s\n'"'"' "${previo}" > "${ESTADO}/anterior"' ':'
   mutar "Telegram sin recorte" '"text=${1:0:3500}"' '"text=$1"'
   mutar "Kuma sin recorte" '"msg=${2:0:200}"' '"msg=$2"'
   mutar "publica a mano y el vigilante la pisa" '      marcar_rechazo "${pdig}" "${prev}"' '      true "${pdig}" "${prev}"'
@@ -136,15 +144,21 @@ mkdir -p "${T}/bin"
 cat > "${T}/bin/docker" <<'DOBLE'
 #!/usr/bin/env bash
 # Doble de docker con estado en $DOBLE. Solo lo que usa publicar-web.sh.
-D="${DOBLE:?}"; IMG=ghcr.io/hailuwaycom-sketch/dtdcargo
+D="${DOBLE:?}"; IMG=ghcr.io/softagentes/dtdcargo
 printf '%s\n' "$*" >> "$D/llamadas.log"
 clave() { printf '%s' "$1" | tr '/:@' '___'; }
+# Con qué direcciones conoce el servidor una imagen: img/<id>/repos, una por línea
+# (sin el archivo, la actual). Una referencia solo resuelve en su dirección.
+repos_de() { cat "$D/img/$1/repos" 2>/dev/null || echo "$IMG"; }
+tiene_repo() { repos_de "$1" | grep -qx "$2"; }
+repo_de_ref() { local r="${1%%@*}"; printf '%s' "${r%:*}"; }
 resolver() { # referencia local → id
-  local ref="$1" id
+  local ref="$1" id r
+  r="$(repo_de_ref "$ref")"
   case "$ref" in
     sha256:*) id="${ref#sha256:}"; [ -f "$D/img/$id/local" ] && echo "$id" ;;
-    *@sha256:*) for id in $(ls "$D/img"); do [ -f "$D/img/$id/local" ] && [ "$(cat "$D/img/$id/digest")" = "${ref##*@}" ] && { echo "$id"; return; }; done ;;
-    *:*) for id in $(ls "$D/img"); do [ -f "$D/img/$id/local" ] && grep -qx "${ref##*:}" "$D/img/$id/tags" 2>/dev/null && { echo "$id"; return; }; done ;;
+    *@sha256:*) for id in $(ls "$D/img"); do [ -f "$D/img/$id/local" ] && tiene_repo "$id" "$r" && [ "$(cat "$D/img/$id/digest")" = "${ref##*@}" ] && { echo "$id"; return; }; done ;;
+    *:*) for id in $(ls "$D/img"); do [ -f "$D/img/$id/local" ] && tiene_repo "$id" "$r" && grep -qx "${ref##*:}" "$D/img/$id/tags" 2>/dev/null && { echo "$id"; return; }; done ;;
   esac
 }
 case "$1" in
@@ -153,6 +167,7 @@ case "$1" in
     [ "$(cat "$D/rc-pull" 2>/dev/null || echo 0)" = 0 ] || { echo "Error response from daemon: denied" >&2; exit 1; }
     [ -f "$D/reg/$(clave "$ref")" ] || { echo "Error response from daemon: manifest unknown" >&2; exit 1; }
     id="$(cat "$D/reg/$(clave "$ref")")"; touch "$D/img/$id/local"
+    r="$(repo_de_ref "$ref")"; tiene_repo "$id" "$r" || { { repos_de "$id"; echo "$r"; } > "$D/t"; mv "$D/t" "$D/img/$id/repos"; }
     case "$ref" in *@*) ;; *:*)
       t="${ref##*:}"
       for o in $(ls "$D/img"); do [ -f "$D/img/$o/tags" ] && { grep -vx "$t" "$D/img/$o/tags" > "$D/t"; mv "$D/t" "$D/img/$o/tags"; }; done
@@ -169,8 +184,8 @@ case "$1" in
         k="$(printf '%s' "$fmt" | sed -E 's/^\{\{index \.Config\.Labels "(.*)"\}\}$/\1/')"
         v="$(grep -m1 "^$k=" "$D/img/$id/labels" | cut -d= -f2-)"
         if [ -n "$v" ]; then echo "$v"; else echo "<no value>"; fi ;;
-      '{{range .RepoDigests}}{{println .}}{{end}}') echo "$IMG@$(cat "$D/img/$id/digest")" ;;
-      '{{range .RepoTags}}'*) sed "s|^|$IMG:|" "$D/img/$id/tags" 2>/dev/null; echo "$IMG@$(cat "$D/img/$id/digest")" ;;
+      '{{range .RepoDigests}}{{println .}}{{end}}') for r in $(repos_de "$id"); do echo "$r@$(cat "$D/img/$id/digest")"; done ;;
+      '{{range .RepoTags}}'*) for r in $(repos_de "$id"); do sed "s|^|$r:|" "$D/img/$id/tags" 2>/dev/null; echo "$r@$(cat "$D/img/$id/digest")"; done ;;
       *) echo "formato que el doble no conoce: $fmt" >&2; exit 9 ;;
     esac ;;
   ps)
@@ -199,8 +214,9 @@ case "$1" in
     printf '%s\n' "$*" >> "$D/run.log"; rc="$(cat "$D/rc-sharp" 2>/dev/null || echo 0)"
     if [ "$rc" = 0 ]; then echo "sharp OK, webp de prueba: 42 bytes"; else echo "Error: libvips-cpp.so.42: cannot open shared object file" >&2; fi
     exit "$rc" ;;
-  images)
-    for id in $(ls "$D/img"); do [ -f "$D/img/$id/local" ] && echo "$(cat "$D/img/$id/creado") $id"; done | sort -rn | awk '{ print "sha256:" $2 }' ;;
+  images) # Como docker: el último argumento, si es una dirección, filtra; sin él, todas.
+    r="${*: -1}"; case "$r" in ghcr.io/*) ;; *) r="" ;; esac
+    for id in $(ls "$D/img"); do [ -f "$D/img/$id/local" ] && { [ -z "$r" ] || tiene_repo "$id" "$r"; } && echo "$(cat "$D/img/$id/creado") $id"; done | sort -rn | awk '{ print "sha256:" $2 }' ;;
   rmi)
     echo "$2" >> "$D/rmi-intentos.log"   # también los que docker rechaza
     id="$(resolver "$2")"; [ -n "$id" ] || exit 1
@@ -460,7 +476,9 @@ reiniciar; sed -i 's|^org.opencontainers.image.source=.*|org.opencontainers.imag
 
 # Cambio de nombre del perfil (2026-10-20): se prueba el publicador completo,
 # incluido el efecto sobre compose, .env y contenedor, no el texto del guard.
-# Los fixtures generales conservan el alias histórico para medir compatibilidad.
+# Los fixtures generales conservan el alias histórico para medir compatibilidad:
+# una imagen en la dirección nueva con el origen viejo es justo lo que hay hoy en
+# ghcr.io/softagentes/dtdcargo:publicable (8e9e0f505, medido el 2026-11-01).
 fuente_de_imagen() { # $1 = id, $2 = source sintético
   sed -i "s|^org.opencontainers.image.source=.*|org.opencontainers.image.source=$2|" "${D}/img/$1/labels"
 }
@@ -540,6 +558,50 @@ for fuente_anterior in 'https://github.com/hailuwaycom-sketch/DTDCARGO' 'https:/
     || { ko "identidad volver ${fuente_anterior}: publicación=${rc_publicacion}, vuelta=${RC}, up=$(ups)"; ver; }
 done
 
+# La dirección cambió con el perfil y la vieja da «manifest unknown». Lo que el
+# servidor ya tiene sigue con su nombre viejo: la vuelta atrás llega a eso sin
+# bajarlo y, si no está, no se publica. Literales a propósito: si solo se usara
+# ${IMG}, la prueba y el script podrían equivocarse juntos.
+echo; echo "== dirección de la imagen: softagentes, con lo de antes en la vieja =="
+anterior_en_direccion_vieja() { # .env y copia local de A con el nombre viejo
+  echo "${IMG_VIEJA}" > "${D}/img/${IA}/repos"
+  sed -i "s|^DTD_WEB_IMAGE=.*|DTD_WEB_IMAGE=${IMG_VIEJA}:sha-${A}@${DA}|" "${P}/.env"
+}
+reiniciar; correr vigilar
+[ "${RC}" = 0 ] && grep -qx 'pull -q ghcr.io/softagentes/dtdcargo:publicable' "${D}/llamadas.log" \
+  && [ "$(imagen_env)" = "ghcr.io/softagentes/dtdcargo:sha-${B}@${DB}" ] \
+  && ok "vigilar baja :publicable de softagentes y fija esa dirección con su digest" || { ko "dirección vigilar rc=${RC}, env=$(imagen_env)"; ver; }
+reiniciar; correr publicar "${B}"
+[ "${RC}" = 0 ] && grep -qx "pull -q ghcr.io/softagentes/dtdcargo:sha-${B}" "${D}/llamadas.log" \
+  && [ "$(imagen_env)" = "ghcr.io/softagentes/dtdcargo:sha-${B}@${DB}" ] \
+  && ok "a mano baja sha-<sha> de softagentes y fija esa dirección" || { ko "dirección a mano rc=${RC}, env=$(imagen_env)"; ver; }
+for fuente in 'https://github.com/hailuwaycom-sketch/DTDCARGO' 'https://github.com/SoftAgentes/DTDCARGO'; do
+  reiniciar; fuente_de_imagen "${IB}" "${fuente}"; correr revisar
+  [ "${RC}" = 0 ] && [ "$(ups)" = 0 ] && grep -q 'PUERTAS: pasan' "${T}/salida.log" \
+    && ok "revisar acepta una imagen de softagentes con origen ${fuente}" || { ko "revisar con ${fuente} rc=${RC}"; ver; }
+done
+reiniciar; anterior_en_direccion_vieja; correr vigilar
+[ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${B}@${DB}" ] && [ "$(cat "${D}/cont/web")" = "${IB}" ] \
+  && [ "$(cat "${O}/estado/anterior")" = "${IMG_VIEJA}:sha-${A}@${DA}" ] && ! grep -q "^pull .*${IMG_VIEJA}" "${D}/llamadas.log" \
+  && ok "publica con la anterior en la dirección vieja, sin intentar bajarla" || { ko "anterior vieja rc=${RC}, env=$(imagen_env)"; ver; }
+reiniciar; anterior_en_direccion_vieja; cp "${P}/.env" "${T}/env-direccion"; printf '1\n1\n' > "${D}/smoke-rcs"; correr vigilar
+[ "${RC}" = 1 ] && [ "$(ups)" = 2 ] && cmp -s "${P}/.env" "${T}/env-direccion" && [ "$(cat "${D}/cont/web")" = "${IA}" ] && grep -q "^${DB} ${B} " "${O}/estado/rechazados" \
+  && ok "la prueba rápida falla: vuelve a la imagen de la dirección vieja y deja el .env igual" || { ko "vuelta a la vieja rc=${RC}, up=$(ups), env=$(imagen_env)"; ver; }
+reiniciar; anterior_en_direccion_vieja; correr vigilar; rc_publicacion="${RC}"; correr volver
+[ "${rc_publicacion}" = 0 ] && [ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG_VIEJA}:sha-${A}@${DA}" ] && [ "$(cat "${D}/cont/web")" = "${IA}" ] \
+  && ok "volver a mano llega a la imagen de la dirección vieja" || { ko "volver a la vieja: publicación=${rc_publicacion}, vuelta=${RC}, env=$(imagen_env)"; ver; }
+reiniciar; anterior_en_direccion_vieja; rm -f "${D}/img/${IA}/local"; cp "${P}/.env" "${T}/env-direccion"; correr vigilar
+[ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && cmp -s "${P}/.env" "${T}/env-direccion" && [ ! -f "${O}/CONGELADO" ] && grep -q 'no está en el servidor y no se pudo bajar' "${T}/salida.log" \
+  && grep -qx "pull -q ${IMG_VIEJA}:sha-${A}@${DA}" "${D}/llamadas.log" \
+  && ok "sin copia local de la anterior: intenta la dirección vieja, no responde y no publica" || { ko "anterior sin copia rc=${RC}, up=$(ups)"; ver; }
+reiniciar; anterior_en_direccion_vieja; imagen "${X}" "${IX}" "${DX}" 50; etiquetar_local "${IX}" "sha-${X}"; echo "${IMG_VIEJA}" > "${D}/img/${IX}/repos"; correr vigilar
+[ "${RC}" = 0 ] && [ -f "${D}/img/${IX}/local" ] && ! grep -q "${IMG_VIEJA}" "${D}/rmi-intentos.log" 2>/dev/null \
+  && ok "la limpieza no toca imágenes de la dirección vieja" || { ko "limpieza con la vieja rc=${RC}: $(cat "${D}/rmi-intentos.log" 2>/dev/null | head -2)"; ver; }
+reiniciar; echo "${IMG_VIEJA}" > "${D}/img/${IB}/repos"; etiquetar_local "${IB}" "sha-${B}"; echo "${IB}" > "${D}/cont/web"
+sed -i "s|^DTD_WEB_IMAGE=.*|DTD_WEB_IMAGE=${IMG_VIEJA}:sha-${B}@${DB}|" "${P}/.env"; cp "${P}/.env" "${T}/env-direccion"; correr vigilar
+[ "${RC}" = 0 ] && [ "$(ups)" = 0 ] && cmp -s "${P}/.env" "${T}/env-direccion" && grep -q 'al día' "${T}/salida.log" \
+  && ok "el mismo digest bajo la dirección nueva cuenta como al día: no republica" || { ko "al día entre direcciones rc=${RC}, up=$(ups)"; ver; }
+
 reiniciar; sed -i 's|^org.opencontainers.image.revision=.*|org.opencontainers.image.revision=main|' "${D}/img/${IB}/labels"; correr vigilar
 [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && ok "revisión que no es un sha de 40: no publica" || { ko "revision rc=${RC}"; ver; }
 reiniciar; echo 1 > "${D}/rc-pull"; correr vigilar
@@ -616,6 +678,61 @@ correr volver
 [ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${A}" ] && [ "$(cat "${D}/cont/web")" = "${IA}" ] && grep -q "^${DX} ${X} vuelta atrás a mano" "${O}/estado/rechazados" \
   && ok "volver: vuelve a la anterior y deja la de ahora rechazada" || { ko "volver rc=${RC} env=$(imagen_env)"; ver; }
 correr volver; [ "${RC}" = 1 ] && ok "volver otra vez: ya corre la anterior, no hace nada" || ko "volver dos veces rc=${RC}"
+
+# La forma que tiene producción desde el 2026-10-25: DTD_WEB_IMAGE es un id suelto,
+# esa imagen no está en ningún registro y estado/anterior sigue en otra imagen de la
+# dirección vieja. Sobre eso, el camino que se va a usar: un commit exacto con
+# CONGELADO puesto y el timer apagado.
+echo; echo "== commit exacto, con la web en un id suelto y CONGELADO puesto =="
+V="$(hx commit-v | cut -c1-40)"; IV="$(hx id-v)"; DV="sha256:$(hx dig-v)"
+W="$(hx commit-w | cut -c1-40)"; IW="$(hx id-w)"; DW="sha256:$(hx dig-w)"
+web_por_id() {
+  echo "manual-node-release/dtd" > "${D}/img/${IA}/repos"
+  rm -f "${D}/reg/$(printf '%s' "${IMG}:sha-${A}" | tr '/:@' '___')"
+  sed -i "s|^DTD_WEB_IMAGE=.*|DTD_WEB_IMAGE=sha256:${IA}|" "${P}/.env"
+  imagen "${V}" "${IV}" "${DV}" 50; etiquetar_local "${IV}" "sha-${V}"; echo "${IMG_VIEJA}" > "${D}/img/${IV}/repos"
+  rm -f "${D}/reg/$(printf '%s' "${IMG}:sha-${V}" | tr '/:@' '___')"
+  mkdir -p "${O}/estado"; echo "${IMG_VIEJA}:sha-${V}@${DV}" > "${O}/estado/anterior"
+  imagen "${X}" "${IX}" "${DX}" 300
+  correr congelar "ventana de prueba"
+}
+reiniciar; web_por_id; correr publicar "${X}" --aunque-congelado
+[ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${X}@${DX}" ] && [ "$(cat "${D}/cont/web")" = "${IX}" ] && [ -f "${O}/CONGELADO" ] \
+  && ok "--aunque-congelado publica ese commit por digest y deja CONGELADO puesto" || { ko "exacto rc=${RC}, env=$(imagen_env)"; ver; }
+[ "$(cat "${O}/estado/anterior")" = "sha256:${IA}" ] && ok "estado/anterior pasa de la dirección vieja al id que corría" || ko "anterior: $(cat "${O}/estado/anterior")"
+grep -q "^${DB} ${B} reemplazada a mano" "${O}/estado/rechazados" && ok "la :publicable distinta queda fuera hasta el próximo merge" || ko "sin rechazo de :publicable"
+: > "${D}/compose.log"; correr vigilar
+[ "${RC}" = 0 ] && [ "$(ups)" = 0 ] && grep -q 'congelado: ventana de prueba' "${T}/salida.log" && ok "con CONGELADO, el vigilante no toca lo publicado" || { ko "vigilar congelado rc=${RC}"; ver; }
+correr descongelar; : > "${D}/compose.log"; correr vigilar
+[ "$(ups)" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${X}@${DX}" ] && grep -q 'rechazada antes' "${T}/salida.log" \
+  && ok "al encender después, esa :publicable no pisa el commit exacto" || { ko "pisó el exacto: env=$(imagen_env)"; ver; }
+imagen "${W}" "${IW}" "${DW}" 400; en_registro publicable "${IW}"; correr revisar
+grep -q "commit ${W}" "${T}/salida.log" && ok "revisar sin sha dice qué entraría al encender" || { ko "revisar sin sha"; ver; }
+: > "${D}/compose.log"; correr vigilar
+[ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${W}@${DW}" ] && ok "pero un merge posterior sí entra: por eso encender es un paso aparte" || { ko "merge posterior rc=${RC}, env=$(imagen_env)"; ver; }
+reiniciar; web_por_id; en_registro publicable "${IX}"; correr publicar "${X}" --aunque-congelado; correr descongelar; : > "${D}/compose.log"; correr vigilar
+[ "$(ups)" = 0 ] && grep -q "al día: ${X:0:8}" "${T}/salida.log" && [ ! -s "${O}/estado/rechazados" ] \
+  && ok "si X es :publicable: al encender queda al día, sin rechazos" || { ko "X es :publicable"; ver; }
+reiniciar; web_por_id; cp "${P}/.env" "${T}/env-id"; printf '1\n1\n' > "${D}/smoke-rcs"; correr publicar "${X}" --aunque-congelado
+[ "${RC}" = 1 ] && [ "$(ups)" = 2 ] && cmp -s "${P}/.env" "${T}/env-id" && [ "$(cat "${D}/cont/web")" = "${IA}" ] && [ -f "${O}/CONGELADO" ] && grep -q "^${DX} ${X} " "${O}/estado/rechazados" \
+  && ok "la prueba rápida falla: vuelve sola al id que corría, con el .env igual" || { ko "vuelta al id rc=${RC}, up=$(ups), env=$(imagen_env)"; ver; }
+[ "$(cat "${O}/estado/anterior")" = "${IMG_VIEJA}:sha-${V}@${DV}" ] && ok "tras esa vuelta, estado/anterior sigue en la vieja: volver no es el paso siguiente" || ko "anterior tras la vuelta: $(cat "${O}/estado/anterior")"
+reiniciar; web_por_id; correr publicar "${X}" --aunque-congelado; rc_publicacion="${RC}"; correr volver
+[ "${rc_publicacion}" = 0 ] && [ "${RC}" = 0 ] && [ "$(imagen_env)" = "sha256:${IA}" ] && [ "$(cat "${D}/cont/web")" = "${IA}" ] && grep -q "^${DX} ${X} vuelta atrás a mano" "${O}/estado/rechazados" \
+  && ! grep -q '^pull -q sha256:' "${D}/llamadas.log" && ok "volver llega al id que corría, sin bajar nada" || { ko "volver al id: publicación=${rc_publicacion}, vuelta=${RC}, env=$(imagen_env)"; ver; }
+reiniciar; web_por_id; rm -f "${D}/img/${IA}/local"; cp "${P}/.env" "${T}/env-id"; correr publicar "${X}" --aunque-congelado
+[ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && cmp -s "${P}/.env" "${T}/env-id" && grep -q 'no está en el servidor y no se pudo bajar' "${T}/salida.log" \
+  && ok "si ese id ya no está en el disco: no publica, porque no hay de dónde bajarlo" || { ko "id sin copia rc=${RC}, up=$(ups)"; ver; }
+
+# `revisar` responde con la primera puerta cerrada, no con todas: una negativa por
+# migraciones no dice nada de las huellas (medido en producción el 2026-11-02).
+echo; echo "== las puertas paran en la primera =="
+reiniciar; printf '%s\n' 0001_init 0300_alfa > "${D}/ledger"; echo '# a mano' >> "${P}/compose.supabase.yml"; correr revisar
+[ "${RC}" = 1 ] && grep -q 'PUERTAS: NO · faltan en la base' "${T}/salida.log" && ! grep -q 'compose.supabase.yml' "${T}/salida.log" \
+  && ok "con migraciones faltantes, revisar no dice nada de las huellas" || { ko "orden de puertas rc=${RC}"; ver; }
+printf '%s\n' 0001_init 0300_alfa 0301_beta 0302_gama > "${D}/ledger"; correr revisar
+[ "${RC}" = 1 ] && grep -q 'PUERTAS: NO · el servidor no tiene la misma copia' "${T}/salida.log" && grep -q 'compose.supabase.yml' "${T}/salida.log" \
+  && ok "aplicadas las migraciones, aparece la huella que estaba tapada" || { ko "huella tapada rc=${RC}"; ver; }
 
 echo; echo "== limpieza de imágenes =="
 # Conservar = 2. La anterior (A) es la MÁS VIEJA de todas: si se conserva es por

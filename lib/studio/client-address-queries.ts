@@ -59,6 +59,21 @@ export async function listClientDeliveryAddresses(
   return (data ?? []).map((r) => mapRow(r as Row));
 }
 
+/** La misma dirección, sin mirar si es la predeterminada: agregarla otra vez sería un duplicado (SDD-0599). */
+export function isSameDeliveryAddress(
+  address: ClientDeliveryAddress,
+  input: ClientDeliveryAddressInput,
+): boolean {
+  return (
+    address.label === input.label &&
+    address.line === input.line &&
+    address.city === input.city &&
+    address.citySlug === input.citySlug &&
+    address.state === input.state &&
+    address.reference === input.reference
+  );
+}
+
 /** Quita la marca de predeterminada a TODAS las direcciones vivas del cliente. */
 export async function clearDefaultForClient(
   supabase: SupabaseClient,
