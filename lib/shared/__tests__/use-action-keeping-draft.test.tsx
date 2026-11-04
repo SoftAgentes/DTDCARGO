@@ -93,7 +93,8 @@ describe("cuando la acción lanza", () => {
     accion.mockRejectedValue(new TypeError("Failed to fetch"));
     render(<Barrera><Formulario /></Barrera>);
     const nota = escribirYEnviar("200 sillas");
-    expect(await screen.findByRole("alert")).toHaveFocus();
+    // El foco lo pone un efecto, que puede correr después de que el aviso aparezca.
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveFocus());
 
     nota.focus();
     fireEvent.submit(nota.form!);
