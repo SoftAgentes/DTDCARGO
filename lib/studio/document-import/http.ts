@@ -2,7 +2,6 @@ import "server-only";
 import { after, NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
-import { publicOrigin } from "@/lib/runtime/public-origin";
 import { parseDocumentDraft } from "@/lib/shared/document-import";
 import { enabled, ImportHttpError, authorizeWorkspace, portalEnabled, reserveRequest, requirePortal, requirePortalScope, UUID } from "./access";
 import { getWorkspace,openWorkspace,projectWorkspace,reserveUpload,applyImport,saveWorkspace } from "./service";
@@ -10,11 +9,14 @@ import { finishUpload,processImportJob } from "./jobs";
 import { getEstimateRates,estimateForRequest } from "./estimate";
 import { exportDocument } from "./export";
 
+// La dirección donde escucha el servidor no es un origen: en el contenedor,
+// `nextUrl` trae `https://0.0.0.0:3000`, y el dominio real entra por la lista (SDD-0602).
+const DIRECCIONES_DE_ESCUCHA=new Set(["0.0.0.0","[::]"]);
 export function allowedOrigin(req:NextRequest):string|null {
   const origin=req.headers.get("origin");if(!origin)return null;
   const configured=[process.env.NEXT_PUBLIC_SITE_URL,process.env.NEXT_PUBLIC_HAILUWAY_API,...(process.env.DOCUMENT_IMPORT_ALLOWED_ORIGINS??"").split(",")];
   const allowed=new Set(configured.filter(Boolean).flatMap(s=>{try{return [new URL(s!).origin];}catch{return [];}}));
-  allowed.add(publicOrigin(req.url));
+  if(!DIRECCIONES_DE_ESCUCHA.has(req.nextUrl.hostname))allowed.add(req.nextUrl.origin);
   return allowed.has(origin)?origin:null;
 }
 function responseHeaders(req:NextRequest) {
