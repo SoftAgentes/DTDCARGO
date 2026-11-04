@@ -313,17 +313,24 @@ describe("compras", () => {
     expect(double.store.prealerta_service_requests.map((s) => s.addon_code)).toEqual(["cotizar_medir"]);
   });
 
-  // El índice no mira `deleted_at`: el intento sigue tomado. No es un envío que haya quedado bien.
-  it("una compra borrada no se responde como si el reintento hubiera entrado", async () => {
+  // Describe un límite, no algo deseable: el índice no mira `deleted_at`, así que el intento sigue
+  // tomado, y el identificador sólo cambia tras `ok`. No duplica ni pierde lo escrito; recargar lo resuelve.
+  it("límite conocido: con la compra borrada, cada reintento gasta un correlativo y falla hasta recargar", async () => {
     const double = montar({
       prealertas: [{ id: "borrada", tenant_id: TENANT_A, client_markbox: MARKBOX, code: "BORRADA-1", client_request_id: INTENTO, deleted_at: BORRADA }],
     });
-    const resultado = await createPrealertaAction({}, compra({ request_id: INTENTO }));
+    const intentos = [
+      await createPrealertaAction({}, compra({ request_id: INTENTO })),
+      await createPrealertaAction({}, compra({ request_id: INTENTO })),
+    ];
 
-    expect(resultado.replayed).toBeUndefined();
-    expect(resultado.prealertaCode).toBeUndefined();
-    expect(resultado.error).toBeTruthy();
+    for (const resultado of intentos) {
+      expect(resultado.replayed).toBeUndefined();
+      expect(resultado.prealertaCode).toBeUndefined();
+      expect(resultado.error).toBeTruthy();
+    }
     expect(double.store.prealertas).toHaveLength(1);
+    expect(rpcDe(double, "next_order_seq")).toHaveLength(2);
   });
 
   it("completar el detalle dos veces tampoco repite el adjunto", async () => {
@@ -393,7 +400,7 @@ describe("cotizaciones", () => {
     expect(double.store.quotes).toHaveLength(2);
   });
 
-  it("una cotización borrada no se responde como si el reintento hubiera entrado", async () => {
+  it("límite conocido: con la cotización borrada, el reintento gasta un correlativo y falla", async () => {
     const double = montar({
       quotes: [{ id: "borrada", tenant_id: TENANT_A, client_markbox: MARKBOX, quote_code: "EST-BORRADA", client_request_id: INTENTO, deleted_at: BORRADA }],
     });
@@ -403,6 +410,7 @@ describe("cotizaciones", () => {
     expect(resultado.createdCode).toBeUndefined();
     expect(resultado.error).toBeTruthy();
     expect(double.store.quotes).toHaveLength(1);
+    expect(rpcDe(double, "next_estimate_code")).toHaveLength(1);
   });
 
   it("sin 0512 la cotización entra sin candado, sin romper", async () => {
@@ -467,7 +475,7 @@ describe("reclamos", () => {
     expect(double.store.client_claims).toHaveLength(2);
   });
 
-  it("un reclamo borrado no se responde como si el reintento hubiera entrado", async () => {
+  it("límite conocido: con el reclamo borrado, el reintento gasta un correlativo y falla", async () => {
     const double = montar({
       client_claims: [{ id: "borrado", tenant_id: TENANT_A, client_markbox: MARKBOX, claim_code: "RC-BORRADO", client_request_id: INTENTO, deleted_at: BORRADA }],
     });
@@ -477,6 +485,7 @@ describe("reclamos", () => {
     expect(resultado.createdCode).toBeUndefined();
     expect(resultado.error).toBeTruthy();
     expect(double.store.client_claims).toHaveLength(1);
+    expect(rpcDe(double, "next_claim_code_service")).toHaveLength(1);
   });
 
   it("el reintento avisa si un archivo no se pudo tomar", async () => {
