@@ -13,6 +13,7 @@
 - Botón: «Prepara la adopción».
 - Texto: «Me gusta. Prepara todo y adopción, y simplemente déjame ver si puedo hacer un poco más compacto o algún botón para ver un ejemplo.»
 - Selector: «Sí, en prueba.dtdcargo.com (Recommended)», «Sigue sin ellos» y «Sí, recórrelo tapado (Recommended)».
+- Selector, viendo el BRAND-CHECK y el texto de BD-037: «Apruebo, en azul (Recommended)». Siguiente tramo: «Pestañas (Recommended)».
 
 Cubre preparar. No cubre fusionar ni publicar. El Director General pide un OK aparte de Sam, con el tramo a la vista, y da el turno de PR.
 
@@ -33,14 +34,13 @@ Ver `docs/specs/0603-claridad-controles/spec.md`. Piezas compartidas del Studio,
 
 ## Pendientes de esta tarea
 
-- Aprobación de Sam del texto BD-037. Hasta entonces, no se fusiona. Al aprobarse, se escribe en `BRAND-DECISIONS.md` y `BRAND.md`.
 - Turno del Director para `pnpm verify` y PR.
 - Verlo en prueba antes de fusionar, sobre todo `Badge` en tablas angostas.
-- Tramos 2 a 5: ver la spec.
+- Tramos 2 a 5: ver la spec. Sigue el de pestañas.
 
 ## Impacto documental
 
-`app/studio/CLAUDE.md` §Estándar de botones, registro CMP de `SegmentedControl`, índice de specs. Graphify, Archify y Obsidian: NO EJECUTADO; los publica el Director desde main integrado.
+`app/studio/CLAUDE.md` §Estándar de botones, `BRAND.md` §Controles, BD-037, registro CMP de `SegmentedControl`, índice de specs. El Brand Book físico no se regenera: pide NORTE-SYNC. Graphify, Archify y Obsidian: NO EJECUTADO; los publica el Director desde main integrado.
 
 ## FUERA DE ALCANCE DETECTADO
 
