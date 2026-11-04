@@ -77,4 +77,4 @@ Los SHA quedan en la PR. La historia conserva el primer intento:
 - **Sin migraciones, sin textos públicos, sin variables nuevas.** No se tocó producción ni prueba.
 - **Impacto documental:** la spec y este handoff. Ningún runbook dice que las redirecciones lleven dominio. `docs/runbooks/servidor-contabo.md` ya explica por qué la variable es obligatoria en el build, y sigue siendo cierto.
 - **Conocimiento:** Graphify y Archify no se regeneraron. Queda para la integración.
-- **Limpieza pendiente, de quien corresponda:** imágenes locales `dtd-origen:base` y `dtd-origen:relativo`. Las de `ghcr.io/softagentes/dtdcargo` bajadas para leer el dominio horneado.
+- **Arnés y logs de la medición:** en las notas compartidas de la sesión, carpeta `medir-0602`, fuera del repo. Ya borré sus imágenes y contenedores; reconstruir la imagen tarda unos minutos con la caché de Docker.
