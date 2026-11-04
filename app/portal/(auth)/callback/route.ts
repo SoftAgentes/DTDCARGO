@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/db/server";
-import { publicOrigin } from "@/lib/runtime/public-origin";
+import { localRedirect } from "@/lib/http/local-redirect";
 
 /**
  * Callback del magic-link de Supabase Auth para el portal (SDD-0042).
@@ -27,7 +26,6 @@ import { publicOrigin } from "@/lib/runtime/public-origin";
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const origin = publicOrigin(request.url);
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
@@ -41,15 +39,13 @@ export async function GET(request: Request) {
       // abrió en un navegador distinto al que pidió el enlace, así que la cookie
       // `code_verifier` no está. Auth lo dice con "code challenge / verifier".
       const porDispositivo = /code (challenge|verifier)/i.test(error.message ?? "");
-      return NextResponse.redirect(
-        `${origin}/entrar?error=${porDispositivo ? "dispositivo" : "enlace"}`,
-      );
+      return localRedirect(`/entrar?error=${porDispositivo ? "dispositivo" : "enlace"}`);
     }
   } else if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-    if (error) return NextResponse.redirect(`${origin}/entrar?error=enlace`);
+    if (error) return localRedirect("/entrar?error=enlace");
   } else {
-    return NextResponse.redirect(`${origin}/entrar?error=incompleto`);
+    return localRedirect("/entrar?error=incompleto");
   }
 
   // Vincular la sesión con su cliente (match por email). Idempotente.
@@ -61,8 +57,8 @@ export async function GET(request: Request) {
 
   if (!row?.bound) {
     // Sesión válida pero el email no corresponde a un cliente invitado.
-    return NextResponse.redirect(`${origin}/entrar?status=nohabilitado`);
+    return localRedirect("/entrar?status=nohabilitado");
   }
 
-  return NextResponse.redirect(`${origin}/portal`);
+  return localRedirect("/portal");
 }

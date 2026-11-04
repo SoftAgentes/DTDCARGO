@@ -28,7 +28,6 @@ import { GET as porQuery } from "@/app/api/email/unsubscribe/route";
 import { GET as porRuta } from "@/app/api/email/unsubscribe/[token]/route";
 
 const CONTENEDOR = "https://0.0.0.0:3000";
-const PUBLICO = "https://dtdcargo.test";
 
 const destinoPorRuta = async (token: string) => {
   const res = await porRuta(new NextRequest(`${CONTENEDOR}/api/email/unsubscribe/${encodeURIComponent(token)}`), {
@@ -40,8 +39,6 @@ const destinoPorRuta = async (token: string) => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.stubEnv("APP_ENV", "production");
-  vi.stubEnv("NEXT_PUBLIC_SITE_URL", PUBLICO);
   vi.stubEnv("EMAIL_UNSUBSCRIBE_SECRET", SECRET);
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -52,26 +49,26 @@ afterEach(() => {
 });
 
 describe("baja de correo con req.url en 0.0.0.0:3000", () => {
-  it("token válido → se da de baja y confirma en el dominio público", async () => {
+  it("token válido → se da de baja y confirma, sin host en el Location", async () => {
     const token = signUnsubscribeToken({ email: "interno@dtdcargo.test", tenantId: "t-1", audience: "newsletter" }, SECRET);
-    expect(await destinoPorRuta(token)).toBe(`${PUBLICO}/email/baja?estado=actualidad`);
+    expect(await destinoPorRuta(token)).toBe("/email/baja?estado=actualidad");
     expect(h.update).toHaveBeenCalledTimes(1);
   });
 
-  it("token inválido por ruta → aviso en el dominio público", async () => {
-    expect(await destinoPorRuta("token-invalido")).toBe(`${PUBLICO}/email/baja?estado=invalido`);
+  it("token inválido por ruta → aviso", async () => {
+    expect(await destinoPorRuta("token-invalido")).toBe("/email/baja?estado=invalido");
     expect(h.update).not.toHaveBeenCalled();
   });
 
-  it("token inválido por query, de los correos anteriores → aviso en el dominio público", async () => {
+  it("token inválido por query, de los correos anteriores → aviso", async () => {
     const res = await porQuery(new NextRequest(`${CONTENEDOR}/api/email/unsubscribe?token=token-invalido`));
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe(`${PUBLICO}/email/baja?estado=invalido`);
+    expect(res.headers.get("location")).toBe("/email/baja?estado=invalido");
   });
 
-  it("sin secreto → aviso de error en el dominio público", async () => {
+  it("sin secreto → aviso de error", async () => {
     vi.stubEnv("EMAIL_UNSUBSCRIBE_SECRET", "");
-    vi.stubEnv("CRON_SECRET", "");
-    expect(await destinoPorRuta("token-invalido")).toBe(`${PUBLICO}/email/baja?estado=error`);
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
+    expect(await destinoPorRuta("token-invalido")).toBe("/email/baja?estado=error");
   });
 });

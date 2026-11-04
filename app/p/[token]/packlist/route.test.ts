@@ -128,8 +128,6 @@ describe("GET del proveedor con req.url en 0.0.0.0:3000 (SDD-0602)", () => {
 
   beforeEach(() => {
     h.state.workspace = { data: null, error: null };
-    vi.stubEnv("APP_ENV", "production");
-    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://dtdcargo.test");
   });
 
   it("baja el Excel lleno, leyendo la plantilla real del disco y sin salir a la red", async () => {

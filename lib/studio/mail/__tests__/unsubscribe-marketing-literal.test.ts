@@ -106,7 +106,7 @@ describe("baja de marketing · el correo se compara literal", () => {
 
     const destino = await darDeBaja("juan_perez@x.test");
 
-    expect(destino).toBe("https://sitio.test/email/baja?estado=marketing");
+    expect(destino).toBe("/email/baja?estado=marketing");
     expect(dadosDeBaja()).toEqual(["real"]);
     // Sin comodines en la consulta: no trae filas que después hay que descartar.
     expect(mocks.patrones).toEqual(["juan\\_perez@x.test"]);
@@ -150,7 +150,7 @@ describe("baja de marketing · el correo se compara literal", () => {
 
   it("sin ninguna fila sigue confirmando la baja: el enlace no revela nada", async () => {
     await expect(darDeBaja("nadie@x.test")).resolves.toBe(
-      "https://sitio.test/email/baja?estado=marketing",
+      "/email/baja?estado=marketing",
     );
   });
 
@@ -159,7 +159,7 @@ describe("baja de marketing · el correo se compara literal", () => {
     mocks.clientes = [cliente("real", "ana@x.test")];
 
     await expect(darDeBaja("ana@x.test")).resolves.toBe(
-      "https://sitio.test/email/baja?estado=error",
+      "/email/baja?estado=error",
     );
     expect(dadosDeBaja()).toEqual([]);
   });
@@ -169,7 +169,7 @@ describe("baja de marketing · el correo se compara literal", () => {
     mocks.clientes = [cliente("real", "ana@x.test")];
 
     await expect(darDeBaja("ana@x.test")).resolves.toBe(
-      "https://sitio.test/email/baja?estado=error",
+      "/email/baja?estado=error",
     );
   });
 });
