@@ -322,7 +322,7 @@ export function StudioSidebar({
           display: "flex",
           alignItems: "center",
           gap: 12,
-          padding: collapsed ? "10px 0" : `11px 12px 11px ${12 + indent}px`,
+          padding: collapsed ? "10px 0" : `var(--sb-item-y) 12px var(--sb-item-y) ${12 + indent}px`,
           justifyContent: collapsed ? "center" : "flex-start",
           // Blanco con tinta fija: el mayor contraste de la paleta en los dos temas.
           // --wine sobre navy mide 1,56:1 (BD-017), por eso el vino va en el icono.
@@ -411,7 +411,7 @@ export function StudioSidebar({
             display: "flex",
             alignItems: "center",
             gap: 12,
-            padding: "11px 12px",
+            padding: "var(--sb-item-y) 12px",
             borderRadius: "var(--r-md)",
             background: childActive ? "var(--bg-sidebar-hover)" : "transparent",
             color: "var(--ink-side-strong)",

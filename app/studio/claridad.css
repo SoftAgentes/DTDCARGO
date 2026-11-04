@@ -11,6 +11,16 @@
    estilo en línea de una pantalla: es lo que permite verlo en todo el ERP sin un
    barrido de archivos. Antes de producción, esas reglas se migran por SDD. */
 
+/* Medidas que cambian con la densidad y viven en estilos en línea. */
+:root {
+  --sb-item-y: 11px;
+  --kpi-fs: 30px;
+}
+[data-density="compact"] {
+  --sb-item-y: 7px;
+  --kpi-fs: 24px;
+}
+
 /* ── 1. Botones ─────────────────────────────────────────────────────────── */
 .studio-btn {
   gap: var(--s-2);
@@ -414,6 +424,84 @@ button:hover > .studio-fila-abrir,
 [role="button"]:hover > .studio-fila-abrir {
   background: var(--ink);
   color: var(--ink-inv);
+}
+
+/* ── Botón «Compacto» de la barra superior ──────────────────────────────── */
+.studio-densidad {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 36px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-md);
+  font: 700 13.5px/1 var(--f-sans);
+  cursor: pointer;
+}
+.studio-topbar__actions > .studio-densidad[aria-pressed="true"] {
+  background: var(--ink) !important;
+  border-color: var(--ink) !important;
+  color: var(--ink-inv) !important;
+}
+@media (max-width: 767px) {
+  .studio-densidad__texto {
+    display: none;
+  }
+}
+
+/* ── Vista compacta: menos aire, misma letra legible ─────────────────────
+   Los espacios ya los reducen los tokens de tokens.css. Aquí van las alturas de
+   lo que este archivo fijó. Nada baja de 32 px: es el mínimo táctil del Studio. */
+[data-density="compact"] .studio-btn {
+  min-height: 36px;
+  padding: 0 var(--s-4);
+  font-size: 13.5px;
+}
+[data-density="compact"] .studio-btn-sm {
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  font-size: 13px;
+}
+[data-density="compact"] .studio-btn-xs {
+  min-height: 32px;
+  padding: 0 var(--s-2);
+  font-size: 12.5px;
+}
+[data-density="compact"] .studio-label {
+  margin-bottom: var(--s-1);
+  font-size: 13px;
+}
+[data-density="compact"] .studio-input {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 13.5px;
+}
+[data-density="compact"] .studio-sys [role="tab"],
+[data-density="compact"] .studio-tab,
+[data-density="compact"] .studio-sys main button[style*="border-bottom"],
+[data-density="compact"] .studio-sys [role="radiogroup"] > button {
+  min-height: 32px !important;
+  font-size: 13.5px !important;
+}
+[data-density="compact"] .studio-tracking-row {
+  padding-top: var(--s-2) !important;
+  padding-bottom: var(--s-2) !important;
+}
+[data-density="compact"] .studio-fila-abrir {
+  min-height: 28px;
+  padding: 0 var(--s-2);
+  font-size: 12.5px;
+}
+[data-density="compact"] .studio-cerrar-panel,
+[data-density="compact"] .studio-densidad {
+  min-height: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+[data-density="compact"] .studio-topbar__search > button {
+  height: 36px !important;
+}
+[data-density="compact"] .studio-topbar__actions > button:not(.studio-topbar__user-button) {
+  height: 32px !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

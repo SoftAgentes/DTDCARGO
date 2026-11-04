@@ -29,7 +29,9 @@ import type { BugNotification } from "@/lib/studio/bug-types";
 import { useT, useLocale } from "@/lib/i18n";
 import {
   APPEARANCE_EVENT,
+  applyDensity,
   applyTheme,
+  readDensity,
   readTheme,
 } from "@/app/studio/_components/appearance-prefs";
 
@@ -60,6 +62,7 @@ export function StudioTopbar({
   const t = useT();
   const moduleLabel = pathToModuleLabel(pathname, locale);
   const theme = useSyncExternalStore(subscribeTheme, readTheme, () => "light");
+  const density = useSyncExternalStore(subscribeTheme, readDensity, () => "normal");
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   // Modifier según OS: ⌘ en Mac, Ctrl en Windows/Linux (hook compartido).
@@ -189,6 +192,18 @@ export function StudioTopbar({
         <div
           className="studio-topbar__actions"
         >
+          {/* Densidad: la preferencia ya existía, pero solo se llegaba por Administración. */}
+          <button
+            type="button"
+            className="studio-densidad"
+            aria-pressed={density === "compact"}
+            title={density === "compact" ? "Volver a la vista normal" : "Ver más compacto"}
+            onClick={() => applyDensity(density === "compact" ? "normal" : "compact")}
+          >
+            {Icon.menu(16)}
+            <span className="studio-densidad__texto">Compacto</span>
+          </button>
+
           {/* Theme toggle */}
           <IconButton
             onClick={toggleTheme}

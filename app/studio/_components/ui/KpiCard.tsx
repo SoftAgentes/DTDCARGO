@@ -62,7 +62,7 @@ export function KpiCard({
             ? "2px solid var(--wine-soft)"
             : "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
-        padding: "18px 20px 16px",
+        padding: "var(--s-5)",
         display: "flex",
         flexDirection: "column",
         gap: 10,
@@ -89,7 +89,7 @@ export function KpiCard({
       <div
         style={{
           position: "relative",
-          font: "900 30px/1 var(--f-display)",
+          font: "900 var(--kpi-fs) / 1 var(--f-display)",
           // Sora no es monoespaciada → tabular-nums estabiliza el ancho de
           // dígitos (KPIs que cambian en vivo vía Realtime no hacen jitter).
           fontVariantNumeric: "tabular-nums",
