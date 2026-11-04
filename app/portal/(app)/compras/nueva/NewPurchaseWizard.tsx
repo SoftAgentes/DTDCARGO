@@ -18,7 +18,7 @@
  * `--color-on-accent`, jamás `text-white`.
  */
 
-import { useActionState, useCallback, useId, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import Link from "next/link";
 import { ArrowIcon } from "@/components/Icon";
 import {
@@ -46,6 +46,7 @@ import {
   buildPurchaseOrderLines,
 } from "@/lib/portal/purchase-order-lines";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const prealertaInitial: PrealertaActionState = {};
 
@@ -58,9 +59,11 @@ export function NewPurchaseWizard({
   addons: PrealertaAddon[];
   preselected: SupplierView | null;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, formProps, pending] = useActionKeepingDraft(
     createPrealertaAction,
     prealertaInitial,
+    "No pudimos confirmar si tu compra se registró. Lo que escribiste sigue aquí. Intenta de nuevo: no se registrará dos veces.",
+    { requestId: true },
   );
   const uid = useId();
   const [supplierId, setSupplierId] = useState<string>(preselected?.id ?? "");
@@ -133,12 +136,19 @@ export function NewPurchaseWizard({
     };
     if (phase === "detalle") {
       return (
-        <PurchaseStepDetalle
-          code={code}
-          order={order}
-          onDone={goToConfirm}
-          onProgress={setDetalleChecklist}
-        />
+        <>
+          {state.replayed && (
+            <p role="status" className="mb-4 text-[13px] text-grey-700 leading-[1.5]">
+              Ya estaba registrada desde tu primer envío. Si cambiaste algo después, escríbele a tu asesor.
+            </p>
+          )}
+          <PurchaseStepDetalle
+            code={code}
+            order={order}
+            onDone={goToConfirm}
+            onProgress={setDetalleChecklist}
+          />
+        </>
       );
     }
     return (
@@ -161,7 +171,7 @@ export function NewPurchaseWizard({
       </div>
 
       <form
-        action={action}
+        {...formProps}
         className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start"
       >
         {/* Marca del asistente: habilita registrar la compra sin detalle. */}

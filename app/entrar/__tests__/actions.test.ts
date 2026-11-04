@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   adminAvailable: true,
@@ -6,9 +6,10 @@ const mocks = vi.hoisted(() => ({
   throttleCounts: {} as Record<string, number>,
   throttleError: null as { message: string } | null,
   insertError: null as { message: string } | null,
-  clientUser: { id: "client-user-1", tenant_id: "tenant-1" } as {
+  clientUser: { id: "client-user-1", tenant_id: "tenant-1", email: "cliente@example.com" } as {
     id: string;
     tenant_id: string;
+    email: string;
   } | null,
   clientUserError: null as { message: string } | null,
   inserted: [] as Array<{ ip: string }>,
@@ -21,6 +22,7 @@ const mocks = vi.hoisted(() => ({
     tenant_id: string;
     markbox: string;
     name: string;
+    email: string;
   } | null,
   clienteError: null as { message: string } | null,
   /** Filtros que el código aplicó sobre `clients`, para poder afirmarlos. */
@@ -123,15 +125,28 @@ function form(email: string) {
   return data;
 }
 
-const OK = { sent: true, email: "cliente@example.com" };
+const OK = { requested: true, requests: 1, email: "cliente@example.com" };
+const VARIOS_PEDIDOS = expect.stringMatching(/varios pedidos/i);
 
 describe("enlace de acceso al portal", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
+    // `resend-api.ts` queda REAL: con llave y fuera de prueba, Resend puede enviar.
+    vi.stubEnv("RESEND_API_KEY", "re_llave_de_prueba");
+    vi.stubEnv("APP_ENV", "production");
     mocks.adminAvailable = true;
     mocks.throttleCounts = {};
     mocks.throttleError = null;
     mocks.insertError = null;
-    mocks.clientUser = { id: "client-user-1", tenant_id: "tenant-1" };
+    mocks.clientUser = {
+      id: "client-user-1",
+      tenant_id: "tenant-1",
+      email: "cliente@example.com",
+    };
     mocks.clientUserError = null;
     mocks.inserted.length = 0;
     mocks.cliente = null;
@@ -185,7 +200,17 @@ describe("enlace de acceso al portal", () => {
       expect(mocks.signInWithOtp).toHaveBeenCalledOnce();
     });
 
-    it("cae a Auth si el envío falla (por ejemplo, blacklist por rebote)", async () => {
+    it("cae a Auth SIN acuñar si Resend no puede enviar: acuñar gastaría la ventana", async () => {
+      vi.stubEnv("RESEND_API_KEY", "");
+      await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(
+        OK,
+      );
+      expect(mocks.mintPortalMagicToken).not.toHaveBeenCalled();
+      expect(mocks.signInWithOtp).toHaveBeenCalledOnce();
+    });
+
+    it("con el enlace acuñado NO llama a Auth si el envío falla: sería un 429 seguro", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
       mocks.sendPortalMagicLinkEmail.mockResolvedValue({
         ok: false,
         error: "email en blacklist",
@@ -193,10 +218,12 @@ describe("enlace de acceso al portal", () => {
       await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(
         OK,
       );
-      expect(mocks.signInWithOtp).toHaveBeenCalledOnce();
+      expect(mocks.signInWithOtp).not.toHaveBeenCalled();
+      expect(consoleError).toHaveBeenCalledWith("[entrar] el enlace no salió:", "failed");
     });
 
-    it("cae a Auth si el correo quedó en `queued` — un log NO es una entrega", async () => {
+    it("registra un `queued` como no enviado — un log NO es una entrega", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
       mocks.sendPortalMagicLinkEmail.mockResolvedValue({
         ok: true,
         log_id: "log-1",
@@ -205,7 +232,14 @@ describe("enlace de acceso al portal", () => {
       await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(
         OK,
       );
-      expect(mocks.signInWithOtp).toHaveBeenCalledOnce();
+      expect(mocks.signInWithOtp).not.toHaveBeenCalled();
+      expect(consoleError).toHaveBeenCalledWith("[entrar] el enlace no salió:", "queued");
+    });
+
+    it("un envío entregado no registra ningún fallo", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      await requestMagicLink({}, form("cliente@example.com"));
+      expect(consoleError).not.toHaveBeenCalled();
     });
 
     it("preserva la entrada si falta el cliente admin", async () => {
@@ -221,27 +255,29 @@ describe("enlace de acceso al portal", () => {
     it("responde igual para una cuenta inexistente y no manda nada", async () => {
       mocks.clientUser = null;
       await expect(requestMagicLink({}, form("nadie@example.com"))).resolves.toEqual({
-        sent: true,
+        ...OK,
         email: "nadie@example.com",
       });
       expect(mocks.sendPortalMagicLinkEmail).not.toHaveBeenCalled();
       expect(mocks.signInWithOtp).not.toHaveBeenCalled();
     });
 
-    it("responde igual cuando el origen está limitado", async () => {
+    it("corta y lo dice cuando el origen está limitado", async () => {
       mocks.throttleCounts["portal-login"] = 8;
-      await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(
-        OK,
-      );
+      await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual({
+        error: VARIOS_PEDIDOS,
+        email: "cliente@example.com",
+      });
       expect(mocks.sendPortalMagicLinkEmail).not.toHaveBeenCalled();
       expect(mocks.signInWithOtp).not.toHaveBeenCalled();
     });
 
     it("frena por EMAIL aunque el origen cambie de red", async () => {
       mocks.throttleCounts["portal-login-mail"] = 5;
-      await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(
-        OK,
-      );
+      await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual({
+        error: VARIOS_PEDIDOS,
+        email: "cliente@example.com",
+      });
       expect(mocks.sendPortalMagicLinkEmail).not.toHaveBeenCalled();
       expect(mocks.signInWithOtp).not.toHaveBeenCalled();
     });
@@ -274,6 +310,7 @@ describe("enlace de acceso al portal", () => {
         tenant_id: "tenant-1",
         markbox: "DTD-1234",
         name: "Comercial Andina",
+        email: "cliente@example.com",
       };
 
       await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(OK);
@@ -292,7 +329,7 @@ describe("enlace de acceso al portal", () => {
 
       await expect(
         requestMagicLink({}, form("desconocido@example.com")),
-      ).resolves.toEqual({ sent: true, email: "desconocido@example.com" });
+      ).resolves.toEqual({ ...OK, email: "desconocido@example.com" });
 
       // El candado contra usar /entrar para mandarle correo de DTD a un tercero.
       expect(mocks.avisarClienteSinAcceso).not.toHaveBeenCalled();
@@ -337,11 +374,15 @@ describe("enlace de acceso al portal", () => {
         tenant_id: "tenant-1",
         markbox: "DTD-1234",
         name: "Comercial Andina",
+        email: "cliente@example.com",
       };
       // 5 toques ya gastados en la ventana → el segundo cerrojo corta antes.
       mocks.throttleCounts["portal-login-mail"] = 5;
 
-      await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(OK);
+      await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual({
+        error: VARIOS_PEDIDOS,
+        email: "cliente@example.com",
+      });
 
       // Si no, repetir el pedido spamearía al cliente y al equipo.
       expect(mocks.avisarClienteSinAcceso).not.toHaveBeenCalled();

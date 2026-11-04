@@ -264,7 +264,7 @@ export function rateErrorKey(error: { message?: string; hint?: string | null } |
   return RATE_ERROR_KEYS[code] ?? null;
 }
 
-/** La tabla o la RPC todavía no existen (0496 sin aplicar). */
+/** La tabla o la RPC no existen: la base no tiene la 0496. */
 export function isMissingRateSchema(error: { code?: string; message?: string } | null | undefined): boolean {
   if (!error) return false;
   return (

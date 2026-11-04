@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { notifyConversationInbound } from "@/lib/studio/conversation-inbound-notify";
+import { readClientRequestId } from "@/lib/shared/client-request";
 
 /**
  * Canal Portal de Conversaciones (SDD-0056 · Fase 1).
@@ -17,7 +18,32 @@ import { notifyConversationInbound } from "@/lib/studio/conversation-inbound-not
  * chat no sirve si nadie se entera de que el cliente escribió.
  */
 
-export type PortalMessageState = { ok?: boolean; error?: string };
+export type PortalMessageState = {
+  ok?: boolean;
+  error?: string;
+  /** El mensaje ya había llegado: un reintento del mismo envío (SDD-0599). */
+  replayed?: boolean;
+};
+
+async function postMessage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  body: string,
+  requestId: string | null,
+): Promise<{ failed: boolean; conversationId: unknown; replayed: boolean }> {
+  if (requestId) {
+    const { data, error } = await supabase.rpc("portal_post_message", {
+      p_body: body,
+      p_request_id: requestId,
+    });
+    // Sin 0512 la firma nueva no existe: se envía como siempre, sin candado.
+    if (error?.code !== "PGRST202") {
+      const result = data as { conversation_id?: unknown; replayed?: unknown } | null;
+      return { failed: !!error, conversationId: result?.conversation_id, replayed: result?.replayed === true };
+    }
+  }
+  const { data, error } = await supabase.rpc("portal_post_message", { p_body: body });
+  return { failed: !!error, conversationId: data, replayed: false };
+}
 
 export async function sendPortalMessageAction(
   _prev: PortalMessageState,
@@ -30,18 +56,20 @@ export async function sendPortalMessageAction(
   }
 
   const supabase = await createClient();
-  const { data: conversationId, error } = await supabase.rpc(
-    "portal_post_message",
-    { p_body: body },
+  const { failed, conversationId, replayed } = await postMessage(
+    supabase,
+    body,
+    readClientRequestId(formData),
   );
 
-  if (error) {
+  if (failed) {
     return { error: "No pudimos enviar tu mensaje. Prueba de nuevo." };
   }
 
   // Aviso al equipo (SDD-0148) — best-effort, con service_role. Nunca rompe el
-  // envío: notifyConversationInbound ya atrapa sus errores.
-  if (typeof conversationId === "string") {
+  // envío: notifyConversationInbound ya atrapa sus errores. Un reintento no avisa
+  // otra vez.
+  if (!replayed && typeof conversationId === "string") {
     await notifyConversationInbound(createAdminClient(), {
       conversationId,
       body,
@@ -49,5 +77,5 @@ export async function sendPortalMessageAction(
   }
 
   revalidatePath("/portal/soporte");
-  return { ok: true };
+  return replayed ? { ok: true, replayed } : { ok: true };
 }
