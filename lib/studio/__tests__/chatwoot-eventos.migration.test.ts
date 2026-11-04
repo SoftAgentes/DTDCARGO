@@ -180,8 +180,8 @@ describe("SDD-0585 · 0504 eventos de Chatwoot, estado y cruce (PGlite)", () => 
     expect(run.error).toMatch(/0504: las tablas de eventos de Chatwoot ya existen/);
   }, SLOW);
 
-  it("la 0504 queda declarada pendiente hasta que Sam la autorice", () => {
-    expect(BASELINE.pendingBelowCutoff["0504_chatwoot_eventos"]).toMatch(/SDD-0585/);
+  it("la 0504 salió de la espera al aplicarse, y su cabecera no se corrige (runbook §6)", () => {
+    expect(BASELINE.pendingBelowCutoff["0504_chatwoot_eventos"]).toBeUndefined();
     expect(FILE_0504).toMatch(/NO APLICADA A PRODUCCIÓN/);
   });
 });

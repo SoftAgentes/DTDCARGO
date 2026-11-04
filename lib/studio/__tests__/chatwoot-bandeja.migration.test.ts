@@ -150,8 +150,8 @@ describe("SDD-0585 · 0503 flag chatwoot_inbox y vínculos de agentes (PGlite)",
     expect(run.error).toMatch(/0503: (public\.chatwoot_agent_links ya existe|el catálogo ya tiene chatwoot_inbox)/);
   }, SLOW);
 
-  it("la 0503 queda declarada pendiente hasta que Sam la autorice", () => {
-    expect(BASELINE.pendingBelowCutoff["0503_chatwoot_bandeja"]).toMatch(/SDD-0585/);
+  it("la 0503 salió de la espera al aplicarse, y su cabecera no se corrige (runbook §6)", () => {
+    expect(BASELINE.pendingBelowCutoff["0503_chatwoot_bandeja"]).toBeUndefined();
     expect(FILE_0503).toMatch(/NO APLICADA A PRODUCCIÓN/);
   });
 });

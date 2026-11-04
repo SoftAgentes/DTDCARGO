@@ -49,6 +49,7 @@
 - **El ensayo destapó avisos repetidos (E2-D55):** cada reintento encolaba otro. El Director General ordenó corregirlo antes de producción: «corrígelo ahora». Sin tocar migraciones.
 - **`verificar-aislamiento.sh` acepta la cuenta propia de Chatwoot:** con el `.env.example` de la rama daba FALLÓ en esas variables. La copia de `/srv/ops` en el VPS sigue siendo la vieja, y `/srv/dtd-cargo-staging/.env.example` también; copiar los dos juntos.
 - **Cron en prueba, sin instalar:** `dtd-cargo-cron:local` es la misma imagen en los dos proyectos. Las rutas se corren a mano desde el contenedor.
+- **Producción, 2026-11-04:** las seis migraciones aplicadas por el Director General, 04:31Z a 04:33Z; cierre del runbook §6 en las SDD 0585, 0586 y 0587. Variables sin secreto en `/srv/dtd-cargo/.env`, sin recrear `web`: evidencia `/srv/ops/evidencias/produccion-chatwoot-vars-20261104T043643Z.txt`. Faltan los 3 secretos y el webhook, de Sam, en la ventana de publicar, y `rails` con su aviso de hora y bandejas.
 - **Al cerrar la prueba** (lo avisa el Director General): cerrar la ruta, borrar el webhook, suspender la cuenta, revocar el token, apagar el flag `chatwoot_inbox` y borrar el vínculo del agente 5 en prueba. La clave de la puerta se rota después, porque se imprimió en esta sesión; Sam guarda la nueva.
 
 ## FUERA DE ALCANCE DETECTADO

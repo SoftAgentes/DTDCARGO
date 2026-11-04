@@ -370,8 +370,8 @@ describe("SDD-0587 · 0513 entrada de leads (PGlite)", () => {
     expect(run.error).toMatch(/0513 requiere la 0503/);
   }, SLOW);
 
-  it("la 0513 queda declarada pendiente hasta que Sam la autorice", () => {
-    expect(BASELINE.pendingBelowCutoff["0513_crm_entrada_leads"]).toMatch(/SDD-0587/);
+  it("la 0513 salió de la espera al aplicarse, y su cabecera no se corrige (runbook §6)", () => {
+    expect(BASELINE.pendingBelowCutoff["0513_crm_entrada_leads"]).toBeUndefined();
     expect(ARCHIVO).toMatch(/NO APLICADA A PRODUCCIÓN/);
   });
 });

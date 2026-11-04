@@ -76,3 +76,7 @@ Dadas en el chat del Director General, por el selector. Las registra el Subdirec
 - **Dos tarjetas de una persona no se fusionan** (§16.5): falta una regla en el contrato.
 - **El reproceso repite el aviso push:** cuando cualquier manejador falla, el cron vuelve a correrlos todos (`reprocesarEventosChatwoot`), y `avisarPorPush` encola otro push. La notificación lleva `tag` por conversación, así que el teléfono la reemplaza, pero es trabajo de más. Es de E2. Por eso `entrarLead` no lanza cuando falta la migración.
 - **`RegisterForm.tsx` no enlaza `/privacidad` dentro del formulario;** el enlace está en el pie de la página.
+
+## Cierre del runbook §6, 2026-11-04
+
+`0506`, `0513` aplicadas en `dtd-cargo` por el Director General y selladas en el candado. Datos completos en `docs/specs/0587-chatwoot-contrato-sistema-maestro/spec.md`, «cierre del runbook §6». Merge: lo hace el Director General, de a una, con su hora al fusionar. OK literal: «Doy el mandato», punto 2.

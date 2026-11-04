@@ -901,3 +901,20 @@ Esta entrega no pasa por ninguna puerta: todo es local.
 ## Seguimiento
 
 - **2026-10-29:** reserva (`sdd:next --reserve`), PoC 2.1 y decisión «sí, iframe».
+
+## 2026-11-04 · La 0503, la 0504 y la 0508 aplicadas en producción: cierre del runbook §6
+
+Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no están aplicadas es de su fecha.
+
+| Migración | COMMIT | `version` del ledger | md5 y bytes | Filas del ledger | PR | Evidencia, en `/srv/ops/evidencias/` | Sello en el candado, `ledger` exacta |
+|---|---|---|---|---|---|---|---|
+| `0503_chatwoot_bandeja` | 2026-11-04T04:31:52.665Z | `20261104043152` | `b299cef31e10591a2f48cf7477941ecf`, 7436 | 505 | #332 | `apply-0503-dtd-cargo-20261104T043151Z` | `988bbe6b9a59044a6a9dc8a3144880095856afed9bd3191b4393caadb240194b` |
+| `0504_chatwoot_eventos` | 2026-11-04T04:32:17.840Z | `20261104043217` | `ca421e6a5688b56e9b492646da3faaf8`, 16088 | 506 | #332 | `apply-0504-dtd-cargo-20261104T043217Z` | `ca649f526fa7d4176a80f4494ae5348c76b4c40e114c3e90806b982021fdea93` |
+| `0508_chatwoot_bajas_purga` | 2026-11-04T04:32:41.456Z | `20261104043241` | `3439930d2ee8d7b055fc43f7c2f83270`, 5295 | 507 | #332 | `apply-0508-dtd-cargo-20261104T043240Z` | `5174fb2d63ed8b1d02e268d70bbb8094a295f69057dbe30950e121f6c63eff5b` |
+
+- **OK literal de Sam:** «Doy el mandato», en el chat del Director General, a «¿Das el mandato para terminar las fases 2, 3 y 4 sin detenerme?», 2026-11-03 ~20:10Z. Punto 2 del texto que vio: «Aplicar, primero en prueba y luego en dtd-cargo, de a una y con lectura previa». Registrado a nombre del Director General; el texto íntegro está en `AUTORIZACION.txt` de cada evidencia.
+- **Ensayo en prueba:** las seis aplicadas de a una el 2026-11-04 sobre `5fbb25045`. Sobre la imagen de `56cb9f6d5`, sin cambio de blobs, `prueba-punta-a-punta.sh` dio 48 PASÓ y `prueba-reproceso.sh` 35 PASÓ, con 0 fallas. Evidencia en `/srv/ops/evidencias/chatwoot-e2e-prueba/`. Lo que depende de un WhatsApp real se prueba al publicar (`docs/runbooks/chatwoot-bandeja.md`).
+- **Respaldo previo:** el más reciente en `/srv/backups/dtd-cargo` al leerlo después del apply es `dtd-cargo-20261103T170055Z`. Si se tomó otro, lo registra el Director General.
+- **Merge:** lo hace el Director General después de leer el CI; su hora se registra al fusionar.
+- **Lectura de esta nota:** los datos salen de `IDENTIDAD.txt` y `registro.txt` de cada evidencia. Este cierre no consultó tablas de producción. El md5 y los bytes se comprobaron contra el archivo al sellar.
+- **Espera:** salieron de `pendingBelowCutoff` y de las declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Las pruebas que afirmaban la espera ahora afirman que salió. Los comentarios condicionales del código («sin la 0506…») siguen siendo ciertos para otro entorno y no cambian. La web no cambia ni se publica con este cierre.

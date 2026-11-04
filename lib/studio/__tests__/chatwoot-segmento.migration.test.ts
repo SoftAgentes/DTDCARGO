@@ -304,8 +304,8 @@ describe("SDD-0586 · 0505 segmento del contacto, respuestas del bot y BSUID (PG
     expect(run.error).toMatch(/0505 requiere las columnas de la regla de segmentos/);
   }, SLOW);
 
-  it("la 0505 queda declarada pendiente hasta que Sam la autorice", () => {
-    expect(BASELINE.pendingBelowCutoff["0505_chatwoot_segmento"]).toMatch(/SDD-0586/);
+  it("la 0505 salió de la espera al aplicarse, y su cabecera no se corrige (runbook §6)", () => {
+    expect(BASELINE.pendingBelowCutoff["0505_chatwoot_segmento"]).toBeUndefined();
     expect(FILE_0505).toMatch(/NO APLICADA A PRODUCCIÓN/);
   });
 });

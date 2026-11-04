@@ -525,3 +525,7 @@ Sam los aceptó el 2026-10-31, hacia las 10:15Z, en el chat del Director. Texto 
 
 - **Evidencia de verify:** la corrida de E3 sobre `b04e63abcca1c715817cb9cd30f0db5b9f0e3d76`, que tiene a `4579948d2` como ancestro (comprobado). FALLÓ solo por heredados: 0467, 0497 y el CTA de Shipping Mark.
 - **Sigue igual:** nada fusionado ni desplegado. Las puertas del 2.7 siguen pendientes del OK de Sam: aplicar la 0508, cargar los ids de la matriz, instalar `zz_dtd_revocar_sesiones.rb`, pegar `DASHBOARD_SCRIPTS` y la regla de Traefik.
+
+## Cierre del runbook §6, 2026-11-04
+
+`0503`, `0504`, `0508` aplicadas en `dtd-cargo` por el Director General y selladas en el candado. Datos completos en `docs/specs/0585-chatwoot-bandeja-studio-e2/spec.md`, «cierre del runbook §6». Merge: lo hace el Director General, de a una, con su hora al fusionar. OK literal: «Doy el mandato», punto 2.

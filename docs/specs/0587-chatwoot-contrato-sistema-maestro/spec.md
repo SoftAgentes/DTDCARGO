@@ -598,3 +598,19 @@ Sobre lo que 6.4 suma al modelo de §14.3 y §15.3. Estados de la skill: **ENCON
 | — | Fixtures | CORRECTO | Solo nombres de prueba, teléfonos 555 y correos `example.test` |
 
 La skill recomienda una segunda opinión: otro modelo puede auditar este mismo diff. **Lo que hace falta de un abogado:** la base de licitud. La redacción del punto 7 ya la aprobó Sam, y el pase de abogado sigue sin hacerse.
+
+## 2026-11-04 · La 0506 y la 0513 aplicadas en producción: cierre del runbook §6
+
+Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no están aplicadas es de su fecha.
+
+| Migración | COMMIT | `version` del ledger | md5 y bytes | Filas del ledger | PR | Evidencia, en `/srv/ops/evidencias/` | Sello en el candado, `ledger` exacta |
+|---|---|---|---|---|---|---|---|
+| `0506_crm_modelo` | 2026-11-04T04:33:28.805Z | `20261104043328` | `f44ed0afecfd58b22b23a1022d5d54c2`, 40916 | 509 | #336 | `apply-0506-dtd-cargo-20261104T043327Z` | `ec85f43c23d74dd2b27bac32e4ca85b5f35011dced4080ec1091d18a32d0ec0b` |
+| `0513_crm_entrada_leads` | 2026-11-04T04:33:51.804Z | `20261104043351` | `034b50b506c77f909ccf4f67aa6468fe`, 20623 | 510 | #364 | `apply-0513-dtd-cargo-20261104T043350Z` | `26ce0b5ee550ee8d4ea688d60912dcb95c45cb0c1705a87d6575c170b5ba3c60` |
+
+- **OK literal de Sam:** «Doy el mandato», en el chat del Director General, a «¿Das el mandato para terminar las fases 2, 3 y 4 sin detenerme?», 2026-11-03 ~20:10Z. Punto 2 del texto que vio: «Aplicar, primero en prueba y luego en dtd-cargo, de a una y con lectura previa». Registrado a nombre del Director General; el texto íntegro está en `AUTORIZACION.txt` de cada evidencia.
+- **Ensayo en prueba:** las seis aplicadas de a una el 2026-11-04 sobre `5fbb25045`. Sobre la imagen de `56cb9f6d5`, sin cambio de blobs, `prueba-punta-a-punta.sh` dio 48 PASÓ y `prueba-reproceso.sh` 35 PASÓ, con 0 fallas. Evidencia en `/srv/ops/evidencias/chatwoot-e2e-prueba/`. Lo que depende de un WhatsApp real se prueba al publicar (`docs/runbooks/chatwoot-bandeja.md`).
+- **Respaldo previo:** el más reciente en `/srv/backups/dtd-cargo` al leerlo después del apply es `dtd-cargo-20261103T170055Z`. Si se tomó otro, lo registra el Director General.
+- **Merge:** lo hace el Director General después de leer el CI; su hora se registra al fusionar.
+- **Lectura de esta nota:** los datos salen de `IDENTIDAD.txt` y `registro.txt` de cada evidencia. Este cierre no consultó tablas de producción. El md5 y los bytes se comprobaron contra el archivo al sellar.
+- **Espera:** salieron de `pendingBelowCutoff` y de las declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Las pruebas que afirmaban la espera ahora afirman que salió. Los comentarios condicionales del código («sin la 0506…») siguen siendo ciertos para otro entorno y no cambian. La web no cambia ni se publica con este cierre.
