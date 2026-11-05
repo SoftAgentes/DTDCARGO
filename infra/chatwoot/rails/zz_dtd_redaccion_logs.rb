@@ -15,12 +15,18 @@
 #      vuelca el trabajo completo, con sus `args`, cuando un trabajo falla.
 #   4. Rails filtra contraseñas y tokens de los parámetros (filter_parameter_logging.rb),
 #      pero no correos, teléfonos, contenido de mensajes ni búsquedas.
+#   5. Las líneas propias de los canales (2026-11-05), que ninguna de las otras redes toca:
+#      cada entrante de Instagram entero, con remitente y texto
+#      (app/jobs/webhooks/instagram_events_job.rb:53), y las demás que cita PATRONES.
+#   6. Los webhooks de Meta en la línea `Parameters:`: con `message` filtrado seguían
+#      saliendo `sender`, `wa_id` y `recipient_id`.
 #
 # Cómo: (a) apaga los argumentos de ActiveJob, (b) cambia el manejador de errores de
 # Sidekiq por uno que no imprime `args`, (c) suma campos a filter_parameters y
 # (d) pasa cada línea de log por un filtro de patrones (payload=, correos, teléfonos)
 # como segunda red. La prueba con datos sintéticos, con su control sin este archivo,
-# es infra/chatwoot/pruebas/prueba-redaccion.sh.
+# es infra/chatwoot/pruebas/ensayo-local.sh (fugas 1 a 4) y
+# infra/chatwoot/pruebas/prueba-redaccion-canales.sh (fugas 5 y 6).
 
 module DtdRedaccion
   MARCA = '[REDACTADO]'
@@ -30,6 +36,26 @@ module DtdRedaccion
     [/payload=.*/, "payload=#{MARCA}"],
     # Fuga 3 por si otro manejador la repite: el arreglo `args` del JSON de Sidekiq.
     [/"args":\[.*?\](?=,"[a-z_]+":|\})/, %("args":"#{MARCA}")],
+    # Fuga 5, Instagram: el evento entero (instagram_events_job.rb:53, test_event_service.rb:7).
+    [/(Instagram Events Job Messaging: |Processing Instagram test webhook event, ).*/, "\\1#{MARCA}"],
+    # Instagram, envío fallido: queda el error de Meta, no el destinatario ni el texto
+    # (base_send_service.rb:65).
+    [/(Instagram response: .*?) : .*/, "\\1 : #{MARCA}"],
+    # Instagram: el código de la persona (message_text.rb:67 y la excepción de :70).
+    [/(ig_scope_id |IG Scope ID: )\d+/, "\\1#{MARCA}"],
+    # Messenger: los acuses traen al remitente (config/initializers/facebook_messenger.rb:55 y :60).
+    [/(Recieved (?:delivery|read) status\s+).*/, "\\1#{MARCA}"],
+    # WhatsApp: el remitente de un evento con error (incoming_message_service_helpers.rb:80).
+    [/(Whatsapp Error: .* - contact: ).*/, "\\1#{MARCA}"],
+    # WhatsApp: nombre y teléfono en campañas (oneoff_campaign_service.rb:55, :64, :86, :90 y :114).
+    [/(Processing contact: ).*/, "\\1#{MARCA}"],
+    [/(Skipping contact ).*( - )/, "\\1#{MARCA}\\2"],
+    [/(liquid template params for contact |WhatsApp template message to ).*(: )/, "\\1#{MARCA}\\2"],
+    # WhatsApp: teléfono o BSUID al rotar la identidad (user_id_rotation_service.rb:136 y :185).
+    [/(identity rotation: )\S+( already belongs)/, "\\1#{MARCA}\\2"],
+    # Todos los canales: el teléfono o el código de la persona en una carrera
+    # (contact_inbox_builder.rb:70).
+    [/(\[ContactInboxBuilder\] RecordNotUnique )\S+/, "\\1#{MARCA}"],
     # Correos.
     [/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/, '[correo]'],
     # Teléfonos en E.164 con `+` (con o sin espacios) y los venezolanos y chinos sin `+`
@@ -82,6 +108,9 @@ ActiveJob::Base.log_arguments = false
 Rails.application.config.filter_parameters += %i[
   email phone_number phone content message name q search query identifier
 ]
+# Fuga 6: `entry` es el webhook entero de Meta, en Instagram y en WhatsApp. Exacto, para no
+# tapar otros campos del panel.
+Rails.application.config.filter_parameters += [/\Aentry\z/]
 
 # (d) Filtro de patrones en el logger de Rails (también lo usan ActiveJob y ActiveRecord).
 DtdRedaccion.envolver(Rails.logger)
