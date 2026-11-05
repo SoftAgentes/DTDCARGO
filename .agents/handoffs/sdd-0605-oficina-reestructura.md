@@ -4,16 +4,19 @@ Fecha: 2026-11-05. Task ID: `sdd-0605-oficina-reestructura`.
 Owner / sesión escritora: `claude-strange-jepsen-c4a225-oficina-reestructura` (Worker Claude Code,
 iniciada por la sesión que armó el plan de la oficina con Sam).
 
-Estado de la tarea: **lista para revisión. Commits locales, sin publicar.** La rama no está en
-`origin` y no hay PR: falta la autorización de Sam para publicar.
+Estado de la tarea: **lista para revisión, con PR en borrador contra `main`.** Sam autorizó
+publicar el 2026-11-05 (ver «Permisos»). Sigue en borrador porque falta que Sam confirme tres
+nombres de puestos. La integra el Director.
 
 - **Worktree:** `.claude/worktrees/strange-jepsen-c4a225`, sin `node_modules`.
 - **Rama:** `claude/strange-jepsen-c4a225`, desde `main` `49bdba2e5`.
 - **SDD:** `docs/specs/0605-oficina-reestructura/spec.md`, estado `proposed`. Reservada con
   `sdd:next --reserve --expect 0605`: rama `codex/sdd-reserve-0605-oficina-reestructura` y ref
   `refs/dtd/reservations/0605`, las dos **solo locales**. El stub entró a la rama por cherry-pick.
-- **Permisos del encargo:** commits locales sí; publicar la rama o abrir PR, no, hasta que Sam
-  autorice; nada de merge, VPS, Paperclip, Discord ni producción.
+- **Permisos:** el encargo dio commits locales y dejó la publicación sujeta a Sam. **Autorización
+  de Sam, literal, el 2026-11-05 en esta sesión: «Sí, publícala»,** en respuesta a «¿Autorizas
+  publicar la rama y abrir la PR de la SDD-0605?». Cubre publicar esta rama y abrir su PR. No
+  cubre merge, VPS, Paperclip, Discord ni producción, ni publicar la rama de reserva.
 
 ## OBJETIVO ORIGINAL
 
@@ -80,19 +83,23 @@ No se consultó el VPS, Paperclip ni Discord.
 ## COMMITS
 
 1. `e428d9104` — `chore(sdd): reserva SDD-0605 — oficina-reestructura` (stub de la reserva).
-2. El commit que contiene este documento — `docs(organizacion): SDD-0605 — …`: spec, organigrama,
-   plan maestro, biblioteca, identidades, índices y handoff.
+2. `4e7a608fe` — `docs(organizacion): SDD-0605 — …`: spec, organigrama, plan maestro, biblioteca,
+   identidades, índices y handoff.
+3. El commit que contiene este documento — `docs(sdd): SDD-0605 — …`: anota la autorización de
+   Sam y el paso a PR en borrador. Solo cambia este handoff.
 
 ## PR / BRANCH
 
-- Rama `claude/strange-jepsen-c4a225`, base `main` `49bdba2e5`. **Sin publicar y sin PR.**
+- Rama `claude/strange-jepsen-c4a225`, base `main` `49bdba2e5`, publicada en `origin` con un
+  solo push.
+- PR en borrador contra `main`; su número y su enlace quedan en la PR misma.
 - Worktree `.claude/worktrees/strange-jepsen-c4a225`.
 
 ## PENDIENTES DE ESTA TAREA
 
-- [ ] **Autorización de Sam para publicar** la rama y abrir la PR. Con ella: push de la rama a sí
-      misma y PR contra `main`. El merge es del Director.
-- [ ] **Que Sam confirme los tres nombres** (P2). Si cambia alguno, se corrige en la spec, el
+- [x] **Autorización de Sam para publicar** la rama y abrir la PR: dada el 2026-11-05. El merge
+      es del Director.
+- [ ] **Que Sam confirme los tres nombres** (P2). Mientras tanto la PR queda en borrador. Si cambia alguno, se corrige en la spec, el
       organigrama, el plan maestro, `07-quien-hace-que.md` y las identidades.
 - [ ] **`docs/marketing/agente-seo-noticias.md` no se tocó ni se creó:** no existe en la base de
       esta rama. Vive en la rama `claude/seo-geo-aeo-691c7b` (SDD-0604, sin fusionar). Cuando esa
@@ -143,8 +150,8 @@ No se tocó nada de esto.
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** esperar la autorización de Sam para publicar; después, push y PR contra
-  `main`.
+- **Siguiente acción:** que Sam confirme los tres nombres; con eso la PR sale de borrador y entra
+  al turno de integración del Director.
 - **Revisión sugerida:** las líneas de reporte (PROPUESTA), los «nunca» de cada identidad nueva y
   que ningún documento presente la reestructura como ejecutada.
 - **Dependencias:** ninguna para integrar. No toca archivos de la SDD-0604 ni de los avisos del
