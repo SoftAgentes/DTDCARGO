@@ -62,7 +62,7 @@ const BASE: TablasFalsas = {
 const PEDROS = [
   { markbox: "DTD-0001", name: "Pedro Pérez", phone: "0412-555-0001", email: "pedro1@ejemplo.test", address: "Av. Siempre Viva 1", total_facturado: 1234.56, estado_envio: "en_transito" },
   { markbox: "DTD-0002", name: "PEDRO JOSE PEREZ", phone: "0414-555-0002", email: "pedro2@ejemplo.test", address: "Calle 2", total_facturado: 99, estado_envio: "entregado" },
-  { markbox: "DTD-0003", name: "Pérez Gómez, Pedro", phone: "0416-555-0003", email: "p3@ejemplo.test", address: "Calle 3", total_facturado: 7, estado_envio: "recibido" },
+  { markbox: "DTD-0003", name: "Pérez Gómez, Pedro", phone: "0416-555-0003", email: "p3@ejemplo.test", address: "Calle 3", total_facturado: 7777.77, estado_envio: "recibido" },
 ];
 
 function preparar(tablas: TablasFalsas = BASE, opciones: OpcionesFalsas = { busqueda: PEDROS }) {
