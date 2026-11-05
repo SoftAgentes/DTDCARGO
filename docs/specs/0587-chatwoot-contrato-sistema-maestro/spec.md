@@ -748,7 +748,7 @@ La skill recomienda una segunda opinión: otro modelo puede auditar este mismo d
 | `kommo_connections` | 1 fila, `writeback_enabled=true`, `writeback_dry_run=false` | **Studio escribe de verdad** en Kommo |
 | `contact_saldo_field_id` y `contact_transito_field_id` en esa fila | **Ninguno configurado** | Hoy el cron `kommo-contact-status` no marca saldo ni carga |
 
-Esos dos campos los cubre otra respuesta de Sam, «Sí, léelos (Recommended)», que pasó el Director General sin el texto de la pregunta. Los leyó él a las 18:15Z, solo sí o no. **Llenarlos obliga a volver con Sam**, igual que cambiar `KOMMO_PUSH_DRY_RUN`: el aviso está en el paso 3 de `docs/runbooks/deploy-kommo-push-client.md`.
+Esos dos campos los cubre otra respuesta de Sam. A «El Subdirector encontró otro envío a Kommo: un cron diario puede marcar si cada cliente tiene saldo pendiente y carga en tránsito, solo si esos dos campos están configurados. ¿Autorizas leer si lo están (sí o no por campo, sin datos de clientes)?»: «Sí, léelos (Recommended)». Los leyó el Director General a las 18:15Z, solo sí o no. **Llenarlos obliga a volver con Sam**, igual que cambiar `KOMMO_PUSH_DRY_RUN`: el aviso está en el paso 3 de `docs/runbooks/deploy-kommo-push-client.md`.
 
 **No se midió** si la cola tiene envíos, ni qué había antes de la mudanza. L1, L2 y L4 siguen sin OK. Este resultado es la base de D7 en 6.4; encender `CRM_ALTA_WEB_SIN_KOMMO` sigue siendo una puerta aparte (§16.4).
 
