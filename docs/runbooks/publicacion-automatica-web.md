@@ -42,8 +42,8 @@ se avisa al Director. No se sigue «a ver qué pasa».
 | # | Paso | Comprobación |
 |---|---|---|
 | B1 | Decidir los puntos 1 a 5 de «Decisiones para Sam» de la spec (atajo de la PR, 0422 y 0423, funciones, chat de Telegram, corte breve) | Respuesta literal de Sam en el handoff |
-| B2 | En Uptime Kuma (`vps.dtdcargo.com`) crear el monitor **Push** «Publicación web DTD · vigilante»: intervalo de latido 300 s, 1 reintento, notificación de Telegram encendida. Copiar su URL de push. No pegarla en el chat: se pega en la terminal del paso C4 | El monitor aparece en «pendiente» |
-| B3 | Opcional: el chat de Telegram para los avisos de cada publicación. El bot (DTDStudioBot u otro) tiene que estar en ese chat | El mensaje de prueba de C4 llega |
+| B2 | En Uptime Kuma (`vps.dtdcargo.com`) crear el monitor **Push** «Publicación web DTD · vigilante»: intervalo de latido 300 s, 1 reintento, notificación de Telegram encendida (desde la [SDD-0609](../specs/0609-avisos-servidor-a-discord/spec.md), la de Discord `#salud`). Copiar su URL de push. No pegarla en el chat: se pega en la terminal del paso C4 | El monitor aparece en «pendiente» |
+| B3 | Opcional: el chat de Telegram para los avisos de cada publicación. El bot (DTDStudioBot u otro) tiene que estar en ese chat. **Reemplazado por la [SDD-0609](../specs/0609-avisos-servidor-a-discord/spec.md):** el webhook de `#publicaciones` en Discord ([runbook del corte](avisos-servidor-discord.md)) | El mensaje de prueba de C4 llega |
 | B4 | El OK para encender, nombrando qué: «autorizo encender la publicación automática de la web en el servidor propio» | Texto literal en el handoff |
 
 No hay nada que pagar ni secretos nuevos en GitHub. La única credencial del
@@ -58,7 +58,7 @@ NO VERIFICADOS: anotar en el paso C5 cuándo vence.
 | C2a | **Antes de reemplazar el interino.** `/srv/ops/web/publicar-web.sh` hoy es el script interino de la sesión de Contabo (700, sha16 `507df8e0155f59c7`, primera publicación sin Vercel el 2026-10-16 08:20Z). La comparación paso a paso con el texto que Contabo mandó ya está en la spec, § Comparación con el script interino. Lo que queda: confirmar que el archivo del servidor es ese texto, guardarlo (`cp -p /srv/ops/web/publicar-web.sh /srv/ops/evidencias/publicar-web.interino-$(date -u +%Y%m%dT%H%M%SZ).sh`) y revisar si algo lee sus evidencias `publicar-web-<sha8>-<hora>.txt`, porque el nuevo deja carpetas con otro nombre | `sha256sum /srv/ops/web/publicar-web.sh \| cut -c1-16` → `507df8e0155f59c7`; la copia existe; anotar en el handoff de la 0541 «sin diferencias de contrato» o lo que falte |
 | C2 | Copiar de `M0` los scripts: `install -m 700 publicar-web.sh huellas-fuera-de-imagen.sh /srv/ops/web/`. `smoke-web.sh` ya está. La interfaz del interino se conserva: `publicar-web.sh <sha>` | `sha256sum /srv/ops/web/{publicar-web,huellas-fuera-de-imagen}.sh` igual a `git show M0:infra/ops/web/<archivo> \| sha256sum` en la máquina de la sesión |
 | C3 | Copiar las unidades: `install -m 644 dtd-cargo-publicar.service dtd-cargo-publicar.timer /etc/systemd/system/ && systemctl daemon-reload`. **No** encender todavía | `systemd-analyze verify /etc/systemd/system/dtd-cargo-publicar.service` sin errores; `systemctl is-enabled dtd-cargo-publicar.timer` → `disabled` |
-| C4 | `/srv/ops/web/publicar.env` (root, 600) con `PUBLICAR_KUMA_PUSH_URL=` pegado por Sam sin mostrarlo. Opcional: `PUBLICAR_TELEGRAM_CHAT_ID=`. Ninguna línea vacía: si no hay chat, la línea no va. Prueba de avisos, sin riesgo de publicar: `publicar-web.sh congelar "prueba de avisos"`, después `publicar-web.sh vigilar` (congelado, solo le avisa a Kuma) y `publicar-web.sh descongelar` | `stat -c '%a %U' /srv/ops/web/publicar.env` → `600 root`; `publicar-web.sh estado` → «Uptime Kuma: configurado» (y Telegram, si se cargó); el monitor de Kuma pasa a verde con «congelado: prueba de avisos»; si hay chat, llegan los mensajes de congelar y descongelar |
+| C4 | `/srv/ops/web/publicar.env` (root, 600) con `PUBLICAR_KUMA_PUSH_URL=` pegado por Sam sin mostrarlo. Opcional: `PUBLICAR_TELEGRAM_CHAT_ID=` (hasta la SDD-0609; ahora `PUBLICAR_DISCORD_WEBHOOK=`, ver [avisos-servidor-discord.md](avisos-servidor-discord.md)). Ninguna línea vacía: si no hay chat, la línea no va. Prueba de avisos, sin riesgo de publicar: `publicar-web.sh congelar "prueba de avisos"`, después `publicar-web.sh vigilar` (congelado, solo le avisa a Kuma) y `publicar-web.sh descongelar` | `stat -c '%a %U' /srv/ops/web/publicar.env` → `600 root`; `publicar-web.sh estado` → «Uptime Kuma: configurado» (y Telegram, si se cargó); el monitor de Kuma pasa a verde con «congelado: prueba de avisos»; si hay chat, llegan los mensajes de congelar y descongelar |
 | C5 | El login de GHCR | `docker pull -q ghcr.io/softagentes/dtdcargo:publicable` sale 0. Anotar el vencimiento del token si se puede ver |
 | C6 | `publicar-web.sh revisar` | Esperado: «PUERTAS: pasan». Si dice que faltan migraciones: ver C7. Si dice que los compose o el cron difieren: ver C8 |
 | C7 | Solo con la decisión B1 de Sam: `publicar-web.sh aceptar-pendiente 0422_payment_report_command_boundary` y `… 0423_payment_report_historical_identity`. **Cualquier otra que falte: parar** y avisar al Director, porque el ledger no tiene algo que `main` espera | `publicar-web.sh revisar` → la lista de faltantes ya no las nombra; `cat /srv/ops/web/estado/aceptadas.log` |
@@ -75,7 +75,7 @@ merge). Comprobaciones:
 
 - Queda registrada la hora del merge, la de «Imagen publicable» y la de la carpeta
   `publicar-web-*` en el VPS. La resta es el tiempo merge → web.
-- El aviso de Kuma, o el de Telegram si está, llega.
+- El aviso de Kuma y el de Discord `#publicaciones` (SDD-0609) llegan.
 
 ## Operación
 
@@ -105,7 +105,7 @@ ponerse al día. Mientras está congelado, `volver` funciona igual, y
 | «NO se publicó X: la imagen anterior (…) no está en el servidor y no se pudo bajar: no habría vuelta atrás» | El valor actual de `DTD_WEB_IMAGE` no tiene imagen local ni en GHCR | Revisar el `.env` (¿alguien escribió un valor a mano?) y el login de GHCR; con una anterior válida, entra al minuto siguiente |
 | «no pude bajar …:publicable … ¿login de GHCR?» | El pull falló | `docker login ghcr.io` como root con un token nuevo (que lo cree Sam) |
 | «… GB libres …» | Poco disco | `docker system df`; borrar a mano lo que sobre. No usar `docker image prune -a`, que borra imágenes de otros proyectos |
-| Kuma caído sin aviso de Telegram | El timer no corre, o el servidor se cayó | `systemctl status dtd-cargo-publicar.timer`; `journalctl -u dtd-cargo-publicar.service -n 50` |
+| Kuma caído sin aviso en Discord `#publicaciones` | El timer no corre, o el servidor se cayó | `systemctl status dtd-cargo-publicar.timer`; `journalctl -u dtd-cargo-publicar.service -n 50` |
 
 ### A mano
 
@@ -474,7 +474,7 @@ lectura (`infra/dtd-cargo/compose.yml`). El contrato es el de la spec 0547, §4.
 |---|---|
 | Valores | Solo SHA de 40 hex, horas UTC, códigos de la lista de §4.4 y nombres de migración. El texto de cada negativa (rutas, errores de docker o de `psql`) sigue yendo al journal, a la evidencia y a los avisos: nunca al archivo. Cada `MOTIVO=` del script lleva su `CODIGO=` |
 | Escritura | Temporal en la misma carpeta, `chmod 644` y `mv -f`. Carpeta `755`. El web corre como `node` y solo lee. Si la escritura falla, el script lo dice en el journal y la publicación sigue igual: nunca cambia el código de salida |
-| Historial | `/srv/ops/web/estado/historial.jsonl`, con las 200 líneas más nuevas; el archivo lleva las 20 más nuevas. `retenida` se anota una vez por motivo, con la misma clave del aviso de Telegram |
+| Historial | `/srv/ops/web/estado/historial.jsonl`, con las 200 líneas más nuevas; el archivo lleva las 20 más nuevas. `retenida` se anota una vez por motivo, con la misma clave del aviso (Discord desde la SDD-0609) |
 | Vigilante | El de la última vuelta, guardado en `estado/vigilante.json`. `publicar`, `volver`, `congelar` y `descongelar` lo reusan; con `CONGELADO` dice `congelado`, y al descongelar queda en `null` hasta la vuelta siguiente |
 | Congelado | `desde` es la hora del archivo `CONGELADO`. `automatico` es `true` solo si lo congeló el script al fallar una vuelta atrás (`estado/congelado-automatico`, no más viejo que `CONGELADO`) |
 | Prueba | Su compose monta su propia `./estado-publicacion`, vacía: la card de prueba dice «Sin datos» y nunca muestra el estado de producción |
