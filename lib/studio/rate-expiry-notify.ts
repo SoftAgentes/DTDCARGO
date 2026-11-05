@@ -12,6 +12,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendTelegramMessage } from "./telegram/send-message";
+import { sendDiscordCategoryAlert } from "@/lib/studio/alerts/dispatch-alert";
 import { sendEmail } from "./mail/send-email";
 import type { RateExpiryLevel } from "./rate-types";
 import type { RateExpiryCandidate } from "./rate-queries";
@@ -107,8 +108,26 @@ export async function notifyRateExpiry(
   // no necesita esto: ahí los destinatarios sí son distintos.
   const chatsAvisados = new Set<string>();
 
+  // SDD-0606 · Discord primero: UNA vez al canal del equipo, sin menciones.
+  // Si entrega, no sale ningún Telegram. `telegramSent` conserva el nombre y
+  // cuenta los envíos de mensajería.
+  const enDiscord = await sendDiscordCategoryAlert(
+    admin,
+    "equipo",
+    {
+      titulo: level === "overdue" ? "Tarifa pública vencida" : "Tarifa pública por vencer",
+      url: `${SITE_URL}/studio/tarifas?highlight=${rate.id}`,
+    },
+    { logTag: "rate-expiry" },
+  );
+  if (enDiscord.delivered) telegramSent++;
+
   for (const r of recipients) {
-    if (r.telegram_chat_id && !chatsAvisados.has(r.telegram_chat_id)) {
+    if (
+      !enDiscord.delivered &&
+      r.telegram_chat_id &&
+      !chatsAvisados.has(r.telegram_chat_id)
+    ) {
       chatsAvisados.add(r.telegram_chat_id);
       const result = await sendTelegramMessage(r.telegram_chat_id, text);
       if (result.ok) telegramSent++;

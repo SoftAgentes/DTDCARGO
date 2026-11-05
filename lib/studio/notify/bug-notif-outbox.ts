@@ -25,6 +25,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
+import { sendDiscordMentionToUser } from "@/lib/studio/alerts/user-alert";
 import { getBugDetail } from "@/lib/studio/bug-queries";
 import {
   BUG_STATE_LABELS,
@@ -228,6 +229,20 @@ async function drainTelegramOutbox(
     payload: RetryPayload;
     telegram_attempts: number;
   }>) {
+    // SDD-0606 · el reintento prueba primero la mención en Discord. La columna
+    // se sigue llamando `telegram`: es el canal de mensajería de la fila.
+    const bugParaDiscord = row.bug_id ? await getBugDetail(admin, row.bug_id) : null;
+    const mencion = await sendDiscordMentionToUser(admin, row.user_id, "bugs", {
+      titulo: "Aviso pendiente de un reporte",
+      codigo: bugParaDiscord?.folio ?? null,
+      url: `${SITE_URL}${row.payload?.url ?? "/studio/bugs"}`,
+    });
+    if (mencion.attempted && mencion.ok) {
+      await recordBugNotifChannelSuccess(admin, row.id, "telegram");
+      delivered += 1;
+      continue;
+    }
+
     const { data: profile } = await admin
       .from("user_profiles")
       .select("telegram_chat_id")
@@ -247,7 +262,7 @@ async function drainTelegramOutbox(
       continue;
     }
 
-    const bug = row.bug_id ? await getBugDetail(admin, row.bug_id) : null;
+    const bug = bugParaDiscord;
     const payload = row.payload ?? {};
     const title = [payload.label, bug?.folio].filter(Boolean).join(" · ");
     const text = `${title}\n\n${payload.excerpt ?? ""}\n\n${SITE_URL}${payload.url ?? "/studio/bugs"}`;

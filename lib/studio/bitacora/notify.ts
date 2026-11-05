@@ -17,7 +17,7 @@ import {
   drainOperarioPushOutbox,
   enqueueUserPush,
 } from "@/lib/studio/notify/operario-push-outbox";
-import { sendTelegramToUser } from "@/lib/studio/notify/send-user-telegram";
+import { sendAlertToUser } from "@/lib/studio/alerts/user-alert";
 import { prioridadRank } from "./bitacora-types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -155,11 +155,11 @@ export async function notifyBitacoraTaskAssigned(
       }
 
       if (decision.telegram) {
-        await sendTelegramToUser(
-          admin,
-          userId,
-          `${label}\n\n${excerpt}\n\n${SITE_URL}${url}`,
-        );
+        // SDD-0606 · a Discord no va el título de la tarea: mención y enlace.
+        await sendAlertToUser(admin, userId, "equipo", {
+          telegramText: `${label}\n\n${excerpt}\n\n${SITE_URL}${url}`,
+          discord: { titulo: "Tarea nueva en Bitácora", url: `${SITE_URL}${url}` },
+        });
       }
     }
 
@@ -364,11 +364,15 @@ export async function runBitacoraDigestForTenant(
       }
 
       if (decision.telegram) {
-        await sendTelegramToUser(
-          admin,
-          userId,
-          `${label}\n\n${body}\n\n${SITE_URL}${BITACORA_MOBILE_HOY_PATH}`,
-        );
+        // SDD-0606 · a Discord no va la lista de tareas: cuántas y el enlace.
+        await sendAlertToUser(admin, userId, "equipo", {
+          telegramText: `${label}\n\n${body}\n\n${SITE_URL}${BITACORA_MOBILE_HOY_PATH}`,
+          discord: {
+            titulo: "Tareas de Bitácora para hoy",
+            conteos: [{ etiqueta: "Tareas", valor: tasks.length }],
+            url: `${SITE_URL}${BITACORA_MOBILE_HOY_PATH}`,
+          },
+        });
       }
     }
 
