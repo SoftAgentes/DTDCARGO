@@ -52,6 +52,16 @@ Rama `claude/discord-consulta-clientes-c50c23`. PR en borrador contra `main`: ve
 1. Correr las pruebas focales, `typecheck` y `lint` con turno, y `pnpm verify` con turno del Director General. Anotar PASÓ/FALLÓ por paso.
 2. Al integrar después de la 0606 (D7): una sola línea `DISCORD_TENANT_ID=` en cada `.env.example`; sumar `lib/studio/discord/consulta/consulta.ts` a la declaración `sdd-0606-discord-user-id` mientras la 0514 siga pendiente; fundir las dos filas de Discord del inventario de terceros (la de la 0606 dice «sin nombre»). Las declaraciones con `archivo:línea` se vencen si se edita arriba de esas líneas.
 
+## Qué viaja a Discord y condiciones del veredicto de privacidad
+
+**Qué viaja:** en la respuesta a `/cliente`, hasta 10 **nombres de clientes con su código (Shipping Mark) y el enlace a su ficha**, en un mensaje **efímero** que sólo ve quien preguntó (no queda en el historial del canal), y sólo a quien tiene enlace y permiso de ver clientes en el Studio. Discord recibe además el término que escribió esa persona. **No viajan** teléfono, correo, dirección, documento, facturas, montos, saldo ni estado de envíos. Detalle y evidencia: [`privacidad.md`](../../docs/specs/0608-discord-consulta-clientes/privacidad.md).
+
+Veredicto propuesto: **adelante con tres condiciones**, ninguna resuelta en esta rama:
+
+1. **No enlazar la cuenta compartida «DTD Cargo»** a ningún perfil del Studio. Sin enlace recibe «No autorizado»; enlazada, sus consultas no se atribuyen a una persona. Regla de operación para Sam.
+2. **Agregar `discord_consultas_clientes` al mapa de borrado** (`docs/legal/privacidad/mapa-de-borrado.md`): el término puede ser el nombre de un cliente y se guarda 180 días.
+3. **La línea de `/privacidad`** que declare que el equipo ve nombre y código del cliente en su mensajería interna. **El texto lo decide Sam**; se coordina con la línea que proponga la SDD-0606.
+
 ## Lo que Sam tiene que hacer para activarlo (en orden)
 
 1. **Crear la aplicación** en https://discord.com/developers/applications → «New Application» (por ejemplo «DTD Cargo Studio»). No hace falta bot.
