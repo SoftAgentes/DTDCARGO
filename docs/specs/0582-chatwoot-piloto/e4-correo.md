@@ -68,7 +68,7 @@ Se le preguntó a Sam qué buzón debe leer Chatwoot, y eligió **«vzla@ comple
 
 ## 6. Pruebas (primero en un buzón de prueba, nunca en `vzla@` sin OK)
 
-Con la opción B no se compra buzón, así que no hay cupo para uno nuevo. **El buzón de prueba es `notificaciones@`**: es de DTD, tiene poco volumen y su usuario y clave SMTP ya están probados (SDD-0583). Se crea en Chatwoot una bandeja temporal «Correo · pruebas» sobre ese buzón, se corre P1–P7 escribiendo desde `hailuway.com@gmail.com` y al final **se borra la bandeja**, con sus conversaciones. Mientras exista, también entrarían las respuestas que la gente mande a los avisos del sistema: es poco y se borra con la bandeja.
+Con la opción B no se compra buzón, así que no hay cupo para uno nuevo. **El buzón de prueba es `notificaciones@`**: es de DTD, tiene poco volumen y su usuario y clave SMTP ya están probados (SDD-0583). Se crea en Chatwoot una bandeja temporal «Correo · pruebas» sobre ese buzón, se corre P1–P7 escribiendo desde una cuenta personal de Gmail y al final **se borra la bandeja**, con sus conversaciones. Mientras exista, también entrarían las respuestas que la gente mande a los avisos del sistema: es poco y se borra con la bandeja.
 
 | # | Prueba | Pasa si |
 |---|---|---|
@@ -85,7 +85,7 @@ Ninguna prueba toca la producción de DTD. Usan el Chatwoot vivo, pero solo la b
 
 ### 6.1 Resultados de PC-1 (en curso)
 
-Sam autorizó la prueba en el chat del Worker («Autorizo la prueba», 2026-10-30). La bandeja 3 «Correo · pruebas» (canal 1) se creó el 2026-10-30 a las ~21:20Z con `infra/chatwoot/correo/bandeja-prueba.rb crear`. Los correos de prueba vinieron de `vzla@` y de una cuenta de Hotmail, no de `hailuway.com@gmail.com`. La evidencia se leyó con conteos, horas, dominios y prefijos de `Message-ID`: sin contenido ni direcciones completas.
+Sam autorizó la prueba en el chat del Worker («Autorizo la prueba», 2026-10-30). La bandeja 3 «Correo · pruebas» (canal 1) se creó el 2026-10-30 a las ~21:20Z con `infra/chatwoot/correo/bandeja-prueba.rb crear`. Los correos de prueba vinieron de `vzla@` y de una cuenta de Hotmail, no de esa cuenta de Gmail. La evidencia se leyó con conteos, horas, dominios y prefijos de `Message-ID`: sin contenido ni direcciones completas.
 
 | # | Resultado | Evidencia |
 |---|---|---|
