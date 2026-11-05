@@ -151,12 +151,12 @@ const SECTIONS: AdminSection[] = [
   {
     id: "telegram-alerts",
     group: "BÁSICO",
-    label: "Alertas de Telegram",
+    label: "Alertas del equipo",
     icon: "bell",
     description:
-      "A qué chat de Telegram llega cada aviso INTERNO (no al cliente: al equipo). Registro de clientes, conversaciones del portal, bugs, el reporte diario de operaciones y el resto de avisos, cada uno a su destino. Un chat se enlaza mandándole /start al bot.",
+      "A dónde llega cada aviso INTERNO (no al cliente: al equipo). Registro de clientes, conversaciones del portal, bugs, el reporte diario de operaciones y el resto de avisos: cada uno a su canal de Discord, con Telegram de respaldo.",
     href: "/studio/admin/alertas-telegram",
-    sddRef: "SDD-0271",
+    sddRef: "SDD-0606",
   },
   {
     id: "masterdata",
