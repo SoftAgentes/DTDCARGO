@@ -1,0 +1,61 @@
+## SDD-0606 — Avisos del Studio: de Telegram a Discord
+
+**Borrador.** No fusionar: `pnpm verify` falló y quedó incompleto (detalle abajo), la rama lleva una migración sin aplicar y la publicación de la web está congelada. Va tercera en el orden de integración, después de la #376 y la #377. Fusionar, aplicar la migración y publicar la web los autoriza Sam por separado.
+
+### Qué hace
+
+- **Discord primero, Telegram de respaldo.** Cada aviso al equipo sale al canal de Discord de su categoría. Si esa categoría no tiene dirección, cae a `#avisos-equipo`; si Discord no entrega, sale por Telegram mientras exista su token. Sin variables de Discord en el servidor, el comportamiento es el de antes.
+- **A Discord sale lo mínimo:** un título fijo, el código del registro y el enlace al Studio (o conteos, en los reportes). El texto completo con nombre, teléfono y montos sigue yendo sólo a Telegram y deja de salir cuando Discord entrega.
+- **Envío por webhook:** recorte a 2.000 caracteres, sin menciones por defecto, reintento con el tiempo que indica Discord, nunca lanza y la dirección no aparece en errores.
+- **Avisos por persona:** mención en el canal, sólo para quien pegue su ID de Discord en Perfil › Preferencias.
+- **Pantalla:** Ajustes › «Alertas del equipo» muestra el estado de cada canal de Discord; la matriz de Telegram queda abajo como respaldo.
+- **Apagado en el entorno de prueba** (`APP_ENV=staging`).
+
+Decisiones y su porqué: `docs/specs/0606-avisos-studio-a-discord/spec.md`. Qué lleva cada aviso, campo por campo, y lo que no se pudo verificar: `docs/specs/0606-avisos-studio-a-discord/privacidad.md`.
+
+### Migración
+
+`0514_user_profiles_discord_user_id` — **no aplicada**. Agrega una columna de texto y su CHECK de formato. No es migrate-first: sin ella los avisos salen sin menciones y el perfil dice que todavía no se puede guardar el ID. Está registrada como espera en `supabase/migrations-baseline.json` y declarada ante el gate de símbolos (0 ROJO · 1 AMARILLO).
+
+### Validación
+
+`pnpm verify`, una corrida sobre `67d6f2ecb` (2026-11-05, 17:47Z a 18:41Z): **FALLÓ** en el paso `test` y quedó incompleto.
+
+| Paso | Resultado |
+|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions | PASÓ |
+| docs:check, numbering, feature-constants, components:check, governance:check | PASÓ |
+| pending-migration-symbols | PASÓ (0 ROJO · 1 AMARILLO declarado) |
+| e2e | PASÓ (238 pasaron, 20 omitidas) |
+| build | PASÓ |
+| test | **FALLÓ** |
+| migrations-applied | NO DISPONIBLE (worktree sin acceso a la base) |
+| sql-tests, schema-rebuild | NO EJECUTADO (Docker apagado) |
+
+Rojos del paso `test`:
+
+- `lib/studio/rbac-actions-guard.test.ts` — **real y de esta rama**: las dos acciones nuevas del perfil sólo comprobaban la sesión. Corregido en `01a41c74c` (exigen membresía activa con `getStudioAccess` y quedaron en `EXCEPCIONES` con su verificación). Vuelto a correr aislado: PASÓ.
+- `app/p/[token]/supplier-flow.test.tsx` y `app/portal/la-accion-lanza.test.tsx` — archivos que esta rama no toca; fallaron en el primer intento y pasaron en el reintento de la misma corrida.
+- `scripts/__tests__/entorno-prueba-scripts.test.mjs` — pasó en el primer intento y agotó su tope de 600 s en el reintento.
+
+**No medido:** el paso `test` completo después del arreglo, las suites SQL en contenedor, una prueba contra un webhook real de Discord (no existe ninguno todavía) y la vista en el navegador.
+
+Medido aparte: 71 pruebas nuevas en 7 archivos, incluido el contrato de la 0514 en PostgreSQL embebido con control rojo y un mutante.
+
+### Antes de fusionar
+
+- Una corrida completa de `pnpm verify` sobre la rama final, con Docker encendido.
+- Resolver el cruce con la SDD-0603 en `app/studio/_components/wiring/ProfileModal.tsx`: falta decidir quién va primero.
+- Traer `main` una sola vez, en su turno; regenerar el índice de specs y revisar las líneas declaradas en `supabase/pending-migration-symbol-declarations.json`.
+
+### Para que llegue a producción (Sam)
+
+1. Descongelar la publicación de la web.
+2. Crear un webhook por canal en Discord y poner las cinco direcciones en el servidor (`DISCORD_WEBHOOK_REGISTRO`, `_CONVERSACIONES`, `_BUGS`, `_REPORTES`, `_EQUIPO`). Son llaves: nunca en el repositorio.
+3. Probar un aviso por categoría.
+4. OK nominal para aplicar `0514_user_profiles_discord_user_id` con el runbook.
+5. Retirar `TELEGRAM_BOT_TOKEN`: ese es el apagado de Telegram.
+
+El orden completo, las decisiones abiertas y lo que quedó fuera de alcance están en `.agents/handoffs/sdd-0606-avisos-studio-a-discord.md`.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

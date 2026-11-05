@@ -107,7 +107,7 @@ Locales, en `claude/gracious-kapitsa-213515`:
 
 ## PR / BRANCH
 
-Sam autorizó en esta sesión, el 2026-11-05, publicar la rama y abrir la PR en borrador («Sí, publica», a la pregunta «¿Autorizas publicar la rama y abrir la PR en borrador de la SDD-0606 cuando termine verify?»). Eso cubre publicar y abrir la PR; no cubre fusionar, aplicar la migración ni publicar la web. La PR sale en borrador porque `verify` falló y está incompleto. La reserva local (`codex/sdd-reserve-0606`) no se publica: la PR lleva la spec.
+Sam autorizó en esta sesión, el 2026-11-05, publicar la rama y abrir la PR en borrador («Sí, publica», a la pregunta «¿Autorizas publicar la rama y abrir la PR en borrador de la SDD-0606 cuando termine verify?»). Eso cubre publicar y abrir la PR; no cubre fusionar, aplicar la migración ni publicar la web. **La rama está publicada** (`origin/claude/gracious-kapitsa-213515`, sobre `25462453e` más el commit de esta nota). **La PR no está abierta:** `gh pr create` fue denegado por el control de permisos de la sesión y no lo rodeé. El título y el texto están listos en [`sdd-0606-pr-borrador.md`](sdd-0606-pr-borrador.md); la abre Sam, o el Director, desde https://github.com/SoftAgentes/DTDCARGO/pull/new/claude/gracious-kapitsa-213515 con título `feat(studio): SDD-0606 — avisos del Studio de Telegram a Discord`, como borrador y contra `main`. Va en borrador porque `verify` falló y está incompleto. La reserva local (`codex/sdd-reserve-0606`) no se publica: la PR lleva la spec.
 
 ## PENDIENTES DE ESTA TAREA
 
