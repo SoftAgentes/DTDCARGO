@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 584 specs)
+### Índice de specs (generado · 585 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -609,6 +609,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0586 | Enrutamiento por segmento desde el ERP (etapa E10 del program… | in-progress | interno |
 | 0587 | Contrato de sistema maestro por objeto y fase: Studio, Chatwo… | approved | interno |
 | 0588 | Actualizaciones de Chatwoot desde Studio (etapa E3 del progra… | in-progress | interno |
+| 0589 | Motor de guía propio y liviano en Studio (E9 del programa SDD… | in-progress | interno |
 | 0591 | Cambiar el plan de cuentas queda para accounting y admin | in-progress | interno |
 | 0592 | El foco no se sale del modal durante el envío ni con errores … | in-progress | interno |
 | 0593 | Escribir asientos queda para accounting y admin; las cuentas … | in-progress | interno |
@@ -623,5 +624,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0602 | Las redirecciones propias no mandan a la dirección donde escu… | in-progress | interno |
 | 0605 | Reestructura de la oficina de agentes: 13 agentes, marketing … | proposed | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0589, 0590, 0603, 0604 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0590, 0603, 0604 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
