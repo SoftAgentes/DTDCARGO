@@ -746,6 +746,9 @@ La skill recomienda una segunda opinión: otro modelo puede auditar este mismo d
 |---|---|---|
 | `KOMMO_PUSH_DRY_RUN` en `dtd-cargo-functions-1` | Definida y **no** vale `"false"` | El alta web simula: invoca `kommo-push-client` y la función no escribe (`supabase/functions/kommo-push-client/index.ts:109-110`) |
 | `kommo_connections` | 1 fila, `writeback_enabled=true`, `writeback_dry_run=false` | **Studio escribe de verdad** en Kommo |
+| `contact_saldo_field_id` y `contact_transito_field_id` en esa fila | **Ninguno configurado** | Hoy el cron `kommo-contact-status` no marca saldo ni carga |
+
+Esos dos campos los cubre otra respuesta de Sam, «Sí, léelos (Recommended)», que pasó el Director General sin el texto de la pregunta. Los leyó él a las 18:15Z, solo sí o no. **Llenarlos obliga a volver con Sam**, igual que cambiar `KOMMO_PUSH_DRY_RUN`: el aviso está en el paso 3 de `docs/runbooks/deploy-kommo-push-client.md`.
 
 **No se midió** si la cola tiene envíos, ni qué había antes de la mudanza. L1, L2 y L4 siguen sin OK. Este resultado es la base de D7 en 6.4; encender `CRM_ALTA_WEB_SIN_KOMMO` sigue siendo una puerta aparte (§16.4).
 
@@ -769,7 +772,7 @@ Por el selector, en el chat del Director General; las registra el Subdirector:
 |---|---|---|
 | `kommo-push-client`, alta web | Contacto: nombre, teléfono, correo. Lead: nombre más Shipping Mark y, si esos campos existen en Kommo, Shipping Mark, cédula o RIF y nivel. `doc_kind` se lee y no se envía (`_shared/kommo-outbound.ts:117-155`) | **Simula** (L3) |
 | `kommo-writeback`, desde Studio | Notas y tareas en texto libre, etapa, responsable, etiquetas, valor del estimado y Shipping Mark (`lib/studio/kommo-writeback.ts:23-29`, `:109`, `:164`) | **Escribe** |
-| `kommo-writeback`, `patch_contact` por el cron `kommo-contact-status` | «Tiene saldo pendiente: Sí/No» y «Carga en tránsito: Sí/No», solo si `contact_saldo_field_id` y `contact_transito_field_id` están llenos (`lib/studio/kommo-contact-status.ts:17`, `:215-216`; `infra/dtd-cargo/cron/crontab:10`) | **Sin leer** |
+| `kommo-writeback`, `patch_contact` por el cron `kommo-contact-status` | «Tiene saldo pendiente: Sí/No» y «Carga en tránsito: Sí/No», solo si `contact_saldo_field_id` y `contact_transito_field_id` están llenos (`lib/studio/kommo-contact-status.ts:17`, `:215-216`; `infra/dtd-cargo/cron/crontab:10`) | **Hoy no manda nada:** ninguno de los dos está configurado |
 | Canales conectados a Kommo | Las conversaciones de esos canales | Dicho por Sam, no medido |
 
 ### Dónde guarda Kommo
@@ -805,10 +808,10 @@ Sobre lo que dice la política de un tercero que ya recibía estos datos. No cam
 | 4 | Derechos | NO VERIFICABLE | Un pedido de acceso o borrado también tendría que llegar a Kommo. No revisé si hay camino para eso |
 | 5 | Borrado | ENCONTRADO | Los plazos de §6 no se cumplen solos en Kommo, según `mapa-de-borrado.md` §D. La política los promete sin esa salvedad. Se lo cuenta el Director General a Sam |
 | 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Igual que §14.3 |
-| 7 | Política pública | ENCONTRADO | **Corregido:** el proveedor ya aparece en §4 y §5, y Meta deja de decir que todo se atiende en el sistema propio (`app/privacidad/page.tsx`). **Quedan abiertos, con el Director General:** (a) saldo y carga en tránsito, sin medir: si están configurados, el texto se queda corto; se lo pregunta él a Sam; (b) «Solo acceden a lo necesario y bajo obligación de confidencialidad», con el contrato en ❓: lo anota él para la revisión legal; (c) tareas, etapa, responsable y etiquetas frente a «las notas de seguimiento»: se lo dice él a Sam; (d) si `KOMMO_PUSH_DRY_RUN` pasa a `"false"`, Kommo recibe además cédula o RIF y nivel, y este texto ya no alcanza. **Eso vuelve a Sam antes de cambiar ese valor:** va como aviso en el paso 3 de `docs/runbooks/deploy-kommo-push-client.md`, pero nada falla si alguien lo cambia |
+| 7 | Política pública | ENCONTRADO | **Corregido:** el proveedor ya aparece en §4 y §5, y Meta deja de decir que todo se atiende en el sistema propio (`app/privacidad/page.tsx`). **Quedan abiertos, con el Director General:** (a) «Solo acceden a lo necesario y bajo obligación de confidencialidad», con el contrato en ❓: lo anota él para la revisión legal; (b) tareas, etapa, responsable y etiquetas frente a «las notas de seguimiento»: se lo dice él a Sam. **Dos cambios harían que el texto no alcance:** `KOMMO_PUSH_DRY_RUN` en `"false"`, porque Kommo recibiría además cédula o RIF y nivel, y llenar `contact_saldo_field_id` o `contact_transito_field_id`, porque recibiría saldo o carga en tránsito, sí o no. **Los dos vuelven a Sam antes:** va como aviso en el paso 3 de `docs/runbooks/deploy-kommo-push-client.md`, pero nada falla si alguien los cambia |
 | 8 | Terceros | ENCONTRADO | Sin contrato ni DPA leídos con Kommo. `registro-tratamiento.md` no lo lista como destinatario del Shipping Mark ni del valor del estimado |
 | 9 | Transferencia internacional | NO VERIFICABLE | El texto lo dice. El mecanismo que la ampara y dónde guarda de verdad, no se sabe |
-| 10 | Decisiones automatizadas | No aplica | Este cambio no decide nada. El agente de IA de Kommo lee el saldo y la carga si están configurados: va con el punto 7 (a) |
+| 10 | Decisiones automatizadas | No aplica | Este cambio no decide nada. El agente de IA de Kommo leería el saldo y la carga si esos campos se llenaran; hoy no lo están |
 | 11 | Aceptación electrónica | No aplica | Este cambio no registra aceptaciones |
 | 12 | Titulares que no son usuarios | NO VERIFICABLE | Quien escribe por esos canales no recibe aviso al escribir, igual que en Instagram. Lo decide Sam con su asesor |
 

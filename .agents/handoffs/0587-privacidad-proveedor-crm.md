@@ -26,6 +26,7 @@ Si cambia una palabra, se le vuelve a preguntar:
 
 - **L3:** `dtd-cargo-functions-1`, `KOMMO_PUSH_DRY_RUN` definida y no vale `"false"`. **El alta web simula.**
 - **`kommo_connections`:** 1 fila, `writeback_enabled=true`, `writeback_dry_run=false`. **Studio escribe de verdad.**
+- **`contact_saldo_field_id` y `contact_transito_field_id`:** ninguno configurado. Lo leyó el Director General a las 18:15Z, solo sí o no, con «Sí, léelos (Recommended)» de Sam. Hoy el cron no marca saldo ni carga.
 - **No se midió** si la cola tiene envíos ni qué había antes de la mudanza. L1, L2 y L4 siguen sin OK.
 - **Kommo:** producto de QSOFT LLC, ley de California. Su política dice que puede guardar «anywhere in the world, including but not limited to, in the United States», en servidores propios, de filiales o de proveedores. No nombra centros de datos ni encontré DPA. Leído en `kommo.com/privacy/` y `kommo.com/terms/`.
 
@@ -33,7 +34,7 @@ Si cambia una palabra, se le vuelve a preguntar:
 
 **Se lo dije al Director General el 2026-11-05. El texto no se tocó: es de Sam.**
 
-1. **Saldo y carga en tránsito, sin medir.** `app/api/cron/kommo-contact-status/route.ts`, programado a diario en `infra/dtd-cargo/cron/crontab:10`, encola «Tiene saldo pendiente: Sí/No» y «Carga en tránsito: Sí/No» en el contacto de Kommo. Solo si `kommo_connections.contact_saldo_field_id` y `contact_transito_field_id` están llenos (`lib/studio/kommo-contact-status.ts:17` y `:215-216`). Con la escritura encendida, nada más lo frena. **Si están llenos, el texto se queda corto.** El Director General: «el "Sí, léelo" de Sam no los cubre. Se lo pregunto yo; no los leas.»
+1. **Saldo y carga en tránsito: cerrado hoy, y queda como condición.** `app/api/cron/kommo-contact-status/route.ts`, programado a diario en `infra/dtd-cargo/cron/crontab:10`, encola «Tiene saldo pendiente: Sí/No» y «Carga en tránsito: Sí/No» en el contacto de Kommo solo si `kommo_connections.contact_saldo_field_id` y `contact_transito_field_id` están llenos (`lib/studio/kommo-contact-status.ts:17` y `:215-216`). **Hoy ninguno lo está: el texto no cambia.** Llenarlos obliga a volver con Sam; está en el aviso del runbook.
 2. **Tareas, etapa, responsable y etiquetas.** `kommo-writeback` también manda eso (`lib/studio/kommo-writeback.ts:23-29`). El texto dice «las notas de seguimiento». Las tareas son texto libre, como las notas. Lo leo como cubierto, y eso es inferencia mía. Se lo dice el Director General a Sam; si el texto cambia, vuelve con él.
 3. **«Solo acceden a lo necesario y bajo obligación de confidencialidad»,** la entrada de §4, ahora abarca a este proveedor con el contrato en ❓. Es igual para los demás ❓ del inventario. El Director General lo anota para la revisión legal de Sam: no cambia nada ahora.
 
@@ -49,12 +50,12 @@ Si cambia una palabra, se le vuelve a preguntar:
 
 ## Lo que falta
 
-- La respuesta de Sam a los puntos 1 y 2 de arriba, que pasa el Director General.
+- Lo que diga Sam del punto 2 de arriba, si cambia algo. Lo pasa el Director General.
 - Traer `main` una sola vez, cuando él avise; correr otra vez las comprobaciones; publicar en otro comando, después de leerlas.
 - PR aparte, con la tanda D. Al traer `main`, la fila de Kommo del inventario puede cruzarse con la de Discord si SDD-0606 entró antes; según el Director General, esta va primero.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Riesgo: si alguien pone `KOMMO_PUSH_DRY_RUN="false"`, Kommo empieza a recibir cédula o RIF y nivel de cliente, y este texto ya no alcanza.** Eso vuelve a Sam antes de cambiar ese valor. Lo dicen el aviso del runbook, el comentario de `app/privacidad/page.tsx` y la spec, pero nada falla si alguien lo cambia. `infra/dtd-cargo/.env.example:356` queda sin el aviso: el Director General pidió no tocarlo, porque SDD-0606 también lo cambia.
+- **Riesgo: si alguien pone `KOMMO_PUSH_DRY_RUN="false"`, Kommo empieza a recibir cédula o RIF y nivel de cliente, y este texto ya no alcanza.** Eso vuelve a Sam antes de cambiar ese valor. Lo mismo si alguien llena los campos de saldo o tránsito. Lo dicen el aviso del runbook y la spec, y lo de `KOMMO_PUSH_DRY_RUN` también el comentario de `app/privacidad/page.tsx`, pero nada falla si alguien los cambia. `infra/dtd-cargo/.env.example:356` queda sin el aviso: el Director General pidió no tocarlo, porque SDD-0606 también lo cambia.
 - Según `mapa-de-borrado.md` §D, los plazos de §6 de la política, como anonimizar a los 12 meses, no se cumplen solos en Kommo. Se lo cuenta el Director General a Sam.
 - `docs/legal/privacidad/registro-tratamiento.md` no lista a Kommo como destinatario del Shipping Mark ni del valor del estimado, y Studio se los escribe.
