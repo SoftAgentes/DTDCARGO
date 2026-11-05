@@ -66,9 +66,10 @@ Sobre el árbol del commit que contiene este documento.
 
 | Comprobación | Resultado |
 |---|---|
-| `python -I -B -W error -m unittest discover -s infra/oficina/dtd-alfred/tests` | PASÓ: 32 pruebas, Windows, Python 3.14.7 |
+| `python -I -B -W error -m unittest discover -s infra/oficina/dtd-alfred/tests` | PASÓ: 49 pruebas, Windows, Python 3.14.7 |
+| Rojo previo de la revisión de Codex: las pruebas nuevas contra `9d24e81a9` | 14 de 17 fallaron; las 3 que pasaron fijan lo que ya estaba bien (acuse con su número, cabecera sobre cuerpo, subdominios rechazados) |
 | Rojo previo: las pruebas de la revisión contra el parche tal como llegó (`bafb330de`) | 19 fallaron de las 22 que había entonces; las 3 que pasaron son guardas. La prueba 23 se agregó después, con su mutante |
-| `python infra/oficina/dtd-alfred/tests/mutantes.py infra/oficina/dtd-alfred` | PASÓ: 35 de 35 mutantes mueren y la base sin mutar pasa. Corrió una vez, unos 40 segundos, **antes** de que llegara la regla de pedir turno para mutantes; no se repitió |
+| `python infra/oficina/dtd-alfred/tests/mutantes.py infra/oficina/dtd-alfred` | PASÓ: 35 de 35 mutantes mueren y la base sin mutar pasa. Corrió una vez, unos 40 segundos, **antes** de que llegara la regla de pedir turno para mutantes. Los 13 mutantes nuevos de la revisión de Codex (48 en total) **NO se corrieron**: piden turno al Director General. Sí se comprobó, sin correrlos, que cada uno encuentra su línea |
 | `node --test scripts/tests/oficina-puente.node.mjs` | PASÓ |
 | `pnpm harness:test` completo | NO EJECUTADO en local. Lo lancé y lo corté sin resultado cuando llegó la regla del Director General: una corrida pesada pide turno, y para este cambio bastan las pruebas del script. No quedó ningún proceso. Lo corre el CI |
 | `node scripts/build-docs-index.mjs` y `--check` (`pnpm docs:index`, `pnpm docs:check`) | PASÓ: 585 specs |
@@ -90,23 +91,29 @@ Sobre el árbol del commit que contiene este documento.
    el enganche al harness.
 4. `6ddf7da0c` — `fix(oficina)`: la revisión del parche.
 5. `c8aa36a23` — `docs(oficina)`: spec, runbook, README y handoff.
-6. El commit que contiene este documento — `docs(sdd)`: anota la autorización de Sam y el paso a
-   PR en borrador. Solo cambia este handoff.
+6. `9d24e81a9` — `docs(sdd)`: anota la autorización de Sam y el paso a PR en borrador.
+7. `a7ce7a994` — `fix(oficina)`: las correcciones de la revisión de Codex (A1, A2, M1, M2, M4).
+8. El commit que contiene este documento — `docs(oficina)`: spec, runbook, README y handoff al
+   día con esas correcciones y con la cola estricta aceptada.
 
 ## PR / BRANCH
 
 - Rama `codex/oficina-puente-discord`, base `main` `243df5c0a`, publicada en `origin` con un solo
   push.
-- PR en borrador contra `main`; su número y su enlace quedan en la PR misma.
+- PR en borrador contra `main`: https://github.com/SoftAgentes/DTDCARGO/pull/378.
 - Worktree `DTD-worktrees/oficina-puente-discord`.
 
 ## PENDIENTES DE ESTA TAREA
 
 - [x] **Autorización de Sam para publicar** la rama y abrir la PR en borrador: dada el
       2026-11-05.
-- [ ] **CI de la PR:** es la primera corrida en Linux de estas pruebas y del lint del archivo del
-      harness.
-- [ ] **Que la sesión coordinadora o Sam acepten la cola estricta** y la ubicación.
+- [x] **CI de la PR** sobre `9d24e81a9`: verde, primera corrida en Linux. Falta el de estas
+      correcciones.
+- [x] **Cola estricta:** aceptada por Sam el 2026-11-05, literal: «Sí, estricta».
+- [x] **Correcciones de Codex A1, A2, M1, M2 y M4:** hechas, con su prueba en rojo previo.
+- [ ] **Mutantes de la revisión de Codex:** sin correr; piden turno al Director General.
+- [ ] **Ubicación** `infra/oficina/dtd-alfred/` y **canal del webhook** (propuesta `#alfred`): por
+      decidir.
 - [ ] **El índice de specs va a chocar** con las PR #377 (0605), #376 (0604) y la de la 0606: hoy
       las lista como huecos. Se regenera con `pnpm docs:index` después de traer `main`.
 
@@ -116,8 +123,8 @@ No se tocó nada de esto.
 
 1. **La unidad de systemd del puente no está en ningún lado fuera del VPS.** Sin ella el runbook
    no puede dar el cambio exacto de la credencial. Conviene versionarla, sin llaves.
-2. **Ninguna herramienta del puente le dice a Sam cuántos avisos hay sin entregar.** Con la cola
-   estricta importa más. Sería un dato más en `estado_conexion`.
+2. ~~Ninguna herramienta del puente le dice a Sam cuántos avisos hay sin entregar.~~ Resuelto con
+   M2: `estado_conexion` cuenta los avisos sin entregar y los inciertos.
 3. **Los avisos van al canal y no al hilo de cada pedido.** El plan dice que cada pedido abre su
    hilo; un webhook escribe en un hilo solo si se le pasa el identificador.
 4. **Mientras el puente envía una tanda, las llamadas de la recepción esperan,** porque comparten
@@ -131,9 +138,11 @@ No se tocó nada de esto.
    también cubre este uso lo decide esa SDD.
 7. **`docs/organizacion/` todavía describe el canal como Telegram.** Lo cambia la SDD-0605
    (PR #377); después del corte habrá que decir que ya se ejecutó.
-8. **El dueño del servidor de Discord no es Sam** y puede ver los canales privados y gestionar
-   sus webhooks. Sam lo sabe; queda escrito en el runbook como razón para no escribir ahí datos
-   de clientes ni llaves.
+8. ~~El dueño del servidor de Discord no es Sam.~~ Según el plan v2 de la sesión coordinadora,
+   Sam ya es el dueño y solo él ve los canales privados. El runbook se corrigió.
+9. **Los avisos que ya guardó el puente de Telegram traen el texto completo de los
+   comentarios.** Si se corta con avisos en cola, saldrán así por Discord. El runbook dice que se
+   esperen a que los entregue Telegram.
 
 ## HANDOFF AL DIRECTOR
 
@@ -145,10 +154,10 @@ No se tocó nada de esto.
   Director General. Para esta rama bastan las pruebas del puente y los checks de documentos.
 - **Carpetas de `infra/`:** esta rama solo crea `infra/oficina/`. No toca `infra/dtd-cargo`,
   `infra/chatwoot` ni `infra/ops`.
-- **Siguiente acción:** leer el CI de la PR, que es la primera corrida en Linux; después, que Sam
-  o la sesión coordinadora decidan la cola estricta, la ubicación y el canal del webhook.
-- **Revisión sugerida:** el commit `6ddf7da0c` contra `bafb330de`, sobre todo `flush`, y el paso 3
-  del runbook.
+- **Siguiente acción:** leer el CI de estas correcciones; pedir turno para los mutantes; decidir
+  la ubicación y el canal del webhook.
+- **Revisión sugerida:** `a7ce7a994` (sobre todo `flush` y `discord_sender`), las dos diferencias
+  con lo que pidió Codex (spec, «Revisión de Codex») y las secciones 4 y 10 del runbook.
 - **Sin migraciones, sin código de producto, sin textos públicos, sin variables.** No se tocó el
   VPS de la oficina, Discord, Paperclip ni producción.
 - **Fusionar esta PR no instala nada.** El corte es otro paso, con el runbook y la autorización

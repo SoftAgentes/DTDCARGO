@@ -67,17 +67,26 @@ Discord: quien la tenga puede escribir en ese canal. Va solo en el VPS.
 | `5c8d0d546` | La versión de Telegram, tal como corría en el VPS. `bridge.py` sha256 `3266e86c8b0ac072…` |
 | `bafb330de` | El parche a Discord de la sesión coordinadora, sin retoques |
 | `6ddf7da0c` | La revisión de ese parche |
+| `a7ce7a994` | Las correcciones de la revisión de Codex |
 
 Para volver a la versión de Telegram: `git show 5c8d0d546:infra/oficina/dtd-alfred/bridge.py`.
 
 ## Qué cambió con Discord
 
 - Los avisos salen por un webhook de Discord, sin menciones y sin vista previa de enlaces.
-- Se parten en trozos de 1.900 unidades, medidas como UTF-16, bajo el tope de 2.000 de Discord.
+- **Los avisos llevan lo mínimo:** tarea, estado y enlace a Paperclip. Ni el título ni el texto de
+  los comentarios. El acuse de un encargo trae su número. El detalle se le pide a la recepción.
+- Se parten en trozos de 1.900 unidades, medidas como UTF-16, bajo el tope de 2.000 de Discord, y
+  se corta en el último salto de línea o espacio.
+- Se guarda el id del mensaje que devuelve Discord. Si el pedido salió y no volvió respuesta, el
+  aviso queda como **entrega incierta** y no se reenvía solo: lo resuelve una persona (runbook,
+  «Entregas inciertas»). `estado_conexion` cuenta los avisos sin entregar y los inciertos.
 - La cola es **estricta**: si un aviso no sale, los que vienen detrás esperan. Así un mensaje largo
   no llega desordenado.
-- Ante un 429 se espera el plazo que pide Discord. Si Discord avisa que no quedan envíos en la
-  ventana, la tanda se corta y sigue en el ciclo siguiente.
+- Ante un 429 se espera el plazo que pide Discord, de la cabecera o del cuerpo. Si Discord avisa
+  que no quedan envíos en la ventana, la tanda se corta y sigue en el ciclo siguiente.
+- La dirección del webhook tiene que ser la de `discord.com` o `discordapp.com`, limpia. El
+  User-Agent es `DiscordBot (https://dtdcargo.com, 1.0)`.
 - Un contenido que Discord rechaza (400) se descarta y se avisa, en vez de frenar la cola.
 - La dirección de un webhook y la llave de un bot de Discord se enmascaran como cualquier secreto.
 - Las claves internas (`telegram:` y `dtd-telegram:`) **se conservan a propósito**: cambiarlas
@@ -104,6 +113,10 @@ hay un piso de pruebas: si corren menos de las esperadas, falla. En el CI no se 
   existen en Linux y no están cubiertos.
 - Mientras el puente envía una tanda, las llamadas de la recepción esperan. Ya era así con
   Telegram.
-- Si el webhook se borra o pierde permiso, toda la cola espera y reintenta. Ninguna herramienta
-  le dice hoy a Sam cuántos avisos hay sin entregar.
+- Si el webhook se borra o pierde permiso, toda la cola espera y reintenta (cola estricta,
+  aceptada por Sam el 2026-11-05). `estado_conexion` dice cuántos avisos esperan.
+- Los avisos guardados por la versión de Telegram traen el texto completo de los comentarios y
+  así saldrían por Discord. El runbook dice cómo vaciar la cola antes del corte.
+- Mutantes: 48 en la lista. Los 13 de la revisión de Codex no se corrieron todavía: es una
+  corrida pesada y pide turno.
 - Los avisos llegan al canal, no al hilo de cada pedido.

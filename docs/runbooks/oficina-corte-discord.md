@@ -71,10 +71,11 @@ ningún archivo del repositorio:** la del bot y la dirección del webhook.
 **Propuesta: `#alfred`,** para que los avisos lleguen donde Sam conversa, como pasaba en
 Telegram. Lo decide Sam al crear el webhook.
 
-**Quién más ve esos canales.** Sam no es el dueño del servidor. El dueño y el rol de
-administración ven los canales privados y pueden gestionar sus webhooks. Sam eligió seguir en
-este servidor sabiéndolo. Por eso vale la regla de la oficina: en Discord no se escriben datos de
-clientes, montos ni llaves.
+**Quién más ve esos canales.** Según el plan v2 de la sesión coordinadora (2026-11-05, tarde),
+Sam ya es el dueño del servidor y solo él ve los canales privados. Igual vale la regla de la
+oficina: Discord es un servicio externo y ahí no se escriben datos de clientes, montos ni llaves.
+Por eso los avisos del puente llevan solo la tarea, su estado y el enlace a Paperclip, nunca el
+título ni el texto de un comentario.
 
 ## 3. Antes de empezar
 
@@ -124,8 +125,19 @@ Cuántos avisos y encargos hay esperando:
 sudo python3 -c "import sqlite3; d=sqlite3.connect('file:/var/lib/dtd-alfred/bridge.sqlite?mode=ro', uri=True); print('avisos sin enviar', d.execute('select count(*) from outbox where sent is null').fetchone()[0]); print('encargos en cola', d.execute(\"select count(*) from requests where status='queued'\").fetchone()[0])"
 ```
 
-Lo ideal es cortar con los dos en cero. Si hay avisos sin enviar, saldrán por Discord con el
-puente nuevo, partidos al tamaño de Discord.
+**Qué hacer con la cola antes del corte:**
+
+1. Lo ideal es cortar con los dos en cero. Si hay avisos sin enviar, espera unos minutos con el
+   puente de Telegram corriendo: los entrega él.
+2. Si no bajan (Telegram no está aceptando), anota cuántos son y sigue. El puente nuevo los manda
+   por Discord: si alguno pasa de 2.000 caracteres, lo parte al enviarlo, en la misma fila y en
+   orden, y lo que ya salió no se repite.
+3. **No los borres** para cortar más rápido. Son avisos de ALFRED que Sam todavía no leyó.
+4. Los encargos en cola no dependen del canal: el puente los entrega a Paperclip igual.
+
+Los avisos que el puente de Telegram ya guardó llevan el texto completo de los comentarios,
+porque así eran antes. Saldrán por Discord con ese texto. Si eso no se quiere, hay que esperar a
+que Telegram los entregue antes de cortar.
 
 Por último, lee en la documentación de la versión instalada de Hermes cómo se configura Discord:
 dónde va la llave del bot, cómo se limita a un usuario y a un canal, y cómo se apaga Telegram.
@@ -194,8 +206,11 @@ sin canal para pedir.
 - [ ] El recibo con el número de tarea **llega a Discord**, al canal del webhook, y **no** a
       Telegram.
 - [ ] El aviso no menciona a nadie ni trae vista previa de enlaces.
-- [ ] Sam le pide a ALFRED, en esa tarea, una respuesta larga, de más de 2.000 caracteres. Llega
-      en varios mensajes, **en orden** y sin repetir.
+- [ ] Sam le pide a ALFRED que comente esa tarea. Llega un aviso con el número de la tarea, su
+      estado y el enlace a Paperclip, **sin el texto del comentario**. Sam le pide el detalle a la
+      recepción y se lo trae.
+- [ ] `estado_conexion`, pedido a la recepción, muestra «avisos_sin_entregar» y
+      «avisos_inciertos» en cero.
 - [ ] En Paperclip, la descripción de la tarea dice «canal privado: Discord» y que las
       respuestas vuelven por Discord.
 
@@ -208,7 +223,7 @@ Si algo falla y no se arregla en el momento: vuelta atrás del puente (§9.1).
    para mensajes privados, y solo el canal `#alfred`.
 2. En el mismo cambio, apaga la conexión de Telegram de ese perfil.
 3. Reinicia la recepción: `sudo systemctl restart dtd-hermes-telegram.service`. El servicio
-   conserva su nombre; renombrarlo es un paso posterior (§10).
+   conserva su nombre; renombrarlo es un paso posterior (§11).
 
 **Prueba de ida y vuelta de la recepción, con Sam:**
 
@@ -248,7 +263,9 @@ encargos hechos mientras tanto.
 5. Sam pide un encargo por Telegram y el recibo le llega por Telegram.
 
 Los avisos que el puente nuevo dejó sin enviar salen por Telegram. Son trozos más cortos que los
-de Telegram, así que entran.
+de Telegram, así que entran. **Antes de volver, resuelve las entregas inciertas (§10):** el
+puente de Telegram no las conoce y las reenviaría todas. Las columnas nuevas de la base no le
+molestan.
 
 ### 9.2 La recepción (falló el paso 4)
 
@@ -263,10 +280,42 @@ de Telegram, así que entran.
 Ya no hay vuelta directa. Hay que crear bots nuevos en Telegram, pegar sus llaves y repetir
 §9.1 y §9.2. Por eso revocar es lo último.
 
-## 10. Al terminar
+## 10. Entregas inciertas
+
+Un aviso queda como **entrega incierta** cuando el puente lo mandó a Discord y no volvió
+respuesta: se agotó el tiempo o se cortó la conexión. Pudo haber llegado o no. El puente no lo
+reenvía solo, para no duplicarlo; lo aparta, sigue con los demás y espera un minuto antes de
+volver a enviar. Una conexión que ni siquiera se abrió no es incierta: esa se reintenta sola.
+
+Cómo se ve: `estado_conexion` cuenta «avisos_inciertos». Para listarlos, sin el texto:
+
+```bash
+sudo python3 -c "import sqlite3; d=sqlite3.connect('file:/var/lib/dtd-alfred/bridge.sqlite?mode=ro', uri=True); [print(r) for r in d.execute('select id, length(body), message_ids, error from outbox where sent is null and uncertain is not null')]"
+```
+
+Cómo se resuelve, uno por uno y con Sam:
+
+1. Sam busca el aviso en el canal por la hora y el número de tarea que trae el `id` de la fila.
+   `message_ids` tiene los mensajes de esa fila que Discord sí confirmó.
+2. **Si llegó:** se marca como enviado, con el servicio detenido:
+
+   ```bash
+   sudo python3 -c "import sqlite3,sys,time; d=sqlite3.connect('/var/lib/dtd-alfred/bridge.sqlite'); d.execute('update outbox set sent=?, uncertain=null, error=null where id=? and uncertain is not null', (time.time(), sys.argv[1])); d.commit()" ID_DE_LA_FILA
+   ```
+
+3. **Si no llegó:** se vuelve a poner en la cola. Sale primero, porque conserva su lugar:
+
+   ```bash
+   sudo python3 -c "import sqlite3,sys; d=sqlite3.connect('/var/lib/dtd-alfred/bridge.sqlite'); d.execute('update outbox set uncertain=null, next_try=0, error=null where id=? and uncertain is not null', (sys.argv[1],)); d.commit()" ID_DE_LA_FILA
+   ```
+
+4. Si son muchos a la vez, es que la red del VPS falló un rato: conviene arreglar eso primero.
+
+## 11. Al terminar
 
 - [ ] La cola quedó vacía. Es la consulta del paso 0: «avisos sin enviar» en cero. Si no baja,
       el webhook no está aceptando: toda la cola espera.
+- [ ] No quedan entregas inciertas sin resolver (§10).
 - [ ] En el handoff quedan la fecha, quién cortó, qué pruebas pasaron y qué se dejó. **Sin
       llaves, sin direcciones de webhook y sin la IP.**
 - [ ] El respaldo queda en el VPS hasta que Sam diga.

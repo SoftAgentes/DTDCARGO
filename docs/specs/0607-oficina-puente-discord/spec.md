@@ -89,9 +89,37 @@ faltaba. Cada punto tiene una prueba que falló contra el parche tal como llegó
 | 8 | La forma de la credencial | Si traía una consulta o un fragmento, agregarle `?wait=true` la dejaba malformada | Tiene que ser la dirección limpia del webhook |
 | 9 | La prueba del 429 | Su doble devolvía una respuesta con estado 429. La biblioteca real no devuelve los 4xx: los lanza. La prueba cubría un camino que no ocurre | Se prueba el error real, y que no arrastra la dirección del webhook |
 
-El punto 5 cambia una conducta que también tenía la versión de Telegram. Se deja escrito porque
-es el cambio de mayor alcance de la revisión: un webhook borrado o sin permiso frena toda la
-cola hasta que se arregle, en vez de dejar pasar a los demás avisos, que igual fallarían.
+El punto 5 cambia una conducta que también tenía la versión de Telegram: un webhook borrado o sin
+permiso frena toda la cola hasta que se arregle, en vez de dejar pasar a los demás avisos, que
+igual fallarían. **Sam lo aceptó el 2026-11-05: «Sí, estricta».**
+
+## Revisión de Codex
+
+Codex revisó el paso a Discord el 2026-11-05 y la sesión coordinadora repartió sus correcciones;
+Sam aprobó el reparto («Sí, repártelas»). Las que tocan al puente, cada una con una prueba que
+falló contra `9d24e81a9`:
+
+| # | Riesgo | Arreglo |
+|---|---|---|
+| A1 | Los avisos publicaban en Discord el título de la tarea y el texto completo de los comentarios de los agentes, que pueden traer datos de clientes | Los avisos de comentario y de estado llevan solo la tarea, su estado y el enlace a Paperclip. El detalle se le pide a la recepción. El acuse de un encargo no cambia. Las direcciones de webhooks y las llaves de bot ya se enmascaraban desde la revisión anterior |
+| A2 | Avisos viejos de Telegram de más de 2.000 caracteres quedarían trabados | Ya resuelto en la revisión anterior: se parten al enviar. El runbook dice ahora qué hacer con la cola antes del corte |
+| M1 | No se respetaba la espera de un 429 | Ya se leía la cabecera. Ahora, si no viene, se lee `retry_after` del cuerpo. El lote se corta |
+| M2 | Una respuesta perdida podía duplicar un aviso | Se guarda el id del mensaje que devuelve Discord. Si el pedido salió y no volvió respuesta, el aviso queda como **entrega incierta**: no se reenvía, no frena la cola y el puente espera un minuto antes de seguir. Una conexión que no llegó a abrirse sí se reintenta. `estado_conexion` cuenta los avisos sin entregar y los inciertos. El runbook dice cómo resolverlos |
+| M4 | La dirección del webhook se validaba a medias y el User-Agent no seguía el formato | Se acepta `discord.com` y `discordapp.com`, con esquema https, ruta `/api/webhooks/{id}/{token}` y sin consulta ni fragmento. `?wait=true` se arma con `urllib.parse`. User-Agent `DiscordBot (https://dtdcargo.com, 1.0)`. Al partir, se corta en el último salto de línea o espacio, para no romper un enlace |
+
+**Dos diferencias con lo pedido, a propósito:**
+
+- **A2, trozos en la misma fila y no en filas nuevas.** Codex propuso partir en filas nuevas con
+  id estable. Una fila nueva entra al final de la cola y el aviso partido llegaría después de
+  otros. Partir en la misma fila conserva el orden, y lo que ya salió se quita del cuerpo para no
+  repetirse.
+- **M2, la entrega incierta no frena la cola.** Si la frenara, Sam se quedaría sin avisos hasta
+  que una persona la resuelva. Se aparta, y una pausa de un minuto evita que un corte de red
+  largo marque como inciertos todos los avisos seguidos.
+
+**Consecuencia de A1:** en el teléfono, Sam ya no lee en el aviso lo que dijo ALFRED. Lo pide a la
+recepción, que lo trae con `consultar_tarea` y se lo responde en la conversación del bot. Ese
+texto sí pasa por Discord, pero solo cuando Sam lo pide.
 
 ## Lo que no se pudo comprobar
 
@@ -141,7 +169,7 @@ cola hasta que se arregle, en vez de dejar pasar a los demás avisos, que igual 
 | Comprobación | Aplica | Motivo |
 |---|---|---|
 | Pruebas del puente (`unittest`) y su enganche al harness | Sí | Es el código que cambia |
-| Mutantes del puente | Sí | Para saber si las pruebas miran lo que dicen |
+| Mutantes del puente | Sí, con turno | Para saber si las pruebas miran lo que dicen. Es una corrida pesada: pide turno al Director General |
 | `pnpm harness:test` completo | Sí, en el CI | Se agregó un archivo al harness. En local corre solo ese archivo: una corrida pesada en la PC compartida pide turno al Director General |
 | `pnpm docs:index`, `pnpm docs:check`, `pnpm sdd:check` | Sí | Hay una spec nueva |
 | `pnpm verify` | **No aplica al producto** | El diff no toca la aplicación, migraciones ni textos del sitio. De sus pasos, el único que lee estos archivos es `harness` |
