@@ -11,13 +11,15 @@ import struct
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 from desktop_feed import DesktopFeed
 
 MAX_BYTES = 100_000
 CANAL = 'Discord'
-TROZO = 1900
+TROZO = 1900  # Con margen bajo el tope de Discord.
+TOPE_DISCORD = 2000
 TOOLS = [
     {'name': 'encargar_alfred', 'description': 'Registra un encargo real de Sam en Paperclip y lo asigna a ALFRED. Usar cuando Sam pide trabajo al equipo; no para saludos o preguntas generales. Devuelve el numero HAI o una referencia de cola persistente. No aprueba, publica ni modifica aplicaciones. Reutiliza solicitud_id al reintentar el mismo encargo.', 'inputSchema': {'type': 'object', 'properties': {'titulo': {'type': 'string', 'maxLength': 200}, 'encargo': {'type': 'string', 'maxLength': 16000}, 'solicitud_id': {'type': 'string', 'description': 'Identificador estable del encargo. Opcional; el puente detecta repeticiones recientes.'}}, 'required': ['titulo', 'encargo'], 'additionalProperties': False}, 'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'idempotentHint': True}},
     {'name': 'consultar_tarea', 'description': 'Consulta un encargo registrado por este canal, su estado y los comentarios de ALFRED. tarea puede ser HAI-20 o la referencia de cola SOL-....', 'inputSchema': {'type': 'object', 'properties': {'tarea': {'type': 'string'}}, 'required': ['tarea'], 'additionalProperties': False}, 'annotations': {'readOnlyHint': True}},
@@ -59,7 +61,44 @@ def clean_text(value, limit):
 def mask_secrets(text):
     text = re.sub(r'\b\d{8,12}:[A-Za-z0-9_-]{25,}\b', '[secreto omitido]', text)
     text = re.sub(r'(?i)\b(?:sk-[a-z0-9_-]{16,}|pcp_[a-z0-9_-]{16,}|pc_[a-z0-9_-]{16,})\b', '[secreto omitido]', text)
-    return re.sub(r'(?im)^.*(?:API_KEY|BOT_TOKEN|PASSWORD|PRIVATE KEY)\s*[=:].*$', '[secreto omitido]', text)
+    # Discord: la direccion de un webhook y la llave de un bot tambien son secretos.
+    text = re.sub(r'(?i)https://(?:[a-z0-9-]+\.)?discord(?:app)?\.com/api/(?:v\d+/)?webhooks/\d+/[a-z0-9._-]+', '[secreto omitido]', text)
+    text = re.sub(r'\b[A-Za-z0-9_-]{24,}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}\b', '[secreto omitido]', text)
+    return re.sub(r'(?im)^.*(?:API_KEY|BOT_TOKEN|PASSWORD|PRIVATE KEY|DISCORD_WEBHOOK|WEBHOOK_URL)\s*[=:].*$', '[secreto omitido]', text)
+
+
+class AvisoRechazado(Exception):
+    """El canal no acepta este contenido y no lo aceptara al reintentar."""
+
+
+class EnvioEnEspera(RuntimeError):
+    """El canal pidio esperar `esperar` segundos antes del proximo envio."""
+    def __init__(self, esperar):
+        self.esperar = esperar
+        super().__init__('Discord pidio esperar')
+
+
+def unidades(texto):
+    """Largo en unidades UTF-16: la cuenta mas exigente que puede hacer Discord."""
+    return len(texto) + sum(1 for c in texto if ord(c) > 0xFFFF)
+
+
+def partir(texto, limite=TROZO):
+    """Separa el primer trozo, de a lo sumo `limite` unidades. Devuelve (trozo, resto)."""
+    usado = 0
+    for i, c in enumerate(texto):
+        usado += 2 if ord(c) > 0xFFFF else 1
+        if usado > limite and i:
+            return texto[:i], texto[i:]
+    return texto, ''
+
+
+def segundos(valor, defecto):
+    try:
+        s = float(valor)
+    except (TypeError, ValueError):
+        return defecto
+    return s if 0 <= s < float('inf') else defecto
 
 
 class Bridge:
@@ -88,10 +127,11 @@ class Bridge:
         self.desktop_feed = DesktopFeed(self.db, self.cfg, mask_secrets)
 
     def emit(self, key, text):
-        text = mask_secrets(text)
-        parts = [text[i:i+TROZO] for i in range(0, len(text), TROZO)]
-        for index, body in enumerate(parts):
+        resto, index = mask_secrets(text), 0
+        while resto:
+            body, resto = partir(resto)
             self.db.execute('INSERT OR IGNORE INTO outbox(id,body) VALUES (?,?)', (f'{key}:{index}', body))
+            index += 1
         self.db.commit()
 
     def register_request(self, kind, payload, requested_id=None):
@@ -157,7 +197,7 @@ class Bridge:
 
     def description(self, task, channel=CANAL):
         return ('Encargo de Sam recibido por su canal privado: '+channel+'.\n\n'+task+
-            '\n\n---\nContrato de trabajo del canal: ALFRED coordina a los agentes ya aprobados, registra subtareas con parentId, revisa sus entregas y deja el resultado final como comentario de ESTA tarea. No cierres la tarea principal antes de revisar las subtareas. Si esperas una entrega, deja el bloqueo y su responsable claramente registrados; usa blockParentUntilDone al crear subtareas cuando corresponda. Las respuestas y bloqueos se devuelven a Sam por Telegram; las entregas y cierres tambien aparecen en Avisos de ALFRED en Hermes App.\n'
+            '\n\n---\nContrato de trabajo del canal: ALFRED coordina a los agentes ya aprobados, registra subtareas con parentId, revisa sus entregas y deja el resultado final como comentario de ESTA tarea. No cierres la tarea principal antes de revisar las subtareas. Si esperas una entrega, deja el bloqueo y su responsable claramente registrados; usa blockParentUntilDone al crear subtareas cuando corresponda. Las respuestas y bloqueos se devuelven a Sam por '+CANAL+'; las entregas y cierres tambien aparecen en Avisos de ALFRED en Hermes App.\n'
             'Las aprobaciones formales siguen en Paperclip y las realiza Sam. Este canal no autoriza aprobar solicitudes, contratar agentes, aumentar presupuestos, publicar, contactar clientes, desplegar cambios ni modificar aplicaciones o bases de datos. No cambies configuraciones de agentes para cumplir un encargo. Si hace falta una autorizacion, explicala y espera la decision humana.\n')
 
     def verify_issue(self, issue):
@@ -246,13 +286,41 @@ class Bridge:
                     self.db.execute('UPDATE tasks SET alerted_error=? WHERE id=?',(str(exc),task['id']));self.db.commit()
 
     def flush(self):
-        for row in list(self.db.execute('SELECT * FROM outbox WHERE sent IS NULL AND next_try<=? ORDER BY rowid LIMIT 12',(time.time(),))):
-            try:
-                self.sender(row['body'])
-                self.db.execute('UPDATE outbox SET sent=?,attempts=attempts+1,error=NULL WHERE id=?',(time.time(),row['id']))
-            except Exception:
-                self.db.execute('UPDATE outbox SET attempts=attempts+1,next_try=?,error=? WHERE id=?',(time.time()+min(300,30*(row['attempts']+1)),'Discord no disponible; envio pendiente',row['id']))
-            self.db.commit()
+        # En orden estricto: el primer aviso que no sale frena a los que vienen detras,
+        # para que un mensaje largo no llegue con sus trozos desordenados.
+        for row in list(self.db.execute('SELECT * FROM outbox WHERE sent IS NULL ORDER BY rowid LIMIT 12')):
+            if row['next_try'] > time.time():
+                return
+            resto = row['body']
+            while True:
+                # Un aviso guardado antes del corte puede traer el largo de Telegram.
+                body, resto = partir(resto)
+                pausa = None
+                try:
+                    if body.strip():
+                        pausa = self.sender(body)
+                except AvisoRechazado:
+                    # Reintentarlo no cambia nada y frenaria a todos: se descarta avisando.
+                    self.db.execute('UPDATE outbox SET sent=?,attempts=attempts+1,error=? WHERE id=?',(time.time(),'Descartado: el canal rechazo el contenido',row['id']))
+                    if not row['id'].startswith('descartado:'):
+                        self.db.execute('INSERT OR IGNORE INTO outbox(id,body) VALUES (?,?)',('descartado:'+row['id'],'Oficina DTD · Un aviso no pudo entregarse por este canal porque '+CANAL+' rechazo su contenido. Consulta la tarea en Paperclip.'))
+                    self.db.commit()
+                    break
+                except Exception as exc:
+                    espera = getattr(exc,'esperar',None)
+                    demora = min(300,30*(row['attempts']+1)) if espera is None else min(300,max(1,espera))
+                    self.db.execute('UPDATE outbox SET attempts=attempts+1,next_try=?,error=? WHERE id=?',(time.time()+demora,CANAL+' no disponible; envio pendiente',row['id']))
+                    self.db.commit()
+                    return
+                if resto:
+                    self.db.execute('UPDATE outbox SET body=? WHERE id=?',(resto,row['id']))
+                else:
+                    self.db.execute('UPDATE outbox SET sent=?,attempts=attempts+1,error=NULL WHERE id=?',(time.time(),row['id']))
+                self.db.commit()
+                if pausa:
+                    return  # El canal aviso que no quedan envios en esta ventana: sigue el proximo ciclo.
+                if not resto:
+                    break
 
     def tick(self):
         with self.lock:
@@ -263,15 +331,38 @@ class Bridge:
 
 
 def discord_sender(webhook, opener=urllib.request.urlopen):
-    """Publica en un canal de Discord por su webhook. Sin menciones y sin vista previa de enlaces."""
-    if not webhook.startswith('https://discord.com/api/webhooks/'):
-        raise ValueError('La credencial discord_webhook no es un webhook de Discord')
+    """Publica en un canal de Discord por su webhook. Sin menciones y sin vista previa de enlaces.
+
+    El envio devuelve None, o los segundos que Discord pide esperar cuando avisa que no quedan
+    envios en la ventana. Lanza EnvioEnEspera ante un 429 y AvisoRechazado ante un contenido que
+    Discord no va a aceptar. Ningun error lleva la direccion del webhook, que es un secreto.
+    """
+    partes = urllib.parse.urlsplit(webhook)
+    if (partes.scheme != 'https' or partes.netloc != 'discord.com' or partes.query or partes.fragment
+            or not re.fullmatch(r'/api/webhooks/\d+/[A-Za-z0-9_-]+', partes.path)):
+        raise ValueError('La credencial discord_webhook no es la direccion limpia de un webhook de Discord')
     def sender(body):
+        if not body.strip() or unidades(body) > TOPE_DISCORD:
+            raise AvisoRechazado()
         data=json.dumps({'content':body,'allowed_mentions':{'parse':[]},'flags':4}).encode()
         req=urllib.request.Request(webhook+'?wait=true',data=data,headers={'Content-Type':'application/json','User-Agent':'DTD-Oficina-Puente/1.0 (+https://dtdcargo.com)'})
-        with opener(req,timeout=20) as resp:
-            if not 200 <= resp.status < 300:
-                raise RuntimeError('Discord rechazado')
+        try:
+            with opener(req,timeout=20) as resp:
+                codigo,cabeceras=resp.status,resp.headers
+        except urllib.error.HTTPError as exc:
+            # urlopen no devuelve los 4xx y 5xx: los lanza. El error trae la direccion; no se propaga.
+            codigo,cabeceras=exc.code,exc.headers
+            exc.close()
+        cabeceras=cabeceras or {}
+        if codigo == 429:
+            raise EnvioEnEspera(segundos(cabeceras.get('Retry-After'),5))
+        if codigo == 400:
+            raise AvisoRechazado()
+        if not 200 <= codigo < 300:
+            raise RuntimeError('Discord rechazado')
+        if cabeceras.get('X-RateLimit-Remaining') == '0':
+            return segundos(cabeceras.get('X-RateLimit-Reset-After'),1)
+        return None
     return sender
 
 
