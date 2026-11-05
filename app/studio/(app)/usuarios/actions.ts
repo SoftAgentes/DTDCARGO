@@ -35,7 +35,7 @@ import {
   orquestarLoteDeAcceso,
   type BulkAccessResult,
 } from "@/lib/studio/access-link-bulk";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { getStudioAccess, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuario";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
@@ -1144,13 +1144,13 @@ export async function getMyDiscordUserIdAction(): Promise<{
   disponible: boolean;
 }> {
   const supabase = await createClient();
-  const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { discordUserId: null, disponible: false };
+  const acceso = await getStudioAccess(supabase); // miembro ACTIVO del Studio; falla cerrado ante disabled_at
+  if (!acceso.role || !acceso.userId) return { discordUserId: null, disponible: false };
 
   const { data, error } = await supabase
     .from("user_profiles")
     .select("discord_user_id")
-    .eq("user_id", userResp.user.id)
+    .eq("user_id", acceso.userId)
     .maybeSingle<{ discord_user_id: string | null }>();
 
   if (error) return { discordUserId: null, disponible: false };
@@ -1171,8 +1171,8 @@ export async function saveMyDiscordUserIdAction(formData: FormData): Promise<{
   }
 
   const supabase = await createClient();
-  const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Inicia sesión primero." };
+  const acceso = await getStudioAccess(supabase); // miembro ACTIVO del Studio; falla cerrado ante disabled_at
+  if (!acceso.role || !acceso.userId) return { error: "Inicia sesión primero." };
 
   const { error } = await supabase
     .from("user_profiles")
@@ -1180,7 +1180,7 @@ export async function saveMyDiscordUserIdAction(formData: FormData): Promise<{
       discord_user_id: raw || null,
       updated_at: new Date().toISOString(),
     })
-    .eq("user_id", userResp.user.id);
+    .eq("user_id", acceso.userId);
 
   if (error) {
     // Sin el texto de la base: puede traer nombres de columnas y no le sirve a

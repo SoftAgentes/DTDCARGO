@@ -3,7 +3,7 @@
  *
  * Por el lado negativo primero:
  *   1. un valor que no es un ID de Discord no llega a la base,
- *   2. sin sesión no se escribe nada,
+ *   2. sin sesión, o sin membresía ACTIVA en el Studio, no se lee ni se escribe,
  *   3. sólo se escribe sobre la fila del usuario de la sesión,
  *   4. un error de la base no se le muestra crudo a la persona,
  *   5. leer tolera que la columna todavía no exista (migración 0514 sin aplicar).
@@ -15,7 +15,11 @@ const ACTOR = "user-actor";
 const ID_OK = "123456789012345678";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/studio/rbac-guard", () => ({ moduleEditDenial: vi.fn() }));
+let acceso: { role: string | null; userId: string | null } = { role: null, userId: null };
+vi.mock("@/lib/studio/rbac-guard", () => ({
+  moduleEditDenial: vi.fn(),
+  getStudioAccess: async () => acceso,
+}));
 vi.mock("@/lib/studio/audit/external-effect-adapter", () => ({
   beginD5ExternalEffect: vi.fn(),
   finishD5ExternalEffect: vi.fn(),
@@ -29,7 +33,6 @@ vi.mock("@/lib/studio/audit/auth-lifecycle-adapter", () => ({
 }));
 vi.mock("@/lib/studio/mail/send-email", () => ({ sendEmail: vi.fn() }));
 
-let sessionUser: { id: string } | null = null;
 let updateError: { code: string; message: string } | null = null;
 let selectResult: { data: unknown; error: unknown } = { data: null, error: null };
 
@@ -40,7 +43,11 @@ const selectEqMock = vi.fn();
 
 vi.mock("@/lib/db/server", () => ({
   createClient: async () => ({
-    auth: { getUser: async () => ({ data: { user: sessionUser } }) },
+    auth: {
+      getUser: async () => {
+        throw new Error("la sesión se resuelve por getStudioAccess");
+      },
+    },
     from: (table: string) => {
       if (table !== "user_profiles") throw new Error(`tabla inesperada: ${table}`);
       return {
@@ -82,7 +89,7 @@ function form(value: string) {
 }
 
 beforeEach(() => {
-  sessionUser = { id: ACTOR };
+  acceso = { role: "commercial", userId: ACTOR };
   updateError = null;
   selectResult = { data: null, error: null };
   updateMock.mockReset();
@@ -104,9 +111,17 @@ describe("saveMyDiscordUserIdAction", () => {
   );
 
   it("sin sesión no escribe", async () => {
-    sessionUser = null;
+    acceso = { role: null, userId: null };
     const res = await saveMyDiscordUserIdAction(form(ID_OK));
     expect(res.error).toBe("Inicia sesión primero.");
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("con sesión pero sin membresía activa en el Studio no escribe", async () => {
+    // Un miembro desactivado, o una cuenta del portal: hay usuario, no hay rol.
+    acceso = { role: null, userId: ACTOR };
+    const res = await saveMyDiscordUserIdAction(form(ID_OK));
+    expect(res.ok).toBeUndefined();
     expect(updateMock).not.toHaveBeenCalled();
   });
 
@@ -158,7 +173,16 @@ describe("getMyDiscordUserIdAction", () => {
   });
 
   it("sin sesión no consulta", async () => {
-    sessionUser = null;
+    acceso = { role: null, userId: null };
+    expect(await getMyDiscordUserIdAction()).toEqual({
+      discordUserId: null,
+      disponible: false,
+    });
+    expect(selectMock).not.toHaveBeenCalled();
+  });
+
+  it("sin membresía activa en el Studio no consulta", async () => {
+    acceso = { role: null, userId: ACTOR };
     expect(await getMyDiscordUserIdAction()).toEqual({
       discordUserId: null,
       disponible: false,
