@@ -21,8 +21,22 @@ describe("/privacidad · mensajes por WhatsApp y chat (SDD-0585, 2.6)", () => {
   });
 
   it("nombra a Meta y aclara que el sistema de atención es propio", () => {
-    expect(texto).toContain("Meta (WhatsApp)");
+    expect(texto).toContain("Meta (WhatsApp e Instagram)");
     expect(texto).toContain("alojado en nuestro servidor");
+  });
+
+  // Sam aprobó estas palabras el 2026-11-05, por el Director General: si esta
+  // prueba falla porque cambió el texto, se le vuelve a preguntar.
+  it("el párrafo de mensajes dice exactamente lo que Sam aprobó, con Instagram", () => {
+    expect(texto).toContain(
+      '"Mensajes por WhatsApp y chat", "Si nos escribes por WhatsApp, Instagram u otro canal de chat: tu nombre y tu usuario o teléfono tal como aparecen en ese canal y el contenido de la conversación. Si no muestras tu teléfono, WhatsApp nos da en su lugar un código anónimo de tu cuenta (BSUID). Si todavía no eres cliente, guardamos tu nombre visible y los últimos 10 dígitos de tu teléfono para dar seguimiento a tu consulta.", ',
+    );
+  });
+
+  it("la fila de Meta dice exactamente lo que Sam aprobó, y la del sistema de atención no cambia", () => {
+    expect(texto).toContain(
+      "<strong>Meta (WhatsApp e Instagram)</strong>, que transporta los mensajes que nos envías y te enviamos por esos canales. Las conversaciones las atendemos en nuestro propio sistema de atención, alojado en nuestro servidor.",
+    );
   });
 
   it("los tres plazos coinciden con los de la base", () => {
@@ -38,6 +52,6 @@ describe("/privacidad · mensajes por WhatsApp y chat (SDD-0585, 2.6)", () => {
   });
 
   it("la fecha de la política se movió con el cambio", () => {
-    expect(texto).toContain('const UPDATED = "4 de noviembre de 2026";');
+    expect(texto).toContain('const UPDATED = "5 de noviembre de 2026";');
   });
 });
