@@ -5,8 +5,8 @@ Owner / sesión escritora: `claude-strange-jepsen-c4a225-oficina-reestructura` (
 iniciada por la sesión que armó el plan de la oficina con Sam).
 
 Estado de la tarea: **lista para revisión, con PR en borrador contra `main`.** Sam autorizó
-publicar el 2026-11-05 (ver «Permisos»). Sigue en borrador porque falta que Sam confirme tres
-nombres de puestos. La integra el Director.
+publicar el 2026-11-05 (ver «Permisos») y confirmó los tres nombres de puestos ese mismo día. Sacarla
+de borrador es decisión de Sam o del Director. La integra el Director.
 
 - **Worktree:** `.claude/worktrees/strange-jepsen-c4a225`, sin `node_modules`.
 - **Rama:** `claude/strange-jepsen-c4a225`, desde `main` `49bdba2e5`.
@@ -50,7 +50,8 @@ Decisiones propias de redacción, para que quien revise las vea:
 
 - Las **líneas de reporte** van como PROPUESTA: el plan da áreas, no una jerarquía completa.
 - Los **nombres** «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido» se
-  usan como decididos, según el encargo; el plan los lista por confirmar (pendiente P2 de la spec).
+  usaron como decididos, según el encargo, aunque el plan los listaba por confirmar. Sam los
+  confirmó el 2026-11-05, literal: «Sí, así quedan» (P2 de la spec, resuelto).
 - En `06-noticias.md` las líneas rojas salen del **código** (`LINEAS_ROJAS`), no del resumen del
   plan, porque no coinciden (ver «Fuera de alcance»).
 - La **publicación automática de noticias** figura como decidida y **no vigente**: IA-01 sigue
@@ -85,8 +86,11 @@ No se consultó el VPS, Paperclip ni Discord.
 1. `e428d9104` — `chore(sdd): reserva SDD-0605 — oficina-reestructura` (stub de la reserva).
 2. `4e7a608fe` — `docs(organizacion): SDD-0605 — …`: spec, organigrama, plan maestro, biblioteca,
    identidades, índices y handoff.
-3. El commit que contiene este documento — `docs(sdd): SDD-0605 — …`: anota la autorización de
-   Sam y el paso a PR en borrador. Solo cambia este handoff.
+3. `5864769c0` — `docs(sdd): SDD-0605 — …`: anota la autorización de Sam y el paso a PR en
+   borrador. Solo cambia este handoff.
+4. `705e91990` — merge de `main` (`243df5c0a`), una vez, por el conflicto del índice de specs.
+5. El commit que contiene este documento — registra la confirmación de los nombres en la spec,
+   el organigrama, el plan maestro y este handoff.
 
 ## PR / BRANCH
 
@@ -99,8 +103,9 @@ No se consultó el VPS, Paperclip ni Discord.
 
 - [x] **Autorización de Sam para publicar** la rama y abrir la PR: dada el 2026-11-05. El merge
       es del Director.
-- [ ] **Que Sam confirme los tres nombres** (P2). Mientras tanto la PR queda en borrador. Si cambia alguno, se corrige en la spec, el
-      organigrama, el plan maestro, `07-quien-hace-que.md` y las identidades.
+- [x] **Que Sam confirme los tres nombres** (P2): confirmados el 2026-11-05, sin cambios.
+- [ ] **Sacar la PR de borrador:** no lo hice. Un merge a `main` se publica solo, así que cuándo
+      entra lo deciden Sam o el Director.
 - [ ] **`docs/marketing/agente-seo-noticias.md` no se tocó ni se creó:** no existe en la base de
       esta rama. Vive en la rama `claude/seo-geo-aeo-691c7b` (SDD-0604, sin fusionar). Cuando esa
       rama entre a `main`, falta alinearlo con esta SDD: los nombres «Experto en SEO, GEO y AEO»,
@@ -150,8 +155,7 @@ No se tocó nada de esto.
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** que Sam confirme los tres nombres; con eso la PR sale de borrador y entra
-  al turno de integración del Director.
+- **Siguiente acción:** decidir cuándo sale de borrador y entra al turno de integración.
 - **Revisión sugerida:** las líneas de reporte (PROPUESTA), los «nunca» de cada identidad nueva y
   que ningún documento presente la reestructura como ejecutada.
 - **Dependencias:** ninguna para integrar. No toca archivos de la SDD-0604 ni de los avisos del

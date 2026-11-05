@@ -53,7 +53,7 @@ que el plan conserva entre comillas.
 | D3 | **Discord reemplaza a Telegram** como central única de comunicación con los agentes y de todos los avisos, y es lo primero | «quitar Telegram de una vez»: corte directo, sin semana de doble envío |
 | D4 | **Marketing es un subgrupo** con un Director de contenido y expertos por plataforma: Instagram y Facebook, TikTok, YouTube, y SEO, GEO y AEO; más el Redactor de noticias | — |
 | D5 | **Hay un Revisor nuevo.** Nada llega a Sam sin pasar por él | — |
-| D6 | **«Jefe de gabinete» pasa a llamarse «Coordinador de procesos y seguimiento»** | Ver P2: el plan deja los tres nombres nuevos por confirmar |
+| D6 | **«Jefe de gabinete» pasa a llamarse «Coordinador de procesos y seguimiento»** | Sam confirmó el 2026-11-05 los tres nombres nuevos, este incluido: «Sí, así quedan» (ver P2) |
 | D7 | **Vigía de mejoras:** rutina semanal del Puente de ingeniería que lee las novedades de Hermes y Paperclip | Actualizar se hace leyendo las notas de la versión y probando antes |
 | D8 | **Un modelo por perfil de Hermes:** CEO con Claude Fable 5.1; Revisor con Codex de OpenAI; Director de contenido y Redactor de noticias con Claude Sonnet 5.5; el resto con GLM 5.3 | El agente sigue siendo Hermes; solo cambian proveedor y modelo de su perfil |
 | D9 | **Oficina visual:** Paperclip tal cual más Discord. La oficina dibujada se decide después de usarlo unos días | No entra en esta tanda |
@@ -68,7 +68,7 @@ plan con los documentos.
 | # | Pendiente | Quién |
 |---|---|---|
 | P1 | **Tope de la oficina:** 13 agentes dentro del tope de 100 USD al mes | Sam |
-| P2 | **Nombres:** «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido». El encargo de esta tarea los da por decididos; el plan los lista por confirmar. Se usan aquí y Sam los confirma al revisar esta SDD | Sam |
+| P2 | ~~**Nombres:** «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido»~~ **Resuelto el 2026-11-05.** El plan los listaba por confirmar. Sam los confirmó tal como están escritos, al revisar esta SDD: «Sí, así quedan» | — |
 | P3 | **Orden de entrada de los expertos** (por turnos, como recomienda el plan) o todos de una vez | Sam |
 | P4 | **Quién más está en el servidor de Discord «DTD Cargo»** | Sam |
 | P5 | **Cómo pagar Fable 5.1 y Codex:** llave de API con límite mensual (recomendado en el plan) o los planes de suscripción | Sam |

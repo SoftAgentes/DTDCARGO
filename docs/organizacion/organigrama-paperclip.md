@@ -1331,7 +1331,7 @@ configuración, reglas y orden de migración: plan maestro §7.6.
 | Canal | Discord en lugar de Telegram, primero y con corte directo | Quién más está en el servidor; a quién se le dan los roles Atención y Técnico |
 | Marketing | Subgrupo con Director de contenido y expertos por plataforma | Orden de entrada de los expertos, o todos de una vez |
 | Revisor | Existe y nada llega a Sam sin pasar por él | — |
-| Nombres | — | «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido»: el plan los lista por confirmar; se usan aquí |
+| Nombres | «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido». El plan los listaba por confirmar; Sam los confirmó ese mismo día al revisar la SDD-0605 | — |
 | Vigía de mejoras | Rutina semanal del Puente de ingeniería; actualizar leyendo las notas y probando antes | — |
 | Modelos | Por perfil de Hermes, con el reparto de §9.7 | Cómo se paga Fable 5.1 y Codex; prueba con tres tareas reales; que Hermes conozca Fable 5.1 |
 | Tamaño | 13 agentes en la estructura | Si los 13 caben en el tope de 100 USD al mes |

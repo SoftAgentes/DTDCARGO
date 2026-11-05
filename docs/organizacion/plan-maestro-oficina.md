@@ -251,7 +251,7 @@ Lo medido es de esa fecha y no se repitió al escribir este documento.
 |---|---|---|---|---|
 | 1 | ALFRED (CEO) | `ceo` | Cambiar su modelo a Claude Fable 5.1; conectarlo a Discord; actualizar sus instrucciones con el equipo nuevo | Llave del modelo con límite; bot de Discord |
 | 2 | Revisor | `revisor` | Crear perfil, contratar con Codex de OpenAI, ponerlo como etapa de revisión | Perfil nuevo; llave o sesión del modelo; aprobación de Sam |
-| 3 | Coordinador de procesos y seguimiento | `gabinete` | Renombrar el agente en Paperclip y cargar su identidad ajustada | Confirmar el nombre |
+| 3 | Coordinador de procesos y seguimiento | `gabinete` | Renombrar el agente en Paperclip y cargar su identidad ajustada | — |
 | 4 | Puente de ingeniería | `ingenieria` | Crearle la rutina semanal «Vigía de mejoras» (§7.4) | Darle una forma de leer las notas de versión |
 | 5 | Director de contenido | `director-contenido` | Crear perfil y contratar con Claude Sonnet 5.5 | Perfil nuevo; llave del modelo; aprobación de Sam |
 | 6 | Experto en SEO, GEO y AEO | `seo` | Crear perfil y contratar | Perfil nuevo; la salida de temas del Studio para trabajar con datos reales |
@@ -485,7 +485,7 @@ tiene permisos de administrador: no sirve para crear perfiles ni para actualizar
 |---|---|---|---|
 | 0 | Discord primero: guía para crear el bot, estructura de canales y configuración de Hermes lista para aplicar | Discord y VPS de la oficina | Crear el bot, invitarlo y dar una entrada con permisos al VPS |
 | 1 | Cerrar la fase A de SEO, GEO y AEO del sitio (SDD-0604, en su rama) | Repositorio | Lo que pida esa SDD |
-| 2 | **Esta reestructura en documentos (SDD-0605)** | Repositorio, solo documentos | Confirmar nombres y autorizar la publicación |
+| 2 | **Esta reestructura en documentos (SDD-0605)** | Repositorio, solo documentos | Hecho el 2026-11-05: confirmó los nombres y autorizó publicar. Queda la integración |
 | 3 | Mantenimiento del VPS de la oficina: respaldo, Paperclip, decidir Hermes, reinicio y repetir la prueba de aislamiento | VPS de la oficina | Autorizarlo y dar una entrada con permisos |
 | 4 | Recorrido de Paperclip: tablero, panel en vivo, «qué necesita de mí», organigrama | Paperclip | Estar presente |
 | 5 | Crear 5 perfiles, contratar y renombrar 3 agentes, por turnos | VPS de la oficina y Paperclip | Aprobar cada contratación con su mano |
@@ -513,16 +513,17 @@ Discord con los agentes actuales.
 - Un modelo por perfil de Hermes, con el reparto de §7.5.
 - Paperclip tal cual más Discord como oficina visual; la oficina dibujada se decide después.
 - Arranque de Discord solo con Sam.
+- Los nombres «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido»,
+  confirmados al revisar la SDD-0605.
 - Las noticias se publican solas, con filtros. No está vigente: necesita su SDD y el registro
   de la excepción a IA-01.
 
 **Pendientes:**
 
 1. **Tope de la oficina:** 13 agentes y el tope de 100 USD al mes.
-2. **Nombres:** «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido».
-3. **Orden de entrada de los expertos** (§7.3) o todos de una vez.
-4. **Quién más está en el servidor de Discord «DTD Cargo».**
-5. **Cómo pagar Fable 5.1 y Codex** (§7.5).
+2. **Orden de entrada de los expertos** (§7.3) o todos de una vez.
+3. **Quién más está en el servidor de Discord «DTD Cargo».**
+4. **Cómo pagar Fable 5.1 y Codex** (§7.5).
 
 ### 7.9 Riesgos
 
