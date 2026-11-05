@@ -7,6 +7,7 @@
 | Autor | Sesión Worker «Oficina Paperclip» (Claude Code) |
 | Estado | **borrador** · Sam respondió las 14 preguntas el 2026-10-19 (estructura, ola 1, GLM, datos de clientes con controles, Kommo primero) y pidió la versión gráfica y la asignación de personas (sección 2.7, por puestos; el análisis por persona se le entregó aparte); falta que confirme los titulares; nada está instalado |
 | Fecha | 2026-10-19 |
+| Actualización | **2026-11-05 · [SDD-0605](../specs/0605-oficina-reestructura/spec.md):** reestructura de la oficina de agentes en la [sección 9](#9-reestructura-de-la-oficina-de-agentes-2026-11-05--sdd-0605). Reemplaza la vista 2 (§2.3) y la lista de agentes de la ola 1 (§4.4); el organigrama de la empresa por puestos (§2.2) no cambia |
 | Base | `main` `bb6bb3e4` |
 | Confidencialidad | interno · cita el norte interno; no se publica |
 
@@ -289,7 +290,17 @@ flowchart TD
 
 Las olas se explican en la sección 4.4.
 
+> **Actualización del 2026-11-05 (SDD-0605).** Este diagrama es la propuesta original de la
+> ola 1. La lista vigente de agentes, con el subgrupo de marketing y el Revisor, está en la
+> [sección 9.2](#92-los-13-agentes). Tres agentes cambian de nombre: «Jefe de gabinete» pasa a
+> «Coordinador de procesos y seguimiento», «Editor de contenido» a «Redactor de noticias» y
+> «Community manager asistente» a «Experto en Instagram y Facebook».
+
 ### 2.4 Tabla resumen
+
+> **Actualización del 2026-11-05 (SDD-0605).** En las filas P-02, P-41, P-42 y P-53 el nombre
+> y el alcance del agente son los de la [sección 9.2](#92-los-13-agentes). Los puestos, sus
+> dueños humanos y sus roles del Studio no cambian.
 
 | # | Puesto | Reporta a | Lo ocupa | Rol del Studio | Ola del agente |
 |---|---|---|---|---|---|
@@ -790,6 +801,13 @@ se escribe en el repositorio o en el ERP.
 
 ### 4.4 Las olas: empezar pequeño
 
+> **Actualización del 2026-11-05 (SDD-0605).** La ola 1 creció a 8 agentes el 2026-10-20
+> ([plan maestro](plan-maestro-oficina.md) §1) y Sam aprobó el 2026-11-05 una estructura de
+> 13 ([sección 9](#9-reestructura-de-la-oficina-de-agentes-2026-11-05--sdd-0605)). Las olas 2
+> y 3 de esta tabla siguen en espera con sus mismas condiciones. La «configuración propuesta
+> de la ola 1» de más abajo (Claude Code, topes por agente) es historia: el motor pasó a
+> Hermes en la SDD-0564 D11.
+
 | Ola | Agentes | Qué necesitan | Condición para empezar |
 |---|---|---|---|
 | **1 · piloto, 4 semanas** | CEO · Jefe de gabinete · Puente de ingeniería · Editor de contenido | Una copia de solo lectura del repositorio y documentos públicos. Nada de producción | Tu aprobación de este documento y de la instalación |
@@ -1073,6 +1091,258 @@ Las decisiones que necesito antes de pasar a la instalación, ordenadas por lo q
 
 ---
 
+## 9. Reestructura de la oficina de agentes (2026-11-05 · SDD-0605)
+
+> **Qué es.** La estructura de agentes que Sam aprobó el 2026-11-05, escrita por la
+> [SDD-0605](../specs/0605-oficina-reestructura/spec.md). Reemplaza la vista 2 (§2.3) y la
+> lista de la ola 1 (§4.4).
+>
+> **Qué no es.** No es el estado de la oficina. Esta sección no consultó el VPS ni Paperclip:
+> **ningún agente nuevo está contratado, ningún perfil nuevo existe y ningún modelo cambió.**
+> «Existe» quiere decir que el agente figura en los documentos del 2026-10-20
+> ([plan maestro](plan-maestro-oficina.md) §1), cuyo estado vivo sigue **NO VERIFICADO**. Lo
+> único medido el 2026-11-05, en solo lectura, está en el plan maestro §7.1.
+
+### 9.1 Qué cambia y qué no
+
+**Cambia:**
+
+1. **Una sola puerta.** Sam habla solo con ALFRED, el CEO. Antes había dos figuras: ALFRED y
+   el perfil con el que Sam conversaba por Telegram.
+2. **Discord reemplaza a Telegram** como central única (§9.8).
+3. **Marketing pasa a ser un subgrupo** con un Director de contenido y un experto por
+   plataforma (§9.4).
+4. **Entra un Revisor** (§9.5).
+5. **Tres agentes cambian de nombre** y el Puente de ingeniería gana la rutina «Vigía de
+   mejoras» (§9.6).
+6. **Cada perfil usa el modelo que le conviene** (§9.7).
+
+**No cambia:**
+
+- El organigrama de la empresa por puestos (§2.2) y su gráfico. La Jefatura de Gabinete y
+  Personas (P-02) sigue llamándose así: se renombra el agente, no el área.
+- La ley de la casa: la IA propone y la persona decide (IA-01). Lo que queda siempre en manos
+  de Sam (§3.3) sigue igual.
+- Lo que un agente hace solo, con aprobación y nunca (§4.3).
+- Las olas 2 y 3 (§4.4). Los agentes que analizan el ERP (cobro, tránsito, cuadres) quedan
+  para después: en producción casi no hay datos que analizar y necesitan una salida de datos
+  agregados con revisión de privacidad.
+- **Esquema mixto** (decisión de Sam, 2026-11-05): los agentes piensan en la oficina; el
+  Studio guarda datos, llaves, aprobación y publicación. Hermes no recibe llaves de
+  producción ni de Google.
+
+### 9.2 Los 13 agentes
+
+Son 8 actuales, 3 de ellos renombrados, más 5 nuevos. La columna «Reporta a» es
+**PROPUESTA**: el plan da las áreas y dice que el Director de contenido reparte entre los
+expertos; Sam la confirma al aprobar cada contratación.
+
+| # | Área | Agente | Estado | Perfil de Hermes | Reporta a | Modelo | Trabajo |
+|---|---|---|---|---|---|---|---|
+| 1 | Dirección | **ALFRED (CEO)** | Existe | `ceo` | Junta (Sam) | Claude Fable 5.1 | Recibe a Sam, reparte, da seguimiento, parte del viernes |
+| 2 | Dirección | **Revisor** | Nuevo | `revisor` | ALFRED | Codex de OpenAI | Nada llega a Sam sin pasar por él. Revisa voz de marca, datos sin fuente y reglas |
+| 3 | Dirección | **Coordinador de procesos y seguimiento** | Renombrado (era «Jefe de gabinete») | `gabinete` | ALFRED | GLM 5.3 | Procedimientos, actas, fechas |
+| 4 | Dirección | **Puente de ingeniería**, con la rutina **Vigía de mejoras** | Existe, con rutina nueva | `ingenieria` | ALFRED | GLM 5.3 | Convierte metas en pedidos para el equipo de código. Cada semana lee las novedades de Hermes y Paperclip |
+| 5 | Marketing | **Director de contenido** | Nuevo | `director-contenido` | ALFRED | Claude Sonnet 5.5 | Cabeza del subgrupo: plan del mes, calendario editorial, reparte entre los expertos, cruza el resumen del CRM |
+| 6 | Marketing | **Experto en SEO, GEO y AEO** | Nuevo | `seo` | Director de contenido | GLM 5.3 | Search Console cada semana: qué buscan, qué cayó, qué no está indexado. Entrega los temas |
+| 7 | Marketing | **Experto en TikTok** | Nuevo | `tiktok` | Director de contenido | GLM 5.3 | Estudia el algoritmo y las tendencias; entrega ganchos, guiones y calendario de TikTok |
+| 8 | Marketing | **Experto en YouTube** | Nuevo | `youtube` | Director de contenido | GLM 5.3 | Títulos, miniaturas, guiones, Shorts y búsqueda dentro de YouTube |
+| 9 | Marketing | **Experto en Instagram y Facebook** | Renombrado (era «Community manager asistente») | `community` | Director de contenido | GLM 5.3 | Reels, carruseles, historias y respuestas tipo; es el canal principal |
+| 10 | Marketing | **Redactor de noticias** | Renombrado (era «Editor de contenido») | `contenido` | Director de contenido | Claude Sonnet 5.5 | Artículos de `/noticias` y textos largos del sitio |
+| 11 | Comercial | **Asesor comercial** | Existe | `asesor` | ALFRED | GLM 5.3 | Lista diaria de leads |
+| 12 | Comercial | **Analista de CRM/datos** | Existe | `crm` | ALFRED | GLM 5.3 | CRM |
+| 13 | Operaciones | **Analista de operaciones** | Existe | `operaciones` | ALFRED | GLM 5.3 | Checklist del embarque y procedimientos |
+
+Los perfiles `director` (configuración de la oficina) y el de recepción con el que Sam
+conversa (hoy llamado `telegram`) no son agentes de este organigrama y no se contratan.
+
+```mermaid
+flowchart TD
+  B["Junta · Sam<br/>habla solo con ALFRED"]
+  CEO(["ALFRED · CEO"])
+  B --> CEO
+  CEO --> REV(["Revisor · nuevo"])
+  CEO --> COO(["Coordinador de procesos<br/>y seguimiento"])
+  CEO --> ING(["Puente de ingeniería<br/>+ Vigía de mejoras"])
+  CEO --> DC(["Director de contenido · nuevo"])
+  CEO --> ASE(["Asesor comercial"])
+  CEO --> CRM(["Analista de CRM/datos"])
+  CEO --> OPE(["Analista de operaciones"])
+  DC --> IG(["Experto en Instagram<br/>y Facebook"])
+  DC --> SEO(["Experto en SEO, GEO<br/>y AEO · nuevo"])
+  DC --> TT(["Experto en TikTok · nuevo"])
+  DC --> YT(["Experto en YouTube · nuevo"])
+  DC --> RED(["Redactor de noticias"])
+```
+
+El catálogo con lo que cada uno hace y nunca hace está en
+[`oficina-conocimiento/07-quien-hace-que.md`](oficina-conocimiento/07-quien-hace-que.md). Es
+la tabla con la que el CEO decide a quién asignar.
+
+### 9.3 Cómo se trabaja: Sam habla solo con el CEO
+
+Es el modelo que Paperclip trae de fábrica, según su guía de delegación:
+
+```
+Sam le da una meta o tarea al CEO (Discord o Paperclip)
+  → el CEO la parte en tareas y las asigna según la tabla «quién hace qué»
+  → el agente asignado se despierta, trabaja y actualiza la tarea
+  → el Revisor comprueba el resultado
+  → el CEO resume y le pasa a Sam solo lo que necesita su decisión
+  → lo que sale hacia afuera espera la aprobación de Sam
+```
+
+- **Una sola puerta.** Sam habla con ALFRED y el canal pasa a ser Discord. El perfil
+  `director` queda para configurar la oficina.
+- **No conversan todo el tiempo.** Los agentes se comunican por tareas y comentarios, y se
+  despiertan cuando se les asigna algo. El CEO tiene su latido diario (7:00) y el parte del
+  viernes. Es así a propósito: controla el gasto y deja rastro.
+- **Sam interviene solo cuando algo se traba:** aprobación pendiente, agente en pausa o tope
+  agotado.
+
+### 9.4 Marketing: un experto por plataforma, entrando por turnos
+
+**Decisión de Sam (2026-11-05):** marketing es un subgrupo con un Director de contenido y
+expertos por plataforma. El Director de contenido evita que Sam coordine a cuatro expertos:
+recibe el pedido del CEO y reparte.
+
+Por qué uno por plataforma: cada red tiene su algoritmo y su formato, y un solo «experto en
+redes» termina dando consejos genéricos. Con GLM de plan fijo, un agente más casi no cuesta
+dinero. Lo que sí cuesta es atención: cada agente trae identidad, entrenamiento, revisión de
+lo que aprende y más cosas que aprobar.
+
+**Orden de entrada recomendado** (**PENDIENTE** de que Sam lo confirme o pida todos de una
+vez):
+
+| Turno | Experto | Por qué en ese turno |
+|---|---|---|
+| 1 | Instagram y Facebook | Ya existe el agente y es el canal principal |
+| 2 | SEO, GEO y AEO | Junto con el primero: es lo pendiente desde el inicio |
+| 3 | TikTok | Después |
+| 4 | YouTube | Cuando haya un ritmo de videos que sostenerle |
+
+**Límites que conviene saber antes:**
+
+- **No publican.** Entregan guiones, ganchos, calendarios y textos; grabar y subir lo hace
+  una persona.
+- **No ven las estadísticas de las cuentas.** Para que estudien el rendimiento propio hay que
+  pasarles los números: al principio a mano, después con una salida agregada del Studio.
+- **Estudiar el algoritmo exige internet.** Darle la herramienta de web a un experto implica
+  que su memoria se apruebe a mano, porque lo que lee afuera puede traer instrucciones
+  maliciosas. Qué perfiles tienen web hoy está **NO VERIFICADO**: el plan maestro del
+  2026-10-20 la da a `contenido` y `community`; el plan del 2026-11-05 dice que solo un
+  agente la tiene.
+- **Marketing mira el CRM sin datos personales.** Los agentes no leen conversaciones. El
+  Studio les prepara un resumen semanal agregado, sin nombres, teléfonos, textos literales ni
+  montos. Necesita SDD propia con `revisar-datos-ve`.
+
+**P-42 y la ola 2.** El Experto en SEO, GEO y AEO cubre la parte de búsqueda del puesto P-42.
+Qué pasa con el «Analista de crecimiento» de la ola 2, que también miraba anuncios y
+analítica, está **PENDIENTE**: el plan no lo dice.
+
+### 9.5 El Revisor
+
+Es el crítico de la oficina: comprueba el resultado de cada agente antes de que el CEO se lo
+resuma a Sam. Revisa tres cosas: la voz de la marca, los datos sin fuente y las reglas.
+
+- **No reemplaza a Sam.** Lo que sale hacia afuera sigue esperando la aprobación de Sam o del
+  dueño humano del puesto.
+- **Usa un modelo de otra casa** (Codex de OpenAI) a propósito: un revisor de otra familia de
+  modelos detecta errores que el modelo que escribió no ve.
+- **Nadie se revisa a sí mismo.** Antes la revisión de entregables era de ALFRED; con la
+  reestructura pasa al Revisor, y ALFRED resume. Cómo se configura esa etapa en Paperclip es
+  parte de su contratación.
+
+### 9.6 Vigía de mejoras
+
+Pedido de Sam: que alguien lea cada semana lo nuevo de Hermes y Paperclip y diga «esto lo
+podemos usar».
+
+| | |
+|---|---|
+| Quién | Una rutina semanal del Puente de ingeniería. No es un agente nuevo |
+| Qué entrega | Un resumen en el canal de actividad de la oficina y en el parte del viernes: qué salió, qué arreglaron, qué nos sirve y para qué, y si hay avisos de seguridad |
+| Qué no hace | Actualizar. La actualización la hace una persona, con respaldo, y primero en una instancia de pruebas de Paperclip, en otro puerto y sin los agentes reales |
+| Regla | Antes de cada actualización se leen las notas de la versión, para aprovechar lo nuevo y para ver qué puede romper el aislamiento |
+| Precedente | Administración › Actualizaciones del Studio ya hace esto para Chatwoot (SDD-0588) |
+
+### 9.7 Un modelo por agente
+
+**Decisión de Sam (2026-11-05):** el modelo se cambia **dentro de Hermes, por perfil**. El
+agente sigue siendo Hermes y conserva su memoria, sus skills, su conexión y el envoltorio de
+aislamiento `dtd-hermes`. No se cambia el motor en Paperclip: así era el ALFRED viejo, que
+quedó en pausa, y pierde todo eso.
+
+| Modelo | Fuerte en | Agentes |
+|---|---|---|
+| Claude Fable 5.1 | Planificar y repartir, seguir reglas largas | ALFRED (CEO) |
+| Claude Sonnet 5.5 | Redacción | Director de contenido, Redactor de noticias |
+| Codex de OpenAI | Revisión rigurosa, análisis estructurado | Revisor |
+| GLM 5.3 | Usar herramientas y ejecutar tareas; el más tolerante dentro de Hermes | Los otros nueve |
+
+Por qué: el CEO decide mejor a quién asignar con un modelo más fuerte; la redacción de GLM
+recibe malas opiniones aunque use bien las herramientas; y revisar con un modelo de otra casa
+es el patrón más repetido entre quienes mezclan modelos. Son opiniones de usuarios y cifras de
+fabricantes, no una prueba controlada.
+
+**Lo que queda fuera por ahora:** Kimi K3 es candidato para los expertos en TikTok, YouTube e
+Instagram cuando tengan que mirar videos o miniaturas, y se prueba antes de adoptarlo.
+DeepSeek queda fuera hasta que se estabilice dentro de Hermes. OpenClaw no es un modelo sino
+otro motor: no se agrega. El arranque es con tres familias: Claude, OpenAI y GLM.
+
+Las condiciones y lo pendiente (cómo se paga, límite mensual en el proveedor, prueba previa y
+si la versión instalada de Hermes conoce Fable 5.1) están en el plan maestro §7.5. **Hoy
+todos los perfiles usan GLM 5.3** (medido el 2026-11-05).
+
+### 9.8 Discord: quién habla y quién ve
+
+**Decisión de Sam (2026-11-05):** Discord pasa a ser la central de comunicación con los
+agentes y de todos los avisos. Telegram deja de usarse, con corte directo. Servidor:
+«DTD Cargo».
+
+- **Un solo bot que conversa: ALFRED.** Coincide con «Sam habla solo con el CEO». Los demás
+  agentes no entran a Discord; se ven por el canal de actividad.
+- **Solo Sam puede hablarle,** por lista de usuarios permitidos, y solo en los canales de la
+  oficina.
+- **Lo demás son avisos automáticos de canal,** que solo escriben: no leen ni reciben órdenes.
+- **Discord es un servicio externo.** No se escriben ahí datos de clientes, montos ni llaves.
+  El detalle sensible queda en el Studio.
+
+Los canales nuevos nacen cerrados y se abren por rol, no por persona:
+
+| Rol | Para quién | Oficina | Operación | Servidor |
+|---|---|---|---|---|
+| Dirección | Sam | Ve y escribe | Ve y escribe | Ve y escribe |
+| Atención | Quien atiende clientes | No ve | Ve los avisos de registro, conversaciones del portal, equipo y reporte diario | No ve |
+| Técnico | Quien resuelve fallas | No ve | Ve el canal de bugs | Ve todo |
+| Recepción (bot) | El bot de la oficina | Ve y escribe | No ve | No ve |
+| Todos los demás | El resto de miembros | No ve | No ve | No ve |
+
+**Arranque (decisión de Sam, 2026-11-05): solo Sam.** Los tres roles se crean, pero al inicio
+solo los tiene Sam; después nombra a dos personas y decide qué ve cada una. Canales, pasos de
+configuración, reglas y orden de migración: plan maestro §7.6.
+
+### 9.9 Decisión tomada y pendiente
+
+| Tema | Decidido por Sam el 2026-11-05 | Sigue pendiente |
+|---|---|---|
+| Esquema | Mixto: la oficina piensa; el Studio guarda, aprueba y publica | — |
+| Puerta | Sam habla solo con ALFRED | — |
+| Canal | Discord en lugar de Telegram, primero y con corte directo | Quién más está en el servidor; a quién se le dan los roles Atención y Técnico |
+| Marketing | Subgrupo con Director de contenido y expertos por plataforma | Orden de entrada de los expertos, o todos de una vez |
+| Revisor | Existe y nada llega a Sam sin pasar por él | — |
+| Nombres | — | «Coordinador de procesos y seguimiento», «Revisor» y «Director de contenido»: el plan los lista por confirmar; se usan aquí |
+| Vigía de mejoras | Rutina semanal del Puente de ingeniería; actualizar leyendo las notas y probando antes | — |
+| Modelos | Por perfil de Hermes, con el reparto de §9.7 | Cómo se paga Fable 5.1 y Codex; prueba con tres tareas reales; que Hermes conozca Fable 5.1 |
+| Tamaño | 13 agentes en la estructura | Si los 13 caben en el tope de 100 USD al mes |
+| Oficina visual | Paperclip tal cual más Discord | La oficina dibujada, después de usarlo unos días |
+| Noticias | Se publican solas, con filtros | Su SDD y el registro de la excepción a IA-01. Hasta entonces IA-01 sigue igual |
+
+**Nada de esto está ejecutado.** Cada contratación sigue necesitando su perfil preparado, la
+plantilla del plan maestro y la aprobación de Sam con su mano.
+
+---
+
 ## Fuentes
 
 **Repositorio** (`main` `bb6bb3e4`): `AGENTS.md`; `docs/engineering/project-rules.md`;
@@ -1095,3 +1365,8 @@ agentes, delegación, catálogo de equipos, miembros y acceso, registro de activ
 de trabajo, política de ejecución, espacios aislados, confianza y revisión de baja confianza,
 presupuesto mensual, aprobación antes de gastar, conexión con GitHub, adaptadores (general,
 Claude Code, Codex), despliegue y variables de entorno; cveawg.mitre.org (CVE-2026-41208).
+
+**Sección 9** (2026-11-05): el plan de la oficina que Sam aprobó ese día, escrito en una
+sesión de trabajo fuera del repositorio y pasado a documentos por la
+[SDD-0605](../specs/0605-oficina-reestructura/spec.md). Sus mediciones del VPS son de solo
+lectura y de esa fecha; esta sección no las repitió.
