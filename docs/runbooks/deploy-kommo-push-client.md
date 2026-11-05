@@ -87,6 +87,12 @@ sin crear nada. Dos formas:
 
 ## Paso 3 — Prender la escritura real
 
+> ⚠️ **No prendas esto sin hablar antes con Sam (SDD-0587, 2026-11-05).** Hoy `KOMMO_PUSH_DRY_RUN`
+> no vale `"false"` en producción: el alta web simula y no escribe en Kommo (lectura L3). `/privacidad`
+> se aprobó con ese estado. Al prenderlo, cada alta manda además la cédula o el RIF y el nivel de
+> cliente, y el texto publicado ya no alcanza. Primero Sam aprueba el texto nuevo, y se publica; después se
+> cambia el valor.
+
 Setear el secreto de la función:
 ```
 KOMMO_PUSH_DRY_RUN = false
