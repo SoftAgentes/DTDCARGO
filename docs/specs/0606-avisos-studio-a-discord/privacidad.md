@@ -93,7 +93,11 @@ No es dato sensible. Los titulares son personal del Studio, no clientes.
 
 ### `NO VERIFICABLE`
 
-1. **Quién ve cada canal.** Los roles y permisos viven en Discord; no se puede comprobar desde el repositorio. Dato informado por la sesión que coordina el plan el 2026-11-05, **no medido por esta revisión**: los cinco canales ya existen y son privados, y además de Sam los ven **el dueño del servidor y otra cuenta con rol Admin**. En Discord, el dueño y cualquier rol con «Administrador» ven todos los canales aunque sean privados: eso no se cierra con permisos de canal. Esas dos cuentas verían los códigos y los enlaces de la sección 2 (no nombres, teléfonos ni montos) y los ID de Discord del personal mencionado. Sam tiene que saber quiénes son y decidir si corresponde que lo vean; si no, la salida es quitarles el rol Admin o mover los avisos a un servidor del que Sam sea dueño.
+1. **Quién ve cada canal.** Los roles y permisos viven en Discord; no se puede comprobar desde el repositorio. Decisión de Sam informada por la sesión que coordina el plan el 2026-11-05, **no medida por esta revisión**: Sam es el dueño del servidor y nadie más es administrador; el rol «Equipo» ve toda la categoría Operación (los cinco canales de estos avisos), y lo tienen, además de Sam, **un socio de la empresa** y **una cuenta compartida** («DTD Cargo»). Los avisos de Operación los leen entonces tres cuentas, y una de ellas no es de una persona.
+   - Por eso la regla de lo mínimo (código y enlace al Studio; sin nombre, teléfono, correo, documento ni montos) **sigue siendo obligatoria**, no una cortesía: es lo que limita lo que ven esas cuentas.
+   - **Una cuenta compartida no deja saber quién leyó qué.** Lo que se lea desde ella no se atribuye a una persona. Si se necesita trazabilidad de quién vio un aviso, esa cuenta no la da; la alternativa es una cuenta por persona.
+   - Los ID de Discord del personal mencionado también los ven esas tres cuentas.
+   - El nombre y el usuario de Discord del socio no se escriben en el repositorio: se registran donde Sam lleve los accesos.
 2. **Qué hace Discord con los mensajes.** Retención, uso y cesión dependen de su política y de sus términos. No se leyeron ni se archivaron en esta revisión.
 3. **Contrato.** Un servidor gratuito se rige por los términos de servicio de Discord; no hay un acuerdo de tratamiento firmado. Si existe uno aplicable a cuentas gratuitas, no se verificó.
 4. **Dónde quedan alojados los mensajes.** Discord Inc. es una empresa de Estados Unidos; la ubicación de los datos no se verificó.
@@ -112,7 +116,7 @@ No es dato sensible. Los titulares son personal del Studio, no clientes.
 | ¿La política pública declara este destino? | No — hallazgo `ENCONTRADO` 1 |
 | Seguridad de nuestro lado | Llave fuera de la base y del repositorio; validación de la dirección; sin menciones por defecto |
 | Al terminar | Borrar los webhooks y los canales desde Discord; el Studio no guarda nada de Discord salvo el ID del personal |
-| Veredicto propuesto | **Adelante con condiciones**: canales privados por rol antes de poner las direcciones; que Sam confirme quiénes son el dueño del servidor y la otra cuenta con rol Admin, que ven todo; declarar la herramienta en la política; decidir cómo se atiende una supresión |
+| Veredicto propuesto | **Adelante con condiciones**: canales privados por rol antes de poner las direcciones (según lo informado, ya lo están: rol «Equipo» con tres cuentas, una compartida); mantener la regla de lo mínimo sin excepciones; declarar la herramienta en la política; decidir cómo se atiende una supresión |
 
 ## 5 · Fuera de alcance: lo que decide Sam o un abogado
 

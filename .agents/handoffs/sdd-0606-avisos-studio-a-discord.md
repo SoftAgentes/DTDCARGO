@@ -145,7 +145,7 @@ Estado de Discord informado por la sesión coordinadora el 2026-11-05 (no medido
 
 Decisiones de Sam que quedan abiertas:
 
-- **Quién más ve los canales.** Según ese mismo informe, además de Sam los ven el dueño del servidor y otra cuenta con rol Admin. En Discord eso no se cierra con permisos de canal. Verían códigos y enlaces, no nombres ni montos (`privacidad.md`, «No verificable» 1).
+- **Quién ve los canales (resuelto por Sam, informado el 2026-11-05, no medido por mí).** Sam es dueño y único administrador; el rol «Equipo» ve toda Operación y lo tienen además un socio y una cuenta compartida («DTD Cargo»). Tres cuentas leen los avisos: la regla de lo mínimo sigue obligatoria, y la cuenta compartida no deja saber quién leyó qué (`privacidad.md`, «No verificable» 1).
 
 - El reporte diario sin montos (arriba).
 - La línea para `/privacidad` que declare la herramienta de mensajería interna (`privacidad.md`, hallazgo 1). El texto público lo aprueba Sam.
