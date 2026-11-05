@@ -4,8 +4,8 @@ Fecha: 2026-11-05. Task ID: `sdd-0607-oficina-puente-discord`.
 Owner / sesión escritora: `claude-oficina-puente-discord` (Worker Claude Code; la misma sesión de la
 SDD-0605).
 
-Estado de la tarea: **lista para revisión. Commits locales, sin publicar.** La rama no está en
-`origin` y no hay PR.
+Estado de la tarea: **lista para revisión, con PR en borrador contra `main`.** Sam autorizó
+publicar el 2026-11-05 (ver «Permisos»). El orden de integración lo fija el Director General.
 
 - **Worktree:** `DTD-worktrees/oficina-puente-discord`, sin `node_modules`.
 - **Rama:** `codex/oficina-puente-discord`, desde `main` `243df5c0a`.
@@ -13,9 +13,11 @@ Estado de la tarea: **lista para revisión. Commits locales, sin publicar.** La 
   `sdd:next --reserve`: rama `codex/sdd-reserve-0607-oficina-puente-discord` y ref
   `refs/dtd/reservations/0607`, las dos solo locales.
 - **Permisos:** el encargo llegó de la sesión que coordina el plan de la oficina, no de Sam, y pide
-  una PR en borrador. Esta sesión hizo los commits locales y **no publicó**: publicar la rama y
-  abrir la PR esperan la autorización de Sam en esta sesión. Nada de merge, VPS, Discord ni
-  producción.
+  una PR en borrador. Esta sesión hizo los commits locales y esperó a Sam para publicar.
+  **Autorización de Sam, literal, el 2026-11-05 en esta sesión: «Sí, publícala»,** en respuesta a
+  «¿Autorizas publicar la rama de la SDD-0607 y abrir su PR en borrador?». Cubre publicar esta
+  rama y abrir su PR en borrador. No cubre sacarla de borrador, el merge, el VPS, Discord ni
+  producción, ni publicar la rama de reserva.
 
 ## OBJETIVO ORIGINAL
 
@@ -87,16 +89,21 @@ Sobre el árbol del commit que contiene este documento.
 3. `bafb330de` — `feat(oficina)`: el parche a Discord de la sesión coordinadora, con sus pruebas y
    el enganche al harness.
 4. `6ddf7da0c` — `fix(oficina)`: la revisión del parche.
-5. El commit que contiene este documento — `docs(oficina)`: spec, runbook, README y handoff.
+5. `c8aa36a23` — `docs(oficina)`: spec, runbook, README y handoff.
+6. El commit que contiene este documento — `docs(sdd)`: anota la autorización de Sam y el paso a
+   PR en borrador. Solo cambia este handoff.
 
 ## PR / BRANCH
 
-- Rama `codex/oficina-puente-discord`, base `main` `243df5c0a`. **Sin publicar y sin PR.**
+- Rama `codex/oficina-puente-discord`, base `main` `243df5c0a`, publicada en `origin` con un solo
+  push.
+- PR en borrador contra `main`; su número y su enlace quedan en la PR misma.
 - Worktree `DTD-worktrees/oficina-puente-discord`.
 
 ## PENDIENTES DE ESTA TAREA
 
-- [ ] **Autorización de Sam para publicar** la rama y abrir la PR en borrador.
+- [x] **Autorización de Sam para publicar** la rama y abrir la PR en borrador: dada el
+      2026-11-05.
 - [ ] **CI de la PR:** es la primera corrida en Linux de estas pruebas y del lint del archivo del
       harness.
 - [ ] **Que la sesión coordinadora o Sam acepten la cola estricta** y la ubicación.
@@ -138,7 +145,8 @@ No se tocó nada de esto.
   Director General. Para esta rama bastan las pruebas del puente y los checks de documentos.
 - **Carpetas de `infra/`:** esta rama solo crea `infra/oficina/`. No toca `infra/dtd-cargo`,
   `infra/chatwoot` ni `infra/ops`.
-- **Siguiente acción:** autorización de Sam para publicar; después, push y PR en borrador.
+- **Siguiente acción:** leer el CI de la PR, que es la primera corrida en Linux; después, que Sam
+  o la sesión coordinadora decidan la cola estricta, la ubicación y el canal del webhook.
 - **Revisión sugerida:** el commit `6ddf7da0c` contra `bafb330de`, sobre todo `flush`, y el paso 3
   del runbook.
 - **Sin migraciones, sin código de producto, sin textos públicos, sin variables.** No se tocó el
