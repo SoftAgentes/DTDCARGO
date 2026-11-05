@@ -1,4 +1,4 @@
-"""Private, scoped Telegram-to-Paperclip task bridge. Python standard library only."""
+"""Private, scoped Discord-to-Paperclip task bridge. Python standard library only."""
 import hashlib
 import json
 import os
@@ -16,6 +16,8 @@ import uuid
 from desktop_feed import DesktopFeed
 
 MAX_BYTES = 100_000
+CANAL = 'Discord'
+TROZO = 1900
 TOOLS = [
     {'name': 'encargar_alfred', 'description': 'Registra un encargo real de Sam en Paperclip y lo asigna a ALFRED. Usar cuando Sam pide trabajo al equipo; no para saludos o preguntas generales. Devuelve el numero HAI o una referencia de cola persistente. No aprueba, publica ni modifica aplicaciones. Reutiliza solicitud_id al reintentar el mismo encargo.', 'inputSchema': {'type': 'object', 'properties': {'titulo': {'type': 'string', 'maxLength': 200}, 'encargo': {'type': 'string', 'maxLength': 16000}, 'solicitud_id': {'type': 'string', 'description': 'Identificador estable del encargo. Opcional; el puente detecta repeticiones recientes.'}}, 'required': ['titulo', 'encargo'], 'additionalProperties': False}, 'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'idempotentHint': True}},
     {'name': 'consultar_tarea', 'description': 'Consulta un encargo registrado por este canal, su estado y los comentarios de ALFRED. tarea puede ser HAI-20 o la referencia de cola SOL-....', 'inputSchema': {'type': 'object', 'properties': {'tarea': {'type': 'string'}}, 'required': ['tarea'], 'additionalProperties': False}, 'annotations': {'readOnlyHint': True}},
@@ -87,7 +89,7 @@ class Bridge:
 
     def emit(self, key, text):
         text = mask_secrets(text)
-        parts = [text[i:i+3500] for i in range(0, len(text), 3500)]
+        parts = [text[i:i+TROZO] for i in range(0, len(text), TROZO)]
         for index, body in enumerate(parts):
             self.db.execute('INSERT OR IGNORE INTO outbox(id,body) VALUES (?,?)', (f'{key}:{index}', body))
         self.db.commit()
@@ -121,7 +123,7 @@ class Bridge:
         payload = json.loads(row['payload'])
         try:
             if row['kind'] == 'task':
-                body = {'title': payload['titulo'], 'description': self.description(payload['encargo'],payload.get('canal','Telegram')),
+                body = {'title': payload['titulo'], 'description': self.description(payload['encargo'],payload.get('canal',CANAL)),
                     'projectId': self.cfg['project_id'], 'assigneeAgentId': self.cfg['alfred_id'],
                     'status': 'todo', 'priority': 'medium', 'idempotencyKey': 'telegram:'+rid}
                 issue = self.api('POST', '/companies/'+self.cfg['company_id']+'/issues', body)
@@ -134,7 +136,7 @@ class Bridge:
                 issue = self.api('GET', '/issues/'+issue_id)
                 self.verify_issue(issue)
                 resume = issue['status'] not in ('done','cancelled') or payload.get('reabrir',False)
-                comment = {'body': 'Mensaje de Sam por '+payload.get('canal','Telegram')+' (seguimiento, no aprobacion formal):\n\n'+payload['mensaje'], 'clientRequestId': rid, 'reopen': payload.get('reabrir',False), 'resume': resume}
+                comment = {'body': 'Mensaje de Sam por '+payload.get('canal',CANAL)+' (seguimiento, no aprobacion formal):\n\n'+payload['mensaje'], 'clientRequestId': rid, 'reopen': payload.get('reabrir',False), 'resume': resume}
                 try:
                     self.api('POST', '/issues/'+issue_id+'/comments', comment)
                 except ApiError as exc:
@@ -153,7 +155,7 @@ class Bridge:
             self.db.commit()
             self.emit('request-error:'+rid+':'+str(exc.status), f'Oficina DTD · SOL-{rid}\nNo pude confirmar la entrega a ALFRED: {exc}. Tu encargo esta guardado. '+('Se requiere revisar la conexion o los permisos.' if state=='rejected' else 'Reintentare automaticamente con la misma referencia, sin crear un encargo nuevo.'))
 
-    def description(self, task, channel='Telegram'):
+    def description(self, task, channel=CANAL):
         return ('Encargo de Sam recibido por su canal privado: '+channel+'.\n\n'+task+
             '\n\n---\nContrato de trabajo del canal: ALFRED coordina a los agentes ya aprobados, registra subtareas con parentId, revisa sus entregas y deja el resultado final como comentario de ESTA tarea. No cierres la tarea principal antes de revisar las subtareas. Si esperas una entrega, deja el bloqueo y su responsable claramente registrados; usa blockParentUntilDone al crear subtareas cuando corresponda. Las respuestas y bloqueos se devuelven a Sam por Telegram; las entregas y cierres tambien aparecen en Avisos de ALFRED en Hermes App.\n'
             'Las aprobaciones formales siguen en Paperclip y las realiza Sam. Este canal no autoriza aprobar solicitudes, contratar agentes, aumentar presupuestos, publicar, contactar clientes, desplegar cambios ni modificar aplicaciones o bases de datos. No cambies configuraciones de agentes para cumplir un encargo. Si hace falta una autorizacion, explicala y espera la decision humana.\n')
@@ -175,8 +177,8 @@ class Bridge:
             raise ValueError('Solo puedo consultar o continuar encargos registrados por este canal. Usa listar_tareas.')
         return row
 
-    def call(self, name, args, channel='Telegram'):
-        if channel not in ('Telegram','Hermes App'):
+    def call(self, name, args, channel=CANAL):
+        if channel not in (CANAL,'Hermes App'):
             raise ValueError('Canal no autorizado')
         if name == 'desktop_feed' and channel == 'Hermes App':
             if not isinstance(args, dict) or set(args) - {'after'}:
@@ -192,14 +194,14 @@ class Bridge:
         with self.lock:
             if name == 'encargar_alfred':
                 payload={'titulo':clean_text(args.get('titulo'),200),'encargo':clean_text(args.get('encargo'),16000)}
-                if channel != 'Telegram':payload['canal']=channel
+                if channel != CANAL:payload['canal']=channel
                 return self.register_request('task', payload, args.get('solicitud_id'))
             if name == 'comentar_tarea':
                 task=self.task_row(args.get('tarea'))
                 if 'reabrir' in args and not isinstance(args['reabrir'],bool):
                     raise ValueError('reabrir debe ser booleano')
                 payload={'tarea':task['identifier'],'mensaje':clean_text(args.get('mensaje'),16000),'reabrir':args.get('reabrir',False)}
-                if channel != 'Telegram':payload['canal']=channel
+                if channel != CANAL:payload['canal']=channel
                 return self.register_request('comment', payload, args.get('solicitud_id'))
             if name == 'consultar_tarea':
                 ref=clean_text(args.get('tarea'),100)
@@ -226,7 +228,7 @@ class Bridge:
                 comments=self.api('GET','/issues/'+task['id']+'/comments')
                 seen=set(json.loads(task['comments']))
                 self.desktop_feed.observe(issue, comments, task['status'], seen)
-                fresh=[c for c in comments if c.get('id') not in seen and c.get('authorAgentId') and not c.get('body','').startswith(('Mensaje de Sam por Telegram','Mensaje de Sam por Hermes App'))]
+                fresh=[c for c in comments if c.get('id') not in seen and c.get('authorAgentId') and not c.get('body','').startswith(('Mensaje de Sam por Telegram','Mensaje de Sam por Discord','Mensaje de Sam por Hermes App'))]
                 fresh.sort(key=lambda c:c.get('createdAt',''))
                 for comment in fresh:
                     author = 'ALFRED' if comment.get('authorAgentId') == self.cfg['alfred_id'] else 'Equipo de la oficina'
@@ -249,7 +251,7 @@ class Bridge:
                 self.sender(row['body'])
                 self.db.execute('UPDATE outbox SET sent=?,attempts=attempts+1,error=NULL WHERE id=?',(time.time(),row['id']))
             except Exception:
-                self.db.execute('UPDATE outbox SET attempts=attempts+1,next_try=?,error=? WHERE id=?',(time.time()+min(300,30*(row['attempts']+1)),'Telegram no disponible; envio pendiente',row['id']))
+                self.db.execute('UPDATE outbox SET attempts=attempts+1,next_try=?,error=? WHERE id=?',(time.time()+min(300,30*(row['attempts']+1)),'Discord no disponible; envio pendiente',row['id']))
             self.db.commit()
 
     def tick(self):
@@ -260,16 +262,25 @@ class Bridge:
             self.flush()
 
 
+def discord_sender(webhook, opener=urllib.request.urlopen):
+    """Publica en un canal de Discord por su webhook. Sin menciones y sin vista previa de enlaces."""
+    if not webhook.startswith('https://discord.com/api/webhooks/'):
+        raise ValueError('La credencial discord_webhook no es un webhook de Discord')
+    def sender(body):
+        data=json.dumps({'content':body,'allowed_mentions':{'parse':[]},'flags':4}).encode()
+        req=urllib.request.Request(webhook+'?wait=true',data=data,headers={'Content-Type':'application/json','User-Agent':'DTD-Oficina-Puente/1.0 (+https://dtdcargo.com)'})
+        with opener(req,timeout=20) as resp:
+            if not 200 <= resp.status < 300:
+                raise RuntimeError('Discord rechazado')
+    return sender
+
+
 def main():
     cfg=json.loads(pathlib.Path('/etc/dtd-alfred/config.json').read_text())
     cred=pathlib.Path(os.environ['CREDENTIALS_DIRECTORY'])
     token=(cred/'paperclip_token').read_text().strip()
-    telegram=(cred/'telegram_token').read_text().strip()
-    def sender(body):
-        req=urllib.request.Request('https://api.telegram.org/bot'+telegram+'/sendMessage',data=json.dumps({'chat_id':cfg['chat_id'],'text':body,'disable_web_page_preview':True}).encode(),headers={'Content-Type':'application/json'})
-        with urllib.request.urlopen(req,timeout=20) as resp:
-            if not json.load(resp).get('ok'):
-                raise RuntimeError('Telegram rechazado')
+    webhook=(cred/'discord_webhook').read_text().strip()
+    sender=discord_sender(webhook)
     app=Bridge(cfg,'/var/lib/dtd-alfred/bridge.sqlite',Api(token),sender)
     class Handler(socketserver.StreamRequestHandler):
         def handle(self):
@@ -289,7 +300,7 @@ def main():
             self.wfile.write(json.dumps(result,ensure_ascii=False).encode()+b'\n')
     class Server(socketserver.ThreadingUnixStreamServer):
         daemon_threads=True
-    endpoints=[('/run/dtd-alfred/bridge.sock',cfg['allowed_uid'],'Telegram')]
+    endpoints=[('/run/dtd-alfred/bridge.sock',cfg['allowed_uid'],CANAL)]
     if cfg.get('desktop_uid'):
         endpoints.append(('/run/dtd-alfred-sam/bridge.sock',cfg['desktop_uid'],'Hermes App'))
     for path,allowed_uid,channel in endpoints:

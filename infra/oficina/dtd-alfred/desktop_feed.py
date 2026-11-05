@@ -19,7 +19,7 @@ class DesktopFeed:
         status = issue['status']
         fresh = [c for c in comments if c.get('id') not in seen
                  and c.get('authorAgentId') == self.cfg['alfred_id']
-                 and not c.get('body', '').startswith(('Mensaje de Sam por Telegram', 'Mensaje de Sam por Hermes App'))]
+                 and not c.get('body', '').startswith(('Mensaje de Sam por Telegram', 'Mensaje de Sam por Discord', 'Mensaje de Sam por Hermes App'))]
         fresh.sort(key=lambda c: c.get('createdAt', ''))
         if status in ('in_review', 'done'):
             if fresh:
