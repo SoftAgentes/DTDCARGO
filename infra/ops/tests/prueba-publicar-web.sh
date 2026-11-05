@@ -7,7 +7,7 @@
 #   MUTANTES_SOLO="disco|sharp" bash … --mutantes             # solo los mutantes cuyo nombre contiene alguno
 #   MUTANTES_PARTE=1/2 bash … --mutantes                      # la mitad impar (y 2/2 la par), para dos contenedores
 #
-# No toca Docker, GHCR, Telegram ni Kuma: `docker`, `curl` y la prueba rápida son
+# No toca Docker, GHCR, Discord ni Kuma: `docker`, `curl` y la prueba rápida son
 # dobles con estado en un directorio temporal (el doble de docker resuelve
 # etiquetas y digests, mueve etiquetas al bajar y recrea el web leyendo el .env,
 # como compose). El proyecto es una copia de infra/dtd-cargo armada como en el
@@ -107,7 +107,10 @@ if [ "${1:-}" = --mutantes ]; then
   mutar "--aunque-congelado no alcanza" 'if [ -f "${CONGELADO}" ] && [ "${2:-}" != --aunque-congelado ]; then' 'if [ -f "${CONGELADO}" ]; then'
   mutar "publicar a mano descongela" '  publicar_imagen "${sha}" "${dig}" a-mano; rc=$?' '  rm -f "${CONGELADO}"; publicar_imagen "${sha}" "${dig}" a-mano; rc=$?'
   mutar "publicar no registra la anterior" 'printf '"'"'%s\n'"'"' "${previo}" > "${ESTADO}/anterior"' ':'
-  mutar "Telegram sin recorte" '"text=${1:0:3500}"' '"text=$1"'
+  # SDD-0609: el aviso por Discord (el envío mismo lo prueba prueba-aviso-discord.sh).
+  mutar "un aviso que no sale cambia el resultado" 'avisar() { enviar_discord "$1" || true; }' 'avisar() { enviar_discord "$1"; }'
+  mutar "recuerda el aviso que no salió" 'enviar_discord "$2" && printf' 'enviar_discord "$2"; printf'
+  mutar "anota la dirección del webhook" '  log "${salida:-aviso por Discord: sin salida (código ${rc})}"' '  log "${salida:-aviso por Discord: sin salida (código ${rc})} $(conf PUBLICAR_DISCORD_WEBHOOK)"'
   mutar "Kuma sin recorte" '"msg=${2:0:200}"' '"msg=$2"'
   mutar "publica a mano y el vigilante la pisa" '      marcar_rechazo "${pdig}" "${prev}"' '      true "${pdig}" "${prev}"'
   # SDD-0547: el estado para el Studio.
@@ -232,8 +235,18 @@ DOBLE
 cat > "${T}/bin/curl" <<'DOBLE'
 #!/usr/bin/env bash
 # Doble de curl: anota argumentos y la configuración que llega por stdin (-K -).
+# Un POST con --data-binary es el webhook de Discord (SDD-0609): anota el texto
+# del aviso como «DISCORD text=…» y responde el mensaje guardado, con su id.
 entrada="$(cat)"
 printf 'ARGS %s\nSTDIN %s\n' "$*" "$entrada" >> "${DOBLE:?}/curl.log"
+out=""; cuerpo=""; a=("$@")
+for ((i = 0; i < ${#a[@]}; i++)); do
+  case "${a[i]}" in -o) out="${a[i+1]}" ;; --data-binary) cuerpo="${a[i+1]#@}" ;; esac
+done
+if [ -n "${cuerpo}" ]; then
+  printf 'DISCORD %s\n' "$(sed -E 's/^{"content":"(.*)","allowed_mentions":{"parse":\[\]},"flags":4}$/text=\1/' "${cuerpo}")" >> "${DOBLE}/curl.log"
+  [ -n "${out}" ] && printf '{"id":"123456789012345678","channel_id":"1567955265918079096"}' > "${out}"
+fi
 case " $* " in *" -w "*) printf '200' ;; esac
 exit 0
 DOBLE
@@ -283,7 +296,7 @@ CRON_SECRET="secreto-cron"
 EOF
   chmod 600 "${P}/.env"
   cat > "${O}/publicar.env" <<EOF
-PUBLICAR_TELEGRAM_CHAT_ID=-1001234
+PUBLICAR_DISCORD_WEBHOOK=https://discord.com/api/webhooks/1567955265918079096/TOKENDISCORD_0123456789abcdef
 PUBLICAR_KUMA_PUSH_URL=https://kuma.test/api/push/TOKENKUMA?status=up&msg=OK&ping=
 PUBLICAR_MIN_LIBRE_GB=0
 PUBLICAR_CONSERVAR_IMAGENES=2
@@ -298,13 +311,14 @@ correr() { # subcomando y argumentos → código en $RC, salida en ${T}/salida.l
   ( cd "${T}" && PATH="${PATH_EXTRA:-}${T}/bin:${PATH}" DOBLE="${D}" \
       PUBLICAR_DIR="${P}" PUBLICAR_OPS="${O}" PUBLICAR_EVIDENCIAS="${EV}" \
       PUBLICAR_CANDADO="${T}/candado" PUBLICAR_SMOKE="${T}/bin/smoke" PUBLICAR_HUELLAS="${HUELLAS}" \
+      PUBLICAR_AVISO_DISCORD="${AVISO_SH:-${S}/web/aviso-discord.sh}" \
       PUBLICAR_DOCKER_RAIZ="${T}" PUBLICAR_ESPERA_SALUD=5 PUBLICAR_PASO_SALUD=0 PUBLICAR_PAUSA_REINTENTO=0 \
       bash "${SCRIPT}" "$@" ) > "${T}/salida.log" 2>&1
   RC=$?
 }
 imagen_env() { grep '^DTD_WEB_IMAGE=' "${P}/.env" | cut -d= -f2-; }
 ups() { grep -c ' up -d ' "${D}/compose.log"; }
-telegrams() { grep -c 'sendMessage' "${D}/curl.log"; }
+avisos() { grep -c '^DISCORD ' "${D}/curl.log"; }
 ver() { tail -4 "${T}/salida.log" | sed 's/^/      /'; }
 
 # ─── huellas ─────────────────────────────────────────────────────────────────
@@ -349,16 +363,19 @@ ev="$(ls -d "${EV}"/publicar-web-*-publicar-"${B:0:8}" 2>/dev/null | head -1)"
   && ok "evidencia con salida, prueba rápida y SHA256SUMS que verifica" || ko "evidencia: ${ev:-ninguna}"
 ! grep -rq 'SECRETO-DEL-BOT\|secreto-cron' "${EV}" && ok "la evidencia no tiene secretos del .env" || ko "secretos en la evidencia"
 grep '^ARGS' "${D}/curl.log" > "${T}/args"
-[ -s "${T}/args" ] && ! grep -q 'SECRETO-DEL-BOT\|TOKENKUMA' "${T}/args" && ok "los tokens de Telegram y Kuma viajan por stdin, nunca como argumento" || ko "un token viajó como argumento de curl"
-grep -q "STDIN url = \"https://api.telegram.org/bot123456:SECRETO-DEL-BOT/sendMessage\"" "${D}/curl.log" && grep -q 'text=DTD Cargo · publicada '"${B:0:8}" "${D}/curl.log" \
-  && ok "aviso por Telegram: «publicada ${B:0:8}» con el bot del .env" || ko "aviso de publicada"
+[ -s "${T}/args" ] && ! grep -q 'SECRETO-DEL-BOT\|TOKENKUMA\|TOKENDISCORD\|webhooks' "${T}/args" && ok "las direcciones de Discord y Kuma viajan por stdin, nunca como argumento" || ko "un token viajó como argumento de curl"
+grep -q 'STDIN url = "https://discord.com/api/webhooks/1567955265918079096/TOKENDISCORD_0123456789abcdef?wait=true"' "${D}/curl.log" && grep -q '^DISCORD text=DTD Cargo · publicada '"${B:0:8}" "${D}/curl.log" \
+  && [ "$(avisos)" = 1 ] && grep -q 'aviso por Discord: entregado (HTTP 200)' "${T}/salida.log" \
+  && ok "un aviso por Discord: «publicada ${B:0:8}», con ?wait=true, y el log dice «entregado»" || ko "aviso de publicada: $(avisos)"
+! grep -qi 'telegram' "${D}/curl.log" && ok "corte directo: nada sale a Telegram (aunque el .env conserva TELEGRAM_BOT_TOKEN)" || ko "algo salió a Telegram"
+! grep -q 'TOKENDISCORD\|webhooks/' "${T}/salida.log" && ! grep -rq 'TOKENDISCORD\|webhooks/' "${EV}" && ok "la dirección del webhook no está en la salida ni en la evidencia" || ko "la dirección del webhook se escapó"
 grep -q 'STDIN url = "https://kuma.test/api/push/TOKENKUMA"' "${D}/curl.log" && grep -q 'status=up' "${D}/curl.log" \
   && ok "Kuma recibe up, y la URL del monitor sin su ?status=… original" || ko "kuma: $(grep -c kuma "${D}/curl.log")"
 [ "$(cat "${O}/estado/anterior")" = "${IMG}:sha-${A}" ] && ok "queda registrada la anterior para volver" || ko "estado/anterior"
 : > "${D}/compose.log"; : > "${D}/curl.log"
 correr vigilar
-[ "${RC}" = 0 ] && [ "$(ups)" = 0 ] && grep -q 'al día' "${T}/salida.log" && grep -q 'status=up' "${D}/curl.log" && [ "$(telegrams)" = 0 ] \
-  && ok "otra vuelta sin cambios: al día, nada que publicar, Kuma up, sin Telegram" || { ko "al día rc=${RC}"; ver; }
+[ "${RC}" = 0 ] && [ "$(ups)" = 0 ] && grep -q 'al día' "${T}/salida.log" && grep -q 'status=up' "${D}/curl.log" && [ "$(avisos)" = 0 ] \
+  && ok "otra vuelta sin cambios: al día, nada que publicar, Kuma up, sin aviso" || { ko "al día rc=${RC}"; ver; }
 
 echo; echo "== copias del .env =="
 reiniciar
@@ -417,9 +434,9 @@ grep -q 'text=DTD Cargo · NO se publicó.*0301_beta;.*0302_gama (declarada como
 grep -q 'default_transaction_read_only=on' "${D}/exec.log" && grep -q 'supabase_migrations.schema_migrations' "${D}/exec.log" && ok "lee el ledger en una transacción de solo lectura" || ko "lectura del ledger"
 grep -q 'status=down' "${D}/curl.log" && ok "Kuma recibe down" || ko "kuma down"
 : > "${D}/curl.log"; correr vigilar
-[ "${RC}" = 1 ] && [ "$(telegrams)" = 0 ] && grep -q 'status=down' "${D}/curl.log" && ok "al minuto siguiente: sin repetir el Telegram, Kuma sigue en down" || { ko "aviso repetido: $(telegrams)"; ver; }
+[ "${RC}" = 1 ] && [ "$(avisos)" = 0 ] && grep -q 'status=down' "${D}/curl.log" && ok "al minuto siguiente: sin repetir el aviso, Kuma sigue en down" || { ko "aviso repetido: $(avisos)"; ver; }
 echo 0301_beta >> "${D}/ledger"; : > "${D}/curl.log"; correr vigilar
-[ "${RC}" = 1 ] && [ "$(telegrams)" = 1 ] && ok "si cambia lo que falta, avisa otra vez" || ko "aviso por cambio: $(telegrams)"
+[ "${RC}" = 1 ] && [ "$(avisos)" = 1 ] && ok "si cambia lo que falta, avisa otra vez" || ko "aviso por cambio: $(avisos)"
 correr aceptar-pendiente 0302_gama; correr aceptar-pendiente 0302_gama
 [ "$(grep -c . "${O}/estado/pendientes-aceptadas")" = 1 ] && ok "aceptar-pendiente anota una vez" || ko "aceptadas"
 correr vigilar
@@ -435,17 +452,17 @@ reiniciar; sed -i 's/^org.dtdcargo.migraciones=v1:3:/org.dtdcargo.migraciones=v1
 [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && ok "etiqueta truncada (el conteo no cuadra): no publica" || { ko "conteo rc=${RC}"; ver; }
 
 echo; echo "== avisos largos =="
-# 300 migraciones faltantes: el motivo pasa de 12 KB. Telegram corta en 4096 y una
+# 300 migraciones faltantes: el motivo pasa de 12 KB. Discord corta en 2.000 y una
 # URL de Kuma tan larga no sirve.
 reiniciar
 lista="$(for i in $(seq 300 599); do printf '0%s_migracion_de_prueba_con_nombre_largo,' "${i}"; done)"; lista="${lista%,}"
 sed -i "s/^org.dtdcargo.migraciones=.*/org.dtdcargo.migraciones=v1:300:${lista}/" "${D}/img/${IB}/labels"
 correr vigilar
-grep '^ARGS' "${D}/curl.log" | grep 'chat_id' | awk '{ print length }' | sort -n | tail -1 > "${T}/largo-tg"
+grep '^DISCORD ' "${D}/curl.log" | LC_ALL=C awk '{ print length - 13 }' | sort -n | tail -1 > "${T}/largo-tg"
 grep '^ARGS' "${D}/curl.log" | grep 'status=' | awk '{ print length }' | sort -n | tail -1 > "${T}/largo-kuma"
 lt="$(cat "${T}/largo-tg")"; lk="$(cat "${T}/largo-kuma")"
-[ "${RC}" = 1 ] && [ "${lt:-0}" -gt 1000 ] && [ "${lt}" -le 3700 ] && [ "${lk:-0}" -gt 0 ] && [ "${lk}" -le 400 ] && grep -q '0599_migracion' "${T}/salida.log" \
-  && ok "300 faltantes: el Telegram se corta a 3500 caracteres y Kuma a 200; la lista entera queda en la salida" || { ko "avisos largos: telegram=${lt:-?} kuma=${lk:-?}"; ver; }
+[ "${RC}" = 1 ] && [ "${lt:-0}" -gt 1900 ] && [ "${lt}" -le 2000 ] && [ "${lk:-0}" -gt 0 ] && [ "${lk}" -le 400 ] && grep -q '0599_migracion' "${T}/salida.log" \
+  && ok "300 faltantes: el aviso de Discord se corta a 2.000 bytes y Kuma a 200; la lista entera queda en la salida" || { ko "avisos largos: discord=${lt:-?} kuma=${lk:-?}"; ver; }
 
 echo; echo "== puerta de lo que vive fuera de la imagen =="
 reiniciar; echo "# a mano" >> "${P}/compose.yml"; correr vigilar
@@ -626,7 +643,7 @@ reiniciar; printf '1\n1\n' > "${D}/smoke-rcs"; correr vigilar
 [ "${RC}" = 1 ] && [ "$(imagen_env)" = "${IMG}:sha-${A}" ] && [ "$(cat "${D}/cont/web")" = "${IA}" ] && [ "$(ups)" = 2 ] \
   && ok "la prueba rápida falla dos veces: vuelve a A (.env y contenedor) y la prueba" || { ko "vuelta rc=${RC} env=$(imagen_env)"; ver; }
 grep -q "^${DB} ${B} " "${O}/estado/rechazados" && grep -q 'text=DTD Cargo · vuelta atrás' "${D}/curl.log" && grep -q 'status=down' "${D}/curl.log" \
-  && ok "B queda rechazada; Telegram y Kuma avisan" || ko "rechazo / avisos"
+  && ok "B queda rechazada; Discord y Kuma avisan" || ko "rechazo / avisos"
 : > "${D}/compose.log"; correr vigilar
 [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && grep -q 'rechazada antes' "${T}/salida.log" && ok "al minuto siguiente no la reintenta" || { ko "reintento rc=${RC}"; ver; }
 imagen "${X}" "${IX}" "${DX}" 300; en_registro publicable "${IX}"; correr vigilar
@@ -761,9 +778,41 @@ correr publicar "${X}"
 
 echo; echo "== estado, revisar y uso =="
 reiniciar; correr estado
-[ "${RC}" = 0 ] && grep -q 'Telegram:    configurado' "${T}/salida.log" && ! grep -q 'SECRETO\|TOKENKUMA\|-1001234' "${T}/salida.log" && ok "estado no imprime tokens ni el chat" || { ko "estado"; ver; }
+[ "${RC}" = 0 ] && grep -qx 'Discord:     configurado' "${T}/salida.log" && ! grep -q 'SECRETO\|TOKENKUMA\|TOKENDISCORD\|webhooks/' "${T}/salida.log" && [ "$(avisos)" = 0 ] \
+  && ok "estado: Discord configurado, sin imprimir llaves ni enviar nada" || { ko "estado"; ver; }
+cp "${O}/publicar.env" "${T}/publicar.env.bien"; sed -i '/^PUBLICAR_DISCORD_WEBHOOK=/d' "${O}/publicar.env"; correr estado
+grep -q '^Discord:     SIN CONFIGURAR' "${T}/salida.log" && ok "estado: Discord SIN CONFIGURAR cuando falta la dirección" || { ko "estado sin Discord"; ver; }
+AVISO_SH=/no/existe correr estado
+grep -q '^Discord:     SIN INSTALAR (falta /no/existe)' "${T}/salida.log" && ok "estado: SIN INSTALAR cuando falta aviso-discord.sh" || { ko "estado sin script"; ver; }
+cp "${T}/publicar.env.bien" "${O}/publicar.env"
 correr revisar; [ "${RC}" = 0 ] && grep -q 'PUERTAS: pasan' "${T}/salida.log" && [ "$(ups)" = 0 ] && ok "revisar: corre las puertas sin publicar" || { ko "revisar rc=${RC}"; ver; }
 correr; [ "${RC}" = 3 ] && ok "sin subcomando: uso (3)" || ko "uso rc=${RC}"
+
+# ─── avisos sin Discord (SDD-0609) ───────────────────────────────────────────
+# Corte directo: si falta Discord, el aviso no sale (y lo dice el log), no cae a
+# Telegram y la publicación termina igual.
+echo; echo "== avisos sin Discord (SDD-0609) =="
+sin_discord() { sed -i '/^PUBLICAR_DISCORD_WEBHOOK=/d' "${O}/publicar.env"; }
+reiniciar; sin_discord; correr vigilar
+[ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${B}@${DB}" ] && [ "$(avisos)" = 0 ] && grep -q 'aviso NO enviado: Discord SIN CONFIGURAR (falta PUBLICAR_DISCORD_WEBHOOK' "${T}/salida.log" \
+  && ok "sin la dirección de Discord: publica igual (sale 0) y el log dice que el aviso no salió" || { ko "sin Discord rc=${RC}"; ver; }
+! grep -qi 'telegram' "${D}/curl.log" && ok "y no cae a Telegram: sin doble envío" || ko "cayó a Telegram"
+correr congelar "sin discord"; [ "${RC}" = 0 ] && [ -f "${O}/CONGELADO" ] && ok "congelar sin Discord sale 0 (el aviso es lo último que hace)" || { ko "congelar sin Discord rc=${RC}"; ver; }
+correr descongelar; [ "${RC}" = 0 ] && [ ! -f "${O}/CONGELADO" ] && ok "descongelar sin Discord sale 0" || { ko "descongelar sin Discord rc=${RC}"; ver; }
+reiniciar; sed -i 's|^PUBLICAR_DISCORD_WEBHOOK=https://discord.com/|PUBLICAR_DISCORD_WEBHOOK=https://otro.test/|' "${O}/publicar.env"; correr vigilar
+[ "${RC}" = 0 ] && [ "$(avisos)" = 0 ] && grep -q 'aviso NO enviado: Discord NO VÁLIDO' "${T}/salida.log" && ! grep -q 'TOKENDISCORD\|otro.test' "${T}/salida.log" \
+  && ok "dirección con otro host: no envía, publica igual y no muestra el valor" || { ko "dirección rara rc=${RC}"; ver; }
+reiniciar; AVISO_SH=/no/existe correr vigilar
+[ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${B}@${DB}" ] && grep -q 'aviso NO enviado: falta /no/existe' "${T}/salida.log" && ok "sin aviso-discord.sh instalado: publica igual y lo dice" || { ko "sin script rc=${RC}"; ver; }
+reiniciar; cp "${O}/publicar.env" "${T}/publicar.env.bien"; sin_discord
+printf '%s\n' 0001_init 0300_alfa > "${D}/ledger"; correr vigilar
+[ "${RC}" = 1 ] && [ "$(avisos)" = 0 ] && grep -q 'aviso NO enviado' "${T}/salida.log" && ok "retenida sin Discord: el aviso no sale" || { ko "retenida sin Discord rc=${RC}"; ver; }
+correr vigilar
+[ "${RC}" = 1 ] && grep -q 'aviso NO enviado' "${T}/salida.log" && ! grep -q 'aviso ya enviado antes' "${T}/salida.log" && ok "al minuto siguiente lo intenta otra vez: no se da por enviado" || { ko "se dio por enviado"; ver; }
+cp "${T}/publicar.env.bien" "${O}/publicar.env"; : > "${D}/curl.log"; correr vigilar
+[ "${RC}" = 1 ] && [ "$(avisos)" = 1 ] && grep -q '^DISCORD text=DTD Cargo · NO se publicó' "${D}/curl.log" && ok "con Discord ya configurado, el aviso pendiente sale una vez" || { ko "pendiente: $(avisos)"; ver; }
+: > "${D}/curl.log"; correr vigilar
+[ "${RC}" = 1 ] && [ "$(avisos)" = 0 ] && ok "y después no se repite" || { ko "repetido: $(avisos)"; ver; }
 
 # ─── estado para el Studio (SDD-0547) ────────────────────────────────────────
 echo; echo "== estado para el Studio (SDD-0547) =="
