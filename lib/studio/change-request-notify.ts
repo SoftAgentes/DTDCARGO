@@ -68,11 +68,11 @@ async function routeToAdvisorOrTeam(
 ): Promise<void> {
   // SDD-0606 · Discord primero: al canal del equipo, mencionando al asesor si
   // enlazó su ID. Sin nombre ni el detalle del cambio: Shipping Mark y ficha.
-  const enDiscord = await sendDiscordCategoryAlert(supabaseAdmin, "equipo", discord, {
+  const enDiscord = await sendDiscordCategoryAlert(supabaseAdmin, args.tenantId, "equipo", discord, {
     alsoUserIds: args.advisorId ? [args.advisorId] : [],
     logTag,
   });
-  if (enDiscord.delivered) return;
+  if (enDiscord.handled) return;
 
   if (args.advisorId) {
     const { data: prof } = await supabaseAdmin

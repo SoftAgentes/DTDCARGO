@@ -6,6 +6,12 @@
  * en una variable del servidor — nunca en la base ni en el repositorio: quien
  * tenga la dirección puede escribir en el canal.
  *
+ * ── Un solo tenant dueño de los canales (A5) ─────────────────────────────────
+ * Las variables son del servidor, no de un tenant. Telegram separaba sus
+ * destinos por `tenant_id`; para que un aviso de otra empresa no termine en los
+ * canales de DTD, Discord sólo se usa para el tenant cuyo ID está en
+ * `DISCORD_TENANT_ID`. Sin esa variable, Discord queda apagado: falla cerrado.
+ *
  * ── La regla que evita perder un aviso ───────────────────────────────────────
  * Una categoría sin dirección propia NO calla: cae al canal de respaldo, que es
  * el de `equipo` (`#avisos-equipo`). Sólo si tampoco hay respaldo se considera
@@ -14,8 +20,7 @@
  *
  * ── Entorno de prueba ────────────────────────────────────────────────────────
  * Con `APP_ENV=staging` Discord está apagado aunque las variables existan: un
- * alta de prueba no puede sonar en el canal real. Es el mismo criterio que el
- * correo (SDD-0544).
+ * alta de prueba no puede sonar en el canal real (mismo criterio que SDD-0544).
  */
 
 import { resolveAppEnv, type EnvSource } from "@/lib/runtime/app-env";
@@ -43,9 +48,13 @@ export const DISCORD_CHANNELS: Record<TelegramAlertCategory, DiscordChannelSpec>
 /** La categoría cuyo canal recibe lo que no tiene canal propio. */
 export const DISCORD_FALLBACK_CATEGORY: TelegramAlertCategory = "equipo";
 
-export const DISCORD_ENV_VARS: ReadonlyArray<string> = Object.values(DISCORD_CHANNELS).map(
-  (c) => c.envVar,
-);
+/** Variable con el ID del único tenant que puede escribir en estos canales. */
+export const DISCORD_TENANT_ENV_VAR = "DISCORD_TENANT_ID";
+
+export const DISCORD_ENV_VARS: ReadonlyArray<string> = [
+  ...Object.values(DISCORD_CHANNELS).map((c) => c.envVar),
+  DISCORD_TENANT_ENV_VAR,
+];
 
 export interface DiscordTarget {
   /** La dirección del webhook. Es una llave: no se loguea ni se muestra. */
@@ -66,11 +75,22 @@ export function discordEnabled(env: EnvSource = process.env): boolean {
   return resolveAppEnv(env) !== "staging";
 }
 
-/** El canal de respaldo, o `null` si no tiene dirección. */
+/** ¿Este tenant es el dueño de los canales? Sin `DISCORD_TENANT_ID`, ninguno. */
+export function discordTenantAuthorized(
+  tenantId: string | null | undefined,
+  env: EnvSource = process.env,
+): boolean {
+  const owner = env[DISCORD_TENANT_ENV_VAR]?.trim().toLowerCase();
+  const tenant = tenantId?.trim().toLowerCase();
+  return Boolean(owner && tenant && owner === tenant);
+}
+
+/** El canal de respaldo para este tenant, o `null`. */
 export function resolveDiscordFallbackTarget(
+  tenantId: string | null | undefined,
   env: EnvSource = process.env,
 ): DiscordTarget | null {
-  if (!discordEnabled(env)) return null;
+  if (!discordEnabled(env) || !discordTenantAuthorized(tenantId, env)) return null;
   const url = webhookOf(DISCORD_FALLBACK_CATEGORY, env);
   if (!url) return null;
   return {
@@ -81,31 +101,40 @@ export function resolveDiscordFallbackTarget(
 }
 
 /**
- * A dónde va una categoría en Discord: su canal propio; si no tiene dirección,
- * el de respaldo; si tampoco, `null` (Discord no configurado para ella).
+ * A dónde va una categoría de este tenant en Discord: su canal propio; si no
+ * tiene dirección, el de respaldo; si tampoco, o si el tenant no es el dueño
+ * de los canales, `null`.
  */
 export function resolveDiscordTarget(
   category: TelegramAlertCategory,
+  tenantId: string | null | undefined,
   env: EnvSource = process.env,
 ): DiscordTarget | null {
-  if (!discordEnabled(env)) return null;
+  if (!discordEnabled(env) || !discordTenantAuthorized(tenantId, env)) return null;
   const own = webhookOf(category, env);
   if (own) {
     return { url: own, canal: DISCORD_CHANNELS[category].canal, esRespaldo: false };
   }
-  return resolveDiscordFallbackTarget(env);
+  return resolveDiscordFallbackTarget(tenantId, env);
 }
 
 /**
  * Estado de una categoría, para la pantalla de Ajustes. Lleva SÓLO el estado:
  * la dirección no sale de este módulo hacia la interfaz.
  *
- *   - `propio`     → tiene su canal.
- *   - `respaldo`   → sin dirección propia (o inválida); cae a `#avisos-equipo`.
- *   - `sin-discord`→ ni propia ni respaldo; sigue por el camino anterior.
- *   - `apagado`    → entorno de prueba.
+ *   - `propio`      → tiene su canal.
+ *   - `respaldo`    → sin dirección propia (o inválida); cae a `#avisos-equipo`.
+ *   - `sin-discord` → ni propia ni respaldo; sigue por el camino anterior.
+ *   - `sin-tenant`  → hay direcciones, pero este tenant no es el de
+ *                     `DISCORD_TENANT_ID` (o falta la variable).
+ *   - `apagado`     → entorno de prueba.
  */
-export type DiscordCategoryState = "propio" | "respaldo" | "sin-discord" | "apagado";
+export type DiscordCategoryState =
+  | "propio"
+  | "respaldo"
+  | "sin-discord"
+  | "sin-tenant"
+  | "apagado";
 
 export interface DiscordCategoryStatus {
   category: TelegramAlertCategory;
@@ -118,9 +147,11 @@ export interface DiscordCategoryStatus {
 
 export function discordCategoryStatus(
   categories: ReadonlyArray<TelegramAlertCategory>,
+  tenantId: string | null | undefined,
   env: EnvSource = process.env,
 ): DiscordCategoryStatus[] {
   const enabled = discordEnabled(env);
+  const authorized = discordTenantAuthorized(tenantId, env);
   const hayRespaldo = webhookOf(DISCORD_FALLBACK_CATEGORY, env) !== null;
 
   return categories.map((category) => {
@@ -129,9 +160,10 @@ export function discordCategoryStatus(
     const own = webhookOf(category, env) !== null;
     let state: DiscordCategoryState;
     if (!enabled) state = "apagado";
+    else if (!own && !hayRespaldo) state = "sin-discord";
+    else if (!authorized) state = "sin-tenant";
     else if (own) state = "propio";
-    else if (hayRespaldo) state = "respaldo";
-    else state = "sin-discord";
+    else state = "respaldo";
     return {
       category,
       canal: spec.canal,

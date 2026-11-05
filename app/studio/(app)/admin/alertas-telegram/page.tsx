@@ -55,7 +55,7 @@ export default async function AlertasTelegramPage() {
   );
 
   // Sólo el estado de cada canal: la dirección del webhook no sale del servidor.
-  const discord = discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES);
+  const discord = discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES, data?.tenant_id ?? null);
   const discordActivo = discord.some(
     (s) => s.state === "propio" || s.state === "respaldo",
   );

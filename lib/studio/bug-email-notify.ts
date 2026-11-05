@@ -251,11 +251,12 @@ export async function notifyBugCreatedToAdmin(
     // entrega, no sale ningún Telegram por este aviso.
     const bugEnDiscord = await sendDiscordCategoryAlert(
       supabaseAdmin,
+      tenantId,
       "bugs",
       { titulo: notifLabel, codigo: bug.folio, url: `${SITE_URL}${bugUrlPath}` },
       { logTag: "bug-admin" },
     );
-    const routedBugChats = bugEnDiscord.delivered
+    const routedBugChats = bugEnDiscord.handled
       ? []
       : await resolveCategoryChatIds(supabaseAdmin, tenantId, "bugs");
     if (routedBugChats.length > 0) {
@@ -337,8 +338,8 @@ export async function notifyBugCreatedToAdmin(
       // Telegram · respeta channel_telegram (default OFF) + link. Fallo → outbox P3.
       // Sólo cuando la categoría `bugs` no tiene destino: si lo tiene, el aviso
       // ya salió arriba y repetirlo acá sería el duplicado que cierra SDD-0271.
-      if (channels.telegram && routedBugChats.length === 0 && !bugEnDiscord.delivered) {
-        const result = await sendBugTelegramToUser(supabaseAdmin, admin.user_id, {
+      if (channels.telegram && routedBugChats.length === 0 && !bugEnDiscord.handled) {
+        const result = await sendBugTelegramToUser(supabaseAdmin, tenantId, admin.user_id, {
           title: `${notifLabel} · ${bug.folio}`,
           body: `${bug.title}\nReportado por ${reporterName}.`,
           url: `${SITE_URL}${bugUrlPath}`,
@@ -434,7 +435,7 @@ export async function notifyBugStateChangeToReporter(
     }
 
     if (channels.telegram) {
-      const result = await sendBugTelegramToUser(supabaseAdmin, bug.reporter_id, {
+      const result = await sendBugTelegramToUser(supabaseAdmin, tenantId, bug.reporter_id, {
         title: `${bug.folio} · ${stateLabel}`,
         body: `Tu reporte "${bug.title}" cambió a ${stateLabel}.`,
         url: `${SITE_URL}${bugUrlPath}`,
@@ -532,7 +533,7 @@ export async function notifyBugMessageToReporter(
     }
 
     if (channels.telegram) {
-      const result = await sendBugTelegramToUser(supabaseAdmin, bug.reporter_id, {
+      const result = await sendBugTelegramToUser(supabaseAdmin, tenantId, bug.reporter_id, {
         title: `${bug.folio} · Admin respondió`,
         body: excerpt,
         url: `${SITE_URL}${bugUrlPath}`,
@@ -641,6 +642,7 @@ async function resolveAdminEntries(
  */
 async function sendBugTelegramToUser(
   supabaseAdmin: SupabaseClient,
+  tenantId: string,
   userId: string,
   payload: {
     title: string;
@@ -658,11 +660,15 @@ async function sendBugTelegramToUser(
     if (payload.discord) {
       const mencion = await sendDiscordMentionToUser(
         supabaseAdmin,
+        tenantId,
         userId,
         "bugs",
         payload.discord,
       );
-      if (mencion.attempted && mencion.ok) return { ok: true };
+      // Confirmada, o incierta: pudo guardarse y no se repite (M2).
+      if (mencion.attempted && (mencion.ok || mencion.outcome === "incierto")) {
+        return { ok: true };
+      }
       if (mencion.attempted) discordError = mencion.error ?? "Discord no entregó";
     }
 

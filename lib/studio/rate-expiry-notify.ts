@@ -113,6 +113,7 @@ export async function notifyRateExpiry(
   // cuenta los envíos de mensajería.
   const enDiscord = await sendDiscordCategoryAlert(
     admin,
+    tenantId,
     "equipo",
     {
       titulo: level === "overdue" ? "Tarifa pública vencida" : "Tarifa pública por vencer",
@@ -120,11 +121,11 @@ export async function notifyRateExpiry(
     },
     { logTag: "rate-expiry" },
   );
-  if (enDiscord.delivered) telegramSent++;
+  if (enDiscord.outcome === "entregado") telegramSent++;
 
   for (const r of recipients) {
     if (
-      !enDiscord.delivered &&
+      !enDiscord.handled &&
       r.telegram_chat_id &&
       !chatsAvisados.has(r.telegram_chat_id)
     ) {

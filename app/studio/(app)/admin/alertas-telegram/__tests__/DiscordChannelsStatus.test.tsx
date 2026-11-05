@@ -10,12 +10,18 @@ import { DiscordChannelsStatus } from "../_components/DiscordChannelsStatus";
 import { TELEGRAM_ALERT_CATEGORIES } from "@/lib/studio/telegram/alert-routing";
 import { discordCategoryStatus } from "@/lib/studio/discord/channels";
 
-const hook = (n: number) => `https://discord.com/api/webhooks/${n}/token-secreto-${n}`;
+import { fakeWebhook as hook } from "@/lib/studio/discord/__tests__/webhook-fixture";
 
-function pintar(env: Record<string, string>) {
+const TENANT = "00000000-0000-4000-8000-000000000001";
+
+/** Pinta el estado de TENANT; Discord asignado a TENANT salvo que el caso lo cambie. */
+function pintar(env: Record<string, string>, tenantId: string = TENANT) {
   return render(
     <DiscordChannelsStatus
-      statuses={discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES, env)}
+      statuses={discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES, tenantId, {
+        DISCORD_TENANT_ID: TENANT,
+        ...env,
+      })}
       canalRespaldo="#avisos-equipo"
     />,
   );
@@ -54,12 +60,12 @@ describe("DiscordChannelsStatus", () => {
 
   it("nombra la variable cuya dirección no tiene forma de webhook, sin mostrar el valor", () => {
     const { container } = pintar({
-      DISCORD_WEBHOOK_REGISTRO: "https://evil.example/token-secreto-9",
+      DISCORD_WEBHOOK_REGISTRO: "https://evil.example/prueba-secreta-9",
       DISCORD_WEBHOOK_EQUIPO: hook(5),
     });
 
     expect(screen.getByRole("status").textContent).toContain("DISCORD_WEBHOOK_REGISTRO");
-    expect(container.textContent).not.toContain("token-secreto");
+    expect(container.textContent).not.toContain("prueba");
     expect(container.textContent).not.toContain("evil.example");
     expect(container.textContent).not.toContain("discord.com");
   });
@@ -68,6 +74,12 @@ describe("DiscordChannelsStatus", () => {
     pintar({});
     expect(screen.getByText(/Discord todavía no está configurado/)).toBeTruthy();
     expect(screen.getAllByText("Sin Discord · sigue por Telegram")).toHaveLength(5);
+  });
+
+  it("A5: a otra empresa le dice que Discord no es suyo y que sigue por Telegram", () => {
+    pintar({ DISCORD_WEBHOOK_EQUIPO: hook(5) }, "00000000-0000-4000-8000-000000000002");
+    expect(screen.getAllByText("Discord no está asignado a esta empresa · sigue por Telegram")).toHaveLength(5);
+    expect(screen.getByText(/DISCORD_TENANT_ID/)).toBeTruthy();
   });
 
   it("en el entorno de prueba lo muestra apagado", () => {

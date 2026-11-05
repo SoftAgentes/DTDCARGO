@@ -156,7 +156,7 @@ export async function notifyBitacoraTaskAssigned(
 
       if (decision.telegram) {
         // SDD-0606 · a Discord no va el título de la tarea: mención y enlace.
-        await sendAlertToUser(admin, userId, "equipo", {
+        await sendAlertToUser(admin, args.tenantId, userId, "equipo", {
           telegramText: `${label}\n\n${excerpt}\n\n${SITE_URL}${url}`,
           discord: { titulo: "Tarea nueva en Bitácora", url: `${SITE_URL}${url}` },
         });
@@ -365,7 +365,7 @@ export async function runBitacoraDigestForTenant(
 
       if (decision.telegram) {
         // SDD-0606 · a Discord no va la lista de tareas: cuántas y el enlace.
-        await sendAlertToUser(admin, userId, "equipo", {
+        await sendAlertToUser(admin, tenantId, userId, "equipo", {
           telegramText: `${label}\n\n${body}\n\n${SITE_URL}${BITACORA_MOBILE_HOY_PATH}`,
           discord: {
             titulo: "Tareas de Bitácora para hoy",

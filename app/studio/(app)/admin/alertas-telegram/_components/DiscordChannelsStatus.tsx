@@ -33,6 +33,11 @@ function estado(s: DiscordCategoryStatus, canalRespaldo: string) {
       return { tone: "warning" as const, text: `Sin canal propio · cae a ${canalRespaldo}` };
     case "apagado":
       return { tone: "neutral" as const, text: "Apagado en el entorno de prueba" };
+    case "sin-tenant":
+      return {
+        tone: "neutral" as const,
+        text: "Discord no está asignado a esta empresa · sigue por Telegram",
+      };
     default:
       return { tone: "neutral" as const, text: "Sin Discord · sigue por Telegram" };
   }
@@ -43,6 +48,7 @@ export function DiscordChannelsStatus({ statuses, canalRespaldo }: Props) {
   const enRespaldo = statuses.filter((s) => s.state === "respaldo");
   const invalidas = statuses.filter((s) => s.invalida);
   const apagado = statuses.some((s) => s.state === "apagado");
+  const sinTenant = statuses.some((s) => s.state === "sin-tenant");
 
   return (
     <section aria-labelledby="alertas-discord-titulo" style={{ marginBottom: 40 }}>
@@ -65,7 +71,26 @@ export function DiscordChannelsStatus({ statuses, canalRespaldo }: Props) {
         configura en el servidor, no desde esta pantalla.
       </p>
 
-      {!apagado && conDiscord.length === 0 && (
+      {sinTenant && (
+        <div
+          role="status"
+          style={{
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+            padding: "12px 14px",
+            marginBottom: 16,
+            font: "400 13px/1.6 var(--f-sans)",
+            color: "var(--ink)",
+          }}
+        >
+          <b>Los canales de Discord no están asignados a esta empresa.</b> Se
+          asignan en el servidor con <code>DISCORD_TENANT_ID</code>. Mientras
+          tanto, los avisos siguen saliendo por Telegram.
+        </div>
+      )}
+
+      {!apagado && !sinTenant && conDiscord.length === 0 && (
         <div
           style={{
             background: "var(--bg-elevated)",

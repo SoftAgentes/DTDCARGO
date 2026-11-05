@@ -2,9 +2,15 @@
 /**
  * Despachador de avisos (SDD-0606): Discord primero, Telegram de respaldo.
  *
- * Se mide el comportamiento sobre lo que SALE: los pedidos HTTP a Discord y
- * las llamadas a Telegram. El caso que da sentido a la spec es el de
- * privacidad: el texto completo de Telegram no puede aparecer en Discord.
+ * Se mide el comportamiento sobre lo que SALE: los pedidos HTTP a Discord, las
+ * llamadas a Telegram y las filas de la cola. El caso que da sentido a la spec
+ * es el de privacidad: el texto completo de Telegram no puede aparecer en Discord.
+ *
+ * Correcciones de la revisión de Codex (2026-11-05):
+ *   A3 · una categoría que no puede perderse va a la cola si Discord no la
+ *        guardó, en vez de caer a Telegram;
+ *   A5 · un tenant que no es el dueño de los webhooks no escribe en Discord;
+ *   M2 · una entrega incierta no se repite por otro canal ni por Telegram.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -20,11 +26,13 @@ import {
   makeFakeSupabase,
   type FakeDb,
 } from "@/lib/studio/telegram/__tests__/fake-db";
+import { fakeWebhook, mensajeGuardado } from "@/lib/studio/discord/__tests__/webhook-fixture";
 
-const TENANT = "tenant-1";
-const HOOK_REGISTRO = "https://discord.com/api/webhooks/1001/token-registro";
-const HOOK_CONV = "https://discord.com/api/webhooks/1002/token-conversaciones";
-const HOOK_EQUIPO = "https://discord.com/api/webhooks/1005/token-equipo";
+const TENANT = "00000000-0000-4000-8000-000000000001";
+const OTRO_TENANT = "00000000-0000-4000-8000-000000000002";
+const HOOK_REGISTRO = fakeWebhook(1001);
+const HOOK_CONV = fakeWebhook(1002);
+const HOOK_EQUIPO = fakeWebhook(1005);
 const DISCORD_ASESOR = "111111111111111111";
 
 /** Lo que NO puede salir a Discord: nombre, teléfono, correo y monto. */
@@ -48,13 +56,16 @@ function db(extra: Partial<FakeDb> = {}): FakeDb {
     user_tenants: [
       { user_id: "sam", tenant_id: TENANT, role: "admin", disabled_at: null },
       { user_id: "asesor", tenant_id: TENANT, role: "commercial", disabled_at: null },
+      { user_id: "otro-admin", tenant_id: OTRO_TENANT, role: "admin", disabled_at: null },
     ],
     user_profiles: [
       { user_id: "sam", telegram_chat_id: "6512220774", discord_user_id: null },
       { user_id: "asesor", telegram_chat_id: "777", discord_user_id: DISCORD_ASESOR },
+      { user_id: "otro-admin", telegram_chat_id: "888", discord_user_id: null },
     ],
     telegram_destinations: [],
     telegram_alert_routes: [],
+    studio_alert_outbox: [],
     ...extra,
   };
 }
@@ -66,27 +77,33 @@ interface Pedido {
 }
 
 let pedidos: Pedido[] = [];
-/** Estado HTTP por dirección de webhook; por defecto 204. */
-let estados: Record<string, number> = {};
+/** Respuesta por dirección de webhook: estado HTTP o un error de red. Por defecto, guardado. */
+let respuestas: Record<string, number | Error> = {};
+
+function discordConfigurado(extra: Record<string, string> = {}) {
+  vi.stubEnv("DISCORD_TENANT_ID", TENANT);
+  for (const [k, v] of Object.entries(extra)) vi.stubEnv(k, v);
+}
 
 beforeEach(() => {
   pedidos = [];
-  estados = {};
+  respuestas = {};
   sendTelegramMock.mockReset();
   sendTelegramMock.mockResolvedValue({ ok: true, messageId: 1 });
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const u = new URL(String(url));
+      const base = `${u.origin}${u.pathname}`;
       const body = JSON.parse(String(init?.body)) as {
         content: string;
         allowed_mentions: { users: string[] };
       };
-      pedidos.push({
-        url: String(url),
-        content: body.content,
-        users: body.allowed_mentions.users,
-      });
-      return new Response(null, { status: estados[String(url)] ?? 204 });
+      pedidos.push({ url: base, content: body.content, users: body.allowed_mentions.users });
+      const r = respuestas[base];
+      if (r instanceof Error) throw r;
+      if (typeof r === "number") return new Response(null, { status: r });
+      return mensajeGuardado();
     }),
   );
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -99,10 +116,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+const timeout = () => new DOMException("The operation timed out.", "TimeoutError");
+
 describe("dispatchAlert", () => {
   it("con canal propio sale por Discord y NO por Telegram", async () => {
-    vi.stubEnv("DISCORD_WEBHOOK_REGISTRO", HOOK_REGISTRO);
-    vi.stubEnv("DISCORD_WEBHOOK_EQUIPO", HOOK_EQUIPO);
+    discordConfigurado({ DISCORD_WEBHOOK_REGISTRO: HOOK_REGISTRO, DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
 
     const res = await dispatchAlert(makeFakeSupabase(db()), TENANT, "registro", PAYLOAD);
 
@@ -112,7 +130,7 @@ describe("dispatchAlert", () => {
   });
 
   it("a Discord sólo llega lo mínimo: nada del texto completo", async () => {
-    vi.stubEnv("DISCORD_WEBHOOK_REGISTRO", HOOK_REGISTRO);
+    discordConfigurado({ DISCORD_WEBHOOK_REGISTRO: HOOK_REGISTRO });
 
     await dispatchAlert(makeFakeSupabase(db()), TENANT, "registro", PAYLOAD);
 
@@ -127,7 +145,7 @@ describe("dispatchAlert", () => {
   });
 
   it("una categoría sin dirección cae al canal de respaldo y lo dice", async () => {
-    vi.stubEnv("DISCORD_WEBHOOK_EQUIPO", HOOK_EQUIPO);
+    discordConfigurado({ DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
 
     const res = await dispatchAlert(makeFakeSupabase(db()), TENANT, "registro", PAYLOAD);
 
@@ -137,10 +155,9 @@ describe("dispatchAlert", () => {
     expect(sendTelegramMock).not.toHaveBeenCalled();
   });
 
-  it("si el canal propio falla, entrega por el de respaldo", async () => {
-    vi.stubEnv("DISCORD_WEBHOOK_REGISTRO", HOOK_REGISTRO);
-    vi.stubEnv("DISCORD_WEBHOOK_EQUIPO", HOOK_EQUIPO);
-    estados[HOOK_REGISTRO] = 404;
+  it("si el canal propio lo rechaza (webhook borrado), entrega por el de respaldo", async () => {
+    discordConfigurado({ DISCORD_WEBHOOK_REGISTRO: HOOK_REGISTRO, DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
+    respuestas[HOOK_REGISTRO] = 404;
 
     const res = await dispatchAlert(makeFakeSupabase(db()), TENANT, "registro", PAYLOAD);
 
@@ -149,17 +166,87 @@ describe("dispatchAlert", () => {
     expect(sendTelegramMock).not.toHaveBeenCalled();
   });
 
-  it("si Discord no entrega por ningún canal, el aviso sale por Telegram", async () => {
-    vi.stubEnv("DISCORD_WEBHOOK_REGISTRO", HOOK_REGISTRO);
-    vi.stubEnv("DISCORD_WEBHOOK_EQUIPO", HOOK_EQUIPO);
-    estados[HOOK_REGISTRO] = 500;
-    estados[HOOK_EQUIPO] = 500;
+  it("M2: una entrega incierta en el canal propio no se repite en el respaldo ni en Telegram", async () => {
+    discordConfigurado({ DISCORD_WEBHOOK_REGISTRO: HOOK_REGISTRO, DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
+    respuestas[HOOK_REGISTRO] = timeout();
+    const fixture = db();
+
+    const res = await dispatchAlert(makeFakeSupabase(fixture), TENANT, "registro", PAYLOAD);
+
+    expect(res).toMatchObject({ canal: "discord", incierto: true, sent: 0 });
+    expect(pedidos.map((p) => p.url)).toEqual([HOOK_REGISTRO]);
+    expect(sendTelegramMock).not.toHaveBeenCalled();
+    expect(fixture.studio_alert_outbox).toHaveLength(0);
+  });
+
+  it("M2: una entrega incierta en el respaldo tampoco se repite", async () => {
+    discordConfigurado({ DISCORD_WEBHOOK_REGISTRO: HOOK_REGISTRO, DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
+    respuestas[HOOK_REGISTRO] = 404;
+    respuestas[HOOK_EQUIPO] = timeout();
 
     const res = await dispatchAlert(makeFakeSupabase(db()), TENANT, "registro", PAYLOAD);
 
-    expect(res).toMatchObject({ canal: "telegram", sent: 1, usedFallback: true });
-    expect(sendTelegramMock).toHaveBeenCalledTimes(1);
+    expect(res).toMatchObject({ canal: "discord", incierto: true });
+    expect(sendTelegramMock).not.toHaveBeenCalled();
+  });
+
+  it("A3: una categoría que no puede perderse va a la cola si Discord no la guardó, no a Telegram", async () => {
+    discordConfigurado({ DISCORD_WEBHOOK_REGISTRO: HOOK_REGISTRO, DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
+    respuestas[HOOK_REGISTRO] = 503;
+    respuestas[HOOK_EQUIPO] = 503;
+    const fixture = db();
+
+    const res = await dispatchAlert(makeFakeSupabase(fixture), TENANT, "registro", PAYLOAD);
+
+    expect(res).toMatchObject({ canal: "cola" });
+    expect(sendTelegramMock).not.toHaveBeenCalled();
+    expect(fixture.studio_alert_outbox).toHaveLength(1);
+    const fila = fixture.studio_alert_outbox[0];
+    expect(fila).toMatchObject({ tenant_id: TENANT, category: "registro" });
+    // En la cola queda lo mínimo, nunca el texto completo.
+    expect(JSON.stringify(fila)).not.toContain("María");
+    expect(fila.payload).toEqual(PAYLOAD.discord);
+  });
+
+  it("A3: si la cola todavía no existe (migración sin aplicar), cae a Telegram", async () => {
+    discordConfigurado({ DISCORD_WEBHOOK_REGISTRO: HOOK_REGISTRO });
+    respuestas[HOOK_REGISTRO] = 503;
+    const sinCola = db();
+    delete (sinCola as Partial<FakeDb>).studio_alert_outbox;
+
+    const res = await dispatchAlert(makeFakeSupabase(sinCola), TENANT, "registro", PAYLOAD);
+
+    expect(res.canal).toBe("telegram");
     expect(sendTelegramMock).toHaveBeenCalledWith("6512220774", TEXTO_COMPLETO);
+  });
+
+  it("A3: una categoría que no es crítica no va a la cola; sigue por Telegram", async () => {
+    discordConfigurado({ DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
+    respuestas[HOOK_EQUIPO] = 503;
+    const fixture = db();
+
+    const res = await dispatchAlert(makeFakeSupabase(fixture), TENANT, "equipo", PAYLOAD);
+
+    expect(res.canal).toBe("telegram");
+    expect(fixture.studio_alert_outbox).toHaveLength(0);
+  });
+
+  it("A5: un tenant que no es el dueño de los webhooks no escribe en Discord", async () => {
+    discordConfigurado({ DISCORD_WEBHOOK_REGISTRO: HOOK_REGISTRO, DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
+
+    const res = await dispatchAlert(makeFakeSupabase(db()), OTRO_TENANT, "registro", PAYLOAD);
+
+    expect(pedidos).toHaveLength(0);
+    expect(res.canal).toBe("telegram");
+    expect(sendTelegramMock).toHaveBeenCalledWith("888", TEXTO_COMPLETO);
+  });
+
+  it("A5: sin DISCORD_TENANT_ID, Discord no se usa aunque haya direcciones", async () => {
+    vi.stubEnv("DISCORD_WEBHOOK_REGISTRO", HOOK_REGISTRO);
+
+    await dispatchAlert(makeFakeSupabase(db()), TENANT, "registro", PAYLOAD);
+
+    expect(pedidos).toHaveLength(0);
   });
 
   it("sin Discord configurado se comporta como antes: Telegram, sin pedir nada a Discord", async () => {
@@ -177,8 +264,7 @@ describe("dispatchAlert", () => {
   });
 
   it("en el entorno de prueba no escribe en Discord aunque haya direcciones", async () => {
-    vi.stubEnv("APP_ENV", "staging");
-    vi.stubEnv("DISCORD_WEBHOOK_REGISTRO", HOOK_REGISTRO);
+    discordConfigurado({ APP_ENV: "staging", DISCORD_WEBHOOK_REGISTRO: HOOK_REGISTRO });
 
     await dispatchAlert(makeFakeSupabase(db()), TENANT, "registro", PAYLOAD);
 
@@ -186,7 +272,7 @@ describe("dispatchAlert", () => {
   });
 
   it("el destinatario por persona se menciona en el canal si enlazó Discord", async () => {
-    vi.stubEnv("DISCORD_WEBHOOK_CONVERSACIONES", HOOK_CONV);
+    discordConfigurado({ DISCORD_WEBHOOK_CONVERSACIONES: HOOK_CONV });
 
     await dispatchAlert(makeFakeSupabase(db()), TENANT, "conversaciones", PAYLOAD, {
       alsoUserIds: ["asesor", "sam"],
@@ -194,13 +280,12 @@ describe("dispatchAlert", () => {
     });
 
     expect(pedidos).toHaveLength(1);
-    // `sam` no enlazó Discord: no hay mención para él y nada lo hace sonar.
     expect(pedidos[0].users).toEqual([DISCORD_ASESOR]);
     expect(pedidos[0].content.startsWith(`<@${DISCORD_ASESOR}>`)).toBe(true);
   });
 
   it("sin destinatario por persona, nadie suena", async () => {
-    vi.stubEnv("DISCORD_WEBHOOK_REGISTRO", HOOK_REGISTRO);
+    discordConfigurado({ DISCORD_WEBHOOK_REGISTRO: HOOK_REGISTRO });
     await dispatchAlert(makeFakeSupabase(db()), TENANT, "registro", PAYLOAD);
     expect(pedidos[0].users).toEqual([]);
     expect(pedidos[0].content).not.toContain("<@");
@@ -234,9 +319,9 @@ describe("resolveDiscordUserIds", () => {
 
 describe("avisos por persona", () => {
   it("quien enlazó Discord recibe la mención en el canal y no el Telegram", async () => {
-    vi.stubEnv("DISCORD_WEBHOOK_EQUIPO", HOOK_EQUIPO);
+    discordConfigurado({ DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
 
-    const ok = await sendAlertToUser(makeFakeSupabase(db()), "asesor", "equipo", PAYLOAD);
+    const ok = await sendAlertToUser(makeFakeSupabase(db()), TENANT, "asesor", "equipo", PAYLOAD);
 
     expect(ok).toBe(true);
     expect(pedidos).toHaveLength(1);
@@ -246,42 +331,69 @@ describe("avisos por persona", () => {
   });
 
   it("quien NO enlazó Discord no genera un mensaje en el canal; sigue por Telegram", async () => {
-    vi.stubEnv("DISCORD_WEBHOOK_EQUIPO", HOOK_EQUIPO);
+    discordConfigurado({ DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
 
-    const ok = await sendAlertToUser(makeFakeSupabase(db()), "sam", "equipo", PAYLOAD);
+    const ok = await sendAlertToUser(makeFakeSupabase(db()), TENANT, "sam", "equipo", PAYLOAD);
 
     expect(ok).toBe(true);
     expect(pedidos).toHaveLength(0);
     expect(sendTelegramMock).toHaveBeenCalledWith("6512220774", TEXTO_COMPLETO);
   });
 
-  it("si la mención falla en Discord, cae al Telegram de la persona", async () => {
-    vi.stubEnv("DISCORD_WEBHOOK_EQUIPO", HOOK_EQUIPO);
-    estados[HOOK_EQUIPO] = 500;
+  it("si Discord no guardó la mención, cae al Telegram de la persona", async () => {
+    discordConfigurado({ DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
+    respuestas[HOOK_EQUIPO] = 500;
 
-    const ok = await sendAlertToUser(makeFakeSupabase(db()), "asesor", "equipo", PAYLOAD);
+    const ok = await sendAlertToUser(makeFakeSupabase(db()), TENANT, "asesor", "equipo", PAYLOAD);
 
     expect(ok).toBe(true);
     expect(sendTelegramMock).toHaveBeenCalledWith("777", TEXTO_COMPLETO);
   });
 
-  it("sendDiscordMentionToUser dice `attempted: false` cuando no corresponde Discord", async () => {
-    const sinDiscord = await sendDiscordMentionToUser(
+  it("M2: si la mención quedó incierta, no se repite por Telegram", async () => {
+    discordConfigurado({ DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
+    respuestas[HOOK_EQUIPO] = timeout();
+
+    const ok = await sendAlertToUser(makeFakeSupabase(db()), TENANT, "asesor", "equipo", PAYLOAD);
+
+    expect(ok).toBe(true);
+    expect(sendTelegramMock).not.toHaveBeenCalled();
+  });
+
+  it("A5: la mención no sale a Discord desde otro tenant", async () => {
+    discordConfigurado({ DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
+
+    const res = await sendDiscordMentionToUser(
       makeFakeSupabase(db()),
+      OTRO_TENANT,
       "asesor",
       "equipo",
       PAYLOAD.discord,
     );
-    expect(sinDiscord).toEqual({ attempted: false, ok: false });
 
-    vi.stubEnv("DISCORD_WEBHOOK_EQUIPO", HOOK_EQUIPO);
+    expect(res).toMatchObject({ attempted: false });
+    expect(pedidos).toHaveLength(0);
+  });
+
+  it("sendDiscordMentionToUser dice `attempted: false` cuando no corresponde Discord", async () => {
+    const sinDiscord = await sendDiscordMentionToUser(
+      makeFakeSupabase(db()),
+      TENANT,
+      "asesor",
+      "equipo",
+      PAYLOAD.discord,
+    );
+    expect(sinDiscord).toMatchObject({ attempted: false, ok: false });
+
+    discordConfigurado({ DISCORD_WEBHOOK_EQUIPO: HOOK_EQUIPO });
     const sinEnlace = await sendDiscordMentionToUser(
       makeFakeSupabase(db()),
+      TENANT,
       "sam",
       "equipo",
       PAYLOAD.discord,
     );
-    expect(sinEnlace).toEqual({ attempted: false, ok: false });
+    expect(sinEnlace).toMatchObject({ attempted: false, ok: false });
     expect(pedidos).toHaveLength(0);
   });
 });

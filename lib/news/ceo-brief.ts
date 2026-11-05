@@ -284,11 +284,17 @@ export async function sendCeoBriefToTenant(
   // ningún lado: a Discord van sólo los conteos.
   const enDiscord = await sendDiscordCategoryAlert(
     supabase,
+    tenantId,
     "reportes",
     buildDiscordBrief(kpis),
     { logTag: "ceo-brief" },
   );
-  if (enDiscord.delivered) return { ok: true, sentTo: "discord" };
+  if (enDiscord.handled) {
+    return {
+      ok: true,
+      sentTo: enDiscord.outcome === "en-cola" ? "discord (en cola)" : "discord",
+    };
+  }
 
   const routed = await dispatchTelegramAlert(
     supabase,

@@ -23,10 +23,11 @@ import { notifyPaymentReportToAdmin } from "../payment-report-notify";
 import { buildDiscordBrief, type CeoBriefKpis } from "@/lib/news/ceo-brief";
 import { buildDiscordContent } from "../discord/minimal-alert";
 import { makeFakeSupabase, type FakeDb } from "../telegram/__tests__/fake-db";
+import { fakeWebhook, mensajeGuardado } from "../discord/__tests__/webhook-fixture";
 
 const TENANT = "tenant-1";
-const HOOK_REGISTRO = "https://discord.com/api/webhooks/2001/token-registro";
-const HOOK_EQUIPO = "https://discord.com/api/webhooks/2005/token-equipo";
+const HOOK_REGISTRO = fakeWebhook(2001);
+const HOOK_EQUIPO = fakeWebhook(2005);
 
 function makeAdmin() {
   const db: FakeDb = {
@@ -53,14 +54,16 @@ beforeEach(() => {
   pedidos = [];
   sendTelegramMock.mockReset();
   sendTelegramMock.mockResolvedValue({ ok: true, messageId: 1 });
+  vi.stubEnv("DISCORD_TENANT_ID", TENANT);
   vi.stubEnv("DISCORD_WEBHOOK_REGISTRO", HOOK_REGISTRO);
   vi.stubEnv("DISCORD_WEBHOOK_EQUIPO", HOOK_EQUIPO);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { content: string };
-      pedidos.push({ url: String(url), content: body.content });
-      return new Response(null, { status: 204 });
+      const u = new URL(String(url));
+      pedidos.push({ url: `${u.origin}${u.pathname}`, content: body.content });
+      return mensajeGuardado();
     }),
   );
 });

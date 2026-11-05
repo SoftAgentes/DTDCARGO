@@ -1,6 +1,9 @@
 // @vitest-environment node
 /**
  * Canales por categoría y armado del aviso mínimo (SDD-0606).
+ *
+ * A5 (revisión de Codex, 2026-11-05): Discord sólo se usa para el tenant de
+ * `DISCORD_TENANT_ID`; sin esa variable, para ninguno.
  */
 
 import { describe, it, expect } from "vitest";
@@ -13,23 +16,29 @@ import {
   resolveDiscordTarget,
 } from "../channels";
 import { buildDiscordContent } from "../minimal-alert";
+import { fakeWebhook as hook } from "./webhook-fixture";
 
-const hook = (n: number) => `https://discord.com/api/webhooks/${n}/token-${n}`;
 const USER = "111111111111111111";
+const TENANT = "00000000-0000-4000-8000-000000000001";
+const OTRO = "00000000-0000-4000-8000-000000000002";
+/** Discord asignado a TENANT, más las variables del caso. */
+const conTenant = (extra: Record<string, string>) => ({ DISCORD_TENANT_ID: TENANT, ...extra });
 
 describe("canales de Discord", () => {
   it("cada categoría del Studio tiene su canal y su variable, sin repetir", () => {
     expect(Object.keys(DISCORD_CHANNELS).sort()).toEqual(
       [...TELEGRAM_ALERT_CATEGORIES].sort(),
     );
-    expect(new Set(DISCORD_ENV_VARS).size).toBe(TELEGRAM_ALERT_CATEGORIES.length);
+    // Cinco webhooks más la variable del tenant dueño.
+    expect(new Set(DISCORD_ENV_VARS).size).toBe(TELEGRAM_ALERT_CATEGORIES.length + 1);
+    expect(DISCORD_ENV_VARS).toContain("DISCORD_TENANT_ID");
     const canales = Object.values(DISCORD_CHANNELS).map((c) => c.canal);
     expect(new Set(canales).size).toBe(canales.length);
   });
 
   it("una categoría con dirección va a su canal propio", () => {
-    const env = { DISCORD_WEBHOOK_BUGS: hook(1), DISCORD_WEBHOOK_EQUIPO: hook(2) };
-    expect(resolveDiscordTarget("bugs", env)).toEqual({
+    const env = conTenant({ DISCORD_WEBHOOK_BUGS: hook(1), DISCORD_WEBHOOK_EQUIPO: hook(2) });
+    expect(resolveDiscordTarget("bugs", TENANT, env)).toEqual({
       url: hook(1),
       canal: "#bugs",
       esRespaldo: false,
@@ -37,8 +46,8 @@ describe("canales de Discord", () => {
   });
 
   it("una categoría SIN dirección cae al canal de respaldo, no calla", () => {
-    const env = { DISCORD_WEBHOOK_EQUIPO: hook(2) };
-    expect(resolveDiscordTarget("registro", env)).toEqual({
+    const env = conTenant({ DISCORD_WEBHOOK_EQUIPO: hook(2) });
+    expect(resolveDiscordTarget("registro", TENANT, env)).toEqual({
       url: hook(2),
       canal: "#avisos-equipo",
       esRespaldo: true,
@@ -46,57 +55,79 @@ describe("canales de Discord", () => {
   });
 
   it("una dirección inválida o vacía cuenta como ausente", () => {
-    const env = {
+    const env = conTenant({
       DISCORD_WEBHOOK_REGISTRO: "https://evil.example/api/webhooks/1/abc",
       DISCORD_WEBHOOK_BUGS: "   ",
       DISCORD_WEBHOOK_EQUIPO: hook(2),
-    };
-    expect(resolveDiscordTarget("registro", env)?.esRespaldo).toBe(true);
-    expect(resolveDiscordTarget("bugs", env)?.esRespaldo).toBe(true);
+    });
+    expect(resolveDiscordTarget("registro", TENANT, env)?.esRespaldo).toBe(true);
+    expect(resolveDiscordTarget("bugs", TENANT, env)?.esRespaldo).toBe(true);
   });
 
   it("sin ninguna dirección Discord no está configurado", () => {
-    expect(resolveDiscordTarget("registro", {})).toBeNull();
-    expect(resolveDiscordFallbackTarget({})).toBeNull();
+    expect(resolveDiscordTarget("registro", TENANT, conTenant({}))).toBeNull();
+    expect(resolveDiscordFallbackTarget(TENANT, conTenant({}))).toBeNull();
+  });
+
+  it("A5: otro tenant no recibe destino, ni propio ni de respaldo", () => {
+    const env = conTenant({ DISCORD_WEBHOOK_BUGS: hook(1), DISCORD_WEBHOOK_EQUIPO: hook(2) });
+    expect(resolveDiscordTarget("bugs", OTRO, env)).toBeNull();
+    expect(resolveDiscordTarget("registro", OTRO, env)).toBeNull();
+    expect(resolveDiscordFallbackTarget(OTRO, env)).toBeNull();
+    expect(resolveDiscordTarget("bugs", null, env)).toBeNull();
+  });
+
+  it("A5: sin DISCORD_TENANT_ID, ningún tenant recibe destino (falla cerrado)", () => {
+    const env = { DISCORD_WEBHOOK_BUGS: hook(1), DISCORD_WEBHOOK_EQUIPO: hook(2) };
+    expect(resolveDiscordTarget("bugs", TENANT, env)).toBeNull();
+    expect(resolveDiscordFallbackTarget(TENANT, env)).toBeNull();
+  });
+
+  it("A5: el ID del tenant se compara sin importar mayúsculas ni espacios", () => {
+    const env = { DISCORD_TENANT_ID: ` ${TENANT.toUpperCase()} `, DISCORD_WEBHOOK_BUGS: hook(1) };
+    expect(resolveDiscordTarget("bugs", TENANT, env)?.canal).toBe("#bugs");
   });
 
   it("en el entorno de prueba Discord queda apagado aunque haya direcciones", () => {
-    const env = {
+    const env = conTenant({
       APP_ENV: "staging",
       DISCORD_WEBHOOK_BUGS: hook(1),
       DISCORD_WEBHOOK_EQUIPO: hook(2),
-    };
-    expect(resolveDiscordTarget("bugs", env)).toBeNull();
-    expect(resolveDiscordFallbackTarget(env)).toBeNull();
+    });
+    expect(resolveDiscordTarget("bugs", TENANT, env)).toBeNull();
+    expect(resolveDiscordFallbackTarget(TENANT, env)).toBeNull();
     expect(
-      discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES, env).every(
+      discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES, TENANT, env).every(
         (s) => s.state === "apagado",
       ),
     ).toBe(true);
   });
 
-  it("el estado para la pantalla distingue propio, respaldo, sin Discord e inválida", () => {
-    const env = {
+  it("el estado para la pantalla distingue propio, respaldo, sin Discord, sin tenant e inválida", () => {
+    const env = conTenant({
       DISCORD_WEBHOOK_BUGS: hook(1),
       DISCORD_WEBHOOK_REGISTRO: "no-es-una-url",
       DISCORD_WEBHOOK_EQUIPO: hook(2),
-    };
+    });
     const byCat = Object.fromEntries(
-      discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES, env).map((s) => [s.category, s]),
+      discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES, TENANT, env).map((s) => [s.category, s]),
     );
     expect(byCat.bugs).toMatchObject({ state: "propio", invalida: false, canal: "#bugs" });
     expect(byCat.registro).toMatchObject({ state: "respaldo", invalida: true });
     expect(byCat.reportes).toMatchObject({ state: "respaldo", invalida: false });
     expect(byCat.equipo).toMatchObject({ state: "propio" });
 
-    const sinNada = discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES, {});
+    const otro = discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES, OTRO, env);
+    expect(otro.every((s) => s.state === "sin-tenant")).toBe(true);
+
+    const sinNada = discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES, TENANT, conTenant({}));
     expect(sinNada.every((s) => s.state === "sin-discord")).toBe(true);
   });
 
   it("el estado nunca incluye la dirección del webhook", () => {
-    const env = { DISCORD_WEBHOOK_BUGS: hook(1), DISCORD_WEBHOOK_EQUIPO: hook(2) };
-    const json = JSON.stringify(discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES, env));
-    expect(json).not.toContain("token-");
+    const env = conTenant({ DISCORD_WEBHOOK_BUGS: hook(1), DISCORD_WEBHOOK_EQUIPO: hook(2) });
+    const json = JSON.stringify(discordCategoryStatus(TELEGRAM_ALERT_CATEGORIES, TENANT, env));
+    expect(json).not.toContain("prueba");
     expect(json).not.toContain("discord.com");
   });
 });

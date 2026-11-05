@@ -5,22 +5,24 @@
  * módulos de aviso. Conserva sus cinco categorías y su regla central —una
  * categoría sin destino nunca calla— y agrega Discord delante:
  *
- *   1. Canal de Discord de la categoría.
- *   2. Si no tiene dirección, o el envío falla: canal de respaldo de Discord
+ *   1. Canal de Discord de la categoría (sólo para el tenant dueño de los
+ *      canales, `DISCORD_TENANT_ID`).
+ *   2. Si no tiene dirección, o Discord no lo guardó: canal de respaldo
  *      (`#avisos-equipo`), marcando de qué categoría venía.
- *   3. Si Discord no entregó: el camino de SDD-0271 (rutas de Telegram y, sin
- *      rutas, los administradores). Deja de existir cuando se retire el token
- *      de Telegram del servidor; hasta entonces es la red que evita perder un
- *      aviso durante el corte.
+ *   3. Si tampoco se guardó y la categoría no puede perderse (`registro`,
+ *      `bugs`, `reportes`): la cola durable, que reintenta por Discord.
+ *   4. Si Discord no aplica, o la categoría no va a la cola: el camino de
+ *      SDD-0271 (rutas de Telegram y, sin rutas, los administradores). Deja de
+ *      existir cuando se retire el token de Telegram del servidor.
  *
  * Si Discord entrega, Telegram NO se usa: el corte es directo, sin doble envío.
+ * Si la entrega quedó INCIERTA (pudo guardarse), no se repite por ningún lado.
  *
  * ── Privacidad ───────────────────────────────────────────────────────────────
  * Un aviso trae dos textos y no se mezclan nunca:
  *   - `telegramText`: el texto completo de siempre. Sólo va a Telegram.
  *   - `discord`: lo mínimo (título, código y enlace). Es lo único que sale a
- *     Discord. Este módulo no le pasa `telegramText` a ninguna función de
- *     Discord, y hay una prueba que lo mide sobre el pedido HTTP.
+ *     Discord o entra a la cola. Hay una prueba que lo mide sobre el pedido HTTP.
  *
  * Best-effort de punta a punta: nunca lanza.
  */
@@ -28,19 +30,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   dispatchTelegramAlert,
-  TELEGRAM_ALERT_CATEGORY_LABELS,
   type DispatchOptions,
   type TelegramAlertCategory,
 } from "@/lib/studio/telegram/alert-routing";
-import {
-  resolveDiscordFallbackTarget,
-  resolveDiscordTarget,
-} from "@/lib/studio/discord/channels";
-import {
-  buildDiscordContent,
-  type MinimalAlert,
-} from "@/lib/studio/discord/minimal-alert";
-import { isDiscordUserId, sendDiscordWebhook } from "@/lib/studio/discord/send-webhook";
+import { resolveDiscordTarget } from "@/lib/studio/discord/channels";
+import type { MinimalAlert } from "@/lib/studio/discord/minimal-alert";
+import { isDiscordUserId } from "@/lib/studio/discord/send-webhook";
+import { deliverDiscordAlert } from "./discord-delivery";
+import { ALERT_OUTBOX_CATEGORIES, enqueueAlert } from "./alert-outbox";
 
 export interface AlertPayload {
   /** Texto completo. SÓLO para Telegram; nunca sale a Discord. */
@@ -49,10 +46,10 @@ export interface AlertPayload {
   discord: MinimalAlert;
 }
 
-export type AlertChannel = "discord" | "telegram" | "ninguno";
+export type AlertChannel = "discord" | "cola" | "telegram" | "ninguno";
 
 export interface AlertDispatchResult {
-  /** Por dónde salió el aviso. */
+  /** Por dónde salió el aviso (`cola` = quedó para reintentar por Discord). */
   canal: AlertChannel;
   /** Destinos a los que se intentó entregar (canal de Discord o chats de Telegram). */
   intentados: number;
@@ -60,6 +57,8 @@ export interface AlertDispatchResult {
   failed: number;
   /** true si no salió por el destino propio de la categoría sino por un respaldo. */
   usedFallback: boolean;
+  /** true si Discord pudo haberlo guardado sin confirmarlo: no se repitió. */
+  incierto: boolean;
   /** Chats de Telegram usados. Vacío si salió por Discord. */
   chatIds: string[];
 }
@@ -94,96 +93,82 @@ export async function resolveDiscordUserIds(
   }
 }
 
-/**
- * Intenta la entrega por Discord. `null` = Discord no está configurado para
- * esta categoría. `false` = estaba configurado y no entregó.
- */
-async function tryDiscord(
-  category: TelegramAlertCategory,
-  aviso: MinimalAlert,
-  mentionUserIds: string[],
-  tag: string,
-): Promise<{ delivered: boolean; usedFallback: boolean } | null> {
-  const target = resolveDiscordTarget(category);
-  if (!target) return null;
+export type DiscordAlertOutcome = "entregado" | "incierto" | "en-cola" | "no-entregado";
 
-  const label = TELEGRAM_ALERT_CATEGORY_LABELS[category];
-
-  const first = await sendDiscordWebhook(
-    target.url,
-    buildDiscordContent(aviso, {
-      mentionUserIds,
-      respaldoDe: target.esRespaldo ? label : null,
-    }),
-    { mentionUserIds },
-  );
-  if (first.ok) {
-    if (target.esRespaldo) {
-      console.warn(
-        `[dispatch-alert] "${tag}" sin canal propio de Discord — cae a ${target.canal}`,
-      );
-    }
-    return { delivered: true, usedFallback: target.esRespaldo };
-  }
-  console.error(`[dispatch-alert] "${tag}" falló en ${target.canal}:`, first.error);
-
-  // El canal propio falló (webhook borrado, Discord pidió esperar demasiado…):
-  // se prueba el de respaldo, si es otro.
-  if (!target.esRespaldo) {
-    const fallback = resolveDiscordFallbackTarget();
-    if (fallback && fallback.url !== target.url) {
-      const second = await sendDiscordWebhook(
-        fallback.url,
-        buildDiscordContent(aviso, { mentionUserIds, respaldoDe: label }),
-        { mentionUserIds },
-      );
-      if (second.ok) {
-        console.warn(
-          `[dispatch-alert] "${tag}" entregado por el respaldo ${fallback.canal}`,
-        );
-        return { delivered: true, usedFallback: true };
-      }
-      console.error(
-        `[dispatch-alert] "${tag}" falló también en ${fallback.canal}:`,
-        second.error,
-      );
-    }
-  }
-  return { delivered: false, usedFallback: false };
+export interface DiscordCategoryAlertResult {
+  /** false = Discord no aplica (sin canal, otro tenant o entorno de prueba). */
+  configured: boolean;
+  outcome: DiscordAlertOutcome;
+  /**
+   * true = el aviso ya está resuelto por Discord (entregado, incierto o en la
+   * cola): quien llama NO debe mandarlo por Telegram.
+   */
+  handled: boolean;
+  usedFallback: boolean;
 }
 
 /**
- * Sólo la parte de Discord, para los módulos cuyo camino de Telegram no pasa
- * por `dispatchTelegramAlert` (bugs, con su outbox por usuario; tarifas por
- * vencer; solicitudes de cambio). `configured: false` = Discord no aplica y el
- * llamador sigue con su camino de siempre. Nunca lanza.
+ * La parte de Discord de un aviso, con la cola para las categorías que no
+ * pueden perderse. La usan `dispatchAlert` y los módulos cuyo camino de
+ * Telegram no pasa por `dispatchTelegramAlert` (bugs, reporte diario, tarifas,
+ * solicitudes de cambio). Nunca lanza.
  */
 export async function sendDiscordCategoryAlert(
   admin: SupabaseClient,
+  tenantId: string,
   category: TelegramAlertCategory,
   aviso: MinimalAlert,
   opts: { alsoUserIds?: string[]; logTag?: string } = {},
-): Promise<{ configured: boolean; delivered: boolean; usedFallback: boolean }> {
+): Promise<DiscordCategoryAlertResult> {
+  const fuera: DiscordCategoryAlertResult = {
+    configured: false,
+    outcome: "no-entregado",
+    handled: false,
+    usedFallback: false,
+  };
   try {
     // Sin canal no se consulta la base: el llamador sigue como antes.
-    if (!resolveDiscordTarget(category)) {
-      return { configured: false, delivered: false, usedFallback: false };
-    }
+    if (!resolveDiscordTarget(category, tenantId)) return fuera;
+    const tag = opts.logTag ?? category;
     const mentionUserIds = opts.alsoUserIds?.length
       ? await resolveDiscordUserIds(admin, opts.alsoUserIds)
       : [];
-    const res = await tryDiscord(category, aviso, mentionUserIds, opts.logTag ?? category);
-    if (!res) return { configured: false, delivered: false, usedFallback: false };
-    return { configured: true, ...res };
+
+    const entrega = await deliverDiscordAlert(tenantId, category, aviso, mentionUserIds, tag);
+    if (!entrega.configured) return fuera;
+    if (entrega.outcome !== "no-entregado") {
+      return {
+        configured: true,
+        outcome: entrega.outcome,
+        handled: true,
+        usedFallback: entrega.usedFallback,
+      };
+    }
+
+    if (ALERT_OUTBOX_CATEGORIES.has(category)) {
+      const enCola = await enqueueAlert(admin, {
+        tenantId,
+        category,
+        aviso,
+        mentionUserIds,
+        lastError: entrega.error,
+      });
+      if (enCola) {
+        console.warn(`[dispatch-alert] "${tag}" no se guardó en Discord: queda en la cola`);
+        return { configured: true, outcome: "en-cola", handled: true, usedFallback: false };
+      }
+    }
+    return { configured: true, outcome: "no-entregado", handled: false, usedFallback: false };
   } catch (err) {
     console.error("[dispatch-alert] sendDiscordCategoryAlert falló:", err);
-    return { configured: true, delivered: false, usedFallback: false };
+    return { configured: true, outcome: "no-entregado", handled: false, usedFallback: false };
   }
 }
 
 /**
- * Manda un aviso de `category`: Discord primero; si Discord no está
- * configurado o no entrega, el camino de Telegram de SDD-0271.
+ * Manda un aviso de `category`: Discord primero; si Discord no aplica o no lo
+ * resolvió (ni entregado, ni incierto, ni en la cola), el camino de Telegram
+ * de SDD-0271.
  *
  * `opts.alsoUserIds` —el destinatario por persona del módulo, p. ej. el asesor
  * de una conversación— se resuelve en Discord como MENCIÓN en el canal: suena
@@ -203,29 +188,27 @@ export async function dispatchAlert(
     sent: 0,
     failed: 0,
     usedFallback: false,
+    incierto: false,
     chatIds: [],
   };
 
   try {
-    let discordFailed = 0;
-
-    if (resolveDiscordTarget(category)) {
-      const mentionUserIds = opts.alsoUserIds?.length
-        ? await resolveDiscordUserIds(admin, opts.alsoUserIds)
-        : [];
-      const discord = await tryDiscord(category, payload.discord, mentionUserIds, tag);
-      if (discord?.delivered) {
-        return {
-          canal: "discord",
-          intentados: 1,
-          sent: 1,
-          failed: 0,
-          usedFallback: discord.usedFallback,
-          chatIds: [],
-        };
-      }
-      if (discord) discordFailed = 1;
+    const discord = await sendDiscordCategoryAlert(admin, tenantId, category, payload.discord, {
+      alsoUserIds: opts.alsoUserIds,
+      logTag: tag,
+    });
+    if (discord.handled) {
+      return {
+        canal: discord.outcome === "en-cola" ? "cola" : "discord",
+        intentados: 1,
+        sent: discord.outcome === "entregado" ? 1 : 0,
+        failed: 0,
+        usedFallback: discord.usedFallback,
+        incierto: discord.outcome === "incierto",
+        chatIds: [],
+      };
     }
+    const discordFailed = discord.configured ? 1 : 0;
 
     const tg = await dispatchTelegramAlert(
       admin,
@@ -242,8 +225,9 @@ export async function dispatchAlert(
       intentados: tg.chatIds.length + discordFailed,
       sent: tg.sent,
       failed: tg.failed + discordFailed,
-      // Si Discord estaba configurado y falló, Telegram ya es un respaldo.
+      // Si Discord estaba configurado y no lo guardó, Telegram ya es un respaldo.
       usedFallback: tg.usedFallback || discordFailed > 0,
+      incierto: false,
       chatIds: tg.chatIds,
     };
   } catch (err) {
