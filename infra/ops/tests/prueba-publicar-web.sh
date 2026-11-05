@@ -244,7 +244,7 @@ for ((i = 0; i < ${#a[@]}; i++)); do
   case "${a[i]}" in -o) out="${a[i+1]}" ;; --data-binary) cuerpo="${a[i+1]#@}" ;; esac
 done
 if [ -n "${cuerpo}" ]; then
-  printf 'DISCORD %s\n' "$(sed -E 's/^{"content":"(.*)","allowed_mentions":{"parse":\[\]},"flags":4}$/text=\1/' "${cuerpo}")" >> "${DOBLE}/curl.log"
+  printf 'DISCORD %s\n' "$(sed -E 's/^\{"content":"(.*)","allowed_mentions":\{"parse":\[\]\},"flags":4\}$/text=\1/' "${cuerpo}")" >> "${DOBLE}/curl.log"
   [ -n "${out}" ] && printf '{"id":"123456789012345678","channel_id":"1567955265918079096"}' > "${out}"
 fi
 case " $* " in *" -w "*) printf '200' ;; esac
