@@ -40,9 +40,13 @@ class ApiDoble:
 class Resp:
     """Respuesta de mentira de `urlopen`."""
 
-    def __init__(self, status=204):
+    def __init__(self, status=204, cuerpo=b''):
         self.status = status
         self.headers = {}
+        self.cuerpo = cuerpo
+
+    def read(self, *args):
+        return self.cuerpo
 
     def __enter__(self):
         return self
@@ -130,7 +134,8 @@ class EnvioDiscord(unittest.TestCase):
         self.assertEqual(req.full_url, 'https://discord.com/api/webhooks/1/abc?wait=true')
         self.assertEqual(datos['allowed_mentions'], {'parse': []})
         self.assertEqual(datos['content'], 'hola @everyone')
-        self.assertIn('DTD-Oficina-Puente', req.get_header('User-agent'))
+        # Formato que pide la documentación de Discord: «DiscordBot (url, versión)».
+        self.assertEqual(req.get_header('User-agent'), 'DiscordBot (https://dtdcargo.com, 1.0)')
 
     def test_una_respuesta_que_no_es_2xx_falla(self):
         enviar = bridge.discord_sender('https://discord.com/api/webhooks/1/abc',
@@ -376,10 +381,11 @@ class RevisionEnvioDiscord(unittest.TestCase):
                 return r
             return bridge.discord_sender(WEBHOOK, abridor)
 
-        self.assertEqual(con({'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset-After': '1.25'})('x'), 1.25)
-        self.assertEqual(con({'X-RateLimit-Remaining': '0'})('x'), 1)
-        self.assertIsNone(con({'X-RateLimit-Remaining': '3', 'X-RateLimit-Reset-After': '1.25'})('x'))
-        self.assertIsNone(con({})('x'))
+        pausa = lambda cabeceras: bridge.pausa_de(con(cabeceras)('x'))
+        self.assertEqual(pausa({'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset-After': '1.25'}), 1.25)
+        self.assertEqual(pausa({'X-RateLimit-Remaining': '0'}), 1)
+        self.assertIsNone(pausa({'X-RateLimit-Remaining': '3', 'X-RateLimit-Reset-After': '1.25'}))
+        self.assertIsNone(pausa({}))
 
     def test_el_mensaje_sale_sin_vista_previa_de_enlaces(self):
         vistos = []
@@ -451,9 +457,240 @@ class Guardas(Base):
         del enviados[:]
         app.poll_tasks()
         app.flush()
+        # Un aviso por el comentario de ALFRED, y ninguno por los dos de Sam. El texto del
+        # comentario no sale al canal (A1): lo comprueba `RevisionCodex`.
         self.assertEqual(len(enviados), 1)
-        self.assertIn('Avance: listo el borrador', enviados[0])
+        self.assertIn('HAI-99', enviados[0])
         self.assertNotIn('hola', enviados[0])
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Revisión de Codex (2026-11-05): A1, A2, M1, M2 y M4. Cada prueba de aquí abajo
+# nació en rojo contra el commit 9d24e81a9.
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ApiConTarea(ApiDoble):
+    """Paperclip con una tarea de título sensible y un comentario largo de ALFRED."""
+
+    TITULO = 'Cobro pendiente de Distribuidora Ejemplo'
+    CUERPO = 'Detalle interno: el cliente debe 1.234 USD y su telefono es 0414-0000000'
+
+    def __init__(self, estado='in_progress'):
+        super().__init__()
+        self.estado = estado
+
+    def __call__(self, method, path, data=None):
+        if method == 'GET' and path == '/issues/i1':
+            return {'id': 'i1', 'identifier': 'HAI-99', 'title': self.TITULO, 'status': self.estado,
+                    'companyId': 'c1', 'projectId': 'p1', 'updatedAt': 'u1'}
+        if method == 'GET' and path == '/issues/i1/comments':
+            return [] if self.estado != 'in_progress' else [
+                {'id': 'c9', 'authorAgentId': 'a1', 'createdAt': '9', 'body': self.CUERPO}]
+        if method == 'GET' and path == '/agents/me':
+            return {'id': 'a1', 'name': 'ALFRED', 'keyScope': {'kind': 'task_bridge'}}
+        return super().__call__(method, path, data)
+
+
+class RevisionCodexA1(Base):
+    def avisos(self, estado):
+        app, _, enviados = self.nuevo()
+        app.api = ApiConTarea()
+        app.call('encargar_alfred', {'titulo': 'T', 'encargo': 'E'})
+        app.flush()
+        del enviados[:]
+        app.api.estado = estado
+        app.poll_tasks()
+        app.flush()
+        return enviados
+
+    def test_el_aviso_de_un_comentario_no_lleva_ni_el_texto_ni_el_titulo(self):
+        enviados = self.avisos('in_progress')
+        self.assertEqual(len(enviados), 1)
+        aviso = enviados[0]
+        self.assertIn('HAI-99', aviso)
+        self.assertIn('in_progress', aviso)
+        self.assertIn('http://localhost:3100/HAI/issues/HAI-99', aviso)
+        self.assertNotIn('Detalle interno', aviso)
+        self.assertNotIn('Distribuidora', aviso)
+
+    def test_el_aviso_de_un_cambio_de_estado_no_lleva_el_titulo(self):
+        enviados = self.avisos('blocked')
+        self.assertEqual(len(enviados), 1)
+        self.assertIn('HAI-99', enviados[0])
+        self.assertIn('blocked', enviados[0])
+        self.assertNotIn('Distribuidora', enviados[0])
+
+    def test_el_acuse_de_un_encargo_sigue_trayendo_su_numero(self):
+        app, _, enviados = self.nuevo()
+        app.call('encargar_alfred', {'titulo': 'T', 'encargo': 'E'})
+        app.flush()
+        self.assertIn('HAI-99', enviados[0])
+
+
+class RevisionCodexM1(unittest.TestCase):
+    def test_un_429_sin_cabecera_usa_el_retry_after_del_cuerpo(self):
+        def abridor(req, timeout):
+            raise urllib.error.HTTPError(WEBHOOK, 429, 'x', email.message.Message(),
+                                         io.BytesIO(b'{"message": "rate limited", "retry_after": 2.5, "global": false}'))
+        with self.assertRaises(bridge.EnvioEnEspera) as caso:
+            bridge.discord_sender(WEBHOOK, abridor)('x')
+        self.assertEqual(caso.exception.esperar, 2.5)
+
+    def test_la_cabecera_manda_sobre_el_cuerpo(self):
+        mensaje = email.message.Message()
+        mensaje['Retry-After'] = '4'
+
+        def abridor(req, timeout):
+            raise urllib.error.HTTPError(WEBHOOK, 429, 'x', mensaje, io.BytesIO(b'{"retry_after": 2.5}'))
+        with self.assertRaises(bridge.EnvioEnEspera) as caso:
+            bridge.discord_sender(WEBHOOK, abridor)('x')
+        self.assertEqual(caso.exception.esperar, 4)
+
+
+class RevisionCodexM2(Base):
+    def test_el_envio_devuelve_el_id_del_mensaje_que_creo_discord(self):
+        enviar = bridge.discord_sender(WEBHOOK, lambda req, timeout: Resp(200, b'{"id": "1570000000000000001"}'))
+        self.assertEqual(bridge.id_de_mensaje(enviar('x')), '1570000000000000001')
+
+    def test_el_id_del_mensaje_queda_guardado_con_el_aviso(self):
+        def sender(body):
+            return {'id': 'm-' + body}
+        app, _, _ = self.nuevo(sender)
+        app.emit('k', 'hola')
+        app.flush()
+        fila = app.db.execute("SELECT * FROM outbox WHERE id='k:0'").fetchone()
+        self.assertIsNotNone(fila['sent'])
+        self.assertEqual(json.loads(fila['message_ids']), ['m-hola'])
+
+    def test_sin_respuesta_despues_de_enviar_es_entrega_incierta(self):
+        import http.client
+        import socket
+        for error in (TimeoutError(), socket.timeout(), ConnectionResetError(),
+                      http.client.RemoteDisconnected('x'), urllib.error.URLError(TimeoutError())):
+            def abridor(req, timeout, error=error):
+                raise error
+            with self.assertRaises(bridge.EntregaIncierta, msg=repr(error)) as caso:
+                bridge.discord_sender(WEBHOOK, abridor)('x')
+            # `from None`: el error de la red no se encadena al que ve el puente.
+            self.assertIsNone(caso.exception.__cause__, repr(error))
+            self.assertTrue(caso.exception.__suppress_context__, repr(error))
+
+    def test_si_no_se_pudo_conectar_no_es_incierta_y_se_reintenta(self):
+        import socket
+        for error in (urllib.error.URLError(ConnectionRefusedError()), urllib.error.URLError(socket.gaierror()),
+                      ConnectionRefusedError()):
+            def abridor(req, timeout, error=error):
+                raise error
+            with self.assertRaises(RuntimeError, msg=repr(error)) as caso:
+                bridge.discord_sender(WEBHOOK, abridor)('x')
+            self.assertNotIsInstance(caso.exception, bridge.EntregaIncierta, repr(error))
+
+    def test_un_aviso_de_entrega_incierta_no_se_reenvia_a_ciegas(self):
+        enviados = []
+
+        def sender(body):
+            if body == 'dos':
+                raise bridge.EntregaIncierta()
+            enviados.append(body)
+
+        app, _, _ = self.nuevo(sender)
+        for clave, texto in (('k1', 'uno'), ('k2', 'dos'), ('k3', 'tres')):
+            app.emit(clave, texto)
+        app.flush()
+        self.assertEqual(enviados, ['uno'])  # el lote se corta: la red anda mal
+        app.espera_hasta = 0
+        for _ in range(3):
+            app.flush()
+            app.espera_hasta = 0
+        self.assertEqual(enviados, ['uno', 'tres'])
+        fila = app.db.execute("SELECT * FROM outbox WHERE id='k2:0'").fetchone()
+        self.assertIsNone(fila['sent'])
+        self.assertIsNotNone(fila['uncertain'])
+        self.assertIn('incierta', fila['error'])
+        self.assertEqual(fila['body'], 'dos')
+
+    def test_tras_una_entrega_incierta_el_puente_espera_antes_de_seguir(self):
+        enviados = []
+
+        def sender(body):
+            if body == 'uno':
+                raise bridge.EntregaIncierta()
+            enviados.append(body)
+
+        app, _, _ = self.nuevo(sender)
+        app.emit('k1', 'uno')
+        app.emit('k2', 'dos')
+        app.flush()
+        app.flush()
+        self.assertEqual(enviados, [])
+
+    def test_el_estado_de_la_conexion_cuenta_los_avisos_sin_entregar_y_los_inciertos(self):
+        def sender(body):
+            raise bridge.EntregaIncierta() if body == 'uno' else RuntimeError('caído')
+        app, _, _ = self.nuevo(sender)
+        app.api = ApiConTarea()
+        app.emit('k1', 'uno')
+        app.emit('k2', 'dos')
+        app.flush()
+        app.espera_hasta = 0
+        app.flush()
+        estado = app.call('estado_conexion', {})
+        self.assertEqual(estado['avisos_sin_entregar'], 1)
+        self.assertEqual(estado['avisos_inciertos'], 1)
+
+    def test_una_base_de_antes_del_corte_gana_las_columnas_nuevas_sin_perder_avisos(self):
+        import sqlite3
+        carpeta = tempfile.TemporaryDirectory()
+        self.addCleanup(carpeta.cleanup)
+        ruta = str(pathlib.Path(carpeta.name) / 'vieja.sqlite')
+        vieja = sqlite3.connect(ruta)
+        vieja.executescript('''CREATE TABLE outbox (id TEXT PRIMARY KEY, body TEXT NOT NULL, sent REAL,
+            attempts INTEGER DEFAULT 0, next_try REAL DEFAULT 0, error TEXT);
+            INSERT INTO outbox(id, body) VALUES ('viejo:0', 'pendiente de Telegram');''')
+        vieja.commit()
+        vieja.close()
+        enviados = []
+        app = bridge.Bridge(CFG, ruta, ApiDoble(), enviados.append)
+        self.addCleanup(app.db.close)
+        app.flush()
+        self.assertEqual(enviados, ['pendiente de Telegram'])
+        columnas = {fila[1] for fila in app.db.execute('PRAGMA table_info(outbox)')}
+        self.assertTrue({'message_ids', 'uncertain'} <= columnas, columnas)
+
+
+class RevisionCodexM4(Base):
+    def test_tambien_se_acepta_el_dominio_discordapp(self):
+        vistos = []
+
+        def abridor(req, timeout):
+            vistos.append(req.full_url)
+            return Resp(204)
+        direccion = WEBHOOK.replace('discord.com', 'discordapp.com')
+        bridge.discord_sender(direccion, abridor)('x')
+        self.assertEqual(vistos, [direccion + '?wait=true'])
+
+    def test_otros_subdominios_de_discord_no_entran(self):
+        for host in ('canary.discord.com', 'ptb.discord.com', 'discord.gg'):
+            with self.assertRaises(ValueError, msg=host):
+                bridge.discord_sender(WEBHOOK.replace('discord.com', host))
+
+    def test_al_partir_no_se_corta_un_enlace_por_la_mitad(self):
+        app, _, enviados = self.nuevo()
+        enlace = 'https://dtdcargo.com/tarifas?origen=puente'
+        app.emit('k', 'a' * 1880 + ' ' + enlace + ' ' + 'b' * 100)
+        app.flush()
+        self.assertEqual(len(enviados), 2)
+        self.assertTrue(any(enlace in trozo for trozo in enviados), [t[-30:] for t in enviados])
+        self.assertTrue(all(u16(t) <= 1900 for t in enviados))
+
+    def test_se_corta_en_el_salto_de_linea_si_cae_cerca(self):
+        app, _, enviados = self.nuevo()
+        app.emit('k', 'a' * 1500 + '\n' + 'palabra ' * 100)
+        app.flush()
+        self.assertTrue(all(u16(t) <= 1900 for t in enviados))
+        self.assertTrue(enviados[0].endswith((' ', '\n')), repr(enviados[0][-10:]))
+        self.assertEqual(''.join(enviados), 'a' * 1500 + '\n' + 'palabra ' * 100)
 
 
 if __name__ == '__main__':

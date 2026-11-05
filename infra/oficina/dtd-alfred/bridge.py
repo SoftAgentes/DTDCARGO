@@ -1,5 +1,6 @@
 """Private, scoped Discord-to-Paperclip task bridge. Python standard library only."""
 import hashlib
+import http.client
 import json
 import os
 import pathlib
@@ -78,17 +79,45 @@ class EnvioEnEspera(RuntimeError):
         super().__init__('Discord pidio esperar')
 
 
+class EntregaIncierta(RuntimeError):
+    """El pedido salio y no volvio respuesta: el aviso pudo haber llegado. No se reenvia a ciegas."""
+    def __init__(self):
+        super().__init__('Entrega incierta')
+
+
+ESPERA_TRAS_INCIERTA = 60  # Segundos sin enviar despues de una entrega incierta.
+
+
+def id_de_mensaje(resultado):
+    return resultado.get('id') if isinstance(resultado, dict) else None
+
+
+def pausa_de(resultado):
+    if isinstance(resultado, dict):
+        return resultado.get('pausa')
+    if isinstance(resultado, (int, float)) and not isinstance(resultado, bool):
+        return resultado
+    return None
+
+
 def unidades(texto):
     """Largo en unidades UTF-16: la cuenta mas exigente que puede hacer Discord."""
     return len(texto) + sum(1 for c in texto if ord(c) > 0xFFFF)
 
 
 def partir(texto, limite=TROZO):
-    """Separa el primer trozo, de a lo sumo `limite` unidades. Devuelve (trozo, resto)."""
+    """Separa el primer trozo, de a lo sumo `limite` unidades. Devuelve (trozo, resto).
+
+    Corta en el ultimo salto de linea o espacio antes del limite, para no partir un enlace ni
+    una palabra. Solo corta a la fuerza si no hay ninguno en la segunda mitad del trozo.
+    """
     usado = 0
     for i, c in enumerate(texto):
         usado += 2 if ord(c) > 0xFFFF else 1
         if usado > limite and i:
+            corte = max(texto.rfind('\n', 0, i), texto.rfind(' ', 0, i))
+            if corte >= i // 2:
+                i = corte + 1
             return texto[:i], texto[i:]
     return texto, ''
 
@@ -122,7 +151,13 @@ class Bridge:
           id TEXT PRIMARY KEY, body TEXT NOT NULL, sent REAL, attempts INTEGER DEFAULT 0,
           next_try REAL DEFAULT 0, error TEXT);
         ''')
+        # Columnas que llegaron con Discord. Una base de antes del corte las gana sin perder filas.
+        columnas = {fila[1] for fila in self.db.execute('PRAGMA table_info(outbox)')}
+        for nombre, tipo in (('message_ids', "TEXT NOT NULL DEFAULT '[]'"), ('uncertain', 'REAL')):
+            if nombre not in columnas:
+                self.db.execute(f'ALTER TABLE outbox ADD COLUMN {nombre} {tipo}')
         self.db.commit()
+        self.espera_hasta = 0
 
         self.desktop_feed = DesktopFeed(self.db, self.cfg, mask_secrets)
 
@@ -256,7 +291,7 @@ class Bridge:
             if name == 'listar_tareas':
                 return {'tareas':[dict(x) for x in self.db.execute('SELECT identifier as tarea,title as titulo,status as estado FROM tasks ORDER BY updated DESC LIMIT 30')], 'pendientes':[self.request_view(x) for x in self.db.execute("SELECT * FROM requests WHERE status!='delivered' ORDER BY created DESC LIMIT 20")]}
             me=self.api('GET','/agents/me')
-            return {'conectado':me.get('id')==self.cfg['alfred_id'],'agente':me.get('name'),'tipo_permiso':(me.get('keyScope') or {}).get('kind'),'aprobaciones':'Solo Sam, manualmente en Paperclip. El puente no tiene una llave de Junta ni herramientas de aprobacion.','solicitudes_pendientes':self.db.execute("SELECT count(*) FROM requests WHERE status!='delivered'").fetchone()[0]}
+            return {'conectado':me.get('id')==self.cfg['alfred_id'],'agente':me.get('name'),'tipo_permiso':(me.get('keyScope') or {}).get('kind'),'aprobaciones':'Solo Sam, manualmente en Paperclip. El puente no tiene una llave de Junta ni herramientas de aprobacion.','solicitudes_pendientes':self.db.execute("SELECT count(*) FROM requests WHERE status!='delivered'").fetchone()[0],'avisos_sin_entregar':self.db.execute('SELECT count(*) FROM outbox WHERE sent IS NULL AND uncertain IS NULL').fetchone()[0],'avisos_inciertos':self.db.execute('SELECT count(*) FROM outbox WHERE sent IS NULL AND uncertain IS NOT NULL').fetchone()[0]}
 
     def issue_url(self, identifier):
         return 'http://localhost:3100/HAI/issues/'+identifier
@@ -270,11 +305,13 @@ class Bridge:
                 self.desktop_feed.observe(issue, comments, task['status'], seen)
                 fresh=[c for c in comments if c.get('id') not in seen and c.get('authorAgentId') and not c.get('body','').startswith(('Mensaje de Sam por Telegram','Mensaje de Sam por Discord','Mensaje de Sam por Hermes App'))]
                 fresh.sort(key=lambda c:c.get('createdAt',''))
+                # Lo minimo hacia el canal: tarea, estado y enlace. Ni el titulo ni el texto del
+                # comentario, que pueden traer datos de clientes. El detalle se pide a la recepcion.
                 for comment in fresh:
                     author = 'ALFRED' if comment.get('authorAgentId') == self.cfg['alfred_id'] else 'Equipo de la oficina'
-                    self.emit('comment:'+comment['id'], f"{author} · {issue['identifier']} · {issue['status']}\n{issue['title']}\n\n{comment.get('body','')}\n\nPaperclip (en tu PC con tunel): {self.issue_url(issue['identifier'])}")
+                    self.emit('comment:'+comment['id'], f"{author} · {issue['identifier']} · {issue['status']}\nHay un comentario nuevo en esta tarea. Pideme el detalle o miralo en Paperclip (en tu PC con tunel): {self.issue_url(issue['identifier'])}")
                 if not fresh and issue['status'] != task['status'] and issue['status'] in ('blocked','in_review','done','cancelled'):
-                    self.emit('status:'+task['id']+':'+str(issue.get('updatedAt')), f"ALFRED · {issue['identifier']}\n{issue['title']}\nEstado registrado en Paperclip: {issue['status']}. Puedes pedirme el detalle de esta tarea.")
+                    self.emit('status:'+task['id']+':'+str(issue.get('updatedAt')), f"ALFRED · {issue['identifier']}\nEstado registrado en Paperclip: {issue['status']}. Pideme el detalle de esta tarea o miralo en Paperclip (en tu PC con tunel): {self.issue_url(issue['identifier'])}")
                 seen.update(c['id'] for c in comments)
                 self.db.execute('UPDATE tasks SET status=?,comments=?,updated=?,alerted_error=NULL WHERE id=?', (issue['status'],json.dumps(sorted(seen)),time.time(),task['id']))
                 self.db.commit()
@@ -288,17 +325,32 @@ class Bridge:
     def flush(self):
         # En orden estricto: el primer aviso que no sale frena a los que vienen detras,
         # para que un mensaje largo no llegue con sus trozos desordenados.
-        for row in list(self.db.execute('SELECT * FROM outbox WHERE sent IS NULL ORDER BY rowid LIMIT 12')):
+        if self.espera_hasta > time.time():
+            return
+        # Las de entrega incierta quedan fuera: no se reenvian a ciegas ni frenan a las demas.
+        for row in list(self.db.execute('SELECT * FROM outbox WHERE sent IS NULL AND uncertain IS NULL ORDER BY rowid LIMIT 12')):
             if row['next_try'] > time.time():
                 return
             resto = row['body']
+            ids = json.loads(row['message_ids'] or '[]')
             while True:
-                # Un aviso guardado antes del corte puede traer el largo de Telegram.
+                # Un aviso guardado antes del corte puede traer el largo de Telegram: se parte
+                # aqui, en la misma fila, y lo ya enviado sale del cuerpo para no repetirse.
                 body, resto = partir(resto)
                 pausa = None
                 try:
                     if body.strip():
-                        pausa = self.sender(body)
+                        resultado = self.sender(body)
+                        pausa = pausa_de(resultado)
+                        if id_de_mensaje(resultado):
+                            ids.append(id_de_mensaje(resultado))
+                except EntregaIncierta:
+                    # Puede haber llegado. Se aparta con lo que falta, para que una persona lo
+                    # resuelva mirando el canal (runbook, «Entregas inciertas»).
+                    self.db.execute('UPDATE outbox SET body=?,uncertain=?,attempts=attempts+1,message_ids=?,error=? WHERE id=?',(body+resto,time.time(),json.dumps(ids),'Entrega incierta: revisar el canal antes de reenviar',row['id']))
+                    self.db.commit()
+                    self.espera_hasta = time.time()+ESPERA_TRAS_INCIERTA
+                    return
                 except AvisoRechazado:
                     # Reintentarlo no cambia nada y frenaria a todos: se descarta avisando.
                     self.db.execute('UPDATE outbox SET sent=?,attempts=attempts+1,error=? WHERE id=?',(time.time(),'Descartado: el canal rechazo el contenido',row['id']))
@@ -313,9 +365,9 @@ class Bridge:
                     self.db.commit()
                     return
                 if resto:
-                    self.db.execute('UPDATE outbox SET body=? WHERE id=?',(resto,row['id']))
+                    self.db.execute('UPDATE outbox SET body=?,message_ids=? WHERE id=?',(resto,json.dumps(ids),row['id']))
                 else:
-                    self.db.execute('UPDATE outbox SET sent=?,attempts=attempts+1,error=NULL WHERE id=?',(time.time(),row['id']))
+                    self.db.execute('UPDATE outbox SET sent=?,attempts=attempts+1,message_ids=?,error=NULL WHERE id=?',(time.time(),json.dumps(ids),row['id']))
                 self.db.commit()
                 if pausa:
                     return  # El canal aviso que no quedan envios en esta ventana: sigue el proximo ciclo.
@@ -333,36 +385,66 @@ class Bridge:
 def discord_sender(webhook, opener=urllib.request.urlopen):
     """Publica en un canal de Discord por su webhook. Sin menciones y sin vista previa de enlaces.
 
-    El envio devuelve None, o los segundos que Discord pide esperar cuando avisa que no quedan
-    envios en la ventana. Lanza EnvioEnEspera ante un 429 y AvisoRechazado ante un contenido que
-    Discord no va a aceptar. Ningun error lleva la direccion del webhook, que es un secreto.
+    El envio devuelve {'id': <id del mensaje o None>, 'pausa': <segundos o None>}: `pausa` son los
+    segundos que Discord pide esperar cuando avisa que no quedan envios en la ventana. Lanza
+    EnvioEnEspera ante un 429, AvisoRechazado ante un contenido que Discord no va a aceptar,
+    EntregaIncierta si el pedido salio y no volvio respuesta, y RuntimeError si no se pudo
+    conectar. Ningun error lleva la direccion del webhook, que es un secreto.
     """
     partes = urllib.parse.urlsplit(webhook)
-    if (partes.scheme != 'https' or partes.netloc != 'discord.com' or partes.query or partes.fragment
+    if (partes.scheme != 'https' or partes.netloc not in ('discord.com', 'discordapp.com')
+            or partes.query or partes.fragment
             or not re.fullmatch(r'/api/webhooks/\d+/[A-Za-z0-9_-]+', partes.path)):
         raise ValueError('La credencial discord_webhook no es la direccion limpia de un webhook de Discord')
+    destino = urllib.parse.urlunsplit((partes.scheme, partes.netloc, partes.path, urllib.parse.urlencode({'wait': 'true'}), ''))
     def sender(body):
         if not body.strip() or unidades(body) > TOPE_DISCORD:
             raise AvisoRechazado()
         data=json.dumps({'content':body,'allowed_mentions':{'parse':[]},'flags':4}).encode()
-        req=urllib.request.Request(webhook+'?wait=true',data=data,headers={'Content-Type':'application/json','User-Agent':'DTD-Oficina-Puente/1.0 (+https://dtdcargo.com)'})
+        req=urllib.request.Request(destino,data=data,headers={'Content-Type':'application/json','User-Agent':'DiscordBot (https://dtdcargo.com, 1.0)'})
+        cuerpo=b''
         try:
             with opener(req,timeout=20) as resp:
                 codigo,cabeceras=resp.status,resp.headers
+                try:
+                    cuerpo=resp.read()
+                except Exception:
+                    cuerpo=b''  # Discord ya acepto: el id se pierde, el aviso no
         except urllib.error.HTTPError as exc:
             # urlopen no devuelve los 4xx y 5xx: los lanza. El error trae la direccion; no se propaga.
             codigo,cabeceras=exc.code,exc.headers
+            try:
+                cuerpo=exc.read()
+            except Exception:
+                cuerpo=b''
             exc.close()
+        except urllib.error.URLError as exc:
+            if isinstance(exc.reason,(ConnectionRefusedError,socket.gaierror)):
+                raise RuntimeError('Discord no disponible') from None  # No llego a salir
+            raise EntregaIncierta() from None
+        except (ConnectionRefusedError,socket.gaierror):
+            raise RuntimeError('Discord no disponible') from None
+        except (OSError,http.client.HTTPException):
+            # Salio y no volvio respuesta (tiempo agotado, conexion cortada): pudo haber llegado.
+            raise EntregaIncierta() from None
         cabeceras=cabeceras or {}
+        try:
+            datos=json.loads(cuerpo or b'{}')
+        except ValueError:
+            datos={}
+        if not isinstance(datos,dict):
+            datos={}
         if codigo == 429:
-            raise EnvioEnEspera(segundos(cabeceras.get('Retry-After'),5))
+            raise EnvioEnEspera(segundos(cabeceras.get('Retry-After'),segundos(datos.get('retry_after'),5)))
         if codigo == 400:
             raise AvisoRechazado()
         if not 200 <= codigo < 300:
             raise RuntimeError('Discord rechazado')
+        pausa=None
         if cabeceras.get('X-RateLimit-Remaining') == '0':
-            return segundos(cabeceras.get('X-RateLimit-Reset-After'),1)
-        return None
+            pausa=segundos(cabeceras.get('X-RateLimit-Reset-After'),1)
+        mid=datos.get('id')
+        return {'id':str(mid) if mid else None,'pausa':pausa}
     return sender
 
 
