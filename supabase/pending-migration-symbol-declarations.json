@@ -7,5 +7,40 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "sdd-0608-discord-consulta-clientes",
+      "primarySymbol": "discord_consulta_registrar",
+      "migration": "0516_discord_consulta_clientes",
+      "reason": "SDD-0608: /cliente de Discord registra cada consulta y busca por las funciones de la 0516. Sin ellas el comando contesta «no disponible» de forma efímera y no busca: registrar es condición para buscar. No es migrate-first.",
+      "symbols": [
+        {
+          "name": "discord_consulta_registrar",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/discord/consulta/consulta.ts:144"
+          ]
+        },
+        {
+          "name": "discord_buscar_clientes",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/discord/consulta/consulta.ts:159"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/discord/consulta/consulta.ts:153",
+          "contains": "return fin(\"no_disponible\");",
+          "degradation": "Registrar con la función ausente devuelve error y la consulta termina en «no disponible» sin buscar. Medido en app/api/discord/interacciones/__tests__/route.test.ts («si no se puede registrar (0516 sin aplicar), no busca»)."
+        },
+        {
+          "site": "lib/studio/discord/consulta/consulta.ts:164",
+          "contains": "if (busqueda.error || !Array.isArray(busqueda.data)) return fin(\"no_disponible\");",
+          "degradation": "Buscar con la función ausente devuelve error y la respuesta es «no disponible», efímera y sin datos. Medido en route.test.ts («toda respuesta de comando es efímera», caso de búsqueda con error)."
+        }
+      ]
+    }
+  ]
 }
