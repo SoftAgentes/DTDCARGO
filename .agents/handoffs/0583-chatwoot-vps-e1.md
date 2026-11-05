@@ -138,6 +138,17 @@ Coincide con la medición del Director en lo central (p95 98,85; 156 sobre 60; l
   - `rails` y `sidekiq` recreados y sanos.
   - Correo de prueba aceptado por Hostinger a las 22:31:31Z. Sam confirmó que llegó a Recibidos de `hailuway.com@gmail.com`.
   - Sin probar todavía: los correos propios de Chatwoot (restablecer contraseña, invitación). Se prueban al invitar al primer agente.
+- **Correos con la marca de DTD** (pedido de Sam del 2026-10-30, «Sí, prepáralas»; T-40 a T-43; runbook §2 ter):
+  - **Hecho en el repo:** `infra/chatwoot/correo/views/` (diseño con logo y firma, textos en español), `rails/zz_dtd_correo.rb` (asuntos en español) y dos montajes en `compose.yml`.
+  - **Vista previa en el servidor:** 14/14 PASÓ, sin enviar ni escribir nada. La página con los 14 correos está en la carpeta de notas de la sesión del programa (`correos-dtd-vista-previa.html`).
+  - **Minimización:** los avisos a agentes ya no copian el nombre ni los mensajes del cliente.
+  - **Estilo:** Sam eligió la estructura del diseño de Chatwoot (lo vio en una invitación real en inglés) y se rehízo así, con los colores de DTD. Hay un logo con ficha blanca para el modo oscuro (`marca/dtdcargo-isologo-correo.png`). Los avisos liquid salen de `correo/generar-avisos.sh` (T-44).
+  - **Aplicado el 2026-10-30** («Autorizo aplicarlos», T-45 y T-46):
+    - `up -d --wait` en 3 min, con los cinco servicios sanos;
+    - vista previa con las plantillas montadas: 14/14;
+    - correo de prueba real aceptado a las 05:55:22Z;
+    - Sam confirmó que llegó y se ve bien en Gmail: «Llegó y se ve bien».
+  - **Ojo al integrar:** el `compose.yml` del VPS es el de SDD-0584 (PR #331: protección de `/register`) **más** las 4 líneas del correo. Esta rama no trae el cambio de 0584, así que publicar su `compose.yml` tal cual en el VPS borraría esa protección. Hasta que las dos ramas se junten, en el VPS solo se editan líneas, nunca se reemplaza el archivo. Copia previa: `compose.yml.antes-correo`.
 - ~~Tras las 72 h: resumen y medidas de capacidad → fila 1.6~~ hecho el 2026-11-01: ver «Cierre de la vigilancia». Sam aceptó la 1.6 el 2026-11-01. Lo que sigue en pie: volver a leer el criterio al cerrar E4 (runbook §4).
   - Riesgo de capacidad del VPS compartido (observación del Director, 2026-10-30): load average 8,90 / 9,16 / 8,63 con 33 sesiones en `who` a las 14:35 hora del VPS. Memoria: 24 GB, 13,7 disponibles. Arriba en CPU: cadvisor (38 %), varios api-gw (15–25 %) y dtd-cargo-staging-db (15 %); Chatwoot no aparecía. Un `rails runner` de más de 180 s. Timeouts de SSH a las 05:19Z y a las 14:36 hora del VPS, más un `RedisClient::ReadTimeoutError` de sidekiq a las 05:19Z que se recuperó solo. (I) La carga viene de otros proyectos y de las sesiones abiertas, no de Chatwoot. No se mató ni cambió nada: requiere OK de Sam.
 - ~~`/super_admin` con Cloudflare Access~~ hecho el 2026-10-29 («Confirmo Access»), runbook §4.1.
@@ -179,6 +190,8 @@ Coincide con la medición del Director en lo central (p95 98,85; 156 sobre 60; l
 - ufw deja el SSH (22) abierto a todo internet; el runbook servidor-contabo dice cerrarlo cuando haya Tailscale.
 - `TRUSTED_PROXY_CIDRS` del Traefik no incluye los rangos de Cloudflare: con proxy, las apps detrás ven la IP de Cloudflare.
 - El PDF del DPA de Contabo sigue sin seguimiento en la raíz del checkout principal (ya anotado en la spec 0582).
+- `https://chat.dtdcargo.com/dtd-marca/aplicar-marca.rb` respondía 200 (`text/x-script.ruby`, 1822 bytes, `cf-cache-status: DYNAMIC`; 2026-10-30 14:15Z): el compose monta toda la carpeta `marca/`, guion incluido, en `public/`. Sam pidió esconderlo («Sí, escóndelo», en la sesión del programa, a la pregunta del Director). **En el repo:** el guion pasó a `infra/chatwoot/aplicar-marca.rb` y se ajustaron el runbook §6 bis, la allowlist de la spec y el comentario del compose. **En el VPS: hecho** el 2026-10-30 a las 14:22:59Z, con «Autorizo moverlo» de Sam en esta sesión (antes la herramienta no aceptó la autorización que llegó por otra sesión). Ahora el guion da 404, y el login, la API y las 4 imágenes dan 200 (T-47). Comentario del compose del VPS sin actualizar, a propósito. El resto de `/dtd-marca/` son las 4 imágenes de marca (apple-touch-icon, primary, reverse y el logo de correo), que sí deben ser públicas.
+- Las alertas de cobro que Sam quiere mandar por `notificaciones@` no salen de Chatwoot: las armaría Studio (ERP) con su propio diseño. Para que se vean iguales, conviene copiar este diseño y esta firma (tarea aparte).
 - `infra/chatwoot/cf-access/verificador.node-test.mjs` hoy solo corre en el ensayo local (fase U de `pruebas/ensayo-local.sh`); meterla en una puerta automática como `harness:test` es una tarea aparte, aún sin dueño.
 
 ## Registro de corridas

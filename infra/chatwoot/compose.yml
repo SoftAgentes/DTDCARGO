@@ -144,8 +144,13 @@ x-chatwoot: &chatwoot
     - ./rails/zz_dtd_revocar_sesiones.rb:/app/config/initializers/zz_dtd_revocar_sesiones.rb:ro
     # Marca de DTD (paso 1.3): logos e ícono oficiales servidos por el propio chat en
     # /dtd-marca/. Carpeta aparte para no tapar /app/public/brand-assets de Chatwoot.
-    # Los valores que los usan están en marca/aplicar-marca.rb (InstallationConfig).
+    # Los valores que los usan están en aplicar-marca.rb (InstallationConfig), fuera de
+    # marca/ para que el chat no lo publique (todo lo de marca/ se sirve en /dtd-marca/).
     - ./marca:/app/public/dtd-marca:ro
+    # Correos de DTD (SDD-0583): diseño, firma y textos en español (correo/views) y los
+    # asuntos (rails/zz_dtd_correo.rb). Sin estas dos líneas vuelven los de Chatwoot.
+    - ./rails/zz_dtd_correo.rb:/app/config/initializers/zz_dtd_correo.rb:ro
+    - ./correo/views:/app/dtd-correo/views:ro
 
 services:
   prepare:
