@@ -792,7 +792,7 @@ Producto de QSOFT LLC, ley de California. Su política dice que puede guardar «
 | Secretos en el diff, patrones | 0. Correos en lo añadido: 0 |
 | `pnpm verify` | NO EJECUTADO: el Director General pidió no correrlo, y son textos con sus pruebas |
 | `tsc` | NO EJECUTADO |
-| Comprobaciones sobre `main` traído | NO EJECUTADO: esta rama sale de `1aafa150e` y se trae `main` cuando avise el Director General |
+| Con `main` traído en `fff7249fc` (2026-11-05 19:58Z), sin conflictos y sin cambios de `main` en estos archivos | Pruebas 20 de 20; eslint, candado, gate, numeración, índice (585 specs) y gobierno: PASÓ. El diff contra `main` son los 8 archivos de la allowlist. Los mutantes no se repitieron: `main` no tocó la página ni sus pruebas |
 
 ### revisar-datos-ve de este cambio
 

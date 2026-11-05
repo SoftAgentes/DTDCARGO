@@ -2,7 +2,7 @@
 
 Rama `codex/0587-privacidad-proveedor-crm`, worktree `DTD-worktrees/0587-privacidad-proveedor-crm`, desde `main` en `1aafa150e`. Encargo del Director General, 2026-11-05. PR aparte, y se publica con la tanda D.
 
-**Estado, 2026-11-05: listo en commit local. Sin subir y sin PR.** El orden del Director General es #338, #342 y después esta, para no gastar CI dos veces. Él avisa cuándo traer `main`. Hay preguntas abiertas con Sam, en «Lo que el texto no cubre»: si el texto cambia, vuelve con él. Detalle completo, con evidencia y `revisar-datos-ve`, en la sección de esta fecha de `docs/specs/0587-chatwoot-contrato-sistema-maestro/spec.md`.
+**Estado, 2026-11-05 20:00Z: `main` traído en `fff7249fc` y PR en borrador.** Entraron la #338 y la #342, y el Director General avisó a las 19:57Z. Al verde se le escribe con el SHA; fusiona él. Si el verde llega el 6 de noviembre o después, `UPDATED` y sus dos pruebas se mueven antes de publicar. Va antes que la #376 de SEO. Queda una pregunta abierta con Sam, en «Lo que el texto no cubre»: si el texto cambia, vuelve con él. Detalle completo, con evidencia y `revisar-datos-ve`, en la sección de esta fecha de `docs/specs/0587-chatwoot-contrato-sistema-maestro/spec.md`.
 
 ## Autorización
 
@@ -51,8 +51,8 @@ Si cambia una palabra, se le vuelve a preguntar:
 ## Lo que falta
 
 - Lo que diga Sam del punto 2 de arriba, si cambia algo. Lo pasa el Director General.
-- Traer `main` una sola vez, cuando él avise; correr otra vez las comprobaciones; publicar en otro comando, después de leerlas.
-- PR aparte, con la tanda D. Al traer `main`, la fila de Kommo del inventario puede cruzarse con la de Discord si SDD-0606 entró antes; según el Director General, esta va primero.
+- El verde del CI y la fusión, que hace el Director General. Se publica con la tanda D.
+- Si SDD-0606 entra después, su fila de Discord del inventario puede cruzarse con la de Kommo: lo resuelve su rama.
 
 ## FUERA DE ALCANCE DETECTADO
 
