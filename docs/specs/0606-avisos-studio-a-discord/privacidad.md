@@ -81,7 +81,7 @@ No es dato sensible. Los titulares son personal del Studio, no clientes.
 
 ### `NO VERIFICABLE`
 
-1. **Quién ve cada canal.** Los roles y permisos viven en Discord. El plan dice 12 miembros y canales cerrados por rol; no se puede comprobar desde el repositorio.
+1. **Quién ve cada canal.** Los roles y permisos viven en Discord; no se puede comprobar desde el repositorio. Dato informado por la sesión que coordina el plan el 2026-11-05, **no medido por esta revisión**: los cinco canales ya existen y son privados, y además de Sam los ven **el dueño del servidor y otra cuenta con rol Admin**. En Discord, el dueño y cualquier rol con «Administrador» ven todos los canales aunque sean privados: eso no se cierra con permisos de canal. Esas dos cuentas verían los códigos y los enlaces de la sección 2 (no nombres, teléfonos ni montos) y los ID de Discord del personal mencionado. Sam tiene que saber quiénes son y decidir si corresponde que lo vean; si no, la salida es quitarles el rol Admin o mover los avisos a un servidor del que Sam sea dueño.
 2. **Qué hace Discord con los mensajes.** Retención, uso y cesión dependen de su política y de sus términos. No se leyeron ni se archivaron en esta revisión.
 3. **Contrato.** Un servidor gratuito se rige por los términos de servicio de Discord; no hay un acuerdo de tratamiento firmado. Si existe uno aplicable a cuentas gratuitas, no se verificó.
 4. **Dónde quedan alojados los mensajes.** Discord Inc. es una empresa de Estados Unidos; la ubicación de los datos no se verificó.
@@ -100,7 +100,7 @@ No es dato sensible. Los titulares son personal del Studio, no clientes.
 | ¿La política pública declara este destino? | No — hallazgo `ENCONTRADO` 1 |
 | Seguridad de nuestro lado | Llave fuera de la base y del repositorio; validación de la dirección; sin menciones por defecto |
 | Al terminar | Borrar los webhooks y los canales desde Discord; el Studio no guarda nada de Discord salvo el ID del personal |
-| Veredicto propuesto | **Adelante con condiciones**: canales privados por rol antes de poner las direcciones; declarar la herramienta en la política; decidir cómo se atiende una supresión |
+| Veredicto propuesto | **Adelante con condiciones**: canales privados por rol antes de poner las direcciones; que Sam confirme quiénes son el dueño del servidor y la otra cuenta con rol Admin, que ven todo; declarar la herramienta en la política; decidir cómo se atiende una supresión |
 
 ## 5 · Fuera de alcance: lo que decide Sam o un abogado
 

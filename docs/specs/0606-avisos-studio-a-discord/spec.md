@@ -82,6 +82,7 @@ En Discord no hay chat privado. Un aviso por persona se escribe en el canal de s
 - Los interruptores de cada módulo (`channel_telegram` de bugs, el de Bitácora, el del portal) se siguen aplicando antes de enviar. Pasan a significar «avísame por mensajería», sea Telegram o Discord. No se renombran en esta spec.
 - Mientras exista el token de Telegram, quien no enlazó Discord sigue recibiendo por Telegram. Al retirarlo, esos avisos quedan en la campana del Studio y el correo, que nunca dependieron de esto.
 - El ID se guarda en `user_profiles.discord_user_id` (migración 0514, **sin aplicar**). No es una credencial; sí es un dato personal. El código tolera que la columna no exista: los avisos salen sin menciones y el perfil dice que todavía no se puede guardar.
+- Las dos acciones del perfil exigen ser miembro activo del Studio (`getStudioAccess`) y sólo tocan la fila de quien está en sesión.
 - El ID no se verifica contra Discord: un webhook no puede consultar miembros. Si alguien pega el ID de otra persona, esa persona recibe menciones en un canal que sólo ve si tiene el rol. Riesgo aceptado; el CHECK de la base sólo deja entrar números de 17 a 20 dígitos.
 
 | Aviso por persona | Canal | Qué lleva |
@@ -145,6 +146,7 @@ Modificados:
 - Pantalla y perfil: `app/studio/(app)/admin/alertas-telegram/page.tsx`, `app/studio/(app)/admin/page.tsx`, `app/studio/(app)/usuarios/actions.ts`, `app/studio/_components/wiring/ProfileModal.tsx`
 - Entorno: `.env.example`, `infra/dtd-cargo/.env.example`, `lib/studio/env-status.ts`
 - Registro de la migración: `supabase/migrations-baseline.json`, `supabase/pending-migration-symbol-declarations.json`
+- Contrato de permisos: `lib/studio/rbac-actions-guard.test.ts` (dos entradas en `EXCEPCIONES` para las acciones del ID de Discord, con su verificación; inventario 459 → 461)
 - Documentos: `docs/legal/privacidad/inventario-terceros.md`, `docs/specs/README.md` (índice generado)
 
 ### Qué no cambia
@@ -192,7 +194,7 @@ Vuelta atrás entre los pasos 3 y 7: quitar las variables de Discord y reiniciar
 - [x] En `APP_ENV=staging` no se escribe en Discord.
 - [x] La migración 0514 pasa su contrato en PostgreSQL embebido, con control rojo y un mutante.
 - [x] La pantalla nombra las categorías sin canal y nunca muestra una dirección.
-- [ ] `pnpm verify` — resultado por comprobación en el handoff.
+- [ ] `pnpm verify` — **FALLÓ** e incompleto en la única corrida (2026-11-05): un rojo real de esta rama en el contrato de permisos, ya corregido y vuelto a medir aislado; tres archivos ajenos que pasaron en uno de los dos intentos; `migrations-applied`, `sql-tests` y `schema-rebuild` sin medir. Falta una corrida completa sobre la rama final. Detalle por paso en el handoff.
 - [ ] Prueba real contra un webhook de Discord: **no hecha**. No existe todavía ningún webhook y crear uno es de Sam. Los formatos de pedido y de respuesta están tomados de la documentación de Discord, no medidos.
 
 ## Fuera de alcance
