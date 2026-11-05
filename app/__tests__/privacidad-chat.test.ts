@@ -29,7 +29,7 @@ describe("/privacidad · mensajes por WhatsApp y chat (SDD-0585, 2.6)", () => {
   // prueba falla porque cambió el texto, se le vuelve a preguntar.
   it("el párrafo de mensajes dice exactamente lo que Sam aprobó, con Instagram", () => {
     expect(texto).toContain(
-      '"Mensajes por WhatsApp y chat", "Si nos escribes por WhatsApp, Instagram u otro canal de chat: tu nombre y tu usuario o teléfono tal como aparecen en ese canal y el contenido de la conversación. Si no muestras tu teléfono, WhatsApp nos da en su lugar un código anónimo de tu cuenta (BSUID). Si todavía no eres cliente, guardamos tu nombre visible y los últimos 10 dígitos de tu teléfono para dar seguimiento a tu consulta.", ',
+      '"Mensajes por WhatsApp y chat", "Si nos escribes por WhatsApp, Instagram u otro canal de chat: tu nombre y tu usuario o teléfono tal como aparecen en ese canal, los datos de tu perfil que ese canal nos entrega (en Instagram, por ejemplo: un código de tu cuenta, tu foto, tu número de seguidores y si sigues nuestra cuenta) y el contenido de la conversación. Si no muestras tu teléfono, WhatsApp nos da en su lugar un código anónimo de tu cuenta (BSUID). Si todavía no eres cliente, guardamos tu nombre visible y, si lo tenemos, los últimos 10 dígitos de tu teléfono para dar seguimiento a tu consulta.", ',
     );
   });
 

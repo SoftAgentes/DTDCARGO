@@ -8,6 +8,7 @@ Sam, por el selector, en el chat del Director General; lo registra el Subdirecto
 
 - A «/privacidad no nombra Instagram y ya entran datos de clientes por ahí. ¿Apruebas este cambio de texto?»: «Apruebo este texto (Recommended)». La opción decía: «Entra a main con estas palabras y se publica con la tanda C, con la fecha de actualización nueva.»
 - A «Instagram ya recibe clientes reales sin la revisión de Meta. ¿Cómo queda?»: «Dejarlo conectado (Recommended)». Nada que hacer en Meta ni en Chatwoot.
+- A la pregunta sobre si ajustar el texto, después de ver lo que guarda Chatwoot del perfil: «Apruebo el texto ajustado (Recommended)». Ese párrafo reemplaza al de la primera respuesta; la fila de Meta queda igual.
 
 Cubre estas palabras. Si cambia una, se le vuelve a preguntar. No cubre aplicar nada en producción: publica el Director General, con la tanda C.
 
@@ -25,9 +26,8 @@ Lo dio el Director General: primero #340 y #341, y esta después, de a una. La r
 
 ## Pendiente de esta tarea
 
-- La respuesta del Director General sobre las inexactitudes del texto. Se le llevaron cinco, listadas en el punto 7 de la revisión. No se corrigió ninguna.
 - Traer `main`, publicar la rama y abrir la PR, cuando entre la #341.
-- Si la tanda C no sale el 2026-11-05, preguntar si se mueve la fecha.
+- La fecha queda en «5 de noviembre». Si la tanda C sale otro día, avisa el Director General antes de publicar.
 
 ## Impacto documental
 
@@ -37,7 +37,9 @@ Lo dio el Director General: primero #340 y #341, y esta después, de a una. La r
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Datos del perfil de Instagram en Chatwoot.** Chatwoot pide y guarda foto, seguidores y banderas de seguimiento que Studio no usa. Limitarlos necesita un `zz_dtd_*` con SDD propia.
-- **Texto del mensaje en el log de Rails** si falla un envío a Instagram (`app/services/instagram/base_send_service.rb:65`, imagen 4.19.1). La redacción de logs no lo tapa.
+- **«Nuestro propio sistema de atención».** Las 5 respuestas reales de la bandeja 5 se escribieron por fuera de Chatwoot. Sam dijo que esa frase no cambia. Queda en la lista del Director General para Sam.
+- **Messenger en la fila de Meta.** La bandeja 4 está conectada, con 0 entrantes, y la fila no la nombra. Queda en la misma lista.
+- **Datos del perfil de Instagram en Chatwoot.** Chatwoot pide y guarda foto, seguidores y banderas de seguimiento que Studio no usa. La política ya lo dice; limitarlos necesita un `zz_dtd_*` con SDD propia.
+- **Texto de los mensajes en los logs.** `app/jobs/webhooks/instagram_events_job.rb:53` escribe a nivel `info` lo que entrega Meta de cada entrante, y `app/services/instagram/base_send_service.rb:65` el destinatario y el texto de un envío fallido (imagen 4.19.1). La redacción de logs no tapa ninguna de las dos.
 - **Retención dentro de Chatwoot:** sigue sin definir (spec, §14.3, punto 8).
 - **`inventario-terceros.md`, sección 2 bis:** su título todavía dice «en preparación, 2026-10-29».

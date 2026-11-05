@@ -27,9 +27,9 @@ const DESC =
 // Sam aprobó este texto exacto el 2026-11-03: si cambia una palabra, se le vuelve
 // a preguntar. Sale solo con la tanda A y esas piezas en producción: lo publicado
 // obliga por haberse publicado.
-// El 2026-11-05 Sam aprobó, por el Director General, nombrar Instagram en los
-// mensajes y en la fila de Meta: entraban clientes por ahí desde el 2026-10-31.
-// Sale con la tanda C. Vale lo mismo: si cambia una palabra, se le vuelve a preguntar.
+// El 2026-11-05 Sam aprobó, por el Director General, nombrar Instagram y lo que el
+// canal entrega del perfil, en los mensajes y en la fila de Meta: entraban clientes
+// por ahí desde el 2026-10-31. Sale con la tanda C. Vale lo mismo: si cambia una palabra, se le vuelve a preguntar.
 const UPDATED = "5 de noviembre de 2026";
 
 export const metadata: Metadata = {
@@ -55,7 +55,7 @@ const CAPTURA: [string, string][] = [
   ],
   [
     "Mensajes por WhatsApp y chat",
-    "Si nos escribes por WhatsApp, Instagram u otro canal de chat: tu nombre y tu usuario o teléfono tal como aparecen en ese canal y el contenido de la conversación. Si no muestras tu teléfono, WhatsApp nos da en su lugar un código anónimo de tu cuenta (BSUID). Si todavía no eres cliente, guardamos tu nombre visible y los últimos 10 dígitos de tu teléfono para dar seguimiento a tu consulta.",
+    "Si nos escribes por WhatsApp, Instagram u otro canal de chat: tu nombre y tu usuario o teléfono tal como aparecen en ese canal, los datos de tu perfil que ese canal nos entrega (en Instagram, por ejemplo: un código de tu cuenta, tu foto, tu número de seguidores y si sigues nuestra cuenta) y el contenido de la conversación. Si no muestras tu teléfono, WhatsApp nos da en su lugar un código anónimo de tu cuenta (BSUID). Si todavía no eres cliente, guardamos tu nombre visible y, si lo tenemos, los últimos 10 dígitos de tu teléfono para dar seguimiento a tu consulta.",
   ],
   [
     "Estimado / Calculadora",
