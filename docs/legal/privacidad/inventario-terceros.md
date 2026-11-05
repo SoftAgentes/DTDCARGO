@@ -83,6 +83,7 @@ Chatwoot CE corre en el mismo servidor de Contabo (fila de arriba): **no es un t
 | Cloudflare | **todo el tráfico del panel en claro** (conversaciones y adjuntos), como ya pasa con la web y Supabase de DTD | **activo**: `chat.dtdcargo.com` va con proxy desde el 2026-10-29, por decisión de Sam (sin proxy, el VPS no deja entrar: solo acepta tráfico web de Cloudflare). Falta la fila de Cloudflare en la tabla 1 para todo DTD | runbook `chatwoot-servidor.md` §4 · revisión E1 H9 |
 | Backblaze (B2) | respaldos de Chatwoot **cifrados con `age`** (base, adjuntos y claves) | prefijo `chatwoot/`, 30 días | `infra/chatwoot/respaldo.sh` |
 | Meta (WhatsApp, Messenger, Instagram) | las conversaciones de esos canales | E4, pendiente | — |
+| Hostinger (IMAP y SMTP de `vzla@`) | Hostinger ya guarda el correo; lo nuevo es que Chatwoot **copia** cada correo de `vzla@` (con `info@`), sus adjuntos y las direcciones en copia a su base y a sus respaldos, y responde por el SMTP de Hostinger | E4 · 4.8, diseño y prueba en un buzón temporal; la bandeja real espera PC-3 | [`revision-chatwoot-correo-2026-10-31.md`](revision-chatwoot-correo-2026-10-31.md) |
 
 ---
 
