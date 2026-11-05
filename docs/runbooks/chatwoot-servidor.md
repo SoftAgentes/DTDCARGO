@@ -20,6 +20,7 @@ Chatwoot CE `v4.19.1-ce` en el mismo VPS que la producción de DTD (decisión E0
 ├── compose.yml                ← prepare, rails, sidekiq, postgres (pgvector), redis
 ├── .env                       ← 0600; generado aquí (§2); NUNCA en git
 ├── rails/zz_dtd_redaccion_logs.rb
+├── rails/zz_dtd_proteccion_register.rb   ← §8 (SDD-0584)
 ├── respaldo.sh · restaurar.sh · vigilar.sh
 └── data/                      ← postgres/, redis/, storage/ (adjuntos)
 /srv/backups/chatwoot/         ← respaldos cifrados locales, 7 días
@@ -271,14 +272,46 @@ Pedido de Sam: «Poner un icono al lado del dominio que aparezca el logo de DTD�
 | Logs | `docker compose logs --since 1h rails sidekiq` (redactados; 10 MB × 5 por contenedor) |
 | Consumo | `docker stats --no-stream $(docker compose ps -q)` |
 | Reiniciar un servicio | `docker compose restart sidekiq` (no toca a DTD) |
-| Subir de versión | **No** con `pull` suelto: es la etapa E3 (runbook de versiones, respaldo antes, ensayo de redacción después) |
+| Subir de versión | **No** con `pull` suelto: es la etapa E3 (runbook de versiones, respaldo antes, ensayo de redacción y `pruebas/prueba-register.sh` después) |
 | Respaldo | [chatwoot-respaldo-restauracion.md](chatwoot-respaldo-restauracion.md) |
 | Vigilancia | [chatwoot-vigilancia.md](chatwoot-vigilancia.md) |
+
+## 8 · Protección de `/register` y `/deregister` de WhatsApp (paso 4.2, SDD-0584)
+
+**Por qué.** El número principal de WhatsApp se comparte con Kommo (decisión B de [SDD-0582](../specs/0582-chatwoot-piloto/spec.md)). Kommo lo registró en Meta. El `pin` de `/register` es el PIN de verificación en dos pasos del número (6 dígitos, no el código del SMS); si el número no tiene uno, el enviado queda como PIN nuevo, y Meta admite 10 `/register` por número cada 72 h (error 133016; V3-3 de SDD-0582). Chatwoot 4.19.1 llama a `/register` con un PIN aleatorio propio cuando la consulta de verificación falla (CW-1, `webhook_setup_service.rb`), y a `/deregister` al borrar una bandeja creada por Embedded Signup (`webhook_teardown_service.rb`). Cualquiera de las dos puede desconectar el número de Kommo; cada `/register` gasta además el cupo de 72 h.
+
+**Qué hace.** [`rails/zz_dtd_proteccion_register.rb`](../../infra/chatwoot/rails/zz_dtd_proteccion_register.rb), montado en solo lectura como el de redacción, corta esas dos llamadas antes de que salgan, en dos redes: el cliente de Meta (`Whatsapp::FacebookApiClient`) y cualquier `POST` de HTTParty a `/<id>/register` o `/<id>/deregister`.
+
+- Lee `DTD_WHATSAPP_IDS_PROTEGIDOS`, que compose llena con `CHATWOOT_WHATSAPP_IDS_PROTEGIDOS` del `.env`: Phone Number IDs (no teléfonos) separados por coma, de 10 a 20 dígitos cada uno.
+- **Falla cerrado.** Vacía, ausente o con un solo elemento mal formado: `/register` y `/deregister` quedan bloqueados para **todos** los números, y el arranque lo avisa con `modo cerrado`.
+- Con un ID protegido, Chatwoot sigue: el error `DtdProteccionRegister::Bloqueado` lo rescata el propio servicio, el webhook se configura igual y la configuración manual muestra el error. Las bandejas de otros números (el de prueba de Meta, por ejemplo) registran como siempre.
+- Los logs llevan una huella de 8 caracteres del ID (SHA-256), nunca el ID ni el teléfono: `[DTD] /register bloqueado (Phone Number ID protegido; huella 1a2b3c4d)…`.
+
+**Antes de crear la bandeja del número principal (paso 4.5)**, dentro de la puerta de despliegue que Sam autorice:
+
+```bash
+cd /srv/chatwoot
+# 1. El ID sale de la nota cifrada de E0; se escribe en el .env sin pasar por la pantalla
+#    ni por el historial (read -s), y nunca en git ni en el chat.
+read -rs ID && sed -i "s/^CHATWOOT_WHATSAPP_IDS_PROTEGIDOS=.*/CHATWOOT_WHATSAPP_IDS_PROTEGIDOS=$ID/" .env; unset ID
+# 2. Copiar rails/zz_dtd_proteccion_register.rb y el compose.yml nuevos (sha256 igual al repo) y recrear.
+docker compose up -d
+# 3. Comprobar: dos líneas «activa: 1 Phone Number IDs» (rails y sidekiq) y ninguna «modo cerrado».
+docker compose logs rails sidekiq | grep -c 'protección de /register activa: 1 '
+docker compose logs rails sidekiq | grep -c 'modo cerrado'
+```
+
+Si una bandeja de WhatsApp muestra `/register bloqueado`, **no se reintenta** ni se quita el ID para «probar»: el número ya está registrado por Kommo y no necesita `/register` para recibir. Se revisa por qué falló la verificación (token, permisos) con la lectura por API de 4.5.
+
+**Prueba (local, nunca en el VPS):** `bash infra/chatwoot/pruebas/prueba-register.sh`. Servidor falso de Graph API dentro del contenedor, en la red `interna` sin salida a internet; casos de lista válida, variable vacía, variable inválida y control sin el inicializador, que tiene que salir en rojo. Se repite en cada subida de versión (E3): si Chatwoot renombra los métodos del cliente, el arranque se cae a propósito con `[DTD] protección de /register: faltan …`.
+
+**Vuelta atrás:** quitar el montaje del `compose.yml` y `docker compose up -d`. Sin el inicializador vuelve el riesgo de CW-1: no se hace con la bandeja del número principal creada.
 
 ## Registro
 
 | Fecha | Qué | Quién | Evidencia |
 |---|---|---|---|
 | 2026-10-29 | Configuración escrita y probada en local (`pruebas/ensayo-local.sh`). Nada en el VPS | Worker SDD-0583 | [registro](../specs/0583-chatwoot-vps-e1/investigacion-2026-10-29.md) |
+| 2026-10-29 | Protección de `/register` (§8) escrita y probada en local (`pruebas/prueba-register.sh`). **Nada en el VPS**: montarla allí es otra puerta | Worker SDD-0584 | [SDD-0584](../specs/0584-chatwoot-proteccion-register/spec.md) |
 | 2026-10-29 17:0xZ | **P4** («Autorizo P4», Sam): Platform App «DTD Studio», cuenta «DTD Cargo» (id 1) y usuario de servicio administrador; secretos en `/srv/chatwoot/secretos/platform-app.env` (0600) | Worker SDD-0583 | registro T-23 y T-24 |
 | 2026-10-29 15:38–16:00Z | **P1** («Autorizo P1», Sam): `/srv/chatwoot` copiado (sha256 igual al repo), `.env` 0600 generado en el servidor, red `chatwoot_edge` y Traefik conectado en caliente (sin reinicio), `up` en 289 s, `rails` unhealthy por `FORCE_SSL` → healthcheck con `X-Forwarded-Proto: https` y `up` de nuevo, onboarding cerrado, comprobaciones 1–6 en verde, primer respaldo a B2, timers y monitores Push #6 y #7. DTD sin cambios | Worker SDD-0583 | registro, filas T-2 a T-12 |

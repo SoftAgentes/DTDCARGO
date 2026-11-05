@@ -81,6 +81,11 @@ x-entorno: &entorno
   DISABLE_GRAVATAR: "true"
   # Sin IP_LOOKUP_API_KEY no se descarga la base de MaxMind ni se geolocaliza la IP de
   # nadie (app/services/geocoder/setup_service.rb). No se declara a propósito.
+  # Phone Number IDs de WhatsApp a los que Chatwoot NO puede hacer /register ni
+  # /deregister (rails/zz_dtd_proteccion_register.rb, SDD-0584). Separados por coma.
+  # Sin valor llega "" y el inicializador bloquea esas dos llamadas para todos los
+  # números (falla cerrado), que es lo seguro mientras no haya bandejas de WhatsApp.
+  DTD_WHATSAPP_IDS_PROTEGIDOS: ${CHATWOOT_WHATSAPP_IDS_PROTEGIDOS:-}
   POSTGRES_HOST: postgres
   POSTGRES_PORT: "5432"
   POSTGRES_USERNAME: chatwoot
@@ -129,6 +134,10 @@ x-chatwoot: &chatwoot
     # contacto de los logs de Rails y Sidekiq. Se monta solo lectura sobre la imagen
     # sin modificarla; el runbook de versiones (E3) lo vuelve a probar en cada subida.
     - ./rails/zz_dtd_redaccion_logs.rb:/app/config/initializers/zz_dtd_redaccion_logs.rb:ro
+    # Protección de /register y /deregister de WhatsApp (SDD-0584, paso 4.2): el número
+    # principal se comparte con Kommo (decisión B) y un /register de Chatwoot podría
+    # desconectarlo. Lee DTD_WHATSAPP_IDS_PROTEGIDOS; vacía o mal formada, bloquea todo.
+    - ./rails/zz_dtd_proteccion_register.rb:/app/config/initializers/zz_dtd_proteccion_register.rb:ro
     # Revocación de sesiones desde Studio (SDD-0585, paso 2.7): ruta privada de la Platform
     # API que cierra todas las sesiones de un agente dado de baja. Sin DTD_CHATWOOT_SERVICIO_ID
     # responde 503 y no revoca a nadie. El runbook de versiones (E3) lo prueba en cada subida.

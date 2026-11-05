@@ -39,7 +39,7 @@ export const PIEZAS: readonly Pieza[] = [
     id: "candado_register",
     nombre: "Candado de /register y /deregister (paso 4.2)",
     descripcion:
-      "rails/zz_dtd_proteccion_register.rb (vive en la rama del paso 4.2): antepone módulos a Whatsapp::FacebookApiClient#register_phone_number, #deregister_phone_number y a HTTParty::Request para que Chatwoot nunca llame a /register ni /deregister del número que comparte con Kommo.",
+      "rails/zz_dtd_proteccion_register.rb: antepone módulos a Whatsapp::FacebookApiClient#register_phone_number, #deregister_phone_number y a HTTParty::Request para que Chatwoot nunca llame a /register ni /deregister del número que comparte con Kommo.",
     depende: ["app/services/whatsapp/", "app/models/channel/whatsapp.rb", "Gemfile.lock"],
   },
   {
