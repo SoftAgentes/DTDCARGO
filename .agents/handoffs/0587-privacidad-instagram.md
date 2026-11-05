@@ -26,7 +26,7 @@ Lo dio el Director General: primero #340 y #341, y esta después, de a una. La r
 
 ## Pendiente de esta tarea
 
-- Traer `main`, publicar la rama y abrir la PR, cuando entre la #341.
+- La #341 entró el 2026-11-05 a las 13:18Z. `main` traído (`1ea84686e`): conflicto solo en la fila de Meta del inventario, conservadas Meta y Hostinger. PR abierta; falta el CI y la fusión del Director General.
 - La fecha queda en «5 de noviembre». Si la tanda C sale otro día, avisa el Director General antes de publicar.
 
 ## Impacto documental
@@ -40,6 +40,6 @@ Lo dio el Director General: primero #340 y #341, y esta después, de a una. La r
 - **«Nuestro propio sistema de atención».** Las 5 respuestas reales de la bandeja 5 se escribieron por fuera de Chatwoot. Sam dijo que esa frase no cambia. Queda en la lista del Director General para Sam.
 - **Messenger en la fila de Meta.** La bandeja 4 está conectada, con 0 entrantes, y la fila no la nombra. Queda en la misma lista.
 - **Datos del perfil de Instagram en Chatwoot.** Chatwoot pide y guarda foto, seguidores y banderas de seguimiento que Studio no usa. La política ya lo dice; limitarlos necesita un `zz_dtd_*` con SDD propia.
-- **Texto de los mensajes en los logs.** `app/jobs/webhooks/instagram_events_job.rb:53` escribe a nivel `info` lo que entrega Meta de cada entrante, y `app/services/instagram/base_send_service.rb:65` el destinatario y el texto de un envío fallido (imagen 4.19.1). La redacción de logs no tapa ninguna de las dos.
+- **Texto de los mensajes en los logs.** `app/jobs/webhooks/instagram_events_job.rb:53` escribe a nivel `info` lo que entrega Meta de cada entrante, y `app/services/instagram/base_send_service.rb:65` el texto de un envío fallido (imagen 4.19.1). Sam, por el Director General, el 2026-11-05: «Sí, arréglalo ya». Va en una rama y una PR propias.
 - **Retención dentro de Chatwoot:** sigue sin definir (spec, §14.3, punto 8).
 - **`inventario-terceros.md`, sección 2 bis:** su título todavía dice «en preparación, 2026-10-29».
