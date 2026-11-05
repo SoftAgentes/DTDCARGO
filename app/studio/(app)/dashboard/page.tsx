@@ -294,6 +294,7 @@ export default async function DashboardPage() {
           mono-light, .055) es decorativa y va detrás del texto (el contenido va en
           un wrapper relative/zIndex:1). */}
       <div
+        data-guia="dashboard.bienvenida"
         style={{
           position: "relative",
           overflow: "hidden",

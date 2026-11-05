@@ -31,6 +31,7 @@ import { BugFABButton } from "../_components/bug-reporter/BugFABButton";
 import { BugTechCaptureProvider } from "../_components/bug-reporter/BugTechCaptureProvider";
 import { Suspense } from "react";
 import { DeniedToast } from "./_components/DeniedToast";
+import { GuiaMotor } from "../_components/guia/GuiaMotor";
 
 export default async function StudioAppLayout({
   children,
@@ -227,6 +228,10 @@ export default async function StudioAppLayout({
           {/* RBAC: aviso cuando requireModuleView redirige por falta de acceso. */}
           <Suspense fallback={null}>
             <DeniedToast />
+          </Suspense>
+          {/* Guía «Antes en Kommo → Ahora aquí» · SDD-0589 (9.2). */}
+          <Suspense fallback={null}>
+            <GuiaMotor />
           </Suspense>
         </WiringProvider>
       </ToastProvider>
