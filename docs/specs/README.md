@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 584 specs)
+### Índice de specs (generado · 585 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -622,6 +622,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0600 | Un correo no se compara como patrón: correo entrante, invitac… | in-progress | interno |
 | 0601 | Aviso del cobro no registrado: por qué y a quién acudir | in-progress | interno |
 | 0602 | Las redirecciones propias no mandan a la dirección donde escu… | in-progress | interno |
+| 0607 | Puente de ALFRED en el repositorio y corte de la oficina a Di… | proposed | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0590 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0590, 0603, 0604, 0605, 0606 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

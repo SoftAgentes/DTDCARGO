@@ -7,6 +7,7 @@ Sin red: Paperclip y Discord son dobles. Solo biblioteca estándar.
 Las corre el harness (`pnpm harness:test`) desde `scripts/tests/oficina-puente.node.mjs`.
 """
 import email.message
+import io
 import json
 import pathlib
 import sys
@@ -161,7 +162,7 @@ def error_http(codigo, cabeceras=None):
     mensaje = email.message.Message()
     for nombre, valor in (cabeceras or {}).items():
         mensaje[nombre] = valor
-    return urllib.error.HTTPError(WEBHOOK + '?wait=true', codigo, 'x', mensaje, None)
+    return urllib.error.HTTPError(WEBHOOK + '?wait=true', codigo, 'x', mensaje, io.BytesIO(b''))
 
 
 def abridor_que_lanza(codigo, cabeceras=None):
