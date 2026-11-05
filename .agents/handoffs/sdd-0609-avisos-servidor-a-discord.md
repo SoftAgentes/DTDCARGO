@@ -52,6 +52,7 @@ Tercera pieza del corte a Discord que decidió Sam el 2026-11-05 (corte directo)
 | Comprobación | Resultado |
 |---|---|
 | `bash infra/ops/tests/prueba-aviso-discord.sh` (Git Bash) | **PASÓ**: 39 PASÓ · 0 FALLÓ. Cubre configuración, 10 direcciones malas, envío, JSON, recorte en todas las alineaciones UTF-8, 429, 4xx, 5xx, errores de curl y que la llave no sale |
+| CI Linux «Pruebas bash de operaciones», en `bae0e8581` | `prueba-aviso-discord.sh` **PASÓ** 39 en ubuntu. `prueba-publicar-web.sh` **FALLÓ**: 218 PASÓ · 10 FALLÓ. Los 10 venían del doble de curl de la prueba: el parche con Perl `q{}` le quitó las barras a `\{` y `\}` del `sed`, GNU sed rechazaba la expresión y la línea `DISCORD text=` salía vacía. Corregido en `6f121bf76` y reproducido en local con el mismo doble (el texto ahora sale entero y el largo recortado da 2.000). Falta ver el CI de `6f121bf76` |
 | `bash infra/ops/tests/prueba-publicar-web.sh` | **NO DISPONIBLE en local.** En Git Bash `install -d -m 700` no puede cambiar permisos y el script sale 4 en `cargar_config`: la línea 132 en `main`, la 135 aquí, igual en los dos lados y antes de cualquier aviso. Los 197 FALLÓ de esa corrida son todos `rc=4` del entorno, no del cambio. Corre en el CI Linux (`quality.yml` → `pruebas-linux.sh`) o en Docker con turno |
 | `vitest run scripts/__tests__/ci-workflow-contract.test.mjs` | **PASÓ**: 48/48. La prueba nueva quedó bien clasificada |
 | `node scripts/build-docs-index.mjs --check` | **PASÓ**, con el índice regenerado |
@@ -63,7 +64,7 @@ Tercera pieza del corte a Discord que decidió Sam el 2026-11-05 (corte directo)
 
 ### Pedido de turno para el Director General (lo pasa el Subdirector)
 
-1. **`prueba-publicar-web.sh` en Linux.**
+1. **`prueba-publicar-web.sh` en Linux** (si el CI de `6f121bf76` sale verde, este punto sobra).
    - Comando: `docker run --rm -v "$PWD":/repo -w /repo node:24 bash infra/ops/tests/prueba-publicar-web.sh`.
    - Duración: unos 3–6 min en Docker.
    - Basta el CI de la PR si «Pruebas bash de operaciones» corre en verde.
