@@ -310,6 +310,12 @@ Los días base no cambian aquí: cambiarlos exige una línea base nueva con OK d
 - `app/privacidad/page.tsx` y `app/__tests__/privacidad-chat.test.ts` (solo la frase de la campaña, §16.8 punto 7, con el OK de Sam del 2026-11-03)
 - `app/studio/(app)/crm/_components/KommoClient.tsx` y `app/studio/(app)/crm/__tests__/stage-control.test.ts` (solo el encabezado: decía «solo lectura» y «todavía no modifica nada» con Embudos ya guardando. Lo pidió el Director General, 2026-11-04)
 
+**`/privacidad` con Instagram** (2026-11-05, encargo del Director General con el texto que aprobó Sam):
+
+- `app/privacidad/page.tsx` (solo los dos textos, la fecha y su comentario), `app/__tests__/privacidad-chat.test.ts` y `app/__tests__/faq-seguimiento-coherente.test.tsx` (solo la fecha)
+- `docs/legal/privacidad/inventario-terceros.md` (la fila de Meta y la frase de «datos reales» de la sección 2 bis)
+- `.agents/handoffs/0587-privacidad-instagram.md`
+
 Los pasos 6.5 en adelante suman aquí su allowlist al empezar.
 
 ## 11. Aceptación de 6.1
@@ -653,3 +659,68 @@ La conversación existía desde 2026-10-30T17:01:12Z, así que la tarjeta nació
 - El primer entrante real de Instagram tras el corte: sigue sin llegar.
 
 **La decisión es de Sam:** si alguien a quien DTD le escribió primero cuenta como lead. Se la presenta el Director General. El código no cambia hasta que decida, y las sesiones no borran ni mueven esa tarjeta. Sam la movió a `negociacion` a las 21:02:28Z; eso no se toma como su decisión.
+
+## 2026-11-05 · `/privacidad` nombra Instagram
+
+**Por qué.** La bandeja 5 tiene 10 entrantes de 9 remitentes desde 2026-10-31T22:36Z (conteo del Director General, sin nombres ni contenido). Sam dijo «Son clientes», a «¿Quién escribió por Instagram?»: es dicho por Sam, no medido. `/privacidad` no nombraba Instagram y entre los proveedores nombraba a Meta solo por WhatsApp.
+
+**Decisiones de Sam, por el selector, en el chat del Director General; las registra el Subdirector:**
+
+- A «Instagram ya recibe clientes reales sin la revisión de Meta. ¿Cómo queda?»: «Dejarlo conectado (Recommended)». Messenger y el envío a App Review siguen como estaban.
+- A «/privacidad no nombra Instagram y ya entran datos de clientes por ahí. ¿Apruebas este cambio de texto?»: «Apruebo este texto (Recommended)». La opción decía: «Entra a main con estas palabras y se publica con la tanda C, con la fecha de actualización nueva.»
+- A la pregunta sobre si ajustar el texto, después de ver lo que guarda Chatwoot del perfil: «Apruebo el texto ajustado (Recommended)». Ese párrafo reemplaza al de la respuesta anterior.
+
+**Lo que trajo el ajuste** (conteos del Director General, 2026-11-05, sin leer valores). De los 9 contactos de la bandeja 5: 9 con foto, 9 con usuario, 9 con número de seguidores, 4 con «sigue a la cuenta», 9 con ID en `contact_inboxes`, 0 con teléfono, 0 con correo y 0 desconocidos.
+
+**Texto aprobado**, palabra por palabra:
+
+| Dónde | Antes | Ahora |
+|---|---|---|
+| Párrafo «Mensajes por WhatsApp y chat» | «Si nos escribes por WhatsApp u otro canal de chat: tu nombre y tu teléfono tal como aparecen en ese canal y el contenido de la conversación. Si no muestras tu teléfono, WhatsApp nos da en su lugar un código anónimo de tu cuenta (BSUID). Si todavía no eres cliente, guardamos tu nombre visible y los últimos 10 dígitos de tu teléfono para dar seguimiento a tu consulta.» | «Si nos escribes por WhatsApp, Instagram u otro canal de chat: tu nombre y tu usuario o teléfono tal como aparecen en ese canal, los datos de tu perfil que ese canal nos entrega (en Instagram, por ejemplo: un código de tu cuenta, tu foto, tu número de seguidores y si sigues nuestra cuenta) y el contenido de la conversación. Si no muestras tu teléfono, WhatsApp nos da en su lugar un código anónimo de tu cuenta (BSUID). Si todavía no eres cliente, guardamos tu nombre visible y, si lo tenemos, los últimos 10 dígitos de tu teléfono para dar seguimiento a tu consulta.» |
+| Lista de proveedores | «**Meta (WhatsApp)**, que transporta los mensajes que nos envías y te enviamos por WhatsApp.» | «**Meta (WhatsApp e Instagram)**, que transporta los mensajes que nos envías y te enviamos por esos canales.» |
+| Fecha, `UPDATED` | «4 de noviembre de 2026» | «5 de noviembre de 2026» |
+
+La frase del sistema de atención no cambia. `privacidad-chat.test.ts` fija los dos textos completos. La fila de Meta de `docs/legal/privacidad/inventario-terceros.md` queda con Instagram activo y Messenger pendiente.
+
+**Evidencia:**
+
+| Comprobación | Resultado |
+|---|---|
+| `privacidad-chat.test.ts` y `faq-seguimiento-coherente.test.tsx` | PASÓ: 17 de 17 |
+| Mutantes del texto: Instagram fuera del párrafo, «tu usuario o» fuera, los datos del perfil fuera, «tu foto» fuera, «si lo tenemos» fuera, fila de Meta vieja, «por esos canales», «propio sistema», fecha vieja | PASÓ: 9 de 9 caen, con el control en verde antes y después |
+| Citas del texto viejo | Las 2 pruebas de arriba y `.agents/handoffs/0582-guion-publicacion-tanda-a.md`, que es historia y no se toca. Ningún guion ni `scripts/` lo cita |
+| `pnpm verify` | NO EJECUTADO: necesita turno; el cambio son textos y sus pruebas |
+
+### revisar-datos-ve de este cambio
+
+Sobre lo que suma Instagram. Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Esto no es asesoría legal. Lo de Chatwoot se leyó en el contenedor del VPS, imagen 4.19.1, sin datos de personas.
+
+**Resumen:** 3 ENCONTRADO, 3 CORRECTO, 5 NO VERIFICABLE y 1 no aplica.
+
+**Inventario que suma Instagram:**
+
+| Dato | Dónde | De quién | Retención |
+|---|---|---|---|
+| Contenido de la conversación y adjuntos | Chatwoot | Quien escribe por Instagram | Sin definir en Chatwoot (§14.3, punto 8) |
+| Nombre, usuario, foto, seguidores, si sigue a la cuenta, si la cuenta lo sigue y si está verificado. Meta los entrega: ver los conteos de arriba | Contacto de Chatwoot: nombre, avatar y `additional_attributes` | Igual | Igual |
+| ID de Instagram de esa persona para la app; si Meta niega el perfil, va también en el nombre, «Unknown (IG: …)» | `contact_inboxes.source_id` y nombre del contacto, en Chatwoot | Igual | Igual |
+| Nombre visible e ID de contacto, sin teléfono | `crm_tarjetas`, fuente `instagram` | Lead sin ficha | 12 meses sin actividad si está perdido (§14.3) |
+
+| # | Punto | Estado | Evidencia y comentario |
+|---|---|---|---|
+| 1 | Inventario | CORRECTO | Tabla de arriba. `fetch_instagram_user` (`app/services/instagram/message_text.rb:10`), `webhooks_base_service.rb:26` y `:40-54`; `entrada-leads.ts:50-60` |
+| 2 | Minimización | ENCONTRADO | Chatwoot pide y guarda foto, seguidores y las banderas de seguimiento, y Studio no los lee: `git grep` no halla `social_instagram`, `follower_count` ni `profile_pic` en `lib/`, `app/` ni `components/`. Es código de Chatwoot. Meta los entrega hoy, según los conteos de arriba, y la política ya lo dice. Arreglo posible: un `zz_dtd_*` que limite los campos, con SDD propia |
+| 3 | Consentimiento | NO VERIFICABLE | Sigue el punto 3 de §14.3: la tarjeta se crea sola con el primer mensaje. La base de licitud la decide Sam con su asesor |
+| 4 | Derechos | NO VERIFICABLE | Depende de «Anonimizar ahora» de 6.6 (§14.3). Para Instagram no hay teléfono con el que encontrar a la persona si lo pide: se busca por usuario, si Meta lo entregó |
+| 5 | Borrado | NO VERIFICABLE | En la tarjeta es igual para todas las fuentes: `crm_anonimizar_leads_perdidos` no filtra por fuente (`0506_crm_modelo.sql:768-774`); falta su cron, de 6.6. En Chatwoot sigue sin plazo (§14.3, punto 8), y la conversación queda también en la cuenta de Instagram, en Meta. No se probó contra una base real |
+| 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Igual que §14.3 |
+| 7 | Política pública | ENCONTRADO | **Corregido:** Instagram, los datos del perfil, el código de la cuenta y el «si lo tenemos» del teléfono (`app/privacidad/page.tsx:57` y `:257`). **Quedan dos puntos sin corregir, en la lista del Director General para Sam:** (a) «nuestro propio sistema de atención», cuando las 5 respuestas reales de la bandeja 5 se escribieron por fuera de Chatwoot, y ninguna por la API, según el conteo del Director General, que filtra las 2 notas privadas; (b) la bandeja 4 de Messenger está conectada y la fila de Meta no la nombra. Lo publicado obliga por haberse publicado |
+| 8 | Terceros | CORRECTO | Fila de Meta en `inventario-terceros.md`. El contrato con Meta y sus términos no se revisaron. Si los salientes por fuera pasan por otra herramienta conectada, sería otro tercero: sin medir |
+| 9 | Transferencia internacional | NO VERIFICABLE | Meta recibe estas conversaciones como las de WhatsApp. Dónde las procesa no se revisó; sigue el punto 9 de SDD-0585 |
+| 10 | Decisiones automatizadas | CORRECTO | La respuesta automática de E10 no toca Instagram: `enrutar.ts:43` solo sigue en la bandeja de leads. La auto-asignación a una cuenta no decide sobre la persona |
+| 11 | Aceptación electrónica | No aplica | Este cambio no registra aceptaciones |
+| 12 | Titulares que no son usuarios | ENCONTRADO | Quien escribe por Instagram no pasó por ningún registro ni recibe aviso al escribir. Desde 2026-10-31 hasta que salga este texto, `/privacidad` no lo nombró; lo cubría solo «otro canal de chat», desde la tanda A. Si hace falta un aviso en el canal lo decide Sam con su asesor |
+| — | Logs | ENCONTRADO fuera del conteo | Son dos líneas de código de Chatwoot. (1) `instagram_events_job.rb:53` escribe a nivel `info` todo lo que entrega Meta de cada mensaje, con ID del remitente y texto (`LOG_LEVEL` por defecto `info`, `infra/chatwoot/compose.yml:105`, rotación de 10 MB por 5 archivos). Corre en cada entrante. (2) Si un envío falla, `base_send_service.rb:65` escribe el destinatario y el texto. `zz_dtd_redaccion_logs.rb` tapa `payload=`, correos y teléfonos, no esto. El valor vivo de `LOG_LEVEL` y las líneas reales no se leyeron |
+| — | Fixtures | CORRECTO fuera del conteo | Las pruebas nuevas solo contienen el texto de la política |
+
+La skill recomienda una segunda opinión: otro modelo puede auditar este mismo diff. **Lo que hace falta de un abogado:** la base de licitud y el pase de la política, que sigue sin hacerse.
