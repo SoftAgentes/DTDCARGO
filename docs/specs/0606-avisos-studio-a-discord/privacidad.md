@@ -41,6 +41,18 @@ Discord recibe **sólo** lo de la columna «Sale a Discord». El texto completo 
 
 Además de los avisos, Discord recibe en cada mensaje con mención el **ID de Discord** de un miembro del personal, y registra por su cuenta la IP del servidor que hace el pedido.
 
+Sólo el tenant de `DISCORD_TENANT_ID` escribe en estos canales (`lib/studio/discord/channels.ts`, `discordTenantAuthorized`): un aviso de otra empresa no llega a los canales de DTD.
+
+### Cola de reintento (migración 0515, sin aplicar)
+
+```
+studio_alert_outbox | avisos que Discord no guardó (registro, bugs, reportes)
+  qué guarda          : el mismo aviso mínimo de la tabla de arriba e IDs de Discord del personal
+  barrera en la base  : CHECK que rechaza cualquier clave fuera de titulo, codigo, url y conteos, y más de 2 KB
+  retención           : las filas cerradas se borran a los 30 días
+  quién la ve         : sólo service_role (sin privilegios para anon ni authenticated)
+```
+
 ### Dato nuevo que guarda el Studio
 
 ```

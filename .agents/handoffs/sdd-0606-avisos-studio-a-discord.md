@@ -23,6 +23,23 @@ Especificar y construir el paso de los avisos del Studio de Telegram a Discord: 
 8. **Migración 0514** escrita, con contrato, **sin aplicar**. Registrada como espera en `supabase/migrations-baseline.json` y declarada ante el gate de símbolos.
 9. **Revisión de privacidad** con `revisar-datos-ve`: [`privacidad.md`](../../docs/specs/0606-avisos-studio-a-discord/privacidad.md). 9 `CORRECTO`, 3 `ENCONTRADO`, 6 `NO VERIFICABLE`. Discord quedó propuesto en `docs/legal/privacidad/inventario-terceros.md`.
 
+### Correcciones de la revisión de Codex (2026-11-05, tanda 2)
+
+Encargo de la sesión coordinadora, con la aprobación de Sam que ella transmitió («Sí, repártelas»), sobre el commit `67d6f2ecb`. Verificadas contra la cabeza `d838e56b4` antes de cambiar; las seis seguían abiertas. La de membresía activa (`getStudioAccess`) ya estaba en `01a41c74c`.
+
+| Punto | Qué cambió | Prueba que falló antes del arreglo |
+|---|---|---|
+| A3 | El envío pide `wait=true` y sólo da por entregado lo que vuelve con el ID del mensaje. Cola durable `studio_alert_outbox` (migración 0515, **sin aplicar**) para registro, bugs y reporte diario; la drena el cron de cada 5 min que ya existía | `send-webhook.test.ts` (3 casos A3) y `dispatch-alert.test.ts` («va a la cola…, no a Telegram») |
+| A4 | El reintento de bugs sigue vivo por Discord aunque la persona no tenga Telegram | `bug-notif-outbox.test.ts` («A4: … la fila sigue viva») |
+| A5 | Discord sólo para el tenant de `DISCORD_TENANT_ID`; sin la variable, apagado | `dispatch-alert.test.ts` (2 casos A5) |
+| M1 | 429 sin dato espera 1 s; nunca menos de 250 ms; el drenado frena el lote | `send-webhook.test.ts` (2 casos M1) |
+| M2 | Cuatro estados (entregado, rechazado, reintentable, incierto); lo incierto no se repite en otro canal, ni por Telegram, ni en la cola | `send-webhook.test.ts` (4 casos M2), `dispatch-alert.test.ts` (2), `bug-notif-outbox.test.ts` (1) |
+| M4 | `User-Agent: DiscordBot (https://dtdcargo.com, 1.0)` y la URL validada entera con `URL` | `send-webhook.test.ts` (User-Agent, id corto, token corto) |
+
+Rojo medido el 2026-11-05 con las pruebas nuevas sobre el código anterior: 16 de 38 en el envío, 11 de 24 en el despachador (5 por comportamiento; 6 por la firma nueva con tenant) y 3 de 12 en el reintento de bugs. El candado del drenado de la cola se comprobó con un mutante (sin él, la fila sale dos veces).
+
+Decisión mía que Sam puede cambiar: un **5xx** se trata como «no se guardó» y va al respaldo y a la cola. Es una inferencia de la documentación de Discord, no una medición; si fuera falsa, el costo es un aviso duplicado. Lo contrario arriesgaba perder avisos de registro o de bugs durante una caída.
+
 ### Dos decisiones que tomé y Sam puede cambiar
 
 - **El reporte diario sale a Discord con conteos y sin el total de gastos.** La regla era «sin montos». El texto que redacta el modelo trae cifras de dinero, así que a Discord no sale. Consecuencia: cuando `#reporte-diario` tenga su dirección, el resumen redactado deja de llegar por mensajería y no tiene pantalla en el Studio. Si Sam quiere el texto completo, hay que decidir si el canal puede llevar montos agregados o si se crea una pantalla.
@@ -103,7 +120,9 @@ Locales, en `claude/gracious-kapitsa-213515`:
 - `ed495e25c` feat(studio): SDD-0606 — avisos del Studio a Discord, con lo mínimo
 - `fea518665` feat(studio): SDD-0606 — ID de Discord en el perfil, estado en Ajustes y migración 0514
 - `67d6f2ecb` docs(specs): SDD-0606 — spec, revisión de privacidad y Discord en el inventario de terceros
-- más dos commits posteriores a `verify`: el arreglo de permisos de las acciones del perfil y este handoff.
+- `01a41c74c` fix(studio): SDD-0606 — las acciones del ID de Discord exigen membresía activa
+- `25462453e` y `d838e56b4`: handoff con el resultado de `verify` y el texto de la PR
+- más los commits de la tanda 2 (revisión de Codex): el arreglo y este handoff.
 
 ## PR / BRANCH
 
@@ -116,9 +135,9 @@ Lo que necesita Sam para que llegue a producción, en orden:
 1. **Una corrida completa de `pnpm verify` sobre la rama final**, con turno del Director General y con Docker encendido, para medir el paso `test` entero después del arreglo y las suites SQL que quedaron sin correr.
 2. **Descongelar la publicación** de la web. Con el código publicado y sin variables de Discord no cambia nada.
 3. **Crear en Discord** los cinco canales, privados por rol, y un webhook por canal: `#registro-clientes`, `#conversaciones-portal`, `#bugs`, `#reporte-diario`, `#avisos-equipo`.
-4. **Poner las cinco direcciones en el servidor** (`DISCORD_WEBHOOK_REGISTRO`, `_CONVERSACIONES`, `_BUGS`, `_REPORTES`, `_EQUIPO`) con `infra/ops/migrate/env-set.sh` y reiniciar la web. Las direcciones son llaves: no van por chat ni al repositorio.
+4. **Poner las cinco direcciones y `DISCORD_TENANT_ID`** en el servidor (`DISCORD_WEBHOOK_REGISTRO`, `_CONVERSACIONES`, `_BUGS`, `_REPORTES`, `_EQUIPO`, y el ID del tenant de DTD Cargo) con `infra/ops/migrate/env-set.sh` y reiniciar la web. Sin `DISCORD_TENANT_ID`, Discord queda apagado. Las direcciones son llaves: no van por chat ni al repositorio.
 5. **Probar un aviso por categoría** contra los webhooks reales. Es la primera vez que este código hablará con Discord.
-6. **OK nominal para la migración `0514_user_profiles_discord_user_id`** y aplicarla con `docs/runbooks/aplicar-migraciones-prod.md`. No bloquea lo anterior: sin ella los avisos salen sin menciones. Al aplicarla, retirar su espera de `supabase/migrations-baseline.json` y su declaración de `supabase/pending-migration-symbol-declarations.json`.
+6. **OK nominal para cada migración, de a una**, pasando por el Director General y con `docs/runbooks/aplicar-migraciones-prod.md`: `0514_user_profiles_discord_user_id` (ID de Discord en el perfil; sin ella, avisos sin menciones) y `0515_studio_alert_outbox` (cola; sin ella, lo que Discord no guarda cae a Telegram). Ninguna bloquea lo anterior. Al aplicar cada una, retirar su espera de `supabase/migrations-baseline.json` y su declaración de `supabase/pending-migration-symbol-declarations.json`.
 7. **Cada persona enlaza su ID de Discord** en Perfil › Preferencias.
 8. **Retirar `TELEGRAM_BOT_TOKEN`** del servidor: ese es el apagado de Telegram. Después, dar de baja el webhook del bot y retirar `TELEGRAM_WEBHOOK_SECRET` y `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME`.
 

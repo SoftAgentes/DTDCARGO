@@ -13,9 +13,13 @@
 
 Decisiones y su porqué: `docs/specs/0606-avisos-studio-a-discord/spec.md`. Qué lleva cada aviso, campo por campo, y lo que no se pudo verificar: `docs/specs/0606-avisos-studio-a-discord/privacidad.md`.
 
-### Migración
+### Revisión de Codex (tanda 2)
 
-`0514_user_profiles_discord_user_id` — **no aplicada**. Agrega una columna de texto y su CHECK de formato. No es migrate-first: sin ella los avisos salen sin menciones y el perfil dice que todavía no se puede guardar el ID. Está registrada como espera en `supabase/migrations-baseline.json` y declarada ante el gate de símbolos (0 ROJO · 1 AMARILLO).
+Corregidos A3 (`wait=true`, ID del mensaje y cola durable para registro, bugs y reporte diario), A4 (el reintento de bugs sigue vivo sin Telegram), A5 (Discord sólo para el tenant de `DISCORD_TENANT_ID`), M1 (espera ante 429), M2 (una entrega incierta no se repite) y M4 (User-Agent y URL entera). Cada punto tiene una prueba que falló antes del arreglo; detalle en el handoff.
+
+### Migraciones
+
+`0514_user_profiles_discord_user_id` y `0515_studio_alert_outbox` — **no aplicadas**. La 0515 crea la cola: sólo el aviso mínimo, sin acceso para `anon` ni `authenticated`; sin ella, lo que Discord no guarda sigue por Telegram. Sobre la 0514: Agrega una columna de texto y su CHECK de formato. No es migrate-first: sin ella los avisos salen sin menciones y el perfil dice que todavía no se puede guardar el ID. Está registrada como espera en `supabase/migrations-baseline.json` y declarada ante el gate de símbolos (0 ROJO · 2 AMARILLO).
 
 ### Validación
 
@@ -51,9 +55,9 @@ Medido aparte: 71 pruebas nuevas en 7 archivos, incluido el contrato de la 0514 
 ### Para que llegue a producción (Sam)
 
 1. Descongelar la publicación de la web.
-2. Crear un webhook por canal en Discord y poner las cinco direcciones en el servidor (`DISCORD_WEBHOOK_REGISTRO`, `_CONVERSACIONES`, `_BUGS`, `_REPORTES`, `_EQUIPO`). Son llaves: nunca en el repositorio.
+2. Crear un webhook por canal en Discord y poner las cinco direcciones y `DISCORD_TENANT_ID` en el servidor (`DISCORD_WEBHOOK_REGISTRO`, `_CONVERSACIONES`, `_BUGS`, `_REPORTES`, `_EQUIPO`). Las direcciones son llaves: nunca en el repositorio.
 3. Probar un aviso por categoría.
-4. OK nominal para aplicar `0514_user_profiles_discord_user_id` con el runbook.
+4. OK nominal para aplicar `0514_user_profiles_discord_user_id` y `0515_studio_alert_outbox`, de a una, con el Director General y el runbook.
 5. Retirar `TELEGRAM_BOT_TOKEN`: ese es el apagado de Telegram.
 
 El orden completo, las decisiones abiertas y lo que quedó fuera de alcance están en `.agents/handoffs/sdd-0606-avisos-studio-a-discord.md`.

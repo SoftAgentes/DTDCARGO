@@ -44,7 +44,11 @@ Por qué no una columna protegida en la base:
 - Las demás llaves del Studio (Telegram, Resend, Anthropic) ya viven en el `.env` del servidor y se cargan con `infra/ops/migrate/env-set.sh`. Una llave más sigue el camino conocido.
 - Cambiarla exige entrar al servidor. Es un costo aceptado: se cambia sólo si se filtra o si se recrea el canal.
 
-La dirección se valida antes de usarla (`https://discord.com/api/webhooks/<id>/<token>` y sus variantes oficiales). Un valor con otra forma cuenta como ausente: una errata no termina en un envío de datos a otro servidor. No aparece en errores, en registros ni en la pantalla.
+La dirección se valida ENTERA antes de usarla: `https`, uno de los hosts de Discord (`discord.com`, `discordapp.com`, `canary.` y `ptb.`), sin usuario, puerto, query ni fragmento, y la ruta exacta `/api[/vN]/webhooks/<id de 17 a 20 dígitos>/<token>`. Un valor con otra forma cuenta como ausente: una errata no termina en un envío de datos a otro servidor. No aparece en errores, en registros ni en la pantalla.
+
+### D1b · Los canales tienen UN tenant dueño (revisión de Codex, A5)
+
+Las variables son del servidor, no de un tenant, y el cron del reporte diario recorre todos los tenants. Telegram separaba sus destinos por `tenant_id`; Discord no lo hacía. Ahora sólo escribe en estos canales el tenant cuyo ID está en `DISCORD_TENANT_ID`. Sin esa variable, Discord queda apagado para todos (falla cerrado) y los avisos siguen por Telegram. La pantalla de Ajustes de otro tenant dice «Discord no está asignado a esta empresa · sigue por Telegram». La cola guarda el `tenant_id` de cada aviso y el drenado vuelve a comprobarlo antes de mandar.
 
 ### D2 · El destino se generaliza en la categoría, no en la tabla de destinos
 
@@ -67,10 +71,39 @@ La puerta de entrada pasa de `dispatchTelegramAlert(…, texto)` a `dispatchAler
 Orden de entrega de un aviso:
 
 1. El canal de Discord de su categoría.
-2. Si esa categoría no tiene dirección, o el envío falla: `#avisos-equipo`, con una línea que dice de qué categoría venía («Sin canal propio · Registro de clientes»).
-3. Si Discord no entregó por ningún canal: el camino de SDD-0271 (rutas de Telegram y, sin rutas, los administradores), mientras exista el token de Telegram.
+2. Si esa categoría no tiene dirección, o Discord no guardó el mensaje: `#avisos-equipo`, con una línea que dice de qué categoría venía («Sin canal propio · Registro de clientes»).
+3. Si tampoco se guardó y la categoría no puede perderse (`registro`, `bugs`, `reportes`): la **cola durable** (D3b).
+4. Si Discord no aplica, o la categoría no va a la cola, o la cola todavía no existe: el camino de SDD-0271 (rutas de Telegram y, sin rutas, los administradores), mientras exista el token de Telegram.
 
 Si Discord entrega, Telegram no se usa: no hay doble envío. Sin ninguna variable de Discord, el Studio se comporta exactamente como antes; lo mide una prueba.
+
+**Entregado, rechazado, reintentable o incierto (revisión de Codex, M2).** Cada envío dice qué pasó con el mensaje:
+
+| Estado | Cuándo | Qué se hace |
+|---|---|---|
+| entregado | Discord respondió con el mensaje guardado y su ID | Listo |
+| rechazado | Dirección inválida o un 4xx (webhook borrado, llave inválida) | No se guardó: se prueba el canal de respaldo |
+| reintentable | 429 que pide esperar más de 5 s, un 5xx, o no hubo conexión (DNS, conexión rechazada) | No se guardó: canal de respaldo y después la cola |
+| incierto | Tiempo agotado después de enviar, conexión cortada, o un 2xx sin el ID | Pudo quedar guardado: **no se repite** en otro canal, ni por Telegram, ni en la cola. Se registra |
+
+Tratar un 5xx como «no se guardó» es una inferencia de la documentación de Discord, no una medición: si Discord guardara el mensaje y aun así respondiera 5xx, el aviso saldría dos veces. Se prefiere un duplicado a perder un aviso de registro o de bug.
+
+### D3b · Cola durable para lo que no puede perderse (revisión de Codex, A3)
+
+Migración `0515_studio_alert_outbox`, **sin aplicar**. Tabla `studio_alert_outbox`:
+
+- guarda **sólo** el aviso mínimo (un CHECK rechaza cualquier clave fuera de `titulo`, `codigo`, `url` y `conteos`, y más de 2 KB) y los IDs de Discord a mencionar;
+- RLS activada sin policies, sin privilegios para `anon` ni `authenticated`: sólo `service_role`;
+- la drena el cron que ya corre cada 5 minutos (`/api/cron/bug-notifications-drain`), sin entrada nueva en el crontab;
+- reintenta con espera creciente (1, 5, 15, 30, 60, 120 y 240 minutos) hasta 8 intentos y después la deja abandonada con su último error;
+- toma cada fila con un candado optimista (`next_attempt_at` como versión): dos drenados a la vez no la mandan dos veces;
+- una entrega incierta cierra la fila sin repetir; si Discord pide esperar demasiado, frena el lote hasta la próxima corrida;
+- borra las filas cerradas a los 30 días;
+- guarda el ID del mensaje de Discord de cada entrega.
+
+Sin la tabla, encolar falla y el aviso sigue por Telegram; el drenado devuelve ceros. No es migrate-first.
+
+Los avisos por persona no van a esta cola: los de bugs tienen la suya (`bug_notifications`, D4) y los de Bitácora caen al Telegram de la persona.
 
 `fallback: "none"` (conversaciones y reporte diario) sigue significando «no difundir a todos los administradores por Telegram». En Discord no aplica: el respaldo es un canal sin menciones y no le suena a nadie.
 
@@ -83,6 +116,7 @@ En Discord no hay chat privado. Un aviso por persona se escribe en el canal de s
 - Mientras exista el token de Telegram, quien no enlazó Discord sigue recibiendo por Telegram. Al retirarlo, esos avisos quedan en la campana del Studio y el correo, que nunca dependieron de esto.
 - El ID se guarda en `user_profiles.discord_user_id` (migración 0514, **sin aplicar**). No es una credencial; sí es un dato personal. El código tolera que la columna no exista: los avisos salen sin menciones y el perfil dice que todavía no se puede guardar.
 - Las dos acciones del perfil exigen ser miembro activo del Studio (`getStudioAccess`) y sólo tocan la fila de quien está en sesión.
+- El reintento de avisos de bugs (`bug_notifications`) prueba primero la mención en Discord. Si Discord no la guardó por una falla pasajera, la fila sigue viva para el próximo tick aunque la persona no tenga Telegram (revisión de Codex, A4); antes se abandonaba. Una mención incierta cierra la fila sin repetir.
 - El ID no se verifica contra Discord: un webhook no puede consultar miembros. Si alguien pega el ID de otra persona, esa persona recibe menciones en un canal que sólo ve si tiene el rol. Riesgo aceptado; el CHECK de la base sólo deja entrar números de 17 a 20 dígitos.
 
 | Aviso por persona | Canal | Qué lleva |
@@ -109,9 +143,11 @@ El reporte diario sale con conteos (recepciones, despachos, gastos cargados, inc
 
 - Recorta a 2.000 caracteres sin partir un emoji.
 - `allowed_mentions.parse = []`: `@everyone`, `@here` y los roles no suenan aunque el texto los traiga. Sólo suenan los ID de usuario que el llamador pasa explícitos.
-- Ante un HTTP 429 espera el tiempo que indica Discord (`retry_after` del cuerpo o la cabecera `Retry-After`) y reintenta, hasta 3 intentos. Si Discord pide más de 5 segundos no espera: devuelve el error y el despachador usa su respaldo. Esto corre dentro de pedidos de usuarios y no puede dejarlos colgados.
+- Pide `wait=true` y sólo da por entregado lo que vuelve con el ID del mensaje (revisión de Codex, A3).
+- Ante un HTTP 429 espera el tiempo que indica Discord (`retry_after` del cuerpo, o las cabeceras `Retry-After` o `X-RateLimit-Reset-After`) y reintenta, hasta 3 intentos. Sin dato legible espera 1 s y nunca menos de 250 ms, para no gastar los intentos de golpe (M1). Si Discord pide más de 5 segundos no espera: devuelve `reintentable` y decide el despachador. Esto corre dentro de pedidos de usuarios y no puede dejarlos colgados.
 - Corta un pedido colgado a los 8 segundos.
-- Nunca lanza. Devuelve `{ ok, error }` y el error no contiene la dirección.
+- Manda `User-Agent: DiscordBot (https://dtdcargo.com, 1.0)`, el formato que documenta Discord (M4).
+- Nunca lanza. Devuelve `{ ok, estado, messageId, error }` y el error no contiene la dirección: de un error de red sólo se conserva su nombre o su código.
 - Sin vista previa de enlaces.
 
 ### D7 · Entorno de prueba
@@ -122,7 +158,7 @@ Con `APP_ENV=staging` Discord queda apagado aunque las variables existan, igual 
 
 ### La pantalla
 
-`/studio/admin/alertas-telegram` conserva su ruta y pasa a llamarse «Alertas del equipo». Arriba, un bloque de sólo lectura con el estado de cada categoría en Discord: «Sale a #canal», «Sin canal propio · cae a #avisos-equipo», «Sin Discord · sigue por Telegram» o «Apagado en el entorno de prueba». Si una variable tiene un valor que no es un webhook de Discord, se nombra la variable, nunca el valor. Abajo, la matriz de Telegram de SDD-0271 sin cambios, rotulada como respaldo.
+`/studio/admin/alertas-telegram` conserva su ruta y pasa a llamarse «Alertas del equipo». Arriba, un bloque de sólo lectura con el estado de cada categoría en Discord: «Sale a #canal», «Sin canal propio · cae a #avisos-equipo», «Sin Discord · sigue por Telegram», «Discord no está asignado a esta empresa · sigue por Telegram» o «Apagado en el entorno de prueba». Si una variable tiene un valor que no es un webhook de Discord, se nombra la variable, nunca el valor. Abajo, la matriz de Telegram de SDD-0271 sin cambios, rotulada como respaldo.
 
 En el perfil, dentro de Preferencias, el bloque «Menciones en Discord»: un campo para el ID, Guardar y Quitar, y cómo encontrar el ID en Discord.
 
@@ -132,17 +168,19 @@ Nuevos:
 
 - `lib/studio/discord/send-webhook.ts`, `channels.ts`, `minimal-alert.ts`
 - `lib/studio/discord/__tests__/send-webhook.test.ts`, `channels-y-aviso.test.ts`, `discord-user-id.migration.test.ts`
-- `lib/studio/alerts/dispatch-alert.ts`, `user-alert.ts`, `__tests__/dispatch-alert.test.ts`
+- `lib/studio/alerts/dispatch-alert.ts`, `user-alert.ts`, `discord-delivery.ts`, `alert-outbox.ts`, `__tests__/dispatch-alert.test.ts`, `__tests__/alert-outbox.test.ts`, `__tests__/alert-outbox.migration.test.ts`
+- `lib/studio/discord/__tests__/webhook-fixture.ts` (direcciones falsas con la forma real)
 - `lib/studio/__tests__/avisos-discord-minimo.test.ts`
 - `app/studio/(app)/admin/alertas-telegram/_components/DiscordChannelsStatus.tsx` y `__tests__/DiscordChannelsStatus.test.tsx`
 - `app/studio/(app)/usuarios/__tests__/discord-user-id.test.ts`
-- `supabase/migrations/0514_user_profiles_discord_user_id.sql` y su contrato en `supabase/tests/`
+- `supabase/migrations/0514_user_profiles_discord_user_id.sql` y `0515_studio_alert_outbox.sql`, con sus contratos en `supabase/tests/`
 - `docs/specs/0606-avisos-studio-a-discord/spec.md` y `privacidad.md`
 - `.agents/handoffs/sdd-0606-avisos-studio-a-discord.md`
 
 Modificados:
 
-- Avisos por categoría: `lib/studio/new-client-notify.ts`, `contact-lead-notify.ts`, `estimado-lead-notify.ts`, `cotizacion-request-notify.ts`, `payment-report-notify.ts`, `packing-list-notify.ts`, `conversation-inbound-notify.ts`, `change-request-notify.ts`, `rate-expiry-notify.ts`, `bug-email-notify.ts`, `lib/studio/portal/sin-acceso-aviso.ts`, `lib/studio/mail/mail-health-notify.ts`, `lib/studio/searates/ocean-rates-notify.ts`, `lib/studio/naviera/consolidation-request-notify.ts`, `lib/studio/bitacora/notify.ts`, `lib/studio/notify/bug-notif-outbox.ts`, `lib/news/ceo-brief.ts`, `app/api/cron/alta-health/route.ts`, `app/api/cron/ceo-brief/route.ts`
+- Avisos por categoría: `lib/studio/new-client-notify.ts`, `contact-lead-notify.ts`, `estimado-lead-notify.ts`, `cotizacion-request-notify.ts`, `payment-report-notify.ts`, `packing-list-notify.ts`, `conversation-inbound-notify.ts`, `change-request-notify.ts`, `rate-expiry-notify.ts`, `bug-email-notify.ts`, `lib/studio/portal/sin-acceso-aviso.ts`, `lib/studio/mail/mail-health-notify.ts`, `lib/studio/searates/ocean-rates-notify.ts`, `lib/studio/naviera/consolidation-request-notify.ts`, `lib/studio/bitacora/notify.ts`, `lib/studio/notify/bug-notif-outbox.ts`, `lib/news/ceo-brief.ts`, `app/api/cron/alta-health/route.ts`, `app/api/cron/ceo-brief/route.ts`, `app/api/cron/bug-notifications-drain/route.ts` (drena también la cola)
+- Pruebas existentes: `lib/studio/notify/__tests__/bug-notif-outbox.test.ts` (casos de Discord), `lib/studio/telegram/__tests__/fake-db.ts` (INSERT, y una tabla ausente responde como una migración sin aplicar)
 - Pantalla y perfil: `app/studio/(app)/admin/alertas-telegram/page.tsx`, `app/studio/(app)/admin/page.tsx`, `app/studio/(app)/usuarios/actions.ts`, `app/studio/_components/wiring/ProfileModal.tsx`
 - Entorno: `.env.example`, `infra/dtd-cargo/.env.example`, `lib/studio/env-status.ts`
 - Registro de la migración: `supabase/migrations-baseline.json`, `supabase/pending-migration-symbol-declarations.json`
@@ -172,9 +210,9 @@ Nada de esto lo ejecuta esta spec. Es el orden para cuando Sam descongele la pub
 
 1. **Publicar la web con este código.** Sin variables de Discord no cambia nada: todo sigue por Telegram.
 2. **Crear en Discord** los cinco canales y un webhook por canal (Ajustes del canal › Integraciones › Webhooks).
-3. **Poner las cinco direcciones en el servidor** con `infra/ops/migrate/env-set.sh` y reiniciar la web. Desde ese momento los avisos por categoría salen a Discord y dejan de salir por Telegram.
+3. **Poner las cinco direcciones y `DISCORD_TENANT_ID`** (el ID del tenant de DTD Cargo) en el servidor con `infra/ops/migrate/env-set.sh` y reiniciar la web. Desde ese momento los avisos por categoría de ese tenant salen a Discord y dejan de salir por Telegram.
 4. **Probar** un aviso por categoría y mirar Ajustes › Alertas del equipo: las cinco deben decir «Sale a #canal».
-5. **Aplicar la migración 0514** (OK nominal de Sam y runbook) para que cada persona pueda enlazar su ID. Puede ir antes o después del paso 3.
+5. **Aplicar las migraciones 0514 y 0515**, de a una (OK nominal de Sam para cada una, pasando por el Director General, y runbook): la 0514 para que cada persona pueda enlazar su ID; la 0515 para la cola. Pueden ir antes o después del paso 3.
 6. **Cada persona enlaza su ID de Discord** en su perfil.
 7. **Retirar `TELEGRAM_BOT_TOKEN` del servidor.** Es el apagado: sin token, `sendTelegramMessage` devuelve error sin enviar. A partir de acá, si Discord no entrega, el aviso por mensajería se pierde y queda sólo el correo y la campana.
 8. **Dar de baja el webhook del bot** (`infra/ops/web/telegram-webhook.sh`) y retirar `TELEGRAM_WEBHOOK_SECRET` y `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME`.
@@ -193,6 +231,8 @@ Vuelta atrás entre los pasos 3 y 7: quitar las variables de Discord y reiniciar
 - [x] Mención sólo a quien enlazó su ID; sin ID no se escribe en el canal un aviso por persona.
 - [x] En `APP_ENV=staging` no se escribe en Discord.
 - [x] La migración 0514 pasa su contrato en PostgreSQL embebido, con control rojo y un mutante.
+- [x] Revisión de Codex, cada punto con una prueba que falló antes del arreglo: A3 (`wait=true` e ID del mensaje; cola para registro, bugs y reportes), A4 (el reintento de bugs sigue vivo sin Telegram), A5 (sólo el tenant de `DISCORD_TENANT_ID`), M1 (espera por defecto y mínima ante 429; el drenado frena el lote), M2 (entrega incierta no se repite), M4 (User-Agent y URL entera).
+- [x] La migración 0515 pasa su contrato en PostgreSQL embebido, con control rojo y dos mutantes (sin la barrera del aviso mínimo; con privilegios para `authenticated`). El candado del drenado se comprobó con un mutante.
 - [x] La pantalla nombra las categorías sin canal y nunca muestra una dirección.
 - [ ] `pnpm verify` — **FALLÓ** e incompleto en la única corrida (2026-11-05): un rojo real de esta rama en el contrato de permisos, ya corregido y vuelto a medir aislado; tres archivos ajenos que pasaron en uno de los dos intentos; `migrations-applied`, `sql-tests` y `schema-rebuild` sin medir. Falta una corrida completa sobre la rama final. Detalle por paso en el handoff.
 - [ ] Prueba real contra un webhook de Discord: **no hecha**. No existe todavía ningún webhook y crear uno es de Sam. Los formatos de pedido y de respuesta están tomados de la documentación de Discord, no medidos.
