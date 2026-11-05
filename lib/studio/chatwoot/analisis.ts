@@ -82,7 +82,7 @@ export const PIEZAS: readonly Pieza[] = [
   {
     id: "marca",
     nombre: "Marca de DTD",
-    descripcion: "marca/aplicar-marca.rb: logos e ícono de DTD en InstallationConfig. Solo cosmético.",
+    descripcion: "aplicar-marca.rb: logos e ícono de DTD en InstallationConfig. Solo cosmético.",
     depende: ["app/models/installation_config.rb", "config/installation_config.yml"],
   },
 ];

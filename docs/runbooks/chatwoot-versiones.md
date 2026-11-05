@@ -11,14 +11,15 @@ Chatwoot está fijado por etiqueta **y** digest (`infra/chatwoot/compose.yml`, s
 | Candado de `/register` y `/deregister` (paso 4.2) | `rails/zz_dtd_proteccion_register.rb` | Chatwoot puede llamar a `/register` sobre el número que comparte con Kommo (CW-1): PIN nuevo, cupo de 10 cada 72 h, número desconectado de Kommo |
 | Redacción de logs (paso 1.7) | `rails/zz_dtd_redaccion_logs.rb` | los logs vuelven a guardar correos, teléfonos y mensajes completos (CW-4) |
 | Revocación de sesiones desde Studio (paso 2.7) | `rails/zz_dtd_revocar_sesiones.rb` | la baja de un agente ya no cierra sus sesiones: Studio deja la baja «pendiente» (409/503) o cae al respaldo por la API de perfil (404); el tiempo real abierto no se corta |
-| Marca de DTD | `marca/aplicar-marca.rb` | solo cosmético |
+| Marca de DTD | `aplicar-marca.rb` | solo cosmético |
+| Correos de DTD (SDD-0583) | `rails/zz_dtd_correo.rb` y `correo/views/` | vuelven las plantillas de Chatwoot, en inglés y sin la marca, y los avisos a agentes copian otra vez el nombre del contacto y el texto de los mensajes |
 | Integración con Studio | SSO (Platform API), webhook firmado, Dashboard App | la Bandeja, el contador o la ficha dejan de andar |
 
-Los tres initializers se montan en **solo lectura** sobre `/app/config/initializers/`. Una imagen nueva no los borra, pero **sí** puede dejarlos sin efecto en silencio: un método renombrado (`Whatsapp::FacebookApiClient#register_phone_number`), un formateador de Sidekiq cambiado, un `RoomChannel` distinto o una carga en otro orden. Por eso §4 los comprueba **por comportamiento**, con sus controles en rojo, y no solo por la línea de arranque.
+Los initializers del candado, la redacción y la revocación se montan en **solo lectura** sobre `/app/config/initializers/`. Una imagen nueva no los borra, pero **sí** puede dejarlos sin efecto en silencio: un método renombrado (`Whatsapp::FacebookApiClient#register_phone_number`), un formateador de Sidekiq cambiado, un `RoomChannel` distinto o una carga en otro orden. Por eso §4 los comprueba **por comportamiento**, con sus controles en rojo, y no solo por la línea de arranque. Los correos se montan igual, pero no tienen corrida en §4: se comprueban con la vista previa de [§2 ter del servidor](chatwoot-servidor.md#2-ter--correos-con-la-marca-de-dtd-cargo).
 
-> **Dependencia.** El candado vive en la PR de SDD-0584 (paso 4.2, `codex/0582-e4-register`) y al 2026-10-30 **no está montado en el VPS**. Mientras no lo esté, S2 y S3 de §6 se registran como **NO APLICA (candado no desplegado)**, y la corrida `prueba-register.sh` de §4 se hace igual sobre la rama de 4.2. Desde que la bandeja del número principal exista (paso 4.5), una subida sin S2 y S3 en verde **no se cierra**.
+> **Dependencia.** El candado (SDD-0584, paso 4.2) está en `main` y montado en el VPS, medido el 2026-11-05: S2 y S3 de §6 ya no se registran como NO APLICA. Desde que la bandeja del número principal exista (paso 4.5), una subida sin S2 y S3 en verde **no se cierra**.
 >
-> La revocación de sesiones vive en la PR de SDD-0585 (paso 2.7, `codex/0582-e2-poc`) y al 2026-10-30 tampoco **está montada en el VPS**. Mientras no lo esté, S6 y S7 se registran como **NO APLICA (revocación no desplegada)** y `prueba-revocar-sesiones.sh` de §4 se corre igual sobre esa rama. Desde que esté montada, un rojo en S6 o S7 es vuelta atrás: dar de baja a un agente dejaría sus sesiones abiertas.
+> La revocación de sesiones (SDD-0585, paso 2.7) está en `main` y montada en el VPS, medido el mismo día: S6 y S7 tampoco se registran como NO APLICA. Un rojo en S6 o S7 es vuelta atrás: dar de baja a un agente dejaría sus sesiones abiertas.
 
 ## 1 · Cuándo y quién
 
@@ -54,14 +55,16 @@ En la rama de la subida, **nada en el VPS todavía**:
    git -C /ruta/chatwoot diff --stat v4.19.1 vX.Y.Z -- \
      app/services/whatsapp/ app/jobs/agent_bots/webhook_job.rb config/initializers/sidekiq.rb \
      config/initializers/filter_parameter_logging.rb app/controllers/platform/ \
-     app/controllers/api_controller.rb app/models/channel/whatsapp.rb config/routes.rb \n     app/channels/ app/models/user.rb Gemfile.lock
+     app/controllers/api_controller.rb app/models/channel/whatsapp.rb config/routes.rb \
+     app/channels/ app/models/user.rb Gemfile.lock \
+     app/mailers/ app/views/mailers/ app/views/devise/mailer/ app/views/layouts/mailer/
    ```
 
    **Apoyo:** Studio › Administración › Actualizaciones › «Analizar con IA» (paso 3.4) da un informe con el riesgo por pieza propia y una recomendación. Es una ayuda para leer el diff, no lo reemplaza: un «seguro» del motor no salta este paso ni §4, y un informe «sin IA» solo dice qué piezas tienen archivos cambiados.
 
-   Si cambió `facebook_api_client.rb`, `webhook_setup_service.rb` o `webhook_teardown_service.rb`, **el candado se revisa a mano** antes de seguir: los nombres de método que intercepta están en su cabecera. Si cambió `app/channels/room_channel.rb`, `app/controllers/platform/` o la versión de `devise_token_auth` en `Gemfile.lock`, **la revocación de sesiones se revisa a mano**: lo que medió en 4.19.1 está en la cabecera de `zz_dtd_revocar_sesiones.rb`.
+   Si cambió `facebook_api_client.rb`, `webhook_setup_service.rb` o `webhook_teardown_service.rb`, **el candado se revisa a mano** antes de seguir: los nombres de método que intercepta están en su cabecera. Si cambió `app/channels/room_channel.rb`, `app/controllers/platform/` o la versión de `devise_token_auth` en `Gemfile.lock`, **la revocación de sesiones se revisa a mano**: lo que medió en 4.19.1 está en la cabecera de `zz_dtd_revocar_sesiones.rb`. Si cambió algo de `app/mailers/` o de las carpetas de plantillas, **los correos se revisan a mano**, como dice [§2 ter del servidor](chatwoot-servidor.md#2-ter--correos-con-la-marca-de-dtd-cargo); el informe de Studio todavía no los lista como pieza propia.
 3. **Imagen nueva por digest.** `docker buildx imagetools inspect chatwoot/chatwoot:vX.Y.Z-ce` y copiar el digest `linux/amd64`. Cambiar en `compose.yml` **la etiqueta y el digest juntos**. Revisar si las notas cambian las imágenes de `pgvector` o `redis` (no se suben en el mismo salto salvo que la versión lo exija).
-4. **Actualizar las versiones esperadas** de las pruebas, que hoy dicen `4.19.1`: `pruebas/ensayo-local.sh` (C1 y la comprobación tras restaurar), la cabecera de los tres initializers («medido en la imagen …») y el monitor «Chatwoot · versión» de Uptime Kuma (§6, paso 6).
+4. **Actualizar las versiones esperadas** de las pruebas, que hoy dicen `4.19.1`: `pruebas/ensayo-local.sh` (C1 y la comprobación tras restaurar), la cabecera de los cuatro initializers («medido en la imagen …» o la versión que nombren) y el monitor «Chatwoot · versión» de Uptime Kuma (§6, paso 6).
 5. **Ensayo local completo** (§4). Sin las cuatro corridas en verde **no se pide el OK**.
 6. PR en borrador con: notas leídas, diff de la superficie, digest, resultados de §4 y la hora propuesta de la ventana. **Ahí se pide el OK nominal a Sam**, nombrando la versión, la ventana y el smoke de §6.
 
