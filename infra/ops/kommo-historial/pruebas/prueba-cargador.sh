@@ -147,8 +147,8 @@ comprobar() {
 
   F="$O/bandeja-1.txt"
   B="$(h "$F" bandeja)"
-  exigir B1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" bandeja_existia)" = no ] && [ -n "$B" ] && [ "$(h "$F" webhook_url)" = no ] && [ "$(h "$F" miembros)" = 0 ]' \
-    "bandeja $B: canal API, sin webhook_url, sin miembros"
+  exigir B1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" bandeja_existia)" = no ] && [ -n "$B" ] && [ "$(h "$F" webhook_url)" = no ] && [ "$(h "$F" asignacion_automatica)" = no ] && [ "$(h "$F" saludo)" = no ] && [ "$(h "$F" encuesta)" = no ] && [ "$(h "$F" miembros)" = 0 ]' \
+    "bandeja $B: canal API, sin webhook_url, sin asignación automática ($(h "$F" asignacion_automatica)), sin saludo ni encuesta, sin miembros"
   exigir B2 '[ "$(h "$F" trabajos_nuevos)" = "$AVISO_BANDEJA" ] && [ "$(dif "$(h "$F" cola)")" = 2 ]' \
     "crear la bandeja encola solo la invalidación de caché de la cuenta, como desde el panel; ni inbox_created ni webhooks: $(h "$F" trabajos_nuevos)"
   F="$O/bandeja-2.txt"
@@ -451,6 +451,10 @@ if [ "$MUTANTES" = 1 ]; then
     "greeting_enabled: false, csat_survey_enabled: false)" \
     "greeting_enabled: false, csat_survey_enabled: false)
         bandeja.add_members(cuenta.account_users.pluck(:user_id))"
+  # B1: sin `enable_auto_assignment: false`, Chatwoot deja la asignación automática encendida.
+  mutante M24 "la bandeja con la asignación automática por defecto" "B1" "C1 E10e" \
+    "name: nombre, enable_auto_assignment: false," \
+    "name: nombre,"
 else
   log "== M. mutantes NO EJECUTADOS (--sin-mutantes)"
 fi

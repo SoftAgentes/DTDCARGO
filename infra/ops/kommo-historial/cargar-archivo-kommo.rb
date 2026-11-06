@@ -370,6 +370,12 @@ class CargaArchivoKommo
     end
     hecho('bandeja', bandeja.id)
     hecho('webhook_url', bandeja.channel.webhook_url.present? ? 'si' : 'no')
+    # Chatwoot crea las bandejas con asignación automática; con ella, InboxMember#add_agent_to_round_robin mete a
+    # cada miembro en la rueda, y lo que entrara a la bandeja se le asignaría a alguien. Se lee de la base.
+    bandeja.reload
+    hecho('asignacion_automatica', bandeja.enable_auto_assignment ? 'si' : 'no')
+    hecho('saludo', bandeja.greeting_enabled ? 'si' : 'no')
+    hecho('encuesta', bandeja.csat_survey_enabled ? 'si' : 'no')
     hecho('miembros', InboxMember.where(inbox_id: bandeja.id).count)
     hecho('cola', "#{cola_antes}->#{trabajos_en_cola}")
     clases_despues = trabajos_por_clase
