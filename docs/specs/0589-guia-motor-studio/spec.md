@@ -294,3 +294,21 @@ Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Esto no 
 | 10 | Decisiones automatizadas | No aplica | Abrir la guía sola no decide nada sobre la persona |
 | 11 | Aceptación electrónica | NO VERIFICABLE | No registra aceptaciones. Si la guía llegara a pedir una, sería otro paso |
 | 12 | Titulares que no son usuarios | CORRECTO | Solo usuarios de Studio, y un usuario desactivado no accede a su fila (`0517_user_guide_prefs.sql:67` y `:74`; contrato) |
+
+## 2026-11-06 · Autorización y salida de la 0517
+
+**OK de Sam** (2026-11-06, ~17:35Z, en el chat del Director General, por el selector):
+
+- **Aplicar la 0517:** «Prueba y producción (Recomendado)». La opción decía «Primero en prueba, con lectura previa; después en producción, con respaldo».
+- **Fusionar la #384,** con la #383: «Sí, las dos (Recomendado)».
+
+El texto completo está en `.agents/handoffs/0589-autorizacion-0517.txt`.
+
+**Orden (migrate-first):** el ensayo en prueba, la lectura previa y el control previo en producción, la 0517 en producción con respaldo (la aplica el Director General) y, enseguida, la fusión. Sin la tabla, la guía no arranca sola y nada se rompe: `leerEstadoGuia` devuelve `null` con 42P01 o PGRST205 (`estado.test.ts:193`).
+
+**Controles, en solo lectura y sin filas de negocio:**
+
+- `scripts/qa/0517-control-previo.sql`: lo que pide el preflight y que la 0517 no esté. Son 10 comprobaciones `si`/`no`.
+- `scripts/qa/0517-control-posterior.sql`: una fila en el ledger y la tabla con sus 6 columnas, el `unique`, las dos cascadas, el check, el trigger, la RLS, la policy con el tenant activo, los permisos (ni `anon` ni `public`; `authenticated` con cuatro), y vacía. Son 15 comprobaciones.
+- **Prueba:** `lib/studio/__tests__/guia-estado-control.migration.test.ts` los corre en PGlite con la 0517 real. Tiene tres controles (el previo y el posterior en verde, y el previo con la 0517 ya puesta) y doce mutantes, y cada mutante tumba solo su comprobación.
+- **El previo, corrido en solo lectura el 2026-11-06 hacia las 18:05Z:** las 10 comprobaciones dan `si`, en prueba y en producción.
