@@ -99,6 +99,13 @@ class CargaArchivoKommo
     nil
   end
 
+  def self.formato_trabajos(mapa)
+    return 'desconocido' unless mapa
+
+    lista = mapa.select { |_, n| n.positive? }.map { |clase, n| "#{clase}:#{n}" }.sort
+    lista.empty? ? 'ninguno' : lista.join(',')
+  end
+
   def trabajos_nuevos(antes, despues)
     return 'desconocido' unless antes && despues
 
@@ -365,7 +372,10 @@ class CargaArchivoKommo
     hecho('webhook_url', bandeja.channel.webhook_url.present? ? 'si' : 'no')
     hecho('miembros', InboxMember.where(inbox_id: bandeja.id).count)
     hecho('cola', "#{cola_antes}->#{trabajos_en_cola}")
-    hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, trabajos_por_clase))
+    clases_despues = trabajos_por_clase
+    hecho('trabajos_nuevos', trabajos_nuevos(clases_antes, clases_despues))
+    # Todo lo que queda en cola, por clase y evento: la línea base de la carga (prueba-cargador.sh, E45).
+    hecho('trabajos_despues', CargaArchivoKommo.formato_trabajos(clases_despues))
     hecho('carga', 'ok')
   end
 end

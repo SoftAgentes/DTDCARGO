@@ -24,6 +24,19 @@ module SondaCargador
     Sidekiq::Queue.all.sum(&:size) + Sidekiq::ScheduledSet.new.size + Sidekiq::RetrySet.new.size
   end
 
+  # Lo mismo que CargaArchivoKommo#trabajos_por_clase y .formato_trabajos: clase y nombre de evento, nada más.
+  def trabajos_por_clase
+    cuenta = Hash.new(0)
+    [*Sidekiq::Queue.all, Sidekiq::ScheduledSet.new, Sidekiq::RetrySet.new].each do |c|
+      c.each do |trabajo|
+        evento = Array(trabajo.display_args).find { |a| a.is_a?(String) && a.match?(/\A[a-z_]+(\.[a-z_]+)+\z/) }
+        cuenta[evento ? "#{trabajo.display_class}(#{evento})" : trabajo.display_class] += 1
+      end
+    end
+    lista = cuenta.map { |clase, n| "#{clase}:#{n}" }.sort
+    lista.empty? ? 'ninguno' : lista.join(',')
+  end
+
   def igual(a, b)
     (a.to_f - b.to_f).abs < 0.001 ? 'si' : 'no'
   end
@@ -80,6 +93,7 @@ module SondaCargador
     # E-4 y E-5: la cola, antes de que esta sonda cree nada. prueba-cargador.sh la compara con la cola justo
     # después de crear la bandeja: es la línea base de la carga, separada de la de la creación.
     hecho.call('cola_actual', cola)
+    hecho.call('trabajos_actuales', trabajos_por_clase)
     hecho.call('cola_delta', cola - b['cola'])
     hecho.call('con_webhook_conversaciones', Conversation.where(inbox_id: b['con_webhook']).count)
 

@@ -200,8 +200,8 @@ comprobar() {
   local base_carga
   base_carga="$(h "$O/bandeja-1.txt" cola)"
   base_carga="${base_carga##*->}"
-  exigir E45 '[ -n "$base_carga" ] && [ "$(h "$F" cola_actual)" = "$base_carga" ] && [ "$(h "$F" con_webhook_conversaciones)" = 0 ]' \
-    "E-4 y E-5: desde que existe la bandeja (cola ${base_carga:-?}) hasta la verificación (cola $(h "$F" cola_actual)), 0 trabajos nuevos; 0 conversaciones en la bandeja con webhook"
+  exigir E45 '[ -n "$base_carga" ] && [ "$(h "$F" cola_actual)" = "$base_carga" ] && [ -n "$(h "$F" trabajos_actuales)" ] && [ "$(h "$F" trabajos_actuales)" = "$(h "$O/bandeja-1.txt" trabajos_despues)" ] && [ "$(h "$F" con_webhook_conversaciones)" = 0 ]' \
+    "E-4 y E-5: desde que existe la bandeja hasta la verificación, la cola es la misma por clase y evento (${base_carga:-?} trabajos), y 0 conversaciones en la bandeja con webhook"
   exigir E6a '[ "$(h "$F" conversaciones)" = 5 ] && [ "$(h "$F" mensajes)" = 8 ] && [ "$(h "$F" entrantes)" = 5 ] && [ "$(h "$F" salientes)" = 3 ] && [ "$(h "$F" resueltas)" = 5 ]' \
     "E-6: 5 conversaciones resueltas, 8 mensajes (5 entrantes, 3 salientes)"
   exigir E6b '[ "$(h "$F" historicas)" = 1 ] && [ "$(h "$F" mensajes_historicos)" = 3 ]' \
@@ -400,7 +400,7 @@ if [ "$MUTANTES" = 1 ]; then
   mutante M14 "conversaciones con la fecha de hoy" "E6b" "C1" \
     "created_at: instante(c['creada']), updated_at: ultima," \
     "created_at: ahora, updated_at: ultima,"
-  mutante M15 "atributos guardados como texto" "E6d" "S1" \
+  mutante M15 "atributos de la conversación como texto (Chatwoot los guarda como objeto jsonb)" "E6d" "S1" \
     "'kommo_origen' => c['origen'] }.compact }" \
     "'kommo_origen' => c['origen'] }.compact.to_json }"
   mutante M16 "imprime el nombre de la persona" "F1" "C1" \
@@ -420,6 +420,18 @@ if [ "$MUTANTES" = 1 ]; then
   mutante M20 "conversaciones abiertas" "E6a" "C1" \
     "status: Conversation.statuses[:resolved]" \
     "status: Conversation.statuses[:open]"
+  # Lo contrario de M15 para los mensajes: Chatwoot guarda content_attributes como texto JSON (store con
+  # coder JSON sobre una columna json). Reescribirlo como objeto, saltándose el modelo, tiene que tumbar E6d.
+  mutante M21 "atributos del mensaje como objeto (Chatwoot los guarda como texto JSON)" "E6d" "C1 C4" \
+    "n = seco? ? lote.size : Message.insert_all(lote, returning: %w[id]).length" \
+    "n = if seco?
+            lote.size
+          else
+            ids = Message.insert_all(lote, returning: %w[id]).map { |f| f['id'] }
+            Message.where(id: ids).where.not(content_attributes: nil)
+                   .update_all(\"content_attributes = (content_attributes #>> '{}')::json\")
+            ids.size
+          end"
 else
   log "== M. mutantes NO EJECUTADOS (--sin-mutantes)"
 fi
