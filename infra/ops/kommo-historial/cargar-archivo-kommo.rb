@@ -6,6 +6,8 @@
 #
 #   MODO=crear-bandeja CUENTA=1 NOMBRE='Archivo Kommo' bundle exec rails runner cargar-archivo-kommo.rb
 #   MODO=seco|cargar   CUENTA=1 BANDEJA=<id> CARGA=-  bundle exec rails runner cargar-archivo-kommo.rb < carga.ndjson
+#   MODO=adjuntos[-seco] CUENTA=1 BANDEJA=<id> CARGA=- bundle exec rails runner cargar-archivo-kommo.rb < flujo
+#     (5.5b: el flujo lo da `respaldar-historial.py flujo-adjuntos`, una línea JSON con base64 por adjunto)
 #
 # Sin efectos quiere decir:
 #   · escribe con `insert_all`, que no corre callbacks de ActiveRecord: ni webhooks, ni notificaciones, ni
@@ -17,7 +19,8 @@
 #   · MODO=seco no escribe nada, ni siquiera consume la secuencia de números de conversación: solo cuenta.
 #
 # Salida: líneas `HECHO clave=valor` con conteos. Nunca nombres, teléfonos, correos ni textos.
-# Los adjuntos quedan pendientes (SDD-0590 §10.6): la extracción los cifra y el servidor no los puede leer.
+# Sin `--adjuntos-para-carga` en la extracción, los adjuntos quedan pendientes (SDD-0590 §10.6). Con ella, MODO=adjuntos
+# los sube a ActiveStorage sin analizar ni generar variantes y los liga a su mensaje con `insert_all` (§10.12).
 
 require 'json'
 require 'set'

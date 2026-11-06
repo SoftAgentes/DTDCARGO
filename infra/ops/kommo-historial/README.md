@@ -14,7 +14,7 @@ del host. No tiene dependencias de Python.
 | Regla | Cómo |
 |---|---|
 | El token no se imprime ni viaja por el chat | Se lee de un archivo 0600 en `/dev/shm` (`--token-file`); nunca va en argv; `probar-token` muestra solo largo, alcances, días de vigencia y si entra a la cuenta |
-| Nada en claro en disco | El staging vive en tmpfs (`/dev/shm/kommo-e5`); los adjuntos se descargan a memoria y se cifran uno por uno; al empaquetar, el staging se borra |
+| Nada en claro en disco | El staging vive en tmpfs (`/dev/shm/kommo-e5`); los adjuntos se descargan a memoria y se cifran uno por uno (con `--adjuntos-para-carga`, además una copia en claro en ese mismo tmpfs para el cargador); al empaquetar, el staging se borra |
 | En disco solo `.age`, `.sha256`, `manifiesto.json` e informes de conteos | `/srv/backups/kommo/kommo-<stamp>/` |
 | Log y pantalla sin datos personales | Ids, conteos, códigos HTTP, nombres de campo y hosts; nunca texto, nombres, teléfonos ni enlaces firmados. La prueba `test_extraccion_informe_y_sin_datos_personales` lo comprueba con marcas |
 | Solo lectura en Kommo | Solo `GET` |
@@ -95,7 +95,8 @@ reales espera el OK de Sam, uno por uno.**
 ```sh
 # 1. Completa hasta el corte, conservando el staging (sin --base)
 python3 -I respaldar-historial.py extraer --token-file /dev/shm/k0582-e5 --corte 2026-11-20T03:00:00Z \
-  --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo --sondear-huecos -1
+  --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo --sondear-huecos -1 \
+  --adjuntos-para-carga        # 5.5b: además del .age, copia en claro de cada adjunto en el staging (0600)
 # 2. Vínculo con el ERP: la foto mínima (client_id, phone_last10, correos) en /dev/shm; se borra al leerla
 python3 -I respaldar-historial.py vincular --staging /dev/shm/kommo-e5-carga --clientes /dev/shm/clientes-erp.ndjson
 # 3. Archivo de carga reducido
@@ -107,7 +108,11 @@ docker exec -e MODO=crear-bandeja -e CUENTA=1 -e 'NOMBRE=Archivo Kommo' chatwoot
 docker exec -i -e MODO=seco -e CUENTA=1 -e BANDEJA=<id> -e CARGA=- chatwoot-rails-1 \
   bundle exec rails runner /tmp/cargar-archivo-kommo.rb < /dev/shm/kommo-e5-carga/carga.ndjson
 #    y después lo mismo con MODO=cargar
-# 5. Cifrar y borrar el staging
+# 4b. Adjuntos (5.5b), después de cargar los mensajes: base64 por la entrada estándar, nunca copiados al contenedor
+python3 -I respaldar-historial.py flujo-adjuntos --staging /dev/shm/kommo-e5-carga 2>flujo.err \
+  | docker exec -i -e MODO=adjuntos -e CUENTA=1 -e BANDEJA=<id> -e CARGA=- chatwoot-rails-1 \
+      bundle exec rails runner /tmp/cargar-archivo-kommo.rb                   # MODO=adjuntos-seco solo cuenta
+# 5. Cifrar y borrar el staging (las copias en claro no entran al paquete y se borran con él)
 python3 -I respaldar-historial.py empaquetar --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo
 ```
 
@@ -116,9 +121,14 @@ Rechaza una bandeja con `webhook_url` o de otra cuenta, reusa contactos por tel�
 la segunda corrida. `MODO=seco` solo cuenta, sin consumir números de conversación. La salida son solo conteos
 (`HECHO clave=valor`).
 
+`MODO=adjuntos` sube cada adjunto con `ActiveStorage::Blob.create_and_upload!` (sin identificar ni analizar) y
+escribe `attachments` y `active_storage_attachments` con `insert_all`: no encola análisis ni variantes. Solo
+toca mensajes del Archivo que todavía no tienen adjunto, así que repetirlo no duplica. Comprueba bytes y sha256
+de cada uno antes de subirlo y, si falla la escritura, purga el blob.
+
 Prueba con datos inventados y la imagen real: corre en GitHub Actions en cada PR que toque esta carpeta
-(`.github/workflows/kommo-historial-cargador.yml`). Mide E-4 a E-11 (SDD-0590 §10.4) y corre el control M0
-y 24 mutantes. En una PC con Docker: `bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh
+(`.github/workflows/kommo-historial-cargador.yml`). Mide E-4 a E-11 (SDD-0590 §10.4), los adjuntos AD1 a
+AD5 (§10.12) y corre el control M0 y 29 mutantes. En una PC con Docker: `bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh
 [--sin-mutantes]`. Es una corrida pesada, así que pide turno, y para sola si la memoria libre baja de 3 GB.
 
 ### Ensayo (5.6): copia efímera de la base de Chatwoot
@@ -132,7 +142,8 @@ todo. La evidencia trae solo líneas `HECHO`.
 CARGA=/dev/shm/kommo-e5-carga/carga.ndjson \
 INFORME_CARGA=/dev/shm/kommo-e5-carga/carga-informe.json \
 INFORME_VINCULO=/dev/shm/kommo-e5-carga/vinculo-informe.json \
-  bash ensayo-archivo.sh           # el ensayo
+STAGING=/dev/shm/kommo-e5-carga \
+  bash ensayo-archivo.sh           # el ensayo; con STAGING también carga los adjuntos (5.5b)
 bash ensayo-archivo.sh --limpiar   # solo borra un ensayo que haya quedado
 ```
 
@@ -142,6 +153,8 @@ contra una «producción» simulada: `pruebas/prueba-ensayo.sh`.
 | Paso | Qué deja | Con datos de personas |
 |---|---|---|
 | `extraer --corte` | Staging completo hasta el corte, `corte.json`; el manifiesto lleva `corte` y sirve de base a un incremental | Sí: queda en tmpfs |
+| `extraer --adjuntos-para-carga` | Además, `adjuntos-carga/<message_id>.<ext>` en claro (0600). Solo con `--corte`, sin `--sin-adjuntos` y con el staging en `/dev/shm` | Sí: fotos, audios y documentos, en tmpfs hasta `empaquetar` |
+| `flujo-adjuntos` | Nada: manda cada adjunto en base64 por la salida estándar, después de comprobar bytes y sha256; el informe va por la salida de error | El flujo sí; el informe no |
 | `vincular` | `vinculos.ndjson`: E.164, llave `phone_last10`, correos, cliente del ERP, motivo y grupo. `vinculo-informe.json`: solo conteos, con las mediciones E-1 y E-2 del ensayo | `vinculos.ndjson` sí; el informe no |
 | `preparar-carga` | `carga.ndjson`: persona por grupo, conversación y mensaje con texto, sentido, fecha y autor (cliente, nombre de pila o «Bot Kommo»). Sin `avatar_url` ni campos propios de Kommo. `carga-informe.json`: solo conteos | `carga.ndjson` sí; el informe no |
 
@@ -165,6 +178,7 @@ Cada línea de `mensajes.ndjson` es el mensaje tal como lo da Kommo más `_talk_
 | `--corte-ventanas-vacias N` | Parar la enumeración tras N ventanas de 30 días sin eventos (por defecto no para) |
 | `--sondear-huecos N` | Probar N ids de conversación que no aparecen en los eventos; `-1` prueba todos. Los que existen entran al respaldo |
 | `--sin-adjuntos` | Solo metadatos |
+| `--adjuntos-para-carga` | 5.5b: deja también una copia en claro de cada adjunto para el cargador del Archivo Kommo |
 | `--tope-adjunto-mb` | Tope por adjunto (200 MB por defecto); los que pasan quedan anotados como `demasiado-grande` |
 | `--pausa` | Segundos entre peticiones (0,25 por defecto) |
 | `--conservar-staging` | No borrar el tmpfs al empaquetar (para repetir `informe`) |

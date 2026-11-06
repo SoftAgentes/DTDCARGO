@@ -346,6 +346,11 @@ if dc "${BASE[@]}" up -d --wait rails >"$TRABAJO/rails-up.txt" 2>&1; then
   rr "$F" FASE=servir "BANDEJA=$B" -- "$SONDA" </dev/null
   exigir AD4 '[ "$(h "$F" servir)" = ok ] && [ "$(h "$F" rails_responde)" = si ] && [ "$(h "$F" servidos)" = 3/3 ] && [ -n "$(h "$F" ajeno_codigos)" ] && ! h "$F" ajeno_codigos | tr "," "\n" | grep -qx 200' \
     "5.5b: un agente miembro baja los 3 adjuntos por la API e íntegros ($(h "$F" servidos)); a uno que no es miembro le responde $(h "$F" ajeno_codigos)"
+  # AD5: la miniatura de la imagen, que el panel pide al abrir la conversación, se genera al primer pedido. Lo que
+  # encola eso es de ActiveStorage y nada más: ningún trabajo de mensajes, notificaciones ni webhooks.
+  exigir AD5 '[ "$(h "$F" miniaturas)" = si ] && ! h "$F" trabajos_al_servir | tr "," "\n" | grep -v "^ActiveStorage::" | grep -vqx ninguno' \
+    "5.5b: el panel recibe la miniatura de la imagen ($(h "$F" miniaturas)); al servir se encola solo ActiveStorage ($(h "$F" trabajos_al_servir))"
+  log "MEDIDA AD5 — al servir: trabajos $(h "$F" trabajos_al_servir); variantes nuevas $(h "$F" variantes_nuevas)"
 else
   mal AD4 "el servicio rails de la prueba no arrancó (ver $TRABAJO/rails-up.txt)"
   tail -n 30 "$TRABAJO/rails-up.txt"

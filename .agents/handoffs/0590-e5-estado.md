@@ -1,14 +1,24 @@
 # SDD-0590 · E5, historial de Kommo al «Archivo Kommo»: estado y guion hasta producción (handoff)
 
-Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del Director General. Las fuentes de estado son Git, las PR y la spec `docs/specs/0590-kommo-historial-e5/spec.md`. Este handoff junta lo necesario para seguir sin la conversación. **Nada de esto se corrió todavía contra Kommo ni contra producción.**
+Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del Director General. Las fuentes de estado son Git, las PR y la spec `docs/specs/0590-kommo-historial-e5/spec.md`. Este handoff junta lo necesario para seguir sin la conversación.
 
-## 1. Las tres PR (borrador, apiladas). No se suben commits sin avisar al Director General
+**Estado al 2026-11-06, ~14:30Z.**
+- Sam pegó el token a las 13:40Z.
+- La sonda incremental corrió y su paquete es `/srv/backups/kommo/kommo-20261106T134402Z`. Su evidencia, solo conteos, se le mandó al Director General.
+- La completa está programada para el 2026-11-07 a las 02:00:00 UTC (`kommo-e5-completa.timer`, con `kommo-e5-vigia.timer` a la misma hora). El token se borra solo el 2026-11-07 a las 13:41:51 UTC (`kommo-e5-token-caduca.timer`).
+- Sam pidió los adjuntos («Con adjuntos»), y la 5.5b está en la PR #394.
+- **Puerta de las 00:30Z:** si la #394 no está en verde y revisada por el Director General, se cancelan los dos timers de la completa y no se corre solo con texto (§2).
+- Nada se cargó en producción.
+
+## 1. Las PR (borrador, apiladas). No se suben commits sin avisar al Director General
 
 | PR | Rama | Cabeza | Base | Qué trae | CI |
 |---|---|---|---|---|---|
 | [#386](https://github.com/SoftAgentes/DTDCARGO/pull/386) | `codex/0590-e5-extractor` | `28de21a9d` | `main` | 5.3: extractor incremental hasta un corte | Pendiente de «Calidad continua» al marcarla lista |
 | [#391](https://github.com/SoftAgentes/DTDCARGO/pull/391) | `codex/0590-e5-vinculo` | `b7d1a383e` | #386 | 5.4 y 5.5: completa hasta el corte, vínculo con el ERP, archivo de carga, cargador y su prueba (41 comprobaciones, 24 mutantes) | Verde: run 42184797759 |
-| [#392](https://github.com/SoftAgentes/DTDCARGO/pull/392) | `codex/0590-e5-ensayo` | `2b5edea21` | #391 | 5.6: guion del ensayo en una copia efímera, con guardas y su prueba contra una «producción» simulada | Verde: run 42189025604. Aprobada por el Director General como guion de ensayo |
+| [#392](https://github.com/SoftAgentes/DTDCARGO/pull/392) | `codex/0590-e5-ensayo` | `b3c9b62be` | #391 | 5.6: guion del ensayo en una copia efímera, con guardas y su prueba contra una «producción» simulada | Verde: run 42189025604 sobre `2b5edea21`, aprobada por el Director General como guion de ensayo. Después, solo commits de docs |
+| [#393](https://github.com/SoftAgentes/DTDCARGO/pull/393) | `codex/0590-e5-solo-lectura` | `31b2140a2` | #392 | Prueba de que el extractor solo hace GET (§10.13) y `probar-token` sin `iss` | — |
+| [#394](https://github.com/SoftAgentes/DTDCARGO/pull/394) | `codex/0590-e5-adjuntos` | ver la PR | #393 | 5.5b: adjuntos al Archivo (§10.12): extractor 1.3.0, `MODO=adjuntos`, ensayo con `STAGING`, AD1 a AD5 y mutantes M25 a M29 | Ver la PR |
 
 - **Integración:** la hace el Director General, en orden: #386 a `main`, después la #391 con base `main`, después la #392. Cuando la #391 quede con base `main`, corre «Calidad continua».
 - **Worktrees:** `DTD-worktrees/0590-e5-extractor` (ramas `codex/0590-e5-extractor` y `codex/0590-e5-vinculo`) y `DTD-worktrees/0590-e5-ensayo` (rama `codex/0590-e5-ensayo`). Los dos están reclamados por la sesión `eeeb0433-bf95-4b6b-8cdc-d201699e5f95`.
@@ -27,15 +37,20 @@ Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del
 - **El Director General, el 2026-11-06:**
   - el plan A del ensayo, en una copia efímera, con sus guardas (§10.10);
   - aceptó el salto de los números de conversación, que se anota antes y después;
-  - la completa con `--sin-adjuntos`;
+  - la completa con `--sin-adjuntos`; reemplazado a las ~14:00Z, cuando Sam pidió los adjuntos (abajo);
   - la cuenta 2 (la de prueba) se acepta en el dump y se borra de la copia antes de cargar;
   - E-3 en producción lo cuenta él;
   - el token se queda en `/dev/shm` desde la sonda hasta que termina la completa, si esta arranca en menos de 24 horas. Se borra al terminar la completa, o a las 24 horas, con un borrado programado (§5.1).
+- **Sam, relayado por el Director General hacia las 14:00Z:** «Con adjuntos». El Director General pidió:
+  - programar la 5.5b ya (spec §10.12): el extractor con `--adjuntos-para-carga` y el cargador que sube los adjuntos sin callbacks;
+  - la prueba en CI, con adjuntos inventados, mutantes, sin huérfanos y sin duplicar, y el ensayo que cuente adjuntos y bytes;
+  - **plazo, las 00:30Z:** en verde en CI y revisada por él. Si llega, se redespliega el extractor con huellas y `completa.sh` pasa a `--adjuntos-para-carga` sin `--sin-adjuntos`, con el mismo token y a las 02:00Z como está programado;
+  - **si no llega:** se cancelan `kommo-e5-completa.timer` y `kommo-e5-vigia.timer`. **No se corre solo con texto.** El token se borra con su timer, y se reprograma otra noche, con Sam pegándolo otra vez.
 
 ## 3. Lo que espera a Sam
 
-1. **El token de Kommo**, pegado en el VPS (§5.1). Destraba todo lo demás.
-2. **Adjuntos en Chatwoot (5.5b), sí o no.** Lo preguntó el Director General. Si dice que sí **antes** de la completa, se programa la 5.5b (diseño en §10.12) y la completa baja los adjuntos en ese modo, una sola vez. Si dice que no, o después, la completa va con `--sin-adjuntos`.
+1. **El token de Kommo**: pegado a las 13:40Z. Hecho.
+2. **Adjuntos en Chatwoot (5.5b)**: «Con adjuntos». Hecho; la 5.5b está en la #394.
 3. **Quién entra como miembro del Archivo** (§10.9). Sin miembros, solo lo ven los administradores.
 4. **Cómo buscar lo viejo** (§10.9): por la persona, sin cambios, o subiendo `SEARCH_TIME_RANGE_LIMIT_DAYS`, que es un despliegue del Director General.
 
@@ -43,9 +58,9 @@ Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del
 
 | # | Paso | Quién | Estado |
 |---|---|---|---|
-| 1 | Sam pega el token | Sam | Esperando |
-| 2 | Sonda incremental desde la base 5.1 hasta un corte (§5.2) | Subdirector, con aviso al Director General | Guion listo, sin correr |
-| 3 | Completa hasta el corte, entre las 02:00 y las 10:00Z, con `--sin-adjuntos` (§5.3) | Subdirector | Guion listo, sin correr |
+| 1 | Sam pega el token | Sam | Hecho, a las 13:40Z |
+| 2 | Sonda incremental desde la base 5.1 hasta un corte (§5.2) | Subdirector, con aviso al Director General | Hecho; evidencia al Director General |
+| 3 | Completa hasta el corte, entre las 02:00 y las 10:00Z, con `--adjuntos-para-carga` si la #394 pasa la puerta de las 00:30Z (§5.3) | Subdirector | Programada para el 2026-11-07 a las 02:00Z |
 | 4 | Foto del ERP, `vincular` y `preparar-carga` (§5.4) | Subdirector | Guion listo, sin correr |
 | 5 | Ensayo en la copia efímera (§5.5) | Subdirector | Guion aprobado (#392), sin correr |
 | 6 | Evidencia del ensayo al Director General | Subdirector | — |
@@ -123,7 +138,18 @@ Lo que se mide aquí (spec §9.2): si Kommo respeta `filter[updated_at]` en nota
 
 ### 5.3 Paso 3: la completa hasta el corte (entre las 02:00 y las 10:00Z)
 
-Va con el mismo token de la sonda, si no pasaron 24 horas (§5.1), y con `--sin-adjuntos` decidido (si Sam pide la 5.5b antes, esto cambia: ver §3). Dura unas 3,7 h, y tiene que terminar antes de las 10:00Z.
+Va con el mismo token de la sonda, si no pasaron 24 horas (§5.1). Dura unas 3,7 h sin adjuntos y unas 5 h con ellos (I), y tiene que terminar antes de las 10:00Z.
+
+**Cómo quedó programada.** La corre `/srv/ops/kommo-historial-0590b/completa.sh`, por medio de `kommo-e5-completa.timer`, el 2026-11-07 a las 02:00:00 UTC. El vigía va en `kommo-e5-vigia.timer`, a la misma hora. El guion:
+- se niega si el token no tiene 0600, si tiene 200 bytes o menos, o si tiene 24 h o más (código 11);
+- se niega si la carga pasa de 8 (código 12);
+- toma el corte en la hora en punto y espera 30 s;
+- corre el `extraer` de abajo;
+- al terminar, borra el token, para `kommo-e5-token-caduca.timer` y escribe `/srv/backups/kommo/completa-0590.estado`.
+
+Si lo paran con TERM, devuelve 143 y no borra el token.
+
+**Con la 5.5b** (si pasa la puerta de las 00:30Z, §2), en `completa.sh` cambia una sola cosa: `--sin-adjuntos` sale y entra `--adjuntos-para-carga`. Antes se redespliega el extractor 1.3.0 de la #394 en `/srv/ops/kommo-historial-0590b` y se anotan las huellas. El bloque de abajo es el de antes; con la 5.5b, la línea del medio queda `--token-file /dev/shm/k0582-e5 --corte "$CORTE" --sondear-huecos -1 --adjuntos-para-carga \`.
 
 ```sh
 stat -c '%a %s %y' /dev/shm/k0582-e5     # 600, más de 200 bytes, menos de 24 h; si no, Sam lo pega otra vez
@@ -143,7 +169,7 @@ systemd-run --unit kommo-e5-completa --collect -p Nice=10 \
   rm -f /dev/shm/k0582-e5 && ls /dev/shm | grep -c k0582        # 0
   systemctl stop kommo-e5-token-caduca.timer 2>/dev/null; systemctl list-timers --all --no-pager | grep -c kommo-e5-token   # 0
   ```
-- **El staging tiene datos de personas en claro, en tmpfs.** Conviene que el ensayo y la carga a producción ocurran el mismo día. Si el VPS se reinicia, el staging se pierde y la completa se repite.
+- **El staging tiene datos de personas en claro, en tmpfs.** Con la 5.5b, también unos 2,1 GB de fotos, audios y documentos, en `adjuntos-carga/` (0600). Conviene que el ensayo y la carga a producción ocurran el mismo día. Si el VPS se reinicia, el staging se pierde y la completa se repite.
 
 ### 5.4 Paso 4: foto del ERP, `vincular` y `preparar-carga`
 
@@ -177,7 +203,7 @@ python3 -I respaldar-historial.py preparar-carga --staging /dev/shm/kommo-e5-car
 
 ### 5.5 Paso 5: el ensayo (la #392 en el VPS)
 
-El guion del ensayo no está en el VPS. Se despliega de la cabeza aprobada, sin datos, igual que se hizo con `0590b`:
+Desplegado el 2026-11-06 desde `2b5edea21` en `/srv/ops/kommo-historial-ensayo`. Con la 5.5b se redespliega desde la cabeza de la #394 revisada por el Director General, porque cambian `ensayo-archivo.sh`, `cargar-archivo-kommo.rb`, `pruebas/sonda-ensayo.rb` y `respaldar-historial.py`, y se comparan las huellas. El procedimiento es el mismo de entonces:
 
 ```sh
 # En la PC, desde el worktree de la #392:
@@ -191,10 +217,11 @@ cd /srv/ops/kommo-historial-ensayo && sha256sum ensayo-archivo.sh ensayo-otras-c
 CARGA=/dev/shm/kommo-e5-carga/carga.ndjson \
 INFORME_CARGA=/dev/shm/kommo-e5-carga/carga-informe.json \
 INFORME_VINCULO=/dev/shm/kommo-e5-carga/vinculo-informe.json \
+STAGING=/dev/shm/kommo-e5-carga \
 CUENTA=1 bash /srv/ops/kommo-historial-ensayo/ensayo-archivo.sh
 ```
 
-- **Qué hace:** copia la base de Chatwoot, deja en la copia solo la cuenta 1, crea el Archivo, corre el seco y las dos cargas, mide, y lo borra todo.
+- **Qué hace:** copia la base de Chatwoot, deja en la copia solo la cuenta 1, crea el Archivo, corre el seco y las dos cargas, mide, y lo borra todo. Con `STAGING` (5.5b), también carga dos veces los adjuntos y mide AD1 a AD3: cantidad y bytes frente a `carga-informe.json`, 0 en la segunda corrida, íntegros y sin huérfanos.
 - **Evidencia:** `/srv/ops/kommo-historial-ensayo/evidencia-ensayo-<stamp>.txt`, solo líneas `HECHO`. Se le manda al Director General.
 - Si queda algo a medias: `bash ensayo-archivo.sh --limpiar`.
 
@@ -209,6 +236,7 @@ CUENTA=1 bash /srv/ops/kommo-historial-ensayo/ensayo-archivo.sh
   Primero se crea la bandeja con `MODO=crear-bandeja` (exige `asignacion_automatica=no`, `miembros=0` y `trabajos_nuevos` de `account.cache_invalidated`). Después `MODO=seco` con `CARGA=-`. Sus conteos tienen que coincidir con los del ensayo.
 - **Respaldo de Chatwoot**, antes de cargar: lo hace el Director General.
 - **Carga:** `MODO=cargar`. Se anota `HECHO secuencia=antes->después` (E-8, aceptado por el Director General). E-3 lo cuenta él antes y después: `crm_tarjetas`, `crm_tareas`, `chatwoot_webhook_events` y `chatwoot_conversations`.
+- **Adjuntos (5.5b), después de los mensajes:** `flujo-adjuntos | MODO=adjuntos-seco` y después `MODO=adjuntos`, por la entrada estándar (README). Se anotan `blobs antes->después` y `trabajos_nuevos`, que tiene que dar `ninguno`.
 - **Al final:**
   - `respaldar-historial.py empaquetar --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo`, que cifra y borra el staging;
   - los miembros del Archivo, cuando Sam decida.
@@ -217,4 +245,4 @@ CUENTA=1 bash /srv/ops/kommo-historial-ensayo/ensayo-archivo.sh
 
 - El Archivo sin miembros solo lo ven los administradores: es una decisión de Sam, no un defecto.
 - El buscador de mensajes de Chatwoot solo mira 90 días (`SEARCH_TIME_RANGE_LIMIT_DAYS`). Si Sam elige subirlo, es un despliegue aparte.
-- Los adjuntos de Kommo no llegan a Chatwoot con el código de hoy: es la 5.5b, que espera a Sam.
+- La miniatura de una imagen del Archivo se genera la primera vez que alguien la abre en el panel, como con cualquier imagen de WhatsApp. Lo que eso encola es de ActiveStorage, y AD5 lo mide en CI. No cambia nada de la carga.

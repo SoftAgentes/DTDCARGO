@@ -592,7 +592,7 @@ Cubre las cinco puertas de arriba, con estas condiciones, que son parte del OK:
 
 **La cuenta 2 de producción** (medida el 2026-11-06 en solo lectura, sin nombres): es la **cuenta de prueba** de Chatwoot. Lo documenta `docs/runbooks/chatwoot-bandeja.md:75` (decisión de Sam del 2026-11-03: «Prueba usa una segunda cuenta en el mismo Chatwoot, sin datos reales»), la crea `infra/chatwoot/crear-cuenta-prueba.rb`, y las pruebas de punta a punta exigen `CHATWOOT_ACCOUNT_ID=2`. Creada el 2026-11-03, con nombre de prueba, `status` 1 (suspendida), 2 bandejas (API y correo), 14 conversaciones, 9 contactos, 2 usuarios y 0 webhooks. Que no tenga datos reales es por diseño; no se verificó fila por fila. El ensayo no la necesita y la borra de la copia (O1 y O2).
 
-**Adjuntos: decidido `--sin-adjuntos` para la completa** (Director General, 2026-11-06), con el código de hoy. El Archivo sale con texto y con la marca de adjunto pendiente (`adjuntos_pendientes` en el cargador). Si Sam pide adjuntos en Chatwoot **antes** de la completa, va una sola bajada en modo 5.5b (§10.12); el Director General ya se lo preguntó.
+**Adjuntos: primero se decidió `--sin-adjuntos` para la completa** (Director General, 2026-11-06), con el código de ese momento, y el Director General le preguntó a Sam. **Sam pidió los adjuntos** («Con adjuntos», ~14:00Z): la completa va en modo 5.5b (§10.12) si llega a tiempo, y si no, no se corre solo con texto.
 
 **Adjuntos: los datos con que se decidió.**
 - **Manifiesto de 5.1:** 3.577 adjuntos y 2.099.458.961 bytes cifrados.
@@ -656,9 +656,9 @@ Pedido por el Director General con la aprobación del plan A. Estados de la skil
 
 **Fixtures:** la prueba de CI usa solo datos inventados, en una «producción» simulada creada en el runner. No copia nada de producción ni del respaldo.
 
-### 10.12 Paso 5.5b — adjuntos en Chatwoot (diseño; no se programa hasta que Sam conteste)
+### 10.12 Paso 5.5b — adjuntos en Chatwoot (programado el 2026-11-06)
 
-El Director General le preguntó a Sam si quiere los adjuntos en Chatwoot. Si dice que sí **antes** de la completa, la completa va con adjuntos en este modo, en una sola bajada. Si dice que no, o después, el Archivo queda con texto y la marca de adjunto pendiente.
+**Sam dijo «Con adjuntos»** (2026-11-06, ~14:00Z, transmitido por el Director General). La completa va con adjuntos en este modo, en una sola bajada, si la 5.5b está en verde en CI y revisada por el Director General antes de las 00:30Z. Si no llega, se cancelan `kommo-e5-completa.timer` y `kommo-e5-vigia.timer`, no se corre solo con texto, el token se borra con su timer y la completa se reprograma otra noche, con Sam pegando el token otra vez. Lo que sigue es el diseño de antes de la respuesta; lo que quedó en código está al final de esta sección.
 
 **Por qué hace falta un paso propio.** Hoy la extracción cifra cada adjunto al bajarlo, para las llaves de Sam y de emergencia (`respaldar-historial.py:757`), y nunca queda en claro en el servidor. El cargador no puede leerlos.
 
@@ -689,6 +689,47 @@ El Director General le preguntó a Sam si quiere los adjuntos en Chatwoot. Si di
 - Los enlaces de Kommo vencen: en 5.1 ya había 15 con 404 de 3.592.
 
 **Datos personales:** fotos, audios y documentos de clientes. En claro solo en tmpfs, durante la ventana. Después quedan en el almacenamiento de Chatwoot, con la retención de Chatwoot, igual que los adjuntos que hoy llegan por WhatsApp e Instagram. revisar-datos-ve se hace con el código, si Sam dice que sí.
+
+#### Qué quedó en código (2026-11-06, PR #394)
+
+1. **Extractor 1.3.0.** `extraer --adjuntos-para-carga`:
+   - se niega sin `--corte`, junto a `--sin-adjuntos` o con el staging fuera de `/dev/shm` (`validar_adjuntos_para_carga`, lo primero de `cmd_extraer`);
+   - cada adjunto se sigue cifrando a `<destino>/adjuntos/<id>.<ext>.age`, en disco, como hoy. Además se escribe en claro en `<staging>/adjuntos-carga/<id>.<ext>` con 0600, y `adjuntos.ndjson` suma `archivo_carga`;
+   - `empaquetar` no mete `adjuntos-carga` en el paquete (`comando_tar` la excluye) y la borra con el staging;
+   - `preparar-carga` pasa a cada mensaje `{archivo, archivo_carga, tipo, ext, content_type, bytes, sha256}` y cuenta `con_adjunto_para_carga` y `bytes_adjuntos_para_carga` en `carga-informe.json`;
+   - `flujo-adjuntos --staging` manda una línea JSON por adjunto, `{source_id, tipo, ext, content_type, bytes, sha256, b64}`, por la salida estándar. Antes comprueba bytes y sha256 de cada copia contra `carga.ndjson`. El informe (`adjuntos`, `faltan`, `no_coinciden`) va por la salida de error.
+2. **Cargador, `MODO=adjuntos` y `adjuntos-seco`.** Lee el flujo por la entrada estándar: el adjunto nunca se copia al disco del contenedor, y solo queda en el almacenamiento de Chatwoot. Para cada línea:
+   - busca el mensaje del Archivo por `source_id` dentro de la bandeja, y salta los que ya tienen adjunto. No es «solo los mensajes nuevos de esa corrida», como decía el diseño: es por mensaje, así que repetirlo después de un corte completa lo que falte sin duplicar;
+   - vuelve a comprobar bytes y sha256;
+   - sube con `ActiveStorage::Blob.create_and_upload!(…, identify: false)`;
+   - en una transacción, inserta `attachments` y `active_storage_attachments` con `insert_all`. Sin callbacks no hay `AnalyzeJob`, `MirrorJob` ni variantes;
+   - si la escritura falla, purga el blob y cuenta `adjuntos_fallidos`.
+
+   La salida trae conteos, blobs antes y después, y los trabajos nuevos por clase.
+3. **Ensayo.** El almacenamiento de la copia es `/dev/shm/cw-ensayo/storage`, montado en `/app/storage` del runner. Con `STAGING`, después de las dos cargas de mensajes, corre dos veces `flujo-adjuntos | MODO=adjuntos` y mide:
+   - **AD1:** cargados frente a `con_adjunto_para_carga` y bytes frente a `bytes_adjuntos_para_carga`, con 0 trabajos nuevos;
+   - **AD2:** 0 en la segunda corrida;
+   - **AD3:** íntegros frente al checksum del blob y sin huérfanos: ni blobs sin adjunto ni archivos sin blob desde el inicio del ensayo.
+
+   Sin `STAGING` o sin adjuntos para carga, AD1 a AD3 quedan NO EJECUTADO.
+4. **Prueba en CI** (`prueba-cargador.sh`, sobre la imagen real de Chatwoot). Usa tres adjuntos inventados: una imagen PNG de 2×2, un PDF mínimo y un OGG, en total 317 bytes.
+   - **D2 a D4:** el extractor deja 3 para carga y el flujo los manda con su huella.
+   - **AD1 a AD3:** igual que en el ensayo, en cada escenario.
+   - **AD4:** con el servicio `rails` de la prueba levantado, un agente miembro del Archivo pide los mensajes por `/api/v1/…/messages` y baja cada `data_url`, siguiendo las redirecciones de ActiveStorage, con el MD5 igual al del blob. A un agente que no es miembro no le responde 200.
+   - **AD5:** el panel recibe la miniatura de la imagen (`thumb_url`, una variante que se genera al primer pedido). Lo que se encola al servir es solo de ActiveStorage; se anota la lista por clase.
+   - **Mutantes:** M25, adjunto al mensaje equivocado; M26, no salta los que ya tienen adjunto; M27, el archivo no queda en el almacenamiento; M28, tipo mal mapeado; M29, adjunto con los callbacks de ActiveStorage.
+5. **Pruebas de Python** (`PruebasAdjuntosParaCarga`):
+   - la copia en claro con 0600 y su huella;
+   - sin la opción no hay copia;
+   - las tres validaciones;
+   - el tar sin las copias;
+   - `preparar-carga` y `flujo-adjuntos`, también con un archivo cambiado del mismo largo.
+
+   Mutantes del extractor, a mano: sin la exclusión del tar, el flujo sin comprobar la huella y la copia sin anotar caen. El de permisos 0644 cae solo en Linux, porque Windows no tiene modos POSIX.
+
+**Memoria del VPS durante la ventana** (medido el 2026-11-06 a las 14:21Z): 24.031 MB de RAM, con 15.852 disponibles; `/dev/shm` de 12.016 MB, casi vacío; `/` con 174 GB libres; la base de Chatwoot ocupa 77 MB y su almacenamiento 6 MB. Los `.age` van a disco. En tmpfs quedan los textos, unos 2,1 GB de copias en claro y, durante el ensayo, otros 2,1 GB del almacenamiento de la copia más su PGDATA. En el pico, unos 4,5 GB (I).
+
+**Evidencia:** en la PR #394 y en el handoff `0590-e5-estado.md`.
 
 ### 10.13 Kommo solo se lee: prueba y emisor del token (2026-11-06)
 

@@ -341,6 +341,11 @@ module SondaCargador
     total = 0
     servidos = 0
     ajeno_codigos = []
+    miniaturas = []
+    # Lo que encola Chatwoot al servir: pedir los mensajes, bajar cada original y, para las imágenes, la miniatura
+    # que muestra el panel (thumb_url, una variante de ActiveStorage que se genera al primer pedido).
+    cola_antes = clases_en_cola
+    variantes_antes = defined?(ActiveStorage::VariantRecord) ? ActiveStorage::VariantRecord.count : 0
     convs.each do |c|
       ruta = "/api/v1/accounts/#{c.account_id}/conversations/#{c.display_id}/messages"
       r = pedir.call(ruta, token_de.call(agente))
@@ -350,12 +355,19 @@ module SondaCargador
           datos = descargar.call(a['data_url'].to_s)
           blob = Attachment.find(a['id']).file.blob
           servidos += 1 if datos && Digest::MD5.base64digest(datos) == blob.checksum
+          next unless a['file_type'] == 'image'
+
+          mini = a['thumb_url'].to_s.empty? ? nil : descargar.call(a['thumb_url'].to_s)
+          miniaturas << (mini && !mini.empty? ? 'si' : 'no')
         end
       end
       ajeno_codigos << pedir.call(ruta, token_de.call(ajeno)).code
     end
     hecho.call('servidos', "#{servidos}/#{total}")
     hecho.call('ajeno_codigos', ajeno_codigos.uniq.sort.join(','))
+    hecho.call('miniaturas', miniaturas.empty? ? 'ninguna' : miniaturas.join(','))
+    hecho.call('variantes_nuevas', (defined?(ActiveStorage::VariantRecord) ? ActiveStorage::VariantRecord.count : 0) - variantes_antes)
+    hecho.call('trabajos_al_servir', trabajos_nuevos(cola_antes, clases_en_cola))
     hecho.call('servir', 'ok')
   rescue StandardError => e
     out.puts "HECHO servir=error:#{e.class}"
