@@ -20,6 +20,7 @@ vi.mock("@/lib/studio/telegram/send-message", () => ({
 
 import { notifyNewClientToAdmin } from "../new-client-notify";
 import { notifyPaymentReportToAdmin } from "../payment-report-notify";
+import { notifyConversationInbound } from "../conversation-inbound-notify";
 import { buildDiscordBrief, type CeoBriefKpis } from "@/lib/news/ceo-brief";
 import { buildDiscordContent } from "../discord/minimal-alert";
 import { makeFakeSupabase, type FakeDb } from "../telegram/__tests__/fake-db";
@@ -28,6 +29,7 @@ import { fakeWebhook, mensajeGuardado } from "../discord/__tests__/webhook-fixtu
 const TENANT = "tenant-1";
 const HOOK_REGISTRO = fakeWebhook(2001);
 const HOOK_EQUIPO = fakeWebhook(2005);
+const HOOK_CONV = fakeWebhook(2002);
 
 function makeAdmin() {
   const db: FakeDb = {
@@ -156,5 +158,44 @@ describe("avisos reales → Discord", () => {
     expect(content).not.toContain("98765");
     expect(content).not.toContain("$");
     expect(content).not.toContain("USD");
+  });
+
+  it("mensaje del portal: sale la referencia del hilo y el enlace, sin el nombre del cliente ni lo que escribió", async () => {
+    vi.stubEnv("DISCORD_WEBHOOK_CONVERSACIONES", HOOK_CONV);
+    const db: FakeDb = {
+      user_tenants: [{ user_id: "asesor", tenant_id: TENANT, role: "commercial", disabled_at: null }],
+      user_profiles: [{ user_id: "asesor", telegram_chat_id: "777", discord_user_id: null }],
+      conversations: [
+        {
+          id: "conv-1",
+          tenant_id: TENANT,
+          client_id: "cli-1",
+          assigned_to: "asesor",
+          unread_count: 1,
+          ref: "CONV-0042",
+        },
+      ],
+      clients: [
+        { id: "cli-1", name: "Importadora Xilófono, C.A.", markbox: "DTD-5452", advisor_id: "asesor" },
+      ],
+      user_notification_prefs: [],
+      telegram_destinations: [],
+      telegram_alert_routes: [],
+    };
+    await notifyConversationInbound(makeFakeSupabase(db), {
+      conversationId: "conv-1",
+      body: "Hola, soy Carlos Pérez, mi cédula es V-12345678 y mi teléfono 0412-1668021",
+    });
+
+    expect(pedidos).toHaveLength(1);
+    expect(pedidos[0].url).toBe(HOOK_CONV);
+    const { content } = pedidos[0];
+    expect(content).toContain("Mensaje nuevo del portal");
+    expect(content).toContain("CONV-0042");
+    expect(content).toContain("/studio/conversaciones?c=conv-1");
+    for (const dato of ["Xilófono", "Importadora", "Carlos", "Pérez", "12345678", "1668021", "Hola", "escribió"]) {
+      expect(content).not.toContain(dato);
+    }
+    expect(sendTelegramMock).not.toHaveBeenCalled();
   });
 });
