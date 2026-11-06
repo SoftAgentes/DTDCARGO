@@ -50,6 +50,11 @@ vía automática todavía no existe; ver §4.2.1.
   sus dos noticias y avisa que también las de nosotros». Después de la prueba, la vía automática
   publica hasta dos por semana; las que publica una persona no cuentan y también se avisan en
   `#noticias` (§4.5).
+- **Retirar no apaga la automatización, y cada retiro dice el porqué:** «Me dices que yo puedo
+  borrarla, pero no me apagues la automatización. ¿Podemos hacer que detecte que una noticia se
+  borró y diga el porqué, para entrenar a la gente?». Ver §4.6 y §4.11.
+- **Quién revisa:** «el humano va a ser Sam y va a ser Alejandro», más un agente crítico que
+  muestra si la noticia puede dar algún problema y da su opinión. Ver §4.7.
 
 ### 1.2 La regla que se exceptúa
 
@@ -86,7 +91,7 @@ y política afectada». La sección 2 de esta spec es ese registro.
 | Motivo | El ritmo decidido (de una por día en prueba a una o dos por semana) y una oficina que redacta y revisa sola no se sostienen si cada publicación espera a Sam. El daño de una noticia mala se acota: es contenido público sin datos de clientes, se retira con un clic y no envía correos |
 | Alcance exacto | Pasar a publicada **una noticia nueva** en `/noticias`, creada desde un borrador en revisión del tenant de DTD Cargo, de los tipos y categorías de §4.2 (F2) |
 | Fuera del alcance | Editar o volver a publicar una noticia ya publicada; borrar; el tipo Especial y la categoría «Novedades DTD»; «Historias reales»; correos, boletín, redes, WhatsApp y cualquier otro canal; cualquier dato del ERP. Todo eso sigue en I4 o en su nivel propio |
-| Controles que compensan | Los filtros F1 a F10 de §4.2, el apagado automático de §4.6, el aviso a Sam con retiro de §4.5 y la auditoría de §4.4 |
+| Controles que compensan | Los filtros F1 a F10 de §4.2, el aviso a Sam y a Alejandro con retiro de §4.5, el motivo obligatorio de cada retiro y su vuelta a la oficina (§4.11) y la auditoría de §4.4. El interruptor lo apaga solo Sam |
 | Lo que IA-01 sigue exigiendo | Auditoría con modelo, versión y resultado; salida segura y camino manual; separar hecho de propuesta; prueba contra contenido no confiable; minimizar datos. Nada de eso se exceptúa |
 | Retirar una noticia | Es I3 (reversible): `published = false`, con auditoría. No requiere esta excepción |
 | Fecha de revisión | 90 días después de la primera publicación automática, o el 2027-03-01, lo que llegue antes. En la revisión Sam decide si sigue, cambia los filtros o se cierra |
@@ -293,28 +298,40 @@ No se guardan prompts completos, razonamiento del modelo, secretos ni datos pers
   aviso automático lleva la etiqueta «Publicada sola» y su conteo de la semana (por ejemplo,
   «1 de 2 esta semana»). Así Sam ve en un solo canal todo lo que salió.
 - **El aviso no lleva datos de clientes ni el cuerpo del artículo.**
-- **Retiro con un clic:** el enlace abre en el Studio una pantalla con un solo botón «Retirar»,
-  tras iniciar sesión con rol admin. Retirar pone `published = false`, revalida `/noticias`,
-  la página del artículo y el mapa del sitio, y deja auditoría. No borra la fila: una persona
-  puede volver a publicarla.
+- **Retiro con un clic y su porqué:** el enlace abre en el Studio, tras iniciar sesión con rol
+  admin, una pantalla con la lista de motivos de §4.11 y el botón «Retirar». El motivo es
+  obligatorio; la nota libre, opcional (obligatoria con «Otro»). Retirar pone
+  `published = false`, revalida `/noticias`, la página del artículo y el mapa del sitio, y deja
+  auditoría con el motivo. **No borra la fila:** una persona puede volver a publicarla, y la
+  noticia retirada queda como ejemplo para aprender.
 - Si el aviso no se entrega, la noticia sigue publicada, la auditoría lo registra y F8 frena la
   siguiente publicación automática hasta que haya un aviso entregado o Sam apruebe a mano. Un
   envío en estado «incierto» de la 0606 (pudo guardarse o no) cuenta como no entregado para F8.
 
-### 4.6 Interruptor y apagado automático
+### 4.6 Interruptor
 
 - `news_autopublish`, por tenant, apagado por defecto. Solo un admin lo cambia, con auditoría.
 - Apagarlo detiene toda publicación automática que no haya hecho todavía su transacción; lo
   que ya se publicó se informa como publicado, no como cancelado.
-- **Se apaga solo** cuando una persona retira una noticia publicada por la vía automática. Lo
-  vuelve a encender Sam a mano. Así un error no se repite mientras nadie mira.
+- **Retirar no lo apaga** (decisión de Sam del 2026-11-06). Solo Sam lo apaga, a mano.
+- En su lugar, el aviso de `#noticias` lo hace visible: cuando en una semana se retiran dos o más
+  noticias automáticas, cada aviso nuevo lo dice primero («Van 2 retiradas esta semana») con sus
+  motivos, para que Sam decida si apaga. El sistema no decide por Sam.
 
 ### 4.7 Firma
 
 - Lo publicado por la vía automática se firma **«DTD Cargo»**, como organización, sin escritor
   invitado de la rotación de `lib/news/writers.ts`.
-- **Revisor humano** (decisión de Sam): con la vía automática, la persona revisa **después** de
-  publicar, a partir del aviso, y retira si hace falta. El Studio registra quién revisó y cuándo.
+- **Quién revisa** (decisión de Sam del 2026-11-06):
+  - **Las personas son Sam y Alejandro.** Con la vía automática revisan **después** de publicar,
+    a partir del aviso de `#noticias`, y cualquiera de los dos retira si hace falta. Alejandro
+    necesita una cuenta propia en el Studio con permiso para retirar; no se comparte la de Sam.
+    El Studio registra quién revisó y cuándo.
+  - **El agente crítico es el Revisor** de la oficina. Su papel es buscar problemas: dice si la
+    noticia puede traer algún riesgo (un dato dudoso, una línea roja, un tono que puede caer mal,
+    algo que suene a IA) y da su opinión. Su veredicto es F3; su opinión de riesgo viaja en el
+    aviso de `#noticias` para que Sam y Alejandro la lean primero. **No reemplaza a las
+    personas**: es una barrera más antes de publicar.
 - La página no dice que una persona revisó el artículo mientras eso no esté registrado. Cuando
   lo esté, puede mostrar el nombre del revisor.
 - **La página no dice que el texto se preparó con ayuda de IA** (decisión de Sam del
@@ -356,6 +373,54 @@ El artículo no lleva datos personales (F5). El aviso a Discord tampoco. La impl
 `.claude/skills/revisar-datos-ve/SKILL.md` porque envía datos a un tercero (Discord) y escribe
 auditoría, y comprueba que Discord ya esté en `docs/legal/privacidad/inventario-terceros.md`.
 
+### 4.11 Aprender de los retiros
+
+Sam lo pidió para entrenar a la gente: personas y agentes. Cada noticia que sale de la web deja
+dicho por qué, y ese porqué vuelve a quienes la escribieron y la revisaron.
+
+**Se detecta cualquier salida, no solo la de la pantalla de retiro.** Un disparador en la base
+registra todo paso de `published = true` a `false` y todo borrado de una noticia, venga de donde
+venga. Si llegó sin motivo (por ejemplo, alguien la despublicó desde otra pantalla), el Studio
+la marca «motivo pendiente», avisa en `#noticias` y le pide el porqué a quien la sacó.
+
+**Borrar de verdad una noticia publicada sola no se permite:** se retira. Así queda el ejemplo.
+Si igual se borra por otra vía, el registro conserva titular, slug, huella del texto y quién y
+cuándo, y pide el motivo. Las noticias publicadas a mano siguen pudiéndose borrar, con el mismo
+registro.
+
+**Motivos** (lista cerrada, con nota libre):
+
+| Código | Qué quiere decir |
+|---|---|
+| `dato_incorrecto` | Una cifra, fecha o hecho está mal |
+| `sin_fuente` | Afirma algo que no se puede respaldar |
+| `linea_roja` | Cruzó una línea roja (se dice cuál) |
+| `suena_a_ia` | No suena humano o no es la voz de DTD Cargo |
+| `tono` | Acusa, suena técnico, o le pide al lector que compre menos |
+| `no_es_el_publico` | No le sirve al lector de DTD Cargo |
+| `repetida` | Dice lo mismo que otra noticia |
+| `forma` | Titular, imagen, formato o enlaces mal |
+| `otro` | Cualquier otra cosa; la nota es obligatoria |
+
+**Cómo vuelve a la gente:**
+
+- **A la oficina, al momento:** el Studio le empuja al Redactor de noticias y al Revisor el
+  titular, el enlace, el motivo, la nota, qué filtros había pasado, qué había opinado el Revisor
+  y qué agentes y modelos la hicieron. Va por la puerta de salida (§4.9), nunca con una llave de
+  la oficina. La nota la escribe una persona: antes de entregarla, el Studio la pasa por el
+  control de datos personales de §4.3.1, y si encuentra algo, no la entrega y avisa.
+- **Al Revisor en particular:** si retiraron una noticia que el Revisor no marcó como riesgosa,
+  eso es lo que más le enseña. Esos casos se señalan aparte.
+- **A Sam y a Alejandro, cada semana:** un resumen en `#noticias` con las retiradas de la semana
+  por motivo y las que siguen con motivo pendiente.
+- **A las reglas, por una persona:** si un motivo se repite, una persona decide si suma una
+  palabra a la lista de muletillas o de líneas rojas, o un ejemplo de «lo que no» en la
+  instrucción del Redactor. **El sistema no cambia sus propias reglas solo**: cada cambio de lista
+  es un cambio revisado, con su prueba.
+
+Lo mismo vale para la noticia que una persona saca de `retenido`, corrige y publica: lo que
+corrigió también es aprendizaje, y se entrega igual.
+
 ## 5. Gate de IA-01: pruebas exigidas a la implementación
 
 | Caso de IA-01 | Prueba |
@@ -371,6 +436,8 @@ auditoría, y comprueba que Discord ya esté en `docs/legal/privacidad/inventari
 | Auditoría | Cada evaluación deja su fila con los campos de §4.4 y sin prompts ni datos personales |
 | Privacidad | El control detecta un teléfono, un correo y una cédula en el cuerpo |
 | Salida manual | Una persona admin publica a mano un retenido y queda su nombre |
+| Retiro con motivo | Sin motivo no se retira desde la pantalla; despublicar por otra vía deja «motivo pendiente» y avisa; borrar una noticia automática se rechaza; borrar una manual deja registro; una nota con un teléfono no se entrega a la oficina |
+| Dos personas | Alejandro, con su cuenta, retira; una cuenta sin el permiso, no |
 
 Cada filtro F1 a F10 tiene una prueba en rojo que lo demuestra y un mutante que muere al
 quitarlo. Las reglas en la base se prueban en SQL efímero, nunca en producción.
@@ -384,7 +451,7 @@ quitarlo. Las reglas en la base se prueban en SQL efímero, nunca en producción
 | 3 | No toca `LINEAS_ROJAS` | F5 y §4.3.1 | Un caso por fila de la tabla de §4.3.1 da `linea_roja:<cual>`; un veredicto del Revisor que deja una línea sin responder también retiene |
 | 4 | Puntaje mínimo con `computeArticleScore` | F6 y §4.3.3 | Un caso en el límite de cada métrica, de cada lado: 399 y 400 palabras, cuatro y cinco subtítulos, densidad 0,4 % y 0,5 % |
 | 5 | Tope por día y por semana (§4.2.1) | F7 | Con reloj fijo en hora de Caracas y topes 1 y 2: el segundo automático del día queda retenido, el tercero automático de la semana también y el del lunes siguiente pasa; una publicada a mano el mismo día no frena a la automática. Con topes 1 y 7 pasa una por día los siete días de la semana. Una configuración de 2 por día se rechaza. Dos corridas simultáneas publican una sola |
-| 6 | Interruptor en el Studio | F1 y §4.6 | Apagado, nada se publica; solo un admin lo cambia; retirar una noticia automática lo apaga |
+| 6 | Interruptor en el Studio | F1 y §4.6 | Apagado, nada se publica; solo un admin lo cambia; retirar una noticia automática **no** lo apaga; con dos retiradas en la semana, el aviso siguiente lo dice primero |
 | 7 | Registro de modelo, agente y versión; retiro con un clic | F9, §4.4 y §4.5 | La fila de auditoría trae los campos de §4.4; si no se puede escribir, no se publica; el retiro deja la noticia fuera de `/noticias` en el mismo pedido |
 | 8 | Aviso a `#noticias` con enlace y retiro | §4.5 y F8 | Con un doble de Discord: el mensaje trae titular, enlace y enlace de retiro, y ningún dato personal ni el cuerpo; un envío «incierto» frena la siguiente por F8; una publicación a mano también avisa, con su etiqueta y el nombre de quien publicó |
 
@@ -399,8 +466,9 @@ Si cualquiera falla, el borrador queda `retenido` y se avisa (criterio 2).
    la marca vacía `[VERIFICAR]`.
 4. No se pasan los topes vigentes de §4.2.1, ni con corridas simultáneas; ninguna configuración permite más de una publicación automática por día.
 5. El veredicto del Revisor vale solo para el texto exacto que revisó.
-6. El retiro deja la noticia fuera del sitio en el mismo pedido, apaga el interruptor si la
-   noticia era automática y deja auditoría.
+6. El retiro deja la noticia fuera del sitio en el mismo pedido, con su motivo y auditoría, y
+   no apaga el interruptor. Toda salida de una noticia, por cualquier vía, queda detectada; si no
+   trae motivo, se pide. El motivo llega a la oficina sin datos personales.
 7. Lo publicado solo firma «DTD Cargo», no declara IA y no dice que una persona lo revisó mientras esa revisión no esté registrada.
 8. Pasan las pruebas de §5 y `pnpm verify`.
 9. `revisar-datos-ve` pasó sobre el diff de la implementación.
@@ -414,9 +482,12 @@ Si cualquiera falla, el borrador queda `retenido` y se avisa (criterio 2).
 3. ~~**Qué cuenta el tope.**~~ *Resuelto por Sam el 2026-11-06:* una por día en la prueba;
    después dos por semana, contando solo las automáticas; las manuales también se avisan (§4.2.1
    y §4.5).
-4. **Fecha de revisión** de la excepción: 90 días o el 2027-03-01, lo que llegue antes.
-5. **Persona que revisa después** y aparece, si se quiere, como revisora en la página
-   (`agente-seo-noticias.md`, «Qué hace falta de Sam»).
+4. **Fecha de revisión** de la excepción: aceptar la propuesta (90 días o el 2027-03-01, lo que
+   llegue antes), acortar el primer tramo a 60 días o alargarla. *Sigue abierta.* Al quitar el
+   apagado automático, esta revisión y el aviso de §4.6 son el freno que queda además de Sam.
+5. ~~**Persona que revisa.**~~ *Resuelto por Sam el 2026-11-06:* Sam y Alejandro, más el
+   Revisor como agente crítico (§4.7). Queda por decir si la página muestra el nombre de quien
+   revisó cuando la revisión esté registrada.
 
 ## 8. Dependencias
 
