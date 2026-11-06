@@ -9,7 +9,7 @@ Rama `codex/0582-docs-tanda-d`, worktree `DTD-worktrees/0582-docs-tanda-d`, desd
 | `docs/specs/0582-chatwoot-piloto/spec.md`, seguimiento | Tandas A a D con imagen, anterior y evidencia, según el Director General. Comprobación de `/privacidad` desde fuera. Pedido de capacitación de Sam, citado y sin orden de empezar |
 | `docs/specs/0582-chatwoot-piloto/checklist.md` | 4.6: «Son clientes», «Dejarlo conectado», la regla de «solo cuentas con rol» como premisa nuestra, convivencia con Kommo, salida por API sin probar, token y «Mantener la espera» vigente. 4.5 y 8.2: la alarma de la puerta 7 como condición. 4.5: la frase de Sam sobre el otro número. **Sin cambio de avance: 49,6 %** |
 | `docs/specs/0583-chatwoot-vps-e1/spec.md`, seguimiento | Instalación del filtro de logs, con el paso 6 pendiente. Tanda D. `PIEZAS`, en una PR aparte |
-| `docs/specs/0587-chatwoot-contrato-sistema-maestro/spec.md` | Estado de W5 a W7. Lo que dijo Sam del pendiente de E6, sin tomarlo como decisión. Primer entrante real de Instagram después del corte |
+| `docs/specs/0587-chatwoot-contrato-sistema-maestro/spec.md` | W5 a W7 como pendientes sin medir, con tablas y condición. Lo que dijo Sam del pendiente de E6, sin tomarlo como decisión. Primer entrante real de Instagram después del corte |
 | `docs/specs/0588-chatwoot-versiones-e3/spec.md` | Tanda B y primera fila de `chatwoot_version_checks` en producción. Tandas C y D |
 | `.agents/handoffs/0582-e4-canales.md` | Sección del 2026-11-05 sobre Instagram, y una nota que apunta a ella en §4.6 |
 | `.agents/handoffs/0583-logs-canales.md` | Instalación hecha; el paso 6, con su hora `T` |
@@ -34,7 +34,7 @@ Rama `codex/0582-docs-tanda-d`, worktree `DTD-worktrees/0582-docs-tanda-d`, desd
 
 ## Pendiente
 
-- **W5 a W7:** los hace Sam y los cuenta el Director General.
+- **W5 a W7, pendientes sin medir:** los hace Sam, y contarlos en producción pide un OK de Sam para esa consulta. El Director General no tiene resultado y lo pone en la lista de Sam. Tablas y condición de cada uno en la SDD-0587.
 - **Paso 6 del filtro:** contar con el primer entrante real después de 2026-11-05T16:12Z.
 - **Cron y alarma del token de Instagram:** antes del 2026-12-20, con OK de Sam.
 - **Siguientes PR, de a una:** `PIEZAS` con los correos, y después 9.3 con la prueba de «sin nada no abre».
