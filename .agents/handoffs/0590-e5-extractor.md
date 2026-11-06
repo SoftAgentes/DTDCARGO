@@ -26,7 +26,9 @@ Rama `codex/0590-e5-extractor`, worktree `DTD-worktrees/0590-e5-extractor`, desd
   - `preparar-carga`;
   - 49 pruebas y 26 mutantes.
 
-  Falta el cargador de Rails y su prueba en Docker, que pide turno. El diseño y lo que mide el ensayo están en SDD-0590 §10.
+  El diseño y lo que mide el ensayo están en SDD-0590 §10.
+- **Cargador de Rails (5.5):** `cargar-archivo-kommo.rb` y `pruebas/prueba-cargador.sh` (sonda, generador inventado y overlay) están en la misma rama local, commit `34c50f43f` y siguientes. **La prueba en Docker no se ha corrido.** El turno de Docker del 2026-11-06 se cortó antes de levantar el stack: al encender Docker Desktop arrancaron solos los contenedores de loop-3d y el commit libre bajó de 6.058 a 771 MB. Se cerró Docker Desktop entero, y el turno volvió al Director General. Para correrla hace falta que esos contenedores no arranquen durante la ventana; eso lo decide el Director General con su dueño.
+- **Para decidir antes de producción:** el salto en los números de conversación, quién ve el Archivo y la búsqueda de mensajes viejos (SDD-0590 §10.9).
 - **Primera corrida con token** (puerta de Sam): medir si Kommo acepta `filter[updated_at]` en notas y tareas (SDD-0590 §9.2).
 - La fila 5.3 del checklist no se tocó.
 

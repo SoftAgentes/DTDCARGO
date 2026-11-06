@@ -478,7 +478,12 @@ Cubre las cinco puertas de arriba, con estas condiciones, que son parte del OK:
   - Lee la foto del ERP solo desde `/dev/shm` en Linux, y **la borra al leerla**, salvo `--conservar-clientes`.
   - El informe trae las mediciones E-1 y E-2.
 - **`preparar-carga` (5.5):** `carga.ndjson` reducido y `carga-informe.json` con conteos. Deja fuera las conversaciones con 403 y los mensajes repetidos.
-- **Pendiente:** el cargador de Rails con `insert_all` y su prueba sobre la imagen `chatwoot/chatwoot:v4.19.1-ce` con Postgres local, que mide E-3 a E-7 con datos inventados. Necesita Docker, así que pide turno al Director General.
+- **`cargar-archivo-kommo.rb` (5.5, `rails runner` en el contenedor de Chatwoot):**
+  - `MODO=crear-bandeja`: canal API sin `webhook_url`, sin asignación automática, saludo ni encuesta, sin miembros. Si ya existe una bandeja API con ese nombre, la devuelve sin tocarla.
+  - `MODO=seco|cargar`: el archivo de carga entra por la entrada estándar (`docker exec -i … CARGA=-`), así que los datos no se copian al disco del contenedor. Escribe con `insert_all`, sin callbacks. Rechaza una bandeja con `webhook_url` o de otra cuenta. Reusa el contacto que ya existe por teléfono, por correo (sin distinguir mayúsculas) o por una carga anterior (`identifier = kommo:<grupo>`). Salta lo cargado por `source_id` y `kommo_talk_id`. Inserta en orden de creación, para que los números y los ids sigan el tiempo, y deja `agent_last_seen_at` en la hora de la carga para que lo viejo no salga como no leído.
+  - `MODO=seco` no escribe nada, ni consume la secuencia de números de conversación: solo cuenta.
+  - La salida son solo conteos: filas de la bandeja antes y después, la secuencia y los trabajos en cola de Sidekiq antes y después. En el servidor, con Sidekiq vivo, la cola solo orienta.
+- **`pruebas/prueba-cargador.sh`:** prueba local sobre la imagen `chatwoot/chatwoot:v4.19.1-ce`, con Postgres y Redis del compose real y datos inventados (`generar-sintetico.py`, que pasan por `vincular` y `preparar-carga`). Mide E-3, E-6 a E-11 y los rechazos (§10.7). Para sola si el commit libre de Windows baja de 3 GB.
 
 ### 10.7 Evidencia
 
@@ -488,7 +493,8 @@ Cubre las cinco puertas de arriba, con estas condiciones, que son parte del OK:
 | 15 mutantes de 5.4 y 5.5: ambiguo vinculado, sin grupo por cliente, sin grupo por teléfono, llave de menos de 10 dígitos, Venezuela inventada, nunca `otro_telefono`, correo sin normalizar, bots sin «Bot Kommo», asesor con nombre completo, conversaciones sin acceso cargadas, repetidos cargados, completa que ignora el corte, manifiesto sin corte, incremental que no reconoce el corte de una completa, y completa que acepta otro corte | PASÓ: 15 de 15 caen. El de «sin grupo por teléfono» sobrevivía en la primera vuelta porque el cruce por cliente lo tapaba; se agregó el caso de dos contactos sin cliente con el mismo teléfono |
 | Los 11 mutantes del 5.3, ajustados al código nuevo | PASÓ: 11 de 11 |
 | La foto del ERP en tmpfs | NO EJECUTADO en Windows: la prueba solo corre en Linux |
-| Cargador y E-3 a E-7 | NO EJECUTADO: pide Docker y turno |
+| Datos inventados de la prueba del cargador → `vincular` → `preparar-carga`, en Windows | PASÓ: 4 personas, 5 conversaciones (1 sin contacto), 8 mensajes (5 entrantes, 3 salientes, 1 con adjunto y sin texto) |
+| `prueba-cargador.sh` (cargador, E-3 y E-6 a E-11) | NO EJECUTADO. Turno de Docker concedido a las ~06:32Z; al encender Docker Desktop arrancaron solos los contenedores de otro proyecto y el commit libre cayó de 6.058 a 771 MB antes de levantar el stack. Se cerró Docker Desktop entero, y el turno volvió al Director General |
 
 ### 10.8 revisar-datos-ve de 5.4 y 5.5
 
@@ -508,3 +514,11 @@ Cubre las cinco puertas de arriba, con estas condiciones, que son parte del OK:
 - **Exactitud del vínculo (CORRECTO):** un teléfono con dos clientes no se vincula, igual que el enrutador (0383). El correo solo vincula si da un único cliente.
 - **Titulares que no son usuarios (sin cambio):** §6.2, punto 12.
 - **Fixtures:** solo inventados, con dominio `ejemplo.test` y marcas de prueba. Nada del respaldo ni de producción.
+- **El cargador no copia datos fuera de tmpfs:** el archivo de carga entra al contenedor por la entrada estándar, y la salida son solo conteos. La prueba F1 busca 13 valores inventados en las 7 salidas del cargador (no ejecutada todavía, §10.7). Los errores de la base se informan solo por su clase, porque su mensaje puede traer valores de la fila.
+
+### 10.9 Lo que la carga cambia a la vista (para decidir antes de producción)
+
+- **Números de conversación (I, se mide en E-8):** Chatwoot numera las conversaciones con una secuencia por cuenta, que un disparador de la base aplica en cada inserción. Cada conversación cargada consume un número, en orden de creación. Después de la carga, las conversaciones nuevas siguen desde ahí: el número salta en tantas como se carguen, unas 4.700 con la base 5.1 (§5.5), o 2.096 si solo se cargan 12 meses. No hay choque ni duplicado, pero se nota. El modo seco no consume números.
+- **Quién ve el Archivo:** la bandeja se crea sin miembros, así que solo la ven los administradores. Darles acceso a los agentes es agregarlos como miembros, decisión de Sam.
+- **Búsqueda (I, se mide en E-10c):** se infiere que el buscador de mensajes de Chatwoot CE solo mira los últimos meses. Si es así, los mensajes viejos del Archivo se leen abriendo la conversación o la ficha del contacto, no buscándolos. La prueba lo mide como dato, sin PASÓ ni FALLÓ.
+- **Reportes (I):** sin callbacks no se crean eventos de reportes, así que tiempos de respuesta y resoluciones no cambian. Los conteos que salen directo de la tabla de conversaciones por fecha de creación sí podrían sumar las del Archivo en sus fechas de Kommo. No medido.

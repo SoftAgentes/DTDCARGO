@@ -100,10 +100,25 @@ python3 -I respaldar-historial.py extraer --token-file /dev/shm/k0582-e5 --corte
 python3 -I respaldar-historial.py vincular --staging /dev/shm/kommo-e5-carga --clientes /dev/shm/clientes-erp.ndjson
 # 3. Archivo de carga reducido
 python3 -I respaldar-historial.py preparar-carga --staging /dev/shm/kommo-e5-carga
-# 4. El cargador de Rails (pendiente) lee /dev/shm/kommo-e5-carga/carga.ndjson
+# 4. Cargador de Rails: el script se copia al contenedor; los datos entran por la entrada estándar
+docker cp cargar-archivo-kommo.rb chatwoot-rails-1:/tmp/cargar-archivo-kommo.rb
+docker exec -e MODO=crear-bandeja -e CUENTA=1 -e 'NOMBRE=Archivo Kommo' chatwoot-rails-1 \
+  bundle exec rails runner /tmp/cargar-archivo-kommo.rb                       # deja HECHO bandeja=<id>
+docker exec -i -e MODO=seco -e CUENTA=1 -e BANDEJA=<id> -e CARGA=- chatwoot-rails-1 \
+  bundle exec rails runner /tmp/cargar-archivo-kommo.rb < /dev/shm/kommo-e5-carga/carga.ndjson
+#    y después lo mismo con MODO=cargar
 # 5. Cifrar y borrar el staging
 python3 -I respaldar-historial.py empaquetar --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo
 ```
+
+`cargar-archivo-kommo.rb` escribe con `insert_all`, sin callbacks: ni webhooks, ni notificaciones, ni envíos.
+Rechaza una bandeja con `webhook_url` o de otra cuenta, reusa contactos por teléfono o correo y no duplica en
+la segunda corrida. `MODO=seco` solo cuenta, sin consumir números de conversación. La salida son solo conteos
+(`HECHO clave=valor`).
+
+Prueba local en Docker, con datos inventados y la imagen real (una corrida pesada: pide turno):
+`bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh`. Mide E-3 y E-6 a E-11 (SDD-0590 §10.4) y para
+sola si el commit libre de Windows baja de 3 GB.
 
 | Paso | Qué deja | Con datos de personas |
 |---|---|---|
