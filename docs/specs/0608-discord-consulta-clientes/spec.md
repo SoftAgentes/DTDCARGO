@@ -101,6 +101,7 @@ Producto:
 - `lib/studio/discord/consulta/consulta.ts`
 - `scripts/discord/registrar-comando-cliente.mjs`
 - `supabase/migrations/0516_discord_consulta_clientes.sql`
+- `supabase/desarmes/0516_desarme.sql` (vuelta atrás sin número; no se aplica sin OK nominal)
 
 Pruebas:
 

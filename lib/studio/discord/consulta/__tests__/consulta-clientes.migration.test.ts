@@ -137,3 +137,51 @@ describe("0516 · consulta de clientes desde Discord (PGlite)", () => {
     expect(await run(inline(CONTRACT, { transform: conGrant }))).toMatch(error);
   }, 60_000);
 });
+
+// La vuelta atrás (supabase/desarmes/0516_desarme.sql): quita lo de la 0516 y nada más.
+describe("0516 · desarme (PGlite)", () => {
+  const FIXTURE = `
+    do $r$ begin
+      if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
+      if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
+      if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if;
+    end $r$;
+    create schema if not exists auth;
+    create table auth.users (id uuid primary key);
+    create table public.tenants (id uuid primary key);
+    create table public.clients (id uuid primary key default gen_random_uuid(),
+      tenant_id uuid not null references public.tenants(id), markbox text not null, name text not null,
+      deleted_at timestamptz);
+    insert into public.tenants values ('00000000-0000-4000-8000-000000000001');
+    insert into public.clients (tenant_id, markbox, name) values ('00000000-0000-4000-8000-000000000001', 'DTD-0001', 'Pedro Pérez');
+  `;
+  const MIG = readFileSync(resolve(ROOT, "supabase/migrations", MIGRATION), "utf8");
+  const DESARME = readFileSync(resolve(ROOT, "supabase/desarmes/0516_desarme.sql"), "utf8");
+  const QUEDA = `
+    select (to_regclass('public.discord_consultas_clientes') is not null)::int
+         + (to_regprocedure('public.discord_buscar_clientes(uuid, text, integer)') is not null)::int
+         + (to_regprocedure('public.discord_consulta_registrar(text, uuid, uuid, text, text, integer)') is not null)::int
+         as objetos,
+         (select count(*) from public.clients)::int as clientes
+  `;
+
+  async function medir(sql: string) {
+    const db = await pgliteLimpio();
+    try {
+      await db.exec(`begin; ${sql}`);
+      const { rows } = await db.query<{ objetos: number; clientes: number }>(QUEDA);
+      await db.exec("rollback");
+      return rows[0];
+    } finally {
+      await db.close();
+    }
+  }
+
+  it("control: con la 0516 sola quedan sus tres objetos", async () => {
+    expect(await medir(`${FIXTURE}\n${MIG}`)).toEqual({ objetos: 3, clientes: 1 });
+  }, 60_000);
+
+  it("el desarme quita los tres y no toca clientes; repetirlo no falla", async () => {
+    expect(await medir(`${FIXTURE}\n${MIG}\n${DESARME}\n${DESARME}`)).toEqual({ objetos: 0, clientes: 1 });
+  }, 60_000);
+});
