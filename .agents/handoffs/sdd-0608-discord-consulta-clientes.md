@@ -62,6 +62,23 @@ Veredicto propuesto: **adelante con tres condiciones**, ninguna resuelta en esta
 2. **Agregar `discord_consultas_clientes` al mapa de borrado** (`docs/legal/privacidad/mapa-de-borrado.md`): el término puede ser el nombre de un cliente y se guarda 180 días.
 3. **La línea de `/privacidad`** que declare que el equipo ve nombre y código del cliente en su mensajería interna. **El texto lo decide Sam**; se coordina con la línea que proponga la SDD-0606.
 
+## Autorización de la 0516 (registrada, no aplicada por esta sesión)
+
+Sam autorizó la 0516 en el **chat del Director General** (sesión `local_25e2dded-103b-4eaa-b10e-6527564b9cad`), el 2026-11-06 a las ~18:10Z. Lo transmitió a esta sesión el Subdirector (`local_61442abe-3b66-423e-9af4-8008d5457aa3`). **Esta sesión no leyó ese chat:** el texto es el que citó el Subdirector.
+
+- Pregunta del Director General: «¿Autorizas aplicar la 0516, primero en prueba y luego en producción?»
+- Respuesta literal de Sam: «Sí, prueba y producción»
+- Lo que se le explicó antes: que la 0516 crea el registro de cada consulta, con borrado a los 180 días; que crea la búsqueda que devuelve solo el nombre y el Shipping Mark; y que sola no mueve datos ni manda nada a Discord.
+
+El archivo de autorización para `aplicar-remoto.sh --autorizacion` (nombra `0516`) va con el paquete, fuera del repositorio; su ruta y las huellas están en la descripción de la PR #387. **Aplica el Director General**, primero en prueba y después en producción, en el orden 0514 → 0515 → 0516. La vuelta atrás es `supabase/desarmes/0516_desarme.sql`: no se aplica sin otro OK nominal.
+
+## Condiciones para activar `/cliente`
+
+- Publicado el texto de `/privacidad` que Sam aprobó el 2026-11-06 (PR #399).
+- Aplicadas la 0514 (SDD-0606) y la 0516.
+- Hecha la configuración de Discord (pasos de abajo).
+- **Nadie enlaza la cuenta compartida «DTD Cargo»** a un perfil del Studio.
+
 ## Lo que Sam tiene que hacer para activarlo (en orden)
 
 1. **Crear la aplicación** en https://discord.com/developers/applications → «New Application» (por ejemplo «DTD Cargo Studio»). No hace falta bot.
