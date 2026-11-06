@@ -29,7 +29,8 @@ Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del
   - aceptó el salto de los números de conversación, que se anota antes y después;
   - la completa con `--sin-adjuntos`;
   - la cuenta 2 (la de prueba) se acepta en el dump y se borra de la copia antes de cargar;
-  - E-3 en producción lo cuenta él.
+  - E-3 en producción lo cuenta él;
+  - el token se queda en `/dev/shm` desde la sonda hasta que termina la completa, si esta arranca en menos de 24 horas. Se borra al terminar la completa, o a las 24 horas, con un borrado programado (§5.1).
 
 ## 3. Lo que espera a Sam
 
@@ -65,13 +66,21 @@ Sam abre PowerShell en su PC y corre:
 C:\Windows\System32\OpenSSH\ssh.exe -t root@217.216.54.70 tmux new -A -s token-kommo "bash /srv/ops/kommo-historial-0590b/pegar-token.sh"
 ```
 
-El guion pide el token sin mostrarlo (`read -rs`), comprueba que parece un JWT de al menos 200 caracteres, lo guarda en `/dev/shm/k0582-e5` (0600) y corre `probar-token`. Así se comprueba, sin imprimir el token: `stat -c '%a %s' /dev/shm/k0582-e5` tiene que dar `600` y más de 200 bytes.
+El guion pide el token sin mostrarlo (`read -rs`), comprueba que parece un JWT de al menos 200 caracteres, lo guarda en `/dev/shm/k0582-e5` (0600) y corre `probar-token`.
 
-**El token se borra al terminar cada corrida** (condición 5). La completa es de noche: Sam lo pega otra vez antes de las 02:00Z, salvo que el Director General decida otra cosa.
+**Cuánto vive el token** (Director General, 2026-11-06, para no pedirle a Sam que lo pegue dos veces). Se queda en `/dev/shm` desde la sonda hasta que termina la completa, siempre que la completa arranque **en menos de 24 horas** desde que Sam lo pegó. Se borra apenas termina la completa, y también si pasan las 24 horas sin arrancarla. Para no depender de acordarse, apenas Sam lo pega se programa el borrado automático:
+
+```sh
+systemd-run --unit kommo-e5-token-caduca --on-active=24h /bin/rm -f /dev/shm/k0582-e5
+systemctl list-timers --no-pager kommo-e5-token-caduca.timer     # anotar cuándo vence
+```
+
+**Antes de cada corrida** (sonda y completa) se comprueba sin imprimirlo: `stat -c '%a %s %y' /dev/shm/k0582-e5` tiene que dar `600`, más de 200 bytes y una fecha de menos de 24 horas. Si falta o venció, Sam lo vuelve a pegar y se reprograma el borrado.
 
 ### 5.2 Paso 2: sonda incremental
 
 ```sh
+stat -c '%a %s %y' /dev/shm/k0582-e5        # 600, más de 200 bytes, menos de 24 h (§5.1)
 CORTE="$(date -u +%Y-%m-%dT%H:00:00Z)"      # la hora en punto anterior: ya pasó
 echo "corte de la sonda: $CORTE"            # se anota en la evidencia
 systemd-run --unit kommo-e5-inc1 --collect -p Nice=10 \
@@ -107,16 +116,17 @@ python3 -I -c 'import json,sys; m=json.load(open(sys.argv[1])); print(json.dumps
 python3 -I -c 'import json,sys; r=json.load(open(sys.argv[1])); print(json.dumps({k: r.get(k) for k in ("conversaciones","mensajes","contactos","adjuntos")}, ensure_ascii=False)); print(json.dumps((r.get("incremental") or {}).get("filtro_updated_at"), ensure_ascii=False))' "$D/informe.json"
 (cd "$D" && sha256sum -c ./*.sha256)
 ls /dev/shm | grep -c kommo-e5-inc1      # 0: empaquetar borró el staging
-rm -f /dev/shm/k0582-e5 && ls /dev/shm | grep -c k0582   # 0: token borrado
+stat -c '%a %s %y' /dev/shm/k0582-e5     # el token SIGUE: lo usa la completa (§5.1, menos de 24 h)
 ```
 
 Lo que se mide aquí (spec §9.2): si Kommo respeta `filter[updated_at]` en notas y tareas, visto en `incremental.filtro_updated_at` (`fuera_de_la_ventana`). Se manda al Director General.
 
 ### 5.3 Paso 3: la completa hasta el corte (entre las 02:00 y las 10:00Z)
 
-Va con el token pegado otra vez, y `--sin-adjuntos` decidido (si Sam pide la 5.5b antes, esto cambia: ver §3). Dura unas 3,7 h, y tiene que terminar antes de las 10:00Z.
+Va con el mismo token de la sonda, si no pasaron 24 horas (§5.1), y con `--sin-adjuntos` decidido (si Sam pide la 5.5b antes, esto cambia: ver §3). Dura unas 3,7 h, y tiene que terminar antes de las 10:00Z.
 
 ```sh
+stat -c '%a %s %y' /dev/shm/k0582-e5     # 600, más de 200 bytes, menos de 24 h; si no, Sam lo pega otra vez
 CORTE="$(date -u +%Y-%m-%dT%H:00:00Z)"; echo "corte de la completa: $CORTE"
 systemd-run --unit kommo-e5-completa --collect -p Nice=10 \
   python3 -I /srv/ops/kommo-historial-0590b/respaldar-historial.py extraer \
@@ -127,7 +137,12 @@ systemd-run --unit kommo-e5-completa --collect -p Nice=10 \
 
 - El vigía es el de §5.2, con `u=kommo-e5-completa`.
 - `extraer` deja el staging en `/dev/shm/kommo-e5-carga`, sin cifrar ni borrar: lo necesitan los pasos 4, 5 y 9.
-- **Cuando termine:** `rm -f /dev/shm/k0582-e5`, y se anotan `CORTE`, la hora de fin y los conteos de `informe`.
+- **Cuando termine:** se borra el token y se quita el borrado programado, que ya no hace falta. Después se anotan `CORTE`, la hora de fin y los conteos de `informe`.
+
+  ```sh
+  rm -f /dev/shm/k0582-e5 && ls /dev/shm | grep -c k0582        # 0
+  systemctl stop kommo-e5-token-caduca.timer 2>/dev/null; systemctl list-timers --all --no-pager | grep -c kommo-e5-token   # 0
+  ```
 - **El staging tiene datos de personas en claro, en tmpfs.** Conviene que el ensayo y la carga a producción ocurran el mismo día. Si el VPS se reinicia, el staging se pierde y la completa se repite.
 
 ### 5.4 Paso 4: foto del ERP, `vincular` y `preparar-carga`
