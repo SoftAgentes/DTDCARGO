@@ -77,7 +77,9 @@ module SondaCargador
     convs = Conversation.where(inbox_id: archivo)
     msgs = Message.where(inbox_id: archivo)
 
-    # E-3: ningún trabajo encolado desde la línea base (crear la bandeja, seco, dos cargas y los rechazos).
+    # E-4 y E-5: la cola, antes de que esta sonda cree nada. prueba-cargador.sh la compara con la cola justo
+    # después de crear la bandeja: es la línea base de la carga, separada de la de la creación.
+    hecho.call('cola_actual', cola)
     hecho.call('cola_delta', cola - b['cola'])
     hecho.call('con_webhook_conversaciones', Conversation.where(inbox_id: b['con_webhook']).count)
 
@@ -135,6 +137,22 @@ module SondaCargador
     end
     medir.call('buscador_reciente') { buscar.call('SINTBUSCAR') }
     medir.call('buscador_viejo') { buscar.call('SINTVIEJO') }
+    # E-10c: el buscador de mensajes solo mira SEARCH_TIME_RANGE_LIMIT_DAYS días (90 por defecto,
+    # lib/limits.rb). Opción 1: subir esa ventana. Limits la lee de ENV en cada búsqueda; se cambia solo en este
+    # proceso y se restaura.
+    medir.call('buscador_viejo_ventana_1100') do
+      previa = ENV.fetch('SEARCH_TIME_RANGE_LIMIT_DAYS', nil)
+      ENV['SEARCH_TIME_RANGE_LIMIT_DAYS'] = '1100'
+      buscar.call('SINTVIEJO')
+    ensure
+      previa.nil? ? ENV.delete('SEARCH_TIME_RANGE_LIMIT_DAYS') : ENV['SEARCH_TIME_RANGE_LIMIT_DAYS'] = previa
+    end
+    # Opción 2: la búsqueda de conversaciones (por nombre, teléfono, correo o número) no tiene ventana de fechas.
+    medir.call('buscador_conversacion_vieja') do
+      r = SearchService.new(current_user: admin, current_account: cuenta_ar, search_type: 'Conversation',
+                            params: { q: 'SINT-NOMBRE-X1' }).perform
+      Array(r[:conversations]).count { |c| c.inbox_id == archivo && c.created_at < 400.days.ago }
+    end
 
     # E-8: números de conversación. Una conversación nueva, creada como la crearía el canal, va después.
     max_archivo = convs.maximum(:display_id).to_i

@@ -95,8 +95,9 @@ cero() { [ "${1:-0}" = 0 ]; }
 cola_igual() { [ -n "$1" ] && [ "${1%%->*}" = "${1##*->}" ] && [ "${1%%->*}" != -1 ]; }
 avance() { [ -n "$1" ] && [ "$(( ${1##*->} - ${1%%->*} ))" = "$2" ]; }
 dif() { [ -n "$1" ] && echo "$(( ${1##*->} - ${1%%->*} ))"; }
-# Lo que encola crear una bandeja con los modelos, igual que desde el panel (cargar-archivo-kommo.rb).
-AVISO_BANDEJA="ActionCableBroadcastJob:1,EventDispatcherJob:1"
+# Lo que encola crear una bandeja con los modelos, igual que desde el panel: la invalidación de la caché de la
+# cuenta (AccountCacheRevalidator), sin `inbox_created` porque ENABLE_INBOX_EVENTS está vacía (SDD-0590 §10.9).
+AVISO_BANDEJA="ActionCableBroadcastJob(account.cache_invalidated):1,EventDispatcherJob(account.cache_invalidated):1"
 
 memoria_libre_mb() {
   if command -v powershell.exe >/dev/null 2>&1; then
@@ -143,7 +144,7 @@ comprobar() {
   exigir B1 '[ "$(h "$F" carga)" = ok ] && [ "$(h "$F" bandeja_existia)" = no ] && [ -n "$B" ] && [ "$(h "$F" webhook_url)" = no ] && [ "$(h "$F" miembros)" = 0 ]' \
     "bandeja $B: canal API, sin webhook_url, sin miembros"
   exigir B2 '[ "$(h "$F" trabajos_nuevos)" = "$AVISO_BANDEJA" ] && [ "$(dif "$(h "$F" cola)")" = 2 ]' \
-    "crear la bandeja encola solo el aviso de bandeja nueva, como desde el panel: $(h "$F" trabajos_nuevos)"
+    "crear la bandeja encola solo la invalidación de caché de la cuenta, como desde el panel; ni inbox_created ni webhooks: $(h "$F" trabajos_nuevos)"
   F="$O/bandeja-2.txt"
   exigir B3 '[ "$(h "$F" bandeja)" = "$B" ] && [ "$(h "$F" bandeja_existia)" = si ]' "la segunda vez devuelve la misma bandeja"
 
@@ -196,8 +197,11 @@ comprobar() {
 
   F="$O/sonda-verificar.txt"
   exigir E0 '[ "$(h "$F" verificar)" = ok ]' "la sonda corrió entera"
-  exigir E45 '[ -n "$(h "$F" cola_delta)" ] && [ "$(h "$F" cola_delta)" = "$(dif "$(h "$O/bandeja-1.txt" cola)")" ] && [ "$(h "$F" con_webhook_conversaciones)" = 0 ]' \
-    "E-4 y E-5: desde la línea base, ningún trabajo fuera de los $(dif "$(h "$O/bandeja-1.txt" cola)") del aviso de bandeja nueva (en total $(h "$F" cola_delta)), y 0 conversaciones en la bandeja con webhook"
+  local base_carga
+  base_carga="$(h "$O/bandeja-1.txt" cola)"
+  base_carga="${base_carga##*->}"
+  exigir E45 '[ -n "$base_carga" ] && [ "$(h "$F" cola_actual)" = "$base_carga" ] && [ "$(h "$F" con_webhook_conversaciones)" = 0 ]' \
+    "E-4 y E-5: desde que existe la bandeja (cola ${base_carga:-?}) hasta la verificación (cola $(h "$F" cola_actual)), 0 trabajos nuevos; 0 conversaciones en la bandeja con webhook"
   exigir E6a '[ "$(h "$F" conversaciones)" = 5 ] && [ "$(h "$F" mensajes)" = 8 ] && [ "$(h "$F" entrantes)" = 5 ] && [ "$(h "$F" salientes)" = 3 ] && [ "$(h "$F" resueltas)" = 5 ]' \
     "E-6: 5 conversaciones resueltas, 8 mensajes (5 entrantes, 3 salientes)"
   exigir E6b '[ "$(h "$F" historicas)" = 1 ] && [ "$(h "$F" mensajes_historicos)" = 3 ]' \
@@ -296,7 +300,8 @@ rr "$REAL/carga-1.txt" MODO=cargar "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CA
 rr "$REAL/carga-2.txt" MODO=cargar "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$CARGA"
 rr "$REAL/sonda-verificar.txt" FASE=verificar "BANDEJA=$B" -- "$SONDA" </dev/null
 comprobar "$REAL"
-log "MEDIDA E10c — el buscador de Chatwoot con un mensaje de hace 500 días: $(h "$REAL/sonda-verificar.txt" buscador_viejo)"
+log "MEDIDA E10c — el buscador de mensajes con un mensaje de hace 500 días: $(h "$REAL/sonda-verificar.txt" buscador_viejo) con la ventana de 90 días; $(h "$REAL/sonda-verificar.txt" buscador_viejo_ventana_1100) con SEARCH_TIME_RANGE_LIMIT_DAYS=1100"
+log "MEDIDA E10d — la búsqueda de conversaciones por nombre del contacto encuentra la conversación del Archivo de hace 500 días: $(h "$REAL/sonda-verificar.txt" buscador_conversacion_vieja)"
 log "MEDIDA E8 — números de conversación en la carga: $(h "$REAL/carga-1.txt" secuencia)"
 vigilar "corrida real"
 

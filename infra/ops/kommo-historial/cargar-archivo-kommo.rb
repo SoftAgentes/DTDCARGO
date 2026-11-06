@@ -80,12 +80,19 @@ class CargaArchivoKommo
     -1
   end
 
-  # Trabajos esperando en Sidekiq, por clase. Solo nombres de clase, nunca argumentos.
+  # Trabajos esperando en Sidekiq, por clase y evento: `ActionCableBroadcastJob(account.cache_invalidated)`.
+  # De los argumentos solo se toma el nombre de evento de Chatwoot (palabras en minúscula separadas por
+  # puntos). Nada más: los argumentos llevan tokens de los agentes y datos de la cuenta.
+  EVENTO = /\A[a-z_]+(\.[a-z_]+)+\z/
+
   def trabajos_por_clase
     require 'sidekiq/api'
     cuenta = Hash.new(0)
     [*Sidekiq::Queue.all, Sidekiq::ScheduledSet.new, Sidekiq::RetrySet.new].each do |cola|
-      cola.each { |trabajo| cuenta[trabajo.display_class] += 1 }
+      cola.each do |trabajo|
+        evento = Array(trabajo.display_args).find { |a| a.is_a?(String) && a.match?(EVENTO) }
+        cuenta[evento ? "#{trabajo.display_class}(#{evento})" : trabajo.display_class] += 1
+      end
     end
     cuenta
   rescue StandardError
@@ -326,9 +333,15 @@ class CargaArchivoKommo
 
   # La bandeja «Archivo Kommo»: canal API sin webhook_url, sin asignación automática, sin saludo ni encuesta.
   # Si ya existe una bandeja API con ese nombre en la cuenta, la devuelve sin tocarla.
-  # Se crea con los modelos, como desde el panel, así que Chatwoot avisa de la bandeja nueva: un
-  # EventDispatcherJob (el evento `inbox_created`, que solo llega a los webhooks de cuenta suscritos a él) y un
-  # ActionCableBroadcastJob (los navegadores de los agentes). Ninguno escribe a un cliente.
+  # Se crea con los modelos, como desde el panel. En Chatwoot 4.19.1 eso encola dos trabajos y ninguno sale de
+  # Chatwoot hacia un cliente ni hacia Studio (SDD-0590 §10.9):
+  #   · AccountCacheRevalidator invalida la caché de la cuenta (`account.cache_invalidated`).
+  #     ActionCableListener avisa por ActionCableBroadcastJob a los navegadores de agentes y administradores,
+  #     para que recarguen la lista de bandejas. El EventDispatcherJob del mismo evento no tiene oyente
+  #     asíncrono, así que no hace nada.
+  #   · `inbox_created` no se emite: Inbox#dispatch_create_event sale si ENABLE_INBOX_EVENTS está vacía, y
+  #     el compose no la define.
+  # Crearla sin callbacks dejaría la caché vieja, y la bandeja no aparecería en el panel hasta que venciera.
   def crear_bandeja(nombre)
     raise 'falta NOMBRE' if nombre.blank?
 
