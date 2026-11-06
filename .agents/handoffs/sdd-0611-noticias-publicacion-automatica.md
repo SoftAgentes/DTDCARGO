@@ -75,8 +75,9 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
 
 ## Pendientes de esta tarea
 
-1. Las cinco decisiones de §7 están resueltas. Falta que Sam apruebe la spec (`status: approved`)
-   y que el Director decida el merge.
+1. Spec `approved` por Sam el 2026-11-06, texto literal: «yo aprobé el PR (aprobado), pero que
+   él tome la decisión». No es autorización de merge: el merge lo decide el Director. Aviso
+   enviado al Subdirector «SEO, GEO y AEO».
 2. PR en borrador abierta. Autorización recibida por mensaje del Subdirector «SEO, GEO y AEO»
    el 2026-11-06, texto literal: «publica la rama y abre la PR en borrador; eso está autorizado,
    fusionarla no». No cubre el merge.
