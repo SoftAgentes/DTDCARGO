@@ -9,6 +9,7 @@ Rama `codex/0589-e9-estado`, worktree `DTD-worktrees/0589-e9-estado`, desde `mai
   - fusionar la #384, junto con la #383: «Sí, las dos (Recomendado)».
 
   El texto completo, con las preguntas, está en `.agents/handoffs/0589-autorizacion-0517.txt`, el archivo que pide `aplicar.sh` y que nombra la 0517.
+- **Smoke B de la guía en prueba:** Sam, el 2026-11-06 hacia las 18:40Z, en el chat del Subdirector de Chatwoot, a «¿Autorizas desplegar la #384 en prueba para el smoke B de la guía?»: «Sí, prueba.dtdcargo.com». Vale para ese recorrido. Va antes de la tanda que publica la #384 y sobre su cabeza final (Director General).
 - **Orden (migrate-first):** primero la 0517 en producción, que aplica el Director General con respaldo en una ventana corta, y enseguida la fusión, que publica la web. No se cruza con la ventana de E5: si el ensayo de E5 o su carga la ocupan, la 0517 espera.
 - **Aplicar la 0517 enciende el arranque automático:** cada persona de Studio verá abrirse sola la guía de demostración del Dashboard la primera vez que entre después.
 - **Sin la tabla, la guía funciona sin romper nada.** `leerEstadoGuia` devuelve `null` con 42P01 o PGRST205 y el layout no se cae; con `null`, la guía no arranca sola; el almacén no llama a la acción; y la acción responde «No se pudo guardar.» sin el error crudo. Lo declaran las evidencias del gate de símbolos y lo prueba `lib/studio/guia/__tests__/estado.test.ts:193`.
