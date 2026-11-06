@@ -39,15 +39,22 @@ Diseñar, sin código de producto, cómo el chat del portal («canales», en pal
 - Pendiente de integración: nada más; el índice de specs no cambió.
 - Graphify, Archify y Obsidian: los revisa el Director al integrar, según el runbook de conocimiento.
 
+## Revisión del Director General (2026-11-06)
+
+Sobre `89fb586cf`, comunicada por el Subdirector de Chatwoot: «bien encaminado», con cambios menores de texto, aplicados en la misma rama y sin código.
+
+- **Decisiones** (spec §10.5.14): D-1, una sola pieza «ubicar o crear la tarjeta» para el alta web, la 10.5 y el cotizador de la 6.6, redefinida desde la última definición y con su contrato vuelto a correr; el número de migración se asigna al arrancar (nadie reserva la 0518); reestimación de 1,25 a 2 días aceptada, va a Sam con la de la 6.6; orden: primero la 10.5 y después la 6.6.
+- **Cambios:** b, barrido `crm_tickets_reconciliar` en el cron `chatwoot-reintentos` con aviso de solo números (E10-D31); c, actor `system` para lo que dispara el cliente (E10-D27); d, «Perdido» mira el segmento antes de volver a recontacto (E10-D22); f, P6 va después de la #399, y el aviso de Telegram lo lleva el Director General al Subdirector de SEO.
+- **Coordinación con la #401** (spec §10.5.17): «sin atender» y la regla de ids de la auditoría las fija la 6.6 una sola vez; la 10.5 las cita. Siguen pendientes de que esa sesión las cierre.
+
 ## PENDIENTES DE ESTA TAREA
 
-- **Revisión del Director General** del diseño.
-- **Seis preguntas para Sam** (§10.5.14), sin hacer: P1 qué son los «canales» y si los reclamos entran; P2 Studio o Chatwoot para responder; P3 número de ticket visible para el cliente; P4 carga hacia atrás; P5 vencimiento en fin de semana; P6 texto de `/privacidad`.
-- **Decisiones del Director:** D-1 (redefinir o copiar), número de migración, reestimación de 1,25 a 2 días (§10.5.15) y orden frente a 6.6, que toca los mismos archivos de la ficha y del tablero.
+- **Seis preguntas para Sam** (§10.5.14), sin hacer: las lleva el Director General con las de la 6.6 y la línea base.
+- **Citas de la 6.6:** cuando el Subdirector pase la definición de «sin atender» y la regla de ids, cambiar en §10.5.17 «pendientes de cerrar» por la cita exacta.
 - La implementación, la migración y su aplicación quedan fuera de este encargo.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Telegram recibe texto del cliente:** `lib/studio/conversation-inbound-notify.ts:112` manda a Telegram un extracto de hasta 140 caracteres de cada mensaje del portal (SDD-0148) y `/privacidad` no nombra ese servicio. Merece su propia revisión con revisar-datos-ve.
+- **Telegram recibe el nombre y texto del cliente:** `lib/studio/conversation-inbound-notify.ts:103-112` manda a Telegram el nombre, el Shipping Mark y un extracto de hasta 140 caracteres de cada mensaje del portal (SDD-0148), y el texto ya aprobado de la #399 dice que la mensajería interna recibe avisos «sin tu nombre ni tus datos de contacto». Lo lleva el Director General al Subdirector de SEO.
 - **La RLS de `conversations` no mira el rol:** la política «conversations by tenant» (`supabase/migrations/0106_conversaciones.sql:128`) deja cambiar el estado de un hilo por la API directa a cualquier usuario del tenant; solo la acción lo frena con `moduleEditDenial`.
 - **Sin `node_modules` en este worktree:** las comprobaciones se corrieron con `node` directo sobre los scripts, que no tienen dependencias.

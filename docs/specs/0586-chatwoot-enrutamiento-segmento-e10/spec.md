@@ -141,7 +141,7 @@ Segunda pasada de Codex sobre `d4d5e18a2` (estática, sin ejecutar nada): los 5 
 ## Pendientes de esta SDD
 
 - 10.4, 10.5 y 10.6 (ver checklist); se programan después de integrar a `main`.
-- **10.5 destrabado:** su dependencia, el 6.3, ya está aceptada. Sam lo reafirmó el 2026-10-30 (comunicado por el Director): «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets». **Diseño en borrador el 2026-11-06** («Paso 10.5», al final), con seis preguntas para Sam y cuatro decisiones para el Director (§10.5.14).
+- **10.5 destrabado:** su dependencia, el 6.3, ya está aceptada. Sam lo reafirmó el 2026-10-30 (comunicado por el Director): «Tenemos en el portal del cliente algo que se llama "canales", entonces quiero conectarlo al CRM también. ser como tickets». **Diseño en borrador el 2026-11-06** («Paso 10.5», al final), con seis preguntas para Sam. El Director General lo revisó el mismo día: sus cuatro decisiones y los cambios pedidos ya están en la sección (§10.5.14 y §10.5.17).
 - ~~`pnpm verify` y sql-tests con Docker~~: corridos el 2026-10-30 (ver «Verify»).
 - ~~Aplicar la 0505~~: aplicada el 2026-11-04 (ver el cierre al final).
 - ~~Número de migración~~: el Director confirmó la **0505** (2026-10-30), comprobada en todas las ramas, remotas y worktrees.
@@ -165,6 +165,8 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 ## Paso 10.5 — Tickets del portal a los embudos (diseño en borrador, 2026-11-06)
 
 > **Borrador para la revisión del Director General.** Sin código de producto, sin migración escrita ni aplicada y sin preguntarle nada a Sam: sus preguntas están en §10.5.14. Rama `claude/trusting-kowalevski-525bef`, sobre `main` en `3d17292a4`. Etiquetas: **C** código leído, **D** documentación, **I** inferencia, **NV** no verificado.
+>
+> **Revisión del Director General (2026-11-06, sobre `89fb586cf`, comunicada por el Subdirector de Chatwoot):** «bien encaminado», con cambios menores de texto. Sus cuatro decisiones están en §10.5.14 y los cambios, aplicados en esta versión: (b) un fallo del trigger no pasa sin que nadie se entere (E10-D31); (c) lo que dispara el cliente se audita con actor `system` (E10-D27); (d) desde «Perdido» se mira el segmento antes de volver a recontacto (E10-D22); (f) P6 va después de la #399 y el aviso de Telegram lo lleva el Director General (§10.5.14 y §10.5.16). La coordinación con la 6.6 está en §10.5.17.
 
 ### 10.5.1 Lo que pidió Sam y cómo se lee
 
@@ -186,7 +188,7 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 | Respuesta del equipo | `sendReplyAction` (`conversaciones/actions.ts:91`) → `insertOutboundMessage` (`lib/studio/conversaciones/messages-queries.ts:47`), con push al portal | El asesor ya responde ahí |
 | Aviso al equipo | `notifyConversationInbound` (`lib/studio/conversation-inbound-notify.ts`): Telegram al asesor o a los admins, con enlace `?c=<id>` | No cambia |
 | Quién puede escribir | Soporte está cerrado hasta verificar la identidad (`lib/portal/verify-gate.ts:31`); la página aplica el cierre (`soporte/page.tsx:63-67`) | Quien escribe siempre tiene ficha: siempre hay `client_id` |
-| Lo que se le promete al cliente | «Te responde en el día» (`soporte/page.tsx:200`) | El vencimiento del ticket sigue esa promesa (E10-D23) |
+| Lo que se le promete al cliente | «Te responde en el día» (`soporte/page.tsx:200`) | Es un dato para el umbral de «sin atender», que fija la 6.6 (E10-D23, P5) |
 | Fusión de fichas | `merge_clients` mueve los hilos a la ficha superviviente y archiva el duplicado (`supabase/migrations/0361_merge_clients_conserva_kommo_contact.sql:157-170`) | El ticket no guarda la tarjeta: la saca de la ficha del hilo (E10-D20) |
 
 ### 10.5.3 Decisiones
@@ -197,15 +199,16 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 | E10-D19 | **Lo abre la base, no el portal:** un trigger `after insert` en `conversation_messages`, solo con `direction = 'in'` y un hilo `channel = 'portal'`. **El portal no cambia** | Queda en la misma transacción que el mensaje: no se pierde si la acción muere después de guardar, cubre las dos firmas de la RPC y un reintento no lo dispara, porque no inserta. La SDD-0582 ponía el enganche después de `notifyConversationInbound` (V2-8); esa fila solo ubicaba el lugar, y desde la base es más seguro. Ver E10-D24 |
 | E10-D20 | **El ticket guarda el hilo, no la tarjeta.** El tablero llega a la tarjeta por `conversations.client_id = crm_tarjetas.client_id` en cada lectura | Igual que el tablero, que tampoco se guarda (SDD-0587 §4.1). Una fusión mueve el hilo a la ficha superviviente (0361:170) y el ticket la sigue sin escribir nada |
 | E10-D21 | **El embudo sale del segmento, calculado en el momento.** Quien escribe por el portal tiene ficha, así que es `cliente` (embudo **Clientes**) o `lead_registrado` (embudo **Leads**). Lo decide `crm_segmento_tarjetas` (0506), igual que en el tablero de 6.3, y no se guarda | Regla de 0.8 y SDD-0587 §4.1. Si la persona gana o pierde su único envío, la tarjeta cambia de tablero y su ticket se va con ella |
-| E10-D22 | **La tarjeta.** Si la ficha no tiene, se crea con `fuente = 'portal'` (ya admitida, `0506_crm_modelo.sql:318-320`), `etapa_leads = 'registrado_recontacto'` y el asesor activo de la ficha, sin nombre ni teléfono (check de 0506:339). Si hay una tarjeta de lead sin ficha cuyo teléfono cruza con esta única ficha, se liga, como en la alta web. Si la tarjeta está en «Perdido», vuelve a «Registrado / recontacto» con tarea y sin motivo (`crm_volver_a_recontacto`, `0513_crm_entrada_leads.sql:147`). A una tarjeta que ya existe no se le cambia la etapa ni la fuente | SDD-0587 §4.3: el lead registrado que escribe entra en «Registrado / recontacto». Para «Perdido», el mismo trato que 6.4 |
-| E10-D23 | **Vencido = sin primera respuesta al terminar el día, hora de Caracas, en que se abrió.** Se calcula en TypeScript al leer; no se guarda | Es lo que el portal promete (`soporte/page.tsx:200`). Como no se guarda, cambiar la regla no pide migración. Si los fines de semana cuentan es **P5** |
-| E10-D24 | **El mensaje del cliente nunca falla por el CRM.** Lo del ticket corre en un bloque con `exception when others` que solo deja un `warning` con el SQLSTATE, y las funciones de los triggers llevan `lock_timeout = '2s'`. Si algo falla, quedan el mensaje, el contador y el aviso, y el siguiente mensaje abre el ticket. Lo mismo vale para la respuesta del equipo y el cambio de estado | El mismo principio de 6.4: «un fallo de la tarjeta no rompe ni demora el registro» (SDD-0587 §16.6). El ticket y su evento de auditoría van juntos dentro del bloque: quedan los dos o ninguno (E10-D27) |
+| E10-D22 | **La tarjeta.** Si la ficha no tiene, se crea con `fuente = 'portal'` (ya admitida, `0506_crm_modelo.sql:318-320`), `etapa_leads = 'registrado_recontacto'` y el asesor activo de la ficha, sin nombre ni teléfono (check de 0506:339). Si hay una tarjeta de lead sin ficha cuyo teléfono cruza con esta única ficha, se liga, como en la alta web. Si la tarjeta está en «Perdido», **primero se mira el segmento en ese momento** (`crm_segmento_cliente`, 0506): solo si es lead vuelve a «Registrado / recontacto» con tarea y sin motivo (`crm_volver_a_recontacto`, `0513_crm_entrada_leads.sql:147`). A un cliente con un envío vivo o carga en China no se le crea «Volvió a escribir» ni se le toca la etapa de Leads: si algún día vuelve a lead, lo mueve el registro del cambio de tablero de la 6.6 (SDD-0614 §2.7 a). A una tarjeta que ya existe no se le cambia la etapa ni la fuente | SDD-0587 §4.3: el lead registrado que escribe entra en «Registrado / recontacto». Para «Perdido», el mismo trato que 6.4, sin la tarea equivocada para un cliente (cambio d del Director General) |
+| E10-D23 | **«Sin atender» no se define aquí.** La definición es una sola y la fija la sesión de la 6.6 (SDD-0614 §2.4, R6, con su umbral D-6.6-5); este diseño la cita y no escribe otra versión. 10.5 le aporta las dos fechas del canal portal: `abierto_at` (el mensaje del cliente que abrió el ticket) y `primera_respuesta_at`. Se calcula al leer y no se guarda | Decisión del Director General (2026-11-06). La promesa del portal, «Te responde en el día» (`soporte/page.tsx:200`), es un dato para ese umbral: **P5**. Si al programar la 10.5 la pieza de «sin atender» todavía no existe en código, la 10.5 la escribe una sola vez, como la fije la SDD-0614, y la 6.6 la reusa |
+| E10-D24 | **El mensaje del cliente nunca falla por el CRM.** Lo del ticket corre en un bloque con `exception when others` que solo deja un `warning` con el SQLSTATE, y las funciones de los triggers llevan `lock_timeout = '2s'`. Si algo falla, quedan el mensaje, el contador y el aviso, y el ticket lo abre el barrido de E10-D31 en la corrida siguiente, o el próximo mensaje, lo que pase primero. Lo mismo vale para la respuesta del equipo y el cambio de estado | El mismo principio de 6.4: «un fallo de la tarjeta no rompe ni demora el registro» (SDD-0587 §16.6). El ticket y su evento de auditoría van juntos dentro del bloque: quedan los dos o ninguno (E10-D27) |
 | E10-D25 | **El asesor responde donde ya responde: en Conversaciones.** La ficha de la tarjeta lista los tickets y enlaza a `/studio/conversaciones?c=<conversation_id>`. No hay un camino nuevo para escribirle al cliente | El enlace `?c=` ya existe (SDD-0148 #1, `app/studio/(app)/conversaciones/page.tsx:33`). Contrato de E6: Studio no copia el texto de los mensajes (SDD-0587 §3) |
 | E10-D26 | **Sin Chatwoot en 10.5.** El chat del portal no se copia a una bandeja de Chatwoot | Es un canal propio de Studio y ya se responde desde Studio. Copiarlo dejaría el texto del cliente en otro almacén y pediría sincronizar en los dos sentidos. Lo decide Sam (**P2**) |
-| E10-D27 | **Auditoría (AUD-01):** abrir, resolver y archivar un ticket dejan un evento en `entity_audit_log` con el tipo nuevo `crm_ticket`, en la misma transacción que el cambio, con ids y estado y **sin** `client_id`, nombre ni texto. Actor `user` con `auth.uid()` (el cliente al abrir, el agente al cerrar), o `system` si no hay sesión | Patrón de la 0491 (fila en `audit_entity_types` y trigger que llama a `append_audit_event`). El actor ya admite esos valores (`0267_audit_contract_append_only.sql:312-313`). Los eventos son de solo agregar y quedan después de purgar una ficha: por eso no llevan nada que la identifique |
+| E10-D27 | **Auditoría (AUD-01):** abrir, resolver y archivar un ticket dejan un evento en `entity_audit_log` con el tipo nuevo `crm_ticket`, en la misma transacción que el cambio, sin nombre, teléfono ni texto. **Actor:** lo que dispara el cliente (abrir, y la tarjeta que se crea o se mueve con eso) va con `system`, nunca con el `auth.uid()` del cliente; lo que hace alguien del equipo (resolver, o archivar al fusionar fichas) va con `user` y su id; el barrido de E10-D31, con `system`. **Qué ids lleva** lo fija la sesión de la 6.6 una sola vez (SDD-0614 §2.7 d) y aquí se cita, sin otra versión | Patrón de la 0491 (fila en `audit_entity_types` y trigger que llama a `append_audit_event`); el actor admite esos valores (`0267_audit_contract_append_only.sql:312-313`). Cambio c del Director General. **Observación para la regla de ids, no es una regla aparte:** los eventos son de solo agregar y quedan después de purgar una ficha (0267), así que un id de la ficha guardado ahí la sobrevive |
 | E10-D28 | **Número del ticket:** `C-AAAA-NNNN · #n`, el `ref` del hilo más el número del episodio dentro del hilo | Sin correlativo nuevo por tenant: dos tickets de clientes distintos al mismo tiempo no pueden pelear un número. Un `MAX+1` por tenant chocaría, y con el bloque de E10-D24 ese ticket se perdería |
-| E10-D29 | **Primera respuesta:** el primer mensaje `out` del equipo en el hilo marca `primera_respuesta_at` y quién respondió, una sola vez por ticket | Sirve para el vencimiento y para ver cuánto tardó el equipo. No mueve la tarjeta |
-| E10-D30 | **Una sola definición de «buscar, ligar o crear la tarjeta de una ficha».** La migración la saca a una pieza interna y redefine `crm_alta_tarjeta_web` (0513:325) **desde su última definición** para que la use con `web_registro` y «Nuevo», sin cambiar su conducta: lo prueba el contrato de la 0513, que se vuelve a correr | Copiar el bloque duplicaría la regla de ligado por teléfono, y SDD-0587 §4.2.1 pide una sola definición. **Alternativa más chica:** copiarlo y no tocar la función de la 0513. Lo elige el Director (**D-1**) |
+| E10-D29 | **Primera respuesta:** el primer mensaje `out` del equipo en el hilo marca `primera_respuesta_at` y quién respondió, una sola vez por ticket | Sirve para «sin atender» (E10-D23) y para ver cuánto tardó el equipo. No mueve la tarjeta |
+| E10-D30 | **Una sola pieza «ubicar o crear la tarjeta» para los tres usos:** el alta web de la 0513, el ticket del portal de la 10.5 y el «ubicar o crear» del cotizador de la 6.6 (SDD-0614 §2.3, PR #401). La crea la migración de la 10.5, que va primero, con los dos caminos que piden esos usos: por ficha y, para el cotizador sin Shipping Mark, por teléfono. `crm_alta_tarjeta_web` (0513:325) se redefine **desde su última definición** para usarla, sin cambiar su conducta, y su contrato se vuelve a correr. La 6.6 la llama y no escribe otra | Decisión del Director General (D-1, 2026-11-06). Copiar el bloque duplicaría la regla de ligado por teléfono, y SDD-0587 §4.2.1 pide una sola definición. **Antes de reescribir, se busca la última `create or replace` de cada función en todas las migraciones** (regla del repo): al 2026-11-06, `crm_alta_tarjeta_web` solo está definida en la 0513, en `main` y en todas las ramas remotas |
+| E10-D31 | **Un fallo del trigger no pasa en silencio.** Además del `warning`: un barrido `crm_tickets_reconciliar()` en el cron `chatwoot-reintentos`, que ya corre cada 5 min (`infra/dtd-cargo/cron/crontab:26`) y ya lleva la purga de E10 (E10-D16). Abre el ticket que falte, marca la primera respuesta que falte y asegura la tarjeta, con las mismas piezas del trigger e idempotente por `primer_mensaje_id`. Cuenta lo que recuperó, y si es más de cero deja un aviso interno con **solo el número**, sin nombre, Shipping Mark ni contacto | Cambio b del Director General. El número del barrido es el contador: si el trigger falla, se ve en ≤5 min sin abrir los logs de Postgres. El aviso sale por el canal de alertas internas vigente al programar, coordinado con los avisos a Discord (SDD-0606) |
 
 ### 10.5.4 Qué entra como ticket
 
@@ -228,14 +231,14 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 
 **En el tablero** (`/studio/crm`, pestaña Embudos, en Leads o en Clientes según el segmento):
 
-- La tarjeta con un ticket abierto lleva una insignia con texto: «Ticket abierto · sin responder · 3 h», «Ticket abierto · respondido» o «Ticket vencido», esta última en el tono de alerta de las tareas vencidas. El texto dice el estado: el color no es lo único que lo dice (SGE-00.11).
+- La tarjeta con un ticket abierto lleva una insignia con texto: «Ticket abierto · sin responder · 3 h», «Ticket abierto · respondido» o «Ticket sin atender», esta última en el tono de alerta de las tareas vencidas y según la definición única de la 6.6 (E10-D23). El texto dice el estado: el color no es lo único que lo dice (SGE-00.11).
 - Ni el tablero ni la ficha muestran el texto del mensaje (E10-D25).
 
 **En la ficha de la tarjeta** (`TarjetaFichaDrawer`), una sección nueva «Tickets del portal», después de «Quién contesta el chat»:
 
 ```text
 Tickets del portal (1 abierto)
-  C-2026-0012 · #3   Abierto · sin responder · vence hoy a las 23:59
+  C-2026-0012 · #3   Abierto · sin responder · hace 3 h
                      Abierto el 6 nov a las 10:42
                      Responder en Conversaciones →
   C-2026-0012 · #2   Resuelto el 2 nov por Ana · primera respuesta a los 40 min
@@ -249,9 +252,9 @@ Tickets del portal (1 abierto)
 
 ### 10.5.6 Modelo de datos y migración (solo descripción)
 
-Una migración nueva, `supabase/migrations/05NN_crm_tickets_portal.sql`. **No se escribe ni se aplica en esta tarea.** El número lo reserva el Director al programarla: al 2026-11-06 ya hay de la 0514 a la 0517 en ramas remotas (`claude/gracious-kapitsa-213515`, `claude/discord-consulta-clientes-c50c23` y `codex/0589-e9-estado`), así que sería la 0518 o la siguiente libre. Va con el OK nominal de Sam y el runbook de producción, primero en prueba.
+Una migración nueva, `supabase/migrations/05NN_crm_tickets_portal.sql`. **No se escribe ni se aplica en esta tarea.** **El número se asigna al arrancar el código** (decisión del Director General, 2026-11-06): ni la 10.5 ni la 6.6 reservan la 0518. Como referencia, al 2026-11-06 ya había de la 0514 a la 0517 en ramas remotas (`claude/gracious-kapitsa-213515`, `claude/discord-consulta-clientes-c50c23` y `codex/0589-e9-estado`). Va con el OK nominal de Sam y el runbook de producción, primero en prueba.
 
-**Preflight:** exige la 0106 (`conversations`, `conversation_messages`), la 0506 (`crm_tarjetas`, `crm_segmento_*`), la 0513 (`crm_volver_a_recontacto`, `crm_alta_tarjeta_web`, `crm_asesor_activo`, `crm_ficha_por_telefono`) y el catálogo de auditoría (`audit_entity_types`, `append_audit_event`). Aborta si ya se aplicó.
+**Preflight:** exige la 0106 (`conversations`, `conversation_messages`), la 0506 (`crm_tarjetas`, `crm_segmento_*`), la 0513 (`crm_volver_a_recontacto`, `crm_alta_tarjeta_web`, `crm_asesor_activo`, `crm_ficha_por_telefono`, `crm_buscar_tarjeta`) y el catálogo de auditoría (`audit_entity_types`, `append_audit_event`). Aborta si ya se aplicó.
 
 **Tabla `crm_tickets`:**
 
@@ -274,15 +277,24 @@ Una migración nueva, `supabase/migrations/05NN_crm_tickets_portal.sql`. **No se
 
 **Piezas:**
 
-1. `crm_tarjeta_de_ficha(tenant, client, fuente, etapa_leads)`, interna: busca la tarjeta de la ficha; si no hay, liga la del lead sin ficha que cruza por teléfono con esta única ficha; si tampoco, crea una (`on conflict do nothing`). E10-D30.
-2. `crm_alta_tarjeta_web`, redefinida desde la 0513 para usar la pieza 1, con la misma firma, los mismos grants y los mismos resultados (`creada`, `ligada`, `existente`). E10-D30.
+1. **`crm_tarjeta_ubicar_o_crear`**, interna y única para los tres usos (E10-D30). Recibe el tenant, la ficha si la hay, los últimos 10 dígitos si no hay ficha, el nombre visible solo para el lead sin ficha (D6), la fuente y la etapa de Leads de una tarjeta nueva. Devuelve la tarjeta y el resultado: `existente`, `ligada`, `creada` o `ambigua`.
+   - **Con ficha** (alta web, portal y cotizador con Shipping Mark): la tarjeta de la ficha; si no hay, liga la del lead sin ficha que cruza por teléfono con esta única ficha (`crm_ficha_por_telefono`, 0513:62); si tampoco, crea una con `on conflict do nothing`.
+   - **Sin ficha** (cotizador sin Shipping Mark, SDD-0614 §2.3, punto 2): con una sola ficha para ese teléfono, sigue como con ficha; si no hay ficha, la tarjeta sin ficha de ese teléfono (`crm_buscar_tarjeta`, 0513:117); si no hay ninguna, crea una con nombre visible y últimos 10; con más de una coincidencia, `ambigua` y no toca nada.
+   - No mueve etapas ni crea tareas: eso lo decide cada uso (el «Perdido» del alta web, la regla d del portal y el mapeo del cotizador).
+2. `crm_alta_tarjeta_web`, redefinida **desde su última definición** (hoy la 0513) para usar la pieza 1 con `web_registro` y «Nuevo», con la misma firma, los mismos grants, los mismos resultados (`creada`, `ligada`, `existente`) y su salida de «Perdido» con la clave `web_registro:<ficha>`. El contrato de la 0513 se vuelve a correr sin cambios. E10-D30.
 3. Trigger `crm_tickets_mensaje` (`after insert on conversation_messages`), con función `security definer`, `search_path = ''` y `lock_timeout = '2s'`:
-   - mensaje `in` en un hilo vivo del canal `portal`: bloquea la fila del hilo (`for update`, para que dos mensajes del mismo cliente al mismo tiempo no abran dos tickets); asegura la tarjeta con la pieza 1 (`portal`, `registrado_recontacto`); si está en «Perdido», llama a `crm_volver_a_recontacto` con la clave `portal:<message_id>`; actualiza `ultima_actividad_at`; si no hay ticket abierto, inserta el siguiente número y su evento de auditoría;
+   - mensaje `in` en un hilo vivo del canal `portal`: bloquea la fila del hilo (`for update`, para que dos mensajes del mismo cliente al mismo tiempo no abran dos tickets); asegura la tarjeta con la pieza 1 (`portal`, `registrado_recontacto`); si está en «Perdido» **y el segmento en ese momento no es `cliente`** (`crm_segmento_cliente`), llama a `crm_volver_a_recontacto` con la clave `portal:<message_id>`; actualiza `ultima_actividad_at`; si no hay ticket abierto, inserta el siguiente número y su evento de auditoría con actor `system`;
    - mensaje `out`: marca la primera respuesta del ticket abierto del hilo, si no la tiene;
    - todo dentro del bloque de E10-D24.
-4. Trigger `crm_tickets_conversacion` (`after update of status, deleted_at on conversations`): al pasar a `resuelto`, cierre `resuelto` con `cerrado_por = auth.uid()`; al ponerse `deleted_at`, cierre `archivado`. El mismo bloque.
-5. `audit_entity_types`: fila `crm_ticket`, dominio comercial, `introduced_by_ref = 'migration:05NN'`. Eventos `crm_ticket_opened`, `crm_ticket_resolved` y `crm_ticket_archived` (E10-D27).
-6. Postflight: tabla, índices, triggers, ACL y fila del catálogo en su lugar.
+4. Trigger `crm_tickets_conversacion` (`after update of status, deleted_at on conversations`): al pasar a `resuelto`, cierre `resuelto` con `cerrado_por = auth.uid()`; al ponerse `deleted_at`, cierre `archivado`. El mismo bloque. Actor del evento: el usuario del equipo que hizo el cambio, o `system` si no hay sesión.
+5. **`crm_tickets_reconciliar(p_desde)`**, solo `service_role` (E10-D31). Sobre los hilos vivos del canal `portal` con actividad desde `p_desde` (el cron pasa los últimos 7 días):
+   - hilo no resuelto, sin ticket abierto y con un mensaje `in` posterior al cierre de su último ticket (o sin tickets): abre el ticket con el primero de esos mensajes y asegura la tarjeta, con las mismas piezas del trigger;
+   - ticket abierto sin primera respuesta y con un `out` posterior a `abierto_at`: la marca;
+   - devuelve cuántos tickets abrió y cuántas respuestas marcó. Dos corridas a la vez no duplican nada: la llave es `primer_mensaje_id` y el índice de un abierto por hilo.
+6. `audit_entity_types`: fila `crm_ticket`, dominio comercial, `introduced_by_ref = 'migration:05NN'`. Eventos `crm_ticket_opened`, `crm_ticket_resolved` y `crm_ticket_archived` (E10-D27).
+7. Postflight: tabla, índices, triggers, ACL y fila del catálogo en su lugar.
+
+**En la aplicación:** `reconciliarTicketsPortal` (`lib/studio/crm-tickets-barrido.ts`) llama al barrido desde `app/api/cron/chatwoot-reintentos/route.ts`, junto a la purga de E10; nunca lanza y deja el resultado en la respuesta del cron. Si abrió o marcó algo, manda un aviso interno con solo los dos números: «CRM · el barrido recuperó N tickets del portal que el trigger no abrió. Revisar el log de la base.»
 
 **Lo que la migración no hace:** no cambia `portal_post_message`, ni las columnas de `conversations` o `conversation_messages` (solo les cuelga triggers), ni la RLS de la 0106. No carga tickets hacia atrás (**P4**).
 
@@ -299,6 +311,7 @@ Una migración nueva, `supabase/migrations/05NN_crm_tickets_portal.sql`. **No se
 | Cualquier `authenticated` | No inserta, no actualiza, no borra | Sin grant de escritura: solo escriben las funciones de los triggers, cuyo dueño es `postgres` |
 | `service_role` | Todo | Como el resto de las tablas `crm_*` |
 | Funciones internas y de los triggers | Sin `execute` para `anon` ni `authenticated` | `revoke` explícito, como en 0513:420-438 |
+| `crm_tickets_reconciliar` | Solo `service_role` | La llama el cron con la llave de servicio; el aviso no lleva datos de personas |
 
 - **Cerrar un ticket** es marcar la conversación como resuelta: en la acción lo frena `moduleEditDenial("conversaciones")` (`conversaciones/actions.ts:216`). La política «conversations by tenant» (0106:128) es por tenant y no mira el rol, así que un usuario del tenant sin el módulo podría cambiar el estado llamando directo a la API. Eso es de antes y está en §10.5.16. El ticket guarda quién lo cerró.
 - El trigger no le abre al cliente ningún camino nuevo: escribe donde ya escribía.
@@ -316,7 +329,8 @@ Revisión del diseño y del código vigente que toca, con `.claude/skills/revisa
 | `crm_tickets`: ids, número y fechas | Episodios del chat de un cliente, sin texto | Seguimiento comercial: que ningún mensaje quede sin respuesta y saber cuánto tarda el equipo | Con el hilo: se borra en cascada al purgar la ficha (0106:45) | `admin` y `commercial` del tenant |
 | `respondido_por`, `cerrado_por` | Usuario del equipo | Saber quién atendió | Igual; `set null` si se borra el usuario | Igual |
 | Tarjeta con `fuente = 'portal'` | La misma de la 0506, sin nombre ni teléfono porque tiene ficha (0506:339) | Embudo | Con la ficha (`on delete cascade` de la 0506) | Igual |
-| Evento `crm_ticket_*` en `entity_audit_log` | Ids del ticket y del hilo, estado y actor | AUD-01 | El de la bitácora, de solo agregar; queda tras la purga sin nada que identifique la ficha | Quien lee la bitácora (AUD-02) |
+| Evento `crm_ticket_*` en `entity_audit_log` | Los ids que fije la regla única de la 6.6 (SDD-0614 §2.7 d), el estado y el actor: `system` o el usuario del equipo, nunca el cliente (E10-D27) | AUD-01 | El de la bitácora, de solo agregar: queda tras la purga, y por eso importa qué ids lleva | Quien lee la bitácora (AUD-02) |
+| Aviso del barrido (E10-D31) | Dos números: tickets abiertos y respuestas marcadas | Enterarse de que el trigger falló | El del canal de alertas internas | El equipo que recibe esas alertas |
 
 Lo que ya existía y 10.5 no copia: el texto y el nombre del autor de cada mensaje (`conversation_messages.author_name` y `body`, 0106:91-93).
 
@@ -326,15 +340,15 @@ Lo que ya existía y 10.5 no copia: el texto y el nombre del autor de cada mensa
 | 2 | Minimización | NO VERIFICABLE | Por diseño, solo ids y fechas, y el tablero no lee el texto. Se comprueba al implementar: el contrato revisa las columnas en el catálogo y la prueba de consultas, que no se pidan `body` ni `author_name` |
 | 3 | Consentimiento | NO VERIFICABLE | Igual que en SDD-0587 §14.3: la base de licitud para el seguimiento comercial del chat de un cliente no está en el código. La decide Sam con su asesor |
 | 4 | Derechos | NO VERIFICABLE | El cliente ve su chat (`lib/portal/portal-conversation-queries.ts`), no sus tickets, que son datos internos de seguimiento. La destrucción va con la purga de la ficha (cascada); «Anonimizar ahora» es de 6.6 |
-| 5 | Borrado | NO VERIFICABLE | Por diseño, en cascada desde `conversations`. Se prueba en PGlite al implementar: purgar la ficha deja sin tickets y solo queda el evento con ids. No se prueba contra producción sin OK |
+| 5 | Borrado | NO VERIFICABLE | Por diseño, en cascada desde `conversations`. Se prueba en PGlite al implementar: purgar la ficha deja sin tickets y solo queda el evento de auditoría. No se prueba contra producción sin OK |
 | 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Igual que en 6.4 |
-| 7 | Política pública | NO VERIFICABLE | `/privacidad` ya dice del Portal «comunicaciones con nuestro equipo» (`app/privacidad/page.tsx:75-76`) y, entre las finalidades, «Atender tus mensajes por WhatsApp y chat: saber si ya eres cliente para que te atienda el equipo que corresponde, darle seguimiento a tu consulta» (`:195-199`). Que «chat» incluya el del Portal es una lectura. **Propuesta (P6):** sumar a la fila del Portal «y el seguimiento de tus consultas por el chat de Soporte», con texto aprobado por Sam antes de publicar 10.5 |
-| 8 | Terceros | CORRECTO · ENCONTRADO anterior | El diseño no envía nada fuera (E10-D26). **Anterior a 10.5:** el aviso de SDD-0148 manda a Telegram un extracto de hasta 140 caracteres del mensaje del cliente (`lib/studio/conversation-inbound-notify.ts:112`), y `/privacidad` no nombra ese servicio. 10.5 no lo amplía; va en §10.5.16 |
+| 7 | Política pública | NO VERIFICABLE | `/privacidad` ya dice del Portal «comunicaciones con nuestro equipo» (`app/privacidad/page.tsx:75-76`) y, entre las finalidades, «Atender tus mensajes por WhatsApp y chat: saber si ya eres cliente para que te atienda el equipo que corresponde, darle seguimiento a tu consulta» (`:195-199`). Que «chat» incluya el del Portal es una lectura. **Propuesta (P6):** sumar a la fila del Portal «y el seguimiento de tus consultas por el chat de Soporte», con texto aprobado por Sam antes de publicar 10.5. **Va después de la #399**, que trae el texto ya aprobado de la mensajería interna y toca el mismo `app/privacidad/page.tsx` |
+| 8 | Terceros | CORRECTO · ENCONTRADO anterior | El diseño no envía nada fuera (E10-D26), y el aviso del barrido solo lleva dos números (E10-D31). **Anterior a 10.5:** el aviso de SDD-0148 manda a Telegram el nombre del cliente, su Shipping Mark y un extracto de hasta 140 caracteres del mensaje (`lib/studio/conversation-inbound-notify.ts:103-112`), y el texto ya aprobado de la #399 dice que la mensajería interna recibe avisos «sin tu nombre ni tus datos de contacto». 10.5 no lo amplía. Lo lleva el Director General al Subdirector de SEO (§10.5.16) |
 | 9 | Transferencia internacional | CORRECTO | Lo nuevo vive en la base de DTD y no sale. Lo de Telegram es el punto 8 |
 | 10 | Decisiones automatizadas | CORRECTO | El segmento solo elige el tablero: no niega servicio ni le responde al cliente. La regla es pública en la SDD-0582 |
 | 11 | Aceptación electrónica | No aplica | No se registran aceptaciones |
 | 12 | Titulares que no son usuarios | NO VERIFICABLE | El texto del chat puede nombrar a terceros (un proveedor, otro importador). 10.5 no lo copia; lo que ya guarda `conversation_messages` es de SDD-0056 |
-| — | Logs | Por diseño | El `warning` de E10-D24 lleva solo el SQLSTATE; se prueba al implementar |
+| — | Logs y avisos | Por diseño | El `warning` de E10-D24 lleva solo el SQLSTATE y el aviso del barrido, solo dos números; se prueba al implementar |
 | — | China (PIPL) | NO VERIFICABLE | El diseño no amplía quién ve. Si un `admin` o un `commercial` trabaja desde China, aplica la PIPL; el código no dice desde dónde trabaja cada usuario |
 
 La skill pide una segunda opinión: otro modelo puede revisar este mismo diseño. **Lo que necesita un abogado:** la base de licitud y la redacción final de P6.
@@ -344,7 +358,7 @@ La skill pide una segunda opinión: otro modelo puede revisar este mismo diseño
 | Política | Clasificación | Evidencia |
 |---|---|---|
 | SGE-00 | cumplimiento por diseño | Matriz de abajo |
-| AUD-01 | cumplimiento por diseño para el ticket (E10-D27) · **no conformidad pendiente** para la tarjeta que se crea desde el portal | Es la misma de 6.4 (SDD-0587 §16.6): crear una tarjeta no deja evento en `entity_audit_log`. Su arreglo es de 6.6 |
+| AUD-01 | cumplimiento por diseño para el ticket (E10-D27) · **no conformidad pendiente** para la tarjeta que se crea desde el portal | Es la misma de 6.4 (SDD-0587 §16.6): crear una tarjeta no deja evento en `entity_audit_log`. La cierra el trigger de `crm_tarjetas` de la 6.6 (SDD-0614 §2.7 d), que va después de la 10.5; hasta entonces, las tarjetas que crea el portal están en ese pendiente |
 | AUD-02 | no aplica | No cambia quién consulta ni exporta la bitácora |
 | MP-01 | cumplimiento | No hay borrado ni archivo nuevo desde la pantalla. Cerrar es el «Resuelto» de siempre, y el cliente puede abrir otro escribiendo |
 | BTN-01 | cumplimiento por diseño | «Responder en Conversaciones» es un enlace, no un botón que cambie algo |
@@ -361,12 +375,12 @@ La skill pide una segunda opinión: otro modelo puede revisar este mismo diseño
 | Principio | Resultado | Evidencia |
 |---|---|---|
 | .01 Acción predecible | cumple | «Responder» lleva a donde siempre se responde y «Resuelto» cierra, como hoy |
-| .02 No perder trabajo | cumple | E10-D24: el mensaje del cliente nunca falla por el CRM |
+| .02 No perder trabajo | cumple | E10-D24: el mensaje del cliente nunca falla por el CRM, y el barrido recupera el ticket que faltó (E10-D31) |
 | .03 El riesgo fija la fricción | no aplica | No hay acción nueva con riesgo |
 | .04 Auditable | cumple para el ticket · pendiente para la tarjeta | E10-D27 y AUD-01 arriba |
 | .05 Permisos, tenant y privacidad | cumple por diseño | §10.5.7, con pruebas negativas (§10.5.11, punto 12) |
 | .06 Prevenir errores | cumple | Un ticket abierto por hilo (índice) y número por hilo (E10-D28) |
-| .07 Estado visible y verdadero | cumple por diseño | El vencimiento sigue la promesa del portal (E10-D23) |
+| .07 Estado visible y verdadero | cumple por diseño | «Sin atender» con la definición única de la 6.6 (E10-D23), y un fallo del trigger se ve en el aviso del barrido (E10-D31) |
 | .08 La frecuencia reduce pasos | cumple, con nota | Responder queda a un clic desde la tarjeta. Responder dentro de la ficha queda para después (§10.5.13) |
 | .09 Mismo patrón | cumple | Insignia como la de las tareas vencidas; enlace `?c=` existente |
 | .10 Accesible | por verificar al implementar | A11Y-01 |
@@ -380,9 +394,12 @@ La skill pide una segunda opinión: otro modelo puede revisar este mismo diseño
 - `supabase/migrations/05NN_crm_tickets_portal.sql`
 - `supabase/tests/05NN_crm_tickets_portal.test.sql`
 - `lib/studio/__tests__/crm-tickets.migration.test.ts`
-- `lib/studio/crm-tickets.ts` (puro: tipos, estado, vencimiento «en el día» en `America/Caracas` y texto de la insignia)
+- `lib/studio/crm-tickets.ts` (puro: tipos, estado y texto de la insignia; «sin atender» lo toma de la pieza única de la 6.6, E10-D23)
 - `lib/studio/__tests__/crm-tickets.test.ts`
+- `lib/studio/crm-tickets-barrido.ts` (`reconciliarTicketsPortal`: llama al barrido, nunca lanza y manda el aviso con solo los números; E10-D31)
+- `lib/studio/__tests__/crm-tickets-barrido.test.ts`
 - `app/studio/(app)/crm/_components/TarjetaFichaDrawer.test.tsx`
+- Si al programar no existe todavía en código la pieza de «sin atender» de la SDD-0614, su archivo y su prueba, con el nombre y la forma que fije esa SDD (E10-D23)
 
 **Editados:**
 
@@ -398,12 +415,13 @@ La skill pide una segunda opinión: otro modelo puede revisar este mismo diseño
 - `app/studio/(app)/crm/_components/CrmTableroKanban.tsx` (insignia)
 - `app/studio/(app)/crm/_components/CrmTableroKanban.test.tsx`
 - `app/studio/(app)/crm/_components/TarjetaFichaDrawer.tsx` (sección «Tickets del portal»)
+- `app/api/cron/chatwoot-reintentos/route.ts` (llama a `reconciliarTicketsPortal` junto a la purga de E10) y `app/api/cron/chatwoot-reintentos/__tests__/route.test.ts`
 - `docs/specs/0586-chatwoot-enrutamiento-segmento-e10/spec.md`, `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 10.5), `docs/specs/README.md` (índice generado) y `.agents/handoffs/0586-e10-5-tickets-portal.md`
-- Solo si Sam aprueba P6: `app/privacidad/page.tsx` y `app/__tests__/privacidad-chat.test.ts`
+- Solo si Sam aprueba P6, y **después de que se integre la #399**, que toca los mismos archivos: `app/privacidad/page.tsx` y `app/__tests__/privacidad-chat.test.ts`
 
 **No se tocan**, y la revisión lo comprueba con `git diff --stat`: `app/portal/**`, `lib/portal/**`, `components/**`, `app/studio/(app)/conversaciones/**`, `lib/studio/conversaciones/**`, `lib/studio/conversation-inbound-notify.ts`, `lib/studio/chatwoot/**`, `supabase/migrations.lock.json` y ninguna migración ya aplicada (la función de la 0513 se redefine desde la migración nueva; el archivo 0513 no se edita).
 
-**Cruce con 6.6:** la sesión de 6.6, que está en curso, también va a tocar la ficha y el tablero (`TarjetaFichaDrawer.tsx`, `crm-tablero-queries.ts`) y el catálogo de auditoría. El Director serializa; la PR que llegue segunda trae `main` y mide el cruce con `git merge-tree` antes de publicar.
+**Cruce con 6.6:** comparten archivos y van en serie, primero la 10.5 (§10.5.17).
 
 ### 10.5.11 Pruebas
 
@@ -415,27 +433,30 @@ La skill pide una segunda opinión: otro modelo puede revisar este mismo diseño
 4. «Resuelto» cierra con `cerrado_por`; el siguiente mensaje abre el #2; `pendiente` no cierra; reabrir a mano no abre.
 5. El primer `out` marca la primera respuesta; el segundo no la pisa; un `out` sin ticket abierto no hace nada.
 6. Un hilo `whatsapp` o `email` en `conversations` no abre ticket.
-7. Tarjeta: se crea con `portal` y «Registrado / recontacto», sin nombre ni teléfono; una existente no cambia de etapa ni de fuente; «Perdido» vuelve con tarea, idempotente por `portal:<message_id>`; el lead sin ficha con el mismo teléfono se liga.
+7. Tarjeta: se crea con `portal` y «Registrado / recontacto», sin nombre ni teléfono; una existente no cambia de etapa ni de fuente; un lead en «Perdido» vuelve con tarea, idempotente por `portal:<message_id>`; **un cliente con envío vivo y «Perdido» guardado en Leads no recibe tarea ni movimiento**; el lead sin ficha con el mismo teléfono se liga.
 8. Tablero: con envío vivo, la tarjeta sale en Clientes con su ticket; sin envío, en Leads; si pierde su único envío, vuelve a Leads con el ticket.
 9. Fusión con `merge_clients`: el hilo que se mueve lleva sus tickets a la ficha superviviente; el que se archiva cierra el suyo como `archivado`.
-10. **Un fallo del CRM no rompe el mensaje:** con la escritura de `crm_tickets` forzada a fallar, quedan el mensaje, el contador y el hilo; no hay ticket ni evento, y el `warning` no lleva datos. Igual para la respuesta del equipo y para «Resuelto».
+10. **Un fallo del CRM no rompe el mensaje:** con la escritura de `crm_tickets` forzada a fallar, quedan el mensaje, el contador y el hilo; no hay ticket ni evento, y el `warning` no lleva datos. Igual para la respuesta del equipo y para «Resuelto». Con la falla quitada, el barrido abre ese ticket con el primer mensaje que quedó sin ticket.
 11. Dos mensajes al mismo tiempo del mismo cliente dejan un solo ticket abierto. PGlite tiene una conexión y solo lo simula; la carrera real con `dblink` va en `sql-tests` con Docker.
 12. Acceso: el cliente del portal lee 0; `admin` y `commercial` leen los de su tenant; otro tenant, 0; `operations` y `support`, 0; ningún `authenticated` inserta, actualiza ni borra; las funciones no tienen `execute` para `anon` ni `authenticated`.
-13. Abrir, resolver y archivar dejan su evento en la misma transacción, sin texto, nombre, teléfono ni `client_id`.
+13. Abrir, resolver y archivar dejan su evento en la misma transacción, sin texto, nombre ni teléfono y con los ids que fija la regla única de la 6.6. Abrir y el barrido van con actor `system`, nunca con el `auth.uid()` del cliente; resolver, con el usuario del equipo.
 14. El catálogo de `crm_tickets` no tiene columnas con datos personales.
-15. Purgar la ficha borra hilo y tickets; solo queda el evento con ids.
-16. Con `crm_alta_tarjeta_web` redefinida, el contrato de la 0513 pasa igual.
-17. Control rojo (sin la migración, cae en la primera aserción), reaplicación y preflight que abortan, y un mutante por regla. Como mínimo: sin el filtro de canal, sin el índice de un abierto, sin el bloque de E10-D24, sin el `for update`, sin el cierre al archivar, primera respuesta que se pisa, sin el `check` de cierre, grant de escritura a `authenticated`, política sin `crm_puede_usar()` y auditoría con `client_id`.
+15. Purgar la ficha borra hilo y tickets; solo queda el evento de auditoría.
+16. Con `crm_alta_tarjeta_web` redefinida, el contrato de la 0513 pasa igual. La pieza única cubre también el camino del cotizador sin ficha: una ficha para el teléfono, ninguna (tarjeta sin ficha existente o nueva) y más de una (`ambigua`, sin tocar nada).
+17. Barrido: abre el ticket que falta y marca la primera respuesta que falta; una segunda corrida no hace nada; dos a la vez no duplican; un hilo resuelto o de otro canal no se toca; devuelve los dos números.
+18. Control rojo (sin la migración, cae en la primera aserción), reaplicación y preflight que abortan, y un mutante por regla. Como mínimo: sin el filtro de canal, sin el índice de un abierto, sin el bloque de E10-D24, sin el `for update`, sin el cierre al archivar, primera respuesta que se pisa, sin el `check` de cierre, grant de escritura a `authenticated`, política sin `crm_puede_usar()`, auditoría con el `auth.uid()` del cliente como actor, «Perdido» sin mirar el segmento y barrido que abre un ticket que ya existía.
 
 **TypeScript (Vitest):**
 
-- `crm-tickets.test.ts`: vencimiento en el borde de las 23:59 y las 00:00 de Caracas (UTC−4), estados y texto de la insignia.
+- `crm-tickets.test.ts`: estados y texto de la insignia, con «sin atender» tomado de la pieza única de la 6.6 (la prueba falla si el archivo define su propio umbral).
+- `crm-tickets-barrido.test.ts`: con números en cero no hay aviso; con números mayores, un aviso que no lleva nombre, Shipping Mark, teléfono ni ids de fichas; un error de la base no lanza y queda en el log solo con su código.
+- `chatwoot-reintentos/__tests__/route.test.ts`: el cron llama al barrido y su resultado sale en la respuesta, sin cambiar lo que ya hacía.
 - `crm-tablero-queries.test.ts`: lee solo tickets abiertos y solo de las fichas de las tarjetas visibles; nunca pide `body` ni `author_name`; sin la tabla, degrada con el aviso de migración.
 - `crm-tablero.test.ts`: la tarjeta lleva su ticket al tablero que le toca.
 - `CrmTableroKanban.test.tsx`: la insignia se lee como texto y tiene nombre accesible.
 - `TarjetaFichaDrawer.test.tsx`: la sección con los tickets, el enlace a `?c=<id>`, el vacío y el error.
 - `tarjeta-actions-gate.test.ts`: los tickets llegan solo con el módulo y el rol, y sin texto de mensajes.
-- Mutantes a mano: sin el filtro `cerrado_at is null`, sin el vencimiento y sin el candado de rol.
+- Mutantes a mano: sin el filtro `cerrado_at is null`, barrido que no avisa y sin el candado de rol.
 - **El portal sin cambios:** `git diff --stat main -- app/portal lib/portal components` vacío, y las pruebas del portal (`app/portal/reintento-no-duplica.test.ts`, `conservar-lo-escrito.test.tsx` y `la-accion-lanza.test.tsx`) pasan sin tocarlas.
 
 **Cierre:** `pnpm verify` completo, con Docker para `sql-tests`; `pnpm docs:check`, `pnpm sdd:check`, el gate de símbolos pendientes y `/ui-check` de la insignia y la sección. Después, en el entorno de prueba, con la migración aplicada ahí y el OK de Sam, desde una cuenta de prueba del portal: escribir, ver la tarjeta con su ticket, responder, resolver y volver a escribir.
@@ -444,12 +465,13 @@ La skill pide una segunda opinión: otro modelo puede revisar este mismo diseño
 
 - [ ] Un mensaje del cliente en el chat de Soporte abre un ticket si el hilo no tiene uno abierto; los demás mensajes van al mismo; «Resuelto» lo cierra y el siguiente mensaje abre otro.
 - [ ] El ticket aparece en la tarjeta del embudo que marca el segmento en ese momento (Clientes o Leads) y la sigue si cambia de embudo.
-- [ ] Si la ficha no tenía tarjeta, se crea con fuente «portal» en «Registrado / recontacto»; si estaba en «Perdido», vuelve con tarea.
-- [ ] El asesor ve en el tablero si hay un ticket abierto y si está sin responder o vencido, y desde la ficha llega al hilo en Conversaciones con un clic.
+- [ ] Si la ficha no tenía tarjeta, se crea con fuente «portal» en «Registrado / recontacto»; si estaba en «Perdido» y es lead, vuelve con tarea; si es cliente, no se le crea tarea.
+- [ ] El asesor ve en el tablero si hay un ticket abierto y si está sin responder o sin atender (definición única de la 6.6), y desde la ficha llega al hilo en Conversaciones con un clic.
 - [ ] La primera respuesta queda registrada una sola vez por ticket.
-- [ ] Un fallo del CRM nunca impide guardar el mensaje del cliente ni la respuesta del equipo.
+- [ ] Un fallo del CRM nunca impide guardar el mensaje del cliente ni la respuesta del equipo, y no pasa en silencio: el barrido recupera lo que faltó y avisa con solo los números.
 - [ ] Solo `admin` y `commercial` del tenant leen los tickets; el cliente y los demás roles no; nadie los escribe desde la API.
-- [ ] Abrir, resolver y archivar dejan su evento de auditoría, sin datos personales.
+- [ ] Abrir, resolver y archivar dejan su evento de auditoría, sin datos personales, con actor `system` cuando lo dispara el cliente y con los ids que fija la regla de la 6.6.
+- [ ] Una sola pieza «ubicar o crear la tarjeta» sirve al alta web, al portal y al cotizador, y el contrato de la 0513 pasa igual.
 - [ ] Ninguna tabla nueva guarda texto, nombre, teléfono ni correo, y purgar la ficha borra sus tickets.
 - [ ] El portal no cambia (`git diff --stat` vacío en `app/portal`, `lib/portal` y `components`).
 - [ ] Contrato SQL con control rojo, mutantes, reaplicación y preflight; pruebas de TypeScript; `pnpm verify`; `/ui-check`.
@@ -461,7 +483,7 @@ La skill pide una segunda opinión: otro modelo puede revisar este mismo diseño
 - Los reclamos como tickets (**P1**), responder el chat del portal desde Chatwoot (**P2**), mostrarle al cliente el número de ticket (**P3**) y cargar tickets hacia atrás (**P4**).
 - Abrir Soporte a quien no ha verificado su identidad: hoy lo cierra SDD-0169 y aquí no cambia.
 - Responder dentro de la ficha de la tarjeta, sin pasar a Conversaciones: mejora posterior.
-- Avisos nuevos: el de Telegram de SDD-0148 sigue igual.
+- Avisos nuevos, salvo el del barrido, que solo lleva números (E10-D31). El de Telegram de SDD-0148 sigue igual y lo revisa el Director General con el Subdirector de SEO (§10.5.16).
 - Fusionar dos tarjetas de la misma persona (SDD-0587 §16.5) y auditar la creación de tarjetas (6.6).
 - 10.4, 10.6, E7, E8 y Meta.
 - Escribir o aplicar la migración, tocar producción y fusionar.
@@ -476,16 +498,34 @@ No se le preguntó nada. Quedan aquí para que el Director las lleve.
 | P2 | «¿El chat del portal se sigue respondiendo desde Studio (Conversaciones) o lo quieres en Chatwoot, junto con WhatsApp?» | Desde Studio, por ahora (E10-D26) |
 | P3 | «¿El cliente ve en el portal el número de su ticket?» | No en 10.5: el portal no cambia, y «Tus casos» ya usa los números `RC-` |
 | P4 | «Las conversaciones abiertas antes de publicar, ¿se cargan como tickets?» | No: el próximo mensaje abre el ticket |
-| P5 | «El portal promete "Te responde en el día". ¿Un mensaje del sábado o del domingo vence ese mismo día o el lunes?» | Que venza ese día, como dice el portal. Si debe ser día hábil, hay que cambiar también el texto del portal |
-| P6 | «En /privacidad, ¿sumamos al Portal "y el seguimiento de tus consultas por el chat de Soporte"?» | Aprobarlo antes de publicar 10.5 |
+| P5 | «El portal promete "Te responde en el día". ¿Un mensaje del sábado o del domingo vence ese mismo día o el lunes?» | Que venza ese día, como dice el portal. Si debe ser día hábil, hay que cambiar también el texto del portal. Es un dato para el umbral único de «sin atender» de la 6.6 (D-6.6-5), no una regla aparte de la 10.5 |
+| P6 | «En /privacidad, ¿sumamos al Portal "y el seguimiento de tus consultas por el chat de Soporte"?» | Aprobarlo antes de publicar 10.5. **Va después de la #399**, que ya trae el texto aprobado de la mensajería interna y toca el mismo archivo: el texto final se escribe sobre `/privacidad` con la #399 integrada |
 
-**Para el Director:** D-1, redefinir `crm_alta_tarjeta_web` o copiar el bloque (E10-D30); el número de la migración; la reestimación de §10.5.15; y el orden frente a 6.6.
+**Decisiones del Director General** (2026-11-06, sobre `89fb586cf`, comunicadas por el Subdirector de Chatwoot):
+
+| # | Decisión |
+|---|---|
+| D-1 | Redefinir, como **una sola pieza para los tres usos**: el alta web de la 0513, la 10.5 y el «ubicar o crear» del cotizador de la 6.6 (#401, SDD-0614). Se parte de la última definición de la función y su contrato se vuelve a correr; antes de reescribirla, se busca su última `create or replace` en todas las migraciones (E10-D30) |
+| Número | **Se asigna al arrancar el código.** Ni la 10.5 ni la 6.6 reservan la 0518 (§10.5.6) |
+| Reestimación | **Aceptada**, de 1,25 a 2 días. Va a Sam junto con la de la 6.6 (§10.5.15) |
+| Orden | **Primero la 10.5 y después la 6.6, en serie** (§10.5.17) |
 
 ### 10.5.15 Reestimación (I)
 
-El checklist le da 1,25 días. Con la migración, dos triggers, la redefinición de la alta web, el contrato con mutantes y la parte visual, este diseño estima **2 días**. El checklist no se cambia: lo decide el Director junto con el %.
+El checklist le da 1,25 días. Con la migración, dos triggers, el barrido, la pieza única para los tres usos, el contrato con mutantes y la parte visual, este diseño estima **2 días**. **El Director General la aceptó el 2026-11-06** y se la lleva a Sam junto con la de la 6.6. El checklist no se cambia hasta que Sam la apruebe.
 
 ### 10.5.16 Fuera de alcance detectado (se informa, no se toca)
 
-- **Telegram recibe texto del cliente:** `notifyConversationInbound` manda a Telegram un extracto de hasta 140 caracteres del mensaje del portal (`lib/studio/conversation-inbound-notify.ts:112`), y `/privacidad` no nombra ese servicio entre los terceros. Viene de SDD-0148. Merece su propia revisión con revisar-datos-ve (punto 8).
+- **Telegram recibe el nombre y texto del cliente:** `notifyConversationInbound` manda a Telegram el nombre del cliente, su Shipping Mark y un extracto de hasta 140 caracteres del mensaje del portal (`lib/studio/conversation-inbound-notify.ts:103-112`). El texto de `/privacidad` ya aprobado en la #399 dice que la mensajería interna del equipo recibe avisos «sin tu nombre ni tus datos de contacto». Viene de SDD-0148 y se cruza con los avisos a Discord. **Lo lleva el Director General al Subdirector de SEO**; 10.5 no lo toca ni lo amplía.
 - **La RLS de `conversations` no mira el rol:** «conversations by tenant» (0106:128) deja que cualquier usuario del tenant cambie el estado de un hilo llamando directo a la API; solo la acción lo frena con `moduleEditDenial`. Es lo mismo que la SDD-0497 anotó para los mensajes (`conversaciones/actions.ts:77-89`). Con 10.5, ese cambio de estado también cierra el ticket, que guarda quién lo cerró.
+
+### 10.5.17 Coordinación con la 6.6 (PR #401, SDD-0614)
+
+- **Orden:** primero la 10.5 y después la 6.6, en serie (Director General, 2026-11-06). Las dos tocan `TarjetaFichaDrawer.tsx`, `CrmTableroKanban.tsx`, `tarjeta-actions.ts`, `crm-ficha.ts` y las declaraciones de migraciones pendientes (`supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`). La 6.6 arranca sobre `main` con la 10.5 integrada y mide el cruce con `git merge-tree` antes de publicar.
+- **Lo que la 10.5 crea y la 6.6 usa, sin redefinirlo:** la pieza única `crm_tarjeta_ubicar_o_crear` (E10-D30), incluido el camino por teléfono que pide el cotizador (SDD-0614 §2.3). Si la 6.6 necesita otro parámetro, lo agrega redefiniendo desde la última definición, no con una pieza nueva.
+- **Lo que fija la 6.6 una sola vez y la 10.5 cita:**
+  - la definición de «sin atender» y su umbral (SDD-0614 §2.4, R6, y D-6.6-5), que la insignia del ticket usa (E10-D23);
+  - la regla de qué ids lleva cada evento de auditoría (SDD-0614 §2.7 d), que siguen los eventos `crm_ticket_*` (E10-D27).
+  Las dos están **pendientes de cerrar** en la sesión de la 6.6; al cerrarse, esta sección se actualiza con la cita exacta y no con otra versión. Si la 10.5 se programa antes de que exista el código de «sin atender», lo escribe una vez, como diga la SDD-0614, y la 6.6 lo reusa.
+- **Dato para esas dos reglas, no una regla de la 10.5:** el ticket del portal tiene sus propias fechas de entrante y respuesta (`abierto_at` y `primera_respuesta_at`), y un evento de auditoría queda después de purgar la ficha (0267).
+- **Auditoría de la tarjeta:** el trigger de `crm_tarjetas` de la 6.6 (SDD-0614 §2.7 d) cubre también las tarjetas que crea el portal. Hasta que llegue, es la no conformidad pendiente de §10.5.9.
