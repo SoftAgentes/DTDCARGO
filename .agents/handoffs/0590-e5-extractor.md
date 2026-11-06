@@ -36,7 +36,11 @@ Rama `codex/0590-e5-extractor`, worktree `DTD-worktrees/0590-e5-extractor`, desd
   - Trae `ensayo-archivo.sh` (la copia efímera de la base de Chatwoot de producción, en tmpfs y aislada), `pruebas/sonda-ensayo.rb`, `pruebas/prueba-ensayo.sh` (la prueba contra una «producción» simulada, en el mismo workflow), y la spec §10.10 y §10.11.
   - Medido en solo lectura: producción tiene 2 cuentas y ningún rol de solo lectura.
   - **Pendiente:** leer el CI de esa PR. El ensayo real espera el token, la sonda incremental, la completa hasta el corte, la foto del ERP y el archivo de carga.
-  - **Decisiones abiertas:** `--sin-adjuntos` y la copia de las 2 cuentas, del Director General; adjuntos en Chatwoot (5.5b), de Sam. Al cargar en producción, anotar en la spec el número de conversación antes y después (`HECHO secuencia=antes->después`).
+  - **Decidido por el Director General el 2026-11-06:**
+    - la completa va con `--sin-adjuntos`;
+    - la copia de las 2 cuentas se acepta, con la cuenta 2 (la de prueba) borrada de la copia antes de cargar (O1 y O2);
+    - correos en 0, medido (SMTP1).
+  - **Abierta, de Sam:** adjuntos en Chatwoot. Diseño de la 5.5b en la spec §10.12, sin programar hasta su respuesta. Si dice que sí antes de la completa, va una sola bajada en ese modo. Al cargar en producción, anotar en la spec el número de conversación antes y después (`HECHO secuencia=antes->después`).
 - **Para decidir antes de producción:** el salto en los números de conversación, quién ve el Archivo y la búsqueda de mensajes viejos (SDD-0590 §10.9).
 - **Primera corrida con token** (puerta de Sam): medir si Kommo acepta `filter[updated_at]` en notas y tareas (SDD-0590 §9.2).
 - La fila 5.3 del checklist no se tocó.

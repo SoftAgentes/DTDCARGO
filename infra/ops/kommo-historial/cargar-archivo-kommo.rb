@@ -31,20 +31,28 @@ class CargaArchivoKommo
   # Punto de entrada: el script lo llama con ENV, $stdin y $stdout; la prueba de mutantes, con un Hash y archivos.
   # Devuelve el código de salida.
   def self.principal(env, entrada: $stdin, salida: $stdout)
-    modo = env.fetch('MODO')
-    cargador = new(cuenta_id: env.fetch('CUENTA'), bandeja_id: env['BANDEJA'].presence, modo: modo,
-                   entrada: entrada, salida: salida)
-    if modo == 'crear-bandeja'
-      cargador.crear_bandeja(env.fetch('NOMBRE', 'Archivo Kommo'))
-    else
-      cargador.cargar(env.fetch('CARGA'))
+    # Correos que este proceso entregue (ActionMailer avisa cada entrega). Tiene que dar 0.
+    correos = 0
+    suscripcion = ActiveSupport::Notifications.subscribe('deliver.action_mailer') { correos += 1 }
+    begin
+      modo = env.fetch('MODO')
+      cargador = new(cuenta_id: env.fetch('CUENTA'), bandeja_id: env['BANDEJA'].presence, modo: modo,
+                     entrada: entrada, salida: salida)
+      if modo == 'crear-bandeja'
+        cargador.crear_bandeja(env.fetch('NOMBRE', 'Archivo Kommo'))
+      else
+        cargador.cargar(env.fetch('CARGA'))
+      end
+      0
+    rescue StandardError => e
+      # Solo los mensajes propios; de los demás, la clase: los errores de la base pueden traer valores de la fila.
+      salida.puts 'HECHO carga=error'
+      salida.puts "HECHO error=#{e.instance_of?(RuntimeError) ? e.message : e.class.name}"
+      1
+    ensure
+      salida.puts "HECHO correos_enviados=#{correos}"
+      ActiveSupport::Notifications.unsubscribe(suscripcion)
     end
-    0
-  rescue StandardError => e
-    # Solo los mensajes propios; de los demás, la clase: los errores de la base pueden traer valores de la fila.
-    salida.puts 'HECHO carga=error'
-    salida.puts "HECHO error=#{e.instance_of?(RuntimeError) ? e.message : e.class.name}"
-    1
   end
 
   def initialize(cuenta_id:, bandeja_id: nil, modo: 'seco', entrada: $stdin, salida: $stdout)

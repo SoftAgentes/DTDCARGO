@@ -576,6 +576,8 @@ Cubre las cinco puertas de arriba, con estas condiciones, que son parte del OK:
 | 3 | Inicializadores en solo lectura | Se montan los cuatro de `/srv/chatwoot/rails` y `correo/views` con `:ro`. Qué hace cada uno al arrancar, abajo | — |
 | 4 | `pg_dump` en solo lectura | Si hay un rol de login con «lectura» o «readonly» en el nombre, se usa ese rol; en producción no hay ninguno (medido el 2026-11-06). Si no, `PGOPTIONS='-c default_transaction_read_only=on'`; pg_dump además trabaja sobre una foto de solo lectura. Se anotan bytes y sha256 corto, y el dump se borra apenas restaurado. La copia se compara con los conteos de producción de antes y de después del dump, porque producción sigue recibiendo mensajes | D1 a D3 |
 | 5 | Carga del VPS | Antes de cada paso, si la carga de 1 minuto pasa de 8, sale con código 3 | N3 en la prueba de CI |
+| — | Solo la cuenta del ensayo en la copia (pedido del Director General al aceptar §10.11 punto 2) | Al restaurar y antes de cargar, se borra en la **copia** toda fila con `account_id` distinto de `CUENTA` en cada tabla, la cuenta misma y los restos sin `account_id` que colgaban de ella: `contact_inboxes`, miembros de bandejas y usuarios sin cuenta. Se borra con `session_replication_role = replica`, solo en el Postgres del ensayo. Se anotan las cuentas y filas borradas | O1 (la copia queda con 1 cuenta y 0 filas de otras) y O2 (0 restos). Si falla, no se carga. La prueba de CI tiene dos cuentas en la «producción» y comprueba que esta las conserva (P1, F3) |
+| — | Correos | La red no tiene salida y SMTP apunta a `smtp.invalid`. Además se cuentan los correos entregados (`deliver.action_mailer`) en cada paso del cargador y en la sonda, y los trabajos de correo en cola en todo el ensayo | SMTP1, en 0 y 0. En la prueba de CI, F4 |
 
 **Qué hacen los inicializadores al arrancar** (leídos en `infra/chatwoot/rails/`; los del VPS difieren solo en comentarios, §10.7). Ninguno escribe en la base ni sale a la red al arrancar:
 - **`zz_dtd_redaccion_logs.rb`:** envuelve el formateador del logger de Rails, y el de Sidekiq solo en un proceso de Sidekiq. Suma `entry` a `filter_parameters`. Escribe una línea de info.
@@ -587,7 +589,11 @@ Cubre las cinco puertas de arriba, con estas condiciones, que son parte del OK:
 
 **E-3 en producción:** los conteos de `crm_tarjetas`, `crm_tareas`, `chatwoot_webhook_events` y `chatwoot_conversations`, antes y después de la carga real, entran en la condición 6 del OK de Sam («conteos después»). Los corre el Director General, solo conteos.
 
-**Adjuntos y `--sin-adjuntos` (decide el Director General; si van a Chatwoot, decide Sam).**
+**La cuenta 2 de producción** (medida el 2026-11-06 en solo lectura, sin nombres): es la **cuenta de prueba** de Chatwoot. Lo documenta `docs/runbooks/chatwoot-bandeja.md:75` (decisión de Sam del 2026-11-03: «Prueba usa una segunda cuenta en el mismo Chatwoot, sin datos reales»), la crea `infra/chatwoot/crear-cuenta-prueba.rb`, y las pruebas de punta a punta exigen `CHATWOOT_ACCOUNT_ID=2`. Creada el 2026-11-03, con nombre de prueba, `status` 1 (suspendida), 2 bandejas (API y correo), 14 conversaciones, 9 contactos, 2 usuarios y 0 webhooks. Que no tenga datos reales es por diseño; no se verificó fila por fila. El ensayo no la necesita y la borra de la copia (O1 y O2).
+
+**Adjuntos: decidido `--sin-adjuntos` para la completa** (Director General, 2026-11-06), con el código de hoy. El Archivo sale con texto y con la marca de adjunto pendiente (`adjuntos_pendientes` en el cargador). Si Sam pide adjuntos en Chatwoot **antes** de la completa, va una sola bajada en modo 5.5b (§10.12); el Director General ya se lo preguntó.
+
+**Adjuntos: los datos con que se decidió.**
 - **Manifiesto de 5.1:** 3.577 adjuntos y 2.099.458.961 bytes cifrados.
 - **La extracción cifra cada adjunto al bajarlo,** para las llaves de Sam y de emergencia (`respaldar-historial.py:757`). Nunca queda en claro en el staging. Por eso, con el código de hoy, el cargador no puede subir adjuntos a Chatwoot, los baje o no la completa.
 - **Duración de la completa (I):** con adjuntos, unas 13.700 peticiones y ≈ 5 h. Sin adjuntos, unas 10.100 y ≈ 3,7 h.
@@ -630,12 +636,12 @@ Pedido por el Director General con la aprobación del plan A. Estados de la skil
 | Usuarios temporales del ensayo | Un administrador y un agente con correo `@example.invalid` | Solo en la copia | Con la copia |
 | Evidencia | Conteos, huellas md5 recortadas, «si»/«no», bytes y sha256 corto del dump | `EVIDENCIA` (0600), junto al guion en el VPS | Como los informes de 5.1 |
 
-**Resumen:** 1 ENCONTRADO (menor), 4 CORRECTO, 1 NO VERIFICABLE y 6 sin cambio.
+**Resumen:** 0 ENCONTRADO abierto, 5 CORRECTO (uno, corregido), 1 NO VERIFICABLE y 6 sin cambio.
 
 | # | Punto | Estado | Evidencia y comentario |
 |---|---|---|---|
 | 1 | Inventario | CORRECTO | La tabla de arriba. La copia no agrega campos: es la misma base, en otro contenedor del mismo servidor |
-| 2 | Minimización | ENCONTRADO (menor) | El ensayo necesita la cuenta 1: contactos para E-9, conversaciones y mensajes existentes para E-11, y la secuencia para E-8. Pero **producción tiene 2 cuentas** (medido el 2026-11-06, `select count(*) from accounts` en solo lectura), y `pg_dump` copia tablas enteras, así que la copia lleva también la otra. Copiar solo la cuenta 1 pediría un volcado por filas, más complejo y más fácil de equivocar. Para 15 minutos en tmpfs, en el mismo servidor y sin salida, se acepta. La sonda solo mira la cuenta del ensayo y solo imprime conteos y huellas. Lo decide el Director General |
+| 2 | Minimización | CORRECTO (corregido) | El ensayo necesita solo la cuenta 1: contactos para E-9, conversaciones y mensajes existentes para E-11, y la secuencia para E-8. **Producción tiene 2 cuentas** (medido el 2026-11-06, en solo lectura): la 2 es la cuenta de prueba (§10.10). `pg_dump` copia tablas enteras, así que el dump la trae. Primero se anotó como ENCONTRADO (menor). El Director General lo aceptó y pidió borrarla de la copia al restaurar y antes de cargar, midiendo que queda en 0: O1 y O2. Queda unos segundos en el dump y en la copia antes de borrarse, en tmpfs y sin salida |
 | 3 | Consentimiento | Sin cambio | §6.2 punto 3 |
 | 4 | Derechos | Sin cambio | La copia vive 15 minutos y no es una fuente nueva de datos: un pedido de acceso o borrado se atiende en producción |
 | 5 | Borrado | CORRECTO | El guion borra el dump al restaurar, y el stack y la carpeta al terminar, también si algo falla (`trap EXIT`). Anota en la evidencia que quedaron 0 contenedores, 0 volúmenes y 0 redes, y la carpeta ausente. La prueba de CI lo comprueba (L1, L2, F2) y comprueba que no toca la base de origen (P1 a P3) |
@@ -648,3 +654,37 @@ Pedido por el Director General con la aprobación del plan A. Estados de la skil
 | 12 | Titulares que no son usuarios | NO VERIFICABLE | Los clientes que escribieron por Chatwoot y por Kommo están en la copia como en producción. Cuántos, se sabe solo al correrla |
 
 **Fixtures:** la prueba de CI usa solo datos inventados, en una «producción» simulada creada en el runner. No copia nada de producción ni del respaldo.
+
+### 10.12 Paso 5.5b — adjuntos en Chatwoot (diseño; no se programa hasta que Sam conteste)
+
+El Director General le preguntó a Sam si quiere los adjuntos en Chatwoot. Si dice que sí **antes** de la completa, la completa va con adjuntos en este modo, en una sola bajada. Si dice que no, o después, el Archivo queda con texto y la marca de adjunto pendiente.
+
+**Por qué hace falta un paso propio.** Hoy la extracción cifra cada adjunto al bajarlo, para las llaves de Sam y de emergencia (`respaldar-historial.py:757`), y nunca queda en claro en el servidor. El cargador no puede leerlos.
+
+**Diseño:**
+
+1. **Extracción** (`respaldar-historial.py`), con una opción nueva, `--adjuntos-para-carga`, que solo se acepta junto a `--corte` y con el staging en `/dev/shm`:
+   - cada adjunto se sigue cifrando para el respaldo, igual que hoy;
+   - además, sus bytes se escriben en claro en `<staging>/adjuntos-carga/<message_id>.<ext>` (0600), con el mismo tope por archivo (`--tope-adjunto-mb`);
+   - `adjuntos.ndjson` suma `archivo_carga`, y `preparar-carga` pasa a cada mensaje `tipo`, `ext`, `content_type`, `bytes` y `sha256` del adjunto.
+
+   Inferencia: en claro y en tmpfs tiene la misma protección que los textos, que ya están en claro en el mismo staging. Una llave efímera viviría en el mismo tmpfs y no agregaría nada. `empaquetar` borra el staging entero al terminar, como hoy.
+2. **Carga** (`cargar-archivo-kommo.rb`), después de insertar los mensajes y solo para los mensajes nuevos de esa corrida, así que la segunda corrida no duplica:
+   - el archivo se sube al almacenamiento de Chatwoot (`ActiveStorage::Blob.create_and_upload!`, servicio `local`, el volumen de `storage`);
+   - las filas de `attachments` y `active_storage_attachments` se insertan con `insert_all`, sin callbacks.
+   - Mapeo de tipos de Kommo a los de Chatwoot: picture → image, voice y audio → audio, video → video, file → file.
+   - El archivo entra a Chatwoot por la entrada estándar del contenedor o por un montaje de solo lectura del tmpfs, nunca copiado a su disco.
+3. **Ensayo:** la copia efímera también recibe los archivos, en un tmpfs de `storage` de unos 3 GB, y se mide además:
+   - adjuntos y blobs cargados frente a `carga-informe.json`;
+   - sha256 de una muestra frente a `adjuntos.ndjson`;
+   - 0 duplicados en la segunda corrida;
+   - qué trabajos encola. Inferencia: `ActiveStorage::AnalyzeJob` se encola solo si el adjunto pasa por los callbacks; con `insert_all` no. Se mide.
+4. **Prueba en CI:** adjuntos inventados (una imagen chica, un audio, un PDF), con mutantes: adjunto en el mensaje equivocado, duplicado en la segunda corrida, archivo que no llega al almacenamiento y tipo mal mapeado.
+
+**Costos (I):**
+- La completa pasa de unas 3,7 h a unas 5 h, con unos 2,1 GB más de bajada desde Kommo.
+- Unos 2,1 GB en `/dev/shm` durante la ventana, de 12 GB.
+- Unos 2,1 GB más en el almacenamiento de Chatwoot, en el disco del VPS (171 GB libres), que entran en su respaldo.
+- Los enlaces de Kommo vencen: en 5.1 ya había 15 con 404 de 3.592.
+
+**Datos personales:** fotos, audios y documentos de clientes. En claro solo en tmpfs, durante la ventana. Después quedan en el almacenamiento de Chatwoot, con la retención de Chatwoot, igual que los adjuntos que hoy llegan por WhatsApp e Instagram. revisar-datos-ve se hace con el código, si Sam dice que sí.

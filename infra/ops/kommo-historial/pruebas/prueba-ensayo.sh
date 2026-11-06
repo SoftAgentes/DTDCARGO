@@ -87,8 +87,14 @@ dc "${BASE[@]}" run --rm -T prepare >"$TRABAJO/prepare.txt" 2>&1 </dev/null || {
 dc "${BASE[@]}" run --rm -T -e FASE=preparar prepare bundle exec rails runner /tmp/cargador/sonda-cargador.rb \
   >"$TRABAJO/sembrar.txt" 2>&1 </dev/null
 CUENTA="$(sed -n 's/^HECHO cuenta=//p' "$TRABAJO/sembrar.txt" | tail -n 1)"
-exigir P0 '[ -n "$CUENTA" ]' "producción simulada con la cuenta $CUENTA, una bandeja viva, contactos y una conversación"
+# Una segunda cuenta, como la cuenta de prueba de producción: el ensayo la tiene que sacar de la COPIA.
+dc "${BASE[@]}" run --rm -T -e FASE=preparar -e ESTADO=/tmp/estado/otra.json prepare bundle exec rails runner \
+  /tmp/cargador/sonda-cargador.rb >"$TRABAJO/sembrar-2.txt" 2>&1 </dev/null
+OTRA="$(sed -n 's/^HECHO cuenta=//p' "$TRABAJO/sembrar-2.txt" | tail -n 1)"
+exigir P0 '[ -n "$CUENTA" ] && [ -n "$OTRA" ] && [ "$CUENTA" != "$OTRA" ]' \
+  "producción simulada con dos cuentas ($CUENTA, la del ensayo, y $OTRA), cada una con bandeja viva, contactos y una conversación"
 huella_prod() {
+  psql_prod "select count(*) from accounts"
   psql_prod "select count(*) filter (where name = 'Archivo Kommo') || ',' || count(*) from inboxes"
   psql_prod "select md5(coalesce(string_agg(id::text || ':' || updated_at::text, ',' order by id), '')) || ',' || count(*) from conversations"
   psql_prod "select count(*) from messages"
@@ -130,7 +136,8 @@ exigir R1 '[ "$rc" = 0 ] && [ "$caidas" = 0 ] && [ "$pasadas" -ge 30 ]' "el ensa
 
 # ── P. La producción simulada quedó intacta ──────────────────────────────────
 DESPUES="$(huella_prod | tr '\n' ' ')"
-exigir P1 '[ "$ANTES" = "$DESPUES" ] && [ "${ANTES%%,*}" = 0 ]' "producción sin «Archivo Kommo» y con las mismas bandejas, conversaciones y mensajes ($DESPUES)"
+exigir P1 '[ "$ANTES" = "$DESPUES" ] && [ "$(psql_prod "select count(*) from inboxes where name = '"'"'Archivo Kommo'"'"'")" = 0 ] && [ "$(psql_prod "select count(*) from accounts")" = 2 ]' \
+  "producción sigue con sus 2 cuentas, sin «Archivo Kommo» y con las mismas bandejas, conversaciones y mensajes ($DESPUES)"
 exigir P2 '[ "$(docker inspect -f "{{.State.Status}}" chatwoot-postgres-1)" = running ] && [ "$(docker inspect -f "{{.State.Status}}" chatwoot-redis-1)" = running ]' \
   "chatwoot-postgres-1 y chatwoot-redis-1 siguen corriendo después del borrado del ensayo"
 exigir P3 '[ "$(docker volume ls -q --filter label=com.docker.compose.project=chatwoot | wc -l)" -ge 1 ]' "los volúmenes de producción siguen ahí"
@@ -149,6 +156,10 @@ done
 exigir F1 '[ -s "$E" ] && ! grep -qv "^HECHO " "$E" && [ "$fugas" = 0 ]' "la evidencia trae solo líneas HECHO ($(wc -l <"$E")) y ningún valor inventado de personas"
 exigir F2 'grep -q "^HECHO dump_sha=" "$E" && grep -q "^HECHO limpieza=contenedores=0,volumenes=0,redes=0" "$E" && grep -q "^HECHO limpieza_carpeta=ausente" "$E"' \
   "la evidencia anota el dump (bytes y sha256) y la limpieza en cero"
+exigir F3 'grep -qx "HECHO otras_cuentas_antes=1" "$E" && grep -qx "HECHO otras_cuentas=0" "$E" && grep -qx "HECHO otras_cuentas_filas=0" "$E" && ! grep -qx "HECHO otras_cuentas_filas_antes=0" "$E"' \
+  "la copia tenía la otra cuenta con filas y quedó en 0 antes de cargar; producción la conserva (P1)"
+exigir F4 'grep -qx "HECHO correos_en_cola=0" "$E" && grep -qx "HECHO correos_enviados_sonda=0" "$E" && [ "$(grep -c "^HECHO correos_enviados=0$" "$E")" -ge 4 ]' \
+  "0 correos enviados en los pasos y en la sonda, y 0 en cola"
 
 log "== resultado: $FALLAS fallas"
 [ "$FALLAS" = 0 ]

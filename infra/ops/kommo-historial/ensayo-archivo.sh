@@ -330,6 +330,61 @@ exigir D3 'entre "$prod_antes" "$copia_conteo" "$prod_despues"' \
   "la copia tiene las filas de producción en conversaciones, mensajes, contactos y bandejas ($prod_antes ≤ $copia_conteo ≤ $prod_despues); errores de restauración: $restore_errores"
 vigilar_carga copia
 
+# ── Las otras cuentas, fuera de la copia antes de cargar ─────────────────────
+# El ensayo solo necesita la cuenta CUENTA. pg_dump copia tablas enteras, así que la copia trae las demás (en
+# producción, la cuenta de prueba). Se borran en la COPIA: cada tabla con account_id, la cuenta, y los restos
+# sin account_id que colgaban de ella (contact_inboxes, miembros de bandejas y usuarios sin cuenta).
+log "== O. otras cuentas fuera de la copia"
+PGE="$(docker ps -q --filter "label=com.docker.compose.project=$PROYECTO" --filter label=com.docker.compose.service=postgres)"
+docker exec -i "$PGE" psql -U chatwoot -d chatwoot_production -At -v ON_ERROR_STOP=1 -v "cuenta=$CUENTA" \
+  >"$DIR/otras-cuentas.txt" 2>&1 <<'SQL'
+SELECT set_config('ensayo.cuenta', :'cuenta', false) IS NOT NULL;
+-- account_id se compara como texto: así no importa el tipo de la columna en cada tabla. Los NULL no se tocan.
+CREATE FUNCTION pg_temp.filas_de_otras_cuentas() RETURNS bigint LANGUAGE plpgsql AS $$
+DECLARE t record; n bigint; total bigint := 0; c text := current_setting('ensayo.cuenta');
+BEGIN
+  FOR t IN SELECT k.table_name FROM information_schema.columns k
+           JOIN information_schema.tables tb ON tb.table_schema = k.table_schema AND tb.table_name = k.table_name
+           WHERE k.table_schema = 'public' AND k.column_name = 'account_id' AND tb.table_type = 'BASE TABLE' LOOP
+    EXECUTE format('SELECT count(*) FROM public.%I WHERE account_id::text <> %L', t.table_name, c) INTO n;
+    total := total + n;
+  END LOOP;
+  RETURN total;
+END $$;
+SELECT 'HECHO otras_cuentas_antes=' || count(*) FROM accounts WHERE id <> current_setting('ensayo.cuenta')::bigint;
+SELECT 'HECHO otras_cuentas_filas_antes=' || pg_temp.filas_de_otras_cuentas();
+SET session_replication_role = replica;
+DO $$
+DECLARE t record; c text := current_setting('ensayo.cuenta');
+BEGIN
+  FOR t IN SELECT k.table_name FROM information_schema.columns k
+           JOIN information_schema.tables tb ON tb.table_schema = k.table_schema AND tb.table_name = k.table_name
+           WHERE k.table_schema = 'public' AND k.column_name = 'account_id' AND tb.table_type = 'BASE TABLE' LOOP
+    EXECUTE format('DELETE FROM public.%I WHERE account_id::text <> %L', t.table_name, c);
+  END LOOP;
+  DELETE FROM public.accounts WHERE id::text <> c;
+  DELETE FROM public.contact_inboxes ci WHERE NOT EXISTS (SELECT 1 FROM public.inboxes i WHERE i.id = ci.inbox_id)
+                                         OR NOT EXISTS (SELECT 1 FROM public.contacts k WHERE k.id = ci.contact_id);
+  DELETE FROM public.inbox_members m WHERE NOT EXISTS (SELECT 1 FROM public.inboxes i WHERE i.id = m.inbox_id);
+  DELETE FROM public.users u WHERE NOT EXISTS (SELECT 1 FROM public.account_users au WHERE au.user_id = u.id);
+END $$;
+SET session_replication_role = origin;
+SELECT 'HECHO otras_cuentas=' || count(*) FROM accounts WHERE id <> current_setting('ensayo.cuenta')::bigint;
+SELECT 'HECHO cuenta_del_ensayo=' || count(*) FROM accounts WHERE id = current_setting('ensayo.cuenta')::bigint;
+SELECT 'HECHO otras_cuentas_filas=' || pg_temp.filas_de_otras_cuentas();
+SELECT 'HECHO contact_inboxes_huerfanos=' || count(*) FROM contact_inboxes ci
+  WHERE NOT EXISTS (SELECT 1 FROM inboxes i WHERE i.id = ci.inbox_id) OR NOT EXISTS (SELECT 1 FROM contacts k WHERE k.id = ci.contact_id);
+SELECT 'HECHO miembros_huerfanos=' || count(*) FROM inbox_members m WHERE NOT EXISTS (SELECT 1 FROM inboxes i WHERE i.id = m.inbox_id);
+SELECT 'HECHO usuarios_sin_cuenta=' || count(*) FROM users u WHERE NOT EXISTS (SELECT 1 FROM account_users au WHERE au.user_id = u.id);
+SQL
+F="$DIR/otras-cuentas.txt"
+evidencia "$(grep '^HECHO ' "$F")"
+exigir O1 '[ "$(h "$F" cuenta_del_ensayo)" = 1 ] && [ "$(h "$F" otras_cuentas)" = 0 ] && [ "$(h "$F" otras_cuentas_filas)" = 0 ]' \
+  "la copia queda solo con la cuenta $CUENTA: se borraron $(h "$F" otras_cuentas_antes) cuentas y $(h "$F" otras_cuentas_filas_antes) filas con account_id; quedan 0"
+exigir O2 '[ "$(h "$F" contact_inboxes_huerfanos)" = 0 ] && [ "$(h "$F" miembros_huerfanos)" = 0 ] && [ "$(h "$F" usuarios_sin_cuenta)" = 0 ]' \
+  "sin restos de las otras cuentas: 0 contact_inboxes, 0 miembros de bandeja y 0 usuarios sin cuenta"
+if [ "$FALLAS" -gt 0 ]; then log "la copia no quedó solo con la cuenta del ensayo: no se carga"; exit 1; fi
+
 # ── Pasos con el cargador real ───────────────────────────────────────────────
 rr() { # salida VAR=valor... -- script: rails runner en el ensayo; la entrada estándar pasa al contenedor
   local salida="$1" envs=()
@@ -401,6 +456,12 @@ exigir E10f 'solo_invalidacion "$(h "$F" miembros_trabajos)" && [ "$(h "$F" miem
   "E-10f: agregar un miembro no asigna ni notifica ($(h "$F" miembros_trabajos))"
 exigir E11 '[ "$(h "$F" conversaciones_existentes_intactas)" = si ] && [ "$(h "$F" contactos_existentes_intactos)" = si ] && [ "$(h "$F" mensajes_existentes_intactos)" = si ]' \
   "E-11: las conversaciones, contactos y mensajes que ya existían no cambiaron (huellas)"
+correos_pasos=0
+for p in bandeja seco carga-1 carga-2; do
+  [ "$(h "$DIR/$p.txt" correos_enviados)" = 0 ] || correos_pasos=$((correos_pasos + 1))
+done
+exigir SMTP1 '[ "$correos_pasos" = 0 ] && [ "$(h "$F" correos_enviados_sonda)" = 0 ] && [ "$(h "$F" correos_en_cola)" = 0 ]' \
+  "0 correos enviados en cada paso del cargador y en la sonda, y 0 trabajos de correo en cola en todo el ensayo (además, la red no tiene salida y SMTP apunta a smtp.invalid)"
 if [ -n "${INFORME_VINCULO:-}" ]; then
   exigir E1 '[ "$(inf clientes_en_varios_grupos "$INFORME_VINCULO")" = 0 ]' "E-1: 0 clientes del ERP en dos grupos"
   exigir E2 '[ "$(inf ambiguos_vinculados "$INFORME_VINCULO")" = 0 ]' "E-2: 0 ambiguos cargados como vinculados"

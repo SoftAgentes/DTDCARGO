@@ -109,6 +109,8 @@ module SondaEnsayo
   end
 
   def despues(out:, estado:, cuenta:, bandeja:)
+    @correos_sonda = 0
+    ActiveSupport::Notifications.subscribe('deliver.action_mailer') { @correos_sonda += 1 }
     medir = lambda do |k, &bloque|
       hecho(out, k, bloque.call)
     rescue StandardError => e
@@ -205,6 +207,11 @@ module SondaEnsayo
         'sin_conversacion_viva'
       end
     end
+
+    # Correos: los que esta sonda entregó (ActionMailer) y los que quedaron en cola en todo el ensayo. La copia
+    # empieza con Redis vacío y sin Sidekiq, así que lo que haya en cola lo encoló el ensayo. Tiene que dar 0 y 0.
+    hecho(out, 'correos_enviados_sonda', @correos_sonda.to_i)
+    hecho(out, 'correos_en_cola', clases_en_cola.select { |clase, _| clase.match?(/mail|email/i) }.values.sum)
     hecho(out, 'despues', 'ok')
   end
 end
