@@ -88,6 +88,18 @@ comment on table public.discord_consultas_clientes is
   'SDD-0608: registro de cada consulta /cliente desde Discord (quién, cuándo, término, resultado). '
   'Sólo service_role. Se borra a los 180 días en cada registro.';
 
+-- Finalidad de cada dato personal, junto a la columna (revisar-datos-ve, punto 2).
+comment on column public.discord_consultas_clientes.discord_user_id is
+  'Cuenta de Discord que pidió la consulta, con o sin enlace al Studio. Finalidad: saber quién '
+  'consultó y aplicar el tope por minuto también a quien no está autorizado.';
+comment on column public.discord_consultas_clientes.user_id is
+  'Usuario del Studio enlazado a esa cuenta, si lo hay. Finalidad: atribuir la consulta a una persona del equipo.';
+comment on column public.discord_consultas_clientes.termino is
+  'Lo que se buscó (hasta 100 caracteres). Puede ser el nombre de un cliente o de cualquier persona. '
+  'Finalidad: trazabilidad de qué se consultó. No guarda qué clientes se mostraron.';
+comment on column public.discord_consultas_clientes.resultado is
+  'Cómo terminó: ok, sin_enlace, enlace_ambiguo, sin_permiso, limite o no_disponible.';
+
 -- Lo que lee el límite por minuto.
 create index if not exists discord_consultas_clientes_usuario_idx
   on public.discord_consultas_clientes (discord_user_id, created_at desc);

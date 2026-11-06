@@ -133,6 +133,18 @@ begin
     raise exception 'CONTRATO 3: la búsqueda devuelve otras columnas: %',
       pg_get_function_result('public.discord_buscar_clientes(uuid, text, integer)'::regprocedure);
   end if;
+  -- Cada dato personal del registro lleva su finalidad junto a la columna.
+  if exists (
+    select 1
+      from unnest(array['discord_user_id', 'user_id', 'termino']) as c(nombre)
+     where col_description(
+             'public.discord_consultas_clientes'::regclass,
+             (select attnum from pg_attribute
+               where attrelid = 'public.discord_consultas_clientes'::regclass and attname = c.nombre)
+           ) is null
+  ) then
+    raise exception 'CONTRATO 3: una columna con dato personal no documenta su finalidad';
+  end if;
 end;
 $columnas$;
 
