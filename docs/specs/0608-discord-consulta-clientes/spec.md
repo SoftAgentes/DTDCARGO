@@ -122,6 +122,7 @@ Documentos:
 - `docs/specs/0608-discord-consulta-clientes/spec.md`, `docs/specs/0608-discord-consulta-clientes/privacidad.md`
 - `docs/specs/README.md` (índice regenerado)
 - `docs/legal/privacidad/inventario-terceros.md` (fila propuesta)
+- `docs/legal/privacidad/mapa-de-borrado.md` y `docs/legal/privacidad/registro-tratamiento.md` (registro de consultas y titulares no usuarios)
 - `.agents/handoffs/sdd-0608-discord-consulta-clientes.md`
 
 Fuera: pantallas del Studio, la 0606 y sus archivos, la búsqueda del listado de clientes, Hermes/ALFRED, producción y Discord.
