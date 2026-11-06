@@ -288,7 +288,7 @@ No se guardan prompts completos, razonamiento del modelo, secretos ni datos pers
   entrada al Studio. El enlace lleva a la pantalla de retiro (abajo).
 - **Canal limpio** (decisión de Sam del 2026-11-06: «Un canal nuevo que se llame Noticias»):
   `#noticias` es nuevo y solo lleva estos avisos, para que no se mezclen con el movimiento de
-  los agentes. Escribe solo el Studio. Lo ven Sam y la persona que revisa. Hay que crearlo en
+  los agentes. Escribe solo el Studio. Lo ven solo las personas que Sam autoriza: el rol Dirección y los miembros que Sam agregó (2026-11-06). Hay que crearlo en
   Discord, generar su webhook y sumarlo a la tabla de canales del plan maestro §7.6.
 - **Al retener:** un aviso con el titular, los códigos de motivo y el enlace a la cola de
   revisión del Studio.
