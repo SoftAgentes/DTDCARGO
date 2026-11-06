@@ -706,7 +706,7 @@ Pedido por el Director General con la aprobación del plan A. Estados de la skil
    - si la escritura falla, purga el blob y cuenta `adjuntos_fallidos`.
 
    La salida trae conteos, blobs antes y después, y los trabajos nuevos por clase.
-3. **Ensayo.** El almacenamiento de la copia es `/dev/shm/cw-ensayo/storage`, montado en `/app/storage` del runner. Con `STAGING`, después de las dos cargas de mensajes, corre dos veces `flujo-adjuntos | MODO=adjuntos` y mide:
+3. **Ensayo.** El almacenamiento de la copia es un volumen tmpfs del proyecto del ensayo, `almacenamiento`, de 3 GB, montado en `/app/storage` del runner. A8 comprueba que es tmpfs, y el borrado lo quita con el proyecto. Primero fue un bind de `/dev/shm/cw-ensayo/storage`, pero ActiveStorage deja ahí carpetas de root que el borrado sin root no puede quitar; lo vio la prueba de CI, en L1 y F2. Las páginas de un tmpfs se le cargan al cgroup de quien las escribe, así que el runner pasa de `mem_limit` 1536m a 4g: si no, los ~2,1 GB de adjuntos lo llevarían al OOM. Esto no se ve con los 314 bytes de CI, y es inferencia hasta el ensayo real. Con `STAGING`, después de las dos cargas de mensajes, corre dos veces `flujo-adjuntos | MODO=adjuntos` y mide:
    - **AD1:** cargados frente a `con_adjunto_para_carga` y bytes frente a `bytes_adjuntos_para_carga`, con 0 trabajos nuevos;
    - **AD2:** 0 en la segunda corrida;
    - **AD3:** íntegros frente al checksum del blob y sin huérfanos: ni blobs sin adjunto ni archivos sin blob desde el inicio del ensayo.

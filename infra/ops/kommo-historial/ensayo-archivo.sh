@@ -108,9 +108,12 @@ limpiar() {
     return 1
   fi
   if docker ps -aq --filter "label=com.docker.compose.project=$PROYECTO" | grep -q . \
-     || docker network ls -q --filter "label=com.docker.compose.project=$PROYECTO" | grep -q .; then
+     || docker network ls -q --filter "label=com.docker.compose.project=$PROYECTO" | grep -q . \
+     || docker volume ls -q --filter "label=com.docker.compose.project=$PROYECTO" | grep -q .; then
     docker compose -p chatwoot-ensayo down -v --remove-orphans >/dev/null 2>&1
   fi
+  # El volumen del almacenamiento (5.5b), por si `down -v` sin el compose no lo encontró. Solo los del proyecto fijo.
+  docker volume ls -q --filter "label=com.docker.compose.project=chatwoot-ensayo" | xargs -r docker volume rm >/dev/null 2>&1
   rm -rf -- /dev/shm/cw-ensayo
   evidencia "HECHO limpieza=$(recursos_del_ensayo | tr ' ' ',')" \
             "HECHO limpieza_carpeta=$([ -e /dev/shm/cw-ensayo ] && echo presente || echo ausente)" \
@@ -156,7 +159,7 @@ vigilar_carga inicio
 # ── Stack efímero ────────────────────────────────────────────────────────────
 mkdir -m 700 "$DIR" || { mal G0 "no se pudo crear $DIR"; exit 1; }
 CREADO=1
-mkdir -m 700 "$DIR/cargador" "$DIR/estado" "$DIR/storage"
+mkdir -m 700 "$DIR/cargador" "$DIR/estado"
 cp "$AQUI/cargar-archivo-kommo.rb" "$AQUI/pruebas/sonda-ensayo.rb" "$DIR/cargador/"
 chmod 644 "$DIR/cargador/"*.rb
 chmod 777 "$DIR/estado" # el contenedor escribe la foto de antes; la carpeta padre sigue en 0700
@@ -248,17 +251,27 @@ services:
       - ${CORREO_DIR}/views:/app/dtd-correo/views:ro
       - ./cargador:/tmp/cargador:ro
       - ./estado:/tmp/estado
-      # 5.5b: el almacenamiento de la copia, en /dev/shm/cw-ensayo/storage (tmpfs), para que los adjuntos subidos
-      # sigan ahí en el paso siguiente. Se borra con la carpeta.
-      - ./storage:/app/storage
+      # 5.5b: el almacenamiento de la copia, en un volumen tmpfs del proyecto (abajo).
+      - almacenamiento:/app/storage
     tmpfs:
       - /app/tmp
     networks: [aislada]
-    mem_limit: 1536m
+    # Las páginas de un tmpfs se le cargan al cgroup del proceso que las escribe: los ~2,1 GB de adjuntos que sube
+    # MODO=adjuntos cuentan contra este límite, además de Rails. Con 1536m terminaría en OOM.
+    mem_limit: 4g
     cpus: 1.0
 networks:
   aislada:
     internal: true
+volumes:
+  # 5.5b: los adjuntos subidos siguen ahí de un paso al siguiente (cada paso es un `run --rm`), viven en memoria y
+  # se borran con el proyecto. Con 3 GB caben los ~2,1 GB del Archivo; si no cupieran, la subida falla y AD1 cae.
+  # Un bind de /dev/shm dejaría carpetas de root que el borrado sin root no puede quitar (la prueba de CI).
+  almacenamiento:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=3g,mode=0700"
 EOF
 log "== stack"
 if ! dc up -d --wait postgres redis >"$DIR/up.txt" 2>&1; then
@@ -470,6 +483,9 @@ if [ "${ADJ_ESPERADOS:-0}" -gt 0 ] 2>/dev/null && [ -f "$DIR/adjuntos-1.txt" ]; 
   F="$DIR/despues.txt"
   exigir AD3 '[ "$(h "$F" adjuntos_archivo)" = "$ADJ_ESPERADOS" ] && [ "$(h "$F" adjuntos_bytes)" = "$ADJ_BYTES" ] && [ "$(h "$F" adjuntos_integros)" = "$ADJ_ESPERADOS" ] && cero "$(h "$F" blobs_huerfanos)" && cero "$(h "$F" blobs_sin_archivo)" && cero "$(h "$F" archivos_sin_blob)" && [ -n "$(h "$F" archivos_sin_blob)" ]' \
     "5.5b: en la copia, $(h "$F" adjuntos_archivo) adjuntos con $(h "$F" adjuntos_bytes) bytes, $(h "$F" adjuntos_integros) íntegros, 0 huérfanos"
+  VOL_ALM="$(docker volume ls -q --filter "label=com.docker.compose.project=$PROYECTO" --filter "label=com.docker.compose.volume=almacenamiento")"
+  exigir A8 '[ -n "$VOL_ALM" ] && [ "$(docker volume inspect -f "{{.Options.type}}" "$VOL_ALM" 2>/dev/null)" = tmpfs ]' \
+    "5.5b: los adjuntos de la copia viven en un volumen tmpfs del proyecto del ensayo ($VOL_ALM)"
 elif [ -r "${INFORME_CARGA:-}" ] && [ -z "$ADJ_ESPERADOS" ]; then
   # Un informe que no trae el conteo es de un extractor sin la 5.5b o se leyó mal: no es «sin adjuntos».
   mal AD0 "carga-informe.json no trae con_adjunto_para_carga: no se sabe cuántos adjuntos esperar"
