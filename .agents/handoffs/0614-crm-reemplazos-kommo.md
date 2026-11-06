@@ -27,11 +27,21 @@ Diseño en borrador de 6.6, sin código de producto, para que lo revise el Direc
 | `pnpm verify` | NO APLICA: el cambio es solo documentación; el cierre se elige por el diff |
 | Pruebas de producto | NO APLICA: no hay código |
 
+## Revisión del Director General (2026-11-06, sobre `99e7d6300`)
+
+Relayada por el Subdirector de Chatwoot: «bien encaminado», cambios menores de texto. Resolvió P-1 a P-7 (spec §11) y pidió cuatro cambios, ya aplicados en la misma rama:
+
+- D-6.6-9 reescrita con el texto literal de `/privacidad` (`app/privacidad/page.tsx:345-349` y `:352-354`), diciendo qué opción lo cumple: la (a), que también cubre al registrado sin envíos y lo desliga de la ficha.
+- Inventario: las tarjetas que nacen de estimados web (nombre visible y últimos 10 de `prospect_whatsapp`).
+- Contradicción de Reportes: la RPC por asesor no devuelve ids de fichas; el facturado se suma dentro con `studio_client_annual_billing`.
+- Los crons nacen apagados (`CRM_CAMBIOS_TABLERO`, `CRM_RETENCION`, `CRM_AVISO_VENTANA`): encenderlos es un OK aparte de Sam.
+
+Además, coordinación con la PR #400 (10.5): 6.6 usa la pieza `crm_tarjeta_de_ficha` de la 10.5 y fija **una sola vez** las definiciones D-SA («sin atender») y D-AUD (qué lleva la auditoría del CRM y quién es el actor), en spec §2.8. La 10.5 las cita igual. Puntero en la SDD-0587 §10 (P-1).
+
 ## Pendientes de esta tarea
 
-- Revisión del Director General de la spec y de las preguntas P-1 a P-7.
-- Las decisiones D-6.6-1 a D-6.6-12 se las lleva el Director General a Sam. Esta sesión no le preguntó nada.
-- Si el Director General da la salida, el código empieza por el tramo S1 (migración y contrato), con número de migración pedido en ese momento (el 2026-11-06 el siguiente libre era 0518, sin reservar).
+- Las decisiones D-6.6-1 a D-6.6-12 se las lleva el Director General a Sam, junto con las de la 10.5 y la línea base (+2,25 días entre las dos, de 115,5 a 117,75). Esta sesión no le preguntó nada.
+- Con la salida, el código va en dos PR en serie contra `main` (A = S1 + S2, B = S3 + S4), después de la implementación de la 10.5. El número de migración se asigna al arrancar; no se reserva ninguno ahora.
 - La fila 6.6 del checklist no se tocó: sigue «pendiente». Al integrar, conviene que su columna de evidencia apunte a la SDD-0614.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -41,11 +51,13 @@ Diseño en borrador de 6.6, sin código de producto, para que lo revise el Direc
 3. **Reportes es de contabilidad y las tablas `crm_*` no la dejan leer** (`rbac.ts:129`, `0506_crm_modelo.sql:186`). Hoy contabilidad ve el desempeño por asesor porque sale del espejo de Kommo.
 4. **Recuperación (SDD-0157) necesita el teléfono completo**, y la tarjeta del lead sin ficha guarda solo 10 dígitos (D6).
 5. **Las pestañas del CRM** usan botones con `role="tab"`; no se probó si manejan flechas (A11Y-01).
-6. **Otra sesión diseña la SDD-0610** (rama `claude/practical-swartz-5b50ae`, resumen semanal del CRM para marketing) y clasifica `motivo_perdida` como texto libre: se cruza con los motivos predefinidos de R7 (pregunta P-5).
+6. **Otra sesión diseña la SDD-0610** (rama `claude/practical-swartz-5b50ae`, resumen semanal del CRM para marketing) y clasifica `motivo_perdida` como texto libre. El Director General resolvió (P-5) que use la clave de R7 y el texto solo en «Otro»: falta que esa spec lo diga.
+7. **La SDD-0586 §10.5 (PR #400) dice en E10-D27 que el actor al abrir un ticket es el `auth.uid()` del cliente.** La regla D-AUD de esta spec lo cambia a `system`; la sesión de la #400 lo copia.
 
 ## Impacto documental
 
 - Nuevo: `docs/specs/0614-crm-reemplazos-kommo/spec.md` y este handoff.
 - Regenerado: `docs/specs/README.md`.
-- Pendiente al integrar: puntero en la SDD-0587 §10 (pregunta P-1) y la evidencia de la fila 6.6 del checklist.
+- Puntero en la SDD-0587 §10 (P-1), en esta misma PR.
+- Pendiente al integrar: la evidencia de la fila 6.6 del checklist.
 - Graphify, Archify y Obsidian: los revisa el Director General al cierre, según el runbook de conocimiento. Esta tarea no los tocó.

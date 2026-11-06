@@ -90,11 +90,11 @@ Todas cuestan **0 en Meta**: ninguna envía mensajes por WhatsApp, Instagram ni 
 | H3 | **La auditoría ya no usa un `check`**: desde la 0261 el tipo de entidad es una FK a `audit_entity_types` | `0261_audit_entity_catalog_validate.sql:132`; patrón vigente en `0491_freight_carriers_auditoria.sql:107-122` | Lo que la SDD-0587 §16.6 dice («ampliar `entity_audit_log_entity_type_check`») está vencido: se registra `crm_tarjeta` en el catálogo |
 | H4 | **No hay vínculo entre la tarjeta de un lead sin ficha y su conversación.** `chatwoot_conversations` no guarda el contacto; la ficha de 6.3 solo cruza por `client_id` | `0504_chatwoot_eventos.sql:90-104`; `crm/tarjeta-actions.ts:195-221` | «Sin atender» necesita dos fechas en la tarjeta (§3) |
 | H5 | **Crear la ficha no vuelve cliente a nadie.** Con la regla de 0.8, cliente = envío vivo o recibo vivo en China | SDD-0587 §1.1 y §4.3, etapa 6 | El botón no puede decir «Convertir en cliente». Decisión D-6.6-2 |
-| H6 | **`/privacidad` promete anonimizar a los 12 meses y nada lo corre.** La función existe, sin ruta ni cron; y solo cubre a quien está en «Perdido» | `app/privacidad/page.tsx:344-349`; `git grep crm_anonimizar_leads_perdidos` en `app/`, `lib/`, `scripts/`, `infra/` y `vercel.json`: 0 resultados; predicado en `0506_crm_modelo.sql:768-774` | Hoy no se incumple todavía (la primera tarjeta es del 2026-11-04, **I**), pero el cron tiene que existir antes. Decisión D-6.6-9 sobre los que nunca pasan a «Perdido» |
+| H6 | **`/privacidad` promete anonimizar a los 12 meses a quien «no llegaste a ser cliente», y nada lo corre.** La función existe sin ruta ni cron, y solo cubre a quien está sin ficha y en «Perdido»: deja fuera al que se queda en otra etapa y al registrado que nunca envió nada | `app/privacidad/page.tsx:345-349`; `git grep crm_anonimizar_leads_perdidos` en `app/`, `lib/`, `scripts/`, `infra/` y `vercel.json`: 0 resultados; predicado en `0506_crm_modelo.sql:768-774`; al ligar una ficha, el check `:339` solo quita nombre y teléfono | Hoy no se incumple todavía (la primera tarjeta es del 2026-11-04, **I**), pero el cron tiene que existir y estar encendido antes. Decisión D-6.6-9 |
 | H7 | `crm_mover_etapa_auto` no deja historial si la tarjeta ya está en la etapa | `0506_crm_modelo.sql:731-733` | Entrar a Clientes en «Activo» (su valor por defecto) no deja rastro: el cambio de tablero necesita su propio registro (§2.7) |
 | H8 | `crm_mover_etapa_auto` no limpia el motivo al salir de «Perdido»; la 0513 lo hace aparte | `0506_crm_modelo.sql:735-745`; `0513_crm_entrada_leads.sql:159` | Los movimientos del cotizador tienen que limpiarlo igual |
 | H9 | «Vencido» no es una transición del estimado: se deriva al pintar | `cotizador/[code]/page.tsx:45` (`isExpired`) | La salida «o vence el SLA» de «Estimado enviado» (SDD-0587 §4.3) no tiene evento. Queda fuera (§12) |
-| H10 | Otra sesión diseña un resumen semanal agregado del CRM para marketing (SDD-0610, rama `claude/practical-swartz-5b50ae`) que clasifica `motivo_perdida` como texto libre | Su spec, §1, fila «Motivo de pérdida» | Si 6.6 agrega motivos predefinidos (R7), los dos diseños se coordinan (pregunta P-5 al Director General) |
+| H10 | Otra sesión diseña un resumen semanal agregado del CRM para marketing (SDD-0610, rama `claude/practical-swartz-5b50ae`) que clasifica `motivo_perdida` como texto libre | Su spec, §1, fila «Motivo de pérdida» | Resuelto por el Director General (P-5): la 0610 usa la clave del motivo de R7, y el texto libre solo en «Otro» |
 
 **DESIGN-CHECK.** El Norte vigente (`docs/design/studio/_norte/`) no trae una pantalla del CRM.
 R1 reusa lo que ya está aprobado en el Studio: `KpiCard`, la tarjeta de sección y las barras de
@@ -182,16 +182,22 @@ estimado y junto a los envíos a Kommo de hoy, con el cliente de servicio que ya
 **Nunca rompe ni demora la transición**: una función que no lanza (mismo criterio que la tarjeta
 web de 6.4 en `/registro`).
 
-**Cómo encuentra la tarjeta** (en SQL, una RPC de `service_role`):
+**Cómo encuentra la tarjeta** (en SQL, una RPC de `service_role`). **No repite la regla de
+ubicar o crear:** con ficha usa la pieza única de la 10.5, `crm_tarjeta_de_ficha(tenant, ficha,
+fuente, etapa_leads)` (SDD-0586 §10.5.6, pieza 1, decisión E10-D30), que también usan el alta web
+de la 0513 y los tickets del portal (§2.8).
 
-1. Estimado con Shipping Mark → ficha viva de ese tenant → su tarjeta. Si la ficha no tiene
-   tarjeta, se crea con `fuente = 'cotizador'` (ya admitida en `0506_crm_modelo.sql:318-320`).
+1. Estimado con Shipping Mark → ficha viva de ese tenant → `crm_tarjeta_de_ficha` con `fuente =
+   'cotizador'` (ya admitida en `0506_crm_modelo.sql:318-320`). La pieza devuelve la tarjeta de la
+   ficha, liga la del lead sin ficha que cruza por teléfono o crea una.
 2. Estimado web sin Shipping Mark → últimos 10 de `prospect_whatsapp` →
-   `crm_ficha_por_telefono` (0513:62): con una sola ficha, como en 1. Si no hay ficha, la tarjeta
-   sin ficha con ese teléfono (`crm_buscar_tarjeta`, 0513:117). Si no hay ninguna, se crea con
-   `fuente = 'cotizador'`, nombre visible y últimos 10 (D6). **Con más de una coincidencia no se
-   mueve nada** y queda un código en el log.
-3. El tablero que se mueve sale del segmento en ese momento (`crm_segmento_cliente`; sin ficha,
+   `crm_ficha_por_telefono` (0513:62): con una sola ficha, como en 1.
+3. Sin ficha → la tarjeta sin ficha con ese teléfono (`crm_buscar_tarjeta`, 0513:117). Si no hay
+   ninguna, se crea con `fuente = 'cotizador'`, nombre visible (`quotes.client_name`) y últimos 10
+   (D6). Es el único caso que la pieza de la 10.5 no cubre, porque esa pieza es por ficha; si el
+   Director General prefiere, se suma a la pieza como una rama «sin ficha» en vez de vivir aquí.
+   **Con más de una coincidencia no se mueve nada** y queda un código en el log.
+4. El tablero que se mueve sale del segmento en ese momento (`crm_segmento_cliente`; sin ficha,
    lead nuevo).
 
 **Mapeo** (clave de evento `estimado:<id del estimado>:<estado>`, idempotente; un movimiento a
@@ -219,30 +225,36 @@ exista el espejo.
 
 ### 2.4 R6 — Alerta «sin atender»
 
-**Tres señales**, sobre tarjetas vivas (no anonimizadas, ficha no borrada, etapa no terminal), en
-los dos tableros:
+**La definición es una sola y está en §2.8 (D-SA).** Aquí, de dónde salen los datos y dónde se ve.
 
-| Señal | Regla | Reemplaza |
-|---|---|---|
-| **Espera respuesta** | Hay un mensaje entrante y no hubo respuesta humana después, y pasó el umbral (D-6.6-5) | La tarea vencida «Responder al cliente» de los agentes de Kommo (`kommo-atencion.ts:1-15`) |
-| **Ventana por cerrar** | Espera respuesta y faltan menos de 4 h para las 24 h del último entrante. Pasadas las 24 h: «Ventana cerrada: hace falta plantilla» | «Ping 23 h» y «Aviso interno — ventana de 24 h por cerrarse», como alerta interna (D8 de la 0587) |
-| **Tarea vencida** | Una tarea abierta de la tarjeta con `vence_at` en el pasado. Sin fecha no vence (igual que `kommo-atencion.ts:62`) | `leadsSinAtender` sobre `kommo_tasks` |
+| Señal de D-SA | Reemplaza |
+|---|---|
+| **Espera respuesta** (Chatwoot o ticket del portal) | La tarea vencida «Responder al cliente» de los agentes de Kommo (`kommo-atencion.ts:1-15`) |
+| **Ventana por cerrar o cerrada** (solo Chatwoot) | «Ping 23 h» y «Aviso interno — ventana de 24 h por cerrarse», como alerta interna (D8 de la 0587) |
+| **Tarea vencida** | `leadsSinAtender` sobre `kommo_tasks` (sin fecha no vence, igual que `kommo-atencion.ts:62`) |
 
-**Qué cuenta como respuesta humana** (para `ultima_respuesta_at`):
+**Qué cuenta como respuesta humana en Chatwoot** (para `ultima_respuesta_at`):
 
 | Mensaje de Chatwoot | ¿Respuesta? |
 |---|---|
-| Saliente, no privado, escrito por un agente | Sí |
+| Saliente, no privado, escrito por un agente que no es el usuario de servicio | Sí |
 | Saliente sin remitente: eco de lo que DTD escribió desde el teléfono o la app de Instagram (SDD-0587, «Pendiente de E6») | Sí |
 | Nota privada | No |
 | Mensaje de actividad | No |
 | Respuesta de un bot (`AgentBot`) | No |
-| La redirección automática de E10, enviada con el usuario de servicio | No (NV: falta confirmar con qué identidad sale; pregunta P-7) |
+| La redirección automática de E10 | **No.** Sale con el token del usuario de servicio (`router-api.ts:10`) como `outgoing` y no privado (`:123`), así que se excluye por el id de ese usuario, `chatwootServicioUserId()` (`config.ts:67`). Sin ese id configurado, ningún saliente de agente cuenta: la alerta avisa de más, nunca de menos |
 
-La dirección y el tipo de remitente salen del payload de `message_created` (`message_type`,
-`private`, `sender`), que `interpretarEvento` ya lee en parte (`webhook-events.ts:129`). Que 4.19.1
-mande el tipo de remitente en el webhook es **NV**: se confirma en su fuente, como hizo 6.4
+La dirección y el remitente salen del payload de `message_created` (`message_type`, `private`,
+`sender`), que `interpretarEvento` ya lee en parte (`webhook-events.ts:129`). Que 4.19.1 mande el
+tipo y el id del remitente en el webhook es **NV**: se confirma en su fuente, como hizo 6.4
 (SDD-0587 §16.2).
+
+En el portal, la respuesta es la primera respuesta del ticket (`primera_respuesta_at`, E10-D29 de
+la SDD-0586). 6.6 no la vuelve a calcular.
+
+**Límite (I):** una conversación que E10 redirige al otro número queda como «espera respuesta»
+hasta que alguien del equipo conteste. Es lo que pide excluir la redirección; si molesta, se decide
+después con datos.
 
 **Dónde se ve:**
 - Pestaña **Sin atender** con su número. Ordenada por la espera más larga. Filtro «Mías / Todas».
@@ -305,9 +317,13 @@ chat. Sin dueño → fila «Sin dueño».
 cuenta para el nuevo. El historial guarda quién movió, no quién era el dueño.
 
 **Dónde:** en Resumen, debajo de los KPI, para admin y comercial. En **Reportes › Por agente**, para
-quien ve Reportes, con la misma RPC de agregados, que no devuelve datos de personas (D-6.6-7, H1).
-Mientras Kommo atienda, Reportes muestra también la tabla actual del espejo, rotulada «Kommo ·
-hasta el corte»; si no, contabilidad perdería de golpe lo que ve hoy.
+quien ve Reportes, con la misma RPC de agregados (D-6.6-7, H1). **La RPC devuelve solo conteos y
+totales por asesor, con el id del usuario del equipo: ni ids de fichas, ni de tarjetas, ni
+nombres de personas.** El facturado lo suma dentro de la base con `studio_client_annual_billing`, la
+misma RPC que usa `clientAnnualBilling` (`lib/studio/fidelizacion/queries.ts`), así que tampoco
+salen los Shipping Marks. Los nombres del equipo se ponen en la app con `listTenantAdvisors`, como
+la ficha de la tarjeta. Mientras Kommo atienda, Reportes muestra también la tabla actual del espejo,
+rotulada «Kommo · hasta el corte»; si no, contabilidad perdería de golpe lo que ve hoy.
 
 ### 2.7 R7 — Mantenimiento
 
@@ -325,14 +341,37 @@ hasta el corte»; si no, contabilidad perdería de golpe lo que ve hoy.
    el historial (H7), pero sí en `crm_cambios_tablero`.
 
 **No contradice la regla de 0.8** (I): el tablero que se pinta se sigue calculando en el momento;
-la tabla es historia para los KPI, nunca la fuente del segmento. Alternativa con su costo, en la
-pregunta P-2.
+la tabla es historia para los KPI, nunca la fuente del segmento. El Director General eligió la tabla
+propia (P-2): un movimiento a la misma etapa no deja fila (`0506_crm_modelo.sql:731-733`), y en el
+historial `de` y `a` son etapas, no tableros.
 
 **b) Retención D6.** Cron diario a las 04:45 de Venezuela que corre la anonimización en cada tenant
-con CRM. Con D-6.6-9 (a), el predicado pasa de «perdido y 12 meses sin actividad» a «sin ficha y 12
-meses sin actividad, en cualquier etapa de Leads». Así se cumple lo que ya dice `/privacidad` (H6).
+con CRM, con el predicado que Sam elija en D-6.6-9. Con la opción recomendada:
 
-**c) «Anonimizar ahora».** En la ficha de la tarjeta, solo para admin y solo si la tarjeta **no
+- **Toda tarjeta cuya persona no es cliente hoy** (segmento lead nuevo o lead registrado), en
+  cualquier etapa, con 12 meses sin actividad: se borran nombre visible, teléfono, contacto, BSUID,
+  motivos, notas, tareas, mapeos y las dos fechas de §3. **Si tiene ficha, además se desliga**
+  (`client_id` a nulo). Sin desligarla, la llave única `crm_tarjetas_client_uq`
+  (`0506_crm_modelo.sql:348`) impediría que esa persona tenga una tarjeta nueva si vuelve a escribir.
+  La ficha no se toca: sigue el plazo de la cuenta («Mientras tengas una cuenta o relación activa»,
+  `app/privacidad/page.tsx:331-333`).
+- **En toda tarjeta, también la de un cliente,** el BSUID se borra al año sin actividad: la misma
+  lista de `/privacidad` lo promete aparte (`app/privacidad/page.tsx:352-354`).
+
+**c) Los dos crons nacen apagados** (decisión del Director General): el de cambio de tablero, cada
+hora, y el de retención, cada día. Cada uno mira su interruptor del servidor y solo `"1"` lo
+enciende, como `CRM_ALTA_WEB_SIN_KOMMO` en 6.4: `CRM_CAMBIOS_TABLERO` y `CRM_RETENCION`. El aviso de
+ventana (D-6.6-6) tiene el suyo, `CRM_AVISO_VENTANA`, también apagado. Apagado, la ruta responde
+`apagado` y no escribe nada. **Encender cada uno es un OK aparte de Sam:** ni fusionar ni publicar
+activan escrituras irreversibles. Mientras estén apagados:
+
+- el KPI «Pasaron a cliente» dice «Sin registro: está apagado» en vez de mostrar 0;
+- el cliente que vuelve a lead sigue con el límite de 6.3 (SDD-0587 §15.1);
+- **lo que promete `/privacidad` sigue sin cumplirse** (H6). Hay que encender la retención antes de
+  que la primera tarjeta cumpla 12 meses sin actividad: la más vieja es del 2026-11-04 (SDD-0587,
+  sección de esa fecha), así que el plazo más temprano posible es el 2027-11-04.
+
+**d) «Anonimizar ahora».** En la ficha de la tarjeta, solo para admin y solo si la tarjeta **no
 tiene ficha** (D-6.6-10):
 
 - Confirmación con `ConfirmDialog` (MP-01: es irreversible) y un motivo de una lista corta, sin
@@ -345,33 +384,93 @@ tiene ficha** (D-6.6-10):
 - Con ficha, el botón no aparece: el borrado de una persona con ficha va por la ficha del cliente
   (borrado en suave de la 0455 y su purga).
 
-**d) Auditoría (AUD-01).** Un trigger en `crm_tarjetas`, en la misma transacción que el cambio, con
-el patrón de la 0491:
+**e) Auditoría (AUD-01).** Un trigger en `crm_tarjetas`, en la misma transacción que el cambio, con
+el patrón de la 0491 y la **regla única D-AUD de §2.8**:
 
 | Evento | Cuándo | Qué guarda |
 |---|---|---|
-| `crm_tarjeta_created` | Alta | Fuente, si tiene ficha, si tiene contacto (sí o no) |
-| `crm_tarjeta_linked` | `client_id` de nulo a una ficha | El id de la ficha |
-| `crm_tarjeta_owner_changed` | Cambia el dueño | Ids del dueño anterior y del nuevo |
-| `crm_tarjeta_anonymized` | Anonimizar, a mano o por plazo | Quién (o el cron) y el motivo de la lista |
+| `crm_tarjeta_created` | Alta | Fuente; si tiene ficha y si tiene contacto, solo sí o no |
+| `crm_tarjeta_linked` | `client_id` pasa de nulo a una ficha | Solo `con_ficha: true`: **no** el id de la ficha |
+| `crm_tarjeta_unlinked` | `client_id` vuelve a nulo (retención de §2.7 b) | `con_ficha: false` |
+| `crm_tarjeta_owner_changed` | Cambia el dueño | Ids del dueño anterior y del nuevo (usuarios del equipo) |
+| `crm_tarjeta_anonymized` | Anonimizar, a mano o por plazo | El motivo de la lista o `plazo` |
 
-Nunca nombre, teléfono, contacto, BSUID, notas ni motivos de texto libre. Los cambios de etapa no
-se duplican aquí: ya están en `crm_historial_etapas`, con su propio contrato (SDD-0587 §16.6).
+Los cambios de etapa no se duplican aquí: ya están en `crm_historial_etapas`, con su propio
+contrato (SDD-0587 §16.6).
 
-**e) Motivos de pérdida predefinidos** (D-6.6-11). El diálogo de «Perdido» de 6.3 ofrece una lista:
+**f) Motivos de pérdida predefinidos** (D-6.6-11). El diálogo de «Perdido» de 6.3 ofrece una lista:
 «No es lead / otro asunto», «Precio», «No respondió», «Compró con otro», «Fuera de lo que hacemos»,
 «Estimado rechazado» (lo pone R3) y «Otro» con texto (hasta 200 caracteres, como hoy). Se guarda la
 clave junto al texto actual. Esto le da a Sam la opción «otro asunto» que pidió el 2026-11-05.
 **No decide** si una conversación que abre DTD crea una tarjeta: eso sigue pendiente con él
 (SDD-0587, «Pendiente de E6»).
 
+### 2.8 Coordinación con la 10.5 y las dos definiciones únicas
+
+**Con la PR #400** (paso 10.5, tickets del portal, SDD-0586 §10.5), que va **primero y en serie**:
+
+- **Comparten archivos:** `TarjetaFichaDrawer.tsx`, `CrmTableroKanban.tsx`, `tarjeta-actions.ts`,
+  `crm-ficha.ts` y `supabase/pending-migration-symbol-declarations.json`. La implementación de 6.6
+  arranca sobre `main` con la 10.5 ya fusionada y no edita esos archivos mientras la 10.5 los tenga
+  abiertos.
+- **Una sola pieza para ubicar o crear la tarjeta de una ficha:** `crm_tarjeta_de_ficha` de la 10.5
+  (E10-D30) sirve al alta web de la 0513, a los tickets y al cotizador de 6.6 (§2.3). 6.6 no la
+  copia.
+- **Migración:** la de 6.6 va después de la de la 10.5 y su preflight la exige. Ninguna de las dos
+  reserva número ahora: se asigna al arrancar cada una (P-6).
+- **Las dos definiciones de abajo las fija esta SDD, una sola vez.** La 10.5 las cita igual; si
+  alguna cambia, cambia aquí.
+
+**D-SA · Definición de «sin atender»** (única para la alerta, los reportes, el conteo y el aviso)
+
+Una tarjeta está *sin atender* si está viva (no anonimizada, ficha no borrada, etapa no terminal en
+su tablero del momento) y cumple al menos una de estas señales:
+
+1. **Espera respuesta en Chatwoot:** `ultimo_entrante_at` no es nulo, `ultima_respuesta_at` es nulo
+   o anterior a él, y pasó el umbral (D-6.6-5) desde `ultimo_entrante_at`.
+2. **Espera respuesta en el portal:** tiene un ticket abierto del portal (SDD-0586 §10.5) sin
+   `primera_respuesta_at`, y pasó el umbral desde su `abierto_at`.
+3. **Ventana por cerrar o cerrada**, solo en Chatwoot: la señal 1 y pasaron 20 h desde
+   `ultimo_entrante_at` (por cerrar) o 24 h (cerrada: hace falta plantilla). En el portal no hay
+   ventana.
+4. **Tarea vencida:** una tarea abierta de la tarjeta con `vence_at` anterior a ahora. Sin fecha
+   no vence.
+
+**Respuesta humana**, en Chatwoot: un mensaje saliente no privado de un agente que no es el usuario
+de servicio (`chatwootServicioUserId()`, `lib/studio/chatwoot/config.ts:67`), o un eco sin
+remitente. No lo son una nota privada, un mensaje de actividad, un bot ni la redirección de E10.
+Sin el id del usuario de servicio configurado, ningún saliente de agente cuenta. En el portal, la
+primera respuesta del ticket (E10-D29). La calcula **una sola función SQL**, `crm_sin_atender`
+(§3). El «vencido» del ticket del portal (E10-D23: sin primera respuesta al terminar el día) es
+otra cosa: es la promesa del portal y sigue siendo de la 10.5.
+
+**D-AUD · Qué lleva la auditoría del CRM** (única para los tipos `crm_*`: `crm_tarjeta` de esta
+SDD y `crm_ticket` de la 10.5)
+
+- **Entidad:** `entity_id` es el id de la fila del CRM (la tarjeta o el ticket).
+- **Puede llevar:** ids de filas propias del CRM (tarjeta, ticket), ids de usuarios del equipo
+  (dueño, quien cerró), claves de etapa, fuente, motivo de lista, estado, número del episodio y
+  banderas sí o no.
+- **Nunca lleva:** `client_id`, Shipping Mark, nombre, teléfono, correo, contacto de Chatwoot,
+  BSUID, texto libre (notas, tareas, motivo «Otro», mensajes) ni montos. `entity_audit_log` es de
+  solo agregar y sobrevive a la purga de la ficha: nada de lo que guarda puede identificar a la
+  persona después.
+- **Actor:** `user` con `auth.uid()` **solo si ese usuario es miembro activo del tenant de la
+  fila** (`user_tenants`, sin `disabled_at`). Lo que dispara un cliente del portal, el webhook de
+  Chatwoot, un cron o `service_role` lleva `system`, con `actor_id` nulo, nunca el `auth.uid()` del
+  cliente. El origen va en `source`, con los valores que admite la 0267
+  (`0267_audit_contract_append_only.sql:324-336`): `studio` (el equipo en Studio, incluido el
+  cotizador), `webhook` (Chatwoot), `job` (crons) y `rpc` (portal y alta web de `/registro`).
+- **Misma transacción que el cambio** (AUD-01). En la 10.5, el ticket y su evento van juntos
+  dentro del bloque que nunca rompe el mensaje del cliente (E10-D24).
+
 ## 3. Modelo de datos y migración
 
-**Una migración**, descrita aquí y **no escrita**. Número: se asigna al empezar el código; el
-siguiente libre el 2026-11-06 era **0518** según `node scripts/next-number.mjs` (no reservado).
-Va después de la 0506 y la 0513, ya aplicadas. **Aplicarla pide el OK nominal de Sam** y el
+**Una migración**, descrita aquí y **no escrita**. Número: se asigna al arrancar el código, no
+antes, y no se reserva ninguno ahora (P-6). Va después de la 0506 y la 0513, ya aplicadas, y de la
+migración de la 10.5 (§2.8). **Aplicarla pide el OK nominal de Sam** y el
 [runbook de producción](../../runbooks/aplicar-migraciones-prod.md). Es aditiva: no borra ni
-renombra nada.
+renombra nada. Aplicarla no enciende nada: los crons dependen de sus interruptores (§2.7 c).
 
 | Objeto | Cambio | Quién lo escribe |
 |---|---|---|
@@ -379,18 +478,20 @@ renombra nada.
 | `crm_tarjetas.motivo_perdida_clave` y `crm_historial_etapas.motivo_clave` | Columna nueva con `check` a la lista de R7. El texto actual se queda | `crm_mover_etapa` y el RPC de R3 |
 | `crm_cambios_tablero` | Tabla nueva: `id`, `tenant_id`, `tarjeta_id` (borrado en cascada), `de` y `a` (`leads` o `clientes`), `inicial`, `clave` única por tenant, `detectado_at`. Sin datos de personas. RLS de lectura con `crm_puede_usar()` | `service_role` |
 | `crm_registrar_mensaje(tenant, contacto, ficha, dirección, ocurrió)` | Ubica la tarjeta con `crm_buscar_tarjeta` y sube la fecha con `greatest`: dos veces no cambia nada | `service_role` |
-| `crm_mover_por_estimado(tenant, estimado, estado, ocurrió)` | §2.3 completo: ubicar o crear, «solo si», limpiar motivo | `service_role` |
+| `crm_mover_por_estimado(tenant, estimado, estado, ocurrió)` | §2.3 completo: ubica con `crm_tarjeta_de_ficha` de la 10.5 o, sin ficha, con `crm_buscar_tarjeta`; «solo si»; limpiar motivo | `service_role` |
 | `crm_registrar_cambios_tablero(tenant, ahora)` | §2.7 a. Devuelve cuántos cambios guardó | `service_role` |
-| `crm_sin_atender(umbral, ahora)` | Las señales de §2.4, por tarjeta. Una variante con tenant para el cron | `authenticated` con `crm_puede_usar()`; la variante, `service_role` |
-| `crm_kpis(desde, hasta, umbral)` y `crm_resumen_por_asesor(desde, hasta, umbral)` | Las fórmulas de §2.5 y §2.6. Solo conteos e ids del equipo y de fichas | Admin y comercial; el de por asesor, también contabilidad si D-6.6-7 es (a) |
-| `crm_anonimizar_tarjeta(tarjeta, motivo)` | §2.7 c. Exige admin del tenant de la tarjeta y tarjeta sin ficha | `authenticated` (con ese chequeo adentro) |
-| `crm_anonimizar_leads_perdidos` | Redefinida **desde su última definición** (`0506_crm_modelo.sql:759`) para compartir la limpieza con la anterior y, con D-6.6-9 (a), el predicado nuevo | `service_role` |
+| `crm_sin_atender(umbral, ahora)` | D-SA (§2.8), por tarjeta, incluidos los tickets del portal de la 10.5. Una variante con tenant para el cron | `authenticated` con `crm_puede_usar()`; la variante, `service_role` |
+| `crm_kpis(desde, hasta, umbral)` | Las fórmulas de §2.5. Solo conteos | Admin y comercial |
+| `crm_resumen_por_asesor(desde, hasta, umbral)` | Las de §2.6. Solo conteos y totales por asesor, con el id del usuario del equipo; el facturado, sumado adentro con `studio_client_annual_billing`. Ni ids de fichas ni de tarjetas | Admin y comercial; también contabilidad si D-6.6-7 es (a) |
+| `crm_anonimizar_tarjeta(tarjeta, motivo)` | §2.7 d. Exige admin del tenant de la tarjeta y tarjeta sin ficha | `authenticated` (con ese chequeo adentro) |
+| `crm_anonimizar_leads_perdidos` | Redefinida **desde su última definición** (`0506_crm_modelo.sql:759`) para compartir la limpieza con la anterior y con el predicado de D-6.6-9. Con la opción recomendada, desliga la ficha y borra el BSUID al año (§2.7 b). El nombre se conserva para no romper llamadas; si conviene otro, se decide al escribirla | `service_role` |
 | `crm_mover_etapa` | Redefinida desde `0506_crm_modelo.sql:623` solo para aceptar la clave del motivo | `authenticated`, como hoy |
 | `audit_entity_types` | Fila `crm_tarjeta`, dominio `commercial` (existe en `0258_audit_entity_catalog.sql:127`) | Migración |
-| `audit_crm_tarjeta_change()` | Trigger de §2.7 d | Trigger |
+| `audit_crm_tarjeta_change()` | Trigger de §2.7 e, con la regla D-AUD (§2.8) | Trigger |
 
-**Preflight:** exige la 0506 y la 0513 y aborta si la migración ya se aplicó, como la 0513
-(SDD-0587 §16.3). **Contrato en PGlite** con las migraciones reales (§8).
+**Preflight:** exige la 0506, la 0513 y la migración de la 10.5 (`crm_tarjeta_de_ficha`,
+`crm_tickets`), y aborta si esta ya se aplicó, como la 0513 (SDD-0587 §16.3). **Contrato en
+PGlite** con las migraciones reales (§8).
 
 ## 4. Permisos y RLS
 
@@ -403,14 +504,17 @@ renombra nada.
 | KPI y por asesor en el CRM | Igual que ver | RPC con `crm_puede_usar()` |
 | Por agente en Reportes | `requireModuleView("reports")` | RPC de agregados con admin, comercial o contabilidad (D-6.6-7) |
 | Anonimizar ahora | `puertaEdicion` + rol admin | RPC que vuelve a exigir admin del tenant de la tarjeta |
-| Cron de mantenimiento y retención | `CRON_SECRET`, como las demás rutas de `app/api/cron/` | `service_role`, acotado por tenant |
+| Cron de cambio de tablero, de retención y aviso de ventana | `CRON_SECRET`, como las demás rutas de `app/api/cron/`, **y su interruptor** (`CRM_CAMBIOS_TABLERO`, `CRM_RETENCION`, `CRM_AVISO_VENTANA`): apagados, no escriben | `service_role`, acotado por tenant |
 
 Ningún permiso por usuario (desvíos de `rbac-guard`) abre las tablas `crm_*`: sigue mandando el
 rol, como en 6.3 (SDD-0587 §14.1, «Permisos por usuario»).
 
 ## 5. Pantallas y allowlist exacta
 
-En cuatro tramos, una PR cada uno, apiladas (§10). Las pruebas de cada tramo van en el mismo tramo.
+Cuatro tramos en **dos PR en serie contra `main`, sin apilar** (decisión del Director General,
+P-3): **PR A = S1 + S2** y **PR B = S3 + S4**. La PR B se abre desde `main` cuando la A ya está
+fusionada. Las dos van después de la implementación de la 10.5 (§2.8). Las pruebas de cada tramo
+van en el mismo tramo.
 
 **S1 · Base de datos**
 - `supabase/migrations/NNNN_crm_reemplazos_kommo.sql` (número al empezar)
@@ -442,15 +546,17 @@ En cuatro tramos, una PR cada uno, apiladas (§10). Las pruebas de cada tramo va
 **S4 · Mantenimiento**
 - `app/api/cron/crm-mantenimiento/route.ts` y `app/api/cron/crm-retencion/route.ts` (nuevos), `lib/studio/crm-mantenimiento.ts` (nuevo)
 - `vercel.json` (dos entradas) e `infra/dtd-cargo/cron/crontab` (regenerado con `scripts/build-crontab.mjs`, no a mano)
+- `.env.example` e `infra/dtd-cargo/.env.example` (solo `CRM_CAMBIOS_TABLERO`, `CRM_RETENCION` y `CRM_AVISO_VENTANA`, vacías: apagadas)
 - `app/studio/(app)/crm/tarjeta-actions.ts` (anonimizar ahora), `_components/TarjetaFichaDrawer.tsx` (botón y diálogo), `_components/CrmTableroKanban.tsx` (motivos en el diálogo de «Perdido»)
 - `docs/runbooks/crm-mantenimiento.md` (nuevo: qué corre, a qué hora, cómo se ve si falló)
-- Pruebas: `app/api/cron/crm-mantenimiento/__tests__/route.test.ts`, `app/api/cron/crm-retencion/__tests__/route.test.ts`, `lib/studio/__tests__/crm-mantenimiento.test.ts`, `app/studio/(app)/crm/_components/CrmTableroKanban.test.tsx`, `scripts/__tests__/build-crontab.test.ts` (sin cambios: tiene que seguir verde)
+- Pruebas: `app/api/cron/crm-mantenimiento/__tests__/route.test.ts`, `app/api/cron/crm-retencion/__tests__/route.test.ts`, `lib/studio/__tests__/crm-mantenimiento.test.ts`, `app/studio/(app)/crm/_components/CrmTableroKanban.test.tsx`, `scripts/__tests__/build-crontab.test.ts` y `scripts/__tests__/infra-env-example.test.ts` (sin cambios: tienen que seguir verdes)
 
 **En todos los tramos:** esta spec, `docs/specs/0582-chatwoot-piloto/checklist.md` (fila 6.6),
 `docs/specs/README.md` (índice regenerado) y `.agents/handoffs/0614-*.md`.
 
-**Este borrador** toca solo: esta spec, `docs/specs/README.md` y
-`.agents/handoffs/0614-crm-reemplazos-kommo.md`.
+**Este borrador** toca solo: esta spec, `docs/specs/README.md`,
+`.agents/handoffs/0614-crm-reemplazos-kommo.md` y, por P-1, una línea en la SDD-0587 §10
+(`docs/specs/0587-chatwoot-contrato-sistema-maestro/spec.md`) que apunta aquí.
 
 ## 6. Datos personales (revisar-datos-ve)
 
@@ -464,11 +570,12 @@ Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Se eval�
 
 | Dato | Dónde | De quién | Finalidad | Retención |
 |---|---|---|---|---|
+| Nombre visible y últimos 10 dígitos de quien pidió un estimado por la web sin ficha | `crm_tarjetas` con `fuente = 'cotizador'`, copiados de `quotes.client_name` y de `quotes.prospect_whatsapp` (§2.3, paso 3). Del teléfono, solo los 10 últimos | Prospecto sin ficha que usó el cotizador web | Seguir su estimado en el tablero Leads | D6: se anonimiza a los 12 meses sin actividad (§2.7 b). El estimado sigue en `quotes` con su propio plazo, que 6.6 no cambia |
 | Hora del último entrante y de la última respuesta | `crm_tarjetas` (§3) | Lead o cliente que escribe por Chatwoot | Saber si alguien espera respuesta y si la ventana de 24 h se cierra | Con la tarjeta; se borran al anonimizar |
 | Clave del motivo de pérdida | `crm_tarjetas`, `crm_historial_etapas` | Lead | Conteos por motivo con menos texto libre | Con la tarjeta; se borra al anonimizar |
 | Cambios de tablero | `crm_cambios_tablero` | Persona con tarjeta | KPI «pasaron a cliente» | Con la tarjeta; sin datos de la persona |
 | Teléfono completo leído de Chatwoot | En memoria del servidor; si se confirma, `clients.phone` | Lead al que se le crea ficha | Precargar la ficha | El de la ficha |
-| Eventos de auditoría | `entity_audit_log` | Ids de la tarjeta, la ficha y el equipo | AUD-01 | El de la bitácora (AUD-02) |
+| Eventos de auditoría | `entity_audit_log` | Id de la tarjeta e ids del equipo; **nunca** el de la ficha ni datos de la persona (D-AUD, §2.8) | AUD-01 | El de la bitácora (AUD-02), que sobrevive a la purga de la ficha |
 | Aviso de ventana | Push del navegador | Ninguno: sin nombre ni teléfono | Avisar al dueño | El del servicio de push |
 
 | # | Punto | Estado en `main` | Evidencia y lo que exige 6.6 |
@@ -476,10 +583,10 @@ Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Se eval�
 | 1 | Inventario | CORRECTO | El de la 0506 y la 0513 (SDD-0587 §14.3 y §16.8). Lo nuevo de 6.6 está arriba; ninguna columna nueva guarda texto de mensajes, teléfono completo ni correo |
 | 2 | Minimización | CORRECTO | Con ficha no se copian nombre ni teléfono (`0506_crm_modelo.sql:339`). 6.6 exige: aviso sin datos de la persona; motivos de lista; KPI y por asesor solo con conteos; el teléfono de Chatwoot se lee solo para precargar y no se guarda en la tarjeta |
 | 3 | Consentimiento | NO VERIFICABLE | Igual que la 0587 §14.3: la base de licitud de guardar al lead la decide Sam con su asesor. Crear una ficha sin un acto de la persona ya pasa hoy (`kommo-convert.ts:167`, `clientes/actions.ts:104`) y 6.6 no lo amplía |
-| 4 | Derechos | ENCONTRADO | Un lead sin ficha no tiene cómo pedir que se borre su tarjeta antes de los 12 meses: la anonimización solo la corre `service_role` y nada la llama (`0506_crm_modelo.sql:759`; `git grep` sin llamadas). **Arreglo:** «Anonimizar ahora» (§2.7 c) |
-| 5 | Borrado | ENCONTRADO | La anonimización por plazo no está agendada y solo mira «Perdido» (`0506_crm_modelo.sql:768-774`). **Arreglo:** cron diario y D-6.6-9. Chatwoot conserva contacto y conversación sin plazo (0587 §14.3, punto 8): el diálogo lo dice. La prueba de borrado con un valor rastreable se propone para prueba (§8), no para producción |
+| 4 | Derechos | ENCONTRADO | Un lead sin ficha no tiene cómo pedir que se borre su tarjeta antes de los 12 meses: la anonimización solo la corre `service_role` y nada la llama (`0506_crm_modelo.sql:759`; `git grep` sin llamadas). **Arreglo:** «Anonimizar ahora» (§2.7 d) |
+| 5 | Borrado | ENCONTRADO | La anonimización por plazo no está agendada y solo mira a quien está en «Perdido» y sin ficha (`0506_crm_modelo.sql:768-774`): el registrado que nunca envió nada conserva para siempre en su tarjeta el contacto del chat, el BSUID, las notas y las tareas. **Arreglo:** cron diario con D-6.6-9 (a), que nace apagado y lo enciende Sam (§2.7 c). Chatwoot conserva contacto y conversación sin plazo (0587 §14.3, punto 8): el diálogo lo dice. La prueba de borrado con un valor rastreable se propone para prueba (§8), no para producción |
 | 6 | Trazabilidad de solicitudes | NO VERIFICABLE | Hoy no hay camino que registrar. El diseño deja `crm_tarjeta_anonymized` con quién y el motivo de la lista |
-| 7 | Política pública | ENCONTRADO | `/privacidad` promete anonimizar a los 12 meses sin actividad (`app/privacidad/page.tsx:344-349`) y nada lo hace hoy. Con D-6.6-9 (a) y el cron, el texto queda cierto sin cambiarlo (**I**: lo confirma Sam). Si eligiera (b) o (c), el texto se vuelve a revisar con él |
+| 7 | Política pública | ENCONTRADO | `/privacidad` promete anonimizar a los 12 meses sin actividad a quien «no llegaste a ser cliente» (`app/privacidad/page.tsx:345-349`) y borrar el BSUID al año (`:352-354`); nada lo hace hoy, y el predicado de la 0506 deja fuera al registrado sin envíos. Solo D-6.6-9 (a), **con el cron encendido**, deja el texto cierto sin cambiarlo (**I**: lo confirma Sam). Con (b) o (c) hay que cambiar el texto (d), con su aprobación |
 | 8 | Terceros | NO VERIFICABLE | Studio no escribe en Chatwoot (0587 §5.1) y 6.6 tampoco. El aviso sale por los servicios de push del navegador (`web-push`, `package.json:85`); que el contenido viaje cifrado de punta a punta no se leyó aquí. Por eso el aviso no lleva datos de la persona |
 | 9 | Transferencia internacional | NO VERIFICABLE | Todo queda en la base de DTD. El CRM solo lo ven admin y comercial (`rbac.ts:99`); si alguno trabaja desde China aplicaría la PIPL, y eso no se ve en el código |
 | 10 | Decisiones automatizadas | CORRECTO | Los movimientos solos cambian la etapa y el aviso es interno: nada niega servicio ni escribe al cliente (D8 de la 0587) |
@@ -497,7 +604,7 @@ falta de un abogado:** la base de licitud y el pase de la política, que siguen 
 |---|---|---|
 | SGE-00 | cumplimiento (diseño) | El permiso vive en la base: RPC con chequeo de rol y RLS de la 0506 (§4) |
 | MP-01 | cumplimiento (diseño) | «Anonimizar ahora» es irreversible y lo dice; la tarjeta queda para los conteos |
-| AUD-01 | cumplimiento (diseño), cierra la no conformidad de SDD-0587 §16.6 | Trigger en la misma transacción (§2.7 d) |
+| AUD-01 | cumplimiento (diseño), cierra la no conformidad de SDD-0587 §16.6 | Trigger en la misma transacción (§2.7 e), con la regla D-AUD (§2.8) |
 | AUD-02 | no aplica | No cambia quién consulta ni cuánto retiene la bitácora |
 | BTN-01 | cumplimiento (diseño) | Verbos directos: «Crear ficha», «Ligar a DTD-0123», «Anonimizar ahora» |
 | CRT-01 | cumplimiento (diseño) | §2.2: permiso antes, duplicados, datos mínimos, drawer, enlace al formulario completo |
@@ -515,9 +622,13 @@ falta de un abogado:** la base de licitud y el pase de la política, que siguen 
   limpia el motivo; estimado web con 0, 1 y 2 coincidencias; cambio de tablero en los dos sentidos
   sin duplicar y sin contar la ubicación inicial; `crm_registrar_mensaje` con `greatest` y con
   contacto desconocido; señales de «sin atender» en los bordes (umbral exacto, 20 h, 24 h, respuesta
-  posterior, tarea sin fecha); KPI y por asesor contra un juego de datos fijo; anonimizar ahora
-  (admin sí, comercial no, otro tenant no, con ficha no; misma limpieza que por plazo); auditoría
-  sin datos de la persona en el payload; grants (nada para `anon`).
+  posterior, tarea sin fecha, ticket del portal sin primera respuesta); KPI y por asesor contra un
+  juego de datos fijo, y que el de por asesor no devuelva ids de fichas ni de tarjetas; anonimizar
+  ahora (admin sí, comercial no, otro tenant no, con ficha no; misma limpieza que por plazo);
+  retención con D-6.6-9 (a): lead sin ficha y registrado sin envíos a los 12 meses, el registrado
+  queda desligado y puede tener una tarjeta nueva, el cliente no se toca salvo su BSUID al año;
+  auditoría según D-AUD (payload sin `client_id` ni datos de la persona; actor `system` para lo
+  que dispara el webhook, un cron o `service_role`); grants (nada para `anon`).
 - **Control rojo** sin la migración y **mutantes** por rama de cada RPC, como la 0506 y la 0513.
 - **Manejador de mensajes:** saliente de agente, eco sin remitente, nota privada, bot y redirección
   de E10, cada uno con su resultado esperado.
@@ -526,8 +637,10 @@ falta de un abogado:** la base de licitud y el pase de la política, que siguen 
 - **Ficha desde la tarjeta:** candados, duplicados, ficha que ya tiene tarjeta, ligado que falla
   después del alta.
 - **Pantallas:** estados de carga, vacío, error y sin migración; pestañas con teclado; `/ui-check`.
-- **Cron:** sin `CRON_SECRET` responde 401; dos corridas seguidas no duplican nada;
-  `build-crontab.test.ts` verde.
+- **Cron:** sin `CRON_SECRET` responde 401; **con el interruptor vacío o con cualquier valor que no
+  sea `"1"` responde `apagado` y no escribe nada**, probado valor por valor como
+  `CRM_ALTA_WEB_SIN_KOMMO` en 6.4; encendido, dos corridas seguidas no duplican nada;
+  `build-crontab.test.ts` e `infra-env-example.test.ts` verdes.
 - **Logs:** ninguna línea con nombre, teléfono, contacto ni BSUID.
 - **Prueba de borrado (revisar-datos-ve, paso 3)** en el entorno de prueba, con un valor rastreable,
   nunca en producción.
@@ -545,11 +658,14 @@ falta de un abogado:** la base de licitud y el pase de la política, que siguen 
 - [ ] R5: cada KPI coincide con su fórmula sobre un juego de datos fijo.
 - [ ] R6: las tres señales aparecen y desaparecen en sus bordes; nada se envía al cliente; el aviso,
   si se enciende, no lleva datos de la persona y sale una vez por ventana.
-- [ ] R7: el cron registra cambios de tablero y anonimiza por plazo; «Anonimizar ahora» solo para
-  admin y sin ficha; la auditoría registra los cuatro eventos sin datos de la persona.
+- [ ] R7: los crons nacen apagados y no escriben nada así; encendidos en prueba, registran cambios
+  de tablero y anonimizan por plazo; «Anonimizar ahora» solo para admin y sin ficha; la auditoría
+  registra sus eventos según D-AUD.
+- [ ] Las definiciones D-SA y D-AUD (§2.8) son las mismas que cita la SDD-0586 §10.5.
 - [ ] Contrato SQL, control rojo y mutantes en verde; `pnpm verify` de cada tramo con su resultado
   por paso.
-- [ ] La migración **no** se aplica dentro de este paso: lleva su propio OK nominal de Sam.
+- [ ] La migración **no** se aplica dentro de este paso: lleva su propio OK nominal de Sam. Encender
+  cada cron es otro OK aparte.
 
 ## 10. Reestimación y tramos
 
@@ -565,12 +681,13 @@ La base de 6.6 es **2,5 días** (checklist). El diseño pide **4 días**:
 **De dónde sale el +1,5:** lo que 6.2 a 6.4 le pasaron a 6.6 después del contrato (cron de
 retención, «Anonimizar ahora», AUD-01 y el cambio de tablero, §1.2), cerca de 1 día (**I**), y las
 dos fechas de «sin atender», que no se podían sacar de lo que existe (H4), cerca de 0,5 días.
-Cambiar la base pide una línea base nueva con OK de Sam (SDD-0587 §9). **Si se quiere quedar en
-2,5:** D-6.6-6 (c) o sin aviso (−0,25), D-6.6-7 (b) (−0,25), D-6.6-11 (b) (−0,1) y dejar R7 b y c
-para otro paso (−0,5), con el riesgo de H6.
 
-**Orden:** S1 primero. S2 y S3 dependen de S1 y no tocan los mismos archivos entre sí, salvo
-`tarjeta-actions.ts` y `TarjetaFichaDrawer.tsx` (S2 y S4): esos van en serie.
+**Decisión del Director General (P-4):** no se recorta nada: la retención (§2.7 b) y «Anonimizar ahora» (§2.7 d) se quedan. La reestimación se
+le lleva a Sam junto con la de la 10.5: en total **+2,25 días**, y el programa pasa de **115,5 a
+117,75 días**. Cambiar la base pide una línea base nueva con su OK (SDD-0587 §9).
+
+**Orden:** la implementación de la 10.5 primero; después la PR A (S1 + S2) y, ya fusionada, la PR B
+(S3 + S4), las dos contra `main` (P-3).
 
 ## 11. Pendientes de decisión
 
@@ -586,22 +703,32 @@ para otro paso (−0,5), con el riesgo de H6.
 | D-6.6-6 | Aviso de «sin atender» | (a) Solo en pantalla · (b) Pantalla y push al dueño cuando a la ventana le quedan 4 h · (c) Pantalla y resumen diario | **(b)**: es lo que hacía el aviso interno de Kommo, sin costo de Meta y sin datos en el aviso |
 | D-6.6-7 | Quién ve el desempeño por asesor | (a) El CRM (admin y comercial) y Reportes › Por agente con agregados (también contabilidad, como hoy) · (b) Solo el CRM | **(a)**: contabilidad no pierde lo que ve hoy y no lee tarjetas (H1) |
 | D-6.6-8 | Recuperación | (a) Sigue sobre el espejo hasta el corte; después, solo fichas, y los leads sin ficha se recuperan desde Chatwoot · (b) Guardar el teléfono completo del lead | **(a)**: (b) rompe D6 (H2) |
-| D-6.6-9 | Anonimización por plazo | (a) Todo lead sin ficha con 12 meses sin actividad, en cualquier etapa · (b) Solo «Perdido», y pasar a «Perdido» a los 6 meses sin actividad · (c) Como está | **(a)**: es lo que `/privacidad` ya dice (H6) |
+| D-6.6-9 | Qué se anonimiza por plazo. `/privacidad` dice hoy, palabra por palabra: «Si nos escribiste por WhatsApp o chat y no llegaste a ser cliente, cuando tu consulta queda cerrada sin servicio anonimizamos sus datos de seguimiento (nombre, teléfono, identificadores del chat y notas) a los 12 meses sin actividad» (`app/privacidad/page.tsx:345-349`), y aparte: «El código anónimo de WhatsApp (BSUID) se borra al año sin actividad» (`:352-354`) | (a) La tarjeta de toda persona que no es cliente hoy (lead sin ficha o registrado sin envíos), en cualquier etapa, a los 12 meses sin actividad: si tiene ficha, se desliga y la ficha no se toca; y el BSUID de toda tarjeta, también la de un cliente, al año · (b) Solo las tarjetas sin ficha, en cualquier etapa · (c) Como está: sin ficha y en «Perdido» · (d) Cambiar el texto de `/privacidad` para que diga lo que haga el sistema | **(a)**: es la única que cumple el texto tal como está. (b) deja fuera al registrado que nunca envió nada, que «no llegó a ser cliente»: al ligar, el check `0506_crm_modelo.sql:339` solo quita nombre y teléfono, y en su tarjeta siguen el contacto del chat, el BSUID, las notas y las tareas. (c) además nunca toca a quien se queda en «Nuevo». (d) pide aprobar un texto nuevo. **I:** para el registrado, el nombre y el teléfono viven en la ficha, que sigue el plazo de la cuenta (`:331-333`); si Sam lee que la promesa también los cubre, haría falta (d). En todas, el cron nace apagado y encenderlo es un OK aparte |
 | D-6.6-10 | «Anonimizar ahora» | (a) Solo admin, solo tarjetas sin ficha · (b) Admin y comercial | **(a)**: es irreversible |
 | D-6.6-11 | Motivos de pérdida | (a) Lista corta más «Otro» · (b) Solo texto, como hoy | **(a)**: da la opción «otro asunto» que Sam pidió y deja menos texto libre con datos de personas |
 | D-6.6-12 | Maqueta antes del código | (a) No: componentes del Studio ya aprobados · (b) Sí, en Cloud Design | **(a)**: no hay pantalla del CRM en el Norte y las piezas ya existen |
 
-### Para el Director General
+**No es una pregunta de ahora:** encender cada cron (`CRM_CAMBIOS_TABLERO`, `CRM_RETENCION`,
+`CRM_AVISO_VENTANA`) es un OK aparte de Sam, después de publicar y de probar en prueba (§2.7 c).
 
-| # | Pregunta |
-|---|---|
-| P-1 | Al integrar, ¿se agrega en la SDD-0587 §10 un puntero «6.6 vive en la SDD-0614»? |
-| P-2 | Cambio de tablero: ¿tabla propia `crm_cambios_tablero` (recomendada) o filas en `crm_historial_etapas` con un marcador en `de`? La segunda no pide tabla, pero mezcla etapas con tableros y H7 la complica |
-| P-3 | ¿Cuatro PR apiladas (S1 a S4) o dos (S1+S2, S3+S4)? |
-| P-4 | ¿Se lleva a Sam la línea base nueva de 6.6 (2,5 → 4 días) o se recorta según §10? |
-| P-5 | Coordinación con la SDD-0610: si R7 agrega `motivo_perdida_clave`, ¿la 0610 la usa en vez de clasificar el texto? |
-| P-6 | El número de la migración se pide al empezar S1 (hoy el siguiente libre era 0518) |
-| P-7 | ¿Con qué identidad envía E10 su redirección? Hace falta para no contarla como respuesta humana (§2.4) |
+### Resueltas por el Director General (2026-11-06, sobre `99e7d6300`)
+
+Relayadas por el Subdirector de Chatwoot.
+
+| # | Pregunta | Decisión |
+|---|---|---|
+| P-1 | ¿Puntero en la SDD-0587 §10? | Sí. Va en esta misma PR |
+| P-2 | Cambio de tablero: ¿tabla propia o filas en el historial? | Tabla propia: un movimiento a la misma etapa no deja fila (`0506_crm_modelo.sql:731-733`), y en el historial `de` y `a` son etapas, no tableros (§2.7 a) |
+| P-3 | ¿Cuántas PR? | Dos, en serie contra `main` y sin apilar (§5) |
+| P-4 | ¿Línea base o recorte? | No se recortan la retención (§2.7 b) ni «Anonimizar ahora» (§2.7 d). Se lleva a Sam junto con la 10.5: +2,25 días, de 115,5 a 117,75 (§10) |
+| P-5 | ¿La SDD-0610 usa la clave del motivo? | Sí: usa la clave, y el texto libre solo en «Otro» |
+| P-6 | Número de migración | Se asigna al arrancar. Ni 6.6 ni la 10.5 reservan la 0518 (§3) |
+| P-7 | Identidad de la redirección de E10 | Respondida con el código: sale con el token del usuario de servicio (`router-api.ts:10`) como `outgoing` no privado (`:123`) y se excluye por el id de ese usuario (§2.4, D-SA) |
+
+Cambios que pidió antes de aceptar, ya aplicados: D-6.6-9 reescrita con el texto literal de
+`/privacidad`; en el inventario, las tarjetas de los estimados web (§6); la contradicción de los ids
+en Reportes (§2.6 y §3: la RPC no devuelve ids de fichas); los crons nacen apagados (§2.7 c); y la
+coordinación con la 10.5 con sus dos definiciones (§2.8).
 
 ## 12. Fuera de alcance
 
@@ -618,10 +745,13 @@ para otro paso (−0,5), con el riesgo de H6.
 - **Mensajes al cliente**: nada de 6.6 sale por Meta.
 - **Borrar en Chatwoot**: «Anonimizar ahora» no lo hace y lo dice.
 - **Medir W5 a W7** de la prueba de WhatsApp (SDD-0587, sección del 2026-11-04).
-- **Aplicar la migración**.
+- **Aplicar la migración** y **encender los crons**: cada uno con su OK aparte.
 
 ## 13. Seguimiento
 
 - **2026-11-06:** SDD-0614 reservada (`refs/dtd/reservations/0614`, rama
   `codex/sdd-reserve-0614-crm-reemplazos-kommo`, `c7691a9c3`) y diseño en borrador para revisión
   del Director General. Sin código ni migración.
+- **2026-11-06:** el Director General revisó el diseño sobre `99e7d6300` («bien encaminado»,
+  cambios menores de texto), resolvió P-1 a P-7 y pidió los cambios de §11, ya aplicados. Las
+  decisiones D-6.6-1 a D-6.6-12 se las lleva él a Sam, junto con las de la 10.5 y la línea base.

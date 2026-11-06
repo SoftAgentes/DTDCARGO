@@ -326,6 +326,8 @@ Los días base no cambian aquí: cambiarlos exige una línea base nueva con OK d
 
 Los pasos 6.5 en adelante suman aquí su allowlist al empezar.
 
+**6.6** vive en su propia SDD, la [0614](../0614-crm-reemplazos-kommo/spec.md), por asignación del Director General (2026-11-06): su diseño y su allowlist están allí, y este contrato sigue mandando.
+
 ## 11. Aceptación de 6.1
 
 - [x] Las tablas de §3 cubren los 11 objetos en las 3 fases.
