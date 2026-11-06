@@ -426,6 +426,19 @@ Cada una con el OK de Sam, por separado. Ninguna queda cubierta por el «sí» d
 - correr el cargador en prueba (5.6);
 - correrlo en producción (5.7).
 
+**Actualización, 2026-11-06 ~06:20Z: Sam autorizó E5 con datos reales, hasta producción.** Lo pasó el Director General; lo registra el Subdirector. A la opción «todo, incluida producción», Sam contestó: «Todo, incluida producción». Antes había dicho: «La transferencia debe pasar ya los datos de los clientes».
+
+Cubre las cinco puertas de arriba, con estas condiciones, que son parte del OK:
+
+1. **Ensayo limpio antes de producción:** E-1 a E-5 en su valor. Si algo falla o cambia el riesgo, se para y se le escribe al Director General, que le pregunta a Sam.
+2. **Kommo solo se lee:** sin cambiar configuración, agentes ni canales, y sin forzar su límite de pedidos, porque el equipo trabaja ahí. La corrida usa `--pausa 0.5`, unas 2 peticiones por segundo.
+3. **Ningún mensaje a clientes:** «Archivo Kommo» no envía nada, y no se contesta Instagram desde Chatwoot.
+4. **Los datos no salen del servidor:** nada por chat, PC ni Git, ni nombres en la evidencia. Solo conteos y huellas.
+5. **El token lo pega Sam en el VPS,** con `pegar-token.sh` en una ventana tmux.
+6. **Producción:** respaldo antes, lectura previa, de a una y conteos después. Antes de cargar se le manda al Director General la evidencia del ensayo, y la carga la hace él o se corre con él.
+
+**No cubre** el borrado físico ni la anonimización a 24 meses en sí.
+
 ### 10.6 Qué quedó en código (2026-11-06)
 
 - **`extraer --corte` sin `--base`:** extracción completa hasta el corte. Deja `corte.json`, y el manifiesto lleva `corte`, así que un incremental puede partir de ahí. Mantiene el sondeo de huecos del respaldo completo.

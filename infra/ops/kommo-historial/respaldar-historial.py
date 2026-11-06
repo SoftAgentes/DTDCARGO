@@ -1369,6 +1369,25 @@ def estimar_chatwoot(msj: dict, talks: dict, contactos: dict, adj: dict) -> dict
     }
 
 
+def filtro_updated_at(st: Staging) -> dict | None:
+    """En una corrida incremental: por lista, cuántos elementos llegaron y cuántos cambiaron fuera de la ventana.
+    Si `fuera` > 0, Kommo ignoró `filter[updated_at]` en esa lista (SDD-0590 §9.2): bajó entera."""
+    if not st.existe("incremental.json"):
+        return None
+    plan = st.leer_json("incremental.json")
+    desde, corte = plan.get("desde"), plan.get("corte")
+    listas = {}
+    for nombre in LISTAS_INCREMENTALES:
+        total = fuera = 0
+        for e in st.leer_ndjson(f"{nombre}.ndjson"):
+            total += 1
+            ts = segundos(e.get("updated_at") or e.get("created_at"))
+            if ts is None or ts < desde or ts > corte:
+                fuera += 1
+        listas[nombre] = {"total": total, "fuera_de_la_ventana": fuera}
+    return {"desde": utc(desde), "corte": utc(corte), "filtro_updated_at": listas}
+
+
 def informe(st: Staging, log: Log, ahora_ts: int | None = None) -> dict:
     ahora_ts = ahora_ts or ahora()
     indice = {int(k): v for k, v in (st.leer_json("talks-indice.json") if st.existe("talks-indice.json") else {}).items()}
@@ -1388,6 +1407,7 @@ def informe(st: Staging, log: Log, ahora_ts: int | None = None) -> dict:
     salida = {
         "version": VERSION,
         "fecha": utc(ahora_ts),
+        "incremental": filtro_updated_at(st),
         "cuenta": {"subdominio": cuenta.get("subdomain"), "creada": utc(cuenta.get("created_at")),
                    "campos_presentes": sorted(k for k in cuenta if k != "_embedded")},
         "eventos_chat": contar_eventos(st.leer_ndjson("eventos.ndjson")),

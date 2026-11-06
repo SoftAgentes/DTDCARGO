@@ -678,6 +678,17 @@ class PruebasIncremental(unittest.TestCase):
         completo = R.construir_manifiesto(R.Staging(os.path.join(self.tmp, "otro")), args.destino_corrida, "x", self.recipients)
         self.assertNotIn("incremental", completo)
 
+    def test_el_informe_dice_si_kommo_ignoro_el_filtro_por_updated_at(self):
+        st, _args, log = self.extraer()
+        # El servidor falso ignora el filtro en las notas de leads: llega una nota vieja.
+        st.anexar_ndjson("notas-leads.ndjson", [{"id": 2, "note_type": "common", "updated_at": AHORA - 400 * DIA}])
+        r = R.informe(st, log, ahora_ts=AHORA)
+        f = r["incremental"]["filtro_updated_at"]
+        self.assertEqual(f["contactos"], {"total": 1, "fuera_de_la_ventana": 0})
+        self.assertEqual(f["notas-leads"], {"total": 2, "fuera_de_la_ventana": 1})
+        completa = R.informe(R.Staging(os.path.join(self.tmp, "otro")), log, ahora_ts=AHORA)
+        self.assertIsNone(completa["incremental"])
+
     def test_parsear_instante(self):
         self.assertEqual(R.parsear_instante("2026-11-20T03:00:00Z"), 1795143600)
         self.assertEqual(R.parsear_instante("2026-11-20"), 1795132800)
@@ -745,8 +756,13 @@ class PruebasVinculoYCarga(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="kommo-e5-vinculo-")
         self.st = R.Staging(os.path.join(self.tmp, "staging"))
+        # Las pruebas escriben en /tmp; en Linux la foto del ERP solo se acepta en /dev/shm. Esa regla
+        # tiene su propia prueba (test_la_foto_del_erp_tiene_que_estar_en_tmpfs), que usa la real.
+        self._en_tmpfs = R.en_tmpfs
+        R.en_tmpfs = lambda ruta: True
 
     def tearDown(self):
+        R.en_tmpfs = self._en_tmpfs
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     def foto(self, filas):
@@ -831,8 +847,10 @@ class PruebasVinculoYCarga(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "posix", "la ruta de tmpfs es de Linux")
     def test_la_foto_del_erp_tiene_que_estar_en_tmpfs(self):
+        R.en_tmpfs = self._en_tmpfs
         with self.assertRaises(R.ErrorFatal):
             self.foto([{"client_id": "C1", "phone_last10": ["4121111111"]}])
+        self.assertTrue(R.en_tmpfs("/dev/shm/clientes-erp.ndjson"))
 
     def armar_staging(self):
         st = self.st
