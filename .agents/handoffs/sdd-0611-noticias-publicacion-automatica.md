@@ -53,7 +53,8 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
     (motivo obligatorio, detección de toda salida, motivo de vuelta a la oficina).
   - Revisores: «el humano va a ser Sam y va a ser Alejandro», más un agente crítico → decisión 5
     (§4.7). Alejandro necesita cuenta propia en el Studio.
-  - Queda abierta la 4 (fecha de revisión): Sam citó las opciones sin elegir.
+  - Fecha de revisión: «60 días» → decisión 4, 60 días después de la primera publicación
+    automática. **Las cinco decisiones quedaron resueltas.**
   - Ícono del webhook en `assets/discord/`, recomendada la «N». Sam respondió «listo» el
     2026-11-06 después de las instrucciones para crear `#noticias`, el webhook «DTD Cargo · Noticias»
     y subir la foto. **No verificado desde aquí** (no hay acceso a Discord). La dirección del webhook
@@ -74,7 +75,8 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
 
 ## Pendientes de esta tarea
 
-1. Que Sam revise la spec y conteste las cinco decisiones abiertas de su §7.
+1. Las cinco decisiones de §7 están resueltas. Falta que Sam apruebe la spec (`status: approved`)
+   y que el Director decida el merge.
 2. PR en borrador abierta. Autorización recibida por mensaje del Subdirector «SEO, GEO y AEO»
    el 2026-11-06, texto literal: «publica la rama y abre la PR en borrador; eso está autorizado,
    fusionarla no». No cubre el merge.
