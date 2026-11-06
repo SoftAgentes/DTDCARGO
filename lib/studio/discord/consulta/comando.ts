@@ -72,7 +72,7 @@ export function leerComandoCliente(interaccion: InteraccionDiscord): LecturaComa
   if (interaccion.guild_id !== DTD_DISCORD_GUILD_ID || !esSnowflake(discordUserId)) {
     return { ok: false, motivo: "fuera_del_servidor" };
   }
-  const opcion = interaccion.data.options?.find((o) => o.name === "nombre");
+  const opcion = interaccion.data.options?.find((o) => o.name === "buscar");
   const crudo = typeof opcion?.value === "string" ? opcion.value : "";
   const termino = crudo.replace(/\s+/g, " ").trim();
   if (termino.length < TERMINO_MIN || termino.length > TERMINO_MAX) {

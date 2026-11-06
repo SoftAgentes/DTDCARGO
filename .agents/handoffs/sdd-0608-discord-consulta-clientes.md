@@ -93,7 +93,7 @@ El archivo de autorización para `aplicar-remoto.sh --autorizacion` (nombra `051
 7. **Guardar la URL de interacciones:** General Information → «Interactions Endpoint URL» = `https://dtdcargo.com/api/discord/interacciones`. Discord la prueba al guardar (PING y una firma mala); si no guarda, revisar el paso 3 y que la web publicada tenga esta ruta.
 8. **Habilitar el comando:** Ajustes del servidor → Integraciones → la aplicación → `/cliente`: permitir al rol «Equipo» y a los canales de Operación (nace oculto para no administradores).
 9. **Enlaces:** cada persona del equipo pega su ID de Discord en su perfil del Studio (lo agrega la 0606). **No enlazar la cuenta compartida** «DTD Cargo» (hallazgo de privacidad 2): sin enlace recibe «No autorizado».
-10. **Prueba:** `/cliente nombre:<un cliente conocido>` desde Operación → respuesta que sólo ve quien preguntó. Desde una cuenta sin enlace → «No autorizado».
+10. **Prueba:** `/cliente buscar:<un cliente conocido>` y `/cliente buscar:<su código>` desde Operación → respuesta que sólo ve quien preguntó. Desde una cuenta sin enlace → «No autorizado».
 
 ## FUERA DE ALCANCE DETECTADO
 

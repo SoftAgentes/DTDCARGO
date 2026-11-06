@@ -13,7 +13,7 @@ confidencialidad: interno
 
 # SDD-0608 — Consulta de clientes desde Discord: `/cliente`
 
-> En Operación, alguien escribe `/cliente nombre:Pedro Pérez` y recibe, solo él, «hay tres Pedro Pérez» con el código de cada uno y el enlace a su ficha en el Studio. Nada de facturas, montos ni contacto: eso se ve en el Studio con usuario y permisos.
+> En Operación, alguien escribe `/cliente buscar:Pedro Pérez` y recibe, solo él, «hay tres Pedro Pérez» con el código de cada uno y el enlace a su ficha en el Studio. Y al revés: `/cliente buscar:DTD-0123` le dice de quién es ese código. Nada de facturas, montos ni contacto: eso se ve en el Studio con usuario y permisos.
 
 ## Contexto
 
@@ -57,7 +57,9 @@ Todo falla cerrado, en este orden, con el cliente `service_role` (no hay sesión
 
 En Discord, además, el comando nace oculto (`default_member_permissions: "0"`, `contexts: [0]`) y Sam lo habilita para el rol «Equipo» y los canales de Operación en Ajustes del servidor › Integraciones. Eso es configuración de Discord, no la barrera: la barrera es el enlace + permiso del Studio.
 
-### D4 · Búsqueda en la base, con comodines escapados
+### D4 · Búsqueda en la base, por nombre o por código, con comodines escapados
+
+Por código (Sam, 2026-11-06: «si yo pregunto el código, me dice el cliente»): el término sin mayúsculas ni signos tiene que ser **igual** al Shipping Mark sin signos (`dtd0123` y `DTD-0123` encuentran `DTD-0123`, también con prefijo de aliado). Es igualdad exacta, sin comodines, y esa coincidencia va primero. Un código parcial no encuentra nada por código. Una sola opción, `buscar`, recibe nombre o código: no hace falta saber de antemano cuál es.
 
 La búsqueda va por `public.discord_buscar_clientes(tenant, término, límite)` (migración 0516) y no por `.ilike()` de PostgREST, que convierte `*` en `%` sin forma de escaparlo. En SQL se escapan `\`, `%` y `_` y `*` queda literal. Cada palabra de 2+ caracteres del término (hasta 6) tiene que aparecer en el nombre, en cualquier orden, sin distinguir mayúsculas ni acentos (á→a, ñ→n). Sin ninguna palabra válida no devuelve nada (nunca «todos»). Excluye eliminados y otros tenants. Devuelve **sólo** `markbox` y `name`: la minimización vive en la base. Techo de 25 filas.
 
@@ -135,7 +137,7 @@ Fuera: pantallas del Studio, la 0606 y sus archivos, la búsqueda del listado de
 3. Otro servidor o mensaje directo → rechazo efímero sin tocar la base.
 4. Sin enlace → «No autorizado…», registrado como `sin_enlace`, sin búsqueda. Enlace en dos perfiles → ambiguo, sin búsqueda.
 5. Membresía desactivada, de otro tenant o rol sin `clients` (también por desvío del tenant) → sin permiso, sin búsqueda. Desvíos ilegibles → no disponible.
-6. `%`, `_`, `*` y `\` se buscan como texto; una sola letra o sólo comodines no devuelven nada.
+6. `%`, `_`, `*` y `\` se buscan como texto; una sola letra o sólo comodines no devuelven nada. Un Shipping Mark exacto, con o sin guion y en cualquier mayúscula, devuelve ese cliente primero; uno parcial, eliminado o de otro tenant no.
 7. Hasta 10 coincidencias y «afinar» si hay más; con exactamente 10, no pide afinar.
 8. La respuesta no contiene teléfono, correo, dirección, montos ni estado de envío aunque la fila los traiga; la función de la base devuelve sólo `markbox` y `name`.
 9. Toda respuesta de comando es efímera y sin menciones.

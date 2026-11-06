@@ -101,6 +101,12 @@ Notas para Sam:
 - Cubre también los avisos de la SDD-0606. Si esa línea ya se aprobó con otro texto, se suma sólo la segunda oración.
 - Sólo describe lo que el código hace hoy. Si se activa `/cliente` sin la 0606, se quita la primera oración.
 
+### Búsqueda por código (2026-11-06, después de aprobado el texto)
+
+Sam pidió después que también funcione al revés: «si yo pregunto el código, me dice el cliente». `/cliente buscar:DTD-0123` devuelve el nombre de ese cliente. **No sale ningún dato nuevo:** siguen siendo nombre, Shipping Mark y enlace, y el código se compara exacto, sin comodines (`0516…sql`, camino `por_codigo`, con mutantes).
+
+Pero el texto aprobado de §4 dice «busca un cliente **por su nombre**». Con la búsqueda por código queda corto. Es un cambio de palabras, así que **vuelve a Sam**. Propuesta: «Cuando alguien del equipo con permiso para ver clientes busca un cliente por su nombre o por su Shipping Mark, la herramienta le muestra solo a esa persona el nombre y el Shipping Mark de los clientes que coinciden.» Hasta que Sam decida, la PR #399 sigue con el texto aprobado.
+
 ## 6 · No verificable
 
 1. **Qué guarda Discord de una respuesta efímera.** No queda en el historial del canal, pero pasa por sus servidores. Su retención y su uso dependen de sus términos, no leídos en esta revisión.

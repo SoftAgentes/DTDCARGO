@@ -50,7 +50,7 @@ describe("comando /cliente", () => {
     expect(COMANDO_CLIENTE.contexts).toEqual([0]);
     expect(COMANDO_CLIENTE.default_member_permissions).toBe("0");
     expect(COMANDO_CLIENTE.options).toEqual([
-      expect.objectContaining({ name: "nombre", type: 3, required: true, min_length: 2, max_length: 60 }),
+      expect.objectContaining({ name: "buscar", type: 3, required: true, min_length: 2, max_length: 60 }),
     ]);
     expect(JSON.stringify(COMANDO_CLIENTE)).not.toMatch(/MARKBOX/i);
   });
@@ -75,7 +75,7 @@ describe("comando /cliente", () => {
       type: 2,
       guild_id: DTD_DISCORD_GUILD_ID,
       member: { user: { id: "123456789012345678" } },
-      data: { name: "cliente", options: [{ name: "nombre", value: "  Pedro \n  Pérez " }] },
+      data: { name: "cliente", options: [{ name: "buscar", value: "  Pedro \n  Pérez " }] },
     });
     expect(l).toEqual({ ok: true, discordUserId: "123456789012345678", termino: "Pedro Pérez" });
   });

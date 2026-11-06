@@ -36,7 +36,7 @@ function interaccion(cambios: Record<string, unknown> = {}, nombre: unknown = "P
     type: 2,
     guild_id: DTD_DISCORD_GUILD_ID,
     member: { user: { id: DISCORD_SAM } },
-    data: { name: "cliente", options: [{ name: "nombre", type: 3, value: nombre }] },
+    data: { name: "cliente", options: [{ name: "buscar", type: 3, value: nombre }] },
     ...cambios,
   };
 }
@@ -305,6 +305,20 @@ describe("búsqueda y respuesta", () => {
       }
     }
     expect(data.content).not.toMatch(/MARKBOX/i);
+  });
+
+  // Pedido de Sam (2026-11-06): «si yo pregunto el código, me dice el cliente».
+  // El código viaja tal cual a la misma función de la base, que lo compara exacto
+  // (contrato de la 0516); la respuesta trae nombre, código y enlace, nada más.
+  it("por código: «DTD-0002» devuelve el cliente, sin campos prohibidos", async () => {
+    const f = preparar(BASE, { busqueda: [PEDROS[1]] });
+    const { data } = await contenido(await POST(pedido(interaccion({}, "DTD-0002"))));
+    expect(f.busquedas).toEqual([{ p_tenant_id: TENANT, p_termino: "DTD-0002", p_limite: 11 }]);
+    expect(data.content).toContain("Encontré 1 cliente con «DTD-0002»:");
+    expect(data.content).toContain("• PEDRO JOSE PEREZ · código **DTD-0002** · <https://dtdcargo.com/studio/clientes/DTD-0002>");
+    for (const prohibido of [PEDROS[1].phone, PEDROS[1].email, PEDROS[1].address, String(PEDROS[1].total_facturado)]) {
+      expect(data.content).not.toContain(prohibido);
+    }
   });
 
   it("sin coincidencias → lo dice y no inventa", async () => {

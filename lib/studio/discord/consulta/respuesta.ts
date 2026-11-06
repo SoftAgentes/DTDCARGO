@@ -57,7 +57,7 @@ export const MENSAJES = {
   limite: "Hiciste muchas consultas seguidas. Espera un minuto y vuelve a intentar.",
   no_disponible: "La consulta de clientes no está disponible en este momento. Avísale a un administrador.",
   fuera_del_servidor: "Este comando solo funciona en el servidor de DTD Cargo.",
-  termino_invalido: "Escribe entre 2 y 60 caracteres del nombre del cliente.",
+  termino_invalido: "Escribe entre 2 y 60 caracteres: el nombre del cliente o su código.",
   otro_comando: "No conozco ese comando.",
 } as const;
 
