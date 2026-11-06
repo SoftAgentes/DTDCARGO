@@ -59,7 +59,16 @@ if [ "${1:-}" = --mutantes ]; then
   mutar "sin puerta de migraciones" 'puerta_migraciones "$1" || return 1' 'true'
   mutar "las esperas aceptadas no cuentan" '{ cat "${TMP}/ledger"; printf' '{ cat "${TMP}/ledger"; true || printf'
   mutar "compose y cron no frenan" 'BLOQUEAN="compose.yml compose.supabase.yml cron/Dockerfile cron/crontab cron/entrypoint.sh"' 'BLOQUEAN=""'
-  mutar "sin --no-deps" 'up -d --no-deps web ) >' 'up -d web ) >'
+  mutar "sin --no-deps" 'up -d --no-deps --no-recreate --scale "web=${n}" web ) >' 'up -d --no-recreate --scale "web=${n}" web ) >'
+  # 2026-11-06: el relevo sin corte.
+  mutar "sin relevo (como antes: compose baja el viejo primero)" 'up -d --no-deps --no-recreate --scale "web=${n}" web ) >' 'up -d --no-deps web ) >'
+  mutar "retira el viejo sin esperar a que Traefik sume al nuevo" 'sleep "${ESPERA_TRAEFIK}"   # Traefik suma al nuevo' ':'
+  mutar "prueba rápida sin esperar a que Traefik saque al viejo" 'saque al viejo"; sleep "${ESPERA_TRAEFIK}"; fi' 'saque al viejo"; fi'
+  mutar "retira el viejo aunque el nuevo no quede healthy" 'if ! esperar_web "$1" "${nuevos}"; then' 'if false; then'
+  mutar "deja el nuevo que no quedó healthy" 'CODIGO=salud
+    retirar "${nuevos}"' 'CODIGO=salud
+    true'
+  mutar "no retira el viejo" '  for id in ${viejos}; do retirar "${id}"; done' '  true'
   mutar "sin vuelta atrás" 'if desplegar "${previo}" "${previo_id}" vuelta; then' 'if false; then'
   mutar "la fallida no queda rechazada" '    marcar_rechazo "${digest}" "${sha}" "${fallo}"' '    true'
   mutar "sin candado" 'if [ "$1" = 0 ]; then flock -n 9;' 'if [ "$1" = 0 ]; then true;'
@@ -149,6 +158,19 @@ cat > "${T}/bin/docker" <<'DOBLE'
 # Doble de docker con estado en $DOBLE. Solo lo que usa publicar-web.sh.
 D="${DOBLE:?}"; IMG=ghcr.io/softagentes/dtdcargo
 printf '%s\n' "$*" >> "$D/llamadas.log"
+# Contenedores: cont/<servicio> es el que sirve (id c-<servicio>) y cont/web.2, el
+# del relevo (c-web.2), con el id de su imagen. Cada vez que la web se queda sin un
+# contenedor healthy que Traefik ya enrute, el doble lo anota en $D/corte.log. Con
+# $D/traefik-lag (milisegundos), Traefik tarda eso en sumar a un contenedor que
+# quedó healthy y en sacar a uno retirado.
+ms() { date +%s%3N; }
+sano() { [ -f "$D/cont/$1" ] && [ "$(cat "$D/salud/$(cat "$D/cont/$1")" 2>/dev/null || echo healthy)" = healthy ]; }
+enrutado() { # $1 = contenedor (web | web.2): healthy y, con lag, desde hace al menos el lag
+  sano "$1" || return 1
+  [ -f "$D/traefik-lag" ] || return 0
+  [ -f "$D/sano-desde/$1" ] && [ $(( $(ms) - $(cat "$D/sano-desde/$1") )) -ge "$(cat "$D/traefik-lag")" ]
+}
+corte() { echo "$*" >> "$D/corte.log"; }
 clave() { printf '%s' "$1" | tr '/:@' '___'; }
 # Con qué direcciones conoce el servidor una imagen: img/<id>/repos, una por línea
 # (sin el archivo, la actual). Una referencia solo resuelve en su dirección.
@@ -193,21 +215,43 @@ case "$1" in
     esac ;;
   ps)
     s="$(printf '%s\n' "$@" | sed -n 's/^label=com.docker.compose.service=//p')"
-    [ -f "$D/cont/$s" ] && echo "c-$s"; exit 0 ;;
+    [ -f "$D/cont/$s" ] && echo "c-$s"; [ -f "$D/cont/$s.2" ] && echo "c-$s.2"; exit 0 ;;
   inspect)
     s="${4#c-}"; [ -f "$D/cont/$s" ] || exit 1
     case "$3" in
       '{{.Image}}') echo "sha256:$(cat "$D/cont/$s")" ;;
-      '{{.State.Health.Status}}') cat "$D/salud/$(cat "$D/cont/$s")" 2>/dev/null || echo healthy ;;
+      '{{.State.Health.Status}}')
+        st="$(cat "$D/salud/$(cat "$D/cont/$s")" 2>/dev/null || echo healthy)"
+        [ "$st" = healthy ] && [ ! -f "$D/sano-desde/$s" ] && { mkdir -p "$D/sano-desde"; ms > "$D/sano-desde/$s"; }
+        echo "$st" ;;
       *) exit 9 ;;
     esac ;;
+  stop) echo "${*: -1}" >> "$D/stop.log" ;;
+  rm) # rm -f <contenedor>: si era el último que Traefik enrutaba, la web se queda sin nada
+    s="${*: -1}"; s="${s#c-}"; [ -f "$D/cont/$s" ] || { echo "No such container: c-$s" >&2; exit 1; }
+    otro=web.2; [ "$s" = web.2 ] && otro=web
+    case "$s" in web|web.2) if ! enrutado "$otro" && sano "$s"; then corte "se retiró c-$s y Traefik no tenía otro web healthy al que mandar"; fi ;; esac
+    sano "$s" && ms > "$D/retirado-en"   # uno enfermo Traefik nunca lo enrutó: retirarlo no cuenta
+    rm -f "$D/cont/$s" "$D/sano-desde/$s"
+    # El del relevo pasa a ser el que sirve (los ids del doble son por lugar, no por contenedor).
+    if [ "$s" = web ] && [ -f "$D/cont/web.2" ]; then
+      mv "$D/cont/web.2" "$D/cont/web"; [ -f "$D/sano-desde/web.2" ] && mv "$D/sano-desde/web.2" "$D/sano-desde/web"
+    fi ;;
   compose)
     printf '%s · %s\n' "$PWD" "$*" >> "$D/compose.log"
     case " $* " in
       *" config -q "*) exit "$(cat "$D/rc-config" 2>/dev/null || echo 0)" ;;
-      *" up -d "*" web "*)
+      *" up -d "*" --no-recreate --scale web=2 web "*) # relevo: uno nuevo al lado del que sirve
         v="$(grep '^DTD_WEB_IMAGE=' .env | cut -d= -f2-)"; id="$(resolver "$v")"
         [ -n "$id" ] || { echo "no such image: $v" >&2; exit 1; }
+        [ -f "$D/cont/web" ] && [ ! -f "$D/cont/web.2" ] || { echo "el doble espera un web corriendo y ninguno de relevo" >&2; exit 9; }
+        echo "$id" > "$D/cont/web.2"; echo "Container dtd-cargo-web-2 Started"
+        exit "$(cat "$D/rc-up" 2>/dev/null || echo 0)" ;;
+      *" up -d "*" web "*) # sin relevo: compose baja el viejo antes de que el nuevo esté healthy
+        v="$(grep '^DTD_WEB_IMAGE=' .env | cut -d= -f2-)"; id="$(resolver "$v")"
+        [ -n "$id" ] || { echo "no such image: $v" >&2; exit 1; }
+        if [ -f "$D/cont/web" ] && [ "$(cat "$D/cont/web")" != "$id" ]; then corte "compose recreó el web: bajó el viejo antes de que el nuevo estuviera healthy"; fi
+        rm -f "$D/sano-desde/web"
         echo "$id" > "$D/cont/web"; echo "Container dtd-cargo-web-1 Started"
         exit "$(cat "$D/rc-up" 2>/dev/null || echo 0)" ;;
       *) exit 9 ;;
@@ -253,7 +297,22 @@ DOBLE
 cat > "${T}/bin/smoke" <<'DOBLE'
 #!/usr/bin/env bash
 # Doble de smoke-web.sh: sale con el primer código de $DOBLE/smoke-rcs (0 si no hay).
+# Como Traefik: si ningún web está enrutado todavía, o con $DOBLE/traefik-lag si
+# todavía no sacó al que se retiró, las páginas dan 404 (lo que pasó en las tandas
+# D y E del 2026-11-06) y lo anota en corte.log.
 D="${DOBLE:?}"; echo "$*" >> "$D/smoke.log"
+ms() { date +%s%3N; }
+sano() { [ -f "$D/cont/$1" ] && [ "$(cat "$D/salud/$(cat "$D/cont/$1")" 2>/dev/null || echo healthy)" = healthy ]; }
+enrutado() {
+  sano "$1" || return 1
+  [ -f "$D/traefik-lag" ] || return 0
+  [ -f "$D/sano-desde/$1" ] && [ $(( $(ms) - $(cat "$D/sano-desde/$1") )) -ge "$(cat "$D/traefik-lag")" ]
+}
+[ -f "$D/cont/web.2" ] && echo "prueba rápida con dos web: mide una mezcla de las dos imágenes" >> "$D/corte.log"
+if ! enrutado web || { [ -f "$D/traefik-lag" ] && [ -f "$D/retirado-en" ] && [ $(( $(ms) - $(cat "$D/retirado-en") )) -lt "$(cat "$D/traefik-lag")" ]; }; then
+  echo "prueba rápida antes de que Traefik enrutara solo al web nuevo: 404" >> "$D/corte.log"
+  echo "FALLÓ · / → 404"; echo "RESUMEN: 7 PASÓ · 7 FALLÓ"; exit 1
+fi
 rc=0; if [ -s "$D/smoke-rcs" ]; then rc="$(head -1 "$D/smoke-rcs")"; sed -i '1d' "$D/smoke-rcs"; fi
 if [ "$rc" = 0 ]; then echo "RESUMEN: 14 PASÓ · 0 FALLÓ"; else echo "RESUMEN: 13 PASÓ · 1 FALLÓ"; fi
 exit "$rc"
@@ -304,6 +363,7 @@ EOF
   imagen "${A}" "${IA}" "${DA}" 100; etiquetar_local "${IA}" "sha-${A}"
   imagen "${B}" "${IB}" "${DB}" 200; en_registro publicable "${IB}"
   echo "${IA}" > "${D}/cont/web"; echo db > "${D}/cont/db"
+  mkdir -p "${D}/sano-desde"; echo 0 > "${D}/sano-desde/web"   # el que ya corría: Traefik lo enruta desde siempre
   printf '%s\n' 0001_init 0300_alfa 0301_beta 0302_gama > "${D}/ledger"
   : > "${D}/curl.log"; : > "${D}/compose.log"; : > "${D}/smoke.log"
 }
@@ -313,6 +373,7 @@ correr() { # subcomando y argumentos → código en $RC, salida en ${T}/salida.l
       PUBLICAR_CANDADO="${T}/candado" PUBLICAR_SMOKE="${T}/bin/smoke" PUBLICAR_HUELLAS="${HUELLAS}" \
       PUBLICAR_AVISO_DISCORD="${AVISO_SH:-${S}/web/aviso-discord.sh}" \
       PUBLICAR_DOCKER_RAIZ="${T}" PUBLICAR_ESPERA_SALUD=5 PUBLICAR_PASO_SALUD=0 PUBLICAR_PAUSA_REINTENTO=0 \
+      PUBLICAR_ESPERA_TRAEFIK="${ESPERA_TRAEFIK_PRUEBA:-0}" \
       bash "${SCRIPT}" "$@" ) > "${T}/salida.log" 2>&1
   RC=$?
 }
@@ -348,8 +409,10 @@ reiniciar
 sed -n '/^[A-Z_]*=$/p' "${P}/.env" > "${T}/vacias-antes"
 correr vigilar
 [ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${B}@${DB}" ] && ok "publica B y fija DTD_WEB_IMAGE por commit y digest" || { ko "publicar B rc=${RC} env=$(imagen_env)"; ver; }
-[ "$(grep -c ' up -d ' "${D}/compose.log")" = 1 ] && grep -q "^${P} · compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web$" "${D}/compose.log" \
-  && ok "el comando es exactamente «compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web» desde ${P##*/}" || { ko "comando compose"; cat "${D}/compose.log"; }
+[ "$(grep -c ' up -d ' "${D}/compose.log")" = 1 ] && grep -q "^${P} · compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps --no-recreate --scale web=2 web$" "${D}/compose.log" \
+  && ok "el comando es exactamente «compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps --no-recreate --scale web=2 web» desde ${P##*/}" || { ko "comando compose"; cat "${D}/compose.log"; }
+[ ! -s "${D}/corte.log" ] && [ "$(cat "${D}/cont/web")" = "${IB}" ] && [ ! -f "${D}/cont/web.2" ] && grep -qx 'c-web' "${D}/stop.log" \
+  && ok "relevo: el viejo se retira (stop y rm) cuando el nuevo ya sirve; queda un solo web, sin corte" || { ko "relevo: $(cat "${D}/corte.log" 2>/dev/null | head -1)"; ver; }
 grep -q "config -q" "${D}/compose.log" && ! grep -q 'cron\|ensayo' "${D}/compose.log" && ok "valida con config -q; nunca toca cron ni compose.ensayo.yml" || ko "config / cron"
 diff <(grep -v '^DTD_WEB_IMAGE=' "${P}/.env") <(printf '%s\n' APP_ENV=production APP_URL=https://dtdcargo.com "TELEGRAM_BOT_TOKEN='123456:SECRETO-DEL-BOT'" 'CRON_SECRET="secreto-cron"') >/dev/null \
   && ok "el resto del .env queda igual, byte a byte" || ko "el .env cambió en otra línea"
@@ -787,6 +850,33 @@ grep -q '^Discord:     SIN INSTALAR (falta /no/existe)' "${T}/salida.log" && ok 
 cp "${T}/publicar.env.bien" "${O}/publicar.env"
 correr revisar; [ "${RC}" = 0 ] && grep -q 'PUERTAS: pasan' "${T}/salida.log" && [ "$(ups)" = 0 ] && ok "revisar: corre las puertas sin publicar" || { ko "revisar rc=${RC}"; ver; }
 correr; [ "${RC}" = 3 ] && ok "sin subcomando: uso (3)" || ko "uso rc=${RC}"
+
+# ─── relevo sin corte (2026-11-06) ───────────────────────────────────────────
+# Tandas D y E: la prueba rápida dio 404 en el primer intento justo después de
+# healthy. Con `up -d --no-deps web` compose bajaba el viejo antes de crear el
+# nuevo y Traefik no enruta a un contenedor «starting». Aquí Traefik tarda 200 ms
+# (traefik-lag) en sumar o sacar un contenedor, y el script espera 1,5 s.
+echo; echo "== relevo sin corte (2026-11-06) =="
+con_traefik() { echo 1000 > "${D}/traefik-lag"; }
+reiniciar; con_traefik; ESPERA_TRAEFIK_PRUEBA=1.5 correr vigilar
+[ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${B}@${DB}" ] && [ "$(cat "${D}/cont/web")" = "${IB}" ] && [ ! -f "${D}/cont/web.2" ] \
+  && [ ! -s "${D}/corte.log" ] && [ "$(grep -c . "${D}/smoke.log")" = 1 ] && grep -q 'prueba rápida nueva-1: RESUMEN: 14 PASÓ' "${T}/salida.log" \
+  && ok "con Traefik lento: publica sin corte y la prueba rápida pasa al primer intento" || { ko "relevo con Traefik: rc=${RC} corte=$(head -1 "${D}/corte.log" 2>/dev/null)"; ver; }
+grep -n 'compose .* up -d \|^stop .*c-web$\|^rm -f c-web$' "${D}/llamadas.log" | cut -d: -f1 | tr '\n' ' ' > "${T}/orden"
+[ "$(wc -w < "${T}/orden")" = 3 ] && sort -n -c <(tr ' ' '\n' < "${T}/orden" | grep .) 2>/dev/null \
+  && ok "orden: primero el nuevo al lado, después stop y rm del viejo" || ko "orden del relevo: $(cat "${T}/orden")"
+reiniciar; con_traefik; ESPERA_TRAEFIK_PRUEBA=0 correr vigilar
+[ -s "${D}/corte.log" ] && ok "control: sin esperar a Traefik, el doble sí ve el corte ($(head -1 "${D}/corte.log" | cut -c1-60)…)" || { ko "el doble no detecta el corte"; ver; }
+reiniciar; con_traefik; echo unhealthy > "${D}/salud/${IB}"; ESPERA_TRAEFIK_PRUEBA=1.5 correr vigilar
+[ "${RC}" = 1 ] && [ "$(cat "${D}/cont/web")" = "${IA}" ] && [ ! -f "${D}/cont/web.2" ] && [ ! -s "${D}/corte.log" ] \
+  && grep -qx 'c-web.2' "${D}/stop.log" && ! grep -qx 'c-web' "${D}/stop.log" && [ "$(ups)" = 1 ] && grep -q 'ya corre esa imagen' "${T}/salida.log" \
+  && ok "el nuevo no queda healthy: se retira el nuevo, el viejo nunca deja de servir y la vuelta atrás no levanta otro" || { ko "nuevo enfermo: rc=${RC} web=$(cat "${D}/cont/web") ups=$(ups) corte=$(head -1 "${D}/corte.log" 2>/dev/null)"; ver; }
+reiniciar; con_traefik; printf '1\n1\n' > "${D}/smoke-rcs"; ESPERA_TRAEFIK_PRUEBA=1.5 correr vigilar
+[ "${RC}" = 1 ] && [ "$(cat "${D}/cont/web")" = "${IA}" ] && [ ! -f "${D}/cont/web.2" ] && [ ! -s "${D}/corte.log" ] && [ "$(ups)" = 2 ] \
+  && ok "la prueba rápida falla después del relevo: la vuelta atrás también es un relevo, sin corte" || { ko "vuelta con relevo: rc=${RC} corte=$(head -1 "${D}/corte.log" 2>/dev/null)"; ver; }
+reiniciar; echo 1 > "${D}/rc-up"; correr vigilar
+[ "${RC}" = 1 ] && [ "$(cat "${D}/cont/web")" = "${IA}" ] && [ ! -f "${D}/cont/web.2" ] && [ ! -s "${D}/corte.log" ] && grep -q 'docker compose up falló' "${T}/salida.log" \
+  && ok "si compose up falla a mitad: retira lo que creó y el viejo sigue" || { ko "up falla: rc=${RC}"; ver; }
 
 # ─── avisos sin Discord (SDD-0609) ───────────────────────────────────────────
 # Corte directo: si falta Discord, el aviso no sale (y lo dice el log), no cae a
