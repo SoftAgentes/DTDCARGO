@@ -30,6 +30,12 @@ const DESC =
 // El 2026-11-05 Sam aprobó, por el Director General, nombrar Instagram y lo que el
 // canal entrega del perfil, en los mensajes y en la fila de Meta: entraban clientes
 // por ahí desde el 2026-10-31. Sale con la tanda C. Vale lo mismo: si cambia una palabra, se le vuelve a preguntar.
+// El 2026-11-05 Sam aprobó, por el Director General, el punto del proveedor de
+// gestión de clientes y la frase de §5, sin nombrarlo: Instagram y parte de WhatsApp
+// siguen atendiéndose por ahí y Studio le escribe de verdad (lectura L3, SDD-0587).
+// Sale con la tanda D. Esta fecha lleva el día de publicar: si no sale el 5, se mueve.
+// Si `KOMMO_PUSH_DRY_RUN` pasa a "false", el proveedor recibe además cédula o RIF y
+// este texto ya no alcanza: eso vuelve a Sam antes de cambiar ese valor.
 const UPDATED = "5 de noviembre de 2026";
 
 export const metadata: Metadata = {
@@ -255,9 +261,17 @@ export default function PrivacidadPage() {
                 </li>
                 <li>
                   <strong>Meta (WhatsApp e Instagram)</strong>, que transporta los
-                  mensajes que nos envías y te enviamos por esos canales. Las
-                  conversaciones las atendemos en nuestro propio sistema de
-                  atención, alojado en nuestro servidor.
+                  mensajes que nos envías y te enviamos por esos canales.
+                </li>
+                <li>
+                  <strong>Proveedor de gestión de clientes</strong>, que todavía
+                  usamos para llevar el seguimiento de clientes y atender parte
+                  de las conversaciones por WhatsApp e Instagram. Recibe tu
+                  nombre, tu correo, tu teléfono o usuario y esos mensajes. Si te
+                  atendemos como cliente o te preparamos un estimado, también
+                  puede recibir tu Shipping Mark, el valor del estimado y las
+                  notas de seguimiento. Estamos pasando esa atención a nuestro
+                  propio sistema, alojado en nuestro servidor.
                 </li>
                 <li>
                   <strong>Herramientas de analítica y publicidad</strong>{" "}
@@ -295,7 +309,10 @@ export default function PrivacidadPage() {
                 operados por un proveedor de infraestructura. Las copias de
                 respaldo se guardan <strong>cifradas</strong> en otro proveedor,
                 también en Estados Unidos: solo nosotros tenemos la clave para
-                abrirlas.
+                abrirlas. Mientras terminamos ese cambio, lo que pasa por ese
+                proveedor también se guarda en sus servidores y en los de quienes
+                le prestan servicio, que pueden estar en Estados Unidos o en otros
+                países.
               </p>
               <p className={P}>
                 Nuestro equipo en China trabaja con tu{" "}

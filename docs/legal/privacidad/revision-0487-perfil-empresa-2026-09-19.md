@@ -98,6 +98,7 @@ medida en que el equipo de Yiwu vea estos datos desde China (punto 8).
 ## 5 · Requisitos de diseño derivados (van a la spec)
 
 1. Kommo recibe hoy `rif` y `doc_kind` (`supabase/functions/kommo-push-client/index.ts:158`). La empresa y el domicilio fiscal de 0487 **no** se agregan a Kommo, por minimización (punto 8).
+   **Corrección, 2026-11-05 (SDD-0587):** esa línea solo lee los campos. Lo que se manda lo arma `buildLeadCustomFields` (`supabase/functions/_shared/kommo-outbound.ts:131-140`): `rif` sí, si el campo existe en Kommo; `doc_kind` no. Además, el envío del alta web simula en producción: `KOMMO_PUSH_DRY_RUN` no vale `"false"` (lectura L3 de SDD-0587). Así que hoy esa vía no escribe nada en Kommo.
 2. Los datos fiscales de la empresa se muestran sólo en pantallas VE del Studio (clientes y facturación), no en módulos CN (PIPL: tratamiento en China).
 3. El Portal pide «tu nombre y tu cédula» a la persona que opera la cuenta, no los de un tercero (punto 12).
 4. El override del titular en el borrador se audita sin PII: tipo elegido, preferencia vigente, actor y hora.
