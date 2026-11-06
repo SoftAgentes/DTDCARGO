@@ -1021,8 +1021,12 @@ reiniciar; printf '1\n1\n1\n1\n' > "${D}/smoke-rcs"; correr vigilar
   && ok "doble fallo: sale 2, «vuelta-atras-fallida» por el motivo de la nueva, congelado automático" || ko "doble fallo rc=${RC}: $(cut -c1-400 "${J}") ${f:-}"
 correr descongelar
 [ "$(js e.congelado)" = null ] && [ "$(vig)" = null ] && ok "descongelar: sin congelado; el vigilante, sin dato hasta su próxima vuelta" || ko "descongelar: $(cut -c1-300 "${J}")"
+# Desde el relevo sin corte (2026-11-06), si compose up falla en la nueva se retira
+# lo que creó y la anterior nunca dejó de servir: la vuelta atrás no necesita compose
+# (antes la volvía a llamar, fallaba otra vez y quedaba congelado con sale 2).
 reiniciar; echo 1 > "${D}/rc-up"; correr vigilar
-[ "${RC}" = 2 ] && [ "$(ult)" = "vuelta-atras-fallida ${B} vigilante compose" ] && ok "docker compose up falla en la nueva y en la vuelta: «vuelta-atras-fallida» por compose" || ko "compose rc=${RC}: $(ult)"
+[ "${RC}" = 1 ] && [ "$(ult)" = "vuelta-atras ${B} vigilante compose" ] && [ ! -f "${O}/CONGELADO" ] \
+  && ok "docker compose up falla en la nueva: «vuelta-atras» por compose, la anterior sigue y no congela" || ko "compose rc=${RC}: $(ult)"
 reiniciar; echo unhealthy > "${D}/salud/${IB}"; printf '1\n1\n' > "${D}/smoke-rcs"; correr vigilar
 [ "${RC}" = 2 ] && [ "$(ult)" = "vuelta-atras-fallida ${B} vigilante salud" ] \
   && ok "la nueva no arranca (salud) y la vuelta falla la prueba rápida: el evento lleva «salud», el motivo de la nueva" || ko "motivo de la fallida rc=${RC}: $(ult)"
