@@ -145,9 +145,23 @@ module SondaCargador
     hecho.call('ilike_viejo', msgs.where('content ILIKE ?', '%SINTVIEJO%').count)
     admin = User.find(b['admin'])
     cuenta_ar = Account.find(cuenta)
+    # SearchService lee Current (User#assigned_inboxes usa Current.account). En una petición lo llenan
+    # application_controller.rb:18 y ensure_current_account_helper.rb:6 y :25; aquí se llena igual.
+    como_en_la_api = lambda do |&bloque|
+      Current.user = admin
+      Current.account = cuenta_ar
+      Current.account_user = AccountUser.find_by(account_id: cuenta, user_id: admin.id)
+      bloque.call
+    ensure
+      Current.user = nil
+      Current.account = nil
+      Current.account_user = nil
+    end
     buscar = lambda do |q|
-      r = SearchService.new(current_user: admin, current_account: cuenta_ar, search_type: 'Message', params: { q: q }).perform
-      Array(r[:messages]).size
+      como_en_la_api.call do
+        r = SearchService.new(current_user: admin, current_account: cuenta_ar, search_type: 'Message', params: { q: q }).perform
+        Array(r[:messages]).size
+      end
     end
     medir.call('buscador_reciente') { buscar.call('SINTBUSCAR') }
     medir.call('buscador_viejo') { buscar.call('SINTVIEJO') }
@@ -161,12 +175,21 @@ module SondaCargador
     ensure
       previa.nil? ? ENV.delete('SEARCH_TIME_RANGE_LIMIT_DAYS') : ENV['SEARCH_TIME_RANGE_LIMIT_DAYS'] = previa
     end
-    # Opción 2: la búsqueda de conversaciones (por nombre, teléfono, correo o número) no tiene ventana de fechas.
-    medir.call('buscador_conversacion_vieja') do
-      r = SearchService.new(current_user: admin, current_account: cuenta_ar, search_type: 'Conversation',
-                            params: { q: 'SINT-NOMBRE-X1' }).perform
-      Array(r[:conversations]).count { |c| c.inbox_id == archivo && c.created_at < 400.days.ago }
+    # E-10d, la opción 1: buscar el Archivo por la persona y por el número. La búsqueda de conversaciones
+    # (search_service.rb:33-38) no tiene ventana de fechas. Se busca la conversación del Archivo de hace 500 días
+    # (Kommo 2001, contacto X1 reusado) con la ventana por defecto, la de producción.
+    vieja = convs.where("additional_attributes->>'kommo_talk_id' = '2001'").first
+    hecho.call('conv_vieja_antigua', vieja && vieja.created_at < 400.days.ago ? 'si' : 'no')
+    encuentra_vieja = lambda do |q|
+      como_en_la_api.call do
+        r = SearchService.new(current_user: admin, current_account: cuenta_ar, search_type: 'Conversation',
+                              params: { q: q }).perform
+        Array(r[:conversations]).any? { |c| c.id == vieja&.id } ? 'si' : 'no'
+      end
     end
+    medir.call('conv_vieja_por_nombre') { encuentra_vieja.call('SINT-NOMBRE-X1') }
+    medir.call('conv_vieja_por_telefono') { encuentra_vieja.call('4120000001') }
+    medir.call('conv_vieja_por_numero') { encuentra_vieja.call(vieja&.display_id.to_s) }
 
     # E-8: números de conversación. Una conversación nueva, creada como la crearía el canal, va después.
     max_archivo = convs.maximum(:display_id).to_i

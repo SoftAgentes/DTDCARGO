@@ -223,6 +223,8 @@ comprobar() {
     "E-9: reusa por teléfono y por correo, 3 contactos nuevos en total"
   exigir E10a '[ "$(h "$F" ilike_reciente)" = 1 ] && [ "$(h "$F" ilike_viejo)" = 1 ]' "E-10: el texto cargado se encuentra en la base"
   exigir E10b '[ "$(h "$F" buscador_reciente)" -ge 1 ] 2>/dev/null' "E-10: el buscador de Chatwoot encuentra un mensaje reciente ($(h "$F" buscador_reciente))"
+  exigir E10d '[ "$(h "$F" conv_vieja_antigua)" = si ] && [ "$(h "$F" conv_vieja_por_nombre)" = si ] && [ "$(h "$F" conv_vieja_por_telefono)" = si ] && [ "$(h "$F" conv_vieja_por_numero)" = si ]' \
+    "E-10d: con la ventana por defecto, la búsqueda de conversaciones encuentra la del Archivo de hace 500 días por nombre ($(h "$F" conv_vieja_por_nombre)), por teléfono ($(h "$F" conv_vieja_por_telefono)) y por número ($(h "$F" conv_vieja_por_numero))"
   exigir E11 '[ "$(h "$F" conv_viva_intacta)" = si ] && [ "$(h "$F" x1_intacto)" = si ] && [ "$(h "$F" x2_intacto)" = si ] && [ "$(h "$F" mensajes_vivos_delta)" = 0 ]' \
     "E-11: la conversación y los contactos que ya existían no cambiaron"
   return 0
@@ -300,9 +302,7 @@ rr "$REAL/carga-1.txt" MODO=cargar "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CA
 rr "$REAL/carga-2.txt" MODO=cargar "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$CARGA"
 rr "$REAL/sonda-verificar.txt" FASE=verificar "BANDEJA=$B" -- "$SONDA" </dev/null
 comprobar "$REAL"
-log "MEDIDA E10c — el buscador de mensajes con un mensaje de hace 500 días: $(h "$REAL/sonda-verificar.txt" buscador_viejo) con la ventana de 90 días; $(h "$REAL/sonda-verificar.txt" buscador_viejo_ventana_1100) con SEARCH_TIME_RANGE_LIMIT_DAYS=1100"
-log "MEDIDA E10d — la búsqueda de conversaciones por nombre del contacto encuentra la conversación del Archivo de hace 500 días: $(h "$REAL/sonda-verificar.txt" buscador_conversacion_vieja)"
-log "MEDIDA E8 — números de conversación en la carga: $(h "$REAL/carga-1.txt" secuencia)"
+log "MEDIDA E10c — el buscador de mensajes con un mensaje de hace 500 días: $(h "$REAL/sonda-verificar.txt" buscador_viejo) con la ventana de 90 días; $(h "$REAL/sonda-verificar.txt" buscador_viejo_ventana_1100) con SEARCH_TIME_RANGE_LIMIT_DAYS=1100"log "MEDIDA E8 — números de conversación en la carga: $(h "$REAL/carga-1.txt" secuencia)"
 vigilar "corrida real"
 
 # ── M. Control y mutantes ────────────────────────────────────────────────────
@@ -354,7 +354,7 @@ if [ "$MUTANTES" = 1 ]; then
   MODO_LOG=1
   total=${#RES[@]}
   cayeron="$(cayeron_en)"
-  exigir M0 '[ -z "$cayeron" ] && [ "$total" -ge 38 ]' \
+  exigir M0 '[ -z "$cayeron" ] && [ "$total" -ge 39 ]' \
     "control: el escenario en un solo proceso pasa las $total comprobaciones de la corrida real${cayeron:+ — cayeron: $cayeron}"
   [ "${RES[M0]}" = FALLÓ ] && MUT_FALLADOS="$MUT_FALLADOS M0"
 
@@ -432,6 +432,10 @@ if [ "$MUTANTES" = 1 ]; then
                    .update_all(\"content_attributes = (content_attributes #>> '{}')::json\")
             ids.size
           end"
+  # E-10d: si la conversación del Archivo no queda con la persona de Kommo, buscar por la persona no la encuentra.
+  mutante M22 "todas las conversaciones al contacto «sin contacto»" "E10d" "C1" \
+    "contacto = c['grupo'] ? contacto_de[c['grupo']] : nil" \
+    "contacto = nil"
 else
   log "== M. mutantes NO EJECUTADOS (--sin-mutantes)"
 fi
