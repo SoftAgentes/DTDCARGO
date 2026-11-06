@@ -43,6 +43,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/noticias`,  priority: 0.8, changeFrequency: "weekly" },
     { url: `${base}/contacto`,  priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/registro`,  priority: 0.7, changeFrequency: "monthly" },
+    // SDD-0604 · Indexables a propósito (ver el comentario de /privacidad). El
+    // contrato de cobertura no las veía porque esa palabra aparecía en comentarios.
+    { url: `${base}/privacidad`, priority: 0.3, changeFrequency: "yearly" },
+    { url: `${base}/cookies`,    priority: 0.3, changeFrequency: "yearly" },
   ];
 
   // Páginas geo-locales "Importar de China a {zona}" (fuente: lib/geo-zonas)
@@ -59,7 +63,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const post of posts) {
     routes.push({
       url: `${base}/noticias/${post.slug}`,
-      lastModified: new Date(post.date),
+      // SDD-0604 · La última edición real; `date` es la fecha de publicación.
+      lastModified: new Date(post.updated_at ?? post.date),
       priority: 0.6,
       changeFrequency: "monthly",
     });
