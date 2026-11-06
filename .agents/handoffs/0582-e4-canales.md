@@ -254,6 +254,8 @@ código de 4.9). Así, cargarlo no toca las bandejas de WhatsApp.
 
 **Acceso:**
 - En Standard Access solo funciona con cuentas que tienen el rol «Instagram Tester» en la app.
+  **Corregido el 2026-11-05:** era premisa nuestra y entra el público. Ver «2026-11-05 · Instagram
+  recibe al público sin App Review», al final.
   La demostración se hace así: Sam agrega su cuenta personal como tester y escribe a
   `@dtdcargo.ve`.
 - Para atender a cualquiera hace falta Advanced Access de `instagram_business_basic` y
@@ -361,6 +363,45 @@ frase de Sam que recoge P5), y su rama local queda atrás de la remota.
 
 El avance del checklist sigue en 47,0 %: estos pasos están `en curso` y solo cuenta lo aceptado. El
 esfuerzo real pasa de 16,53 d a 17,33 d y el restante de 58,05 d a 57,25 d.
+
+## 2026-11-05 · Instagram recibe al público sin App Review
+
+**Corrige lo de arriba.** §4.6, P5 y P6 dicen que en Standard Access solo escriben cuentas con rol.
+Esa regla era premisa nuestra, sacada de blogs y de una frase de Chatwoot sobre Messenger. Meta no
+la respalda para Instagram Login. Lo de arriba queda como estaba, fechado.
+
+**Medido** (conteos del Director General, sin nombres ni contenido): la bandeja 5 tiene entrantes
+de 9 remitentes distintos desde 2026-10-31 22:36Z, sin App Review enviada. El primer entrante real
+después del corte de `rails` llegó el 2026-11-05 a las 00:29:48Z, `incoming` y no eco (SDD-0587).
+
+**Decisiones de Sam, por el Director General:**
+- A «¿Quién escribió por Instagram?»: «Son clientes». Lo dice él; no está medido.
+- A «Instagram ya recibe clientes reales sin la revisión de Meta. ¿Cómo queda?»: «Dejarlo
+  conectado (Recommended)».
+- «Por ahorita, el Instagram está conectado a Kommo también, así que hay que tener precaución de
+  no contestar ahora porque no hemos hecho la migración. Cuando terminemos la migración al 100% y
+  estemos listos, vamos a pasar el otro número que tenemos de la empresa para acá.»
+- **«Mantener la espera» sigue vigente** para Messenger y para el envío a App Review: Sam no ha
+  dicho otra cosa.
+
+**Lo que se infiere, sin medir:** Meta parece aplicar Standard Access a la cuenta profesional que
+recibe y no al que escribe. En la documentación de Instagram Platform, `app-review` pone
+«Standard Access | Not required» para una app que solo usa el negocio dueño. `overview` separa
+al usuario de la app de los «Instagram users who interact». En contra, la tabla de
+`webhooks/setup` pone Advanced para Instagram Login. Meta no lo dice para mensajes. **El nivel de
+cada permiso en el panel de Whats DTD sigue sin leerse.** No se extiende a Messenger: la bandeja 4
+con 0 entrantes no prueba nada.
+
+**Lo que no está probado:**
+- **La salida por la API.** Las respuestas reales de la bandeja 5 son ecos de fuera de Chatwoot, y
+  los otros salientes son notas privadas. Ninguna salió por la API. Nadie contesta Instagram desde
+  Chatwoot por ahora, y la salida no se prueba con un cliente real.
+- **Las conversaciones «sin respuesta» no son un pendiente:** el conteo de Chatwoot no ve lo que se
+  contesta por Kommo.
+- **El token.** Ningún job lo renueva: Chatwoot 4.19.1 lo renueva al leerlo, a menos de 10 días
+  de vencer. **Vence el 2026-12-30**, según el Director General, y la ventana abre el 2026-12-20.
+  Si vence, se pueden perder mensajes sin aviso. Van un cron diario que lo lea y una alarma en
+  `vigilar.sh` antes del 2026-12-20, con OK de Sam. No se ha hecho.
 
 ## FUERA DE ALCANCE DETECTADO
 

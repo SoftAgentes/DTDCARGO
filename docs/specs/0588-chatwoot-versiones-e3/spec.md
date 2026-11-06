@@ -155,3 +155,25 @@ Aplicadas hoy por el Director General. Lo que antes en esta spec dice que no est
 - **Motor de IA:** las 3 variables `DTD_CHATWOOT_IA_GLM_*` están vacías, según el Director General. La llave es gasto de Sam y queda fuera del mandato, así que el análisis usa el respaldo sin IA. El **NO VERIFICADO** de la API de pago sigue en pie.
 - **Lectura de esta nota:** COMMIT y md5 salen de `IDENTIDAD.txt` y `registro.txt` de cada evidencia. Del ledger se leyó el `version` de estas dos y el total: 512. La fila de cada una sale de ese total y del orden. El md5 y los bytes se comprobaron contra el archivo al sellar.
 - **Espera:** salieron de `pendingBelowCutoff` y de las declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. Las pruebas que afirmaban la espera ahora afirman que salió. Los comentarios condicionales del código («sin la 0507…») siguen siendo ciertos para otro entorno y no cambian.
+
+## 2026-11-04 y 2026-11-05 · Publicada con la tanda B y primera corrida del cron en producción
+
+**Publicación, según el Director General:**
+
+| Qué | Dato |
+|---|---|
+| Hora | 2026-11-04 22:53:29Z |
+| Imagen | `sha-92e2bb706`; la anterior, `fe35eb2d1` |
+| Crontab | `80db6fa307ad621f`, 22 crons, con `chatwoot-versiones` a las 13:15Z |
+| Respaldo | `dtd-cargo-20261104T225143Z` |
+| Evidencia | `/srv/ops/evidencias/ventana-tanda-b-20261104T225143Z` |
+
+**Primera corrida, leída por el Subdirector** el 2026-11-05 a las 13:22:22Z en `dtd-cargo-db-1`, dentro de una transacción con `ROLLBACK` y sin datos de personas. `chatwoot_version_checks` tenía 1 fila:
+
+| `checked_at` | Estado | Instalada | Publicada | Filas |
+|---|---|---|---|---|
+| 2026-11-05 13:15:02Z | `al_dia` | 4.19.1 | 4.19.1 | 1 |
+
+Con eso se cierra la prueba de `chatwoot-versiones` en producción, que hasta entonces solo había corrido en prueba. Siguen igual el **NO VERIFICADO** de la API de pago del motor y el `pnpm verify` de los criterios de aceptación.
+
+**Tandas C y D.** Producción pasó a `sha-1aafa150e` con la tanda C, y a `sha-7a8afdd2c` el 2026-11-06 a las 02:01Z con la tanda D, según el Director General. La D no cambió el crontab, según él; de la C no tengo ese dato.
