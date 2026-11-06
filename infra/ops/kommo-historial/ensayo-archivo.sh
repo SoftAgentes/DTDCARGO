@@ -150,8 +150,9 @@ if docker ps -aq --filter "label=com.docker.compose.project=$PROYECTO" | grep -q
   mal G0 "ya hay contenedores del proyecto $PROYECTO: corre --limpiar"
   exit 1
 fi
-if docker inspect chatwoot-ensayo-postgres-1 >/dev/null 2>&1 || docker inspect chatwoot-ensayo-redis-1 >/dev/null 2>&1; then
-  mal G0 "ya existe un contenedor chatwoot-ensayo-postgres-1 o chatwoot-ensayo-redis-1: revísalo, no es de este ensayo"
+if docker inspect chatwoot-ensayo-postgres-1 >/dev/null 2>&1 || docker inspect chatwoot-ensayo-redis-1 >/dev/null 2>&1 \
+   || docker inspect chatwoot-ensayo-almacen-1 >/dev/null 2>&1; then
+  mal G0 "ya existe un contenedor chatwoot-ensayo-postgres-1, -redis-1 o -almacen-1: revísalo, no es de este ensayo"
   exit 1
 fi
 docker inspect "$PROD_PG" >/dev/null 2>&1 || { mal G0 "no existe $PROD_PG"; exit 1; }
@@ -242,6 +243,17 @@ services:
     environment:
       REDIS_CLAVE: ${REDIS_CLAVE}
     mem_limit: 128m
+  almacen:
+    # 5.5b: solo mantiene montado el volumen tmpfs del almacenamiento mientras dura el ensayo. Un volumen tmpfs se
+    # desmonta, y pierde lo que tiene, cuando para el último contenedor que lo usa, y cada paso del runner es un
+    # `run --rm`: sin esto, los adjuntos subidos en un paso no están en el siguiente (la prueba de CI, AD3).
+    image: ${IMAGEN_REDIS}
+    container_name: chatwoot-ensayo-almacen-1
+    entrypoint: ["sh", "-c", "trap 'exit 0' TERM; while :; do sleep 3600 & wait $$!; done"]
+    volumes:
+      - almacenamiento:/almacen
+    networks: [aislada]
+    mem_limit: 32m
   runner:
     image: ${IMAGEN_CHATWOOT}
     profiles: ["runner"]
@@ -278,8 +290,8 @@ volumes:
       o: "size=3g,mode=0700"
 EOF
 log "== stack"
-if ! dc up -d --wait postgres redis >"$DIR/up.txt" 2>&1; then
-  mal P0 "Postgres/Redis del ensayo no arrancaron"; tail -n 30 "$DIR/up.txt"; exit 1
+if ! dc up -d --wait postgres redis almacen >"$DIR/up.txt" 2>&1; then
+  mal P0 "Postgres, Redis o el almacén del ensayo no arrancaron"; tail -n 30 "$DIR/up.txt"; exit 1
 fi
 vigilar_carga stack
 
