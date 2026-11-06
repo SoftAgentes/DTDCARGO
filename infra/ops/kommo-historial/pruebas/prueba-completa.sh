@@ -9,7 +9,9 @@
 #        y al terminar borra el token y para el timer
 #   G2   sin el timer: código 11, sin llamar a extraer, el token queda
 #   G3   el timer ya disparó y se descargó (RemainAfterElapse=no, como el del VPS): código 11
-#   G4   el timer ya disparó y quedó activo sin próximo disparo (RemainAfterElapse=yes): código 11
+#   G4   un borrado programado con --on-active (como el primero, OnActiveSec=1d) también vale: corre extraer
+#   G12  el timer ya disparó y su borrado está corriendo (SubState=running): código 11
+#   G13  el timer ya disparó con RemainAfterElapse=yes: código 11
 #   G5   token con permisos 644: código 11
 #   G6   token de 200 bytes: código 11
 #   G7   sin token: código 11
@@ -18,7 +20,7 @@
 #   G10  extraer falla: devuelve su código, borra el token y para el timer
 #   F1   el contenido del token no aparece en ninguna salida
 #   M0   control: una copia sin cambios pasa todo
-#   MC1–MC5 mutantes: cada uno tiene que tumbar sus comprobaciones y dejar pasar las otras
+#   MC1–MC8 mutantes: cada uno tiene que tumbar sus comprobaciones y dejar pasar las otras
 set -uo pipefail
 PRUEBAS="$(cd "$(dirname "$0")" && pwd)"
 COMPLETA="$PRUEBAS/../completa.sh"
@@ -74,20 +76,26 @@ nueva_unidad() { N=$((N + 1)); U="$PREFIJO-$N"; }
 timer_futuro() { # el caso normal: OnCalendar por disparar, como kommo-e5-token-caduca
   systemd-run --quiet --unit "$U" --on-calendar='2099-01-01 00:00:00 UTC' --timer-property=AccuracySec=1s /bin/true
 }
-timer_que_dispara() { # remain(no|yes): OnCalendar a 2 s, y espera a que dispare
-  local cuando
+timer_monotonico() { # --on-active, como el primer borrado programado (OnActiveSec=1d)
+  systemd-run --quiet --unit "$U" --on-active=1h --timer-property=AccuracySec=1s /bin/true
+}
+timer_que_dispara() { # no | yes | corre: OnCalendar a 2 s, y espera a que dispare
+  local cuando comando=/bin/true remain=no
   cuando="$(date -u -d '+2 sec' '+%Y-%m-%d %H:%M:%S') UTC"
+  [ "$1" = yes ] && remain=yes
+  [ "$1" = corre ] && comando="/bin/sleep 60"
+  # shellcheck disable=SC2086
   systemd-run --quiet --unit "$U" --on-calendar="$cuando" --timer-property=AccuracySec=100ms \
-    --timer-property=RemainAfterElapse="$1" /bin/true
+    --timer-property=RemainAfterElapse="$remain" $comando
   for _ in $(seq 1 100); do
-    if [ "$1" = no ]; then
-      [ "$(systemctl show -p LoadState --value "$U.timer")" = not-found ] && return 0
-    else
-      [ -z "$(systemctl show -p NextElapseUSecRealtime --value "$U.timer")" ] && return 0
-    fi
+    case "$1" in
+      no) [ "$(systemctl show -p LoadState --value "$U.timer")" = not-found ] && return 0 ;;
+      yes) [ "$(systemctl show -p SubState --value "$U.timer")" != waiting ] && return 0 ;;
+      corre) [ "$(systemctl show -p SubState --value "$U.timer")" = running ] && return 0 ;;
+    esac
     sleep 0.2
   done
-  echo "AVISO: $U no disparó en 20 s"
+  echo "AVISO: $U no llegó al estado esperado ($1) en 20 s: $(systemctl is-active "$U.timer")/$(systemctl show -p SubState --value "$U.timer")"
 }
 quitar() { systemctl stop "$U.timer" "$U.service" 2>/dev/null; systemctl reset-failed "$U.timer" "$U.service" 2>/dev/null; }
 correr() { # script nombre [variables...]: código en $W/<nombre>.rc
@@ -114,7 +122,7 @@ casos() { # script → $W/r/<id> = si | no
   anota G1 '[ "$(rc g1)" = 0 ] && [ "$(grep -c . "$W/args")" = 1 ] &&
     grep -q -- "^extraer --token-file $W/token --corte 2026-11-07T05:00:00Z " "$W/args" &&
     grep -q -- " --adjuntos-para-carga " "$W/args" && ! grep -q -- "--sin-adjuntos" "$W/args" &&
-    grep -q "borrado_programado=active proximo_borrado=" "$W/g1.estado" && ! grep -q "proximo_borrado=ninguno" "$W/g1.estado" &&
+    grep -q "borrado_programado=active/waiting" "$W/g1.estado" &&
     [ ! -e "$W/token" ] && ! activo && grep -qx "codigo=0" "$W/g1.estado"'
   quitar
 
@@ -127,10 +135,21 @@ casos() { # script → $W/r/<id> = si | no
   anota G3 '[ "$(rc g3)" = 11 ] && sin_llamar && [ -e "$W/token" ] && grep -q "borrado_programado=inactive" "$W/g3.estado"'
   quitar
 
-  token 1035 600; carga 1.00; nueva_unidad; timer_que_dispara yes
+  token 1035 600; carga 1.00; nueva_unidad; timer_monotonico
   correr "$S" g4
-  # Que de verdad se probó un timer activo sin próximo disparo: si no, la comprobación no mira nada.
-  anota G4 '[ "$(rc g4)" = 11 ] && sin_llamar && [ -e "$W/token" ] && grep -q "borrado_programado=active proximo_borrado=ninguno" "$W/g4.estado"'
+  anota G4 '[ "$(rc g4)" = 0 ] && [ "$(grep -c . "$W/args")" = 1 ] && grep -q "borrado_programado=active/waiting" "$W/g4.estado" &&
+    [ ! -e "$W/token" ] && ! activo'
+  quitar
+
+  token 1035 600; carga 1.00; nueva_unidad; timer_que_dispara corre
+  correr "$S" g12
+  # Que de verdad se probó un timer activo que ya disparó (running): si no, la comprobación no mira nada.
+  anota G12 '[ "$(rc g12)" = 11 ] && sin_llamar && [ -e "$W/token" ] && grep -q "borrado_programado=active/running" "$W/g12.estado"'
+  quitar
+
+  token 1035 600; carga 1.00; nueva_unidad; timer_que_dispara yes
+  correr "$S" g13
+  anota G13 '[ "$(rc g13)" = 11 ] && sin_llamar && [ -e "$W/token" ] && ! grep -q "borrado_programado=active/waiting" "$W/g13.estado"'
   quitar
 
   token 1035 644; carga 1.00; nueva_unidad; timer_futuro
@@ -161,7 +180,7 @@ casos() { # script → $W/r/<id> = si | no
     bash "$S" >"$W/g9.txt" 2>&1 &
   local pid=$!
   for _ in $(seq 1 100); do [ -s "$W/args" ] && break; sleep 0.1; done
-  kill -TERM "$pid"
+  kill -TERM "$pid" 2>/dev/null
   wait "$pid"
   echo $? >"$W/g9.rc"
   pkill -f "$W/aqui/respaldar-historial.py" 2>/dev/null
@@ -185,7 +204,9 @@ declare -A TEXTO=(
   [G1]="token válido y borrado programado activo: extraer con --adjuntos-para-carga, sin --sin-adjuntos; al terminar, token borrado y timer parado"
   [G2]="sin el timer: código 11, extraer no se llama y el token queda"
   [G3]="el timer ya disparó y se descargó: código 11"
-  [G4]="el timer ya disparó y quedó activo sin próximo disparo: código 11"
+  [G4]="un borrado programado con --on-active también vale: corre extraer, borra el token y para el timer"
+  [G12]="el timer ya disparó y su borrado está corriendo (active/running): código 11"
+  [G13]="el timer ya disparó con RemainAfterElapse=yes: código 11"
   [G5]="token con permisos 644: código 11"
   [G6]="token de 200 bytes: código 11"
   [G7]="sin token: código 11"
@@ -195,7 +216,7 @@ declare -A TEXTO=(
   [G11]="el extractor desplegado no entiende --adjuntos-para-carga (la 1.2.0): código 13, sin llamar a extraer; el token y el timer quedan"
   [F1]="el contenido del token no aparece en ninguna salida"
 )
-IDS="G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 F1"
+IDS="G1 G2 G3 G4 G5 G6 G7 G8 G9 G10 G11 G12 G13 F1"
 
 echo "== completa.sh"
 casos "$COMPLETA"
@@ -237,10 +258,12 @@ faltan=""
 for id in $IDS; do [ "$(cat "$W/r/$id")" = si ] || faltan="$faltan $id"; done
 if [ -z "$faltan" ]; then ok M0 "una copia sin cambios pasa las ${IDS// /, }"; else mal M0 "la copia sin cambios no pasa:$faltan"; fi
 
-mutante MC1 "la guarda vieja de 24 h, sin mirar el timer" "G2 G3 G4" "G1 G5 G6" \
-  '[ "$borrado" != active ] || [ "$proximo" = ninguno ]' '[ "$edad" -ge 86400 ]'
-mutante MC2 "sin mirar el próximo disparo" "G4" "G1 G2 G3" \
-  ' || [ "$proximo" = ninguno ]; then' '; then'
+mutante MC1 "la guarda vieja de 24 h, sin mirar el timer" "G2 G3 G12 G13" "G1 G4 G5 G6" \
+  '[ "$borrado" != active ] || [ "$subestado" != waiting ]' '[ "$edad" -ge 86400 ]'
+mutante MC2 "sin mirar el subestado (acepta un timer que ya disparó y está corriendo)" "G12" "G1 G2 G3 G4" \
+  ' || [ "$subestado" != waiting ]; then' '; then'
+mutante MC8 "mira el próximo disparo en tiempo real (rechaza un --on-active vigente)" "G4" "G1 G2 G3" \
+  '[ "$subestado" != waiting ]; then' '[ -z "$(systemctl show -p NextElapseUSecRealtime --value "$TIMER")" ]; then'
 mutante MC3 "vuelve --sin-adjuntos" "G1" "G2 G10" \
   '  --adjuntos-para-carga --staging' '  --sin-adjuntos --staging'
 mutante MC4 "no para el timer al terminar" "G1 G10" "G2 G9" \

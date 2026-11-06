@@ -138,7 +138,8 @@ En el VPS van en `/srv/ops/kommo-historial-0590b`, y los lanzan los timers `komm
 nada a Kommo si falla alguna de sus guardas:
 
 - **código 11:** falta el token, no tiene 600 o tiene 200 bytes o menos, o su borrado programado
-  (`kommo-e5-token-caduca.timer`) no está activo o ya disparó. La vida del token la fija ese timer;
+  (`kommo-e5-token-caduca.timer`) no está `active/waiting`, o sea, no está o ya disparó. La vida del token la fija
+  ese timer;
 - **código 12:** la carga pasa de 8;
 - **código 13:** el extractor desplegado no entiende `--adjuntos-para-carga`.
 

@@ -729,13 +729,13 @@ Pedido por el Director General con la aprobación del plan A. Estados de la skil
 
 6. **La completa programada** (`completa.sh`, ahora en Git junto a `vigia-carga.sh`, que no cambia):
    - corre `extraer` con `--adjuntos-para-carga`, sin `--sin-adjuntos`;
-   - **la guarda del token cambia** (Director General, 2026-11-06). Antes miraba que tuviera menos de 24 h. Ahora pide que exista, tenga 600 y más de 200 bytes, y que `kommo-e5-token-caduca.timer` siga activo y por disparar. Si el timer no está o ya disparó, sale con 11. La vida del token la fija un solo plazo, el del timer, y una reanudación después de las 24 h ya no se niega mientras el timer siga;
+   - **la guarda del token cambia** (Director General, 2026-11-06). Antes miraba que tuviera menos de 24 h. Ahora pide que exista, tenga 600 y más de 200 bytes, y que `kommo-e5-token-caduca.timer` siga activo y esperando su disparo: `is-active` da `active` y `SubState` da `waiting`, sea `OnCalendar` o `--on-active`. Si el timer no está o ya disparó, sale con 11. Medido con systemd 255: un timer que ya disparó queda descargado o `inactive`, también con `RemainAfterElapse=yes`, y mientras corre su borrado queda `active/running`. Una primera versión miraba el próximo disparo en tiempo real; eso habría rechazado un borrado vigente con `--on-active`, como el primero (`OnActiveSec=1d`). Lo atrapó la prueba y quedó como mutante MC8. La vida del token la fija un solo plazo, el del timer, y una reanudación después de las 24 h ya no se niega mientras el timer siga;
    - **guarda nueva:** si el extractor desplegado no entiende `--adjuntos-para-carga`, sale con 13 sin pedirle nada a Kommo y sin tocar el token. Sin esta guarda, un despliegue a medias haría fallar `extraer` por la opción y borraría el token sin haber bajado nada.
 
    La prueba es `pruebas/prueba-completa.sh`, en CI con systemd de verdad, con un token, timers y un extractor falsos:
-   - G1 a G11: el caso normal; sin timer; el timer ya disparado, descargado o activo sin próximo disparo; los permisos; el tamaño; sin token; la carga; TERM a mitad; `extraer` que falla; el extractor viejo;
+   - G1 a G13: el caso normal; sin timer; el timer ya disparado (descargado, con `RemainAfterElapse=yes` y con su borrado corriendo); un borrado con `--on-active`, que vale; los permisos; el tamaño; sin token; la carga; TERM a mitad; `extraer` que falla; el extractor viejo;
    - F1: el token no aparece en ninguna salida;
-   - M0 y siete mutantes: la guarda vieja de 24 h, sin mirar el próximo disparo, vuelve `--sin-adjuntos`, no para el timer, borra el token al pararla, sin la guarda 13, y la ayuda leída con `| grep -q` bajo `pipefail`.
+   - M0 y ocho mutantes: la guarda vieja de 24 h, sin mirar el subestado, mirar el próximo disparo en tiempo real, vuelve `--sin-adjuntos`, no para el timer, borra el token al pararla, sin la guarda 13, y la ayuda leída con `| grep -q` bajo `pipefail`.
 7. **Corregido en el ensayo** (encontrado en la primera corrida de CI de la #394): `inf()` se definía después de usarse para `ADJ_ESPERADOS`. El ensayo de CI pasaba sin cargar ningún adjunto, con AD1 a AD3 en NO EJECUTADO, y esa línea no se veía en el resumen. Ahora:
    - `inf()` se define antes de usarse;
    - un informe sin el conteo de adjuntos da AD0 como falla;

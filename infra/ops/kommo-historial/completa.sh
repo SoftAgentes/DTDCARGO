@@ -32,13 +32,12 @@ if [ ! -f "$TOKEN" ]; then estado "token=ausente"; estado "codigo=11"; exit 11; 
 perm="$(stat -c %a "$TOKEN")"
 bytes="$(stat -c %s "$TOKEN")"
 edad=$(( $(date +%s) - $(stat -c %Y "$TOKEN") ))
-# El borrado programado: activo y con un próximo disparo. Un timer que ya disparó queda descargado (inactive) o,
-# con RemainAfterElapse=yes, activo pero sin próximo disparo; los dos casos cuentan como «ya disparó».
+# El borrado programado: activo y esperando su disparo (SubState=waiting), sea OnCalendar o --on-active. Un timer
+# que ya disparó queda descargado o inactive (medido con systemd 255), o en running mientras corre su borrado.
 borrado="$(systemctl is-active "$TIMER" 2>/dev/null)"
-proximo="$(systemctl show -p NextElapseUSecRealtime --value "$TIMER" 2>/dev/null)"
-case "$proximo" in ""|0|n/a) proximo=ninguno ;; esac
-estado "token_permisos=$perm token_bytes=$bytes token_edad_s=$edad borrado_programado=${borrado:-ausente} proximo_borrado=$proximo"
-if [ "$perm" != 600 ] || [ "$bytes" -le 200 ] || [ "$borrado" != active ] || [ "$proximo" = ninguno ]; then
+subestado="$(systemctl show -p SubState --value "$TIMER" 2>/dev/null)"
+estado "token_permisos=$perm token_bytes=$bytes token_edad_s=$edad borrado_programado=${borrado:-ausente}/${subestado:-ausente}"
+if [ "$perm" != 600 ] || [ "$bytes" -le 200 ] || [ "$borrado" != active ] || [ "$subestado" != waiting ]; then
   estado "token=no_valido: no se pide nada a Kommo"; estado "codigo=11"; exit 11
 fi
 carga="$(cut -d' ' -f1 "$CARGA_DE")"
