@@ -256,19 +256,20 @@ No se guardan prompts completos, razonamiento del modelo, secretos ni datos pers
 
 ### 4.5 Aviso a Sam y retiro
 
-- **Al publicar:** un aviso a Discord en **`#actividad-oficina`** con el titular, el enlace
+- **Al publicar:** un aviso a Discord en **`#noticias`** con el titular, el enlace
   público, un resumen de los filtros y el enlace de retiro.
 - **Transporte:** el de SDD-0606 (PR #380, en borrador): un webhook por canal guardado como
   variable del servidor del Studio, nunca en la base ni en la oficina; confirmación con
   `wait=true`, cola durable y respeto de `Retry-After`. Este canal no es ninguno de los cinco de
-  Operación de la 0606: lleva su variable propia (`DISCORD_WEBHOOK_ACTIVIDAD_OFICINA`) y vale la
+  Operación de la 0606: lleva su variable propia (`DISCORD_WEBHOOK_NOTICIAS`) y vale la
   misma regla de un único tenant dueño (`DISCORD_TENANT_ID`).
 - **El «botón» de retirar es un enlace.** Un webhook común de Discord no lleva botones
   interactivos; harían falta un bot y una aplicación que reciba el clic, y eso abriría una
   entrada al Studio. El enlace lleva a la pantalla de retiro (abajo).
-- **Diferencia con el plan:** en el plan maestro §7.6, `#actividad-oficina` la escribe solo
-  Paperclip. Que el Studio escriba ahí lo pidió el Subdirector en el encargo; queda para que
-  Sam lo confirme (§7).
+- **Canal limpio** (decisión de Sam del 2026-11-06: «Un canal nuevo que se llame Noticias»):
+  `#noticias` es nuevo y solo lleva estos avisos, para que no se mezclen con el movimiento de
+  los agentes. Escribe solo el Studio. Lo ven Sam y la persona que revisa. Hay que crearlo en
+  Discord, generar su webhook y sumarlo a la tabla de canales del plan maestro §7.6.
 - **Al retener:** un aviso con el titular, los códigos de motivo y el enlace a la cola de
   revisión del Studio.
 - **El aviso no lleva datos de clientes ni el cuerpo del artículo.**
@@ -363,7 +364,7 @@ quitarlo. Las reglas en la base se prueban en SQL efímero, nunca en producción
 | 5 | Tope por día y por semana (§4.2.1) | F7 | Con reloj fijo en hora de Caracas y topes 1 y 2: el segundo del día queda retenido, el tercero de la semana también y el del lunes siguiente pasa. Con topes 1 y 7 pasa una por día los siete días de la semana. Una configuración de 2 por día se rechaza. Dos corridas simultáneas publican una sola |
 | 6 | Interruptor en el Studio | F1 y §4.6 | Apagado, nada se publica; solo un admin lo cambia; retirar una noticia automática lo apaga |
 | 7 | Registro de modelo, agente y versión; retiro con un clic | F9, §4.4 y §4.5 | La fila de auditoría trae los campos de §4.4; si no se puede escribir, no se publica; el retiro deja la noticia fuera de `/noticias` en el mismo pedido |
-| 8 | Aviso a `#actividad-oficina` con enlace y retiro | §4.5 y F8 | Con un doble de Discord: el mensaje trae titular, enlace y enlace de retiro, y ningún dato personal ni el cuerpo; un envío «incierto» frena la siguiente por F8 |
+| 8 | Aviso a `#noticias` con enlace y retiro | §4.5 y F8 | Con un doble de Discord: el mensaje trae titular, enlace y enlace de retiro, y ningún dato personal ni el cuerpo; un envío «incierto» frena la siguiente por F8 |
 
 Si cualquiera falla, el borrador queda `retenido` y se avisa (criterio 2).
 
@@ -384,8 +385,8 @@ Si cualquiera falla, el borrador queda `retenido` y se avisa (criterio 2).
 
 ## 7. Decisiones abiertas para Sam
 
-1. **Canal del aviso:** confirmar que el Studio escribe en `#actividad-oficina`, que el plan
-   maestro §7.6 deja solo a Paperclip, o elegir otro.
+1. ~~**Canal del aviso.**~~ *Resuelto por Sam el 2026-11-06:* un canal nuevo y limpio,
+   `#noticias` (§4.5).
 2. **Declarar la ayuda de IA** en la página del artículo o no.
 3. **El tope cuenta todo** (manuales y automáticas) en esta propuesta. La alternativa es que
    cuente solo las automáticas.
@@ -416,7 +417,7 @@ No se tocan en esta tarea. Al pasar a `approved`, quien la implemente actualiza:
 - `docs/organizacion/oficina-conocimiento/06-noticias.md`: «Publicación: lo que vale hoy».
 - `docs/organizacion/oficina-conocimiento/02-reglas-de-la-oficina.md`: la excepción para
   noticias.
-- `docs/organizacion/plan-maestro-oficina.md` §7.8.
+- `docs/organizacion/plan-maestro-oficina.md` §7.8, y §7.6 con la fila de `#noticias`.
 - `docs/governance/README.md`: la nota de §2.1 junto a IA-01.
 
 ## 10. Hallazgos que esta spec deja escritos

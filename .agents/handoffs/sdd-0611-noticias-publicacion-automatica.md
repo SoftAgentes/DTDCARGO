@@ -27,7 +27,7 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
 - Índice de specs regenerado.
 - **Segunda pasada (2026-11-06), con el encargo completo del Subdirector:** tabla de los ocho
   puntos con su prueba (§5.1); requisito previo de bloquear `[VERIFICAR]` en el servidor (§3);
-  propuesta de nota para `docs/governance/README.md` (§2.1); aviso a `#actividad-oficina` con
+  propuesta de nota para `docs/governance/README.md` (§2.1); aviso a Discord con
   el transporte de SDD-0606 y retiro por enlace (§4.5); puertas del esquema mixto alineadas con
   la salida de SDD-0610 (§4.9); temas solo de Search Console en F2; revisor humano después de
   publicar (§4.7); migración sin número, la asigna el Director General (§3).
@@ -81,8 +81,12 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
 
 ## Coordinación
 
-- `#actividad-oficina` lo pidió el encargo; el plan maestro §7.6 la deja solo a Paperclip. Queda
-  como decisión abierta 1 de Sam.
+- Canal del aviso: el encargo pidió `#actividad-oficina`; Sam decidió el 2026-11-06 «Un canal
+  nuevo que se llame Noticias». La spec usa `#noticias` (decisión 1 resuelta). En el mismo
+  mensaje Sam mencionó llamar «Para aprobar decisiones» a un canal; queda por confirmar si
+  quiere renombrar el `#decisiones` actual. Un cambio de nombre no rompe webhooks ni bot porque
+  usan el ID (`docs/runbooks/oficina-corte-discord.md:63`), pero el plan maestro §7.6 y ese
+  runbook nombran el canal.
 - Índice de specs: la PR #388 (SDD-0610) agrega su fila en el mismo bloque; quien integre la
   segunda regenera el índice.
 
