@@ -92,6 +92,25 @@ describe("armarPaquete", () => {
     expect(p.tocados.candado_register).toEqual([]);
   });
 
+  // SDD-0588: los correos de SDD-0583 son pieza propia. Antes el informe no avisaba si
+  // una versión cambiaba los mailers o las plantillas que DTD reemplaza.
+  it("un cambio en los correos de Chatwoot toca la pieza de correos, y uno ajeno no", () => {
+    const rutas = [
+      "app/mailers/application_mailer.rb",
+      "app/views/mailers/agent_notifications/conversation_notifications_mailer/conversation_creation.liquid",
+      "app/views/mailers/administrator_notifications/channel_notifications_mailer/instagram_disconnect.liquid",
+      "app/views/mailers/email_delivery_test_mailer/delivery_test.liquid",
+      "app/views/devise/mailer/reset_password_instructions.html.erb",
+      "app/views/layouts/mailer/base.liquid",
+      "app/models/email_template.rb",
+      "config/initializers/devise.rb",
+    ];
+    const p = paquete(rutas.map((r) => cambio(r)));
+    expect(p.tocados.correo).toEqual(rutas);
+    expect(paquete([cambio("app/views/mailers/portal_instructions_mailer/send_cname_instructions.liquid")]).tocados.correo).toEqual([]);
+    expect(PIEZAS.find((x) => x.id === "correo")?.descripcion).toContain("zz_dtd_correo.rb");
+  });
+
   it("un archivo de Chatwoot puede tocar varias piezas", () => {
     const p = paquete([cambio("app/controllers/platform/api/v1/users_controller.rb")]);
     expect(p.tocados.revocar_sesiones).toHaveLength(1);
