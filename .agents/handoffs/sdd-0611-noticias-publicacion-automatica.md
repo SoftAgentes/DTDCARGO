@@ -59,6 +59,11 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
     2026-11-06 después de las instrucciones para crear `#noticias`, el webhook «DTD Cargo · Noticias»
     y subir la foto. **No verificado desde aquí** (no hay acceso a Discord). La dirección del webhook
     no se copió a ningún lado; `DISCORD_WEBHOOK_NOTICIAS` se carga cuando exista la implementación.
+  - Revisión en Discord (navegador integrado, 2026-11-06): `#noticias` existe (categoría Operación,
+    privado), con un webhook «Noticias DTD» con la foto de la «N»; `#decisiones` ya existía (Oficina),
+    no se creó ni se renombró. Con el «Sí, solo Dirección» de Sam se quitaron los roles Atención y
+    Equipo de `#noticias`: quedan Admin, Dirección y Sam (deja de sincronizar con Operación). Hoy el
+    único miembro con acceso es Sam: **Alejandro necesita el rol Dirección** para verlo.
 
 ## Validación
 
