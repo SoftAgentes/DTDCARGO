@@ -15,7 +15,7 @@ vi.mock("@/components/Footer", () => ({ Footer: () => null }));
 vi.mock("@/components/WhatsAppFAB", () => ({ WhatsAppFAB: () => null }));
 
 const PARRAFO_4 =
-  "Mensajería interna del equipo. Nuestro equipo usa una herramienta de mensajería con servidores en Estados Unidos. Ahí recibe avisos internos con tu Shipping Mark y un enlace a nuestro sistema, sin tu nombre ni tus datos de contacto. Cuando alguien del equipo con permiso para ver clientes busca un cliente por su nombre, la herramienta le muestra solo a esa persona el nombre y el Shipping Mark de los clientes que coinciden. Tus datos de contacto, tus envíos y tus pagos se consultan solo en nuestro sistema. Esa herramienta se rige por sus propios términos de servicio.";
+  "Mensajería interna del equipo. Nuestro equipo usa una herramienta de mensajería con servidores en Estados Unidos. Ahí recibe avisos internos con tu Shipping Mark y un enlace a nuestro sistema, sin tu nombre ni tus datos de contacto. Cuando alguien del equipo con permiso para ver clientes busca un cliente por su nombre o por su Shipping Mark, la herramienta le muestra solo a esa persona el nombre y el Shipping Mark de los clientes que coinciden. Tus datos de contacto, tus envíos y tus pagos se consultan solo en nuestro sistema. Esa herramienta se rige por sus propios términos de servicio.";
 const FRASE_5 =
   "El nombre y el Shipping Mark que ve nuestro equipo en su herramienta de mensajería interna también pasan por servidores en Estados Unidos.";
 

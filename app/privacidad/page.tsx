@@ -297,6 +297,9 @@ export default function PrivacidadPage() {
                 </li>
               </ul>
               {/* SDD-0606 y SDD-0608 · texto exacto aprobado por Sam el 2026-11-06.
+                  Ese mismo día, al sumar la búsqueda por código a /cliente, Sam
+                  aprobó cambiar «por su nombre» por «por su nombre o por su
+                  Shipping Mark» («Sí, cámbialo»).
                   Va fuera de la lista: la lista promete «obligación de
                   confidencialidad» y con esta herramienta no hay contrato que la
                   respalde. Si cambia una palabra, se le vuelve a preguntar. */}
@@ -306,8 +309,9 @@ export default function PrivacidadPage() {
                 Unidos. Ahí recibe avisos internos con tu Shipping Mark y un
                 enlace a nuestro sistema, sin tu nombre ni tus datos de contacto.
                 Cuando alguien del equipo con permiso para ver clientes busca un
-                cliente por su nombre, la herramienta le muestra solo a esa
-                persona el nombre y el Shipping Mark de los clientes que
+                cliente por su nombre o por su Shipping Mark, la herramienta le
+                muestra solo a esa persona el nombre y el Shipping Mark de los
+                clientes que
                 coinciden. Tus datos de contacto, tus envíos y tus pagos se
                 consultan solo en nuestro sistema. Esa herramienta se rige por
                 sus propios términos de servicio.
