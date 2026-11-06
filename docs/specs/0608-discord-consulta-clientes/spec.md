@@ -103,7 +103,7 @@ Producto:
 - `lib/studio/discord/consulta/consulta.ts`
 - `scripts/discord/registrar-comando-cliente.mjs`
 - `supabase/migrations/0516_discord_consulta_clientes.sql`
-- `supabase/desarmes/0516_desarme.sql` (vuelta atrás sin número; no se aplica sin OK nominal)
+- la vuelta atrás `0516_desarme`, en la carpeta `supabase/desarmes/` (sin número de migración; no se aplica sin OK nominal). Se nombra sin la extensión: `spec-migration-refs.test.ts` toma todo `NNNN_nombre` con extensión `.sql` del cuerpo de una spec como migración
 
 Pruebas:
 
