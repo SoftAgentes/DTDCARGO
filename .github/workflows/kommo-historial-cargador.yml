@@ -43,3 +43,8 @@ jobs:
 
       - name: Cargador en Chatwoot con Postgres y Redis, control y mutantes
         run: bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh
+
+      # SDD-0590 5.6: el guion del ensayo contra una «producción» simulada (el compose real como proyecto
+      # chatwoot, con datos inventados): guardas, aislamiento, copia en solo lectura y borrado sin tocarla.
+      - name: Ensayo contra una producción simulada
+        run: bash infra/ops/kommo-historial/pruebas/prueba-ensayo.sh

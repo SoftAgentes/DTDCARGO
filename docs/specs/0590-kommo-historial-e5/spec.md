@@ -554,3 +554,97 @@ Cubre las cinco puertas de arriba, con estas condiciones, que son parte del OK:
   2. **Subir `SEARCH_TIME_RANGE_LIMIT_DAYS`**, por ejemplo a 1.100 días, para que la búsqueda de texto llegue a todo el historial. La prueba mide que con 1.100 encuentra el mensaje de hace 500 días (E-10c). Cuesta un compose con la variable y recrear `rails` en el VPS, porque `docker restart` no toma variables nuevas y el compose del VPS no es el de main: es un paso de despliegue del Director General. Con unos 55 mil mensajes (§5.5), el ILIKE sobre el historial entero es chico. **No medido en el VPS.**
   3. **Buscar desde Studio** sobre su propia copia. Hoy no existe: sería otro trabajo.
 - **Reportes (I):** sin callbacks no se crean eventos de reportes, así que tiempos de respuesta y resoluciones no cambian. Los conteos que salen directo de la tabla de conversaciones por fecha de creación sí podrían sumar las del Archivo en sus fechas de Kommo. No medido.
+
+### 10.10 Paso 5.6 — el ensayo, en una copia efímera de la base de Chatwoot
+
+**Decisión.** No hay un Chatwoot de prueba: en el VPS solo existe el de producción, y `dtd-cargo-staging` es el Studio de prueba, sin Chatwoot (medido el 2026-11-06). El Director General aprobó el **plan A** ese día, dentro del OK de Sam («Todo, incluida producción», §10.5): los datos no salen del VPS, viven en tmpfs y se borran. Él le cuenta a Sam que el ensayo es en una copia efímera y no en «prueba».
+
+**Cómo** (`infra/ops/kommo-historial/ensayo-archivo.sh`, como root en el VPS):
+
+1. Arma un stack **efímero** con proyecto fijo `chatwoot-ensayo`, todo en `/dev/shm/cw-ensayo` (0700). Lleva Postgres con PGDATA en tmpfs, Redis sin persistencia y un `runner` de Chatwoot, con los mismos digests de producción. Una sola red, `internal: true`, sin puertos publicados. Las llaves (`SECRET_KEY_BASE` y las de cifrado) son aleatorias, no las de producción. No toca `/srv/chatwoot` ni su compose.
+2. Copia la base de producción con `pg_dump` en solo lectura y la restaura en el Postgres del ensayo. El dump se borra en el acto.
+3. Corre el cargador real en el orden de producción: foto de antes, bandeja, seco, carga, segunda carga y foto de después. El archivo de carga entra por la entrada estándar.
+4. Mide E-1, E-2 y E-4 a E-11 con los datos reales. La sonda (`pruebas/sonda-ensayo.rb`) imprime solo conteos, huellas md5 y «si»/«no». La evidencia (`EVIDENCIA`, 0600) guarda solo líneas `HECHO`.
+5. Al terminar, o si algo falla, borra el stack y la carpeta, y anota qué quedó.
+
+**Guardas del Director General**, cada una medida:
+
+| # | Guarda | Cómo se cumple | Comprobación |
+|---|---|---|---|
+| 1 | Aislamiento | Red propia `internal: true`. Ningún contenedor del ensayo en una red `chatwoot_*`. Nombres `chatwoot-ensayo-*`. Desde el `runner` no resuelven `chatwoot-postgres-1` ni `chatwoot-redis-1`, `postgres` es el del ensayo y no hay salida a `1.1.1.1:443` | A1 a A7. Con una falla no se copia la base |
+| 2 | El borrado no toca producción | `down -v` con `-p chatwoot-ensayo` escrito en el guion, solo si el proyecto es ese y no el de producción. `rm -rf` solo de la ruta literal `/dev/shm/cw-ensayo`. Nada se borra si el guion no lo creó: si la carpeta ya existía, se niega y la deja (o se usa `--limpiar`) | La prueba de CI: N1, N2, P1 a P3, L1 y L2 |
+| 3 | Inicializadores en solo lectura | Se montan los cuatro de `/srv/chatwoot/rails` y `correo/views` con `:ro`. Qué hace cada uno al arrancar, abajo | — |
+| 4 | `pg_dump` en solo lectura | Si hay un rol de login con «lectura» o «readonly» en el nombre, se usa ese rol; en producción no hay ninguno (medido el 2026-11-06). Si no, `PGOPTIONS='-c default_transaction_read_only=on'`; pg_dump además trabaja sobre una foto de solo lectura. Se anotan bytes y sha256 corto, y el dump se borra apenas restaurado. La copia se compara con los conteos de producción de antes y de después del dump, porque producción sigue recibiendo mensajes | D1 a D3 |
+| 5 | Carga del VPS | Antes de cada paso, si la carga de 1 minuto pasa de 8, sale con código 3 | N3 en la prueba de CI |
+
+**Qué hacen los inicializadores al arrancar** (leídos en `infra/chatwoot/rails/`; los del VPS difieren solo en comentarios, §10.7). Ninguno escribe en la base ni sale a la red al arrancar:
+- **`zz_dtd_redaccion_logs.rb`:** envuelve el formateador del logger de Rails, y el de Sidekiq solo en un proceso de Sidekiq. Suma `entry` a `filter_parameters`. Escribe una línea de info.
+- **`zz_dtd_proteccion_register.rb`:** antepone un módulo a `HTTParty::Request` y al cliente de WhatsApp que bloquea `/register` y `/deregister` hacia Meta. Al arrancar solo registra su estado; en el ensayo, cerrado.
+- **`zz_dtd_revocar_sesiones.rb`:** en `to_prepare` define la ruta `POST /platform/api/v1/users/:id/dtd_revocar_sesiones` y antepone una verificación a `RoomChannel`. **No revoca nada al arrancar:** `revocar!` solo se llama desde la acción del controlador (línea 109), ante un POST autenticado. En un `rails runner` no hay peticiones.
+- **`zz_dtd_correo.rb`:** antepone las vistas y los asuntos de DTD a `ApplicationMailer`. Solo actúa si se envía un correo. En el ensayo, SMTP apunta a `smtp.invalid` y la red no tiene salida.
+
+**Recursos (I, a partir de lo medido en el VPS el 2026-11-06):** el VPS tiene 8 CPU con carga de 3,6 a 4,0, 24 GB de RAM con 16 GB disponibles, 12 GB de `/dev/shm` y 171 GB de disco libres; la base de Chatwoot pesa 22 MB. El ensayo usa menos de 2 GB de RAM (topes: Postgres 768 MB, Redis 128 MB, runner 1,5 GB y 1 CPU), unos 400 MB de tmpfs, 0 de disco y unos 15 minutos. No toca Kommo.
+
+**E-3 en producción:** los conteos de `crm_tarjetas`, `crm_tareas`, `chatwoot_webhook_events` y `chatwoot_conversations`, antes y después de la carga real, entran en la condición 6 del OK de Sam («conteos después»). Los corre el Director General, solo conteos.
+
+**Adjuntos y `--sin-adjuntos` (decide el Director General; si van a Chatwoot, decide Sam).**
+- **Manifiesto de 5.1:** 3.577 adjuntos y 2.099.458.961 bytes cifrados.
+- **La extracción cifra cada adjunto al bajarlo,** para las llaves de Sam y de emergencia (`respaldar-historial.py:757`). Nunca queda en claro en el staging. Por eso, con el código de hoy, el cargador no puede subir adjuntos a Chatwoot, los baje o no la completa.
+- **Duración de la completa (I):** con adjuntos, unas 13.700 peticiones y ≈ 5 h. Sin adjuntos, unas 10.100 y ≈ 3,7 h.
+- **El respaldo no pierde nada sin ellos:** hasta el 30 de octubre están en 5.1, y la sonda incremental baja los nuevos.
+- **Para cargarlos en Chatwoot haría falta un paso 5.5b, con código y prueba propios.** Al bajar cada adjunto, además de cifrarlo para el respaldo, quedaría disponible para el cargador solo durante la ventana, con una llave efímera en `/dev/shm` o en claro en tmpfs. El cargador lo subiría como `Attachment`. Ocupa unos 2,1 GB del almacenamiento de Chatwoot, pide el token otra vez y vuelve a bajar todo de Kommo, cuyos enlaces vencen: en 5.1 ya había 15 con 404.
+
+**Orden hasta producción** (de acuerdo con el Director General):
+1. Token de Sam.
+2. Sonda incremental (paso 3).
+3. Completa hasta el corte, entre 02:00 y 10:00Z.
+4. Foto del ERP, `vincular` y `preparar-carga`.
+5. Este ensayo.
+6. Evidencia al Director General.
+7. `MODO=seco` en producción.
+8. Respaldo.
+9. Carga con él, con E-3 y E-8 antes y después.
+10. Miembros del Archivo, según decida Sam.
+
+**Prueba del guion** (`pruebas/prueba-ensayo.sh`, en el mismo workflow). Levanta el compose real de `infra/chatwoot` como proyecto `chatwoot`, con datos inventados, como si fuera producción, y corre el ensayo contra él:
+- **N1:** si la carpeta ya existe, se niega y no la borra.
+- **N2:** si el proyecto de producción se llamara como el del ensayo, se niega.
+- **N3:** con la carga por encima del tope, se para antes de crear nada.
+- **R1:** el ensayo pasa.
+- **P1 a P3:** la «producción» queda sin «Archivo Kommo», con las mismas bandejas, conversaciones (huella) y mensajes, y sus contenedores y volúmenes vivos.
+- **L1 y L2:** no queda nada del ensayo, y `--limpiar` no rompe nada.
+- **F1 y F2:** la evidencia trae solo líneas `HECHO`, ningún valor inventado de personas, el dump y la limpieza en cero.
+
+Si encuentra un Chatwoot real en el equipo, se niega a correr.
+
+### 10.11 revisar-datos-ve del ensayo
+
+Pedido por el Director General con la aprobación del plan A. Estados de la skill: **ENCONTRADO**, **CORRECTO** o **NO VERIFICABLE**. Esto no es asesoría legal.
+
+**Qué datos mueve el ensayo, dónde y por cuánto tiempo:**
+
+| Qué | Campos | Dónde | Cuánto tiempo |
+|---|---|---|---|
+| Copia de la base de Chatwoot de producción | Todo lo que guarda Chatwoot de la cuenta: contactos (nombre, teléfono, correo), conversaciones, mensajes y usuarios; las columnas cifradas siguen cifradas con las llaves de producción, que el ensayo no tiene | Dump en `/dev/shm/cw-ensayo/base.dump` (0600) y PGDATA en el tmpfs del contenedor `chatwoot-ensayo-postgres-1` | El dump, segundos: se borra al restaurar. La base, lo que dura el ensayo (≈ 15 min); se borra con el stack |
+| Archivo de carga | El de §10.8 | El staging en `/dev/shm`, que entra al contenedor por la entrada estándar sin copiarse | El staging, hasta empaquetar (§10.8) |
+| Usuarios temporales del ensayo | Un administrador y un agente con correo `@example.invalid` | Solo en la copia | Con la copia |
+| Evidencia | Conteos, huellas md5 recortadas, «si»/«no», bytes y sha256 corto del dump | `EVIDENCIA` (0600), junto al guion en el VPS | Como los informes de 5.1 |
+
+**Resumen:** 1 ENCONTRADO (menor), 4 CORRECTO, 1 NO VERIFICABLE y 6 sin cambio.
+
+| # | Punto | Estado | Evidencia y comentario |
+|---|---|---|---|
+| 1 | Inventario | CORRECTO | La tabla de arriba. La copia no agrega campos: es la misma base, en otro contenedor del mismo servidor |
+| 2 | Minimización | ENCONTRADO (menor) | El ensayo necesita la cuenta 1: contactos para E-9, conversaciones y mensajes existentes para E-11, y la secuencia para E-8. Pero **producción tiene 2 cuentas** (medido el 2026-11-06, `select count(*) from accounts` en solo lectura), y `pg_dump` copia tablas enteras, así que la copia lleva también la otra. Copiar solo la cuenta 1 pediría un volcado por filas, más complejo y más fácil de equivocar. Para 15 minutos en tmpfs, en el mismo servidor y sin salida, se acepta. La sonda solo mira la cuenta del ensayo y solo imprime conteos y huellas. Lo decide el Director General |
+| 3 | Consentimiento | Sin cambio | §6.2 punto 3 |
+| 4 | Derechos | Sin cambio | La copia vive 15 minutos y no es una fuente nueva de datos: un pedido de acceso o borrado se atiende en producción |
+| 5 | Borrado | CORRECTO | El guion borra el dump al restaurar, y el stack y la carpeta al terminar, también si algo falla (`trap EXIT`). Anota en la evidencia que quedaron 0 contenedores, 0 volúmenes y 0 redes, y la carpeta ausente. La prueba de CI lo comprueba (L1, L2, F2) y comprueba que no toca la base de origen (P1 a P3) |
+| 6 | Trazabilidad | Sin cambio | §6.2 punto 6 |
+| 7 | Política pública | Sin cambio | La política de privacidad ya cubre a Chatwoot y el VPS de DTD como encargados. El ensayo no agrega terceros |
+| 8 | Terceros | CORRECTO | Nadie fuera del VPS. Red `internal: true` sin salida (A7), SMTP a `smtp.invalid`, sin Sidekiq: ningún webhook ni correo sale |
+| 9 | Transferencia internacional | Sin cambio | El VPS no cambia |
+| 10 | Decisiones automatizadas | Sin cambio | No aplica |
+| 11 | Valor probatorio | CORRECTO | La evidencia liga el ensayo al dump por bytes y sha256 corto, y a la carga por los conteos de `carga-informe.json` (E-6) |
+| 12 | Titulares que no son usuarios | NO VERIFICABLE | Los clientes que escribieron por Chatwoot y por Kommo están en la copia como en producción. Cuántos, se sabe solo al correrla |
+
+**Fixtures:** la prueba de CI usa solo datos inventados, en una «producción» simulada creada en el runner. No copia nada de producción ni del respaldo.

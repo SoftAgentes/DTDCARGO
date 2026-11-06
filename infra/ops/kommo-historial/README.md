@@ -121,6 +121,24 @@ Prueba con datos inventados y la imagen real: corre en GitHub Actions en cada PR
 y 24 mutantes. En una PC con Docker: `bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh
 [--sin-mutantes]`. Es una corrida pesada, así que pide turno, y para sola si la memoria libre baja de 3 GB.
 
+### Ensayo (5.6): copia efímera de la base de Chatwoot
+
+`ensayo-archivo.sh` corre en el VPS, como root. Copia la base de Chatwoot de producción, con `pg_dump` en solo
+lectura, a un stack efímero y aislado (proyecto `chatwoot-ensayo`, todo en `/dev/shm/cw-ensayo`, red interna
+sin puertos). Ahí corre el cargador real y mide E-1, E-2 y E-4 a E-11 con los datos reales. Después lo borra
+todo. La evidencia trae solo líneas `HECHO`.
+
+```sh
+CARGA=/dev/shm/kommo-e5-carga/carga.ndjson \
+INFORME_CARGA=/dev/shm/kommo-e5-carga/carga-informe.json \
+INFORME_VINCULO=/dev/shm/kommo-e5-carga/vinculo-informe.json \
+  bash ensayo-archivo.sh           # el ensayo
+bash ensayo-archivo.sh --limpiar   # solo borra un ensayo que haya quedado
+```
+
+Guardas, diseño y revisión de datos personales: SDD-0590 §10.10 y §10.11. Se prueba en el mismo workflow,
+contra una «producción» simulada: `pruebas/prueba-ensayo.sh`.
+
 | Paso | Qué deja | Con datos de personas |
 |---|---|---|
 | `extraer --corte` | Staging completo hasta el corte, `corte.json`; el manifiesto lleva `corte` y sirve de base a un incremental | Sí: queda en tmpfs |

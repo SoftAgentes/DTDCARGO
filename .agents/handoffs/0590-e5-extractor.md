@@ -31,7 +31,12 @@ Rama `codex/0590-e5-extractor`, worktree `DTD-worktrees/0590-e5-extractor`, desd
 - **Director General, 2026-11-06 ~07:00Z:** correr la prueba en GitHub Actions, no en la PC ni en el VPS. Workflow con `pull_request` y `paths: infra/ops/kommo-historial/**`, sin secretos ni variables del repositorio, sin token y sin pedirle nada a Kommo, con los mutantes ahí mismo. La rama sube como PR en borrador apilada sobre la #386. Aceptó el salto de los números de conversación, con la condición de anotar en la spec el número antes y después de la carga.
 - **Hecho para eso:** `.github/workflows/kommo-historial-cargador.yml`, el control M0 y 24 mutantes (`escenario-mutante.rb`). El cargador y la sonda se separaron para correr un escenario en un solo arranque de Rails. No choca con «Calidad continua»: esa corre solo contra `main`, y su contrato mira solo `quality.yml` e `infra/ops/tests`.
 - **Pendiente de Sam:** quién entra como miembro del Archivo. Sin miembros, solo lo ven los administradores (SDD-0590 §10.9). En producción se agrega desde el panel, después de la carga.
-- **Pendiente de esta tarea:** leer el CI de la PR. Al cargar en producción, anotar en la spec el número de conversación antes y después (`HECHO secuencia=antes->después`).
+- **Pendiente de esta tarea:** leer el CI de la PR.
+- **Ensayo 5.6 (plan A, aprobado por el Director General el 2026-11-06 dentro del OK de Sam):** rama `codex/0590-e5-ensayo`, apilada sobre la #391 y en el worktree `DTD-worktrees/0590-e5-ensayo`.
+  - Trae `ensayo-archivo.sh` (la copia efímera de la base de Chatwoot de producción, en tmpfs y aislada), `pruebas/sonda-ensayo.rb`, `pruebas/prueba-ensayo.sh` (la prueba contra una «producción» simulada, en el mismo workflow), y la spec §10.10 y §10.11.
+  - Medido en solo lectura: producción tiene 2 cuentas y ningún rol de solo lectura.
+  - **Pendiente:** leer el CI de esa PR. El ensayo real espera el token, la sonda incremental, la completa hasta el corte, la foto del ERP y el archivo de carga.
+  - **Decisiones abiertas:** `--sin-adjuntos` y la copia de las 2 cuentas, del Director General; adjuntos en Chatwoot (5.5b), de Sam. Al cargar en producción, anotar en la spec el número de conversación antes y después (`HECHO secuencia=antes->después`).
 - **Para decidir antes de producción:** el salto en los números de conversación, quién ve el Archivo y la búsqueda de mensajes viejos (SDD-0590 §10.9).
 - **Primera corrida con token** (puerta de Sam): medir si Kommo acepta `filter[updated_at]` en notas y tareas (SDD-0590 §9.2).
 - La fila 5.3 del checklist no se tocó.
