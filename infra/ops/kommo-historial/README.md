@@ -86,6 +86,31 @@ python3 -I /srv/ops/kommo-historial/respaldar-historial.py todo --token-file /de
 | Idempotencia | El staging guarda base, inicio y corte en `incremental.json`. Repetir el comando no vuelve a pedir lo hecho; otro corte u otra base sobre el mismo staging es un error |
 | Encadenar | El manifiesto del paquete lleva `incremental` con base, inicio y corte. Ese paquete sirve de `--base` del siguiente, que empieza en su corte |
 
+## Hasta el corte, vínculo con el ERP y archivo de carga (5.4 y 5.5)
+
+El servidor no puede leer los paquetes `.age`: las llaves privadas no están ahí. Por eso la carga al
+«Archivo Kommo» sale de un staging en claro en tmpfs, armado en la misma ventana. **Cada paso con datos
+reales espera el OK de Sam, uno por uno.**
+
+```sh
+# 1. Completa hasta el corte, conservando el staging (sin --base)
+python3 -I respaldar-historial.py extraer --token-file /dev/shm/k0582-e5 --corte 2026-11-20T03:00:00Z \
+  --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo --sondear-huecos -1
+# 2. Vínculo con el ERP: la foto mínima (client_id, phone_last10, correos) en /dev/shm; se borra al leerla
+python3 -I respaldar-historial.py vincular --staging /dev/shm/kommo-e5-carga --clientes /dev/shm/clientes-erp.ndjson
+# 3. Archivo de carga reducido
+python3 -I respaldar-historial.py preparar-carga --staging /dev/shm/kommo-e5-carga
+# 4. El cargador de Rails (pendiente) lee /dev/shm/kommo-e5-carga/carga.ndjson
+# 5. Cifrar y borrar el staging
+python3 -I respaldar-historial.py empaquetar --staging /dev/shm/kommo-e5-carga --destino /srv/backups/kommo
+```
+
+| Paso | Qué deja | Con datos de personas |
+|---|---|---|
+| `extraer --corte` | Staging completo hasta el corte, `corte.json`; el manifiesto lleva `corte` y sirve de base a un incremental | Sí: queda en tmpfs |
+| `vincular` | `vinculos.ndjson`: E.164, llave `phone_last10`, correos, cliente del ERP, motivo y grupo. `vinculo-informe.json`: solo conteos, con las mediciones E-1 y E-2 del ensayo | `vinculos.ndjson` sí; el informe no |
+| `preparar-carga` | `carga.ndjson`: persona por grupo, conversación y mensaje con texto, sentido, fecha y autor (cliente, nombre de pila o «Bot Kommo»). Sin `avatar_url` ni campos propios de Kommo. `carga-informe.json`: solo conteos | `carga.ndjson` sí; el informe no |
+
 ## Restaurar (Sam, en su PC, con su llave privada)
 
 ```sh

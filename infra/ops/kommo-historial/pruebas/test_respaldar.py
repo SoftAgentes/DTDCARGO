@@ -686,5 +686,241 @@ class PruebasIncremental(unittest.TestCase):
             R.parsear_instante("20/11/2026")
 
 
+class PruebasCompletaHastaElCorte(unittest.TestCase):
+    """5.5 · extracción completa con `--corte` y sin `--base`: la que alimenta la carga."""
+
+    CORTE_TS = AHORA - 3600
+
+    def setUp(self):
+        PruebasExtraccionCompleta.setUp(self)
+        self.servidor.mensajes[10].append(mensaje("m-tarde", 10, AHORA - 60))
+
+    def tearDown(self):
+        PruebasExtraccionCompleta.tearDown(self)
+
+    def test_completa_con_corte_lo_trae_todo_hasta_el_corte_y_nada_despues(self):
+        st, args, _log = PruebasExtraccionCompleta.extraer(self, corte=iso_de(self.CORTE_TS))
+        self.assertEqual(st.leer_json("corte.json")["corte"], self.CORTE_TS)
+        self.assertFalse(st.existe("incremental.json"))
+        ids = sorted(m["id"] for m in st.leer_ndjson("mensajes.ndjson"))
+        self.assertEqual(ids, ["m1", "m2", "m3", "m4", "m5"])  # m-tarde queda fuera; 11 (hace 400 días) sí entra
+        self.assertIn("13", st.marcados("listo-talks"), "la completa sí sondea huecos")
+        for u in [u for u in self.servidor.peticiones if "/api/v4/events" in u]:
+            q = urllib.parse.parse_qs(urllib.parse.urlsplit(u).query)
+            self.assertLessEqual(int(q["filter[created_at][to]"][0]), self.CORTE_TS)
+        m = R.construir_manifiesto(st, args.destino_corrida, "x", self.recipients)
+        self.assertEqual(m["corte"], self.CORTE_TS)
+        self.assertNotIn("incremental", m)
+
+    def test_otro_corte_o_una_base_sobre_ese_staging_es_un_error(self):
+        PruebasExtraccionCompleta.extraer(self, corte=iso_de(self.CORTE_TS))
+        with self.assertRaises(R.ErrorFatal):
+            PruebasExtraccionCompleta.extraer(self, corte=iso_de(self.CORTE_TS - 60))
+        with self.assertRaises(R.ErrorFatal):
+            PruebasExtraccionCompleta.extraer(self)
+        base = os.path.join(self.tmp, "base")
+        PruebasIncremental.escribir_base(self, base)
+        with self.assertRaises(R.ErrorFatal):
+            PruebasExtraccionCompleta.extraer(self, corte=iso_de(self.CORTE_TS), base=base)
+
+    def test_un_incremental_parte_del_corte_de_una_completa(self):
+        carpeta = os.path.join(self.tmp, "kommo-20261101T000000Z")
+        PruebasIncremental.escribir_base(self, carpeta, corte=self.CORTE_TS - DIA)
+        self.assertEqual(R.leer_base(carpeta)["hasta"], self.CORTE_TS - DIA)
+
+
+def contacto(cid, nombre=NOMBRE_SECRETO, telefonos=(), correos=()):
+    cf = []
+    if telefonos:
+        cf.append({"field_code": "PHONE", "values": [{"value": t} for t in telefonos]})
+    if correos:
+        cf.append({"field_code": "EMAIL", "values": [{"value": c} for c in correos]})
+    return {"id": cid, "name": nombre, "avatar_url": "https://kommo.example/avatar-secreto.png",
+            "custom_fields_values": cf or None}
+
+
+class PruebasVinculoYCarga(unittest.TestCase):
+    """5.4 (E.164 y vínculo con el ERP) y 5.5 (archivo de carga reducido), con datos inventados."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="kommo-e5-vinculo-")
+        self.st = R.Staging(os.path.join(self.tmp, "staging"))
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def foto(self, filas):
+        ruta = os.path.join(self.tmp, "clientes.ndjson")
+        with open(ruta, "w", encoding="utf-8") as f:
+            for fila in filas:
+                f.write(json.dumps(fila) + "\n")
+        return R.cargar_foto_erp(ruta)
+
+    def test_e164_solo_completa_venezuela_y_respeta_el_codigo_de_pais(self):
+        casos = {
+            "+58 412-999-8877": ("+584129998877", "con_codigo"),
+            "0412 9998877": ("+584129998877", "venezuela_0"),
+            "584129998877": ("+584129998877", "venezuela_58"),
+            "4129998877": ("+584129998877", "venezuela_10"),
+            "0058 212 5550000": ("+582125550000", "con_codigo"),
+            "+86 138 0013 8000": ("+8613800138000", "con_codigo"),
+            "13800138000": (None, "sin_codigo_de_pais"),
+            "12345": (None, "sin_codigo_de_pais"),
+            "+12": (None, "largo_invalido"),
+            "": (None, "vacio"),
+        }
+        for entrada, esperado in casos.items():
+            self.assertEqual(R.e164(entrada), esperado, entrada)
+
+    def test_la_llave_es_la_misma_que_phone_last10_del_erp(self):
+        self.assertEqual(R.ultimos10("+58 (412) 999-8877"), "4129998877")
+        self.assertEqual(R.ultimos10("0412-999-8877"), "4129998877")
+        self.assertIsNone(R.ultimos10("999-8877"))  # menos de 10: no se cruza
+        self.assertEqual(R.correo_normal("  Persona@Ejemplo.TEST "), "persona@ejemplo.test")
+        self.assertIsNone(R.correo_normal("sin arroba"))
+
+    def test_vincula_por_telefono_por_correo_ambiguo_y_sin_vinculo(self):
+        foto = self.foto([
+            {"client_id": "C1", "phone_last10": ["4121111111"], "correos": ["uno@ejemplo.test"]},
+            {"client_id": "C2", "phone_last10": ["4142222222"], "correos": ["dos@ejemplo.test"]},
+            {"client_id": "C3", "phone_last10": ["4163333333"], "correos": []},
+            {"client_id": "C4", "phone_last10": ["4163333333"], "correos": []},  # mismo teléfono que C3: ambiguo
+        ])
+        filas, informe = R.vincular([
+            contacto(10, telefonos=["0412 111 1111"]),                                 # C1 por teléfono
+            contacto(11, telefonos=["0424 777 7777"], correos=["DOS@ejemplo.test"]),   # C2 por correo, otro teléfono
+            contacto(12, telefonos=["+58 416 333 3333"]),                              # ambiguo: C3 y C4
+            contacto(13, telefonos=["0426 555 5555"]),                                 # sin vínculo
+            contacto(14, telefonos=["+584121111111"]),                                 # misma persona que 10
+            contacto(16, telefonos=["+58 426-555-5555"]),                              # sin cliente, mismo teléfono que 13
+        ], foto)
+        por_id = {f["kommo_contact_id"]: f for f in filas}
+        self.assertEqual((por_id[10]["client_id"], por_id[10]["motivo"]), ("C1", "telefono"))
+        self.assertEqual((por_id[11]["client_id"], por_id[11]["motivo"], por_id[11]["otro_telefono"]), ("C2", "correo", True))
+        self.assertEqual((por_id[12]["client_id"], por_id[12]["motivo"]), (None, "ambiguo_telefono"))
+        self.assertEqual((por_id[13]["client_id"], por_id[13]["motivo"]), (None, "sin_vinculo"))
+        self.assertEqual(por_id[14]["grupo"], 10, "mismo teléfono: misma persona")
+        self.assertEqual(por_id[16]["grupo"], 13, "mismo teléfono sin cliente del ERP: misma persona igual")
+        self.assertEqual(por_id[10]["e164"], ["+584121111111"])
+        self.assertEqual(informe["vinculados_por_telefono"], 2)
+        self.assertEqual(informe["vinculados_por_correo"], 1)
+        self.assertEqual(informe["otro_telefono"], 1)
+        self.assertEqual(informe["ambiguos"], 1)
+        self.assertEqual(informe["sin_vinculo"], 2)
+        self.assertEqual(informe["clientes_en_varios_grupos"], 0)  # E-1
+        self.assertEqual(informe["ambiguos_vinculados"], 0)         # E-2
+        self.assertEqual(informe["grupos"], 4)
+        self.assertEqual(informe["grupos_con_varios_contactos"], 2)
+
+    def test_el_mismo_cliente_con_otro_telefono_queda_en_un_solo_grupo(self):
+        foto = self.foto([{"client_id": "C9", "phone_last10": ["4129990000"], "correos": ["nueve@ejemplo.test"]}])
+        filas, informe = R.vincular([
+            contacto(30, telefonos=["04129990000"]),
+            contacto(25, telefonos=["04247770000"], correos=["nueve@ejemplo.test"]),
+        ], foto)
+        self.assertEqual({f["grupo"] for f in filas}, {25})
+        self.assertEqual(informe["clientes_en_varios_grupos"], 0)
+        self.assertEqual(informe["otro_telefono"], 1)
+
+    def test_el_informe_del_vinculo_no_lleva_datos_de_personas(self):
+        foto = self.foto([{"client_id": "C1", "phone_last10": ["4129998877"], "correos": ["persona@ejemplo.test"]}])
+        _filas, informe = R.vincular([contacto(1, telefonos=[TELEFONO_SECRETO], correos=["persona@ejemplo.test"])], foto)
+        texto = json.dumps(informe)
+        for marca in (NOMBRE_SECRETO, TELEFONO_SECRETO, "4129998877", "persona@ejemplo.test", "C1"):
+            self.assertNotIn(marca, texto)
+
+    @unittest.skipUnless(os.name == "posix", "la ruta de tmpfs es de Linux")
+    def test_la_foto_del_erp_tiene_que_estar_en_tmpfs(self):
+        with self.assertRaises(R.ErrorFatal):
+            self.foto([{"client_id": "C1", "phone_last10": ["4121111111"]}])
+
+    def armar_staging(self):
+        st = self.st
+        st.anexar_ndjson("contactos.ndjson", [contacto(10, telefonos=["04121111111"]), contacto(14, nombre="Otro Nombre", telefonos=["4121111111"]),
+                                               contacto(20, nombre="Tercero", telefonos=[])])
+        st.anexar_ndjson("vinculos.ndjson", [
+            {"kommo_contact_id": 10, "grupo": 10, "e164": ["+584121111111"], "llaves": ["4121111111"], "correos": [], "client_id": "C1", "motivo": "telefono", "otro_telefono": False},
+            {"kommo_contact_id": 14, "grupo": 10, "e164": ["+584121111111"], "llaves": ["4121111111"], "correos": [], "client_id": "C1", "motivo": "telefono", "otro_telefono": False},
+            {"kommo_contact_id": 20, "grupo": 20, "e164": [], "llaves": [], "correos": [], "client_id": None, "motivo": "sin_vinculo", "otro_telefono": False},
+        ])
+        st.anexar_ndjson("talks.ndjson", [
+            {"_http": 200, "_talk_id": 100, "talk": {"contact_id": 14, "origin": "waba", "created_at": AHORA - 9 * DIA, "updated_at": AHORA - 8 * DIA}},
+            {"_http": 200, "_talk_id": 101, "talk": {"contact_id": 999, "origin": "instagram_business", "created_at": AHORA - 7 * DIA, "updated_at": AHORA - 7 * DIA}},
+            {"_http": 403, "_talk_id": 102, "talk": None},
+        ])
+        bot = mensaje("b1", 100, AHORA - 9 * DIA, "outgoing")
+        bot["author"] = {"type": "bot", "name": "Salesbot interno", "avatar_url": "https://kommo.example/x.png"}
+        asesora = mensaje("a1", 100, AHORA - 9 * DIA + 60, "outgoing")
+        asesora["author"] = {"type": "internal", "name": "Ana María Pérez", "avatar_url": "https://kommo.example/y.png"}
+        for m in (bot, asesora):
+            m["_talk_id"] = 100
+        entrante = dict(mensaje("e1", 100, (AHORA - 9 * DIA) * 1000), _talk_id=100)
+        foto = dict(mensaje("f1", 100, AHORA - 8 * DIA, texto=None,
+                            adjunto={"type": "picture", "file_name": "x.jpg", "link": "https://drive-x.kommo.com/f/9?sig=zzz"}), _talk_id=100)
+        repetido = dict(entrante)
+        en_403 = dict(mensaje("z1", 102, AHORA - DIA), _talk_id=102)
+        st.anexar_ndjson("mensajes.ndjson", [entrante, bot, asesora, foto, repetido, en_403])
+        st.anexar_ndjson("adjuntos.ndjson", [{"message_id": "f1", "archivo": "adjuntos/f1.jpg.age", "http": 200}])
+        return st
+
+    def test_preparar_carga_reduce_y_deja_al_asesor_por_nombre_de_pila(self):
+        st = self.armar_staging()
+        informe = R.preparar_carga(st)
+        filas = list(st.leer_ndjson("carga.ndjson"))
+        personas = [f for f in filas if f["tipo"] == "persona"]
+        self.assertEqual(sorted((p["grupo"], tuple(p["kommo_contact_ids"])) for p in personas), [(10, (10, 14)), (20, (20,))])
+        p10 = [p for p in personas if p["grupo"] == 10][0]
+        self.assertEqual((p10["telefono"], p10["client_id"], p10["nombre"]), ("+584121111111", "C1", NOMBRE_SECRETO))
+        convs = {f["kommo_talk_id"]: f for f in filas if f["tipo"] == "conversacion"}
+        self.assertEqual(sorted(convs), [100, 101], "la de 403 no se carga")
+        self.assertEqual(convs[100]["grupo"], 10)
+        self.assertIsNone(convs[101]["grupo"])
+        msjs = {f["source_id"]: f for f in filas if f["tipo"] == "mensaje"}
+        self.assertEqual(sorted(msjs), ["kommo:a1", "kommo:b1", "kommo:e1", "kommo:f1"], "sin repetidos ni mensajes de una conversación sin acceso")
+        self.assertEqual(msjs["kommo:e1"]["autor"], "cliente")
+        self.assertEqual(msjs["kommo:e1"]["creado"], AHORA - 9 * DIA, "milisegundos a segundos")
+        self.assertEqual(msjs["kommo:b1"]["autor"], "Bot Kommo")
+        self.assertEqual(msjs["kommo:a1"]["autor"], "Ana")
+        self.assertEqual(msjs["kommo:f1"]["adjunto"], "adjuntos/f1.jpg.age")
+        self.assertEqual(informe, {"con_adjunto": 1, "conversaciones": 2, "conversaciones_sin_contacto": 1, "entrantes": 2,
+                                   "mensajes": 4, "mensajes_de_bot": 1, "personas": 2, "salientes": 2, "sin_texto": 1})
+
+    def test_la_carga_no_lleva_avatar_ni_enlaces_firmados_y_el_informe_solo_cuenta(self):
+        st = self.armar_staging()
+        R.preparar_carga(st)
+        with open(st.ruta_de("carga.ndjson"), encoding="utf-8") as f:
+            carga = f.read()
+        for marca in ("avatar", "kommo.example", "sig=zzz", "custom_fields_values", "Pérez"):
+            self.assertNotIn(marca, carga)
+        with open(st.ruta_de("carga-informe.json"), encoding="utf-8") as f:
+            inf = f.read()
+        for marca in (NOMBRE_SECRETO, TEXTO_SECRETO, "Ana", "+58", "C1"):
+            self.assertNotIn(marca, inf)
+
+    def test_vincular_borra_la_foto_del_erp_y_deja_solo_conteos_a_la_vista(self):
+        st = self.st
+        st.anexar_ndjson("contactos.ndjson", [contacto(10, telefonos=["04121111111"])])
+        foto = os.path.join(self.tmp, "clientes.ndjson")
+        with open(foto, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"client_id": "C1", "phone_last10": ["4121111111"], "correos": []}) + "\n")
+        args = Args(staging=st.ruta, clientes=foto, conservar_clientes=False)
+        log = R.Log(os.path.join(self.tmp, "log.txt"))
+        try:
+            self.assertEqual(R.cmd_vincular(args, log), 0)
+        finally:
+            log.cerrar()
+        self.assertFalse(os.path.exists(foto), "la foto del ERP se borra al leerla")
+        self.assertEqual([f["client_id"] for f in st.leer_ndjson("vinculos.ndjson")], ["C1"])
+        self.assertEqual(st.leer_json("vinculo-informe.json")["vinculados_por_telefono"], 1)
+        with open(os.path.join(self.tmp, "log.txt"), encoding="utf-8") as f:
+            texto = f.read()
+        for marca in ("4121111111", "C1", NOMBRE_SECRETO):
+            self.assertNotIn(marca, texto)
+
+    def test_preparar_carga_sin_vinculos_es_un_error(self):
+        with self.assertRaises(R.ErrorFatal):
+            R.preparar_carga(self.st)
+
+
 if __name__ == "__main__":
     unittest.main()

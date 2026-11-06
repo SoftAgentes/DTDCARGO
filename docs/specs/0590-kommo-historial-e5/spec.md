@@ -352,3 +352,114 @@ Lo pidió el Director General antes de cerrar 5.3. Estados de la skill: **ENCONT
 **Fixtures:** las pruebas usan solo datos inventados, marcados para comprobar que no se filtran (`TEXTO-SECRETO-XK93`, «Nombre Inventado Zq», `+584129998877`). No copian nada del respaldo cifrado ni de producción.
 
 **Puertas:** el «sí» de Sam del 2026-11-06 cubre el código y las pruebas en local. Correr contra Kommo, leer `clients`, crear la bandeja, el ensayo y la carga esperan su OK, uno por uno.
+
+## 10. Pasos 5.4 y 5.5 — vínculo con el ERP y carga sin efectos (diseño, 2026-11-06)
+
+**Encargo.** Mismo «sí» de Sam del 2026-11-06, solo para código y pruebas en local con datos sintéticos. El Director General pidió que la spec diga qué tiene que medir el ensayo (§10.4). **Nada con datos reales** hasta que él pase la respuesta literal de Sam sobre el orden: corte con token, cruce con el ERP en el servidor, ensayo en prueba y carga en producción con respaldo.
+
+### 10.1 De dónde sale lo que se carga
+
+Los paquetes `.age` están cifrados para las claves de Sam y de emergencia, y ninguna de las dos privadas está en el VPS. **El servidor no puede leer la base de 5.1.** Por eso la carga trabaja sobre un staging en claro en tmpfs, que sale de una **extracción completa hasta el corte**, hecha en el mismo servidor y en la misma ventana:
+
+1. `extraer --corte <instante>` sin `--base`: completo, con el corte fijo. Se conserva el staging.
+2. `vincular` (5.4) sobre ese staging, con la foto mínima del ERP.
+3. `preparar-carga` (5.5): arma el archivo de carga, ya reducido.
+4. El cargador de Rails escribe en Chatwoot (5.5).
+5. `empaquetar`: cifra el staging y lo borra, como siempre.
+
+El modo incremental de 5.3 queda para el segundo respaldo de 8.5 y para ponerse al día entre ensayos.
+
+### 10.2 Paso 5.4 — E.164, vínculo con el ERP y deduplicación
+
+- **E.164:** se quitan los separadores. Con `+` o `00` delante, se conserva el código de país si quedan entre 8 y 15 dígitos. Sin código de país, solo se completan los patrones venezolanos: `0` y 10 dígitos, `58` y 10 dígitos, o 10 dígitos que empiezan por `2` o `4`. Lo demás queda sin E.164, con motivo: no se inventa un país.
+- **Llave de cruce:** la misma del ERP, `phone_last10`: los últimos 10 dígitos, o nada si hay menos (0363 y 0383). El correo, en minúsculas y sin espacios.
+- **Foto del ERP:** un NDJSON en tmpfs con solo `client_id`, sus `phone_last10` y sus correos normalizados. Sin nombres ni documentos. Sacarla es leer `clients` en producción: es una puerta de Sam.
+- **Cruce:**
+  1. Por teléfono: si hay un solo cliente con esa llave, el contacto queda vinculado.
+  2. Si hay dos o más, queda **ambiguo** y no se vincula, igual que el enrutador.
+  3. Si no hay ninguno, se prueba por correo con la misma regla.
+  4. Si no, queda sin vínculo.
+- **El mismo cliente con otro teléfono:** si el contacto se vincula por correo y su teléfono no está entre los del cliente, queda marcado `otro_telefono`.
+- **Deduplicación:** los contactos de Kommo con la misma llave, o vinculados al mismo cliente, forman un grupo. El grupo es la persona que se carga una sola vez, y su id es el menor id de Kommo del grupo.
+- **Salida:**
+  - `vinculos.ndjson`, que lleva teléfonos: va al staging y sale cifrado con el paquete;
+  - `vinculo-informe.json`, solo con conteos.
+
+### 10.3 Paso 5.5 — modo de importación sin efectos y bandeja «Archivo Kommo»
+
+- **Bandeja:** canal API de Chatwoot, sin `webhook_url`, sin saludo, sin asignación automática y sin encuesta. Crearla es escribir en Chatwoot: puerta de Sam.
+- **Por qué canal API:** en Studio, `fuenteDeCanal` (`lib/studio/chatwoot/entrada-leads.ts`) devuelve `null` para un canal que no es WhatsApp, Instagram, Messenger ni correo. Así que una bandeja API no crea tarjetas aunque llegue un evento. Pero un evento sí pasaría por `chatwoot_registrar_evento` y dejaría la conversación vieja en la bandeja de Studio. **No basta con eso: el cargador no tiene que disparar eventos.**
+- **`preparar-carga` (Python):** del staging y `vinculos.ndjson` arma `carga.ndjson`, ya reducido. Lleva:
+  - una persona por grupo;
+  - una conversación por conversación de Kommo, cerrada;
+  - por mensaje, solo `text`, entrante o saliente, `created_at` y el autor: el cliente, el asesor por **nombre de pila** o «Bot Kommo».
+
+  Los adjuntos van por referencia a su `.age`. No lleva `avatar_url` ni campos propios de Kommo sin uso (§6.2, punto 1). Cada mensaje lleva `source_id = kommo:<id>`, y cada conversación y persona su id de Kommo, para que cargar dos veces no duplique.
+- **Cargador (Ruby, `rails runner` en el contenedor de Chatwoot):**
+  - escribe con `insert_all`, que **no corre callbacks de ActiveRecord**: ni webhooks, ni notificaciones, ni `SendReplyJob`, ni eventos de reportes;
+  - salta lo que ya existe por `source_id`;
+  - tiene un modo seco que solo cuenta.
+
+  Correrlo es otra puerta de Sam.
+
+### 10.4 Qué tiene que medir el ensayo (5.6)
+
+Pedido del Director General. Cada medición da un conteo y PASÓ o FALLÓ. Todo con conteos, sin datos de personas.
+
+| # | Medición | Cómo se cuenta | PASÓ si |
+|---|---|---|---|
+| E-1 | **Duplicados contra el ERP: E.164** | `vinculo-informe.json`: clientes del ERP que quedaron en dos grupos distintos | 0 |
+| E-2 | **Duplicados contra el ERP: el mismo cliente con otro teléfono** | `vinculo-informe.json`: vinculados por correo con `otro_telefono` y en el mismo grupo que su cliente; contactos ambiguos cargados como vinculados | Todos en un solo grupo; 0 ambiguos vinculados |
+| E-3 | **Tarjetas del CRM** | En la base de Studio de prueba, antes y después de cargar: `crm_tarjetas`, `crm_tareas`, `chatwoot_webhook_events` y `chatwoot_conversations` de la bandeja Archivo | Las cuatro no cambian |
+| E-4 | **Webhook de Chatwoot** | Peticiones al webhook de Studio en el log del proxy y trabajos de webhook en Sidekiq durante la carga | 0 |
+| E-5 | **Mensajes a clientes** | Trabajos `SendReplyJob` y de envío de canal en Sidekiq durante la carga; mensajes nuevos fuera de la bandeja Archivo | 0 y 0 |
+| E-6 | **Lo cargado coincide con lo extraído** | Personas, conversaciones y mensajes en Chatwoot frente a `carga.ndjson` | Iguales |
+| E-7 | **Cargar dos veces no duplica** | Segunda corrida del cargador | 0 filas nuevas |
+
+### 10.5 Puertas
+
+Cada una con el OK de Sam, por separado. Ninguna queda cubierta por el «sí» de hoy:
+
+- el token para extraer;
+- leer `clients` para la foto del ERP;
+- crear la bandeja «Archivo Kommo»;
+- correr el cargador en prueba (5.6);
+- correrlo en producción (5.7).
+
+### 10.6 Qué quedó en código (2026-11-06)
+
+- **`extraer --corte` sin `--base`:** extracción completa hasta el corte. Deja `corte.json`, y el manifiesto lleva `corte`, así que un incremental puede partir de ahí. Mantiene el sondeo de huecos del respaldo completo.
+- **`vincular` (5.4):** E.164, llave `phone_last10`, cruce único por teléfono y luego por correo, ambiguos sin vínculo, `otro_telefono` y grupos.
+  - Lee la foto del ERP solo desde `/dev/shm` en Linux, y **la borra al leerla**, salvo `--conservar-clientes`.
+  - El informe trae las mediciones E-1 y E-2.
+- **`preparar-carga` (5.5):** `carga.ndjson` reducido y `carga-informe.json` con conteos. Deja fuera las conversaciones con 403 y los mensajes repetidos.
+- **Pendiente:** el cargador de Rails con `insert_all` y su prueba sobre la imagen `chatwoot/chatwoot:v4.19.1-ce` con Postgres local, que mide E-3 a E-7 con datos inventados. Necesita Docker, así que pide turno al Director General.
+
+### 10.7 Evidencia
+
+| Comprobación | Resultado |
+|---|---|
+| `python -I infra/ops/kommo-historial/pruebas/test_respaldar.py` | PASÓ: 49 pruebas, 3 omitidas (`age`, permisos POSIX y tmpfs de Linux) |
+| 15 mutantes de 5.4 y 5.5: ambiguo vinculado, sin grupo por cliente, sin grupo por teléfono, llave de menos de 10 dígitos, Venezuela inventada, nunca `otro_telefono`, correo sin normalizar, bots sin «Bot Kommo», asesor con nombre completo, conversaciones sin acceso cargadas, repetidos cargados, completa que ignora el corte, manifiesto sin corte, incremental que no reconoce el corte de una completa, y completa que acepta otro corte | PASÓ: 15 de 15 caen. El de «sin grupo por teléfono» sobrevivía en la primera vuelta porque el cruce por cliente lo tapaba; se agregó el caso de dos contactos sin cliente con el mismo teléfono |
+| Los 11 mutantes del 5.3, ajustados al código nuevo | PASÓ: 11 de 11 |
+| La foto del ERP en tmpfs | NO EJECUTADO en Windows: la prueba solo corre en Linux |
+| Cargador y E-3 a E-7 | NO EJECUTADO: pide Docker y turno |
+
+### 10.8 revisar-datos-ve de 5.4 y 5.5
+
+| Qué | Campos | Dónde | Cuánto tiempo |
+|---|---|---|---|
+| Foto del ERP | `client_id`, `phone_last10` y correos. Sin nombres ni documentos | Un NDJSON en `/dev/shm`, fuera del staging | Hasta que `vincular` la lee: se borra ahí mismo. **No va al paquete de Kommo** |
+| `vinculos.ndjson` | E.164, llaves, correos, cliente del ERP, motivo y grupo | Staging en tmpfs y, al empaquetar, dentro del `.age` | Staging hasta empaquetar; el paquete, corte + 12 meses (§6.3) |
+| `carga.ndjson` | Nombre del contacto, teléfono E.164, correo, cliente del ERP; texto, sentido, fecha y autor de cada mensaje; referencia al `.age` del adjunto | Igual | Igual |
+| `vinculo-informe.json` y `carga-informe.json` | Solo conteos | Staging y paquete | Igual |
+
+- **Minimización (CORRECTO):**
+  - la foto del ERP es solo la llave y el correo, y se borra al leerla;
+  - la carga no lleva `avatar_url`, ni campos propios de Kommo, ni enlaces firmados;
+  - el asesor va por nombre de pila.
+
+  Lo fijan `test_la_carga_no_lleva_avatar_ni_enlaces_firmados_y_el_informe_solo_cuenta` y `test_vincular_borra_la_foto_del_erp_y_deja_solo_conteos_a_la_vista`.
+- **Exactitud del vínculo (CORRECTO):** un teléfono con dos clientes no se vincula, igual que el enrutador (0383). El correo solo vincula si da un único cliente.
+- **Titulares que no son usuarios (sin cambio):** §6.2, punto 12.
+- **Fixtures:** solo inventados, con dominio `ejemplo.test` y marcas de prueba. Nada del respaldo ni de producción.

@@ -19,8 +19,14 @@ Rama `codex/0590-e5-extractor`, worktree `DTD-worktrees/0590-e5-extractor`, desd
 
 ## Pendiente
 
-- La respuesta del Director General: SDD, orden y si la PR se abre ahora o espera.
-- **5.4 y 5.5, en código:** E.164, vínculo con el ERP y deduplicación; modo de importación sin efectos, bandeja «Archivo Kommo» y cargador. Después del 5.3.
+- ~~La respuesta del Director General.~~ Hecho: va bajo SDD-0590, y la PR del 5.3 es la #386, en borrador.
+- **5.4 y 5.5:** en la rama local `codex/0590-e5-vinculo`, encima de la #386 y sin subir, quedaron:
+  - `extraer --corte`, completa hasta el corte;
+  - `vincular`;
+  - `preparar-carga`;
+  - 49 pruebas y 26 mutantes.
+
+  Falta el cargador de Rails y su prueba en Docker, que pide turno. El diseño y lo que mide el ensayo están en SDD-0590 §10.
 - **Primera corrida con token** (puerta de Sam): medir si Kommo acepta `filter[updated_at]` en notas y tareas (SDD-0590 §9.2).
 - La fila 5.3 del checklist no se tocó.
 

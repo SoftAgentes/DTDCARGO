@@ -470,7 +470,7 @@ def leer_base(carpeta: str) -> dict:
     except ValueError:
         raise ErrorFatal(f"la base no tiene un stamp válido: {stamp[:30]!r}")
     paquete = [a for a in m.get("archivos") or [] if str(a.get("archivo", "")).endswith("metadatos.tar.zst.age")]
-    corte_previo = (m.get("incremental") or {}).get("corte")
+    corte_previo = (m.get("incremental") or {}).get("corte") or m.get("corte")
     return {"stamp": stamp, "hasta": int(corte_previo) if corte_previo else instante_stamp,
             "sha256_paquete": paquete[0].get("sha256") if paquete else None}
 
@@ -483,12 +483,26 @@ def preparar_incremental(args, st: Staging) -> dict | None:
     if not base_dir and not corte_txt:
         if st.existe("incremental.json"):
             raise ErrorFatal("este staging es de una corrida incremental: pasa el mismo --base y --corte")
+        if st.existe("corte.json"):
+            raise ErrorFatal("este staging es de una corrida completa con corte: pasa el mismo --corte")
         return None
-    if not base_dir or not corte_txt:
+    if base_dir and not corte_txt:
         raise ErrorFatal("el modo incremental pide --base y --corte juntos")
     corte = parsear_instante(corte_txt)
     if corte > ahora():
         raise ErrorFatal(f"el corte {utc(corte)} está en el futuro: tiene que ser un instante ya pasado")
+    if not base_dir:
+        # Completa hasta el corte (5.5): todo lo que hay hasta ese instante, para cargarlo en la misma ventana.
+        if st.existe("incremental.json"):
+            raise ErrorFatal("este staging es de una corrida incremental: pasa el mismo --base y --corte")
+        plan = {"corte": corte, "version": VERSION}
+        if st.existe("corte.json") and st.leer_json("corte.json").get("corte") != corte:
+            raise ErrorFatal("el staging es de otra corrida con corte (corte distinto): usa otro staging")
+        if not st.existe("corte.json"):
+            st.escribir_json("corte.json", plan)
+        return {"corte": corte, "desde": None, "base_stamp": None}
+    if st.existe("corte.json"):
+        raise ErrorFatal("este staging es de una corrida completa con corte: no se le aplica una base")
     base = leer_base(base_dir)
     solape = int(getattr(args, "solape_horas", SOLAPE_HORAS_POR_DEFECTO)) * 3600
     desde = base["hasta"] - solape
@@ -509,16 +523,21 @@ def preparar_incremental(args, st: Staging) -> dict | None:
 class Extractor:
     def __init__(self, api: Kommo, st: Staging, log: Log, args):
         self.api, self.st, self.log, self.args = api, st, log, args
-        self.inc = preparar_incremental(args, st)
+        plan = preparar_incremental(args, st)
+        # `inc` solo si hay base (incremental); `corte` también en la completa hasta el corte (5.5).
+        self.inc = plan if plan and plan.get("base_stamp") else None
+        self.corte = plan["corte"] if plan else None
         if self.inc:
             log(f"incremental: base {self.inc['base_stamp']}, desde {utc(self.inc['desde'])}, corte {utc(self.inc['corte'])}")
+        elif self.corte:
+            log(f"completa hasta el corte {utc(self.corte)}")
 
     def en_corte(self, ts) -> bool:
         """Sin corte, todo entra. Con corte, solo lo creado hasta el corte inclusive."""
-        if not self.inc:
+        if self.corte is None:
             return True
         s = segundos(ts)
-        return s is not None and s <= self.inc["corte"]
+        return s is not None and s <= self.corte
 
     # ---- entidades simples
     def entidad_lista(self, nombre: str, ruta: str, params: dict | None, clave: str):
@@ -579,11 +598,11 @@ class Extractor:
         marcadas y se bajarían (y duplicarían) las 96 otra vez. Un staging de la versión 1.0 no trae el
         archivo: se toma el fin de la primera ventana marcada, que es la más reciente de esa corrida."""
         ruta = self.st.ruta_de("eventos-hasta.txt")
-        if self.inc:
+        if self.corte is not None:
             # El corte es el fin fijo: no hay ventana de cola ni hora de la primera corrida que recordar.
             with open(ruta, "w", encoding="utf-8") as f:
-                f.write(str(self.inc["corte"]))
-            return self.inc["corte"]
+                f.write(str(self.corte))
+            return self.corte
         if self.st.existe("eventos-hasta.txt"):
             with open(ruta, encoding="utf-8") as f:
                 return int(f.read().strip())
@@ -608,7 +627,7 @@ class Extractor:
         vent = list(ventanas(desde, hasta))
         if self.args.max_eventos_ventanas:
             vent = vent[: self.args.max_eventos_ventanas]
-        elif not self.inc and ahora() - (hasta - DIA) >= COLA_EVENTOS_SEGUNDOS:
+        elif self.corte is None and ahora() - (hasta - DIA) >= COLA_EVENTOS_SEGUNDOS:
             # Reanudación horas después: una ventana de cola desde la hora de la primera corrida hasta ahora.
             # Se solapa un poco con la ventana más reciente; los repetidos se quitan al leer (eventos_unicos).
             vent.insert(0, (hasta - DIA, ahora() + DIA))
@@ -769,6 +788,264 @@ class Extractor:
 # --------------------------------------------------------------------------- cifrado y paquete
 
 
+# --------------------------------------------------------------------------- 5.4 · E.164 y vínculo con el ERP
+#
+# Trabaja sobre el staging en claro (tmpfs) de una extracción hasta el corte. Lo que sale con teléfonos o
+# correos queda en el staging y se cifra con el paquete; el informe lleva solo conteos.
+
+PREFIJOS_VE = ("2", "4")
+
+
+def solo_digitos(valor) -> str:
+    return re.sub(r"\D", "", str(valor or ""))
+
+
+def e164(valor) -> tuple[str | None, str]:
+    """(+E.164, motivo). Con `+` o `00`, el código de país viene dado. Sin él, solo se completan los patrones
+    venezolanos (0 + 10, 58 + 10, o 10 que empiezan por 2 o 4). Lo demás queda sin E.164: no se inventa un país."""
+    crudo = str(valor or "").strip()
+    d = solo_digitos(crudo)
+    if not d:
+        return None, "vacio"
+    if crudo.startswith("+") or d.startswith("00"):
+        d = d[2:] if d.startswith("00") else d
+        return (f"+{d}", "con_codigo") if 8 <= len(d) <= 15 else (None, "largo_invalido")
+    if len(d) == 12 and d.startswith("58"):
+        return f"+{d}", "venezuela_58"
+    if len(d) == 11 and d.startswith("0") and d[1] in PREFIJOS_VE:
+        return f"+58{d[1:]}", "venezuela_0"
+    if len(d) == 10 and d[0] in PREFIJOS_VE:
+        return f"+58{d}", "venezuela_10"
+    return None, "sin_codigo_de_pais"
+
+
+def ultimos10(valor) -> str | None:
+    """La misma llave que `phone_last10` del ERP (migraciones 0363 y 0383): últimos 10 dígitos, o nada."""
+    d = solo_digitos(valor)
+    return d[-10:] if len(d) >= 10 else None
+
+
+def correo_normal(valor) -> str | None:
+    c = str(valor or "").strip().lower()
+    return c if "@" in c and " " not in c and len(c) <= 254 else None
+
+
+def valores_campo(contacto: dict, codigo: str) -> list[str]:
+    salida = []
+    for campo in contacto.get("custom_fields_values") or []:
+        if (campo or {}).get("field_code") == codigo:
+            salida.extend(str(v.get("value")) for v in campo.get("values") or [] if v.get("value"))
+    return salida
+
+
+def en_tmpfs(ruta: str) -> bool:
+    """Los archivos con datos de personas viven solo en /dev/shm. En Windows (pruebas) no aplica."""
+    if os.name != "posix":
+        return True
+    return os.path.realpath(ruta).startswith("/dev/shm/")
+
+
+def cargar_foto_erp(ruta: str) -> dict:
+    """Foto mínima del ERP: NDJSON con `client_id`, `phone_last10` (lista) y `correos` (lista). Sin nombres."""
+    if not en_tmpfs(ruta):
+        raise ErrorFatal("la foto del ERP tiene datos de personas: tiene que estar en /dev/shm")
+    por_tel: dict[str, set] = collections.defaultdict(set)
+    por_correo: dict[str, set] = collections.defaultdict(set)
+    del_cliente: dict[str, dict] = {}
+    with open(ruta, encoding="utf-8") as f:
+        for linea in f:
+            if not linea.strip():
+                continue
+            fila = json.loads(linea)
+            cid = str(fila.get("client_id") or "")
+            if not cid:
+                continue
+            tels = {k for k in (ultimos10(t) for t in fila.get("phone_last10") or []) if k}
+            correos = {c for c in (correo_normal(x) for x in fila.get("correos") or []) if c}
+            del_cliente[cid] = {"tels": tels, "correos": correos}
+            for t in tels:
+                por_tel[t].add(cid)
+            for c in correos:
+                por_correo[c].add(cid)
+    return {"por_tel": por_tel, "por_correo": por_correo, "clientes": del_cliente}
+
+
+class Grupos:
+    """Unión de contactos de Kommo que son la misma persona. El id del grupo es el menor id de contacto."""
+
+    def __init__(self):
+        self.padre: dict[int, int] = {}
+
+    def raiz(self, x: int) -> int:
+        self.padre.setdefault(x, x)
+        while self.padre[x] != x:
+            self.padre[x] = self.padre[self.padre[x]]
+            x = self.padre[x]
+        return x
+
+    def unir(self, a: int, b: int) -> None:
+        ra, rb = self.raiz(a), self.raiz(b)
+        if ra != rb:
+            self.padre[max(ra, rb)] = min(ra, rb)
+
+
+def vincular(contactos, foto: dict) -> tuple[list[dict], dict]:
+    """Un renglón por contacto de Kommo: E.164, llave, cliente del ERP y grupo. Más el informe de conteos."""
+    filas, grupos = [], Grupos()
+    por_llave: dict[str, list[int]] = collections.defaultdict(list)
+    por_cliente: dict[str, list[int]] = collections.defaultdict(list)
+    motivos_e164 = collections.Counter()
+    cuenta = collections.Counter()
+    for c in contactos:
+        try:
+            kid = int(c.get("id"))
+        except (TypeError, ValueError):
+            continue
+        grupos.raiz(kid)
+        tels = valores_campo(c, "PHONE")
+        normal = [e164(t) for t in tels]
+        for _e, motivo in normal:
+            motivos_e164[motivo] += 1
+        e164s = sorted({e for e, _m in normal if e})
+        llaves = sorted({k for k in (ultimos10(t) for t in tels) if k})
+        correos = sorted({x for x in (correo_normal(v) for v in valores_campo(c, "EMAIL")) if x})
+        for k in llaves:
+            por_llave[k].append(kid)
+
+        candidatos_tel = set().union(*(foto["por_tel"].get(k, set()) for k in llaves)) if llaves else set()
+        cliente, motivo, otro_tel = None, "sin_vinculo", False
+        if len(candidatos_tel) == 1:
+            cliente, motivo = next(iter(candidatos_tel)), "telefono"
+        elif len(candidatos_tel) > 1:
+            motivo = "ambiguo_telefono"
+        else:
+            candidatos_correo = set().union(*(foto["por_correo"].get(x, set()) for x in correos)) if correos else set()
+            if len(candidatos_correo) == 1:
+                cliente, motivo = next(iter(candidatos_correo)), "correo"
+                otro_tel = bool(llaves) and not (set(llaves) & foto["clientes"].get(cliente, {}).get("tels", set()))
+            elif len(candidatos_correo) > 1:
+                motivo = "ambiguo_correo"
+        if cliente:
+            por_cliente[cliente].append(kid)
+        cuenta[motivo] += 1
+        cuenta["con_telefono"] += bool(tels)
+        cuenta["con_e164"] += bool(e164s)
+        cuenta["otro_telefono"] += otro_tel
+        filas.append({"kommo_contact_id": kid, "e164": e164s, "llaves": llaves, "correos": correos,
+                      "client_id": cliente, "motivo": motivo, "otro_telefono": otro_tel})
+
+    for ids in list(por_llave.values()) + list(por_cliente.values()):
+        for x in ids[1:]:
+            grupos.unir(ids[0], x)
+    for fila in filas:
+        fila["grupo"] = grupos.raiz(fila["kommo_contact_id"])
+
+    grupos_de_cliente = collections.defaultdict(set)
+    for fila in filas:
+        if fila["client_id"]:
+            grupos_de_cliente[fila["client_id"]].add(fila["grupo"])
+    tamanio = collections.Counter(f["grupo"] for f in filas)
+    informe = {
+        "contactos": len(filas),
+        "con_telefono": cuenta["con_telefono"],
+        "con_e164": cuenta["con_e164"],
+        "telefonos_por_motivo_e164": dict(sorted(motivos_e164.items())),
+        "vinculados_por_telefono": cuenta["telefono"],
+        "vinculados_por_correo": cuenta["correo"],
+        "otro_telefono": cuenta["otro_telefono"],
+        "ambiguos": cuenta["ambiguo_telefono"] + cuenta["ambiguo_correo"],
+        "sin_vinculo": cuenta["sin_vinculo"],
+        "clientes_vinculados": len(grupos_de_cliente),
+        # E-1 del ensayo: tiene que dar 0.
+        "clientes_en_varios_grupos": sum(1 for g in grupos_de_cliente.values() if len(g) > 1),
+        # E-2: un ambiguo nunca queda vinculado.
+        "ambiguos_vinculados": sum(1 for f in filas if f["motivo"].startswith("ambiguo") and f["client_id"]),
+        "grupos": len(tamanio),
+        "grupos_con_varios_contactos": sum(1 for n in tamanio.values() if n > 1),
+    }
+    return filas, informe
+
+
+# --------------------------------------------------------------------------- 5.5 · archivo de carga reducido
+
+AUTOR_BOT = "Bot Kommo"
+
+
+def nombre_de_pila(nombre) -> str | None:
+    partes = str(nombre or "").split()
+    return partes[0] if partes else None
+
+
+def preparar_carga(st: Staging) -> dict:
+    """Arma `carga.ndjson` en el staging: personas por grupo, conversaciones y mensajes reducidos. Solo lo que
+    el Archivo muestra: sin `avatar_url`, sin campos propios de Kommo, asesores por nombre de pila."""
+    vinculos = {f["kommo_contact_id"]: f for f in st.leer_ndjson("vinculos.ndjson")}
+    if not vinculos:
+        raise ErrorFatal("falta vinculos.ndjson: corre `vincular` antes")
+    contactos = {int(c["id"]): c for c in st.leer_ndjson("contactos.ndjson") if c.get("id") is not None}
+    adjuntos = {str(a.get("message_id")): a.get("archivo") for a in st.leer_ndjson("adjuntos.ndjson") if a.get("archivo")}
+    cuenta = collections.Counter()
+    salida = st.ruta_de("carga.ndjson")
+    personas: dict[int, dict] = {}
+    for kid, v in vinculos.items():
+        g = v["grupo"]
+        p = personas.setdefault(g, {"tipo": "persona", "grupo": g, "kommo_contact_ids": [], "nombre": None,
+                                    "telefono": None, "correo": None, "client_id": None})
+        p["kommo_contact_ids"].append(kid)
+        if kid == g:
+            p["nombre"] = (contactos.get(kid) or {}).get("name")
+        p["telefono"] = p["telefono"] or (v["e164"][0] if v["e164"] else None)
+        p["correo"] = p["correo"] or (v["correos"][0] if v["correos"] else None)
+        p["client_id"] = p["client_id"] or v["client_id"]
+    with open(salida, "w", encoding="utf-8") as f:
+        for p in personas.values():
+            p["kommo_contact_ids"].sort()
+            f.write(json.dumps(p, ensure_ascii=False, separators=(",", ":")) + "\n")
+            cuenta["personas"] += 1
+        talks_validos = set()
+        for t in st.leer_ndjson("talks.ndjson"):
+            if t.get("_http") != 200 or not t.get("talk"):
+                continue
+            talk = t["talk"]
+            tid = int(t["_talk_id"])
+            contacto = talk.get("contact_id")
+            grupo = (vinculos.get(int(contacto)) or {}).get("grupo") if contacto is not None else None
+            if grupo is None:
+                cuenta["conversaciones_sin_contacto"] += 1
+            talks_validos.add(tid)
+            f.write(json.dumps({"tipo": "conversacion", "kommo_talk_id": tid, "grupo": grupo,
+                                "origen": talk.get("origin"), "creada": segundos(talk.get("created_at")),
+                                "actualizada": segundos(talk.get("updated_at"))},
+                               ensure_ascii=False, separators=(",", ":")) + "\n")
+            cuenta["conversaciones"] += 1
+        vistos = set()
+        for m in st.leer_ndjson("mensajes.ndjson"):
+            mid = str(m.get("id"))
+            if m.get("_talk_id") not in talks_validos or mid in vistos:
+                continue
+            vistos.add(mid)
+            autor = m.get("author") or {}
+            entrante = m.get("type") == "incoming"
+            if entrante:
+                quien = "cliente"
+            elif autor.get("type") == "bot":
+                quien = AUTOR_BOT
+                cuenta["mensajes_de_bot"] += 1
+            else:
+                quien = nombre_de_pila(autor.get("name")) or "Asesor"
+            fila = {"tipo": "mensaje", "source_id": f"kommo:{mid}", "kommo_talk_id": m["_talk_id"],
+                    "entrante": entrante, "autor": quien, "texto": m.get("text"), "creado": segundos(m.get("created_at")),
+                    "adjunto": adjuntos.get(mid)}
+            f.write(json.dumps(fila, ensure_ascii=False, separators=(",", ":")) + "\n")
+            cuenta["mensajes"] += 1
+            cuenta["entrantes" if entrante else "salientes"] += 1
+            cuenta["con_adjunto"] += bool(fila["adjunto"])
+            cuenta["sin_texto"] += not m.get("text")
+    informe = dict(sorted(cuenta.items()))
+    st.escribir_json("carga-informe.json", informe)
+    return informe
+
+
 def cifrar_bytes(datos: bytes, recipients: str, salida: str) -> None:
     proc = subprocess.run(["age", "-R", recipients, "-o", salida], input=datos, capture_output=True, check=False)
     if proc.returncode != 0:
@@ -824,6 +1101,9 @@ def construir_manifiesto(st: Staging, destino_corrida: str, stamp: str, recipien
     bloque = bloque_incremental(st)
     if bloque:
         manifiesto["incremental"] = bloque
+    elif st.existe("corte.json"):
+        # Completa hasta el corte: el siguiente incremental parte de aquí.
+        manifiesto["corte"] = st.leer_json("corte.json").get("corte")
     return manifiesto
 
 
@@ -1303,6 +1583,33 @@ def cmd_empaquetar(args, log: Log) -> int:
     return 0
 
 
+def cmd_vincular(args, log: Log) -> int:
+    st = Staging(args.staging)
+    if not st.existe("contactos.ndjson"):
+        raise ErrorFatal("el staging no tiene contactos.ndjson: extrae hasta el corte con --conservar-staging")
+    foto = cargar_foto_erp(args.clientes)
+    if not args.conservar_clientes:
+        # La foto trae teléfonos y correos de clientes del ERP: se borra apenas se lee. No va al paquete de Kommo.
+        os.remove(args.clientes)
+        log("vincular: foto del ERP borrada tras leerla")
+    filas, informe = vincular(st.leer_ndjson("contactos.ndjson"), foto)
+    st.borrar("vinculos.ndjson")
+    st.anexar_ndjson("vinculos.ndjson", filas)
+    st.escribir_json("vinculo-informe.json", informe)
+    log(f"vincular: {informe['contactos']} contactos, {informe['vinculados_por_telefono']} por teléfono, "
+        f"{informe['vinculados_por_correo']} por correo, {informe['ambiguos']} ambiguos, {informe['grupos']} grupos")
+    print(json.dumps(informe, ensure_ascii=False))
+    return 0
+
+
+def cmd_preparar_carga(args, log: Log) -> int:
+    st = Staging(args.staging)
+    informe = preparar_carga(st)
+    log(f"preparar-carga: {json.dumps(informe, ensure_ascii=False)}")
+    print(json.dumps(informe, ensure_ascii=False))
+    return 0
+
+
 def cmd_todo(args, log: Log) -> int:
     cmd_extraer(args, log)
     cmd_informe(args, log)
@@ -1342,6 +1649,10 @@ def construir_parser() -> argparse.ArgumentParser:
         sp.add_argument("--solape-horas", type=int, default=SOLAPE_HORAS_POR_DEFECTO,
                         help="incremental: horas antes del corte anterior desde donde se vuelve a mirar")
     sp = sub.add_parser("informe"); comunes(sp, token=False)
+    sp = sub.add_parser("vincular"); comunes(sp, token=False, destino=False)
+    sp.add_argument("--clientes", required=True, help="foto mínima del ERP en /dev/shm: client_id, phone_last10, correos")
+    sp.add_argument("--conservar-clientes", action="store_true", help="no borrar la foto del ERP después de leerla")
+    sp = sub.add_parser("preparar-carga"); comunes(sp, token=False, destino=False)
     sp = sub.add_parser("empaquetar"); comunes(sp, token=False)
     sp.add_argument("--conservar-staging", action="store_true")
     sp.add_argument("--verificar-efimera", action="store_true")
@@ -1354,6 +1665,7 @@ def main(argv=None) -> int:
     log = Log(args.log)
     try:
         return {"probar-token": cmd_probar_token, "extraer": cmd_extraer, "informe": cmd_informe,
+                "vincular": cmd_vincular, "preparar-carga": cmd_preparar_carga,
                 "empaquetar": cmd_empaquetar, "todo": cmd_todo}[args.cmd](args, log)
     except ErrorFatal as e:
         log(f"ERROR: {e}")
