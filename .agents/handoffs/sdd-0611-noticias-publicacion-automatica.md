@@ -39,6 +39,17 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
   (2026-11-06 al 2026-11-15) son **a mano**, porque la vía automática no existe, y sirven de
   ensayo de los filtros. La decisión abierta 3 queda resuelta en parte.
 
+- **Cuarta pasada (2026-11-06), decisiones de Sam en esta sesión:**
+  - Canal: «Un canal nuevo que se llame Noticias» → `#noticias` (decisión 1).
+  - IA: «la noticia no debe decir que se hizo con IA. La redacción tiene que ser muy humana» →
+    decisión 2; pidió analizar herramientas de naturalidad y anexarlo para la gente →
+    `anexo-redaccion-natural.md` (fuentes primarias de Google, reseñas marcadas como tales,
+    recomendación de no meter humanizadores en el camino automático y prueba a ciegas).
+  - Tope: «Sí, cuenta solo las automáticas. El sistema publica sus dos noticias y avisa que
+    también las de nosotros» → decisión 3; dos automáticas por semana y aviso también de las
+    manuales en `#noticias`.
+  - Quedan abiertas la 4 (fecha de revisión) y la 5 (persona que revisa).
+
 ## Validación
 
 | Comprobación | Resultado |
