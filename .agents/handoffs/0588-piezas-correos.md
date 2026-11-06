@@ -17,7 +17,9 @@ No cambia lo que viaja al motor, salvo el diff de esas rutas cuando una versión
 | 6 mutantes | PASÓ: 6 de 6 caen por la prueba nueva |
 | eslint | PASÓ |
 | Rutas de Chatwoot | Leídas en el repositorio público, etiqueta `v4.19.1`: `app/views/mailers/`, `app/views/devise/mailer/`, `app/views/layouts/mailer/base.liquid`, `app/mailers/application_mailer.rb` y `config/initializers/devise.rb` (`parent_mailer`) |
-| `tsc` y `pnpm verify` | NO EJECUTADOS. `verify` pide turno al Director General, porque SEO usa esta PC |
+| `pnpm verify`, con turno del Director General, de 02:18Z a 03:08Z | FALLÓ solo por dos vencimientos de 600 s en pruebas de scripts bash, ajenas al diff. Typecheck, lint, e2e y build: PASÓ. Detalle en la SDD-0588 |
+| Esas dos pruebas a solas | PASÓ: 32 de 32 |
+| migrations-applied, sql-tests y schema-rebuild | NO DISPONIBLE: sin `.env.local` y con Docker apagado. El cambio no toca SQL |
 
 ## Pendiente
 

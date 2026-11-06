@@ -184,5 +184,6 @@ Las vistas de `correo/views` no entran en la superficie que viaja al motor, porq
 | `analisis`, `analisis-superficie`, `analisis-motor`, `actions` y `ActualizacionesPanel` | PASÓ: 76 de 76 |
 | Mutantes: sin la pieza, sin el layout, sin `devise.rb`, sin `app/mailers/`, con todas las vistas de mailers, y descripción sin el inicializador | PASÓ: 6 de 6 caen por la prueba nueva, con el control en verde antes y después |
 | eslint de los dos archivos | PASÓ |
-| `tsc` | NO EJECUTADO: lo corre el CI |
-| `pnpm verify` | NO EJECUTADO: pide turno al Director General |
+| `pnpm verify` sobre `5ec159f43`, con turno del Director General, de 02:18:50Z a 03:08:15Z | **FALLÓ, por dos vencimientos ajenos al cambio.** PASÓ: harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols, e2e y build. En `test`, 14 799 de 14 802: vencieron a los 600 s `prueba-migraciones-produccion.sh` en los dos intentos y las pruebas con dobles de `entorno-prueba-scripts.test.mjs` en el reintento. Son scripts bash con el pool lleno, y el diff no toca `infra/ops` ni `scripts` |
+| Las dos pruebas vencidas, a solas y con un solo worker, 03:08Z a 03:12Z | PASÓ: 32 de 32, en 92,7 s y 119,5 s |
+| migrations-applied, sql-tests y schema-rebuild | NO DISPONIBLE: el worktree no tiene `.env.local` y Docker está apagado. El cambio no toca SQL |
