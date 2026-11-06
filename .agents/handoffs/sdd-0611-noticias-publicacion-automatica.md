@@ -35,6 +35,7 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
 | `pnpm sdd:check` | PASÓ (solo choques históricos conocidos) |
 | `git diff --check` | PASÓ |
 | `pnpm verify` | NO APLICA: solo documentos |
+| `pnpm knowledge:status` | NO DISPONIBLE: «Respuesta inválida del adaptador Graphify» en este worktree; estructural y semántico `UNAVAILABLE` |
 | Hallazgo de la marca vacía | Comprobado con node sobre la expresión de `lib/news/score.ts`: `[VERIFICAR]` y `[VERIFICAR: ]` cuentan 0 |
 
 ## Pendientes de esta tarea
