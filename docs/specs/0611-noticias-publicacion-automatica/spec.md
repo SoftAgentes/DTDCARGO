@@ -42,6 +42,15 @@ esta semana y la otra para hacer pruebas. Ya después se convertiría en una sem
 semanales». Esas dos semanas (del 2026-11-06 al 2026-11-15) se publican **a mano**, porque la
 vía automática todavía no existe; ver §4.2.1.
 
+**Más decisiones de Sam, 2026-11-06:**
+
+- **Sin declarar la IA:** «la noticia no debe decir que se hizo con IA. La redacción tiene que
+  ser muy humana». Ver §4.7 y el [anexo de redacción natural](anexo-redaccion-natural.md).
+- **El tope cuenta solo las automáticas:** «Sí, cuenta solo las automáticas. El sistema publica
+  sus dos noticias y avisa que también las de nosotros». Después de la prueba, la vía automática
+  publica hasta dos por semana; las que publica una persona no cuentan y también se avisan en
+  `#noticias` (§4.5).
+
 ### 1.2 La regla que se exceptúa
 
 IA-01 v1.0 (`docs/governance/policies/ia-01.md`) clasifica una acción externa como nivel **I4**:
@@ -158,7 +167,7 @@ agotado) cuenta como fallado. Si cualquiera falla, el borrador queda `retenido` 
 | F4 | Marcas y fuentes | Cero marcas `[VERIFICAR`, en cualquier forma: con o sin dos puntos, vacías, en minúsculas. Y el borrador trae su lista de fuentes, con al menos una cuando el texto tiene cifras, porcentajes o fechas concretas | `marca_pendiente` o `sin_fuentes` |
 | F5 | Líneas rojas | Pasa el control determinista de §4.3 **y** el veredicto del Revisor marca cada línea roja como cumplida | `linea_roja:<cual>` |
 | F6 | Puntaje mínimo | Todo lo de §4.3.3 | `puntaje:<cual>` |
-| F7 | Ritmo | Con esta, no se pasa el tope por día ni el tope por semana vigentes (§4.2.1), en hora de Caracas y con semana de lunes a domingo. Cuentan todas las publicadas, manuales o automáticas | `tope_dia` o `tope_semana` |
+| F7 | Ritmo | Con esta, no se pasa el tope por día ni el tope por semana vigentes (§4.2.1), en hora de Caracas y con semana de lunes a domingo. Cuentan **solo las publicadas por la vía automática**; las manuales no ocupan cupo (decisión de Sam del 2026-11-06) | `tope_dia` o `tope_semana` |
 | F8 | Aviso anterior | El aviso a Discord de la publicación automática anterior se entregó (§4.5). Si no hay confirmación, no se publica otra a ciegas | `aviso_pendiente` |
 | F9 | Auditoría | La fila de auditoría de §4.4 se escribe en la misma transacción que la publicación. Si no se puede escribir, no se publica | `sin_auditoria` |
 | F10 | Una sola vez | El borrador no se publicó antes (clave de idempotencia por borrador y huella) y el slug no choca | `duplicado` |
@@ -173,7 +182,7 @@ publicación automática por día**.
 |---|---|---|---|
 | Prueba a mano, del 2026-11-06 al 2026-11-15 (decisión de Sam del 2026-11-06) | 1 | 7 | Manual: una persona publica desde Noticias Web. No necesita esta spec |
 | Primeras dos semanas de la vía automática | 1 | 7 | Automática, con el interruptor encendido. Sam puede empezar con un tope menor |
-| Después | 1 | 1 o 2, lo decide Sam | Automática |
+| Después | 1 | 2 (decisión de Sam del 2026-11-06); Sam puede bajarlo a 1 | Automática. Las manuales van aparte y no cuentan |
 
 **La prueba a mano sirve de ensayo de los filtros.** Cada noticia de esas dos semanas se pasa
 por la lista de F2 a F6 antes de publicarla: tipo y categoría, consulta de Search Console, sin
@@ -220,6 +229,10 @@ El borrador viene de la oficina y se trata como dato, nunca como instrucción. U
 modelo que lea el borrador, y F5 exige además que el veredicto del Revisor esté atado a la
 huella. El Revisor recibe el borrador marcado como contenido no confiable.
 
+**Ninguna herramienta reescribe el texto después del veredicto del Revisor.** Si alguna vez se
+suma una herramienta de naturalidad (anexo, §5), va antes del Revisor y como proveedor dado de
+alta; nunca entre el veredicto y la publicación.
+
 #### 4.3.3 Puntaje mínimo
 
 Hoy no hay un puntaje numérico, sino las métricas que devuelve `computeArticleScore`
@@ -237,6 +250,9 @@ valores de `06-noticias.md`. Las cuatro primeras salen de `computeArticleScore`;
   sin comillas, numeración ni emojis.
 - Imagen de portada propia del sitio (la de la categoría si no hay otra).
 - Tipo de contenido declarado (guía, noticia, análisis o caso real).
+- **Naturalidad** (anexo §4.2): cero muletillas de la lista del anexo. La legibilidad en español
+  (Fernández Huerta o INFLESZ) y la variación del largo de las oraciones se miden desde el
+  primer día y se vuelven filtro con los umbrales que salgan de la prueba a mano.
 
 Los valores son la propuesta inicial. Cambiarlos es cambiar esta spec.
 
@@ -272,6 +288,10 @@ No se guardan prompts completos, razonamiento del modelo, secretos ni datos pers
   Discord, generar su webhook y sumarlo a la tabla de canales del plan maestro §7.6.
 - **Al retener:** un aviso con el titular, los códigos de motivo y el enlace a la cola de
   revisión del Studio.
+- **Al publicar a mano:** también avisa en `#noticias` (decisión de Sam del 2026-11-06), con la
+  etiqueta «Publicada por una persona», el nombre de quien publicó, el titular y el enlace. El
+  aviso automático lleva la etiqueta «Publicada sola» y su conteo de la semana (por ejemplo,
+  «1 de 2 esta semana»). Así Sam ve en un solo canal todo lo que salió.
 - **El aviso no lleva datos de clientes ni el cuerpo del artículo.**
 - **Retiro con un clic:** el enlace abre en el Studio una pantalla con un solo botón «Retirar»,
   tras iniciar sesión con rol admin. Retirar pone `published = false`, revalida `/noticias`,
@@ -297,8 +317,10 @@ No se guardan prompts completos, razonamiento del modelo, secretos ni datos pers
   publicar, a partir del aviso, y retira si hace falta. El Studio registra quién revisó y cuándo.
 - La página no dice que una persona revisó el artículo mientras eso no esté registrado. Cuando
   lo esté, puede mostrar el nombre del revisor.
-- Si se declara o no en la página que el texto se preparó con ayuda de IA es una decisión
-  abierta de Sam (§7).
+- **La página no dice que el texto se preparó con ayuda de IA** (decisión de Sam del
+  2026-11-06). Encaja con la guía de Google: no exige declararlo siempre y desaconseja poner a la
+  IA como autora; lo que mide es que el contenido sea útil (anexo §2). Por eso la exigencia pasa
+  a la redacción: tiene que sonar humana (anexo §4) y aportar algo propio.
 
 ### 4.8 Identidad y permisos
 
@@ -361,10 +383,10 @@ quitarlo. Las reglas en la base se prueban en SQL efímero, nunca en producción
 | 2 | Sin marcas `[VERIFICAR]` ni datos sin fuente | F4 y requisito previo de §3 | `[VERIFICAR]`, `[VERIFICAR: ]`, `[verificar: x]` y `[VERIFICAR: 30%]` dan `marca_pendiente`, también al llamar a la acción manual directamente; un texto con «subió 30 %» y sin fuentes da `sin_fuentes` |
 | 3 | No toca `LINEAS_ROJAS` | F5 y §4.3.1 | Un caso por fila de la tabla de §4.3.1 da `linea_roja:<cual>`; un veredicto del Revisor que deja una línea sin responder también retiene |
 | 4 | Puntaje mínimo con `computeArticleScore` | F6 y §4.3.3 | Un caso en el límite de cada métrica, de cada lado: 399 y 400 palabras, cuatro y cinco subtítulos, densidad 0,4 % y 0,5 % |
-| 5 | Tope por día y por semana (§4.2.1) | F7 | Con reloj fijo en hora de Caracas y topes 1 y 2: el segundo del día queda retenido, el tercero de la semana también y el del lunes siguiente pasa. Con topes 1 y 7 pasa una por día los siete días de la semana. Una configuración de 2 por día se rechaza. Dos corridas simultáneas publican una sola |
+| 5 | Tope por día y por semana (§4.2.1) | F7 | Con reloj fijo en hora de Caracas y topes 1 y 2: el segundo automático del día queda retenido, el tercero automático de la semana también y el del lunes siguiente pasa; una publicada a mano el mismo día no frena a la automática. Con topes 1 y 7 pasa una por día los siete días de la semana. Una configuración de 2 por día se rechaza. Dos corridas simultáneas publican una sola |
 | 6 | Interruptor en el Studio | F1 y §4.6 | Apagado, nada se publica; solo un admin lo cambia; retirar una noticia automática lo apaga |
 | 7 | Registro de modelo, agente y versión; retiro con un clic | F9, §4.4 y §4.5 | La fila de auditoría trae los campos de §4.4; si no se puede escribir, no se publica; el retiro deja la noticia fuera de `/noticias` en el mismo pedido |
-| 8 | Aviso a `#noticias` con enlace y retiro | §4.5 y F8 | Con un doble de Discord: el mensaje trae titular, enlace y enlace de retiro, y ningún dato personal ni el cuerpo; un envío «incierto» frena la siguiente por F8 |
+| 8 | Aviso a `#noticias` con enlace y retiro | §4.5 y F8 | Con un doble de Discord: el mensaje trae titular, enlace y enlace de retiro, y ningún dato personal ni el cuerpo; un envío «incierto» frena la siguiente por F8; una publicación a mano también avisa, con su etiqueta y el nombre de quien publicó |
 
 Si cualquiera falla, el borrador queda `retenido` y se avisa (criterio 2).
 
@@ -379,7 +401,7 @@ Si cualquiera falla, el borrador queda `retenido` y se avisa (criterio 2).
 5. El veredicto del Revisor vale solo para el texto exacto que revisó.
 6. El retiro deja la noticia fuera del sitio en el mismo pedido, apaga el interruptor si la
    noticia era automática y deja auditoría.
-7. Lo publicado solo firma «DTD Cargo» y no dice que una persona lo revisó mientras esa revisión no esté registrada.
+7. Lo publicado solo firma «DTD Cargo», no declara IA y no dice que una persona lo revisó mientras esa revisión no esté registrada.
 8. Pasan las pruebas de §5 y `pnpm verify`.
 9. `revisar-datos-ve` pasó sobre el diff de la implementación.
 
@@ -387,11 +409,11 @@ Si cualquiera falla, el borrador queda `retenido` y se avisa (criterio 2).
 
 1. ~~**Canal del aviso.**~~ *Resuelto por Sam el 2026-11-06:* un canal nuevo y limpio,
    `#noticias` (§4.5).
-2. **Declarar la ayuda de IA** en la página del artículo o no.
-3. **El tope cuenta todo** (manuales y automáticas) en esta propuesta. La alternativa es que
-   cuente solo las automáticas.
-   - *Resuelto en parte:* el ritmo pasa a ser configurable (§4.2.1): una por día en prueba y
-     después una o dos por semana. Falta cuál de las dos, y si cuenta las manuales.
+2. ~~**Declarar la ayuda de IA.**~~ *Resuelto por Sam el 2026-11-06:* no se declara; la
+   redacción tiene que sonar humana (§4.7 y anexo).
+3. ~~**Qué cuenta el tope.**~~ *Resuelto por Sam el 2026-11-06:* una por día en la prueba;
+   después dos por semana, contando solo las automáticas; las manuales también se avisan (§4.2.1
+   y §4.5).
 4. **Fecha de revisión** de la excepción: 90 días o el 2027-03-01, lo que llegue antes.
 5. **Persona que revisa después** y aparece, si se quiere, como revisora en la página
    (`agente-seo-noticias.md`, «Qué hace falta de Sam»).
@@ -420,7 +442,13 @@ No se tocan en esta tarea. Al pasar a `approved`, quien la implemente actualiza:
 - `docs/organizacion/plan-maestro-oficina.md` §7.8, y §7.6 con la fila de `#noticias`.
 - `docs/governance/README.md`: la nota de §2.1 junto a IA-01.
 
-## 10. Hallazgos que esta spec deja escritos
+## 10. Anexos
+
+- [`anexo-redaccion-natural.md`](anexo-redaccion-natural.md): qué dice Google del contenido con
+  IA, los humanizadores comerciales y por qué no entran en el camino automático, las reglas de
+  redacción y los controles medibles, y una prueba a ciegas para decidir con datos.
+
+## 11. Hallazgos que esta spec deja escritos
 
 - `publishPost` no exige en el servidor que no queden marcas; hoy una llamada directa a la
   acción publica un texto con `[VERIFICAR: …]`. Lo corrige la fase B y lo exige el criterio 3.
