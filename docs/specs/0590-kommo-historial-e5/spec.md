@@ -4,7 +4,7 @@ title: "Historial de Kommo: respaldo cifrado fuera de Git y medición del volume
 status: in-progress
 author: "Claude Worker «E5 historial» (Sam)"
 created: 2026-10-30
-updated: 2026-10-31
+updated: 2026-11-06
 supersedes: null
 superseded_by: null
 related: ["0582", "0043", "0082", "0391", "0535", "0587"]
@@ -274,3 +274,50 @@ Alternativa acotada, si Sam cambia de idea: 24 meses de actividad (3.842 convers
 - 5.3 a 5.8 (extractor incremental con instante de corte, E.164 y vínculo con el ERP, modo de importación, ensayo, carga en producción y acta): otro OK de Sam.
 - Revocar la integración «DTD 0582 historial (solo lectura)» en Kommo: al cerrar E5 (0.6), después de 5.3 (Director, 2026-10-31).
 - Copiar el `.age` a un remoto (R2/B2) como los otros respaldos: **no por ahora** (Director, 2026-10-31), se decide junto con el 2.º respaldo de 8.5; el script no lo hace.
+
+## 9. Paso 5.3 — extractor incremental con instante de corte (2026-11-06)
+
+**Encargo.** Sam preguntó en el chat del Subdirector, el 2026-11-06 ~06:05Z: «¿Podemos ir trabajando con el resto del historial de Kommo?». Se avisó al Director General con esas palabras. Esta parte es solo código y pruebas en local: **no usa el token, no llama a Kommo y no toca el VPS ni producción.** Correrlo contra Kommo, de prueba o de verdad, sigue pidiendo que Sam pegue el token y dé su OK.
+
+### 9.1 Qué hace
+
+`respaldar-historial.py` 1.2.0 suma un modo incremental a `extraer` y `todo`, con `--base <carpeta de un respaldo anterior> --corte <instante UTC ya pasado>`. Detalle de uso en el [README](../../../infra/ops/kommo-historial/README.md#incremental-hasta-un-instante-de-corte-53).
+
+- **Desde:** el corte de la base, o su stamp si fue completa, menos `--solape-horas` (24 por defecto). Solo lee el `manifiesto.json` de la base: no descifra nada.
+- **Hasta:** el corte, fijo. Los eventos se piden hasta ahí, sin ventana de cola, y los mensajes posteriores no entran.
+- **Qué baja:**
+  - las listas que cambian, por `filter[updated_at]`: contactos, leads, empresas, notas y tareas;
+  - las chicas, enteras;
+  - las conversaciones con eventos en la ventana, con sus mensajes hasta el corte;
+  - los adjuntos de mensajes desde el inicio.
+
+  No sondea huecos.
+- **Idempotente:** `incremental.json` fija base, inicio y corte en el staging. Repetir el comando no vuelve a pedir nada, y otro corte, otra base o una corrida completa sobre ese staging es un error.
+- **Encadenable:** el manifiesto del paquete lleva `incremental` con base, inicio y corte, y sirve de `--base` del siguiente.
+- **Igual que 5.1:** staging en tmpfs, paquete `age` para las claves de respaldos, log y manifiesto sin datos de personas.
+
+### 9.2 Lo que no está comprobado
+
+- **NO VERIFICADO contra la cuenta:** que Kommo acepte `filter[updated_at][from|to]` en `/leads/notes`, `/contacts/notes`, `/companies/notes` y `/tasks`. En contactos, leads y empresas lo trae la documentación (**D**). Se mide en la primera corrida con token, que es una puerta de Sam. Si alguna lista lo ignora, baja entera y la carga quita repetidos por id: más tráfico, mismo resultado.
+- **Mensajes editados o borrados en Kommo después de la base,** en conversaciones sin eventos nuevos, no se vuelven a pedir. Es inferencia que en un chat de WhatsApp o Instagram eso no pasa.
+
+### 9.3 Allowlist
+
+- `infra/ops/kommo-historial/respaldar-historial.py` (1.1.1 → 1.2.0) y `infra/ops/kommo-historial/pruebas/test_respaldar.py`
+- `infra/ops/kommo-historial/README.md`
+- esta sección y `.agents/handoffs/0590-e5-extractor.md`
+
+### 9.4 Evidencia
+
+| Comprobación | Resultado |
+|---|---|
+| `python -I infra/ops/kommo-historial/pruebas/test_respaldar.py`, en Windows con Python 3.14 | PASÓ: 36 pruebas, 2 omitidas (`age` y permisos POSIX). Son las 24 de 5.1 y 12 nuevas |
+| 11 mutantes del modo incremental: mensajes después del corte, listas sin `updated_at`, corte en el futuro, otro corte en el mismo staging, adjuntos ya respaldados, sin solape, eventos que no paran en el corte, sondeo de huecos, manifiesto sin la base, cadena que no parte del corte anterior, y staging incremental usado para una corrida completa | PASÓ: 11 de 11 caen por la prueba esperada, con el control en verde antes y después. El del sondeo sobrevivía en la primera vuelta porque la prueba lo apagaba sola; se corrigió |
+| Corrida contra Kommo | NO EJECUTADO: pide el token y el OK de Sam |
+| `pnpm verify` | NO EJECUTADO: el cambio es un script de ops en Python y sus pruebas, que `verify` no corre |
+
+**Arreglo de paso en las pruebas:** el archivo de destinatarios de prueba se escribía sin `encoding`, así que en Windows el «·» salía en cp1252 y no se podía leer. En el VPS no pasaba.
+
+### 9.5 revisar-datos-ve de 5.3
+
+Trata los mismos datos que 5.1 (§6). No suma campos, terceros ni destinos. Pide menos: solo lo que cambió y solo hasta el corte. El staging en tmpfs, el cifrado, el log sin datos y la retención de §6.3 no cambian. El instante de corte no es un dato de personas. **Sin hallazgos nuevos.**

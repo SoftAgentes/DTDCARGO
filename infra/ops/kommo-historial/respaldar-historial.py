@@ -21,6 +21,12 @@ Subcomandos:
   empaquetar     tar | zstd | age del staging al destino, sha256, manifiesto; borra el staging
   todo           extraer + informe + empaquetar
 
+Modo incremental (paso 5.3), con `--base <carpeta de un respaldo anterior> --corte <instante UTC>`
+en `extraer` o `todo`: baja solo lo que cambió entre el corte anterior (menos `--solape-horas`) y el
+`--corte`, que tiene que estar en el pasado. Mensajes posteriores al corte no entran. El corte queda
+fijo en el staging: reanudar con otro corte o con otra base es un error. El manifiesto del paquete
+dice de qué base parte, para que la carga (5.5) los aplique en orden y quite repetidos por id.
+
 Uso típico (ver README.md de esta carpeta):
   python3 respaldar-historial.py todo --token-file /dev/shm/k0582-e5 \
       --staging /dev/shm/kommo-e5 --destino /srv/backups/kommo \
@@ -48,7 +54,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = "1.1.1"
+VERSION = "1.2.0"
+SOLAPE_HORAS_POR_DEFECTO = 24
+# Listas que en modo incremental se piden con filter[updated_at][from|to]. Las demás (cuenta, usuarios,
+# embudos, campos, no clasificados) son chicas y se bajan enteras.
+LISTAS_INCREMENTALES = ("contactos", "leads", "empresas", "notas-leads", "notas-contacts", "notas-companies", "tareas")
 SUBDOMINIO_POR_DEFECTO = "dtdcargo"
 DOMINIO = "kommo.com"
 LIMITE_LISTAS = 250
@@ -432,9 +442,83 @@ def ventanas(desde: int, hasta: int, dias: int = VENTANA_EVENTOS_DIAS):
         b = a - 1
 
 
+def parsear_instante(texto: str) -> int:
+    """`2026-11-20T03:00:00Z`, `2026-11-20` (medianoche UTC) o segundos epoch → segundos epoch UTC."""
+    t = str(texto or "").strip()
+    if re.fullmatch(r"\d{9,11}", t):
+        return int(t)
+    for formato in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%MZ", "%Y-%m-%d"):
+        try:
+            return int(dt.datetime.strptime(t, formato).replace(tzinfo=dt.timezone.utc).timestamp())
+        except ValueError:
+            continue
+    raise ErrorFatal(f"instante no reconocido: {t[:40]!r}; usa AAAA-MM-DDTHH:MM:SSZ en UTC")
+
+
+def leer_base(carpeta: str) -> dict:
+    """De la carpeta de un respaldo anterior, lo único que hace falta sin descifrar nada: su stamp, el corte
+    si fue incremental, y la huella del paquete. Todo sale de `manifiesto.json`."""
+    ruta = os.path.join(carpeta, "manifiesto.json")
+    try:
+        with open(ruta, encoding="utf-8") as f:
+            m = json.load(f)
+    except (OSError, ValueError) as e:
+        raise ErrorFatal(f"no se pudo leer el manifiesto de la base ({os.path.basename(carpeta)}): {type(e).__name__}")
+    stamp = str(m.get("stamp") or "")
+    try:
+        instante_stamp = int(dt.datetime.strptime(stamp, "%Y%m%dT%H%M%SZ").replace(tzinfo=dt.timezone.utc).timestamp())
+    except ValueError:
+        raise ErrorFatal(f"la base no tiene un stamp válido: {stamp[:30]!r}")
+    paquete = [a for a in m.get("archivos") or [] if str(a.get("archivo", "")).endswith("metadatos.tar.zst.age")]
+    corte_previo = (m.get("incremental") or {}).get("corte")
+    return {"stamp": stamp, "hasta": int(corte_previo) if corte_previo else instante_stamp,
+            "sha256_paquete": paquete[0].get("sha256") if paquete else None}
+
+
+def preparar_incremental(args, st: Staging) -> dict | None:
+    """Fija base, desde y corte en el staging (`incremental.json`). Sin `--base` ni `--corte`, es una corrida
+    completa como en 5.1. Reanudar con otra base o con otro corte es un error: el resultado dejaría de ser
+    el mismo para el mismo pedido."""
+    base_dir, corte_txt = getattr(args, "base", None), getattr(args, "corte", None)
+    if not base_dir and not corte_txt:
+        if st.existe("incremental.json"):
+            raise ErrorFatal("este staging es de una corrida incremental: pasa el mismo --base y --corte")
+        return None
+    if not base_dir or not corte_txt:
+        raise ErrorFatal("el modo incremental pide --base y --corte juntos")
+    corte = parsear_instante(corte_txt)
+    if corte > ahora():
+        raise ErrorFatal(f"el corte {utc(corte)} está en el futuro: tiene que ser un instante ya pasado")
+    base = leer_base(base_dir)
+    solape = int(getattr(args, "solape_horas", SOLAPE_HORAS_POR_DEFECTO)) * 3600
+    desde = base["hasta"] - solape
+    if desde >= corte:
+        raise ErrorFatal(f"el corte {utc(corte)} no es posterior al inicio {utc(desde)} de esta corrida")
+    plan = {"base_stamp": base["stamp"], "base_sha256_paquete": base["sha256_paquete"], "desde": desde,
+            "corte": corte, "solape_segundos": solape, "version": VERSION}
+    if st.existe("incremental.json"):
+        previo = st.leer_json("incremental.json")
+        for clave in ("base_stamp", "corte", "desde"):
+            if previo.get(clave) != plan[clave]:
+                raise ErrorFatal(f"el staging es de otra corrida incremental ({clave} distinto): usa otro staging")
+        return previo
+    st.escribir_json("incremental.json", plan)
+    return plan
+
+
 class Extractor:
     def __init__(self, api: Kommo, st: Staging, log: Log, args):
         self.api, self.st, self.log, self.args = api, st, log, args
+        self.inc = preparar_incremental(args, st)
+        if self.inc:
+            log(f"incremental: base {self.inc['base_stamp']}, desde {utc(self.inc['desde'])}, corte {utc(self.inc['corte'])}")
+
+    def en_corte(self, ts) -> bool:
+        """Sin corte, todo entra. Con corte, solo lo creado hasta el corte inclusive."""
+        if not self.inc:
+            return True
+        s = segundos(ts)
+        return s is not None and s <= self.inc["corte"]
 
     # ---- entidades simples
     def entidad_lista(self, nombre: str, ruta: str, params: dict | None, clave: str):
@@ -442,6 +526,10 @@ class Extractor:
         if self.st.existe(marca):
             self.log(f"{nombre}: ya estaba (se salta)")
             return
+        if self.inc and nombre in LISTAS_INCREMENTALES:
+            params = dict(params or {})
+            params["filter[updated_at][from]"] = self.inc["desde"]
+            params["filter[updated_at][to]"] = self.inc["corte"]
         archivo = f"{nombre}.ndjson"
         self.st.borrar(archivo)
         total = 0
@@ -467,9 +555,12 @@ class Extractor:
                          {"with": "amojo_id,version,datetime_settings,drive_url,task_types,users_groups"})
 
     def desde(self) -> int:
-        """Inicio de la enumeración de eventos. `--desde` manda; si no, la creación de la cuenta,
-        salvo que Kommo devuelva una fecha reciente (en la cuenta de DTD `created_at` trae la hora de la
-        consulta, medido el 2026-10-30), en cuyo caso se parte del 2019-01-01."""
+        """Inicio de la enumeración de eventos. En modo incremental, el corte de la base menos el solape.
+        Si no, `--desde` manda; si no, la creación de la cuenta, salvo que Kommo devuelva una fecha reciente
+        (en la cuenta de DTD `created_at` trae la hora de la consulta, medido el 2026-10-30), en cuyo caso se
+        parte del 2019-01-01."""
+        if self.inc:
+            return self.inc["desde"]
         if self.args.desde:
             return int(dt.datetime.strptime(self.args.desde, "%Y-%m-%d").replace(tzinfo=dt.timezone.utc).timestamp())
         try:
@@ -488,6 +579,11 @@ class Extractor:
         marcadas y se bajarían (y duplicarían) las 96 otra vez. Un staging de la versión 1.0 no trae el
         archivo: se toma el fin de la primera ventana marcada, que es la más reciente de esa corrida."""
         ruta = self.st.ruta_de("eventos-hasta.txt")
+        if self.inc:
+            # El corte es el fin fijo: no hay ventana de cola ni hora de la primera corrida que recordar.
+            with open(ruta, "w", encoding="utf-8") as f:
+                f.write(str(self.inc["corte"]))
+            return self.inc["corte"]
         if self.st.existe("eventos-hasta.txt"):
             with open(ruta, encoding="utf-8") as f:
                 return int(f.read().strip())
@@ -512,7 +608,7 @@ class Extractor:
         vent = list(ventanas(desde, hasta))
         if self.args.max_eventos_ventanas:
             vent = vent[: self.args.max_eventos_ventanas]
-        elif ahora() - (hasta - DIA) >= COLA_EVENTOS_SEGUNDOS:
+        elif not self.inc and ahora() - (hasta - DIA) >= COLA_EVENTOS_SEGUNDOS:
             # Reanudación horas después: una ventana de cola desde la hora de la primera corrida hasta ahora.
             # Se solapa un poco con la ventana más reciente; los repetidos se quitan al leer (eventos_unicos).
             vent.insert(0, (hasta - DIA, ahora() + DIA))
@@ -559,9 +655,12 @@ class Extractor:
                 antes_403 = self.api.codigos["403"]
                 for _pagina, mensajes in self.api.paginar(f"/api/v4/talks/{tid}/messages", None, "messages",
                                                           LIMITE_MENSAJES, tolerar_403=True):
-                    for m in mensajes:
+                    dentro = [m for m in mensajes if self.en_corte(m.get("created_at"))]
+                    for m in dentro:
                         m["_talk_id"] = tid
-                    n_msj += self.st.anexar_ndjson("mensajes.ndjson", mensajes)
+                    if len(dentro) < len(mensajes):
+                        self.st.marcar("mensajes-despues-del-corte", f"{tid}:{len(mensajes) - len(dentro)}")
+                    n_msj += self.st.anexar_ndjson("mensajes.ndjson", dentro)
                 if self.api.codigos["403"] > antes_403:
                     self.st.marcar("mensajes-sin-acceso", f"{tid}")
             elif codigo == 403:
@@ -620,6 +719,9 @@ class Extractor:
         pendientes = []
         for m in self.st.leer_ndjson("mensajes.ndjson"):
             adj = m.get("attachment") or {}
+            # En modo incremental, el adjunto de un mensaje anterior al inicio ya está en la base.
+            if self.inc and (segundos(m.get("created_at")) or 0) < self.inc["desde"]:
+                continue
             if adj.get("link") and str(m.get("id")) not in listos:
                 pendientes.append((m.get("id"), m.get("_talk_id"), adj))
         self.log(f"adjuntos: {len(pendientes)} pendientes ({len(listos)} ya hechos)")
@@ -657,7 +759,8 @@ class Extractor:
         self.entidad_lista("tareas", "/api/v4/tasks", None, "tasks")
         self.eventos()
         self.talks()
-        self.sondear_huecos()
+        if not self.inc:  # el sondeo de huecos es del respaldo completo; la base ya lo hizo
+            self.sondear_huecos()
         self.adjuntos()
         self.log(f"peticiones: {self.api.peticiones}; por código: {dict(self.api.codigos)}; "
                  f"{self.api.segundos:.0f} s de red")
@@ -696,22 +799,43 @@ def empaquetar(st: Staging, destino_corrida: str, recipients: str, log: Log, con
     with open(salida + ".sha256", "w", encoding="utf-8") as f:
         f.write(f"{huella}  {os.path.basename(salida)}\n")
     log(f"paquete: {os.path.basename(salida)} ({os.path.getsize(salida)} bytes, sha256 {huella[:12]}…)")
-    manifiesto = {"version": VERSION, "stamp": stamp, "fecha": utc(ahora()), "archivos": []}
-    for raiz, _dirs, archivos in os.walk(destino_corrida):
-        for a in sorted(archivos):
-            if a.endswith(".age"):
-                ruta = os.path.join(raiz, a)
-                manifiesto["archivos"].append({"archivo": os.path.relpath(ruta, destino_corrida),
-                                               "bytes": os.path.getsize(ruta), "sha256": sha256_archivo(ruta)})
-    manifiesto["adjuntos_cifrados"] = sum(1 for a in manifiesto["archivos"] if a["archivo"].startswith("adjuntos"))
-    manifiesto["bytes_cifrados"] = sum(a["bytes"] for a in manifiesto["archivos"])
-    manifiesto["destinatarios"] = etiquetas_recipients(recipients)
+    manifiesto = construir_manifiesto(st, destino_corrida, stamp, recipients)
     with open(os.path.join(destino_corrida, "manifiesto.json"), "w", encoding="utf-8") as f:
         json.dump(manifiesto, f, ensure_ascii=False, indent=1)
     if not conservar:
         shutil.rmtree(st.ruta)
         log(f"staging borrado: {st.ruta}")
     return manifiesto
+
+
+def construir_manifiesto(st: Staging, destino_corrida: str, stamp: str, recipients: str) -> dict:
+    """Lista de los `.age` de la corrida con tamaño y huella, destinatarios y, si fue incremental, de qué
+    base parte. Va aparte de `empaquetar` para probarlo sin age, tar ni zstd."""
+    manifiesto = {"version": VERSION, "stamp": stamp, "fecha": utc(ahora()), "archivos": []}
+    for raiz, _dirs, archivos in os.walk(destino_corrida):
+        for a in sorted(archivos):
+            if a.endswith(".age"):
+                ruta = os.path.join(raiz, a)
+                manifiesto["archivos"].append({"archivo": os.path.relpath(ruta, destino_corrida).replace(os.sep, "/"),
+                                               "bytes": os.path.getsize(ruta), "sha256": sha256_archivo(ruta)})
+    manifiesto["adjuntos_cifrados"] = sum(1 for a in manifiesto["archivos"] if a["archivo"].startswith("adjuntos"))
+    manifiesto["bytes_cifrados"] = sum(a["bytes"] for a in manifiesto["archivos"])
+    manifiesto["destinatarios"] = etiquetas_recipients(recipients)
+    bloque = bloque_incremental(st)
+    if bloque:
+        manifiesto["incremental"] = bloque
+    return manifiesto
+
+
+def bloque_incremental(st: Staging) -> dict | None:
+    """Lo que el manifiesto dice de una corrida incremental: base, desde y corte. Solo fechas, stamps y huellas;
+    nada de datos. La carga (5.5) aplica los paquetes en orden de corte y quita repetidos por id."""
+    if not st.existe("incremental.json"):
+        return None
+    plan = st.leer_json("incremental.json")
+    return {"base_stamp": plan.get("base_stamp"), "base_sha256_paquete": plan.get("base_sha256_paquete"),
+            "desde": plan.get("desde"), "desde_utc": utc(plan.get("desde")), "corte": plan.get("corte"),
+            "corte_utc": utc(plan.get("corte")), "solape_segundos": plan.get("solape_segundos")}
 
 
 def etiquetas_recipients(ruta: str) -> dict:
@@ -1213,6 +1337,10 @@ def construir_parser() -> argparse.ArgumentParser:
         sp.add_argument("--tope-adjunto-mb", type=float, default=200.0)
         sp.add_argument("--conservar-staging", action="store_true")
         sp.add_argument("--verificar-efimera", action="store_true", help="ensayo: round-trip con llave efímera")
+        sp.add_argument("--base", default=None, help="incremental: carpeta de un respaldo anterior (con manifiesto.json)")
+        sp.add_argument("--corte", default=None, help="incremental: instante de corte UTC, ya pasado (AAAA-MM-DDTHH:MM:SSZ)")
+        sp.add_argument("--solape-horas", type=int, default=SOLAPE_HORAS_POR_DEFECTO,
+                        help="incremental: horas antes del corte anterior desde donde se vuelve a mirar")
     sp = sub.add_parser("informe"); comunes(sp, token=False)
     sp = sub.add_parser("empaquetar"); comunes(sp, token=False)
     sp.add_argument("--conservar-staging", action="store_true")

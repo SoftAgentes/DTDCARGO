@@ -39,7 +39,7 @@ del host. No tiene dependencias de Python.
 
 1. **Copiar al VPS** (desde el worktree):
    `C:\Windows\System32\OpenSSH\scp.exe -r infra/ops/kommo-historial root@217.216.54.70:/srv/ops/`
-2. **Pruebas en el VPS:** `python3 -I /srv/ops/kommo-historial/pruebas/test_respaldar.py` (17 pruebas; con `age` y `zstd` corre también el round-trip de cifrado).
+2. **Pruebas en el VPS:** `python3 -I /srv/ops/kommo-historial/pruebas/test_respaldar.py` (36 pruebas desde la 1.2.0; con `age` y `zstd` corre también el round-trip de cifrado).
 3. **Token:** Sam entra a Kommo → Ajustes → Integraciones → «DTD 0582 historial (solo lectura)» → Claves y alcances → **Token de larga duración** → Generar → Copiar, y lo pega con `pegar-token-kommo-e5-0582.ps1` (está en las notas compartidas de la sesión, no en Git). El token queda en `/dev/shm/k0582-e5` (0600) y el script lo comprueba al vuelo:
    `python3 -I respaldar-historial.py probar-token --token-file /dev/shm/k0582-e5`
 4. **Ensayo corto** (20 conversaciones, 2 ventanas de eventos, round-trip con llave efímera, todo en tmpfs):
@@ -61,6 +61,30 @@ del host. No tiene dependencias de Python.
    Si se corta, repetir el mismo comando: reanuda sin volver a bajar las ventanas de eventos ni las conversaciones ya hechas. Dura del orden de horas (una petición cada 0,25 s; Kommo admite 7/s pero el ERP también usa la cuenta).
 6. **Al terminar:** comprobar `manifiesto.json` y los `.sha256`, borrar el token (`rm -f /dev/shm/k0582-e5`), comprobar que `/dev/shm/kommo-e5` no existe y copiar `informe.md` a `docs/specs/0590-kommo-historial-e5/`.
 7. **Al cerrar E5:** revocar la integración en Kommo (0.6).
+
+## Incremental hasta un instante de corte (5.3)
+
+Baja solo lo que cambió desde un respaldo anterior, hasta un **instante de corte fijo y ya pasado**. Sirve
+para ponerse al día antes de cargar (5.5) y, en el corte de E8, para el último tramo. **Cada corrida contra
+Kommo necesita el token, que pega Sam, y su OK.**
+
+```sh
+python3 -I /srv/ops/kommo-historial/respaldar-historial.py todo --token-file /dev/shm/k0582-e5 \
+  --base /srv/backups/kommo/kommo-20261030T233814Z --corte 2026-11-20T03:00:00Z \
+  --staging /dev/shm/kommo-e5-inc --destino /srv/backups/kommo --log /srv/backups/kommo/respaldo.log
+```
+
+| Qué | Cómo |
+|---|---|
+| Desde dónde | El corte de la base (o su stamp, si fue completa) menos `--solape-horas` (24 por defecto). Solo lee `manifiesto.json` de la base: no descifra nada |
+| Hasta dónde | `--corte`, en UTC. Tiene que estar en el pasado; los mensajes posteriores no entran y quedan contados en `mensajes-despues-del-corte` |
+| Eventos | Ventanas desde el inicio hasta el corte, sin ventana de cola |
+| Contactos, leads, empresas, notas y tareas | Con `filter[updated_at][from]` y `[to]`. Cuenta, usuarios, embudos, campos y no clasificados van enteros: son chicos |
+| Conversaciones | Las que tuvieron eventos en la ventana, con todos sus mensajes hasta el corte. La carga quita repetidos por id |
+| Adjuntos | Solo de mensajes desde el inicio: los anteriores ya están en la base |
+| Sondeo de huecos | No: lo hizo el respaldo completo |
+| Idempotencia | El staging guarda base, inicio y corte en `incremental.json`. Repetir el comando no vuelve a pedir lo hecho; otro corte u otra base sobre el mismo staging es un error |
+| Encadenar | El manifiesto del paquete lleva `incremental` con base, inicio y corte. Ese paquete sirve de `--base` del siguiente, que empieza en su corte |
 
 ## Restaurar (Sam, en su PC, con su llave privada)
 
@@ -86,3 +110,5 @@ Cada línea de `mensajes.ndjson` es el mensaje tal como lo da Kommo más `_talk_
 | `--pausa` | Segundos entre peticiones (0,25 por defecto) |
 | `--conservar-staging` | No borrar el tmpfs al empaquetar (para repetir `informe`) |
 | `--verificar-efimera` | Solo ensayos: cifra también para una llave efímera y descifra para comprobar el paquete |
+| `--base` y `--corte` | Modo incremental (5.3): ver arriba |
+| `--solape-horas` | Horas antes del corte anterior desde donde el incremental vuelve a mirar (24 por defecto) |

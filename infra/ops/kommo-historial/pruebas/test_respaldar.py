@@ -143,7 +143,11 @@ class ServidorFalso:
             return respuesta(200, {"_embedded": {"notes": [{"id": 1, "note_type": "common", "created_at": AHORA - DIA,
                                                               "params": {"text": TEXTO_SECRETO}}]}}) if pagina == 1 else respuesta(204)
         if p == "/api/v4/contacts":
-            return respuesta(200, {"_embedded": {"contacts": self.contactos}}) if pagina == 1 else respuesta(204)
+            lote = self.contactos
+            if "filter[updated_at][from]" in q:
+                a, b = int(q["filter[updated_at][from]"][0]), int(q["filter[updated_at][to]"][0])
+                lote = [c for c in lote if a <= c.get("updated_at", c["created_at"]) <= b]
+            return respuesta(200, {"_embedded": {"contacts": lote}}) if lote and pagina == 1 else respuesta(204)
         if p == "/api/v4/events":
             tipo = q["filter[type]"][0]
             a, b = int(q["filter[created_at][from]"][0]), int(q["filter[created_at][to]"][0])
@@ -360,7 +364,7 @@ class PruebasExtraccionCompleta(unittest.TestCase):
         self._cifrar = R.cifrar_bytes
         R.cifrar_bytes = cifrar_falso
         self.recipients = os.path.join(self.tmp, "recipients.txt")
-        with open(self.recipients, "w") as f:
+        with open(self.recipients, "w", encoding="utf-8") as f:  # sin encoding, en Windows el «·» sale en cp1252
             f.write("# Sam-prueba · creada hoy\nage1" + "q" * 58 + "\n")
 
     def tearDown(self):
@@ -515,6 +519,171 @@ class PruebasExtraccionCompleta(unittest.TestCase):
         self.assertIn("./informe.json", lista)
         self.assertEqual(manifiesto["destinatarios"]["claves_publicas"], 1)
         self.assertEqual(manifiesto["destinatarios"]["etiquetas"], ["Efimera-prueba"])
+
+
+def stamp_de(ts: int) -> str:
+    return time.strftime("%Y%m%dT%H%M%SZ", time.gmtime(ts))
+
+
+def iso_de(ts: int) -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts))
+
+
+class PruebasIncremental(unittest.TestCase):
+    """Paso 5.3: extracción incremental desde un respaldo anterior hasta un instante de corte fijo."""
+
+    BASE_TS = AHORA - int(3.5 * DIA)
+    CORTE_TS = AHORA - 3600
+    DESDE_TS = BASE_TS - 24 * 3600  # solape por defecto: 24 h antes del corte anterior
+
+    def setUp(self):
+        PruebasExtraccionCompleta.setUp(self)
+        s = self.servidor
+        # Un mensaje después del corte, y un adjunto en un mensaje anterior al inicio (ya está en la base).
+        s.mensajes[10].append(mensaje("m-tarde", 10, AHORA - 60))
+        s.mensajes[10][0]["attachment"] = {"type": "file", "file_name": "viejo.pdf", "link": "https://drive-x.kommo.com/f/0?sig=yyy"}
+        s.contactos[0]["updated_at"] = AHORA - 2 * DIA   # cambió después de la base
+        s.contactos[1]["updated_at"] = AHORA - 450 * DIA  # no cambió
+        self.base = os.path.join(self.destino, f"kommo-{stamp_de(self.BASE_TS)}")
+        self.escribir_base(self.base)
+
+    def tearDown(self):
+        PruebasExtraccionCompleta.tearDown(self)
+
+    def escribir_base(self, carpeta, **extra):
+        os.makedirs(carpeta, exist_ok=True)
+        m = {"version": "1.1.1", "stamp": os.path.basename(carpeta).replace("kommo-", ""),
+             "archivos": [{"archivo": "kommo-x-metadatos.tar.zst.age", "bytes": 10, "sha256": "ab" * 32}]}
+        m.update(extra)
+        with open(os.path.join(carpeta, "manifiesto.json"), "w", encoding="utf-8") as f:
+            json.dump(m, f)
+
+    def extraer(self, **kw):
+        kw.setdefault("base", self.base)
+        kw.setdefault("corte", iso_de(self.CORTE_TS))
+        kw.setdefault("solape_horas", 24)
+        # Sin tocar `sondear_huecos` (por defecto -1, todos): el modo incremental tiene que saltarse el sondeo solo.
+        return PruebasExtraccionCompleta.extraer(self, **kw)
+
+    def pedidos(self, fragmento):
+        return [u for u in self.servidor.peticiones if fragmento in u]
+
+    def test_solo_pide_la_ventana_entre_la_base_y_el_corte(self):
+        st, _args, _log = self.extraer()
+        plan = st.leer_json("incremental.json")
+        self.assertEqual((plan["desde"], plan["corte"]), (self.DESDE_TS, self.CORTE_TS))
+        self.assertEqual(plan["base_stamp"], stamp_de(self.BASE_TS))
+        eventos = self.pedidos("/api/v4/events")
+        self.assertTrue(eventos)
+        for u in eventos:
+            q = urllib.parse.parse_qs(urllib.parse.urlsplit(u).query)
+            self.assertGreaterEqual(int(q["filter[created_at][from]"][0]), self.DESDE_TS, u)
+            self.assertLessEqual(int(q["filter[created_at][to]"][0]), self.CORTE_TS, u)
+        talks = sorted(t["_talk_id"] for t in st.leer_ndjson("talks.ndjson"))
+        self.assertEqual(talks, [10, 12, 15, 16, 17])  # la 11 (hace 400 días) no se toca
+        self.assertFalse(self.pedidos("/api/v4/talks/13"), "el sondeo de huecos es del respaldo completo")
+
+    def test_ningun_mensaje_posterior_al_corte_entra(self):
+        st, _args, _log = self.extraer()
+        ids = sorted(m["id"] for m in st.leer_ndjson("mensajes.ndjson"))
+        self.assertEqual(ids, ["m1", "m2", "m3"])
+        self.assertEqual(st.marcados("mensajes-despues-del-corte"), {"10:1"})
+
+    def test_adjuntos_solo_de_mensajes_desde_el_inicio(self):
+        st, _args, _log = self.extraer()
+        adj = [a["message_id"] for a in st.leer_ndjson("adjuntos.ndjson")]
+        self.assertEqual(adj, ["m3"])
+        self.assertFalse(self.pedidos("drive-x.kommo.com/f/0"), "el adjunto viejo ya está en la base")
+
+    def test_listas_que_cambian_se_piden_por_updated_at(self):
+        st, _args, _log = self.extraer()
+        contactos = self.pedidos("/api/v4/contacts?")
+        self.assertTrue(contactos)
+        q = urllib.parse.parse_qs(urllib.parse.urlsplit(contactos[0]).query)
+        self.assertEqual((int(q["filter[updated_at][from]"][0]), int(q["filter[updated_at][to]"][0])),
+                         (self.DESDE_TS, self.CORTE_TS))
+        self.assertEqual([c["id"] for c in st.leer_ndjson("contactos.ndjson")], [500])
+        usuarios = self.pedidos("/api/v4/users")
+        self.assertTrue(usuarios and all("updated_at" not in u for u in usuarios), "las listas chicas van enteras")
+
+    def test_reanudar_con_el_mismo_corte_no_repite_nada(self):
+        self.extraer()
+        n1 = len(self.servidor.peticiones)
+        st, _args, _log = self.extraer()
+        self.assertLess(len(self.servidor.peticiones) - n1, 5)
+        self.assertEqual(len(list(st.leer_ndjson("mensajes.ndjson"))), 3)
+
+    def test_otro_corte_u_otra_base_en_el_mismo_staging_es_un_error(self):
+        self.extraer()
+        with self.assertRaises(R.ErrorFatal) as cm:
+            self.extraer(corte=iso_de(self.CORTE_TS - 600))
+        self.assertIn("otra corrida incremental", str(cm.exception))
+        otra = os.path.join(self.destino, f"kommo-{stamp_de(self.BASE_TS - DIA)}")
+        self.escribir_base(otra)
+        with self.assertRaises(R.ErrorFatal):
+            self.extraer(base=otra)
+        with self.assertRaises(R.ErrorFatal) as cm:
+            PruebasExtraccionCompleta.extraer(self)  # sin --base ni --corte sobre un staging incremental
+        self.assertIn("corrida incremental", str(cm.exception))
+
+    def test_corte_en_el_futuro_o_antes_del_inicio_es_un_error(self):
+        with self.assertRaises(R.ErrorFatal) as cm:
+            self.extraer(corte=iso_de(AHORA + 3600))
+        self.assertIn("futuro", str(cm.exception))
+        with self.assertRaises(R.ErrorFatal) as cm:
+            self.extraer(corte=iso_de(self.DESDE_TS - 60))
+        self.assertIn("no es posterior", str(cm.exception))
+
+    def test_base_y_corte_van_juntos_y_la_base_necesita_manifiesto(self):
+        with self.assertRaises(R.ErrorFatal):
+            self.extraer(corte=None)
+        with self.assertRaises(R.ErrorFatal) as cm:
+            self.extraer(base=os.path.join(self.tmp, "no-existe"))
+        self.assertIn("manifiesto", str(cm.exception))
+
+    def test_encadena_desde_el_corte_del_incremental_anterior(self):
+        previo = os.path.join(self.destino, f"kommo-{stamp_de(AHORA - 2 * DIA)}")
+        corte_previo = AHORA - 3 * DIA
+        self.escribir_base(previo, incremental={"corte": corte_previo})
+        st, _args, _log = self.extraer(base=previo, solape_horas=6)
+        self.assertEqual(st.leer_json("incremental.json")["desde"], corte_previo - 6 * 3600)
+
+    def test_el_manifiesto_dice_de_que_base_parte_sin_datos_de_personas(self):
+        st, _args, _log = self.extraer()
+        bloque = R.bloque_incremental(st)
+        self.assertEqual(bloque["base_stamp"], stamp_de(self.BASE_TS))
+        self.assertEqual((bloque["desde"], bloque["corte"]), (self.DESDE_TS, self.CORTE_TS))
+        self.assertEqual(bloque["base_sha256_paquete"], "ab" * 32)
+        self.assertEqual(bloque["corte_utc"], R.utc(self.CORTE_TS))
+        texto = json.dumps(bloque)
+        with open(self.logfile, encoding="utf-8") as f:
+            texto += f.read()
+        for marca in (TEXTO_SECRETO, NOMBRE_SECRETO, TELEFONO_SECRETO, "sig=zzz", "sig=yyy", TOKEN_FALSO):
+            self.assertNotIn(marca, texto)
+        self.assertIsNone(R.bloque_incremental(R.Staging(os.path.join(self.tmp, "vacio"))))
+
+    def test_el_manifiesto_del_paquete_lleva_el_bloque_incremental_y_sirve_de_base(self):
+        st, args, _log = self.extraer()
+        with open(os.path.join(args.destino_corrida, f"kommo-{os.path.basename(args.destino_corrida)[6:]}-metadatos.tar.zst.age"), "wb") as f:
+            f.write(b"AGE-FALSO")
+        m = R.construir_manifiesto(st, args.destino_corrida, os.path.basename(args.destino_corrida)[6:], self.recipients)
+        self.assertEqual(m["incremental"]["corte"], self.CORTE_TS)
+        self.assertIn("adjuntos/m3.jpg.age", [a["archivo"] for a in m["archivos"]])
+        # Ese manifiesto es la base de la próxima corrida: su corte es el inicio, menos el solape.
+        with open(os.path.join(args.destino_corrida, "manifiesto.json"), "w", encoding="utf-8") as f:
+            json.dump(m, f)
+        base = R.leer_base(args.destino_corrida)
+        self.assertEqual(base["hasta"], self.CORTE_TS)
+        self.assertIsNotNone(base["sha256_paquete"])
+        completo = R.construir_manifiesto(R.Staging(os.path.join(self.tmp, "otro")), args.destino_corrida, "x", self.recipients)
+        self.assertNotIn("incremental", completo)
+
+    def test_parsear_instante(self):
+        self.assertEqual(R.parsear_instante("2026-11-20T03:00:00Z"), 1795143600)
+        self.assertEqual(R.parsear_instante("2026-11-20"), 1795132800)
+        self.assertEqual(R.parsear_instante("1795143600"), 1795143600)
+        with self.assertRaises(R.ErrorFatal):
+            R.parsear_instante("20/11/2026")
 
 
 if __name__ == "__main__":
