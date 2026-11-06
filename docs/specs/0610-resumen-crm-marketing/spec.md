@@ -50,7 +50,7 @@ La regla ya está escrita en la oficina y no cambia:
 | Motivo de pérdida | `crm_tarjetas.motivo_perdida`, texto libre de 1 a 200 caracteres (`0506_crm_modelo.sql:316`) | No sale nunca como texto: se clasifica igual que un mensaje |
 | Precedente de análisis sin datos personales | `docs/marketing/seo-aeo-preguntas-crm.md`: 401 conversaciones de Kommo, con porcentajes por tema y sin datos personales | Origen del catálogo de temas (§4.3) |
 | Precedente de resumen con IA | `lib/studio/conversaciones/digest-extract.ts` (SDD-0149): manda el nombre del cliente y la transcripción completa a Anthropic (`:65-69`, `:80`) | **No se reutiliza.** Es un resumen por cliente para uso interno; aquí el texto no sale del proceso del Studio (§4.4) |
-| La puerta de salida | No existe todavía (`06-noticias.md:193-199`). La define el trabajo de noticias automáticas en curso | Este resumen es su segundo usuario, después de los temas de Search Console (§5) |
+| La puerta de salida | No existe todavía (`06-noticias.md:193-199`). Ninguna SDD la define: la de publicación automática de noticias (en preparación, 2026-11-06) la deja fuera de su alcance y solo fija la puerta de entrada | **Esta SDD define su transporte** (§5); los temas de Search Console lo reutilizan después |
 
 ## 2. Alcance
 
@@ -283,10 +283,11 @@ la oficina quede comprometida, desde ahí no se puede pedir otra semana, otro co
 de un cliente.
 
 - **El Studio empuja** el resumen después de generarlo (lunes, después de las 07:00).
-- **La puerta es la misma que la de los temas de Search Console**, que define el trabajo de
-  noticias automáticas. Esta SDD fija el **contenido** (§3, §4.6) y la regla de la llave; el
-  **transporte** lo comparten las dos salidas. Si la SDD de noticias llega primero, esta usa su
-  transporte; si llega esta primero, el transporte propuesto abajo queda como el de las dos.
+- **Esta SDD define la puerta de salida.** La SDD de publicación automática de noticias la deja
+  fuera de su alcance (lo confirmó su sesión el 2026-11-06) y solo fija la puerta de entrada.
+  El transporte de abajo queda como el de toda salida agregada: cuando lleguen los temas de
+  Search Console (`docs/marketing/agente-seo-noticias.md`, fase C), usan el mismo canal y las
+  mismas reglas, cada uno con su propio esquema de contenido.
 - **Transporte propuesto (decisión D6):** un webhook de Discord a un canal nuevo de la categoría
   Oficina, `#datos-marketing`, con el Markdown en el cuerpo y el JSON adjunto como archivo. La
   dirección del webhook es una variable del servidor del Studio
@@ -416,7 +417,7 @@ Revisión con `revisar-datos-ve` en [`privacidad.md`](privacidad.md). Lo princip
 | D3 | Cómo se clasifica | (a) determinista en el Studio · (b) modelo de lenguaje con texto tapado y salida cerrada al catálogo | **(a)** en v1. (b) solo después de medir (a) y con su propia revisión de privacidad |
 | D4 | Medir la calidad con conversaciones reales | (a) una persona del equipo con acceso al CRM etiqueta una muestra dentro del Studio · (b) solo fixture sintético | **(a)**, una vez, con OK nominal: sin eso no se sabe si los números sirven |
 | D5 | Qué canales entran | (a) Chatwoot sin el texto del correo · (b) Chatwoot con correo · (c) también Kommo | **(a)** |
-| D6 | Transporte de la puerta | (a) webhook de Discord a `#datos-marketing` · (b) tarea en Paperclip creada por el Studio · (c) lo que defina la SDD de noticias | **(c) si llega primero; si no, (a)** |
+| D6 | Transporte de la puerta | (a) webhook de Discord a `#datos-marketing` · (b) tarea en Paperclip creada por el Studio | **(a)**: no necesita un camino de red nuevo entre los dos VPS y la oficina ya lee Discord. Lo reutilizan los temas de Search Console |
 | D7 | Política de privacidad | (a) sumar la finalidad a §2 antes de la primera corrida · (b) consultarlo antes con la abogada | **(a) y (b)**: el texto lo propone `privacidad.md`; la abogada lo confirma |
 | D8 | Frecuencia | (a) semanal, lunes 07:00 · (b) quincenal | **(a)** |
 | D9 | Retención del resumen | (a) 24 meses · (b) 12 meses | **(a)** |

@@ -52,8 +52,9 @@ Hermes) y qué falla si Chatwoot no responde.
 ## PENDIENTES DE ESTA TAREA
 
 - Decisiones de Sam D1–D9 (spec §10).
-- Alinear el transporte de la puerta con la SDD de noticias automáticas (sesión
-  `local_c733181e`, avisada el 2026-11-06).
+- Puerta de salida: la SDD de noticias automáticas (sesión `local_c733181e`, reservando 0611)
+  confirmó el 2026-11-06 que no la define. La define esta SDD (spec §5, D6) y la reutilizan los
+  temas de Search Console.
 
 ## FUERA DE ALCANCE DETECTADO
 
