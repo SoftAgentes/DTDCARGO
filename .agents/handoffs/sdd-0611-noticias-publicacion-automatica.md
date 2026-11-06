@@ -54,6 +54,10 @@ publiquen solas con filtros: la excepción a IA-01 que Sam decidió el 2026-11-0
   - Revisores: «el humano va a ser Sam y va a ser Alejandro», más un agente crítico → decisión 5
     (§4.7). Alejandro necesita cuenta propia en el Studio.
   - Queda abierta la 4 (fecha de revisión): Sam citó las opciones sin elegir.
+  - Ícono del webhook en `assets/discord/`, recomendada la «N». Sam respondió «listo» el
+    2026-11-06 después de las instrucciones para crear `#noticias`, el webhook «DTD Cargo · Noticias»
+    y subir la foto. **No verificado desde aquí** (no hay acceso a Discord). La dirección del webhook
+    no se copió a ningún lado; `DISCORD_WEBHOOK_NOTICIAS` se carga cuando exista la implementación.
 
 ## Validación
 
