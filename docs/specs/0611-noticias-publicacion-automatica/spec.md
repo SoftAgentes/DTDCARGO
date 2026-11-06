@@ -78,6 +78,19 @@ y política afectada». La sección 2 de esta spec es ese registro.
 | Fecha de revisión | 90 días después de la primera publicación automática, o el 2027-03-01, lo que llegue antes. En la revisión Sam decide si sigue, cambia los filtros o se cierra |
 | Vigencia | Empieza cuando esta spec esté `approved`, la implementación esté en producción y Sam encienda el interruptor. Antes de eso no existe |
 
+### 2.1 Propuesta para el registro de gobernanza
+
+Es una **propuesta**: la aprueba Sam. Al aprobarla, quien implemente agrega en
+`docs/governance/README.md`, al lado de la fila de IA-01 en la tabla de políticas, esta nota:
+
+> **Excepción vigente a IA-01 (I4): publicación automática de noticias en `/noticias`.**
+> Decisión de Sam del 2026-11-05, registrada en SDD-0611 §2. Alcance: solo noticias nuevas de
+> `/noticias` que pasan los filtros F1 a F10; todo lo demás sigue en I4. Responsable: Sam.
+> Revisión: a los 90 días de la primera publicación automática o el 2027-03-01, lo que llegue
+> antes.
+
+No se agrega antes de que la spec esté `approved`: hasta entonces la excepción no existe.
+
 ## 3. Alcance
 
 **Entra (en la implementación que derive de esta spec):**
@@ -88,10 +101,19 @@ y política afectada». La sección 2 de esta spec es ese registro.
 3. El interruptor, el tope de ritmo, la auditoría, el aviso a Discord y el retiro.
 4. Las pruebas de §5 y los criterios de §6.
 
-**No entra:** de dónde salen los temas, cómo redacta el Redactor, cómo revisa el Revisor ni la
-puerta de entrada de la oficina. Eso es de las fases B a D de `agente-seo-noticias.md` y del
-paso 7 del plan maestro. Esta spec define qué tiene que traer un borrador para poder publicarse
-solo; no define cómo se produce.
+**Requisito previo, aunque nunca se encienda el interruptor:** el servidor rechaza publicar un
+texto con marcas `[VERIFICAR]`, por cualquier vía. Hoy `publishPost` no lo hace y la regla vive
+solo en el navegador (§1.3). Es lo primero que se construye: corrige la vía manual de hoy y es la
+base del filtro F4.
+
+**Migraciones:** la implementación necesita al menos una (estados del borrador, interruptor,
+auditoría). Esta spec no le pone número: lo asigna el Director General, y la aplica Sam con su
+OK nominal y el runbook de producción.
+
+**No entra:** cómo se eligen los temas, cómo redacta el Redactor, cómo revisa el Revisor y cómo
+se construyen las puertas. Eso es de las fases B a D de `agente-seo-noticias.md` y del paso 7
+del plan maestro. Esta spec fija qué tiene que traer un borrador para poder publicarse solo y
+qué pueden hacer las puertas (§4.9); no define cómo se produce el borrador.
 
 ## 4. Diseño
 
@@ -126,7 +148,7 @@ agotado) cuenta como fallado. Si cualquiera falla, el borrador queda `retenido` 
 | # | Filtro | Pasa si | Código si falla |
 |---|---|---|---|
 | F1 | Interruptor | El interruptor `news_autopublish` del tenant está encendido. Por defecto está apagado | `interruptor_apagado` |
-| F2 | Tipo, categoría y flujo | Tipo editorial Informativo, Curiosidad o Polémica (no Especial); categoría distinta de «Novedades DTD» e «Historias reales»; Test de Noticia con tres o más «sí», **recalculado por el Studio**; tipo de idea distinto de promo, pregunta y detrás de cámara | `fuera_de_alcance` |
+| F2 | Tipo, categoría y flujo | Tipo editorial Informativo, Curiosidad o Polémica (no Especial); categoría distinta de «Novedades DTD» e «Historias reales»; Test de Noticia con tres o más «sí», **recalculado por el Studio**; tipo de idea distinto de promo, pregunta y detrás de cámara; el tema trae la consulta de Search Console que lo justificó, con su fecha (decisión de Sam: los temas salen solo de Search Console) | `fuera_de_alcance` o `sin_dato_de_busqueda` |
 | F3 | Revisor | Hay un veredicto «aprobado» del Revisor, con modelo y versión, **atado a la huella SHA-256 del cuerpo, titular y metadatos** que se van a publicar. Si el texto cambió después del veredicto, el veredicto no vale | `sin_revisor` o `revision_vencida` |
 | F4 | Marcas y fuentes | Cero marcas `[VERIFICAR`, en cualquier forma: con o sin dos puntos, vacías, en minúsculas. Y el borrador trae su lista de fuentes, con al menos una cuando el texto tiene cifras, porcentajes o fechas concretas | `marca_pendiente` o `sin_fuentes` |
 | F5 | Líneas rojas | Pasa el control determinista de §4.3 **y** el veredicto del Revisor marca cada línea roja como cumplida | `linea_roja:<cual>` |
@@ -176,8 +198,11 @@ huella. El Revisor recibe el borrador marcado como contenido no confiable.
 
 #### 4.3.3 Puntaje mínimo
 
-Hoy no hay un puntaje numérico, sino métricas (`lib/news/score.ts`). El puntaje mínimo es que
-pasen todas estas, con los valores de `06-noticias.md`:
+Hoy no hay un puntaje numérico, sino las métricas que devuelve `computeArticleScore`
+(`lib/news/score.ts`). El servidor la llama sobre el texto exacto que se va a publicar; no se
+confía en un puntaje que traiga el borrador. El puntaje mínimo es que pasen todas estas, con los
+valores de `06-noticias.md`. Las cuatro primeras salen de `computeArticleScore`; las tres
+últimas las agrega el servidor:
 
 - `isPublishReady`: cero marcas y al menos 400 palabras.
 - Largo según el tipo, con margen de 150 palabras: Informativo 1.000, Curiosidad 700, Polémica
@@ -207,10 +232,19 @@ No se guardan prompts completos, razonamiento del modelo, secretos ni datos pers
 
 ### 4.5 Aviso a Sam y retiro
 
-- **Al publicar:** un aviso a Discord con el titular, el enlace público, un resumen de los
-  filtros y el enlace de retiro. Canal: el que defina la spec de avisos del Studio a Discord
-  (SDD-0606, plan maestro, paso 6b). Este diseño propone `#decisiones` o uno nuevo `#noticias`; lo decide
-  Sam.
+- **Al publicar:** un aviso a Discord en **`#actividad-oficina`** con el titular, el enlace
+  público, un resumen de los filtros y el enlace de retiro.
+- **Transporte:** el de SDD-0606 (PR #380, en borrador): un webhook por canal guardado como
+  variable del servidor del Studio, nunca en la base ni en la oficina; confirmación con
+  `wait=true`, cola durable y respeto de `Retry-After`. Este canal no es ninguno de los cinco de
+  Operación de la 0606: lleva su variable propia (`DISCORD_WEBHOOK_ACTIVIDAD_OFICINA`) y vale la
+  misma regla de un único tenant dueño (`DISCORD_TENANT_ID`).
+- **El «botón» de retirar es un enlace.** Un webhook común de Discord no lleva botones
+  interactivos; harían falta un bot y una aplicación que reciba el clic, y eso abriría una
+  entrada al Studio. El enlace lleva a la pantalla de retiro (abajo).
+- **Diferencia con el plan:** en el plan maestro §7.6, `#actividad-oficina` la escribe solo
+  Paperclip. Que el Studio escriba ahí lo pidió el Subdirector en el encargo; queda para que
+  Sam lo confirme (§7).
 - **Al retener:** un aviso con el titular, los códigos de motivo y el enlace a la cola de
   revisión del Studio.
 - **El aviso no lleva datos de clientes ni el cuerpo del artículo.**
@@ -219,7 +253,8 @@ No se guardan prompts completos, razonamiento del modelo, secretos ni datos pers
   la página del artículo y el mapa del sitio, y deja auditoría. No borra la fila: una persona
   puede volver a publicarla.
 - Si el aviso no se entrega, la noticia sigue publicada, la auditoría lo registra y F8 frena la
-  siguiente publicación automática hasta que haya un aviso entregado o Sam apruebe a mano.
+  siguiente publicación automática hasta que haya un aviso entregado o Sam apruebe a mano. Un
+  envío en estado «incierto» de la 0606 (pudo guardarse o no) cuenta como no entregado para F8.
 
 ### 4.6 Interruptor y apagado automático
 
@@ -233,8 +268,10 @@ No se guardan prompts completos, razonamiento del modelo, secretos ni datos pers
 
 - Lo publicado por la vía automática se firma **«DTD Cargo»**, como organización, sin escritor
   invitado de la rotación de `lib/news/writers.ts`.
-- La página no dice que una persona revisó el artículo si nadie lo revisó antes de publicar.
-  Si una persona lo revisa después, el Studio puede registrar quién y mostrarlo.
+- **Revisor humano** (decisión de Sam): con la vía automática, la persona revisa **después** de
+  publicar, a partir del aviso, y retira si hace falta. El Studio registra quién revisó y cuándo.
+- La página no dice que una persona revisó el artículo mientras eso no esté registrado. Cuando
+  lo esté, puede mostrar el nombre del revisor.
 - Si se declara o no en la página que el texto se preparó con ayuda de IA es una decisión
   abierta de Sam (§7).
 
@@ -250,7 +287,23 @@ No se guardan prompts completos, razonamiento del modelo, secretos ni datos pers
   de contenido le aplican también, pero una persona admin puede publicar un retenido dejando su
   nombre en la auditoría. Es la salida manual que IA-01 exige.
 
-### 4.9 Privacidad
+### 4.9 Esquema mixto: las dos puertas con la oficina
+
+La oficina (Hermes y Paperclip) **no recibe ninguna llave** del Studio, de Supabase ni de
+producción. Se conecta por dos puertas angostas:
+
+| Puerta | Qué hace | Qué no puede hacer | De dónde sale |
+|---|---|---|---|
+| **Salida** | El Studio **empuja** temas y números agregados de Search Console, sin datos de clientes | La oficina no consulta: no puede pedir otro corte, otra fecha ni un dato de cliente | Mismo transporte y mismas reglas que la puerta de salida de **SDD-0610** (PR #388, en borrador): webhook a `#datos-marketing` con la llave en el servidor del Studio. Los temas llevan su propio esquema de contenido |
+| **Entrada** | Crea **un borrador en `en_revision`** con texto, metadatos, fuentes, la consulta de Search Console que justificó el tema y el veredicto del Revisor | No publica, no lee borradores ni noticias, no edita, no borra, no enciende el interruptor | Plan maestro, paso 7. Su credencial es propia, solo de inserción, y el Studio la revoca sin tocar nada más |
+
+**Alineación con SDD-0610:** sin diferencias en la salida. La 0610 define el transporte para
+toda salida agregada y dice que los temas de Search Console lo reutilizan; esta spec lo adopta
+tal cual. Lo que agrega la 0611 es la **entrada**, que la 0610 no cubre: un borrador que llega
+por ahí es contenido no confiable (§4.3.2) y solo puede terminar publicado después de pasar los
+filtros dentro del Studio.
+
+### 4.10 Privacidad
 
 El artículo no lleva datos personales (F5). El aviso a Discord tampoco. La implementación pasa
 `.claude/skills/revisar-datos-ve/SKILL.md` porque envía datos a un tercero (Discord) y escribe
@@ -275,6 +328,21 @@ auditoría, y comprueba que Discord ya esté en `docs/legal/privacidad/inventari
 Cada filtro F1 a F10 tiene una prueba en rojo que lo demuestra y un mutante que muere al
 quitarlo. Las reglas en la base se prueban en SQL efímero, nunca en producción.
 
+### 5.1 Los ocho puntos del encargo, con su prueba
+
+| # | Punto | Dónde | Prueba propuesta |
+|---|---|---|---|
+| 1 | Pasó por el agente Revisor | F3 | Un borrador sin veredicto queda `sin_revisor`; uno con veredicto y una coma cambiada después queda `revision_vencida` |
+| 2 | Sin marcas `[VERIFICAR]` ni datos sin fuente | F4 y requisito previo de §3 | `[VERIFICAR]`, `[VERIFICAR: ]`, `[verificar: x]` y `[VERIFICAR: 30%]` dan `marca_pendiente`, también al llamar a la acción manual directamente; un texto con «subió 30 %» y sin fuentes da `sin_fuentes` |
+| 3 | No toca `LINEAS_ROJAS` | F5 y §4.3.1 | Un caso por fila de la tabla de §4.3.1 da `linea_roja:<cual>`; un veredicto del Revisor que deja una línea sin responder también retiene |
+| 4 | Puntaje mínimo con `computeArticleScore` | F6 y §4.3.3 | Un caso en el límite de cada métrica, de cada lado: 399 y 400 palabras, cuatro y cinco subtítulos, densidad 0,4 % y 0,5 % |
+| 5 | Uno por día y dos por semana | F7 | Con reloj fijo en hora de Caracas: segundo del día retenido, tercero de la semana retenido, el del lunes siguiente pasa; dos corridas simultáneas publican una sola |
+| 6 | Interruptor en el Studio | F1 y §4.6 | Apagado, nada se publica; solo un admin lo cambia; retirar una noticia automática lo apaga |
+| 7 | Registro de modelo, agente y versión; retiro con un clic | F9, §4.4 y §4.5 | La fila de auditoría trae los campos de §4.4; si no se puede escribir, no se publica; el retiro deja la noticia fuera de `/noticias` en el mismo pedido |
+| 8 | Aviso a `#actividad-oficina` con enlace y retiro | §4.5 y F8 | Con un doble de Discord: el mensaje trae titular, enlace y enlace de retiro, y ningún dato personal ni el cuerpo; un envío «incierto» frena la siguiente por F8 |
+
+Si cualquiera falla, el borrador queda `retenido` y se avisa (criterio 2).
+
 ## 6. Criterios de aceptación
 
 1. Con el interruptor apagado, ningún borrador se publica solo; con él encendido y todos los
@@ -286,13 +354,14 @@ quitarlo. Las reglas en la base se prueban en SQL efímero, nunca en producción
 5. El veredicto del Revisor vale solo para el texto exacto que revisó.
 6. El retiro deja la noticia fuera del sitio en el mismo pedido, apaga el interruptor si la
    noticia era automática y deja auditoría.
-7. Lo publicado solo firma «DTD Cargo» y no dice que una persona lo revisó.
+7. Lo publicado solo firma «DTD Cargo» y no dice que una persona lo revisó mientras esa revisión no esté registrada.
 8. Pasan las pruebas de §5 y `pnpm verify`.
 9. `revisar-datos-ve` pasó sobre el diff de la implementación.
 
 ## 7. Decisiones abiertas para Sam
 
-1. **Canal del aviso:** `#decisiones` o un canal nuevo `#noticias`.
+1. **Canal del aviso:** confirmar que el Studio escribe en `#actividad-oficina`, que el plan
+   maestro §7.6 deja solo a Paperclip, o elegir otro.
 2. **Declarar la ayuda de IA** en la página del artículo o no.
 3. **El tope cuenta todo** (manuales y automáticas) en esta propuesta. La alternativa es que
    cuente solo las automáticas.
@@ -307,7 +376,8 @@ quitarlo. Las reglas en la base se prueban en SQL efímero, nunca en producción
 | Estado de revisión, aprobación en servidor y `publishPost` extraído | Fase B de `agente-seo-noticias.md` | Sin empezar; necesita OK nominal de su migración |
 | Puerta de entrada de la oficina (solo crea borradores en revisión) | Plan maestro, paso 7 | Sin empezar |
 | El Revisor como perfil de la oficina, con veredicto estructurado | SDD-0605 y plan maestro, paso 5 | Nombre confirmado; perfil sin crear |
-| Avisos del Studio a Discord | Plan maestro, paso 6b; SDD-0606 | Número reservado, spec sin escribir |
+| Avisos del Studio a Discord (transporte) | SDD-0606, PR #380 | En borrador, sin fusionar |
+| Puerta de salida (transporte de los temas) | SDD-0610, PR #388 | En borrador, sin fusionar |
 | Llegada a producción | Plan de salida a producción | La publicación de la web está congelada; la descongela Sam |
 
 Esta spec puede aprobarse antes que sus dependencias. La implementación no.
@@ -321,7 +391,7 @@ No se tocan en esta tarea. Al pasar a `approved`, quien la implemente actualiza:
 - `docs/organizacion/oficina-conocimiento/02-reglas-de-la-oficina.md`: la excepción para
   noticias.
 - `docs/organizacion/plan-maestro-oficina.md` §7.8.
-- `docs/governance/README.md`: una referencia a esta excepción junto a IA-01.
+- `docs/governance/README.md`: la nota de §2.1 junto a IA-01.
 
 ## 10. Hallazgos que esta spec deja escritos
 
