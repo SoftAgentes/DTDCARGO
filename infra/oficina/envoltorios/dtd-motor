@@ -1,0 +1,83 @@
+#!/bin/bash
+# dtd-motor · SDD-0615. Lo llaman dtd-claude y dtd-codex como el usuario agentes (Paperclip).
+# Cada motor nuevo corre con su propio usuario de Linux (agentes-alfred, agentes-auxiliar), aparte de
+# agentes-run, para que los agentes GLM no puedan leer sus credenciales ni ver sus procesos.
+# Copia lo que Paperclip pasa como rutas de su instancia (que esos usuarios no pueden leer) a una
+# carpeta que solo lee el usuario del motor. No lee ni imprime credenciales.
+set -euo pipefail
+umask 027
+
+RAIZ_STAGING=/srv/oficina/staging
+PROTEGIDO=/home/agentes/
+AGENTE_RUN=/usr/local/libexec/dtd-agente-run
+SUDO=(sudo -n -u)
+MINUTOS_VIDA=180
+
+herramienta="${1:-}"
+shift || true
+perfil="${DTD_PERFIL:-}"
+
+# Lista cerrada: cada motor nuevo tiene un solo perfil y un solo usuario.
+case "$herramienta:$perfil" in
+  claude:ceo) usuario=agentes-alfred ;;
+  codex:auxiliar) usuario=agentes-auxiliar ;;
+  *) echo "dtd-motor: herramienta o perfil no permitido" >&2; exit 64 ;;
+esac
+
+# La carpeta del perfil la crea la instalación: agentes, grupo del usuario del motor, 2750.
+base="$RAIZ_STAGING/$perfil"
+[ -d "$base" ] || { echo "dtd-motor: falta $base" >&2; exit 65; }
+# Corridas viejas: se borran al empezar la siguiente (el exec no deja limpiar al final).
+find "$base" -mindepth 1 -maxdepth 1 -type d -name 'run.*' -mmin +"$MINUTOS_VIDA" -exec rm -rf -- {} + 2>/dev/null || true
+corrida="$(mktemp -d "$base/run.XXXXXXXX")"
+chmod 2750 -- "$corrida"
+
+n=0
+copiar() {
+  local origen="$1" destino
+  n=$((n + 1))
+  destino="$corrida/$n-$(basename -- "$origen")"
+  # -L: las skills de Paperclip son enlaces a su instalación; se copian los archivos reales.
+  cp -RL -- "$origen" "$destino"
+  chmod -R u+rwX,g+rX,g-w,o-rwx -- "$destino"
+  RESULTADO="$destino"
+}
+
+protegida() {
+  case "$1" in
+    "$PROTEGIDO"*) [ -e "$1" ] ;;
+    *) return 1 ;;
+  esac
+}
+
+args=()
+while [ $# -gt 0 ]; do
+  a="$1"
+  shift
+  case "$a" in
+    # El servidor MCP de Paperclip vive en su instalación y el usuario del motor no lo puede ejecutar.
+    # El agente usa la API con curl y la skill paperclip; --strict-mcp-config se conserva.
+    --mcp-config)
+      [ $# -gt 0 ] && shift
+      continue
+      ;;
+    --mcp-config=*) continue ;;
+    --*=*)
+      clave="${a%%=*}"
+      valor="${a#*=}"
+      if protegida "$valor"; then
+        copiar "$valor"
+        a="$clave=$RESULTADO"
+      fi
+      ;;
+    *)
+      if protegida "$a"; then
+        copiar "$a"
+        a="$RESULTADO"
+      fi
+      ;;
+  esac
+  args+=("$a")
+done
+
+exec "${SUDO[@]}" "$usuario" "$AGENTE_RUN" "$herramienta" "${args[@]}"

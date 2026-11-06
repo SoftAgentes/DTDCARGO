@@ -1,0 +1,8 @@
+# SDD-0564 fase B y SDD-0615: Paperclip (agentes) lanza las CLI de los agentes con su usuario.
+# agentes-run: los agentes de Hermes (GLM). agentes-alfred: ALFRED con Claude Code.
+# agentes-auxiliar: el Auxiliar con Codex. Ninguno puede leer los archivos de los otros.
+Defaults!/usr/local/libexec/dtd-agente-run env_reset
+Defaults!/usr/local/libexec/dtd-agente-run env_keep = "PAPERCLIP_* DTD_PERFIL CLAUDE_CODE_OAUTH_TOKEN TERM LANG LC_ALL LC_CTYPE"
+# El prompt viaja como argumento: que sudo no copie la línea de comandos al registro.
+Defaults!/usr/local/libexec/dtd-agente-run !log_allowed
+agentes ALL=(agentes-run, agentes-alfred, agentes-auxiliar) NOPASSWD: /usr/local/libexec/dtd-agente-run

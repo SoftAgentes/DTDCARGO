@@ -1,0 +1,44 @@
+#!/bin/bash
+# dtd-agente-run · SDD-0564 fase B y SDD-0615. Lo llama sudo desde dtd-hermes (como agentes-run) y desde
+# dtd-motor (como agentes-alfred para Claude y agentes-auxiliar para Codex).
+# Entorno: sudo ya lo limpió (env_reset) y solo dejó PAPERCLIP_*, DTD_PERFIL, CLAUDE_CODE_OAUTH_TOKEN,
+# TERM y LANG/LC_*.
+set -euo pipefail
+umask 007
+herramienta="${1:-}"; shift || true
+perfil="${DTD_PERFIL:-}"
+yo="$(id -un)"
+# Cada herramienta, con su perfil y su usuario. Fuera de esta tabla no corre nada.
+case "$herramienta:$perfil:$yo" in
+  claude:ceo:agentes-alfred | codex:auxiliar:agentes-auxiliar) casa="/home/$yo" ;;
+  hermes:*:agentes-run | opencode:*:agentes-run) casa=/home/agentes-run ;;
+  *) echo "dtd-agente-run: herramienta, perfil o usuario no permitido" >&2; exit 64 ;;
+esac
+export HOME="$casa" SHELL=/bin/bash
+export PATH=/opt/agentes-cli/bin:/usr/local/bin:/usr/bin:/bin
+export CODEX_HOME="$casa/.codex"
+export CLAUDE_CONFIG_DIR="$casa/.claude"
+export DISABLE_TELEMETRY=1 CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+export XDG_CONFIG_HOME="$casa/.config" XDG_DATA_HOME="$casa/.local/share"
+export XDG_CACHE_HOME="$casa/.cache" XDG_STATE_HOME="$casa/.local/state"
+export OPENCODE_DISABLE_PROJECT_CONFIG=true OPENCODE_DISABLE_AUTOUPDATE=true
+# Nunca se cobra por API: los motores nuevos usan la suscripción.
+unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN OPENAI_API_KEY
+# El token de la suscripción de Claude solo lo recibe Claude.
+[ "$herramienta" = claude ] || unset CLAUDE_CODE_OAUTH_TOKEN
+case "$herramienta" in
+  codex)
+    cd /srv/oficina/trabajo/auxiliar
+    exec /opt/agentes-cli/bin/codex "$@" ;;
+  claude)
+    cd /srv/oficina/trabajo/ceo
+    exec /opt/agentes-cli/bin/claude "$@" ;;
+  opencode)
+    exec /opt/agentes-cli/bin/opencode "$@" ;;
+  hermes)
+    case "$perfil" in ceo|gabinete|ingenieria|contenido|prueba|director|asesor|operaciones|crm|community|revisor|director-contenido|seo|tiktok|youtube) ;; *) echo "dtd-agente-run: perfil de Hermes no permitido" >&2; exit 64 ;; esac
+    export HERMES_HOME="/home/agentes-run/.hermes/profiles/$perfil"
+    if [ "$perfil" = director ] && [ -r "$HERMES_HOME/paperclip.env" ]; then set -a; . "$HERMES_HOME/paperclip.env"; set +a; fi
+    export PATH="/opt/hermes/tools/node-26.7.0-linux-x64/bin:/opt/hermes/tools/ripgrep-15.2.0-linux-x64/bin:$PATH"
+    exec /opt/hermes/bin/hermes "$@" ;;
+esac
