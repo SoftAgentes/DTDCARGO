@@ -226,6 +226,8 @@ se para ahí.
    - Crear `agentes-alfred` y `agentes-auxiliar`, cada uno con su grupo y sin el grupo
      `oficina`. La biblioteca es legible por todos, y ese grupo abre las carpetas de los GLM.
    - Crear `/srv/oficina/trabajo/auxiliar` y las carpetas de staging, que no lee `agentes-run`.
+     El paso por `/srv/oficina/trabajo` y el acceso de ALFRED a `ceo` van con ACL, sin cambiar
+     el dueño de `ceo`. Así la vuelta atrás a Hermes no toca permisos.
    - Instalar los envoltorios y el sudoers, con respaldo y `visudo -cf`.
    - Copiar `CLAUDE.md` y `settings.json` (que el agente no puede escribir) y la skill
      `paperclip` del Auxiliar.
@@ -319,7 +321,7 @@ Veredicto: «ejecutar con correcciones». 14 hallazgos.
 
 ## Validación de esta PR
 
-- Pruebas de los envoltorios: 20 (18 en Windows; las 2 de enlaces y permisos corren en Linux). Mutantes: 27 de 27 mueren en Windows; los 2 que solo corren en Linux quedan NO EJECUTADOS hasta correrlos en el VPS durante la instalación.
+- Pruebas de los envoltorios: 20 en Linux (VPS de la oficina, Python 3.12.3), sin saltos; en Windows corren 18 y se saltan las 2 de enlaces y permisos. Mutantes: 29 de 29 mueren en Linux.
 - Mutantes.
 - `docs:check`, `sdd:check` y `git diff --check`.
 - `pnpm verify` no aplica: no hay código de producto.

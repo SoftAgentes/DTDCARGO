@@ -40,13 +40,13 @@
 |---|---|
 | Pruebas de los envoltorios (Windows) | PASÓ: 20 pruebas, 18 corridas y 2 saltadas (enlaces y permisos, que solo corren en Linux) |
 | `node --test scripts/tests/oficina-envoltorios.node.mjs` | PASÓ |
-| Mutantes | PASÓ: 27 de 27 mueren. Los 2 que solo corren en Linux quedan NO EJECUTADOS |
+| Mutantes | PASÓ: 29 de 29 mueren en Linux, en el VPS de la oficina |
 | `docs:check` | PASÓ, con el índice regenerado |
 | `sdd:check` | PASÓ. Solo aparecen los choques históricos ya conocidos |
 | `git diff --check` | PASÓ |
 | Búsqueda de llaves, IP y correos en los archivos nuevos | Sin coincidencias |
 | `pnpm verify` | NO APLICA: no hay producto |
-| Pruebas en Linux | NO EJECUTADO localmente. Las corre el CI de la PR |
+| Pruebas en Linux | PASÓ: 20, sin saltos, en el VPS de la oficina con Python 3.12.3 |
 
 ## Medido en el VPS de la oficina (2026-11-06, solo lectura)
 
@@ -81,19 +81,58 @@
 - **`runtimeConfig`:** heartbeat apagado, `wakeOnDemand` encendido, `maxConcurrentRuns` 1.
 - **Permisos:** `standard`, con asignar, contratar y crear skills encendidos.
 
+## Instalación en el VPS de la oficina (2026-11-06, 21:39 UTC; Sam: «Sí, instálalos»)
+
+- **Origen y respaldo:** se instaló desde el commit `fca430685`. El respaldo está en
+  `/root/respaldo-sdd-0615-20261106T213957Z`, con los cuatro archivos reemplazados y las ACL
+  previas.
+- **Antes de tocar nada** se comprobó que el paquete y la base viva coincidían con sus sha256.
+- **Paquete del sistema:** se instaló `acl` 2.3.2-1build1.1, que no estaba. No se reinició
+  ningún servicio.
+- **Usuarios nuevos:** `agentes-alfred` (uid 994) y `agentes-auxiliar` (uid 993), sin el grupo
+  `oficina`.
+- **Carpetas:**
+  - staging `ceo` y `auxiliar` con permisos 2750;
+  - `trabajo/auxiliar` con git, su `AGENTS.md` y la skill `paperclip` en su `.codex/skills`;
+  - `CLAUDE.md` en `trabajo/ceo`;
+  - `settings.json` en `~agentes-alfred/.claude`.
+- **Permisos de paso:** ACL `--x` en `trabajo` y `rwX` de `agentes-alfred` en `ceo`. `ceo`
+  sigue siendo de `agentes-run`.
+- **Huellas sha256 instaladas:**
+
+  | Archivo | sha256 |
+  |---|---|
+  | `dtd-motor` | `948f7d64…` |
+  | `dtd-agente-run` | `d8ec6a32…` |
+  | `dtd-claude` | `210c507f…` |
+  | `dtd-codex` | `0b3d6b03…` |
+  | sudoers | `52ade946…` |
+  | `settings.json` | `33ea1a45…` |
+
+- **Comprobaciones en verde:**
+  - Hermes responde con los perfiles `ceo` y `seo`;
+  - Claude 2.1.304 y Codex 0.163.0 corren a través de sus envoltorios;
+  - un perfil ajeno da 64;
+  - `agentes-run` no entra a lo nuevo;
+  - sudo registra 0 llamadas a `dtd-agente-run`;
+  - Paperclip responde 200.
+- **NO VERIFICADO:** una corrida real de ALFRED con Hermes por Paperclip después de la
+  instalación. No hubo ninguna entre las 21:39 y el cierre.
+- **Volver atrás:** copiar los cuatro archivos del respaldo, borrar
+  `/usr/local/libexec/dtd-motor` y correr `visudo -c`. Los usuarios, las ACL y las carpetas
+  nuevas no afectan a Hermes.
+
 ## Pendientes de esta tarea
 
 1. **Publicar la rama y abrir la PR.** Hace falta el OK de Sam.
-2. **Instalar en el VPS de la oficina,** siguiendo el orden de la spec. Está autorizado en el
-   plan, pero el diseño cambió después de la revisión de Codex con usuarios nuevos y sudoers, y
-   Sam tiene que confirmarlo.
+2. **Instalación:** hecha (sección anterior). Falta confirmar que la próxima corrida real de
+   ALFRED con Hermes pase.
 3. **Sam:** conectar el plan de Claude en Paperclip, iniciar la sesión de Codex como
    `agentes-auxiliar`, cambiar ALFRED en Harness, crear al Auxiliar y elegir el modelo.
 4. **Las rutinas de ALFRED nunca corrieron.** Hay que diagnosticarlas y arreglarlas antes de
    probar el ciclo.
 5. **Probar el ciclo por ramas** (paso 7 de la spec) y la pregunta de control.
-6. **Borrar los temporales de esta sesión** que tienen salida cruda de la base: `tasks\bvz5si6qz.output`
-   y `tasks\bikpp9f8l.output` en `%TEMP%\claude\…\6479d2c0…`.
+6. **Temporales con salida cruda de la base:** borrados el 2026-11-06.
 
 ## FUERA DE ALCANCE DETECTADO
 

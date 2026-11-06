@@ -49,11 +49,16 @@ En el VPS de la oficina se instala desde el commit revisado y con respaldo.
    - Ninguno de los dos entra en el grupo `oficina`. La biblioteca es `root:root 2755` y se lee
      sin él, mientras que el grupo daría acceso a `/srv/oficina/trabajo`, la carpeta de los GLM
      (`agentes-run:oficina 2770`, medido el 2026-11-06).
-   - Su carpeta de trabajo (`ceo` pasa a `agentes-alfred`, y se crea `auxiliar`) queda con
-     dueño propio, el grupo del motor, permisos 2770 y git local.
-   - `agentes` entra en los grupos `agentes-alfred` y `agentes-auxiliar`, porque Paperclip
-     escribe `.paperclip-runtime/` en la carpeta de trabajo. `agentes-run` no entra.
-   - La vuelta atrás a Hermes devuelve `ceo` a su dueño anterior. Se anota antes de cambiarlo.
+   - **Paso y carpetas de trabajo, con ACL** (paquete `acl` de Ubuntu):
+     - en `/srv/oficina/trabajo`, `u:agentes-alfred:--x` y `u:agentes-auxiliar:--x`: pueden
+       entrar a su carpeta, pero no listar las de los GLM;
+     - `ceo` sigue siendo de `agentes-run:oficina` y lleva `u:agentes-alfred:rwX` recursivo y
+       por defecto. Así ALFRED puede volver a Hermes sin cambiar dueños, y Paperclip
+       (`agentes`, que está en `oficina`) sigue escribiendo `.paperclip-runtime/` sin reiniciarse;
+     - `auxiliar` se crea con dueño `agentes-auxiliar:oficina`, permisos 2770, git local y su
+       `AGENTS.md` (identidad más instrucciones).
+   - Nada de la carpeta de trabajo es secreto. Las credenciales viven solo en la casa de cada
+     usuario.
 4. **Crear el staging.**
    - `/srv/oficina/staging`, con dueño `root:root` y permisos 755.
    - `/srv/oficina/staging/ceo`, con dueño `agentes:agentes-alfred` y permisos 2750.
@@ -76,4 +81,24 @@ En el VPS de la oficina se instala desde el commit revisado y con respaldo.
   También corren desde el harness, en `scripts/tests/oficina-envoltorios.node.mjs`. En Linux no
   se salta ninguna.
 - **Mutantes:** `python -I -B infra/oficina/envoltorios/tests/mutantes.py`. Los dos marcados
-  «solo Linux» corren en el VPS o en el CI.
+  «solo Linux» se saltan en Windows.
+
+## Instalado (2026-11-06, 21:39 UTC)
+
+La instalación salió del commit `fca430685`, con respaldo en
+`/root/respaldo-sdd-0615-20261106T213957Z`. Los sha256 instalados coinciden con los del commit.
+
+**Comprobaciones, todas en verde:**
+
+- Hermes responde con los perfiles `ceo` y `seo`.
+- Claude Code (2.1.304) y Codex (0.163.0) corren a través de sus envoltorios.
+- Un perfil ajeno da 64.
+- `agentes-run` no entra a las casas nuevas ni al staging.
+- `agentes-alfred` no lista la carpeta de los GLM.
+- sudo no registra `dtd-agente-run`.
+- Paperclip responde con 200.
+
+**En Linux (Python 3.12.3):**
+
+- 20 pruebas, sin saltos;
+- 29 de 29 mutantes mueren.
