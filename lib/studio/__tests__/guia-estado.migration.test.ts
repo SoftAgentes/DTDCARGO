@@ -10,7 +10,9 @@
  * CONTROL ROJO: sin 0517 el contrato cae en la primera aserción.
  * MUTANTES: cada uno es una 0517 coherente con un defecto y tiene que caer en la
  * aserción que lo nombra.
- * ESPERA: la 0517 no está aplicada; la última prueba lo fija.
+ * APLICADA: la 0517 salió de las esperas de migrations-baseline.json y quedó sellada en
+ * migrations.lock.json; la cabecera «NO APLICADA» se conserva porque el ledger guarda el
+ * texto exacto. Las dos últimas pruebas lo fijan.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -24,7 +26,14 @@ const M0517 = "0517_user_guide_prefs.sql";
 const read = (path: string) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 const FILE_0517 = read(resolve(ROOT, "supabase/migrations", M0517));
 const BASELINE = JSON.parse(read(resolve(ROOT, "supabase/migrations-baseline.json"))) as {
+  cutoff: number;
   pendingBelowCutoff: Record<string, string>;
+};
+const DECLARATIONS = JSON.parse(read(resolve(ROOT, "supabase/pending-migration-symbol-declarations.json"))) as {
+  degradations: { migration: string }[];
+};
+const LOCK = JSON.parse(read(resolve(ROOT, "supabase/migrations.lock.json"))) as {
+  selladas: Record<string, { ledger?: { fecha: string; forma: string } }>;
 };
 const SLOW = 180_000;
 
@@ -157,8 +166,14 @@ describe("SDD-0589 · 0517 estado de la guía por usuario (PGlite)", () => {
     expect(run.error).toMatch(/0517: user_guide_prefs ya existe/);
   }, SLOW);
 
-  it("la 0517 está declarada en espera y su cabecera dice que no está aplicada", () => {
-    expect(BASELINE.pendingBelowCutoff["0517_user_guide_prefs"]).toMatch(/PENDIENTE DE APLICAR/);
+  it("la cabecera «NO APLICADA» no se corrige: el ledger guarda el texto exacto", () => {
     expect(FILE_0517).toMatch(/NO APLICADA A PRODUCCIÓN/);
+  });
+
+  it("aplicada en producción el 2026-11-06: ya no es una espera y quedó sellada", () => {
+    expect(BASELINE.pendingBelowCutoff["0517_user_guide_prefs"]).toBeUndefined();
+    expect(BASELINE.cutoff).toBe(238);
+    expect(DECLARATIONS.degradations.some((d) => d.migration === "0517_user_guide_prefs")).toBe(false);
+    expect(LOCK.selladas["0517_user_guide_prefs"]?.ledger).toEqual({ fecha: "2026-11-06", forma: "exacta" });
   });
 });
