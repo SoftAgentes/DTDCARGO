@@ -1,9 +1,44 @@
 # SDD-0606 — Lectura previa y ensayo en prueba de las migraciones 0514 y 0515
 
-**Preparado, nada corrido.** Ni la lectura previa ni el ensayo tocaron ninguna base. La lectura previa contra producción necesita la confirmación del Director General. El ensayo en prueba necesita que Sam nombre el host. Aplicar en producción necesita el OK nominal de Sam para cada número, de a una, pasando por el Director General.
+**Corridos el 2026-11-06: la lectura previa en producción y el ensayo de la base en prueba (ver «Resultados»). En producción no se aplicó nada.** La lectura previa contra producción necesita la confirmación del Director General. El ensayo en prueba necesita que Sam nombre el host. Aplicar en producción necesita el OK nominal de Sam para cada número, de a una, pasando por el Director General.
 
 - PR: [SoftAgentes/DTDCARGO#380](https://github.com/SoftAgentes/DTDCARGO/pull/380), rama `claude/gracious-kapitsa-213515`.
 - Procedimientos: `docs/runbooks/aplicar-migraciones-prod.md` §2 a §8 (producción) y `docs/runbooks/entorno-prueba.md` §3 a §5 (prueba).
+
+## Resultados (2026-11-06)
+
+Lo pidió Sam en la sesión Worker de la SDD-0606, a la pregunta «¿En qué host del entorno de prueba hago el ensayo de la 0514 y la 0515?», respuesta «prueba.dtdcargo.com»; y a «¿Corro ahora la lectura previa contra producción de la 0514 y la 0515? Solo lee el ledger y el catálogo, en una transacción de solo lectura, sin filas de negocio.», respuesta «Sí, córrela». A «¿Autorizas aplicar las migraciones 0514 y 0515…?» no eligió ninguna opción: en esta sesión **no hay autorización registrada para producción**. La que el Director General recibió por su selector a las 17:35Z la registra él; el control de permisos de esta sesión no me dejó escribirla a partir del aviso de otra sesión.
+
+**Producción: lectura previa PASÓ, nada aplicado.** Cabeza `f65ca1c3c`.
+
+| Lectura | Resultado | Evidencia en el VPS |
+|---|---|---|
+| Previa del runbook, 0514 | PASÓ: ledger 512 filas, última `20261104211129`, la 0514 no está; 0 sesiones esperando locks; 0 transacciones largas; preflight propio OK | `/srv/ops/evidencias/previa-0514-dtd-cargo-20261106T174847Z` |
+| Previa del runbook, 0515 | PASÓ: ídem para la 0515 | `/srv/ops/evidencias/previa-0515-dtd-cargo-20261106T175030Z` |
+| Esquema (`sdd-0606-previa-esquema.sql`) más la ACL de `user_profiles` | Todo lo esperado (abajo) | `/srv/ops/evidencias/previa-esquema-0606-dtd-cargo-20261106T175047Z` (`previa-esquema.out`, `acl.out`, `SHA256SUMS`) |
+
+Lo que salió en la de esquema:
+- `user_profiles` no tiene `discord_user_id` ni el CHECK; 15 columnas; sin triggers; 56 kB.
+- La policy de UPDATE es `user_profiles_owner_update` con `user_id = auth.uid()`.
+- `authenticated` tiene UPDATE **de tabla** (`relacl` `authenticated=rw/postgres`) y ninguna columna con ACL propia: la columna nueva lo hereda y el perfil podrá guardar el ID.
+- `studio_alert_outbox` no existe; `tenants` con su PK y `extensions.gen_random_uuid()` existen; los cuatro roles existen, `service_role` con `bypassrls`.
+- Los privilegios por defecto de lo que crea `postgres` en `public` son sólo para `postgres` y `service_role`; los de `supabase_admin` no aplican.
+- Existe `ensure_rls` (activa RLS en tablas nuevas); ninguna publicación es `FOR ALL TABLES`.
+- El ledger no tiene ni la 0514 ni la 0515.
+
+**Prueba (`dtd-cargo-staging`, el de `prueba.dtdcargo.com`): ensayo de la base PASÓ, de a una.** La base ya estaba al nivel de `main` (ledger 500, última 0513): no se reseteó. Web de prueba sin tocar (imagen `prueba-sha-55a65a60…`). Sin llaves ni datos de producción.
+
+| Paso | Resultado | Evidencia |
+|---|---|---|
+| 0514 | PASÓ previa, apply (COMMIT con la fila del ledger) y verificación: ledger md5 `fb6d4d68b0ed528ab4803ae974571966`, 3766 bytes | `/srv/ops/evidencias/apply-0514-dtd-cargo-staging-20261106T175351Z` |
+| Esquema antes → después de la 0514 | Sólo `user_profiles.discord_user_id` (text, nullable), el CHECK `user_profiles_discord_user_id_formato` y la fila del ledger | `diff-0514.txt` |
+| 0515 | El primer intento no copió el paquete (`scp: Connection closed`): no aplicó nada, ledger sin la 0515. El segundo PASÓ previa, apply y verificación: ledger md5 `1ae7c1ac3cfbd9381285595e82f8a3e3`, 5766 bytes | `/srv/ops/evidencias/apply-0515-dtd-cargo-staging-20261106T180623Z` |
+| Esquema después de la 0514 → después de la 0515 | Sólo la tabla `studio_alert_outbox` (RLS activada, ACL `postgres` y `service_role`), su PK, el índice de pendientes, 12 columnas, la FK a `tenants`, 7 CHECK y la fila del ledger. Ninguna función, policy, trigger ni publicación nueva | `diff-0515.txt` |
+| Privilegios de la tabla nueva | `anon` sin acceso, `authenticated` sin acceso, `service_role` con acceso; 0 policies | `ledger-y-privilegios.txt` |
+
+Fotos, diffs y `SHA256SUMS` del ensayo: `/srv/ops/evidencias/ensayo-0606-dtd-cargo-staging-20261106T175149Z`. El md5 del ledger de prueba es el que tiene que dar producción.
+
+**Smokes A y B: NO EJECUTADOS.** El A pide la web de `main` en prueba y la que corre es otra imagen (`55a65a60…`); el B pide construir y desplegar la imagen de la #380 y entrar con la clave de prueba. Desplegar en prueba y usar la clave no entró en lo que Sam nombró.
 
 ## Identidad de cada migración
 
