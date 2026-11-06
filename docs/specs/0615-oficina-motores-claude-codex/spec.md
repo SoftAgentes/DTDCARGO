@@ -302,7 +302,7 @@ Veredicto: «ejecutar con correcciones». 14 hallazgos.
 - `docs/organizacion/oficina-agentes/ceo/CLAUDE.md`
 - `docs/organizacion/oficina-agentes/auxiliar/SOUL.md`
 - `docs/organizacion/oficina-agentes/auxiliar/AGENTS.md`
-- `infra/oficina/envoltorios/{README.md,dtd-motor,dtd-claude,dtd-codex,dtd-agente-run,91-agentes-run}`
+- `infra/oficina/envoltorios/{README.md,dtd-motor,dtd-claude,dtd-codex,dtd-agente-run,91-agentes-run,claude-settings.json}`
 - `infra/oficina/envoltorios/tests/{test_envoltorios.py,mutantes.py}`
 - `scripts/tests/oficina-envoltorios.node.mjs`
 - `.agents/handoffs/sdd-0615-oficina-motores-claude-codex.md`

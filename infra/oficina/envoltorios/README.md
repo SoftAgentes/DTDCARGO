@@ -62,8 +62,9 @@ En el VPS de la oficina se instala desde el commit revisado y con respaldo.
    de cada uno es el del commit.
 6. **Comprobar el sudoers** con `visudo -cf /etc/sudoers.d/91-agentes-run`.
 7. **Preparar la configuración de cada motor.**
-   - `~agentes-alfred/.claude/settings.json`, con las reglas `deny`, dueño root y permisos
-     644. El agente no lo puede escribir.
+   - `~agentes-alfred/.claude/settings.json`, que sale de `claude-settings.json`, con dueño
+     `root:agentes-alfred` y permisos 640. Es defensa en profundidad: el agente no lo puede
+     escribir, pero sí podría renombrarlo dentro de su carpeta.
    - La skill `paperclip` en `~agentes-auxiliar/.codex/skills/`.
 8. **Probar como `agentes`:** `DTD_PERFIL=ceo /usr/local/bin/dtd-claude --version` y
    `DTD_PERFIL=auxiliar /usr/local/bin/dtd-codex --version`. Después comprobar como
