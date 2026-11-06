@@ -1,0 +1,2 @@
+-- RESERVADA para SDD-0589, paso 9.3 de SDD-0582: tabla public.user_guide_prefs.
+-- La migración real llega por la rama codex/0589-e9-estado. Esta rama nunca se fusiona.
