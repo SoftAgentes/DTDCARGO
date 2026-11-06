@@ -19,7 +19,7 @@ OK de Sam para encender.
 | `build-image.yml` | GitHub | Construye `sha-<sha>` con tres etiquetas nuevas: las migraciones del commit, las que están en espera y las huellas de los compose, el cron y las funciones. |
 | `publicable.yml` + `infra/ops/web/publicable.mjs` | GitHub | Mueve `:publicable` al commit más nuevo de `main` con imagen y CI en verde (o el verde de su PR con el mismo árbol). Nunca retrocede. |
 | `dtd-cargo-publicar.timer` | VPS | Cada minuto, `publicar-web.sh vigilar`. |
-| `/srv/ops/web/publicar-web.sh` | VPS | Si `:publicable` no es lo que corre, pasa las puertas (migraciones, compose y cron, sharp), cambia solo `DTD_WEB_IMAGE`, `up -d --no-deps web`, healthy, prueba rápida y, si falla, vuelve atrás. Reemplaza al interino de la misma ruta y conserva su interfaz `publicar-web.sh <sha>`. |
+| `/srv/ops/web/publicar-web.sh` | VPS | Si `:publicable` no es lo que corre, pasa las puertas (migraciones, compose y cron, sharp), cambia solo `DTD_WEB_IMAGE`, levanta el web nuevo al lado del que sirve (relevo sin corte, desde el 2026-11-06), healthy, retira el viejo, prueba rápida y, si falla, vuelve atrás con otro relevo. Reemplaza al interino de la misma ruta y conserva su interfaz `publicar-web.sh <sha>`. |
 | `/srv/ops/web/huellas-fuera-de-imagen.sh` | GitHub y VPS | Las mismas huellas de los dos lados. |
 | `/srv/dtd-cargo/estado-publicacion/publicaciones.json` | VPS → Studio | Lo escribe `publicar-web.sh` al final de `vigilar`, `publicar`, `volver`, `congelar` y `descongelar` ([SDD-0547](../specs/0547-panel-publicaciones-servidor/spec.md) §4). El web lo ve en solo lectura y `/studio/debug` › Estado lo muestra. Ver [Estado para el Studio](#estado-para-el-studio-sdd-0547). |
 
@@ -78,6 +78,33 @@ merge). Comprobaciones:
 - El aviso de Kuma y el de Discord `#publicaciones` (SDD-0609) llegan.
 
 ## Operación
+
+### Relevo sin corte (2026-11-06)
+
+Hasta el 2026-11-06 el paso era `up -d --no-deps web`: compose bajaba el web viejo
+antes de crear el nuevo, Traefik no enruta a un contenedor `starting` y el
+`HEALTHCHECK` del `Dockerfile` (`interval=30s`) tarda unos 30 s en declararlo
+healthy. La web daba 404 todo ese rato. En las tandas D y E, la prueba rápida
+arrancaba apenas el nuevo quedaba healthy, antes de que Traefik lo sumara, y daba
+entre 5 y 7 páginas en 404 en el primer intento.
+
+Ahora es un relevo (`relevar()` en `publicar-web.sh`):
+
+1. `… up -d --no-deps --no-recreate --scale web=2 web`: el nuevo arranca al lado
+   del que sirve, que no se toca.
+2. Espera a que **ese** contenedor quede healthy. Si no queda, lo retira y el
+   viejo nunca dejó de servir; la vuelta atrás ve que ya corre la anterior y no
+   levanta otra.
+3. `PUBLICAR_ESPERA_TRAEFIK` (5 s por defecto, más que el throttle de 2 s de
+   Traefik) para que Traefik lo sume. Después `docker stop -t
+   PUBLICAR_GRACIA_WEB` (20 s) y `docker rm` del viejo.
+4. Otra espera igual para que Traefik saque al viejo, y recién entonces la prueba
+   rápida. Queda un solo web; su nombre puede ser `dtd-cargo-web-2` (o el número
+   que siga): los scripts lo buscan por etiqueta, no por nombre.
+
+Durante el relevo corren dos web, cada uno con su tope de 2 GB. En el peor caso,
+los pedidos que Traefik todavía mande al viejo en los ~2 s posteriores al
+`docker stop` pueden dar 502; antes el corte era de unos 30 s.
 
 ### Congelar (un corte, una ventana de mantenimiento)
 
