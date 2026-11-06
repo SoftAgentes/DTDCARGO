@@ -142,6 +142,10 @@ if docker ps -aq --filter "label=com.docker.compose.project=$PROYECTO" | grep -q
   mal G0 "ya hay contenedores del proyecto $PROYECTO: corre --limpiar"
   exit 1
 fi
+if docker inspect chatwoot-ensayo-postgres-1 >/dev/null 2>&1 || docker inspect chatwoot-ensayo-redis-1 >/dev/null 2>&1; then
+  mal G0 "ya existe un contenedor chatwoot-ensayo-postgres-1 o chatwoot-ensayo-redis-1: revísalo, no es de este ensayo"
+  exit 1
+fi
 docker inspect "$PROD_PG" >/dev/null 2>&1 || { mal G0 "no existe $PROD_PG"; exit 1; }
 for f in zz_dtd_redaccion_logs.rb zz_dtd_proteccion_register.rb zz_dtd_revocar_sesiones.rb zz_dtd_correo.rb; do
   [ -r "$CHATWOOT_DIR/rails/$f" ] || { mal G0 "falta $CHATWOOT_DIR/rails/$f"; exit 1; }
@@ -204,6 +208,8 @@ x-entorno: &entorno
 services:
   postgres:
     image: ${IMAGEN_PG}
+    # Nombre fijo: el borrado de otras cuentas solo se corre con `docker exec chatwoot-ensayo-postgres-1`.
+    container_name: chatwoot-ensayo-postgres-1
     environment:
       POSTGRES_USER: chatwoot
       POSTGRES_PASSWORD: ${PG_CLAVE}
@@ -218,6 +224,7 @@ services:
     mem_limit: 768m
   redis:
     image: ${IMAGEN_REDIS}
+    container_name: chatwoot-ensayo-redis-1
     command: ["redis-server", "--requirepass", "${REDIS_CLAVE}", "--save", "", "--appendonly", "no"]
     networks: [aislada]
     healthcheck:
@@ -315,14 +322,22 @@ dump_bytes="$(stat -c %s "$DIR/base.dump" 2>/dev/null || echo 0)"
 dump_sha="$(sha256sum "$DIR/base.dump" | cut -c1-12)"
 evidencia "HECHO dump_modo=$modo_lectura" "HECHO dump_bytes=$dump_bytes" "HECHO dump_sha=$dump_sha"
 exigir D1 '[ "$dump_rc" = 0 ] && [ "$dump_bytes" -gt 0 ]' "pg_dump en solo lectura ($modo_lectura): $dump_bytes bytes, sha256 $dump_sha"
-docker exec -i "$(docker ps -q --filter "label=com.docker.compose.project=$PROYECTO" --filter label=com.docker.compose.service=postgres)" \
+docker exec -i chatwoot-ensayo-postgres-1 \
   pg_restore -U chatwoot -d chatwoot_production --no-owner --no-privileges <"$DIR/base.dump" >"$DIR/restore.txt" 2>&1
 restore_errores="$(grep -c 'error:' "$DIR/restore.txt" || true)"
 rm -f -- /dev/shm/cw-ensayo/base.dump
 exigir D2 '[ ! -e /dev/shm/cw-ensayo/base.dump ]' "el dump se borró apenas restaurado"
 evidencia "HECHO restore_errores=$restore_errores"
+# Marca de la copia: una tabla que producción nunca tiene, con un valor aleatorio de este momento. El borrado de
+# otras cuentas (ensayo-otras-cuentas.sql) la verifica antes de tocar nada, en la misma transacción.
+MARCA="$(openssl rand -hex 16)"
+docker exec chatwoot-ensayo-postgres-1 psql -U chatwoot -d chatwoot_production -At -v ON_ERROR_STOP=1 -c \
+  "CREATE TABLE public._dtd_ensayo_marca (valor text NOT NULL); INSERT INTO public._dtd_ensayo_marca VALUES ('$MARCA');" \
+  >"$DIR/marca.txt" 2>&1
+exigir D4 '[ "$(docker exec chatwoot-ensayo-postgres-1 psql -U chatwoot -d chatwoot_production -At -c "SELECT valor FROM public._dtd_ensayo_marca")" = "$MARCA" ]' \
+  "la copia lleva la marca del ensayo (tabla _dtd_ensayo_marca con un valor aleatorio de este momento)"
 prod_despues="$(conteo_prod)"
-copia_conteo="$(docker exec "$(docker ps -q --filter "label=com.docker.compose.project=$PROYECTO" --filter label=com.docker.compose.service=postgres)" \
+copia_conteo="$(docker exec chatwoot-ensayo-postgres-1 \
   psql -U chatwoot -d chatwoot_production -At -c \
   "select (select count(*) from conversations)||','||(select count(*) from messages)||','||(select count(*) from contacts)||','||(select count(*) from inboxes)")"
 evidencia "HECHO conteo_produccion_antes=$prod_antes" "HECHO conteo_copia=$copia_conteo" "HECHO conteo_produccion_despues=$prod_despues"
@@ -335,50 +350,21 @@ vigilar_carga copia
 # producción, la cuenta de prueba). Se borran en la COPIA: cada tabla con account_id, la cuenta, y los restos
 # sin account_id que colgaban de ella (contact_inboxes, miembros de bandejas y usuarios sin cuenta).
 log "== O. otras cuentas fuera de la copia"
-PGE="$(docker ps -q --filter "label=com.docker.compose.project=$PROYECTO" --filter label=com.docker.compose.service=postgres)"
-docker exec -i "$PGE" psql -U chatwoot -d chatwoot_production -At -v ON_ERROR_STOP=1 -v "cuenta=$CUENTA" \
-  >"$DIR/otras-cuentas.txt" 2>&1 <<'SQL'
-SELECT set_config('ensayo.cuenta', :'cuenta', false) IS NOT NULL;
--- account_id se compara como texto: así no importa el tipo de la columna en cada tabla. Los NULL no se tocan.
-CREATE FUNCTION pg_temp.filas_de_otras_cuentas() RETURNS bigint LANGUAGE plpgsql AS $$
-DECLARE t record; n bigint; total bigint := 0; c text := current_setting('ensayo.cuenta');
-BEGIN
-  FOR t IN SELECT k.table_name FROM information_schema.columns k
-           JOIN information_schema.tables tb ON tb.table_schema = k.table_schema AND tb.table_name = k.table_name
-           WHERE k.table_schema = 'public' AND k.column_name = 'account_id' AND tb.table_type = 'BASE TABLE' LOOP
-    EXECUTE format('SELECT count(*) FROM public.%I WHERE account_id::text <> %L', t.table_name, c) INTO n;
-    total := total + n;
-  END LOOP;
-  RETURN total;
-END $$;
-SELECT 'HECHO otras_cuentas_antes=' || count(*) FROM accounts WHERE id <> current_setting('ensayo.cuenta')::bigint;
-SELECT 'HECHO otras_cuentas_filas_antes=' || pg_temp.filas_de_otras_cuentas();
-SET session_replication_role = replica;
-DO $$
-DECLARE t record; c text := current_setting('ensayo.cuenta');
-BEGIN
-  FOR t IN SELECT k.table_name FROM information_schema.columns k
-           JOIN information_schema.tables tb ON tb.table_schema = k.table_schema AND tb.table_name = k.table_name
-           WHERE k.table_schema = 'public' AND k.column_name = 'account_id' AND tb.table_type = 'BASE TABLE' LOOP
-    EXECUTE format('DELETE FROM public.%I WHERE account_id::text <> %L', t.table_name, c);
-  END LOOP;
-  DELETE FROM public.accounts WHERE id::text <> c;
-  DELETE FROM public.contact_inboxes ci WHERE NOT EXISTS (SELECT 1 FROM public.inboxes i WHERE i.id = ci.inbox_id)
-                                         OR NOT EXISTS (SELECT 1 FROM public.contacts k WHERE k.id = ci.contact_id);
-  DELETE FROM public.inbox_members m WHERE NOT EXISTS (SELECT 1 FROM public.inboxes i WHERE i.id = m.inbox_id);
-  DELETE FROM public.users u WHERE NOT EXISTS (SELECT 1 FROM public.account_users au WHERE au.user_id = u.id);
-END $$;
-SET session_replication_role = origin;
-SELECT 'HECHO otras_cuentas=' || count(*) FROM accounts WHERE id <> current_setting('ensayo.cuenta')::bigint;
-SELECT 'HECHO cuenta_del_ensayo=' || count(*) FROM accounts WHERE id = current_setting('ensayo.cuenta')::bigint;
-SELECT 'HECHO otras_cuentas_filas=' || pg_temp.filas_de_otras_cuentas();
-SELECT 'HECHO contact_inboxes_huerfanos=' || count(*) FROM contact_inboxes ci
-  WHERE NOT EXISTS (SELECT 1 FROM inboxes i WHERE i.id = ci.inbox_id) OR NOT EXISTS (SELECT 1 FROM contacts k WHERE k.id = ci.contact_id);
-SELECT 'HECHO miembros_huerfanos=' || count(*) FROM inbox_members m WHERE NOT EXISTS (SELECT 1 FROM inboxes i WHERE i.id = m.inbox_id);
-SELECT 'HECHO usuarios_sin_cuenta=' || count(*) FROM users u WHERE NOT EXISTS (SELECT 1 FROM account_users au WHERE au.user_id = u.id);
-SQL
+# Capa 1 (Director General): el borrado se corre solo con el nombre escrito tal cual, y antes se verifica que ese
+# contenedor es del proyecto del ensayo y que su PGDATA está en tmpfs.
+etiqueta="$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' chatwoot-ensayo-postgres-1 2>/dev/null)"
+pgdata_fs="$(docker exec chatwoot-ensayo-postgres-1 stat -f -c %T /var/lib/postgresql/data 2>/dev/null)"
+tmpfs_cfg="$(docker inspect -f '{{json .HostConfig.Tmpfs}}' chatwoot-ensayo-postgres-1 2>/dev/null)"
+evidencia "HECHO borrado_contenedor_proyecto=$etiqueta" "HECHO borrado_pgdata=$pgdata_fs"
+exigir O0 '[ "$etiqueta" = chatwoot-ensayo ] && [ "$pgdata_fs" = tmpfs ] && printf "%s" "$tmpfs_cfg" | grep -q "/var/lib/postgresql/data"' \
+  "chatwoot-ensayo-postgres-1 es del proyecto chatwoot-ensayo ($etiqueta) y su PGDATA está en tmpfs ($pgdata_fs)"
+if [ "$FALLAS" -gt 0 ]; then log "no es el Postgres del ensayo: no se borra nada"; exit 1; fi
+# Capa 2: ensayo-otras-cuentas.sql empieza, en la misma transacción, por verificar la marca de la copia.
+docker exec -i chatwoot-ensayo-postgres-1 psql -U chatwoot -d chatwoot_production -At -v ON_ERROR_STOP=1 \
+  -v "cuenta=$CUENTA" -v "marca=$MARCA" <"$AQUI/ensayo-otras-cuentas.sql" >"$DIR/otras-cuentas.txt" 2>&1
 F="$DIR/otras-cuentas.txt"
 evidencia "$(grep '^HECHO ' "$F")"
+exigir O1a '[ "$(h "$F" marca)" = ok ]' "el borrado encontró la marca de la copia antes de tocar nada"
 exigir O1 '[ "$(h "$F" cuenta_del_ensayo)" = 1 ] && [ "$(h "$F" otras_cuentas)" = 0 ] && [ "$(h "$F" otras_cuentas_filas)" = 0 ]' \
   "la copia queda solo con la cuenta $CUENTA: se borraron $(h "$F" otras_cuentas_antes) cuentas y $(h "$F" otras_cuentas_filas_antes) filas con account_id; quedan 0"
 exigir O2 '[ "$(h "$F" contact_inboxes_huerfanos)" = 0 ] && [ "$(h "$F" miembros_huerfanos)" = 0 ] && [ "$(h "$F" usuarios_sin_cuenta)" = 0 ]' \

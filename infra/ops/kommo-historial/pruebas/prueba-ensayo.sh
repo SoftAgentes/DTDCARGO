@@ -7,6 +7,9 @@
 #   N1  con /dev/shm/cw-ensayo ya existente, el ensayo se niega y no la borra
 #   N2  si el proyecto de producción se llamara como el del ensayo, se niega sin crear nada
 #   N3  con la carga del equipo por encima del tope, se para antes de crear nada
+#   N4  el borrado de otras cuentas (ensayo-otras-cuentas.sql) apuntado a la «producción» simulada, sin la marca de
+#       la copia, se niega antes de leer o borrar nada; producción conserva sus 2 cuentas
+#   N5  con un contenedor ajeno llamado chatwoot-ensayo-postgres-1, se niega y no lo toca
 #   R   el ensayo entero pasa contra la producción simulada
 #   P   la producción simulada queda intacta: sin «Archivo Kommo», mismas bandejas y conversaciones (huella),
 #       contenedores corriendo
@@ -39,6 +42,9 @@ D="$TRABAJO/prod"
 EDGE="chatwoot_edge_prueba"
 dc() { (cd "$D" && docker compose -p chatwoot "$@"); }
 bajar() {
+  # El contenedor ajeno de N5, si quedó: solo el que lleva la etiqueta de la prueba.
+  [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' chatwoot-ensayo-postgres-1 2>/dev/null)" = otro ] \
+    && docker rm -f chatwoot-ensayo-postgres-1 >/dev/null 2>&1
   [ -f "$D/compose.yml" ] && dc down -v --remove-orphans >/dev/null 2>&1
   docker network rm "$EDGE" >/dev/null 2>&1
   case "$S" in /dev/shm/cw-ensayo-prueba-staging.*) rm -rf -- "$S" ;; esac
@@ -125,6 +131,21 @@ exigir N2 '[ "$rc" != 0 ] && [ ! -e /dev/shm/cw-ensayo ] && [ "$(quedan)" = 0,0,
 TOPE=0 ensayo n3; rc=$?
 exigir N3 '[ "$rc" = 3 ] && [ ! -e /dev/shm/cw-ensayo ] && [ "$(quedan)" = 0,0,0 ] && grep -q "FALLÓ CARGA" "$TRABAJO/ensayo-n3.txt"' \
   "con la carga por encima del tope se para (código $rc) antes de crear nada"
+# N4: el borrado de otras cuentas, el mismo SQL que usa el ensayo, apuntado a la «producción» simulada, que no
+# tiene la marca. Tiene que negarse antes de leer o borrar nada.
+docker exec -i chatwoot-postgres-1 psql -U chatwoot -d chatwoot_production -At -v ON_ERROR_STOP=1 \
+  -v "cuenta=$CUENTA" -v "marca=$(openssl rand -hex 16)" <"$KH/ensayo-otras-cuentas.sql" >"$TRABAJO/n4.txt" 2>&1
+rc=$?
+exigir N4 '[ "$rc" != 0 ] && grep -q "sin la marca del ensayo" "$TRABAJO/n4.txt" && ! grep -q "^HECHO" "$TRABAJO/n4.txt" && [ "$(psql_prod "select count(*) from accounts")" = 2 ] && [ -z "$(psql_prod "select to_regclass('"'"'public._dtd_ensayo_marca'"'"')")" ]' \
+  "el borrado apuntado a producción, sin la marca, se niega (código $rc), no imprime nada y deja las 2 cuentas"
+# N5: un contenedor ajeno con el nombre del Postgres del ensayo. El ensayo se niega y no lo toca.
+docker run -d --name chatwoot-ensayo-postgres-1 --label com.docker.compose.project=otro --network none \
+  "redis:7.2.11-alpine@sha256:1a34bdba051ecd8a58ec8a3cc460acef697a1605e918149cc53d920673c1a0a7" >/dev/null
+ensayo n5; rc=$?
+exigir N5 '[ "$rc" != 0 ] && [ "$(docker inspect -f "{{.State.Status}}" chatwoot-ensayo-postgres-1 2>/dev/null)" = running ] && [ ! -e /dev/shm/cw-ensayo ] && [ "$(quedan)" = 0,0,0 ]' \
+  "con un contenedor ajeno llamado chatwoot-ensayo-postgres-1, se niega (código $rc) y no lo toca"
+[ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' chatwoot-ensayo-postgres-1 2>/dev/null)" = otro ] \
+  && docker rm -f chatwoot-ensayo-postgres-1 >/dev/null
 
 # ── R. El ensayo ─────────────────────────────────────────────────────────────
 log "== R. ensayo"
@@ -156,8 +177,8 @@ done
 exigir F1 '[ -s "$E" ] && ! grep -qv "^HECHO " "$E" && [ "$fugas" = 0 ]' "la evidencia trae solo líneas HECHO ($(wc -l <"$E")) y ningún valor inventado de personas"
 exigir F2 'grep -q "^HECHO dump_sha=" "$E" && grep -q "^HECHO limpieza=contenedores=0,volumenes=0,redes=0" "$E" && grep -q "^HECHO limpieza_carpeta=ausente" "$E"' \
   "la evidencia anota el dump (bytes y sha256) y la limpieza en cero"
-exigir F3 'grep -qx "HECHO otras_cuentas_antes=1" "$E" && grep -qx "HECHO otras_cuentas=0" "$E" && grep -qx "HECHO otras_cuentas_filas=0" "$E" && ! grep -qx "HECHO otras_cuentas_filas_antes=0" "$E"' \
-  "la copia tenía la otra cuenta con filas y quedó en 0 antes de cargar; producción la conserva (P1)"
+exigir F3 'grep -qx "HECHO marca=ok" "$E" && grep -qx "HECHO borrado_contenedor_proyecto=chatwoot-ensayo" "$E" && grep -qx "HECHO borrado_pgdata=tmpfs" "$E" && grep -qx "HECHO otras_cuentas_antes=1" "$E" && grep -qx "HECHO otras_cuentas=0" "$E" && grep -qx "HECHO otras_cuentas_filas=0" "$E" && ! grep -qx "HECHO otras_cuentas_filas_antes=0" "$E"' \
+  "el borrado corrió en el Postgres del ensayo (proyecto y tmpfs) con la marca; la copia tenía la otra cuenta con filas y quedó en 0; producción la conserva (P1)"
 exigir F4 'grep -qx "HECHO correos_en_cola=0" "$E" && grep -qx "HECHO correos_enviados_sonda=0" "$E" && [ "$(grep -c "^HECHO correos_enviados=0$" "$E")" -ge 4 ]' \
   "0 correos enviados en los pasos y en la sonda, y 0 en cola"
 
