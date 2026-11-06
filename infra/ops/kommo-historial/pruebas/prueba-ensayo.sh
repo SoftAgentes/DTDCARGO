@@ -150,10 +150,19 @@ exigir N5 '[ "$rc" != 0 ] && [ "$(docker inspect -f "{{.State.Status}}" chatwoot
 # ── R. El ensayo ─────────────────────────────────────────────────────────────
 log "== R. ensayo"
 ensayo r; rc=$?
-grep -E '^(PASÓ|FALLÓ|== resultado|E-[0-9]+ .*NO EJECUTADO)' "$TRABAJO/ensayo-r.txt" | sed 's/^/   /'
+grep -E '^(PASÓ|FALLÓ|== resultado|.*NO EJECUTADO)' "$TRABAJO/ensayo-r.txt" | sed 's/^/   /'
 pasadas="$(grep -c '^PASÓ ' "$TRABAJO/ensayo-r.txt" || true)"
 caidas="$(grep -c '^FALLÓ ' "$TRABAJO/ensayo-r.txt" || true)"
 exigir R1 '[ "$rc" = 0 ] && [ "$caidas" = 0 ] && [ "$pasadas" -ge 30 ]' "el ensayo pasa: $pasadas comprobaciones, $caidas fallas (código $rc)"
+# R2 (5.5b): que el ensayo de verdad cargó los adjuntos. Un «NO EJECUTADO» no basta: con los 3 adjuntos inventados del
+# staging, AD1 a AD3 tienen que estar y pasar.
+adjuntos_medidos() {
+  local c
+  for c in AD1 AD2 AD3; do grep -qE "^PASÓ +$c — " "$TRABAJO/ensayo-r.txt" || return 1; done
+  grep -qE "^PASÓ +AD1 — 5\.5b: 3 de 3 adjuntos subidos" "$TRABAJO/ensayo-r.txt"
+}
+exigir R2 'adjuntos_medidos && ! grep -q "adjuntos: NO EJECUTADO" "$TRABAJO/ensayo-r.txt"' \
+  "5.5b: el ensayo carga los 3 adjuntos inventados del staging, dos veces, y pasan AD1 a AD3"
 
 # ── P. La producción simulada quedó intacta ──────────────────────────────────
 DESPUES="$(huella_prod | tr '\n' ' ')"

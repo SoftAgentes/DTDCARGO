@@ -394,6 +394,8 @@ rr "$DIR/seco.txt" MODO=seco "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR
 rr "$DIR/carga-1.txt" MODO=cargar "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$CARGA"
 rr "$DIR/carga-2.txt" MODO=cargar "CUENTA=$CUENTA" "BANDEJA=$B" CARGA=- -- "$CARGADOR" <"$CARGA"
 # 5.5b: los adjuntos en claro del staging (STAGING), por la entrada estándar, dos veces (la segunda no duplica).
+# inf tiene que estar definida antes de usarla aquí: si no, ADJ_ESPERADOS queda vacío y los adjuntos no se cargan.
+inf() { [ -r "${2:-}" ] && python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))' "$2" "$1"; }
 ADJ_ESPERADOS="$(inf con_adjunto_para_carga "${INFORME_CARGA:-}")"
 if [ "${ADJ_ESPERADOS:-0}" -gt 0 ] 2>/dev/null; then
   if [ -d "${STAGING:-}/adjuntos-carga" ]; then
@@ -410,7 +412,6 @@ rr "$DIR/despues.txt" FASE=despues "CUENTA=$CUENTA" "BANDEJA=$B" -- "$SONDA" </d
 
 # ── Comprobaciones ───────────────────────────────────────────────────────────
 log "== E. mediciones"
-inf() { [ -r "${2:-}" ] && python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))' "$2" "$1"; }
 F="$DIR/antes.txt"
 exigir P1 '[ "$(h "$F" antes)" = ok ]' "foto de antes: $(h "$F" conversaciones) conversaciones, $(h "$F" contactos) contactos, secuencia $(h "$F" secuencia)"
 F="$DIR/bandeja.txt"
@@ -469,8 +470,11 @@ if [ "${ADJ_ESPERADOS:-0}" -gt 0 ] 2>/dev/null && [ -f "$DIR/adjuntos-1.txt" ]; 
   F="$DIR/despues.txt"
   exigir AD3 '[ "$(h "$F" adjuntos_archivo)" = "$ADJ_ESPERADOS" ] && [ "$(h "$F" adjuntos_bytes)" = "$ADJ_BYTES" ] && [ "$(h "$F" adjuntos_integros)" = "$ADJ_ESPERADOS" ] && cero "$(h "$F" blobs_huerfanos)" && cero "$(h "$F" blobs_sin_archivo)" && cero "$(h "$F" archivos_sin_blob)" && [ -n "$(h "$F" archivos_sin_blob)" ]' \
     "5.5b: en la copia, $(h "$F" adjuntos_archivo) adjuntos con $(h "$F" adjuntos_bytes) bytes, $(h "$F" adjuntos_integros) íntegros, 0 huérfanos"
+elif [ -r "${INFORME_CARGA:-}" ] && [ -z "$ADJ_ESPERADOS" ]; then
+  # Un informe que no trae el conteo es de un extractor sin la 5.5b o se leyó mal: no es «sin adjuntos».
+  mal AD0 "carga-informe.json no trae con_adjunto_para_carga: no se sabe cuántos adjuntos esperar"
 else
-  log "5.5b, adjuntos: NO EJECUTADO (el informe no trae adjuntos para carga)"
+  log "5.5b, adjuntos: NO EJECUTADO (el informe trae ${ADJ_ESPERADOS:-0} adjuntos para carga)"
 fi
 correos_pasos=0
 for p in bandeja seco carga-1 carga-2 $([ -f "$DIR/adjuntos-1.txt" ] && echo adjuntos-1 adjuntos-2); do
