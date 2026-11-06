@@ -51,7 +51,7 @@ Escrito por el Subdirector de Chatwoot el 2026-11-06 a las ~09:00Z, a pedido del
   - el borrado del token, a las 05:00:00 UTC del 2026-11-08, como red de seguridad. `completa.sh` lo sigue borrando apenas termina `extraer`, y si la para el vigía, queda para reanudar;
   - **el plazo de la 5.5b pasa a las 03:30Z**, con las mismas condiciones.
 
-  **Ojo con reanudar:** `completa.sh` se niega a arrancar si el token tiene 24 h o más. Sam lo pegó a las 13:40:42Z, así que una reanudación después de las 13:40Z del 2026-11-07 sale con el código 11. La corrida de las 05:00Z arranca con unas 15 h 19 min, y esa guarda no la corta a mitad.
+  **Reanudar:** la `completa.sh` desplegada hoy se niega a arrancar si el token tiene 24 h o más. Por eso, una reanudación después de las 13:40Z del 2026-11-07 saldría con 11. El Director General pidió atar la guarda al timer: el token vale mientras exista, tenga 600 y más de 200 bytes, y `kommo-e5-token-caduca.timer` siga activo. Va en la #394 con su prueba y se despliega con la 5.5b (§5.3).
 
 ## 3. Lo que espera a Sam
 
@@ -155,7 +155,12 @@ Va con el mismo token de la sonda, si no pasaron 24 horas (§5.1). Dura unas 3,7
 
 Si lo paran con TERM, devuelve 143 y no borra el token.
 
-**Con la 5.5b** (si pasa la puerta de las 03:30Z, §2), en `completa.sh` cambia una sola cosa: `--sin-adjuntos` sale y entra `--adjuntos-para-carga`. Antes se redespliega el extractor 1.3.0 de la #394 en `/srv/ops/kommo-historial-0590b` y se anotan las huellas. El bloque de abajo es el de antes; con la 5.5b, la línea del medio queda `--token-file /dev/shm/k0582-e5 --corte "$CORTE" --sondear-huecos -1 --adjuntos-para-carga \`.
+**Con la 5.5b** (si pasa la puerta de las 03:30Z, §2), se despliegan juntos, desde la cabeza de la #394 revisada, `completa.sh` y `respaldar-historial.py` 1.3.0, en `/srv/ops/kommo-historial-0590b`, y se anotan sus huellas. La `completa.sh` nueva:
+- corre `--adjuntos-para-carga` sin `--sin-adjuntos`;
+- ata la guarda del token a `kommo-e5-token-caduca.timer`, en lugar de las 24 h;
+- sale con 13 si el extractor no entiende la opción, para que un despliegue a medias no borre el token.
+
+Los timers no cambian: llaman a la misma ruta. El bloque de abajo es el de antes; con la 5.5b, la línea del medio queda `--token-file /dev/shm/k0582-e5 --corte "$CORTE" --sondear-huecos -1 --adjuntos-para-carga \`.
 
 ```sh
 stat -c '%a %s %y' /dev/shm/k0582-e5     # 600, más de 200 bytes, menos de 24 h; si no, Sam lo pega otra vez

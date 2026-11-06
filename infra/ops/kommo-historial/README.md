@@ -131,6 +131,22 @@ Prueba con datos inventados y la imagen real: corre en GitHub Actions en cada PR
 AD5 (§10.12) y corre el control M0 y 29 mutantes. En una PC con Docker: `bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh
 [--sin-mutantes]`. Es una corrida pesada, así que pide turno, y para sola si la memoria libre baja de 3 GB.
 
+### La completa programada: `completa.sh` y `vigia-carga.sh`
+
+En el VPS van en `/srv/ops/kommo-historial-0590b`, y los lanzan los timers `kommo-e5-completa` y `kommo-e5-vigia`
+(handoff `0590-e5-estado.md` §5.3). `completa.sh` corre `extraer --corte … --adjuntos-para-carga` y no le pide
+nada a Kommo si falla alguna de sus guardas:
+
+- **código 11:** falta el token, no tiene 600 o tiene 200 bytes o menos, o su borrado programado
+  (`kommo-e5-token-caduca.timer`) no está activo o ya disparó. La vida del token la fija ese timer;
+- **código 12:** la carga pasa de 8;
+- **código 13:** el extractor desplegado no entiende `--adjuntos-para-carga`.
+
+Al terminar `extraer`, bien o mal, borra el token y para el timer. Si lo para el vigía, que corta con carga
+mayor a 8, sale con 143 y el token queda para reanudar con el mismo `CORTE`. La prueba usa systemd de verdad,
+con un token, unos timers y un extractor falsos: `sudo bash pruebas/prueba-completa.sh`, en el mismo workflow.
+No es para correrla en el VPS, y se niega si encuentra el token real.
+
 ### Ensayo (5.6): copia efímera de la base de Chatwoot
 
 `ensayo-archivo.sh` corre en el VPS, como root. Copia la base de Chatwoot de producción, con `pg_dump` en solo

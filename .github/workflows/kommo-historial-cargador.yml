@@ -41,6 +41,11 @@ jobs:
       - name: Pruebas del extractor (Python)
         run: python3 -I infra/ops/kommo-historial/pruebas/test_respaldar.py
 
+      # SDD-0590 5.5b: las guardas de completa.sh con systemd de verdad, un token falso, timers falsos y un
+      # extractor falso (no le pide nada a Kommo), con control y mutantes.
+      - name: Guardas de la completa (systemd y token falso)
+        run: sudo bash infra/ops/kommo-historial/pruebas/prueba-completa.sh
+
       - name: Cargador en Chatwoot con Postgres y Redis, control y mutantes
         run: bash infra/ops/kommo-historial/pruebas/prueba-cargador.sh
 
